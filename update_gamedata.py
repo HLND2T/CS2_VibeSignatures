@@ -18,7 +18,7 @@ Usage:
     -debug: Print detailed information about missing, updated, and skipped symbols
 
 Requirements:
-    pip install pyyaml vdf
+    uv sync
 """
 
 import argparse
@@ -31,7 +31,7 @@ try:
     import yaml
 except ImportError:
     print("Error: Missing required dependency: yaml")
-    print("Please install required packages: pip install pyyaml")
+    print("Please install required dependencies with: uv sync")
     sys.exit(1)
 
 

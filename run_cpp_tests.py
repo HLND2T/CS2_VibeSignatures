@@ -17,7 +17,7 @@ try:
     import yaml
 except ImportError as e:
     print(f"Error: Missing required dependency: {e.name}")
-    print("Please install required packages: pip install pyyaml")
+    print("Please install required dependencies with: uv sync")
     sys.exit(1)
 
 from cpp_tests_util import (

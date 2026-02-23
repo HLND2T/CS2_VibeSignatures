@@ -12,30 +12,32 @@
 
 ## 依赖要求
 
-1. `pip install pyyaml requests asyncio mcp vdf`
+1. 安装 [uv](https://docs.astral.sh/uv/getting-started/installation/)
 
-2. claude / codex
+2. `uv sync`
 
-3. IDA Pro 9.0+
+3. claude / codex
 
-4. [ida-pro-mcp](https://github.com/mrexodia/ida-pro-mcp)
+4. IDA Pro 9.0+
 
-5. [idalib](https://docs.hex-rays.com/user-guide/idalib)（运行 `ida_analyze_bin.py` 的必需项）
+5. [ida-pro-mcp](https://github.com/mrexodia/ida-pro-mcp)
 
-6. Clang-LLVM（运行 `run_cpp_tests.py` 的必需项）
+6. [idalib](https://docs.hex-rays.com/user-guide/idalib)（运行 `ida_analyze_bin.py` 的必需项）
+
+7. Clang-LLVM（运行 `run_cpp_tests.py` 的必需项）
 
 ## 整体工作流
 
 #### 1. 下载 CS2 二进制文件
 
 ```bash
-python download_bin.py -gamever 14135
+uv run python download_bin.py -gamever 14135
 ```
 
 #### 2. 在 `config.yaml` 声明的所有符号上查找并生成 signatures
 
  ```bash
- python ida_analyze_bin.py -gamever=14135 [-configyaml=path/to/config.yaml] [-modules=server] [-platform=windows] [-agent=claude/codex] [-maxretry=3] [-debug]
+ uv run python ida_analyze_bin.py -gamever=14135 [-configyaml=path/to/config.yaml] [-modules=server] [-platform=windows] [-agent=claude/codex] [-maxretry=3] [-debug]
  ```
 
 * 在真正运行 Agent SKILL(s) 前，会先通过 mcp call 直接使用 `bin/{previous_gamever}/{module}/{symbol}.{platform}.yaml` 中的旧 signature 查找当前版本游戏二进制中的符号。这种情况不会消耗 token。
@@ -43,13 +45,13 @@ python download_bin.py -gamever 14135
 #### 3. 将 yaml(s) 转换为 gamedata json / txt
 
 ```bash
-python update_gamedata.py -gamever 14135 [-debug]
+uv run python update_gamedata.py -gamever 14135 [-debug]
 ```
 
 #### 4. 运行 C++ 测试并检查 cpp headers 是否与 yaml(s) 不匹配
 
 ```bash
-python run_cpp_tests.py -gamever 14135 [-debug] [-fixheader] [-agent=claude/codex]
+uv run python run_cpp_tests.py -gamever 14135 [-debug] [-fixheader] [-agent=claude/codex]
 ```
 
 * 使用 `-fixheader` 时，会启动一个 agent 来修复 cpp headers 中的不匹配项。
@@ -505,7 +507,7 @@ python run_cpp_tests.py -gamever 14135 [-debug] [-fixheader] [-agent=claude/code
 
 ### error: could not create 'ida.egg-info': access denied
 
-处理方式：在 `C:\Program Files\IDA Professional 9.0\idalib\python` 目录下，以**管理员权限**运行 `pip install .` 和 `python py-activate-idalib.py`。
+处理方式：在 `C:\Program Files\IDA Professional 9.0\idalib\python` 目录下，以**管理员权限**运行 `uv pip install --python .\python.exe .` 和 `.\python.exe py-activate-idalib.py`。
 
 ### Could not find idalib64.dll in .........
 
@@ -516,23 +518,23 @@ python run_cpp_tests.py -gamever 14135 [-debug] [-fixheader] [-agent=claude/code
 ```bash
 @echo Download latest game binaries
 
-python download_bin.py -gamever %CS2_GAMEVER%
+uv run python download_bin.py -gamever %CS2_GAMEVER%
 ```
 
 ```bash
 @echo Analyze game binaries
 
-python ida_analyze_bin.py -gamever %CS2_GAMEVER% -agent="claude.cmd" -platform %CS2_PLATFORM% -debug
+uv run python ida_analyze_bin.py -gamever %CS2_GAMEVER% -agent="claude.cmd" -platform %CS2_PLATFORM% -debug
 ```
 
 ```bash
 @echo Update gamedata with generated yamls
 
-python update_gamedata.py -gamever %CS2_GAMEVER% -debug
+uv run python update_gamedata.py -gamever %CS2_GAMEVER% -debug
 ```
 
 ```bash
 @echo Find mismatches in CS2SDK headers and fix them
 
-python run_cpp_tests.py -gamever %CS2_GAMEVER% -debug -fixheader -agent="claude.cmd"
+uv run python run_cpp_tests.py -gamever %CS2_GAMEVER% -debug -fixheader -agent="claude.cmd"
 ```

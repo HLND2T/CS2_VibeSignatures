@@ -12,30 +12,32 @@ Currently, all signatures/offsets from **CounterStrikeSharp** and **CS2Fixes** c
 
 ## Requirements
 
-1. `pip install pyyaml requests asyncio mcp vdf`
+1. Install [uv](https://docs.astral.sh/uv/getting-started/installation/)
 
-2. claude / codex
+2. `uv sync`
 
-3. IDA Pro 9.0+
+3. claude / codex
 
-4. [ida-pro-mcp](https://github.com/mrexodia/ida-pro-mcp)
+4. IDA Pro 9.0+
 
-5. [idalib](https://docs.hex-rays.com/user-guide/idalib) (mandatory for `ida_analyze_bin.py`)
+5. [ida-pro-mcp](https://github.com/mrexodia/ida-pro-mcp)
 
-6. Clang-LLVM (mandatory for `run_cpp_tests.py`)
+6. [idalib](https://docs.hex-rays.com/user-guide/idalib) (mandatory for `ida_analyze_bin.py`)
+
+7. Clang-LLVM (mandatory for `run_cpp_tests.py`)
 
 ## Overall workflow
 
 #### 1. Download CS2 binaries
 
 ```bash
-python download_bin.py -gamever 14135
+uv run python download_bin.py -gamever 14135
 ```
 
 #### 2. Find and generate signatures for all symbols declared in `config.yaml`
 
  ```bash
- python ida_analyze_bin.py -gamever=14135 [-configyaml=path/to/config.yaml] [-modules=server] [-platform=windows] [-agent=claude/codex] [-maxretry=3] [-debug]
+ uv run python ida_analyze_bin.py -gamever=14135 [-configyaml=path/to/config.yaml] [-modules=server] [-platform=windows] [-agent=claude/codex] [-maxretry=3] [-debug]
  ```
 
 * Old signatures from `bin/{previous_gamever}/{module}/{symbol}.{platform}.yaml` will be used to find symbols in current version of game binaries directly through mcp call before actually running Agent SKILL(s). No token will be consumed in this case.
@@ -43,13 +45,13 @@ python download_bin.py -gamever 14135
 #### 3. Convert yaml(s) to gamedata json / txt
 
 ```bash
-python update_gamedata.py -gamever 14135 [-debug]
+uv run python update_gamedata.py -gamever 14135 [-debug]
 ```
 
 #### 4. Run cpp tests and check if cpp headers mismatch from yaml(s)
 
 ```bash
-python run_cpp_tests.py -gamever 14135 [-debug] [-fixheader] [-agent=claude/codex]
+uv run python run_cpp_tests.py -gamever 14135 [-debug] [-fixheader] [-agent=claude/codex]
 ```
 
 * When with `-fixheader`, an agent will be initiated to fix the mismatches in cpp headers.
@@ -505,7 +507,7 @@ Mitigation: Overwrite `Python3**/Lib/site-packages/idapro/__init__.py` with `CS2
 
 ### error: could not create 'ida.egg-info': access denied
 
-Mitigation: You should run `pip install .` and `python py-activate-idalib.py` under `C:\Program Files\IDA Professional 9.0\idalib\python` with **administrator** privilege.
+Mitigation: You should run `uv pip install --python .\python.exe .` and `.\python.exe py-activate-idalib.py` under `C:\Program Files\IDA Professional 9.0\idalib\python` with **administrator** privilege.
 
 ### Could not find idalib64.dll in .........
 
@@ -516,23 +518,23 @@ Mitigation: Try `set IDADIR=C:\Program Files\IDA Professional 9.0` or add `IDADI
 ```bash
 @echo Download latest game binaries
 
-python download_bin.py -gamever %CS2_GAMEVER%
+uv run python download_bin.py -gamever %CS2_GAMEVER%
 ```
 
 ```bash
 @echo Analyze game binaries
 
-python ida_analyze_bin.py -gamever %CS2_GAMEVER% -agent="claude.cmd" -platform %CS2_PLATFORM% -debug
+uv run python ida_analyze_bin.py -gamever %CS2_GAMEVER% -agent="claude.cmd" -platform %CS2_PLATFORM% -debug
 ```
 
 ```bash
 @echo Update gamedata with generated yamls
 
-python update_gamedata.py -gamever %CS2_GAMEVER% -debug
+uv run python update_gamedata.py -gamever %CS2_GAMEVER% -debug
 ```
 
 ```bash
 @echo Find mismatches in CS2SDK headers and fix them
 
-python run_cpp_tests.py -gamever %CS2_GAMEVER% -debug -fixheader -agent="claude.cmd"
+uv run python run_cpp_tests.py -gamever %CS2_GAMEVER% -debug -fixheader -agent="claude.cmd"
 ```

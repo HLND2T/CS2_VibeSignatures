@@ -18,7 +18,7 @@ Usage:
     -debug: Enable debug output
 
 Requirements:
-    pip install pyyaml
+    uv sync
     uv (for running idalib-mcp)
     claude CLI or codex CLI
 
@@ -46,7 +46,7 @@ try:
     from mcp.client.streamable_http import streamable_http_client
 except ImportError as e:
     print(f"Error: Missing required dependency: {e.name}")
-    print("Please install required packages: pip install pyyaml mcp")
+    print("Please install required dependencies with: uv sync")
     sys.exit(1)
 
 from ida_skill_preprocessor import preprocess_single_skill_via_mcp

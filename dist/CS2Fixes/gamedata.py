@@ -19,7 +19,7 @@ try:
     import vdf
 except ImportError:
     print("Error: Missing required dependency: vdf")
-    print("Please install required packages: pip install vdf")
+    print("Please install required dependencies with: uv sync")
     vdf = None
 
 # Module metadata

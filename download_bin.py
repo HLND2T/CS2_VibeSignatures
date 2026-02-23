@@ -13,7 +13,7 @@ Usage:
     -sourcebinsurl: Base URL for SourceBins (default: https://sourcebins.alliedmods.net/cs2)
 
 Requirements:
-    pip install pyyaml requests
+    uv sync
 """
 
 import argparse
@@ -26,7 +26,7 @@ try:
     import requests
 except ImportError as e:
     print(f"Error: Missing required dependency: {e.name}")
-    print("Please install required packages: pip install pyyaml requests")
+    print("Please install required dependencies with: uv sync")
     sys.exit(1)
 
 
