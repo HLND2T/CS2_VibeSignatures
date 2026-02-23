@@ -31,13 +31,13 @@
 #### 1. 下载 CS2 二进制文件
 
 ```bash
-uv run python download_bin.py -gamever 14135
+uv run download_bin.py -gamever 14135
 ```
 
 #### 2. 在 `config.yaml` 声明的所有符号上查找并生成 signatures
 
  ```bash
- uv run python ida_analyze_bin.py -gamever=14135 [-configyaml=path/to/config.yaml] [-modules=server] [-platform=windows] [-agent=claude/codex] [-maxretry=3] [-debug]
+ uv run ida_analyze_bin.py -gamever=14135 [-configyaml=path/to/config.yaml] [-modules=server] [-platform=windows] [-agent=claude/codex] [-maxretry=3] [-debug]
  ```
 
 * 在真正运行 Agent SKILL(s) 前，会先通过 mcp call 直接使用 `bin/{previous_gamever}/{module}/{symbol}.{platform}.yaml` 中的旧 signature 查找当前版本游戏二进制中的符号。这种情况不会消耗 token。
@@ -45,13 +45,13 @@ uv run python download_bin.py -gamever 14135
 #### 3. 将 yaml(s) 转换为 gamedata json / txt
 
 ```bash
-uv run python update_gamedata.py -gamever 14135 [-debug]
+uv run update_gamedata.py -gamever 14135 [-debug]
 ```
 
 #### 4. 运行 C++ 测试并检查 cpp headers 是否与 yaml(s) 不匹配
 
 ```bash
-uv run python run_cpp_tests.py -gamever 14135 [-debug] [-fixheader] [-agent=claude/codex]
+uv run run_cpp_tests.py -gamever 14135 [-debug] [-fixheader] [-agent=claude/codex]
 ```
 
 * 使用 `-fixheader` 时，会启动一个 agent 来修复 cpp headers 中的不匹配项。
@@ -518,23 +518,23 @@ uv run python run_cpp_tests.py -gamever 14135 [-debug] [-fixheader] [-agent=clau
 ```bash
 @echo Download latest game binaries
 
-uv run python download_bin.py -gamever %CS2_GAMEVER%
+uv run download_bin.py -gamever %CS2_GAMEVER%
 ```
 
 ```bash
 @echo Analyze game binaries
 
-uv run python ida_analyze_bin.py -gamever %CS2_GAMEVER% -agent="claude.cmd" -platform %CS2_PLATFORM% -debug
+uv run ida_analyze_bin.py -gamever %CS2_GAMEVER% -agent="claude.cmd" -platform %CS2_PLATFORM% -debug
 ```
 
 ```bash
 @echo Update gamedata with generated yamls
 
-uv run python update_gamedata.py -gamever %CS2_GAMEVER% -debug
+uv run update_gamedata.py -gamever %CS2_GAMEVER% -debug
 ```
 
 ```bash
 @echo Find mismatches in CS2SDK headers and fix them
 
-uv run python run_cpp_tests.py -gamever %CS2_GAMEVER% -debug -fixheader -agent="claude.cmd"
+uv run run_cpp_tests.py -gamever %CS2_GAMEVER% -debug -fixheader -agent="claude.cmd"
 ```

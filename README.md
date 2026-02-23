@@ -31,13 +31,13 @@ Currently, all signatures/offsets from **CounterStrikeSharp** and **CS2Fixes** c
 #### 1. Download CS2 binaries
 
 ```bash
-uv run python download_bin.py -gamever 14135
+uv run download_bin.py -gamever 14135
 ```
 
 #### 2. Find and generate signatures for all symbols declared in `config.yaml`
 
  ```bash
- uv run python ida_analyze_bin.py -gamever=14135 [-configyaml=path/to/config.yaml] [-modules=server] [-platform=windows] [-agent=claude/codex] [-maxretry=3] [-debug]
+ uv run ida_analyze_bin.py -gamever=14135 [-configyaml=path/to/config.yaml] [-modules=server] [-platform=windows] [-agent=claude/codex] [-maxretry=3] [-debug]
  ```
 
 * Old signatures from `bin/{previous_gamever}/{module}/{symbol}.{platform}.yaml` will be used to find symbols in current version of game binaries directly through mcp call before actually running Agent SKILL(s). No token will be consumed in this case.
@@ -45,13 +45,13 @@ uv run python download_bin.py -gamever 14135
 #### 3. Convert yaml(s) to gamedata json / txt
 
 ```bash
-uv run python update_gamedata.py -gamever 14135 [-debug]
+uv run update_gamedata.py -gamever 14135 [-debug]
 ```
 
 #### 4. Run cpp tests and check if cpp headers mismatch from yaml(s)
 
 ```bash
-uv run python run_cpp_tests.py -gamever 14135 [-debug] [-fixheader] [-agent=claude/codex]
+uv run run_cpp_tests.py -gamever 14135 [-debug] [-fixheader] [-agent=claude/codex]
 ```
 
 * When with `-fixheader`, an agent will be initiated to fix the mismatches in cpp headers.
@@ -518,23 +518,23 @@ Mitigation: Try `set IDADIR=C:\Program Files\IDA Professional 9.0` or add `IDADI
 ```bash
 @echo Download latest game binaries
 
-uv run python download_bin.py -gamever %CS2_GAMEVER%
+uv run download_bin.py -gamever %CS2_GAMEVER%
 ```
 
 ```bash
 @echo Analyze game binaries
 
-uv run python ida_analyze_bin.py -gamever %CS2_GAMEVER% -agent="claude.cmd" -platform %CS2_PLATFORM% -debug
+uv run ida_analyze_bin.py -gamever %CS2_GAMEVER% -agent="claude.cmd" -platform %CS2_PLATFORM% -debug
 ```
 
 ```bash
 @echo Update gamedata with generated yamls
 
-uv run python update_gamedata.py -gamever %CS2_GAMEVER% -debug
+uv run update_gamedata.py -gamever %CS2_GAMEVER% -debug
 ```
 
 ```bash
 @echo Find mismatches in CS2SDK headers and fix them
 
-uv run python run_cpp_tests.py -gamever %CS2_GAMEVER% -debug -fixheader -agent="claude.cmd"
+uv run run_cpp_tests.py -gamever %CS2_GAMEVER% -debug -fixheader -agent="claude.cmd"
 ```
