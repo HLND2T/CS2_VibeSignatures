@@ -78,6 +78,7 @@ else:
     func_noret_flag = getattr(idaapi, "FUNC_NORET", 0)
     entries = {}
     count = 0
+    seen_funcs = set()
     for i in range(1000):
         ea = vtable_start + i * ptr_size
         if is_linux and i > 0:
@@ -107,13 +108,18 @@ else:
         if func is not None:
             # Windows-side vtable overruns often land on shared noreturn stubs
             # (fail-fast/abort helpers) located after the real table.
+            # However, repeated purecall stubs (same noreturn function appearing
+            # multiple times) are legitimate pure-virtual placeholders -- only
+            # break when we encounter a *new* noreturn function.
             if (
                 (not is_linux)
                 and count > 0
                 and func_noret_flag
                 and (func.flags & func_noret_flag)
+                and ptr_value not in seen_funcs
             ):
                 break
+            seen_funcs.add(ptr_value)
             entries[count] = hex(ptr_value)
             count += 1
             continue
