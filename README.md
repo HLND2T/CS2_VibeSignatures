@@ -12,32 +12,36 @@ Currently, all signatures/offsets from **CounterStrikeSharp** and **CS2Fixes** c
 
 ## Requirements
 
-1. Install [uv](https://docs.astral.sh/uv/getting-started/installation/)
+1. [uv](https://docs.astral.sh/uv/getting-started/installation/)
 
-2. `uv sync`
+2. claude / codex
 
-3. claude / codex
+3. IDA Pro 9.0+
 
-4. IDA Pro 9.0+
+4. [ida-pro-mcp](https://github.com/mrexodia/ida-pro-mcp)
 
-5. [ida-pro-mcp](https://github.com/mrexodia/ida-pro-mcp)
+5. [idalib](https://docs.hex-rays.com/user-guide/idalib) (mandatory for `ida_analyze_bin.py`)
 
-6. [idalib](https://docs.hex-rays.com/user-guide/idalib) (mandatory for `ida_analyze_bin.py`)
-
-7. Clang-LLVM (mandatory for `run_cpp_tests.py`)
+6. Clang-LLVM (mandatory for `run_cpp_tests.py`)
 
 ## Overall workflow
+
+#### 0. Install deps with uv
+
+```bash
+uv sync
+```
 
 #### 1. Download CS2 binaries
 
 ```bash
-uv run download_bin.py -gamever 14135
+uv run download_bin.py -gamever 14136
 ```
 
 #### 2. Find and generate signatures for all symbols declared in `config.yaml`
 
  ```bash
- uv run ida_analyze_bin.py -gamever=14135 [-configyaml=path/to/config.yaml] [-modules=server] [-platform=windows] [-agent=claude/codex] [-maxretry=3] [-debug]
+ uv run ida_analyze_bin.py -gamever 14136 [-configyaml=path/to/config.yaml] [-modules=server] [-platform=windows] [-agent=claude/codex] [-maxretry=3] [-debug]
  ```
 
 * Old signatures from `bin/{previous_gamever}/{module}/{symbol}.{platform}.yaml` will be used to find symbols in current version of game binaries directly through mcp call before actually running Agent SKILL(s). No token will be consumed in this case.
@@ -45,13 +49,13 @@ uv run download_bin.py -gamever 14135
 #### 3. Convert yaml(s) to gamedata json / txt
 
 ```bash
-uv run update_gamedata.py -gamever 14135 [-debug]
+uv run update_gamedata.py -gamever 14136 [-debug]
 ```
 
 #### 4. Run cpp tests and check if cpp headers mismatch from yaml(s)
 
 ```bash
-uv run run_cpp_tests.py -gamever 14135 [-debug] [-fixheader] [-agent=claude/codex]
+uv run run_cpp_tests.py -gamever 14136 [-debug] [-fixheader] [-agent=claude/codex]
 ```
 
 * When with `-fixheader`, an agent will be initiated to fix the mismatches in cpp headers.
