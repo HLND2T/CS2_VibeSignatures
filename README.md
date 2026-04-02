@@ -35,13 +35,13 @@ uv sync
 #### 1. Download CS2 binaries
 
 ```bash
-uv run download_bin.py -gamever 14136
+uv run download_bin.py -gamever 14141
 ```
 
 #### 2. Find and generate signatures for all symbols declared in `config.yaml`
 
  ```bash
- uv run ida_analyze_bin.py -gamever 14136 [-configyaml=path/to/config.yaml] [-modules=server] [-platform=windows] [-agent=claude/codex] [-maxretry=3] [-debug]
+ uv run ida_analyze_bin.py -gamever 14141 [-oldgamever=14140] [-configyaml=path/to/config.yaml] [-modules=server] [-platform=windows] [-agent=claude/codex] [-maxretry=3] [-debug]
  ```
 
 * Old signatures from `bin/{previous_gamever}/{module}/{symbol}.{platform}.yaml` will be used to find symbols in current version of game binaries directly through mcp call before actually running Agent SKILL(s). No token will be consumed in this case.
@@ -49,13 +49,13 @@ uv run download_bin.py -gamever 14136
 #### 3. Convert yaml(s) to gamedata json / txt
 
 ```bash
-uv run update_gamedata.py -gamever 14136 [-debug]
+uv run update_gamedata.py -gamever 14141 [-debug]
 ```
 
 #### 4. Run cpp tests and check if cpp headers mismatch from yaml(s)
 
 ```bash
-uv run run_cpp_tests.py -gamever 14136 [-debug] [-fixheader] [-agent=claude/codex]
+uv run run_cpp_tests.py -gamever 14141 [-debug] [-fixheader] [-agent=claude/codex]
 ```
 
 * When with `-fixheader`, an agent will be initiated to fix the mismatches in cpp headers.
