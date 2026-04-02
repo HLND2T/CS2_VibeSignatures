@@ -1,0 +1,129 @@
+name: Build On Self Runner
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    if: github.repository == 'HLND2T/CS2_VibeSignatures' || github.repository == 'hzqst/CS2_VibeSignatures'
+    environment: win64
+    runs-on: [self-hosted, windows, x64]
+    env:
+      RUNNER_AGENT: ${{ vars.RUNNER_AGENT }}
+      PERSISTED_WORKSPACE: ${{ secrets.PERSISTED_WORKSPACE }}
+
+    steps:
+      - name: Parse tag and validate environment configuration
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          if ($tag -notmatch '^v(?<gamever>\d+[a-z]?)(?:-(?<manifest>\d+))?$') {
+            throw "Unsupported tag format: $tag"
+          }
+
+          if ([string]::IsNullOrWhiteSpace($env:PERSISTED_WORKSPACE)) {
+            throw "PERSISTED_WORKSPACE secret is not configured for the win64 environment."
+          }
+
+          if ([string]::IsNullOrWhiteSpace($env:RUNNER_AGENT)) {
+            throw "RUNNER_AGENT variable is not configured for the win64 environment."
+          }
+
+          $manifestId = $Matches["manifest"]
+          if ($null -eq $manifestId) {
+            $manifestId = ""
+          }
+
+          "GAMEVER=$($Matches['gamever'])" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "MANIFESTID=$manifestId" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "WORKSPACE=${{ github.workspace }}" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Prepare persisted workspace links
+        shell: cmd
+        run: |
+          @echo off
+          if "%PERSISTED_WORKSPACE%"=="" (
+            echo PERSISTED_WORKSPACE is not configured.
+            exit /b 1
+          )
+
+          if not exist "%PERSISTED_WORKSPACE%\cs2_depot" mkdir "%PERSISTED_WORKSPACE%\cs2_depot"
+          if not exist "%PERSISTED_WORKSPACE%\bin" mkdir "%PERSISTED_WORKSPACE%\bin"
+
+          if exist "%WORKSPACE%\cs2_depot" (
+            powershell -NoProfile -Command "$item = Get-Item -LiteralPath '%WORKSPACE%\cs2_depot' -Force; if (-not ($item.Attributes -band [IO.FileAttributes]::ReparsePoint)) { Write-Error 'cs2_depot exists but is not a directory link.'; exit 1 }; $target = [string]$item.Target; if ($target -ne '%PERSISTED_WORKSPACE%\cs2_depot') { Write-Error ('cs2_depot link target mismatch: ' + $target); exit 1 }"
+            if errorlevel 1 exit /b 1
+          ) else (
+            mklink /d "%WORKSPACE%\cs2_depot" "%PERSISTED_WORKSPACE%\cs2_depot"
+          )
+
+          if exist "%WORKSPACE%\bin" (
+            powershell -NoProfile -Command "$item = Get-Item -LiteralPath '%WORKSPACE%\bin' -Force; if (-not ($item.Attributes -band [IO.FileAttributes]::ReparsePoint)) { Write-Error 'bin exists but is not a directory link.'; exit 1 }; $target = [string]$item.Target; if ($target -ne '%PERSISTED_WORKSPACE%\bin') { Write-Error ('bin link target mismatch: ' + $target); exit 1 }"
+            if errorlevel 1 exit /b 1
+          ) else (
+            mklink /d "%WORKSPACE%\bin" "%PERSISTED_WORKSPACE%\bin"
+          )
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          clean: false
+
+      - name: Update CS2 depot
+        shell: cmd
+        run: |
+          @echo off
+          if not "%MANIFESTID%"=="" (
+            DepotDownloader -app 730 -os all-platform -dir "%GITHUB_WORKSPACE%\cs2_depot" -manifest %MANIFESTID%
+          ) else (
+            DepotDownloader -app 730 -os all-platform -dir "%GITHUB_WORKSPACE%\cs2_depot"
+          )
+
+      - name: Copy depot binaries
+        shell: cmd
+        run: |
+          uv run copy_depot_bin.py -gamever %GAMEVER% -platform all-platform
+
+      - name: Analyze binaries
+        shell: cmd
+        run: |
+          uv run ida_analyze_bin.py -gamever %GAMEVER% -agent=%RUNNER_AGENT% -debug
+
+      - name: Update gamedata
+        shell: cmd
+        run: |
+          uv run update_gamedata.py -gamever %GAMEVER% -debug
+
+      - name: Run C++ tests
+        shell: cmd
+        run: |
+          uv run run_cpp_tests.py -gamever %GAMEVER% -fixheader -agent=%RUNNER_AGENT% -debug
+
+      - name: Archive release payload
+        shell: cmd
+        working-directory: ${{ github.workspace }}
+        run: |
+          7z a gamedata-%GAMEVER%.7z "bin\%GAMEVER%" "dist" "hl2sdk_cs2" -r ^
+          -x!*.dll ^
+          -x!*.so ^
+          -x!*.i64 ^
+          -x!*.id0 ^
+          -x!*.id1 ^
+          -x!*.id2 ^
+          -x!*.nam ^
+          -x!*.til ^
+          -x!.git ^
+          -x!.git-blame-ignore-revs ^
+          -x!.gitmodules
+
+      - name: Create release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          name: gamedata-${{ github.ref_name }}
+          files: gamedata-${{ env.GAMEVER }}.7z
