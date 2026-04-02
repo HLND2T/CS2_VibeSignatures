@@ -37,7 +37,7 @@ uv sync
 #### 1. Download latest CS2 depot and copy binaries to workspace
 
 ```bash
-DepotDownloader -app 730 -os all-platform -dir "path/to/cs2_depot"
+DepotDownloader -app 730 -os all-platform [-dir="path/to/cs2_depot"]
 
 uv run copy_depot_bin.py -gamever 14141 -platform all-platform
 ```
