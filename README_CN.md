@@ -28,33 +28,38 @@
 
 ## 整体工作流
 
-#### 1. 下载 CS2 二进制文件
+#### 1. 下载最新的 CS2 二进制文件并复制dll/so到工作目录
 
 ```bash
-uv run download_bin.py -gamever 14135
+DepotDownloader -app 730 -os windows -dir "path/to/cs2_depot/windows"
+DepotDownloader -app 730 -os linux -dir "path/to/cs2_depot/linux"
+
+uv run copy_depot_bin.py -gamever 14141
 ```
 
-#### 2. 在 `config.yaml` 声明的所有符号上查找并生成 signatures
+#### 2. 为 `config.yaml` 的符号生成对应的 signatures
 
  ```bash
- uv run ida_analyze_bin.py -gamever=14135 [-configyaml=path/to/config.yaml] [-modules=server] [-platform=windows] [-agent=claude/codex] [-maxretry=3] [-debug]
+ uv run ida_analyze_bin.py -gamever=14141 [-oldgamever=14140] [-configyaml=path/to/config.yaml] [-modules=server] [-platform=windows] [-agent=claude/codex/"claude.cmd"/"codex.cmd"] [-maxretry=3] [-debug]
  ```
 
-* 在真正运行 Agent SKILL(s) 前，会先通过 mcp call 直接使用 `bin/{previous_gamever}/{module}/{symbol}.{platform}.yaml` 中的旧 signature 查找当前版本游戏二进制中的符号。这种情况不会消耗 token。
+* 在真正运行 Agent SKILL(s) 前，会先通过 mcp call 直接使用 `bin/{previous_gamever}/{module}/{symbol}.{platform}.yaml` 中的旧 signature 查找当前版本游戏二进制中的符号。不会消耗 token。
+
+* `-agent="claude.cmd"` 用于Windows上使用npm安装的claude cli
 
 #### 3. 将 yaml(s) 转换为 gamedata json / txt
 
 ```bash
-uv run update_gamedata.py -gamever 14135 [-debug]
+uv run update_gamedata.py -gamever 14141 [-debug]
 ```
 
-#### 4. 运行 C++ 测试并检查 cpp headers 是否与 yaml(s) 不匹配
+#### 4. 运行 C++ 测试并检查 cpp headers 是否与 yaml(s) 匹配
 
 ```bash
-uv run run_cpp_tests.py -gamever 14135 [-debug] [-fixheader] [-agent=claude/codex]
+uv run run_cpp_tests.py -gamever 14141 [-debug] [-fixheader] [-agent=claude/codex]
 ```
 
-* 使用 `-fixheader` 时，会启动一个 agent 来修复 cpp headers 中的不匹配项。
+* 使用 `-fixheader` 时，会启动一个 agent 来修复 cpp headers 中的不匹配项（会消耗少量token）
 
 ### 当前支持的 gamedata
 

@@ -14,15 +14,17 @@ Currently, all signatures/offsets from **CounterStrikeSharp** and **CS2Fixes** c
 
 1. [uv](https://docs.astral.sh/uv/getting-started/installation/)
 
-2. claude / codex
+2. [depotdownloader](https://github.com/steamre/depotdownloader)
 
-3. IDA Pro 9.0+
+3. claude / codex
 
-4. [ida-pro-mcp](https://github.com/mrexodia/ida-pro-mcp)
+4. IDA Pro 9.0+
 
-5. [idalib](https://docs.hex-rays.com/user-guide/idalib) (mandatory for `ida_analyze_bin.py`)
+5. [ida-pro-mcp](https://github.com/mrexodia/ida-pro-mcp)
 
-6. Clang-LLVM (mandatory for `run_cpp_tests.py`)
+6. [idalib](https://docs.hex-rays.com/user-guide/idalib) (mandatory for `ida_analyze_bin.py`)
+
+7. Clang-LLVM (mandatory for `run_cpp_tests.py`)
 
 ## Overall workflow
 
@@ -32,19 +34,24 @@ Currently, all signatures/offsets from **CounterStrikeSharp** and **CS2Fixes** c
 uv sync
 ```
 
-#### 1. Download CS2 binaries
+#### 1. Download latest CS2 depot and copy binaries to workspace
 
 ```bash
-uv run download_bin.py -gamever 14141
+DepotDownloader -app 730 -os windows -dir "path/to/cs2_depot/windows"
+DepotDownloader -app 730 -os linux -dir "path/to/cs2_depot/linux"
+
+uv run copy_depot_bin.py -gamever 14141
 ```
 
 #### 2. Find and generate signatures for all symbols declared in `config.yaml`
 
  ```bash
- uv run ida_analyze_bin.py -gamever 14141 [-oldgamever=14140] [-configyaml=path/to/config.yaml] [-modules=server] [-platform=windows] [-agent=claude/codex] [-maxretry=3] [-debug]
+ uv run ida_analyze_bin.py -gamever 14141 [-oldgamever=14140] [-configyaml=path/to/config.yaml] [-modules=server] [-platform=windows] [-agent=claude/codex/"claude.cmd"/"codex.cmd"] [-maxretry=3] [-debug]
  ```
 
 * Old signatures from `bin/{previous_gamever}/{module}/{symbol}.{platform}.yaml` will be used to find symbols in current version of game binaries directly through mcp call before actually running Agent SKILL(s). No token will be consumed in this case.
+
+* `-agent="claude.cmd"` is for claude cli installed from Windows npm
 
 #### 3. Convert yaml(s) to gamedata json / txt
 
