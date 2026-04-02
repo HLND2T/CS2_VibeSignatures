@@ -59,14 +59,14 @@ jobs:
             pwsh -NoProfile -Command "$item = Get-Item -LiteralPath '%WORKSPACE%\cs2_depot' -Force; if (-not ($item.Attributes -band [IO.FileAttributes]::ReparsePoint)) { Write-Error 'cs2_depot exists but is not a directory junction or symlink.'; exit 1 }; $target = [string]$item.Target; if ($target -ne '%PERSISTED_WORKSPACE%\cs2_depot') { Write-Error ('cs2_depot link target mismatch: ' + $target); exit 1 }"
             if errorlevel 1 exit /b 1
           ) else (
-            mklink /j "%WORKSPACE%\cs2_depot" "%PERSISTED_WORKSPACE%\cs2_depot"
+            mklink /d "%WORKSPACE%\cs2_depot" "%PERSISTED_WORKSPACE%\cs2_depot"
           )
 
           if exist "%WORKSPACE%\bin" (
             pwsh -NoProfile -Command "$item = Get-Item -LiteralPath '%WORKSPACE%\bin' -Force; if (-not ($item.Attributes -band [IO.FileAttributes]::ReparsePoint)) { Write-Error 'bin exists but is not a directory junction or symlink.'; exit 1 }; $target = [string]$item.Target; if ($target -ne '%PERSISTED_WORKSPACE%\bin') { Write-Error ('bin link target mismatch: ' + $target); exit 1 }"
             if errorlevel 1 exit /b 1
           ) else (
-            mklink /j "%WORKSPACE%\bin" "%PERSISTED_WORKSPACE%\bin"
+            mklink /d "%WORKSPACE%\bin" "%PERSISTED_WORKSPACE%\bin"
           )
 
       - name: Checkout repository
