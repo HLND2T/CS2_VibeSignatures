@@ -2158,6 +2158,196 @@ async def preprocess_index_based_vfunc_via_mcp(
     return payload
 
 
+async def preprocess_func_xref_strings_via_mcp(
+    session, func_name, xref_strings, image_base, debug=False
+):
+    """
+    Locate a function by finding unique cross-references to known string literals.
+
+    For each string in *xref_strings*, the routine searches IDA's string list,
+    collects all code cross-references to the matched string address, resolves
+    the owning function of each xref, and intersects the function sets across
+    all strings.  If exactly **one** function references every listed string,
+    that function is accepted as the target.
+
+    After identification the routine generates a shortest-unique ``func_sig``
+    via ``preprocess_gen_func_sig_via_mcp``.
+
+    Args:
+        session: Active MCP ClientSession.
+        func_name: Desired function name (used in output YAML and IDA rename).
+        xref_strings: List of string literals the target function must reference.
+        image_base: Binary image base address (int).
+        debug: Enable debug output.
+
+    Returns:
+        Dict with function YAML data (func_name, func_va, func_rva, func_size,
+        func_sig), or None on failure.
+    """
+    if not xref_strings:
+        if debug:
+            print(f"    Preprocess: no xref_strings provided for {func_name}")
+        return None
+
+    # IDA py_eval script that, given a string literal, searches the binary's
+    # string list for an exact match, then collects all code xrefs and resolves
+    # their owning functions.  Returns a JSON list of unique function start
+    # addresses (as hex strings).
+    _XREF_PY_TEMPLATE = r'''
+import idautils, idaapi, ida_bytes, ida_nalt, json
+
+search_str = SEARCH_STR_PLACEHOLDER
+func_starts = set()
+
+for s in idautils.Strings():
+    if str(s) == search_str:
+        str_ea = s.ea
+        for xref in idautils.XrefsTo(str_ea, 0):
+            f = idaapi.get_func(xref.frm)
+            if f:
+                func_starts.add(f.start_ea)
+
+result = json.dumps([hex(ea) for ea in sorted(func_starts)])
+'''
+
+    # Collect the set of candidate function addresses for each xref string,
+    # then intersect them.
+    candidate_sets = []
+
+    for xref_str in xref_strings:
+        # Build py_eval code with the search string injected safely.
+        escaped = xref_str.replace("\\", "\\\\").replace('"', '\\"')
+        py_code = _XREF_PY_TEMPLATE.replace(
+            "SEARCH_STR_PLACEHOLDER", f'"{escaped}"'
+        )
+
+        try:
+            eval_result = await session.call_tool(
+                name="py_eval",
+                arguments={"code": py_code},
+            )
+            eval_data = parse_mcp_result(eval_result)
+        except Exception as e:
+            if debug:
+                print(f"    Preprocess: py_eval error for xref string search: {e}")
+            return None
+
+        func_addrs = None
+        if isinstance(eval_data, dict):
+            stderr_text = eval_data.get("stderr", "")
+            if stderr_text and debug:
+                print("    Preprocess: py_eval stderr:")
+                print(stderr_text.strip())
+            result_str = eval_data.get("result", "")
+            if result_str:
+                try:
+                    func_addrs = json.loads(result_str)
+                except (json.JSONDecodeError, TypeError):
+                    pass
+
+        if not isinstance(func_addrs, list) or len(func_addrs) == 0:
+            if debug:
+                short = xref_str[:80] + ("..." if len(xref_str) > 80 else "")
+                print(
+                    f"    Preprocess: no functions reference string "
+                    f"\"{short}\" for {func_name}"
+                )
+            return None
+
+        addr_set = set()
+        for addr_hex in func_addrs:
+            try:
+                addr_set.add(int(addr_hex, 16))
+            except Exception:
+                continue
+
+        if not addr_set:
+            return None
+
+        if debug:
+            short = xref_str[:60] + ("..." if len(xref_str) > 60 else "")
+            print(
+                f"    Preprocess: string \"{short}\" referenced by "
+                f"{len(addr_set)} function(s)"
+            )
+
+        candidate_sets.append(addr_set)
+
+    # Intersect all candidate sets.
+    common_funcs = candidate_sets[0]
+    for s in candidate_sets[1:]:
+        common_funcs = common_funcs & s
+
+    if len(common_funcs) != 1:
+        if debug:
+            print(
+                f"    Preprocess: xref string intersection yielded "
+                f"{len(common_funcs)} function(s) for {func_name} (need exactly 1)"
+            )
+        return None
+
+    target_va = next(iter(common_funcs))
+
+    if debug:
+        print(
+            f"    Preprocess: xref string intersection resolved {func_name} "
+            f"at {hex(target_va)}"
+        )
+
+    # Generate func_sig via the existing helper.
+    sig_data = await preprocess_gen_func_sig_via_mcp(
+        session=session,
+        func_va=target_va,
+        image_base=image_base,
+        debug=debug,
+    )
+
+    if sig_data is None:
+        if debug:
+            print(
+                f"    Preprocess: failed to generate func_sig for "
+                f"{func_name} at {hex(target_va)}"
+            )
+        # Even without a signature, return basic function info.
+        func_rva = target_va - image_base
+        # Try to get func size via py_eval.
+        py_size_code = (
+            f"import idaapi, json\n"
+            f"f = idaapi.get_func({target_va})\n"
+            f"if f and f.start_ea == {target_va}:\n"
+            f"    result = json.dumps(hex(f.end_ea - f.start_ea))\n"
+            f"else:\n"
+            f"    result = json.dumps(None)\n"
+        )
+        func_size_hex = None
+        try:
+            sz_result = await session.call_tool(
+                name="py_eval", arguments={"code": py_size_code}
+            )
+            sz_data = parse_mcp_result(sz_result)
+            if isinstance(sz_data, dict):
+                rs = sz_data.get("result", "")
+                if rs:
+                    parsed = json.loads(rs)
+                    if parsed is not None:
+                        func_size_hex = str(parsed)
+        except Exception:
+            pass
+
+        if func_size_hex is None:
+            return None
+
+        return {
+            "func_name": func_name,
+            "func_va": hex(target_va),
+            "func_rva": hex(func_rva),
+            "func_size": func_size_hex,
+        }
+
+    sig_data["func_name"] = func_name
+    return sig_data
+
+
 # ---------------------------------------------------------------------------
 # Common preprocess_skill template
 # ---------------------------------------------------------------------------
@@ -2209,11 +2399,12 @@ async def preprocess_common_skill(
     struct_member_names=None,
     vtable_class_names=None,
     inherit_vfuncs=None,
+    func_xref_strings=None,
     debug=False,
 ):
-    """Reusable preprocess_skill implementation for func/vfunc, gv, patch, struct-member, vtable, and inherit-vfunc targets.
+    """Reusable preprocess_skill implementation for func/vfunc, gv, patch, struct-member, vtable, inherit-vfunc, and xref-string targets.
 
-    Handles any combination of the six target types in a single call:
+    Handles any combination of the seven target types in a single call:
     - ``func_names``: func/vfunc targets via ``preprocess_func_sig_via_mcp``
       (which already supports vfunc_sig fallback internally).
     - ``gv_names``: global-variable targets via ``preprocess_gv_sig_via_mcp``.
@@ -2230,6 +2421,12 @@ async def preprocess_common_skill(
       For each target, ``preprocess_func_sig_via_mcp`` is attempted first
       (reusing an existing ``func_sig`` from old YAML); the index-based
       fallback is used only when that fails.
+    - ``func_xref_strings``: locate functions by string cross-reference via
+      ``preprocess_func_xref_strings_via_mcp``.  Each element is a tuple of
+      ``(func_name, xref_strings_list)``.  Used as a fallback when
+      ``preprocess_func_sig_via_mcp`` fails for a func target that has a
+      matching xref-string entry, or as the sole resolution method for
+      func targets that only appear in this list.
 
     Args:
         session: Active MCP ClientSession.
@@ -2244,6 +2441,8 @@ async def preprocess_common_skill(
         struct_member_names: List of struct-member target names (may be empty/None).
         vtable_class_names: List of class names for vtable lookup, or None.
         inherit_vfuncs: List of inherited vfunc specs (may be empty/None).
+        func_xref_strings: List of (func_name, xref_strings_list) tuples for
+            string-xref-based function lookup (may be empty/None).
         debug: Enable debug output.
 
     Returns:
@@ -2255,6 +2454,12 @@ async def preprocess_common_skill(
     struct_member_names = struct_member_names or []
     vtable_class_names = vtable_class_names or []
     inherit_vfuncs = inherit_vfuncs or []
+    func_xref_strings = func_xref_strings or []
+
+    # Build xref-string lookup: func_name -> list of xref strings
+    xref_strings_map = {}
+    for spec in func_xref_strings:
+        xref_strings_map[spec[0]] = spec[1]
 
     # --- vtable targets ---
     for vtable_class in vtable_class_names:
@@ -2358,13 +2563,21 @@ async def preprocess_common_skill(
                 print(f"    Preprocess: generated {func_name}.{platform}.yaml")
 
     # --- func/vfunc + gv + patch + struct-member targets ---
-    if not func_names and not gv_names and not patch_names and not struct_member_names:
+    # Merge func_names with xref-string-only targets so that functions that
+    # appear exclusively in func_xref_strings (and not in func_names) are also
+    # processed through the func pipeline.
+    xref_only_names = [
+        name for name in xref_strings_map if name not in func_names
+    ]
+    all_func_names = list(func_names) + xref_only_names
+
+    if not all_func_names and not gv_names and not patch_names and not struct_member_names:
         return True
 
     # Build expected filename -> (kind, name) mapping
     expected_by_filename = {
         f"{func_name}.{platform}.yaml": ("func", func_name)
-        for func_name in func_names
+        for func_name in all_func_names
     }
     for gv_name in gv_names:
         expected_by_filename[f"{gv_name}.{platform}.yaml"] = ("gv", gv_name)
@@ -2394,7 +2607,7 @@ async def preprocess_common_skill(
             matched_struct_outputs[name] = path
 
     # Validate all expected outputs are present
-    missing_func = [n for n in func_names if n not in matched_func_outputs]
+    missing_func = [n for n in all_func_names if n not in matched_func_outputs]
     missing_gv = [n for n in gv_names if n not in matched_gv_outputs]
     missing_patch = [n for n in patch_names if n not in matched_patch_outputs]
     missing_struct = [n for n in struct_member_names if n not in matched_struct_outputs]
@@ -2408,7 +2621,7 @@ async def preprocess_common_skill(
         return False
 
     # Process func/vfunc targets
-    for func_name in func_names:
+    for func_name in all_func_names:
         target_output = matched_func_outputs[func_name]
         old_path = (old_yaml_map or {}).get(target_output)
 
@@ -2422,6 +2635,20 @@ async def preprocess_common_skill(
             func_name=func_name,
             debug=debug,
         )
+
+        # Fallback: try xref-string-based lookup if func_sig failed and
+        # the function has an entry in func_xref_strings.
+        if func_data is None and func_name in xref_strings_map:
+            if debug:
+                print(f"    Preprocess: trying xref-string fallback for {func_name}")
+            func_data = await preprocess_func_xref_strings_via_mcp(
+                session=session,
+                func_name=func_name,
+                xref_strings=xref_strings_map[func_name],
+                image_base=image_base,
+                debug=debug,
+            )
+
         if func_data is None:
             if debug:
                 print(f"    Preprocess: failed to locate {func_name}")

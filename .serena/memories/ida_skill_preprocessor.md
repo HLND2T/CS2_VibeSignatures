@@ -39,6 +39,7 @@ Entry point `preprocess_single_skill_via_mcp(...)`:
 - Exported method: `preprocess_skill(...)`
 - Most scripts only need to declare constants and delegate to `preprocess_common_skill`:
   - func/vfunc scripts: declare `TARGET_FUNCTION_NAMES`, pass `func_names=TARGET_FUNCTION_NAMES`
+  - func xref-string scripts: declare `TARGET_FUNCTION_NAMES` and `FUNC_XREF_STRINGS` (list of `(func_name, xref_strings_list)` tuples), pass both `func_names=TARGET_FUNCTION_NAMES` and `func_xref_strings=FUNC_XREF_STRINGS`. The xref-string lookup is used as a fallback when `func_sig` reuse fails.
   - gv scripts: declare `TARGET_GLOBALVAR_NAMES`, pass `gv_names=TARGET_GLOBALVAR_NAMES`
   - patch scripts: declare `TARGET_PATCH_NAMES`, pass `patch_names=TARGET_PATCH_NAMES`
   - vtable scripts: declare `TARGET_CLASS_NAME`, pass `vtable_class_names=[TARGET_CLASS_NAME]`
@@ -58,7 +59,8 @@ Entry point `preprocess_single_skill_via_mcp(...)`:
 - `preprocess_patch_via_mcp`: reuse `patch_sig/patch_bytes` from old patch YAML and only succeed when `patch_sig` has exactly one `find_bytes` hit in new binary (`== 1`).
 - `preprocess_struct_offset_sig_via_mcp`: reuse old offset signatures to parse struct member offsets and sizes.
 - `preprocess_index_based_vfunc_via_mcp`: resolve new addresses and metadata for inherited vfuncs via old base-class `vfunc_index` + new vtable.
-- **`preprocess_common_skill`**: unified `preprocess_skill` template that supports combined target types including func/vfunc, gv, patch, struct-member, vtable, and inherit-vfunc. Most skill scripts only need constants plus delegation.
+- `preprocess_func_xref_strings_via_mcp`: locate functions by searching for known string literals and resolving cross-references to them. Intersects xref-containing functions across all provided strings to find a unique target, then auto-generates `func_sig`.
+- **`preprocess_common_skill`**: unified `preprocess_skill` template that supports combined target types including func/vfunc, gv, patch, struct-member, vtable, inherit-vfunc, and xref-string-based function lookup. Most skill scripts only need constants plus delegation.
 
 YAML writers consistently use `yaml.safe_dump`:
 - Ensure key set and ordering control (`sort_keys=False`)

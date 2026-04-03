@@ -13,6 +13,20 @@ modules:
         category: vtable
         shared: true
 
+  - name: networksystem
+    path_windows: game/bin/win64/networksystem.dll
+    path_linux: game/bin/linuxsteamrt64/libnetworksystem.so
+
+    skills:
+      - name: find-CNetworkMessages_vtable
+        expected_output:
+          - CNetworkMessages_vtable.{platform}.yaml
+
+    symbols:
+      - name: CNetworkMessages_vtable
+        category: vtable
+        shared: true
+
   - name: matchmaking
     path_windows: game/csgo/bin/win64/matchmaking.dll
     path_linux: game/csgo/bin/linuxsteamrt64/libmatchmaking.so
