@@ -2197,3 +2197,25 @@ cpp_tests:
     reference_modules:
       - server # bin/{gamever}/server/IGameSystem_*.{platform}.yaml
       - client # bin/{gamever}/client/IGameSystem_*.{platform}.yaml
+
+  - name: INetworkSystem_MSVC
+    symbol: INetworkSystem
+    cpp: cpp_tests/inetworksystem.cpp
+    headers:
+    - hl2sdk_cs2/public/networksystem/inetworksystem.h # This is for LLM agent
+    target: x86_64-pc-windows-msvc
+    include_directories:
+      - hl2sdk_cs2/game/shared
+      - hl2sdk_cs2/public
+      - hl2sdk_cs2/public/tier0
+      - hl2sdk_cs2/public/tier1
+    defines:
+      - COMPILER_MSVC=1
+      - COMPILER_MSVC64=1
+    additional_compiler_options:
+      - fms-extensions
+      - fms-compatibility
+      - Xclang
+      - fdump-vtable-layouts
+    reference_modules:
+      - networksystem # bin/{gamever}/networksystem/CNetworkMessages_*.{platform}.yaml
