@@ -38,6 +38,14 @@ modules:
         expected_output:
           - CNetworkMessages_SerializeInternal.{platform}.yaml
 
+      - name: find-CNetworkMessages_UnserializeMessageInternal
+        expected_output:
+          - CNetworkMessages_UnserializeMessageInternal.{platform}.yaml
+
+      - name: find-CNetworkMessages_SerializeMessageInternal
+        expected_output:
+          - CNetworkMessages_SerializeMessageInternal.{platform}.yaml
+
     symbols:
       - name: CNetworkMessages_vtable
         category: vtable
@@ -65,6 +73,17 @@ modules:
         category: func
         alias:
           - CNetworkMessages::SerializeInternal
+
+      - name: CNetworkMessages_UnserializeMessageInternal
+        category: func
+        alias:
+          - CNetworkMessages::UnserializeMessageInternal
+
+      - name: CNetworkMessages_SerializeMessageInternal
+        category: vfunc
+        alias:
+          - CNetworkMessages::SerializeMessageInternal
+        shared: true
 
   - name: matchmaking
     path_windows: game/csgo/bin/win64/matchmaking.dll
