@@ -129,6 +129,66 @@ def quit_ida_gracefully(process, host=DEFAULT_HOST, port=DEFAULT_PORT, debug=Fal
 
 
 
+def resolve_oldgamever(gamever, bin_dir):
+    """
+    Resolve the best oldgamever by searching for the most recent existing version
+    directory under bin_dir.
+
+    Version ordering (descending):
+        14141z > 14141y > ... > 14141b > 14141a > 14141 > 14140
+
+    Args:
+        gamever: Current game version string (e.g., "14142", "14141a")
+        bin_dir: Base binary directory to check for existing version subdirectories
+
+    Returns:
+        Best matching oldgamever string, or None if no candidate directory exists
+    """
+    if not gamever:
+        return None
+
+    # Parse gamever into (base_number, optional_suffix)
+    if gamever[-1].islower() and gamever[-1].isalpha():
+        suffix = gamever[-1]
+        base_str = gamever[:-1]
+    else:
+        suffix = None
+        base_str = gamever
+
+    try:
+        base = int(base_str)
+    except ValueError:
+        return None
+
+    # Generate candidates in descending version order
+    candidates = []
+
+    if suffix:
+        # E.g., gamever="14141c" -> try 14141b, 14141a, 14141, 14140z..14140a, 14140
+        for c in range(ord(suffix) - 1, ord('a') - 1, -1):
+            candidates.append(f"{base}{chr(c)}")
+        candidates.append(str(base))
+        prev_base = base - 1
+        for c in range(ord('z'), ord('a') - 1, -1):
+            candidates.append(f"{prev_base}{chr(c)}")
+        candidates.append(str(prev_base))
+    else:
+        # E.g., gamever="14142" -> try 14141z..14141a, 14141, 14140
+        prev_base = base - 1
+        for c in range(ord('z'), ord('a') - 1, -1):
+            candidates.append(f"{prev_base}{chr(c)}")
+        candidates.append(str(prev_base))
+        candidates.append(str(prev_base - 1))
+
+    # Return the first candidate whose directory exists
+    for candidate in candidates:
+        candidate_dir = os.path.join(bin_dir, candidate)
+        if os.path.isdir(candidate_dir):
+            return candidate
+
+    return None
+
+
 def parse_args():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(
@@ -203,10 +263,7 @@ def parse_args():
 
     # Resolve oldgamever
     if args.oldgamever is None:
-        try:
-            args.oldgamever = str(int(args.gamever) - 1)
-        except ValueError:
-            args.oldgamever = None
+        args.oldgamever = resolve_oldgamever(args.gamever, args.bindir)
     elif args.oldgamever.lower() == "none":
         args.oldgamever = None
 
