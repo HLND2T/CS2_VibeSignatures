@@ -61,6 +61,75 @@ DEFAULT_PORT = 13337
 MCP_STARTUP_TIMEOUT = 1200  # seconds to wait for MCP server
 SKILL_TIMEOUT = 1200  # 10 minutes per skill
 
+async def check_mcp_health(host=DEFAULT_HOST, port=DEFAULT_PORT):
+    """
+    Verify MCP server is alive and responsive via a lightweight py_eval call.
+
+    Args:
+        host: MCP server host
+        port: MCP server port
+    Returns:
+        True if the server responded successfully, False otherwise
+    """
+    server_url = f"http://{host}:{port}/mcp"
+
+    try:
+        async with httpx.AsyncClient(
+            follow_redirects=True,
+            timeout=httpx.Timeout(10.0, read=15.0),
+            trust_env=False,
+        ) as http_client:
+            async with streamable_http_client(server_url, http_client=http_client) as (read_stream, write_stream, _):
+                async with ClientSession(read_stream, write_stream) as session:
+                    await session.initialize()
+                    await session.call_tool(name="py_eval", arguments={"code": "1"})
+                    return True
+    except Exception:
+        return False
+
+
+def ensure_mcp_available(process, binary_path, host, port, ida_args, debug):
+    """
+    Ensure idalib-mcp is running and responsive. Restart if necessary.
+
+    Checks the process status first, then performs a real MCP health check.
+    If the server is unresponsive, kills the old process and starts a new one.
+
+    Args:
+        process: Current subprocess.Popen object (may be None)
+        binary_path: Path to binary file for restarting idalib-mcp
+        host: MCP server host
+        port: MCP server port
+        ida_args: Additional arguments for idalib-mcp
+        debug: Enable debug output
+
+    Returns:
+        Tuple of (new_process, ok) where new_process may be the same object
+        if no restart was needed, and ok indicates whether MCP is available.
+    """
+    # Step 1: check if the process has already exited
+    if process is not None and process.poll() is not None:
+        if debug:
+            print(f"  idalib-mcp process exited with code {process.returncode}")
+        process = None
+
+    # Step 2: if process appears alive, do a real MCP health check
+    if process is not None:
+        healthy = asyncio.run(check_mcp_health(host, port))
+        if healthy:
+            return process, True
+        print("  MCP health check failed, restarting idalib-mcp...")
+        quit_ida_gracefully(process, host, port, debug=debug)
+        process = None
+
+    # Step 3: restart idalib-mcp
+    print("  Restarting idalib-mcp...")
+    new_process = start_idalib_mcp(binary_path, host, port, ida_args, debug)
+    if new_process is None:
+        return None, False
+    return new_process, True
+
+
 async def quit_ida_via_mcp(host=DEFAULT_HOST, port=DEFAULT_PORT):
     """
     Gracefully quit IDA using MCP py_eval tool with idc.qexit(0).
@@ -699,6 +768,16 @@ def process_binary(binary_path, skills, agent, host, port, ida_args, platform, d
     try:
         # Process each skill: try preprocess first, then run_skill if needed
         for skill_name, expected_outputs, skill_max_retries in skills_to_process:
+            # Ensure MCP connection is alive before running the skill
+            process, mcp_ok = ensure_mcp_available(
+                process, binary_path, host, port, ida_args, debug
+            )
+            if not mcp_ok:
+                remaining = len(skills_to_process) - success_count - fail_count - skip_count
+                fail_count += remaining
+                print(f"  Failed to restore MCP connection, aborting remaining {remaining} skill(s)")
+                break
+
             # Check if all expected_input files are available before running the skill
             skill = skill_map[skill_name]
             expected_inputs = [
