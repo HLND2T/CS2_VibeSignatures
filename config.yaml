@@ -54,6 +54,18 @@ modules:
         expected_output:
           - CNetworkMessages_AllocateAndCopyConstructNetMessageAbstract.{platform}.yaml
 
+      - name: find-CNetworkMessages_DeallocateUnserializedMessage
+        expected_output:
+          - CNetworkMessages_DeallocateUnserializedMessage.{platform}.yaml
+
+      - name: find-CNetworkMessages_RegisterNetworkFieldSerializer
+        expected_output:
+          - CNetworkMessages_RegisterNetworkFieldSerializer.{platform}.yaml
+
+      - name: find-CNetworkMessages_RegisterNetworkArrayFieldSerializer
+        expected_output:
+          - CNetworkMessages_RegisterNetworkArrayFieldSerializer.{platform}.yaml
+
     symbols:
       - name: CNetworkMessages_vtable
         category: vtable
@@ -104,6 +116,24 @@ modules:
         category: vfunc
         alias:
           - CNetworkMessages::AllocateAndCopyConstructNetMessageAbstract
+        shared: true
+
+      - name: CNetworkMessages_DeallocateUnserializedMessage
+        category: vfunc
+        alias:
+          - CNetworkMessages::DeallocateUnserializedMessage
+        shared: true
+
+      - name: CNetworkMessages_RegisterNetworkFieldSerializer
+        category: vfunc
+        alias:
+          - CNetworkMessages::RegisterNetworkFieldSerializer
+        shared: true
+
+      - name: CNetworkMessages_RegisterNetworkArrayFieldSerializer
+        category: vfunc
+        alias:
+          - CNetworkMessages::RegisterNetworkArrayFieldSerializer
         shared: true
 
   - name: matchmaking
