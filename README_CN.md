@@ -33,7 +33,7 @@
 #### 1. 下载最新的 CS2 二进制文件并复制dll/so到工作目录
 
 ```bash
-DepotDownloader -app 730 -os all-platform [-dir="path/to/cs2_depot"]
+DepotDownloader -app 730 -os all-platform [-depotdir "path/to/cs2_depot"]
 
 uv run copy_depot_bin.py -gamever 14141 -platform all-platform
 ```

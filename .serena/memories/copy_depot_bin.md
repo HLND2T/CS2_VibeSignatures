@@ -47,4 +47,4 @@ parse_args
 - Because the script preserves the same `bin/<gamever>/<module>/<filename>` layout as the download workflow, it can serve as an offline/local-depot replacement for populating binaries before analysis.
 
 ## Callers (optional)
-- Direct CLI invocation: `python copy_depot_bin.py -gamever=<version> [-bindir=bin] [-platform=windows|linux] [-depotdir=cs2_depot]`
+- Direct CLI invocation: `python copy_depot_bin.py -gamever=<version> [-bindir=bin] [-platform=windows|linux] [-depotdir "path/to/cs2_depot"]`
