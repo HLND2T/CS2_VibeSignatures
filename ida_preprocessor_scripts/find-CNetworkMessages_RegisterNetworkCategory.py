@@ -9,7 +9,11 @@ TARGET_FUNCTION_NAMES = [
 
 FUNC_XREF_STRINGS = [
     # (func_name, xref_strings_list)
-    ( "CNetworkMessages_RegisterNetworkCategory",  [ "INetworkSystem::RegisterNetworkCategory: Attempted to register category %u twice" ] ),
+    ( "CNetworkMessages_RegisterNetworkCategory",  
+    [ 
+    "INetworkSystem::RegisterNetworkCategory: Attempted to register category %u twice",
+    "INetworkSystem::RegisterNetworkCategory: all categories must have ids between 0-31!"         
+    ] ),
 ]
 
 async def preprocess_skill(

@@ -2200,7 +2200,7 @@ search_str = SEARCH_STR_PLACEHOLDER
 func_starts = set()
 
 for s in idautils.Strings():
-    if str(s) == search_str:
+    if search_str in str(s):
         str_ea = s.ea
         for xref in idautils.XrefsTo(str_ea, 0):
             f = idaapi.get_func(xref.frm)

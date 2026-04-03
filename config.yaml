@@ -22,10 +22,19 @@ modules:
         expected_output:
           - CNetworkMessages_vtable.{platform}.yaml
 
+      - name: find-CNetworkMessages_RegisterNetworkCategory
+        expected_output:
+          - CNetworkMessages_RegisterNetworkCategory.{platform}.yaml
+
     symbols:
       - name: CNetworkMessages_vtable
         category: vtable
         shared: true
+
+      - name: CNetworkMessages_RegisterNetworkCategory
+        category: func
+        alias:
+          - CNetworkMessages::RegisterNetworkCategory
 
   - name: matchmaking
     path_windows: game/csgo/bin/win64/matchmaking.dll
