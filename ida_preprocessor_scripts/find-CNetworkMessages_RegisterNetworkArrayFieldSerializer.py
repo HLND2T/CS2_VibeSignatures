@@ -11,7 +11,7 @@ FUNC_XREF_STRINGS = [
     # (func_name, xref_strings_list)
     ( "CNetworkMessages_RegisterNetworkArrayFieldSerializer",
     [
-    "CNetworkMessages::RegisterNetworkArrayFieldSerializer"
+    "Error: Duplicate network array field serializer registered (%s)!"
     ] ),
 ]
 

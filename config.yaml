@@ -18,6 +18,11 @@ modules:
     path_linux: game/bin/linuxsteamrt64/libnetworksystem.so
 
     skills:
+
+      - name: find-CNetChan_vtable
+        expected_output:
+          - CNetChan_vtable.{platform}.yaml
+
       - name: find-CNetworkMessages_vtable
         expected_output:
           - CNetworkMessages_vtable.{platform}.yaml
@@ -66,15 +71,17 @@ modules:
         expected_output:
           - CNetworkMessages_RegisterNetworkArrayFieldSerializer.{platform}.yaml
 
-      - name: find-CNetChan_vtable
-        expected_output:
-          - CNetChan_vtable.{platform}.yaml
-
       - name: find-CNetworkMessages_GetNetMessageInfo
         expected_output:
           - CNetworkMessages_GetNetMessageInfo.{platform}.yaml
         expected_input:
           - CNetChan_ProcessMessages.{platform}.yaml
+
+      - name: find-CNetChan_ProcessMessages
+        expected_output:
+          - CNetChan_ProcessMessages.{platform}.yaml
+        expected_input:
+          - CNetChan_vtable.{platform}.yaml
 
     symbols:
       - name: CNetworkMessages_vtable
@@ -238,12 +245,6 @@ modules:
           - CNetworkMessages_SerializeAbstract.{platform}.yaml
         expected_input:
           - CDemoRecorder_ParseMessage.{platform}.yaml
-
-      - name: find-CNetChan_ProcessMessages
-        expected_output:
-          - CNetChan_ProcessMessages.{platform}.yaml
-        expected_input:
-          - CNetChan_vtable.{platform}.yaml
 
     symbols:
       - name: CNetworkGameServer_vtable
