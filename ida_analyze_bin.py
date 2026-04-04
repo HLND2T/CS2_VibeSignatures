@@ -50,12 +50,17 @@ except ImportError as e:
     sys.exit(1)
 
 from ida_skill_preprocessor import preprocess_single_skill_via_mcp
+from ida_vcall_finder import (
+    aggregate_vcall_results_for_object,
+    export_object_xref_details_via_mcp,
+)
     
 DEFAULT_CONFIG_FILE = "config.yaml"
 DEFAULT_BIN_DIR = "bin"
 DEFAULT_PLATFORM = "windows,linux"
 DEFAULT_MODULES = "*"
 DEFAULT_AGENT = "claude"
+DEFAULT_OPENAI_MODEL = "gpt-4o"
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 13337
 MCP_STARTUP_TIMEOUT = 1200  # seconds to wait for MCP server
@@ -86,6 +91,38 @@ async def check_mcp_health(host=DEFAULT_HOST, port=DEFAULT_PORT):
                     return True
     except Exception:
         return False
+
+
+async def preprocess_single_vcall_object_via_mcp(
+    host,
+    port,
+    output_root,
+    gamever,
+    module_name,
+    platform,
+    object_name,
+    debug=False,
+):
+    """Export xref detail YAMLs for a single vcall_finder object via MCP."""
+    server_url = f"http://{host}:{port}/mcp"
+
+    async with httpx.AsyncClient(
+        follow_redirects=True,
+        timeout=httpx.Timeout(30.0, read=300.0),
+        trust_env=False,
+    ) as http_client:
+        async with streamable_http_client(server_url, http_client=http_client) as (read_stream, write_stream, _):
+            async with ClientSession(read_stream, write_stream) as session:
+                await session.initialize()
+                return await export_object_xref_details_via_mcp(
+                    session,
+                    output_root=output_root,
+                    gamever=gamever,
+                    module_name=module_name,
+                    platform=platform,
+                    object_name=object_name,
+                    debug=debug,
+                )
 
 
 def ensure_mcp_available(process, binary_path, host, port, ida_args, debug):
@@ -166,6 +203,9 @@ def quit_ida_gracefully(process, host=DEFAULT_HOST, port=DEFAULT_PORT, debug=Fal
         host: MCP server host
         port: MCP server port
     """
+    if process is None:
+        return
+
     if process.poll() is not None:
         return  # Process already exited
 
@@ -258,6 +298,46 @@ def resolve_oldgamever(gamever, bin_dir):
     return None
 
 
+def parse_vcall_finder_filter(raw_value):
+    """
+    Parse vcall finder selector into normalized filter structure.
+
+    Args:
+        raw_value: Raw selector string from CLI, e.g. "*", "a,b", or None
+
+    Returns:
+        None if selector is not provided; otherwise:
+        {"all": bool, "names": set[str]}
+
+    Raises:
+        ValueError: If selector is empty or has invalid format.
+    """
+    if raw_value is None:
+        return None
+
+    if not isinstance(raw_value, str):
+        raise ValueError("selector must be a string")
+
+    selector = raw_value.strip()
+    if not selector:
+        raise ValueError("selector cannot be empty")
+
+    if selector == "*":
+        return {"all": True, "names": set()}
+
+    names = []
+    for name in selector.split(","):
+        normalized_name = name.strip()
+        if not normalized_name:
+            raise ValueError("selector contains empty object name")
+        names.append(normalized_name)
+
+    if "*" in names:
+        raise ValueError("'*' cannot be combined with object names")
+
+    return {"all": False, "names": set(names)}
+
+
 def parse_args():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(
@@ -292,6 +372,16 @@ def parse_args():
         "-modules",
         default=DEFAULT_MODULES,
         help=f"Modules to analyze, comma-separated (default: {DEFAULT_MODULES} for all). E.g., server,engine"
+    )
+    parser.add_argument(
+        "-vcall_finder",
+        default=None,
+        help="vcall_finder object selector: '*' for all, or comma-separated object names"
+    )
+    parser.add_argument(
+        "-openai_model",
+        default=os.getenv("OPENAI_API_MODEL") or DEFAULT_OPENAI_MODEL,
+        help="OpenAI model for vcall_finder workflow (default: OPENAI_API_MODEL or gpt-4o)"
     )
     parser.add_argument(
         "-ida_args",
@@ -329,6 +419,12 @@ def parse_args():
         args.module_filter = None  # None means all modules
     else:
         args.module_filter = [m.strip() for m in args.modules.split(",") if m.strip()]
+
+    # Parse vcall_finder selector
+    try:
+        args.vcall_finder_filter = parse_vcall_finder_filter(args.vcall_finder)
+    except ValueError as e:
+        parser.error(f"Invalid -vcall_finder: {e}")
 
     # Resolve oldgamever
     if args.oldgamever is None:
@@ -371,14 +467,68 @@ def parse_config(config_path):
                     "max_retries": skill.get("max_retries"),  # None means use default
                 })
 
+        if "vcall_finder" not in module or module.get("vcall_finder") is None:
+            raw_vcall_finder_objects = []
+        else:
+            raw_vcall_finder_objects = module.get("vcall_finder")
+        if not isinstance(raw_vcall_finder_objects, list):
+            raise ValueError(
+                f"Invalid vcall_finder for module '{name}': expected list, got {type(raw_vcall_finder_objects).__name__}"
+            )
+
+        for object_name in raw_vcall_finder_objects:
+            if not isinstance(object_name, str):
+                raise ValueError(
+                    f"Invalid vcall_finder entry for module '{name}': expected string, got {type(object_name).__name__}"
+                )
+
         modules.append({
             "name": name,
             "path_windows": module.get("path_windows"),
             "path_linux": module.get("path_linux"),
+            "vcall_finder_objects": raw_vcall_finder_objects,
             "skills": skills
         })
 
     return modules
+
+
+def resolve_module_vcall_targets(module, selector):
+    """
+    Resolve module-level vcall_finder targets using declared module objects only.
+
+    Args:
+        module: Module dictionary from parse_config()
+        selector: Parsed selector from parse_vcall_finder_filter()
+
+    Returns:
+        List of object names that exist in module["vcall_finder_objects"].
+    """
+    if "vcall_finder_objects" not in module or module.get("vcall_finder_objects") is None:
+        declared_objects = []
+    else:
+        declared_objects = module.get("vcall_finder_objects")
+    if not isinstance(declared_objects, list):
+        raise ValueError(
+            f"Invalid vcall_finder_objects for module '{module.get('name', '<unknown>')}': "
+            f"expected list, got {type(declared_objects).__name__}"
+        )
+
+    for object_name in declared_objects:
+        if not isinstance(object_name, str):
+            raise ValueError(
+                f"Invalid vcall_finder_objects entry for module '{module.get('name', '<unknown>')}': "
+                f"expected string, got {type(object_name).__name__}"
+            )
+
+    if selector is None:
+        return []
+
+    if selector.get("all"):
+        return [name for name in declared_objects if name]
+
+    selected_names = selector.get("names", set())
+    return [name for name in declared_objects if name and name in selected_names]
 
 
 def topological_sort_skills(skills):
@@ -465,6 +615,11 @@ def topological_sort_skills(skills):
                 sorted_names.append(skill["name"])
 
     return sorted_names
+
+
+def should_start_binary_processing(skills_to_process, vcall_targets):
+    """Start IDA when either skills or vcall_finder still has work to do."""
+    return bool(skills_to_process or vcall_targets)
 
 
 def get_binary_path(bin_dir, gamever, module_name, module_path):
@@ -710,7 +865,22 @@ def run_skill(skill_name, agent="claude", debug=False, expected_yaml_paths=None,
     return False
 
 
-def process_binary(binary_path, skills, agent, host, port, ida_args, platform, debug=False, max_retries=3, old_binary_dir=None):
+def process_binary(
+    binary_path,
+    skills,
+    agent,
+    host,
+    port,
+    ida_args,
+    platform,
+    debug=False,
+    max_retries=3,
+    old_binary_dir=None,
+    gamever=None,
+    module_name=None,
+    vcall_targets=None,
+    vcall_output_dir="vcall_finder",
+):
     """
     Process a single binary file.
 
@@ -761,25 +931,26 @@ def process_binary(binary_path, skills, agent, host, port, ida_args, platform, d
             skill_max_retries = skill.get("max_retries") or max_retries
             skills_to_process.append((skill_name, expected_outputs, skill_max_retries))
 
-    # If all skills are skipped, no need to start IDA
-    if not skills_to_process:
-        print(f"  All skills already have yaml files, skipping IDA startup")
+    vcall_targets = list(vcall_targets or [])
+
+    if not should_start_binary_processing(skills_to_process, vcall_targets):
+        print("  All skills already have yaml files and no vcall_finder targets remain, skipping IDA startup")
         return success_count, fail_count, skip_count
 
     # Start idalib-mcp
     process = start_idalib_mcp(binary_path, host, port, ida_args, debug)
     if process is None:
-        return 0, len(skills_to_process), skip_count
+        return 0, len(skills_to_process) + len(vcall_targets), skip_count
 
     try:
         # Process each skill: try preprocess first, then run_skill if needed
-        for skill_name, expected_outputs, skill_max_retries in skills_to_process:
+        for skill_index, (skill_name, expected_outputs, skill_max_retries) in enumerate(skills_to_process):
             # Ensure MCP connection is alive before running the skill
             process, mcp_ok = ensure_mcp_available(
                 process, binary_path, host, port, ida_args, debug
             )
             if not mcp_ok:
-                remaining = len(skills_to_process) - success_count - fail_count - skip_count
+                remaining = len(skills_to_process) - skill_index
                 fail_count += remaining
                 print(f"  Failed to restore MCP connection, aborting remaining {remaining} skill(s)")
                 break
@@ -841,6 +1012,55 @@ def process_binary(binary_path, skills, agent, host, port, ida_args, platform, d
                 fail_count += 1
                 print(f"    Failed")
 
+        for object_index, object_name in enumerate(vcall_targets):
+            process, mcp_ok = ensure_mcp_available(
+                process, binary_path, host, port, ida_args, debug
+            )
+            if not mcp_ok:
+                remaining = len(vcall_targets) - object_index
+                fail_count += remaining
+                print(f"  Failed to restore MCP connection, aborting remaining {remaining} vcall_finder target(s)")
+                break
+
+            print(f"  Processing vcall_finder: {object_name}")
+            try:
+                export_stats = asyncio.run(
+                    preprocess_single_vcall_object_via_mcp(
+                        host=host,
+                        port=port,
+                        output_root=vcall_output_dir,
+                        gamever=gamever,
+                        module_name=module_name,
+                        platform=platform,
+                        object_name=object_name,
+                        debug=debug,
+                    )
+                )
+            except Exception as exc:
+                fail_count += 1
+                print(f"    Failed to export vcall_finder for {object_name}: {exc}")
+                continue
+
+            object_status = export_stats["status"]
+            if object_status == "success":
+                success_count += 1
+            elif object_status == "failed":
+                fail_count += 1
+            else:
+                skip_count += 1
+
+            exported_functions = export_stats["exported_functions"]
+            failed_functions = export_stats["failed_functions"]
+            skipped_functions = export_stats["skipped_functions"]
+            if debug or failed_functions:
+                print(
+                    "    vcall_finder summary: "
+                    f"status={object_status}, "
+                    f"exported_functions={exported_functions}, "
+                    f"failed_functions={failed_functions}, "
+                    f"skipped_functions={skipped_functions}"
+                )
+
     finally:
         # Gracefully quit IDA via MCP to avoid breaking IDB
         quit_ida_gracefully(process, host, port, debug=debug)
@@ -893,23 +1113,29 @@ def main():
     total_success = 0
     total_fail = 0
     total_skip = 0
+    all_vcall_objects = set()
 
     for module in modules:
         module_name = module["name"]
         skills = module["skills"]
+        vcall_targets = resolve_module_vcall_targets(module, args.vcall_finder_filter)
 
         # Filter modules if specified
         if module_filter is not None and module_name not in module_filter:
             print(f"\nModule '{module_name}': Not in filter list, skipping")
             continue
 
-        if not skills:
-            print(f"\nModule '{module_name}': No skills defined, skipping")
+        if not skills and not vcall_targets:
+            print(f"\nModule '{module_name}': No skills or vcall_finder targets defined, skipping")
             continue
+
+        all_vcall_objects.update(vcall_targets)
 
         print(f"\n{'='*60}")
         print(f"Module: {module_name}")
         print(f"Skills: {len(skills)}")
+        if vcall_targets:
+            print(f"VCall targets: {len(vcall_targets)}")
         print(f"{'='*60}")
 
         for platform in platforms:
@@ -918,7 +1144,7 @@ def main():
 
             if not module_path:
                 print(f"\n  Platform {platform}: No path defined, skipping")
-                total_skip += len(skills)
+                total_skip += len(skills) + len(vcall_targets)
                 continue
 
             # Build binary path
@@ -931,7 +1157,7 @@ def main():
             if not os.path.exists(binary_path):
                 print(f"  Error: Binary file not found: {binary_path}")
                 print(f"  Hint: Run download_bin.py first to download binaries")
-                total_skip += len(skills)
+                total_skip += len(skills) + len(vcall_targets)
                 continue
 
             # Compute old binary dir for signature reuse
@@ -949,11 +1175,44 @@ def main():
                 binary_path, skills, agent,
                 DEFAULT_HOST, DEFAULT_PORT, ida_args, platform, debug,
                 max_retries=args.maxretry,
-                old_binary_dir=old_binary_dir
+                old_binary_dir=old_binary_dir,
+                gamever=gamever,
+                module_name=module_name,
+                vcall_targets=vcall_targets,
             )
             total_success += success
             total_fail += fail
             total_skip += skip
+
+    if args.vcall_finder_filter and all_vcall_objects:
+        print("\nRunning vcall_finder OpenAI aggregation")
+        for object_name in sorted(all_vcall_objects):
+            print(f"  Aggregating vcall_finder: {object_name}")
+            try:
+                stats = aggregate_vcall_results_for_object(
+                    base_dir="vcall_finder",
+                    gamever=gamever,
+                    object_name=object_name,
+                    model=args.openai_model,
+                    debug=debug,
+                )
+                aggregation_status = stats["status"]
+                if aggregation_status == "success":
+                    total_success += 1
+                elif aggregation_status == "failed":
+                    total_fail += 1
+                else:
+                    total_skip += 1
+
+                if debug or stats["failed"]:
+                    print(
+                        "    vcall_finder aggregation summary: "
+                        f"status={aggregation_status}, "
+                        f"processed={stats['processed']}, failed={stats['failed']}"
+                    )
+            except Exception as exc:
+                total_fail += 1
+                print(f"  Failed to aggregate {object_name}: {exc}")
 
     # Summary
     print(f"\n{'='*60}")

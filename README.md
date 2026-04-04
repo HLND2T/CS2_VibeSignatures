@@ -45,12 +45,35 @@ uv run copy_depot_bin.py -gamever 14141 -platform all-platform
 #### 2. Find and generate signatures for all symbols declared in `config.yaml`
 
  ```bash
- uv run ida_analyze_bin.py -gamever 14141 [-oldgamever=14140] [-configyaml=path/to/config.yaml] [-modules=server] [-platform=windows] [-agent=claude/codex/"claude.cmd"/"codex.cmd"] [-maxretry=3] [-debug]
+ uv run ida_analyze_bin.py -gamever 14141 [-oldgamever=14140] [-configyaml=path/to/config.yaml] [-modules=server] [-platform=windows] [-agent=claude/codex/"claude.cmd"/"codex.cmd"] [-maxretry=3] [-vcall_finder=g_pNetworkMessages|*] [-openai_model=gpt-4o] [-debug]
  ```
 
 * Old signatures from `bin/{previous_gamever}/{module}/{symbol}.{platform}.yaml` will be used to find symbols in current version of game binaries directly through mcp call before actually running Agent SKILL(s). No token will be consumed in this case.
 
 * `-agent="claude.cmd"` is for claude cli installed from Windows npm
+
+* `-vcall_finder=g_pNetworkMessages` filters by an object declared in the module-level `vcall_finder` config; `-vcall_finder=*` processes every declared object from `config.yaml`.
+
+* When `-vcall_finder` is enabled, the script exports full disassembly and pseudocode for each referencing function into `vcall_finder/{gamever}/{object_name}/{module}/{platform}/`, then runs OpenAI SDK aggregation after all module/platform IDA work finishes and writes the merged result to `vcall_finder/{gamever}/{object_name}.yaml`.
+
+* Environment variables:
+  - `OPENAI_API_KEY`: required when `vcall_finder` aggregation is enabled
+  - `OPENAI_API_BASE`: optional custom compatible base URL
+  - `OPENAI_API_MODEL`: optional, defaults to `gpt-4o`
+  - `-openai_model`: overrides `OPENAI_API_MODEL`
+
+```bash
+export OPENAI_API_KEY=your-key
+export OPENAI_API_MODEL=gpt-4o
+
+uv run ida_analyze_bin.py -gamever=14141 -modules=networksystem -platform=windows -vcall_finder=g_pNetworkMessages
+uv run ida_analyze_bin.py -gamever=14141 -platform=windows,linux -vcall_finder=*
+```
+
+Example outputs:
+
+- `vcall_finder/14141/g_pNetworkMessages/networksystem/windows/sub_140123450.yaml`
+- `vcall_finder/14141/g_pNetworkMessages.yaml`
 
 #### 3. Convert yaml(s) to gamedata json / txt
 

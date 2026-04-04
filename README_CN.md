@@ -41,12 +41,35 @@ uv run copy_depot_bin.py -gamever 14141 -platform all-platform
 #### 2. 为 `config.yaml` 的符号生成对应的 signatures
 
  ```bash
- uv run ida_analyze_bin.py -gamever=14141 [-oldgamever=14140] [-configyaml=path/to/config.yaml] [-modules=server] [-platform=windows] [-agent=claude/codex/"claude.cmd"/"codex.cmd"] [-maxretry=3] [-debug]
+ uv run ida_analyze_bin.py -gamever=14141 [-oldgamever=14140] [-configyaml=path/to/config.yaml] [-modules=server] [-platform=windows] [-agent=claude/codex/"claude.cmd"/"codex.cmd"] [-maxretry=3] [-vcall_finder=g_pNetworkMessages|*] [-openai_model=gpt-4o] [-debug]
  ```
 
 * 在真正运行 Agent SKILL(s) 前，会先通过 mcp call 直接使用 `bin/{previous_gamever}/{module}/{symbol}.{platform}.yaml` 中的旧 signature 查找当前版本游戏二进制中的符号。不会消耗 token。
 
 * `-agent="claude.cmd"` 用于Windows上使用npm安装的claude cli
+
+* `-vcall_finder=g_pNetworkMessages` 会在模块级 `vcall_finder` 配置中筛选同名对象；`-vcall_finder=*` 会处理 `config.yaml` 中已声明的全部对象。
+
+* 当启用 `-vcall_finder` 时，脚本会在每个模块/平台完成 IDA 任务后导出对象引用函数的完整反汇编与伪代码到 `vcall_finder/{gamever}/{object_name}/{module}/{platform}/`，并在全部模块/平台结束后调用 OpenAI SDK 聚合到 `vcall_finder/{gamever}/{object_name}.yaml`。
+
+* 环境变量：
+  - `OPENAI_API_KEY`：启用 `vcall_finder` 聚合时必需
+  - `OPENAI_API_BASE`：可选，自定义兼容 base URL
+  - `OPENAI_API_MODEL`：可选，默认 `gpt-4o`
+  - `-openai_model`：优先级高于 `OPENAI_API_MODEL`
+
+```bash
+export OPENAI_API_KEY=your-key
+export OPENAI_API_MODEL=gpt-4o
+
+uv run ida_analyze_bin.py -gamever=14141 -modules=networksystem -platform=windows -vcall_finder=g_pNetworkMessages
+uv run ida_analyze_bin.py -gamever=14141 -platform=windows,linux -vcall_finder=*
+```
+
+输出示例：
+
+- `vcall_finder/14141/g_pNetworkMessages/networksystem/windows/sub_140123450.yaml`
+- `vcall_finder/14141/g_pNetworkMessages.yaml`
 
 #### 3. 将 yaml(s) 转换为 gamedata json / txt
 

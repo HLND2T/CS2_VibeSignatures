@@ -13,9 +13,12 @@ modules:
         category: vtable
         shared: true
 
+
   - name: networksystem
     path_windows: game/bin/win64/networksystem.dll
     path_linux: game/bin/linuxsteamrt64/libnetworksystem.so
+
+    vcall_finder:
 
     skills:
 
@@ -220,6 +223,8 @@ modules:
     path_windows: game/bin/win64/engine2.dll
     path_linux: game/bin/linuxsteamrt64/libengine2.so
 
+    vcall_finder:
+
     skills:
       - name: find-CNetworkGameServer_vtable
         expected_output:
@@ -377,6 +382,8 @@ modules:
   - name: client
     path_windows: game/csgo/bin/win64/client.dll
     path_linux: game/csgo/bin/linuxsteamrt64/libclient.so
+
+    vcall_finder:
 
     skills:
       - name: find-IGameSystem_vtable
@@ -694,6 +701,8 @@ modules:
   - name: server
     path_windows: game/csgo/bin/win64/server.dll
     path_linux: game/csgo/bin/linuxsteamrt64/libserver.so
+
+    vcall_finder:
 
     skills:
       - name: find-CSource2Server_vtable
