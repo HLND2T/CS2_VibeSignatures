@@ -323,6 +323,10 @@ modules:
         expected_input:
           - CDemoRecorder_ParseMessage.{platform}.yaml
 
+      - name: find-CNetworkGameClient_ProcessPacketEntitiesInternal
+        expected_output:
+          - CNetworkGameClient_ProcessPacketEntitiesInternal.{platform}.yaml
+
     symbols:
       - name: CNetworkGameServer_vtable
         category: vtable
@@ -415,6 +419,12 @@ modules:
         category: vfunc
         alias:
           - CNetChan::ParseMessagesDemo
+
+      - name: CNetworkGameClient_ProcessPacketEntitiesInternal
+        category: func
+        alias:
+          - CNetworkGameClient::ProcessPacketEntitiesInternal
+          - ProcessPacketEntities
 
   - name: client
     path_windows: game/csgo/bin/win64/client.dll
