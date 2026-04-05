@@ -333,6 +333,16 @@ modules:
         expected_input:
           - CNetworkGameClient_ProcessPacketEntitiesInternal.{platform}.yaml
 
+      - name: find-CNetworkServerService_vtable
+        expected_output:
+          - CNetworkServerService_vtable.{platform}.yaml
+
+      - name: find-CNetworkServerService_Init
+        expected_output:
+          - CNetworkServerService_Init.{platform}.yaml
+        expected_input:
+          - CNetworkServerService_vtable.{platform}.yaml
+
     symbols:
       - name: CNetworkGameServer_vtable
         category: vtable
@@ -436,6 +446,14 @@ modules:
         alias:
           - CNetworkGameClient::ProcessPacketEntities
           - ProcessPacketEntities
+
+      - name: CNetworkServerService_vtable
+        category: vtable
+
+      - name: CNetworkServerService_Init
+        category: vfunc
+        alias:
+          - CNetworkServerService::Init
 
   - name: client
     path_windows: game/csgo/bin/win64/client.dll
