@@ -1,28 +1,26 @@
 ---
 name: find-CNetworkMessages_GetLoggingChannel
 description: |
-  Find and identify the CNetworkMessages_GetLoggingChannel virtual function call in CS2 binary using IDA Pro MCP.
-  Use this skill when reverse engineering CS2 server.dll or libserver.so to locate the GetLoggingChannel vfunc call
-  by searching for the "CNetworkUtlVectorEmbedded: successfully late-resolved" log string, tracing to a
-  CNetworkUtlVectorEmbedded::LateResolve template instance, and identifying the vfunc call through g_pNetworkMessages.
+  Find and identify the CNetworkMessages_GetLoggingChannel virtual function in CS2 binary using IDA Pro MCP.
+  Use this skill when reverse engineering CS2 networksystem.dll or libnetworksystem.so to locate the GetLoggingChannel vfunc
+  by cross-referencing the "Networking" logging channel registration with the CNetworkMessages vtable.
   Trigger: CNetworkMessages_GetLoggingChannel
 disable-model-invocation: true
 ---
 
 # Find CNetworkMessages_GetLoggingChannel
 
-Locate `CNetworkMessages_GetLoggingChannel` vfunc call in CS2 server.dll or libserver.so using IDA Pro MCP tools.
+Locate `CNetworkMessages_GetLoggingChannel` vfunc in CS2 networksystem.dll or libnetworksystem.so using IDA Pro MCP tools.
 
 ## Method
 
-### 1. Search for the LateResolve Log String
+### 1. Search for the "Networking" String
 
 ```
-mcp__ida-pro-mcp__find_regex pattern="CNetworkUtlVectorEmbedded: successfully late-resolved"
+mcp__ida-pro-mcp__find_regex pattern="Networking"
 ```
 
-This should find the string:
-`"CNetworkUtlVectorEmbedded: successfully late-resolved 0x%p in entity %d:%s to %s:'%s'.\n"`
+Find the exact string `"Networking"` and get its address.
 
 ### 2. Find Cross-References to the String
 
@@ -30,96 +28,94 @@ This should find the string:
 mcp__ida-pro-mcp__xrefs_to addrs="<string_addr>"
 ```
 
-There may be multiple xrefs because `CNetworkUtlVectorEmbedded::LateResolve` is a template function with multiple instantiations. Pick any one of them.
+Collect all functions that reference this string.
 
-### 3. Rename the Function
-
-```
-mcp__ida-pro-mcp__rename batch={"func": {"addr": "<function_addr>", "name": "CNetworkUtlVectorEmbedded_LateResolve"}}
-```
-
-### 4. Decompile and Locate the GetLoggingChannel VFunc Call Pattern
+### 3. Find Cross-References to LoggingSystem_RegisterLoggingChannel
 
 ```
-mcp__ida-pro-mcp__decompile addr="<function_addr>"
+mcp__ida-pro-mcp__xrefs_to addrs="<LoggingSystem_RegisterLoggingChannel_addr>"
 ```
 
-Look for a pattern where `g_pNetworkMessages` is used to make a virtual call whose return value is passed to `LoggingSystem_IsChannelEnabled` and `LoggingSystem_Log`:
+Collect all functions that call `LoggingSystem_RegisterLoggingChannel`.
+
+### 4. Find the Intersection
+
+Find the function that appears in **both** xref sets. This is the logging channel registration function, which looks like:
 
 ```c
-        v15 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)g_pNetworkMessages + <VFUNC_OFFSET>))(g_pNetworkMessages);
-        if ( (unsigned __int8)LoggingSystem_IsChannelEnabled(v15, 2LL) )
-        {
-          // ... prepare arguments ...
-          v21 = (*(__int64 (**)(void))(*(_QWORD *)g_pNetworkMessages + <VFUNC_OFFSET>))();
-          LoggingSystem_Log(
-            v21,
-            2LL,
-            "CNetworkUtlVectorEmbedded: successfully late-resolved 0x%p in entity %d:%s to %s:'%s'.\n",
-            ...);
-        }
+__int64 sub_XXXXXXXX()
+{
+  __int64 result;
+  result = LoggingSystem_RegisterLoggingChannel("Networking", 0LL, 0LL, 2LL, -156);
+  g_pLoggingChannel = result;
+  return result;
+}
 ```
 
-The `g_pNetworkMessages` is the global pointer, and `<VFUNC_OFFSET>` (e.g. `288LL` = `0x120`) is the vfunc offset of `CNetworkMessages_GetLoggingChannel`.
+Rename the global variable to `g_pLoggingChannel`.
 
-Key identification points:
-- There are **two** identical virtual calls through `g_pNetworkMessages` with the same `<VFUNC_OFFSET>` in this block
-- The first call's return value is passed to `LoggingSystem_IsChannelEnabled` as a channel handle
-- The second call's return value is passed to `LoggingSystem_Log` as a channel handle
-- Both calls take only `this` (the `g_pNetworkMessages` pointer) as argument
+### 5. Load CNetworkMessages VTable from YAML
 
-Extract `<VFUNC_OFFSET>` from either call site. Calculate the vtable index: `index = <VFUNC_OFFSET> / 8`.
+**ALWAYS** Use SKILL `/get-vtable-from-yaml` to load the CNetworkMessages vtable information, including its address and size (vfunc_count).
 
-### 5. Generate VFunc Offset Signature
+### 6. Decompile the Last 4 VTable Entries
 
-Identify the instruction address (`inst_addr`) of either virtual call `call qword ptr [rax+<VFUNC_OFFSET>]` or `call qword ptr [rcx+<VFUNC_OFFSET>]` at the call site.
+Decompile the virtual functions at indices `vfunc_count - 4` through `vfunc_count - 1` from the CNetworkMessages vtable.
 
-**ALWAYS** Use SKILL `/generate-signature-for-vfuncoffset` to generate a robust and unique signature for `CNetworkMessages_GetLoggingChannel`, with `inst_addr` and `vfunc_offset` from this step.
+```
+mcp__ida-pro-mcp__decompile addr="<vtable_entry_addr>"
+```
 
-### 6. Write IDA Analysis Output as YAML
+Look for a vfunc that simply returns `g_pLoggingChannel`:
+
+```c
+__int64 CNetworkMessages_GetLoggingChannel()
+{
+  return (unsigned int)g_pLoggingChannel;
+}
+```
+
+This is `CNetworkMessages_GetLoggingChannel`.
+
+### 7. Write IDA Analysis Output as YAML
 
 **ALWAYS** Use SKILL `/write-vfunc-as-yaml` to write the analysis results.
 
 Required parameters:
 - `func_name`: `CNetworkMessages_GetLoggingChannel`
-- `func_addr`: `None` (virtual call, actual address resolved at runtime)
+- `func_addr`: The resolved vfunc address
 - `func_sig`: `None`
-- `vfunc_sig`: The validated signature from step 5
+- `vfunc_sig`: `None`
 
 VTable parameters:
 - `vtable_name`: `CNetworkMessages`
-- `vfunc_offset`: `<VFUNC_OFFSET>` in hex (e.g. `0x120`)
-- `vfunc_index`: The calculated index (e.g. `36`)
+- `vfunc_offset`: The calculated offset in hex (e.g. `0x120`)
+- `vfunc_index`: The calculated index
 
 ## Function Characteristics
 
 - **Purpose**: Returns a logging channel handle used for network-related log messages
-- **Called from**: `CNetworkUtlVectorEmbedded::LateResolve` template instances — functions that resolve late-bound network vector fields
-- **Call context**: Called through `g_pNetworkMessages` vtable pointer, takes only `this` as argument, returns a logging channel handle
-- **Parameters**: `(this)` where `this` is the `g_pNetworkMessages` global pointer
-- **Return value**: A logging channel handle passed to `LoggingSystem_IsChannelEnabled` and `LoggingSystem_Log`
+- **Binary**: networksystem.dll / libnetworksystem.so
+- **Parameters**: `(this)` — takes only the vtable `this` pointer
+- **Return value**: A logging channel handle (the `g_pLoggingChannel` global, cast to `unsigned int`)
 
 ## VTable Information
 
 - **VTable Name**: `CNetworkMessages`
-- **VTable Offset**: Changes with game updates. Extract from the `CNetworkUtlVectorEmbedded::LateResolve` decompiled code.
-- **VTable Index**: Changes with game updates. Resolve via `<VFUNC_OFFSET> / 8`.
+- **VTable Offset / Index**: Changes with game updates. Always near the end of the vtable (last 4 entries).
 
-## String-Based Discovery
+## Discovery Strategy
 
-The primary discovery method uses the LateResolve log message:
+1. **String + API intersection**: Find the function that both references `"Networking"` and calls `LoggingSystem_RegisterLoggingChannel` — this gives `g_pLoggingChannel`
+2. **VTable tail scan**: The getter is always near the end of the CNetworkMessages vtable — decompile the last 4 entries and match the one returning `g_pLoggingChannel`
 
-1. **Search string**: `"CNetworkUtlVectorEmbedded: successfully late-resolved 0x%p in entity %d:%s to %s:'%s'."`
-2. **Xref chain**: String -> one of the `CNetworkUtlVectorEmbedded::LateResolve` template instances
-3. **VFunc call**: Two identical virtual calls through `g_pNetworkMessages` with the same offset, whose return values are passed to `LoggingSystem_IsChannelEnabled` and `LoggingSystem_Log`
-
-This is robust because:
-- The `CNetworkUtlVectorEmbedded: successfully late-resolved` string is unique and stable across updates
-- The dual `GetLoggingChannel` call pattern (check then log) through `g_pNetworkMessages` is distinctive
-- Multiple template instances provide cross-validation with the same vfunc offset
+This approach is robust because:
+- The `"Networking"` string combined with `LoggingSystem_RegisterLoggingChannel` uniquely identifies the channel registration
+- The getter is a trivial function (just returns a global), easy to identify by structure
+- No byte-pattern signatures needed — the discovery is entirely semantic
 
 ## Output YAML Format
 
 The output YAML filename depends on the platform:
-- `server.dll` -> `CNetworkMessages_GetLoggingChannel.windows.yaml`
-- `libserver.so` -> `CNetworkMessages_GetLoggingChannel.linux.yaml`
+- `networksystem.dll` -> `CNetworkMessages_GetLoggingChannel.windows.yaml`
+- `libnetworksystem.so` -> `CNetworkMessages_GetLoggingChannel.linux.yaml`
