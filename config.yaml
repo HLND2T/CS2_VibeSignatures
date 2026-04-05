@@ -1507,6 +1507,16 @@ modules:
         expected_output:
           - ShowHudHint.{platform}.yaml
 
+      - name: find-CEntitySystem_Activate
+        expected_output:
+          - CEntitySystem_Activate.{platform}.yaml
+
+      - name: find-CNetworkMessages_SetNetworkSerializationContextData
+        expected_output:
+          - CNetworkMessages_SetNetworkSerializationContextData.{platform}.yaml
+        expected_input:
+          - CEntitySystem_Activate.{platform}.yaml
+
     symbols:
       - name: CSource2Server_vtable
         category: vtable
@@ -2291,6 +2301,17 @@ modules:
 
       - name: ShowHudHint
         category: func
+
+      - name: CEntitySystem_Activate
+        category: func
+        alias:
+          - CEntitySystem::Activate
+
+      - name: CNetworkMessages_SetNetworkSerializationContextData
+        category: vfunc
+        alias:
+          - CNetworkMessages::SetNetworkSerializationContextData
+        shared: true
 
 cpp_tests:
   - name: IGameSystem_MSVC
