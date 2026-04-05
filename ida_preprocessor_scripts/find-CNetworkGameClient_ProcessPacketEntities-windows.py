@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CNetworkGameClient_ProcessPacketEntities skill."""
+"""Preprocess script for find-CNetworkGameClient_ProcessPacketEntities-windows skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
@@ -8,7 +8,7 @@ TARGET_FUNCTION_NAMES = [
     "CNetworkGameClient_ProcessPacketEntities",
 ]
 
-FUNC_XREFS_WINDOWS = [
+FUNC_XREFS = [
     # (func_name, xref_strings_list, xref_funcs_list, exclude_funcs_list)
     (
         "CNetworkGameClient_ProcessPacketEntities",
@@ -22,25 +22,11 @@ FUNC_XREFS_WINDOWS = [
     ),
 ]
 
-FUNC_XREFS_LINUX = [
-    # (func_name, xref_strings_list, xref_funcs_list, exclude_funcs_list)
-    (
-        "CNetworkGameClient_ProcessPacketEntities",
-        [
-            "InternalProcessPacketEntities",
-            "%s [%s from %d to %d - %d entities]",
-        ],
-        [],
-        [],
-    ),
-]
-
 async def preprocess_skill(
     session, skill_name, expected_outputs, old_yaml_map,
     new_binary_dir, platform, image_base, debug=False,
 ):
     """Reuse previous gamever func_sig to locate target function(s) and write YAML."""
-    func_xrefs = FUNC_XREFS_WINDOWS if platform == "windows" else FUNC_XREFS_LINUX
     return await preprocess_common_skill(
         session=session,
         expected_outputs=expected_outputs,
@@ -49,6 +35,6 @@ async def preprocess_skill(
         platform=platform,
         image_base=image_base,
         func_names=TARGET_FUNCTION_NAMES,
-        func_xrefs=func_xrefs,
+        func_xrefs=FUNC_XREFS,
         debug=debug,
     )

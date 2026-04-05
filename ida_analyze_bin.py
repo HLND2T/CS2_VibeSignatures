@@ -475,6 +475,7 @@ def parse_config(config_path):
                     "expected_input": skill.get("expected_input", []),
                     "prerequisite": skill.get("prerequisite", []) or [],
                     "max_retries": skill.get("max_retries"),  # None means use default
+                    "platform": skill.get("platform"),  # None means all platforms
                 })
 
         if "vcall_finder" not in module or module.get("vcall_finder") is None:
@@ -927,6 +928,12 @@ def process_binary(
     skills_to_process = []
     for skill_name in sorted_skill_names:
         skill = skill_map[skill_name]
+        # Skip skills restricted to a different platform
+        skill_platform = skill.get("platform")
+        if skill_platform and skill_platform != platform:
+            print(f"  Skipping skill: {skill_name} (platform '{skill_platform}' != '{platform}')")
+            skip_count += 1
+            continue
         # Expand {platform} placeholder in expected_output paths
         expected_outputs = [
             os.path.join(binary_dir, f.replace("{platform}", platform))

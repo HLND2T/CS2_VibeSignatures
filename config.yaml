@@ -323,15 +323,22 @@ modules:
         expected_input:
           - CDemoRecorder_ParseMessage.{platform}.yaml
 
-      - name: find-CNetworkGameClient_ProcessPacketEntitiesInternal
+      - name: find-CNetworkGameClient_ProcessPacketEntitiesInternal-windows
+        platform: windows
         expected_output:
           - CNetworkGameClient_ProcessPacketEntitiesInternal.{platform}.yaml
 
-      - name: find-CNetworkGameClient_ProcessPacketEntities
+      - name: find-CNetworkGameClient_ProcessPacketEntities-windows
+        platform: windows
         expected_output:
           - CNetworkGameClient_ProcessPacketEntities.{platform}.yaml
         expected_input:
           - CNetworkGameClient_ProcessPacketEntitiesInternal.{platform}.yaml
+
+      - name: find-CNetworkGameClient_ProcessPacketEntities-linux
+        platform: linux
+        expected_output:
+          - CNetworkGameClient_ProcessPacketEntities.{platform}.yaml
 
       - name: find-CNetworkServerService_vtable
         expected_output:
