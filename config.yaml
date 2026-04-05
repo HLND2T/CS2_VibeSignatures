@@ -1538,6 +1538,10 @@ modules:
         expected_input:
           - CEntitySystem_Activate.{platform}.yaml
 
+      - name: find-CNetworkMessages_GetLoggingChannel
+        expected_output:
+          - CNetworkMessages_GetLoggingChannel.{platform}.yaml
+
     symbols:
       - name: CSource2Server_vtable
         category: vtable
@@ -2334,6 +2338,12 @@ modules:
           - CNetworkMessages::SetNetworkSerializationContextData
         shared: true
 
+      - name: CNetworkMessages_GetLoggingChannel
+        category: vfunc
+        alias:
+          - CNetworkMessages::GetLoggingChannel
+        shared: true
+
 cpp_tests:
   - name: IGameSystem_MSVC
     symbol: IGameSystem
@@ -2404,3 +2414,5 @@ cpp_tests:
     reference_modules:
       - networksystem # bin/{gamever}/networksystem/CNetworkMessages_*.{platform}.yaml
       - engine # bin/{gamever}/engine/CNetworkMessages_*.{platform}.yaml
+      - server # bin/{gamever}/server/CNetworkMessages_*.{platform}.yaml
+      - client # bin/{gamever}/client/CNetworkMessages_*.{platform}.yaml
