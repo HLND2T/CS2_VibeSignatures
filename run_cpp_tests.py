@@ -125,6 +125,27 @@ def _to_text(value: Any) -> str:
     return str(value).strip()
 
 
+def _to_bool(value: Any, default: bool = False) -> bool:
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, int):
+        if value in (0, 1):
+            return bool(value)
+        raise ValueError(f"Invalid boolean value: {value!r}")
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if not normalized:
+            return default
+        if normalized in {"1", "true", "yes", "y", "on"}:
+            return True
+        if normalized in {"0", "false", "no", "n", "off"}:
+            return False
+        raise ValueError(f"Invalid boolean value: {value!r}")
+    raise ValueError(f"Invalid boolean value: {value!r}")
+
+
 def _choose_override(item_value: Any, fallback: str) -> str:
     override = _to_text(item_value)
     if override:
@@ -592,9 +613,21 @@ def run_one_test(
         else:
             reference_modules = _to_list(test_item.get("reference_modules"))
             alias_symbols = _to_list(test_item.get("alias_symbols"))
+            try:
+                merge_reference_modules = _to_bool(
+                    test_item.get("merge_reference_modules"), default=True
+                )
+            except ValueError as exc:
+                return {
+                    "name": test_name,
+                    "status": "invalid",
+                    "message": (
+                        "Invalid 'merge_reference_modules' value: "
+                        f"{test_item.get('merge_reference_modules')!r}. {exc}"
+                    ),
+                }
             compare_reports = []
-            if not reference_modules:
-                # Keep behavior stable even when reference_modules is omitted.
+            if not reference_modules or merge_reference_modules:
                 compare_reports.append(
                     compare_compiler_vtable_with_yaml(
                         class_name=symbol,
@@ -603,6 +636,7 @@ def run_one_test(
                         gamever=args.gamever,
                         platform=platform,
                         reference_modules=reference_modules,
+                        merge_reference_modules=merge_reference_modules,
                         pointer_size=pointer_size_from_target_triple(target),
                         alias_class_names=alias_symbols,
                     )
@@ -617,6 +651,7 @@ def run_one_test(
                             gamever=args.gamever,
                             platform=platform,
                             reference_modules=[module_name],
+                            merge_reference_modules=False,
                             pointer_size=pointer_size_from_target_triple(target),
                             alias_class_names=alias_symbols,
                         )

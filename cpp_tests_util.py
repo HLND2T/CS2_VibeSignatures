@@ -159,6 +159,208 @@ def _normalize_reference_member_name(
     return candidate
 
 
+def _append_reference_conflict(
+    conflicts: List[Dict[str, Any]],
+    *,
+    conflict_type: str,
+    message: str,
+    index: Optional[int] = None,
+    sources: Optional[List[Dict[str, Any]]] = None,
+) -> None:
+    item: Dict[str, Any] = {
+        "type": conflict_type,
+        "message": message,
+    }
+    if index is not None:
+        item["index"] = index
+    if sources:
+        item["sources"] = [dict(source) for source in sources]
+    conflicts.append(item)
+
+
+def load_merged_reference_vtable_data(
+    bindir: Path,
+    gamever: str,
+    class_name: str,
+    platform: str,
+    reference_modules: Sequence[str],
+    alias_class_names: Sequence[str] = (),
+) -> Optional[Dict[str, Any]]:
+    """Load and merge reference YAML info for a class from all modules."""
+    if yaml is None:
+        raise RuntimeError("PyYAML is required to read reference YAML files")
+
+    class_names_to_try = [class_name] + [n for n in alias_class_names if n]
+    merged: Dict[str, Any] = {
+        "mode": "merged",
+        "modules": [],
+        "files": [],
+        "vtable_size": None,
+        "vtable_size_raw": None,
+        "vtable_size_source": None,
+        "vtable_numvfunc": None,
+        "vtable_numvfunc_source": None,
+        "functions_by_index": {},
+        "conflicts": [],
+    }
+    alias_candidate: Optional[str] = None
+    primary_class_hit = False
+
+    for module in reference_modules:
+        module_dir = bindir / gamever / module
+        if not module_dir.is_dir():
+            continue
+
+        module_hit = False
+        for effective_class_name in class_names_to_try:
+            pattern = f"{effective_class_name}_*.{platform}.yaml"
+            files = sorted(module_dir.glob(pattern))
+            if not files:
+                continue
+
+            for path in files:
+                try:
+                    with path.open("r", encoding="utf-8") as f:
+                        payload = yaml.safe_load(f) or {}
+                except Exception:
+                    continue
+
+                if not isinstance(payload, dict):
+                    continue
+
+                parsed_size = _parse_int_maybe(payload.get("vtable_size"))
+                parsed_numvfunc = _parse_int_maybe(payload.get("vtable_numvfunc"))
+                parsed_index = _parse_int_maybe(payload.get("vfunc_index"))
+                has_reference_metadata = (
+                    parsed_size is not None
+                    or parsed_numvfunc is not None
+                    or parsed_index is not None
+                )
+                if not has_reference_metadata:
+                    continue
+
+                module_hit = True
+                merged["files"].append(str(path))
+                if effective_class_name == class_name:
+                    primary_class_hit = True
+                elif alias_candidate is None:
+                    alias_candidate = effective_class_name
+
+                if parsed_size is not None:
+                    size_source = {
+                        "module": module,
+                        "path": str(path),
+                        "value": parsed_size,
+                    }
+                    current_size = merged.get("vtable_size")
+                    if current_size is None:
+                        merged["vtable_size"] = parsed_size
+                        merged["vtable_size_raw"] = str(payload.get("vtable_size"))
+                        merged["vtable_size_source"] = size_source
+                    elif current_size != parsed_size:
+                        previous_source = merged.get("vtable_size_source") or {
+                            "module": "unknown",
+                            "path": "unknown",
+                            "value": current_size,
+                        }
+                        _append_reference_conflict(
+                            merged["conflicts"],
+                            conflict_type="reference_conflict_vtable_size",
+                            message=(
+                                f"Reference vtable_size conflict: "
+                                f"{previous_source['module']}={current_size} vs "
+                                f"{module}={parsed_size}."
+                            ),
+                            sources=[previous_source, size_source],
+                        )
+
+                if parsed_numvfunc is not None:
+                    numvfunc_source = {
+                        "module": module,
+                        "path": str(path),
+                        "value": parsed_numvfunc,
+                    }
+                    current_numvfunc = merged.get("vtable_numvfunc")
+                    if current_numvfunc is None:
+                        merged["vtable_numvfunc"] = parsed_numvfunc
+                        merged["vtable_numvfunc_source"] = numvfunc_source
+                    elif current_numvfunc != parsed_numvfunc:
+                        previous_source = merged.get("vtable_numvfunc_source") or {
+                            "module": "unknown",
+                            "path": "unknown",
+                            "value": current_numvfunc,
+                        }
+                        _append_reference_conflict(
+                            merged["conflicts"],
+                            conflict_type="reference_conflict_vtable_numvfunc",
+                            message=(
+                                f"Reference vtable_numvfunc conflict: "
+                                f"{previous_source['module']}={current_numvfunc} vs "
+                                f"{module}={parsed_numvfunc}."
+                            ),
+                            sources=[previous_source, numvfunc_source],
+                        )
+
+                if parsed_index is None:
+                    continue
+
+                func_name = payload.get("func_name")
+                source = {
+                    "module": module,
+                    "path": str(path),
+                    "func_name": (
+                        str(func_name) if func_name is not None else path.stem
+                    ),
+                    "member_name": _normalize_reference_member_name(
+                        class_name=effective_class_name,
+                        func_name=str(func_name) if func_name is not None else None,
+                        file_stem=path.stem,
+                    ),
+                }
+
+                current_entry = merged["functions_by_index"].get(parsed_index)
+                if current_entry is None:
+                    merged["functions_by_index"][parsed_index] = {
+                        "func_name": source["func_name"],
+                        "member_name": source["member_name"],
+                        "path": source["path"],
+                        "module": source["module"],
+                        "sources": [source],
+                    }
+                    continue
+
+                current_entry["sources"].append(source)
+                current_member = current_entry.get("member_name", "")
+                incoming_member = source.get("member_name", "")
+                if current_member and incoming_member and current_member != incoming_member:
+                    _append_reference_conflict(
+                        merged["conflicts"],
+                        conflict_type="reference_conflict_vfunc_name",
+                        index=parsed_index,
+                        message=(
+                            f"Reference index {parsed_index} conflict: "
+                            f"{current_entry['module']}={current_member} vs "
+                            f"{module}={incoming_member}."
+                        ),
+                        sources=current_entry["sources"],
+                    )
+                elif not current_member and incoming_member:
+                    current_entry["member_name"] = incoming_member
+                    current_entry["func_name"] = source["func_name"]
+                    current_entry["path"] = source["path"]
+                    current_entry["module"] = source["module"]
+
+        if module_hit:
+            merged["modules"].append(module)
+
+    if not merged["files"]:
+        return None
+
+    if not primary_class_hit and alias_candidate:
+        merged["alias_class_name"] = alias_candidate
+    return merged
+
+
 def load_reference_vtable_data(
     bindir: Path,
     gamever: str,
@@ -259,6 +461,7 @@ def compare_compiler_vtable_with_yaml(
     reference_modules: Sequence[str],
     pointer_size: int,
     alias_class_names: Sequence[str] = (),
+    merge_reference_modules: bool = True,
 ) -> Dict[str, Any]:
     """
     Compare compiler vtable layout dump against YAML references.
@@ -267,16 +470,42 @@ def compare_compiler_vtable_with_yaml(
     """
     parsed_layouts = parse_vftable_layouts(compiler_output)
     compiler_section = parsed_layouts.get(class_name)
-    reference = load_reference_vtable_data(
-        bindir=bindir,
-        gamever=gamever,
-        class_name=class_name,
-        platform=platform,
-        reference_modules=reference_modules,
-        alias_class_names=alias_class_names,
-    )
+    if merge_reference_modules:
+        reference = load_merged_reference_vtable_data(
+            bindir=bindir,
+            gamever=gamever,
+            class_name=class_name,
+            platform=platform,
+            reference_modules=reference_modules,
+            alias_class_names=alias_class_names,
+        )
+    else:
+        reference = load_reference_vtable_data(
+            bindir=bindir,
+            gamever=gamever,
+            class_name=class_name,
+            platform=platform,
+            reference_modules=reference_modules,
+            alias_class_names=alias_class_names,
+        )
 
     alias_used = reference.get("alias_class_name") if reference else None
+    reference_mode = "merged" if merge_reference_modules else "single"
+    reference_modules_merged = (
+        list(reference.get("modules", []))
+        if merge_reference_modules and reference
+        else []
+    )
+    reference_files_merged = (
+        list(reference.get("files", []))
+        if merge_reference_modules and reference
+        else []
+    )
+    reference_conflicts = (
+        list(reference.get("conflicts", []))
+        if merge_reference_modules and reference
+        else []
+    )
 
     report: Dict[str, Any] = {
         "class_name": class_name,
@@ -284,7 +513,11 @@ def compare_compiler_vtable_with_yaml(
         "requested_modules": list(reference_modules),
         "compiler_found": compiler_section is not None,
         "reference_found": reference is not None,
-        "reference_module": reference["module"] if reference else None,
+        "reference_module": reference.get("module") if reference else None,
+        "reference_mode": reference_mode,
+        "reference_modules_merged": reference_modules_merged,
+        "reference_files_merged": reference_files_merged,
+        "reference_conflicts": reference_conflicts,
         "differences": [],
         "notes": [],
     }
@@ -296,28 +529,31 @@ def compare_compiler_vtable_with_yaml(
             f"(primary symbol '{class_name}' not found)."
         )
 
-    if compiler_section is None:
+    if reference_conflicts:
+        report["differences"].extend(reference_conflicts)
+
+    compiler_missing = compiler_section is None
+    if compiler_missing:
         report["notes"].append(
             f"No vtable section for class '{class_name}' found in compiler output."
         )
-        return report
+    else:
+        compiler_entry_count = compiler_section["entry_count"]
+        declared_entries = compiler_section["declared_entries"]
+        methods_by_index = compiler_section["methods_by_index"]
+        report["compiler_entry_count"] = compiler_entry_count
+        report["compiler_declared_entries"] = declared_entries
 
-    compiler_entry_count = compiler_section["entry_count"]
-    declared_entries = compiler_section["declared_entries"]
-    methods_by_index = compiler_section["methods_by_index"]
-    report["compiler_entry_count"] = compiler_entry_count
-    report["compiler_declared_entries"] = declared_entries
-
-    if declared_entries != compiler_entry_count:
-        report["differences"].append(
-            {
-                "type": "compiler_declared_count_mismatch",
-                "message": (
-                    f"Compiler declares {declared_entries} vtable entries, "
-                    f"but parsed {compiler_entry_count} entries."
-                ),
-            }
-        )
+        if declared_entries != compiler_entry_count:
+            report["differences"].append(
+                {
+                    "type": "compiler_declared_count_mismatch",
+                    "message": (
+                        f"Compiler declares {declared_entries} vtable entries, "
+                        f"but parsed {compiler_entry_count} entries."
+                    ),
+                }
+            )
 
     if reference is None:
         report["notes"].append(
@@ -331,6 +567,9 @@ def compare_compiler_vtable_with_yaml(
     report["reference_vtable_size"] = expected_size
     report["reference_vtable_numvfunc"] = expected_numvfunc
     report["reference_functions_count"] = len(reference_functions)
+
+    if compiler_missing:
+        return report
 
     actual_size = compiler_entry_count * pointer_size
     report["compiler_vtable_size"] = actual_size
@@ -401,17 +640,35 @@ def format_vtable_compare_report(report: Dict[str, Any]) -> List[str]:
         f"Class '{report['class_name']}' compare target platform: {report.get('platform', 'unknown')}"
     )
 
-    if not report.get("compiler_found"):
+    compiler_found = report.get("compiler_found")
+    if compiler_found:
+        compiler_count = report.get("compiler_entry_count")
+        compiler_declared = report.get("compiler_declared_entries")
+        lines.append(
+            f"Compiler vtable entries: parsed={compiler_count}, declared={compiler_declared}"
+        )
+    elif report.get("reference_mode") != "merged":
         lines.extend(report.get("notes", []))
         return lines
 
-    compiler_count = report.get("compiler_entry_count")
-    compiler_declared = report.get("compiler_declared_entries")
-    lines.append(
-        f"Compiler vtable entries: parsed={compiler_count}, declared={compiler_declared}"
-    )
-
-    if report.get("reference_found"):
+    if report.get("reference_mode") == "merged":
+        lines.append("Reference mode: merged")
+        merged_modules = report.get("reference_modules_merged", [])
+        if merged_modules:
+            lines.append(f"Reference modules: {', '.join(merged_modules)}")
+        else:
+            lines.append("Reference modules:")
+        lines.append(
+            f"Reference files merged: {len(report.get('reference_files_merged', []))}"
+        )
+        lines.append(
+            f"Reference functions: {report.get('reference_functions_count', 0)}"
+        )
+        lines.append(
+            "Reference conflicts found: "
+            f"{len(report.get('reference_conflicts', []))}"
+        )
+    elif report.get("reference_found"):
         lines.append(
             f"Reference module: {report.get('reference_module')}, "
             f"reference functions: {report.get('reference_functions_count', 0)}"
@@ -430,6 +687,9 @@ def format_vtable_compare_report(report: Dict[str, Any]) -> List[str]:
         lines.append(f"Differences found: {len(diffs)}")
         for item in diffs:
             lines.append(f"- {item['message']}")
+        if not compiler_found:
+            for note in report.get("notes", []):
+                lines.append(note)
     else:
         for note in report.get("notes", []):
             lines.append(note)
