@@ -3,7 +3,7 @@ name: Build On Self Runner
 on:
   push:
     tags:
-      - "v*"
+      - "*"
 
 permissions:
   contents: write
@@ -18,12 +18,12 @@ jobs:
       PERSISTED_WORKSPACE: ${{ secrets.PERSISTED_WORKSPACE }}
 
     steps:
-      - name: Parse tag and validate environment configuration
+      - name: Prepare variables and validate environment configuration
         shell: pwsh
         run: |
           $tag = "${{ github.ref_name }}"
-          if ($tag -notmatch '^v(?<gamever>\d+[a-z]?)(?:-(?<manifest>\d+))?$') {
-            throw "Unsupported tag format: $tag"
+          if ([string]::IsNullOrWhiteSpace($tag)) {
+            throw "github.ref_name is empty."
           }
 
           if ([string]::IsNullOrWhiteSpace($env:PERSISTED_WORKSPACE)) {
@@ -34,13 +34,8 @@ jobs:
             throw "RUNNER_AGENT variable is not configured for the win64 environment."
           }
 
-          $manifestId = $Matches["manifest"]
-          if ($null -eq $manifestId) {
-            $manifestId = ""
-          }
-
-          "GAMEVER=$($Matches['gamever'])" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "MANIFESTID=$manifestId" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "TAG=$tag" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "GAMEVER=$tag" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "WORKSPACE=${{ github.workspace }}" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Checkout repository
@@ -73,52 +68,46 @@ jobs:
           )
 
       - name: Update CS2 depot
-        shell: cmd
+        shell: pwsh
         run: |
-          @echo off
-          if not "%MANIFESTID%"=="" (
-            DepotDownloader -app 730 -depot 2347771 -os all-platform -dir "%GITHUB_WORKSPACE%\cs2_depot" -manifest %MANIFESTID%
-            DepotDownloader -app 730 -depot 2347773 -os all-platform -dir "%GITHUB_WORKSPACE%\cs2_depot" -manifest %MANIFESTID%
-          ) else (
-            DepotDownloader -app 730 -depot 2347771 -os all-platform -dir "%GITHUB_WORKSPACE%\cs2_depot"
-            DepotDownloader -app 730 -depot 2347773 -os all-platform -dir "%GITHUB_WORKSPACE%\cs2_depot"
-          )
+          $depotDir = Join-Path $env:GITHUB_WORKSPACE "cs2_depot"
+          uv run download_depot.py -tag "$env:TAG" -depotdir "$depotDir" -config download.yaml
 
       - name: Copy depot binaries
-        shell: cmd
+        shell: pwsh
         run: |
-          uv run copy_depot_bin.py -gamever %GAMEVER% -platform all-platform
+          uv run copy_depot_bin.py -gamever "$env:GAMEVER" -platform all-platform
 
       - name: Analyze binaries
-        shell: cmd
+        shell: pwsh
         run: |
-          uv run ida_analyze_bin.py -gamever %GAMEVER% -agent=%RUNNER_AGENT% -debug
+          uv run ida_analyze_bin.py -gamever "$env:GAMEVER" -agent="$env:RUNNER_AGENT" -debug
 
       - name: Update gamedata
-        shell: cmd
+        shell: pwsh
         run: |
-          uv run update_gamedata.py -gamever %GAMEVER% -debug
+          uv run update_gamedata.py -gamever "$env:GAMEVER" -debug
 
       - name: Run C++ tests
-        shell: cmd
+        shell: pwsh
         run: |
-          uv run run_cpp_tests.py -gamever %GAMEVER% -fixheader -agent=%RUNNER_AGENT% -debug
+          uv run run_cpp_tests.py -gamever "$env:GAMEVER" -fixheader -agent="$env:RUNNER_AGENT" -debug
 
       - name: Archive release payload
-        shell: cmd
+        shell: pwsh
         working-directory: ${{ github.workspace }}
         run: |
-          7z a gamedata-%GAMEVER%.7z "bin\%GAMEVER%" "dist" "hl2sdk_cs2" -r ^
-          -x!*.dll ^
-          -x!*.so ^
-          -x!*.i64 ^
-          -x!*.id0 ^
-          -x!*.id1 ^
-          -x!*.id2 ^
-          -x!*.nam ^
-          -x!*.til ^
-          -x!.git ^
-          -x!.git-blame-ignore-revs ^
+          7z a "gamedata-$($env:GAMEVER).7z" "bin\$($env:GAMEVER)" "dist" "hl2sdk_cs2" -r `
+          -x!*.dll `
+          -x!*.so `
+          -x!*.i64 `
+          -x!*.id0 `
+          -x!*.id1 `
+          -x!*.id2 `
+          -x!*.nam `
+          -x!*.til `
+          -x!.git `
+          -x!.git-blame-ignore-revs `
           -x!.gitmodules
 
       - name: Create release
