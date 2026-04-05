@@ -3,7 +3,7 @@ name: find-CNetworkMessages_RegisterSchemaTypeOverride
 description: |
   Find and identify the CNetworkMessages_RegisterSchemaTypeOverride virtual function call in CS2 binary using IDA Pro MCP.
   Use this skill when reverse engineering CS2 server.dll or libserver.so to locate the RegisterSchemaTypeOverride vfunc call
-  by cross-referencing the "CEntityHandle" and "ehandle" strings and identifying the virtual call through g_pNetworkMessages.
+  by searching for the unique hash constant 963099A8h byte pattern.
   Trigger: CNetworkMessages_RegisterSchemaTypeOverride
 disable-model-invocation: true
 ---
@@ -14,65 +14,67 @@ Locate `CNetworkMessages_RegisterSchemaTypeOverride` vfunc call in CS2 server.dl
 
 ## Method
 
-### 1. Search for the "CEntityHandle" String
+### 1. Search for the Hash Constant Byte Pattern
+
+The hash constant `963099A8h` appears as bytes `A8 99 30 96` in the binary. Search with the platform-specific instruction prefix:
+
+**Windows (server.dll):**
+```
+mcp__ida-pro-mcp__find_bytes pattern="41 B8 A8 99 30 96"
+```
+This matches `mov r8d, 963099A8h`.
+
+**Linux (libserver.so):**
+```
+mcp__ida-pro-mcp__find_bytes pattern="BA A8 99 30 96"
+```
+This matches `mov edx, 963099A8h`.
+
+### 2. Identify the Containing Function
+
+Get the function that contains the matched address. Decompile it to confirm the pattern:
 
 ```
-mcp__ida-pro-mcp__find_regex pattern="CEntityHandle"
+mcp__ida-pro-mcp__decompile addr="<matched_addr>"
 ```
 
-Find the exact string `"CEntityHandle"` and get its address.
+The function should look like this:
 
-### 2. Find Cross-References to "CEntityHandle"
-
-```
-mcp__ida-pro-mcp__xrefs_to addrs="<CEntityHandle_string_addr>"
-```
-
-Collect all functions that reference the `"CEntityHandle"` string.
-
-### 3. Search for the "ehandle" String
-
-```
-mcp__ida-pro-mcp__find_regex pattern="ehandle"
+**Windows:**
+```asm
+mov     rcx, cs:g_pNetworkMessages
+lea     r9, aEhandle            ; "ehandle"
+mov     r8d, 963099A8h
+lea     rdx, aCentityhandle     ; "CEntityHandle"
+mov     rax, [rcx]
+jmp     qword ptr [rax+<VFUNC_OFFSET>]
 ```
 
-Find the exact string `"ehandle"` and get its address.
-
-### 4. Find Cross-References to "ehandle"
-
-```
-mcp__ida-pro-mcp__xrefs_to addrs="<ehandle_string_addr>"
-```
-
-Collect all functions that reference the `"ehandle"` string.
-
-### 5. Find the Intersection
-
-Find the function that appears in **both** xref sets. This is the function that calls `CNetworkMessages_RegisterSchemaTypeOverride` through the `g_pNetworkMessages` vtable. It looks like:
-
-```c
-__int64 sub_XXXXXXXX()
-{
-  return (*(__int64 (__fastcall **)(__int64, const char *, __int64, const char *))(*(_QWORD *)g_pNetworkMessages
-                                                                                 + <VFUNC_OFFSET>))(
-           g_pNetworkMessages,
-           "CEntityHandle",
-           2519767464LL,
-           "ehandle");
-}
+**Linux:**
+```asm
+lea     rax, g_pNetworkMessages
+lea     rcx, aEhandle           ; "ehandle"
+mov     edx, 963099A8h
+lea     rsi, aCentityhandle     ; "CEntityHandle"
+mov     rdi, [rax]
+mov     rax, [rdi]
+mov     rax, [rax+<VFUNC_OFFSET>]
+jmp     rax
 ```
 
-Decompile the intersection function to confirm the pattern and extract `<VFUNC_OFFSET>` (e.g., `272LL` = `0x110`).
+Extract `<VFUNC_OFFSET>` from the virtual call (e.g., `110h`).
 
 Calculate the vtable index: `index = <VFUNC_OFFSET> / 8`.
 
-### 6. Generate VFunc Offset Signature
+### 3. Generate VFunc Offset Signature
 
-Identify the instruction address (`inst_addr`) of the virtual call `call qword ptr [rax+<VFUNC_OFFSET>]` or `call qword ptr [rcx+<VFUNC_OFFSET>]` at the call site.
+Identify the instruction address (`inst_addr`) of the virtual call at the call site:
+- **Windows:** the `jmp qword ptr [rax+<VFUNC_OFFSET>]` instruction
+- **Linux:** the `mov rax, [rax+<VFUNC_OFFSET>]` instruction
 
 **ALWAYS** Use SKILL `/generate-signature-for-vfuncoffset` to generate a robust and unique signature for `CNetworkMessages_RegisterSchemaTypeOverride`, with `inst_addr` and `vfunc_offset` from this step.
 
-### 7. Write IDA Analysis Output as YAML
+### 4. Write IDA Analysis Output as YAML
 
 **ALWAYS** Use SKILL `/write-vfunc-as-yaml` to write the analysis results.
 
@@ -80,7 +82,7 @@ Required parameters:
 - `func_name`: `CNetworkMessages_RegisterSchemaTypeOverride`
 - `func_addr`: `None` (virtual call, actual address resolved at runtime)
 - `func_sig`: `None`
-- `vfunc_sig`: The validated signature from step 6
+- `vfunc_sig`: The validated signature from step 3
 
 VTable parameters:
 - `vtable_name`: `CNetworkMessages`
@@ -97,22 +99,20 @@ VTable parameters:
 ## VTable Information
 
 - **VTable Name**: `CNetworkMessages`
-- **VTable Offset**: Changes with game updates. Extract from the decompiled intersection function.
+- **VTable Offset**: Changes with game updates. Extract from the decompiled function.
 - **VTable Index**: Changes with game updates. Resolve via `<VFUNC_OFFSET> / 8`.
 
 ## Identification Pattern
 
-The function is identified by locating the intersection of xrefs to two unique strings:
-1. Find all functions referencing `"CEntityHandle"`
-2. Find all functions referencing `"ehandle"`
-3. The intersection function contains a virtual call through `g_pNetworkMessages` at `vtable + <VFUNC_OFFSET>`
-4. That `<VFUNC_OFFSET>` is the vfunc offset for `RegisterSchemaTypeOverride`
+The function is identified by searching for the unique hash constant `963099A8h` (`A8 99 30 96` in little-endian bytes):
+1. Search for `41 B8 A8 99 30 96` (Windows) or `BA A8 99 30 96` (Linux)
+2. The match is inside the wrapper function that calls `RegisterSchemaTypeOverride` through `g_pNetworkMessages`
+3. Extract `<VFUNC_OFFSET>` from the virtual call instruction in that function
 
 This is robust because:
-- Both `"CEntityHandle"` and `"ehandle"` are distinctive strings with limited xrefs
-- Their intersection uniquely identifies the wrapper function
+- The hash `963099A8h` is a unique constant specific to this registration call
+- A single byte search directly locates the function with no cross-referencing needed
 - The virtual call pattern through `g_pNetworkMessages` is distinctive
-- No byte-pattern signatures needed for discovery -- the approach is entirely semantic
 
 ## Output YAML Format
 
