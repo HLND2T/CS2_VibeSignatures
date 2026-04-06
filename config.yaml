@@ -130,6 +130,14 @@ modules:
         expected_output:
           - CNetworkSystem_SendNetworkStats.{platform}.yaml
 
+      - name: find-CNetworkMessages_GetNetworkGroupCount-AND-CNetworkMessages_GetNetworkGroupName-AND-CNetworkMessages_GetNetworkGroupColor
+        expected_output:
+          - CNetworkMessages_GetNetworkGroupCount.{platform}.yaml
+          - CNetworkMessages_GetNetworkGroupName.{platform}.yaml
+          - CNetworkMessages_GetNetworkGroupColor.{platform}.yaml
+        expected_input:
+          - CNetworkSystem_SendNetworkStats.{platform}.yaml
+
     symbols:
       - name: CNetworkMessages_vtable
         category: vtable
@@ -258,6 +266,24 @@ modules:
         alias:
           - CNetworkSystem::SendNetworkStats
 
+      - name: CNetworkMessages_GetNetworkGroupCount
+        category: vfunc
+        alias:
+          - CNetworkMessages::GetNetworkGroupCount
+        shared: true
+
+      - name: CNetworkMessages_GetNetworkGroupName
+        category: vfunc
+        alias:
+          - CNetworkMessages::GetNetworkGroupName
+        shared: true
+
+      - name: CNetworkMessages_GetNetworkGroupColor
+        category: vfunc
+        alias:
+          - CNetworkMessages::GetNetworkGroupColor
+        shared: true
+
   - name: matchmaking
     path_windows: game/csgo/bin/win64/matchmaking.dll
     path_linux: game/csgo/bin/linuxsteamrt64/libmatchmaking.so
@@ -380,6 +406,12 @@ modules:
           - CNetworkServerService_Init.{platform}.yaml
         expected_input:
           - CNetworkServerService_vtable.{platform}.yaml
+
+      - name: find-CNetworkMessages_SetIsForServer
+        expected_output:
+          - CNetworkMessages_SetIsForServer.{platform}.yaml
+        expected_input:
+          - CNetworkServerService_Init.{platform}.yaml
 
       - name: find-CNetworkGameClient_RecordEntityBandwidth
         expected_output:
@@ -527,6 +559,12 @@ modules:
         category: vfunc
         alias:
           - CNetworkServerService::Init
+
+      - name: CNetworkMessages_SetIsForServer
+        category: vfunc
+        alias:
+          - CNetworkMessages::SetIsForServer
+        shared: true
 
   - name: client
     path_windows: game/csgo/bin/win64/client.dll
