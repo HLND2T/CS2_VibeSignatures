@@ -4,6 +4,7 @@
 import json
 import os
 import textwrap
+from pathlib import Path
 
 try:
     import yaml
@@ -1993,14 +1994,23 @@ async def preprocess_index_based_vfunc_via_mcp(
     generate_func_sig=True,
     debug=False,
 ):
-    """Resolve an inherited virtual function by base-class vfunc_index + vtable lookup.
+    """Resolve an inherited virtual function by base-class slot + vtable lookup.
 
-    Reads ``{base_vfunc_name}.{platform}.yaml`` to obtain the base vfunc_index,
-    then reads ``{inherit_vtable_class}_vtable.{platform}.yaml`` to look up the
-    function address at that exact index.
+    Reads the base vfunc YAML referenced by *base_vfunc_name*, then reads
+    ``{inherit_vtable_class}_vtable.{platform}.yaml`` to look up the function
+    address at the resolved slot index.
+
+    ``base_vfunc_name`` may refer to a stem in the current module directory
+    (for example ``"CBaseEntity_Touch"``) or a sibling module artifact under
+    the same ``bin/{gamever}`` root (for example
+    ``"../server/CFlattenedSerializers_CreateFieldChangedEventQueue"``).
+
+    The base slot is taken from ``vfunc_index`` when present, or derived from
+    ``vfunc_offset`` when only the offset exists. If both fields are present,
+    they must agree; misaligned offsets and inconsistent metadata are rejected.
 
     Each target function should specify its own *base_vfunc_name* that maps
-    directly to the correct vtable slot.  This avoids fragile relative-offset
+    directly to the correct vtable slot. This avoids fragile relative-offset
     calculations that break when the engine inserts new virtual functions
     between existing ones.
 
@@ -2016,8 +2026,10 @@ async def preprocess_index_based_vfunc_via_mcp(
         new_binary_dir: Directory containing per-binary YAML files.
         platform: ``"windows"`` or ``"linux"``.
         image_base: Binary image base address (int).
-        base_vfunc_name: YAML stem of the base-class vfunc whose ``vfunc_index``
-            is used directly (e.g. ``"CBaseEntity_Touch"``).
+        base_vfunc_name: YAML stem of the base-class vfunc in the current
+            module or a sibling module under the same ``bin/{gamever}`` root.
+            The slot may come from ``vfunc_index`` directly or be derived from
+            ``vfunc_offset``.
         inherit_vtable_class: Class name whose vtable is looked up
             (e.g. ``"CTriggerPush"``).
         generate_func_sig: Whether to generate a new func_sig when none can be
@@ -2050,11 +2062,51 @@ async def preprocess_index_based_vfunc_via_mcp(
             return int(raw, 0)
         return int(value)
 
+    def _resolve_related_yaml_path(binary_dir, artifact_stem, platform_name):
+        expanded = f"{artifact_stem}.{platform_name}.yaml"
+        module_dir = Path(binary_dir).resolve()
+        gamever_dir = module_dir.parent.resolve()
+        candidate = (module_dir / expanded).resolve()
+        if os.path.commonpath([str(candidate), str(gamever_dir)]) != str(gamever_dir):
+            raise ValueError(f"artifact path escapes gamever root: {artifact_stem}")
+        return str(candidate)
+
+    def _extract_vfunc_index(data):
+        raw_index = data.get("vfunc_index")
+        raw_offset = data.get("vfunc_offset")
+
+        if raw_index is None and raw_offset is None:
+            raise ValueError("missing vfunc_index/vfunc_offset")
+
+        parsed_index = _parse_int(raw_index) if raw_index is not None else None
+        parsed_offset = _parse_int(raw_offset) if raw_offset is not None else None
+
+        if parsed_offset is not None:
+            if parsed_offset % 8 != 0:
+                raise ValueError("vfunc_offset is not 8-byte aligned")
+            offset_index = parsed_offset // 8
+            if parsed_index is None:
+                parsed_index = offset_index
+            elif parsed_index != offset_index:
+                raise ValueError("vfunc_index/vfunc_offset mismatch")
+
+        return parsed_index
+
     # 1. Read base vfunc YAML to get vfunc_index
-    base_vfunc_path = os.path.join(
-        new_binary_dir,
-        f"{base_vfunc_name}.{platform}.yaml",
-    )
+    try:
+        base_vfunc_path = _resolve_related_yaml_path(
+            new_binary_dir,
+            base_vfunc_name,
+            platform,
+        )
+    except ValueError:
+        if debug:
+            print(
+                "    Preprocess: invalid base vfunc artifact path: "
+                f"{base_vfunc_name}"
+            )
+        return None
+
     base_vfunc_data = _read_yaml(base_vfunc_path)
     if not isinstance(base_vfunc_data, dict):
         if debug:
@@ -2065,20 +2117,29 @@ async def preprocess_index_based_vfunc_via_mcp(
         return None
 
     try:
-        base_index = _parse_int(base_vfunc_data.get("vfunc_index"))
+        base_index = _extract_vfunc_index(base_vfunc_data)
     except Exception:
         if debug:
             print(
-                "    Preprocess: invalid vfunc_index in "
+                "    Preprocess: invalid vfunc slot metadata in "
                 f"{os.path.basename(base_vfunc_path)}"
             )
         return None
 
     # 2. Read inherit-class vtable YAML
-    vtable_path = os.path.join(
-        new_binary_dir,
-        f"{inherit_vtable_class}_vtable.{platform}.yaml",
-    )
+    try:
+        vtable_path = _resolve_related_yaml_path(
+            new_binary_dir,
+            f"{inherit_vtable_class}_vtable",
+            platform,
+        )
+    except ValueError:
+        if debug:
+            print(
+                "    Preprocess: invalid vtable artifact path: "
+                f"{inherit_vtable_class}_vtable"
+            )
+        return None
     vtable_data = _read_yaml(vtable_path)
     if not isinstance(vtable_data, dict):
         if debug:

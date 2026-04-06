@@ -633,10 +633,26 @@ def should_start_binary_processing(skills_to_process, vcall_targets):
     return bool(skills_to_process or vcall_targets)
 
 
+def resolve_artifact_path(binary_dir, artifact_path, platform):
+    """Resolve one artifact path under the current gamever root."""
+    if not artifact_path:
+        raise ValueError("artifact path is empty")
+
+    expanded = artifact_path.replace("{platform}", platform)
+    module_dir = Path(binary_dir).resolve()
+    gamever_dir = module_dir.parent.resolve()
+    candidate = (module_dir / expanded).resolve()
+
+    if os.path.commonpath([str(candidate), str(gamever_dir)]) != str(gamever_dir):
+        raise ValueError(f"artifact path escapes gamever root: {artifact_path}")
+
+    return str(candidate)
+
+
 def expand_expected_paths(binary_dir, paths, platform):
     """Expand {platform} placeholders and resolve artifact paths under a binary directory."""
     return [
-        os.path.join(binary_dir, path.replace("{platform}", platform))
+        resolve_artifact_path(binary_dir, path, platform)
         for path in paths
     ]
 
@@ -947,7 +963,12 @@ def process_binary(
             print(f"  Skipping skill: {skill_name} (platform '{skill_platform}' != '{platform}')")
             skip_count += 1
             continue
-        expected_outputs = expand_expected_paths(binary_dir, skill["expected_output"], platform)
+        try:
+            expected_outputs = expand_expected_paths(binary_dir, skill["expected_output"], platform)
+        except ValueError as e:
+            fail_count += 1
+            print(f"  Failed: {skill_name} ({e})")
+            continue
         # Check if all output files already exist
         if all_expected_outputs_exist(expected_outputs):
             print(f"  Skipping skill: {skill_name} (all outputs exist)")
@@ -966,7 +987,7 @@ def process_binary(
     # Start idalib-mcp
     process = start_idalib_mcp(binary_path, host, port, ida_args, debug)
     if process is None:
-        return 0, len(skills_to_process) + len(vcall_targets), skip_count
+        return success_count, fail_count + len(skills_to_process) + len(vcall_targets), skip_count
 
     try:
         # Process each skill: try preprocess first, then run_skill if needed
@@ -988,10 +1009,12 @@ def process_binary(
 
             # Check if all expected_input files are available before running the skill
             skill = skill_map[skill_name]
-            expected_inputs = [
-                os.path.join(binary_dir, f.replace("{platform}", platform))
-                for f in skill.get("expected_input", [])
-            ]
+            try:
+                expected_inputs = expand_expected_paths(binary_dir, skill.get("expected_input", []), platform)
+            except ValueError as e:
+                fail_count += 1
+                print(f"  Failed: {skill_name} ({e})")
+                continue
             missing_inputs = [p for p in expected_inputs if not os.path.exists(p)]
             if missing_inputs:
                 fail_count += 1
