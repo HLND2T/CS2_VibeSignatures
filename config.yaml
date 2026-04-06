@@ -18,8 +18,8 @@ modules:
     path_linux: game/bin/linuxsteamrt64/libnetworksystem.so
 
     vcall_finder:
-      - g_pNetworkMessages
       - g_NetworkMessages
+      - g_pNetworkMessages
       - g_pFlattenedSerializers
       - g_FlattenedSerializers
 
@@ -2457,6 +2457,13 @@ modules:
           - CNetworkMessages_GetFieldChangeCallbackPriorities.{platform}.yaml
         expected_input:
           - CFlattenedSerializers_CreateFieldChangedEventQueue.{platform}.yaml
+
+      - name: find-CNetworkMessages_SetIsForServer-impl
+        expected_output:
+          - CNetworkMessages_SetIsForServer.{platform}.yaml
+        expected_input:
+          - CNetworkMessages_vtable.{platform}.yaml
+          - ../server/CNetworkMessages_SetIsForServer.{platform}.yaml
 
 cpp_tests:
   - name: IGameSystem_MSVC
