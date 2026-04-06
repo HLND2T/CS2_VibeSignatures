@@ -248,6 +248,12 @@ modules:
           - CNetworkMessages::GetNetMessageInfo
         shared: true
 
+      - name: CNetworkMessages_GetIsForServer
+        category: vfunc
+        alias:
+          - CNetworkMessages::GetIsForServer
+        shared: true
+
       - name: CNetChan_ParseMessagesDemoInternal
         category: func
         alias:
@@ -2464,6 +2470,13 @@ modules:
         expected_input:
           - CNetworkMessages_vtable.{platform}.yaml
           - ../engine/CNetworkMessages_SetIsForServer.{platform}.yaml
+
+      - name: find-CNetworkMessages_GetIsForServer
+        expected_output:
+          - CNetworkMessages_GetIsForServer.{platform}.yaml
+        expected_input:
+          - CNetworkMessages_vtable.{platform}.yaml
+          - CNetworkMessages_SetIsForServer.{platform}.yaml
 
 cpp_tests:
   - name: IGameSystem_MSVC
