@@ -254,6 +254,12 @@ modules:
           - CNetworkMessages::GetIsForServer
         shared: true
 
+      - name: CNetworkMessages_GetNetworkSerializationContextData
+        category: vfunc
+        alias:
+          - CNetworkMessages::GetNetworkSerializationContextData
+        shared: true
+
       - name: CNetChan_ParseMessagesDemoInternal
         category: func
         alias:
@@ -2477,6 +2483,20 @@ modules:
         expected_input:
           - CNetworkMessages_vtable.{platform}.yaml
           - CNetworkMessages_SetIsForServer.{platform}.yaml
+
+      - name: find-CNetworkMessages_SetNetworkSerializationContextData-impl
+        expected_output:
+          - CNetworkMessages_SetNetworkSerializationContextData.{platform}.yaml
+        expected_input:
+          - CNetworkMessages_vtable.{platform}.yaml
+          - ../server/CNetworkMessages_SetNetworkSerializationContextData.{platform}.yaml
+
+      - name: find-CNetworkMessages_GetNetworkSerializationContextData
+        expected_output:
+          - CNetworkMessages_GetNetworkSerializationContextData.{platform}.yaml
+        expected_input:
+          - CNetworkMessages_vtable.{platform}.yaml
+          - CNetworkMessages_SetNetworkSerializationContextData.{platform}.yaml
 
 cpp_tests:
   - name: IGameSystem_MSVC
