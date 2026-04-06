@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from ida_analyze_util import parse_mcp_result
+from ida_analyze_util import build_remote_text_export_py_eval, parse_mcp_result
 from openai import OpenAI
 
 
@@ -718,6 +718,67 @@ def _parse_py_eval_json_payload(
     return decoded
 
 
+def _is_valid_function_export_ack(
+    export_ack: Any,
+    *,
+    detail_path: Path,
+    debug: bool,
+    function_scope: str,
+) -> bool:
+    if not isinstance(export_ack, Mapping):
+        _print_vcall_debug(
+            f"invalid function-export ack with {function_scope}: payload is not a mapping",
+            debug,
+        )
+        return False
+
+    if not bool(export_ack.get("ok")):
+        _print_vcall_debug(
+            f"invalid function-export ack with {function_scope}: ok is not truthy",
+            debug,
+        )
+        return False
+
+    try:
+        output_path = _require_nonempty_text(export_ack.get("output_path"), "output_path")
+    except (TypeError, ValueError) as exc:
+        _print_vcall_debug(f"invalid function-export ack with {function_scope}: {exc}", debug)
+        return False
+    if output_path != str(detail_path):
+        _print_vcall_debug(
+            "invalid function-export ack with "
+            f"{function_scope}: output_path mismatch ({output_path!r} != {str(detail_path)!r})",
+            debug,
+        )
+        return False
+
+    try:
+        format_name = _require_nonempty_text(export_ack.get("format"), "format")
+    except (TypeError, ValueError) as exc:
+        _print_vcall_debug(f"invalid function-export ack with {function_scope}: {exc}", debug)
+        return False
+    if format_name != "yaml":
+        _print_vcall_debug(
+            f"invalid function-export ack with {function_scope}: format must be 'yaml', got {format_name!r}",
+            debug,
+        )
+        return False
+
+    try:
+        bytes_written = _parse_int_value(export_ack.get("bytes_written"), "bytes_written")
+    except (TypeError, ValueError) as exc:
+        _print_vcall_debug(f"invalid function-export ack with {function_scope}: {exc}", debug)
+        return False
+    if bytes_written < 0:
+        _print_vcall_debug(
+            f"invalid function-export ack with {function_scope}: bytes_written must be non-negative, got {bytes_written}",
+            debug,
+        )
+        return False
+
+    return True
+
+
 def build_object_xref_py_eval(object_name: str) -> str:
     object_name = _require_nonempty_text(object_name, "object_name")
     return (
@@ -744,15 +805,36 @@ def build_object_xref_py_eval(object_name: str) -> str:
     )
 
 
-def build_function_dump_py_eval(func_va: int | str) -> str:
+def build_function_dump_export_py_eval(
+    func_va: int | str,
+    *,
+    output_path: str | Path,
+    object_name: str,
+    module_name: str,
+    platform: str,
+) -> str:
     func_va_int = _parse_int_value(func_va, "func_va")
-    return (
-        "import ida_funcs, ida_idaapi, ida_lines, ida_segment, idautils, idc, json\n"
+    output_path_str = str(Path(output_path).resolve())
+    producer_code = (
+        "import ida_funcs, ida_lines, ida_segment, idautils, idc\n"
         "try:\n"
         "    import ida_hexrays\n"
         "except Exception:\n"
         "    ida_hexrays = None\n"
+        "try:\n"
+        "    import yaml\n"
+        "except Exception as exc:\n"
+        "    raise RuntimeError('PyYAML is required for vcall_finder detail export') from exc\n"
+        "class LiteralDumper(yaml.SafeDumper):\n"
+        "    pass\n"
+        "def _literal_str_representer(dumper, value):\n"
+        "    style = '|' if '\\n' in value else None\n"
+        "    return dumper.represent_scalar('tag:yaml.org,2002:str', value, style=style)\n"
+        "LiteralDumper.add_representer(str, _literal_str_representer)\n"
         f"func_ea = {func_va_int}\n"
+        f"object_name = {object_name!r}\n"
+        f"module_name = {module_name!r}\n"
+        f"platform_name = {platform!r}\n"
         "def get_disasm(start_ea):\n"
         "    func = ida_funcs.get_func(start_ea)\n"
         "    if func is None:\n"
@@ -781,15 +863,29 @@ def build_function_dump_py_eval(func_va: int | str) -> str:
         "    return '\\n'.join(ida_lines.tag_remove(line.line) for line in cfunc.get_pseudocode())\n"
         "func = ida_funcs.get_func(func_ea)\n"
         "if func is None:\n"
-        "    result = json.dumps(None)\n"
-        "else:\n"
-        "    func_start = int(func.start_ea)\n"
-        "    result = json.dumps({\n"
-        "        'func_name': ida_funcs.get_func_name(func_start) or f'sub_{func_start:X}',\n"
-        "        'func_va': hex(func_start),\n"
-        "        'disasm_code': get_disasm(func_start),\n"
-        "        'procedure': get_pseudocode(func_start),\n"
-        "    })\n"
+        "    raise ValueError(f'Function not found: {hex(func_ea)}')\n"
+        "func_start = int(func.start_ea)\n"
+        "payload = {\n"
+        "    'object_name': object_name,\n"
+        "    'module': module_name,\n"
+        "    'platform': platform_name,\n"
+        "    'func_name': ida_funcs.get_func_name(func_start) or f'sub_{func_start:X}',\n"
+        "    'func_va': hex(func_start),\n"
+        "    'disasm_code': get_disasm(func_start),\n"
+        "    'procedure': get_pseudocode(func_start),\n"
+        "}\n"
+        "payload_text = yaml.dump(\n"
+        "    payload,\n"
+        "    Dumper=LiteralDumper,\n"
+        "    sort_keys=False,\n"
+        "    allow_unicode=True,\n"
+        ")\n"
+    )
+    return build_remote_text_export_py_eval(
+        output_path=output_path_str,
+        producer_code=producer_code,
+        content_var="payload_text",
+        format_name="yaml",
     )
 
 
@@ -895,7 +991,7 @@ async def export_object_xref_details_via_mcp(
             module_name,
             platform,
             func_name,
-        )
+        ).resolve()
         if detail_path.exists():
             skipped_functions += 1
             continue
@@ -910,64 +1006,50 @@ async def export_object_xref_details_via_mcp(
             failed_functions += 1
             continue
 
-        try:
-            function_scope = _format_function_scope(
-                gamever,
-                module_name,
-                platform,
-                object_name,
-                func_name,
-                func_va_text,
-            )
-            if debug:
-                print(f"    vcall_finder: calling py_eval (function-dump) with {function_scope}")
-            dump_query_result = await session.call_tool(
-                name="py_eval",
-                arguments={"code": build_function_dump_py_eval(func_va_int)},
-            )
-        except Exception as exc:
-            if debug:
-                print(
-                    "    vcall_finder: py_eval failed at function-dump step "
-                    f"with {function_scope}: {exc!r}"
-                )
-            failed_functions += 1
-            continue
-
-        dump_data = _parse_py_eval_json_payload(
-            dump_query_result,
-            debug=debug,
-            context=f"function dump ({function_scope})",
-            expected_keys=("func_name", "func_va", "disasm_code", "procedure"),
+        function_scope = _format_function_scope(
+            gamever,
+            module_name,
+            platform,
+            object_name,
+            func_name,
+            func_va_text,
         )
-        if not isinstance(dump_data, Mapping):
-            if debug:
-                print(f"    vcall_finder: invalid function-dump payload with {function_scope}")
-            failed_functions += 1
-            continue
-
-        dump_func_name = str(dump_data.get("func_name", "")).strip() or func_name
-        dump_func_va = str(dump_data.get("func_va", "")).strip() or hex(func_va_int)
-
         try:
-            write_vcall_detail_yaml(
-                detail_path,
-                {
-                    "object_name": object_name,
-                    "module": module_name,
-                    "platform": platform,
-                    "func_name": dump_func_name,
-                    "func_va": dump_func_va,
-                    "disasm_code": str(dump_data.get("disasm_code", "") or ""),
-                    "procedure": str(dump_data.get("procedure", "") or ""),
+            if debug:
+                print(f"    vcall_finder: calling py_eval (function-export) with {function_scope}")
+            export_query_result = await session.call_tool(
+                name="py_eval",
+                arguments={
+                    "code": build_function_dump_export_py_eval(
+                        func_va_int,
+                        output_path=detail_path,
+                        object_name=object_name,
+                        module_name=module_name,
+                        platform=platform,
+                    )
                 },
             )
         except Exception as exc:
             if debug:
                 print(
-                    "    vcall_finder: failed to write detail YAML "
-                    f"for object '{object_name}', func '{dump_func_name}' at '{detail_path}': {exc!r}"
+                    "    vcall_finder: py_eval failed at function-export step "
+                    f"with {function_scope}: {exc!r}"
                 )
+            failed_functions += 1
+            continue
+
+        export_ack = _parse_py_eval_json_payload(
+            export_query_result,
+            debug=debug,
+            context=f"function export ({function_scope})",
+            expected_keys=("ok", "output_path", "bytes_written", "format"),
+        )
+        if not _is_valid_function_export_ack(
+            export_ack,
+            detail_path=detail_path,
+            debug=debug,
+            function_scope=function_scope,
+        ):
             failed_functions += 1
             continue
 

@@ -3,6 +3,7 @@
 
 import json
 import os
+import textwrap
 
 try:
     import yaml
@@ -135,6 +136,63 @@ def parse_mcp_result(result):
         except (json.JSONDecodeError, TypeError):
             return text
     return None
+
+
+def build_remote_text_export_py_eval(
+    *,
+    output_path,
+    producer_code,
+    content_var="payload_text",
+    format_name="text",
+):
+    """Build a py_eval script that writes large text to disk and returns a small ack."""
+    output_path_str = os.fspath(output_path)
+    if not os.path.isabs(output_path_str):
+        raise ValueError(f"output_path must be absolute, got {output_path_str!r}")
+    if not str(producer_code).strip():
+        raise ValueError("producer_code cannot be empty")
+    if not str(content_var).strip():
+        raise ValueError("content_var cannot be empty")
+
+    producer_block = textwrap.indent(str(producer_code).rstrip(), "    ")
+    return (
+        "import json, os, traceback\n"
+        f"output_path = {output_path_str!r}\n"
+        f"format_name = {str(format_name)!r}\n"
+        "tmp_path = output_path + '.tmp'\n"
+        "def _truncate_text(value, limit=800):\n"
+        "    text = '' if value is None else str(value)\n"
+        "    return text if len(text) <= limit else text[:limit] + ' [truncated]'\n"
+        "try:\n"
+        "    if not os.path.isabs(output_path):\n"
+        "        raise ValueError(f'output_path must be absolute: {output_path}')\n"
+        f"{producer_block}\n"
+        f"    payload_text = str({content_var})\n"
+        "    parent_dir = os.path.dirname(output_path)\n"
+        "    if parent_dir:\n"
+        "        os.makedirs(parent_dir, exist_ok=True)\n"
+        "    with open(tmp_path, 'w', encoding='utf-8') as handle:\n"
+        "        handle.write(payload_text)\n"
+        "    os.replace(tmp_path, output_path)\n"
+        "    result = json.dumps({\n"
+        "        'ok': True,\n"
+        "        'output_path': output_path,\n"
+        "        'bytes_written': len(payload_text.encode('utf-8')),\n"
+        "        'format': format_name,\n"
+        "    })\n"
+        "except Exception as exc:\n"
+        "    try:\n"
+        "        if os.path.exists(tmp_path):\n"
+        "            os.unlink(tmp_path)\n"
+        "    except Exception:\n"
+        "        pass\n"
+        "    result = json.dumps({\n"
+        "        'ok': False,\n"
+        "        'output_path': output_path,\n"
+        "        'error': _truncate_text(exc),\n"
+        "        'traceback': _truncate_text(traceback.format_exc()),\n"
+        "    })\n"
+    )
 
 
 def _build_vtable_py_eval(class_name):
