@@ -704,7 +704,7 @@ def start_idalib_mcp(binary_path, host=DEFAULT_HOST, port=DEFAULT_PORT, ida_args
     Returns:
         subprocess.Popen object if successful, None if failed
     """
-    cmd = ["uv", "run", "idalib-mcp", "--host", host, "--port", str(port)]
+    cmd = ["uv", "run", "idalib-mcp", "--unsafe", "--host", host, "--port", str(port)]
 
     if ida_args:
         cmd.extend(ida_args.split())
