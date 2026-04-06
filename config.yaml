@@ -145,6 +145,13 @@ modules:
         expected_output:
           - CFlattenedSerializers_vtable.{platform}.yaml
 
+      - name: find-CNetworkMessages_GetFieldChangeCallbackOrderCount-AND-CNetworkMessages_GetFieldChangeCallbackPriorities
+        expected_output:
+          - CNetworkMessages_GetFieldChangeCallbackOrderCount.{platform}.yaml
+          - CNetworkMessages_GetFieldChangeCallbackPriorities.{platform}.yaml
+        expected_input:
+          - CFlattenedSerializers_CreateFieldChangedEventQueue.{platform}.yaml
+
     symbols:
       - name: CNetworkMessages_vtable
         category: vtable
@@ -293,6 +300,18 @@ modules:
 
       - name: CFlattenedSerializers_vtable
         category: vtable
+
+      - name: CNetworkMessages_GetFieldChangeCallbackOrderCount
+        category: vfunc
+        alias:
+          - CNetworkMessages::GetFieldChangeCallbackOrderCount
+        shared: true
+
+      - name: CNetworkMessages_GetFieldChangeCallbackPriorities
+        category: vfunc
+        alias:
+          - CNetworkMessages::GetFieldChangeCallbackPriorities
+        shared: true
 
   - name: matchmaking
     path_windows: game/csgo/bin/win64/matchmaking.dll
