@@ -13,6 +13,298 @@ modules:
         category: vtable
         shared: true
 
+  - name: networksystem
+    path_windows: game/bin/win64/networksystem.dll
+    path_linux: game/bin/linuxsteamrt64/libnetworksystem.so
+
+    vcall_finder:
+      - g_pNetworkMessages
+      - g_NetworkMessages
+      - g_pFlattenedSerializers
+      - g_FlattenedSerializers
+
+    skills:
+
+      - name: find-CNetChan_vtable
+        expected_output:
+          - CNetChan_vtable.{platform}.yaml
+
+      - name: find-CNetworkMessages_vtable
+        expected_output:
+          - CNetworkMessages_vtable.{platform}.yaml
+
+      - name: find-CNetworkMessages_RegisterNetworkCategory
+        expected_output:
+          - CNetworkMessages_RegisterNetworkCategory.{platform}.yaml
+
+      - name: find-CNetworkMessages_AssociateNetMessageWithChannelCategoryAbstract
+        expected_output:
+          - CNetworkMessages_AssociateNetMessageWithChannelCategoryAbstract.{platform}.yaml
+
+      - name: find-CNetworkMessages_FindOrCreateNetMessage
+        expected_output:
+          - CNetworkMessages_FindOrCreateNetMessage.{platform}.yaml
+
+      - name: find-CNetworkMessages_SerializeInternal
+        expected_output:
+          - CNetworkMessages_SerializeInternal.{platform}.yaml
+
+      - name: find-CNetworkMessages_UnserializeMessageInternal
+        expected_output:
+          - CNetworkMessages_UnserializeMessageInternal.{platform}.yaml
+
+      - name: find-CNetworkMessages_SerializeMessageInternal
+        expected_output:
+          - CNetworkMessages_SerializeMessageInternal.{platform}.yaml
+
+      - name: find-CNetworkMessages_UnserializeFromStream
+        expected_output:
+          - CNetworkMessages_UnserializeFromStream.{platform}.yaml
+
+      - name: find-CNetworkMessages_AllocateAndCopyConstructNetMessageAbstract
+        expected_output:
+          - CNetworkMessages_AllocateAndCopyConstructNetMessageAbstract.{platform}.yaml
+
+      - name: find-CNetworkMessages_DeallocateNetMessageAbstract
+        expected_output:
+          - CNetworkMessages_DeallocateNetMessageAbstract.{platform}.yaml
+
+      - name: find-CNetworkMessages_RegisterNetworkFieldSerializer
+        expected_output:
+          - CNetworkMessages_RegisterNetworkFieldSerializer.{platform}.yaml
+
+      - name: find-CNetworkMessages_RegisterNetworkArrayFieldSerializer
+        expected_output:
+          - CNetworkMessages_RegisterNetworkArrayFieldSerializer.{platform}.yaml
+
+      - name: find-CNetworkMessages_AssociateNetMessageGroupIdWithChannelCategory
+        expected_output:
+          - CNetworkMessages_AssociateNetMessageGroupIdWithChannelCategory.{platform}.yaml
+
+      - name: find-CNetworkMessages_RegisterNetworkFieldChangeCallbackInternal
+        expected_output:
+          - CNetworkMessages_RegisterNetworkFieldChangeCallbackInternal.{platform}.yaml
+
+      - name: find-CNetworkMessages_RegisterFieldChangeCallbackPriority
+        expected_output:
+          - CNetworkMessages_RegisterFieldChangeCallbackPriority.{platform}.yaml
+
+      - name: find-CNetworkMessages_ComputeOrderForPriority
+        expected_output:
+          - CNetworkMessages_ComputeOrderForPriority.{platform}.yaml
+
+      - name: find-CNetworkMessages_GetNetMessageInfo
+        expected_output:
+          - CNetworkMessages_GetNetMessageInfo.{platform}.yaml
+        expected_input:
+          - CNetChan_ProcessMessages.{platform}.yaml
+
+      - name: find-CNetChan_ProcessMessages
+        expected_output:
+          - CNetChan_ProcessMessages.{platform}.yaml
+        expected_input:
+          - CNetChan_vtable.{platform}.yaml
+
+      - name: find-CNetChan_ParseMessagesDemo
+        expected_output:
+          - CNetChan_ParseMessagesDemo.{platform}.yaml
+        expected_input:
+          - CNetChan_vtable.{platform}.yaml
+
+      - name: find-CNetChan_ParseMessagesDemoInternal-AND-CNetChan_ParseNetMessageShowFilter-AND-CNetworkMessages_FindNetworkMessagePartial
+        expected_output:
+          - CNetChan_ParseMessagesDemoInternal.{platform}.yaml
+          - CNetChan_ParseNetMessageShowFilter.{platform}.yaml
+          - CNetworkMessages_FindNetworkMessagePartial.{platform}.yaml
+        expected_input:
+          - CNetworkMessages_vtable.{platform}.yaml
+          - CNetChan_ParseMessagesDemo.{platform}.yaml
+
+      - name: find-CNetworkMessages_GetLoggingChannel
+        expected_output:
+          - CNetworkMessages_GetLoggingChannel.{platform}.yaml
+
+      - name: find-CNetworkSystem_vtable
+        expected_output:
+          - CNetworkSystem_vtable.{platform}.yaml
+
+      - name: find-CNetworkSystem_SendNetworkStats
+        expected_output:
+          - CNetworkSystem_SendNetworkStats.{platform}.yaml
+
+      - name: find-CNetworkMessages_GetNetworkGroupCount-AND-CNetworkMessages_GetNetworkGroupName-AND-CNetworkMessages_GetNetworkGroupColor
+        expected_output:
+          - CNetworkMessages_GetNetworkGroupCount.{platform}.yaml
+          - CNetworkMessages_GetNetworkGroupName.{platform}.yaml
+          - CNetworkMessages_GetNetworkGroupColor.{platform}.yaml
+        expected_input:
+          - CNetworkSystem_SendNetworkStats.{platform}.yaml
+
+      - name: find-CFlattenedSerializers_vtable
+        expected_output:
+          - CFlattenedSerializers_vtable.{platform}.yaml
+
+    symbols:
+      - name: CNetworkMessages_vtable
+        category: vtable
+        shared: true
+
+      - name: CNetworkMessages_RegisterNetworkCategory
+        category: vfunc
+        alias:
+          - CNetworkMessages::RegisterNetworkCategory
+        shared: true
+
+      - name: CNetworkMessages_AssociateNetMessageWithChannelCategoryAbstract
+        category: vfunc
+        alias:
+          - CNetworkMessages::AssociateNetMessageWithChannelCategoryAbstract
+        shared: true
+
+      - name: CNetworkMessages_FindOrCreateNetMessage
+        category: vfunc
+        alias:
+          - CNetworkMessages::FindOrCreateNetMessage
+        shared: true
+
+      - name: CNetworkMessages_SerializeInternal
+        category: func
+        alias:
+          - CNetworkMessages::SerializeInternal
+
+      - name: CNetworkMessages_UnserializeMessageInternal
+        category: vfunc
+        alias:
+          - CNetworkMessages::UnserializeMessageInternal
+        shared: true
+
+      - name: CNetworkMessages_SerializeMessageInternal
+        category: vfunc
+        alias:
+          - CNetworkMessages::SerializeMessageInternal
+        shared: true
+
+      - name: CNetworkMessages_UnserializeFromStream
+        category: vfunc
+        alias:
+          - CNetworkMessages::UnserializeFromStream
+        shared: true
+
+      - name: CNetworkMessages_AllocateAndCopyConstructNetMessageAbstract
+        category: vfunc
+        alias:
+          - CNetworkMessages::AllocateAndCopyConstructNetMessageAbstract
+        shared: true
+
+      - name: CNetworkMessages_DeallocateNetMessageAbstract
+        category: vfunc
+        alias:
+          - CNetworkMessages::DeallocateNetMessageAbstract
+        shared: true
+
+      - name: CNetworkMessages_RegisterNetworkFieldSerializer
+        category: vfunc
+        alias:
+          - CNetworkMessages::RegisterNetworkFieldSerializer
+        shared: true
+
+      - name: CNetworkMessages_RegisterNetworkArrayFieldSerializer
+        category: vfunc
+        alias:
+          - CNetworkMessages::RegisterNetworkArrayFieldSerializer
+        shared: true
+
+      - name: CNetworkMessages_AssociateNetMessageGroupIdWithChannelCategory
+        category: vfunc
+        alias:
+          - CNetworkMessages::AssociateNetMessageGroupIdWithChannelCategory
+        shared: true
+
+      - name: CNetworkMessages_RegisterNetworkFieldChangeCallbackInternal
+        category: vfunc
+        alias:
+          - CNetworkMessages::RegisterNetworkFieldChangeCallbackInternal
+        shared: true
+
+      - name: CNetworkMessages_RegisterFieldChangeCallbackPriority
+        category: vfunc
+        alias:
+          - CNetworkMessages::RegisterFieldChangeCallbackPriority
+        shared: true
+
+      - name: CNetworkMessages_ComputeOrderForPriority
+        category: vfunc
+        alias:
+          - CNetworkMessages::ComputeOrderForPriority
+        shared: true
+
+      - name: CNetChan_vtable
+        category: vtable
+        shared: true
+
+      - name: CNetworkMessages_GetNetMessageInfo
+        category: vfunc
+        alias:
+          - CNetworkMessages::GetNetMessageInfo
+        shared: true
+
+      - name: CNetChan_ParseMessagesDemoInternal
+        category: func
+        alias:
+          - CNetChan::ParseMessagesDemoInternal
+
+      - name: CNetChan_ParseNetMessageShowFilter
+        category: func
+        alias:
+          - CNetChan::ParseNetMessageShowFilter
+
+      - name: CNetworkMessages_FindNetworkMessagePartial
+        category: vfunc
+        alias:
+          - CNetworkMessages::FindNetworkMessagePartial
+        shared: true
+
+      - name: CNetworkSystem_vtable
+        category: vtable
+
+      - name: CNetworkSystem_SendNetworkStats
+        category: func
+        alias:
+          - CNetworkSystem::SendNetworkStats
+
+      - name: CNetworkMessages_GetNetworkGroupCount
+        category: vfunc
+        alias:
+          - CNetworkMessages::GetNetworkGroupCount
+        shared: true
+
+      - name: CNetworkMessages_GetNetworkGroupName
+        category: vfunc
+        alias:
+          - CNetworkMessages::GetNetworkGroupName
+        shared: true
+
+      - name: CNetworkMessages_GetNetworkGroupColor
+        category: vfunc
+        alias:
+          - CNetworkMessages::GetNetworkGroupColor
+        shared: true
+
+      - name: CFlattenedSerializers_vtable
+        category: vtable
+
+      - name: CNetworkMessages_GetFieldChangeCallbackOrderCount
+        category: vfunc
+        alias:
+          - CNetworkMessages::GetFieldChangeCallbackOrderCount
+        shared: true
+
+      - name: CNetworkMessages_GetFieldChangeCallbackPriorities
+        category: vfunc
+        alias:
+          - CNetworkMessages::GetFieldChangeCallbackPriorities
+        shared: true
+
   - name: matchmaking
     path_windows: game/csgo/bin/win64/matchmaking.dll
     path_linux: game/csgo/bin/linuxsteamrt64/libmatchmaking.so
@@ -2132,6 +2424,7 @@ modules:
         category: vfunc
         alias:
           - CFlattenedSerializers::CreateFieldChangedEventQueue
+        shared: true
 
       - name: CNetworkMessages_GetLoggingChannel
         category: vfunc
@@ -2149,132 +2442,7 @@ modules:
     path_windows: game/bin/win64/networksystem.dll
     path_linux: game/bin/linuxsteamrt64/libnetworksystem.so
 
-    vcall_finder:
-      - g_pNetworkMessages
-      - g_NetworkMessages
-      - g_pFlattenedSerializers
-      - g_FlattenedSerializers
-
     skills:
-
-      - name: find-CNetChan_vtable
-        expected_output:
-          - CNetChan_vtable.{platform}.yaml
-
-      - name: find-CNetworkMessages_vtable
-        expected_output:
-          - CNetworkMessages_vtable.{platform}.yaml
-
-      - name: find-CNetworkMessages_RegisterNetworkCategory
-        expected_output:
-          - CNetworkMessages_RegisterNetworkCategory.{platform}.yaml
-
-      - name: find-CNetworkMessages_AssociateNetMessageWithChannelCategoryAbstract
-        expected_output:
-          - CNetworkMessages_AssociateNetMessageWithChannelCategoryAbstract.{platform}.yaml
-
-      - name: find-CNetworkMessages_FindOrCreateNetMessage
-        expected_output:
-          - CNetworkMessages_FindOrCreateNetMessage.{platform}.yaml
-
-      - name: find-CNetworkMessages_SerializeInternal
-        expected_output:
-          - CNetworkMessages_SerializeInternal.{platform}.yaml
-
-      - name: find-CNetworkMessages_UnserializeMessageInternal
-        expected_output:
-          - CNetworkMessages_UnserializeMessageInternal.{platform}.yaml
-
-      - name: find-CNetworkMessages_SerializeMessageInternal
-        expected_output:
-          - CNetworkMessages_SerializeMessageInternal.{platform}.yaml
-
-      - name: find-CNetworkMessages_UnserializeFromStream
-        expected_output:
-          - CNetworkMessages_UnserializeFromStream.{platform}.yaml
-
-      - name: find-CNetworkMessages_AllocateAndCopyConstructNetMessageAbstract
-        expected_output:
-          - CNetworkMessages_AllocateAndCopyConstructNetMessageAbstract.{platform}.yaml
-
-      - name: find-CNetworkMessages_DeallocateNetMessageAbstract
-        expected_output:
-          - CNetworkMessages_DeallocateNetMessageAbstract.{platform}.yaml
-
-      - name: find-CNetworkMessages_RegisterNetworkFieldSerializer
-        expected_output:
-          - CNetworkMessages_RegisterNetworkFieldSerializer.{platform}.yaml
-
-      - name: find-CNetworkMessages_RegisterNetworkArrayFieldSerializer
-        expected_output:
-          - CNetworkMessages_RegisterNetworkArrayFieldSerializer.{platform}.yaml
-
-      - name: find-CNetworkMessages_AssociateNetMessageGroupIdWithChannelCategory
-        expected_output:
-          - CNetworkMessages_AssociateNetMessageGroupIdWithChannelCategory.{platform}.yaml
-
-      - name: find-CNetworkMessages_RegisterNetworkFieldChangeCallbackInternal
-        expected_output:
-          - CNetworkMessages_RegisterNetworkFieldChangeCallbackInternal.{platform}.yaml
-
-      - name: find-CNetworkMessages_RegisterFieldChangeCallbackPriority
-        expected_output:
-          - CNetworkMessages_RegisterFieldChangeCallbackPriority.{platform}.yaml
-
-      - name: find-CNetworkMessages_ComputeOrderForPriority
-        expected_output:
-          - CNetworkMessages_ComputeOrderForPriority.{platform}.yaml
-
-      - name: find-CNetworkMessages_GetNetMessageInfo
-        expected_output:
-          - CNetworkMessages_GetNetMessageInfo.{platform}.yaml
-        expected_input:
-          - CNetChan_ProcessMessages.{platform}.yaml
-
-      - name: find-CNetChan_ProcessMessages
-        expected_output:
-          - CNetChan_ProcessMessages.{platform}.yaml
-        expected_input:
-          - CNetChan_vtable.{platform}.yaml
-
-      - name: find-CNetChan_ParseMessagesDemo
-        expected_output:
-          - CNetChan_ParseMessagesDemo.{platform}.yaml
-        expected_input:
-          - CNetChan_vtable.{platform}.yaml
-
-      - name: find-CNetChan_ParseMessagesDemoInternal-AND-CNetChan_ParseNetMessageShowFilter-AND-CNetworkMessages_FindNetworkMessagePartial
-        expected_output:
-          - CNetChan_ParseMessagesDemoInternal.{platform}.yaml
-          - CNetChan_ParseNetMessageShowFilter.{platform}.yaml
-          - CNetworkMessages_FindNetworkMessagePartial.{platform}.yaml
-        expected_input:
-          - CNetworkMessages_vtable.{platform}.yaml
-          - CNetChan_ParseMessagesDemo.{platform}.yaml
-
-      - name: find-CNetworkMessages_GetLoggingChannel
-        expected_output:
-          - CNetworkMessages_GetLoggingChannel.{platform}.yaml
-
-      - name: find-CNetworkSystem_vtable
-        expected_output:
-          - CNetworkSystem_vtable.{platform}.yaml
-
-      - name: find-CNetworkSystem_SendNetworkStats
-        expected_output:
-          - CNetworkSystem_SendNetworkStats.{platform}.yaml
-
-      - name: find-CNetworkMessages_GetNetworkGroupCount-AND-CNetworkMessages_GetNetworkGroupName-AND-CNetworkMessages_GetNetworkGroupColor
-        expected_output:
-          - CNetworkMessages_GetNetworkGroupCount.{platform}.yaml
-          - CNetworkMessages_GetNetworkGroupName.{platform}.yaml
-          - CNetworkMessages_GetNetworkGroupColor.{platform}.yaml
-        expected_input:
-          - CNetworkSystem_SendNetworkStats.{platform}.yaml
-
-      - name: find-CFlattenedSerializers_vtable
-        expected_output:
-          - CFlattenedSerializers_vtable.{platform}.yaml
 
       - name: find-CFlattenedSerializers_CreateFieldChangedEventQueue-impl
         expected_output:
@@ -2289,167 +2457,6 @@ modules:
           - CNetworkMessages_GetFieldChangeCallbackPriorities.{platform}.yaml
         expected_input:
           - CFlattenedSerializers_CreateFieldChangedEventQueue.{platform}.yaml
-
-    symbols:
-      - name: CNetworkMessages_vtable
-        category: vtable
-        shared: true
-
-      - name: CNetworkMessages_RegisterNetworkCategory
-        category: vfunc
-        alias:
-          - CNetworkMessages::RegisterNetworkCategory
-        shared: true
-
-      - name: CNetworkMessages_AssociateNetMessageWithChannelCategoryAbstract
-        category: vfunc
-        alias:
-          - CNetworkMessages::AssociateNetMessageWithChannelCategoryAbstract
-        shared: true
-
-      - name: CNetworkMessages_FindOrCreateNetMessage
-        category: vfunc
-        alias:
-          - CNetworkMessages::FindOrCreateNetMessage
-        shared: true
-
-      - name: CNetworkMessages_SerializeInternal
-        category: func
-        alias:
-          - CNetworkMessages::SerializeInternal
-
-      - name: CNetworkMessages_UnserializeMessageInternal
-        category: vfunc
-        alias:
-          - CNetworkMessages::UnserializeMessageInternal
-        shared: true
-
-      - name: CNetworkMessages_SerializeMessageInternal
-        category: vfunc
-        alias:
-          - CNetworkMessages::SerializeMessageInternal
-        shared: true
-
-      - name: CNetworkMessages_UnserializeFromStream
-        category: vfunc
-        alias:
-          - CNetworkMessages::UnserializeFromStream
-        shared: true
-
-      - name: CNetworkMessages_AllocateAndCopyConstructNetMessageAbstract
-        category: vfunc
-        alias:
-          - CNetworkMessages::AllocateAndCopyConstructNetMessageAbstract
-        shared: true
-
-      - name: CNetworkMessages_DeallocateNetMessageAbstract
-        category: vfunc
-        alias:
-          - CNetworkMessages::DeallocateNetMessageAbstract
-        shared: true
-
-      - name: CNetworkMessages_RegisterNetworkFieldSerializer
-        category: vfunc
-        alias:
-          - CNetworkMessages::RegisterNetworkFieldSerializer
-        shared: true
-
-      - name: CNetworkMessages_RegisterNetworkArrayFieldSerializer
-        category: vfunc
-        alias:
-          - CNetworkMessages::RegisterNetworkArrayFieldSerializer
-        shared: true
-
-      - name: CNetworkMessages_AssociateNetMessageGroupIdWithChannelCategory
-        category: vfunc
-        alias:
-          - CNetworkMessages::AssociateNetMessageGroupIdWithChannelCategory
-        shared: true
-
-      - name: CNetworkMessages_RegisterNetworkFieldChangeCallbackInternal
-        category: vfunc
-        alias:
-          - CNetworkMessages::RegisterNetworkFieldChangeCallbackInternal
-        shared: true
-
-      - name: CNetworkMessages_RegisterFieldChangeCallbackPriority
-        category: vfunc
-        alias:
-          - CNetworkMessages::RegisterFieldChangeCallbackPriority
-        shared: true
-
-      - name: CNetworkMessages_ComputeOrderForPriority
-        category: vfunc
-        alias:
-          - CNetworkMessages::ComputeOrderForPriority
-        shared: true
-
-      - name: CNetChan_vtable
-        category: vtable
-        shared: true
-
-      - name: CNetworkMessages_GetNetMessageInfo
-        category: vfunc
-        alias:
-          - CNetworkMessages::GetNetMessageInfo
-        shared: true
-
-      - name: CNetChan_ParseMessagesDemoInternal
-        category: func
-        alias:
-          - CNetChan::ParseMessagesDemoInternal
-
-      - name: CNetChan_ParseNetMessageShowFilter
-        category: func
-        alias:
-          - CNetChan::ParseNetMessageShowFilter
-
-      - name: CNetworkMessages_FindNetworkMessagePartial
-        category: vfunc
-        alias:
-          - CNetworkMessages::FindNetworkMessagePartial
-        shared: true
-
-      - name: CNetworkSystem_vtable
-        category: vtable
-
-      - name: CNetworkSystem_SendNetworkStats
-        category: func
-        alias:
-          - CNetworkSystem::SendNetworkStats
-
-      - name: CNetworkMessages_GetNetworkGroupCount
-        category: vfunc
-        alias:
-          - CNetworkMessages::GetNetworkGroupCount
-        shared: true
-
-      - name: CNetworkMessages_GetNetworkGroupName
-        category: vfunc
-        alias:
-          - CNetworkMessages::GetNetworkGroupName
-        shared: true
-
-      - name: CNetworkMessages_GetNetworkGroupColor
-        category: vfunc
-        alias:
-          - CNetworkMessages::GetNetworkGroupColor
-        shared: true
-
-      - name: CFlattenedSerializers_vtable
-        category: vtable
-
-      - name: CNetworkMessages_GetFieldChangeCallbackOrderCount
-        category: vfunc
-        alias:
-          - CNetworkMessages::GetFieldChangeCallbackOrderCount
-        shared: true
-
-      - name: CNetworkMessages_GetFieldChangeCallbackPriorities
-        category: vfunc
-        alias:
-          - CNetworkMessages::GetFieldChangeCallbackPriorities
-        shared: true
 
 cpp_tests:
   - name: IGameSystem_MSVC
