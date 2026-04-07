@@ -38,7 +38,7 @@ In the decompiled output, look for the **three virtual calls** through IGameSyst
   v6 = (*(__int64 (__fastcall **)(_QWORD))(*(_QWORD *)*v2 + <ALLOCATE_VFUNC_OFFSET>))(*v2);// IGameSystemFactory_Allocate
   byte_XXXXXXXXX = 0;
   v7 = v6;
-  if ( (*(unsigned __int8 (__fastcall **)(_QWORD))(*(_QWORD *)*v2 + <SHOULDSETNAME_VFUNC_OFFSET>))(*v2) )// IGameSystemFactory_HasName
+  if ( (*(unsigned __int8 (__fastcall **)(_QWORD))(*(_QWORD *)*v2 + <HASNAME_VFUNC_OFFSET>))(*v2) )// IGameSystemFactory_HasName
     (*(void (__fastcall **)(__int64, __int64))(*(_QWORD *)v7 + <SETNAME_VFUNC_OFFSET>))(v7, v4);// IGameSystem_SetName
   v8 = *v2;
   *((_BYTE *)v2 + 8) = 1;
@@ -49,12 +49,12 @@ In the decompiled output, look for the **three virtual calls** through IGameSyst
 - `v7` (= `v6`, the return value of `Allocate`) is an `IGameSystem` pointer. The virtual call through `*(_QWORD *)v7` accesses the IGameSystem vtable.
 
 - `<ALLOCATE_VFUNC_OFFSET>` (e.g. `24` = `0x18`) is the vfunc offset of `IGameSystemFactory_Allocate` -- the **first** virtual call through the IGameSystemFactory vtable pointer (`*v2`), which allocates a new game system instance.
-- `<SHOULDSETNAME_VFUNC_OFFSET>` (e.g. `64` = `0x40`) is the vfunc offset of `IGameSystemFactory_HasName` -- the **second** virtual call through the IGameSystemFactory vtable pointer (`*v2`), a boolean check.
+- `<HASNAME_VFUNC_OFFSET>` (e.g. `64` = `0x40`) is the vfunc offset of `IGameSystemFactory_HasName` -- the **second** virtual call through the IGameSystemFactory vtable pointer (`*v2`), a boolean check.
 - `<SETNAME_VFUNC_OFFSET>` (e.g. `472` = `0x1D8`) is the vfunc offset of `IGameSystem_SetName` -- the virtual call through the IGameSystem vtable pointer (`v7`), called conditionally when `HasName` returns true.
 
 Extract all three offsets from the call sites. Calculate vtable indices:
 - `IGameSystemFactory_Allocate` index = `<ALLOCATE_VFUNC_OFFSET> / 8`
-- `IGameSystemFactory_HasName` index = `<SHOULDSETNAME_VFUNC_OFFSET> / 8`
+- `IGameSystemFactory_HasName` index = `<HASNAME_VFUNC_OFFSET> / 8`
 - `IGameSystem_SetName` index = `<SETNAME_VFUNC_OFFSET> / 8`
 
 ### 4. Generate VFunc Offset Signatures
@@ -67,7 +67,7 @@ Identify the instruction address (`inst_addr`) of the virtual call `call qword p
 
 #### 4b. IGameSystemFactory_HasName Signature
 
-Identify the instruction address (`inst_addr`) of the virtual call `call qword ptr [rax+<SHOULDSETNAME_VFUNC_OFFSET>]` or `call qword ptr [rcx+<SHOULDSETNAME_VFUNC_OFFSET>]` at the second call site (IGameSystemFactory::HasName).
+Identify the instruction address (`inst_addr`) of the virtual call `call qword ptr [rax+<HASNAME_VFUNC_OFFSET>]` or `call qword ptr [rcx+<HASNAME_VFUNC_OFFSET>]` at the second call site (IGameSystemFactory::HasName).
 
 **ALWAYS** Use SKILL `/generate-signature-for-vfuncoffset` to generate a robust and unique signature for `IGameSystemFactory_HasName`, with `inst_addr` and `vfunc_offset` from this step.
 
@@ -106,7 +106,7 @@ Required parameters:
 
 VTable parameters:
 - `vtable_name`: `IGameSystemFactory`
-- `vfunc_offset`: `<SHOULDSETNAME_VFUNC_OFFSET>` in hex (e.g. `0x40`)
+- `vfunc_offset`: `<HASNAME_VFUNC_OFFSET>` in hex (e.g. `0x40`)
 - `vfunc_index`: The calculated index (e.g. `8`)
 
 #### 5c. Write IGameSystem_SetName YAML
@@ -156,7 +156,7 @@ VTable parameters:
 ### IGameSystemFactory_HasName
 - **VTable Name**: `IGameSystemFactory`
 - **VTable Offset**: Changes with game updates. Extract from the `IGameSystem_AddByName` decompiled code.
-- **VTable Index**: Changes with game updates. Resolve via `<SHOULDSETNAME_VFUNC_OFFSET> / 8`.
+- **VTable Index**: Changes with game updates. Resolve via `<HASNAME_VFUNC_OFFSET> / 8`.
 
 ### IGameSystem_SetName
 - **VTable Name**: `IGameSystem`
@@ -169,7 +169,7 @@ All three functions are identified by locating the virtual calls inside `IGameSy
 1. A global byte flag is set to 1
 2. The first virtual call through `*(_QWORD *)*v2` at `<ALLOCATE_VFUNC_OFFSET>` is `IGameSystemFactory_Allocate` -- allocates a new game system
 3. The global byte flag is reset to 0
-4. The second virtual call through `*(_QWORD *)*v2` at `<SHOULDSETNAME_VFUNC_OFFSET>` is `IGameSystemFactory_HasName` -- boolean check
+4. The second virtual call through `*(_QWORD *)*v2` at `<HASNAME_VFUNC_OFFSET>` is `IGameSystemFactory_HasName` -- boolean check
 5. If `HasName` returns true, the third virtual call through `*(_QWORD *)v7` (the allocated system) at `<SETNAME_VFUNC_OFFSET>` is `IGameSystem_SetName` -- sets the system's name
 
 This is robust because:
