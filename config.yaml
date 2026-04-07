@@ -698,6 +698,14 @@ modules:
         expected_input:
           - CLoopModeGame_ReceivedServerInfo.{platform}.yaml
 
+      - name: find-IGameSystemFactory_Allocate-AND-IGameSystemFactory_ShouldSetName-AND-IGameSystem_SetName
+        expected_output:
+          - IGameSystemFactory_Allocate.{platform}.yaml
+          - IGameSystemFactory_ShouldSetName.{platform}.yaml
+          - IGameSystem_SetName.{platform}.yaml
+        expected_input:
+          - IGameSystem_AddByName.{platform}.yaml
+
       - name: find-IGameSystem_DestroyAllGameSystems
         expected_output:
           - IGameSystem_DestroyAllGameSystems.{platform}.yaml
@@ -950,6 +958,21 @@ modules:
         category: func
         alias:
           - IGameSystem::Add
+
+      - name: IGameSystemFactory_Allocate
+        category: vfunc
+        alias:
+          - IGameSystemFactory::Allocate
+
+      - name: IGameSystemFactory_ShouldSetName
+        category: vfunc
+        alias:
+          - IGameSystemFactory::ShouldSetName
+
+      - name: IGameSystem_SetName
+        category: vfunc
+        alias:
+          - IGameSystem::SetName
 
       - name: IGameSystem_DestroyAllGameSystems
         category: func
