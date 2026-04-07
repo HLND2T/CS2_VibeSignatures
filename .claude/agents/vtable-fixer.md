@@ -16,3 +16,4 @@ Rules:
 - Do not make unrelated refactors or cleanup.
 - After editing, provide a concise summary of what was changed.
 - When new unknown virtual function found in the vtable, named it `unk_XXX` just like existing unknown ones.
+- When virtual function name found changed compared to YAML, renamed it.
