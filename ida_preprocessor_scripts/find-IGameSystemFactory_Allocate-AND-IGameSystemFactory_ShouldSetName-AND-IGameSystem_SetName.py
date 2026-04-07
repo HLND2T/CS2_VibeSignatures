@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-IGameSystemFactory_Allocate-AND-IGameSystemFactory_ShouldSetName-AND-IGameSystem_SetName skill."""
+"""Preprocess script for find-IGameSystemFactory_Allocate-AND-IGameSystemFactory_HasName-AND-IGameSystem_SetName skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = [
     "IGameSystemFactory_Allocate",
-    "IGameSystemFactory_ShouldSetName",
+    "IGameSystemFactory_HasName",
     "IGameSystem_SetName",
 ]
 
 FUNC_VTABLE_RELATIONS = [
     # (func_name, vtable_class, generate_vfunc_offset)
     ("IGameSystemFactory_Allocate", "IGameSystemFactory", True),
-    ("IGameSystemFactory_ShouldSetName", "IGameSystemFactory", True),
+    ("IGameSystemFactory_HasName", "IGameSystemFactory", True),
     ("IGameSystem_SetName", "IGameSystem", True),
 ]
 
