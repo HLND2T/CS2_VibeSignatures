@@ -16,4 +16,4 @@ Rules:
 - Do not make unrelated refactors or cleanup.
 - After editing, provide a concise summary of what was changed.
 - When new unknown virtual function found in the vtable, named it `unk_XXX` just like existing unknown ones.
-- When some of the virtual functions from reference YAMLs are missing. For example there is `From YAML:[10] GetXXX` and `From YAML:[12] GetZZZ` but there is no `From YAML:[11] GetYYY`, use declarations from cpp header by default: `From compiler report:[11] GetYYY`. DO NOT simply remove it from vtable, unless you are 100% sure it has been removed.
+- When some of the virtual functions from reference YAMLs are missing, for example there is `From YAML:[10] GetXXX` and `From YAML:[12] GetZZZ` but there is no `From YAML:[11] GetYYY`, use declarations from cpp header by default: `From compiler report:[11] GetYYY`. DO NOT treat them as being removed, unless you are 100% sure it has been removed because of vfunc index shift.
