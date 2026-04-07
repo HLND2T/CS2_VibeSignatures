@@ -85,6 +85,14 @@ modules:
         expected_output:
           - CNetworkMessages_RegisterNetworkFieldChangeCallbackInternal.{platform}.yaml
 
+      - name: find-CNetworkMessages_AllowAdditionalMessageRegistration-AND-CNetworkMessages_IsAdditionalMessageRegistrationAllowed
+        expected_output:
+          - CNetworkMessages_AllowAdditionalMessageRegistration.{platform}.yaml
+          - CNetworkMessages_IsAdditionalMessageRegistrationAllowed.{platform}.yaml
+        expected_input:
+          - CNetworkMessages_vtable.{platform}.yaml
+          - CNetworkMessages_RegisterNetworkFieldChangeCallbackInternal.{platform}.yaml
+
       - name: find-CNetworkMessages_RegisterFieldChangeCallbackPriority
         expected_output:
           - CNetworkMessages_RegisterFieldChangeCallbackPriority.{platform}.yaml
@@ -239,6 +247,18 @@ modules:
         category: vfunc
         alias:
           - CNetworkMessages::RegisterNetworkFieldChangeCallbackInternal
+        shared: true
+
+      - name: CNetworkMessages_AllowAdditionalMessageRegistration
+        category: vfunc
+        alias:
+          - CNetworkMessages::AllowAdditionalMessageRegistration
+        shared: true
+
+      - name: CNetworkMessages_IsAdditionalMessageRegistrationAllowed
+        category: vfunc
+        alias:
+          - CNetworkMessages::IsAdditionalMessageRegistrationAllowed
         shared: true
 
       - name: CNetworkMessages_RegisterFieldChangeCallbackPriority
