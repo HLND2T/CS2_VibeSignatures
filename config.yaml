@@ -132,6 +132,13 @@ modules:
         expected_input:
           - CNetworkMessages_vtable.{platform}.yaml
 
+      - name: find-CNetworkMessages_FindNetworkMessage
+        expected_output:
+          - CNetworkMessages_FindNetworkMessage.{platform}.yaml
+        expected_input:
+          - CNetworkMessages_vtable.{platform}.yaml
+          - CNetworkMessages_FindNetworkMessagePartial.{platform}.yaml
+
       - name: find-CNetworkSystem_vtable
         expected_output:
           - CNetworkSystem_vtable.{platform}.yaml
@@ -288,6 +295,12 @@ modules:
         category: vfunc
         alias:
           - CNetworkMessages::FindNetworkMessagePartial
+        shared: true
+
+      - name: CNetworkMessages_FindNetworkMessage
+        category: vfunc
+        alias:
+          - CNetworkMessages::FindNetworkMessage
         shared: true
 
       - name: CNetworkSystem_vtable
