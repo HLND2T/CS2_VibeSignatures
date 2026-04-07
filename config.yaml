@@ -813,10 +813,10 @@ modules:
         expected_output:
           - CSteamworksGameStats_OnReceivedSessionID.{platform}.yaml
 
-      - name: find-IGameSystem_GetName-AND-IGameSystemFactory_DeallocateGameSystem
+      - name: find-IGameSystem_GetName-AND-IGameSystemFactory_Deallocate
         expected_output:
           - IGameSystem_GetName.{platform}.yaml
-          - IGameSystemFactory_DeallocateGameSystem.{platform}.yaml
+          - IGameSystemFactory_Deallocate.{platform}.yaml
         expected_input:
           - IGameSystem_DestroyAllGameSystems.{platform}.yaml
 
@@ -1018,10 +1018,10 @@ modules:
         alias:
           - IGameSystem::GetName
 
-      - name: IGameSystemFactory_DeallocateGameSystem
+      - name: IGameSystemFactory_Deallocate
         category: vfunc
         alias:
-          - IGameSystemFactory::DeallocateGameSystem
+          - IGameSystemFactory::Deallocate
 
   - name: server
     path_windows: game/csgo/bin/win64/server.dll
@@ -1047,6 +1047,13 @@ modules:
       - name: find-CGameSystemReallocatingFactory_CSpawnGroupMgrGameSystem_vtable
         expected_output:
           - CGameSystemReallocatingFactory_CSpawnGroupMgrGameSystem_vtable.{platform}.yaml
+
+      - name: find-CGameSystemReallocatingFactory_CSpawnGroupMgrGameSystem_Deallocate-impl
+        expected_output:
+          - CGameSystemReallocatingFactory_CSpawnGroupMgrGameSystem_Deallocate.{platform}.yaml
+        expected_input:
+          - CGameSystemReallocatingFactory_CSpawnGroupMgrGameSystem_vtable.{platform}.yaml
+          - ../client/IGameSystemFactory_Deallocate.{platform}.yaml
 
       - name: find-IGameSystem_vtable
         expected_output:
@@ -1754,6 +1761,11 @@ modules:
 
       - name: CGameSystemReallocatingFactory_CSpawnGroupMgrGameSystem_vtable
         category: vtable
+
+      - name: CGameSystemReallocatingFactory_CSpawnGroupMgrGameSystem_Deallocate
+        category: vfunc
+        alias:
+          - CGameSystemReallocatingFactory<CSpawnGroupMgrGameSystem>::Deallocate
 
       - name: CGameRules_vtable
         category: vtable

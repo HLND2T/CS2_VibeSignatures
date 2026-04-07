@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CFlattenedSerializers_CreateFieldChangedEventQueue-impl skill."""
+"""Preprocess script for find-CGameSystemReallocatingFactory_CSpawnGroupMgrGameSystem_Deallocate-impl skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
 INHERIT_VFUNCS = [
     # (target_func_name, inherit_vtable_class, base_vfunc_name, generate_func_sig)
     (
-        "CFlattenedSerializers_CreateFieldChangedEventQueue",
-        "CFlattenedSerializers",
-        "../server/CFlattenedSerializers_CreateFieldChangedEventQueue",
+        "CGameSystemReallocatingFactory_CSpawnGroupMgrGameSystem_Deallocate",
+        "CGameSystemReallocatingFactory_CSpawnGroupMgrGameSystem",
+        "../client/IGameSystemFactory_Deallocate",
         True,
     ),
 ]

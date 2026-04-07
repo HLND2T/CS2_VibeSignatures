@@ -16,6 +16,10 @@ REALLOCATING_FACTORY_SCRIPT_PATH = Path(
     "ida_preprocessor_scripts/"
     "find-CGameSystemReallocatingFactory_CSpawnGroupMgrGameSystem_vtable.py"
 )
+REALLOCATING_FACTORY_DEALLOCATE_SCRIPT_PATH = Path(
+    "ida_preprocessor_scripts/"
+    "find-CGameSystemReallocatingFactory_CSpawnGroupMgrGameSystem_Deallocate-impl.py"
+)
 
 
 def _load_module(script_path: Path, module_name: str):
@@ -164,6 +168,53 @@ class TestFindCGameSystemReallocatingFactoryCSpawnGroupMgrGameSystemVtable(
             mangled_class_names=expected_mangled_class_names,
             platform="windows",
             image_base=0x180000000,
+            debug=True,
+        )
+
+
+class TestFindCGameSystemReallocatingFactoryCSpawnGroupMgrGameSystemDeallocateImpl(
+    unittest.IsolatedAsyncioTestCase
+):
+    async def test_preprocess_skill_forwards_expected_inherit_vfuncs(self) -> None:
+        module = _load_module(
+            REALLOCATING_FACTORY_DEALLOCATE_SCRIPT_PATH,
+            "find_CGameSystemReallocatingFactory_CSpawnGroupMgrGameSystem_Deallocate_impl",
+        )
+        mock_preprocess_common_skill = AsyncMock(return_value=True)
+        expected_inherit_vfuncs = [
+            (
+                "CGameSystemReallocatingFactory_CSpawnGroupMgrGameSystem_Deallocate",
+                "CGameSystemReallocatingFactory_CSpawnGroupMgrGameSystem",
+                "../client/IGameSystemFactory_Deallocate",
+                True,
+            )
+        ]
+
+        with patch.object(
+            module,
+            "preprocess_common_skill",
+            mock_preprocess_common_skill,
+        ):
+            result = await module.preprocess_skill(
+                session="session",
+                skill_name="skill",
+                expected_outputs=["out.yaml"],
+                old_yaml_map={"k": "v"},
+                new_binary_dir="bin_dir",
+                platform="windows",
+                image_base=0x180000000,
+                debug=True,
+            )
+
+        self.assertTrue(result)
+        mock_preprocess_common_skill.assert_awaited_once_with(
+            session="session",
+            expected_outputs=["out.yaml"],
+            old_yaml_map={"k": "v"},
+            new_binary_dir="bin_dir",
+            platform="windows",
+            image_base=0x180000000,
+            inherit_vfuncs=expected_inherit_vfuncs,
             debug=True,
         )
 
