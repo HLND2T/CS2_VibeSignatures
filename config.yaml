@@ -126,6 +126,12 @@ modules:
         expected_input:
           - CNetworkMessages_vtable.{platform}.yaml
 
+      - name: find-CNetworkMessages_dtor
+        expected_output:
+          - CNetworkMessages_dtor.{platform}.yaml
+        expected_input:
+          - CNetworkMessages_vtable.{platform}.yaml
+
       - name: find-CNetworkSystem_vtable
         expected_output:
           - CNetworkSystem_vtable.{platform}.yaml
@@ -238,6 +244,12 @@ modules:
         category: vfunc
         alias:
           - CNetworkMessages::ComputeOrderForPriority
+        shared: true
+
+      - name: CNetworkMessages_dtor
+        category: vfunc
+        alias:
+          - CNetworkMessages::~CNetworkMessages
         shared: true
 
       - name: CNetChan_vtable
