@@ -660,6 +660,10 @@ modules:
         expected_output:
           - IGameSystem_vtable.{platform}.yaml
 
+      - name: find-CLoopModeGame_vtable
+        expected_output:
+          - CLoopModeGame_vtable.{platform}.yaml
+
       - name: find-CLoopModeGame_RegisterEventMapInternal_client
         expected_output:
           - CLoopModeGame_RegisterEventMapInternal.{platform}.yaml
@@ -680,6 +684,12 @@ modules:
           - CLoopModeGame_OnPreDataUpdate.{platform}.yaml
           - CLoopModeGame_OnFrameBoundary.{platform}.yaml
         max_retries: 8
+
+      - name: find-CLoopModeGame_ReceivedServerInfo
+        expected_output:
+          - CLoopModeGame_ReceivedServerInfo.{platform}.yaml
+        expected_input:
+          - CLoopModeGame_vtable.{platform}.yaml
 
       - name: find-IGameSystem_ClientPollNetworking
         expected_output:
@@ -876,6 +886,14 @@ modules:
         category: func
         alias:
           - CLoopModeGame::OnFrameBoundary
+
+      - name: CLoopModeGame_vtable
+        category: vtable
+
+      - name: CLoopModeGame_ReceivedServerInfo
+        category: vfunc
+        alias:
+          - CLoopModeGame::ReceivedServerInfo
 
       - name: IGameSystem_ClientPollNetworking
         category: vfunc
