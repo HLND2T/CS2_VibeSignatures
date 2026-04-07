@@ -543,6 +543,7 @@ def compare_compiler_vtable_with_yaml(
         methods_by_index = compiler_section["methods_by_index"]
         report["compiler_entry_count"] = compiler_entry_count
         report["compiler_declared_entries"] = declared_entries
+        report["compiler_methods_by_index"] = methods_by_index
 
         if declared_entries != compiler_entry_count:
             report["differences"].append(
@@ -637,7 +638,9 @@ def compare_compiler_vtable_with_yaml(
     return report
 
 
-def format_vtable_compare_report(report: Dict[str, Any]) -> List[str]:
+def format_vtable_compare_report(
+    report: Dict[str, Any], *, include_differences: bool = True
+) -> List[str]:
     """Format a comparison report into human-readable lines."""
     lines: List[str] = []
     lines.append(
@@ -686,6 +689,16 @@ def format_vtable_compare_report(report: Dict[str, Any]) -> List[str]:
         else:
             lines.append("Reference module: not found")
 
+    if include_differences:
+        lines.extend(format_vtable_compare_differences(report))
+
+    return lines
+
+
+def format_vtable_compare_differences(report: Dict[str, Any]) -> List[str]:
+    """Format the differences and notes portion of a comparison report."""
+    lines: List[str] = []
+    compiler_found = report.get("compiler_found")
     diffs = report.get("differences", [])
     if diffs:
         lines.append(f"Differences found: {len(diffs)}")
@@ -697,7 +710,6 @@ def format_vtable_compare_report(report: Dict[str, Any]) -> List[str]:
     else:
         for note in report.get("notes", []):
             lines.append(note)
-
     return lines
 
 
@@ -714,6 +726,19 @@ def format_vtable_differences_for_agent(report: Dict[str, Any]) -> List[str]:
     lines: List[str] = [f"Differences found: {len(diffs)}"]
     for item in diffs:
         lines.append(f"- {item['message']}")
+    return lines
+
+
+def format_compiler_vtable_entries(report: Dict[str, Any]) -> List[str]:
+    """Format compiler vtable entries for debug output, one per line."""
+    methods_by_index = report.get("compiler_methods_by_index", {})
+    if not methods_by_index:
+        return ["(no compiler vtable entries)"]
+    lines: List[str] = []
+    for index in sorted(methods_by_index.keys()):
+        entry = methods_by_index[index]
+        member_name = entry.get("member_name", "???")
+        lines.append(f"[{index}] {member_name}")
     return lines
 
 

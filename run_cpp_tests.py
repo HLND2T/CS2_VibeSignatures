@@ -22,7 +22,9 @@ except ImportError as e:
 
 from cpp_tests_util import (
     compare_compiler_vtable_with_yaml,
+    format_compiler_vtable_entries,
     format_reference_vtable_entries,
+    format_vtable_compare_differences,
     format_vtable_compare_report,
     format_vtable_differences_for_agent,
     map_target_triple_to_platform,
@@ -271,7 +273,7 @@ def _build_fix_prompt(
     """Build English prompt for fixing C++ headers based on vtable differences."""
     lines: List[str] = []
     lines.append(
-        f"Please update the C++ header declarations for interface/class '{symbol}'."
+        f"Please update the C++ header declarations for interface/class '{symbol}' according to the YAML reference vtable entries."
     )
     lines.append(
         "Follow the existing code style, formatting, and naming conventions in the header."
@@ -282,15 +284,23 @@ def _build_fix_prompt(
     for path in header_paths:
         lines.append(f"- {path.as_posix()}")
     lines.append("")
-    lines.append("VTable Differences:")
+    lines.append("VTable Information:")
     for report in diff_reports:
-        module_name = report.get("reference_module")
-        if not module_name:
-            requested = report.get("requested_modules", [])
-            module_name = ", ".join(requested) if requested else "unknown"
-        lines.append(f"Reference module: {module_name}")
+        # reference modules are unrelated and should not be populated in prompt.
+        #module_name = report.get("reference_module")
+        #if not module_name:
+        #    requested = report.get("requested_modules", [])
+        #    module_name = ", ".join(requested) if requested else "unknown"
+        #lines.append(f"Reference module: {module_name}")
+        lines.append("  Current vtable entries in c++ header:")
+        for entry_line in format_compiler_vtable_entries(report):
+            lines.append(f"    {entry_line}")
+        lines.append("  YAML reference vtable entries:")
+        for entry_line in format_reference_vtable_entries(report):
+            lines.append(f"    {entry_line}")
+        lines.append("  VTable Differences:")
         for diff_line in format_vtable_differences_for_agent(report):
-            lines.append(f"  {diff_line}")
+            lines.append(f"    {diff_line}")
     lines.append("")
     lines.append(
         "Apply the header updates now and keep the resulting declarations consistent with the latest vtable layout."
@@ -779,17 +789,26 @@ def main():
             reports_with_diff: List[Dict[str, Any]] = []
             for compare_report in compare_reports:
                 compare_run_count += 1
-                lines = format_vtable_compare_report(compare_report)
+                lines = format_vtable_compare_report(
+                    compare_report, include_differences=not args.debug
+                )
                 for line in lines:
                     print(f"  {line}")
                 if compare_report.get("differences"):
                     compare_diff_count += 1
                     reports_with_diff.append(compare_report)
                 if args.debug:
+                    compiler_debug_lines = format_compiler_vtable_entries(compare_report)
+                    print("  [DEBUG] Compiler vtable entries:")
+                    for debug_line in compiler_debug_lines:
+                        print(f"    {debug_line}")
                     debug_lines = format_reference_vtable_entries(compare_report)
                     print("  [DEBUG] YAML reference vtable entries:")
                     for debug_line in debug_lines:
                         print(f"    {debug_line}")
+                    diff_lines = format_vtable_compare_differences(compare_report)
+                    for diff_line in diff_lines:
+                        print(f"  {diff_line}")
 
             if args.fixheader and reports_with_diff:
                 header_paths = _resolve_header_paths(test_item, config_dir)
@@ -807,6 +826,8 @@ def main():
                     print(
                         f"  [INFO] VTable differences detected; invoking agent '{args.agent}' to fix headers..."
                     )
+                    if args.debug:
+                        print(fix_prompt)
                     claude_allowed_tools = _choose_override(
                         test_item.get("claude_allowed_tools"),
                         args.claude_allowed_tools,
