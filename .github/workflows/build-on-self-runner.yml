@@ -124,17 +124,17 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: |
           7z a "gamedata-$($env:GAMEVER).7z" "bin\$($env:GAMEVER)" "dist" "hl2sdk_cs2" -r `
-          -x!*.dll `
-          -x!*.so `
-          -x!*.i64 `
-          -x!*.id0 `
-          -x!*.id1 `
-          -x!*.id2 `
-          -x!*.nam `
-          -x!*.til `
-          -x!.git `
-          -x!.git-blame-ignore-revs `
-          -x!.gitmodules
+          "-x!*.dll" `
+          "-x!*.so" `
+          "-x!*.i64" `
+          "-x!*.id0" `
+          "-x!*.id1" `
+          "-x!*.id2" `
+          "-x!*.nam" `
+          "-x!*.til" `
+          "-x!.git" `
+          "-x!.git-blame-ignore-revs" `
+          "-x!.gitmodules"
 
       - name: Create release
         if: startsWith(github.ref, 'refs/tags/')
