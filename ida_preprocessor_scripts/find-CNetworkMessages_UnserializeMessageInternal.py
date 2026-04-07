@@ -20,6 +20,11 @@ FUNC_XREFS = [
     ),
 ]
 
+FUNC_VTABLE_RELATIONS = [
+    # (func_name, vtable_class, generate_vfunc_offset)
+    ("CNetworkMessages_UnserializeMessageInternal", "CNetworkMessages", True),
+]
+
 async def preprocess_skill(
     session, skill_name, expected_outputs, old_yaml_map,
     new_binary_dir, platform, image_base, debug=False,
@@ -34,5 +39,6 @@ async def preprocess_skill(
         image_base=image_base,
         func_names=TARGET_FUNCTION_NAMES,
         func_xrefs=FUNC_XREFS,
+        func_vtable_relations=FUNC_VTABLE_RELATIONS,
         debug=debug,
     )
