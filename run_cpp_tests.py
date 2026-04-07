@@ -337,10 +337,11 @@ def run_fix_header_agent(
         agent_input = None
 
         if is_claude_agent:
+            agent_input = fix_prompt
             cmd = [
                 agent,
                 "-p",
-                fix_prompt,
+                "-",
                 "--agent",
                 "vtable-fixer",
                 "--settings",
