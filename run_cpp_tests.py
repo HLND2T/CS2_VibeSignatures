@@ -38,6 +38,7 @@ DEFAULT_CLANG = "clang++"
 DEFAULT_CPP_STD = "c++20"
 DEFAULT_AGENT = "claude"
 DEFAULT_MAX_RETRY = 3
+DEFAULT_MAX_VERIFY = 3
 SKILL_TIMEOUT = 600
 VTABLE_FIXER_AGENT_FILE = Path(".claude/agents/vtable-fixer.md")
 
@@ -92,6 +93,12 @@ def parse_args():
         type=int,
         default=DEFAULT_MAX_RETRY,
         help=f"Maximum retry attempts for header-fix agent runs (default: {DEFAULT_MAX_RETRY})",
+    )
+    parser.add_argument(
+        "-maxverify",
+        type=int,
+        default=DEFAULT_MAX_VERIFY,
+        help=f"Maximum verify-and-retry cycles after agent fix (default: {DEFAULT_MAX_VERIFY})",
     )
     parser.add_argument(
         "-claude_allowed_tools",
@@ -314,13 +321,15 @@ def run_fix_header_agent(
     agent: str,
     debug: bool,
     max_retries: int,
+    session_id: str = "",
+    is_continuation: bool = False,
     claude_allowed_tools: str = "",
     claude_permission_mode: str = "",
     claude_extra_args: str = "",
 ) -> bool:
     """Invoke claude/codex agent to apply header fixes."""
     max_retries = max(1, int(max_retries))
-    claude_session_id = str(uuid.uuid4())
+    claude_session_id = session_id if session_id else str(uuid.uuid4())
 
     codex_developer_instructions = None
     if "codex" in agent.lower():
@@ -331,7 +340,7 @@ def run_fix_header_agent(
             return False
 
     for attempt in range(max_retries):
-        is_retry = attempt > 0
+        is_retry = (attempt > 0) or is_continuation
         is_claude_agent = "claude" in agent.lower()
         is_codex_agent = "codex" in agent.lower()
         agent_input = None
@@ -445,6 +454,112 @@ def run_fix_header_agent(
     return False
 
 
+def run_fix_header_with_verification(
+    *,
+    symbol: str,
+    header_paths: List[Path],
+    diff_reports: List[Dict[str, Any]],
+    test_item: Dict[str, Any],
+    args: argparse.Namespace,
+    config_dir: Path,
+    bindir: Path,
+    claude_allowed_tools: str,
+    claude_permission_mode: str,
+    claude_extra_args: str,
+    debug: bool,
+) -> bool:
+    """Run fix-header agent, then verify by recompiling.
+
+    If vtable diffs persist after the agent edits, re-run the agent with the
+    updated diffs.  Repeats up to ``args.maxverify`` cycles.
+
+    Returns True when all diffs are resolved, False otherwise.
+    """
+    max_verify = max(1, args.maxverify)
+    session_id = str(uuid.uuid4())
+    current_diff_reports = list(diff_reports)
+
+    for verify_attempt in range(max_verify):
+        is_continuation = verify_attempt > 0
+
+        fix_prompt = _build_fix_prompt(
+            symbol=symbol,
+            header_paths=header_paths,
+            diff_reports=current_diff_reports,
+        )
+
+        if debug:
+            print(fix_prompt)
+
+        if max_verify > 1:
+            print(
+                f"  [INFO] Verify cycle {verify_attempt + 1}/{max_verify}: "
+                f"invoking agent '{args.agent}' to fix headers..."
+            )
+
+        agent_success = run_fix_header_agent(
+            fix_prompt=fix_prompt,
+            agent=args.agent,
+            debug=debug,
+            max_retries=args.maxretry,
+            session_id=session_id,
+            is_continuation=is_continuation,
+            claude_allowed_tools=claude_allowed_tools,
+            claude_permission_mode=claude_permission_mode,
+            claude_extra_args=claude_extra_args,
+        )
+
+        if not agent_success:
+            print(f"  [FAIL] Agent failed during verify cycle {verify_attempt + 1}.")
+            return False
+
+        # Agent claimed success -- verify by recompiling
+        print("  [INFO] Agent completed; re-compiling to verify fix...")
+        recompile_result = compile_and_compare(
+            test_item=test_item,
+            args=args,
+            config_dir=config_dir,
+            bindir=bindir,
+        )
+
+        if recompile_result["status"] == "compile_failed":
+            print("  [FAIL] Re-compilation failed after agent edit.")
+            if recompile_result.get("output"):
+                print(recompile_result["output"])
+            return False
+
+        if recompile_result["status"] == "invalid":
+            print(f"  [FAIL] Invalid test item during verification: {recompile_result.get('message', '')}")
+            return False
+
+        new_compare_reports = recompile_result.get("compare_reports") or []
+        new_reports_with_diff = [
+            r for r in new_compare_reports if r.get("differences")
+        ]
+
+        if not new_reports_with_diff:
+            print("  [PASS] Verification succeeded -- all vtable differences resolved.")
+            return True
+
+        remaining_diffs = sum(
+            len(r.get("differences", [])) for r in new_reports_with_diff
+        )
+        print(
+            f"  [INFO] {remaining_diffs} vtable difference(s) remain after agent edit."
+        )
+        if debug:
+            for report in new_reports_with_diff:
+                for diff in report.get("differences", []):
+                    print(f"    - {diff['message']}")
+
+        current_diff_reports = new_reports_with_diff
+
+    print(
+        f"  [FAIL] Vtable differences persist after {max_verify} verify-and-retry cycle(s)."
+    )
+    return False
+
+
 def get_default_target_triple(clang: str) -> str:
     """Run clang++ -print-target-triple and return the result."""
     command = [clang, "-print-target-triple"]
@@ -538,14 +653,18 @@ def build_compile_command(
     return command
 
 
-def run_one_test(
+def compile_and_compare(
     *,
     test_item: Dict[str, Any],
     args: argparse.Namespace,
     config_dir: Path,
     bindir: Path,
 ) -> Dict[str, Any]:
-    """Compile and (optionally) compare one cpp test item."""
+    """Compile a C++ test file and compare vtable layout against YAML references.
+
+    Returns a dict with keys: status, command, output, compare_reports, and
+    optionally message (when status is 'invalid').
+    """
     test_name = str(test_item.get("name", "unnamed_test"))
     symbol = str(test_item.get("symbol", "")).strip()
     cpp_rel_path = str(test_item.get("cpp", "")).strip()
@@ -553,7 +672,6 @@ def run_one_test(
 
     if not symbol or not cpp_rel_path or not target:
         return {
-            "name": test_name,
             "status": "invalid",
             "message": "Missing required fields: symbol/cpp/target",
         }
@@ -564,7 +682,6 @@ def run_one_test(
 
     if not cpp_file.is_file():
         return {
-            "name": test_name,
             "status": "invalid",
             "message": f"CPP file not found: {cpp_file}",
         }
@@ -608,7 +725,6 @@ def run_one_test(
     compile_output = _collect_process_output(result)
     if result.returncode != 0:
         return {
-            "name": test_name,
             "status": "compile_failed",
             "command": command,
             "output": compile_output,
@@ -640,7 +756,6 @@ def run_one_test(
                 )
             except ValueError as exc:
                 return {
-                    "name": test_name,
                     "status": "invalid",
                     "message": (
                         "Invalid 'merge_reference_modules' value: "
@@ -679,12 +794,30 @@ def run_one_test(
                     )
 
     return {
-        "name": test_name,
         "status": "ok",
         "command": command,
         "output": compile_output,
         "compare_reports": compare_reports,
     }
+
+
+def run_one_test(
+    *,
+    test_item: Dict[str, Any],
+    args: argparse.Namespace,
+    config_dir: Path,
+    bindir: Path,
+) -> Dict[str, Any]:
+    """Compile and (optionally) compare one cpp test item."""
+    test_name = str(test_item.get("name", "unnamed_test"))
+    result = compile_and_compare(
+        test_item=test_item,
+        args=args,
+        config_dir=config_dir,
+        bindir=bindir,
+    )
+    result["name"] = test_name
+    return result
 
 
 def main():
@@ -819,16 +952,6 @@ def main():
                         f"  [FAIL] fixheader requested but no headers configured for test '{test_name}'."
                     )
                 else:
-                    fix_prompt = _build_fix_prompt(
-                        symbol=symbol,
-                        header_paths=header_paths,
-                        diff_reports=reports_with_diff,
-                    )
-                    print(
-                        f"  [INFO] VTable differences detected; invoking agent '{args.agent}' to fix headers..."
-                    )
-                    if args.debug:
-                        print(fix_prompt)
                     claude_allowed_tools = _choose_override(
                         test_item.get("claude_allowed_tools"),
                         args.claude_allowed_tools,
@@ -841,20 +964,24 @@ def main():
                         test_item.get("claude_extra_args"),
                         args.claude_extra_args,
                     )
+                    print(
+                        f"  [INFO] VTable differences detected; invoking agent '{args.agent}' to fix headers..."
+                    )
                     header_fix_run_count += 1
-                    if run_fix_header_agent(
-                        fix_prompt=fix_prompt,
-                        agent=args.agent,
-                        debug=args.debug,
-                        max_retries=args.maxretry,
+                    if not run_fix_header_with_verification(
+                        symbol=symbol,
+                        header_paths=header_paths,
+                        diff_reports=reports_with_diff,
+                        test_item=test_item,
+                        args=args,
+                        config_dir=config_dir,
+                        bindir=bindir,
                         claude_allowed_tools=claude_allowed_tools,
                         claude_permission_mode=claude_permission_mode,
                         claude_extra_args=claude_extra_args,
+                        debug=args.debug,
                     ):
-                        print("  [PASS] Header fix agent completed successfully.")
-                    else:
                         header_fix_fail_count += 1
-                        print("  [FAIL] Header fix agent failed.")
         elif args.debug and result.get("output"):
             print("  (Compiler output)")
             print(result["output"])
