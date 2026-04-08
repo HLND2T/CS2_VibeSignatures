@@ -514,6 +514,16 @@ modules:
         expected_output:
           - CLoopTypeClientServerService_vtable.{platform}.yaml
 
+      - name: find-CLoopTypeClientServer_BuildAndActivateLoopTypes
+        expected_output:
+          - CLoopTypeClientServer_BuildAndActivateLoopTypes.{platform}.yaml
+
+      - name: find-CLoopTypeClientServerService_OnLoopActivate
+        expected_output:
+          - CLoopTypeClientServerService_OnLoopActivate.{platform}.yaml
+        expected_input:
+          - CLoopTypeClientServerService_vtable.{platform}.yaml
+
     symbols:
       - name: CNetworkGameServer_vtable
         category: vtable
@@ -660,6 +670,16 @@ modules:
 
       - name: CLoopTypeClientServerService_vtable
         category: vtable
+
+      - name: CLoopTypeClientServer_BuildAndActivateLoopTypes
+        category: func
+        alias:
+          - CLoopTypeClientServer::BuildAndActivateLoopTypes
+
+      - name: CLoopTypeClientServerService_OnLoopActivate
+        category: vfunc
+        alias:
+          - CLoopTypeClientServerService::OnLoopActivate
 
   - name: client
     path_windows: game/csgo/bin/win64/client.dll
