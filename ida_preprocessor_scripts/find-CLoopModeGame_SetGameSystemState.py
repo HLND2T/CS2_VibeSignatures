@@ -15,7 +15,7 @@ FUNC_XREFS = [
             "%s:  SetGameSystemState( %d : '%s' to '%s' )",
         ],
         [],
-        [],
+        ["CLoopModeGame_ReceivedServerInfo"],
     ),
 ]
 
