@@ -732,6 +732,18 @@ modules:
           - CLoopModeGame_RegisterEventMapInternal.{platform}.yaml
           - CLoopModeGame_vtable.{platform}.yaml
 
+      - name: find-CLoopModeGame_SetWorldSession
+        expected_output:
+          - CLoopModeGame_SetWorldSession.{platform}.yaml
+
+      - name: find-CLoopModeGame_LoopShutdown
+        expected_output:
+          - CLoopModeGame_LoopShutdown.{platform}.yaml
+        expected_input:
+          - CLoopModeGame_ReceivedServerInfo.{platform}.yaml
+          - CLoopModeGame_SetWorldSession.{platform}.yaml
+          - CLoopModeGame_vtable.{platform}.yaml
+
       - name: find-IGameSystem_AddByName-AND-IGameSystem_Add
         expected_output:
           - IGameSystem_AddByName.{platform}.yaml
@@ -1009,6 +1021,16 @@ modules:
         category: vfunc
         alias:
           - CLoopModeGame::RegisterEventMap
+
+      - name: CLoopModeGame_SetWorldSession
+        category: func
+        alias:
+          - CLoopModeGame::SetWorldSession
+
+      - name: CLoopModeGame_LoopShutdown
+        category: vfunc
+        alias:
+          - CLoopModeGame::LoopShutdown
 
       - name: IGameSystem_AddByName
         category: func
