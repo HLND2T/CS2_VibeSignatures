@@ -80,6 +80,40 @@ Example outputs:
 - `vcall_finder/14141/g_pNetworkMessages/networksystem/windows/sub_140123450.yaml`
 - `vcall_finder/14141/g_pNetworkMessages.txt`
 
+#### 2.5 Prepare reference YAML for `LLM_DECOMPILE`
+
+Reference YAML path:
+
+- `ida_preprocessor_scripts/references/<module>/<func_name>.<platform>.yaml`
+
+Preparation steps:
+
+1. Confirm the target function already has a current-version YAML with `func_va`, or can be resolved in IDA by symbol name/alias from `config.yaml`.
+2. Run standalone CLI:
+
+```bash
+uv run generate_reference_yaml.py -gamever 14141 -module engine -platform windows -func_name CNetworkGameClient_RecordEntityBandwidth -mcp_host 127.0.0.1 -mcp_port 13337
+```
+
+Auto-start `idalib-mcp` example:
+
+```bash
+uv run generate_reference_yaml.py -gamever 14141 -module engine -platform windows -func_name CNetworkGameClient_RecordEntityBandwidth -auto_start_mcp -binary bin/14141/engine/engine2.dll
+```
+
+3. Check generated YAML:
+   - `func_va` is credible
+   - `disasm_code` is non-empty and matches target function semantics
+   - `procedure` matches expected semantics when available (it can be an empty string when Hex-Rays is unavailable)
+   - `func_name` only confirms the output file targets your requested canonical name; it does not prove address resolution correctness
+4. Wire it in target `find-*.py` `LLM_DECOMPILE`:
+   - Generated file path in repository:
+     - `ida_preprocessor_scripts/references/<module>/<func_name>.<platform>.yaml`
+   - If `LLM_DECOMPILE` uses relative path, write:
+     - `references/<module>/<func_name>.<platform>.yaml`
+   - Example tuple:
+     - `("CNetworkMessages_FindNetworkGroup", "prompt/call_llm_decompile.md", "references/engine/CNetworkGameClient_RecordEntityBandwidth.windows.yaml")`
+
 #### 3. Convert yaml(s) to gamedata json / txt
 
 ```bash

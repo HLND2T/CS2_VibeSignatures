@@ -2,7 +2,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
 import ida_vcall_finder
 
@@ -132,6 +132,129 @@ class TestExportObjectXrefDetailsViaMcp(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(0, summary["exported_functions"])
             self.assertEqual(1, summary["failed_functions"])
             self.assertEqual(0, summary["skipped_functions"])
+
+
+class TestCallOpenAiForVcalls(unittest.TestCase):
+    @patch("ida_vcall_finder.call_llm_text")
+    def test_call_openai_for_vcalls_uses_shared_llm_helper(self, mock_call_llm_text) -> None:
+        mock_call_llm_text.return_value = """
+```yaml
+found_vcall:
+  - insn_va: 0x12345678
+    insn_disasm: call    [rax+68h]
+    vfunc_offset: 0x68
+```
+""".strip()
+
+        found_vcall = ida_vcall_finder.call_openai_for_vcalls(
+            object(),
+            {
+                "object_name": "g_pNetworkMessages",
+                "module": "networksystem",
+                "platform": "linux",
+                "func_name": "sub_2000",
+                "func_va": "0x2000",
+                "disasm_code": "call    [rax+68h]",
+                "procedure": "obj->vfptr[13](obj);",
+            },
+            "gpt-4.1-mini",
+        )
+
+        self.assertEqual(
+            [
+                {
+                    "insn_va": "0x12345678",
+                    "insn_disasm": "call    [rax+68h]",
+                    "vfunc_offset": "0x68",
+                }
+            ],
+            found_vcall,
+        )
+        mock_call_llm_text.assert_called_once()
+        self.assertEqual("gpt-4.1-mini", mock_call_llm_text.call_args.kwargs["model"])
+        self.assertEqual(0.1, mock_call_llm_text.call_args.kwargs["temperature"])
+        self.assertEqual(
+            "You are a reverse engineering expert.",
+            mock_call_llm_text.call_args.kwargs["messages"][0]["content"],
+        )
+        self.assertIn(
+            "g_pNetworkMessages",
+            mock_call_llm_text.call_args.kwargs["messages"][1]["content"],
+        )
+
+
+class TestAggregateVcallResultsForObject(unittest.TestCase):
+    @patch("ida_vcall_finder.call_llm_text")
+    @patch("ida_vcall_finder.create_openai_client")
+    def test_aggregate_vcall_results_for_object_uses_shared_client_factory(
+        self,
+        mock_create_openai_client,
+        mock_call_llm_text,
+    ) -> None:
+        mock_create_openai_client.return_value = object()
+        mock_call_llm_text.return_value = """
+found_vcall:
+  - insn_va: 0x12345678
+    insn_disasm: call    [rax+68h]
+    vfunc_offset: 0x68
+""".strip()
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            detail_path = ida_vcall_finder.build_vcall_detail_path(
+                temp_dir,
+                "14141b",
+                "g_pNetworkMessages",
+                "networksystem",
+                "linux",
+                "sub_2000",
+            )
+            ida_vcall_finder.write_vcall_detail_yaml(
+                detail_path,
+                {
+                    "object_name": "g_pNetworkMessages",
+                    "module": "networksystem",
+                    "platform": "linux",
+                    "func_name": "sub_2000",
+                    "func_va": "0x2000",
+                    "disasm_code": "call    [rax+68h]",
+                    "procedure": "obj->vfptr[13](obj);",
+                },
+            )
+
+            stats = ida_vcall_finder.aggregate_vcall_results_for_object(
+                base_dir=temp_dir,
+                gamever="14141b",
+                object_name="g_pNetworkMessages",
+                model="gpt-4.1-mini",
+                api_key="test-api-key",
+                base_url="https://example.invalid/v1",
+                debug=False,
+            )
+
+            self.assertEqual({"status": "success", "processed": 1, "failed": 0}, stats)
+            mock_create_openai_client.assert_called_once_with(
+                api_key="test-api-key",
+                base_url="https://example.invalid/v1",
+                api_key_required_message="-llm_apikey is required when -vcall_finder is enabled",
+            )
+            saved_detail = ida_vcall_finder.load_yaml_file(detail_path)
+            self.assertEqual(
+                [
+                    {
+                        "insn_va": "0x12345678",
+                        "insn_disasm": "call    [rax+68h]",
+                        "vfunc_offset": "0x68",
+                    }
+                ],
+                saved_detail["found_vcall"],
+            )
+            summary_text = ida_vcall_finder.build_vcall_summary_path(
+                temp_dir,
+                "14141b",
+                "g_pNetworkMessages",
+            ).read_text(encoding="utf-8")
+            self.assertIn("insn_va: '0x12345678'", summary_text)
+            self.assertIn("func_name: sub_2000", summary_text)
 
 
 if __name__ == "__main__":

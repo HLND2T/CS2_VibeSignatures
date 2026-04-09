@@ -29,6 +29,7 @@ Output:
 """
 
 import argparse
+import inspect
 import json
 import os
 import re
@@ -62,7 +63,7 @@ DEFAULT_BIN_DIR = "bin"
 DEFAULT_PLATFORM = "windows,linux"
 DEFAULT_MODULES = "*"
 DEFAULT_AGENT = "claude"
-DEFAULT_VCALL_FINDER_MODEL = "gpt-4o"
+DEFAULT_LLM_MODEL = "gpt-4o"
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 13337
 MCP_STARTUP_TIMEOUT = 1200  # seconds to wait for MCP server
@@ -390,19 +391,19 @@ def parse_args():
         help="vcall_finder object selector: '*' for all, or comma-separated object names"
     )
     parser.add_argument(
-        "-vcall_finder_model",
-        default=DEFAULT_VCALL_FINDER_MODEL,
-        help=f"OpenAI-compatible model for vcall_finder workflow (default: {DEFAULT_VCALL_FINDER_MODEL})"
+        "-llm_model",
+        default=DEFAULT_LLM_MODEL,
+        help=f"OpenAI-compatible model for preprocessing and vcall_finder workflow (default: {DEFAULT_LLM_MODEL})"
     )
     parser.add_argument(
-        "-vcall_finder_apikey",
+        "-llm_apikey",
         default=None,
-        help="OpenAI-compatible API key used only by vcall_finder aggregation"
+        help="OpenAI-compatible API key used by preprocessing and vcall_finder aggregation"
     )
     parser.add_argument(
-        "-vcall_finder_baseurl",
+        "-llm_baseurl",
         default=None,
-        help="Optional OpenAI-compatible base URL used only by vcall_finder aggregation"
+        help="Optional OpenAI-compatible base URL used by preprocessing and vcall_finder aggregation"
     )
     parser.add_argument(
         "-ida_args",
@@ -454,6 +455,50 @@ def parse_args():
         args.oldgamever = None
 
     return args
+
+
+def _run_preprocess_single_skill_via_mcp(
+    *,
+    host,
+    port,
+    skill_name,
+    expected_outputs,
+    old_yaml_map,
+    new_binary_dir,
+    platform,
+    debug,
+    llm_model,
+    llm_apikey,
+    llm_baseurl,
+):
+    preprocess_kwargs = {
+        "host": host,
+        "port": port,
+        "skill_name": skill_name,
+        "expected_outputs": expected_outputs,
+        "old_yaml_map": old_yaml_map,
+        "new_binary_dir": new_binary_dir,
+        "platform": platform,
+        "debug": debug,
+        "llm_model": llm_model,
+        "llm_apikey": llm_apikey,
+        "llm_baseurl": llm_baseurl,
+    }
+
+    try:
+        return asyncio.run(preprocess_single_skill_via_mcp(**preprocess_kwargs))
+    except TypeError as exc:
+        signature = inspect.signature(preprocess_single_skill_via_mcp)
+        if any(name in signature.parameters for name in ("llm_model", "llm_apikey", "llm_baseurl")):
+            raise
+        if "unexpected keyword argument" not in str(exc):
+            raise
+
+        fallback_kwargs = dict(preprocess_kwargs)
+        fallback_kwargs.pop("llm_model", None)
+        fallback_kwargs.pop("llm_apikey", None)
+        fallback_kwargs.pop("llm_baseurl", None)
+        return asyncio.run(preprocess_single_skill_via_mcp(**fallback_kwargs))
 
 
 def parse_config(config_path):
@@ -1000,6 +1045,9 @@ def process_binary(
     module_name=None,
     vcall_targets=None,
     vcall_output_dir="vcall_finder",
+    llm_model=DEFAULT_LLM_MODEL,
+    llm_apikey=None,
+    llm_baseurl=None,
 ):
     """
     Process a single binary file.
@@ -1112,11 +1160,18 @@ def process_binary(
                     old_yaml_map[new_path] = old_path
 
             try:
-                preprocess_ok = asyncio.run(
-                    preprocess_single_skill_via_mcp(
-                        host, port, skill_name, expected_outputs, old_yaml_map,
-                        binary_dir, platform, debug
-                    )
+                preprocess_ok = _run_preprocess_single_skill_via_mcp(
+                    host=host,
+                    port=port,
+                    skill_name=skill_name,
+                    expected_outputs=expected_outputs,
+                    old_yaml_map=old_yaml_map,
+                    new_binary_dir=binary_dir,
+                    platform=platform,
+                    debug=debug,
+                    llm_model=llm_model,
+                    llm_apikey=llm_apikey,
+                    llm_baseurl=llm_baseurl,
                 )
             except Exception as e:
                 if debug:
@@ -1318,6 +1373,9 @@ def main():
                 gamever=gamever,
                 module_name=module_name,
                 vcall_targets=vcall_targets,
+                llm_model=args.llm_model,
+                llm_apikey=args.llm_apikey,
+                llm_baseurl=args.llm_baseurl,
             )
             total_success += success
             total_fail += fail
@@ -1332,9 +1390,9 @@ def main():
                     base_dir="vcall_finder",
                     gamever=gamever,
                     object_name=object_name,
-                    model=args.vcall_finder_model,
-                    api_key=args.vcall_finder_apikey,
-                    base_url=args.vcall_finder_baseurl,
+                    model=args.llm_model,
+                    api_key=args.llm_apikey,
+                    base_url=args.llm_baseurl,
                     debug=debug,
                 )
                 aggregation_status = stats["status"]

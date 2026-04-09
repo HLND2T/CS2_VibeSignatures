@@ -11,7 +11,7 @@ from typing import Any
 
 import yaml
 from ida_analyze_util import build_remote_text_export_py_eval, parse_mcp_result
-from openai import OpenAI
+from ida_llm_utils import call_llm_text, create_openai_client, require_nonempty_text
 
 
 VCALL_FINDER_DIRNAME = "vcall_finder"
@@ -58,6 +58,8 @@ def _literal_str_representer(dumper, value):
 
 
 LiteralDumper.add_representer(str, _literal_str_representer)
+
+_require_nonempty_text = require_nonempty_text
 
 
 def _require_mapping(value: Any, name: str) -> Mapping[str, Any]:
@@ -240,19 +242,6 @@ def parse_llm_vcall_response(response_text: str | None) -> dict[str, list[dict[s
     return {"found_vcall": normalize_found_vcalls(parsed.get("found_vcall", []))}
 
 
-def create_openai_client(api_key, base_url=None):
-    if api_key is None or not str(api_key).strip():
-        raise RuntimeError("-vcall_finder_apikey is required when -vcall_finder is enabled")
-
-    resolved_api_key = _require_nonempty_text(api_key, "api_key")
-
-    client_kwargs = {"api_key": resolved_api_key}
-    if base_url is not None:
-        client_kwargs["base_url"] = _require_nonempty_text(base_url, "base_url")
-
-    return OpenAI(**client_kwargs)
-
-
 def call_openai_for_vcalls(client, detail, model, *, debug=False, request_label=""):
     model = _require_nonempty_text(model, "model")
     if debug:
@@ -262,23 +251,15 @@ def call_openai_for_vcalls(client, detail, model, *, debug=False, request_label=
         )
 
     started_at = time.monotonic()
-    response = client.chat.completions.create(
+    content = call_llm_text(
         model=model,
+        client=client,
         messages=[
             {"role": "system", "content": "You are a reverse engineering expert."},
             {"role": "user", "content": render_vcall_prompt(detail)},
         ],
         temperature=0.1,
     )
-    choices = getattr(response, "choices", None) or []
-    if not choices:
-        raise ValueError("OpenAI response missing choices")
-
-    message = getattr(choices[0], "message", None)
-    content = getattr(message, "content", "") if message is not None else ""
-    if not isinstance(content, str):
-        content = str(content)
-
     found_vcall = parse_llm_vcall_response(content)["found_vcall"]
     if debug:
         elapsed_seconds = time.monotonic() - started_at
@@ -522,15 +503,6 @@ def _write_yaml_mapping(path: str | Path, payload: Mapping[str, Any]) -> None:
         )
 
 
-def _require_nonempty_text(value: Any, name: str) -> str:
-    if value is None:
-        raise ValueError(f"{name} cannot be empty")
-    text = str(value).strip()
-    if not text:
-        raise ValueError(f"{name} cannot be empty")
-    return text
-
-
 def _print_vcall_debug(message: str, debug: bool) -> None:
     if not debug:
         return
@@ -555,6 +527,7 @@ def _get_or_create_llm_client(
         llm_client = create_openai_client(
             api_key=api_key,
             base_url=base_url,
+            api_key_required_message="-llm_apikey is required when -vcall_finder is enabled",
         )
         client_ref["client"] = llm_client
     return llm_client

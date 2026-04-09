@@ -1,7 +1,8 @@
 import io
 import unittest
 from pathlib import Path
-from unittest.mock import call, patch
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, call, patch
 
 import ida_analyze_bin
 
@@ -312,6 +313,162 @@ class TestRunSkillCodexPromptTransport(unittest.TestCase):
         expected_prompt = 'Run SKILL: .claude/skills/find-IGameSystem_vtable/SKILL.md'
         self.assertEqual(expected_prompt, ''.join(first_process.stdin.writes))
         self.assertEqual(expected_prompt, ''.join(second_process.stdin.writes))
+
+
+class TestParseArgsLlmOptions(unittest.TestCase):
+    @patch.object(ida_analyze_bin, "resolve_oldgamever", return_value="14140")
+    def test_parse_args_accepts_llm_options(
+        self,
+        _mock_resolve_oldgamever,
+    ) -> None:
+        with patch(
+            "sys.argv",
+            [
+                "ida_analyze_bin.py",
+                "-gamever",
+                "14141",
+                "-llm_model",
+                "gpt-4.1-mini",
+                "-llm_apikey",
+                "test-api-key",
+                "-llm_baseurl",
+                "https://example.invalid/v1",
+            ],
+        ):
+            args = ida_analyze_bin.parse_args()
+
+        self.assertEqual("gpt-4.1-mini", args.llm_model)
+        self.assertEqual("test-api-key", args.llm_apikey)
+        self.assertEqual("https://example.invalid/v1", args.llm_baseurl)
+
+    @patch.object(ida_analyze_bin, "resolve_oldgamever", return_value="14140")
+    def test_parse_args_rejects_legacy_vcall_finder_model(
+        self,
+        _mock_resolve_oldgamever,
+    ) -> None:
+        with patch(
+            "sys.argv",
+            [
+                "ida_analyze_bin.py",
+                "-gamever",
+                "14141",
+                "-vcall_finder_model",
+                "gpt-4o",
+            ],
+        ), patch("sys.stderr", new_callable=io.StringIO) as fake_stderr:
+            with self.assertRaises(SystemExit) as exc:
+                ida_analyze_bin.parse_args()
+
+        self.assertEqual(2, exc.exception.code)
+        self.assertIn("-vcall_finder_model", fake_stderr.getvalue())
+
+
+class TestProcessBinaryLlmWiring(unittest.TestCase):
+    @patch("ida_analyze_bin.os.path.exists", return_value=False)
+    @patch.object(ida_analyze_bin, "run_skill", return_value=False)
+    @patch.object(
+        ida_analyze_bin,
+        "preprocess_single_skill_via_mcp",
+        new_callable=AsyncMock,
+        return_value=False,
+    )
+    @patch.object(ida_analyze_bin, "ensure_mcp_available")
+    @patch.object(ida_analyze_bin, "start_idalib_mcp")
+    @patch.object(ida_analyze_bin, "quit_ida_gracefully")
+    def test_process_binary_passes_unified_llm_options_to_preprocess(
+        self,
+        _mock_quit_ida,
+        mock_start_idalib_mcp,
+        mock_ensure_mcp_available,
+        mock_preprocess,
+        _mock_run_skill,
+        _mock_exists,
+    ) -> None:
+        fake_process = object()
+        mock_start_idalib_mcp.return_value = fake_process
+        mock_ensure_mcp_available.return_value = (fake_process, True)
+
+        ida_analyze_bin.process_binary(
+            binary_path="/tmp/bin/14141/networksystem/networksystem.dll",
+            skills=[
+                {
+                    "name": "find-IGameSystem_vtable",
+                    "expected_output": ["IGameSystem_vtable.{platform}.yaml"],
+                    "expected_input": [],
+                }
+            ],
+            agent="codex",
+            host="127.0.0.1",
+            port=13337,
+            ida_args="",
+            platform="windows",
+            debug=False,
+            max_retries=1,
+            llm_model="gpt-4.1-mini",
+            llm_apikey="test-api-key",
+            llm_baseurl="https://example.invalid/v1",
+        )
+
+        self.assertEqual("gpt-4.1-mini", mock_preprocess.await_args.kwargs["llm_model"])
+        self.assertEqual("test-api-key", mock_preprocess.await_args.kwargs["llm_apikey"])
+        self.assertEqual(
+            "https://example.invalid/v1",
+            mock_preprocess.await_args.kwargs["llm_baseurl"],
+        )
+
+
+class TestMainLlmWiring(unittest.TestCase):
+    @patch.object(ida_analyze_bin, "aggregate_vcall_results_for_object")
+    @patch.object(ida_analyze_bin, "process_binary", return_value=(0, 0, 0))
+    @patch.object(ida_analyze_bin, "parse_config")
+    @patch("ida_analyze_bin.os.path.exists", return_value=True)
+    @patch.object(ida_analyze_bin, "parse_args")
+    def test_main_passes_unified_llm_options_to_vcall_aggregation(
+        self,
+        mock_parse_args,
+        _mock_exists,
+        mock_parse_config,
+        _mock_process_binary,
+        mock_aggregate,
+    ) -> None:
+        mock_parse_args.return_value = SimpleNamespace(
+            configyaml="config.yaml",
+            bindir="bin",
+            gamever="14141",
+            oldgamever=None,
+            platforms=["windows"],
+            module_filter=None,
+            modules="*",
+            agent="codex",
+            ida_args="",
+            debug=False,
+            maxretry=3,
+            vcall_finder_filter={"all": True},
+            llm_model="gpt-4.1-mini",
+            llm_apikey="test-api-key",
+            llm_baseurl="https://example.invalid/v1",
+        )
+        mock_parse_config.return_value = [
+            {
+                "name": "networksystem",
+                "skills": [],
+                "vcall_finder_objects": ["g_pNetworkMessages"],
+                "path_windows": "game/bin/win64/networksystem.dll",
+            }
+        ]
+        mock_aggregate.return_value = {"status": "success", "processed": 1, "failed": 0}
+
+        ida_analyze_bin.main()
+
+        mock_aggregate.assert_called_once_with(
+            base_dir="vcall_finder",
+            gamever="14141",
+            object_name="g_pNetworkMessages",
+            model="gpt-4.1-mini",
+            api_key="test-api-key",
+            base_url="https://example.invalid/v1",
+            debug=False,
+        )
 
 
 if __name__ == '__main__':
