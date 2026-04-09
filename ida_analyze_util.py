@@ -509,6 +509,74 @@ def _normalize_llm_entries(entries, required_keys):
     return normalized
 
 
+def _build_slot_only_vfunc_payload_from_llm_result(
+    func_name,
+    llm_result,
+    *,
+    vtable_name=None,
+    debug=False,
+):
+    normalized_func_name = str(func_name or "").strip()
+    if not normalized_func_name:
+        return None
+
+    normalized_offsets = []
+    seen_offsets = set()
+    for entry in (llm_result or {}).get("found_vcall", []):
+        if not isinstance(entry, dict):
+            continue
+        if str(entry.get("func_name", "")).strip() != normalized_func_name:
+            continue
+
+        raw_offset = entry.get("vfunc_offset")
+        try:
+            offset_value = _parse_int_value(raw_offset)
+        except Exception:
+            continue
+
+        if offset_value < 0 or offset_value % 8 != 0:
+            if debug:
+                print(
+                    f"    Preprocess: invalid slot-only vfunc offset for "
+                    f"{normalized_func_name}: {raw_offset}"
+                )
+            return None
+
+        if offset_value in seen_offsets:
+            continue
+        seen_offsets.add(offset_value)
+        normalized_offsets.append(offset_value)
+
+    if not normalized_offsets:
+        return None
+
+    if len(normalized_offsets) != 1:
+        if debug:
+            rendered_offsets = ", ".join(hex(value) for value in normalized_offsets)
+            print(
+                f"    Preprocess: ambiguous slot-only vfunc offsets for "
+                f"{normalized_func_name}: {rendered_offsets}"
+            )
+        return None
+
+    resolved_offset = normalized_offsets[0]
+    payload = {
+        "func_name": normalized_func_name,
+        "vfunc_offset": hex(resolved_offset),
+        "vfunc_index": resolved_offset // 8,
+    }
+    if vtable_name:
+        payload["vtable_name"] = str(vtable_name).strip()
+
+    if debug:
+        print(
+            f"    Preprocess: using slot-only fallback for "
+            f"{normalized_func_name} at offset {hex(resolved_offset)}"
+        )
+
+    return payload
+
+
 def _load_symbol_lookup_candidates(symbol_name, debug=False):
     normalized_name = str(symbol_name or "").strip()
     if not normalized_name:
@@ -773,6 +841,77 @@ async def _export_function_detail_via_mcp(session, func_name, func_va, debug=Fal
         "disasm_code": disasm_code,
         "procedure": procedure,
     }
+
+
+async def _resolve_direct_call_target_via_mcp(session, insn_va, debug=False):
+    try:
+        insn_va_int = _parse_int_value(insn_va)
+    except Exception:
+        return None
+
+    py_code = (
+        "import ida_funcs, idautils, json\n"
+        f"insn_ea = {insn_va_int}\n"
+        "matches = []\n"
+        "seen_addrs = set()\n"
+        "for target_ea in idautils.CodeRefsFrom(insn_ea, False):\n"
+        "    func = ida_funcs.get_func(target_ea)\n"
+        "    if func is None:\n"
+        "        continue\n"
+        "    func_start = int(func.start_ea)\n"
+        "    func_va = hex(func_start)\n"
+        "    if func_va in seen_addrs:\n"
+        "        continue\n"
+        "    seen_addrs.add(func_va)\n"
+        "    matches.append({'func_va': func_va})\n"
+        "result = json.dumps(matches)\n"
+    )
+
+    try:
+        eval_result = await session.call_tool(
+            name="py_eval",
+            arguments={"code": py_code},
+        )
+    except Exception as exc:
+        if debug:
+            print(
+                "    Preprocess: py_eval error while resolving direct call target: "
+                f"{exc}"
+            )
+        return None
+
+    match_payload = _parse_py_eval_json_result(
+        eval_result,
+        debug=debug,
+        context="llm_decompile direct call target lookup",
+    )
+    if not isinstance(match_payload, list):
+        return None
+
+    resolved_matches = []
+    seen_func_vas = set()
+    for item in match_payload:
+        if not isinstance(item, dict):
+            continue
+        func_va = str(item.get("func_va", "")).strip()
+        if not func_va or func_va in seen_func_vas:
+            continue
+        try:
+            int(func_va, 0)
+        except (TypeError, ValueError):
+            continue
+        seen_func_vas.add(func_va)
+        resolved_matches.append(func_va)
+
+    if len(resolved_matches) != 1:
+        if debug:
+            print(
+                "    Preprocess: llm_decompile direct call target lookup returned "
+                f"{len(resolved_matches)} matches: {resolved_matches}"
+            )
+        return None
+
+    return resolved_matches[0]
 
 
 async def _load_llm_decompile_target_detail_via_mcp(session, target_func_name, debug=False):
@@ -1056,7 +1195,7 @@ async def call_llm_decompile(
             f"Reference procedure:\n{procedure_for_reference}\n\n"
             f"Target disassembly:\n{disasm_code}\n\n"
             f"Target procedure:\n{procedure}\n\n"
-            f"Please collect all references for \"{symbol_name_text}\" and output YAML."
+            f"Please collect all references that are related to \"{symbol_name_text}\" and output YAML."
         )
     system_prompt = "You are a reverse engineering expert."
     if debug:
@@ -4253,12 +4392,7 @@ async def preprocess_common_skill(
                 debug=debug,
             )
 
-        if (
-            func_data is None
-            and func_name in vtable_relations_map
-            and func_name in llm_decompile_specs_map
-        ):
-            vtable_class = vtable_relations_map[func_name][0]
+        if func_data is None and func_name in llm_decompile_specs_map:
             llm_request = _prepare_llm_decompile_request(
                 func_name,
                 llm_decompile_specs_map,
@@ -4292,7 +4426,34 @@ async def preprocess_common_skill(
                         )
                 except Exception:
                     llm_result = _empty_llm_decompile_result()
+            for entry in llm_result.get("found_call", []):
+                if entry.get("func_name") != func_name:
+                    continue
+                direct_func_va = await _resolve_direct_call_target_via_mcp(
+                    session,
+                    entry.get("insn_va"),
+                    debug=debug,
+                )
+                if direct_func_va is None:
+                    continue
+                func_data = await _preprocess_direct_func_sig_via_mcp(
+                    session=session,
+                    new_path=target_output,
+                    image_base=image_base,
+                    platform=platform,
+                    func_name=func_name,
+                    direct_func_va=direct_func_va,
+                    normalized_mangled_class_names=normalized_mangled_class_names,
+                    debug=debug,
+                )
+                if func_data is not None:
+                    break
+            vtable_class = None
+            if func_data is None and func_name in vtable_relations_map:
+                vtable_class = vtable_relations_map[func_name][0]
             for entry in llm_result.get("found_vcall", []):
+                if vtable_class is None:
+                    break
                 if entry.get("func_name") != func_name:
                     continue
                 func_data = await _preprocess_direct_func_sig_via_mcp(
@@ -4308,6 +4469,16 @@ async def preprocess_common_skill(
                 )
                 if func_data is not None:
                     break
+            if func_data is None:
+                fallback_vtable_name = None
+                if func_name in vtable_relations_map:
+                    fallback_vtable_name = vtable_relations_map[func_name][0]
+                func_data = _build_slot_only_vfunc_payload_from_llm_result(
+                    func_name,
+                    llm_result,
+                    vtable_name=fallback_vtable_name,
+                    debug=debug,
+                )
 
         if func_data is None:
             if debug:

@@ -115,7 +115,7 @@ disasm_code: |-
   .text:0000000000639546                 mov     edx, 1
   .text:000000000063954B                 lea     rsi, aLocalPlayer; "Local Player"
   .text:0000000000639552                 mov     rax, [rdi]
-  .text:0000000000639555                 call    qword ptr [rax+78h]; g_pNetworkMessages->FindNetworkGroup(...)
+  .text:0000000000639555                 call    qword ptr [rax+78h]; g_pNetworkMessages->FindNetworkGroup(...), 0x78 = INetworkMessages_FindNetworkGroup
   .text:0000000000639558                 mov     rdi, r13
   .text:000000000063955B                 mov     cs:dword_9C1640, eax
   .text:0000000000639561                 call    sub_2A6E00
@@ -141,7 +141,7 @@ procedure: |-
     else
     {
       dword_9C1640 = (*(__int64 (__fastcall **)(__int64, const char *, __int64))(*(_QWORD *)qword_979170
-                                                                               + 120LL))(// g_pNetworkMessages->FindNetworkGroup(...)
+                                                                               + 120LL))(// g_pNetworkMessages->FindNetworkGroup(...), 120LL = INetworkMessages_FindNetworkGroup
                        qword_979170,
                        "Local Player",
                        1);

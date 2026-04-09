@@ -8,10 +8,11 @@ TARGET_FUNCTION_NAMES = [
 ]
 
 INHERIT_VFUNCS = [
+    # (target_func_name, inherit_vtable_class, base_vfunc_name, generate_func_sig)
     (
         "CNetworkMessages_FindNetworkGroup",
         "CNetworkMessages",
-        "../server/INetworkMessages_FindNetworkGroup",
+        "../engine/INetworkMessages_FindNetworkGroup",
         True,
     ),
 ]

@@ -8,11 +8,22 @@ TARGET_FUNCTION_NAMES = [
 ]
 
 LLM_DECOMPILE = [
+    # (symbol_name, path_to_prompt, path_to_reference)
     (
         "INetworkMessages_FindNetworkGroup",
         "prompt/call_llm_decompile.md",
         "references/engine/CNetworkGameClient_RecordEntityBandwidth.{platform}.yaml",
     ),
+]
+
+FUNC_VTABLE_RELATIONS = [
+    # (func_name, vtable_class) <- we don't need "generate_vfunc_offset" anymore because we use GENERATE_YAML_DESIRED_FIELD as a successor to "generate_vfunc_offset"
+    ("INetworkMessages_FindNetworkGroup", "INetworkMessages"),
+]
+
+GENERATE_YAML_DESIRED_FIELD = [
+    # (symbol_name, generate_yaml_fields)
+    ("INetworkMessages_FindNetworkGroup", ["func_name", "vfunc_sig", "vfunc_offset", "vfunc_index", "vtable_name"]),
 ]
 
 async def preprocess_skill(

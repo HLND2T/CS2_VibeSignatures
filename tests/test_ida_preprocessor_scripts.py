@@ -396,11 +396,12 @@ class TestFindCNetworkMessagesFindNetworkGroup(unittest.IsolatedAsyncioTestCase)
             "find_CNetworkMessages_FindNetworkGroup",
         )
         mock_preprocess_common_skill = AsyncMock(return_value=True)
-        expected_llm_decompile_specs = [
+        expected_inherit_vfuncs = [
             (
                 "CNetworkMessages_FindNetworkGroup",
-                "prompt/call_llm_decompile.md",
-                "references/CNetworkMessages_FindNetworkGroup.from-CNetworkGameClient_RecordEntityBandwidth.yaml",
+                "CNetworkMessages",
+                "../engine/INetworkMessages_FindNetworkGroup",
+                True,
             )
         ]
         expected_func_vtable_relations = [
@@ -438,6 +439,62 @@ class TestFindCNetworkMessagesFindNetworkGroup(unittest.IsolatedAsyncioTestCase)
             platform="windows",
             image_base=0x180000000,
             func_names=["CNetworkMessages_FindNetworkGroup"],
+            func_vtable_relations=expected_func_vtable_relations,
+            inherit_vfuncs=expected_inherit_vfuncs,
+            llm_config=llm_config,
+            debug=True,
+        )
+
+
+class TestFindINetworkMessagesFindNetworkGroup(unittest.IsolatedAsyncioTestCase):
+    async def test_preprocess_skill_forwards_llm_and_vtable_wiring(self) -> None:
+        module = _load_module(
+            "ida_preprocessor_scripts/find-INetworkMessages_FindNetworkGroup.py",
+            "find_INetworkMessages_FindNetworkGroup",
+        )
+        mock_preprocess_common_skill = AsyncMock(return_value=True)
+        expected_llm_decompile_specs = [
+            (
+                "INetworkMessages_FindNetworkGroup",
+                "prompt/call_llm_decompile.md",
+                "references/engine/CNetworkGameClient_RecordEntityBandwidth.{platform}.yaml",
+            )
+        ]
+        expected_func_vtable_relations = [
+            ("INetworkMessages_FindNetworkGroup", "CNetworkMessages", True)
+        ]
+        llm_config = {
+            "model": "gpt-4.1-mini",
+            "api_key": "test-api-key",
+            "base_url": "https://example.invalid/v1",
+        }
+
+        with patch.object(
+            module,
+            "preprocess_common_skill",
+            mock_preprocess_common_skill,
+        ):
+            result = await module.preprocess_skill(
+                session="session",
+                skill_name="skill",
+                expected_outputs=["out.yaml"],
+                old_yaml_map={"k": "v"},
+                new_binary_dir="bin_dir",
+                platform="windows",
+                image_base=0x180000000,
+                llm_config=llm_config,
+                debug=True,
+            )
+
+        self.assertTrue(result)
+        mock_preprocess_common_skill.assert_awaited_once_with(
+            session="session",
+            expected_outputs=["out.yaml"],
+            old_yaml_map={"k": "v"},
+            new_binary_dir="bin_dir",
+            platform="windows",
+            image_base=0x180000000,
+            func_names=["INetworkMessages_FindNetworkGroup"],
             func_vtable_relations=expected_func_vtable_relations,
             llm_decompile_specs=expected_llm_decompile_specs,
             llm_config=llm_config,

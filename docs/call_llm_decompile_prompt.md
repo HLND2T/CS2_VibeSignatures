@@ -28,9 +28,9 @@ This is the function you need to reverse-engineering:
 {procedure}
 ```
 
-Please collect all references for "{symbol_name_list}" in the function you need to reverse-engineering and output those references as YAML.
+Please collect all references to "{symbol_name_list}" in the function you need to reverse-engineering and output those references as YAML.
 `found_vcall` is for indirect call to virtual function.
-`found_call` is for direct call to regular function.
+`found_call` is for direct call to regular non-virtual function.
 `found_gv` is for reference to global variable.
 `found_struct_offset` is for reference to struct offset.
 
@@ -50,6 +50,9 @@ found_call:
   - insn_va: '0x180888800'
     insn_disasm: call    sub_180999900
     func_name: CLoopModeGame_RegisterEventMapInternal
+  - insn_va: '0x180888880'
+    insn_disasm: call    sub_180555500
+    func_name: CLoopModeGame_SetGameSystemState
 found_gv:
   - insn_va: '0x180444400'
     insn_disasm: mov     rcx, cs:qword_180666600
@@ -62,6 +65,4 @@ found_struct_offset:
     member_name: m_pEntitySystem
 ```
 
-If nothing found, output an empty YAML.
-
-DO NOT output anything other than the desired YAML.
+If nothing found, output an empty YAML. DO NOT output anything other than the desired YAML. DO NOT collect unrelated symbols.
