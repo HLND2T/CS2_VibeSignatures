@@ -21,7 +21,7 @@ FUNC_VTABLE_RELATIONS = [
     ("INetworkMessages_FindNetworkGroup", "INetworkMessages"),
 ]
 
-GENERATE_YAML_DESIRED_FIELD = [
+GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
     ("INetworkMessages_FindNetworkGroup", ["func_name", "vfunc_sig", "vfunc_offset", "vfunc_index", "vtable_name"]),
 ]
