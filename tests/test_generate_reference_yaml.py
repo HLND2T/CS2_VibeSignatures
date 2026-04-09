@@ -366,26 +366,24 @@ class TestReferenceYamlPureHelpers(unittest.TestCase):
                     func_name="CNetworkMessages_FindNetworkGroup",
                 )
 
-    def test_parse_args_requires_core_inputs(self) -> None:
-        base_args = [
-            "-gamever",
-            "14141",
-            "-module",
-            "engine",
-            "-platform",
-            "windows",
-            "-func_name",
-            "CNetworkMessages_FindNetworkGroup",
-        ]
+    def test_parse_args_requires_func_name_only(self) -> None:
+        with self.assertRaises(SystemExit):
+            generate_reference_yaml.parse_args([])
 
-        required_flags = ["-gamever", "-module", "-platform", "-func_name"]
-        for flag in required_flags:
-            with self.subTest(flag=flag):
-                missing_args = list(base_args)
-                index = missing_args.index(flag)
-                del missing_args[index : index + 2]
-                with self.assertRaises(SystemExit):
-                    generate_reference_yaml.parse_args(missing_args)
+    def test_parse_args_allows_missing_target_inputs(self) -> None:
+        args = generate_reference_yaml.parse_args(
+            [
+                "-func_name",
+                "CNetworkMessages_FindNetworkGroup",
+            ]
+        )
+
+        self.assertIsNone(args.gamever)
+        self.assertIsNone(args.module)
+        self.assertIsNone(args.platform)
+        self.assertEqual("CNetworkMessages_FindNetworkGroup", args.func_name)
+        self.assertFalse(args.auto_start_mcp)
+        self.assertIsNone(args.binary)
 
     def test_parse_args_requires_binary_with_auto_start_mcp(self) -> None:
         with self.assertRaises(SystemExit):
@@ -447,6 +445,27 @@ class TestReferenceYamlPureHelpers(unittest.TestCase):
         self.assertEqual(13337, args.mcp_port)
         self.assertEqual("", args.ida_args)
         self.assertFalse(args.debug)
+
+    def test_infer_target_from_binary_path_extracts_gamever_module_and_platform(self) -> None:
+        windows_target = generate_reference_yaml.infer_target_from_binary_path(
+            r"D:\CS2_VibeSignatures\bin\14141c\engine\engine2.dll.i64"
+        )
+        linux_target = generate_reference_yaml.infer_target_from_binary_path(
+            "/mnt/d/CS2_VibeSignatures/bin/14141c/server/libserver.so"
+        )
+
+        self.assertEqual(
+            {"gamever": "14141c", "module": "engine", "platform": "windows"},
+            windows_target,
+        )
+        self.assertEqual(
+            {"gamever": "14141c", "module": "server", "platform": "linux"},
+            linux_target,
+        )
+
+    def test_infer_target_from_binary_path_raises_for_unexpected_layout(self) -> None:
+        with self.assertRaises(generate_reference_yaml.ReferenceGenerationError):
+            generate_reference_yaml.infer_target_from_binary_path("/tmp/engine2.dll")
 
 
 class TestResolveFuncVa(unittest.IsolatedAsyncioTestCase):
@@ -947,9 +966,10 @@ class TestMcpSessionModes(unittest.IsolatedAsyncioTestCase):
             ) as start_idalib_mcp,
             patch.object(
                 generate_reference_yaml,
-                "quit_ida_gracefully",
+                "quit_ida_gracefully_async",
+                new_callable=AsyncMock,
                 create=True,
-            ) as quit_ida_gracefully,
+            ) as quit_ida_gracefully_async,
             patch.object(generate_reference_yaml, "httpx", _make_fake_httpx(), create=True),
             patch.object(
                 generate_reference_yaml,
@@ -980,7 +1000,7 @@ class TestMcpSessionModes(unittest.IsolatedAsyncioTestCase):
             "--headless",
             True,
         )
-        quit_ida_gracefully.assert_called_once_with(
+        quit_ida_gracefully_async.assert_awaited_once_with(
             process,
             "127.0.0.1",
             13337,
@@ -1032,9 +1052,10 @@ class TestMcpSessionModes(unittest.IsolatedAsyncioTestCase):
             ),
             patch.object(
                 generate_reference_yaml,
-                "quit_ida_gracefully",
+                "quit_ida_gracefully_async",
+                new_callable=AsyncMock,
                 create=True,
-            ) as quit_ida_gracefully,
+            ) as quit_ida_gracefully_async,
             patch.object(generate_reference_yaml, "httpx", _make_fake_httpx(), create=True),
             patch.object(
                 generate_reference_yaml,
@@ -1060,7 +1081,7 @@ class TestMcpSessionModes(unittest.IsolatedAsyncioTestCase):
                     raise RuntimeError("boom")
 
         self.assertEqual("boom", str(ctx.exception))
-        quit_ida_gracefully.assert_called_once_with(
+        quit_ida_gracefully_async.assert_awaited_once_with(
             process,
             "127.0.0.1",
             13337,
@@ -1092,9 +1113,10 @@ class TestMcpSessionModes(unittest.IsolatedAsyncioTestCase):
             ) as open_mcp_session,
             patch.object(
                 generate_reference_yaml,
-                "quit_ida_gracefully",
+                "quit_ida_gracefully_async",
+                new_callable=AsyncMock,
                 create=True,
-            ) as quit_ida_gracefully,
+            ) as quit_ida_gracefully_async,
         ):
             with self.assertRaises(generate_reference_yaml.ReferenceGenerationError) as ctx:
                 async with generate_reference_yaml.autostart_mcp_session(
@@ -1111,7 +1133,7 @@ class TestMcpSessionModes(unittest.IsolatedAsyncioTestCase):
             str(ctx.exception),
         )
         open_mcp_session.assert_called_once_with("127.0.0.1", 13337)
-        quit_ida_gracefully.assert_called_once_with(
+        quit_ida_gracefully_async.assert_awaited_once_with(
             process,
             "127.0.0.1",
             13337,
@@ -1156,6 +1178,24 @@ class TestIdaAnalyzeBinWrappers(unittest.IsolatedAsyncioTestCase):
         ):
             with self.assertRaises(generate_reference_yaml.ReferenceGenerationError) as ctx:
                 generate_reference_yaml.quit_ida_gracefully(
+                    MagicMock(name="fake_process"),
+                    "127.0.0.1",
+                    13337,
+                    debug=False,
+                )
+
+        self.assertEqual("failed to import ida_analyze_bin helpers", str(ctx.exception))
+
+    async def test_quit_ida_gracefully_async_wraps_system_exit_as_reference_generation_error(
+        self,
+    ) -> None:
+        with patch.object(
+            generate_reference_yaml.importlib,
+            "import_module",
+            side_effect=SystemExit(2),
+        ):
+            with self.assertRaises(generate_reference_yaml.ReferenceGenerationError) as ctx:
+                await generate_reference_yaml.quit_ida_gracefully_async(
                     MagicMock(name="fake_process"),
                     "127.0.0.1",
                     13337,
@@ -1341,6 +1381,94 @@ class TestRunReferenceGeneration(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(output_path, result)
         attach_existing_mcp_session.assert_not_called()
+
+    async def test_run_reference_generation_fills_missing_inputs_from_survey_binary(self) -> None:
+        fake_session = MagicMock()
+        fake_session.call_tool = AsyncMock(
+            return_value=_FakeCallToolResult(
+                {
+                    "metadata": {
+                        "path": r"D:\CS2_VibeSignatures\bin\14141c\engine\engine2.dll.i64"
+                    }
+                }
+            )
+        )
+        output_path = Path("/repo/out/reference.yaml")
+
+        @asynccontextmanager
+        async def _fake_attach_existing_mcp_session(**kwargs):
+            self.assertEqual({"host": "127.0.0.1", "port": 13337, "debug": False}, kwargs)
+            yield fake_session
+
+        with (
+            patch.object(
+                generate_reference_yaml,
+                "attach_existing_mcp_session",
+                _fake_attach_existing_mcp_session,
+                create=True,
+            ),
+            patch.object(
+                generate_reference_yaml,
+                "survey_binary_via_mcp",
+                AsyncMock(),
+                create=True,
+            ) as survey_binary_via_mcp,
+            patch.object(
+                generate_reference_yaml,
+                "resolve_func_va",
+                AsyncMock(return_value="0x180123450"),
+                create=True,
+            ) as resolve_func_va,
+            patch.object(
+                generate_reference_yaml,
+                "export_reference_payload_via_mcp",
+                AsyncMock(
+                    return_value={
+                        "func_name": "CNetworkMessages_FindNetworkGroup",
+                        "func_va": "0x180123450",
+                        "disasm_code": "text:180123450 push rbp",
+                        "procedure": "",
+                    }
+                ),
+                create=True,
+            ),
+            patch.object(
+                generate_reference_yaml,
+                "build_reference_output_path",
+                return_value=output_path,
+            ) as build_reference_output_path,
+            patch.object(generate_reference_yaml, "write_reference_yaml"),
+        ):
+            result = await generate_reference_yaml.run_reference_generation(
+                _base_args(
+                    gamever=None,
+                    module=None,
+                    platform=None,
+                ),
+                repo_root=Path("/repo"),
+            )
+
+        self.assertEqual(output_path, result)
+        fake_session.call_tool.assert_awaited_once_with(
+            name="survey_binary",
+            arguments={"detail_level": "minimal"},
+        )
+        survey_binary_via_mcp.assert_not_called()
+        resolve_func_va.assert_awaited_once_with(
+            fake_session,
+            repo_root=Path("/repo"),
+            gamever="14141c",
+            module="engine",
+            platform="windows",
+            func_name="CNetworkMessages_FindNetworkGroup",
+            debug=False,
+        )
+        build_reference_output_path.assert_called_once_with(
+            Path("/repo"),
+            "engine",
+            "CNetworkMessages_FindNetworkGroup",
+            "windows",
+        )
 
 
 class TestMain(unittest.TestCase):

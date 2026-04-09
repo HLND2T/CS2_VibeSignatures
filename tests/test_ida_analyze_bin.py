@@ -1,10 +1,115 @@
 import io
+import json
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, call, patch
+from unittest.mock import AsyncMock, MagicMock, call, patch
 
 import ida_analyze_bin
+
+
+def _tool_result(payload):
+    return SimpleNamespace(content=[SimpleNamespace(text=json.dumps(payload))])
+
+
+class TestQuitIdaGracefully(unittest.IsolatedAsyncioTestCase):
+    async def test_quit_ida_gracefully_async_quits_and_waits_for_process(self) -> None:
+        process = MagicMock()
+        process.poll.return_value = None
+        process.wait.return_value = 0
+
+        with patch.object(
+            ida_analyze_bin,
+            "quit_ida_via_mcp",
+            AsyncMock(return_value=True),
+        ) as quit_ida_via_mcp:
+            await ida_analyze_bin.quit_ida_gracefully_async(
+                process,
+                "127.0.0.1",
+                13337,
+                debug=False,
+            )
+
+        quit_ida_via_mcp.assert_awaited_once_with("127.0.0.1", 13337)
+        process.wait.assert_called_once_with(timeout=10)
+        process.kill.assert_not_called()
+
+    async def test_quit_ida_gracefully_rejects_running_loop(self) -> None:
+        process = MagicMock()
+        process.poll.return_value = None
+
+        with self.assertRaisesRegex(
+            RuntimeError,
+            "use await quit_ida_gracefully_async\\(\\) instead",
+        ):
+            ida_analyze_bin.quit_ida_gracefully(
+                process,
+                "127.0.0.1",
+                13337,
+                debug=False,
+            )
+
+
+class TestQuitIdaGracefullySyncWrapper(unittest.TestCase):
+    def test_quit_ida_gracefully_runs_async_helper_from_sync_context(self) -> None:
+        process = MagicMock()
+        process.poll.return_value = None
+
+        with patch.object(
+            ida_analyze_bin,
+            "quit_ida_gracefully_async",
+            AsyncMock(),
+        ) as quit_ida_gracefully_async:
+            ida_analyze_bin.quit_ida_gracefully(
+                process,
+                "127.0.0.1",
+                13337,
+                debug=True,
+            )
+
+        quit_ida_gracefully_async.assert_awaited_once_with(
+            process,
+            "127.0.0.1",
+            13337,
+            debug=True,
+        )
+
+
+class TestSurveyBinaryViaSession(unittest.IsolatedAsyncioTestCase):
+    async def test_survey_binary_via_session_falls_back_to_py_eval_path(self) -> None:
+        session = MagicMock()
+        session.call_tool = AsyncMock(
+            side_effect=[
+                RuntimeError("Invalid structured content returned by tool survey_binary"),
+                _tool_result(
+                    {
+                        "result": json.dumps(
+                            {
+                                "metadata": {
+                                    "path": "/mnt/d/CS2_VibeSignatures/bin/14141c/server/libserver.so"
+                                }
+                            }
+                        ),
+                        "stdout": "",
+                        "stderr": "",
+                    }
+                ),
+            ]
+        )
+
+        result = await ida_analyze_bin.survey_binary_via_session(session, detail_level="minimal")
+
+        self.assertEqual(
+            {"metadata": {"path": "/mnt/d/CS2_VibeSignatures/bin/14141c/server/libserver.so"}},
+            result,
+        )
+        self.assertEqual(
+            [
+                call(name="survey_binary", arguments={"detail_level": "minimal"}),
+                call(name="py_eval", arguments={"code": ida_analyze_bin.SURVEY_BINARY_PATH_PY_EVAL}),
+            ],
+            session.call_tool.await_args_list,
+        )
 
 
 class TestResolveArtifactPath(unittest.TestCase):

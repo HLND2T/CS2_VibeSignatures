@@ -101,13 +101,18 @@ def _validate_reference_yaml_payload(payload: Mapping[str, Any]) -> dict[str, st
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate reference YAML for IDA preprocess scripts")
-    parser.add_argument("-gamever", required=True, help="Game version (required)")
-    parser.add_argument("-module", required=True, help="Module name (required)")
+    parser.add_argument(
+        "-gamever",
+        help="Game version; when omitted, infer it from the current IDA binary path",
+    )
+    parser.add_argument(
+        "-module",
+        help="Module name; when omitted, infer it from the current IDA binary path",
+    )
     parser.add_argument(
         "-platform",
-        required=True,
         choices=["windows", "linux"],
-        help="Target platform (windows|linux)",
+        help="Target platform; when omitted, infer it from the current IDA binary path",
     )
     parser.add_argument("-func_name", required=True, help="Function name (required)")
     parser.add_argument("-mcp_host", default="127.0.0.1", help="MCP host")
@@ -129,6 +134,47 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         parser.error("-binary requires -auto_start_mcp")
 
     return args
+
+
+def infer_target_from_binary_path(binary_path: str) -> dict[str, str]:
+    normalized_path = _normalize_non_empty_text(binary_path)
+    if normalized_path is None:
+        raise ReferenceGenerationError("IDA survey did not provide a binary path")
+
+    path_parts = [
+        part.strip()
+        for part in normalized_path.replace("\\", "/").split("/")
+        if part.strip() and part != "."
+    ]
+    bin_index = next(
+        (index for index in range(len(path_parts) - 1, -1, -1) if path_parts[index].lower() == "bin"),
+        -1,
+    )
+    if bin_index < 0 or bin_index + 3 >= len(path_parts):
+        raise ReferenceGenerationError(
+            f"unable to infer -gamever/-module/-platform from IDA binary path: {normalized_path}"
+        )
+
+    gamever = path_parts[bin_index + 1]
+    module = path_parts[bin_index + 2]
+    platform = _infer_platform_from_binary_name(path_parts[bin_index + 3])
+    if platform is None:
+        raise ReferenceGenerationError(f"unable to infer platform from IDA binary path: {normalized_path}")
+
+    return {
+        "gamever": gamever,
+        "module": module,
+        "platform": platform,
+    }
+
+
+def _infer_platform_from_binary_name(binary_name: str) -> str | None:
+    suffixes = [suffix.lower() for suffix in Path(binary_name).suffixes]
+    if ".dll" in suffixes:
+        return "windows"
+    if ".so" in suffixes:
+        return "linux"
+    return None
 
 
 def load_yaml_mapping(path: str | Path) -> dict[str, Any]:
@@ -490,6 +536,16 @@ async def check_mcp_health(host: str, port: int) -> bool:
     return await ida_analyze_bin.check_mcp_health(host, port)
 
 
+async def survey_binary_via_mcp(host: str, port: int) -> Any:
+    ida_analyze_bin = _load_ida_analyze_bin()
+    return await ida_analyze_bin.survey_binary_via_mcp(host, port, detail_level="minimal")
+
+
+async def survey_binary_via_session(session: Any) -> Any:
+    ida_analyze_bin = _load_ida_analyze_bin()
+    return await ida_analyze_bin.survey_binary_via_session(session, detail_level="minimal")
+
+
 def _load_ida_analyze_bin() -> Any:
     try:
         return importlib.import_module("ida_analyze_bin")
@@ -517,6 +573,17 @@ def quit_ida_gracefully(
 ) -> None:
     ida_analyze_bin = _load_ida_analyze_bin()
     ida_analyze_bin.quit_ida_gracefully(process, host, port, debug=debug)
+
+
+async def quit_ida_gracefully_async(
+    process: Any,
+    host: str,
+    port: int,
+    *,
+    debug: bool,
+) -> None:
+    ida_analyze_bin = _load_ida_analyze_bin()
+    await ida_analyze_bin.quit_ida_gracefully_async(process, host, port, debug=debug)
 
 
 @asynccontextmanager
@@ -573,7 +640,53 @@ async def autostart_mcp_session(
         async with _open_mcp_session(host, port) as session:
             yield session
     finally:
-        quit_ida_gracefully(process, host, port, debug=debug)
+        await quit_ida_gracefully_async(process, host, port, debug=debug)
+
+
+async def resolve_generation_target(
+    *,
+    session: Any,
+    gamever: str | None,
+    module: str | None,
+    platform: str | None,
+    host: str,
+    port: int,
+) -> dict[str, str]:
+    resolved_target = {
+        "gamever": _normalize_non_empty_text(gamever),
+        "module": _normalize_non_empty_text(module),
+        "platform": _normalize_non_empty_text(platform),
+    }
+    missing_keys = [key for key, value in resolved_target.items() if value is None]
+    if not missing_keys:
+        return {
+            "gamever": resolved_target["gamever"],
+            "module": resolved_target["module"],
+            "platform": resolved_target["platform"],
+        }
+
+    survey_result = await survey_binary_via_session(session)
+    if survey_result is None:
+        survey_result = await survey_binary_via_mcp(host, port)
+    if not isinstance(survey_result, Mapping):
+        missing_flags = ", ".join(f"-{key}" for key in missing_keys)
+        raise ReferenceGenerationError(
+            f"missing {missing_flags}, and failed to survey the current IDA binary via MCP"
+        )
+
+    metadata = survey_result.get("metadata")
+    if not isinstance(metadata, Mapping):
+        raise ReferenceGenerationError("IDA survey result is missing metadata")
+
+    inferred_target = infer_target_from_binary_path(str(metadata.get("path", "")))
+    for key in missing_keys:
+        resolved_target[key] = inferred_target[key]
+
+    return {
+        "gamever": resolved_target["gamever"],
+        "module": resolved_target["module"],
+        "platform": resolved_target["platform"],
+    }
 
 
 async def run_reference_generation(
@@ -598,12 +711,20 @@ async def run_reference_generation(
         )
 
     async with session_manager as session:
-        func_va = await resolve_func_va(
-            session,
-            repo_root=resolved_repo_root,
+        resolved_target = await resolve_generation_target(
+            session=session,
             gamever=args.gamever,
             module=args.module,
             platform=args.platform,
+            host=args.mcp_host,
+            port=args.mcp_port,
+        )
+        func_va = await resolve_func_va(
+            session,
+            repo_root=resolved_repo_root,
+            gamever=resolved_target["gamever"],
+            module=resolved_target["module"],
+            platform=resolved_target["platform"],
             func_name=args.func_name,
             debug=args.debug,
         )
@@ -615,9 +736,9 @@ async def run_reference_generation(
         )
         output_path = build_reference_output_path(
             resolved_repo_root,
-            args.module,
+            resolved_target["module"],
             args.func_name,
-            args.platform,
+            resolved_target["platform"],
         )
         write_reference_yaml(output_path, payload)
         return output_path

@@ -89,13 +89,13 @@ reference YAML 存放路径：
 2. 运行独立 CLI：
 
 ```bash
-uv run generate_reference_yaml.py -gamever 14141 -module engine -platform windows -func_name CNetworkGameClient_RecordEntityBandwidth -mcp_host 127.0.0.1 -mcp_port 13337
+uv run generate_reference_yaml.py -gamever 14141 CNetworkGameClient_RecordEntityBandwidth -mcp_host 127.0.0.1 -mcp_port 13337
 ```
 
 自动启动 `idalib-mcp` 示例：
 
 ```bash
-uv run generate_reference_yaml.py -gamever 14141 -module engine -platform windows -func_name CNetworkGameClient_RecordEntityBandwidth -auto_start_mcp -binary bin/14141/engine/engine2.dll
+uv run generate_reference_yaml.py -gamever 14141 -module engine -platform windows -func_name CNetworkGameClient_RecordEntityBandwidth -auto_start_mcp -binary "bin/14141/engine/engine2.dll"
 ```
 
 3. 检查生成文件：

@@ -47,6 +47,7 @@ try:
     import httpx
     from mcp import ClientSession
     from mcp.client.streamable_http import streamable_http_client
+    from mcp.types import TextContent
 except ImportError as e:
     print(f"Error: Missing required dependency: {e.name}")
     print("Please install required dependencies with: uv sync")
@@ -72,11 +73,82 @@ ERROR_MARKER_RE = re.compile(
     r"(?<![A-Za-z0-9])error(?![A-Za-z0-9])",
     re.IGNORECASE,
 )
+SURVEY_BINARY_PATH_PY_EVAL = (
+    "import json\n"
+    "path = ''\n"
+    "try:\n"
+    "    import ida_nalt\n"
+    "    path = ida_nalt.get_input_file_path() or ''\n"
+    "except Exception:\n"
+    "    pass\n"
+    "if not path:\n"
+    "    try:\n"
+    "        import idc\n"
+    "        path = idc.get_input_file_path() or ''\n"
+    "    except Exception:\n"
+    "        pass\n"
+    "result = json.dumps({'metadata': {'path': path}})\n"
+)
 
 
 def _output_contains_error_marker(*texts: str) -> bool:
     merged_output = "\n".join(text for text in texts if text)
     return bool(ERROR_MARKER_RE.search(merged_output))
+
+
+def _parse_tool_json_content(result):
+    if not result or not getattr(result, "content", None):
+        return None
+
+    item = result.content[0]
+    raw = getattr(item, "text", None)
+    if not isinstance(raw, str):
+        raw = item.text if isinstance(item, TextContent) else str(item)
+    try:
+        return json.loads(raw)
+    except (json.JSONDecodeError, TypeError):
+        return None
+
+
+async def _survey_binary_path_via_py_eval(session):
+    try:
+        result = await session.call_tool(
+            name="py_eval",
+            arguments={"code": SURVEY_BINARY_PATH_PY_EVAL},
+        )
+    except Exception:
+        return None
+
+    payload = _parse_tool_json_content(result)
+    if not isinstance(payload, dict):
+        return None
+
+    result_text = payload.get("result", "")
+    if not isinstance(result_text, str) or not result_text:
+        return None
+
+    try:
+        parsed = json.loads(result_text)
+    except (json.JSONDecodeError, TypeError):
+        return None
+
+    return parsed if isinstance(parsed, dict) else None
+
+
+async def survey_binary_via_session(session, detail_level="minimal"):
+    try:
+        result = await session.call_tool(
+            name="survey_binary",
+            arguments={"detail_level": detail_level},
+        )
+    except Exception:
+        return await _survey_binary_path_via_py_eval(session)
+
+    parsed = _parse_tool_json_content(result)
+    if isinstance(parsed, dict):
+        return parsed
+
+    return await _survey_binary_path_via_py_eval(session)
 
 async def check_mcp_health(host=DEFAULT_HOST, port=DEFAULT_PORT):
     """
@@ -103,6 +175,69 @@ async def check_mcp_health(host=DEFAULT_HOST, port=DEFAULT_PORT):
                     return True
     except Exception:
         return False
+
+
+async def survey_binary_via_mcp(host=DEFAULT_HOST, port=DEFAULT_PORT, detail_level="minimal"):
+    """
+    Retrieve a compact overview of the binary currently loaded in IDA.
+
+    Args:
+        host: MCP server host
+        port: MCP server port
+        detail_level: 'standard' or 'minimal' (use 'minimal' for binaries with >10k functions)
+    Returns:
+        Parsed survey dict on success, None otherwise.
+
+    Example result (detail_level='minimal'):
+        {
+            "metadata": {
+                "path": "D:\\CS2_VibeSignatures\\bin\\14141c\\engine\\engine2.dll.i64",
+                "module": "engine2.dll",
+                "arch": "64",
+                "base_address": "0x180000000",
+                "image_size": "0x95c000",
+                "md5": "11092707508ae325cfdbcfb5ff200423",
+                "sha256": "2f48108e724bdb389d0102bc673d762405d39f222d84f4ac56ce86bbe4d61c28"
+            },
+            "statistics": {
+                "total_functions": 15504,
+                "named_functions": 317,
+                "library_functions": 248,
+                "unnamed_functions": 14939,
+                "total_strings": 14531,
+                "total_segments": 6
+            },
+            "segments": [
+                {"name": ".text",  "start": "0x180001000", "end": "0x180481000", "size": "0x480000", "permissions": "rx"},
+                {"name": ".idata", "start": "0x180481000", "end": "0x180482bf0", "size": "0x1bf0",   "permissions": "r"},
+                {"name": ".rdata", "start": "0x180482bf0", "end": "0x180604000", "size": "0x181410", "permissions": "r"},
+                {"name": ".data",  "start": "0x180604000", "end": "0x180916000", "size": "0x312000", "permissions": "rw"},
+                {"name": ".pdata", "start": "0x180916000", "end": "0x180950000", "size": "0x3a000",  "permissions": "r"},
+                {"name": "_RDATA", "start": "0x180950000", "end": "0x180951000", "size": "0x1000",   "permissions": "r"}
+            ],
+            "entrypoints": [
+                {"addr": "0x1802523d0", "name": "BinaryProperties_GetValue", "ordinal": 1},
+                {"addr": "0x180400100", "name": "CreateInterface",           "ordinal": 2},
+                {"addr": "0x180219430", "name": "Source2Main",               "ordinal": 7},
+                ...
+            ],
+            "_note": "Binary has 15504 functions; xref analysis was limited to the first 10000 for performance."
+        }
+    """
+    server_url = f"http://{host}:{port}/mcp"
+
+    try:
+        async with httpx.AsyncClient(
+            follow_redirects=True,
+            timeout=httpx.Timeout(10.0, read=30.0),
+            trust_env=False,
+        ) as http_client:
+            async with streamable_http_client(server_url, http_client=http_client) as (read_stream, write_stream, _):
+                async with ClientSession(read_stream, write_stream) as session:
+                    await session.initialize()
+                    return await survey_binary_via_session(session, detail_level=detail_level)
+    except Exception:
+        return None
 
 
 async def preprocess_single_vcall_object_via_mcp(
@@ -206,7 +341,7 @@ async def quit_ida_via_mcp(host=DEFAULT_HOST, port=DEFAULT_PORT):
         return False
 
 
-def quit_ida_gracefully(process, host=DEFAULT_HOST, port=DEFAULT_PORT, debug=False):
+async def quit_ida_gracefully_async(process, host=DEFAULT_HOST, port=DEFAULT_PORT, debug=False):
     """
     Attempt to quit IDA gracefully via MCP, fall back to terminate if needed.
 
@@ -224,15 +359,13 @@ def quit_ida_gracefully(process, host=DEFAULT_HOST, port=DEFAULT_PORT, debug=Fal
     if debug:
         print("  Quitting IDA gracefully via MCP...")
 
-    # Try graceful quit via MCP (fast timeout so we don't hang on a dead server)
     try:
-        asyncio.run(asyncio.wait_for(quit_ida_via_mcp(host, port), timeout=5))
+        await asyncio.wait_for(quit_ida_via_mcp(host, port), timeout=5)
     except Exception:
         pass
 
-    # Wait briefly for the process to exit on its own after the quit request.
     try:
-        process.wait(timeout=10)
+        await asyncio.to_thread(process.wait, timeout=10)
         if debug:
             print("  IDA exited gracefully")
         return
@@ -240,13 +373,39 @@ def quit_ida_gracefully(process, host=DEFAULT_HOST, port=DEFAULT_PORT, debug=Fal
         if debug:
             print("  Warning: IDA did not exit after qexit, forcing kill...")
 
-    # Last resort: force kill (avoid terminate to reduce chances of breaking IDB)
     if process.poll() is None:
         try:
             process.kill()
-            process.wait(timeout=5)
+            await asyncio.to_thread(process.wait, timeout=5)
         except Exception:
             pass
+
+
+def quit_ida_gracefully(process, host=DEFAULT_HOST, port=DEFAULT_PORT, debug=False):
+    """
+    Synchronous wrapper around quit_ida_gracefully_async.
+
+    Args:
+        process: subprocess.Popen object
+        host: MCP server host
+        port: MCP server port
+    """
+    if process is None:
+        return
+
+    if process.poll() is not None:
+        return
+
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        asyncio.run(quit_ida_gracefully_async(process, host, port, debug=debug))
+        return
+
+    raise RuntimeError(
+        "quit_ida_gracefully() cannot run inside an active event loop; "
+        "use await quit_ida_gracefully_async() instead"
+    )
 
 
 

@@ -12,10 +12,10 @@ Do not call IDA API directly in this skill. Always run `generate_reference_yaml.
 
 ## Required parameters
 
-- `gamever`
-- `module`
-- `platform`
 - `func_name`
+- `gamever` (Obtain from dll path via ida-pro-mcp if not specified)
+- `module` (Obtain from dll path via ida-pro-mcp if not specified)
+- `platform` (Obtain from dll path via ida-pro-mcp if not specified)
 
 ## Command examples
 
