@@ -446,5 +446,468 @@ class TestVtableAliasSupport(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("0x8", written_payload["vfunc_offset"])
 
 
+class TestLlmDecompileSupport(unittest.IsolatedAsyncioTestCase):
+    def test_parse_llm_decompile_response_normalizes_all_sections(self) -> None:
+        response_text = """
+```yaml
+found_vcall:
+  - insn_va: 0x180777700
+    insn_disasm: " call    [rax+68h] "
+    vfunc_offset: 0x68
+    func_name: " ILoopMode_OnLoopActivate "
+  - invalid: true
+found_call:
+  - insn_va: 0x180888800
+    insn_disasm: " call    sub_180999900 "
+    func_name: " CLoopModeGame_RegisterEventMapInternal "
+  - insn_disasm: call    sub_missing
+found_gv:
+  - insn_va: 0x180444400
+    insn_disasm: " mov     rcx, cs:qword_180666600 "
+    gv_name: " s_GameEventManager "
+  - insn_va: 0x180000001
+found_struct_offset:
+  - insn_va: 0x1801BA12A
+    insn_disasm: " mov     rcx, [r14+58h] "
+    offset: 0x58
+    struct_name: " CGameResourceService "
+    member_name: " m_pEntitySystem "
+  - member_name: only_member
+```
+""".strip()
+
+        parsed = ida_analyze_util.parse_llm_decompile_response(response_text)
+
+        self.assertEqual(
+            {
+                "found_vcall": [
+                    {
+                        "insn_va": "0x180777700",
+                        "insn_disasm": "call    [rax+68h]",
+                        "vfunc_offset": "0x68",
+                        "func_name": "ILoopMode_OnLoopActivate",
+                    }
+                ],
+                "found_call": [
+                    {
+                        "insn_va": "0x180888800",
+                        "insn_disasm": "call    sub_180999900",
+                        "func_name": "CLoopModeGame_RegisterEventMapInternal",
+                    }
+                ],
+                "found_gv": [
+                    {
+                        "insn_va": "0x180444400",
+                        "insn_disasm": "mov     rcx, cs:qword_180666600",
+                        "gv_name": "s_GameEventManager",
+                    }
+                ],
+                "found_struct_offset": [
+                    {
+                        "insn_va": "0x1801BA12A",
+                        "insn_disasm": "mov     rcx, [r14+58h]",
+                        "offset": "0x58",
+                        "struct_name": "CGameResourceService",
+                        "member_name": "m_pEntitySystem",
+                    }
+                ],
+            },
+            parsed,
+        )
+
+    async def test_call_llm_decompile_uses_shared_llm_helper_and_parses_yaml(
+        self,
+    ) -> None:
+        response_text = """
+```yaml
+found_vcall:
+  - insn_va: 0x180777700
+    insn_disasm: " call    [rax+68h] "
+    vfunc_offset: 0x68
+    func_name: " ILoopMode_OnLoopActivate "
+found_call: []
+found_gv: []
+found_struct_offset: []
+```
+""".strip()
+
+        with patch.object(
+            ida_analyze_util,
+            "call_llm_text",
+            return_value=response_text,
+            create=True,
+        ) as mock_call_llm_text:
+            parsed = await ida_analyze_util.call_llm_decompile(
+                client=object(),
+                model="gpt-4.1-mini",
+                symbol_name_list=["ILoopMode_OnLoopActivate"],
+                disasm_code="call    [rax+68h]",
+                procedure="(*v1->lpVtbl->OnLoopActivate)(v1);",
+            )
+
+        self.assertEqual(
+            {
+                "found_vcall": [
+                    {
+                        "insn_va": "0x180777700",
+                        "insn_disasm": "call    [rax+68h]",
+                        "vfunc_offset": "0x68",
+                        "func_name": "ILoopMode_OnLoopActivate",
+                    }
+                ],
+                "found_call": [],
+                "found_gv": [],
+                "found_struct_offset": [],
+            },
+            parsed,
+        )
+        mock_call_llm_text.assert_called_once()
+        self.assertEqual("gpt-4.1-mini", mock_call_llm_text.call_args.kwargs["model"])
+        self.assertEqual(0.1, mock_call_llm_text.call_args.kwargs["temperature"])
+
+    async def test_call_llm_decompile_fails_closed_when_shared_helper_raises(
+        self,
+    ) -> None:
+        with patch.object(
+            ida_analyze_util,
+            "call_llm_text",
+            side_effect=RuntimeError("llm unavailable"),
+            create=True,
+        ):
+            parsed = await ida_analyze_util.call_llm_decompile(
+                client=object(),
+                model="gpt-4.1-mini",
+                symbol_name_list=["ILoopMode_OnLoopActivate"],
+                disasm_code="call    [rax+68h]",
+                procedure="(*v1->lpVtbl->OnLoopActivate)(v1);",
+            )
+
+        self.assertEqual(
+            {
+                "found_vcall": [],
+                "found_call": [],
+                "found_gv": [],
+                "found_struct_offset": [],
+            },
+            parsed,
+        )
+
+    async def test_preprocess_func_sig_via_mcp_supports_direct_vtable_generation(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            session = AsyncMock()
+            session.call_tool.return_value = _py_eval_payload(
+                {
+                    "func_va": "0x180123450",
+                    "func_size": "0x40",
+                }
+            )
+
+            with patch.object(
+                ida_analyze_util,
+                "preprocess_vtable_via_mcp",
+                AsyncMock(
+                    return_value={
+                        "vtable_class": "CLoopModeGame",
+                        "vtable_symbol": "??_7CLoopModeGame@@6B@",
+                        "vtable_va": "0x180001000",
+                        "vtable_rva": "0x1000",
+                        "vtable_size": "0x90",
+                        "vtable_numvfunc": 32,
+                        "vtable_entries": {13: "0x180123450"},
+                    }
+                ),
+            ), patch.object(
+                ida_analyze_util,
+                "preprocess_gen_func_sig_via_mcp",
+                AsyncMock(
+                    return_value={
+                        "func_va": "0x180123450",
+                        "func_rva": "0x123450",
+                        "func_size": "0x40",
+                        "func_sig": "48 89 ??",
+                    }
+                ),
+            ):
+                result = await ida_analyze_util.preprocess_func_sig_via_mcp(
+                    session=session,
+                    new_path=f"{temp_dir}/CLoopModeGame_OnLoopActivate.windows.yaml",
+                    old_path=None,
+                    image_base=0x180000000,
+                    new_binary_dir=temp_dir,
+                    platform="windows",
+                    func_name="CLoopModeGame_OnLoopActivate",
+                    direct_vtable_class="CLoopModeGame",
+                    direct_vfunc_offset="0x68",
+                    debug=False,
+                )
+
+        self.assertIsNotNone(result)
+        assert result is not None
+        self.assertEqual("CLoopModeGame_OnLoopActivate", result["func_name"])
+        self.assertEqual("0x180123450", result["func_va"])
+        self.assertEqual("48 89 ??", result["func_sig"])
+        self.assertEqual("CLoopModeGame", result["vtable_name"])
+        self.assertEqual("0x68", result["vfunc_offset"])
+        self.assertEqual(13, result["vfunc_index"])
+
+    async def test_preprocess_gen_struct_offset_sig_via_mcp_generates_current_version_sig(
+        self,
+    ) -> None:
+        session = AsyncMock()
+
+        def _fake_call_tool(*, name: str, arguments: dict[str, object]):
+            if name == "py_eval":
+                self.assertIn("DecodeInstruction", arguments["code"])
+                self.assertIn("ida_bytes.get_bytes", arguments["code"])
+                return _py_eval_payload(
+                    [
+                        {
+                            "offset_inst_va": "0x1801BA12A",
+                            "insts": [
+                                {
+                                    "size": 4,
+                                    "bytes": "498b4e58",
+                                    "wild": [3],
+                                },
+                                {
+                                    "size": 3,
+                                    "bytes": "4885c9",
+                                    "wild": [],
+                                },
+                            ],
+                        }
+                    ]
+                )
+            if name == "find_bytes":
+                self.assertEqual(
+                    ["49 8B 4E ??"],
+                    arguments["patterns"],
+                )
+                return _FakeCallToolResult(
+                    [
+                        {
+                            "matches": ["0x1801BA12A"],
+                            "n": 1,
+                        }
+                    ]
+                )
+            raise AssertionError(f"unexpected MCP tool: {name}")
+
+        session.call_tool.side_effect = _fake_call_tool
+
+        result = await ida_analyze_util.preprocess_gen_struct_offset_sig_via_mcp(
+            session=session,
+            struct_name="CGameResourceService",
+            member_name="m_pEntitySystem",
+            offset="0x58",
+            offset_inst_va="0x1801BA12A",
+            image_base=0x180000000,
+            min_sig_bytes=4,
+            debug=False,
+        )
+
+        self.assertEqual(
+            {
+                "struct_name": "CGameResourceService",
+                "member_name": "m_pEntitySystem",
+                "offset": "0x58",
+                "offset_sig": "49 8B 4E ??",
+            },
+            result,
+        )
+
+    async def test_preprocess_common_skill_uses_llm_decompile_vcall_fallback_for_func_yaml(
+        self,
+    ) -> None:
+        func_name = "CLoopModeGame_OnLoopActivate"
+        output_path = f"/tmp/{func_name}.windows.yaml"
+        normalized_payload = {
+            "found_vcall": [
+                {
+                    "insn_va": "0x180777700",
+                    "insn_disasm": "call    [rax+68h]",
+                    "vfunc_offset": "0x68",
+                    "func_name": func_name,
+                }
+            ],
+            "found_call": [],
+            "found_gv": [],
+            "found_struct_offset": [],
+        }
+        with tempfile.TemporaryDirectory() as temp_dir:
+            preprocessor_dir = Path(temp_dir) / "ida_preprocessor_scripts"
+            prompt_text = (
+                "ref={disasm_for_reference}|{procedure_for_reference}|"
+                "target={disasm_code}|{procedure}|symbols={symbol_name_list}"
+            )
+            (preprocessor_dir / "prompt").mkdir(parents=True, exist_ok=True)
+            (preprocessor_dir / "prompt" / "call_llm_decompile.md").write_text(
+                prompt_text,
+                encoding="utf-8",
+            )
+            _write_yaml(
+                preprocessor_dir / "references" / "reference.yaml",
+                {
+                    "disasm_code": "mov rax, [rcx]",
+                    "procedure": "return this->vfptr[13](this);",
+                },
+            )
+            fake_client = object()
+
+            with patch.object(
+                ida_analyze_util,
+                "_get_preprocessor_scripts_dir",
+                return_value=preprocessor_dir,
+            ), patch.object(
+                ida_analyze_util,
+                "create_openai_client",
+                return_value=fake_client,
+                create=True,
+            ), patch.object(
+                ida_analyze_util,
+                "preprocess_func_sig_via_mcp",
+                AsyncMock(return_value=None),
+            ), patch.object(
+                ida_analyze_util,
+                "call_llm_decompile",
+                create=True,
+                new_callable=AsyncMock,
+                return_value=normalized_payload,
+            ) as mock_call_llm_decompile, patch.object(
+                ida_analyze_util,
+                "preprocess_vtable_via_mcp",
+                AsyncMock(
+                    return_value={
+                        "vtable_class": "CLoopModeGame",
+                        "vtable_symbol": "??_7CLoopModeGame@@6B@",
+                        "vtable_va": "0x180001000",
+                        "vtable_rva": "0x1000",
+                        "vtable_size": "0x90",
+                        "vtable_numvfunc": 32,
+                        "vtable_entries": {13: "0x180123450"},
+                    }
+                ),
+            ), patch.object(
+                ida_analyze_util,
+                "write_func_yaml",
+            ) as mock_write_func_yaml, patch.object(
+                ida_analyze_util,
+                "_rename_func_in_ida",
+                AsyncMock(return_value=None),
+            ):
+                result = await ida_analyze_util.preprocess_common_skill(
+                    session="session",
+                    expected_outputs=[output_path],
+                    old_yaml_map={},
+                    new_binary_dir="/tmp",
+                    platform="windows",
+                    image_base=0x180000000,
+                    func_names=[func_name],
+                    func_vtable_relations=[(func_name, "CLoopModeGame", True)],
+                    llm_decompile_specs=[
+                        (
+                            func_name,
+                            "prompt/call_llm_decompile.md",
+                            "references/reference.yaml",
+                        )
+                    ],
+                    llm_config={
+                        "model": "gpt-4.1-mini",
+                        "api_key": "test-api-key",
+                    },
+                    debug=True,
+                )
+
+        self.assertTrue(result)
+        mock_call_llm_decompile.assert_awaited_once()
+        self.assertIs(fake_client, mock_call_llm_decompile.call_args.kwargs["client"])
+        self.assertEqual(
+            "gpt-4.1-mini",
+            mock_call_llm_decompile.call_args.kwargs["model"],
+        )
+        self.assertEqual(
+            prompt_text,
+            mock_call_llm_decompile.call_args.kwargs["prompt_template"],
+        )
+        self.assertEqual(
+            "mov rax, [rcx]",
+            mock_call_llm_decompile.call_args.kwargs["disasm_for_reference"],
+        )
+        self.assertEqual(
+            "return this->vfptr[13](this);",
+            mock_call_llm_decompile.call_args.kwargs["procedure_for_reference"],
+        )
+        mock_write_func_yaml.assert_called_once()
+        written_payload = mock_write_func_yaml.call_args.args[1]
+        self.assertEqual(func_name, written_payload["func_name"])
+        self.assertEqual("0x68", written_payload["vfunc_offset"])
+        self.assertEqual(13, written_payload["vfunc_index"])
+
+    async def test_preprocess_common_skill_llm_fallback_skips_missing_reference_yaml(
+        self,
+    ) -> None:
+        func_name = "CLoopModeGame_OnLoopActivate"
+        output_path = f"/tmp/{func_name}.windows.yaml"
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            preprocessor_dir = Path(temp_dir) / "ida_preprocessor_scripts"
+            (preprocessor_dir / "prompt").mkdir(parents=True, exist_ok=True)
+            (preprocessor_dir / "prompt" / "call_llm_decompile.md").write_text(
+                "{symbol_name_list}",
+                encoding="utf-8",
+            )
+
+            with patch.object(
+                ida_analyze_util,
+                "_get_preprocessor_scripts_dir",
+                return_value=preprocessor_dir,
+            ), patch.object(
+                ida_analyze_util,
+                "preprocess_func_sig_via_mcp",
+                AsyncMock(return_value=None),
+            ), patch.object(
+                ida_analyze_util,
+                "create_openai_client",
+                create=True,
+            ) as mock_create_openai_client, patch.object(
+                ida_analyze_util,
+                "call_llm_decompile",
+                create=True,
+                new_callable=AsyncMock,
+            ) as mock_call_llm_decompile, patch.object(
+                ida_analyze_util,
+                "write_func_yaml",
+            ) as mock_write_func_yaml:
+                result = await ida_analyze_util.preprocess_common_skill(
+                    session="session",
+                    expected_outputs=[output_path],
+                    old_yaml_map={},
+                    new_binary_dir="/tmp",
+                    platform="windows",
+                    image_base=0x180000000,
+                    func_names=[func_name],
+                    func_vtable_relations=[(func_name, "CLoopModeGame", True)],
+                    llm_decompile_specs=[
+                        (
+                            func_name,
+                            "prompt/call_llm_decompile.md",
+                            "references/missing.yaml",
+                        )
+                    ],
+                    llm_config={
+                        "model": "gpt-4.1-mini",
+                        "api_key": "test-api-key",
+                    },
+                    debug=True,
+                )
+
+        self.assertFalse(result)
+        mock_create_openai_client.assert_not_called()
+        mock_call_llm_decompile.assert_not_awaited()
+        mock_write_func_yaml.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()

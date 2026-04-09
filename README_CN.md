@@ -77,6 +77,40 @@ uv run ida_analyze_bin.py -gamever=14141 -platform=windows,linux -vcall_finder=*
 - `vcall_finder/14141/g_pNetworkMessages/networksystem/windows/sub_140123450.yaml`
 - `vcall_finder/14141/g_pNetworkMessages.txt`
 
+#### 2.5 准备 `LLM_DECOMPILE` 的 reference YAML
+
+reference YAML 存放路径：
+
+- `ida_preprocessor_scripts/references/<module>/<func_name>.<platform>.yaml`
+
+准备步骤：
+
+1. 确认目标函数已有当前版本 YAML 且包含 `func_va`，或可通过 `config.yaml` 的 symbol name/alias 在 IDA 中定位。
+2. 运行独立 CLI：
+
+```bash
+uv run generate_reference_yaml.py -gamever 14141 -module engine -platform windows -func_name CNetworkGameClient_RecordEntityBandwidth -mcp_host 127.0.0.1 -mcp_port 13337
+```
+
+自动启动 `idalib-mcp` 示例：
+
+```bash
+uv run generate_reference_yaml.py -gamever 14141 -module engine -platform windows -func_name CNetworkGameClient_RecordEntityBandwidth -auto_start_mcp -binary bin/14141/engine/engine2.dll
+```
+
+3. 检查生成文件：
+   - `func_va` 可信
+   - `disasm_code` 非空，且与目标函数语义匹配
+   - `procedure` 在可用时应与预期语义一致（Hex-Rays 不可用时允许为空字符串）
+   - `func_name` 仅用于确认输出文件对应你请求的规范名，不能单独证明地址解析正确
+4. 在目标 `find-*.py` 脚本里接入 `LLM_DECOMPILE`：
+   - 生成文件在仓库中的路径：
+     - `ida_preprocessor_scripts/references/<module>/<func_name>.<platform>.yaml`
+   - 若 `LLM_DECOMPILE` 使用相对路径，应写成：
+     - `references/<module>/<func_name>.<platform>.yaml`
+   - tuple 示例：
+     - `("CNetworkMessages_FindNetworkGroup", "prompt/call_llm_decompile.md", "references/engine/CNetworkGameClient_RecordEntityBandwidth.windows.yaml")`
+
 #### 3. 将 yaml(s) 转换为 gamedata json / txt
 
 ```bash

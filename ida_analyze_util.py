@@ -3,6 +3,7 @@
 
 import json
 import os
+import re
 import textwrap
 from pathlib import Path
 
@@ -10,6 +11,12 @@ try:
     import yaml
 except ImportError:
     yaml = None
+
+try:
+    from ida_llm_utils import call_llm_text, create_openai_client
+except Exception:
+    call_llm_text = None
+    create_openai_client = None
 
 
 # Combined vtable lookup + entry reading script for IDA py_eval.
@@ -387,6 +394,307 @@ def write_struct_offset_yaml(path, data):
             allow_unicode=False,
         )
 
+
+def _empty_llm_decompile_result():
+    return {
+        "found_vcall": [],
+        "found_call": [],
+        "found_gv": [],
+        "found_struct_offset": [],
+    }
+
+
+def _get_preprocessor_scripts_dir():
+    return Path(__file__).resolve().parent / "ida_preprocessor_scripts"
+
+
+def _build_llm_decompile_specs_map(llm_decompile_specs, debug=False):
+    specs_map = {}
+    for spec in llm_decompile_specs or []:
+        if not isinstance(spec, (tuple, list)) or len(spec) != 3:
+            if debug:
+                print(f"    Preprocess: invalid llm_decompile spec: {spec}")
+            return None
+
+        func_name, prompt_path, reference_yaml_path = spec
+        if not isinstance(func_name, str) or not func_name:
+            if debug:
+                print(f"    Preprocess: invalid llm_decompile target: {func_name}")
+            return None
+        if not isinstance(prompt_path, str) or not prompt_path:
+            if debug:
+                print(
+                    "    Preprocess: invalid llm_decompile prompt path for "
+                    f"{func_name}: {prompt_path!r}"
+                )
+            return None
+        if not isinstance(reference_yaml_path, str) or not reference_yaml_path:
+            if debug:
+                print(
+                    "    Preprocess: invalid llm_decompile reference path for "
+                    f"{func_name}: {reference_yaml_path!r}"
+                )
+            return None
+        if func_name in specs_map:
+            if debug:
+                print(f"    Preprocess: duplicated llm_decompile target: {func_name}")
+            return None
+
+        specs_map[func_name] = {
+            "prompt_path": prompt_path,
+            "reference_yaml_path": reference_yaml_path,
+        }
+
+    return specs_map
+
+
+def _parse_yaml_mapping(text):
+    if yaml is None:
+        return None
+    try:
+        parsed = yaml.load(text, Loader=yaml.BaseLoader)
+    except yaml.YAMLError:
+        return None
+    if parsed is None:
+        return {}
+    if isinstance(parsed, dict):
+        return parsed
+    return None
+
+
+def _normalize_llm_entries(entries, required_keys):
+    if isinstance(entries, (str, bytes, bytearray)) or not isinstance(entries, (list, tuple)):
+        return []
+
+    normalized = []
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        item = {}
+        valid = True
+        for key in required_keys:
+            value = str(entry.get(key, "")).strip()
+            if not value:
+                valid = False
+                break
+            item[key] = value
+        if valid:
+            normalized.append(item)
+    return normalized
+
+
+def parse_llm_decompile_response(response_text):
+    response_text = str(response_text or "").strip()
+    if not response_text:
+        return _empty_llm_decompile_result()
+
+    candidates = []
+    for match in re.finditer(
+        r"```(?:yaml|yml)[ \t]*\n?(.*?)```",
+        response_text,
+        re.IGNORECASE | re.DOTALL,
+    ):
+        candidates.append(match.group(1).strip())
+    if not candidates:
+        for match in re.finditer(r"```[ \t]*\n(.*?)```", response_text, re.DOTALL):
+            candidates.append(match.group(1).strip())
+    if not candidates:
+        candidates.append(response_text)
+
+    parsed = None
+    for candidate in candidates:
+        if not candidate:
+            continue
+        parsed = _parse_yaml_mapping(candidate)
+        if parsed is not None:
+            break
+
+    if not isinstance(parsed, dict):
+        return _empty_llm_decompile_result()
+
+    return {
+        "found_vcall": _normalize_llm_entries(
+            parsed.get("found_vcall", []),
+            ("insn_va", "insn_disasm", "vfunc_offset", "func_name"),
+        ),
+        "found_call": _normalize_llm_entries(
+            parsed.get("found_call", []),
+            ("insn_va", "insn_disasm", "func_name"),
+        ),
+        "found_gv": _normalize_llm_entries(
+            parsed.get("found_gv", []),
+            ("insn_va", "insn_disasm", "gv_name"),
+        ),
+        "found_struct_offset": _normalize_llm_entries(
+            parsed.get("found_struct_offset", []),
+            ("insn_va", "insn_disasm", "offset", "struct_name", "member_name"),
+        ),
+    }
+
+
+def _prepare_llm_decompile_request(
+    func_name,
+    llm_decompile_specs_map,
+    llm_config,
+    debug=False,
+):
+    llm_spec = (llm_decompile_specs_map or {}).get(func_name)
+    if llm_spec is None:
+        return None
+
+    if yaml is None:
+        if debug:
+            print("    Preprocess: PyYAML is required for llm_decompile fallback")
+        return None
+
+    if not isinstance(llm_config, dict):
+        if debug:
+            print(f"    Preprocess: llm_config missing or invalid for {func_name}")
+        return None
+
+    model = str(llm_config.get("model", "")).strip()
+    if not model:
+        if debug:
+            print(f"    Preprocess: llm_config.model missing for {func_name}")
+        return None
+
+    if not callable(create_openai_client):
+        if debug:
+            print(f"    Preprocess: create_openai_client unavailable for {func_name}")
+        return None
+
+    scripts_dir = _get_preprocessor_scripts_dir()
+    prompt_path = Path(llm_spec["prompt_path"])
+    reference_yaml_path = Path(llm_spec["reference_yaml_path"])
+    if not prompt_path.is_absolute():
+        prompt_path = scripts_dir / prompt_path
+    if not reference_yaml_path.is_absolute():
+        reference_yaml_path = scripts_dir / reference_yaml_path
+
+    if not prompt_path.is_file():
+        if debug:
+            print(
+                f"    Preprocess: llm_decompile prompt missing for {func_name}: "
+                f"{prompt_path}"
+            )
+        return None
+
+    if not reference_yaml_path.is_file():
+        if debug:
+            print(
+                f"    Preprocess: llm_decompile reference missing for {func_name}: "
+                f"{reference_yaml_path}"
+            )
+        return None
+
+    try:
+        prompt_template = prompt_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        if debug:
+            print(
+                f"    Preprocess: failed to read llm_decompile prompt for "
+                f"{func_name}: {exc}"
+            )
+        return None
+
+    try:
+        with open(reference_yaml_path, "r", encoding="utf-8") as handle:
+            reference_data = yaml.safe_load(handle) or {}
+    except Exception as exc:
+        if debug:
+            print(
+                f"    Preprocess: failed to read llm_decompile reference for "
+                f"{func_name}: {exc}"
+            )
+        return None
+
+    if not isinstance(reference_data, dict):
+        if debug:
+            print(
+                f"    Preprocess: invalid llm_decompile reference payload for "
+                f"{func_name}"
+            )
+        return None
+
+    try:
+        client = create_openai_client(
+            llm_config.get("api_key"),
+            llm_config.get("base_url"),
+            api_key_required_message=(
+                "llm_config.api_key is required for llm_decompile fallback"
+            ),
+        )
+    except Exception as exc:
+        if debug:
+            print(
+                f"    Preprocess: llm_decompile client unavailable for "
+                f"{func_name}: {exc}"
+            )
+        return None
+
+    return {
+        "client": client,
+        "model": model,
+        "prompt_template": prompt_template,
+        "disasm_for_reference": str(reference_data.get("disasm_code", "") or ""),
+        "procedure_for_reference": str(reference_data.get("procedure", "") or ""),
+    }
+
+
+async def call_llm_decompile(
+    client,
+    model,
+    symbol_name_list,
+    disasm_code,
+    procedure,
+    disasm_for_reference="",
+    procedure_for_reference="",
+    prompt_template=None,
+):
+    if not callable(call_llm_text):
+        return _empty_llm_decompile_result()
+
+    if isinstance(symbol_name_list, (list, tuple, set)):
+        symbol_name_text = ", ".join(
+            str(item).strip() for item in symbol_name_list if str(item).strip()
+        )
+    else:
+        symbol_name_text = str(symbol_name_list or "").strip()
+
+    if prompt_template is not None:
+        try:
+            prompt = str(prompt_template).format(
+                symbol_name_list=symbol_name_text,
+                disasm_for_reference=str(disasm_for_reference or ""),
+                procedure_for_reference=str(procedure_for_reference or ""),
+                disasm_code=str(disasm_code or ""),
+                procedure=str(procedure or ""),
+            )
+        except Exception:
+            return _empty_llm_decompile_result()
+    else:
+        prompt = (
+            "You are a reverse engineering expert.\n\n"
+            f"Reference disassembly:\n{disasm_for_reference}\n\n"
+            f"Reference procedure:\n{procedure_for_reference}\n\n"
+            f"Target disassembly:\n{disasm_code}\n\n"
+            f"Target procedure:\n{procedure}\n\n"
+            f"Please collect all references for \"{symbol_name_text}\" and output YAML."
+        )
+    try:
+        content = call_llm_text(
+            client=client,
+            model=str(model).strip(),
+            messages=[
+                {"role": "system", "content": "You are a reverse engineering expert."},
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.1,
+        )
+    except Exception:
+        return _empty_llm_decompile_result()
+    return parse_llm_decompile_response(content)
+
 async def preprocess_vtable_via_mcp(
     session,
     class_name,
@@ -468,6 +776,9 @@ async def preprocess_func_sig_via_mcp(
     func_name=None,
     debug=False,
     mangled_class_names=None,
+    direct_func_va=None,
+    direct_vtable_class=None,
+    direct_vfunc_offset=None,
 ):
     """
     Preprocess a function output by reusing old-version signature metadata.
@@ -500,6 +811,31 @@ async def preprocess_func_sig_via_mcp(
             print("    Preprocess: PyYAML is required for func_sig preprocessing")
         return None
 
+    normalized_mangled_class_names = _normalize_mangled_class_names(
+        mangled_class_names,
+        debug=debug,
+    )
+    if normalized_mangled_class_names is None:
+        return None
+
+    if (
+        direct_func_va is not None
+        or direct_vtable_class is not None
+        or direct_vfunc_offset is not None
+    ):
+        return await _preprocess_direct_func_sig_via_mcp(
+            session=session,
+            new_path=new_path,
+            image_base=image_base,
+            platform=platform,
+            func_name=func_name,
+            direct_func_va=direct_func_va,
+            direct_vtable_class=direct_vtable_class,
+            direct_vfunc_offset=direct_vfunc_offset,
+            normalized_mangled_class_names=normalized_mangled_class_names,
+            debug=debug,
+        )
+
     # Check if old YAML exists
     if not old_path or not os.path.exists(old_path):
         if debug:
@@ -514,13 +850,6 @@ async def preprocess_func_sig_via_mcp(
         return None
 
     if not old_data or not isinstance(old_data, dict):
-        return None
-
-    normalized_mangled_class_names = _normalize_mangled_class_names(
-        mangled_class_names,
-        debug=debug,
-    )
-    if normalized_mangled_class_names is None:
         return None
 
     def _parse_int_field(value, field_name):
@@ -2579,6 +2908,301 @@ async def _get_func_basic_info_via_mcp(session, func_va, image_base, debug=False
     }
 
 
+async def _preprocess_direct_func_sig_via_mcp(
+    session,
+    new_path,
+    image_base,
+    platform,
+    func_name=None,
+    direct_func_va=None,
+    direct_vtable_class=None,
+    direct_vfunc_offset=None,
+    normalized_mangled_class_names=None,
+    debug=False,
+):
+    resolved_func_va = None
+    vfunc_index = None
+    vfunc_offset = None
+    vtable_name = None
+
+    if func_name is None:
+        func_name = os.path.basename(new_path).rsplit(".", 2)[0]
+
+    if direct_func_va is not None:
+        try:
+            resolved_func_va = _parse_int_value(direct_func_va)
+        except Exception:
+            return None
+
+    if direct_vtable_class is not None:
+        vtable_data = await preprocess_vtable_via_mcp(
+            session=session,
+            class_name=direct_vtable_class,
+            image_base=image_base,
+            platform=platform,
+            debug=debug,
+            symbol_aliases=_get_mangled_class_aliases(
+                normalized_mangled_class_names,
+                direct_vtable_class,
+            ),
+        )
+        if not isinstance(vtable_data, dict):
+            return None
+
+        if direct_vfunc_offset is None:
+            return None
+
+        try:
+            offset_value = _parse_int_value(direct_vfunc_offset)
+        except Exception:
+            return None
+        if offset_value < 0 or offset_value % 8 != 0:
+            return None
+
+        vfunc_index = offset_value // 8
+        try:
+            raw_entry = vtable_data.get("vtable_entries", {}).get(vfunc_index)
+            resolved_from_vtable = _parse_int_value(raw_entry)
+        except Exception:
+            return None
+
+        if resolved_func_va is not None and resolved_func_va != resolved_from_vtable:
+            return None
+
+        resolved_func_va = resolved_from_vtable
+        vfunc_offset = hex(offset_value)
+        vtable_name = direct_vtable_class
+
+    if resolved_func_va is None:
+        return None
+
+    payload = {
+        "func_name": func_name,
+        "func_va": hex(resolved_func_va),
+        "func_rva": hex(resolved_func_va - image_base),
+    }
+
+    if hasattr(session, "call_tool"):
+        basic_data = await _get_func_basic_info_via_mcp(
+            session=session,
+            func_va=resolved_func_va,
+            image_base=image_base,
+            debug=debug,
+        )
+        if isinstance(basic_data, dict):
+            payload.update(basic_data)
+
+        gen_data = await preprocess_gen_func_sig_via_mcp(
+            session=session,
+            func_va=resolved_func_va,
+            image_base=image_base,
+            debug=debug,
+        )
+        if isinstance(gen_data, dict) and gen_data.get("func_sig"):
+            payload["func_sig"] = gen_data["func_sig"]
+
+    if vtable_name is not None:
+        payload["vtable_name"] = vtable_name
+    if vfunc_offset is not None:
+        payload["vfunc_offset"] = vfunc_offset
+    if vfunc_index is not None:
+        payload["vfunc_index"] = vfunc_index
+
+    return payload
+
+
+async def preprocess_gen_struct_offset_sig_via_mcp(
+    session,
+    struct_name,
+    member_name,
+    offset,
+    offset_inst_va,
+    image_base,
+    min_sig_bytes=8,
+    max_sig_bytes=96,
+    max_instructions=64,
+    extra_wildcard_offsets=None,
+    debug=False,
+):
+    _ = image_base
+
+    try:
+        offset_value = _parse_int_value(offset)
+        offset_inst_va_int = _parse_int_value(offset_inst_va)
+        min_sig_bytes = max(1, int(min_sig_bytes))
+        max_sig_bytes = max(1, int(max_sig_bytes))
+        max_instructions = max(1, int(max_instructions))
+    except Exception:
+        return None
+
+    extra_wildcards = set()
+    for item in extra_wildcard_offsets or []:
+        try:
+            parsed = _parse_int_value(item)
+        except Exception:
+            continue
+        if parsed >= 0:
+            extra_wildcards.add(parsed)
+
+    py_code = (
+        "import idaapi, ida_bytes, idautils, ida_ua, json\n"
+        f"target_inst = {offset_inst_va_int}\n"
+        f"max_sig_bytes = {max_sig_bytes}\n"
+        f"max_instructions = {max_instructions}\n"
+        "func = idaapi.get_func(target_inst)\n"
+        "if not func:\n"
+        "    result = json.dumps([])\n"
+        "else:\n"
+        "    cursor = target_inst\n"
+        "    total = 0\n"
+        "    insts = []\n"
+        "    while cursor < func.end_ea and len(insts) < max_instructions and total < max_sig_bytes:\n"
+        "        insn = idautils.DecodeInstruction(cursor)\n"
+        "        if not insn or insn.size <= 0:\n"
+        "            break\n"
+        "        raw = ida_bytes.get_bytes(cursor, insn.size)\n"
+        "        if not raw:\n"
+        "            break\n"
+        "        wild = set()\n"
+        "        for op in insn.ops:\n"
+        "            op_type = int(op.type)\n"
+        "            if op_type == int(idaapi.o_void):\n"
+        "                continue\n"
+        "            offb = int(getattr(op, 'offb', 0))\n"
+        "            offo = int(getattr(op, 'offo', 0))\n"
+        "            dtype_size = ida_ua.get_dtype_size(getattr(op, 'dtype', getattr(op, 'dtyp', 0)))\n"
+        "            if dtype_size <= 0:\n"
+        "                dtype_size = 4\n"
+        "            if op_type in (int(idaapi.o_imm), int(idaapi.o_displ), int(idaapi.o_mem), int(idaapi.o_near), int(idaapi.o_far)):\n"
+        "                if offb > 0 and offb < insn.size:\n"
+        "                    for idx in range(offb, min(insn.size, offb + dtype_size)):\n"
+        "                        wild.add(idx)\n"
+        "                if offo > 0 and offo < insn.size:\n"
+        "                    for idx in range(offo, min(insn.size, offo + dtype_size)):\n"
+        "                        wild.add(idx)\n"
+        "        b0 = raw[0]\n"
+        "        if b0 in (0xE8, 0xE9, 0xEB):\n"
+        "            for idx in range(1, insn.size):\n"
+        "                wild.add(idx)\n"
+        "        elif b0 == 0x0F and insn.size >= 2 and (raw[1] & 0xF0) == 0x80:\n"
+        "            for idx in range(2, insn.size):\n"
+        "                wild.add(idx)\n"
+        "        elif 0x70 <= b0 <= 0x7F:\n"
+        "            for idx in range(1, insn.size):\n"
+        "                wild.add(idx)\n"
+        "        insts.append({'size': insn.size, 'bytes': raw.hex(), 'wild': sorted(wild)})\n"
+        "        cursor += insn.size\n"
+        "        total += insn.size\n"
+        "    result = json.dumps([{'offset_inst_va': hex(target_inst), 'insts': insts}] if insts else [])\n"
+    )
+    try:
+        result = await session.call_tool(
+            name="py_eval",
+            arguments={"code": py_code},
+        )
+        result_data = parse_mcp_result(result)
+    except Exception:
+        return None
+
+    candidate_infos = None
+    if isinstance(result_data, dict):
+        result_str = result_data.get("result", "")
+        if result_str:
+            try:
+                candidate_infos = json.loads(result_str)
+            except (json.JSONDecodeError, TypeError):
+                candidate_infos = None
+
+    if not isinstance(candidate_infos, list) or not candidate_infos:
+        return None
+
+    for candidate in candidate_infos:
+        try:
+            inst_va = _parse_int_value(candidate.get("offset_inst_va"))
+            insts = candidate.get("insts", [])
+        except Exception:
+            continue
+        if inst_va != offset_inst_va_int or not isinstance(insts, list) or not insts:
+            continue
+
+        sig_tokens = []
+        inst_boundaries = []
+        malformed = False
+        for inst in insts:
+            try:
+                inst_size = int(inst.get("size", 0))
+                inst_hex = str(inst.get("bytes", ""))
+                inst_wild = {int(item) for item in inst.get("wild", [])}
+            except Exception:
+                malformed = True
+                break
+            if inst_size <= 0 or len(inst_hex) != inst_size * 2:
+                malformed = True
+                break
+
+            inst_bytes = [
+                int(inst_hex[idx:idx + 2], 16)
+                for idx in range(0, len(inst_hex), 2)
+            ]
+            base_offset = len(sig_tokens)
+            for rel_idx, value in enumerate(inst_bytes):
+                abs_offset = base_offset + rel_idx
+                if rel_idx in inst_wild or abs_offset in extra_wildcards:
+                    sig_tokens.append("??")
+                else:
+                    sig_tokens.append(f"{value:02X}")
+            inst_boundaries.append(len(sig_tokens))
+
+        if malformed:
+            continue
+
+        for prefix_len in inst_boundaries:
+            if prefix_len < min_sig_bytes:
+                continue
+            prefix_tokens = sig_tokens[:prefix_len]
+            if all(token == "??" for token in prefix_tokens):
+                continue
+
+            candidate_sig = " ".join(prefix_tokens)
+            try:
+                fb_result = await session.call_tool(
+                    name="find_bytes",
+                    arguments={"patterns": [candidate_sig], "limit": 2},
+                )
+                fb_data = parse_mcp_result(fb_result)
+            except Exception:
+                return None
+
+            if not isinstance(fb_data, list) or not fb_data:
+                continue
+            entry = fb_data[0]
+            matches = entry.get("matches", [])
+            match_count = entry.get("n", len(matches))
+            if match_count != 1 or not matches:
+                continue
+
+            try:
+                match_addr = _parse_int_value(matches[0])
+            except Exception:
+                continue
+            if match_addr != offset_inst_va_int:
+                continue
+
+            return {
+                "struct_name": struct_name,
+                "member_name": member_name,
+                "offset": hex(offset_value),
+                "offset_sig": candidate_sig,
+            }
+
+    if debug:
+        print(
+            "    Preprocess: failed to generate struct offset sig for "
+            f"{struct_name}.{member_name}"
+        )
+    return None
+
+
 async def preprocess_func_xrefs_via_mcp(
     session,
     func_name,
@@ -2837,6 +3461,8 @@ async def preprocess_common_skill(
     inherit_vfuncs=None,
     func_xrefs=None,
     func_vtable_relations=None,
+    llm_decompile_specs=None,
+    llm_config=None,
     mangled_class_names=None,
     debug=False,
 ):
@@ -2906,6 +3532,9 @@ async def preprocess_common_skill(
         func_vtable_relations: List of (func_name, vtable_class,
             generate_vfunc_offset) tuples for enriching function YAML with
             vtable metadata (may be empty/None).
+        llm_decompile_specs: Optional LLM decompile spec tuples of
+            (func_name, prompt_path, reference_yaml_path).
+        llm_config: Optional LLM config dict for llm_decompile fallback.
         debug: Enable debug output.
 
     Returns:
@@ -2919,11 +3548,18 @@ async def preprocess_common_skill(
     inherit_vfuncs = inherit_vfuncs or []
     func_xrefs = func_xrefs or []
     func_vtable_relations = func_vtable_relations or []
+    llm_decompile_specs = llm_decompile_specs or []
     normalized_mangled_class_names = _normalize_mangled_class_names(
         mangled_class_names,
         debug=debug,
     )
     if normalized_mangled_class_names is None:
+        return False
+    llm_decompile_specs_map = _build_llm_decompile_specs_map(
+        llm_decompile_specs,
+        debug=debug,
+    )
+    if llm_decompile_specs_map is None:
         return False
 
     func_xrefs_map = {}
@@ -3205,6 +3841,51 @@ async def preprocess_common_skill(
                 vtable_class=xref_vtable_class,
                 debug=debug,
             )
+
+        if (
+            func_data is None
+            and func_name in vtable_relations_map
+            and func_name in llm_decompile_specs_map
+        ):
+            vtable_class = vtable_relations_map[func_name][0]
+            llm_request = _prepare_llm_decompile_request(
+                func_name,
+                llm_decompile_specs_map,
+                llm_config,
+                debug=debug,
+            )
+            if llm_request is None:
+                llm_result = _empty_llm_decompile_result()
+            else:
+                try:
+                    llm_result = await call_llm_decompile(
+                        client=llm_request["client"],
+                        model=llm_request["model"],
+                        symbol_name_list=[func_name],
+                        disasm_code="",
+                        procedure="",
+                        disasm_for_reference=llm_request["disasm_for_reference"],
+                        procedure_for_reference=llm_request["procedure_for_reference"],
+                        prompt_template=llm_request["prompt_template"],
+                    )
+                except Exception:
+                    llm_result = _empty_llm_decompile_result()
+            for entry in llm_result.get("found_vcall", []):
+                if entry.get("func_name") != func_name:
+                    continue
+                func_data = await _preprocess_direct_func_sig_via_mcp(
+                    session=session,
+                    new_path=target_output,
+                    image_base=image_base,
+                    platform=platform,
+                    func_name=func_name,
+                    direct_vtable_class=vtable_class,
+                    direct_vfunc_offset=entry.get("vfunc_offset"),
+                    normalized_mangled_class_names=normalized_mangled_class_names,
+                    debug=debug,
+                )
+                if func_data is not None:
+                    break
 
         if func_data is None:
             if debug:

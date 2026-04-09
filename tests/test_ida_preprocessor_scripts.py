@@ -3,6 +3,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
+import ida_skill_preprocessor
+
 
 FLATTENED_SERIALIZERS_SCRIPT_PATH = Path(
     "ida_preprocessor_scripts/"
@@ -20,6 +22,47 @@ REALLOCATING_FACTORY_DEALLOCATE_SCRIPT_PATH = Path(
     "ida_preprocessor_scripts/"
     "find-CGameSystemReallocatingFactory_CSpawnGroupMgrGameSystem_Deallocate-impl.py"
 )
+FIND_NETWORK_GROUP_SCRIPT_PATH = Path(
+    "ida_preprocessor_scripts/"
+    "find-CNetworkMessages_FindNetworkGroup.py"
+)
+
+
+class _FakeStreamableHttpClient:
+    async def __aenter__(self):
+        return ("read-stream", "write-stream", None)
+
+    async def __aexit__(self, exc_type, exc, tb):
+        return False
+
+
+class _FakeAsyncClient:
+    def __init__(self, *args, **kwargs):
+        pass
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        return False
+
+
+class _FakeClientSession:
+    def __init__(self, read_stream, write_stream):
+        self.read_stream = read_stream
+        self.write_stream = write_stream
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        return False
+
+    async def initialize(self):
+        return None
+
+    async def call_tool(self, name, arguments):
+        return {"name": name, "arguments": arguments}
 
 
 def _load_module(script_path: Path, module_name: str):
@@ -215,6 +258,189 @@ class TestFindCGameSystemReallocatingFactoryCSpawnGroupMgrGameSystemDeallocateIm
             platform="windows",
             image_base=0x180000000,
             inherit_vfuncs=expected_inherit_vfuncs,
+            debug=True,
+        )
+
+
+class TestPreprocessSingleSkillViaMcp(unittest.IsolatedAsyncioTestCase):
+    async def test_forwards_llm_config_when_script_accepts_it(self) -> None:
+        received = {}
+
+        async def fake_preprocess_skill(
+            session, skill_name, expected_outputs, old_yaml_map,
+            new_binary_dir, platform, image_base, llm_config, debug=False,
+        ):
+            received["args"] = {
+                "session": session,
+                "skill_name": skill_name,
+                "expected_outputs": expected_outputs,
+                "old_yaml_map": old_yaml_map,
+                "new_binary_dir": new_binary_dir,
+                "platform": platform,
+                "image_base": image_base,
+                "llm_config": llm_config,
+                "debug": debug,
+            }
+            return True
+
+        with patch.object(
+            ida_skill_preprocessor,
+            "_get_preprocess_entry",
+            return_value=fake_preprocess_skill,
+        ), patch.object(
+            ida_skill_preprocessor.httpx,
+            "AsyncClient",
+            _FakeAsyncClient,
+        ), patch.object(
+            ida_skill_preprocessor,
+            "streamable_http_client",
+            return_value=_FakeStreamableHttpClient(),
+        ), patch.object(
+            ida_skill_preprocessor,
+            "ClientSession",
+            _FakeClientSession,
+        ), patch.object(
+            ida_skill_preprocessor,
+            "parse_mcp_result",
+            return_value={"result": "0x180000000"},
+        ):
+            result = await ida_skill_preprocessor.preprocess_single_skill_via_mcp(
+                host="127.0.0.1",
+                port=13337,
+                skill_name="find-CNetworkMessages_FindNetworkGroup",
+                expected_outputs=["out.yaml"],
+                old_yaml_map={"out.yaml": "old.yaml"},
+                new_binary_dir="bin_dir",
+                platform="windows",
+                llm_model="gpt-4.1-mini",
+                llm_apikey="test-api-key",
+                llm_baseurl="https://example.invalid/v1",
+                debug=True,
+            )
+
+        self.assertTrue(result)
+        self.assertEqual(
+            {
+                "model": "gpt-4.1-mini",
+                "api_key": "test-api-key",
+                "base_url": "https://example.invalid/v1",
+            },
+            received["args"]["llm_config"],
+        )
+        self.assertEqual(0x180000000, received["args"]["image_base"])
+        self.assertTrue(received["args"]["debug"])
+
+    async def test_skips_llm_config_when_script_does_not_accept_it(self) -> None:
+        received = {}
+
+        async def fake_preprocess_skill(
+            session, skill_name, expected_outputs, old_yaml_map,
+            new_binary_dir, platform, image_base, debug=False,
+        ):
+            received["args"] = {
+                "session": session,
+                "skill_name": skill_name,
+                "expected_outputs": expected_outputs,
+                "old_yaml_map": old_yaml_map,
+                "new_binary_dir": new_binary_dir,
+                "platform": platform,
+                "image_base": image_base,
+                "debug": debug,
+            }
+            return True
+
+        with patch.object(
+            ida_skill_preprocessor,
+            "_get_preprocess_entry",
+            return_value=fake_preprocess_skill,
+        ), patch.object(
+            ida_skill_preprocessor.httpx,
+            "AsyncClient",
+            _FakeAsyncClient,
+        ), patch.object(
+            ida_skill_preprocessor,
+            "streamable_http_client",
+            return_value=_FakeStreamableHttpClient(),
+        ), patch.object(
+            ida_skill_preprocessor,
+            "ClientSession",
+            _FakeClientSession,
+        ), patch.object(
+            ida_skill_preprocessor,
+            "parse_mcp_result",
+            return_value={"result": "0x180000000"},
+        ):
+            result = await ida_skill_preprocessor.preprocess_single_skill_via_mcp(
+                host="127.0.0.1",
+                port=13337,
+                skill_name="find-CNetworkMessages_FindNetworkGroup",
+                expected_outputs=["out.yaml"],
+                old_yaml_map={"out.yaml": "old.yaml"},
+                new_binary_dir="bin_dir",
+                platform="windows",
+                llm_model="gpt-4.1-mini",
+                llm_apikey="test-api-key",
+                llm_baseurl="https://example.invalid/v1",
+                debug=True,
+            )
+
+        self.assertTrue(result)
+        self.assertEqual(0x180000000, received["args"]["image_base"])
+        self.assertTrue(received["args"]["debug"])
+
+
+class TestFindCNetworkMessagesFindNetworkGroup(unittest.IsolatedAsyncioTestCase):
+    async def test_preprocess_skill_forwards_llm_and_vtable_wiring(self) -> None:
+        module = _load_module(
+            FIND_NETWORK_GROUP_SCRIPT_PATH,
+            "find_CNetworkMessages_FindNetworkGroup",
+        )
+        mock_preprocess_common_skill = AsyncMock(return_value=True)
+        expected_llm_decompile_specs = [
+            (
+                "CNetworkMessages_FindNetworkGroup",
+                "prompt/call_llm_decompile.md",
+                "references/CNetworkMessages_FindNetworkGroup.from-CNetworkGameClient_RecordEntityBandwidth.yaml",
+            )
+        ]
+        expected_func_vtable_relations = [
+            ("CNetworkMessages_FindNetworkGroup", "CNetworkMessages", True)
+        ]
+        llm_config = {
+            "model": "gpt-4.1-mini",
+            "api_key": "test-api-key",
+            "base_url": "https://example.invalid/v1",
+        }
+
+        with patch.object(
+            module,
+            "preprocess_common_skill",
+            mock_preprocess_common_skill,
+        ):
+            result = await module.preprocess_skill(
+                session="session",
+                skill_name="skill",
+                expected_outputs=["out.yaml"],
+                old_yaml_map={"k": "v"},
+                new_binary_dir="bin_dir",
+                platform="windows",
+                image_base=0x180000000,
+                llm_config=llm_config,
+                debug=True,
+            )
+
+        self.assertTrue(result)
+        mock_preprocess_common_skill.assert_awaited_once_with(
+            session="session",
+            expected_outputs=["out.yaml"],
+            old_yaml_map={"k": "v"},
+            new_binary_dir="bin_dir",
+            platform="windows",
+            image_base=0x180000000,
+            func_names=["CNetworkMessages_FindNetworkGroup"],
+            func_vtable_relations=expected_func_vtable_relations,
+            llm_decompile_specs=expected_llm_decompile_specs,
+            llm_config=llm_config,
             debug=True,
         )
 

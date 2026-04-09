@@ -72,7 +72,9 @@ def _get_preprocess_entry(skill_name, debug=False):
 
 async def preprocess_single_skill_via_mcp(
     host, port, skill_name, expected_outputs, old_yaml_map,
-    new_binary_dir, platform, debug=False
+    new_binary_dir, platform,
+    llm_model=None, llm_apikey=None, llm_baseurl=None,
+    debug=False,
 ):
     """
     Attempt to pre-process a single skill via IDA MCP and skill script dispatch.
@@ -89,6 +91,9 @@ async def preprocess_single_skill_via_mcp(
         old_yaml_map: dict mapping new_yaml_path -> old_yaml_path
         new_binary_dir: directory for new version YAML outputs
         platform: "windows" or "linux"
+        llm_model: optional OpenAI-compatible model name for scripts that support LLM
+        llm_apikey: optional OpenAI-compatible API key for scripts that support LLM
+        llm_baseurl: optional OpenAI-compatible base URL for scripts that support LLM
         debug: enable debug output
 
     Returns:
@@ -122,16 +127,25 @@ async def preprocess_single_skill_via_mcp(
                         image_base = int(str(ib_data), 16) if ib_data else 0
 
                     try:
-                        result = preprocess_func(
-                            session=session,
-                            skill_name=skill_name,
-                            expected_outputs=expected_outputs,
-                            old_yaml_map=old_yaml_map,
-                            new_binary_dir=new_binary_dir,
-                            platform=platform,
-                            image_base=image_base,
-                            debug=debug,
-                        )
+                        llm_config = {
+                            "model": llm_model,
+                            "api_key": llm_apikey,
+                            "base_url": llm_baseurl,
+                        }
+                        preprocess_kwargs = {
+                            "session": session,
+                            "skill_name": skill_name,
+                            "expected_outputs": expected_outputs,
+                            "old_yaml_map": old_yaml_map,
+                            "new_binary_dir": new_binary_dir,
+                            "platform": platform,
+                            "image_base": image_base,
+                            "debug": debug,
+                        }
+                        if "llm_config" in inspect.signature(preprocess_func).parameters:
+                            preprocess_kwargs["llm_config"] = llm_config
+
+                        result = preprocess_func(**preprocess_kwargs)
                         if inspect.isawaitable(result):
                             result = await result
                         return bool(result)
