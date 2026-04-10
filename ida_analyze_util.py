@@ -4151,6 +4151,70 @@ async def _collect_xref_func_starts_for_ea(session, target_ea, debug=False):
     return _parse_func_start_set_from_py_eval(eval_data, debug=debug)
 
 
+async def _collect_xref_func_starts_for_signature(
+    session, xref_signature, debug=False
+):
+    """
+    Collect function-start addresses that contain bytes matched by a signature.
+
+    Returns:
+        Set[int]: Function start addresses.
+    """
+    if not isinstance(xref_signature, str) or not xref_signature:
+        return set()
+
+    try:
+        find_result = await session.call_tool(
+            name="find_bytes",
+            arguments={"patterns": [xref_signature]},
+        )
+        find_data = parse_mcp_result(find_result)
+    except Exception as e:
+        if debug:
+            print(f"    Preprocess: find_bytes error for xref signature: {e}")
+        return set()
+
+    if not isinstance(find_data, list) or not find_data:
+        return set()
+
+    matches = find_data[0].get("matches", [])
+    if not isinstance(matches, list) or not matches:
+        return set()
+
+    match_addrs = []
+    for match in matches:
+        try:
+            match_addrs.append(_parse_int_value(match))
+        except Exception:
+            continue
+    if not match_addrs:
+        return set()
+
+    py_code = (
+        "import idaapi, json\n"
+        f"match_addrs = {match_addrs!r}\n"
+        "func_starts = set()\n"
+        "for match_ea in match_addrs:\n"
+        "    f = idaapi.get_func(match_ea)\n"
+        "    if f:\n"
+        "        func_starts.add(f.start_ea)\n"
+        "result = json.dumps([hex(ea) for ea in sorted(func_starts)])\n"
+    )
+
+    try:
+        eval_result = await session.call_tool(
+            name="py_eval",
+            arguments={"code": py_code},
+        )
+        eval_data = parse_mcp_result(eval_result)
+    except Exception as e:
+        if debug:
+            print(f"    Preprocess: py_eval error for xref signature search: {e}")
+        return set()
+
+    return _parse_func_start_set_from_py_eval(eval_data, debug=debug)
+
+
 async def _get_func_basic_info_via_mcp(session, func_va, image_base, debug=False):
     """
     Resolve function basic info via IDA py_eval.
@@ -4523,6 +4587,7 @@ async def preprocess_func_xrefs_via_mcp(
     session,
     func_name,
     xref_strings,
+    xref_signatures,
     xref_funcs,
     exclude_funcs,
     new_binary_dir,
@@ -4534,6 +4599,7 @@ async def preprocess_func_xrefs_via_mcp(
     """
     Resolve target function by intersecting candidate sets from:
     - string xrefs
+    - byte signatures mapped to containing function starts
     - xrefs to dependency function addresses from current-version YAML files.
     - vtable entries (when ``vtable_class`` is specified)
 
@@ -4618,6 +4684,21 @@ async def preprocess_func_xrefs_via_mcp(
             return None
         candidate_sets.append(addr_set)
 
+    for xref_signature in (xref_signatures or []):
+        addr_set = await _collect_xref_func_starts_for_signature(
+            session=session,
+            xref_signature=xref_signature,
+            debug=debug,
+        )
+        if not addr_set:
+            if debug:
+                short = str(xref_signature)[:80]
+                print(
+                    f"    Preprocess: empty candidate set for signature xref: {short}"
+                )
+            return None
+        candidate_sets.append(addr_set)
+
     for dep_func_name in dep_func_names:
         dep_yaml_path = os.path.join(
             new_binary_dir, f"{dep_func_name}.{platform}.yaml"
@@ -4680,7 +4761,9 @@ async def preprocess_func_xrefs_via_mcp(
 
     if not candidate_sets:
         if debug:
-            print(f"    Preprocess: no xref candidates configured for {func_name}")
+            print(
+                f"    Preprocess: no xref candidate sources configured for {func_name}"
+            )
         return None
 
     common_funcs = set(candidate_sets[0])
@@ -4799,6 +4882,7 @@ async def _try_preprocess_func_without_llm(
             session=session,
             func_name=func_name,
             xref_strings=xref_spec["xref_strings"],
+            xref_signatures=xref_spec["xref_signatures"],
             xref_funcs=xref_spec["xref_funcs"],
             exclude_funcs=xref_spec["exclude_funcs"],
             new_binary_dir=new_binary_dir,
@@ -4908,15 +4992,17 @@ async def preprocess_common_skill(
       fallback is used only when that fails.
     - ``func_xrefs``: locate functions via unified xref fallback through
       ``preprocess_func_xrefs_via_mcp``. Each element is a tuple of
-      ``(func_name, xref_strings_list, xref_funcs_list, exclude_funcs_list)``.
-      ``xref_strings`` provides string cross-reference constraints, while
-      ``xref_funcs`` provides dependency function names whose addresses are
-      read only from current-version YAML files in ``new_binary_dir``.
-      ``exclude_funcs`` provides function names whose YAML ``func_va`` values
-      are removed from the intersection set before uniqueness check. Used as a
-      fallback when ``preprocess_func_sig_via_mcp`` fails for a func target
-      that has a matching func-xref entry, or as the sole resolution method
-      for func targets that only appear in this list.
+      ``(func_name, xref_strings_list, xref_signatures_list, xref_funcs_list,``
+      ``exclude_funcs_list)``. ``xref_strings`` provides string
+      cross-reference constraints, ``xref_signatures`` provides byte-pattern
+      constraints mapped to containing function starts, and ``xref_funcs``
+      provides dependency function names whose addresses are read only from
+      current-version YAML files in ``new_binary_dir``. ``exclude_funcs``
+      provides function names whose YAML ``func_va`` values are removed from
+      the intersection set before uniqueness check. Used as a fallback when
+      ``preprocess_func_sig_via_mcp`` fails for a func target that has a
+      matching func-xref entry, or as the sole resolution method for func
+      targets that only appear in this list.
     - ``func_vtable_relations``: enrich located function YAML with vtable
       metadata.  Each element is a tuple of ``(func_name, vtable_class)``.
     - ``generate_yaml_desired_fields``: required list of
@@ -4939,10 +5025,11 @@ async def preprocess_common_skill(
             explicit mangled aliases for vtable lookup (may be empty/None).
         inherit_vfuncs: List of inherited vfunc specs (may be empty/None).
         func_xrefs: List of
-            (func_name, xref_strings_list, xref_funcs_list, exclude_funcs_list)
-            tuples for unified xref-based function lookup (may be empty/None).
-            Dependency and exclude function addresses are read only from
-            current-version YAML files.
+            (func_name, xref_strings_list, xref_signatures_list,
+            xref_funcs_list, exclude_funcs_list) tuples for unified
+            xref-based function lookup (may be empty/None). Dependency and
+            exclude function addresses are read only from current-version
+            YAML files.
         func_vtable_relations: List of (func_name, vtable_class) tuples for
             enriching function YAML with vtable metadata (may be empty/None).
         generate_yaml_desired_fields: Required desired output fields per
@@ -4985,12 +5072,18 @@ async def preprocess_common_skill(
 
     func_xrefs_map = {}
     for spec in func_xrefs:
-        if not isinstance(spec, (tuple, list)) or len(spec) != 4:
+        if not isinstance(spec, (tuple, list)) or len(spec) != 5:
             if debug:
                 print(f"    Preprocess: invalid func_xrefs spec: {spec}")
             return False
 
-        func_name, xref_strings, xref_funcs, exclude_funcs = spec
+        (
+            func_name,
+            xref_strings,
+            xref_signatures,
+            xref_funcs,
+            exclude_funcs,
+        ) = spec
         if not isinstance(func_name, str) or not func_name:
             if debug:
                 print(f"    Preprocess: invalid func_xrefs target: {func_name}")
@@ -5006,6 +5099,14 @@ async def preprocess_common_skill(
                 print(
                     f"    Preprocess: invalid xref_strings type for "
                     f"{func_name}: {type(xref_strings).__name__}"
+                )
+            return False
+
+        if not isinstance(xref_signatures, (tuple, list)):
+            if debug:
+                print(
+                    f"    Preprocess: invalid xref_signatures type for "
+                    f"{func_name}: {type(xref_signatures).__name__}"
                 )
             return False
 
@@ -5026,11 +5127,19 @@ async def preprocess_common_skill(
             return False
 
         xref_strings = list(xref_strings)
+        xref_signatures = list(xref_signatures)
         xref_funcs = list(xref_funcs)
         exclude_funcs = list(exclude_funcs)
         if any(not isinstance(item, str) or not item for item in xref_strings):
             if debug:
                 print(f"    Preprocess: invalid xref_strings values for {func_name}")
+            return False
+
+        if any(not isinstance(item, str) or not item for item in xref_signatures):
+            if debug:
+                print(
+                    f"    Preprocess: invalid xref_signatures values for {func_name}"
+                )
             return False
 
         if any(not isinstance(item, str) or not item for item in xref_funcs):
@@ -5043,13 +5152,14 @@ async def preprocess_common_skill(
                 print(f"    Preprocess: invalid exclude_funcs values for {func_name}")
             return False
 
-        if not xref_strings and not xref_funcs:
+        if not xref_strings and not xref_signatures and not xref_funcs:
             if debug:
                 print(f"    Preprocess: empty func_xrefs spec for {func_name}")
             return False
 
         func_xrefs_map[func_name] = {
             "xref_strings": xref_strings,
+            "xref_signatures": xref_signatures,
             "xref_funcs": xref_funcs,
             "exclude_funcs": exclude_funcs,
         }

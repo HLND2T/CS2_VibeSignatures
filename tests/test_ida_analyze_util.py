@@ -867,6 +867,226 @@ class TestGenerateYamlDesiredFieldsContract(unittest.IsolatedAsyncioTestCase):
         )
 
 
+class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
+    async def test_preprocess_func_xrefs_intersects_string_and_signature_sets(
+        self,
+    ) -> None:
+        with patch.object(
+            ida_analyze_util,
+            "_collect_xref_func_starts_for_string",
+            AsyncMock(return_value={0x180100000, 0x180200000}),
+        ) as mock_collect_string, patch.object(
+            ida_analyze_util,
+            "_collect_xref_func_starts_for_signature",
+            AsyncMock(return_value={0x180200000}),
+        ) as mock_collect_signature, patch.object(
+            ida_analyze_util,
+            "preprocess_gen_func_sig_via_mcp",
+            AsyncMock(
+                return_value={
+                    "func_va": "0x180200000",
+                    "func_rva": "0x200000",
+                    "func_size": "0x40",
+                    "func_sig": "48 89 5C 24 08",
+                }
+            ),
+        ) as mock_gen_sig:
+            result = await ida_analyze_util.preprocess_func_xrefs_via_mcp(
+                session="session",
+                func_name="LoggingChannel_Init",
+                xref_strings=["Networking"],
+                xref_signatures=["C7 44 24 40 64 FF FF FF"],
+                xref_funcs=[],
+                exclude_funcs=[],
+                new_binary_dir="bin_dir",
+                platform="windows",
+                image_base=0x180000000,
+                debug=True,
+            )
+
+        self.assertEqual(
+            {
+                "func_name": "LoggingChannel_Init",
+                "func_va": "0x180200000",
+                "func_rva": "0x200000",
+                "func_size": "0x40",
+                "func_sig": "48 89 5C 24 08",
+            },
+            result,
+        )
+        mock_collect_string.assert_awaited_once_with(
+            session="session",
+            xref_string="Networking",
+            debug=True,
+        )
+        mock_collect_signature.assert_awaited_once_with(
+            session="session",
+            xref_signature="C7 44 24 40 64 FF FF FF",
+            debug=True,
+        )
+        mock_gen_sig.assert_awaited_once()
+
+    async def test_preprocess_func_xrefs_fails_when_signature_set_is_empty(
+        self,
+    ) -> None:
+        with patch.object(
+            ida_analyze_util,
+            "_collect_xref_func_starts_for_string",
+            AsyncMock(return_value={0x180100000}),
+        ), patch.object(
+            ida_analyze_util,
+            "_collect_xref_func_starts_for_signature",
+            AsyncMock(return_value=set()),
+        ), patch.object(
+            ida_analyze_util,
+            "preprocess_gen_func_sig_via_mcp",
+            AsyncMock(return_value=None),
+        ) as mock_gen_sig:
+            result = await ida_analyze_util.preprocess_func_xrefs_via_mcp(
+                session="session",
+                func_name="LoggingChannel_Init",
+                xref_strings=["Networking"],
+                xref_signatures=["C7 44 24 40 64 FF FF FF"],
+                xref_funcs=[],
+                exclude_funcs=[],
+                new_binary_dir="bin_dir",
+                platform="windows",
+                image_base=0x180000000,
+                debug=True,
+            )
+
+        self.assertIsNone(result)
+        mock_gen_sig.assert_not_called()
+
+    async def test_preprocess_common_skill_forwards_xref_signatures(
+        self,
+    ) -> None:
+        with patch.object(
+            ida_analyze_util,
+            "preprocess_func_sig_via_mcp",
+            AsyncMock(return_value=None),
+        ), patch.object(
+            ida_analyze_util,
+            "preprocess_func_xrefs_via_mcp",
+            AsyncMock(
+                return_value={
+                    "func_name": "LoggingChannel_Init",
+                    "func_va": "0x180200000",
+                    "func_rva": "0x200000",
+                    "func_size": "0x40",
+                    "func_sig": "48 89 5C 24 08",
+                }
+            ),
+        ) as mock_func_xrefs, patch.object(
+            ida_analyze_util,
+            "write_func_yaml",
+        ) as mock_write_func_yaml, patch.object(
+            ida_analyze_util,
+            "_rename_func_in_ida",
+            AsyncMock(return_value=None),
+        ):
+            result = await ida_analyze_util.preprocess_common_skill(
+                session="session",
+                expected_outputs=["/tmp/LoggingChannel_Init.windows.yaml"],
+                old_yaml_map={},
+                new_binary_dir="/tmp",
+                platform="windows",
+                image_base=0x180000000,
+                func_names=["LoggingChannel_Init"],
+                func_xrefs=[
+                    (
+                        "LoggingChannel_Init",
+                        ["Networking"],
+                        ["C7 44 24 40 64 FF FF FF"],
+                        [],
+                        [],
+                    )
+                ],
+                generate_yaml_desired_fields=[
+                    (
+                        "LoggingChannel_Init",
+                        [
+                            "func_name",
+                            "func_va",
+                            "func_rva",
+                            "func_size",
+                            "func_sig",
+                        ],
+                    )
+                ],
+                debug=True,
+            )
+
+        self.assertTrue(result)
+        mock_func_xrefs.assert_awaited_once()
+        self.assertEqual(
+            ["C7 44 24 40 64 FF FF FF"],
+            mock_func_xrefs.call_args.kwargs["xref_signatures"],
+        )
+        mock_write_func_yaml.assert_called_once()
+
+    async def test_preprocess_common_skill_rejects_legacy_four_item_func_xrefs(
+        self,
+    ) -> None:
+        result = await ida_analyze_util.preprocess_common_skill(
+            session="session",
+            expected_outputs=["/tmp/LoggingChannel_Init.windows.yaml"],
+            old_yaml_map={},
+            new_binary_dir="/tmp",
+            platform="windows",
+            image_base=0x180000000,
+            func_names=["LoggingChannel_Init"],
+            func_xrefs=[
+                (
+                    "LoggingChannel_Init",
+                    ["Networking"],
+                    [],
+                    [],
+                )
+            ],
+            generate_yaml_desired_fields=[
+                (
+                    "LoggingChannel_Init",
+                    ["func_name", "func_va", "func_rva", "func_size", "func_sig"],
+                )
+            ],
+            debug=True,
+        )
+
+        self.assertFalse(result)
+
+    async def test_preprocess_common_skill_rejects_empty_positive_xref_sources(
+        self,
+    ) -> None:
+        result = await ida_analyze_util.preprocess_common_skill(
+            session="session",
+            expected_outputs=["/tmp/LoggingChannel_Init.windows.yaml"],
+            old_yaml_map={},
+            new_binary_dir="/tmp",
+            platform="windows",
+            image_base=0x180000000,
+            func_names=["LoggingChannel_Init"],
+            func_xrefs=[
+                (
+                    "LoggingChannel_Init",
+                    [],
+                    [],
+                    [],
+                    [],
+                )
+            ],
+            generate_yaml_desired_fields=[
+                (
+                    "LoggingChannel_Init",
+                    ["func_name", "func_va", "func_rva", "func_size", "func_sig"],
+                )
+            ],
+            debug=True,
+        )
+
+        self.assertFalse(result)
+
+
 class TestLlmDecompileSupport(unittest.IsolatedAsyncioTestCase):
     def test_parse_llm_decompile_response_normalizes_all_sections(self) -> None:
         response_text = """
@@ -1783,7 +2003,13 @@ found_struct_offset: []
                     image_base=0x180000000,
                     func_names=func_names,
                     func_xrefs=[
-                        (second_func_name, ["dummy-string"], [first_func_name], []),
+                        (
+                            second_func_name,
+                            ["dummy-string"],
+                            [],
+                            [first_func_name],
+                            [],
+                        ),
                     ],
                     generate_yaml_desired_fields=[
                         (first_func_name, ["func_name", "func_va"]),
@@ -1949,7 +2175,13 @@ found_struct_offset: []
                     image_base=0x180000000,
                     func_names=func_names,
                     func_xrefs=[
-                        (second_func_name, ["dummy-string"], [first_func_name], []),
+                        (
+                            second_func_name,
+                            ["dummy-string"],
+                            [],
+                            [first_func_name],
+                            [],
+                        ),
                     ],
                     generate_yaml_desired_fields=[
                         (first_func_name, ["func_name", "func_va"]),

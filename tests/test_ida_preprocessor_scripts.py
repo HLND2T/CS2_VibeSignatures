@@ -36,6 +36,18 @@ FIND_NETWORK_GROUP_SCRIPT_PATH = Path(
     "ida_preprocessor_scripts/"
     "find-CNetworkMessages_FindNetworkGroup.py"
 )
+LOGGING_CHANNEL_INIT_WINDOWS_SCRIPT_PATH = Path(
+    "ida_preprocessor_scripts/"
+    "find-LoggingChannel_Init-windows.py"
+)
+LOGGING_CHANNEL_INIT_LINUX_SCRIPT_PATH = Path(
+    "ida_preprocessor_scripts/"
+    "find-LoggingChannel_Init-linux.py"
+)
+CNETWORK_SERVER_SERVICE_INIT_SCRIPT_PATH = Path(
+    "ida_preprocessor_scripts/"
+    "find-CNetworkServerService_Init.py"
+)
 
 class _FakeStreamableHttpClient:
     async def __aenter__(self):
@@ -908,6 +920,184 @@ class TestFindCBaseEntityCollisionRulesChanged(unittest.IsolatedAsyncioTestCase)
             platform="windows",
             image_base=0x180000000,
             func_names=["CBaseEntity_CollisionRulesChanged"],
+            generate_yaml_desired_fields=expected_generate_yaml_desired_fields,
+            debug=True,
+        )
+
+
+class TestFindLoggingChannelInit(unittest.IsolatedAsyncioTestCase):
+    async def test_windows_script_forwards_five_tuple_func_xrefs(self) -> None:
+        module = _load_module(
+            LOGGING_CHANNEL_INIT_WINDOWS_SCRIPT_PATH,
+            "find_LoggingChannel_Init_windows",
+        )
+        mock_preprocess_common_skill = AsyncMock(return_value=True)
+        expected_generate_yaml_desired_fields = [
+            (
+                "LoggingChannel_Init",
+                ["func_name", "func_va", "func_rva", "func_size", "func_sig"],
+            )
+        ]
+        expected_func_xrefs = [
+            (
+                "LoggingChannel_Init",
+                ["Networking"],
+                ["C7 44 24 40 64 FF FF FF"],
+                [],
+                [],
+            )
+        ]
+
+        with patch.object(
+            module,
+            "preprocess_common_skill",
+            mock_preprocess_common_skill,
+        ):
+            result = await module.preprocess_skill(
+                session="session",
+                skill_name="skill",
+                expected_outputs=["out.yaml"],
+                old_yaml_map={"k": "v"},
+                new_binary_dir="bin_dir",
+                platform="windows",
+                image_base=0x180000000,
+                debug=True,
+            )
+
+        self.assertTrue(result)
+        mock_preprocess_common_skill.assert_awaited_once_with(
+            session="session",
+            expected_outputs=["out.yaml"],
+            old_yaml_map={"k": "v"},
+            new_binary_dir="bin_dir",
+            platform="windows",
+            image_base=0x180000000,
+            func_names=["LoggingChannel_Init"],
+            func_xrefs=expected_func_xrefs,
+            generate_yaml_desired_fields=expected_generate_yaml_desired_fields,
+            debug=True,
+        )
+
+    async def test_linux_script_forwards_five_tuple_func_xrefs(self) -> None:
+        module = _load_module(
+            LOGGING_CHANNEL_INIT_LINUX_SCRIPT_PATH,
+            "find_LoggingChannel_Init_linux",
+        )
+        mock_preprocess_common_skill = AsyncMock(return_value=True)
+        expected_generate_yaml_desired_fields = [
+            (
+                "LoggingChannel_Init",
+                ["func_name", "func_va", "func_rva", "func_size", "func_sig"],
+            )
+        ]
+        expected_func_xrefs = [
+            (
+                "LoggingChannel_Init",
+                ["Networking"],
+                ["41 B8 64 FF FF FF"],
+                [],
+                [],
+            )
+        ]
+
+        with patch.object(
+            module,
+            "preprocess_common_skill",
+            mock_preprocess_common_skill,
+        ):
+            result = await module.preprocess_skill(
+                session="session",
+                skill_name="skill",
+                expected_outputs=["out.yaml"],
+                old_yaml_map={"k": "v"},
+                new_binary_dir="bin_dir",
+                platform="linux",
+                image_base=0x180000000,
+                debug=True,
+            )
+
+        self.assertTrue(result)
+        mock_preprocess_common_skill.assert_awaited_once_with(
+            session="session",
+            expected_outputs=["out.yaml"],
+            old_yaml_map={"k": "v"},
+            new_binary_dir="bin_dir",
+            platform="linux",
+            image_base=0x180000000,
+            func_names=["LoggingChannel_Init"],
+            func_xrefs=expected_func_xrefs,
+            generate_yaml_desired_fields=expected_generate_yaml_desired_fields,
+            debug=True,
+        )
+
+
+class TestFindCNetworkServerServiceInit(unittest.IsolatedAsyncioTestCase):
+    async def test_script_forwards_five_tuple_func_xrefs(self) -> None:
+        module = _load_module(
+            CNETWORK_SERVER_SERVICE_INIT_SCRIPT_PATH,
+            "find_CNetworkServerService_Init",
+        )
+        mock_preprocess_common_skill = AsyncMock(return_value=True)
+        expected_func_xrefs = [
+            (
+                "CNetworkServerService_Init",
+                [
+                    "ServerToClient",
+                    "Entities",
+                    "Local Player",
+                    "Other Players",
+                ],
+                [],
+                [],
+                [],
+            )
+        ]
+        expected_func_vtable_relations = [
+            ("CNetworkServerService_Init", "CNetworkServerService")
+        ]
+        expected_generate_yaml_desired_fields = [
+            (
+                "CNetworkServerService_Init",
+                [
+                    "func_name",
+                    "func_va",
+                    "func_rva",
+                    "func_size",
+                    "func_sig",
+                    "vtable_name",
+                    "vfunc_offset",
+                    "vfunc_index",
+                ],
+            )
+        ]
+
+        with patch.object(
+            module,
+            "preprocess_common_skill",
+            mock_preprocess_common_skill,
+        ):
+            result = await module.preprocess_skill(
+                session="session",
+                skill_name="skill",
+                expected_outputs=["out.yaml"],
+                old_yaml_map={"k": "v"},
+                new_binary_dir="bin_dir",
+                platform="windows",
+                image_base=0x180000000,
+                debug=True,
+            )
+
+        self.assertTrue(result)
+        mock_preprocess_common_skill.assert_awaited_once_with(
+            session="session",
+            expected_outputs=["out.yaml"],
+            old_yaml_map={"k": "v"},
+            new_binary_dir="bin_dir",
+            platform="windows",
+            image_base=0x180000000,
+            func_names=["CNetworkServerService_Init"],
+            func_xrefs=expected_func_xrefs,
+            func_vtable_relations=expected_func_vtable_relations,
             generate_yaml_desired_fields=expected_generate_yaml_desired_fields,
             debug=True,
         )

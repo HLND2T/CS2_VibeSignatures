@@ -9,10 +9,11 @@ TARGET_FUNCTION_NAMES = [
 ]
 
 FUNC_XREFS = [
-    # (func_name, xref_strings_list, xref_funcs_list, exclude_funcs_list)
+    # (func_name, xref_strings_list, xref_signatures_list, xref_funcs_list, exclude_funcs_list)
     (
         "CLoopModeGame_LoopShutdown",
         ["--CLoopModeGame::SetWorldSession"],
+        [],
         ["CLoopModeGame_SetGameSystemState", "IGameSystem_DestroyAllGameSystems"],
         ["CLoopModeGame_ReceivedServerInfo", "CLoopModeGame_SetWorldSession"],
     ),
