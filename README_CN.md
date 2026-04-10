@@ -40,13 +40,13 @@ uv run copy_depot_bin.py -gamever 14141 -platform all-platform
 uv run copy_depot_bin.py -gamever 14141 -platform all-platform -checkonly
 ```
 
-当只需要确认 `bin/<gamever>/...` 下的目标二进制是否已经齐全时，可在 CI 或预检查脚本中使用 `-checkonly`。
+当只需要确认 `bin/<gamever>/...` 下的目标二进制是否已经齐全时，可在 CI 或预检查脚本中使用 `-checkonly`。该模式只检查目标路径，不要求 `cs2_depot` 已准备完成；当所有目标文件都已就绪时返回 `0`，缺少任一目标文件时返回 `1`，配置或参数错误时返回 `2`。
 
 
 #### 2. 为 `config.yaml` 的符号生成对应的 signatures
 
  ```bash
- uv run ida_analyze_bin.py -gamever=14141 [-oldgamever=14140] [-configyaml=path/to/config.yaml] [-modules=server] [-platform=windows] [-agent=claude/codex/"claude.cmd"/"codex.cmd"] [-maxretry=3] [-vcall_finder=g_pNetworkMessages|*] [-vcall_finder_model=gpt-4o] [-vcall_finder_apikey=your-key] [-vcall_finder_baseurl=https://api.example.com/v1] [-debug]
+ uv run ida_analyze_bin.py -gamever=14141 [-oldgamever=14140] [-configyaml=path/to/config.yaml] [-modules=server] [-platform=windows] [-agent=claude/codex/"claude.cmd"/"codex.cmd"] [-maxretry=3] [-vcall_finder=g_pNetworkMessages|*] [-llm_model=gpt-4o] [-llm_apikey=your-key] [-llm_baseurl=https://api.example.com/v1] [-debug]
  ```
 
 * 在真正运行 Agent SKILL(s) 前，会先通过 mcp call 直接使用 `bin/{previous_gamever}/{module}/{symbol}.{platform}.yaml` 中的旧 signature 查找当前版本游戏二进制中的符号。不会消耗 token。
@@ -61,15 +61,15 @@ uv run copy_depot_bin.py -gamever 14141 -platform all-platform -checkonly
 
 * `vcall_finder/{gamever}/{object_name}.txt` 现在是按 YAML document stream 追加的扁平记录；每条记录直接包含 `insn_va`、`insn_disasm`、`vfunc_offset`，不再嵌套 `found_vcall:`。
 
-* 专用 CLI 参数：
-  - `-vcall_finder_apikey`：启用 `vcall_finder` 聚合时必需
-  - `-vcall_finder_baseurl`：可选，自定义兼容 base URL
-  - `-vcall_finder_model`：可选，默认 `gpt-4o`
-  - `vcall_finder` 不读取 `OPENAI_API_KEY`、`OPENAI_API_BASE`、`OPENAI_API_MODEL`
+* 共享 LLM CLI 参数：
+  - `-llm_apikey`：启用基于 LLM 的流程时必需，包括 `vcall_finder` 聚合与 `LLM_DECOMPILE`
+  - `-llm_baseurl`：可选，自定义兼容 base URL
+  - `-llm_model`：可选，默认 `gpt-4o`
+  - LLM 流程不会读取 `OPENAI_API_KEY`、`OPENAI_API_BASE`、`OPENAI_API_MODEL`
 
 ```bash
-uv run ida_analyze_bin.py -gamever=14141 -modules=networksystem -platform=windows -vcall_finder=g_pNetworkMessages -vcall_finder_model=gpt-4o -vcall_finder_apikey=your-key
-uv run ida_analyze_bin.py -gamever=14141 -platform=windows,linux -vcall_finder=* -vcall_finder_model=gpt-4o -vcall_finder_apikey=your-key -vcall_finder_baseurl=https://api.example.com/v1
+uv run ida_analyze_bin.py -gamever=14141 -modules=networksystem -platform=windows -vcall_finder=g_pNetworkMessages -llm_model=gpt-4o -llm_apikey=your-key
+uv run ida_analyze_bin.py -gamever=14141 -platform=windows,linux -vcall_finder=* -llm_model=gpt-4o -llm_apikey=your-key -llm_baseurl=https://api.example.com/v1
 ```
 
 输出示例：
@@ -110,6 +110,7 @@ uv run generate_reference_yaml.py -gamever 14141 -module engine -platform window
      - `references/<module>/<func_name>.<platform>.yaml`
    - tuple 示例：
      - `("CNetworkMessages_FindNetworkGroup", "prompt/call_llm_decompile.md", "references/engine/CNetworkGameClient_RecordEntityBandwidth.windows.yaml")`
+   - `LLM_DECOMPILE` 复用 `ida_analyze_bin.py` 的共享 LLM 参数：`-llm_model`、`-llm_apikey`、`-llm_baseurl`
 
 #### 3. 将 yaml(s) 转换为 gamedata json / txt
 

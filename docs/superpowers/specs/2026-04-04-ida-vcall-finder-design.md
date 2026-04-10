@@ -19,7 +19,7 @@
 - 导出目录按 `gamever` 隔离，避免不同版本中间产物互相覆盖。
 - 在对象级汇总 TXT 中以流式扁平记录形式保存虚调用结果。
 - 对已经完成过 LLM 聚合的单函数明细 YAML 复用 `found_vcall` 缓存，避免重复消耗 token。
-- OpenAI 聚合配置只使用 `vcall_finder` 专用 CLI 参数，不读取 `OPENAI_API_*` 环境变量，避免影响 `-agent=codex` 主 Agent 行为。
+- OpenAI 聚合配置只使用共享 `-llm_*` CLI 参数，不读取 `OPENAI_API_*` 环境变量，避免影响 `-agent=codex` 主 Agent 行为。
 
 ## 非目标
 
@@ -37,19 +37,19 @@
   - 未传入：禁用该功能。
   - `*`：处理模块中 `config.yaml` 已声明的全部对象。
   - `name1,name2`：仅处理同名对象，且对象必须存在于模块配置中。
-- `-vcall_finder_model`
-  - 可选，指定 `vcall_finder` 聚合使用的模型名，默认 `gpt-4o`。
-- `-vcall_finder_apikey`
-  - 启用 `-vcall_finder` 聚合时必需，专用于 `vcall_finder` 的 OpenAI 兼容 API Key。
-- `-vcall_finder_baseurl`
-  - 可选，专用于 `vcall_finder` 的 OpenAI 兼容 Base URL。
+- `-llm_model`
+  - 可选，指定 LLM 流程使用的模型名，默认 `gpt-4o`。
+- `-llm_apikey`
+  - 启用基于 LLM 的流程时必需，包括 `vcall_finder` 聚合。
+- `-llm_baseurl`
+  - 可选，OpenAI 兼容 Base URL。
 
-### OpenAI 配置规则
+### LLM 配置规则
 
-- `vcall_finder` 聚合只读取 `-vcall_finder_model`、`-vcall_finder_apikey`、`-vcall_finder_baseurl`。
+- `vcall_finder` 聚合读取共享 `-llm_model`、`-llm_apikey`、`-llm_baseurl`。
 - 不从 `OPENAI_API_KEY`、`OPENAI_API_BASE`、`OPENAI_API_MODEL` 读取任何回退配置。
-- 未传入 `-vcall_finder_model` 时，使用默认值 `gpt-4o`。
-- 启用 `-vcall_finder` 且进入聚合阶段时，若未传入 `-vcall_finder_apikey`，直接报错并返回失败。
+- 未传入 `-llm_model` 时，使用默认值 `gpt-4o`。
+- 启用 `-vcall_finder` 且进入聚合阶段时，若未传入 `-llm_apikey`，直接报错并返回失败。
 
 ### `config.yaml` 配置
 
@@ -77,7 +77,7 @@ modules:
 
 职责：
 
-- 解析新参数 `-vcall_finder`、`-vcall_finder_model`、`-vcall_finder_apikey`、`-vcall_finder_baseurl`
+- 解析新参数 `-vcall_finder`、`-llm_model`、`-llm_apikey`、`-llm_baseurl`
 - 解析 `config.yaml` 中的模块级 `vcall_finder`
 - 保持现有 `skills` 主流程不变
 - 在每个模块/平台的 `skills` 执行完毕后，若命中 `-vcall_finder`，则调用 helper 执行当前二进制的引用函数导出
@@ -382,7 +382,7 @@ If there are no virtual function calls for "{yaml.object_name}" found, output an
 - 单个 OpenAI 请求失败：记录错误并继续
 - 单个响应无法规范化时：按 `found_vcall: []` 处理
 - 单个明细 YAML 回写 `found_vcall` 失败：记录错误；本次结果仍可继续尝试追加到对象级 TXT，但下次运行不能命中缓存
-- 未传入 `-vcall_finder_apikey`：聚合阶段报错并返回失败
+- 未传入 `-llm_apikey`：聚合阶段报错并返回失败
 
 ### 汇总文件更新语义
 
@@ -439,9 +439,9 @@ If there are no virtual function calls for "{yaml.object_name}" found, output an
 - 参数解析：
   - `-vcall_finder=*`
   - `-vcall_finder=g_pNetworkMessages`
-  - `-vcall_finder_model`
-  - `-vcall_finder_apikey`
-  - `-vcall_finder_baseurl`
+  - `-llm_model`
+  - `-llm_apikey`
+  - `-llm_baseurl`
 - 配置筛选：
   - 仅处理模块配置中声明过的对象
 - 路径组织：
@@ -462,8 +462,8 @@ uv run ida_analyze_bin.py \
   -modules=networksystem \
   -platform=windows \
   -vcall_finder=g_pNetworkMessages \
-  -vcall_finder_model=gpt-4o \
-  -vcall_finder_apikey=your-key
+  -llm_model=gpt-4o \
+  -llm_apikey=your-key
 ```
 
 预期验证点：

@@ -5,7 +5,7 @@ Depot Binary Copy Script for CS2_VibeSignatures
 Copies CS2 binary files from a local Steam depot directory based on entries in config.yaml.
 
 Usage:
-    python copy_depot_bin.py -gamever=<version> [-bindir=bin] [-platform=windows|linux|all-platform] [-depotdir=cs2_depot]
+    python copy_depot_bin.py -gamever=<version> [-bindir=bin] [-platform=windows|linux|all-platform] [-depotdir=cs2_depot] [-checkonly]
 
     -gamever: Game version subdirectory name (required)
     -bindir: Directory to save copied binaries (default: bin)

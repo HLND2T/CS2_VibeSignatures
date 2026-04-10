@@ -44,12 +44,12 @@ uv run copy_depot_bin.py -gamever 14141 -platform all-platform
 uv run copy_depot_bin.py -gamever 14141 -platform all-platform -checkonly
 ```
 
-Use `-checkonly` in CI or preflight scripts when you only need to know whether all expected target binaries already exist under `bin/<gamever>/...`.
+Use `-checkonly` in CI or preflight scripts when you only need to know whether all expected target binaries already exist under `bin/<gamever>/...`. In this mode the script only checks target paths, does not require a populated `cs2_depot`, returns `0` when all expected binaries are ready, `1` when any target is missing, and `2` for configuration or argument errors.
 
 #### 2. Find and generate signatures for all symbols declared in `config.yaml`
 
  ```bash
- uv run ida_analyze_bin.py -gamever 14141 [-oldgamever=14140] [-configyaml=path/to/config.yaml] [-modules=server] [-platform=windows] [-agent=claude/codex/"claude.cmd"/"codex.cmd"] [-maxretry=3] [-vcall_finder=g_pNetworkMessages|*] [-vcall_finder_model=gpt-4o] [-vcall_finder_apikey=your-key] [-vcall_finder_baseurl=https://api.example.com/v1] [-debug]
+ uv run ida_analyze_bin.py -gamever 14141 [-oldgamever=14140] [-configyaml=path/to/config.yaml] [-modules=server] [-platform=windows] [-agent=claude/codex/"claude.cmd"/"codex.cmd"] [-maxretry=3] [-vcall_finder=g_pNetworkMessages|*] [-llm_model=gpt-4o] [-llm_apikey=your-key] [-llm_baseurl=https://api.example.com/v1] [-debug]
  ```
 
 * Old signatures from `bin/{previous_gamever}/{module}/{symbol}.{platform}.yaml` will be used to find symbols in current version of game binaries directly through mcp call before actually running Agent SKILL(s). No token will be consumed in this case.
@@ -64,15 +64,15 @@ Use `-checkonly` in CI or preflight scripts when you only need to know whether a
 
 * `vcall_finder/{gamever}/{object_name}.txt` is now an appended YAML document stream; each record directly contains `insn_va`, `insn_disasm`, and `vfunc_offset` without a nested `found_vcall:` wrapper.
 
-* Dedicated CLI parameters:
-  - `-vcall_finder_apikey`: required when `vcall_finder` aggregation is enabled
-  - `-vcall_finder_baseurl`: optional custom compatible base URL
-  - `-vcall_finder_model`: optional, defaults to `gpt-4o`
-  - `vcall_finder` does not read `OPENAI_API_KEY`, `OPENAI_API_BASE`, or `OPENAI_API_MODEL`
+* Shared LLM CLI parameters:
+  - `-llm_apikey`: required when an LLM-backed workflow is enabled, including `vcall_finder` aggregation and `LLM_DECOMPILE`
+  - `-llm_baseurl`: optional custom compatible base URL
+  - `-llm_model`: optional, defaults to `gpt-4o`
+  - LLM workflows do not read `OPENAI_API_KEY`, `OPENAI_API_BASE`, or `OPENAI_API_MODEL`
 
 ```bash
-uv run ida_analyze_bin.py -gamever=14141 -modules=networksystem -platform=windows -vcall_finder=g_pNetworkMessages -vcall_finder_model=gpt-4o -vcall_finder_apikey=your-key
-uv run ida_analyze_bin.py -gamever=14141 -platform=windows,linux -vcall_finder=* -vcall_finder_model=gpt-4o -vcall_finder_apikey=your-key -vcall_finder_baseurl=https://api.example.com/v1
+uv run ida_analyze_bin.py -gamever=14141 -modules=networksystem -platform=windows -vcall_finder=g_pNetworkMessages -llm_model=gpt-4o -llm_apikey=your-key
+uv run ida_analyze_bin.py -gamever=14141 -platform=windows,linux -vcall_finder=* -llm_model=gpt-4o -llm_apikey=your-key -llm_baseurl=https://api.example.com/v1
 ```
 
 Example outputs:
@@ -113,6 +113,7 @@ uv run generate_reference_yaml.py -gamever 14141 -module engine -platform window
      - `references/<module>/<func_name>.<platform>.yaml`
    - Example tuple:
      - `("CNetworkMessages_FindNetworkGroup", "prompt/call_llm_decompile.md", "references/engine/CNetworkGameClient_RecordEntityBandwidth.windows.yaml")`
+   - `LLM_DECOMPILE` uses the same shared `ida_analyze_bin.py` LLM flags: `-llm_model`, `-llm_apikey`, `-llm_baseurl`
 
 #### 3. Convert yaml(s) to gamedata json / txt
 

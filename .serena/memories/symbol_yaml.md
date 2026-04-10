@@ -6,7 +6,6 @@
 ## Scope
 - Naming pattern: `{symbol}.{platform}.yaml`
 - Platform suffix observed: `windows`, `linux`
-- Files analyzed: 922
 
 ## Observed YAML Shapes
 - Function signature: `func_name`, `func_va`, `func_rva`, `func_size`, `func_sig`
@@ -57,11 +56,6 @@
 - `offset`: Member offset from struct base.
 - `size`: Member size in bytes (optional but commonly present in struct-member YAML).
 - `offset_sig`: Signature near the target instruction used to recover/revalidate the member offset across versions.
-
-## Legacy Flat-Offset Keys
-- Keys like `'0x50'`, `'0x58'`, `'0x68'`, `'0x240'`, `'0x278'`, `'0x3A0'`, `'0x3B0'`, `'0x530'` appear as top-level keys only in old files (mainly `14132`).
-- Meaning: key is the member offset; value is a compact string `"<member_name> <size>"`.
-- This is a legacy representation of struct-member metadata and should be treated as backward-compatibility data.
 
 ## Where Semantics Come From (Code Sources)
 - Writers and preprocessors: `ida_analyze_util.py`

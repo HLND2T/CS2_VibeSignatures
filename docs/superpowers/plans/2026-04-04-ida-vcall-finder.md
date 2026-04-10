@@ -13,7 +13,7 @@
 ## File Structure
 
 - Modify: `ida_analyze_bin.py`
-  - 增加 `-vcall_finder` / `-vcall_finder_model` / `-vcall_finder_apikey` / `-vcall_finder_baseurl`
+  - 增加 `-vcall_finder` / `-llm_model` / `-llm_apikey` / `-llm_baseurl`
   - 解析模块级 `vcall_finder`
   - 修正 IDA 启动判定
   - 在模块/平台级别挂接明细导出
@@ -27,7 +27,7 @@
 - Modify: `pyproject.toml`
   - 新增 `openai` 依赖
 - Modify: `README_CN.md`
-  - 补充 CLI 参数、专用鉴权参数、输出路径示例
+  - 补充 CLI 参数、共享 LLM 参数、输出路径示例
 - Modify: `README.md`
   - 同步英文说明，避免双文档行为分叉
 
@@ -50,23 +50,23 @@ sys.argv = [
     "ida_analyze_bin.py",
     "-gamever=14141",
     "-vcall_finder=g_pNetworkMessages",
-    "-vcall_finder_model=gpt-4.1",
-    "-vcall_finder_apikey=test-key",
-    "-vcall_finder_baseurl=https://api.example.com/v1",
+    "-llm_model=gpt-4.1",
+    "-llm_apikey=test-key",
+    "-llm_baseurl=https://api.example.com/v1",
 ]
 from ida_analyze_bin import parse_args
 parse_args()
 PY
 ```
 
-Expected: FAIL，错误中包含 `unrecognized arguments: -vcall_finder=g_pNetworkMessages -vcall_finder_model=gpt-4.1 -vcall_finder_apikey=test-key -vcall_finder_baseurl=https://api.example.com/v1`
+Expected: FAIL，错误中包含 `unrecognized arguments: -vcall_finder=g_pNetworkMessages -llm_model=gpt-4.1 -llm_apikey=test-key -llm_baseurl=https://api.example.com/v1`
 
 - [ ] **Step 2: 在 `ida_analyze_bin.py` 增加参数解析和模块筛选辅助函数**
 
 在常量区和 `parse_args()` / `parse_config()` 附近加入以下代码：
 
 ```python
-DEFAULT_VCALL_FINDER_MODEL = "gpt-4o"
+DEFAULT_LLM_MODEL = "gpt-4o"
 
 
 def parse_vcall_finder_filter(raw_value):
@@ -107,19 +107,19 @@ def resolve_module_vcall_targets(module, selector):
         help="Object selector for vcall_finder. Use '*' for all configured objects or a comma-separated list."
     )
     parser.add_argument(
-        "-vcall_finder_model",
-        default=DEFAULT_VCALL_FINDER_MODEL,
-        help=f"Model used for vcall_finder aggregation (default: {DEFAULT_VCALL_FINDER_MODEL})"
+        "-llm_model",
+        default=DEFAULT_LLM_MODEL,
+        help=f"OpenAI-compatible model for preprocessing and vcall_finder workflow (default: {DEFAULT_LLM_MODEL})"
     )
     parser.add_argument(
-        "-vcall_finder_apikey",
+        "-llm_apikey",
         default=None,
-        help="API key used only by vcall_finder OpenAI-compatible aggregation."
+        help="OpenAI-compatible API key used by preprocessing and vcall_finder aggregation"
     )
     parser.add_argument(
-        "-vcall_finder_baseurl",
+        "-llm_baseurl",
         default=None,
-        help="Optional OpenAI-compatible base URL used only by vcall_finder aggregation."
+        help="Optional OpenAI-compatible base URL used by preprocessing and vcall_finder aggregation"
     )
 ```
 
@@ -151,9 +151,9 @@ sys.argv = [
     "ida_analyze_bin.py",
     "-gamever=14141",
     "-vcall_finder=g_pNetworkMessages,foo",
-    "-vcall_finder_model=gpt-4.1",
-    "-vcall_finder_apikey=test-key",
-    "-vcall_finder_baseurl=https://api.example.com/v1",
+    "-llm_model=gpt-4.1",
+    "-llm_apikey=test-key",
+    "-llm_baseurl=https://api.example.com/v1",
 ]
 
 from ida_analyze_bin import parse_args, parse_config, resolve_module_vcall_targets
@@ -865,7 +865,7 @@ from openai import OpenAI
 
 def create_openai_client(api_key, base_url=None):
     if not api_key:
-        raise RuntimeError("-vcall_finder_apikey is required when -vcall_finder is enabled")
+        raise RuntimeError("-llm_apikey is required when -vcall_finder is enabled")
 
     client_kwargs = {"api_key": api_key}
     if base_url:
@@ -1099,8 +1099,8 @@ Expected: FAIL，返回码非 0，因为当前 README 还没有这些说明
 #### 2.1 可选：导出对象引用函数并聚合虚调用
 
 ```bash
-uv run ida_analyze_bin.py -gamever 14141 -modules=networksystem -platform=windows -vcall_finder=g_pNetworkMessages -vcall_finder_model=gpt-4o -vcall_finder_apikey=your-key
-uv run ida_analyze_bin.py -gamever 14141 -platform=windows,linux -vcall_finder=* -vcall_finder_model=gpt-4o -vcall_finder_apikey=your-key -vcall_finder_baseurl=https://api.example.com/v1
+uv run ida_analyze_bin.py -gamever 14141 -modules=networksystem -platform=windows -vcall_finder=g_pNetworkMessages -llm_model=gpt-4o -llm_apikey=your-key
+uv run ida_analyze_bin.py -gamever 14141 -platform=windows,linux -vcall_finder=* -llm_model=gpt-4o -llm_apikey=your-key -llm_baseurl=https://api.example.com/v1
 ```
 
 输出目录：
@@ -1108,11 +1108,11 @@ uv run ida_analyze_bin.py -gamever 14141 -platform=windows,linux -vcall_finder=*
 - `vcall_finder/14141/g_pNetworkMessages/networksystem/windows/sub_140123450.yaml`
 - `vcall_finder/14141/g_pNetworkMessages.txt`
 
-专用 CLI 参数：
+共享 LLM CLI 参数：
 
-- `-vcall_finder_apikey`：启用 `vcall_finder` 聚合时必需
-- `-vcall_finder_baseurl`：可选，自定义兼容 base URL
-- `-vcall_finder_model`：可选，默认 `gpt-4o`
+- `-llm_apikey`：启用基于 LLM 的流程时必需，包括 `vcall_finder` 聚合
+- `-llm_baseurl`：可选，自定义兼容 base URL
+- `-llm_model`：可选，默认 `gpt-4o`
 - 不读取 `OPENAI_API_KEY` / `OPENAI_API_BASE` / `OPENAI_API_MODEL`
 ````
 
@@ -1122,8 +1122,8 @@ uv run ida_analyze_bin.py -gamever 14141 -platform=windows,linux -vcall_finder=*
 #### 2.1 Optional: export object xref functions and aggregate virtual calls
 
 ```bash
-uv run ida_analyze_bin.py -gamever 14141 -modules=networksystem -platform=windows -vcall_finder=g_pNetworkMessages -vcall_finder_model=gpt-4o -vcall_finder_apikey=your-key
-uv run ida_analyze_bin.py -gamever 14141 -platform=windows,linux -vcall_finder=* -vcall_finder_model=gpt-4o -vcall_finder_apikey=your-key -vcall_finder_baseurl=https://api.example.com/v1
+uv run ida_analyze_bin.py -gamever 14141 -modules=networksystem -platform=windows -vcall_finder=g_pNetworkMessages -llm_model=gpt-4o -llm_apikey=your-key
+uv run ida_analyze_bin.py -gamever 14141 -platform=windows,linux -vcall_finder=* -llm_model=gpt-4o -llm_apikey=your-key -llm_baseurl=https://api.example.com/v1
 ```
 
 Output paths:
@@ -1131,11 +1131,11 @@ Output paths:
 - `vcall_finder/14141/g_pNetworkMessages/networksystem/windows/sub_140123450.yaml`
 - `vcall_finder/14141/g_pNetworkMessages.txt`
 
-Dedicated CLI parameters:
+Shared LLM CLI parameters:
 
-- `-vcall_finder_apikey`: required when `vcall_finder` aggregation is enabled
-- `-vcall_finder_baseurl`: optional custom compatible base URL
-- `-vcall_finder_model`: optional, defaults to `gpt-4o`
+- `-llm_apikey`: required when an LLM-backed workflow is enabled, including `vcall_finder` aggregation
+- `-llm_baseurl`: optional custom compatible base URL
+- `-llm_model`: optional, defaults to `gpt-4o`
 - `OPENAI_API_KEY` / `OPENAI_API_BASE` / `OPENAI_API_MODEL` are not read by `vcall_finder`
 ````
 
