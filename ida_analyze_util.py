@@ -1480,7 +1480,7 @@ async def call_llm_decompile(
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": prompt},
             ],
-            temperature=0.1,
+            temperature=1,
         )
     except Exception as exc:
         if debug:

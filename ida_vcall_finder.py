@@ -258,7 +258,7 @@ def call_openai_for_vcalls(client, detail, model, *, debug=False, request_label=
             {"role": "system", "content": "You are a reverse engineering expert."},
             {"role": "user", "content": render_vcall_prompt(detail)},
         ],
-        temperature=0.1,
+        temperature=1,
     )
     found_vcall = parse_llm_vcall_response(content)["found_vcall"]
     if debug:

@@ -57,7 +57,7 @@ def extract_first_message_text(response) -> str:
     return str(content)
 
 
-def call_llm_text(client, *, model, messages, temperature=0.1) -> str:
+def call_llm_text(client, *, model, messages, temperature=1) -> str:
     response = client.chat.completions.create(
         model=require_nonempty_text(model, "model"),
         messages=messages,
