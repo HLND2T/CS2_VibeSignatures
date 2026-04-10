@@ -1469,7 +1469,7 @@ async def call_llm_decompile(
             f"Reference procedure:\n{procedure_for_reference}\n\n"
             f"Target disassembly:\n{disasm_code}\n\n"
             f"Target procedure:\n{procedure}\n\n"
-            f"Please collect all references that are related to \"{symbol_name_text}\" and output YAML."
+            f"Please collect all references to \"{symbol_name_text}\" and output YAML."
         )
     system_prompt = "You are a reverse engineering expert."
     if debug:
