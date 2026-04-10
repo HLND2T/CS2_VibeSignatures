@@ -2178,6 +2178,7 @@ async def preprocess_gen_func_sig_via_mcp(
         return None
 
     sig_tokens = []
+    raw_tokens = []  # Parallel to sig_tokens; always stores actual hex values (never wildcarded)
     inst_boundaries = []
     for inst in insts:
         try:
@@ -2204,6 +2205,7 @@ async def preprocess_gen_func_sig_via_mcp(
             abs_off = base_offset + rel_idx
             use_wild = (rel_idx in inst_wild) or (abs_off in extra_wildcard_set)
             sig_tokens.append("??" if use_wild else f"{value:02X}")
+            raw_tokens.append(f"{value:02X}")
 
         # Growth step must align to the next full instruction boundary.
         inst_boundaries.append(len(sig_tokens))
@@ -2258,6 +2260,130 @@ async def preprocess_gen_func_sig_via_mcp(
 
         best_sig = candidate_sig
         break
+
+    # --- Fallback: selectively un-wildcard to differentiate from competitors ---
+    if not best_sig and len(sig_tokens) > 0:
+        full_len = inst_boundaries[-1] if inst_boundaries else len(sig_tokens)
+        full_candidate = " ".join(sig_tokens[:full_len])
+
+        # Find competing matches using the full-length wildcarded pattern.
+        competitor_addrs = []
+        try:
+            fb_result = await session.call_tool(
+                name="find_bytes",
+                arguments={"patterns": [full_candidate], "limit": 16},
+            )
+            fb_data = parse_mcp_result(fb_result)
+            if isinstance(fb_data, list) and len(fb_data) > 0:
+                for m in fb_data[0].get("matches", []):
+                    try:
+                        addr = _parse_addr(m)
+                        if addr != func_va_int:
+                            competitor_addrs.append(addr)
+                    except Exception:
+                        pass
+        except Exception:
+            competitor_addrs = []
+
+        if competitor_addrs:
+            # Read raw bytes from each competitor at the same offset range.
+            addrs_list = [hex(a) for a in competitor_addrs]
+            py_read_code = (
+                "import ida_bytes, json\n"
+                f"addrs = {json.dumps(addrs_list)}\n"
+                f"size = {full_len}\n"
+                "out = []\n"
+                "for a in addrs:\n"
+                "    ea = int(a, 16)\n"
+                "    raw = ida_bytes.get_bytes(ea, size)\n"
+                "    out.append(raw.hex().upper() if raw and len(raw) == size else '')\n"
+                "result = json.dumps(out)\n"
+            )
+            competitor_hex_list = []
+            try:
+                gb_result = await session.call_tool(
+                    name="py_eval",
+                    arguments={"code": py_read_code},
+                )
+                gb_data = parse_mcp_result(gb_result)
+                if isinstance(gb_data, dict):
+                    result_str = gb_data.get("result", "")
+                    if result_str:
+                        parsed = json.loads(result_str)
+                        if isinstance(parsed, list):
+                            competitor_hex_list = [h for h in parsed if h]
+            except Exception:
+                pass
+
+            if competitor_hex_list:
+                # Identify wildcarded positions where our byte differs from
+                # at least one competitor — un-wildcarding these helps distinguish.
+                wc_positions = [
+                    i for i, t in enumerate(sig_tokens[:full_len]) if t == "??"
+                ]
+                differing_wc = []
+                for pos in wc_positions:
+                    our_hex = raw_tokens[pos]
+                    for comp_hex in competitor_hex_list:
+                        if (
+                            len(comp_hex) >= (pos + 1) * 2
+                            and comp_hex[pos * 2 : pos * 2 + 2] != our_hex
+                        ):
+                            differing_wc.append(pos)
+                            break
+
+                if differing_wc:
+                    if debug:
+                        print(
+                            f"    Preprocess: fallback un-wildcarding "
+                            f"{len(differing_wc)} byte(s) to differentiate "
+                            f"from {len(competitor_addrs)} competitor(s)"
+                        )
+                    refined_tokens = list(sig_tokens[:full_len])
+                    for pos in differing_wc:
+                        refined_tokens[pos] = raw_tokens[pos]
+
+                    # Re-test at each instruction boundary with refined tokens.
+                    for prefix_len in inst_boundaries:
+                        if prefix_len < search_start:
+                            continue
+                        if prefix_len > full_len:
+                            break
+                        prefix = refined_tokens[:prefix_len]
+                        if all(t == "??" for t in prefix):
+                            continue
+                        candidate_sig = " ".join(prefix)
+                        try:
+                            fb_result = await session.call_tool(
+                                name="find_bytes",
+                                arguments={
+                                    "patterns": [candidate_sig],
+                                    "limit": 2,
+                                },
+                            )
+                            fb_data = parse_mcp_result(fb_result)
+                        except Exception:
+                            break
+                        if not isinstance(fb_data, list) or len(fb_data) == 0:
+                            continue
+                        entry = fb_data[0]
+                        matches = entry.get("matches", [])
+                        if entry.get("n", len(matches)) != 1 or not matches:
+                            continue
+                        try:
+                            match_addr = _parse_addr(matches[0])
+                        except Exception:
+                            continue
+                        if match_addr != func_va_int:
+                            continue
+                        best_sig = candidate_sig
+                        if debug:
+                            print(
+                                "    Preprocess: fallback generated unique "
+                                f"func_sig ({len(best_sig.split())} bytes) "
+                                f"for {hex(func_va_int)}"
+                            )
+                        break
 
     if not best_sig:
         if debug:

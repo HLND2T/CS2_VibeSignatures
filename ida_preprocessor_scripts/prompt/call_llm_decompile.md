@@ -29,20 +29,20 @@ This is the function you need to reverse-engineering:
 ```
 
 Please collect all references to "{symbol_name_list}" in the function you need to reverse-engineering and output those references as YAML.
-`found_vcall` is for indirect call to virtual function. the `insn_disasm` must be the instruction with displacement offset.
+`found_vcall` is for indirect call to virtual function. the `insn_disasm` and `insn_va` must be the instruction with displacement offset.
 `found_call` is for direct call to regular non-virtual function.
 `found_gv` is for reference to global variable.
-`found_struct_offset` is for reference to struct offset. the `insn_disasm` must be the instruction with displacement offset.
+`found_struct_offset` is for reference to struct offset. the `insn_disasm` and `insn_va` must be the instruction with displacement offset.
 
 Example:
 
 ```yaml
 found_vcall:
-  - insn_va: '0x180777700'
+  - insn_va: '0x180777700'               # Always be the instruction with displacement offset
     insn_disasm: call    [rax+68h]       # Always be the instruction with displacement offset
     vfunc_offset: '0x68'
     func_name: ILoopMode_OnLoopActivate
-  - insn_va: '0x180777778'
+  - insn_va: '0x180777778'               # Always be the instruction with displacement offset
     insn_disasm: mov     rax, [rax+80h]  # Always be the instruction with displacement offset
     vfunc_offset: '0x80'
     func_name: INetworkMessages_GetNetworkGroupCount
@@ -58,7 +58,7 @@ found_gv:
     insn_disasm: mov     rcx, cs:qword_180666600
     gv_name: s_GameEventManager
 found_struct_offset:
-  - insn_va: '0x1801BA12A'
+  - insn_va: '0x1801BA12A'                # Always be the instruction with displacement offset
     insn_disasm: mov     rcx, [r14+58h]   # Always be the instruction with displacement offset
     offset: '0x58'
     struct_name: CGameResourceService
