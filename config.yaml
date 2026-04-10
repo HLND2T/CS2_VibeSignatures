@@ -127,13 +127,6 @@ modules:
         expected_input:
           - CNetworkMessages_vtable.{platform}.yaml
           
-      - name: find-CNetworkMessages_GetNetMessageInfo
-        expected_output:
-          - CNetworkMessages_GetNetMessageInfo.{platform}.yaml
-        expected_input:
-          - CNetChan_ProcessMessages.{platform}.yaml
-          - CNetworkMessages_vtable.{platform}.yaml
-
       - name: find-CNetChan_ProcessMessages
         expected_output:
           - CNetChan_ProcessMessages.{platform}.yaml
@@ -318,12 +311,6 @@ modules:
         category: vtable
         shared: true
 
-      - name: CNetworkMessages_GetNetMessageInfo
-        category: vfunc
-        alias:
-          - CNetworkMessages::GetNetMessageInfo
-        shared: true
-
       - name: CNetworkMessages_GetIsForServer
         category: vfunc
         alias:
@@ -474,9 +461,10 @@ modules:
         expected_input:
           - CDemoRecorder_vtable.{platform}.yaml
 
-      - name: find-INetworkMessages_SerializeAbstract
+      - name: find-INetworkMessages_SerializeAbstract-AND-INetworkMessages_GetNetMessageInfo
         expected_output:
           - INetworkMessages_SerializeAbstract.{platform}.yaml
+          - INetworkMessages_GetNetMessageInfo.{platform}.yaml
         expected_input:
           - CDemoRecorder_ParseMessage.{platform}.yaml
 
@@ -639,6 +627,12 @@ modules:
         category: vfunc
         alias:
           - INetworkMessages::SerializeAbstract
+        shared: true
+
+      - name: INetworkMessages_GetNetMessageInfo
+        category: vfunc
+        alias:
+          - INetworkMessages::GetNetMessageInfo
         shared: true
 
       - name: INetworkMessages_FindNetworkMessageById

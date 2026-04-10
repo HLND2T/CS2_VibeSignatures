@@ -5,6 +5,7 @@ from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = [
     "INetworkMessages_SerializeAbstract",
+    "INetworkMessages_GetNetMessageInfo",
 ]
 
 LLM_DECOMPILE = [
@@ -14,17 +15,33 @@ LLM_DECOMPILE = [
         "prompt/call_llm_decompile.md",
         "references/engine/CDemoRecorder_ParseMessage.{platform}.yaml",
     ),
+    (
+        "INetworkMessages_GetNetMessageInfo",
+        "prompt/call_llm_decompile.md",
+        "references/engine/CDemoRecorder_ParseMessage.{platform}.yaml",
+    ),
 ]
 
 FUNC_VTABLE_RELATIONS = [
     # (func_name, vtable_class)
     ("INetworkMessages_SerializeAbstract", "INetworkMessages"),
+    ("INetworkMessages_GetNetMessageInfo", "INetworkMessages"),
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
     (
         "INetworkMessages_SerializeAbstract",
+        [
+            "func_name",
+            "vfunc_sig",
+            "vfunc_offset",
+            "vfunc_index",
+            "vtable_name",
+        ],
+    ),
+    (
+        "INetworkMessages_GetNetMessageInfo",
         [
             "func_name",
             "vfunc_sig",
