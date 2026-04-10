@@ -199,6 +199,7 @@ class TestVtableAliasSupport(unittest.IsolatedAsyncioTestCase):
             mangled_class_names=["bad-config"],
             platform="windows",
             image_base=0x180000000,
+            generate_yaml_desired_fields=[("Foo", ["vtable_class"])],
             debug=False,
         )
 
@@ -263,6 +264,20 @@ class TestVtableAliasSupport(unittest.IsolatedAsyncioTestCase):
                 mangled_class_names=alias_map,
                 platform="windows",
                 image_base=0x180000000,
+                generate_yaml_desired_fields=[
+                    (
+                        "CGameSystemReallocatingFactory_CSpawnGroupMgrGameSystem",
+                        [
+                            "vtable_class",
+                            "vtable_symbol",
+                            "vtable_va",
+                            "vtable_rva",
+                            "vtable_size",
+                            "vtable_numvfunc",
+                            "vtable_entries",
+                        ],
+                    )
+                ],
                 debug=True,
             )
 
@@ -422,7 +437,12 @@ class TestVtableAliasSupport(unittest.IsolatedAsyncioTestCase):
                     (
                         "CGameSystemReallocatingFactory_CSpawnGroupMgrGameSystem_Think",
                         "CGameSystemReallocatingFactory_CSpawnGroupMgrGameSystem",
-                        True,
+                    )
+                ],
+                generate_yaml_desired_fields=[
+                    (
+                        "CGameSystemReallocatingFactory_CSpawnGroupMgrGameSystem_Think",
+                        ["func_name", "vtable_name", "vfunc_offset", "vfunc_index"],
                     )
                 ],
                 mangled_class_names=alias_map,
@@ -444,6 +464,407 @@ class TestVtableAliasSupport(unittest.IsolatedAsyncioTestCase):
         written_payload = mock_write_func_yaml.call_args.args[1]
         self.assertEqual(1, written_payload["vfunc_index"])
         self.assertEqual("0x8", written_payload["vfunc_offset"])
+
+
+class TestGenerateYamlDesiredFieldsContract(unittest.IsolatedAsyncioTestCase):
+    async def test_preprocess_common_skill_rejects_missing_generate_yaml_desired_fields(
+        self,
+    ) -> None:
+        with patch.object(
+            ida_analyze_util,
+            "preprocess_func_sig_via_mcp",
+            AsyncMock(
+                return_value={
+                    "func_name": "Foo",
+                    "func_va": "0x180004000",
+                    "func_rva": "0x4000",
+                    "func_size": "0x40",
+                    "func_sig": "AA BB",
+                }
+            ),
+        ) as mock_preprocess_func_sig, patch.object(
+            ida_analyze_util,
+            "write_func_yaml",
+        ) as mock_write_func_yaml, patch.object(
+            ida_analyze_util,
+            "_rename_func_in_ida",
+            AsyncMock(return_value=None),
+        ):
+            result = await ida_analyze_util.preprocess_common_skill(
+                session="session",
+                expected_outputs=["/tmp/Foo.windows.yaml"],
+                old_yaml_map={},
+                new_binary_dir="/tmp",
+                platform="windows",
+                image_base=0x180000000,
+                func_names=["Foo"],
+                generate_yaml_desired_fields=None,
+                debug=True,
+            )
+
+        self.assertFalse(result)
+        mock_preprocess_func_sig.assert_not_awaited()
+        mock_write_func_yaml.assert_not_called()
+
+    async def test_preprocess_common_skill_rejects_missing_desired_fields_before_any_write(
+        self,
+    ) -> None:
+        with patch.object(
+            ida_analyze_util,
+            "preprocess_func_sig_via_mcp",
+            AsyncMock(
+                return_value={
+                    "func_name": "Foo",
+                    "func_va": "0x180004000",
+                    "func_rva": "0x4000",
+                    "func_size": "0x40",
+                    "func_sig": "AA BB",
+                }
+            ),
+        ) as mock_preprocess_func_sig, patch.object(
+            ida_analyze_util,
+            "preprocess_vtable_via_mcp",
+            AsyncMock(
+                return_value={
+                    "vtable_class": "Bar",
+                    "vtable_symbol": "??_7Bar@@6B@",
+                    "vtable_va": "0x180001000",
+                    "vtable_rva": "0x1000",
+                    "vtable_size": "0x20",
+                    "vtable_numvfunc": 2,
+                    "vtable_entries": {0: "0x180003000", 1: "0x180004000"},
+                }
+            ),
+        ) as mock_preprocess_vtable, patch.object(
+            ida_analyze_util,
+            "write_func_yaml",
+        ) as mock_write_func_yaml, patch.object(
+            ida_analyze_util,
+            "write_vtable_yaml",
+        ) as mock_write_vtable_yaml:
+            result = await ida_analyze_util.preprocess_common_skill(
+                session="session",
+                expected_outputs=[
+                    "/tmp/Foo.windows.yaml",
+                    "/tmp/Bar_vtable.windows.yaml",
+                ],
+                old_yaml_map={},
+                new_binary_dir="/tmp",
+                platform="windows",
+                image_base=0x180000000,
+                func_names=["Foo"],
+                vtable_class_names=["Bar"],
+                generate_yaml_desired_fields=[("Foo", ["func_name"])],
+                debug=True,
+            )
+
+        self.assertFalse(result)
+        mock_preprocess_func_sig.assert_not_awaited()
+        mock_preprocess_vtable.assert_not_awaited()
+        mock_write_func_yaml.assert_not_called()
+        mock_write_vtable_yaml.assert_not_called()
+
+    async def test_preprocess_common_skill_filters_func_payload_by_desired_fields(
+        self,
+    ) -> None:
+        with patch.object(
+            ida_analyze_util,
+            "preprocess_func_sig_via_mcp",
+            AsyncMock(
+                return_value={
+                    "func_name": "Foo",
+                    "func_va": "0x180004000",
+                    "func_rva": "0x4000",
+                    "func_size": "0x40",
+                    "func_sig": "AA BB",
+                }
+            ),
+        ), patch.object(
+            ida_analyze_util,
+            "preprocess_vtable_via_mcp",
+            AsyncMock(
+                return_value={
+                    "vtable_class": "Bar",
+                    "vtable_symbol": "??_7Bar@@6B@",
+                    "vtable_va": "0x180001000",
+                    "vtable_rva": "0x1000",
+                    "vtable_size": "0x20",
+                    "vtable_numvfunc": 2,
+                    "vtable_entries": {
+                        0: "0x180003000",
+                        1: "0x180004000",
+                    },
+                }
+            ),
+        ) as mock_preprocess_vtable, patch.object(
+            ida_analyze_util,
+            "write_func_yaml",
+        ) as mock_write_func_yaml, patch.object(
+            ida_analyze_util,
+            "_rename_func_in_ida",
+            AsyncMock(return_value=None),
+        ):
+            result = await ida_analyze_util.preprocess_common_skill(
+                session="session",
+                expected_outputs=["/tmp/Foo.windows.yaml"],
+                old_yaml_map={},
+                new_binary_dir="/tmp",
+                platform="windows",
+                image_base=0x180000000,
+                func_names=["Foo"],
+                func_vtable_relations=[("Foo", "Bar")],
+                generate_yaml_desired_fields=[
+                    ("Foo", ["func_name", "vtable_name", "vfunc_offset", "vfunc_index"])
+                ],
+                debug=True,
+            )
+
+        self.assertTrue(result)
+        mock_preprocess_vtable.assert_awaited_once_with(
+            session="session",
+            class_name="Bar",
+            image_base=0x180000000,
+            platform="windows",
+            debug=True,
+            symbol_aliases=None,
+        )
+        mock_write_func_yaml.assert_called_once()
+        self.assertEqual(
+            {
+                "func_name": "Foo",
+                "vtable_name": "Bar",
+                "vfunc_offset": "0x8",
+                "vfunc_index": 1,
+            },
+            mock_write_func_yaml.call_args.args[1],
+        )
+
+    async def test_preprocess_common_skill_rejects_missing_requested_func_field(
+        self,
+    ) -> None:
+        with patch.object(
+            ida_analyze_util,
+            "preprocess_func_sig_via_mcp",
+            AsyncMock(
+                return_value={
+                    "func_name": "Foo",
+                    "func_va": "0x180004000",
+                    "func_sig": "AA BB",
+                }
+            ),
+        ), patch.object(
+            ida_analyze_util,
+            "write_func_yaml",
+        ) as mock_write_func_yaml, patch.object(
+            ida_analyze_util,
+            "_rename_func_in_ida",
+            AsyncMock(return_value=None),
+        ) as mock_rename_func:
+            result = await ida_analyze_util.preprocess_common_skill(
+                session="session",
+                expected_outputs=["/tmp/Foo.windows.yaml"],
+                old_yaml_map={},
+                new_binary_dir="/tmp",
+                platform="windows",
+                image_base=0x180000000,
+                func_names=["Foo"],
+                generate_yaml_desired_fields=[("Foo", ["func_name", "func_va", "func_rva"])],
+                debug=True,
+            )
+
+        self.assertFalse(result)
+        mock_write_func_yaml.assert_not_called()
+        mock_rename_func.assert_not_awaited()
+
+    async def test_preprocess_common_skill_does_not_rename_when_write_fails(
+        self,
+    ) -> None:
+        with patch.object(
+            ida_analyze_util,
+            "preprocess_func_sig_via_mcp",
+            AsyncMock(
+                return_value={
+                    "func_name": "Foo",
+                    "func_va": "0x180004000",
+                    "func_sig": "AA BB",
+                }
+            ),
+        ), patch.object(
+            ida_analyze_util,
+            "write_func_yaml",
+            side_effect=OSError("boom"),
+        ), patch.object(
+            ida_analyze_util,
+            "_rename_func_in_ida",
+            AsyncMock(return_value=None),
+        ) as mock_rename_func:
+            with self.assertRaises(OSError):
+                await ida_analyze_util.preprocess_common_skill(
+                    session="session",
+                    expected_outputs=["/tmp/Foo.windows.yaml"],
+                    old_yaml_map={},
+                    new_binary_dir="/tmp",
+                    platform="windows",
+                    image_base=0x180000000,
+                    func_names=["Foo"],
+                    generate_yaml_desired_fields=[("Foo", ["func_name"])],
+                    debug=True,
+                )
+
+        mock_rename_func.assert_not_awaited()
+
+    async def test_preprocess_common_skill_defers_rename_until_all_targets_succeed(
+        self,
+    ) -> None:
+        async def _preprocess_func_side_effect(**kwargs):
+            func_name = kwargs["func_name"]
+            if func_name == "Foo":
+                return {
+                    "func_name": "Foo",
+                    "func_va": "0x180004000",
+                }
+            if func_name == "Bar":
+                return {
+                    "func_name": "Bar",
+                    "func_va": "0x180005000",
+                }
+            return None
+
+        with patch.object(
+            ida_analyze_util,
+            "preprocess_func_sig_via_mcp",
+            AsyncMock(side_effect=_preprocess_func_side_effect),
+        ), patch.object(
+            ida_analyze_util,
+            "write_func_yaml",
+        ) as mock_write_func_yaml, patch.object(
+            ida_analyze_util,
+            "_rename_func_in_ida",
+            AsyncMock(return_value=None),
+        ) as mock_rename_func:
+            result = await ida_analyze_util.preprocess_common_skill(
+                session="session",
+                expected_outputs=[
+                    "/tmp/Foo.windows.yaml",
+                    "/tmp/Bar.windows.yaml",
+                ],
+                old_yaml_map={},
+                new_binary_dir="/tmp",
+                platform="windows",
+                image_base=0x180000000,
+                func_names=["Foo", "Bar"],
+                generate_yaml_desired_fields=[
+                    ("Foo", ["func_name"]),
+                    ("Bar", ["func_name", "func_rva"]),
+                ],
+                debug=True,
+            )
+
+        self.assertFalse(result)
+        mock_write_func_yaml.assert_called_once_with(
+            "/tmp/Foo.windows.yaml",
+            {"func_name": "Foo"},
+        )
+        mock_rename_func.assert_not_awaited()
+
+    async def test_preprocess_common_skill_renames_after_all_writes_succeed(
+        self,
+    ) -> None:
+        events = []
+
+        async def _rename_side_effect(_session, _func_va_hex, func_name, _debug):
+            events.append(("rename", func_name))
+
+        with patch.object(
+            ida_analyze_util,
+            "preprocess_func_sig_via_mcp",
+            AsyncMock(
+                side_effect=[
+                    {"func_name": "Foo", "func_va": "0x180001000", "func_sig": "AA"},
+                    {"func_name": "Bar", "func_va": "0x180002000", "func_sig": "BB"},
+                ]
+            ),
+        ), patch.object(
+            ida_analyze_util,
+            "write_func_yaml",
+        ) as mock_write_func_yaml, patch.object(
+            ida_analyze_util,
+            "_rename_func_in_ida",
+            AsyncMock(side_effect=_rename_side_effect),
+        ):
+            mock_write_func_yaml.side_effect = (
+                lambda path, _data: events.append(("write", path))
+            )
+            result = await ida_analyze_util.preprocess_common_skill(
+                session="session",
+                expected_outputs=[
+                    "/tmp/Foo.windows.yaml",
+                    "/tmp/Bar.windows.yaml",
+                ],
+                old_yaml_map={},
+                new_binary_dir="/tmp",
+                platform="windows",
+                image_base=0x180000000,
+                func_names=["Foo", "Bar"],
+                generate_yaml_desired_fields=[
+                    ("Foo", ["func_name"]),
+                    ("Bar", ["func_name"]),
+                ],
+                debug=True,
+            )
+
+        self.assertTrue(result)
+        self.assertEqual(
+            [
+                ("write", "/tmp/Foo.windows.yaml"),
+                ("write", "/tmp/Bar.windows.yaml"),
+                ("rename", "Foo"),
+                ("rename", "Bar"),
+            ],
+            events,
+        )
+
+    async def test_preprocess_common_skill_filters_vtable_payload_by_desired_fields(
+        self,
+    ) -> None:
+        with patch.object(
+            ida_analyze_util,
+            "preprocess_vtable_via_mcp",
+            AsyncMock(
+                return_value={
+                    "vtable_class": "Foo",
+                    "vtable_symbol": "??_7Foo@@6B@",
+                    "vtable_va": "0x180001000",
+                    "vtable_rva": "0x1000",
+                    "vtable_size": "0x20",
+                    "vtable_numvfunc": 4,
+                    "vtable_entries": {0: "0x180010000"},
+                }
+            ),
+        ), patch.object(
+            ida_analyze_util,
+            "write_vtable_yaml",
+        ) as mock_write_vtable_yaml:
+            result = await ida_analyze_util.preprocess_common_skill(
+                session="session",
+                expected_outputs=["/tmp/Foo_vtable.windows.yaml"],
+                vtable_class_names=["Foo"],
+                platform="windows",
+                image_base=0x180000000,
+                generate_yaml_desired_fields=[
+                    ("Foo", ["vtable_class", "vtable_entries"])
+                ],
+                debug=True,
+            )
+
+        self.assertTrue(result)
+        mock_write_vtable_yaml.assert_called_once_with(
+            "/tmp/Foo_vtable.windows.yaml",
+            {
+                "vtable_class": "Foo",
+                "vtable_entries": {0: "0x180010000"},
+            },
+        )
 
 
 class TestLlmDecompileSupport(unittest.IsolatedAsyncioTestCase):
@@ -845,7 +1266,13 @@ found_struct_offset: []
                     platform="windows",
                     image_base=0x180000000,
                     func_names=[func_name],
-                    func_vtable_relations=[(func_name, "CLoopModeGame", True)],
+                    func_vtable_relations=[(func_name, "CLoopModeGame")],
+                    generate_yaml_desired_fields=[
+                        (
+                            func_name,
+                            ["func_name", "vtable_name", "vfunc_offset", "vfunc_index"],
+                        )
+                    ],
                     llm_decompile_specs=[
                         (
                             func_name,
@@ -936,7 +1363,13 @@ found_struct_offset: []
                     platform="windows",
                     image_base=0x180000000,
                     func_names=[func_name],
-                    func_vtable_relations=[(func_name, "CLoopModeGame", True)],
+                    func_vtable_relations=[(func_name, "CLoopModeGame")],
+                    generate_yaml_desired_fields=[
+                        (
+                            func_name,
+                            ["func_name", "vtable_name", "vfunc_offset", "vfunc_index"],
+                        )
+                    ],
                     llm_decompile_specs=[
                         (
                             func_name,
@@ -1068,6 +1501,7 @@ found_struct_offset: []
                     platform="windows",
                     image_base=0x180000000,
                     func_names=[func_name],
+                    generate_yaml_desired_fields=[(func_name, ["func_name", "func_va"])],
                     llm_decompile_specs=[
                         (
                             func_name,
@@ -1200,7 +1634,13 @@ found_struct_offset: []
                     platform="windows",
                     image_base=0x180000000,
                     func_names=[func_name],
-                    func_vtable_relations=[(func_name, "CNetworkMessages", True)],
+                    func_vtable_relations=[(func_name, "CNetworkMessages")],
+                    generate_yaml_desired_fields=[
+                        (
+                            func_name,
+                            ["func_name", "vtable_name", "vfunc_offset", "vfunc_index"],
+                        )
+                    ],
                     llm_decompile_specs=[
                         (
                             func_name,

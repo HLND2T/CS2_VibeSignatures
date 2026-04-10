@@ -205,8 +205,93 @@ def _normalize_mangled_class_names(mangled_class_names, debug=False):
     return normalized
 
 
+def _normalize_generate_yaml_desired_fields(generate_yaml_desired_fields, debug=False):
+    if not generate_yaml_desired_fields:
+        if debug:
+            print("    Preprocess: missing generate_yaml_desired_fields")
+        return None
+
+    normalized = {}
+    for spec in generate_yaml_desired_fields:
+        if not isinstance(spec, (tuple, list)) or len(spec) != 2:
+            if debug:
+                print(f"    Preprocess: invalid desired-fields spec: {spec}")
+            return None
+
+        symbol_name, desired_fields = spec
+        if not isinstance(symbol_name, str) or not symbol_name:
+            if debug:
+                print(f"    Preprocess: invalid desired-fields symbol: {symbol_name}")
+            return None
+        if symbol_name in normalized:
+            if debug:
+                print(f"    Preprocess: duplicated desired-fields symbol: {symbol_name}")
+            return None
+        if not isinstance(desired_fields, (tuple, list)) or not desired_fields:
+            if debug:
+                print(f"    Preprocess: empty desired-fields for {symbol_name}")
+            return None
+
+        desired_field_list = list(desired_fields)
+        if any(not isinstance(field_name, str) or not field_name for field_name in desired_field_list):
+            if debug:
+                print(f"    Preprocess: invalid desired field list for {symbol_name}")
+            return None
+        normalized[symbol_name] = desired_field_list
+
+    return normalized
+
+
+def _build_target_kind_map(
+    func_names,
+    gv_names,
+    patch_names,
+    struct_member_names,
+    vtable_class_names,
+    inherit_vfuncs,
+    func_xrefs_map,
+    debug=False,
+):
+    target_kind_map = {}
+
+    def _register(symbol_name, target_kind):
+        existing_kind = target_kind_map.get(symbol_name)
+        if existing_kind is not None and existing_kind != target_kind:
+            if debug:
+                print(
+                    f"    Preprocess: symbol kind conflict for {symbol_name}: "
+                    f"{existing_kind} vs {target_kind}"
+                )
+            return False
+        target_kind_map[symbol_name] = target_kind
+        return True
+
+    for func_name in list(func_names) + list(func_xrefs_map):
+        if not _register(func_name, "func"):
+            return None
+    for inherit_spec in inherit_vfuncs:
+        if not _register(inherit_spec[0], "func"):
+            return None
+    for gv_name in gv_names:
+        if not _register(gv_name, "gv"):
+            return None
+    for patch_name in patch_names:
+        if not _register(patch_name, "patch"):
+            return None
+    for struct_member_name in struct_member_names:
+        if not _register(struct_member_name, "struct_member"):
+            return None
+    for class_name in vtable_class_names:
+        if not _register(class_name, "vtable"):
+            return None
+
+    return target_kind_map
+
+
 def _get_mangled_class_aliases(mangled_class_names, class_name):
     aliases = (mangled_class_names or {}).get(class_name, [])
+    if not aliases:
+        return None
     return list(aliases)
 
 
@@ -279,22 +364,106 @@ def _build_vtable_py_eval(class_name, symbol_aliases=None):
     )
 
 
+FUNC_YAML_ORDER = [
+    "func_name",
+    "func_va",
+    "func_rva",
+    "func_size",
+    "func_sig",
+    "vtable_name",
+    "vfunc_offset",
+    "vfunc_index",
+    "vfunc_sig",
+]
+GV_YAML_ORDER = [
+    "gv_name",
+    "gv_va",
+    "gv_rva",
+    "gv_sig",
+    "gv_sig_va",
+    "gv_inst_offset",
+    "gv_inst_length",
+    "gv_inst_disp",
+]
+VTABLE_YAML_ORDER = [
+    "vtable_class",
+    "vtable_symbol",
+    "vtable_va",
+    "vtable_rva",
+    "vtable_size",
+    "vtable_numvfunc",
+    "vtable_entries",
+]
+PATCH_YAML_ORDER = ["patch_name", "patch_sig", "patch_bytes"]
+STRUCT_MEMBER_YAML_ORDER = [
+    "struct_name",
+    "member_name",
+    "offset",
+    "size",
+    "offset_sig",
+    "offset_sig_disp",
+]
+TARGET_KIND_TO_FIELD_ORDER = {
+    "func": FUNC_YAML_ORDER,
+    "gv": GV_YAML_ORDER,
+    "vtable": VTABLE_YAML_ORDER,
+    "patch": PATCH_YAML_ORDER,
+    "struct_member": STRUCT_MEMBER_YAML_ORDER,
+}
+TARGET_KIND_TO_FIELD_SET = {
+    kind: set(field_order)
+    for kind, field_order in TARGET_KIND_TO_FIELD_ORDER.items()
+}
+
+
+def _build_ordered_yaml_payload(data, ordered_keys):
+    payload = {}
+    for key in ordered_keys:
+        if key not in data:
+            continue
+        value = data[key]
+        if key == "vtable_entries":
+            normalized_entries = {
+                int(entry_index): str(entry_value)
+                for entry_index, entry_value in value.items()
+            }
+            payload[key] = dict(sorted(normalized_entries.items()))
+            continue
+        if key.endswith("_va") or key.endswith("_rva") or key.endswith("_size"):
+            payload[key] = str(value)
+            continue
+        payload[key] = value
+    return payload
+
+
+def _assemble_symbol_payload(symbol_name, target_kind, candidate_data, desired_fields_map, debug=False):
+    desired_fields = desired_fields_map.get(symbol_name)
+    if desired_fields is None:
+        if debug:
+            print(f"    Preprocess: missing desired-fields entry for {symbol_name}")
+        return None
+
+    payload = {}
+    for field_name in desired_fields:
+        if field_name not in candidate_data:
+            if debug:
+                print(
+                    f"    Preprocess: missing desired field {field_name} "
+                    f"for {symbol_name}"
+                )
+            return None
+        payload[field_name] = candidate_data[field_name]
+
+    ordered_keys = TARGET_KIND_TO_FIELD_ORDER[target_kind]
+    return _build_ordered_yaml_payload(payload, ordered_keys)
+
+
 def write_vtable_yaml(path, data):
     """Write vtable YAML matching the format produced by write-vtable-as-yaml skill."""
     if yaml is None:
         raise RuntimeError("PyYAML is required to write vtable YAML")
 
-    raw_entries = data.get("vtable_entries", {})
-    normalized_entries = {int(k): str(v) for k, v in raw_entries.items()}
-    payload = {
-        "vtable_class": data["vtable_class"],
-        "vtable_symbol": data["vtable_symbol"],
-        "vtable_va": str(data["vtable_va"]),
-        "vtable_rva": str(data["vtable_rva"]),
-        "vtable_size": str(data["vtable_size"]),
-        "vtable_numvfunc": data["vtable_numvfunc"],
-        "vtable_entries": dict(sorted(normalized_entries.items())),
-    }
+    payload = _build_ordered_yaml_payload(data, VTABLE_YAML_ORDER)
 
     with open(path, "w", encoding="utf-8") as f:
         yaml.safe_dump(
@@ -310,11 +479,7 @@ def write_func_yaml(path, data):
     if yaml is None:
         raise RuntimeError("PyYAML is required to write function YAML")
 
-    ordered_keys = [
-        "func_name", "func_va", "func_rva", "func_size", "func_sig",
-        "vtable_name", "vfunc_offset", "vfunc_index", "vfunc_sig",
-    ]
-    payload = {key: data[key] for key in ordered_keys if key in data}
+    payload = _build_ordered_yaml_payload(data, FUNC_YAML_ORDER)
 
     with open(path, "w", encoding="utf-8") as f:
         yaml.safe_dump(
@@ -330,12 +495,7 @@ def write_gv_yaml(path, data):
     if yaml is None:
         raise RuntimeError("PyYAML is required to write global-variable YAML")
 
-    ordered_keys = [
-        "gv_name",
-        "gv_va", "gv_rva", "gv_sig", "gv_sig_va",
-        "gv_inst_offset", "gv_inst_length", "gv_inst_disp",
-    ]
-    payload = {key: data[key] for key in ordered_keys if key in data}
+    payload = _build_ordered_yaml_payload(data, GV_YAML_ORDER)
 
     with open(path, "w", encoding="utf-8") as f:
         yaml.safe_dump(
@@ -354,12 +514,7 @@ def write_patch_yaml(path, data):
     if yaml is None:
         raise RuntimeError("PyYAML is required to write patch YAML")
 
-    ordered_keys = [
-        "patch_name",
-        "patch_sig",
-        "patch_bytes",
-    ]
-    payload = {key: data[key] for key in ordered_keys if key in data}
+    payload = _build_ordered_yaml_payload(data, PATCH_YAML_ORDER)
 
     with open(path, "w", encoding="utf-8") as f:
         yaml.safe_dump(
@@ -375,15 +530,7 @@ def write_struct_offset_yaml(path, data):
     if yaml is None:
         raise RuntimeError("PyYAML is required to write struct offset YAML")
 
-    ordered_keys = [
-        "struct_name",
-        "member_name",
-        "offset",
-        "size",
-        "offset_sig",
-        "offset_sig_disp",
-    ]
-    payload = {key: data[key] for key in ordered_keys if key in data}
+    payload = _build_ordered_yaml_payload(data, STRUCT_MEMBER_YAML_ORDER)
 
     with open(path, "w", encoding="utf-8") as f:
         yaml.safe_dump(
@@ -4011,6 +4158,7 @@ async def preprocess_common_skill(
     inherit_vfuncs=None,
     func_xrefs=None,
     func_vtable_relations=None,
+    generate_yaml_desired_fields=None,
     llm_decompile_specs=None,
     llm_config=None,
     mangled_class_names=None,
@@ -4050,14 +4198,10 @@ async def preprocess_common_skill(
       that has a matching func-xref entry, or as the sole resolution method
       for func targets that only appear in this list.
     - ``func_vtable_relations``: enrich located function YAML with vtable
-      metadata.  Each element is a tuple of
-      ``(func_name, vtable_class, generate_vfunc_offset)``.  After a
-      function is located (via ``preprocess_func_sig_via_mcp`` or unified
-      ``func_xrefs`` fallback),
-      ``vtable_name`` is always populated.  When *generate_vfunc_offset*
-      is True, the vtable is looked up via ``preprocess_vtable_via_mcp``
-      and the function's address is matched against vtable entries to
-      populate ``vfunc_offset`` and ``vfunc_index``.
+      metadata.  Each element is a tuple of ``(func_name, vtable_class)``.
+    - ``generate_yaml_desired_fields``: required list of
+      ``(symbol_name, desired_field_names)`` tuples that defines the exact YAML
+      payload fields to emit per symbol.
 
     Args:
         session: Active MCP ClientSession.
@@ -4079,9 +4223,10 @@ async def preprocess_common_skill(
             tuples for unified xref-based function lookup (may be empty/None).
             Dependency and exclude function addresses are read only from
             current-version YAML files.
-        func_vtable_relations: List of (func_name, vtable_class,
-            generate_vfunc_offset) tuples for enriching function YAML with
-            vtable metadata (may be empty/None).
+        func_vtable_relations: List of (func_name, vtable_class) tuples for
+            enriching function YAML with vtable metadata (may be empty/None).
+        generate_yaml_desired_fields: Required desired output fields per
+            symbol name.
         llm_decompile_specs: Optional LLM decompile spec tuples of
             (func_name, prompt_path, reference_yaml_path).
         llm_config: Optional LLM config dict for llm_decompile fallback.
@@ -4104,6 +4249,12 @@ async def preprocess_common_skill(
         debug=debug,
     )
     if normalized_mangled_class_names is None:
+        return False
+    desired_fields_map = _normalize_generate_yaml_desired_fields(
+        generate_yaml_desired_fields,
+        debug=debug,
+    )
+    if desired_fields_map is None:
         return False
     llm_decompile_specs_map = _build_llm_decompile_specs_map(
         llm_decompile_specs,
@@ -4183,10 +4334,67 @@ async def preprocess_common_skill(
             "exclude_funcs": exclude_funcs,
         }
 
-    # Build vtable-relation lookup: func_name -> (vtable_class, generate_vfunc_offset)
+    target_kind_map = _build_target_kind_map(
+        func_names,
+        gv_names,
+        patch_names,
+        struct_member_names,
+        vtable_class_names,
+        inherit_vfuncs,
+        func_xrefs_map,
+        debug=debug,
+    )
+    if target_kind_map is None:
+        return False
+
+    for symbol_name, desired_fields in desired_fields_map.items():
+        target_kind = target_kind_map.get(symbol_name)
+        if target_kind is None:
+            if debug:
+                print(f"    Preprocess: unknown desired-fields symbol: {symbol_name}")
+            return False
+        allowed_fields = TARGET_KIND_TO_FIELD_SET[target_kind]
+        invalid_fields = [
+            field_name for field_name in desired_fields
+            if field_name not in allowed_fields
+        ]
+        if invalid_fields:
+            if debug:
+                print(
+                    f"    Preprocess: invalid desired fields for {symbol_name}: "
+                    f"{invalid_fields}"
+                )
+            return False
+
+    for symbol_name in target_kind_map:
+        if symbol_name not in desired_fields_map:
+            if debug:
+                print(
+                    f"    Preprocess: missing desired-fields for target symbol: "
+                    f"{symbol_name}"
+                )
+            return False
+
+    # Build vtable-relation lookup: func_name -> vtable_class
     vtable_relations_map = {}
     for spec in func_vtable_relations:
-        vtable_relations_map[spec[0]] = (spec[1], spec[2])
+        if not isinstance(spec, (tuple, list)) or len(spec) != 2:
+            if debug:
+                print(f"    Preprocess: invalid func_vtable_relations spec: {spec}")
+            return False
+        func_name, vtable_class = spec
+        if not isinstance(func_name, str) or not func_name:
+            if debug:
+                print(f"    Preprocess: invalid func_vtable_relations target: {func_name}")
+            return False
+        if not isinstance(vtable_class, str) or not vtable_class:
+            if debug:
+                print(f"    Preprocess: invalid func_vtable_relations class: {vtable_class}")
+            return False
+        vtable_relations_map[func_name] = vtable_class
+
+    pending_func_renames = []
+    pending_gv_renames = []
 
     # --- vtable targets ---
     for vtable_class in vtable_class_names:
@@ -4218,7 +4426,16 @@ async def preprocess_common_skill(
         if vtable_data is None:
             return False
 
-        write_vtable_yaml(target_outputs[0], vtable_data)
+        payload = _assemble_symbol_payload(
+            vtable_class,
+            "vtable",
+            vtable_data,
+            desired_fields_map,
+            debug=debug,
+        )
+        if payload is None:
+            return False
+        write_vtable_yaml(target_outputs[0], payload)
         if debug:
             print(f"    Preprocess: generated {target_filename}")
 
@@ -4284,13 +4501,22 @@ async def preprocess_common_skill(
                     generate_func_sig=gen_func_sig,
                     debug=debug,
                 )
-                if func_data is None:
-                    if debug:
-                        print(f"    Preprocess: failed to locate {func_name}")
-                    return False
+            if func_data is None:
+                if debug:
+                    print(f"    Preprocess: failed to locate {func_name}")
+                return False
 
-            await _rename_func_in_ida(session, func_data.get("func_va"), func_name, debug)
-            write_func_yaml(target_output, func_data)
+            payload = _assemble_symbol_payload(
+                func_name,
+                "func",
+                func_data,
+                desired_fields_map,
+                debug=debug,
+            )
+            if payload is None:
+                return False
+            write_func_yaml(target_output, payload)
+            pending_func_renames.append((func_data.get("func_va"), func_name))
             if debug:
                 print(f"    Preprocess: generated {func_name}.{platform}.yaml")
 
@@ -4304,6 +4530,10 @@ async def preprocess_common_skill(
     all_func_names = list(func_names) + xref_only_names
 
     if not all_func_names and not gv_names and not patch_names and not struct_member_names:
+        for func_va_hex, func_name in pending_func_renames:
+            await _rename_func_in_ida(session, func_va_hex, func_name, debug)
+        for gv_va_hex, gv_name in pending_gv_renames:
+            await _rename_gv_in_ida(session, gv_va_hex, gv_name, debug)
         return True
 
     # Build expected filename -> (kind, name) mapping
@@ -4316,7 +4546,7 @@ async def preprocess_common_skill(
     for patch_name in patch_names:
         expected_by_filename[f"{patch_name}.{platform}.yaml"] = ("patch", patch_name)
     for struct_member_name in struct_member_names:
-        expected_by_filename[f"{struct_member_name}.{platform}.yaml"] = ("struct", struct_member_name)
+        expected_by_filename[f"{struct_member_name}.{platform}.yaml"] = ("struct_member", struct_member_name)
 
     # Match expected outputs
     matched_func_outputs = {}
@@ -4335,7 +4565,7 @@ async def preprocess_common_skill(
             matched_gv_outputs[name] = path
         elif kind == "patch":
             matched_patch_outputs[name] = path
-        else:
+        elif kind == "struct_member":
             matched_struct_outputs[name] = path
 
     # Validate all expected outputs are present
@@ -4378,7 +4608,7 @@ async def preprocess_common_skill(
             # candidates during xref intersection.
             xref_vtable_class = None
             if func_name in vtable_relations_map:
-                xref_vtable_class = vtable_relations_map[func_name][0]
+                xref_vtable_class = vtable_relations_map[func_name]
             func_data = await preprocess_func_xrefs_via_mcp(
                 session=session,
                 func_name=func_name,
@@ -4450,7 +4680,7 @@ async def preprocess_common_skill(
                     break
             vtable_class = None
             if func_data is None and func_name in vtable_relations_map:
-                vtable_class = vtable_relations_map[func_name][0]
+                vtable_class = vtable_relations_map[func_name]
             for entry in llm_result.get("found_vcall", []):
                 if vtable_class is None:
                     break
@@ -4472,7 +4702,7 @@ async def preprocess_common_skill(
             if func_data is None:
                 fallback_vtable_name = None
                 if func_name in vtable_relations_map:
-                    fallback_vtable_name = vtable_relations_map[func_name][0]
+                    fallback_vtable_name = vtable_relations_map[func_name]
                 func_data = _build_slot_only_vfunc_payload_from_llm_result(
                     func_name,
                     llm_result,
@@ -4485,64 +4715,98 @@ async def preprocess_common_skill(
                 print(f"    Preprocess: failed to locate {func_name}")
             return False
 
+        desired_fields = desired_fields_map.get(func_name)
+        if desired_fields is None:
+            if debug:
+                print(f"    Preprocess: missing desired-fields entry for {func_name}")
+            return False
+        desired_fields_set = set(desired_fields)
+
         # Enrich with vtable metadata if a vtable relation is defined.
-        if func_name in vtable_relations_map:
-            vtable_class, generate_vfunc_offset = vtable_relations_map[func_name]
-            func_data["vtable_name"] = vtable_class
+        if "vtable_name" in desired_fields_set and func_name in vtable_relations_map:
+            func_data["vtable_name"] = vtable_relations_map[func_name]
 
-            if generate_vfunc_offset:
-                func_va_hex = func_data.get("func_va")
-                if func_va_hex:
-                    try:
-                        func_va_int = int(str(func_va_hex), 16)
-                    except (TypeError, ValueError):
-                        func_va_int = None
+        need_vfunc_slot = bool({"vfunc_offset", "vfunc_index"} & desired_fields_set)
+        need_compute_slot = need_vfunc_slot and (
+            "vfunc_offset" not in func_data or "vfunc_index" not in func_data
+        )
+        if need_compute_slot:
+            vtable_class = vtable_relations_map.get(func_name) or func_data.get("vtable_name")
+            if not isinstance(vtable_class, str) or not vtable_class:
+                if debug:
+                    print(
+                        f"    Preprocess: missing vtable class for slot enrichment of {func_name}"
+                    )
+                return False
 
-                    if func_va_int is not None:
-                        vtable_data = await preprocess_vtable_via_mcp(
-                            session=session,
-                            class_name=vtable_class,
-                            image_base=image_base,
-                            platform=platform,
-                            debug=debug,
-                            symbol_aliases=_get_mangled_class_aliases(
-                                normalized_mangled_class_names,
-                                vtable_class,
-                            ),
-                        )
-                        if vtable_data is not None:
-                            vtable_entries = vtable_data.get("vtable_entries", {})
-                            matched_index = None
-                            for idx, addr in vtable_entries.items():
-                                try:
-                                    if int(str(addr), 16) == func_va_int:
-                                        matched_index = int(idx)
-                                        break
-                                except (TypeError, ValueError):
-                                    continue
+            func_va_hex = func_data.get("func_va")
+            try:
+                func_va_int = int(str(func_va_hex), 16)
+            except (TypeError, ValueError):
+                if debug:
+                    print(
+                        f"    Preprocess: invalid func_va for slot enrichment of "
+                        f"{func_name}: {func_va_hex}"
+                    )
+                return False
 
-                            if matched_index is not None:
-                                func_data["vfunc_offset"] = hex(matched_index * 8)
-                                func_data["vfunc_index"] = matched_index
-                                if debug:
-                                    print(
-                                        f"    Preprocess: {func_name} matched "
-                                        f"{vtable_class} vtable index {matched_index} "
-                                        f"(offset {hex(matched_index * 8)})"
-                                    )
-                            elif debug:
-                                print(
-                                    f"    Preprocess: {func_name} at {func_va_hex} "
-                                    f"not found in {vtable_class} vtable entries"
-                                )
-                        elif debug:
-                            print(
-                                f"    Preprocess: failed to look up {vtable_class} "
-                                f"vtable for {func_name}"
-                            )
+            vtable_data = await preprocess_vtable_via_mcp(
+                session=session,
+                class_name=vtable_class,
+                image_base=image_base,
+                platform=platform,
+                debug=debug,
+                symbol_aliases=_get_mangled_class_aliases(
+                    normalized_mangled_class_names,
+                    vtable_class,
+                ),
+            )
+            if vtable_data is None:
+                if debug:
+                    print(
+                        f"    Preprocess: failed to look up {vtable_class} "
+                        f"vtable for {func_name}"
+                    )
+                return False
 
-        await _rename_func_in_ida(session, func_data.get("func_va"), func_name, debug)
-        write_func_yaml(target_output, func_data)
+            vtable_entries = vtable_data.get("vtable_entries", {})
+            matched_index = None
+            for idx, addr in vtable_entries.items():
+                try:
+                    if int(str(addr), 16) == func_va_int:
+                        matched_index = int(idx)
+                        break
+                except (TypeError, ValueError):
+                    continue
+
+            if matched_index is None:
+                if debug:
+                    print(
+                        f"    Preprocess: {func_name} at {func_va_hex} "
+                        f"not found in {vtable_class} vtable entries"
+                    )
+                return False
+
+            func_data["vfunc_offset"] = hex(matched_index * 8)
+            func_data["vfunc_index"] = matched_index
+            if debug:
+                print(
+                    f"    Preprocess: {func_name} matched "
+                    f"{vtable_class} vtable index {matched_index} "
+                    f"(offset {hex(matched_index * 8)})"
+                )
+
+        payload = _assemble_symbol_payload(
+            func_name,
+            "func",
+            func_data,
+            desired_fields_map,
+            debug=debug,
+        )
+        if payload is None:
+            return False
+        write_func_yaml(target_output, payload)
+        pending_func_renames.append((func_data.get("func_va"), func_name))
         if debug:
             print(f"    Preprocess: generated {func_name}.{platform}.yaml")
 
@@ -4566,8 +4830,17 @@ async def preprocess_common_skill(
                 print(f"    Preprocess: failed to locate {gv_name}")
             return False
 
-        await _rename_gv_in_ida(session, gv_data.get("gv_va"), gv_name, debug)
-        write_gv_yaml(target_output, gv_data)
+        payload = _assemble_symbol_payload(
+            gv_name,
+            "gv",
+            gv_data,
+            desired_fields_map,
+            debug=debug,
+        )
+        if payload is None:
+            return False
+        write_gv_yaml(target_output, payload)
+        pending_gv_renames.append((gv_data.get("gv_va"), gv_name))
         if debug:
             print(f"    Preprocess: generated {gv_name}.{platform}.yaml")
 
@@ -4591,7 +4864,16 @@ async def preprocess_common_skill(
                 print(f"    Preprocess: failed to locate {patch_name}")
             return False
 
-        write_patch_yaml(target_output, patch_data)
+        payload = _assemble_symbol_payload(
+            patch_name,
+            "patch",
+            patch_data,
+            desired_fields_map,
+            debug=debug,
+        )
+        if payload is None:
+            return False
+        write_patch_yaml(target_output, payload)
         if debug:
             print(f"    Preprocess: generated {patch_name}.{platform}.yaml")
 
@@ -4615,8 +4897,22 @@ async def preprocess_common_skill(
                 print(f"    Preprocess: failed to locate {struct_member_name}")
             return False
 
-        write_struct_offset_yaml(target_output, struct_data)
+        payload = _assemble_symbol_payload(
+            struct_member_name,
+            "struct_member",
+            struct_data,
+            desired_fields_map,
+            debug=debug,
+        )
+        if payload is None:
+            return False
+        write_struct_offset_yaml(target_output, payload)
         if debug:
             print(f"    Preprocess: generated {struct_member_name}.{platform}.yaml")
+
+    for func_va_hex, func_name in pending_func_renames:
+        await _rename_func_in_ida(session, func_va_hex, func_name, debug)
+    for gv_va_hex, gv_name in pending_gv_renames:
+        await _rename_gv_in_ida(session, gv_va_hex, gv_name, debug)
 
     return True

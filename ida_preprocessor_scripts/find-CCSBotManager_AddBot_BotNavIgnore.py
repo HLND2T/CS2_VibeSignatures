@@ -8,6 +8,18 @@ TARGET_PATCH_NAMES = [
 ]
 
 
+GENERATE_YAML_DESIRED_FIELDS = [
+    # (symbol_name, generate_yaml_fields)
+    (
+        "CCSBotManager_AddBot_BotNavIgnore",
+        [
+            "patch_name",
+            "patch_sig",
+            "patch_bytes",
+        ],
+    ),
+]
+
 async def preprocess_skill(
     session, skill_name, expected_outputs, old_yaml_map,
     new_binary_dir, platform, image_base, debug=False,
@@ -21,5 +33,6 @@ async def preprocess_skill(
         platform=platform,
         image_base=image_base,
         patch_names=TARGET_PATCH_NAMES,
+        generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
     )

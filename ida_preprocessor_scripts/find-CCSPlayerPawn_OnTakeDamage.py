@@ -11,6 +11,58 @@ INHERIT_VFUNCS=[
     ("CCSPlayerPawn_OnTakeDamage_Dead", "CCSPlayerPawn", "CBasePlayerPawn_OnTakeDamage_Dead", False),
 ]
 
+GENERATE_YAML_DESIRED_FIELDS = [
+    # (symbol_name, generate_yaml_fields)
+    (
+        "CCSPlayerPawn_OnTakeDamage",
+        [
+            "func_name",
+            "func_va",
+            "func_rva",
+            "func_size",
+            "vtable_name",
+            "vfunc_offset",
+            "vfunc_index",
+        ],
+    ),
+    (
+        "CCSPlayerPawn_OnTakeDamage_Alive",
+        [
+            "func_name",
+            "func_va",
+            "func_rva",
+            "func_size",
+            "vtable_name",
+            "vfunc_offset",
+            "vfunc_index",
+        ],
+    ),
+    (
+        "CCSPlayerPawn_OnTakeDamage_Dying",
+        [
+            "func_name",
+            "func_va",
+            "func_rva",
+            "func_size",
+            "vtable_name",
+            "vfunc_offset",
+            "vfunc_index",
+        ],
+    ),
+    (
+        "CCSPlayerPawn_OnTakeDamage_Dead",
+        [
+            "func_name",
+            "func_va",
+            "func_rva",
+            "func_size",
+            "vtable_name",
+            "vfunc_offset",
+            "vfunc_index",
+        ],
+    ),
+]
+
 async def preprocess_skill(
     session,
     skill_name,
@@ -32,5 +84,6 @@ async def preprocess_skill(
         platform=platform,
         image_base=image_base,
         inherit_vfuncs=INHERIT_VFUNCS,
+        generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
     )

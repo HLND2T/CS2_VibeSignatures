@@ -18,8 +18,25 @@ INHERIT_VFUNCS = [
 ]
 
 FUNC_VTABLE_RELATIONS = [
-    # (func_name, vtable_class, generate_vfunc_offset)
-    ("CNetworkMessages_FindNetworkGroup", "CNetworkMessages", True),
+    # (func_name, vtable_class)
+    ("CNetworkMessages_FindNetworkGroup", "CNetworkMessages"),
+]
+
+GENERATE_YAML_DESIRED_FIELDS = [
+    # (symbol_name, generate_yaml_fields)
+    (
+        "CNetworkMessages_FindNetworkGroup",
+        [
+            "func_name",
+            "func_va",
+            "func_rva",
+            "func_size",
+            "func_sig",
+            "vtable_name",
+            "vfunc_offset",
+            "vfunc_index",
+        ],
+    ),
 ]
 
 async def preprocess_skill(
@@ -39,5 +56,6 @@ async def preprocess_skill(
         func_vtable_relations=FUNC_VTABLE_RELATIONS,
         inherit_vfuncs=INHERIT_VFUNCS,
         llm_config=llm_config,
+        generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
     )

@@ -20,6 +20,20 @@ FUNC_XREFS = [
 ]
 
 
+GENERATE_YAML_DESIRED_FIELDS = [
+    # (symbol_name, generate_yaml_fields)
+    (
+        "CDemoRecorder_WriteSpawnGroups",
+        [
+            "func_name",
+            "func_va",
+            "func_rva",
+            "func_size",
+            "func_sig",
+        ],
+    ),
+]
+
 async def preprocess_skill(
     session, skill_name, expected_outputs, old_yaml_map,
     new_binary_dir, platform, image_base, debug=False,
@@ -34,5 +48,6 @@ async def preprocess_skill(
         image_base=image_base,
         func_names=TARGET_FUNCTION_NAMES,
         func_xrefs=FUNC_XREFS,
+        generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
     )

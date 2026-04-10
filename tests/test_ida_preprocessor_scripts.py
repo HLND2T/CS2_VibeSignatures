@@ -93,49 +93,19 @@ class TestFindCFlattenedSerializersCreateFieldChangedEventQueueImpl(
                 True,
             )
         ]
-
-        with patch.object(
-            module,
-            "preprocess_common_skill",
-            mock_preprocess_common_skill,
-        ):
-            result = await module.preprocess_skill(
-                session="session",
-                skill_name="skill",
-                expected_outputs=["out.yaml"],
-                old_yaml_map={"k": "v"},
-                new_binary_dir="bin_dir",
-                platform="windows",
-                image_base=0x180000000,
-                debug=True,
-            )
-
-        self.assertTrue(result)
-        mock_preprocess_common_skill.assert_awaited_once_with(
-            session="session",
-            expected_outputs=["out.yaml"],
-            old_yaml_map={"k": "v"},
-            new_binary_dir="bin_dir",
-            platform="windows",
-            image_base=0x180000000,
-            inherit_vfuncs=expected_inherit_vfuncs,
-            debug=True,
-        )
-
-
-class TestFindCNetworkMessagesSetIsForServerImpl(unittest.IsolatedAsyncioTestCase):
-    async def test_preprocess_skill_forwards_expected_inherit_vfuncs(self) -> None:
-        module = _load_module(
-            SET_IS_FOR_SERVER_SCRIPT_PATH,
-            "find_CNetworkMessages_SetIsForServer_impl",
-        )
-        mock_preprocess_common_skill = AsyncMock(return_value=True)
-        expected_inherit_vfuncs = [
+        expected_generate_yaml_desired_fields = [
             (
-                "CNetworkMessages_SetIsForServer",
-                "CNetworkMessages",
-                "../engine/CNetworkMessages_SetIsForServer",
-                True,
+                "CFlattenedSerializers_CreateFieldChangedEventQueue",
+                [
+                    "func_name",
+                    "func_va",
+                    "func_rva",
+                    "func_size",
+                    "func_sig",
+                    "vtable_name",
+                    "vfunc_offset",
+                    "vfunc_index",
+                ],
             )
         ]
 
@@ -164,6 +134,68 @@ class TestFindCNetworkMessagesSetIsForServerImpl(unittest.IsolatedAsyncioTestCas
             platform="windows",
             image_base=0x180000000,
             inherit_vfuncs=expected_inherit_vfuncs,
+            generate_yaml_desired_fields=expected_generate_yaml_desired_fields,
+            debug=True,
+        )
+
+
+class TestFindCNetworkMessagesSetIsForServerImpl(unittest.IsolatedAsyncioTestCase):
+    async def test_preprocess_skill_forwards_expected_inherit_vfuncs(self) -> None:
+        module = _load_module(
+            SET_IS_FOR_SERVER_SCRIPT_PATH,
+            "find_CNetworkMessages_SetIsForServer_impl",
+        )
+        mock_preprocess_common_skill = AsyncMock(return_value=True)
+        expected_inherit_vfuncs = [
+            (
+                "CNetworkMessages_SetIsForServer",
+                "CNetworkMessages",
+                "../engine/CNetworkMessages_SetIsForServer",
+                True,
+            )
+        ]
+        expected_generate_yaml_desired_fields = [
+            (
+                "CNetworkMessages_SetIsForServer",
+                [
+                    "func_name",
+                    "func_va",
+                    "func_rva",
+                    "func_size",
+                    "func_sig",
+                    "vtable_name",
+                    "vfunc_offset",
+                    "vfunc_index",
+                ],
+            )
+        ]
+
+        with patch.object(
+            module,
+            "preprocess_common_skill",
+            mock_preprocess_common_skill,
+        ):
+            result = await module.preprocess_skill(
+                session="session",
+                skill_name="skill",
+                expected_outputs=["out.yaml"],
+                old_yaml_map={"k": "v"},
+                new_binary_dir="bin_dir",
+                platform="windows",
+                image_base=0x180000000,
+                debug=True,
+            )
+
+        self.assertTrue(result)
+        mock_preprocess_common_skill.assert_awaited_once_with(
+            session="session",
+            expected_outputs=["out.yaml"],
+            old_yaml_map={"k": "v"},
+            new_binary_dir="bin_dir",
+            platform="windows",
+            image_base=0x180000000,
+            inherit_vfuncs=expected_inherit_vfuncs,
+            generate_yaml_desired_fields=expected_generate_yaml_desired_fields,
             debug=True,
         )
 
@@ -186,6 +218,20 @@ class TestFindCGameSystemReallocatingFactoryCSpawnGroupMgrGameSystemVtable(
                 "_ZTV30CGameSystemReallocatingFactoryI24CSpawnGroupMgrGameSystemS0_E",
             ]
         }
+        expected_generate_yaml_desired_fields = [
+            (
+                "CGameSystemReallocatingFactory_CSpawnGroupMgrGameSystem",
+                [
+                    "vtable_class",
+                    "vtable_symbol",
+                    "vtable_va",
+                    "vtable_rva",
+                    "vtable_size",
+                    "vtable_numvfunc",
+                    "vtable_entries",
+                ],
+            )
+        ]
 
         with patch.object(
             module,
@@ -209,6 +255,7 @@ class TestFindCGameSystemReallocatingFactoryCSpawnGroupMgrGameSystemVtable(
             expected_outputs=["out.yaml"],
             vtable_class_names=expected_vtable_class_names,
             mangled_class_names=expected_mangled_class_names,
+            generate_yaml_desired_fields=expected_generate_yaml_desired_fields,
             platform="windows",
             image_base=0x180000000,
             debug=True,
@@ -230,6 +277,21 @@ class TestFindCGameSystemReallocatingFactoryCSpawnGroupMgrGameSystemDeallocateIm
                 "CGameSystemReallocatingFactory_CSpawnGroupMgrGameSystem",
                 "../client/IGameSystemFactory_Deallocate",
                 True,
+            )
+        ]
+        expected_generate_yaml_desired_fields = [
+            (
+                "CGameSystemReallocatingFactory_CSpawnGroupMgrGameSystem_Deallocate",
+                [
+                    "func_name",
+                    "func_va",
+                    "func_rva",
+                    "func_size",
+                    "func_sig",
+                    "vtable_name",
+                    "vfunc_offset",
+                    "vfunc_index",
+                ],
             )
         ]
 
@@ -258,6 +320,7 @@ class TestFindCGameSystemReallocatingFactoryCSpawnGroupMgrGameSystemDeallocateIm
             platform="windows",
             image_base=0x180000000,
             inherit_vfuncs=expected_inherit_vfuncs,
+            generate_yaml_desired_fields=expected_generate_yaml_desired_fields,
             debug=True,
         )
 
@@ -405,7 +468,22 @@ class TestFindCNetworkMessagesFindNetworkGroup(unittest.IsolatedAsyncioTestCase)
             )
         ]
         expected_func_vtable_relations = [
-            ("CNetworkMessages_FindNetworkGroup", "CNetworkMessages", True)
+            ("CNetworkMessages_FindNetworkGroup", "CNetworkMessages")
+        ]
+        expected_generate_yaml_desired_fields = [
+            (
+                "CNetworkMessages_FindNetworkGroup",
+                [
+                    "func_name",
+                    "func_va",
+                    "func_rva",
+                    "func_size",
+                    "func_sig",
+                    "vtable_name",
+                    "vfunc_offset",
+                    "vfunc_index",
+                ],
+            )
         ]
         llm_config = {
             "model": "gpt-4.1-mini",
@@ -441,6 +519,7 @@ class TestFindCNetworkMessagesFindNetworkGroup(unittest.IsolatedAsyncioTestCase)
             func_names=["CNetworkMessages_FindNetworkGroup"],
             func_vtable_relations=expected_func_vtable_relations,
             inherit_vfuncs=expected_inherit_vfuncs,
+            generate_yaml_desired_fields=expected_generate_yaml_desired_fields,
             llm_config=llm_config,
             debug=True,
         )
@@ -461,7 +540,19 @@ class TestFindINetworkMessagesFindNetworkGroup(unittest.IsolatedAsyncioTestCase)
             )
         ]
         expected_func_vtable_relations = [
-            ("INetworkMessages_FindNetworkGroup", "CNetworkMessages", True)
+            ("INetworkMessages_FindNetworkGroup", "INetworkMessages")
+        ]
+        expected_generate_yaml_desired_fields = [
+            (
+                "INetworkMessages_FindNetworkGroup",
+                [
+                    "func_name",
+                    "vfunc_sig",
+                    "vfunc_offset",
+                    "vfunc_index",
+                    "vtable_name",
+                ],
+            )
         ]
         llm_config = {
             "model": "gpt-4.1-mini",
@@ -497,7 +588,52 @@ class TestFindINetworkMessagesFindNetworkGroup(unittest.IsolatedAsyncioTestCase)
             func_names=["INetworkMessages_FindNetworkGroup"],
             func_vtable_relations=expected_func_vtable_relations,
             llm_decompile_specs=expected_llm_decompile_specs,
+            generate_yaml_desired_fields=expected_generate_yaml_desired_fields,
             llm_config=llm_config,
+            debug=True,
+        )
+
+
+class TestFindCBaseEntityCollisionRulesChanged(unittest.IsolatedAsyncioTestCase):
+    async def test_preprocess_skill_forwards_generate_yaml_desired_fields(self) -> None:
+        module = _load_module(
+            "ida_preprocessor_scripts/find-CBaseEntity_CollisionRulesChanged.py",
+            "find_CBaseEntity_CollisionRulesChanged",
+        )
+        mock_preprocess_common_skill = AsyncMock(return_value=True)
+        expected_generate_yaml_desired_fields = [
+            (
+                "CBaseEntity_CollisionRulesChanged",
+                ["func_name", "func_va", "func_rva", "func_size", "func_sig"],
+            )
+        ]
+
+        with patch.object(
+            module,
+            "preprocess_common_skill",
+            mock_preprocess_common_skill,
+        ):
+            result = await module.preprocess_skill(
+                session="session",
+                skill_name="skill",
+                expected_outputs=["out.yaml"],
+                old_yaml_map={"k": "v"},
+                new_binary_dir="bin_dir",
+                platform="windows",
+                image_base=0x180000000,
+                debug=True,
+            )
+
+        self.assertTrue(result)
+        mock_preprocess_common_skill.assert_awaited_once_with(
+            session="session",
+            expected_outputs=["out.yaml"],
+            old_yaml_map={"k": "v"},
+            new_binary_dir="bin_dir",
+            platform="windows",
+            image_base=0x180000000,
+            func_names=["CBaseEntity_CollisionRulesChanged"],
+            generate_yaml_desired_fields=expected_generate_yaml_desired_fields,
             debug=True,
         )
 

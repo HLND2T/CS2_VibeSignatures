@@ -17,13 +17,22 @@ LLM_DECOMPILE = [
 ]
 
 FUNC_VTABLE_RELATIONS = [
-    # (func_name, vtable_class) <- we don't need "generate_vfunc_offset" anymore because we use GENERATE_YAML_DESIRED_FIELD as a successor to "generate_vfunc_offset"
+    # (func_name, vtable_class)
     ("INetworkMessages_FindNetworkGroup", "INetworkMessages"),
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
-    ("INetworkMessages_FindNetworkGroup", ["func_name", "vfunc_sig", "vfunc_offset", "vfunc_index", "vtable_name"]),
+    (
+        "INetworkMessages_FindNetworkGroup",
+        [
+            "func_name",
+            "vfunc_sig",
+            "vfunc_offset",
+            "vfunc_index",
+            "vtable_name",
+        ],
+    ),
 ]
 
 async def preprocess_skill(
@@ -40,7 +49,9 @@ async def preprocess_skill(
         platform=platform,
         image_base=image_base,
         func_names=TARGET_FUNCTION_NAMES,
+        func_vtable_relations=FUNC_VTABLE_RELATIONS,
         llm_decompile_specs=LLM_DECOMPILE,
         llm_config=llm_config,
+        generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
     )

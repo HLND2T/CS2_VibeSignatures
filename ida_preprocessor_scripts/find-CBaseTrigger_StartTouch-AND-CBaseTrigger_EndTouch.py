@@ -9,6 +9,34 @@ INHERIT_VFUNCS = [
     ("CBaseTrigger_EndTouch", "CBaseTrigger", "CBaseEntity_EndTouch", False),
 ]
 
+GENERATE_YAML_DESIRED_FIELDS = [
+    # (symbol_name, generate_yaml_fields)
+    (
+        "CBaseTrigger_StartTouch",
+        [
+            "func_name",
+            "func_va",
+            "func_rva",
+            "func_size",
+            "vtable_name",
+            "vfunc_offset",
+            "vfunc_index",
+        ],
+    ),
+    (
+        "CBaseTrigger_EndTouch",
+        [
+            "func_name",
+            "func_va",
+            "func_rva",
+            "func_size",
+            "vtable_name",
+            "vfunc_offset",
+            "vfunc_index",
+        ],
+    ),
+]
+
 async def preprocess_skill(
     session,
     skill_name,
@@ -30,5 +58,6 @@ async def preprocess_skill(
         platform=platform,
         image_base=image_base,
         inherit_vfuncs=INHERIT_VFUNCS,
+        generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
     )

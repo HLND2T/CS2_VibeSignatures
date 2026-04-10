@@ -10,12 +10,55 @@ TARGET_FUNCTION_NAMES = [
 ]
 
 FUNC_VTABLE_RELATIONS = [
-    # (func_name, vtable_class, generate_vfunc_offset)
-    ("IGameSystemFactory_Allocate", "IGameSystemFactory", True),
-    ("IGameSystemFactory_HasName", "IGameSystemFactory", True),
-    ("IGameSystem_SetName", "IGameSystem", True),
+    # (func_name, vtable_class)
+    ("IGameSystemFactory_Allocate", "IGameSystemFactory"),
+    ("IGameSystemFactory_HasName", "IGameSystemFactory"),
+    ("IGameSystem_SetName", "IGameSystem"),
 ]
 
+
+GENERATE_YAML_DESIRED_FIELDS = [
+    # (symbol_name, generate_yaml_fields)
+    (
+        "IGameSystemFactory_Allocate",
+        [
+            "func_name",
+            "func_va",
+            "func_rva",
+            "func_size",
+            "func_sig",
+            "vtable_name",
+            "vfunc_offset",
+            "vfunc_index",
+        ],
+    ),
+    (
+        "IGameSystemFactory_HasName",
+        [
+            "func_name",
+            "func_va",
+            "func_rva",
+            "func_size",
+            "func_sig",
+            "vtable_name",
+            "vfunc_offset",
+            "vfunc_index",
+        ],
+    ),
+    (
+        "IGameSystem_SetName",
+        [
+            "func_name",
+            "func_va",
+            "func_rva",
+            "func_size",
+            "func_sig",
+            "vtable_name",
+            "vfunc_offset",
+            "vfunc_index",
+        ],
+    ),
+]
 
 async def preprocess_skill(
     session, skill_name, expected_outputs, old_yaml_map,
@@ -31,5 +74,6 @@ async def preprocess_skill(
         image_base=image_base,
         func_names=TARGET_FUNCTION_NAMES,
         func_vtable_relations=FUNC_VTABLE_RELATIONS,
+        generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
     )
