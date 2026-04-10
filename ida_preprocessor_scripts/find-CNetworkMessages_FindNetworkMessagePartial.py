@@ -30,7 +30,7 @@ GENERATE_YAML_DESIRED_FIELDS = [
             "func_va",
             "func_rva",
             "func_size",
-            "func_sig", #Preprocess: failed to generate a unique function-head signature for 0x1800c7710, most of it's func-head bytes are same as CNetworkMessages_FindNetworkMessage
+            "func_sig",
             "vtable_name",
             "vfunc_offset",
             "vfunc_index",

@@ -581,6 +581,46 @@ def _debug_print_json(label, value, debug=False):
     _debug_print_multiline(label, rendered, debug=True)
 
 
+def _build_struct_member_symbol_name(struct_name, member_name):
+    struct_name_text = str(struct_name or "").strip()
+    member_name_text = str(member_name or "").strip()
+    if not struct_name_text or not member_name_text:
+        return None
+    return f"{struct_name_text}_{member_name_text}"
+
+
+def _load_struct_member_metadata_from_yaml(old_path):
+    if yaml is None or not old_path or not os.path.exists(old_path):
+        return {}
+
+    try:
+        with open(old_path, "r", encoding="utf-8") as f:
+            old_data = yaml.safe_load(f)
+    except Exception:
+        return {}
+
+    if not isinstance(old_data, dict):
+        return {}
+
+    metadata = {}
+    struct_name = str(old_data.get("struct_name", "") or "").strip()
+    member_name = str(old_data.get("member_name", "") or "").strip()
+    if struct_name and member_name:
+        metadata["struct_name"] = struct_name
+        metadata["member_name"] = member_name
+
+    raw_size = old_data.get("size")
+    if raw_size is not None:
+        try:
+            size_value = _parse_int_value(raw_size)
+        except Exception:
+            size_value = None
+        if isinstance(size_value, int) and size_value > 0:
+            metadata["size"] = size_value
+
+    return metadata
+
+
 def _build_llm_decompile_specs_map(llm_decompile_specs, debug=False):
     specs_map = {}
     for spec in llm_decompile_specs or []:
@@ -1166,6 +1206,73 @@ async def _resolve_direct_call_target_via_mcp(session, insn_va, debug=False):
         if debug:
             print(
                 "    Preprocess: llm_decompile direct call target lookup returned "
+                f"{len(resolved_matches)} matches: {resolved_matches}"
+            )
+        return None
+
+    return resolved_matches[0]
+
+
+async def _resolve_direct_gv_target_via_mcp(session, insn_va, debug=False):
+    try:
+        insn_va_int = _parse_int_value(insn_va)
+    except Exception:
+        return None
+
+    py_code = (
+        "import idautils, json\n"
+        f"insn_ea = {insn_va_int}\n"
+        "matches = []\n"
+        "seen_addrs = set()\n"
+        "for target_ea in idautils.DataRefsFrom(insn_ea):\n"
+        "    gv_va = hex(int(target_ea))\n"
+        "    if gv_va in seen_addrs:\n"
+        "        continue\n"
+        "    seen_addrs.add(gv_va)\n"
+        "    matches.append({'gv_va': gv_va})\n"
+        "result = json.dumps(matches)\n"
+    )
+
+    try:
+        eval_result = await session.call_tool(
+            name="py_eval",
+            arguments={"code": py_code},
+        )
+    except Exception as exc:
+        if debug:
+            print(
+                "    Preprocess: py_eval error while resolving direct gv target: "
+                f"{exc}"
+            )
+        return None
+
+    match_payload = _parse_py_eval_json_result(
+        eval_result,
+        debug=debug,
+        context="llm_decompile direct gv target lookup",
+    )
+    if not isinstance(match_payload, list):
+        return None
+
+    resolved_matches = []
+    seen_gv_vas = set()
+    for item in match_payload:
+        if not isinstance(item, dict):
+            continue
+        gv_va = str(item.get("gv_va", "")).strip()
+        if not gv_va or gv_va in seen_gv_vas:
+            continue
+        try:
+            int(gv_va, 0)
+        except (TypeError, ValueError):
+            continue
+        seen_gv_vas.add(gv_va)
+        resolved_matches.append(gv_va)
+
+    if len(resolved_matches) != 1:
+        if debug:
+            print(
+                "    Preprocess: llm_decompile direct gv target lookup returned "
                 f"{len(resolved_matches)} matches: {resolved_matches}"
             )
         return None
@@ -2586,6 +2693,8 @@ async def preprocess_gen_vfunc_sig_via_mcp(
         "            wild.add(i)\n"
         "    return sorted(wild)\n"
         "\n"
+        "globals().update(locals())\n"
+        "\n"
         "insn0 = idautils.DecodeInstruction(target_inst)\n"
         "raw0 = ida_bytes.get_bytes(target_inst, insn0.size) if insn0 and insn0.size > 0 else None\n"
         "if not insn0 or insn0.size <= 0 or not raw0:\n"
@@ -3024,6 +3133,8 @@ async def preprocess_gen_gv_sig_via_mcp(
         "        return\n"
         "\n"
         "    candidates.append(packed)\n"
+        "\n"
+        "globals().update(locals())\n"
         "\n"
         "if target_inst is not None:\n"
         "    _try_add(target_inst)\n"
@@ -4391,6 +4502,90 @@ async def _preprocess_direct_func_sig_via_mcp(
     return payload
 
 
+async def _preprocess_direct_gv_sig_via_mcp(
+    session,
+    new_path,
+    image_base,
+    gv_name=None,
+    direct_gv_va=None,
+    gv_access_inst_va=None,
+    debug=False,
+):
+    try:
+        resolved_gv_va = _parse_int_value(direct_gv_va)
+    except Exception:
+        return None
+
+    payload = await preprocess_gen_gv_sig_via_mcp(
+        session=session,
+        gv_va=resolved_gv_va,
+        image_base=image_base,
+        gv_access_inst_va=gv_access_inst_va,
+        debug=debug,
+    )
+    if not isinstance(payload, dict):
+        return None
+
+    if gv_name is None:
+        gv_name = os.path.basename(new_path).rsplit(".", 2)[0]
+    payload["gv_name"] = gv_name
+    return payload
+
+
+async def _preprocess_direct_struct_offset_sig_via_mcp(
+    session,
+    new_path,
+    image_base,
+    struct_member_name=None,
+    struct_name=None,
+    member_name=None,
+    offset=None,
+    offset_inst_va=None,
+    old_path=None,
+    debug=False,
+):
+    metadata = _load_struct_member_metadata_from_yaml(old_path)
+
+    resolved_struct_name = str(
+        struct_name
+        or metadata.get("struct_name", "")
+        or ""
+    ).strip()
+    resolved_member_name = str(
+        member_name
+        or metadata.get("member_name", "")
+        or ""
+    ).strip()
+
+    if not resolved_struct_name or not resolved_member_name:
+        if debug:
+            print(
+                "    Preprocess: missing struct_name/member_name for direct "
+                f"struct offset generation of {struct_member_name or new_path}"
+            )
+        return None
+
+    payload = await preprocess_gen_struct_offset_sig_via_mcp(
+        session=session,
+        struct_name=resolved_struct_name,
+        member_name=resolved_member_name,
+        offset=offset,
+        offset_inst_va=offset_inst_va,
+        image_base=image_base,
+        debug=debug,
+    )
+    if not isinstance(payload, dict):
+        return None
+
+    if "offset_sig_disp" not in payload:
+        payload["offset_sig_disp"] = 0
+
+    if "size" not in payload and "size" in metadata:
+        payload["size"] = metadata["size"]
+
+    return payload
+
+
 async def preprocess_gen_struct_offset_sig_via_mcp(
     session,
     struct_name,
@@ -4572,7 +4767,9 @@ async def preprocess_gen_struct_offset_sig_via_mcp(
                 "struct_name": struct_name,
                 "member_name": member_name,
                 "offset": hex(offset_value),
+                "size": best["size"],
                 "offset_sig": candidate_sig,
+                "offset_sig_disp": 0,
             }
 
     if debug:
@@ -5413,9 +5610,155 @@ async def preprocess_common_skill(
         return False
 
     llm_request_cache = {}
-    llm_result_by_func_name = {}
+    llm_result_by_symbol_name = {}
     fast_path_attempted = {}
     fast_path_results = {}
+    gv_fast_path_attempted = {}
+    gv_fast_path_results = {}
+    struct_fast_path_attempted = {}
+    struct_fast_path_results = {}
+
+    async def _ensure_gv_fast_path(gv_name):
+        if gv_name in gv_fast_path_attempted:
+            return gv_fast_path_results.get(gv_name)
+
+        target_output = matched_gv_outputs.get(gv_name)
+        gv_fast_path_attempted[gv_name] = True
+        if target_output is None:
+            gv_fast_path_results[gv_name] = None
+            return None
+
+        gv_old_path = (old_yaml_map or {}).get(target_output)
+        gv_fast_path_results[gv_name] = await preprocess_gv_sig_via_mcp(
+            session=session,
+            new_path=target_output,
+            old_path=gv_old_path,
+            image_base=image_base,
+            new_binary_dir=new_binary_dir,
+            platform=platform,
+            debug=debug,
+        )
+        return gv_fast_path_results.get(gv_name)
+
+    async def _collect_llm_symbol_name_list(seed_symbol_name, llm_cache_key):
+        llm_symbol_name_list = []
+
+        for candidate_func_name in all_func_names:
+            if candidate_func_name not in llm_decompile_specs_map:
+                continue
+            if candidate_func_name in llm_result_by_symbol_name:
+                continue
+            candidate_target_output = matched_func_outputs.get(candidate_func_name)
+            if candidate_target_output is None:
+                continue
+            if candidate_func_name not in fast_path_attempted:
+                if not _can_probe_future_func_fast_path(
+                    func_name=candidate_func_name,
+                    func_xrefs_map=func_xrefs_map,
+                    new_binary_dir=new_binary_dir,
+                    platform=platform,
+                    debug=debug,
+                ):
+                    continue
+                candidate_old_path = (old_yaml_map or {}).get(candidate_target_output)
+                fast_path_results[candidate_func_name] = await _try_preprocess_func_without_llm(
+                    session=session,
+                    target_output=candidate_target_output,
+                    old_path=candidate_old_path,
+                    image_base=image_base,
+                    new_binary_dir=new_binary_dir,
+                    platform=platform,
+                    func_name=candidate_func_name,
+                    func_xrefs_map=func_xrefs_map,
+                    vtable_relations_map=vtable_relations_map,
+                    normalized_mangled_class_names=normalized_mangled_class_names,
+                    debug=debug,
+                )
+                fast_path_attempted[candidate_func_name] = True
+            if fast_path_results.get(candidate_func_name) is not None:
+                continue
+            if candidate_func_name not in llm_request_cache:
+                llm_request_cache[candidate_func_name] = _prepare_llm_decompile_request(
+                    candidate_func_name,
+                    llm_decompile_specs_map,
+                    llm_config,
+                    platform=platform,
+                    debug=debug,
+                )
+            candidate_request = llm_request_cache.get(candidate_func_name)
+            if (
+                _build_llm_decompile_request_cache_key(candidate_request)
+                == llm_cache_key
+            ):
+                llm_symbol_name_list.append(candidate_func_name)
+
+        for candidate_gv_name in gv_names:
+            if candidate_gv_name not in llm_decompile_specs_map:
+                continue
+            if candidate_gv_name in llm_result_by_symbol_name:
+                continue
+            candidate_target_output = matched_gv_outputs.get(candidate_gv_name)
+            if candidate_target_output is None:
+                continue
+            if candidate_gv_name not in gv_fast_path_attempted:
+                await _ensure_gv_fast_path(candidate_gv_name)
+            if gv_fast_path_results.get(candidate_gv_name) is not None:
+                continue
+            if candidate_gv_name not in llm_request_cache:
+                llm_request_cache[candidate_gv_name] = _prepare_llm_decompile_request(
+                    candidate_gv_name,
+                    llm_decompile_specs_map,
+                    llm_config,
+                    platform=platform,
+                    debug=debug,
+                )
+            candidate_request = llm_request_cache.get(candidate_gv_name)
+            if (
+                _build_llm_decompile_request_cache_key(candidate_request)
+                == llm_cache_key
+            ):
+                llm_symbol_name_list.append(candidate_gv_name)
+
+        for candidate_struct_name in struct_member_names:
+            if candidate_struct_name not in llm_decompile_specs_map:
+                continue
+            if candidate_struct_name in llm_result_by_symbol_name:
+                continue
+            candidate_target_output = matched_struct_outputs.get(candidate_struct_name)
+            if candidate_target_output is None:
+                continue
+            if candidate_struct_name not in struct_fast_path_attempted:
+                candidate_old_path = (old_yaml_map or {}).get(candidate_target_output)
+                struct_fast_path_results[candidate_struct_name] = await preprocess_struct_offset_sig_via_mcp(
+                    session=session,
+                    new_path=candidate_target_output,
+                    old_path=candidate_old_path,
+                    image_base=image_base,
+                    new_binary_dir=new_binary_dir,
+                    platform=platform,
+                    debug=debug,
+                )
+                struct_fast_path_attempted[candidate_struct_name] = True
+            if struct_fast_path_results.get(candidate_struct_name) is not None:
+                continue
+            if candidate_struct_name not in llm_request_cache:
+                llm_request_cache[candidate_struct_name] = _prepare_llm_decompile_request(
+                    candidate_struct_name,
+                    llm_decompile_specs_map,
+                    llm_config,
+                    platform=platform,
+                    debug=debug,
+                )
+            candidate_request = llm_request_cache.get(candidate_struct_name)
+            if (
+                _build_llm_decompile_request_cache_key(candidate_request)
+                == llm_cache_key
+            ):
+                llm_symbol_name_list.append(candidate_struct_name)
+
+        if not llm_symbol_name_list:
+            llm_symbol_name_list = [seed_symbol_name]
+        return llm_symbol_name_list
 
     # Process func/vfunc targets
     for func_name in all_func_names:
@@ -5457,62 +5800,15 @@ async def preprocess_common_skill(
             llm_request = llm_request_cache.get(func_name)
             llm_cache_key = _build_llm_decompile_request_cache_key(llm_request)
 
-            if func_name in llm_result_by_func_name:
-                llm_result = llm_result_by_func_name[func_name]
+            if func_name in llm_result_by_symbol_name:
+                llm_result = llm_result_by_symbol_name[func_name]
             elif llm_request is None or llm_cache_key is None:
                 llm_result = _empty_llm_decompile_result()
             else:
-                llm_symbol_name_list = []
-                for candidate_func_name in all_func_names:
-                    if candidate_func_name not in llm_decompile_specs_map:
-                        continue
-                    if candidate_func_name in llm_result_by_func_name:
-                        continue
-                    candidate_target_output = matched_func_outputs.get(candidate_func_name)
-                    if candidate_target_output is None:
-                        continue
-                    if candidate_func_name not in fast_path_attempted:
-                        if not _can_probe_future_func_fast_path(
-                            func_name=candidate_func_name,
-                            func_xrefs_map=func_xrefs_map,
-                            new_binary_dir=new_binary_dir,
-                            platform=platform,
-                            debug=debug,
-                        ):
-                            continue
-                        candidate_old_path = (old_yaml_map or {}).get(candidate_target_output)
-                        fast_path_results[candidate_func_name] = await _try_preprocess_func_without_llm(
-                            session=session,
-                            target_output=candidate_target_output,
-                            old_path=candidate_old_path,
-                            image_base=image_base,
-                            new_binary_dir=new_binary_dir,
-                            platform=platform,
-                            func_name=candidate_func_name,
-                            func_xrefs_map=func_xrefs_map,
-                            vtable_relations_map=vtable_relations_map,
-                            normalized_mangled_class_names=normalized_mangled_class_names,
-                            debug=debug,
-                        )
-                        fast_path_attempted[candidate_func_name] = True
-                    if fast_path_results.get(candidate_func_name) is not None:
-                        continue
-                    if candidate_func_name not in llm_request_cache:
-                        llm_request_cache[candidate_func_name] = _prepare_llm_decompile_request(
-                            candidate_func_name,
-                            llm_decompile_specs_map,
-                            llm_config,
-                            platform=platform,
-                            debug=debug,
-                        )
-                    candidate_request = llm_request_cache.get(candidate_func_name)
-                    if (
-                        _build_llm_decompile_request_cache_key(candidate_request)
-                        == llm_cache_key
-                    ):
-                        llm_symbol_name_list.append(candidate_func_name)
-                if not llm_symbol_name_list:
-                    llm_symbol_name_list = [func_name]
+                llm_symbol_name_list = await _collect_llm_symbol_name_list(
+                    func_name,
+                    llm_cache_key,
+                )
 
                 try:
                     llm_target_detail = await _load_llm_decompile_target_detail_via_mcp(
@@ -5538,7 +5834,7 @@ async def preprocess_common_skill(
                 except Exception:
                     llm_result = _empty_llm_decompile_result()
                 for symbol_name in llm_symbol_name_list:
-                    llm_result_by_func_name[symbol_name] = llm_result
+                    llm_result_by_symbol_name[symbol_name] = llm_result
             for entry in llm_result.get("found_call", []):
                 if entry.get("func_name") != func_name:
                     continue
@@ -5692,17 +5988,78 @@ async def preprocess_common_skill(
     # Process gv targets
     for gv_name in gv_names:
         target_output = matched_gv_outputs[gv_name]
-        gv_old_path = (old_yaml_map or {}).get(target_output)
+        if gv_name not in gv_fast_path_attempted:
+            await _ensure_gv_fast_path(gv_name)
+        gv_data = gv_fast_path_results.get(gv_name)
 
-        gv_data = await preprocess_gv_sig_via_mcp(
-            session=session,
-            new_path=target_output,
-            old_path=gv_old_path,
-            image_base=image_base,
-            new_binary_dir=new_binary_dir,
-            platform=platform,
-            debug=debug,
-        )
+        if gv_data is None and gv_name in llm_decompile_specs_map:
+            if gv_name not in llm_request_cache:
+                llm_request_cache[gv_name] = _prepare_llm_decompile_request(
+                    gv_name,
+                    llm_decompile_specs_map,
+                    llm_config,
+                    platform=platform,
+                    debug=debug,
+                )
+            llm_request = llm_request_cache.get(gv_name)
+            llm_cache_key = _build_llm_decompile_request_cache_key(llm_request)
+
+            if gv_name in llm_result_by_symbol_name:
+                llm_result = llm_result_by_symbol_name[gv_name]
+            elif llm_request is None or llm_cache_key is None:
+                llm_result = _empty_llm_decompile_result()
+            else:
+                llm_symbol_name_list = await _collect_llm_symbol_name_list(
+                    gv_name,
+                    llm_cache_key,
+                )
+                try:
+                    llm_target_detail = await _load_llm_decompile_target_detail_via_mcp(
+                        session,
+                        llm_request["target_func_name"],
+                        debug=debug,
+                    )
+                    if llm_target_detail is None:
+                        llm_result = _empty_llm_decompile_result()
+                    else:
+                        llm_result = await call_llm_decompile(
+                            client=llm_request["client"],
+                            model=llm_request["model"],
+                            symbol_name_list=llm_symbol_name_list,
+                            disasm_code=llm_target_detail["disasm_code"],
+                            procedure=llm_target_detail["procedure"],
+                            disasm_for_reference=llm_request["disasm_for_reference"],
+                            procedure_for_reference=llm_request["procedure_for_reference"],
+                            prompt_template=llm_request["prompt_template"],
+                            platform=platform,
+                            debug=debug,
+                        )
+                except Exception:
+                    llm_result = _empty_llm_decompile_result()
+                for symbol_name in llm_symbol_name_list:
+                    llm_result_by_symbol_name[symbol_name] = llm_result
+
+            for entry in llm_result.get("found_gv", []):
+                if entry.get("gv_name") != gv_name:
+                    continue
+                direct_gv_va = await _resolve_direct_gv_target_via_mcp(
+                    session,
+                    entry.get("insn_va"),
+                    debug=debug,
+                )
+                if direct_gv_va is None:
+                    continue
+                gv_data = await _preprocess_direct_gv_sig_via_mcp(
+                    session=session,
+                    new_path=target_output,
+                    image_base=image_base,
+                    gv_name=gv_name,
+                    direct_gv_va=direct_gv_va,
+                    gv_access_inst_va=entry.get("insn_va"),
+                    debug=debug,
+                )
+                if gv_data is not None:
+                    break
 
         if gv_data is None:
             if debug:
@@ -5760,16 +6117,102 @@ async def preprocess_common_skill(
     for struct_member_name in struct_member_names:
         target_output = matched_struct_outputs[struct_member_name]
         struct_old_path = (old_yaml_map or {}).get(target_output)
+        if struct_member_name not in struct_fast_path_attempted:
+            struct_fast_path_results[struct_member_name] = await preprocess_struct_offset_sig_via_mcp(
+                session=session,
+                new_path=target_output,
+                old_path=struct_old_path,
+                image_base=image_base,
+                new_binary_dir=new_binary_dir,
+                platform=platform,
+                debug=debug,
+            )
+            struct_fast_path_attempted[struct_member_name] = True
+        struct_data = struct_fast_path_results.get(struct_member_name)
 
-        struct_data = await preprocess_struct_offset_sig_via_mcp(
-            session=session,
-            new_path=target_output,
-            old_path=struct_old_path,
-            image_base=image_base,
-            new_binary_dir=new_binary_dir,
-            platform=platform,
-            debug=debug,
-        )
+        if struct_data is None and struct_member_name in llm_decompile_specs_map:
+            if struct_member_name not in llm_request_cache:
+                llm_request_cache[struct_member_name] = _prepare_llm_decompile_request(
+                    struct_member_name,
+                    llm_decompile_specs_map,
+                    llm_config,
+                    platform=platform,
+                    debug=debug,
+                )
+            llm_request = llm_request_cache.get(struct_member_name)
+            llm_cache_key = _build_llm_decompile_request_cache_key(llm_request)
+
+            if struct_member_name in llm_result_by_symbol_name:
+                llm_result = llm_result_by_symbol_name[struct_member_name]
+            elif llm_request is None or llm_cache_key is None:
+                llm_result = _empty_llm_decompile_result()
+            else:
+                llm_symbol_name_list = await _collect_llm_symbol_name_list(
+                    struct_member_name,
+                    llm_cache_key,
+                )
+                try:
+                    llm_target_detail = await _load_llm_decompile_target_detail_via_mcp(
+                        session,
+                        llm_request["target_func_name"],
+                        debug=debug,
+                    )
+                    if llm_target_detail is None:
+                        llm_result = _empty_llm_decompile_result()
+                    else:
+                        llm_result = await call_llm_decompile(
+                            client=llm_request["client"],
+                            model=llm_request["model"],
+                            symbol_name_list=llm_symbol_name_list,
+                            disasm_code=llm_target_detail["disasm_code"],
+                            procedure=llm_target_detail["procedure"],
+                            disasm_for_reference=llm_request["disasm_for_reference"],
+                            procedure_for_reference=llm_request["procedure_for_reference"],
+                            prompt_template=llm_request["prompt_template"],
+                            platform=platform,
+                            debug=debug,
+                        )
+                except Exception:
+                    llm_result = _empty_llm_decompile_result()
+                for symbol_name in llm_symbol_name_list:
+                    llm_result_by_symbol_name[symbol_name] = llm_result
+
+            struct_metadata = _load_struct_member_metadata_from_yaml(struct_old_path)
+            expected_struct_name = str(struct_metadata.get("struct_name", "")).strip()
+            expected_member_name = str(struct_metadata.get("member_name", "")).strip()
+            for entry in llm_result.get("found_struct_offset", []):
+                entry_struct_name = str(entry.get("struct_name", "")).strip()
+                entry_member_name = str(entry.get("member_name", "")).strip()
+                if expected_struct_name and expected_member_name:
+                    if (
+                        entry_struct_name != expected_struct_name
+                        or entry_member_name != expected_member_name
+                    ):
+                        continue
+                else:
+                    if (
+                        _build_struct_member_symbol_name(
+                            entry_struct_name,
+                            entry_member_name,
+                        )
+                        != struct_member_name
+                    ):
+                        continue
+
+                struct_data = await _preprocess_direct_struct_offset_sig_via_mcp(
+                    session=session,
+                    new_path=target_output,
+                    image_base=image_base,
+                    struct_member_name=struct_member_name,
+                    struct_name=entry_struct_name,
+                    member_name=entry_member_name,
+                    offset=entry.get("offset"),
+                    offset_inst_va=entry.get("insn_va"),
+                    old_path=struct_old_path,
+                    debug=debug,
+                )
+                if struct_data is not None:
+                    break
 
         if struct_data is None:
             if debug:
