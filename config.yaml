@@ -1978,6 +1978,13 @@ modules:
         expected_output:
           - CNetworkUtlVectorEmbedded_NetworkStateChanged_m_vecRenderAttributes.{platform}.yaml
 
+      - name: find-CNetworkUtlVectorEmbedded_TryLateResolve_m_vecRenderAttributes
+        platform: windows
+        expected_output:
+          - CNetworkUtlVectorEmbedded_TryLateResolve_m_vecRenderAttributes.{platform}.yaml
+        expected_input:
+          - CNetworkUtlVectorEmbedded_NetworkStateChanged_m_vecRenderAttributes.{platform}.yaml
+
     symbols:
       - name: CSource2Server_vtable
         category: vtable
@@ -2838,6 +2845,11 @@ modules:
         category: func
         alias:
           - CNetworkUtlVectorEmbedded<CRenderAttribute>::NetworkStateChanged_m_vecRenderAttributes
+
+      - name: CNetworkUtlVectorEmbedded_TryLateResolve_m_vecRenderAttributes
+        category: func
+        alias:
+          - CNetworkUtlVectorEmbedded<CRenderAttribute>::TryLateResolve
 
   - name: networksystem # Execute skills for networksystem.dll again after server.dll
     path_windows: game/bin/win64/networksystem.dll
