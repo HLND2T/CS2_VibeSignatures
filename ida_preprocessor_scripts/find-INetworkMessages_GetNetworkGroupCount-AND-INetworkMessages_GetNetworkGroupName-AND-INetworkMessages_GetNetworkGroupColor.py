@@ -1,28 +1,28 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CNetworkMessages_GetNetworkGroupCount-AND-CNetworkMessages_GetNetworkGroupName-AND-CNetworkMessages_GetNetworkGroupColor skill."""
+"""Preprocess script for find-INetworkMessages_GetNetworkGroupCount-AND-INetworkMessages_GetNetworkGroupName-AND-INetworkMessages_GetNetworkGroupColor skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = [
-    "CNetworkMessages_GetNetworkGroupCount",
-    "CNetworkMessages_GetNetworkGroupName",
-    "CNetworkMessages_GetNetworkGroupColor",
+    "INetworkMessages_GetNetworkGroupCount",
+    "INetworkMessages_GetNetworkGroupName",
+    "INetworkMessages_GetNetworkGroupColor",
 ]
 
 LLM_DECOMPILE = [
     # (symbol_name, path_to_prompt, path_to_reference)
     (
-        "CNetworkMessages_GetNetworkGroupCount",
+        "INetworkMessages_GetNetworkGroupCount",
         "prompt/call_llm_decompile.md",
         "references/networksystem/CNetworkSystem_SendNetworkStats.{platform}.yaml",
     ),
     (
-        "CNetworkMessages_GetNetworkGroupName",
+        "INetworkMessages_GetNetworkGroupName",
         "prompt/call_llm_decompile.md",
         "references/networksystem/CNetworkSystem_SendNetworkStats.{platform}.yaml",
     ),
     (
-        "CNetworkMessages_GetNetworkGroupColor",
+        "INetworkMessages_GetNetworkGroupColor",
         "prompt/call_llm_decompile.md",
         "references/networksystem/CNetworkSystem_SendNetworkStats.{platform}.yaml",
     ),
@@ -30,16 +30,16 @@ LLM_DECOMPILE = [
 
 FUNC_VTABLE_RELATIONS = [
     # (func_name, vtable_class)
-    ("CNetworkMessages_GetNetworkGroupCount", "CNetworkMessages"),
-    ("CNetworkMessages_GetNetworkGroupName", "CNetworkMessages"),
-    ("CNetworkMessages_GetNetworkGroupColor", "CNetworkMessages"),
+    ("INetworkMessages_GetNetworkGroupCount", "INetworkMessages"),
+    ("INetworkMessages_GetNetworkGroupName", "INetworkMessages"),
+    ("INetworkMessages_GetNetworkGroupColor", "INetworkMessages"),
 ]
 
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
     (
-        "CNetworkMessages_GetNetworkGroupCount",
+        "INetworkMessages_GetNetworkGroupCount",
         [
             "func_name",
             "vfunc_sig",
@@ -49,7 +49,7 @@ GENERATE_YAML_DESIRED_FIELDS = [
         ],
     ),
     (
-        "CNetworkMessages_GetNetworkGroupName",
+        "INetworkMessages_GetNetworkGroupName",
         [
             "func_name",
             "vfunc_sig",
@@ -59,7 +59,7 @@ GENERATE_YAML_DESIRED_FIELDS = [
         ],
     ),
     (
-        "CNetworkMessages_GetNetworkGroupColor",
+        "INetworkMessages_GetNetworkGroupColor",
         [
             "func_name",
             "vfunc_sig",
