@@ -30,7 +30,7 @@ GENERATE_YAML_DESIRED_FIELDS = [
             "func_va",
             "func_rva",
             "func_size",
-            "func_sig",
+            #"func_sig", cannot generate func_sig because most of it's func-head bytes are same as CNetworkMessages_FindNetworkMessage
             "vtable_name",
             "vfunc_offset",
             "vfunc_index",
