@@ -5126,6 +5126,9 @@ async def preprocess_func_xrefs_via_mcp(
     if excluded_func_addrs:
         common_funcs -= excluded_func_addrs
 
+    if debug:
+        print(f"    Preprocess: common_funcs = {[hex(a) for a in common_funcs]}")
+
     if len(common_funcs) != 1:
         if debug:
             print(
