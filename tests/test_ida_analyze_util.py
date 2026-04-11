@@ -1076,6 +1076,45 @@ class TestGenerateYamlDesiredFieldsContract(unittest.IsolatedAsyncioTestCase):
 
 
 class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
+    async def test_collect_xref_func_starts_for_string_uses_substring_by_default(
+        self,
+    ) -> None:
+        session = AsyncMock()
+        session.call_tool.return_value = _py_eval_payload(["0x180001000"])
+
+        result = await ida_analyze_util._collect_xref_func_starts_for_string(
+            session=session,
+            xref_string="_projectile",
+            debug=True,
+        )
+
+        self.assertEqual({0x180001000}, result)
+        session.call_tool.assert_awaited_once()
+        py_code = session.call_tool.await_args.kwargs["arguments"]["code"]
+        self.assertIn('search_str = "_projectile"', py_code)
+        self.assertIn("if search_str in current_str:", py_code)
+        self.assertNotIn("if current_str == search_str:", py_code)
+
+    async def test_collect_xref_func_starts_for_string_supports_fullmatch_prefix(
+        self,
+    ) -> None:
+        session = AsyncMock()
+        session.call_tool.return_value = _py_eval_payload(["0x180001000"])
+
+        result = await ida_analyze_util._collect_xref_func_starts_for_string(
+            session=session,
+            xref_string="FULLMATCH:_projectile",
+            debug=True,
+        )
+
+        self.assertEqual({0x180001000}, result)
+        session.call_tool.assert_awaited_once()
+        py_code = session.call_tool.await_args.kwargs["arguments"]["code"]
+        self.assertIn('search_str = "_projectile"', py_code)
+        self.assertIn("if current_str == search_str:", py_code)
+        self.assertNotIn("if search_str in current_str:", py_code)
+        self.assertNotIn("FULLMATCH:_projectile", py_code)
+
     async def test_preprocess_func_xrefs_intersects_string_and_signature_sets(
         self,
     ) -> None:

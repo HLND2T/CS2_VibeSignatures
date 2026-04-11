@@ -4349,18 +4349,30 @@ async def _collect_xref_func_starts_for_string(session, xref_string, debug=False
     """
     Collect function-start addresses that reference the given string literal.
 
+    ``FULLMATCH:`` prefixes switch the string matcher from substring mode to
+    exact-string mode.
+
     Returns:
         Set[int]: Function start addresses, or None on collection failure.
     """
     if not isinstance(xref_string, str) or not xref_string:
         return set()
 
+    search_str = xref_string
+    match_expr = "search_str in current_str"
+    if xref_string.startswith("FULLMATCH:"):
+        search_str = xref_string[len("FULLMATCH:") :]
+        if not search_str:
+            return set()
+        match_expr = "current_str == search_str"
+
     py_code = (
         "import idautils, idaapi, json\n"
-        f"search_str = {json.dumps(xref_string)}\n"
+        f"search_str = {json.dumps(search_str)}\n"
         "func_starts = set()\n"
         "for s in idautils.Strings():\n"
-        "    if search_str in str(s):\n"
+        "    current_str = str(s)\n"
+        f"    if {match_expr}:\n"
         "        for xref in idautils.XrefsTo(s.ea, 0):\n"
         "            f = idaapi.get_func(xref.frm)\n"
         "            if f:\n"
@@ -5003,12 +5015,13 @@ async def preprocess_func_xrefs_via_mcp(
     ``new_binary_dir`` and removed from the intersection result before
     enforcing the uniqueness check.
 
-    ``exclude_strings`` uses the same substring matching semantics as
+    ``exclude_strings`` uses the same string-matching semantics as
     ``xref_strings``. For each configured string, collect the containing
     function-start set from its xrefs, union these sets, and subtract the
     result from the already-intersected positive candidate set. Empty
     exclude-string matches are treated as an empty exclusion set rather
-    than a hard failure.
+    than a hard failure. ``FULLMATCH:`` prefixes switch string matching
+    from substring mode to exact-string mode.
 
     When ``vtable_class`` is given, the vtable YAML file
     ``{vtable_class}_vtable.{platform}.yaml`` is loaded from
