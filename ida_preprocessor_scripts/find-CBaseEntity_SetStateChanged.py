@@ -21,13 +21,16 @@ FUNC_XREFS_WINDOWS = [
 ]
 
 FUNC_XREFS_LINUX = [
-    # (func_name, xref_strings_list, xref_signatures_list, xref_funcs_list, exclude_funcs_list)
+    # (func_name, xref_strings_list, xref_signatures_list, xref_funcs_list, exclude_funcs_list, exclude_strings_list)
     (
         "CBaseEntity_SetStateChanged",
         [],
         [],
         ["CNetworkTransmitComponent_StateChanged"],
         [],
+        [
+            "CNetworkTransmitComponent::StateChanged(%s) @%s:%d",
+        ]
     ),
 ]
 
