@@ -6,6 +6,7 @@ import argparse
 import asyncio
 import importlib
 import json
+import os
 from collections.abc import Mapping, Sequence
 from contextlib import AsyncExitStack, asynccontextmanager
 from pathlib import Path
@@ -103,7 +104,8 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate reference YAML for IDA preprocess scripts")
     parser.add_argument(
         "-gamever",
-        help="Game version; when omitted, infer it from the current IDA binary path",
+        default=os.environ.get("CS2VIBE_GAMEVER"),
+        help="Game version (default: CS2VIBE_GAMEVER env var); when omitted, infer from binary path",
     )
     parser.add_argument(
         "-module",
