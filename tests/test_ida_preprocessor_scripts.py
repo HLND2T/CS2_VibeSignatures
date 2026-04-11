@@ -18,6 +18,10 @@ I_SET_IS_FOR_SERVER_SCRIPT_PATH = Path(
     "ida_preprocessor_scripts/"
     "find-INetworkMessages_SetIsForServer.py"
 )
+I_GET_LOGGING_CHANNEL_WINDOWS_SCRIPT_PATH = Path(
+    "ida_preprocessor_scripts/"
+    "find-INetworkMessages_GetLoggingChannel-windows.py"
+)
 NETWORK_GROUP_STATS_SCRIPT_PATH = Path(
     "ida_preprocessor_scripts/"
     "find-CNetworkMessages_GetNetworkGroupCount-AND-"
@@ -920,6 +924,80 @@ class TestFindCBaseEntityCollisionRulesChanged(unittest.IsolatedAsyncioTestCase)
             platform="windows",
             image_base=0x180000000,
             func_names=["CBaseEntity_CollisionRulesChanged"],
+            generate_yaml_desired_fields=expected_generate_yaml_desired_fields,
+            debug=True,
+        )
+
+
+class TestFindINetworkMessagesGetLoggingChannelWindows(
+    unittest.IsolatedAsyncioTestCase
+):
+    async def test_preprocess_skill_forwards_vfunc_sig_max_match_directive(
+        self,
+    ) -> None:
+        module = _load_module(
+            I_GET_LOGGING_CHANNEL_WINDOWS_SCRIPT_PATH,
+            "find_INetworkMessages_GetLoggingChannel_windows",
+        )
+        mock_preprocess_common_skill = AsyncMock(return_value=True)
+        llm_config = {"model": "gpt-4.1-mini", "api_key": "test-api-key"}
+        expected_llm_decompile_specs = [
+            (
+                "INetworkMessages_GetLoggingChannel",
+                "prompt/call_llm_decompile.md",
+                (
+                    "references/server/"
+                    "CNetworkUtlVectorEmbedded_TryLateResolve_m_vecRenderAttributes."
+                    "{platform}.yaml"
+                ),
+            )
+        ]
+        expected_func_vtable_relations = [
+            ("INetworkMessages_GetLoggingChannel", "INetworkMessages")
+        ]
+        expected_generate_yaml_desired_fields = [
+            (
+                "INetworkMessages_GetLoggingChannel",
+                [
+                    "func_name",
+                    "vfunc_sig",
+                    "vfunc_sig_max_match:10",
+                    "vfunc_offset",
+                    "vfunc_index",
+                    "vtable_name",
+                ],
+            )
+        ]
+
+        with patch.object(
+            module,
+            "preprocess_common_skill",
+            mock_preprocess_common_skill,
+        ):
+            result = await module.preprocess_skill(
+                session="session",
+                skill_name="skill",
+                expected_outputs=["out.yaml"],
+                old_yaml_map={"k": "v"},
+                new_binary_dir="bin_dir",
+                platform="windows",
+                image_base=0x180000000,
+                llm_config=llm_config,
+                debug=True,
+            )
+
+        self.assertTrue(result)
+        mock_preprocess_common_skill.assert_awaited_once_with(
+            session="session",
+            expected_outputs=["out.yaml"],
+            old_yaml_map={"k": "v"},
+            new_binary_dir="bin_dir",
+            platform="windows",
+            image_base=0x180000000,
+            func_names=["INetworkMessages_GetLoggingChannel"],
+            func_vtable_relations=expected_func_vtable_relations,
+            llm_decompile_specs=expected_llm_decompile_specs,
+            llm_config=llm_config,
             generate_yaml_desired_fields=expected_generate_yaml_desired_fields,
             debug=True,
         )

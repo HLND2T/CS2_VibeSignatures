@@ -232,12 +232,64 @@ def _normalize_generate_yaml_desired_fields(generate_yaml_desired_fields, debug=
                 print(f"    Preprocess: empty desired-fields for {symbol_name}")
             return None
 
-        desired_field_list = list(desired_fields)
-        if any(not isinstance(field_name, str) or not field_name for field_name in desired_field_list):
+        desired_output_fields = []
+        generation_options = {}
+        for field_name in desired_fields:
+            if not isinstance(field_name, str) or not field_name:
+                if debug:
+                    print(f"    Preprocess: invalid desired field list for {symbol_name}")
+                return None
+
+            if field_name == "vfunc_sig_max_match":
+                if debug:
+                    print(
+                        f"    Preprocess: bare vfunc_sig_max_match field is "
+                        f"not allowed for {symbol_name}"
+                    )
+                return None
+
+            if field_name.startswith("vfunc_sig_max_match:"):
+                if "vfunc_sig_max_match" in generation_options:
+                    if debug:
+                        print(
+                            f"    Preprocess: duplicated vfunc_sig_max_match "
+                            f"directive for {symbol_name}"
+                        )
+                    return None
+                max_match_text = field_name.split(":", 1)[1]
+                try:
+                    max_match = int(max_match_text)
+                except ValueError:
+                    if debug:
+                        print(
+                            f"    Preprocess: invalid vfunc_sig_max_match "
+                            f"value for {symbol_name}: {max_match_text}"
+                        )
+                    return None
+                if max_match <= 0:
+                    if debug:
+                        print(
+                            f"    Preprocess: invalid vfunc_sig_max_match "
+                            f"value for {symbol_name}: {max_match_text}"
+                        )
+                    return None
+                desired_output_fields.append("vfunc_sig_max_match")
+                generation_options["vfunc_sig_max_match"] = max_match
+                continue
+
+            desired_output_fields.append(field_name)
+
+        if "vfunc_sig_max_match" in generation_options and "vfunc_sig" not in desired_output_fields:
             if debug:
-                print(f"    Preprocess: invalid desired field list for {symbol_name}")
+                print(
+                    f"    Preprocess: vfunc_sig_max_match requires vfunc_sig "
+                    f"for {symbol_name}"
+                )
             return None
-        normalized[symbol_name] = desired_field_list
+        normalized[symbol_name] = {
+            "desired_output_fields": desired_output_fields,
+            "generation_options": generation_options,
+        }
 
     return normalized
 
@@ -374,6 +426,7 @@ FUNC_YAML_ORDER = [
     "vfunc_offset",
     "vfunc_index",
     "vfunc_sig",
+    "vfunc_sig_max_match",
 ]
 GV_YAML_ORDER = [
     "gv_name",
@@ -437,11 +490,12 @@ def _build_ordered_yaml_payload(data, ordered_keys):
 
 
 def _assemble_symbol_payload(symbol_name, target_kind, candidate_data, desired_fields_map, debug=False):
-    desired_fields = desired_fields_map.get(symbol_name)
-    if desired_fields is None:
+    desired_field_spec = desired_fields_map.get(symbol_name)
+    if desired_field_spec is None:
         if debug:
             print(f"    Preprocess: missing desired-fields entry for {symbol_name}")
         return None
+    desired_fields = desired_field_spec["desired_output_fields"]
 
     payload = {}
     for field_name in desired_fields:
@@ -804,6 +858,7 @@ async def _build_enriched_slot_only_vfunc_payload_via_mcp(
     llm_result,
     *,
     vtable_name=None,
+    vfunc_sig_max_match=1,
     require_vfunc_sig=False,
     require_vtable_name=False,
     debug=False,
@@ -856,6 +911,7 @@ async def _build_enriched_slot_only_vfunc_payload_via_mcp(
             session=session,
             inst_va=inst_va,
             vfunc_offset=slot_only_info["vfunc_offset"],
+            max_match_count=vfunc_sig_max_match,
             debug=debug,
         )
         if not isinstance(sig_data, dict):
@@ -864,6 +920,9 @@ async def _build_enriched_slot_only_vfunc_payload_via_mcp(
         if not vfunc_sig:
             continue
         payload["vfunc_sig"] = str(vfunc_sig)
+        payload["vfunc_sig_max_match"] = int(
+            sig_data.get("vfunc_sig_max_match", vfunc_sig_max_match)
+        )
         if sig_data.get("vfunc_sig_disp") not in (None, 0, "0", "0x0"):
             payload["vfunc_sig_disp"] = sig_data["vfunc_sig_disp"]
         return payload
@@ -1793,6 +1852,18 @@ async def preprocess_func_sig_via_mcp(
             return int(raw, 0)
         return int(value)
 
+    def _parse_strict_int_field(value, field_name):
+        if isinstance(value, bool):
+            raise ValueError(f"invalid {field_name}")
+        if isinstance(value, int):
+            return value
+        if isinstance(value, str):
+            raw = value.strip()
+            if not raw:
+                raise ValueError(f"empty {field_name}")
+            return int(raw, 0)
+        raise ValueError(f"invalid {field_name}")
+
     async def _find_unique_match(signature, label):
         try:
             fb_result = await session.call_tool(
@@ -1817,6 +1888,51 @@ async def preprocess_func_sig_via_mcp(
         if match_count != 1:
             if debug:
                 print(f"    Preprocess: {label} matched {match_count} (need 1)")
+            return None
+
+        return matches[0]
+
+    async def _find_match_with_limit(signature, label, max_match_count):
+        try:
+            max_match_count = _parse_strict_int_field(
+                max_match_count,
+                "max_match_count",
+            )
+        except Exception:
+            return None
+
+        if max_match_count <= 0:
+            return None
+
+        try:
+            fb_result = await session.call_tool(
+                name="find_bytes",
+                arguments={
+                    "patterns": [signature],
+                    "limit": max_match_count + 1,
+                }
+            )
+            fb_data = parse_mcp_result(fb_result)
+        except Exception as e:
+            if debug:
+                print(f"    Preprocess: find_bytes error: {e}")
+            return None
+
+        if not isinstance(fb_data, list) or len(fb_data) == 0:
+            return None
+
+        entry = fb_data[0]
+        if not isinstance(entry, dict):
+            return None
+
+        matches = entry.get("matches", [])
+        match_count = entry.get("n", len(matches))
+        if match_count < 1 or match_count > max_match_count:
+            if debug:
+                print(
+                    f"    Preprocess: {label} matched {match_count} "
+                    f"(need 1..{max_match_count})"
+                )
             return None
 
         return matches[0]
@@ -1909,6 +2025,7 @@ async def preprocess_func_sig_via_mcp(
     vfunc_index = None
     vfunc_offset = None
     vfunc_match_addr = None
+    vfunc_sig_max_match = 1
 
     if func_sig:
         match_addr = await _find_unique_match(
@@ -1932,6 +2049,26 @@ async def preprocess_func_sig_via_mcp(
             if debug:
                 print(
                     "    Preprocess: no vtable_name for vfunc fallback in "
+                    f"{os.path.basename(old_path)}"
+                )
+            return None
+
+        try:
+            vfunc_sig_max_match = _parse_strict_int_field(
+                old_data.get("vfunc_sig_max_match", 1),
+                "vfunc_sig_max_match",
+            )
+        except Exception:
+            if debug:
+                print(
+                    "    Preprocess: invalid vfunc_sig_max_match in "
+                    f"{os.path.basename(old_path)}"
+                )
+            return None
+        if vfunc_sig_max_match <= 0:
+            if debug:
+                print(
+                    "    Preprocess: invalid vfunc_sig_max_match in "
                     f"{os.path.basename(old_path)}"
                 )
             return None
@@ -1976,8 +2113,10 @@ async def preprocess_func_sig_via_mcp(
                 )
             return None
 
-        vfunc_match_addr = await _find_unique_match(
-            vfunc_sig, f"{os.path.basename(old_path)} vfunc_sig"
+        vfunc_match_addr = await _find_match_with_limit(
+            vfunc_sig,
+            f"{os.path.basename(old_path)} vfunc_sig",
+            vfunc_sig_max_match,
         )
         if vfunc_match_addr is None:
             return None
@@ -1995,6 +2134,7 @@ async def preprocess_func_sig_via_mcp(
             new_data = {
                 "func_name": func_name,
                 "vfunc_sig": vfunc_sig,
+                "vfunc_sig_max_match": vfunc_sig_max_match,
                 "vtable_name": vtable_name,
                 "vfunc_offset": hex(vfunc_offset),
                 "vfunc_index": vfunc_index,
@@ -2065,6 +2205,7 @@ async def preprocess_func_sig_via_mcp(
     # vfunc fallback path: reuse old index/offset and regenerate func_sig from vtable-resolved function.
     if used_vfunc_fallback:
         new_data["vfunc_sig"] = vfunc_sig
+        new_data["vfunc_sig_max_match"] = vfunc_sig_max_match
         new_data["vtable_name"] = vtable_name
         new_data["vfunc_offset"] = hex(vfunc_offset)
         new_data["vfunc_index"] = vfunc_index
@@ -2535,6 +2676,7 @@ async def preprocess_gen_vfunc_sig_via_mcp(
     session,
     inst_va,
     vfunc_offset,
+    max_match_count=1,
     min_sig_bytes=6,
     max_sig_bytes=96,
     max_instructions=64,
@@ -2554,6 +2696,8 @@ async def preprocess_gen_vfunc_sig_via_mcp(
         inst_va: Virtual-call instruction address (int or hex string).
         vfunc_offset: Expected vtable slot displacement encoded by the target
             instruction (int or hex string).
+        max_match_count: Maximum acceptable number of signature matches while
+            still accepting the signature, as long as it contains `inst_va`.
         min_sig_bytes: Minimum signature prefix length to try.
         max_sig_bytes: Maximum bytes collected from signature start.
         max_instructions: Max instructions collected from signature start.
@@ -2598,9 +2742,15 @@ async def preprocess_gen_vfunc_sig_via_mcp(
         min_sig_bytes = max(1, int(min_sig_bytes))
         max_sig_bytes = max(1, int(max_sig_bytes))
         max_instructions = max(1, int(max_instructions))
+        max_match_count = int(max_match_count)
     except Exception:
         if debug:
             print("    Preprocess: invalid vfunc signature generation limits")
+        return None
+
+    if max_match_count <= 0:
+        if debug:
+            print("    Preprocess: invalid max_match_count for vfunc_sig")
         return None
 
     extra_wildcard_set = set()
@@ -2840,7 +2990,10 @@ async def preprocess_gen_vfunc_sig_via_mcp(
         try:
             fb_result = await session.call_tool(
                 name="find_bytes",
-                arguments={"patterns": [candidate_sig], "limit": 2},
+                arguments={
+                    "patterns": [candidate_sig],
+                    "limit": max_match_count + 1,
+                },
             )
             fb_data = parse_mcp_result(fb_result)
         except Exception as e:
@@ -2858,15 +3011,17 @@ async def preprocess_gen_vfunc_sig_via_mcp(
         matches = entry.get("matches", [])
         match_count = entry.get("n", len(matches))
 
-        if match_count != 1 or not matches:
+        if match_count < 1 or match_count > max_match_count or not matches:
             continue
 
+        match_addrs = set()
         try:
-            match_addr = _parse_addr(matches[0])
+            for match in matches:
+                match_addrs.add(_parse_addr(match))
         except Exception:
             continue
 
-        if match_addr != inst_va_int:
+        if inst_va_int not in match_addrs:
             continue
 
         best_sig = candidate_sig
@@ -2895,6 +3050,7 @@ async def preprocess_gen_vfunc_sig_via_mcp(
         "vfunc_disp_offset": disp_off,
         "vfunc_disp_size": disp_size,
         "vfunc_offset": hex(vfunc_offset_int),
+        "vfunc_sig_max_match": max_match_count,
     }
 
 
@@ -5374,12 +5530,13 @@ async def preprocess_common_skill(
     if target_kind_map is None:
         return False
 
-    for symbol_name, desired_fields in desired_fields_map.items():
+    for symbol_name, desired_field_spec in desired_fields_map.items():
         target_kind = target_kind_map.get(symbol_name)
         if target_kind is None:
             if debug:
                 print(f"    Preprocess: unknown desired-fields symbol: {symbol_name}")
             return False
+        desired_fields = desired_field_spec["desired_output_fields"]
         allowed_fields = TARGET_KIND_TO_FIELD_SET[target_kind]
         invalid_fields = [
             field_name for field_name in desired_fields
@@ -5764,11 +5921,13 @@ async def preprocess_common_skill(
     for func_name in all_func_names:
         target_output = matched_func_outputs[func_name]
         old_path = (old_yaml_map or {}).get(target_output)
-        desired_fields = desired_fields_map.get(func_name)
-        if desired_fields is None:
+        desired_field_spec = desired_fields_map.get(func_name)
+        if desired_field_spec is None:
             if debug:
                 print(f"    Preprocess: missing desired-fields entry for {func_name}")
             return False
+        desired_fields = desired_field_spec["desired_output_fields"]
+        generation_options = desired_field_spec["generation_options"]
         desired_fields_set = set(desired_fields)
 
         if func_name not in fast_path_attempted:
@@ -5887,6 +6046,7 @@ async def preprocess_common_skill(
                     func_name=func_name,
                     llm_result=llm_result,
                     vtable_name=fallback_vtable_name,
+                    vfunc_sig_max_match=generation_options.get("vfunc_sig_max_match", 1),
                     require_vfunc_sig="vfunc_sig" in desired_fields_set,
                     require_vtable_name="vtable_name" in desired_fields_set,
                     debug=debug,
