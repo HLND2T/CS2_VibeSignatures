@@ -1822,6 +1822,7 @@ async def preprocess_func_sig_via_mcp(
             direct_func_va=direct_func_va,
             direct_vtable_class=direct_vtable_class,
             direct_vfunc_offset=direct_vfunc_offset,
+            require_func_sig=True,
             normalized_mangled_class_names=normalized_mangled_class_names,
             debug=debug,
         )
@@ -4564,6 +4565,10 @@ async def _preprocess_direct_func_sig_via_mcp(
     direct_func_va=None,
     direct_vtable_class=None,
     direct_vfunc_offset=None,
+    direct_vcall_inst_va=None,
+    require_func_sig=False,
+    require_vfunc_sig=False,
+    vfunc_sig_max_match=1,
     normalized_mangled_class_names=None,
     debug=False,
 ):
@@ -4639,13 +4644,49 @@ async def _preprocess_direct_func_sig_via_mcp(
         if isinstance(basic_data, dict):
             payload.update(basic_data)
 
-        gen_data = await preprocess_gen_func_sig_via_mcp(
-            session=session,
-            func_va=resolved_func_va,
-            image_base=image_base,
-            debug=debug,
-        )
-        if isinstance(gen_data, dict) and gen_data.get("func_sig"):
+        if require_vfunc_sig:
+            if direct_vcall_inst_va is None or direct_vfunc_offset is None:
+                if debug:
+                    print(
+                        "    Preprocess: missing vcall instruction metadata while "
+                        f"generating vfunc_sig for {func_name}"
+                    )
+                return None
+            sig_data = await preprocess_gen_vfunc_sig_via_mcp(
+                session=session,
+                inst_va=direct_vcall_inst_va,
+                vfunc_offset=direct_vfunc_offset,
+                max_match_count=vfunc_sig_max_match,
+                debug=debug,
+            )
+            if not isinstance(sig_data, dict) or not sig_data.get("vfunc_sig"):
+                if debug:
+                    print(
+                        "    Preprocess: failed to generate direct vfunc_sig for "
+                        f"{func_name}"
+                    )
+                return None
+            payload["vfunc_sig"] = str(sig_data["vfunc_sig"])
+            payload["vfunc_sig_max_match"] = int(
+                sig_data.get("vfunc_sig_max_match", vfunc_sig_max_match)
+            )
+            if sig_data.get("vfunc_sig_disp") not in (None, 0, "0", "0x0"):
+                payload["vfunc_sig_disp"] = sig_data["vfunc_sig_disp"]
+
+        if require_func_sig:
+            gen_data = await preprocess_gen_func_sig_via_mcp(
+                session=session,
+                func_va=resolved_func_va,
+                image_base=image_base,
+                debug=debug,
+            )
+            if not isinstance(gen_data, dict) or not gen_data.get("func_sig"):
+                if debug:
+                    print(
+                        "    Preprocess: failed to generate direct func_sig for "
+                        f"{func_name}"
+                    )
+                return None
             payload["func_sig"] = gen_data["func_sig"]
 
     if vtable_name is not None:
@@ -6014,6 +6055,7 @@ async def preprocess_common_skill(
                     platform=platform,
                     func_name=func_name,
                     direct_func_va=direct_func_va,
+                    require_func_sig="func_sig" in desired_fields_set,
                     normalized_mangled_class_names=normalized_mangled_class_names,
                     debug=debug,
                 )
@@ -6035,6 +6077,10 @@ async def preprocess_common_skill(
                     func_name=func_name,
                     direct_vtable_class=vtable_class,
                     direct_vfunc_offset=entry.get("vfunc_offset"),
+                    direct_vcall_inst_va=entry.get("insn_va"),
+                    require_func_sig="func_sig" in desired_fields_set,
+                    require_vfunc_sig="vfunc_sig" in desired_fields_set,
+                    vfunc_sig_max_match=generation_options.get("vfunc_sig_max_match", 1),
                     normalized_mangled_class_names=normalized_mangled_class_names,
                     debug=debug,
                 )

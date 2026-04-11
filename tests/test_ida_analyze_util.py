@@ -3231,6 +3231,171 @@ found_struct_offset: []
         self.assertEqual("0x180123450", written_payload["func_va"])
         self.assertNotIn("vtable_name", written_payload)
 
+    async def test_preprocess_common_skill_generates_vfunc_sig_from_vcall_even_when_vtable_available(
+        self,
+    ) -> None:
+        func_name = "CBaseEntity_GetHammerUniqueId"
+        output_path = f"/tmp/{func_name}.windows.yaml"
+        target_detail_payload = {
+            "func_name": "CBaseEntity_Spawn",
+            "func_va": "0x180555500",
+            "disasm_code": "call    qword ptr [rax+370h]",
+            "procedure": "return this->vfptr[110](this);",
+        }
+        normalized_payload = {
+            "found_vcall": [
+                {
+                    "insn_va": "0x18016742cf",
+                    "insn_disasm": "call    qword ptr [rax+370h]",
+                    "vfunc_offset": "0x370",
+                    "func_name": func_name,
+                }
+            ],
+            "found_call": [],
+            "found_gv": [],
+            "found_struct_offset": [],
+        }
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            preprocessor_dir = Path(temp_dir) / "ida_preprocessor_scripts"
+            session = AsyncMock()
+            (preprocessor_dir / "prompt").mkdir(parents=True, exist_ok=True)
+            (preprocessor_dir / "prompt" / "call_llm_decompile.md").write_text(
+                "{symbol_name_list}",
+                encoding="utf-8",
+            )
+            _write_yaml(
+                preprocessor_dir / "references" / "reference.yaml",
+                {
+                    "func_name": target_detail_payload["func_name"],
+                    "disasm_code": target_detail_payload["disasm_code"],
+                    "procedure": target_detail_payload["procedure"],
+                },
+            )
+
+            with patch.object(
+                ida_analyze_util,
+                "_get_preprocessor_scripts_dir",
+                return_value=preprocessor_dir,
+            ), patch.object(
+                ida_analyze_util,
+                "create_openai_client",
+                return_value=object(),
+                create=True,
+            ), patch.object(
+                ida_analyze_util,
+                "preprocess_func_sig_via_mcp",
+                AsyncMock(return_value=None),
+            ), patch.object(
+                ida_analyze_util,
+                "preprocess_vtable_via_mcp",
+                AsyncMock(
+                    return_value={
+                        "vtable_class": "CBaseEntity",
+                        "vtable_symbol": "_ZTV11CBaseEntity + 0x10",
+                        "vtable_va": "0x18021862e0",
+                        "vtable_rva": "0x21862e0",
+                        "vtable_size": "0x778",
+                        "vtable_numvfunc": 239,
+                        "vtable_entries": {110: "0x1809b8db0"},
+                    }
+                ),
+            ), patch.object(
+                ida_analyze_util,
+                "_get_func_basic_info_via_mcp",
+                AsyncMock(
+                    return_value={
+                        "func_va": "0x1809b8db0",
+                        "func_rva": "0x9b8db0",
+                        "func_size": "0x3",
+                    }
+                ),
+            ), patch.object(
+                ida_analyze_util,
+                "preprocess_gen_vfunc_sig_via_mcp",
+                AsyncMock(
+                    return_value={
+                        "vfunc_sig": "FF 90 70 03 00 00",
+                        "vfunc_sig_max_match": 10,
+                    }
+                ),
+            ) as mock_preprocess_gen_vfunc_sig, patch.object(
+                ida_analyze_util,
+                "preprocess_gen_func_sig_via_mcp",
+                AsyncMock(return_value=None),
+            ) as mock_preprocess_gen_func_sig, patch.object(
+                ida_analyze_util,
+                "_load_llm_decompile_target_detail_via_mcp",
+                AsyncMock(return_value=target_detail_payload),
+            ), patch.object(
+                ida_analyze_util,
+                "call_llm_decompile",
+                create=True,
+                new_callable=AsyncMock,
+                return_value=normalized_payload,
+            ), patch.object(
+                ida_analyze_util,
+                "write_func_yaml",
+            ) as mock_write_func_yaml, patch.object(
+                ida_analyze_util,
+                "_rename_func_in_ida",
+                AsyncMock(return_value=None),
+            ):
+                result = await ida_analyze_util.preprocess_common_skill(
+                    session=session,
+                    expected_outputs=[output_path],
+                    old_yaml_map={},
+                    new_binary_dir="/tmp",
+                    platform="windows",
+                    image_base=0x180000000,
+                    func_names=[func_name],
+                    func_vtable_relations=[(func_name, "CBaseEntity")],
+                    generate_yaml_desired_fields=[
+                        (
+                            func_name,
+                            [
+                                "func_name",
+                                "vfunc_sig",
+                                "vfunc_sig_max_match:10",
+                                "vtable_name",
+                                "vfunc_offset",
+                                "vfunc_index",
+                            ],
+                        )
+                    ],
+                    llm_decompile_specs=[
+                        (
+                            func_name,
+                            "prompt/call_llm_decompile.md",
+                            "references/reference.yaml",
+                        )
+                    ],
+                    llm_config={
+                        "model": "gpt-4.1-mini",
+                        "api_key": "test-api-key",
+                    },
+                    debug=True,
+                )
+
+        self.assertTrue(result)
+        mock_preprocess_gen_vfunc_sig.assert_awaited_once_with(
+            session=session,
+            inst_va="0x18016742cf",
+            vfunc_offset="0x370",
+            max_match_count=10,
+            debug=True,
+        )
+        mock_preprocess_gen_func_sig.assert_not_awaited()
+        mock_write_func_yaml.assert_called_once()
+        written_payload = mock_write_func_yaml.call_args.args[1]
+        self.assertEqual(func_name, written_payload["func_name"])
+        self.assertEqual("FF 90 70 03 00 00", written_payload["vfunc_sig"])
+        self.assertEqual(10, written_payload["vfunc_sig_max_match"])
+        self.assertEqual("CBaseEntity", written_payload["vtable_name"])
+        self.assertEqual("0x370", written_payload["vfunc_offset"])
+        self.assertEqual(110, written_payload["vfunc_index"])
+        self.assertNotIn("func_sig", written_payload)
+
     async def test_preprocess_common_skill_uses_slot_only_fallback_when_vtable_unavailable(
         self,
     ) -> None:
