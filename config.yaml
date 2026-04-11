@@ -1360,13 +1360,22 @@ modules:
       - name: find-CBaseEntity_TakeDamageOld
         expected_output:
           - CBaseEntity_TakeDamageOld.{platform}.yaml
+
+      - name: find-CBasePlayerPawn_OnTakeDamage
+        expected_output:
           - CBasePlayerPawn_OnTakeDamage.{platform}.yaml
+        expected_input:
+          - CBaseEntity_TakeDamageOld.{platform}.yaml
+          - CBasePlayerPawn_vtable.{platform}.yaml
+
+      - name: find-CBasePlayerPawn_OnTakeDamage_Alive-AND-Dying-AND-Dead
+        expected_output:
           - CBasePlayerPawn_OnTakeDamage_Alive.{platform}.yaml
           - CBasePlayerPawn_OnTakeDamage_Dying.{platform}.yaml
           - CBasePlayerPawn_OnTakeDamage_Dead.{platform}.yaml
         expected_input:
+          - CBasePlayerPawn_OnTakeDamage.{platform}.yaml
           - CBasePlayerPawn_vtable.{platform}.yaml
-        max_retries: 6
 
       - name: find-CCSPlayerPawn_OnTakeDamage
         expected_output:
@@ -2161,6 +2170,11 @@ modules:
         category: func
         alias:
           - CBaseEntity::TakeDamageOld
+
+      - name: CBasePlayerPawn_OnTakeDamage
+        category: vfunc
+        alias:
+          - CBasePlayerPawn::OnTakeDamage
 
       - name: CBasePlayerPawn_OnTakeDamage_Alive
         category: vfunc
