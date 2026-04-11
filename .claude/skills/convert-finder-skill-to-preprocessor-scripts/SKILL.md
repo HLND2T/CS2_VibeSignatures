@@ -454,11 +454,63 @@ uv run generate_reference_yaml.py -func_name CCSGameRules_TerminateRound -auto_s
 uv run generate_reference_yaml.py -func_name CCSGameRules_TerminateRound -auto_start_mcp -binary "bin/{gamever}/server/libserver.so" -debug
 ```
 
-where `{gamever}` can be obtain from .env -> CS2VIBE_GAMEVER
+where `{gamever}` can be obtain from `.env` -> `CS2VIBE_GAMEVER`, or `14141c` if you can't read `.env`.
+
+YOU MUST: rename known symbols in the generated reference YAMLs the so LLM can find desired symbols by comparing reference ones with fresh procedure/disassembly read from new binaries.
+
+For example, if we want the LLM to find `CEntityInstance_AcceptInput` in the owner function:
+
+```c
+      do
+      {
+        sub_1811A0200(*(_QWORD *)(v28 + qword_181D6CD08), (__int64)"CTsWin", 0, 0, (__int64)&v124, 0, 0);
+        ++v27;
+        v28 += 8;
+      }
+      while ( v27 < dword_181D6CD00 );
+```
+
+```
+  .text:00000001808BC82B                 call    sub_1811A0200
+```
+
+We **MUST** be renamed not only `procedure`:
+
+```c
+      do
+      {
+        CEntityInstance_AcceptInput(*(_QWORD *)(v28 + qword_181D6CD08), (__int64)"CTsWin", 0, 0, (__int64)&v124, 0, 0);
+        ++v27;
+        v28 += 8;
+      }
+      while ( v27 < dword_181D6CD00 );
+```
+
+but also `disassembly`:
+
+```
+  .text:00000001808BC82B                 call    CEntityInstance_AcceptInput
+```
+
+For example, if we want the LLM to find `CBaseEntity_OnTakeDamage` as an indirect call to virtual function in the owner function:
+
+We **MUST** add comment to not only `procedure`:
+
+```c
+(*(void (__fastcall **)(_QWORD *, _DWORD *))(*a1 + 1008LL))(a1, v6);// 1008LL = CBaseEntity_OnTakeDamage
+```
+
+but also `disassembly`:
+
+```
+00000001803CEF54 FF 90 F0 03 00 00    call    qword ptr [rax+3F0h] ; 0x3F0 = CBaseEntity_OnTakeDamage
+```
 
 **Prerequisites:** The predecessor function must already be named in the IDA database for the target binary. If it is not named yet, ask the user to either:
 1. Connect IDA Pro MCP and rename the function first, or
 2. Manually rename it in IDA before running the script
+
+**IMPORTANT — `generate_reference_yaml.py` address resolution:** The script resolves the predecessor function's address by reading `func_va` from the existing output YAML at `bin/{gamever}/{module}/{PREDECESSOR_FUNC}.{platform}.yaml`. If the predecessor is one of the target functions being converted (e.g., splitting a combined skill where Script 1 finds FuncA and Script 2 decompiles FuncA), you **MUST generate the reference YAMLs BEFORE deleting existing output YAMLs** in Step 7. Otherwise, the address data needed by `generate_reference_yaml.py` will be destroyed and you'll need to recreate temporary YAMLs or ask the user for the function address.
 
 Run the command once per platform (windows/linux) that needs a reference YAML. The `-module` and `-platform` are inferred from the `-binary` path automatically.
 
@@ -477,7 +529,9 @@ If a combined SKILL.md was split into multiple preprocessor scripts, delete the 
 
 ## Step 7: Delete Existing Output YAMLs
 
-After the preprocessor script is created and the old SKILL.md is deleted, remove all previously generated output YAMLs so the user can validate the new preprocessor script from scratch by running `uv run ida_analyze_bin.py`.
+**IMPORTANT:** This step MUST happen AFTER Step 5 (reference YAML generation). The `generate_reference_yaml.py` script reads `func_va` from these output YAMLs to locate functions in IDA. Deleting them first will break reference generation.
+
+After the preprocessor script is created, the old SKILL.md is deleted, and any needed reference YAMLs are generated, remove all previously generated output YAMLs so the user can validate the new preprocessor script from scratch by running `uv run ida_analyze_bin.py`.
 
 For each target function, delete all matching YAMLs across all game versions:
 
@@ -565,9 +619,9 @@ Before finishing, verify:
 - [ ] config.yaml `expected_output` has one entry per target function
 - [ ] config.yaml `expected_input` correctly chains dependencies
 - [ ] config.yaml `symbols` section has entries for all target functions (no duplicates)
-- [ ] Reference YAMLs exist or generated via `uv run generate_reference_yaml.py` (Patterns C/D)
+- [ ] Reference YAMLs exist or generated via `uv run generate_reference_yaml.py` (Patterns C/D) — **must be done BEFORE deleting output YAMLs**
 - [ ] Old SKILL.md and its directory are deleted
-- [ ] Existing output YAMLs under `bin/*/` are deleted for all target functions
+- [ ] Existing output YAMLs under `bin/*/` are deleted for all target functions (AFTER reference YAML generation)
 - [ ] Entry removed from `docs/claude_skills_stats.yaml` for all converted symbols
 - [ ] `uv run ida_analyze_bin.py -debug` passes with 0 failures
 - [ ] All conversion changes committed to git
