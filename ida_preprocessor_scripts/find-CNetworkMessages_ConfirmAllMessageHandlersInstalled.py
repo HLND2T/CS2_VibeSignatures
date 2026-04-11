@@ -8,12 +8,13 @@ TARGET_FUNCTION_NAMES = [
 ]
 
 FUNC_XREFS = [
-    # (func_name, xref_strings_list, xref_signatures_list, xref_funcs_list, exclude_funcs_list)
+    # (func_name, xref_strings_list, xref_signatures_list, xref_funcs_list, exclude_funcs_list, exclude_strings_list)
     (
         "CNetworkMessages_ConfirmAllMessageHandlersInstalled",
         [
             "Error installing message handlers into a net channel: missing handlers in channel %s!",
         ],
+        [],
         [],
         [],
         [],
