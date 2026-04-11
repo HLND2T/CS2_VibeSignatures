@@ -28,6 +28,7 @@ GENERATE_YAML_DESIRED_FIELDS = [
         [
             "func_name",
             "vfunc_sig",
+            "vfunc_sig_max_match:10",
             "vfunc_offset",
             "vfunc_index",
             "vtable_name",

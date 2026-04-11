@@ -506,6 +506,153 @@ class TestGenerateYamlDesiredFieldsContract(unittest.IsolatedAsyncioTestCase):
         mock_preprocess_func_sig.assert_not_awaited()
         mock_write_func_yaml.assert_not_called()
 
+    async def test_normalize_generate_yaml_desired_fields_parses_vfunc_sig_max_match_directive(
+        self,
+    ) -> None:
+        result = ida_analyze_util._normalize_generate_yaml_desired_fields(
+            [
+                (
+                    "Foo",
+                    [
+                        "func_name",
+                        "vfunc_sig",
+                        "vfunc_sig_max_match:10",
+                    ],
+                )
+            ],
+            debug=True,
+        )
+
+        self.assertEqual(
+            {
+                "Foo": {
+                    "desired_output_fields": [
+                        "func_name",
+                        "vfunc_sig",
+                        "vfunc_sig_max_match",
+                    ],
+                    "generation_options": {
+                        "vfunc_sig_max_match": 10,
+                    },
+                }
+            },
+            result,
+        )
+
+    async def test_normalize_generate_yaml_desired_fields_rejects_vfunc_sig_max_match_without_vfunc_sig(
+        self,
+    ) -> None:
+        result = ida_analyze_util._normalize_generate_yaml_desired_fields(
+            [
+                (
+                    "Foo",
+                    [
+                        "func_name",
+                        "vfunc_sig_max_match:10",
+                    ],
+                )
+            ],
+            debug=True,
+        )
+
+        self.assertIsNone(result)
+
+    async def test_normalize_generate_yaml_desired_fields_rejects_invalid_vfunc_sig_max_match_value(
+        self,
+    ) -> None:
+        result = ida_analyze_util._normalize_generate_yaml_desired_fields(
+            [
+                (
+                    "Foo",
+                    [
+                        "func_name",
+                        "vfunc_sig",
+                        "vfunc_sig_max_match:abc",
+                    ],
+                )
+            ],
+            debug=True,
+        )
+
+        self.assertIsNone(result)
+
+    async def test_normalize_generate_yaml_desired_fields_rejects_bare_vfunc_sig_max_match_field(
+        self,
+    ) -> None:
+        result = ida_analyze_util._normalize_generate_yaml_desired_fields(
+            [
+                (
+                    "Foo",
+                    [
+                        "func_name",
+                        "vfunc_sig",
+                        "vfunc_sig_max_match",
+                    ],
+                )
+            ],
+            debug=True,
+        )
+
+        self.assertIsNone(result)
+
+    async def test_normalize_generate_yaml_desired_fields_rejects_duplicate_vfunc_sig_max_match_directive(
+        self,
+    ) -> None:
+        result = ida_analyze_util._normalize_generate_yaml_desired_fields(
+            [
+                (
+                    "Foo",
+                    [
+                        "func_name",
+                        "vfunc_sig",
+                        "vfunc_sig_max_match:10",
+                        "vfunc_sig_max_match:12",
+                    ],
+                )
+            ],
+            debug=True,
+        )
+
+        self.assertIsNone(result)
+
+    async def test_normalize_generate_yaml_desired_fields_rejects_zero_vfunc_sig_max_match_value(
+        self,
+    ) -> None:
+        result = ida_analyze_util._normalize_generate_yaml_desired_fields(
+            [
+                (
+                    "Foo",
+                    [
+                        "func_name",
+                        "vfunc_sig",
+                        "vfunc_sig_max_match:0",
+                    ],
+                )
+            ],
+            debug=True,
+        )
+
+        self.assertIsNone(result)
+
+    async def test_normalize_generate_yaml_desired_fields_rejects_negative_vfunc_sig_max_match_value(
+        self,
+    ) -> None:
+        result = ida_analyze_util._normalize_generate_yaml_desired_fields(
+            [
+                (
+                    "Foo",
+                    [
+                        "func_name",
+                        "vfunc_sig",
+                        "vfunc_sig_max_match:-1",
+                    ],
+                )
+            ],
+            debug=True,
+        )
+
+        self.assertIsNone(result)
+
     async def test_preprocess_common_skill_rejects_missing_desired_fields_before_any_write(
         self,
     ) -> None:
@@ -637,6 +784,67 @@ class TestGenerateYamlDesiredFieldsContract(unittest.IsolatedAsyncioTestCase):
                 "vfunc_index": 1,
             },
             mock_write_func_yaml.call_args.args[1],
+        )
+
+    async def test_preprocess_common_skill_writes_vfunc_sig_max_match_field(
+        self,
+    ) -> None:
+        with patch.object(
+            ida_analyze_util,
+            "preprocess_func_sig_via_mcp",
+            AsyncMock(
+                return_value={
+                    "func_name": "Foo",
+                    "func_va": "0x180004000",
+                    "func_sig": "AA BB",
+                    "vfunc_sig": "48 89 5C 24 ? ? 57",
+                    "vfunc_sig_max_match": 10,
+                    "vtable_name": "Bar",
+                }
+            ),
+        ), patch.object(
+            ida_analyze_util,
+            "write_func_yaml",
+        ) as mock_write_func_yaml, patch.object(
+            ida_analyze_util,
+            "_rename_func_in_ida",
+            AsyncMock(return_value=None),
+        ):
+            result = await ida_analyze_util.preprocess_common_skill(
+                session="session",
+                expected_outputs=["/tmp/Foo.windows.yaml"],
+                old_yaml_map={},
+                new_binary_dir="/tmp",
+                platform="windows",
+                image_base=0x180000000,
+                func_names=["Foo"],
+                generate_yaml_desired_fields=[
+                    (
+                        "Foo",
+                        [
+                            "vfunc_sig_max_match:10",
+                            "func_name",
+                            "vfunc_sig",
+                        ],
+                    )
+                ],
+                debug=True,
+            )
+
+        self.assertTrue(result)
+        mock_write_func_yaml.assert_called_once()
+        written_payload = mock_write_func_yaml.call_args.args[1]
+        self.assertEqual(
+            ["func_name", "vfunc_sig", "vfunc_sig_max_match"],
+            list(written_payload.keys()),
+        )
+        self.assertEqual(
+            {
+                "func_name": "Foo",
+                "vfunc_sig": "48 89 5C 24 ? ? 57",
+                "vfunc_sig_max_match": 10,
+            },
+            written_payload,
         )
 
     async def test_preprocess_common_skill_rejects_missing_requested_func_field(
@@ -1499,9 +1707,155 @@ found_struct_offset: []
                 "vfunc_disp_offset": 2,
                 "vfunc_disp_size": 4,
                 "vfunc_offset": "0x78",
+                "vfunc_sig_max_match": 1,
             },
             result,
         )
+
+    async def test_preprocess_gen_vfunc_sig_via_mcp_accepts_match_count_within_limit(
+        self,
+    ) -> None:
+        session = AsyncMock()
+
+        def _fake_call_tool(*, name: str, arguments: dict[str, object]):
+            if name == "py_eval":
+                return _py_eval_payload(
+                    {
+                        "vfunc_sig_va": "0x18004abc3",
+                        "vfunc_inst_length": 6,
+                        "vfunc_disp_offset": 2,
+                        "vfunc_disp_size": 4,
+                        "insts": [
+                            {
+                                "ea": "0x18004abc3",
+                                "size": 6,
+                                "bytes": "ff9078000000",
+                                "wild": [],
+                            },
+                        ],
+                    }
+                )
+            if name == "find_bytes":
+                self.assertEqual(["FF 90 78 00 00 00"], arguments["patterns"])
+                self.assertEqual(11, arguments["limit"])
+                return _FakeCallToolResult(
+                    [
+                        {
+                            "matches": ["0x18004abc3", "0x18010abc3"],
+                            "n": 2,
+                        }
+                    ]
+                )
+            raise AssertionError(f"unexpected MCP tool: {name}")
+
+        session.call_tool.side_effect = _fake_call_tool
+
+        result = await ida_analyze_util.preprocess_gen_vfunc_sig_via_mcp(
+            session=session,
+            inst_va="0x18004ABC3",
+            vfunc_offset="0x78",
+            max_match_count=10,
+            debug=False,
+        )
+
+        self.assertEqual("FF 90 78 00 00 00", result["vfunc_sig"])
+        self.assertEqual(10, result["vfunc_sig_max_match"])
+
+    async def test_preprocess_gen_vfunc_sig_via_mcp_rejects_match_count_over_limit(
+        self,
+    ) -> None:
+        session = AsyncMock()
+
+        def _fake_call_tool(*, name: str, arguments: dict[str, object]):
+            if name == "py_eval":
+                return _py_eval_payload(
+                    {
+                        "vfunc_sig_va": "0x18004abc3",
+                        "vfunc_inst_length": 6,
+                        "vfunc_disp_offset": 2,
+                        "vfunc_disp_size": 4,
+                        "insts": [
+                            {
+                                "ea": "0x18004abc3",
+                                "size": 6,
+                                "bytes": "ff9078000000",
+                                "wild": [],
+                            },
+                        ],
+                    }
+                )
+            if name == "find_bytes":
+                self.assertEqual(["FF 90 78 00 00 00"], arguments["patterns"])
+                self.assertEqual(11, arguments["limit"])
+                return _FakeCallToolResult(
+                    [
+                        {
+                            "matches": ["0x18004abc3"],
+                            "n": 11,
+                        }
+                    ]
+                )
+            raise AssertionError(f"unexpected MCP tool: {name}")
+
+        session.call_tool.side_effect = _fake_call_tool
+
+        result = await ida_analyze_util.preprocess_gen_vfunc_sig_via_mcp(
+            session=session,
+            inst_va="0x18004ABC3",
+            vfunc_offset="0x78",
+            max_match_count=10,
+            debug=False,
+        )
+
+        self.assertIsNone(result)
+
+    async def test_preprocess_gen_vfunc_sig_via_mcp_rejects_match_set_without_target_inst(
+        self,
+    ) -> None:
+        session = AsyncMock()
+
+        def _fake_call_tool(*, name: str, arguments: dict[str, object]):
+            if name == "py_eval":
+                return _py_eval_payload(
+                    {
+                        "vfunc_sig_va": "0x18004abc3",
+                        "vfunc_inst_length": 6,
+                        "vfunc_disp_offset": 2,
+                        "vfunc_disp_size": 4,
+                        "insts": [
+                            {
+                                "ea": "0x18004abc3",
+                                "size": 6,
+                                "bytes": "ff9078000000",
+                                "wild": [],
+                            },
+                        ],
+                    }
+                )
+            if name == "find_bytes":
+                self.assertEqual(["FF 90 78 00 00 00"], arguments["patterns"])
+                self.assertEqual(11, arguments["limit"])
+                return _FakeCallToolResult(
+                    [
+                        {
+                            "matches": ["0x18010abc3", "0x18020abc3"],
+                            "n": 2,
+                        }
+                    ]
+                )
+            raise AssertionError(f"unexpected MCP tool: {name}")
+
+        session.call_tool.side_effect = _fake_call_tool
+
+        result = await ida_analyze_util.preprocess_gen_vfunc_sig_via_mcp(
+            session=session,
+            inst_va="0x18004ABC3",
+            vfunc_offset="0x78",
+            max_match_count=10,
+            debug=False,
+        )
+
+        self.assertIsNone(result)
 
     async def test_preprocess_common_skill_uses_llm_decompile_vcall_fallback_for_func_yaml(
         self,
@@ -2995,6 +3349,7 @@ found_struct_offset: []
                             [
                                 "func_name",
                                 "vfunc_sig",
+                                "vfunc_sig_max_match:10",
                                 "vtable_name",
                                 "vfunc_offset",
                                 "vfunc_index",
@@ -3020,12 +3375,14 @@ found_struct_offset: []
             session=session,
             inst_va="0x18004abc3",
             vfunc_offset="0x78",
+            max_match_count=10,
             debug=True,
         )
         mock_write_func_yaml.assert_called_once()
         written_payload = mock_write_func_yaml.call_args.args[1]
         self.assertEqual(func_name, written_payload["func_name"])
         self.assertEqual("FF 90 78 00 00 00 48 8B C8", written_payload["vfunc_sig"])
+        self.assertEqual(10, written_payload["vfunc_sig_max_match"])
         self.assertEqual("CNetworkMessages", written_payload["vtable_name"])
         self.assertEqual("0x78", written_payload["vfunc_offset"])
         self.assertEqual(15, written_payload["vfunc_index"])
@@ -3177,17 +3534,167 @@ found_struct_offset: []
                     session=session,
                     inst_va="0x1d859bf",
                     vfunc_offset="0xa8",
+                    max_match_count=1,
                     debug=True,
                 ),
                 call(
                     session=session,
                     inst_va="0x1d85a10",
                     vfunc_offset="0xa8",
+                    max_match_count=1,
                     debug=True,
                 ),
             ]
         )
         mock_write_func_yaml.assert_not_called()
+
+
+class TestPreprocessFuncSigViaMcpVfuncSigMaxMatch(unittest.IsolatedAsyncioTestCase):
+    async def _preprocess_with_vfunc_sig_max_match(self, max_match_count):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            old_path = Path(temp_dir) / "INetworkMessages_GetLoggingChannel.windows.yaml"
+            new_path = Path(temp_dir) / "INetworkMessages_GetLoggingChannel.new.windows.yaml"
+
+            _write_yaml(
+                old_path,
+                {
+                    "func_name": "INetworkMessages_GetLoggingChannel",
+                    "vfunc_sig": "FF 90 20 01 00 00",
+                    "vfunc_sig_max_match": max_match_count,
+                    "vtable_name": "INetworkMessages",
+                    "vfunc_offset": "0x120",
+                    "vfunc_index": 36,
+                    "func_va": "0x180111111",
+                },
+            )
+            _write_yaml(
+                Path(temp_dir) / "INetworkMessages_vtable.windows.yaml",
+                {
+                    "vtable_entries": {
+                        36: "0x180222222",
+                    }
+                },
+            )
+
+            session = AsyncMock()
+
+            async def _fake_call_tool(*, name: str, arguments: dict[str, object]):
+                if name == "find_bytes":
+                    return _FakeCallToolResult(
+                        [
+                            {
+                                "matches": ["0x180012340"],
+                                "n": 1,
+                            }
+                        ]
+                    )
+                if name == "py_eval":
+                    return _py_eval_payload(
+                        {
+                            "func_va": "0x180222222",
+                            "func_size": "0x40",
+                        }
+                    )
+                raise AssertionError(f"unexpected MCP tool: {name}")
+
+            session.call_tool.side_effect = _fake_call_tool
+
+            result = await ida_analyze_util.preprocess_func_sig_via_mcp(
+                session=session,
+                new_path=str(new_path),
+                old_path=str(old_path),
+                image_base=0x180000000,
+                new_binary_dir=temp_dir,
+                platform="windows",
+                debug=True,
+            )
+
+        return result, session
+
+    async def test_preprocess_func_sig_via_mcp_allows_vfunc_sig_match_count_within_limit(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            old_path = Path(temp_dir) / "INetworkMessages_GetLoggingChannel.windows.yaml"
+            new_path = Path(temp_dir) / "INetworkMessages_GetLoggingChannel.new.windows.yaml"
+
+            _write_yaml(
+                old_path,
+                {
+                    "func_name": "INetworkMessages_GetLoggingChannel",
+                    "vfunc_sig": "FF 90 20 01 00 00",
+                    "vfunc_sig_max_match": 10,
+                    "vtable_name": "INetworkMessages",
+                    "vfunc_offset": "0x120",
+                    "vfunc_index": 36,
+                    "func_va": "0x180111111",
+                },
+            )
+            _write_yaml(
+                Path(temp_dir) / "INetworkMessages_vtable.windows.yaml",
+                {
+                    "vtable_entries": {
+                        36: "0x180222222",
+                    }
+                },
+            )
+
+            session = AsyncMock()
+
+            async def _fake_call_tool(*, name: str, arguments: dict[str, object]):
+                if name == "find_bytes":
+                    self.assertEqual(
+                        ["FF 90 20 01 00 00"],
+                        arguments["patterns"],
+                    )
+                    return _FakeCallToolResult(
+                        [
+                            {
+                                "matches": ["0x180012340", "0x180056780"],
+                                "n": 2,
+                            }
+                        ]
+                    )
+                if name == "py_eval":
+                    return _py_eval_payload(
+                        {
+                            "func_va": "0x180222222",
+                            "func_size": "0x40",
+                        }
+                    )
+                raise AssertionError(f"unexpected MCP tool: {name}")
+
+            session.call_tool.side_effect = _fake_call_tool
+
+            result = await ida_analyze_util.preprocess_func_sig_via_mcp(
+                session=session,
+                new_path=str(new_path),
+                old_path=str(old_path),
+                image_base=0x180000000,
+                new_binary_dir=temp_dir,
+                platform="windows",
+                debug=True,
+            )
+
+        self.assertIsNotNone(result)
+        assert result is not None
+        self.assertEqual(10, result["vfunc_sig_max_match"])
+        self.assertEqual("FF 90 20 01 00 00", result["vfunc_sig"])
+        self.assertEqual(36, result["vfunc_index"])
+
+    async def test_preprocess_func_sig_via_mcp_rejects_invalid_vfunc_sig_max_match(
+        self,
+    ) -> None:
+        invalid_values = [True, 1.5, 0, "abc"]
+
+        for invalid_value in invalid_values:
+            with self.subTest(vfunc_sig_max_match=invalid_value):
+                result, session = await self._preprocess_with_vfunc_sig_max_match(
+                    invalid_value,
+                )
+
+                self.assertIsNone(result)
+                session.call_tool.assert_not_awaited()
 
 
 if __name__ == "__main__":
