@@ -8,12 +8,13 @@ TARGET_FUNCTION_NAMES = [
 ]
 
 FUNC_XREFS = [
-    # (func_name, xref_strings_list, xref_signatures_list, xref_funcs_list, exclude_funcs_list)
+    # (func_name, xref_strings_list, xref_signatures_list, xref_funcs_list, exclude_funcs_list, exclude_strings_list)
     (
         "CNetChan_ProcessMessages",
         [
             "NetChan %s ProcessMessages has taken more than %dms to process %d messages.",
         ],
+        [],
         [],
         [],
         [],
