@@ -22,6 +22,10 @@ I_GET_LOGGING_CHANNEL_WINDOWS_SCRIPT_PATH = Path(
     "ida_preprocessor_scripts/"
     "find-INetworkMessages_GetLoggingChannel-windows.py"
 )
+I_GET_LOGGING_CHANNEL_LINUX_SCRIPT_PATH = Path(
+    "ida_preprocessor_scripts/"
+    "find-INetworkMessages_GetLoggingChannel-linux.py"
+)
 NETWORK_GROUP_STATS_SCRIPT_PATH = Path(
     "ida_preprocessor_scripts/"
     "find-CNetworkMessages_GetNetworkGroupCount-AND-"
@@ -39,14 +43,6 @@ REALLOCATING_FACTORY_DEALLOCATE_SCRIPT_PATH = Path(
 FIND_NETWORK_GROUP_SCRIPT_PATH = Path(
     "ida_preprocessor_scripts/"
     "find-CNetworkMessages_FindNetworkGroup.py"
-)
-LOGGING_CHANNEL_INIT_WINDOWS_SCRIPT_PATH = Path(
-    "ida_preprocessor_scripts/"
-    "find-LoggingChannel_Init-windows.py"
-)
-LOGGING_CHANNEL_INIT_LINUX_SCRIPT_PATH = Path(
-    "ida_preprocessor_scripts/"
-    "find-LoggingChannel_Init-linux.py"
 )
 CNETWORK_SERVER_SERVICE_INIT_SCRIPT_PATH = Path(
     "ida_preprocessor_scripts/"
@@ -1003,78 +999,43 @@ class TestFindINetworkMessagesGetLoggingChannelWindows(
         )
 
 
-class TestFindLoggingChannelInit(unittest.IsolatedAsyncioTestCase):
-    async def test_windows_script_forwards_five_tuple_func_xrefs(self) -> None:
+class TestFindINetworkMessagesGetLoggingChannelLinux(
+    unittest.IsolatedAsyncioTestCase
+):
+    async def test_preprocess_skill_forwards_linux_llm_decompile_spec(
+        self,
+    ) -> None:
         module = _load_module(
-            LOGGING_CHANNEL_INIT_WINDOWS_SCRIPT_PATH,
-            "find_LoggingChannel_Init_windows",
+            I_GET_LOGGING_CHANNEL_LINUX_SCRIPT_PATH,
+            "find_INetworkMessages_GetLoggingChannel_linux",
         )
         mock_preprocess_common_skill = AsyncMock(return_value=True)
+        llm_config = {"model": "gpt-4.1-mini", "api_key": "test-api-key"}
+        expected_llm_decompile_specs = [
+            (
+                "INetworkMessages_GetLoggingChannel",
+                "prompt/call_llm_decompile.md",
+                (
+                    "references/server/"
+                    "CNetworkUtlVectorEmbedded_NetworkStateChanged_m_vecRenderAttributes."
+                    "{platform}.yaml"
+                ),
+            )
+        ]
+        expected_func_vtable_relations = [
+            ("INetworkMessages_GetLoggingChannel", "INetworkMessages")
+        ]
         expected_generate_yaml_desired_fields = [
             (
-                "LoggingChannel_Init",
-                ["func_name", "func_va", "func_rva", "func_size", "func_sig"],
-            )
-        ]
-        expected_func_xrefs = [
-            (
-                "LoggingChannel_Init",
-                ["Networking"],
-                ["C7 44 24 40 64 FF FF FF"],
-                [],
-                [],
-            )
-        ]
-
-        with patch.object(
-            module,
-            "preprocess_common_skill",
-            mock_preprocess_common_skill,
-        ):
-            result = await module.preprocess_skill(
-                session="session",
-                skill_name="skill",
-                expected_outputs=["out.yaml"],
-                old_yaml_map={"k": "v"},
-                new_binary_dir="bin_dir",
-                platform="windows",
-                image_base=0x180000000,
-                debug=True,
-            )
-
-        self.assertTrue(result)
-        mock_preprocess_common_skill.assert_awaited_once_with(
-            session="session",
-            expected_outputs=["out.yaml"],
-            old_yaml_map={"k": "v"},
-            new_binary_dir="bin_dir",
-            platform="windows",
-            image_base=0x180000000,
-            func_names=["LoggingChannel_Init"],
-            func_xrefs=expected_func_xrefs,
-            generate_yaml_desired_fields=expected_generate_yaml_desired_fields,
-            debug=True,
-        )
-
-    async def test_linux_script_forwards_five_tuple_func_xrefs(self) -> None:
-        module = _load_module(
-            LOGGING_CHANNEL_INIT_LINUX_SCRIPT_PATH,
-            "find_LoggingChannel_Init_linux",
-        )
-        mock_preprocess_common_skill = AsyncMock(return_value=True)
-        expected_generate_yaml_desired_fields = [
-            (
-                "LoggingChannel_Init",
-                ["func_name", "func_va", "func_rva", "func_size", "func_sig"],
-            )
-        ]
-        expected_func_xrefs = [
-            (
-                "LoggingChannel_Init",
-                ["Networking"],
-                ["41 B8 64 FF FF FF"],
-                [],
-                [],
+                "INetworkMessages_GetLoggingChannel",
+                [
+                    "func_name",
+                    "vfunc_sig",
+                    "vfunc_sig_max_match:10",
+                    "vfunc_offset",
+                    "vfunc_index",
+                    "vtable_name",
+                ],
             )
         ]
 
@@ -1091,6 +1052,7 @@ class TestFindLoggingChannelInit(unittest.IsolatedAsyncioTestCase):
                 new_binary_dir="bin_dir",
                 platform="linux",
                 image_base=0x180000000,
+                llm_config=llm_config,
                 debug=True,
             )
 
@@ -1102,15 +1064,17 @@ class TestFindLoggingChannelInit(unittest.IsolatedAsyncioTestCase):
             new_binary_dir="bin_dir",
             platform="linux",
             image_base=0x180000000,
-            func_names=["LoggingChannel_Init"],
-            func_xrefs=expected_func_xrefs,
+            func_names=["INetworkMessages_GetLoggingChannel"],
+            func_vtable_relations=expected_func_vtable_relations,
+            llm_decompile_specs=expected_llm_decompile_specs,
+            llm_config=llm_config,
             generate_yaml_desired_fields=expected_generate_yaml_desired_fields,
             debug=True,
         )
 
 
 class TestFindCNetworkServerServiceInit(unittest.IsolatedAsyncioTestCase):
-    async def test_script_forwards_five_tuple_func_xrefs(self) -> None:
+    async def test_script_forwards_six_tuple_func_xrefs(self) -> None:
         module = _load_module(
             CNETWORK_SERVER_SERVICE_INIT_SCRIPT_PATH,
             "find_CNetworkServerService_Init",
@@ -1125,6 +1089,7 @@ class TestFindCNetworkServerServiceInit(unittest.IsolatedAsyncioTestCase):
                     "Local Player",
                     "Other Players",
                 ],
+                [],
                 [],
                 [],
                 [],
