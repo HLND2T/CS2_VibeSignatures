@@ -31,8 +31,8 @@ FUNC_XREFS_LINUX = [
             "unknown",
         ],
         [
-            "41 ?? FF FF 00 00",
-            "00 00 FF 7F"
+            "81 FB FF FF 00 00",
+            "66 81 E2 FF 7F"
         ],
         [],
         ["CNetworkMessages_FindNetworkMessagePartial", "CNetworkMessages_ConfirmAllMessageHandlersInstalled"],

@@ -2252,8 +2252,8 @@ async def preprocess_gen_func_sig_via_mcp(
     func_va,
     image_base,
     min_sig_bytes=6,
-    max_sig_bytes=160,
-    max_instructions=80,
+    max_sig_bytes=240,
+    max_instructions=100,
     extra_wildcard_offsets=None,
     debug=False,
 ):
