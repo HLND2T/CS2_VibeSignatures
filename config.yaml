@@ -1806,6 +1806,24 @@ modules:
         expected_input:
           - CBaseEntity_SetOwner.{platform}.yaml
 
+      - name: find-CBaseEntity_Activate
+        expected_output:
+          - CBaseEntity_Activate.{platform}.yaml
+        expected_input:
+          - CBaseEntity_vtable.{platform}.yaml
+
+      - name: find-CBaseEntity_SpawnRadius
+        expected_output:
+          - CBaseEntity_SpawnRadius.{platform}.yaml
+
+      - name: find-CBaseEntity_Spawn
+        expected_output:
+          - CBaseEntity_Spawn.{platform}.yaml
+        expected_input:
+          - CBaseEntity_vtable.{platform}.yaml
+          - CBaseEntity_Activate.{platform}.yaml
+          - CBaseEntity_SpawnRadius.{platform}.yaml
+
       - name: find-g_pGameTypes-AND-IGameTypes_CreateWorkshopMapGroup
         expected_output:
           - g_pGameTypes.{platform}.yaml
@@ -2507,6 +2525,24 @@ modules:
         category: vfunc
         alias:
           - CBaseEntity::Use
+
+      - name: CBaseEntity_Activate
+        category: vfunc
+        alias:
+          - CBaseEntity::Activate
+          - Activate
+
+      - name: CBaseEntity_Spawn
+        category: vfunc
+        alias:
+          - CBaseEntity::Spawn
+          - Spawn
+
+      - name: CBaseEntity_SpawnRadius
+        category: func
+        alias:
+          - CBaseEntity::SpawnRadius
+          - SpawnRadius
 
       - name: CCSPlayer_ItemServices_DropActivePlayerWeapon
         category: vfunc
