@@ -4315,9 +4315,9 @@ def _parse_int_value(value):
 
 
 def _parse_func_start_set_from_py_eval(eval_data, debug=False):
-    """Parse py_eval JSON payload and return function-start address set."""
+    """Parse py_eval JSON payload, or return None on invalid payload."""
     if not isinstance(eval_data, dict):
-        return set()
+        return None
 
     stderr_text = eval_data.get("stderr", "")
     if stderr_text and debug:
@@ -4326,15 +4326,15 @@ def _parse_func_start_set_from_py_eval(eval_data, debug=False):
 
     result_str = eval_data.get("result", "")
     if not result_str:
-        return set()
+        return None
 
     try:
         parsed = json.loads(result_str)
     except (json.JSONDecodeError, TypeError):
-        return set()
+        return None
 
     if not isinstance(parsed, list):
-        return set()
+        return None
 
     func_starts = set()
     for item in parsed:
@@ -4350,7 +4350,7 @@ async def _collect_xref_func_starts_for_string(session, xref_string, debug=False
     Collect function-start addresses that reference the given string literal.
 
     Returns:
-        Set[int]: Function start addresses.
+        Set[int]: Function start addresses, or None on collection failure.
     """
     if not isinstance(xref_string, str) or not xref_string:
         return set()
@@ -4377,7 +4377,7 @@ async def _collect_xref_func_starts_for_string(session, xref_string, debug=False
     except Exception as e:
         if debug:
             print(f"    Preprocess: py_eval error for xref string search: {e}")
-        return set()
+        return None
 
     return _parse_func_start_set_from_py_eval(eval_data, debug=debug)
 
@@ -4387,7 +4387,7 @@ async def _collect_xref_func_starts_for_ea(session, target_ea, debug=False):
     Collect function-start addresses that reference the specified target address.
 
     Returns:
-        Set[int]: Function start addresses.
+        Set[int]: Function start addresses, or None on py_eval failure.
     """
     try:
         target_ea_int = _parse_int_value(target_ea)
@@ -4414,7 +4414,7 @@ async def _collect_xref_func_starts_for_ea(session, target_ea, debug=False):
     except Exception as e:
         if debug:
             print(f"    Preprocess: py_eval error for xref ea search: {e}")
-        return set()
+        return None
 
     return _parse_func_start_set_from_py_eval(eval_data, debug=debug)
 
@@ -4426,7 +4426,7 @@ async def _collect_xref_func_starts_for_signature(
     Collect function-start addresses that contain bytes matched by a signature.
 
     Returns:
-        Set[int]: Function start addresses.
+        Set[int]: Function start addresses, or None on py_eval failure.
     """
     if not isinstance(xref_signature, str) or not xref_signature:
         return set()
@@ -4478,7 +4478,7 @@ async def _collect_xref_func_starts_for_signature(
     except Exception as e:
         if debug:
             print(f"    Preprocess: py_eval error for xref signature search: {e}")
-        return set()
+        return None
 
     return _parse_func_start_set_from_py_eval(eval_data, debug=debug)
 
@@ -4984,6 +4984,7 @@ async def preprocess_func_xrefs_via_mcp(
     xref_signatures,
     xref_funcs,
     exclude_funcs,
+    exclude_strings,
     new_binary_dir,
     platform,
     image_base,
@@ -5001,6 +5002,13 @@ async def preprocess_func_xrefs_via_mcp(
     ``func_va`` values are loaded from current-version YAML files in
     ``new_binary_dir`` and removed from the intersection result before
     enforcing the uniqueness check.
+
+    ``exclude_strings`` uses the same substring matching semantics as
+    ``xref_strings``. For each configured string, collect the containing
+    function-start set from its xrefs, union these sets, and subtract the
+    result from the already-intersected positive candidate set. Empty
+    exclude-string matches are treated as an empty exclusion set rather
+    than a hard failure.
 
     When ``vtable_class`` is given, the vtable YAML file
     ``{vtable_class}_vtable.{platform}.yaml`` is loaded from
@@ -5071,6 +5079,11 @@ async def preprocess_func_xrefs_via_mcp(
         addr_set = await _collect_xref_func_starts_for_string(
             session=session, xref_string=xref_string, debug=debug
         )
+        if addr_set is None:
+            if debug:
+                short = str(xref_string)[:80]
+                print(f"    Preprocess: failed to collect string xref: {short}")
+            return None
         if not addr_set:
             if debug:
                 short = str(xref_string)[:80]
@@ -5164,11 +5177,50 @@ async def preprocess_func_xrefs_via_mcp(
     for addr_set in candidate_sets[1:]:
         common_funcs = common_funcs & addr_set
 
-    if excluded_func_addrs:
-        common_funcs -= excluded_func_addrs
+    excluded_string_func_addrs = set()
+    for excluded_string in (exclude_strings or []):
+        addr_set = await _collect_xref_func_starts_for_string(
+            session=session,
+            xref_string=excluded_string,
+            debug=debug,
+        )
+        if addr_set is None:
+            if debug:
+                short = str(excluded_string)[:80]
+                print(
+                    f"    Preprocess: failed to collect exclude string xref: {short}"
+                )
+            return None
+        if debug:
+            short = str(excluded_string)[:80]
+            print(
+                f"    Preprocess: exclude string xref '{short}' matched "
+                f"{len(addr_set)} function(s)"
+            )
+        excluded_string_func_addrs |= set(addr_set)
+
+    if debug and excluded_string_func_addrs:
+        print(
+            "    Preprocess: excluded_string_func_addrs = "
+            f"{[hex(a) for a in sorted(excluded_string_func_addrs)]}"
+        )
 
     if debug:
-        print(f"    Preprocess: common_funcs = {[hex(a) for a in common_funcs]}")
+        print(
+            "    Preprocess: common_funcs before excludes = "
+            f"{[hex(a) for a in sorted(common_funcs)]}"
+        )
+
+    if excluded_func_addrs:
+        common_funcs -= excluded_func_addrs
+    if excluded_string_func_addrs:
+        common_funcs -= excluded_string_func_addrs
+
+    if debug:
+        print(
+            "    Preprocess: common_funcs after excludes = "
+            f"{[hex(a) for a in sorted(common_funcs)]}"
+        )
 
     if len(common_funcs) != 1:
         if debug:
@@ -5282,6 +5334,7 @@ async def _try_preprocess_func_without_llm(
             xref_signatures=xref_spec["xref_signatures"],
             xref_funcs=xref_spec["xref_funcs"],
             exclude_funcs=xref_spec["exclude_funcs"],
+            exclude_strings=xref_spec["exclude_strings"],
             new_binary_dir=new_binary_dir,
             platform=platform,
             image_base=image_base,
@@ -5390,7 +5443,7 @@ async def preprocess_common_skill(
     - ``func_xrefs``: locate functions via unified xref fallback through
       ``preprocess_func_xrefs_via_mcp``. Each element is a tuple of
       ``(func_name, xref_strings_list, xref_signatures_list, xref_funcs_list,``
-      ``exclude_funcs_list)``. ``xref_strings`` provides string
+      ``exclude_funcs_list, exclude_strings_list)``. ``xref_strings`` provides string
       cross-reference constraints, ``xref_signatures`` provides byte-pattern
       constraints mapped to containing function starts, and ``xref_funcs``
       provides dependency function names whose addresses are read only from
@@ -5423,7 +5476,7 @@ async def preprocess_common_skill(
         inherit_vfuncs: List of inherited vfunc specs (may be empty/None).
         func_xrefs: List of
             (func_name, xref_strings_list, xref_signatures_list,
-            xref_funcs_list, exclude_funcs_list) tuples for unified
+            xref_funcs_list, exclude_funcs_list, exclude_strings_list) tuples for unified
             xref-based function lookup (may be empty/None). Dependency and
             exclude function addresses are read only from current-version
             YAML files.
@@ -5469,7 +5522,7 @@ async def preprocess_common_skill(
 
     func_xrefs_map = {}
     for spec in func_xrefs:
-        if not isinstance(spec, (tuple, list)) or len(spec) != 5:
+        if not isinstance(spec, (tuple, list)) or len(spec) != 6:
             if debug:
                 print(f"    Preprocess: invalid func_xrefs spec: {spec}")
             return False
@@ -5480,6 +5533,7 @@ async def preprocess_common_skill(
             xref_signatures,
             xref_funcs,
             exclude_funcs,
+            exclude_strings,
         ) = spec
         if not isinstance(func_name, str) or not func_name:
             if debug:
@@ -5523,10 +5577,19 @@ async def preprocess_common_skill(
                 )
             return False
 
+        if not isinstance(exclude_strings, (tuple, list)):
+            if debug:
+                print(
+                    f"    Preprocess: invalid exclude_strings type for "
+                    f"{func_name}: {type(exclude_strings).__name__}"
+                )
+            return False
+
         xref_strings = list(xref_strings)
         xref_signatures = list(xref_signatures)
         xref_funcs = list(xref_funcs)
         exclude_funcs = list(exclude_funcs)
+        exclude_strings = list(exclude_strings)
         if any(not isinstance(item, str) or not item for item in xref_strings):
             if debug:
                 print(f"    Preprocess: invalid xref_strings values for {func_name}")
@@ -5549,6 +5612,13 @@ async def preprocess_common_skill(
                 print(f"    Preprocess: invalid exclude_funcs values for {func_name}")
             return False
 
+        if any(not isinstance(item, str) or not item for item in exclude_strings):
+            if debug:
+                print(
+                    f"    Preprocess: invalid exclude_strings values for {func_name}"
+                )
+            return False
+
         if not xref_strings and not xref_signatures and not xref_funcs:
             if debug:
                 print(f"    Preprocess: empty func_xrefs spec for {func_name}")
@@ -5559,6 +5629,7 @@ async def preprocess_common_skill(
             "xref_signatures": xref_signatures,
             "xref_funcs": xref_funcs,
             "exclude_funcs": exclude_funcs,
+            "exclude_strings": exclude_strings,
         }
 
     target_kind_map = _build_target_kind_map(

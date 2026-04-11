@@ -1106,6 +1106,7 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
                 xref_signatures=["C7 44 24 40 64 FF FF FF"],
                 xref_funcs=[],
                 exclude_funcs=[],
+                exclude_strings=[],
                 new_binary_dir="bin_dir",
                 platform="windows",
                 image_base=0x180000000,
@@ -1157,6 +1158,7 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
                 xref_signatures=["C7 44 24 40 64 FF FF FF"],
                 xref_funcs=[],
                 exclude_funcs=[],
+                exclude_strings=[],
                 new_binary_dir="bin_dir",
                 platform="windows",
                 image_base=0x180000000,
@@ -1208,6 +1210,7 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
                         ["C7 44 24 40 64 FF FF FF"],
                         [],
                         [],
+                        [],
                     )
                 ],
                 generate_yaml_desired_fields=[
@@ -1233,7 +1236,7 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
         )
         mock_write_func_yaml.assert_called_once()
 
-    async def test_preprocess_common_skill_rejects_legacy_four_item_func_xrefs(
+    async def test_preprocess_common_skill_rejects_legacy_five_item_func_xrefs(
         self,
     ) -> None:
         result = await ida_analyze_util.preprocess_common_skill(
@@ -1248,6 +1251,7 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
                 (
                     "LoggingChannel_Init",
                     ["Networking"],
+                    [],
                     [],
                     [],
                 )
@@ -1277,6 +1281,7 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
             func_xrefs=[
                 (
                     "LoggingChannel_Init",
+                    [],
                     [],
                     [],
                     [],
@@ -2813,6 +2818,7 @@ found_struct_offset: []
                             [],
                             [first_func_name],
                             [],
+                            [],
                         ),
                     ],
                     generate_yaml_desired_fields=[
@@ -2984,6 +2990,7 @@ found_struct_offset: []
                             ["dummy-string"],
                             [],
                             [first_func_name],
+                            [],
                             [],
                         ),
                     ],

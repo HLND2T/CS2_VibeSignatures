@@ -8,7 +8,7 @@ TARGET_FUNCTION_NAMES = [
 ]
 
 FUNC_XREFS = [
-    # (func_name, xref_strings_list, xref_signatures_list, xref_funcs_list, exclude_funcs_list)
+    # (func_name, xref_strings_list, xref_signatures_list, xref_funcs_list, exclude_funcs_list, exclude_strings_list)
     (
         "CLoopModeGame_SetGameSystemState",
         [
@@ -17,6 +17,7 @@ FUNC_XREFS = [
         [],
         [],
         ["CLoopModeGame_ReceivedServerInfo"],
+        [],
     ),
 ]
 
