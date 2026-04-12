@@ -7,6 +7,19 @@ TARGET_FUNCTION_NAMES = [
     "NetworkStateChanged",
 ]
 
+FUNC_XREFS = [
+    # (func_name, xref_strings_list, xref_signatures_list, xref_funcs_list, exclude_funcs_list, exclude_strings_list)
+    (
+        "NetworkStateChanged",
+        [
+            "light_capsule",
+        ],
+        [],
+        [],
+        [],
+        [],
+    ),
+]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
@@ -14,10 +27,10 @@ GENERATE_YAML_DESIRED_FIELDS = [
         "NetworkStateChanged",
         [
             "func_name",
+            "func_sig",
             "func_va",
             "func_rva",
             "func_size",
-            "func_sig",
         ],
     ),
 ]
@@ -35,6 +48,7 @@ async def preprocess_skill(
         platform=platform,
         image_base=image_base,
         func_names=TARGET_FUNCTION_NAMES,
+        func_xrefs=FUNC_XREFS,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
     )
