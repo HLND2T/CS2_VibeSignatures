@@ -48,6 +48,10 @@ CNETWORK_SERVER_SERVICE_INIT_SCRIPT_PATH = Path(
     "ida_preprocessor_scripts/"
     "find-CNetworkServerService_Init.py"
 )
+BOT_ADD_COMMAND_HANDLER_SCRIPT_PATH = Path(
+    "ida_preprocessor_scripts/"
+    "find-BotAdd_CommandHandler.py"
+)
 
 class _FakeStreamableHttpClient:
     async def __aenter__(self):
@@ -95,6 +99,59 @@ def _load_module(script_path: Path, module_name: str):
     assert spec.loader is not None
     spec.loader.exec_module(module)
     return module
+
+
+class TestFindBotAddCommandHandler(unittest.IsolatedAsyncioTestCase):
+    async def test_preprocess_skill_forwards_registerconcommand_contract(self) -> None:
+        module = _load_module(
+            BOT_ADD_COMMAND_HANDLER_SCRIPT_PATH,
+            "find_BotAdd_CommandHandler",
+        )
+        mock_preprocess_registerconcommand_skill = AsyncMock(return_value=True)
+        expected_generate_yaml_desired_fields = [
+            (
+                "BotAdd_CommandHandler",
+                [
+                    "func_name",
+                    "func_sig",
+                    "func_va",
+                    "func_rva",
+                    "func_size",
+                ],
+            )
+        ]
+
+        with patch.object(
+            module,
+            "preprocess_registerconcommand_skill",
+            mock_preprocess_registerconcommand_skill,
+        ):
+            result = await module.preprocess_skill(
+                session="session",
+                skill_name="skill",
+                expected_outputs=["out.yaml"],
+                old_yaml_map={"k": "v"},
+                new_binary_dir="bin_dir",
+                platform="linux",
+                image_base=0x400000,
+                debug=True,
+            )
+
+        self.assertTrue(result)
+        mock_preprocess_registerconcommand_skill.assert_awaited_once_with(
+            session="session",
+            expected_outputs=["out.yaml"],
+            new_binary_dir="bin_dir",
+            platform="linux",
+            image_base=0x400000,
+            target_name="BotAdd_CommandHandler",
+            generate_yaml_desired_fields=expected_generate_yaml_desired_fields,
+            command_name="bot_add",
+            help_string="bot_add <t|ct> <type> <difficulty> <name> - Adds a bot matching the given criteria.",
+            search_window_before_call=96,
+            search_window_after_xref=96,
+            debug=True,
+        )
 
 
 class TestFindCFlattenedSerializersCreateFieldChangedEventQueueImpl(
