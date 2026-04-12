@@ -31,6 +31,7 @@ This is the function you need to reverse-engineering:
 Please collect all references to "{symbol_name_list}" in the function you need to reverse-engineering and output those references as YAML.
 `found_vcall` is for indirect call to virtual function. the `insn_disasm` and `insn_va` must be the instruction with displacement offset.
 `found_call` is for direct call to regular non-virtual function.
+`found_funcptr` is for reference to function pointer. the `insn_disasm` and `insn_va` must be the instruction that loads or references the function pointer target address, not a later use-site such as `call reg`.
 `found_gv` is for reference to global variable.
 `found_struct_offset` is for reference to struct offset. the `insn_disasm` and `insn_va` must be the instruction with displacement offset.
 
@@ -53,6 +54,10 @@ found_call:
   - insn_va: '0x180888880'
     insn_disasm: call    sub_180555500
     func_name: CLoopModeGame_SetGameSystemState
+found_funcptr:
+  - insn_va: '0x180666600'                # Must load/reference the function pointer target address
+    insn_disasm: lea     rdx, sub_15BC910 # Must load/reference the function pointer target address
+    funcptr_name: CLoopModeGame_OnClientPollNetworking
 found_gv:
   - insn_va: '0x180444400'
     insn_disasm: mov     rcx, cs:qword_180666600

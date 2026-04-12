@@ -605,6 +605,7 @@ def _empty_llm_decompile_result():
     return {
         "found_vcall": [],
         "found_call": [],
+        "found_funcptr": [],
         "found_gv": [],
         "found_struct_offset": [],
     }
@@ -1306,6 +1307,77 @@ async def _resolve_direct_call_target_via_mcp(session, insn_va, debug=False):
     return resolved_matches[0]
 
 
+async def _resolve_direct_funcptr_target_via_mcp(session, insn_va, debug=False):
+    try:
+        insn_va_int = _parse_int_value(insn_va)
+    except Exception:
+        return None
+
+    py_code = (
+        "import ida_funcs, idautils, json\n"
+        f"insn_ea = {insn_va_int}\n"
+        "matches = []\n"
+        "seen_addrs = set()\n"
+        "for target_ea in idautils.DataRefsFrom(insn_ea):\n"
+        "    func = ida_funcs.get_func(target_ea)\n"
+        "    if func is None:\n"
+        "        continue\n"
+        "    func_start = int(func.start_ea)\n"
+        "    func_va = hex(func_start)\n"
+        "    if func_va in seen_addrs:\n"
+        "        continue\n"
+        "    seen_addrs.add(func_va)\n"
+        "    matches.append({'func_va': func_va})\n"
+        "result = json.dumps(matches)\n"
+    )
+
+    try:
+        eval_result = await session.call_tool(
+            name="py_eval",
+            arguments={"code": py_code},
+        )
+    except Exception as exc:
+        if debug:
+            print(
+                "    Preprocess: py_eval error while resolving direct funcptr target: "
+                f"{exc}"
+            )
+        return None
+
+    match_payload = _parse_py_eval_json_result(
+        eval_result,
+        debug=debug,
+        context="llm_decompile direct funcptr target lookup",
+    )
+    if not isinstance(match_payload, list):
+        return None
+
+    resolved_matches = []
+    seen_func_vas = set()
+    for item in match_payload:
+        if not isinstance(item, dict):
+            continue
+        func_va = str(item.get("func_va", "")).strip()
+        if not func_va or func_va in seen_func_vas:
+            continue
+        try:
+            int(func_va, 0)
+        except (TypeError, ValueError):
+            continue
+        seen_func_vas.add(func_va)
+        resolved_matches.append(func_va)
+
+    if len(resolved_matches) != 1:
+        if debug:
+            print(
+                "    Preprocess: llm_decompile direct funcptr target lookup returned "
+                f"{len(resolved_matches)} matches: {resolved_matches}"
+            )
+        return None
+
+    return resolved_matches[0]
+
+
 async def _resolve_direct_gv_target_via_mcp(session, insn_va, debug=False):
     try:
         insn_va_int = _parse_int_value(insn_va)
@@ -1448,6 +1520,10 @@ def parse_llm_decompile_response(response_text):
         "found_call": _normalize_llm_entries(
             parsed.get("found_call", []),
             ("insn_va", "insn_disasm", "func_name"),
+        ),
+        "found_funcptr": _normalize_llm_entries(
+            parsed.get("found_funcptr", []),
+            ("insn_va", "insn_disasm", "funcptr_name"),
         ),
         "found_gv": _normalize_llm_entries(
             parsed.get("found_gv", []),
@@ -6147,6 +6223,7 @@ async def preprocess_common_skill(
         desired_fields = desired_field_spec["desired_output_fields"]
         generation_options = desired_field_spec["generation_options"]
         desired_fields_set = set(desired_fields)
+        can_use_direct_func_fallback = "vfunc_sig" not in desired_fields_set
 
         if func_name not in fast_path_attempted:
             fast_path_results[func_name] = await _try_preprocess_func_without_llm(
@@ -6213,29 +6290,54 @@ async def preprocess_common_skill(
                     llm_result = _empty_llm_decompile_result()
                 for symbol_name in llm_symbol_name_list:
                     llm_result_by_symbol_name[symbol_name] = llm_result
-            for entry in llm_result.get("found_call", []):
-                if entry.get("func_name") != func_name:
-                    continue
-                direct_func_va = await _resolve_direct_call_target_via_mcp(
-                    session,
-                    entry.get("insn_va"),
-                    debug=debug,
-                )
-                if direct_func_va is None:
-                    continue
-                func_data = await _preprocess_direct_func_sig_via_mcp(
-                    session=session,
-                    new_path=target_output,
-                    image_base=image_base,
-                    platform=platform,
-                    func_name=func_name,
-                    direct_func_va=direct_func_va,
-                    require_func_sig="func_sig" in desired_fields_set,
-                    normalized_mangled_class_names=normalized_mangled_class_names,
-                    debug=debug,
-                )
-                if func_data is not None:
-                    break
+            if can_use_direct_func_fallback:
+                for entry in llm_result.get("found_call", []):
+                    if entry.get("func_name") != func_name:
+                        continue
+                    direct_func_va = await _resolve_direct_call_target_via_mcp(
+                        session,
+                        entry.get("insn_va"),
+                        debug=debug,
+                    )
+                    if direct_func_va is None:
+                        continue
+                    func_data = await _preprocess_direct_func_sig_via_mcp(
+                        session=session,
+                        new_path=target_output,
+                        image_base=image_base,
+                        platform=platform,
+                        func_name=func_name,
+                        direct_func_va=direct_func_va,
+                        require_func_sig="func_sig" in desired_fields_set,
+                        normalized_mangled_class_names=normalized_mangled_class_names,
+                        debug=debug,
+                    )
+                    if func_data is not None:
+                        break
+            if func_data is None and can_use_direct_func_fallback:
+                for entry in llm_result.get("found_funcptr", []):
+                    if entry.get("funcptr_name") != func_name:
+                        continue
+                    direct_func_va = await _resolve_direct_funcptr_target_via_mcp(
+                        session,
+                        entry.get("insn_va"),
+                        debug=debug,
+                    )
+                    if direct_func_va is None:
+                        continue
+                    func_data = await _preprocess_direct_func_sig_via_mcp(
+                        session=session,
+                        new_path=target_output,
+                        image_base=image_base,
+                        platform=platform,
+                        func_name=func_name,
+                        direct_func_va=direct_func_va,
+                        require_func_sig="func_sig" in desired_fields_set,
+                        normalized_mangled_class_names=normalized_mangled_class_names,
+                        debug=debug,
+                    )
+                    if func_data is not None:
+                        break
             vtable_class = None
             if func_data is None and func_name in vtable_relations_map:
                 vtable_class = vtable_relations_map[func_name]
