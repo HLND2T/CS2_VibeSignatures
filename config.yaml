@@ -1649,11 +1649,15 @@ modules:
         expected_output:
           - WeaponBuy.{platform}.yaml
 
-      - name: find-IGameSystem_InitAllSystems-AND-IGameSystem_InitAllSystems_pFirst
+      - name: find-IGameSystem_InitAllSystems
         expected_output:
           - IGameSystem_InitAllSystems.{platform}.yaml
+
+      - name: find-IGameSystem_InitAllSystems_pFirst
+        expected_output:
           - IGameSystem_InitAllSystems_pFirst.{platform}.yaml
-        max_retries: 6
+        expected_input:
+          - IGameSystem_InitAllSystems.{platform}.yaml
 
       - name: find-IGameSystem_LoopPostInitAllSystems_pEventDispatcher-AND-IGameSystem_LoopDestroyAllSystems_s_GameSystems
         expected_output:
