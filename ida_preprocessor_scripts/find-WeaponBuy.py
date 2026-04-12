@@ -7,6 +7,40 @@ TARGET_FUNCTION_NAMES = [
     "WeaponBuy",
 ]
 
+FUNC_XREFS_WINDOWS = [
+    # (func_name, xref_strings_list, xref_signatures_list, xref_funcs_list, exclude_funcs_list, exclude_strings_list)
+    (
+        "WeaponBuy",
+        [
+            "item_purchase",
+            "userid",
+            "team",
+            "loadout",
+            "weapon",
+        ],
+        [],
+        [],
+        [],
+        [],
+    ),
+]
+
+FUNC_XREFS_LINUX = [
+    # (func_name, xref_strings_list, xref_signatures_list, xref_funcs_list, exclude_funcs_list, exclude_strings_list)
+    (
+        "WeaponBuy",
+        [
+            "item_purchase",
+            "team",
+            "weapon",
+            "loadout",
+        ],
+        [],
+        [],
+        [],
+        [],
+    ),
+]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
@@ -14,10 +48,10 @@ GENERATE_YAML_DESIRED_FIELDS = [
         "WeaponBuy",
         [
             "func_name",
+            "func_sig",
             "func_va",
             "func_rva",
             "func_size",
-            "func_sig",
         ],
     ),
 ]
@@ -35,6 +69,7 @@ async def preprocess_skill(
         platform=platform,
         image_base=image_base,
         func_names=TARGET_FUNCTION_NAMES,
+        func_xrefs=FUNC_XREFS_WINDOWS if platform == "windows" else FUNC_XREFS_LINUX,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
     )
