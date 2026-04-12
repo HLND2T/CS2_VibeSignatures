@@ -1363,6 +1363,7 @@ found_struct_offset:
   - insn_va: 0x1801BA12A
     insn_disasm: " mov     rcx, [r14+58h] "
     offset: 0x58
+    size: 8
     struct_name: " CGameResourceService "
     member_name: " m_pEntitySystem "
   - member_name: only_member
@@ -1400,6 +1401,7 @@ found_struct_offset:
                         "insn_va": "0x1801BA12A",
                         "insn_disasm": "mov     rcx, [r14+58h]",
                         "offset": "0x58",
+                        "size": "8",
                         "struct_name": "CGameResourceService",
                         "member_name": "m_pEntitySystem",
                     }
@@ -1456,7 +1458,46 @@ found_struct_offset: []
         )
         mock_call_llm_text.assert_called_once()
         self.assertEqual("gpt-4.1-mini", mock_call_llm_text.call_args.kwargs["model"])
-        self.assertEqual(0.1, mock_call_llm_text.call_args.kwargs["temperature"])
+        self.assertNotIn("temperature", mock_call_llm_text.call_args.kwargs)
+
+    async def test_call_llm_decompile_forwards_explicit_temperature(
+        self,
+    ) -> None:
+        response_text = """
+```yaml
+found_vcall: []
+found_call: []
+found_gv: []
+found_struct_offset: []
+```
+""".strip()
+
+        with patch.object(
+            ida_analyze_util,
+            "call_llm_text",
+            return_value=response_text,
+            create=True,
+        ) as mock_call_llm_text:
+            parsed = await ida_analyze_util.call_llm_decompile(
+                client=object(),
+                model="gpt-4.1-mini",
+                symbol_name_list=["ILoopMode_OnLoopActivate"],
+                disasm_code="call    [rax+68h]",
+                procedure="(*v1->lpVtbl->OnLoopActivate)(v1);",
+                temperature=0.35,
+            )
+
+        self.assertEqual(
+            {
+                "found_vcall": [],
+                "found_call": [],
+                "found_gv": [],
+                "found_struct_offset": [],
+            },
+            parsed,
+        )
+        mock_call_llm_text.assert_called_once()
+        self.assertEqual(0.35, mock_call_llm_text.call_args.kwargs["temperature"])
 
     async def test_call_llm_decompile_fails_closed_when_shared_helper_raises(
         self,
@@ -1597,6 +1638,7 @@ found_struct_offset: []
             offset="0x58",
             offset_inst_va="0x1801BA12A",
             image_base=0x180000000,
+            size=8,
             min_sig_bytes=4,
             debug=False,
         )
@@ -1606,7 +1648,7 @@ found_struct_offset: []
                 "struct_name": "CGameResourceService",
                 "member_name": "m_pEntitySystem",
                 "offset": "0x58",
-                "size": 4,
+                "size": 8,
                 "offset_sig": "49 8B 4E ??",
                 "offset_sig_disp": 0,
             },
@@ -2553,6 +2595,7 @@ found_struct_offset: []
                     "insn_va": "0x180777710",
                     "insn_disasm": "mov     rcx, [r14+58h]",
                     "offset": "0x58",
+                    "size": "8",
                     "struct_name": "CGameResourceService",
                     "member_name": "m_pEntitySystem",
                 }
@@ -2715,6 +2758,7 @@ found_struct_offset: []
             member_name="m_pEntitySystem",
             offset="0x58",
             offset_inst_va="0x180777710",
+            size="8",
             old_path=str(old_struct_yaml_path),
             debug=True,
         )

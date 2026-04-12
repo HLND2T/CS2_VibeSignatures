@@ -11,7 +11,12 @@ from typing import Any
 
 import yaml
 from ida_analyze_util import build_remote_text_export_py_eval, parse_mcp_result
-from ida_llm_utils import call_llm_text, create_openai_client, require_nonempty_text
+from ida_llm_utils import (
+    call_llm_text,
+    create_openai_client,
+    normalize_optional_temperature,
+    require_nonempty_text,
+)
 
 
 VCALL_FINDER_DIRNAME = "vcall_finder"
@@ -242,7 +247,15 @@ def parse_llm_vcall_response(response_text: str | None) -> dict[str, list[dict[s
     return {"found_vcall": normalize_found_vcalls(parsed.get("found_vcall", []))}
 
 
-def call_openai_for_vcalls(client, detail, model, *, debug=False, request_label=""):
+def call_openai_for_vcalls(
+    client,
+    detail,
+    model,
+    *,
+    temperature=None,
+    debug=False,
+    request_label="",
+):
     model = _require_nonempty_text(model, "model")
     if debug:
         _print_vcall_debug(
@@ -251,15 +264,18 @@ def call_openai_for_vcalls(client, detail, model, *, debug=False, request_label=
         )
 
     started_at = time.monotonic()
-    content = call_llm_text(
-        model=model,
-        client=client,
-        messages=[
+    request_kwargs = {
+        "model": model,
+        "client": client,
+        "messages": [
             {"role": "system", "content": "You are a reverse engineering expert."},
             {"role": "user", "content": render_vcall_prompt(detail)},
         ],
-        temperature=1,
-    )
+    }
+    normalized_temperature = normalize_optional_temperature(temperature)
+    if normalized_temperature is not None:
+        request_kwargs["temperature"] = normalized_temperature
+    content = call_llm_text(**request_kwargs)
     found_vcall = parse_llm_vcall_response(content)["found_vcall"]
     if debug:
         elapsed_seconds = time.monotonic() - started_at
@@ -278,6 +294,7 @@ def _aggregate_vcall_detail_file(
     client_ref,
     api_key,
     base_url,
+    temperature,
     detail_path,
     summary_path,
     request_label,
@@ -316,6 +333,7 @@ def _aggregate_vcall_detail_file(
                 llm_client,
                 detail,
                 model,
+                temperature=temperature,
                 debug=debug,
                 request_label=request_label,
             )
@@ -358,6 +376,7 @@ def _aggregate_vcall_detail_paths(
     client_ref,
     api_key,
     base_url,
+    temperature,
     detail_paths,
     summary_path,
     model,
@@ -373,6 +392,7 @@ def _aggregate_vcall_detail_paths(
             client_ref=client_ref,
             api_key=api_key,
             base_url=base_url,
+            temperature=temperature,
             detail_path=detail_path,
             summary_path=summary_path,
             request_label=request_label,
@@ -395,6 +415,7 @@ def aggregate_vcall_results_for_object(
     model,
     api_key=None,
     base_url=None,
+    temperature=None,
     client=None,
     debug=False,
 ):
@@ -418,6 +439,7 @@ def aggregate_vcall_results_for_object(
         client_ref=client_ref,
         api_key=api_key,
         base_url=base_url,
+        temperature=temperature,
         detail_paths=detail_paths,
         summary_path=summary_path,
         model=model,

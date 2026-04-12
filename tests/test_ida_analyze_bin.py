@@ -438,6 +438,8 @@ class TestParseArgsLlmOptions(unittest.TestCase):
                 "test-api-key",
                 "-llm_baseurl",
                 "https://example.invalid/v1",
+                "-llm_temperature",
+                "0.25",
             ],
         ):
             args = ida_analyze_bin.parse_args()
@@ -445,6 +447,43 @@ class TestParseArgsLlmOptions(unittest.TestCase):
         self.assertEqual("gpt-4.1-mini", args.llm_model)
         self.assertEqual("test-api-key", args.llm_apikey)
         self.assertEqual("https://example.invalid/v1", args.llm_baseurl)
+        self.assertEqual(0.25, args.llm_temperature)
+
+    @patch.object(ida_analyze_bin, "resolve_oldgamever", return_value="14140")
+    def test_parse_args_uses_env_llm_temperature_by_default(
+        self,
+        _mock_resolve_oldgamever,
+    ) -> None:
+        with patch.dict("os.environ", {"CS2VIBE_LLM_TEMPERATURE": "0.6"}, clear=False), patch(
+            "sys.argv",
+            [
+                "ida_analyze_bin.py",
+                "-gamever",
+                "14141",
+            ],
+        ):
+            args = ida_analyze_bin.parse_args()
+
+        self.assertEqual(0.6, args.llm_temperature)
+
+    @patch.object(ida_analyze_bin, "resolve_oldgamever", return_value="14140")
+    def test_parse_args_prefers_cli_llm_temperature_over_env(
+        self,
+        _mock_resolve_oldgamever,
+    ) -> None:
+        with patch.dict("os.environ", {"CS2VIBE_LLM_TEMPERATURE": "0.6"}, clear=False), patch(
+            "sys.argv",
+            [
+                "ida_analyze_bin.py",
+                "-gamever",
+                "14141",
+                "-llm_temperature",
+                "0.3",
+            ],
+        ):
+            args = ida_analyze_bin.parse_args()
+
+        self.assertEqual(0.3, args.llm_temperature)
 
     @patch.object(ida_analyze_bin, "resolve_oldgamever", return_value="14140")
     def test_parse_args_rejects_legacy_vcall_finder_model(
@@ -512,6 +551,7 @@ class TestProcessBinaryLlmWiring(unittest.TestCase):
             llm_model="gpt-4.1-mini",
             llm_apikey="test-api-key",
             llm_baseurl="https://example.invalid/v1",
+            llm_temperature=0.4,
         )
 
         self.assertEqual("gpt-4.1-mini", mock_preprocess.await_args.kwargs["llm_model"])
@@ -520,6 +560,7 @@ class TestProcessBinaryLlmWiring(unittest.TestCase):
             "https://example.invalid/v1",
             mock_preprocess.await_args.kwargs["llm_baseurl"],
         )
+        self.assertEqual(0.4, mock_preprocess.await_args.kwargs["llm_temperature"])
 
 
 class TestMainLlmWiring(unittest.TestCase):
@@ -552,6 +593,7 @@ class TestMainLlmWiring(unittest.TestCase):
             llm_model="gpt-4.1-mini",
             llm_apikey="test-api-key",
             llm_baseurl="https://example.invalid/v1",
+            llm_temperature=0.5,
         )
         mock_parse_config.return_value = [
             {
@@ -572,6 +614,7 @@ class TestMainLlmWiring(unittest.TestCase):
             model="gpt-4.1-mini",
             api_key="test-api-key",
             base_url="https://example.invalid/v1",
+            temperature=0.5,
             debug=False,
         )
 

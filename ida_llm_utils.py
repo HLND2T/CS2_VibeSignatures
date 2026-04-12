@@ -17,6 +17,19 @@ def require_nonempty_text(value: Any, name: str) -> str:
     return text
 
 
+def normalize_optional_temperature(value: Any, name: str = "temperature") -> float | None:
+    if value is None:
+        return None
+    if isinstance(value, str):
+        value = value.strip()
+        if not value:
+            return None
+    try:
+        return float(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{name} must be a number") from exc
+
+
 def create_openai_client(api_key, base_url=None, *, api_key_required_message):
     if api_key is None or not str(api_key).strip():
         raise RuntimeError(api_key_required_message)
@@ -57,10 +70,13 @@ def extract_first_message_text(response) -> str:
     return str(content)
 
 
-def call_llm_text(client, *, model, messages, temperature=1) -> str:
-    response = client.chat.completions.create(
-        model=require_nonempty_text(model, "model"),
-        messages=messages,
-        temperature=temperature,
-    )
+def call_llm_text(client, *, model, messages, temperature=None) -> str:
+    request_kwargs = {
+        "model": require_nonempty_text(model, "model"),
+        "messages": messages,
+    }
+    normalized_temperature = normalize_optional_temperature(temperature)
+    if normalized_temperature is not None:
+        request_kwargs["temperature"] = normalized_temperature
+    response = client.chat.completions.create(**request_kwargs)
     return extract_first_message_text(response)

@@ -13,10 +13,15 @@ except ImportError:
     yaml = None
 
 try:
-    from ida_llm_utils import call_llm_text, create_openai_client
+    from ida_llm_utils import (
+        call_llm_text,
+        create_openai_client,
+        normalize_optional_temperature,
+    )
 except Exception:
     call_llm_text = None
     create_openai_client = None
+    normalize_optional_temperature = None
 
 
 # Combined vtable lookup + entry reading script for IDA py_eval.
@@ -750,6 +755,35 @@ def _normalize_llm_entries(entries, required_keys):
     return normalized
 
 
+def _normalize_llm_struct_offset_entries(entries):
+    if isinstance(entries, (str, bytes, bytearray)) or not isinstance(entries, (list, tuple)):
+        return []
+
+    normalized = []
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        item = {}
+        valid = True
+        for key in ("insn_va", "insn_disasm", "offset", "struct_name", "member_name"):
+            value = str(entry.get(key, "")).strip()
+            if not value:
+                valid = False
+                break
+            item[key] = value
+        if not valid:
+            continue
+
+        size_value = entry.get("size")
+        if size_value is not None:
+            size_text = str(size_value).strip()
+            if size_text:
+                item["size"] = size_text
+
+        normalized.append(item)
+    return normalized
+
+
 def _extract_slot_only_vfunc_candidates_from_llm_result(
     func_name,
     llm_result,
@@ -1419,9 +1453,8 @@ def parse_llm_decompile_response(response_text):
             parsed.get("found_gv", []),
             ("insn_va", "insn_disasm", "gv_name"),
         ),
-        "found_struct_offset": _normalize_llm_entries(
+        "found_struct_offset": _normalize_llm_struct_offset_entries(
             parsed.get("found_struct_offset", []),
-            ("insn_va", "insn_disasm", "offset", "struct_name", "member_name"),
         ),
     }
 
@@ -1452,6 +1485,32 @@ def _prepare_llm_decompile_request(
         if debug:
             print(f"    Preprocess: llm_config.model missing for {func_name}")
         return None
+
+    temperature = llm_config.get("temperature")
+    if temperature is not None:
+        if callable(normalize_optional_temperature):
+            try:
+                temperature = normalize_optional_temperature(
+                    temperature,
+                    "llm_config.temperature",
+                )
+            except ValueError as exc:
+                if debug:
+                    print(
+                        f"    Preprocess: invalid llm_decompile temperature for "
+                        f"{func_name}: {exc}"
+                    )
+                return None
+        else:
+            try:
+                temperature = float(temperature)
+            except (TypeError, ValueError):
+                if debug:
+                    print(
+                        f"    Preprocess: invalid llm_decompile temperature for "
+                        f"{func_name}: {temperature!r}"
+                    )
+                return None
 
     if not callable(create_openai_client):
         if debug:
@@ -1570,6 +1629,7 @@ def _prepare_llm_decompile_request(
         "target_func_name": target_func_name,
         "disasm_for_reference": str(reference_data.get("disasm_code", "") or ""),
         "procedure_for_reference": str(reference_data.get("procedure", "") or ""),
+        "temperature": temperature,
     }
 
 
@@ -1581,7 +1641,8 @@ def _build_llm_decompile_request_cache_key(llm_request):
     reference_yaml_path = str(llm_request.get("reference_yaml_path", "")).strip()
     if not model or not prompt_path or not reference_yaml_path:
         return None
-    return model, prompt_path, reference_yaml_path
+    temperature = llm_request.get("temperature")
+    return model, prompt_path, reference_yaml_path, temperature
 
 
 async def call_llm_decompile(
@@ -1594,6 +1655,7 @@ async def call_llm_decompile(
     procedure_for_reference="",
     prompt_template=None,
     platform=None,
+    temperature=None,
     debug=False,
 ):
     if not callable(call_llm_text):
@@ -1654,15 +1716,23 @@ async def call_llm_decompile(
             debug=True,
         )
     try:
-        content = call_llm_text(
-            client=client,
-            model=str(model).strip(),
-            messages=[
+        request_kwargs = {
+            "client": client,
+            "model": str(model).strip(),
+            "messages": [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": prompt},
             ],
-            temperature=1,
-        )
+        }
+        normalized_temperature = temperature
+        if normalized_temperature is not None and callable(normalize_optional_temperature):
+            normalized_temperature = normalize_optional_temperature(
+                normalized_temperature,
+                "temperature",
+            )
+        if normalized_temperature is not None:
+            request_kwargs["temperature"] = normalized_temperature
+        content = call_llm_text(**request_kwargs)
     except Exception as exc:
         if debug:
             print(
@@ -4750,6 +4820,7 @@ async def _preprocess_direct_struct_offset_sig_via_mcp(
     member_name=None,
     offset=None,
     offset_inst_va=None,
+    size=None,
     old_path=None,
     debug=False,
 ):
@@ -4774,6 +4845,15 @@ async def _preprocess_direct_struct_offset_sig_via_mcp(
             )
         return None
 
+    resolved_size = metadata.get("size")
+    if resolved_size is None and size is not None:
+        try:
+            parsed_size = _parse_int_value(size)
+        except Exception:
+            parsed_size = None
+        if isinstance(parsed_size, int) and parsed_size > 0:
+            resolved_size = parsed_size
+
     payload = await preprocess_gen_struct_offset_sig_via_mcp(
         session=session,
         struct_name=resolved_struct_name,
@@ -4781,6 +4861,7 @@ async def _preprocess_direct_struct_offset_sig_via_mcp(
         offset=offset,
         offset_inst_va=offset_inst_va,
         image_base=image_base,
+        size=resolved_size,
         debug=debug,
     )
     if not isinstance(payload, dict):
@@ -4788,9 +4869,6 @@ async def _preprocess_direct_struct_offset_sig_via_mcp(
 
     if "offset_sig_disp" not in payload:
         payload["offset_sig_disp"] = 0
-
-    if "size" not in payload and "size" in metadata:
-        payload["size"] = metadata["size"]
 
     return payload
 
@@ -4802,6 +4880,7 @@ async def preprocess_gen_struct_offset_sig_via_mcp(
     offset,
     offset_inst_va,
     image_base,
+    size=None,
     min_sig_bytes=8,
     max_sig_bytes=96,
     max_instructions=64,
@@ -4818,6 +4897,15 @@ async def preprocess_gen_struct_offset_sig_via_mcp(
         max_instructions = max(1, int(max_instructions))
     except Exception:
         return None
+
+    resolved_size = None
+    if size is not None:
+        try:
+            parsed_size = _parse_int_value(size)
+        except Exception:
+            parsed_size = None
+        if isinstance(parsed_size, int) and parsed_size > 0:
+            resolved_size = parsed_size
 
     extra_wildcards = set()
     for item in extra_wildcard_offsets or []:
@@ -4972,14 +5060,16 @@ async def preprocess_gen_struct_offset_sig_via_mcp(
             if match_addr != offset_inst_va_int:
                 continue
 
-            return {
+            payload = {
                 "struct_name": struct_name,
                 "member_name": member_name,
                 "offset": hex(offset_value),
-                "size": best["size"],
                 "offset_sig": candidate_sig,
                 "offset_sig_disp": 0,
             }
+            if resolved_size is not None:
+                payload["size"] = resolved_size
+            return payload
 
     if debug:
         print(
@@ -6116,6 +6206,7 @@ async def preprocess_common_skill(
                             procedure_for_reference=llm_request["procedure_for_reference"],
                             prompt_template=llm_request["prompt_template"],
                             platform=platform,
+                            temperature=llm_request.get("temperature"),
                             debug=debug,
                         )
                 except Exception:
@@ -6325,6 +6416,7 @@ async def preprocess_common_skill(
                             procedure_for_reference=llm_request["procedure_for_reference"],
                             prompt_template=llm_request["prompt_template"],
                             platform=platform,
+                            temperature=llm_request.get("temperature"),
                             debug=debug,
                         )
                 except Exception:
@@ -6463,6 +6555,7 @@ async def preprocess_common_skill(
                             procedure_for_reference=llm_request["procedure_for_reference"],
                             prompt_template=llm_request["prompt_template"],
                             platform=platform,
+                            temperature=llm_request.get("temperature"),
                             debug=debug,
                         )
                 except Exception:
@@ -6503,6 +6596,7 @@ async def preprocess_common_skill(
                     offset_inst_va=entry.get("insn_va"),
                     old_path=struct_old_path,
                     debug=debug,
+                    size=entry.get("size"),
                 )
                 if struct_data is not None:
                     break

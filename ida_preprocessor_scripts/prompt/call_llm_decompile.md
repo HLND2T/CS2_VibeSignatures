@@ -61,6 +61,7 @@ found_struct_offset:
   - insn_va: '0x1801BA12A'                # Always be the instruction with displacement offset
     insn_disasm: mov     rcx, [r14+58h]   # Always be the instruction with displacement offset
     offset: '0x58'
+    size: 8
     struct_name: CGameResourceService
     member_name: m_pEntitySystem
 ```

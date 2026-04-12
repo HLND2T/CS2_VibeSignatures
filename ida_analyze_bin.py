@@ -512,6 +512,18 @@ def parse_vcall_finder_filter(raw_value):
     return {"all": False, "names": set(names)}
 
 
+def _parse_optional_llm_temperature(raw_value, parser):
+    if raw_value is None:
+        return None
+    raw_text = str(raw_value).strip()
+    if not raw_text:
+        return None
+    try:
+        return float(raw_text)
+    except ValueError:
+        parser.error("Invalid LLM temperature: must be a number")
+
+
 def parse_args():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(
@@ -569,6 +581,11 @@ def parse_args():
         help="Optional OpenAI-compatible base URL used by preprocessing and vcall_finder aggregation (or set CS2VIBE_LLM_BASEURL env var)"
     )
     parser.add_argument(
+        "-llm_temperature",
+        default=os.environ.get("CS2VIBE_LLM_TEMPERATURE"),
+        help="Optional OpenAI-compatible temperature used by preprocessing and vcall_finder aggregation (or set CS2VIBE_LLM_TEMPERATURE env var)"
+    )
+    parser.add_argument(
         "-ida_args",
         default="",
         help="Additional arguments for idalib-mcp (optional)"
@@ -617,6 +634,11 @@ def parse_args():
     elif args.oldgamever.lower() == "none":
         args.oldgamever = None
 
+    args.llm_temperature = _parse_optional_llm_temperature(
+        args.llm_temperature,
+        parser,
+    )
+
     return args
 
 
@@ -633,6 +655,7 @@ def _run_preprocess_single_skill_via_mcp(
     llm_model,
     llm_apikey,
     llm_baseurl,
+    llm_temperature,
 ):
     preprocess_kwargs = {
         "host": host,
@@ -646,13 +669,17 @@ def _run_preprocess_single_skill_via_mcp(
         "llm_model": llm_model,
         "llm_apikey": llm_apikey,
         "llm_baseurl": llm_baseurl,
+        "llm_temperature": llm_temperature,
     }
 
     try:
         return asyncio.run(preprocess_single_skill_via_mcp(**preprocess_kwargs))
     except TypeError as exc:
         signature = inspect.signature(preprocess_single_skill_via_mcp)
-        if any(name in signature.parameters for name in ("llm_model", "llm_apikey", "llm_baseurl")):
+        if any(
+            name in signature.parameters
+            for name in ("llm_model", "llm_apikey", "llm_baseurl", "llm_temperature")
+        ):
             raise
         if "unexpected keyword argument" not in str(exc):
             raise
@@ -661,6 +688,7 @@ def _run_preprocess_single_skill_via_mcp(
         fallback_kwargs.pop("llm_model", None)
         fallback_kwargs.pop("llm_apikey", None)
         fallback_kwargs.pop("llm_baseurl", None)
+        fallback_kwargs.pop("llm_temperature", None)
         return asyncio.run(preprocess_single_skill_via_mcp(**fallback_kwargs))
 
 
@@ -1211,6 +1239,7 @@ def process_binary(
     llm_model=DEFAULT_LLM_MODEL,
     llm_apikey=None,
     llm_baseurl=None,
+    llm_temperature=None,
 ):
     """
     Process a single binary file.
@@ -1335,6 +1364,7 @@ def process_binary(
                     llm_model=llm_model,
                     llm_apikey=llm_apikey,
                     llm_baseurl=llm_baseurl,
+                    llm_temperature=llm_temperature,
                 )
             except Exception as e:
                 if debug:
@@ -1539,6 +1569,7 @@ def main():
                 llm_model=args.llm_model,
                 llm_apikey=args.llm_apikey,
                 llm_baseurl=args.llm_baseurl,
+                llm_temperature=args.llm_temperature,
             )
             total_success += success
             total_fail += fail
@@ -1556,6 +1587,7 @@ def main():
                     model=args.llm_model,
                     api_key=args.llm_apikey,
                     base_url=args.llm_baseurl,
+                    temperature=args.llm_temperature,
                     debug=debug,
                 )
                 aggregation_status = stats["status"]

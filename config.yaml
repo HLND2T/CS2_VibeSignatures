@@ -425,10 +425,15 @@ modules:
           - CServerSideClient_vtable.{platform}.yaml
           - CSVCMsg_PeerList_t_vtable.{platform}.yaml
 
-      - name: find-CGameResourceService_BuildResourceManifest-AND-CGameResourceService_m_pEntitySystem
+      - name: find-CGameResourceService_BuildResourceManifest
         expected_output:
           - CGameResourceService_BuildResourceManifest.{platform}.yaml
+
+      - name: find-CGameResourceService_m_pEntitySystem
+        expected_output:
           - CGameResourceService_m_pEntitySystem.{platform}.yaml
+        expected_input:
+          - CGameResourceService_BuildResourceManifest.{platform}.yaml
 
       - name: find-CNetworkGameServer_GetFreeClient
         expected_output:

@@ -172,7 +172,7 @@ found_vcall:
         )
         mock_call_llm_text.assert_called_once()
         self.assertEqual("gpt-4.1-mini", mock_call_llm_text.call_args.kwargs["model"])
-        self.assertEqual(0.1, mock_call_llm_text.call_args.kwargs["temperature"])
+        self.assertNotIn("temperature", mock_call_llm_text.call_args.kwargs)
         self.assertEqual(
             "You are a reverse engineering expert.",
             mock_call_llm_text.call_args.kwargs["messages"][0]["content"],
@@ -228,6 +228,7 @@ found_vcall:
                 model="gpt-4.1-mini",
                 api_key="test-api-key",
                 base_url="https://example.invalid/v1",
+                temperature=0.45,
                 debug=False,
             )
 
@@ -255,6 +256,7 @@ found_vcall:
             ).read_text(encoding="utf-8")
             self.assertIn("insn_va: '0x12345678'", summary_text)
             self.assertIn("func_name: sub_2000", summary_text)
+            self.assertEqual(0.45, mock_call_llm_text.call_args.kwargs["temperature"])
 
 
 if __name__ == "__main__":

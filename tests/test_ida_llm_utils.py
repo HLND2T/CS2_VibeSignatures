@@ -107,6 +107,34 @@ class TestCallLlmText(unittest.TestCase):
             temperature=0.25,
         )
 
+    def test_call_llm_text_omits_temperature_when_not_configured(self) -> None:
+        response = SimpleNamespace(
+            choices=[
+                SimpleNamespace(
+                    message=SimpleNamespace(content="found_vcall:\n  []"),
+                )
+            ]
+        )
+        create = MagicMock(return_value=response)
+        client = SimpleNamespace(
+            chat=SimpleNamespace(
+                completions=SimpleNamespace(create=create),
+            )
+        )
+        messages = [{"role": "user", "content": "hello"}]
+
+        text = ida_llm_utils.call_llm_text(
+            client,
+            model="gpt-4o-mini",
+            messages=messages,
+        )
+
+        self.assertEqual("found_vcall:\n  []", text)
+        create.assert_called_once_with(
+            model="gpt-4o-mini",
+            messages=messages,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
