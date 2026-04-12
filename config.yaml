@@ -1534,15 +1534,28 @@ modules:
         expected_input:
           - CCSPlayerPawn_vtable.{platform}.yaml
 
-      - name: find-CSource2Server_Init-AND-CGameEventManager_Init-AND-gameeventmanager-AND-s_GameEventManager
+      - name: find-CSource2Server_Init
         expected_output:
           - CSource2Server_Init.{platform}.yaml
-          - CGameEventManager_Init.{platform}.yaml
-          - gameeventmanager.{platform}.yaml
-          - s_GameEventManager.{platform}.yaml
         expected_input:
           - CSource2Server_vtable.{platform}.yaml
-        max_retries: 6
+
+      - name: find-CGameEventManager_Init-AND-gameeventmanager
+        expected_output:
+          - CGameEventManager_Init.{platform}.yaml
+          - gameeventmanager.{platform}.yaml
+        expected_input:
+          - CSource2Server_Init.{platform}.yaml
+
+      - name: find-NET_ReloadGameEvents_CommandHandler
+        expected_output:
+          - NET_ReloadGameEvents_CommandHandler.{platform}.yaml
+
+      - name: find-s_GameEventManager
+        expected_output:
+          - s_GameEventManager.{platform}.yaml
+        expected_input:
+          - NET_ReloadGameEvents_CommandHandler.{platform}.yaml
 
       - name: find-CGameRules_ClientSettingsChanged
         expected_output:
@@ -2410,6 +2423,9 @@ modules:
 
       - name: s_GameEventManager
         category: gv
+
+      - name: NET_ReloadGameEvents_CommandHandler
+        category: func
 
       - name: CTakeDamageInfo
         category: struct
