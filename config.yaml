@@ -730,9 +730,12 @@ modules:
         expected_output:
           - CLoopModeGame_vtable.{platform}.yaml
 
-      - name: find-CLoopModeGame_RegisterEventMapInternal_client
+      - name: find-CLoopModeGame_RegisterEventMapInternal-client
         expected_output:
           - CLoopModeGame_RegisterEventMapInternal.{platform}.yaml
+
+      - name: find-CLoopModeGame_OnEventMapCallbacks-client
+        expected_output:
           - RegisterEventListener_Abstract.{platform}.yaml
           - CLoopModeGame_OnClientPollNetworking.{platform}.yaml
           - CLoopModeGame_OnClientAdvanceTick.{platform}.yaml
@@ -749,7 +752,8 @@ modules:
           - CLoopModeGame_OnPostDataUpdate.{platform}.yaml
           - CLoopModeGame_OnPreDataUpdate.{platform}.yaml
           - CLoopModeGame_OnFrameBoundary.{platform}.yaml
-        max_retries: 8
+        expected_input:
+          - CLoopModeGame_RegisterEventMapInternal.{platform}.yaml
 
       - name: find-CLoopModeGame_ReceivedServerInfo
         expected_output:

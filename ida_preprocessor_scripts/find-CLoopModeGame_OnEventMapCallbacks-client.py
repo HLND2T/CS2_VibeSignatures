@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CLoopModeGame_RegisterEventMapInternal_client skill."""
+"""Preprocess script for find-CLoopModeGame_OnEventMapCallbacks-client skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = [
-    "CLoopModeGame_RegisterEventMapInternal",
     "RegisterEventListener_Abstract",
     "CLoopModeGame_OnClientPollNetworking",
     "CLoopModeGame_OnClientAdvanceTick",
@@ -23,184 +22,257 @@ TARGET_FUNCTION_NAMES = [
     "CLoopModeGame_OnFrameBoundary",
 ]
 
+LLM_DECOMPILE = [
+    # (symbol_name, path_to_prompt, path_to_reference)
+    (
+        "RegisterEventListener_Abstract",
+        "prompt/call_llm_decompile.md",
+        "references/client/CLoopModeGame_RegisterEventMapInternal.{platform}.yaml",
+    ),
+    (
+        "CLoopModeGame_OnClientPollNetworking",
+        "prompt/call_llm_decompile.md",
+        "references/client/CLoopModeGame_RegisterEventMapInternal.{platform}.yaml",
+    ),
+    (
+        "CLoopModeGame_OnClientAdvanceTick",
+        "prompt/call_llm_decompile.md",
+        "references/client/CLoopModeGame_RegisterEventMapInternal.{platform}.yaml",
+    ),
+    (
+        "CLoopModeGame_OnClientPostAdvanceTick",
+        "prompt/call_llm_decompile.md",
+        "references/client/CLoopModeGame_RegisterEventMapInternal.{platform}.yaml",
+    ),
+    (
+        "CLoopModeGame_OnClientPreSimulate",
+        "prompt/call_llm_decompile.md",
+        "references/client/CLoopModeGame_RegisterEventMapInternal.{platform}.yaml",
+    ),
+    (
+        "CLoopModeGame_OnClientPreOutput",
+        "prompt/call_llm_decompile.md",
+        "references/client/CLoopModeGame_RegisterEventMapInternal.{platform}.yaml",
+    ),
+    (
+        "CLoopModeGame_OnClientPreOutputParallelWithServer",
+        "prompt/call_llm_decompile.md",
+        "references/client/CLoopModeGame_RegisterEventMapInternal.{platform}.yaml",
+    ),
+    (
+        "CLoopModeGame_OnClientPostOutput",
+        "prompt/call_llm_decompile.md",
+        "references/client/CLoopModeGame_RegisterEventMapInternal.{platform}.yaml",
+    ),
+    (
+        "CLoopModeGame_OnClientFrameSimulate",
+        "prompt/call_llm_decompile.md",
+        "references/client/CLoopModeGame_RegisterEventMapInternal.{platform}.yaml",
+    ),
+    (
+        "CLoopModeGame_OnClientAdvanceNonRenderedFrame",
+        "prompt/call_llm_decompile.md",
+        "references/client/CLoopModeGame_RegisterEventMapInternal.{platform}.yaml",
+    ),
+    (
+        "CLoopModeGame_OnClientPostSimulate",
+        "prompt/call_llm_decompile.md",
+        "references/client/CLoopModeGame_RegisterEventMapInternal.{platform}.yaml",
+    ),
+    (
+        "CLoopModeGame_OnClientPauseSimulate",
+        "prompt/call_llm_decompile.md",
+        "references/client/CLoopModeGame_RegisterEventMapInternal.{platform}.yaml",
+    ),
+    (
+        "CLoopModeGame_OnClientSimulate",
+        "prompt/call_llm_decompile.md",
+        "references/client/CLoopModeGame_RegisterEventMapInternal.{platform}.yaml",
+    ),
+    (
+        "CLoopModeGame_OnPostDataUpdate",
+        "prompt/call_llm_decompile.md",
+        "references/client/CLoopModeGame_RegisterEventMapInternal.{platform}.yaml",
+    ),
+    (
+        "CLoopModeGame_OnPreDataUpdate",
+        "prompt/call_llm_decompile.md",
+        "references/client/CLoopModeGame_RegisterEventMapInternal.{platform}.yaml",
+    ),
+    (
+        "CLoopModeGame_OnFrameBoundary",
+        "prompt/call_llm_decompile.md",
+        "references/client/CLoopModeGame_RegisterEventMapInternal.{platform}.yaml",
+    ),
+]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
     (
-        "CLoopModeGame_RegisterEventMapInternal",
-        [
-            "func_name",
-            "func_va",
-            "func_rva",
-            "func_size",
-            "func_sig",
-        ],
-    ),
-    (
         "RegisterEventListener_Abstract",
         [
             "func_name",
+            "func_sig",
             "func_va",
             "func_rva",
             "func_size",
-            "func_sig",
         ],
     ),
     (
         "CLoopModeGame_OnClientPollNetworking",
         [
             "func_name",
+            "func_sig",
             "func_va",
             "func_rva",
             "func_size",
-            "func_sig",
         ],
     ),
     (
         "CLoopModeGame_OnClientAdvanceTick",
         [
             "func_name",
+            "func_sig",
             "func_va",
             "func_rva",
             "func_size",
-            "func_sig",
         ],
     ),
     (
         "CLoopModeGame_OnClientPostAdvanceTick",
         [
             "func_name",
+            "func_sig",
             "func_va",
             "func_rva",
             "func_size",
-            "func_sig",
         ],
     ),
     (
         "CLoopModeGame_OnClientPreSimulate",
         [
             "func_name",
+            "func_sig",
             "func_va",
             "func_rva",
             "func_size",
-            "func_sig",
         ],
     ),
     (
         "CLoopModeGame_OnClientPreOutput",
         [
             "func_name",
+            "func_sig",
             "func_va",
             "func_rva",
             "func_size",
-            "func_sig",
         ],
     ),
     (
         "CLoopModeGame_OnClientPreOutputParallelWithServer",
         [
             "func_name",
+            "func_sig",
             "func_va",
             "func_rva",
             "func_size",
-            "func_sig",
         ],
     ),
     (
         "CLoopModeGame_OnClientPostOutput",
         [
             "func_name",
+            "func_sig",
             "func_va",
             "func_rva",
             "func_size",
-            "func_sig",
         ],
     ),
     (
         "CLoopModeGame_OnClientFrameSimulate",
         [
             "func_name",
+            "func_sig",
             "func_va",
             "func_rva",
             "func_size",
-            "func_sig",
         ],
     ),
     (
         "CLoopModeGame_OnClientAdvanceNonRenderedFrame",
         [
             "func_name",
+            "func_sig",
             "func_va",
             "func_rva",
             "func_size",
-            "func_sig",
         ],
     ),
     (
         "CLoopModeGame_OnClientPostSimulate",
         [
             "func_name",
+            "func_sig",
             "func_va",
             "func_rva",
             "func_size",
-            "func_sig",
         ],
     ),
     (
         "CLoopModeGame_OnClientPauseSimulate",
         [
             "func_name",
+            "func_sig",
             "func_va",
             "func_rva",
             "func_size",
-            "func_sig",
         ],
     ),
     (
         "CLoopModeGame_OnClientSimulate",
         [
             "func_name",
+            "func_sig",
             "func_va",
             "func_rva",
             "func_size",
-            "func_sig",
         ],
     ),
     (
         "CLoopModeGame_OnPostDataUpdate",
         [
             "func_name",
+            "func_sig",
             "func_va",
             "func_rva",
             "func_size",
-            "func_sig",
         ],
     ),
     (
         "CLoopModeGame_OnPreDataUpdate",
         [
             "func_name",
+            "func_sig",
             "func_va",
             "func_rva",
             "func_size",
-            "func_sig",
         ],
     ),
     (
         "CLoopModeGame_OnFrameBoundary",
         [
             "func_name",
+            "func_sig",
             "func_va",
             "func_rva",
             "func_size",
-            "func_sig",
         ],
     ),
 ]
 
 async def preprocess_skill(
     session, skill_name, expected_outputs, old_yaml_map,
-    new_binary_dir, platform, image_base, debug=False,
+    new_binary_dir, platform, image_base, llm_config=None, debug=False,
 ):
     """Reuse previous gamever func_sig to locate target function(s) and write YAML."""
     return await preprocess_common_skill(
@@ -211,6 +283,8 @@ async def preprocess_skill(
         platform=platform,
         image_base=image_base,
         func_names=TARGET_FUNCTION_NAMES,
+        llm_decompile_specs=LLM_DECOMPILE,
+        llm_config=llm_config,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
     )
