@@ -1960,11 +1960,21 @@ modules:
         expected_output:
           - CNavMesh_GetNearestNavArea.{platform}.yaml
 
-      - name: find-CCSBotManager_AddBot-AND-g_pCSBotManager-AND-g_pNavMesh
+      - name: find-CCSBotManager_AddBot
         expected_output:
           - CCSBotManager_AddBot.{platform}.yaml
+
+      - name: find-g_pCSBotManager
+        expected_output:
           - g_pCSBotManager.{platform}.yaml
+        expected_input:
+          - BotAdd_CommandHandler.{platform}.yaml
+
+      - name: find-g_pNavMesh
+        expected_output:
           - g_pNavMesh.{platform}.yaml
+        expected_input:
+          - CCSBotManager_AddBot.{platform}.yaml
 
       - name: find-CCSBotManager_AddBot_BotNavIgnore
         expected_output:
