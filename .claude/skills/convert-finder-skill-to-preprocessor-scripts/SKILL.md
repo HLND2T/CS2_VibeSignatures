@@ -3,7 +3,7 @@ name: convert-finder-skill-to-preprocessor-scripts
 description: |
   Convert an existing find-XXXX SKILL.md into a preprocessor Python script, updating config.yaml
   and removing the old SKILL.md. Covers xref-string-based and LLM_DECOMPILE-based discovery patterns.
-  Trigger: convert skill, port skill, preprocessor script, migrate skill
+disable-model-invocation: true
 ---
 
 # Convert Finder SKILL.md to Preprocessor Script
