@@ -757,15 +757,20 @@ If the original SKILL.md covered multiple symbols, delete ALL corresponding entr
 
 ## Step 9: Run Tests
 
-After all conversion steps are complete, run the full preprocessor test to validate the new script works:
+After all conversion steps are complete, run the full preprocessor test to validate the new script works.
+
+Because the output is very long, redirect it to a temp file and then read just the summary:
 
 ```bash
-uv run ida_analyze_bin.py -debug
+uv run ida_analyze_bin.py -debug > /tmp/ida_test_output.txt 2>&1; tail -10 /tmp/ida_test_output.txt
 ```
 
 Check the **Summary** at the end of the output:
 - **Failed: 0** means the conversion is correct
-- If any failures, investigate the specific skill output for errors
+- If any failures, search the full output for the failing skill name to investigate:
+  ```bash
+  grep -A 5 "Failed\|Error" /tmp/ida_test_output.txt
+  ```
 
 This step is mandatory — do not report completion without running and passing this validation.
 
