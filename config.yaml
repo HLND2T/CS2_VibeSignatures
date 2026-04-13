@@ -2125,6 +2125,29 @@ modules:
         expected_input:
           - CNetworkUtlVectorEmbedded_NetworkStateChanged_m_vecRenderAttributes.{platform}.yaml
 
+      - name: find-CPhysicsEntitySolver_vtable
+        expected_output:
+          - CPhysicsEntitySolver_vtable.{platform}.yaml
+
+      - name: find-CPhysicsEntitySolver_PhysEnableEntityCollisions
+        platform: windows
+        expected_output:
+          - CPhysicsEntitySolver_PhysEnableEntityCollisions.{platform}.yaml
+        expected_input:
+          - CPhysicsEntitySolver_vtable.{platform}.yaml
+
+      - name: find-PhysEnableEntityCollisions-windows
+        platform: windows
+        expected_output:
+          - PhysEnableEntityCollisions.{platform}.yaml
+        expected_input:
+          - CPhysicsEntitySolver_PhysEnableEntityCollisions.{platform}.yaml
+
+      - name: find-PhysEnableEntityCollisions-linux
+        platform: linux
+        expected_output:
+          - PhysEnableEntityCollisions.{platform}.yaml
+
     symbols:
       - name: CSource2Server_vtable
         category: vtable
@@ -3036,6 +3059,17 @@ modules:
         alias:
           - INetworkMessages::GetLoggingChannel
         shared: true
+
+      - name: CPhysicsEntitySolver_vtable
+        category: vtable
+
+      - name: CPhysicsEntitySolver_PhysEnableEntityCollisions
+        category: vfunc
+        alias:
+          - CPhysicsEntitySolver::PhysEnableEntityCollisions
+
+      - name: PhysEnableEntityCollisions
+        category: func
 
   - name: networksystem # Execute skills for networksystem.dll again after server.dll
     path_windows: game/bin/win64/networksystem.dll
