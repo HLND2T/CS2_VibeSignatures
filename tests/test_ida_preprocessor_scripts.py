@@ -52,6 +52,10 @@ BOT_ADD_COMMAND_HANDLER_SCRIPT_PATH = Path(
     "ida_preprocessor_scripts/"
     "find-BotAdd_CommandHandler.py"
 )
+ON_EVENT_MAP_CALLBACKS_CLIENT_SCRIPT_PATH = Path(
+    "ida_preprocessor_scripts/"
+    "find-CLoopModeGame_OnEventMapCallbacks-client.py"
+)
 
 class _FakeStreamableHttpClient:
     async def __aenter__(self):
@@ -150,6 +154,53 @@ class TestFindBotAddCommandHandler(unittest.IsolatedAsyncioTestCase):
             help_string="bot_add <t|ct> <type> <difficulty> <name> - Adds a bot matching the given criteria.",
             search_window_before_call=96,
             search_window_after_xref=96,
+            debug=True,
+        )
+
+
+class TestFindCLoopModeGameOnEventMapCallbacksClient(
+    unittest.IsolatedAsyncioTestCase
+):
+    async def test_preprocess_skill_forwards_register_event_listener_contract(
+        self,
+    ) -> None:
+        module = _load_module(
+            ON_EVENT_MAP_CALLBACKS_CLIENT_SCRIPT_PATH,
+            "find_CLoopModeGame_OnEventMapCallbacks_client",
+        )
+        mock_helper = AsyncMock(return_value=True)
+
+        with patch.object(
+            module,
+            "preprocess_register_event_listener_abstract_skill",
+            mock_helper,
+            create=True,
+        ):
+            result = await module.preprocess_skill(
+                session="session",
+                skill_name="skill",
+                expected_outputs=["out.yaml"],
+                old_yaml_map={"k": "v"},
+                new_binary_dir="bin_dir",
+                platform="windows",
+                image_base=0x180000000,
+                debug=True,
+            )
+
+        self.assertTrue(result)
+        mock_helper.assert_awaited_once_with(
+            session="session",
+            expected_outputs=["out.yaml"],
+            new_binary_dir="bin_dir",
+            platform="windows",
+            image_base=0x180000000,
+            source_yaml_stem=module.SOURCE_YAML_STEM,
+            register_func_target_name=module.REGISTER_FUNC_TARGET_NAME,
+            anchor_event_name=module.ANCHOR_EVENT_NAME,
+            target_specs=module.TARGET_SPECS,
+            generate_yaml_desired_fields=module.GENERATE_YAML_DESIRED_FIELDS,
+            search_window_after_anchor=module.SEARCH_WINDOW_AFTER_ANCHOR,
+            search_window_before_call=module.SEARCH_WINDOW_BEFORE_CALL,
             debug=True,
         )
 
