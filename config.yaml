@@ -1858,12 +1858,19 @@ modules:
         expected_input:
           - CTriggerPush_Touch.{platform}.yaml
 
+      - name: find-UTIL_GetPlayerControllerForEntity
+        expected_output:
+          - UTIL_GetPlayerControllerForEntity.{platform}.yaml
+        expected_input:
+          - ShowHudHint.{platform}.yaml
+
       - name: find-CBaseEntity_IsPlayerPawn-AND-CBaseEntity_IsPlayerController
         expected_output:
           - CBaseEntity_IsPlayerPawn.{platform}.yaml
           - CBaseEntity_IsPlayerController.{platform}.yaml
         expected_input:
-          - ShowHudHint.{platform}.yaml
+          - UTIL_GetPlayerControllerForEntity.{platform}.yaml
+          - CBaseEntity_vtable.{platform}.yaml
 
       - name: find-CBaseEntity_GetHammerUniqueId
         expected_output:
@@ -3023,6 +3030,11 @@ modules:
 
       - name: ShowHudHint
         category: func
+
+      - name: UTIL_GetPlayerControllerForEntity
+        category: func
+        alias:
+          - UTIL_GetPlayerControllerForEntity
 
       - name: CEntitySystem_Activate
         category: func
