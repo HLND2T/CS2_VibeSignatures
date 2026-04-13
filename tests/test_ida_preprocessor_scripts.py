@@ -52,6 +52,10 @@ BOT_ADD_COMMAND_HANDLER_SCRIPT_PATH = Path(
     "ida_preprocessor_scripts/"
     "find-BotAdd_CommandHandler.py"
 )
+SHOW_HUD_HINT_SCRIPT_PATH = Path(
+    "ida_preprocessor_scripts/"
+    "find-ShowHudHint.py"
+)
 ON_EVENT_MAP_CALLBACKS_CLIENT_SCRIPT_PATH = Path(
     "ida_preprocessor_scripts/"
     "find-CLoopModeGame_OnEventMapCallbacks-client.py"
@@ -154,6 +158,53 @@ class TestFindBotAddCommandHandler(unittest.IsolatedAsyncioTestCase):
             help_string="bot_add <t|ct> <type> <difficulty> <name> - Adds a bot matching the given criteria.",
             search_window_before_call=96,
             search_window_after_xref=96,
+            debug=True,
+        )
+
+
+class TestFindShowHudHint(unittest.IsolatedAsyncioTestCase):
+    async def test_preprocess_skill_forwards_define_inputfunc_contract(self) -> None:
+        module = _load_module(
+            SHOW_HUD_HINT_SCRIPT_PATH,
+            "find_ShowHudHint",
+        )
+        mock_helper = AsyncMock(return_value=True)
+        expected_generate_yaml_desired_fields = [
+            (
+                "ShowHudHint",
+                ["func_name", "func_va", "func_rva", "func_size", "func_sig"],
+            )
+        ]
+
+        with patch.object(
+            module,
+            "preprocess_define_inputfunc_skill",
+            mock_helper,
+            create=True,
+        ):
+            result = await module.preprocess_skill(
+                session="session",
+                skill_name="skill",
+                expected_outputs=["out.yaml"],
+                old_yaml_map={"k": "v"},
+                new_binary_dir="bin_dir",
+                platform="windows",
+                image_base=0x180000000,
+                debug=True,
+            )
+
+        self.assertTrue(result)
+        mock_helper.assert_awaited_once_with(
+            session="session",
+            expected_outputs=["out.yaml"],
+            platform="windows",
+            image_base=0x180000000,
+            target_name="ShowHudHint",
+            input_name="ShowHudHint",
+            generate_yaml_desired_fields=expected_generate_yaml_desired_fields,
+            handler_ptr_offset=0x10,
+            allowed_segment_names=(".data",),
+            rename_to="ShowHudHint",
             debug=True,
         )
 
