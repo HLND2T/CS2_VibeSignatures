@@ -1,45 +1,36 @@
-﻿#!/usr/bin/env python3
-"""Preprocess script for find-CBaseEntity_IsAlive-AND-CBaseEntity_GetEyePosition-AND-CBasePlayerPawn_GetEyePosition skill."""
+#!/usr/bin/env python3
+"""Preprocess script for find-CCSBot_Upkeep skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = [
-    "CBaseEntity_IsAlive",
-    "CBaseEntity_GetEyePosition",
-    "CBasePlayerPawn_GetEyePosition",
+    "CCSBot_Upkeep",
 ]
 
+FUNC_XREFS = [
+    # (func_name, xref_strings_list, xref_signatures_list, xref_funcs_list, exclude_funcs_list, exclude_strings_list)
+    (
+        "CCSBot_Upkeep",
+        [
+            "CCSBot::Upkeep",
+        ],
+        [],
+        [],
+        [],
+        [],
+    ),
+]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
     (
-        "CBaseEntity_IsAlive",
+        "CCSBot_Upkeep",
         [
             "func_name",
+            "func_sig",
             "func_va",
             "func_rva",
             "func_size",
-            "func_sig",
-        ],
-    ),
-    (
-        "CBaseEntity_GetEyePosition",
-        [
-            "func_name",
-            "func_va",
-            "func_rva",
-            "func_size",
-            "func_sig",
-        ],
-    ),
-    (
-        "CBasePlayerPawn_GetEyePosition",
-        [
-            "func_name",
-            "func_va",
-            "func_rva",
-            "func_size",
-            "func_sig",
         ],
     ),
 ]
@@ -57,6 +48,7 @@ async def preprocess_skill(
         platform=platform,
         image_base=image_base,
         func_names=TARGET_FUNCTION_NAMES,
+        func_xrefs=FUNC_XREFS,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
     )

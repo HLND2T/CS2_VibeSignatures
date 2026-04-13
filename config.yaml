@@ -1746,13 +1746,23 @@ modules:
         expected_output:
           - CBasePlayerPawn_RemovePlayerItem.{platform}.yaml
 
-      - name: find-CBaseEntity_IsAlive-AND-CBaseEntity_GetEyePosition-AND-CBasePlayerPawn_GetEyePosition
+      - name: find-CCSBot_Upkeep
+        expected_output:
+          - CCSBot_Upkeep.{platform}.yaml
+
+      - name: find-CBaseEntity_IsAlive-AND-CBaseEntity_GetEyePosition
         expected_output:
           - CBaseEntity_IsAlive.{platform}.yaml
           - CBaseEntity_GetEyePosition.{platform}.yaml
+        expected_input:
+          - CCSBot_Upkeep.{platform}.yaml
+          - CBaseEntity_vtable.{platform}.yaml
+
+      - name: find-CBasePlayerPawn_GetEyePosition
+        expected_output:
           - CBasePlayerPawn_GetEyePosition.{platform}.yaml
         expected_input:
-          - CBaseEntity_vtable.{platform}.yaml
+          - CBaseEntity_GetEyePosition.{platform}.yaml
           - CBasePlayerPawn_vtable.{platform}.yaml
 
       - name: find-CBasePlayerPawn_GetEyeAngles
@@ -2669,6 +2679,11 @@ modules:
         category: vfunc
         alias:
           - CBaseEntity::GetEyeAngles
+
+      - name: CCSBot_Upkeep
+        category: func
+        alias:
+          - CCSBot::Upkeep
 
       - name: CBaseEntity_IsAlive
         category: vfunc
