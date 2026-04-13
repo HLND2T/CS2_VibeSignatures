@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-PhysEnableEntityCollisions skill."""
+"""Preprocess script for find-PhysEnableEntityCollisions-linux skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
@@ -7,21 +7,7 @@ TARGET_FUNCTION_NAMES = [
     "PhysEnableEntityCollisions",
 ]
 
-FUNC_XREFS_WINDOWS = [
-    # (func_name, xref_strings_list, xref_signatures_list, xref_funcs_list, exclude_funcs_list, exclude_strings_list)
-    (
-        "PhysEnableEntityCollisions",
-        [
-            "PhysEnableEntityCollisions called on entities in two different scene worlds (%s - %u vs %s - %u)",
-        ],
-        [],
-        [],
-        ["CPhysicsEntitySolver_PhysEnableEntityCollisions"],
-        [],
-    ),
-]
-
-FUNC_XREFS_LINUX = [
+FUNC_XREFS = [
     # (func_name, xref_strings_list, xref_signatures_list, xref_funcs_list, exclude_funcs_list, exclude_strings_list)
     (
         "PhysEnableEntityCollisions",
@@ -62,7 +48,7 @@ async def preprocess_skill(
         platform=platform,
         image_base=image_base,
         func_names=TARGET_FUNCTION_NAMES,
-        func_xrefs=FUNC_XREFS_WINDOWS if platform == "windows" else FUNC_XREFS_LINUX,
+        func_xrefs=FUNC_XREFS,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
     )
