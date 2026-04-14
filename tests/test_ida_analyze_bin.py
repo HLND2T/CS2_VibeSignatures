@@ -2,6 +2,7 @@ import io
 import json
 import unittest
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, call, patch
 
@@ -242,6 +243,111 @@ class TestResolveArtifactPathIntegration(unittest.TestCase):
             )
 
         self.assertEqual((0, 2, 0), (success, fail, skip))
+
+    def test_process_binary_rejects_invalid_expected_input_artifact_before_preprocess(self) -> None:
+        fake_process = object()
+
+        with TemporaryDirectory() as temp_dir:
+            binary_dir = Path(temp_dir) / "bin" / "14141b" / "engine"
+            binary_dir.mkdir(parents=True, exist_ok=True)
+            binary_path = str(binary_dir / "libengine2.so")
+            expected_input_path = binary_dir / "CDemoRecorder_WriteSpawnGroups.linux.yaml"
+            expected_input_path.write_text("func_name: CDemoRecorder_WriteSpawnGroups\n", encoding="utf-8")
+
+            with (
+                patch.object(ida_analyze_bin, "start_idalib_mcp", return_value=fake_process),
+                patch.object(ida_analyze_bin, "ensure_mcp_available", return_value=(fake_process, True)),
+                patch.object(ida_analyze_bin, "quit_ida_gracefully") as mock_quit_ida,
+                patch.object(
+                    ida_analyze_bin,
+                    "_run_validate_expected_input_artifacts_via_mcp",
+                    return_value=[
+                        (
+                            f"{expected_input_path}: func_va=0x616050 resolves to segment "
+                            "'.data' instead of '.text'; missing required field func_sig"
+                        )
+                    ],
+                ),
+                patch.object(ida_analyze_bin, "_run_preprocess_single_skill_via_mcp") as mock_preprocess,
+                patch.object(ida_analyze_bin, "run_skill") as mock_run_skill,
+                patch("sys.stdout", new_callable=io.StringIO) as stdout,
+            ):
+                success, fail, skip = ida_analyze_bin.process_binary(
+                    binary_path=binary_path,
+                    skills=[
+                        {
+                            "name": "find-INetworkMessages_FindNetworkMessageById",
+                            "expected_output": ["INetworkMessages_FindNetworkMessageById.{platform}.yaml"],
+                            "expected_input": ["CDemoRecorder_WriteSpawnGroups.{platform}.yaml"],
+                        }
+                    ],
+                    agent="codex",
+                    host="127.0.0.1",
+                    port=13337,
+                    ida_args="",
+                    platform="linux",
+                    debug=False,
+                    max_retries=1,
+                )
+
+        self.assertEqual((0, 1, 0), (success, fail, skip))
+        mock_preprocess.assert_not_called()
+        mock_run_skill.assert_not_called()
+        self.assertIn("invalid expected_input artifact", stdout.getvalue())
+        self.assertIn("missing required field func_sig", stdout.getvalue())
+        mock_quit_ida.assert_called_once_with(fake_process, "127.0.0.1", 13337, debug=False)
+
+
+class TestExpectedInputArtifactValidation(unittest.IsolatedAsyncioTestCase):
+    async def test_validate_expected_input_artifacts_reports_invalid_func_va_and_missing_func_sig(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            artifact_path = Path(temp_dir) / "CDemoRecorder_WriteSpawnGroups.linux.yaml"
+            artifact_path.write_text(
+                "\n".join(
+                    [
+                        "func_name: CDemoRecorder_WriteSpawnGroups",
+                        "func_va: '0x616050'",
+                        "func_rva: '0x616050'",
+                        "func_size: '0x3263'",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            with (
+                patch.object(
+                    ida_analyze_bin,
+                    "_lookup_expected_input_artifact_category",
+                    return_value="func",
+                ),
+                patch.object(
+                    ida_analyze_bin,
+                    "_inspect_func_va_via_session",
+                    AsyncMock(
+                        return_value={
+                            "has_segment": True,
+                            "segment_name": ".data",
+                            "has_function": False,
+                            "function_start": "",
+                            "is_function_start": False,
+                        }
+                    ),
+                ),
+            ):
+                issues = await ida_analyze_bin.validate_expected_input_artifacts_via_session(
+                    session=MagicMock(),
+                    expected_inputs=[str(artifact_path)],
+                    platform="linux",
+                    debug=False,
+                )
+
+        self.assertEqual(1, len(issues))
+        self.assertIn(str(artifact_path), issues[0])
+        self.assertIn(
+            "func_va=0x616050 resolves to segment '.data' instead of '.text'",
+            issues[0],
+        )
+        self.assertIn("missing required field func_sig", issues[0])
 
 
 class _FakePipe:
