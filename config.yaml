@@ -1798,11 +1798,27 @@ modules:
           - CBaseEntity_vtable.{platform}.yaml
           - CCSPlayer_WeaponServices_EquipWeapon.{platform}.yaml
 
+      - name: find-CCSPlayer_UseServices_OnUseImpl
+        expected_output:
+          - CCSPlayer_UseServices_OnUseImpl.{platform}.yaml
+
+      - name: find-CCSPlayer_UseServices_vtable
+        expected_output:
+          - CCSPlayer_UseServices_vtable.{platform}.yaml
+
+      - name: find-CCSPlayer_UseServices_OnUse
+        expected_output:
+          - CCSPlayer_UseServices_OnUse.{platform}.yaml
+        expected_input:
+          - CCSPlayer_UseServices_OnUseImpl.{platform}.yaml
+          - CCSPlayer_UseServices_vtable.{platform}.yaml
+
       - name: find-CBaseEntity_Use
         expected_output:
           - CBaseEntity_Use.{platform}.yaml
         expected_input:
           - CBaseEntity_vtable.{platform}.yaml
+          - CCSPlayer_UseServices_OnUseImpl.{platform}.yaml
 
       - name: find-CEntityIOOutput_FireOutputInternal
         expected_output:
@@ -2256,6 +2272,19 @@ modules:
 
       - name: CCSPlayer_MovementServices_vtable
         category: vtable
+
+      - name: CCSPlayer_UseServices_vtable
+        category: vtable
+
+      - name: CCSPlayer_UseServices_OnUseImpl
+        category: func
+        alias:
+          - CCSPlayer_UseServices::OnUseImpl
+
+      - name: CCSPlayer_UseServices_OnUse
+        category: vfunc
+        alias:
+          - CCSPlayer_UseServices::OnUse
 
       - name: CCSPlayer_MovementServices_ProcessMovement
         category: func
