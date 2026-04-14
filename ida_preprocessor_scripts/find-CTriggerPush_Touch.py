@@ -3,7 +3,7 @@
 
 from ida_analyze_util import preprocess_common_skill
 
-INHERIT_VFUNCS=[
+INHERIT_VFUNCS = [
     # (target_func_name, inherit_vtable_class, base_vfunc_name, generate_func_sig)
     ("CTriggerPush_Touch", "CTriggerPush", "CBaseEntity_Touch", True),
 ]
