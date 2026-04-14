@@ -1368,6 +1368,10 @@ modules:
         expected_output:
           - CTakeDamageInfo_vtable.{platform}.yaml
 
+      - name: find-CEnvShake_vtable
+        expected_output:
+          - CEnvShake_vtable.{platform}.yaml
+
       - name: find-CCSPlayerStateDeathAnim_vtable
         expected_output:
           - CCSPlayerStateDeathAnim_vtable.{platform}.yaml
@@ -1733,9 +1737,18 @@ modules:
         expected_output:
           - CBaseEntity_EmitSoundParams.{platform}.yaml
 
+      - name: find-CEnvShake_Spawn
+        expected_output:
+          - CEnvShake_Spawn.{platform}.yaml
+        expected_input:
+          - CEnvShake_vtable.{platform}.yaml
+          - CBaseEntity_Spawn.{platform}.yaml
+
       - name: find-CBaseEntity_SetMoveType
         expected_output:
           - CBaseEntity_SetMoveType.{platform}.yaml
+        expected_input:
+          - CEnvShake_Spawn.{platform}.yaml
 
       - name: find-CBasePlayerPawn_CommitSuicide
         expected_output:
@@ -2316,6 +2329,9 @@ modules:
       - name: CTakeDamageInfo_vtable
         category: vtable
 
+      - name: CEnvShake_vtable
+        category: vtable
+
       - name: CCSPlayerStateDeathAnim_vtable
         category: vtable
 
@@ -2659,6 +2675,11 @@ modules:
         alias:
           - CBaseEntity::Precache
           - Precache
+
+      - name: CEnvShake_Spawn
+        category: vfunc
+        alias:
+          - CEnvShake::Spawn
 
       - name: CBaseEntity_SetMoveType
         category: func
