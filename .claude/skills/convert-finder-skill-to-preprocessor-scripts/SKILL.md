@@ -18,15 +18,16 @@ preprocessor script, update `config.yaml` entries, and delete the old SKILL.md.
 
 ## Overview
 
-Five preprocessor patterns exist. The SKILL.md's discovery method and target type determine which to use:
+Six preprocessor patterns exist. The SKILL.md's discovery method and target type determine which to use:
 
-| Pattern | Discovery Method | Has FUNC_XREFS | Has LLM_DECOMPILE | Has FUNC_VTABLE_RELATIONS | preprocess_skill has llm_config |
-|---------|-----------------|-----------------|---------------------|---------------------------|-------------------------------|
-| **A** — Regular function via xref strings | `find_regex` + `xrefs_to` on debug strings | Yes | No | No | No |
-| **B** — Virtual function via xref strings | Same as A, but function is in a vtable | Yes | No | Yes | No |
-| **C** — Virtual function via LLM_DECOMPILE | Decompile a known predecessor function, identify vfunc call offsets | No | Yes | Yes | Yes |
-| **D** — Regular function via LLM_DECOMPILE | Decompile a known predecessor function, identify direct call targets | No | Yes | No | Yes |
-| **E** — Struct member offset via LLM_DECOMPILE | Decompile a known predecessor function, identify struct field access offsets | No | Yes | No | Yes |
+| Pattern | Discovery Method | Has FUNC_XREFS | Has LLM_DECOMPILE | Has INHERIT_VFUNCS | Has FUNC_VTABLE_RELATIONS | preprocess_skill has llm_config |
+|---------|-----------------|-----------------|---------------------|--------------------|---------------------------|-------------------------------|
+| **A** — Regular function via xref strings | `find_regex` + `xrefs_to` on debug strings | Yes | No | No | No | No |
+| **B** — Virtual function via xref strings | Same as A, but function is in a vtable | Yes | No | No | Yes | No |
+| **C** — Virtual function via LLM_DECOMPILE | Decompile a known predecessor function, identify vfunc call offsets | No | Yes | No | Yes | Yes |
+| **D** — Regular function via LLM_DECOMPILE | Decompile a known predecessor function, identify direct call targets | No | Yes | No | No | Yes |
+| **E** — Struct member offset via LLM_DECOMPILE | Decompile a known predecessor function, identify struct field access offsets | No | Yes | No | No | Yes |
+| **F** — Virtual function via INHERIT_VFUNCS | Inherit vtable slot index from a known base-class vfunc, look up same slot in derived-class vtable | No | No | Yes | No | No |
 
 Additionally, **struct member offsets** can be mixed into any pattern as a secondary target (see "Struct Member Mixin" section below).
 
@@ -40,13 +41,15 @@ Extract:
 1. **Target function names** — all functions the skill identifies (may be 1 or many)
 2. **Target struct member names** — all struct member offsets the skill identifies (e.g. `CCheckTransmitInfo_m_nPlayerSlot`)
 3. **Discovery method** for each target:
-   - Does it use `find_regex` / `xrefs_to` with debug strings? → **xref-string based**
-   - Does it load a predecessor YAML, decompile that function, and extract vfunc offsets / struct offsets from code patterns? → **LLM_DECOMPILE based**
+   - Does it use `find_regex` / `xrefs_to` with debug strings? → **xref-string based** (Patterns A/B)
+   - Does it load a predecessor YAML, decompile that function, and extract vfunc offsets / struct offsets from code patterns? → **LLM_DECOMPILE based** (Patterns C/D/E)
+   - Is the target a derived-class override of a known base-class vfunc (same vtable slot, different class)? → **INHERIT_VFUNCS based** (Pattern F)
 4. **Function category** — `func` (regular), `vfunc` (virtual, has vtable slot), or `structmember`
 5. **VTable class name** — if virtual, e.g. `CBaseEntity`, `CBasePlayerPawn`, `INetworkMessages`
-6. **Xref strings** — debug strings used in `find_regex` patterns (for xref-string patterns). **Check if these differ between Windows and Linux** — if so, you need platform-specific `FUNC_XREFS_WINDOWS` / `FUNC_XREFS_LINUX`.
+6. **Xref strings** — debug strings used in `find_regex` patterns (for xref-string patterns). **Check if these differ between Windows and Linux** — if so, you need platform-specific `FUNC_XREFS_WINDOWS` / `FUNC_XREFS_LINUX`. Use the `FULLMATCH:` prefix (e.g. `"FULLMATCH:Precache"`) when you need exact-string matching instead of substring matching — this prevents false positives when the target string is short or generic (e.g. `"Precache"`, `"userid"`, `"team"`).
 7. **Predecessor function** — the function whose decompiled code reveals the target (for LLM_DECOMPILE patterns)
-8. **Dependencies** — which existing YAMLs are needed as inputs (vtable YAMLs, predecessor function YAMLs)
+8. **Base vfunc for inheritance** — if the target is a derived-class override of a known base-class vfunc, the base vfunc name (for INHERIT_VFUNCS pattern)
+9. **Dependencies** — which existing YAMLs are needed as inputs (vtable YAMLs, predecessor function YAMLs, base vfunc YAMLs)
 
 ## Step 2: Plan the Split
 
@@ -441,6 +444,79 @@ async def preprocess_skill(
 - No `FUNC_VTABLE_RELATIONS`
 - config.yaml symbol category is `structmember` (not `func` or `vfunc`)
 
+### Pattern F — Virtual function via INHERIT_VFUNCS
+
+Use when: the target is a **derived-class override** of a known base-class virtual function. The base vfunc has already been found (by another script), and this script inherits its vtable slot index to look up the same slot in the derived class's vtable.
+
+This is the simplest pattern — no xref strings, no LLM decompilation needed. Just a vtable slot lookup.
+
+```python
+#!/usr/bin/env python3
+"""Preprocess script for find-{SKILL_NAME} skill."""
+
+from ida_analyze_util import preprocess_common_skill
+
+INHERIT_VFUNCS = [
+    # (target_func_name, inherit_vtable_class, base_vfunc_name, generate_func_sig)
+    ("{DERIVED_FUNC_NAME}", "{DERIVED_VTABLE_CLASS}", "{BASE_VFUNC_NAME}", True),
+]
+
+GENERATE_YAML_DESIRED_FIELDS = [
+    # (symbol_name, generate_yaml_fields)
+    (
+        "{DERIVED_FUNC_NAME}",
+        [
+            "func_name",
+            "func_va",
+            "func_rva",
+            "func_size",
+            "func_sig",
+            "vtable_name",
+            "vfunc_offset",
+            "vfunc_index",
+        ],
+    ),
+]
+
+async def preprocess_skill(
+    session,
+    skill_name,
+    expected_outputs,
+    old_yaml_map,
+    new_binary_dir,
+    platform,
+    image_base,
+    debug=False,
+):
+    """Reuse old func_sig first; fallback to vtable index + generated signature when needed."""
+    _ = skill_name
+
+    return await preprocess_common_skill(
+        session=session,
+        expected_outputs=expected_outputs,
+        old_yaml_map=old_yaml_map,
+        new_binary_dir=new_binary_dir,
+        platform=platform,
+        image_base=image_base,
+        inherit_vfuncs=INHERIT_VFUNCS,
+        generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
+        debug=debug,
+    )
+```
+
+**INHERIT_VFUNCS tuple fields:**
+- `target_func_name` — name for the derived-class function (e.g. `"CBaseEntity_Precache"`)
+- `inherit_vtable_class` — class whose vtable to look up (e.g. `"CBaseEntity"`)
+- `base_vfunc_name` — YAML artifact stem of the base-class vfunc that defines the slot index (e.g. `"CEntityInstance_Precache"`). Can be cross-module: `"../engine/INetworkMessages_FindNetworkGroup"`
+- `generate_func_sig` — (optional, default True) whether to generate a func_sig if no old YAML exists
+
+**Key differences from other patterns:**
+- No `TARGET_FUNCTION_NAMES`, `FUNC_XREFS`, `LLM_DECOMPILE`, or `FUNC_VTABLE_RELATIONS`
+- Uses `inherit_vfuncs=` parameter instead of `func_names=`
+- No `llm_config` parameter in `preprocess_skill`
+- config.yaml `expected_input` must include both the base vfunc YAML and the derived class vtable YAML
+- config.yaml symbol category is `vfunc`
+
 ### Struct Member Mixin (for any pattern)
 
 Struct member offsets can also be **mixed into** a function-finding script when they are discovered from the same function via signature matching (not LLM_DECOMPILE). Add `TARGET_STRUCT_MEMBER_NAMES` alongside `TARGET_FUNCTION_NAMES` and pass `struct_member_names=` to `preprocess_common_skill`:
@@ -470,16 +546,17 @@ GENERATE_YAML_DESIRED_FIELDS = [
 
 ### Key Differences Between Patterns
 
-| Aspect | Pattern A (func + xref) | Pattern B (vfunc + xref) | Pattern C (vfunc + LLM) | Pattern D (func + LLM) | Pattern E (structmember + LLM) |
-|--------|------------------------|--------------------------|------------------------|------------------------|-------------------------------|
-| FUNC_XREFS | Yes | Yes | No | No | No |
-| FUNC_VTABLE_RELATIONS | No | Yes | Yes | No | No |
-| LLM_DECOMPILE | No | No | Yes | Yes | Yes |
-| `llm_config` param | No | No | Yes | Yes | Yes |
-| Target list | `TARGET_FUNCTION_NAMES` | `TARGET_FUNCTION_NAMES` | `TARGET_FUNCTION_NAMES` | `TARGET_FUNCTION_NAMES` | `TARGET_STRUCT_MEMBER_NAMES` |
-| preprocess param | `func_names=` | `func_names=` | `func_names=` | `func_names=` | `struct_member_names=` |
-| YAML fields | func_name, func_sig, func_va, func_rva, func_size | Same + vtable_name, vfunc_offset, vfunc_index | func_name, vfunc_sig, vfunc_offset, vfunc_index, vtable_name | func_name, func_sig, func_va, func_rva, func_size | struct_name, member_name, offset, size, offset_sig, offset_sig_disp |
-| config category | `func` | `vfunc` | `vfunc` | `func` | `structmember` |
+| Aspect | Pattern A (func + xref) | Pattern B (vfunc + xref) | Pattern C (vfunc + LLM) | Pattern D (func + LLM) | Pattern E (structmember + LLM) | Pattern F (vfunc + inherit) |
+|--------|------------------------|--------------------------|------------------------|------------------------|-------------------------------|---------------------------|
+| FUNC_XREFS | Yes | Yes | No | No | No | No |
+| FUNC_VTABLE_RELATIONS | No | Yes | Yes | No | No | No |
+| INHERIT_VFUNCS | No | No | No | No | No | Yes |
+| LLM_DECOMPILE | No | No | Yes | Yes | Yes | No |
+| `llm_config` param | No | No | Yes | Yes | Yes | No |
+| Target list | `TARGET_FUNCTION_NAMES` | `TARGET_FUNCTION_NAMES` | `TARGET_FUNCTION_NAMES` | `TARGET_FUNCTION_NAMES` | `TARGET_STRUCT_MEMBER_NAMES` | (none — defined in INHERIT_VFUNCS) |
+| preprocess param | `func_names=` | `func_names=` | `func_names=` | `func_names=` | `struct_member_names=` | `inherit_vfuncs=` |
+| YAML fields | func_name, func_sig, func_va, func_rva, func_size | Same + vtable_name, vfunc_offset, vfunc_index | func_name, vfunc_sig, vfunc_offset, vfunc_index, vtable_name | func_name, func_sig, func_va, func_rva, func_size | struct_name, member_name, offset, size, offset_sig, offset_sig_disp | func_name, func_va, func_rva, func_size, func_sig, vtable_name, vfunc_offset, vfunc_index |
+| config category | `func` | `vfunc` | `vfunc` | `func` | `structmember` | `vfunc` |
 
 ---
 
@@ -506,8 +583,9 @@ Find the module section (e.g. `server`, `engine`, `networksystem`) and add/updat
 
 **Rules:**
 - `expected_output`: One `.{platform}.yaml` per target function in the script
-- `expected_input`: Include predecessor function YAML (Patterns C & D) and/or vtable YAML (Patterns B & C)
-- Pattern A/D with no vtable: typically NO `expected_input` (Pattern D still needs predecessor in `expected_input`)
+- `expected_input`: Include predecessor function YAML (Patterns C & D) and/or vtable YAML (Patterns B & C & F)
+- Pattern A with no vtable: typically NO `expected_input` (Pattern D still needs predecessor in `expected_input`)
+- Pattern F: needs both the derived class vtable YAML and the base vfunc YAML in `expected_input`
 - If splitting a combined skill, each new entry should have its own `expected_input` referencing the predecessor's output
 
 **Dependency chain example** (3-script split):
@@ -803,10 +881,11 @@ Before finishing, verify:
 - [ ] `TARGET_FUNCTION_NAMES` lists all functions the script should find
 - [ ] `FUNC_XREFS` xref strings match the debug strings from the original SKILL.md (Pattern A/B)
 - [ ] `LLM_DECOMPILE` reference path points to the correct predecessor function YAML (Patterns C/D)
-- [ ] `FUNC_VTABLE_RELATIONS` lists correct vtable class for each virtual function (Patterns B/C only, NOT Pattern D)
+- [ ] `FUNC_VTABLE_RELATIONS` lists correct vtable class for each virtual function (Patterns B/C only, NOT Patterns D/F)
+- [ ] `INHERIT_VFUNCS` lists correct (target, derived_class, base_vfunc, gen_sig) tuples (Pattern F only)
 - [ ] `GENERATE_YAML_DESIRED_FIELDS` uses correct field set for the pattern
-- [ ] `preprocess_skill` signature includes `llm_config=None` if and only if LLM_DECOMPILE is used
-- [ ] `preprocess_common_skill` call passes all relevant lists (`func_xrefs`, `func_vtable_relations`, `llm_decompile_specs`, `llm_config`)
+- [ ] `preprocess_skill` signature includes `llm_config=None` if and only if LLM_DECOMPILE is used (NOT for Pattern F)
+- [ ] `preprocess_common_skill` call passes all relevant lists (`func_xrefs`, `func_vtable_relations`, `llm_decompile_specs`, `llm_config`, `inherit_vfuncs`)
 - [ ] config.yaml `expected_output` has one entry per target function
 - [ ] config.yaml `expected_input` correctly chains dependencies
 - [ ] config.yaml `symbols` section has entries for all target functions (no duplicates)
@@ -908,3 +987,38 @@ Before finishing, verify:
         expected_input:
           - CSource2GameEntities_CheckTransmit.{platform}.yaml
 ```
+
+### Example: Split xref-string vfunc + INHERIT_VFUNCS derived vfunc (Patterns B + F)
+
+**Before:** `.claude/skills/find-CBaseEntity_Precache/SKILL.md` — found CBaseEntity_Precache via a wrapper function referencing `"bloodspray"`. CBaseEntity_Precache is actually a derived-class override of CEntityInstance::Precache.
+
+**Split into two scripts with swapped relationship:**
+
+1. `ida_preprocessor_scripts/find-CEntityInstance_Precache.py` (Pattern B with FULLMATCH):
+   - `FUNC_XREFS` containing `"FULLMATCH:Precache"` (exact match to avoid false positives on short string)
+   - `FUNC_VTABLE_RELATIONS`: `("CEntityInstance_Precache", "CEntityInstance")`
+   - `GENERATE_YAML_DESIRED_FIELDS` with vtable fields
+   - This is the **base class** vfunc — found directly via xref strings
+
+2. `ida_preprocessor_scripts/find-CBaseEntity_Precache.py` (Pattern F):
+   - `INHERIT_VFUNCS`: `("CBaseEntity_Precache", "CBaseEntity", "CEntityInstance_Precache", True)`
+   - `GENERATE_YAML_DESIRED_FIELDS` with vtable fields
+   - No FUNC_XREFS, no LLM_DECOMPILE — inherits the vtable slot from CEntityInstance_Precache and looks it up in CBaseEntity's vtable
+
+**config.yaml dependency chain:**
+```yaml
+      - name: find-CEntityInstance_Precache
+        expected_output:
+          - CEntityInstance_Precache.{platform}.yaml
+        expected_input:
+          - CEntityInstance_vtable.{platform}.yaml
+
+      - name: find-CBaseEntity_Precache
+        expected_output:
+          - CBaseEntity_Precache.{platform}.yaml
+        expected_input:
+          - CBaseEntity_vtable.{platform}.yaml
+          - CEntityInstance_Precache.{platform}.yaml
+```
+
+**Key insight:** The SKILL.md originally found CBaseEntity_Precache directly. When converting, we recognized that `Precache` is a base-class virtual method on `CEntityInstance`, and `CBaseEntity::Precache` is just an override at the same vtable slot. So we split into: find the base method via xref strings → inherit to find the derived override.
