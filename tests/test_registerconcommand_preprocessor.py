@@ -72,6 +72,8 @@ class TestBuildRegisterConCommandPyEval(unittest.TestCase):
         self.assertIn("_recover_stack_slot", code)
         self.assertIn("_recover_slot_value", code)
         self.assertIn("reg_names_windows", code)
+        self.assertIn("no named RegisterConCommand branches found; fallback to generic call/jmp scan", code)
+        self.assertIn("if ((not require_named) or match) and cur not in seen_calls:", code)
         self.assertIn("traceback.format_exc()", code)
         self.assertIn("'ok': False", code)
         self.assertIn("_collect_candidates(params)", code)
