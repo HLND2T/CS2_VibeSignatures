@@ -1413,10 +1413,23 @@ modules:
           - CBaseEntity_OnTakeDamage_Dying.{platform}.yaml
           - CBaseEntity_OnTakeDamage_Dead.{platform}.yaml
 
+      - name: find-CFlashbangProjectile_vtable
+        expected_output:
+          - CFlashbangProjectile_vtable.{platform}.yaml
+
+      - name: find-CFlashbangProjectile_Spawn
+        expected_output:
+          - CFlashbangProjectile_Spawn.{platform}.yaml
+        expected_input:
+          - CFlashbangProjectile_vtable.{platform}.yaml
+          - CBaseEntity_Spawn.{platform}.yaml
+
       - name: find-CBaseModelEntity_SetModel-AND-CBaseEntity_SetGravityScale
         expected_output:
           - CBaseModelEntity_SetModel.{platform}.yaml
           - CBaseEntity_SetGravityScale.{platform}.yaml
+        expected_input:
+          - CFlashbangProjectile_Spawn.{platform}.yaml
 
       - name: find-CTriggerGravity_GravityTouch
         expected_output:
@@ -2418,6 +2431,15 @@ modules:
         category: vfunc
         alias:
           - CCSPlayerPawn::OnTakeDamage_Dead
+
+      - name: CFlashbangProjectile_vtable
+        category: vtable
+        shared: true
+
+      - name: CFlashbangProjectile_Spawn
+        category: vfunc
+        alias:
+          - CFlashbangProjectile::Spawn
 
       - name: CBaseModelEntity_SetModel
         category: func
