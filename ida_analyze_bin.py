@@ -76,6 +76,7 @@ ERROR_MARKER_RE = re.compile(
     r"(?<![A-Za-z0-9])error(?![A-Za-z0-9])",
     re.IGNORECASE,
 )
+_ARTIFACT_SYMBOL_CATEGORY_CACHE = {}
 SURVEY_BINARY_PATH_PY_EVAL = (
     "import json\n"
     "path = ''\n"
@@ -111,6 +112,218 @@ def _parse_tool_json_content(result):
         return json.loads(raw)
     except (json.JSONDecodeError, TypeError):
         return None
+
+
+def _resolve_config_path(config_path=DEFAULT_CONFIG_FILE):
+    path = Path(config_path)
+    if path.is_absolute():
+        return path
+    return Path(__file__).resolve().parent / path
+
+
+def _load_artifact_symbol_category_map(config_path=DEFAULT_CONFIG_FILE):
+    resolved_config_path = _resolve_config_path(config_path)
+    cache_key = os.fspath(resolved_config_path)
+    cached = _ARTIFACT_SYMBOL_CATEGORY_CACHE.get(cache_key)
+    if cached is not None:
+        return cached
+
+    category_map = {}
+    try:
+        with open(resolved_config_path, "r", encoding="utf-8") as handle:
+            config_data = yaml.safe_load(handle) or {}
+    except Exception:
+        _ARTIFACT_SYMBOL_CATEGORY_CACHE[cache_key] = category_map
+        return category_map
+
+    for module_entry in config_data.get("modules", []):
+        if not isinstance(module_entry, dict):
+            continue
+        for symbol_entry in module_entry.get("symbols", []):
+            if not isinstance(symbol_entry, dict):
+                continue
+            symbol_name = str(symbol_entry.get("name", "")).strip()
+            category = str(symbol_entry.get("category", "")).strip()
+            if symbol_name and category and symbol_name not in category_map:
+                category_map[symbol_name] = category
+
+    _ARTIFACT_SYMBOL_CATEGORY_CACHE[cache_key] = category_map
+    return category_map
+
+
+def _derive_artifact_symbol_name(artifact_path, platform):
+    basename = os.path.basename(str(artifact_path or ""))
+    platform_suffix = f".{platform}.yaml"
+    if basename.endswith(platform_suffix):
+        return basename[:-len(platform_suffix)]
+    if basename.endswith(".yaml"):
+        return basename[:-5]
+    return basename
+
+
+def _lookup_expected_input_artifact_category(
+    artifact_path,
+    platform,
+    config_path=DEFAULT_CONFIG_FILE,
+):
+    symbol_name = _derive_artifact_symbol_name(artifact_path, platform)
+    if not symbol_name:
+        return None
+    category_map = _load_artifact_symbol_category_map(config_path=config_path)
+    return category_map.get(symbol_name)
+
+
+def _parse_py_eval_result_json(result):
+    payload = _parse_tool_json_content(result)
+    if not isinstance(payload, dict):
+        return None
+
+    result_text = payload.get("result", "")
+    if not isinstance(result_text, str) or not result_text:
+        return None
+
+    try:
+        parsed = json.loads(result_text)
+    except (json.JSONDecodeError, TypeError):
+        return None
+    return parsed if isinstance(parsed, dict) else None
+
+
+async def _inspect_func_va_via_session(session, func_va_text):
+    py_code = (
+        "import ida_funcs, ida_segment, idaapi, json\n"
+        f"raw_func_va = {json.dumps(str(func_va_text))}\n"
+        "payload = {\n"
+        "    'has_segment': False,\n"
+        "    'segment_name': '',\n"
+        "    'has_function': False,\n"
+        "    'function_start': '',\n"
+        "    'is_function_start': False,\n"
+        "}\n"
+        "try:\n"
+        "    ea = int(raw_func_va, 0)\n"
+        "except Exception:\n"
+        "    result = json.dumps(payload)\n"
+        "else:\n"
+        "    seg = None\n"
+        "    try:\n"
+        "        seg = ida_segment.getseg(ea)\n"
+        "    except Exception:\n"
+        "        try:\n"
+        "            seg = idaapi.getseg(ea)\n"
+        "        except Exception:\n"
+        "            seg = None\n"
+        "    if seg is not None:\n"
+        "        payload['has_segment'] = True\n"
+        "        try:\n"
+        "            payload['segment_name'] = ida_segment.get_segm_name(seg) or ''\n"
+        "        except Exception:\n"
+        "            payload['segment_name'] = ''\n"
+        "    func = ida_funcs.get_func(ea)\n"
+        "    if func is not None:\n"
+        "        func_start = int(func.start_ea)\n"
+        "        payload['has_function'] = True\n"
+        "        payload['function_start'] = hex(func_start)\n"
+        "        payload['is_function_start'] = (func_start == ea)\n"
+        "    result = json.dumps(payload)\n"
+    )
+    try:
+        eval_result = await session.call_tool(
+            name="py_eval",
+            arguments={"code": py_code},
+        )
+    except Exception:
+        return None
+    return _parse_py_eval_result_json(eval_result)
+
+
+async def validate_expected_input_artifacts_via_session(
+    session,
+    expected_inputs,
+    platform,
+    debug=False,
+    config_path=DEFAULT_CONFIG_FILE,
+):
+    invalid_artifacts = []
+
+    for artifact_path in expected_inputs or []:
+        category = _lookup_expected_input_artifact_category(
+            artifact_path,
+            platform,
+            config_path=config_path,
+        )
+        if category not in {"func", "vfunc"}:
+            continue
+
+        try:
+            with open(artifact_path, "r", encoding="utf-8") as handle:
+                artifact_payload = yaml.safe_load(handle)
+        except Exception as exc:
+            invalid_artifacts.append(
+                f"{artifact_path}: failed to read YAML ({exc})"
+            )
+            continue
+
+        if not isinstance(artifact_payload, dict):
+            invalid_artifacts.append(
+                f"{artifact_path}: invalid YAML payload (expected mapping)"
+            )
+            continue
+
+        issues = []
+        raw_func_va = artifact_payload.get("func_va")
+        func_va_text = str(raw_func_va or "").strip()
+        should_require_func_va = (category == "func")
+
+        if should_require_func_va and not func_va_text:
+            issues.append("missing required field func_va")
+
+        if category == "func":
+            func_sig_text = str(artifact_payload.get("func_sig") or "").strip()
+            if not func_sig_text:
+                issues.append("missing required field func_sig")
+
+        if func_va_text:
+            try:
+                int(func_va_text, 0)
+            except (TypeError, ValueError):
+                issues.append(f"invalid func_va value {func_va_text!r}")
+            else:
+                inspect_payload = await _inspect_func_va_via_session(session, func_va_text)
+                if inspect_payload is not None:
+                    has_segment = bool(inspect_payload.get("has_segment"))
+                    segment_name = str(inspect_payload.get("segment_name", "")).strip()
+                    if not has_segment:
+                        issues.append(
+                            f"func_va={func_va_text} is not mapped to any segment"
+                        )
+                    elif segment_name != ".text":
+                        issues.append(
+                            f"func_va={func_va_text} resolves to segment {segment_name!r} "
+                            "instead of '.text'"
+                        )
+                    elif not inspect_payload.get("has_function"):
+                        issues.append(
+                            f"func_va={func_va_text} does not resolve to a function"
+                        )
+                    elif not inspect_payload.get("is_function_start"):
+                        function_start = str(
+                            inspect_payload.get("function_start", "")
+                        ).strip() or "<unknown>"
+                        issues.append(
+                            f"func_va={func_va_text} resolves inside function "
+                            f"{function_start} instead of a function start"
+                        )
+                elif debug:
+                    print(
+                        "  Warning: unable to inspect expected_input func_va via MCP: "
+                        f"{artifact_path} ({func_va_text})"
+                    )
+
+        if issues:
+            invalid_artifacts.append(f"{artifact_path}: {'; '.join(issues)}")
+
+    return invalid_artifacts
 
 
 async def _survey_binary_path_via_py_eval(session):
@@ -241,6 +454,62 @@ async def survey_binary_via_mcp(host=DEFAULT_HOST, port=DEFAULT_PORT, detail_lev
                     return await survey_binary_via_session(session, detail_level=detail_level)
     except Exception:
         return None
+
+
+async def validate_expected_input_artifacts_via_mcp(
+    host=DEFAULT_HOST,
+    port=DEFAULT_PORT,
+    expected_inputs=None,
+    platform="",
+    debug=False,
+    config_path=DEFAULT_CONFIG_FILE,
+):
+    if not expected_inputs:
+        return []
+
+    server_url = f"http://{host}:{port}/mcp"
+
+    try:
+        async with httpx.AsyncClient(
+            follow_redirects=True,
+            timeout=httpx.Timeout(10.0, read=30.0),
+            trust_env=False,
+        ) as http_client:
+            async with streamable_http_client(server_url, http_client=http_client) as (read_stream, write_stream, _):
+                async with ClientSession(read_stream, write_stream) as session:
+                    await session.initialize()
+                    return await validate_expected_input_artifacts_via_session(
+                        session,
+                        expected_inputs=expected_inputs,
+                        platform=platform,
+                        debug=debug,
+                        config_path=config_path,
+                    )
+    except Exception:
+        if debug:
+            print("  Warning: expected_input artifact validation via MCP failed")
+        return []
+
+
+def _run_validate_expected_input_artifacts_via_mcp(
+    *,
+    host,
+    port,
+    expected_inputs,
+    platform,
+    debug=False,
+    config_path=DEFAULT_CONFIG_FILE,
+):
+    return asyncio.run(
+        validate_expected_input_artifacts_via_mcp(
+            host=host,
+            port=port,
+            expected_inputs=expected_inputs,
+            platform=platform,
+            debug=debug,
+            config_path=config_path,
+        )
+    )
 
 
 async def preprocess_single_vcall_object_via_mcp(
@@ -1340,6 +1609,25 @@ def process_binary(
                 fail_count += 1
                 missing_names = [os.path.basename(p) for p in missing_inputs]
                 print(f"  Failed: {skill_name} (missing expected_input: {', '.join(missing_names)})")
+                continue
+            invalid_expected_inputs = _run_validate_expected_input_artifacts_via_mcp(
+                host=host,
+                port=port,
+                expected_inputs=expected_inputs,
+                platform=platform,
+                debug=debug,
+            )
+            if invalid_expected_inputs:
+                fail_count += 1
+                invalid_label = (
+                    "artifact"
+                    if len(invalid_expected_inputs) == 1
+                    else "artifacts"
+                )
+                print(
+                    f"  Failed: {skill_name} (invalid expected_input {invalid_label}: "
+                    f"{' | '.join(invalid_expected_inputs)})"
+                )
                 continue
 
             # Try preprocessing first. Some preprocessors can run without old YAMLs.
