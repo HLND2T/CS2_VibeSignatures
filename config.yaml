@@ -1823,15 +1823,29 @@ modules:
         expected_output:
           - LegacyGameEventListener.{platform}.yaml
 
+      - name: find-CPhysicsGameSystem_ProcessContactEvents
+        expected_output:
+          - CPhysicsGameSystem_ProcessContactEvents.{platform}.yaml
+
+      - name: find-IVPhys2World_GetTouchingList-AND-CBaseEntity_PhysicsDispatchStartTouch-AND-CBaseEntity_PhysicsNotifyOtherOfEndTouch-AND-CBaseEntity_PhysicsDispatchTouch
+        expected_output:
+          - IVPhys2World_GetTouchingList.{platform}.yaml
+          - CBaseEntity_PhysicsDispatchStartTouch.{platform}.yaml
+          - CBaseEntity_PhysicsNotifyOtherOfEndTouch.{platform}.yaml
+          - CBaseEntity_PhysicsDispatchTouch.{platform}.yaml
+        expected_input:
+          - CPhysicsGameSystem_ProcessContactEvents.{platform}.yaml
+          - ../vphysics2/CVPhys2World_vtable.{platform}.yaml
+
       - name: find-CBaseEntity_StartTouch-AND-CBaseEntity_Touch-AND-CBaseEntity_EndTouch
         expected_output:
           - CBaseEntity_StartTouch.{platform}.yaml
           - CBaseEntity_Touch.{platform}.yaml
           - CBaseEntity_EndTouch.{platform}.yaml
-          - CVPhys2World_GetTouchingList.{platform}.yaml
         expected_input:
+          - CBaseEntity_PhysicsDispatchStartTouch.{platform}.yaml
+          - CBaseEntity_PhysicsNotifyOtherOfEndTouch.{platform}.yaml
           - CBaseEntity_vtable.{platform}.yaml
-        max_retries: 6
 
       - name: find-CTriggerPush_Touch
         expected_output:
@@ -2790,6 +2804,26 @@ modules:
         alias:
           - GetLegacyGameEventListener
 
+      - name: CPhysicsGameSystem_ProcessContactEvents
+        category: func
+        alias:
+          - CPhysicsGameSystem::ProcessContactEvents
+
+      - name: CBaseEntity_PhysicsDispatchStartTouch
+        category: func
+        alias:
+          - CBaseEntity::PhysicsDispatchStartTouch
+
+      - name: CBaseEntity_PhysicsNotifyOtherOfEndTouch
+        category: func
+        alias:
+          - CBaseEntity::PhysicsNotifyOtherOfEndTouch
+
+      - name: CBaseEntity_PhysicsDispatchTouch
+        category: func
+        alias:
+          - CBaseEntity::PhysicsDispatchTouch
+
       - name: CBaseEntity_StartTouch
         category: vfunc
         alias:
@@ -2808,9 +2842,10 @@ modules:
           - CBaseEntity::EndTouch
           - EndTouch
 
-      - name: CVPhys2World_GetTouchingList
+      - name: IVPhys2World_GetTouchingList
         category: vfunc
         alias:
+          - IVPhys2World::GetTouchingList
           - CVPhys2World::GetTouchingList
 
       - name: CTriggerPush_Touch
