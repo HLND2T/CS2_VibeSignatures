@@ -656,6 +656,13 @@ where `{gamever}` can be obtained from `.env` -> `CS2VIBE_GAMEVER`.
 
 YOU MUST: rename known symbols / add necessary comments in the generated reference YAMLs so the LLM can find desired symbols by comparing reference ones with raw procedure/disassembly read from new binaries. See the `convert-finder-skill-to-preprocessor-scripts` SKILL.md Step 5 for detailed annotation examples.
 
+**IMPORTANT — When the predecessor is a NEW function (no existing output YAMLs):** If the predecessor function is brand new (discovered by another new script you're creating at the same time), its output YAMLs don't exist yet and `generate_reference_yaml.py` cannot resolve its address. You must use a **multi-phase workflow**:
+
+1. **Phase 1:** Create ALL scripts (vtable, xref_string, LLM_DECOMPILE) and update config.yaml
+2. **Phase 2:** Run `uv run ida_analyze_bin.py -debug` — the vtable and xref_string scripts will succeed and populate the NEW predecessor's output YAMLs. The LLM_DECOMPILE script will fail (no reference YAML yet) or be skipped.
+3. **Phase 3:** Now that the predecessor has output YAMLs, run `generate_reference_yaml.py` to create reference YAMLs, then annotate them.
+4. **Phase 4:** Run `uv run ida_analyze_bin.py -debug` again — this time the LLM_DECOMPILE path runs and the full pipeline is validated.
+
 ---
 
 ## Step 5: Run Tests
@@ -769,3 +776,50 @@ Before finishing, verify:
 - `FUNC_VTABLE_RELATIONS`: `("CEntityInstance_Precache", "CEntityInstance")`
 - `GENERATE_YAML_DESIRED_FIELDS` with vtable fields
 - config.yaml `expected_input`: `CEntityInstance_vtable.{platform}.yaml`
+
+### Example: vtable + xref-string vfunc + LLM_DECOMPILE regular function (vtable + Patterns B + D, multi-phase)
+
+**User says:** Find `LegacyGameEventListener` in server. It's a regular function called from `CSource2GameClients::StartHLTVServer` (a vfunc of `CSource2GameClients`). The xref string for StartHLTVServer is `"CSource2GameClients::StartHLTVServer: game event %s not found"`.
+
+**Result — three scripts:**
+
+1. `ida_preprocessor_scripts/find-CSource2GameClients_vtable.py` (vtable discovery):
+   - `TARGET_CLASS_NAMES`: `["CSource2GameClients"]`
+   - Pure vtable lookup, no dependencies
+
+2. `ida_preprocessor_scripts/find-CSource2GameClients_StartHLTVServer.py` (Pattern B):
+   - `FUNC_XREFS` containing `"CSource2GameClients::StartHLTVServer: game event %s not found"`
+   - `FUNC_VTABLE_RELATIONS`: `("CSource2GameClients_StartHLTVServer", "CSource2GameClients")`
+   - config.yaml `expected_input`: `CSource2GameClients_vtable.{platform}.yaml`
+
+3. `ida_preprocessor_scripts/find-LegacyGameEventListener.py` (Pattern D):
+   - `LLM_DECOMPILE` referencing `references/server/CSource2GameClients_StartHLTVServer.{platform}.yaml`
+   - No `FUNC_VTABLE_RELATIONS` (regular function)
+   - Reference YAMLs annotated: `sub_180B1AC80` / `sub_1516AB0` renamed to `LegacyGameEventListener` in both disasm and procedure
+   - config.yaml `expected_input`: `CSource2GameClients_StartHLTVServer.{platform}.yaml`
+
+**config.yaml dependency chain:**
+```yaml
+      - name: find-CSource2GameClients_vtable
+        expected_output:
+          - CSource2GameClients_vtable.{platform}.yaml
+
+      - name: find-CSource2GameClients_StartHLTVServer
+        expected_output:
+          - CSource2GameClients_StartHLTVServer.{platform}.yaml
+        expected_input:
+          - CSource2GameClients_vtable.{platform}.yaml
+
+      - name: find-LegacyGameEventListener
+        expected_output:
+          - LegacyGameEventListener.{platform}.yaml
+        expected_input:
+          - CSource2GameClients_StartHLTVServer.{platform}.yaml
+```
+
+**Key insight — multi-phase workflow required:** `CSource2GameClients_StartHLTVServer` was a brand-new function with no existing output YAMLs. `generate_reference_yaml.py` needs `func_va` from the predecessor's output YAML to locate it in IDA. So the workflow was:
+1. Create all 3 scripts + config entries
+2. Run `ida_analyze_bin.py -debug` → vtable + xref scripts succeed and create StartHLTVServer YAMLs
+3. Run `generate_reference_yaml.py` using the newly created output YAMLs
+4. Annotate reference YAMLs
+5. Run `ida_analyze_bin.py -debug` again → LLM_DECOMPILE path runs and succeeds
