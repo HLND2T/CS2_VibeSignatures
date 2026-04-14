@@ -2087,12 +2087,17 @@ modules:
         expected_output:
           - FindUseEntity.{platform}.yaml
 
-      - name: find-TraceFunc-AND-g_GameTraceManager
+      - name: find-TraceFunc
         expected_output:
           - TraceFunc.{platform}.yaml
-          - g_GameTraceManager.{platform}.yaml
         expected_input:
           - FindUseEntity.{platform}.yaml
+
+      - name: find-g_GameTraceManager
+        expected_output:
+          - g_GameTraceManager.{platform}.yaml
+        expected_input:
+          - TraceFunc.{platform}.yaml
 
       - name: find-TraceShape
         expected_output:
