@@ -60,7 +60,7 @@ found_gv: # This is for reference to global variable.
   - insn_va: '0x180333300'
     insn_disasm: lea     rax, unk_180222200      # Must load/reference the global variable
     gv_name: s_GameEventManager
-found_struct_offset: # This is for reference to struct offset.
+found_struct_offset: # This is for reference to struct offset. NOTE THAT virtual function pointer should not be here! virtual function pointer should ALWAYS be in found_vcall !
   - insn_va: '0x1801BA12A'                # Always be the instruction with displacement offset
     insn_disasm: mov     rcx, [r14+58h]   # Always be the instruction with displacement offset
     offset: '0x58'

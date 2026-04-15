@@ -13,6 +13,14 @@ modules:
         category: vtable
         shared: true
 
+  - name: scenesystem
+    path_windows: game/bin/win64/scenesystem.dll
+    path_linux: game/bin/linuxsteamrt64/libscenesystem.so
+
+    skills: []
+
+    symbols: []
+
   - name: networksystem
     path_windows: game/bin/win64/networksystem.dll
     path_linux: game/bin/linuxsteamrt64/libnetworksystem.so
@@ -1527,6 +1535,7 @@ modules:
         expected_output:
           - CCSPlayer_ItemServices_GiveNamedItem.{platform}.yaml
         expected_input:
+          - CCSPlayer_ItemServices_GiveDefaultItems.{platform}.yaml
           - CCSPlayer_ItemServices_vtable.{platform}.yaml
 
       - name: find-CCSPlayer_WeaponServices_PickupItem
