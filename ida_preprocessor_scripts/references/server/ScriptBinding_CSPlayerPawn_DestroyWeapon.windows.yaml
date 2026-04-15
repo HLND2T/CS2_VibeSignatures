@@ -1,0 +1,296 @@
+func_name: ScriptBinding_CSPlayerPawn_DestroyWeapon
+func_va: '0x18022fa10'
+disasm_code: |-
+  .text:000000018022FA10                 push    rbp
+  .text:000000018022FA12                 push    rsi
+  .text:000000018022FA13                 push    r14
+  .text:000000018022FA15                 sub     rsp, 60h
+  .text:000000018022FA19                 mov     rsi, rcx
+  .text:000000018022FA1C                 mov     edx, 1
+  .text:000000018022FA21                 mov     ecx, cs:dword_181D1CD8C
+  .text:000000018022FA27                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:000000018022FA2D                 lea     r14, aDestroyweapon; "DestroyWeapon"
+  .text:000000018022FA34                 test    al, al
+  .text:000000018022FA36                 jz      short loc_18022FA5C
+  .text:000000018022FA38                 mov     ecx, cs:dword_181D1CD8C
+  .text:000000018022FA3E                 lea     r9, aCsplayerpawn; "CSPlayerPawn"
+  .text:000000018022FA45                 lea     r8, aCallingSS; "Calling %s.%s\n"
+  .text:000000018022FA4C                 mov     [rsp+78h+var_58], r14
+  .text:000000018022FA51                 mov     edx, 1
+  .text:000000018022FA56                 call    cs:LoggingSystem_Log
+  .text:000000018022FA5C                 mov     [rsp+78h+arg_0], rbx
+  .text:000000018022FA64                 mov     [rsp+78h+arg_18], rdi
+  .text:000000018022FA6C                 call    ?GetCurrent@Isolate@v8@@SAPEAV12@XZ; v8::Isolate::GetCurrent(void)
+  .text:000000018022FA71                 mov     rdx, rax; struct v8::Isolate *
+  .text:000000018022FA74                 lea     rcx, [rsp+78h+var_38]; this
+  .text:000000018022FA79                 mov     rbp, rax
+  .text:000000018022FA7C                 call    ??0HandleScope@v8@@QEAA@PEAVIsolate@1@@Z; v8::HandleScope::HandleScope(v8::Isolate *)
+  .text:000000018022FA81                 call    sub_1801D1D60
+  .text:000000018022FA86                 test    rax, rax
+  .text:000000018022FA89                 jnz     short loc_18022FA97
+  .text:000000018022FA8B                 lea     rdx, aMethodSSInvoke; "Method %s.%s invoked in incorrect scope"...
+  .text:000000018022FA92                 jmp     loc_18022FCB1
+  .text:000000018022FA97                 lea     rdx, [rsp+78h+arg_10]
+  .text:000000018022FA9F                 mov     rcx, rax
+  .text:000000018022FAA2                 call    sub_1801D1CB0
+  .text:000000018022FAA7                 mov     rbx, [rsi+8]
+  .text:000000018022FAAB                 sub     rbx, 8
+  .text:000000018022FAAF                 mov     rcx, rbx; this
+  .text:000000018022FAB2                 call    ?InternalFieldCount@Object@v8@@QEBAHXZ; v8::Object::InternalFieldCount(void)
+  .text:000000018022FAB7                 cmp     eax, 3
+  .text:000000018022FABA                 jnz     loc_18022FCAA
+  .text:000000018022FAC0                 mov     rcx, [rbx]
+  .text:000000018022FAC3                 mov     rax, [rcx-1]
+  .text:000000018022FAC7                 movzx   eax, word ptr [rax+0Bh]
+  .text:000000018022FACB                 cmp     eax, 410h
+  .text:000000018022FAD0                 jz      short loc_18022FAEA
+  .text:000000018022FAD2                 add     eax, 0FFFFFBDFh
+  .text:000000018022FAD7                 cmp     eax, 3E9h
+  .text:000000018022FADC                 jbe     short loc_18022FAEA
+  .text:000000018022FADE                 xor     edx, edx; int
+  .text:000000018022FAE0                 mov     rcx, rbx; this
+  .text:000000018022FAE3                 call    ?SlowGetAlignedPointerFromInternalField@Object@v8@@AEAAPEAXH@Z; v8::Object::SlowGetAlignedPointerFromInternalField(int)
+  .text:000000018022FAE8                 jmp     short loc_18022FAEE
+  .text:000000018022FAEA                 mov     rax, [rcx+17h]
+  .text:000000018022FAEE                 lea     rcx, unk_181AF7930
+  .text:000000018022FAF5                 cmp     rax, rcx
+  .text:000000018022FAF8                 jnz     loc_18022FCAA
+  .text:000000018022FAFE                 mov     rcx, [rbx]
+  .text:000000018022FB01                 mov     rax, [rcx-1]
+  .text:000000018022FB05                 movzx   eax, word ptr [rax+0Bh]
+  .text:000000018022FB09                 cmp     eax, 410h
+  .text:000000018022FB0E                 jz      short loc_18022FB2B
+  .text:000000018022FB10                 add     eax, 0FFFFFBDFh
+  .text:000000018022FB15                 cmp     eax, 3E9h
+  .text:000000018022FB1A                 jbe     short loc_18022FB2B
+  .text:000000018022FB1C                 mov     edx, 1; int
+  .text:000000018022FB21                 mov     rcx, rbx; this
+  .text:000000018022FB24                 call    ?SlowGetAlignedPointerFromInternalField@Object@v8@@AEAAPEAXH@Z; v8::Object::SlowGetAlignedPointerFromInternalField(int)
+  .text:000000018022FB29                 jmp     short loc_18022FB2F
+  .text:000000018022FB2B                 mov     rax, [rcx+1Fh]
+  .text:000000018022FB2F                 test    rax, rax
+  .text:000000018022FB32                 jz      loc_18022FCAA
+  .text:000000018022FB38                 xor     ebx, ebx
+  .text:000000018022FB3A                 cmp     dword ptr [rax], 2
+  .text:000000018022FB3D                 jnz     short loc_18022FB93
+  .text:000000018022FB3F                 mov     ecx, [rax+8]
+  .text:000000018022FB42                 cmp     ecx, 0FFFFFFFFh
+  .text:000000018022FB45                 jz      short loc_18022FB93
+  .text:000000018022FB47                 mov     r8, cs:qword_181D17000
+  .text:000000018022FB4E                 test    r8, r8
+  .text:000000018022FB51                 jz      short loc_18022FB93
+  .text:000000018022FB53                 cmp     ecx, 0FFFFFFFEh
+  .text:000000018022FB56                 jz      short loc_18022FB86
+  .text:000000018022FB58                 mov     eax, ecx
+  .text:000000018022FB5A                 and     eax, 7FFFh
+  .text:000000018022FB5F                 mov     edx, eax
+  .text:000000018022FB61                 shr     rax, 9
+  .text:000000018022FB65                 mov     r9, [r8+rax*8]
+  .text:000000018022FB69                 test    r9, r9
+  .text:000000018022FB6C                 jz      short loc_18022FB86
+  .text:000000018022FB6E                 and     edx, 1FFh
+  .text:000000018022FB74                 imul    rax, rdx, 70h ; 'p'
+  .text:000000018022FB78                 add     rax, r9
+  .text:000000018022FB7B                 jz      short loc_18022FB86
+  .text:000000018022FB7D                 cmp     [rax+10h], ecx
+  .text:000000018022FB80                 cmovnz  rax, rbx
+  .text:000000018022FB84                 jmp     short loc_18022FB89
+  .text:000000018022FB86                 mov     rax, rbx
+  .text:000000018022FB89                 test    rax, rax
+  .text:000000018022FB8C                 jz      short loc_18022FB93
+  .text:000000018022FB8E                 mov     rcx, [rax]
+  .text:000000018022FB91                 jmp     short loc_18022FB96
+  .text:000000018022FB93                 mov     rcx, rbx
+  .text:000000018022FB96                 lea     r9, ??_R0?AVCCSPlayerPawn@@@8; CCSPlayerPawn `RTTI Type Descriptor'
+  .text:000000018022FB9D                 mov     dword ptr [rsp+78h+var_58], ebx
+  .text:000000018022FBA1                 lea     r8, ??_R0?AVCBaseEntity@@@8; CBaseEntity `RTTI Type Descriptor'
+  .text:000000018022FBA8                 xor     edx, edx
+  .text:000000018022FBAA                 call    sub_1814890BC
+  .text:000000018022FBAF                 mov     rdi, rax
+  .text:000000018022FBB2                 test    rax, rax
+  .text:000000018022FBB5                 jnz     short loc_18022FBC3
+  .text:000000018022FBB7                 lea     rdx, aMethodSSInvoke_0; "Method %s.%s invoked with incorrect 'th"...
+  .text:000000018022FBBE                 jmp     loc_18022FCB1
+  .text:000000018022FBC3                 cmp     dword ptr [rsi+10h], 1
+  .text:000000018022FBC7                 jge     short loc_18022FC02
+  .text:000000018022FBC9                 mov     ecx, cs:dword_181D1CD8C
+  .text:000000018022FBCF                 mov     edx, 3
+  .text:000000018022FBD4                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:000000018022FBDA                 test    al, al
+  .text:000000018022FBDC                 jz      loc_18022FCC3
+  .text:000000018022FBE2                 lea     rax, aTargetWeapon; "(target: weapon)"
+  .text:000000018022FBE9                 mov     [rsp+78h+var_48], rax
+  .text:000000018022FBEE                 lea     r8, aMethodSSRequir; "Method %s.%s requires %d argument(s), %"...
+  .text:000000018022FBF5                 mov     dword ptr [rsp+78h+var_50], 1
+  .text:000000018022FBFD                 jmp     loc_18022FC8B
+  .text:000000018022FC02                 mov     rdx, [rsi+8]
+  .text:000000018022FC06                 lea     r8, [rsp+78h+arg_8]
+  .text:000000018022FC0E                 mov     rcx, [rsp+78h+arg_10]
+  .text:000000018022FC16                 mov     [rsp+78h+arg_8], rbx
+  .text:000000018022FC1E                 call    sub_1801D1820
+  .text:000000018022FC23                 test    al, al
+  .text:000000018022FC25                 jz      short loc_18022FC5E
+  .text:000000018022FC27                 mov     rcx, [rsp+78h+arg_8]
+  .text:000000018022FC2F                 lea     r9, ??_R0?AVCCSWeaponBase@@@8; CCSWeaponBase `RTTI Type Descriptor'
+  .text:000000018022FC36                 lea     r8, ??_R0?AVCBaseEntity@@@8; CBaseEntity `RTTI Type Descriptor'
+  .text:000000018022FC3D                 mov     dword ptr [rsp+78h+var_58], ebx
+  .text:000000018022FC41                 xor     edx, edx
+  .text:000000018022FC43                 call    sub_1814890BC
+  .text:000000018022FC48                 test    rax, rax
+  .text:000000018022FC4B                 jz      short loc_18022FC5E
+  .text:000000018022FC4D                 mov     rcx, [rdi+0B70h]
+  .text:000000018022FC54                 mov     rdx, rax
+  .text:000000018022FC57                 call    CBasePlayerPawn_RemovePlayerItem
+  .text:000000018022FC5C                 jmp     short loc_18022FCC3
+  .text:000000018022FC5E                 mov     ecx, cs:dword_181D1CD8C
+  .text:000000018022FC64                 mov     edx, 3
+  .text:000000018022FC69                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:000000018022FC6F                 test    al, al
+  .text:000000018022FC71                 jz      short loc_18022FCC3
+  .text:000000018022FC73                 lea     rax, aTarget_0; "target"
+  .text:000000018022FC7A                 mov     [rsp+78h+var_48], rbx
+  .text:000000018022FC7F                 mov     [rsp+78h+var_50], rax
+  .text:000000018022FC84                 lea     r8, aMethodSSInvoke_1; "Method %s.%s invoked with bad %s value."...
+  .text:000000018022FC8B                 mov     ecx, cs:dword_181D1CD8C
+  .text:000000018022FC91                 lea     r9, aCsplayerpawn; "CSPlayerPawn"
+  .text:000000018022FC98                 mov     edx, 3
+  .text:000000018022FC9D                 mov     [rsp+78h+var_58], r14
+  .text:000000018022FCA2                 call    cs:LoggingSystem_Log
+  .text:000000018022FCA8                 jmp     short loc_18022FCC3
+  .text:000000018022FCAA                 lea     rdx, aMethodSSInvoke_2; "Method %s.%s invoked with unrecognized "...
+  .text:000000018022FCB1                 mov     r9, r14
+  .text:000000018022FCB4                 lea     r8, aCsplayerpawn; "CSPlayerPawn"
+  .text:000000018022FCBB                 mov     rcx, rbp
+  .text:000000018022FCBE                 call    sub_180F68130
+  .text:000000018022FCC3                 lea     rcx, [rsp+78h+var_38]; this
+  .text:000000018022FCC8                 call    ??1HandleScope@v8@@QEAA@XZ; v8::HandleScope::~HandleScope(void)
+  .text:000000018022FCCD                 mov     rdi, [rsp+78h+arg_18]
+  .text:000000018022FCD5                 mov     rbx, [rsp+78h+arg_0]
+  .text:000000018022FCDD                 add     rsp, 60h
+  .text:000000018022FCE1                 pop     r14
+  .text:000000018022FCE3                 pop     rsi
+  .text:000000018022FCE4                 pop     rbp
+  .text:000000018022FCE5                 retn
+procedure: |-
+  void __fastcall sub_18022FA10(__int64 a1)
+  {
+    struct v8::Isolate *Current; // rbp
+    __int64 v3; // rax
+    const char *v4; // rdx
+    v8::Object *v5; // rbx
+    int v6; // eax
+    void *AlignedPointerFromInternalField; // rax
+    int v8; // eax
+    _DWORD *v9; // rax
+    int v10; // ecx
+    __int64 v11; // r9
+    __int64 *v12; // rax
+    __int64 v13; // rcx
+    __int64 v14; // rdi
+    __int64 v15; // rdx
+    __int64 v16; // rax
+    _BYTE v17[56]; // [rsp+40h] [rbp-38h] BYREF
+    __int64 v18; // [rsp+88h] [rbp+10h] BYREF
+    __int64 v19; // [rsp+90h] [rbp+18h] BYREF
+
+    if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_181D1CD8C, 1) )
+      LoggingSystem_Log((unsigned int)dword_181D1CD8C, 1, "Calling %s.%s\n", "CSPlayerPawn", "DestroyWeapon");
+    Current = v8::Isolate::GetCurrent();
+    v8::HandleScope::HandleScope((v8::HandleScope *)v17, Current);
+    v3 = sub_1801D1D60();
+    if ( !v3 )
+    {
+      v4 = "Method %s.%s invoked in incorrect scope.";
+  LABEL_41:
+      sub_180F68130(Current, v4, "CSPlayerPawn", "DestroyWeapon");
+      goto LABEL_42;
+    }
+    sub_1801D1CB0(v3, &v19);
+    v5 = (v8::Object *)(*(_QWORD *)(a1 + 8) - 8LL);
+    if ( v8::Object::InternalFieldCount(v5) != 3
+      || ((v6 = *(unsigned __int16 *)(*(_QWORD *)(*(_QWORD *)v5 - 1LL) + 11LL), v6 == 1040)
+       || (unsigned int)(v6 - 1057) <= 0x3E9
+        ? (AlignedPointerFromInternalField = *(void **)(*(_QWORD *)v5 + 23LL))
+        : (AlignedPointerFromInternalField = v8::Object::SlowGetAlignedPointerFromInternalField(v5, 0)),
+          AlignedPointerFromInternalField != &unk_181AF7930
+       || ((v8 = *(unsigned __int16 *)(*(_QWORD *)(*(_QWORD *)v5 - 1LL) + 11LL), v8 == 1040)
+        || (unsigned int)(v8 - 1057) <= 0x3E9
+         ? (v9 = *(_DWORD **)(*(_QWORD *)v5 + 31LL))
+         : (v9 = v8::Object::SlowGetAlignedPointerFromInternalField(v5, 1)),
+           !v9)) )
+    {
+      v4 = "Method %s.%s invoked with unrecognized 'this' value.";
+      goto LABEL_41;
+    }
+    if ( *v9 != 2 )
+      goto LABEL_28;
+    v10 = v9[2];
+    if ( v10 == -1 || !qword_181D17000 )
+      goto LABEL_28;
+    if ( v10 != -2
+      && (v11 = *(_QWORD *)(qword_181D17000 + 8 * ((unsigned __int64)(v10 & 0x7FFF) >> 9))) != 0
+      && (v12 = (__int64 *)(v11 + 112LL * (v10 & 0x1FF))) != nullptr )
+    {
+      if ( *((_DWORD *)v12 + 4) != v10 )
+        v12 = nullptr;
+    }
+    else
+    {
+      v12 = nullptr;
+    }
+    if ( v12 )
+      v13 = *v12;
+    else
+  LABEL_28:
+      LODWORD(v13) = 0;
+    v14 = sub_1814890BC(
+            v13,
+            0,
+            (unsigned int)&CBaseEntity `RTTI Type Descriptor',
+            (unsigned int)&CCSPlayerPawn `RTTI Type Descriptor',
+            0);
+    if ( !v14 )
+    {
+      v4 = "Method %s.%s invoked with incorrect 'this' value.";
+      goto LABEL_41;
+    }
+    if ( *(int *)(a1 + 16) >= 1 )
+    {
+      v15 = *(_QWORD *)(a1 + 8);
+      v18 = 0;
+      if ( (unsigned __int8)sub_1801D1820(v19, v15, &v18)
+        && (v16 = sub_1814890BC(
+                    v18,
+                    0,
+                    (unsigned int)&CBaseEntity `RTTI Type Descriptor',
+                    (unsigned int)&CCSWeaponBase `RTTI Type Descriptor',
+                    0)) != 0 )
+      {
+        CBasePlayerPawn_RemovePlayerItem(*(_QWORD *)(v14 + 2928), v16);
+      }
+      else if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_181D1CD8C, 3) )
+      {
+        LoggingSystem_Log(
+          (unsigned int)dword_181D1CD8C,
+          3,
+          "Method %s.%s invoked with bad %s value. (parameter #%d)\n",
+          "CSPlayerPawn",
+          "DestroyWeapon",
+          "target",
+          0);
+      }
+    }
+    else if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_181D1CD8C, 3) )
+    {
+      LoggingSystem_Log(
+        (unsigned int)dword_181D1CD8C,
+        3,
+        "Method %s.%s requires %d argument(s), %s.",
+        "CSPlayerPawn",
+        "DestroyWeapon",
+        1,
+        "(target: weapon)");
+    }
+  LABEL_42:
+    v8::HandleScope::~HandleScope((v8::HandleScope *)v17);
+  }

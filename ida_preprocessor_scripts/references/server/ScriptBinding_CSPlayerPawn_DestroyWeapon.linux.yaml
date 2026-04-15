@@ -1,0 +1,289 @@
+func_name: ScriptBinding_CSPlayerPawn_DestroyWeapon
+func_va: '0xa9b840'
+disasm_code: |-
+  .text:0000000000A9B840                 push    rbp
+  .text:0000000000A9B841                 mov     esi, 1
+  .text:0000000000A9B846                 mov     rbp, rsp
+  .text:0000000000A9B849                 push    r15
+  .text:0000000000A9B84B                 push    r14
+  .text:0000000000A9B84D                 push    r13
+  .text:0000000000A9B84F                 push    r12
+  .text:0000000000A9B851                 push    rbx
+  .text:0000000000A9B852                 mov     rbx, rdi
+  .text:0000000000A9B855                 sub     rsp, 48h
+  .text:0000000000A9B859                 lea     r14, dword_24AA1F8
+  .text:0000000000A9B860                 mov     edi, [r14]
+  .text:0000000000A9B863                 call    sub_980970
+  .text:0000000000A9B868                 test    al, al
+  .text:0000000000A9B86A                 jnz     loc_A9BA18
+  .text:0000000000A9B870                 call    sub_981170
+  .text:0000000000A9B875                 lea     r13, [rbp+var_50]
+  .text:0000000000A9B879                 mov     rdi, r13
+  .text:0000000000A9B87C                 mov     rsi, rax
+  .text:0000000000A9B87F                 mov     r12, rax
+  .text:0000000000A9B882                 call    sub_981120
+  .text:0000000000A9B887                 call    sub_A44BD0
+  .text:0000000000A9B88C                 mov     rdi, rax
+  .text:0000000000A9B88F                 test    rax, rax
+  .text:0000000000A9B892                 jz      loc_A9BA48
+  .text:0000000000A9B898                 call    sub_A44210
+  .text:0000000000A9B89D                 mov     r15, rax
+  .text:0000000000A9B8A0                 mov     rax, [rbx+8]
+  .text:0000000000A9B8A4                 lea     rdi, [rax-8]
+  .text:0000000000A9B8A8                 call    sub_A8C000
+  .text:0000000000A9B8AD                 test    rax, rax
+  .text:0000000000A9B8B0                 jz      loc_A9BAC8
+  .text:0000000000A9B8B6                 cmp     dword ptr [rax], 2
+  .text:0000000000A9B8B9                 jnz     loc_A9B9F0
+  .text:0000000000A9B8BF                 mov     ecx, [rax+8]
+  .text:0000000000A9B8C2                 cmp     ecx, 0FFFFFFFFh
+  .text:0000000000A9B8C5                 jz      loc_A9B9F0
+  .text:0000000000A9B8CB                 mov     rsi, cs:qword_24587A0
+  .text:0000000000A9B8D2                 test    rsi, rsi
+  .text:0000000000A9B8D5                 jz      loc_A9B9F0
+  .text:0000000000A9B8DB                 cmp     ecx, 0FFFFFFFEh
+  .text:0000000000A9B8DE                 jz      loc_A9B9F0
+  .text:0000000000A9B8E4                 movzx   eax, word ptr [rax+8]
+  .text:0000000000A9B8E8                 mov     rdx, rax
+  .text:0000000000A9B8EB                 shr     rdx, 9
+  .text:0000000000A9B8EF                 and     edx, 3Fh
+  .text:0000000000A9B8F2                 mov     rdx, [rsi+rdx*8]
+  .text:0000000000A9B8F6                 test    rdx, rdx
+  .text:0000000000A9B8F9                 jz      loc_A9B9F0
+  .text:0000000000A9B8FF                 and     eax, 1FFh
+  .text:0000000000A9B904                 imul    rax, 70h ; 'p'
+  .text:0000000000A9B908                 add     rax, rdx
+  .text:0000000000A9B90B                 cmp     ecx, [rax+10h]
+  .text:0000000000A9B90E                 jnz     loc_A9B9F0
+  .text:0000000000A9B914                 mov     rdi, [rax]
+  .text:0000000000A9B917                 test    rdi, rdi
+  .text:0000000000A9B91A                 jz      loc_A9B9F0
+  .text:0000000000A9B920                 lea     rsi, _ZTI11CBaseEntity; `typeinfo for'CBaseEntity
+  .text:0000000000A9B927                 lea     rdx, _ZTI13CCSPlayerPawn; `typeinfo for'CCSPlayerPawn
+  .text:0000000000A9B92E                 xor     ecx, ecx
+  .text:0000000000A9B930                 call    sub_975D50
+  .text:0000000000A9B935                 mov     [rbp+var_68], rax
+  .text:0000000000A9B939                 test    rax, rax
+  .text:0000000000A9B93C                 jz      loc_A9B9F0
+  .text:0000000000A9B942                 mov     edi, [rbx+10h]
+  .text:0000000000A9B945                 test    edi, edi
+  .text:0000000000A9B947                 jle     loc_A9BA70
+  .text:0000000000A9B94D                 mov     rsi, [rbx+8]
+  .text:0000000000A9B951                 lea     rdx, [rbp+var_58]
+  .text:0000000000A9B955                 mov     rdi, r15
+  .text:0000000000A9B958                 mov     [rbp+var_58], 0
+  .text:0000000000A9B960                 call    sub_A43F20
+  .text:0000000000A9B965                 test    al, al
+  .text:0000000000A9B967                 jz      short loc_A9B9C0
+  .text:0000000000A9B969                 mov     rdi, [rbp+var_58]
+  .text:0000000000A9B96D                 test    rdi, rdi
+  .text:0000000000A9B970                 jz      short loc_A9B9C0
+  .text:0000000000A9B972                 lea     rsi, _ZTI11CBaseEntity; `typeinfo for'CBaseEntity
+  .text:0000000000A9B979                 xor     ecx, ecx
+  .text:0000000000A9B97B                 lea     rdx, _ZTI13CCSWeaponBase; `typeinfo for'CCSWeaponBase
+  .text:0000000000A9B982                 call    sub_975D50
+  .text:0000000000A9B987                 mov     rsi, rax
+  .text:0000000000A9B98A                 test    rax, rax
+  .text:0000000000A9B98D                 jz      short loc_A9B9C0
+  .text:0000000000A9B98F                 mov     rax, [rbp+var_68]
+  .text:0000000000A9B993                 mov     rdi, [rax+0E78h]
+  .text:0000000000A9B99A                 call    CBasePlayerPawn_RemovePlayerItem
+  .text:0000000000A9B99F                 mov     rdi, r13
+  .text:0000000000A9B9A2                 call    sub_980FA0
+  .text:0000000000A9B9A7                 lea     rsp, [rbp-28h]
+  .text:0000000000A9B9AB                 pop     rbx
+  .text:0000000000A9B9AC                 pop     r12
+  .text:0000000000A9B9AE                 pop     r13
+  .text:0000000000A9B9B0                 pop     r14
+  .text:0000000000A9B9B2                 pop     r15
+  .text:0000000000A9B9B4                 pop     rbp
+  .text:0000000000A9B9B5                 retn
+  .text:0000000000A9B9C0                 mov     edi, [r14]
+  .text:0000000000A9B9C3                 mov     esi, 3
+  .text:0000000000A9B9C8                 call    sub_980970
+  .text:0000000000A9B9CD                 test    al, al
+  .text:0000000000A9B9CF                 jnz     loc_A9BAF0
+  .text:0000000000A9B9D5                 mov     rdi, r13
+  .text:0000000000A9B9D8                 call    sub_980FA0
+  .text:0000000000A9B9DD                 lea     rsp, [rbp-28h]
+  .text:0000000000A9B9E1                 pop     rbx
+  .text:0000000000A9B9E2                 pop     r12
+  .text:0000000000A9B9E4                 pop     r13
+  .text:0000000000A9B9E6                 pop     r14
+  .text:0000000000A9B9E8                 pop     r15
+  .text:0000000000A9B9EA                 pop     rbp
+  .text:0000000000A9B9EB                 retn
+  .text:0000000000A9B9F0                 lea     rcx, aDestroyweapon; "DestroyWeapon"
+  .text:0000000000A9B9F7                 mov     rdi, r12
+  .text:0000000000A9B9FA                 xor     eax, eax
+  .text:0000000000A9B9FC                 lea     rdx, aCsplayerpawn; "CSPlayerPawn"
+  .text:0000000000A9BA03                 lea     rsi, aMethodSSInvoke; "Method %s.%s invoked with incorrect 'th"...
+  .text:0000000000A9BA0A                 call    sub_1A62E70
+  .text:0000000000A9BA0F                 jmp     short loc_A9B9D5
+  .text:0000000000A9BA18                 mov     edi, [r14]
+  .text:0000000000A9BA1B                 lea     r8, aDestroyweapon; "DestroyWeapon"
+  .text:0000000000A9BA22                 xor     eax, eax
+  .text:0000000000A9BA24                 mov     esi, 1
+  .text:0000000000A9BA29                 lea     rcx, aCsplayerpawn; "CSPlayerPawn"
+  .text:0000000000A9BA30                 lea     rdx, aCallingSS; "Calling %s.%s\n"
+  .text:0000000000A9BA37                 call    sub_97FAD0
+  .text:0000000000A9BA3C                 jmp     loc_A9B870
+  .text:0000000000A9BA48                 lea     rcx, aDestroyweapon; "DestroyWeapon"
+  .text:0000000000A9BA4F                 mov     rdi, r12
+  .text:0000000000A9BA52                 xor     eax, eax
+  .text:0000000000A9BA54                 lea     rdx, aCsplayerpawn; "CSPlayerPawn"
+  .text:0000000000A9BA5B                 lea     rsi, aMethodSSInvoke_0; "Method %s.%s invoked in incorrect scope"...
+  .text:0000000000A9BA62                 call    sub_1A62E70
+  .text:0000000000A9BA67                 jmp     loc_A9B9D5
+  .text:0000000000A9BA70                 mov     edi, [r14]
+  .text:0000000000A9BA73                 mov     esi, 3
+  .text:0000000000A9BA78                 call    sub_980970
+  .text:0000000000A9BA7D                 test    al, al
+  .text:0000000000A9BA7F                 jz      loc_A9B9D5
+  .text:0000000000A9BA85                 mov     edi, [r14]
+  .text:0000000000A9BA88                 sub     rsp, 8
+  .text:0000000000A9BA8C                 mov     esi, 3
+  .text:0000000000A9BA91                 mov     r9d, 1
+  .text:0000000000A9BA97                 lea     rax, aTargetWeapon; "(target: weapon)"
+  .text:0000000000A9BA9E                 push    rax
+  .text:0000000000A9BA9F                 lea     rcx, aCsplayerpawn; "CSPlayerPawn"
+  .text:0000000000A9BAA6                 xor     eax, eax
+  .text:0000000000A9BAA8                 lea     r8, aDestroyweapon; "DestroyWeapon"
+  .text:0000000000A9BAAF                 lea     rdx, aMethodSSRequir; "Method %s.%s requires %d argument(s), %"...
+  .text:0000000000A9BAB6                 call    sub_97FAD0
+  .text:0000000000A9BABB                 pop     rcx
+  .text:0000000000A9BABC                 pop     rsi
+  .text:0000000000A9BABD                 jmp     loc_A9B9D5
+  .text:0000000000A9BAC8                 lea     rcx, aDestroyweapon; "DestroyWeapon"
+  .text:0000000000A9BACF                 mov     rdi, r12
+  .text:0000000000A9BAD2                 lea     rdx, aCsplayerpawn; "CSPlayerPawn"
+  .text:0000000000A9BAD9                 lea     rsi, aMethodSSInvoke_2; "Method %s.%s invoked with unrecognized "...
+  .text:0000000000A9BAE0                 call    sub_1A62E70
+  .text:0000000000A9BAE5                 jmp     loc_A9B9D5
+  .text:0000000000A9BAF0                 mov     edi, [r14]
+  .text:0000000000A9BAF3                 sub     rsp, 8
+  .text:0000000000A9BAF7                 mov     esi, 3
+  .text:0000000000A9BAFC                 xor     eax, eax
+  .text:0000000000A9BAFE                 push    0
+  .text:0000000000A9BB00                 lea     rdx, aMethodSSInvoke_1; "Method %s.%s invoked with bad %s value."...
+  .text:0000000000A9BB07                 lea     r9, aTarget; "target"
+  .text:0000000000A9BB0E                 lea     r8, aDestroyweapon; "DestroyWeapon"
+  .text:0000000000A9BB15                 lea     rcx, aCsplayerpawn; "CSPlayerPawn"
+  .text:0000000000A9BB1C                 call    sub_97FAD0
+  .text:0000000000A9BB21                 pop     rax
+  .text:0000000000A9BB22                 pop     rdx
+  .text:0000000000A9BB23                 jmp     loc_A9B9D5
+procedure: |-
+  __int64 __fastcall ScriptBinding_CSPlayerPawn_DestroyWeapon(__int64 a1)
+  {
+    __int64 v2; // r12
+    __int64 v3; // rdi
+    int v4; // r8d
+    int v5; // r9d
+    __int64 v6; // r15
+    _DWORD *v7; // rax
+    int v8; // r8d
+    int v9; // r9d
+    int v10; // ecx
+    unsigned __int64 v11; // rax
+    __int64 v12; // rdx
+    __int64 v13; // rax
+    __int64 v14; // rsi
+    __int64 v15; // rsi
+    __int64 v17; // [rsp+8h] [rbp-68h]
+    __int64 v18; // [rsp+18h] [rbp-58h] BYREF
+    _BYTE v19[80]; // [rsp+20h] [rbp-50h] BYREF
+
+    if ( (unsigned __int8)sub_980970((unsigned int)dword_24AA1F8, 1) )
+      sub_97FAD0((unsigned int)dword_24AA1F8, 1, "Calling %s.%s\n", "CSPlayerPawn", "DestroyWeapon");
+    v2 = sub_981170();
+    sub_981120(v19, v2);
+    v3 = sub_A44BD0();
+    if ( v3 )
+    {
+      v6 = sub_A44210(v3);
+      v7 = (_DWORD *)sub_A8C000(*(_QWORD *)(a1 + 8) - 8LL);
+      if ( v7 )
+      {
+        if ( *v7 == 2
+          && (v10 = v7[2], v10 != -1)
+          && qword_24587A0
+          && v10 != -2
+          && (v11 = *((unsigned __int16 *)v7 + 4), (v12 = *(_QWORD *)(qword_24587A0 + 8 * ((v11 >> 9) & 0x3F))) != 0)
+          && (v13 = v12 + 112 * (v11 & 0x1FF), v10 == *(_DWORD *)(v13 + 16))
+          && *(_QWORD *)v13
+          && (v17 = sub_975D50(*(_QWORD *)v13, &`typeinfo for'CBaseEntity, &`typeinfo for'CCSPlayerPawn, 0)) != 0 )
+        {
+          if ( *(int *)(a1 + 16) <= 0 )
+          {
+            if ( (unsigned __int8)sub_980970((unsigned int)dword_24AA1F8, 3) )
+              sub_97FAD0(
+                (unsigned int)dword_24AA1F8,
+                3,
+                "Method %s.%s requires %d argument(s), %s.",
+                "CSPlayerPawn",
+                "DestroyWeapon",
+                1,
+                "(target: weapon)");
+          }
+          else
+          {
+            v14 = *(_QWORD *)(a1 + 8);
+            v18 = 0;
+            if ( (unsigned __int8)sub_A43F20(v6, v14, &v18) )
+            {
+              if ( v18 )
+              {
+                v15 = sub_975D50(v18, &`typeinfo for'CBaseEntity, &`typeinfo for'CCSWeaponBase, 0);
+                if ( v15 )
+                {
+                  CBasePlayerPawn_RemovePlayerItem(*(_QWORD *)(v17 + 3704), v15);
+                  return sub_980FA0(v19);
+                }
+              }
+            }
+            if ( (unsigned __int8)sub_980970((unsigned int)dword_24AA1F8, 3) )
+              sub_97FAD0(
+                (unsigned int)dword_24AA1F8,
+                3,
+                "Method %s.%s invoked with bad %s value. (parameter #%d)\n",
+                "CSPlayerPawn",
+                "DestroyWeapon",
+                "target",
+                0);
+          }
+        }
+        else
+        {
+          sub_1A62E70(
+            v2,
+            (unsigned int)"Method %s.%s invoked with incorrect 'this' value.",
+            (unsigned int)"CSPlayerPawn",
+            (unsigned int)"DestroyWeapon",
+            v8,
+            v9);
+        }
+      }
+      else
+      {
+        sub_1A62E70(
+          v2,
+          (unsigned int)"Method %s.%s invoked with unrecognized 'this' value.",
+          (unsigned int)"CSPlayerPawn",
+          (unsigned int)"DestroyWeapon",
+          v8,
+          v9);
+      }
+    }
+    else
+    {
+      sub_1A62E70(
+        v2,
+        (unsigned int)"Method %s.%s invoked in incorrect scope.",
+        (unsigned int)"CSPlayerPawn",
+        (unsigned int)"DestroyWeapon",
+        v4,
+        v5);
+    }
+    return sub_980FA0(v19);
+  }
