@@ -46,7 +46,7 @@ uv run copy_depot_bin.py -gamever 14141 -platform all-platform -checkonly
 #### 2. 为 `config.yaml` 的符号生成对应的 signatures
 
  ```bash
- uv run ida_analyze_bin.py -gamever=14141 [-oldgamever=14140] [-configyaml=path/to/config.yaml] [-modules=server] [-platform=windows] [-agent=claude/codex/"claude.cmd"/"codex.cmd"] [-maxretry=3] [-vcall_finder=g_pNetworkMessages|*] [-llm_model=gpt-4o] [-llm_apikey=your-key] [-llm_baseurl=https://api.example.com/v1] [-debug]
+ uv run ida_analyze_bin.py -gamever=14141 [-oldgamever=14140] [-configyaml=path/to/config.yaml] [-modules=server] [-platform=windows] [-agent=claude/codex/"claude.cmd"/"codex.cmd"] [-maxretry=3] [-vcall_finder=g_pNetworkMessages|*] [-llm_model=gpt-4o] [-llm_apikey=your-key] [-llm_baseurl=https://api.example.com/v1] [-llm_temperature=0.2] [-llm_effort=medium] [-llm_fake_as=codex] [-debug]
  ```
 
 * 在真正运行 Agent SKILL(s) 前，会先通过 mcp call 直接使用 `bin/{previous_gamever}/{module}/{symbol}.{platform}.yaml` 中的旧 signature 查找当前版本游戏二进制中的符号。不会消耗 token。
@@ -65,11 +65,14 @@ uv run copy_depot_bin.py -gamever 14141 -platform all-platform -checkonly
   - `-llm_apikey`：启用基于 LLM 的流程时必需，包括 `vcall_finder` 聚合与 `LLM_DECOMPILE`
   - `-llm_baseurl`：可选，自定义兼容 base URL
   - `-llm_model`：可选，默认 `gpt-4o`
+  - `-llm_temperature`：可选，仅在显式设置时发送
+  - `-llm_effort`：可选，默认 `medium`，支持 `none|minimal|low|medium|high|xhigh`
+  - `-llm_fake_as`：可选，设为 `codex` 时改走直连 `/v1/responses` 的 SSE 传输
+  - 环境变量 fallback：`CS2VIBE_LLM_APIKEY`、`CS2VIBE_LLM_BASEURL`、`CS2VIBE_LLM_MODEL`、`CS2VIBE_LLM_TEMPERATURE`、`CS2VIBE_LLM_EFFORT`、`CS2VIBE_LLM_FAKE_AS`
   - LLM 流程不会读取 `OPENAI_API_KEY`、`OPENAI_API_BASE`、`OPENAI_API_MODEL`
 
 ```bash
-uv run ida_analyze_bin.py -gamever=14141 -modules=networksystem -platform=windows -vcall_finder=g_pNetworkMessages -llm_model=gpt-4o -llm_apikey=your-key
-uv run ida_analyze_bin.py -gamever=14141 -platform=windows,linux -vcall_finder=* -llm_model=gpt-4o -llm_apikey=your-key -llm_baseurl=https://api.example.com/v1
+uv run ida_analyze_bin.py -gamever=14141 -modules=networksystem -platform=windows -vcall_finder=g_pNetworkMessages -llm_model=gpt-5.4 -llm_apikey=your-key -llm_effort=high -llm_fake_as=codex -llm_baseurl=http://127.0.0.1:8080/v1
 ```
 
 输出示例：
@@ -110,7 +113,7 @@ uv run generate_reference_yaml.py -gamever 14141 -module engine -platform window
      - `references/<module>/<func_name>.<platform>.yaml`
    - tuple 示例：
      - `("CNetworkMessages_FindNetworkGroup", "prompt/call_llm_decompile.md", "references/engine/CNetworkGameClient_RecordEntityBandwidth.windows.yaml")`
-   - `LLM_DECOMPILE` 复用 `ida_analyze_bin.py` 的共享 LLM 参数：`-llm_model`、`-llm_apikey`、`-llm_baseurl`
+   - `LLM_DECOMPILE` 复用 `ida_analyze_bin.py` 的共享 `-llm_*` 参数：`-llm_model`、`-llm_apikey`、`-llm_baseurl`、`-llm_temperature`、`-llm_effort`、`-llm_fake_as`
 
 #### 3. 将 yaml(s) 转换为 gamedata json / txt
 
