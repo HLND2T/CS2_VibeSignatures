@@ -25,6 +25,8 @@ Locate `CCSPlayer_ItemServices_CanAcquire` in CS2 server.dll or libserver.so usi
    mcp__ida-pro-mcp__decompile addr="<function_addr>"
    ```
 
+   The function is `CBtActionCoordinatedBuy_Update`, a virtual function of `CBtActionCoordinatedBuy`
+
 4. Identify the target method call:
 
    Look for the following pattern in the decompiled code:
