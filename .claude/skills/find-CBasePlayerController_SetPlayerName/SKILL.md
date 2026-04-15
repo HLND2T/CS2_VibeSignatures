@@ -21,7 +21,7 @@ Locate `CBasePlayerController_SetPlayerName` in CS2 server.dll or libserver.so u
    mcp__ida-pro-mcp__xrefs_to addrs=["<fov_desired_addr>", "<newname_addr>"]
    ```
 
-3. Find the function that references **both** strings - this is the player info sync function.
+3. Find the function that references **both** strings - this is the player info sync function `CGameRules_ClientSettingsChanged`.
 
 4. Decompile that function and look for the call to `CBasePlayerController_SetPlayerName`:
    ```
@@ -29,8 +29,125 @@ Locate `CBasePlayerController_SetPlayerName` in CS2 server.dll or libserver.so u
    ```
 
 5. In the decompiled output, find the pattern:
+
+
+
    ```c
-   CBasePlayerController_SetPlayerName(a2, v6);  // after name comparison and event firing
+    if ( *v7 && strcmp(v7, v6) )
+    {
+      v9 = (__int64 *)(*(__int64 (__fastcall **)(__int64, const char *, _QWORD, _QWORD))(*(_QWORD *)qword_181EAF508
+                                                                                       + 48LL))(
+                        qword_181EAF508,
+                        "player_changename",
+                        0,
+                        0);
+      v10 = v9;
+      if ( v9 )
+      {
+        v11 = *v9;
+        v30 = -1073741696;
+        v34 = *(void (__fastcall **)(__int64 *, int *, __int64))(v11 + 232);
+        v31[0] = 0;
+        v29 = 0;
+        CBufferString::Insert((CBufferString *)&v29, 0, "userid", 6, 0);
+        CBufferString::ToLowerFast((CBufferString *)&v29, 0);
+        v12 = byte_18152DF80;
+        if ( (v30 & 0x40000000) != 0 )
+        {
+          v13 = (char *)v31;
+        }
+        else
+        {
+          v13 = byte_18152DF80;
+          if ( (v30 & 0x3FFFFFFF) != 0 )
+            v13 = (char *)v31[0];
+        }
+        v14 = 1540483477
+            * ((1540483477
+              * ((unsigned __int8)v13[4]
+               ^ (1540483477 * ((1540483477 * *(_DWORD *)v13) ^ ((unsigned int)(1540483477 * *(_DWORD *)v13) >> 24)))
+               ^ ((unsigned __int8)v13[5] << 8)
+               ^ 0x4846FFA0))
+             ^ ((1540483477
+               * ((unsigned __int8)v13[4]
+                ^ (1540483477 * ((1540483477 * *(_DWORD *)v13) ^ ((unsigned int)(1540483477 * *(_DWORD *)v13) >> 24)))
+                ^ ((unsigned __int8)v13[5] << 8)
+                ^ 0x4846FFA0)) >> 13));
+        CBufferString::Purge((CBufferString *)&v29, 0);
+        v27 = -1;
+        v26 = v14 ^ (v14 >> 15);
+        v28 = "userid";
+        v34(v10, &v26, a2);
+        v15 = *v10;
+        v30 = -1073741696;
+        v34 = *(void (__fastcall **)(__int64 *, int *, __int64))(v15 + 192);
+        v31[0] = 0;
+        v29 = 0;
+        CBufferString::Insert((CBufferString *)&v29, 0, "oldname", 7, 0);
+        CBufferString::ToLowerFast((CBufferString *)&v29, 0);
+        if ( (v30 & 0x40000000) != 0 )
+        {
+          v16 = (char *)v31;
+        }
+        else
+        {
+          v16 = byte_18152DF80;
+          if ( (v30 & 0x3FFFFFFF) != 0 )
+            v16 = (char *)v31[0];
+        }
+        v17 = 1540483477
+            * ((1540483477
+              * ((unsigned __int8)v16[4]
+               ^ (1540483477 * ((1540483477 * *(_DWORD *)v16) ^ ((unsigned int)(1540483477 * *(_DWORD *)v16) >> 24)))
+               ^ (((unsigned __int8)v16[5] ^ ((unsigned __int8)v16[6] << 8)) << 8)
+               ^ 0xA418E935))
+             ^ ((1540483477
+               * ((unsigned __int8)v16[4]
+                ^ (1540483477 * ((1540483477 * *(_DWORD *)v16) ^ ((unsigned int)(1540483477 * *(_DWORD *)v16) >> 24)))
+                ^ (((unsigned __int8)v16[5] ^ ((unsigned __int8)v16[6] << 8)) << 8)
+                ^ 0xA418E935)) >> 13));
+        CBufferString::Purge((CBufferString *)&v29, 0);
+        v27 = -1;
+        v26 = v17 ^ (v17 >> 15);
+        v28 = "oldname";
+        v34(v10, &v26, (__int64)v8);
+        v18 = *v10;
+        v30 = -1073741696;
+        v19 = *(void (__fastcall **)(__int64 *, int *, const char *))(v18 + 192);
+        v31[0] = 0;
+        v29 = 0;
+        CBufferString::Insert((CBufferString *)&v29, 0, "newname", 7, 0);
+        CBufferString::ToLowerFast((CBufferString *)&v29, 0);
+        if ( (v30 & 0x40000000) != 0 )
+        {
+          v12 = (char *)v31;
+        }
+        else if ( (v30 & 0x3FFFFFFF) != 0 )
+        {
+          v12 = (char *)v31[0];
+        }
+        v20 = 1540483477
+            * ((1540483477
+              * ((unsigned __int8)v12[4]
+               ^ (1540483477 * ((1540483477 * *(_DWORD *)v12) ^ ((unsigned int)(1540483477 * *(_DWORD *)v12) >> 24)))
+               ^ (((unsigned __int8)v12[5] ^ ((unsigned __int8)v12[6] << 8)) << 8)
+               ^ 0xA418E935))
+             ^ ((1540483477
+               * ((unsigned __int8)v12[4]
+                ^ (1540483477 * ((1540483477 * *(_DWORD *)v12) ^ ((unsigned int)(1540483477 * *(_DWORD *)v12) >> 24)))
+                ^ (((unsigned __int8)v12[5] ^ ((unsigned __int8)v12[6] << 8)) << 8)
+                ^ 0xA418E935)) >> 13));
+        CBufferString::Purge((CBufferString *)&v29, 0);
+        v27 = -1;
+        v26 = v20 ^ (v20 >> 15);
+        v28 = "newname";
+        v19(v10, &v26, v6);
+        (*(void (__fastcall **)(__int64, __int64 *, _QWORD))(*(_QWORD *)qword_181EAF508 + 56LL))(
+          qword_181EAF508,
+          v10,
+          0);
+      }
+      CBasePlayerController_SetPlayerName(a2, (__int64)v6);
    ```
 
 6. Rename if needed:
