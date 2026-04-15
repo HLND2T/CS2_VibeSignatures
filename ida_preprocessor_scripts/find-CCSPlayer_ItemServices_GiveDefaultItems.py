@@ -1,45 +1,42 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CBtActionCoordinatedBuy_Update skill."""
+"""Preprocess script for find-CCSPlayer_ItemServices_GiveDefaultItems skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = [
-    "CBtActionCoordinatedBuy_Update",
+    "CCSPlayer_ItemServices_GiveDefaultItems",
 ]
 
 FUNC_XREFS = [
     # (func_name, xref_strings_list, xref_signatures_list, xref_funcs_list, exclude_funcs_list, exclude_strings_list)
     (
-        "CBtActionCoordinatedBuy_Update",
+        "CCSPlayer_ItemServices_GiveDefaultItems",
         [
-            "[AI BT]: Unable to determine the cost of '%s'. Moving on to the next bot.",
+            "FULLMATCH:item_assaultsuit",
+            "FULLMATCH:item_kevlar",
+            "FULLMATCH:weapon_knife",
+            "FULLMATCH:weapon_knife_t",
+            "FULLMATCH:weapon_taser",
         ],
         [],   # xref_signatures_list
         [],   # xref_funcs_list
         [],   # exclude_funcs_list
-        [],   # exclude_strings_list
+        [
+            "FULLMATCH:weapon_healthshot",
+        ],   # exclude_strings_list
     ),
-]
-
-FUNC_VTABLE_RELATIONS = [
-    # (func_name, vtable_class)
-    ("CBtActionCoordinatedBuy_Update", "CBtActionCoordinatedBuy"),
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
-    # func_sig omitted: this large function cannot generate a unique head-signature;
-    # use xref string fallback every time instead.
     (
-        "CBtActionCoordinatedBuy_Update",
+        "CCSPlayer_ItemServices_GiveDefaultItems",
         [
             "func_name",
+            "func_sig",
             "func_va",
             "func_rva",
             "func_size",
-            "vtable_name",
-            "vfunc_offset",
-            "vfunc_index",            
         ],
     ),
 ]
@@ -58,7 +55,6 @@ async def preprocess_skill(
         image_base=image_base,
         func_names=TARGET_FUNCTION_NAMES,
         func_xrefs=FUNC_XREFS,
-        func_vtable_relations=FUNC_VTABLE_RELATIONS,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
     )
