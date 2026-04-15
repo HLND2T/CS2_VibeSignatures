@@ -1,0 +1,765 @@
+func_name: CCSPlayer_ItemServices_GiveDefaultItems
+func_va: '0x1356d10'
+disasm_code: |-
+  .text:0000000001356D10                 push    rbp
+  .text:0000000001356D11                 mov     rbp, rsp
+  .text:0000000001356D14                 push    r15
+  .text:0000000001356D16                 push    r14
+  .text:0000000001356D18                 push    r13
+  .text:0000000001356D1A                 push    r12
+  .text:0000000001356D1C                 push    rbx
+  .text:0000000001356D1D                 mov     rbx, rdi
+  .text:0000000001356D20                 sub     rsp, 138h
+  .text:0000000001356D27                 mov     r12, [rdi+38h]
+  .text:0000000001356D2B                 test    r12, r12
+  .text:0000000001356D2E                 jz      loc_1357060
+  .text:0000000001356D34                 mov     eax, [r12+1090h]
+  .text:0000000001356D3C                 test    eax, eax
+  .text:0000000001356D3E                 jz      short loc_1356D58
+  .text:0000000001356D40                 add     rsp, 138h
+  .text:0000000001356D47                 pop     rbx
+  .text:0000000001356D48                 pop     r12
+  .text:0000000001356D4A                 pop     r13
+  .text:0000000001356D4C                 pop     r14
+  .text:0000000001356D4E                 pop     r15
+  .text:0000000001356D50                 pop     rbp
+  .text:0000000001356D51                 retn
+  .text:0000000001356D58                 mov     rdi, rbx
+  .text:0000000001356D5B                 mov     r14, [r12+0E78h]
+  .text:0000000001356D63                 call    sub_1356720
+  .text:0000000001356D68                 lea     r13, qword_25B01A0
+  .text:0000000001356D6F                 mov     rdi, [r13+0]
+  .text:0000000001356D73                 call    sub_11A4310
+  .text:0000000001356D78                 test    al, al
+  .text:0000000001356D7A                 jnz     loc_1357070
+  .text:0000000001356D80                 mov     rdi, [r13+0]
+  .text:0000000001356D84                 call    sub_11A6A90
+  .text:0000000001356D89                 test    al, al
+  .text:0000000001356D8B                 jnz     loc_13570B0
+  .text:0000000001356D91                 lea     r15, aWeaponKnife; "weapon_knife"
+  .text:0000000001356D98                 mov     rdi, rbx
+  .text:0000000001356D9B                 call    sub_15BA0A0
+  .text:0000000001356DA0                 mov     rdi, [r13+0]
+  .text:0000000001356DA4                 cmp     eax, 2
+  .text:0000000001356DA7                 lea     rax, aWeaponKnifeT; "weapon_knife_t"
+  .text:0000000001356DAE                 cmovnz  rax, r15
+  .text:0000000001356DB2                 mov     [rbp+var_138], rax
+  .text:0000000001356DB9                 call    sub_11A6050
+  .text:0000000001356DBE                 test    al, al
+  .text:0000000001356DC0                 jnz     short loc_1356DCF
+  .text:0000000001356DC2                 mov     rdi, [r13+0]
+  .text:0000000001356DC6                 call    sub_11A6090
+  .text:0000000001356DCB                 test    al, al
+  .text:0000000001356DCD                 jz      short loc_1356E30
+  .text:0000000001356DCF                 mov     rdi, [r13+0]
+  .text:0000000001356DD3                 call    sub_11A6050
+  .text:0000000001356DD8                 test    al, al
+  .text:0000000001356DDA                 jz      short loc_1356E18
+  .text:0000000001356DDC                 mov     edx, 0FFFFFFFFh
+  .text:0000000001356DE1                 mov     esi, 2
+  .text:0000000001356DE6                 mov     rdi, r14
+  .text:0000000001356DE9                 call    sub_15B91C0
+  .text:0000000001356DEE                 test    rax, rax
+  .text:0000000001356DF1                 jz      loc_1357020
+  .text:0000000001356DF7                 mov     rdi, [r13+0]
+  .text:0000000001356DFB                 call    sub_11A6050
+  .text:0000000001356E00                 test    al, al
+  .text:0000000001356E02                 jnz     loc_1357100
+  .text:0000000001356E08                 mov     byte ptr [r14+0DEh], 0
+  .text:0000000001356E10                 jmp     loc_1356D40
+  .text:0000000001356E18                 mov     rdi, [r13+0]
+  .text:0000000001356E1C                 call    sub_11A6090
+  .text:0000000001356E21                 test    al, al
+  .text:0000000001356E23                 jnz     short loc_1356DDC
+  .text:0000000001356E25                 jmp     short loc_1356DF7
+  .text:0000000001356E30                 mov     edx, 0FFFFFFFFh
+  .text:0000000001356E35                 mov     esi, 2
+  .text:0000000001356E3A                 mov     rdi, r14
+  .text:0000000001356E3D                 call    sub_15B91C0
+  .text:0000000001356E42                 mov     edx, 0FFFFFFFFh
+  .text:0000000001356E47                 mov     esi, 1
+  .text:0000000001356E4C                 mov     rdi, r14
+  .text:0000000001356E4F                 mov     r15, rax
+  .text:0000000001356E52                 call    sub_15B91C0
+  .text:0000000001356E57                 mov     edx, 0FFFFFFFFh
+  .text:0000000001356E5C                 xor     esi, esi
+  .text:0000000001356E5E                 mov     rdi, r14
+  .text:0000000001356E61                 mov     [rbp+var_140], rax
+  .text:0000000001356E68                 call    sub_15B91C0
+  .text:0000000001356E6D                 lea     rsi, aWeaponTaser; "weapon_taser"
+  .text:0000000001356E74                 mov     rdi, r14
+  .text:0000000001356E77                 mov     [rbp+var_150], rax
+  .text:0000000001356E7E                 call    sub_15B9370
+  .text:0000000001356E83                 mov     [rbp+var_148], rax
+  .text:0000000001356E8A                 test    r15, r15
+  .text:0000000001356E8D                 jz      short loc_1356E9D
+  .text:0000000001356E8F                 cmp     [rbp+var_140], 0
+  .text:0000000001356E97                 jnz     loc_1356D40
+  .text:0000000001356E9D                 mov     rax, [rbp+var_148]
+  .text:0000000001356EA4                 test    rax, rax
+  .text:0000000001356EA7                 jz      short loc_1356EB4
+  .text:0000000001356EA9                 mov     rsi, rax
+  .text:0000000001356EAC                 mov     rdi, r14
+  .text:0000000001356EAF                 call    sub_13E6970
+  .text:0000000001356EB4                 mov     rax, [r12+1180h]
+  .text:0000000001356EBC                 mov     rdi, rbx
+  .text:0000000001356EBF                 mov     byte ptr [rax+0C8h], 1
+  .text:0000000001356EC6                 call    sub_15BA0A0
+  .text:0000000001356ECB                 cmp     eax, 3
+  .text:0000000001356ECE                 jz      loc_13572C8
+  .text:0000000001356ED4                 mov     rdi, rbx
+  .text:0000000001356ED7                 call    sub_15BA0A0
+  .text:0000000001356EDC                 cmp     eax, 2
+  .text:0000000001356EDF                 jz      loc_13574C0
+  .text:0000000001356EE5                 cmp     [rbp+var_148], 0
+  .text:0000000001356EED                 jz      short loc_1356F07
+  .text:0000000001356EEF                 lea     rsi, aWeaponTaser; "weapon_taser"
+  .text:0000000001356EF6                 mov     rdi, r14
+  .text:0000000001356EF9                 call    sub_15B9370
+  .text:0000000001356EFE                 test    rax, rax
+  .text:0000000001356F01                 jz      loc_13571E0
+  .text:0000000001356F07                 cmp     [rbp+var_140], 0
+  .text:0000000001356F0F                 jz      loc_13573E0
+  .text:0000000001356F15                 cmp     [rbp+var_150], 0
+  .text:0000000001356F1D                 jz      loc_1357420
+  .text:0000000001356F23                 mov     rdi, rbx
+  .text:0000000001356F26                 call    sub_15BA0A0
+  .text:0000000001356F2B                 cmp     eax, 3
+  .text:0000000001356F2E                 jz      loc_1357238
+  .text:0000000001356F34                 mov     rdi, rbx
+  .text:0000000001356F37                 call    sub_15BA0A0
+  .text:0000000001356F3C                 cmp     eax, 2
+  .text:0000000001356F3F                 jz      loc_13574E0
+  .text:0000000001356F45                 mov     rdi, r14
+  .text:0000000001356F48                 mov     edx, 0FFFFFFFFh
+  .text:0000000001356F4D                 mov     esi, 1
+  .text:0000000001356F52                 call    sub_15B91C0
+  .text:0000000001356F57                 mov     rdi, rax
+  .text:0000000001356F5A                 test    rax, rax
+  .text:0000000001356F5D                 jz      short loc_1356F71
+  .text:0000000001356F5F                 mov     rax, [rax]
+  .text:0000000001356F62                 xor     ecx, ecx
+  .text:0000000001356F64                 mov     edx, 0FAh
+  .text:0000000001356F69                 xor     esi, esi
+  .text:0000000001356F6B                 call    qword ptr [rax+0B98h]
+  .text:0000000001356F71                 mov     rdi, r14
+  .text:0000000001356F74                 mov     edx, 0FFFFFFFFh
+  .text:0000000001356F79                 xor     esi, esi
+  .text:0000000001356F7B                 call    sub_15B91C0
+  .text:0000000001356F80                 mov     rdi, rax
+  .text:0000000001356F83                 test    rax, rax
+  .text:0000000001356F86                 jz      short loc_1356F9A
+  .text:0000000001356F88                 mov     rax, [rax]
+  .text:0000000001356F8B                 xor     ecx, ecx
+  .text:0000000001356F8D                 mov     edx, 0FAh
+  .text:0000000001356F92                 xor     esi, esi
+  .text:0000000001356F94                 call    qword ptr [rax+0B98h]
+  .text:0000000001356F9A                 mov     rdi, [r13+0]
+  .text:0000000001356F9E                 call    sub_11A68B0
+  .text:0000000001356FA3                 test    al, al
+  .text:0000000001356FA5                 jz      loc_1356E08
+  .text:0000000001356FAB                 mov     rax, [r12]
+  .text:0000000001356FAF                 lea     rdx, sub_9AE610
+  .text:0000000001356FB6                 mov     rax, [rax+0C90h]
+  .text:0000000001356FBD                 cmp     rax, rdx
+  .text:0000000001356FC0                 jnz     loc_1357220
+  .text:0000000001356FC6                 test    byte ptr [r12+668h], 10h
+  .text:0000000001356FCF                 jnz     loc_1356E08
+  .text:0000000001356FD5                 mov     rax, [rbx]
+  .text:0000000001356FD8                 mov     esi, 0FFFFFFFFh
+  .text:0000000001356FDD                 lea     rdi, unk_25873C0
+  .text:0000000001356FE4                 mov     r12, [rax+0A0h] ; 0xA0 = CCSPlayer_ItemServices_GiveNamedItem
+  .text:0000000001356FEB                 call    sub_B523D0
+  .text:0000000001356FF0                 mov     rsi, rax
+  .text:0000000001356FF3                 lea     rax, CCSPlayer_ItemServices_GiveNamedItem
+  .text:0000000001356FFA                 cmp     r12, rax
+  .text:0000000001356FFD                 jnz     loc_135755B
+  .text:0000000001357003                 xor     r9d, r9d
+  .text:0000000001357006                 xor     r8d, r8d
+  .text:0000000001357009                 xor     ecx, ecx
+  .text:000000000135700B                 xor     edx, edx
+  .text:000000000135700D                 mov     rdi, rbx
+  .text:0000000001357010                 call    GiveNamedItem
+  .text:0000000001357015                 jmp     loc_1356E08
+  .text:0000000001357020                 mov     rax, [rbx]
+  .text:0000000001357023                 lea     rdx, CCSPlayer_ItemServices_GiveNamedItem
+  .text:000000000135702A                 mov     rax, [rax+0A0h] ; 0xA0 = CCSPlayer_ItemServices_GiveNamedItem
+  .text:0000000001357031                 cmp     rax, rdx
+  .text:0000000001357034                 jnz     loc_13574A0
+  .text:000000000135703A                 mov     rsi, [rbp+var_138]
+  .text:0000000001357041                 xor     r9d, r9d
+  .text:0000000001357044                 xor     r8d, r8d
+  .text:0000000001357047                 xor     ecx, ecx
+  .text:0000000001357049                 xor     edx, edx
+  .text:000000000135704B                 mov     rdi, rbx
+  .text:000000000135704E                 call    GiveNamedItem
+  .text:0000000001357053                 jmp     loc_1356DF7
+  .text:0000000001357060                 call    nullsub_1295
+  .text:0000000001357065                 mov     r12, [rbx+38h]
+  .text:0000000001357069                 jmp     loc_1356D34
+  .text:0000000001357070                 lea     rdi, unk_2542730
+  .text:0000000001357077                 mov     esi, 0FFFFFFFFh
+  .text:000000000135707C                 call    sub_A555D0
+  .text:0000000001357081                 cmp     eax, 2
+  .text:0000000001357084                 jnz     loc_1356D80
+  .text:000000000135708A                 mov     rdi, rbx
+  .text:000000000135708D                 call    sub_15BA0A0
+  .text:0000000001357092                 cmp     eax, 3
+  .text:0000000001357095                 jnz     loc_1356D80
+  .text:000000000135709B                 xor     esi, esi
+  .text:000000000135709D                 mov     rdi, rbx
+  .text:00000000013570A0                 call    sub_1355A10
+  .text:00000000013570A5                 jmp     loc_1356D80
+  .text:00000000013570B0                 mov     rdi, [r13+0]
+  .text:00000000013570B4                 call    sub_11A6AD0
+  .text:00000000013570B9                 mov     edx, eax
+  .text:00000000013570BB                 mov     rax, [rbx]
+  .text:00000000013570BE                 test    dl, dl
+  .text:00000000013570C0                 lea     rdx, CCSPlayer_ItemServices_GiveNamedItem
+  .text:00000000013570C7                 mov     rax, [rax+0A0h] ; 0xA0 = CCSPlayer_ItemServices_GiveNamedItem
+  .text:00000000013570CE                 jz      loc_13571B0
+  .text:00000000013570D4                 cmp     rax, rdx
+  .text:00000000013570D7                 jnz     loc_1357480
+  .text:00000000013570DD                 xor     r9d, r9d
+  .text:00000000013570E0                 xor     r8d, r8d
+  .text:00000000013570E3                 xor     ecx, ecx
+  .text:00000000013570E5                 lea     rsi, aItemAssaultsui; "item_assaultsuit"
+  .text:00000000013570EC                 xor     edx, edx
+  .text:00000000013570EE                 mov     rdi, rbx
+  .text:00000000013570F1                 call    GiveNamedItem
+  .text:00000000013570F6                 jmp     loc_1356D91
+  .text:0000000001357100                 mov     edx, 0FFFFFFFFh
+  .text:0000000001357105                 mov     esi, 1
+  .text:000000000135710A                 mov     rdi, r14
+  .text:000000000135710D                 call    sub_15B91C0
+  .text:0000000001357112                 test    rax, rax
+  .text:0000000001357115                 jnz     loc_1356E08
+  .text:000000000135711B                 mov     rdi, [rbx+38h]
+  .text:000000000135711F                 test    rdi, rdi
+  .text:0000000001357122                 jz      loc_1357513
+  .text:0000000001357128                 call    sub_134BFF0
+  .text:000000000135712D                 mov     r13, rax
+  .text:0000000001357130                 call    sub_190A350
+  .text:0000000001357135                 mov     rsi, r13
+  .text:0000000001357138                 mov     rdi, rax
+  .text:000000000135713B                 mov     rax, [rax]
+  .text:000000000135713E                 call    qword ptr [rax+148h]
+  .text:0000000001357144                 test    rax, rax
+  .text:0000000001357147                 jz      loc_1356E08
+  .text:000000000135714D                 mov     rdi, rax
+  .text:0000000001357150                 call    sub_128D7B0
+  .text:0000000001357155                 test    rax, rax
+  .text:0000000001357158                 jz      loc_1356E08
+  .text:000000000135715E                 cmp     dword ptr [rax+440h], 1
+  .text:0000000001357165                 jnz     loc_1356E08
+  .text:000000000135716B                 mov     rax, [rbx]
+  .text:000000000135716E                 lea     rdx, CCSPlayer_ItemServices_GiveNamedItem
+  .text:0000000001357175                 mov     rax, [rax+0A0h] ; 0xA0 = CCSPlayer_ItemServices_GiveNamedItem
+  .text:000000000135717C                 cmp     rax, rdx
+  .text:000000000135717F                 jnz     loc_13575A2
+  .text:0000000001357185                 xor     r9d, r9d
+  .text:0000000001357188                 xor     r8d, r8d
+  .text:000000000135718B                 xor     ecx, ecx
+  .text:000000000135718D                 xor     edx, edx
+  .text:000000000135718F                 mov     rsi, r13
+  .text:0000000001357192                 mov     rdi, rbx
+  .text:0000000001357195                 call    GiveNamedItem
+  .text:000000000135719A                 mov     rax, [r12+1180h]
+  .text:00000000013571A2                 mov     byte ptr [rax+0C8h], 1
+  .text:00000000013571A9                 jmp     loc_1356E08
+  .text:00000000013571B0                 cmp     rax, rdx
+  .text:00000000013571B3                 jnz     loc_1357460
+  .text:00000000013571B9                 xor     r9d, r9d
+  .text:00000000013571BC                 xor     r8d, r8d
+  .text:00000000013571BF                 xor     ecx, ecx
+  .text:00000000013571C1                 lea     rsi, aItemKevlar; "item_kevlar"
+  .text:00000000013571C8                 xor     edx, edx
+  .text:00000000013571CA                 mov     rdi, rbx
+  .text:00000000013571CD                 call    GiveNamedItem
+  .text:00000000013571D2                 jmp     loc_1356D91
+  .text:00000000013571E0                 mov     rax, [rbx]
+  .text:00000000013571E3                 lea     rdx, CCSPlayer_ItemServices_GiveNamedItem
+  .text:00000000013571EA                 mov     rax, [rax+0A0h] ; 0xA0 = CCSPlayer_ItemServices_GiveNamedItem
+  .text:00000000013571F1                 cmp     rax, rdx
+  .text:00000000013571F4                 jnz     loc_135756D
+  .text:00000000013571FA                 xor     r9d, r9d
+  .text:00000000013571FD                 xor     r8d, r8d
+  .text:0000000001357200                 xor     ecx, ecx
+  .text:0000000001357202                 lea     rsi, aWeaponTaser; "weapon_taser"
+  .text:0000000001357209                 xor     edx, edx
+  .text:000000000135720B                 mov     rdi, rbx
+  .text:000000000135720E                 call    GiveNamedItem
+  .text:0000000001357213                 jmp     loc_1356F07
+  .text:0000000001357220                 mov     rdi, r12
+  .text:0000000001357223                 call    rax
+  .text:0000000001357225                 test    al, al
+  .text:0000000001357227                 jnz     loc_1356E08
+  .text:000000000135722D                 jmp     loc_1356FD5
+  .text:0000000001357238                 lea     rdi, unk_2542830
+  .text:000000000135723F                 mov     esi, 0FFFFFFFFh
+  .text:0000000001357244                 call    sub_B523D0
+  .text:0000000001357249                 cmp     byte ptr [rax], 0
+  .text:000000000135724C                 jz      loc_1356F45
+  .text:0000000001357252                 lea     r15, [rbp+var_130]
+  .text:0000000001357259                 xor     r8d, r8d
+  .text:000000000135725C                 xor     ecx, ecx
+  .text:000000000135725E                 mov     edx, 100h
+  .text:0000000001357263                 mov     rsi, r15
+  .text:0000000001357266                 mov     rdi, rax
+  .text:0000000001357269                 call    sub_97F1B0
+  .text:000000000135726E                 test    rax, rax
+  .text:0000000001357271                 jz      loc_1356F45
+  .text:0000000001357277                 mov     [rbp+var_138], rbx
+  .text:000000000135727E                 mov     rbx, rax
+  .text:0000000001357281                 nop     dword ptr [rax+00000000h]
+  .text:0000000001357288                 mov     edx, 3
+  .text:000000000135728D                 mov     rsi, r15
+  .text:0000000001357290                 mov     rdi, r12
+  .text:0000000001357293                 call    sub_134BC60
+  .text:0000000001357298                 mov     rdi, rbx
+  .text:000000000135729B                 xor     r8d, r8d
+  .text:000000000135729E                 xor     ecx, ecx
+  .text:00000000013572A0                 mov     edx, 100h
+  .text:00000000013572A5                 mov     rsi, r15
+  .text:00000000013572A8                 call    sub_97F1B0
+  .text:00000000013572AD                 mov     rbx, rax
+  .text:00000000013572B0                 test    rax, rax
+  .text:00000000013572B3                 jnz     short loc_1357288
+  .text:00000000013572B5                 mov     rbx, [rbp+var_138]
+  .text:00000000013572BC                 jmp     loc_1356F45
+  .text:00000000013572C8                 lea     rdi, unk_2542860
+  .text:00000000013572CF                 mov     esi, 0FFFFFFFFh
+  .text:00000000013572D4                 call    sub_B523D0
+  .text:00000000013572D9                 mov     r10, rax
+  .text:00000000013572DC                 cmp     byte ptr [r10], 0
+  .text:00000000013572E0                 jz      loc_1356EE5
+  .text:00000000013572E6                 test    r15, r15
+  .text:00000000013572E9                 jz      short loc_135731D
+  .text:00000000013572EB                 mov     rsi, r15
+  .text:00000000013572EE                 mov     r15, r10
+  .text:00000000013572F1                 nop     dword ptr [rax+00000000h]
+  .text:00000000013572F8                 mov     rdi, r14
+  .text:00000000013572FB                 call    sub_13E6970
+  .text:0000000001357300                 mov     esi, 2
+  .text:0000000001357305                 mov     edx, 0FFFFFFFFh
+  .text:000000000135730A                 mov     rdi, r14
+  .text:000000000135730D                 call    sub_15B91C0
+  .text:0000000001357312                 mov     rsi, rax
+  .text:0000000001357315                 test    rax, rax
+  .text:0000000001357318                 jnz     short loc_13572F8
+  .text:000000000135731A                 mov     r10, r15
+  .text:000000000135731D                 mov     rax, [rbx]
+  .text:0000000001357320                 lea     rdx, CCSPlayer_ItemServices_GiveNamedItem
+  .text:0000000001357327                 mov     rax, [rax+0A0h] ; 0xA0 = CCSPlayer_ItemServices_GiveNamedItem
+  .text:000000000135732E                 cmp     rax, rdx
+  .text:0000000001357331                 jnz     loc_1357535
+  .text:0000000001357337                 mov     rsi, [rbp+var_138]
+  .text:000000000135733E                 xor     r9d, r9d
+  .text:0000000001357341                 xor     r8d, r8d
+  .text:0000000001357344                 xor     ecx, ecx
+  .text:0000000001357346                 xor     edx, edx
+  .text:0000000001357348                 mov     rdi, rbx
+  .text:000000000135734B                 mov     [rbp+var_158], r10
+  .text:0000000001357352                 call    GiveNamedItem
+  .text:0000000001357357                 mov     r10, [rbp+var_158]
+  .text:000000000135735E                 lea     r15, [rbp+var_130]
+  .text:0000000001357365                 xor     r8d, r8d
+  .text:0000000001357368                 xor     ecx, ecx
+  .text:000000000135736A                 mov     edx, 100h
+  .text:000000000135736F                 mov     rsi, r15
+  .text:0000000001357372                 mov     rdi, r10
+  .text:0000000001357375                 call    sub_97F1B0
+  .text:000000000135737A                 test    rax, rax
+  .text:000000000135737D                 jz      loc_1356EE5
+  .text:0000000001357383                 mov     [rbp+var_138], rbx
+  .text:000000000135738A                 mov     rbx, rax
+  .text:000000000135738D                 jmp     short loc_13573BD
+  .text:0000000001357390                 mov     edx, 2
+  .text:0000000001357395                 mov     rsi, r15
+  .text:0000000001357398                 mov     rdi, r12
+  .text:000000000135739B                 call    sub_134BC60
+  .text:00000000013573A0                 mov     rdi, rbx
+  .text:00000000013573A3                 xor     r8d, r8d
+  .text:00000000013573A6                 xor     ecx, ecx
+  .text:00000000013573A8                 mov     edx, 100h
+  .text:00000000013573AD                 mov     rsi, r15
+  .text:00000000013573B0                 call    sub_97F1B0
+  .text:00000000013573B5                 mov     rbx, rax
+  .text:00000000013573B8                 test    rax, rax
+  .text:00000000013573BB                 jz      short loc_1357410
+  .text:00000000013573BD                 mov     rax, 6B5F6E6F70616577h
+  .text:00000000013573C7                 cmp     [r15], rax
+  .text:00000000013573CA                 jnz     short loc_1357390
+  .text:00000000013573CC                 mov     rax, 6566696E6B5F6Eh
+  .text:00000000013573D6                 cmp     [r15+5], rax
+  .text:00000000013573DA                 jnz     short loc_1357390
+  .text:00000000013573DC                 jmp     short loc_13573A0
+  .text:00000000013573E0                 mov     rdi, [rbx+38h]
+  .text:00000000013573E4                 test    rdi, rdi
+  .text:00000000013573E7                 jz      loc_1357524
+  .text:00000000013573ED                 call    sub_134BFF0
+  .text:00000000013573F2                 mov     edx, 1
+  .text:00000000013573F7                 mov     rdi, r12
+  .text:00000000013573FA                 mov     rsi, rax
+  .text:00000000013573FD                 call    sub_134BC60
+  .text:0000000001357402                 jmp     loc_1356F15
+  .text:0000000001357410                 mov     rbx, [rbp+var_138]
+  .text:0000000001357417                 jmp     loc_1356EE5
+  .text:0000000001357420                 mov     rdi, rbx
+  .text:0000000001357423                 call    sub_15BA0A0
+  .text:0000000001357428                 cmp     eax, 3
+  .text:000000000135742B                 jz      loc_13574F6
+  .text:0000000001357431                 mov     rdi, rbx
+  .text:0000000001357434                 call    sub_15BA0A0
+  .text:0000000001357439                 cmp     eax, 2
+  .text:000000000135743C                 jz      loc_1357585
+  .text:0000000001357442                 mov     rsi, [rbp+var_150]
+  .text:0000000001357449                 xor     edx, edx
+  .text:000000000135744B                 mov     rdi, r12
+  .text:000000000135744E                 call    sub_134BC60
+  .text:0000000001357453                 jmp     loc_1356F23
+  .text:0000000001357460                 xor     ecx, ecx
+  .text:0000000001357462                 mov     edx, 0FFFFFFFFh
+  .text:0000000001357467                 mov     rdi, rbx
+  .text:000000000135746A                 lea     rsi, aItemKevlar; "item_kevlar"
+  .text:0000000001357471                 call    rax
+  .text:0000000001357473                 jmp     loc_1356D91
+  .text:0000000001357480                 xor     ecx, ecx
+  .text:0000000001357482                 mov     edx, 0FFFFFFFFh
+  .text:0000000001357487                 mov     rdi, rbx
+  .text:000000000135748A                 lea     rsi, aItemAssaultsui; "item_assaultsuit"
+  .text:0000000001357491                 call    rax
+  .text:0000000001357493                 jmp     loc_1356D91
+  .text:00000000013574A0                 mov     rsi, [rbp+var_138]
+  .text:00000000013574A7                 xor     ecx, ecx
+  .text:00000000013574A9                 mov     edx, 0FFFFFFFFh
+  .text:00000000013574AE                 mov     rdi, rbx
+  .text:00000000013574B1                 call    rax
+  .text:00000000013574B3                 jmp     loc_1356DF7
+  .text:00000000013574C0                 lea     rdi, unk_2542820
+  .text:00000000013574C7                 mov     esi, 0FFFFFFFFh
+  .text:00000000013574CC                 call    sub_B523D0
+  .text:00000000013574D1                 mov     r10, rax
+  .text:00000000013574D4                 jmp     loc_13572DC
+  .text:00000000013574E0                 lea     rdi, unk_25427F0
+  .text:00000000013574E7                 mov     esi, 0FFFFFFFFh
+  .text:00000000013574EC                 call    sub_B523D0
+  .text:00000000013574F1                 jmp     loc_1357249
+  .text:00000000013574F6                 lea     rdi, unk_2542840
+  .text:00000000013574FD                 mov     esi, 0FFFFFFFFh
+  .text:0000000001357502                 call    sub_B523D0
+  .text:0000000001357507                 mov     [rbp+var_150], rax
+  .text:000000000135750E                 jmp     loc_1357442
+  .text:0000000001357513                 mov     rdi, rbx
+  .text:0000000001357516                 call    nullsub_1295
+  .text:000000000135751B                 mov     rdi, [rbx+38h]
+  .text:000000000135751F                 jmp     loc_1357128
+  .text:0000000001357524                 mov     rdi, rbx
+  .text:0000000001357527                 call    nullsub_1295
+  .text:000000000135752C                 mov     rdi, [rbx+38h]
+  .text:0000000001357530                 jmp     loc_13573ED
+  .text:0000000001357535                 mov     [rbp+var_158], r10
+  .text:000000000135753C                 xor     ecx, ecx
+  .text:000000000135753E                 mov     edx, 0FFFFFFFFh
+  .text:0000000001357543                 mov     rdi, rbx
+  .text:0000000001357546                 mov     rsi, [rbp+var_138]
+  .text:000000000135754D                 call    rax
+  .text:000000000135754F                 mov     r10, [rbp+var_158]
+  .text:0000000001357556                 jmp     loc_135735E
+  .text:000000000135755B                 xor     ecx, ecx
+  .text:000000000135755D                 mov     edx, 0FFFFFFFFh
+  .text:0000000001357562                 mov     rdi, rbx
+  .text:0000000001357565                 call    r12
+  .text:0000000001357568                 jmp     loc_1356E08
+  .text:000000000135756D                 xor     ecx, ecx
+  .text:000000000135756F                 mov     edx, 0FFFFFFFFh
+  .text:0000000001357574                 mov     rdi, rbx
+  .text:0000000001357577                 lea     rsi, aWeaponTaser; "weapon_taser"
+  .text:000000000135757E                 call    rax
+  .text:0000000001357580                 jmp     loc_1356F07
+  .text:0000000001357585                 lea     rdi, unk_2542800
+  .text:000000000135758C                 mov     esi, 0FFFFFFFFh
+  .text:0000000001357591                 call    sub_B523D0
+  .text:0000000001357596                 mov     [rbp+var_150], rax
+  .text:000000000135759D                 jmp     loc_1357442
+  .text:00000000013575A2                 xor     ecx, ecx
+  .text:00000000013575A4                 or      edx, 0FFFFFFFFh
+  .text:00000000013575A7                 mov     rsi, r13
+  .text:00000000013575AA                 mov     rdi, rbx
+  .text:00000000013575AD                 call    rax
+  .text:00000000013575AF                 jmp     loc_135719A
+procedure: |-
+  __int64 __fastcall CCSPlayer_ItemServices_GiveDefaultItems(_QWORD *a1, double a2, float a3)
+  {
+    _QWORD *v3; // rbx
+    __int64 v4; // r12
+    __int64 result; // rax
+    __int64 v6; // r14
+    bool v7; // zf
+    const char *v8; // rax
+    __int64 v9; // r15
+    __int64 v10; // rax
+    __int64 v11; // rax
+    __int64 (__fastcall *v12)(); // r12
+    char *v13; // rsi
+    __int64 (__fastcall *v14)(); // rax
+    __int64 (__fastcall *v15)(); // rax
+    __int64 v16; // rdi
+    char *v17; // r13
+    __int64 v18; // rax
+    __int64 (__fastcall *v19)(); // rax
+    __int64 (__fastcall *v20)(); // rax
+    _BYTE *v21; // rax
+    __int64 v22; // rax
+    __int64 v23; // rbx
+    _BYTE *v24; // r10
+    __int64 v25; // rsi
+    _BYTE *v26; // r15
+    __int64 (__fastcall *v27)(); // rax
+    __int64 v28; // rax
+    __int64 v29; // rbx
+    __int64 v30; // rax
+    _BYTE *v31; // [rsp+8h] [rbp-158h]
+    __int64 v32; // [rsp+10h] [rbp-150h]
+    __int64 v33; // [rsp+10h] [rbp-150h]
+    __int64 v34; // [rsp+18h] [rbp-148h]
+    __int64 v35; // [rsp+20h] [rbp-140h]
+    char *v36; // [rsp+28h] [rbp-138h]
+    _QWORD *v37; // [rsp+28h] [rbp-138h]
+    _QWORD v38[38]; // [rsp+30h] [rbp-130h] BYREF
+
+    v3 = a1;
+    v4 = a1[7];
+    if ( !v4 )
+    {
+      nullsub_1295(a1);
+      v4 = a1[7];
+    }
+    result = *(unsigned int *)(v4 + 4240);
+    if ( !(_DWORD)result )
+    {
+      v6 = *(_QWORD *)(v4 + 3704);
+      sub_1356720(a1);
+      if ( (unsigned __int8)sub_11A4310(qword_25B01A0)
+        && (unsigned int)sub_A555D0(&unk_2542730, 0xFFFFFFFFLL) == 2
+        && (unsigned int)sub_15BA0A0(a1) == 3 )
+      {
+        sub_1355A10(a1, 0);
+      }
+      if ( (unsigned __int8)sub_11A6A90(qword_25B01A0) )
+      {
+        v7 = (unsigned __int8)sub_11A6AD0(qword_25B01A0) == 0;
+        v15 = *(__int64 (__fastcall **)())(*a1 + 160LL);// 0xA0 = 160LL = CCSPlayer_ItemServices_GiveNamedItem
+        if ( v7 )
+        {
+          if ( v15 == CCSPlayer_ItemServices_GiveNamedItem )
+            GiveNamedItem((__int64)a1, "item_kevlar", 0, 0, 0, nullptr, a2, a3);
+          else
+            ((void (__fastcall *)(_QWORD *, const char *, __int64, _QWORD))v15)(a1, "item_kevlar", 0xFFFFFFFFLL, 0);
+        }
+        else if ( v15 == CCSPlayer_ItemServices_GiveNamedItem )
+        {
+          GiveNamedItem((__int64)a1, "item_assaultsuit", 0, 0, 0, nullptr, a2, a3);
+        }
+        else
+        {
+          ((void (__fastcall *)(_QWORD *, const char *, __int64, _QWORD))v15)(a1, "item_assaultsuit", 0xFFFFFFFFLL, 0);
+        }
+      }
+      v7 = (unsigned int)sub_15BA0A0(a1) == 2;
+      v8 = "weapon_knife_t";
+      if ( !v7 )
+        v8 = "weapon_knife";
+      v36 = (char *)v8;
+      if ( (unsigned __int8)sub_11A6050(qword_25B01A0) || (unsigned __int8)sub_11A6090(qword_25B01A0) )
+      {
+        if ( ((unsigned __int8)sub_11A6050(qword_25B01A0) || (unsigned __int8)sub_11A6090(qword_25B01A0))
+          && !sub_15B91C0(v6, 2, 0xFFFFFFFFLL) )
+        {
+          v14 = *(__int64 (__fastcall **)())(*a1 + 160LL);// 0xA0 = 160LL = CCSPlayer_ItemServices_GiveNamedItem
+          if ( v14 == CCSPlayer_ItemServices_GiveNamedItem )
+            GiveNamedItem((__int64)a1, v36, 0, 0, 0, nullptr, a2, a3);
+          else
+            ((void (__fastcall *)(_QWORD *, char *, __int64, _QWORD))v14)(a1, v36, 0xFFFFFFFFLL, 0);
+        }
+        result = sub_11A6050(qword_25B01A0);
+        if ( (_BYTE)result )
+        {
+          result = sub_15B91C0(v6, 1, 0xFFFFFFFFLL);
+          if ( !result )
+          {
+            v16 = a1[7];
+            if ( !v16 )
+            {
+              nullsub_1295(v3);
+              v16 = v3[7];
+            }
+            v17 = (char *)sub_134BFF0();
+            v18 = sub_190A350(v16, 1);
+            result = (*(__int64 (__fastcall **)(__int64, char *))(*(_QWORD *)v18 + 328LL))(v18, v17);
+            if ( result )
+            {
+              result = sub_128D7B0(result);
+              if ( result )
+              {
+                if ( *(_DWORD *)(result + 1088) == 1 )
+                {
+                  v19 = *(__int64 (__fastcall **)())(*v3 + 160LL);// 0xA0 = 160LL = CCSPlayer_ItemServices_GiveNamedItem
+                  if ( v19 == CCSPlayer_ItemServices_GiveNamedItem )
+                    GiveNamedItem((__int64)v3, v17, 0, 0, 0, nullptr, a2, a3);
+                  else
+                    ((void (__fastcall *)(_QWORD *, char *, __int64, _QWORD))v19)(v3, v17, 0xFFFFFFFFLL, 0);
+                  result = *(_QWORD *)(v4 + 4480);
+                  *(_BYTE *)(result + 200) = 1;
+                }
+              }
+            }
+          }
+        }
+        goto LABEL_14;
+      }
+      v9 = sub_15B91C0(v6, 2, 0xFFFFFFFFLL);
+      v35 = sub_15B91C0(v6, 1, 0xFFFFFFFFLL);
+      v32 = sub_15B91C0(v6, 0, 0xFFFFFFFFLL);
+      result = sub_15B9370(v6, "weapon_taser");
+      v34 = result;
+      if ( v9 && v35 )
+        return result;
+      if ( result )
+        sub_13E6970(v6, result);
+      *(_BYTE *)(*(_QWORD *)(v4 + 4480) + 200LL) = 1;
+      if ( (unsigned int)sub_15BA0A0(a1) == 3 )
+      {
+        v24 = (_BYTE *)sub_B523D0(&unk_2542860, 0xFFFFFFFFLL);
+      }
+      else
+      {
+        if ( (unsigned int)sub_15BA0A0(a1) != 2 )
+          goto LABEL_23;
+        v24 = (_BYTE *)sub_B523D0(&unk_2542820, 0xFFFFFFFFLL);
+      }
+      if ( *v24 )
+      {
+        if ( v9 )
+        {
+          v25 = v9;
+          v26 = v24;
+          do
+          {
+            sub_13E6970(v6, v25);
+            v25 = sub_15B91C0(v6, 2, 0xFFFFFFFFLL);
+          }
+          while ( v25 );
+          v24 = v26;
+        }
+        v27 = *(__int64 (__fastcall **)())(*a1 + 160LL);// 0xA0 = 160LL = CCSPlayer_ItemServices_GiveNamedItem
+        v31 = v24;
+        if ( v27 == CCSPlayer_ItemServices_GiveNamedItem )
+          GiveNamedItem((__int64)a1, v36, 0, 0, 0, nullptr, a2, a3);
+        else
+          ((void (__fastcall *)(_QWORD *, char *, __int64, _QWORD))v27)(a1, v36, 0xFFFFFFFFLL, 0);
+        v28 = sub_97F1B0(v31, v38, 256, 0, 0);
+        if ( v28 )
+        {
+          v29 = v28;
+          do
+          {
+            if ( v38[0] != 0x6B5F6E6F70616577LL || *(_QWORD *)((char *)v38 + 5) != 0x6566696E6B5F6ELL )
+              sub_134BC60(v4, v38, 2);
+            v29 = sub_97F1B0(v29, v38, 256, 0, 0);
+          }
+          while ( v29 );
+          v3 = a1;
+        }
+      }
+  LABEL_23:
+      if ( v34 && !sub_15B9370(v6, "weapon_taser") )
+      {
+        v20 = *(__int64 (__fastcall **)())(*v3 + 160LL);// 0xA0 = 160LL = CCSPlayer_ItemServices_GiveNamedItem
+        if ( v20 == CCSPlayer_ItemServices_GiveNamedItem )
+          GiveNamedItem((__int64)v3, "weapon_taser", 0, 0, 0, nullptr, a2, a3);
+        else
+          ((void (__fastcall *)(_QWORD *, const char *, __int64, _QWORD))v20)(v3, "weapon_taser", 0xFFFFFFFFLL, 0);
+      }
+      if ( !v35 )
+      {
+        if ( !v3[7] )
+          nullsub_1295(v3);
+        v30 = sub_134BFF0();
+        sub_134BC60(v4, v30, 1);
+      }
+      if ( !v32 )
+      {
+        if ( (unsigned int)sub_15BA0A0(v3) == 3 )
+        {
+          v33 = sub_B523D0(&unk_2542840, 0xFFFFFFFFLL);
+          sub_134BC60(v4, v33, 0);
+        }
+        else
+        {
+          if ( (unsigned int)sub_15BA0A0(v3) == 2 )
+            v32 = sub_B523D0(&unk_2542800, 0xFFFFFFFFLL);
+          sub_134BC60(v4, v32, 0);
+        }
+      }
+      if ( (unsigned int)sub_15BA0A0(v3) == 3 )
+      {
+        v21 = (_BYTE *)sub_B523D0(&unk_2542830, 0xFFFFFFFFLL);
+      }
+      else
+      {
+        if ( (unsigned int)sub_15BA0A0(v3) != 2 )
+          goto LABEL_29;
+        v21 = (_BYTE *)sub_B523D0(&unk_25427F0, 0xFFFFFFFFLL);
+      }
+      if ( *v21 )
+      {
+        v22 = sub_97F1B0(v21, v38, 256, 0, 0);
+        if ( v22 )
+        {
+          v37 = v3;
+          v23 = v22;
+          do
+          {
+            sub_134BC60(v4, v38, 3);
+            v23 = sub_97F1B0(v23, v38, 256, 0, 0);
+          }
+          while ( v23 );
+          v3 = v37;
+        }
+      }
+  LABEL_29:
+      v10 = sub_15B91C0(v6, 1, 0xFFFFFFFFLL);
+      if ( v10 )
+        (*(void (__fastcall **)(__int64, _QWORD, __int64, _QWORD))(*(_QWORD *)v10 + 2968LL))(v10, 0, 250, 0);
+      v11 = sub_15B91C0(v6, 0, 0xFFFFFFFFLL);
+      if ( v11 )
+        (*(void (__fastcall **)(__int64, _QWORD, __int64, _QWORD))(*(_QWORD *)v11 + 2968LL))(v11, 0, 250, 0);
+      result = sub_11A68B0(qword_25B01A0);
+      if ( !(_BYTE)result )
+        goto LABEL_14;
+      result = *(_QWORD *)(*(_QWORD *)v4 + 3216LL);
+      if ( (__int64 (__fastcall *)())result == sub_9AE610 )
+      {
+        if ( (*(_BYTE *)(v4 + 1640) & 0x10) == 0 )
+          goto LABEL_36;
+      }
+      else
+      {
+        result = ((__int64 (__fastcall *)(__int64))result)(v4);
+        if ( !(_BYTE)result )
+        {
+  LABEL_36:
+          v12 = *(__int64 (__fastcall **)())(*v3 + 160LL);// 0xA0 = 160LL = CCSPlayer_ItemServices_GiveNamedItem
+          v13 = (char *)sub_B523D0(&unk_25873C0, 0xFFFFFFFFLL);
+          if ( v12 == CCSPlayer_ItemServices_GiveNamedItem )
+            result = GiveNamedItem((__int64)v3, v13, 0, 0, 0, nullptr, a2, a3);
+          else
+            result = ((__int64 (__fastcall *)(_QWORD *, char *, __int64, _QWORD))v12)(v3, v13, 0xFFFFFFFFLL, 0);
+        }
+      }
+  LABEL_14:
+      *(_BYTE *)(v6 + 222) = 0;
+    }
+    return result;
+  }
