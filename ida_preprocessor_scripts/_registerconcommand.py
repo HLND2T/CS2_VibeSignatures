@@ -47,6 +47,7 @@ def _build_registerconcommand_py_eval(
     help_string,
     search_window_before_call,
     search_window_after_xref,
+    debug=False,
 ):
     params = json.dumps(
         {
@@ -55,22 +56,55 @@ def _build_registerconcommand_py_eval(
             "help_string": help_string,
             "search_window_before_call": search_window_before_call,
             "search_window_after_xref": search_window_after_xref,
+            "debug": bool(debug),
         }
     )
     body_lines = [
         "import idaapi, idautils, idc, ida_bytes",
+        "global debug_log",
         "platform = params['platform']",
         f"search_window_before_call = {int(search_window_before_call)}",
         f"search_window_after_xref = {int(search_window_after_xref)}",
         "command_name = params['command_name']",
         "help_string = params['help_string']",
+        "debug_enabled = bool(params.get('debug'))",
         "candidates = []",
+        "debug_log = []",
         "seen_calls = set()",
         "seen_candidates = set()",
         "handler_slot_addr = None",
         "slot_value_addr = None",
         "reg_names_linux = [('rsi', 'esi'), ('rdx', 'edx'), ('r8', 'r8d')]",
         "reg_names_windows = [('rdx', 'edx'), ('r8', 'r8d'), ('r9', 'r9d')]",
+        "def _debug(message):",
+        "    if debug_enabled:",
+        "        debug_log.append(str(message))",
+        "def _fmt_ea(value):",
+        "    if value in (None, 0, idaapi.BADADDR):",
+        "        return 'None'",
+        "    try:",
+        "        return hex(int(value))",
+        "    except Exception:",
+        "        return repr(value)",
+        "def _fmt_list(values):",
+        "    return '[' + ', '.join(_fmt_ea(value) for value in values) + ']'",
+        "def _fmt_line(ea):",
+        "    if ea in (None, 0, idaapi.BADADDR):",
+        "        return 'None'",
+        "    try:",
+        "        return (idc.generate_disasm_line(ea, 0) or '').strip()",
+        "    except Exception:",
+        "        return '<disasm unavailable>'",
+        "def _seg_name(ea):",
+        "    if ea in (None, 0, idaapi.BADADDR):",
+        "        return None",
+        "    seg = idaapi.getseg(ea)",
+        "    if not seg:",
+        "        return None",
+        "    try:",
+        "        return idc.get_segm_name(seg.start_ea)",
+        "    except Exception:",
+        "        return None",
         "def _scan_exact_strings(target_text):",
         "    if not target_text:",
         "        return []",
@@ -81,6 +115,7 @@ def _build_registerconcommand_py_eval(
         "                hits.append(int(item.ea))",
         "        except Exception:",
         "            pass",
+        "    _debug(f\"string_hits text={target_text!r} count={len(hits)} addrs={_fmt_list(hits)}\")",
         "    return hits",
         "def _read_string(ea):",
         "    if ea in (None, 0, idaapi.BADADDR):",
@@ -169,13 +204,22 @@ def _build_registerconcommand_py_eval(
         "    return None",
         "def _append_candidate(command_value, help_value, handler_va):",
         "    if handler_va in (None, 0, idaapi.BADADDR):",
+        "        _debug(f\"reject candidate missing handler command={command_value!r} help={help_value!r}\")",
+        "        return",
+        "    handler_seg_name = _seg_name(handler_va)",
+        "    if handler_seg_name != '.text':",
+        "        _debug(f\"reject candidate non_text handler={_fmt_ea(handler_va)} seg={handler_seg_name!r} command={command_value!r} help={help_value!r}\")",
         "        return",
         "    key = (command_value, help_value, int(handler_va))",
         "    if key in seen_candidates:",
+        "        _debug(f\"skip duplicate candidate handler={_fmt_ea(handler_va)} command={command_value!r} help={help_value!r}\")",
         "        return",
         "    seen_candidates.add(key)",
+        "    _debug(f\"accept candidate handler={_fmt_ea(handler_va)} command={command_value!r} help={help_value!r}\")",
         "    candidates.append({'command_name': command_value, 'help_string': help_value, 'handler_va': hex(int(handler_va))})",
         "def _analyze_call(call_ea):",
+        "    handler_slot_addr = None",
+        "    slot_value_addr = None",
         "    if platform == 'windows':",
         "        command_addr = _recover_register_value(call_ea, reg_names_windows[0])",
         "        handler_slot_addr = _recover_stack_slot(call_ea, reg_names_windows[1])",
@@ -188,11 +232,23 @@ def _build_registerconcommand_py_eval(
         "        help_addr = _recover_register_value(call_ea, reg_names_linux[2])",
         "    command_value = _read_string(command_addr)",
         "    help_value = _read_string(help_addr)",
+        "    _debug("
+        "f\"call={_fmt_ea(call_ea)} command_addr={_fmt_ea(command_addr)} command_value={command_value!r} "
+        "help_addr={_fmt_ea(help_addr)} help_value={help_value!r} "
+        "handler_slot={_fmt_ea(handler_slot_addr)} slot_value={_fmt_ea(slot_value_addr)} "
+        "handler_va={_fmt_ea(handler_va)}\""
+        ")",
         "    if command_name is not None and command_value != command_name:",
+        "        _debug(f\"reject call={_fmt_ea(call_ea)} reason=command_mismatch expected={command_name!r} actual={command_value!r}\")",
         "        return",
         "    if help_string is not None and help_value != help_string:",
+        "        _debug(f\"reject call={_fmt_ea(call_ea)} reason=help_mismatch expected={help_string!r} actual={help_value!r}\")",
         "        return",
         "    _append_candidate(command_value, help_value, handler_va)",
+        "inputs = "
+        "f\"platform={platform} command_name={command_name!r} help_string={help_string!r} "
+        "before={search_window_before_call} after={search_window_after_xref}\"",
+        "_debug(inputs)",
         "command_string_addrs = _scan_exact_strings(command_name)",
         "help_string_addrs = _scan_exact_strings(help_string)",
         "seed_string_addrs = []",
@@ -205,24 +261,49 @@ def _build_registerconcommand_py_eval(
         "        if not idc.is_code(ida_bytes.get_full_flags(xref_ea)):",
         "            continue",
         "        xref_heads.add(xref_ea)",
-        "for xref_ea in sorted(xref_heads):",
-        "    search_end = xref_ea + search_window_after_xref",
-        "    cur = xref_ea",
-        "    while cur != idaapi.BADADDR and cur <= search_end:",
-        "        if _is_registerconcommand_call(cur):",
-        "            if cur not in seen_calls:",
-        "                seen_calls.add(cur)",
-        "                _analyze_call(cur)",
-        "            break",
-        "        next_cur = idc.next_head(cur, search_end + 1)",
-        "        if next_cur in (idaapi.BADADDR, cur):",
-        "            break",
-        "        cur = next_cur",
+        "_debug(f\"xref_heads count={len(xref_heads)} addrs={_fmt_list(sorted(xref_heads))}\")",
+        "def _scan_xrefs(require_named):",
+        "    named_branch_match = False",
+        "    for xref_ea in sorted(xref_heads):",
+        "        search_end = xref_ea + search_window_after_xref",
+        "        cur = xref_ea",
+        "        found_named_register_call = False",
+        "        saw_branch = False",
+        "        _debug(f\"xref={_fmt_ea(xref_ea)} line={_fmt_line(xref_ea)!r} search_end={_fmt_ea(search_end)} require_named={require_named}\")",
+        "        while cur != idaapi.BADADDR and cur <= search_end:",
+        "            mnem = idc.print_insn_mnem(cur)",
+        "            if mnem in ('call', 'jmp'):",
+        "                saw_branch = True",
+        "                match = _is_registerconcommand_call(cur)",
+        "                _debug(f\"xref={_fmt_ea(xref_ea)} branch={_fmt_ea(cur)} match={match} line={_fmt_line(cur)!r}\")",
+        "                if match:",
+        "                    named_branch_match = True",
+        "                    found_named_register_call = True",
+        "                    _debug(f\"xref={_fmt_ea(xref_ea)} register_call={_fmt_ea(cur)} line={_fmt_line(cur)!r}\")",
+        "                if ((not require_named) or match) and cur not in seen_calls:",
+        "                    seen_calls.add(cur)",
+        "                    _analyze_call(cur)",
+        "            next_cur = idc.next_head(cur, search_end + 1)",
+        "            if next_cur in (idaapi.BADADDR, cur):",
+        "                break",
+        "            cur = next_cur",
+        "        if require_named and not found_named_register_call:",
+        "            _debug(f\"xref={_fmt_ea(xref_ea)} no_named_register_call_within_window end={_fmt_ea(search_end)}\")",
+        "        elif not saw_branch:",
+        "            _debug(f\"xref={_fmt_ea(xref_ea)} no_call_or_jmp_within_window end={_fmt_ea(search_end)}\")",
+        "    return named_branch_match",
+        "named_branch_match = _scan_xrefs(True)",
+        "if not candidates and not named_branch_match:",
+        "    _debug('no named RegisterConCommand branches found; fallback to generic call/jmp scan')",
+        "    seen_calls.clear()",
+        "    _scan_xrefs(False)",
+        "_debug(f\"candidate_count={len(candidates)}\")",
         "return candidates",
     ]
     lines = [
         "import json, traceback",
         f"params = json.loads({params!r})",
+        "debug_log = []",
         "def _collect_candidates(params):",
     ]
     lines.extend(f"    {line}" for line in body_lines)
@@ -232,11 +313,13 @@ def _build_registerconcommand_py_eval(
             "    result = json.dumps({",
             "        'ok': True,",
             "        'candidates': _collect_candidates(params),",
+            "        'debug_log': debug_log,",
             "    })",
             "except Exception:",
             "    result = json.dumps({",
             "        'ok': False,",
             "        'traceback': traceback.format_exc(),",
+            "        'debug_log': debug_log,",
             "    })",
         ]
     )
@@ -258,6 +341,7 @@ async def _collect_registerconcommand_candidates(
         help_string=help_string,
         search_window_before_call=search_window_before_call,
         search_window_after_xref=search_window_after_xref,
+        debug=debug,
     )
     try:
         result = await session.call_tool(
@@ -273,10 +357,21 @@ async def _collect_registerconcommand_candidates(
     raw = None
     if isinstance(payload, dict):
         raw = payload.get("result", "")
+        if debug:
+            stderr_text = payload.get("stderr")
+            stdout_text = payload.get("stdout")
+            if isinstance(stderr_text, str) and stderr_text.strip():
+                print("    Preprocess: py_eval stderr follows")
+                print(stderr_text.rstrip())
+            if isinstance(stdout_text, str) and stdout_text.strip():
+                print("    Preprocess: py_eval stdout follows")
+                print(stdout_text.rstrip())
     elif payload is not None:
         raw = str(payload)
 
     if not raw:
+        if debug:
+            print("    Preprocess: empty RegisterConCommand py_eval result")
         return []
 
     try:
@@ -297,11 +392,21 @@ async def _collect_registerconcommand_candidates(
                 print(traceback_text.rstrip())
             else:
                 print("    Preprocess: missing traceback text in py_eval result")
+            debug_log = parsed.get("debug_log", [])
+            if isinstance(debug_log, list):
+                for line in debug_log:
+                    print(f"    Preprocess: py_eval {line}")
         return []
 
     candidates = parsed.get("candidates", [])
     if not isinstance(candidates, list):
         return []
+
+    if debug:
+        debug_log = parsed.get("debug_log", [])
+        if isinstance(debug_log, list):
+            for line in debug_log:
+                print(f"    Preprocess: py_eval {line}")
 
     required_keys = {"command_name", "help_string", "handler_va"}
     for item in candidates:
@@ -322,45 +427,94 @@ async def _collect_registerconcommand_candidates(
 
 
 async def _query_func_info(session, handler_va, debug=False):
-    fi_code = (
-        "import idaapi, json\n"
-        f"addr = {handler_va}\n"
-        "f = idaapi.get_func(addr)\n"
-        "if f and f.start_ea == addr:\n"
-        "    result = json.dumps({'func_va': hex(f.start_ea), "
-        "'func_size': hex(f.end_ea - f.start_ea)})\n"
-        "else:\n"
-        "    result = json.dumps(None)\n"
-    )
-    try:
-        result = await session.call_tool(
-            name="py_eval",
-            arguments={"code": fi_code},
+    normalized_handler_va = _normalize_handler_va(handler_va)
+    if normalized_handler_va is None:
+        return None
+
+    addr_int = int(normalized_handler_va, 16)
+
+    async def _read_func_info_once():
+        fi_code = (
+            "import idaapi, ida_bytes, idc, json\n"
+            f"addr = {addr_int}\n"
+            "seg = idaapi.getseg(addr)\n"
+            "seg_name = idc.get_segm_name(seg.start_ea) if seg else None\n"
+            "flags = ida_bytes.get_full_flags(addr)\n"
+            "is_code = bool(ida_bytes.is_code(flags))\n"
+            "f = idaapi.get_func(addr)\n"
+            "if f and f.start_ea == addr:\n"
+            "    result = json.dumps({'status': 'resolved', 'func_va': hex(f.start_ea), "
+            "'func_size': hex(f.end_ea - f.start_ea), 'segment_name': seg_name})\n"
+            "elif seg_name == '.text' and is_code:\n"
+            "    result = json.dumps({'status': 'needs_define', 'entry': hex(addr), "
+            "'segment_name': seg_name})\n"
+            "else:\n"
+            "    result = json.dumps({'status': 'unresolved', 'segment_name': seg_name, "
+            "'is_code': is_code})\n"
         )
-        result_data = parse_mcp_result(result)
-    except Exception:
-        if debug:
-            print(f"    Preprocess: py_eval querying func info failed for {handler_va}")
-        return None
+        try:
+            result = await session.call_tool(
+                name="py_eval",
+                arguments={"code": fi_code},
+            )
+            result_data = parse_mcp_result(result)
+        except Exception:
+            if debug:
+                print(
+                    "    Preprocess: "
+                    f"py_eval querying func info failed for {normalized_handler_va}"
+                )
+            return None
 
-    raw = None
-    if isinstance(result_data, dict):
-        raw = result_data.get("result", "")
-    elif result_data is not None:
-        raw = str(result_data)
+        raw = None
+        if isinstance(result_data, dict):
+            raw = result_data.get("result", "")
+        elif result_data is not None:
+            raw = str(result_data)
 
-    if not raw:
-        return None
+        if not raw:
+            return None
 
-    try:
-        data = json.loads(raw)
-    except (TypeError, json.JSONDecodeError):
-        if debug:
-            print(f"    Preprocess: invalid func info JSON for {handler_va}")
-        return None
+        try:
+            data = json.loads(raw)
+        except (TypeError, json.JSONDecodeError):
+            if debug:
+                print(
+                    "    Preprocess: "
+                    f"invalid func info JSON for {normalized_handler_va}"
+                )
+            return None
+        return data
 
+    data = await _read_func_info_once()
     if not isinstance(data, dict):
         return None
+
+    if data.get("status") == "needs_define":
+        entry = data.get("entry")
+        if not isinstance(entry, str) or not entry:
+            return None
+        try:
+            await session.call_tool(
+                name="define_func",
+                arguments={"items": {"addr": entry}},
+            )
+        except Exception:
+            if debug:
+                print(f"    Preprocess: define_func failed for {entry}")
+            return None
+        data = await _read_func_info_once()
+        if not isinstance(data, dict):
+            return None
+
+    if data.get("status") != "resolved":
+        if debug:
+            print(
+                "    Preprocess: "
+                f"handler {normalized_handler_va} did not resolve to a .text function start"
+            )
+        return None
+
     if "func_va" not in data or "func_size" not in data:
         return None
     return {
@@ -394,6 +548,23 @@ def _normalize_handler_va(handler_va):
         return hex(int(handler_va))
     except (TypeError, ValueError):
         return None
+
+
+async def _rename_func_best_effort(session, func_va, func_name, debug=False):
+    if not func_va or not func_name:
+        return
+    try:
+        await session.call_tool(
+            name="rename",
+            arguments={
+                "batch": {
+                    "func": {"addr": str(func_va), "name": str(func_name)}
+                }
+            },
+        )
+    except Exception:
+        if debug:
+            print(f"    Preprocess: failed to rename {func_name} (non-fatal)")
 
 
 async def preprocess_registerconcommand_skill(
@@ -455,6 +626,14 @@ async def preprocess_registerconcommand_skill(
         if (command_name is None or item.get("command_name") == command_name)
         and (help_string is None or item.get("help_string") == help_string)
     ]
+    if debug:
+        print(
+            "    Preprocess: "
+            f"RegisterConCommand candidates={len(candidates)} filtered={len(filtered)}"
+        )
+        if candidates and not filtered:
+            for item in candidates:
+                print(f"    Preprocess: filtered_out candidate={item!r}")
 
     handler_values = sorted(
         {
@@ -465,10 +644,20 @@ async def preprocess_registerconcommand_skill(
         }
     )
     if len(handler_values) != 1:
+        if debug:
+            print(
+                "    Preprocess: "
+                f"expected exactly one handler, got {len(handler_values)}: {handler_values}"
+            )
         return False
 
     func_info = await _query_func_info(session, handler_values[0], debug=debug)
     if not isinstance(func_info, dict):
+        if debug:
+            print(
+                "    Preprocess: "
+                f"failed to query function info for handler {handler_values[0]}"
+            )
         return False
 
     extra_fields = {}
@@ -486,6 +675,11 @@ async def preprocess_registerconcommand_skill(
             debug=debug,
         )
         if not sig_info:
+            if debug:
+                print(
+                    "    Preprocess: "
+                    f"failed to generate func_sig for handler {handler_values[0]}"
+                )
             return False
         try:
             extra_fields["func_sig"] = sig_info["func_sig"]
@@ -499,7 +693,15 @@ async def preprocess_registerconcommand_skill(
             target_name, requested_fields, func_info, extra_fields
         )
     except KeyError:
+        if debug:
+            print("    Preprocess: failed to build YAML payload from collected fields")
         return False
 
     write_func_yaml(output_path, payload)
+    await _rename_func_best_effort(
+        session=session,
+        func_va=handler_values[0],
+        func_name=rename_to,
+        debug=debug,
+    )
     return True

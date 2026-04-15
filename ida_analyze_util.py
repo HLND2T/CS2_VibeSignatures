@@ -1445,22 +1445,84 @@ async def _resolve_direct_gv_target_via_mcp(session, insn_va, debug=False):
     return resolved_matches[0]
 
 
-async def _load_llm_decompile_target_detail_via_mcp(session, target_func_name, debug=False):
+def _load_llm_decompile_target_func_va_from_current_yaml(
+    target_func_name,
+    new_binary_dir=None,
+    platform=None,
+    debug=False,
+):
+    normalized_target_name = str(target_func_name or "").strip()
+    normalized_platform = str(platform or "").strip()
+    if (
+        not normalized_target_name
+        or not normalized_platform
+        or not new_binary_dir
+    ):
+        return None
+
+    target_yaml_path = Path(new_binary_dir) / (
+        f"{normalized_target_name}.{normalized_platform}.yaml"
+    )
+    if not target_yaml_path.is_file():
+        return None
+
+    yaml_payload = _read_yaml_file(target_yaml_path)
+    if not isinstance(yaml_payload, dict):
+        if debug:
+            print(
+                "    Preprocess: invalid llm_decompile current YAML for "
+                f"{normalized_target_name}: {target_yaml_path}"
+            )
+        return None
+
+    func_va = yaml_payload.get("func_va")
+    try:
+        return hex(_parse_int_value(func_va))
+    except Exception:
+        if debug:
+            print(
+                "    Preprocess: missing/invalid func_va in llm_decompile "
+                f"current YAML for {normalized_target_name}: {target_yaml_path}"
+            )
+        return None
+
+
+async def _load_llm_decompile_target_detail_via_mcp(
+    session,
+    target_func_name,
+    new_binary_dir=None,
+    platform=None,
+    debug=False,
+):
     normalized_target_name = str(target_func_name or "").strip()
     if not normalized_target_name:
         if debug:
             print("    Preprocess: llm_decompile target func_name missing in reference YAML")
         return None
 
-    candidate_names = _load_symbol_lookup_candidates(
+    func_va = _load_llm_decompile_target_func_va_from_current_yaml(
         normalized_target_name,
+        new_binary_dir=new_binary_dir,
+        platform=platform,
         debug=debug,
     )
-    func_va = await _find_function_addr_by_names_via_mcp(
-        session,
-        candidate_names,
-        debug=debug,
-    )
+
+    if func_va is None:
+        candidate_names = _load_symbol_lookup_candidates(
+            normalized_target_name,
+            debug=debug,
+        )
+        func_va = await _find_function_addr_by_names_via_mcp(
+            session,
+            candidate_names,
+            debug=debug,
+        )
+    elif debug:
+        print(
+            "    Preprocess: using current YAML func_va for llm_decompile "
+            f"target {normalized_target_name}: {func_va}"
+        )
+
     if func_va is None:
         if debug:
             print(
@@ -4460,8 +4522,11 @@ def _parse_int_value(value):
     return int(value)
 
 
-def _parse_func_start_set_from_py_eval(eval_data, debug=False):
-    """Parse py_eval JSON payload, or return None on invalid payload."""
+UNDEFINED_FUNC_RECOVERY_BACKTRACK_LIMIT = 0x200
+
+
+def _parse_int_set_from_py_eval(eval_data, debug=False):
+    """Parse a py_eval JSON list payload into a set of integers."""
     if not isinstance(eval_data, dict):
         return None
 
@@ -4482,12 +4547,222 @@ def _parse_func_start_set_from_py_eval(eval_data, debug=False):
     if not isinstance(parsed, list):
         return None
 
-    func_starts = set()
+    values = set()
     for item in parsed:
         try:
-            func_starts.add(_parse_int_value(item))
+            values.add(_parse_int_value(item))
         except Exception:
             continue
+    return values
+
+
+def _parse_func_start_set_from_py_eval(eval_data, debug=False):
+    """Parse py_eval JSON payload, or return None on invalid payload."""
+    return _parse_int_set_from_py_eval(eval_data, debug=debug)
+
+
+def _parse_py_eval_json_object(eval_data, debug=False):
+    """Parse a py_eval JSON object payload, or return None on invalid payload."""
+    if not isinstance(eval_data, dict):
+        return None
+
+    stderr_text = eval_data.get("stderr", "")
+    if stderr_text and debug:
+        print("    Preprocess: py_eval stderr:")
+        print(stderr_text.strip())
+
+    result_str = eval_data.get("result", "")
+    if not result_str:
+        return None
+
+    try:
+        parsed = json.loads(result_str)
+    except (json.JSONDecodeError, TypeError):
+        return None
+
+    if not isinstance(parsed, dict):
+        return None
+    return parsed
+
+
+async def _probe_func_start_or_entry_candidate(session, code_addr, debug=False):
+    """Return existing func start or one conservative undefined-entry candidate."""
+    try:
+        code_addr_int = _parse_int_value(code_addr)
+    except Exception:
+        return None
+
+    py_code = (
+        "import ida_bytes, idaapi, idautils, idc, json\n"
+        f"code_addr = {code_addr_int}\n"
+        f"backtrack_limit = {UNDEFINED_FUNC_RECOVERY_BACKTRACK_LIMIT:#x}\n"
+        "result_obj = {'status': 'no_entry'}\n"
+        "func = idaapi.get_func(code_addr)\n"
+        "if func:\n"
+        "    result_obj = {'status': 'resolved', 'func_start': hex(func.start_ea)}\n"
+        "else:\n"
+        "    candidates = set()\n"
+        "    lower_bound = max(0, code_addr - backtrack_limit)\n"
+        "    for probe_ea in range(code_addr, lower_bound - 1, -1):\n"
+        "        other_func = idaapi.get_func(probe_ea)\n"
+        "        if other_func:\n"
+        "            if candidates:\n"
+        "                break\n"
+        "            result_obj = {\n"
+        "                'status': 'blocked_existing_function',\n"
+        "                'func_start': hex(other_func.start_ea),\n"
+        "            }\n"
+        "            break\n"
+        "        flags = ida_bytes.get_full_flags(probe_ea)\n"
+        "        if not ida_bytes.is_code(flags):\n"
+        "            continue\n"
+        "        for xref in idautils.XrefsTo(probe_ea, 0):\n"
+        "            ref_func = idaapi.get_func(xref.frm)\n"
+        "            if not ref_func:\n"
+        "                continue\n"
+        "            mnem = idc.print_insn_mnem(xref.frm).lower()\n"
+        "            if mnem not in ('call', 'jmp', 'lea'):\n"
+        "                continue\n"
+        "            operand_targets = [\n"
+        "                idc.get_operand_value(xref.frm, idx) for idx in range(3)\n"
+        "            ]\n"
+        "            if probe_ea in operand_targets:\n"
+        "                candidates.add(probe_ea)\n"
+        "    if result_obj.get('status') == 'no_entry':\n"
+        "        if len(candidates) == 1:\n"
+        "            result_obj = {\n"
+        "                'status': 'needs_define',\n"
+        "                'entry': hex(next(iter(candidates))),\n"
+        "            }\n"
+        "        elif len(candidates) > 1:\n"
+        "            result_obj = {\n"
+        "                'status': 'multiple_entries',\n"
+        "                'entries': [hex(ea) for ea in sorted(candidates)],\n"
+        "            }\n"
+        "result = json.dumps(result_obj)\n"
+    )
+    try:
+        eval_result = await session.call_tool(
+            name="py_eval",
+            arguments={"code": py_code},
+        )
+        eval_data = parse_mcp_result(eval_result)
+    except Exception as e:
+        if debug:
+            print(f"    Preprocess: py_eval error while probing func start: {e}")
+        return None
+
+    return _parse_py_eval_json_object(eval_data, debug=debug)
+
+
+async def _read_covering_func_start_via_mcp(session, code_addr, debug=False):
+    """Read the function start covering code_addr, or return None."""
+    try:
+        code_addr_int = _parse_int_value(code_addr)
+    except Exception:
+        return None
+
+    py_code = (
+        "import idaapi, json\n"
+        f"code_addr = {code_addr_int}\n"
+        "func = idaapi.get_func(code_addr)\n"
+        "if func:\n"
+        "    result = json.dumps({\n"
+        "        'status': 'resolved',\n"
+        "        'func_start': hex(func.start_ea),\n"
+        "    })\n"
+        "else:\n"
+        "    result = json.dumps({'status': 'no_function'})\n"
+    )
+    try:
+        eval_result = await session.call_tool(
+            name="py_eval",
+            arguments={"code": py_code},
+        )
+        eval_data = parse_mcp_result(eval_result)
+    except Exception as e:
+        if debug:
+            print(f"    Preprocess: py_eval error while verifying func start: {e}")
+        return None
+
+    parsed = _parse_py_eval_json_object(eval_data, debug=debug)
+    if not parsed or parsed.get("status") != "resolved":
+        return None
+    try:
+        return _parse_int_value(parsed.get("func_start"))
+    except Exception:
+        return None
+
+
+async def _normalize_func_start_for_code_addr(session, code_addr, debug=False):
+    """Resolve the function start for a code address, recovering undefined funcs."""
+    try:
+        code_addr_int = _parse_int_value(code_addr)
+    except Exception:
+        return None
+
+    probe = await _probe_func_start_or_entry_candidate(
+        session=session,
+        code_addr=code_addr_int,
+        debug=debug,
+    )
+    if not probe:
+        return None
+
+    status = probe.get("status")
+    if status == "resolved":
+        try:
+            return _parse_int_value(probe.get("func_start"))
+        except Exception:
+            return None
+
+    if status != "needs_define":
+        if debug:
+            print(
+                "    Preprocess: undefined func recovery skipped: "
+                f"{status or 'unknown'}"
+            )
+        return None
+
+    try:
+        entry = _parse_int_value(probe.get("entry"))
+    except Exception:
+        return None
+
+    try:
+        await session.call_tool(
+            name="define_func",
+            arguments={"items": {"addr": hex(entry)}},
+        )
+    except Exception as e:
+        if debug:
+            print(f"    Preprocess: define_func failed for {hex(entry)}: {e}")
+        return None
+
+    func_start = await _read_covering_func_start_via_mcp(
+        session=session,
+        code_addr=code_addr_int,
+        debug=debug,
+    )
+    if func_start is None and debug:
+        print(
+            "    Preprocess: recovered function does not cover "
+            f"{hex(code_addr_int)}"
+        )
+    return func_start
+
+
+async def _normalize_func_starts_for_code_addrs(session, code_addrs, debug=False):
+    """Normalize raw code addresses into a set of covering function starts."""
+    func_starts = set()
+    for code_addr in sorted(code_addrs):
+        func_start = await _normalize_func_start_for_code_addr(
+            session=session,
+            code_addr=code_addr,
+            debug=debug,
+        )
+        if func_start is not None:
+            func_starts.add(func_start)
     return func_starts
 
 
@@ -4513,17 +4788,15 @@ async def _collect_xref_func_starts_for_string(session, xref_string, debug=False
         match_expr = "current_str == search_str"
 
     py_code = (
-        "import idautils, idaapi, json\n"
+        "import idautils, json\n"
         f"search_str = {json.dumps(search_str)}\n"
-        "func_starts = set()\n"
+        "code_addrs = set()\n"
         "for s in idautils.Strings():\n"
         "    current_str = str(s)\n"
         f"    if {match_expr}:\n"
         "        for xref in idautils.XrefsTo(s.ea, 0):\n"
-        "            f = idaapi.get_func(xref.frm)\n"
-        "            if f:\n"
-        "                func_starts.add(f.start_ea)\n"
-        "result = json.dumps([hex(ea) for ea in sorted(func_starts)])\n"
+        "            code_addrs.add(xref.frm)\n"
+        "result = json.dumps([hex(ea) for ea in sorted(code_addrs)])\n"
     )
 
     try:
@@ -4537,7 +4810,14 @@ async def _collect_xref_func_starts_for_string(session, xref_string, debug=False
             print(f"    Preprocess: py_eval error for xref string search: {e}")
         return None
 
-    return _parse_func_start_set_from_py_eval(eval_data, debug=debug)
+    code_addrs = _parse_int_set_from_py_eval(eval_data, debug=debug)
+    if code_addrs is None:
+        return None
+    return await _normalize_func_starts_for_code_addrs(
+        session=session,
+        code_addrs=code_addrs,
+        debug=debug,
+    )
 
 
 async def _collect_xref_func_starts_for_ea(session, target_ea, debug=False):
@@ -4553,14 +4833,12 @@ async def _collect_xref_func_starts_for_ea(session, target_ea, debug=False):
         return set()
 
     py_code = (
-        "import idautils, idaapi, json\n"
+        "import idautils, json\n"
         f"target_ea = {target_ea_int}\n"
-        "func_starts = set()\n"
+        "code_addrs = set()\n"
         "for xref in idautils.XrefsTo(target_ea, 0):\n"
-        "    f = idaapi.get_func(xref.frm)\n"
-        "    if f:\n"
-        "        func_starts.add(f.start_ea)\n"
-        "result = json.dumps([hex(ea) for ea in sorted(func_starts)])\n"
+        "    code_addrs.add(xref.frm)\n"
+        "result = json.dumps([hex(ea) for ea in sorted(code_addrs)])\n"
     )
 
     try:
@@ -4574,7 +4852,14 @@ async def _collect_xref_func_starts_for_ea(session, target_ea, debug=False):
             print(f"    Preprocess: py_eval error for xref ea search: {e}")
         return None
 
-    return _parse_func_start_set_from_py_eval(eval_data, debug=debug)
+    code_addrs = _parse_int_set_from_py_eval(eval_data, debug=debug)
+    if code_addrs is None:
+        return None
+    return await _normalize_func_starts_for_code_addrs(
+        session=session,
+        code_addrs=code_addrs,
+        debug=debug,
+    )
 
 
 async def _collect_xref_func_starts_for_signature(
@@ -4607,38 +4892,19 @@ async def _collect_xref_func_starts_for_signature(
     if not isinstance(matches, list) or not matches:
         return set()
 
-    match_addrs = []
+    match_addrs = set()
     for match in matches:
         try:
-            match_addrs.append(_parse_int_value(match))
+            match_addrs.add(_parse_int_value(match))
         except Exception:
             continue
     if not match_addrs:
         return set()
-
-    py_code = (
-        "import idaapi, json\n"
-        f"match_addrs = {match_addrs!r}\n"
-        "func_starts = set()\n"
-        "for match_ea in match_addrs:\n"
-        "    f = idaapi.get_func(match_ea)\n"
-        "    if f:\n"
-        "        func_starts.add(f.start_ea)\n"
-        "result = json.dumps([hex(ea) for ea in sorted(func_starts)])\n"
+    return await _normalize_func_starts_for_code_addrs(
+        session=session,
+        code_addrs=match_addrs,
+        debug=debug,
     )
-
-    try:
-        eval_result = await session.call_tool(
-            name="py_eval",
-            arguments={"code": py_code},
-        )
-        eval_data = parse_mcp_result(eval_result)
-    except Exception as e:
-        if debug:
-            print(f"    Preprocess: py_eval error for xref signature search: {e}")
-        return None
-
-    return _parse_func_start_set_from_py_eval(eval_data, debug=debug)
 
 
 async def _get_func_basic_info_via_mcp(session, func_va, image_base, debug=False):
@@ -6268,6 +6534,8 @@ async def preprocess_common_skill(
                     llm_target_detail = await _load_llm_decompile_target_detail_via_mcp(
                         session,
                         llm_request["target_func_name"],
+                        new_binary_dir=new_binary_dir,
+                        platform=platform,
                         debug=debug,
                     )
                     if llm_target_detail is None:
@@ -6503,6 +6771,8 @@ async def preprocess_common_skill(
                     llm_target_detail = await _load_llm_decompile_target_detail_via_mcp(
                         session,
                         llm_request["target_func_name"],
+                        new_binary_dir=new_binary_dir,
+                        platform=platform,
                         debug=debug,
                     )
                     if llm_target_detail is None:
@@ -6642,6 +6912,8 @@ async def preprocess_common_skill(
                     llm_target_detail = await _load_llm_decompile_target_detail_via_mcp(
                         session,
                         llm_request["target_func_name"],
+                        new_binary_dir=new_binary_dir,
+                        platform=platform,
                         debug=debug,
                     )
                     if llm_target_detail is None:

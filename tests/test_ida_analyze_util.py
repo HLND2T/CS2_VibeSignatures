@@ -1080,16 +1080,26 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
         self,
     ) -> None:
         session = AsyncMock()
-        session.call_tool.return_value = _py_eval_payload(["0x180001000"])
+        session.call_tool.return_value = _py_eval_payload(["0x180001123"])
 
-        result = await ida_analyze_util._collect_xref_func_starts_for_string(
-            session=session,
-            xref_string="_projectile",
-            debug=True,
-        )
+        with patch.object(
+            ida_analyze_util,
+            "_normalize_func_starts_for_code_addrs",
+            AsyncMock(return_value={0x180001000}),
+        ) as mock_normalize:
+            result = await ida_analyze_util._collect_xref_func_starts_for_string(
+                session=session,
+                xref_string="_projectile",
+                debug=True,
+            )
 
         self.assertEqual({0x180001000}, result)
         session.call_tool.assert_awaited_once()
+        mock_normalize.assert_awaited_once_with(
+            session=session,
+            code_addrs={0x180001123},
+            debug=True,
+        )
         py_code = session.call_tool.await_args.kwargs["arguments"]["code"]
         self.assertIn('search_str = "_projectile"', py_code)
         self.assertIn("if search_str in current_str:", py_code)
@@ -1099,21 +1109,327 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
         self,
     ) -> None:
         session = AsyncMock()
-        session.call_tool.return_value = _py_eval_payload(["0x180001000"])
+        session.call_tool.return_value = _py_eval_payload(["0x180001123"])
 
-        result = await ida_analyze_util._collect_xref_func_starts_for_string(
-            session=session,
-            xref_string="FULLMATCH:_projectile",
-            debug=True,
-        )
+        with patch.object(
+            ida_analyze_util,
+            "_normalize_func_starts_for_code_addrs",
+            AsyncMock(return_value={0x180001000}),
+        ) as mock_normalize:
+            result = await ida_analyze_util._collect_xref_func_starts_for_string(
+                session=session,
+                xref_string="FULLMATCH:_projectile",
+                debug=True,
+            )
 
         self.assertEqual({0x180001000}, result)
         session.call_tool.assert_awaited_once()
+        mock_normalize.assert_awaited_once_with(
+            session=session,
+            code_addrs={0x180001123},
+            debug=True,
+        )
         py_code = session.call_tool.await_args.kwargs["arguments"]["code"]
         self.assertIn('search_str = "_projectile"', py_code)
         self.assertIn("if current_str == search_str:", py_code)
         self.assertNotIn("if search_str in current_str:", py_code)
         self.assertNotIn("FULLMATCH:_projectile", py_code)
+
+    async def test_collect_xref_func_starts_for_string_normalizes_raw_xref_from_addrs(
+        self,
+    ) -> None:
+        session = AsyncMock()
+        session.call_tool.return_value = _py_eval_payload(
+            ["0x180001123", "0x180001456", "invalid", "0x180001123"]
+        )
+
+        with patch.object(
+            ida_analyze_util,
+            "_normalize_func_starts_for_code_addrs",
+            AsyncMock(return_value={0x180001000, 0x180002000}),
+        ) as mock_normalize:
+            result = await ida_analyze_util._collect_xref_func_starts_for_string(
+                session=session,
+                xref_string="_projectile",
+                debug=True,
+            )
+
+        self.assertEqual({0x180001000, 0x180002000}, result)
+        mock_normalize.assert_awaited_once_with(
+            session=session,
+            code_addrs={0x180001123, 0x180001456},
+            debug=True,
+        )
+        py_code = session.call_tool.await_args.kwargs["arguments"]["code"]
+        self.assertIn("code_addrs = set()", py_code)
+        self.assertIn("code_addrs.add(xref.frm)", py_code)
+        self.assertNotIn("idaapi.get_func(xref.frm)", py_code)
+
+    async def test_collect_xref_func_starts_for_ea_normalizes_raw_xref_from_addrs(
+        self,
+    ) -> None:
+        session = AsyncMock()
+        session.call_tool.return_value = _py_eval_payload(
+            ["0x180010123", "0x180010456", "bad-value", "0x180010123"]
+        )
+
+        with patch.object(
+            ida_analyze_util,
+            "_normalize_func_starts_for_code_addrs",
+            AsyncMock(return_value={0x180010000}),
+        ) as mock_normalize:
+            result = await ida_analyze_util._collect_xref_func_starts_for_ea(
+                session=session,
+                target_ea="0x1800ABCDEF",
+                debug=True,
+            )
+
+        self.assertEqual({0x180010000}, result)
+        mock_normalize.assert_awaited_once_with(
+            session=session,
+            code_addrs={0x180010123, 0x180010456},
+            debug=True,
+        )
+        py_code = session.call_tool.await_args.kwargs["arguments"]["code"]
+        self.assertIn("code_addrs = set()", py_code)
+        self.assertIn("code_addrs.add(xref.frm)", py_code)
+        self.assertNotIn("idaapi.get_func(xref.frm)", py_code)
+
+    async def test_collect_xref_func_starts_for_signature_normalizes_match_addrs_directly(
+        self,
+    ) -> None:
+        session = AsyncMock()
+        session.call_tool.return_value = _FakeCallToolResult(
+            [{"matches": ["0x180020123", "0x180020456", "oops", "0x180020123"]}]
+        )
+
+        with patch.object(
+            ida_analyze_util,
+            "_normalize_func_starts_for_code_addrs",
+            AsyncMock(return_value={0x180020000}),
+        ) as mock_normalize:
+            result = await ida_analyze_util._collect_xref_func_starts_for_signature(
+                session=session,
+                xref_signature="48 8B ?? ??",
+                debug=True,
+            )
+
+        self.assertEqual({0x180020000}, result)
+        session.call_tool.assert_awaited_once_with(
+            name="find_bytes",
+            arguments={"patterns": ["48 8B ?? ??"]},
+        )
+        mock_normalize.assert_awaited_once_with(
+            session=session,
+            code_addrs={0x180020123, 0x180020456},
+            debug=True,
+        )
+
+    async def test_normalize_func_start_returns_existing_function(self) -> None:
+        session = AsyncMock()
+        session.call_tool.return_value = _py_eval_payload(
+            {"status": "resolved", "func_start": "0x180001000"}
+        )
+
+        result = await ida_analyze_util._normalize_func_start_for_code_addr(
+            session=session,
+            code_addr=0x180001020,
+            debug=True,
+        )
+
+        self.assertEqual(0x180001000, result)
+        session.call_tool.assert_awaited_once()
+        self.assertEqual("py_eval", session.call_tool.await_args.kwargs["name"])
+
+    async def test_normalize_func_start_defines_unique_entry_candidate(self) -> None:
+        session = AsyncMock()
+        session.call_tool.side_effect = [
+            _py_eval_payload({"status": "needs_define", "entry": "0x180001000"}),
+            _FakeCallToolResult({"ok": True}),
+            _py_eval_payload({"status": "resolved", "func_start": "0x180001000"}),
+        ]
+
+        result = await ida_analyze_util._normalize_func_start_for_code_addr(
+            session=session,
+            code_addr=0x180001050,
+            debug=True,
+        )
+
+        self.assertEqual(0x180001000, result)
+        self.assertEqual(3, session.call_tool.await_count)
+        define_call = session.call_tool.await_args_list[1]
+        self.assertEqual("define_func", define_call.kwargs["name"])
+        self.assertEqual(
+            {"items": {"addr": "0x180001000"}},
+            define_call.kwargs["arguments"],
+        )
+
+    async def test_normalize_func_start_returns_none_when_define_does_not_cover_code_addr(
+        self,
+    ) -> None:
+        session = AsyncMock()
+
+        with patch.object(
+            ida_analyze_util,
+            "_probe_func_start_or_entry_candidate",
+            AsyncMock(return_value={"status": "needs_define", "entry": "0x180001000"}),
+        ), patch.object(
+            ida_analyze_util,
+            "_read_covering_func_start_via_mcp",
+            AsyncMock(return_value=None),
+        ) as mock_read_covering:
+            result = await ida_analyze_util._normalize_func_start_for_code_addr(
+                session=session,
+                code_addr=0x180001050,
+                debug=True,
+            )
+
+        self.assertIsNone(result)
+        session.call_tool.assert_awaited_once_with(
+            name="define_func",
+            arguments={"items": {"addr": "0x180001000"}},
+        )
+        mock_read_covering.assert_awaited_once_with(
+            session=session,
+            code_addr=0x180001050,
+            debug=True,
+        )
+
+    async def test_normalize_func_start_skips_multiple_entry_candidates(self) -> None:
+        session = AsyncMock()
+        session.call_tool.return_value = _py_eval_payload(
+            {
+                "status": "multiple_entries",
+                "entries": ["0x180001000", "0x180001020"],
+            }
+        )
+
+        result = await ida_analyze_util._normalize_func_start_for_code_addr(
+            session=session,
+            code_addr=0x180001050,
+            debug=True,
+        )
+
+        self.assertIsNone(result)
+        session.call_tool.assert_awaited_once()
+
+    async def test_normalize_func_start_skips_existing_function_collision(self) -> None:
+        session = AsyncMock()
+        session.call_tool.return_value = _py_eval_payload(
+            {
+                "status": "blocked_existing_function",
+                "func_start": "0x180000F00",
+            }
+        )
+
+        result = await ida_analyze_util._normalize_func_start_for_code_addr(
+            session=session,
+            code_addr=0x180001050,
+            debug=True,
+        )
+
+        self.assertIsNone(result)
+        session.call_tool.assert_awaited_once()
+
+    async def test_probe_func_start_preserves_candidates_before_existing_function(
+        self,
+    ) -> None:
+        session = AsyncMock()
+        session.call_tool.return_value = _py_eval_payload({"status": "no_entry"})
+
+        await ida_analyze_util._probe_func_start_or_entry_candidate(
+            session=session,
+            code_addr=0x180001050,
+            debug=True,
+        )
+
+        py_code = session.call_tool.await_args.kwargs["arguments"]["code"]
+        self.assertRegex(
+            py_code,
+            r"if other_func:\n"
+            r"\s+if candidates:\n"
+            r"\s+break\n"
+            r"\s+result_obj = \{\n"
+            r"\s+'status': 'blocked_existing_function'",
+        )
+
+    async def test_normalize_func_start_probe_uses_conservative_filters(self) -> None:
+        session = AsyncMock()
+        session.call_tool.return_value = _py_eval_payload({"status": "no_entry"})
+
+        await ida_analyze_util._normalize_func_start_for_code_addr(
+            session=session,
+            code_addr=0x180001050,
+            debug=True,
+        )
+
+        py_code = session.call_tool.await_args.kwargs["arguments"]["code"]
+        self.assertIn("0x200", py_code)
+        self.assertIn("'call'", py_code)
+        self.assertIn("'jmp'", py_code)
+        self.assertIn("'lea'", py_code)
+        self.assertIn("ref_func = idaapi.get_func(xref.frm)", py_code)
+        self.assertNotIn("result_obj = {'status': 'needs_define', 'entry': hex(code_addr)}", py_code)
+
+    async def test_normalize_func_start_returns_none_for_invalid_py_eval_payloads(
+        self,
+    ) -> None:
+        payloads = [
+            _FakeCallToolResult(["not-a-dict"]),
+            _FakeCallToolResult({"result": "not-json", "stdout": "", "stderr": ""}),
+            _FakeCallToolResult({"result": json.dumps(["not-a-dict"]), "stdout": "", "stderr": ""}),
+        ]
+
+        for payload in payloads:
+            with self.subTest(payload=payload.content[0].text):
+                session = AsyncMock()
+                session.call_tool.return_value = payload
+
+                result = await ida_analyze_util._normalize_func_start_for_code_addr(
+                    session=session,
+                    code_addr=0x180001050,
+                    debug=True,
+                )
+
+                self.assertIsNone(result)
+                session.call_tool.assert_awaited_once()
+
+    def test_parse_int_set_from_py_eval_returns_none_for_non_list_payload(self) -> None:
+        result = ida_analyze_util._parse_int_set_from_py_eval(
+            {
+                "result": json.dumps({"func_start": "0x180001000"}),
+                "stdout": "",
+                "stderr": "",
+            },
+            debug=True,
+        )
+
+        self.assertIsNone(result)
+
+    async def test_normalize_func_starts_for_code_addrs_deduplicates_and_filters_none(
+        self,
+    ) -> None:
+        with patch.object(
+            ida_analyze_util,
+            "_normalize_func_start_for_code_addr",
+            AsyncMock(side_effect=[0x180001000, None, 0x180001000, 0x180002000]),
+        ) as mock_normalize:
+            result = await ida_analyze_util._normalize_func_starts_for_code_addrs(
+                session="session",
+                code_addrs=[0x180001030, 0x180001010, 0x180001020, 0x180001040],
+                debug=True,
+            )
+
+        self.assertEqual({0x180001000, 0x180002000}, result)
+        self.assertEqual(
+            [
+                call(session="session", code_addr=0x180001010, debug=True),
+                call(session="session", code_addr=0x180001020, debug=True),
+                call(session="session", code_addr=0x180001030, debug=True),
+                call(session="session", code_addr=0x180001040, debug=True),
+            ],
+            mock_normalize.await_args_list,
+        )
 
     async def test_preprocess_func_xrefs_intersects_string_and_signature_sets(
         self,
@@ -1554,6 +1870,97 @@ found_struct_offset: []
                 "found_struct_offset": [],
             },
             parsed,
+        )
+
+    async def test_load_llm_decompile_target_detail_prefers_current_yaml_func_va(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            module_dir = Path(temp_dir) / "server"
+            _write_yaml(
+                module_dir / "BotAdd_CommandHandler.windows.yaml",
+                {
+                    "func_name": "BotAdd_CommandHandler",
+                    "func_va": "0x1802DA7B0",
+                },
+            )
+            expected_payload = {
+                "func_name": "BotAdd_CommandHandler",
+                "func_va": "0x1802da7b0",
+                "disasm_code": "call    CCSBotManager_AddBot",
+                "procedure": "void __fastcall BotAdd_CommandHandler()",
+            }
+            session = AsyncMock()
+
+            with patch.object(
+                ida_analyze_util,
+                "_export_function_detail_via_mcp",
+                AsyncMock(return_value=expected_payload),
+            ) as mock_export, patch.object(
+                ida_analyze_util,
+                "_find_function_addr_by_names_via_mcp",
+                AsyncMock(return_value="0x180000000"),
+            ) as mock_find:
+                result = await ida_analyze_util._load_llm_decompile_target_detail_via_mcp(
+                    session=session,
+                    target_func_name="BotAdd_CommandHandler",
+                    new_binary_dir=str(module_dir),
+                    platform="windows",
+                    debug=True,
+                )
+
+        self.assertEqual(expected_payload, result)
+        mock_export.assert_awaited_once_with(
+            session,
+            "BotAdd_CommandHandler",
+            "0x1802da7b0",
+            debug=True,
+        )
+        mock_find.assert_not_awaited()
+
+    async def test_load_llm_decompile_target_detail_falls_back_to_name_lookup_when_current_yaml_missing_func_va(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            module_dir = Path(temp_dir) / "server"
+            _write_yaml(
+                module_dir / "BotAdd_CommandHandler.windows.yaml",
+                {
+                    "func_name": "BotAdd_CommandHandler",
+                },
+            )
+            expected_payload = {
+                "func_name": "BotAdd_CommandHandler",
+                "func_va": "0x1802da7b0",
+                "disasm_code": "call    CCSBotManager_AddBot",
+                "procedure": "void __fastcall BotAdd_CommandHandler()",
+            }
+            session = AsyncMock()
+
+            with patch.object(
+                ida_analyze_util,
+                "_find_function_addr_by_names_via_mcp",
+                AsyncMock(return_value="0x1802da7b0"),
+            ) as mock_find, patch.object(
+                ida_analyze_util,
+                "_export_function_detail_via_mcp",
+                AsyncMock(return_value=expected_payload),
+            ) as mock_export:
+                result = await ida_analyze_util._load_llm_decompile_target_detail_via_mcp(
+                    session=session,
+                    target_func_name="BotAdd_CommandHandler",
+                    new_binary_dir=str(module_dir),
+                    platform="windows",
+                    debug=True,
+                )
+
+        self.assertEqual(expected_payload, result)
+        mock_find.assert_awaited_once()
+        mock_export.assert_awaited_once_with(
+            session,
+            "BotAdd_CommandHandler",
+            "0x1802da7b0",
+            debug=True,
         )
 
     async def test_preprocess_func_sig_via_mcp_supports_direct_vtable_generation(

@@ -130,7 +130,7 @@ disasm_code: |-
   .text:0000000180026E04                 mov     [rbp+0A0h+var_E0], r15
   .text:0000000180026E08                 mov     [rsp+1A0h+var_130], r8
   .text:0000000180026E0D                 mov     rax, [rcx]
-  .text:0000000180026E10                 call    qword ptr [rax+0F8h]; g_pNetworkMessages->FindNetworkMessageById, 0xF8 = INetworkMessages_FindNetworkMessageById
+  .text:0000000180026E10                 call    qword ptr [rax+0F8h]; 0xF8 = 248LL = INetworkMessages_FindNetworkMessageById
   .text:0000000180026E16                 mov     edx, ebx
   .text:0000000180026E18                 mov     rcx, r13
   .text:0000000180026E1B                 mov     rdi, rax
@@ -463,7 +463,7 @@ procedure: |-
           v46 = &qword_18062C670;
           v36 = &CNETMsg_SpawnGroup_Load_t::`vftable';
           v12 = (*(__int64 (__fastcall **)(__int64, __int64))(*(_QWORD *)g_pNetworkMessages
-                                                            + 248LL))(// g_pNetworkMessages->FindNetworkMessageById, 248LL = INetworkMessages_FindNetworkMessageById
+                                                            + 248LL))(  // 248LL = INetworkMessages_FindNetworkMessageById
                   g_pNetworkMessages,
                   8);
           v13 = sub_180088500(v2, v11);

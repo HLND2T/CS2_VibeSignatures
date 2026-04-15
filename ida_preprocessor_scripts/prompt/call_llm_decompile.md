@@ -1,4 +1,4 @@
-You are a reverse engineering expert. I have disassembly outputs and procedure code of the same function.
+I have disassembly outputs and procedure code of the same function.
 
 This is the function for reference:
 
@@ -28,7 +28,7 @@ This is the function you need to reverse-engineering:
 {procedure}
 ```
 
-Please collect all references to "{symbol_name_list}" in the function you need to reverse-engineering and output those references as YAML.
+What you need to do is to collect all references to "{symbol_name_list}" in the function you need to reverse-engineering and output those references as YAML.
 
 Example:
 
@@ -55,7 +55,10 @@ found_funcptr: # This is for non-virtual regular function pointer.
     funcptr_name: CLoopModeGame_OnClientPollNetworking
 found_gv: # This is for reference to global variable.
   - insn_va: '0x180444400'
-    insn_disasm: mov     rcx, cs:qword_180666600
+    insn_disasm: mov     rcx, cs:qword_180666600 # Must load/reference the global variable
+    gv_name: g_pNetworkMessages
+  - insn_va: '0x180333300'
+    insn_disasm: lea     rax, unk_180222200      # Must load/reference the global variable
     gv_name: s_GameEventManager
 found_struct_offset: # This is for reference to struct offset.
   - insn_va: '0x1801BA12A'                # Always be the instruction with displacement offset

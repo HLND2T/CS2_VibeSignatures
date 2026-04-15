@@ -53,6 +53,7 @@ async def preprocess_skill(
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         command_name=COMMAND_NAME,
         help_string=HELP_STRING,
+        rename_to=TARGET_FUNCTION_NAMES[0],
         search_window_before_call=SEARCH_WINDOW_BEFORE_CALL,
         search_window_after_xref=SEARCH_WINDOW_AFTER_XREF,
         debug=debug,
