@@ -21,6 +21,11 @@ FUNC_XREFS = [
     ),
 ]
 
+FUNC_VTABLE_RELATIONS = [
+    # (func_name, vtable_class)
+    ("CBtActionCoordinatedBuy_Update", "CBtActionCoordinatedBuy"),
+]
+
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
     # func_sig omitted: this large function cannot generate a unique head-signature;
@@ -53,6 +58,7 @@ async def preprocess_skill(
         image_base=image_base,
         func_names=TARGET_FUNCTION_NAMES,
         func_xrefs=FUNC_XREFS,
+        func_vtable_relations=FUNC_VTABLE_RELATIONS,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
     )
