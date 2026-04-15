@@ -1833,9 +1833,15 @@ modules:
           - BotKill_CommandHandler.{platform}.yaml
           - CBasePlayerPawn_vtable.{platform}.yaml
 
+      - name: find-ScriptBinding_CSPlayerPawn_DestroyWeapon
+        expected_output:
+          - ScriptBinding_CSPlayerPawn_DestroyWeapon.{platform}.yaml
+
       - name: find-CBasePlayerPawn_RemovePlayerItem
         expected_output:
           - CBasePlayerPawn_RemovePlayerItem.{platform}.yaml
+        expected_input:
+          - ScriptBinding_CSPlayerPawn_DestroyWeapon.{platform}.yaml
 
       - name: find-CCSBot_Upkeep
         expected_output:
@@ -2859,6 +2865,11 @@ modules:
         category: func
         alias:
           - CBaseCombatCharacter::OnKilled
+
+      - name: ScriptBinding_CSPlayerPawn_DestroyWeapon
+        category: func
+        alias:
+          - CSPlayerPawn::DestroyWeapon
 
       - name: CBasePlayerPawn_RemovePlayerItem
         category: func

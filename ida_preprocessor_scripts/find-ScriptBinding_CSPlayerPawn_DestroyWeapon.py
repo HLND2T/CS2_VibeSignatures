@@ -1,25 +1,32 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CBasePlayerPawn_RemovePlayerItem skill."""
+"""Preprocess script for find-ScriptBinding_CSPlayerPawn_DestroyWeapon skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = [
-    "CBasePlayerPawn_RemovePlayerItem",
+    "ScriptBinding_CSPlayerPawn_DestroyWeapon",
 ]
 
-LLM_DECOMPILE = [
-    # (symbol_name, path_to_prompt, path_to_reference)
+FUNC_XREFS = [
+    # (func_name, xref_strings_list, xref_signatures_list, xref_funcs_list, exclude_funcs_list, exclude_strings_list)
     (
-        "CBasePlayerPawn_RemovePlayerItem",
-        "prompt/call_llm_decompile.md",
-        "references/server/ScriptBinding_CSPlayerPawn_DestroyWeapon.{platform}.yaml",
+        "ScriptBinding_CSPlayerPawn_DestroyWeapon",
+        [
+            "FULLMATCH:CSPlayerPawn",
+            "FULLMATCH:DestroyWeapon",
+            "(target: weapon)",
+        ],
+        [],
+        [],
+        [],
+        [],
     ),
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
     (
-        "CBasePlayerPawn_RemovePlayerItem",
+        "ScriptBinding_CSPlayerPawn_DestroyWeapon",
         [
             "func_name",
             "func_sig",
@@ -33,7 +40,7 @@ GENERATE_YAML_DESIRED_FIELDS = [
 
 async def preprocess_skill(
     session, skill_name, expected_outputs, old_yaml_map,
-    new_binary_dir, platform, image_base, llm_config=None, debug=False,
+    new_binary_dir, platform, image_base, debug=False,
 ):
     """Reuse previous gamever func_sig to locate target function(s) and write YAML."""
     return await preprocess_common_skill(
@@ -44,8 +51,7 @@ async def preprocess_skill(
         platform=platform,
         image_base=image_base,
         func_names=TARGET_FUNCTION_NAMES,
-        llm_decompile_specs=LLM_DECOMPILE,
-        llm_config=llm_config,
+        func_xrefs=FUNC_XREFS,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
     )
