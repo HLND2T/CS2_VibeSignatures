@@ -1783,10 +1783,15 @@ modules:
         expected_input:
           - CEnvShake_Spawn.{platform}.yaml
 
+      - name: find-BotKill_CommandHandler
+        expected_output:
+          - BotKill_CommandHandler.{platform}.yaml
+
       - name: find-CBasePlayerPawn_CommitSuicide
         expected_output:
           - CBasePlayerPawn_CommitSuicide.{platform}.yaml
         expected_input:
+          - BotKill_CommandHandler.{platform}.yaml
           - CBasePlayerPawn_vtable.{platform}.yaml
 
       - name: find-CBasePlayerPawn_RemovePlayerItem
@@ -3183,6 +3188,11 @@ modules:
         category: func
         alias:
           - CCSBotManager::BotAddCommand
+
+      - name: BotKill_CommandHandler
+        category: func
+        alias:
+          - CCSBotManager::BotKillCommand
 
       - name: g_pCSBotManager
         category: gv

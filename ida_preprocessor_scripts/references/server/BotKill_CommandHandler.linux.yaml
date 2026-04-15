@@ -1,0 +1,185 @@
+func_name: BotKill_CommandHandler
+func_va: '0xb62d70'
+disasm_code: |-
+  .text:0000000000B62D70                 push    rbp
+  .text:0000000000B62D71                 mov     rbp, rsp
+  .text:0000000000B62D74                 push    r15
+  .text:0000000000B62D76                 push    r14
+  .text:0000000000B62D78                 push    r13
+  .text:0000000000B62D7A                 push    r12
+  .text:0000000000B62D7C                 push    rbx
+  .text:0000000000B62D7D                 mov     rbx, rsi
+  .text:0000000000B62D80                 sub     rsp, 0D8h
+  .text:0000000000B62D87                 call    sub_18D3360
+  .text:0000000000B62D8C                 test    al, al
+  .text:0000000000B62D8E                 jnz     short loc_B62DA8
+  .text:0000000000B62D90                 add     rsp, 0D8h
+  .text:0000000000B62D97                 pop     rbx
+  .text:0000000000B62D98                 pop     r12
+  .text:0000000000B62D9A                 pop     r13
+  .text:0000000000B62D9C                 pop     r14
+  .text:0000000000B62D9E                 pop     r15
+  .text:0000000000B62DA0                 pop     rbp
+  .text:0000000000B62DA1                 retn
+  .text:0000000000B62DA8                 mov     rax, 0C000008000000000h
+  .text:0000000000B62DB2                 mov     rdi, rbx
+  .text:0000000000B62DB5                 mov     [rbp+var_B8], 0
+  .text:0000000000B62DC0                 mov     [rbp+var_C0], rax
+  .text:0000000000B62DC7                 lea     rax, [rbp+var_C0]
+  .text:0000000000B62DCE                 lea     rcx, [rbp+var_EC]
+  .text:0000000000B62DD5                 mov     rsi, rax
+  .text:0000000000B62DD8                 mov     [rbp+var_100], rax
+  .text:0000000000B62DDF                 lea     rdx, [rbp+var_E8]
+  .text:0000000000B62DE6                 lea     r9, [rbp+var_ED]
+  .text:0000000000B62DED                 lea     r8, [rbp+var_E4]
+  .text:0000000000B62DF4                 call    sub_B3A800
+  .text:0000000000B62DF9                 mov     eax, dword ptr [rbp+var_C0]
+  .text:0000000000B62DFF                 mov     ecx, [rbp+var_E4]
+  .text:0000000000B62E05                 mov     edx, [rbp+var_EC]
+  .text:0000000000B62E0B                 and     eax, 3FFFFFFFh
+  .text:0000000000B62E10                 or      eax, ecx
+  .text:0000000000B62E12                 jnz     short loc_B62E1D
+  .text:0000000000B62E14                 cmp     edx, 4
+  .text:0000000000B62E17                 jz      loc_B62F4C
+  .text:0000000000B62E1D                 mov     esi, [rbp+var_E8]
+  .text:0000000000B62E23                 lea     rdi, [rbp+var_B8]
+  .text:0000000000B62E2A                 mov     [rbp+var_D0], 0
+  .text:0000000000B62E34                 test    byte ptr [rbp+var_C0+7], 40h
+  .text:0000000000B62E3B                 jnz     short loc_B62E54
+  .text:0000000000B62E3D                 lea     rdi, byte_8D6258
+  .text:0000000000B62E44                 test    dword ptr [rbp+var_C0+4], 3FFFFFFFh
+  .text:0000000000B62E4E                 jnz     loc_B62F40
+  .text:0000000000B62E54                 mov     [rbp+var_E0], 0
+  .text:0000000000B62E5E                 lea     r8, [rbp+var_E0]
+  .text:0000000000B62E65                 mov     [rbp+var_D8], 0
+  .text:0000000000B62E70                 mov     [rbp+var_CC], 0
+  .text:0000000000B62E7A                 call    sub_B628C0
+  .text:0000000000B62E7F                 mov     ecx, [rbp+var_CC]
+  .text:0000000000B62E85                 movsxd  rax, [rbp+var_E0]
+  .text:0000000000B62E8C                 mov     r13, [rbp+var_D8]
+  .text:0000000000B62E93                 mov     [rbp+var_F4], ecx
+  .text:0000000000B62E99                 test    eax, eax
+  .text:0000000000B62E9B                 jle     short loc_B62F00
+  .text:0000000000B62E9D                 lea     r12, [r13+rax*8+0]
+  .text:0000000000B62EA2                 mov     r15, r13
+  .text:0000000000B62EA5                 lea     rbx, CBaseEntity_IsAlive
+  .text:0000000000B62EAC                 jmp     short loc_B62ED5
+  .text:0000000000B62EB0                 cmp     byte ptr [rdi+5C0h], 0
+  .text:0000000000B62EB7                 jnz     short loc_B62ECC
+  .text:0000000000B62EB9                 xor     edx, edx
+  .text:0000000000B62EBB                 xor     esi, esi
+  .text:0000000000B62EBD                 call    qword ptr [rax+0C80h] ; 0xC80 = CBasePlayerPawn_CommitSuicide
+  .text:0000000000B62EC3                 cmp     [rbp+var_ED], 0
+  .text:0000000000B62ECA                 jz      short loc_B62F00
+  .text:0000000000B62ECC                 add     r15, 8
+  .text:0000000000B62ED0                 cmp     r15, r12
+  .text:0000000000B62ED3                 jz      short loc_B62F00
+  .text:0000000000B62ED5                 mov     r14, [r15]
+  .text:0000000000B62ED8                 mov     rdi, [r14+18h]
+  .text:0000000000B62EDC                 mov     rax, [rdi]
+  .text:0000000000B62EDF                 mov     rdx, [rax+530h] ; 0x530 = CBaseEntity_IsAlive
+  .text:0000000000B62EE6                 cmp     rdx, rbx
+  .text:0000000000B62EE9                 jz      short loc_B62EB0
+  .text:0000000000B62EEB                 call    rdx
+  .text:0000000000B62EED                 test    al, al
+  .text:0000000000B62EEF                 jz      short loc_B62ECC
+  .text:0000000000B62EF1                 mov     rdi, [r14+18h]
+  .text:0000000000B62EF5                 mov     rax, [rdi]
+  .text:0000000000B62EF8                 jmp     short loc_B62EB9
+  .text:0000000000B62F00                 cmp     [rbp+var_F4], 3FFFFFFFh
+  .text:0000000000B62F0A                 ja      short loc_B62F24
+  .text:0000000000B62F0C                 test    r13, r13
+  .text:0000000000B62F0F                 jz      short loc_B62F24
+  .text:0000000000B62F11                 mov     rax, cs:g_pMemAlloc_ptr
+  .text:0000000000B62F18                 mov     rsi, r13
+  .text:0000000000B62F1B                 mov     rdi, [rax]
+  .text:0000000000B62F1E                 mov     rax, [rdi]
+  .text:0000000000B62F21                 call    qword ptr [rax+20h]
+  .text:0000000000B62F24                 mov     rdi, [rbp+var_100]
+  .text:0000000000B62F2B                 xor     esi, esi
+  .text:0000000000B62F2D                 call    sub_97EF20
+  .text:0000000000B62F32                 jmp     loc_B62D90
+  .text:0000000000B62F40                 mov     rdi, [rbp+var_B8]
+  .text:0000000000B62F47                 jmp     loc_B62E54
+  .text:0000000000B62F4C                 mov     [rbp+var_ED], 1
+  .text:0000000000B62F53                 jmp     loc_B62E1D
+procedure: |-
+  __int64 __fastcall BotKill_CommandHandler(__int64 a1, __int64 a2)
+  {
+    __int64 result; // rax
+    const char *v3; // rdi
+    __int64 *v4; // r13
+    __int64 *v5; // r12
+    __int64 *i; // r15
+    __int64 v7; // r14
+    _BYTE *v8; // rdi
+    __int64 v9; // rax
+    bool (__fastcall *v10)(__int64); // rdx
+    unsigned int v11; // [rsp+Ch] [rbp-F4h]
+    char v12; // [rsp+13h] [rbp-EDh] BYREF
+    unsigned int v13; // [rsp+14h] [rbp-ECh] BYREF
+    unsigned int v14; // [rsp+18h] [rbp-E8h] BYREF
+    unsigned int v15; // [rsp+1Ch] [rbp-E4h] BYREF
+    int v16; // [rsp+20h] [rbp-E0h] BYREF
+    __int64 *v17; // [rsp+28h] [rbp-D8h]
+    int v18; // [rsp+30h] [rbp-D0h]
+    unsigned int v19; // [rsp+34h] [rbp-CCh]
+    unsigned __int64 v20; // [rsp+40h] [rbp-C0h] BYREF
+    const char *v21; // [rsp+48h] [rbp-B8h] BYREF
+
+    result = sub_18D3360();
+    if ( (_BYTE)result )
+    {
+      v21 = nullptr;
+      v20 = 0xC000008000000000LL;
+      sub_B3A800(a2, &v20, &v14, &v13, &v15, &v12);
+      if ( !(v15 | v20 & 0x3FFFFFFF) && v13 == 4 )
+        v12 = 1;
+      v3 = (const char *)&v21;
+      v18 = 0;
+      if ( (v20 & 0x4000000000000000LL) == 0 )
+      {
+        v3 = &byte_8D6258;
+        if ( (v20 & 0x3FFFFFFF00000000LL) != 0 )
+          v3 = v21;
+      }
+      v16 = 0;
+      v17 = nullptr;
+      v19 = 0;
+      sub_B628C0(v3, v14, v13, v15, &v16);
+      v4 = v17;
+      v11 = v19;
+      if ( v16 > 0 )
+      {
+        v5 = &v17[v16];
+        for ( i = v17; i != v5; ++i )
+        {
+          v7 = *i;
+          v8 = *(_BYTE **)(*i + 24);
+          v9 = *(_QWORD *)v8;
+          v10 = *(bool (__fastcall **)(__int64))(*(_QWORD *)v8 + 1328LL); // 1328LL = 0x530 = CBaseEntity_IsAlive
+          if ( v10 == CBaseEntity_IsAlive )
+          {
+            if ( !v8[1472] )
+              goto LABEL_11;
+          }
+          else if ( v10((__int64)v8) )
+          {
+            v8 = *(_BYTE **)(v7 + 24);
+            v9 = *(_QWORD *)v8;
+  LABEL_11:
+            (*(void (__fastcall **)(_BYTE *, _QWORD, _QWORD))(v9 + 3200))(v8, 0, 0); // 3200 = 0xC80 = CBasePlayerPawn_CommitSuicide
+            if ( !v12 )
+              break;
+          }
+        }
+      }
+      if ( v11 <= 0x3FFFFFFF )
+      {
+        if ( v4 )
+          (*(void (__fastcall **)(_QWORD *, __int64 *))(*g_pMemAlloc + 32LL))(g_pMemAlloc, v4);
+      }
+      return sub_97EF20(&v20, 0);
+    }
+    return result;
+  }
