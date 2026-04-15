@@ -1443,11 +1443,18 @@ modules:
         expected_output:
           - CBasePlayerController_HandleCommand_JoinTeam.{platform}.yaml
 
-      - name: find-CBasePlayerController_SetPawn
+      - name: find-CSource2GameClients_ClientDisconnect
+        expected_output:
+          - CSource2GameClients_ClientDisconnect.{platform}.yaml
+        expected_input:
+          - CSource2GameClients_vtable.{platform}.yaml
+
+      - name: find-CBasePlayerController_SetPawn-AND-CBasePlayerController_GetPawn
         expected_output:
           - CBasePlayerController_SetPawn.{platform}.yaml
+          - CBasePlayerController_GetPawn.{platform}.yaml
         expected_input:
-          - CBasePlayerController_vtable.{platform}.yaml
+          - CSource2GameClients_ClientDisconnect.{platform}.yaml
 
       - name: find-CBasePlayerController_SetPlayerName
         expected_output:
@@ -2488,6 +2495,16 @@ modules:
         category: func
         alias:
           - CBasePlayerController::SetPawn
+
+      - name: CBasePlayerController_GetPawn
+        category: func
+        alias:
+          - CBasePlayerController::GetPawn
+
+      - name: CSource2GameClients_ClientDisconnect
+        category: vfunc
+        alias:
+          - CSource2GameClients::ClientDisconnect
 
       - name: g_pGameRules
         category: gv
