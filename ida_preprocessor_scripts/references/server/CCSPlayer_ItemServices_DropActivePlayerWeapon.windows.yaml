@@ -1,0 +1,114 @@
+func_name: CCSPlayer_ItemServices_DropActivePlayerWeapon
+func_va: '0x1809aaf30'
+disasm_code: |-
+  .text:00000001809AAF30                 mov     [rsp+arg_0], rbx
+  .text:00000001809AAF35                 mov     [rsp+arg_8], rbp
+  .text:00000001809AAF3A                 mov     [rsp+arg_10], rsi
+  .text:00000001809AAF3F                 push    rdi
+  .text:00000001809AAF40                 sub     rsp, 30h
+  .text:00000001809AAF44                 mov     rbp, rdx
+  .text:00000001809AAF47                 mov     rbx, rcx
+  .text:00000001809AAF4A                 call    nullsub_598
+  .text:00000001809AAF4F                 cmp     qword ptr [rbx+38h], 0
+  .text:00000001809AAF54                 jnz     short loc_1809AAF5E
+  .text:00000001809AAF56                 mov     rcx, rbx
+  .text:00000001809AAF59                 call    nullsub_605
+  .text:00000001809AAF5E                 mov     rax, [rbx+38h]
+  .text:00000001809AAF62                 mov     rdi, [rax+0B70h]
+  .text:00000001809AAF69                 mov     rcx, rdi
+  .text:00000001809AAF6C                 call    sub_180B90B70
+  .text:00000001809AAF71                 mov     rsi, rax
+  .text:00000001809AAF74                 test    rax, rax
+  .text:00000001809AAF77                 jz      loc_1809AB005
+  .text:00000001809AAF7D                 cmp     qword ptr [rbx+38h], 0
+  .text:00000001809AAF82                 jnz     short loc_1809AAF8C
+  .text:00000001809AAF84                 mov     rcx, rbx
+  .text:00000001809AAF87                 call    nullsub_605
+  .text:00000001809AAF8C                 mov     rcx, [rbx+38h]
+  .text:00000001809AAF90                 xor     edx, edx
+  .text:00000001809AAF92                 call    sub_1803D0590
+  .text:00000001809AAF97                 test    rax, rax
+  .text:00000001809AAF9A                 jz      short loc_1809AAFF0
+  .text:00000001809AAF9C                 cmp     qword ptr [rbx+38h], 0
+  .text:00000001809AAFA1                 jnz     short loc_1809AAFAB
+  .text:00000001809AAFA3                 mov     rcx, rbx
+  .text:00000001809AAFA6                 call    nullsub_605
+  .text:00000001809AAFAB                 mov     rcx, [rbx+38h]
+  .text:00000001809AAFAF                 xor     edx, edx
+  .text:00000001809AAFB1                 call    sub_1803D0590
+  .text:00000001809AAFB6                 mov     rcx, rax
+  .text:00000001809AAFB9                 mov     rdx, [rax]
+  .text:00000001809AAFBC                 call    qword ptr [rdx+118h]
+  .text:00000001809AAFC2                 movaps  xmm1, xmm0
+  .text:00000001809AAFC5                 lea     r9, [rsp+38h+var_18]
+  .text:00000001809AAFCA                 mulss   xmm1, dword ptr [rbp+0]
+  .text:00000001809AAFCF                 movaps  xmm2, xmm0
+  .text:00000001809AAFD2                 mulss   xmm2, dword ptr [rbp+4]
+  .text:00000001809AAFD7                 mulss   xmm0, dword ptr [rbp+8]
+  .text:00000001809AAFDC                 movss   [rsp+38h+var_18], xmm1
+  .text:00000001809AAFE2                 movss   [rsp+38h+var_14], xmm2
+  .text:00000001809AAFE8                 movss   [rsp+38h+var_10], xmm0
+  .text:00000001809AAFEE                 jmp     short loc_1809AAFF3
+  .text:00000001809AAFF0                 xor     r9d, r9d
+  .text:00000001809AAFF3                 mov     rax, [rdi]
+  .text:00000001809AAFF6                 xor     r8d, r8d
+  .text:00000001809AAFF9                 mov     rdx, rsi
+  .text:00000001809AAFFC                 mov     rcx, rdi
+  .text:00000001809AAFFF                 call    qword ptr [rax+0C0h] ; 0xC0 = CCSPlayer_WeaponServices_DropWeapon
+  .text:00000001809AB005                 mov     rbx, [rsp+38h+arg_0]
+  .text:00000001809AB00A                 mov     rbp, [rsp+38h+arg_8]
+  .text:00000001809AB00F                 mov     rsi, [rsp+38h+arg_10]
+  .text:00000001809AB014                 add     rsp, 30h
+  .text:00000001809AB018                 pop     rdi
+  .text:00000001809AB019                 retn
+procedure: |-
+  __int64 __fastcall sub_1809AAF30(__int64 a1, float *a2)
+  {
+    __int64 v4; // rdi
+    __int64 result; // rax
+    __int64 v6; // rsi
+    __int64 v7; // rax
+    double v8; // xmm0_8
+    unsigned __int64 *v9; // r9
+    unsigned int v10; // xmm1_4
+    unsigned int v11; // xmm2_4
+    unsigned __int64 v12; // [rsp+20h] [rbp-18h] BYREF
+    int v13; // [rsp+28h] [rbp-10h]
+
+    nullsub_598();
+    if ( !*(_QWORD *)(a1 + 56) )
+      nullsub_605(a1);
+    v4 = *(_QWORD *)(*(_QWORD *)(a1 + 56) + 2928LL);
+    result = sub_180B90B70(v4);
+    v6 = result;
+    if ( result )
+    {
+      if ( !*(_QWORD *)(a1 + 56) )
+        nullsub_605(a1);
+      if ( sub_1803D0590(*(_QWORD *)(a1 + 56), 0) )
+      {
+        if ( !*(_QWORD *)(a1 + 56) )
+          nullsub_605(a1);
+        v7 = sub_1803D0590(*(_QWORD *)(a1 + 56), 0);
+        v8 = (*(double (__fastcall **)(__int64))(*(_QWORD *)v7 + 280LL))(v7);
+        v9 = &v12;
+        *(float *)&v10 = *(float *)&v8 * *a2;
+        *(float *)&v11 = *(float *)&v8 * a2[1];
+        *(float *)&v8 = *(float *)&v8 * a2[2];
+        v12 = __PAIR64__(v11, v10);
+        v13 = LODWORD(v8);
+      }
+      else
+      {
+        v9 = nullptr;
+      }
+      return (*(__int64 (__fastcall **)(__int64, __int64, _QWORD, unsigned __int64 *, unsigned __int64, int))(*(_QWORD *)v4 + 192LL))( // 192LL = 0xC0 = CCSPlayer_WeaponServices_DropWeapon
+               v4,
+               v6,
+               0,
+               v9,
+               v12,
+               v13);
+    }
+    return result;
+  }

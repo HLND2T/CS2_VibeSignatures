@@ -1,0 +1,21 @@
+func_name: CBasePlayerPawn_DropActivePlayerWeapon
+func_va: '0x1619fc0'
+disasm_code: |-
+  .text:0000000001619FC0                 mov     rdi, [rdi+0E80h]
+  .text:0000000001619FC7                 test    rdi, rdi
+  .text:0000000001619FCA                 jz      short locret_1619FE0
+  .text:0000000001619FCC                 mov     rax, [rdi]
+  .text:0000000001619FCF                 movzx   ecx, cl
+  .text:0000000001619FD2                 jmp     qword ptr [rax+0B8h] ; 0xB8 = CCSPlayer_ItemServices_DropActivePlayerWeapon
+  .text:0000000001619FE0                 retn
+procedure: |-
+  __int64 __fastcall sub_1619FC0(__int64 a1, __int64 a2, __int64 a3, unsigned __int8 a4)
+  {
+    __int64 v4; // rdi
+    __int64 result; // rax
+
+    v4 = *(_QWORD *)(a1 + 3712);
+    if ( v4 )
+      return (*(__int64 (__fastcall **)(__int64, __int64, __int64, _QWORD))(*(_QWORD *)v4 + 184LL))(v4, a2, a3, a4); // 184LL = 0xB8 = CCSPlayer_ItemServices_DropActivePlayerWeapon
+    return result;
+  }

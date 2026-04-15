@@ -1668,16 +1668,30 @@ modules:
           - CBaseEntity_vtable.{platform}.yaml
           - CNetworkTransmitComponent_StateChanged.{platform}.yaml
 
-      - name: find-CBasePlayerPawn_DropActivePlayerWeapon-AND-CCSPlayer_ItemServices_DropActivePlayerWeapon-AND-CCSPlayer_WeaponServices_DropWeapon
+      - name: find-CBaseCombatCharacter_OnKilled
+        expected_output:
+          - CBaseCombatCharacter_OnKilled.{platform}.yaml
+
+      - name: find-CBasePlayerPawn_DropActivePlayerWeapon
         expected_output:
           - CBasePlayerPawn_DropActivePlayerWeapon.{platform}.yaml
+        expected_input:
+          - CBaseCombatCharacter_OnKilled.{platform}.yaml
+          - CBasePlayerPawn_vtable.{platform}.yaml
+
+      - name: find-CCSPlayer_ItemServices_DropActivePlayerWeapon
+        expected_output:
           - CCSPlayer_ItemServices_DropActivePlayerWeapon.{platform}.yaml
+        expected_input:
+          - CBasePlayerPawn_DropActivePlayerWeapon.{platform}.yaml
+          - CCSPlayer_ItemServices_vtable.{platform}.yaml
+
+      - name: find-CCSPlayer_WeaponServices_DropWeapon
+        expected_output:
           - CCSPlayer_WeaponServices_DropWeapon.{platform}.yaml
         expected_input:
-          - CBasePlayerPawn_vtable.{platform}.yaml
-          - CCSPlayer_ItemServices_vtable.{platform}.yaml
+          - CCSPlayer_ItemServices_DropActivePlayerWeapon.{platform}.yaml
           - CCSPlayer_WeaponServices_vtable.{platform}.yaml
-        max_retries: 6
 
       - name: find-CCSPlayer_ItemServices_RemoveWeapons
         expected_output:
@@ -2802,6 +2816,11 @@ modules:
         alias:
           - CBasePlayerPawn::CommitSuicide
           - CommitSuicide
+
+      - name: CBaseCombatCharacter_OnKilled
+        category: func
+        alias:
+          - CBaseCombatCharacter::OnKilled
 
       - name: CBasePlayerPawn_RemovePlayerItem
         category: func
