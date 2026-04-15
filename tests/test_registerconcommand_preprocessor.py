@@ -50,7 +50,15 @@ class TestBuildRegisterConCommandPyEval(unittest.TestCase):
         self.assertIn("_is_registerconcommand_call", code)
         self.assertIn("idautils.XrefsTo", code)
         self.assertIn("_recover_register_value", code)
+        self.assertIn("def _seg_name(ea):", code)
+        self.assertIn("handler_seg_name != '.text'", code)
         self.assertIn("def _collect_candidates(params):", code)
+        self.assertIn(
+            "    def _analyze_call(call_ea):\n"
+            "        handler_slot_addr = None\n"
+            "        slot_value_addr = None\n",
+            code,
+        )
         self.assertIn("return candidates", code)
         compile(code, "<registerconcommand_py_eval_linux>", "exec")
 
@@ -228,8 +236,10 @@ class TestQueryFuncInfo(unittest.IsolatedAsyncioTestCase):
         session.call_tool = AsyncMock(
             return_value=_py_eval_payload(
                 {
+                    "status": "resolved",
                     "func_va": "0x180055000",
                     "func_size": "0x90",
+                    "segment_name": ".text",
                 }
             )
         )
@@ -247,6 +257,70 @@ class TestQueryFuncInfo(unittest.IsolatedAsyncioTestCase):
                 "func_size": "0x90",
             },
         )
+
+    async def test_query_func_info_defines_text_handler_when_needed(self) -> None:
+        session = AsyncMock()
+        session.call_tool = AsyncMock(
+            side_effect=[
+                _py_eval_payload(
+                    {
+                        "status": "needs_define",
+                        "entry": "0x180055000",
+                        "segment_name": ".text",
+                    }
+                ),
+                _FakeCallToolResult({"ok": True}),
+                _py_eval_payload(
+                    {
+                        "status": "resolved",
+                        "func_va": "0x180055000",
+                        "func_size": "0x90",
+                        "segment_name": ".text",
+                    }
+                ),
+            ]
+        )
+
+        result = await registerconcommand._query_func_info(
+            session,
+            "0x180055000",
+            debug=True,
+        )
+
+        self.assertEqual(
+            result,
+            {
+                "func_va": "0x180055000",
+                "func_size": "0x90",
+            },
+        )
+        self.assertEqual(3, session.call_tool.await_count)
+        define_call = session.call_tool.await_args_list[1]
+        self.assertEqual("define_func", define_call.kwargs["name"])
+        self.assertEqual(
+            {"items": {"addr": "0x180055000"}},
+            define_call.kwargs["arguments"],
+        )
+
+    async def test_query_func_info_rejects_non_text_handler(self) -> None:
+        session = AsyncMock()
+        session.call_tool = AsyncMock(
+            return_value=_py_eval_payload(
+                {
+                    "status": "unresolved",
+                    "segment_name": ".data",
+                    "is_code": False,
+                }
+            )
+        )
+
+        result = await registerconcommand._query_func_info(
+            session,
+            "0x180055000",
+            debug=True,
+        )
+
+        self.assertIsNone(result)
 
 
 class TestPreprocessRegisterConCommandSkill(unittest.IsolatedAsyncioTestCase):
@@ -311,6 +385,57 @@ class TestPreprocessRegisterConCommandSkill(unittest.IsolatedAsyncioTestCase):
                 "func_rva": "0x55000",
                 "func_size": "0x90",
                 "func_sig": "48 89 5C 24 ?? 57",
+            },
+        )
+
+    async def test_preprocess_registerconcommand_skill_renames_handler_when_requested(
+        self,
+    ) -> None:
+        session = AsyncMock()
+
+        with patch.object(
+            registerconcommand,
+            "_collect_registerconcommand_candidates",
+            AsyncMock(
+                return_value=[
+                    {
+                        "command_name": "bot_add",
+                        "help_string": "a",
+                        "handler_va": "0x180055000",
+                    }
+                ]
+            ),
+        ), patch.object(
+            registerconcommand,
+            "_query_func_info",
+            AsyncMock(return_value={"func_va": "0x180055000", "func_size": "0x90"}),
+        ), patch.object(registerconcommand, "write_func_yaml"):
+            result = await registerconcommand.preprocess_registerconcommand_skill(
+                session=session,
+                expected_outputs=["/tmp/BotAdd_CommandHandler.windows.yaml"],
+                new_binary_dir="/tmp",
+                platform="windows",
+                image_base=0x180000000,
+                target_name="BotAdd_CommandHandler",
+                generate_yaml_desired_fields=[
+                    ("BotAdd_CommandHandler", ["func_name", "func_va"])
+                ],
+                command_name="bot_add",
+                help_string=None,
+                rename_to="BotAdd_CommandHandler",
+                debug=True,
+            )
+
+        self.assertTrue(result)
+        session.call_tool.assert_awaited_once_with(
+            name="rename",
+            arguments={
+                "batch": {
+                    "func": {
+                        "addr": "0x180055000",
+                        "name": "BotAdd_CommandHandler",
+                    }
+                }
             },
         )
 

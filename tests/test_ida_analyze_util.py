@@ -1872,6 +1872,97 @@ found_struct_offset: []
             parsed,
         )
 
+    async def test_load_llm_decompile_target_detail_prefers_current_yaml_func_va(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            module_dir = Path(temp_dir) / "server"
+            _write_yaml(
+                module_dir / "BotAdd_CommandHandler.windows.yaml",
+                {
+                    "func_name": "BotAdd_CommandHandler",
+                    "func_va": "0x1802DA7B0",
+                },
+            )
+            expected_payload = {
+                "func_name": "BotAdd_CommandHandler",
+                "func_va": "0x1802da7b0",
+                "disasm_code": "call    CCSBotManager_AddBot",
+                "procedure": "void __fastcall BotAdd_CommandHandler()",
+            }
+            session = AsyncMock()
+
+            with patch.object(
+                ida_analyze_util,
+                "_export_function_detail_via_mcp",
+                AsyncMock(return_value=expected_payload),
+            ) as mock_export, patch.object(
+                ida_analyze_util,
+                "_find_function_addr_by_names_via_mcp",
+                AsyncMock(return_value="0x180000000"),
+            ) as mock_find:
+                result = await ida_analyze_util._load_llm_decompile_target_detail_via_mcp(
+                    session=session,
+                    target_func_name="BotAdd_CommandHandler",
+                    new_binary_dir=str(module_dir),
+                    platform="windows",
+                    debug=True,
+                )
+
+        self.assertEqual(expected_payload, result)
+        mock_export.assert_awaited_once_with(
+            session,
+            "BotAdd_CommandHandler",
+            "0x1802da7b0",
+            debug=True,
+        )
+        mock_find.assert_not_awaited()
+
+    async def test_load_llm_decompile_target_detail_falls_back_to_name_lookup_when_current_yaml_missing_func_va(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            module_dir = Path(temp_dir) / "server"
+            _write_yaml(
+                module_dir / "BotAdd_CommandHandler.windows.yaml",
+                {
+                    "func_name": "BotAdd_CommandHandler",
+                },
+            )
+            expected_payload = {
+                "func_name": "BotAdd_CommandHandler",
+                "func_va": "0x1802da7b0",
+                "disasm_code": "call    CCSBotManager_AddBot",
+                "procedure": "void __fastcall BotAdd_CommandHandler()",
+            }
+            session = AsyncMock()
+
+            with patch.object(
+                ida_analyze_util,
+                "_find_function_addr_by_names_via_mcp",
+                AsyncMock(return_value="0x1802da7b0"),
+            ) as mock_find, patch.object(
+                ida_analyze_util,
+                "_export_function_detail_via_mcp",
+                AsyncMock(return_value=expected_payload),
+            ) as mock_export:
+                result = await ida_analyze_util._load_llm_decompile_target_detail_via_mcp(
+                    session=session,
+                    target_func_name="BotAdd_CommandHandler",
+                    new_binary_dir=str(module_dir),
+                    platform="windows",
+                    debug=True,
+                )
+
+        self.assertEqual(expected_payload, result)
+        mock_find.assert_awaited_once()
+        mock_export.assert_awaited_once_with(
+            session,
+            "BotAdd_CommandHandler",
+            "0x1802da7b0",
+            debug=True,
+        )
+
     async def test_preprocess_func_sig_via_mcp_supports_direct_vtable_generation(
         self,
     ) -> None:

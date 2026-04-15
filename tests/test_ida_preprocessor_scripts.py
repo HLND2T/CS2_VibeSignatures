@@ -156,6 +156,7 @@ class TestFindBotAddCommandHandler(unittest.IsolatedAsyncioTestCase):
             generate_yaml_desired_fields=expected_generate_yaml_desired_fields,
             command_name="bot_add",
             help_string="bot_add <t|ct> <type> <difficulty> <name> - Adds a bot matching the given criteria.",
+            rename_to="BotAdd_CommandHandler",
             search_window_before_call=96,
             search_window_after_xref=96,
             debug=True,

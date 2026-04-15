@@ -159,7 +159,7 @@ uv run run_cpp_tests.py -gamever 14141 [-debug] [-fixheader] [-agent=claude/code
 
  - 已跳过 14 个符号。
 
-[cs2kz-metamod](https://github.com/Source2ZE/CS2Fixes)
+[cs2kz-metamod](https://github.com/KZGlobalTeam/cs2kz-metamod)
 
 `dist/cs2kz-metamod/gamedata/cs2kz-core.games.txt`
 

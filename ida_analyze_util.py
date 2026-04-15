@@ -1445,22 +1445,84 @@ async def _resolve_direct_gv_target_via_mcp(session, insn_va, debug=False):
     return resolved_matches[0]
 
 
-async def _load_llm_decompile_target_detail_via_mcp(session, target_func_name, debug=False):
+def _load_llm_decompile_target_func_va_from_current_yaml(
+    target_func_name,
+    new_binary_dir=None,
+    platform=None,
+    debug=False,
+):
+    normalized_target_name = str(target_func_name or "").strip()
+    normalized_platform = str(platform or "").strip()
+    if (
+        not normalized_target_name
+        or not normalized_platform
+        or not new_binary_dir
+    ):
+        return None
+
+    target_yaml_path = Path(new_binary_dir) / (
+        f"{normalized_target_name}.{normalized_platform}.yaml"
+    )
+    if not target_yaml_path.is_file():
+        return None
+
+    yaml_payload = _read_yaml_file(target_yaml_path)
+    if not isinstance(yaml_payload, dict):
+        if debug:
+            print(
+                "    Preprocess: invalid llm_decompile current YAML for "
+                f"{normalized_target_name}: {target_yaml_path}"
+            )
+        return None
+
+    func_va = yaml_payload.get("func_va")
+    try:
+        return hex(_parse_int_value(func_va))
+    except Exception:
+        if debug:
+            print(
+                "    Preprocess: missing/invalid func_va in llm_decompile "
+                f"current YAML for {normalized_target_name}: {target_yaml_path}"
+            )
+        return None
+
+
+async def _load_llm_decompile_target_detail_via_mcp(
+    session,
+    target_func_name,
+    new_binary_dir=None,
+    platform=None,
+    debug=False,
+):
     normalized_target_name = str(target_func_name or "").strip()
     if not normalized_target_name:
         if debug:
             print("    Preprocess: llm_decompile target func_name missing in reference YAML")
         return None
 
-    candidate_names = _load_symbol_lookup_candidates(
+    func_va = _load_llm_decompile_target_func_va_from_current_yaml(
         normalized_target_name,
+        new_binary_dir=new_binary_dir,
+        platform=platform,
         debug=debug,
     )
-    func_va = await _find_function_addr_by_names_via_mcp(
-        session,
-        candidate_names,
-        debug=debug,
-    )
+
+    if func_va is None:
+        candidate_names = _load_symbol_lookup_candidates(
+            normalized_target_name,
+            debug=debug,
+        )
+        func_va = await _find_function_addr_by_names_via_mcp(
+            session,
+            candidate_names,
+            debug=debug,
+        )
+    elif debug:
+        print(
+            "    Preprocess: using current YAML func_va for llm_decompile "
+            f"target {normalized_target_name}: {func_va}"
+        )
+
     if func_va is None:
         if debug:
             print(
@@ -6472,6 +6534,8 @@ async def preprocess_common_skill(
                     llm_target_detail = await _load_llm_decompile_target_detail_via_mcp(
                         session,
                         llm_request["target_func_name"],
+                        new_binary_dir=new_binary_dir,
+                        platform=platform,
                         debug=debug,
                     )
                     if llm_target_detail is None:
@@ -6707,6 +6771,8 @@ async def preprocess_common_skill(
                     llm_target_detail = await _load_llm_decompile_target_detail_via_mcp(
                         session,
                         llm_request["target_func_name"],
+                        new_binary_dir=new_binary_dir,
+                        platform=platform,
                         debug=debug,
                     )
                     if llm_target_detail is None:
@@ -6846,6 +6912,8 @@ async def preprocess_common_skill(
                     llm_target_detail = await _load_llm_decompile_target_detail_via_mcp(
                         session,
                         llm_request["target_func_name"],
+                        new_binary_dir=new_binary_dir,
+                        platform=platform,
                         debug=debug,
                     )
                     if llm_target_detail is None:
