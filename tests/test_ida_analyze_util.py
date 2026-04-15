@@ -1844,6 +1844,58 @@ found_struct_offset: []
         mock_call_llm_text.assert_called_once()
         self.assertEqual(0.35, mock_call_llm_text.call_args.kwargs["temperature"])
 
+    async def test_call_llm_decompile_forwards_effort_and_codex_transport(
+        self,
+    ) -> None:
+        response_text = """
+```yaml
+found_vcall: []
+found_call: []
+found_gv: []
+found_struct_offset: []
+```
+""".strip()
+
+        with patch.object(
+            ida_analyze_util,
+            "call_llm_text",
+            return_value=response_text,
+            create=True,
+        ) as mock_call_llm_text:
+            parsed = await ida_analyze_util.call_llm_decompile(
+                client=None,
+                model="gpt-5.4",
+                symbol_name_list=["ILoopMode_OnLoopActivate"],
+                disasm_code="call    [rax+68h]",
+                procedure="(*v1->lpVtbl->OnLoopActivate)(v1);",
+                api_key="test-api-key",
+                base_url="https://example.invalid/v1",
+                fake_as="codex",
+                effort="high",
+            )
+
+        self.assertEqual(
+            {
+                "found_vcall": [],
+                "found_call": [],
+                "found_funcptr": [],
+                "found_gv": [],
+                "found_struct_offset": [],
+            },
+            parsed,
+        )
+        mock_call_llm_text.assert_called_once()
+        self.assertEqual("high", mock_call_llm_text.call_args.kwargs["effort"])
+        self.assertEqual("codex", mock_call_llm_text.call_args.kwargs["fake_as"])
+        self.assertEqual(
+            "test-api-key",
+            mock_call_llm_text.call_args.kwargs["api_key"],
+        )
+        self.assertEqual(
+            "https://example.invalid/v1",
+            mock_call_llm_text.call_args.kwargs["base_url"],
+        )
+
     async def test_call_llm_decompile_fails_closed_when_shared_helper_raises(
         self,
     ) -> None:
@@ -1871,6 +1923,62 @@ found_struct_offset: []
             },
             parsed,
         )
+
+    async def test_prepare_llm_decompile_request_skips_client_factory_for_codex(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            preprocessor_dir = Path(temp_dir) / "ida_preprocessor_scripts"
+            (preprocessor_dir / "prompt").mkdir(parents=True, exist_ok=True)
+            (preprocessor_dir / "references").mkdir(parents=True, exist_ok=True)
+            (preprocessor_dir / "prompt" / "call_llm_decompile.md").write_text(
+                "symbols={symbol_name_list}",
+                encoding="utf-8",
+            )
+            _write_yaml(
+                preprocessor_dir / "references" / "reference.yaml",
+                {
+                    "func_name": "CNetworkGameClient_RecordEntityBandwidth",
+                    "disasm_code": "call    [rax+68h]",
+                    "procedure": "(*v1->lpVtbl->OnLoopActivate)(v1);",
+                },
+            )
+
+            with patch.object(
+                ida_analyze_util,
+                "_get_preprocessor_scripts_dir",
+                return_value=preprocessor_dir,
+            ), patch.object(
+                ida_analyze_util,
+                "create_openai_client",
+                side_effect=AssertionError("should not be called in codex mode"),
+                create=True,
+            ):
+                request = ida_analyze_util._prepare_llm_decompile_request(
+                    "ILoopMode_OnLoopActivate",
+                    {
+                        "ILoopMode_OnLoopActivate": {
+                            "prompt_path": "prompt/call_llm_decompile.md",
+                            "reference_yaml_path": "references/reference.yaml",
+                        }
+                    },
+                    {
+                        "model": "gpt-5.4",
+                        "api_key": "test-api-key",
+                        "base_url": "https://example.invalid/v1",
+                        "fake_as": "codex",
+                        "effort": "high",
+                    },
+                    platform="windows",
+                    debug=True,
+                )
+
+        self.assertIsNotNone(request)
+        self.assertIsNone(request["client"])
+        self.assertEqual("codex", request["fake_as"])
+        self.assertEqual("high", request["effort"])
+        self.assertEqual("test-api-key", request["api_key"])
+        self.assertEqual("https://example.invalid/v1", request["base_url"])
 
     async def test_load_llm_decompile_target_detail_prefers_current_yaml_func_va(
         self,

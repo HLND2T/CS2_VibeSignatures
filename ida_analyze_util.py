@@ -16,11 +16,13 @@ try:
     from ida_llm_utils import (
         call_llm_text,
         create_openai_client,
+        normalize_optional_effort,
         normalize_optional_temperature,
     )
 except Exception:
     call_llm_text = None
     create_openai_client = None
+    normalize_optional_effort = None
     normalize_optional_temperature = None
 
 
@@ -1624,6 +1626,10 @@ def _prepare_llm_decompile_request(
             print(f"    Preprocess: llm_config.model missing for {func_name}")
         return None
 
+    api_key = llm_config.get("api_key")
+    base_url = llm_config.get("base_url")
+    fake_as = str(llm_config.get("fake_as") or "").strip().lower() or None
+
     temperature = llm_config.get("temperature")
     if temperature is not None:
         if callable(normalize_optional_temperature):
@@ -1650,7 +1656,23 @@ def _prepare_llm_decompile_request(
                     )
                 return None
 
-    if not callable(create_openai_client):
+    if callable(normalize_optional_effort):
+        try:
+            effort = normalize_optional_effort(
+                llm_config.get("effort"),
+                "llm_config.effort",
+            )
+        except ValueError as exc:
+            if debug:
+                print(
+                    f"    Preprocess: invalid llm_decompile effort for "
+                    f"{func_name}: {exc}"
+                )
+            return None
+    else:
+        effort = str(llm_config.get("effort") or "").strip().lower() or "medium"
+
+    if fake_as != "codex" and not callable(create_openai_client):
         if debug:
             print(f"    Preprocess: create_openai_client unavailable for {func_name}")
         return None
@@ -1729,21 +1751,24 @@ def _prepare_llm_decompile_request(
             )
         return None
 
-    try:
-        client = create_openai_client(
-            llm_config.get("api_key"),
-            llm_config.get("base_url"),
-            api_key_required_message=(
-                "llm_config.api_key is required for llm_decompile fallback"
-            ),
-        )
-    except Exception as exc:
-        if debug:
-            print(
-                f"    Preprocess: llm_decompile client unavailable for "
-                f"{func_name}: {exc}"
+    if fake_as == "codex":
+        client = None
+    else:
+        try:
+            client = create_openai_client(
+                api_key,
+                base_url,
+                api_key_required_message=(
+                    "llm_config.api_key is required for llm_decompile fallback"
+                ),
             )
-        return None
+        except Exception as exc:
+            if debug:
+                print(
+                    f"    Preprocess: llm_decompile client unavailable for "
+                    f"{func_name}: {exc}"
+                )
+            return None
 
     if debug:
         print(
@@ -1768,6 +1793,10 @@ def _prepare_llm_decompile_request(
         "disasm_for_reference": str(reference_data.get("disasm_code", "") or ""),
         "procedure_for_reference": str(reference_data.get("procedure", "") or ""),
         "temperature": temperature,
+        "effort": effort,
+        "api_key": api_key,
+        "base_url": base_url,
+        "fake_as": fake_as,
     }
 
 
@@ -1794,6 +1823,10 @@ async def call_llm_decompile(
     prompt_template=None,
     platform=None,
     temperature=None,
+    effort=None,
+    api_key=None,
+    base_url=None,
+    fake_as=None,
     debug=False,
 ):
     if not callable(call_llm_text):
@@ -1861,6 +1894,7 @@ async def call_llm_decompile(
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": prompt},
             ],
+            "debug": debug,
         }
         normalized_temperature = temperature
         if normalized_temperature is not None and callable(normalize_optional_temperature):
@@ -1870,6 +1904,15 @@ async def call_llm_decompile(
             )
         if normalized_temperature is not None:
             request_kwargs["temperature"] = normalized_temperature
+        if effort is not None:
+            request_kwargs["effort"] = effort
+        if api_key is not None:
+            request_kwargs["api_key"] = api_key
+        if base_url is not None:
+            request_kwargs["base_url"] = base_url
+        normalized_fake_as = str(fake_as or "").strip().lower() or None
+        if normalized_fake_as is not None:
+            request_kwargs["fake_as"] = normalized_fake_as
         content = call_llm_text(**request_kwargs)
     except Exception as exc:
         if debug:
@@ -6552,6 +6595,10 @@ async def preprocess_common_skill(
                             prompt_template=llm_request["prompt_template"],
                             platform=platform,
                             temperature=llm_request.get("temperature"),
+                            effort=llm_request.get("effort"),
+                            api_key=llm_request.get("api_key"),
+                            base_url=llm_request.get("base_url"),
+                            fake_as=llm_request.get("fake_as"),
                             debug=debug,
                         )
                 except Exception:
@@ -6789,6 +6836,10 @@ async def preprocess_common_skill(
                             prompt_template=llm_request["prompt_template"],
                             platform=platform,
                             temperature=llm_request.get("temperature"),
+                            effort=llm_request.get("effort"),
+                            api_key=llm_request.get("api_key"),
+                            base_url=llm_request.get("base_url"),
+                            fake_as=llm_request.get("fake_as"),
                             debug=debug,
                         )
                 except Exception:
@@ -6930,6 +6981,10 @@ async def preprocess_common_skill(
                             prompt_template=llm_request["prompt_template"],
                             platform=platform,
                             temperature=llm_request.get("temperature"),
+                            effort=llm_request.get("effort"),
+                            api_key=llm_request.get("api_key"),
+                            base_url=llm_request.get("base_url"),
+                            fake_as=llm_request.get("fake_as"),
                             debug=debug,
                         )
                 except Exception:

@@ -253,6 +253,10 @@ def call_openai_for_vcalls(
     model,
     *,
     temperature=None,
+    effort=None,
+    api_key=None,
+    base_url=None,
+    fake_as=None,
     debug=False,
     request_label="",
 ):
@@ -271,10 +275,20 @@ def call_openai_for_vcalls(
             {"role": "system", "content": "You are a reverse engineering expert."},
             {"role": "user", "content": render_vcall_prompt(detail)},
         ],
+        "debug": debug,
     }
     normalized_temperature = normalize_optional_temperature(temperature)
     if normalized_temperature is not None:
         request_kwargs["temperature"] = normalized_temperature
+    if effort is not None:
+        request_kwargs["effort"] = effort
+    if api_key is not None:
+        request_kwargs["api_key"] = api_key
+    if base_url is not None:
+        request_kwargs["base_url"] = base_url
+    normalized_fake_as = str(fake_as or "").strip().lower() or None
+    if normalized_fake_as is not None:
+        request_kwargs["fake_as"] = normalized_fake_as
     content = call_llm_text(**request_kwargs)
     found_vcall = parse_llm_vcall_response(content)["found_vcall"]
     if debug:
@@ -295,6 +309,8 @@ def _aggregate_vcall_detail_file(
     api_key,
     base_url,
     temperature,
+    effort,
+    fake_as,
     detail_path,
     summary_path,
     request_label,
@@ -328,12 +344,17 @@ def _aggregate_vcall_detail_file(
                 client_ref,
                 api_key=api_key,
                 base_url=base_url,
+                fake_as=fake_as,
             )
             found_vcall = call_openai_for_vcalls(
                 llm_client,
                 detail,
                 model,
                 temperature=temperature,
+                effort=effort,
+                api_key=api_key,
+                base_url=base_url,
+                fake_as=fake_as,
                 debug=debug,
                 request_label=request_label,
             )
@@ -377,6 +398,8 @@ def _aggregate_vcall_detail_paths(
     api_key,
     base_url,
     temperature,
+    effort,
+    fake_as,
     detail_paths,
     summary_path,
     model,
@@ -393,6 +416,8 @@ def _aggregate_vcall_detail_paths(
             api_key=api_key,
             base_url=base_url,
             temperature=temperature,
+            effort=effort,
+            fake_as=fake_as,
             detail_path=detail_path,
             summary_path=summary_path,
             request_label=request_label,
@@ -416,6 +441,8 @@ def aggregate_vcall_results_for_object(
     api_key=None,
     base_url=None,
     temperature=None,
+    effort=None,
+    fake_as=None,
     client=None,
     debug=False,
 ):
@@ -440,6 +467,8 @@ def aggregate_vcall_results_for_object(
         api_key=api_key,
         base_url=base_url,
         temperature=temperature,
+        effort=effort,
+        fake_as=fake_as,
         detail_paths=detail_paths,
         summary_path=summary_path,
         model=model,
@@ -543,7 +572,11 @@ def _get_or_create_llm_client(
     *,
     api_key: str | None,
     base_url: str | None,
+    fake_as: str | None,
 ):
+    if str(fake_as or "").strip().lower() == "codex":
+        return None
+
     llm_client = client_ref.get("client")
     if llm_client is None:
         llm_client = create_openai_client(
