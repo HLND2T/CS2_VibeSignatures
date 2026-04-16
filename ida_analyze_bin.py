@@ -1040,6 +1040,8 @@ def parse_config(config_path):
                     "name": skill_name,
                     "expected_output": skill.get("expected_output", []),
                     "expected_input": skill.get("expected_input", []),
+                    "expected_input_windows": skill.get("expected_input_windows", []) or [],
+                    "expected_input_linux": skill.get("expected_input_linux", []) or [],
                     "prerequisite": skill.get("prerequisite", []) or [],
                     "max_retries": skill.get("max_retries"),  # None means use default
                     "platform": skill.get("platform"),  # None means all platforms
@@ -1139,12 +1141,15 @@ def topological_sort_skills(skills):
             producers_by_output.setdefault(normalized_output, set()).add(producer_name)
             producers_by_output.setdefault(output_name, set()).add(producer_name)
 
-    # Infer dependencies from expected_input files.
+    # Infer dependencies from expected_input files (including platform-specific).
     # If a skill consumes an artifact produced by another skill, it depends on it.
     dependencies = {name: set() for name in skill_names}
     for skill in skills:
         consumer_name = skill["name"]
-        for input_path in skill.get("expected_input", []):
+        all_inputs = list(skill.get("expected_input", []) or [])
+        all_inputs += list(skill.get("expected_input_windows", []) or [])
+        all_inputs += list(skill.get("expected_input_linux", []) or [])
+        for input_path in all_inputs:
             if not input_path:
                 continue
 
@@ -1651,8 +1656,11 @@ def process_binary(
 
             # Check if all expected_input files are available before running the skill
             skill = skill_map[skill_name]
+            platform_input_key = f"expected_input_{platform}"
+            combined_input = list(skill.get("expected_input", []) or [])
+            combined_input += list(skill.get(platform_input_key, []) or [])
             try:
-                expected_inputs = expand_expected_paths(binary_dir, skill.get("expected_input", []), platform)
+                expected_inputs = expand_expected_paths(binary_dir, combined_input, platform)
             except ValueError as e:
                 fail_count += 1
                 print(f"  Failed: {skill_name} ({e})")

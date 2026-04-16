@@ -1,35 +1,37 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CCSPlayerPawnBase_PostThink skill."""
+"""Preprocess script for find-CCSPlayerPawnBase_CheckForIdle skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = [
-    "CCSPlayerPawnBase_PostThink",
+    "CCSPlayerPawnBase_CheckForIdle",
 ]
 
 FUNC_XREFS = [
-                 {
-                     "func_name": 'CCSPlayerPawnBase_PostThink',
-                     "xref_strings": ['enter_buyzone'],
-                     "xref_gvs": [],
-                     "xref_signatures": [],
-                     "xref_funcs": [],
-                     "exclude_funcs": [],
-                     "exclude_strings": [],
-                     "exclude_gvs": [],
-                     "exclude_signatures": [],
-                 },
-             ]
+    {
+        "func_name": "CCSPlayerPawnBase_CheckForIdle",
+        "xref_strings": [
+            "#Game_idle_kick",
+        ],
+        "xref_gvs": [],
+        "xref_signatures": [],
+        "xref_funcs": [],
+        "exclude_funcs": [],
+        "exclude_strings": [],
+        "exclude_gvs": [],
+        "exclude_signatures": [],
+    },
+]
 
 FUNC_VTABLE_RELATIONS = [
     # (func_name, vtable_class)
-    ("CCSPlayerPawnBase_PostThink", "CCSPlayerPawn"),
+    ("CCSPlayerPawnBase_CheckForIdle", "CCSPlayerPawnBase"),
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
     (
-        "CCSPlayerPawnBase_PostThink",
+        "CCSPlayerPawnBase_CheckForIdle",
         [
             "func_name",
             "func_va",
@@ -42,6 +44,7 @@ GENERATE_YAML_DESIRED_FIELDS = [
         ],
     ),
 ]
+
 
 async def preprocess_skill(
     session, skill_name, expected_outputs, old_yaml_map,

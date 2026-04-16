@@ -1,34 +1,32 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-UTIL_ClientPrintAll skill."""
+"""Preprocess script for find-CCSPlayerPawnBase_CheckForIdleInternal skill (Linux only)."""
 
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = [
-    "UTIL_ClientPrintAll",
+    "CCSPlayerPawnBase_CheckForIdleInternal",
 ]
 
-LLM_DECOMPILE_WINDOWS = [
-    # (symbol_name, path_to_prompt, path_to_reference)
-    (
-        "UTIL_ClientPrintAll",
-        "prompt/call_llm_decompile.md",
-        "references/server/CCSPlayerPawnBase_CheckForIdle.{platform}.yaml",
-    ),
-]
-
-LLM_DECOMPILE_LINUX = [
-    # (symbol_name, path_to_prompt, path_to_reference)
-    (
-        "UTIL_ClientPrintAll",
-        "prompt/call_llm_decompile.md",
-        "references/server/CCSPlayerPawnBase_CheckForIdleInternal.{platform}.yaml",
-    ),
+FUNC_XREFS = [
+    {
+        "func_name": "CCSPlayerPawnBase_CheckForIdleInternal",
+        "xref_strings": [
+            "#Game_idle_kick",
+        ],
+        "xref_gvs": [],
+        "xref_signatures": [],
+        "xref_funcs": [],
+        "exclude_funcs": [],
+        "exclude_strings": [],
+        "exclude_gvs": [],
+        "exclude_signatures": [],
+    },
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
     (
-        "UTIL_ClientPrintAll",
+        "CCSPlayerPawnBase_CheckForIdleInternal",
         [
             "func_name",
             "func_sig",
@@ -42,7 +40,7 @@ GENERATE_YAML_DESIRED_FIELDS = [
 
 async def preprocess_skill(
     session, skill_name, expected_outputs, old_yaml_map,
-    new_binary_dir, platform, image_base, llm_config=None, debug=False,
+    new_binary_dir, platform, image_base, debug=False,
 ):
     """Reuse previous gamever func_sig to locate target function(s) and write YAML."""
     return await preprocess_common_skill(
@@ -53,8 +51,7 @@ async def preprocess_skill(
         platform=platform,
         image_base=image_base,
         func_names=TARGET_FUNCTION_NAMES,
-        llm_decompile_specs=LLM_DECOMPILE_WINDOWS if platform == "windows" else LLM_DECOMPILE_LINUX,
-        llm_config=llm_config,
+        func_xrefs=FUNC_XREFS,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
     )
