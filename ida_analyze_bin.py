@@ -793,6 +793,32 @@ def _parse_optional_llm_temperature(raw_value, parser):
         parser.error("Invalid LLM temperature: must be a number")
 
 
+def _parse_optional_llm_fake_as(raw_value, parser):
+    if raw_value is None:
+        return None
+    normalized_value = str(raw_value).strip().lower()
+    if not normalized_value:
+        return None
+    if normalized_value != "codex":
+        parser.error("Invalid LLM fake_as: must be 'codex'")
+    return normalized_value
+
+
+def _parse_optional_llm_effort(raw_value, parser):
+    if raw_value is None:
+        return "medium"
+    normalized_value = str(raw_value).strip().lower()
+    if not normalized_value:
+        return "medium"
+
+    valid_efforts = {"none", "minimal", "low", "medium", "high", "xhigh"}
+    if normalized_value not in valid_efforts:
+        parser.error(
+            "Invalid LLM effort: must be one of none, minimal, low, medium, high, xhigh"
+        )
+    return normalized_value
+
+
 def parse_args():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(
@@ -847,12 +873,22 @@ def parse_args():
     parser.add_argument(
         "-llm_baseurl",
         default=os.environ.get("CS2VIBE_LLM_BASEURL"),
-        help="Optional OpenAI-compatible base URL used by preprocessing and vcall_finder aggregation (or set CS2VIBE_LLM_BASEURL env var)"
+        help="Optional custom compatible base URL used by preprocessing and vcall_finder aggregation (required when -llm_fake_as=codex; or set CS2VIBE_LLM_BASEURL env var)"
     )
     parser.add_argument(
         "-llm_temperature",
         default=os.environ.get("CS2VIBE_LLM_TEMPERATURE"),
         help="Optional OpenAI-compatible temperature used by preprocessing and vcall_finder aggregation (or set CS2VIBE_LLM_TEMPERATURE env var)"
+    )
+    parser.add_argument(
+        "-llm_fake_as",
+        default=os.environ.get("CS2VIBE_LLM_FAKE_AS"),
+        help="Optional OpenAI-compatible fake_as override (only supports 'codex'; or set CS2VIBE_LLM_FAKE_AS env var)"
+    )
+    parser.add_argument(
+        "-llm_effort",
+        default=os.environ.get("CS2VIBE_LLM_EFFORT"),
+        help="Optional OpenAI-compatible reasoning effort for preprocessing and vcall_finder aggregation (default: medium; or set CS2VIBE_LLM_EFFORT env var)"
     )
     parser.add_argument(
         "-ida_args",
@@ -907,6 +943,8 @@ def parse_args():
         args.llm_temperature,
         parser,
     )
+    args.llm_fake_as = _parse_optional_llm_fake_as(args.llm_fake_as, parser)
+    args.llm_effort = _parse_optional_llm_effort(args.llm_effort, parser)
 
     return args
 
@@ -925,6 +963,8 @@ def _run_preprocess_single_skill_via_mcp(
     llm_apikey,
     llm_baseurl,
     llm_temperature,
+    llm_effort,
+    llm_fake_as,
 ):
     preprocess_kwargs = {
         "host": host,
@@ -939,6 +979,8 @@ def _run_preprocess_single_skill_via_mcp(
         "llm_apikey": llm_apikey,
         "llm_baseurl": llm_baseurl,
         "llm_temperature": llm_temperature,
+        "llm_effort": llm_effort,
+        "llm_fake_as": llm_fake_as,
     }
 
     try:
@@ -947,7 +989,14 @@ def _run_preprocess_single_skill_via_mcp(
         signature = inspect.signature(preprocess_single_skill_via_mcp)
         if any(
             name in signature.parameters
-            for name in ("llm_model", "llm_apikey", "llm_baseurl", "llm_temperature")
+            for name in (
+                "llm_model",
+                "llm_apikey",
+                "llm_baseurl",
+                "llm_temperature",
+                "llm_effort",
+                "llm_fake_as",
+            )
         ):
             raise
         if "unexpected keyword argument" not in str(exc):
@@ -958,6 +1007,8 @@ def _run_preprocess_single_skill_via_mcp(
         fallback_kwargs.pop("llm_apikey", None)
         fallback_kwargs.pop("llm_baseurl", None)
         fallback_kwargs.pop("llm_temperature", None)
+        fallback_kwargs.pop("llm_effort", None)
+        fallback_kwargs.pop("llm_fake_as", None)
         return asyncio.run(preprocess_single_skill_via_mcp(**fallback_kwargs))
 
 
@@ -1509,6 +1560,8 @@ def process_binary(
     llm_apikey=None,
     llm_baseurl=None,
     llm_temperature=None,
+    llm_effort="medium",
+    llm_fake_as=None,
 ):
     """
     Process a single binary file.
@@ -1653,6 +1706,8 @@ def process_binary(
                     llm_apikey=llm_apikey,
                     llm_baseurl=llm_baseurl,
                     llm_temperature=llm_temperature,
+                    llm_effort=llm_effort,
+                    llm_fake_as=llm_fake_as,
                 )
             except Exception as e:
                 if debug:
@@ -1858,25 +1913,36 @@ def main():
                 llm_apikey=args.llm_apikey,
                 llm_baseurl=args.llm_baseurl,
                 llm_temperature=args.llm_temperature,
+                llm_effort=args.llm_effort,
+                llm_fake_as=args.llm_fake_as,
             )
             total_success += success
             total_fail += fail
             total_skip += skip
 
     if args.vcall_finder_filter and all_vcall_objects:
-        print("\nRunning vcall_finder OpenAI aggregation")
+        print("\nRunning vcall_finder LLM aggregation")
         for object_name in sorted(all_vcall_objects):
             print(f"  Aggregating vcall_finder: {object_name}")
             try:
+                aggregate_kwargs = {
+                    "base_dir": "vcall_finder",
+                    "gamever": gamever,
+                    "object_name": object_name,
+                    "model": args.llm_model,
+                    "api_key": args.llm_apikey,
+                    "base_url": args.llm_baseurl,
+                    "temperature": args.llm_temperature,
+                    "debug": debug,
+                }
+                aggregate_signature = inspect.signature(aggregate_vcall_results_for_object)
+                if "effort" in aggregate_signature.parameters:
+                    aggregate_kwargs["effort"] = args.llm_effort
+                if "fake_as" in aggregate_signature.parameters:
+                    aggregate_kwargs["fake_as"] = args.llm_fake_as
+
                 stats = aggregate_vcall_results_for_object(
-                    base_dir="vcall_finder",
-                    gamever=gamever,
-                    object_name=object_name,
-                    model=args.llm_model,
-                    api_key=args.llm_apikey,
-                    base_url=args.llm_baseurl,
-                    temperature=args.llm_temperature,
-                    debug=debug,
+                    **aggregate_kwargs,
                 )
                 aggregation_status = stats["status"]
                 if aggregation_status == "success":

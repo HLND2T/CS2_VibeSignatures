@@ -49,7 +49,7 @@ Use `-checkonly` in CI or preflight scripts when you only need to know whether a
 #### 2. Find and generate signatures for all symbols declared in `config.yaml`
 
  ```bash
- uv run ida_analyze_bin.py -gamever 14141 [-oldgamever=14140] [-configyaml=path/to/config.yaml] [-modules=server] [-platform=windows] [-agent=claude/codex/"claude.cmd"/"codex.cmd"] [-maxretry=3] [-vcall_finder=g_pNetworkMessages|*] [-llm_model=gpt-4o] [-llm_apikey=your-key] [-llm_baseurl=https://api.example.com/v1] [-debug]
+ uv run ida_analyze_bin.py -gamever 14141 [-oldgamever=14140] [-configyaml=path/to/config.yaml] [-modules=server] [-platform=windows] [-agent=claude/codex/"claude.cmd"/"codex.cmd"] [-maxretry=3] [-vcall_finder=g_pNetworkMessages|*] [-llm_model=gpt-4o] [-llm_apikey=your-key] [-llm_baseurl=https://api.example.com/v1] [-llm_temperature=0.2] [-llm_effort=medium] [-llm_fake_as=codex] [-debug]
  ```
 
 * Old signatures from `bin/{previous_gamever}/{module}/{symbol}.{platform}.yaml` will be used to find symbols in current version of game binaries directly through mcp call before actually running Agent SKILL(s). No token will be consumed in this case.
@@ -58,7 +58,7 @@ Use `-checkonly` in CI or preflight scripts when you only need to know whether a
 
 * `-vcall_finder=g_pNetworkMessages` filters by an object declared in the module-level `vcall_finder` config; `-vcall_finder=*` processes every declared object from `config.yaml`.
 
-* When `-vcall_finder` is enabled, the script exports full disassembly and pseudocode for each referencing function into `vcall_finder/{gamever}/{object_name}/{module}/{platform}/`, then runs OpenAI SDK aggregation after all module/platform IDA work finishes; if a detail YAML already has a top-level `found_vcall`, that function skips the LLM call and reuses the cached result directly.
+* When `-vcall_finder` is enabled, the script exports full disassembly and pseudocode for each referencing function into `vcall_finder/{gamever}/{object_name}/{module}/{platform}/`, then runs LLM aggregation after all module/platform IDA work finishes; if a detail YAML already has a top-level `found_vcall`, that function skips the LLM call and reuses the cached result directly.
 
 * After a successful LLM response, the script immediately writes back `found_vcall: [...]` or `found_vcall: []` to the corresponding detail YAML so reruns can skip that function's LLM call.
 
@@ -66,13 +66,16 @@ Use `-checkonly` in CI or preflight scripts when you only need to know whether a
 
 * Shared LLM CLI parameters:
   - `-llm_apikey`: required when an LLM-backed workflow is enabled, including `vcall_finder` aggregation and `LLM_DECOMPILE`
-  - `-llm_baseurl`: optional custom compatible base URL
+  - `-llm_baseurl`: optional custom compatible base URL (required when `-llm_fake_as=codex`)
   - `-llm_model`: optional, defaults to `gpt-4o`
+  - `-llm_temperature`: optional; sent only when explicitly set
+  - `-llm_effort`: optional; defaults to `medium`; supports `none|minimal|low|medium|high|xhigh`
+  - `-llm_fake_as`: optional; `codex` switches to direct `/v1/responses` SSE transport
+  - Env fallbacks: `CS2VIBE_LLM_APIKEY`, `CS2VIBE_LLM_BASEURL`, `CS2VIBE_LLM_MODEL`, `CS2VIBE_LLM_TEMPERATURE`, `CS2VIBE_LLM_EFFORT`, `CS2VIBE_LLM_FAKE_AS`
   - LLM workflows do not read `OPENAI_API_KEY`, `OPENAI_API_BASE`, or `OPENAI_API_MODEL`
 
 ```bash
-uv run ida_analyze_bin.py -gamever=14141 -modules=networksystem -platform=windows -vcall_finder=g_pNetworkMessages -llm_model=gpt-4o -llm_apikey=your-key
-uv run ida_analyze_bin.py -gamever=14141 -platform=windows,linux -vcall_finder=* -llm_model=gpt-4o -llm_apikey=your-key -llm_baseurl=https://api.example.com/v1
+uv run ida_analyze_bin.py -gamever=14141 -modules=networksystem -platform=windows -vcall_finder=g_pNetworkMessages -llm_model=gpt-5.4 -llm_apikey=your-key -llm_effort=high -llm_fake_as=codex -llm_baseurl=http://127.0.0.1:8080/v1
 ```
 
 Example outputs:
@@ -113,7 +116,7 @@ uv run generate_reference_yaml.py -gamever 14141 -module engine -platform window
      - `references/<module>/<func_name>.<platform>.yaml`
    - Example tuple:
      - `("CNetworkMessages_FindNetworkGroup", "prompt/call_llm_decompile.md", "references/engine/CNetworkGameClient_RecordEntityBandwidth.windows.yaml")`
-   - `LLM_DECOMPILE` uses the same shared `ida_analyze_bin.py` LLM flags: `-llm_model`, `-llm_apikey`, `-llm_baseurl`
+   - `LLM_DECOMPILE` uses the same shared `ida_analyze_bin.py` `-llm_*` flags: `-llm_model`, `-llm_apikey`, `-llm_baseurl`, `-llm_temperature`, `-llm_effort`, `-llm_fake_as`
 
 #### 3. Convert yaml(s) to gamedata json / txt
 

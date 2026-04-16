@@ -744,6 +744,82 @@ class TestPreprocessSingleSkillViaMcp(unittest.IsolatedAsyncioTestCase):
                 "model": "gpt-4.1-mini",
                 "api_key": "test-api-key",
                 "base_url": "https://example.invalid/v1",
+                "temperature": None,
+                "effort": None,
+                "fake_as": None,
+            },
+            received["args"]["llm_config"],
+        )
+        self.assertEqual(0x180000000, received["args"]["image_base"])
+        self.assertTrue(received["args"]["debug"])
+
+    async def test_forwards_full_llm_config_with_effort_and_fake_as(self) -> None:
+        received = {}
+
+        async def fake_preprocess_skill(
+            session, skill_name, expected_outputs, old_yaml_map,
+            new_binary_dir, platform, image_base, llm_config, debug=False,
+        ):
+            received["args"] = {
+                "session": session,
+                "skill_name": skill_name,
+                "expected_outputs": expected_outputs,
+                "old_yaml_map": old_yaml_map,
+                "new_binary_dir": new_binary_dir,
+                "platform": platform,
+                "image_base": image_base,
+                "llm_config": llm_config,
+                "debug": debug,
+            }
+            return True
+
+        with patch.object(
+            ida_skill_preprocessor,
+            "_get_preprocess_entry",
+            return_value=fake_preprocess_skill,
+        ), patch.object(
+            ida_skill_preprocessor.httpx,
+            "AsyncClient",
+            _FakeAsyncClient,
+        ), patch.object(
+            ida_skill_preprocessor,
+            "streamable_http_client",
+            return_value=_FakeStreamableHttpClient(),
+        ), patch.object(
+            ida_skill_preprocessor,
+            "ClientSession",
+            _FakeClientSession,
+        ), patch.object(
+            ida_skill_preprocessor,
+            "parse_mcp_result",
+            return_value={"result": "0x180000000"},
+        ):
+            result = await ida_skill_preprocessor.preprocess_single_skill_via_mcp(
+                host="127.0.0.1",
+                port=13337,
+                skill_name="find-CNetworkMessages_FindNetworkGroup",
+                expected_outputs=["out.yaml"],
+                old_yaml_map={"out.yaml": "old.yaml"},
+                new_binary_dir="bin_dir",
+                platform="windows",
+                llm_model="gpt-4.1-mini",
+                llm_apikey="test-api-key",
+                llm_baseurl="https://example.invalid/v1",
+                llm_temperature=0.6,
+                llm_effort="high",
+                llm_fake_as="codex",
+                debug=True,
+            )
+
+        self.assertTrue(result)
+        self.assertEqual(
+            {
+                "model": "gpt-4.1-mini",
+                "api_key": "test-api-key",
+                "base_url": "https://example.invalid/v1",
+                "temperature": 0.6,
+                "effort": "high",
+                "fake_as": "codex",
             },
             received["args"]["llm_config"],
         )

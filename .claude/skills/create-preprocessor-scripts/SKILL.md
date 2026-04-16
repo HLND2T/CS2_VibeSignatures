@@ -777,7 +777,19 @@ This step is mandatory -- do not report completion without running and passing t
 
 ## Step 6: Commit Changes
 
-After validation passes, commit all changes to git:
+After validation passes, commit all changes to git.
+
+**IMPORTANT — Never commit directly to the `main` branch.** If the current branch is `main`, create and switch to a `dev` branch first:
+
+```bash
+# Check current branch
+git branch --show-current
+
+# If on main, switch to dev (create it if it doesn't exist)
+git checkout dev 2>/dev/null || git checkout -b dev
+```
+
+Then commit:
 
 ```bash
 git add ida_preprocessor_scripts/find-{SKILL_NAME}.py config.yaml
@@ -809,7 +821,7 @@ Before finishing, verify:
 - [ ] config.yaml `symbols` section has entries for all target functions (no duplicates)
 - [ ] Reference YAMLs exist or generated (Patterns C/D/E)
 - [ ] `uv run ida_analyze_bin.py -debug` passes with 0 failures
-- [ ] All changes committed to git
+- [ ] All changes committed to git (on `dev` branch, NOT `main`)
 
 ## Real-World Examples
 

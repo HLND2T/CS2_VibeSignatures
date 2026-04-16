@@ -182,6 +182,42 @@ found_vcall:
             mock_call_llm_text.call_args.kwargs["messages"][1]["content"],
         )
 
+    @patch("ida_vcall_finder.call_llm_text")
+    def test_call_openai_for_vcalls_forwards_effort_and_codex(
+        self,
+        mock_call_llm_text,
+    ) -> None:
+        mock_call_llm_text.return_value = "found_vcall: []"
+        detail = {
+            "object_name": "g_pNetworkMessages",
+            "module": "networksystem",
+            "platform": "linux",
+            "func_name": "sub_2000",
+            "func_va": "0x2000",
+            "disasm_code": "call    [rax+68h]",
+            "procedure": "obj->vfptr[13](obj);",
+        }
+
+        found_vcall = ida_vcall_finder.call_openai_for_vcalls(
+            None,
+            detail,
+            "gpt-5.4",
+            api_key="test-api-key",
+            base_url="https://example.invalid/v1",
+            fake_as="codex",
+            effort="high",
+        )
+
+        self.assertEqual([], found_vcall)
+        mock_call_llm_text.assert_called_once()
+        self.assertEqual("codex", mock_call_llm_text.call_args.kwargs["fake_as"])
+        self.assertEqual("high", mock_call_llm_text.call_args.kwargs["effort"])
+        self.assertEqual("test-api-key", mock_call_llm_text.call_args.kwargs["api_key"])
+        self.assertEqual(
+            "https://example.invalid/v1",
+            mock_call_llm_text.call_args.kwargs["base_url"],
+        )
+
 
 class TestAggregateVcallResultsForObject(unittest.TestCase):
     @patch("ida_vcall_finder.call_llm_text")
@@ -257,6 +293,102 @@ found_vcall:
             self.assertIn("insn_va: '0x12345678'", summary_text)
             self.assertIn("func_name: sub_2000", summary_text)
             self.assertEqual(0.45, mock_call_llm_text.call_args.kwargs["temperature"])
+
+    @patch("ida_vcall_finder.call_openai_for_vcalls")
+    @patch("ida_vcall_finder._get_or_create_llm_client")
+    def test_aggregate_vcall_results_for_object_forwards_effort_and_codex(
+        self,
+        mock_get_or_create_llm_client,
+        mock_call_openai_for_vcalls,
+    ) -> None:
+        mock_get_or_create_llm_client.return_value = None
+        mock_call_openai_for_vcalls.return_value = [
+            {
+                "insn_va": "0x12345678",
+                "insn_disasm": "call    [rax+68h]",
+                "vfunc_offset": "0x68",
+            }
+        ]
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            detail_path = ida_vcall_finder.build_vcall_detail_path(
+                temp_dir,
+                "14141b",
+                "g_pNetworkMessages",
+                "networksystem",
+                "linux",
+                "sub_2000",
+            )
+            ida_vcall_finder.write_vcall_detail_yaml(
+                detail_path,
+                {
+                    "object_name": "g_pNetworkMessages",
+                    "module": "networksystem",
+                    "platform": "linux",
+                    "func_name": "sub_2000",
+                    "func_va": "0x2000",
+                    "disasm_code": "call    [rax+68h]",
+                    "procedure": "obj->vfptr[13](obj);",
+                },
+            )
+
+            stats = ida_vcall_finder.aggregate_vcall_results_for_object(
+                base_dir=temp_dir,
+                gamever="14141b",
+                object_name="g_pNetworkMessages",
+                model="gpt-5.4",
+                api_key="test-api-key",
+                base_url="https://example.invalid/v1",
+                temperature=0.45,
+                effort="high",
+                fake_as="codex",
+                debug=False,
+            )
+
+        self.assertEqual({"status": "success", "processed": 1, "failed": 0}, stats)
+        mock_get_or_create_llm_client.assert_called_once()
+        self.assertEqual("codex", mock_get_or_create_llm_client.call_args.kwargs["fake_as"])
+        self.assertEqual(
+            "test-api-key",
+            mock_get_or_create_llm_client.call_args.kwargs["api_key"],
+        )
+        self.assertEqual(
+            "https://example.invalid/v1",
+            mock_get_or_create_llm_client.call_args.kwargs["base_url"],
+        )
+        mock_call_openai_for_vcalls.assert_called_once()
+        self.assertEqual("high", mock_call_openai_for_vcalls.call_args.kwargs["effort"])
+        self.assertEqual("codex", mock_call_openai_for_vcalls.call_args.kwargs["fake_as"])
+        self.assertEqual(
+            "test-api-key",
+            mock_call_openai_for_vcalls.call_args.kwargs["api_key"],
+        )
+        self.assertEqual(
+            "https://example.invalid/v1",
+            mock_call_openai_for_vcalls.call_args.kwargs["base_url"],
+        )
+        self.assertEqual(0.45, mock_call_openai_for_vcalls.call_args.kwargs["temperature"])
+
+    @patch("ida_vcall_finder.create_openai_client")
+    def test_get_or_create_llm_client_skips_client_factory_for_codex(
+        self,
+        mock_create_openai_client,
+    ) -> None:
+        mock_create_openai_client.side_effect = AssertionError(
+            "should not be called in codex mode"
+        )
+
+        client_ref = {"client": None}
+        llm_client = ida_vcall_finder._get_or_create_llm_client(
+            client_ref,
+            api_key="test-api-key",
+            base_url="https://example.invalid/v1",
+            fake_as="codex",
+        )
+
+        self.assertIsNone(llm_client)
+        self.assertIsNone(client_ref["client"])
+        mock_create_openai_client.assert_not_called()
 
 
 if __name__ == "__main__":

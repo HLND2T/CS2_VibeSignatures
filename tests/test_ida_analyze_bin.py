@@ -526,6 +526,14 @@ class TestRunSkillCodexPromptTransport(unittest.TestCase):
         self.assertEqual(expected_prompt, ''.join(second_process.stdin.writes))
 
 
+@patch.dict(
+    "os.environ",
+    {
+        "CS2VIBE_LLM_FAKE_AS": "",
+        "CS2VIBE_LLM_EFFORT": "",
+    },
+    clear=False,
+)
 class TestParseArgsLlmOptions(unittest.TestCase):
     @patch.object(ida_analyze_bin, "resolve_oldgamever", return_value="14140")
     def test_parse_args_accepts_llm_options(
@@ -560,7 +568,15 @@ class TestParseArgsLlmOptions(unittest.TestCase):
         self,
         _mock_resolve_oldgamever,
     ) -> None:
-        with patch.dict("os.environ", {"CS2VIBE_LLM_TEMPERATURE": "0.6"}, clear=False), patch(
+        with patch.dict(
+            "os.environ",
+            {
+                "CS2VIBE_LLM_TEMPERATURE": "0.6",
+                "CS2VIBE_LLM_FAKE_AS": "",
+                "CS2VIBE_LLM_EFFORT": "",
+            },
+            clear=False,
+        ), patch(
             "sys.argv",
             [
                 "ida_analyze_bin.py",
@@ -577,7 +593,15 @@ class TestParseArgsLlmOptions(unittest.TestCase):
         self,
         _mock_resolve_oldgamever,
     ) -> None:
-        with patch.dict("os.environ", {"CS2VIBE_LLM_TEMPERATURE": "0.6"}, clear=False), patch(
+        with patch.dict(
+            "os.environ",
+            {
+                "CS2VIBE_LLM_TEMPERATURE": "0.6",
+                "CS2VIBE_LLM_FAKE_AS": "",
+                "CS2VIBE_LLM_EFFORT": "",
+            },
+            clear=False,
+        ), patch(
             "sys.argv",
             [
                 "ida_analyze_bin.py",
@@ -590,6 +614,162 @@ class TestParseArgsLlmOptions(unittest.TestCase):
             args = ida_analyze_bin.parse_args()
 
         self.assertEqual(0.3, args.llm_temperature)
+
+    @patch.object(ida_analyze_bin, "resolve_oldgamever", return_value="14140")
+    def test_parse_args_accepts_llm_fake_as_and_effort(
+        self,
+        _mock_resolve_oldgamever,
+    ) -> None:
+        with patch(
+            "sys.argv",
+            [
+                "ida_analyze_bin.py",
+                "-gamever",
+                "14141",
+                "-llm_fake_as",
+                "codex",
+                "-llm_effort",
+                "high",
+                "-llm_temperature",
+                "0.25",
+            ],
+        ):
+            args = ida_analyze_bin.parse_args()
+
+        self.assertEqual("codex", args.llm_fake_as)
+        self.assertEqual("high", args.llm_effort)
+        self.assertEqual(0.25, args.llm_temperature)
+
+    @patch.object(ida_analyze_bin, "resolve_oldgamever", return_value="14140")
+    def test_parse_args_uses_env_llm_fake_as_and_default_effort(
+        self,
+        _mock_resolve_oldgamever,
+    ) -> None:
+        with patch.dict(
+            "os.environ",
+            {
+                "CS2VIBE_LLM_FAKE_AS": "codex",
+                "CS2VIBE_LLM_EFFORT": "",
+            },
+            clear=False,
+        ), patch(
+            "sys.argv",
+            [
+                "ida_analyze_bin.py",
+                "-gamever",
+                "14141",
+            ],
+        ):
+            args = ida_analyze_bin.parse_args()
+
+        self.assertEqual("codex", args.llm_fake_as)
+        self.assertEqual("medium", args.llm_effort)
+
+    @patch.object(ida_analyze_bin, "resolve_oldgamever", return_value="14140")
+    def test_parse_args_normalizes_blank_llm_fake_as_to_none(
+        self,
+        _mock_resolve_oldgamever,
+    ) -> None:
+        with patch(
+            "sys.argv",
+            [
+                "ida_analyze_bin.py",
+                "-gamever",
+                "14141",
+                "-llm_fake_as",
+                "   ",
+            ],
+        ):
+            args = ida_analyze_bin.parse_args()
+
+        self.assertIsNone(args.llm_fake_as)
+
+    @patch.object(ida_analyze_bin, "resolve_oldgamever", return_value="14140")
+    def test_parse_args_normalizes_blank_llm_effort_to_medium(
+        self,
+        _mock_resolve_oldgamever,
+    ) -> None:
+        with patch(
+            "sys.argv",
+            [
+                "ida_analyze_bin.py",
+                "-gamever",
+                "14141",
+                "-llm_effort",
+                "   ",
+            ],
+        ):
+            args = ida_analyze_bin.parse_args()
+
+        self.assertEqual("medium", args.llm_effort)
+
+    @patch.object(ida_analyze_bin, "resolve_oldgamever", return_value="14140")
+    def test_parse_args_prefers_cli_llm_effort_over_env(
+        self,
+        _mock_resolve_oldgamever,
+    ) -> None:
+        with patch.dict(
+            "os.environ",
+            {
+                "CS2VIBE_LLM_FAKE_AS": "",
+                "CS2VIBE_LLM_EFFORT": "low",
+            },
+            clear=False,
+        ), patch(
+            "sys.argv",
+            [
+                "ida_analyze_bin.py",
+                "-gamever",
+                "14141",
+                "-llm_effort",
+                "xhigh",
+            ],
+        ):
+            args = ida_analyze_bin.parse_args()
+
+        self.assertEqual("xhigh", args.llm_effort)
+
+    @patch.object(ida_analyze_bin, "resolve_oldgamever", return_value="14140")
+    def test_parse_args_rejects_invalid_llm_fake_as(
+        self,
+        _mock_resolve_oldgamever,
+    ) -> None:
+        with patch(
+            "sys.argv",
+            [
+                "ida_analyze_bin.py",
+                "-gamever",
+                "14141",
+                "-llm_fake_as",
+                "openai",
+            ],
+        ), patch("sys.stderr", new_callable=io.StringIO) as fake_stderr:
+            with self.assertRaises(SystemExit) as exc:
+                ida_analyze_bin.parse_args()
+
+        self.assertEqual(2, exc.exception.code)
+        self.assertIn("Invalid LLM fake_as", fake_stderr.getvalue())
+
+    @patch.object(ida_analyze_bin, "resolve_oldgamever", return_value="14140")
+    def test_parse_args_rejects_invalid_llm_effort(
+        self,
+        _mock_resolve_oldgamever,
+    ) -> None:
+        with patch(
+            "sys.argv",
+            [
+                "ida_analyze_bin.py",
+                "-gamever",
+                "14141",
+                "-llm_effort",
+                "turbo",
+            ],
+        ), patch("sys.stderr", new_callable=io.StringIO) as fake_stderr:
+            with self.assertRaises(SystemExit) as exc:
+                ida_analyze_bin.parse_args()
+
+        self.assertEqual(2, exc.exception.code)
+        self.assertIn("Invalid LLM effort", fake_stderr.getvalue())
 
     @patch.object(ida_analyze_bin, "resolve_oldgamever", return_value="14140")
     def test_parse_args_rejects_legacy_vcall_finder_model(
@@ -658,6 +838,8 @@ class TestProcessBinaryLlmWiring(unittest.TestCase):
             llm_apikey="test-api-key",
             llm_baseurl="https://example.invalid/v1",
             llm_temperature=0.4,
+            llm_effort="high",
+            llm_fake_as="codex",
         )
 
         self.assertEqual("gpt-4.1-mini", mock_preprocess.await_args.kwargs["llm_model"])
@@ -667,10 +849,11 @@ class TestProcessBinaryLlmWiring(unittest.TestCase):
             mock_preprocess.await_args.kwargs["llm_baseurl"],
         )
         self.assertEqual(0.4, mock_preprocess.await_args.kwargs["llm_temperature"])
+        self.assertEqual("high", mock_preprocess.await_args.kwargs["llm_effort"])
+        self.assertEqual("codex", mock_preprocess.await_args.kwargs["llm_fake_as"])
 
 
 class TestMainLlmWiring(unittest.TestCase):
-    @patch.object(ida_analyze_bin, "aggregate_vcall_results_for_object")
     @patch.object(ida_analyze_bin, "process_binary", return_value=(0, 0, 0))
     @patch.object(ida_analyze_bin, "parse_config")
     @patch("ida_analyze_bin.os.path.exists", return_value=True)
@@ -681,8 +864,38 @@ class TestMainLlmWiring(unittest.TestCase):
         _mock_exists,
         mock_parse_config,
         _mock_process_binary,
-        mock_aggregate,
     ) -> None:
+        captured = {}
+
+        def fake_aggregate_vcall_results_for_object(
+            *,
+            base_dir,
+            gamever,
+            object_name,
+            model,
+            api_key=None,
+            base_url=None,
+            temperature=None,
+            effort=None,
+            fake_as=None,
+            client=None,
+            debug=False,
+        ):
+            captured["kwargs"] = {
+                "base_dir": base_dir,
+                "gamever": gamever,
+                "object_name": object_name,
+                "model": model,
+                "api_key": api_key,
+                "base_url": base_url,
+                "temperature": temperature,
+                "effort": effort,
+                "fake_as": fake_as,
+                "client": client,
+                "debug": debug,
+            }
+            return {"status": "success", "processed": 1, "failed": 0}
+
         mock_parse_args.return_value = SimpleNamespace(
             configyaml="config.yaml",
             bindir="bin",
@@ -700,6 +913,8 @@ class TestMainLlmWiring(unittest.TestCase):
             llm_apikey="test-api-key",
             llm_baseurl="https://example.invalid/v1",
             llm_temperature=0.5,
+            llm_effort="high",
+            llm_fake_as="codex",
         )
         mock_parse_config.return_value = [
             {
@@ -709,19 +924,29 @@ class TestMainLlmWiring(unittest.TestCase):
                 "path_windows": "game/bin/win64/networksystem.dll",
             }
         ]
-        mock_aggregate.return_value = {"status": "success", "processed": 1, "failed": 0}
 
-        ida_analyze_bin.main()
+        with patch.object(
+            ida_analyze_bin,
+            "aggregate_vcall_results_for_object",
+            new=fake_aggregate_vcall_results_for_object,
+        ):
+            ida_analyze_bin.main()
 
-        mock_aggregate.assert_called_once_with(
-            base_dir="vcall_finder",
-            gamever="14141",
-            object_name="g_pNetworkMessages",
-            model="gpt-4.1-mini",
-            api_key="test-api-key",
-            base_url="https://example.invalid/v1",
-            temperature=0.5,
-            debug=False,
+        self.assertEqual(
+            {
+                "base_dir": "vcall_finder",
+                "gamever": "14141",
+                "object_name": "g_pNetworkMessages",
+                "model": "gpt-4.1-mini",
+                "api_key": "test-api-key",
+                "base_url": "https://example.invalid/v1",
+                "temperature": 0.5,
+                "effort": "high",
+                "fake_as": "codex",
+                "client": None,
+                "debug": False,
+            },
+            captured["kwargs"],
         )
 
 

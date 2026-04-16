@@ -74,6 +74,7 @@ async def preprocess_single_skill_via_mcp(
     host, port, skill_name, expected_outputs, old_yaml_map,
     new_binary_dir, platform,
     llm_model=None, llm_apikey=None, llm_baseurl=None, llm_temperature=None,
+    llm_effort=None, llm_fake_as=None,
     debug=False,
 ):
     """
@@ -95,6 +96,8 @@ async def preprocess_single_skill_via_mcp(
         llm_apikey: optional OpenAI-compatible API key for scripts that support LLM
         llm_baseurl: optional OpenAI-compatible base URL for scripts that support LLM
         llm_temperature: optional OpenAI-compatible temperature for scripts that support LLM
+        llm_effort: optional OpenAI-compatible reasoning effort for scripts that support LLM
+        llm_fake_as: optional OpenAI-compatible fake_as for scripts that support LLM
         debug: enable debug output
 
     Returns:
@@ -133,6 +136,8 @@ async def preprocess_single_skill_via_mcp(
                             "api_key": llm_apikey,
                             "base_url": llm_baseurl,
                             "temperature": llm_temperature,
+                            "effort": llm_effort,
+                            "fake_as": llm_fake_as,
                         }
                         preprocess_kwargs = {
                             "session": session,

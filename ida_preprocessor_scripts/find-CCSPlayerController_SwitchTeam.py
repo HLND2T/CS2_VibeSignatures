@@ -17,7 +17,9 @@ FUNC_XREFS = [
         [],   # xref_signatures_list
         [],   # xref_funcs_list
         [],   # exclude_funcs_list
-        [],   # exclude_strings_list
+        [
+            "gg_halftime"
+        ],   # exclude_strings_list
     ),
 ]
 

@@ -968,7 +968,19 @@ This step is mandatory — do not report completion without running and passing 
 
 ## Step 10: Commit Changes
 
-After validation passes, commit all conversion-related changes to git:
+After validation passes, commit all conversion-related changes to git.
+
+**IMPORTANT — Never commit directly to the `main` branch.** If the current branch is `main`, create and switch to a `dev` branch first:
+
+```bash
+# Check current branch
+git branch --show-current
+
+# If on main, switch to dev (create it if it doesn't exist)
+git checkout dev 2>/dev/null || git checkout -b dev
+```
+
+Then commit:
 
 ```bash
 git add <preprocessor_script> <deleted_skill_md> <config.yaml if changed> docs/claude_skills_stats.yaml
@@ -1007,7 +1019,7 @@ Before finishing, verify:
 - [ ] Existing output YAMLs under `bin/*/` are deleted for all target functions (AFTER reference YAML generation)
 - [ ] Entry removed from `docs/claude_skills_stats.yaml` for all converted symbols
 - [ ] `uv run ida_analyze_bin.py -debug` passes with 0 failures
-- [ ] All conversion changes committed to git
+- [ ] All conversion changes committed to git (on `dev` branch, NOT `main`)
 
 ## Real-World Examples
 
