@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CCSPlayerPawnBase_PostThink skill."""
+"""Preprocess script for find-CCSPlayerPawn_PostThink skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = [
-    "CCSPlayerPawnBase_PostThink",
+    "CCSPlayerPawn_PostThink",
 ]
 
 FUNC_XREFS = [
                  {
-                     "func_name": 'CCSPlayerPawnBase_PostThink',
+                     "func_name": 'CCSPlayerPawn_PostThink',
                      "xref_strings": ['enter_buyzone'],
                      "xref_gvs": [],
                      "xref_signatures": [],
@@ -23,13 +23,13 @@ FUNC_XREFS = [
 
 FUNC_VTABLE_RELATIONS = [
     # (func_name, vtable_class)
-    ("CCSPlayerPawnBase_PostThink", "CCSPlayerPawn"),
+    ("CCSPlayerPawn_PostThink", "CCSPlayerPawn"),
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
     (
-        "CCSPlayerPawnBase_PostThink",
+        "CCSPlayerPawn_PostThink",
         [
             "func_name",
             "func_va",
