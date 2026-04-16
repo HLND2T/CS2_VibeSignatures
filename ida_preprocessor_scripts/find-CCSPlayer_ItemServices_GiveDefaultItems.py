@@ -8,24 +8,18 @@ TARGET_FUNCTION_NAMES = [
 ]
 
 FUNC_XREFS = [
-    # (func_name, xref_strings_list, xref_signatures_list, xref_funcs_list, exclude_funcs_list, exclude_strings_list)
-    (
-        "CCSPlayer_ItemServices_GiveDefaultItems",
-        [
-            "FULLMATCH:item_assaultsuit",
-            "FULLMATCH:item_kevlar",
-            "FULLMATCH:weapon_knife",
-            "FULLMATCH:weapon_knife_t",
-            "FULLMATCH:weapon_taser",
-        ],
-        [],   # xref_signatures_list
-        [],   # xref_funcs_list
-        [],   # exclude_funcs_list
-        [
-            "FULLMATCH:weapon_healthshot",
-        ],   # exclude_strings_list
-    ),
-]
+                 {
+                     "func_name": 'CCSPlayer_ItemServices_GiveDefaultItems',
+                     "xref_strings": ['FULLMATCH:item_assaultsuit', 'FULLMATCH:item_kevlar', 'FULLMATCH:weapon_knife', 'FULLMATCH:weapon_knife_t', 'FULLMATCH:weapon_taser'],
+                     "xref_gvs": [],
+                     "xref_signatures": [],
+                     "xref_funcs": [],
+                     "exclude_funcs": [],
+                     "exclude_strings": ['FULLMATCH:weapon_healthshot'],
+                     "exclude_gvs": [],
+                     "exclude_signatures": [],
+                 },
+             ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)

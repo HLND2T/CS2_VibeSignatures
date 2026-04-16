@@ -8,20 +8,18 @@ TARGET_FUNCTION_NAMES = [
 ]
 
 FUNC_XREFS = [
-    # (func_name, xref_strings_list, xref_signatures_list, xref_funcs_list, exclude_funcs_list, exclude_strings_list)
-    (
-        "CLoopTypeClientServer_BuildAndActivateLoopTypes",
-        [
-            "levelload",
-            "remoteconnect",
-            "sourcetvrelay",
-        ],
-        [],
-        [],
-        [],
-        [],
-    ),
-]
+                 {
+                     "func_name": 'CLoopTypeClientServer_BuildAndActivateLoopTypes',
+                     "xref_strings": ['levelload', 'remoteconnect', 'sourcetvrelay'],
+                     "xref_gvs": [],
+                     "xref_signatures": [],
+                     "xref_funcs": [],
+                     "exclude_funcs": [],
+                     "exclude_strings": [],
+                     "exclude_gvs": [],
+                     "exclude_signatures": [],
+                 },
+             ]
 
 
 GENERATE_YAML_DESIRED_FIELDS = [

@@ -8,19 +8,18 @@ TARGET_FUNCTION_NAMES = [
 ]
 
 FUNC_XREFS = [
-    # (func_name, xref_strings_list, xref_signatures_list, xref_funcs_list, exclude_funcs_list, exclude_strings_list)
-    (
-        "CNetworkUtlVectorEmbedded_NetworkStateChanged_m_vecRenderAttributes",
-        [
-            "m_vecRenderAttributes",
-            "%s was not composed of trivial POD-type fields",
-        ],
-        [],
-        [],
-        [],
-        [],
-    ),
-]
+                 {
+                     "func_name": 'CNetworkUtlVectorEmbedded_NetworkStateChanged_m_vecRenderAttributes',
+                     "xref_strings": ['m_vecRenderAttributes', '%s was not composed of trivial POD-type fields'],
+                     "xref_gvs": [],
+                     "xref_signatures": [],
+                     "xref_funcs": [],
+                     "exclude_funcs": [],
+                     "exclude_strings": [],
+                     "exclude_gvs": [],
+                     "exclude_signatures": [],
+                 },
+             ]
 
 
 GENERATE_YAML_DESIRED_FIELDS = [

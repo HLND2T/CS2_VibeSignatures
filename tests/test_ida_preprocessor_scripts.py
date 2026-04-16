@@ -48,6 +48,11 @@ CNETWORK_SERVER_SERVICE_INIT_SCRIPT_PATH = Path(
     "ida_preprocessor_scripts/"
     "find-CNetworkServerService_Init.py"
 )
+PROCESS_MOVEMENT_SCRIPT_PATH = Path(
+    "ida_preprocessor_scripts/"
+    "find-CCSPlayer_MovementServices_ProcessMovement-AND-"
+    "CCSPlayer_MovementServices_CheckMovingGround.py"
+)
 BOT_ADD_COMMAND_HANDLER_SCRIPT_PATH = Path(
     "ida_preprocessor_scripts/"
     "find-BotAdd_CommandHandler.py"
@@ -1310,26 +1315,29 @@ class TestFindINetworkMessagesGetLoggingChannelLinux(
 
 
 class TestFindCNetworkServerServiceInit(unittest.IsolatedAsyncioTestCase):
-    async def test_script_forwards_six_tuple_func_xrefs(self) -> None:
+    async def test_script_forwards_dict_func_xrefs(self) -> None:
         module = _load_module(
             CNETWORK_SERVER_SERVICE_INIT_SCRIPT_PATH,
             "find_CNetworkServerService_Init",
         )
         mock_preprocess_common_skill = AsyncMock(return_value=True)
         expected_func_xrefs = [
-            (
-                "CNetworkServerService_Init",
-                [
+            {
+                "func_name": "CNetworkServerService_Init",
+                "xref_strings": [
                     "ServerToClient",
                     "Entities",
                     "Local Player",
                     "Other Players",
                 ],
-                [],
-                [],
-                [],
-                [],
-            )
+                "xref_gvs": [],
+                "xref_signatures": [],
+                "xref_funcs": [],
+                "exclude_funcs": [],
+                "exclude_strings": [],
+                "exclude_gvs": [],
+                "exclude_signatures": [],
+            }
         ]
         expected_func_vtable_relations = [
             ("CNetworkServerService_Init", "CNetworkServerService")
@@ -1377,6 +1385,87 @@ class TestFindCNetworkServerServiceInit(unittest.IsolatedAsyncioTestCase):
             func_names=["CNetworkServerService_Init"],
             func_xrefs=expected_func_xrefs,
             func_vtable_relations=expected_func_vtable_relations,
+            generate_yaml_desired_fields=expected_generate_yaml_desired_fields,
+            debug=True,
+        )
+
+
+class TestFindCcsPlayerMovementServicesProcessMovement(
+    unittest.IsolatedAsyncioTestCase
+):
+    async def test_script_forwards_gv_backed_func_xrefs(self) -> None:
+        module = _load_module(
+            PROCESS_MOVEMENT_SCRIPT_PATH,
+            "find_CCSPlayer_MovementServices_ProcessMovement_AND_"
+            "CCSPlayer_MovementServices_CheckMovingGround",
+        )
+        mock_preprocess_common_skill = AsyncMock(return_value=True)
+        expected_func_xrefs = [
+            {
+                "func_name": "CCSPlayer_MovementServices_ProcessMovement",
+                "xref_strings": [],
+                "xref_gvs": ["CPlayer_MovementServices_s_pRunCommandPawn"],
+                "xref_signatures": [],
+                "xref_funcs": [],
+                "exclude_funcs": [],
+                "exclude_strings": [],
+                "exclude_gvs": [],
+                "exclude_signatures": [],
+            }
+        ]
+        expected_func_names = [
+            "CCSPlayer_MovementServices_ProcessMovement",
+            "CCSPlayer_MovementServices_CheckMovingGround",
+        ]
+        expected_generate_yaml_desired_fields = [
+            (
+                "CCSPlayer_MovementServices_ProcessMovement",
+                [
+                    "func_name",
+                    "func_va",
+                    "func_rva",
+                    "func_size",
+                    "func_sig",
+                ],
+            ),
+            (
+                "CCSPlayer_MovementServices_CheckMovingGround",
+                [
+                    "func_name",
+                    "func_va",
+                    "func_rva",
+                    "func_size",
+                    "func_sig",
+                ],
+            ),
+        ]
+
+        with patch.object(
+            module,
+            "preprocess_common_skill",
+            mock_preprocess_common_skill,
+        ):
+            result = await module.preprocess_skill(
+                session="session",
+                skill_name="skill",
+                expected_outputs=["out.yaml"],
+                old_yaml_map={"k": "v"},
+                new_binary_dir="bin_dir",
+                platform="windows",
+                image_base=0x180000000,
+                debug=True,
+            )
+
+        self.assertTrue(result)
+        mock_preprocess_common_skill.assert_awaited_once_with(
+            session="session",
+            expected_outputs=["out.yaml"],
+            old_yaml_map={"k": "v"},
+            new_binary_dir="bin_dir",
+            platform="windows",
+            image_base=0x180000000,
+            func_names=expected_func_names,
+            func_xrefs=expected_func_xrefs,
             generate_yaml_desired_fields=expected_generate_yaml_desired_fields,
             debug=True,
         )

@@ -8,16 +8,18 @@ TARGET_FUNCTION_NAMES = [
 ]
 
 FUNC_XREFS = [
-    # (func_name, xref_strings_list, xref_signatures_list, xref_funcs_list, exclude_funcs_list, exclude_strings_list)
-    (
-        "CLoopModeGame_Shutdown",
-        ["--CLoopModeGame::SetWorldSession"],
-        [],
-        ["CLoopModeGame_SetGameSystemState", "IGameSystem_DestroyAllGameSystems"],
-        ["CLoopModeGame_SetWorldSession"],
-        [],
-    ),
-]
+                 {
+                     "func_name": 'CLoopModeGame_Shutdown',
+                     "xref_strings": ['--CLoopModeGame::SetWorldSession'],
+                     "xref_gvs": [],
+                     "xref_signatures": [],
+                     "xref_funcs": ['CLoopModeGame_SetGameSystemState', 'IGameSystem_DestroyAllGameSystems'],
+                     "exclude_funcs": ['CLoopModeGame_SetWorldSession'],
+                     "exclude_strings": [],
+                     "exclude_gvs": [],
+                     "exclude_signatures": [],
+                 },
+             ]
 
 FUNC_VTABLE_RELATIONS = []
 

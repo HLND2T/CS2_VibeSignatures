@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """Preprocess script for find-CBaseEntity_SetStateChanged skill."""
 
 from ida_analyze_util import preprocess_common_skill
@@ -8,32 +8,32 @@ TARGET_FUNCTION_NAMES = [
 ]
 
 FUNC_XREFS_WINDOWS = [
-    # (func_name, xref_strings_list, xref_signatures_list, xref_funcs_list, exclude_funcs_list, exclude_strings_list)
-    (
-        "CBaseEntity_SetStateChanged",
-        [
-            "CNetworkTransmitComponent::StateChanged(%s) @%s:%d",
-        ],
-        [],
-        ["CNetworkTransmitComponent_StateChanged"],
-        [],
-        [],
-    ),
-]
+                         {
+                             "func_name": 'CBaseEntity_SetStateChanged',
+                             "xref_strings": ['CNetworkTransmitComponent::StateChanged(%s) @%s:%d'],
+                             "xref_gvs": [],
+                             "xref_signatures": [],
+                             "xref_funcs": ['CNetworkTransmitComponent_StateChanged'],
+                             "exclude_funcs": [],
+                             "exclude_strings": [],
+                             "exclude_gvs": [],
+                             "exclude_signatures": [],
+                         },
+                     ]
 
 FUNC_XREFS_LINUX = [
-    # (func_name, xref_strings_list, xref_signatures_list, xref_funcs_list, exclude_funcs_list, exclude_strings_list)
-    (
-        "CBaseEntity_SetStateChanged",
-        [],
-        [],
-        ["CNetworkTransmitComponent_StateChanged"],
-        [],
-        [
-            "CNetworkTransmitComponent::StateChanged(%s) @%s:%d",
-        ]
-    ),
-]
+                       {
+                           "func_name": 'CBaseEntity_SetStateChanged',
+                           "xref_strings": [],
+                           "xref_gvs": [],
+                           "xref_signatures": [],
+                           "xref_funcs": ['CNetworkTransmitComponent_StateChanged'],
+                           "exclude_funcs": [],
+                           "exclude_strings": ['CNetworkTransmitComponent::StateChanged(%s) @%s:%d'],
+                           "exclude_gvs": [],
+                           "exclude_signatures": [],
+                       },
+                   ]
 
 FUNC_VTABLE_RELATIONS = [
     # (func_name, vtable_class)

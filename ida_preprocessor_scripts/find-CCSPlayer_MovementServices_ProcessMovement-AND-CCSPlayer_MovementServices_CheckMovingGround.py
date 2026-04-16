@@ -8,6 +8,20 @@ TARGET_FUNCTION_NAMES = [
     "CCSPlayer_MovementServices_CheckMovingGround",
 ]
 
+FUNC_XREFS = [
+    {
+        "func_name": "CCSPlayer_MovementServices_ProcessMovement",
+        "xref_strings": [],
+        "xref_gvs": ["CPlayer_MovementServices_s_pRunCommandPawn"],
+        "xref_signatures": [],
+        "xref_funcs": [],
+        "exclude_funcs": [],
+        "exclude_strings": [],
+        "exclude_gvs": [],
+        "exclude_signatures": [],
+    },
+]
+
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
@@ -46,6 +60,7 @@ async def preprocess_skill(
         platform=platform,
         image_base=image_base,
         func_names=TARGET_FUNCTION_NAMES,
+        func_xrefs=FUNC_XREFS,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
     )
