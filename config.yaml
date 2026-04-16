@@ -1562,13 +1562,42 @@ modules:
         expected_input:
           - CCSPlayerController_vtable.{platform}.yaml
 
-      - name: find-CCSPlayerController_InventoryUpdateThink
+      - name: find-CCSPlayerController_RegisterThink
         expected_output:
-          - CCSPlayerController_InventoryUpdateThink.{platform}.yaml
+          - CCSPlayerController_RegisterThink.{platform}.yaml
 
-      - name: find-CCSPlayerController_ResourceDataThink
+      - name: find-CCSPlayerController_PlayerForceTeamThink-AND-CCSPlayerController_ResetForceTeamThink-AND-CCSPlayerController_ResourceDataThink-AND-CCSPlayerController_InventoryUpdateThink-windows
+        platform: windows
         expected_output:
+          - CCSPlayerController_PlayerForceTeamThink.{platform}.yaml
+          - CCSPlayerController_ResetForceTeamThink.{platform}.yaml
           - CCSPlayerController_ResourceDataThink.{platform}.yaml
+          - CCSPlayerController_InventoryUpdateThink.{platform}.yaml
+        expected_input:
+          - CCSPlayerController_RegisterThink.{platform}.yaml
+
+      - name: find-g_CCSPlayerController_PlayerForceTeamThink-AND-g_CCSPlayerController_ResetForceTeamThink-AND-g_CCSPlayerController_ResourceDataThink-AND-g_CCSPlayerController_InventoryUpdateThink
+        platform: linux
+        expected_output:
+          - g_CCSPlayerController_PlayerForceTeamThink.{platform}.yaml
+          - g_CCSPlayerController_ResetForceTeamThink.{platform}.yaml
+          - g_CCSPlayerController_ResourceDataThink.{platform}.yaml
+          - g_CCSPlayerController_InventoryUpdateThink.{platform}.yaml
+        expected_input:
+          - CCSPlayerController_RegisterThink.{platform}.yaml
+
+      - name: find-CCSPlayerController_PlayerForceTeamThink-AND-CCSPlayerController_ResetForceTeamThink-AND-CCSPlayerController_ResourceDataThink-AND-CCSPlayerController_InventoryUpdateThink-linux
+        platform: linux
+        expected_output:
+          - CCSPlayerController_PlayerForceTeamThink.{platform}.yaml
+          - CCSPlayerController_ResetForceTeamThink.{platform}.yaml
+          - CCSPlayerController_ResourceDataThink.{platform}.yaml
+          - CCSPlayerController_InventoryUpdateThink.{platform}.yaml
+        expected_input:
+          - g_CCSPlayerController_PlayerForceTeamThink.{platform}.yaml
+          - g_CCSPlayerController_ResetForceTeamThink.{platform}.yaml
+          - g_CCSPlayerController_ResourceDataThink.{platform}.yaml
+          - g_CCSPlayerController_InventoryUpdateThink.{platform}.yaml
 
       - name: find-CCSGameRules__sm_mapGcBanInformation
         expected_output:
@@ -2661,17 +2690,54 @@ modules:
         alias:
           - CCSPlayerController::ChangeTeam
 
-      - name: CCSPlayerController_InventoryUpdateThink
+      - name: CCSPlayerController_RegisterThink
         category: func
         alias:
-          - InventoryUpdateThink
-          - CCSPlayerController::InventoryUpdateThink
+          - CCSPlayerController::RegisterThink
+
+      - name: CCSPlayerController_PlayerForceTeamThink
+        category: func
+        alias:
+          - PlayerForceTeamThink
+          - CCSPlayerController::PlayerForceTeamThink
+
+      - name: CCSPlayerController_ResetForceTeamThink
+        category: func
+        alias:
+          - ResetForceTeamThink
+          - CCSPlayerController::ResetForceTeamThink
 
       - name: CCSPlayerController_ResourceDataThink
         category: func
         alias:
           - ResourceDataThink
           - CCSPlayerController::ResourceDataThink
+
+      - name: CCSPlayerController_InventoryUpdateThink
+        category: func
+        alias:
+          - InventoryUpdateThink
+          - CCSPlayerController::InventoryUpdateThink
+
+      - name: g_CCSPlayerController_PlayerForceTeamThink
+        category: gv
+        alias:
+          - g_CCSPlayerController::PlayerForceTeamThink
+
+      - name: g_CCSPlayerController_ResetForceTeamThink
+        category: gv
+        alias:
+          - g_CCSPlayerController::ResetForceTeamThink
+
+      - name: g_CCSPlayerController_ResourceDataThink
+        category: gv
+        alias:
+          - g_CCSPlayerController::ResourceDataThink
+
+      - name: g_CCSPlayerController_InventoryUpdateThink
+        category: gv
+        alias:
+          - g_CCSPlayerController::InventoryUpdateThink
 
       - name: CCSGameRules__sm_mapGcBanInformation
         category: gv

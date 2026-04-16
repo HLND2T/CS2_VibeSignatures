@@ -1,0 +1,225 @@
+func_name: CCSPlayerController_RegisterThink
+func_va: '0x18099ed50'
+disasm_code: |-
+  .text:000000018099ED50                 sub     rsp, 28h
+  .text:000000018099ED54                 mov     ecx, cs:TlsIndex
+  .text:000000018099ED5A                 lea     rax, qword_181B8BC88
+  .text:000000018099ED61                 mov     cs:qword_181B83520, rax
+  .text:000000018099ED68                 mov     rax, gs:58h
+  .text:000000018099ED71                 mov     edx, 208h
+  .text:000000018099ED76                 mov     rax, [rax+rcx*8]
+  .text:000000018099ED7A                 mov     eax, [rdx+rax]
+  .text:000000018099ED7D                 cmp     cs:dword_181E9F844, eax
+  .text:000000018099ED83                 jg      short loc_18099EDA9
+  .text:000000018099ED85                 lea     rax, unk_181B83C28
+  .text:000000018099ED8C                 mov     cs:dword_181B83510, 1Bh
+  .text:000000018099ED96                 mov     cs:qword_181B83508, rax
+  .text:000000018099ED9D                 lea     rax, qword_181B83508
+  .text:000000018099EDA4                 add     rsp, 28h
+  .text:000000018099EDA8                 retn
+  .text:000000018099EDA9                 lea     rcx, dword_181E9F844
+  .text:000000018099EDB0                 call    sub_181486994
+  .text:000000018099EDB5                 cmp     cs:dword_181E9F844, 0FFFFFFFFh
+  .text:000000018099EDBC                 jnz     short loc_18099ED85
+  .text:000000018099EDBE                 mov     [rsp+28h+arg_0], rbx
+  .text:000000018099EDC3                 lea     rdx, aPlayerforcetea; "PlayerForceTeamThink"
+  .text:000000018099EDCA                 lea     rcx, aCcsplayercontr; "CCSPlayerController"
+  .text:000000018099EDD1                 mov     [rsp+28h+var_8], rdi
+  .text:000000018099EDD6                 call    sub_1814801A0
+  .text:000000018099EDDB                 xor     edi, edi
+  .text:000000018099EDDD                 mov     cs:qword_181B844B8, rax
+  .text:000000018099EDE4                 lea     rax, CCSPlayerController_PlayerForceTeamThink
+  .text:000000018099EDEB                 mov     cs:dword_181B844C0, edi
+  .text:000000018099EDF1                 xorps   xmm0, xmm0
+  .text:000000018099EDF4                 mov     cs:qword_181B844E0, rax
+  .text:000000018099EDFB                 mov     ebx, 1
+  .text:000000018099EE00                 mov     cs:dword_181B844C8, 20h ; ' '
+  .text:000000018099EE0A                 lea     rdx, aResetforceteam; "ResetForceTeamThink"
+  .text:000000018099EE11                 mov     cs:word_181B844C4, bx
+  .text:000000018099EE18                 lea     rcx, aCcsplayercontr; "CCSPlayerController"
+  .text:000000018099EE1F                 movdqa  cs:xmmword_181B844D0, xmm0
+  .text:000000018099EE27                 mov     cs:qword_181B844E8, rdi
+  .text:000000018099EE2E                 mov     cs:qword_181B844F0, rdi
+  .text:000000018099EE35                 mov     cs:qword_181B844F8, rdi
+  .text:000000018099EE3C                 mov     cs:word_181B84500, di
+  .text:000000018099EE43                 mov     cs:qword_181B84508, rdi
+  .text:000000018099EE4A                 mov     cs:qword_181B84510, rdi
+  .text:000000018099EE51                 mov     cs:byte_181B84518, dil
+  .text:000000018099EE58                 call    sub_1814801A0
+  .text:000000018099EE5D                 mov     cs:qword_181B84520, rax
+  .text:000000018099EE64                 lea     rdx, aResourcedatath; "ResourceDataThink"
+  .text:000000018099EE6B                 lea     rax, CCSPlayerController_ResetForceTeamThink
+  .text:000000018099EE72                 mov     cs:dword_181B84528, edi
+  .text:000000018099EE78                 xorps   xmm0, xmm0
+  .text:000000018099EE7B                 mov     cs:qword_181B84548, rax
+  .text:000000018099EE82                 lea     rcx, aCcsplayercontr; "CCSPlayerController"
+  .text:000000018099EE89                 mov     cs:word_181B8452C, bx
+  .text:000000018099EE90                 mov     cs:dword_181B84530, 20h ; ' '
+  .text:000000018099EE9A                 mov     cs:qword_181B84538, rdi
+  .text:000000018099EEA1                 mov     cs:qword_181B84540, rdi
+  .text:000000018099EEA8                 mov     cs:qword_181B84550, rdi
+  .text:000000018099EEAF                 mov     cs:qword_181B84558, rdi
+  .text:000000018099EEB6                 mov     cs:qword_181B84560, rdi
+  .text:000000018099EEBD                 mov     cs:word_181B84568, di
+  .text:000000018099EEC4                 movdqa  cs:xmmword_181B84570, xmm0
+  .text:000000018099EECC                 mov     cs:byte_181B84580, dil
+  .text:000000018099EED3                 call    sub_1814801A0
+  .text:000000018099EED8                 mov     cs:qword_181B84588, rax
+  .text:000000018099EEDF                 lea     rdx, aInventoryupdat; "InventoryUpdateThink"
+  .text:000000018099EEE6                 lea     rax, CCSPlayerController_ResourceDataThink
+  .text:000000018099EEED                 mov     cs:dword_181B84590, edi
+  .text:000000018099EEF3                 xorps   xmm0, xmm0
+  .text:000000018099EEF6                 mov     cs:qword_181B845B0, rax
+  .text:000000018099EEFD                 lea     rcx, aCcsplayercontr; "CCSPlayerController"
+  .text:000000018099EF04                 mov     cs:word_181B84594, bx
+  .text:000000018099EF0B                 mov     cs:dword_181B84598, 20h ; ' '
+  .text:000000018099EF15                 movdqa  cs:xmmword_181B845A0, xmm0
+  .text:000000018099EF1D                 mov     cs:qword_181B845B8, rdi
+  .text:000000018099EF24                 mov     cs:qword_181B845C0, rdi
+  .text:000000018099EF2B                 mov     cs:qword_181B845C8, rdi
+  .text:000000018099EF32                 mov     cs:word_181B845D0, di
+  .text:000000018099EF39                 mov     cs:qword_181B845D8, rdi
+  .text:000000018099EF40                 mov     cs:qword_181B845E0, rdi
+  .text:000000018099EF47                 mov     cs:byte_181B845E8, dil
+  .text:000000018099EF4E                 call    sub_1814801A0
+  .text:000000018099EF53                 mov     cs:qword_181B845F0, rax
+  .text:000000018099EF5A                 xorps   xmm0, xmm0
+  .text:000000018099EF5D                 lea     rax, CCSPlayerController_InventoryUpdateThink
+  .text:000000018099EF64                 mov     cs:dword_181B845F8, edi
+  .text:000000018099EF6A                 mov     cs:qword_181B84618, rax
+  .text:000000018099EF71                 lea     rax, aMHplayerpawn; "m_hPlayerPawn"
+  .text:000000018099EF78                 mov     cs:qword_181B84658, rax
+  .text:000000018099EF7F                 mov     cs:word_181B845FC, bx
+  .text:000000018099EF86                 mov     cs:dword_181B84600, 20h ; ' '
+  .text:000000018099EF90                 mov     cs:qword_181B84608, rdi
+  .text:000000018099EF97                 mov     cs:qword_181B84610, rdi
+  .text:000000018099EF9E                 mov     cs:qword_181B84620, rdi
+  .text:000000018099EFA5                 mov     cs:qword_181B84628, rdi
+  .text:000000018099EFAC                 mov     cs:qword_181B84630, rdi
+  .text:000000018099EFB3                 mov     cs:word_181B84638, di
+  .text:000000018099EFBA                 movdqa  cs:xmmword_181B84640, xmm0
+  .text:000000018099EFC2                 mov     cs:byte_181B84650, 0Dh
+  .text:000000018099EFC9                 mov     cs:dword_181B84660, 8DCh
+  .text:000000018099EFD3                 mov     cs:word_181B84664, bx
+  .text:000000018099EFDA                 mov     cs:dword_181B84668, 2
+  .text:000000018099EFE4                 lea     rax, aMHobserverpawn; "m_hObserverPawn"
+  .text:000000018099EFEB                 movdqa  cs:xmmword_181B84670, xmm0
+  .text:000000018099EFF3                 lea     rcx, dword_181E9F844
+  .text:000000018099EFFA                 mov     cs:qword_181B846C0, rax
+  .text:000000018099F001                 mov     cs:qword_181B84680, rdi
+  .text:000000018099F008                 mov     cs:qword_181B84688, rdi
+  .text:000000018099F00F                 mov     cs:qword_181B84690, 4
+  .text:000000018099F01A                 mov     cs:qword_181B84698, rdi
+  .text:000000018099F021                 mov     cs:word_181B846A0, di
+  .text:000000018099F028                 mov     cs:qword_181B846A8, rdi
+  .text:000000018099F02F                 mov     cs:qword_181B846B0, rdi
+  .text:000000018099F036                 mov     cs:byte_181B846B8, 0Dh
+  .text:000000018099F03D                 mov     cs:dword_181B846C8, 8E0h
+  .text:000000018099F047                 mov     cs:word_181B846CC, bx
+  .text:000000018099F04E                 mov     cs:dword_181B846D0, 2
+  .text:000000018099F058                 mov     cs:qword_181B846D8, rdi
+  .text:000000018099F05F                 mov     cs:qword_181B846E0, rdi
+  .text:000000018099F066                 mov     cs:qword_181B846E8, rdi
+  .text:000000018099F06D                 mov     cs:qword_181B846F0, rdi
+  .text:000000018099F074                 mov     cs:qword_181B846F8, 4
+  .text:000000018099F07F                 mov     cs:qword_181B84700, rdi
+  .text:000000018099F086                 mov     cs:word_181B84708, di
+  .text:000000018099F08D                 movdqa  cs:xmmword_181B84710, xmm0
+  .text:000000018099F095                 call    sub_181486928
+  .text:000000018099F09A                 mov     rdi, [rsp+28h+var_8]
+  .text:000000018099F09F                 mov     rbx, [rsp+28h+arg_0]
+  .text:000000018099F0A4                 jmp     loc_18099ED85
+procedure: |-
+  __int64 *sub_18099ED50()
+  {
+    qword_181B83520 = (__int64)&qword_181B8BC88;
+    if ( dword_181E9F844 > *(_DWORD *)(*((_QWORD *)NtCurrentTeb()->ThreadLocalStoragePointer + (unsigned int)TlsIndex)
+                                     + 520LL) )
+    {
+      sub_181486994(&dword_181E9F844, 520);
+      if ( dword_181E9F844 == -1 )
+      {
+        qword_181B844B8 = sub_1814801A0("CCSPlayerController", "PlayerForceTeamThink");
+        dword_181B844C0 = 0;
+        qword_181B844E0 = (__int64)CCSPlayerController_PlayerForceTeamThink;
+        dword_181B844C8 = 32;
+        word_181B844C4 = 1;
+        xmmword_181B844D0 = 0;
+        qword_181B844E8 = 0;
+        qword_181B844F0 = 0;
+        qword_181B844F8 = 0;
+        word_181B84500 = 0;
+        qword_181B84508 = 0;
+        qword_181B84510 = 0;
+        byte_181B84518 = 0;
+        qword_181B84520 = sub_1814801A0("CCSPlayerController", "ResetForceTeamThink");
+        dword_181B84528 = 0;
+        qword_181B84548 = (__int64)CCSPlayerController_ResetForceTeamThink;
+        word_181B8452C = 1;
+        dword_181B84530 = 32;
+        qword_181B84538 = 0;
+        qword_181B84540 = 0;
+        qword_181B84550 = 0;
+        qword_181B84558 = 0;
+        qword_181B84560 = 0;
+        word_181B84568 = 0;
+        xmmword_181B84570 = 0;
+        byte_181B84580 = 0;
+        qword_181B84588 = sub_1814801A0("CCSPlayerController", "ResourceDataThink");
+        dword_181B84590 = 0;
+        qword_181B845B0 = (__int64)CCSPlayerController_ResourceDataThink;
+        word_181B84594 = 1;
+        dword_181B84598 = 32;
+        xmmword_181B845A0 = 0;
+        qword_181B845B8 = 0;
+        qword_181B845C0 = 0;
+        qword_181B845C8 = 0;
+        word_181B845D0 = 0;
+        qword_181B845D8 = 0;
+        qword_181B845E0 = 0;
+        byte_181B845E8 = 0;
+        qword_181B845F0 = sub_1814801A0("CCSPlayerController", "InventoryUpdateThink");
+        dword_181B845F8 = 0;
+        qword_181B84618 = (__int64)CCSPlayerController_InventoryUpdateThink;
+        qword_181B84658 = (__int64)"m_hPlayerPawn";
+        word_181B845FC = 1;
+        dword_181B84600 = 32;
+        qword_181B84608 = 0;
+        qword_181B84610 = 0;
+        qword_181B84620 = 0;
+        qword_181B84628 = 0;
+        qword_181B84630 = 0;
+        word_181B84638 = 0;
+        xmmword_181B84640 = 0;
+        byte_181B84650 = 13;
+        dword_181B84660 = 2268;
+        word_181B84664 = 1;
+        dword_181B84668 = 2;
+        xmmword_181B84670 = 0;
+        qword_181B846C0 = (__int64)"m_hObserverPawn";
+        qword_181B84680 = 0;
+        qword_181B84688 = 0;
+        qword_181B84690 = 4;
+        qword_181B84698 = 0;
+        word_181B846A0 = 0;
+        qword_181B846A8 = 0;
+        qword_181B846B0 = 0;
+        byte_181B846B8 = 13;
+        dword_181B846C8 = 2272;
+        word_181B846CC = 1;
+        dword_181B846D0 = 2;
+        qword_181B846D8 = 0;
+        qword_181B846E0 = 0;
+        qword_181B846E8 = 0;
+        qword_181B846F0 = 0;
+        qword_181B846F8 = 4;
+        qword_181B84700 = 0;
+        word_181B84708 = 0;
+        xmmword_181B84710 = 0;
+        sub_181486928(&dword_181E9F844);
+      }
+    }
+    dword_181B83510 = 27;
+    qword_181B83508 = (__int64)&unk_181B83C28;
+    return &qword_181B83508;
+  }

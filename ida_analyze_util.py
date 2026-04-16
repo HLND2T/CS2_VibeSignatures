@@ -284,6 +284,13 @@ def _normalize_generate_yaml_desired_fields(generate_yaml_desired_fields, debug=
                 generation_options["vfunc_sig_max_match"] = max_match
                 continue
 
+            if field_name.startswith("gv_sig_allow_across_function_boundary:"):
+                value_text = field_name.split(":", 1)[1].strip().lower()
+                if value_text == "true":
+                    desired_output_fields.append("gv_sig_allow_across_function_boundary")
+                    generation_options["gv_sig_allow_across_function_boundary"] = True
+                    continue
+
             desired_output_fields.append(field_name)
 
         if "vfunc_sig_max_match" in generation_options and "vfunc_sig" not in desired_output_fields:
@@ -444,6 +451,7 @@ GV_YAML_ORDER = [
     "gv_inst_offset",
     "gv_inst_length",
     "gv_inst_disp",
+    "gv_sig_allow_across_function_boundary",
 ]
 VTABLE_YAML_ORDER = [
     "vtable_class",
@@ -3317,6 +3325,7 @@ async def preprocess_gen_gv_sig_via_mcp(
     max_instructions=64,
     max_candidates=32,
     extra_wildcard_offsets=None,
+    allow_across_function_boundary=False,
     debug=False,
 ):
     """
@@ -3338,6 +3347,9 @@ async def preprocess_gen_gv_sig_via_mcp(
         max_candidates: Maximum GV-access instruction candidates to evaluate.
         extra_wildcard_offsets: Optional iterable of extra wildcard offsets relative
             to signature start.
+        allow_across_function_boundary: When True, allow the signature to extend
+            past the owning function's end (across CC padding and into the next
+            function) to collect enough bytes for uniqueness.
         debug: Enable debug output.
 
     Returns:
@@ -3416,6 +3428,7 @@ async def preprocess_gen_gv_sig_via_mcp(
         f"max_sig_bytes = {max_sig_bytes}\n"
         f"max_instructions = {max_instructions}\n"
         f"max_candidates = {max_candidates}\n"
+        f"allow_across_boundary = {bool(allow_across_function_boundary)}\n"
         "\n"
         "def _resolve_disp_off(insn_ea, insn, raw):\n"
         "    cand_offsets = set()\n"
@@ -3443,13 +3456,16 @@ async def preprocess_gen_gv_sig_via_mcp(
         "    if not f:\n"
         "        return None\n"
         "\n"
-        "    limit_end = min(f.end_ea, inst_ea + max_sig_bytes)\n"
+        "    if allow_across_boundary:\n"
+        "        limit_end = inst_ea + max_sig_bytes\n"
+        "    else:\n"
+        "        limit_end = min(f.end_ea, inst_ea + max_sig_bytes)\n"
         "    cursor = inst_ea\n"
         "    total = 0\n"
         "    insts = []\n"
         "    first_len = None\n"
         "\n"
-        "    while cursor < f.end_ea and cursor < limit_end and len(insts) < max_instructions:\n"
+        "    while cursor < limit_end and len(insts) < max_instructions:\n"
         "        insn = idautils.DecodeInstruction(cursor)\n"
         "        if not insn or insn.size <= 0:\n"
         "            break\n"
@@ -3884,7 +3900,7 @@ async def preprocess_gv_sig_via_mcp(
 
     gv_sig_va_hex = str(gv_info.get("gv_sig_va", match_addr))
 
-    return {
+    result = {
         "gv_name": old_data.get("gv_name") or os.path.basename(new_path).split(".")[0],
         "gv_va": gv_va_hex,
         "gv_rva": hex(gv_va_int - image_base),
@@ -3894,6 +3910,9 @@ async def preprocess_gv_sig_via_mcp(
         "gv_inst_length": gv_inst_length,
         "gv_inst_disp": gv_inst_disp,
     }
+    if old_data.get("gv_sig_allow_across_function_boundary"):
+        result["gv_sig_allow_across_function_boundary"] = True
+    return result
 
 
 
@@ -5173,6 +5192,7 @@ async def _preprocess_direct_gv_sig_via_mcp(
     gv_name=None,
     direct_gv_va=None,
     gv_access_inst_va=None,
+    allow_across_function_boundary=False,
     debug=False,
 ):
     try:
@@ -5185,6 +5205,7 @@ async def _preprocess_direct_gv_sig_via_mcp(
         gv_va=resolved_gv_va,
         image_base=image_base,
         gv_access_inst_va=gv_access_inst_va,
+        allow_across_function_boundary=allow_across_function_boundary,
         debug=debug,
     )
     if not isinstance(payload, dict):
@@ -6857,6 +6878,9 @@ async def preprocess_common_skill(
                 )
                 if direct_gv_va is None:
                     continue
+                _gv_gen_opts = (desired_fields_map.get(gv_name) or {}).get(
+                    "generation_options", {}
+                )
                 gv_data = await _preprocess_direct_gv_sig_via_mcp(
                     session=session,
                     new_path=target_output,
@@ -6864,15 +6888,27 @@ async def preprocess_common_skill(
                     gv_name=gv_name,
                     direct_gv_va=direct_gv_va,
                     gv_access_inst_va=entry.get("insn_va"),
+                    allow_across_function_boundary=_gv_gen_opts.get(
+                        "gv_sig_allow_across_function_boundary", False
+                    ),
                     debug=debug,
                 )
                 if gv_data is not None:
+                    if _gv_gen_opts.get("gv_sig_allow_across_function_boundary"):
+                        gv_data["gv_sig_allow_across_function_boundary"] = True
                     break
 
         if gv_data is None:
             if debug:
                 print(f"    Preprocess: failed to locate {gv_name}")
             return False
+
+        # Inject generation option flags into gv_data for YAML output
+        _gv_gen_opts_final = (desired_fields_map.get(gv_name) or {}).get(
+            "generation_options", {}
+        )
+        if _gv_gen_opts_final.get("gv_sig_allow_across_function_boundary"):
+            gv_data["gv_sig_allow_across_function_boundary"] = True
 
         payload = _assemble_symbol_payload(
             gv_name,

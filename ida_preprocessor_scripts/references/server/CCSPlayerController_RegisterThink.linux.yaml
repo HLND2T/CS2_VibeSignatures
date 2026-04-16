@@ -1,0 +1,106 @@
+func_name: CCSPlayerController_RegisterThink
+func_va: '0x1346620'
+disasm_code: |-
+  .text:0000000001346620                 lea     rax, qword_23A5B60
+  .text:0000000001346627                 push    rbp
+  .text:0000000001346628                 mov     rbp, rsp
+  .text:000000000134662B                 push    r12
+  .text:000000000134662D                 push    rbx
+  .text:000000000134662E                 mov     cs:qword_239AAF8, rax
+  .text:0000000001346635                 movzx   eax, cs:byte_2588020
+  .text:000000000134663C                 test    al, al
+  .text:000000000134663E                 jz      short loc_1346668
+  .text:0000000001346640                 lea     rax, unk_2399F10
+  .text:0000000001346647                 pop     rbx
+  .text:0000000001346648                 mov     cs:dword_239AAE8, 1Bh
+  .text:0000000001346652                 pop     r12
+  .text:0000000001346654                 mov     cs:qword_239AAE0, rax
+  .text:000000000134665B                 pop     rbp
+  .text:000000000134665C                 lea     rax, qword_239AAE0
+  .text:0000000001346663                 retn
+  .text:0000000001346668                 lea     rbx, byte_2588020
+  .text:000000000134666F                 mov     rdi, rbx
+  .text:0000000001346672                 call    sub_9761A0
+  .text:0000000001346677                 test    eax, eax
+  .text:0000000001346679                 jz      short loc_1346640
+  .text:000000000134667B                 lea     r12, aCcsplayercontr; "CCSPlayerController"
+  .text:0000000001346682                 mov     cs:dword_2399F58, 1
+  .text:000000000134668C                 lea     rsi, aPlayerforcetea; "PlayerForceTeamThink"
+  .text:0000000001346693                 mov     rdi, r12
+  .text:0000000001346696                 mov     cs:dword_2399FC8, 4
+  .text:00000000013466A0                 mov     cs:dword_239A038, 4
+  .text:00000000013466AA                 mov     cs:dword_239A0A8, 8
+  .text:00000000013466B4                 mov     cs:dword_239A118, 8
+  .text:00000000013466BE                 mov     cs:dword_239A188, 4
+  .text:00000000013466C8                 mov     cs:dword_239A1F8, 1
+  .text:00000000013466D2                 mov     cs:dword_239A268, 4
+  .text:00000000013466DC                 mov     cs:dword_239A2D8, 1
+  .text:00000000013466E6                 mov     cs:dword_239A348, 4
+  .text:00000000013466F0                 mov     cs:dword_239A428, 1
+  .text:00000000013466FA                 mov     cs:dword_239A498, 4
+  .text:0000000001346704                 mov     cs:dword_239A508, 1
+  .text:000000000134670E                 mov     cs:dword_239A578, 1
+  .text:0000000001346718                 mov     cs:dword_239A5E8, 1
+  .text:0000000001346722                 mov     cs:dword_239A6C8, 1
+  .text:000000000134672C                 mov     cs:dword_239A738, 1
+  .text:0000000001346736                 mov     cs:dword_239A7A8, 1
+  .text:0000000001346740                 mov     cs:dword_239A818, 4
+  .text:000000000134674A                 call    sub_1F1A5F0
+  .text:000000000134674F                 lea     rsi, aResetforceteam; "ResetForceTeamThink"
+  .text:0000000001346756                 mov     rdi, r12
+  .text:0000000001346759                 mov     cs:g_CCSPlayerController_PlayerForceTeamThink, rax
+  .text:0000000001346760                 call    sub_1F1A5F0
+  .text:0000000001346765                 lea     rsi, aResourcedatath; "ResourceDataThink"
+  .text:000000000134676C                 mov     rdi, r12
+  .text:000000000134676F                 mov     cs:g_CCSPlayerController_ResetForceTeamThink, rax
+  .text:0000000001346776                 call    sub_1F1A5F0
+  .text:000000000134677B                 lea     rsi, aInventoryupdat; "InventoryUpdateThink"
+  .text:0000000001346782                 mov     rdi, r12
+  .text:0000000001346785                 mov     cs:g_CCSPlayerController_ResourceDataThink, rax
+  .text:000000000134678C                 call    sub_1F1A5F0
+  .text:0000000001346791                 mov     rdi, rbx
+  .text:0000000001346794                 mov     cs:dword_239AA48, 4
+  .text:000000000134679E                 mov     cs:g_CCSPlayerController_InventoryUpdateThink, rax
+  .text:00000000013467A5                 mov     cs:dword_239AAB8, 4
+  .text:00000000013467AF                 call    sub_9761C0
+  .text:00000000013467B4                 jmp     loc_1346640
+procedure: |-
+  __int64 *CCSPlayerController_RegisterThink()
+  {
+    __int64 v1; // rax
+
+    qword_239AAF8 = (__int64)&qword_23A5B60;
+    if ( !byte_2588020 && (unsigned int)sub_9761A0(&byte_2588020) )
+    {
+      dword_2399F58 = 1;
+      dword_2399FC8 = 4;
+      dword_239A038 = 4;
+      dword_239A0A8 = 8;
+      dword_239A118 = 8;
+      dword_239A188 = 4;
+      dword_239A1F8 = 1;
+      dword_239A268 = 4;
+      dword_239A2D8 = 1;
+      dword_239A348 = 4;
+      dword_239A428 = 1;
+      dword_239A498 = 4;
+      dword_239A508 = 1;
+      dword_239A578 = 1;
+      dword_239A5E8 = 1;
+      dword_239A6C8 = 1;
+      dword_239A738 = 1;
+      dword_239A7A8 = 1;
+      dword_239A818 = 4;
+      g_CCSPlayerController_PlayerForceTeamThink = sub_1F1A5F0("CCSPlayerController", "PlayerForceTeamThink");
+      g_CCSPlayerController_ResetForceTeamThink = sub_1F1A5F0("CCSPlayerController", "ResetForceTeamThink");
+      g_CCSPlayerController_ResourceDataThink = sub_1F1A5F0("CCSPlayerController", "ResourceDataThink");
+      v1 = sub_1F1A5F0("CCSPlayerController", "InventoryUpdateThink");
+      dword_239AA48 = 4;
+      g_CCSPlayerController_InventoryUpdateThink = v1;
+      dword_239AAB8 = 4;
+      sub_9761C0(&byte_2588020);
+    }
+    dword_239AAE8 = 27;
+    qword_239AAE0 = (__int64)&unk_2399F10;
+    return &qword_239AAE0;
+  }
