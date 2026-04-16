@@ -1,0 +1,31 @@
+func_name: CBasePlayerPawn_EyeVectors
+func_va: '0x180a75200'
+disasm_code: |-
+  .text:0000000180A75200                 mov     [rsp+arg_0], rbx
+  .text:0000000180A75205                 mov     [rsp+arg_8], rsi
+  .text:0000000180A7520A                 push    rdi
+  .text:0000000180A7520B                 sub     rsp, 30h
+  .text:0000000180A7520F                 mov     rax, [rcx]
+  .text:0000000180A75212                 mov     rsi, rdx
+  .text:0000000180A75215                 lea     rdx, [rsp+38h+var_18]
+  .text:0000000180A7521A                 mov     rbx, r9
+  .text:0000000180A7521D                 mov     rdi, r8
+  .text:0000000180A75220                 call    qword ptr [rax+5D8h] ; 0x5D8 = CBasePlayerPawn_GetEyeAngles
+  .text:0000000180A75226                 mov     r9, rbx
+  .text:0000000180A75229                 lea     rcx, [rsp+38h+var_18]
+  .text:0000000180A7522E                 mov     r8, rdi
+  .text:0000000180A75231                 mov     rdx, rsi
+  .text:0000000180A75234                 call    AngleVectors
+  .text:0000000180A75239                 mov     rbx, [rsp+38h+arg_0]
+  .text:0000000180A7523E                 mov     rsi, [rsp+38h+arg_8]
+  .text:0000000180A75243                 add     rsp, 30h
+  .text:0000000180A75247                 pop     rdi
+  .text:0000000180A75248                 retn
+procedure: |-
+  __int64 __fastcall CBasePlayerPawn_EyeVectors(__int64 a1, __int64 a2, __int64 a3, __int64 a4)
+  {
+    _BYTE v8[24]; // [rsp+20h] [rbp-18h] BYREF
+
+    (*(void (__fastcall **)(__int64, _BYTE *))(*(_QWORD *)a1 + 1496LL))(a1, v8);// 0x5D8 = 1496LL = CBasePlayerPawn_GetEyeAngles
+    return AngleVectors(v8, a2, a3, a4);
+  }

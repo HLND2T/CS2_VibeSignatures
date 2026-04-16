@@ -1862,13 +1862,29 @@ modules:
           - CBaseEntity_GetEyePosition.{platform}.yaml
           - CBasePlayerPawn_vtable.{platform}.yaml
 
+      - name: find-CCSBotManager_BotPlaceCommand
+        expected_output:
+          - CCSBotManager_BotPlaceCommand.{platform}.yaml
+
+      - name: find-CBasePlayerPawn_EyeVectors
+        expected_output:
+          - CBasePlayerPawn_EyeVectors.{platform}.yaml
+        expected_input:
+          - CCSBotManager_BotPlaceCommand.{platform}.yaml
+
       - name: find-CBasePlayerPawn_GetEyeAngles
         expected_output:
-          - CBaseEntity_GetEyeAngles.{platform}.yaml
           - CBasePlayerPawn_GetEyeAngles.{platform}.yaml
         expected_input:
-          - CBaseEntity_vtable.{platform}.yaml
+          - CBasePlayerPawn_EyeVectors.{platform}.yaml
           - CBasePlayerPawn_vtable.{platform}.yaml
+
+      - name: find-CBaseEntity_GetEyeAngles
+        expected_output:
+          - CBaseEntity_GetEyeAngles.{platform}.yaml
+        expected_input:
+          - CBaseEntity_vtable.{platform}.yaml
+          - CBasePlayerPawn_GetEyeAngles.{platform}.yaml
 
       - name: find-CBaseEntity_SetOwner
         expected_output:
@@ -2890,6 +2906,16 @@ modules:
         category: vfunc
         alias:
           - CBaseEntity::GetEyePosition
+
+      - name: CCSBotManager_BotPlaceCommand
+        category: func
+        alias:
+          - CCSBotManager::BotPlace
+
+      - name: CBasePlayerPawn_EyeVectors
+        category: func
+        alias:
+          - CBasePlayerPawn::EyeVectors
 
       - name: CBasePlayerPawn_GetEyeAngles
         category: vfunc

@@ -1,0 +1,37 @@
+func_name: CBasePlayerPawn_EyeVectors
+func_va: '0x1447f90'
+disasm_code: |-
+  .text:0000000001447F90                 push    rbp
+  .text:0000000001447F91                 mov     rbp, rsp
+  .text:0000000001447F94                 push    r13
+  .text:0000000001447F96                 mov     r13, rcx
+  .text:0000000001447F99                 push    r12
+  .text:0000000001447F9B                 mov     r12, rdx
+  .text:0000000001447F9E                 push    rbx
+  .text:0000000001447F9F                 mov     rbx, rsi
+  .text:0000000001447FA2                 sub     rsp, 18h
+  .text:0000000001447FA6                 mov     rax, [rdi]
+  .text:0000000001447FA9                 call    qword ptr [rax+5D0h] ; 0x5D0 = CBasePlayerPawn_GetEyeAngles
+  .text:0000000001447FAF                 lea     rdi, [rbp+var_2C]
+  .text:0000000001447FB3                 mov     rcx, r13
+  .text:0000000001447FB6                 mov     rdx, r12
+  .text:0000000001447FB9                 mov     rsi, rbx
+  .text:0000000001447FBC                 movq    [rbp+var_2C], xmm0
+  .text:0000000001447FC1                 movss   [rbp+var_24], xmm1
+  .text:0000000001447FC6                 call    sub_1B4CFD0
+  .text:0000000001447FCB                 add     rsp, 18h
+  .text:0000000001447FCF                 pop     rbx
+  .text:0000000001447FD0                 pop     r12
+  .text:0000000001447FD2                 pop     r13
+  .text:0000000001447FD4                 pop     rbp
+  .text:0000000001447FD5                 retn
+procedure: |-
+  __int64 __fastcall CBasePlayerPawn_EyeVectors(__int64 a1, __int64 a2, __int64 a3, __int64 a4, double a5, float a6)
+  {
+    double v9; // [rsp+4h] [rbp-2Ch] BYREF
+    float v10; // [rsp+Ch] [rbp-24h]
+
+    v9 = (*(double (__fastcall **)(__int64))(*(_QWORD *)a1 + 1488LL))(a1); // 1488LL = 0x5D0 = CBasePlayerPawn_GetEyeAngles
+    v10 = a6;
+    return sub_1B4CFD0(&v9, a2, a3, a4);
+  }
