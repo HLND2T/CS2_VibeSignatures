@@ -8,19 +8,18 @@ TARGET_FUNCTION_NAMES = [
 ]
 
 FUNC_XREFS = [
-    # (func_name, xref_strings_list, xref_signatures_list, xref_funcs_list, exclude_funcs_list, exclude_strings_list)
-    (
-        "CNetworkMessages_RegisterNetworkCategory",
-        [
-            "INetworkSystem::RegisterNetworkCategory: Attempted to register category %u twice",
-            "INetworkSystem::RegisterNetworkCategory: all categories must have ids between 0-31!",
-        ],
-        [],
-        [],
-        [],
-        [],
-    ),
-]
+                 {
+                     "func_name": 'CNetworkMessages_RegisterNetworkCategory',
+                     "xref_strings": ['INetworkSystem::RegisterNetworkCategory: Attempted to register category %u twice', 'INetworkSystem::RegisterNetworkCategory: all categories must have ids between 0-31!'],
+                     "xref_gvs": [],
+                     "xref_signatures": [],
+                     "xref_funcs": [],
+                     "exclude_funcs": [],
+                     "exclude_strings": [],
+                     "exclude_gvs": [],
+                     "exclude_signatures": [],
+                 },
+             ]
 
 FUNC_VTABLE_RELATIONS = [
     # (func_name, vtable_class)

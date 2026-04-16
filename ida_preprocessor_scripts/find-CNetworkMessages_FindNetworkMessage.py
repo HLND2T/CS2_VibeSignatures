@@ -8,38 +8,32 @@ TARGET_FUNCTION_NAMES = [
 ]
 
 FUNC_XREFS_WINDOWS = [
-    # (func_name, xref_strings_list, xref_signatures_list, xref_funcs_list, exclude_funcs_list, exclude_strings_list)
-    (
-        "CNetworkMessages_FindNetworkMessage",
-        [
-            "unknown",
-        ],
-        [
-            "41 ?? FF FF 00 00",
-            "41 ?? FF 7F 00 00"
-        ],
-        [],
-        ["CNetworkMessages_FindNetworkMessagePartial", "CNetworkMessages_ConfirmAllMessageHandlersInstalled"],
-        [],
-    ),
-]
+                         {
+                             "func_name": 'CNetworkMessages_FindNetworkMessage',
+                             "xref_strings": ['unknown'],
+                             "xref_gvs": [],
+                             "xref_signatures": ['41 ?? FF FF 00 00', '41 ?? FF 7F 00 00'],
+                             "xref_funcs": [],
+                             "exclude_funcs": ['CNetworkMessages_FindNetworkMessagePartial', 'CNetworkMessages_ConfirmAllMessageHandlersInstalled'],
+                             "exclude_strings": [],
+                             "exclude_gvs": [],
+                             "exclude_signatures": [],
+                         },
+                     ]
 
 FUNC_XREFS_LINUX = [
-    # (func_name, xref_strings_list, xref_signatures_list, xref_funcs_list, exclude_funcs_list, exclude_strings_list)
-    (
-        "CNetworkMessages_FindNetworkMessage",
-        [
-            "unknown",
-        ],
-        [
-            "81 FB FF FF 00 00",
-            "66 81 E2 FF 7F"
-        ],
-        [],
-        ["CNetworkMessages_FindNetworkMessagePartial", "CNetworkMessages_ConfirmAllMessageHandlersInstalled"],
-        [],
-    ),
-]
+                       {
+                           "func_name": 'CNetworkMessages_FindNetworkMessage',
+                           "xref_strings": ['unknown'],
+                           "xref_gvs": [],
+                           "xref_signatures": ['81 FB FF FF 00 00', '66 81 E2 FF 7F'],
+                           "xref_funcs": [],
+                           "exclude_funcs": ['CNetworkMessages_FindNetworkMessagePartial', 'CNetworkMessages_ConfirmAllMessageHandlersInstalled'],
+                           "exclude_strings": [],
+                           "exclude_gvs": [],
+                           "exclude_signatures": [],
+                       },
+                   ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)

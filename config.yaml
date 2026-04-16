@@ -1303,11 +1303,17 @@ modules:
         expected_output:
           - CCSPlayer_MovementServices_vtable.{platform}.yaml
 
-      - name: find-CCSPlayer_MovementServices_ProcessMovement-AND-CCSPlayer_MovementServices_CheckMovingGround
+      - name: find-CCSPlayer_MovementServices_ProcessMovement
         expected_output:
           - CCSPlayer_MovementServices_ProcessMovement.{platform}.yaml
+        expected_input:
+          - CPlayer_MovementServices_s_pRunCommandPawn.{platform}.yaml
+
+      - name: find-CCSPlayer_MovementServices_CheckMovingGround
+        expected_output:
           - CCSPlayer_MovementServices_CheckMovingGround.{platform}.yaml
         expected_input:
+          - CCSPlayer_MovementServices_ProcessMovement.{platform}.yaml
           - CCSPlayer_MovementServices_vtable.{platform}.yaml
 
       - name: find-CCSPlayer_MovementServices_FullWalkMove-AND-CCSPlayer_MovementServices_CheckVelocity-AND-CCSPlayer_MovementServices_WaterMove
@@ -1335,6 +1341,20 @@ modules:
       - name: find-CPlayer_MovementServices_PlayWaterStepSound
         expected_output:
           - CPlayer_MovementServices_PlayWaterStepSound.{platform}.yaml
+
+      - name: find-CPlayer_MovementServices_ForceButtons
+        expected_output:
+          - CPlayer_MovementServices_ForceButtons.{platform}.yaml
+
+      - name: find-CPlayer_MovementServices_ForceButtonState
+        expected_output:
+          - CPlayer_MovementServices_ForceButtonState.{platform}.yaml
+
+      - name: find-CPlayer_MovementServices_s_pRunCommandPawn
+        expected_output:
+          - CPlayer_MovementServices_s_pRunCommandPawn.{platform}.yaml
+        expected_input:
+          - CPlayer_MovementServices_ForceButtons.{platform}.yaml
 
       - name: find-CEntityInstance_vtable
         expected_output:
@@ -2464,6 +2484,21 @@ modules:
         category: func
         alias:
           - CPlayer_MovementServices::PlayWaterStepSound
+
+      - name: CPlayer_MovementServices_ForceButtons
+        category: func
+        alias:
+          - CPlayer_MovementServices::ForceButtons
+
+      - name: CPlayer_MovementServices_ForceButtonState
+        category: func
+        alias:
+          - CPlayer_MovementServices::ForceButtonState
+
+      - name: CPlayer_MovementServices_s_pRunCommandPawn
+        category: gv
+        alias:
+          - CPlayer_MovementServices::s_pRunCommandPawn
 
       - name: CEntityInstance_vtable
         category: vtable

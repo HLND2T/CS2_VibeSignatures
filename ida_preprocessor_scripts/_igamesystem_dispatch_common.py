@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """Shared preprocess helpers for IGameSystem dispatch-like skills."""
 
 import json

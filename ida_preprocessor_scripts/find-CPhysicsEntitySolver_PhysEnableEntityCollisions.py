@@ -8,18 +8,18 @@ TARGET_FUNCTION_NAMES = [
 ]
 
 FUNC_XREFS = [
-    # (func_name, xref_strings_list, xref_signatures_list, xref_funcs_list, exclude_funcs_list, exclude_strings_list)
-    (
-        "CPhysicsEntitySolver_PhysEnableEntityCollisions",
-        [
-            "PhysEnableEntityCollisions called on entities in two different scene worlds (%s - %u vs %s - %u)",
-        ],
-        [],
-        [],
-        [],
-        [],
-    ),
-]
+                 {
+                     "func_name": 'CPhysicsEntitySolver_PhysEnableEntityCollisions',
+                     "xref_strings": ['PhysEnableEntityCollisions called on entities in two different scene worlds (%s - %u vs %s - %u)'],
+                     "xref_gvs": [],
+                     "xref_signatures": [],
+                     "xref_funcs": [],
+                     "exclude_funcs": [],
+                     "exclude_strings": [],
+                     "exclude_gvs": [],
+                     "exclude_signatures": [],
+                 },
+             ]
 
 FUNC_VTABLE_RELATIONS = [
     # (func_name, vtable_class)
