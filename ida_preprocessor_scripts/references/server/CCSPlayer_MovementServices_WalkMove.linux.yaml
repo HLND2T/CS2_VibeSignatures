@@ -1,0 +1,410 @@
+func_name: CCSPlayer_MovementServices_WalkMove
+func_va: '0x13d1070'
+disasm_code: |-
+  .text:00000000013D1070                 push    rbp
+  .text:00000000013D1071                 mov     rbp, rsp
+  .text:00000000013D1074                 push    r13
+  .text:00000000013D1076                 push    r12
+  .text:00000000013D1078                 mov     r12, rsi
+  .text:00000000013D107B                 push    rbx
+  .text:00000000013D107C                 mov     rbx, rdi
+  .text:00000000013D107F                 sub     rsp, 58h
+  .text:00000000013D1083                 test    dl, dl
+  .text:00000000013D1085                 jnz     short loc_13D1094
+  .text:00000000013D1087                 call    sub_13B9210
+  .text:00000000013D108C                 test    al, al
+  .text:00000000013D108E                 jz      loc_13D12A1
+  .text:00000000013D1094                 mov     rsi, r12
+  .text:00000000013D1097                 mov     rdi, rbx
+  .text:00000000013D109A                 call    sub_13B4DB0
+  .text:00000000013D109F                 mov     esi, 0FFFFFFFFh
+  .text:00000000013D10A4                 lea     rdi, unk_258AAF0
+  .text:00000000013D10AB                 call    sub_1A872F0
+  .text:00000000013D10B0                 test    rax, rax
+  .text:00000000013D10B3                 jz      loc_13D1310
+  .text:00000000013D10B9                 movzx   eax, byte ptr [rax]
+  .text:00000000013D10BC                 test    al, al
+  .text:00000000013D10BE                 jnz     loc_13D12B0
+  .text:00000000013D10C4                 lea     rdi, [rbx+560h]
+  .text:00000000013D10CB                 mov     rsi, r12
+  .text:00000000013D10CE                 call    sub_13B6FE0
+  .text:00000000013D10D3                 mov     rax, [rbx+38h]
+  .text:00000000013D10D7                 test    rax, rax
+  .text:00000000013D10DA                 jz      loc_13D12CC
+  .text:00000000013D10E0                 test    byte ptr [rax+668h], 1
+  .text:00000000013D10E7                 jz      loc_13D12E8
+  .text:00000000013D10ED                 lea     rax, off_23E9488
+  .text:00000000013D10F4                 movss   xmm3, dword ptr [rbx+520h]
+  .text:00000000013D10FC                 mov     rax, [rax]
+  .text:00000000013D10FF                 movss   xmm1, dword ptr [rax+30h]
+  .text:00000000013D1104                 comiss  xmm1, xmm3
+  .text:00000000013D1107                 jbe     loc_13D11C0
+  .text:00000000013D110D                 movss   xmm0, dword ptr [r12+38h]
+  .text:00000000013D1114                 movss   xmm2, dword ptr [r12+3Ch]
+  .text:00000000013D111B                 mulss   xmm0, xmm0
+  .text:00000000013D111F                 mulss   xmm2, xmm2
+  .text:00000000013D1123                 addss   xmm0, xmm2
+  .text:00000000013D1127                 movss   xmm2, dword ptr [rbx+524h]
+  .text:00000000013D112F                 insertps xmm0, xmm0, 0Eh
+  .text:00000000013D1135                 sqrtss  xmm0, xmm0
+  .text:00000000013D1139                 ucomiss xmm2, xmm0
+  .text:00000000013D113C                 jp      loc_13D1320
+  .text:00000000013D1142                 jnz     loc_13D1320
+  .text:00000000013D1148                 movss   xmm4, dword ptr [rbx+63Ch]
+  .text:00000000013D1150                 ucomiss xmm4, dword ptr [r12+0FCh]
+  .text:00000000013D1159                 jp      short loc_13D1190
+  .text:00000000013D115B                 jnz     short loc_13D1190
+  .text:00000000013D115D                 movss   xmm4, dword ptr [rbx+640h]
+  .text:00000000013D1165                 ucomiss xmm4, dword ptr [r12+100h]
+  .text:00000000013D116E                 jp      short loc_13D1190
+  .text:00000000013D1170                 jnz     short loc_13D1190
+  .text:00000000013D1172                 movss   xmm4, dword ptr [r12+104h]
+  .text:00000000013D117C                 ucomiss xmm4, dword ptr [rbx+644h]
+  .text:00000000013D1183                 jp      short loc_13D1190
+  .text:00000000013D1185                 jz      short loc_13D11C0
+  .text:00000000013D1187                 nop     word ptr [rax+rax+00000000h]
+  .text:00000000013D1190                 subss   xmm1, dword ptr [rax+34h]
+  .text:00000000013D1195                 addss   xmm1, cs:dword_86D79C
+  .text:00000000013D119D                 ucomiss xmm1, xmm3
+  .text:00000000013D11A0                 jp      loc_13D1450
+  .text:00000000013D11A6                 jnz     loc_13D1450
+  .text:00000000013D11AC                 ucomiss xmm0, xmm2
+  .text:00000000013D11AF                 jp      loc_13D133C
+  .text:00000000013D11B5                 jnz     loc_13D133C
+  .text:00000000013D11BB                 nop     dword ptr [rax+rax+00h]
+  .text:00000000013D11C0                 mov     dword ptr [r12+40h], 0
+  .text:00000000013D11C9                 pxor    xmm0, xmm0
+  .text:00000000013D11CD                 mov     dword ptr [r12+110h], 0
+  .text:00000000013D11D9                 mov     dword ptr [r12+11Ch], 0
+  .text:00000000013D11E5                 ucomiss xmm0, dword ptr [rbx+244h]
+  .text:00000000013D11EC                 jp      loc_13D13C8
+  .text:00000000013D11F2                 jnz     loc_13D13C8
+  .text:00000000013D11F8                 mov     rsi, r12
+  .text:00000000013D11FB                 mov     rdi, rbx
+  .text:00000000013D11FE                 call    CCSPlayer_MovementServices_WaterMove
+  .text:00000000013D1203                 mov     rsi, r12
+  .text:00000000013D1206                 mov     rdi, rbx
+  .text:00000000013D1209                 lea     rdx, aFullwalkmovepr; "FullWalkMovePreMove"
+  .text:00000000013D1210                 call    CCSPlayer_MovementServices_CheckVelocity
+  .text:00000000013D1215                 mov     rsi, r12
+  .text:00000000013D1218                 mov     rdi, rbx
+  .text:00000000013D121B                 call    CCSPlayer_MovementServices_FullWalkMove
+  .text:00000000013D1220                 mov     rdi, rbx
+  .text:00000000013D1223                 xor     edx, edx
+  .text:00000000013D1225                 mov     rsi, r12
+  .text:00000000013D1228                 call    sub_13D08A0
+  .text:00000000013D122D                 mov     rdi, [rbx+38h]
+  .text:00000000013D1231                 test    rdi, rdi
+  .text:00000000013D1234                 jz      short loc_13D1290
+  .text:00000000013D1236                 cmp     byte ptr [rdi+1D10h], 0
+  .text:00000000013D123D                 jnz     short loc_13D12A1
+  .text:00000000013D123F                 mov     rax, [rdi+0EB8h]
+  .text:00000000013D1246                 cmp     byte ptr [rax+288h], 0
+  .text:00000000013D124D                 jnz     short loc_13D12A1
+  .text:00000000013D124F                 call    sub_C85020
+  .text:00000000013D1254                 mov     edx, [rbx+4DCh]
+  .text:00000000013D125A                 test    edx, edx
+  .text:00000000013D125C                 setnle  cl
+  .text:00000000013D125F                 test    al, al
+  .text:00000000013D1261                 setnz   dl
+  .text:00000000013D1264                 cmp     cl, dl
+  .text:00000000013D1266                 jz      short loc_13D12A1
+  .text:00000000013D1268                 lea     rsi, aWaterPlayerent; "Water.PlayerEnter"
+  .text:00000000013D126F                 test    al, al
+  .text:00000000013D1271                 mov     rdi, rbx
+  .text:00000000013D1274                 lea     rax, aWaterPlayerexi; "Water.PlayerExit"
+  .text:00000000013D127B                 cmovz   rsi, rax
+  .text:00000000013D127F                 add     rsp, 58h
+  .text:00000000013D1283                 pop     rbx
+  .text:00000000013D1284                 pop     r12
+  .text:00000000013D1286                 pop     r13
+  .text:00000000013D1288                 pop     rbp
+  .text:00000000013D1289                 jmp     sub_1397130
+  .text:00000000013D1290                 mov     rdi, rbx
+  .text:00000000013D1293                 call    nullsub_1295
+  .text:00000000013D1298                 mov     rdi, [rbx+38h]
+  .text:00000000013D129C                 test    rdi, rdi
+  .text:00000000013D129F                 jnz     short loc_13D1236
+  .text:00000000013D12A1                 add     rsp, 58h
+  .text:00000000013D12A5                 pop     rbx
+  .text:00000000013D12A6                 pop     r12
+  .text:00000000013D12A8                 pop     r13
+  .text:00000000013D12AA                 pop     rbp
+  .text:00000000013D12AB                 retn
+  .text:00000000013D12B0                 lea     rdi, [rbx+548h]
+  .text:00000000013D12B7                 mov     rsi, r12
+  .text:00000000013D12BA                 call    sub_1357AB0
+  .text:00000000013D12BF                 mov     rax, [rbx+38h]
+  .text:00000000013D12C3                 test    rax, rax
+  .text:00000000013D12C6                 jnz     loc_13D10E0
+  .text:00000000013D12CC                 mov     rdi, rbx
+  .text:00000000013D12CF                 call    nullsub_1295
+  .text:00000000013D12D4                 mov     rax, [rbx+38h]
+  .text:00000000013D12D8                 test    byte ptr [rax+668h], 1
+  .text:00000000013D12DF                 jnz     loc_13D10ED
+  .text:00000000013D12E5                 nop     dword ptr [rax]
+  .text:00000000013D12E8                 mov     rsi, r12
+  .text:00000000013D12EB                 mov     rdi, rbx
+  .text:00000000013D12EE                 lea     rdx, aFullwalkmovepr; "FullWalkMovePreMove"
+  .text:00000000013D12F5                 call    CCSPlayer_MovementServices_CheckVelocity
+  .text:00000000013D12FA                 mov     rsi, r12
+  .text:00000000013D12FD                 mov     rdi, rbx
+  .text:00000000013D1300                 call    sub_13CFED0
+  .text:00000000013D1305                 jmp     loc_13D1220
+  .text:00000000013D1310                 mov     rax, cs:qword_258AAF8
+  .text:00000000013D1317                 mov     rax, [rax+8]
+  .text:00000000013D131B                 jmp     loc_13D10B9
+  .text:00000000013D1320                 subss   xmm1, dword ptr [rax+34h]
+  .text:00000000013D1325                 addss   xmm1, cs:dword_86D79C
+  .text:00000000013D132D                 ucomiss xmm3, xmm1
+  .text:00000000013D1330                 jp      loc_13D1450
+  .text:00000000013D1336                 jnz     loc_13D1450
+  .text:00000000013D133C                 lea     rdi, [rbp+var_50]
+  .text:00000000013D1340                 xor     esi, esi
+  .text:00000000013D1342                 pxor    xmm1, xmm1
+  .text:00000000013D1346                 movss   [rbp+var_64], xmm0
+  .text:00000000013D134B                 mov     [rbp+var_24], si
+  .text:00000000013D134F                 mov     esi, 1
+  .text:00000000013D1354                 movaps  [rbp+var_40], xmm1
+  .text:00000000013D1358                 lea     r13, [rbp+var_60]
+  .text:00000000013D135C                 mov     [rbp+var_60], 1
+  .text:00000000013D1364                 mov     [rbp+var_58], 0
+  .text:00000000013D136C                 mov     [rbp+var_50], 0
+  .text:00000000013D1374                 mov     [rbp+var_48], 0
+  .text:00000000013D137C                 mov     [rbp+var_30], 0FFFFFFFFFFFFFFFFh
+  .text:00000000013D1384                 mov     [rbp+var_28], 0FFFFFFFFh
+  .text:00000000013D138B                 call    sub_9F97E0
+  .text:00000000013D1390                 mov     rax, [rbp+var_50]
+  .text:00000000013D1394                 lea     rdi, [rbx+8]
+  .text:00000000013D1398                 mov     rsi, r13
+  .text:00000000013D139B                 add     dword ptr [rbp+var_58], 1
+  .text:00000000013D139F                 mov     dword ptr [rax], 524h
+  .text:00000000013D13A5                 call    sub_1D87EB0
+  .text:00000000013D13AA                 lea     rdi, [rbp+var_58]
+  .text:00000000013D13AE                 call    sub_9C2F70
+  .text:00000000013D13B3                 movss   xmm0, [rbp+var_64]
+  .text:00000000013D13B8                 movss   dword ptr [rbx+524h], xmm0
+  .text:00000000013D13C0                 jmp     loc_13D11C0
+  .text:00000000013D13C8                 lea     rdi, [rbp+var_50]
+  .text:00000000013D13CC                 xor     ecx, ecx
+  .text:00000000013D13CE                 pxor    xmm0, xmm0
+  .text:00000000013D13D2                 mov     esi, 1
+  .text:00000000013D13D7                 movaps  [rbp+var_40], xmm0
+  .text:00000000013D13DB                 lea     r13, [rbp+var_60]
+  .text:00000000013D13DF                 mov     [rbp+var_24], cx
+  .text:00000000013D13E3                 mov     [rbp+var_60], 1
+  .text:00000000013D13EB                 mov     [rbp+var_58], 0
+  .text:00000000013D13F3                 mov     [rbp+var_50], 0
+  .text:00000000013D13FB                 mov     [rbp+var_48], 0
+  .text:00000000013D1403                 mov     [rbp+var_30], 0FFFFFFFFFFFFFFFFh
+  .text:00000000013D140B                 mov     [rbp+var_28], 0FFFFFFFFh
+  .text:00000000013D1412                 call    sub_9F97E0
+  .text:00000000013D1417                 mov     rax, [rbp+var_50]
+  .text:00000000013D141B                 lea     rdi, [rbx+8]
+  .text:00000000013D141F                 mov     rsi, r13
+  .text:00000000013D1422                 add     dword ptr [rbp+var_58], 1
+  .text:00000000013D1426                 mov     dword ptr [rax], 244h
+  .text:00000000013D142C                 call    sub_1D87EB0
+  .text:00000000013D1431                 lea     rdi, [rbp+var_58]
+  .text:00000000013D1435                 call    sub_9C2F70
+  .text:00000000013D143A                 mov     dword ptr [rbx+244h], 0
+  .text:00000000013D1444                 jmp     loc_13D11F8
+  .text:00000000013D1450                 xor     edi, edi
+  .text:00000000013D1452                 mov     esi, 1
+  .text:00000000013D1457                 pxor    xmm2, xmm2
+  .text:00000000013D145B                 movss   [rbp+var_68], xmm1
+  .text:00000000013D1460                 mov     [rbp+var_24], di
+  .text:00000000013D1464                 lea     rdi, [rbp+var_50]
+  .text:00000000013D1468                 movss   [rbp+var_64], xmm0
+  .text:00000000013D146D                 lea     r13, [rbp+var_60]
+  .text:00000000013D1471                 movaps  [rbp+var_40], xmm2
+  .text:00000000013D1475                 mov     [rbp+var_60], 1
+  .text:00000000013D147D                 mov     [rbp+var_58], 0
+  .text:00000000013D1485                 mov     [rbp+var_50], 0
+  .text:00000000013D148D                 mov     [rbp+var_48], 0
+  .text:00000000013D1495                 mov     [rbp+var_30], 0FFFFFFFFFFFFFFFFh
+  .text:00000000013D149D                 mov     [rbp+var_28], 0FFFFFFFFh
+  .text:00000000013D14A4                 call    sub_9F97E0
+  .text:00000000013D14A9                 mov     rax, [rbp+var_50]
+  .text:00000000013D14AD                 lea     rdi, [rbx+8]
+  .text:00000000013D14B1                 mov     rsi, r13
+  .text:00000000013D14B4                 add     dword ptr [rbp+var_58], 1
+  .text:00000000013D14B8                 mov     dword ptr [rax], 520h
+  .text:00000000013D14BE                 call    sub_1D87EB0
+  .text:00000000013D14C3                 lea     rdi, [rbp+var_58]
+  .text:00000000013D14C7                 call    sub_9C2F70
+  .text:00000000013D14CC                 movss   xmm1, [rbp+var_68]
+  .text:00000000013D14D1                 movss   xmm2, dword ptr [rbx+524h]
+  .text:00000000013D14D9                 movss   xmm0, [rbp+var_64]
+  .text:00000000013D14DE                 movss   dword ptr [rbx+520h], xmm1
+  .text:00000000013D14E6                 jmp     loc_13D11AC
+procedure: |-
+  __int64 __fastcall CCSPlayer_MovementServices_WalkMove(__int64 a1, __int64 a2, char a3)
+  {
+    __int64 result; // rax
+    _BYTE *v5; // rax
+    __int64 v6; // rax
+    float v7; // xmm3_4
+    float v8; // xmm1_4
+    __m128 v9; // xmm0
+    float v10; // xmm2_4
+    float v11; // xmm0_4
+    float v12; // xmm1_4
+    __int64 v13; // rdi
+    const char *v14; // rsi
+    __int64 v15; // [rsp+10h] [rbp-60h] BYREF
+    __int64 v16; // [rsp+18h] [rbp-58h] BYREF
+    _DWORD *v17; // [rsp+20h] [rbp-50h] BYREF
+    __int64 v18; // [rsp+28h] [rbp-48h]
+    __int128 v19; // [rsp+30h] [rbp-40h]
+    __int64 v20; // [rsp+40h] [rbp-30h]
+    int v21; // [rsp+48h] [rbp-28h]
+    __int16 v22; // [rsp+4Ch] [rbp-24h]
+
+    if ( !a3 )
+    {
+      result = sub_13B9210();
+      if ( !(_BYTE)result )
+        return result;
+    }
+    sub_13B4DB0(a1, a2);
+    v5 = (_BYTE *)sub_1A872F0(&unk_258AAF0, 0xFFFFFFFFLL);
+    if ( !v5 )
+      v5 = *(_BYTE **)(qword_258AAF8 + 8);
+    if ( *v5 )
+    {
+      sub_1357AB0(a1 + 1352, a2);
+      v6 = *(_QWORD *)(a1 + 56);
+      if ( v6 )
+      {
+  LABEL_7:
+        if ( (*(_BYTE *)(v6 + 1640) & 1) != 0 )
+          goto LABEL_8;
+        goto LABEL_29;
+      }
+    }
+    else
+    {
+      sub_13B6FE0(a1 + 1376, a2);
+      v6 = *(_QWORD *)(a1 + 56);
+      if ( v6 )
+        goto LABEL_7;
+    }
+    nullsub_1295(a1);
+    if ( (*(_BYTE *)(*(_QWORD *)(a1 + 56) + 1640LL) & 1) != 0 )
+    {
+  LABEL_8:
+      v7 = *(float *)(a1 + 1312);
+      v8 = *((float *)off_23E9488 + 12);
+      if ( v8 <= v7 )
+      {
+  LABEL_15:
+        *(_DWORD *)(a2 + 64) = 0;
+        *(_DWORD *)(a2 + 272) = 0;
+        *(_DWORD *)(a2 + 284) = 0;
+        if ( *(float *)(a1 + 580) != 0.0 )
+        {
+          v19 = 0;
+          v22 = 0;
+          v15 = 1;
+          v16 = 0;
+          v17 = nullptr;
+          v18 = 0;
+          v20 = -1;
+          v21 = -1;
+          sub_9F97E0(&v17, 1);
+          LODWORD(v16) = v16 + 1;
+          *v17 = 580;
+          sub_1D87EB0(a1 + 8, &v15);
+          sub_9C2F70(&v16);
+          *(_DWORD *)(a1 + 580) = 0;
+        }
+        CCSPlayer_MovementServices_WaterMove(a1, a2);
+        CCSPlayer_MovementServices_CheckVelocity(a1, a2, "FullWalkMovePreMove");
+        CCSPlayer_MovementServices_FullWalkMove(a1, a2);
+        goto LABEL_18;
+      }
+      v9 = (__m128)*(unsigned int *)(a2 + 56);
+      v9.m128_f32[0] = (float)(v9.m128_f32[0] * v9.m128_f32[0]) + (float)(*(float *)(a2 + 60) * *(float *)(a2 + 60));
+      v10 = *(float *)(a1 + 1316);
+      v11 = fsqrt(_mm_insert_ps(v9, v9, 14).m128_f32[0]);
+      if ( v10 == v11 )
+      {
+        if ( *(float *)(a1 + 1596) == *(float *)(a2 + 252)
+          && *(float *)(a1 + 1600) == *(float *)(a2 + 256)
+          && *(float *)(a2 + 260) == *(float *)(a1 + 1604) )
+        {
+          goto LABEL_15;
+        }
+        v12 = (float)(v8 - *((float *)off_23E9488 + 13)) + 0.015625;
+        if ( v12 == v7 )
+        {
+  LABEL_14:
+          if ( v11 == v10 )
+            goto LABEL_15;
+  LABEL_31:
+          v22 = 0;
+          v19 = 0;
+          v15 = 1;
+          v16 = 0;
+          v17 = nullptr;
+          v18 = 0;
+          v20 = -1;
+          v21 = -1;
+          sub_9F97E0(&v17, 1);
+          LODWORD(v16) = v16 + 1;
+          *v17 = 1316;
+          sub_1D87EB0(a1 + 8, &v15);
+          sub_9C2F70(&v16);
+          *(float *)(a1 + 1316) = v11;
+          goto LABEL_15;
+        }
+      }
+      else
+      {
+        v12 = (float)(v8 - *((float *)off_23E9488 + 13)) + 0.015625;
+        if ( v7 == v12 )
+          goto LABEL_31;
+      }
+      v22 = 0;
+      v19 = 0;
+      v15 = 1;
+      v17 = nullptr;
+      v18 = 0;
+      v20 = -1;
+      v21 = -1;
+      sub_9F97E0(&v17, 1);
+      v16 = 1;
+      *v17 = 1312;
+      sub_1D87EB0(a1 + 8, &v15);
+      sub_9C2F70(&v16);
+      v10 = *(float *)(a1 + 1316);
+      *(float *)(a1 + 1312) = v12;
+      goto LABEL_14;
+    }
+  LABEL_29:
+    CCSPlayer_MovementServices_CheckVelocity(a1, a2, "FullWalkMovePreMove");
+    sub_13CFED0(a1, a2);
+  LABEL_18:
+    result = sub_13D08A0(a1, a2, 0);
+    v13 = *(_QWORD *)(a1 + 56);
+    if ( v13 || (result = nullsub_1295(a1), (v13 = *(_QWORD *)(a1 + 56)) != 0) )
+    {
+      if ( !*(_BYTE *)(v13 + 7440) )
+      {
+        result = *(_QWORD *)(v13 + 3768);
+        if ( !*(_BYTE *)(result + 648) )
+        {
+          result = sub_C85020(v13);
+          if ( *(_DWORD *)(a1 + 1244) > 0 != ((_BYTE)result != 0) )
+          {
+            v14 = "Water.PlayerEnter";
+            if ( !(_BYTE)result )
+              v14 = "Water.PlayerExit";
+            return sub_1397130(a1, v14);
+          }
+        }
+      }
+    }
+    return result;
+  }

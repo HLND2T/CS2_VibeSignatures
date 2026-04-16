@@ -1,0 +1,323 @@
+func_name: CCSPlayer_MovementServices_WalkMove
+func_va: '0x1809fcfb0'
+disasm_code: |-
+  .text:00000001809FCFB0                 push    rsi
+  .text:00000001809FCFB2                 push    rdi
+  .text:00000001809FCFB3                 sub     rsp, 58h
+  .text:00000001809FCFB7                 mov     rsi, rdx
+  .text:00000001809FCFBA                 mov     rdi, rcx
+  .text:00000001809FCFBD                 test    r8b, r8b
+  .text:00000001809FCFC0                 jnz     short loc_1809FCFCF
+  .text:00000001809FCFC2                 call    sub_1809FD4A0
+  .text:00000001809FCFC7                 test    al, al
+  .text:00000001809FCFC9                 jz      loc_1809FD33D
+  .text:00000001809FCFCF                 mov     rdx, rsi
+  .text:00000001809FCFD2                 mov     [rsp+68h+arg_8], rbp
+  .text:00000001809FCFD7                 mov     rcx, rdi
+  .text:00000001809FCFDA                 call    sub_1809EA8F0
+  .text:00000001809FCFDF                 mov     edx, 0FFFFFFFFh
+  .text:00000001809FCFE4                 lea     rcx, unk_181EA07F8
+  .text:00000001809FCFEB                 call    sub_18146E6D0
+  .text:00000001809FCFF0                 test    rax, rax
+  .text:00000001809FCFF3                 jnz     short loc_1809FD000
+  .text:00000001809FCFF5                 mov     rax, cs:qword_181EA0800
+  .text:00000001809FCFFC                 mov     rax, [rax+8]
+  .text:00000001809FD000                 cmp     byte ptr [rax], 0
+  .text:00000001809FD003                 mov     rdx, rsi
+  .text:00000001809FD006                 jz      short loc_1809FD016
+  .text:00000001809FD008                 lea     rcx, [rdi+548h]
+  .text:00000001809FD00F                 call    sub_1809A6860
+  .text:00000001809FD014                 jmp     short loc_1809FD022
+  .text:00000001809FD016                 lea     rcx, [rdi+560h]
+  .text:00000001809FD01D                 call    sub_1809E77C0
+  .text:00000001809FD022                 cmp     qword ptr [rdi+38h], 0
+  .text:00000001809FD027                 jnz     short loc_1809FD031
+  .text:00000001809FD029                 mov     rcx, rdi
+  .text:00000001809FD02C                 call    nullsub_605
+  .text:00000001809FD031                 mov     rax, [rdi+38h]
+  .text:00000001809FD035                 xor     ebp, ebp
+  .text:00000001809FD037                 mov     [rsp+68h+arg_0], rbx
+  .text:00000001809FD03C                 test    byte ptr [rax+388h], 1
+  .text:00000001809FD043                 jz      loc_1809FD1C2
+  .text:00000001809FD049                 mov     [rsp+68h+arg_18], r14
+  .text:00000001809FD051                 mov     [rsp+68h+var_18], r15
+  .text:00000001809FD056                 mov     r15, cs:off_181BD05B8
+  .text:00000001809FD05D                 movaps  [rsp+68h+var_28], xmm6
+  .text:00000001809FD062                 movaps  [rsp+68h+var_48], xmm8
+  .text:00000001809FD068                 movss   xmm8, dword ptr [rdi+520h]
+  .text:00000001809FD071                 movss   xmm6, dword ptr [r15+30h]
+  .text:00000001809FD077                 comiss  xmm6, xmm8
+  .text:00000001809FD07B                 jbe     loc_1809FD142
+  .text:00000001809FD081                 lea     rcx, [rsi+38h]
+  .text:00000001809FD085                 movaps  [rsp+68h+var_38], xmm7
+  .text:00000001809FD08A                 call    sub_1801D7900
+  .text:00000001809FD08F                 movss   xmm1, dword ptr [rdi+524h]
+  .text:00000001809FD097                 movaps  xmm7, xmm0
+  .text:00000001809FD09A                 ucomiss xmm1, xmm7
+  .text:00000001809FD09D                 jp      short loc_1809FD0DA
+  .text:00000001809FD09F                 jnz     short loc_1809FD0DA
+  .text:00000001809FD0A1                 movss   xmm1, dword ptr [rdi+63Ch]
+  .text:00000001809FD0A9                 ucomiss xmm1, dword ptr [rsi+100h]
+  .text:00000001809FD0B0                 jp      short loc_1809FD0DA
+  .text:00000001809FD0B2                 jnz     short loc_1809FD0DA
+  .text:00000001809FD0B4                 movss   xmm0, dword ptr [rdi+640h]
+  .text:00000001809FD0BC                 ucomiss xmm0, dword ptr [rsi+104h]
+  .text:00000001809FD0C3                 jp      short loc_1809FD0DA
+  .text:00000001809FD0C5                 jnz     short loc_1809FD0DA
+  .text:00000001809FD0C7                 movss   xmm0, dword ptr [rdi+644h]
+  .text:00000001809FD0CF                 ucomiss xmm0, dword ptr [rsi+108h]
+  .text:00000001809FD0D6                 jp      short loc_1809FD0DA
+  .text:00000001809FD0D8                 jz      short loc_1809FD13D
+  .text:00000001809FD0DA                 subss   xmm6, dword ptr [r15+34h]
+  .text:00000001809FD0E0                 addss   xmm6, cs:dword_181537874
+  .text:00000001809FD0E8                 ucomiss xmm8, xmm6
+  .text:00000001809FD0EC                 jp      short loc_1809FD0F0
+  .text:00000001809FD0EE                 jz      short loc_1809FD10F
+  .text:00000001809FD0F0                 mov     edx, 0FFFFFFFFh
+  .text:00000001809FD0F5                 lea     rcx, [rdi+520h]
+  .text:00000001809FD0FC                 mov     r8d, 0FFFFFFFFh
+  .text:00000001809FD102                 call    sub_1809F8AC0
+  .text:00000001809FD107                 movss   dword ptr [rdi+520h], xmm6
+  .text:00000001809FD10F                 movss   xmm0, dword ptr [rdi+524h]
+  .text:00000001809FD117                 ucomiss xmm0, xmm7
+  .text:00000001809FD11A                 jp      short loc_1809FD11E
+  .text:00000001809FD11C                 jz      short loc_1809FD13D
+  .text:00000001809FD11E                 mov     edx, 0FFFFFFFFh
+  .text:00000001809FD123                 lea     rcx, [rdi+524h]
+  .text:00000001809FD12A                 mov     r8d, 0FFFFFFFFh
+  .text:00000001809FD130                 call    sub_1809F8C00
+  .text:00000001809FD135                 movss   dword ptr [rdi+524h], xmm7
+  .text:00000001809FD13D                 movaps  xmm7, [rsp+68h+var_38]
+  .text:00000001809FD142                 movaps  xmm8, [rsp+68h+var_48]
+  .text:00000001809FD148                 xorps   xmm0, xmm0
+  .text:00000001809FD14B                 movaps  xmm6, [rsp+68h+var_28]
+  .text:00000001809FD150                 mov     r15, [rsp+68h+var_18]
+  .text:00000001809FD155                 mov     r14, [rsp+68h+arg_18]
+  .text:00000001809FD15D                 mov     [rsi+40h], ebp
+  .text:00000001809FD160                 mov     [rsi+114h], ebp
+  .text:00000001809FD166                 mov     [rsi+120h], ebp
+  .text:00000001809FD16C                 movss   xmm1, dword ptr [rdi+244h]
+  .text:00000001809FD174                 ucomiss xmm1, xmm0
+  .text:00000001809FD177                 jp      short loc_1809FD17B
+  .text:00000001809FD179                 jz      short loc_1809FD198
+  .text:00000001809FD17B                 mov     edx, 0FFFFFFFFh
+  .text:00000001809FD180                 lea     rcx, [rdi+244h]
+  .text:00000001809FD187                 mov     r8d, 0FFFFFFFFh
+  .text:00000001809FD18D                 call    sub_1809F7EA0
+  .text:00000001809FD192                 mov     [rdi+244h], ebp
+  .text:00000001809FD198                 mov     rdx, rsi
+  .text:00000001809FD19B                 mov     rcx, rdi
+  .text:00000001809FD19E                 call    CCSPlayer_MovementServices_WaterMove
+  .text:00000001809FD1A3                 lea     r8, aFullwalkmovepr; "FullWalkMovePreMove"
+  .text:00000001809FD1AA                 mov     rdx, rsi
+  .text:00000001809FD1AD                 mov     rcx, rdi
+  .text:00000001809FD1B0                 call    CCSPlayer_MovementServices_CheckVelocity
+  .text:00000001809FD1B5                 mov     rdx, rsi
+  .text:00000001809FD1B8                 mov     rcx, rdi
+  .text:00000001809FD1BB                 call    CCSPlayer_MovementServices_FullWalkMove
+  .text:00000001809FD1C0                 jmp     short loc_1809FD1DF
+  .text:00000001809FD1C2                 lea     r8, aFullwalkmovepr; "FullWalkMovePreMove"
+  .text:00000001809FD1C9                 mov     rdx, rsi
+  .text:00000001809FD1CC                 mov     rcx, rdi
+  .text:00000001809FD1CF                 call    CCSPlayer_MovementServices_CheckVelocity
+  .text:00000001809FD1D4                 mov     rdx, rsi
+  .text:00000001809FD1D7                 mov     rcx, rdi
+  .text:00000001809FD1DA                 call    sub_180A033F0
+  .text:00000001809FD1DF                 cmp     [rdi+38h], rbp
+  .text:00000001809FD1E3                 jnz     short loc_1809FD1ED
+  .text:00000001809FD1E5                 mov     rcx, rdi
+  .text:00000001809FD1E8                 call    nullsub_605
+  .text:00000001809FD1ED                 mov     rax, [rdi+38h]
+  .text:00000001809FD1F1                 mov     rdx, rsi
+  .text:00000001809FD1F4                 mov     rcx, rdi
+  .text:00000001809FD1F7                 movzx   r8d, byte ptr [rax+388h]
+  .text:00000001809FD1FF                 and     r8b, 1
+  .text:00000001809FD203                 call    sub_1809E6DB0
+  .text:00000001809FD208                 lea     r8, aPlayermovePost; "PlayerMove_PostMove"
+  .text:00000001809FD20F                 mov     rdx, rsi
+  .text:00000001809FD212                 mov     rcx, rdi
+  .text:00000001809FD215                 call    CCSPlayer_MovementServices_CheckVelocity
+  .text:00000001809FD21A                 cmp     [rdi+38h], rbp
+  .text:00000001809FD21E                 jnz     short loc_1809FD228
+  .text:00000001809FD220                 mov     rcx, rdi
+  .text:00000001809FD223                 call    nullsub_605
+  .text:00000001809FD228                 mov     rax, [rdi+38h]
+  .text:00000001809FD22C                 test    byte ptr [rax+388h], 1
+  .text:00000001809FD233                 jz      short loc_1809FD244
+  .text:00000001809FD235                 mov     [rsi+40h], ebp
+  .text:00000001809FD238                 mov     [rsi+114h], ebp
+  .text:00000001809FD23E                 mov     [rsi+120h], ebp
+  .text:00000001809FD244                 mov     rdx, rsi
+  .text:00000001809FD247                 mov     rcx, rdi
+  .text:00000001809FD24A                 call    sub_1809E73C0
+  .text:00000001809FD24F                 cmp     [rsi+13Ch], bpl
+  .text:00000001809FD256                 jz      short loc_1809FD2B8
+  .text:00000001809FD258                 cmp     [rdi+38h], rbp
+  .text:00000001809FD25C                 jnz     short loc_1809FD266
+  .text:00000001809FD25E                 mov     rcx, rdi
+  .text:00000001809FD261                 call    nullsub_605
+  .text:00000001809FD266                 mov     rax, [rdi+38h]
+  .text:00000001809FD26A                 test    byte ptr [rax+388h], 1
+  .text:00000001809FD271                 jz      short loc_1809FD2B8
+  .text:00000001809FD273                 movss   xmm1, dword ptr [rsi+0D0h]
+  .text:00000001809FD27B                 lea     rdx, [rsp+68h+arg_10]
+  .text:00000001809FD283                 addss   xmm1, cs:dword_1816C0E40
+  .text:00000001809FD28B                 lea     rcx, [rdi+530h]
+  .text:00000001809FD292                 subss   xmm1, cs:dword_1816C0E40
+  .text:00000001809FD29A                 subss   xmm1, dword ptr [rdi+52Ch]
+  .text:00000001809FD2A2                 movss   [rsp+68h+arg_10], xmm1
+  .text:00000001809FD2AB                 call    sub_1801929E0
+  .text:00000001809FD2B0                 movss   dword ptr [rdi+530h], xmm0
+  .text:00000001809FD2B8                 mov     rdx, rsi
+  .text:00000001809FD2BB                 mov     rcx, rdi
+  .text:00000001809FD2BE                 call    sub_1809FDA00
+  .text:00000001809FD2C3                 mov     rbx, [rsp+68h+arg_0]
+  .text:00000001809FD2C8                 mov     [rdi+0C64h], bpl
+  .text:00000001809FD2CF                 cmp     [rdi+38h], rbp
+  .text:00000001809FD2D3                 jnz     short loc_1809FD2DD
+  .text:00000001809FD2D5                 mov     rcx, rdi
+  .text:00000001809FD2D8                 call    nullsub_605
+  .text:00000001809FD2DD                 mov     rax, [rdi+38h]
+  .text:00000001809FD2E1                 test    rax, rax
+  .text:00000001809FD2E4                 jz      short loc_1809FD338
+  .text:00000001809FD2E6                 cmp     [rax+1A18h], bpl
+  .text:00000001809FD2ED                 jnz     short loc_1809FD338
+  .text:00000001809FD2EF                 mov     rcx, [rax+0BB0h]
+  .text:00000001809FD2F6                 cmp     [rcx+288h], bpl
+  .text:00000001809FD2FD                 jnz     short loc_1809FD338
+  .text:00000001809FD2FF                 mov     rcx, rax
+  .text:00000001809FD302                 call    sub_1803B9C20
+  .text:00000001809FD307                 mov     ecx, ebp
+  .text:00000001809FD309                 cmp     [rdi+4DCh], ecx
+  .text:00000001809FD30F                 setnle  cl
+  .text:00000001809FD312                 test    al, al
+  .text:00000001809FD314                 setnz   bpl
+  .text:00000001809FD318                 cmp     ecx, ebp
+  .text:00000001809FD31A                 jz      short loc_1809FD338
+  .text:00000001809FD31C                 test    al, al
+  .text:00000001809FD31E                 lea     rcx, aWaterPlayerexi; "Water.PlayerExit"
+  .text:00000001809FD325                 lea     rdx, aWaterPlayerent; "Water.PlayerEnter"
+  .text:00000001809FD32C                 cmovz   rdx, rcx
+  .text:00000001809FD330                 mov     rcx, rdi
+  .text:00000001809FD333                 call    sub_1809FF730
+  .text:00000001809FD338                 mov     rbp, [rsp+68h+arg_8]
+  .text:00000001809FD33D                 add     rsp, 58h
+  .text:00000001809FD341                 pop     rdi
+  .text:00000001809FD342                 pop     rsi
+  .text:00000001809FD343                 retn
+procedure: |-
+  char __fastcall CCSPlayer_MovementServices_WalkMove(__int64 a1, __int64 a2, char a3)
+  {
+    __int64 v5; // rax
+    _BYTE *v6; // rax
+    int v7; // ebp
+    float *v8; // r15
+    float v9; // xmm8_4
+    float v10; // xmm6_4
+    double v11; // xmm0_8
+    float v12; // xmm6_4
+    const char *v13; // rdx
+    float v15; // [rsp+80h] [rbp+18h] BYREF
+
+    if ( a3 || (LOBYTE(v5) = sub_1809FD4A0(a1, a2), (_BYTE)v5) )
+    {
+      sub_1809EA8F0(a1, a2);
+      v6 = (_BYTE *)sub_18146E6D0((__int64)&unk_181EA07F8, -1);
+      if ( !v6 )
+        v6 = *(_BYTE **)(qword_181EA0800 + 8);
+      if ( *v6 )
+        sub_1809A6860(a1 + 1352, a2);
+      else
+        sub_1809E77C0(a1 + 1376, a2);
+      if ( !*(_QWORD *)(a1 + 56) )
+        nullsub_605(a1);
+      v7 = 0;
+      if ( (*(_BYTE *)(*(_QWORD *)(a1 + 56) + 904LL) & 1) != 0 )
+      {
+        v8 = (float *)off_181BD05B8;
+        v9 = *(float *)(a1 + 1312);
+        v10 = *((float *)off_181BD05B8 + 12);
+        if ( v10 > v9 )
+        {
+          v11 = sub_1801D7900(a2 + 56);
+          if ( *(float *)(a1 + 1316) != *(float *)&v11
+            || *(float *)(a1 + 1596) != *(float *)(a2 + 256)
+            || *(float *)(a1 + 1600) != *(float *)(a2 + 260)
+            || *(float *)(a1 + 1604) != *(float *)(a2 + 264) )
+          {
+            v12 = (float)(v10 - v8[13]) + 0.015625;
+            if ( v9 != v12 )
+            {
+              sub_1809F8AC0(a1 + 1312, 0xFFFFFFFFLL, 0xFFFFFFFFLL);
+              *(float *)(a1 + 1312) = v12;
+            }
+            if ( *(float *)(a1 + 1316) != *(float *)&v11 )
+            {
+              sub_1809F8C00(a1 + 1316, 0xFFFFFFFFLL, 0xFFFFFFFFLL);
+              *(_DWORD *)(a1 + 1316) = LODWORD(v11);
+            }
+          }
+        }
+        *(_DWORD *)(a2 + 64) = 0;
+        *(_DWORD *)(a2 + 276) = 0;
+        *(_DWORD *)(a2 + 288) = 0;
+        if ( *(float *)(a1 + 580) != 0.0 )
+        {
+          sub_1809F7EA0(a1 + 580, 0xFFFFFFFFLL, 0xFFFFFFFFLL);
+          *(_DWORD *)(a1 + 580) = 0;
+        }
+        CCSPlayer_MovementServices_WaterMove(a1, a2);
+        CCSPlayer_MovementServices_CheckVelocity(a1, a2, "FullWalkMovePreMove");
+        CCSPlayer_MovementServices_FullWalkMove(a1, a2);
+      }
+      else
+      {
+        CCSPlayer_MovementServices_CheckVelocity(a1, a2, "FullWalkMovePreMove");
+        sub_180A033F0(a1, a2);
+      }
+      if ( !*(_QWORD *)(a1 + 56) )
+        nullsub_605(a1);
+      sub_1809E6DB0(a1, a2, *(_BYTE *)(*(_QWORD *)(a1 + 56) + 904LL) & 1);
+      CCSPlayer_MovementServices_CheckVelocity(a1, a2, "PlayerMove_PostMove");
+      if ( !*(_QWORD *)(a1 + 56) )
+        nullsub_605(a1);
+      if ( (*(_BYTE *)(*(_QWORD *)(a1 + 56) + 904LL) & 1) != 0 )
+      {
+        *(_DWORD *)(a2 + 64) = 0;
+        *(_DWORD *)(a2 + 276) = 0;
+        *(_DWORD *)(a2 + 288) = 0;
+      }
+      sub_1809E73C0(a1, a2);
+      if ( *(_BYTE *)(a2 + 316) )
+      {
+        if ( !*(_QWORD *)(a1 + 56) )
+          nullsub_605(a1);
+        if ( (*(_BYTE *)(*(_QWORD *)(a1 + 56) + 904LL) & 1) != 0 )
+        {
+          v15 = (float)((float)(*(float *)(a2 + 208) + 196608.0) - 196608.0) - *(float *)(a1 + 1324);
+          *(float *)(a1 + 1328) = sub_1801929E0(a1 + 1328, &v15);
+        }
+      }
+      sub_1809FDA00(a1, a2);
+      *(_BYTE *)(a1 + 3172) = 0;
+      if ( !*(_QWORD *)(a1 + 56) )
+        nullsub_605(a1);
+      v5 = *(_QWORD *)(a1 + 56);
+      if ( v5 )
+      {
+        if ( !*(_BYTE *)(v5 + 6680) && !*(_BYTE *)(*(_QWORD *)(v5 + 2992) + 648LL) )
+        {
+          LOBYTE(v5) = sub_1803B9C20(*(_QWORD *)(a1 + 56));
+          LOBYTE(v7) = (_BYTE)v5 != 0;
+          if ( *(_DWORD *)(a1 + 1244) > 0 != v7 )
+          {
+            v13 = "Water.PlayerEnter";
+            if ( !(_BYTE)v5 )
+              v13 = "Water.PlayerExit";
+            LOBYTE(v5) = sub_1809FF730(a1, v13);
+          }
+        }
+      }
+    }
+    return v5;
+  }

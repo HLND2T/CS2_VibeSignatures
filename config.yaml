@@ -1316,11 +1316,20 @@ modules:
           - CCSPlayer_MovementServices_ProcessMovement.{platform}.yaml
           - CCSPlayer_MovementServices_vtable.{platform}.yaml
 
-      - name: find-CCSPlayer_MovementServices_FullWalkMove-AND-CCSPlayer_MovementServices_CheckVelocity-AND-CCSPlayer_MovementServices_WaterMove
+      - name: find-CCSPlayer_MovementServices_CheckVelocity
         expected_output:
-          - CCSPlayer_MovementServices_FullWalkMove.{platform}.yaml
           - CCSPlayer_MovementServices_CheckVelocity.{platform}.yaml
+
+      - name: find-CCSPlayer_MovementServices_WalkMove
+        expected_output:
+          - CCSPlayer_MovementServices_WalkMove.{platform}.yaml
+
+      - name: find-CCSPlayer_MovementServices_WaterMove-AND-CCSPlayer_MovementServices_FullWalkMove
+        expected_output:
           - CCSPlayer_MovementServices_WaterMove.{platform}.yaml
+          - CCSPlayer_MovementServices_FullWalkMove.{platform}.yaml
+        expected_input:
+          - CCSPlayer_MovementServices_WalkMove.{platform}.yaml
 
       - name: find-CCSPlayer_MovementServices_FullWalkMove_SpeedClamp
         expected_output:
@@ -2445,6 +2454,12 @@ modules:
         alias:
           - CCSPlayer_MovementServices::CheckMovingGround
           - CheckMovingGround
+
+      - name: CCSPlayer_MovementServices_WalkMove
+        category: func
+        alias:
+          - CCSPlayer_MovementServices::WalkMove
+          - WalkMove
 
       - name: CCSPlayer_MovementServices_FullWalkMove
         category: func
