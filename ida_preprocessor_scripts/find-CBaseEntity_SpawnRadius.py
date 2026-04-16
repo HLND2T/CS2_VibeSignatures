@@ -8,38 +8,32 @@ TARGET_FUNCTION_NAMES = [
 ]
 
 FUNC_XREFS_WINDOWS = [
-    # (func_name, xref_strings_list, xref_signatures_list, xref_funcs_list, exclude_funcs_list, exclude_strings_list)
-    (
-        "CBaseEntity_SpawnRadius",
-        [
-            "radius",
-            "hammerUniqueId",
-        ],
-        [
-            "DC CD AB 6D"
-        ],
-        [],
-        [],
-        [],
-    ),
-]
+                         {
+                             "func_name": 'CBaseEntity_SpawnRadius',
+                             "xref_strings": ['radius', 'hammerUniqueId'],
+                             "xref_gvs": [],
+                             "xref_signatures": ['DC CD AB 6D'],
+                             "xref_funcs": [],
+                             "exclude_funcs": [],
+                             "exclude_strings": [],
+                             "exclude_gvs": [],
+                             "exclude_signatures": [],
+                         },
+                     ]
 
 FUNC_XREFS_LINUX = [
-    # (func_name, xref_strings_list, xref_signatures_list, xref_funcs_list, exclude_funcs_list, exclude_strings_list)
-    (
-        "CBaseEntity_SpawnRadius",
-        [
-            "radius",
-            "hammerUniqueId",
-        ],
-        [
-            "20 59 41 31"
-        ],
-        [],
-        [],
-        [],
-    ),
-]
+                       {
+                           "func_name": 'CBaseEntity_SpawnRadius',
+                           "xref_strings": ['radius', 'hammerUniqueId'],
+                           "xref_gvs": [],
+                           "xref_signatures": ['20 59 41 31'],
+                           "xref_funcs": [],
+                           "exclude_funcs": [],
+                           "exclude_strings": [],
+                           "exclude_gvs": [],
+                           "exclude_signatures": [],
+                       },
+                   ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)

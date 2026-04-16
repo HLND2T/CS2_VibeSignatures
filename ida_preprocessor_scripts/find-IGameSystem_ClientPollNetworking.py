@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """Preprocess script for find-IGameSystem_ClientPollNetworking skill."""
 
 from ida_preprocessor_scripts._igamesystem_dispatch_common import (

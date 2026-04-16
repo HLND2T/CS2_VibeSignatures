@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """Preprocess script for find-CCSGameRules_FindPickerEntity skill."""
 
 from ida_analyze_util import preprocess_common_skill

@@ -8,18 +8,18 @@ TARGET_FUNCTION_NAMES = [
 ]
 
 FUNC_XREFS = [
-    # (func_name, xref_strings_list, xref_signatures_list, xref_funcs_list, exclude_funcs_list, exclude_strings_list)
-    (
-        "CGameEntitySystem_BuildResourceManifest_ManifestNameOrGroupName",
-        [
-            "GameSessionManifest.vrgrp",
-        ],
-        [],
-        [],
-        [],
-        [],
-    ),
-]
+                 {
+                     "func_name": 'CGameEntitySystem_BuildResourceManifest_ManifestNameOrGroupName',
+                     "xref_strings": ['GameSessionManifest.vrgrp'],
+                     "xref_gvs": [],
+                     "xref_signatures": [],
+                     "xref_funcs": [],
+                     "exclude_funcs": [],
+                     "exclude_strings": [],
+                     "exclude_gvs": [],
+                     "exclude_signatures": [],
+                 },
+             ]
 
 FUNC_VTABLE_RELATIONS = [
     # (func_name, vtable_class)

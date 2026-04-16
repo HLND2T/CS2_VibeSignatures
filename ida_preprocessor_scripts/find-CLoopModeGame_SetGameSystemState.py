@@ -8,18 +8,18 @@ TARGET_FUNCTION_NAMES = [
 ]
 
 FUNC_XREFS = [
-    # (func_name, xref_strings_list, xref_signatures_list, xref_funcs_list, exclude_funcs_list, exclude_strings_list)
-    (
-        "CLoopModeGame_SetGameSystemState",
-        [
-            "%s:  SetGameSystemState( %d : '%s' to '%s' )",
-        ],
-        [],
-        [],
-        ["CLoopModeGame_ReceivedServerInfo"],
-        [],
-    ),
-]
+                 {
+                     "func_name": 'CLoopModeGame_SetGameSystemState',
+                     "xref_strings": ["%s:  SetGameSystemState( %d : '%s' to '%s' )"],
+                     "xref_gvs": [],
+                     "xref_signatures": [],
+                     "xref_funcs": [],
+                     "exclude_funcs": ['CLoopModeGame_ReceivedServerInfo'],
+                     "exclude_strings": [],
+                     "exclude_gvs": [],
+                     "exclude_signatures": [],
+                 },
+             ]
 
 FUNC_VTABLE_RELATIONS = []
 

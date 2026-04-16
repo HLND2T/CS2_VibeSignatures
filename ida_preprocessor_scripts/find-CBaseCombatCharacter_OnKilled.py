@@ -8,18 +8,18 @@ TARGET_FUNCTION_NAMES = [
 ]
 
 FUNC_XREFS = [
-    # (func_name, xref_strings_list, xref_signatures_list, xref_funcs_list, exclude_funcs_list, exclude_strings_list)
-    (
-        "CBaseCombatCharacter_OnKilled",
-        [
-            "KilledNPC",
-        ],
-        [],  # xref_signatures_list
-        [],  # xref_funcs_list
-        [],  # exclude_funcs_list
-        [],  # exclude_strings_list
-    ),
-]
+                 {
+                     "func_name": 'CBaseCombatCharacter_OnKilled',
+                     "xref_strings": ['KilledNPC'],
+                     "xref_gvs": [],
+                     "xref_signatures": [],
+                     "xref_funcs": [],
+                     "exclude_funcs": [],
+                     "exclude_strings": [],
+                     "exclude_gvs": [],
+                     "exclude_signatures": [],
+                 },
+             ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)

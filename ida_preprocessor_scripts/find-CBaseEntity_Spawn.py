@@ -8,20 +8,18 @@ TARGET_FUNCTION_NAMES = [
 ]
 
 FUNC_XREFS = [
-    # (func_name, xref_strings_list, xref_signatures_list, xref_funcs_list, exclude_funcs_list, exclude_strings_list)
-    (
-        "CBaseEntity_Spawn",
-        [
-            "hammerUniqueId",
-        ],
-        [
-            "38 A0 63 A9"
-        ],
-        [],
-        ["CGameSceneNode_PostSpawnKeyValues", "CBaseEntity_SpawnRadius"],
-        [],
-    ),
-]
+                 {
+                     "func_name": 'CBaseEntity_Spawn',
+                     "xref_strings": ['hammerUniqueId'],
+                     "xref_gvs": [],
+                     "xref_signatures": ['38 A0 63 A9'],
+                     "xref_funcs": [],
+                     "exclude_funcs": ['CGameSceneNode_PostSpawnKeyValues', 'CBaseEntity_SpawnRadius'],
+                     "exclude_strings": [],
+                     "exclude_gvs": [],
+                     "exclude_signatures": [],
+                 },
+             ]
 
 FUNC_VTABLE_RELATIONS = [
     # (func_name, vtable_class)

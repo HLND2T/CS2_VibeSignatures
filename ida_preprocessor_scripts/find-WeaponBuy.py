@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """Preprocess script for find-WeaponBuy skill."""
 
 from ida_analyze_util import preprocess_common_skill
@@ -8,39 +8,32 @@ TARGET_FUNCTION_NAMES = [
 ]
 
 FUNC_XREFS_WINDOWS = [
-    # (func_name, xref_strings_list, xref_signatures_list, xref_funcs_list, exclude_funcs_list, exclude_strings_list)
-    (
-        "WeaponBuy",
-        [
-            "item_purchase",
-            "FULLMATCH:userid",
-            "FULLMATCH:team",
-            "FULLMATCH:loadout",
-            "FULLMATCH:weapon",
-        ],
-        [],
-        [],
-        [],
-        [],
-    ),
-]
+                         {
+                             "func_name": 'WeaponBuy',
+                             "xref_strings": ['item_purchase', 'FULLMATCH:userid', 'FULLMATCH:team', 'FULLMATCH:loadout', 'FULLMATCH:weapon'],
+                             "xref_gvs": [],
+                             "xref_signatures": [],
+                             "xref_funcs": [],
+                             "exclude_funcs": [],
+                             "exclude_strings": [],
+                             "exclude_gvs": [],
+                             "exclude_signatures": [],
+                         },
+                     ]
 
 FUNC_XREFS_LINUX = [
-    # (func_name, xref_strings_list, xref_signatures_list, xref_funcs_list, exclude_funcs_list, exclude_strings_list)
-    (
-        "WeaponBuy",
-        [
-            "item_purchase",
-            "FULLMATCH:team",
-            "FULLMATCH:weapon",
-            "FULLMATCH:loadout",
-        ],
-        [],
-        [],
-        [],
-        [],
-    ),
-]
+                       {
+                           "func_name": 'WeaponBuy',
+                           "xref_strings": ['item_purchase', 'FULLMATCH:team', 'FULLMATCH:weapon', 'FULLMATCH:loadout'],
+                           "xref_gvs": [],
+                           "xref_signatures": [],
+                           "xref_funcs": [],
+                           "exclude_funcs": [],
+                           "exclude_strings": [],
+                           "exclude_gvs": [],
+                           "exclude_signatures": [],
+                       },
+                   ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)

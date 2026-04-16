@@ -9,21 +9,18 @@ TARGET_FUNCTION_NAMES = [
 ]
 
 FUNC_XREFS = [
-    # (func_name, xref_strings_list, xref_signatures_list, xref_funcs_list, exclude_funcs_list, exclude_strings_list)
-    (
-        "CNetworkGameClient_RecordEntityBandwidth",
-        [
-            "Local Player",
-            "Other Players",
-        ],
-        [],
-        [],
-        [
-            "CNetworkServerService_Init",
-        ],
-        [],
-    ),
-]
+                 {
+                     "func_name": 'CNetworkGameClient_RecordEntityBandwidth',
+                     "xref_strings": ['Local Player', 'Other Players'],
+                     "xref_gvs": [],
+                     "xref_signatures": [],
+                     "xref_funcs": [],
+                     "exclude_funcs": ['CNetworkServerService_Init'],
+                     "exclude_strings": [],
+                     "exclude_gvs": [],
+                     "exclude_signatures": [],
+                 },
+             ]
 
 
 GENERATE_YAML_DESIRED_FIELDS = [

@@ -8,19 +8,18 @@ TARGET_FUNCTION_NAMES = [
 ]
 
 FUNC_XREFS = [
-    # (func_name, xref_strings_list, xref_signatures_list, xref_funcs_list, exclude_funcs_list, exclude_strings_list)
-    (
-        "RegisterSchemaTypeOverride_CEntityHandle",
-        [
-            "CEntityHandle",
-            "ehandle",
-        ],
-        ["A8 99 30 96"],
-        [],
-        [],
-        [],
-    ),
-]
+                 {
+                     "func_name": 'RegisterSchemaTypeOverride_CEntityHandle',
+                     "xref_strings": ['CEntityHandle', 'ehandle'],
+                     "xref_gvs": [],
+                     "xref_signatures": ['A8 99 30 96'],
+                     "xref_funcs": [],
+                     "exclude_funcs": [],
+                     "exclude_strings": [],
+                     "exclude_gvs": [],
+                     "exclude_signatures": [],
+                 },
+             ]
 
 FUNC_VTABLE_RELATIONS = []
 

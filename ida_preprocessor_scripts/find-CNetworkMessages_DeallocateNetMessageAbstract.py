@@ -8,18 +8,18 @@ TARGET_FUNCTION_NAMES = [
 ]
 
 FUNC_XREFS = [
-    # (func_name, xref_strings_list, xref_signatures_list, xref_funcs_list, exclude_funcs_list, exclude_strings_list)
-    (
-        "CNetworkMessages_DeallocateNetMessageAbstract",
-        [
-            "CNetworkMessages::DeallocateUnserializedMessage unable to deallocate unknown message type!",
-        ],
-        [],
-        [],
-        [],
-        [],
-    ),
-]
+                 {
+                     "func_name": 'CNetworkMessages_DeallocateNetMessageAbstract',
+                     "xref_strings": ['CNetworkMessages::DeallocateUnserializedMessage unable to deallocate unknown message type!'],
+                     "xref_gvs": [],
+                     "xref_signatures": [],
+                     "xref_funcs": [],
+                     "exclude_funcs": [],
+                     "exclude_strings": [],
+                     "exclude_gvs": [],
+                     "exclude_signatures": [],
+                 },
+             ]
 
 FUNC_VTABLE_RELATIONS = [
     # (func_name, vtable_class)

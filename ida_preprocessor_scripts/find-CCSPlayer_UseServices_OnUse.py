@@ -8,16 +8,18 @@ TARGET_FUNCTION_NAMES = [
 ]
 
 FUNC_XREFS = [
-    # (func_name, xref_strings_list, xref_signatures_list, xref_funcs_list, exclude_funcs_list, exclude_strings_list)
-    (
-        "CCSPlayer_UseServices_OnUse",
-        [],
-        [],
-        ["CCSPlayer_UseServices_OnUseImpl"],
-        [],
-        [],
-    ),
-]
+                 {
+                     "func_name": 'CCSPlayer_UseServices_OnUse',
+                     "xref_strings": [],
+                     "xref_gvs": [],
+                     "xref_signatures": [],
+                     "xref_funcs": ['CCSPlayer_UseServices_OnUseImpl'],
+                     "exclude_funcs": [],
+                     "exclude_strings": [],
+                     "exclude_gvs": [],
+                     "exclude_signatures": [],
+                 },
+             ]
 
 FUNC_VTABLE_RELATIONS = [
     # (func_name, vtable_class)

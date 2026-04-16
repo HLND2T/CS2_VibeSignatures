@@ -8,19 +8,18 @@ TARGET_FUNCTION_NAMES = [
 ]
 
 FUNC_XREFS = [
-    # (func_name, xref_strings_list, xref_signatures_list, xref_funcs_list, exclude_funcs_list, exclude_strings_list)
-    (
-        "CNetworkSystem_SendNetworkStats",
-        [
-            "Stack depth limit hit (%d)",
-            "groupnames",
-        ],
-        [],
-        [],
-        [],
-        [],
-    ),
-]
+                 {
+                     "func_name": 'CNetworkSystem_SendNetworkStats',
+                     "xref_strings": ['Stack depth limit hit (%d)', 'groupnames'],
+                     "xref_gvs": [],
+                     "xref_signatures": [],
+                     "xref_funcs": [],
+                     "exclude_funcs": [],
+                     "exclude_strings": [],
+                     "exclude_gvs": [],
+                     "exclude_signatures": [],
+                 },
+             ]
 
 
 GENERATE_YAML_DESIRED_FIELDS = [
