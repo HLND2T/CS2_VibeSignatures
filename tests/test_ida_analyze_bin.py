@@ -77,7 +77,7 @@ class TestQuitIdaGracefullySyncWrapper(unittest.TestCase):
 
 
 class TestSurveyBinaryViaSession(unittest.IsolatedAsyncioTestCase):
-    async def test_survey_binary_via_session_falls_back_to_py_eval_path(self) -> None:
+    async def test_survey_binary_via_session_falls_back_to_current_idb_path(self) -> None:
         session = MagicMock()
         session.call_tool = AsyncMock(
             side_effect=[
@@ -87,7 +87,7 @@ class TestSurveyBinaryViaSession(unittest.IsolatedAsyncioTestCase):
                         "result": json.dumps(
                             {
                                 "metadata": {
-                                    "path": "/mnt/d/CS2_VibeSignatures/bin/14141c/server/libserver.so"
+                                    "path": "/mnt/d/CS2_VibeSignatures/bin/14141c/server/libserver.so.i64"
                                 }
                             }
                         ),
@@ -101,13 +101,62 @@ class TestSurveyBinaryViaSession(unittest.IsolatedAsyncioTestCase):
         result = await ida_analyze_bin.survey_binary_via_session(session, detail_level="minimal")
 
         self.assertEqual(
-            {"metadata": {"path": "/mnt/d/CS2_VibeSignatures/bin/14141c/server/libserver.so"}},
+            {"metadata": {"path": "/mnt/d/CS2_VibeSignatures/bin/14141c/server/libserver.so.i64"}},
             result,
         )
         self.assertEqual(
             [
                 call(name="survey_binary", arguments={"detail_level": "minimal"}),
-                call(name="py_eval", arguments={"code": ida_analyze_bin.SURVEY_BINARY_PATH_PY_EVAL}),
+                call(name="py_eval", arguments={"code": ida_analyze_bin.SURVEY_CURRENT_IDB_PATH_PY_EVAL}),
+            ],
+            session.call_tool.await_args_list,
+        )
+
+    async def test_survey_binary_via_session_prefers_current_idb_path_over_stale_binary_path(self) -> None:
+        session = MagicMock()
+        session.call_tool = AsyncMock(
+            side_effect=[
+                _tool_result(
+                    {
+                        "metadata": {
+                            "path": "/old/location/bin/14141c/server/libserver.so",
+                            "module": "libserver.so",
+                        },
+                        "statistics": {"total_functions": 123},
+                    }
+                ),
+                _tool_result(
+                    {
+                        "result": json.dumps(
+                            {
+                                "metadata": {
+                                    "path": "/new/location/bin/14141c/server/libserver.so.i64"
+                                }
+                            }
+                        ),
+                        "stdout": "",
+                        "stderr": "",
+                    }
+                ),
+            ]
+        )
+
+        result = await ida_analyze_bin.survey_binary_via_session(session, detail_level="minimal")
+
+        self.assertEqual(
+            {
+                "metadata": {
+                    "path": "/new/location/bin/14141c/server/libserver.so.i64",
+                    "module": "libserver.so",
+                },
+                "statistics": {"total_functions": 123},
+            },
+            result,
+        )
+        self.assertEqual(
+            [
+                call(name="survey_binary", arguments={"detail_level": "minimal"}),
+                call(name="py_eval", arguments={"code": ida_analyze_bin.SURVEY_CURRENT_IDB_PATH_PY_EVAL}),
             ],
             session.call_tool.await_args_list,
         )

@@ -77,18 +77,18 @@ ERROR_MARKER_RE = re.compile(
     re.IGNORECASE,
 )
 _ARTIFACT_SYMBOL_CATEGORY_CACHE = {}
-SURVEY_BINARY_PATH_PY_EVAL = (
+SURVEY_CURRENT_IDB_PATH_PY_EVAL = (
     "import json\n"
     "path = ''\n"
     "try:\n"
-    "    import ida_nalt\n"
-    "    path = ida_nalt.get_input_file_path() or ''\n"
+    "    import idaapi\n"
+    "    path = idaapi.get_path(idaapi.PATH_TYPE_IDB) or ''\n"
     "except Exception:\n"
     "    pass\n"
     "if not path:\n"
     "    try:\n"
     "        import idc\n"
-    "        path = idc.get_input_file_path() or ''\n"
+    "        path = idc.get_idb_path() or ''\n"
     "    except Exception:\n"
     "        pass\n"
     "result = json.dumps({'metadata': {'path': path}})\n"
@@ -326,45 +326,57 @@ async def validate_expected_input_artifacts_via_session(
     return invalid_artifacts
 
 
-async def _survey_binary_path_via_py_eval(session):
+def _merge_metadata_path(payload, path_payload):
+    if not isinstance(path_payload, dict):
+        return payload
+
+    path_metadata = path_payload.get("metadata")
+    if not isinstance(path_metadata, dict):
+        return payload
+
+    resolved_path = path_metadata.get("path")
+    if not isinstance(resolved_path, str) or not resolved_path:
+        return payload
+
+    if not isinstance(payload, dict):
+        return {"metadata": {"path": resolved_path}}
+
+    metadata = payload.get("metadata")
+    merged_payload = dict(payload)
+    merged_metadata = dict(metadata) if isinstance(metadata, dict) else {}
+    merged_metadata["path"] = resolved_path
+    merged_payload["metadata"] = merged_metadata
+    return merged_payload
+
+
+async def _survey_current_idb_path_via_py_eval(session):
     try:
         result = await session.call_tool(
             name="py_eval",
-            arguments={"code": SURVEY_BINARY_PATH_PY_EVAL},
+            arguments={"code": SURVEY_CURRENT_IDB_PATH_PY_EVAL},
         )
     except Exception:
         return None
-
-    payload = _parse_tool_json_content(result)
-    if not isinstance(payload, dict):
-        return None
-
-    result_text = payload.get("result", "")
-    if not isinstance(result_text, str) or not result_text:
-        return None
-
-    try:
-        parsed = json.loads(result_text)
-    except (json.JSONDecodeError, TypeError):
-        return None
-
-    return parsed if isinstance(parsed, dict) else None
+    return _parse_py_eval_result_json(result)
 
 
 async def survey_binary_via_session(session, detail_level="minimal"):
+    parsed = None
     try:
         result = await session.call_tool(
             name="survey_binary",
             arguments={"detail_level": detail_level},
         )
     except Exception:
-        return await _survey_binary_path_via_py_eval(session)
+        pass
+    else:
+        parsed = _parse_tool_json_content(result)
 
-    parsed = _parse_tool_json_content(result)
-    if isinstance(parsed, dict):
-        return parsed
+    current_idb_path = await _survey_current_idb_path_via_py_eval(session)
+    if isinstance(current_idb_path, dict):
+        return _merge_metadata_path(parsed, current_idb_path)
 
-    return await _survey_binary_path_via_py_eval(session)
+    return parsed
 
 async def check_mcp_health(host=DEFAULT_HOST, port=DEFAULT_PORT):
     """
@@ -403,6 +415,10 @@ async def survey_binary_via_mcp(host=DEFAULT_HOST, port=DEFAULT_PORT, detail_lev
         detail_level: 'standard' or 'minimal' (use 'minimal' for binaries with >10k functions)
     Returns:
         Parsed survey dict on success, None otherwise.
+
+    Note:
+        When available, metadata.path is replaced with the current IDB path so callers
+        can infer targets from the moved .i64 location instead of the original input binary path.
 
     Example result (detail_level='minimal'):
         {

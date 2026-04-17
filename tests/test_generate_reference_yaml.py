@@ -5,11 +5,12 @@ from argparse import Namespace
 from contextlib import asynccontextmanager
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, call, patch
 
 import yaml
 
 import generate_reference_yaml
+import ida_analyze_bin
 
 
 class _FakeTextContent:
@@ -1382,16 +1383,32 @@ class TestRunReferenceGeneration(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(output_path, result)
         attach_existing_mcp_session.assert_not_called()
 
-    async def test_run_reference_generation_fills_missing_inputs_from_survey_binary(self) -> None:
+    async def test_run_reference_generation_fills_missing_inputs_from_current_idb_path(self) -> None:
         fake_session = MagicMock()
         fake_session.call_tool = AsyncMock(
-            return_value=_FakeCallToolResult(
-                {
-                    "metadata": {
-                        "path": r"D:\CS2_VibeSignatures\bin\14141c\engine\engine2.dll.i64"
+            side_effect=[
+                _FakeCallToolResult(
+                    {
+                        "metadata": {
+                            "path": r"D:\stale-cache\engine2.dll",
+                            "module": "engine2.dll",
+                        }
                     }
-                }
-            )
+                ),
+                _FakeCallToolResult(
+                    {
+                        "result": json.dumps(
+                            {
+                                "metadata": {
+                                    "path": r"D:\CS2_VibeSignatures\bin\14141c\engine\engine2.dll.i64"
+                                }
+                            }
+                        ),
+                        "stdout": "",
+                        "stderr": "",
+                    }
+                ),
+            ]
         )
         output_path = Path("/repo/out/reference.yaml")
 
@@ -1449,9 +1466,15 @@ class TestRunReferenceGeneration(unittest.IsolatedAsyncioTestCase):
             )
 
         self.assertEqual(output_path, result)
-        fake_session.call_tool.assert_awaited_once_with(
-            name="survey_binary",
-            arguments={"detail_level": "minimal"},
+        self.assertEqual(
+            [
+                call(name="survey_binary", arguments={"detail_level": "minimal"}),
+                call(
+                    name="py_eval",
+                    arguments={"code": ida_analyze_bin.SURVEY_CURRENT_IDB_PATH_PY_EVAL},
+                ),
+            ],
+            fake_session.call_tool.await_args_list,
         )
         survey_binary_via_mcp.assert_not_called()
         resolve_func_va.assert_awaited_once_with(
