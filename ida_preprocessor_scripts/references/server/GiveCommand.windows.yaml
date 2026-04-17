@@ -1,0 +1,432 @@
+func_name: GiveCommand
+func_va: '0x180bfb090'
+disasm_code: |-
+  .text:0000000180BFB090                 push    rbp
+  .text:0000000180BFB092                 push    rsi
+  .text:0000000180BFB093                 push    r13
+  .text:0000000180BFB095                 mov     rbp, rsp
+  .text:0000000180BFB098                 sub     rsp, 50h
+  .text:0000000180BFB09C                 cmp     dword ptr [rdx+438h], 2
+  .text:0000000180BFB0A3                 mov     r13, r8
+  .text:0000000180BFB0A6                 mov     rsi, rdx
+  .text:0000000180BFB0A9                 jge     loc_180BFB1F5
+  .text:0000000180BFB0AF                 mov     rcx, cs:LOG_CONSOLE
+  .text:0000000180BFB0B6                 mov     edx, 2
+  .text:0000000180BFB0BB                 mov     ecx, [rcx]
+  .text:0000000180BFB0BD                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:0000000180BFB0C3                 test    al, al
+  .text:0000000180BFB0C5                 jz      short loc_180BFB0E2
+  .text:0000000180BFB0C7                 mov     rcx, cs:LOG_CONSOLE
+  .text:0000000180BFB0CE                 lea     r8, aUsageGiveSubcl; "Usage:\n\tgive <subclassname> [addition"...
+  .text:0000000180BFB0D5                 mov     edx, 2
+  .text:0000000180BFB0DA                 mov     ecx, [rcx]
+  .text:0000000180BFB0DC                 call    cs:LoggingSystem_Log
+  .text:0000000180BFB0E2                 mov     rcx, cs:LOG_CONSOLE
+  .text:0000000180BFB0E9                 mov     edx, 2
+  .text:0000000180BFB0EE                 mov     ecx, [rcx]
+  .text:0000000180BFB0F0                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:0000000180BFB0F6                 test    al, al
+  .text:0000000180BFB0F8                 jz      short loc_180BFB11C
+  .text:0000000180BFB0FA                 mov     rcx, cs:LOG_CONSOLE
+  .text:0000000180BFB101                 lea     r9, aKeepGear; "-keep_gear"
+  .text:0000000180BFB108                 lea     r8, aSAdditionalArg; "\t %s additional argument will keep exi"...
+  .text:0000000180BFB10F                 mov     edx, 2
+  .text:0000000180BFB114                 mov     ecx, [rcx]
+  .text:0000000180BFB116                 call    cs:LoggingSystem_Log
+  .text:0000000180BFB11C                 mov     rcx, cs:LOG_CONSOLE
+  .text:0000000180BFB123                 mov     edx, 2
+  .text:0000000180BFB128                 mov     ecx, [rcx]
+  .text:0000000180BFB12A                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:0000000180BFB130                 test    al, al
+  .text:0000000180BFB132                 jz      short loc_180BFB14F
+  .text:0000000180BFB134                 mov     rcx, cs:LOG_CONSOLE
+  .text:0000000180BFB13B                 lea     r8, aSlotOfTheNewWe; "\t\t slot of the new weapon is already "...
+  .text:0000000180BFB142                 mov     edx, 2
+  .text:0000000180BFB147                 mov     ecx, [rcx]
+  .text:0000000180BFB149                 call    cs:LoggingSystem_Log
+  .text:0000000180BFB14F                 mov     rcx, cs:LOG_CONSOLE
+  .text:0000000180BFB156                 mov     edx, 2
+  .text:0000000180BFB15B                 mov     ecx, [rcx]
+  .text:0000000180BFB15D                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:0000000180BFB163                 test    al, al
+  .text:0000000180BFB165                 jz      short loc_180BFB182
+  .text:0000000180BFB167                 mov     rcx, cs:LOG_CONSOLE
+  .text:0000000180BFB16E                 lea     r8, aDropToTheGroun; "\t\t drop to the ground instead of bein"...
+  .text:0000000180BFB175                 mov     edx, 2
+  .text:0000000180BFB17A                 mov     ecx, [rcx]
+  .text:0000000180BFB17C                 call    cs:LoggingSystem_Log
+  .text:0000000180BFB182                 mov     rcx, cs:LOG_CONSOLE
+  .text:0000000180BFB189                 mov     edx, 2
+  .text:0000000180BFB18E                 mov     ecx, [rcx]
+  .text:0000000180BFB190                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:0000000180BFB196                 test    al, al
+  .text:0000000180BFB198                 jz      short loc_180BFB1B5
+  .text:0000000180BFB19A                 mov     rcx, cs:LOG_CONSOLE
+  .text:0000000180BFB1A1                 lea     r8, aByDefaultAddit; "\tBy default, additional arguments are "...
+  .text:0000000180BFB1A8                 mov     edx, 2
+  .text:0000000180BFB1AD                 mov     ecx, [rcx]
+  .text:0000000180BFB1AF                 call    cs:LoggingSystem_Log
+  .text:0000000180BFB1B5                 mov     rcx, cs:LOG_CONSOLE
+  .text:0000000180BFB1BC                 mov     edx, 2
+  .text:0000000180BFB1C1                 mov     ecx, [rcx]
+  .text:0000000180BFB1C3                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:0000000180BFB1C9                 test    al, al
+  .text:0000000180BFB1CB                 jz      loc_180BFB4AA
+  .text:0000000180BFB1D1                 mov     rcx, cs:LOG_CONSOLE
+  .text:0000000180BFB1D8                 lea     r8, aWhenGivingModi; "\tWhen giving modifiers, the additional"...
+  .text:0000000180BFB1DF                 mov     edx, 2
+  .text:0000000180BFB1E4                 mov     ecx, [rcx]
+  .text:0000000180BFB1E6                 call    cs:LoggingSystem_Log
+  .text:0000000180BFB1EC                 add     rsp, 50h
+  .text:0000000180BFB1F0                 pop     r13
+  .text:0000000180BFB1F2                 pop     rsi
+  .text:0000000180BFB1F3                 pop     rbp
+  .text:0000000180BFB1F4                 retn
+  .text:0000000180BFB1F5                 mov     [rsp+50h+arg_0], rbx
+  .text:0000000180BFB1FA                 call    sub_180BCF5E0
+  .text:0000000180BFB1FF                 mov     rbx, rax
+  .text:0000000180BFB202                 test    rax, rax
+  .text:0000000180BFB205                 jz      short loc_180BFB216
+  .text:0000000180BFB207                 mov     rdx, [rax]
+  .text:0000000180BFB20A                 mov     rcx, rax
+  .text:0000000180BFB20D                 call    qword ptr [rdx+0BD0h]
+  .text:0000000180BFB213                 mov     rbx, rax
+  .text:0000000180BFB216                 test    rbx, rbx
+  .text:0000000180BFB219                 jz      loc_180BFB4A5
+  .text:0000000180BFB21F                 mov     rax, cs:off_181BD05B8
+  .text:0000000180BFB226                 cmp     dword ptr [rax+10h], 1
+  .text:0000000180BFB22A                 jle     short loc_180BFB256
+  .text:0000000180BFB22C                 mov     edx, 0FFFFFFFFh
+  .text:0000000180BFB231                 lea     rcx, unk_181EC13F8
+  .text:0000000180BFB238                 call    sub_18146E6D0
+  .text:0000000180BFB23D                 test    rax, rax
+  .text:0000000180BFB240                 jnz     short loc_180BFB24D
+  .text:0000000180BFB242                 mov     rax, cs:qword_181EC1400
+  .text:0000000180BFB249                 mov     rax, [rax+8]
+  .text:0000000180BFB24D                 cmp     byte ptr [rax], 0
+  .text:0000000180BFB250                 jz      loc_180BFB4A5
+  .text:0000000180BFB256                 mov     [rsp+50h+arg_18], r12
+  .text:0000000180BFB25E                 mov     r12, [rbx+0B78h]
+  .text:0000000180BFB265                 test    r12, r12
+  .text:0000000180BFB268                 jz      loc_180BFB49D
+  .text:0000000180BFB26E                 mov     ecx, [rsi+438h]
+  .text:0000000180BFB274                 mov     bl, 1
+  .text:0000000180BFB276                 mov     [rsp+50h+var_10], r15
+  .text:0000000180BFB27B                 mov     [rsp+50h+arg_10], rdi
+  .text:0000000180BFB283                 cmp     ecx, 1
+  .text:0000000180BFB286                 jle     short loc_180BFB2B4
+  .text:0000000180BFB288                 mov     rax, [rsi+440h]
+  .text:0000000180BFB28F                 mov     rdi, [rax+8]
+  .text:0000000180BFB293                 mov     r15, rdi
+  .text:0000000180BFB296                 cmp     ecx, 3
+  .text:0000000180BFB299                 jl      short loc_180BFB2BE
+  .text:0000000180BFB29B                 mov     rcx, [rax+10h]; a1
+  .text:0000000180BFB29F                 lea     rdx, aKeepGear; "-keep_gear"
+  .text:0000000180BFB2A6                 call    cs:V_stricmp_fast
+  .text:0000000180BFB2AC                 test    eax, eax
+  .text:0000000180BFB2AE                 jnz     short loc_180BFB2BE
+  .text:0000000180BFB2B0                 xor     bl, bl
+  .text:0000000180BFB2B2                 jmp     short loc_180BFB2BE
+  .text:0000000180BFB2B4                 lea     r15, byte_18152DF88
+  .text:0000000180BFB2BB                 mov     rdi, r15
+  .text:0000000180BFB2BE                 mov     rax, [r12]
+  .text:0000000180BFB2C2                 movzx   r8d, bl
+  .text:0000000180BFB2C6                 mov     rdx, r15
+  .text:0000000180BFB2C9                 mov     rcx, r12
+  .text:0000000180BFB2CC                 call    qword ptr [rax+0A0h]; 0xA0 = 160 = CCSPlayer_ItemServices_GiveNamedItemBool
+  .text:0000000180BFB2D2                 test    al, al
+  .text:0000000180BFB2D4                 jnz     loc_180BFB490
+  .text:0000000180BFB2DA                 mov     [rsp+50h+var_8], r14
+  .text:0000000180BFB2DF                 xor     ebx, ebx
+  .text:0000000180BFB2E1                 mov     rcx, cs:qword_181D8C610
+  .text:0000000180BFB2E8                 mov     r8, r15
+  .text:0000000180BFB2EB                 mov     edx, ebx
+  .text:0000000180BFB2ED                 mov     r14d, ebx
+  .text:0000000180BFB2F0                 call    sub_180C06380
+  .text:0000000180BFB2F5                 test    rax, rax
+  .text:0000000180BFB2F8                 jnz     short loc_180BFB301
+  .text:0000000180BFB2FA                 inc     ebx
+  .text:0000000180BFB2FC                 cmp     ebx, 2
+  .text:0000000180BFB2FF                 jl      short loc_180BFB2E1
+  .text:0000000180BFB301                 mov     [rbp+arg_8], 0
+  .text:0000000180BFB309                 test    rax, rax
+  .text:0000000180BFB30C                 jnz     loc_180BFB451
+  .text:0000000180BFB312                 xor     edi, edi
+  .text:0000000180BFB314                 mov     esi, edi
+  .text:0000000180BFB316                 nop     word ptr [rax+rax+00000000h]
+  .text:0000000180BFB320                 mov     rcx, cs:qword_181D8C610
+  .text:0000000180BFB327                 lea     r8, [rbp+var_30]
+  .text:0000000180BFB32B                 mov     edx, esi
+  .text:0000000180BFB32D                 mov     [rbp+var_28], rdi
+  .text:0000000180BFB331                 mov     [rbp+var_20], 0
+  .text:0000000180BFB339                 mov     dword ptr [rbp+var_30], edi
+  .text:0000000180BFB33C                 call    sub_1804F43C0
+  .text:0000000180BFB341                 mov     eax, dword ptr [rbp+var_30]
+  .text:0000000180BFB344                 sub     eax, 1
+  .text:0000000180BFB347                 js      short loc_180BFB3A9
+  .text:0000000180BFB349                 movsxd  rbx, eax
+  .text:0000000180BFB34C                 nop     dword ptr [rax+00h]
+  .text:0000000180BFB350                 mov     rax, [rbp+var_28]
+  .text:0000000180BFB354                 lea     rdi, byte_18152DF88
+  .text:0000000180BFB35B                 mov     rdx, r15
+  .text:0000000180BFB35E                 mov     rcx, [rax+rbx*8]
+  .text:0000000180BFB362                 test    rcx, rcx
+  .text:0000000180BFB365                 cmovnz  rdi, rcx
+  .text:0000000180BFB369                 mov     rcx, rdi
+  .text:0000000180BFB36C                 call    cs:?V_stristr_fast@@YAPEBDPEBD0@Z; V_stristr_fast(char const *,char const *)
+  .text:0000000180BFB372                 test    rax, rax
+  .text:0000000180BFB375                 jz      short loc_180BFB395
+  .text:0000000180BFB377                 mov     rax, [rbp+arg_8]
+  .text:0000000180BFB37B                 test    rax, rax
+  .text:0000000180BFB37E                 jz      short loc_180BFB385
+  .text:0000000180BFB380                 cmp     byte ptr [rax], 0
+  .text:0000000180BFB383                 jnz     short loc_180BFB39D
+  .text:0000000180BFB385                 mov     rdx, rdi
+  .text:0000000180BFB388                 lea     rcx, [rbp+arg_8]
+  .text:0000000180BFB38C                 mov     r14d, esi
+  .text:0000000180BFB38F                 call    cs:?Set@CUtlString@@QEAAXPEBD@Z; CUtlString::Set(char const *)
+  .text:0000000180BFB395                 sub     rbx, 1
+  .text:0000000180BFB399                 jns     short loc_180BFB350
+  .text:0000000180BFB39B                 jmp     short loc_180BFB3A7
+  .text:0000000180BFB39D                 lea     rcx, [rbp+arg_8]
+  .text:0000000180BFB3A1                 call    cs:?Purge@CUtlString@@QEAAXXZ; CUtlString::Purge(void)
+  .text:0000000180BFB3A7                 xor     edi, edi
+  .text:0000000180BFB3A9                 mov     eax, dword ptr [rbp+var_30]
+  .text:0000000180BFB3AC                 mov     rdx, [rbp+var_28]
+  .text:0000000180BFB3B0                 sub     eax, 1
+  .text:0000000180BFB3B3                 movsxd  rbx, eax
+  .text:0000000180BFB3B6                 js      short loc_180BFB3DB
+  .text:0000000180BFB3B8                 nop     dword ptr [rax+rax+00000000h]
+  .text:0000000180BFB3C0                 cmp     qword ptr [rdx+rbx*8], 0
+  .text:0000000180BFB3C5                 lea     rcx, [rdx+rbx*8]
+  .text:0000000180BFB3C9                 jz      short loc_180BFB3D5
+  .text:0000000180BFB3CB                 call    cs:?FreeMemoryBlock@CUtlString@@AEAAXXZ; CUtlString::FreeMemoryBlock(void)
+  .text:0000000180BFB3D1                 mov     rdx, [rbp+var_28]
+  .text:0000000180BFB3D5                 sub     rbx, 1
+  .text:0000000180BFB3D9                 jns     short loc_180BFB3C0
+  .text:0000000180BFB3DB                 mov     eax, dword ptr [rbp+var_20+4]
+  .text:0000000180BFB3DE                 mov     dword ptr [rbp+var_30], edi
+  .text:0000000180BFB3E1                 test    eax, 0C0000000h
+  .text:0000000180BFB3E6                 jnz     short loc_180BFB426
+  .text:0000000180BFB3E8                 test    rdx, rdx
+  .text:0000000180BFB3EB                 jz      short loc_180BFB407
+  .text:0000000180BFB3ED                 mov     rax, cs:g_pMemAlloc
+  .text:0000000180BFB3F4                 mov     rcx, [rax]
+  .text:0000000180BFB3F7                 mov     rax, [rcx]
+  .text:0000000180BFB3FA                 call    qword ptr [rax+18h]
+  .text:0000000180BFB3FD                 mov     eax, dword ptr [rbp+var_20+4]
+  .text:0000000180BFB400                 mov     rdx, rdi
+  .text:0000000180BFB403                 mov     [rbp+var_28], rdx
+  .text:0000000180BFB407                 mov     dword ptr [rbp+var_20], edi
+  .text:0000000180BFB40A                 test    eax, 0C0000000h
+  .text:0000000180BFB40F                 jnz     short loc_180BFB426
+  .text:0000000180BFB411                 test    rdx, rdx
+  .text:0000000180BFB414                 jz      short loc_180BFB426
+  .text:0000000180BFB416                 mov     rax, cs:g_pMemAlloc
+  .text:0000000180BFB41D                 mov     rcx, [rax]
+  .text:0000000180BFB420                 mov     rax, [rcx]
+  .text:0000000180BFB423                 call    qword ptr [rax+18h]
+  .text:0000000180BFB426                 inc     esi
+  .text:0000000180BFB428                 cmp     esi, 2
+  .text:0000000180BFB42B                 jl      loc_180BFB320
+  .text:0000000180BFB431                 mov     rdi, [rbp+arg_8]
+  .text:0000000180BFB435                 test    rdi, rdi
+  .text:0000000180BFB438                 jz      short loc_180BFB43F
+  .text:0000000180BFB43A                 cmp     byte ptr [rdi], 0
+  .text:0000000180BFB43D                 jnz     short loc_180BFB451
+  .text:0000000180BFB43F                 mov     rdx, r15
+  .text:0000000180BFB442                 lea     rcx, aGiveEncountere; "give: Encountered unknown entity subcla"...
+  .text:0000000180BFB449                 call    cs:Warning
+  .text:0000000180BFB44F                 jmp     short loc_180BFB47A
+  .text:0000000180BFB451                 mov     eax, [r13+8]
+  .text:0000000180BFB455                 lea     r9, [rbp+var_30]
+  .text:0000000180BFB459                 movsd   xmm0, qword ptr [r13+0]
+  .text:0000000180BFB45F                 mov     r8d, r14d
+  .text:0000000180BFB462                 mov     dword ptr [rbp+var_28], eax
+  .text:0000000180BFB465                 mov     rdx, rdi
+  .text:0000000180BFB468                 mov     rax, [r12]
+  .text:0000000180BFB46C                 mov     rcx, r12
+  .text:0000000180BFB46F                 movsd   [rbp+var_30], xmm0
+  .text:0000000180BFB474                 call    qword ptr [rax+0A8h]
+  .text:0000000180BFB47A                 cmp     [rbp+arg_8], 0
+  .text:0000000180BFB47F                 mov     r14, [rsp+50h+var_8]
+  .text:0000000180BFB484                 jz      short loc_180BFB490
+  .text:0000000180BFB486                 lea     rcx, [rbp+arg_8]
+  .text:0000000180BFB48A                 call    cs:?FreeMemoryBlock@CUtlString@@AEAAXXZ; CUtlString::FreeMemoryBlock(void)
+  .text:0000000180BFB490                 mov     rdi, [rsp+50h+arg_10]
+  .text:0000000180BFB498                 mov     r15, [rsp+50h+var_10]
+  .text:0000000180BFB49D                 mov     r12, [rsp+50h+arg_18]
+  .text:0000000180BFB4A5                 mov     rbx, [rsp+50h+arg_0]
+  .text:0000000180BFB4AA                 add     rsp, 50h
+  .text:0000000180BFB4AE                 pop     r13
+  .text:0000000180BFB4B0                 pop     rsi
+  .text:0000000180BFB4B1                 pop     rbp
+  .text:0000000180BFB4B2                 retn
+procedure: |-
+  void __fastcall sub_180BFB090(__int64 a1, __int64 a2, __int64 *a3)
+  {
+    __int64 v5; // rax
+    __int64 v6; // rbx
+    _BYTE *v7; // rax
+    __int64 *v8; // r12
+    int v9; // ecx
+    bool v10; // bl
+    __int64 v11; // rax
+    char *v12; // rdi
+    const char *v13; // r15
+    int i; // ebx
+    unsigned int v15; // r14d
+    __int64 v16; // rax
+    unsigned int v17; // esi
+    __int64 v18; // rbx
+    const char *v19; // rdi
+    __int64 v20; // rdx
+    __int64 j; // rbx
+    __int64 v22; // xmm0_8
+    __int64 v23; // rax
+    __int64 v24; // [rsp+20h] [rbp-30h] BYREF
+    __int64 v25; // [rsp+28h] [rbp-28h]
+    __int64 v26; // [rsp+30h] [rbp-20h]
+    char *v27; // [rsp+78h] [rbp+28h] BYREF
+
+    if ( *(int *)(a2 + 1080) < 2 )
+    {
+      if ( (unsigned __int8)LoggingSystem_IsChannelEnabled(LOG_CONSOLE, 2) )
+        LoggingSystem_Log(LOG_CONSOLE, 2, "Usage:\n\tgive <subclassname> [additional arguments]\n");
+      if ( (unsigned __int8)LoggingSystem_IsChannelEnabled(LOG_CONSOLE, 2) )
+        LoggingSystem_Log(
+          LOG_CONSOLE,
+          2,
+          "\t %s additional argument will keep existing held weapon if the gear\n",
+          "-keep_gear");
+      if ( (unsigned __int8)LoggingSystem_IsChannelEnabled(LOG_CONSOLE, 2) )
+        LoggingSystem_Log(LOG_CONSOLE, 2, "\t\t slot of the new weapon is already occupied, so the new weapon will\n");
+      if ( (unsigned __int8)LoggingSystem_IsChannelEnabled(LOG_CONSOLE, 2) )
+        LoggingSystem_Log(LOG_CONSOLE, 2, "\t\t drop to the ground instead of being directly given (legacy behaviour)\n");
+      if ( (unsigned __int8)LoggingSystem_IsChannelEnabled(LOG_CONSOLE, 2) )
+        LoggingSystem_Log(
+          LOG_CONSOLE,
+          2,
+          "\tBy default, additional arguments are of the form [{ \"key1\" \"value1\" \"key2\" \"value2\" }]\n");
+      if ( (unsigned __int8)LoggingSystem_IsChannelEnabled(LOG_CONSOLE, 2) )
+        LoggingSystem_Log(
+          LOG_CONSOLE,
+          2,
+          "\tWhen giving modifiers, the additional arguments are additional keys [{ \"key1\" \"value1\" \"key2\" \"value2\" }]\n");
+      return;
+    }
+    v5 = sub_180BCF5E0();
+    v6 = v5;
+    if ( v5 )
+      v6 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)v5 + 3024LL))(v5);
+    if ( v6 )
+    {
+      if ( *((int *)off_181BD05B8 + 4) <= 1 )
+        goto LABEL_60;
+      v7 = (_BYTE *)sub_18146E6D0((__int64)&unk_181EC13F8, -1);
+      if ( !v7 )
+        v7 = *(_BYTE **)(qword_181EC1400 + 8);
+      if ( *v7 )
+      {
+  LABEL_60:
+        v8 = *(__int64 **)(v6 + 2936);
+        if ( v8 )
+        {
+          v9 = *(_DWORD *)(a2 + 1080);
+          v10 = 1;
+          if ( v9 <= 1 )
+          {
+            v13 = byte_18152DF88;
+            v12 = byte_18152DF88;
+          }
+          else
+          {
+            v11 = *(_QWORD *)(a2 + 1088);
+            v12 = *(char **)(v11 + 8);
+            v13 = v12;
+            if ( v9 >= 3 )
+              v10 = (unsigned int)V_stricmp_fast(*(const char **)(v11 + 16), "-keep_gear") != 0;
+          }
+          if ( !(*(unsigned __int8 (__fastcall **)(__int64 *, const char *, bool))(*v8 + 160))(v8, v13, v10) )// 0xA0 = 160 = CCSPlayer_ItemServices_GiveNamedItemBool
+          {
+            for ( i = 0; i < 2; ++i )
+            {
+              v15 = i;
+              v16 = sub_180C06380(qword_181D8C610, (unsigned int)i, v13);
+              if ( v16 )
+                break;
+            }
+            v27 = nullptr;
+            if ( v16 )
+              goto LABEL_55;
+            v17 = 0;
+            while ( 1 )
+            {
+              v25 = 0;
+              v26 = 0;
+              LODWORD(v24) = 0;
+              sub_1804F43C0(qword_181D8C610, v17, &v24);
+              if ( (int)v24 - 1 < 0 )
+                goto LABEL_43;
+              v18 = (int)v24 - 1;
+              while ( 1 )
+              {
+                v19 = byte_18152DF88;
+                if ( *(_QWORD *)(v25 + 8 * v18) )
+                  v19 = *(const char **)(v25 + 8 * v18);
+                if ( !V_stristr_fast(v19, v13) )
+                  goto LABEL_40;
+                if ( v27 && *v27 )
+                  break;
+                v15 = v17;
+                CUtlString::Set((CUtlString *)&v27, v19);
+  LABEL_40:
+                if ( --v18 < 0 )
+                  goto LABEL_43;
+              }
+              CUtlString::Purge((CUtlString *)&v27);
+  LABEL_43:
+              v20 = v25;
+              for ( j = (int)v24 - 1; j >= 0; --j )
+              {
+                if ( *(_QWORD *)(v20 + 8 * j) )
+                {
+                  CUtlString::FreeMemoryBlock((CUtlString *)(v20 + 8 * j));
+                  v20 = v25;
+                }
+              }
+              LODWORD(v24) = 0;
+              if ( (v26 & 0xC000000000000000uLL) == 0 )
+              {
+                if ( v20 )
+                {
+                  (*(void (__fastcall **)(_QWORD))(*g_pMemAlloc + 24LL))(g_pMemAlloc);
+                  v25 = 0;
+                }
+                LODWORD(v26) = 0;
+              }
+              if ( (int)++v17 >= 2 )
+              {
+                v12 = v27;
+                if ( !v27 || !*v27 )
+                {
+                  Warning("give: Encountered unknown entity subclass \"%s\"\n", v13);
+  LABEL_56:
+                  if ( v27 )
+                    CUtlString::FreeMemoryBlock((CUtlString *)&v27);
+                  return;
+                }
+  LABEL_55:
+                v22 = *a3;
+                LODWORD(v25) = *((_DWORD *)a3 + 2);
+                v23 = *v8;
+                v24 = v22;
+                (*(void (__fastcall **)(__int64 *, char *, _QWORD, __int64 *))(v23 + 168))(v8, v12, v15, &v24);
+                goto LABEL_56;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
