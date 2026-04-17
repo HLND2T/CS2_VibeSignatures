@@ -7,6 +7,19 @@ TARGET_FUNCTION_NAMES = [
     "CServerSideClient_IsHearingClient",
 ]
 
+LLM_DECOMPILE = [
+    # (symbol_name, path_to_prompt, path_to_reference)
+    (
+        "CServerSideClient_IsHearingClient",
+        "prompt/call_llm_decompile.md",
+        "references/engine/CNetworkGameServerBase_SendPeerList.{platform}.yaml",
+    ),
+]
+
+FUNC_VTABLE_RELATIONS = [
+    # (func_name, vtable_class)
+    ("CServerSideClient_IsHearingClient", "CServerSideClient"),
+]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
@@ -17,16 +30,20 @@ GENERATE_YAML_DESIRED_FIELDS = [
             "func_va",
             "func_rva",
             "func_size",
-            "func_sig",
+            "vfunc_sig",
+            "vfunc_offset",
+            "vfunc_index",
+            "vtable_name",
         ],
     ),
 ]
 
+
 async def preprocess_skill(
     session, skill_name, expected_outputs, old_yaml_map,
-    new_binary_dir, platform, image_base, debug=False,
+    new_binary_dir, platform, image_base, llm_config=None, debug=False,
 ):
-    """Reuse previous gamever func_sig to locate target function(s) and write YAML."""
+    """Reuse previous gamever vfunc_sig to locate target function(s) and write YAML."""
     return await preprocess_common_skill(
         session=session,
         expected_outputs=expected_outputs,
@@ -35,6 +52,9 @@ async def preprocess_skill(
         platform=platform,
         image_base=image_base,
         func_names=TARGET_FUNCTION_NAMES,
+        func_vtable_relations=FUNC_VTABLE_RELATIONS,
+        llm_decompile_specs=LLM_DECOMPILE,
+        llm_config=llm_config,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
     )
