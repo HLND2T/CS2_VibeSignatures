@@ -20,7 +20,7 @@ disasm_code: |-
   .text:00000000015C1528                 call    qword ptr [rax+68h]
   .text:00000000015C152B                 cmp     dword ptr [rbx+468h], 1
   .text:00000000015C1532                 jle     short loc_15C1539
-  .text:00000000015C1534                 call    sub_E38B30
+  .text:00000000015C1534                 call    IGameSystem_LoopDestroyAllSystems
   .text:00000000015C1539                 mov     rdi, [rbx+60h]
   .text:00000000015C153D                 test    rdi, rdi
   .text:00000000015C1540                 jz      short loc_15C1557
@@ -59,7 +59,7 @@ procedure: |-
       sub_E38F80();
     (*(void (__fastcall **)(__int64, _QWORD))(*(_QWORD *)qword_458F450 + 104LL))(qword_458F450, 0);
     if ( *(int *)(a1 + 1128) > 1 )
-      sub_E38B30();
+      IGameSystem_LoopDestroyAllSystems();
     v2 = *(_QWORD *)(a1 + 96);
     if ( v2 )
     {

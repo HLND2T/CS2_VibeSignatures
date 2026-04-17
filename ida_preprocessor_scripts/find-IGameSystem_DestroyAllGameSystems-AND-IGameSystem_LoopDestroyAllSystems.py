@@ -1,16 +1,22 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-IGameSystem_DestroyAllGameSystems skill."""
+"""Preprocess script for find-IGameSystem_DestroyAllGameSystems-AND-IGameSystem_LoopDestroyAllSystems skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = [
     "IGameSystem_DestroyAllGameSystems",
+    "IGameSystem_LoopDestroyAllSystems",
 ]
 
 LLM_DECOMPILE_WINDOWS = [
     # (symbol_name, path_to_prompt, path_to_reference)
     (
         "IGameSystem_DestroyAllGameSystems",
+        "prompt/call_llm_decompile.md",
+        "references/client/CLoopModeGame_LoopShutdown.{platform}.yaml",
+    ),
+    (
+        "IGameSystem_LoopDestroyAllSystems",
         "prompt/call_llm_decompile.md",
         "references/client/CLoopModeGame_LoopShutdown.{platform}.yaml",
     ),
@@ -23,12 +29,27 @@ LLM_DECOMPILE_LINUX = [
         "prompt/call_llm_decompile.md",
         "references/client/CLoopModeGame_Shutdown.{platform}.yaml",
     ),
+    (
+        "IGameSystem_LoopDestroyAllSystems",
+        "prompt/call_llm_decompile.md",
+        "references/client/CLoopModeGame_Shutdown.{platform}.yaml",
+    ),
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
     (
         "IGameSystem_DestroyAllGameSystems",
+        [
+            "func_name",
+            "func_sig",
+            "func_va",
+            "func_rva",
+            "func_size",
+        ],
+    ),
+    (
+        "IGameSystem_LoopDestroyAllSystems",
         [
             "func_name",
             "func_sig",

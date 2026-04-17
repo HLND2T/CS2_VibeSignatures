@@ -1,0 +1,71 @@
+func_name: CLoopModeGame_Shutdown
+func_va: '0x157b9f0'
+disasm_code: |-
+  .text:000000000157B9F0                 push    rbp
+  .text:000000000157B9F1                 mov     rbp, rsp
+  .text:000000000157B9F4                 push    rbx
+  .text:000000000157B9F5                 mov     rbx, rdi
+  .text:000000000157B9F8                 sub     rsp, 8
+  .text:000000000157B9FC                 cmp     dword ptr [rdi+468h], 2
+  .text:000000000157BA03                 jg      loc_157BA88
+  .text:000000000157BA09                 lea     rax, qword_259B430
+  .text:000000000157BA10                 xor     esi, esi
+  .text:000000000157BA12                 mov     rdi, [rax]
+  .text:000000000157BA15                 mov     rax, [rdi]
+  .text:000000000157BA18                 call    qword ptr [rax+68h]
+  .text:000000000157BA1B                 cmp     dword ptr [rbx+468h], 1
+  .text:000000000157BA22                 jle     short loc_157BA29
+  .text:000000000157BA24                 call    IGameSystem_LoopDestroyAllSystems
+  .text:000000000157BA29                 mov     rdi, [rbx+60h]
+  .text:000000000157BA2D                 test    rdi, rdi
+  .text:000000000157BA30                 jz      short loc_157BA47
+  .text:000000000157BA32                 mov     rax, [rdi]
+  .text:000000000157BA35                 lea     rsi, aCloopmodegameS; "--CLoopModeGame::SetWorldSession"
+  .text:000000000157BA3C                 call    qword ptr [rax+8]
+  .text:000000000157BA3F                 mov     qword ptr [rbx+60h], 0
+  .text:000000000157BA47                 mov     eax, [rbx+468h]
+  .text:000000000157BA4D                 test    eax, eax
+  .text:000000000157BA4F                 jle     short loc_157BA5C
+  .text:000000000157BA51                 call    IGameSystem_DestroyAllGameSystems
+  .text:000000000157BA56                 mov     eax, [rbx+468h]
+  .text:000000000157BA5C                 test    eax, eax
+  .text:000000000157BA5E                 jz      short loc_157BA6A
+  .text:000000000157BA60                 xor     esi, esi
+  .text:000000000157BA62                 mov     rdi, rbx
+  .text:000000000157BA65                 call    CLoopModeGame_SetGameSystemState
+  .text:000000000157BA6A                 lea     rax, qword_259B470
+  .text:000000000157BA71                 mov     rbx, [rbp+var_8]
+  .text:000000000157BA75                 mov     rdi, [rax]
+  .text:000000000157BA78                 mov     rax, [rdi]
+  .text:000000000157BA7B                 mov     rax, [rax+0B8h]
+  .text:000000000157BA82                 leave
+  .text:000000000157BA83                 jmp     rax
+  .text:000000000157BA88                 call    sub_DD48C0
+  .text:000000000157BA8D                 jmp     loc_157BA09
+procedure: |-
+  __int64 __fastcall CLoopModeGame_Shutdown(__int64 a1)
+  {
+    __int64 v2; // rdi
+    int v3; // eax
+
+    if ( *(int *)(a1 + 1128) > 2 )
+      sub_DD48C0();
+    (*(void (__fastcall **)(__int64, _QWORD))(*(_QWORD *)qword_259B430 + 104LL))(qword_259B430, 0);
+    if ( *(int *)(a1 + 1128) > 1 )
+      IGameSystem_LoopDestroyAllSystems();
+    v2 = *(_QWORD *)(a1 + 96);
+    if ( v2 )
+    {
+      (*(void (__fastcall **)(__int64, const char *))(*(_QWORD *)v2 + 8LL))(v2, "--CLoopModeGame::SetWorldSession");
+      *(_QWORD *)(a1 + 96) = 0;
+    }
+    v3 = *(_DWORD *)(a1 + 1128);
+    if ( v3 > 0 )
+    {
+      IGameSystem_DestroyAllGameSystems();
+      v3 = *(_DWORD *)(a1 + 1128);
+    }
+    if ( v3 )
+      CLoopModeGame_SetGameSystemState(a1, 0);
+    return (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)qword_259B470 + 184LL))(qword_259B470);
+  }

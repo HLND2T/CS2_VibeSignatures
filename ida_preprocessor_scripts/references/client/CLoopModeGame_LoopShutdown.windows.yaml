@@ -29,7 +29,7 @@ disasm_code: |-
   .text:00000001809CA90F                 call    qword ptr [rax+60h]
   .text:00000001809CA912                 cmp     dword ptr [rbx+468h], 2
   .text:00000001809CA919                 jl      short loc_1809CA920
-  .text:00000001809CA91B                 call    sub_180367560
+  .text:00000001809CA91B                 call    IGameSystem_LoopDestroyAllSystems
   .text:00000001809CA920                 mov     rcx, [rbx+60h]
   .text:00000001809CA924                 test    rcx, rcx
   .text:00000001809CA927                 jz      short loc_1809CA93E
@@ -77,7 +77,7 @@ procedure: |-
         sub_180367470();
       (*(void (__fastcall **)(__int64, _QWORD))(*(_QWORD *)qword_182301B88 + 96LL))(qword_182301B88, 0);
       if ( *(int *)(a1 + 1128) >= 2 )
-        sub_180367560(v4, v3);
+        IGameSystem_LoopDestroyAllSystems(v4, v3);
       v5 = *(_QWORD *)(a1 + 96);
       if ( v5 )
       {

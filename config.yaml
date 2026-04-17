@@ -839,9 +839,10 @@ modules:
         expected_input:
           - IGameSystem_AddByName.{platform}.yaml
 
-      - name: find-IGameSystem_DestroyAllGameSystems
+      - name: find-IGameSystem_DestroyAllGameSystems-AND-IGameSystem_LoopDestroyAllSystems
         expected_output:
           - IGameSystem_DestroyAllGameSystems.{platform}.yaml
+          - IGameSystem_LoopDestroyAllSystems.{platform}.yaml
         expected_input_windows:
           - CLoopModeGame_LoopShutdown.{platform}.yaml
         expected_input_linux:
@@ -1165,6 +1166,11 @@ modules:
         category: func
         alias:
           - IGameSystem::DestroyAllGameSystems
+
+      - name: IGameSystem_LoopDestroyAllSystems
+        category: func
+        alias:
+          - IGameSystem::LoopDestroyAllSystems
 
       - name: IGameSystem_ClientPollNetworking
         category: vfunc
@@ -2477,9 +2483,10 @@ modules:
         expected_output:
           - CLoopModeGame_SetGameSystemState.{platform}.yaml
 
-      - name: find-IGameSystem_DestroyAllGameSystems
+      - name: find-IGameSystem_DestroyAllGameSystems-AND-IGameSystem_LoopDestroyAllSystems
         expected_output:
           - IGameSystem_DestroyAllGameSystems.{platform}.yaml
+          - IGameSystem_LoopDestroyAllSystems.{platform}.yaml
         expected_input_windows:
           - CLoopModeGame_LoopShutdown.{platform}.yaml
         expected_input_linux:
@@ -3695,6 +3702,11 @@ modules:
         category: func
         alias:
           - IGameSystem::DestroyAllGameSystems
+
+      - name: IGameSystem_LoopDestroyAllSystems
+        category: func
+        alias:
+          - IGameSystem::LoopDestroyAllSystems
 
       - name: CLoopModeGame_Shutdown
         category: func
