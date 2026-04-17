@@ -1927,6 +1927,55 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
         )
         mock_gen_sig.assert_awaited_once()
 
+    async def test_preprocess_func_xrefs_accepts_literal_xref_gv_address(
+        self,
+    ) -> None:
+        with patch.object(
+            ida_analyze_util,
+            "_load_symbol_addr_from_current_yaml",
+            return_value=0x18000F000,
+        ) as mock_load_symbol, patch.object(
+            ida_analyze_util,
+            "_collect_xref_func_starts_for_ea",
+            AsyncMock(return_value={0x180200000}),
+        ) as mock_collect_ea, patch.object(
+            ida_analyze_util,
+            "preprocess_gen_func_sig_via_mcp",
+            AsyncMock(
+                return_value={
+                    "func_va": "0x180200000",
+                    "func_rva": "0x200000",
+                    "func_size": "0x40",
+                    "func_sig": "48 89 5C 24 08",
+                }
+            ),
+        ) as mock_gen_sig:
+            result = await ida_analyze_util.preprocess_func_xrefs_via_mcp(
+                session="session",
+                func_name="LoggingChannel_Init",
+                xref_strings=[],
+                xref_gvs=["0x18000F000"],
+                xref_signatures=[],
+                xref_funcs=[],
+                exclude_funcs=[],
+                exclude_strings=[],
+                exclude_gvs=[],
+                exclude_signatures=[],
+                new_binary_dir=None,
+                platform="windows",
+                image_base=0x180000000,
+                debug=True,
+            )
+
+        self.assertEqual("0x180200000", result["func_va"])
+        mock_load_symbol.assert_not_called()
+        mock_collect_ea.assert_awaited_once_with(
+            session="session",
+            target_ea=0x18000F000,
+            debug=True,
+        )
+        mock_gen_sig.assert_awaited_once()
+
     async def test_preprocess_func_xrefs_exclude_gvs_subtracts_candidate_set(
         self,
     ) -> None:
@@ -1985,6 +2034,64 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
             debug=True,
             debug_label="exclude_gv",
         )
+        mock_collect_ea.assert_awaited_once_with(
+            session="session",
+            target_ea=0x18000F100,
+            debug=True,
+        )
+        mock_gen_sig.assert_awaited_once()
+
+    async def test_preprocess_func_xrefs_accepts_literal_exclude_gv_address(
+        self,
+    ) -> None:
+        with patch.object(
+            ida_analyze_util,
+            "_collect_xref_func_starts_for_string",
+            AsyncMock(return_value={0x180100000, 0x180200000}),
+        ) as mock_collect_string, patch.object(
+            ida_analyze_util,
+            "_load_symbol_addr_from_current_yaml",
+            return_value=0x18000F100,
+        ) as mock_load_symbol, patch.object(
+            ida_analyze_util,
+            "_collect_xref_func_starts_for_ea",
+            AsyncMock(return_value={0x180100000}),
+        ) as mock_collect_ea, patch.object(
+            ida_analyze_util,
+            "preprocess_gen_func_sig_via_mcp",
+            AsyncMock(
+                return_value={
+                    "func_va": "0x180200000",
+                    "func_rva": "0x200000",
+                    "func_size": "0x40",
+                    "func_sig": "48 89 5C 24 08",
+                }
+            ),
+        ) as mock_gen_sig:
+            result = await ida_analyze_util.preprocess_func_xrefs_via_mcp(
+                session="session",
+                func_name="LoggingChannel_Init",
+                xref_strings=["Networking"],
+                xref_gvs=[],
+                xref_signatures=[],
+                xref_funcs=[],
+                exclude_funcs=[],
+                exclude_strings=[],
+                exclude_gvs=["0x18000F100"],
+                exclude_signatures=[],
+                new_binary_dir=None,
+                platform="windows",
+                image_base=0x180000000,
+                debug=True,
+            )
+
+        self.assertEqual("0x180200000", result["func_va"])
+        mock_collect_string.assert_awaited_once_with(
+            session="session",
+            xref_string="Networking",
+            debug=True,
+        )
+        mock_load_symbol.assert_not_called()
         mock_collect_ea.assert_awaited_once_with(
             session="session",
             target_ea=0x18000F100,
@@ -2384,6 +2491,30 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertFalse(result)
+
+    def test_can_probe_future_func_fast_path_ignores_literal_gv_dependencies(
+        self,
+    ) -> None:
+        result = ida_analyze_util._can_probe_future_func_fast_path(
+            func_name="LoggingChannel_Init",
+            func_xrefs_map={
+                "LoggingChannel_Init": {
+                    "xref_strings": [],
+                    "xref_gvs": ["0x18000F000"],
+                    "xref_signatures": [],
+                    "xref_funcs": [],
+                    "exclude_funcs": [],
+                    "exclude_strings": [],
+                    "exclude_gvs": ["0x18000F100"],
+                    "exclude_signatures": [],
+                }
+            },
+            new_binary_dir=None,
+            platform="windows",
+            debug=True,
+        )
+
+        self.assertTrue(result)
 
 
 class TestLlmDecompileSupport(unittest.IsolatedAsyncioTestCase):

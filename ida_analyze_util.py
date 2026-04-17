@@ -4813,6 +4813,44 @@ def _parse_int_value(value):
     return int(value)
 
 
+def _is_explicit_address_literal(value):
+    """Return True when *value* is an explicit hex address like ``0x180012340``."""
+    if not isinstance(value, str):
+        return False
+    raw = value.strip()
+    return len(raw) > 2 and raw.lower().startswith("0x")
+
+
+def _load_gv_or_explicit_ea(
+    new_binary_dir,
+    platform,
+    gv_spec,
+    *,
+    debug=False,
+    debug_label="gv",
+):
+    normalized_gv_spec = str(gv_spec or "").strip()
+    if _is_explicit_address_literal(normalized_gv_spec):
+        try:
+            return _parse_int_value(normalized_gv_spec)
+        except Exception:
+            if debug:
+                print(
+                    f"    Preprocess: invalid explicit address for "
+                    f"{debug_label}: {gv_spec}"
+                )
+            return None
+
+    return _load_symbol_addr_from_current_yaml(
+        new_binary_dir,
+        platform,
+        normalized_gv_spec,
+        "gv_va",
+        debug=debug,
+        debug_label=debug_label,
+    )
+
+
 def _load_symbol_addr_from_current_yaml(
     new_binary_dir,
     platform,
@@ -5900,7 +5938,11 @@ async def preprocess_func_xrefs_via_mcp(
         return None
 
     dep_func_names = list(xref_funcs or []) + list(exclude_funcs or [])
-    dep_gv_names = list(xref_gvs or []) + list(exclude_gvs or [])
+    dep_gv_names = [
+        gv_name
+        for gv_name in list(xref_gvs or []) + list(exclude_gvs or [])
+        if not _is_explicit_address_literal(gv_name)
+    ]
     if dep_func_names or dep_gv_names or vtable_class:
         if not new_binary_dir:
             if debug:
@@ -5938,11 +5980,10 @@ async def preprocess_func_xrefs_via_mcp(
         candidate_sets.append(addr_set)
 
     for xref_gv_name in (xref_gvs or []):
-        xref_gv_va = _load_symbol_addr_from_current_yaml(
+        xref_gv_va = _load_gv_or_explicit_ea(
             new_binary_dir,
             platform,
             xref_gv_name,
-            "gv_va",
             debug=debug,
             debug_label="xref_gv",
         )
@@ -6105,11 +6146,10 @@ async def preprocess_func_xrefs_via_mcp(
 
     excluded_gv_func_addrs = set()
     for excluded_gv_name in (exclude_gvs or []):
-        excluded_gv_va = _load_symbol_addr_from_current_yaml(
+        excluded_gv_va = _load_gv_or_explicit_ea(
             new_binary_dir,
             platform,
             excluded_gv_name,
-            "gv_va",
             debug=debug,
             debug_label="exclude_gv",
         )
@@ -6303,10 +6343,19 @@ def _can_probe_future_func_fast_path(
     if not isinstance(xref_spec, dict):
         return True
 
-    dependency_symbol_names = list(xref_spec.get("xref_funcs") or []) + list(
-        xref_spec.get("exclude_funcs") or []
-    ) + list(xref_spec.get("xref_gvs") or []) + list(
-        xref_spec.get("exclude_gvs") or []
+    dependency_symbol_names = (
+        list(xref_spec.get("xref_funcs") or [])
+        + list(xref_spec.get("exclude_funcs") or [])
+        + [
+            gv_name
+            for gv_name in (xref_spec.get("xref_gvs") or [])
+            if not _is_explicit_address_literal(gv_name)
+        ]
+        + [
+            gv_name
+            for gv_name in (xref_spec.get("exclude_gvs") or [])
+            if not _is_explicit_address_literal(gv_name)
+        ]
     )
     if not dependency_symbol_names:
         return True
@@ -6393,8 +6442,10 @@ async def preprocess_common_skill(
       ``func_name`` plus list fields for positive xref sources
       (``xref_strings``, ``xref_gvs``, ``xref_signatures``, ``xref_funcs``)
       and exclusions (``exclude_funcs``, ``exclude_strings``,
-      ``exclude_gvs``, ``exclude_signatures``). Dependency symbol addresses
-      are read only from current-version YAML files in ``new_binary_dir``.
+      ``exclude_gvs``, ``exclude_signatures``). ``xref_gvs``/``exclude_gvs``
+      entries may be YAML symbol names or explicit ``0x...`` addresses.
+      Symbolic entries are resolved from current-version YAML files in
+      ``new_binary_dir``.
       Used as a fallback when ``preprocess_func_sig_via_mcp`` fails for a
       func target that has a matching func-xref entry, or as the sole
       resolution method for func targets that only appear in this list.
