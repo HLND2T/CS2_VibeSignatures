@@ -1,0 +1,143 @@
+func_name: IGameSystem_AddByName
+func_va: '0x18031f8a0'
+disasm_code: |-
+  .text:000000018031F8A0                 push    rbx
+  .text:000000018031F8A2                 sub     rsp, 20h
+  .text:000000018031F8A6                 mov     rbx, rcx
+  .text:000000018031F8A9                 lea     rdx, [rsp+28h+arg_8]
+  .text:000000018031F8AE                 mov     r8, rcx
+  .text:000000018031F8B1                 lea     rcx, unk_181FD71D8
+  .text:000000018031F8B8                 call    cs:?Find@CUtlSymbolTable@@QEBA?AVCUtlSymbol@@PEBD@Z; CUtlSymbolTable::Find(char const *)
+  .text:000000018031F8BE                 movzx   eax, [rsp+28h+arg_8]
+  .text:000000018031F8C3                 mov     ecx, 0FFFFh
+  .text:000000018031F8C8                 cmp     ax, cx
+  .text:000000018031F8CB                 jnz     short loc_18031F8E8
+  .text:000000018031F8CD                 mov     eax, 0FFFFFFFFh
+  .text:000000018031F8D2                 cmp     ax, cx
+  .text:000000018031F8D5                 jnz     short loc_18031F8E8
+  .text:000000018031F8D7                 mov     rdx, rbx
+  .text:000000018031F8DA                 lea     rcx, aTriedToAddUnkn; "Tried to add unknown game system %s!\n"
+  .text:000000018031F8E1                 call    cs:Plat_FatalError
+  .text:000000018031F8E7                 int     3; Trap to Debugger
+  .text:000000018031F8E8                 mov     [rsp+28h+arg_10], rdi
+  .text:000000018031F8ED                 movzx   edx, ax
+  .text:000000018031F8F0                 mov     edi, edx
+  .text:000000018031F8F2                 shl     rdi, 4
+  .text:000000018031F8F6                 add     rdi, cs:qword_181FD71C8
+  .text:000000018031F8FD                 cmp     byte ptr [rdi+8], 0
+  .text:000000018031F901                 jz      short loc_18031F914
+  .text:000000018031F903                 mov     rdx, rbx
+  .text:000000018031F906                 lea     rcx, aTriedToAddGame; "Tried to add game system %s twice!\n"
+  .text:000000018031F90D                 call    cs:Plat_FatalError
+  .text:000000018031F913                 int     3; Trap to Debugger
+  .text:000000018031F914                 mov     rax, cs:qword_181FD7200
+  .text:000000018031F91B                 mov     ecx, cs:dword_181FD7210
+  .text:000000018031F921                 mov     [rsp+28h+arg_0], rsi
+  .text:000000018031F926                 mov     r8d, [rax+rdx*4]
+  .text:000000018031F92A                 mov     edx, r8d
+  .text:000000018031F92D                 shr     edx, cl
+  .text:000000018031F92F                 cmp     edx, cs:dword_181FD7218
+  .text:000000018031F935                 jb      short loc_18031F93B
+  .text:000000018031F937                 xor     ebx, ebx
+  .text:000000018031F939                 jmp     short loc_18031F96C
+  .text:000000018031F93B                 test    cs:dword_181FD721C, 7FFFFFFFh
+  .text:000000018031F945                 mov     ebx, 0
+  .text:000000018031F94A                 mov     eax, cs:dword_181FD7214
+  .text:000000018031F950                 mov     rcx, cs:qword_181FD7220
+  .text:000000018031F957                 cmovz   rcx, rbx
+  .text:000000018031F95B                 mov     rbx, r8
+  .text:000000018031F95E                 and     rbx, rax
+  .text:000000018031F961                 movsxd  rax, edx
+  .text:000000018031F964                 add     rax, rax
+  .text:000000018031F967                 add     rbx, [rcx+rax*8+8]
+  .text:000000018031F96C                 mov     cs:byte_1821CFE89, 1
+  .text:000000018031F973                 mov     rcx, [rdi]
+  .text:000000018031F976                 mov     rax, [rcx]
+  .text:000000018031F979                 call    qword ptr [rax+18h] ; 0x18 = IGameSystemFactory_Allocate
+  .text:000000018031F97C                 mov     cs:byte_1821CFE89, 0
+  .text:000000018031F983                 mov     rsi, rax
+  .text:000000018031F986                 mov     rcx, [rdi]
+  .text:000000018031F989                 mov     r8, [rcx]
+  .text:000000018031F98C                 call    qword ptr [r8+40h] ; 0x40 = IGameSystemFactory_HasName
+  .text:000000018031F990                 test    al, al
+  .text:000000018031F992                 jz      short loc_18031F9A4
+  .text:000000018031F994                 mov     r8, [rsi]
+  .text:000000018031F997                 mov     rdx, rbx
+  .text:000000018031F99A                 mov     rcx, rsi
+  .text:000000018031F99D                 call    qword ptr [r8+1D8h] ; 0x1D8 = IGameSystem_SetName
+  .text:000000018031F9A4                 mov     rcx, [rdi]
+  .text:000000018031F9A7                 mov     byte ptr [rdi+8], 1
+  .text:000000018031F9AB                 mov     rax, [rcx]
+  .text:000000018031F9AE                 call    qword ptr [rax+30h]
+  .text:000000018031F9B1                 lea     rcx, dword_181FD95E8
+  .text:000000018031F9B8                 mov     ebx, eax
+  .text:000000018031F9BA                 call    sub_180322FE0
+  .text:000000018031F9BF                 mov     rcx, cs:qword_181FD95F0
+  .text:000000018031F9C6                 mov     rdi, [rsp+28h+arg_10]
+  .text:000000018031F9CB                 movsxd  rdx, eax
+  .text:000000018031F9CE                 add     rdx, rdx
+  .text:000000018031F9D1                 mov     [rcx+rdx*8], rsi
+  .text:000000018031F9D5                 mov     rcx, cs:qword_181FD95F0
+  .text:000000018031F9DC                 mov     rsi, [rsp+28h+arg_0]
+  .text:000000018031F9E1                 mov     [rcx+rdx*8+8], ebx
+  .text:000000018031F9E5                 mov     rcx, cs:qword_181FD95F0
+  .text:000000018031F9EC                 mov     [rcx+rdx*8+0Ch], eax
+  .text:000000018031F9F0                 add     rsp, 20h
+  .text:000000018031F9F4                 pop     rbx
+  .text:000000018031F9F5                 retn
+procedure: |-
+  __int64 __fastcall IGameSystem_AddByName(const char *a1)
+  {
+    _QWORD *v2; // rdi
+    unsigned int v3; // edx
+    __int64 v4; // rbx
+    __int64 v5; // rcx
+    __int64 v6; // rax
+    __int64 v7; // rsi
+    __int64 v8; // rcx
+    int v9; // ebx
+    __int64 result; // rax
+    __int64 v11; // rdx
+    unsigned __int16 v12; // [rsp+38h] [rbp+10h] BYREF
+
+    CUtlSymbolTable::Find(&unk_181FD71D8, &v12, a1);
+    if ( v12 == 0xFFFF )
+    {
+      Plat_FatalError("Tried to add unknown game system %s!\n", a1);
+      __debugbreak();
+    }
+    v2 = (_QWORD *)(qword_181FD71C8 + 16LL * v12);
+    if ( *((_BYTE *)v2 + 8) )
+    {
+      Plat_FatalError("Tried to add game system %s twice!\n", a1);
+      __debugbreak();
+    }
+    v3 = *(_DWORD *)(qword_181FD7200 + 4LL * v12) >> dword_181FD7210;
+    if ( v3 < dword_181FD7218 )
+    {
+      v5 = qword_181FD7220;
+      if ( (dword_181FD721C & 0x7FFFFFFF) == 0 )
+        v5 = 0;
+      v4 = *(_QWORD *)(v5 + 16LL * (int)v3 + 8)
+         + ((unsigned int)dword_181FD7214 & *(_DWORD *)(qword_181FD7200 + 4LL * v12));
+    }
+    else
+    {
+      v4 = 0;
+    }
+    byte_1821CFE89 = 1;
+    v6 = (*(__int64 (__fastcall **)(_QWORD))(*(_QWORD *)*v2 + 24LL))(*v2);// IGameSystemFactory_Allocate
+    byte_1821CFE89 = 0;
+    v7 = v6;
+    if ( (*(unsigned __int8 (__fastcall **)(_QWORD))(*(_QWORD *)*v2 + 64LL))(*v2) )// IGameSystemFactory_HasName
+      (*(void (__fastcall **)(__int64, __int64))(*(_QWORD *)v7 + 472LL))(v7, v4);// IGameSystem_SetName 59 * 8 = 472
+    v8 = *v2;
+    *((_BYTE *)v2 + 8) = 1;
+    v9 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)v8 + 48LL))(v8);
+    result = sub_180322FE0(&dword_181FD95E8);
+    v11 = 2LL * (int)result;
+    *(_QWORD *)(qword_181FD95F0 + 8 * v11) = v7;
+    *(_DWORD *)(qword_181FD95F0 + 8 * v11 + 8) = v9;
+    *(_DWORD *)(qword_181FD95F0 + 8 * v11 + 12) = result;
+    return result;
+  }

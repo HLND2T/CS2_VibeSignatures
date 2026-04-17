@@ -1,0 +1,177 @@
+func_name: IGameSystem_AddByName
+func_va: '0xe526e0'
+disasm_code: |-
+  .text:0000000000E526E0                 push    rbp
+  .text:0000000000E526E1                 lea     rsi, unk_43EC2F8
+  .text:0000000000E526E8                 mov     rbp, rsp
+  .text:0000000000E526EB                 push    r13
+  .text:0000000000E526ED                 push    r12
+  .text:0000000000E526EF                 mov     r12, rdi
+  .text:0000000000E526F2                 push    rbx
+  .text:0000000000E526F3                 lea     rdi, [rbp+var_22]
+  .text:0000000000E526F7                 mov     rdx, r12
+  .text:0000000000E526FA                 sub     rsp, 18h
+  .text:0000000000E526FE                 call    sub_BF8570
+  .text:0000000000E52703                 movzx   eax, [rbp+var_22]
+  .text:0000000000E52707                 cmp     ax, 0FFFFh
+  .text:0000000000E5270B                 jz      loc_E5284D
+  .text:0000000000E52711                 mov     rbx, rax
+  .text:0000000000E52714                 shl     rbx, 4
+  .text:0000000000E52718                 add     rbx, cs:qword_43EC2E8
+  .text:0000000000E5271F                 cmp     byte ptr [rbx+8], 0
+  .text:0000000000E52723                 jnz     loc_E5285E
+  .text:0000000000E52729                 mov     rdx, cs:qword_43EC320
+  .text:0000000000E52730                 mov     ecx, cs:dword_43EC330
+  .text:0000000000E52736                 mov     edx, [rdx+rax*4]
+  .text:0000000000E52739                 mov     eax, edx
+  .text:0000000000E5273B                 shr     eax, cl
+  .text:0000000000E5273D                 cmp     eax, cs:dword_43EC338
+  .text:0000000000E52743                 jnb     loc_E52838
+  .text:0000000000E52749                 xor     ecx, ecx
+  .text:0000000000E5274B                 cdqe
+  .text:0000000000E5274D                 test    cs:dword_43EC33C, 7FFFFFFFh
+  .text:0000000000E52757                 cmovnz  rcx, cs:qword_43EC340
+  .text:0000000000E5275F                 shl     rax, 4
+  .text:0000000000E52763                 and     edx, cs:dword_43EC334
+  .text:0000000000E52769                 add     rdx, [rcx+rax+8]
+  .text:0000000000E5276E                 mov     r13, rdx
+  .text:0000000000E52771                 mov     rdi, [rbx]
+  .text:0000000000E52774                 mov     cs:byte_43EC37B, 1
+  .text:0000000000E5277B                 mov     rax, [rdi]
+  .text:0000000000E5277E                 call    qword ptr [rax+18h] ; 0x18 = IGameSystemFactory_Allocate
+  .text:0000000000E52781                 mov     rdi, [rbx]
+  .text:0000000000E52784                 mov     cs:byte_43EC37B, 0
+  .text:0000000000E5278B                 mov     r12, rax
+  .text:0000000000E5278E                 mov     rax, [rdi]
+  .text:0000000000E52791                 call    qword ptr [rax+40h] ; 0x40 = IGameSystemFactory_HasName
+  .text:0000000000E52794                 test    al, al
+  .text:0000000000E52796                 jz      short loc_E527B8
+  .text:0000000000E52798                 mov     rax, [r12]
+  .text:0000000000E5279C                 lea     rdx, sub_C2F370
+  .text:0000000000E527A3                 mov     rax, [rax+1D8h] ; 0x1D8 = IGameSystem_SetName (vtable slot load)
+  .text:0000000000E527AA                 cmp     rax, rdx
+  .text:0000000000E527AD                 jnz     loc_E52840
+  .text:0000000000E527B3                 mov     [r12+8], r13
+  .text:0000000000E527B8                 mov     rdi, [rbx]
+  .text:0000000000E527BB                 mov     byte ptr [rbx+8], 1
+  .text:0000000000E527BF                 mov     rax, [rdi]
+  .text:0000000000E527C2                 call    qword ptr [rax+30h]
+  .text:0000000000E527C5                 mov     ebx, cs:dword_43EC3F0
+  .text:0000000000E527CB                 cmp     ebx, dword ptr cs:qword_43EC400
+  .text:0000000000E527D1                 mov     r13d, eax
+  .text:0000000000E527D4                 mov     edx, ebx
+  .text:0000000000E527D6                 jz      short loc_E52818
+  .text:0000000000E527D8                 mov     rax, cs:qword_43EC3F8
+  .text:0000000000E527DF                 add     edx, 1
+  .text:0000000000E527E2                 mov     cs:dword_43EC3F0, edx
+  .text:0000000000E527E8                 movsxd  rdx, ebx
+  .text:0000000000E527EB                 shl     rdx, 4
+  .text:0000000000E527EF                 mov     [rax+rdx], r12
+  .text:0000000000E527F3                 mov     rax, cs:qword_43EC3F8
+  .text:0000000000E527FA                 mov     [rax+rdx+8], r13d
+  .text:0000000000E527FF                 mov     rax, cs:qword_43EC3F8
+  .text:0000000000E52806                 mov     [rax+rdx+0Ch], ebx
+  .text:0000000000E5280A                 add     rsp, 18h
+  .text:0000000000E5280E                 pop     rbx
+  .text:0000000000E5280F                 pop     r12
+  .text:0000000000E52811                 pop     r13
+  .text:0000000000E52813                 pop     rbp
+  .text:0000000000E52814                 retn
+  .text:0000000000E52818                 lea     rdi, qword_43EC3F8
+  .text:0000000000E5281F                 mov     esi, 1
+  .text:0000000000E52824                 call    sub_E525C0
+  .text:0000000000E52829                 mov     edx, cs:dword_43EC3F0
+  .text:0000000000E5282F                 jmp     short loc_E527D8
+  .text:0000000000E52838                 xor     r13d, r13d
+  .text:0000000000E5283B                 jmp     loc_E52771
+  .text:0000000000E52840                 mov     rsi, r13
+  .text:0000000000E52843                 mov     rdi, r12
+  .text:0000000000E52846                 call    rax
+  .text:0000000000E52848                 jmp     loc_E527B8
+  .text:0000000000E5284D                 lea     rdi, aTriedToAddUnkn; "Tried to add unknown game system %s!\n"
+  .text:0000000000E52854                 mov     rsi, r12
+  .text:0000000000E52857                 xor     eax, eax
+  .text:0000000000E52859                 call    sub_BF8B30
+  .text:0000000000E5285E                 lea     rdi, aTriedToAddGame; "Tried to add game system %s twice!\n"
+  .text:0000000000E52865                 mov     rsi, r12
+  .text:0000000000E52868                 xor     eax, eax
+  .text:0000000000E5286A                 call    sub_BF8B30
+  .text:0000000000E5286F                 int     3; Trap to Debugger
+procedure: |-
+  __int64 __fastcall IGameSystem_AddByName(const char *a1)
+  {
+    __int64 v1; // rbx
+    unsigned int v2; // eax
+    __int64 v3; // rcx
+    __int64 v4; // r13
+    __int64 v5; // rdi
+    __int64 v6; // rax
+    __int64 v7; // rdi
+    _QWORD *v8; // r12
+    __int64 (__fastcall *v9)(); // rax
+    __int64 v10; // rdi
+    int v11; // eax
+    int v12; // ebx
+    int v13; // r13d
+    int v14; // edx
+    __int64 v15; // rdx
+    __int64 result; // rax
+    _WORD v17[17]; // [rsp+Eh] [rbp-22h] BYREF
+
+    sub_BF8570(v17, &unk_43EC2F8, a1);
+    if ( v17[0] == 0xFFFF )
+    {
+      sub_BF8B30("Tried to add unknown game system %s!\n", a1);
+  LABEL_16:
+      sub_BF8B30("Tried to add game system %s twice!\n", a1);
+      __debugbreak();
+    }
+    v1 = qword_43EC2E8 + 16LL * v17[0];
+    if ( *(_BYTE *)(v1 + 8) )
+      goto LABEL_16;
+    v2 = *(_DWORD *)(qword_43EC320 + 4LL * v17[0]) >> dword_43EC330;
+    if ( v2 >= dword_43EC338 )
+    {
+      v4 = 0;
+    }
+    else
+    {
+      v3 = 0;
+      if ( (dword_43EC33C & 0x7FFFFFFF) != 0 )
+        v3 = qword_43EC340;
+      v4 = *(_QWORD *)(v3 + 16LL * (int)v2 + 8)
+         + ((unsigned int)dword_43EC334 & *(_DWORD *)(qword_43EC320 + 4LL * v17[0]));
+    }
+    v5 = *(_QWORD *)v1;
+    byte_43EC37B = 1;
+    v6 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)v5 + 24LL))(v5); // 24 = 0x18 = IGameSystemFactory_Allocate
+    v7 = *(_QWORD *)v1;
+    byte_43EC37B = 0;
+    v8 = (_QWORD *)v6;
+    if ( (*(unsigned __int8 (__fastcall **)(__int64))(*(_QWORD *)v7 + 64LL))(v7) ) // 64 = 0x40 = IGameSystemFactory_HasName
+    {
+      v9 = *(__int64 (__fastcall **)())(*v8 + 472LL); // 472 = 0x1D8 = IGameSystem_SetName
+      if ( v9 == sub_C2F370 )
+        v8[1] = v4;
+      else
+        ((void (__fastcall *)(_QWORD *, __int64))v9)(v8, v4);
+    }
+    v10 = *(_QWORD *)v1;
+    *(_BYTE *)(v1 + 8) = 1;
+    v11 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)v10 + 48LL))(v10);
+    v12 = dword_43EC3F0;
+    v13 = v11;
+    v14 = dword_43EC3F0;
+    if ( dword_43EC3F0 == (_DWORD)qword_43EC400 )
+    {
+      sub_E525C0(&qword_43EC3F8, 1, (unsigned int)dword_43EC3F0);
+      v14 = dword_43EC3F0;
+    }
+    dword_43EC3F0 = v14 + 1;
+    v15 = 16LL * v12;
+    *(_QWORD *)(qword_43EC3F8 + v15) = v8;
+    *(_DWORD *)(qword_43EC3F8 + v15 + 8) = v13;
+    result = qword_43EC3F8;
+    *(_DWORD *)(qword_43EC3F8 + v15 + 12) = v12;
+    return result;
+  }
