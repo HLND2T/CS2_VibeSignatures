@@ -1,0 +1,206 @@
+func_name: IGameSystem_DestroyAllGameSystems
+func_va: '0xe35320'
+disasm_code: |-
+  .text:0000000000E35320                 push    rbp
+  .text:0000000000E35321                 mov     rbp, rsp
+  .text:0000000000E35324                 push    r15
+  .text:0000000000E35326                 push    r14
+  .text:0000000000E35328                 push    r13
+  .text:0000000000E3532A                 push    r12
+  .text:0000000000E3532C                 push    rbx
+  .text:0000000000E3532D                 sub     rsp, 28h
+  .text:0000000000E35331                 mov     eax, cs:dword_43EC3F0
+  .text:0000000000E35337                 mov     edx, eax
+  .text:0000000000E35339                 sub     edx, 1
+  .text:0000000000E3533C                 js      loc_E35430
+  .text:0000000000E35342                 lea     r15, sub_C2F350
+  .text:0000000000E35349                 movsxd  rbx, edx
+  .text:0000000000E3534C                 movsxd  r12, eax
+  .text:0000000000E3534F                 lea     rax, [rbp+var_32]
+  .text:0000000000E35353                 mov     edx, edx
+  .text:0000000000E35355                 shl     rbx, 4
+  .text:0000000000E35359                 sub     r12, rdx
+  .text:0000000000E3535C                 mov     [rbp+var_48], rax
+  .text:0000000000E35360                 shl     r12, 4
+  .text:0000000000E35364                 sub     r12, 20h ; ' '
+  .text:0000000000E35368                 jmp     short loc_E353C4
+  .text:0000000000E35370                 mov     rdx, [r13+8]
+  .text:0000000000E35374                 mov     rdi, [rbp+var_48]
+  .text:0000000000E35378                 lea     rsi, unk_43EC2F8
+  .text:0000000000E3537F                 call    sub_BF8570
+  .text:0000000000E35384                 movzx   eax, [rbp+var_32]
+  .text:0000000000E35388                 cmp     ax, 0FFFFh
+  .text:0000000000E3538C                 jz      short loc_E353E9
+  .text:0000000000E3538E                 shl     rax, 4
+  .text:0000000000E35392                 add     rax, cs:qword_43EC2E8
+  .text:0000000000E35399                 sub     rbx, 10h
+  .text:0000000000E3539D                 mov     rsi, r13
+  .text:0000000000E353A0                 mov     cs:byte_43EC37A, 1
+  .text:0000000000E353A7                 mov     rdi, [rax]
+  .text:0000000000E353AA                 mov     r14, rax
+  .text:0000000000E353AD                 mov     rdx, [rdi]
+  .text:0000000000E353B0                 call    qword ptr [rdx+20h] ; 0x20 = IGameSystemFactory_Deallocate
+  .text:0000000000E353B3                 mov     cs:byte_43EC37A, 0
+  .text:0000000000E353BA                 mov     byte ptr [r14+8], 0
+  .text:0000000000E353BF                 cmp     rbx, r12
+  .text:0000000000E353C2                 jz      short loc_E35430
+  .text:0000000000E353C4                 mov     rax, cs:qword_43EC3F8
+  .text:0000000000E353CB                 mov     r13, [rax+rbx]
+  .text:0000000000E353CF                 mov     rax, [r13+0]
+  .text:0000000000E353D3                 mov     rax, [rax+1C8h] ; 0x1C8 = IGameSystem_GetName
+  .text:0000000000E353DA                 cmp     rax, r15
+  .text:0000000000E353DD                 jz      short loc_E35370
+  .text:0000000000E353DF                 mov     rdi, r13
+  .text:0000000000E353E2                 call    rax
+  .text:0000000000E353E4                 mov     rdx, rax
+  .text:0000000000E353E7                 jmp     short loc_E35374
+  .text:0000000000E353E9                 mov     rax, cs:qword_43EC2E8
+  .text:0000000000E353F0                 mov     cs:byte_43EC37A, 1
+  .text:0000000000E353F7                 mov     rsi, r13
+  .text:0000000000E353FA                 sub     rbx, 10h
+  .text:0000000000E353FE                 mov     rdi, qword ptr ds:stru_FFFF0.r_offset[rax]
+  .text:0000000000E35405                 mov     [rbp+var_50], rax
+  .text:0000000000E35409                 mov     rdx, [rdi]
+  .text:0000000000E3540C                 call    qword ptr [rdx+20h] ; 0x20 = IGameSystemFactory_Deallocate
+  .text:0000000000E3540F                 mov     rax, [rbp+var_50]
+  .text:0000000000E35413                 mov     cs:byte_43EC37A, 0
+  .text:0000000000E3541A                 mov     byte ptr [rax+0FFFF8h], 0
+  .text:0000000000E35421                 cmp     r12, rbx
+  .text:0000000000E35424                 jnz     short loc_E353C4
+  .text:0000000000E35426                 nop     word ptr [rax+rax+00000000h]
+  .text:0000000000E35430                 movsxd  rax, dword ptr cs:qword_43EC3B0
+  .text:0000000000E35437                 mov     cs:dword_43EC3F0, 0
+  .text:0000000000E35441                 mov     edx, eax
+  .text:0000000000E35443                 sub     edx, 1
+  .text:0000000000E35446                 js      short loc_E354A3
+  .text:0000000000E35448                 movsxd  rcx, edx
+  .text:0000000000E3544B                 mov     edx, edx
+  .text:0000000000E3544D                 lea     rbx, [rcx+rcx*2]
+  .text:0000000000E35451                 sub     rax, rdx
+  .text:0000000000E35454                 lea     rax, [rax+rax*2]
+  .text:0000000000E35458                 shl     rbx, 3
+  .text:0000000000E3545C                 lea     r12, ds:0FFFFFFFFFFFFFFD0h[rax*8]
+  .text:0000000000E35464                 nop     dword ptr [rax+00h]
+  .text:0000000000E35468                 mov     rax, cs:qword_43EC3B8
+  .text:0000000000E3546F                 add     rax, rbx
+  .text:0000000000E35472                 cmp     dword ptr [rax+14h], 3FFFFFFFh
+  .text:0000000000E35479                 mov     dword ptr [rax], 0
+  .text:0000000000E3547F                 ja      short loc_E3549A
+  .text:0000000000E35481                 mov     rsi, [rax+8]
+  .text:0000000000E35485                 test    rsi, rsi
+  .text:0000000000E35488                 jz      short loc_E3549A
+  .text:0000000000E3548A                 mov     rax, cs:g_pMemAlloc_ptr
+  .text:0000000000E35491                 mov     rdi, [rax]
+  .text:0000000000E35494                 mov     rax, [rdi]
+  .text:0000000000E35497                 call    qword ptr [rax+20h]
+  .text:0000000000E3549A                 sub     rbx, 18h
+  .text:0000000000E3549E                 cmp     rbx, r12
+  .text:0000000000E354A1                 jnz     short loc_E35468
+  .text:0000000000E354A3                 cmp     dword ptr cs:qword_43EC3C0+4, 3FFFFFFFh
+  .text:0000000000E354AD                 mov     dword ptr cs:qword_43EC3B0, 0
+  .text:0000000000E354B7                 ja      short loc_E354EA
+  .text:0000000000E354B9                 mov     rsi, cs:qword_43EC3B8
+  .text:0000000000E354C0                 test    rsi, rsi
+  .text:0000000000E354C3                 jz      short loc_E354E0
+  .text:0000000000E354C5                 mov     rax, cs:g_pMemAlloc_ptr
+  .text:0000000000E354CC                 mov     rdi, [rax]
+  .text:0000000000E354CF                 mov     rax, [rdi]
+  .text:0000000000E354D2                 call    qword ptr [rax+20h]
+  .text:0000000000E354D5                 mov     cs:qword_43EC3B8, 0
+  .text:0000000000E354E0                 mov     dword ptr cs:qword_43EC3C0, 0
+  .text:0000000000E354EA                 add     rsp, 28h
+  .text:0000000000E354EE                 pop     rbx
+  .text:0000000000E354EF                 pop     r12
+  .text:0000000000E354F1                 pop     r13
+  .text:0000000000E354F3                 pop     r14
+  .text:0000000000E354F5                 pop     r15
+  .text:0000000000E354F7                 pop     rbp
+  .text:0000000000E354F8                 retn
+procedure: |-
+  __int64 IGameSystem_DestroyAllGameSystems()
+  {
+    int v0; // edx
+    __int64 v1; // rbx
+    unsigned __int64 v2; // r12
+    __int64 v3; // rdx
+    _BYTE *v4; // r14
+    _QWORD *v5; // r13
+    __int64 (__fastcall *v6)(); // rax
+    __int64 result; // rax
+    __int64 v8; // rdx
+    __int64 v9; // rbx
+    unsigned __int64 v10; // r12
+    bool v11; // cc
+    __int64 v12; // [rsp+0h] [rbp-50h]
+    _WORD v13[25]; // [rsp+1Eh] [rbp-32h] BYREF
+
+    v0 = dword_43EC3F0 - 1;
+    if ( dword_43EC3F0 - 1 >= 0 )
+    {
+      v1 = 16LL * v0;
+      v2 = 16 * (dword_43EC3F0 - (unsigned __int64)(unsigned int)v0) - 32;
+      do
+      {
+        while ( 1 )
+        {
+          v5 = *(_QWORD **)(qword_43EC3F8 + v1);
+          v6 = *(__int64 (__fastcall **)())(*v5 + 456LL);// 456LL = 0x1C8 = IGameSystem_GetName
+          v3 = v6 == sub_C2F350 ? v5[1] : ((__int64 (__fastcall *)(_QWORD))v6)(*(_QWORD *)(qword_43EC3F8 + v1));
+          sub_BF8570(v13, &unk_43EC2F8, v3);
+          if ( v13[0] == 0xFFFF )
+            break;
+          v1 -= 16;
+          byte_43EC37A = 1;
+          v4 = (_BYTE *)(qword_43EC2E8 + 16LL * v13[0]);
+          (*(void (__fastcall **)(_QWORD, _QWORD *))(**(_QWORD **)v4 + 32LL))(*(_QWORD *)v4, v5);// 32LL = 0x20 = IGameSystemFactory_Deallocate
+          byte_43EC37A = 0;
+          v4[8] = 0;
+          if ( v1 == v2 )
+            goto LABEL_9;
+        }
+        byte_43EC37A = 1;
+        v1 -= 16;
+        v12 = qword_43EC2E8;
+        (*(void (__fastcall **)(_QWORD, _QWORD *))(**(_QWORD **)((char *)&stru_FFFF0.r_offset + qword_43EC2E8) + 32LL))(
+          *(unsigned __int64 *)((char *)&stru_FFFF0.r_offset + qword_43EC2E8),
+          v5);
+        byte_43EC37A = 0;
+        *(_BYTE *)(v12 + 1048568) = 0;
+      }
+      while ( v2 != v1 );
+    }
+  LABEL_9:
+    result = (int)qword_43EC3B0;
+    dword_43EC3F0 = 0;
+    v8 = (unsigned int)(qword_43EC3B0 - 1);
+    if ( (int)qword_43EC3B0 - 1 >= 0 )
+    {
+      v8 = (unsigned int)v8;
+      v9 = 24LL * (int)v8;
+      v10 = 24 * ((int)qword_43EC3B0 - (unsigned __int64)(unsigned int)v8) - 48;
+      do
+      {
+        result = v9 + qword_43EC3B8;
+        v11 = *(_DWORD *)(v9 + qword_43EC3B8 + 20) <= 0x3FFFFFFFu;
+        *(_DWORD *)(v9 + qword_43EC3B8) = 0;
+        if ( v11 && *(_QWORD *)(result + 8) )
+          result = (*(__int64 (__fastcall **)(_QWORD *))(*g_pMemAlloc + 32LL))(g_pMemAlloc);
+        v9 -= 24;
+      }
+      while ( v9 != v10 );
+    }
+    LODWORD(qword_43EC3B0) = 0;
+    if ( HIDWORD(qword_43EC3C0) <= 0x3FFFFFFF )
+    {
+      if ( qword_43EC3B8 )
+      {
+        result = (*(__int64 (__fastcall **)(_QWORD *, __int64, __int64))(*g_pMemAlloc + 32LL))(
+                   g_pMemAlloc,
+                   qword_43EC3B8,
+                   v8);
+        qword_43EC3B8 = 0;
+      }
+      LODWORD(qword_43EC3C0) = 0;
+    }
+    return result;
+  }

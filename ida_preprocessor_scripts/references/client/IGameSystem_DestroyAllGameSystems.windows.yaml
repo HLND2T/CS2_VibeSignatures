@@ -1,0 +1,88 @@
+func_name: IGameSystem_DestroyAllGameSystems
+func_va: '0x180366c80'
+disasm_code: |-
+  .text:0000000180366C80                 push    rdi
+  .text:0000000180366C82                 sub     rsp, 30h
+  .text:0000000180366C86                 mov     eax, cs:dword_181FD95E8
+  .text:0000000180366C8C                 sub     eax, 1
+  .text:0000000180366C8F                 movsxd  rdi, eax
+  .text:0000000180366C92                 js      loc_180366D45
+  .text:0000000180366C98                 mov     [rsp+38h+arg_8], rbx
+  .text:0000000180366C9D                 mov     [rsp+38h+arg_10], rbp
+  .text:0000000180366CA2                 mov     ebp, 0FFFFh
+  .text:0000000180366CA7                 mov     [rsp+38h+var_10], rsi
+  .text:0000000180366CAC                 mov     rsi, rdi
+  .text:0000000180366CAF                 shl     rsi, 4
+  .text:0000000180366CB3                 mov     [rsp+38h+var_18], r14
+  .text:0000000180366CB8                 nop     dword ptr [rax+rax+00000000h]
+  .text:0000000180366CC0                 mov     rax, cs:qword_181FD95F0
+  .text:0000000180366CC7                 mov     r14, [rsi+rax]
+  .text:0000000180366CCB                 mov     rcx, r14
+  .text:0000000180366CCE                 mov     rax, [r14]
+  .text:0000000180366CD1                 call    qword ptr [rax+1C8h] ; 0x1C8 = IGameSystem_GetName
+  .text:0000000180366CD7                 mov     r8, rax
+  .text:0000000180366CDA                 lea     rdx, [rsp+38h+arg_0]
+  .text:0000000180366CDF                 lea     rcx, unk_181FD71D8
+  .text:0000000180366CE6                 call    cs:?Find@CUtlSymbolTable@@QEBA?AVCUtlSymbol@@PEBD@Z; CUtlSymbolTable::Find(char const *)
+  .text:0000000180366CEC                 movzx   eax, [rsp+38h+arg_0]
+  .text:0000000180366CF1                 cmp     ax, bp
+  .text:0000000180366CF4                 jnz     short loc_180366CFB
+  .text:0000000180366CF6                 mov     eax, 0FFFFFFFFh
+  .text:0000000180366CFB                 movzx   ebx, ax
+  .text:0000000180366CFE                 mov     rdx, r14
+  .text:0000000180366D01                 mov     cs:byte_1821CFE8A, 1
+  .text:0000000180366D08                 shl     rbx, 4
+  .text:0000000180366D0C                 add     rbx, cs:qword_181FD71C8
+  .text:0000000180366D13                 mov     rcx, [rbx]
+  .text:0000000180366D16                 mov     rax, [rcx]
+  .text:0000000180366D19                 call    qword ptr [rax+20h] ; 0x20 = IGameSystemFactory_Deallocate
+  .text:0000000180366D1C                 sub     rsi, 10h
+  .text:0000000180366D20                 mov     cs:byte_1821CFE8A, 0
+  .text:0000000180366D27                 sub     rdi, 1
+  .text:0000000180366D2B                 mov     byte ptr [rbx+8], 0
+  .text:0000000180366D2F                 jns     short loc_180366CC0
+  .text:0000000180366D31                 mov     r14, [rsp+38h+var_18]
+  .text:0000000180366D36                 mov     rsi, [rsp+38h+var_10]
+  .text:0000000180366D3B                 mov     rbp, [rsp+38h+arg_10]
+  .text:0000000180366D40                 mov     rbx, [rsp+38h+arg_8]
+  .text:0000000180366D45                 lea     rcx, dword_1821CFDA8
+  .text:0000000180366D4C                 mov     cs:dword_181FD95E8, 0
+  .text:0000000180366D56                 add     rsp, 30h
+  .text:0000000180366D5A                 pop     rdi
+  .text:0000000180366D5B                 jmp     sub_180370D30
+procedure: |-
+  __int64 IGameSystem_DestroyAllGameSystems()
+  {
+    __int64 v0; // rdi
+    __int64 v1; // rsi
+    __int64 pGameSystem; // r14
+    __int64 v3; // rax
+    unsigned __int16 v4; // ax
+    _BYTE *v5; // rbx
+    unsigned __int16 v7; // [rsp+40h] [rbp+8h] BYREF
+
+    v0 = dword_181FD95E8 - 1;
+    if ( dword_181FD95E8 - 1 >= 0 )
+    {
+      v1 = 16LL * (dword_181FD95E8 - 1);
+      do
+      {
+        pGameSystem = *(_QWORD *)(v1 + qword_181FD95F0);
+        v3 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)pGameSystem + 456LL))(pGameSystem);// 456LL = 0x1C8 = IGameSystem_GetName
+        CUtlSymbolTable::Find(&unk_181FD71D8, &v7, v3);
+        v4 = v7;
+        if ( v7 == 0xFFFF )
+          v4 = -1;
+        byte_1821CFE8A = 1;
+        v5 = (_BYTE *)(qword_181FD71C8 + 16LL * v4);
+        (*(void (__fastcall **)(_QWORD, __int64))(**(_QWORD **)v5 + 32LL))(*(_QWORD *)v5, pGameSystem);// 32LL = 0x20 = IGameSystemFactory_Deallocate
+        v1 -= 16;
+        byte_1821CFE8A = 0;
+        --v0;
+        v5[8] = 0;
+      }
+      while ( v0 >= 0 );
+    }
+    dword_181FD95E8 = 0;
+    return sub_180370D30((__int64)&dword_1821CFDA8);
+  }
