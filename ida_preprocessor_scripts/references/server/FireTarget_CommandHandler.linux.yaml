@@ -1,0 +1,125 @@
+func_name: FireTarget_CommandHandler
+func_va: '0x1621cb0'
+disasm_code: |-
+  .text:0000000001621CB0                 push    rbp
+  .text:0000000001621CB1                 mov     rbp, rsp
+  .text:0000000001621CB4                 push    r13
+  .text:0000000001621CB6                 push    r12
+  .text:0000000001621CB8                 push    rbx
+  .text:0000000001621CB9                 sub     rsp, 28h
+  .text:0000000001621CBD                 cmp     dword ptr [rsi+438h], 1
+  .text:0000000001621CC4                 jle     loc_1621DC0
+  .text:0000000001621CCA                 mov     rax, [rsi+440h]
+  .text:0000000001621CD1                 mov     r13, [rax+8]
+  .text:0000000001621CD5                 call    sub_15DE770
+  .text:0000000001621CDA                 mov     rbx, rax
+  .text:0000000001621CDD                 lea     rax, byte_8D6258
+  .text:0000000001621CE4                 cmp     r13, rax
+  .text:0000000001621CE7                 jz      short loc_1621D17
+  .text:0000000001621CE9                 test    r13, r13
+  .text:0000000001621CEC                 jnz     short loc_1621D10
+  .text:0000000001621CEE                 add     rsp, 28h
+  .text:0000000001621CF2                 mov     rdx, rbx
+  .text:0000000001621CF5                 mov     rsi, rbx
+  .text:0000000001621CF8                 pxor    xmm0, xmm0
+  .text:0000000001621CFC                 pop     rbx
+  .text:0000000001621CFD                 mov     rdi, r13
+  .text:0000000001621D00                 mov     ecx, 3
+  .text:0000000001621D05                 pop     r12
+  .text:0000000001621D07                 pop     r13
+  .text:0000000001621D09                 pop     rbp
+  .text:0000000001621D0A                 jmp     FireTargets
+  .text:0000000001621D10                 cmp     byte ptr [r13+0], 0
+  .text:0000000001621D15                 jnz     short loc_1621CEE
+  .text:0000000001621D17                 lea     rax, g_pGameRules
+  .text:0000000001621D1E                 mov     rdi, [rax]
+  .text:0000000001621D21                 test    rdi, rdi
+  .text:0000000001621D24                 jz      short loc_1621CEE
+  .text:0000000001621D26                 mov     rax, [rdi]
+  .text:0000000001621D29                 xor     edx, edx
+  .text:0000000001621D2B                 mov     rsi, rbx
+  .text:0000000001621D2E                 call    qword ptr [rax+0D0h] ; 0xD0 = CGameRules_FindPickerEntity
+  .text:0000000001621D34                 mov     r12, rax
+  .text:0000000001621D37                 test    rax, rax
+  .text:0000000001621D3A                 jz      short loc_1621CEE
+  .text:0000000001621D3C                 mov     rdi, [rax+10h]
+  .text:0000000001621D40                 test    byte ptr [rdi+31h], 2
+  .text:0000000001621D44                 jnz     short loc_1621CEE
+  .text:0000000001621D46                 call    sub_1D57ED0
+  .text:0000000001621D4B                 lea     rdi, a03dFoundSFirin; "[%03d] Found: %s, firing\n"
+  .text:0000000001621D52                 mov     rdx, rax
+  .text:0000000001621D55                 lea     rax, off_23E9488
+  .text:0000000001621D5C                 mov     rax, [rax]
+  .text:0000000001621D5F                 movsxd  rcx, dword ptr [rax+44h]
+  .text:0000000001621D63                 mov     rsi, rcx
+  .text:0000000001621D66                 imul    rcx, 10624DD3h
+  .text:0000000001621D6D                 mov     eax, esi
+  .text:0000000001621D6F                 sar     eax, 1Fh
+  .text:0000000001621D72                 sar     rcx, 26h
+  .text:0000000001621D76                 sub     ecx, eax
+  .text:0000000001621D78                 xor     eax, eax
+  .text:0000000001621D7A                 imul    ecx, 3E8h
+  .text:0000000001621D80                 sub     esi, ecx
+  .text:0000000001621D82                 call    sub_97F590
+  .text:0000000001621D87                 mov     rax, [r12]
+  .text:0000000001621D8B                 lea     rsi, [rbp+var_40]
+  .text:0000000001621D8F                 mov     rdi, r12
+  .text:0000000001621D92                 movq    xmm0, rbx
+  .text:0000000001621D97                 mov     [rbp+var_30], 3
+  .text:0000000001621D9F                 punpcklqdq xmm0, xmm0
+  .text:0000000001621DA3                 movaps  [rbp+var_40], xmm0
+  .text:0000000001621DA7                 call    qword ptr [rax+478h]
+  .text:0000000001621DAD                 add     rsp, 28h
+  .text:0000000001621DB1                 pop     rbx
+  .text:0000000001621DB2                 pop     r12
+  .text:0000000001621DB4                 pop     r13
+  .text:0000000001621DB6                 pop     rbp
+  .text:0000000001621DB7                 retn
+  .text:0000000001621DC0                 call    sub_15DE770
+  .text:0000000001621DC5                 lea     r13, byte_8D6258
+  .text:0000000001621DCC                 mov     rbx, rax
+  .text:0000000001621DCF                 jmp     loc_1621D17
+procedure: |-
+  void __fastcall FireTarget_CommandHandler(__int64 a1, __int64 a2)
+  {
+    const char *v2; // r13
+    __int64 v3; // rbx
+    __int64 v4; // rax
+    __int64 *v5; // r12
+    __int64 v6; // rdi
+    const char *v7; // rax
+    __int64 v8; // rax
+    __m128i v9; // [rsp+0h] [rbp-40h] BYREF
+    __int64 v10; // [rsp+10h] [rbp-30h]
+
+    if ( *(int *)(a2 + 1080) <= 1 )
+    {
+      v2 = &byte_8D6258;
+      v3 = sub_15DE770();
+    }
+    else
+    {
+      v2 = *(const char **)(*(_QWORD *)(a2 + 1088) + 8LL);
+      v3 = sub_15DE770();
+      if ( v2 != &byte_8D6258 && (!v2 || *v2) )
+        goto LABEL_4;
+    }
+    if ( !g_pGameRules
+      || (v4 = (*(__int64 (__fastcall **)(__int64, __int64, _QWORD))(*(_QWORD *)g_pGameRules + 208LL))( // 208LL = 0xD0 = CGameRules_FindPickerEntity
+                 g_pGameRules,
+                 v3,
+                 0),
+          (v5 = (__int64 *)v4) == nullptr)
+      || (v6 = *(_QWORD *)(v4 + 16), (*(_BYTE *)(v6 + 49) & 2) != 0) )
+    {
+  LABEL_4:
+      FireTargets(v2, v3, v3, 3, 0.0);
+      return;
+    }
+    v7 = (const char *)sub_1D57ED0(v6);
+    sub_97F590("[%03d] Found: %s, firing\n", *((_DWORD *)off_23E9488 + 17) % 1000, v7);
+    v8 = *v5;
+    v10 = 3;
+    v9 = _mm_unpacklo_epi64((__m128i)(unsigned __int64)v3, (__m128i)(unsigned __int64)v3);
+    (*(void (__fastcall **)(__int64 *, __m128i *))(v8 + 1144))(v5, &v9);
+  }

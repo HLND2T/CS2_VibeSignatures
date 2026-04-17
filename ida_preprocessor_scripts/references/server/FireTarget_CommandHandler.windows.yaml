@@ -1,0 +1,121 @@
+func_name: FireTarget_CommandHandler
+func_va: '0x180befc10'
+disasm_code: |-
+  .text:0000000180BEFC10                 mov     [rsp+arg_0], rbx
+  .text:0000000180BEFC15                 mov     [rsp+arg_10], rsi
+  .text:0000000180BEFC1A                 push    rdi
+  .text:0000000180BEFC1B                 sub     rsp, 50h
+  .text:0000000180BEFC1F                 cmp     dword ptr [rdx+438h], 1
+  .text:0000000180BEFC26                 jle     short loc_180BEFC7E
+  .text:0000000180BEFC28                 mov     rax, [rdx+440h]
+  .text:0000000180BEFC2F                 mov     rbx, [rax+8]
+  .text:0000000180BEFC33                 call    sub_180BCF5E0
+  .text:0000000180BEFC38                 mov     rdi, rax
+  .text:0000000180BEFC3B                 lea     rax, byte_18152DF88
+  .text:0000000180BEFC42                 cmp     rbx, rax
+  .text:0000000180BEFC45                 jz      short loc_180BEFC8D
+  .text:0000000180BEFC47                 test    rbx, rbx
+  .text:0000000180BEFC4A                 jz      short loc_180BEFC51
+  .text:0000000180BEFC4C                 cmp     byte ptr [rbx], 0
+  .text:0000000180BEFC4F                 jz      short loc_180BEFC8D
+  .text:0000000180BEFC51                 xorps   xmm0, xmm0
+  .text:0000000180BEFC54                 mov     r9d, 3
+  .text:0000000180BEFC5A                 mov     r8, rdi
+  .text:0000000180BEFC5D                 movss   [rsp+58h+var_38], xmm0
+  .text:0000000180BEFC63                 mov     rdx, rdi
+  .text:0000000180BEFC66                 mov     rcx, rbx
+  .text:0000000180BEFC69                 call    FireTargets
+  .text:0000000180BEFC6E                 mov     rbx, [rsp+58h+arg_0]
+  .text:0000000180BEFC73                 mov     rsi, [rsp+58h+arg_10]
+  .text:0000000180BEFC78                 add     rsp, 50h
+  .text:0000000180BEFC7C                 pop     rdi
+  .text:0000000180BEFC7D                 retn
+  .text:0000000180BEFC7E                 lea     rbx, byte_18152DF88
+  .text:0000000180BEFC85                 call    sub_180BCF5E0
+  .text:0000000180BEFC8A                 mov     rdi, rax
+  .text:0000000180BEFC8D                 mov     rcx, cs:g_pGameRules
+  .text:0000000180BEFC94                 test    rcx, rcx
+  .text:0000000180BEFC97                 jz      short loc_180BEFC51
+  .text:0000000180BEFC99                 mov     rax, [rcx]
+  .text:0000000180BEFC9C                 xor     r8d, r8d
+  .text:0000000180BEFC9F                 mov     rdx, rdi
+  .text:0000000180BEFCA2                 call    qword ptr [rax+0C8h] ; 0xC8 = CGameRules_FindPickerEntity
+  .text:0000000180BEFCA8                 mov     rsi, rax
+  .text:0000000180BEFCAB                 test    rax, rax
+  .text:0000000180BEFCAE                 jz      short loc_180BEFC51
+  .text:0000000180BEFCB0                 mov     rcx, [rax+10h]
+  .text:0000000180BEFCB4                 mov     edx, [rcx+30h]
+  .text:0000000180BEFCB7                 shr     edx, 9
+  .text:0000000180BEFCBA                 test    dl, 1
+  .text:0000000180BEFCBD                 jnz     short loc_180BEFC51
+  .text:0000000180BEFCBF                 call    sub_1811A5280
+  .text:0000000180BEFCC4                 mov     rcx, cs:off_181BD05B8
+  .text:0000000180BEFCCB                 mov     r8, rax
+  .text:0000000180BEFCCE                 mov     eax, 10624DD3h
+  .text:0000000180BEFCD3                 mov     r9d, [rcx+44h]
+  .text:0000000180BEFCD7                 imul    r9d
+  .text:0000000180BEFCDA                 sar     edx, 6
+  .text:0000000180BEFCDD                 mov     ecx, edx
+  .text:0000000180BEFCDF                 shr     ecx, 1Fh
+  .text:0000000180BEFCE2                 add     edx, ecx
+  .text:0000000180BEFCE4                 imul    ecx, edx, 3E8h
+  .text:0000000180BEFCEA                 sub     r9d, ecx
+  .text:0000000180BEFCED                 lea     rcx, a03dFoundSFirin; "[%03d] Found: %s, firing\n"
+  .text:0000000180BEFCF4                 mov     edx, r9d
+  .text:0000000180BEFCF7                 call    cs:Msg
+  .text:0000000180BEFCFD                 mov     rax, [rsi]
+  .text:0000000180BEFD00                 lea     rdx, [rsp+58h+var_28]
+  .text:0000000180BEFD05                 mov     rcx, rsi
+  .text:0000000180BEFD08                 mov     [rsp+58h+var_28], rdi
+  .text:0000000180BEFD0D                 mov     [rsp+58h+var_20], rdi
+  .text:0000000180BEFD12                 mov     [rsp+58h+var_18], 3
+  .text:0000000180BEFD1B                 call    qword ptr [rax+480h]
+  .text:0000000180BEFD21                 mov     rbx, [rsp+58h+arg_0]
+  .text:0000000180BEFD26                 mov     rsi, [rsp+58h+arg_10]
+  .text:0000000180BEFD2B                 add     rsp, 50h
+  .text:0000000180BEFD2F                 pop     rdi
+  .text:0000000180BEFD30                 retn
+procedure: |-
+  void __fastcall sub_180BEFC10(__int64 a1, __int64 a2)
+  {
+    char *v2; // rbx
+    __int64 v3; // rdi
+    __int64 v4; // rax
+    __int64 *v5; // rsi
+    __int64 v6; // rcx
+    const char *v7; // rax
+    __int64 v8; // rax
+    _QWORD v9[5]; // [rsp+30h] [rbp-28h] BYREF
+
+    if ( *(int *)(a2 + 1080) <= 1 )
+    {
+      v2 = byte_18152DF88;
+      v3 = sub_180BCF5E0(a1);
+    }
+    else
+    {
+      v2 = *(char **)(*(_QWORD *)(a2 + 1088) + 8LL);
+      v3 = sub_180BCF5E0(a1);
+      if ( v2 != byte_18152DF88 && (!v2 || *v2) )
+        goto LABEL_5;
+    }
+    if ( !g_pGameRules
+      || (v4 = (*(__int64 (__fastcall **)(__int64, __int64, _QWORD))(*(_QWORD *)g_pGameRules + 200LL))( // 200LL = 0xC8 = CGameRules_FindPickerEntity
+                 g_pGameRules,
+                 v3,
+                 0),
+          (v5 = (__int64 *)v4) == nullptr)
+      || (v6 = *(_QWORD *)(v4 + 16), (*(_DWORD *)(v6 + 48) & 0x200) != 0) )
+    {
+  LABEL_5:
+      FireTargets(v2, v3, v3, 3, 0);
+      return;
+    }
+    v7 = (const char *)sub_1811A5280(v6);
+    Msg("[%03d] Found: %s, firing\n", *((_DWORD *)off_181BD05B8 + 17) % 1000, v7);
+    v8 = *v5;
+    v9[0] = v3;
+    v9[1] = v3;
+    v9[2] = 3;
+    (*(void (__fastcall **)(__int64 *, _QWORD *))(v8 + 1152))(v5, v9);
+  }

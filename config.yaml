@@ -1511,11 +1511,16 @@ modules:
         expected_output:
           - CBasePlayerController_ProcessUsercmds.{platform}.yaml
 
+      - name: find-FireTarget_CommandHandler
+        expected_output:
+          - FireTarget_CommandHandler.{platform}.yaml
+
       - name: find-g_pGameRules-AND-CGameRules_FindPickerEntity
         expected_output:
           - g_pGameRules.{platform}.yaml
           - CGameRules_FindPickerEntity.{platform}.yaml
         expected_input:
+          - FireTarget_CommandHandler.{platform}.yaml
           - CGameRules_vtable.{platform}.yaml
 
       - name: find-CCSGameRules_FindPickerEntity
@@ -2689,6 +2694,9 @@ modules:
         category: vfunc
         alias:
           - CSource2GameClients::ClientDisconnect
+
+      - name: FireTarget_CommandHandler
+        category: func
 
       - name: g_pGameRules
         category: gv
