@@ -1573,9 +1573,11 @@ modules:
         expected_output:
           - CCSPlayer_ItemServices_GiveDefaultItems.{platform}.yaml
 
-      - name: find-CCSPlayer_ItemServices_GiveNamedItem
+      - name: find-CCSPlayer_ItemServices_GiveNamedItem-AND-CCSPlayer_WeaponServices_Weapon_GetSlot-AND-CBasePlayerPawn_RemovePlayerItem
         expected_output:
           - CCSPlayer_ItemServices_GiveNamedItem.{platform}.yaml
+          - CCSPlayer_WeaponServices_Weapon_GetSlot.{platform}.yaml
+          - CBasePlayerPawn_RemovePlayerItem.{platform}.yaml
         expected_input:
           - CCSPlayer_ItemServices_GiveDefaultItems.{platform}.yaml
           - CCSPlayer_ItemServices_vtable.{platform}.yaml
@@ -1593,10 +1595,6 @@ modules:
         expected_input:
           - CCSPlayer_WeaponServices_PickupItem.{platform}.yaml
           - CCSPlayer_WeaponServices_vtable.{platform}.yaml
-
-      - name: find-CCSPlayer_WeaponServices_Weapon_GetSlot
-        expected_output:
-          - CCSPlayer_WeaponServices_Weapon_GetSlot.{platform}.yaml
 
       - name: find-CCSPlayerController_ChangeTeam
         expected_output:
@@ -1935,12 +1933,6 @@ modules:
 
       - name: find-ScriptBinding_CSPlayerPawn_DestroyWeapon
         expected_output:
-          - ScriptBinding_CSPlayerPawn_DestroyWeapon.{platform}.yaml
-
-      - name: find-CBasePlayerPawn_RemovePlayerItem
-        expected_output:
-          - CBasePlayerPawn_RemovePlayerItem.{platform}.yaml
-        expected_input:
           - ScriptBinding_CSPlayerPawn_DestroyWeapon.{platform}.yaml
 
       - name: find-CCSBot_Upkeep
