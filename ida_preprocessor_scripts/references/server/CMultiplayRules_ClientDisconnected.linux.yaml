@@ -1,0 +1,56 @@
+func_name: CMultiplayRules_ClientDisconnected
+func_va: '0x1769d70'
+disasm_code: |-
+  .text:0000000001769D70                 push    rbp
+  .text:0000000001769D71                 mov     edi, esi
+  .text:0000000001769D73                 mov     rbp, rsp
+  .text:0000000001769D76                 push    rbx
+  .text:0000000001769D77                 sub     rsp, 8
+  .text:0000000001769D7B                 call    UTIL_PlayerSlotToPlayerController
+  .text:0000000001769D80                 test    rax, rax
+  .text:0000000001769D83                 jz      short loc_1769DD8
+  .text:0000000001769D85                 mov     rdi, rax
+  .text:0000000001769D88                 call    CBasePlayerController_GetPawn
+  .text:0000000001769D8D                 mov     rbx, rax
+  .text:0000000001769D90                 test    rax, rax
+  .text:0000000001769D93                 jz      short loc_1769DD8
+  .text:0000000001769D95                 mov     ecx, 3
+  .text:0000000001769D9A                 mov     rdx, rax
+  .text:0000000001769D9D                 mov     rsi, rax
+  .text:0000000001769DA0                 pxor    xmm0, xmm0
+  .text:0000000001769DA4                 lea     rdi, aGamePlayerleav; "game_playerleave"
+  .text:0000000001769DAB                 call    FireTargets
+  .text:0000000001769DB0                 mov     rdi, [rbx+0E80h]
+  .text:0000000001769DB7                 test    rdi, rdi
+  .text:0000000001769DBA                 jz      short loc_1769DD8
+  .text:0000000001769DBC                 mov     rax, [rdi]
+  .text:0000000001769DBF                 mov     esi, 1
+  .text:0000000001769DC4                 mov     rbx, [rbp+var_8]
+  .text:0000000001769DC8                 mov     rax, [rax+0C0h]
+  .text:0000000001769DCF                 leave
+  .text:0000000001769DD0                 jmp     rax
+  .text:0000000001769DD8                 mov     rbx, [rbp+var_8]
+  .text:0000000001769DDC                 leave
+  .text:0000000001769DDD                 retn
+procedure: |-
+  __int64 __fastcall CMultiplayRules_ClientDisconnected(__int64 a1, unsigned int a2)
+  {
+    __int64 result; // rax
+    __int64 v3; // rbx
+    __int64 v4; // rdi
+
+    result = UTIL_PlayerSlotToPlayerController(a2);
+    if ( result )
+    {
+      result = CBasePlayerController_GetPawn(result);
+      v3 = result;
+      if ( result )
+      {
+        result = FireTargets("game_playerleave", result, result, 3, 0.0);
+        v4 = *(_QWORD *)(v3 + 3712);
+        if ( v4 )
+          return (*(__int64 (__fastcall **)(__int64, __int64))(*(_QWORD *)v4 + 192LL))(v4, 1);
+      }
+    }
+    return result;
+  }

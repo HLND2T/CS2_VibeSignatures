@@ -1,23 +1,23 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-UTIL_PlayerSlotToPlayerController skill."""
+"""Preprocess script for find-CMultiplayRules_vtable skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
-TARGET_FUNCTION_NAMES = [
-    "UTIL_PlayerSlotToPlayerController",
-]
+TARGET_CLASS_NAMES = ["CMultiplayRules"]
 
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
     (
-        "UTIL_PlayerSlotToPlayerController",
+        "CMultiplayRules",
         [
-            "func_name",
-            "func_va",
-            "func_rva",
-            "func_size",
-            "func_sig",
+            "vtable_class",
+            "vtable_symbol",
+            "vtable_va",
+            "vtable_rva",
+            "vtable_size",
+            "vtable_numvfunc",
+            "vtable_entries",
         ],
     ),
 ]
@@ -26,15 +26,13 @@ async def preprocess_skill(
     session, skill_name, expected_outputs, old_yaml_map,
     new_binary_dir, platform, image_base, debug=False,
 ):
-    """Reuse previous gamever func_sig to locate target function(s) and write YAML."""
+    """Generate CMultiplayRules vtable YAML by class-name lookup via MCP."""
     return await preprocess_common_skill(
         session=session,
         expected_outputs=expected_outputs,
-        old_yaml_map=old_yaml_map,
-        new_binary_dir=new_binary_dir,
+        vtable_class_names=TARGET_CLASS_NAMES,
         platform=platform,
         image_base=image_base,
-        func_names=TARGET_FUNCTION_NAMES,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
     )

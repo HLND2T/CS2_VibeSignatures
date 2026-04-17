@@ -1287,6 +1287,10 @@ modules:
         expected_output:
           - CGameRules_vtable.{platform}.yaml
 
+      - name: find-CMultiplayRules_vtable
+        expected_output:
+          - CMultiplayRules_vtable.{platform}.yaml
+
       - name: find-CCSGameRules_vtable
         expected_output:
           - CCSGameRules_vtable.{platform}.yaml
@@ -1819,9 +1823,18 @@ modules:
         expected_input_linux:
           - CCSPlayerPawnBase_CheckForIdleInternal.{platform}.yaml
 
-      - name: find-UTIL_PlayerSlotToPlayerController
+      - name: find-CMultiplayRules_ClientDisconnected
+        expected_output:
+          - CMultiplayRules_ClientDisconnected.{platform}.yaml
+        expected_input:
+          - CMultiplayRules_vtable.{platform}.yaml
+
+      - name: find-UTIL_PlayerSlotToPlayerController-AND-FireTargets
         expected_output:
           - UTIL_PlayerSlotToPlayerController.{platform}.yaml
+          - FireTargets.{platform}.yaml
+        expected_input:
+          - CMultiplayRules_ClientDisconnected.{platform}.yaml
 
       - name: find-UTIL_Remove
         expected_output:
@@ -2438,6 +2451,9 @@ modules:
       - name: CGameRules_vtable
         category: vtable
 
+      - name: CMultiplayRules_vtable
+        category: vtable
+
       - name: CCSGameRules_vtable
         category: vtable
 
@@ -2861,6 +2877,11 @@ modules:
         alias:
           - CGameRules::ClientSettingsChanged
 
+      - name: CMultiplayRules_ClientDisconnected
+        category: vfunc
+        alias:
+          - CMultiplayRules::ClientDisconnected
+
       - name: ClientPrint
         category: func
 
@@ -2948,6 +2969,9 @@ modules:
         category: func
 
       - name: UTIL_PlayerSlotToPlayerController
+        category: func
+
+      - name: FireTargets
         category: func
 
       - name: UTIL_Remove

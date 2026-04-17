@@ -1,0 +1,58 @@
+func_name: CMultiplayRules_ClientDisconnected
+func_va: '0x180d01720'
+disasm_code: |-
+  .text:0000000180D01720                 sub     rsp, 38h
+  .text:0000000180D01724                 mov     ecx, edx
+  .text:0000000180D01726                 call    UTIL_PlayerSlotToPlayerController
+  .text:0000000180D0172B                 test    rax, rax
+  .text:0000000180D0172E                 jz      short loc_180D0178C
+  .text:0000000180D01730                 mov     rcx, rax
+  .text:0000000180D01733                 mov     [rsp+38h+var_8], rbx
+  .text:0000000180D01738                 call    CBasePlayerController_GetPawn
+  .text:0000000180D0173D                 mov     rbx, rax
+  .text:0000000180D01740                 test    rax, rax
+  .text:0000000180D01743                 jz      short loc_180D01787
+  .text:0000000180D01745                 xorps   xmm0, xmm0
+  .text:0000000180D01748                 lea     rcx, aGamePlayerleav; "game_playerleave"
+  .text:0000000180D0174F                 mov     r9d, 3
+  .text:0000000180D01755                 movss   [rsp+38h+var_18], xmm0
+  .text:0000000180D0175B                 mov     r8, rax
+  .text:0000000180D0175E                 mov     rdx, rax
+  .text:0000000180D01761                 call    FireTargets
+  .text:0000000180D01766                 mov     rcx, [rbx+0B78h]
+  .text:0000000180D0176D                 test    rcx, rcx
+  .text:0000000180D01770                 jz      short loc_180D01787
+  .text:0000000180D01772                 mov     rax, [rcx]
+  .text:0000000180D01775                 mov     dl, 1
+  .text:0000000180D01777                 mov     rbx, [rsp+38h+var_8]
+  .text:0000000180D0177C                 add     rsp, 38h
+  .text:0000000180D01780                 jmp     qword ptr [rax+0B8h]
+  .text:0000000180D01787                 mov     rbx, [rsp+38h+var_8]
+  .text:0000000180D0178C                 add     rsp, 38h
+  .text:0000000180D01790                 retn
+procedure: |-
+  __int64 __fastcall CMultiplayRules_ClientDisconnected(__int64 a1, int a2)
+  {
+    __int64 result; // rax
+    __int64 v3; // rbx
+    __int64 v4; // rdx
+    __int64 v5; // rcx
+
+    result = UTIL_PlayerSlotToPlayerController(a2);
+    if ( result )
+    {
+      result = CBasePlayerController_GetPawn(result);
+      v3 = result;
+      if ( result )
+      {
+        result = FireTargets((unsigned int)"game_playerleave", result, result, 3, 0);
+        v5 = *(_QWORD *)(v3 + 2936);
+        if ( v5 )
+        {
+          LOBYTE(v4) = 1;
+          return (*(__int64 (__fastcall **)(__int64, __int64))(*(_QWORD *)v5 + 184LL))(v5, v4);
+        }
+      }
+    }
+    return result;
+  }
