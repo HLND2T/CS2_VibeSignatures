@@ -58,7 +58,7 @@ disasm_code: |-
   .text:0000000001356DDC                 mov     edx, 0FFFFFFFFh
   .text:0000000001356DE1                 mov     esi, 2
   .text:0000000001356DE6                 mov     rdi, r14
-  .text:0000000001356DE9                 call    sub_15B91C0
+  .text:0000000001356DE9                 call    CCSPlayer_WeaponServices_Weapon_GetSlot
   .text:0000000001356DEE                 test    rax, rax
   .text:0000000001356DF1                 jz      loc_1357020
   .text:0000000001356DF7                 mov     rdi, [r13+0]
@@ -75,17 +75,17 @@ disasm_code: |-
   .text:0000000001356E30                 mov     edx, 0FFFFFFFFh
   .text:0000000001356E35                 mov     esi, 2
   .text:0000000001356E3A                 mov     rdi, r14
-  .text:0000000001356E3D                 call    sub_15B91C0
+  .text:0000000001356E3D                 call    CCSPlayer_WeaponServices_Weapon_GetSlot
   .text:0000000001356E42                 mov     edx, 0FFFFFFFFh
   .text:0000000001356E47                 mov     esi, 1
   .text:0000000001356E4C                 mov     rdi, r14
   .text:0000000001356E4F                 mov     r15, rax
-  .text:0000000001356E52                 call    sub_15B91C0
+  .text:0000000001356E52                 call    CCSPlayer_WeaponServices_Weapon_GetSlot
   .text:0000000001356E57                 mov     edx, 0FFFFFFFFh
   .text:0000000001356E5C                 xor     esi, esi
   .text:0000000001356E5E                 mov     rdi, r14
   .text:0000000001356E61                 mov     [rbp+var_140], rax
-  .text:0000000001356E68                 call    sub_15B91C0
+  .text:0000000001356E68                 call    CCSPlayer_WeaponServices_Weapon_GetSlot
   .text:0000000001356E6D                 lea     rsi, aWeaponTaser; "weapon_taser"
   .text:0000000001356E74                 mov     rdi, r14
   .text:0000000001356E77                 mov     [rbp+var_150], rax
@@ -100,7 +100,7 @@ disasm_code: |-
   .text:0000000001356EA7                 jz      short loc_1356EB4
   .text:0000000001356EA9                 mov     rsi, rax
   .text:0000000001356EAC                 mov     rdi, r14
-  .text:0000000001356EAF                 call    sub_13E6970
+  .text:0000000001356EAF                 call    CBasePlayerPawn_RemovePlayerItem
   .text:0000000001356EB4                 mov     rax, [r12+1180h]
   .text:0000000001356EBC                 mov     rdi, rbx
   .text:0000000001356EBF                 mov     byte ptr [rax+0C8h], 1
@@ -133,7 +133,7 @@ disasm_code: |-
   .text:0000000001356F45                 mov     rdi, r14
   .text:0000000001356F48                 mov     edx, 0FFFFFFFFh
   .text:0000000001356F4D                 mov     esi, 1
-  .text:0000000001356F52                 call    sub_15B91C0
+  .text:0000000001356F52                 call    CCSPlayer_WeaponServices_Weapon_GetSlot
   .text:0000000001356F57                 mov     rdi, rax
   .text:0000000001356F5A                 test    rax, rax
   .text:0000000001356F5D                 jz      short loc_1356F71
@@ -145,7 +145,7 @@ disasm_code: |-
   .text:0000000001356F71                 mov     rdi, r14
   .text:0000000001356F74                 mov     edx, 0FFFFFFFFh
   .text:0000000001356F79                 xor     esi, esi
-  .text:0000000001356F7B                 call    sub_15B91C0
+  .text:0000000001356F7B                 call    CCSPlayer_WeaponServices_Weapon_GetSlot
   .text:0000000001356F80                 mov     rdi, rax
   .text:0000000001356F83                 test    rax, rax
   .text:0000000001356F86                 jz      short loc_1356F9A
@@ -231,7 +231,7 @@ disasm_code: |-
   .text:0000000001357100                 mov     edx, 0FFFFFFFFh
   .text:0000000001357105                 mov     esi, 1
   .text:000000000135710A                 mov     rdi, r14
-  .text:000000000135710D                 call    sub_15B91C0
+  .text:000000000135710D                 call    CCSPlayer_WeaponServices_Weapon_GetSlot
   .text:0000000001357112                 test    rax, rax
   .text:0000000001357115                 jnz     loc_1356E08
   .text:000000000135711B                 mov     rdi, [rbx+38h]
@@ -339,11 +339,11 @@ disasm_code: |-
   .text:00000000013572EE                 mov     r15, r10
   .text:00000000013572F1                 nop     dword ptr [rax+00000000h]
   .text:00000000013572F8                 mov     rdi, r14
-  .text:00000000013572FB                 call    sub_13E6970
+  .text:00000000013572FB                 call    CBasePlayerPawn_RemovePlayerItem
   .text:0000000001357300                 mov     esi, 2
   .text:0000000001357305                 mov     edx, 0FFFFFFFFh
   .text:000000000135730A                 mov     rdi, r14
-  .text:000000000135730D                 call    sub_15B91C0
+  .text:000000000135730D                 call    CCSPlayer_WeaponServices_Weapon_GetSlot
   .text:0000000001357312                 mov     rsi, rax
   .text:0000000001357315                 test    rax, rax
   .text:0000000001357318                 jnz     short loc_13572F8
@@ -574,7 +574,7 @@ procedure: |-
       if ( (unsigned __int8)sub_11A6050(qword_25B01A0) || (unsigned __int8)sub_11A6090(qword_25B01A0) )
       {
         if ( ((unsigned __int8)sub_11A6050(qword_25B01A0) || (unsigned __int8)sub_11A6090(qword_25B01A0))
-          && !sub_15B91C0(v6, 2, 0xFFFFFFFFLL) )
+          && !CCSPlayer_WeaponServices_Weapon_GetSlot(v6, 2, 0xFFFFFFFFLL) )
         {
           v14 = *(__int64 (__fastcall **)())(*a1 + 160LL);// 0xA0 = 160LL = CCSPlayer_ItemServices_GiveNamedItem
           if ( v14 == CCSPlayer_ItemServices_GiveNamedItem )
@@ -585,7 +585,7 @@ procedure: |-
         result = sub_11A6050(qword_25B01A0);
         if ( (_BYTE)result )
         {
-          result = sub_15B91C0(v6, 1, 0xFFFFFFFFLL);
+          result = CCSPlayer_WeaponServices_Weapon_GetSlot(v6, 1, 0xFFFFFFFFLL);
           if ( !result )
           {
             v16 = a1[7];
@@ -618,15 +618,15 @@ procedure: |-
         }
         goto LABEL_14;
       }
-      v9 = sub_15B91C0(v6, 2, 0xFFFFFFFFLL);
-      v35 = sub_15B91C0(v6, 1, 0xFFFFFFFFLL);
-      v32 = sub_15B91C0(v6, 0, 0xFFFFFFFFLL);
+      v9 = CCSPlayer_WeaponServices_Weapon_GetSlot(v6, 2, 0xFFFFFFFFLL);
+      v35 = CCSPlayer_WeaponServices_Weapon_GetSlot(v6, 1, 0xFFFFFFFFLL);
+      v32 = CCSPlayer_WeaponServices_Weapon_GetSlot(v6, 0, 0xFFFFFFFFLL);
       result = sub_15B9370(v6, "weapon_taser");
       v34 = result;
       if ( v9 && v35 )
         return result;
       if ( result )
-        sub_13E6970(v6, result);
+        CBasePlayerPawn_RemovePlayerItem(v6, result);
       *(_BYTE *)(*(_QWORD *)(v4 + 4480) + 200LL) = 1;
       if ( (unsigned int)sub_15BA0A0(a1) == 3 )
       {
@@ -646,8 +646,8 @@ procedure: |-
           v26 = v24;
           do
           {
-            sub_13E6970(v6, v25);
-            v25 = sub_15B91C0(v6, 2, 0xFFFFFFFFLL);
+            CBasePlayerPawn_RemovePlayerItem(v6, v25);
+            v25 = CCSPlayer_WeaponServices_Weapon_GetSlot(v6, 2, 0xFFFFFFFFLL);
           }
           while ( v25 );
           v24 = v26;
@@ -729,10 +729,10 @@ procedure: |-
         }
       }
   LABEL_29:
-      v10 = sub_15B91C0(v6, 1, 0xFFFFFFFFLL);
+      v10 = CCSPlayer_WeaponServices_Weapon_GetSlot(v6, 1, 0xFFFFFFFFLL);
       if ( v10 )
         (*(void (__fastcall **)(__int64, _QWORD, __int64, _QWORD))(*(_QWORD *)v10 + 2968LL))(v10, 0, 250, 0);
-      v11 = sub_15B91C0(v6, 0, 0xFFFFFFFFLL);
+      v11 = CCSPlayer_WeaponServices_Weapon_GetSlot(v6, 0, 0xFFFFFFFFLL);
       if ( v11 )
         (*(void (__fastcall **)(__int64, _QWORD, __int64, _QWORD))(*(_QWORD *)v11 + 2968LL))(v11, 0, 250, 0);
       result = sub_11A68B0(qword_25B01A0);

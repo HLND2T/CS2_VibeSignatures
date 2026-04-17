@@ -1,0 +1,69 @@
+func_name: CGameSystemReallocatingFactory_CSpawnGroupMgrGameSystem_Deallocate
+func_va: '0xeb1d90'
+disasm_code: |-
+  .text:0000000000EB1D90                 test    rsi, rsi
+  .text:0000000000EB1D93                 jz      short loc_EB1E05
+  .text:0000000000EB1D95                 push    rbp
+  .text:0000000000EB1D96                 lea     rcx, sub_EA9220
+  .text:0000000000EB1D9D                 mov     rbp, rsp
+  .text:0000000000EB1DA0                 push    r12
+  .text:0000000000EB1DA2                 push    rbx
+  .text:0000000000EB1DA3                 mov     rax, [rsi-8]
+  .text:0000000000EB1DA7                 lea     r12, [rsi-8]
+  .text:0000000000EB1DAB                 mov     rbx, rsi
+  .text:0000000000EB1DAE                 mov     rdx, [rax+0C0h] ; 0xC0 = IGameSystem_SetGameSystemGlobalPtrs
+  .text:0000000000EB1DB5                 cmp     rdx, rcx
+  .text:0000000000EB1DB8                 jnz     short loc_EB1DF8
+  .text:0000000000EB1DBA                 mov     rdi, cs:off_4314E70
+  .text:0000000000EB1DC1                 test    rdi, rdi
+  .text:0000000000EB1DC4                 jz      short loc_EB1DD2
+  .text:0000000000EB1DC6                 mov     rax, [rdi]
+  .text:0000000000EB1DC9                 xor     esi, esi
+  .text:0000000000EB1DCB                 call    qword ptr [rax+38h]
+  .text:0000000000EB1DCE                 mov     rax, [rbx-8]
+  .text:0000000000EB1DD2                 mov     rdi, r12
+  .text:0000000000EB1DD5                 call    qword ptr [rax+0E0h] ; 0xE0 = IGameSystem_dtor
+  .text:0000000000EB1DDB                 mov     rax, cs:g_pMemAlloc_ptr
+  .text:0000000000EB1DE2                 mov     rsi, r12
+  .text:0000000000EB1DE5                 pop     rbx
+  .text:0000000000EB1DE6                 pop     r12
+  .text:0000000000EB1DE8                 pop     rbp
+  .text:0000000000EB1DE9                 mov     rdi, [rax]
+  .text:0000000000EB1DEC                 mov     rax, [rdi]
+  .text:0000000000EB1DEF                 mov     rax, [rax+20h]
+  .text:0000000000EB1DF3                 jmp     rax
+  .text:0000000000EB1DF8                 xor     esi, esi
+  .text:0000000000EB1DFA                 mov     rdi, r12
+  .text:0000000000EB1DFD                 call    rdx
+  .text:0000000000EB1DFF                 mov     rax, [rbx-8]
+  .text:0000000000EB1E03                 jmp     short loc_EB1DD2
+  .text:0000000000EB1E05                 mov     rax, qword ptr ds:dword_0
+  .text:0000000000EB1E0D                 ud2
+procedure: |-
+  __int64 __fastcall CGameSystemReallocatingFactory_CSpawnGroupMgrGameSystem_Deallocate(__int64 a1, __int64 a2)
+  {
+    __int64 v2; // rax
+    __int64 v3; // r12
+    __int64 (__fastcall *v4)(); // rdx
+
+    if ( !a2 )
+      BUG();
+    v2 = *(_QWORD *)(a2 - 8);
+    v3 = a2 - 8;
+    v4 = *(__int64 (__fastcall **)())(v2 + 192); // 192 = 0xC0 = IGameSystem_SetGameSystemGlobalPtrs
+    if ( v4 == sub_EA9220 )
+    {
+      if ( off_4314E70[0] )
+      {
+        (*(void (__fastcall **)(__int64 *, _QWORD))(*off_4314E70[0] + 56))(off_4314E70[0], 0);
+        v2 = *(_QWORD *)(a2 - 8);
+      }
+    }
+    else
+    {
+      ((void (__fastcall *)(__int64, _QWORD))v4)(v3, 0);
+      v2 = *(_QWORD *)(a2 - 8);
+    }
+    (*(void (__fastcall **)(__int64))(v2 + 224))(v3); // 224 = 0xE0 = IGameSystem_dtor
+    return (*(__int64 (__fastcall **)(_QWORD *, __int64))(*g_pMemAlloc + 32LL))(g_pMemAlloc, v3);
+  }
