@@ -632,6 +632,19 @@ GENERATE_YAML_DESIRED_FIELDS = [
     )
 ```
 
+### CRITICAL -- FUNC_VTABLE_RELATIONS and vfunc fields
+
+**`FUNC_VTABLE_RELATIONS` is required for ANY target whose `GENERATE_YAML_DESIRED_FIELDS` includes `vtable_name` or `vfunc_sig`** -- not just Pattern B and C. Without it, the LLM_DECOMPILE slot-only fallback fails with `"slot-only fallback missing vtable_name"` and the entire skill fails.
+
+This applies even when:
+- The target is a **vfunc call-site offset** (e.g. `call [rax+128h]`) rather than an actual function body in a vtable
+- **No vtable YAML exists** for that class in config.yaml (no `expected_input` for the vtable needed)
+- The script also finds **non-vfunc targets** (global variables, struct offsets) alongside the vfunc target
+
+The `vtable_name` from `FUNC_VTABLE_RELATIONS` is used as **metadata** written to the output YAML -- it does NOT require an actual vtable lookup. For example, `("IGameTypes_CreateWorkshopMapGroup", "IGameTypes")` provides the vtable class name `IGameTypes` even though no `IGameTypes_vtable.{platform}.yaml` exists.
+
+**Rule of thumb:** If any field in `GENERATE_YAML_DESIRED_FIELDS` starts with `vfunc_` or equals `vtable_name`, the target MUST have an entry in `FUNC_VTABLE_RELATIONS`.
+
 ### Key Differences Between Patterns
 
 | Aspect | Pattern A (func + xref) | Pattern B (vfunc + xref) | Pattern C (vfunc + LLM) | Pattern D (func + LLM) | Pattern E (structmember + LLM) | Pattern F (vfunc + inherit) | Pattern G (ConCommand handler) |
@@ -820,7 +833,7 @@ Before finishing, verify:
 - [ ] `TARGET_FUNCTION_NAMES` lists all functions the script should find
 - [ ] `FUNC_XREFS` xref strings match the user's specified debug strings (Pattern A/B)
 - [ ] `LLM_DECOMPILE` reference path points to the correct predecessor function YAML (Patterns C/D/E)
-- [ ] `FUNC_VTABLE_RELATIONS` lists correct vtable class for each virtual function (Patterns B/C only, NOT Patterns D/F)
+- [ ] `FUNC_VTABLE_RELATIONS` lists correct vtable class for EVERY target that has `vtable_name` or `vfunc_sig` in its `GENERATE_YAML_DESIRED_FIELDS` -- required even for vfunc call-site offsets and even if no vtable YAML exists (Patterns B/C, and any LLM_DECOMPILE target with vfunc fields)
 - [ ] `INHERIT_VFUNCS` lists correct (target, derived_class, base_vfunc, gen_sig) tuples (Pattern F only)
 - [ ] `GENERATE_YAML_DESIRED_FIELDS` uses correct field set for the pattern
 - [ ] `preprocess_skill` signature includes `llm_config=None` if and only if LLM_DECOMPILE is used (NOT for Pattern F)
@@ -982,3 +995,39 @@ Before finishing, verify:
 3. Run `generate_reference_yaml.py` for both platforms
 4. Annotate reference YAMLs with CommitSuicide vfunc call comments
 5. Run `ida_analyze_bin.py -debug` again → LLM_DECOMPILE path runs and succeeds
+
+### Example: xref-string function + LLM_DECOMPILE global variable & vfunc offset (Patterns A + LLM_DECOMPILE with gv + vfunc, multi-phase)
+
+**User says:** Find `g_pGameTypes` (global variable) and `IGameTypes_CreateWorkshopMapGroup` (vfunc offset at `call [rax+128h]`) in server. They are found by decompiling `CDedicatedServerWorkshopManager_SwitchToWorkshopMapGroup`, which is discoverable via xref string `"mapgroup workshop"`.
+
+**Result -- two scripts:**
+
+1. `ida_preprocessor_scripts/find-CDedicatedServerWorkshopManager_SwitchToWorkshopMapGroup.py` (Pattern A):
+   - `FUNC_XREFS` containing `"mapgroup workshop"`
+   - `GENERATE_YAML_DESIRED_FIELDS` with `func_name, func_sig, func_va, func_rva, func_size`
+   - No `FUNC_VTABLE_RELATIONS`, no `LLM_DECOMPILE`
+
+2. `ida_preprocessor_scripts/find-g_pGameTypes-AND-IGameTypes_CreateWorkshopMapGroup.py` (LLM_DECOMPILE):
+   - `TARGET_FUNCTION_NAMES`: `["IGameTypes_CreateWorkshopMapGroup"]`
+   - `TARGET_GLOBALVAR_NAMES`: `["g_pGameTypes"]`
+   - `LLM_DECOMPILE` with two entries (one per target), both referencing the same predecessor YAML
+   - **CRITICAL:** `FUNC_VTABLE_RELATIONS`: `("IGameTypes_CreateWorkshopMapGroup", "IGameTypes")` -- required because `GENERATE_YAML_DESIRED_FIELDS` includes `vtable_name` and `vfunc_sig`. Without this, fails with `"slot-only fallback missing vtable_name"`. Note: no `IGameTypes_vtable` YAML exists -- the vtable name is purely metadata.
+   - `GENERATE_YAML_DESIRED_FIELDS` for IGameTypes_CreateWorkshopMapGroup: `func_name, vtable_name, vfunc_offset, vfunc_index, vfunc_sig`
+   - `GENERATE_YAML_DESIRED_FIELDS` for g_pGameTypes: `gv_name, gv_va, gv_rva, gv_sig, gv_sig_va, gv_inst_offset, gv_inst_length, gv_inst_disp`
+   - config.yaml symbols: `g_pGameTypes` with `category: gv`, `IGameTypes_CreateWorkshopMapGroup` with `category: vfunc`
+
+**config.yaml dependency chain:**
+```yaml
+      - name: find-CDedicatedServerWorkshopManager_SwitchToWorkshopMapGroup
+        expected_output:
+          - CDedicatedServerWorkshopManager_SwitchToWorkshopMapGroup.{platform}.yaml
+
+      - name: find-g_pGameTypes-AND-IGameTypes_CreateWorkshopMapGroup
+        expected_output:
+          - g_pGameTypes.{platform}.yaml
+          - IGameTypes_CreateWorkshopMapGroup.{platform}.yaml
+        expected_input:
+          - CDedicatedServerWorkshopManager_SwitchToWorkshopMapGroup.{platform}.yaml
+```
+
+**Key insight -- FUNC_VTABLE_RELATIONS for vfunc offsets:** Even though `IGameTypes_CreateWorkshopMapGroup` is a vfunc call-site offset (not a function in a vtable we own), `FUNC_VTABLE_RELATIONS` is still required because the `GENERATE_YAML_DESIRED_FIELDS` include `vtable_name` and `vfunc_sig`. The system uses the vtable class name from `FUNC_VTABLE_RELATIONS` as metadata -- it does NOT attempt to look up an `IGameTypes_vtable` YAML.
