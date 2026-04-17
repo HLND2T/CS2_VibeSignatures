@@ -13,7 +13,7 @@ FUNC_XREFS = [
                      "xref_strings": ['--CLoopModeGame::SetWorldSession'],
                      "xref_gvs": [],
                      "xref_signatures": [],
-                     "xref_funcs": ['CLoopModeGame_SetGameSystemState', 'IGameSystem_DestroyAllGameSystems'],
+                     "xref_funcs": ['CLoopModeGame_SetGameSystemState'],
                      "exclude_funcs": ['CLoopModeGame_SetWorldSession'],
                      "exclude_strings": [],
                      "exclude_gvs": [],

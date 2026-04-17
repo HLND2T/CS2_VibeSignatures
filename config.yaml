@@ -809,7 +809,6 @@ modules:
         expected_input:
           - CLoopModeGame_SetWorldSession.{platform}.yaml
           - CLoopModeGame_SetGameSystemState.{platform}.yaml
-          - IGameSystem_DestroyAllGameSystems.{platform}.yaml
           - CLoopModeGame_vtable.{platform}.yaml
 
       - name: find-CLoopModeGame_LoopShutdown
@@ -821,7 +820,6 @@ modules:
           - CLoopModeGame_ReceivedServerInfo.{platform}.yaml
           - CLoopModeGame_SetWorldSession.{platform}.yaml
           - CLoopModeGame_SetGameSystemState.{platform}.yaml
-          - IGameSystem_DestroyAllGameSystems.{platform}.yaml
         expected_input_linux:
           - CLoopModeGame_Shutdown.{platform}.yaml
 
@@ -843,8 +841,10 @@ modules:
       - name: find-IGameSystem_DestroyAllGameSystems
         expected_output:
           - IGameSystem_DestroyAllGameSystems.{platform}.yaml
-        expected_input:
-          - CLoopModeGame_ReceivedServerInfo.{platform}.yaml
+        expected_input_windows:
+          - CLoopModeGame_LoopShutdown.{platform}.yaml
+        expected_input_linux:
+          - CLoopModeGame_Shutdown.{platform}.yaml
 
       - name: find-IGameSystem_ClientPollNetworking
         expected_output:
@@ -2479,8 +2479,10 @@ modules:
       - name: find-IGameSystem_DestroyAllGameSystems
         expected_output:
           - IGameSystem_DestroyAllGameSystems.{platform}.yaml
-        expected_input:
-          - CLoopModeGame_ReceivedServerInfo.{platform}.yaml
+        expected_input_windows:
+          - CLoopModeGame_LoopShutdown.{platform}.yaml
+        expected_input_linux:
+          - CLoopModeGame_Shutdown.{platform}.yaml
 
       - name: find-CLoopModeGame_Shutdown-linux
         platform: linux
@@ -2489,7 +2491,6 @@ modules:
         expected_input:
           - CLoopModeGame_SetWorldSession.{platform}.yaml
           - CLoopModeGame_SetGameSystemState.{platform}.yaml
-          - IGameSystem_DestroyAllGameSystems.{platform}.yaml
           - CLoopModeGame_vtable.{platform}.yaml
 
       - name: find-CLoopModeGame_LoopShutdown
@@ -2501,7 +2502,6 @@ modules:
           - CLoopModeGame_ReceivedServerInfo.{platform}.yaml
           - CLoopModeGame_SetWorldSession.{platform}.yaml
           - CLoopModeGame_SetGameSystemState.{platform}.yaml
-          - IGameSystem_DestroyAllGameSystems.{platform}.yaml
         expected_input_linux:
           - CLoopModeGame_Shutdown.{platform}.yaml
 
