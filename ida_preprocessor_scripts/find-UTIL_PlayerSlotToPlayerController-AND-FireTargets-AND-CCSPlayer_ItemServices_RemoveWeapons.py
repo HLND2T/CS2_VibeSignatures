@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-UTIL_PlayerSlotToPlayerController-AND-FireTargets skill."""
+"""Preprocess script for find-UTIL_PlayerSlotToPlayerController-AND-FireTargets-AND-CCSPlayer_ItemServices_RemoveWeapons skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = [
     "UTIL_PlayerSlotToPlayerController",
     "FireTargets",
+    "CCSPlayer_ItemServices_RemoveWeapons",
 ]
 
 LLM_DECOMPILE = [
@@ -20,6 +21,16 @@ LLM_DECOMPILE = [
         "prompt/call_llm_decompile.md",
         "references/server/CMultiplayRules_ClientDisconnected.{platform}.yaml",
     ),
+    (
+        "CCSPlayer_ItemServices_RemoveWeapons",
+        "prompt/call_llm_decompile.md",
+        "references/server/CMultiplayRules_ClientDisconnected.{platform}.yaml",
+    ),
+]
+
+FUNC_VTABLE_RELATIONS = [
+    # (func_name, vtable_class)
+    ("CCSPlayer_ItemServices_RemoveWeapons", "CCSPlayer_ItemServices"),
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
@@ -44,6 +55,19 @@ GENERATE_YAML_DESIRED_FIELDS = [
             "func_size",
         ],
     ),
+    (
+        "CCSPlayer_ItemServices_RemoveWeapons",
+        [
+            "func_name",
+            "func_va",
+            "func_rva",
+            "func_size",
+            "func_sig",
+            "vtable_name",
+            "vfunc_offset",
+            "vfunc_index",
+        ],
+    ),
 ]
 
 async def preprocess_skill(
@@ -59,6 +83,7 @@ async def preprocess_skill(
         platform=platform,
         image_base=image_base,
         func_names=TARGET_FUNCTION_NAMES,
+        func_vtable_relations=FUNC_VTABLE_RELATIONS,
         llm_decompile_specs=LLM_DECOMPILE,
         llm_config=llm_config,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,

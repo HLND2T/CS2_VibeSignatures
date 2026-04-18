@@ -26,7 +26,7 @@ disasm_code: |-
   .text:0000000001769DBC                 mov     rax, [rdi]
   .text:0000000001769DBF                 mov     esi, 1
   .text:0000000001769DC4                 mov     rbx, [rbp+var_8]
-  .text:0000000001769DC8                 mov     rax, [rax+0C0h]
+  .text:0000000001769DC8                 mov     rax, [rax+0C0h] ; 0xC0 = CCSPlayer_ItemServices_RemoveWeapons
   .text:0000000001769DCF                 leave
   .text:0000000001769DD0                 jmp     rax
   .text:0000000001769DD8                 mov     rbx, [rbp+var_8]
@@ -49,7 +49,7 @@ procedure: |-
         result = FireTargets("game_playerleave", result, result, 3, 0.0);
         v4 = *(_QWORD *)(v3 + 3712);
         if ( v4 )
-          return (*(__int64 (__fastcall **)(__int64, __int64))(*(_QWORD *)v4 + 192LL))(v4, 1);
+          return (*(__int64 (__fastcall **)(__int64, __int64))(*(_QWORD *)v4 + 192LL))(v4, 1); // 192LL = 0xC0 = CCSPlayer_ItemServices_RemoveWeapons
       }
     }
     return result;

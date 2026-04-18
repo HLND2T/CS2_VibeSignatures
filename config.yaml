@@ -1881,14 +1881,6 @@ modules:
           - CCSPlayer_ItemServices_DropActivePlayerWeapon.{platform}.yaml
           - CCSPlayer_WeaponServices_vtable.{platform}.yaml
 
-      - name: find-CCSPlayer_ItemServices_RemoveWeapons
-        expected_output:
-          - CCSPlayer_ItemServices_RemoveWeapons.{platform}.yaml
-        expected_input:
-          - CCSPlayerStateDeathAnim_vtable.{platform}.yaml
-          - CCSPlayer_ItemServices_vtable.{platform}.yaml
-        max_retries: 4
-
       - name: find-CCSPlayer_WeaponServices_SelectItem
         expected_output:
           - CCSPlayer_WeaponServices_SelectItem.{platform}.yaml
@@ -1926,12 +1918,14 @@ modules:
         expected_input:
           - CMultiplayRules_vtable.{platform}.yaml
 
-      - name: find-UTIL_PlayerSlotToPlayerController-AND-FireTargets
+      - name: find-UTIL_PlayerSlotToPlayerController-AND-FireTargets-AND-CCSPlayer_ItemServices_RemoveWeapons
         expected_output:
           - UTIL_PlayerSlotToPlayerController.{platform}.yaml
           - FireTargets.{platform}.yaml
+          - CCSPlayer_ItemServices_RemoveWeapons.{platform}.yaml
         expected_input:
           - CMultiplayRules_ClientDisconnected.{platform}.yaml
+          - CCSPlayer_ItemServices_vtable.{platform}.yaml
 
       - name: find-CInferno_InfernoThink
         expected_output:

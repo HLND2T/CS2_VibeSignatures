@@ -26,7 +26,7 @@ disasm_code: |-
   .text:0000000180D01775                 mov     dl, 1
   .text:0000000180D01777                 mov     rbx, [rsp+38h+var_8]
   .text:0000000180D0177C                 add     rsp, 38h
-  .text:0000000180D01780                 jmp     qword ptr [rax+0B8h]
+  .text:0000000180D01780                 jmp     qword ptr [rax+0B8h] ; 0xB8 = CCSPlayer_ItemServices_RemoveWeapons
   .text:0000000180D01787                 mov     rbx, [rsp+38h+var_8]
   .text:0000000180D0178C                 add     rsp, 38h
   .text:0000000180D01790                 retn
@@ -50,7 +50,7 @@ procedure: |-
         if ( v5 )
         {
           LOBYTE(v4) = 1;
-          return (*(__int64 (__fastcall **)(__int64, __int64))(*(_QWORD *)v5 + 184LL))(v5, v4);
+          return (*(__int64 (__fastcall **)(__int64, __int64))(*(_QWORD *)v5 + 184LL))(v5, v4); // 184LL = 0xB8 = CCSPlayer_ItemServices_RemoveWeapons
         }
       }
     }
