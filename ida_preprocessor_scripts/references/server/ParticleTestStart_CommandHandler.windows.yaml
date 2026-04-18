@@ -1,0 +1,157 @@
+func_name: ParticleTestStart_CommandHandler
+func_va: '0x180b69620'
+disasm_code: |-
+  .text:0000000180B69620                 push    rbp
+  .text:0000000180B69622                 push    rsi
+  .text:0000000180B69623                 push    r14
+  .text:0000000180B69625                 sub     rsp, 50h
+  .text:0000000180B69629                 cmp     dword ptr [rdx+438h], 1
+  .text:0000000180B69630                 lea     rsi, byte_18152DF88
+  .text:0000000180B69637                 jle     short loc_180B69646
+  .text:0000000180B69639                 mov     rax, [rdx+440h]
+  .text:0000000180B69640                 mov     rbp, [rax+8]
+  .text:0000000180B69644                 jmp     short loc_180B69649
+  .text:0000000180B69646                 mov     rbp, rsi
+  .text:0000000180B69649                 call    UTIL_PlayerSlotToPlayerPawn
+  .text:0000000180B6964E                 mov     r14, rax
+  .text:0000000180B69651                 test    rax, rax
+  .text:0000000180B69654                 jz      loc_180B6979E
+  .text:0000000180B6965A                 mov     edx, 0FFFFFFFFh
+  .text:0000000180B6965F                 mov     [rsp+68h+arg_18], r15
+  .text:0000000180B69667                 lea     rcx, unk_181EAFAA8
+  .text:0000000180B6966E                 call    sub_18146E6D0
+  .text:0000000180B69673                 test    rax, rax
+  .text:0000000180B69676                 jnz     short loc_180B69683
+  .text:0000000180B69678                 mov     rax, cs:qword_181EAFAB0
+  .text:0000000180B6967F                 mov     rax, [rax+8]
+  .text:0000000180B69683                 mov     rax, [rax]
+  .text:0000000180B69686                 mov     rcx, rsi
+  .text:0000000180B69689                 test    rax, rax
+  .text:0000000180B6968C                 cmovnz  rcx, rax
+  .text:0000000180B69690                 call    sub_18136E7A0
+  .text:0000000180B69695                 mov     r15d, eax
+  .text:0000000180B69698                 cmp     eax, 0FFFFFFFFh
+  .text:0000000180B6969B                 jnz     short loc_180B696BB
+  .text:0000000180B6969D                 lea     rcx, aInvalidAttachT; "Invalid attach type specified for parti"...
+  .text:0000000180B696A4                 mov     r15, [rsp+68h+arg_18]
+  .text:0000000180B696AC                 add     rsp, 50h
+  .text:0000000180B696B0                 pop     r14
+  .text:0000000180B696B2                 pop     rsi
+  .text:0000000180B696B3                 pop     rbp
+  .text:0000000180B696B4                 jmp     cs:Warning
+  .text:0000000180B696BB                 mov     [rsp+68h+arg_0], rbx
+  .text:0000000180B696C0                 lea     rcx, unk_181EAFAB8
+  .text:0000000180B696C7                 mov     edx, 0FFFFFFFFh
+  .text:0000000180B696CC                 mov     [rsp+68h+arg_8], rdi
+  .text:0000000180B696D1                 call    sub_18146E6D0
+  .text:0000000180B696D6                 test    rax, rax
+  .text:0000000180B696D9                 jnz     short loc_180B696E6
+  .text:0000000180B696DB                 mov     rax, cs:qword_181EAFAC0
+  .text:0000000180B696E2                 mov     rax, [rax+8]
+  .text:0000000180B696E6                 movzx   ebx, byte ptr [rax]
+  .text:0000000180B696E9                 lea     rcx, unk_181EAFA98
+  .text:0000000180B696F0                 mov     edx, 0FFFFFFFFh
+  .text:0000000180B696F5                 call    sub_18146E6D0
+  .text:0000000180B696FA                 test    rax, rax
+  .text:0000000180B696FD                 jnz     short loc_180B6970A
+  .text:0000000180B696FF                 mov     rax, cs:qword_181EAFAA0
+  .text:0000000180B69706                 mov     rax, [rax+8]
+  .text:0000000180B6970A                 mov     rax, [rax]
+  .text:0000000180B6970D                 mov     rdx, rbp
+  .text:0000000180B69710                 test    rax, rax
+  .text:0000000180B69713                 mov     rcx, r14
+  .text:0000000180B69716                 cmovnz  rsi, rax
+  .text:0000000180B6971A                 xor     r8d, r8d
+  .text:0000000180B6971D                 call    sub_180BC07E0
+  .text:0000000180B69722                 mov     rdi, rax
+  .text:0000000180B69725                 test    rax, rax
+  .text:0000000180B69728                 jz      short loc_180B6978C
+  .text:0000000180B6972A                 mov     [rsp+68h+arg_10], r12
+  .text:0000000180B69732                 xor     r12d, r12d
+  .text:0000000180B69735                 nop     word ptr [rax+rax+00000000h]
+  .text:0000000180B69740                 mov     [rsp+68h+var_28], r12b
+  .text:0000000180B69745                 movzx   r9d, bl
+  .text:0000000180B69749                 mov     [rsp+68h+var_30], r12
+  .text:0000000180B6974E                 mov     r8, rdi
+  .text:0000000180B69751                 mov     [rsp+68h+var_38], 0FFFFFFFFh
+  .text:0000000180B69759                 mov     edx, r15d
+  .text:0000000180B6975C                 mov     [rsp+68h+var_40], 1
+  .text:0000000180B69761                 mov     rcx, rsi
+  .text:0000000180B69764                 mov     [rsp+68h+var_48], r12d
+  .text:0000000180B69769                 call    DispatchParticleEffect
+  .text:0000000180B6976E                 mov     r8, rdi
+  .text:0000000180B69771                 mov     rdx, rbp
+  .text:0000000180B69774                 mov     rcx, r14
+  .text:0000000180B69777                 call    sub_180BC07E0
+  .text:0000000180B6977C                 mov     rdi, rax
+  .text:0000000180B6977F                 test    rax, rax
+  .text:0000000180B69782                 jnz     short loc_180B69740
+  .text:0000000180B69784                 mov     r12, [rsp+68h+arg_10]
+  .text:0000000180B6978C                 mov     rdi, [rsp+68h+arg_8]
+  .text:0000000180B69791                 mov     rbx, [rsp+68h+arg_0]
+  .text:0000000180B69796                 mov     r15, [rsp+68h+arg_18]
+  .text:0000000180B6979E                 add     rsp, 50h
+  .text:0000000180B697A2                 pop     r14
+  .text:0000000180B697A4                 pop     rsi
+  .text:0000000180B697A5                 pop     rbp
+  .text:0000000180B697A6                 retn
+procedure: |-
+  __int64 __fastcall ParticleTestStart_CommandHandler(__int64 a1, __int64 a2)
+  {
+    char *v2; // rsi
+    char *v3; // rbp
+    __int64 result; // rax
+    __int64 v5; // r14
+    char **v6; // rax
+    char *v7; // rax
+    char *v8; // rcx
+    int v9; // r15d
+    unsigned __int8 *v10; // rax
+    unsigned __int8 v11; // bl
+    __int64 *v12; // rax
+    __int64 v13; // rax
+    __int64 i; // rdi
+
+    v2 = byte_18152DF88;
+    if ( *(int *)(a2 + 1080) <= 1 )
+      v3 = byte_18152DF88;
+    else
+      v3 = *(char **)(*(_QWORD *)(a2 + 1088) + 8LL);
+    result = UTIL_PlayerSlotToPlayerPawn(a1);
+    v5 = result;
+    if ( result )
+    {
+      v6 = (char **)sub_18146E6D0((__int64)&unk_181EAFAA8, -1);
+      if ( !v6 )
+        v6 = *(char ***)(qword_181EAFAB0 + 8);
+      v7 = *v6;
+      v8 = byte_18152DF88;
+      if ( v7 )
+        v8 = v7;
+      v9 = sub_18136E7A0(v8);
+      if ( v9 == -1 )
+      {
+        return Warning("Invalid attach type specified for particle_test in cvar 'particle_test_attach_mode.\n");
+      }
+      else
+      {
+        v10 = (unsigned __int8 *)sub_18146E6D0((__int64)&unk_181EAFAB8, -1);
+        if ( !v10 )
+          v10 = *(unsigned __int8 **)(qword_181EAFAC0 + 8);
+        v11 = *v10;
+        v12 = (__int64 *)sub_18146E6D0((__int64)&unk_181EAFA98, -1);
+        if ( !v12 )
+          v12 = *(__int64 **)(qword_181EAFAA0 + 8);
+        v13 = *v12;
+        if ( v13 )
+          LODWORD(v2) = v13;
+        result = sub_180BC07E0(v5, v3, 0);
+        for ( i = result; result; i = result )
+        {
+          DispatchParticleEffect((_DWORD)v2, v9, i, v11, 0, 1, -1, 0, 0);
+          result = sub_180BC07E0(v5, v3, i);
+        }
+      }
+    }
+    return result;
+  }
