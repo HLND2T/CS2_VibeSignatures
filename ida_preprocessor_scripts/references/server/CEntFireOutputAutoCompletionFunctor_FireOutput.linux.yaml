@@ -1,0 +1,160 @@
+func_name: CEntFireOutputAutoCompletionFunctor_FireOutput
+func_va: '0x161fc60'
+disasm_code: |-
+  .text:000000000161FC60                 push    rbp
+  .text:000000000161FC61                 mov     rbp, rsp
+  .text:000000000161FC64                 push    r15
+  .text:000000000161FC66                 push    r14
+  .text:000000000161FC68                 mov     r14, rsi
+  .text:000000000161FC6B                 push    r13
+  .text:000000000161FC6D                 push    r12
+  .text:000000000161FC6F                 push    rbx
+  .text:000000000161FC70                 sub     rsp, 68h
+  .text:000000000161FC74                 mov     [rbp+var_80], rdx
+  .text:000000000161FC78                 movss   [rbp+var_74], xmm0
+  .text:000000000161FC7D                 test    rsi, rsi
+  .text:000000000161FC80                 jz      loc_161FD88
+  .text:000000000161FC86                 cmp     byte ptr [rsi], 0
+  .text:000000000161FC89                 jz      loc_161FD88
+  .text:000000000161FC8F                 sub     rsp, 8
+  .text:000000000161FC93                 xor     edx, edx
+  .text:000000000161FC95                 mov     rbx, rcx
+  .text:000000000161FC98                 lea     r15, [rbp+var_70]
+  .text:000000000161FC9C                 push    0
+  .text:000000000161FC9E                 xor     ecx, ecx
+  .text:000000000161FCA0                 mov     r12, r8
+  .text:000000000161FCA3                 mov     rdi, r15
+  .text:000000000161FCA6                 xor     r8d, r8d
+  .text:000000000161FCA9                 mov     r13, r9
+  .text:000000000161FCAC                 xor     r9d, r9d
+  .text:000000000161FCAF                 call    sub_1D67D00
+  .text:000000000161FCB4                 mov     rdi, r15
+  .text:000000000161FCB7                 mov     [rbp+var_5C], 0
+  .text:000000000161FCBE                 call    sub_1D68F60
+  .text:000000000161FCC3                 mov     rdi, r15
+  .text:000000000161FCC6                 mov     [rbp+var_88], rax
+  .text:000000000161FCCD                 call    sub_1D68C50
+  .text:000000000161FCD2                 mov     rax, [rbp+var_88]
+  .text:000000000161FCD9                 pop     rdx
+  .text:000000000161FCDA                 pop     rcx
+  .text:000000000161FCDB                 test    rax, rax
+  .text:000000000161FCDE                 jz      loc_161FD88
+  .text:000000000161FCE4                 mov     [rbp+var_70], 0
+  .text:000000000161FCEC                 mov     rsi, [rbp+var_80]
+  .text:000000000161FCF0                 mov     rdx, r15
+  .text:000000000161FCF3                 xor     r15d, r15d
+  .text:000000000161FCF6                 mov     [rbp+var_68], 0
+  .text:000000000161FCFE                 mov     qword ptr [rbp-60h], 0
+  .text:000000000161FD06                 mov     rdi, [rax+10h]
+  .text:000000000161FD0A                 call    sub_1D58AE0
+  .text:000000000161FD0F                 mov     eax, dword ptr [rbp+var_70]
+  .text:000000000161FD12                 test    eax, eax
+  .text:000000000161FD14                 jle     loc_161FDB0
+  .text:000000000161FD1A                 nop     word ptr [rax+rax+00h]
+  .text:000000000161FD20                 mov     rax, [rbp+var_68]
+  .text:000000000161FD24                 xor     r9d, r9d
+  .text:000000000161FD27                 xor     r8d, r8d
+  .text:000000000161FD2A                 mov     rcx, rbx
+  .text:000000000161FD2D                 movss   xmm0, [rbp+var_74]
+  .text:000000000161FD32                 mov     rdx, r13
+  .text:000000000161FD35                 mov     rsi, r12
+  .text:000000000161FD38                 mov     rdi, [rax+r15*8]
+  .text:000000000161FD3C                 add     r15, 1
+  .text:000000000161FD40                 call    CEntityIOOutput_FireOutputInternal
+  .text:000000000161FD45                 cmp     dword ptr [rbp+var_70], r15d
+  .text:000000000161FD49                 jg      short loc_161FD20
+  .text:000000000161FD4B                 cmp     [rbp+var_5C], 3FFFFFFFh
+  .text:000000000161FD52                 mov     dword ptr [rbp+var_70], 0
+  .text:000000000161FD59                 ja      short loc_161FD74
+  .text:000000000161FD5B                 mov     rsi, [rbp+var_68]
+  .text:000000000161FD5F                 test    rsi, rsi
+  .text:000000000161FD62                 jz      short loc_161FD74
+  .text:000000000161FD64                 mov     rax, cs:g_pMemAlloc_ptr
+  .text:000000000161FD6B                 mov     rdi, [rax]
+  .text:000000000161FD6E                 mov     rax, [rdi]
+  .text:000000000161FD71                 call    qword ptr [rax+20h]
+  .text:000000000161FD74                 lea     rsp, [rbp-28h]
+  .text:000000000161FD78                 pop     rbx
+  .text:000000000161FD79                 pop     r12
+  .text:000000000161FD7B                 pop     r13
+  .text:000000000161FD7D                 pop     r14
+  .text:000000000161FD7F                 pop     r15
+  .text:000000000161FD81                 pop     rbp
+  .text:000000000161FD82                 retn
+  .text:000000000161FD88                 lea     rsp, [rbp-28h]
+  .text:000000000161FD8C                 mov     rsi, r14
+  .text:000000000161FD8F                 xor     eax, eax
+  .text:000000000161FD91                 pop     rbx
+  .text:000000000161FD92                 lea     rdi, aCouldnTFindEnt; "Couldn't find entity named '%s'.\n"
+  .text:000000000161FD99                 pop     r12
+  .text:000000000161FD9B                 pop     r13
+  .text:000000000161FD9D                 pop     r14
+  .text:000000000161FD9F                 pop     r15
+  .text:000000000161FDA1                 pop     rbp
+  .text:000000000161FDA2                 jmp     sub_97F3E0
+  .text:000000000161FDB0                 mov     rsi, [rbp+var_80]
+  .text:000000000161FDB4                 lea     rdi, aCouldnTFindOut; "Couldn't find output named '%s' on enti"...
+  .text:000000000161FDBB                 xor     eax, eax
+  .text:000000000161FDBD                 mov     rdx, r14
+  .text:000000000161FDC0                 call    sub_97F3E0
+  .text:000000000161FDC5                 cmp     [rbp+var_5C], 3FFFFFFFh
+  .text:000000000161FDCC                 mov     dword ptr [rbp+var_70], 0
+  .text:000000000161FDD3                 ja      short loc_161FD74
+  .text:000000000161FDD5                 jmp     short loc_161FD5B
+procedure: |-
+  __int64 __fastcall CEntFireOutputAutoCompletionFunctor_FireOutput(
+          float a1,
+          __int64 a2,
+          const char *a3,
+          const char *a4,
+          __int64 a5,
+          __int64 a6,
+          __int64 a7)
+  {
+    __int64 v10; // rdx
+    __int64 v11; // r15
+    __int64 v12; // rdi
+    __int64 result; // rax
+    __int64 v14; // [rsp+8h] [rbp-88h]
+    __int64 v16; // [rsp+20h] [rbp-70h] BYREF
+    __int64 v17; // [rsp+28h] [rbp-68h]
+    __int64 v18; // [rsp+30h] [rbp-60h]
+
+    if ( !a3 )
+      return sub_97F3E0("Couldn't find entity named '%s'.\n", a3);
+    if ( !*a3 )
+      return sub_97F3E0("Couldn't find entity named '%s'.\n", a3);
+    sub_1D67D00((unsigned int)&v16, (_DWORD)a3, 0, 0, 0, 0, 0);
+    HIDWORD(v18) = 0;
+    v14 = sub_1D68F60(&v16);
+    sub_1D68C50(&v16, a3, v10);
+    if ( !v14 )
+      return sub_97F3E0("Couldn't find entity named '%s'.\n", a3);
+    v16 = 0;
+    v11 = 0;
+    v17 = 0;
+    v18 = 0;
+    sub_1D58AE0(*(_QWORD *)(v14 + 16), a4, &v16);
+    if ( (int)v16 <= 0 )
+    {
+      result = sub_97F3E0("Couldn't find output named '%s' on entity '%s'.\n", a4, a3);
+      LODWORD(v16) = 0;
+      if ( HIDWORD(v18) > 0x3FFFFFFF )
+        return result;
+      goto LABEL_7;
+    }
+    do
+    {
+      v12 = *(_QWORD *)(v17 + 8 * v11++);
+      result = CEntityIOOutput_FireOutputInternal(v12, a6, a7, a5, 0, 0, COERCE_DOUBLE((unsigned __int64)LODWORD(a1)));
+    }
+    while ( (int)v16 > (int)v11 );
+    LODWORD(v16) = 0;
+    if ( HIDWORD(v18) <= 0x3FFFFFFF )
+    {
+  LABEL_7:
+      if ( v17 )
+        return (*(__int64 (__fastcall **)(_QWORD *))(*g_pMemAlloc + 32LL))(g_pMemAlloc);
+    }
+    return result;
+  }
