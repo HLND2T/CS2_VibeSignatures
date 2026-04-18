@@ -1,0 +1,52 @@
+func_name: CTriggerGravity_GravityTouch_Register
+func_va: '0x18d1d40'
+disasm_code: |-
+  .text:00000000018D1D40                 push    rbp
+  .text:00000000018D1D41                 mov     rbp, rsp
+  .text:00000000018D1D44                 push    rbx
+  .text:00000000018D1D45                 sub     rsp, 8
+  .text:00000000018D1D49                 lea     rax, qword_233F220
+  .text:00000000018D1D50                 mov     cs:qword_242F318, rax
+  .text:00000000018D1D57                 movzx   eax, cs:byte_25E55B0
+  .text:00000000018D1D5E                 test    al, al
+  .text:00000000018D1D60                 jz      short loc_18D1D90
+  .text:00000000018D1D62                 lea     rax, unk_242F290
+  .text:00000000018D1D69                 mov     rbx, [rbp+var_8]
+  .text:00000000018D1D6D                 mov     cs:dword_242F308, 1
+  .text:00000000018D1D77                 mov     cs:qword_242F300, rax
+  .text:00000000018D1D7E                 lea     rax, qword_242F300
+  .text:00000000018D1D85                 leave
+  .text:00000000018D1D86                 retn
+  .text:00000000018D1D90                 lea     rbx, byte_25E55B0
+  .text:00000000018D1D97                 mov     rdi, rbx
+  .text:00000000018D1D9A                 call    sub_9761A0
+  .text:00000000018D1D9F                 test    eax, eax
+  .text:00000000018D1DA1                 jz      short loc_18D1D62
+  .text:00000000018D1DA3                 lea     rsi, aGravitytouch; "GravityTouch"
+  .text:00000000018D1DAA                 lea     rdi, aCtriggergravit; "CTriggerGravity"
+  .text:00000000018D1DB1                 call    sub_1F1A5F0
+  .text:00000000018D1DB6                 mov     rdi, rbx
+  .text:00000000018D1DB9                 mov     cs:qword_242F2C8, 0
+  .text:00000000018D1DC4                 mov     cs:g_CTriggerGravity_GravityTouch, rax
+  .text:00000000018D1DCB                 lea     rax, CTriggerGravity_GravityTouch
+  .text:00000000018D1DD2                 mov     cs:qword_242F2C0, rax
+  .text:00000000018D1DD9                 call    sub_9761C0
+  .text:00000000018D1DDE                 jmp     short loc_18D1D62
+procedure: |-
+  __int64 *CTriggerGravity_GravityTouch_Register()
+  {
+    __int64 v1; // rax
+
+    qword_242F318 = (__int64)&qword_233F220;
+    if ( !byte_25E55B0 && (unsigned int)sub_9761A0(&byte_25E55B0) )
+    {
+      v1 = sub_1F1A5F0("CTriggerGravity", "GravityTouch");
+      qword_242F2C8 = 0;
+      g_CTriggerGravity_GravityTouch = v1;
+      qword_242F2C0 = (__int64)CTriggerGravity_GravityTouch;
+      sub_9761C0(&byte_25E55B0);
+    }
+    dword_242F308 = 1;
+    qword_242F300 = (__int64)&unk_242F290;
+    return &qword_242F300;
+  }

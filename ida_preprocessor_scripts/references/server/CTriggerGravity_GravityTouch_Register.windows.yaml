@@ -1,0 +1,78 @@
+func_name: CTriggerGravity_GravityTouch_Register
+func_va: '0x18011c380'
+disasm_code: |-
+  .text:000000018011C380                 push    rbx
+  .text:000000018011C382                 sub     rsp, 20h
+  .text:000000018011C386                 mov     ecx, cs:TlsIndex
+  .text:000000018011C38C                 lea     rax, qword_181B03280
+  .text:000000018011C393                 mov     cs:qword_181C15B60, rax
+  .text:000000018011C39A                 mov     ebx, 1
+  .text:000000018011C39F                 mov     rax, gs:58h
+  .text:000000018011C3A8                 mov     edx, 208h
+  .text:000000018011C3AD                 mov     rax, [rax+rcx*8]
+  .text:000000018011C3B1                 mov     eax, [rdx+rax]
+  .text:000000018011C3B4                 cmp     cs:dword_181EF4C20, eax
+  .text:000000018011C3BA                 jg      short loc_18011C3E4
+  .text:000000018011C3BC                 lea     rax, unk_181EF4BB8
+  .text:000000018011C3C3                 mov     cs:dword_181C15B50, ebx
+  .text:000000018011C3C9                 mov     cs:qword_181C15B48, rax
+  .text:000000018011C3D0                 lea     rax, qword_181C15B48
+  .text:000000018011C3D7                 mov     cs:qword_181EEDB10, rax
+  .text:000000018011C3DE                 add     rsp, 20h
+  .text:000000018011C3E2                 pop     rbx
+  .text:000000018011C3E3                 retn
+  .text:000000018011C3E4                 lea     rcx, dword_181EF4C20
+  .text:000000018011C3EB                 call    sub_181486994
+  .text:000000018011C3F0                 cmp     cs:dword_181EF4C20, 0FFFFFFFFh
+  .text:000000018011C3F7                 jnz     short loc_18011C3BC
+  .text:000000018011C3F9                 lea     rdx, aGravitytouch; "GravityTouch"
+  .text:000000018011C400                 lea     rcx, aCtriggergravit; "CTriggerGravity"
+  .text:000000018011C407                 call    sub_1814801A0
+  .text:000000018011C40C                 xor     edx, edx
+  .text:000000018011C40E                 mov     cs:g_CTriggerGravity_GravityTouch, rax
+  .text:000000018011C415                 lea     rax, CTriggerGravity_GravityTouch
+  .text:000000018011C41C                 mov     cs:dword_181EF4BC8, edx
+  .text:000000018011C422                 xorps   xmm0, xmm0
+  .text:000000018011C425                 mov     cs:qword_181EF4BE8, rax
+  .text:000000018011C42C                 lea     rcx, dword_181EF4C20
+  .text:000000018011C433                 mov     cs:word_181EF4BCC, bx
+  .text:000000018011C43A                 mov     cs:dword_181EF4BD0, 20h ; ' '
+  .text:000000018011C444                 mov     cs:qword_181EF4BD8, rdx
+  .text:000000018011C44B                 mov     cs:qword_181EF4BE0, rdx
+  .text:000000018011C452                 mov     cs:qword_181EF4BF0, rdx
+  .text:000000018011C459                 mov     cs:qword_181EF4BF8, rdx
+  .text:000000018011C460                 mov     cs:qword_181EF4C00, rdx
+  .text:000000018011C467                 mov     cs:word_181EF4C08, dx
+  .text:000000018011C46E                 movdqa  cs:xmmword_181EF4C10, xmm0
+  .text:000000018011C476                 call    sub_181486928
+  .text:000000018011C47B                 jmp     loc_18011C3BC
+procedure: |-
+  __int64 *CTriggerGravity_GravityTouch_Register()
+  {
+    qword_181C15B60 = (__int64)&qword_181B03280;
+    if ( dword_181EF4C20[0] > *(_DWORD *)(*((_QWORD *)NtCurrentTeb()->ThreadLocalStoragePointer + (unsigned int)TlsIndex)
+                                        + 520LL) )
+    {
+      sub_181486994(dword_181EF4C20);
+      if ( dword_181EF4C20[0] == -1 )
+      {
+        g_CTriggerGravity_GravityTouch = (__int64)sub_1814801A0("CTriggerGravity", "GravityTouch");
+        dword_181EF4BC8 = 0;
+        qword_181EF4BE8 = (__int64)CTriggerGravity_GravityTouch;
+        word_181EF4BCC = 1;
+        dword_181EF4BD0 = 32;
+        qword_181EF4BD8 = 0;
+        qword_181EF4BE0 = 0;
+        qword_181EF4BF0 = 0;
+        qword_181EF4BF8 = 0;
+        qword_181EF4C00 = 0;
+        word_181EF4C08 = 0;
+        xmmword_181EF4C10 = 0;
+        sub_181486928(dword_181EF4C20);
+      }
+    }
+    dword_181C15B50 = 1;
+    qword_181C15B48 = (__int64)&unk_181EF4BB8;
+    qword_181EEDB10 = (__int64)&qword_181C15B48;
+    return &qword_181C15B48;
+  }
