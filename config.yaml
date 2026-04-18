@@ -1729,6 +1729,13 @@ modules:
         expected_output:
           - CCSPlayerPawn_ProcessSuicideAsKillReward.{platform}.yaml
 
+      - name: find-ClientPrint-AND-UTIL_ClientPrintFilter
+        expected_output:
+          - ClientPrint.{platform}.yaml
+          - UTIL_ClientPrintFilter.{platform}.yaml
+        expected_input:
+          - CCSPlayerPawn_ProcessSuicideAsKillReward.{platform}.yaml
+
       - name: find-CSource2Server_Init
         expected_output:
           - CSource2Server_Init.{platform}.yaml
@@ -3050,9 +3057,6 @@ modules:
         alias:
           - CMultiplayRules::ClientDisconnected
 
-      - name: ClientPrint
-        category: func
-
       - name: CSource2Server_Init
         category: vfunc
         alias:
@@ -3136,6 +3140,9 @@ modules:
         category: func
 
       - name: ClientPrint
+        category: func
+
+      - name: UTIL_ClientPrintFilter
         category: func
 
       - name: UTIL_ClientPrintAll
