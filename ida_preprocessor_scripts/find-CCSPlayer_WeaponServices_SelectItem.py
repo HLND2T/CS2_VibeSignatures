@@ -7,6 +7,24 @@ TARGET_FUNCTION_NAMES = [
     "CCSPlayer_WeaponServices_SelectItem",
 ]
 
+FUNC_XREFS = [
+    {
+        "func_name": "CCSPlayer_WeaponServices_SelectItem",
+        "xref_strings": [],
+        "xref_gvs": [],
+        "xref_signatures": [],
+        "xref_funcs": ["CCSPlayerPawn_OnItemEquip"],
+        "exclude_funcs": [],
+        "exclude_strings": [],
+        "exclude_gvs": [],
+        "exclude_signatures": [],
+    },
+]
+
+FUNC_VTABLE_RELATIONS = [
+    # (func_name, vtable_class)
+    ("CCSPlayer_WeaponServices_SelectItem", "CCSPlayer_WeaponServices"),
+]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
@@ -18,6 +36,9 @@ GENERATE_YAML_DESIRED_FIELDS = [
             "func_rva",
             "func_size",
             "func_sig",
+            "vtable_name",
+            "vfunc_offset",
+            "vfunc_index",
         ],
     ),
 ]
@@ -35,6 +56,8 @@ async def preprocess_skill(
         platform=platform,
         image_base=image_base,
         func_names=TARGET_FUNCTION_NAMES,
+        func_xrefs=FUNC_XREFS,
+        func_vtable_relations=FUNC_VTABLE_RELATIONS,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
     )
