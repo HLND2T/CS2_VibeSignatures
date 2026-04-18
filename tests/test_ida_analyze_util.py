@@ -2268,6 +2268,72 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
             mock_gen_sig.await_args.kwargs["allow_across_function_boundary"]
         )
 
+    async def test_preprocess_func_xrefs_uses_vtable_entry_when_dep_func_has_no_callers(
+        self,
+    ) -> None:
+        with patch.object(
+            ida_analyze_util,
+            "_load_symbol_addr_from_current_yaml",
+            return_value=0x180200000,
+        ) as mock_load_symbol, patch.object(
+            ida_analyze_util,
+            "_collect_xref_func_starts_for_ea",
+            AsyncMock(return_value=set()),
+        ) as mock_collect_ea, patch.object(
+            ida_analyze_util,
+            "_read_yaml_file",
+            return_value={
+                "vtable_entries": {
+                    0: "0x180200000",
+                    1: "0x180300000",
+                }
+            },
+        ) as mock_read_yaml, patch.object(
+            ida_analyze_util,
+            "preprocess_gen_func_sig_via_mcp",
+            AsyncMock(
+                return_value={
+                    "func_va": "0x180200000",
+                    "func_rva": "0x200000",
+                    "func_size": "0x40",
+                    "func_sig": "48 89 5C 24 08",
+                }
+            ),
+        ) as mock_gen_sig:
+            result = await ida_analyze_util.preprocess_func_xrefs_via_mcp(
+                session="session",
+                func_name="CLoopModeGame_LoopInit",
+                xref_strings=[],
+                xref_gvs=[],
+                xref_signatures=[],
+                xref_funcs=["CLoopModeGame_LoopInitInternal"],
+                exclude_funcs=[],
+                exclude_strings=[],
+                exclude_gvs=[],
+                exclude_signatures=[],
+                new_binary_dir="bin_dir",
+                platform="linux",
+                image_base=0x180000000,
+                vtable_class="CLoopModeGame",
+                debug=True,
+            )
+
+        self.assertEqual("CLoopModeGame_LoopInit", result["func_name"])
+        self.assertEqual("0x180200000", result["func_va"])
+        mock_collect_ea.assert_awaited_once_with(
+            session="session",
+            target_ea=0x180200000,
+            debug=True,
+        )
+        mock_read_yaml.assert_called_once_with(
+            str(Path("bin_dir") / "CLoopModeGame_vtable.linux.yaml")
+        )
+        self.assertEqual(0x180200000, mock_gen_sig.await_args.kwargs["func_va"])
+        self.assertFalse(
+            mock_gen_sig.await_args.kwargs["allow_across_function_boundary"]
+        )
+        mock_load_symbol.assert_called_once()
+
     async def test_preprocess_func_xrefs_fails_when_signature_set_is_empty(
         self,
     ) -> None:

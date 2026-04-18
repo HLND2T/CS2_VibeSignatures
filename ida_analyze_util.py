@@ -6268,6 +6268,36 @@ async def preprocess_func_xrefs_via_mcp(
             return None
 
     candidate_sets = []
+    vtable_addr_set = None
+
+    if vtable_class:
+        vtable_yaml_path = os.path.join(
+            new_binary_dir, f"{vtable_class}_vtable.{platform}.yaml"
+        )
+        vtable_data = _read_yaml_file(vtable_yaml_path)
+        if not isinstance(vtable_data, dict):
+            if debug:
+                print(
+                    f"    Preprocess: vtable YAML missing or invalid: "
+                    f"{os.path.basename(vtable_yaml_path)}"
+                )
+            return None
+
+        vtable_entries = vtable_data.get("vtable_entries", {})
+        vtable_addr_set = set()
+        for _idx, addr in vtable_entries.items():
+            try:
+                vtable_addr_set.add(int(str(addr), 16))
+            except (TypeError, ValueError):
+                continue
+
+        if not vtable_addr_set:
+            if debug:
+                print(
+                    f"    Preprocess: empty vtable entries for "
+                    f"{vtable_class}"
+                )
+            return None
 
     for xref_string in (xref_strings or []):
         addr_set = await _collect_xref_func_starts_for_string(
@@ -6341,43 +6371,24 @@ async def preprocess_func_xrefs_via_mcp(
             session=session, target_ea=dep_func_va, debug=debug
         )
         if not addr_set:
-            if debug:
-                print(
-                    f"    Preprocess: empty candidate set for func xref: "
-                    f"{dep_func_name}"
-                )
-            return None
+            if vtable_addr_set and dep_func_va in vtable_addr_set:
+                addr_set = {dep_func_va}
+                if debug:
+                    print(
+                        "    Preprocess: func xref has no callers; "
+                        f"using {dep_func_name} itself because it is in "
+                        f"{vtable_class} vtable"
+                    )
+            else:
+                if debug:
+                    print(
+                        f"    Preprocess: empty candidate set for func xref: "
+                        f"{dep_func_name}"
+                    )
+                return None
         candidate_sets.append(addr_set)
 
-    if vtable_class:
-        vtable_yaml_path = os.path.join(
-            new_binary_dir, f"{vtable_class}_vtable.{platform}.yaml"
-        )
-        vtable_data = _read_yaml_file(vtable_yaml_path)
-        if not isinstance(vtable_data, dict):
-            if debug:
-                print(
-                    f"    Preprocess: vtable YAML missing or invalid: "
-                    f"{os.path.basename(vtable_yaml_path)}"
-                )
-            return None
-
-        vtable_entries = vtable_data.get("vtable_entries", {})
-        vtable_addr_set = set()
-        for _idx, addr in vtable_entries.items():
-            try:
-                vtable_addr_set.add(int(str(addr), 16))
-            except (TypeError, ValueError):
-                continue
-
-        if not vtable_addr_set:
-            if debug:
-                print(
-                    f"    Preprocess: empty vtable entries for "
-                    f"{vtable_class}"
-                )
-            return None
-
+    if vtable_addr_set is not None:
         if debug:
             print(
                 f"    Preprocess: vtable {vtable_class} has "
