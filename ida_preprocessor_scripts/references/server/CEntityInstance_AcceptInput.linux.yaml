@@ -1,0 +1,53 @@
+func_name: CEntityInstance_AcceptInput
+func_va: '0x1d5b750'
+disasm_code: |-
+  .text:0000000001D5B750                 push    rbp
+  .text:0000000001D5B751                 mov     rax, rsi
+  .text:0000000001D5B754                 mov     rbp, rsp
+  .text:0000000001D5B757                 push    r15
+  .text:0000000001D5B759                 mov     r15, rdi
+  .text:0000000001D5B75C                 push    r14
+  .text:0000000001D5B75E                 lea     rdi, [rbp+var_40]
+  .text:0000000001D5B762                 mov     r14d, r9d
+  .text:0000000001D5B765                 push    r13
+  .text:0000000001D5B767                 mov     r13, r8
+  .text:0000000001D5B76A                 push    r12
+  .text:0000000001D5B76C                 mov     r12, rcx
+  .text:0000000001D5B76F                 push    rbx
+  .text:0000000001D5B770                 mov     rbx, rdx
+  .text:0000000001D5B773                 sub     rsp, 18h
+  .text:0000000001D5B777                 lea     rdx, qword_2664490
+  .text:0000000001D5B77E                 mov     rsi, [rdx]
+  .text:0000000001D5B781                 mov     rdx, rax
+  .text:0000000001D5B784                 call    sub_1D7B5C0
+  .text:0000000001D5B789                 mov     rax, [rbp+var_40]
+  .text:0000000001D5B78D                 lea     rsi, [rbp+var_38]
+  .text:0000000001D5B791                 mov     r9d, r14d
+  .text:0000000001D5B794                 mov     rdi, [r15+10h]
+  .text:0000000001D5B798                 mov     r8, r13
+  .text:0000000001D5B79B                 mov     rcx, r12
+  .text:0000000001D5B79E                 mov     rdx, rbx
+  .text:0000000001D5B7A1                 mov     [rbp+var_38], rax
+  .text:0000000001D5B7A5                 push    0
+  .text:0000000001D5B7A7                 push    [rbp+arg_0]
+  .text:0000000001D5B7AA                 call    CEntityIdentity_AcceptInput
+  .text:0000000001D5B7AF                 lea     rsp, [rbp-28h]
+  .text:0000000001D5B7B3                 pop     rbx
+  .text:0000000001D5B7B4                 pop     r12
+  .text:0000000001D5B7B6                 pop     r13
+  .text:0000000001D5B7B8                 pop     r14
+  .text:0000000001D5B7BA                 pop     r15
+  .text:0000000001D5B7BC                 pop     rbp
+  .text:0000000001D5B7BD                 retn
+procedure: |-
+  __int64 __fastcall CEntityInstance_AcceptInput(__int64 a1, __int64 a2, int a3, int a4, int a5, int a6, __int64 a7)
+  {
+    __int64 v11; // rdi
+    __int64 v13; // [rsp+0h] [rbp-40h] BYREF
+    __int64 v14; // [rsp+8h] [rbp-38h] BYREF
+
+    sub_1D7B5C0(&v13, qword_2664490, a2);
+    v11 = *(_QWORD *)(a1 + 16);
+    v14 = v13;
+    return CEntityIdentity_AcceptInput(v11, (unsigned int)&v14, a3, a4, a5, a6, a7, 0);
+  }

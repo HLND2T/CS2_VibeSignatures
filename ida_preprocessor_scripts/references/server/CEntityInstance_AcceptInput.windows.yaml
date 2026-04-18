@@ -1,0 +1,45 @@
+func_name: CEntityInstance_AcceptInput
+func_va: '0x1811a0200'
+disasm_code: |-
+  .text:00000001811A0200                 mov     [rsp+arg_8], rbx
+  .text:00000001811A0205                 mov     [rsp+arg_10], rsi
+  .text:00000001811A020A                 push    rdi
+  .text:00000001811A020B                 sub     rsp, 50h
+  .text:00000001811A020F                 mov     rsi, r8
+  .text:00000001811A0212                 mov     rbx, rcx
+  .text:00000001811A0215                 mov     rcx, cs:g_pGameEntitySystem
+  .text:00000001811A021C                 mov     r8, rdx
+  .text:00000001811A021F                 lea     rdx, [rsp+58h+arg_0]
+  .text:00000001811A0224                 mov     rdi, r9
+  .text:00000001811A0227                 call    sub_18117F230
+  .text:00000001811A022C                 mov     rax, [rsp+58h+arg_0]
+  .text:00000001811A0231                 lea     rdx, [rsp+58h+var_18]
+  .text:00000001811A0236                 mov     rcx, [rbx+10h]
+  .text:00000001811A023A                 mov     r9, rdi
+  .text:00000001811A023D                 mov     [rsp+58h+var_18], rax
+  .text:00000001811A0242                 mov     r8, rsi
+  .text:00000001811A0245                 mov     rax, [rsp+58h+arg_30]
+  .text:00000001811A024D                 mov     [rsp+58h+var_20], 0
+  .text:00000001811A0256                 mov     [rsp+58h+var_28], rax
+  .text:00000001811A025B                 mov     eax, [rsp+58h+arg_28]
+  .text:00000001811A0262                 mov     [rsp+58h+var_30], eax
+  .text:00000001811A0266                 mov     rax, [rsp+58h+arg_20]
+  .text:00000001811A026E                 mov     [rsp+58h+var_38], rax
+  .text:00000001811A0273                 call    CEntityIdentity_AcceptInput
+  .text:00000001811A0278                 mov     rbx, [rsp+58h+arg_8]
+  .text:00000001811A027D                 mov     rsi, [rsp+58h+arg_10]
+  .text:00000001811A0282                 add     rsp, 50h
+  .text:00000001811A0286                 pop     rdi
+  .text:00000001811A0287                 retn
+procedure: |-
+  __int64 __fastcall CEntityInstance_AcceptInput(__int64 a1, __int64 a2, int a3, int a4, __int64 a5, int a6, __int64 a7)
+  {
+    __int64 v10; // rcx
+    __int64 v12; // [rsp+40h] [rbp-18h] BYREF
+    __int64 v13; // [rsp+60h] [rbp+8h] BYREF
+
+    sub_18117F230(g_pGameEntitySystem, &v13, a2);
+    v10 = *(_QWORD *)(a1 + 16);
+    v12 = v13;
+    return CEntityIdentity_AcceptInput(v10, (unsigned int)&v12, a3, a4, a5, a6, a7, 0);
+  }
