@@ -2281,11 +2281,20 @@ modules:
           - CBaseTrigger_vtable.{platform}.yaml
           - CBaseTrigger_StartTouch.{platform}.yaml
 
-      - name: find-CGameSceneNode_GetSkeletonInstance
+      - name: find-CBaseAnimGraph_GetAnimationController
         expected_output:
-          - CGameSceneNode_GetSkeletonInstance.{platform}.yaml
+          - CBaseAnimGraph_GetAnimationController.{platform}.yaml
+        expected_input:
+          - CScriptedSequence_SynchronizeSequence.{platform}.yaml
+
+      - name: find-CBaseAnimGraph_m_skeletonInstance-AND-CGameSceneNode_GetSkeletonInstance-AND-CSkeletonInstance_m_animationController
+        expected_output:
           - CBaseAnimGraph_m_skeletonInstance.{platform}.yaml
+          - CGameSceneNode_GetSkeletonInstance.{platform}.yaml
           - CSkeletonInstance_m_animationController.{platform}.yaml
+        expected_input:
+          - CBaseAnimGraph_GetAnimationController.{platform}.yaml
+          - CGameSceneNode_vtable.{platform}.yaml
 
       - name: find-CPointTeleport_Teleport
         expected_output:
@@ -2499,9 +2508,12 @@ modules:
         expected_output:
           - GameSystem_Think_CheckSteamBan.{platform}.yaml
 
-      - name: find-CGamePlayerEquip_InputTriggerForAllPlayers-AND-CGamePlayerEquip_InputTriggerForActivatedPlayer
+      - name: find-CGamePlayerEquip_InputTriggerForAllPlayers
         expected_output:
           - CGamePlayerEquip_InputTriggerForAllPlayers.{platform}.yaml
+
+      - name: find-CGamePlayerEquip_InputTriggerForActivatedPlayer
+        expected_output:
           - CGamePlayerEquip_InputTriggerForActivatedPlayer.{platform}.yaml
 
       - name: find-DispatchParticleEffect-AND-UTIL_PlayerSlotToPlayerPawn
@@ -2591,6 +2603,10 @@ modules:
           - CEntityInstance_Precache.{platform}.yaml
         expected_input:
           - CEntityInstance_vtable.{platform}.yaml
+
+      - name: find-CScriptedSequence_SynchronizeSequence
+        expected_output:
+          - CScriptedSequence_SynchronizeSequence.{platform}.yaml
 
       - name: find-CNetworkUtlVectorEmbedded_NetworkStateChanged_m_vecRenderAttributes
         expected_output:
@@ -3666,10 +3682,29 @@ modules:
           - CBaseTrigger::PassesTriggerFilters
           - PassesTriggerFilters
 
+      - name: CBaseAnimGraph_GetAnimationController
+        category: func
+        alias:
+          - CBaseAnimGraph::GetAnimationController
+
+      - name: CBaseAnimGraph_m_skeletonInstance
+        category: structmember
+        struct: CBaseAnimGraph
+        member: m_skeletonInstance
+        alias:
+          - CBaseAnimGraph::m_skeletonInstance
+
       - name: CGameSceneNode_GetSkeletonInstance
         category: vfunc
         alias:
           - CGameSceneNode::GetSkeletonInstance
+
+      - name: CSkeletonInstance_m_animationController
+        category: structmember
+        struct: CSkeletonInstance
+        member: m_animationController
+        alias:
+          - CSkeletonInstance::m_animationController
 
       - name: CBaseAnimGraph
         category: struct
@@ -3952,6 +3987,11 @@ modules:
         category: vfunc
         alias:
           - CEntityInstance::Precache
+
+      - name: CScriptedSequence_SynchronizeSequence
+        category: func
+        alias:
+          - CScriptedSequence::SynchronizeSequence
 
       - name: CNetworkUtlVectorEmbedded_NetworkStateChanged_m_vecRenderAttributes
         category: func

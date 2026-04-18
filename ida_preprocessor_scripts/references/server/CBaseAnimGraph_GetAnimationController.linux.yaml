@@ -1,0 +1,24 @@
+func_name: CBaseAnimGraph_GetAnimationController
+func_va: '0x143a870'
+disasm_code: |-
+  .text:000000000143A870                 push    rbp
+  .text:000000000143A871                 mov     rdi, [rdi+530h] ; 0x530 = 1328 = CBaseAnimGraph::m_skeletonInstance
+  .text:000000000143A878                 mov     rbp, rsp
+  .text:000000000143A87B                 mov     rax, [rdi]
+  .text:000000000143A87E                 call    qword ptr [rax+50h] ; 0x50 = 80 = CGameSceneNode_GetSkeletonInstance
+  .text:000000000143A881                 test    rax, rax
+  .text:000000000143A884                 jz      short loc_143A88D
+  .text:000000000143A886                 mov     rax, [rax+3B0h] ; 0x3B0 = 944 = CSkeletonInstance::m_animationController
+  .text:000000000143A88D                 pop     rbp
+  .text:000000000143A88E                 retn
+procedure: |-
+  __int64 __fastcall CBaseAnimGraph_GetAnimationController(__int64 a1)
+  {
+    __int64 result; // rax
+
+    result = (*(__int64 (__fastcall **)(_QWORD))(**(_QWORD **)(a1 + 1328) // 0x530 = 1328 = CBaseAnimGraph::m_skeletonInstance
+                                               + 80LL))(*(_QWORD *)(a1 + 1328)); // 0x50 = 80LL = CGameSceneNode_GetSkeletonInstance
+    if ( result )
+      return *(_QWORD *)(result + 944);           // 0x3B0 = 944 = CSkeletonInstance::m_animationController
+    return result;
+  }

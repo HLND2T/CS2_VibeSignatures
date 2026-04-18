@@ -702,6 +702,26 @@ def _debug_print_json(label, value, debug=False):
     _debug_print_multiline(label, rendered, debug=True)
 
 
+def _debug_format_addr_preview(values, limit=4):
+    if isinstance(values, (str, bytes, bytearray)) or not isinstance(
+        values, (list, tuple)
+    ):
+        return "<invalid>"
+
+    preview = []
+    for value in values[:limit]:
+        try:
+            preview.append(hex(_parse_int_value(value)))
+        except Exception:
+            preview.append(str(value))
+
+    if not preview:
+        return "<none>"
+    if len(values) > limit:
+        preview.append(f"...(+{len(values) - limit} more)")
+    return ", ".join(preview)
+
+
 def _build_struct_member_symbol_name(struct_name, member_name):
     struct_name_text = str(struct_name or "").strip()
     member_name_text = str(member_name or "").strip()
@@ -2828,6 +2848,8 @@ def _build_signature_boundary_py_eval_helpers() -> str:
         "        if pad_buf:\n"
         "            padding.append({'ea': hex(pad_start), 'size': len(pad_buf), 'bytes': bytes(pad_buf).hex(), 'wild': []})\n"
         "    return cursor, padding, False\n"
+        "\n"
+        "globals().update(locals())\n"
     )
 
 
@@ -5996,16 +6018,57 @@ async def preprocess_gen_struct_offset_sig_via_mcp(
 
     candidate_infos = None
     if isinstance(result_data, dict):
+        stderr_text = str(result_data.get("stderr", "") or "").strip()
+        if stderr_text and debug:
+            print(
+                "    Preprocess: struct offset py_eval stderr for "
+                f"{struct_name}.{member_name}:"
+            )
+            print(stderr_text)
+
         result_str = result_data.get("result", "")
         if result_str:
             try:
                 candidate_infos = json.loads(result_str)
-            except (json.JSONDecodeError, TypeError):
+            except (json.JSONDecodeError, TypeError) as exc:
+                if debug:
+                    print(
+                        "    Preprocess: invalid struct offset py_eval JSON "
+                        f"for {struct_name}.{member_name}: {exc}"
+                    )
                 candidate_infos = None
 
+    if debug:
+        if isinstance(candidate_infos, list):
+            candidate_type = "list"
+            candidate_count = str(len(candidate_infos))
+        elif candidate_infos is None:
+            candidate_type = "None"
+            candidate_count = "<not-list>"
+        else:
+            candidate_type = type(candidate_infos).__name__
+            candidate_count = "<not-list>"
+        result_shape = type(result_data).__name__
+        if isinstance(result_data, dict):
+            result_text = result_data.get("result", "")
+            result_shape = f"dict(result_type={type(result_text).__name__})"
+        print(
+            "    Preprocess: struct offset py_eval result shape for "
+            f"{struct_name}.{member_name}: result_data_type={result_shape}; "
+            f"candidate_infos_type={candidate_type}; "
+            f"candidate_count={candidate_count}"
+        )
+
     if not isinstance(candidate_infos, list) or not candidate_infos:
+        if debug:
+            print(
+                "    Preprocess: no candidate instruction stream from py_eval "
+                "for struct offset sig generation of "
+                f"{struct_name}.{member_name} at {hex(offset_inst_va_int)}"
+            )
         return None
 
+    matched_target_inst = False
     for candidate in candidate_infos:
         try:
             inst_va = _parse_int_value(candidate.get("offset_inst_va"))
@@ -6014,6 +6077,7 @@ async def preprocess_gen_struct_offset_sig_via_mcp(
             continue
         if inst_va != offset_inst_va_int or not isinstance(insts, list) or not insts:
             continue
+        matched_target_inst = True
 
         sig_tokens = []
         inst_boundaries = []
@@ -6064,18 +6128,55 @@ async def preprocess_gen_struct_offset_sig_via_mcp(
                 return None
 
             if not isinstance(fb_data, list) or not fb_data:
+                if debug:
+                    print(
+                        "    Preprocess: struct offset candidate rejected "
+                        "because find_bytes returned no payload for "
+                        f"{struct_name}.{member_name}: sig={candidate_sig}"
+                    )
                 continue
             entry = fb_data[0]
             matches = entry.get("matches", [])
             match_count = entry.get("n", len(matches))
-            if match_count != 1 or not matches:
+            match_preview = _debug_format_addr_preview(matches)
+            if match_count == 0 or not matches:
+                if debug:
+                    print(
+                        "    Preprocess: struct offset candidate rejected with "
+                        "zero find_bytes matches for "
+                        f"{struct_name}.{member_name}: sig={candidate_sig}; "
+                        f"hits={match_preview}"
+                    )
+                continue
+            if match_count != 1:
+                if debug:
+                    print(
+                        "    Preprocess: struct offset candidate rejected with "
+                        f"{match_count} find_bytes matches for "
+                        f"{struct_name}.{member_name}: sig={candidate_sig}; "
+                        f"hits={match_preview}"
+                    )
                 continue
 
             try:
                 match_addr = _parse_int_value(matches[0])
             except Exception:
+                if debug:
+                    print(
+                        "    Preprocess: struct offset candidate rejected "
+                        "because find_bytes returned an unparsable hit for "
+                        f"{struct_name}.{member_name}: sig={candidate_sig}; "
+                        f"hits={match_preview}"
+                    )
                 continue
             if match_addr != offset_inst_va_int:
+                if debug:
+                    print(
+                        "    Preprocess: struct offset candidate rejected "
+                        "because unique hit does not match target address for "
+                        f"{struct_name}.{member_name}: sig={candidate_sig}; "
+                        f"hits={match_preview}; expected={hex(offset_inst_va_int)}"
+                    )
                 continue
 
             payload = {
@@ -6089,6 +6190,12 @@ async def preprocess_gen_struct_offset_sig_via_mcp(
                 payload["size"] = resolved_size
             return payload
 
+    if debug and not matched_target_inst:
+        print(
+            "    Preprocess: py_eval candidate instruction stream does not "
+            f"cover target instruction {hex(offset_inst_va_int)} for "
+            f"{struct_name}.{member_name}"
+        )
     if debug:
         print(
             "    Preprocess: failed to generate struct offset sig for "
@@ -7769,15 +7876,31 @@ async def preprocess_common_skill(
                         entry_struct_name != expected_struct_name
                         or entry_member_name != expected_member_name
                     ):
+                        if debug:
+                            print(
+                                "    Preprocess: struct-member name mismatch for "
+                                f"{struct_member_name}: expected "
+                                f"{expected_struct_name}.{expected_member_name}, "
+                                f"got {entry_struct_name}.{entry_member_name}"
+                            )
                         continue
                 else:
+                    entry_symbol_name = _build_struct_member_symbol_name(
+                        entry_struct_name,
+                        entry_member_name,
+                    )
                     if (
-                        _build_struct_member_symbol_name(
-                            entry_struct_name,
-                            entry_member_name,
-                        )
+                        entry_symbol_name
                         != struct_member_name
                     ):
+                        if debug:
+                            print(
+                                "    Preprocess: struct-member name mismatch for "
+                                f"{struct_member_name}: expected symbol "
+                                f"{struct_member_name}, got "
+                                f"{entry_symbol_name or '<invalid>'} from "
+                                f"{entry_struct_name}.{entry_member_name}"
+                            )
                         continue
 
                 struct_data = await _preprocess_direct_struct_offset_sig_via_mcp(
