@@ -562,6 +562,12 @@ modules:
         expected_output:
           - CEngineServer_vtable.{platform}.yaml
 
+      - name: find-CEngineServer_ClientPrintf
+        expected_output:
+          - CEngineServer_ClientPrintf.{platform}.yaml
+        expected_input:
+          - CEngineServer_vtable.{platform}.yaml
+
       - name: find-CLoopTypeClientServerService_vtable
         expected_output:
           - CLoopTypeClientServerService_vtable.{platform}.yaml
@@ -738,6 +744,11 @@ modules:
 
       - name: CEngineServer_vtable
         category: vtable
+
+      - name: CEngineServer_ClientPrintf
+        category: vfunc
+        alias:
+          - CEngineServer::ClientPrintf
 
       - name: CLoopTypeClientServerService_vtable
         category: vtable
