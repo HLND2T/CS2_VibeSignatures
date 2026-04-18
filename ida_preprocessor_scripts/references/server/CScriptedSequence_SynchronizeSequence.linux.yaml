@@ -1,0 +1,343 @@
+func_name: CScriptedSequence_SynchronizeSequence
+func_va: '0x1865fc0'
+disasm_code: |-
+  .text:0000000001865FB0                 mov     rax, qword ptr ds:word_10
+  .text:0000000001865FB8                 ud2
+  .text:0000000001865FC0                 push    rbp
+  .text:0000000001865FC1                 mov     rbp, rsp
+  .text:0000000001865FC4                 push    r14
+  .text:0000000001865FC6                 push    r13
+  .text:0000000001865FC8                 lea     r13, unk_25DF8D0
+  .text:0000000001865FCF                 push    r12
+  .text:0000000001865FD1                 mov     r12, rsi
+  .text:0000000001865FD4                 mov     esi, 0FFFFFFFFh
+  .text:0000000001865FD9                 push    rbx
+  .text:0000000001865FDA                 mov     rbx, rdi
+  .text:0000000001865FDD                 mov     rdi, r13
+  .text:0000000001865FE0                 sub     rsp, 30h
+  .text:0000000001865FE4                 call    sub_1A872F0
+  .text:0000000001865FE9                 test    rax, rax
+  .text:0000000001865FEC                 jz      loc_18662C0
+  .text:0000000001865FF2                 mov     rsi, [rax]
+  .text:0000000001865FF5                 lea     rax, byte_8D6258
+  .text:0000000001865FFC                 mov     rdi, [rbx+10h]
+  .text:0000000001866000                 test    rsi, rsi
+  .text:0000000001866003                 cmovz   rsi, rax
+  .text:0000000001866007                 call    sub_1D57DB0
+  .text:000000000186600C                 test    al, al
+  .text:000000000186600E                 jnz     loc_1866240
+  .text:0000000001866014                 mov     esi, 0FFFFFFFFh
+  .text:0000000001866019                 mov     rdi, r13
+  .text:000000000186601C                 call    sub_1A872F0
+  .text:0000000001866021                 test    rax, rax
+  .text:0000000001866024                 jz      loc_18662B0
+  .text:000000000186602A                 mov     rsi, [rax]
+  .text:000000000186602D                 lea     r14, byte_8D6258
+  .text:0000000001866034                 mov     rdi, [rbx+10h]
+  .text:0000000001866038                 test    rsi, rsi
+  .text:000000000186603B                 cmovz   rsi, r14
+  .text:000000000186603F                 call    sub_1D57DB0
+  .text:0000000001866044                 test    al, al
+  .text:0000000001866046                 jnz     loc_18661D0
+  .text:000000000186604C                 mov     byte ptr [rbx+83Dh], 0
+  .text:0000000001866053                 mov     rdi, r12
+  .text:0000000001866056                 call    CBaseAnimGraph_GetAnimationController
+  .text:000000000186605B                 mov     edx, [rax+2C8h]
+  .text:0000000001866061                 test    edx, edx
+  .text:0000000001866063                 jg      short loc_186606F
+  .text:0000000001866065                 cmp     byte ptr [rax+18h], 4
+  .text:0000000001866069                 jz      loc_1866320
+  .text:000000000186606F                 mov     rdi, r12
+  .text:0000000001866072                 call    CBaseAnimGraph_GetAnimationController
+  .text:0000000001866077                 mov     rdi, rax
+  .text:000000000186607A                 call    sub_1440390
+  .text:000000000186607F                 mov     rdi, r12
+  .text:0000000001866082                 movss   [rbp+var_30], xmm0
+  .text:0000000001866087                 call    CBaseAnimGraph_GetAnimationController
+  .text:000000000186608C                 lea     rdx, sub_DB5150
+  .text:0000000001866093                 mov     rdi, rax
+  .text:0000000001866096                 mov     rax, [rax]
+  .text:0000000001866099                 mov     rax, [rax+68h]
+  .text:000000000186609D                 cmp     rax, rdx
+  .text:00000000018660A0                 jnz     loc_1866310
+  .text:00000000018660A6                 mov     esi, [rdi+2D4h]
+  .text:00000000018660AC                 mov     rdi, r12
+  .text:00000000018660AF                 call    sub_143A930
+  .text:00000000018660B4                 mov     rax, [rbx+10h]
+  .text:00000000018660B8                 movss   [rbp+var_2C], xmm0
+  .text:00000000018660BD                 mov     edi, [rax+38h]
+  .text:00000000018660C0                 call    sub_119D060
+  .text:00000000018660C5                 subss   xmm0, dword ptr [rbx+814h]
+  .text:00000000018660CD                 mov     esi, 0FFFFFFFFh
+  .text:00000000018660D2                 mov     rdi, r13
+  .text:00000000018660D5                 movss   dword ptr [rbp+var_28], xmm0
+  .text:00000000018660DA                 call    sub_1A872F0
+  .text:00000000018660DF                 test    rax, rax
+  .text:00000000018660E2                 jz      loc_1866300
+  .text:00000000018660E8                 mov     rsi, [rax]
+  .text:00000000018660EB                 lea     r13, byte_8D6258
+  .text:00000000018660F2                 mov     rdi, [rbx+10h]
+  .text:00000000018660F6                 test    rsi, rsi
+  .text:00000000018660F9                 cmovz   rsi, r13
+  .text:00000000018660FD                 call    sub_1D57DB0
+  .text:0000000001866102                 test    al, al
+  .text:0000000001866104                 jnz     short loc_1866148
+  .text:0000000001866106                 movss   xmm4, dword ptr [rbp+var_28]
+  .text:000000000186610B                 pxor    xmm0, xmm0
+  .text:000000000186610F                 comiss  xmm0, xmm4
+  .text:0000000001866112                 ja      short loc_1866120
+  .text:0000000001866114                 movss   xmm0, cs:dword_86CEF8
+  .text:000000000186611C                 minss   xmm0, xmm4
+  .text:0000000001866120                 mulss   xmm0, [rbp+var_2C]
+  .text:0000000001866125                 ucomiss xmm0, [rbp+var_30]
+  .text:0000000001866129                 jp      loc_18662D0
+  .text:000000000186612F                 jnz     loc_18662D0
+  .text:0000000001866135                 add     rsp, 30h
+  .text:0000000001866139                 pop     rbx
+  .text:000000000186613A                 pop     r12
+  .text:000000000186613C                 pop     r13
+  .text:000000000186613E                 pop     r14
+  .text:0000000001866140                 pop     rbp
+  .text:0000000001866141                 retn
+  .text:0000000001866148                 mov     rax, [r12+10h]
+  .text:000000000186614D                 pxor    xmm2, xmm2
+  .text:0000000001866151                 pxor    xmm3, xmm3
+  .text:0000000001866155                 pxor    xmm1, xmm1
+  .text:0000000001866159                 cvtss2sd xmm2, dword ptr [rbx+814h]
+  .text:0000000001866161                 cvtss2sd xmm3, dword ptr [rbp+var_28]
+  .text:0000000001866166                 cvtss2sd xmm1, dword ptr [r12+608h]
+  .text:0000000001866170                 movsd   [rbp+var_48], xmm3
+  .text:0000000001866175                 movsd   [rbp+var_40], xmm2
+  .text:000000000186617A                 movsd   [rbp+var_38], xmm1
+  .text:000000000186617F                 mov     r14, [rax+20h]
+  .text:0000000001866183                 mov     rax, [rbx+10h]
+  .text:0000000001866187                 test    r14, r14
+  .text:000000000186618A                 cmovz   r14, r13
+  .text:000000000186618E                 mov     rbx, [rax+18h]
+  .text:0000000001866192                 mov     edi, [rax+38h]
+  .text:0000000001866195                 test    rbx, rbx
+  .text:0000000001866198                 cmovz   rbx, r13
+  .text:000000000186619C                 call    sub_119D060
+  .text:00000000018661A1                 movsd   xmm3, [rbp+var_48]
+  .text:00000000018661A6                 mov     rdx, r14
+  .text:00000000018661A9                 mov     eax, 4
+  .text:00000000018661AE                 movsd   xmm2, [rbp+var_40]
+  .text:00000000018661B3                 mov     rsi, rbx
+  .text:00000000018661B6                 cvtss2sd xmm0, xmm0
+  .text:00000000018661BA                 movsd   xmm1, [rbp+var_38]
+  .text:00000000018661BF                 lea     rdi, a2fSSFFInterval; "%.2f \"%s\"  %s : %f (%f): interval %f"...
+  .text:00000000018661C6                 call    sub_97F110
+  .text:00000000018661CB                 jmp     loc_1866106
+  .text:00000000018661D0                 mov     rax, [rbx+10h]
+  .text:00000000018661D4                 mov     edi, [rax+38h]
+  .text:00000000018661D7                 call    sub_119D060
+  .text:00000000018661DC                 mov     rax, [r12+10h]
+  .text:00000000018661E1                 lea     rdi, aSSFFIntervalF; " - \"%s\"  %s : %f (%f): interval %f\n"
+  .text:00000000018661E8                 pxor    xmm3, xmm3
+  .text:00000000018661EC                 movss   xmm1, dword ptr [rbx+814h]
+  .text:00000000018661F4                 pxor    xmm2, xmm2
+  .text:00000000018661F8                 cvtss2sd xmm3, dword ptr [r12+608h]
+  .text:0000000001866202                 subss   xmm0, xmm1
+  .text:0000000001866206                 cvtss2sd xmm1, xmm1
+  .text:000000000186620A                 mov     rdx, [rax+20h]
+  .text:000000000186620E                 mov     rax, [rbx+10h]
+  .text:0000000001866212                 cvtss2sd xmm2, xmm0
+  .text:0000000001866216                 movapd  xmm0, xmm3
+  .text:000000000186621A                 test    rdx, rdx
+  .text:000000000186621D                 cmovz   rdx, r14
+  .text:0000000001866221                 mov     rsi, [rax+18h]
+  .text:0000000001866225                 mov     eax, 3
+  .text:000000000186622A                 test    rsi, rsi
+  .text:000000000186622D                 cmovz   rsi, r14
+  .text:0000000001866231                 call    sub_97F110
+  .text:0000000001866236                 jmp     loc_186604C
+  .text:0000000001866240                 mov     rax, [rbx+10h]
+  .text:0000000001866244                 mov     edi, [rax+38h]
+  .text:0000000001866247                 call    sub_119D060
+  .text:000000000186624C                 mov     rdi, [rbx+10h]
+  .text:0000000001866250                 pxor    xmm7, xmm7
+  .text:0000000001866254                 cvtss2sd xmm7, xmm0
+  .text:0000000001866258                 movsd   [rbp+var_28], xmm7
+  .text:000000000186625D                 call    sub_1D57ED0
+  .text:0000000001866262                 lea     rdi, [rbx+82Ch]
+  .text:0000000001866269                 mov     r14, rax
+  .text:000000000186626C                 call    sub_A40BA0
+  .text:0000000001866271                 test    rax, rax
+  .text:0000000001866274                 jz      loc_1865FB0
+  .text:000000000186627A                 mov     rax, [rax]
+  .text:000000000186627D                 mov     rdi, [rax+10h]
+  .text:0000000001866281                 call    sub_1D57ED0
+  .text:0000000001866286                 movsd   xmm0, [rbp+var_28]
+  .text:000000000186628B                 mov     rdx, r14
+  .text:000000000186628E                 lea     rdi, aSForSCalledSyn; "%s (for %s) called SynchronizeSequence("...
+  .text:0000000001866295                 mov     rsi, rax
+  .text:0000000001866298                 mov     eax, 1
+  .text:000000000186629D                 call    sub_97F110
+  .text:00000000018662A2                 jmp     loc_1866014
+  .text:00000000018662B0                 mov     rax, cs:qword_25DF8D8
+  .text:00000000018662B7                 mov     rax, [rax+8]
+  .text:00000000018662BB                 jmp     loc_186602A
+  .text:00000000018662C0                 mov     rax, cs:qword_25DF8D8
+  .text:00000000018662C7                 mov     rax, [rax+8]
+  .text:00000000018662CB                 jmp     loc_1865FF2
+  .text:00000000018662D0                 mov     rdi, r12
+  .text:00000000018662D3                 movss   dword ptr [rbp+var_28], xmm0
+  .text:00000000018662D8                 call    sub_143A850
+  .text:00000000018662DD                 movss   xmm0, dword ptr [rbp+var_28]
+  .text:00000000018662E2                 add     rsp, 30h
+  .text:00000000018662E6                 pop     rbx
+  .text:00000000018662E7                 mov     rdi, rax
+  .text:00000000018662EA                 pop     r12
+  .text:00000000018662EC                 pop     r13
+  .text:00000000018662EE                 pop     r14
+  .text:00000000018662F0                 pop     rbp
+  .text:00000000018662F1                 jmp     sub_145A520
+  .text:0000000001866300                 mov     rax, cs:qword_25DF8D8
+  .text:0000000001866307                 mov     rax, [rax+8]
+  .text:000000000186630B                 jmp     loc_18660E8
+  .text:0000000001866310                 call    rax
+  .text:0000000001866312                 mov     esi, eax
+  .text:0000000001866314                 jmp     loc_18660AC
+  .text:0000000001866320                 lea     rsi, aSynchronizeScr; "synchronize scripted sequence"
+  .text:0000000001866327                 mov     rdi, r12
+  .text:000000000186632A                 call    sub_1865B00
+  .text:000000000186632F                 mov     rdi, rax
+  .text:0000000001866332                 test    rax, rax
+  .text:0000000001866335                 jz      loc_1866135
+  .text:000000000186633B                 mov     rax, [rax]
+  .text:000000000186633E                 movss   xmm0, dword ptr [rbx+814h]
+  .text:0000000001866346                 mov     rax, [rax+68h]
+  .text:000000000186634A                 add     rsp, 30h
+  .text:000000000186634E                 pop     rbx
+  .text:000000000186634F                 pop     r12
+  .text:0000000001866351                 pop     r13
+  .text:0000000001866353                 pop     r14
+  .text:0000000001866355                 pop     rbp
+  .text:0000000001866356                 jmp     rax
+procedure: |-
+  __int64 __fastcall CScriptedSequence_SynchronizeSequence(__int64 a1, __int64 a2)
+  {
+    const char **v4; // rax
+    const char *v5; // rsi
+    const char **v6; // rax
+    const char *v7; // rsi
+    __int64 v8; // rax
+    __int64 v9; // rax
+    unsigned int *v10; // rdi
+    __int64 (__fastcall *v11)(); // rax
+    __int64 v12; // rsi
+    const char **v13; // rax
+    const char *v14; // rsi
+    __int64 result; // rax
+    float v16; // xmm0_4
+    float v17; // xmm0_4
+    const char *v18; // r14
+    __int64 v19; // rax
+    const char *v20; // rbx
+    float v21; // xmm0_4
+    float v22; // xmm0_4
+    float v23; // xmm1_4
+    float v24; // xmm0_4
+    double v25; // xmm1_8
+    const char *v26; // rdx
+    const char *v27; // rsi
+    __int64 v28; // r14
+    __int64 v29; // rax
+    __int64 v30; // rax
+    __int64 v31; // rax
+    double v32; // [rsp+10h] [rbp-40h]
+    double v33; // [rsp+18h] [rbp-38h]
+    float v34; // [rsp+20h] [rbp-30h]
+    float v35; // [rsp+24h] [rbp-2Ch]
+    float v36; // [rsp+28h] [rbp-28h]
+    double v37; // [rsp+28h] [rbp-28h]
+
+    v4 = (const char **)sub_1A872F0((__int64)&unk_25DF8D0, -1);
+    if ( !v4 )
+      v4 = *(const char ***)(qword_25DF8D8 + 8);
+    v5 = *v4;
+    if ( !*v4 )
+      v5 = &byte_8D6258;
+    if ( (unsigned __int8)sub_1D57DB0(*(_QWORD *)(a1 + 16), v5) )
+    {
+      v37 = sub_119D060(*(_DWORD *)(*(_QWORD *)(a1 + 16) + 56LL));
+      v28 = sub_1D57ED0(*(_QWORD *)(a1 + 16));
+      v29 = sub_A40BA0(a1 + 2092);
+      if ( !v29 )
+        BUG();
+      v30 = sub_1D57ED0(*(_QWORD *)(*(_QWORD *)v29 + 16LL));
+      sub_97F110("%s (for %s) called SynchronizeSequence() at %0.2f\n", v30, v28, v37);
+    }
+    v6 = (const char **)sub_1A872F0((__int64)&unk_25DF8D0, -1);
+    if ( !v6 )
+      v6 = *(const char ***)(qword_25DF8D8 + 8);
+    v7 = *v6;
+    if ( !*v6 )
+      v7 = &byte_8D6258;
+    if ( (unsigned __int8)sub_1D57DB0(*(_QWORD *)(a1 + 16), v7) )
+    {
+      v22 = sub_119D060(*(_DWORD *)(*(_QWORD *)(a1 + 16) + 56LL));
+      v23 = *(float *)(a1 + 2068);
+      v24 = v22 - v23;
+      v25 = v23;
+      v26 = *(const char **)(*(_QWORD *)(a2 + 16) + 32LL);
+      if ( !v26 )
+        v26 = &byte_8D6258;
+      v27 = *(const char **)(*(_QWORD *)(a1 + 16) + 24LL);
+      if ( !v27 )
+        v27 = &byte_8D6258;
+      sub_97F110(" - \"%s\"  %s : %f (%f): interval %f\n", v27, v26, *(float *)(a2 + 1544), v25, v24);
+    }
+    *(_BYTE *)(a1 + 2109) = 0;
+    v8 = CBaseAnimGraph_GetAnimationController(a2);
+    if ( *(int *)(v8 + 712) <= 0 && *(_BYTE *)(v8 + 24) == 4 )
+    {
+      result = sub_1865B00(a2, "synchronize scripted sequence");
+      if ( result )
+        return (*(__int64 (__fastcall **)(__int64, float))(*(_QWORD *)result + 104LL))(result, *(float *)(a1 + 2068));
+    }
+    else
+    {
+      v9 = CBaseAnimGraph_GetAnimationController(a2);
+      v34 = sub_1440390(v9);
+      v10 = (unsigned int *)CBaseAnimGraph_GetAnimationController(a2);
+      v11 = *(__int64 (__fastcall **)())(*(_QWORD *)v10 + 104LL);
+      if ( v11 == sub_DB5150 )
+        v12 = v10[181];
+      else
+        v12 = ((unsigned int (__fastcall *)(unsigned int *))v11)(v10);
+      v35 = sub_143A930(a2, v12);
+      v36 = sub_119D060(*(_DWORD *)(*(_QWORD *)(a1 + 16) + 56LL)) - *(float *)(a1 + 2068);
+      v13 = (const char **)sub_1A872F0((__int64)&unk_25DF8D0, -1);
+      if ( !v13 )
+        v13 = *(const char ***)(qword_25DF8D8 + 8);
+      v14 = *v13;
+      if ( !*v13 )
+        v14 = &byte_8D6258;
+      result = sub_1D57DB0(*(_QWORD *)(a1 + 16), v14);
+      if ( (_BYTE)result )
+      {
+        v32 = *(float *)(a1 + 2068);
+        v33 = *(float *)(a2 + 1544);
+        v18 = *(const char **)(*(_QWORD *)(a2 + 16) + 32LL);
+        v19 = *(_QWORD *)(a1 + 16);
+        if ( !v18 )
+          v18 = &byte_8D6258;
+        v20 = *(const char **)(v19 + 24);
+        if ( !v20 )
+          v20 = &byte_8D6258;
+        v21 = sub_119D060(*(_DWORD *)(v19 + 56));
+        result = sub_97F110("%.2f \"%s\"  %s : %f (%f): interval %f\n", v20, v18, v21, v33, v32, v36);
+      }
+      v16 = 0.0;
+      if ( v36 >= 0.0 )
+        v16 = fminf(0.15000001, v36);
+      v17 = v16 * v35;
+      if ( v17 != v34 )
+      {
+        v31 = sub_143A850(a2);
+        return sub_145A520(v31, v17);
+      }
+    }
+    return result;
+  }
