@@ -1,0 +1,123 @@
+func_name: FireTargets
+func_va: '0x180e147f0'
+disasm_code: |-
+  .text:0000000180E147F0                 test    rcx, rcx
+  .text:0000000180E147F3                 jz      locret_180E1494F
+  .text:0000000180E147F9                 mov     rax, rsp
+  .text:0000000180E147FC                 mov     [rax+18h], rbp
+  .text:0000000180E14800                 push    rsi
+  .text:0000000180E14801                 push    rdi
+  .text:0000000180E14802                 push    r14
+  .text:0000000180E14804                 sub     rsp, 70h
+  .text:0000000180E14808                 cmp     byte ptr [rcx], 0
+  .text:0000000180E1480B                 mov     r14d, r9d
+  .text:0000000180E1480E                 mov     rbp, r8
+  .text:0000000180E14811                 mov     rdi, rdx
+  .text:0000000180E14814                 mov     rsi, rcx
+  .text:0000000180E14817                 jz      loc_180E1493F
+  .text:0000000180E1481D                 mov     r8, rcx
+  .text:0000000180E14820                 mov     [rax+8], rbx
+  .text:0000000180E14824                 mov     ecx, 2
+  .text:0000000180E14829                 mov     [rax+10h], r15
+  .text:0000000180E1482D                 lea     rdx, aFiringS; "Firing: (%s)\n"
+  .text:0000000180E14834                 call    cs:DevMsg
+  .text:0000000180E1483A                 mov     rcx, cs:g_pEntitySystem
+  .text:0000000180E14841                 xor     r15d, r15d
+  .text:0000000180E14844                 mov     [rsp+88h+var_58], r15
+  .text:0000000180E14849                 mov     r9, rdi
+  .text:0000000180E1484C                 mov     [rsp+88h+var_60], rbp
+  .text:0000000180E14851                 mov     r8, rsi
+  .text:0000000180E14854                 xor     edx, edx
+  .text:0000000180E14856                 mov     [rsp+88h+var_68], rdi
+  .text:0000000180E1485B                 call    CGameEntitySystem_FindEntityByName
+  .text:0000000180E14860                 mov     rbx, rax
+  .text:0000000180E14863                 test    rax, rax
+  .text:0000000180E14866                 jz      loc_180E1492F
+  .text:0000000180E1486C                 movaps  [rsp+88h+var_28], xmm6
+  .text:0000000180E14871                 movss   xmm6, [rsp+88h+arg_20]
+  .text:0000000180E1487A                 nop     word ptr [rax+rax+00h]
+  .text:0000000180E14880                 mov     rcx, [rbx+10h]
+  .text:0000000180E14884                 mov     edx, [rcx+30h]
+  .text:0000000180E14887                 shr     edx, 9
+  .text:0000000180E1488A                 test    dl, 1
+  .text:0000000180E1488D                 jnz     short loc_180E148FA
+  .text:0000000180E1488F                 call    sub_1811A5280
+  .text:0000000180E14894                 mov     rcx, cs:off_181BD05B8
+  .text:0000000180E1489B                 mov     r9, rax
+  .text:0000000180E1489E                 mov     eax, 10624DD3h
+  .text:0000000180E148A3                 mov     [rsp+88h+var_68], rsi
+  .text:0000000180E148A8                 mov     r8d, [rcx+44h]
+  .text:0000000180E148AC                 imul    r8d
+  .text:0000000180E148AF                 sar     edx, 6
+  .text:0000000180E148B2                 mov     ecx, edx
+  .text:0000000180E148B4                 shr     ecx, 1Fh
+  .text:0000000180E148B7                 add     edx, ecx
+  .text:0000000180E148B9                 imul    ecx, edx, 3E8h
+  .text:0000000180E148BF                 lea     rdx, a03dFoundSFirin_0; "[%03d] Found: %s, firing (%s)\n"
+  .text:0000000180E148C6                 sub     r8d, ecx
+  .text:0000000180E148C9                 mov     ecx, 2
+  .text:0000000180E148CE                 call    cs:DevMsg
+  .text:0000000180E148D4                 mov     rax, [rbx]
+  .text:0000000180E148D7                 lea     rdx, [rsp+88h+var_48]
+  .text:0000000180E148DC                 mov     rcx, rbx
+  .text:0000000180E148DF                 movss   [rsp+88h+var_34], xmm6
+  .text:0000000180E148E5                 mov     [rsp+88h+var_48], rdi
+  .text:0000000180E148EA                 mov     [rsp+88h+var_40], rbp
+  .text:0000000180E148EF                 mov     [rsp+88h+var_38], r14d
+  .text:0000000180E148F4                 call    qword ptr [rax+480h]
+  .text:0000000180E148FA                 mov     rcx, cs:g_pEntitySystem
+  .text:0000000180E14901                 mov     r9, rdi
+  .text:0000000180E14904                 mov     [rsp+88h+var_58], r15
+  .text:0000000180E14909                 mov     r8, rsi
+  .text:0000000180E1490C                 mov     [rsp+88h+var_60], rbp
+  .text:0000000180E14911                 mov     rdx, rbx
+  .text:0000000180E14914                 mov     [rsp+88h+var_68], rdi
+  .text:0000000180E14919                 call    CGameEntitySystem_FindEntityByName
+  .text:0000000180E1491E                 mov     rbx, rax
+  .text:0000000180E14921                 test    rax, rax
+  .text:0000000180E14924                 jnz     loc_180E14880
+  .text:0000000180E1492A                 movaps  xmm6, [rsp+88h+var_28]
+  .text:0000000180E1492F                 mov     rbx, [rsp+88h+arg_0]
+  .text:0000000180E14937                 mov     r15, [rsp+88h+arg_8]
+  .text:0000000180E1493F                 mov     rbp, [rsp+88h+arg_10]
+  .text:0000000180E14947                 add     rsp, 70h
+  .text:0000000180E1494B                 pop     r14
+  .text:0000000180E1494D                 pop     rdi
+  .text:0000000180E1494E                 pop     rsi
+  .text:0000000180E1494F                 retn
+procedure: |-
+  void __fastcall FireTargets(const char *a1, __int64 a2, __int64 a3, int a4, int a5)
+  {
+    __int64 *i; // rbx
+    __int64 v10; // rcx
+    const char *v11; // rax
+    __int64 v12; // rax
+    _QWORD v13[2]; // [rsp+40h] [rbp-48h] BYREF
+    int v14; // [rsp+50h] [rbp-38h]
+    int v15; // [rsp+54h] [rbp-34h]
+
+    if ( a1 )
+    {
+      if ( *a1 )
+      {
+        DevMsg(2, "Firing: (%s)\n", a1);
+        for ( i = (__int64 *)CGameEntitySystem_FindEntityByName(g_pEntitySystem, 0, (_DWORD)a1, a2, a2, a3, 0);
+              i;
+              i = (__int64 *)CGameEntitySystem_FindEntityByName(g_pEntitySystem, (_DWORD)i, (_DWORD)a1, a2, a2, a3, 0) )
+        {
+          v10 = i[2];
+          if ( (*(_DWORD *)(v10 + 48) & 0x200) == 0 )
+          {
+            v11 = (const char *)sub_1811A5280(v10);
+            DevMsg(2, "[%03d] Found: %s, firing (%s)\n", *((_DWORD *)off_181BD05B8 + 17) % 1000, v11, a1);
+            v12 = *i;
+            v15 = a5;
+            v13[0] = a2;
+            v13[1] = a3;
+            v14 = a4;
+            (*(void (__fastcall **)(__int64 *, _QWORD *))(v12 + 1152))(i, v13);
+          }
+        }
+      }
+    }
+  }
