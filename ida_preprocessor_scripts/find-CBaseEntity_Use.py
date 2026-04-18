@@ -3,22 +3,9 @@
 
 from ida_analyze_util import preprocess_common_skill
 
-TARGET_FUNCTION_NAMES = [
-    "CBaseEntity_Use",
-]
-
-LLM_DECOMPILE = [
-    # (symbol_name, path_to_prompt, path_to_reference)
-    (
-        "CBaseEntity_Use",
-        "prompt/call_llm_decompile.md",
-        "references/server/CCSPlayer_UseServices_OnUseImpl.{platform}.yaml",
-    ),
-]
-
-FUNC_VTABLE_RELATIONS = [
-    # (func_name, vtable_class)
-    ("CBaseEntity_Use", "CBaseEntity"),
+INHERIT_VFUNCS = [
+    # (target_func_name, inherit_vtable_class, base_vfunc_name, generate_func_sig)
+    ("CBaseEntity_Use", "CBaseEntity", "CMomentaryRotButton_Use", True),
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
@@ -27,19 +14,31 @@ GENERATE_YAML_DESIRED_FIELDS = [
         "CBaseEntity_Use",
         [
             "func_name",
-            "vfunc_sig",
+            "func_va",
+            "func_rva",
+            "func_size",
+            "func_sig",
+            "vtable_name",
             "vfunc_offset",
             "vfunc_index",
-            "vtable_name",
         ],
     ),
 ]
 
+
 async def preprocess_skill(
-    session, skill_name, expected_outputs, old_yaml_map,
-    new_binary_dir, platform, image_base, llm_config=None, debug=False,
+    session,
+    skill_name,
+    expected_outputs,
+    old_yaml_map,
+    new_binary_dir,
+    platform,
+    image_base,
+    debug=False,
 ):
-    """Reuse previous gamever vfunc_sig to locate target virtual function and write YAML."""
+    """Reuse old func_sig first; fallback to vtable index + generated signature when needed."""
+    _ = skill_name
+
     return await preprocess_common_skill(
         session=session,
         expected_outputs=expected_outputs,
@@ -47,10 +46,7 @@ async def preprocess_skill(
         new_binary_dir=new_binary_dir,
         platform=platform,
         image_base=image_base,
-        func_names=TARGET_FUNCTION_NAMES,
-        func_vtable_relations=FUNC_VTABLE_RELATIONS,
-        llm_decompile_specs=LLM_DECOMPILE,
-        llm_config=llm_config,
+        inherit_vfuncs=INHERIT_VFUNCS,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
     )
