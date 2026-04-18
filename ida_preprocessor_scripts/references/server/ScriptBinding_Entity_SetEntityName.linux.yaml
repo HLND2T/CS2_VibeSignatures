@@ -1,0 +1,277 @@
+func_name: ScriptBinding_Entity_SetEntityName
+func_va: '0xa94a60'
+disasm_code: |-
+  .text:0000000000A94A60                 push    rbp
+  .text:0000000000A94A61                 mov     esi, 1
+  .text:0000000000A94A66                 mov     rbp, rsp
+  .text:0000000000A94A69                 push    r15
+  .text:0000000000A94A6B                 push    r14
+  .text:0000000000A94A6D                 push    r13
+  .text:0000000000A94A6F                 push    r12
+  .text:0000000000A94A71                 mov     r12, rdi
+  .text:0000000000A94A74                 push    rbx
+  .text:0000000000A94A75                 sub     rsp, 48h
+  .text:0000000000A94A79                 lea     r15, dword_24AA1F8
+  .text:0000000000A94A80                 mov     edi, [r15]
+  .text:0000000000A94A83                 call    sub_980970
+  .text:0000000000A94A88                 test    al, al
+  .text:0000000000A94A8A                 jnz     loc_A94BE8
+  .text:0000000000A94A90                 call    sub_981170
+  .text:0000000000A94A95                 lea     r13, [rbp+var_50]
+  .text:0000000000A94A99                 mov     rdi, r13
+  .text:0000000000A94A9C                 mov     rsi, rax
+  .text:0000000000A94A9F                 mov     rbx, rax
+  .text:0000000000A94AA2                 call    sub_981120
+  .text:0000000000A94AA7                 call    sub_A44BD0
+  .text:0000000000A94AAC                 mov     rdi, rax
+  .text:0000000000A94AAF                 test    rax, rax
+  .text:0000000000A94AB2                 jz      loc_A94C18
+  .text:0000000000A94AB8                 call    sub_A44210
+  .text:0000000000A94ABD                 mov     r14, rax
+  .text:0000000000A94AC0                 mov     rax, [r12+8]
+  .text:0000000000A94AC5                 lea     rdi, [rax-8]
+  .text:0000000000A94AC9                 call    sub_A8C000
+  .text:0000000000A94ACE                 test    rax, rax
+  .text:0000000000A94AD1                 jz      loc_A94C98
+  .text:0000000000A94AD7                 cmp     dword ptr [rax], 2
+  .text:0000000000A94ADA                 jnz     loc_A94BC0
+  .text:0000000000A94AE0                 mov     ecx, [rax+8]
+  .text:0000000000A94AE3                 cmp     ecx, 0FFFFFFFFh
+  .text:0000000000A94AE6                 jz      loc_A94BC0
+  .text:0000000000A94AEC                 mov     rsi, cs:qword_24587A0
+  .text:0000000000A94AF3                 test    rsi, rsi
+  .text:0000000000A94AF6                 jz      loc_A94BC0
+  .text:0000000000A94AFC                 cmp     ecx, 0FFFFFFFEh
+  .text:0000000000A94AFF                 jz      loc_A94BC0
+  .text:0000000000A94B05                 movzx   eax, word ptr [rax+8]
+  .text:0000000000A94B09                 mov     rdx, rax
+  .text:0000000000A94B0C                 shr     rdx, 9
+  .text:0000000000A94B10                 and     edx, 3Fh
+  .text:0000000000A94B13                 mov     rdx, [rsi+rdx*8]
+  .text:0000000000A94B17                 test    rdx, rdx
+  .text:0000000000A94B1A                 jz      loc_A94BC0
+  .text:0000000000A94B20                 and     eax, 1FFh
+  .text:0000000000A94B25                 imul    rax, 70h ; 'p'
+  .text:0000000000A94B29                 add     rax, rdx
+  .text:0000000000A94B2C                 cmp     ecx, [rax+10h]
+  .text:0000000000A94B2F                 jnz     loc_A94BC0
+  .text:0000000000A94B35                 mov     rcx, [rax]
+  .text:0000000000A94B38                 test    rcx, rcx
+  .text:0000000000A94B3B                 jz      loc_A94BC0
+  .text:0000000000A94B41                 mov     edi, [r12+10h]
+  .text:0000000000A94B46                 test    edi, edi
+  .text:0000000000A94B48                 jle     loc_A94C40
+  .text:0000000000A94B4E                 mov     rsi, [r12+8]
+  .text:0000000000A94B53                 lea     rbx, [rbp+var_58]
+  .text:0000000000A94B57                 mov     rdi, r14
+  .text:0000000000A94B5A                 mov     [rbp+var_68], rcx
+  .text:0000000000A94B5E                 mov     rdx, rbx
+  .text:0000000000A94B61                 mov     [rbp+var_58], 0
+  .text:0000000000A94B69                 call    sub_A43500
+  .text:0000000000A94B6E                 mov     rcx, [rbp+var_68]
+  .text:0000000000A94B72                 test    al, al
+  .text:0000000000A94B74                 jz      loc_A94CC0
+  .text:0000000000A94B7A                 mov     rsi, [rbp+var_58]
+  .text:0000000000A94B7E                 lea     rax, byte_8D6258
+  .text:0000000000A94B85                 mov     rdi, [rcx+10h]
+  .text:0000000000A94B89                 test    rsi, rsi
+  .text:0000000000A94B8C                 cmovz   rsi, rax
+  .text:0000000000A94B90                 call    CEntityIdentity_SetEntityName
+  .text:0000000000A94B95                 cmp     [rbp+var_58], 0
+  .text:0000000000A94B9A                 jz      short loc_A94BA4
+  .text:0000000000A94B9C                 mov     rdi, rbx
+  .text:0000000000A94B9F                 call    sub_980B10
+  .text:0000000000A94BA4                 mov     rdi, r13
+  .text:0000000000A94BA7                 call    sub_980FA0
+  .text:0000000000A94BAC                 lea     rsp, [rbp-28h]
+  .text:0000000000A94BB0                 pop     rbx
+  .text:0000000000A94BB1                 pop     r12
+  .text:0000000000A94BB3                 pop     r13
+  .text:0000000000A94BB5                 pop     r14
+  .text:0000000000A94BB7                 pop     r15
+  .text:0000000000A94BB9                 pop     rbp
+  .text:0000000000A94BBA                 retn
+  .text:0000000000A94BC0                 lea     rcx, aSetentityname; "SetEntityName"
+  .text:0000000000A94BC7                 mov     rdi, rbx
+  .text:0000000000A94BCA                 xor     eax, eax
+  .text:0000000000A94BCC                 lea     rdx, aEntity; "Entity"
+  .text:0000000000A94BD3                 lea     rsi, aMethodSSInvoke; "Method %s.%s invoked with incorrect 'th"...
+  .text:0000000000A94BDA                 call    sub_1A62E70
+  .text:0000000000A94BDF                 jmp     short loc_A94BA4
+  .text:0000000000A94BE8                 mov     edi, [r15]
+  .text:0000000000A94BEB                 lea     r8, aSetentityname; "SetEntityName"
+  .text:0000000000A94BF2                 xor     eax, eax
+  .text:0000000000A94BF4                 mov     esi, 1
+  .text:0000000000A94BF9                 lea     rcx, aEntity; "Entity"
+  .text:0000000000A94C00                 lea     rdx, aCallingSS; "Calling %s.%s\n"
+  .text:0000000000A94C07                 call    sub_97FAD0
+  .text:0000000000A94C0C                 jmp     loc_A94A90
+  .text:0000000000A94C18                 lea     rcx, aSetentityname; "SetEntityName"
+  .text:0000000000A94C1F                 mov     rdi, rbx
+  .text:0000000000A94C22                 xor     eax, eax
+  .text:0000000000A94C24                 lea     rdx, aEntity; "Entity"
+  .text:0000000000A94C2B                 lea     rsi, aMethodSSInvoke_0; "Method %s.%s invoked in incorrect scope"...
+  .text:0000000000A94C32                 call    sub_1A62E70
+  .text:0000000000A94C37                 jmp     loc_A94BA4
+  .text:0000000000A94C40                 mov     edi, [r15]
+  .text:0000000000A94C43                 mov     esi, 3
+  .text:0000000000A94C48                 call    sub_980970
+  .text:0000000000A94C4D                 test    al, al
+  .text:0000000000A94C4F                 jz      loc_A94BA4
+  .text:0000000000A94C55                 mov     edi, [r15]
+  .text:0000000000A94C58                 sub     rsp, 8
+  .text:0000000000A94C5C                 mov     esi, 3
+  .text:0000000000A94C61                 mov     r9d, 1
+  .text:0000000000A94C67                 lea     rax, aNameString; "(name: string)"
+  .text:0000000000A94C6E                 push    rax
+  .text:0000000000A94C6F                 lea     rcx, aEntity; "Entity"
+  .text:0000000000A94C76                 xor     eax, eax
+  .text:0000000000A94C78                 lea     r8, aSetentityname; "SetEntityName"
+  .text:0000000000A94C7F                 lea     rdx, aMethodSSRequir; "Method %s.%s requires %d argument(s), %"...
+  .text:0000000000A94C86                 call    sub_97FAD0
+  .text:0000000000A94C8B                 pop     rcx
+  .text:0000000000A94C8C                 pop     rsi
+  .text:0000000000A94C8D                 jmp     loc_A94BA4
+  .text:0000000000A94C98                 lea     rcx, aSetentityname; "SetEntityName"
+  .text:0000000000A94C9F                 mov     rdi, rbx
+  .text:0000000000A94CA2                 lea     rdx, aEntity; "Entity"
+  .text:0000000000A94CA9                 lea     rsi, aMethodSSInvoke_2; "Method %s.%s invoked with unrecognized "...
+  .text:0000000000A94CB0                 call    sub_1A62E70
+  .text:0000000000A94CB5                 jmp     loc_A94BA4
+  .text:0000000000A94CC0                 mov     edi, [r15]
+  .text:0000000000A94CC3                 mov     esi, 3
+  .text:0000000000A94CC8                 call    sub_980970
+  .text:0000000000A94CCD                 test    al, al
+  .text:0000000000A94CCF                 jz      loc_A94B95
+  .text:0000000000A94CD5                 mov     edi, [r15]
+  .text:0000000000A94CD8                 sub     rsp, 8
+  .text:0000000000A94CDC                 mov     esi, 3
+  .text:0000000000A94CE1                 xor     eax, eax
+  .text:0000000000A94CE3                 push    0
+  .text:0000000000A94CE5                 lea     rdx, aMethodSSInvoke_1; "Method %s.%s invoked with bad %s value."...
+  .text:0000000000A94CEC                 lea     r9, aName; "name"
+  .text:0000000000A94CF3                 lea     r8, aSetentityname; "SetEntityName"
+  .text:0000000000A94CFA                 lea     rcx, aEntity; "Entity"
+  .text:0000000000A94D01                 call    sub_97FAD0
+  .text:0000000000A94D06                 pop     rax
+  .text:0000000000A94D07                 pop     rdx
+  .text:0000000000A94D08                 jmp     loc_A94B95
+procedure: |-
+  __int64 __fastcall ScriptBinding_Entity_SetEntityName(__int64 a1)
+  {
+    __int64 v2; // rbx
+    __int64 v3; // rdi
+    int v4; // r8d
+    int v5; // r9d
+    __int64 v6; // r14
+    _DWORD *v7; // rax
+    int v8; // r8d
+    int v9; // r9d
+    int v10; // ecx
+    unsigned __int64 v11; // rax
+    __int64 v12; // rdx
+    __int64 *v13; // rax
+    __int64 v14; // rsi
+    __int64 v15; // rdx
+    const char *v16; // rsi
+    __int64 v18; // [rsp+8h] [rbp-68h]
+    const char *v19; // [rsp+18h] [rbp-58h] BYREF
+    _BYTE v20[80]; // [rsp+20h] [rbp-50h] BYREF
+
+    if ( (unsigned __int8)sub_980970((unsigned int)dword_24AA1F8, 1) )
+      sub_97FAD0((unsigned int)dword_24AA1F8, 1, "Calling %s.%s\n", "Entity", "SetEntityName");
+    v2 = sub_981170();
+    sub_981120(v20, v2);
+    v3 = sub_A44BD0();
+    if ( v3 )
+    {
+      v6 = sub_A44210(v3);
+      v7 = (_DWORD *)sub_A8C000(*(_QWORD *)(a1 + 8) - 8LL);
+      if ( v7 )
+      {
+        if ( *v7 == 2
+          && (v10 = v7[2], v10 != -1)
+          && qword_24587A0
+          && v10 != -2
+          && (v11 = *((unsigned __int16 *)v7 + 4), (v12 = *(_QWORD *)(qword_24587A0 + 8 * ((v11 >> 9) & 0x3F))) != 0)
+          && (v13 = (__int64 *)(v12 + 112 * (v11 & 0x1FF)), v10 == *((_DWORD *)v13 + 4))
+          && *v13 )
+        {
+          if ( *(int *)(a1 + 16) <= 0 )
+          {
+            if ( (unsigned __int8)sub_980970((unsigned int)dword_24AA1F8, 3) )
+              sub_97FAD0(
+                (unsigned int)dword_24AA1F8,
+                3,
+                "Method %s.%s requires %d argument(s), %s.",
+                "Entity",
+                "SetEntityName",
+                1,
+                "(name: string)");
+          }
+          else
+          {
+            v14 = *(_QWORD *)(a1 + 8);
+            v18 = *v13;
+            v19 = nullptr;
+            if ( (unsigned __int8)sub_A43500(v6, v14, &v19) )
+            {
+              v16 = v19;
+              if ( !v19 )
+                v16 = &byte_8D6258;
+              CEntityIdentity_SetEntityName(*(_QWORD *)(v18 + 16), v16, v15, v18);
+            }
+            else
+            {
+              v16 = (_BYTE *)(dword_0 + 3);
+              if ( (unsigned __int8)sub_980970((unsigned int)dword_24AA1F8, 3) )
+              {
+                v16 = (_BYTE *)(dword_0 + 3);
+                sub_97FAD0(
+                  (unsigned int)dword_24AA1F8,
+                  3,
+                  "Method %s.%s invoked with bad %s value. (parameter #%d)\n",
+                  "Entity",
+                  "SetEntityName",
+                  "name",
+                  0);
+              }
+            }
+            if ( v19 )
+              sub_980B10(&v19, v16);
+          }
+        }
+        else
+        {
+          sub_1A62E70(
+            v2,
+            (unsigned int)"Method %s.%s invoked with incorrect 'this' value.",
+            (unsigned int)"Entity",
+            (unsigned int)"SetEntityName",
+            v8,
+            v9);
+        }
+      }
+      else
+      {
+        sub_1A62E70(
+          v2,
+          (unsigned int)"Method %s.%s invoked with unrecognized 'this' value.",
+          (unsigned int)"Entity",
+          (unsigned int)"SetEntityName",
+          v8,
+          v9);
+      }
+    }
+    else
+    {
+      sub_1A62E70(
+        v2,
+        (unsigned int)"Method %s.%s invoked in incorrect scope.",
+        (unsigned int)"Entity",
+        (unsigned int)"SetEntityName",
+        v4,
+        v5);
+    }
+    return sub_980FA0(v20);
+  }

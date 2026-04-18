@@ -1,0 +1,294 @@
+func_name: ScriptBinding_Entity_SetEntityName
+func_va: '0x180261450'
+disasm_code: |-
+  .text:0000000180261450                 push    rsi
+  .text:0000000180261452                 push    rdi
+  .text:0000000180261453                 push    r14
+  .text:0000000180261455                 sub     rsp, 60h
+  .text:0000000180261459                 mov     rdi, rcx
+  .text:000000018026145C                 mov     edx, 1
+  .text:0000000180261461                 mov     ecx, cs:dword_181D1CD8C
+  .text:0000000180261467                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:000000018026146D                 lea     r14, aSetentityname; "SetEntityName"
+  .text:0000000180261474                 test    al, al
+  .text:0000000180261476                 jz      short loc_18026149C
+  .text:0000000180261478                 mov     ecx, cs:dword_181D1CD8C
+  .text:000000018026147E                 lea     r9, aEntity; "Entity"
+  .text:0000000180261485                 lea     r8, aCallingSS; "Calling %s.%s\n"
+  .text:000000018026148C                 mov     [rsp+78h+var_58], r14
+  .text:0000000180261491                 mov     edx, 1
+  .text:0000000180261496                 call    cs:LoggingSystem_Log
+  .text:000000018026149C                 mov     [rsp+78h+arg_0], rbx
+  .text:00000001802614A4                 mov     [rsp+78h+arg_18], rbp
+  .text:00000001802614AC                 call    ?GetCurrent@Isolate@v8@@SAPEAV12@XZ; v8::Isolate::GetCurrent(void)
+  .text:00000001802614B1                 ; struct v8::Isolate *
+  .text:00000001802614B1                 mov     rdx, rax; struct v8::Isolate *
+  .text:00000001802614B4                 ; this
+  .text:00000001802614B4                 lea     rcx, [rsp+78h+var_38]; this
+  .text:00000001802614B9                 mov     rsi, rax
+  .text:00000001802614BC                 call    ??0HandleScope@v8@@QEAA@PEAVIsolate@1@@Z; v8::HandleScope::HandleScope(v8::Isolate *)
+  .text:00000001802614C1                 call    sub_1801D1D60
+  .text:00000001802614C6                 test    rax, rax
+  .text:00000001802614C9                 jnz     short loc_1802614D7
+  .text:00000001802614CB                 lea     rdx, aMethodSSInvoke; "Method %s.%s invoked in incorrect scope"...
+  .text:00000001802614D2                 jmp     loc_1802616F9
+  .text:00000001802614D7                 lea     rdx, [rsp+78h+arg_10]
+  .text:00000001802614DF                 mov     rcx, rax
+  .text:00000001802614E2                 call    sub_1801D1CB0
+  .text:00000001802614E7                 mov     rbx, [rdi+8]
+  .text:00000001802614EB                 sub     rbx, 8
+  .text:00000001802614EF                 ; this
+  .text:00000001802614EF                 mov     rcx, rbx; this
+  .text:00000001802614F2                 call    ?InternalFieldCount@Object@v8@@QEBAHXZ; v8::Object::InternalFieldCount(void)
+  .text:00000001802614F7                 cmp     eax, 3
+  .text:00000001802614FA                 jnz     loc_1802616F2
+  .text:0000000180261500                 mov     rcx, [rbx]
+  .text:0000000180261503                 mov     rax, [rcx-1]
+  .text:0000000180261507                 movzx   eax, word ptr [rax+0Bh]
+  .text:000000018026150B                 cmp     eax, 410h
+  .text:0000000180261510                 jz      short loc_18026152A
+  .text:0000000180261512                 add     eax, 0FFFFFBDFh
+  .text:0000000180261517                 cmp     eax, 3E9h
+  .text:000000018026151C                 jbe     short loc_18026152A
+  .text:000000018026151E                 ; int
+  .text:000000018026151E                 xor     edx, edx; int
+  .text:0000000180261520                 ; this
+  .text:0000000180261520                 mov     rcx, rbx; this
+  .text:0000000180261523                 call    ?SlowGetAlignedPointerFromInternalField@Object@v8@@AEAAPEAXH@Z; v8::Object::SlowGetAlignedPointerFromInternalField(int)
+  .text:0000000180261528                 jmp     short loc_18026152E
+  .text:000000018026152A                 mov     rax, [rcx+17h]
+  .text:000000018026152E                 lea     rcx, unk_181AF7930
+  .text:0000000180261535                 cmp     rax, rcx
+  .text:0000000180261538                 jnz     loc_1802616F2
+  .text:000000018026153E                 mov     rcx, [rbx]
+  .text:0000000180261541                 mov     rax, [rcx-1]
+  .text:0000000180261545                 movzx   eax, word ptr [rax+0Bh]
+  .text:0000000180261549                 cmp     eax, 410h
+  .text:000000018026154E                 jz      short loc_18026156B
+  .text:0000000180261550                 add     eax, 0FFFFFBDFh
+  .text:0000000180261555                 cmp     eax, 3E9h
+  .text:000000018026155A                 jbe     short loc_18026156B
+  .text:000000018026155C                 ; int
+  .text:000000018026155C                 mov     edx, 1; int
+  .text:0000000180261561                 ; this
+  .text:0000000180261561                 mov     rcx, rbx; this
+  .text:0000000180261564                 call    ?SlowGetAlignedPointerFromInternalField@Object@v8@@AEAAPEAXH@Z; v8::Object::SlowGetAlignedPointerFromInternalField(int)
+  .text:0000000180261569                 jmp     short loc_18026156F
+  .text:000000018026156B                 mov     rax, [rcx+1Fh]
+  .text:000000018026156F                 test    rax, rax
+  .text:0000000180261572                 jz      loc_1802616F2
+  .text:0000000180261578                 cmp     dword ptr [rax], 2
+  .text:000000018026157B                 jnz     loc_1802616E9
+  .text:0000000180261581                 mov     ecx, [rax+8]
+  .text:0000000180261584                 xor     ebp, ebp
+  .text:0000000180261586                 cmp     ecx, 0FFFFFFFFh
+  .text:0000000180261589                 jz      short loc_1802615D7
+  .text:000000018026158B                 mov     r8, cs:qword_181D17000
+  .text:0000000180261592                 test    r8, r8
+  .text:0000000180261595                 jz      short loc_1802615D7
+  .text:0000000180261597                 cmp     ecx, 0FFFFFFFEh
+  .text:000000018026159A                 jz      short loc_1802615CA
+  .text:000000018026159C                 mov     eax, ecx
+  .text:000000018026159E                 and     eax, 7FFFh
+  .text:00000001802615A3                 mov     edx, eax
+  .text:00000001802615A5                 shr     rax, 9
+  .text:00000001802615A9                 mov     r9, [r8+rax*8]
+  .text:00000001802615AD                 test    r9, r9
+  .text:00000001802615B0                 jz      short loc_1802615CA
+  .text:00000001802615B2                 and     edx, 1FFh
+  .text:00000001802615B8                 imul    rax, rdx, 70h ; 'p'
+  .text:00000001802615BC                 add     rax, r9
+  .text:00000001802615BF                 jz      short loc_1802615CA
+  .text:00000001802615C1                 cmp     [rax+10h], ecx
+  .text:00000001802615C4                 cmovnz  rax, rbp
+  .text:00000001802615C8                 jmp     short loc_1802615CD
+  .text:00000001802615CA                 mov     rax, rbp
+  .text:00000001802615CD                 test    rax, rax
+  .text:00000001802615D0                 jz      short loc_1802615D7
+  .text:00000001802615D2                 mov     rbx, [rax]
+  .text:00000001802615D5                 jmp     short loc_1802615DA
+  .text:00000001802615D7                 mov     rbx, rbp
+  .text:00000001802615DA                 test    rbx, rbx
+  .text:00000001802615DD                 jz      loc_1802616E9
+  .text:00000001802615E3                 cmp     dword ptr [rdi+10h], 1
+  .text:00000001802615E7                 jge     short loc_18026163F
+  .text:00000001802615E9                 mov     ecx, cs:dword_181D1CD8C
+  .text:00000001802615EF                 mov     edx, 3
+  .text:00000001802615F4                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:00000001802615FA                 test    al, al
+  .text:00000001802615FC                 jz      loc_18026170B
+  .text:0000000180261602                 mov     ecx, cs:dword_181D1CD8C
+  .text:0000000180261608                 lea     rax, aNameString; "(name: string)"
+  .text:000000018026160F                 mov     [rsp+78h+var_48], rax
+  .text:0000000180261614                 lea     r9, aEntity; "Entity"
+  .text:000000018026161B                 mov     dword ptr [rsp+78h+var_50], 1
+  .text:0000000180261623                 lea     r8, aMethodSSRequir; "Method %s.%s requires %d argument(s), %"...
+  .text:000000018026162A                 mov     edx, 3
+  .text:000000018026162F                 mov     [rsp+78h+var_58], r14
+  .text:0000000180261634                 call    cs:LoggingSystem_Log
+  .text:000000018026163A                 jmp     loc_18026170B
+  .text:000000018026163F                 mov     rdx, [rdi+8]
+  .text:0000000180261643                 lea     r8, [rsp+78h+arg_8]
+  .text:000000018026164B                 ; this
+  .text:000000018026164B                 mov     rcx, [rsp+78h+arg_10]; this
+  .text:0000000180261653                 mov     [rsp+78h+arg_8], rbp
+  .text:000000018026165B                 call    sub_1801BDDB0
+  .text:0000000180261660                 test    al, al
+  .text:0000000180261662                 jnz     short loc_1802616B0
+  .text:0000000180261664                 mov     ecx, cs:dword_181D1CD8C
+  .text:000000018026166A                 mov     edx, 3
+  .text:000000018026166F                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:0000000180261675                 test    al, al
+  .text:0000000180261677                 jz      short loc_1802616CF
+  .text:0000000180261679                 mov     ecx, cs:dword_181D1CD8C
+  .text:000000018026167F                 lea     rax, aName; "name"
+  .text:0000000180261686                 mov     [rsp+78h+var_48], rbp
+  .text:000000018026168B                 lea     r9, aEntity; "Entity"
+  .text:0000000180261692                 mov     [rsp+78h+var_50], rax
+  .text:0000000180261697                 lea     r8, aMethodSSInvoke_1; "Method %s.%s invoked with bad %s value."...
+  .text:000000018026169E                 mov     edx, 3
+  .text:00000001802616A3                 mov     [rsp+78h+var_58], r14
+  .text:00000001802616A8                 call    cs:LoggingSystem_Log
+  .text:00000001802616AE                 jmp     short loc_1802616CF
+  .text:00000001802616B0                 mov     rax, [rsp+78h+arg_8]
+  .text:00000001802616B8                 lea     rdx, byte_18152DF88
+  .text:00000001802616BF                 mov     rcx, [rbx+10h]
+  .text:00000001802616C3                 test    rax, rax
+  .text:00000001802616C6                 cmovnz  rdx, rax
+  .text:00000001802616CA                 call    CEntityIdentity_SetEntityName
+  .text:00000001802616CF                 cmp     [rsp+78h+arg_8], rbp
+  .text:00000001802616D7                 jz      short loc_18026170B
+  .text:00000001802616D9                 lea     rcx, [rsp+78h+arg_8]
+  .text:00000001802616E1                 call    cs:?FreeMemoryBlock@CUtlString@@AEAAXXZ; CUtlString::FreeMemoryBlock(void)
+  .text:00000001802616E7                 jmp     short loc_18026170B
+  .text:00000001802616E9                 lea     rdx, aMethodSSInvoke_0; "Method %s.%s invoked with incorrect 'th"...
+  .text:00000001802616F0                 jmp     short loc_1802616F9
+  .text:00000001802616F2                 lea     rdx, aMethodSSInvoke_2; "Method %s.%s invoked with unrecognized "...
+  .text:00000001802616F9                 mov     r9, r14
+  .text:00000001802616FC                 lea     r8, aEntity; "Entity"
+  .text:0000000180261703                 mov     rcx, rsi
+  .text:0000000180261706                 call    sub_180F68130
+  .text:000000018026170B                 ; this
+  .text:000000018026170B                 lea     rcx, [rsp+78h+var_38]; this
+  .text:0000000180261710                 call    ??1HandleScope@v8@@QEAA@XZ; v8::HandleScope::~HandleScope(void)
+  .text:0000000180261715                 mov     rbp, [rsp+78h+arg_18]
+  .text:000000018026171D                 mov     rbx, [rsp+78h+arg_0]
+  .text:0000000180261725                 add     rsp, 60h
+  .text:0000000180261729                 pop     r14
+  .text:000000018026172B                 pop     rdi
+  .text:000000018026172C                 pop     rsi
+  .text:000000018026172D                 retn
+procedure: |-
+  void __fastcall ScriptBinding_Entity_SetEntityName(__int64 a1)
+  {
+    struct v8::Isolate *Current; // rsi
+    __int64 v3; // rax
+    const char *v4; // rdx
+    v8::Object *v5; // rbx
+    int v6; // eax
+    void *AlignedPointerFromInternalField; // rax
+    int v8; // eax
+    _DWORD *v9; // rax
+    int v10; // ecx
+    __int64 v11; // r9
+    __int64 *v12; // rax
+    __int64 v13; // rbx
+    char *v14; // rdx
+    _BYTE v15[56]; // [rsp+40h] [rbp-38h] BYREF
+    char *v16; // [rsp+88h] [rbp+10h] BYREF
+    v8::Context *v17; // [rsp+90h] [rbp+18h] BYREF
+
+    if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_181D1CD8C, 1) )
+      LoggingSystem_Log((unsigned int)dword_181D1CD8C, 1, "Calling %s.%s\n", "Entity", "SetEntityName");
+    Current = v8::Isolate::GetCurrent();
+    v8::HandleScope::HandleScope((v8::HandleScope *)v15, Current);
+    v3 = sub_1801D1D60();
+    if ( !v3 )
+    {
+      v4 = "Method %s.%s invoked in incorrect scope.";
+  LABEL_43:
+      sub_180F68130(Current, v4, "Entity", "SetEntityName");
+      goto LABEL_44;
+    }
+    sub_1801D1CB0(v3, &v17);
+    v5 = (v8::Object *)(*(_QWORD *)(a1 + 8) - 8LL);
+    if ( v8::Object::InternalFieldCount(v5) != 3
+      || ((v6 = *(unsigned __int16 *)(*(_QWORD *)(*(_QWORD *)v5 - 1LL) + 11LL), v6 == 1040)
+       || (unsigned int)(v6 - 1057) <= 0x3E9
+        ? (AlignedPointerFromInternalField = *(void **)(*(_QWORD *)v5 + 23LL))
+        : (AlignedPointerFromInternalField = v8::Object::SlowGetAlignedPointerFromInternalField(v5, 0)),
+          AlignedPointerFromInternalField != &unk_181AF7930
+       || ((v8 = *(unsigned __int16 *)(*(_QWORD *)(*(_QWORD *)v5 - 1LL) + 11LL), v8 == 1040)
+        || (unsigned int)(v8 - 1057) <= 0x3E9
+         ? (v9 = *(_DWORD **)(*(_QWORD *)v5 + 31LL))
+         : (v9 = v8::Object::SlowGetAlignedPointerFromInternalField(v5, 1)),
+           !v9)) )
+    {
+      v4 = "Method %s.%s invoked with unrecognized 'this' value.";
+      goto LABEL_43;
+    }
+    if ( *v9 != 2 )
+      goto LABEL_41;
+    v10 = v9[2];
+    if ( v10 == -1 || !qword_181D17000 )
+      goto LABEL_28;
+    if ( v10 != -2
+      && (v11 = *(_QWORD *)(qword_181D17000 + 8 * ((unsigned __int64)(v10 & 0x7FFF) >> 9))) != 0
+      && (v12 = (__int64 *)(v11 + 112LL * (v10 & 0x1FF))) != nullptr )
+    {
+      if ( *((_DWORD *)v12 + 4) != v10 )
+        v12 = nullptr;
+    }
+    else
+    {
+      v12 = nullptr;
+    }
+    if ( v12 )
+      v13 = *v12;
+    else
+  LABEL_28:
+      v13 = 0;
+    if ( !v13 )
+    {
+  LABEL_41:
+      v4 = "Method %s.%s invoked with incorrect 'this' value.";
+      goto LABEL_43;
+    }
+    if ( *(int *)(a1 + 16) >= 1 )
+    {
+      v16 = nullptr;
+      if ( (unsigned __int8)sub_1801BDDB0(v17) )
+      {
+        v14 = byte_18152DF88;
+        if ( v16 )
+          v14 = v16;
+        CEntityIdentity_SetEntityName(*(_QWORD *)(v13 + 16), v14);
+      }
+      else if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_181D1CD8C, 3) )
+      {
+        LoggingSystem_Log(
+          (unsigned int)dword_181D1CD8C,
+          3,
+          "Method %s.%s invoked with bad %s value. (parameter #%d)\n",
+          "Entity",
+          "SetEntityName",
+          "name",
+          0);
+      }
+      if ( v16 )
+        CUtlString::FreeMemoryBlock((CUtlString *)&v16);
+    }
+    else if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_181D1CD8C, 3) )
+    {
+      LoggingSystem_Log(
+        (unsigned int)dword_181D1CD8C,
+        3,
+        "Method %s.%s requires %d argument(s), %s.",
+        "Entity",
+        "SetEntityName",
+        1,
+        "(name: string)");
+    }
+  LABEL_44:
+    v8::HandleScope::~HandleScope((v8::HandleScope *)v15);
+  }
