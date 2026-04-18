@@ -4028,6 +4028,46 @@ found_struct_offset: []
             helper_code,
         )
 
+    def test_build_signature_boundary_py_eval_helpers_syncs_split_exec_scope(
+        self,
+    ) -> None:
+        helper_code = ida_analyze_util._build_signature_boundary_py_eval_helpers()
+        original_idc = sys.modules.get("idc")
+        sys.modules["idc"] = types.SimpleNamespace(
+            print_insn_mnem=lambda _cursor: "",
+        )
+
+        try:
+            fake_segment = types.SimpleNamespace(start_ea=0x1000, perm=4)
+            exec_globals = {
+                "idaapi": types.SimpleNamespace(
+                    BADADDR=-1,
+                    SEGPERM_EXEC=4,
+                    getseg=lambda _ea: fake_segment,
+                ),
+                "ida_bytes": types.SimpleNamespace(
+                    get_full_flags=lambda _ea: 1,
+                    get_byte=lambda _ea: 0xCC,
+                    get_bytes=lambda _ea, size: b"\x90" * size,
+                    is_code=lambda _flags: True,
+                    is_head=lambda _flags: True,
+                ),
+                "idautils": types.SimpleNamespace(
+                    DecodeInstruction=lambda _cursor: None,
+                ),
+            }
+            exec_locals = {}
+
+            exec(helper_code, exec_globals, exec_locals)
+            result = exec_locals["_consume_padding"](0x1000, 0x1010, 0x1000)
+        finally:
+            if original_idc is None:
+                sys.modules.pop("idc", None)
+            else:
+                sys.modules["idc"] = original_idc
+
+        self.assertEqual((0x1000, [], True), result)
+
     async def test_preprocess_gen_vfunc_sig_via_mcp_generates_current_version_sig(
         self,
     ) -> None:
@@ -4248,6 +4288,264 @@ found_struct_offset: []
         )
 
         self.assertIsNone(result)
+
+    async def test_preprocess_gen_struct_offset_sig_via_mcp_logs_missing_py_eval_candidates(
+        self,
+    ) -> None:
+        session = AsyncMock()
+        session.call_tool.return_value = _py_eval_payload([])
+
+        with patch("builtins.print") as mock_print:
+            result = await ida_analyze_util.preprocess_gen_struct_offset_sig_via_mcp(
+                session=session,
+                struct_name="CGameResourceService",
+                member_name="m_pEntitySystem",
+                offset="0x58",
+                offset_inst_va="0x1801BA12A",
+                image_base=0x180000000,
+                size=8,
+                min_sig_bytes=4,
+                debug=True,
+            )
+
+        self.assertIsNone(result)
+        printed = "\n".join(
+            str(args[0]) for args, _ in mock_print.call_args_list if args
+        )
+        self.assertIn(
+            "no candidate instruction stream from py_eval",
+            printed,
+        )
+        self.assertIn("CGameResourceService.m_pEntitySystem", printed)
+        self.assertIn("0x1801ba12a", printed)
+
+    async def test_preprocess_gen_struct_offset_sig_via_mcp_logs_py_eval_payload_shape(
+        self,
+    ) -> None:
+        session = AsyncMock()
+        session.call_tool.return_value = _FakeCallToolResult(
+            {
+                "result": json.dumps({"unexpected": "mapping"}),
+                "stdout": "",
+                "stderr": "Traceback: simulated IDA warning",
+            }
+        )
+
+        with patch("builtins.print") as mock_print:
+            result = await ida_analyze_util.preprocess_gen_struct_offset_sig_via_mcp(
+                session=session,
+                struct_name="CGameResourceService",
+                member_name="m_pEntitySystem",
+                offset="0x58",
+                offset_inst_va="0x1801BA12A",
+                image_base=0x180000000,
+                size=8,
+                min_sig_bytes=4,
+                debug=True,
+            )
+
+        self.assertIsNone(result)
+        printed = "\n".join(
+            str(args[0]) for args, _ in mock_print.call_args_list if args
+        )
+        self.assertIn("struct offset py_eval stderr", printed)
+        self.assertIn("Traceback: simulated IDA warning", printed)
+        self.assertIn("struct offset py_eval result shape", printed)
+        self.assertIn("candidate_infos_type=dict", printed)
+        self.assertIn("candidate_count=<not-list>", printed)
+
+    async def test_preprocess_gen_struct_offset_sig_via_mcp_logs_find_bytes_rejections(
+        self,
+    ) -> None:
+        session = AsyncMock()
+
+        def _fake_call_tool(*, name: str, arguments: dict[str, object]):
+            if name == "py_eval":
+                return _py_eval_payload(
+                    [
+                        {
+                            "offset_inst_va": "0x1801BA12A",
+                            "insts": [
+                                {
+                                    "size": 4,
+                                    "bytes": "498b4e58",
+                                    "wild": [3],
+                                },
+                                {
+                                    "size": 3,
+                                    "bytes": "4885c9",
+                                    "wild": [],
+                                },
+                            ],
+                        }
+                    ]
+                )
+            if name == "find_bytes":
+                pattern = arguments["patterns"][0]
+                if pattern == "49 8B 4E ??":
+                    return _FakeCallToolResult(
+                        [
+                            {
+                                "matches": [],
+                                "n": 0,
+                            }
+                        ]
+                    )
+                if pattern == "49 8B 4E ?? 48 85 C9":
+                    return _FakeCallToolResult(
+                        [
+                            {
+                                "matches": ["0x1801BA12A", "0x1801BA200"],
+                                "n": 2,
+                            }
+                        ]
+                    )
+                raise AssertionError(f"unexpected pattern: {pattern}")
+            raise AssertionError(f"unexpected MCP tool: {name}")
+
+        session.call_tool.side_effect = _fake_call_tool
+
+        with patch("builtins.print") as mock_print:
+            result = await ida_analyze_util.preprocess_gen_struct_offset_sig_via_mcp(
+                session=session,
+                struct_name="CGameResourceService",
+                member_name="m_pEntitySystem",
+                offset="0x58",
+                offset_inst_va="0x1801BA12A",
+                image_base=0x180000000,
+                size=8,
+                min_sig_bytes=4,
+                debug=True,
+            )
+
+        self.assertIsNone(result)
+        printed = "\n".join(
+            str(args[0]) for args, _ in mock_print.call_args_list if args
+        )
+        self.assertIn("candidate rejected with zero find_bytes matches", printed)
+        self.assertIn("candidate rejected with 2 find_bytes matches", printed)
+        self.assertIn("sig=49 8B 4E ??", printed)
+        self.assertIn("sig=49 8B 4E ?? 48 85 C9", printed)
+        self.assertIn("hits=<none>", printed)
+        self.assertIn("0x1801ba12a", printed)
+        self.assertIn("0x1801ba200", printed)
+
+    async def test_preprocess_common_skill_logs_struct_member_name_mismatch(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            module_dir = Path(temp_dir) / "server"
+            target_output = module_dir / "CBaseAnimGraph_m_skeletonInstance.windows.yaml"
+            old_path = module_dir / "old" / "CBaseAnimGraph_m_skeletonInstance.windows.yaml"
+            _write_yaml(
+                old_path,
+                {
+                    "struct_name": "CBaseAnimGraph",
+                    "member_name": "m_skeletonInstance",
+                    "offset": "0x278",
+                    "size": 8,
+                },
+            )
+
+            session = AsyncMock()
+            llm_request = {
+                "client": None,
+                "model": "gpt-5.4",
+                "prompt_path": "/tmp/prompt.md",
+                "reference_yaml_path": "/tmp/reference.yaml",
+                "prompt_template": "ignored",
+                "target_func_name": "CBaseAnimGraph_GetAnimationController",
+                "disasm_for_reference": "",
+                "procedure_for_reference": "",
+            }
+
+            with patch.object(
+                ida_analyze_util,
+                "preprocess_struct_offset_sig_via_mcp",
+                AsyncMock(return_value=None),
+            ), patch.object(
+                ida_analyze_util,
+                "_prepare_llm_decompile_request",
+                return_value=llm_request,
+            ), patch.object(
+                ida_analyze_util,
+                "_load_llm_decompile_target_detail_via_mcp",
+                AsyncMock(
+                    return_value={
+                        "disasm_code": "mov rcx, [rcx+278h]",
+                        "procedure": "return this->m_skeletonInstance;",
+                    }
+                ),
+            ), patch.object(
+                ida_analyze_util,
+                "call_llm_decompile",
+                AsyncMock(
+                    return_value={
+                        "found_vcall": [],
+                        "found_call": [],
+                        "found_funcptr": [],
+                        "found_gv": [],
+                        "found_struct_offset": [
+                            {
+                                "insn_va": "0x180A76B04",
+                                "insn_disasm": "mov rcx, [rcx+278h]",
+                                "offset": "0x278",
+                                "struct_name": "CSomeOtherStruct",
+                                "member_name": "m_wrongField",
+                                "size": "8",
+                            }
+                        ],
+                    }
+                ),
+            ), patch("builtins.print") as mock_print:
+                result = await ida_analyze_util.preprocess_common_skill(
+                    session=session,
+                    expected_outputs=[str(target_output)],
+                    old_yaml_map={str(target_output): str(old_path)},
+                    new_binary_dir=str(module_dir),
+                    platform="windows",
+                    image_base=0x180000000,
+                    struct_member_names=["CBaseAnimGraph_m_skeletonInstance"],
+                    llm_decompile_specs=[
+                        (
+                            "CBaseAnimGraph_m_skeletonInstance",
+                            "prompt/call_llm_decompile.md",
+                            "references/server/CBaseAnimGraph_GetAnimationController.windows.yaml",
+                        )
+                    ],
+                    llm_config={"model": "gpt-5.4"},
+                    generate_yaml_desired_fields=[
+                        (
+                            "CBaseAnimGraph_m_skeletonInstance",
+                            [
+                                "struct_name",
+                                "member_name",
+                                "offset",
+                                "size",
+                                "offset_sig",
+                                "offset_sig_disp",
+                            ],
+                        )
+                    ],
+                    debug=True,
+                )
+
+        self.assertFalse(result)
+        printed = "\n".join(
+            str(args[0]) for args, _ in mock_print.call_args_list if args
+        )
+        self.assertIn(
+            "struct-member name mismatch for CBaseAnimGraph_m_skeletonInstance",
+            printed,
+        )
+        self.assertIn(
+            "expected CBaseAnimGraph.m_skeletonInstance",
+            printed,
+        )
+        self.assertIn(
+            "got CSomeOtherStruct.m_wrongField",
+            printed,
+        )
 
     async def test_preprocess_gen_vfunc_sig_via_mcp_guards_cross_boundary_decode(
         self,
