@@ -1,0 +1,280 @@
+func_name: CSpawnGroupMgrGameSystem_DumpSpawnGroups
+func_va: '0x1805683d0'
+disasm_code: |-
+  .text:00000001805683D0                 mov     rax, rsp
+  .text:00000001805683D3                 push    rbx
+  .text:00000001805683D4                 sub     rsp, 0A0h
+  .text:00000001805683DB                 mov     [rax+8], rbp
+  .text:00000001805683DF                 xor     ebx, ebx
+  .text:00000001805683E1                 mov     [rsp+0A8h+arg_8], ebx
+  .text:00000001805683E8                 mov     rbp, rcx
+  .text:00000001805683EB                 mov     rcx, cs:g_pGameEntitySystem
+  .text:00000001805683F2                 mov     [rax-10h], rsi
+  .text:00000001805683F6                 mov     [rax-18h], rdi
+  .text:00000001805683FA                 mov     edi, ebx
+  .text:00000001805683FC                 call    sub_181187C20
+  .text:0000000180568401                 lea     rdx, [rsp+0A8h+var_70]
+  .text:0000000180568406                 mov     [rsp+0A8h+arg_10], eax
+  .text:000000018056840D                 mov     rcx, rbp
+  .text:0000000180568410                 mov     [rsp+0A8h+var_68], rbx
+  .text:0000000180568415                 mov     [rsp+0A8h+var_60], rbx
+  .text:000000018056841A                 mov     [rsp+0A8h+var_70], ebx
+  .text:000000018056841E                 call    CSpawnGroupMgrGameSystem_GetSpawnGroups
+  .text:0000000180568423                 mov     ecx, cs:dword_181D8E850
+  .text:0000000180568429                 mov     edx, 2
+  .text:000000018056842E                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:0000000180568434                 mov     esi, [rsp+0A8h+var_70]
+  .text:0000000180568438                 test    al, al
+  .text:000000018056843A                 jz      short loc_180568457
+  .text:000000018056843C                 mov     ecx, cs:dword_181D8E850
+  .text:0000000180568442                 lea     r8, aDSpawnGroups; "%d spawn groups:\n"
+  .text:0000000180568449                 mov     r9d, esi
+  .text:000000018056844C                 mov     edx, 2
+  .text:0000000180568451                 call    cs:LoggingSystem_Log
+  .text:0000000180568457                 test    esi, esi
+  .text:0000000180568459                 jle     loc_180568651
+  .text:000000018056845F                 mov     [rsp+0A8h+var_20], r12
+  .text:0000000180568467                 lea     rbx, [rbp+120h]
+  .text:000000018056846E                 mov     [rsp+0A8h+var_28], r13
+  .text:0000000180568476                 mov     r12, rsi
+  .text:0000000180568479                 mov     [rsp+0A8h+var_30], r14
+  .text:000000018056847E                 lea     r13, [rbp+100h]
+  .text:0000000180568485                 mov     r14, [rsp+0A8h+var_68]
+  .text:000000018056848A                 lea     rax, [r13+8]
+  .text:000000018056848E                 mov     [rsp+0A8h+var_38], r15
+  .text:0000000180568493                 mov     esi, 7FFFh
+  .text:0000000180568498                 nop     dword ptr [rax+rax+00000000h]
+  .text:00000001805684A0                 mov     r15d, [r14]
+  .text:00000001805684A3                 mov     edx, 1
+  .text:00000001805684A8                 mov     [rsp+0A8h+arg_8], r15d
+  .text:00000001805684B0                 lock xadd [rbx], edx
+  .text:00000001805684B4                 inc     edx
+  .text:00000001805684B6                 test    edx, 0C0000000h
+  .text:00000001805684BC                 jz      short loc_1805684DD
+  .text:00000001805684BE                 lea     r9, aCBuildworkerCs_15; "C:\\buildworker\\csgo_rel_win64\\build"...
+  .text:00000001805684C5                 mov     dword ptr [rsp+0A8h+var_88], 542h
+  .text:00000001805684CD                 mov     r8b, 1
+  .text:00000001805684D0                 mov     rcx, rbx
+  .text:00000001805684D3                 call    cs:?EncounteredComplexReadLockOperation@CThreadRWLock_FastRead@@IEAA_NI_NPEBDH@Z; CThreadRWLock_FastRead::EncounteredComplexReadLockOperation(uint,bool,char const *,int)
+  .text:00000001805684D9                 lea     rax, [r13+8]
+  .text:00000001805684DD                 lea     rcx, [rsp+0A8h+arg_8]
+  .text:00000001805684E5                 mov     [rsp+0A8h+var_58], r13
+  .text:00000001805684EA                 mov     [rsp+0A8h+var_50], rcx
+  .text:00000001805684EF                 lea     r8, [rsp+0A8h+var_58]
+  .text:00000001805684F4                 mov     rcx, rax
+  .text:00000001805684F7                 mov     [rsp+0A8h+var_48], r13
+  .text:00000001805684FC                 lea     rdx, [rsp+0A8h+arg_18]
+  .text:0000000180568504                 call    sub_18052DDB0
+  .text:0000000180568509                 movzx   ecx, word ptr [rax+2]
+  .text:000000018056850D                 mov     eax, 0FFFFh
+  .text:0000000180568512                 cmp     cx, ax
+  .text:0000000180568515                 jnz     short loc_180568548
+  .text:0000000180568517                 mov     r9d, 0FFFFFFFFh
+  .text:000000018056851D                 lock xadd [rbx], r9d
+  .text:0000000180568522                 dec     r9d
+  .text:0000000180568525                 test    r9d, 0C0000000h
+  .text:000000018056852C                 jz      short loc_180568544
+  .text:000000018056852E                 mov     r8d, 542h
+  .text:0000000180568534                 lea     rdx, aCBuildworkerCs_15; "C:\\buildworker\\csgo_rel_win64\\build"...
+  .text:000000018056853B                 mov     rcx, rbx
+  .text:000000018056853E                 call    cs:?UnlockReadAccounting@CThreadRWLock_FastRead@@IEAAXPEBDHI@Z; CThreadRWLock_FastRead::UnlockReadAccounting(char const *,int,uint)
+  .text:0000000180568544                 xor     esi, esi
+  .text:0000000180568546                 jmp     short loc_180568592
+  .text:0000000180568548                 test    [rbp+10Ah], si
+  .text:000000018056854F                 jnz     short loc_180568555
+  .text:0000000180568551                 xor     edx, edx
+  .text:0000000180568553                 jmp     short loc_18056855C
+  .text:0000000180568555                 mov     rdx, [rbp+110h]
+  .text:000000018056855C                 lea     rcx, [rcx+rcx*2]
+  .text:0000000180568560                 mov     r9d, 0FFFFFFFFh
+  .text:0000000180568566                 mov     rsi, [rdx+rcx*8+10h]
+  .text:000000018056856B                 lock xadd [rbx], r9d
+  .text:0000000180568570                 dec     r9d
+  .text:0000000180568573                 test    r9d, 0C0000000h
+  .text:000000018056857A                 jz      short loc_180568592
+  .text:000000018056857C                 mov     r8d, 542h
+  .text:0000000180568582                 lea     rdx, aCBuildworkerCs_15; "C:\\buildworker\\csgo_rel_win64\\build"...
+  .text:0000000180568589                 mov     rcx, rbx
+  .text:000000018056858C                 call    cs:?UnlockReadAccounting@CThreadRWLock_FastRead@@IEAAXPEBDHI@Z; CThreadRWLock_FastRead::UnlockReadAccounting(char const *,int,uint)
+  .text:0000000180568592                 mov     ecx, cs:dword_181D8E850
+  .text:0000000180568598                 mov     edx, 2
+  .text:000000018056859D                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:00000001805685A3                 test    al, al
+  .text:00000001805685A5                 jz      short loc_180568602
+  .text:00000001805685A7                 mov     rcx, [rsi]
+  .text:00000001805685AA                 lea     rdx, [rsp+0A8h+var_78]
+  .text:00000001805685AF                 or      edi, 1
+  .text:00000001805685B2                 mov     rax, [rcx]
+  .text:00000001805685B5                 call    qword ptr [rax+60h]
+  .text:00000001805685B8                 mov     rax, [rsp+0A8h+var_78]
+  .text:00000001805685BD                 lea     rcx, aActive; "(ACTIVE)"
+  .text:00000001805685C4                 test    rax, rax
+  .text:00000001805685C7                 lea     r9, byte_18152DF88
+  .text:00000001805685CE                 lea     r8, aSS_7; "%s %s\n"
+  .text:00000001805685D5                 mov     edx, 2
+  .text:00000001805685DA                 cmovnz  r9, rax
+  .text:00000001805685DE                 cmp     r15d, [rsp+0A8h+arg_10]
+  .text:00000001805685E6                 lea     rax, byte_18152DF88
+  .text:00000001805685ED                 cmovz   rax, rcx
+  .text:00000001805685F1                 mov     ecx, cs:dword_181D8E850
+  .text:00000001805685F7                 mov     [rsp+0A8h+var_88], rax
+  .text:00000001805685FC                 call    cs:LoggingSystem_Log
+  .text:0000000180568602                 test    dil, 1
+  .text:0000000180568606                 jz      short loc_18056861E
+  .text:0000000180568608                 and     edi, 0FFFFFFFEh
+  .text:000000018056860B                 cmp     [rsp+0A8h+var_78], 0
+  .text:0000000180568611                 jz      short loc_18056861E
+  .text:0000000180568613                 lea     rcx, [rsp+0A8h+var_78]
+  .text:0000000180568618                 call    cs:?FreeMemoryBlock@CUtlString@@AEAAXXZ; CUtlString::FreeMemoryBlock(void)
+  .text:000000018056861E                 add     r14, 4
+  .text:0000000180568622                 lea     rax, [r13+8]
+  .text:0000000180568626                 mov     esi, 7FFFh
+  .text:000000018056862B                 sub     r12, 1
+  .text:000000018056862F                 jnz     loc_1805684A0
+  .text:0000000180568635                 mov     r15, [rsp+0A8h+var_38]
+  .text:000000018056863A                 xor     ebx, ebx
+  .text:000000018056863C                 mov     r14, [rsp+0A8h+var_30]
+  .text:0000000180568641                 mov     r13, [rsp+0A8h+var_28]
+  .text:0000000180568649                 mov     r12, [rsp+0A8h+var_20]
+  .text:0000000180568651                 test    dword ptr [rsp+0A8h+var_60+4], 0C0000000h
+  .text:0000000180568659                 mov     rdi, [rsp+0A8h+var_18]
+  .text:0000000180568661                 mov     rsi, [rsp+0A8h+var_10]
+  .text:0000000180568669                 mov     rbp, [rsp+0A8h+arg_0]
+  .text:0000000180568671                 jnz     short loc_1805686A5
+  .text:0000000180568673                 mov     rdx, [rsp+0A8h+var_68]
+  .text:0000000180568678                 test    rdx, rdx
+  .text:000000018056867B                 jz      short loc_1805686A5
+  .text:000000018056867D                 mov     rax, cs:g_pMemAlloc
+  .text:0000000180568684                 mov     rcx, [rax]
+  .text:0000000180568687                 mov     rax, [rcx]
+  .text:000000018056868A                 call    qword ptr [rax+18h]
+  .text:000000018056868D                 mov     rdx, rbx
+  .text:0000000180568690                 test    rbx, rbx
+  .text:0000000180568693                 jz      short loc_1805686A5
+  .text:0000000180568695                 mov     rax, cs:g_pMemAlloc
+  .text:000000018056869C                 mov     rcx, [rax]
+  .text:000000018056869F                 mov     rax, [rcx]
+  .text:00000001805686A2                 call    qword ptr [rax+18h]
+  .text:00000001805686A5                 add     rsp, 0A0h
+  .text:00000001805686AC                 pop     rbx
+  .text:00000001805686AD                 retn
+procedure: |-
+  void __fastcall CSpawnGroupMgrGameSystem_DumpSpawnGroups(__int64 a1)
+  {
+    int v2; // edi
+    char IsChannelEnabled; // al
+    __int64 v4; // rsi
+    volatile signed __int32 *v5; // rbx
+    __int64 v6; // r12
+    int *v7; // r14
+    __int64 v8; // rax
+    int v9; // r15d
+    unsigned int v10; // edx
+    __int64 v11; // rcx
+    unsigned int v12; // r9d
+    _QWORD *v13; // rsi
+    __int64 v14; // rdx
+    unsigned int v15; // r9d
+    char *v16; // r9
+    char *v17; // rax
+    char *v18; // [rsp+30h] [rbp-78h] BYREF
+    unsigned int v19; // [rsp+38h] [rbp-70h] BYREF
+    int *v20; // [rsp+40h] [rbp-68h]
+    __int64 v21; // [rsp+48h] [rbp-60h]
+    _QWORD v22[4]; // [rsp+50h] [rbp-58h] BYREF
+    int v23; // [rsp+B8h] [rbp+10h] BYREF
+    int v24; // [rsp+C0h] [rbp+18h]
+    char v25; // [rsp+C8h] [rbp+20h] BYREF
+
+    v23 = 0;
+    v2 = 0;
+    v24 = sub_181187C20(g_pGameEntitySystem);
+    v20 = nullptr;
+    v21 = 0;
+    v19 = 0;
+    CSpawnGroupMgrGameSystem_GetSpawnGroups(a1, &v19);
+    IsChannelEnabled = LoggingSystem_IsChannelEnabled((unsigned int)dword_181D8E850, 2);
+    v4 = v19;
+    if ( IsChannelEnabled )
+      LoggingSystem_Log((unsigned int)dword_181D8E850, 2, "%d spawn groups:\n", v19);
+    if ( (int)v4 > 0 )
+    {
+      v5 = (volatile signed __int32 *)(a1 + 288);
+      v6 = v4;
+      v7 = v20;
+      v8 = a1 + 264;
+      do
+      {
+        v9 = *v7;
+        v23 = *v7;
+        v10 = _InterlockedIncrement(v5);
+        if ( (v10 & 0xC0000000) != 0 )
+        {
+          CThreadRWLock_FastRead::EncounteredComplexReadLockOperation(
+            (CThreadRWLock_FastRead *)(a1 + 288),
+            v10,
+            1,
+            "C:\\buildworker\\csgo_rel_win64\\build\\src\\game\\shared\\spawngroupmgrgamesystem.cpp",
+            1346);
+          v8 = a1 + 264;
+        }
+        v22[0] = a1 + 256;
+        v22[1] = &v23;
+        v22[2] = a1 + 256;
+        v11 = *(unsigned __int16 *)(sub_18052DDB0(v8, &v25, v22) + 2);
+        if ( (_WORD)v11 == 0xFFFF )
+        {
+          v12 = _InterlockedDecrement(v5);
+          if ( (v12 & 0xC0000000) != 0 )
+            CThreadRWLock_FastRead::UnlockReadAccounting(
+              (CThreadRWLock_FastRead *)(a1 + 288),
+              "C:\\buildworker\\csgo_rel_win64\\build\\src\\game\\shared\\spawngroupmgrgamesystem.cpp",
+              1346,
+              v12);
+          v13 = nullptr;
+        }
+        else
+        {
+          if ( (*(_WORD *)(a1 + 266) & 0x7FFF) != 0 )
+            v14 = *(_QWORD *)(a1 + 272);
+          else
+            v14 = 0;
+          v13 = *(_QWORD **)(v14 + 24 * v11 + 16);
+          v15 = _InterlockedDecrement(v5);
+          if ( (v15 & 0xC0000000) != 0 )
+            CThreadRWLock_FastRead::UnlockReadAccounting(
+              (CThreadRWLock_FastRead *)(a1 + 288),
+              "C:\\buildworker\\csgo_rel_win64\\build\\src\\game\\shared\\spawngroupmgrgamesystem.cpp",
+              1346,
+              v15);
+        }
+        if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_181D8E850, 2) )
+        {
+          v2 |= 1u;
+          (*(void (__fastcall **)(_QWORD, char **))(*(_QWORD *)*v13 + 96LL))(*v13, &v18);
+          v16 = byte_18152DF88;
+          if ( v18 )
+            v16 = v18;
+          v17 = byte_18152DF88;
+          if ( v9 == v24 )
+            v17 = "(ACTIVE)";
+          LoggingSystem_Log((unsigned int)dword_181D8E850, 2, "%s %s\n", v16, v17);
+        }
+        if ( (v2 & 1) != 0 )
+        {
+          v2 &= ~1u;
+          if ( v18 )
+            CUtlString::FreeMemoryBlock((CUtlString *)&v18);
+        }
+        ++v7;
+        v8 = a1 + 264;
+        --v6;
+      }
+      while ( v6 );
+    }
+    if ( (v21 & 0xC000000000000000uLL) == 0 )
+    {
+      if ( v20 )
+        (*(void (__fastcall **)(_QWORD))(*g_pMemAlloc + 24LL))(g_pMemAlloc);
+    }
+  }
