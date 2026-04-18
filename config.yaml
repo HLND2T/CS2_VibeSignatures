@@ -866,10 +866,10 @@ modules:
         expected_input:
           - CLoopModeGame_ReceivedServerInfo.{platform}.yaml
 
-      - name: find-IGameSystemFactory_Allocate-AND-IGameSystemFactory_HasName-AND-IGameSystem_SetName
+      - name: find-IGameSystemFactory_Allocate-AND-IGameSystemFactory_DoesGameSystemReallocate-AND-IGameSystem_SetName
         expected_output:
           - IGameSystemFactory_Allocate.{platform}.yaml
-          - IGameSystemFactory_HasName.{platform}.yaml
+          - IGameSystemFactory_DoesGameSystemReallocate.{platform}.yaml
           - IGameSystem_SetName.{platform}.yaml
         expected_input:
           - IGameSystem_AddByName.{platform}.yaml
@@ -1012,19 +1012,19 @@ modules:
         expected_output:
           - CSpawnGroupMgrGameSystem_vtable.{platform}.yaml
 
-      - name: find-CSpawnGroupMgrGameSystem_HasName
+      - name: find-CSpawnGroupMgrGameSystem_DoesGameSystemReallocate
         expected_output:
-          - CSpawnGroupMgrGameSystem_HasName.{platform}.yaml
+          - CSpawnGroupMgrGameSystem_DoesGameSystemReallocate.{platform}.yaml
         expected_input:
           - IGameSystem_SetName.{platform}.yaml
-          - IGameSystemFactory_HasName.{platform}.yaml
+          - IGameSystemFactory_DoesGameSystemReallocate.{platform}.yaml
           - CSpawnGroupMgrGameSystem_vtable.{platform}.yaml
 
-      - name: find-IGameSystem_HasName
+      - name: find-IGameSystem_DoesGameSystemReallocate
         expected_output:
-          - IGameSystem_HasName.{platform}.yaml
+          - IGameSystem_DoesGameSystemReallocate.{platform}.yaml
         expected_input:
-          - CSpawnGroupMgrGameSystem_HasName.{platform}.yaml
+          - CSpawnGroupMgrGameSystem_DoesGameSystemReallocate.{platform}.yaml
           - IGameSystem_vtable.{platform}.yaml
 
       - name: find-CGameSystemReallocatingFactory_CSpawnGroupMgrGameSystem_vtable
@@ -1182,20 +1182,20 @@ modules:
         alias:
           - IGameSystemFactory::Allocate
 
-      - name: IGameSystemFactory_HasName
+      - name: IGameSystemFactory_DoesGameSystemReallocate
         category: vfunc
         alias:
-          - IGameSystemFactory::HasName
+          - IGameSystemFactory::DoesGameSystemReallocate
 
       - name: IGameSystem_SetName
         category: vfunc
         alias:
           - IGameSystem::SetName
 
-      - name: CSpawnGroupMgrGameSystem_HasName
+      - name: CSpawnGroupMgrGameSystem_DoesGameSystemReallocate
         category: vfunc
         alias:
-          - IGameSystem::HasName
+          - IGameSystem::DoesGameSystemReallocate
 
       - name: IGameSystem_DestroyAllGameSystems
         category: func

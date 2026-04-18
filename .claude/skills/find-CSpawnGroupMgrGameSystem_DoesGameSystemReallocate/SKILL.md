@@ -1,17 +1,17 @@
 ---
-name: find-CSpawnGroupMgrGameSystem_HasName
+name: find-CSpawnGroupMgrGameSystem_DoesGameSystemReallocate
 description: |
-  Find and identify the CSpawnGroupMgrGameSystem_HasName virtual function in CS2 binary using IDA Pro MCP.
-  Use this skill when reverse engineering CS2 client.dll or libclient.so to locate CSpawnGroupMgrGameSystem_HasName
+  Find and identify the CSpawnGroupMgrGameSystem_DoesGameSystemReallocate virtual function in CS2 binary using IDA Pro MCP.
+  Use this skill when reverse engineering CS2 client.dll or libclient.so to locate CSpawnGroupMgrGameSystem_DoesGameSystemReallocate
   by looking up the CSpawnGroupMgrGameSystem vtable at the slot adjacent to IGameSystem_SetName,
-  and verifying that the wrapper delegates to IGameSystemFactory_HasName at the expected vfunc offset.
-  Trigger: CSpawnGroupMgrGameSystem_HasName
+  and verifying that the wrapper delegates to IGameSystemFactory_DoesGameSystemReallocate at the expected vfunc offset.
+  Trigger: CSpawnGroupMgrGameSystem_DoesGameSystemReallocate
 disable-model-invocation: true
 ---
 
-# Find CSpawnGroupMgrGameSystem_HasName (via CSpawnGroupMgrGameSystem vtable)
+# Find CSpawnGroupMgrGameSystem_DoesGameSystemReallocate (via CSpawnGroupMgrGameSystem vtable)
 
-Locate `CSpawnGroupMgrGameSystem_HasName` vfunc in CS2 `client.dll` or `libclient.so` using IDA Pro MCP tools.
+Locate `CSpawnGroupMgrGameSystem_DoesGameSystemReallocate` vfunc in CS2 `client.dll` or `libclient.so` using IDA Pro MCP tools.
 
 ## Method
 
@@ -24,15 +24,15 @@ If the skill returns an error, **STOP** and report to user.
 Otherwise, extract:
 - `vfunc_index` of `IGameSystem_SetName`
 
-### 2. Load IGameSystemFactory_HasName from YAML
+### 2. Load IGameSystemFactory_DoesGameSystemReallocate from YAML
 
-**ALWAYS** Use SKILL `/get-func-from-yaml` with `func_name=IGameSystemFactory_HasName`.
+**ALWAYS** Use SKILL `/get-func-from-yaml` with `func_name=IGameSystemFactory_DoesGameSystemReallocate`.
 
 If the skill returns an error, **STOP** and report to user.
 
 Otherwise, extract:
-- `vfunc_index` of `IGameSystemFactory_HasName`
-- `vfunc_offset` of `IGameSystemFactory_HasName`
+- `vfunc_index` of `IGameSystemFactory_DoesGameSystemReallocate`
+- `vfunc_offset` of `IGameSystemFactory_DoesGameSystemReallocate`
 
 ### 3. Load CSpawnGroupMgrGameSystem VTable from YAML
 
@@ -46,7 +46,7 @@ Otherwise, extract:
 
 ### 4. Resolve the Adjacent Slot
 
-Compute the candidate slot for `CSpawnGroupMgrGameSystem_HasName`:
+Compute the candidate slot for `CSpawnGroupMgrGameSystem_DoesGameSystemReallocate`:
 
 - `target_vfunc_index = IGameSystem_SetName.vfunc_index + 1`
 
@@ -64,12 +64,12 @@ Decompile the candidate function:
 mcp__ida-pro-mcp__decompile addr="<candidate_func_addr>"
 ```
 
-The candidate should be a small wrapper that delegates to `IGameSystemFactory::HasName` through the factory vtable. Confirm it matches the following pattern:
+The candidate should be a small wrapper that delegates to `IGameSystemFactory::DoesGameSystemReallocate` through the factory vtable. Confirm it matches the following pattern:
 
 #### Windows (`client.dll`)
 
 ```c
-__int64 CSpawnGroupMgrGameSystem_HasName()
+__int64 CSpawnGroupMgrGameSystem_DoesGameSystemReallocate()
 {
   return (*(__int64 (__fastcall **)(__int64 *))(*g_pSpawnGroupManagerGameSystemFactory + <FACTORY_HASNAME_OFFSET>))(g_pSpawnGroupManagerGameSystemFactory);
 }
@@ -86,7 +86,7 @@ jmp     qword ptr [rax+<FACTORY_HASNAME_OFFSET>]
 #### Linux (`libclient.so`)
 
 ```c
-__int64 CSpawnGroupMgrGameSystem_HasName()
+__int64 CSpawnGroupMgrGameSystem_DoesGameSystemReallocate()
 {
   return (*(__int64 (__fastcall **)(__int64 *))(*g_pSpawnGroupManagerGameSystemFactory + <FACTORY_HASNAME_OFFSET>))(g_pSpawnGroupManagerGameSystemFactory);
 }
@@ -97,7 +97,7 @@ The key verification is:
 1. The function is a small wrapper (very few instructions)
 2. It loads a global factory pointer (`g_pSpawnGroupManagerGameSystemFactory`)
 3. It makes a virtual call through the factory's vtable at offset `<FACTORY_HASNAME_OFFSET>`
-4. `<FACTORY_HASNAME_OFFSET>` must equal `IGameSystemFactory_HasName.vfunc_offset` (or equivalently, `IGameSystemFactory_HasName.vfunc_index * 8`)
+4. `<FACTORY_HASNAME_OFFSET>` must equal `IGameSystemFactory_DoesGameSystemReallocate.vfunc_offset` (or equivalently, `IGameSystemFactory_DoesGameSystemReallocate.vfunc_index * 8`)
 
 If the offset does not match, **STOP** and report to user.
 
@@ -106,10 +106,10 @@ If the offset does not match, **STOP** and report to user.
 **ALWAYS** Use SKILL `/write-vfunc-as-yaml` to write the analysis results.
 
 Required parameters:
-- `func_name`: `CSpawnGroupMgrGameSystem_HasName`
+- `func_name`: `CSpawnGroupMgrGameSystem_DoesGameSystemReallocate`
 - `func_addr`: `<candidate_func_addr>`
 - `func_sig`: `None`
-- `vfunc_sig`: Use exact the same `vfunc_sig` from `IGameSystemFactory_HasName`
+- `vfunc_sig`: Use exact the same `vfunc_sig` from `IGameSystemFactory_DoesGameSystemReallocate`
 
 VTable parameters:
 - `vtable_name`: `CSpawnGroupMgrGameSystem`
@@ -118,7 +118,7 @@ VTable parameters:
 
 ## Function Characteristics
 
-- **Purpose**: Returns whether the game system has a name, by delegating to the corresponding `IGameSystemFactory::HasName` through the factory pointer
+- **Purpose**: Returns whether the game system has a name, by delegating to the corresponding `IGameSystemFactory::DoesGameSystemReallocate` through the factory pointer
 - **Binary**: `client.dll` / `libclient.so`
 - **Parameters**: `(this)` only (implicit, the wrapper uses a global factory pointer)
 - **Return value**: Boolean — whether the factory reports that this game system has a name
@@ -126,10 +126,10 @@ VTable parameters:
 ## Discovery Strategy
 
 1. Load the existing `IGameSystem_SetName` YAML to obtain its vtable index
-2. Load the existing `IGameSystemFactory_HasName` YAML to obtain the expected factory vfunc offset
+2. Load the existing `IGameSystemFactory_DoesGameSystemReallocate` YAML to obtain the expected factory vfunc offset
 3. Load the existing `CSpawnGroupMgrGameSystem_vtable` YAML to resolve the adjacent vtable entry
-4. The slot at `IGameSystem_SetName.vfunc_index + 1` in the CSpawnGroupMgrGameSystem vtable is `CSpawnGroupMgrGameSystem_HasName`
-5. Verify the wrapper calls through the factory vtable at `IGameSystemFactory_HasName.vfunc_offset`
+4. The slot at `IGameSystem_SetName.vfunc_index + 1` in the CSpawnGroupMgrGameSystem vtable is `CSpawnGroupMgrGameSystem_DoesGameSystemReallocate`
+5. Verify the wrapper calls through the factory vtable at `IGameSystemFactory_DoesGameSystemReallocate.vfunc_offset`
 
 This is robust because:
 - The vtable adjacency (`SetName` followed by `HasName`) is a stable layout property
@@ -139,5 +139,5 @@ This is robust because:
 ## Output YAML Format
 
 The output YAML filename depends on the platform:
-- `client.dll` -> `CSpawnGroupMgrGameSystem_HasName.windows.yaml`
-- `libclient.so` -> `CSpawnGroupMgrGameSystem_HasName.linux.yaml`
+- `client.dll` -> `CSpawnGroupMgrGameSystem_DoesGameSystemReallocate.windows.yaml`
+- `libclient.so` -> `CSpawnGroupMgrGameSystem_DoesGameSystemReallocate.linux.yaml`

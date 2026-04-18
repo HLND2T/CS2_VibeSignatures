@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-IGameSystemFactory_Allocate-AND-IGameSystemFactory_HasName-AND-IGameSystem_SetName skill."""
+"""Preprocess script for find-IGameSystemFactory_Allocate-AND-IGameSystemFactory_DoesGameSystemReallocate-AND-IGameSystem_SetName skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = [
     "IGameSystemFactory_Allocate",
-    "IGameSystemFactory_HasName",
+    "IGameSystemFactory_DoesGameSystemReallocate",
     "IGameSystem_SetName",
 ]
 
@@ -13,7 +13,7 @@ LLM_DECOMPILE = [
     # (symbol_name, path_to_prompt, path_to_reference)
     # All three vfunc offsets found by decompiling IGameSystem_AddByName:
     #   IGameSystemFactory_Allocate = first virtual call through IGameSystemFactory vtable (*v2), allocates a new game system
-    #   IGameSystemFactory_HasName  = second virtual call through IGameSystemFactory vtable (*v2), boolean check
+    #   IGameSystemFactory_DoesGameSystemReallocate  = second virtual call through IGameSystemFactory vtable (*v2), boolean check
     #   IGameSystem_SetName         = conditional virtual call through IGameSystem vtable (v7 = allocated instance)
     (
         "IGameSystemFactory_Allocate",
@@ -21,7 +21,7 @@ LLM_DECOMPILE = [
         "references/client/IGameSystem_AddByName.{platform}.yaml",
     ),
     (
-        "IGameSystemFactory_HasName",
+        "IGameSystemFactory_DoesGameSystemReallocate",
         "prompt/call_llm_decompile.md",
         "references/client/IGameSystem_AddByName.{platform}.yaml",
     ),
@@ -35,7 +35,7 @@ LLM_DECOMPILE = [
 FUNC_VTABLE_RELATIONS = [
     # (func_name, vtable_class)
     ("IGameSystemFactory_Allocate", "IGameSystemFactory"),
-    ("IGameSystemFactory_HasName", "IGameSystemFactory"),
+    ("IGameSystemFactory_DoesGameSystemReallocate", "IGameSystemFactory"),
     ("IGameSystem_SetName", "IGameSystem"),
 ]
 
@@ -52,7 +52,7 @@ GENERATE_YAML_DESIRED_FIELDS = [
         ],
     ),
     (
-        "IGameSystemFactory_HasName",
+        "IGameSystemFactory_DoesGameSystemReallocate",
         [
             "func_name",
             "vfunc_sig",

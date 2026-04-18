@@ -58,7 +58,7 @@ disasm_code: |-
   .text:000000018031F983                 mov     rsi, rax
   .text:000000018031F986                 mov     rcx, [rdi]
   .text:000000018031F989                 mov     r8, [rcx]
-  .text:000000018031F98C                 call    qword ptr [r8+40h] ; 0x40 = IGameSystemFactory_HasName
+  .text:000000018031F98C                 call    qword ptr [r8+40h] ; 0x40 = IGameSystemFactory_DoesGameSystemReallocate
   .text:000000018031F990                 test    al, al
   .text:000000018031F992                 jz      short loc_18031F9A4
   .text:000000018031F994                 mov     r8, [rsi]
@@ -129,7 +129,7 @@ procedure: |-
     v6 = (*(__int64 (__fastcall **)(_QWORD))(*(_QWORD *)*v2 + 24LL))(*v2);// IGameSystemFactory_Allocate
     byte_1821CFE89 = 0;
     v7 = v6;
-    if ( (*(unsigned __int8 (__fastcall **)(_QWORD))(*(_QWORD *)*v2 + 64LL))(*v2) )// IGameSystemFactory_HasName
+    if ( (*(unsigned __int8 (__fastcall **)(_QWORD))(*(_QWORD *)*v2 + 64LL))(*v2) )// IGameSystemFactory_DoesGameSystemReallocate
       (*(void (__fastcall **)(__int64, __int64))(*(_QWORD *)v7 + 472LL))(v7, v4);// IGameSystem_SetName 59 * 8 = 472
     v8 = *v2;
     *((_BYTE *)v2 + 8) = 1;
