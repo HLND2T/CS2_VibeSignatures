@@ -1,0 +1,972 @@
+func_name: CNetworkServerService_RegisterEventMapInternal
+func_va: '0x8dd700'
+disasm_code: |-
+  .text:00000000008DD700                 push    rbp
+  .text:00000000008DD701                 mov     rbp, rsp
+  .text:00000000008DD704                 push    r15
+  .text:00000000008DD706                 push    r14
+  .text:00000000008DD708                 push    r13
+  .text:00000000008DD70A                 push    r12
+  .text:00000000008DD70C                 mov     r12, rsi
+  .text:00000000008DD70F                 push    rbx
+  .text:00000000008DD710                 mov     rbx, rdi
+  .text:00000000008DD713                 sub     rsp, 28h
+  .text:00000000008DD717                 test    edx, edx
+  .text:00000000008DD719                 jnz     loc_8DDB88
+  .text:00000000008DD71F                 movzx   eax, cs:byte_C56DA8
+  .text:00000000008DD726                 test    al, al
+  .text:00000000008DD728                 jz      loc_8DDD60
+  .text:00000000008DD72E                 mov     rdx, cs:qword_968E20
+  .text:00000000008DD735                 lea     r8, qword_C56CA8
+  .text:00000000008DD73C                 test    cs:byte_C56CA7, 40h
+  .text:00000000008DD743                 jnz     short loc_8DD75E
+  .text:00000000008DD745                 test    dword ptr cs:unk_C56CA4, 3FFFFFFFh
+  .text:00000000008DD74F                 lea     r8, byte_26801C
+  .text:00000000008DD756                 cmovnz  r8, cs:qword_C56CA8
+  .text:00000000008DD75E                 xor     ecx, ecx
+  .text:00000000008DD760                 mov     rdi, rbx
+  .text:00000000008DD763                 mov     [rbp+var_40], 0
+  .text:00000000008DD76B                 mov     [rbp+var_50], r12
+  .text:00000000008DD76F                 lea     r13, [rbp+var_50]
+  .text:00000000008DD773                 lea     rax, CNetworkServerService_OnServerAdvanceTick
+  .text:00000000008DD77A                 mov     rsi, r13
+  .text:00000000008DD77D                 mov     [rbp+var_48], rax
+  .text:00000000008DD781                 call    sub_8E15B0
+  .text:00000000008DD786                 movzx   eax, cs:byte_C56C88
+  .text:00000000008DD78D                 test    al, al
+  .text:00000000008DD78F                 jz      loc_8DE0C0
+  .text:00000000008DD795                 mov     rdx, cs:qword_9684A0
+  .text:00000000008DD79C                 lea     r8, qword_C56B88
+  .text:00000000008DD7A3                 test    cs:byte_C56B87, 40h
+  .text:00000000008DD7AA                 jnz     short loc_8DD7C5
+  .text:00000000008DD7AC                 test    dword ptr cs:unk_C56B84, 3FFFFFFFh
+  .text:00000000008DD7B6                 lea     r8, byte_26801C
+  .text:00000000008DD7BD                 cmovnz  r8, cs:qword_C56B88
+  .text:00000000008DD7C5                 xor     ecx, ecx
+  .text:00000000008DD7C7                 mov     rsi, r13
+  .text:00000000008DD7CA                 mov     [rbp+var_50], r12
+  .text:00000000008DD7CE                 mov     rdi, rbx
+  .text:00000000008DD7D1                 mov     [rbp+var_40], 0
+  .text:00000000008DD7D9                 lea     rax, CNetworkServerService_OnServerPollNetworking
+  .text:00000000008DD7E0                 mov     [rbp+var_48], rax
+  .text:00000000008DD7E4                 call    sub_8E15B0
+  .text:00000000008DD7E9                 movzx   eax, cs:byte_C56B68
+  .text:00000000008DD7F0                 test    al, al
+  .text:00000000008DD7F2                 jz      loc_8DE120
+  .text:00000000008DD7F8                 mov     rdx, cs:qword_968380
+  .text:00000000008DD7FF                 lea     r8, qword_C56A68
+  .text:00000000008DD806                 test    cs:byte_C56A67, 40h
+  .text:00000000008DD80D                 jnz     short loc_8DD828
+  .text:00000000008DD80F                 test    dword ptr cs:unk_C56A64, 3FFFFFFFh
+  .text:00000000008DD819                 lea     r8, byte_26801C
+  .text:00000000008DD820                 cmovnz  r8, cs:qword_C56A68
+  .text:00000000008DD828                 xor     ecx, ecx
+  .text:00000000008DD82A                 mov     rsi, r13
+  .text:00000000008DD82D                 mov     [rbp+var_50], r12
+  .text:00000000008DD831                 mov     rdi, rbx
+  .text:00000000008DD834                 mov     [rbp+var_40], 0
+  .text:00000000008DD83C                 lea     rax, CNetworkServerService_OnServerProcessNetworking
+  .text:00000000008DD843                 mov     [rbp+var_48], rax
+  .text:00000000008DD847                 call    sub_8E15B0
+  .text:00000000008DD84C                 movzx   eax, cs:byte_C56A48
+  .text:00000000008DD853                 test    al, al
+  .text:00000000008DD855                 jz      loc_8DDDC0
+  .text:00000000008DD85B                 mov     rdx, cs:qword_968260
+  .text:00000000008DD862                 lea     r8, qword_C56948
+  .text:00000000008DD869                 test    cs:byte_C56947, 40h
+  .text:00000000008DD870                 jnz     short loc_8DD88B
+  .text:00000000008DD872                 test    dword ptr cs:unk_C56944, 3FFFFFFFh
+  .text:00000000008DD87C                 lea     r8, byte_26801C
+  .text:00000000008DD883                 cmovnz  r8, cs:qword_C56948
+  .text:00000000008DD88B                 mov     ecx, 80000000h
+  .text:00000000008DD890                 mov     rsi, r13
+  .text:00000000008DD893                 mov     [rbp+var_50], r12
+  .text:00000000008DD897                 mov     rdi, rbx
+  .text:00000000008DD89A                 mov     [rbp+var_40], 0
+  .text:00000000008DD8A2                 lea     rax, CNetworkServerService_OnServerBeginSimulate
+  .text:00000000008DD8A9                 mov     [rbp+var_48], rax
+  .text:00000000008DD8AD                 call    sub_8E15B0
+  .text:00000000008DD8B2                 movzx   eax, cs:byte_C56928
+  .text:00000000008DD8B9                 test    al, al
+  .text:00000000008DD8BB                 jz      loc_8DDE20
+  .text:00000000008DD8C1                 mov     rdx, cs:qword_9681E0
+  .text:00000000008DD8C8                 lea     r8, qword_C56828
+  .text:00000000008DD8CF                 test    cs:byte_C56827, 40h
+  .text:00000000008DD8D6                 jnz     short loc_8DD8F1
+  .text:00000000008DD8D8                 test    dword ptr cs:unk_C56824, 3FFFFFFFh
+  .text:00000000008DD8E2                 lea     r8, byte_26801C
+  .text:00000000008DD8E9                 cmovnz  r8, cs:qword_C56828
+  .text:00000000008DD8F1                 mov     ecx, 7FFFFFFFh
+  .text:00000000008DD8F6                 mov     rsi, r13
+  .text:00000000008DD8F9                 mov     [rbp+var_50], r12
+  .text:00000000008DD8FD                 mov     rdi, rbx
+  .text:00000000008DD900                 mov     [rbp+var_40], 0
+  .text:00000000008DD908                 lea     rax, CNetworkServerService_OnServerEndSimulate
+  .text:00000000008DD90F                 mov     [rbp+var_48], rax
+  .text:00000000008DD913                 call    sub_8E15B0
+  .text:00000000008DD918                 movzx   eax, cs:byte_C56808
+  .text:00000000008DD91F                 test    al, al
+  .text:00000000008DD921                 jz      loc_8DDE80
+  .text:00000000008DD927                 mov     rdx, cs:qword_9680C0
+  .text:00000000008DD92E                 lea     r8, qword_C56708
+  .text:00000000008DD935                 test    cs:byte_C56707, 40h
+  .text:00000000008DD93C                 jnz     short loc_8DD957
+  .text:00000000008DD93E                 test    dword ptr cs:unk_C56704, 3FFFFFFFh
+  .text:00000000008DD948                 lea     r8, byte_26801C
+  .text:00000000008DD94F                 cmovnz  r8, cs:qword_C56708
+  .text:00000000008DD957                 xor     ecx, ecx
+  .text:00000000008DD959                 mov     rsi, r13
+  .text:00000000008DD95C                 mov     [rbp+var_50], r12
+  .text:00000000008DD960                 mov     rdi, rbx
+  .text:00000000008DD963                 mov     [rbp+var_40], 0
+  .text:00000000008DD96B                 lea     rax, CNetworkServerService_OnServerPostSimulate
+  .text:00000000008DD972                 mov     [rbp+var_48], rax
+  .text:00000000008DD976                 call    sub_8E15B0
+  .text:00000000008DD97B                 movzx   eax, cs:byte_C566E8
+  .text:00000000008DD982                 test    al, al
+  .text:00000000008DD984                 jz      loc_8DDEE0
+  .text:00000000008DD98A                 mov     rdx, cs:qword_968BC0
+  .text:00000000008DD991                 lea     r8, qword_C565E8
+  .text:00000000008DD998                 test    cs:byte_C565E7, 40h
+  .text:00000000008DD99F                 jnz     short loc_8DD9BA
+  .text:00000000008DD9A1                 test    dword ptr cs:unk_C565E4, 3FFFFFFFh
+  .text:00000000008DD9AB                 lea     r8, byte_26801C
+  .text:00000000008DD9B2                 cmovnz  r8, cs:qword_C565E8
+  .text:00000000008DD9BA                 mov     ecx, 80000000h
+  .text:00000000008DD9BF                 mov     rsi, r13
+  .text:00000000008DD9C2                 mov     [rbp+var_50], r12
+  .text:00000000008DD9C6                 mov     rdi, rbx
+  .text:00000000008DD9C9                 mov     [rbp+var_40], 0
+  .text:00000000008DD9D1                 lea     rax, CNetworkServerService_OnServerPostAdvanceTick
+  .text:00000000008DD9D8                 mov     [rbp+var_48], rax
+  .text:00000000008DD9DC                 call    sub_8E15B0
+  .text:00000000008DD9E1                 movzx   eax, cs:byte_C565C8
+  .text:00000000008DD9E8                 test    al, al
+  .text:00000000008DD9EA                 jz      loc_8DDF40
+  .text:00000000008DD9F0                 mov     rdx, cs:qword_968A20
+  .text:00000000008DD9F7                 lea     r8, qword_C564C8
+  .text:00000000008DD9FE                 test    cs:byte_C564C7, 40h
+  .text:00000000008DDA05                 jnz     short loc_8DDA20
+  .text:00000000008DDA07                 test    dword ptr cs:unk_C564C4, 3FFFFFFFh
+  .text:00000000008DDA11                 lea     r8, byte_26801C
+  .text:00000000008DDA18                 cmovnz  r8, cs:qword_C564C8
+  .text:00000000008DDA20                 mov     ecx, 80000000h
+  .text:00000000008DDA25                 mov     rsi, r13
+  .text:00000000008DDA28                 mov     [rbp+var_50], r12
+  .text:00000000008DDA2C                 mov     rdi, rbx
+  .text:00000000008DDA2F                 mov     [rbp+var_40], 0
+  .text:00000000008DDA37                 lea     rax, CNetworkServerService_OnServerBeginAsyncPostTickWork
+  .text:00000000008DDA3E                 mov     [rbp+var_48], rax
+  .text:00000000008DDA42                 call    sub_8E15B0
+  .text:00000000008DDA47                 movzx   eax, cs:byte_C564A8
+  .text:00000000008DDA4E                 test    al, al
+  .text:00000000008DDA50                 jz      loc_8DDFA0
+  .text:00000000008DDA56                 mov     rdx, cs:qword_969080
+  .text:00000000008DDA5D                 lea     r8, qword_C563A8
+  .text:00000000008DDA64                 test    cs:byte_C563A7, 40h
+  .text:00000000008DDA6B                 jnz     short loc_8DDA86
+  .text:00000000008DDA6D                 test    dword ptr cs:unk_C563A4, 3FFFFFFFh
+  .text:00000000008DDA77                 lea     r8, byte_26801C
+  .text:00000000008DDA7E                 cmovnz  r8, cs:qword_C563A8
+  .text:00000000008DDA86                 mov     ecx, 7FFFFFFFh
+  .text:00000000008DDA8B                 mov     rsi, r13
+  .text:00000000008DDA8E                 mov     [rbp+var_50], r12
+  .text:00000000008DDA92                 mov     rdi, rbx
+  .text:00000000008DDA95                 mov     [rbp+var_40], 0
+  .text:00000000008DDA9D                 lea     rax, CNetworkServerService_OnFrameBoundary
+  .text:00000000008DDAA4                 mov     [rbp+var_48], rax
+  .text:00000000008DDAA8                 call    sub_8E15B0
+  .text:00000000008DDAAD                 movzx   eax, cs:byte_C56388
+  .text:00000000008DDAB4                 test    al, al
+  .text:00000000008DDAB6                 jz      loc_8DE000
+  .text:00000000008DDABC                 mov     rdx, cs:qword_968420
+  .text:00000000008DDAC3                 lea     r8, qword_C56288
+  .text:00000000008DDACA                 test    cs:byte_C56287, 40h
+  .text:00000000008DDAD1                 jnz     short loc_8DDAEC
+  .text:00000000008DDAD3                 test    dword ptr cs:unk_C56284, 3FFFFFFFh
+  .text:00000000008DDADD                 lea     r8, byte_26801C
+  .text:00000000008DDAE4                 cmovnz  r8, cs:qword_C56288
+  .text:00000000008DDAEC                 mov     ecx, 1
+  .text:00000000008DDAF1                 mov     rsi, r13
+  .text:00000000008DDAF4                 mov     [rbp+var_50], r12
+  .text:00000000008DDAF8                 mov     rdi, rbx
+  .text:00000000008DDAFB                 mov     [rbp+var_40], 0
+  .text:00000000008DDB03                 lea     rax, CNetworkServerService_OnClientPollNetworking
+  .text:00000000008DDB0A                 mov     [rbp+var_48], rax
+  .text:00000000008DDB0E                 call    sub_8E15B0
+  .text:00000000008DDB13                 movzx   eax, cs:byte_C56268
+  .text:00000000008DDB1A                 test    al, al
+  .text:00000000008DDB1C                 jz      loc_8DE060
+  .text:00000000008DDB22                 mov     rdx, cs:qword_969A40
+  .text:00000000008DDB29                 lea     r8, qword_C56168
+  .text:00000000008DDB30                 test    cs:byte_C56167, 40h
+  .text:00000000008DDB37                 jnz     short loc_8DDB52
+  .text:00000000008DDB39                 test    dword ptr cs:unk_C56164, 3FFFFFFFh
+  .text:00000000008DDB43                 lea     r8, byte_26801C
+  .text:00000000008DDB4A                 cmovnz  r8, cs:qword_C56168
+  .text:00000000008DDB52                 mov     rsi, r13
+  .text:00000000008DDB55                 mov     rdi, rbx
+  .text:00000000008DDB58                 mov     [rbp+var_50], r12
+  .text:00000000008DDB5C                 xor     ecx, ecx
+  .text:00000000008DDB5E                 mov     [rbp+var_40], 0
+  .text:00000000008DDB66                 lea     rax, CNetworkServerService_OnSimpleLoopFrameUpdate
+  .text:00000000008DDB6D                 mov     [rbp+var_48], rax
+  .text:00000000008DDB71                 call    sub_8E15B0
+  .text:00000000008DDB76                 add     rsp, 28h
+  .text:00000000008DDB7A                 pop     rbx
+  .text:00000000008DDB7B                 pop     r12
+  .text:00000000008DDB7D                 pop     r13
+  .text:00000000008DDB7F                 pop     r14
+  .text:00000000008DDB81                 pop     r15
+  .text:00000000008DDB83                 pop     rbp
+  .text:00000000008DDB84                 retn
+  .text:00000000008DDB88                 mov     rdx, cs:qword_968E20
+  .text:00000000008DDB8F                 lea     r13, [rbp+var_50]
+  .text:00000000008DDB93                 mov     [rbp+var_50], rsi
+  .text:00000000008DDB97                 lea     rax, CNetworkServerService_OnServerAdvanceTick
+  .text:00000000008DDB9E                 mov     rsi, r13
+  .text:00000000008DDBA1                 mov     [rbp+var_40], 0
+  .text:00000000008DDBA9                 mov     [rbp+var_48], rax
+  .text:00000000008DDBAD                 call    sub_550600
+  .text:00000000008DDBB2                 mov     rsi, r13
+  .text:00000000008DDBB5                 mov     rdi, rbx
+  .text:00000000008DDBB8                 mov     [rbp+var_50], r12
+  .text:00000000008DDBBC                 mov     rdx, cs:qword_9684A0
+  .text:00000000008DDBC3                 lea     rax, CNetworkServerService_OnServerPollNetworking
+  .text:00000000008DDBCA                 mov     [rbp+var_40], 0
+  .text:00000000008DDBD2                 mov     [rbp+var_48], rax
+  .text:00000000008DDBD6                 call    sub_550600
+  .text:00000000008DDBDB                 mov     rsi, r13
+  .text:00000000008DDBDE                 mov     rdi, rbx
+  .text:00000000008DDBE1                 mov     [rbp+var_50], r12
+  .text:00000000008DDBE5                 mov     rdx, cs:qword_968380
+  .text:00000000008DDBEC                 lea     rax, CNetworkServerService_OnServerProcessNetworking
+  .text:00000000008DDBF3                 mov     [rbp+var_40], 0
+  .text:00000000008DDBFB                 mov     [rbp+var_48], rax
+  .text:00000000008DDBFF                 call    sub_550600
+  .text:00000000008DDC04                 mov     rsi, r13
+  .text:00000000008DDC07                 mov     rdi, rbx
+  .text:00000000008DDC0A                 mov     [rbp+var_50], r12
+  .text:00000000008DDC0E                 mov     rdx, cs:qword_968260
+  .text:00000000008DDC15                 lea     rax, CNetworkServerService_OnServerBeginSimulate
+  .text:00000000008DDC1C                 mov     [rbp+var_40], 0
+  .text:00000000008DDC24                 mov     [rbp+var_48], rax
+  .text:00000000008DDC28                 call    sub_550600
+  .text:00000000008DDC2D                 mov     rsi, r13
+  .text:00000000008DDC30                 mov     rdi, rbx
+  .text:00000000008DDC33                 mov     [rbp+var_50], r12
+  .text:00000000008DDC37                 mov     rdx, cs:qword_9681E0
+  .text:00000000008DDC3E                 lea     rax, CNetworkServerService_OnServerEndSimulate
+  .text:00000000008DDC45                 mov     [rbp+var_40], 0
+  .text:00000000008DDC4D                 mov     [rbp+var_48], rax
+  .text:00000000008DDC51                 call    sub_550600
+  .text:00000000008DDC56                 mov     rsi, r13
+  .text:00000000008DDC59                 mov     rdi, rbx
+  .text:00000000008DDC5C                 mov     [rbp+var_50], r12
+  .text:00000000008DDC60                 mov     rdx, cs:qword_9680C0
+  .text:00000000008DDC67                 lea     rax, CNetworkServerService_OnServerPostSimulate
+  .text:00000000008DDC6E                 mov     [rbp+var_40], 0
+  .text:00000000008DDC76                 mov     [rbp+var_48], rax
+  .text:00000000008DDC7A                 call    sub_550600
+  .text:00000000008DDC7F                 mov     rsi, r13
+  .text:00000000008DDC82                 mov     rdi, rbx
+  .text:00000000008DDC85                 mov     [rbp+var_50], r12
+  .text:00000000008DDC89                 mov     rdx, cs:qword_968BC0
+  .text:00000000008DDC90                 lea     rax, CNetworkServerService_OnServerPostAdvanceTick
+  .text:00000000008DDC97                 mov     [rbp+var_40], 0
+  .text:00000000008DDC9F                 mov     [rbp+var_48], rax
+  .text:00000000008DDCA3                 call    sub_550600
+  .text:00000000008DDCA8                 mov     rsi, r13
+  .text:00000000008DDCAB                 mov     rdi, rbx
+  .text:00000000008DDCAE                 mov     [rbp+var_50], r12
+  .text:00000000008DDCB2                 mov     rdx, cs:qword_968A20
+  .text:00000000008DDCB9                 lea     rax, CNetworkServerService_OnServerBeginAsyncPostTickWork
+  .text:00000000008DDCC0                 mov     [rbp+var_40], 0
+  .text:00000000008DDCC8                 mov     [rbp+var_48], rax
+  .text:00000000008DDCCC                 call    sub_550600
+  .text:00000000008DDCD1                 mov     rsi, r13
+  .text:00000000008DDCD4                 mov     rdi, rbx
+  .text:00000000008DDCD7                 mov     [rbp+var_50], r12
+  .text:00000000008DDCDB                 mov     rdx, cs:qword_969080
+  .text:00000000008DDCE2                 lea     rax, CNetworkServerService_OnFrameBoundary
+  .text:00000000008DDCE9                 mov     [rbp+var_40], 0
+  .text:00000000008DDCF1                 mov     [rbp+var_48], rax
+  .text:00000000008DDCF5                 call    sub_550600
+  .text:00000000008DDCFA                 mov     rsi, r13
+  .text:00000000008DDCFD                 mov     rdi, rbx
+  .text:00000000008DDD00                 mov     [rbp+var_50], r12
+  .text:00000000008DDD04                 mov     rdx, cs:qword_968420
+  .text:00000000008DDD0B                 lea     rax, CNetworkServerService_OnClientPollNetworking
+  .text:00000000008DDD12                 mov     [rbp+var_40], 0
+  .text:00000000008DDD1A                 mov     [rbp+var_48], rax
+  .text:00000000008DDD1E                 call    sub_550600
+  .text:00000000008DDD23                 mov     rsi, r13
+  .text:00000000008DDD26                 mov     rdi, rbx
+  .text:00000000008DDD29                 mov     [rbp+var_50], r12
+  .text:00000000008DDD2D                 mov     rdx, cs:qword_969A40
+  .text:00000000008DDD34                 lea     rax, CNetworkServerService_OnSimpleLoopFrameUpdate
+  .text:00000000008DDD3B                 mov     [rbp+var_40], 0
+  .text:00000000008DDD43                 mov     [rbp+var_48], rax
+  .text:00000000008DDD47                 call    sub_550600
+  .text:00000000008DDD4C                 add     rsp, 28h
+  .text:00000000008DDD50                 pop     rbx
+  .text:00000000008DDD51                 pop     r12
+  .text:00000000008DDD53                 pop     r13
+  .text:00000000008DDD55                 pop     r14
+  .text:00000000008DDD57                 pop     r15
+  .text:00000000008DDD59                 pop     rbp
+  .text:00000000008DDD5A                 retn
+  .text:00000000008DDD60                 lea     r13, byte_C56DA8
+  .text:00000000008DDD67                 mov     rdi, r13
+  .text:00000000008DDD6A                 call    sub_2A6DE0
+  .text:00000000008DDD6F                 test    eax, eax
+  .text:00000000008DDD71                 jz      loc_8DD72E
+  .text:00000000008DDD77                 lea     r14, unk_C56CA0
+  .text:00000000008DDD7E                 xor     eax, eax
+  .text:00000000008DDD80                 lea     rcx, aOnserveradvanc; "OnServerAdvanceTick"
+  .text:00000000008DDD87                 mov     rdi, r14
+  .text:00000000008DDD8A                 lea     rdx, aCnetworkserver_6; "CNetworkServerService"
+  .text:00000000008DDD91                 lea     rsi, aSS_5; "%s::%s"
+  .text:00000000008DDD98                 call    sub_4886F0
+  .text:00000000008DDD9D                 lea     rdx, off_964B60
+  .text:00000000008DDDA4                 mov     rsi, r14
+  .text:00000000008DDDA7                 lea     rdi, sub_535D60
+  .text:00000000008DDDAE                 call    sub_2B41A0
+  .text:00000000008DDDB3                 mov     rdi, r13
+  .text:00000000008DDDB6                 call    sub_2A6E00
+  .text:00000000008DDDBB                 jmp     loc_8DD72E
+  .text:00000000008DDDC0                 lea     r14, byte_C56A48
+  .text:00000000008DDDC7                 mov     rdi, r14
+  .text:00000000008DDDCA                 call    sub_2A6DE0
+  .text:00000000008DDDCF                 test    eax, eax
+  .text:00000000008DDDD1                 jz      loc_8DD85B
+  .text:00000000008DDDD7                 lea     r15, unk_C56940
+  .text:00000000008DDDDE                 xor     eax, eax
+  .text:00000000008DDDE0                 lea     rcx, aOnserverbegins; "OnServerBeginSimulate"
+  .text:00000000008DDDE7                 mov     rdi, r15
+  .text:00000000008DDDEA                 lea     rdx, aCnetworkserver_6; "CNetworkServerService"
+  .text:00000000008DDDF1                 lea     rsi, aSS_5; "%s::%s"
+  .text:00000000008DDDF8                 call    sub_4886F0
+  .text:00000000008DDDFD                 lea     rdx, off_964B60
+  .text:00000000008DDE04                 mov     rsi, r15
+  .text:00000000008DDE07                 lea     rdi, sub_535D60
+  .text:00000000008DDE0E                 call    sub_2B41A0
+  .text:00000000008DDE13                 mov     rdi, r14
+  .text:00000000008DDE16                 call    sub_2A6E00
+  .text:00000000008DDE1B                 jmp     loc_8DD85B
+  .text:00000000008DDE20                 lea     r14, byte_C56928
+  .text:00000000008DDE27                 mov     rdi, r14
+  .text:00000000008DDE2A                 call    sub_2A6DE0
+  .text:00000000008DDE2F                 test    eax, eax
+  .text:00000000008DDE31                 jz      loc_8DD8C1
+  .text:00000000008DDE37                 lea     r15, unk_C56820
+  .text:00000000008DDE3E                 xor     eax, eax
+  .text:00000000008DDE40                 lea     rcx, aOnserverendsim; "OnServerEndSimulate"
+  .text:00000000008DDE47                 mov     rdi, r15
+  .text:00000000008DDE4A                 lea     rdx, aCnetworkserver_6; "CNetworkServerService"
+  .text:00000000008DDE51                 lea     rsi, aSS_5; "%s::%s"
+  .text:00000000008DDE58                 call    sub_4886F0
+  .text:00000000008DDE5D                 lea     rdx, off_964B60
+  .text:00000000008DDE64                 mov     rsi, r15
+  .text:00000000008DDE67                 lea     rdi, sub_535D60
+  .text:00000000008DDE6E                 call    sub_2B41A0
+  .text:00000000008DDE73                 mov     rdi, r14
+  .text:00000000008DDE76                 call    sub_2A6E00
+  .text:00000000008DDE7B                 jmp     loc_8DD8C1
+  .text:00000000008DDE80                 lea     r14, byte_C56808
+  .text:00000000008DDE87                 mov     rdi, r14
+  .text:00000000008DDE8A                 call    sub_2A6DE0
+  .text:00000000008DDE8F                 test    eax, eax
+  .text:00000000008DDE91                 jz      loc_8DD927
+  .text:00000000008DDE97                 lea     r15, unk_C56700
+  .text:00000000008DDE9E                 xor     eax, eax
+  .text:00000000008DDEA0                 lea     rcx, aOnserverpostsi; "OnServerPostSimulate"
+  .text:00000000008DDEA7                 mov     rdi, r15
+  .text:00000000008DDEAA                 lea     rdx, aCnetworkserver_6; "CNetworkServerService"
+  .text:00000000008DDEB1                 lea     rsi, aSS_5; "%s::%s"
+  .text:00000000008DDEB8                 call    sub_4886F0
+  .text:00000000008DDEBD                 lea     rdx, off_964B60
+  .text:00000000008DDEC4                 mov     rsi, r15
+  .text:00000000008DDEC7                 lea     rdi, sub_535D60
+  .text:00000000008DDECE                 call    sub_2B41A0
+  .text:00000000008DDED3                 mov     rdi, r14
+  .text:00000000008DDED6                 call    sub_2A6E00
+  .text:00000000008DDEDB                 jmp     loc_8DD927
+  .text:00000000008DDEE0                 lea     r14, byte_C566E8
+  .text:00000000008DDEE7                 mov     rdi, r14
+  .text:00000000008DDEEA                 call    sub_2A6DE0
+  .text:00000000008DDEEF                 test    eax, eax
+  .text:00000000008DDEF1                 jz      loc_8DD98A
+  .text:00000000008DDEF7                 lea     r15, unk_C565E0
+  .text:00000000008DDEFE                 xor     eax, eax
+  .text:00000000008DDF00                 lea     rcx, aOnserverpostad; "OnServerPostAdvanceTick"
+  .text:00000000008DDF07                 mov     rdi, r15
+  .text:00000000008DDF0A                 lea     rdx, aCnetworkserver_6; "CNetworkServerService"
+  .text:00000000008DDF11                 lea     rsi, aSS_5; "%s::%s"
+  .text:00000000008DDF18                 call    sub_4886F0
+  .text:00000000008DDF1D                 lea     rdx, off_964B60
+  .text:00000000008DDF24                 mov     rsi, r15
+  .text:00000000008DDF27                 lea     rdi, sub_535D60
+  .text:00000000008DDF2E                 call    sub_2B41A0
+  .text:00000000008DDF33                 mov     rdi, r14
+  .text:00000000008DDF36                 call    sub_2A6E00
+  .text:00000000008DDF3B                 jmp     loc_8DD98A
+  .text:00000000008DDF40                 lea     r14, byte_C565C8
+  .text:00000000008DDF47                 mov     rdi, r14
+  .text:00000000008DDF4A                 call    sub_2A6DE0
+  .text:00000000008DDF4F                 test    eax, eax
+  .text:00000000008DDF51                 jz      loc_8DD9F0
+  .text:00000000008DDF57                 lea     r15, unk_C564C0
+  .text:00000000008DDF5E                 xor     eax, eax
+  .text:00000000008DDF60                 lea     rcx, aOnserverbegina; "OnServerBeginAsyncPostTickWork"
+  .text:00000000008DDF67                 mov     rdi, r15
+  .text:00000000008DDF6A                 lea     rdx, aCnetworkserver_6; "CNetworkServerService"
+  .text:00000000008DDF71                 lea     rsi, aSS_5; "%s::%s"
+  .text:00000000008DDF78                 call    sub_4886F0
+  .text:00000000008DDF7D                 lea     rdx, off_964B60
+  .text:00000000008DDF84                 mov     rsi, r15
+  .text:00000000008DDF87                 lea     rdi, sub_535D60
+  .text:00000000008DDF8E                 call    sub_2B41A0
+  .text:00000000008DDF93                 mov     rdi, r14
+  .text:00000000008DDF96                 call    sub_2A6E00
+  .text:00000000008DDF9B                 jmp     loc_8DD9F0
+  .text:00000000008DDFA0                 lea     r14, byte_C564A8
+  .text:00000000008DDFA7                 mov     rdi, r14
+  .text:00000000008DDFAA                 call    sub_2A6DE0
+  .text:00000000008DDFAF                 test    eax, eax
+  .text:00000000008DDFB1                 jz      loc_8DDA56
+  .text:00000000008DDFB7                 lea     r15, unk_C563A0
+  .text:00000000008DDFBE                 xor     eax, eax
+  .text:00000000008DDFC0                 lea     rcx, aOnframeboundar; "OnFrameBoundary"
+  .text:00000000008DDFC7                 mov     rdi, r15
+  .text:00000000008DDFCA                 lea     rdx, aCnetworkserver_6; "CNetworkServerService"
+  .text:00000000008DDFD1                 lea     rsi, aSS_5; "%s::%s"
+  .text:00000000008DDFD8                 call    sub_4886F0
+  .text:00000000008DDFDD                 lea     rdx, off_964B60
+  .text:00000000008DDFE4                 mov     rsi, r15
+  .text:00000000008DDFE7                 lea     rdi, sub_535D60
+  .text:00000000008DDFEE                 call    sub_2B41A0
+  .text:00000000008DDFF3                 mov     rdi, r14
+  .text:00000000008DDFF6                 call    sub_2A6E00
+  .text:00000000008DDFFB                 jmp     loc_8DDA56
+  .text:00000000008DE000                 lea     r14, byte_C56388
+  .text:00000000008DE007                 mov     rdi, r14
+  .text:00000000008DE00A                 call    sub_2A6DE0
+  .text:00000000008DE00F                 test    eax, eax
+  .text:00000000008DE011                 jz      loc_8DDABC
+  .text:00000000008DE017                 lea     r15, unk_C56280
+  .text:00000000008DE01E                 xor     eax, eax
+  .text:00000000008DE020                 lea     rcx, aOnclientpollne; "OnClientPollNetworking"
+  .text:00000000008DE027                 mov     rdi, r15
+  .text:00000000008DE02A                 lea     rdx, aCnetworkserver_6; "CNetworkServerService"
+  .text:00000000008DE031                 lea     rsi, aSS_5; "%s::%s"
+  .text:00000000008DE038                 call    sub_4886F0
+  .text:00000000008DE03D                 lea     rdx, off_964B60
+  .text:00000000008DE044                 mov     rsi, r15
+  .text:00000000008DE047                 lea     rdi, sub_535D60
+  .text:00000000008DE04E                 call    sub_2B41A0
+  .text:00000000008DE053                 mov     rdi, r14
+  .text:00000000008DE056                 call    sub_2A6E00
+  .text:00000000008DE05B                 jmp     loc_8DDABC
+  .text:00000000008DE060                 lea     r14, byte_C56268
+  .text:00000000008DE067                 mov     rdi, r14
+  .text:00000000008DE06A                 call    sub_2A6DE0
+  .text:00000000008DE06F                 test    eax, eax
+  .text:00000000008DE071                 jz      loc_8DDB22
+  .text:00000000008DE077                 lea     r15, unk_C56160
+  .text:00000000008DE07E                 xor     eax, eax
+  .text:00000000008DE080                 lea     rcx, aOnsimpleloopfr; "OnSimpleLoopFrameUpdate"
+  .text:00000000008DE087                 mov     rdi, r15
+  .text:00000000008DE08A                 lea     rdx, aCnetworkserver_6; "CNetworkServerService"
+  .text:00000000008DE091                 lea     rsi, aSS_5; "%s::%s"
+  .text:00000000008DE098                 call    sub_4886F0
+  .text:00000000008DE09D                 lea     rdx, off_964B60
+  .text:00000000008DE0A4                 mov     rsi, r15
+  .text:00000000008DE0A7                 lea     rdi, sub_535D60
+  .text:00000000008DE0AE                 call    sub_2B41A0
+  .text:00000000008DE0B3                 mov     rdi, r14
+  .text:00000000008DE0B6                 call    sub_2A6E00
+  .text:00000000008DE0BB                 jmp     loc_8DDB22
+  .text:00000000008DE0C0                 lea     r14, byte_C56C88
+  .text:00000000008DE0C7                 mov     rdi, r14
+  .text:00000000008DE0CA                 call    sub_2A6DE0
+  .text:00000000008DE0CF                 test    eax, eax
+  .text:00000000008DE0D1                 jz      loc_8DD795
+  .text:00000000008DE0D7                 lea     r15, unk_C56B80
+  .text:00000000008DE0DE                 xor     eax, eax
+  .text:00000000008DE0E0                 lea     rcx, aOnserverpollne; "OnServerPollNetworking"
+  .text:00000000008DE0E7                 mov     rdi, r15
+  .text:00000000008DE0EA                 lea     rdx, aCnetworkserver_6; "CNetworkServerService"
+  .text:00000000008DE0F1                 lea     rsi, aSS_5; "%s::%s"
+  .text:00000000008DE0F8                 call    sub_4886F0
+  .text:00000000008DE0FD                 lea     rdx, off_964B60
+  .text:00000000008DE104                 mov     rsi, r15
+  .text:00000000008DE107                 lea     rdi, sub_535D60
+  .text:00000000008DE10E                 call    sub_2B41A0
+  .text:00000000008DE113                 mov     rdi, r14
+  .text:00000000008DE116                 call    sub_2A6E00
+  .text:00000000008DE11B                 jmp     loc_8DD795
+  .text:00000000008DE120                 lea     r14, byte_C56B68
+  .text:00000000008DE127                 mov     rdi, r14
+  .text:00000000008DE12A                 call    sub_2A6DE0
+  .text:00000000008DE12F                 test    eax, eax
+  .text:00000000008DE131                 jz      loc_8DD7F8
+  .text:00000000008DE137                 lea     r15, unk_C56A60
+  .text:00000000008DE13E                 xor     eax, eax
+  .text:00000000008DE140                 lea     rcx, aOnserverproces; "OnServerProcessNetworking"
+  .text:00000000008DE147                 mov     rdi, r15
+  .text:00000000008DE14A                 lea     rdx, aCnetworkserver_6; "CNetworkServerService"
+  .text:00000000008DE151                 lea     rsi, aSS_5; "%s::%s"
+  .text:00000000008DE158                 call    sub_4886F0
+  .text:00000000008DE15D                 lea     rdx, off_964B60
+  .text:00000000008DE164                 mov     rsi, r15
+  .text:00000000008DE167                 lea     rdi, sub_535D60
+  .text:00000000008DE16E                 call    sub_2B41A0
+  .text:00000000008DE173                 mov     rdi, r14
+  .text:00000000008DE176                 call    sub_2A6E00
+  .text:00000000008DE17B                 jmp     loc_8DD7F8
+procedure: |-
+  __int64 __fastcall CNetworkServerService_RegisterEventMapInternal(__int64 a1, __int64 a2, int a3)
+  {
+    __int64 *v3; // r8
+    __int64 *v4; // r8
+    __int64 *v5; // r8
+    __int64 *v6; // r8
+    __int64 *v7; // r8
+    __int64 *v8; // r8
+    __int64 *v9; // r8
+    __int64 *v10; // r8
+    __int64 *v11; // r8
+    __int64 *v12; // r8
+    __int64 *v13; // r8
+    __int64 v15; // rcx
+    __int64 v16; // r8
+    __int64 v17; // r9
+    __int64 v18; // rcx
+    __int64 v19; // r8
+    __int64 v20; // r9
+    __int64 v21; // rcx
+    __int64 v22; // r8
+    __int64 v23; // r9
+    __int64 v24; // rcx
+    __int64 v25; // r8
+    __int64 v26; // r9
+    __int64 v27; // rcx
+    __int64 v28; // r8
+    __int64 v29; // r9
+    __int64 v30; // rcx
+    __int64 v31; // r8
+    __int64 v32; // r9
+    __int64 v33; // rcx
+    __int64 v34; // r8
+    __int64 v35; // r9
+    __int64 v36; // rcx
+    __int64 v37; // r8
+    __int64 v38; // r9
+    __int64 v39; // rcx
+    __int64 v40; // r8
+    __int64 v41; // r9
+    __int64 v42; // rcx
+    __int64 v43; // r8
+    __int64 v44; // r9
+    int v45; // r8d
+    int v46; // r9d
+    int v47; // r8d
+    int v48; // r9d
+    int v49; // r8d
+    int v50; // r9d
+    int v51; // r8d
+    int v52; // r9d
+    int v53; // r8d
+    int v54; // r9d
+    int v55; // r8d
+    int v56; // r9d
+    int v57; // r8d
+    int v58; // r9d
+    int v59; // r8d
+    int v60; // r9d
+    int v61; // r8d
+    int v62; // r9d
+    int v63; // r8d
+    int v64; // r9d
+    int v65; // r8d
+    int v66; // r9d
+    __int64 v67; // [rsp+0h] [rbp-50h] BYREF
+    __int64 (__fastcall *v68)(); // [rsp+8h] [rbp-48h]
+    __int64 v69; // [rsp+10h] [rbp-40h]
+
+    if ( a3 )
+    {
+      v67 = a2;
+      v69 = 0;
+      v68 = CNetworkServerService_OnServerAdvanceTick;
+      ((void (__fastcall *)(__int64, __int64 *, __int64))sub_550600)(a1, &v67, qword_968E20);
+      v67 = a2;
+      v69 = 0;
+      v68 = CNetworkServerService_OnServerPollNetworking;
+      ((void (__fastcall *)(__int64, __int64 *, __int64, __int64, __int64, __int64))sub_550600)(
+        a1,
+        &v67,
+        qword_9684A0,
+        v15,
+        v16,
+        v17);
+      v67 = a2;
+      v69 = 0;
+      v68 = CNetworkServerService_OnServerProcessNetworking;
+      ((void (__fastcall *)(__int64, __int64 *, __int64, __int64, __int64, __int64))sub_550600)(
+        a1,
+        &v67,
+        qword_968380,
+        v18,
+        v19,
+        v20);
+      v67 = a2;
+      v69 = 0;
+      v68 = CNetworkServerService_OnServerBeginSimulate;
+      ((void (__fastcall *)(__int64, __int64 *, __int64, __int64, __int64, __int64))sub_550600)(
+        a1,
+        &v67,
+        qword_968260,
+        v21,
+        v22,
+        v23);
+      v67 = a2;
+      v69 = 0;
+      v68 = CNetworkServerService_OnServerEndSimulate;
+      ((void (__fastcall *)(__int64, __int64 *, __int64, __int64, __int64, __int64))sub_550600)(
+        a1,
+        &v67,
+        qword_9681E0,
+        v24,
+        v25,
+        v26);
+      v67 = a2;
+      v69 = 0;
+      v68 = CNetworkServerService_OnServerPostSimulate;
+      ((void (__fastcall *)(__int64, __int64 *, __int64, __int64, __int64, __int64))sub_550600)(
+        a1,
+        &v67,
+        qword_9680C0,
+        v27,
+        v28,
+        v29);
+      v67 = a2;
+      v69 = 0;
+      v68 = CNetworkServerService_OnServerPostAdvanceTick;
+      ((void (__fastcall *)(__int64, __int64 *, __int64, __int64, __int64, __int64))sub_550600)(
+        a1,
+        &v67,
+        qword_968BC0,
+        v30,
+        v31,
+        v32);
+      v67 = a2;
+      v69 = 0;
+      v68 = CNetworkServerService_OnServerBeginAsyncPostTickWork;
+      ((void (__fastcall *)(__int64, __int64 *, __int64, __int64, __int64, __int64))sub_550600)(
+        a1,
+        &v67,
+        qword_968A20,
+        v33,
+        v34,
+        v35);
+      v67 = a2;
+      v69 = 0;
+      v68 = CNetworkServerService_OnFrameBoundary;
+      ((void (__fastcall *)(__int64, __int64 *, __int64, __int64, __int64, __int64))sub_550600)(
+        a1,
+        &v67,
+        qword_969080,
+        v36,
+        v37,
+        v38);
+      v67 = a2;
+      v69 = 0;
+      v68 = CNetworkServerService_OnClientPollNetworking;
+      ((void (__fastcall *)(__int64, __int64 *, __int64, __int64, __int64, __int64))sub_550600)(
+        a1,
+        &v67,
+        qword_968420,
+        v39,
+        v40,
+        v41);
+      v67 = a2;
+      v69 = 0;
+      v68 = CNetworkServerService_OnSimpleLoopFrameUpdate;
+      return ((__int64 (__fastcall *)(__int64, __int64 *, __int64, __int64, __int64, __int64))sub_550600)(
+               a1,
+               &v67,
+               qword_969A40,
+               v42,
+               v43,
+               v44);
+    }
+    else
+    {
+      if ( !byte_C56DA8 && (unsigned int)sub_2A6DE0(&byte_C56DA8) )
+      {
+        sub_4886F0(
+          (unsigned int)&unk_C56CA0,
+          (unsigned int)"%s::%s",
+          (unsigned int)"CNetworkServerService",
+          (unsigned int)"OnServerAdvanceTick",
+          v45,
+          v46,
+          v67);
+        sub_2B41A0(sub_535D60, &unk_C56CA0, &off_964B60);
+        sub_2A6E00(&byte_C56DA8);
+      }
+      v3 = &qword_C56CA8;
+      if ( (byte_C56CA7 & 0x40) == 0 )
+      {
+        v3 = (__int64 *)&byte_26801C;
+        if ( (unk_C56CA4 & 0x3FFFFFFF) != 0 )
+          v3 = (__int64 *)qword_C56CA8;
+      }
+      v69 = 0;
+      v67 = a2;
+      v68 = CNetworkServerService_OnServerAdvanceTick;
+      sub_8E15B0(a1, &v67, qword_968E20, 0, v3);
+      if ( !byte_C56C88 && (unsigned int)sub_2A6DE0(&byte_C56C88) )
+      {
+        sub_4886F0(
+          (unsigned int)&unk_C56B80,
+          (unsigned int)"%s::%s",
+          (unsigned int)"CNetworkServerService",
+          (unsigned int)"OnServerPollNetworking",
+          v63,
+          v64,
+          v67);
+        sub_2B41A0(sub_535D60, &unk_C56B80, &off_964B60);
+        sub_2A6E00(&byte_C56C88);
+      }
+      v4 = &qword_C56B88;
+      if ( (byte_C56B87 & 0x40) == 0 )
+      {
+        v4 = (__int64 *)&byte_26801C;
+        if ( (unk_C56B84 & 0x3FFFFFFF) != 0 )
+          v4 = (__int64 *)qword_C56B88;
+      }
+      v67 = a2;
+      v69 = 0;
+      v68 = CNetworkServerService_OnServerPollNetworking;
+      sub_8E15B0(a1, &v67, qword_9684A0, 0, v4);
+      if ( !byte_C56B68 && (unsigned int)sub_2A6DE0(&byte_C56B68) )
+      {
+        sub_4886F0(
+          (unsigned int)&unk_C56A60,
+          (unsigned int)"%s::%s",
+          (unsigned int)"CNetworkServerService",
+          (unsigned int)"OnServerProcessNetworking",
+          v65,
+          v66,
+          v67);
+        sub_2B41A0(sub_535D60, &unk_C56A60, &off_964B60);
+        sub_2A6E00(&byte_C56B68);
+      }
+      v5 = &qword_C56A68;
+      if ( (byte_C56A67 & 0x40) == 0 )
+      {
+        v5 = (__int64 *)&byte_26801C;
+        if ( (unk_C56A64 & 0x3FFFFFFF) != 0 )
+          v5 = (__int64 *)qword_C56A68;
+      }
+      v67 = a2;
+      v69 = 0;
+      v68 = CNetworkServerService_OnServerProcessNetworking;
+      sub_8E15B0(a1, &v67, qword_968380, 0, v5);
+      if ( !byte_C56A48 && (unsigned int)sub_2A6DE0(&byte_C56A48) )
+      {
+        sub_4886F0(
+          (unsigned int)&unk_C56940,
+          (unsigned int)"%s::%s",
+          (unsigned int)"CNetworkServerService",
+          (unsigned int)"OnServerBeginSimulate",
+          v47,
+          v48,
+          v67);
+        sub_2B41A0(sub_535D60, &unk_C56940, &off_964B60);
+        sub_2A6E00(&byte_C56A48);
+      }
+      v6 = &qword_C56948;
+      if ( (byte_C56947 & 0x40) == 0 )
+      {
+        v6 = (__int64 *)&byte_26801C;
+        if ( (unk_C56944 & 0x3FFFFFFF) != 0 )
+          v6 = (__int64 *)qword_C56948;
+      }
+      v67 = a2;
+      v69 = 0;
+      v68 = CNetworkServerService_OnServerBeginSimulate;
+      sub_8E15B0(a1, &v67, qword_968260, 0x80000000LL, v6);
+      if ( !byte_C56928 && (unsigned int)sub_2A6DE0(&byte_C56928) )
+      {
+        sub_4886F0(
+          (unsigned int)&unk_C56820,
+          (unsigned int)"%s::%s",
+          (unsigned int)"CNetworkServerService",
+          (unsigned int)"OnServerEndSimulate",
+          v49,
+          v50,
+          v67);
+        sub_2B41A0(sub_535D60, &unk_C56820, &off_964B60);
+        sub_2A6E00(&byte_C56928);
+      }
+      v7 = &qword_C56828;
+      if ( (byte_C56827 & 0x40) == 0 )
+      {
+        v7 = (__int64 *)&byte_26801C;
+        if ( (unk_C56824 & 0x3FFFFFFF) != 0 )
+          v7 = (__int64 *)qword_C56828;
+      }
+      v67 = a2;
+      v69 = 0;
+      v68 = CNetworkServerService_OnServerEndSimulate;
+      sub_8E15B0(a1, &v67, qword_9681E0, 0x7FFFFFFF, v7);
+      if ( !byte_C56808 && (unsigned int)sub_2A6DE0(&byte_C56808) )
+      {
+        sub_4886F0(
+          (unsigned int)&unk_C56700,
+          (unsigned int)"%s::%s",
+          (unsigned int)"CNetworkServerService",
+          (unsigned int)"OnServerPostSimulate",
+          v51,
+          v52,
+          v67);
+        sub_2B41A0(sub_535D60, &unk_C56700, &off_964B60);
+        sub_2A6E00(&byte_C56808);
+      }
+      v8 = &qword_C56708;
+      if ( (byte_C56707 & 0x40) == 0 )
+      {
+        v8 = (__int64 *)&byte_26801C;
+        if ( (unk_C56704 & 0x3FFFFFFF) != 0 )
+          v8 = (__int64 *)qword_C56708;
+      }
+      v67 = a2;
+      v69 = 0;
+      v68 = CNetworkServerService_OnServerPostSimulate;
+      sub_8E15B0(a1, &v67, qword_9680C0, 0, v8);
+      if ( !byte_C566E8 && (unsigned int)sub_2A6DE0(&byte_C566E8) )
+      {
+        sub_4886F0(
+          (unsigned int)&unk_C565E0,
+          (unsigned int)"%s::%s",
+          (unsigned int)"CNetworkServerService",
+          (unsigned int)"OnServerPostAdvanceTick",
+          v53,
+          v54,
+          v67);
+        sub_2B41A0(sub_535D60, &unk_C565E0, &off_964B60);
+        sub_2A6E00(&byte_C566E8);
+      }
+      v9 = &qword_C565E8;
+      if ( (byte_C565E7 & 0x40) == 0 )
+      {
+        v9 = (__int64 *)&byte_26801C;
+        if ( (unk_C565E4 & 0x3FFFFFFF) != 0 )
+          v9 = (__int64 *)qword_C565E8;
+      }
+      v67 = a2;
+      v69 = 0;
+      v68 = CNetworkServerService_OnServerPostAdvanceTick;
+      sub_8E15B0(a1, &v67, qword_968BC0, 0x80000000LL, v9);
+      if ( !byte_C565C8 && (unsigned int)sub_2A6DE0(&byte_C565C8) )
+      {
+        sub_4886F0(
+          (unsigned int)&unk_C564C0,
+          (unsigned int)"%s::%s",
+          (unsigned int)"CNetworkServerService",
+          (unsigned int)"OnServerBeginAsyncPostTickWork",
+          v55,
+          v56,
+          v67);
+        sub_2B41A0(sub_535D60, &unk_C564C0, &off_964B60);
+        sub_2A6E00(&byte_C565C8);
+      }
+      v10 = &qword_C564C8;
+      if ( (byte_C564C7 & 0x40) == 0 )
+      {
+        v10 = (__int64 *)&byte_26801C;
+        if ( (unk_C564C4 & 0x3FFFFFFF) != 0 )
+          v10 = (__int64 *)qword_C564C8;
+      }
+      v67 = a2;
+      v69 = 0;
+      v68 = CNetworkServerService_OnServerBeginAsyncPostTickWork;
+      sub_8E15B0(a1, &v67, qword_968A20, 0x80000000LL, v10);
+      if ( !byte_C564A8 && (unsigned int)sub_2A6DE0(&byte_C564A8) )
+      {
+        sub_4886F0(
+          (unsigned int)&unk_C563A0,
+          (unsigned int)"%s::%s",
+          (unsigned int)"CNetworkServerService",
+          (unsigned int)"OnFrameBoundary",
+          v57,
+          v58,
+          v67);
+        sub_2B41A0(sub_535D60, &unk_C563A0, &off_964B60);
+        sub_2A6E00(&byte_C564A8);
+      }
+      v11 = &qword_C563A8;
+      if ( (byte_C563A7 & 0x40) == 0 )
+      {
+        v11 = (__int64 *)&byte_26801C;
+        if ( (unk_C563A4 & 0x3FFFFFFF) != 0 )
+          v11 = (__int64 *)qword_C563A8;
+      }
+      v67 = a2;
+      v69 = 0;
+      v68 = CNetworkServerService_OnFrameBoundary;
+      sub_8E15B0(a1, &v67, qword_969080, 0x7FFFFFFF, v11);
+      if ( !byte_C56388 && (unsigned int)sub_2A6DE0(&byte_C56388) )
+      {
+        sub_4886F0(
+          (unsigned int)&unk_C56280,
+          (unsigned int)"%s::%s",
+          (unsigned int)"CNetworkServerService",
+          (unsigned int)"OnClientPollNetworking",
+          v59,
+          v60,
+          v67);
+        sub_2B41A0(sub_535D60, &unk_C56280, &off_964B60);
+        sub_2A6E00(&byte_C56388);
+      }
+      v12 = &qword_C56288;
+      if ( (byte_C56287 & 0x40) == 0 )
+      {
+        v12 = (__int64 *)&byte_26801C;
+        if ( (unk_C56284 & 0x3FFFFFFF) != 0 )
+          v12 = (__int64 *)qword_C56288;
+      }
+      v67 = a2;
+      v69 = 0;
+      v68 = CNetworkServerService_OnClientPollNetworking;
+      sub_8E15B0(a1, &v67, qword_968420, 1, v12);
+      if ( !byte_C56268 && (unsigned int)sub_2A6DE0(&byte_C56268) )
+      {
+        sub_4886F0(
+          (unsigned int)&unk_C56160,
+          (unsigned int)"%s::%s",
+          (unsigned int)"CNetworkServerService",
+          (unsigned int)"OnSimpleLoopFrameUpdate",
+          v61,
+          v62,
+          v67);
+        sub_2B41A0(sub_535D60, &unk_C56160, &off_964B60);
+        sub_2A6E00(&byte_C56268);
+      }
+      v13 = &qword_C56168;
+      if ( (byte_C56167 & 0x40) == 0 )
+      {
+        v13 = (__int64 *)&byte_26801C;
+        if ( (unk_C56164 & 0x3FFFFFFF) != 0 )
+          v13 = (__int64 *)qword_C56168;
+      }
+      v67 = a2;
+      v69 = 0;
+      v68 = CNetworkServerService_OnSimpleLoopFrameUpdate;
+      return sub_8E15B0(a1, &v67, qword_969A40, 0, v13);
+    }
+  }

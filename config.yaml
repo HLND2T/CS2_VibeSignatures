@@ -540,6 +540,20 @@ modules:
         expected_output:
           - CNetworkServerService_RegisterEventMapInternal.{platform}.yaml
 
+      - name: find-CNetworkServerService_OnEventMapCallbacks-engine
+        expected_output:
+          - CNetworkServerService_OnServerAdvanceTick.{platform}.yaml
+          - CNetworkServerService_OnServerPollNetworking.{platform}.yaml
+          - CNetworkServerService_OnServerProcessNetworking.{platform}.yaml
+          - CNetworkServerService_OnServerBeginSimulate.{platform}.yaml
+          - CNetworkServerService_OnServerPostSimulate.{platform}.yaml
+          - CNetworkServerService_OnServerPostAdvanceTick.{platform}.yaml
+          - CNetworkServerService_OnFrameBoundary.{platform}.yaml
+          - CNetworkServerService_OnClientPollNetworking.{platform}.yaml
+          - CNetworkServerService_OnSimpleLoopFrameUpdate.{platform}.yaml
+        expected_input:
+          - CNetworkServerService_RegisterEventMapInternal.{platform}.yaml
+
       - name: find-INetworkMessages_SetIsForServer
         expected_output:
           - INetworkMessages_SetIsForServer.{platform}.yaml
@@ -754,6 +768,51 @@ modules:
         category: func
         alias:
           - CNetworkServerService::RegisterEventMapInternal
+
+      - name: CNetworkServerService_OnServerAdvanceTick
+        category: func
+        alias:
+          - CNetworkServerService::OnServerAdvanceTick
+
+      - name: CNetworkServerService_OnServerPollNetworking
+        category: func
+        alias:
+          - CNetworkServerService::OnServerPollNetworking
+
+      - name: CNetworkServerService_OnServerProcessNetworking
+        category: func
+        alias:
+          - CNetworkServerService::OnServerProcessNetworking
+
+      - name: CNetworkServerService_OnServerBeginSimulate
+        category: func
+        alias:
+          - CNetworkServerService::OnServerBeginSimulate
+
+      - name: CNetworkServerService_OnServerPostSimulate
+        category: func
+        alias:
+          - CNetworkServerService::OnServerPostSimulate
+
+      - name: CNetworkServerService_OnServerPostAdvanceTick
+        category: func
+        alias:
+          - CNetworkServerService::OnServerPostAdvanceTick
+
+      - name: CNetworkServerService_OnFrameBoundary
+        category: func
+        alias:
+          - CNetworkServerService::OnFrameBoundary
+
+      - name: CNetworkServerService_OnClientPollNetworking
+        category: func
+        alias:
+          - CNetworkServerService::OnClientPollNetworking
+
+      - name: CNetworkServerService_OnSimpleLoopFrameUpdate
+        category: func
+        alias:
+          - CNetworkServerService::OnSimpleLoopFrameUpdate
 
       - name: INetworkMessages_SetIsForServer
         category: vfunc
