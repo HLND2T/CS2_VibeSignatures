@@ -1012,13 +1012,16 @@ modules:
         expected_output:
           - CSpawnGroupMgrGameSystem_vtable.{platform}.yaml
 
+      - name: find-CSpawnGroupMgrGameSystem_vtable2
+        expected_output:
+          - CSpawnGroupMgrGameSystem_vtable2.{platform}.yaml
+
       - name: find-CSpawnGroupMgrGameSystem_DoesGameSystemReallocate
         expected_output:
           - CSpawnGroupMgrGameSystem_DoesGameSystemReallocate.{platform}.yaml
         expected_input:
-          - IGameSystem_SetName.{platform}.yaml
           - IGameSystemFactory_DoesGameSystemReallocate.{platform}.yaml
-          - CSpawnGroupMgrGameSystem_vtable.{platform}.yaml
+          - CSpawnGroupMgrGameSystem_vtable2.{platform}.yaml
 
       - name: find-IGameSystem_DoesGameSystemReallocate
         expected_output:
@@ -2345,6 +2348,21 @@ modules:
         expected_input:
           - CDedicatedServerWorkshopManager_SwitchToWorkshopMapGroup.{platform}.yaml
 
+      - name: find-CSpawnGroupMgrGameSystem_vtable
+        expected_output:
+          - CSpawnGroupMgrGameSystem_vtable.{platform}.yaml
+
+      - name: find-CSpawnGroupMgrGameSystem_vtable2
+        expected_output:
+          - CSpawnGroupMgrGameSystem_vtable2.{platform}.yaml
+
+      - name: find-CSpawnGroupMgrGameSystem_DoesGameSystemReallocate
+        expected_output:
+          - CSpawnGroupMgrGameSystem_DoesGameSystemReallocate.{platform}.yaml
+        expected_input:
+          - ../client/IGameSystemFactory_DoesGameSystemReallocate.{platform}.yaml
+          - CSpawnGroupMgrGameSystem_vtable2.{platform}.yaml
+
       - name: find-CSpawnGroupMgrGameSystem_GetSpawnGroups
         expected_output:
           - CSpawnGroupMgrGameSystem_GetSpawnGroups.{platform}.yaml
@@ -2729,6 +2747,9 @@ modules:
         category: vtable
 
       - name: CSpawnGroupMgrGameSystem_vtable
+        category: vtable
+
+      - name: CSpawnGroupMgrGameSystem_vtable2
         category: vtable
 
       - name: CGameSystemReallocatingFactory_CSpawnGroupMgrGameSystem_vtable
