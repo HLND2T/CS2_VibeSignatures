@@ -635,6 +635,16 @@ modules:
         expected_input:
           - CLoopTypeClientServerService_HandleInputEvent.{platform}.yaml
 
+      - name: find-CEngineServiceMgr_vtable
+        expected_output:
+          - CEngineServiceMgr_vtable.{platform}.yaml
+
+      - name: find-CEngineServiceMgr_RegisterEngineService
+        expected_output:
+          - CEngineServiceMgr_RegisterEngineService.{platform}.yaml
+        expected_input:
+          - CEngineServiceMgr_vtable.{platform}.yaml
+
       - name: find-CEngineServiceMgr__MainLoop
         expected_output:
           - CEngineServiceMgr__MainLoop.{platform}.yaml
@@ -901,6 +911,14 @@ modules:
         category: vfunc
         alias:
           - ILoopMode::HandleInputEvent
+
+      - name: CEngineServiceMgr_vtable
+        category: vtable
+
+      - name: CEngineServiceMgr_RegisterEngineService
+        category: vfunc
+        alias:
+          - CEngineServiceMgr::RegisterEngineService
 
       - name: CEngineServiceMgr__MainLoop
         category: func
