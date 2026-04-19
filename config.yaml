@@ -644,6 +644,13 @@ modules:
         expected_output:
           - CLoopTypeClientServer_WritePerfStats.{platform}.yaml
 
+      - name: find-CLoopTypeClientServer_DeactivateLoop
+        expected_output:
+          - CLoopTypeClientServer_DeactivateLoop.{platform}.yaml
+        expected_input:
+          - CLoopTypeClientServer_vtable.{platform}.yaml
+          - CLoopTypeClientServer_WritePerfStats.{platform}.yaml
+
       - name: find-CLoopTypeClientServerService_OnLoopActivate
         expected_output:
           - CLoopTypeClientServerService_OnLoopActivate.{platform}.yaml
@@ -940,6 +947,11 @@ modules:
         category: func
         alias:
           - CLoopTypeClientServer::WritePerfStats
+
+      - name: CLoopTypeClientServer_DeactivateLoop
+        category: vfunc
+        alias:
+          - CLoopTypeClientServer::DeactivateLoop
 
       - name: CLoopTypeClientServerService_OnLoopActivate
         category: vfunc
