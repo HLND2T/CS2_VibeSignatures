@@ -2970,6 +2970,13 @@ modules:
           - CLoopModeGame_OnServerPostSimulate.{platform}.yaml
           - IGameSystem_vtable.{platform}.yaml
 
+      - name: find-IGameSystem_ServerPostAdvanceTick
+        expected_output:
+          - IGameSystem_ServerPostAdvanceTick.{platform}.yaml
+        expected_input:
+          - CLoopModeGame_OnServerPostAdvanceTick.{platform}.yaml
+          - IGameSystem_vtable.{platform}.yaml
+
       - name: find-CLoopModeGame_ReceivedServerInfo
         expected_output:
           - CLoopModeGame_ReceivedServerInfo.{platform}.yaml
@@ -3949,6 +3956,11 @@ modules:
         category: vfunc
         alias:
           - IGameSystem::ServerGamePostSimulate
+
+      - name: IGameSystem_ServerPostAdvanceTick
+        category: vfunc
+        alias:
+          - IGameSystem::ServerPostAdvanceTick
 
       - name: CSource2GameClients_StartHLTVServer
         category: vfunc
