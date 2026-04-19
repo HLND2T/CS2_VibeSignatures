@@ -2016,6 +2016,13 @@ modules:
           - CSource2Server_vtable.{platform}.yaml
           - ../engine/ISource2Server_ClientUpdate.{platform}.yaml
 
+      - name: find-IGameSystem_ServerPreClientUpdate
+        expected_output:
+          - IGameSystem_ServerPreClientUpdate.{platform}.yaml
+        expected_input:
+          - CSource2Server_ClientUpdate.{platform}.yaml
+          - IGameSystem_vtable.{platform}.yaml
+
       - name: find-IGameSystem_ServerPreEntityThink-AND-IGameSystem_ServerPostEntityThink
         expected_output:
           - IGameSystem_ServerPreEntityThink.{platform}.yaml
@@ -3896,6 +3903,11 @@ modules:
         category: vfunc
         alias:
           - IGameSystem::ServerPostEntityThink
+
+      - name: IGameSystem_ServerPreClientUpdate
+        category: vfunc
+        alias:
+          - IGameSystem::ServerPreClientUpdate
 
       - name: CSource2GameClients_StartHLTVServer
         category: vfunc
