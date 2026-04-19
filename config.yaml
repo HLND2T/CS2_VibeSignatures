@@ -2977,6 +2977,21 @@ modules:
           - CLoopModeGame_OnServerPostAdvanceTick.{platform}.yaml
           - IGameSystem_vtable.{platform}.yaml
 
+      - name: find-IGameSystem_ServerBeginAsyncPostTickWork
+        expected_output:
+          - IGameSystem_ServerBeginAsyncPostTickWork.{platform}.yaml
+        expected_input:
+          - CLoopModeGame_OnServerBeginAsyncPostTickWork.{platform}.yaml
+          - IGameSystem_vtable.{platform}.yaml
+
+      - name: find-IGameSystem_BeforeServerEndAsyncPostTickWork-AND-IGameSystem_ServerEndAsyncPostTickWork
+        expected_output:
+          - IGameSystem_BeforeServerEndAsyncPostTickWork.{platform}.yaml
+          - IGameSystem_ServerEndAsyncPostTickWork.{platform}.yaml
+        expected_input:
+          - CLoopModeGame_OnServerEndAsyncPostTickWork.{platform}.yaml
+          - IGameSystem_vtable.{platform}.yaml
+
       - name: find-CLoopModeGame_ReceivedServerInfo
         expected_output:
           - CLoopModeGame_ReceivedServerInfo.{platform}.yaml
@@ -3961,6 +3976,21 @@ modules:
         category: vfunc
         alias:
           - IGameSystem::ServerPostAdvanceTick
+
+      - name: IGameSystem_ServerBeginAsyncPostTickWork
+        category: vfunc
+        alias:
+          - IGameSystem::ServerBeginAsyncPostTickWork
+
+      - name: IGameSystem_BeforeServerEndAsyncPostTickWork
+        category: vfunc
+        alias:
+          - IGameSystem::BeforeServerEndAsyncPostTickWork
+
+      - name: IGameSystem_ServerEndAsyncPostTickWork
+        category: vfunc
+        alias:
+          - IGameSystem::ServerEndAsyncPostTickWork
 
       - name: CSource2GameClients_StartHLTVServer
         category: vfunc
