@@ -2956,6 +2956,13 @@ modules:
         expected_input:
           - CLoopModeGame_RegisterEventMapInternal.{platform}.yaml
 
+      - name: find-IGameSystem_ServerAdvanceTick
+        expected_output:
+          - IGameSystem_ServerAdvanceTick.{platform}.yaml
+        expected_input:
+          - CLoopModeGame_OnServerAdvanceTick.{platform}.yaml
+          - IGameSystem_vtable.{platform}.yaml
+
       - name: find-CLoopModeGame_ReceivedServerInfo
         expected_output:
           - CLoopModeGame_ReceivedServerInfo.{platform}.yaml
@@ -3925,6 +3932,11 @@ modules:
         category: vfunc
         alias:
           - IGameSystem::ServerPreClientUpdate
+
+      - name: IGameSystem_ServerAdvanceTick
+        category: vfunc
+        alias:
+          - IGameSystem::ServerAdvanceTick
 
       - name: CSource2GameClients_StartHLTVServer
         category: vfunc
