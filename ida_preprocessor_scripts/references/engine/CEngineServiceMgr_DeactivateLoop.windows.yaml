@@ -1,0 +1,290 @@
+func_name: CEngineServiceMgr_DeactivateLoop
+func_va: '0x18021bf90'
+disasm_code: |-
+  .text:000000018021BF90                 mov     r11, rsp
+  .text:000000018021BF93                 push    rbp
+  .text:000000018021BF94                 push    rbx
+  .text:000000018021BF95                 push    r14
+  .text:000000018021BF97                 lea     rbp, [r11-5Fh]
+  .text:000000018021BF9B                 sub     rsp, 0B0h
+  .text:000000018021BFA2                 mov     eax, [rcx+0A8h]
+  .text:000000018021BFA8                 mov     r14, rdx
+  .text:000000018021BFAB                 mov     rbx, rcx
+  .text:000000018021BFAE                 test    eax, eax
+  .text:000000018021BFB0                 js      loc_18021C237
+  .text:000000018021BFB6                 movzx   r8d, ax
+  .text:000000018021BFBA                 mov     rax, [rcx+38h]
+  .text:000000018021BFBE                 mov     ecx, cs:dword_18060E430
+  .text:000000018021BFC4                 mov     [r11+10h], rsi
+  .text:000000018021BFC8                 mov     [r11+18h], rdi
+  .text:000000018021BFCC                 mov     rdi, [rax+r8*8]
+  .text:000000018021BFD0                 xor     al, al
+  .text:000000018021BFD2                 mov     [r11-20h], r12
+  .text:000000018021BFD6                 mov     [r11-28h], r15
+  .text:000000018021BFDA                 xor     r15d, r15d
+  .text:000000018021BFDD                 mov     [rbp+57h+var_50], r15d
+  .text:000000018021BFE1                 mov     [rbp+57h+var_4C], al
+  .text:000000018021BFE4                 cmp     ecx, 5
+  .text:000000018021BFE7                 jbe     short loc_18021C01C
+  .text:000000018021BFE9                 lea     rdx, [rbp+57h+var_48]
+  .text:000000018021BFED                 mov     ecx, 3
+  .text:000000018021BFF2                 call    cs:Plat_EventActivityIdControl
+  .text:000000018021BFF8                 movups  xmm0, [rbp+57h+var_48]
+  .text:000000018021BFFC                 lea     rdx, [rbp+57h+var_38]
+  .text:000000018021C000                 mov     ecx, 4
+  .text:000000018021C005                 movups  [rbp+57h+var_38], xmm0
+  .text:000000018021C009                 call    cs:Plat_EventActivityIdControl
+  .text:000000018021C00F                 mov     ecx, cs:dword_18060E430
+  .text:000000018021C015                 mov     al, 1
+  .text:000000018021C017                 mov     [rbp+57h+var_4C], al
+  .text:000000018021C01A                 jmp     short loc_18021C023
+  .text:000000018021C01C                 xorps   xmm0, xmm0
+  .text:000000018021C01F                 movups  [rbp+57h+var_48], xmm0
+  .text:000000018021C023                 mov     [rbp+57h+var_50], 1
+  .text:000000018021C02A                 lea     rsi, unk_1805B38A3
+  .text:000000018021C031                 lea     r12, unk_1805B30A8
+  .text:000000018021C038                 cmp     ecx, 5
+  .text:000000018021C03B                 jbe     loc_18021C10F
+  .text:000000018021C041                 mov     rcx, [rdi+10h]
+  .text:000000018021C045                 test    al, al
+  .text:000000018021C047                 jz      short loc_18021C067
+  .text:000000018021C049                 cmp     dword ptr [rbp+57h+var_38], r15d
+  .text:000000018021C04D                 jnz     short loc_18021C061
+  .text:000000018021C04F                 cmp     dword ptr [rbp+57h+var_38+4], r15d
+  .text:000000018021C053                 jnz     short loc_18021C061
+  .text:000000018021C055                 cmp     dword ptr [rbp+57h+var_38+8], r15d
+  .text:000000018021C059                 jnz     short loc_18021C061
+  .text:000000018021C05B                 cmp     dword ptr [rbp+57h+var_38+0Ch], r15d
+  .text:000000018021C05F                 jz      short loc_18021C067
+  .text:000000018021C061                 lea     r9, [rbp+57h+var_38]
+  .text:000000018021C065                 jmp     short loc_18021C06A
+  .text:000000018021C067                 mov     r9, r15
+  .text:000000018021C06A                 test    rcx, rcx
+  .text:000000018021C06D                 jz      short loc_18021C083
+  .text:000000018021C06F                 mov     rax, 0FFFFFFFFFFFFFFFFh
+  .text:000000018021C076                 inc     rax
+  .text:000000018021C079                 cmp     [rcx+rax], r15b
+  .text:000000018021C07D                 jnz     short loc_18021C076
+  .text:000000018021C07F                 inc     eax
+  .text:000000018021C081                 jmp     short loc_18021C08F
+  .text:000000018021C083                 lea     rcx, unk_1805262BF
+  .text:000000018021C08A                 mov     eax, 1
+  .text:000000018021C08F                 mov     [rbp+57h+var_58], eax
+  .text:000000018021C092                 lea     r8, [rbp+57h+var_48]
+  .text:000000018021C096                 movzx   eax, cs:word_1805B33A4
+  .text:000000018021C09D                 lea     rdx, [rbp+57h+var_90]
+  .text:000000018021C0A1                 mov     [rbp+57h+var_8C], eax
+  .text:000000018021C0A4                 mov     rax, cs:off_18060E438
+  .text:000000018021C0AB                 mov     [rbp+57h+var_80], rax
+  .text:000000018021C0AF                 mov     [rbp+57h+var_60], rcx
+  .text:000000018021C0B3                 mov     rcx, cs:qword_18060E450
+  .text:000000018021C0BA                 mov     [rbp+57h+var_54], r15d
+  .text:000000018021C0BE                 mov     [rbp+57h+var_90], 0B000000h
+  .text:000000018021C0C5                 mov     [rbp+57h+var_88], r15
+  .text:000000018021C0C9                 movzx   eax, word ptr [rax]
+  .text:000000018021C0CC                 mov     [rbp+57h+var_78], eax
+  .text:000000018021C0CF                 lea     rax, unk_1805B33AE
+  .text:000000018021C0D6                 mov     [rbp+57h+var_70], rax
+  .text:000000018021C0DA                 mov     rax, rsi
+  .text:000000018021C0DD                 sub     eax, r12d
+  .text:000000018021C0E0                 mov     [rbp+57h+var_74], 2
+  .text:000000018021C0E7                 mov     [rbp+57h+var_68], 1Dh
+  .text:000000018021C0EE                 mov     [rbp+57h+var_64], 1
+  .text:000000018021C0F5                 mov     dword ptr [rbp+57h+arg_0], eax
+  .text:000000018021C0F8                 lea     rax, [rbp+57h+var_80]
+  .text:000000018021C0FC                 mov     [rsp+28h], rax
+  .text:000000018021C101                 mov     dword ptr [rsp+0C0h+var_A0], 3
+  .text:000000018021C109                 call    cs:Plat_EventWriteTransfer
+  .text:000000018021C10F                 lea     rax, [rbp+57h+var_50]
+  .text:000000018021C113                 mov     rdx, r14
+  .text:000000018021C116                 mov     [rbp+57h+arg_0], rax
+  .text:000000018021C11A                 lea     r8, [rbx+178h]
+  .text:000000018021C121                 mov     rax, [rdi]
+  .text:000000018021C124                 mov     rcx, rdi
+  .text:000000018021C127                 ; 0x38 = 56LL = ILoopType_LoopDeactivate
+  .text:000000018021C127                 call    qword ptr [rax+38h]; 0x38 = 56LL = ILoopType_LoopDeactivate
+  .text:000000018021C12A                 mov     rax, [rdi]
+  .text:000000018021C12D                 mov     rcx, rdi
+  .text:000000018021C130                 call    qword ptr [rax+28h]
+  .text:000000018021C133                 call    cs:Plat_NeedsLowFragmentation
+  .text:000000018021C139                 mov     rdi, [rsp+0C0h+arg_10]
+  .text:000000018021C141                 test    al, al
+  .text:000000018021C143                 jz      short loc_18021C155
+  .text:000000018021C145                 mov     rcx, cs:g_pSceneSystem
+  .text:000000018021C14C                 mov     rax, [rcx]
+  .text:000000018021C14F                 call    qword ptr [rax+438h]
+  .text:000000018021C155                 lea     rcx, [rbp+57h+arg_0]
+  .text:000000018021C159                 mov     dword ptr [rbx+0A8h], 0FFFFFFFFh
+  .text:000000018021C163                 call    sub_18021C250
+  .text:000000018021C168                 cmp     [rbp+57h+var_50], 1
+  .text:000000018021C16C                 jnz     loc_18021C20C
+  .text:000000018021C172                 cmp     [rbp+57h+var_4C], r15b
+  .text:000000018021C176                 jz      short loc_18021C187
+  .text:000000018021C178                 lea     rdx, [rbp+57h+var_38]
+  .text:000000018021C17C                 mov     ecx, 4
+  .text:000000018021C181                 call    cs:Plat_EventActivityIdControl
+  .text:000000018021C187                 cmp     cs:dword_18060E430, 5
+  .text:000000018021C18E                 mov     [rbp+57h+var_50], 2
+  .text:000000018021C195                 jbe     short loc_18021C20C
+  .text:000000018021C197                 movzx   eax, cs:word_1805B30DB
+  .text:000000018021C19E                 lea     r8, [rbp+57h+var_48]
+  .text:000000018021C1A2                 mov     rcx, cs:qword_18060E450
+  .text:000000018021C1A9                 lea     rdx, [rbp+57h+var_90]
+  .text:000000018021C1AD                 mov     [rbp+57h+var_8C], eax
+  .text:000000018021C1B0                 sub     esi, r12d
+  .text:000000018021C1B3                 mov     rax, cs:off_18060E438
+  .text:000000018021C1BA                 xor     r9d, r9d
+  .text:000000018021C1BD                 mov     [rbp+57h+var_80], rax
+  .text:000000018021C1C1                 mov     [rbp+57h+var_90], 0B000000h
+  .text:000000018021C1C8                 mov     [rbp+57h+var_88], r15
+  .text:000000018021C1CC                 movzx   eax, word ptr [rax]
+  .text:000000018021C1CF                 mov     [rbp+57h+var_78], eax
+  .text:000000018021C1D2                 lea     rax, unk_1805B30E5
+  .text:000000018021C1D9                 mov     [rbp+57h+var_70], rax
+  .text:000000018021C1DD                 lea     rax, [rbp+57h+var_80]
+  .text:000000018021C1E1                 mov     [rsp+28h], rax
+  .text:000000018021C1E6                 mov     [rbp+57h+var_74], 2
+  .text:000000018021C1ED                 mov     [rbp+57h+var_68], 20h ; ' '
+  .text:000000018021C1F4                 mov     [rbp+57h+var_64], 1
+  .text:000000018021C1FB                 mov     dword ptr [rsp+0C0h+var_A0], 2
+  .text:000000018021C203                 mov     dword ptr [rbp+57h+arg_0], esi
+  .text:000000018021C206                 call    cs:Plat_EventWriteTransfer
+  .text:000000018021C20C                 mov     r12, [rsp+0A8h]
+  .text:000000018021C214                 mov     rsi, [rsp+0C0h+arg_8]
+  .text:000000018021C21C                 mov     r15, [rsp+0C0h+var_20]
+  .text:000000018021C224                 mov     byte ptr [rbx+0F0h], 1
+  .text:000000018021C22B                 add     rsp, 0B0h
+  .text:000000018021C232                 pop     r14
+  .text:000000018021C234                 pop     rbx
+  .text:000000018021C235                 pop     rbp
+  .text:000000018021C236                 retn
+  .text:000000018021C237                 mov     byte ptr [rcx+0F0h], 0
+  .text:000000018021C23E                 add     rsp, 0B0h
+  .text:000000018021C245                 pop     r14
+  .text:000000018021C247                 pop     rbx
+  .text:000000018021C248                 pop     rbp
+  .text:000000018021C249                 retn
+procedure: |-
+  void __fastcall CEngineServiceMgr_DeactivateLoop(__int64 a1, __int64 a2)
+  {
+    int v2; // eax
+    __int64 v5; // r8
+    __int64 v6; // rax
+    unsigned int v7; // ecx
+    _QWORD *v8; // rdi
+    char v9; // al
+    _BYTE *v10; // rcx
+    __int128 *v11; // r9
+    __int64 v12; // rax
+    int v13; // eax
+    int v14; // [rsp+38h] [rbp-39h] BYREF
+    int v15; // [rsp+3Ch] [rbp-35h]
+    __int64 v16; // [rsp+40h] [rbp-31h]
+    void *v17; // [rsp+48h] [rbp-29h] BYREF
+    int v18; // [rsp+50h] [rbp-21h]
+    int v19; // [rsp+54h] [rbp-1Dh]
+    void *v20; // [rsp+58h] [rbp-19h]
+    int v21; // [rsp+60h] [rbp-11h]
+    int v22; // [rsp+64h] [rbp-Dh]
+    _BYTE *v23; // [rsp+68h] [rbp-9h]
+    int v24; // [rsp+70h] [rbp-1h]
+    int v25; // [rsp+74h] [rbp+3h]
+    int v26; // [rsp+78h] [rbp+7h] BYREF
+    char v27; // [rsp+7Ch] [rbp+Bh]
+    __int128 v28; // [rsp+80h] [rbp+Fh] BYREF
+    __int128 v29; // [rsp+90h] [rbp+1Fh] BYREF
+    int *v30; // [rsp+D8h] [rbp+67h] BYREF
+
+    v2 = *(_DWORD *)(a1 + 168);
+    if ( v2 < 0 )
+    {
+      *(_BYTE *)(a1 + 240) = 0;
+    }
+    else
+    {
+      v5 = (unsigned __int16)v2;
+      v6 = *(_QWORD *)(a1 + 56);
+      v7 = dword_18060E430;
+      v8 = *(_QWORD **)(v6 + 8 * v5);
+      v9 = 0;
+      v26 = 0;
+      v27 = 0;
+      if ( (unsigned int)dword_18060E430 <= 5 )
+      {
+        v28 = 0;
+      }
+      else
+      {
+        Plat_EventActivityIdControl(3, &v28);
+        v29 = v28;
+        Plat_EventActivityIdControl(4, &v29);
+        v7 = dword_18060E430;
+        v9 = 1;
+        v27 = 1;
+      }
+      v26 = 1;
+      if ( v7 > 5 )
+      {
+        v10 = (_BYTE *)v8[2];
+        if ( v9 && ((_DWORD)v29 || __PAIR64__(DWORD1(v29), 0) != DWORD2(v29) || HIDWORD(v29)) )
+          v11 = &v29;
+        else
+          v11 = nullptr;
+        if ( v10 )
+        {
+          v12 = -1;
+          do
+            ++v12;
+          while ( v10[v12] );
+          v13 = v12 + 1;
+        }
+        else
+        {
+          v10 = &unk_1805262BF;
+          v13 = 1;
+        }
+        v24 = v13;
+        v15 = 261;
+        v17 = off_18060E438;
+        v23 = v10;
+        v25 = 0;
+        v14 = 184549376;
+        v16 = 0;
+        v18 = *(unsigned __int16 *)off_18060E438;
+        v20 = &unk_1805B33AE;
+        v19 = 2;
+        v21 = 29;
+        v22 = 1;
+        LODWORD(v30) = (unsigned int)&unk_1805B38A3 - (unsigned int)&unk_1805B30A8;
+        Plat_EventWriteTransfer(qword_18060E450, &v14, &v28, v11, 3, &v17);
+      }
+      v30 = &v26;
+      (*(void (__fastcall **)(_QWORD *, __int64, __int64))(*v8 + 56LL))(v8, a2, a1 + 376);// 0x38 = 56LL = ILoopType_LoopDeactivate
+      (*(void (__fastcall **)(_QWORD *))(*v8 + 40LL))(v8);// 0x28 = 40LL = ILoopType_DeallocateLoopMode
+      if ( (unsigned __int8)Plat_NeedsLowFragmentation() )
+        (*(void (__fastcall **)(__int64))(*(_QWORD *)g_pSceneSystem + 1080LL))(g_pSceneSystem);
+      *(_DWORD *)(a1 + 168) = -1;
+      sub_18021C250(&v30);
+      if ( v26 == 1 )
+      {
+        if ( v27 )
+          Plat_EventActivityIdControl(4, &v29);
+        v26 = 2;
+        if ( (unsigned int)dword_18060E430 > 5 )
+        {
+          v15 = 517;
+          v17 = off_18060E438;
+          v14 = 184549376;
+          v16 = 0;
+          v18 = *(unsigned __int16 *)off_18060E438;
+          v20 = &unk_1805B30E5;
+          v19 = 2;
+          v21 = 32;
+          v22 = 1;
+          LODWORD(v30) = (unsigned int)&unk_1805B38A3 - (unsigned int)&unk_1805B30A8;
+          Plat_EventWriteTransfer(qword_18060E450, &v14, &v28, 0, 2, &v17);
+        }
+      }
+      *(_BYTE *)(a1 + 240) = 1;
+    }
+  }
