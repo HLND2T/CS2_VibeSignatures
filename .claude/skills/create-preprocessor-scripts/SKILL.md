@@ -44,7 +44,7 @@ Nine preprocessor patterns exist. The discovery method and target type determine
 | **C** -- Virtual function via LLM_DECOMPILE | Decompile a known predecessor function, identify vfunc call offsets | No | Yes | No | Yes | Yes |
 | **D** -- Regular function via LLM_DECOMPILE | Decompile a known predecessor function, identify direct call targets | No | Yes | No | No | Yes |
 | **E** -- Struct member offset via LLM_DECOMPILE | Decompile a known predecessor function, identify struct field access offsets | No | Yes | No | No | Yes |
-| **F** -- Virtual function via INHERIT_VFUNCS | Inherit vtable slot index from a known base-class vfunc, look up same slot in derived-class vtable | No | No | Yes | No | No |
+| **F** -- Virtual function via INHERIT_VFUNCS | Inherit vtable slot index from a known base-class vfunc, look up same slot in derived-class vtable (standard); or slot-only mode for abstract/interface vfuncs where only offset/index is needed | No | No | Yes | No | No |
 | **G** -- ConCommand handler function | Find the handler callback registered via `RegisterConCommand` by matching command name and help string | No (uses COMMAND_NAME/HELP_STRING) | No | No | No | No |
 | **H** -- Secondary (ordinal) vtable | Locate a class's secondary vtable via mangled symbol (Windows) or offset-to-top (Linux) | No | No | No | No | No |
 | **I** -- Interface vfunc offset via thunk instruction walk | Walk a known concrete-class thunk via `py_eval` + `idaapi.decode_insn`, extract `jmp [reg+disp]` displacement as vfunc_offset | No | No | No | No | No |
@@ -64,6 +64,7 @@ From the user's input, determine:
    - Has predecessor function + category `func` -> **Pattern D**
    - Has predecessor function + category `structmember` -> **Pattern E**
    - Has base vfunc name + category `vfunc` (derived-class override of known base vfunc) -> **Pattern F**
+     - If the target is an **abstract/interface vfunc** (no real function body, only `vfunc_offset`/`vfunc_index` needed) → use **Pattern F slot-only**: `generate_func_sig=False`, desired fields = `{func_name, vtable_name, vfunc_offset, vfunc_index}`, NO vtable YAML required for the interface class
    - Has `COMMAND_NAME` + `HELP_STRING` (ConCommand handler callback) -> **Pattern G**
    - Has mangled vtable symbol / offset-to-top + category `vtable` (secondary vtable for a class) -> **Pattern H**
    - Target is an **interface vfunc offset** with no feasible `func_sig`/`vfunc_sig`, and the offset can be read from a concrete-class thunk's `jmp [reg+disp]` instruction -> **Pattern I**
@@ -505,16 +506,93 @@ async def preprocess_skill(
 
 **INHERIT_VFUNCS tuple fields:**
 - `target_func_name` -- name for the derived-class function (e.g. `"CBaseEntity_Precache"`)
-- `inherit_vtable_class` -- class whose vtable to look up (e.g. `"CBaseEntity"`)
+- `inherit_vtable_class` -- class whose vtable to look up (e.g. `"CBaseEntity"`); for slot-only mode this is used only as metadata in the output YAML
 - `base_vfunc_name` -- YAML artifact stem of the base-class vfunc that defines the slot index (e.g. `"CEntityInstance_Precache"`). Can be cross-module: `"../engine/INetworkMessages_FindNetworkGroup"`
-- `generate_func_sig` -- (optional, default True) whether to generate a func_sig if no old YAML exists
+- `generate_func_sig` -- (optional, default True) whether to generate a func_sig if no old YAML exists; set to `False` for slot-only mode
 
 **Key differences from other patterns:**
 - No `TARGET_FUNCTION_NAMES`, `FUNC_XREFS`, `LLM_DECOMPILE`, or `FUNC_VTABLE_RELATIONS`
 - Uses `inherit_vfuncs=` parameter instead of `func_names=`
 - No `llm_config` parameter in `preprocess_skill`
-- config.yaml `expected_input` must include both the base vfunc YAML and the derived class vtable YAML
+- Standard mode: config.yaml `expected_input` must include both the base vfunc YAML and the derived class vtable YAML
+- Slot-only mode: config.yaml `expected_input` needs ONLY the base vfunc YAML — no vtable YAML for the interface class
 - config.yaml symbol category is `vfunc`
+
+#### Pattern F (slot-only variant) -- Abstract/interface vfunc slot index only
+
+Use when: the target is a **pure interface or abstract-class vfunc** (e.g. `ILoopMode::LoopInit`) where:
+- No real function body exists (pure virtual), so `func_va`, `func_sig` are not applicable
+- Only `vfunc_offset` and `vfunc_index` are needed to identify the vtable slot
+- A concrete-class implementation that overrides this slot is already found by another script
+
+The engine automatically activates **slot-only mode** when both conditions are true:
+1. `generate_func_sig=False` (4th INHERIT_VFUNCS tuple element)
+2. `GENERATE_YAML_DESIRED_FIELDS` contains **exactly** `{func_name, vtable_name, vfunc_offset, vfunc_index}` — nothing more, nothing less
+
+In slot-only mode the engine reads `vfunc_index` directly from the base vfunc's YAML and returns early, **skipping the vtable lookup entirely**. No `{INTERFACE_CLASS}_vtable.{platform}.yaml` needs to exist.
+
+```python
+#!/usr/bin/env python3
+"""Preprocess script for find-{SKILL_NAME} skill."""
+
+from ida_analyze_util import preprocess_common_skill
+
+INHERIT_VFUNCS = [
+    # (target_func_name, inherit_vtable_class, base_vfunc_name, generate_func_sig)
+    ("{INTERFACE_FUNC_NAME}", "{INTERFACE_CLASS}", "{CONCRETE_IMPL_FUNC_NAME}", False),
+]
+
+GENERATE_YAML_DESIRED_FIELDS = [
+    # (symbol_name, generate_yaml_fields)
+    # IMPORTANT: must be exactly these four fields to trigger slot-only mode
+    (
+        "{INTERFACE_FUNC_NAME}",
+        [
+            "func_name",
+            "vtable_name",
+            "vfunc_offset",
+            "vfunc_index",
+        ],
+    ),
+]
+
+async def preprocess_skill(
+    session,
+    skill_name,
+    expected_outputs,
+    old_yaml_map,
+    new_binary_dir,
+    platform,
+    image_base,
+    debug=False,
+):
+    """Reuse old vfunc slot; fallback to inheriting slot index from {CONCRETE_IMPL_FUNC_NAME}."""
+    _ = skill_name
+
+    return await preprocess_common_skill(
+        session=session,
+        expected_outputs=expected_outputs,
+        old_yaml_map=old_yaml_map,
+        new_binary_dir=new_binary_dir,
+        platform=platform,
+        image_base=image_base,
+        inherit_vfuncs=INHERIT_VFUNCS,
+        generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
+        debug=debug,
+    )
+```
+
+**Output YAML (both platforms):**
+```yaml
+func_name: ILoopMode_LoopInit
+vtable_name: ILoopMode
+vfunc_offset: '0x28'
+vfunc_index: 5
+```
+
+**Slot-only vs standard Pattern F — when to use which:**
+- **Standard** (`generate_func_sig=True`, full field set): target is a concrete derived class that has a real function body — you want `func_va`, `func_sig`, etc.
+- **Slot-only** (`generate_func_sig=False`, four-field set): target is an abstract/interface method — you only need the vtable slot position, no implementation address
 
 ### Pattern G -- ConCommand handler function
 
@@ -958,7 +1036,7 @@ The `vtable_name` from `FUNC_VTABLE_RELATIONS` is used as **metadata** written t
 | Helper module | `preprocess_common_skill` | `preprocess_common_skill` | `preprocess_common_skill` | `preprocess_common_skill` | `preprocess_common_skill` | `preprocess_common_skill` | `preprocess_registerconcommand_skill` | `preprocess_ordinal_vtable_via_mcp` | `py_eval` + `write_func_yaml` (custom) |
 | Target list | `TARGET_FUNCTION_NAMES` | `TARGET_FUNCTION_NAMES` | `TARGET_FUNCTION_NAMES` | `TARGET_FUNCTION_NAMES` | `TARGET_STRUCT_MEMBER_NAMES` | (none -- defined in INHERIT_VFUNCS) | `TARGET_FUNCTION_NAMES` | `TARGET_CLASS_NAME` (single string) | `TARGET_FUNC_NAME` + `PREDECESSOR_STEM` (module-level constants) |
 | preprocess param | `func_names=` | `func_names=` | `func_names=` | `func_names=` | `struct_member_names=` | `inherit_vfuncs=` | `command_name=`, `help_string=` | `class_name=`, `ordinal=` | (custom: reads YAML, calls `py_eval`) |
-| YAML fields | func_name, func_sig, func_va, func_rva, func_size | Same + vtable_name, vfunc_offset, vfunc_index | func_name, func_va, func_rva, func_size, vfunc_sig, vfunc_offset, vfunc_index, vtable_name | func_name, func_sig, func_va, func_rva, func_size | struct_name, member_name, offset, size, offset_sig, offset_sig_disp | func_name, func_va, func_rva, func_size, func_sig, vtable_name, vfunc_offset, vfunc_index | func_name, func_sig, func_va, func_rva, func_size | (vtable YAML via write_vtable_yaml) | func_name, vtable_name, vfunc_offset, vfunc_index |
+| YAML fields | func_name, func_sig, func_va, func_rva, func_size | Same + vtable_name, vfunc_offset, vfunc_index | func_name, func_va, func_rva, func_size, vfunc_sig, vfunc_offset, vfunc_index, vtable_name | func_name, func_sig, func_va, func_rva, func_size | struct_name, member_name, offset, size, offset_sig, offset_sig_disp | Standard: func_name, func_va, func_rva, func_size, func_sig, vtable_name, vfunc_offset, vfunc_index; Slot-only: func_name, vtable_name, vfunc_offset, vfunc_index | func_name, func_sig, func_va, func_rva, func_size | (vtable YAML via write_vtable_yaml) | func_name, vtable_name, vfunc_offset, vfunc_index |
 | config category | `func` | `vfunc` | `vfunc` | `func` | `structmember` | `vfunc` | `func` | `vtable` | `vfunc` |
 
 ---
@@ -988,7 +1066,8 @@ Find the module section (e.g. `server`, `engine`, `networksystem`) and add entri
 - `expected_output`: One `.{platform}.yaml` per target function in the script
 - `expected_input`: Include predecessor function YAML (Patterns C & D) and/or vtable YAML (Patterns B & C & F)
 - Pattern A with no vtable: typically NO `expected_input`
-- Pattern F: needs both the derived class vtable YAML and the base vfunc YAML in `expected_input`
+- Pattern F (standard): needs both the derived class vtable YAML and the base vfunc YAML in `expected_input`
+- Pattern F (slot-only): needs ONLY the base vfunc YAML in `expected_input` — no vtable YAML for the interface class
 - Multi-function scripts use `-AND-` in the name: `find-FuncA-AND-FuncB`
 - Place the new entry near related functions (e.g. `CCSPlayer_MovementServices_*` entries together)
 
@@ -1135,7 +1214,8 @@ Before finishing, verify:
 - [ ] `FUNC_XREFS` xref strings match the user's specified debug strings (Pattern A/B)
 - [ ] `LLM_DECOMPILE` reference path points to the correct predecessor function YAML (Patterns C/D/E)
 - [ ] `FUNC_VTABLE_RELATIONS` lists correct vtable class for EVERY target that has `vtable_name` or `vfunc_sig` in its `GENERATE_YAML_DESIRED_FIELDS` -- required even for vfunc call-site offsets and even if no vtable YAML exists (Patterns B/C, and any LLM_DECOMPILE target with vfunc fields)
-- [ ] `INHERIT_VFUNCS` lists correct (target, derived_class, base_vfunc, gen_sig) tuples (Pattern F only)
+- [ ] `INHERIT_VFUNCS` lists correct (target, inherit_class, base_vfunc, gen_sig) tuples (Pattern F only)
+- [ ] For Pattern F slot-only: `generate_func_sig=False` AND desired fields are exactly `{func_name, vtable_name, vfunc_offset, vfunc_index}` — adding any extra field (e.g. `func_va`) will silently exit slot-only mode and require a vtable YAML
 - [ ] `GENERATE_YAML_DESIRED_FIELDS` uses correct field set for the pattern
 - [ ] `preprocess_skill` signature includes `llm_config=None` if and only if LLM_DECOMPILE is used (NOT for Pattern F)
 - [ ] `preprocess_common_skill` call passes all relevant lists (`func_xrefs`, `func_vtable_relations`, `llm_decompile_specs`, `llm_config`, `inherit_vfuncs`)
@@ -1385,3 +1465,34 @@ vfunc_index: 5
 - Pattern B would need an `xref_signature` for the thunk body — but `48 8B ?? 48 FF 60 ??` (Windows) / `48 8B ?? FF 60 ??` (Linux) are too generic to sign uniquely without the concrete displacement byte filled in
 - Pattern C (LLM_DECOMPILE) would work but is heavyweight for a 2–3 instruction function; the LLM also requires a SKILL.md file which generates a "Skill file not found" error if missing
 - Pattern I avoids both issues: no signature needed, no LLM needed — the displacement byte is read deterministically via `idaapi.decode_insn`
+
+### Example: Interface vfunc slot index via INHERIT_VFUNCS slot-only (Pattern F slot-only)
+
+**User says:** Find `ILoopMode_LoopInit` in client and server. It's a vfunc of the abstract interface `ILoopMode`. `CLoopModeGame_LoopInit` already overrides it at the same vtable slot. No `func_sig` or `vfunc_sig` needed.
+
+**Result:** `ida_preprocessor_scripts/find-ILoopMode_LoopInit.py` with:
+- `INHERIT_VFUNCS`: `("ILoopMode_LoopInit", "ILoopMode", "CLoopModeGame_LoopInit", False)`
+- `GENERATE_YAML_DESIRED_FIELDS`: exactly `func_name, vtable_name, vfunc_offset, vfunc_index` — triggers slot-only mode
+- No `FUNC_XREFS`, no `LLM_DECOMPILE`, no `FUNC_VTABLE_RELATIONS`
+- config.yaml `expected_input`: ONLY `CLoopModeGame_LoopInit.{platform}.yaml` — **no** `ILoopMode_vtable.{platform}.yaml`
+- config.yaml symbol: `category: vfunc`, alias `ILoopMode::LoopInit`
+- Same single script file referenced in BOTH `client` and `server` module sections of config.yaml
+
+**config.yaml entry (in both client and server sections):**
+```yaml
+      - name: find-ILoopMode_LoopInit
+        expected_output:
+          - ILoopMode_LoopInit.{platform}.yaml
+        expected_input:
+          - CLoopModeGame_LoopInit.{platform}.yaml
+```
+
+**Output YAML:**
+```yaml
+func_name: ILoopMode_LoopInit
+vtable_name: ILoopMode
+vfunc_offset: '0x28'
+vfunc_index: 5
+```
+
+**Key insight — slot-only vs Pattern I:** `ILoopMode_HandleInputEvent` used Pattern I (thunk instruction walk) because its offset comes from reading `jmp [reg+disp]` inside a thin wrapper. `ILoopMode_LoopInit` uses Pattern F slot-only because `CLoopModeGame_LoopInit` already has a `vfunc_index` in its output YAML — no instruction walking needed, just copy the slot index with a different `vtable_name`.
