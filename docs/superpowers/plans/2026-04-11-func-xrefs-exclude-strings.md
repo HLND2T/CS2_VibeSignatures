@@ -38,7 +38,7 @@
 - Modify: `ida_preprocessor_scripts/find-CLoopModeGame_SetWorldSession.py`
 - Modify: `ida_preprocessor_scripts/find-CLoopModeGame_Shutdown-linux.py`
 - Modify: `ida_preprocessor_scripts/find-CLoopTypeClientServerService_OnLoopActivate.py`
-- Modify: `ida_preprocessor_scripts/find-CLoopTypeClientServer_BuildAndActivateLoopTypes.py`
+- Modify: `ida_preprocessor_scripts/find-CLoopTypeClientSimple_ActivateEngineServices.py`
 - Modify: `ida_preprocessor_scripts/find-CNetChan_ParseMessagesDemo.py`
 - Modify: `ida_preprocessor_scripts/find-CNetChan_ParseMessagesDemoInternal.py`
 - Modify: `ida_preprocessor_scripts/find-CNetChan_ProcessMessages.py`
@@ -636,7 +636,7 @@ Expected: 生成 1 个 commit，提交信息为 `chore(ida): 迁移实体场景�
 - Modify: `ida_preprocessor_scripts/find-CLoopModeGame_SetWorldSession.py`
 - Modify: `ida_preprocessor_scripts/find-CLoopModeGame_Shutdown-linux.py`
 - Modify: `ida_preprocessor_scripts/find-CLoopTypeClientServerService_OnLoopActivate.py`
-- Modify: `ida_preprocessor_scripts/find-CLoopTypeClientServer_BuildAndActivateLoopTypes.py`
+- Modify: `ida_preprocessor_scripts/find-CLoopTypeClientSimple_ActivateEngineServices.py`
 - Modify: `ida_preprocessor_scripts/find-CNetChan_ParseMessagesDemo.py`
 - Modify: `ida_preprocessor_scripts/find-CNetChan_ParseMessagesDemoInternal.py`
 - Modify: `ida_preprocessor_scripts/find-CNetChan_ProcessMessages.py`
@@ -669,7 +669,7 @@ FILES = [
     "ida_preprocessor_scripts/find-CLoopModeGame_SetWorldSession.py",
     "ida_preprocessor_scripts/find-CLoopModeGame_Shutdown-linux.py",
     "ida_preprocessor_scripts/find-CLoopTypeClientServerService_OnLoopActivate.py",
-    "ida_preprocessor_scripts/find-CLoopTypeClientServer_BuildAndActivateLoopTypes.py",
+    "ida_preprocessor_scripts/find-CLoopTypeClientSimple_ActivateEngineServices.py",
     "ida_preprocessor_scripts/find-CNetChan_ParseMessagesDemo.py",
     "ida_preprocessor_scripts/find-CNetChan_ParseMessagesDemoInternal.py",
     "ida_preprocessor_scripts/find-CNetChan_ProcessMessages.py",
@@ -760,7 +760,7 @@ FILES = [
     "ida_preprocessor_scripts/find-CLoopModeGame_SetWorldSession.py",
     "ida_preprocessor_scripts/find-CLoopModeGame_Shutdown-linux.py",
     "ida_preprocessor_scripts/find-CLoopTypeClientServerService_OnLoopActivate.py",
-    "ida_preprocessor_scripts/find-CLoopTypeClientServer_BuildAndActivateLoopTypes.py",
+    "ida_preprocessor_scripts/find-CLoopTypeClientSimple_ActivateEngineServices.py",
     "ida_preprocessor_scripts/find-CNetChan_ParseMessagesDemo.py",
     "ida_preprocessor_scripts/find-CNetChan_ParseMessagesDemoInternal.py",
     "ida_preprocessor_scripts/find-CNetChan_ProcessMessages.py",
@@ -803,7 +803,7 @@ python -m py_compile \
   ida_preprocessor_scripts/find-CLoopModeGame_SetWorldSession.py \
   ida_preprocessor_scripts/find-CLoopModeGame_Shutdown-linux.py \
   ida_preprocessor_scripts/find-CLoopTypeClientServerService_OnLoopActivate.py \
-  ida_preprocessor_scripts/find-CLoopTypeClientServer_BuildAndActivateLoopTypes.py \
+  ida_preprocessor_scripts/find-CLoopTypeClientSimple_ActivateEngineServices.py \
   ida_preprocessor_scripts/find-CNetChan_ParseMessagesDemo.py \
   ida_preprocessor_scripts/find-CNetChan_ParseMessagesDemoInternal.py \
   ida_preprocessor_scripts/find-CNetChan_ProcessMessages.py \
@@ -837,7 +837,7 @@ git add \
   ida_preprocessor_scripts/find-CLoopModeGame_SetWorldSession.py \
   ida_preprocessor_scripts/find-CLoopModeGame_Shutdown-linux.py \
   ida_preprocessor_scripts/find-CLoopTypeClientServerService_OnLoopActivate.py \
-  ida_preprocessor_scripts/find-CLoopTypeClientServer_BuildAndActivateLoopTypes.py \
+  ida_preprocessor_scripts/find-CLoopTypeClientSimple_ActivateEngineServices.py \
   ida_preprocessor_scripts/find-CNetChan_ParseMessagesDemo.py \
   ida_preprocessor_scripts/find-CNetChan_ParseMessagesDemoInternal.py \
   ida_preprocessor_scripts/find-CNetChan_ProcessMessages.py \
