@@ -176,7 +176,7 @@ disasm_code: |-
   .text:000000000091E9F1                 jnz     loc_91EBD0
   .text:000000000091E9F7                 lea     rsi, [rbp+var_90]
   .text:000000000091E9FE                 mov     rdi, rbx
-  .text:000000000091EA01                 call    sub_5189D0
+  .text:000000000091EA01                 call    CEngineServiceMgr_DeactivateLoop
   .text:000000000091EA06                 mov     rax, [rbx+0B8h]
   .text:000000000091EA0D                 mov     rdi, [rbx+0B0h]
   .text:000000000091EA14                 mov     r13, [rax+20h]
@@ -260,7 +260,7 @@ disasm_code: |-
   .text:000000000091EBB5                 jz      loc_91E9F7
   .text:000000000091EBBB                 lea     rsi, [rbp+var_90]
   .text:000000000091EBC2                 mov     rdi, rbx
-  .text:000000000091EBC5                 call    sub_5189D0
+  .text:000000000091EBC5                 call    CEngineServiceMgr_DeactivateLoop
   .text:000000000091EBCA                 nop     word ptr [rax+rax+00h]
   .text:000000000091EBD0                 mov     rax, [rbx+0B8h]
   .text:000000000091EBD7                 mov     qword ptr [rbx+0B8h], 0
@@ -307,7 +307,7 @@ disasm_code: |-
   .text:000000000091EC96                 nop     word ptr [rax+rax+00000000h]
   .text:000000000091ECA0                 mov     ebx, 1
   .text:000000000091ECA5                 mov     rdi, r12
-  .text:000000000091ECA8                 call    sub_2B2760
+  .text:000000000091ECA8                 call    Plat_EndWatchdogTimer_0
   .text:000000000091ECAD                 add     rsp, 0C8h
   .text:000000000091ECB4                 mov     eax, ebx
   .text:000000000091ECB6                 pop     rbx
@@ -453,7 +453,7 @@ disasm_code: |-
   .text:000000000091EF6E                 mov     rdi, qword ptr cs:xmmword_978DA0
   .text:000000000091EF75                 test    rdi, rdi
   .text:000000000091EF78                 jnz     loc_91E76B
-  .text:000000000091EF7E                 mov     rax, cs:qword_975528
+  .text:000000000091EF7E                 mov     rax, cs:g_pVApplication
   .text:000000000091EF85                 lea     rcx, sub_4F6910
   .text:000000000091EF8C                 mov     [rbp+var_BC], 0
   .text:000000000091EF96                 mov     [rbp+var_C0], 0
@@ -470,7 +470,7 @@ disasm_code: |-
   .text:000000000091EFCF                 mov     eax, [rax+4]
   .text:000000000091EFD2                 mov     dword ptr cs:xmmword_978DB0+0Ch, eax
   .text:000000000091EFD8                 jmp     loc_91E790
-  .text:000000000091EFE0                 mov     rdi, cs:qword_975570
+  .text:000000000091EFE0                 mov     rdi, cs:g_pResourceSystem
   .text:000000000091EFE7                 test    rdi, rdi
   .text:000000000091EFEA                 jz      loc_91E990
   .text:000000000091EFF0                 mov     rax, [rdi]
@@ -480,7 +480,7 @@ disasm_code: |-
   .text:000000000091F000                 mov     eax, [rbx+170h]
   .text:000000000091F006                 cmp     eax, 1
   .text:000000000091F009                 jnz     loc_91E99F
-  .text:000000000091F00F                 mov     rdi, cs:qword_978AB0
+  .text:000000000091F00F                 mov     rdi, cs:g_pToolFramework2
   .text:000000000091F016                 test    rdi, rdi
   .text:000000000091F019                 jz      short loc_91F02C
   .text:000000000091F01B                 mov     rax, [rdi]
@@ -488,10 +488,10 @@ disasm_code: |-
   .text:000000000091F024                 test    eax, eax
   .text:000000000091F026                 jnz     loc_91F380
   .text:000000000091F02C                 mov     dword ptr [rbx+170h], 2
-  .text:000000000091F036                 mov     rdi, cs:qword_979250
+  .text:000000000091F036                 mov     rdi, cs:g_pVConComm
   .text:000000000091F03D                 test    rdi, rdi
   .text:000000000091F040                 jz      short loc_91F065
-  .text:000000000091F042                 cmp     cs:qword_978AB0, 0
+  .text:000000000091F042                 cmp     cs:g_pToolFramework2, 0
   .text:000000000091F04A                 lea     rsi, aEngine; "engine"
   .text:000000000091F051                 mov     rax, [rdi]
   .text:000000000091F054                 lea     rdx, aTools_0; "tools"
@@ -526,8 +526,8 @@ disasm_code: |-
   .text:000000000091F0DC                 call    sub_51BE20
   .text:000000000091F0E1                 mov     rdi, rbx
   .text:000000000091F0E4                 mov     rsi, r13
-  .text:000000000091F0E7                 call    sub_5189D0
-  .text:000000000091F0EC                 mov     rdi, cs:qword_975570
+  .text:000000000091F0E7                 call    CEngineServiceMgr_DeactivateLoop
+  .text:000000000091F0EC                 mov     rdi, cs:g_pResourceSystem
   .text:000000000091F0F3                 test    rdi, rdi
   .text:000000000091F0F6                 jz      short loc_91F0FE
   .text:000000000091F0F8                 mov     rax, [rdi]
@@ -554,7 +554,7 @@ disasm_code: |-
   .text:000000000091F165                 mov     rdi, rbx
   .text:000000000091F168                 lea     r15, sub_514880
   .text:000000000091F16F                 mov     rsi, r13
-  .text:000000000091F172                 call    sub_5189D0
+  .text:000000000091F172                 call    CEngineServiceMgr_DeactivateLoop
   .text:000000000091F177                 mov     rax, [rbx+0C0h]
   .text:000000000091F17E                 movsxd  rdx, dword ptr [rbx+0C8h]
   .text:000000000091F185                 mov     eax, [rax+8]
@@ -604,16 +604,16 @@ disasm_code: |-
   .text:000000000091F23F                 xor     eax, eax
   .text:000000000091F241                 lea     rdx, aCengineservice_0; "CEngineServiceMgr::Activating loop ( %s"...
   .text:000000000091F248                 call    sub_2B27A0
-  .text:000000000091F24D                 cmp     cs:qword_979250, 0
+  .text:000000000091F24D                 cmp     cs:g_pVConComm, 0
   .text:000000000091F255                 jz      loc_91F2F0
-  .text:000000000091F25B                 mov     rdi, cs:qword_975528
+  .text:000000000091F25B                 mov     rdi, cs:g_pVApplication
   .text:000000000091F262                 mov     [rbp+var_60], 0
   .text:000000000091F26A                 lea     r14, [rbp+var_60]
   .text:000000000091F26E                 mov     [rbp+var_58], 0
   .text:000000000091F276                 mov     rsi, r14
   .text:000000000091F279                 mov     rax, [rdi]
   .text:000000000091F27C                 call    qword ptr [rax+138h]
-  .text:000000000091F282                 mov     rdi, cs:qword_979250
+  .text:000000000091F282                 mov     rdi, cs:g_pVConComm
   .text:000000000091F289                 mov     rsi, r14
   .text:000000000091F28C                 mov     rax, [rdi]
   .text:000000000091F28F                 call    qword ptr [rax+0D8h]
@@ -643,7 +643,8 @@ disasm_code: |-
   .text:000000000091F2FE                 mov     rdi, [rdx+rax*8]
   .text:000000000091F302                 lea     rdx, [rbx+178h]
   .text:000000000091F309                 mov     rax, [rdi]
-  .text:000000000091F30C                 call    qword ptr [rax+38h]
+  .text:000000000091F30C                 ; 0x38 = 56LL = ILoopType_LoopActivate
+  .text:000000000091F30C                 call    qword ptr [rax+38h]; 0x38 = 56LL = ILoopType_LoopActivate
   .text:000000000091F30F                 mov     rax, cs:qword_977220
   .text:000000000091F316                 lea     rdi, qword_977220
   .text:000000000091F31D                 call    qword ptr [rax+118h]
@@ -707,7 +708,7 @@ disasm_code: |-
   .text:000000000091F483                 call    rdx
   .text:000000000091F485                 mov     rdi, qword ptr cs:xmmword_978DA0
   .text:000000000091F48C                 jmp     loc_91EFBE
-  .text:000000000091F498                 mov     rdi, cs:qword_975528
+  .text:000000000091F498                 mov     rdi, cs:g_pVApplication
   .text:000000000091F49F                 mov     rax, [rdi]
   .text:000000000091F4A2                 call    qword ptr [rax+198h]
   .text:000000000091F4A8                 mov     r13, rax
@@ -755,14 +756,14 @@ disasm_code: |-
   .text:000000000091F571                 mov     rdi, [rbp+var_E8]
   .text:000000000091F578                 call    sub_4883D0
   .text:000000000091F57D                 jmp     loc_91EBD0
-  .text:000000000091F588                 mov     rdi, cs:qword_975528
+  .text:000000000091F588                 mov     rdi, cs:g_pVApplication
   .text:000000000091F58F                 mov     esi, 1
   .text:000000000091F594                 mov     rax, [rdi]
   .text:000000000091F597                 call    qword ptr [rax+1A0h]
   .text:000000000091F59D                 mov     esi, [rbx+228h]
   .text:000000000091F5A3                 test    esi, esi
   .text:000000000091F5A5                 jle     loc_91F8DC
-  .text:000000000091F5AB                 lea     r14, qword_975528
+  .text:000000000091F5AB                 lea     r14, g_pVApplication
   .text:000000000091F5B2                 xor     r13d, r13d
   .text:000000000091F5B5                 jmp     short loc_91F5DE
   .text:000000000091F5C0                 mov     rdi, [r14]
@@ -804,14 +805,14 @@ disasm_code: |-
   .text:000000000091F660                 jle     loc_91F738
   .text:000000000091F666                 test    eax, eax
   .text:000000000091F668                 jg      short loc_91F6A0
-  .text:000000000091F66A                 mov     rdi, cs:qword_974D28
+  .text:000000000091F66A                 mov     rdi, cs:g_pVEngineCvar
   .text:000000000091F671                 xor     esi, esi
   .text:000000000091F673                 mov     rax, [rdi]
   .text:000000000091F676                 call    qword ptr [rax+0F8h]
   .text:000000000091F67C                 xor     esi, esi
   .text:000000000091F67E                 mov     edx, 1
   .text:000000000091F683                 mov     [rbx+0E8h], rax
-  .text:000000000091F68A                 mov     rdi, cs:qword_9BB488
+  .text:000000000091F68A                 mov     rdi, cs:g_pSoundSystem
   .text:000000000091F691                 mov     rax, [rdi]
   .text:000000000091F694                 call    qword ptr [rax+2C8h]
   .text:000000000091F69A                 mov     esi, dword ptr [rbp+var_B0]
@@ -853,10 +854,10 @@ disasm_code: |-
   .text:000000000091F740                 mov     rsi, [rbx+0E8h]
   .text:000000000091F747                 test    rsi, rsi
   .text:000000000091F74A                 jz      short loc_91F77E
-  .text:000000000091F74C                 mov     rdi, cs:qword_974D28
+  .text:000000000091F74C                 mov     rdi, cs:g_pVEngineCvar
   .text:000000000091F753                 mov     rax, [rdi]
   .text:000000000091F756                 call    qword ptr [rax+100h]
-  .text:000000000091F75C                 mov     rdi, cs:qword_974D28
+  .text:000000000091F75C                 mov     rdi, cs:g_pVEngineCvar
   .text:000000000091F763                 mov     rsi, [rbx+0E8h]
   .text:000000000091F76A                 mov     rax, [rdi]
   .text:000000000091F76D                 call    qword ptr [rax+108h]
@@ -865,7 +866,7 @@ disasm_code: |-
   .text:000000000091F783                 xor     edx, edx
   .text:000000000091F785                 jmp     loc_91F68A
   .text:000000000091F790                 call    sub_858820
-  .text:000000000091F795                 lea     r14, qword_975528
+  .text:000000000091F795                 lea     r14, g_pVApplication
   .text:000000000091F79C                 xor     r13d, r13d
   .text:000000000091F79F                 movzx   edi, al
   .text:000000000091F7A2                 call    sub_503740
@@ -897,7 +898,7 @@ disasm_code: |-
   .text:000000000091F811                 lea     rdx, aMountingAddonS; "Mounting addon '%s'\n"
   .text:000000000091F818                 call    sub_2B27A0
   .text:000000000091F81D                 jmp     short loc_91F7B8
-  .text:000000000091F820                 mov     rdi, cs:qword_975528
+  .text:000000000091F820                 mov     rdi, cs:g_pVApplication
   .text:000000000091F827                 xor     esi, esi
   .text:000000000091F829                 xor     r13d, r13d
   .text:000000000091F82C                 mov     rax, [rdi]
@@ -1026,46 +1027,45 @@ procedure: |-
     int v76; // eax
     _QWORD *v77; // r15
     unsigned __int64 v78; // r14
-    _QWORD *v79; // rdi
-    __int64 v80; // rdi
-    const char *v81; // rax
-    const char *v82; // r13
-    const char *v83; // rdi
-    __int64 v84; // r13
-    int v85; // eax
-    const char *v86; // r15
-    __int64 v87; // rax
-    __int64 v88; // rsi
-    __int64 v89; // rdx
-    __int64 *v90; // r15
-    const char **v91; // r14
-    __int64 v92; // r13
-    const char *v93; // rsi
-    __int64 v94; // rdx
-    __int64 v95; // rdi
-    unsigned __int8 v96; // al
-    __int64 v97; // r13
-    const char *v98; // r15
-    __int64 v99; // r13
-    void (__fastcall ***v100)(_QWORD); // rdi
-    double v101; // [rsp+8h] [rbp-E8h]
-    __m128i v102; // [rsp+10h] [rbp-E0h]
-    float v103; // [rsp+10h] [rbp-E0h]
-    int v104; // [rsp+10h] [rbp-E0h]
-    __m128i v105; // [rsp+20h] [rbp-D0h] BYREF
-    int v106; // [rsp+30h] [rbp-C0h] BYREF
-    int v107; // [rsp+34h] [rbp-BCh] BYREF
-    const char *v108; // [rsp+38h] [rbp-B8h] BYREF
-    const char *v109; // [rsp+40h] [rbp-B0h] BYREF
-    const char **v110; // [rsp+48h] [rbp-A8h] BYREF
-    __int64 v111; // [rsp+50h] [rbp-A0h]
-    _OWORD v112[2]; // [rsp+60h] [rbp-90h] BYREF
-    __int64 v113; // [rsp+80h] [rbp-70h]
-    const char *v114; // [rsp+90h] [rbp-60h] BYREF
-    _QWORD *v115; // [rsp+98h] [rbp-58h]
-    const char *v116; // [rsp+A0h] [rbp-50h]
-    __int64 v117; // [rsp+A8h] [rbp-48h]
-    int v118; // [rsp+B0h] [rbp-40h]
+    __int64 v79; // rdi
+    const char *v80; // rax
+    const char *v81; // r13
+    const char *v82; // rdi
+    __int64 v83; // r13
+    int v84; // eax
+    const char *v85; // r15
+    __int64 v86; // rax
+    __int64 v87; // rsi
+    __int64 v88; // rdx
+    __int64 *v89; // r15
+    const char **v90; // r14
+    __int64 v91; // r13
+    const char *v92; // rsi
+    __int64 v93; // rdx
+    __int64 v94; // rdi
+    unsigned __int8 v95; // al
+    __int64 v96; // r13
+    const char *v97; // r15
+    __int64 v98; // r13
+    void (__fastcall ***v99)(_QWORD); // rdi
+    double v100; // [rsp+8h] [rbp-E8h]
+    __m128i v101; // [rsp+10h] [rbp-E0h]
+    float v102; // [rsp+10h] [rbp-E0h]
+    int v103; // [rsp+10h] [rbp-E0h]
+    __m128i v104; // [rsp+20h] [rbp-D0h] BYREF
+    int v105; // [rsp+30h] [rbp-C0h] BYREF
+    int v106; // [rsp+34h] [rbp-BCh] BYREF
+    const char *v107; // [rsp+38h] [rbp-B8h] BYREF
+    const char *v108; // [rsp+40h] [rbp-B0h] BYREF
+    const char **v109; // [rsp+48h] [rbp-A8h] BYREF
+    __int64 v110; // [rsp+50h] [rbp-A0h]
+    _OWORD v111[2]; // [rsp+60h] [rbp-90h] BYREF
+    __int64 v112; // [rsp+80h] [rbp-70h]
+    const char *v113; // [rsp+90h] [rbp-60h] BYREF
+    _QWORD *v114; // [rsp+98h] [rbp-58h]
+    const char *v115; // [rsp+A0h] [rbp-50h]
+    __int64 v116; // [rsp+A8h] [rbp-48h]
+    int v117; // [rsp+B0h] [rbp-40h]
 
     if ( !(unsigned int)sub_2B1A60(0) && (unsigned __int8)sub_858820(*(double *)a2.m128_u64) )
       sub_2B1C30(60, "CEngineServiceMgr::_MainLoop");
@@ -1088,21 +1088,21 @@ procedure: |-
     if ( (_QWORD)xmmword_978DA0 )
     {
   LABEL_7:
-      sub_2B2770(v5, &v106, &v107, (char *)&xmmword_978DB0 + 8);
+      sub_2B2770(v5, &v105, &v106, (char *)&xmmword_978DB0 + 8);
       v5 = xmmword_978DA0;
       goto LABEL_8;
     }
   LABEL_85:
-    v107 = 0;
     v106 = 0;
-    v60 = *(__int64 (__fastcall **)())(*(_QWORD *)qword_975528 + 200LL);
+    v105 = 0;
+    v60 = *(__int64 (__fastcall **)())(*(_QWORD *)g_pVApplication + 200LL);
     if ( v60 == sub_4F6910 )
     {
-      v61 = *(_QWORD **)(*(_QWORD *)(qword_975528 + 8) + 240LL);
+      v61 = *(_QWORD **)(*(_QWORD *)(g_pVApplication + 8) + 240LL);
     }
     else
     {
-      v61 = (_QWORD *)((__int64 (__fastcall *)(__int64, double))v60)(qword_975528, *(double *)a2.m128_u64);
+      v61 = (_QWORD *)((__int64 (__fastcall *)(__int64, double))v60)(g_pVApplication, *(double *)a2.m128_u64);
       v5 = xmmword_978DA0;
     }
     if ( v61 )
@@ -1131,18 +1131,18 @@ procedure: |-
       v9 = HIDWORD(xmmword_978DB0);
       v8 = DWORD2(xmmword_978DB0);
     }
-    v10 = v107;
+    v10 = v106;
     HIDWORD(qword_978DC0) = v9;
-    v11 = v106;
-    v103 = (float)v8 / (float)SDWORD2(xmmword_978DB0);
-    *(float *)v105.m128i_i32 = (float)v9 / (float)SHIDWORD(xmmword_978DB0);
+    v11 = v105;
+    v102 = (float)v8 / (float)SDWORD2(xmmword_978DB0);
+    *(float *)v104.m128i_i32 = (float)v9 / (float)SHIDWORD(xmmword_978DB0);
     v12 = sub_2B3250(xmmword_978DA0);
-    v13 = (__m128)v105.m128i_u32[0];
-    v14 = (__m128)LODWORD(v103);
+    v13 = (__m128)v104.m128i_u32[0];
+    v14 = (__m128)LODWORD(v102);
     if ( v12 > 1.0 )
     {
-      v14.m128_f32[0] = v103 * v12;
-      v13.m128_f32[0] = *(float *)v105.m128i_i32 * v12;
+      v14.m128_f32[0] = v102 * v12;
+      v13.m128_f32[0] = *(float *)v104.m128i_i32 * v12;
     }
     v15 = 0;
     v15.m128_f32[0] = (float)v11 - (float)((float)v11 * v14.m128_f32[0]);
@@ -1167,7 +1167,7 @@ procedure: |-
         }
         else
         {
-          v105.m128i_i32[0] = v14.m128_i32[0];
+          v104.m128i_i32[0] = v14.m128_i32[0];
           v16.m128_u64[0] = v16.m128_u32[0];
           v15.m128_u64[0] = v15.m128_u32[0];
           v7 = ((__int64 (__fastcall *)(__int64, __int64))v21)(qword_9768C8, v7);
@@ -1188,17 +1188,17 @@ procedure: |-
         *(double *)v13.m128_u64,
         *(double *)v17.m128_u64,
         *(double *)v18.m128_u64);
-    v112[0] = _mm_load_si128((const __m128i *)&xmmword_978DA0);
+    v111[0] = _mm_load_si128((const __m128i *)&xmmword_978DA0);
     si128 = _mm_load_si128((const __m128i *)&xmmword_978DB0);
-    v113 = qword_978DC0;
+    v112 = qword_978DC0;
     v23 = *(_DWORD *)(a1 + 168);
-    v112[1] = si128;
+    v111[1] = si128;
     if ( v23 < 0 )
     {
-      if ( qword_975570 )
+      if ( g_pResourceSystem )
       {
-        (*(void (__fastcall **)(__int64, void *, __int64, double, double, double, double, double, double))(*(_QWORD *)qword_975570 + 104LL))(
-          qword_975570,
+        (*(void (__fastcall **)(__int64, void *, __int64, double, double, double, double, double, double))(*(_QWORD *)g_pResourceSystem + 104LL))(
+          g_pResourceSystem,
           &loc_4C4B40,
           1,
           *(double *)si128.m128i_i64,
@@ -1219,7 +1219,7 @@ procedure: |-
       (*(void (__fastcall **)(__int64, _OWORD *, double, double, double, double, double, double))(*(_QWORD *)v24
                                                                                                 + 72LL))(// 0x48 = 72LL = ILoopType_FrameUpdate
         v24,
-        v112,
+        v111,
         *(double *)si128.m128i_i64,
         *(double *)v16.m128_u64,
         *(double *)v14.m128_u64,
@@ -1231,8 +1231,8 @@ procedure: |-
     if ( v25 != 1 )
       goto LABEL_27;
   LABEL_91:
-    if ( !qword_978AB0
-      || (v62 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)qword_978AB0 + 152LL))(qword_978AB0)) == 0 )
+    if ( !g_pToolFramework2
+      || (v62 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)g_pToolFramework2 + 152LL))(g_pToolFramework2)) == 0 )
     {
       *(_DWORD *)(a1 + 368) = 2;
       goto LABEL_94;
@@ -1253,7 +1253,7 @@ procedure: |-
           v28 = a1 + 176;
           if ( (unsigned __int8)sub_2B26F0(a1 + 176, v27 + 32) )
           {
-            sub_5189D0(a1, v112);
+            CEngineServiceMgr_DeactivateLoop(a1, (__int64)v111);
             goto LABEL_47;
           }
         }
@@ -1263,7 +1263,7 @@ procedure: |-
           if ( (unsigned __int8)sub_2B26F0(a1 + 176, v27 + 32) )
             goto LABEL_47;
         }
-        sub_5189D0(a1, v112);
+        CEngineServiceMgr_DeactivateLoop(a1, (__int64)v111);
         v29 = *(const char **)(a1 + 176);
         v30 = *(const char **)(*(_QWORD *)(a1 + 184) + 32LL);
         if ( v30 )
@@ -1284,191 +1284,196 @@ procedure: |-
         sub_2B1A80(v28, v30);
         if ( v31 )
         {
-          v118 = 0;
-          v109 = ",";
+          v117 = 0;
+          v108 = ",";
           v32 = 0;
+          v113 = nullptr;
           v114 = nullptr;
           v115 = nullptr;
-          v116 = nullptr;
-          v117 = 0;
-          v102.m128i_i64[0] = (__int64)&v109;
-          sub_2B2F90(&v114, v30, 0xFFFFFFFFLL, &v109, 1, 0);
+          v116 = 0;
+          v101.m128i_i64[0] = (__int64)&v108;
+          sub_2B2F90(&v113, v30, 0xFFFFFFFFLL, &v108, 1, 0);
+          v108 = nullptr;
           v109 = nullptr;
-          v110 = nullptr;
-          v111 = 0;
-          v105.m128i_i64[0] = (__int64)&v110;
-          if ( (int)v114 > 0 )
+          v110 = 0;
+          v104.m128i_i64[0] = (__int64)&v109;
+          if ( (int)v113 > 0 )
           {
             do
             {
-              v33 = v115[v32];
-              v108 = nullptr;
-              sub_2B1A80(&v108, v33);
-              v35 = (int)v109;
-              v36 = (unsigned int)v111;
-              v37 = (int)v109;
-              if ( (_DWORD)v109 == (_DWORD)v111
-                && (HIDWORD(v111) <= 0x3FFFFFFF || (HIDWORD(v111) & 0xC0000000) == 0x80000000) )
+              v33 = v114[v32];
+              v107 = nullptr;
+              sub_2B1A80(&v107, v33);
+              v35 = (int)v108;
+              v36 = (unsigned int)v110;
+              v37 = (int)v108;
+              if ( (_DWORD)v108 == (_DWORD)v110
+                && (HIDWORD(v110) <= 0x3FFFFFFF || (HIDWORD(v110) & 0xC0000000) == 0x80000000) )
               {
-                if ( (_DWORD)v111 == 0x7FFFFFFF )
+                if ( (_DWORD)v110 == 0x7FFFFFFF )
                   sub_2B3B70(0x7FFFFFFF, 1);
-                sub_4EFD60(v105.m128i_i64[0], 1, v34, v36);
-                v37 = (int)v109;
+                sub_4EFD60(v104.m128i_i64[0], 1, v34, v36);
+                v37 = (int)v108;
               }
               ++v32;
-              LODWORD(v109) = v37 + 1;
-              v110[v35] = v108;
+              LODWORD(v108) = v37 + 1;
+              v109[v35] = v107;
             }
-            while ( (int)v114 > (int)v32 );
+            while ( (int)v113 > (int)v32 );
           }
-          v81 = (const char *)(*(__int64 (__fastcall **)(__int64))(*(_QWORD *)qword_975528 + 408LL))(qword_975528);
-          v82 = v81;
-          if ( v81 && *v81 )
+          v80 = (const char *)(*(__int64 (__fastcall **)(__int64))(*(_QWORD *)g_pVApplication + 408LL))(g_pVApplication);
+          v81 = v80;
+          if ( v80 && *v80 )
           {
-            if ( (_DWORD)v109 != 1 )
+            if ( (_DWORD)v108 != 1 )
             {
               if ( (unsigned __int8)sub_2B39B0((unsigned int)dword_977470, 3) )
                 sub_2B27A0(
                   (unsigned int)dword_977470,
                   3,
                   "Can't CEngineServiceMgr::UpdateAddons to multiple addons in tools mode, tools restricting to %s\n",
-                  v82);
+                  v81);
               goto LABEL_149;
             }
-            v83 = *v110;
-            if ( !*v110 )
-              v83 = &byte_26801C;
-            if ( (unsigned int)sub_2B39C0(v83, v81) )
+            v82 = *v109;
+            if ( !*v109 )
+              v82 = &byte_26801C;
+            if ( (unsigned int)sub_2B39C0(v82, v80) )
             {
               if ( (unsigned __int8)sub_2B39B0((unsigned int)dword_977470, 3) )
                 sub_2B27A0(
                   (unsigned int)dword_977470,
                   3,
                   "Can't CEngineServiceMgr::UpdateAddons restricting to to only %s due to tools mode\n",
-                  v82);
+                  v81);
   LABEL_149:
-              sub_50A670(&v109);
-              if ( v117 )
+              sub_50A670(&v108);
+              if ( v116 )
                 sub_2B01F0();
+              v116 = 0;
               v117 = 0;
-              v118 = 0;
-              LODWORD(v114) = 0;
-              if ( HIDWORD(v116) <= 0x3FFFFFFF )
+              LODWORD(v113) = 0;
+              if ( HIDWORD(v115) <= 0x3FFFFFFF )
               {
-                if ( v115 )
+                if ( v114 )
                 {
                   (*(void (__fastcall **)(_QWORD *))(*g_pMemAlloc + 32LL))(g_pMemAlloc);
-                  v115 = nullptr;
+                  v114 = nullptr;
                 }
-                LODWORD(v116) = 0;
+                LODWORD(v115) = 0;
               }
-              sub_4883D0(&v114);
+              sub_4883D0(&v113);
               goto LABEL_47;
             }
           }
-          (*(void (__fastcall **)(__int64, __int64))(*(_QWORD *)qword_975528 + 416LL))(qword_975528, 1);
+          (*(void (__fastcall **)(__int64, __int64))(*(_QWORD *)g_pVApplication + 416LL))(g_pVApplication, 1);
           if ( *(int *)(a1 + 552) <= 0 )
           {
-            if ( (int)v109 <= 0 )
+            if ( (int)v108 <= 0 )
               goto LABEL_170;
           }
           else
           {
-            v84 = 0;
+            v83 = 0;
             do
             {
-              v86 = *(const char **)(*(_QWORD *)(a1 + 560) + 8 * v84);
-              if ( !v86 )
-                v86 = &byte_26801C;
+              v85 = *(const char **)(*(_QWORD *)(a1 + 560) + 8 * v83);
+              if ( !v85 )
+                v85 = &byte_26801C;
               if ( (unsigned __int8)sub_2B39B0((unsigned int)dword_977470, 2) )
-                sub_2B27A0((unsigned int)dword_977470, 2, "Unmounting addon '%s'\n", v86);
-              ++v84;
-              (*(void (__fastcall **)(__int64, const char *))(*(_QWORD *)qword_975528 + 304LL))(qword_975528, v86);
-              v85 = *(_DWORD *)(a1 + 552);
+                sub_2B27A0((unsigned int)dword_977470, 2, "Unmounting addon '%s'\n", v85);
+              ++v83;
+              (*(void (__fastcall **)(__int64, const char *))(*(_QWORD *)g_pVApplication + 304LL))(g_pVApplication, v85);
+              v84 = *(_DWORD *)(a1 + 552);
             }
-            while ( v85 > (int)v84 );
-            if ( (int)v109 <= 0 )
+            while ( v84 > (int)v83 );
+            if ( (int)v108 <= 0 )
             {
-              if ( v85 <= 0 )
+              if ( v84 <= 0 )
                 goto LABEL_170;
               if ( *(_QWORD *)(a1 + 232) )
               {
-                (*(void (__fastcall **)(__int64))(*(_QWORD *)qword_974D28 + 256LL))(qword_974D28);
-                (*(void (__fastcall **)(__int64, _QWORD))(*(_QWORD *)qword_974D28 + 264LL))(
-                  qword_974D28,
+                (*(void (__fastcall **)(__int64))(*(_QWORD *)g_pVEngineCvar + 256LL))(g_pVEngineCvar);
+                (*(void (__fastcall **)(__int64, _QWORD))(*(_QWORD *)g_pVEngineCvar + 264LL))(
+                  g_pVEngineCvar,
                   *(_QWORD *)(a1 + 232));
                 *(_QWORD *)(a1 + 232) = 0;
               }
-              v88 = 1;
-              v89 = 0;
+              v87 = 1;
+              v88 = 0;
               goto LABEL_169;
             }
-            if ( v85 > 0 )
+            if ( v84 > 0 )
             {
   LABEL_170:
               sub_51B060(a1 + 552);
-              v90 = (__int64 *)v110;
-              v91 = &v110[(int)v109];
-              if ( v110 < v91 )
+              v89 = (__int64 *)v109;
+              v90 = &v109[(int)v108];
+              if ( v109 < v90 )
               {
-                v92 = *(_QWORD *)(a1 + 560);
+                v91 = *(_QWORD *)(a1 + 560);
                 do
                 {
-                  if ( *v90 )
+                  if ( *v89 )
                   {
-                    v105.m128i_i64[0] = *v90;
-                    v93 = (const char *)v105.m128i_i64[0];
-                    v94 = (unsigned int)sub_2B4170(v105.m128i_i64[0]);
+                    v104.m128i_i64[0] = *v89;
+                    v92 = (const char *)v104.m128i_i64[0];
+                    v93 = (unsigned int)sub_2B4170(v104.m128i_i64[0]);
                   }
                   else
                   {
-                    v93 = &byte_26801C;
-                    v94 = 0;
+                    v92 = &byte_26801C;
+                    v93 = 0;
                   }
-                  v95 = v92;
-                  ++v90;
-                  v92 += 8;
-                  sub_2B2F70(v95, v93, v94);
+                  v94 = v91;
+                  ++v89;
+                  v91 += 8;
+                  sub_2B2F70(v94, v92, v93);
                 }
-                while ( v90 < (__int64 *)v91 );
+                while ( v89 < (__int64 *)v90 );
               }
-              v96 = sub_858820(*(double *)si128.m128i_i64);
-              v97 = 0;
-              sub_503740(v96);
+              v95 = sub_858820(*(double *)si128.m128i_i64);
+              v96 = 0;
+              sub_503740(v95);
               if ( *(int *)(a1 + 552) > 0 )
               {
                 do
                 {
-                  v98 = *(const char **)(*(_QWORD *)(a1 + 560) + 8 * v97);
-                  if ( !v98 )
-                    v98 = &byte_26801C;
+                  v97 = *(const char **)(*(_QWORD *)(a1 + 560) + 8 * v96);
+                  if ( !v97 )
+                    v97 = &byte_26801C;
                   if ( (unsigned __int8)sub_2B39B0((unsigned int)dword_977470, 2) )
-                    sub_2B27A0((unsigned int)dword_977470, 2, "Mounting addon '%s'\n", v98);
-                  ++v97;
-                  (*(void (__fastcall **)(__int64, const char *))(*(_QWORD *)qword_975528 + 296LL))(qword_975528, v98);
+                    sub_2B27A0((unsigned int)dword_977470, 2, "Mounting addon '%s'\n", v97);
+                  ++v96;
+                  (*(void (__fastcall **)(__int64, const char *))(*(_QWORD *)g_pVApplication + 296LL))(
+                    g_pVApplication,
+                    v97);
                 }
-                while ( *(_DWORD *)(a1 + 552) > (int)v97 );
+                while ( *(_DWORD *)(a1 + 552) > (int)v96 );
               }
-              v99 = 0;
-              (*(void (__fastcall **)(__int64, _QWORD))(*(_QWORD *)qword_975528 + 416LL))(qword_975528, 0);
+              v98 = 0;
+              (*(void (__fastcall **)(__int64, _QWORD))(*(_QWORD *)g_pVApplication + 416LL))(g_pVApplication, 0);
               if ( *(int *)(a1 + 624) > 0 )
               {
                 do
                 {
-                  v100 = *(void (__fastcall ****)(_QWORD))(*(_QWORD *)(a1 + 632) + 8 * v99++);
-                  (**v100)(v100);
+                  v99 = *(void (__fastcall ****)(_QWORD))(*(_QWORD *)(a1 + 632) + 8 * v98++);
+                  (**v99)(v99);
                 }
-                while ( *(_DWORD *)(a1 + 624) > (int)v99 );
+                while ( *(_DWORD *)(a1 + 624) > (int)v98 );
               }
               goto LABEL_149;
             }
           }
-          v87 = (*(__int64 (__fastcall **)(__int64, _QWORD))(*(_QWORD *)qword_974D28 + 248LL))(qword_974D28, 0);
-          v88 = 0;
-          v89 = 1;
-          *(_QWORD *)(a1 + 232) = v87;
+          v86 = (*(__int64 (__fastcall **)(__int64, _QWORD))(*(_QWORD *)g_pVEngineCvar + 248LL))(g_pVEngineCvar, 0);
+          v87 = 0;
+          v88 = 1;
+          *(_QWORD *)(a1 + 232) = v86;
   LABEL_169:
-          (*(void (__fastcall **)(__int64, __int64, __int64))(*(_QWORD *)qword_9BB488 + 712LL))(qword_9BB488, v88, v89);
+          (*(void (__fastcall **)(__int64, __int64, __int64))(*(_QWORD *)g_pSoundSystem + 712LL))(
+            g_pSoundSystem,
+            v87,
+            v88);
           goto LABEL_170;
         }
       }
@@ -1555,13 +1560,13 @@ procedure: |-
             v45 = 1;
             goto LABEL_57;
           }
-          sub_5189D0(a1, v112);
+          CEngineServiceMgr_DeactivateLoop(a1, (__int64)v111);
           v66 = *(int *)(a1 + 200);
-          v104 = *(_DWORD *)(*(_QWORD *)(a1 + 192) + 8LL);
-          *(_DWORD *)(a1 + 168) = v104;
+          v103 = *(_DWORD *)(*(_QWORD *)(a1 + 192) + 8LL);
+          *(_DWORD *)(a1 + 168) = v103;
           v67 = *(__int64 ***)(a1 + 208);
           v68 = v67;
-          for ( v105.m128i_i64[0] = (__int64)&v67[v66]; (__int64 **)v105.m128i_i64[0] != v68; ++v68 )
+          for ( v104.m128i_i64[0] = (__int64)&v67[v66]; (__int64 **)v104.m128i_i64[0] != v68; ++v68 )
           {
             while ( 1 )
             {
@@ -1571,7 +1576,7 @@ procedure: |-
               if ( v72 == sub_514880 )
                 break;
               v72();
-              if ( (__int64 **)v105.m128i_i64[0] == ++v68 )
+              if ( (__int64 **)v104.m128i_i64[0] == ++v68 )
                 goto LABEL_117;
             }
             v69 = *((_DWORD *)v70 + 2);
@@ -1596,27 +1601,27 @@ procedure: |-
               v75,
               *(_DWORD *)(v74 + 28));
           }
-          if ( qword_979250 )
+          if ( g_pVConComm )
           {
+            v113 = nullptr;
             v114 = nullptr;
-            v115 = nullptr;
-            (*(void (__fastcall **)(__int64, const char **))(*(_QWORD *)qword_975528 + 312LL))(qword_975528, &v114);
-            (*(void (__fastcall **)(__int64, const char **))(*(_QWORD *)qword_979250 + 216LL))(qword_979250, &v114);
-            v76 = HIDWORD(v114);
-            if ( (HIDWORD(v114) & 0x7FFFFFFF) != 0 )
+            (*(void (__fastcall **)(__int64, const char **))(*(_QWORD *)g_pVApplication + 312LL))(g_pVApplication, &v113);
+            (*(void (__fastcall **)(__int64, const char **))(*(_QWORD *)g_pVConComm + 216LL))(g_pVConComm, &v113);
+            v76 = HIDWORD(v113);
+            if ( (HIDWORD(v113) & 0x7FFFFFFF) != 0 )
             {
-              v77 = v115;
-              v78 = (unsigned __int64)&v115[(int)v114];
-              if ( (unsigned __int64)v115 < v78 )
+              v77 = v114;
+              v78 = (unsigned __int64)&v114[(int)v113];
+              if ( (unsigned __int64)v114 < v78 )
                 goto LABEL_124;
-              LODWORD(v114) = 0;
+              LODWORD(v113) = 0;
   LABEL_164:
               if ( v76 >= 0 )
-                (*(void (__fastcall **)(_QWORD *, _QWORD *))(*g_pMemAlloc + 32LL))(g_pMemAlloc, v115);
+                (*(void (__fastcall **)(_QWORD *, _QWORD *))(*g_pMemAlloc + 32LL))(g_pMemAlloc, v114);
               goto LABEL_127;
             }
             v77 = nullptr;
-            v78 = 8LL * (int)v114;
+            v78 = 8LL * (int)v113;
             if ( v78 )
             {
               do
@@ -1624,8 +1629,8 @@ procedure: |-
   LABEL_124:
                 while ( *v77 )
                 {
-                  v79 = v77++;
-                  sub_2B3B80(v79);
+                  ++v77;
+                  sub_2B3B80();
                   if ( (unsigned __int64)v77 >= v78 )
                     goto LABEL_126;
                 }
@@ -1633,51 +1638,51 @@ procedure: |-
               }
               while ( (unsigned __int64)v77 < v78 );
   LABEL_126:
-              v76 = HIDWORD(v114);
-              LODWORD(v114) = 0;
-              if ( (HIDWORD(v114) & 0x7FFFFFFF) == 0 )
+              v76 = HIDWORD(v113);
+              LODWORD(v113) = 0;
+              if ( (HIDWORD(v113) & 0x7FFFFFFF) == 0 )
                 goto LABEL_127;
               goto LABEL_164;
             }
           }
   LABEL_127:
-          v80 = *(_QWORD *)(*(_QWORD *)(a1 + 56) + 8LL * (unsigned __int16)v104);
-          (*(void (__fastcall **)(__int64, _OWORD *, __int64))(*(_QWORD *)v80 + 56LL))(v80, v112, a1 + 376);
+          v79 = *(_QWORD *)(*(_QWORD *)(a1 + 56) + 8LL * (unsigned __int16)v103);
+          (*(void (__fastcall **)(__int64, _OWORD *, __int64))(*(_QWORD *)v79 + 56LL))(v79, v111, a1 + 376);// 0x38 = 56LL = ILoopType_LoopActivate
           (*(void (__fastcall **)(__int64 *))(qword_977220 + 280))(&qword_977220);
-          sub_51BE20(a1, a1 + 192, 1);
+          sub_51BE20(a1, (const char ***)(a1 + 192), 1u);
           *(_BYTE *)(a1 + 240) = 1;
           v45 = 2;
           goto LABEL_57;
         }
-        v105.m128i_i32[0] = _mm_cvtsi128_si32((__m128i)0LL);
-        v47 = v105.m128i_i32[0];
+        v104.m128i_i32[0] = _mm_cvtsi128_si32((__m128i)0LL);
+        v47 = v104.m128i_i32[0];
         goto LABEL_133;
       }
-      v105.m128i_i32[0] = _mm_cvtsi128_si32(_mm_cvtsi32_si128(sub_50A830(&unk_9779B0, 0xFFFFFFFFLL)));
-      v47 = v105.m128i_i32[0];
+      v104.m128i_i32[0] = _mm_cvtsi128_si32(_mm_cvtsi32_si128(sub_50A830(&unk_9779B0, 0xFFFFFFFFLL)));
+      v47 = v104.m128i_i32[0];
       if ( v43 && (unsigned __int8)sub_2B1E10(v43) )
       {
-        v48 = _mm_max_epi32(_mm_load_si128(&v105), _mm_load_si128((const __m128i *)&xmmword_254CA0));
+        v48 = _mm_max_epi32(_mm_load_si128(&v104), _mm_load_si128((const __m128i *)&xmmword_254CA0));
         v47 = _mm_cvtsi128_si32(v48);
-        v105.m128i_i32[0] = v47;
+        v104.m128i_i32[0] = v47;
         if ( v47 == dword_96FFD0 )
         {
   LABEL_63:
           qword_97B650 = 0;
   LABEL_68:
-          LODWORD(v115) = 1560;
-          v114 = "engineservicemgr.cpp";
-          v116 = "_MainLoop";
-          v49 = (void (*)(void))sub_2B23F0("Sleep", &off_96FFC0, &v114);
-          v101 = sub_2B3140();
+          LODWORD(v114) = 1560;
+          v113 = "engineservicemgr.cpp";
+          v115 = "_MainLoop";
+          v49 = (void (*)(void))sub_2B23F0("Sleep", &off_96FFC0, &v113);
+          v100 = sub_2B3140();
           do
           {
-            v102.m128i_i32[0] = _mm_cvtsi128_si32(_mm_min_epi32(_mm_load_si128((const __m128i *)&xmmword_254CA0), v105));
-            (*(void (__fastcall **)(__int64, _QWORD))(*(_QWORD *)qword_9779D8 + 344LL))(qword_9779D8, v102.m128i_u32[0]);
-            v105.m128i_i32[0] = _mm_cvtsi128_si32(_mm_sub_epi32(_mm_load_si128(&v105), v102));
+            v101.m128i_i32[0] = _mm_cvtsi128_si32(_mm_min_epi32(_mm_load_si128((const __m128i *)&xmmword_254CA0), v104));
+            (*(void (__fastcall **)(__int64, _QWORD))(*(_QWORD *)qword_9779D8 + 344LL))(qword_9779D8, v101.m128i_u32[0]);
+            v104.m128i_i32[0] = _mm_cvtsi128_si32(_mm_sub_epi32(_mm_load_si128(&v104), v101));
           }
-          while ( v105.m128i_i32[0] > 0 && (unsigned __int8)sub_518DF0(xmmword_978DA0) );
-          *(double *)&qword_97B650 = sub_2B3140() - v101;
+          while ( v104.m128i_i32[0] > 0 && (unsigned __int8)sub_518DF0(xmmword_978DA0) );
+          *(double *)&qword_97B650 = sub_2B3140() - v100;
           sub_535E30("idle_sleep", 2, 0.25);
           v49();
   LABEL_72:
@@ -1693,12 +1698,12 @@ procedure: |-
       }
       else
       {
-        if ( dword_96FFD0 == v105.m128i_i32[0] )
+        if ( dword_96FFD0 == v104.m128i_i32[0] )
           goto LABEL_67;
         if ( dword_96FFD0 < 0 )
         {
   LABEL_66:
-          dword_96FFD0 = v105.m128i_i32[0];
+          dword_96FFD0 = v104.m128i_i32[0];
   LABEL_67:
           qword_97B650 = 0;
           if ( v47 <= 0 )
@@ -1716,18 +1721,18 @@ procedure: |-
     if ( v25 != 2 )
       goto LABEL_28;
   LABEL_94:
-    if ( qword_979250 )
+    if ( g_pVConComm )
     {
       v63 = "engine";
-      if ( qword_978AB0 )
+      if ( g_pToolFramework2 )
         v63 = "tools";
-      (*(void (__fastcall **)(__int64, const char *))(*(_QWORD *)qword_979250 + 208LL))(qword_979250, v63);
+      (*(void (__fastcall **)(__int64, const char *))(*(_QWORD *)g_pVConComm + 208LL))(g_pVConComm, v63);
     }
     v64 = *(_DWORD *)(a1 + 168);
     if ( v64 >= 0 )
     {
       v65 = *(_QWORD *)(*(_QWORD *)(a1 + 56) + 8LL * (unsigned __int16)v64);
-      (*(void (__fastcall **)(__int64, _OWORD *))(*(_QWORD *)v65 + 104LL))(v65, v112);
+      (*(void (__fastcall **)(__int64, _OWORD *))(*(_QWORD *)v65 + 104LL))(v65, v111);
     }
     (*(void (__fastcall **)(__int64, __int64))(*(_QWORD *)qword_977A08 + 224LL))(qword_977A08, 59);
     (*(void (__fastcall **)(__int64, __int64))(*(_QWORD *)qword_976940 + 248LL))(qword_976940, 59);
@@ -1735,14 +1740,14 @@ procedure: |-
     v44 = *(_QWORD *)(a1 + 184) == 0;
     *(_DWORD *)(a1 + 368) = 0;
     if ( !v44 )
-      sub_51BE20(a1, a1 + 184, 0);
-    sub_5189D0(a1, v112);
-    if ( qword_975570 )
-      (*(void (__fastcall **)(__int64))(*(_QWORD *)qword_975570 + 112LL))(qword_975570);
+      sub_51BE20(a1, (const char ***)(a1 + 184), 0);
+    CEngineServiceMgr_DeactivateLoop(a1, (__int64)v111);
+    if ( g_pResourceSystem )
+      (*(void (__fastcall **)(__int64))(*(_QWORD *)g_pResourceSystem + 112LL))(g_pResourceSystem);
     v45 = 0;
     if ( (unsigned __int8)sub_4F8C10(&unk_9791B0, 0xFFFFFFFFLL) )
-      sub_2B3D90(&off_967D20);
+      sub_2B3D90();
   LABEL_57:
-    sub_2B2760("CEngineServiceMgr::_MainLoop");
+    Plat_EndWatchdogTimer_0("CEngineServiceMgr::_MainLoop");
     return v45;
   }

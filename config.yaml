@@ -695,6 +695,12 @@ modules:
         expected_output:
           - CEngineServiceMgr__MainLoop.{platform}.yaml
 
+      - name: find-CEngineServiceMgr_DeactivateLoop
+        expected_output:
+          - CEngineServiceMgr_DeactivateLoop.{platform}.yaml
+        expected_input:
+          - CEngineServiceMgr__MainLoop.{platform}.yaml
+
     symbols:
       - name: CNetworkGameServer_vtable
         category: vtable
@@ -1002,6 +1008,11 @@ modules:
         category: func
         alias:
           - CEngineServiceMgr::_MainLoop
+
+      - name: CEngineServiceMgr_DeactivateLoop
+        category: func
+        alias:
+          - CEngineServiceMgr::DeactivateLoop
 
   - name: client
     path_windows: game/csgo/bin/win64/client.dll

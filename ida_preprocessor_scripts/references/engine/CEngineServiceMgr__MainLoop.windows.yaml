@@ -86,7 +86,7 @@ disasm_code: |-
   .text:000000018021CD6A                 lea     rdx, [rbp+340h+arg_10]
   .text:000000018021CD71                 call    cs:Plat_GetWindowClientBounds
   .text:000000018021CD77                 jmp     short loc_18021CDB4
-  .text:000000018021CD79                 mov     rcx, cs:qword_180684CC0
+  .text:000000018021CD79                 mov     rcx, cs:g_pVApplication
   .text:000000018021CD80                 mov     dword ptr [rbp+340h+arg_0], esi
   .text:000000018021CD86                 mov     [rbp+340h+arg_10], esi
   .text:000000018021CD8C                 mov     rax, [rcx]
@@ -221,7 +221,7 @@ disasm_code: |-
   .text:000000018021CFE3                 ; 0x40 = 64LL = ILoopType_FrameUpdate
   .text:000000018021CFE3                 call    qword ptr [rax+40h]; 0x40 = 64LL = ILoopType_FrameUpdate
   .text:000000018021CFE6                 jmp     short loc_18021D002
-  .text:000000018021CFE8                 mov     rcx, cs:qword_180684DA0
+  .text:000000018021CFE8                 mov     rcx, cs:g_pResourceSystem
   .text:000000018021CFEF                 test    rcx, rcx
   .text:000000018021CFF2                 jz      short loc_18021D002
   .text:000000018021CFF4                 mov     rax, [rcx]
@@ -251,7 +251,7 @@ disasm_code: |-
   .text:000000018021D04E                 mov     [rsp+410h], r14
   .text:000000018021D056                 cmp     eax, r13d
   .text:000000018021D059                 jnz     loc_18021D47D
-  .text:000000018021D05F                 mov     rcx, cs:qword_180684DE8
+  .text:000000018021D05F                 mov     rcx, cs:g_pVConComm
   .text:000000018021D066                 test    rcx, rcx
   .text:000000018021D069                 jz      short loc_18021D08D
   .text:000000018021D06B                 cmp     cs:qword_180684EF0, rsi
@@ -368,8 +368,8 @@ disasm_code: |-
   .text:000000018021D260                 call    cs:?FreeMemoryBlock@CUtlString@@AEAAXXZ; CUtlString::FreeMemoryBlock(void)
   .text:000000018021D266                 lea     rdx, [rbp+340h+var_350]
   .text:000000018021D26A                 lea     rcx, g_EngineServiceMgr
-  .text:000000018021D271                 call    sub_18021BF90
-  .text:000000018021D276                 mov     rcx, cs:qword_180684DA0
+  .text:000000018021D271                 call    CEngineServiceMgr_DeactivateLoop
+  .text:000000018021D276                 mov     rcx, cs:g_pResourceSystem
   .text:000000018021D27D                 test    rcx, rcx
   .text:000000018021D280                 jz      short loc_18021D288
   .text:000000018021D282                 mov     rax, [rcx]
@@ -534,7 +534,7 @@ disasm_code: |-
   .text:000000018021D4DC                 jnz     short loc_18021D514
   .text:000000018021D4DE                 lea     rdx, [rbp+340h+var_350]
   .text:000000018021D4E2                 lea     rcx, g_EngineServiceMgr
-  .text:000000018021D4E9                 call    sub_18021BF90
+  .text:000000018021D4E9                 call    CEngineServiceMgr_DeactivateLoop
   .text:000000018021D4EE                 test    dil, dil
   .text:000000018021D4F1                 jnz     short loc_18021D514
   .text:000000018021D4F3                 mov     rax, cs:qword_18090AE18
@@ -949,7 +949,7 @@ disasm_code: |-
   .text:000000018021DC52                 jz      loc_18021DEB7
   .text:000000018021DC58                 lea     rdx, [rbp+340h+var_350]
   .text:000000018021DC5C                 lea     rcx, g_EngineServiceMgr
-  .text:000000018021DC63                 call    sub_18021BF90
+  .text:000000018021DC63                 call    CEngineServiceMgr_DeactivateLoop
   .text:000000018021DC68                 mov     rax, cs:qword_18090AE20
   .text:000000018021DC6F                 mov     rbx, cs:qword_18090AE30
   .text:000000018021DC76                 mov     r14d, [rax+8]
@@ -982,15 +982,15 @@ disasm_code: |-
   .text:000000018021DCE6                 mov     ecx, cs:dword_18090A308
   .text:000000018021DCEC                 mov     r9, r12
   .text:000000018021DCEF                 call    cs:LoggingSystem_Log
-  .text:000000018021DCF5                 cmp     cs:qword_180684DE8, rsi
+  .text:000000018021DCF5                 cmp     cs:g_pVConComm, rsi
   .text:000000018021DCFC                 jz      loc_18021DDA3
-  .text:000000018021DD02                 mov     rcx, cs:qword_180684CC0
+  .text:000000018021DD02                 mov     rcx, cs:g_pVApplication
   .text:000000018021DD09                 lea     rdx, [rsp+440h+lpProcessInformation+8]
   .text:000000018021DD0E                 mov     [rsp+440h+lpProcessInformation+8], rsi
   .text:000000018021DD13                 mov     [rsp+440h+hObject], rsi
   .text:000000018021DD18                 mov     rax, [rcx]
   .text:000000018021DD1B                 call    qword ptr [rax+138h]
-  .text:000000018021DD21                 mov     rcx, cs:qword_180684DE8
+  .text:000000018021DD21                 mov     rcx, cs:g_pVConComm
   .text:000000018021DD28                 lea     rdx, [rsp+440h+lpProcessInformation+8]
   .text:000000018021DD2D                 mov     rax, [rcx]
   .text:000000018021DD30                 call    qword ptr [rax+0D8h]
@@ -1029,7 +1029,8 @@ disasm_code: |-
   .text:000000018021DDB5                 lea     rdx, [rbp+340h+var_350]
   .text:000000018021DDB9                 mov     rcx, [rax+rcx*8]
   .text:000000018021DDBD                 mov     rax, [rcx]
-  .text:000000018021DDC0                 call    qword ptr [rax+30h]
+  .text:000000018021DDC0                 ; 0x30 = 48LL = ILoopType_LoopActivate
+  .text:000000018021DDC0                 call    qword ptr [rax+30h]; 0x30 = 48LL = ILoopType_LoopActivate
   .text:000000018021DDC3                 mov     rax, cs:qword_180909C90
   .text:000000018021DDCA                 lea     rcx, qword_180909C90
   .text:000000018021DDD1                 call    qword ptr [rax+110h]
@@ -1099,132 +1100,136 @@ disasm_code: |-
   .text:000000018021DEF6                 pop     rbp
   .text:000000018021DEF7                 retn
 procedure: |-
-  __int64 __fastcall CEngineServiceMgr::_MainLoop(__int64 a1, double a2)
+  __int64 __fastcall CEngineServiceMgr__MainLoop(__int64 a1, double a2)
   {
-    const char **v2; // rbx
-    __int64 v3; // rax
-    const char *v4; // rax
-    int v5; // esi
-    _QWORD *v6; // rax
+    __int64 v2; // rdx
+    __int64 v3; // rcx
+    __int64 v4; // r8
+    __int64 v5; // r9
+    const char **v6; // rbx
+    __int64 v7; // rax
+    const char *v8; // rax
+    int v9; // esi
+    _QWORD *v10; // rax
     float WindowContentsScale; // xmm0_4
-    __int64 v8; // rcx
-    char v9; // al
-    int v10; // eax
-    int v11; // ecx
-    int v12; // ebx
-    int v13; // edi
-    float v14; // xmm6_4
-    float v15; // xmm7_4
-    float v16; // xmm0_4
-    void (__fastcall *v17)(__int64, __int64); // rbx
-    __int64 v18; // rax
-    int v19; // r15d
-    int v20; // eax
-    unsigned int v21; // r13d
-    int v22; // eax
-    const char *v23; // rdx
-    __int64 v24; // rcx
-    _QWORD *v25; // rbx
-    __int64 v26; // rdi
-    __int64 v27; // rbx
-    const char *v28; // rdx
-    unsigned int v29; // r14d
-    _QWORD *v30; // rbx
-    void *v31; // rdi
-    int v32; // ebx
-    __int64 v33; // rdi
-    void **v34; // rdx
-    _BYTE *v35; // rax
+    __int64 v12; // rcx
+    char v13; // al
+    int v14; // eax
+    int v15; // ecx
+    int v16; // ebx
+    int v17; // edi
+    float v18; // xmm6_4
+    float v19; // xmm7_4
+    float v20; // xmm0_4
+    void (__fastcall *v21)(__int64, __int64); // rbx
+    __int64 v22; // rax
+    int v23; // r15d
+    int v24; // eax
+    unsigned int v25; // r13d
+    int v26; // eax
+    const char *v27; // rdx
+    __int64 v28; // rcx
+    _QWORD *v29; // rbx
+    __int64 v30; // rdi
+    __int64 v31; // rbx
+    const char *v32; // rdx
+    unsigned int v33; // r14d
+    _QWORD *v34; // rbx
+    void *v35; // rdi
+    int v36; // ebx
+    __int64 v37; // rdi
+    void **v38; // rdx
+    _BYTE *v39; // rax
     HANDLE Toolhelp32Snapshot; // rdi
-    HANDLE v37; // rax
-    void *v38; // rbx
-    _QWORD *v39; // rax
-    int v40; // ebx
-    void *v41; // r12
-    bool v42; // bl
-    char v43; // al
-    char v44; // di
-    void *v45; // rdx
-    __int64 *v46; // rdi
+    HANDLE v41; // rax
+    void *v42; // rbx
+    _QWORD *v43; // rax
+    int v44; // ebx
+    void *v45; // r12
+    bool v46; // bl
     char v47; // al
-    unsigned int v48; // ecx
-    _BYTE *v49; // rcx
-    __int128 *v50; // r9
-    __int64 v51; // rax
-    unsigned int v52; // eax
+    char v48; // di
+    void *v49; // rdx
+    __int64 *v50; // rdi
+    char v51; // al
+    unsigned int v52; // ecx
+    _BYTE *v53; // rcx
+    __int128 *v54; // r9
+    __int64 v55; // rax
+    unsigned int v56; // eax
     struct KeyValues *Copy; // rax
-    void *v54; // rbx
-    struct KeyValues *v55; // r14
-    __int64 v56; // rax
-    __int64 v57; // rbx
-    __int64 v58; // rdx
-    __int64 v59; // rcx
-    __int64 v60; // r8
-    __int64 v61; // r9
-    int v62; // r14d
-    int *v63; // rax
-    int v64; // eax
-    __int64 v65; // rax
-    __int64 v66; // rdx
-    __int64 v67; // r8
-    __int64 v68; // r9
-    __int64 v69; // rcx
-    void (*v70)(void); // rbx
-    char v71; // al
-    __int128 *v72; // r9
-    double v73; // xmm0_8
-    unsigned int v74; // edi
-    __int64 v75; // rdx
-    __int64 v76; // rcx
-    __int64 v77; // r8
-    __int64 v78; // r9
-    __int64 v79; // rbx
-    int v80; // eax
+    void *v58; // rbx
+    struct KeyValues *v59; // r14
+    __int64 v60; // rax
+    __int64 v61; // rbx
+    __int64 v62; // rdx
+    __int64 v63; // rcx
+    __int64 v64; // r8
+    __int64 v65; // r9
+    int v66; // r14d
+    int *v67; // rax
+    int v68; // eax
+    __int64 v69; // rax
+    __int64 v70; // rdx
+    __int64 v71; // r8
+    __int64 v72; // r9
+    __int64 v73; // rcx
+    void (*v74)(void); // rbx
+    char v75; // al
+    __int128 *v76; // r9
+    double v77; // xmm0_8
+    unsigned int v78; // edi
+    __int64 v79; // rdx
+    __int64 v80; // rcx
     __int64 v81; // r8
-    __int64 v82; // rdx
-    _QWORD *v83; // rbx
-    int v84; // r14d
-    __int64 v85; // rdi
+    __int64 v82; // r9
+    __int64 v83; // rbx
+    int v84; // eax
+    __int64 v85; // r8
+    __int64 v86; // rdx
+    _QWORD *v87; // rbx
+    int v88; // r14d
+    __int64 v89; // rdi
     int hProcess_high; // ecx
     CUtlString *hThread; // rbx
-    CUtlString *v88; // rdi
-    __int64 v89; // rcx
-    _QWORD *v90; // rbx
-    __int64 v91; // rdi
+    CUtlString *v92; // rdi
+    __int64 v93; // rcx
+    _QWORD *v94; // rbx
+    __int64 v95; // rdi
     BOOL bInheritHandles[2]; // [rsp+28h] [rbp-E0h]
     struct _PROCESS_INFORMATION lpProcessInformation_8; // [rsp+58h] [rbp-B0h] BYREF
-    _QWORD v95[3]; // [rsp+70h] [rbp-98h] BYREF
-    __int128 v96; // [rsp+88h] [rbp-80h] BYREF
-    __int64 v97; // [rsp+98h] [rbp-70h]
-    void *v98; // [rsp+A0h] [rbp-68h] BYREF
-    __int128 v99; // [rsp+A8h] [rbp-60h] BYREF
-    __int128 v100; // [rsp+B8h] [rbp-50h] BYREF
-    __int64 v101; // [rsp+C8h] [rbp-40h]
-    unsigned int v102; // [rsp+D0h] [rbp-38h]
-    __int128 v103; // [rsp+D8h] [rbp-30h] BYREF
-    const char *v104; // [rsp+E8h] [rbp-20h]
-    int v105; // [rsp+F0h] [rbp-18h]
-    int v106; // [rsp+F4h] [rbp-14h]
-    _OWORD v107[2]; // [rsp+F8h] [rbp-10h] BYREF
-    __int64 v108; // [rsp+118h] [rbp+10h]
+    _QWORD v99[3]; // [rsp+70h] [rbp-98h] BYREF
+    __int128 v100; // [rsp+88h] [rbp-80h] BYREF
+    __int64 v101; // [rsp+98h] [rbp-70h]
+    void *v102; // [rsp+A0h] [rbp-68h] BYREF
+    __int128 v103; // [rsp+A8h] [rbp-60h] BYREF
+    __int128 v104; // [rsp+B8h] [rbp-50h] BYREF
+    __int64 v105; // [rsp+C8h] [rbp-40h]
+    unsigned int v106; // [rsp+D0h] [rbp-38h]
+    __int128 v107; // [rsp+D8h] [rbp-30h] BYREF
+    const char *v108; // [rsp+E8h] [rbp-20h]
+    int v109; // [rsp+F0h] [rbp-18h]
+    int v110; // [rsp+F4h] [rbp-14h]
+    _OWORD v111[2]; // [rsp+F8h] [rbp-10h] BYREF
+    __int64 v112; // [rsp+118h] [rbp+10h]
     struct _STARTUPINFOA StartupInfo; // [rsp+128h] [rbp+20h] BYREF
     PROCESSENTRY32 pe; // [rsp+198h] [rbp+90h] BYREF
     CHAR Filename[264]; // [rsp+2C8h] [rbp+1C0h] BYREF
-    __int64 v112; // [rsp+458h] [rbp+350h] BYREF
-    int v113; // [rsp+468h] [rbp+360h] BYREF
-    void **v114; // [rsp+470h] [rbp+368h] BYREF
+    __int64 v116; // [rsp+458h] [rbp+350h] BYREF
+    int v117; // [rsp+468h] [rbp+360h] BYREF
+    void **v118; // [rsp+470h] [rbp+368h] BYREF
 
-    v112 = a1;
-    if ( !(unsigned int)Plat_IsInDebugSession(0) && (unsigned __int8)sub_180411570() )
+    v116 = a1;
+    if ( !(unsigned int)Plat_IsInDebugSession(0) && (unsigned __int8)sub_180411570(v3, v2, v4, v5) )
       Plat_BeginWatchdogTimer(60, "CEngineServiceMgr::_MainLoop");
     if ( byte_18090D978 )
     {
       byte_18090D978 = 0;
       if ( dword_18090AE08 >= 0
-        && (v2 = *(const char ***)(qword_18090AD98 + 8LL * (unsigned __int16)dword_18090AE08)) != nullptr )
+        && (v6 = *(const char ***)(qword_18090AD98 + 8LL * (unsigned __int16)dword_18090AE08)) != nullptr )
       {
-        Msg("Active loop %s:\n", v2[2]);
-        (*((void (__fastcall **)(const char **))*v2 + 10))(v2);
+        Msg("Active loop %s:\n", v6[2]);
+        (*((void (__fastcall **)(const char **))*v6 + 10))(v6);
       }
       else
       {
@@ -1237,9 +1242,9 @@ procedure: |-
       {
         qword_1809128E0 = 0x479E17B84357691BLL;
         Msg("ETW collection detected\n");
-        v3 = CommandLine();
-        v4 = (const char *)(*(__int64 (__fastcall **)(__int64))(*(_QWORD *)v3 + 104LL))(v3);
-        Msg("Command line: %s\n", v4);
+        v7 = CommandLine();
+        v8 = (const char *)(*(__int64 (__fastcall **)(__int64))(*(_QWORD *)v7 + 104LL))(v7);
+        Msg("Command line: %s\n", v8);
         sub_180217320();
       }
     }
@@ -1252,23 +1257,23 @@ procedure: |-
       }
       qword_1809128E8 = *(_QWORD *)&a2;
     }
-    v5 = 0;
+    v9 = 0;
     if ( (_QWORD)xmmword_18090D980 )
     {
       Plat_GetWindowClientBounds(
         xmmword_18090D980,
-        &v113,
-        &v112,
+        &v117,
+        &v116,
         (char *)&xmmword_18090D990 + 8,
         (char *)&xmmword_18090D990 + 12);
     }
     else
     {
-      LODWORD(v112) = 0;
-      v113 = 0;
-      v6 = (_QWORD *)(*(__int64 (__fastcall **)(__int64))(*(_QWORD *)qword_180684CC0 + 192LL))(qword_180684CC0);
-      if ( v6 )
-        *((_QWORD *)&xmmword_18090D990 + 1) = *v6;
+      LODWORD(v116) = 0;
+      v117 = 0;
+      v10 = (_QWORD *)(*(__int64 (__fastcall **)(__int64))(*(_QWORD *)g_pVApplication + 192LL))(g_pVApplication);
+      if ( v10 )
+        *((_QWORD *)&xmmword_18090D990 + 1) = *v10;
       else
         *((_QWORD *)&xmmword_18090D990 + 1) = 0;
     }
@@ -1278,60 +1283,60 @@ procedure: |-
       DWORD2(xmmword_18090D990) = (int)(float)((float)SDWORD2(xmmword_18090D990) * WindowContentsScale);
       HIDWORD(xmmword_18090D990) = (int)(float)((float)SHIDWORD(xmmword_18090D990) * WindowContentsScale);
     }
-    v8 = (*(__int64 (__fastcall **)(__int64, _QWORD))(*(_QWORD *)g_pRenderDevice + 32LL))(
-           g_pRenderDevice,
-           *((_QWORD *)&xmmword_18090D980 + 1));
-    v9 = *(_BYTE *)(v8 + 37);
-    if ( (v9 & 3) != 0 || (v9 & 0x10) != 0 || !(_QWORD)xmmword_18090D980 )
+    v12 = (*(__int64 (__fastcall **)(__int64, _QWORD))(*(_QWORD *)g_pRenderDevice + 32LL))(
+            g_pRenderDevice,
+            *((_QWORD *)&xmmword_18090D980 + 1));
+    v13 = *(_BYTE *)(v12 + 37);
+    if ( (v13 & 3) != 0 || (v13 & 0x10) != 0 || !(_QWORD)xmmword_18090D980 )
     {
-      v10 = *(_DWORD *)(v8 + 8);
-      LODWORD(qword_18090D9A0) = v10;
-      v11 = *(_DWORD *)(v8 + 12);
+      v14 = *(_DWORD *)(v12 + 8);
+      LODWORD(qword_18090D9A0) = v14;
+      v15 = *(_DWORD *)(v12 + 12);
     }
     else
     {
-      v10 = DWORD2(xmmword_18090D990);
-      v11 = HIDWORD(xmmword_18090D990);
+      v14 = DWORD2(xmmword_18090D990);
+      v15 = HIDWORD(xmmword_18090D990);
       LODWORD(qword_18090D9A0) = DWORD2(xmmword_18090D990);
     }
-    v12 = v112;
-    v13 = v113;
-    HIDWORD(qword_18090D9A0) = v11;
-    v14 = (float)v10 / (float)SDWORD2(xmmword_18090D990);
-    v15 = (float)v11 / (float)SHIDWORD(xmmword_18090D990);
-    v16 = Plat_GetWindowContentsScale(xmmword_18090D980);
-    if ( v16 > 1.0 )
+    v16 = v116;
+    v17 = v117;
+    HIDWORD(qword_18090D9A0) = v15;
+    v18 = (float)v14 / (float)SDWORD2(xmmword_18090D990);
+    v19 = (float)v15 / (float)SHIDWORD(xmmword_18090D990);
+    v20 = Plat_GetWindowContentsScale(xmmword_18090D980);
+    if ( v20 > 1.0 )
     {
-      v14 = v14 * v16;
-      v15 = v15 * v16;
+      v18 = v18 * v20;
+      v19 = v19 * v20;
     }
-    if ( (float)((float)v13 - (float)((float)v13 * v14)) != *(float *)&dword_18090AF78
-      || (float)((float)v12 - (float)((float)v12 * v15)) != *(float *)&dword_18090AF7C
-      || v14 != *(float *)&dword_18090AF80
-      || v15 != *(float *)&dword_18090AF84 )
+    if ( (float)((float)v17 - (float)((float)v17 * v18)) != *(float *)&dword_18090AF78
+      || (float)((float)v16 - (float)((float)v16 * v19)) != *(float *)&dword_18090AF7C
+      || v18 != *(float *)&dword_18090AF80
+      || v19 != *(float *)&dword_18090AF84 )
     {
-      *(float *)&dword_18090AF78 = (float)v13 - (float)((float)v13 * v14);
-      *(float *)&dword_18090AF7C = (float)v12 - (float)((float)v12 * v15);
-      dword_18090AF80 = LODWORD(v14);
-      dword_18090AF84 = LODWORD(v15);
+      *(float *)&dword_18090AF78 = (float)v17 - (float)((float)v17 * v18);
+      *(float *)&dword_18090AF7C = (float)v16 - (float)((float)v16 * v19);
+      dword_18090AF80 = LODWORD(v18);
+      dword_18090AF84 = LODWORD(v19);
       if ( g_pInputSystem )
       {
-        v17 = *(void (__fastcall **)(__int64, __int64))(*(_QWORD *)g_pInputSystem + 512LL);
-        v18 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)g_pEngineServiceMgr + 144LL))(g_pEngineServiceMgr);
-        v17(g_pInputSystem, v18);
+        v21 = *(void (__fastcall **)(__int64, __int64))(*(_QWORD *)g_pInputSystem + 512LL);
+        v22 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)g_pEngineServiceMgr + 144LL))(g_pEngineServiceMgr);
+        v21(g_pInputSystem, v22);
       }
     }
     if ( qword_180684D28 )
       (*(void (__fastcall **)(__int64))(*(_QWORD *)qword_180684D28 + 696LL))(qword_180684D28);
-    v19 = 1;
-    v107[0] = xmmword_18090D980;
-    v108 = qword_18090D9A0;
-    v107[1] = xmmword_18090D990;
+    v23 = 1;
+    v111[0] = xmmword_18090D980;
+    v112 = qword_18090D9A0;
+    v111[1] = xmmword_18090D990;
     if ( dword_18090AE08 < 0 )
     {
-      if ( qword_180684DA0 )
-        (*(void (__fastcall **)(__int64, __int64, __int64))(*(_QWORD *)qword_180684DA0 + 104LL))(
-          qword_180684DA0,
+      if ( g_pResourceSystem )
+        (*(void (__fastcall **)(__int64, __int64, __int64))(*(_QWORD *)g_pResourceSystem + 104LL))(
+          g_pResourceSystem,
           5000000,
           1);
     }
@@ -1340,122 +1345,122 @@ procedure: |-
       (*(void (__fastcall **)(_QWORD, _OWORD *))(**(_QWORD **)(qword_18090AD98 + 8LL * (unsigned __int16)dword_18090AE08)
                                                + 64LL))(// 0x40 = 64LL = ILoopType_FrameUpdate
         *(_QWORD *)(qword_18090AD98 + 8LL * (unsigned __int16)dword_18090AE08),
-        v107);
+        v111);
     }
-    v20 = dword_18090AED0;
-    v21 = 2;
+    v24 = dword_18090AED0;
+    v25 = 2;
     if ( dword_18090AED0 == 1 )
     {
       if ( qword_180684EF0
-        && (v22 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)qword_180684EF0 + 152LL))(qword_180684EF0)) != 0 )
+        && (v26 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)qword_180684EF0 + 152LL))(qword_180684EF0)) != 0 )
       {
-        if ( v22 != 1 )
+        if ( v26 != 1 )
         {
-          v20 = dword_18090AED0;
+          v24 = dword_18090AED0;
           goto LABEL_50;
         }
-        v20 = 0;
+        v24 = 0;
       }
       else
       {
-        v20 = 2;
+        v24 = 2;
       }
-      dword_18090AED0 = v20;
+      dword_18090AED0 = v24;
     }
   LABEL_50:
-    if ( v20 == 2 )
+    if ( v24 == 2 )
     {
-      if ( qword_180684DE8 )
+      if ( g_pVConComm )
       {
-        v23 = "engine";
+        v27 = "engine";
         if ( qword_180684EF0 )
-          v23 = "tools";
-        (*(void (__fastcall **)(__int64, const char *))(*(_QWORD *)qword_180684DE8 + 208LL))(qword_180684DE8, v23);
+          v27 = "tools";
+        (*(void (__fastcall **)(__int64, const char *))(*(_QWORD *)g_pVConComm + 208LL))(g_pVConComm, v27);
       }
       if ( dword_18090AE08 >= 0 )
         (*(void (__fastcall **)(_QWORD, _OWORD *))(**(_QWORD **)(qword_18090AD98 + 8LL * (unsigned __int16)dword_18090AE08)
                                                  + 96LL))(
           *(_QWORD *)(qword_18090AD98 + 8LL * (unsigned __int16)dword_18090AE08),
-          v107);
+          v111);
       (*(void (__fastcall **)(__int64, __int64))(*(_QWORD *)g_pNetworkClientService + 216LL))(g_pNetworkClientService, 59);
       (*(void (__fastcall **)(__int64, __int64))(*(_QWORD *)qword_180684FD8 + 240LL))(qword_180684FD8, 59);
       if ( qword_18090AE20 )
       {
-        v24 = *(_QWORD *)(qword_18090AD98 + 8LL * *(unsigned __int16 *)(qword_18090AE20 + 8));
-        (*(void (__fastcall **)(__int64))(*(_QWORD *)v24 + 40LL))(v24);
+        v28 = *(_QWORD *)(qword_18090AD98 + 8LL * *(unsigned __int16 *)(qword_18090AE20 + 8));
+        (*(void (__fastcall **)(__int64))(*(_QWORD *)v28 + 40LL))(v28);
         sub_18021BD00((__int64)&g_EngineServiceMgr, (KeyValues ***)&qword_18090AE20, 0);
       }
-      v25 = (_QWORD *)qword_18090AE30;
-      v26 = qword_18090AE30 + 8LL * dword_18090AE28;
-      if ( qword_18090AE30 != v26 )
+      v29 = (_QWORD *)qword_18090AE30;
+      v30 = qword_18090AE30 + 8LL * dword_18090AE28;
+      if ( qword_18090AE30 != v30 )
       {
         do
         {
-          (*(void (__fastcall **)(_QWORD))(*(_QWORD *)*v25 + 16LL))(*v25);
-          ++v25;
+          (*(void (__fastcall **)(_QWORD))(*(_QWORD *)*v29 + 16LL))(*v29);
+          ++v29;
         }
-        while ( v25 != (_QWORD *)v26 );
+        while ( v29 != (_QWORD *)v30 );
       }
-      v27 = qword_18090AE18;
+      v31 = qword_18090AE18;
       dword_18090AE28 = 0;
       dword_18090AE40 = 0;
       byte_18090AE50 = 1;
       dword_18090AED0 = 0;
       if ( qword_18090AE18 )
       {
-        v114 = nullptr;
-        v28 = (const char *)&unk_1805262BF;
+        v118 = nullptr;
+        v32 = (const char *)&unk_1805262BF;
         if ( *(_QWORD *)qword_18090AE18 )
-          v28 = *(const char **)qword_18090AE18;
-        CUtlString::Set((CUtlString *)&v114, v28);
-        v29 = *(_DWORD *)(v27 + 28);
-        v30 = (_QWORD *)qword_18090AE18;
+          v32 = *(const char **)qword_18090AE18;
+        CUtlString::Set((CUtlString *)&v118, v32);
+        v33 = *(_DWORD *)(v31 + 28);
+        v34 = (_QWORD *)qword_18090AE18;
         if ( qword_18090AE18 )
         {
-          v31 = *(void **)(qword_18090AE18 + 16);
-          if ( v31 )
+          v35 = *(void **)(qword_18090AE18 + 16);
+          if ( v35 )
           {
             KeyValues::~KeyValues(*(KeyValues **)(qword_18090AE18 + 16));
-            KeyValues::operator delete(v31);
-            v30[2] = 0;
+            KeyValues::operator delete(v35);
+            v34[2] = 0;
           }
-          if ( v30[4] )
-            CUtlString::FreeMemoryBlock((CUtlString *)(v30 + 4));
-          if ( *v30 )
-            CUtlString::FreeMemoryBlock((CUtlString *)v30);
-          (*(void (__fastcall **)(_QWORD, _QWORD *))(*g_pMemAlloc + 24LL))(g_pMemAlloc, v30);
+          if ( v34[4] )
+            CUtlString::FreeMemoryBlock((CUtlString *)(v34 + 4));
+          if ( *v34 )
+            CUtlString::FreeMemoryBlock((CUtlString *)v34);
+          (*(void (__fastcall **)(_QWORD, _QWORD *))(*g_pMemAlloc + 24LL))(g_pMemAlloc, v34);
         }
-        v32 = 0;
+        v36 = 0;
         qword_18090AE18 = 0;
         if ( dword_18090AFB8 > 0 )
         {
-          v33 = 0;
+          v37 = 0;
           do
           {
-            v34 = (void **)&unk_1805262BF;
-            if ( v114 )
-              v34 = v114;
-            (***(void (__fastcall ****)(_QWORD, void *, _QWORD, _QWORD))(qword_18090AFC0 + v33))(
-              *(_QWORD *)(qword_18090AFC0 + v33),
-              v34,
-              v29,
+            v38 = (void **)&unk_1805262BF;
+            if ( v118 )
+              v38 = v118;
+            (***(void (__fastcall ****)(_QWORD, void *, _QWORD, _QWORD))(qword_18090AFC0 + v37))(
+              *(_QWORD *)(qword_18090AFC0 + v37),
+              v38,
+              v33,
               0);
-            ++v32;
-            v33 += 8;
+            ++v36;
+            v37 += 8;
           }
-          while ( v32 < dword_18090AFB8 );
+          while ( v36 < dword_18090AFB8 );
         }
         byte_18090AE50 = 1;
-        if ( v114 )
-          CUtlString::FreeMemoryBlock((CUtlString *)&v114);
+        if ( v118 )
+          CUtlString::FreeMemoryBlock((CUtlString *)&v118);
       }
-      sub_18021BF90(&g_EngineServiceMgr, v107);
-      if ( qword_180684DA0 )
-        (*(void (__fastcall **)(__int64))(*(_QWORD *)qword_180684DA0 + 112LL))(qword_180684DA0);
-      v35 = (_BYTE *)sub_1803FBBC0((__int64)&unk_18090AD50, -1);
-      if ( !v35 )
-        v35 = *(_BYTE **)(qword_18090AD58 + 8);
-      if ( *v35 )
+      CEngineServiceMgr_DeactivateLoop((__int64)&g_EngineServiceMgr, (__int64)v111);
+      if ( g_pResourceSystem )
+        (*(void (__fastcall **)(__int64))(*(_QWORD *)g_pResourceSystem + 112LL))(g_pResourceSystem);
+      v39 = (_BYTE *)sub_1803FBBC0((__int64)&unk_18090AD50, -1);
+      if ( !v39 )
+        v39 = *(_BYTE **)(qword_18090AD58 + 8);
+      if ( *v39 )
       {
         if ( *(_QWORD *)SteamInternal_ContextInit(&off_18060D268) )
         {
@@ -1474,17 +1479,17 @@ procedure: |-
             {
               if ( !(unsigned int)V_stricmp_fast(pe.szExeFile, "steam.exe") )
               {
-                v37 = OpenProcess(0x410u, 0, pe.th32ProcessID);
-                v38 = v37;
-                if ( v37 )
+                v41 = OpenProcess(0x410u, 0, pe.th32ProcessID);
+                v42 = v41;
+                if ( v41 )
                 {
-                  if ( K32GetModuleFileNameExA(v37, nullptr, Filename, 0x104u) )
+                  if ( K32GetModuleFileNameExA(v41, nullptr, Filename, 0x104u) )
                   {
-                    CloseHandle(v38);
+                    CloseHandle(v42);
                     CloseHandle(Toolhelp32Snapshot);
-                    v39 = (_QWORD *)SteamInternal_ContextInit(&off_18060D268);
-                    v40 = (*(__int64 (__fastcall **)(_QWORD))(*(_QWORD *)*v39 + 72LL))(*v39);
-                    sub_18010F730(&pe, "-applaunch %d", v40);
+                    v43 = (_QWORD *)SteamInternal_ContextInit(&off_18060D268);
+                    v44 = (*(__int64 (__fastcall **)(_QWORD))(*(_QWORD *)*v43 + 72LL))(*v43);
+                    sub_18010F730(&pe, "-applaunch %d", v44);
                     StartupInfo.cb = 104;
                     memset(&StartupInfo.cb + 1, 0, 100);
                     memset(&lpProcessInformation_8, 0, sizeof(lpProcessInformation_8));
@@ -1502,11 +1507,11 @@ procedure: |-
                     {
                       CloseHandle(lpProcessInformation_8.hThread);
                       CloseHandle(lpProcessInformation_8.hProcess);
-                      Msg("Restarting application ID %d via Steam...\n", v40);
+                      Msg("Restarting application ID %d via Steam...\n", v44);
                     }
                     break;
                   }
-                  CloseHandle(v38);
+                  CloseHandle(v42);
                 }
               }
               if ( !Process32Next(Toolhelp32Snapshot, &pe) )
@@ -1516,289 +1521,289 @@ procedure: |-
         }
       }
   LABEL_203:
-      v19 = v5;
+      v23 = v9;
   LABEL_204:
-      v21 = v19;
+      v25 = v23;
       goto LABEL_205;
     }
-    v41 = &unk_1805262BF;
+    v45 = &unk_1805262BF;
     if ( qword_18090AE18 )
     {
       sub_18021C320(&g_EngineServiceMgr);
       if ( dword_18090AE08 >= 0 )
       {
-        v42 = dword_18090AE08 == *(_DWORD *)(qword_18090AE18 + 8);
-        v43 = CUtlString::operator==(&qword_18090AE10, qword_18090AE18 + 32);
-        v44 = v43;
-        if ( v42 || !v43 )
+        v46 = dword_18090AE08 == *(_DWORD *)(qword_18090AE18 + 8);
+        v47 = CUtlString::operator==(&qword_18090AE10, qword_18090AE18 + 32);
+        v48 = v47;
+        if ( v46 || !v47 )
         {
-          sub_18021BF90(&g_EngineServiceMgr, v107);
-          if ( !v44 )
+          CEngineServiceMgr_DeactivateLoop((__int64)&g_EngineServiceMgr, (__int64)v111);
+          if ( !v48 )
           {
-            v45 = &unk_1805262BF;
+            v49 = &unk_1805262BF;
             if ( *(_QWORD *)(qword_18090AE18 + 32) )
-              v45 = *(void **)(qword_18090AE18 + 32);
-            sub_18021EAD0(&g_EngineServiceMgr, v45);
+              v49 = *(void **)(qword_18090AE18 + 32);
+            sub_18021EAD0(&g_EngineServiceMgr, v49);
           }
         }
       }
       qword_18090AE20 = qword_18090AE18;
       qword_18090AE18 = 0;
-      v46 = *(__int64 **)(qword_18090AD98 + 8LL * *(unsigned __int16 *)(qword_18090AE20 + 8));
-      v47 = 0;
-      v48 = dword_18060E430;
-      LODWORD(v98) = 0;
-      BYTE4(v98) = 0;
+      v50 = *(__int64 **)(qword_18090AD98 + 8LL * *(unsigned __int16 *)(qword_18090AE20 + 8));
+      v51 = 0;
+      v52 = dword_18060E430;
+      LODWORD(v102) = 0;
+      BYTE4(v102) = 0;
       if ( (unsigned int)dword_18060E430 <= 5 )
       {
-        v99 = 0;
+        v103 = 0;
       }
       else
       {
-        Plat_EventActivityIdControl(3, &v99);
-        v100 = v99;
-        Plat_EventActivityIdControl(4, &v100);
-        v48 = dword_18060E430;
-        v47 = 1;
-        BYTE4(v98) = 1;
+        Plat_EventActivityIdControl(3, &v103);
+        v104 = v103;
+        Plat_EventActivityIdControl(4, &v104);
+        v52 = dword_18060E430;
+        v51 = 1;
+        BYTE4(v102) = 1;
       }
-      LODWORD(v98) = 1;
-      if ( v48 > 5 )
+      LODWORD(v102) = 1;
+      if ( v52 > 5 )
       {
-        v49 = (_BYTE *)v46[2];
-        if ( v47 && ((_DWORD)v100 || __PAIR64__(DWORD1(v100), 0) != DWORD2(v100) || HIDWORD(v100)) )
-          v50 = &v100;
+        v53 = (_BYTE *)v50[2];
+        if ( v51 && ((_DWORD)v104 || __PAIR64__(DWORD1(v104), 0) != DWORD2(v104) || HIDWORD(v104)) )
+          v54 = &v104;
         else
-          v50 = nullptr;
-        if ( v49 )
+          v54 = nullptr;
+        if ( v53 )
         {
-          v51 = -1;
+          v55 = -1;
           do
-            ++v51;
-          while ( v49[v51] );
-          v52 = v51 + 1;
+            ++v55;
+          while ( v53[v55] );
+          v56 = v55 + 1;
         }
         else
         {
-          v49 = &unk_1805262BF;
-          v52 = 1;
+          v53 = &unk_1805262BF;
+          v56 = 1;
         }
-        v97 = v52;
-        v95[0] = off_18060E438;
-        *((_QWORD *)&v96 + 1) = v49;
+        v101 = v56;
+        v99[0] = off_18060E438;
+        *((_QWORD *)&v100 + 1) = v53;
         lpProcessInformation_8.hProcess = (HANDLE)0x1050B000000LL;
         lpProcessInformation_8.hThread = nullptr;
-        v95[1] = *(unsigned __int16 *)off_18060E438 | 0x200000000LL;
-        v95[2] = &unk_1805B3364;
-        *(_QWORD *)&v96 = 0x10000001BLL;
-        LODWORD(v114) = (unsigned int)&unk_1805B38A3 - (unsigned int)&unk_1805B30A8;
-        Plat_EventWriteTransfer(qword_18060E450, &lpProcessInformation_8, &v99, v50, 3, v95);
+        v99[1] = *(unsigned __int16 *)off_18060E438 | 0x200000000LL;
+        v99[2] = &unk_1805B3364;
+        *(_QWORD *)&v100 = 0x10000001BLL;
+        LODWORD(v118) = (unsigned int)&unk_1805B38A3 - (unsigned int)&unk_1805B30A8;
+        Plat_EventWriteTransfer(qword_18060E450, &lpProcessInformation_8, &v103, v54, 3, v99);
       }
-      v114 = &v98;
+      v118 = &v102;
       Copy = KeyValues::MakeCopy(*(KeyValues **)(qword_18090AE20 + 16));
-      v54 = (void *)v46[4];
-      v55 = Copy;
-      if ( v54 )
+      v58 = (void *)v50[4];
+      v59 = Copy;
+      if ( v58 )
       {
-        KeyValues::~KeyValues((KeyValues *)v46[4]);
-        KeyValues::operator delete(v54);
+        KeyValues::~KeyValues((KeyValues *)v50[4]);
+        KeyValues::operator delete(v58);
       }
-      v46[4] = (__int64)v55;
-      v56 = *v46;
-      *((_DWORD *)v46 + 7) = *(_DWORD *)(qword_18090AE20 + 28);
-      if ( !(*(unsigned __int8 (__fastcall **)(__int64 *, _QWORD, _QWORD, __int64 *))(v56 + 32))(
-              v46,
+      v50[4] = (__int64)v59;
+      v60 = *v50;
+      *((_DWORD *)v50 + 7) = *(_DWORD *)(qword_18090AE20 + 28);
+      if ( !(*(unsigned __int8 (__fastcall **)(__int64 *, _QWORD, _QWORD, __int64 *))(v60 + 32))(
+              v50,
               *(unsigned int *)(qword_18090AE20 + 28),
               *(_QWORD *)(qword_18090AE20 + 16),
               &qword_18090AD88) )
         sub_18021C320(&g_EngineServiceMgr);
-      sub_18021DF00(&v114);
-      if ( (_DWORD)v98 == 1 )
+      sub_18021DF00(&v118);
+      if ( (_DWORD)v102 == 1 )
       {
-        if ( BYTE4(v98) )
-          Plat_EventActivityIdControl(4, &v100);
-        LODWORD(v98) = 2;
+        if ( BYTE4(v102) )
+          Plat_EventActivityIdControl(4, &v104);
+        LODWORD(v102) = 2;
         if ( (unsigned int)dword_18060E430 > 5 )
         {
-          *(_QWORD *)&v103 = off_18060E438;
+          *(_QWORD *)&v107 = off_18060E438;
           lpProcessInformation_8.hProcess = (HANDLE)0x2050B000000LL;
           lpProcessInformation_8.hThread = nullptr;
-          *((_QWORD *)&v103 + 1) = *(unsigned __int16 *)off_18060E438 | 0x200000000LL;
-          v104 = (const char *)&unk_1805B30E5;
-          v105 = 32;
-          v106 = 1;
-          LODWORD(v114) = (unsigned int)&unk_1805B38A3 - (unsigned int)&unk_1805B30A8;
-          Plat_EventWriteTransfer(qword_18060E450, &lpProcessInformation_8, &v99, 0, 2, &v103);
+          *((_QWORD *)&v107 + 1) = *(unsigned __int16 *)off_18060E438 | 0x200000000LL;
+          v108 = (const char *)&unk_1805B30E5;
+          v109 = 32;
+          v110 = 1;
+          LODWORD(v118) = (unsigned int)&unk_1805B38A3 - (unsigned int)&unk_1805B30A8;
+          Plat_EventWriteTransfer(qword_18060E450, &lpProcessInformation_8, &v103, 0, 2, &v107);
         }
       }
-      LODWORD(v98) = 3;
+      LODWORD(v102) = 3;
     }
-    v57 = xmmword_18090D980;
+    v61 = xmmword_18090D980;
     if ( (unsigned __int8)sub_18021CAA0(xmmword_18090D980) )
     {
-      v63 = (int *)sub_1803FBBC0((__int64)&unk_18090AC80, -1);
-      if ( !v63 )
-        v63 = *(int **)(qword_18090AC88 + 8);
-      v62 = *v63;
-      if ( v57 && (unsigned __int8)Plat_IsWindowMinimized(v57) )
+      v67 = (int *)sub_1803FBBC0((__int64)&unk_18090AC80, -1);
+      if ( !v67 )
+        v67 = *(int **)(qword_18090AC88 + 8);
+      v66 = *v67;
+      if ( v61 && (unsigned __int8)Plat_IsWindowMinimized(v61) )
       {
-        v64 = 100;
-        if ( v62 > 100 )
-          v64 = v62;
-        v62 = v64;
+        v68 = 100;
+        if ( v66 > 100 )
+          v68 = v66;
+        v66 = v68;
       }
     }
     else
     {
-      v62 = 0;
+      v66 = 0;
     }
-    if ( dword_18060E260 != v62 )
+    if ( dword_18060E260 != v66 )
     {
       if ( dword_18060E260 >= 0 )
       {
         if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_18090A308, 1) )
-          LoggingSystem_Log((unsigned int)dword_18090A308, 1, "Will now sleep %dms each frame\n", v62);
+          LoggingSystem_Log((unsigned int)dword_18090A308, 1, "Will now sleep %dms each frame\n", v66);
         if ( (unsigned int)dword_18060E430 > 5 )
         {
-          LODWORD(v114) = v62;
-          *((_QWORD *)&v96 + 1) = &v114;
-          v95[0] = off_18060E438;
-          v97 = 4;
+          LODWORD(v118) = v66;
+          *((_QWORD *)&v100 + 1) = &v118;
+          v99[0] = off_18060E438;
+          v101 = 4;
           lpProcessInformation_8.hProcess = (HANDLE)0x50B000000LL;
           lpProcessInformation_8.hThread = nullptr;
-          v95[1] = *(unsigned __int16 *)off_18060E438 | 0x200000000LL;
-          v95[2] = &unk_1805B32CD;
-          *(_QWORD *)&v96 = 0x100000029LL;
-          v102 = (unsigned int)&unk_1805B38A3 - (unsigned int)&unk_1805B30A8;
-          Plat_EventWriteTransfer(qword_18060E450, &lpProcessInformation_8, 0, 0, 3, v95);
+          v99[1] = *(unsigned __int16 *)off_18060E438 | 0x200000000LL;
+          v99[2] = &unk_1805B32CD;
+          *(_QWORD *)&v100 = 0x100000029LL;
+          v106 = (unsigned int)&unk_1805B38A3 - (unsigned int)&unk_1805B30A8;
+          Plat_EventWriteTransfer(qword_18060E450, &lpProcessInformation_8, 0, 0, 3, v99);
         }
       }
-      dword_18060E260 = v62;
+      dword_18060E260 = v66;
     }
     qword_18090D970 = 0;
-    if ( v62 > 0 )
+    if ( v66 > 0 )
     {
       lpProcessInformation_8.hThread = (HANDLE)1560;
       lpProcessInformation_8.hProcess = "C:\\buildworker\\csgo_rel_win64\\build\\src\\engine2\\engineservicemgr.cpp";
       *(_QWORD *)&lpProcessInformation_8.dwProcessId = "_MainLoop";
-      v104 = "_MainLoop";
-      v103 = *(_OWORD *)&lpProcessInformation_8.hProcess;
-      v65 = VProfScopeHelper<0,0>::EnterScopeInternalBudgetFlags("Sleep", &off_18060E268, &v103);
-      v69 = (unsigned int)dword_18060E430;
-      v70 = (void (*)(void))v65;
-      v71 = 0;
-      LODWORD(v95[0]) = 0;
-      BYTE4(v95[0]) = 0;
+      v108 = "_MainLoop";
+      v107 = *(_OWORD *)&lpProcessInformation_8.hProcess;
+      v69 = VProfScopeHelper<0,0>::EnterScopeInternalBudgetFlags("Sleep", &off_18060E268, &v107);
+      v73 = (unsigned int)dword_18060E430;
+      v74 = (void (*)(void))v69;
+      v75 = 0;
+      LODWORD(v99[0]) = 0;
+      BYTE4(v99[0]) = 0;
       if ( (unsigned int)dword_18060E430 <= 5 )
       {
-        *(_OWORD *)&v95[1] = 0;
+        *(_OWORD *)&v99[1] = 0;
       }
       else
       {
-        Plat_EventActivityIdControl(3, &v95[1]);
-        v96 = *(_OWORD *)&v95[1];
-        Plat_EventActivityIdControl(4, &v96);
-        v69 = (unsigned int)dword_18060E430;
-        v71 = 1;
-        BYTE4(v95[0]) = 1;
+        Plat_EventActivityIdControl(3, &v99[1]);
+        v100 = *(_OWORD *)&v99[1];
+        Plat_EventActivityIdControl(4, &v100);
+        v73 = (unsigned int)dword_18060E430;
+        v75 = 1;
+        BYTE4(v99[0]) = 1;
       }
-      LODWORD(v95[0]) = 1;
-      if ( (unsigned int)v69 > 5 )
+      LODWORD(v99[0]) = 1;
+      if ( (unsigned int)v73 > 5 )
       {
-        LODWORD(v114) = v62;
-        if ( v71 && ((_DWORD)v96 || __PAIR64__(DWORD1(v96), 0) != DWORD2(v96) || HIDWORD(v96)) )
-          v72 = &v96;
+        LODWORD(v118) = v66;
+        if ( v75 && ((_DWORD)v100 || __PAIR64__(DWORD1(v100), 0) != DWORD2(v100) || HIDWORD(v100)) )
+          v76 = &v100;
         else
-          v72 = nullptr;
-        v101 = 4;
-        *((_QWORD *)&v100 + 1) = &v114;
-        v98 = off_18060E438;
+          v76 = nullptr;
+        v105 = 4;
+        *((_QWORD *)&v104 + 1) = &v118;
+        v102 = off_18060E438;
         lpProcessInformation_8.hProcess = (HANDLE)0x1050B000000LL;
         lpProcessInformation_8.hThread = nullptr;
-        *(_QWORD *)&v99 = *(unsigned __int16 *)off_18060E438 | 0x200000000LL;
-        *((_QWORD *)&v99 + 1) = &unk_1805B3302;
-        *(_QWORD *)&v100 = 0x10000001CLL;
-        v102 = (unsigned int)&unk_1805B38A3 - (unsigned int)&unk_1805B30A8;
-        Plat_EventWriteTransfer(qword_18060E450, &lpProcessInformation_8, &v95[1], v72, 3, &v98);
+        *(_QWORD *)&v103 = *(unsigned __int16 *)off_18060E438 | 0x200000000LL;
+        *((_QWORD *)&v103 + 1) = &unk_1805B3302;
+        *(_QWORD *)&v104 = 0x10000001CLL;
+        v106 = (unsigned int)&unk_1805B38A3 - (unsigned int)&unk_1805B30A8;
+        Plat_EventWriteTransfer(qword_18060E450, &lpProcessInformation_8, &v99[1], v76, 3, &v102);
       }
-      v114 = (void **)v95;
-      v73 = Plat_FloatTime(v69, v66, v67, v68);
+      v118 = (void **)v99;
+      v77 = Plat_FloatTime(v73, v70, v71, v72);
       do
       {
-        v74 = 100;
-        if ( (unsigned int)v62 < 0x64 )
-          v74 = v62;
-        (*(void (__fastcall **)(__int64, _QWORD))(*(_QWORD *)g_pInputSystem + 344LL))(g_pInputSystem, v74);
-        v62 -= v74;
+        v78 = 100;
+        if ( (unsigned int)v66 < 0x64 )
+          v78 = v66;
+        (*(void (__fastcall **)(__int64, _QWORD))(*(_QWORD *)g_pInputSystem + 344LL))(g_pInputSystem, v78);
+        v66 -= v78;
       }
-      while ( v62 > 0 && (unsigned __int8)sub_18021CAA0(xmmword_18090D980) );
-      *(double *)&qword_18090D970 = Plat_FloatTime(v76, v75, v77, v78) - v73;
-      sub_180229AA0("idle_sleep", 2);
-      sub_18021DFD0(&v114);
-      if ( LODWORD(v95[0]) == 1 )
+      while ( v66 > 0 && (unsigned __int8)sub_18021CAA0(xmmword_18090D980) );
+      *(double *)&qword_18090D970 = Plat_FloatTime(v80, v79, v81, v82) - v77;
+      sub_180229AA0("idle_sleep", 2, 0.25);
+      sub_18021DFD0(&v118);
+      if ( LODWORD(v99[0]) == 1 )
       {
-        if ( BYTE4(v95[0]) )
-          Plat_EventActivityIdControl(4, &v96);
-        LODWORD(v95[0]) = 2;
+        if ( BYTE4(v99[0]) )
+          Plat_EventActivityIdControl(4, &v100);
+        LODWORD(v99[0]) = 2;
         if ( (unsigned int)dword_18060E430 > 5 )
         {
-          v98 = off_18060E438;
+          v102 = off_18060E438;
           lpProcessInformation_8.hProcess = (HANDLE)0x2050B000000LL;
           lpProcessInformation_8.hThread = nullptr;
-          *(_QWORD *)&v99 = *(unsigned __int16 *)off_18060E438 | 0x200000000LL;
-          *((_QWORD *)&v99 + 1) = &unk_1805B30E5;
-          *(_QWORD *)&v100 = 0x100000020LL;
-          LODWORD(v114) = (unsigned int)&unk_1805B38A3 - (unsigned int)&unk_1805B30A8;
-          Plat_EventWriteTransfer(qword_18060E450, &lpProcessInformation_8, &v95[1], 0, 2, &v98);
+          *(_QWORD *)&v103 = *(unsigned __int16 *)off_18060E438 | 0x200000000LL;
+          *((_QWORD *)&v103 + 1) = &unk_1805B30E5;
+          *(_QWORD *)&v104 = 0x100000020LL;
+          LODWORD(v118) = (unsigned int)&unk_1805B38A3 - (unsigned int)&unk_1805B30A8;
+          Plat_EventWriteTransfer(qword_18060E450, &lpProcessInformation_8, &v99[1], 0, 2, &v102);
         }
       }
-      LODWORD(v95[0]) = 3;
-      v70();
+      LODWORD(v99[0]) = 3;
+      v74();
     }
     if ( !qword_18090AE20 )
       goto LABEL_202;
-    Plat_FloatTime(v59, v58, v60, v61);
-    v79 = dword_18090AE40 - 1;
+    Plat_FloatTime(v63, v62, v64, v65);
+    v83 = dword_18090AE40 - 1;
     if ( dword_18090AE40 - 1 >= 0 )
     {
       while ( 1 )
       {
-        v80 = (*(__int64 (__fastcall **)(_QWORD))(**(_QWORD **)(qword_18090AE30 + 8 * v79) + 24LL))(*(_QWORD *)(qword_18090AE30 + 8 * v79));
-        if ( v80 == 2 )
+        v84 = (*(__int64 (__fastcall **)(_QWORD))(**(_QWORD **)(qword_18090AE30 + 8 * v83) + 24LL))(*(_QWORD *)(qword_18090AE30 + 8 * v83));
+        if ( v84 == 2 )
           break;
-        if ( v80 )
+        if ( v84 )
         {
-          v81 = dword_18090AE40 - 1;
-          v82 = *(_QWORD *)(qword_18090AE30 + 8 * v81);
-          *(_QWORD *)(qword_18090AE30 + 8 * v81) = *(_QWORD *)(qword_18090AE30 + 8 * v79);
-          *(_QWORD *)(qword_18090AE30 + 8 * v79) = v82;
+          v85 = dword_18090AE40 - 1;
+          v86 = *(_QWORD *)(qword_18090AE30 + 8 * v85);
+          *(_QWORD *)(qword_18090AE30 + 8 * v85) = *(_QWORD *)(qword_18090AE30 + 8 * v83);
+          *(_QWORD *)(qword_18090AE30 + 8 * v83) = v86;
           --dword_18090AE40;
         }
-        if ( --v79 < 0 )
+        if ( --v83 < 0 )
           goto LABEL_174;
       }
       if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_18090A308, 3) )
       {
         if ( *(_QWORD *)qword_18090AE20 )
-          v41 = *(void **)qword_18090AE20;
-        LoggingSystem_Log((unsigned int)dword_18090A308, 3, "Switch to loop '%s' failed\n", v41);
+          v45 = *(void **)qword_18090AE20;
+        LoggingSystem_Log((unsigned int)dword_18090A308, 3, "Switch to loop '%s' failed\n", v45);
       }
       if ( qword_18090AE20 )
       {
-        v89 = *(_QWORD *)(qword_18090AD98 + 8LL * *(unsigned __int16 *)(qword_18090AE20 + 8));
-        (*(void (__fastcall **)(__int64))(*(_QWORD *)v89 + 40LL))(v89);
+        v93 = *(_QWORD *)(qword_18090AD98 + 8LL * *(unsigned __int16 *)(qword_18090AE20 + 8));
+        (*(void (__fastcall **)(__int64))(*(_QWORD *)v93 + 40LL))(v93);
         sub_18021BD00((__int64)&g_EngineServiceMgr, (KeyValues ***)&qword_18090AE20, 0);
       }
-      v90 = (_QWORD *)qword_18090AE30;
-      v91 = qword_18090AE30 + 8LL * dword_18090AE28;
-      if ( qword_18090AE30 != v91 )
+      v94 = (_QWORD *)qword_18090AE30;
+      v95 = qword_18090AE30 + 8LL * dword_18090AE28;
+      if ( qword_18090AE30 != v95 )
       {
         do
         {
-          (*(void (__fastcall **)(_QWORD))(*(_QWORD *)*v90 + 16LL))(*v90);
-          ++v90;
+          (*(void (__fastcall **)(_QWORD))(*(_QWORD *)*v94 + 16LL))(*v94);
+          ++v94;
         }
-        while ( v90 != (_QWORD *)v91 );
+        while ( v94 != (_QWORD *)v95 );
       }
       dword_18090AE28 = 0;
       dword_18090AE40 = 0;
@@ -1809,53 +1814,53 @@ procedure: |-
     if ( dword_18090AE40 )
     {
   LABEL_202:
-      v5 = 1;
+      v9 = 1;
       goto LABEL_203;
     }
-    sub_18021BF90(&g_EngineServiceMgr, v107);
-    v83 = (_QWORD *)qword_18090AE30;
-    v84 = *(_DWORD *)(qword_18090AE20 + 8);
-    dword_18090AE08 = v84;
-    v85 = qword_18090AE30 + 8LL * dword_18090AE28;
-    if ( qword_18090AE30 != v85 )
+    CEngineServiceMgr_DeactivateLoop((__int64)&g_EngineServiceMgr, (__int64)v111);
+    v87 = (_QWORD *)qword_18090AE30;
+    v88 = *(_DWORD *)(qword_18090AE20 + 8);
+    dword_18090AE08 = v88;
+    v89 = qword_18090AE30 + 8LL * dword_18090AE28;
+    if ( qword_18090AE30 != v89 )
     {
       do
       {
-        (*(void (__fastcall **)(_QWORD))(*(_QWORD *)*v83 + 16LL))(*v83);
-        ++v83;
+        (*(void (__fastcall **)(_QWORD))(*(_QWORD *)*v87 + 16LL))(*v87);
+        ++v87;
       }
-      while ( v83 != (_QWORD *)v85 );
+      while ( v87 != (_QWORD *)v89 );
     }
     dword_18090AE28 = 0;
     dword_18090AE40 = 0;
     if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_18090A308, 1) )
     {
       if ( *(_QWORD *)qword_18090AE20 )
-        v41 = *(void **)qword_18090AE20;
+        v45 = *(void **)qword_18090AE20;
       bInheritHandles[0] = *(_DWORD *)(qword_18090AE20 + 28);
       LoggingSystem_Log(
         (unsigned int)dword_18090A308,
         1,
         "CEngineServiceMgr::Activating loop ( %s, %u )\n",
-        v41,
+        v45,
         *(_QWORD *)bInheritHandles);
     }
-    if ( qword_180684DE8 )
+    if ( g_pVConComm )
     {
       lpProcessInformation_8.hProcess = nullptr;
       lpProcessInformation_8.hThread = nullptr;
-      (*(void (__fastcall **)(__int64, struct _PROCESS_INFORMATION *))(*(_QWORD *)qword_180684CC0 + 312LL))(
-        qword_180684CC0,
+      (*(void (__fastcall **)(__int64, struct _PROCESS_INFORMATION *))(*(_QWORD *)g_pVApplication + 312LL))(
+        g_pVApplication,
         &lpProcessInformation_8);
-      (*(void (__fastcall **)(__int64, struct _PROCESS_INFORMATION *))(*(_QWORD *)qword_180684DE8 + 216LL))(
-        qword_180684DE8,
+      (*(void (__fastcall **)(__int64, struct _PROCESS_INFORMATION *))(*(_QWORD *)g_pVConComm + 216LL))(
+        g_pVConComm,
         &lpProcessInformation_8);
       hProcess_high = HIDWORD(lpProcessInformation_8.hProcess);
       hThread = (CUtlString *)lpProcessInformation_8.hThread;
       if ( (HIDWORD(lpProcessInformation_8.hProcess) & 0x7FFFFFFF) == 0 )
         hThread = nullptr;
-      v88 = (CUtlString *)((char *)hThread + 8 * SLODWORD(lpProcessInformation_8.hProcess));
-      if ( hThread < v88 )
+      v92 = (CUtlString *)((char *)hThread + 8 * SLODWORD(lpProcessInformation_8.hProcess));
+      if ( hThread < v92 )
       {
         do
         {
@@ -1863,21 +1868,22 @@ procedure: |-
             CUtlString::FreeMemoryBlock(hThread);
           hThread = (CUtlString *)((char *)hThread + 8);
         }
-        while ( hThread < v88 );
+        while ( hThread < v92 );
         hProcess_high = HIDWORD(lpProcessInformation_8.hProcess);
       }
       LODWORD(lpProcessInformation_8.hProcess) = 0;
       if ( (hProcess_high & 0x7FFFFFFF) != 0 && hProcess_high >= 0 )
         (*(void (__fastcall **)(_QWORD))(*g_pMemAlloc + 24LL))(g_pMemAlloc);
     }
-    (*(void (__fastcall **)(_QWORD, _OWORD *, void *))(**(_QWORD **)(qword_18090AD98 + 8LL * (unsigned __int16)v84) + 48LL))(
-      *(_QWORD *)(qword_18090AD98 + 8LL * (unsigned __int16)v84),
-      v107,
+    (*(void (__fastcall **)(_QWORD, _OWORD *, void *))(**(_QWORD **)(qword_18090AD98 + 8LL * (unsigned __int16)v88)
+                                                     + 48LL))(// 0x30 = 48LL = ILoopType_LoopActivate
+      *(_QWORD *)(qword_18090AD98 + 8LL * (unsigned __int16)v88),
+      v111,
       &unk_18090AED8);
     (*(void (__fastcall **)(__int64 *))(qword_180909C90 + 272))(&qword_180909C90);
     sub_18021BD00((__int64)&g_EngineServiceMgr, (KeyValues ***)&qword_18090AE20, 1u);
     byte_18090AE50 = 1;
   LABEL_205:
     Plat_EndWatchdogTimer("CEngineServiceMgr::_MainLoop");
-    return v21;
+    return v25;
   }
