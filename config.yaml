@@ -860,6 +860,12 @@ modules:
           - CLoopModeGame_RegisterEventMapInternal.{platform}.yaml
           - CLoopModeGame_vtable.{platform}.yaml
 
+      - name: find-ILoopMode_RegisterEventMap
+        expected_output:
+          - ILoopMode_RegisterEventMap.{platform}.yaml
+        expected_input:
+          - CLoopModeGame_RegisterEventMap.{platform}.yaml
+
       - name: find-CLoopModeGame_LoopInitInternal
         platform: linux
         expected_output:
@@ -1238,6 +1244,11 @@ modules:
         category: vfunc
         alias:
           - CLoopModeGame::RegisterEventMap
+
+      - name: ILoopMode_RegisterEventMap
+        category: vfunc
+        alias:
+          - ILoopMode::RegisterEventMap
 
       - name: CLoopModeGame_SetWorldSession
         category: func
