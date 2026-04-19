@@ -613,9 +613,19 @@ modules:
         expected_output:
           - CLoopTypeClientServerService_vtable2.{platform}.yaml
 
+      - name: find-CLoopTypeClientServer_vtable
+        expected_output:
+          - CLoopTypeClientServer_vtable.{platform}.yaml
+
       - name: find-CLoopTypeClientServer_BuildAndActivateLoopTypes
         expected_output:
           - CLoopTypeClientServer_BuildAndActivateLoopTypes.{platform}.yaml
+
+      - name: find-CLoopTypeClientServer_AllocateLoopMode
+        expected_output:
+          - CLoopTypeClientServer_AllocateLoopMode.{platform}.yaml
+        expected_input:
+          - CLoopTypeClientServer_vtable.{platform}.yaml
 
       - name: find-CLoopTypeClientServerService_OnLoopActivate
         expected_output:
@@ -892,10 +902,18 @@ modules:
       - name: CLoopTypeClientServerService_vtable2
         category: vtable
 
+      - name: CLoopTypeClientServer_vtable
+        category: vtable
+
       - name: CLoopTypeClientServer_BuildAndActivateLoopTypes
         category: func
         alias:
           - CLoopTypeClientServer::BuildAndActivateLoopTypes
+
+      - name: CLoopTypeClientServer_AllocateLoopMode
+        category: vfunc
+        alias:
+          - CLoopTypeClientServer::AllocateLoopMode
 
       - name: CLoopTypeClientServerService_OnLoopActivate
         category: vfunc
