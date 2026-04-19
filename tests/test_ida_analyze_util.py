@@ -46,6 +46,62 @@ def _write_yaml(path: Path, payload: dict[str, object]) -> None:
 
 
 class TestPreprocessIndexBasedVfuncViaMcp(unittest.IsolatedAsyncioTestCase):
+    async def test_preprocess_common_skill_emits_slot_only_inherited_vfunc(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            module_dir = Path(temp_dir) / "bin" / "14141" / "server"
+            target_output = module_dir / "ILoopMode_LoopInit.windows.yaml"
+
+            _write_yaml(
+                module_dir / "CLoopModeGame_LoopInit.windows.yaml",
+                {
+                    "vtable_name": "CLoopModeGame",
+                    "vfunc_offset": "0x28",
+                },
+            )
+
+            session = AsyncMock()
+
+            result = await ida_analyze_util.preprocess_common_skill(
+                session=session,
+                expected_outputs=[str(target_output)],
+                old_yaml_map={},
+                new_binary_dir=str(module_dir),
+                platform="windows",
+                image_base=0x180000000,
+                inherit_vfuncs=[
+                    (
+                        "ILoopMode_LoopInit",
+                        "ILoopMode",
+                        "CLoopModeGame_LoopInit",
+                        False,
+                    ),
+                ],
+                generate_yaml_desired_fields=[
+                    (
+                        "ILoopMode_LoopInit",
+                        [
+                            "func_name",
+                            "vtable_name",
+                            "vfunc_offset",
+                            "vfunc_index",
+                        ],
+                    ),
+                ],
+                debug=False,
+            )
+
+            self.assertTrue(result)
+            session.call_tool.assert_not_awaited()
+            self.assertEqual(
+                {
+                    "func_name": "ILoopMode_LoopInit",
+                    "vtable_name": "ILoopMode",
+                    "vfunc_offset": "0x28",
+                    "vfunc_index": 5,
+                },
+                yaml.safe_load(target_output.read_text(encoding="utf-8")),
+            )
+
     async def test_reads_sibling_module_yaml_and_derives_index_from_offset(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             gamever_dir = Path(temp_dir) / "bin" / "14141"

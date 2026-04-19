@@ -601,6 +601,30 @@ def _assemble_symbol_payload(symbol_name, target_kind, candidate_data, desired_f
     return _build_ordered_yaml_payload(payload, ordered_keys)
 
 
+def _is_slot_only_inherit_vfunc_fields(desired_fields):
+    slot_only_fields = {
+        "func_name",
+        "vtable_name",
+        "vfunc_offset",
+        "vfunc_index",
+    }
+    return len(desired_fields) == len(slot_only_fields) and set(desired_fields) == slot_only_fields
+
+
+def _build_inherited_vfunc_name(
+    base_vfunc_name,
+    base_vtable_name,
+    inherit_vtable_class,
+    fallback_name,
+):
+    func_name = fallback_name
+    base_artifact_stem = Path(str(base_vfunc_name)).name
+    if base_vtable_name and base_artifact_stem.startswith(base_vtable_name + "_"):
+        method_suffix = base_artifact_stem[len(base_vtable_name) + 1:]
+        func_name = f"{inherit_vtable_class}_{method_suffix}"
+    return func_name
+
+
 def write_vtable_yaml(path, data):
     """Write vtable YAML matching the format produced by write-vtable-as-yaml skill."""
     if yaml is None:
@@ -4753,6 +4777,7 @@ async def preprocess_index_based_vfunc_via_mcp(
     base_vfunc_name,
     inherit_vtable_class,
     generate_func_sig=True,
+    slot_only=False,
     allow_func_sig_across_function_boundary=False,
     debug=False,
 ):
@@ -4797,6 +4822,9 @@ async def preprocess_index_based_vfunc_via_mcp(
             ``"CTriggerPush_vtable2"``).
         generate_func_sig: Whether to generate a new func_sig when none can be
             reused from old YAML (default True).
+        slot_only: When True and ``generate_func_sig`` is False, return only
+            slot metadata without resolving the inherit-class vtable entry or
+            querying function info.
         debug: Enable debug output.
 
     Returns:
@@ -4888,6 +4916,21 @@ async def preprocess_index_based_vfunc_via_mcp(
                 f"{os.path.basename(base_vfunc_path)}"
             )
         return None
+
+    func_name = _build_inherited_vfunc_name(
+        base_vfunc_name=base_vfunc_name,
+        base_vtable_name=base_vfunc_data.get("vtable_name"),
+        inherit_vtable_class=inherit_vtable_class,
+        fallback_name=target_func_name,
+    )
+
+    if slot_only and not generate_func_sig:
+        return {
+            "func_name": func_name,
+            "vtable_name": inherit_vtable_class,
+            "vfunc_offset": hex(base_index * 8),
+            "vfunc_index": base_index,
+        }
 
     # 2. Read inherit-class vtable YAML
     vtable_artifact_stem = _normalize_vtable_artifact_stem(inherit_vtable_class)
@@ -4993,14 +5036,7 @@ async def preprocess_index_based_vfunc_via_mcp(
             print(f"    Preprocess: invalid func_va for {target_func_name}: {func_va_hex}")
         return None
 
-    # 5. Build func_name from base_vfunc_name + inherit_vtable_class
-    func_name = target_func_name  # fallback
-    base_vtable_name = base_vfunc_data.get("vtable_name")
-    if base_vtable_name and base_vfunc_name.startswith(base_vtable_name + "_"):
-        method_suffix = base_vfunc_name[len(base_vtable_name) + 1:]
-        func_name = f"{inherit_vtable_class}_{method_suffix}"
-
-    # 6. Build payload
+    # 5. Build payload
     payload = {
         "func_name": func_name,
         "func_va": str(func_va_hex),
@@ -5011,7 +5047,7 @@ async def preprocess_index_based_vfunc_via_mcp(
         "vfunc_index": target_index,
     }
 
-    # 7. Try to reuse old func_sig
+    # 6. Try to reuse old func_sig
     old_path = (old_yaml_map or {}).get(target_output)
     old_func_sig = None
     if old_path and os.path.exists(old_path):
@@ -7116,13 +7152,19 @@ async def preprocess_common_skill(
                     print(f"    Preprocess: missing desired-fields entry for {func_name}")
                 return False
             generation_options = desired_field_spec["generation_options"]
+            slot_only_inherit_vfunc = (
+                not gen_func_sig
+                and _is_slot_only_inherit_vfunc_fields(
+                    desired_field_spec["desired_output_fields"]
+                )
+            )
 
             target_output = iv_matched[func_name]
             old_path = (old_yaml_map or {}).get(target_output)
 
             # Try reusing old func_sig first (fast path).
             func_data = None
-            if old_path:
+            if old_path and not slot_only_inherit_vfunc:
                 func_data = await preprocess_func_sig_via_mcp(
                     session=session,
                     new_path=target_output,
@@ -7152,6 +7194,7 @@ async def preprocess_common_skill(
                     base_vfunc_name=base_vfunc_name,
                     inherit_vtable_class=vtable_class,
                     generate_func_sig=gen_func_sig,
+                    slot_only=slot_only_inherit_vfunc,
                     allow_func_sig_across_function_boundary=generation_options.get(
                         "func_sig_allow_across_function_boundary",
                         False,
