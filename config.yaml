@@ -1890,6 +1890,13 @@ modules:
           - CSource2Server_vtable.{platform}.yaml
           - ../engine/ISource2Server_OutOfGameFrameBoundary.{platform}.yaml
 
+      - name: find-IGameSystem_OutOfGameFrameBoundary
+        expected_output:
+          - IGameSystem_OutOfGameFrameBoundary.{platform}.yaml
+        expected_input:
+          - CSource2Server_OutOfGameFrameBoundary.{platform}.yaml
+          - IGameSystem_vtable.{platform}.yaml
+
       - name: find-CSource2GameEntities_vtable
         expected_output:
           - CSource2GameEntities_vtable.{platform}.yaml
@@ -4348,6 +4355,11 @@ modules:
         category: vfunc
         alias:
           - IGameSystem::ServerEndAsyncPostTickWork
+
+      - name: IGameSystem_OutOfGameFrameBoundary
+        category: vfunc
+        alias:
+          - IGameSystem::OutOfGameFrameBoundary
 
       - name: CSource2GameClients_StartHLTVServer
         category: vfunc
