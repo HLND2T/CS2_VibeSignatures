@@ -14,7 +14,12 @@ jobs:
     environment: win64
     runs-on: [self-hosted, windows, x64]
     env:
-      RUNNER_AGENT: ${{ vars.RUNNER_AGENT }}
+      CS2VIBE_AGENT: ${{ secrets.CS2VIBE_AGENT }}
+      CS2VIBE_LLM_APIKEY: ${{ secrets.CS2VIBE_LLM_APIKEY }}
+      CS2VIBE_LLM_BASEURL: ${{ secrets.CS2VIBE_LLM_BASEURL }}
+      CS2VIBE_LLM_EFFORT: ${{ secrets.CS2VIBE_LLM_EFFORT }}
+      CS2VIBE_LLM_FAKE_AS: ${{ secrets.CS2VIBE_LLM_FAKE_AS }}
+      CS2VIBE_LLM_MODEL: ${{ secrets.CS2VIBE_LLM_MODEL }}
       PERSISTED_WORKSPACE: ${{ secrets.PERSISTED_WORKSPACE }}
 
     steps:
@@ -28,10 +33,6 @@ jobs:
 
           if ([string]::IsNullOrWhiteSpace($env:PERSISTED_WORKSPACE)) {
             throw "PERSISTED_WORKSPACE secret is not configured for the win64 environment."
-          }
-
-          if ([string]::IsNullOrWhiteSpace($env:RUNNER_AGENT)) {
-            throw "RUNNER_AGENT variable is not configured for the win64 environment."
           }
 
           "TAG=$tag" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
@@ -107,7 +108,7 @@ jobs:
       - name: Analyze binaries
         shell: pwsh
         run: |
-          uv run ida_analyze_bin.py -gamever "$env:GAMEVER" -agent="$env:RUNNER_AGENT" -debug
+          uv run ida_analyze_bin.py -gamever "$env:GAMEVER" -debug
 
       - name: Update gamedata
         shell: pwsh
@@ -117,7 +118,7 @@ jobs:
       - name: Run C++ tests
         shell: pwsh
         run: |
-          uv run run_cpp_tests.py -gamever "$env:GAMEVER" -fixheader -agent="$env:RUNNER_AGENT" -debug
+          uv run run_cpp_tests.py -gamever "$env:GAMEVER" -fixheader -debug
 
       - name: Archive release payload
         shell: pwsh
