@@ -802,6 +802,12 @@ modules:
           - CLoopTypeSimple_vtable.{platform}.yaml
           - ILoopType_FrameUpdate.{platform}.yaml
 
+      - name: find-ISource2Server_OutOfGameFrameBoundary
+        expected_output:
+          - ISource2Server_OutOfGameFrameBoundary.{platform}.yaml
+        expected_input:
+          - CLoopTypeSimple_FrameUpdate.{platform}.yaml
+
     symbols:
       - name: CNetworkGameServer_vtable
         category: vtable
@@ -1015,6 +1021,11 @@ modules:
         alias:
           - ISource2Server::ClientUpdate
         shared: true
+
+      - name: ISource2Server_OutOfGameFrameBoundary
+        category: vfunc
+        alias:
+          - ISource2Server::OutOfGameFrameBoundary
 
       - name: INetworkMessages_SetIsForServer
         category: vfunc
