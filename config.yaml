@@ -1494,6 +1494,12 @@ modules:
         expected_input:
           - CPrediction_vtable.{platform}.yaml
 
+      - name: find-IEngineServiceMgr_GetActiveLoopClientServerMode
+        expected_output:
+          - IEngineServiceMgr_GetActiveLoopClientServerMode.{platform}.yaml
+        expected_input:
+          - CPrediction_PostNetworkDataReceived.{platform}.yaml
+
     symbols:
       - name: CLoopModeGame_RegisterEventMapInternal
         category: func
@@ -1804,6 +1810,11 @@ modules:
         category: vfunc
         alias:
           - CPrediction::PostNetworkDataReceived
+
+      - name: IEngineServiceMgr_GetActiveLoopClientServerMode
+        category: vfunc
+        alias:
+          - IEngineServiceMgr::GetActiveLoopClientServerMode
 
   - name: server
     path_windows: game/csgo/bin/win64/server.dll
