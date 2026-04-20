@@ -1484,6 +1484,16 @@ modules:
         expected_input:
           - CGameSystemReallocatingFactory_CSpawnGroupMgrGameSystem_Deallocate.{platform}.yaml
 
+      - name: find-CPrediction_vtable
+        expected_output:
+          - CPrediction_vtable.{platform}.yaml
+
+      - name: find-CPrediction_PostNetworkDataReceived
+        expected_output:
+          - CPrediction_PostNetworkDataReceived.{platform}.yaml
+        expected_input:
+          - CPrediction_vtable.{platform}.yaml
+
     symbols:
       - name: CLoopModeGame_RegisterEventMapInternal
         category: func
@@ -1786,6 +1796,14 @@ modules:
         category: vfunc
         alias:
           - IGameSystemFactory::Deallocate
+
+      - name: CPrediction_vtable
+        category: vtable
+
+      - name: CPrediction_PostNetworkDataReceived
+        category: vfunc
+        alias:
+          - CPrediction::PostNetworkDataReceived
 
   - name: server
     path_windows: game/csgo/bin/win64/server.dll
