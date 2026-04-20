@@ -785,6 +785,12 @@ modules:
           - CEngineServiceMgr_vtable.{platform}.yaml
           - ../client/IEngineServiceMgr_GetActiveLoopClientServerMode.{platform}.yaml
 
+      - name: find-ILoopType_GetClientServerMode
+        expected_output:
+          - ILoopType_GetClientServerMode.{platform}.yaml
+        expected_input:
+          - CEngineServiceMgr_GetActiveLoopClientServerMode.{platform}.yaml
+
     symbols:
       - name: CNetworkGameServer_vtable
         category: vtable
@@ -1124,6 +1130,11 @@ modules:
         category: vfunc
         alias:
           - ILoopType::LoopTypeShutdown
+
+      - name: ILoopType_GetClientServerMode
+        category: vfunc
+        alias:
+          - ILoopType::GetClientServerMode
 
       - name: CEngineServiceMgr_vtable
         category: vtable
