@@ -1,0 +1,28 @@
+func_name: CEngineServiceMgr_GetActiveLoopClientServerMode
+func_va: '0x18021be80'
+disasm_code: |-
+  .text:000000018021BE80                 mov     eax, [rcx+0A8h]
+  .text:000000018021BE86                 test    eax, eax
+  .text:000000018021BE88                 js      short loc_18021BEA1
+  .text:000000018021BE8A                 movzx   edx, ax
+  .text:000000018021BE8D                 mov     rax, [rcx+38h]
+  .text:000000018021BE91                 mov     rcx, [rax+rdx*8]
+  .text:000000018021BE95                 test    rcx, rcx
+  .text:000000018021BE98                 jz      short loc_18021BEA1
+  .text:000000018021BE9A                 mov     rax, [rcx]
+  .text:000000018021BE9D                 ; 0x58 = 88L = ILoopType_GetClientServerMode
+  .text:000000018021BE9D                 jmp     qword ptr [rax+58h]; 0x58 = 88L = ILoopType_GetClientServerMode
+  .text:000000018021BEA1                 xor     eax, eax
+  .text:000000018021BEA3                 retn
+procedure: |-
+  __int64 __fastcall CEngineServiceMgr_GetActiveLoopClientServerMode(__int64 a1)
+  {
+    int v1; // eax
+    __int64 v2; // rcx
+
+    v1 = *(_DWORD *)(a1 + 168);                   // 0xA8 = 168 = CEngineServiceMgr::m_pActiveLoop
+    if ( v1 >= 0 && (v2 = *(_QWORD *)(*(_QWORD *)(a1 + 56) + 8LL * (unsigned __int16)v1)) != 0 )
+      return (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)v2 + 88LL))(v2);// 0x58 = 88L = ILoopType_GetClientServerMode
+    else
+      return 0;
+  }

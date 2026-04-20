@@ -18,7 +18,7 @@ preprocessor script, update `config.yaml` entries, and delete the old SKILL.md.
 
 ## Overview
 
-Six preprocessor patterns exist. The SKILL.md's discovery method and target type determine which to use:
+Eight preprocessor patterns exist. The SKILL.md's discovery method and target type determine which to use:
 
 | Pattern | Discovery Method | Has FUNC_XREFS | Has LLM_DECOMPILE | Has INHERIT_VFUNCS | Has FUNC_VTABLE_RELATIONS | preprocess_skill has llm_config |
 |---------|-----------------|-----------------|---------------------|--------------------|---------------------------|-------------------------------|
@@ -29,6 +29,7 @@ Six preprocessor patterns exist. The SKILL.md's discovery method and target type
 | **E** — Struct member offset via LLM_DECOMPILE | Decompile a known predecessor function, identify struct field access offsets | No | Yes | No | No | Yes |
 | **F** — Virtual function via INHERIT_VFUNCS | Inherit vtable slot index from a known base-class vfunc, look up same slot in derived-class vtable | No | No | Yes | No | No |
 | **G** — ConCommand handler function | Find the handler callback registered via `RegisterConCommand` by matching command name and help string | No (uses COMMAND_NAME/HELP_STRING) | No | No | No | No |
+| **H** — Secondary (ordinal) vtable | Locate a class's secondary vtable via mangled symbol (Windows) or offset-to-top (Linux) | No | No | No | No | No |
 
 Additionally, **struct member offsets** can be mixed into any pattern as a secondary target (see "Struct Member Mixin" section below).
 
@@ -46,7 +47,8 @@ Extract:
    - Does it search for a ConCommand registration (command name + help string) and extract the handler callback? → **ConCommand handler** (Pattern G)
    - Does it load a predecessor YAML, decompile that function, and extract vfunc offsets / struct offsets from code patterns? → **LLM_DECOMPILE based** (Patterns C/D/E)
    - Is the target a derived-class override of a known base-class vfunc (same vtable slot, different class)? → **INHERIT_VFUNCS based** (Pattern F)
-4. **Function category** — `func` (regular), `vfunc` (virtual, has vtable slot), or `structmember`
+   - Does the SKILL.md locate a secondary vtable using a mangled symbol name (Windows `@@6B@_0`) or offset-to-top (Linux)? → **ordinal vtable** (Pattern H)
+4. **Function category** — `func` (regular), `vfunc` (virtual, has vtable slot), `structmember`, or `vtable`
 5. **VTable class name** — if virtual, e.g. `CBaseEntity`, `CBasePlayerPawn`, `INetworkMessages`
 6. **Xref strings** — debug strings used in `find_regex` patterns (for xref-string patterns). **Check if these differ between Windows and Linux** — if so, you need platform-specific `FUNC_XREFS_WINDOWS` / `FUNC_XREFS_LINUX`. Use the `FULLMATCH:` prefix (e.g. `"FULLMATCH:Precache"`) when you need exact-string matching instead of substring matching — this prevents false positives when the target string is short or generic (e.g. `"Precache"`, `"userid"`, `"team"`).
 7. **Predecessor function** — the function whose decompiled code reveals the target (for LLM_DECOMPILE patterns)
@@ -666,18 +668,18 @@ The `vtable_name` from `FUNC_VTABLE_RELATIONS` is used as **metadata** written t
 
 ### Key Differences Between Patterns
 
-| Aspect | Pattern A (func + xref) | Pattern B (vfunc + xref) | Pattern C (vfunc + LLM) | Pattern D (func + LLM) | Pattern E (structmember + LLM) | Pattern F (vfunc + inherit) | Pattern G (ConCommand handler) |
-|--------|------------------------|--------------------------|------------------------|------------------------|-------------------------------|---------------------------|-------------------------------|
-| FUNC_XREFS | Yes | Yes | No | No | No | No | No (uses COMMAND_NAME/HELP_STRING) |
-| FUNC_VTABLE_RELATIONS | No | Yes | Yes | No | No | No | No |
-| INHERIT_VFUNCS | No | No | No | No | No | Yes | No |
-| LLM_DECOMPILE | No | No | Yes | Yes | Yes | No | No |
-| `llm_config` param | No | No | Yes | Yes | Yes | No | No |
-| Helper module | `preprocess_common_skill` | `preprocess_common_skill` | `preprocess_common_skill` | `preprocess_common_skill` | `preprocess_common_skill` | `preprocess_common_skill` | `preprocess_registerconcommand_skill` |
-| Target list | `TARGET_FUNCTION_NAMES` | `TARGET_FUNCTION_NAMES` | `TARGET_FUNCTION_NAMES` | `TARGET_FUNCTION_NAMES` | `TARGET_STRUCT_MEMBER_NAMES` | (none — defined in INHERIT_VFUNCS) | `TARGET_FUNCTION_NAMES` |
-| preprocess param | `func_names=` | `func_names=` | `func_names=` | `func_names=` | `struct_member_names=` | `inherit_vfuncs=` | `command_name=`, `help_string=` |
-| YAML fields | func_name, func_sig, func_va, func_rva, func_size | Same + vtable_name, vfunc_offset, vfunc_index | func_name, func_va, func_rva, func_size, vfunc_sig, vfunc_offset, vfunc_index, vtable_name | func_name, func_sig, func_va, func_rva, func_size | struct_name, member_name, offset, size, offset_sig, offset_sig_disp | func_name, func_va, func_rva, func_size, func_sig, vtable_name, vfunc_offset, vfunc_index | func_name, func_sig, func_va, func_rva, func_size |
-| config category | `func` | `vfunc` | `vfunc` | `func` | `structmember` | `vfunc` | `func` |
+| Aspect | Pattern A (func + xref) | Pattern B (vfunc + xref) | Pattern C (vfunc + LLM) | Pattern D (func + LLM) | Pattern E (structmember + LLM) | Pattern F (vfunc + inherit) | Pattern G (ConCommand handler) | Pattern H (ordinal vtable) |
+|--------|------------------------|--------------------------|------------------------|------------------------|-------------------------------|---------------------------|-------------------------------|---------------------------|
+| FUNC_XREFS | Yes | Yes | No | No | No | No | No (uses COMMAND_NAME/HELP_STRING) | No |
+| FUNC_VTABLE_RELATIONS | No | Yes | Yes | No | No | No | No | No |
+| INHERIT_VFUNCS | No | No | No | No | No | Yes | No | No |
+| LLM_DECOMPILE | No | No | Yes | Yes | Yes | No | No | No |
+| `llm_config` param | No | No | Yes | Yes | Yes | No | No | No |
+| Helper module | `preprocess_common_skill` | `preprocess_common_skill` | `preprocess_common_skill` | `preprocess_common_skill` | `preprocess_common_skill` | `preprocess_common_skill` | `preprocess_registerconcommand_skill` | `preprocess_ordinal_vtable_via_mcp` |
+| Target list | `TARGET_FUNCTION_NAMES` | `TARGET_FUNCTION_NAMES` | `TARGET_FUNCTION_NAMES` | `TARGET_FUNCTION_NAMES` | `TARGET_STRUCT_MEMBER_NAMES` | (none — defined in INHERIT_VFUNCS) | `TARGET_FUNCTION_NAMES` | `TARGET_CLASS_NAME` (single string) |
+| preprocess param | `func_names=` | `func_names=` | `func_names=` | `func_names=` | `struct_member_names=` | `inherit_vfuncs=` | `command_name=`, `help_string=` | `class_name=`, `ordinal=` |
+| YAML fields | func_name, func_sig, func_va, func_rva, func_size | Same + vtable_name, vfunc_offset, vfunc_index | func_name, func_va, func_rva, func_size, vfunc_sig, vfunc_offset, vfunc_index, vtable_name | func_name, func_sig, func_va, func_rva, func_size | struct_name, member_name, offset, size, offset_sig, offset_sig_disp | func_name, func_va, func_rva, func_size, func_sig, vtable_name, vfunc_offset, vfunc_index | func_name, func_sig, func_va, func_rva, func_size | (vtable YAML via write_vtable_yaml) |
+| config category | `func` | `vfunc` | `vfunc` | `func` | `structmember` | `vfunc` | `func` | `vtable` |
 
 ---
 

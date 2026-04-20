@@ -1075,7 +1075,7 @@ git commit -m "feat(func-xrefs): 接入 ProcessMovement 的 gv 回退"
 - Modify: `ida_preprocessor_scripts/find-CLoopModeGame_SetWorldSession.py`
 - Modify: `ida_preprocessor_scripts/find-CLoopModeGame_Shutdown-linux.py`
 - Modify: `ida_preprocessor_scripts/find-CLoopTypeClientServerService_OnLoopActivate.py`
-- Modify: `ida_preprocessor_scripts/find-CLoopTypeClientServer_BuildAndActivateLoopTypes.py`
+- Modify: `ida_preprocessor_scripts/find-CLoopTypeClientSimple_ActivateEngineServices.py`
 - Modify: `ida_preprocessor_scripts/find-CNavMesh_GetNearestNavArea.py`
 - Modify: `ida_preprocessor_scripts/find-CNetChan_ParseMessagesDemo.py`
 - Modify: `ida_preprocessor_scripts/find-CNetChan_ParseMessagesDemoInternal.py`
@@ -1193,7 +1193,7 @@ TARGET_FILES = [
     "ida_preprocessor_scripts/find-CLoopModeGame_SetWorldSession.py",
     "ida_preprocessor_scripts/find-CLoopModeGame_Shutdown-linux.py",
     "ida_preprocessor_scripts/find-CLoopTypeClientServerService_OnLoopActivate.py",
-    "ida_preprocessor_scripts/find-CLoopTypeClientServer_BuildAndActivateLoopTypes.py",
+    "ida_preprocessor_scripts/find-CLoopTypeClientSimple_ActivateEngineServices.py",
     "ida_preprocessor_scripts/find-CNavMesh_GetNearestNavArea.py",
     "ida_preprocessor_scripts/find-CNetChan_ParseMessagesDemo.py",
     "ida_preprocessor_scripts/find-CNetChan_ParseMessagesDemoInternal.py",
@@ -1351,7 +1351,7 @@ TARGET_FILES = [
     "ida_preprocessor_scripts/find-CLoopModeGame_SetWorldSession.py",
     "ida_preprocessor_scripts/find-CLoopModeGame_Shutdown-linux.py",
     "ida_preprocessor_scripts/find-CLoopTypeClientServerService_OnLoopActivate.py",
-    "ida_preprocessor_scripts/find-CLoopTypeClientServer_BuildAndActivateLoopTypes.py",
+    "ida_preprocessor_scripts/find-CLoopTypeClientSimple_ActivateEngineServices.py",
     "ida_preprocessor_scripts/find-CNavMesh_GetNearestNavArea.py",
     "ida_preprocessor_scripts/find-CNetChan_ParseMessagesDemo.py",
     "ida_preprocessor_scripts/find-CNetChan_ParseMessagesDemoInternal.py",

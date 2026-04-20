@@ -1,0 +1,27 @@
+func_name: CEngineServiceMgr_GetActiveLoopClientServerMode
+func_va: '0x514db0'
+disasm_code: |-
+  .text:0000000000514DB0                 mov     eax, [rdi+0A8h]
+  .text:0000000000514DB6                 test    eax, eax
+  .text:0000000000514DB8                 js      short loc_514DD0
+  .text:0000000000514DBA                 mov     rdx, [rdi+38h]
+  .text:0000000000514DBE                 movzx   eax, ax
+  .text:0000000000514DC1                 mov     rdi, [rdx+rax*8]
+  .text:0000000000514DC5                 test    rdi, rdi
+  .text:0000000000514DC8                 jz      short loc_514DD0
+  .text:0000000000514DCA                 mov     rax, [rdi]
+  .text:0000000000514DCD                 jmp     qword ptr [rax+60h]; 0x60 = 96LL = ILoopType_GetClientServerMode
+  .text:0000000000514DD0                 xor     eax, eax
+  .text:0000000000514DD2                 retn
+procedure: |-
+  __int64 __fastcall CEngineServiceMgr_GetActiveLoopClientServerMode(__int64 a1)
+  {
+    int v1; // eax
+    __int64 v2; // rdi
+
+    v1 = *(_DWORD *)(a1 + 168);
+    if ( v1 >= 0 && (v2 = *(_QWORD *)(*(_QWORD *)(a1 + 56) + 8LL * (unsigned __int16)v1)) != 0 )
+      return (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)v2 + 96LL))(v2);// 0x60 = 96LL = ILoopType_GetClientServerMode
+    else
+      return 0;
+  }

@@ -1,0 +1,12 @@
+func_name: CLoopTypeClientServerService_HandleInputEvent
+func_va: '0x534470'
+disasm_code: |-
+  .text:0000000000534470                 mov     rdi, [rdi+0E0h]
+  .text:0000000000534477                 mov     rax, [rdi]
+  .text:000000000053447A                 ; 0x28 = 40LL = ILoopMode_HandleInputEvent
+  .text:000000000053447A                 jmp     qword ptr [rax+28h]; 0x28 = 40LL = ILoopMode_HandleInputEvent
+procedure: |-
+  __int64 __fastcall CLoopTypeClientServerService_HandleInputEvent(__int64 a1)
+  {
+    return (*(__int64 (__fastcall **)(_QWORD))(**(_QWORD **)(a1 + 224) + 40LL))(*(_QWORD *)(a1 + 224));// 0x28 = 40LL = ILoopMode_HandleInputEvent
+  }

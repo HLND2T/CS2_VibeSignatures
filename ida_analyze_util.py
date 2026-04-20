@@ -409,6 +409,29 @@ def _get_mangled_class_aliases(mangled_class_names, class_name):
     return list(aliases)
 
 
+_VTABLE_ARTIFACT_STEM_RE = re.compile(r"_vtable(?:\d+)?$")
+
+
+def _is_vtable_artifact_stem(vtable_name):
+    return isinstance(vtable_name, str) and bool(
+        _VTABLE_ARTIFACT_STEM_RE.search(vtable_name)
+    )
+
+
+def _normalize_vtable_artifact_stem(vtable_name):
+    if _is_vtable_artifact_stem(vtable_name):
+        return vtable_name
+    return f"{vtable_name}_vtable"
+
+
+def _build_vtable_yaml_path(binary_dir, vtable_name, platform):
+    artifact_stem = _normalize_vtable_artifact_stem(vtable_name)
+    return os.path.join(
+        os.fspath(binary_dir),
+        f"{artifact_stem}.{platform}.yaml",
+    )
+
+
 def build_remote_text_export_py_eval(
     *,
     output_path,
@@ -576,6 +599,30 @@ def _assemble_symbol_payload(symbol_name, target_kind, candidate_data, desired_f
 
     ordered_keys = TARGET_KIND_TO_FIELD_ORDER[target_kind]
     return _build_ordered_yaml_payload(payload, ordered_keys)
+
+
+def _is_slot_only_inherit_vfunc_fields(desired_fields):
+    slot_only_fields = {
+        "func_name",
+        "vtable_name",
+        "vfunc_offset",
+        "vfunc_index",
+    }
+    return len(desired_fields) == len(slot_only_fields) and set(desired_fields) == slot_only_fields
+
+
+def _build_inherited_vfunc_name(
+    base_vfunc_name,
+    base_vtable_name,
+    inherit_vtable_class,
+    fallback_name,
+):
+    func_name = fallback_name
+    base_artifact_stem = Path(str(base_vfunc_name)).name
+    if base_vtable_name and base_artifact_stem.startswith(base_vtable_name + "_"):
+        method_suffix = base_artifact_stem[len(base_vtable_name) + 1:]
+        func_name = f"{inherit_vtable_class}_{method_suffix}"
+    return func_name
 
 
 def write_vtable_yaml(path, data):
@@ -2505,12 +2552,21 @@ async def preprocess_func_sig_via_mcp(
         return func_info
 
     async def _load_vtable_data(vtable_name):
-        vtable_yaml_path = os.path.join(
+        vtable_yaml_path = _build_vtable_yaml_path(
             new_binary_dir,
-            f"{vtable_name}_vtable.{platform}.yaml"
+            vtable_name,
+            platform,
         )
 
         if not os.path.exists(vtable_yaml_path):
+            if _is_vtable_artifact_stem(vtable_name):
+                if debug:
+                    print(
+                        "    Preprocess: vtable artifact YAML not found: "
+                        f"{os.path.basename(vtable_yaml_path)}"
+                    )
+                return None
+
             # Generate vtable YAML on-the-fly via py_eval
             vtable_gen_data = await preprocess_vtable_via_mcp(
                 session,
@@ -3330,6 +3386,8 @@ async def preprocess_gen_vfunc_sig_via_mcp(
     (`vfunc_sig_disp = 0`). The first instruction is fully fixed, including the
     displacement bytes that encode `vfunc_offset`; subsequent instructions may
     wildcard volatile operands and branch displacements.
+    Slot 0 may also be represented implicitly by a `call`/`jmp` memory operand
+    without encoded displacement bytes, e.g. `call qword ptr [rax]`.
 
     Args:
         session: Active MCP ClientSession.
@@ -3410,7 +3468,7 @@ async def preprocess_gen_vfunc_sig_via_mcp(
             return None
 
     py_code = (
-        "import idaapi, ida_bytes, idautils, ida_ua, json\n"
+        "import idaapi, ida_bytes, idautils, ida_ua, idc, json\n"
         f"target_inst = {inst_va_int}\n"
         f"target_vfunc_offset = {vfunc_offset_int}\n"
         f"max_sig_bytes = {max_sig_bytes}\n"
@@ -3456,6 +3514,18 @@ async def preprocess_gen_vfunc_sig_via_mcp(
         "    uniq.sort(key=lambda item: (item[1], -item[0]), reverse=True)\n"
         "    return uniq\n"
         "\n"
+        "def _has_implicit_zero_vfunc_slot(insn):\n"
+        "    mnem = (idc.print_insn_mnem(insn.ea) or '').lower()\n"
+        "    if mnem not in ('call', 'jmp'):\n"
+        "        return False\n"
+        "    for op in insn.ops:\n"
+        "        ot = int(op.type)\n"
+        "        if ot == int(idaapi.o_void):\n"
+        "            continue\n"
+        "        if ot == int(idaapi.o_phrase):\n"
+        "            return True\n"
+        "    return False\n"
+        "\n"
         "def _wildcard_instruction(insn, raw):\n"
         "    wild = set()\n"
         "    for op in insn.ops:\n"
@@ -3498,10 +3568,16 @@ async def preprocess_gen_vfunc_sig_via_mcp(
         "    result = json.dumps(None)\n"
         "else:\n"
         "    disp_hits = _find_vfunc_disp(insn0, raw0, target_vfunc_offset)\n"
+        "    disp_off = None\n"
+        "    disp_size = None\n"
         "    if not disp_hits:\n"
-        "        result = json.dumps(None)\n"
+        "        if target_vfunc_offset == 0 and _has_implicit_zero_vfunc_slot(insn0):\n"
+        "            disp_off, disp_size = 0, 0\n"
+        "        else:\n"
+        "            result = json.dumps(None)\n"
         "    else:\n"
         "        disp_off, disp_size = disp_hits[0]\n"
+        "    if disp_size is not None:\n"
         "        origin_seg = idaapi.getseg(target_inst)\n"
         "        origin_seg_start = origin_seg.start_ea if origin_seg else idaapi.BADADDR\n"
         "        insts = []\n"
@@ -3601,9 +3677,14 @@ async def preprocess_gen_vfunc_sig_via_mcp(
             print("    Preprocess: malformed vfunc signature candidate metadata")
         return None
 
-    if first_len <= 0 or disp_off < 0 or disp_size <= 0:
+    if first_len <= 0 or disp_off < 0 or disp_size < 0:
         if debug:
             print("    Preprocess: invalid vfunc signature candidate lengths")
+        return None
+
+    if disp_size == 0 and (vfunc_offset_int != 0 or disp_off != 0):
+        if debug:
+            print("    Preprocess: invalid implicit zero-slot vfunc metadata")
         return None
 
     if not isinstance(insts, list) or len(insts) == 0:
@@ -4721,13 +4802,14 @@ async def preprocess_index_based_vfunc_via_mcp(
     base_vfunc_name,
     inherit_vtable_class,
     generate_func_sig=True,
+    slot_only=False,
     allow_func_sig_across_function_boundary=False,
     debug=False,
 ):
     """Resolve an inherited virtual function by base-class slot + vtable lookup.
 
-    Reads the base vfunc YAML referenced by *base_vfunc_name*, then reads
-    ``{inherit_vtable_class}_vtable.{platform}.yaml`` to look up the function
+    Reads the base vfunc YAML referenced by *base_vfunc_name*, then reads the
+    normalized inherit-class vtable artifact YAML to look up the function
     address at the resolved slot index.
 
     ``base_vfunc_name`` may refer to a stem in the current module directory
@@ -4760,10 +4842,14 @@ async def preprocess_index_based_vfunc_via_mcp(
             module or a sibling module under the same ``bin/{gamever}`` root.
             The slot may come from ``vfunc_index`` directly or be derived from
             ``vfunc_offset``.
-        inherit_vtable_class: Class name whose vtable is looked up
-            (e.g. ``"CTriggerPush"``).
+        inherit_vtable_class: Class name or vtable artifact stem whose vtable
+            is looked up (e.g. ``"CTriggerPush"`` or
+            ``"CTriggerPush_vtable2"``).
         generate_func_sig: Whether to generate a new func_sig when none can be
             reused from old YAML (default True).
+        slot_only: When True and ``generate_func_sig`` is False, return only
+            slot metadata without resolving the inherit-class vtable entry or
+            querying function info.
         debug: Enable debug output.
 
     Returns:
@@ -4856,18 +4942,34 @@ async def preprocess_index_based_vfunc_via_mcp(
             )
         return None
 
+    func_name = _build_inherited_vfunc_name(
+        base_vfunc_name=base_vfunc_name,
+        base_vtable_name=base_vfunc_data.get("vtable_name"),
+        inherit_vtable_class=inherit_vtable_class,
+        fallback_name=target_func_name,
+    )
+
+    if slot_only and not generate_func_sig:
+        return {
+            "func_name": func_name,
+            "vtable_name": inherit_vtable_class,
+            "vfunc_offset": hex(base_index * 8),
+            "vfunc_index": base_index,
+        }
+
     # 2. Read inherit-class vtable YAML
+    vtable_artifact_stem = _normalize_vtable_artifact_stem(inherit_vtable_class)
     try:
         vtable_path = _resolve_related_yaml_path(
             new_binary_dir,
-            f"{inherit_vtable_class}_vtable",
+            vtable_artifact_stem,
             platform,
         )
     except ValueError:
         if debug:
             print(
                 "    Preprocess: invalid vtable artifact path: "
-                f"{inherit_vtable_class}_vtable"
+                f"{vtable_artifact_stem}"
             )
         return None
     vtable_data = _read_yaml(vtable_path)
@@ -4884,7 +4986,7 @@ async def preprocess_index_based_vfunc_via_mcp(
         if debug:
             print(
                 "    Preprocess: invalid vtable_entries in "
-                f"{inherit_vtable_class}_vtable YAML"
+                f"{vtable_artifact_stem} YAML"
             )
         return None
 
@@ -4903,7 +5005,7 @@ async def preprocess_index_based_vfunc_via_mcp(
     if not target_addr_hex:
         if debug:
             print(
-                f"    Preprocess: {inherit_vtable_class} vtable missing index "
+                f"    Preprocess: {vtable_artifact_stem} missing index "
                 f"{target_index} for {target_func_name}"
             )
         return None
@@ -4959,14 +5061,7 @@ async def preprocess_index_based_vfunc_via_mcp(
             print(f"    Preprocess: invalid func_va for {target_func_name}: {func_va_hex}")
         return None
 
-    # 5. Build func_name from base_vfunc_name + inherit_vtable_class
-    func_name = target_func_name  # fallback
-    base_vtable_name = base_vfunc_data.get("vtable_name")
-    if base_vtable_name and base_vfunc_name.startswith(base_vtable_name + "_"):
-        method_suffix = base_vfunc_name[len(base_vtable_name) + 1:]
-        func_name = f"{inherit_vtable_class}_{method_suffix}"
-
-    # 6. Build payload
+    # 5. Build payload
     payload = {
         "func_name": func_name,
         "func_va": str(func_va_hex),
@@ -4977,7 +5072,7 @@ async def preprocess_index_based_vfunc_via_mcp(
         "vfunc_index": target_index,
     }
 
-    # 7. Try to reuse old func_sig
+    # 6. Try to reuse old func_sig
     old_path = (old_yaml_map or {}).get(target_output)
     old_func_sig = None
     if old_path and os.path.exists(old_path):
@@ -5656,6 +5751,11 @@ async def _preprocess_direct_func_sig_via_mcp(
     normalized_mangled_class_names=None,
     debug=False,
 ):
+    """Build func/vfunc payload from direct function or vtable metadata.
+
+    ``direct_vtable_class`` accepts either a canonical class name or a vtable
+    artifact stem such as ``CExample_vtable`` / ``CExample_vtable2``.
+    """
     resolved_func_va = None
     vfunc_index = None
     vfunc_offset = None
@@ -5671,20 +5771,6 @@ async def _preprocess_direct_func_sig_via_mcp(
             return None
 
     if direct_vtable_class is not None:
-        vtable_data = await preprocess_vtable_via_mcp(
-            session=session,
-            class_name=direct_vtable_class,
-            image_base=image_base,
-            platform=platform,
-            debug=debug,
-            symbol_aliases=_get_mangled_class_aliases(
-                normalized_mangled_class_names,
-                direct_vtable_class,
-            ),
-        )
-        if not isinstance(vtable_data, dict):
-            return None
-
         if direct_vfunc_offset is None:
             return None
 
@@ -5696,8 +5782,40 @@ async def _preprocess_direct_func_sig_via_mcp(
             return None
 
         vfunc_index = offset_value // 8
+        if _is_vtable_artifact_stem(direct_vtable_class):
+            vtable_yaml_path = _build_vtable_yaml_path(
+                os.path.dirname(os.fspath(new_path)),
+                direct_vtable_class,
+                platform,
+            )
+            vtable_data = _read_yaml_file(vtable_yaml_path)
+            if not isinstance(vtable_data, dict):
+                if debug:
+                    print(
+                        "    Preprocess: direct vtable artifact YAML missing or "
+                        f"invalid: {os.path.basename(vtable_yaml_path)}"
+                    )
+                return None
+        else:
+            vtable_data = await preprocess_vtable_via_mcp(
+                session=session,
+                class_name=direct_vtable_class,
+                image_base=image_base,
+                platform=platform,
+                debug=debug,
+                symbol_aliases=_get_mangled_class_aliases(
+                    normalized_mangled_class_names,
+                    direct_vtable_class,
+                ),
+            )
+            if not isinstance(vtable_data, dict):
+                return None
+
         try:
-            raw_entry = vtable_data.get("vtable_entries", {}).get(vfunc_index)
+            raw_entries = vtable_data.get("vtable_entries", {})
+            raw_entry = raw_entries.get(vfunc_index)
+            if raw_entry is None:
+                raw_entry = raw_entries.get(str(vfunc_index))
             resolved_from_vtable = _parse_int_value(raw_entry)
         except Exception:
             return None
@@ -6225,7 +6343,8 @@ async def preprocess_func_xrefs_via_mcp(
     """
     Resolve target function by intersecting candidate sets collected from
     configured string/gv/signature/function xrefs, plus optional vtable
-    entries, then applying configured exclusions.
+    entries from a class name or vtable artifact stem, then applying
+    configured exclusions.
     """
     has_explicit_positive_source = any(
         (
@@ -6271,8 +6390,10 @@ async def preprocess_func_xrefs_via_mcp(
     vtable_addr_set = None
 
     if vtable_class:
-        vtable_yaml_path = os.path.join(
-            new_binary_dir, f"{vtable_class}_vtable.{platform}.yaml"
+        vtable_yaml_path = _build_vtable_yaml_path(
+            new_binary_dir,
+            vtable_class,
+            platform,
         )
         vtable_data = _read_yaml_file(vtable_yaml_path)
         if not isinstance(vtable_data, dict):
@@ -6767,7 +6888,9 @@ async def preprocess_common_skill(
       func target that has a matching func-xref entry, or as the sole
       resolution method for func targets that only appear in this list.
     - ``func_vtable_relations``: enrich located function YAML with vtable
-      metadata.  Each element is a tuple of ``(func_name, vtable_class)``.
+      metadata. Each element is a tuple of ``(func_name, vtable_class)``,
+      where the second value may be a canonical class name or a vtable
+      artifact stem.
     - ``generate_yaml_desired_fields``: required list of
       ``(symbol_name, desired_field_names)`` tuples that defines the exact YAML
       payload fields to emit per symbol.
@@ -6792,7 +6915,9 @@ async def preprocess_common_skill(
             xref_strings/xref_gvs/xref_signatures/xref_funcs,
             exclude_funcs/exclude_strings/exclude_gvs/exclude_signatures.
         func_vtable_relations: List of (func_name, vtable_class) tuples for
-            enriching function YAML with vtable metadata (may be empty/None).
+            enriching function YAML with vtable metadata; the vtable value may
+            be a canonical class name or a vtable artifact stem
+            (may be empty/None).
         generate_yaml_desired_fields: Required desired output fields per
             symbol name.
         llm_decompile_specs: Optional LLM decompile spec tuples of
@@ -7052,13 +7177,19 @@ async def preprocess_common_skill(
                     print(f"    Preprocess: missing desired-fields entry for {func_name}")
                 return False
             generation_options = desired_field_spec["generation_options"]
+            slot_only_inherit_vfunc = (
+                not gen_func_sig
+                and _is_slot_only_inherit_vfunc_fields(
+                    desired_field_spec["desired_output_fields"]
+                )
+            )
 
             target_output = iv_matched[func_name]
             old_path = (old_yaml_map or {}).get(target_output)
 
             # Try reusing old func_sig first (fast path).
             func_data = None
-            if old_path:
+            if old_path and not slot_only_inherit_vfunc:
                 func_data = await preprocess_func_sig_via_mcp(
                     session=session,
                     new_path=target_output,
@@ -7088,6 +7219,7 @@ async def preprocess_common_skill(
                     base_vfunc_name=base_vfunc_name,
                     inherit_vtable_class=vtable_class,
                     generate_func_sig=gen_func_sig,
+                    slot_only=slot_only_inherit_vfunc,
                     allow_func_sig_across_function_boundary=generation_options.get(
                         "func_sig_allow_across_function_boundary",
                         False,
@@ -7586,24 +7718,48 @@ async def preprocess_common_skill(
                     )
                 return False
 
-            vtable_data = await preprocess_vtable_via_mcp(
-                session=session,
-                class_name=vtable_class,
-                image_base=image_base,
-                platform=platform,
-                debug=debug,
-                symbol_aliases=_get_mangled_class_aliases(
-                    normalized_mangled_class_names,
-                    vtable_class,
-                ),
-            )
-            if vtable_data is None:
-                if debug:
-                    print(
-                        f"    Preprocess: failed to look up {vtable_class} "
-                        f"vtable for {func_name}"
+            if _is_vtable_artifact_stem(vtable_class):
+                try:
+                    vtable_yaml_path = _build_vtable_yaml_path(
+                        new_binary_dir,
+                        vtable_class,
+                        platform,
                     )
-                return False
+                except (TypeError, ValueError, OSError):
+                    if debug:
+                        print(
+                            f"    Preprocess: invalid vtable artifact path for "
+                            f"slot enrichment of {func_name}: {vtable_class}"
+                        )
+                    return False
+                vtable_data = _read_yaml_file(vtable_yaml_path)
+                if not isinstance(vtable_data, dict):
+                    if debug:
+                        print(
+                            f"    Preprocess: failed to read {vtable_class} "
+                            f"vtable artifact for {func_name}: "
+                            f"{os.path.basename(vtable_yaml_path)}"
+                        )
+                    return False
+            else:
+                vtable_data = await preprocess_vtable_via_mcp(
+                    session=session,
+                    class_name=vtable_class,
+                    image_base=image_base,
+                    platform=platform,
+                    debug=debug,
+                    symbol_aliases=_get_mangled_class_aliases(
+                        normalized_mangled_class_names,
+                        vtable_class,
+                    ),
+                )
+                if vtable_data is None:
+                    if debug:
+                        print(
+                            f"    Preprocess: failed to look up {vtable_class} "
+                            f"vtable for {func_name}"
+                        )
+                    return False
 
             vtable_entries = vtable_data.get("vtable_entries", {})
             matched_index = None

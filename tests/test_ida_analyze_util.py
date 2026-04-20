@@ -1,4 +1,5 @@
 import json
+import os
 import sys
 import tempfile
 import types
@@ -45,6 +46,62 @@ def _write_yaml(path: Path, payload: dict[str, object]) -> None:
 
 
 class TestPreprocessIndexBasedVfuncViaMcp(unittest.IsolatedAsyncioTestCase):
+    async def test_preprocess_common_skill_emits_slot_only_inherited_vfunc(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            module_dir = Path(temp_dir) / "bin" / "14141" / "server"
+            target_output = module_dir / "ILoopMode_LoopInit.windows.yaml"
+
+            _write_yaml(
+                module_dir / "CLoopModeGame_LoopInit.windows.yaml",
+                {
+                    "vtable_name": "CLoopModeGame",
+                    "vfunc_offset": "0x28",
+                },
+            )
+
+            session = AsyncMock()
+
+            result = await ida_analyze_util.preprocess_common_skill(
+                session=session,
+                expected_outputs=[str(target_output)],
+                old_yaml_map={},
+                new_binary_dir=str(module_dir),
+                platform="windows",
+                image_base=0x180000000,
+                inherit_vfuncs=[
+                    (
+                        "ILoopMode_LoopInit",
+                        "ILoopMode",
+                        "CLoopModeGame_LoopInit",
+                        False,
+                    ),
+                ],
+                generate_yaml_desired_fields=[
+                    (
+                        "ILoopMode_LoopInit",
+                        [
+                            "func_name",
+                            "vtable_name",
+                            "vfunc_offset",
+                            "vfunc_index",
+                        ],
+                    ),
+                ],
+                debug=False,
+            )
+
+            self.assertTrue(result)
+            session.call_tool.assert_not_awaited()
+            self.assertEqual(
+                {
+                    "func_name": "ILoopMode_LoopInit",
+                    "vtable_name": "ILoopMode",
+                    "vfunc_offset": "0x28",
+                    "vfunc_index": 5,
+                },
+                yaml.safe_load(target_output.read_text(encoding="utf-8")),
+            )
+
     async def test_reads_sibling_module_yaml_and_derives_index_from_offset(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             gamever_dir = Path(temp_dir) / "bin" / "14141"
@@ -535,6 +592,390 @@ class TestVtableAliasSupport(unittest.IsolatedAsyncioTestCase):
         written_payload = mock_write_func_yaml.call_args.args[1]
         self.assertEqual(1, written_payload["vfunc_index"])
         self.assertEqual("0x8", written_payload["vfunc_offset"])
+
+
+class TestVtableArtifactStemSupport(unittest.IsolatedAsyncioTestCase):
+    def test_normalizes_plain_class_name_to_primary_vtable_artifact(self) -> None:
+        self.assertEqual(
+            "CSpawnGroupMgrGameSystem_vtable",
+            ida_analyze_util._normalize_vtable_artifact_stem(
+                "CSpawnGroupMgrGameSystem"
+            ),
+        )
+
+    def test_preserves_primary_vtable_artifact_stem(self) -> None:
+        self.assertEqual(
+            "CSpawnGroupMgrGameSystem_vtable",
+            ida_analyze_util._normalize_vtable_artifact_stem(
+                "CSpawnGroupMgrGameSystem_vtable"
+            ),
+        )
+
+    def test_preserves_numbered_vtable_artifact_stem(self) -> None:
+        self.assertEqual(
+            "CSpawnGroupMgrGameSystem_vtable2",
+            ida_analyze_util._normalize_vtable_artifact_stem(
+                "CSpawnGroupMgrGameSystem_vtable2"
+            ),
+        )
+
+    def test_builds_vtable_yaml_path_without_double_suffix(self) -> None:
+        self.assertEqual(
+            os.path.join(
+                "/tmp/server",
+                "CSpawnGroupMgrGameSystem_vtable2.windows.yaml",
+            ),
+            ida_analyze_util._build_vtable_yaml_path(
+                "/tmp/server",
+                "CSpawnGroupMgrGameSystem_vtable2",
+                "windows",
+            ),
+        )
+
+    async def test_func_vtable_relation_reads_numbered_vtable_artifact(self) -> None:
+        func_name = "CSpawnGroupMgrGameSystem_DoesGameSystemReallocate"
+        artifact_stem = "CSpawnGroupMgrGameSystem_vtable2"
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            module_dir = Path(temp_dir)
+            target_output = module_dir / f"{func_name}.windows.yaml"
+            _write_yaml(
+                module_dir / f"{artifact_stem}.windows.yaml",
+                {
+                    "vtable_entries": {
+                        56: "0x1803a75c0",
+                    }
+                },
+            )
+
+            with patch.object(
+                ida_analyze_util,
+                "preprocess_func_sig_via_mcp",
+                AsyncMock(
+                    return_value={
+                        "func_name": func_name,
+                        "func_va": "0x1803a75c0",
+                        "func_rva": "0x3a75c0",
+                        "func_size": "0x40",
+                    }
+                ),
+            ) as mock_preprocess_func, patch.object(
+                ida_analyze_util,
+                "preprocess_vtable_via_mcp",
+                AsyncMock(return_value=None),
+            ) as mock_preprocess_vtable, patch.object(
+                ida_analyze_util,
+                "write_func_yaml",
+            ) as mock_write_func_yaml, patch.object(
+                ida_analyze_util,
+                "_rename_func_in_ida",
+                AsyncMock(return_value=None),
+            ):
+                result = await ida_analyze_util.preprocess_common_skill(
+                    session="session",
+                    expected_outputs=[str(target_output)],
+                    old_yaml_map={},
+                    new_binary_dir=str(module_dir),
+                    platform="windows",
+                    image_base=0x180000000,
+                    func_names=[func_name],
+                    func_vtable_relations=[
+                        (func_name, artifact_stem),
+                    ],
+                    generate_yaml_desired_fields=[
+                        (
+                            func_name,
+                            [
+                                "func_name",
+                                "vtable_name",
+                                "vfunc_offset",
+                                "vfunc_index",
+                            ],
+                        )
+                    ],
+                    debug=True,
+                )
+
+        self.assertTrue(result)
+        mock_preprocess_func.assert_awaited_once()
+        mock_preprocess_vtable.assert_not_awaited()
+        written_payload = mock_write_func_yaml.call_args.args[1]
+        self.assertEqual(artifact_stem, written_payload["vtable_name"])
+        self.assertEqual(56, written_payload["vfunc_index"])
+        self.assertEqual("0x1c0", written_payload["vfunc_offset"])
+
+    async def test_preprocess_func_sig_reads_artifact_stem_yaml_without_regeneration(
+        self,
+    ) -> None:
+        artifact_stem = "CSpawnGroupMgrGameSystem_vtable2"
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            old_path = Path(temp_dir) / "Foo.windows.yaml"
+            new_path = Path(temp_dir) / "Foo.new.windows.yaml"
+            _write_yaml(
+                old_path,
+                {
+                    "func_name": "Foo",
+                    "vfunc_sig": "FF 90 C0 01 00 00",
+                    "vtable_name": artifact_stem,
+                    "vfunc_offset": "0x1c0",
+                    "vfunc_index": 56,
+                    "func_va": "0x180111111",
+                },
+            )
+            _write_yaml(
+                Path(temp_dir) / f"{artifact_stem}.windows.yaml",
+                {
+                    "vtable_entries": {
+                        56: "0x1803a75c0",
+                    }
+                },
+            )
+
+            session = AsyncMock()
+
+            async def _session_call_tool(*, name: str, arguments: dict[str, object]):
+                if name == "find_bytes":
+                    self.assertEqual(["FF 90 C0 01 00 00"], arguments["patterns"])
+                    return _FakeCallToolResult(
+                        [
+                            {
+                                "matches": ["0x180012340"],
+                                "n": 1,
+                            }
+                        ]
+                    )
+                if name == "py_eval":
+                    return _py_eval_payload(
+                        {
+                            "func_va": "0x1803a75c0",
+                            "func_size": "0x40",
+                        }
+                    )
+                raise AssertionError(f"unexpected MCP tool: {name}")
+
+            session.call_tool.side_effect = _session_call_tool
+
+            with patch.object(
+                ida_analyze_util,
+                "preprocess_vtable_via_mcp",
+                AsyncMock(return_value=None),
+            ) as mock_preprocess_vtable:
+                result = await ida_analyze_util.preprocess_func_sig_via_mcp(
+                    session=session,
+                    new_path=str(new_path),
+                    old_path=str(old_path),
+                    image_base=0x180000000,
+                    new_binary_dir=temp_dir,
+                    platform="windows",
+                    debug=True,
+                )
+
+        self.assertIsNotNone(result)
+        assert result is not None
+        self.assertEqual("0x1803a75c0", result["func_va"])
+        self.assertEqual(artifact_stem, result["vtable_name"])
+        mock_preprocess_vtable.assert_not_awaited()
+
+    async def test_preprocess_func_sig_fails_closed_for_missing_artifact_stem_yaml(
+        self,
+    ) -> None:
+        artifact_stem = "CSpawnGroupMgrGameSystem_vtable2"
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            old_path = Path(temp_dir) / "Foo.windows.yaml"
+            new_path = Path(temp_dir) / "Foo.new.windows.yaml"
+            _write_yaml(
+                old_path,
+                {
+                    "func_name": "Foo",
+                    "vfunc_sig": "FF 90 C0 01 00 00",
+                    "vtable_name": artifact_stem,
+                    "vfunc_offset": "0x1c0",
+                    "vfunc_index": 56,
+                    "func_va": "0x180111111",
+                },
+            )
+
+            session = AsyncMock()
+            session.call_tool.return_value = _FakeCallToolResult(
+                [
+                    {
+                        "matches": ["0x180012340"],
+                        "n": 1,
+                    }
+                ]
+            )
+
+            with patch.object(
+                ida_analyze_util,
+                "preprocess_vtable_via_mcp",
+                AsyncMock(return_value={"vtable_entries": {56: "0x1803a75c0"}}),
+            ) as mock_preprocess_vtable:
+                result = await ida_analyze_util.preprocess_func_sig_via_mcp(
+                    session=session,
+                    new_path=str(new_path),
+                    old_path=str(old_path),
+                    image_base=0x180000000,
+                    new_binary_dir=temp_dir,
+                    platform="windows",
+                    debug=True,
+                )
+
+        self.assertIsNone(result)
+        mock_preprocess_vtable.assert_not_awaited()
+        session.call_tool.assert_awaited_once()
+
+    async def test_preprocess_index_based_vfunc_reads_numbered_artifact_vtable_yaml(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            module_dir = Path(temp_dir) / "bin" / "14141" / "server"
+            target_output = module_dir / "CDerived_Touch.windows.yaml"
+
+            _write_yaml(
+                module_dir / "CBaseEntity_Touch.windows.yaml",
+                {
+                    "vtable_name": "CBaseEntity",
+                    "vfunc_offset": "0x118",
+                },
+            )
+            _write_yaml(
+                module_dir / "CDerived_vtable2.windows.yaml",
+                {
+                    "vtable_entries": {
+                        35: "0x180001180",
+                    }
+                },
+            )
+
+            session = AsyncMock()
+            session.call_tool.return_value = _py_eval_payload(
+                {
+                    "func_va": "0x180001180",
+                    "func_size": "0x40",
+                }
+            )
+
+            result = await ida_analyze_util.preprocess_index_based_vfunc_via_mcp(
+                session=session,
+                target_func_name="CDerived_Touch",
+                target_output=str(target_output),
+                old_yaml_map={},
+                new_binary_dir=str(module_dir),
+                platform="windows",
+                image_base=0x180000000,
+                base_vfunc_name="CBaseEntity_Touch",
+                inherit_vtable_class="CDerived_vtable2",
+                generate_func_sig=False,
+                debug=False,
+            )
+
+        self.assertIsNotNone(result)
+        assert result is not None
+        self.assertEqual("CDerived_vtable2", result["vtable_name"])
+        self.assertEqual(35, result["vfunc_index"])
+        self.assertEqual("0x118", result["vfunc_offset"])
+
+    async def test_preprocess_direct_func_sig_reads_artifact_stem_yaml(self) -> None:
+        artifact_stem = "CSpawnGroupMgrGameSystem_vtable2"
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            _write_yaml(
+                Path(temp_dir) / f"{artifact_stem}.windows.yaml",
+                {
+                    "vtable_entries": {
+                        56: "0x1803a75c0",
+                    }
+                },
+            )
+
+            with patch.object(
+                ida_analyze_util,
+                "_get_func_basic_info_via_mcp",
+                AsyncMock(return_value={"func_size": "0x40"}),
+            ), patch.object(
+                ida_analyze_util,
+                "preprocess_vtable_via_mcp",
+                AsyncMock(return_value=None),
+            ) as mock_preprocess_vtable:
+                result = await ida_analyze_util._preprocess_direct_func_sig_via_mcp(
+                    session=AsyncMock(),
+                    new_path=str(Path(temp_dir) / "Foo.windows.yaml"),
+                    image_base=0x180000000,
+                    platform="windows",
+                    func_name="Foo",
+                    direct_vtable_class=artifact_stem,
+                    direct_vfunc_offset="0x1c0",
+                    debug=True,
+                )
+
+        self.assertIsNotNone(result)
+        assert result is not None
+        self.assertEqual("0x1803a75c0", result["func_va"])
+        self.assertEqual(56, result["vfunc_index"])
+        self.assertEqual(artifact_stem, result["vtable_name"])
+        mock_preprocess_vtable.assert_not_awaited()
+
+    async def test_preprocess_func_xrefs_reads_artifact_stem_vtable_yaml(self) -> None:
+        with patch.object(
+            ida_analyze_util,
+            "_load_symbol_addr_from_current_yaml",
+            return_value=0x180200000,
+        ) as mock_load_symbol, patch.object(
+            ida_analyze_util,
+            "_collect_xref_func_starts_for_ea",
+            AsyncMock(return_value=set()),
+        ) as mock_collect_ea, patch.object(
+            ida_analyze_util,
+            "_read_yaml_file",
+            return_value={
+                "vtable_entries": {
+                    0: "0x180200000",
+                    1: "0x180300000",
+                }
+            },
+        ) as mock_read_yaml, patch.object(
+            ida_analyze_util,
+            "preprocess_gen_func_sig_via_mcp",
+            AsyncMock(
+                return_value={
+                    "func_va": "0x180200000",
+                    "func_rva": "0x200000",
+                    "func_size": "0x40",
+                    "func_sig": "48 89 5C 24 08",
+                }
+            ),
+        ) as mock_gen_sig:
+            result = await ida_analyze_util.preprocess_func_xrefs_via_mcp(
+                session="session",
+                func_name="CLoopModeGame_LoopInit",
+                xref_strings=[],
+                xref_gvs=[],
+                xref_signatures=[],
+                xref_funcs=["CLoopModeGame_LoopInitInternal"],
+                exclude_funcs=[],
+                exclude_strings=[],
+                exclude_gvs=[],
+                exclude_signatures=[],
+                new_binary_dir="bin_dir",
+                platform="linux",
+                image_base=0x180000000,
+                vtable_class="CLoopModeGame_vtable2",
+                debug=True,
+            )
+
+        self.assertIsNotNone(result)
+        mock_collect_ea.assert_awaited_once_with(
+            session="session",
+            target_ea=0x180200000,
+            debug=True,
+        )
+        mock_read_yaml.assert_called_once_with(
+            str(Path("bin_dir") / "CLoopModeGame_vtable2.linux.yaml")
+        )
+        self.assertEqual(0x180200000, mock_gen_sig.await_args.kwargs["func_va"])
+        mock_load_symbol.assert_called_once()
 
 
 class TestGenerateYamlDesiredFieldsContract(unittest.IsolatedAsyncioTestCase):
@@ -4205,6 +4646,87 @@ found_struct_offset: []
                 "vfunc_disp_offset": 2,
                 "vfunc_disp_size": 4,
                 "vfunc_offset": "0x78",
+                "vfunc_sig_max_match": 1,
+            },
+            result,
+        )
+
+    async def test_preprocess_gen_vfunc_sig_via_mcp_accepts_implicit_zero_slot(
+        self,
+    ) -> None:
+        session = AsyncMock()
+
+        def _fake_call_tool(*, name: str, arguments: dict[str, object]):
+            if name == "py_eval":
+                code = arguments["code"]
+                self.assertIn(
+                    "import idaapi, ida_bytes, idautils, ida_ua, idc, json",
+                    code,
+                )
+                self.assertIn("def _has_implicit_zero_vfunc_slot", code)
+                self.assertIn("target_vfunc_offset == 0", code)
+                self.assertIn("disp_off, disp_size = 0, 0", code)
+                return _py_eval_payload(
+                    {
+                        "vfunc_sig_va": "0x18004abc3",
+                        "vfunc_inst_length": 2,
+                        "vfunc_disp_offset": 0,
+                        "vfunc_disp_size": 0,
+                        "insts": [
+                            {
+                                "ea": "0x18004abc3",
+                                "size": 2,
+                                "bytes": "ff10",
+                                "wild": [],
+                            },
+                            {
+                                "ea": "0x18004abc5",
+                                "size": 3,
+                                "bytes": "488bd8",
+                                "wild": [],
+                            },
+                            {
+                                "ea": "0x18004abc8",
+                                "size": 3,
+                                "bytes": "4885db",
+                                "wild": [],
+                            },
+                        ],
+                    }
+                )
+            if name == "find_bytes":
+                self.assertEqual(
+                    ["FF 10 48 8B D8 48 85 DB"],
+                    arguments["patterns"],
+                )
+                return _FakeCallToolResult(
+                    [
+                        {
+                            "matches": ["0x18004abc3"],
+                            "n": 1,
+                        }
+                    ]
+                )
+            raise AssertionError(f"unexpected MCP tool: {name}")
+
+        session.call_tool.side_effect = _fake_call_tool
+
+        result = await ida_analyze_util.preprocess_gen_vfunc_sig_via_mcp(
+            session=session,
+            inst_va="0x18004ABC3",
+            vfunc_offset="0x0",
+            debug=False,
+        )
+
+        self.assertEqual(
+            {
+                "vfunc_sig": "FF 10 48 8B D8 48 85 DB",
+                "vfunc_sig_va": "0x18004abc3",
+                "vfunc_sig_disp": 0,
+                "vfunc_inst_length": 2,
+                "vfunc_disp_offset": 0,
+                "vfunc_disp_size": 0,
+                "vfunc_offset": "0x0",
                 "vfunc_sig_max_match": 1,
             },
             result,

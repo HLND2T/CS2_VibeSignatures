@@ -1,0 +1,326 @@
+func_name: CNetworkServerService_OnServerPostAdvanceTick
+func_va: '0x1801eb2d0'
+disasm_code: |-
+  .text:00000001801EB2D0                 mov     [rsp+arg_0], rbx
+  .text:00000001801EB2D5                 mov     [rsp+arg_8], rsi
+  .text:00000001801EB2DA                 push    rdi
+  .text:00000001801EB2DB                 sub     rsp, 30h
+  .text:00000001801EB2DF                 mov     r9, cs:qword_1806874B8
+  .text:00000001801EB2E6                 mov     rsi, rcx
+  .text:00000001801EB2E9                 mov     rcx, cs:qword_1806874B0
+  .text:00000001801EB2F0                 mov     rdi, rdx
+  .text:00000001801EB2F3                 mov     r8, cs:g_pGameServer
+  .text:00000001801EB2FA                 xor     ebx, ebx
+  .text:00000001801EB2FC                 nop     dword ptr [rax+00h]
+  .text:00000001801EB300                 mov     r10d, ebx
+  .text:00000001801EB303                 test    ebx, ebx
+  .text:00000001801EB305                 jz      short loc_1801EB31D
+  .text:00000001801EB307                 sub     r10d, 1
+  .text:00000001801EB30B                 jz      short loc_1801EB318
+  .text:00000001801EB30D                 cmp     r10d, 1
+  .text:00000001801EB311                 jnz     short loc_1801EB325
+  .text:00000001801EB313                 mov     rax, r9
+  .text:00000001801EB316                 jmp     short loc_1801EB320
+  .text:00000001801EB318                 mov     rax, rcx
+  .text:00000001801EB31B                 jmp     short loc_1801EB320
+  .text:00000001801EB31D                 mov     rax, r8
+  .text:00000001801EB320                 test    rax, rax
+  .text:00000001801EB323                 jnz     short loc_1801EB32C
+  .text:00000001801EB325                 inc     ebx
+  .text:00000001801EB327                 cmp     ebx, 3
+  .text:00000001801EB32A                 jl      short loc_1801EB300
+  .text:00000001801EB32C                 cmp     ebx, 3
+  .text:00000001801EB32F                 jz      loc_1801EB3E2
+  .text:00000001801EB335                 mov     edx, ebx
+  .text:00000001801EB337                 test    ebx, ebx
+  .text:00000001801EB339                 jz      short loc_1801EB388
+  .text:00000001801EB33B                 sub     edx, 1
+  .text:00000001801EB33E                 jz      short loc_1801EB383
+  .text:00000001801EB340                 cmp     edx, 1
+  .text:00000001801EB343                 jz      short loc_1801EB35E
+  .text:00000001801EB345                 mov     rax, ds:0
+  .text:00000001801EB34D                 xor     ecx, ecx
+  .text:00000001801EB34F                 call    qword ptr [rax+1C8h]
+  .text:00000001801EB355                 inc     ebx
+  .text:00000001801EB357                 cmp     ebx, 3
+  .text:00000001801EB35A                 jl      short loc_1801EB396
+  .text:00000001801EB35C                 jmp     short loc_1801EB36C
+  .text:00000001801EB35E                 mov     rax, [r9]
+  .text:00000001801EB361                 mov     rcx, r9
+  .text:00000001801EB364                 call    qword ptr [rax+1C8h]
+  .text:00000001801EB36A                 inc     ebx
+  .text:00000001801EB36C                 mov     r9, cs:qword_1806874B8
+  .text:00000001801EB373                 mov     rcx, cs:qword_1806874B0
+  .text:00000001801EB37A                 mov     r8, cs:g_pGameServer
+  .text:00000001801EB381                 jmp     short loc_1801EB3D9
+  .text:00000001801EB383                 mov     rax, [rcx]
+  .text:00000001801EB386                 jmp     short loc_1801EB38E
+  .text:00000001801EB388                 mov     rax, [r8]
+  .text:00000001801EB38B                 mov     rcx, r8
+  .text:00000001801EB38E                 ; 0x1C8 = 456 = INetworkGameServer_ClientUpdate
+  .text:00000001801EB38E                 call    qword ptr [rax+1C8h]; 0x1C8 = 456 = INetworkGameServer_ClientUpdate
+  .text:00000001801EB394                 inc     ebx
+  .text:00000001801EB396                 mov     r9, cs:qword_1806874B8
+  .text:00000001801EB39D                 mov     rcx, cs:qword_1806874B0
+  .text:00000001801EB3A4                 mov     r8, cs:g_pGameServer
+  .text:00000001801EB3AB                 nop     dword ptr [rax+rax+00h]
+  .text:00000001801EB3B0                 mov     eax, ebx
+  .text:00000001801EB3B2                 test    ebx, ebx
+  .text:00000001801EB3B4                 jz      short loc_1801EB3CA
+  .text:00000001801EB3B6                 sub     eax, 1
+  .text:00000001801EB3B9                 jz      short loc_1801EB3C5
+  .text:00000001801EB3BB                 cmp     eax, 1
+  .text:00000001801EB3BE                 jnz     short loc_1801EB3D2
+  .text:00000001801EB3C0                 mov     rax, r9
+  .text:00000001801EB3C3                 jmp     short loc_1801EB3CD
+  .text:00000001801EB3C5                 mov     rax, rcx
+  .text:00000001801EB3C8                 jmp     short loc_1801EB3CD
+  .text:00000001801EB3CA                 mov     rax, r8
+  .text:00000001801EB3CD                 test    rax, rax
+  .text:00000001801EB3D0                 jnz     short loc_1801EB3D9
+  .text:00000001801EB3D2                 inc     ebx
+  .text:00000001801EB3D4                 cmp     ebx, 3
+  .text:00000001801EB3D7                 jl      short loc_1801EB3B0
+  .text:00000001801EB3D9                 cmp     ebx, 3
+  .text:00000001801EB3DC                 jnz     loc_1801EB335
+  .text:00000001801EB3E2                 mov     rcx, rsi
+  .text:00000001801EB3E5                 call    sub_1801EE190
+  .text:00000001801EB3EA                 cmp     byte ptr [rdi+40h], 0
+  .text:00000001801EB3EE                 jnz     short loc_1801EB3FA
+  .text:00000001801EB3F0                 cmp     byte ptr [rdi+29h], 0
+  .text:00000001801EB3F4                 jz      loc_1801EB53D
+  .text:00000001801EB3FA                 mov     edx, 0FFFFFFFFh
+  .text:00000001801EB3FF                 lea     rcx, unk_180909A10
+  .text:00000001801EB406                 call    sub_1803FBBC0
+  .text:00000001801EB40B                 test    rax, rax
+  .text:00000001801EB40E                 jnz     short loc_1801EB41B
+  .text:00000001801EB410                 mov     rax, cs:qword_180909A18
+  .text:00000001801EB417                 mov     rax, [rax+8]
+  .text:00000001801EB41B                 cmp     byte ptr [rax], 0
+  .text:00000001801EB41E                 jz      loc_1801EB535
+  .text:00000001801EB424                 cmp     byte ptr [rdi+29h], 0
+  .text:00000001801EB428                 jz      loc_1801EB535
+  .text:00000001801EB42E                 cmp     byte ptr [rdi+40h], 0
+  .text:00000001801EB432                 jnz     loc_1801EB535
+  .text:00000001801EB438                 mov     rax, cs:qword_180684DA0
+  .text:00000001801EB43F                 mov     rcx, [rax]
+  .text:00000001801EB442                 lea     rax, CNetworkServerService_OnFrameBoundary
+  .text:00000001801EB449                 mov     [rsp+38h+var_10], rax
+  .text:00000001801EB44E                 mov     rbx, [rcx+270h]
+  .text:00000001801EB455                 mov     rcx, rsi
+  .text:00000001801EB458                 call    sub_180046DE0
+  .text:00000001801EB45D                 mov     rcx, cs:qword_180684DA0
+  .text:00000001801EB464                 lea     rdx, [rsp+38h+var_18]
+  .text:00000001801EB469                 mov     [rsp+38h+var_18], rax
+  .text:00000001801EB46E                 call    rbx
+  .text:00000001801EB470                 mov     rax, [rsi]
+  .text:00000001801EB473                 mov     dl, 1
+  .text:00000001801EB475                 mov     rcx, rsi
+  .text:00000001801EB478                 call    qword ptr [rax+190h]
+  .text:00000001801EB47E                 mov     rax, cs:g_pThreadPool
+  .text:00000001801EB485                 mov     edx, 50h ; 'P'
+  .text:00000001801EB48A                 mov     rdi, [rax]
+  .text:00000001801EB48D                 mov     rax, cs:g_pMemAlloc
+  .text:00000001801EB494                 mov     rcx, [rax]
+  .text:00000001801EB497                 mov     rax, [rcx]
+  .text:00000001801EB49A                 call    qword ptr [rax+8]
+  .text:00000001801EB49D                 mov     rbx, rax
+  .text:00000001801EB4A0                 test    rax, rax
+  .text:00000001801EB4A3                 jz      short loc_1801EB4FB
+  .text:00000001801EB4A5                 mov     dword ptr [rax+8], 1
+  .text:00000001801EB4AC                 lea     rcx, [rax+28h]
+  .text:00000001801EB4B0                 mov     dword ptr [rax+10h], 4
+  .text:00000001801EB4B7                 lea     rdx, aPrepareClientU; "Prepare Client Updates"
+  .text:00000001801EB4BE                 mov     qword ptr [rax+18h], 0
+  .text:00000001801EB4C6                 mov     r8d, 20h ; ' '
+  .text:00000001801EB4CC                 mov     qword ptr [rax+20h], 0
+  .text:00000001801EB4D4                 mov     word ptr [rax+15h], 3
+  .text:00000001801EB4DA                 lea     rax, ??_7CLambdaJob@?1???$QueueJobWithFlags@V_lambda_1_@?M@??OnServerPostAdvanceTick@CNetworkServerService@@AEAAXAEBUEventServerPostAdvanceTick_t@@@Z@@IThreadPool@@QEAA?AV?$CSmartPtr@VCThreadedJob@@VCRefCountAccessor@@@@PEBDW4JobPriority_t@@I$$QEAV_lambda_1_@?M@??OnServerPostAdvanceTick@CNetworkServerService@@AEAAXAEBUEventServerPostAdvanceTick_t@@@Z@@Z@6B@; const `IThreadPool::QueueJobWithFlags<`CNetworkServerService::OnServerPostAdvanceTick(EventServerPostAdvanceTick_t const &)'::`12'::_lambda_1_>(char const *,JobPriority_t,uint,`CNetworkServerService::OnServerPostAdvanceTick(EventServerPostAdvanceTick_t const &)'::`12'::_lambda_1_ &&)'::`2'::CLambdaJob::`vftable'
+  .text:00000001801EB4E1                 mov     byte ptr [rcx], 0
+  .text:00000001801EB4E4                 mov     [rbx], rax
+  .text:00000001801EB4E7                 mov     [rbx+48h], rsi
+  .text:00000001801EB4EB                 mov     byte ptr [rbx+14h], 2
+  .text:00000001801EB4EF                 call    cs:_V_strncpy
+  .text:00000001801EB4F5                 mov     byte ptr [rbx+16h], 1
+  .text:00000001801EB4F9                 jmp     short loc_1801EB4FD
+  .text:00000001801EB4FB                 xor     ebx, ebx
+  .text:00000001801EB4FD                 mov     rax, [rdi]
+  .text:00000001801EB500                 mov     rdx, rbx
+  .text:00000001801EB503                 mov     rcx, rdi
+  .text:00000001801EB506                 call    qword ptr [rax+80h]
+  .text:00000001801EB50C                 mov     rcx, [rsi+1C8h]
+  .text:00000001801EB513                 test    rcx, rcx
+  .text:00000001801EB516                 jz      short loc_1801EB51E
+  .text:00000001801EB518                 mov     rax, [rcx]
+  .text:00000001801EB51B                 call    qword ptr [rax+10h]
+  .text:00000001801EB51E                 mov     [rsi+1C8h], rbx
+  .text:00000001801EB525                 mov     rbx, [rsp+38h+arg_0]
+  .text:00000001801EB52A                 mov     rsi, [rsp+38h+arg_8]
+  .text:00000001801EB52F                 add     rsp, 30h
+  .text:00000001801EB533                 pop     rdi
+  .text:00000001801EB534                 retn
+  .text:00000001801EB535                 mov     rcx, rsi
+  .text:00000001801EB538                 call    sub_1801EB550
+  .text:00000001801EB53D                 mov     rbx, [rsp+38h+arg_0]
+  .text:00000001801EB542                 mov     rsi, [rsp+38h+arg_8]
+  .text:00000001801EB547                 add     rsp, 30h
+  .text:00000001801EB54B                 pop     rdi
+  .text:00000001801EB54C                 retn
+procedure: |-
+  void __fastcall CNetworkServerService_OnServerPostAdvanceTick(_QWORD *a1, __int64 a2)
+  {
+    __int64 v2; // r9
+    __int64 *v4; // rcx
+    __int64 *v6; // r8
+    int i; // ebx
+    __int64 v8; // rax
+    __int64 v9; // rdx
+    __int64 v10; // rax
+    __int64 v11; // rax
+    _BYTE *v12; // rax
+    __int64 v13; // rcx
+    void (__fastcall *v14)(__int64, _QWORD *); // rbx
+    __int64 v15; // rdx
+    __int64 v16; // rax
+    __int64 v17; // rbx
+    __int64 v18; // rcx
+    _QWORD v19[3]; // [rsp+20h] [rbp-18h] BYREF
+
+    v2 = qword_1806874B8;
+    v4 = (__int64 *)qword_1806874B0[0];
+    v6 = (__int64 *)g_pGameServer;
+    for ( i = 0; i < 3; ++i )
+    {
+      if ( i )
+      {
+        if ( i == 1 )
+        {
+          v8 = qword_1806874B0[0];
+        }
+        else
+        {
+          if ( i != 2 )
+            continue;
+          v8 = qword_1806874B8;
+        }
+      }
+      else
+      {
+        v8 = g_pGameServer;
+      }
+      if ( v8 )
+        break;
+    }
+    if ( i != 3 )
+    {
+      while ( 1 )
+      {
+        v9 = (unsigned int)i;
+        if ( !i )
+        {
+          v10 = *v6;
+          v4 = v6;
+          goto LABEL_20;
+        }
+        v9 = (unsigned int)(i - 1);
+        if ( i == 1 )
+          break;
+        if ( i == 2 )
+        {
+          (*(void (__fastcall **)(__int64, __int64, __int64 *))(*(_QWORD *)v2 + 456LL))(v2, v9, v6);
+          ++i;
+        }
+        else
+        {
+          (*(void (__fastcall **)(_QWORD, __int64, __int64 *, __int64))(MEMORY[0] + 456LL))(0, v9, v6, v2);
+          if ( ++i < 3 )
+            goto LABEL_21;
+        }
+        v2 = qword_1806874B8;
+        v4 = (__int64 *)qword_1806874B0[0];
+        v6 = (__int64 *)g_pGameServer;
+  LABEL_30:
+        if ( i == 3 )
+          goto LABEL_31;
+      }
+      v10 = *v4;
+  LABEL_20:
+      (*(void (__fastcall **)(__int64 *, __int64, __int64 *, __int64))(v10 + 456))(v4, v9, v6, v2);// 0x1C8 = 456 = INetworkGameServer_ClientUpdate
+      ++i;
+  LABEL_21:
+      v2 = qword_1806874B8;
+      v4 = (__int64 *)qword_1806874B0[0];
+      v6 = (__int64 *)g_pGameServer;
+      while ( 2 )
+      {
+        if ( !i )
+        {
+          v11 = g_pGameServer;
+          goto LABEL_28;
+        }
+        if ( i != 1 )
+        {
+          if ( i == 2 )
+          {
+            v11 = qword_1806874B8;
+  LABEL_28:
+            if ( v11 )
+              goto LABEL_30;
+          }
+          if ( ++i >= 3 )
+            goto LABEL_30;
+          continue;
+        }
+        break;
+      }
+      v11 = qword_1806874B0[0];
+      goto LABEL_28;
+    }
+  LABEL_31:
+    sub_1801EE190(a1, a2, v6, v2);
+    if ( *(_BYTE *)(a2 + 64) || *(_BYTE *)(a2 + 41) )
+    {
+      v12 = (_BYTE *)sub_1803FBBC0((__int64)&unk_180909A10, -1);
+      if ( !v12 )
+        v12 = *(_BYTE **)(qword_180909A18 + 8);
+      if ( *v12 && *(_BYTE *)(a2 + 41) && !*(_BYTE *)(a2 + 64) )
+      {
+        v13 = *(_QWORD *)qword_180684DA0;
+        v19[1] = CNetworkServerService_OnFrameBoundary;
+        v14 = *(void (__fastcall **)(__int64, _QWORD *))(v13 + 624);
+        v19[0] = sub_180046DE0((__int64)a1);
+        v14(qword_180684DA0, v19);
+        LOBYTE(v15) = 1;
+        (*(void (__fastcall **)(_QWORD *, __int64))(*a1 + 400LL))(a1, v15);
+        v16 = (*(__int64 (__fastcall **)(_QWORD, __int64))(*g_pMemAlloc + 8LL))(g_pMemAlloc, 80);
+        v17 = v16;
+        if ( v16 )
+        {
+          *(_DWORD *)(v16 + 8) = 1;
+          *(_DWORD *)(v16 + 16) = 4;
+          *(_QWORD *)(v16 + 24) = 0;
+          *(_QWORD *)(v16 + 32) = 0;
+          *(_WORD *)(v16 + 21) = 3;
+          *(_BYTE *)(v16 + 40) = 0;
+          *(_QWORD *)v16 = &`Z::QueueJobWithFlags<`CNetworkServerService::OnServerPostAdvanceTick'::`12'::_lambda_1_,AXAEBUEventServerPostAdvanceTick_t &>'::`2'::CLambdaJob::`vftable';
+          *(_QWORD *)(v16 + 72) = a1;
+          *(_BYTE *)(v16 + 20) = 2;
+          V_strncpy(v16 + 40, "Prepare Client Updates", 32);
+          *(_BYTE *)(v17 + 22) = 1;
+        }
+        else
+        {
+          v17 = 0;
+        }
+        (*(void (__fastcall **)(_QWORD, __int64))(*g_pThreadPool + 128LL))(g_pThreadPool, v17);
+        v18 = a1[57];
+        if ( v18 )
+          (*(void (__fastcall **)(__int64))(*(_QWORD *)v18 + 16LL))(v18);
+        a1[57] = v17;
+      }
+      else
+      {
+        sub_1801EB550((__int64)a1);
+      }
+    }
+  }

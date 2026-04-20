@@ -45,7 +45,7 @@ disasm_code: |-
   .text:00000000015C158B                 mov     rax, [rax+0B8h]
   .text:00000000015C1592                 leave
   .text:00000000015C1593                 jmp     rax
-  .text:00000000015C1598                 call    sub_E38F80
+  .text:00000000015C1598                 call    IGameSystem_LoopPreShutdownAllSystems
   .text:00000000015C159D                 jmp     loc_15C1519
 procedure: |-
   __int64 __fastcall sub_15C14F0(__int64 a1)
@@ -56,7 +56,7 @@ procedure: |-
     if ( qword_43F1280 )
       sub_EDDF30();
     if ( *(int *)(a1 + 1128) > 2 )
-      sub_E38F80();
+      IGameSystem_LoopPreShutdownAllSystems();
     (*(void (__fastcall **)(__int64, _QWORD))(*(_QWORD *)qword_458F450 + 104LL))(qword_458F450, 0);
     if ( *(int *)(a1 + 1128) > 1 )
       IGameSystem_LoopDestroyAllSystems();

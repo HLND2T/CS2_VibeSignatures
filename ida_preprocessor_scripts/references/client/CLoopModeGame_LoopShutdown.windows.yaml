@@ -9,8 +9,8 @@ disasm_code: |-
   .text:00000001809CA8AF                 mov     rax, cs:off_182062540
   .text:00000001809CA8B6                 mov     ecx, 1
   .text:00000001809CA8BB                 movss   xmm1, dword ptr [rax+30h]
-  .text:00000001809CA8C0                 call    sub_180A91770
-  .text:00000001809CA8C5                 mov     rcx, cs:qword_182521A08
+  .text:00000001809CA8C0                 call    C_BaseEntity__SetInterpolationPhase
+  .text:00000001809CA8C5                 mov     rcx, cs:g_pNetworkClientService
   .text:00000001809CA8CC                 mov     edx, 36h ; '6'
   .text:00000001809CA8D1                 mov     rax, [rcx]
   .text:00000001809CA8D4                 call    qword ptr [rax+0D8h]
@@ -22,7 +22,7 @@ disasm_code: |-
   .text:00000001809CA8F0                 call    sub_1803E0300
   .text:00000001809CA8F5                 cmp     dword ptr [rbx+468h], 3
   .text:00000001809CA8FC                 jl      short loc_1809CA903
-  .text:00000001809CA8FE                 call    sub_180367470
+  .text:00000001809CA8FE                 call    IGameSystem_LoopPreShutdownAllSystems
   .text:00000001809CA903                 mov     rcx, cs:qword_182301B88
   .text:00000001809CA90A                 xor     edx, edx
   .text:00000001809CA90C                 mov     rax, [rcx]
@@ -66,15 +66,17 @@ procedure: |-
 
     if ( !*(_BYTE *)(a1 + 110) )
     {
-      sub_180A91770(1);
-      result = (*(__int64 (__fastcall **)(__int64, __int64))(*(_QWORD *)qword_182521A08 + 216LL))(qword_182521A08, 54);
+      C_BaseEntity::SetInterpolationPhase(1);
+      result = (*(__int64 (__fastcall **)(__int64, __int64))(*(_QWORD *)g_pNetworkClientService + 216LL))(
+                 g_pNetworkClientService,
+                 54);
     }
     if ( !*(_BYTE *)(a1 + 108) )
     {
       if ( qword_1821D0718 )
         sub_1803E0300(qword_1821D0718);
       if ( *(int *)(a1 + 1128) >= 3 )
-        sub_180367470();
+        IGameSystem_LoopPreShutdownAllSystems();
       (*(void (__fastcall **)(__int64, _QWORD))(*(_QWORD *)qword_182301B88 + 96LL))(qword_182301B88, 0);
       if ( *(int *)(a1 + 1128) >= 2 )
         IGameSystem_LoopDestroyAllSystems(v4, v3);

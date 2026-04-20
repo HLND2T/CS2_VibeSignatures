@@ -1,0 +1,25 @@
+func_name: CNetworkGameServer_ClientUpdate
+func_va: '0x6aeb90'
+disasm_code: |-
+  .text:00000000006AEB90                 cmp     dword ptr [rdi+38h], 3
+  .text:00000000006AEB94                 jz      short loc_6AEBA0
+  .text:00000000006AEB96                 retn
+  .text:00000000006AEBA0                 mov     rdi, cs:g_pSource2Server
+  .text:00000000006AEBA7                 test    rdi, rdi
+  .text:00000000006AEBAA                 jz      short locret_6AEB96
+  .text:00000000006AEBAC                 mov     rax, [rdi]
+  .text:00000000006AEBAF                 mov     esi, 1
+  .text:00000000006AEBB4                 mov     rax, [rax+78h]; 0x78 = 120 = ISource2Server_ClientUpdate
+  .text:00000000006AEBB8                 jmp     rax
+procedure: |-
+  __int64 __fastcall CNetworkGameServer_ClientUpdate(__int64 a1)
+  {
+    __int64 result; // rax
+
+    if ( *(_DWORD *)(a1 + 56) == 3 )
+    {
+      if ( g_pSource2Server )
+        return (*(__int64 (__fastcall **)(__int64, __int64))(*(_QWORD *)g_pSource2Server + 120LL))(g_pSource2Server, 1);// 0x78 = 120 = ISource2Server_ClientUpdate
+    }
+    return result;
+  }

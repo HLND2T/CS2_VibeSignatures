@@ -43,5 +43,6 @@
 ## Practical Notes
 - Use `vfunc_sig` when function-head signatures are weak but vtable slot identity is stable.
 - Keep `vfunc_index` / `vfunc_offset` internally consistent (`offset = index * 8` in current 64-bit assumptions).
-- `vfunc_sig_allow_across_function_boundary` expands generation breadth only; it does not change the slot-specific first-instruction requirement or the vtable-based relocation flow.
+- Slot `0x0` may be implicit in machine code such as `call qword ptr [rax]`; `preprocess_gen_vfunc_sig_via_mcp` accepts this only for `call`/`jmp` memory operands without encoded displacement and reports `vfunc_disp_size: 0`.
+- `vfunc_sig_allow_across_function_boundary` expands generation breadth only; it does not change the slot-specific first-instruction requirement or the vtable-based relocation flow, except for the explicit implicit-zero-slot case.
 - Reject non-unique or over-broad signatures.

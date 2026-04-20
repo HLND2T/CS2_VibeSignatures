@@ -43,7 +43,7 @@ disasm_code: |-
   .text:0000000000E52784                 mov     cs:byte_43EC37B, 0
   .text:0000000000E5278B                 mov     r12, rax
   .text:0000000000E5278E                 mov     rax, [rdi]
-  .text:0000000000E52791                 call    qword ptr [rax+40h] ; 0x40 = IGameSystemFactory_HasName
+  .text:0000000000E52791                 call    qword ptr [rax+40h] ; 0x40 = IGameSystemFactory_DoesGameSystemReallocate
   .text:0000000000E52794                 test    al, al
   .text:0000000000E52796                 jz      short loc_E527B8
   .text:0000000000E52798                 mov     rax, [r12]
@@ -148,7 +148,7 @@ procedure: |-
     v7 = *(_QWORD *)v1;
     byte_43EC37B = 0;
     v8 = (_QWORD *)v6;
-    if ( (*(unsigned __int8 (__fastcall **)(__int64))(*(_QWORD *)v7 + 64LL))(v7) ) // 64 = 0x40 = IGameSystemFactory_HasName
+    if ( (*(unsigned __int8 (__fastcall **)(__int64))(*(_QWORD *)v7 + 64LL))(v7) ) // 64 = 0x40 = IGameSystemFactory_DoesGameSystemReallocate
     {
       v9 = *(__int64 (__fastcall **)())(*v8 + 472LL); // 472 = 0x1D8 = IGameSystem_SetName
       if ( v9 == sub_C2F370 )

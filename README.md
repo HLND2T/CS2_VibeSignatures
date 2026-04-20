@@ -147,9 +147,7 @@ uv run run_cpp_tests.py -gamever 14141 [-debug] [-fixheader] [-agent=claude/code
 
 `dist/CS2Fixes/gamedata/cs2fixes.games.txt`
 
- - 1 skipped symbol.
-
- - `CCSPlayerPawn_GetMaxSpeed` because it is not a thing in `server.dll`
+ - `CCSPlayerPawn_GetMaxSpeed` skipped because it is not a thing in `server.dll`
 
 [swiftlys2](https://github.com/swiftly-solution/swiftlys2) 
 
@@ -157,20 +155,14 @@ uv run run_cpp_tests.py -gamever 14141 [-debug] [-fixheader] [-agent=claude/code
 
 `dist/swiftlys2/plugin_files/gamedata/cs2/core/signatures.jsonc`
 
- - 44 skipped symbols.
-
 [plugify](https://github.com/untrustedmodders/plugify-plugin-s2sdk) 
 
 `dist/plugify-plugin-s2sdk/assets/gamedata.jsonc`
 
- - 14 skipped symbols.
- 
 [cs2kz-metamod](https://github.com/KZGlobalTeam/cs2kz-metamod) 
 
 `dist/cs2kz-metamod/gamedata/cs2kz-core.games.txt`
 
- - 42 skipped symbols.
- 
 [modsharp](https://github.com/Kxnrl/modsharp-public) 
 
 `dist/modsharp-public/.asset/gamedata/core.games.jsonc` 
@@ -185,50 +177,23 @@ uv run run_cpp_tests.py -gamever 14141 [-debug] [-fixheader] [-agent=claude/code
 
 `dist/modsharp-public/.asset/gamedata/tier0.games.jsonc`
 
- - 230 skipped symbols.
- 
 [CS2Surf/Timer](https://github.com/CS2Surf-CN/Timer) 
 
 `dist/cs2surf/gamedata/cs2surf-core.games.jsonc` 
-
- - 26 skipped symbols.
  
 ## How to create SKILL for vtable
 
 `CCSPlayerPawn` for example.
 
-#### 1. Create preprocessor script
+Claude Code:
 
- - Create `ida_preprocessor_scripts/find-CCSPlayerPawn_vtable.py`
-
- - **ALWAYS** check existing preprocessor scripts with `TARGET_CLASS_NAMES` for references.
-
- - no LLM needed when finding vtable. everything done in the preprocessor script.
-
-#### 2. Add the new SKILL to `config.yaml`, under `skills`.
-
- * with `expected_output` and `expected_input` (optional) explicitly declared.
-
-```yaml
-      - name: find-CCSPlayerPawn_vtable
-        expected_output:
-          - CCSPlayerPawn_vtable.{platform}.yaml
 ```
-
-#### 3. Add the new symbol to `config.yaml`, under `symbols`.
-
-```yaml
-      - name: CCSPlayerPawn_vtable
-        category: vtable
+/create-preprocessor-scripts Create "find-CCSPlayerPawn_vtable" in server.
 ```
 
 ## How to create SKILL for regular function
 
-* Always make sure you have ida-pro-mcp server running.
-
-* For human contributor: You should write new initial prompts when looking for new symbols, **DO NOT** COPY-PASTE the initial prompts from README!!!
-
-`CBaseModelEntity_SetModel` for example
+### `CItemDefuser_Spawn` and `CBaseModelEntity_SetModel` for example
 
 #### 1.Look for desired symbols in IDA 
 
@@ -251,127 +216,25 @@ uv run run_cpp_tests.py -gamever 14141 [-debug] [-fixheader] [-agent=claude/code
                         0i64);
 ```
 
-#### 2. Create SKILL
+The function with this code snippet is `CItemDefuser_Spawn`
 
-  - Create project-level skill `find-CBaseModelEntity_SetModel` in **ENGLISH** according to what we did in IDA.
-  
-  - The SKILL should generate `CBaseModelEntity_SetModel.{platform}.yaml`, with `func_sig`.
+#### 2. Create preprocessor script and update `config.yaml`
 
-  - The SKILL should be working with both `server.dll` and `libserver.so`.
-  
-  - DO NOT pack skill.
-  
-  - **ALWAYS** check existing SKILLs with `/write-func-as-yaml` invocation for references.
+Claude Code:
 
-#### 3. Create preprocessor script
-
-  - Create `ida_preprocessor_scripts/find-CBaseModelEntity_SetModel.py`
-
-  - **ALWAYS** check existing preprocessor scripts with `TARGET_FUNCTION_NAMES` for references.
-
-#### 4. Add the new SKILL to `config.yaml`, under `skills`.
-
- * with `expected_output` and `expected_input` (optional) explicitly declared.
-
-```yaml
-      - name: find-CBaseModelEntity_SetModel
-        expected_output:
-          - CBaseModelEntity_SetModel.{platform}.yaml
+```
+/create-preprocessor-scripts Create "find-CItemDefuser_Spawn" in server by xref_strings "weapons/models/defuser/defuser.vmdl" "defuser_dropped", where CItemDefuser_Spawn is a vfunc of CItemDefuser_vtable.
 ```
 
-5. Add the new symbol to `config.yaml`, under `symbols`.
+Claude Code:
 
-```yaml
-      - name: CBaseModelEntity_SetModel
-        catagoty: func
-        alias:
-          - CBaseModelEntity::SetModel
 ```
-
-## How to create SKILL for virtual function
-
-* Always make sure you have ida-pro-mcp server running.
-
-* For human contributor: You should write new initial prompts when looking for new symbols, **DO NOT** COPY-PASTE the initial prompts from README!!!
-
-`CBasePlayerController_Respawn` for example
-
-#### 1. Look for desired symbols in IDA
-
-  - Search string "GMR_BeginRound" in IDA and look for a function with reference to it, decompile the function who reference "GMR_BeginRound" and look for code pattern in the decompiled function:
-
-```c
-      do
-      {
-        //.......
-        if ( v31 )
-        {
-          if ( (*(unsigned __int8 (__fastcall **)(__int64))(*(_QWORD *)v31 + 3352LL))(v31) )
-          {
-            (*(void (__fastcall **)(__int64))(*(_QWORD *)v33 + 3368LL))(v33);
-            if ( v36 )
-            {
-              sub_1801C86D0(v36);
-              sub_18039EA00(v36, 32LL);
-            }
-          }
-          else if ( v36 && *(_BYTE *)(v30 + 836) == 3 || *(_BYTE *)(v30 + 836) == 2 )
-          {
-            sub_1809F9670(v36);
-            (*(void (__fastcall **)(__int64))(*(_QWORD *)v30 + 2176LL))(v30); // 2176LL is vfunc_offset for CBasePlayerController_Respawn
-          }
-        }
-        ++v28;
-      }
-      while ( v28 != v29 );
-```
-
-#### 2. Create SKILL
-
-  - Create project-level skill `find-CBasePlayerController_Respawn` in **ENGLISH**.
-  
-  - The SKILL should generate `CBasePlayerController_Respawn.{platform}.yaml`, with `func_sig`. (or `vfunc_sig` if `CBasePlayerController_Respawn` is too short or too generic).
-
-  - The SKILL should be working with both `server.dll` and `libserver.so`.
-
-  - DO NOT pack skill.
-  
-  - **ALWAYS** check existing SKILLs with `/write-vfunc-as-yaml` invocation for references.
-
-#### 3. Create preprocessor script
-
-  - Create `ida_preprocessor_scripts/find-CCSPlayerController_Respawn.py`
-
-  - **ALWAYS** check existing preprocessor scripts with `TARGET_FUNCTION_NAMES` for references.
-
-#### 4. Add the new SKILL to `config.yaml`, under `skills`.
-
- * with `expected_output` and `expected_input` (optional) explicitly declared.
-
-```yaml
-      - name: find-CBasePlayerController_Respawn
-        expected_output:
-          - CBasePlayerController_Respawn.{platform}.yaml
-        expected_input:
-          - CBasePlayerController_vtable.{platform}.yaml
-```
-
-#### 5. Add the new symbol to `config.yaml`, under `symbols`.
-
-```yaml
-      - name: CBasePlayerController_Respawn
-        category: vfunc
-        alias:
-          - CBasePlayerController::Respawn
+/create-preprocessor-scripts Create "find-CBaseModelEntity_SetModel" in server by LLM_DECOMPILE with "CItemDefuser_Spawn", where CBaseModelEntity_SetModel is a regular function being called in "CItemDefuser_Spawn".
 ```
 
 ## How to create SKILL for global variable
 
-* Always make sure you have ida-pro-mcp server running.
-
-* For human contributor: You should write new initial prompts when looking for new symbols, **DO NOT** COPY-PASTE the initial prompts from README!!!
-
-`IGameSystem_InitAllSystems` AND `IGameSystem_InitAllSystems_pFirst` for example
+### `IGameSystem_InitAllSystems_pFirst` for example
 
 #### 1. Look for desired symbols in IDA
 
@@ -383,58 +246,23 @@ uv run run_cpp_tests.py -gamever 14141 [-debug] [-fixheader] [-agent=claude/code
  
   - Rename `qword_XXXXXX` previously found to `IGameSystem_InitAllSystems_pFirst` if it was not renamed yet.
 
-#### 2. Create SKILL
+#### 2. Create preprocessor script and update `config.yaml`
 
-  - Create project-level skill `find-IGameSystem_InitAllSystems-AND-IGameSystem_InitAllSystems_pFirst` in **ENGLISH**.
-  
-  - The SKILL should generate `IGameSystem_InitAllSystems.{platform}.yaml`, with `func_sig`.
+Claude Code:
 
-  - The SKILL should generate `IGameSystem_InitAllSystems_pFirst.{platform}.yaml`, with `gv_sig`.
-
-  - DO NOT pack skill.
-  
-  - The SKILL should be working with both `server.dll` and `libserver.so`.
-  
-  - **ALWAYS** check existing SKILLs with `/write-func-as-yaml` and `/write-globalvar-as-yaml` invocation for references.
- 
-#### 3. Create preprocessor script
-
-  - Create `ida_preprocessor_scripts/find-IGameSystem_InitAllSystems-AND-IGameSystem_InitAllSystems_pFirst.py`
-
-  - **ALWAYS** check existing preprocessor scripts with `TARGET_FUNCTION_NAMES` and `TARGET_GLOBALVAR_NAMES` for references.
-
-#### 4. Add the new SKILL to `config.yaml`, under `skills`.
-
- * with `expected_output` and `expected_input` (optional) explicitly declared.
-
-```yaml
-      - name: find-IGameSystem_InitAllSystems-AND-IGameSystem_InitAllSystems_pFirst
-        expected_output:
-          - IGameSystem_InitAllSystems.{platform}.yaml
-          - IGameSystem_InitAllSystems_pFirst.{platform}.yaml
+```
+/create-preprocessor-scripts Create "find-IGameSystem_InitAllSystems" in server by xref_strings "IGameSystem::InitAllSystems", where IGameSystem_InitAllSystems is a regular func.
 ```
 
-#### 5. Add the new symbols to `config.yaml`, under `symbols`.
+Claude Code:
 
-```yaml
-      - name: IGameSystem_InitAllSystems
-        category: func
-        alias:
-          - IGameSystem::InitAllSystems
-
-      - name: IGameSystem_InitAllSystems_pFirst
-        category: gv
-        alias:
-          - IGameSystem::InitAllSystems::pFirst
+```
+/create-preprocessor-scripts Create "find-IGameSystem_InitAllSystems_pFirst" in server by LLM_DECOMPILE with "IGameSystem_InitAllSystems", where IGameSystem_InitAllSystems_pFirst is a global variable being used in "IGameSystem_InitAllSystems".
 ```
 
 ## How to create SKILL for struct offset
 
-* Always make sure you have ida-pro-mcp server running.
-
-* For human contributor: You should write new initial prompts when looking for new symbols, **DO NOT** COPY-PASTE the initial prompts from README!!!
-
-`CGameResourceService_BuildResourceManifest` AND `CGameResourceService_m_pEntitySystem` for example.
+### `CGameResourceService_m_pEntitySystem` for example.
 
 #### 1. Look for desired symbols in IDA
 
@@ -442,57 +270,18 @@ uv run run_cpp_tests.py -gamever 14141 [-debug] [-fixheader] [-agent=claude/code
 
   - The xref should point to a function - this is `CGameResourceService_BuildResourceManifest`. rename it to `CGameResourceService_BuildResourceManifest` if not renamed yet.
 
-#### 2. Create SKILL
+#### 2. Create preprocessor script and update `config.yaml`
 
-  - Create project-level skill `find-CGameResourceService_BuildResourceManifest-AND-CGameResourceService_m_pEntitySystem` in **ENGLISH**. 
-  
-  - The SKILL should generate `CGameResourceService_BuildResourceManifest.{platform}.yaml`, with `func_sig`.
-
-  - The SKILL should generate `CGameResourceService_m_pEntitySystem.{platform}.yaml`, with `offset` and `offset_sig`.
-
-  - DO NOT pack skill.
-  
-  - The SKILL should be working with both `server.dll` and `libserver.so`.
-  
-  - **ALWAYS** check existing SKILLs with `/write-structoffset-as-yaml` invocation for references.
-
-#### 3. Create preprocessor script
-
- - Create `ida_preprocessor_scripts/find-CGameResourceService_BuildResourceManifest-AND-CGameResourceService_m_pEntitySystem.py`
-
-  - **ALWAYS** check existing preprocessor scripts with `TARGET_FUNCTION_NAMES` and `TARGET_STRUCT_MEMBER_NAMES` for references.
-
-#### 4. Add the new SKILL to `config.yaml`, under `skills`.
-
- * with `expected_output` and `expected_input` (optional) explicitly declared.
-
-```yaml
-      - name: find-CGameResourceService_BuildResourceManifest-AND-CGameResourceService_m_pEntitySystem
-        expected_output:
-          - CGameResourceService_BuildResourceManifest.{platform}.yaml
-          - CGameResourceService_m_pEntitySystem.{platform}.yaml
-```
-
-#### 5. Add the new symbols to `config.yaml`, under `symbols`.
-
-```yaml
-      - name: CGameResourceService_BuildResourceManifest
-        category: func
-        alias:
-          - CGameResourceService::BuildResourceManifest
-          - BuildResourceManifest
-
-      - name: CGameResourceService
-        category: struct
-
-      - name: CGameResourceService_m_pEntitySystem
-        category: structmember
-        struct: CGameResourceService
-        member: m_pEntitySystem
-        alias:
-          - GameEntitySystem
+Claude Code:
 
 ```
+/create-preprocessor-scripts Create "find-CGameResourceService_BuildResourceManifest" in engine by xref_strings "CGameResourceService::BuildResourceManifest(start)" , where CGameResourceService_BuildResourceManifest is a vfunc of CGameResourceService_vtable.
+```
+
+```
+/create-preprocessor-scripts Create "find-CGameResourceService_m_pEntitySystem" in engine by LLM_DECOMPILE with "CGameResourceService_BuildResourceManifest", where CGameResourceService_m_pEntitySystem is a struct offset.
+```
+
 
 ## How to create SKILL for patch
 
@@ -534,52 +323,11 @@ uv run run_cpp_tests.py -gamever 14141 [-debug] [-fixheader] [-agent=claude/code
   * Short `jbe` (`76 rel8` — 2 bytes) → `EB rel8` (unconditional `jmp short`)
 ```
 
-#### 2. Create SKILL
+#### 2. Create preprocessor script and update `config.yaml`
 
- - Create project-level skill `find-CCSPlayer_MovementServices_FullWalkMove_SpeedClamp` in **ENGLISH**.
-
- - The SKILL should generate `CCSPlayer_MovementServices_FullWalkMove.{platform}.yaml`, with `patch_sig` and `patch_bytes`.
-
- - DO NOT pack skill.
- 
- - The SKILL should be working with both `server.dll` and `libserver.so`.
- 
- - **ALWAYS** check existing SKILL with `/write-patch-as-yaml` invocation for references.
-
-#### 3. Create preprocessor script.
-
- - Create `ida_preprocessor_scripts/find-CCSPlayer_MovementServices_FullWalkMove_SpeedClamp.py`
-
-  - **ALWAYS** check existing preprocessor scripts with `TARGET_PATCH_NAMES` for references.
-
-#### 4. Add the new SKILL to `config.yaml`, under `skills`.
-
- * with `expected_output` and `expected_input` (optional) explicitly declared.
-
-```yaml
-      - name: find-CCSPlayer_MovementServices_FullWalkMove_SpeedClamp
-        expected_output:
-          - CCSPlayer_MovementServices_FullWalkMove_SpeedClamp.{platform}.yaml
-        expected_input:
-          - CCSPlayer_MovementServices_FullWalkMove.{platform}.yaml
-```
-
-#### 5. Add the new symbol to `config.yaml`, under `symbols`.
-
-```yaml
-      - name: CCSPlayer_MovementServices_FullWalkMove_SpeedClamp
-        category: patch
-        alias:
-          - ServerMovementUnlock
-```
+Follow the steps in [`.claude/skills/create-preprocessor-scripts/SKILL.md`](.claude/skills/create-preprocessor-scripts/SKILL.md) to create the preprocessor script and update `config.yaml`.
 
 ## Troubleshooting
-
-### Cannot load IDA library file {name}, Please make sure you are using IDA 
-
-This is because the official idapro package is not compatible with IDA 9.0
-
-Mitigation: Overwrite `Python3**/Lib/site-packages/idapro/__init__.py` with `CS2_VibeSignatures/patched-py/Lib/site-packages/idapro/__init__.py`.
 
 ### error: could not create 'ida.egg-info': access denied
 

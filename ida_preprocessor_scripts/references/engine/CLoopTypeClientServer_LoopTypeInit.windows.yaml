@@ -1,0 +1,269 @@
+func_name: CLoopTypeClientServer_LoopTypeInit
+func_va: '0x180230280'
+disasm_code: |-
+  .text:0000000180230280                 mov     [rsp+arg_0], rbx
+  .text:0000000180230285                 mov     [rsp+arg_8], rbp
+  .text:000000018023028A                 mov     [rsp+arg_10], rsi
+  .text:000000018023028F                 push    rdi
+  .text:0000000180230290                 sub     rsp, 40h
+  .text:0000000180230294                 mov     rax, cs:g_pMemAlloc
+  .text:000000018023029B                 mov     rsi, rcx
+  .text:000000018023029E                 mov     rbp, rdx
+  .text:00000001802302A1                 mov     rdi, r9
+  .text:00000001802302A4                 mov     edx, 160h
+  .text:00000001802302A9                 mov     rbx, r8
+  .text:00000001802302AC                 mov     rcx, [rax]
+  .text:00000001802302AF                 mov     rax, [rcx]
+  .text:00000001802302B2                 call    qword ptr [rax+8]
+  .text:00000001802302B5                 test    rax, rax
+  .text:00000001802302B8                 jz      short loc_1802302C5
+  .text:00000001802302BA                 mov     rdx, rsi
+  .text:00000001802302BD                 mov     rcx, rax
+  .text:00000001802302C0                 call    sub_18022B9A0
+  .text:00000001802302C5                 mov     [rsi+168h], rax
+  .text:00000001802302CC                 call    cs:CommandLine
+  .text:00000001802302D2                 xor     r8d, r8d
+  .text:00000001802302D5                 mov     edx, 4D7D2ED1h
+  .text:00000001802302DA                 mov     rcx, [rax]
+  .text:00000001802302DD                 mov     r9, [rcx+30h]
+  .text:00000001802302E1                 mov     rcx, rax
+  .text:00000001802302E4                 call    r9
+  .text:00000001802302E7                 test    eax, eax
+  .text:00000001802302E9                 jz      short loc_1802302F5
+  .text:00000001802302EB                 mov     cs:dword_18090D9FC, 0Ah
+  .text:00000001802302F5                 mov     r9, rdi
+  .text:00000001802302F8                 mov     r8, rbx
+  .text:00000001802302FB                 mov     rdx, rbp
+  .text:00000001802302FE                 mov     rcx, rsi
+  .text:0000000180230301                 call    CLoopTypeBase_LoopTypeInit
+  .text:0000000180230306                 test    al, al
+  .text:0000000180230308                 jz      loc_180230535
+  .text:000000018023030E                 mov     rax, [rsi]
+  .text:0000000180230311                 lea     rdx, aGameresourcese; "GameResourceServiceServerV001"
+  .text:0000000180230318                 mov     rcx, rsi
+  .text:000000018023031B                 ; 0x0 = 0LL = ILoopType_AddEngineService
+  .text:000000018023031B                 call    qword ptr [rax]; 0x0 = 0LL = ILoopType_AddEngineService
+  .text:000000018023031D                 mov     rax, [rsi]
+  .text:0000000180230320                 lea     rdx, aInputservice00; "InputService_001"
+  .text:0000000180230327                 mov     rcx, rsi
+  .text:000000018023032A                 call    qword ptr [rax]
+  .text:000000018023032C                 mov     rax, [rsi]
+  .text:000000018023032F                 lea     rdx, aNetworkservice_0; "NetworkService_001"
+  .text:0000000180230336                 mov     rcx, rsi
+  .text:0000000180230339                 call    qword ptr [rax]
+  .text:000000018023033B                 mov     rax, [rsi]
+  .text:000000018023033E                 lea     rdx, aNetworkservers_0; "NetworkServerService_001"
+  .text:0000000180230345                 mov     rcx, rsi
+  .text:0000000180230348                 call    qword ptr [rax]
+  .text:000000018023034A                 mov     rax, [rsi]
+  .text:000000018023034D                 lea     rdx, aClientserveren_0; "ClientServerEngineLoopService_001"
+  .text:0000000180230354                 mov     rcx, rsi
+  .text:0000000180230357                 call    qword ptr [rax]
+  .text:0000000180230359                 mov     rax, [rsi]
+  .text:000000018023035C                 lea     rdx, aStatsservice00; "StatsService_001"
+  .text:0000000180230363                 mov     rcx, rsi
+  .text:0000000180230366                 call    qword ptr [rax]
+  .text:0000000180230368                 mov     rax, [rsi]
+  .text:000000018023036B                 lea     rdx, aVprofservice00; "VProfService_001"
+  .text:0000000180230372                 mov     rcx, rsi
+  .text:0000000180230375                 call    qword ptr [rax]
+  .text:0000000180230377                 mov     rax, [rsi]
+  .text:000000018023037A                 lea     rdx, aBugservice001; "BugService001"
+  .text:0000000180230381                 mov     rcx, rsi
+  .text:0000000180230384                 call    qword ptr [rax]
+  .text:0000000180230386                 mov     rax, [rsi]
+  .text:0000000180230389                 lea     rdx, aMaplistservice; "MapListService_001"
+  .text:0000000180230390                 mov     rcx, rsi
+  .text:0000000180230393                 call    qword ptr [rax]
+  .text:0000000180230395                 call    sub_180411570
+  .text:000000018023039A                 test    al, al
+  .text:000000018023039C                 jnz     short loc_180230416
+  .text:000000018023039E                 mov     rax, [rsi]
+  .text:00000001802303A1                 lea     rdx, aGameresourcese_0; "GameResourceServiceClientV001"
+  .text:00000001802303A8                 mov     rcx, rsi
+  .text:00000001802303AB                 call    qword ptr [rax]
+  .text:00000001802303AD                 mov     rax, [rsi]
+  .text:00000001802303B0                 lea     rdx, aRenderservice0; "RenderService_001"
+  .text:00000001802303B7                 mov     rcx, rsi
+  .text:00000001802303BA                 call    qword ptr [rax]
+  .text:00000001802303BC                 mov     rax, [rsi]
+  .text:00000001802303BF                 lea     rdx, aSoundservice00; "SoundService_001"
+  .text:00000001802303C6                 mov     rcx, rsi
+  .text:00000001802303C9                 call    qword ptr [rax]
+  .text:00000001802303CB                 mov     rax, [rsi]
+  .text:00000001802303CE                 lea     rdx, aToolservice001; "ToolService_001"
+  .text:00000001802303D5                 mov     rcx, rsi
+  .text:00000001802303D8                 call    qword ptr [rax]
+  .text:00000001802303DA                 mov     rax, [rsi]
+  .text:00000001802303DD                 lea     rdx, aNetworkclients_0; "NetworkClientService_001"
+  .text:00000001802303E4                 mov     rcx, rsi
+  .text:00000001802303E7                 call    qword ptr [rax]
+  .text:00000001802303E9                 mov     rax, [rsi]
+  .text:00000001802303EC                 lea     rdx, aNetworkp2pserv_0; "NetworkP2PService_001"
+  .text:00000001802303F3                 mov     rcx, rsi
+  .text:00000001802303F6                 call    qword ptr [rax]
+  .text:00000001802303F8                 mov     rax, [rsi]
+  .text:00000001802303FB                 lea     rdx, aGameuiservice0; "GameUIService_001"
+  .text:0000000180230402                 mov     rcx, rsi
+  .text:0000000180230405                 call    qword ptr [rax]
+  .text:0000000180230407                 mov     rax, [rsi]
+  .text:000000018023040A                 lea     rdx, aScreenshotserv; "ScreenshotService001"
+  .text:0000000180230411                 mov     rcx, rsi
+  .text:0000000180230414                 call    qword ptr [rax]
+  .text:0000000180230416                 mov     rax, [rbx]
+  .text:0000000180230419                 mov     rcx, rbx
+  .text:000000018023041C                 call    qword ptr [rax+20h]
+  .text:000000018023041F                 sub     eax, 1
+  .text:0000000180230422                 jz      short loc_18023046E
+  .text:0000000180230424                 sub     eax, 1
+  .text:0000000180230427                 jz      short loc_180230450
+  .text:0000000180230429                 cmp     eax, 1
+  .text:000000018023042C                 jnz     loc_180230535
+  .text:0000000180230432                 cmp     qword ptr [rsi+0C0h], 0
+  .text:000000018023043A                 jnz     loc_180230535
+  .text:0000000180230440                 mov     [rsi+0C0h], rbx
+  .text:0000000180230447                 mov     [rsi+0D0h], rdi
+  .text:000000018023044E                 jmp     short loc_18023048A
+  .text:0000000180230450                 cmp     qword ptr [rsi+0A8h], 0
+  .text:0000000180230458                 jnz     loc_180230535
+  .text:000000018023045E                 mov     [rsi+0A8h], rbx
+  .text:0000000180230465                 mov     [rsi+0B8h], rdi
+  .text:000000018023046C                 jmp     short loc_18023048A
+  .text:000000018023046E                 cmp     qword ptr [rsi+90h], 0
+  .text:0000000180230476                 jnz     loc_180230535
+  .text:000000018023047C                 mov     [rsi+90h], rbx
+  .text:0000000180230483                 mov     [rsi+0A0h], rdi
+  .text:000000018023048A                 mov     rax, [rbx]
+  .text:000000018023048D                 mov     rdx, rsi
+  .text:0000000180230490                 mov     rcx, rbx
+  .text:0000000180230493                 call    qword ptr [rax]
+  .text:0000000180230495                 mov     rcx, cs:g_pRenderDeviceMgr
+  .text:000000018023049C                 xorps   xmm0, xmm0
+  .text:000000018023049F                 movdqu  [rsp+48h+var_24], xmm0
+  .text:00000001802304A5                 mov     [rsp+48h+var_14], 0
+  .text:00000001802304AE                 mov     [rsp+48h+var_28], 1
+  .text:00000001802304B6                 mov     rdi, [rcx]
+  .text:00000001802304B9                 call    qword ptr [rdi+0D8h]
+  .text:00000001802304BF                 mov     rcx, cs:g_pRenderDevice
+  .text:00000001802304C6                 mov     ebx, eax
+  .text:00000001802304C8                 mov     rdx, [rcx]
+  .text:00000001802304CB                 call    qword ptr [rdx+48h]
+  .text:00000001802304CE                 mov     rcx, cs:g_pRenderDeviceMgr
+  .text:00000001802304D5                 lea     rdx, [rsp+48h+var_28]
+  .text:00000001802304DA                 mov     r8d, eax
+  .text:00000001802304DD                 mov     r9d, ebx
+  .text:00000001802304E0                 call    qword ptr [rdi+88h]
+  .text:00000001802304E6                 mov     eax, dword ptr [rsp+48h+var_14]
+  .text:00000001802304EA                 mov     dword ptr [rsi+160h], 0
+  .text:00000001802304F4                 test    eax, eax
+  .text:00000001802304F6                 jz      short loc_180230514
+  .text:00000001802304F8                 movd    xmm1, dword ptr [rsp+48h+var_24+0Ch]
+  .text:00000001802304FE                 movd    xmm0, eax
+  .text:0000000180230502                 cvtdq2ps xmm1, xmm1
+  .text:0000000180230505                 cvtdq2ps xmm0, xmm0
+  .text:0000000180230508                 divss   xmm1, xmm0
+  .text:000000018023050C                 movss   dword ptr [rsi+160h], xmm1
+  .text:0000000180230514                 mov     rcx, cs:g_pRenderDeviceMgr
+  .text:000000018023051B                 lea     rdx, [rsi+158h]
+  .text:0000000180230522                 mov     rax, [rcx]
+  .text:0000000180230525                 call    qword ptr [rax+0B8h]
+  .text:000000018023052B                 mov     rcx, rsi
+  .text:000000018023052E                 call    sub_180228A90
+  .text:0000000180230533                 jmp     short loc_180230537
+  .text:0000000180230535                 xor     al, al
+  .text:0000000180230537                 mov     rbx, [rsp+48h+arg_0]
+  .text:000000018023053C                 mov     rbp, [rsp+48h+arg_8]
+  .text:0000000180230541                 mov     rsi, [rsp+48h+arg_10]
+  .text:0000000180230546                 add     rsp, 40h
+  .text:000000018023054A                 pop     rdi
+  .text:000000018023054B                 retn
+procedure: |-
+  char __fastcall CLoopTypeClientServer_LoopTypeInit(__int64 pthis, __int64 a2, __int64 a3, __int64 a4)
+  {
+    __int64 v8; // rax
+    __int64 v9; // rax
+    __int64 v10; // rdx
+    __int64 v11; // rcx
+    __int64 v12; // r8
+    __int64 v13; // r9
+    int v14; // eax
+    int v15; // eax
+    __int64 v16; // rdi
+    unsigned int v17; // ebx
+    unsigned int v18; // eax
+    int v19; // eax
+    int v21; // [rsp+20h] [rbp-28h] BYREF
+    __int128 v22; // [rsp+24h] [rbp-24h]
+    __int64 v23; // [rsp+34h] [rbp-14h]
+
+    v8 = (*(__int64 (__fastcall **)(_QWORD, __int64))(*g_pMemAlloc + 8LL))(g_pMemAlloc, 352);
+    if ( v8 )
+      v8 = sub_18022B9A0(v8, pthis);
+    *(_QWORD *)(pthis + 360) = v8;
+    v9 = CommandLine();
+    if ( (*(unsigned int (__fastcall **)(__int64, __int64, _QWORD))(*(_QWORD *)v9 + 48LL))(v9, 1300049617, 0) )
+      dword_18090D9FC = 10;
+    if ( !CLoopTypeBase_LoopTypeInit(pthis, a2) )
+      return 0;
+    (**(void (__fastcall ***)(__int64, const char *))pthis)(pthis, "GameResourceServiceServerV001");// 0x0 = 0LL = ILoopType_AddEngineService
+    (**(void (__fastcall ***)(__int64, const char *))pthis)(pthis, "InputService_001");
+    (**(void (__fastcall ***)(__int64, const char *))pthis)(pthis, "NetworkService_001");
+    (**(void (__fastcall ***)(__int64, const char *))pthis)(pthis, "NetworkServerService_001");
+    (**(void (__fastcall ***)(__int64, const char *))pthis)(pthis, "ClientServerEngineLoopService_001");
+    (**(void (__fastcall ***)(__int64, const char *))pthis)(pthis, "StatsService_001");
+    (**(void (__fastcall ***)(__int64, const char *))pthis)(pthis, "VProfService_001");
+    (**(void (__fastcall ***)(__int64, const char *))pthis)(pthis, "BugService001");
+    (**(void (__fastcall ***)(__int64, const char *))pthis)(pthis, "MapListService_001");
+    if ( !(unsigned __int8)sub_180411570(v11, v10, v12, v13) )
+    {
+      (**(void (__fastcall ***)(__int64, const char *))pthis)(pthis, "GameResourceServiceClientV001");
+      (**(void (__fastcall ***)(__int64, const char *))pthis)(pthis, "RenderService_001");
+      (**(void (__fastcall ***)(__int64, const char *))pthis)(pthis, "SoundService_001");
+      (**(void (__fastcall ***)(__int64, const char *))pthis)(pthis, "ToolService_001");
+      (**(void (__fastcall ***)(__int64, const char *))pthis)(pthis, "NetworkClientService_001");
+      (**(void (__fastcall ***)(__int64, const char *))pthis)(pthis, "NetworkP2PService_001");
+      (**(void (__fastcall ***)(__int64, const char *))pthis)(pthis, "GameUIService_001");
+      (**(void (__fastcall ***)(__int64, const char *))pthis)(pthis, "ScreenshotService001");
+    }
+    v14 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)a3 + 32LL))(a3) - 1;
+    if ( !v14 )
+    {
+      if ( !*(_QWORD *)(pthis + 144) )
+      {
+        *(_QWORD *)(pthis + 144) = a3;
+        *(_QWORD *)(pthis + 160) = a4;
+        goto LABEL_17;
+      }
+      return 0;
+    }
+    v15 = v14 - 1;
+    if ( !v15 )
+    {
+      if ( !*(_QWORD *)(pthis + 168) )
+      {
+        *(_QWORD *)(pthis + 168) = a3;
+        *(_QWORD *)(pthis + 184) = a4;
+        goto LABEL_17;
+      }
+      return 0;
+    }
+    if ( v15 != 1 || *(_QWORD *)(pthis + 192) )
+      return 0;
+    *(_QWORD *)(pthis + 192) = a3;
+    *(_QWORD *)(pthis + 208) = a4;
+  LABEL_17:
+    (**(void (__fastcall ***)(__int64, __int64))a3)(a3, pthis);
+    v22 = 0;
+    v23 = 0;
+    v21 = 1;
+    v16 = *(_QWORD *)g_pRenderDeviceMgr;
+    v17 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)g_pRenderDeviceMgr + 216LL))(g_pRenderDeviceMgr);
+    v18 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)g_pRenderDevice + 72LL))(g_pRenderDevice);
+    (*(void (__fastcall **)(__int64, int *, _QWORD, _QWORD))(v16 + 136))(g_pRenderDeviceMgr, &v21, v18, v17);
+    v19 = v23;
+    *(_DWORD *)(pthis + 352) = 0;
+    if ( v19 )
+      *(float *)(pthis + 352) = (float)SHIDWORD(v22) / (float)v19;
+    (*(void (__fastcall **)(__int64, __int64))(*(_QWORD *)g_pRenderDeviceMgr + 184LL))(g_pRenderDeviceMgr, pthis + 344);
+    return sub_180228A90(pthis);
+  }

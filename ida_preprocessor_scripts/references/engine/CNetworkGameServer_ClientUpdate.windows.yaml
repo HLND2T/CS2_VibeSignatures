@@ -1,0 +1,28 @@
+func_name: CNetworkGameServer_ClientUpdate
+func_va: '0x1800aba40'
+disasm_code: |-
+  .text:00000001800ABA40                 cmp     dword ptr [rcx+38h], 3
+  .text:00000001800ABA44                 jnz     short locret_1800ABA5B
+  .text:00000001800ABA46                 mov     rcx, cs:g_pSource2Server
+  .text:00000001800ABA4D                 test    rcx, rcx
+  .text:00000001800ABA50                 jz      short locret_1800ABA5B
+  .text:00000001800ABA52                 mov     rax, [rcx]
+  .text:00000001800ABA55                 mov     dl, 1
+  .text:00000001800ABA57                 ; 0x78 = 120LL = ISource2Server_ClientUpdate
+  .text:00000001800ABA57                 jmp     qword ptr [rax+78h]; 0x78 = 120LL = ISource2Server_ClientUpdate
+  .text:00000001800ABA5B                 retn
+procedure: |-
+  __int64 __fastcall CNetworkGameServer_ClientUpdate(__int64 a1, __int64 a2)
+  {
+    __int64 result; // rax
+
+    if ( *(_DWORD *)(a1 + 56) == 3 )
+    {
+      if ( g_pSource2Server )
+      {
+        LOBYTE(a2) = 1;
+        return (*(__int64 (__fastcall **)(__int64, __int64))(*(_QWORD *)g_pSource2Server + 120LL))(g_pSource2Server, a2);// 0x78 = 120LL = ISource2Server_ClientUpdate
+      }
+    }
+    return result;
+  }

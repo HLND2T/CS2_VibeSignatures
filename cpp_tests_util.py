@@ -14,7 +14,7 @@ except ImportError:
 
 
 VFTABLE_HEADER_RE = re.compile(
-    r"^\s*(?:VFTable|VTable) indices for '([^']+)' \((\d+) entries\)\.\s*$"
+    r"^\s*(?:VFTable|VTable) indices for '([^']+)' \((\d+) (?:entry|entries)\)\.\s*$"
 )
 VFTABLE_ENTRY_RE = re.compile(r"^\s*(\d+)\s+\|\s+(.+?)\s*$")
 

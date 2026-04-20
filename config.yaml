@@ -536,6 +536,43 @@ modules:
         expected_input:
           - CNetworkServerService_vtable.{platform}.yaml
 
+      - name: find-CNetworkServerService_RegisterEventMapInternal
+        expected_output:
+          - CNetworkServerService_RegisterEventMapInternal.{platform}.yaml
+
+      - name: find-CNetworkServerService_OnEventMapCallbacks-engine
+        expected_output:
+          - CNetworkServerService_OnServerAdvanceTick.{platform}.yaml
+          - CNetworkServerService_OnServerPollNetworking.{platform}.yaml
+          - CNetworkServerService_OnServerProcessNetworking.{platform}.yaml
+          - CNetworkServerService_OnServerBeginSimulate.{platform}.yaml
+          - CNetworkServerService_OnServerPostSimulate.{platform}.yaml
+          - CNetworkServerService_OnServerPostAdvanceTick.{platform}.yaml
+          - CNetworkServerService_OnFrameBoundary.{platform}.yaml
+          - CNetworkServerService_OnClientPollNetworking.{platform}.yaml
+          - CNetworkServerService_OnSimpleLoopFrameUpdate.{platform}.yaml
+        expected_input:
+          - CNetworkServerService_RegisterEventMapInternal.{platform}.yaml
+
+      - name: find-INetworkGameServer_ClientUpdate
+        expected_output:
+          - INetworkGameServer_ClientUpdate.{platform}.yaml
+        expected_input:
+          - CNetworkServerService_OnServerPostAdvanceTick.{platform}.yaml
+
+      - name: find-CNetworkGameServer_ClientUpdate
+        expected_output:
+          - CNetworkGameServer_ClientUpdate.{platform}.yaml
+        expected_input:
+          - CNetworkGameServer_vtable.{platform}.yaml
+          - INetworkGameServer_ClientUpdate.{platform}.yaml
+
+      - name: find-ISource2Server_ClientUpdate
+        expected_output:
+          - ISource2Server_ClientUpdate.{platform}.yaml
+        expected_input:
+          - CNetworkGameServer_ClientUpdate.{platform}.yaml
+
       - name: find-INetworkMessages_SetIsForServer
         expected_output:
           - INetworkMessages_SetIsForServer.{platform}.yaml
@@ -572,15 +609,204 @@ modules:
         expected_output:
           - CLoopTypeClientServerService_vtable.{platform}.yaml
 
-      - name: find-CLoopTypeClientServer_BuildAndActivateLoopTypes
+      - name: find-CLoopTypeClientServerService_vtable2
         expected_output:
-          - CLoopTypeClientServer_BuildAndActivateLoopTypes.{platform}.yaml
+          - CLoopTypeClientServerService_vtable2.{platform}.yaml
+
+      - name: find-CLoopTypeClientServer_vtable
+        expected_output:
+          - CLoopTypeClientServer_vtable.{platform}.yaml
+
+      - name: find-CLoopTypeClientSimple_ActivateEngineServices
+        expected_output:
+          - CLoopTypeClientSimple_ActivateEngineServices.{platform}.yaml
+
+      - name: find-CLoopTypeClientServer_LoopTypeInit
+        expected_output:
+          - CLoopTypeClientServer_LoopTypeInit.{platform}.yaml
+        expected_input:
+          - CLoopTypeClientServer_vtable.{platform}.yaml
+
+      - name: find-ILoopType_AddEngineService
+        expected_output:
+          - ILoopType_AddEngineService.{platform}.yaml
+        expected_input:
+          - CLoopTypeClientServer_LoopTypeInit.{platform}.yaml
+
+      - name: find-CLoopTypeClientServer_FrameUpdate
+        expected_output:
+          - CLoopTypeClientServer_FrameUpdate.{platform}.yaml
+        expected_input:
+          - CLoopTypeClientServer_vtable.{platform}.yaml
+
+      - name: find-CLoopTypeClientServer_ActivateLoop
+        expected_output:
+          - CLoopTypeClientServer_ActivateLoop.{platform}.yaml
+        expected_input:
+          - CLoopTypeClientServer_vtable.{platform}.yaml
+          - CLoopTypeClientSimple_ActivateEngineServices.{platform}.yaml
+
+      - name: find-CLoopTypeClientServer_AllocateLoopMode
+        expected_output:
+          - CLoopTypeClientServer_AllocateLoopMode.{platform}.yaml
+        expected_input:
+          - CLoopTypeClientServer_vtable.{platform}.yaml
+
+      - name: find-CLoopTypeClientServer_WritePerfStats
+        expected_output:
+          - CLoopTypeClientServer_WritePerfStats.{platform}.yaml
+
+      - name: find-CLoopTypeClientServer_DeactivateLoop
+        expected_output:
+          - CLoopTypeClientServer_DeactivateLoop.{platform}.yaml
+        expected_input:
+          - CLoopTypeClientServer_vtable.{platform}.yaml
+          - CLoopTypeClientServer_WritePerfStats.{platform}.yaml
+
+      - name: find-CLoopTypeClientServer_EngineLoop
+        expected_output:
+          - CLoopTypeClientServer_EngineLoop.{platform}.yaml
+        expected_input:
+          - CLoopTypeClientServer_vtable.{platform}.yaml
+
+      - name: find-ILoopType_EngineLoop
+        expected_output:
+          - ILoopType_EngineLoop.{platform}.yaml
+        expected_input:
+          - CLoopTypeClientServer_EngineLoop.{platform}.yaml
+
+      - name: find-ILoopType_FrameUpdate
+        expected_output:
+          - ILoopType_FrameUpdate.{platform}.yaml
+        expected_input:
+          - CLoopTypeClientServer_FrameUpdate.{platform}.yaml
+
+      - name: find-ILoopType_ActivateLoop
+        expected_output:
+          - ILoopType_ActivateLoop.{platform}.yaml
+        expected_input:
+          - CLoopTypeClientServer_ActivateLoop.{platform}.yaml
+
+      - name: find-ILoopType_AllocateLoopMode
+        expected_output:
+          - ILoopType_AllocateLoopMode.{platform}.yaml
+        expected_input:
+          - CLoopTypeClientServer_AllocateLoopMode.{platform}.yaml
+
+      - name: find-ILoopType_DeactivateLoop
+        expected_output:
+          - ILoopType_DeactivateLoop.{platform}.yaml
+        expected_input:
+          - CLoopTypeClientServer_DeactivateLoop.{platform}.yaml
+
+      - name: find-ILoopType_LoopTypeInit
+        expected_output:
+          - ILoopType_LoopTypeInit.{platform}.yaml
+        expected_input:
+          - CLoopTypeClientServer_LoopTypeInit.{platform}.yaml
 
       - name: find-CLoopTypeClientServerService_OnLoopActivate
         expected_output:
           - CLoopTypeClientServerService_OnLoopActivate.{platform}.yaml
         expected_input:
           - CLoopTypeClientServerService_vtable.{platform}.yaml
+
+      - name: find-CLoopTypeClientServerService_HandleInputEvent
+        expected_output:
+          - CLoopTypeClientServerService_HandleInputEvent.{platform}.yaml
+        expected_input:
+          - CLoopTypeClientServerService_vtable2.{platform}.yaml
+
+      - name: find-ILoopMode_HandleInputEvent
+        expected_output:
+          - ILoopMode_HandleInputEvent.{platform}.yaml
+        expected_input:
+          - CLoopTypeClientServerService_HandleInputEvent.{platform}.yaml
+
+      - name: find-CEngineServiceMgr_vtable
+        expected_output:
+          - CEngineServiceMgr_vtable.{platform}.yaml
+
+      - name: find-CEngineServiceMgr_RegisterEngineService
+        expected_output:
+          - CEngineServiceMgr_RegisterEngineService.{platform}.yaml
+        expected_input:
+          - CEngineServiceMgr_vtable.{platform}.yaml
+
+      - name: find-CEngineServiceMgr__MainLoop
+        expected_output:
+          - CEngineServiceMgr__MainLoop.{platform}.yaml
+
+      - name: find-CEngineServiceMgr_DeactivateLoop
+        expected_output:
+          - CEngineServiceMgr_DeactivateLoop.{platform}.yaml
+        expected_input:
+          - CEngineServiceMgr__MainLoop.{platform}.yaml
+
+      - name: find-ILoopType_DeallocateLoopMode
+        expected_output:
+          - ILoopType_DeallocateLoopMode.{platform}.yaml
+        expected_input:
+          - CEngineServiceMgr_DeactivateLoop.{platform}.yaml
+
+      - name: find-CEngineGameUI_vtable
+        expected_output:
+          - CEngineGameUI_vtable.{platform}.yaml
+
+      - name: find-CEngineGameUI_Shutdown
+        expected_output:
+          - CEngineGameUI_Shutdown.{platform}.yaml
+        expected_input:
+          - CEngineGameUI_vtable.{platform}.yaml
+
+      - name: find-IAppSystem_Shutdown
+        expected_output:
+          - IAppSystem_Shutdown.{platform}.yaml
+        expected_input:
+          - CEngineGameUI_Shutdown.{platform}.yaml
+
+      - name: find-CEngineServiceMgr_Shutdown
+        expected_output:
+          - CEngineServiceMgr_Shutdown.{platform}.yaml
+        expected_input:
+          - CEngineServiceMgr_vtable.{platform}.yaml
+          - IAppSystem_Shutdown.{platform}.yaml
+
+      - name: find-ILoopType_LoopTypeShutdown
+        expected_output:
+          - ILoopType_LoopTypeShutdown.{platform}.yaml
+        expected_input:
+          - CEngineServiceMgr_Shutdown.{platform}.yaml
+
+      - name: find-CEngineServiceMgr_GetActiveLoopClientServerMode
+        expected_output:
+          - CEngineServiceMgr_GetActiveLoopClientServerMode.{platform}.yaml
+        expected_input:
+          - CEngineServiceMgr_vtable.{platform}.yaml
+          - ../client/IEngineServiceMgr_GetActiveLoopClientServerMode.{platform}.yaml
+
+      - name: find-ILoopType_GetClientServerMode
+        expected_output:
+          - ILoopType_GetClientServerMode.{platform}.yaml
+        expected_input:
+          - CEngineServiceMgr_GetActiveLoopClientServerMode.{platform}.yaml
+
+      - name: find-CLoopTypeSimple_vtable
+        expected_output:
+          - CLoopTypeSimple_vtable.{platform}.yaml
+
+      - name: find-CLoopTypeSimple_FrameUpdate
+        expected_output:
+          - CLoopTypeSimple_FrameUpdate.{platform}.yaml
+        expected_input:
+          - CLoopTypeSimple_vtable.{platform}.yaml
+          - ILoopType_FrameUpdate.{platform}.yaml
+
+      - name: find-ISource2Server_OutOfGameFrameBoundary
+        expected_output:
+          - ISource2Server_OutOfGameFrameBoundary.{platform}.yaml
+        expected_input:
+          - CLoopTypeSimple_FrameUpdate.{platform}.yaml
 
     symbols:
       - name: CNetworkGameServer_vtable
@@ -730,6 +956,77 @@ modules:
         alias:
           - CNetworkServerService::Init
 
+      - name: CNetworkServerService_RegisterEventMapInternal
+        category: func
+        alias:
+          - CNetworkServerService::RegisterEventMapInternal
+
+      - name: CNetworkServerService_OnServerAdvanceTick
+        category: func
+        alias:
+          - CNetworkServerService::OnServerAdvanceTick
+
+      - name: CNetworkServerService_OnServerPollNetworking
+        category: func
+        alias:
+          - CNetworkServerService::OnServerPollNetworking
+
+      - name: CNetworkServerService_OnServerProcessNetworking
+        category: func
+        alias:
+          - CNetworkServerService::OnServerProcessNetworking
+
+      - name: CNetworkServerService_OnServerBeginSimulate
+        category: func
+        alias:
+          - CNetworkServerService::OnServerBeginSimulate
+
+      - name: CNetworkServerService_OnServerPostSimulate
+        category: func
+        alias:
+          - CNetworkServerService::OnServerPostSimulate
+
+      - name: CNetworkServerService_OnServerPostAdvanceTick
+        category: func
+        alias:
+          - CNetworkServerService::OnServerPostAdvanceTick
+
+      - name: CNetworkServerService_OnFrameBoundary
+        category: func
+        alias:
+          - CNetworkServerService::OnFrameBoundary
+
+      - name: CNetworkServerService_OnClientPollNetworking
+        category: func
+        alias:
+          - CNetworkServerService::OnClientPollNetworking
+
+      - name: CNetworkServerService_OnSimpleLoopFrameUpdate
+        category: func
+        alias:
+          - CNetworkServerService::OnSimpleLoopFrameUpdate
+
+      - name: INetworkGameServer_ClientUpdate
+        category: vfunc
+        alias:
+          - INetworkGameServer::ClientUpdate
+
+      - name: CNetworkGameServer_ClientUpdate
+        category: vfunc
+        alias:
+          - CNetworkGameServer::ClientUpdate
+
+      - name: ISource2Server_ClientUpdate
+        category: vfunc
+        alias:
+          - ISource2Server::ClientUpdate
+        shared: true
+
+      - name: ISource2Server_OutOfGameFrameBoundary
+        category: vfunc
+        alias:
+          - ISource2Server::OutOfGameFrameBoundary
+
       - name: INetworkMessages_SetIsForServer
         category: vfunc
         alias:
@@ -750,15 +1047,166 @@ modules:
       - name: CLoopTypeClientServerService_vtable
         category: vtable
 
-      - name: CLoopTypeClientServer_BuildAndActivateLoopTypes
+      - name: CLoopTypeClientServerService_vtable2
+        category: vtable
+
+      - name: CLoopTypeClientServer_vtable
+        category: vtable
+
+      - name: CLoopTypeClientSimple_ActivateEngineServices
         category: func
         alias:
-          - CLoopTypeClientServer::BuildAndActivateLoopTypes
+          - CLoopTypeClientServer::ActivateEngineServices
+
+      - name: CLoopTypeClientServer_LoopTypeInit
+        category: vfunc
+        alias:
+          - CLoopTypeClientServer::LoopTypeInit
+
+      - name: CLoopTypeClientServer_FrameUpdate
+        category: vfunc
+        alias:
+          - CLoopTypeClientServer::FrameUpdate
+
+      - name: CLoopTypeClientServer_ActivateLoop
+        category: vfunc
+        alias:
+          - CLoopTypeClientServer::ActivateLoop
+
+      - name: CLoopTypeClientServer_AllocateLoopMode
+        category: vfunc
+        alias:
+          - CLoopTypeClientServer::AllocateLoopMode
+
+      - name: CLoopTypeClientServer_WritePerfStats
+        category: func
+        alias:
+          - CLoopTypeClientServer::WritePerfStats
+
+      - name: CLoopTypeClientServer_DeactivateLoop
+        category: vfunc
+        alias:
+          - CLoopTypeClientServer::DeactivateLoop
+
+      - name: CLoopTypeClientServer_EngineLoop
+        category: vfunc
+        alias:
+          - CLoopTypeClientServer::EngineLoop
+
+      - name: CLoopTypeSimple_vtable
+        category: vtable
+
+      - name: CLoopTypeSimple_FrameUpdate
+        category: vfunc
+        alias:
+          - CLoopTypeSimple::FrameUpdate
+
 
       - name: CLoopTypeClientServerService_OnLoopActivate
         category: vfunc
         alias:
           - CLoopTypeClientServerService::OnLoopActivate
+
+      - name: CLoopTypeClientServerService_HandleInputEvent
+        category: vfunc
+        alias:
+          - CLoopTypeClientServerService::HandleInputEvent
+
+      - name: ILoopMode_HandleInputEvent
+        category: vfunc
+        alias:
+          - ILoopMode::HandleInputEvent
+
+      - name: ILoopType_AddEngineService
+        category: vfunc
+        alias:
+          - ILoopType::AddEngineService
+
+      - name: ILoopType_DeallocateLoopMode
+        category: vfunc
+        alias:
+          - ILoopType::DeallocateLoopMode
+
+      - name: ILoopType_EngineLoop
+        category: vfunc
+        alias:
+          - ILoopType::EngineLoop
+
+      - name: ILoopType_FrameUpdate
+        category: vfunc
+        alias:
+          - ILoopType::FrameUpdate
+
+      - name: ILoopType_ActivateLoop
+        category: vfunc
+        alias:
+          - ILoopType::ActivateLoop
+
+      - name: ILoopType_AllocateLoopMode
+        category: vfunc
+        alias:
+          - ILoopType::AllocateLoopMode
+
+      - name: ILoopType_DeactivateLoop
+        category: vfunc
+        alias:
+          - ILoopType::DeactivateLoop
+
+      - name: ILoopType_LoopTypeInit
+        category: vfunc
+        alias:
+          - ILoopType::LoopTypeInit
+
+      - name: ILoopType_LoopTypeShutdown
+        category: vfunc
+        alias:
+          - ILoopType::LoopTypeShutdown
+
+      - name: ILoopType_GetClientServerMode
+        category: vfunc
+        alias:
+          - ILoopType::GetClientServerMode
+
+      - name: CEngineServiceMgr_vtable
+        category: vtable
+
+      - name: CEngineServiceMgr_RegisterEngineService
+        category: vfunc
+        alias:
+          - CEngineServiceMgr::RegisterEngineService
+
+      - name: CEngineServiceMgr__MainLoop
+        category: func
+        alias:
+          - CEngineServiceMgr::_MainLoop
+
+      - name: CEngineServiceMgr_DeactivateLoop
+        category: func
+        alias:
+          - CEngineServiceMgr::DeactivateLoop
+
+      - name: CEngineServiceMgr_Shutdown
+        category: vfunc
+        alias:
+          - CEngineServiceMgr::Shutdown
+
+      - name: CEngineServiceMgr_GetActiveLoopClientServerMode
+        category: vfunc
+        alias:
+          - CEngineServiceMgr::GetActiveLoopClientServerMode
+
+      - name: CEngineGameUI_vtable
+        category: vtable
+
+      - name: CEngineGameUI_Shutdown
+        category: vfunc
+        alias:
+          - CEngineGameUI::Shutdown
+
+      - name: IAppSystem_Shutdown
+        category: vfunc
+        alias:
+          - IAppSystem::Shutdown
 
   - name: client
     path_windows: game/csgo/bin/win64/client.dll
@@ -776,6 +1224,30 @@ modules:
       - name: find-CLoopModeGame_vtable
         expected_output:
           - CLoopModeGame_vtable.{platform}.yaml
+
+      - name: find-CLoopModeGame_OnLoopActivate
+        expected_output:
+          - CLoopModeGame_OnLoopActivate.{platform}.yaml
+        expected_input:
+          - CLoopModeGame_vtable.{platform}.yaml
+
+      - name: find-ILoopMode_OnLoopActivate
+        expected_output:
+          - ILoopMode_OnLoopActivate.{platform}.yaml
+        expected_input:
+          - CLoopModeGame_OnLoopActivate.{platform}.yaml
+
+      - name: find-CLoopModeGame_AddViewsToSceneSystem
+        expected_output:
+          - CLoopModeGame_AddViewsToSceneSystem.{platform}.yaml
+        expected_input:
+          - CLoopModeGame_vtable.{platform}.yaml
+
+      - name: find-ILoopMode_AddViewsToSceneSystem
+        expected_output:
+          - ILoopMode_AddViewsToSceneSystem.{platform}.yaml
+        expected_input:
+          - CLoopModeGame_AddViewsToSceneSystem.{platform}.yaml
 
       - name: find-CLoopModeGame_RegisterEventMapInternal-client
         expected_output:
@@ -813,6 +1285,12 @@ modules:
           - CLoopModeGame_RegisterEventMapInternal.{platform}.yaml
           - CLoopModeGame_vtable.{platform}.yaml
 
+      - name: find-ILoopMode_RegisterEventMap
+        expected_output:
+          - ILoopMode_RegisterEventMap.{platform}.yaml
+        expected_input:
+          - CLoopModeGame_RegisterEventMap.{platform}.yaml
+
       - name: find-CLoopModeGame_LoopInitInternal
         platform: linux
         expected_output:
@@ -825,6 +1303,18 @@ modules:
           - CLoopModeGame_vtable.{platform}.yaml
         expected_input_linux:
           - CLoopModeGame_LoopInitInternal.{platform}.yaml
+
+      - name: find-ILoopMode_LoopInit
+        expected_output:
+          - ILoopMode_LoopInit.{platform}.yaml
+        expected_input:
+          - CLoopModeGame_LoopInit.{platform}.yaml
+
+      - name: find-ILoopMode_LoopShutdown
+        expected_output:
+          - ILoopMode_LoopShutdown.{platform}.yaml
+        expected_input:
+          - CLoopModeGame_LoopShutdown.{platform}.yaml
 
       - name: find-CLoopModeGame_SetWorldSession
         expected_output:
@@ -866,18 +1356,19 @@ modules:
         expected_input:
           - CLoopModeGame_ReceivedServerInfo.{platform}.yaml
 
-      - name: find-IGameSystemFactory_Allocate-AND-IGameSystemFactory_HasName-AND-IGameSystem_SetName
+      - name: find-IGameSystemFactory_Allocate-AND-IGameSystemFactory_DoesGameSystemReallocate-AND-IGameSystem_SetName
         expected_output:
           - IGameSystemFactory_Allocate.{platform}.yaml
-          - IGameSystemFactory_HasName.{platform}.yaml
+          - IGameSystemFactory_DoesGameSystemReallocate.{platform}.yaml
           - IGameSystem_SetName.{platform}.yaml
         expected_input:
           - IGameSystem_AddByName.{platform}.yaml
 
-      - name: find-IGameSystem_DestroyAllGameSystems-AND-IGameSystem_LoopDestroyAllSystems
+      - name: find-IGameSystem_DestroyAllGameSystems-AND-IGameSystem_LoopDestroyAllSystems-AND-IGameSystem_LoopPreShutdownAllSystems
         expected_output:
           - IGameSystem_DestroyAllGameSystems.{platform}.yaml
           - IGameSystem_LoopDestroyAllSystems.{platform}.yaml
+          - IGameSystem_LoopPreShutdownAllSystems.{platform}.yaml
         expected_input_windows:
           - CLoopModeGame_LoopShutdown.{platform}.yaml
         expected_input_linux:
@@ -1012,19 +1503,22 @@ modules:
         expected_output:
           - CSpawnGroupMgrGameSystem_vtable.{platform}.yaml
 
-      - name: find-CSpawnGroupMgrGameSystem_HasName
+      - name: find-CSpawnGroupMgrGameSystem_vtable2
         expected_output:
-          - CSpawnGroupMgrGameSystem_HasName.{platform}.yaml
-        expected_input:
-          - IGameSystem_SetName.{platform}.yaml
-          - IGameSystemFactory_HasName.{platform}.yaml
-          - CSpawnGroupMgrGameSystem_vtable.{platform}.yaml
+          - CSpawnGroupMgrGameSystem_vtable2.{platform}.yaml
 
-      - name: find-IGameSystem_HasName
+      - name: find-CSpawnGroupMgrGameSystem_DoesGameSystemReallocate
         expected_output:
-          - IGameSystem_HasName.{platform}.yaml
+          - CSpawnGroupMgrGameSystem_DoesGameSystemReallocate.{platform}.yaml
         expected_input:
-          - CSpawnGroupMgrGameSystem_HasName.{platform}.yaml
+          - IGameSystemFactory_DoesGameSystemReallocate.{platform}.yaml
+          - CSpawnGroupMgrGameSystem_vtable2.{platform}.yaml
+
+      - name: find-IGameSystem_DoesGameSystemReallocate
+        expected_output:
+          - IGameSystem_DoesGameSystemReallocate.{platform}.yaml
+        expected_input:
+          - CSpawnGroupMgrGameSystem_DoesGameSystemReallocate.{platform}.yaml
           - IGameSystem_vtable.{platform}.yaml
 
       - name: find-CGameSystemReallocatingFactory_CSpawnGroupMgrGameSystem_vtable
@@ -1044,6 +1538,22 @@ modules:
           - IGameSystem_dtor.{platform}.yaml
         expected_input:
           - CGameSystemReallocatingFactory_CSpawnGroupMgrGameSystem_Deallocate.{platform}.yaml
+
+      - name: find-CPrediction_vtable
+        expected_output:
+          - CPrediction_vtable.{platform}.yaml
+
+      - name: find-CPrediction_PostNetworkDataReceived
+        expected_output:
+          - CPrediction_PostNetworkDataReceived.{platform}.yaml
+        expected_input:
+          - CPrediction_vtable.{platform}.yaml
+
+      - name: find-IEngineServiceMgr_GetActiveLoopClientServerMode
+        expected_output:
+          - IEngineServiceMgr_GetActiveLoopClientServerMode.{platform}.yaml
+        expected_input:
+          - CPrediction_PostNetworkDataReceived.{platform}.yaml
 
     symbols:
       - name: CLoopModeGame_RegisterEventMapInternal
@@ -1132,6 +1642,26 @@ modules:
       - name: CLoopModeGame_vtable
         category: vtable
 
+      - name: CLoopModeGame_OnLoopActivate
+        category: vfunc
+        alias:
+          - CLoopModeGame::OnLoopActivate
+
+      - name: ILoopMode_OnLoopActivate
+        category: vfunc
+        alias:
+          - ILoopMode::OnLoopActivate
+
+      - name: CLoopModeGame_AddViewsToSceneSystem
+        category: vfunc
+        alias:
+          - CLoopModeGame::AddViewsToSceneSystem
+
+      - name: ILoopMode_AddViewsToSceneSystem
+        category: vfunc
+        alias:
+          - ILoopMode::AddViewsToSceneSystem
+
       - name: CLoopModeGame_LoopInitInternal
         category: func
         alias:
@@ -1142,6 +1672,16 @@ modules:
         alias:
           - CLoopModeGame::LoopInit
 
+      - name: ILoopMode_LoopInit
+        category: vfunc
+        alias:
+          - ILoopMode::LoopInit
+
+      - name: ILoopMode_LoopShutdown
+        category: vfunc
+        alias:
+          - ILoopMode::LoopShutdown
+
       - name: CLoopModeGame_ReceivedServerInfo
         category: func
         alias:
@@ -1151,6 +1691,11 @@ modules:
         category: vfunc
         alias:
           - CLoopModeGame::RegisterEventMap
+
+      - name: ILoopMode_RegisterEventMap
+        category: vfunc
+        alias:
+          - ILoopMode::RegisterEventMap
 
       - name: CLoopModeGame_SetWorldSession
         category: func
@@ -1182,20 +1727,20 @@ modules:
         alias:
           - IGameSystemFactory::Allocate
 
-      - name: IGameSystemFactory_HasName
+      - name: IGameSystemFactory_DoesGameSystemReallocate
         category: vfunc
         alias:
-          - IGameSystemFactory::HasName
+          - IGameSystemFactory::DoesGameSystemReallocate
 
       - name: IGameSystem_SetName
         category: vfunc
         alias:
           - IGameSystem::SetName
 
-      - name: CSpawnGroupMgrGameSystem_HasName
+      - name: CSpawnGroupMgrGameSystem_DoesGameSystemReallocate
         category: vfunc
         alias:
-          - IGameSystem::HasName
+          - IGameSystem::DoesGameSystemReallocate
 
       - name: IGameSystem_DestroyAllGameSystems
         category: func
@@ -1206,6 +1751,11 @@ modules:
         category: func
         alias:
           - IGameSystem::LoopDestroyAllSystems
+
+      - name: IGameSystem_LoopPreShutdownAllSystems
+        category: func
+        alias:
+          - IGameSystem::LoopPreShutdownAllSystems
 
       - name: IGameSystem_ClientPollNetworking
         category: vfunc
@@ -1313,6 +1863,19 @@ modules:
         alias:
           - IGameSystemFactory::Deallocate
 
+      - name: CPrediction_vtable
+        category: vtable
+
+      - name: CPrediction_PostNetworkDataReceived
+        category: vfunc
+        alias:
+          - CPrediction::PostNetworkDataReceived
+
+      - name: IEngineServiceMgr_GetActiveLoopClientServerMode
+        category: vfunc
+        alias:
+          - IEngineServiceMgr::GetActiveLoopClientServerMode
+
   - name: server
     path_windows: game/csgo/bin/win64/server.dll
     path_linux: game/csgo/bin/linuxsteamrt64/libserver.so
@@ -1325,6 +1888,20 @@ modules:
       - name: find-CSource2Server_vtable
         expected_output:
           - CSource2Server_vtable.{platform}.yaml
+
+      - name: find-CSource2Server_OutOfGameFrameBoundary
+        expected_output:
+          - CSource2Server_OutOfGameFrameBoundary.{platform}.yaml
+        expected_input:
+          - CSource2Server_vtable.{platform}.yaml
+          - ../engine/ISource2Server_OutOfGameFrameBoundary.{platform}.yaml
+
+      - name: find-IGameSystem_OutOfGameFrameBoundary
+        expected_output:
+          - IGameSystem_OutOfGameFrameBoundary.{platform}.yaml
+        expected_input:
+          - CSource2Server_OutOfGameFrameBoundary.{platform}.yaml
+          - IGameSystem_vtable.{platform}.yaml
 
       - name: find-CSource2GameEntities_vtable
         expected_output:
@@ -1345,6 +1922,10 @@ modules:
       - name: find-CGameRules_vtable
         expected_output:
           - CGameRules_vtable.{platform}.yaml
+
+      - name: find-CGameRulesGameSystem_vtable
+        expected_output:
+          - CGameRulesGameSystem_vtable.{platform}.yaml
 
       - name: find-CMultiplayRules_vtable
         expected_output:
@@ -1791,6 +2372,34 @@ modules:
         expected_input:
           - CSource2Server_vtable.{platform}.yaml
 
+      - name: find-CSource2Server_GameFrame
+        expected_output:
+          - CSource2Server_GameFrame.{platform}.yaml
+        expected_input:
+          - CSource2Server_vtable.{platform}.yaml
+
+      - name: find-CSource2Server_ClientUpdate
+        expected_output:
+          - CSource2Server_ClientUpdate.{platform}.yaml
+        expected_input:
+          - CSource2Server_vtable.{platform}.yaml
+          - ../engine/ISource2Server_ClientUpdate.{platform}.yaml
+
+      - name: find-IGameSystem_ServerPreClientUpdate
+        expected_output:
+          - IGameSystem_ServerPreClientUpdate.{platform}.yaml
+        expected_input:
+          - CSource2Server_ClientUpdate.{platform}.yaml
+          - IGameSystem_vtable.{platform}.yaml
+
+      - name: find-IGameSystem_ServerPreEntityThink-AND-IGameSystem_ServerPostEntityThink
+        expected_output:
+          - IGameSystem_ServerPreEntityThink.{platform}.yaml
+          - IGameSystem_ServerPostEntityThink.{platform}.yaml
+        expected_input:
+          - CSource2Server_GameFrame.{platform}.yaml
+          - IGameSystem_vtable.{platform}.yaml
+
       - name: find-CGameEventManager_Init-AND-gameeventmanager
         expected_output:
           - CGameEventManager_Init.{platform}.yaml
@@ -1813,6 +2422,42 @@ modules:
           - CGameRules_ClientSettingsChanged.{platform}.yaml
         expected_input:
           - CGameRules_vtable.{platform}.yaml
+
+      - name: find-CGameRulesGameSystem_GameInit
+        expected_output:
+          - CGameRulesGameSystem_GameInit.{platform}.yaml
+        expected_input:
+          - CGameRulesGameSystem_vtable.{platform}.yaml
+
+      - name: find-IGameSystem_GameInit
+        expected_output:
+          - IGameSystem_GameInit.{platform}.yaml
+        expected_input:
+          - CGameRulesGameSystem_GameInit.{platform}.yaml
+
+      - name: find-CGameRulesGameSystem_GameShutdown
+        expected_output:
+          - CGameRulesGameSystem_GameShutdown.{platform}.yaml
+        expected_input:
+          - CGameRulesGameSystem_vtable.{platform}.yaml
+
+      - name: find-IGameSystem_GameShutdown
+        expected_output:
+          - IGameSystem_GameShutdown.{platform}.yaml
+        expected_input:
+          - CGameRulesGameSystem_GameShutdown.{platform}.yaml
+
+      - name: find-IGameSystem_GamePostInit
+        expected_output:
+          - IGameSystem_GamePostInit.{platform}.yaml
+        expected_input:
+          - IGameSystem_LoopPostInitAllSystems.{platform}.yaml
+
+      - name: find-IGameSystem_GamePreShutdown
+        expected_output:
+          - IGameSystem_GamePreShutdown.{platform}.yaml
+        expected_input:
+          - IGameSystem_LoopPreShutdownAllSystems.{platform}.yaml
 
       - name: find-CTakeDamageInfo_GetWeaponName
         expected_output:
@@ -1983,6 +2628,10 @@ modules:
           - IGameSystem_InitAllSystems_pFirst.{platform}.yaml
         expected_input:
           - IGameSystem_InitAllSystems.{platform}.yaml
+
+      - name: find-IGameSystem_LoopPostInitAllSystems
+        expected_output:
+          - IGameSystem_LoopPostInitAllSystems.{platform}.yaml
 
       - name: find-IGameSystem_LoopPostInitAllSystems_pEventDispatcher-AND-IGameSystem_LoopDestroyAllSystems_s_GameSystems
         expected_output:
@@ -2345,6 +2994,21 @@ modules:
         expected_input:
           - CDedicatedServerWorkshopManager_SwitchToWorkshopMapGroup.{platform}.yaml
 
+      - name: find-CSpawnGroupMgrGameSystem_vtable
+        expected_output:
+          - CSpawnGroupMgrGameSystem_vtable.{platform}.yaml
+
+      - name: find-CSpawnGroupMgrGameSystem_vtable2
+        expected_output:
+          - CSpawnGroupMgrGameSystem_vtable2.{platform}.yaml
+
+      - name: find-CSpawnGroupMgrGameSystem_DoesGameSystemReallocate
+        expected_output:
+          - CSpawnGroupMgrGameSystem_DoesGameSystemReallocate.{platform}.yaml
+        expected_input:
+          - ../client/IGameSystemFactory_DoesGameSystemReallocate.{platform}.yaml
+          - CSpawnGroupMgrGameSystem_vtable2.{platform}.yaml
+
       - name: find-CSpawnGroupMgrGameSystem_GetSpawnGroups
         expected_output:
           - CSpawnGroupMgrGameSystem_GetSpawnGroups.{platform}.yaml
@@ -2660,6 +3324,83 @@ modules:
         expected_output:
           - CLoopModeGame_vtable.{platform}.yaml
 
+      - name: find-CLoopModeGame_OnLoopActivate
+        expected_output:
+          - CLoopModeGame_OnLoopActivate.{platform}.yaml
+        expected_input:
+          - CLoopModeGame_vtable.{platform}.yaml
+
+      - name: find-ILoopMode_OnLoopActivate
+        expected_output:
+          - ILoopMode_OnLoopActivate.{platform}.yaml
+        expected_input:
+          - CLoopModeGame_OnLoopActivate.{platform}.yaml
+
+      - name: find-CLoopModeGame_AddViewsToSceneSystem
+        expected_output:
+          - CLoopModeGame_AddViewsToSceneSystem.{platform}.yaml
+        expected_input:
+          - CLoopModeGame_vtable.{platform}.yaml
+
+      - name: find-ILoopMode_AddViewsToSceneSystem
+        expected_output:
+          - ILoopMode_AddViewsToSceneSystem.{platform}.yaml
+        expected_input:
+          - CLoopModeGame_AddViewsToSceneSystem.{platform}.yaml
+
+      - name: find-CLoopModeGame_RegisterEventMapInternal-server
+        expected_output:
+          - CLoopModeGame_RegisterEventMapInternal.{platform}.yaml
+
+      - name: find-CLoopModeGame_OnEventMapCallbacks-server
+        expected_output:
+          - RegisterEventListener_Abstract.{platform}.yaml
+          - CLoopModeGame_OnServerAdvanceTick.{platform}.yaml
+          - CLoopModeGame_OnServerBeginSimulate.{platform}.yaml
+          - CLoopModeGame_OnServerPostSimulate.{platform}.yaml
+          - CLoopModeGame_OnServerPostAdvanceTick.{platform}.yaml
+          - CLoopModeGame_OnServerBeginAsyncPostTickWork.{platform}.yaml
+          - CLoopModeGame_OnServerEndAsyncPostTickWork.{platform}.yaml
+          - CLoopModeGame_OnFrameBoundary.{platform}.yaml
+        expected_input:
+          - CLoopModeGame_RegisterEventMapInternal.{platform}.yaml
+
+      - name: find-IGameSystem_ServerAdvanceTick
+        expected_output:
+          - IGameSystem_ServerAdvanceTick.{platform}.yaml
+        expected_input:
+          - CLoopModeGame_OnServerAdvanceTick.{platform}.yaml
+          - IGameSystem_vtable.{platform}.yaml
+
+      - name: find-IGameSystem_ServerGamePostSimulate
+        expected_output:
+          - IGameSystem_ServerGamePostSimulate.{platform}.yaml
+        expected_input:
+          - CLoopModeGame_OnServerPostSimulate.{platform}.yaml
+          - IGameSystem_vtable.{platform}.yaml
+
+      - name: find-IGameSystem_ServerPostAdvanceTick
+        expected_output:
+          - IGameSystem_ServerPostAdvanceTick.{platform}.yaml
+        expected_input:
+          - CLoopModeGame_OnServerPostAdvanceTick.{platform}.yaml
+          - IGameSystem_vtable.{platform}.yaml
+
+      - name: find-IGameSystem_ServerBeginAsyncPostTickWork
+        expected_output:
+          - IGameSystem_ServerBeginAsyncPostTickWork.{platform}.yaml
+        expected_input:
+          - CLoopModeGame_OnServerBeginAsyncPostTickWork.{platform}.yaml
+          - IGameSystem_vtable.{platform}.yaml
+
+      - name: find-IGameSystem_BeforeServerEndAsyncPostTickWork-AND-IGameSystem_ServerEndAsyncPostTickWork
+        expected_output:
+          - IGameSystem_BeforeServerEndAsyncPostTickWork.{platform}.yaml
+          - IGameSystem_ServerEndAsyncPostTickWork.{platform}.yaml
+        expected_input:
+          - CLoopModeGame_OnServerEndAsyncPostTickWork.{platform}.yaml
+          - IGameSystem_vtable.{platform}.yaml
+
       - name: find-CLoopModeGame_ReceivedServerInfo
         expected_output:
           - CLoopModeGame_ReceivedServerInfo.{platform}.yaml
@@ -2677,6 +3418,18 @@ modules:
         expected_input_linux:
           - CLoopModeGame_LoopInitInternal.{platform}.yaml
 
+      - name: find-ILoopMode_LoopInit
+        expected_output:
+          - ILoopMode_LoopInit.{platform}.yaml
+        expected_input:
+          - CLoopModeGame_LoopInit.{platform}.yaml
+
+      - name: find-ILoopMode_LoopShutdown
+        expected_output:
+          - ILoopMode_LoopShutdown.{platform}.yaml
+        expected_input:
+          - CLoopModeGame_LoopShutdown.{platform}.yaml
+
       - name: find-CLoopModeGame_SetWorldSession
         expected_output:
           - CLoopModeGame_SetWorldSession.{platform}.yaml
@@ -2687,10 +3440,11 @@ modules:
         expected_output:
           - CLoopModeGame_SetGameSystemState.{platform}.yaml
 
-      - name: find-IGameSystem_DestroyAllGameSystems-AND-IGameSystem_LoopDestroyAllSystems
+      - name: find-IGameSystem_DestroyAllGameSystems-AND-IGameSystem_LoopDestroyAllSystems-AND-IGameSystem_LoopPreShutdownAllSystems
         expected_output:
           - IGameSystem_DestroyAllGameSystems.{platform}.yaml
           - IGameSystem_LoopDestroyAllSystems.{platform}.yaml
+          - IGameSystem_LoopPreShutdownAllSystems.{platform}.yaml
         expected_input_windows:
           - CLoopModeGame_LoopShutdown.{platform}.yaml
         expected_input_linux:
@@ -2718,9 +3472,36 @@ modules:
         expected_input_linux:
           - CLoopModeGame_Shutdown.{platform}.yaml
 
+      - name: find-CLoopModeGame_ShutdownServer
+        expected_output:
+          - CLoopModeGame_ShutdownServer.{platform}.yaml
+
+      - name: find-CLoopModeGame_OnLoopDeactivate
+        expected_output:
+          - CLoopModeGame_OnLoopDeactivate.{platform}.yaml
+        expected_input:
+          - CLoopModeGame_ShutdownServer.{platform}.yaml
+          - CLoopModeGame_vtable.{platform}.yaml
+
+      - name: find-ILoopMode_OnLoopDeactivate
+        expected_output:
+          - ILoopMode_OnLoopDeactivate.{platform}.yaml
+        expected_input:
+          - CLoopModeGame_OnLoopDeactivate.{platform}.yaml
+
     symbols:
       - name: CSource2Server_vtable
         category: vtable
+
+      - name: CSource2Server_ClientUpdate
+        category: vfunc
+        alias:
+          - CSource2Server::ClientUpdate
+
+      - name: CSource2Server_OutOfGameFrameBoundary
+        category: vfunc
+        alias:
+          - CSource2Server::OutOfGameFrameBoundary
 
       - name: CSource2GameEntities_vtable
         category: vtable
@@ -2729,6 +3510,9 @@ modules:
         category: vtable
 
       - name: CSpawnGroupMgrGameSystem_vtable
+        category: vtable
+
+      - name: CSpawnGroupMgrGameSystem_vtable2
         category: vtable
 
       - name: CGameSystemReallocatingFactory_CSpawnGroupMgrGameSystem_vtable
@@ -2749,7 +3533,15 @@ modules:
         alias:
           - IGameSystem::~IGameSystem
 
+      - name: IGameSystem_GameInit
+        category: vfunc
+        alias:
+          - IGameSystem::GameInit
+
       - name: CGameRules_vtable
+        category: vtable
+
+      - name: CGameRulesGameSystem_vtable
         category: vtable
 
       - name: CMultiplayRules_vtable
@@ -3227,6 +4019,31 @@ modules:
         alias:
           - CGameRules::ClientSettingsChanged
 
+      - name: CGameRulesGameSystem_GameInit
+        category: vfunc
+        alias:
+          - CGameRulesGameSystem::GameInit
+
+      - name: CGameRulesGameSystem_GameShutdown
+        category: vfunc
+        alias:
+          - CGameRulesGameSystem::GameShutdown
+
+      - name: IGameSystem_GameShutdown
+        category: vfunc
+        alias:
+          - IGameSystem::GameShutdown
+
+      - name: IGameSystem_GamePostInit
+        category: vfunc
+        alias:
+          - IGameSystem::GamePostInit
+
+      - name: IGameSystem_GamePreShutdown
+        category: vfunc
+        alias:
+          - IGameSystem::GamePreShutdown
+
       - name: CMultiplayRules_ClientDisconnected
         category: vfunc
         alias:
@@ -3236,6 +4053,11 @@ modules:
         category: vfunc
         alias:
           - CSource2Server::Init
+
+      - name: CSource2Server_GameFrame
+        category: vfunc
+        alias:
+          - CSource2Server::GameFrame
 
       - name: CGameEventManager_Init
         category: func
@@ -3352,6 +4174,11 @@ modules:
         category: func
         alias:
           - IGameSystem::InitAllSystems
+
+      - name: IGameSystem_LoopPostInitAllSystems
+        category: func
+        alias:
+          - IGameSystem::LoopPostInitAllSystems
 
       - name: IGameSystem_InitAllSystems_pFirst
         category: gv
@@ -3572,6 +4399,56 @@ modules:
         category: vfunc
         alias:
           - IGameSystem::BuildGameSessionManifest
+
+      - name: IGameSystem_ServerPreEntityThink
+        category: vfunc
+        alias:
+          - IGameSystem::ServerPreEntityThink
+
+      - name: IGameSystem_ServerPostEntityThink
+        category: vfunc
+        alias:
+          - IGameSystem::ServerPostEntityThink
+
+      - name: IGameSystem_ServerPreClientUpdate
+        category: vfunc
+        alias:
+          - IGameSystem::ServerPreClientUpdate
+
+      - name: IGameSystem_ServerAdvanceTick
+        category: vfunc
+        alias:
+          - IGameSystem::ServerAdvanceTick
+
+      - name: IGameSystem_ServerGamePostSimulate
+        category: vfunc
+        alias:
+          - IGameSystem::ServerGamePostSimulate
+
+      - name: IGameSystem_ServerPostAdvanceTick
+        category: vfunc
+        alias:
+          - IGameSystem::ServerPostAdvanceTick
+
+      - name: IGameSystem_ServerBeginAsyncPostTickWork
+        category: vfunc
+        alias:
+          - IGameSystem::ServerBeginAsyncPostTickWork
+
+      - name: IGameSystem_BeforeServerEndAsyncPostTickWork
+        category: vfunc
+        alias:
+          - IGameSystem::BeforeServerEndAsyncPostTickWork
+
+      - name: IGameSystem_ServerEndAsyncPostTickWork
+        category: vfunc
+        alias:
+          - IGameSystem::ServerEndAsyncPostTickWork
+
+      - name: IGameSystem_OutOfGameFrameBoundary
+        category: vfunc
+        alias:
+          - IGameSystem::OutOfGameFrameBoundary
 
       - name: CSource2GameClients_StartHLTVServer
         category: vfunc
@@ -4023,6 +4900,26 @@ modules:
       - name: CLoopModeGame_vtable
         category: vtable
 
+      - name: CLoopModeGame_OnLoopActivate
+        category: vfunc
+        alias:
+          - CLoopModeGame::OnLoopActivate
+
+      - name: ILoopMode_OnLoopActivate
+        category: vfunc
+        alias:
+          - ILoopMode::OnLoopActivate
+
+      - name: CLoopModeGame_AddViewsToSceneSystem
+        category: vfunc
+        alias:
+          - CLoopModeGame::AddViewsToSceneSystem
+
+      - name: ILoopMode_AddViewsToSceneSystem
+        category: vfunc
+        alias:
+          - ILoopMode::AddViewsToSceneSystem
+
       - name: CLoopModeGame_LoopInitInternal
         category: func
         alias:
@@ -4032,6 +4929,59 @@ modules:
         category: vfunc
         alias:
           - CLoopModeGame::LoopInit
+
+      - name: ILoopMode_LoopInit
+        category: vfunc
+        alias:
+          - ILoopMode::LoopInit
+
+      - name: ILoopMode_LoopShutdown
+        category: vfunc
+        alias:
+          - ILoopMode::LoopShutdown
+
+      - name: CLoopModeGame_RegisterEventMapInternal
+        category: func
+        alias:
+          - CLoopModeGame::RegisterEventMapInternal
+
+      - name: RegisterEventListener_Abstract
+        category: func
+
+      - name: CLoopModeGame_OnServerAdvanceTick
+        category: func
+        alias:
+          - CLoopModeGame::OnServerAdvanceTick
+
+      - name: CLoopModeGame_OnServerBeginSimulate
+        category: func
+        alias:
+          - CLoopModeGame::OnServerBeginSimulate
+
+      - name: CLoopModeGame_OnServerPostSimulate
+        category: func
+        alias:
+          - CLoopModeGame::OnServerPostSimulate
+
+      - name: CLoopModeGame_OnServerPostAdvanceTick
+        category: func
+        alias:
+          - CLoopModeGame::OnServerPostAdvanceTick
+
+      - name: CLoopModeGame_OnServerBeginAsyncPostTickWork
+        category: func
+        alias:
+          - CLoopModeGame::OnServerBeginAsyncPostTickWork
+
+      - name: CLoopModeGame_OnServerEndAsyncPostTickWork
+        category: func
+        alias:
+          - CLoopModeGame::OnServerEndAsyncPostTickWork
+
+      - name: CLoopModeGame_OnFrameBoundary
+        category: func
+        alias:
+          - CLoopModeGame::OnFrameBoundary
 
       - name: CLoopModeGame_ReceivedServerInfo
         category: func
@@ -4058,6 +5008,11 @@ modules:
         alias:
           - IGameSystem::LoopDestroyAllSystems
 
+      - name: IGameSystem_LoopPreShutdownAllSystems
+        category: func
+        alias:
+          - IGameSystem::LoopPreShutdownAllSystems
+
       - name: CLoopModeGame_Shutdown
         category: func
         alias:
@@ -4067,6 +5022,21 @@ modules:
         category: vfunc
         alias:
           - CLoopModeGame::LoopShutdown
+
+      - name: CLoopModeGame_ShutdownServer
+        category: func
+        alias:
+          - CLoopModeGame::ShutdownServer
+
+      - name: CLoopModeGame_OnLoopDeactivate
+        category: vfunc
+        alias:
+          - CLoopModeGame::OnLoopDeactivate
+
+      - name: ILoopMode_OnLoopDeactivate
+        category: vfunc
+        alias:
+          - ILoopMode::OnLoopDeactivate
 
   - name: networksystem # Execute skills for networksystem.dll again after server.dll
     path_windows: game/bin/win64/networksystem.dll
@@ -4217,3 +5187,55 @@ cpp_tests:
       - engine # bin/{gamever}/engine/CNetworkMessages_*.{platform}.yaml
       - server # bin/{gamever}/server/CNetworkMessages_*.{platform}.yaml
       - client # bin/{gamever}/client/CNetworkMessages_*.{platform}.yaml
+
+  - name: ILoopMode_MSVC
+    symbol: ILoopMode
+    cpp: cpp_tests/iloopmode.cpp
+    headers:
+    - hl2sdk_cs2/public/iloopmode.h # This is for LLM agent
+    claude_permission_mode: acceptEdits
+    claude_allowed_tools: Read,Edit,MultiEdit,Write
+    target: x86_64-pc-windows-msvc
+    include_directories:
+      - hl2sdk_cs2/game/shared
+      - hl2sdk_cs2/public
+      - hl2sdk_cs2/public/tier0
+      - hl2sdk_cs2/public/tier1
+    defines:
+      - COMPILER_MSVC=1
+      - COMPILER_MSVC64=1
+      - _MSVC_STL_USE_ABORT_AS_DOOM_FUNCTION
+    additional_compiler_options:
+      - fms-extensions
+      - fms-compatibility
+      - Xclang
+      - fdump-vtable-layouts
+    reference_modules:
+      - client # bin/{gamever}/client/ILoopModeGame_*.{platform}.yaml
+      - server # bin/{gamever}/server/ILoopModeGame_*.{platform}.yaml
+      - engine # bin/{gamever}/engine/ILoopModeGame_*.{platform}.yaml
+
+  - name: ILoopType_MSVC
+    symbol: ILoopType
+    cpp: cpp_tests/ilooptype.cpp
+    headers:
+    - hl2sdk_cs2/public/iloopmode.h # This is for LLM agent
+    claude_permission_mode: acceptEdits
+    claude_allowed_tools: Read,Edit,MultiEdit,Write
+    target: x86_64-pc-windows-msvc
+    include_directories:
+      - hl2sdk_cs2/game/shared
+      - hl2sdk_cs2/public
+      - hl2sdk_cs2/public/tier0
+      - hl2sdk_cs2/public/tier1
+    defines:
+      - COMPILER_MSVC=1
+      - COMPILER_MSVC64=1
+      - _MSVC_STL_USE_ABORT_AS_DOOM_FUNCTION
+    additional_compiler_options:
+      - fms-extensions
+      - fms-compatibility
+      - Xclang
+      - fdump-vtable-layouts
+    reference_modules:
+      - engine # bin/{gamever}/engine/CLoopTypeClientServer_*.{platform}.yaml

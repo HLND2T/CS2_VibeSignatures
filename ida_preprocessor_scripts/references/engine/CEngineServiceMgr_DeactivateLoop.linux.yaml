@@ -1,0 +1,61 @@
+func_name: CEngineServiceMgr_DeactivateLoop
+func_va: '0x5189d0'
+disasm_code: |-
+  .text:00000000005189D0                 push    rbp
+  .text:00000000005189D1                 xor     edx, edx
+  .text:00000000005189D3                 mov     rbp, rsp
+  .text:00000000005189D6                 push    r12
+  .text:00000000005189D8                 push    rbx
+  .text:00000000005189D9                 mov     eax, [rdi+0A8h]
+  .text:00000000005189DF                 mov     rbx, rdi
+  .text:00000000005189E2                 test    eax, eax
+  .text:00000000005189E4                 js      short loc_518A24
+  .text:00000000005189E6                 mov     rdx, [rdi+38h]
+  .text:00000000005189EA                 movzx   eax, ax
+  .text:00000000005189ED                 mov     r12, [rdx+rax*8]
+  .text:00000000005189F1                 lea     rdx, [rdi+178h]
+  .text:00000000005189F8                 mov     rax, [r12]
+  .text:00000000005189FC                 mov     rdi, r12
+  .text:00000000005189FF                 ; 0x40 = 64LL = ILoopType_LoopDeactivate
+  .text:00000000005189FF                 call    qword ptr [rax+40h]; 0x40 = 64LL = ILoopType_LoopDeactivate
+  .text:0000000000518A02                 mov     rax, [r12]
+  .text:0000000000518A06                 mov     rdi, r12
+  .text:0000000000518A09                 ; 0x30 = 48LL = ILoopType_DeallocateLoopMode
+  .text:0000000000518A09                 call    qword ptr [rax+30h]; 0x30 = 48LL = ILoopType_DeallocateLoopMode
+  .text:0000000000518A0C                 call    Plat_NeedsLowFragmentation_0
+  .text:0000000000518A11                 test    al, al
+  .text:0000000000518A13                 jnz     short loc_518A30
+  .text:0000000000518A15                 mov     dword ptr [rbx+0A8h], 0FFFFFFFFh
+  .text:0000000000518A1F                 mov     edx, 1
+  .text:0000000000518A24                 mov     [rbx+0F0h], dl
+  .text:0000000000518A2A                 pop     rbx
+  .text:0000000000518A2B                 pop     r12
+  .text:0000000000518A2D                 pop     rbp
+  .text:0000000000518A2E                 retn
+  .text:0000000000518A30                 mov     rdi, cs:g_pSceneSystem
+  .text:0000000000518A37                 mov     rax, [rdi]
+  .text:0000000000518A3A                 call    qword ptr [rax+438h]
+  .text:0000000000518A40                 jmp     short loc_518A15
+procedure: |-
+  __int64 __fastcall CEngineServiceMgr_DeactivateLoop(__int64 a1, __int64 a2)
+  {
+    char v2; // dl
+    __int64 result; // rax
+    __int64 v4; // r12
+
+    v2 = 0;
+    result = *(unsigned int *)(a1 + 168);
+    if ( (int)result >= 0 )
+    {
+      v4 = *(_QWORD *)(*(_QWORD *)(a1 + 56) + 8LL * (unsigned __int16)result);
+      (*(void (__fastcall **)(__int64, __int64, __int64))(*(_QWORD *)v4 + 64LL))(v4, a2, a1 + 376);// 0x40 = 64LL = ILoopType_LoopDeactivate
+      (*(void (__fastcall **)(__int64))(*(_QWORD *)v4 + 48LL))(v4);// 0x30 = 48LL = ILoopType_DeallocateLoopMode
+      result = Plat_NeedsLowFragmentation_0();
+      if ( (_BYTE)result )
+        result = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)g_pSceneSystem + 1080LL))(g_pSceneSystem);
+      *(_DWORD *)(a1 + 168) = -1;
+      v2 = 1;
+    }
+    *(_BYTE *)(a1 + 240) = v2;
+    return result;
+  }

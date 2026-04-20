@@ -2,7 +2,26 @@ import unittest
 from subprocess import CompletedProcess
 from unittest.mock import patch
 
+import cpp_tests_util
 import run_cpp_tests
+
+
+class TestParseVftableLayouts(unittest.TestCase):
+    def test_parses_single_entry_vftable_indices_header(self) -> None:
+        compiler_output = (
+            "VFTable indices for 'ILoopType' (1 entry).\n"
+            "   0 | void ILoopType::AddEngineService(const char *) [pure]\n"
+        )
+
+        parsed = cpp_tests_util.parse_vftable_layouts(compiler_output)
+
+        self.assertIn("ILoopType", parsed)
+        self.assertEqual(1, parsed["ILoopType"]["declared_entries"])
+        self.assertEqual(1, parsed["ILoopType"]["entry_count"])
+        self.assertEqual(
+            "AddEngineService",
+            parsed["ILoopType"]["methods_by_index"][0]["member_name"],
+        )
 
 
 class TestRunFixHeaderAgent(unittest.TestCase):
