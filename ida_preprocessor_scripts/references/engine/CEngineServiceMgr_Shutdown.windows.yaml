@@ -1,0 +1,76 @@
+func_name: CEngineServiceMgr_Shutdown
+func_va: '0x18021b370'
+disasm_code: |-
+  .text:000000018021B370                 mov     [rsp+arg_0], rbx
+  .text:000000018021B375                 mov     [rsp+arg_8], rbp
+  .text:000000018021B37A                 mov     [rsp+arg_10], rsi
+  .text:000000018021B37F                 push    rdi
+  .text:000000018021B380                 sub     rsp, 20h
+  .text:000000018021B384                 mov     esi, [rcx+68h]
+  .text:000000018021B387                 xor     ebp, ebp
+  .text:000000018021B389                 mov     rdi, rcx
+  .text:000000018021B38C                 movzx   ebx, bp
+  .text:000000018021B38F                 test    esi, esi
+  .text:000000018021B391                 jle     short loc_18021B3C0
+  .text:000000018021B393                 nop     dword ptr [rax+00h]
+  .text:000000018021B397                 nop     word ptr [rax+rax+00000000h]
+  .text:000000018021B3A0                 mov     rax, [rdi+38h]
+  .text:000000018021B3A4                 movzx   edx, bx
+  .text:000000018021B3A7                 mov     rcx, [rax+rdx*8]
+  .text:000000018021B3AB                 test    rcx, rcx
+  .text:000000018021B3AE                 jz      short loc_18021B3B6
+  .text:000000018021B3B0                 mov     rax, [rcx]
+  .text:000000018021B3B3                 ; 0x18 = 24LL = ILoopType_LoopTypeShutdown
+  .text:000000018021B3B3                 call    qword ptr [rax+18h]; 0x18 = 24LL = ILoopType_LoopTypeShutdown
+  .text:000000018021B3B6                 inc     bx
+  .text:000000018021B3B9                 movzx   eax, bx
+  .text:000000018021B3BC                 cmp     eax, esi
+  .text:000000018021B3BE                 jl      short loc_18021B3A0
+  .text:000000018021B3C0                 lea     rcx, [rdi+48h]
+  .text:000000018021B3C4                 mov     [rdi+30h], ebp
+  .text:000000018021B3C7                 call    cs:?RemoveAll@CUtlSymbolTable@@QEAAXXZ; CUtlSymbolTable::RemoveAll(void)
+  .text:000000018021B3CD                 lea     rcx, [rdi+110h]
+  .text:000000018021B3D4                 mov     [rdi+0F8h], ebp
+  .text:000000018021B3DA                 call    cs:?RemoveAll@CUtlSymbolTable@@QEAAXXZ; CUtlSymbolTable::RemoveAll(void)
+  .text:000000018021B3E0                 mov     rdx, [rdi+0E8h]
+  .text:000000018021B3E7                 test    rdx, rdx
+  .text:000000018021B3EA                 jz      short loc_18021B403
+  .text:000000018021B3EC                 mov     rcx, cs:g_pVEngineCvar
+  .text:000000018021B3F3                 mov     rax, [rcx]
+  .text:000000018021B3F6                 call    qword ptr [rax+108h]
+  .text:000000018021B3FC                 mov     [rdi+0E8h], rbp
+  .text:000000018021B403                 cmp     cs:g_pVEngineCvar, rbp
+  .text:000000018021B40A                 jz      short loc_18021B411
+  .text:000000018021B40C                 call    sub_1804000D0
+  .text:000000018021B411                 mov     rbx, [rsp+28h+arg_0]
+  .text:000000018021B416                 mov     rbp, [rsp+28h+arg_8]
+  .text:000000018021B41B                 mov     rsi, [rsp+28h+arg_10]
+  .text:000000018021B420                 add     rsp, 20h
+  .text:000000018021B424                 pop     rdi
+  .text:000000018021B425                 retn
+procedure: |-
+  void __fastcall CEngineServiceMgr_Shutdown(__int64 a1)
+  {
+    int v1; // esi
+    unsigned __int16 i; // bx
+    __int64 v4; // rcx
+
+    v1 = *(_DWORD *)(a1 + 104);
+    for ( i = 0; i < v1; ++i )
+    {
+      v4 = *(_QWORD *)(*(_QWORD *)(a1 + 56) + 8LL * i);
+      if ( v4 )
+        (*(void (__fastcall **)(__int64))(*(_QWORD *)v4 + 24LL))(v4);// 0x18 = 24LL = ILoopType_LoopTypeShutdown
+    }
+    *(_DWORD *)(a1 + 48) = 0;
+    CUtlSymbolTable::RemoveAll((CUtlSymbolTable *)(a1 + 72));
+    *(_DWORD *)(a1 + 248) = 0;
+    CUtlSymbolTable::RemoveAll((CUtlSymbolTable *)(a1 + 272));
+    if ( *(_QWORD *)(a1 + 232) )
+    {
+      (*(void (__fastcall **)(__int64))(*(_QWORD *)g_pVEngineCvar + 264LL))(g_pVEngineCvar);
+      *(_QWORD *)(a1 + 232) = 0;
+    }
+    if ( g_pVEngineCvar )
+      sub_1804000D0();
+  }

@@ -1,0 +1,82 @@
+func_name: CEngineServiceMgr_Shutdown
+func_va: '0x516ee0'
+disasm_code: |-
+  .text:0000000000516EE0                 push    rbp
+  .text:0000000000516EE1                 mov     rbp, rsp
+  .text:0000000000516EE4                 push    r13
+  .text:0000000000516EE6                 mov     r13, rdi
+  .text:0000000000516EE9                 push    r12
+  .text:0000000000516EEB                 push    rbx
+  .text:0000000000516EEC                 xor     ebx, ebx
+  .text:0000000000516EEE                 sub     rsp, 8
+  .text:0000000000516EF2                 mov     r12d, [rdi+68h]
+  .text:0000000000516EF6                 test    r12d, r12d
+  .text:0000000000516EF9                 jle     short loc_516F21
+  .text:0000000000516EFB                 nop     dword ptr [rax+rax+00h]
+  .text:0000000000516F00                 mov     rdx, [r13+38h]
+  .text:0000000000516F04                 movzx   eax, bx
+  .text:0000000000516F07                 mov     rdi, [rdx+rax*8]
+  .text:0000000000516F0B                 test    rdi, rdi
+  .text:0000000000516F0E                 jz      short loc_516F16
+  .text:0000000000516F10                 mov     rax, [rdi]
+  .text:0000000000516F13                 call    qword ptr [rax+20h]; 0x20 = 32LL = ILoopType_LoopTypeShutdown
+  .text:0000000000516F16                 add     ebx, 1
+  .text:0000000000516F19                 movzx   eax, bx
+  .text:0000000000516F1C                 cmp     eax, r12d
+  .text:0000000000516F1F                 jl      short loc_516F00
+  .text:0000000000516F21                 lea     rdi, [r13+48h]
+  .text:0000000000516F25                 mov     dword ptr [r13+30h], 0
+  .text:0000000000516F2D                 call    sub_2B3BD0
+  .text:0000000000516F32                 lea     rdi, [r13+110h]
+  .text:0000000000516F39                 mov     dword ptr [r13+0F8h], 0
+  .text:0000000000516F44                 call    sub_2B3BD0
+  .text:0000000000516F49                 mov     rsi, [r13+0E8h]
+  .text:0000000000516F50                 test    rsi, rsi
+  .text:0000000000516F53                 jz      short loc_516F70
+  .text:0000000000516F55                 mov     rdi, cs:g_pVEngineCvar
+  .text:0000000000516F5C                 mov     rax, [rdi]
+  .text:0000000000516F5F                 call    qword ptr [rax+108h]
+  .text:0000000000516F65                 mov     qword ptr [r13+0E8h], 0
+  .text:0000000000516F70                 cmp     cs:g_pVEngineCvar, 0
+  .text:0000000000516F78                 jz      short loc_516F81
+  .text:0000000000516F7A                 mov     cs:byte_979448, 0
+  .text:0000000000516F81                 add     rsp, 8
+  .text:0000000000516F85                 pop     rbx
+  .text:0000000000516F86                 pop     r12
+  .text:0000000000516F88                 pop     r13
+  .text:0000000000516F8A                 pop     rbp
+  .text:0000000000516F8B                 retn
+procedure: |-
+  __int64 __fastcall CEngineServiceMgr_Shutdown(__int64 a1)
+  {
+    unsigned __int16 v2; // bx
+    int v3; // r12d
+    __int64 v4; // rdi
+    __int64 result; // rax
+
+    v2 = 0;
+    v3 = *(_DWORD *)(a1 + 104);
+    if ( v3 > 0 )
+    {
+      do
+      {
+        v4 = *(_QWORD *)(*(_QWORD *)(a1 + 56) + 8LL * v2);
+        if ( v4 )
+          (*(void (__fastcall **)(__int64))(*(_QWORD *)v4 + 32LL))(v4);// 0x20 = 32LL = ILoopType_LoopTypeShutdown
+        ++v2;
+      }
+      while ( v2 < v3 );
+    }
+    *(_DWORD *)(a1 + 48) = 0;
+    sub_2B3BD0(a1 + 72);
+    *(_DWORD *)(a1 + 248) = 0;
+    result = sub_2B3BD0(a1 + 272);
+    if ( *(_QWORD *)(a1 + 232) )
+    {
+      result = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)g_pVEngineCvar + 264LL))(g_pVEngineCvar);
+      *(_QWORD *)(a1 + 232) = 0;
+    }
+    if ( g_pVEngineCvar )
+      byte_979448 = 0;
+    return result;
+  }

@@ -772,6 +772,12 @@ modules:
           - CEngineServiceMgr_vtable.{platform}.yaml
           - IAppSystem_Shutdown.{platform}.yaml
 
+      - name: find-ILoopType_LoopTypeShutdown
+        expected_output:
+          - ILoopType_LoopTypeShutdown.{platform}.yaml
+        expected_input:
+          - CEngineServiceMgr_Shutdown.{platform}.yaml
+
     symbols:
       - name: CNetworkGameServer_vtable
         category: vtable
@@ -1106,6 +1112,11 @@ modules:
         category: vfunc
         alias:
           - ILoopType::LoopTypeInit
+
+      - name: ILoopType_LoopTypeShutdown
+        category: vfunc
+        alias:
+          - ILoopType::LoopTypeShutdown
 
       - name: CEngineServiceMgr_vtable
         category: vtable
