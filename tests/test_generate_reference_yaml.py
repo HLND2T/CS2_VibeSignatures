@@ -832,6 +832,98 @@ class TestExportReferencePayload(unittest.IsolatedAsyncioTestCase):
                 )
 
 
+class TestExportReferenceYaml(unittest.IsolatedAsyncioTestCase):
+    async def test_export_reference_yaml_writes_target_file_via_mcp_ack(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_path = Path(temp_dir) / "refs" / "CNetChan.windows.yaml"
+            session = AsyncMock()
+            captured_output_path: dict[str, Path] = {}
+
+            def _fake_builder(
+                func_va_int: int,
+                *,
+                output_path: str | Path,
+                func_name: str,
+            ) -> str:
+                captured_output_path["path"] = Path(output_path)
+                self.assertEqual(0x1800BA1C0, func_va_int)
+                self.assertEqual("CNetChan_ParseMessagesDemoInternal", func_name)
+                return "PY-CODE"
+
+            async def _fake_call_tool(**kwargs):
+                target_path = captured_output_path["path"]
+                payload = {
+                    "func_name": "CNetChan_ParseMessagesDemoInternal",
+                    "func_va": "0x1800ba1c0",
+                    "disasm_code": ".text:00000001800BA1C0 nop",
+                    "procedure": "",
+                }
+                target_path.parent.mkdir(parents=True, exist_ok=True)
+                payload_text = yaml.dump(payload, sort_keys=False)
+                target_path.write_text(payload_text, encoding="utf-8")
+                return _py_eval_payload(
+                    {
+                        "ok": True,
+                        "output_path": str(target_path),
+                        "bytes_written": len(payload_text.encode("utf-8")),
+                        "format": "yaml",
+                    }
+                )
+
+            session.call_tool.side_effect = _fake_call_tool
+
+            with patch.object(
+                generate_reference_yaml,
+                "build_reference_yaml_export_py_eval",
+                side_effect=_fake_builder,
+            ) as mock_builder:
+                result = await generate_reference_yaml.export_reference_yaml_via_mcp(
+                    session=session,
+                    func_name="CNetChan_ParseMessagesDemoInternal",
+                    func_va="0x1800ba1c0",
+                    output_path=output_path,
+                    debug=False,
+                )
+
+        mock_builder.assert_called_once()
+        session.call_tool.assert_awaited_once_with(
+            name="py_eval",
+            arguments={"code": "PY-CODE"},
+        )
+        self.assertEqual(output_path.resolve(), result)
+
+    async def test_export_reference_yaml_raises_when_ack_is_invalid(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_path = Path(temp_dir) / "refs" / "func.yaml"
+            session = AsyncMock()
+            session.call_tool.return_value = _py_eval_payload(
+                {
+                    "ok": True,
+                    "output_path": str(output_path),
+                    "bytes_written": 12,
+                    "format": "json",
+                }
+            )
+
+            with (
+                patch.object(
+                    generate_reference_yaml,
+                    "build_reference_yaml_export_py_eval",
+                    return_value="PY-CODE",
+                ),
+                self.assertRaises(generate_reference_yaml.ReferenceGenerationError) as ctx,
+            ):
+                await generate_reference_yaml.export_reference_yaml_via_mcp(
+                    session=session,
+                    func_name="CNetChan_ParseMessagesDemoInternal",
+                    func_va="0x1800ba1c0",
+                    output_path=output_path,
+                    debug=False,
+                )
+
+        self.assertEqual("unable to export reference YAML via IDA", str(ctx.exception))
+
+
 class TestWriteReferenceYaml(unittest.TestCase):
     def test_write_reference_yaml_writes_minimal_schema_only(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -1268,12 +1360,6 @@ class TestRunReferenceGeneration(unittest.IsolatedAsyncioTestCase):
     async def test_run_reference_generation_uses_attach_mode_by_default(self) -> None:
         fake_session = object()
         output_path = Path("/repo/out/reference.yaml")
-        exported_payload = {
-            "func_name": "CNetworkMessages_FindNetworkGroup",
-            "func_va": "0x180123450",
-            "disasm_code": "text:180123450 push rbp",
-            "procedure": "",
-        }
         call_order: list[str] = []
 
         @asynccontextmanager
@@ -1286,18 +1372,16 @@ class TestRunReferenceGeneration(unittest.IsolatedAsyncioTestCase):
             self.assertIs(args[0], fake_session)
             return "0x180123450"
 
-        async def _fake_export_reference_payload_via_mcp(*args, **kwargs):
-            call_order.append("export_reference_payload_via_mcp")
+        async def _fake_export_reference_yaml_via_mcp(*args, **kwargs):
+            call_order.append("export_reference_yaml_via_mcp")
             self.assertIs(args[0], fake_session)
             self.assertEqual("0x180123450", kwargs["func_va"])
-            return exported_payload
+            self.assertEqual(output_path, kwargs["output_path"])
+            return output_path.resolve()
 
         def _fake_build_reference_output_path(*args):
             call_order.append("build_reference_output_path")
             return output_path
-
-        def _fake_write_reference_yaml(*args):
-            call_order.append("write_reference_yaml")
 
         with (
             patch.object(
@@ -1319,20 +1403,15 @@ class TestRunReferenceGeneration(unittest.IsolatedAsyncioTestCase):
             ) as resolve_func_va,
             patch.object(
                 generate_reference_yaml,
-                "export_reference_payload_via_mcp",
-                AsyncMock(side_effect=_fake_export_reference_payload_via_mcp),
+                "export_reference_yaml_via_mcp",
+                AsyncMock(side_effect=_fake_export_reference_yaml_via_mcp),
                 create=True,
-            ) as export_reference_payload_via_mcp,
+            ) as export_reference_yaml_via_mcp,
             patch.object(
                 generate_reference_yaml,
                 "build_reference_output_path",
                 side_effect=_fake_build_reference_output_path,
             ) as build_reference_output_path,
-            patch.object(
-                generate_reference_yaml,
-                "write_reference_yaml",
-                side_effect=_fake_write_reference_yaml,
-            ) as write_reference_yaml,
         ):
             result = await generate_reference_yaml.run_reference_generation(
                 _base_args(),
@@ -1343,9 +1422,8 @@ class TestRunReferenceGeneration(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             [
                 "resolve_func_va",
-                "export_reference_payload_via_mcp",
                 "build_reference_output_path",
-                "write_reference_yaml",
+                "export_reference_yaml_via_mcp",
             ],
             call_order,
         )
@@ -1359,10 +1437,11 @@ class TestRunReferenceGeneration(unittest.IsolatedAsyncioTestCase):
             func_name="CNetworkMessages_FindNetworkGroup",
             debug=False,
         )
-        export_reference_payload_via_mcp.assert_awaited_once_with(
+        export_reference_yaml_via_mcp.assert_awaited_once_with(
             fake_session,
             func_name="CNetworkMessages_FindNetworkGroup",
             func_va="0x180123450",
+            output_path=output_path,
             debug=False,
         )
         build_reference_output_path.assert_called_once_with(
@@ -1371,7 +1450,6 @@ class TestRunReferenceGeneration(unittest.IsolatedAsyncioTestCase):
             "CNetworkMessages_FindNetworkGroup",
             "windows",
         )
-        write_reference_yaml.assert_called_once_with(output_path, exported_payload)
 
     async def test_run_reference_generation_uses_autostart_mode_when_enabled(self) -> None:
         fake_session = object()
@@ -1411,15 +1489,8 @@ class TestRunReferenceGeneration(unittest.IsolatedAsyncioTestCase):
             ),
             patch.object(
                 generate_reference_yaml,
-                "export_reference_payload_via_mcp",
-                AsyncMock(
-                    return_value={
-                        "func_name": "CNetworkMessages_FindNetworkGroup",
-                        "func_va": "0x180123450",
-                        "disasm_code": "text:180123450 push rbp",
-                        "procedure": "",
-                    }
-                ),
+                "export_reference_yaml_via_mcp",
+                AsyncMock(return_value=output_path.resolve()),
                 create=True,
             ),
             patch.object(
@@ -1427,7 +1498,6 @@ class TestRunReferenceGeneration(unittest.IsolatedAsyncioTestCase):
                 "build_reference_output_path",
                 return_value=output_path,
             ),
-            patch.object(generate_reference_yaml, "write_reference_yaml"),
         ):
             result = await generate_reference_yaml.run_reference_generation(
                 _base_args(

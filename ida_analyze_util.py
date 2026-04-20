@@ -4,6 +4,7 @@
 import json
 import os
 import re
+import tempfile
 import textwrap
 from pathlib import Path
 
@@ -1506,32 +1507,131 @@ def build_function_detail_export_py_eval(func_va_int: int) -> str:
     ).strip() + "\n"
 
 
+def build_function_detail_export_file_py_eval(
+    func_va_int: int,
+    *,
+    output_path,
+) -> str:
+    producer_code = (
+        build_function_detail_export_py_eval(func_va_int).rstrip()
+        + "\n"
+        + "payload_text = result\n"
+    )
+    return build_remote_text_export_py_eval(
+        output_path=output_path,
+        producer_code=producer_code,
+        content_var="payload_text",
+        format_name="json",
+    )
+
+
+def _is_valid_remote_text_export_ack(
+    export_ack,
+    *,
+    output_path,
+    format_name,
+    debug=False,
+    context="remote export",
+):
+    if not isinstance(export_ack, dict):
+        if debug:
+            print(f"    Preprocess: invalid {context} ack: payload is not a mapping")
+        return False
+
+    if not bool(export_ack.get("ok")):
+        if debug:
+            print(f"    Preprocess: invalid {context} ack: ok is not truthy")
+        return False
+
+    expected_output_path = os.fspath(output_path)
+    actual_output_path = str(export_ack.get("output_path", "")).strip()
+    if actual_output_path != expected_output_path:
+        if debug:
+            print(
+                f"    Preprocess: invalid {context} ack: output_path mismatch "
+                f"({actual_output_path!r} != {expected_output_path!r})"
+            )
+        return False
+
+    actual_format = str(export_ack.get("format", "")).strip()
+    if actual_format != str(format_name):
+        if debug:
+            print(
+                f"    Preprocess: invalid {context} ack: format mismatch "
+                f"({actual_format!r} != {str(format_name)!r})"
+            )
+        return False
+
+    try:
+        bytes_written = _parse_int_value(export_ack.get("bytes_written"))
+    except Exception as exc:
+        if debug:
+            print(f"    Preprocess: invalid {context} ack: bytes_written invalid: {exc}")
+        return False
+    if bytes_written < 0:
+        if debug:
+            print(
+                f"    Preprocess: invalid {context} ack: bytes_written "
+                f"must be non-negative, got {bytes_written}"
+            )
+        return False
+
+    return True
+
+
 async def _export_function_detail_via_mcp(session, func_name, func_va, debug=False):
     try:
         func_va_int = _parse_int_value(func_va)
     except Exception:
         return None
 
-    py_code = build_function_detail_export_py_eval(func_va_int)
-
-    try:
-        eval_result = await session.call_tool(
-            name="py_eval",
-            arguments={"code": py_code},
+    with tempfile.TemporaryDirectory(
+        prefix=".llm_decompile_",
+        dir=os.fspath(Path(__file__).resolve().parent),
+    ) as temp_dir:
+        detail_path = Path(temp_dir) / "function-detail.json"
+        py_code = build_function_detail_export_file_py_eval(
+            func_va_int,
+            output_path=detail_path,
         )
-    except Exception as exc:
-        if debug:
-            print(
-                f"    Preprocess: py_eval error while exporting function detail "
-                f"for {func_name}: {exc}"
-            )
-        return None
 
-    detail_payload = _parse_py_eval_json_result(
-        eval_result,
-        debug=debug,
-        context=f"llm_decompile function export for {func_name}",
-    )
+        try:
+            eval_result = await session.call_tool(
+                name="py_eval",
+                arguments={"code": py_code},
+            )
+        except Exception as exc:
+            if debug:
+                print(
+                    f"    Preprocess: py_eval error while exporting function detail "
+                    f"for {func_name}: {exc}"
+                )
+            return None
+
+        export_ack = _parse_py_eval_json_result(
+            eval_result,
+            debug=debug,
+            context=f"llm_decompile function export ack for {func_name}",
+        )
+        if not _is_valid_remote_text_export_ack(
+            export_ack,
+            output_path=detail_path,
+            format_name="json",
+            debug=debug,
+            context=f"llm_decompile function export for {func_name}",
+        ):
+            return None
+
+        try:
+            detail_payload = json.loads(detail_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError, TypeError) as exc:
+            if debug:
+                print(
+                    f"    Preprocess: failed to read llm_decompile function "
+                    f"export file for {func_name}: {exc}"
+                )
+            return None
+
     if not isinstance(detail_payload, dict):
         return None
 

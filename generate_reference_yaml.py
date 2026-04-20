@@ -23,7 +23,11 @@ except ImportError:
     ClientSession = None
     streamable_http_client = None
 
-from ida_analyze_util import build_function_detail_export_py_eval, parse_mcp_result
+from ida_analyze_util import (
+    build_function_detail_export_py_eval,
+    build_remote_text_export_py_eval,
+    parse_mcp_result,
+)
 
 
 class ReferenceGenerationError(RuntimeError):
@@ -475,6 +479,108 @@ async def export_reference_payload_via_mcp(
     }
 
 
+def build_reference_yaml_export_py_eval(
+    func_va_int: int,
+    *,
+    output_path: str | Path,
+    func_name: str,
+) -> str:
+    normalized_func_name = str(func_name).strip()
+    producer_code = (
+        build_function_detail_export_py_eval(func_va_int).rstrip()
+        + "\n"
+        + "payload = json.loads(result)\n"
+        + f"payload['func_name'] = {json.dumps(normalized_func_name)}\n"
+        + "import yaml\n"
+        + "class LiteralDumper(yaml.SafeDumper):\n"
+        + "    pass\n"
+        + "def _literal_str_representer(dumper, value):\n"
+        + "    style = '|' if '\\n' in value else None\n"
+        + "    return dumper.represent_scalar('tag:yaml.org,2002:str', value, style=style)\n"
+        + "LiteralDumper.add_representer(str, _literal_str_representer)\n"
+        + "payload_text = yaml.dump(\n"
+        + "    payload,\n"
+        + "    Dumper=LiteralDumper,\n"
+        + "    sort_keys=False,\n"
+        + "    allow_unicode=True,\n"
+        + ")\n"
+    )
+    return build_remote_text_export_py_eval(
+        output_path=output_path,
+        producer_code=producer_code,
+        content_var="payload_text",
+        format_name="yaml",
+    )
+
+
+def _is_valid_remote_export_ack(
+    export_ack: Any,
+    *,
+    output_path: str | Path,
+    format_name: str,
+) -> bool:
+    if not isinstance(export_ack, Mapping):
+        return False
+    if not bool(export_ack.get("ok")):
+        return False
+    if str(export_ack.get("output_path", "")).strip() != os.fspath(output_path):
+        return False
+    if str(export_ack.get("format", "")).strip() != format_name:
+        return False
+    try:
+        bytes_written = int(export_ack.get("bytes_written"))
+    except (TypeError, ValueError):
+        return False
+    return bytes_written >= 0
+
+
+async def export_reference_yaml_via_mcp(
+    session: Any,
+    *,
+    func_name: str,
+    func_va: str,
+    output_path: str | Path,
+    debug: bool = False,
+) -> Path:
+    normalized_input_func_va = _normalize_address_text(func_va)
+    if normalized_input_func_va is None:
+        raise ReferenceGenerationError("unable to export reference YAML via IDA")
+
+    resolved_output_path = Path(output_path).resolve()
+    func_va_int = int(normalized_input_func_va, 0)
+
+    try:
+        py_code = build_reference_yaml_export_py_eval(
+            func_va_int,
+            output_path=resolved_output_path,
+            func_name=func_name,
+        )
+        eval_result = await session.call_tool(
+            name="py_eval",
+            arguments={"code": py_code},
+        )
+        export_ack = _parse_py_eval_json_result(eval_result, debug=debug)
+    except ReferenceGenerationError:
+        raise
+    except Exception as exc:
+        raise ReferenceGenerationError("unable to export reference YAML via IDA") from exc
+
+    if not _is_valid_remote_export_ack(
+        export_ack,
+        output_path=resolved_output_path,
+        format_name="yaml",
+    ):
+        raise ReferenceGenerationError("unable to export reference YAML via IDA")
+
+    try:
+        payload = yaml.safe_load(resolved_output_path.read_text(encoding="utf-8")) or {}
+        _validate_reference_yaml_payload(payload)
+    except Exception as exc:
+        raise ReferenceGenerationError("unable to export reference YAML via IDA") from exc
+
+    return resolved_output_path
+
+
 def write_reference_yaml(path: str | Path, payload: Mapping[str, Any]) -> None:
     minimal_payload = _validate_reference_yaml_payload(payload)
     output_path = Path(path)
@@ -687,20 +793,19 @@ async def run_reference_generation(
             func_name=args.func_name,
             debug=args.debug,
         )
-        payload = await export_reference_payload_via_mcp(
-            session,
-            func_name=args.func_name,
-            func_va=func_va,
-            debug=args.debug,
-        )
         output_path = build_reference_output_path(
             resolved_repo_root,
             resolved_target["module"],
             args.func_name,
             resolved_target["platform"],
         )
-        write_reference_yaml(output_path, payload)
-        return output_path
+        return await export_reference_yaml_via_mcp(
+            session,
+            func_name=args.func_name,
+            func_va=func_va,
+            output_path=output_path,
+            debug=args.debug,
+        )
 
 
 def main(argv: Sequence[str] | None = None) -> int:

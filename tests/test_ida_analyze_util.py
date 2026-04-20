@@ -3129,28 +3129,66 @@ class TestFunctionDetailExportPyEvalBuilder(unittest.IsolatedAsyncioTestCase):
         self.assertIn(".text:0000000000001000                 ; entry comment", payload["disasm_code"])
         self.assertIn(".text:0000000000001002                 retn", payload["disasm_code"])
 
+    def test_build_function_detail_export_file_py_eval_writes_json_and_returns_ack(
+        self,
+    ) -> None:
+        py_code = ida_analyze_util.build_function_detail_export_file_py_eval(
+            0x180123450,
+            output_path="/tmp/function-detail.json",
+        )
+
+        self.assertIn("payload_text = result", py_code)
+        self.assertIn("output_path = '/tmp/function-detail.json'", py_code)
+        self.assertIn("'bytes_written'", py_code)
+        self.assertIn("format_name = 'json'", py_code)
+
     async def test_export_function_detail_via_mcp_uses_shared_py_eval_builder(self) -> None:
         session = AsyncMock()
-        session.call_tool.return_value = _py_eval_payload(
-            {
-                "func_name": "sub_180123450",
-                "func_va": "0x180123450",
-                "disasm_code": "text:180123450 push rbp",
-                "procedure": "",
-            }
-        )
+        captured_output_path: dict[str, Path] = {}
 
-        payload = await ida_analyze_util._export_function_detail_via_mcp(
-            session,
-            "CNetworkMessages_FindNetworkGroup",
-            "0x180123450",
-            debug=False,
-        )
+        def _fake_builder(func_va_int: int, *, output_path: str | Path) -> str:
+            captured_output_path["path"] = Path(output_path)
+            self.assertEqual(0x180123450, func_va_int)
+            return "PY-CODE"
 
-        expected_py_code = _function_detail_export_py_eval(0x180123450)
+        async def _fake_call_tool(**kwargs):
+            output_path = captured_output_path["path"]
+            payload_text = json.dumps(
+                {
+                    "func_name": "sub_180123450",
+                    "func_va": "0x180123450",
+                    "disasm_code": "text:180123450 push rbp",
+                    "procedure": "",
+                }
+            )
+            output_path.write_text(payload_text, encoding="utf-8")
+            return _py_eval_payload(
+                {
+                    "ok": True,
+                    "output_path": str(output_path),
+                    "bytes_written": len(payload_text.encode("utf-8")),
+                    "format": "json",
+                }
+            )
+
+        session.call_tool.side_effect = _fake_call_tool
+
+        with patch.object(
+            ida_analyze_util,
+            "build_function_detail_export_file_py_eval",
+            side_effect=_fake_builder,
+        ) as mock_builder:
+            payload = await ida_analyze_util._export_function_detail_via_mcp(
+                session,
+                "CNetworkMessages_FindNetworkGroup",
+                "0x180123450",
+                debug=False,
+            )
+
+        mock_builder.assert_called_once()
         session.call_tool.assert_awaited_once_with(
             name="py_eval",
-            arguments={"code": expected_py_code},
+            arguments={"code": "PY-CODE"},
         )
         self.assertEqual(
             {
