@@ -749,6 +749,16 @@ modules:
         expected_input:
           - CEngineServiceMgr_DeactivateLoop.{platform}.yaml
 
+      - name: find-CEngineGameUI_vtable
+        expected_output:
+          - CEngineGameUI_vtable.{platform}.yaml
+
+      - name: find-CEngineGameUI_Shutdown
+        expected_output:
+          - CEngineGameUI_Shutdown.{platform}.yaml
+        expected_input:
+          - CEngineGameUI_vtable.{platform}.yaml
+
     symbols:
       - name: CNetworkGameServer_vtable
         category: vtable
@@ -1101,6 +1111,14 @@ modules:
         category: func
         alias:
           - CEngineServiceMgr::DeactivateLoop
+
+      - name: CEngineGameUI_vtable
+        category: vtable
+
+      - name: CEngineGameUI_Shutdown
+        category: vfunc
+        alias:
+          - CEngineGameUI::Shutdown
 
   - name: client
     path_windows: game/csgo/bin/win64/client.dll
