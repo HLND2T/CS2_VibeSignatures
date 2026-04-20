@@ -20,9 +20,6 @@ GENERATE_YAML_DESIRED_FIELDS = [
         "IGameSystem_DoesGameSystemReallocate",
         [
             "func_name",
-            "func_va",
-            "func_rva",
-            "func_size",
             "vtable_name",
             "vfunc_offset",
             "vfunc_index",
