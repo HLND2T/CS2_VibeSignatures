@@ -3,27 +3,9 @@
 
 from ida_analyze_util import preprocess_common_skill
 
-TARGET_FUNCTION_NAMES = [
-    "CBaseEntity_Spawn",
-]
-
-FUNC_XREFS = [
-                 {
-                     "func_name": 'CBaseEntity_Spawn',
-                     "xref_strings": ['hammerUniqueId'],
-                     "xref_gvs": [],
-                     "xref_signatures": ['38 A0 63 A9'],
-                     "xref_funcs": [],
-                     "exclude_funcs": ['CGameSceneNode_PostSpawnKeyValues', 'CBaseEntity_SpawnRadius'],
-                     "exclude_strings": [],
-                     "exclude_gvs": [],
-                     "exclude_signatures": [],
-                 },
-             ]
-
-FUNC_VTABLE_RELATIONS = [
-    # (func_name, vtable_class)
-    ("CBaseEntity_Spawn", "CBaseEntity"),
+INHERIT_VFUNCS = [
+    # (target_func_name, inherit_vtable_class, base_vfunc_name, generate_func_sig)
+    ("CBaseEntity_Spawn", "CBaseEntity", "CFlashbangProjectile_Spawn", True),
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
@@ -44,10 +26,18 @@ GENERATE_YAML_DESIRED_FIELDS = [
 ]
 
 async def preprocess_skill(
-    session, skill_name, expected_outputs, old_yaml_map,
-    new_binary_dir, platform, image_base, debug=False,
+    session,
+    skill_name,
+    expected_outputs,
+    old_yaml_map,
+    new_binary_dir,
+    platform,
+    image_base,
+    debug=False,
 ):
-    """Reuse previous gamever func_sig to locate target function(s) and write YAML."""
+    """Reuse old func_sig first; fallback to vtable index + generated signature when needed."""
+    _ = skill_name
+
     return await preprocess_common_skill(
         session=session,
         expected_outputs=expected_outputs,
@@ -55,9 +45,7 @@ async def preprocess_skill(
         new_binary_dir=new_binary_dir,
         platform=platform,
         image_base=image_base,
-        func_names=TARGET_FUNCTION_NAMES,
-        func_xrefs=FUNC_XREFS,
-        func_vtable_relations=FUNC_VTABLE_RELATIONS,
+        inherit_vfuncs=INHERIT_VFUNCS,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
     )

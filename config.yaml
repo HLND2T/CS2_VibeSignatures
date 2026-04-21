@@ -1959,18 +1959,19 @@ modules:
         expected_output:
           - CCSPlayer_MovementServices_WalkMove.{platform}.yaml
 
-      - name: find-CCSPlayer_MovementServices_WaterMove-AND-CCSPlayer_MovementServices_FullWalkMove
-        expected_output:
-          - CCSPlayer_MovementServices_WaterMove.{platform}.yaml
-          - CCSPlayer_MovementServices_FullWalkMove.{platform}.yaml
-        expected_input:
-          - CCSPlayer_MovementServices_WalkMove.{platform}.yaml
+      # Those changed a lot since 14150d
+      #- name: find-CCSPlayer_MovementServices_WaterMove-AND-CCSPlayer_MovementServices_FullWalkMove
+      #  expected_output:
+      #    - CCSPlayer_MovementServices_WaterMove.{platform}.yaml
+      #    - CCSPlayer_MovementServices_FullWalkMove.{platform}.yaml
+      #  expected_input:
+      #    - CCSPlayer_MovementServices_WalkMove.{platform}.yaml
 
-      - name: find-CCSPlayer_MovementServices_FullWalkMove_SpeedClamp
-        expected_output:
-          - CCSPlayer_MovementServices_FullWalkMove_SpeedClamp.{platform}.yaml
-        expected_input:
-          - CCSPlayer_MovementServices_FullWalkMove.{platform}.yaml
+      #- name: find-CCSPlayer_MovementServices_FullWalkMove_SpeedClamp
+      #  expected_output:
+      #    - CCSPlayer_MovementServices_FullWalkMove_SpeedClamp.{platform}.yaml
+      #  expected_input:
+      #    - CCSPlayer_MovementServices_FullWalkMove.{platform}.yaml
 
       - name: find-CCSPlayer_MovementServices_CheckJumpButton
         expected_output:
@@ -2081,21 +2082,21 @@ modules:
           - CBaseEntity_TakeDamageOld.{platform}.yaml
           - CBaseEntity_vtable.{platform}.yaml
 
-      - name: find-CBaseEntity_OnTakeDamage_Alive-AND-Dying-AND-Dead
-        expected_output:
-          - CBaseEntity_OnTakeDamage_Alive.{platform}.yaml
-          - CBaseEntity_OnTakeDamage_Dying.{platform}.yaml
-          - CBaseEntity_OnTakeDamage_Dead.{platform}.yaml
-        expected_input:
-          - CBaseEntity_OnTakeDamage.{platform}.yaml
-          - CBaseEntity_vtable.{platform}.yaml
-
       - name: find-CBasePlayerPawn_OnTakeDamage
         expected_output:
           - CBasePlayerPawn_OnTakeDamage.{platform}.yaml
         expected_input:
           - CBasePlayerPawn_vtable.{platform}.yaml
           - CBaseEntity_OnTakeDamage.{platform}.yaml
+
+      - name: find-CBasePlayerPawn_OnTakeDamage_Alive-AND-Dying-AND-Dead
+        expected_output:
+          - CBasePlayerPawn_OnTakeDamage_Alive.{platform}.yaml
+          - CBasePlayerPawn_OnTakeDamage_Dying.{platform}.yaml
+          - CBasePlayerPawn_OnTakeDamage_Dead.{platform}.yaml
+        expected_input:
+          - CBasePlayerPawn_OnTakeDamage.{platform}.yaml
+          - CBasePlayerPawn_vtable.{platform}.yaml
 
       - name: find-CCSPlayerPawn_OnTakeDamage
         expected_output:
@@ -2105,10 +2106,10 @@ modules:
           - CCSPlayerPawn_OnTakeDamage_Dead.{platform}.yaml
         expected_input:
           - CCSPlayerPawn_vtable.{platform}.yaml
-          - CBaseEntity_OnTakeDamage.{platform}.yaml
-          - CBaseEntity_OnTakeDamage_Alive.{platform}.yaml
-          - CBaseEntity_OnTakeDamage_Dying.{platform}.yaml
-          - CBaseEntity_OnTakeDamage_Dead.{platform}.yaml
+          - CBasePlayerPawn_OnTakeDamage.{platform}.yaml
+          - CBasePlayerPawn_OnTakeDamage_Alive.{platform}.yaml
+          - CBasePlayerPawn_OnTakeDamage_Dying.{platform}.yaml
+          - CBasePlayerPawn_OnTakeDamage_Dead.{platform}.yaml
 
       - name: find-CFlashbangProjectile_vtable
         expected_output:
@@ -2119,7 +2120,6 @@ modules:
           - CFlashbangProjectile_Spawn.{platform}.yaml
         expected_input:
           - CFlashbangProjectile_vtable.{platform}.yaml
-          - CBaseEntity_Spawn.{platform}.yaml
 
       - name: find-CSmokeGrenadeProjectile_Create
         expected_output:
@@ -2272,9 +2272,9 @@ modules:
         expected_input:
           - CCSPlayerController_vtable.{platform}.yaml
 
-      - name: find-CCSPlayerController_RegisterThink
+      - name: find-CCSPlayerController_GetThinkFunction
         expected_output:
-          - CCSPlayerController_RegisterThink.{platform}.yaml
+          - CCSPlayerController_GetThinkFunction.{platform}.yaml
 
       - name: find-CCSPlayerController_PlayerForceTeamThink-AND-CCSPlayerController_ResetForceTeamThink-AND-CCSPlayerController_ResourceDataThink-AND-CCSPlayerController_InventoryUpdateThink-windows
         platform: windows
@@ -2284,7 +2284,7 @@ modules:
           - CCSPlayerController_ResourceDataThink.{platform}.yaml
           - CCSPlayerController_InventoryUpdateThink.{platform}.yaml
         expected_input:
-          - CCSPlayerController_RegisterThink.{platform}.yaml
+          - CCSPlayerController_GetThinkFunction.{platform}.yaml
 
       - name: find-g_CCSPlayerController_PlayerForceTeamThink-AND-g_CCSPlayerController_ResetForceTeamThink-AND-g_CCSPlayerController_ResourceDataThink-AND-g_CCSPlayerController_InventoryUpdateThink
         platform: linux
@@ -2294,7 +2294,7 @@ modules:
           - g_CCSPlayerController_ResourceDataThink.{platform}.yaml
           - g_CCSPlayerController_InventoryUpdateThink.{platform}.yaml
         expected_input:
-          - CCSPlayerController_RegisterThink.{platform}.yaml
+          - CCSPlayerController_GetThinkFunction.{platform}.yaml
 
       - name: find-CCSPlayerController_PlayerForceTeamThink-AND-CCSPlayerController_ResetForceTeamThink-AND-CCSPlayerController_ResourceDataThink-AND-CCSPlayerController_InventoryUpdateThink-linux
         platform: linux
@@ -2978,8 +2978,7 @@ modules:
           - CBaseEntity_Spawn.{platform}.yaml
         expected_input:
           - CBaseEntity_vtable.{platform}.yaml
-          - CGameSceneNode_PostSpawnKeyValues.{platform}.yaml
-          - CBaseEntity_SpawnRadius.{platform}.yaml
+          - CFlashbangProjectile_Spawn.{platform}.yaml
 
       - name: find-CDedicatedServerWorkshopManager_SwitchToWorkshopMapGroup
         expected_output:
@@ -3705,17 +3704,17 @@ modules:
         alias:
           - CBasePlayerPawn::OnTakeDamage
 
-      - name: CBaseEntity_OnTakeDamage_Alive
+      - name: CBasePlayerPawn_OnTakeDamage_Alive
         category: vfunc
         alias:
           - CBasePlayerPawn::OnTakeDamage_Alive
 
-      - name: CBaseEntity_OnTakeDamage_Dying
+      - name: CBasePlayerPawn_OnTakeDamage_Dying
         category: vfunc
         alias:
           - CBasePlayerPawn::OnTakeDamage_Dying
 
-      - name: CBaseEntity_OnTakeDamage_Dead
+      - name: CBasePlayerPawn_OnTakeDamage_Dead
         category: vfunc
         alias:
           - CBasePlayerPawn::OnTakeDamage_Dead
@@ -3909,10 +3908,10 @@ modules:
         alias:
           - CCSPlayerController::ChangeTeam
 
-      - name: CCSPlayerController_RegisterThink
+      - name: CCSPlayerController_GetThinkFunction
         category: func
         alias:
-          - CCSPlayerController::RegisterThink
+          - CCSPlayerController::GetThinkFunction
 
       - name: CCSPlayerController_PlayerForceTeamThink
         category: func
