@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Shared utility helpers for IDA analyze scripts."""
 
+import asyncio
 import json
 import math
 import os
@@ -768,6 +769,81 @@ def _empty_llm_decompile_result():
         "found_gv": [],
         "found_struct_offset": [],
     }
+
+
+def _normalize_llm_retry_attempts(value, default=3):
+    try:
+        attempts = int(value)
+    except (TypeError, ValueError):
+        attempts = int(default)
+    return max(1, attempts)
+
+
+def _normalize_llm_retry_delay(value, default, minimum=0.0):
+    try:
+        delay = float(value)
+    except (TypeError, ValueError):
+        delay = float(default)
+    if delay < minimum:
+        return minimum
+    return delay
+
+
+def _extract_llm_error_status_code(exc):
+    for source in (exc, getattr(exc, "response", None)):
+        if source is None:
+            continue
+        status_code = getattr(source, "status_code", None)
+        if status_code is None:
+            continue
+        try:
+            return int(status_code)
+        except (TypeError, ValueError):
+            continue
+    return None
+
+
+def _is_transient_llm_error(exc):
+    status_code = _extract_llm_error_status_code(exc)
+    if status_code == 429 or (
+        status_code is not None and 500 <= status_code < 600
+    ):
+        return True
+
+    message = str(exc or "").lower()
+    retryable_fragments = (
+        "transport received error",
+        "timeout",
+        "timed out",
+        "read timeout",
+        "rate limit",
+        "rate_limit",
+        "too many requests",
+        "http 429",
+        "status 429",
+        "status_code=429",
+        " 429",
+        "http 500",
+        "http 502",
+        "http 503",
+        "http 504",
+        "status 500",
+        "status 502",
+        "status 503",
+        "status 504",
+        "status_code=500",
+        "status_code=502",
+        "status_code=503",
+        "status_code=504",
+        " 500",
+        " 502",
+        " 503",
+        " 504",
+        "server error",
+        "service unavailable",
+        "temporarily unavailable",
+    )
+    return any(fragment in message for fragment in retryable_fragments)
 
 
 def _get_preprocessor_scripts_dir():
@@ -2214,6 +2290,24 @@ def _prepare_llm_decompile_request(
     else:
         effort = str(llm_config.get("effort") or "").strip().lower() or "medium"
 
+    max_retries = _normalize_llm_retry_attempts(
+        llm_config.get("max_retries"),
+        default=3,
+    )
+    retry_initial_delay = _normalize_llm_retry_delay(
+        llm_config.get("retry_initial_delay"),
+        default=1.0,
+    )
+    retry_backoff_factor = _normalize_llm_retry_delay(
+        llm_config.get("retry_backoff_factor"),
+        default=2.0,
+        minimum=1.0,
+    )
+    retry_max_delay = _normalize_llm_retry_delay(
+        llm_config.get("retry_max_delay"),
+        default=8.0,
+    )
+
     if fake_as != "codex" and not callable(create_openai_client):
         if debug:
             print(f"    Preprocess: create_openai_client unavailable for {func_name}")
@@ -2396,6 +2490,10 @@ def _prepare_llm_decompile_request(
         "api_key": api_key,
         "base_url": base_url,
         "fake_as": fake_as,
+        "max_retries": max_retries,
+        "retry_initial_delay": retry_initial_delay,
+        "retry_backoff_factor": retry_backoff_factor,
+        "retry_max_delay": retry_max_delay,
     }
 
 
@@ -2440,6 +2538,10 @@ async def call_llm_decompile(
     api_key=None,
     base_url=None,
     fake_as=None,
+    max_retries=None,
+    retry_initial_delay=None,
+    retry_backoff_factor=None,
+    retry_max_delay=None,
     debug=False,
 ):
     if not callable(call_llm_text):
@@ -2521,16 +2623,16 @@ async def call_llm_decompile(
             prompt,
             debug=True,
         )
+    request_kwargs = {
+        "client": client,
+        "model": str(model).strip(),
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt},
+        ],
+        "debug": debug,
+    }
     try:
-        request_kwargs = {
-            "client": client,
-            "model": str(model).strip(),
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": prompt},
-            ],
-            "debug": debug,
-        }
         normalized_temperature = temperature
         if normalized_temperature is not None and callable(normalize_optional_temperature):
             normalized_temperature = normalize_optional_temperature(
@@ -2548,14 +2650,48 @@ async def call_llm_decompile(
         normalized_fake_as = str(fake_as or "").strip().lower() or None
         if normalized_fake_as is not None:
             request_kwargs["fake_as"] = normalized_fake_as
-        content = call_llm_text(**request_kwargs)
     except Exception as exc:
         if debug:
             print(
-                f"    Preprocess: llm_decompile call failed for "
+                f"    Preprocess: failed to prepare llm_decompile call for "
                 f"{symbol_name_text}: {exc}"
             )
         return _empty_llm_decompile_result()
+
+    max_attempts = _normalize_llm_retry_attempts(max_retries, default=3)
+    delay = _normalize_llm_retry_delay(retry_initial_delay, default=1.0)
+    backoff_factor = _normalize_llm_retry_delay(
+        retry_backoff_factor,
+        default=2.0,
+        minimum=1.0,
+    )
+    max_delay = _normalize_llm_retry_delay(retry_max_delay, default=8.0)
+
+    content = None
+    for attempt_index in range(max_attempts):
+        try:
+            content = call_llm_text(**request_kwargs)
+            break
+        except Exception as exc:
+            is_last_attempt = attempt_index >= max_attempts - 1
+            should_retry = _is_transient_llm_error(exc) and not is_last_attempt
+            if not should_retry:
+                if debug:
+                    print(
+                        f"    Preprocess: llm_decompile call failed for "
+                        f"{symbol_name_text}: {exc}"
+                    )
+                return _empty_llm_decompile_result()
+            if debug:
+                print(
+                    f"    Preprocess: llm_decompile transient failure for "
+                    f"{symbol_name_text} on attempt "
+                    f"{attempt_index + 1}/{max_attempts}: {exc}; "
+                    f"retrying in {delay:.2f}s"
+                )
+            if delay > 0:
+                await asyncio.sleep(delay)
+            delay = min(delay * backoff_factor, max_delay)
     if debug:
         _debug_print_multiline(
             f"llm_decompile raw response for {symbol_name_text}",
@@ -8154,6 +8290,10 @@ async def preprocess_common_skill(
                 api_key=llm_request.get("api_key"),
                 base_url=llm_request.get("base_url"),
                 fake_as=llm_request.get("fake_as"),
+                max_retries=llm_request.get("max_retries"),
+                retry_initial_delay=llm_request.get("retry_initial_delay"),
+                retry_backoff_factor=llm_request.get("retry_backoff_factor"),
+                retry_max_delay=llm_request.get("retry_max_delay"),
                 debug=debug,
             )
         except Exception:

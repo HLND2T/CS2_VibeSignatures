@@ -4147,6 +4147,146 @@ found_struct_offset: []
             parsed,
         )
 
+    async def test_call_llm_decompile_retries_transient_transport_error_then_parses_yaml(
+        self,
+    ) -> None:
+        response_text = """
+```yaml
+found_vcall:
+  - insn_va: 0x180777700
+    insn_disasm: "call    [rax+68h]"
+    vfunc_offset: 0x68
+    func_name: "ILoopMode_OnLoopActivate"
+found_call: []
+found_gv: []
+found_struct_offset: []
+```
+""".strip()
+
+        with patch.object(
+            ida_analyze_util,
+            "call_llm_text",
+            side_effect=[
+                RuntimeError("*** transport received error: retry your request"),
+                response_text,
+            ],
+            create=True,
+        ) as mock_call_llm_text:
+            parsed = await ida_analyze_util.call_llm_decompile(
+                client=object(),
+                model="gpt-5.4",
+                symbol_name_list=["ILoopMode_OnLoopActivate"],
+                disasm_code="call    [rax+68h]",
+                procedure="(*v1->lpVtbl->OnLoopActivate)(v1);",
+                max_retries=2,
+                retry_initial_delay=0,
+            )
+
+        self.assertEqual(
+            {
+                "found_vcall": [
+                    {
+                        "insn_va": "0x180777700",
+                        "insn_disasm": "call    [rax+68h]",
+                        "vfunc_offset": "0x68",
+                        "func_name": "ILoopMode_OnLoopActivate",
+                    }
+                ],
+                "found_call": [],
+                "found_funcptr": [],
+                "found_gv": [],
+                "found_struct_offset": [],
+            },
+            parsed,
+        )
+        self.assertEqual(2, mock_call_llm_text.call_count)
+
+    async def test_call_llm_decompile_does_not_retry_non_transient_error(
+        self,
+    ) -> None:
+        with patch.object(
+            ida_analyze_util,
+            "call_llm_text",
+            side_effect=RuntimeError("invalid api key"),
+            create=True,
+        ) as mock_call_llm_text:
+            parsed = await ida_analyze_util.call_llm_decompile(
+                client=object(),
+                model="gpt-5.4",
+                symbol_name_list=["ILoopMode_OnLoopActivate"],
+                disasm_code="call    [rax+68h]",
+                procedure="(*v1->lpVtbl->OnLoopActivate)(v1);",
+                max_retries=3,
+                retry_initial_delay=0,
+            )
+
+        self.assertEqual(ida_analyze_util._empty_llm_decompile_result(), parsed)
+        mock_call_llm_text.assert_called_once()
+
+    async def test_call_llm_decompile_returns_empty_after_retry_exhaustion(
+        self,
+    ) -> None:
+        with patch.object(
+            ida_analyze_util,
+            "call_llm_text",
+            side_effect=RuntimeError("HTTP 503 service unavailable"),
+            create=True,
+        ) as mock_call_llm_text:
+            parsed = await ida_analyze_util.call_llm_decompile(
+                client=object(),
+                model="gpt-5.4",
+                symbol_name_list=["ILoopMode_OnLoopActivate"],
+                disasm_code="call    [rax+68h]",
+                procedure="(*v1->lpVtbl->OnLoopActivate)(v1);",
+                max_retries=3,
+                retry_initial_delay=0,
+            )
+
+        self.assertEqual(ida_analyze_util._empty_llm_decompile_result(), parsed)
+        self.assertEqual(3, mock_call_llm_text.call_count)
+
+    async def test_call_llm_decompile_max_retries_one_disables_retry(
+        self,
+    ) -> None:
+        with patch.object(
+            ida_analyze_util,
+            "call_llm_text",
+            side_effect=RuntimeError("HTTP 429 too many requests"),
+            create=True,
+        ) as mock_call_llm_text:
+            parsed = await ida_analyze_util.call_llm_decompile(
+                client=object(),
+                model="gpt-5.4",
+                symbol_name_list=["ILoopMode_OnLoopActivate"],
+                disasm_code="call    [rax+68h]",
+                procedure="(*v1->lpVtbl->OnLoopActivate)(v1);",
+                max_retries=1,
+                retry_initial_delay=0,
+            )
+
+        self.assertEqual(ida_analyze_util._empty_llm_decompile_result(), parsed)
+        mock_call_llm_text.assert_called_once()
+
+    def test_is_transient_llm_error_accepts_status_code_attributes(self) -> None:
+        class FakeError(Exception):
+            status_code = 429
+
+        self.assertTrue(ida_analyze_util._is_transient_llm_error(FakeError()))
+
+    def test_is_transient_llm_error_accepts_response_status_code(self) -> None:
+        class FakeResponse:
+            status_code = 502
+
+        class FakeError(Exception):
+            response = FakeResponse()
+
+        self.assertTrue(ida_analyze_util._is_transient_llm_error(FakeError()))
+
+    def test_is_transient_llm_error_rejects_client_configuration_error(self) -> None:
+        self.assertFalse(
+            ida_analyze_util._is_transient_llm_error(RuntimeError("invalid api key"))
+        )
+
     def test_build_llm_decompile_specs_map_groups_duplicate_symbol_names(
         self,
     ) -> None:
@@ -4345,6 +4485,62 @@ found_struct_offset: []
                 }
             ),
         )
+
+    async def test_prepare_llm_decompile_request_preserves_retry_config(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            preprocessor_dir = Path(temp_dir) / "ida_preprocessor_scripts"
+            (preprocessor_dir / "prompt").mkdir(parents=True, exist_ok=True)
+            (preprocessor_dir / "references" / "server").mkdir(
+                parents=True,
+                exist_ok=True,
+            )
+            (preprocessor_dir / "prompt" / "call_llm_decompile.md").write_text(
+                "{reference_blocks}\n---\n{target_blocks}",
+                encoding="utf-8",
+            )
+            _write_yaml(
+                preprocessor_dir / "references" / "server" / "Reference.windows.yaml",
+                {
+                    "func_name": "ReferenceFunc",
+                    "disasm_code": "call qword ptr [rax+68h]",
+                    "procedure": "ref();",
+                },
+            )
+
+            with patch.object(
+                ida_analyze_util,
+                "_get_preprocessor_scripts_dir",
+                return_value=preprocessor_dir,
+            ):
+                request = ida_analyze_util._prepare_llm_decompile_request(
+                    "TargetFunc",
+                    {
+                        "TargetFunc": [
+                            {
+                                "prompt_path": "prompt/call_llm_decompile.md",
+                                "reference_yaml_path": (
+                                    "references/server/Reference.{platform}.yaml"
+                                ),
+                            }
+                        ]
+                    },
+                    {
+                        "model": "gpt-5.4",
+                        "fake_as": "codex",
+                        "max_retries": 4,
+                        "retry_initial_delay": 0.5,
+                        "retry_backoff_factor": 1.5,
+                        "retry_max_delay": 3,
+                    },
+                    platform="windows",
+                )
+
+        self.assertEqual(4, request["max_retries"])
+        self.assertEqual(0.5, request["retry_initial_delay"])
+        self.assertEqual(1.5, request["retry_backoff_factor"])
+        self.assertEqual(3, request["retry_max_delay"])
 
     async def test_prepare_llm_decompile_request_skips_client_factory_for_codex(
         self,
@@ -6240,6 +6436,10 @@ found_struct_offset: []
                     llm_config={
                         "model": "gpt-4.1-mini",
                         "api_key": "test-api-key",
+                        "max_retries": 4,
+                        "retry_initial_delay": 0,
+                        "retry_backoff_factor": 1.5,
+                        "retry_max_delay": 2,
                     },
                     debug=True,
                 )
@@ -6274,6 +6474,19 @@ found_struct_offset: []
         self.assertEqual(
             [func_name],
             mock_call_llm_decompile.call_args.kwargs["symbol_name_list"],
+        )
+        self.assertEqual(4, mock_call_llm_decompile.call_args.kwargs["max_retries"])
+        self.assertEqual(
+            0,
+            mock_call_llm_decompile.call_args.kwargs["retry_initial_delay"],
+        )
+        self.assertEqual(
+            1.5,
+            mock_call_llm_decompile.call_args.kwargs["retry_backoff_factor"],
+        )
+        self.assertEqual(
+            2,
+            mock_call_llm_decompile.call_args.kwargs["retry_max_delay"],
         )
         mock_write_func_yaml.assert_called_once()
         written_payload = mock_write_func_yaml.call_args.args[1]

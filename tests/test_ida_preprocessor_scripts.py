@@ -1579,6 +1579,54 @@ class TestPreprocessSingleSkillViaMcp(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(0x180000000, received["args"]["image_base"])
         self.assertTrue(received["args"]["debug"])
 
+    async def test_forwards_llm_max_retries_when_provided(self) -> None:
+        received = {}
+
+        async def fake_preprocess_skill(
+            session, skill_name, expected_outputs, old_yaml_map,
+            new_binary_dir, platform, image_base, llm_config, debug=False,
+        ):
+            received["llm_config"] = llm_config
+            return True
+
+        with patch.object(
+            ida_skill_preprocessor,
+            "_get_preprocess_entry",
+            return_value=fake_preprocess_skill,
+        ), patch.object(
+            ida_skill_preprocessor.httpx,
+            "AsyncClient",
+            _FakeAsyncClient,
+        ), patch.object(
+            ida_skill_preprocessor,
+            "streamable_http_client",
+            return_value=_FakeStreamableHttpClient(),
+        ), patch.object(
+            ida_skill_preprocessor,
+            "ClientSession",
+            _FakeClientSession,
+        ), patch.object(
+            ida_skill_preprocessor,
+            "parse_mcp_result",
+            return_value={"result": "0x180000000"},
+        ):
+            result = await ida_skill_preprocessor.preprocess_single_skill_via_mcp(
+                host="127.0.0.1",
+                port=13337,
+                skill_name="find-CNetworkMessages_FindNetworkGroup",
+                expected_outputs=["out.yaml"],
+                old_yaml_map={"out.yaml": "old.yaml"},
+                new_binary_dir="bin_dir",
+                platform="windows",
+                llm_model="gpt-5.4",
+                llm_fake_as="codex",
+                llm_max_retries=4,
+                debug=True,
+            )
+
+        self.assertTrue(result)
+        self.assertEqual(4, received["llm_config"]["max_retries"])
+
     async def test_skips_llm_config_when_script_does_not_accept_it(self) -> None:
         received = {}
 

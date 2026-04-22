@@ -97,7 +97,7 @@ async def preprocess_single_skill_via_mcp(
     host, port, skill_name, expected_outputs, old_yaml_map,
     new_binary_dir, platform,
     llm_model=None, llm_apikey=None, llm_baseurl=None, llm_temperature=None,
-    llm_effort=None, llm_fake_as=None,
+    llm_effort=None, llm_fake_as=None, llm_max_retries=None,
     debug=False,
 ):
     """
@@ -121,6 +121,7 @@ async def preprocess_single_skill_via_mcp(
         llm_temperature: optional OpenAI-compatible temperature for scripts that support LLM
         llm_effort: optional OpenAI-compatible reasoning effort for scripts that support LLM
         llm_fake_as: optional OpenAI-compatible fake_as for scripts that support LLM
+        llm_max_retries: optional maximum total attempts for LLM decompile calls
         debug: enable debug output
 
     Returns:
@@ -162,6 +163,8 @@ async def preprocess_single_skill_via_mcp(
                             "effort": llm_effort,
                             "fake_as": llm_fake_as,
                         }
+                        if llm_max_retries is not None:
+                            llm_config["max_retries"] = llm_max_retries
                         preprocess_kwargs = {
                             "session": session,
                             "skill_name": skill_name,

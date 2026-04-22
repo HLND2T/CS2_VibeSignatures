@@ -986,6 +986,7 @@ def _run_preprocess_single_skill_via_mcp(
     llm_temperature,
     llm_effort,
     llm_fake_as,
+    llm_max_retries=None,
 ):
     preprocess_kwargs = {
         "host": host,
@@ -1002,6 +1003,7 @@ def _run_preprocess_single_skill_via_mcp(
         "llm_temperature": llm_temperature,
         "llm_effort": llm_effort,
         "llm_fake_as": llm_fake_as,
+        "llm_max_retries": llm_max_retries,
     }
 
     try:
@@ -1017,6 +1019,7 @@ def _run_preprocess_single_skill_via_mcp(
                 "llm_temperature",
                 "llm_effort",
                 "llm_fake_as",
+                "llm_max_retries",
             )
         ):
             raise
@@ -1030,6 +1033,7 @@ def _run_preprocess_single_skill_via_mcp(
         fallback_kwargs.pop("llm_temperature", None)
         fallback_kwargs.pop("llm_effort", None)
         fallback_kwargs.pop("llm_fake_as", None)
+        fallback_kwargs.pop("llm_max_retries", None)
         return asyncio.run(preprocess_single_skill_via_mcp(**fallback_kwargs))
 
 
@@ -1777,6 +1781,7 @@ def process_binary(
                     llm_temperature=llm_temperature,
                     llm_effort=llm_effort,
                     llm_fake_as=llm_fake_as,
+                    llm_max_retries=skill_max_retries,
                 )
             except Exception as e:
                 if debug:

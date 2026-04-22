@@ -1258,6 +1258,55 @@ class TestProcessBinaryLlmWiring(unittest.TestCase):
         self.assertEqual("high", mock_preprocess.await_args.kwargs["llm_effort"])
         self.assertEqual("codex", mock_preprocess.await_args.kwargs["llm_fake_as"])
 
+    @patch("ida_analyze_bin.os.path.exists", return_value=False)
+    @patch.object(ida_analyze_bin, "run_skill", return_value=False)
+    @patch.object(
+        ida_analyze_bin,
+        "preprocess_single_skill_via_mcp",
+        new_callable=AsyncMock,
+        return_value=False,
+    )
+    @patch.object(ida_analyze_bin, "ensure_mcp_available")
+    @patch.object(ida_analyze_bin, "start_idalib_mcp")
+    @patch.object(ida_analyze_bin, "quit_ida_gracefully")
+    def test_process_binary_passes_skill_max_retries_to_preprocess(
+        self,
+        _mock_quit_ida,
+        mock_start_idalib_mcp,
+        mock_ensure_mcp_available,
+        mock_preprocess,
+        _mock_run_skill,
+        _mock_exists,
+    ) -> None:
+        fake_process = object()
+        mock_start_idalib_mcp.return_value = fake_process
+        mock_ensure_mcp_available.return_value = (fake_process, True)
+
+        ida_analyze_bin.process_binary(
+            binary_path="/tmp/bin/14141/server/server.dll",
+            skills=[
+                {
+                    "name": "find-IGameSystem_DestroyAllGameSystems",
+                    "expected_output": [
+                        "IGameSystem_DestroyAllGameSystems.{platform}.yaml"
+                    ],
+                    "expected_input": [],
+                    "max_retries": 4,
+                }
+            ],
+            agent="codex",
+            host="127.0.0.1",
+            port=13337,
+            ida_args="",
+            platform="windows",
+            debug=False,
+            max_retries=2,
+            llm_model="gpt-5.4",
+            llm_fake_as="codex",
+        )
+
+        self.assertEqual(4, mock_preprocess.await_args.kwargs["llm_max_retries"])
+
 
 class TestMainLlmWiring(unittest.TestCase):
     @patch.object(ida_analyze_bin, "process_binary", return_value=(0, 0, 0))
