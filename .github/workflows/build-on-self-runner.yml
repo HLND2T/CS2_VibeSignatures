@@ -20,6 +20,8 @@ jobs:
       CS2VIBE_LLM_EFFORT: ${{ secrets.CS2VIBE_LLM_EFFORT }}
       CS2VIBE_LLM_FAKE_AS: ${{ secrets.CS2VIBE_LLM_FAKE_AS }}
       CS2VIBE_LLM_MODEL: ${{ secrets.CS2VIBE_LLM_MODEL }}
+      STEAM_USERNAME: ${{ secrets.STEAM_USERNAME }}
+      STEAM_PASSWORD: ${{ secrets.STEAM_PASSWORD }}
       PERSISTED_WORKSPACE: ${{ secrets.PERSISTED_WORKSPACE }}
 
     steps:
@@ -97,7 +99,7 @@ jobs:
         shell: pwsh
         run: |
           $depotDir = Join-Path $env:GITHUB_WORKSPACE "cs2_depot"
-          uv run download_depot.py -tag "$env:TAG" -depotdir "$depotDir" -config download.yaml
+          uv run download_depot.py -tag "$env:TAG" -depotdir "$depotDir" -config download.yaml -username "$env:STEAM_USERNAME" -password "$env:STEAM_PASSWORD" -remember-password
 
       - name: Copy depot binaries
         if: steps.check_cached_binaries.outputs.bin_ready != 'true'

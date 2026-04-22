@@ -52,6 +52,13 @@ def parse_args() -> argparse.Namespace:
         default=DEFAULT_OS,
         help=f"DepotDownloader -os value (default: {DEFAULT_OS})",
     )
+    parser.add_argument("-username", default=None, help="Steam username for restricted content")
+    parser.add_argument("-password", default=None, help="Steam password for restricted content")
+    parser.add_argument(
+        "-remember-password",
+        action="store_true",
+        help="Remember password for subsequent logins",
+    )
     return parser.parse_args()
 
 
@@ -102,6 +109,9 @@ def download_manifests(
     os_name: str,
     depot_dir: str,
     branch: str | None = None,
+    username: str | None = None,
+    password: str | None = None,
+    remember_password: bool = False,
 ) -> None:
     """Invoke DepotDownloader once per declared depot manifest."""
     if not isinstance(manifests, dict):
@@ -121,6 +131,12 @@ def download_manifests(
         ]
         if branch:
             command.extend(["-branch", branch])
+        if username:
+            command.extend(["-username", username])
+        if password:
+            command.extend(["-password", password])
+        if remember_password:
+            command.append("-remember-password")
         command.extend(["-manifest", str(manifest)])
         print(f"Running: {' '.join(command)}")
         subprocess.run(command, check=True)
@@ -151,6 +167,9 @@ def main() -> int:
             os_name=args.os,
             depot_dir=args.depotdir,
             branch=branch,
+            username=args.username,
+            password=args.password,
+            remember_password=args.remember_password,
         )
     except ConfigError as exc:
         print(f"Error: {exc}")
