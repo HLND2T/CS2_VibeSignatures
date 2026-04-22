@@ -2382,6 +2382,145 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
             mock_normalize.await_args_list,
         )
 
+    async def test_filter_func_addrs_by_float_xrefs_keeps_xref_matches_and_excludes_hits(
+        self,
+    ) -> None:
+        session = AsyncMock()
+        session.call_tool.return_value = _py_eval_payload(
+            {
+                "0x180100000": {
+                    "constants": [
+                        {
+                            "inst_ea": "0x180100010",
+                            "const_ea": "0x181000000",
+                            "kind": "float",
+                            "value": 64.0,
+                        }
+                    ],
+                    "xref_hit": True,
+                    "exclude_hit": False,
+                },
+                "0x180200000": {
+                    "constants": [
+                        {
+                            "inst_ea": "0x180200010",
+                            "const_ea": "0x181000004",
+                            "kind": "float",
+                            "value": 1.0,
+                        }
+                    ],
+                    "xref_hit": False,
+                    "exclude_hit": False,
+                },
+                "0x180300000": {
+                    "constants": [
+                        {
+                            "inst_ea": "0x180300010",
+                            "const_ea": "0x181000008",
+                            "kind": "float",
+                            "value": 0.5,
+                        }
+                    ],
+                    "xref_hit": True,
+                    "exclude_hit": True,
+                },
+            }
+        )
+
+        result = await ida_analyze_util._filter_func_addrs_by_float_xrefs_via_mcp(
+            session=session,
+            func_addrs={0x180100000, 0x180200000, 0x180300000},
+            xref_floats=["64.0", "0.5"],
+            exclude_floats=["0.5"],
+            debug=True,
+        )
+
+        self.assertEqual({0x180100000}, result)
+        session.call_tool.assert_awaited_once()
+        py_code = session.call_tool.await_args.kwargs["arguments"]["code"]
+        self.assertIn('struct.unpack("<f"', py_code)
+        self.assertIn('struct.unpack("<d"', py_code)
+        self.assertIn('seg_name == ".rdata"', py_code)
+        self.assertIn('seg_name.startswith(".rodata")', py_code)
+        self.assertIn('"mulss"', py_code)
+        self.assertIn('"mulsd"', py_code)
+        self.assertIn('"vmulss"', py_code)
+        self.assertIn('"vmulsd"', py_code)
+        self.assertIn("globals().update(locals())", py_code)
+
+    async def test_filter_func_addrs_by_float_xrefs_fails_closed_on_invalid_payload(
+        self,
+    ) -> None:
+        session = AsyncMock()
+        session.call_tool.return_value = _py_eval_payload(["not-a-dict"])
+
+        result = await ida_analyze_util._filter_func_addrs_by_float_xrefs_via_mcp(
+            session=session,
+            func_addrs={0x180100000},
+            xref_floats=["64.0"],
+            exclude_floats=[],
+            debug=True,
+        )
+
+        self.assertIsNone(result)
+        session.call_tool.assert_awaited_once()
+
+    async def test_filter_func_addrs_by_float_xrefs_fails_closed_on_non_finite_values(
+        self,
+    ) -> None:
+        cases = [
+            (["nan"], []),
+            (["64.0"], ["inf"]),
+        ]
+        for xref_floats, exclude_floats in cases:
+            with self.subTest(xref_floats=xref_floats, exclude_floats=exclude_floats):
+                session = AsyncMock()
+
+                result = await ida_analyze_util._filter_func_addrs_by_float_xrefs_via_mcp(
+                    session=session,
+                    func_addrs={0x180100000},
+                    xref_floats=xref_floats,
+                    exclude_floats=exclude_floats,
+                    debug=True,
+                )
+
+                self.assertIsNone(result)
+                session.call_tool.assert_not_awaited()
+
+    async def test_filter_func_addrs_by_float_xrefs_fails_closed_on_malformed_entry(
+        self,
+    ) -> None:
+        payloads = [
+            {
+                "0x180100000": {
+                    "constants": [],
+                    "xref_hit": "false",
+                    "exclude_hit": False,
+                }
+            },
+            {
+                "0x180100000": {
+                    "constants": [],
+                    "xref_hit": True,
+                }
+            },
+        ]
+        for payload in payloads:
+            with self.subTest(payload=payload):
+                session = AsyncMock()
+                session.call_tool.return_value = _py_eval_payload(payload)
+
+                result = await ida_analyze_util._filter_func_addrs_by_float_xrefs_via_mcp(
+                    session=session,
+                    func_addrs={0x180100000},
+                    xref_floats=["64.0"],
+                    exclude_floats=[],
+                    debug=True,
+                )
+
+                self.assertIsNone(result)
+                session.call_tool.assert_awaited_once()
+
     async def test_preprocess_func_xrefs_intersects_string_and_signature_sets(
         self,
     ) -> None:
@@ -2809,6 +2948,114 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
         )
         mock_gen_sig.assert_not_called()
 
+    async def test_preprocess_func_xrefs_applies_float_filters_after_excludes(
+        self,
+    ) -> None:
+        with patch.object(
+            ida_analyze_util,
+            "_collect_xref_func_starts_for_string",
+            AsyncMock(return_value={0x180100000, 0x180200000}),
+        ) as mock_collect_string, patch.object(
+            ida_analyze_util,
+            "_load_symbol_addr_from_current_yaml",
+            return_value=0x180100000,
+        ) as mock_load_symbol, patch.object(
+            ida_analyze_util,
+            "_filter_func_addrs_by_float_xrefs_via_mcp",
+            AsyncMock(return_value={0x180200000}),
+        ) as mock_float_filter, patch.object(
+            ida_analyze_util,
+            "preprocess_gen_func_sig_via_mcp",
+            AsyncMock(
+                return_value={
+                    "func_va": "0x180200000",
+                    "func_rva": "0x200000",
+                    "func_size": "0x40",
+                    "func_sig": "48 89 5C 24 08",
+                }
+            ),
+        ) as mock_gen_sig:
+            result = await ida_analyze_util.preprocess_func_xrefs_via_mcp(
+                session="session",
+                func_name="LoggingChannel_Init",
+                xref_strings=["Networking"],
+                xref_gvs=[],
+                xref_signatures=[],
+                xref_funcs=[],
+                exclude_funcs=["LoggingChannel_Shutdown"],
+                exclude_strings=[],
+                exclude_gvs=[],
+                exclude_signatures=[],
+                xref_floats=["64.0"],
+                exclude_floats=[],
+                new_binary_dir="bin_dir",
+                platform="windows",
+                image_base=0x180000000,
+                debug=True,
+            )
+
+        self.assertEqual("0x180200000", result["func_va"])
+        mock_collect_string.assert_awaited_once_with(
+            session="session",
+            xref_string="Networking",
+            debug=True,
+        )
+        mock_load_symbol.assert_called_once_with(
+            "bin_dir",
+            "windows",
+            "LoggingChannel_Shutdown",
+            "func_va",
+            debug=True,
+            debug_label="exclude_func",
+        )
+        mock_float_filter.assert_awaited_once_with(
+            session="session",
+            func_addrs={0x180200000},
+            xref_floats=["64.0"],
+            exclude_floats=[],
+            debug=True,
+        )
+        mock_gen_sig.assert_awaited_once()
+
+    async def test_preprocess_func_xrefs_fails_closed_on_float_filter_failure(
+        self,
+    ) -> None:
+        with patch.object(
+            ida_analyze_util,
+            "_collect_xref_func_starts_for_string",
+            AsyncMock(return_value={0x180100000, 0x180200000}),
+        ), patch.object(
+            ida_analyze_util,
+            "_filter_func_addrs_by_float_xrefs_via_mcp",
+            AsyncMock(return_value=None),
+        ) as mock_float_filter, patch.object(
+            ida_analyze_util,
+            "preprocess_gen_func_sig_via_mcp",
+            AsyncMock(return_value=None),
+        ) as mock_gen_sig:
+            result = await ida_analyze_util.preprocess_func_xrefs_via_mcp(
+                session="session",
+                func_name="LoggingChannel_Init",
+                xref_strings=["Networking"],
+                xref_gvs=[],
+                xref_signatures=[],
+                xref_funcs=[],
+                exclude_funcs=[],
+                exclude_strings=[],
+                exclude_gvs=[],
+                exclude_signatures=[],
+                xref_floats=["64.0"],
+                exclude_floats=[],
+                new_binary_dir="bin_dir",
+                platform="windows",
+                image_base=0x180000000,
+                debug=True,
+            )
+
+        self.assertIsNone(result)
+        mock_float_filter.assert_awaited_once()
+        mock_gen_sig.assert_not_called()
+
     async def test_preprocess_func_xrefs_forwards_boundary_flag_to_generator(
         self,
     ) -> None:
@@ -3007,10 +3254,12 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
                         "xref_gvs": ["g_NetworkingState"],
                         "xref_signatures": ["C7 44 24 40 64 FF FF FF"],
                         "xref_funcs": ["LoggingChannel_Shutdown"],
+                        "xref_floats": ["64.0", "0.5"],
                         "exclude_funcs": ["LoggingChannel_Rebuild"],
                         "exclude_strings": ["FULLMATCH:Networking"],
                         "exclude_gvs": ["g_ExcludeNetworkingState"],
                         "exclude_signatures": ["DE AD BE EF"],
+                        "exclude_floats": ["128.0"],
                     }
                 ],
                 generate_yaml_desired_fields=[
@@ -3043,6 +3292,10 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
             mock_func_xrefs.call_args.kwargs["xref_funcs"],
         )
         self.assertEqual(
+            ["64.0", "0.5"],
+            mock_func_xrefs.call_args.kwargs["xref_floats"],
+        )
+        self.assertEqual(
             ["LoggingChannel_Rebuild"],
             mock_func_xrefs.call_args.kwargs["exclude_funcs"],
         )
@@ -3057,6 +3310,10 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             ["DE AD BE EF"],
             mock_func_xrefs.call_args.kwargs["exclude_signatures"],
+        )
+        self.assertEqual(
+            ["128.0"],
+            mock_func_xrefs.call_args.kwargs["exclude_floats"],
         )
         mock_write_func_yaml.assert_called_once()
 
@@ -3161,6 +3418,146 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
             debug=True,
         )
 
+        self.assertFalse(result)
+
+    async def test_preprocess_common_skill_rejects_invalid_float_xref_values(
+        self,
+    ) -> None:
+        result = await ida_analyze_util.preprocess_common_skill(
+            session="session",
+            expected_outputs=["/tmp/LoggingChannel_Init.windows.yaml"],
+            old_yaml_map={},
+            new_binary_dir="/tmp",
+            platform="windows",
+            image_base=0x180000000,
+            func_names=["LoggingChannel_Init"],
+            func_xrefs=[
+                {
+                    "func_name": "LoggingChannel_Init",
+                    "xref_strings": ["Networking"],
+                    "xref_gvs": [],
+                    "xref_signatures": [],
+                    "xref_funcs": [],
+                    "xref_floats": ["not-a-float"],
+                    "exclude_funcs": [],
+                    "exclude_strings": [],
+                    "exclude_gvs": [],
+                    "exclude_signatures": [],
+                    "exclude_floats": [],
+                }
+            ],
+            generate_yaml_desired_fields=[
+                (
+                    "LoggingChannel_Init",
+                    ["func_name", "func_va", "func_rva", "func_size", "func_sig"],
+                )
+            ],
+            debug=True,
+        )
+        self.assertFalse(result)
+
+    async def test_preprocess_common_skill_rejects_nan_xref_floats(self) -> None:
+        result = await ida_analyze_util.preprocess_common_skill(
+            session="session",
+            expected_outputs=["/tmp/LoggingChannel_Init.windows.yaml"],
+            old_yaml_map={},
+            new_binary_dir="/tmp",
+            platform="windows",
+            image_base=0x180000000,
+            func_names=["LoggingChannel_Init"],
+            func_xrefs=[
+                {
+                    "func_name": "LoggingChannel_Init",
+                    "xref_strings": ["Networking"],
+                    "xref_gvs": [],
+                    "xref_signatures": [],
+                    "xref_funcs": [],
+                    "xref_floats": ["nan"],
+                    "exclude_funcs": [],
+                    "exclude_strings": [],
+                    "exclude_gvs": [],
+                    "exclude_signatures": [],
+                    "exclude_floats": [],
+                }
+            ],
+            generate_yaml_desired_fields=[
+                (
+                    "LoggingChannel_Init",
+                    ["func_name", "func_va", "func_rva", "func_size", "func_sig"],
+                )
+            ],
+            debug=True,
+        )
+        self.assertFalse(result)
+
+    async def test_preprocess_common_skill_rejects_inf_xref_floats(self) -> None:
+        result = await ida_analyze_util.preprocess_common_skill(
+            session="session",
+            expected_outputs=["/tmp/LoggingChannel_Init.windows.yaml"],
+            old_yaml_map={},
+            new_binary_dir="/tmp",
+            platform="windows",
+            image_base=0x180000000,
+            func_names=["LoggingChannel_Init"],
+            func_xrefs=[
+                {
+                    "func_name": "LoggingChannel_Init",
+                    "xref_strings": ["Networking"],
+                    "xref_gvs": [],
+                    "xref_signatures": [],
+                    "xref_funcs": [],
+                    "xref_floats": ["inf"],
+                    "exclude_funcs": [],
+                    "exclude_strings": [],
+                    "exclude_gvs": [],
+                    "exclude_signatures": [],
+                    "exclude_floats": [],
+                }
+            ],
+            generate_yaml_desired_fields=[
+                (
+                    "LoggingChannel_Init",
+                    ["func_name", "func_va", "func_rva", "func_size", "func_sig"],
+                )
+            ],
+            debug=True,
+        )
+        self.assertFalse(result)
+
+    async def test_preprocess_common_skill_rejects_negative_inf_exclude_floats(
+        self,
+    ) -> None:
+        result = await ida_analyze_util.preprocess_common_skill(
+            session="session",
+            expected_outputs=["/tmp/LoggingChannel_Init.windows.yaml"],
+            old_yaml_map={},
+            new_binary_dir="/tmp",
+            platform="windows",
+            image_base=0x180000000,
+            func_names=["LoggingChannel_Init"],
+            func_xrefs=[
+                {
+                    "func_name": "LoggingChannel_Init",
+                    "xref_strings": ["Networking"],
+                    "xref_gvs": [],
+                    "xref_signatures": [],
+                    "xref_funcs": [],
+                    "xref_floats": [],
+                    "exclude_funcs": [],
+                    "exclude_strings": [],
+                    "exclude_gvs": [],
+                    "exclude_signatures": [],
+                    "exclude_floats": ["-inf"],
+                }
+            ],
+            generate_yaml_desired_fields=[
+                (
+                    "LoggingChannel_Init",
+                    ["func_name", "func_va", "func_rva", "func_size", "func_sig"],
+                )
+            ],
+            debug=True,
+        )
         self.assertFalse(result)
 
     def test_can_probe_future_func_fast_path_ignores_literal_gv_dependencies(

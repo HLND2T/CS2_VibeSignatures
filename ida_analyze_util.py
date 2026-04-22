@@ -2,6 +2,7 @@
 """Shared utility helpers for IDA analyze scripts."""
 
 import json
+import math
 import os
 import re
 import tempfile
@@ -5444,6 +5445,31 @@ def _parse_int_value(value):
     return int(value)
 
 
+def _normalize_float_xref_values(field_name, field_values, func_name, debug=False):
+    """Validate and strip func_xrefs float filter values."""
+    normalized_values = []
+    for item in field_values:
+        raw = item.strip()
+        try:
+            parsed_value = float(raw)
+        except (TypeError, ValueError):
+            if debug:
+                print(
+                    f"    Preprocess: invalid {field_name} float value for "
+                    f"{func_name}: {item}"
+                )
+            return None
+        if not math.isfinite(parsed_value):
+            if debug:
+                print(
+                    f"    Preprocess: non-finite {field_name} float value for "
+                    f"{func_name}: {item}"
+                )
+            return None
+        normalized_values.append(raw)
+    return normalized_values
+
+
 def _is_explicit_address_literal(value):
     """Return True when *value* is an explicit hex address like ``0x180012340``."""
     if not isinstance(value, str):
@@ -6687,6 +6713,194 @@ async def preprocess_gen_struct_offset_sig_via_mcp(
     return None
 
 
+async def _filter_func_addrs_by_float_xrefs_via_mcp(
+    session,
+    func_addrs,
+    xref_floats,
+    exclude_floats,
+    debug=False,
+):
+    """Filter function addresses by readonly scalar float/double xrefs."""
+    func_addr_set = set(func_addrs or [])
+    if not func_addr_set:
+        return set()
+    if not xref_floats and not exclude_floats:
+        return func_addr_set
+
+    try:
+        xref_values = [float(value) for value in (xref_floats or [])]
+        exclude_values = [float(value) for value in (exclude_floats or [])]
+    except (TypeError, ValueError):
+        if debug:
+            print("    Preprocess: invalid float xref filter values")
+        return None
+    for value in xref_values:
+        if not math.isfinite(value):
+            if debug:
+                print("    Preprocess: non-finite xref_floats value")
+            return None
+    for value in exclude_values:
+        if not math.isfinite(value):
+            if debug:
+                print("    Preprocess: non-finite exclude_floats value")
+            return None
+
+    py_code = (
+        "import ida_bytes, ida_funcs, ida_segment, idautils, idc, json, struct\n"
+        f"func_addrs = {[int(addr) for addr in sorted(func_addr_set)]}\n"
+        f"xref_values = {xref_values!r}\n"
+        f"exclude_values = {exclude_values!r}\n"
+        "FLOAT_EPSILON = 1e-6\n"
+        "DOUBLE_EPSILON = 1e-12\n"
+        "SINGLE_MNEMS = {\n"
+        "    \"addss\", \"subss\", \"mulss\", \"divss\", \"minss\", \"maxss\",\n"
+        "    \"sqrtss\", \"movss\", \"comiss\", \"ucomiss\",\n"
+        "    \"vaddss\", \"vsubss\", \"vmulss\", \"vdivss\", \"vminss\", \"vmaxss\",\n"
+        "    \"vsqrtss\", \"vmovss\", \"vcomiss\", \"vucomiss\",\n"
+        "}\n"
+        "DOUBLE_MNEMS = {\n"
+        "    \"addsd\", \"subsd\", \"mulsd\", \"divsd\", \"minsd\", \"maxsd\",\n"
+        "    \"sqrtsd\", \"movsd\", \"comisd\", \"ucomisd\",\n"
+        "    \"vaddsd\", \"vsubsd\", \"vmulsd\", \"vdivsd\", \"vminsd\", \"vmaxsd\",\n"
+        "    \"vsqrtsd\", \"vmovsd\", \"vcomisd\", \"vucomisd\",\n"
+        "}\n"
+        "MEM_OP_TYPES = {idc.o_mem, idc.o_displ, idc.o_phrase}\n"
+        "\n"
+        "def _scalar_kind(mnem):\n"
+        "    lower = (mnem or \"\").lower()\n"
+        "    if lower in SINGLE_MNEMS and lower.endswith(\"ss\"):\n"
+        "        return \"float\"\n"
+        "    if lower in DOUBLE_MNEMS and lower.endswith(\"sd\"):\n"
+        "        return \"double\"\n"
+        "    return None\n"
+        "\n"
+        "def _has_xmm_operand(ea):\n"
+        "    for op_idx in range(8):\n"
+        "        text = (idc.print_operand(ea, op_idx) or \"\").lower()\n"
+        "        if \"xmm\" in text:\n"
+        "            return True\n"
+        "    return False\n"
+        "\n"
+        "def _is_readonly_float_segment(ea):\n"
+        "    seg = ida_segment.getseg(ea)\n"
+        "    if not seg:\n"
+        "        return False\n"
+        "    seg_name = ida_segment.get_segm_name(seg) or \"\"\n"
+        "    return seg_name == \".rdata\" or seg_name.startswith(\".rodata\")\n"
+        "\n"
+        "def _matches(value, expected_values, kind):\n"
+        "    epsilon = FLOAT_EPSILON if kind == \"float\" else DOUBLE_EPSILON\n"
+        "    for expected in expected_values:\n"
+        "        if abs(value - expected) < epsilon:\n"
+        "            return True\n"
+        "    return False\n"
+        "\n"
+        "def _read_scalar_value(target_ea, kind):\n"
+        "    if kind == \"float\":\n"
+        "        raw = ida_bytes.get_bytes(target_ea, 4)\n"
+        "        if not raw or len(raw) != 4:\n"
+        "            return None\n"
+        "        return struct.unpack(\"<f\", raw)[0]\n"
+        "    raw = ida_bytes.get_bytes(target_ea, 8)\n"
+        "    if not raw or len(raw) != 8:\n"
+        "        return None\n"
+        "    return struct.unpack(\"<d\", raw)[0]\n"
+        "\n"
+        "globals().update(locals())\n"
+        "\n"
+        "out = {}\n"
+        "for func_ea in func_addrs:\n"
+        "    func = ida_funcs.get_func(func_ea)\n"
+        "    constants = []\n"
+        "    xref_hit = False\n"
+        "    exclude_hit = False\n"
+        "    if func:\n"
+        "        for insn_ea in idautils.FuncItems(func.start_ea):\n"
+        "            mnem = idc.print_insn_mnem(insn_ea)\n"
+        "            kind = _scalar_kind(mnem)\n"
+        "            if not kind or not _has_xmm_operand(insn_ea):\n"
+        "                continue\n"
+        "            for op_idx in range(8):\n"
+        "                if idc.get_operand_type(insn_ea, op_idx) not in MEM_OP_TYPES:\n"
+        "                    continue\n"
+        "                target_ea = idc.get_operand_value(insn_ea, op_idx)\n"
+        "                if not _is_readonly_float_segment(target_ea):\n"
+        "                    continue\n"
+        "                value = _read_scalar_value(target_ea, kind)\n"
+        "                if value is None:\n"
+        "                    continue\n"
+        "                constants.append({\n"
+        "                    \"inst_ea\": hex(insn_ea),\n"
+        "                    \"const_ea\": hex(target_ea),\n"
+        "                    \"kind\": kind,\n"
+        "                    \"value\": value,\n"
+        "                })\n"
+        "                if _matches(value, xref_values, kind):\n"
+        "                    xref_hit = True\n"
+        "                if _matches(value, exclude_values, kind):\n"
+        "                    exclude_hit = True\n"
+        "    out[hex(func_ea)] = {\n"
+        "        \"constants\": constants,\n"
+        "        \"xref_hit\": xref_hit,\n"
+        "        \"exclude_hit\": exclude_hit,\n"
+        "    }\n"
+        "result = json.dumps(out)\n"
+    )
+
+    try:
+        eval_result = await session.call_tool(
+            name="py_eval",
+            arguments={"code": py_code},
+        )
+        eval_data = parse_mcp_result(eval_result)
+    except Exception as e:
+        if debug:
+            print(f"    Preprocess: py_eval error for float xref filter: {e}")
+        return None
+
+    parsed = _parse_py_eval_json_object(eval_data, debug=debug)
+    if not isinstance(parsed, dict):
+        return None
+
+    filtered_funcs = set()
+    missing_xref_funcs = set()
+    excluded_funcs = set()
+    for func_addr in sorted(func_addr_set):
+        entry = parsed.get(hex(func_addr))
+        if not isinstance(entry, dict):
+            return None
+        xref_hit = entry.get("xref_hit")
+        exclude_hit = entry.get("exclude_hit")
+        if not isinstance(xref_hit, bool) or not isinstance(exclude_hit, bool):
+            return None
+        if debug:
+            constants = entry.get("constants", [])
+            print(
+                "    Preprocess: float constants for "
+                f"{hex(func_addr)} = {constants}"
+            )
+        if exclude_values and exclude_hit:
+            excluded_funcs.add(func_addr)
+            continue
+        if xref_values and not xref_hit:
+            missing_xref_funcs.add(func_addr)
+            continue
+        filtered_funcs.add(func_addr)
+
+    if debug and missing_xref_funcs:
+        print(
+            "    Preprocess: float xref missing funcs = "
+            f"{[hex(a) for a in sorted(missing_xref_funcs)]}"
+        )
+    if debug and excluded_funcs:
+        print(
+            "    Preprocess: float exclude funcs = "
+            f"{[hex(a) for a in sorted(excluded_funcs)]}"
+        )
+
+    return filtered_funcs
+
+
 async def preprocess_func_xrefs_via_mcp(
     session,
     func_name,
@@ -6704,6 +6918,8 @@ async def preprocess_func_xrefs_via_mcp(
     vtable_class=None,
     allow_func_sig_across_function_boundary=False,
     debug=False,
+    xref_floats=None,
+    exclude_floats=None,
 ):
     """
     Resolve target function by intersecting candidate sets collected from
@@ -6719,6 +6935,8 @@ async def preprocess_func_xrefs_via_mcp(
             xref_funcs,
         )
     )
+    xref_floats = xref_floats or []
+    exclude_floats = exclude_floats or []
     if not has_explicit_positive_source:
         if debug:
             print(
@@ -7022,6 +7240,30 @@ async def preprocess_func_xrefs_via_mcp(
             f"{[hex(a) for a in sorted(common_funcs)]}"
         )
 
+    if xref_floats or exclude_floats:
+        if debug:
+            print(
+                "    Preprocess: common_funcs before float filters = "
+                f"{[hex(a) for a in sorted(common_funcs)]}"
+            )
+        filtered_funcs = await _filter_func_addrs_by_float_xrefs_via_mcp(
+            session=session,
+            func_addrs=common_funcs,
+            xref_floats=xref_floats,
+            exclude_floats=exclude_floats,
+            debug=debug,
+        )
+        if filtered_funcs is None:
+            if debug:
+                print("    Preprocess: failed to apply float xref filters")
+            return None
+        common_funcs = filtered_funcs
+        if debug:
+            print(
+                "    Preprocess: common_funcs after float filters = "
+                f"{[hex(a) for a in sorted(common_funcs)]}"
+            )
+
     if len(common_funcs) != 1:
         if debug:
             print(
@@ -7137,10 +7379,12 @@ async def _try_preprocess_func_without_llm(
             xref_gvs=xref_spec["xref_gvs"],
             xref_signatures=xref_spec["xref_signatures"],
             xref_funcs=xref_spec["xref_funcs"],
+            xref_floats=xref_spec["xref_floats"],
             exclude_funcs=xref_spec["exclude_funcs"],
             exclude_strings=xref_spec["exclude_strings"],
             exclude_gvs=xref_spec["exclude_gvs"],
             exclude_signatures=xref_spec["exclude_signatures"],
+            exclude_floats=xref_spec["exclude_floats"],
             new_binary_dir=new_binary_dir,
             platform=platform,
             image_base=image_base,
@@ -7262,8 +7506,12 @@ async def preprocess_common_skill(
       ``preprocess_func_xrefs_via_mcp``. Each element is a dict with
       ``func_name`` plus list fields for positive xref sources
       (``xref_strings``, ``xref_gvs``, ``xref_signatures``, ``xref_funcs``)
+      and optional post-intersection scalar readonly float/double filters
+      (``xref_floats``)
       and exclusions (``exclude_funcs``, ``exclude_strings``,
-      ``exclude_gvs``, ``exclude_signatures``). ``xref_gvs``/``exclude_gvs``
+      ``exclude_gvs``, ``exclude_signatures``, ``exclude_floats``).
+      ``xref_floats``/``exclude_floats`` do not count as positive xref
+      candidate sources. ``xref_gvs``/``exclude_gvs``
       entries may be YAML symbol names or explicit ``0x...`` addresses.
       Symbolic entries are resolved from current-version YAML files in
       ``new_binary_dir``.
@@ -7296,7 +7544,8 @@ async def preprocess_common_skill(
         func_xrefs: List of dict specs for unified xref-based function lookup
             (may be empty/None). Supported keys are func_name,
             xref_strings/xref_gvs/xref_signatures/xref_funcs,
-            exclude_funcs/exclude_strings/exclude_gvs/exclude_signatures.
+            xref_floats, exclude_funcs/exclude_strings/exclude_gvs/
+            exclude_signatures/exclude_floats.
         func_vtable_relations: List of (func_name, vtable_class) tuples for
             enriching function YAML with vtable metadata; the vtable value may
             be a canonical class name or a vtable artifact stem
@@ -7345,20 +7594,24 @@ async def preprocess_common_skill(
         "xref_gvs",
         "xref_signatures",
         "xref_funcs",
+        "xref_floats",
         "exclude_funcs",
         "exclude_strings",
         "exclude_gvs",
         "exclude_signatures",
+        "exclude_floats",
     }
     func_xrefs_list_keys = (
         "xref_strings",
         "xref_gvs",
         "xref_signatures",
         "xref_funcs",
+        "xref_floats",
         "exclude_funcs",
         "exclude_strings",
         "exclude_gvs",
         "exclude_signatures",
+        "exclude_floats",
     )
     func_xrefs_map = {}
     for spec in func_xrefs:
@@ -7406,6 +7659,15 @@ async def preprocess_common_skill(
                         f"{func_name}"
                     )
                 return False
+            if field_name in {"xref_floats", "exclude_floats"}:
+                field_list = _normalize_float_xref_values(
+                    field_name,
+                    field_list,
+                    func_name,
+                    debug=debug,
+                )
+                if field_list is None:
+                    return False
             normalized_spec[field_name] = field_list
 
         if (

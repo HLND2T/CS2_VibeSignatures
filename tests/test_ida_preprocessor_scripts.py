@@ -2266,6 +2266,7 @@ class TestFindCcsPlayerMovementServicesProcessMovement(
                 "xref_gvs": ["CPlayer_MovementServices_s_pRunCommandPawn"],
                 "xref_signatures": [],
                 "xref_funcs": [],
+                "xref_floats": ["64.0", "0.5"],
                 "exclude_funcs": [
                     "CPlayer_MovementServices_ForceButtons",
                     "CPlayer_MovementServices_ForceButtonState",
@@ -2273,6 +2274,7 @@ class TestFindCcsPlayerMovementServicesProcessMovement(
                 "exclude_strings": [],
                 "exclude_gvs": [],
                 "exclude_signatures": [],
+                "exclude_floats": [],
             }
         ]
         expected_func_names = [
