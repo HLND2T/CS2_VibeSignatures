@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CPointTeleport_Teleport skill."""
+"""Preprocess script for find-CPointTeleport_Activate skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = [
-    "CPointTeleport_Teleport",
+    "CPointTeleport_Activate",
 ]
 
 FUNC_XREFS = [
                  {
-                     "func_name": 'CPointTeleport_Teleport',
+                     "func_name": 'CPointTeleport_Activate',
                      "xref_strings": ["can't teleport object"],
                      "xref_gvs": [],
                      "xref_signatures": [],
@@ -23,13 +23,13 @@ FUNC_XREFS = [
 
 FUNC_VTABLE_RELATIONS = [
     # (func_name, vtable_class)
-    ("CPointTeleport_Teleport", "CPointTeleport"),
+    ("CPointTeleport_Activate", "CPointTeleport"),
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
     (
-        "CPointTeleport_Teleport",
+        "CPointTeleport_Activate",
         [
             "func_name",
             "func_va",
