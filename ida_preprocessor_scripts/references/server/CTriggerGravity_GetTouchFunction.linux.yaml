@@ -1,0 +1,32 @@
+func_name: CTriggerGravity_GetTouchFunction
+func_va: '0x192d2a0'
+disasm_code: |-
+  .text:000000000192D2A0                 push    rbp
+  .text:000000000192D2A1                 ; s2
+  .text:000000000192D2A1                 mov     rsi, rdi; s2
+  .text:000000000192D2A4                 mov     rbp, rsp
+  .text:000000000192D2A7                 push    rbx
+  .text:000000000192D2A8                 mov     rbx, rdi
+  .text:000000000192D2AB                 lea     rdi, aCtriggergravit_0; "CTriggerGravityGravityTouch"
+  .text:000000000192D2B2                 sub     rsp, 8
+  .text:000000000192D2B6                 call    strcmp
+  .text:000000000192D2BB                 test    eax, eax
+  .text:000000000192D2BD                 jnz     short loc_192D2D0
+  .text:000000000192D2BF                 mov     rbx, [rbp+var_8]
+  .text:000000000192D2C3                 lea     rax, CTriggerGravity_GravityTouch
+  .text:000000000192D2CA                 xor     edx, edx
+  .text:000000000192D2CC                 leave
+  .text:000000000192D2CD                 retn
+  .text:000000000192D2D0                 ; s2
+  .text:000000000192D2D0                 mov     rdi, rbx; s2
+  .text:000000000192D2D3                 mov     rbx, [rbp+var_8]
+  .text:000000000192D2D7                 leave
+  .text:000000000192D2D8                 jmp     CTriggerGravity_DefaultTouch
+procedure: |-
+  __int64 (__fastcall *__fastcall CTriggerGravity_GetTouchFunction(char *s2))()
+  {
+    if ( !strcmp("CTriggerGravityGravityTouch", s2) )
+      return CTriggerGravity_GravityTouch;
+    else
+      return (__int64 (__fastcall *)())CTriggerGravity_DefaultTouch(s2);
+  }

@@ -1,21 +1,20 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CTriggerGravity_GravityTouch_Register skill."""
+"""Preprocess script for find-CTriggerGravity_GetTouchFunction skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = [
-    "CTriggerGravity_GravityTouch_Register",
+    "CTriggerGravity_GetTouchFunction",
 ]
 
 FUNC_XREFS = [
     {
-        "func_name": "CTriggerGravity_GravityTouch_Register",
+        "func_name": "CTriggerGravity_GetTouchFunction",
         "xref_strings": [
-            "FULLMATCH:CTriggerGravity",
-            "FULLMATCH:GravityTouch",
+            "FULLMATCH:CTriggerGravityGravityTouch",
         ],
         "xref_gvs": [],
-        "xref_signatures": [],
+        "xref_signatures": ["E8 ?? ?? ?? ?? 85 C0"],
         "xref_funcs": [],
         "exclude_funcs": [],
         "exclude_strings": [],
@@ -27,7 +26,7 @@ FUNC_XREFS = [
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
     (
-        "CTriggerGravity_GravityTouch_Register",
+        "CTriggerGravity_GetTouchFunction",
         [
             "func_name",
             "func_sig",
