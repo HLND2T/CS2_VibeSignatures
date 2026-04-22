@@ -1,23 +1,22 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CBaseEntity_Spawn skill."""
+"""Preprocess script for find-CBaseEntity_Activate skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
-INHERIT_VFUNCS = [
+INHERIT_VFUNCS=[
     # (target_func_name, inherit_vtable_class, base_vfunc_name, generate_func_sig)
-    ("CBaseEntity_Spawn", "CBaseEntity", "CFlashbangProjectile_Spawn", True),
+    ("CBaseEntity_Activate", "CBaseEntity", "CPointTeleport_Activate", False),
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
     (
-        "CBaseEntity_Spawn",
+        "CBaseEntity_Activate",
         [
             "func_name",
             "func_va",
             "func_rva",
             "func_size",
-            "func_sig",
             "vtable_name",
             "vfunc_offset",
             "vfunc_index",

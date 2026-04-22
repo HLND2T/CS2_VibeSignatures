@@ -594,6 +594,116 @@ class TestVtableAliasSupport(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("0x8", written_payload["vfunc_offset"])
 
 
+class TestVtableEntryRecoverySupport(unittest.IsolatedAsyncioTestCase):
+    def test_build_vtable_py_eval_embeds_debug_flag(self) -> None:
+        py_code = ida_analyze_util._build_vtable_py_eval(
+            "CSource2Client",
+            debug=True,
+        )
+
+        self.assertIn('"CSource2Client"', py_code)
+        self.assertIn("debug_enabled = True", py_code)
+        self.assertNotIn("DEBUG_PLACEHOLDER", py_code)
+
+    async def test_preprocess_vtable_via_mcp_forwards_debug_to_builder(self) -> None:
+        session = AsyncMock()
+        session.call_tool.return_value = _py_eval_payload(
+            {
+                "vtable_class": "CSource2Client",
+                "vtable_symbol": "_ZTV14CSource2Client + 0x10",
+                "vtable_va": "0x424f6c0",
+                "vtable_size": "0x18",
+                "vtable_numvfunc": 3,
+                "vtable_entries": {
+                    "0": "0x174e400",
+                    "1": "0x174dcd0",
+                    "2": "0x17481f0",
+                },
+            }
+        )
+
+        with patch.object(
+            ida_analyze_util,
+            "_build_vtable_py_eval",
+            return_value="py-code",
+        ) as mock_build:
+            result = await ida_analyze_util.preprocess_vtable_via_mcp(
+                session=session,
+                class_name="CSource2Client",
+                image_base=0x400000,
+                platform="linux",
+                debug=True,
+            )
+
+        self.assertEqual(
+            {
+                "vtable_class": "CSource2Client",
+                "vtable_symbol": "_ZTV14CSource2Client + 0x10",
+                "vtable_va": "0x424f6c0",
+                "vtable_rva": hex(0x424F6C0 - 0x400000),
+                "vtable_size": "0x18",
+                "vtable_numvfunc": 3,
+                "vtable_entries": {
+                    0: "0x174e400",
+                    1: "0x174dcd0",
+                    2: "0x17481f0",
+                },
+            },
+            result,
+        )
+        mock_build.assert_called_once_with(
+            "CSource2Client",
+            symbol_aliases=None,
+            debug=True,
+        )
+        session.call_tool.assert_awaited_once_with(
+            name="py_eval",
+            arguments={"code": "py-code"},
+        )
+
+    def test_build_vtable_py_eval_recovers_exec_entries_to_func_start(self) -> None:
+        py_code = ida_analyze_util._build_vtable_py_eval(
+            "CSource2Client",
+            debug=True,
+        )
+
+        self.assertIn(
+            "import ida_auto, ida_bytes, ida_name, idaapi, ida_segment, idautils, idc, json",
+            py_code,
+        )
+        self.assertIn("def _debug(message):", py_code)
+        self.assertIn("def _resolve_vtable_func_start(ptr_value):", py_code)
+        self.assertIn(
+            "ida_bytes.del_items(ptr_value, ida_bytes.DELIT_SIMPLE, ptr_size)",
+            py_code,
+        )
+        self.assertIn("idc.create_insn(ptr_value)", py_code)
+        self.assertIn("idaapi.add_func(ptr_value)", py_code)
+        self.assertIn("ida_auto.auto_wait()", py_code)
+        self.assertIn("func_start = _resolve_vtable_func_start(ptr_value)", py_code)
+        self.assertIn("entries[count] = hex(func_start)", py_code)
+
+    def test_build_vtable_py_eval_rejects_uncovered_recovery_result(self) -> None:
+        py_code = ida_analyze_util._build_vtable_py_eval(
+            "CSource2Client",
+            debug=True,
+        )
+
+        self.assertIn("if func is None:", py_code)
+        self.assertIn(
+            'f"    Preprocess vtable: no function covers {hex(ptr_value)} after recovery"',
+            py_code,
+        )
+        self.assertIn(
+            "if not (func.start_ea <= ptr_value < func.end_ea):",
+            py_code,
+        )
+        self.assertIn(
+            'f"{hex(func.start_ea)} does not cover {hex(ptr_value)}"',
+            py_code,
+        )
+
+
 class TestVtableArtifactStemSupport(unittest.IsolatedAsyncioTestCase):
     def test_normalizes_plain_class_name_to_primary_vtable_artifact(self) -> None:
         self.assertEqual(
@@ -2045,6 +2155,27 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
             debug=True,
         )
 
+    async def test_func_contains_signature_via_mcp_uses_ida_bytes_find_bytes(
+        self,
+    ) -> None:
+        session = AsyncMock()
+        session.call_tool.return_value = _py_eval_payload({"contains": True})
+
+        result = await ida_analyze_util._func_contains_signature_via_mcp(
+            session=session,
+            func_va="0x180020000",
+            signature="48 8B ?? ??",
+            debug=True,
+        )
+
+        self.assertTrue(result)
+        session.call_tool.assert_awaited_once()
+        py_code = session.call_tool.await_args.kwargs["arguments"]["code"]
+        self.assertIn("import idaapi, ida_bytes, json", py_code)
+        self.assertIn("ida_bytes.find_bytes(", py_code)
+        self.assertIn("range_end=func.end_ea", py_code)
+        self.assertNotIn("ida_search.find_binary", py_code)
+
     async def test_normalize_func_start_returns_existing_function(self) -> None:
         session = AsyncMock()
         session.call_tool.return_value = _py_eval_payload(
@@ -2251,6 +2382,145 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
             mock_normalize.await_args_list,
         )
 
+    async def test_filter_func_addrs_by_float_xrefs_keeps_xref_matches_and_excludes_hits(
+        self,
+    ) -> None:
+        session = AsyncMock()
+        session.call_tool.return_value = _py_eval_payload(
+            {
+                "0x180100000": {
+                    "constants": [
+                        {
+                            "inst_ea": "0x180100010",
+                            "const_ea": "0x181000000",
+                            "kind": "float",
+                            "value": 64.0,
+                        }
+                    ],
+                    "xref_hit": True,
+                    "exclude_hit": False,
+                },
+                "0x180200000": {
+                    "constants": [
+                        {
+                            "inst_ea": "0x180200010",
+                            "const_ea": "0x181000004",
+                            "kind": "float",
+                            "value": 1.0,
+                        }
+                    ],
+                    "xref_hit": False,
+                    "exclude_hit": False,
+                },
+                "0x180300000": {
+                    "constants": [
+                        {
+                            "inst_ea": "0x180300010",
+                            "const_ea": "0x181000008",
+                            "kind": "float",
+                            "value": 0.5,
+                        }
+                    ],
+                    "xref_hit": True,
+                    "exclude_hit": True,
+                },
+            }
+        )
+
+        result = await ida_analyze_util._filter_func_addrs_by_float_xrefs_via_mcp(
+            session=session,
+            func_addrs={0x180100000, 0x180200000, 0x180300000},
+            xref_floats=["64.0", "0.5"],
+            exclude_floats=["0.5"],
+            debug=True,
+        )
+
+        self.assertEqual({0x180100000}, result)
+        session.call_tool.assert_awaited_once()
+        py_code = session.call_tool.await_args.kwargs["arguments"]["code"]
+        self.assertIn('struct.unpack("<f"', py_code)
+        self.assertIn('struct.unpack("<d"', py_code)
+        self.assertIn('seg_name == ".rdata"', py_code)
+        self.assertIn('seg_name.startswith(".rodata")', py_code)
+        self.assertIn('"mulss"', py_code)
+        self.assertIn('"mulsd"', py_code)
+        self.assertIn('"vmulss"', py_code)
+        self.assertIn('"vmulsd"', py_code)
+        self.assertIn("globals().update(locals())", py_code)
+
+    async def test_filter_func_addrs_by_float_xrefs_fails_closed_on_invalid_payload(
+        self,
+    ) -> None:
+        session = AsyncMock()
+        session.call_tool.return_value = _py_eval_payload(["not-a-dict"])
+
+        result = await ida_analyze_util._filter_func_addrs_by_float_xrefs_via_mcp(
+            session=session,
+            func_addrs={0x180100000},
+            xref_floats=["64.0"],
+            exclude_floats=[],
+            debug=True,
+        )
+
+        self.assertIsNone(result)
+        session.call_tool.assert_awaited_once()
+
+    async def test_filter_func_addrs_by_float_xrefs_fails_closed_on_non_finite_values(
+        self,
+    ) -> None:
+        cases = [
+            (["nan"], []),
+            (["64.0"], ["inf"]),
+        ]
+        for xref_floats, exclude_floats in cases:
+            with self.subTest(xref_floats=xref_floats, exclude_floats=exclude_floats):
+                session = AsyncMock()
+
+                result = await ida_analyze_util._filter_func_addrs_by_float_xrefs_via_mcp(
+                    session=session,
+                    func_addrs={0x180100000},
+                    xref_floats=xref_floats,
+                    exclude_floats=exclude_floats,
+                    debug=True,
+                )
+
+                self.assertIsNone(result)
+                session.call_tool.assert_not_awaited()
+
+    async def test_filter_func_addrs_by_float_xrefs_fails_closed_on_malformed_entry(
+        self,
+    ) -> None:
+        payloads = [
+            {
+                "0x180100000": {
+                    "constants": [],
+                    "xref_hit": "false",
+                    "exclude_hit": False,
+                }
+            },
+            {
+                "0x180100000": {
+                    "constants": [],
+                    "xref_hit": True,
+                }
+            },
+        ]
+        for payload in payloads:
+            with self.subTest(payload=payload):
+                session = AsyncMock()
+                session.call_tool.return_value = _py_eval_payload(payload)
+
+                result = await ida_analyze_util._filter_func_addrs_by_float_xrefs_via_mcp(
+                    session=session,
+                    func_addrs={0x180100000},
+                    xref_floats=["64.0"],
+                    exclude_floats=[],
+                    debug=True,
+                )
+
+                self.assertIsNone(result)
+                session.call_tool.assert_awaited_once()
+
     async def test_preprocess_func_xrefs_intersects_string_and_signature_sets(
         self,
     ) -> None:
@@ -2261,8 +2531,12 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
         ) as mock_collect_string, patch.object(
             ida_analyze_util,
             "_collect_xref_func_starts_for_signature",
-            AsyncMock(return_value={0x180200000}),
+            AsyncMock(return_value={0x180100000}),
         ) as mock_collect_signature, patch.object(
+            ida_analyze_util,
+            "_func_contains_signature_via_mcp",
+            AsyncMock(side_effect=[False, True]),
+        ) as mock_func_contains_signature, patch.object(
             ida_analyze_util,
             "preprocess_gen_func_sig_via_mcp",
             AsyncMock(
@@ -2306,10 +2580,22 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
             xref_string="Networking",
             debug=True,
         )
-        mock_collect_signature.assert_awaited_once_with(
-            session="session",
-            xref_signature="C7 44 24 40 64 FF FF FF",
-            debug=True,
+        mock_collect_signature.assert_not_called()
+        mock_func_contains_signature.assert_has_awaits(
+            [
+                call(
+                    session="session",
+                    func_va=0x180100000,
+                    signature="C7 44 24 40 64 FF FF FF",
+                    debug=True,
+                ),
+                call(
+                    session="session",
+                    func_va=0x180200000,
+                    signature="C7 44 24 40 64 FF FF FF",
+                    debug=True,
+                ),
+            ]
         )
         mock_gen_sig.assert_awaited_once()
 
@@ -2662,6 +2948,114 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
         )
         mock_gen_sig.assert_not_called()
 
+    async def test_preprocess_func_xrefs_applies_float_filters_after_excludes(
+        self,
+    ) -> None:
+        with patch.object(
+            ida_analyze_util,
+            "_collect_xref_func_starts_for_string",
+            AsyncMock(return_value={0x180100000, 0x180200000}),
+        ) as mock_collect_string, patch.object(
+            ida_analyze_util,
+            "_load_symbol_addr_from_current_yaml",
+            return_value=0x180100000,
+        ) as mock_load_symbol, patch.object(
+            ida_analyze_util,
+            "_filter_func_addrs_by_float_xrefs_via_mcp",
+            AsyncMock(return_value={0x180200000}),
+        ) as mock_float_filter, patch.object(
+            ida_analyze_util,
+            "preprocess_gen_func_sig_via_mcp",
+            AsyncMock(
+                return_value={
+                    "func_va": "0x180200000",
+                    "func_rva": "0x200000",
+                    "func_size": "0x40",
+                    "func_sig": "48 89 5C 24 08",
+                }
+            ),
+        ) as mock_gen_sig:
+            result = await ida_analyze_util.preprocess_func_xrefs_via_mcp(
+                session="session",
+                func_name="LoggingChannel_Init",
+                xref_strings=["Networking"],
+                xref_gvs=[],
+                xref_signatures=[],
+                xref_funcs=[],
+                exclude_funcs=["LoggingChannel_Shutdown"],
+                exclude_strings=[],
+                exclude_gvs=[],
+                exclude_signatures=[],
+                xref_floats=["64.0"],
+                exclude_floats=[],
+                new_binary_dir="bin_dir",
+                platform="windows",
+                image_base=0x180000000,
+                debug=True,
+            )
+
+        self.assertEqual("0x180200000", result["func_va"])
+        mock_collect_string.assert_awaited_once_with(
+            session="session",
+            xref_string="Networking",
+            debug=True,
+        )
+        mock_load_symbol.assert_called_once_with(
+            "bin_dir",
+            "windows",
+            "LoggingChannel_Shutdown",
+            "func_va",
+            debug=True,
+            debug_label="exclude_func",
+        )
+        mock_float_filter.assert_awaited_once_with(
+            session="session",
+            func_addrs={0x180200000},
+            xref_floats=["64.0"],
+            exclude_floats=[],
+            debug=True,
+        )
+        mock_gen_sig.assert_awaited_once()
+
+    async def test_preprocess_func_xrefs_fails_closed_on_float_filter_failure(
+        self,
+    ) -> None:
+        with patch.object(
+            ida_analyze_util,
+            "_collect_xref_func_starts_for_string",
+            AsyncMock(return_value={0x180100000, 0x180200000}),
+        ), patch.object(
+            ida_analyze_util,
+            "_filter_func_addrs_by_float_xrefs_via_mcp",
+            AsyncMock(return_value=None),
+        ) as mock_float_filter, patch.object(
+            ida_analyze_util,
+            "preprocess_gen_func_sig_via_mcp",
+            AsyncMock(return_value=None),
+        ) as mock_gen_sig:
+            result = await ida_analyze_util.preprocess_func_xrefs_via_mcp(
+                session="session",
+                func_name="LoggingChannel_Init",
+                xref_strings=["Networking"],
+                xref_gvs=[],
+                xref_signatures=[],
+                xref_funcs=[],
+                exclude_funcs=[],
+                exclude_strings=[],
+                exclude_gvs=[],
+                exclude_signatures=[],
+                xref_floats=["64.0"],
+                exclude_floats=[],
+                new_binary_dir="bin_dir",
+                platform="windows",
+                image_base=0x180000000,
+                debug=True,
+            )
+
+        self.assertIsNone(result)
+        mock_float_filter.assert_awaited_once()
+        mock_gen_sig.assert_not_called()
+
     async def test_preprocess_func_xrefs_forwards_boundary_flag_to_generator(
         self,
     ) -> None:
@@ -2671,9 +3065,9 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
             AsyncMock(return_value={0x180200000}),
         ), patch.object(
             ida_analyze_util,
-            "_collect_xref_func_starts_for_signature",
-            AsyncMock(return_value={0x180200000}),
-        ), patch.object(
+            "_func_contains_signature_via_mcp",
+            AsyncMock(return_value=True),
+        ) as mock_func_contains_signature, patch.object(
             ida_analyze_util,
             "preprocess_gen_func_sig_via_mcp",
             AsyncMock(
@@ -2704,6 +3098,12 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
             )
 
         self.assertEqual("48 89 5C 24 08", result["func_sig"])
+        mock_func_contains_signature.assert_awaited_once_with(
+            session="session",
+            func_va=0x180200000,
+            signature="C7 44 24 40 64 FF FF FF",
+            debug=False,
+        )
         mock_gen_sig.assert_awaited_once()
         self.assertTrue(
             mock_gen_sig.await_args.kwargs["allow_across_function_boundary"]
@@ -2780,13 +3180,9 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
     ) -> None:
         with patch.object(
             ida_analyze_util,
-            "_collect_xref_func_starts_for_string",
-            AsyncMock(return_value={0x180100000}),
-        ), patch.object(
-            ida_analyze_util,
             "_collect_xref_func_starts_for_signature",
             AsyncMock(return_value=set()),
-        ), patch.object(
+        ) as mock_collect_signature, patch.object(
             ida_analyze_util,
             "preprocess_gen_func_sig_via_mcp",
             AsyncMock(return_value=None),
@@ -2794,7 +3190,7 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
             result = await ida_analyze_util.preprocess_func_xrefs_via_mcp(
                 session="session",
                 func_name="LoggingChannel_Init",
-                xref_strings=["Networking"],
+                xref_strings=[],
                 xref_gvs=[],
                 xref_signatures=["C7 44 24 40 64 FF FF FF"],
                 xref_funcs=[],
@@ -2809,6 +3205,11 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
             )
 
         self.assertIsNone(result)
+        mock_collect_signature.assert_awaited_once_with(
+            session="session",
+            xref_signature="C7 44 24 40 64 FF FF FF",
+            debug=True,
+        )
         mock_gen_sig.assert_not_called()
 
     async def test_preprocess_common_skill_forwards_dict_func_xrefs_fields(
@@ -2853,10 +3254,12 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
                         "xref_gvs": ["g_NetworkingState"],
                         "xref_signatures": ["C7 44 24 40 64 FF FF FF"],
                         "xref_funcs": ["LoggingChannel_Shutdown"],
+                        "xref_floats": ["64.0", "0.5"],
                         "exclude_funcs": ["LoggingChannel_Rebuild"],
                         "exclude_strings": ["FULLMATCH:Networking"],
                         "exclude_gvs": ["g_ExcludeNetworkingState"],
                         "exclude_signatures": ["DE AD BE EF"],
+                        "exclude_floats": ["128.0"],
                     }
                 ],
                 generate_yaml_desired_fields=[
@@ -2889,6 +3292,10 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
             mock_func_xrefs.call_args.kwargs["xref_funcs"],
         )
         self.assertEqual(
+            ["64.0", "0.5"],
+            mock_func_xrefs.call_args.kwargs["xref_floats"],
+        )
+        self.assertEqual(
             ["LoggingChannel_Rebuild"],
             mock_func_xrefs.call_args.kwargs["exclude_funcs"],
         )
@@ -2903,6 +3310,10 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             ["DE AD BE EF"],
             mock_func_xrefs.call_args.kwargs["exclude_signatures"],
+        )
+        self.assertEqual(
+            ["128.0"],
+            mock_func_xrefs.call_args.kwargs["exclude_floats"],
         )
         mock_write_func_yaml.assert_called_once()
 
@@ -3007,6 +3418,146 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
             debug=True,
         )
 
+        self.assertFalse(result)
+
+    async def test_preprocess_common_skill_rejects_invalid_float_xref_values(
+        self,
+    ) -> None:
+        result = await ida_analyze_util.preprocess_common_skill(
+            session="session",
+            expected_outputs=["/tmp/LoggingChannel_Init.windows.yaml"],
+            old_yaml_map={},
+            new_binary_dir="/tmp",
+            platform="windows",
+            image_base=0x180000000,
+            func_names=["LoggingChannel_Init"],
+            func_xrefs=[
+                {
+                    "func_name": "LoggingChannel_Init",
+                    "xref_strings": ["Networking"],
+                    "xref_gvs": [],
+                    "xref_signatures": [],
+                    "xref_funcs": [],
+                    "xref_floats": ["not-a-float"],
+                    "exclude_funcs": [],
+                    "exclude_strings": [],
+                    "exclude_gvs": [],
+                    "exclude_signatures": [],
+                    "exclude_floats": [],
+                }
+            ],
+            generate_yaml_desired_fields=[
+                (
+                    "LoggingChannel_Init",
+                    ["func_name", "func_va", "func_rva", "func_size", "func_sig"],
+                )
+            ],
+            debug=True,
+        )
+        self.assertFalse(result)
+
+    async def test_preprocess_common_skill_rejects_nan_xref_floats(self) -> None:
+        result = await ida_analyze_util.preprocess_common_skill(
+            session="session",
+            expected_outputs=["/tmp/LoggingChannel_Init.windows.yaml"],
+            old_yaml_map={},
+            new_binary_dir="/tmp",
+            platform="windows",
+            image_base=0x180000000,
+            func_names=["LoggingChannel_Init"],
+            func_xrefs=[
+                {
+                    "func_name": "LoggingChannel_Init",
+                    "xref_strings": ["Networking"],
+                    "xref_gvs": [],
+                    "xref_signatures": [],
+                    "xref_funcs": [],
+                    "xref_floats": ["nan"],
+                    "exclude_funcs": [],
+                    "exclude_strings": [],
+                    "exclude_gvs": [],
+                    "exclude_signatures": [],
+                    "exclude_floats": [],
+                }
+            ],
+            generate_yaml_desired_fields=[
+                (
+                    "LoggingChannel_Init",
+                    ["func_name", "func_va", "func_rva", "func_size", "func_sig"],
+                )
+            ],
+            debug=True,
+        )
+        self.assertFalse(result)
+
+    async def test_preprocess_common_skill_rejects_inf_xref_floats(self) -> None:
+        result = await ida_analyze_util.preprocess_common_skill(
+            session="session",
+            expected_outputs=["/tmp/LoggingChannel_Init.windows.yaml"],
+            old_yaml_map={},
+            new_binary_dir="/tmp",
+            platform="windows",
+            image_base=0x180000000,
+            func_names=["LoggingChannel_Init"],
+            func_xrefs=[
+                {
+                    "func_name": "LoggingChannel_Init",
+                    "xref_strings": ["Networking"],
+                    "xref_gvs": [],
+                    "xref_signatures": [],
+                    "xref_funcs": [],
+                    "xref_floats": ["inf"],
+                    "exclude_funcs": [],
+                    "exclude_strings": [],
+                    "exclude_gvs": [],
+                    "exclude_signatures": [],
+                    "exclude_floats": [],
+                }
+            ],
+            generate_yaml_desired_fields=[
+                (
+                    "LoggingChannel_Init",
+                    ["func_name", "func_va", "func_rva", "func_size", "func_sig"],
+                )
+            ],
+            debug=True,
+        )
+        self.assertFalse(result)
+
+    async def test_preprocess_common_skill_rejects_negative_inf_exclude_floats(
+        self,
+    ) -> None:
+        result = await ida_analyze_util.preprocess_common_skill(
+            session="session",
+            expected_outputs=["/tmp/LoggingChannel_Init.windows.yaml"],
+            old_yaml_map={},
+            new_binary_dir="/tmp",
+            platform="windows",
+            image_base=0x180000000,
+            func_names=["LoggingChannel_Init"],
+            func_xrefs=[
+                {
+                    "func_name": "LoggingChannel_Init",
+                    "xref_strings": ["Networking"],
+                    "xref_gvs": [],
+                    "xref_signatures": [],
+                    "xref_funcs": [],
+                    "xref_floats": [],
+                    "exclude_funcs": [],
+                    "exclude_strings": [],
+                    "exclude_gvs": [],
+                    "exclude_signatures": [],
+                    "exclude_floats": ["-inf"],
+                }
+            ],
+            generate_yaml_desired_fields=[
+                (
+                    "LoggingChannel_Init",
+                    ["func_name", "func_va", "func_rva", "func_size", "func_sig"],
+                )
+            ],
+            debug=True,
+        )
         self.assertFalse(result)
 
     def test_can_probe_future_func_fast_path_ignores_literal_gv_dependencies(
@@ -3594,6 +4145,205 @@ found_struct_offset: []
                 "found_struct_offset": [],
             },
             parsed,
+        )
+
+    def test_build_llm_decompile_specs_map_groups_duplicate_symbol_names(
+        self,
+    ) -> None:
+        specs_map = ida_analyze_util._build_llm_decompile_specs_map(
+            [
+                (
+                    "ILoopMode_OnLoopActivate",
+                    "prompt/call_llm_decompile.md",
+                    "references/reference_a.yaml",
+                ),
+                (
+                    "CNetworkMessages_FindNetworkGroup",
+                    "prompt/call_llm_decompile.md",
+                    "references/reference_b.yaml",
+                ),
+                (
+                    "ILoopMode_OnLoopActivate",
+                    "prompt/call_llm_decompile.md",
+                    "references/reference_c.yaml",
+                ),
+            ],
+            debug=True,
+        )
+
+        self.assertEqual(
+            {
+                "ILoopMode_OnLoopActivate": [
+                    {
+                        "prompt_path": "prompt/call_llm_decompile.md",
+                        "reference_yaml_path": "references/reference_a.yaml",
+                    },
+                    {
+                        "prompt_path": "prompt/call_llm_decompile.md",
+                        "reference_yaml_path": "references/reference_c.yaml",
+                    },
+                ],
+                "CNetworkMessages_FindNetworkGroup": [
+                    {
+                        "prompt_path": "prompt/call_llm_decompile.md",
+                        "reference_yaml_path": "references/reference_b.yaml",
+                    }
+                ],
+            },
+            specs_map,
+        )
+
+    def test_build_llm_decompile_specs_map_rejects_mixed_prompt_paths(
+        self,
+    ) -> None:
+        specs_map = ida_analyze_util._build_llm_decompile_specs_map(
+            [
+                (
+                    "ILoopMode_OnLoopActivate",
+                    "prompt/call_llm_decompile.md",
+                    "references/reference_a.yaml",
+                ),
+                (
+                    "ILoopMode_OnLoopActivate",
+                    "prompt/other_llm_decompile.md",
+                    "references/reference_b.yaml",
+                ),
+            ],
+            debug=True,
+        )
+
+        self.assertIsNone(specs_map)
+
+    async def test_prepare_llm_decompile_request_collects_multiple_references(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            preprocessor_dir = Path(temp_dir) / "ida_preprocessor_scripts"
+            (preprocessor_dir / "prompt").mkdir(parents=True, exist_ok=True)
+            (preprocessor_dir / "references").mkdir(parents=True, exist_ok=True)
+            (preprocessor_dir / "prompt" / "call_llm_decompile.md").write_text(
+                "symbols={symbol_name_list}",
+                encoding="utf-8",
+            )
+            _write_yaml(
+                preprocessor_dir / "references" / "reference_a.yaml",
+                {
+                    "func_name": "CNetworkGameClient_RecordEntityBandwidth",
+                    "disasm_code": "call    sub_180111100",
+                    "procedure": "return FindNetworkGroup(this);",
+                },
+            )
+            _write_yaml(
+                preprocessor_dir / "references" / "reference_b.yaml",
+                {
+                    "func_name": "CNetworkMessages_FindMessage",
+                    "disasm_code": "call    sub_180222200",
+                    "procedure": "return FindMessage(this);",
+                },
+            )
+
+            with patch.object(
+                ida_analyze_util,
+                "_get_preprocessor_scripts_dir",
+                return_value=preprocessor_dir,
+            ), patch.object(
+                ida_analyze_util,
+                "create_openai_client",
+                side_effect=AssertionError("should not be called in codex mode"),
+                create=True,
+            ):
+                request = ida_analyze_util._prepare_llm_decompile_request(
+                    "ILoopMode_OnLoopActivate",
+                    {
+                        "ILoopMode_OnLoopActivate": [
+                            {
+                                "prompt_path": "prompt/call_llm_decompile.md",
+                                "reference_yaml_path": "references/reference_a.yaml",
+                            },
+                            {
+                                "prompt_path": "prompt/call_llm_decompile.md",
+                                "reference_yaml_path": "references/reference_b.yaml",
+                            },
+                        ]
+                    },
+                    {
+                        "model": "gpt-5.4",
+                        "api_key": "test-api-key",
+                        "fake_as": "codex",
+                    },
+                    platform="windows",
+                    debug=True,
+                )
+
+        reference_yaml_paths = [
+            os.fspath(
+                preprocessor_dir / "references" / "reference_a.yaml",
+            ),
+            os.fspath(
+                preprocessor_dir / "references" / "reference_b.yaml",
+            ),
+        ]
+        self.assertIsNotNone(request)
+        self.assertEqual(reference_yaml_paths, request["reference_yaml_paths"])
+        self.assertEqual(
+            [
+                "CNetworkGameClient_RecordEntityBandwidth",
+                "CNetworkMessages_FindMessage",
+            ],
+            request["target_func_names"],
+        )
+        self.assertEqual(
+            [
+                {
+                    "func_name": "CNetworkGameClient_RecordEntityBandwidth",
+                    "disasm_code": "call    sub_180111100",
+                    "procedure": "return FindNetworkGroup(this);",
+                },
+                {
+                    "func_name": "CNetworkMessages_FindMessage",
+                    "disasm_code": "call    sub_180222200",
+                    "procedure": "return FindMessage(this);",
+                },
+            ],
+            request["reference_items"],
+        )
+        self.assertEqual(reference_yaml_paths[0], request["reference_yaml_path"])
+        self.assertEqual(
+            "CNetworkGameClient_RecordEntityBandwidth",
+            request["target_func_name"],
+        )
+        self.assertEqual(
+            "call    sub_180111100",
+            request["disasm_for_reference"],
+        )
+        self.assertEqual(
+            "return FindNetworkGroup(this);",
+            request["procedure_for_reference"],
+        )
+        self.assertEqual(
+            (
+                "gpt-5.4",
+                request["prompt_path"],
+                tuple(reference_yaml_paths),
+                None,
+            ),
+            ida_analyze_util._build_llm_decompile_request_cache_key(request),
+        )
+        self.assertEqual(
+            (
+                "gpt-4.1-mini",
+                "/tmp/prompt.md",
+                ("/tmp/reference.yaml",),
+                0.25,
+            ),
+            ida_analyze_util._build_llm_decompile_request_cache_key(
+                {
+                    "model": "gpt-4.1-mini",
+                    "prompt_path": "/tmp/prompt.md",
+                    "reference_yaml_path": "/tmp/reference.yaml",
+                    "temperature": 0.25,
+                }
+            ),
         )
 
     async def test_prepare_llm_decompile_request_skips_client_factory_for_codex(
@@ -5095,12 +5845,14 @@ found_struct_offset: []
                 return_value=llm_request,
             ), patch.object(
                 ida_analyze_util,
-                "_load_llm_decompile_target_detail_via_mcp",
+                "_load_llm_decompile_target_details_via_mcp",
                 AsyncMock(
-                    return_value={
-                        "disasm_code": "mov rcx, [rcx+278h]",
-                        "procedure": "return this->m_skeletonInstance;",
-                    }
+                    return_value=[
+                        {
+                            "disasm_code": "mov rcx, [rcx+278h]",
+                            "procedure": "return this->m_skeletonInstance;",
+                        }
+                    ]
                 ),
             ), patch.object(
                 ida_analyze_util,
@@ -5419,6 +6171,10 @@ found_struct_offset: []
                 AsyncMock(return_value=None),
             ), patch.object(
                 ida_analyze_util,
+                "_load_llm_decompile_target_details_via_mcp",
+                AsyncMock(return_value=[target_detail_payload]),
+            ), patch.object(
+                ida_analyze_util,
                 "_get_func_basic_info_via_mcp",
                 AsyncMock(
                     return_value={
@@ -5595,8 +6351,8 @@ found_struct_offset: []
                 AsyncMock(return_value=None),
             ), patch.object(
                 ida_analyze_util,
-                "_load_llm_decompile_target_detail_via_mcp",
-                AsyncMock(return_value=target_detail_payload),
+                "_load_llm_decompile_target_details_via_mcp",
+                AsyncMock(return_value=[target_detail_payload]),
             ), patch.object(
                 ida_analyze_util,
                 "_resolve_direct_call_target_via_mcp",
@@ -5729,8 +6485,8 @@ found_struct_offset: []
                 AsyncMock(side_effect=_fake_preprocess_func_sig_via_mcp),
             ), patch.object(
                 ida_analyze_util,
-                "_load_llm_decompile_target_detail_via_mcp",
-                AsyncMock(return_value=target_detail_payload),
+                "_load_llm_decompile_target_details_via_mcp",
+                AsyncMock(return_value=[target_detail_payload]),
             ), patch.object(
                 ida_analyze_util,
                 "_resolve_direct_call_target_via_mcp",
@@ -5873,8 +6629,8 @@ found_struct_offset: []
                 AsyncMock(return_value=None),
             ), patch.object(
                 ida_analyze_util,
-                "_load_llm_decompile_target_detail_via_mcp",
-                AsyncMock(return_value=target_detail_payload),
+                "_load_llm_decompile_target_details_via_mcp",
+                AsyncMock(return_value=[target_detail_payload]),
             ), patch.object(
                 ida_analyze_util,
                 "_resolve_direct_call_target_via_mcp",
@@ -6052,8 +6808,8 @@ found_struct_offset: []
                     AsyncMock(return_value=None),
                 ), patch.object(
                     ida_analyze_util,
-                    "_load_llm_decompile_target_detail_via_mcp",
-                    AsyncMock(return_value=target_detail_payload),
+                    "_load_llm_decompile_target_details_via_mcp",
+                    AsyncMock(return_value=[target_detail_payload]),
                 ), patch.object(
                     ida_analyze_util,
                     "_resolve_direct_call_target_via_mcp",
@@ -6262,8 +7018,8 @@ found_struct_offset: []
                     AsyncMock(return_value=None),
                 ), patch.object(
                     ida_analyze_util,
-                    "_load_llm_decompile_target_detail_via_mcp",
-                    AsyncMock(return_value=target_detail_payload),
+                    "_load_llm_decompile_target_details_via_mcp",
+                    AsyncMock(return_value=[target_detail_payload]),
                 ), patch.object(
                     ida_analyze_util,
                     "_resolve_direct_call_target_via_mcp",
@@ -6474,8 +7230,8 @@ found_struct_offset: []
                 AsyncMock(side_effect=_fake_preprocess_func_xrefs_via_mcp),
             ), patch.object(
                 ida_analyze_util,
-                "_load_llm_decompile_target_detail_via_mcp",
-                AsyncMock(return_value=target_detail_payload),
+                "_load_llm_decompile_target_details_via_mcp",
+                AsyncMock(return_value=[target_detail_payload]),
             ), patch.object(
                 ida_analyze_util,
                 "_resolve_direct_call_target_via_mcp",
@@ -6650,8 +7406,8 @@ found_struct_offset: []
                 AsyncMock(side_effect=_fake_preprocess_func_xrefs_via_mcp),
             ), patch.object(
                 ida_analyze_util,
-                "_load_llm_decompile_target_detail_via_mcp",
-                AsyncMock(return_value=target_detail_payload),
+                "_load_llm_decompile_target_details_via_mcp",
+                AsyncMock(return_value=[target_detail_payload]),
             ), patch.object(
                 ida_analyze_util,
                 "_resolve_direct_call_target_via_mcp",
@@ -6799,6 +7555,254 @@ found_struct_offset: []
                 mock_create_openai_client.assert_not_called()
                 mock_call_llm_decompile.assert_not_awaited()
                 mock_write_func_yaml.assert_not_called()
+
+    async def test_preprocess_common_skill_uses_mainloop_target_when_deactivateloop_target_missing(
+        self,
+    ) -> None:
+        func_name = "ILoopMode_OnLoopActivate"
+        output_path = f"/tmp/{func_name}.windows.yaml"
+        target_detail_payload = {
+            "func_name": "CEngineServiceMgr__MainLoop",
+            "func_va": "0x180555500",
+            "disasm_code": "call    sub_180222200",
+            "procedure": "return CEngineServiceMgr__MainLoop(this);",
+        }
+        normalized_payload = {
+            "found_vcall": [],
+            "found_call": [
+                {
+                    "insn_va": "0x180777700",
+                    "insn_disasm": "call    sub_180222200",
+                    "func_name": func_name,
+                }
+            ],
+            "found_gv": [],
+            "found_struct_offset": [],
+        }
+
+        async def _fake_preprocess_direct_func_sig_via_mcp(**kwargs):
+            return {
+                "func_name": kwargs["func_name"],
+                "func_va": str(kwargs["direct_func_va"]).strip().lower(),
+            }
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            preprocessor_dir = Path(temp_dir) / "ida_preprocessor_scripts"
+            (preprocessor_dir / "prompt").mkdir(parents=True, exist_ok=True)
+            (preprocessor_dir / "references").mkdir(parents=True, exist_ok=True)
+            (preprocessor_dir / "prompt" / "call_llm_decompile.md").write_text(
+                "{reference_blocks}\n---\n{target_blocks}\n---\n{symbol_name_list}",
+                encoding="utf-8",
+            )
+            _write_yaml(
+                preprocessor_dir / "references" / "deactivate.yaml",
+                {
+                    "func_name": "CEngineServiceMgr_DeactivateLoop",
+                    "disasm_code": "call    sub_180111100",
+                    "procedure": "return CEngineServiceMgr_DeactivateLoop(this);",
+                },
+            )
+            _write_yaml(
+                preprocessor_dir / "references" / "mainloop.yaml",
+                {
+                    "func_name": "CEngineServiceMgr__MainLoop",
+                    "disasm_code": "call    sub_180222200",
+                    "procedure": "return CEngineServiceMgr__MainLoop(this);",
+                },
+            )
+
+            with patch.object(
+                ida_analyze_util,
+                "_get_preprocessor_scripts_dir",
+                return_value=preprocessor_dir,
+            ), patch.object(
+                ida_analyze_util,
+                "create_openai_client",
+                return_value=object(),
+                create=True,
+            ), patch.object(
+                ida_analyze_util,
+                "preprocess_func_sig_via_mcp",
+                AsyncMock(return_value=None),
+            ), patch.object(
+                ida_analyze_util,
+                "_load_llm_decompile_target_details_via_mcp",
+                AsyncMock(return_value=[target_detail_payload]),
+                create=True,
+            ) as mock_load_target_details, patch.object(
+                ida_analyze_util,
+                "_resolve_direct_call_target_via_mcp",
+                AsyncMock(return_value="0x180123450"),
+            ), patch.object(
+                ida_analyze_util,
+                "_preprocess_direct_func_sig_via_mcp",
+                AsyncMock(side_effect=_fake_preprocess_direct_func_sig_via_mcp),
+            ), patch.object(
+                ida_analyze_util,
+                "call_llm_decompile",
+                create=True,
+                new_callable=AsyncMock,
+                return_value=normalized_payload,
+            ) as mock_call_llm_decompile, patch.object(
+                ida_analyze_util,
+                "write_func_yaml",
+            ) as mock_write_func_yaml, patch.object(
+                ida_analyze_util,
+                "_rename_func_in_ida",
+                AsyncMock(return_value=None),
+            ):
+                result = await ida_analyze_util.preprocess_common_skill(
+                    session="session",
+                    expected_outputs=[output_path],
+                    old_yaml_map={},
+                    new_binary_dir="/tmp",
+                    platform="windows",
+                    image_base=0x180000000,
+                    func_names=[func_name],
+                    generate_yaml_desired_fields=[
+                        (func_name, ["func_name", "func_va"]),
+                    ],
+                    llm_decompile_specs=[
+                        (
+                            func_name,
+                            "prompt/call_llm_decompile.md",
+                            "references/deactivate.yaml",
+                        ),
+                        (
+                            func_name,
+                            "prompt/call_llm_decompile.md",
+                            "references/mainloop.yaml",
+                        ),
+                    ],
+                    llm_config={
+                        "model": "gpt-4.1-mini",
+                        "api_key": "test-api-key",
+                    },
+                    debug=True,
+                )
+
+        self.assertTrue(result)
+        mock_load_target_details.assert_awaited_once_with(
+            "session",
+            [
+                "CEngineServiceMgr_DeactivateLoop",
+                "CEngineServiceMgr__MainLoop",
+            ],
+            new_binary_dir="/tmp",
+            platform="windows",
+            debug=True,
+        )
+        mock_call_llm_decompile.assert_awaited_once()
+        self.assertIn(
+            "Reference Function: CEngineServiceMgr_DeactivateLoop",
+            mock_call_llm_decompile.call_args.kwargs["reference_blocks"],
+        )
+        self.assertIn(
+            "Reference Function: CEngineServiceMgr__MainLoop",
+            mock_call_llm_decompile.call_args.kwargs["reference_blocks"],
+        )
+        self.assertIn(
+            "Target Function: CEngineServiceMgr__MainLoop",
+            mock_call_llm_decompile.call_args.kwargs["target_blocks"],
+        )
+        self.assertNotIn(
+            "Target Function: CEngineServiceMgr_DeactivateLoop",
+            mock_call_llm_decompile.call_args.kwargs["target_blocks"],
+        )
+        mock_write_func_yaml.assert_called_once()
+
+    async def test_preprocess_common_skill_fails_when_all_llm_targets_are_missing(
+        self,
+    ) -> None:
+        func_name = "ILoopMode_OnLoopActivate"
+        output_path = f"/tmp/{func_name}.windows.yaml"
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            preprocessor_dir = Path(temp_dir) / "ida_preprocessor_scripts"
+            (preprocessor_dir / "prompt").mkdir(parents=True, exist_ok=True)
+            (preprocessor_dir / "references").mkdir(parents=True, exist_ok=True)
+            (preprocessor_dir / "prompt" / "call_llm_decompile.md").write_text(
+                "{reference_blocks}\n---\n{target_blocks}\n---\n{symbol_name_list}",
+                encoding="utf-8",
+            )
+            _write_yaml(
+                preprocessor_dir / "references" / "deactivate.yaml",
+                {
+                    "func_name": "CEngineServiceMgr_DeactivateLoop",
+                    "disasm_code": "call    sub_180111100",
+                    "procedure": "return CEngineServiceMgr_DeactivateLoop(this);",
+                },
+            )
+            _write_yaml(
+                preprocessor_dir / "references" / "mainloop.yaml",
+                {
+                    "func_name": "CEngineServiceMgr__MainLoop",
+                    "disasm_code": "call    sub_180222200",
+                    "procedure": "return CEngineServiceMgr__MainLoop(this);",
+                },
+            )
+
+            with patch.object(
+                ida_analyze_util,
+                "_get_preprocessor_scripts_dir",
+                return_value=preprocessor_dir,
+            ), patch.object(
+                ida_analyze_util,
+                "create_openai_client",
+                return_value=object(),
+                create=True,
+            ), patch.object(
+                ida_analyze_util,
+                "preprocess_func_sig_via_mcp",
+                AsyncMock(return_value=None),
+            ), patch.object(
+                ida_analyze_util,
+                "_load_llm_decompile_target_details_via_mcp",
+                AsyncMock(return_value=[]),
+                create=True,
+            ) as mock_load_target_details, patch.object(
+                ida_analyze_util,
+                "call_llm_decompile",
+                create=True,
+                new_callable=AsyncMock,
+            ) as mock_call_llm_decompile, patch.object(
+                ida_analyze_util,
+                "write_func_yaml",
+            ) as mock_write_func_yaml:
+                result = await ida_analyze_util.preprocess_common_skill(
+                    session="session",
+                    expected_outputs=[output_path],
+                    old_yaml_map={},
+                    new_binary_dir="/tmp",
+                    platform="windows",
+                    image_base=0x180000000,
+                    func_names=[func_name],
+                    generate_yaml_desired_fields=[
+                        (func_name, ["func_name", "func_va"]),
+                    ],
+                    llm_decompile_specs=[
+                        (
+                            func_name,
+                            "prompt/call_llm_decompile.md",
+                            "references/deactivate.yaml",
+                        ),
+                        (
+                            func_name,
+                            "prompt/call_llm_decompile.md",
+                            "references/mainloop.yaml",
+                        ),
+                    ],
+                    llm_config={
+                        "model": "gpt-4.1-mini",
+                        "api_key": "test-api-key",
+                    },
+                    debug=True,
+                )
+
+        self.assertFalse(result)
+        mock_load_target_details.assert_awaited_once()
+        mock_call_llm_decompile.assert_not_awaited()
+        mock_write_func_yaml.assert_not_called()
 
     async def test_preprocess_common_skill_uses_llm_decompile_direct_call_fallback_without_vtable_relation(
         self,
@@ -7005,8 +8009,8 @@ found_struct_offset: []
                 AsyncMock(return_value=None),
             ), patch.object(
                 ida_analyze_util,
-                "_load_llm_decompile_target_detail_via_mcp",
-                AsyncMock(return_value=target_detail_payload),
+                "_load_llm_decompile_target_details_via_mcp",
+                AsyncMock(return_value=[target_detail_payload]),
             ), patch.object(
                 ida_analyze_util,
                 "_resolve_direct_funcptr_target_via_mcp",
@@ -7131,8 +8135,8 @@ found_struct_offset: []
                 AsyncMock(return_value=None),
             ), patch.object(
                 ida_analyze_util,
-                "_load_llm_decompile_target_detail_via_mcp",
-                AsyncMock(return_value=target_detail_payload),
+                "_load_llm_decompile_target_details_via_mcp",
+                AsyncMock(return_value=[target_detail_payload]),
             ), patch.object(
                 ida_analyze_util,
                 "_resolve_direct_call_target_via_mcp",
@@ -7252,8 +8256,8 @@ found_struct_offset: []
                 AsyncMock(return_value=None),
             ), patch.object(
                 ida_analyze_util,
-                "_load_llm_decompile_target_detail_via_mcp",
-                AsyncMock(return_value=target_detail_payload),
+                "_load_llm_decompile_target_details_via_mcp",
+                AsyncMock(return_value=[target_detail_payload]),
             ), patch.object(
                 ida_analyze_util,
                 "_resolve_direct_funcptr_target_via_mcp",
@@ -7391,8 +8395,8 @@ found_struct_offset: []
                 AsyncMock(return_value=None),
             ), patch.object(
                 ida_analyze_util,
-                "_load_llm_decompile_target_detail_via_mcp",
-                AsyncMock(return_value=target_detail_payload),
+                "_load_llm_decompile_target_details_via_mcp",
+                AsyncMock(return_value=[target_detail_payload]),
             ), patch.object(
                 ida_analyze_util,
                 "_resolve_direct_funcptr_target_via_mcp",
@@ -7547,8 +8551,8 @@ found_struct_offset: []
                 AsyncMock(return_value=None),
             ), patch.object(
                 ida_analyze_util,
-                "_load_llm_decompile_target_detail_via_mcp",
-                AsyncMock(return_value=target_detail_payload),
+                "_load_llm_decompile_target_details_via_mcp",
+                AsyncMock(return_value=[target_detail_payload]),
             ), patch.object(
                 ida_analyze_util,
                 "_resolve_direct_call_target_via_mcp",
@@ -7717,8 +8721,8 @@ found_struct_offset: []
                 AsyncMock(return_value=None),
             ) as mock_preprocess_gen_func_sig, patch.object(
                 ida_analyze_util,
-                "_load_llm_decompile_target_detail_via_mcp",
-                AsyncMock(return_value=target_detail_payload),
+                "_load_llm_decompile_target_details_via_mcp",
+                AsyncMock(return_value=[target_detail_payload]),
             ), patch.object(
                 ida_analyze_util,
                 "call_llm_decompile",
@@ -8337,8 +9341,8 @@ found_struct_offset: []
                 AsyncMock(return_value=None),
             ), patch.object(
                 ida_analyze_util,
-                "_load_llm_decompile_target_detail_via_mcp",
-                AsyncMock(return_value=target_detail_payload),
+                "_load_llm_decompile_target_details_via_mcp",
+                AsyncMock(return_value=[target_detail_payload]),
             ), patch.object(
                 ida_analyze_util,
                 "_resolve_direct_call_target_via_mcp",
@@ -8511,8 +9515,8 @@ found_struct_offset: []
                         AsyncMock(return_value=None),
                     ), patch.object(
                         ida_analyze_util,
-                        "_load_llm_decompile_target_detail_via_mcp",
-                        AsyncMock(return_value=target_detail_payload),
+                        "_load_llm_decompile_target_details_via_mcp",
+                        AsyncMock(return_value=[target_detail_payload]),
                     ), patch.object(
                         ida_analyze_util,
                         "_preprocess_direct_func_sig_via_mcp",

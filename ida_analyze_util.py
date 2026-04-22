@@ -2,6 +2,7 @@
 """Shared utility helpers for IDA analyze scripts."""
 
 import json
+import math
 import os
 import re
 import tempfile
@@ -32,10 +33,11 @@ except Exception:
 # Uses CLASS_NAME_PLACEHOLDER for substitution (avoids brace-escaping issues).
 # Returns JSON via the 'result' variable.
 _VTABLE_PY_EVAL_TEMPLATE = r'''
-import ida_bytes, ida_name, idaapi, idautils, ida_segment, json
+import ida_auto, ida_bytes, ida_name, idaapi, ida_segment, idautils, idc, json
 
 class_name = CLASS_NAME_PLACEHOLDER
 candidate_symbols = CANDIDATE_SYMBOLS_PLACEHOLDER
+debug_enabled = DEBUG_PLACEHOLDER
 ptr_size = 8 if idaapi.inf_is_64bit() else 4
 
 vtable_start = None
@@ -43,35 +45,87 @@ vtable_symbol = ""
 is_linux = False
 
 def _try_direct_symbol(symbol_name):
-    global vtable_start, vtable_symbol, is_linux
     if not symbol_name:
-        return False
+        return None
     addr = ida_name.get_name_ea(idaapi.BADADDR, symbol_name)
     if addr == idaapi.BADADDR:
-        return False
+        return None
     if symbol_name.startswith("_ZTV"):
-        vtable_start = addr + 0x10
-        vtable_symbol = symbol_name + " + 0x10"
-        is_linux = True
-    else:
-        vtable_start = addr
-        vtable_symbol = symbol_name
-        is_linux = False
-    return True
+        return (addr + 0x10, symbol_name + " + 0x10", True)
+    return (addr, symbol_name, False)
+
+def _debug(message):
+    if debug_enabled:
+        print(message)
+
+
+def _resolve_vtable_func_start(ptr_value):
+    func = idaapi.get_func(ptr_value)
+    if func is not None and func.start_ea <= ptr_value < func.end_ea:
+        return func.start_ea
+
+    flags = ida_bytes.get_full_flags(ptr_value)
+    if not ida_bytes.is_code(flags):
+        try:
+            ida_bytes.del_items(ptr_value, ida_bytes.DELIT_SIMPLE, ptr_size)
+        except Exception as exc:
+            _debug(
+                f"    Preprocess vtable: del_items failed for {hex(ptr_value)}: {exc}"
+            )
+        try:
+            idc.create_insn(ptr_value)
+        except Exception as exc:
+            _debug(
+                f"    Preprocess vtable: create_insn failed for {hex(ptr_value)}: {exc}"
+            )
+
+    try:
+        idaapi.add_func(ptr_value)
+    except Exception as exc:
+        _debug(f"    Preprocess vtable: add_func failed for {hex(ptr_value)}: {exc}")
+
+    try:
+        ida_auto.auto_wait()
+    except Exception:
+        pass
+
+    func = idaapi.get_func(ptr_value)
+    if func is None:
+        _debug(
+            f"    Preprocess vtable: no function covers {hex(ptr_value)} after recovery"
+        )
+        return None
+    if not (func.start_ea <= ptr_value < func.end_ea):
+        _debug(
+            "    Preprocess vtable: recovered function "
+            f"{hex(func.start_ea)} does not cover {hex(ptr_value)}"
+        )
+        return None
+    return func.start_ea
+
+# Workaround: py_eval uses exec(code, exec_globals, exec_locals) with separate
+# dicts.  Top-level variables land in exec_locals, but nested functions only see
+# exec_globals.  Copy everything into globals so functions can resolve ptr_size,
+# debug_enabled, _debug, etc.
+globals().update(locals())
 
 for symbol_name in candidate_symbols:
-    if _try_direct_symbol(symbol_name):
+    _found = _try_direct_symbol(symbol_name)
+    if _found:
+        vtable_start, vtable_symbol, is_linux = _found
         break
 
 # Direct symbol: Windows ??_7ClassName@@6B@
 if vtable_start is None:
-    win_name = "??_7" + class_name + "@@6B@"
-    _try_direct_symbol(win_name)
+    _found = _try_direct_symbol("??_7" + class_name + "@@6B@")
+    if _found:
+        vtable_start, vtable_symbol, is_linux = _found
 
 # Direct symbol: Linux _ZTV<len>ClassName
 if vtable_start is None:
-    linux_name = "_ZTV" + str(len(class_name)) + class_name
-    _try_direct_symbol(linux_name)
+    _found = _try_direct_symbol("_ZTV" + str(len(class_name)) + class_name)
+    if _found:
+        vtable_start, vtable_symbol, is_linux = _found
 
 # RTTI fallback: Windows ??_R4ClassName@@6B@
 if vtable_start is None:
@@ -134,17 +188,12 @@ else:
             break
         if not (target_seg.perm & ida_segment.SEGPERM_EXEC):
             break
-        func = idaapi.get_func(ptr_value)
-        if func is not None:
-            entries[count] = hex(ptr_value)
-            count += 1
-            continue
-        flags = ida_bytes.get_full_flags(ptr_value)
-        if ida_bytes.is_code(flags):
-            entries[count] = hex(ptr_value)
-            count += 1
-            continue
-        break
+        func_start = _resolve_vtable_func_start(ptr_value)
+        if func_start is None:
+            break
+        entries[count] = hex(func_start)
+        count += 1
+        continue
 
     size_in_bytes = count * ptr_size
     result = json.dumps({
@@ -490,7 +539,7 @@ def build_remote_text_export_py_eval(
     )
 
 
-def _build_vtable_py_eval(class_name, symbol_aliases=None):
+def _build_vtable_py_eval(class_name, symbol_aliases=None, debug=False):
     """Build the vtable py_eval script for the given class name."""
     return (
         _VTABLE_PY_EVAL_TEMPLATE
@@ -499,6 +548,7 @@ def _build_vtable_py_eval(class_name, symbol_aliases=None):
             "CANDIDATE_SYMBOLS_PLACEHOLDER",
             json.dumps(list(symbol_aliases or [])),
         )
+        .replace("DEBUG_PLACEHOLDER", "True" if debug else "False")
     )
 
 
@@ -837,15 +887,25 @@ def _build_llm_decompile_specs_map(llm_decompile_specs, debug=False):
                     f"{func_name}: {reference_yaml_path!r}"
                 )
             return None
-        if func_name in specs_map:
-            if debug:
-                print(f"    Preprocess: duplicated llm_decompile target: {func_name}")
-            return None
 
-        specs_map[func_name] = {
+        llm_spec = {
             "prompt_path": prompt_path,
             "reference_yaml_path": reference_yaml_path,
         }
+        existing_specs = specs_map.get(func_name)
+        if existing_specs is not None:
+            if existing_specs[0]["prompt_path"] != prompt_path:
+                if debug:
+                    print(
+                        "    Preprocess: mixed llm_decompile prompt paths for "
+                        f"{func_name}: {existing_specs[0]['prompt_path']!r} != "
+                        f"{prompt_path!r}"
+                    )
+                return None
+            existing_specs.append(llm_spec)
+            continue
+
+        specs_map[func_name] = [llm_spec]
 
     return specs_map
 
@@ -1967,6 +2027,68 @@ async def _load_llm_decompile_target_detail_via_mcp(
     return detail_payload
 
 
+async def _load_llm_decompile_target_details_via_mcp(
+    session,
+    target_func_names,
+    new_binary_dir=None,
+    platform=None,
+    debug=False,
+):
+    if isinstance(target_func_names, str):
+        normalized_target_names = [target_func_names]
+    elif isinstance(target_func_names, (tuple, list)):
+        normalized_target_names = list(target_func_names)
+    else:
+        normalized_target_names = []
+
+    target_items = []
+    for target_func_name in normalized_target_names:
+        target_func_name = str(target_func_name or "").strip()
+        if not target_func_name:
+            continue
+        target_detail = await _load_llm_decompile_target_detail_via_mcp(
+            session,
+            target_func_name,
+            new_binary_dir=new_binary_dir,
+            platform=platform,
+            debug=debug,
+        )
+        if target_detail is not None:
+            target_items.append(target_detail)
+    return target_items
+
+
+def _render_llm_decompile_blocks(reference_items, target_items):
+    def _normalize_items(items):
+        if isinstance(items, dict):
+            return [items]
+        if isinstance(items, (tuple, list)):
+            return [item for item in items if isinstance(item, dict)]
+        return []
+
+    def _render_block(block_kind, item):
+        func_name = str(item.get("func_name", "") or "").strip() or "<unknown>"
+        disasm_code = str(item.get("disasm_code", "") or "")
+        procedure = str(item.get("procedure", "") or "")
+        return (
+            f"### {block_kind} Function: {func_name}\n\n"
+            "**Disassembly**\n\n"
+            f"```c\n{disasm_code}\n```\n\n"
+            "**Procedure**\n\n"
+            f"```c\n{procedure}\n```"
+        )
+
+    reference_blocks = "\n\n".join(
+        _render_block("Reference", item)
+        for item in _normalize_items(reference_items)
+    )
+    target_blocks = "\n\n".join(
+        _render_block("Target", item)
+        for item in _normalize_items(target_items)
+    )
+    return reference_blocks, target_blocks
+
+
 def parse_llm_decompile_response(response_text):
     response_text = str(response_text or "").strip()
     if not response_text:
@@ -2097,39 +2219,55 @@ def _prepare_llm_decompile_request(
             print(f"    Preprocess: create_openai_client unavailable for {func_name}")
         return None
 
+    if isinstance(llm_spec, dict):
+        llm_specs = [llm_spec]
+    elif isinstance(llm_spec, (tuple, list)) and llm_spec:
+        llm_specs = list(llm_spec)
+    else:
+        if debug:
+            print(f"    Preprocess: invalid llm_decompile spec for {func_name}")
+        return None
+
+    if not all(isinstance(spec, dict) for spec in llm_specs):
+        if debug:
+            print(f"    Preprocess: invalid llm_decompile spec for {func_name}")
+        return None
+
+    prompt_value = llm_specs[0].get("prompt_path")
+    if not isinstance(prompt_value, str) or not prompt_value:
+        if debug:
+            print(
+                "    Preprocess: invalid llm_decompile prompt path for "
+                f"{func_name}: {prompt_value!r}"
+            )
+        return None
+
+    for current_spec in llm_specs[1:]:
+        current_prompt_value = current_spec.get("prompt_path")
+        if current_prompt_value != prompt_value:
+            if debug:
+                print(
+                    "    Preprocess: mixed llm_decompile prompt paths for "
+                    f"{func_name}: {prompt_value!r} != {current_prompt_value!r}"
+                )
+            return None
+
     scripts_dir = _get_preprocessor_scripts_dir()
     prompt_path = Path(
         _resolve_llm_decompile_template_value(
-            llm_spec["prompt_path"],
-            platform,
-        )
-    )
-    reference_yaml_path = Path(
-        _resolve_llm_decompile_template_value(
-            llm_spec["reference_yaml_path"],
+            prompt_value,
             platform,
         )
     )
     if not prompt_path.is_absolute():
         prompt_path = scripts_dir / prompt_path
-    if not reference_yaml_path.is_absolute():
-        reference_yaml_path = scripts_dir / reference_yaml_path
     prompt_path = prompt_path.resolve()
-    reference_yaml_path = reference_yaml_path.resolve()
 
     if not prompt_path.is_file():
         if debug:
             print(
                 f"    Preprocess: llm_decompile prompt missing for {func_name}: "
                 f"{prompt_path}"
-            )
-        return None
-
-    if not reference_yaml_path.is_file():
-        if debug:
-            print(
-                f"    Preprocess: llm_decompile reference missing for {func_name}: "
-                f"{reference_yaml_path}"
             )
         return None
 
@@ -2143,33 +2281,71 @@ def _prepare_llm_decompile_request(
             )
         return None
 
-    try:
-        with open(reference_yaml_path, "r", encoding="utf-8") as handle:
-            reference_data = yaml.safe_load(handle) or {}
-    except Exception as exc:
-        if debug:
-            print(
-                f"    Preprocess: failed to read llm_decompile reference for "
-                f"{func_name}: {exc}"
+    reference_items = []
+    reference_yaml_paths = []
+    target_func_names = []
+    for current_spec in llm_specs:
+        reference_value = current_spec.get("reference_yaml_path")
+        if not isinstance(reference_value, str) or not reference_value:
+            if debug:
+                print(
+                    "    Preprocess: invalid llm_decompile reference path for "
+                    f"{func_name}: {reference_value!r}"
+                )
+            return None
+        reference_yaml_path = Path(
+            _resolve_llm_decompile_template_value(
+                reference_value,
+                platform,
             )
-        return None
+        )
+        if not reference_yaml_path.is_absolute():
+            reference_yaml_path = scripts_dir / reference_yaml_path
+        reference_yaml_path = reference_yaml_path.resolve()
 
-    if not isinstance(reference_data, dict):
-        if debug:
-            print(
-                f"    Preprocess: invalid llm_decompile reference payload for "
-                f"{func_name}"
-            )
-        return None
+        if not reference_yaml_path.is_file():
+            if debug:
+                print(
+                    f"    Preprocess: llm_decompile reference missing for "
+                    f"{func_name}: {reference_yaml_path}"
+                )
+            return None
 
-    target_func_name = str(reference_data.get("func_name", "") or "").strip()
-    if not target_func_name:
-        if debug:
-            print(
-                f"    Preprocess: llm_decompile reference func_name missing for "
-                f"{func_name}"
-            )
-        return None
+        try:
+            with open(reference_yaml_path, "r", encoding="utf-8") as handle:
+                reference_data = yaml.safe_load(handle) or {}
+        except Exception as exc:
+            if debug:
+                print(
+                    f"    Preprocess: failed to read llm_decompile reference for "
+                    f"{func_name}: {exc}"
+                )
+            return None
+
+        if not isinstance(reference_data, dict):
+            if debug:
+                print(
+                    f"    Preprocess: invalid llm_decompile reference payload for "
+                    f"{func_name}"
+                )
+            return None
+
+        target_func_name = str(reference_data.get("func_name", "") or "").strip()
+        if not target_func_name:
+            if debug:
+                print(
+                    "    Preprocess: llm_decompile reference func_name missing for "
+                    f"{func_name}"
+                )
+            return None
+
+        reference_items.append(reference_data)
+        reference_yaml_paths.append(os.fspath(reference_yaml_path))
+        target_func_names.append(target_func_name)
+
+    reference_data = reference_items[0]
+    reference_yaml_path = reference_yaml_paths[0]
+    target_func_name = target_func_names[0]
 
     if fake_as == "codex":
         client = None
@@ -2195,11 +2371,11 @@ def _prepare_llm_decompile_request(
             f"    Preprocess: llm_decompile request ready for {func_name}: "
             f"platform={str(platform or '').strip() or '<empty>'}, "
             f"model={model}, prompt_path={prompt_path}, "
-            f"reference_yaml_path={reference_yaml_path}"
+            f"reference_yaml_paths={reference_yaml_paths}"
         )
         _debug_print_json(
-            f"llm_decompile reference payload for {func_name}",
-            reference_data,
+            f"llm_decompile reference payloads for {func_name}",
+            reference_items,
             debug=True,
         )
 
@@ -2207,7 +2383,10 @@ def _prepare_llm_decompile_request(
         "client": client,
         "model": model,
         "prompt_path": os.fspath(prompt_path),
-        "reference_yaml_path": os.fspath(reference_yaml_path),
+        "reference_items": reference_items,
+        "reference_yaml_paths": reference_yaml_paths,
+        "target_func_names": target_func_names,
+        "reference_yaml_path": reference_yaml_path,
         "prompt_template": prompt_template,
         "target_func_name": target_func_name,
         "disasm_for_reference": str(reference_data.get("disasm_code", "") or ""),
@@ -2225,21 +2404,35 @@ def _build_llm_decompile_request_cache_key(llm_request):
         return None
     model = str(llm_request.get("model", "")).strip()
     prompt_path = str(llm_request.get("prompt_path", "")).strip()
-    reference_yaml_path = str(llm_request.get("reference_yaml_path", "")).strip()
-    if not model or not prompt_path or not reference_yaml_path:
+    reference_yaml_paths = llm_request.get("reference_yaml_paths")
+    if reference_yaml_paths is None:
+        reference_yaml_path = str(llm_request.get("reference_yaml_path", "")).strip()
+        reference_yaml_paths = [reference_yaml_path] if reference_yaml_path else []
+    if isinstance(reference_yaml_paths, str):
+        reference_yaml_paths = [reference_yaml_paths]
+    if not isinstance(reference_yaml_paths, (tuple, list)):
+        return None
+    reference_yaml_paths = tuple(
+        str(reference_yaml_path).strip()
+        for reference_yaml_path in reference_yaml_paths
+        if str(reference_yaml_path).strip()
+    )
+    if not model or not prompt_path or not reference_yaml_paths:
         return None
     temperature = llm_request.get("temperature")
-    return model, prompt_path, reference_yaml_path, temperature
+    return model, prompt_path, reference_yaml_paths, temperature
 
 
 async def call_llm_decompile(
     client,
     model,
     symbol_name_list,
-    disasm_code,
-    procedure,
+    disasm_code="",
+    procedure="",
     disasm_for_reference="",
     procedure_for_reference="",
+    reference_blocks=None,
+    target_blocks=None,
     prompt_template=None,
     platform=None,
     temperature=None,
@@ -2261,6 +2454,28 @@ async def call_llm_decompile(
     else:
         symbol_name_text = str(symbol_name_list or "").strip()
 
+    if reference_blocks is None or target_blocks is None:
+        fallback_reference_blocks, fallback_target_blocks = _render_llm_decompile_blocks(
+            [
+                {
+                    "func_name": "Reference",
+                    "disasm_code": disasm_for_reference,
+                    "procedure": procedure_for_reference,
+                }
+            ],
+            [
+                {
+                    "func_name": "Target",
+                    "disasm_code": disasm_code,
+                    "procedure": procedure,
+                }
+            ],
+        )
+        if reference_blocks is None:
+            reference_blocks = fallback_reference_blocks
+        if target_blocks is None:
+            target_blocks = fallback_target_blocks
+
     if prompt_template is not None:
         try:
             prompt = _resolve_llm_decompile_template_value(
@@ -2272,6 +2487,8 @@ async def call_llm_decompile(
                 procedure_for_reference=str(procedure_for_reference or ""),
                 disasm_code=str(disasm_code or ""),
                 procedure=str(procedure or ""),
+                reference_blocks=str(reference_blocks or ""),
+                target_blocks=str(target_blocks or ""),
                 platform=str(platform or "").strip(),
             )
         except Exception as exc:
@@ -2284,10 +2501,8 @@ async def call_llm_decompile(
     else:
         prompt = (
             "You are a reverse engineering expert.\n\n"
-            f"Reference disassembly:\n{disasm_for_reference}\n\n"
-            f"Reference procedure:\n{procedure_for_reference}\n\n"
-            f"Target disassembly:\n{disasm_code}\n\n"
-            f"Target procedure:\n{procedure}\n\n"
+            f"Reference functions:\n{reference_blocks}\n\n"
+            f"Target functions:\n{target_blocks}\n\n"
             f"Please collect all references to \"{symbol_name_text}\" and output YAML."
         )
     system_prompt = "You are a reverse engineering expert."
@@ -2380,7 +2595,11 @@ async def preprocess_vtable_via_mcp(
         Dict with vtable YAML data, or None on failure
     """
     _ = platform  # Reserved for future platform-specific behavior.
-    py_code = _build_vtable_py_eval(class_name, symbol_aliases=symbol_aliases)
+    py_code = _build_vtable_py_eval(
+        class_name,
+        symbol_aliases=symbol_aliases,
+        debug=debug,
+    )
 
     try:
         result = await session.call_tool(
@@ -5226,6 +5445,31 @@ def _parse_int_value(value):
     return int(value)
 
 
+def _normalize_float_xref_values(field_name, field_values, func_name, debug=False):
+    """Validate and strip func_xrefs float filter values."""
+    normalized_values = []
+    for item in field_values:
+        raw = item.strip()
+        try:
+            parsed_value = float(raw)
+        except (TypeError, ValueError):
+            if debug:
+                print(
+                    f"    Preprocess: invalid {field_name} float value for "
+                    f"{func_name}: {item}"
+                )
+            return None
+        if not math.isfinite(parsed_value):
+            if debug:
+                print(
+                    f"    Preprocess: non-finite {field_name} float value for "
+                    f"{func_name}: {item}"
+                )
+            return None
+        normalized_values.append(raw)
+    return normalized_values
+
+
 def _is_explicit_address_literal(value):
     """Return True when *value* is an explicit hex address like ``0x180012340``."""
     if not isinstance(value, str):
@@ -5719,18 +5963,18 @@ async def _func_contains_signature_via_mcp(session, func_va, signature, debug=Fa
         return None
 
     py_code = (
-        "import idaapi, ida_search, json\n"
+        "import idaapi, ida_bytes, json\n"
         f"func_va = {func_va_int}\n"
         f"signature = {json.dumps(signature)}\n"
         "func = idaapi.get_func(func_va)\n"
         "contains = False\n"
         "if func is not None:\n"
-        "    match_ea = ida_search.find_binary(\n"
-        "        func.start_ea,\n"
-        "        func.end_ea,\n"
+        "    match_ea = ida_bytes.find_bytes(\n"
         "        signature,\n"
-        "        16,\n"
-        "        ida_search.SEARCH_DOWN,\n"
+        "        func.start_ea,\n"
+        "        range_end=func.end_ea,\n"
+        "        flags=ida_bytes.BIN_SEARCH_FORWARD | ida_bytes.BIN_SEARCH_NOSHOW,\n"
+        "        radix=16,\n"
         "    )\n"
         "    contains = match_ea != idaapi.BADADDR and match_ea < func.end_ea\n"
         "result = json.dumps({'contains': contains})\n"
@@ -5758,6 +6002,53 @@ async def _func_contains_signature_via_mcp(session, func_va, signature, debug=Fa
     if not isinstance(contains, bool):
         return None
     return contains
+
+
+_SIGNATURE_XREF_PROBE_MAX_CANDIDATES = 256
+
+
+def _intersect_addr_sets(addr_sets):
+    """Return the intersection of address sets, or an empty set."""
+    if not addr_sets:
+        return set()
+
+    common_addrs = set(addr_sets[0])
+    for addr_set in addr_sets[1:]:
+        common_addrs &= set(addr_set)
+    return common_addrs
+
+
+async def _filter_func_addrs_by_signature_via_mcp(
+    session,
+    func_addrs,
+    signature,
+    keep_matches,
+    debug=False,
+):
+    """
+    Probe whether each candidate function contains a signature.
+
+    Returns:
+        Set[int]: Filtered function starts, or None on probe failure.
+    """
+    filtered_funcs = set()
+    for candidate_func_va in sorted(func_addrs):
+        contains_signature = await _func_contains_signature_via_mcp(
+            session=session,
+            func_va=candidate_func_va,
+            signature=signature,
+            debug=debug,
+        )
+        if contains_signature is None:
+            if debug:
+                print(
+                    "    Preprocess: failed to probe signature for "
+                    f"{hex(candidate_func_va)}"
+                )
+            return None
+        if contains_signature is keep_matches:
+            filtered_funcs.add(candidate_func_va)
+    return filtered_funcs
 
 
 async def _get_func_basic_info_via_mcp(session, func_va, image_base, debug=False):
@@ -6422,6 +6713,194 @@ async def preprocess_gen_struct_offset_sig_via_mcp(
     return None
 
 
+async def _filter_func_addrs_by_float_xrefs_via_mcp(
+    session,
+    func_addrs,
+    xref_floats,
+    exclude_floats,
+    debug=False,
+):
+    """Filter function addresses by readonly scalar float/double xrefs."""
+    func_addr_set = set(func_addrs or [])
+    if not func_addr_set:
+        return set()
+    if not xref_floats and not exclude_floats:
+        return func_addr_set
+
+    try:
+        xref_values = [float(value) for value in (xref_floats or [])]
+        exclude_values = [float(value) for value in (exclude_floats or [])]
+    except (TypeError, ValueError):
+        if debug:
+            print("    Preprocess: invalid float xref filter values")
+        return None
+    for value in xref_values:
+        if not math.isfinite(value):
+            if debug:
+                print("    Preprocess: non-finite xref_floats value")
+            return None
+    for value in exclude_values:
+        if not math.isfinite(value):
+            if debug:
+                print("    Preprocess: non-finite exclude_floats value")
+            return None
+
+    py_code = (
+        "import ida_bytes, ida_funcs, ida_segment, idautils, idc, json, struct\n"
+        f"func_addrs = {[int(addr) for addr in sorted(func_addr_set)]}\n"
+        f"xref_values = {xref_values!r}\n"
+        f"exclude_values = {exclude_values!r}\n"
+        "FLOAT_EPSILON = 1e-6\n"
+        "DOUBLE_EPSILON = 1e-12\n"
+        "SINGLE_MNEMS = {\n"
+        "    \"addss\", \"subss\", \"mulss\", \"divss\", \"minss\", \"maxss\",\n"
+        "    \"sqrtss\", \"movss\", \"comiss\", \"ucomiss\",\n"
+        "    \"vaddss\", \"vsubss\", \"vmulss\", \"vdivss\", \"vminss\", \"vmaxss\",\n"
+        "    \"vsqrtss\", \"vmovss\", \"vcomiss\", \"vucomiss\",\n"
+        "}\n"
+        "DOUBLE_MNEMS = {\n"
+        "    \"addsd\", \"subsd\", \"mulsd\", \"divsd\", \"minsd\", \"maxsd\",\n"
+        "    \"sqrtsd\", \"movsd\", \"comisd\", \"ucomisd\",\n"
+        "    \"vaddsd\", \"vsubsd\", \"vmulsd\", \"vdivsd\", \"vminsd\", \"vmaxsd\",\n"
+        "    \"vsqrtsd\", \"vmovsd\", \"vcomisd\", \"vucomisd\",\n"
+        "}\n"
+        "MEM_OP_TYPES = {idc.o_mem, idc.o_displ, idc.o_phrase}\n"
+        "\n"
+        "def _scalar_kind(mnem):\n"
+        "    lower = (mnem or \"\").lower()\n"
+        "    if lower in SINGLE_MNEMS and lower.endswith(\"ss\"):\n"
+        "        return \"float\"\n"
+        "    if lower in DOUBLE_MNEMS and lower.endswith(\"sd\"):\n"
+        "        return \"double\"\n"
+        "    return None\n"
+        "\n"
+        "def _has_xmm_operand(ea):\n"
+        "    for op_idx in range(8):\n"
+        "        text = (idc.print_operand(ea, op_idx) or \"\").lower()\n"
+        "        if \"xmm\" in text:\n"
+        "            return True\n"
+        "    return False\n"
+        "\n"
+        "def _is_readonly_float_segment(ea):\n"
+        "    seg = ida_segment.getseg(ea)\n"
+        "    if not seg:\n"
+        "        return False\n"
+        "    seg_name = ida_segment.get_segm_name(seg) or \"\"\n"
+        "    return seg_name == \".rdata\" or seg_name.startswith(\".rodata\")\n"
+        "\n"
+        "def _matches(value, expected_values, kind):\n"
+        "    epsilon = FLOAT_EPSILON if kind == \"float\" else DOUBLE_EPSILON\n"
+        "    for expected in expected_values:\n"
+        "        if abs(value - expected) < epsilon:\n"
+        "            return True\n"
+        "    return False\n"
+        "\n"
+        "def _read_scalar_value(target_ea, kind):\n"
+        "    if kind == \"float\":\n"
+        "        raw = ida_bytes.get_bytes(target_ea, 4)\n"
+        "        if not raw or len(raw) != 4:\n"
+        "            return None\n"
+        "        return struct.unpack(\"<f\", raw)[0]\n"
+        "    raw = ida_bytes.get_bytes(target_ea, 8)\n"
+        "    if not raw or len(raw) != 8:\n"
+        "        return None\n"
+        "    return struct.unpack(\"<d\", raw)[0]\n"
+        "\n"
+        "globals().update(locals())\n"
+        "\n"
+        "out = {}\n"
+        "for func_ea in func_addrs:\n"
+        "    func = ida_funcs.get_func(func_ea)\n"
+        "    constants = []\n"
+        "    xref_hit = False\n"
+        "    exclude_hit = False\n"
+        "    if func:\n"
+        "        for insn_ea in idautils.FuncItems(func.start_ea):\n"
+        "            mnem = idc.print_insn_mnem(insn_ea)\n"
+        "            kind = _scalar_kind(mnem)\n"
+        "            if not kind or not _has_xmm_operand(insn_ea):\n"
+        "                continue\n"
+        "            for op_idx in range(8):\n"
+        "                if idc.get_operand_type(insn_ea, op_idx) not in MEM_OP_TYPES:\n"
+        "                    continue\n"
+        "                target_ea = idc.get_operand_value(insn_ea, op_idx)\n"
+        "                if not _is_readonly_float_segment(target_ea):\n"
+        "                    continue\n"
+        "                value = _read_scalar_value(target_ea, kind)\n"
+        "                if value is None:\n"
+        "                    continue\n"
+        "                constants.append({\n"
+        "                    \"inst_ea\": hex(insn_ea),\n"
+        "                    \"const_ea\": hex(target_ea),\n"
+        "                    \"kind\": kind,\n"
+        "                    \"value\": value,\n"
+        "                })\n"
+        "                if _matches(value, xref_values, kind):\n"
+        "                    xref_hit = True\n"
+        "                if _matches(value, exclude_values, kind):\n"
+        "                    exclude_hit = True\n"
+        "    out[hex(func_ea)] = {\n"
+        "        \"constants\": constants,\n"
+        "        \"xref_hit\": xref_hit,\n"
+        "        \"exclude_hit\": exclude_hit,\n"
+        "    }\n"
+        "result = json.dumps(out)\n"
+    )
+
+    try:
+        eval_result = await session.call_tool(
+            name="py_eval",
+            arguments={"code": py_code},
+        )
+        eval_data = parse_mcp_result(eval_result)
+    except Exception as e:
+        if debug:
+            print(f"    Preprocess: py_eval error for float xref filter: {e}")
+        return None
+
+    parsed = _parse_py_eval_json_object(eval_data, debug=debug)
+    if not isinstance(parsed, dict):
+        return None
+
+    filtered_funcs = set()
+    missing_xref_funcs = set()
+    excluded_funcs = set()
+    for func_addr in sorted(func_addr_set):
+        entry = parsed.get(hex(func_addr))
+        if not isinstance(entry, dict):
+            return None
+        xref_hit = entry.get("xref_hit")
+        exclude_hit = entry.get("exclude_hit")
+        if not isinstance(xref_hit, bool) or not isinstance(exclude_hit, bool):
+            return None
+        if debug:
+            constants = entry.get("constants", [])
+            print(
+                "    Preprocess: float constants for "
+                f"{hex(func_addr)} = {constants}"
+            )
+        if exclude_values and exclude_hit:
+            excluded_funcs.add(func_addr)
+            continue
+        if xref_values and not xref_hit:
+            missing_xref_funcs.add(func_addr)
+            continue
+        filtered_funcs.add(func_addr)
+
+    if debug and missing_xref_funcs:
+        print(
+            "    Preprocess: float xref missing funcs = "
+            f"{[hex(a) for a in sorted(missing_xref_funcs)]}"
+        )
+    if debug and excluded_funcs:
+        print(
+            "    Preprocess: float exclude funcs = "
+            f"{[hex(a) for a in sorted(excluded_funcs)]}"
+        )
+
+    return filtered_funcs
+
+
 async def preprocess_func_xrefs_via_mcp(
     session,
     func_name,
@@ -6439,6 +6918,8 @@ async def preprocess_func_xrefs_via_mcp(
     vtable_class=None,
     allow_func_sig_across_function_boundary=False,
     debug=False,
+    xref_floats=None,
+    exclude_floats=None,
 ):
     """
     Resolve target function by intersecting candidate sets collected from
@@ -6454,6 +6935,8 @@ async def preprocess_func_xrefs_via_mcp(
             xref_funcs,
         )
     )
+    xref_floats = xref_floats or []
+    exclude_floats = exclude_floats or []
     if not has_explicit_positive_source:
         if debug:
             print(
@@ -6562,11 +7045,37 @@ async def preprocess_func_xrefs_via_mcp(
         candidate_sets.append(addr_set)
 
     for xref_signature in (xref_signatures or []):
-        addr_set = await _collect_xref_func_starts_for_signature(
-            session=session,
-            xref_signature=xref_signature,
-            debug=debug,
-        )
+        addr_set = None
+        narrowed_candidates = _intersect_addr_sets(candidate_sets)
+        if narrowed_candidates and (
+            len(narrowed_candidates) <= _SIGNATURE_XREF_PROBE_MAX_CANDIDATES
+        ):
+            if debug:
+                short = str(xref_signature)[:80]
+                print(
+                    "    Preprocess: probing signature xref within "
+                    f"{len(narrowed_candidates)} narrowed function(s): {short}"
+                )
+            addr_set = await _filter_func_addrs_by_signature_via_mcp(
+                session=session,
+                func_addrs=narrowed_candidates,
+                signature=xref_signature,
+                keep_matches=True,
+                debug=debug,
+            )
+            if addr_set is None:
+                if debug:
+                    print(
+                        "    Preprocess: failed to probe signature xref within "
+                        "narrowed candidates"
+                    )
+                return None
+        else:
+            addr_set = await _collect_xref_func_starts_for_signature(
+                session=session,
+                xref_signature=xref_signature,
+                debug=debug,
+            )
         if not addr_set:
             if debug:
                 short = str(xref_signature)[:80]
@@ -6638,9 +7147,7 @@ async def preprocess_func_xrefs_via_mcp(
             )
         return None
 
-    common_funcs = set(candidate_sets[0])
-    for addr_set in candidate_sets[1:]:
-        common_funcs = common_funcs & addr_set
+    common_funcs = _intersect_addr_sets(candidate_sets)
 
     excluded_string_func_addrs = set()
     for excluded_string in (exclude_strings or []):
@@ -6714,23 +7221,17 @@ async def preprocess_func_xrefs_via_mcp(
     for excluded_signature in (exclude_signatures or []):
         if not common_funcs:
             break
-        filtered_funcs = set()
-        for candidate_func_va in sorted(common_funcs):
-            contains_signature = await _func_contains_signature_via_mcp(
-                session=session,
-                func_va=candidate_func_va,
-                signature=excluded_signature,
-                debug=debug,
-            )
-            if contains_signature is None:
-                if debug:
-                    print(
-                        f"    Preprocess: failed to probe exclude signature "
-                        f"for {hex(candidate_func_va)}"
-                    )
-                return None
-            if not contains_signature:
-                filtered_funcs.add(candidate_func_va)
+        filtered_funcs = await _filter_func_addrs_by_signature_via_mcp(
+            session=session,
+            func_addrs=common_funcs,
+            signature=excluded_signature,
+            keep_matches=False,
+            debug=debug,
+        )
+        if filtered_funcs is None:
+            if debug:
+                print("    Preprocess: failed to probe exclude signature")
+            return None
         common_funcs = filtered_funcs
 
     if debug:
@@ -6738,6 +7239,30 @@ async def preprocess_func_xrefs_via_mcp(
             "    Preprocess: common_funcs after excludes = "
             f"{[hex(a) for a in sorted(common_funcs)]}"
         )
+
+    if xref_floats or exclude_floats:
+        if debug:
+            print(
+                "    Preprocess: common_funcs before float filters = "
+                f"{[hex(a) for a in sorted(common_funcs)]}"
+            )
+        filtered_funcs = await _filter_func_addrs_by_float_xrefs_via_mcp(
+            session=session,
+            func_addrs=common_funcs,
+            xref_floats=xref_floats,
+            exclude_floats=exclude_floats,
+            debug=debug,
+        )
+        if filtered_funcs is None:
+            if debug:
+                print("    Preprocess: failed to apply float xref filters")
+            return None
+        common_funcs = filtered_funcs
+        if debug:
+            print(
+                "    Preprocess: common_funcs after float filters = "
+                f"{[hex(a) for a in sorted(common_funcs)]}"
+            )
 
     if len(common_funcs) != 1:
         if debug:
@@ -6854,10 +7379,12 @@ async def _try_preprocess_func_without_llm(
             xref_gvs=xref_spec["xref_gvs"],
             xref_signatures=xref_spec["xref_signatures"],
             xref_funcs=xref_spec["xref_funcs"],
+            xref_floats=xref_spec["xref_floats"],
             exclude_funcs=xref_spec["exclude_funcs"],
             exclude_strings=xref_spec["exclude_strings"],
             exclude_gvs=xref_spec["exclude_gvs"],
             exclude_signatures=xref_spec["exclude_signatures"],
+            exclude_floats=xref_spec["exclude_floats"],
             new_binary_dir=new_binary_dir,
             platform=platform,
             image_base=image_base,
@@ -6979,8 +7506,12 @@ async def preprocess_common_skill(
       ``preprocess_func_xrefs_via_mcp``. Each element is a dict with
       ``func_name`` plus list fields for positive xref sources
       (``xref_strings``, ``xref_gvs``, ``xref_signatures``, ``xref_funcs``)
+      and optional post-intersection scalar readonly float/double filters
+      (``xref_floats``)
       and exclusions (``exclude_funcs``, ``exclude_strings``,
-      ``exclude_gvs``, ``exclude_signatures``). ``xref_gvs``/``exclude_gvs``
+      ``exclude_gvs``, ``exclude_signatures``, ``exclude_floats``).
+      ``xref_floats``/``exclude_floats`` do not count as positive xref
+      candidate sources. ``xref_gvs``/``exclude_gvs``
       entries may be YAML symbol names or explicit ``0x...`` addresses.
       Symbolic entries are resolved from current-version YAML files in
       ``new_binary_dir``.
@@ -7013,7 +7544,8 @@ async def preprocess_common_skill(
         func_xrefs: List of dict specs for unified xref-based function lookup
             (may be empty/None). Supported keys are func_name,
             xref_strings/xref_gvs/xref_signatures/xref_funcs,
-            exclude_funcs/exclude_strings/exclude_gvs/exclude_signatures.
+            xref_floats, exclude_funcs/exclude_strings/exclude_gvs/
+            exclude_signatures/exclude_floats.
         func_vtable_relations: List of (func_name, vtable_class) tuples for
             enriching function YAML with vtable metadata; the vtable value may
             be a canonical class name or a vtable artifact stem
@@ -7062,20 +7594,24 @@ async def preprocess_common_skill(
         "xref_gvs",
         "xref_signatures",
         "xref_funcs",
+        "xref_floats",
         "exclude_funcs",
         "exclude_strings",
         "exclude_gvs",
         "exclude_signatures",
+        "exclude_floats",
     }
     func_xrefs_list_keys = (
         "xref_strings",
         "xref_gvs",
         "xref_signatures",
         "xref_funcs",
+        "xref_floats",
         "exclude_funcs",
         "exclude_strings",
         "exclude_gvs",
         "exclude_signatures",
+        "exclude_floats",
     )
     func_xrefs_map = {}
     for spec in func_xrefs:
@@ -7123,6 +7659,15 @@ async def preprocess_common_skill(
                         f"{func_name}"
                     )
                 return False
+            if field_name in {"xref_floats", "exclude_floats"}:
+                field_list = _normalize_float_xref_values(
+                    field_name,
+                    field_list,
+                    func_name,
+                    debug=debug,
+                )
+                if field_list is None:
+                    return False
             normalized_spec[field_name] = field_list
 
         if (
@@ -7572,6 +8117,48 @@ async def preprocess_common_skill(
             llm_symbol_name_list = [seed_symbol_name]
         return llm_symbol_name_list
 
+    async def _call_llm_decompile_for_request(llm_request, llm_symbol_name_list):
+        try:
+            target_func_names = llm_request.get("target_func_names")
+            if target_func_names is None:
+                target_func_name = str(llm_request.get("target_func_name", "") or "").strip()
+                target_func_names = [target_func_name] if target_func_name else []
+            llm_target_details = await _load_llm_decompile_target_details_via_mcp(
+                session,
+                target_func_names,
+                new_binary_dir=new_binary_dir,
+                platform=platform,
+                debug=debug,
+            )
+            if not llm_target_details:
+                return _empty_llm_decompile_result()
+            reference_blocks, target_blocks = _render_llm_decompile_blocks(
+                llm_request.get("reference_items"),
+                llm_target_details,
+            )
+            primary_target_detail = llm_target_details[0]
+            return await call_llm_decompile(
+                client=llm_request["client"],
+                model=llm_request["model"],
+                symbol_name_list=llm_symbol_name_list,
+                disasm_code=primary_target_detail.get("disasm_code", ""),
+                procedure=primary_target_detail.get("procedure", ""),
+                disasm_for_reference=llm_request["disasm_for_reference"],
+                procedure_for_reference=llm_request["procedure_for_reference"],
+                reference_blocks=reference_blocks,
+                target_blocks=target_blocks,
+                prompt_template=llm_request["prompt_template"],
+                platform=platform,
+                temperature=llm_request.get("temperature"),
+                effort=llm_request.get("effort"),
+                api_key=llm_request.get("api_key"),
+                base_url=llm_request.get("base_url"),
+                fake_as=llm_request.get("fake_as"),
+                debug=debug,
+            )
+        except Exception:
+            return _empty_llm_decompile_result()
+
     # Process func/vfunc targets
     for func_name in all_func_names:
         target_output = matched_func_outputs[func_name]
@@ -7628,37 +8215,10 @@ async def preprocess_common_skill(
                     func_name,
                     llm_cache_key,
                 )
-
-                try:
-                    llm_target_detail = await _load_llm_decompile_target_detail_via_mcp(
-                        session,
-                        llm_request["target_func_name"],
-                        new_binary_dir=new_binary_dir,
-                        platform=platform,
-                        debug=debug,
-                    )
-                    if llm_target_detail is None:
-                        llm_result = _empty_llm_decompile_result()
-                    else:
-                        llm_result = await call_llm_decompile(
-                            client=llm_request["client"],
-                            model=llm_request["model"],
-                            symbol_name_list=llm_symbol_name_list,
-                            disasm_code=llm_target_detail["disasm_code"],
-                            procedure=llm_target_detail["procedure"],
-                            disasm_for_reference=llm_request["disasm_for_reference"],
-                            procedure_for_reference=llm_request["procedure_for_reference"],
-                            prompt_template=llm_request["prompt_template"],
-                            platform=platform,
-                            temperature=llm_request.get("temperature"),
-                            effort=llm_request.get("effort"),
-                            api_key=llm_request.get("api_key"),
-                            base_url=llm_request.get("base_url"),
-                            fake_as=llm_request.get("fake_as"),
-                            debug=debug,
-                        )
-                except Exception:
-                    llm_result = _empty_llm_decompile_result()
+                llm_result = await _call_llm_decompile_for_request(
+                    llm_request,
+                    llm_symbol_name_list,
+                )
                 for symbol_name in llm_symbol_name_list:
                     llm_result_by_symbol_name[symbol_name] = llm_result
             if can_use_direct_func_fallback:
@@ -7935,36 +8495,10 @@ async def preprocess_common_skill(
                     gv_name,
                     llm_cache_key,
                 )
-                try:
-                    llm_target_detail = await _load_llm_decompile_target_detail_via_mcp(
-                        session,
-                        llm_request["target_func_name"],
-                        new_binary_dir=new_binary_dir,
-                        platform=platform,
-                        debug=debug,
-                    )
-                    if llm_target_detail is None:
-                        llm_result = _empty_llm_decompile_result()
-                    else:
-                        llm_result = await call_llm_decompile(
-                            client=llm_request["client"],
-                            model=llm_request["model"],
-                            symbol_name_list=llm_symbol_name_list,
-                            disasm_code=llm_target_detail["disasm_code"],
-                            procedure=llm_target_detail["procedure"],
-                            disasm_for_reference=llm_request["disasm_for_reference"],
-                            procedure_for_reference=llm_request["procedure_for_reference"],
-                            prompt_template=llm_request["prompt_template"],
-                            platform=platform,
-                            temperature=llm_request.get("temperature"),
-                            effort=llm_request.get("effort"),
-                            api_key=llm_request.get("api_key"),
-                            base_url=llm_request.get("base_url"),
-                            fake_as=llm_request.get("fake_as"),
-                            debug=debug,
-                        )
-                except Exception:
-                    llm_result = _empty_llm_decompile_result()
+                llm_result = await _call_llm_decompile_for_request(
+                    llm_request,
+                    llm_symbol_name_list,
+                )
                 for symbol_name in llm_symbol_name_list:
                     llm_result_by_symbol_name[symbol_name] = llm_result
 
@@ -8099,36 +8633,10 @@ async def preprocess_common_skill(
                     struct_member_name,
                     llm_cache_key,
                 )
-                try:
-                    llm_target_detail = await _load_llm_decompile_target_detail_via_mcp(
-                        session,
-                        llm_request["target_func_name"],
-                        new_binary_dir=new_binary_dir,
-                        platform=platform,
-                        debug=debug,
-                    )
-                    if llm_target_detail is None:
-                        llm_result = _empty_llm_decompile_result()
-                    else:
-                        llm_result = await call_llm_decompile(
-                            client=llm_request["client"],
-                            model=llm_request["model"],
-                            symbol_name_list=llm_symbol_name_list,
-                            disasm_code=llm_target_detail["disasm_code"],
-                            procedure=llm_target_detail["procedure"],
-                            disasm_for_reference=llm_request["disasm_for_reference"],
-                            procedure_for_reference=llm_request["procedure_for_reference"],
-                            prompt_template=llm_request["prompt_template"],
-                            platform=platform,
-                            temperature=llm_request.get("temperature"),
-                            effort=llm_request.get("effort"),
-                            api_key=llm_request.get("api_key"),
-                            base_url=llm_request.get("base_url"),
-                            fake_as=llm_request.get("fake_as"),
-                            debug=debug,
-                        )
-                except Exception:
-                    llm_result = _empty_llm_decompile_result()
+                llm_result = await _call_llm_decompile_for_request(
+                    llm_request,
+                    llm_symbol_name_list,
+                )
                 for symbol_name in llm_symbol_name_list:
                     llm_result_by_symbol_name[symbol_name] = llm_result
 

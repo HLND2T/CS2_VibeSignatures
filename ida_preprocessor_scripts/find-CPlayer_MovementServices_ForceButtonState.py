@@ -12,7 +12,7 @@ FUNC_XREFS = [
                      "func_name": 'CPlayer_MovementServices_ForceButtonState',
                      "xref_strings": ['[%s] Force State: %s = %d, Next: %s'],
                      "xref_gvs": [],
-                     "xref_signatures": [],
+                     "xref_signatures": ["31 C9 31 C0"],
                      "xref_funcs": [],
                      "exclude_funcs": [],
                      "exclude_strings": [],

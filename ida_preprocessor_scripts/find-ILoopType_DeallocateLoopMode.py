@@ -13,6 +13,11 @@ LLM_DECOMPILE = [
         "prompt/call_llm_decompile.md",
         "references/engine/CEngineServiceMgr_DeactivateLoop.{platform}.yaml",
     ),
+    (
+        "ILoopType_DeallocateLoopMode",
+        "prompt/call_llm_decompile.md",
+        "references/engine/CEngineServiceMgr__MainLoop.{platform}.yaml",
+    ),
 ]
 
 FUNC_VTABLE_RELATIONS = [

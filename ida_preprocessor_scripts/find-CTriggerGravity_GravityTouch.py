@@ -12,7 +12,7 @@ LLM_DECOMPILE = [
     (
         "CTriggerGravity_GravityTouch",
         "prompt/call_llm_decompile.md",
-        "references/server/CTriggerGravity_GravityTouch_Register.{platform}.yaml",
+        "references/server/CTriggerGravity_GetTouchFunction.{platform}.yaml",
     ),
 ]
 

@@ -1,44 +1,38 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CPointTeleport_Teleport skill."""
+"""Preprocess script for find-CTriggerGravity_GetTouchFunction skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = [
-    "CPointTeleport_Teleport",
+    "CTriggerGravity_GetTouchFunction",
 ]
 
 FUNC_XREFS = [
-                 {
-                     "func_name": 'CPointTeleport_Teleport',
-                     "xref_strings": ["can't teleport object"],
-                     "xref_gvs": [],
-                     "xref_signatures": [],
-                     "xref_funcs": [],
-                     "exclude_funcs": [],
-                     "exclude_strings": [],
-                     "exclude_gvs": [],
-                     "exclude_signatures": [],
-                 },
-             ]
-
-FUNC_VTABLE_RELATIONS = [
-    # (func_name, vtable_class)
-    ("CPointTeleport_Teleport", "CPointTeleport"),
+    {
+        "func_name": "CTriggerGravity_GetTouchFunction",
+        "xref_strings": [
+            "FULLMATCH:CTriggerGravityGravityTouch",
+        ],
+        "xref_gvs": [],
+        "xref_signatures": ["E8 ?? ?? ?? ?? 85 C0"],
+        "xref_funcs": [],
+        "exclude_funcs": [],
+        "exclude_strings": [],
+        "exclude_gvs": [],
+        "exclude_signatures": [],
+    },
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
     (
-        "CPointTeleport_Teleport",
+        "CTriggerGravity_GetTouchFunction",
         [
             "func_name",
+            "func_sig",
             "func_va",
             "func_rva",
             "func_size",
-            "func_sig",
-            "vtable_name",
-            "vfunc_offset",
-            "vfunc_index",
         ],
     ),
 ]
@@ -57,7 +51,6 @@ async def preprocess_skill(
         image_base=image_base,
         func_names=TARGET_FUNCTION_NAMES,
         func_xrefs=FUNC_XREFS,
-        func_vtable_relations=FUNC_VTABLE_RELATIONS,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
     )

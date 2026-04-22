@@ -742,12 +742,16 @@ modules:
           - CEngineServiceMgr_DeactivateLoop.{platform}.yaml
         expected_input:
           - CEngineServiceMgr__MainLoop.{platform}.yaml
+        skip_if_exists:
+          - ILoopType_DeallocateLoopMode.{platform}.yaml
 
       - name: find-ILoopType_DeallocateLoopMode
         expected_output:
           - ILoopType_DeallocateLoopMode.{platform}.yaml
         expected_input:
-          - CEngineServiceMgr_DeactivateLoop.{platform}.yaml
+          - CEngineServiceMgr__MainLoop.{platform}.yaml
+        prerequisite:
+          - find-CEngineServiceMgr_DeactivateLoop
 
       - name: find-CEngineGameUI_vtable
         expected_output:
@@ -777,19 +781,6 @@ modules:
           - ILoopType_LoopTypeShutdown.{platform}.yaml
         expected_input:
           - CEngineServiceMgr_Shutdown.{platform}.yaml
-
-      - name: find-CEngineServiceMgr_GetActiveLoopClientServerMode
-        expected_output:
-          - CEngineServiceMgr_GetActiveLoopClientServerMode.{platform}.yaml
-        expected_input:
-          - CEngineServiceMgr_vtable.{platform}.yaml
-          - ../client/IEngineServiceMgr_GetActiveLoopClientServerMode.{platform}.yaml
-
-      - name: find-ILoopType_GetClientServerMode
-        expected_output:
-          - ILoopType_GetClientServerMode.{platform}.yaml
-        expected_input:
-          - CEngineServiceMgr_GetActiveLoopClientServerMode.{platform}.yaml
 
       - name: find-CLoopTypeSimple_vtable
         expected_output:
@@ -1968,18 +1959,19 @@ modules:
         expected_output:
           - CCSPlayer_MovementServices_WalkMove.{platform}.yaml
 
-      - name: find-CCSPlayer_MovementServices_WaterMove-AND-CCSPlayer_MovementServices_FullWalkMove
-        expected_output:
-          - CCSPlayer_MovementServices_WaterMove.{platform}.yaml
-          - CCSPlayer_MovementServices_FullWalkMove.{platform}.yaml
-        expected_input:
-          - CCSPlayer_MovementServices_WalkMove.{platform}.yaml
+      # Those changed a lot since 14150d
+      #- name: find-CCSPlayer_MovementServices_WaterMove-AND-CCSPlayer_MovementServices_FullWalkMove
+      #  expected_output:
+      #    - CCSPlayer_MovementServices_WaterMove.{platform}.yaml
+      #    - CCSPlayer_MovementServices_FullWalkMove.{platform}.yaml
+      #  expected_input:
+      #    - CCSPlayer_MovementServices_WalkMove.{platform}.yaml
 
-      - name: find-CCSPlayer_MovementServices_FullWalkMove_SpeedClamp
-        expected_output:
-          - CCSPlayer_MovementServices_FullWalkMove_SpeedClamp.{platform}.yaml
-        expected_input:
-          - CCSPlayer_MovementServices_FullWalkMove.{platform}.yaml
+      #- name: find-CCSPlayer_MovementServices_FullWalkMove_SpeedClamp
+      #  expected_output:
+      #    - CCSPlayer_MovementServices_FullWalkMove_SpeedClamp.{platform}.yaml
+      #  expected_input:
+      #    - CCSPlayer_MovementServices_FullWalkMove.{platform}.yaml
 
       - name: find-CCSPlayer_MovementServices_CheckJumpButton
         expected_output:
@@ -2090,14 +2082,21 @@ modules:
           - CBaseEntity_TakeDamageOld.{platform}.yaml
           - CBaseEntity_vtable.{platform}.yaml
 
-      - name: find-CBaseEntity_OnTakeDamage_Alive-AND-Dying-AND-Dead
+      - name: find-CBasePlayerPawn_OnTakeDamage
         expected_output:
-          - CBaseEntity_OnTakeDamage_Alive.{platform}.yaml
-          - CBaseEntity_OnTakeDamage_Dying.{platform}.yaml
-          - CBaseEntity_OnTakeDamage_Dead.{platform}.yaml
+          - CBasePlayerPawn_OnTakeDamage.{platform}.yaml
         expected_input:
+          - CBasePlayerPawn_vtable.{platform}.yaml
           - CBaseEntity_OnTakeDamage.{platform}.yaml
-          - CBaseEntity_vtable.{platform}.yaml
+
+      - name: find-CBasePlayerPawn_OnTakeDamage_Alive-AND-Dying-AND-Dead
+        expected_output:
+          - CBasePlayerPawn_OnTakeDamage_Alive.{platform}.yaml
+          - CBasePlayerPawn_OnTakeDamage_Dying.{platform}.yaml
+          - CBasePlayerPawn_OnTakeDamage_Dead.{platform}.yaml
+        expected_input:
+          - CBasePlayerPawn_OnTakeDamage.{platform}.yaml
+          - CBasePlayerPawn_vtable.{platform}.yaml
 
       - name: find-CCSPlayerPawn_OnTakeDamage
         expected_output:
@@ -2107,10 +2106,10 @@ modules:
           - CCSPlayerPawn_OnTakeDamage_Dead.{platform}.yaml
         expected_input:
           - CCSPlayerPawn_vtable.{platform}.yaml
-          - CBaseEntity_OnTakeDamage.{platform}.yaml
-          - CBaseEntity_OnTakeDamage_Alive.{platform}.yaml
-          - CBaseEntity_OnTakeDamage_Dying.{platform}.yaml
-          - CBaseEntity_OnTakeDamage_Dead.{platform}.yaml
+          - CBasePlayerPawn_OnTakeDamage.{platform}.yaml
+          - CBasePlayerPawn_OnTakeDamage_Alive.{platform}.yaml
+          - CBasePlayerPawn_OnTakeDamage_Dying.{platform}.yaml
+          - CBasePlayerPawn_OnTakeDamage_Dead.{platform}.yaml
 
       - name: find-CFlashbangProjectile_vtable
         expected_output:
@@ -2121,7 +2120,6 @@ modules:
           - CFlashbangProjectile_Spawn.{platform}.yaml
         expected_input:
           - CFlashbangProjectile_vtable.{platform}.yaml
-          - CBaseEntity_Spawn.{platform}.yaml
 
       - name: find-CSmokeGrenadeProjectile_Create
         expected_output:
@@ -2134,15 +2132,15 @@ modules:
         expected_input:
           - CFlashbangProjectile_Spawn.{platform}.yaml
 
-      - name: find-CTriggerGravity_GravityTouch_Register
+      - name: find-CTriggerGravity_GetTouchFunction
         expected_output:
-          - CTriggerGravity_GravityTouch_Register.{platform}.yaml
+          - CTriggerGravity_GetTouchFunction.{platform}.yaml
 
       - name: find-CTriggerGravity_GravityTouch
         expected_output:
           - CTriggerGravity_GravityTouch.{platform}.yaml
         expected_input:
-          - CTriggerGravity_GravityTouch_Register.{platform}.yaml
+          - CTriggerGravity_GetTouchFunction.{platform}.yaml
 
       - name: find-CBasePlayerController_HandleCommand_JoinTeam
         expected_output:
@@ -2274,42 +2272,18 @@ modules:
         expected_input:
           - CCSPlayerController_vtable.{platform}.yaml
 
-      - name: find-CCSPlayerController_RegisterThink
+      - name: find-CCSPlayerController_GetThinkFunction
         expected_output:
-          - CCSPlayerController_RegisterThink.{platform}.yaml
+          - CCSPlayerController_GetThinkFunction.{platform}.yaml
 
       - name: find-CCSPlayerController_PlayerForceTeamThink-AND-CCSPlayerController_ResetForceTeamThink-AND-CCSPlayerController_ResourceDataThink-AND-CCSPlayerController_InventoryUpdateThink-windows
-        platform: windows
         expected_output:
           - CCSPlayerController_PlayerForceTeamThink.{platform}.yaml
           - CCSPlayerController_ResetForceTeamThink.{platform}.yaml
           - CCSPlayerController_ResourceDataThink.{platform}.yaml
           - CCSPlayerController_InventoryUpdateThink.{platform}.yaml
         expected_input:
-          - CCSPlayerController_RegisterThink.{platform}.yaml
-
-      - name: find-g_CCSPlayerController_PlayerForceTeamThink-AND-g_CCSPlayerController_ResetForceTeamThink-AND-g_CCSPlayerController_ResourceDataThink-AND-g_CCSPlayerController_InventoryUpdateThink
-        platform: linux
-        expected_output:
-          - g_CCSPlayerController_PlayerForceTeamThink.{platform}.yaml
-          - g_CCSPlayerController_ResetForceTeamThink.{platform}.yaml
-          - g_CCSPlayerController_ResourceDataThink.{platform}.yaml
-          - g_CCSPlayerController_InventoryUpdateThink.{platform}.yaml
-        expected_input:
-          - CCSPlayerController_RegisterThink.{platform}.yaml
-
-      - name: find-CCSPlayerController_PlayerForceTeamThink-AND-CCSPlayerController_ResetForceTeamThink-AND-CCSPlayerController_ResourceDataThink-AND-CCSPlayerController_InventoryUpdateThink-linux
-        platform: linux
-        expected_output:
-          - CCSPlayerController_PlayerForceTeamThink.{platform}.yaml
-          - CCSPlayerController_ResetForceTeamThink.{platform}.yaml
-          - CCSPlayerController_ResourceDataThink.{platform}.yaml
-          - CCSPlayerController_InventoryUpdateThink.{platform}.yaml
-        expected_input:
-          - g_CCSPlayerController_PlayerForceTeamThink.{platform}.yaml
-          - g_CCSPlayerController_ResetForceTeamThink.{platform}.yaml
-          - g_CCSPlayerController_ResourceDataThink.{platform}.yaml
-          - g_CCSPlayerController_InventoryUpdateThink.{platform}.yaml
+          - CCSPlayerController_GetThinkFunction.{platform}.yaml
 
       - name: find-CCSGameRules__sm_mapGcBanInformation
         expected_output:
@@ -2945,17 +2919,28 @@ modules:
           - CBaseAnimGraph_GetAnimationController.{platform}.yaml
           - CGameSceneNode_vtable.{platform}.yaml
 
-      - name: find-CPointTeleport_Teleport
+      - name: find-CPointTeleportAPI_TeleportEntityInternal
         expected_output:
-          - CPointTeleport_Teleport.{platform}.yaml
-        expected_input:
-          - CPointTeleport_vtable.{platform}.yaml
+          - CPointTeleportAPI_TeleportEntityInternal.{platform}.yaml
 
       - name: find-CBaseEntity_Teleport
         expected_output:
           - CBaseEntity_Teleport.{platform}.yaml
         expected_input:
-          - CPointTeleport_Teleport.{platform}.yaml
+          - CPointTeleportAPI_TeleportEntityInternal.{platform}.yaml
+          - CBaseEntity_vtable.{platform}.yaml
+
+      - name: find-CPointTeleport_Activate
+        expected_output:
+          - CPointTeleport_Activate.{platform}.yaml
+        expected_input:
+          - CPointTeleport_vtable.{platform}.yaml
+
+      - name: find-CBaseEntity_Activate
+        expected_output:
+          - CBaseEntity_Activate.{platform}.yaml
+        expected_input:
+          - CPointTeleport_Activate.{platform}.yaml
           - CBaseEntity_vtable.{platform}.yaml
 
       - name: find-CBaseEntity_CollisionRulesChanged
@@ -2980,8 +2965,7 @@ modules:
           - CBaseEntity_Spawn.{platform}.yaml
         expected_input:
           - CBaseEntity_vtable.{platform}.yaml
-          - CGameSceneNode_PostSpawnKeyValues.{platform}.yaml
-          - CBaseEntity_SpawnRadius.{platform}.yaml
+          - CFlashbangProjectile_Spawn.{platform}.yaml
 
       - name: find-CDedicatedServerWorkshopManager_SwitchToWorkshopMapGroup
         expected_output:
@@ -3707,20 +3691,25 @@ modules:
         alias:
           - CBasePlayerPawn::OnTakeDamage
 
-      - name: CBaseEntity_OnTakeDamage_Alive
+      - name: CBasePlayerPawn_OnTakeDamage_Alive
         category: vfunc
         alias:
           - CBasePlayerPawn::OnTakeDamage_Alive
 
-      - name: CBaseEntity_OnTakeDamage_Dying
+      - name: CBasePlayerPawn_OnTakeDamage_Dying
         category: vfunc
         alias:
           - CBasePlayerPawn::OnTakeDamage_Dying
 
-      - name: CBaseEntity_OnTakeDamage_Dead
+      - name: CBasePlayerPawn_OnTakeDamage_Dead
         category: vfunc
         alias:
           - CBasePlayerPawn::OnTakeDamage_Dead
+
+      - name: CBasePlayerPawn_OnTakeDamage
+        category: vfunc
+        alias:
+          - CBasePlayerPawn::OnTakeDamage
 
       - name: CCSPlayerPawn_OnTakeDamage_Alive
         category: vfunc
@@ -3766,10 +3755,10 @@ modules:
         alias:
           - CTriggerGravity::GravityTouch
 
-      - name: CTriggerGravity_GravityTouch_Register
+      - name: CTriggerGravity_GetTouchFunction
         category: func
         alias:
-          - CTriggerGravity::GravityTouch_Register
+          - CTriggerGravity::GetTouchFunction
 
       - name: CBasePlayerController_HandleCommand_JoinTeam
         category: func
@@ -3906,10 +3895,10 @@ modules:
         alias:
           - CCSPlayerController::ChangeTeam
 
-      - name: CCSPlayerController_RegisterThink
+      - name: CCSPlayerController_GetThinkFunction
         category: func
         alias:
-          - CCSPlayerController::RegisterThink
+          - CCSPlayerController::GetThinkFunction
 
       - name: CCSPlayerController_PlayerForceTeamThink
         category: func
@@ -4589,16 +4578,26 @@ modules:
       - name: CSkeletonInstance
         category: struct
 
-      - name: CPointTeleport_Teleport
-        category: vfunc
+      - name: CPointTeleportAPI_TeleportEntityInternal
+        category: func
         alias:
-          - CPointTeleport::Teleport
+          - CPointTeleportAPI::TeleportEntityInternal
 
       - name: CBaseEntity_Teleport
         category: vfunc
         alias:
           - CBaseEntity::Teleport
-          - Teleport
+
+      - name: CPointTeleport_Activate
+        category: vfunc
+        alias:
+          - CPointTeleport::Activate
+
+      - name: CBaseEntity_Activate
+        category: vfunc
+        alias:
+          - CBaseEntity::Activate
+          - Activate
 
       - name: CCheckTransmitInfo
         category: struct
@@ -5037,6 +5036,24 @@ modules:
         category: vfunc
         alias:
           - ILoopMode::OnLoopDeactivate
+
+  - name: engine # Execute skills for engine2.dll again after client.dll
+    path_windows: game/bin/win64/engine2.dll
+    path_linux: game/bin/linuxsteamrt64/libengine2.so
+
+    skills:
+      - name: find-CEngineServiceMgr_GetActiveLoopClientServerMode
+        expected_output:
+          - CEngineServiceMgr_GetActiveLoopClientServerMode.{platform}.yaml
+        expected_input:
+          - CEngineServiceMgr_vtable.{platform}.yaml
+          - ../client/IEngineServiceMgr_GetActiveLoopClientServerMode.{platform}.yaml
+
+      - name: find-ILoopType_GetClientServerMode
+        expected_output:
+          - ILoopType_GetClientServerMode.{platform}.yaml
+        expected_input:
+          - CEngineServiceMgr_GetActiveLoopClientServerMode.{platform}.yaml
 
   - name: networksystem # Execute skills for networksystem.dll again after server.dll
     path_windows: game/bin/win64/networksystem.dll

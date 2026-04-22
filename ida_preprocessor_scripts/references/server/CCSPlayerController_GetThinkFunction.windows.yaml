@@ -1,0 +1,63 @@
+func_name: CCSPlayerController_GetThinkFunction
+func_va: '0x1809ed760'
+disasm_code: |-
+  .text:00000001809ED760                 push    rbx
+  .text:00000001809ED762                 sub     rsp, 20h
+  .text:00000001809ED766                 mov     rbx, rcx
+  .text:00000001809ED769                 ; Str2
+  .text:00000001809ED769                 mov     rdx, rcx; Str2
+  .text:00000001809ED76C                 lea     rcx, aCcsplayercontr_8; "CCSPlayerControllerInventoryUpdateThink"
+  .text:00000001809ED773                 call    strcmp
+  .text:00000001809ED778                 test    eax, eax
+  .text:00000001809ED77A                 jnz     short loc_1809ED789
+  .text:00000001809ED77C                 lea     rax, CCSPlayerController_InventoryUpdateThink
+  .text:00000001809ED783                 add     rsp, 20h
+  .text:00000001809ED787                 pop     rbx
+  .text:00000001809ED788                 retn
+  .text:00000001809ED789                 ; Str2
+  .text:00000001809ED789                 mov     rdx, rbx; Str2
+  .text:00000001809ED78C                 lea     rcx, aCcsplayercontr_9; "CCSPlayerControllerResourceDataThink"
+  .text:00000001809ED793                 call    strcmp
+  .text:00000001809ED798                 test    eax, eax
+  .text:00000001809ED79A                 jnz     short loc_1809ED7A9
+  .text:00000001809ED79C                 lea     rax, CCSPlayerController_ResourceDataThink
+  .text:00000001809ED7A3                 add     rsp, 20h
+  .text:00000001809ED7A7                 pop     rbx
+  .text:00000001809ED7A8                 retn
+  .text:00000001809ED7A9                 ; Str2
+  .text:00000001809ED7A9                 mov     rdx, rbx; Str2
+  .text:00000001809ED7AC                 lea     rcx, aCcsplayercontr_10; "CCSPlayerControllerPlayerForceTeamThink"
+  .text:00000001809ED7B3                 call    strcmp
+  .text:00000001809ED7B8                 test    eax, eax
+  .text:00000001809ED7BA                 jnz     short loc_1809ED7C9
+  .text:00000001809ED7BC                 lea     rax, CCSPlayerController_PlayerForceTeamThink
+  .text:00000001809ED7C3                 add     rsp, 20h
+  .text:00000001809ED7C7                 pop     rbx
+  .text:00000001809ED7C8                 retn
+  .text:00000001809ED7C9                 ; Str2
+  .text:00000001809ED7C9                 mov     rdx, rbx; Str2
+  .text:00000001809ED7CC                 lea     rcx, aCcsplayercontr_11; "CCSPlayerControllerResetForceTeamThink"
+  .text:00000001809ED7D3                 call    strcmp
+  .text:00000001809ED7D8                 test    eax, eax
+  .text:00000001809ED7DA                 jnz     short loc_1809ED7E9
+  .text:00000001809ED7DC                 lea     rax, CCSPlayerController_DefaultThink
+  .text:00000001809ED7E3                 add     rsp, 20h
+  .text:00000001809ED7E7                 pop     rbx
+  .text:00000001809ED7E8                 retn
+  .text:00000001809ED7E9                 mov     rcx, rbx
+  .text:00000001809ED7EC                 add     rsp, 20h
+  .text:00000001809ED7F0                 pop     rbx
+  .text:00000001809ED7F1                 jmp     CCSPlayerController_ResetForceTeamThink
+procedure: |-
+  __int64 (__fastcall *__fastcall CCSPlayerController_GetThinkFunction(const char *a1))(__int64 a1)
+  {
+    if ( !strcmp("CCSPlayerControllerInventoryUpdateThink", a1) )
+      return (__int64 (__fastcall *)(__int64))CCSPlayerController_InventoryUpdateThink;
+    if ( !strcmp("CCSPlayerControllerResourceDataThink", a1) )
+      return (__int64 (__fastcall *)(__int64))CCSPlayerController_ResourceDataThink;
+    if ( !strcmp("CCSPlayerControllerPlayerForceTeamThink", a1) )
+      return CCSPlayerController_PlayerForceTeamThink;
+    if ( !strcmp("CCSPlayerControllerResetForceTeamThink", a1) )
+      return CCSPlayerController_DefaultThink;
+    return (__int64 (__fastcall *)(__int64))CCSPlayerController_ResetForceTeamThink((__int64)a1);
+  }

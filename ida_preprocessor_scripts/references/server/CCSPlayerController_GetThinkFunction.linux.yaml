@@ -1,0 +1,70 @@
+func_name: CCSPlayerController_GetThinkFunction
+func_va: '0x13914a0'
+disasm_code: |-
+  .text:00000000013914A0                 push    rbp
+  .text:00000000013914A1                 ; s2
+  .text:00000000013914A1                 mov     rsi, rdi; s2
+  .text:00000000013914A4                 mov     rbp, rsp
+  .text:00000000013914A7                 push    rbx
+  .text:00000000013914A8                 mov     rbx, rdi
+  .text:00000000013914AB                 lea     rdi, aCcsplayercontr_8; "CCSPlayerControllerInventoryUpdateThink"
+  .text:00000000013914B2                 sub     rsp, 8
+  .text:00000000013914B6                 call    strcmp
+  .text:00000000013914BB                 test    eax, eax
+  .text:00000000013914BD                 jz      short loc_1391520
+  .text:00000000013914BF                 lea     rdi, aCcsplayercontr_9; "CCSPlayerControllerResourceDataThink"
+  .text:00000000013914C6                 ; s2
+  .text:00000000013914C6                 mov     rsi, rbx; s2
+  .text:00000000013914C9                 call    strcmp
+  .text:00000000013914CE                 test    eax, eax
+  .text:00000000013914D0                 jz      short loc_1391510
+  .text:00000000013914D2                 lea     rdi, aCcsplayercontr_10; "CCSPlayerControllerPlayerForceTeamThink"
+  .text:00000000013914D9                 ; s2
+  .text:00000000013914D9                 mov     rsi, rbx; s2
+  .text:00000000013914DC                 call    strcmp
+  .text:00000000013914E1                 test    eax, eax
+  .text:00000000013914E3                 jz      short loc_1391540
+  .text:00000000013914E5                 lea     rdi, aCcsplayercontr_11; "CCSPlayerControllerResetForceTeamThink"
+  .text:00000000013914EC                 ; s2
+  .text:00000000013914EC                 mov     rsi, rbx; s2
+  .text:00000000013914EF                 call    strcmp
+  .text:00000000013914F4                 test    eax, eax
+  .text:00000000013914F6                 jnz     short loc_1391530
+  .text:00000000013914F8                 mov     rbx, [rbp+var_8]
+  .text:00000000013914FC                 lea     rax, CCSPlayerController_ResetForceTeamThink
+  .text:0000000001391503                 xor     edx, edx
+  .text:0000000001391505                 leave
+  .text:0000000001391506                 retn
+  .text:0000000001391510                 mov     rbx, [rbp+var_8]
+  .text:0000000001391514                 lea     rax, CCSPlayerController_ResourceDataThink
+  .text:000000000139151B                 xor     edx, edx
+  .text:000000000139151D                 leave
+  .text:000000000139151E                 retn
+  .text:0000000001391520                 mov     rbx, [rbp+var_8]
+  .text:0000000001391524                 lea     rax, CCSPlayerController_InventoryUpdateThink
+  .text:000000000139152B                 xor     edx, edx
+  .text:000000000139152D                 leave
+  .text:000000000139152E                 retn
+  .text:0000000001391530                 ; s2
+  .text:0000000001391530                 mov     rdi, rbx; s2
+  .text:0000000001391533                 mov     rbx, [rbp+var_8]
+  .text:0000000001391537                 leave
+  .text:0000000001391538                 jmp     CCSPlayerController_DefaultThink
+  .text:0000000001391540                 mov     rbx, [rbp+var_8]
+  .text:0000000001391544                 lea     rax, CCSPlayerController_PlayerForceTeamThink
+  .text:000000000139154B                 xor     edx, edx
+  .text:000000000139154D                 leave
+  .text:000000000139154E                 retn
+procedure: |-
+  __int64 (__fastcall *__fastcall CCSPlayerController_GetThinkFunction(char *s2))(__int64 a1)
+  {
+    if ( !strcmp("CCSPlayerControllerInventoryUpdateThink", s2) )
+      return CCSPlayerController_InventoryUpdateThink;
+    if ( !strcmp("CCSPlayerControllerResourceDataThink", s2) )
+      return (__int64 (__fastcall *)(__int64))CCSPlayerController_ResourceDataThink;
+    if ( !strcmp("CCSPlayerControllerPlayerForceTeamThink", s2) )
+      return (__int64 (__fastcall *)(__int64))CCSPlayerController_PlayerForceTeamThink;
+    if ( !strcmp("CCSPlayerControllerResetForceTeamThink", s2) )
+      return (__int64 (__fastcall *)(__int64))CCSPlayerController_ResetForceTeamThink;
+    return (__int64 (__fastcall *)(__int64))CCSPlayerController_DefaultThink(s2);
+  }

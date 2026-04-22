@@ -1,39 +1,44 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CTriggerGravity_GravityTouch_Register skill."""
+"""Preprocess script for find-CPointTeleport_Activate skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = [
-    "CTriggerGravity_GravityTouch_Register",
+    "CPointTeleport_Activate",
 ]
 
 FUNC_XREFS = [
-    {
-        "func_name": "CTriggerGravity_GravityTouch_Register",
-        "xref_strings": [
-            "FULLMATCH:CTriggerGravity",
-            "FULLMATCH:GravityTouch",
-        ],
-        "xref_gvs": [],
-        "xref_signatures": [],
-        "xref_funcs": [],
-        "exclude_funcs": [],
-        "exclude_strings": [],
-        "exclude_gvs": [],
-        "exclude_signatures": [],
-    },
+                 {
+                     "func_name": 'CPointTeleport_Activate',
+                     "xref_strings": ["can't teleport object"],
+                     "xref_gvs": [],
+                     "xref_signatures": [],
+                     "xref_funcs": [],
+                     "exclude_funcs": [],
+                     "exclude_strings": [],
+                     "exclude_gvs": [],
+                     "exclude_signatures": [],
+                 },
+             ]
+
+FUNC_VTABLE_RELATIONS = [
+    # (func_name, vtable_class)
+    ("CPointTeleport_Activate", "CPointTeleport"),
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
     (
-        "CTriggerGravity_GravityTouch_Register",
+        "CPointTeleport_Activate",
         [
             "func_name",
-            "func_sig",
             "func_va",
             "func_rva",
             "func_size",
+            "func_sig",
+            "vtable_name",
+            "vfunc_offset",
+            "vfunc_index",
         ],
     ),
 ]
@@ -52,6 +57,7 @@ async def preprocess_skill(
         image_base=image_base,
         func_names=TARGET_FUNCTION_NAMES,
         func_xrefs=FUNC_XREFS,
+        func_vtable_relations=FUNC_VTABLE_RELATIONS,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
     )

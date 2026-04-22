@@ -56,7 +56,12 @@ except ImportError as e:
     print("Please install required dependencies with: uv sync")
     sys.exit(1)
 
-from ida_skill_preprocessor import preprocess_single_skill_via_mcp
+from ida_skill_preprocessor import (
+    PREPROCESS_STATUS_ABSENT_OK,
+    PREPROCESS_STATUS_FAILED,
+    PREPROCESS_STATUS_SUCCESS,
+    preprocess_single_skill_via_mcp,
+)
 from ida_vcall_finder import (
     aggregate_vcall_results_for_object,
     export_object_xref_details_via_mcp,
@@ -1058,6 +1063,7 @@ def parse_config(config_path):
                     "expected_input": skill.get("expected_input", []),
                     "expected_input_windows": skill.get("expected_input_windows", []) or [],
                     "expected_input_linux": skill.get("expected_input_linux", []) or [],
+                    "skip_if_exists": skill.get("skip_if_exists", []) or [],
                     "prerequisite": skill.get("prerequisite", []) or [],
                     "max_retries": skill.get("max_retries"),  # None means use default
                     "platform": skill.get("platform"),  # None means all platforms
@@ -1248,6 +1254,16 @@ def expand_expected_paths(binary_dir, paths, platform):
 def all_expected_outputs_exist(expected_outputs):
     """Return True when every expected output already exists on disk."""
     return bool(expected_outputs) and all(os.path.exists(path) for path in expected_outputs)
+
+
+def should_skip_skill_for_existing_artifacts(binary_dir, skill, platform):
+    """Return resolved skip paths when all configured skip_if_exists artifacts exist."""
+    skip_if_exists = list(skill.get("skip_if_exists", []) or [])
+    if not skip_if_exists:
+        return False, []
+
+    resolved_paths = expand_expected_paths(binary_dir, skip_if_exists, platform)
+    return all_expected_outputs_exist(resolved_paths), resolved_paths
 
 
 def get_binary_path(bin_dir, gamever, module_name, module_path):
@@ -1637,9 +1653,23 @@ def process_binary(
             print(f"  Skipping skill: {skill_name} (all outputs exist)")
             skip_count += 1
         else:
-            # Use skill-specific max_retries if provided, otherwise use default
-            skill_max_retries = skill.get("max_retries") or max_retries
-            skills_to_process.append((skill_name, expected_outputs, skill_max_retries))
+            try:
+                skip_for_existing_artifacts, _skip_paths = should_skip_skill_for_existing_artifacts(
+                    binary_dir,
+                    skill,
+                    platform,
+                )
+            except ValueError as e:
+                fail_count += 1
+                print(f"  Failed: {skill_name} ({e})")
+                continue
+            if skip_for_existing_artifacts:
+                print(f"  Skipping skill: {skill_name} (all skip_if_exists artifacts exist)")
+                skip_count += 1
+            else:
+                # Use skill-specific max_retries if provided, otherwise use default
+                skill_max_retries = skill.get("max_retries") or max_retries
+                skills_to_process.append((skill_name, expected_outputs, skill_max_retries))
 
     vcall_targets = list(vcall_targets or [])
 
@@ -1660,6 +1690,22 @@ def process_binary(
                 skip_count += 1
                 continue
 
+            skill = skill_map[skill_name]
+            try:
+                skip_for_existing_artifacts, _skip_paths = should_skip_skill_for_existing_artifacts(
+                    binary_dir,
+                    skill,
+                    platform,
+                )
+            except ValueError as e:
+                fail_count += 1
+                print(f"  Failed: {skill_name} ({e})")
+                continue
+            if skip_for_existing_artifacts:
+                print(f"  Skipping skill: {skill_name} (all skip_if_exists artifacts exist)")
+                skip_count += 1
+                continue
+
             # Ensure MCP connection is alive before running the skill
             process, mcp_ok = ensure_mcp_available(
                 process, binary_path, host, port, ida_args, debug
@@ -1671,7 +1717,6 @@ def process_binary(
                 break
 
             # Check if all expected_input files are available before running the skill
-            skill = skill_map[skill_name]
             platform_input_key = f"expected_input_{platform}"
             combined_input = list(skill.get("expected_input", []) or [])
             combined_input += list(skill.get(platform_input_key, []) or [])
@@ -1717,7 +1762,7 @@ def process_binary(
                     old_yaml_map[new_path] = old_path
 
             try:
-                preprocess_ok = _run_preprocess_single_skill_via_mcp(
+                preprocess_status = _run_preprocess_single_skill_via_mcp(
                     host=host,
                     port=port,
                     skill_name=skill_name,
@@ -1736,9 +1781,19 @@ def process_binary(
             except Exception as e:
                 if debug:
                     print(f"  Pre-processing error for {skill_name}: {e}")
-                preprocess_ok = False
+                preprocess_status = PREPROCESS_STATUS_FAILED
 
-            if preprocess_ok:
+            if (
+                preprocess_status is True
+                or preprocess_status == PREPROCESS_STATUS_SUCCESS
+            ):
+                preprocess_status = PREPROCESS_STATUS_SUCCESS
+            elif preprocess_status == PREPROCESS_STATUS_ABSENT_OK:
+                preprocess_status = PREPROCESS_STATUS_ABSENT_OK
+            else:
+                preprocess_status = PREPROCESS_STATUS_FAILED
+
+            if preprocess_status == PREPROCESS_STATUS_SUCCESS:
                 missing_outputs = [p for p in expected_outputs if not os.path.exists(p)]
                 if missing_outputs:
                     fail_count += 1
@@ -1750,6 +1805,10 @@ def process_binary(
                         print(f"  Pre-processed: {skill_name} (signature reuse)")
                     else:
                         print(f"  Pre-processed: {skill_name}")
+                continue
+            if preprocess_status == PREPROCESS_STATUS_ABSENT_OK:
+                skip_count += 1
+                print(f"  Skipping skill: {skill_name} (preprocess reported absent_ok)")
                 continue
 
             if all_expected_outputs_exist(expected_outputs):

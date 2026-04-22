@@ -1,34 +1,14 @@
-I have disassembly outputs and procedure code of the same function.
+I have disassembly outputs and procedure code for multiple related functions.
 
-This is the function for reference:
+These are the reference functions:
 
-**Disassembly for Reference**
+{reference_blocks}
 
-```c
-{disasm_for_reference}
-```
+These are the target functions you need to reverse-engineering:
 
-**Procedure code for Reference**
+{target_blocks}
 
-```c
-{procedure_for_reference}
-```
-
-This is the function you need to reverse-engineering:
-
-**Disassembly to reverse-engineering**
-
-```c
-{disasm_code}
-```
-
-**Procedure code to reverse-engineering**
-
-```c
-{procedure}
-```
-
-What you need to do is to collect all references to "{symbol_name_list}" in the function you need to reverse-engineering and output those references as YAML.
+What you need to do is to collect all references to "{symbol_name_list}" in the target functions you need to reverse-engineering and output those references as YAML.
 
 Example:
 

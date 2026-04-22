@@ -679,7 +679,7 @@ class TestFindBotAddCommandHandler(unittest.IsolatedAsyncioTestCase):
                 debug=True,
             )
 
-        self.assertTrue(result)
+        self.assertEqual("success", result)
         mock_preprocess_registerconcommand_skill.assert_awaited_once_with(
             session="session",
             expected_outputs=["out.yaml"],
@@ -728,7 +728,7 @@ class TestFindShowHudHint(unittest.IsolatedAsyncioTestCase):
                 debug=True,
             )
 
-        self.assertTrue(result)
+        self.assertEqual("success", result)
         mock_helper.assert_awaited_once_with(
             session="session",
             expected_outputs=["out.yaml"],
@@ -1633,9 +1633,99 @@ class TestPreprocessSingleSkillViaMcp(unittest.IsolatedAsyncioTestCase):
                 debug=True,
             )
 
-        self.assertTrue(result)
+        self.assertEqual("success", result)
         self.assertEqual(0x180000000, received["args"]["image_base"])
         self.assertTrue(received["args"]["debug"])
+
+    async def test_normalizes_absent_ok_status(self) -> None:
+        async def fake_preprocess_skill(
+            session, skill_name, expected_outputs, old_yaml_map,
+            new_binary_dir, platform, image_base, llm_config, debug=False,
+        ):
+            return "absent_ok"
+
+        with patch.object(
+            ida_skill_preprocessor,
+            "_get_preprocess_entry",
+            return_value=fake_preprocess_skill,
+        ), patch.object(
+            ida_skill_preprocessor.httpx,
+            "AsyncClient",
+            _FakeAsyncClient,
+        ), patch.object(
+            ida_skill_preprocessor,
+            "streamable_http_client",
+            return_value=_FakeStreamableHttpClient(),
+        ), patch.object(
+            ida_skill_preprocessor,
+            "ClientSession",
+            _FakeClientSession,
+        ), patch.object(
+            ida_skill_preprocessor,
+            "parse_mcp_result",
+            return_value={"result": "0x180000000"},
+        ):
+            result = await ida_skill_preprocessor.preprocess_single_skill_via_mcp(
+                host="127.0.0.1",
+                port=13337,
+                skill_name="find-CNetworkMessages_FindNetworkGroup",
+                expected_outputs=["out.yaml"],
+                old_yaml_map={"out.yaml": "old.yaml"},
+                new_binary_dir="bin_dir",
+                platform="windows",
+                llm_model="gpt-4.1-mini",
+                llm_apikey="test-api-key",
+                llm_baseurl="https://example.invalid/v1",
+                debug=True,
+            )
+
+        self.assertEqual("absent_ok", result)
+        self.assertTrue(result)
+
+    async def test_normalizes_failed_status_as_falsey(self) -> None:
+        async def fake_preprocess_skill(
+            session, skill_name, expected_outputs, old_yaml_map,
+            new_binary_dir, platform, image_base, llm_config, debug=False,
+        ):
+            return False
+
+        with patch.object(
+            ida_skill_preprocessor,
+            "_get_preprocess_entry",
+            return_value=fake_preprocess_skill,
+        ), patch.object(
+            ida_skill_preprocessor.httpx,
+            "AsyncClient",
+            _FakeAsyncClient,
+        ), patch.object(
+            ida_skill_preprocessor,
+            "streamable_http_client",
+            return_value=_FakeStreamableHttpClient(),
+        ), patch.object(
+            ida_skill_preprocessor,
+            "ClientSession",
+            _FakeClientSession,
+        ), patch.object(
+            ida_skill_preprocessor,
+            "parse_mcp_result",
+            return_value={"result": "0x180000000"},
+        ):
+            result = await ida_skill_preprocessor.preprocess_single_skill_via_mcp(
+                host="127.0.0.1",
+                port=13337,
+                skill_name="find-CNetworkMessages_FindNetworkGroup",
+                expected_outputs=["out.yaml"],
+                old_yaml_map={"out.yaml": "old.yaml"},
+                new_binary_dir="bin_dir",
+                platform="windows",
+                llm_model="gpt-4.1-mini",
+                llm_apikey="test-api-key",
+                llm_baseurl="https://example.invalid/v1",
+                debug=True,
+            )
+
+        self.assertEqual("failed", result)
+        self.assertFalse(result)
 
 
 class TestFindCNetworkMessagesFindNetworkGroup(unittest.IsolatedAsyncioTestCase):
@@ -2176,6 +2266,7 @@ class TestFindCcsPlayerMovementServicesProcessMovement(
                 "xref_gvs": ["CPlayer_MovementServices_s_pRunCommandPawn"],
                 "xref_signatures": [],
                 "xref_funcs": [],
+                "xref_floats": ["64.0", "0.5"],
                 "exclude_funcs": [
                     "CPlayer_MovementServices_ForceButtons",
                     "CPlayer_MovementServices_ForceButtonState",
@@ -2183,6 +2274,7 @@ class TestFindCcsPlayerMovementServicesProcessMovement(
                 "exclude_strings": [],
                 "exclude_gvs": [],
                 "exclude_signatures": [],
+                "exclude_floats": [],
             }
         ]
         expected_func_names = [
@@ -2230,6 +2322,159 @@ class TestFindCcsPlayerMovementServicesProcessMovement(
             generate_yaml_desired_fields=expected_generate_yaml_desired_fields,
             debug=True,
         )
+
+
+class TestFindILoopTypeDeallocateLoopMode(unittest.IsolatedAsyncioTestCase):
+    async def test_preprocess_skill_forwards_two_llm_specs_in_fixed_order(self) -> None:
+        module = _load_module(
+            Path("ida_preprocessor_scripts/find-ILoopType_DeallocateLoopMode.py"),
+            "find_ILoopType_DeallocateLoopMode",
+        )
+        mock_preprocess_common_skill = AsyncMock(return_value=True)
+        llm_config = {"model": "gpt-5.4", "fake_as": "codex"}
+        expected_llm_decompile_specs = [
+            (
+                "ILoopType_DeallocateLoopMode",
+                "prompt/call_llm_decompile.md",
+                "references/engine/CEngineServiceMgr_DeactivateLoop.{platform}.yaml",
+            ),
+            (
+                "ILoopType_DeallocateLoopMode",
+                "prompt/call_llm_decompile.md",
+                "references/engine/CEngineServiceMgr__MainLoop.{platform}.yaml",
+            ),
+        ]
+
+        with patch.object(module, "preprocess_common_skill", mock_preprocess_common_skill):
+            result = await module.preprocess_skill(
+                session="session",
+                skill_name="skill",
+                expected_outputs=["out.yaml"],
+                old_yaml_map={"k": "v"},
+                new_binary_dir="bin_dir",
+                platform="linux",
+                image_base=0x180000000,
+                llm_config=llm_config,
+                debug=True,
+            )
+
+        self.assertTrue(result)
+        mock_preprocess_common_skill.assert_awaited_once_with(
+            session="session",
+            expected_outputs=["out.yaml"],
+            old_yaml_map={"k": "v"},
+            new_binary_dir="bin_dir",
+            platform="linux",
+            image_base=0x180000000,
+            func_names=["ILoopType_DeallocateLoopMode"],
+            func_vtable_relations=[("ILoopType_DeallocateLoopMode", "ILoopType")],
+            llm_decompile_specs=expected_llm_decompile_specs,
+            llm_config=llm_config,
+            generate_yaml_desired_fields=[
+                (
+                    "ILoopType_DeallocateLoopMode",
+                    [
+                        "func_name",
+                        "vfunc_sig",
+                        "vfunc_offset",
+                        "vfunc_index",
+                        "vtable_name",
+                    ],
+                )
+            ],
+            debug=True,
+        )
+
+
+class TestFindCEngineServiceMgrDeactivateLoop(unittest.IsolatedAsyncioTestCase):
+    async def test_preprocess_skill_returns_absent_ok_for_verified_inline_sequence(
+        self,
+    ) -> None:
+        module = _load_module(
+            Path("ida_preprocessor_scripts/find-CEngineServiceMgr_DeactivateLoop.py"),
+            "find_CEngineServiceMgr_DeactivateLoop",
+        )
+
+        with patch.object(
+            module,
+            "preprocess_common_skill",
+            AsyncMock(return_value=False),
+        ), patch.object(
+            module,
+            "_load_llm_decompile_target_detail_via_mcp",
+            AsyncMock(
+                return_value={
+                    "func_name": "CEngineServiceMgr__MainLoop",
+                    "func_va": "0x180555500",
+                    "disasm_code": (
+                        "call    qword ptr [rax+40h]\n"
+                        "call    qword ptr [rax+30h]"
+                    ),
+                    "procedure": (
+                        "loop_type->LoopDeactivate(loop_state);\n"
+                        "loop_type->DeallocateLoopMode();"
+                    ),
+                }
+            ),
+        ) as mock_load_detail:
+            result = await module.preprocess_skill(
+                session="session",
+                skill_name="skill",
+                expected_outputs=["out.yaml"],
+                old_yaml_map={},
+                new_binary_dir="bin_dir",
+                platform="linux",
+                image_base=0x180000000,
+                llm_config={"model": "gpt-5.4", "fake_as": "codex"},
+                debug=True,
+            )
+
+        self.assertEqual("absent_ok", result)
+        mock_load_detail.assert_awaited_once_with(
+            "session",
+            "CEngineServiceMgr__MainLoop",
+            new_binary_dir="bin_dir",
+            platform="linux",
+            debug=True,
+        )
+
+    async def test_preprocess_skill_keeps_failure_when_inline_markers_are_incomplete(
+        self,
+    ) -> None:
+        module = _load_module(
+            Path("ida_preprocessor_scripts/find-CEngineServiceMgr_DeactivateLoop.py"),
+            "find_CEngineServiceMgr_DeactivateLoop",
+        )
+
+        with patch.object(
+            module,
+            "preprocess_common_skill",
+            AsyncMock(return_value=False),
+        ), patch.object(
+            module,
+            "_load_llm_decompile_target_detail_via_mcp",
+            AsyncMock(
+                return_value={
+                    "func_name": "CEngineServiceMgr__MainLoop",
+                    "func_va": "0x180555500",
+                    "disasm_code": "call    qword ptr [rax+40h]",
+                    "procedure": "loop_type->LoopDeactivate(loop_state);",
+                }
+            ),
+        ):
+            result = await module.preprocess_skill(
+                session="session",
+                skill_name="skill",
+                expected_outputs=["out.yaml"],
+                old_yaml_map={},
+                new_binary_dir="bin_dir",
+                platform="linux",
+                image_base=0x180000000,
+                llm_config={"model": "gpt-5.4", "fake_as": "codex"},
+                debug=True,
+            )
+
+        self.assertFalse(result)
 
 
 if __name__ == "__main__":

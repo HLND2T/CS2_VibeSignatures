@@ -5,10 +5,10 @@ from ida_analyze_util import preprocess_common_skill
 
 INHERIT_VFUNCS=[
     # (target_func_name, inherit_vtable_class, base_vfunc_name, generate_func_sig)
-    ("CCSPlayerPawn_OnTakeDamage", "CCSPlayerPawn", "CBaseEntity_OnTakeDamage", False),
-    ("CCSPlayerPawn_OnTakeDamage_Alive", "CCSPlayerPawn", "CBaseEntity_OnTakeDamage_Alive", False),
-    ("CCSPlayerPawn_OnTakeDamage_Dying", "CCSPlayerPawn", "CBaseEntity_OnTakeDamage_Dying", False),
-    ("CCSPlayerPawn_OnTakeDamage_Dead", "CCSPlayerPawn", "CBaseEntity_OnTakeDamage_Dead", False),
+    ("CCSPlayerPawn_OnTakeDamage", "CCSPlayerPawn", "CBasePlayerPawn_OnTakeDamage", False),
+    ("CCSPlayerPawn_OnTakeDamage_Alive", "CCSPlayerPawn", "CBasePlayerPawn_OnTakeDamage_Alive", False),
+    ("CCSPlayerPawn_OnTakeDamage_Dying", "CCSPlayerPawn", "CBasePlayerPawn_OnTakeDamage_Dying", False),
+    ("CCSPlayerPawn_OnTakeDamage_Dead", "CCSPlayerPawn", "CBasePlayerPawn_OnTakeDamage_Dead", False),
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [

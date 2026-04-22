@@ -34,7 +34,7 @@ GENERATE_YAML_DESIRED_FIELDS = [
     ),
     (
         "CCSPlayerController_ResetForceTeamThink",
-        ["func_name", "func_sig", "func_va", "func_rva", "func_size"],
+        ["func_name", "func_va", "func_rva", "func_size"],# too short to have an unique signature
     ),
     (
         "CCSPlayerController_ResourceDataThink",
@@ -42,7 +42,7 @@ GENERATE_YAML_DESIRED_FIELDS = [
     ),
     (
         "CCSPlayerController_InventoryUpdateThink",
-        ["func_name", "func_sig", "func_va", "func_rva", "func_size"],
+        ["func_name", "func_va", "func_rva", "func_size"],# too short to have an unique signature
     ),
 ]
 

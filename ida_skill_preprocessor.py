@@ -27,6 +27,29 @@ _PREPROCESS_EXPORT_NAME = "preprocess_skill"
 _SCRIPT_ENTRY_CACHE = {}
 
 
+class PreprocessStatus(str):
+    def __new__(cls, value, truthy):
+        obj = super().__new__(cls, value)
+        obj._truthy = bool(truthy)
+        return obj
+
+    def __bool__(self):
+        return self._truthy
+
+
+PREPROCESS_STATUS_SUCCESS = PreprocessStatus("success", True)
+PREPROCESS_STATUS_FAILED = PreprocessStatus("failed", False)
+PREPROCESS_STATUS_ABSENT_OK = PreprocessStatus("absent_ok", True)
+
+
+def _normalize_preprocess_status(result):
+    if result is True or result == PREPROCESS_STATUS_SUCCESS:
+        return PREPROCESS_STATUS_SUCCESS
+    if result == PREPROCESS_STATUS_ABSENT_OK:
+        return PREPROCESS_STATUS_ABSENT_OK
+    return PREPROCESS_STATUS_FAILED
+
+
 def _get_preprocess_entry(skill_name, debug=False):
     """Load and cache `preprocess_skill` from ida_preprocessor_scripts/{skill_name}.py."""
     if skill_name in _SCRIPT_ENTRY_CACHE:
@@ -101,11 +124,11 @@ async def preprocess_single_skill_via_mcp(
         debug: enable debug output
 
     Returns:
-        True if skill script preprocessing succeeded, False otherwise
+        One of: "success", "absent_ok", or "failed"
     """
     preprocess_func = _get_preprocess_entry(skill_name, debug=debug)
     if preprocess_func is None:
-        return False
+        return PREPROCESS_STATUS_FAILED
 
     server_url = f"http://{host}:{port}/mcp"
 
@@ -155,15 +178,15 @@ async def preprocess_single_skill_via_mcp(
                         result = preprocess_func(**preprocess_kwargs)
                         if inspect.isawaitable(result):
                             result = await result
-                        return bool(result)
+                        return _normalize_preprocess_status(result)
                     except Exception as e:
                         if debug:
                             print(f"    Preprocess: script execution failed for {skill_name}: {e}")
-                        return False
+                        return PREPROCESS_STATUS_FAILED
 
     except Exception as e:
         if debug:
             print(f"  Preprocess MCP connection error for {skill_name}: {e}")
 
-    return False
+    return PREPROCESS_STATUS_FAILED
 

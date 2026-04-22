@@ -24,7 +24,7 @@ FUNC_XREFS_WINDOWS = [
 FUNC_XREFS_LINUX = [
                        {
                            "func_name": 'CSource2GameEntities_CheckTransmit',
-                           "xref_strings": ['./gameinterface.cpp:30'],
+                           "xref_strings": ['./gameinterface.cpp:3'],
                            "xref_gvs": [],
                            "xref_signatures": [],
                            "xref_funcs": [],

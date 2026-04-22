@@ -11,7 +11,7 @@ FUNC_XREFS = [
     {
         "func_name": "CSource2Server_GameFrame",
         "xref_strings": [
-            "CSource2Server::GameFrame",
+            "GameFrame",
             "autosavedangerousissafe",
         ],
         "xref_gvs": [],

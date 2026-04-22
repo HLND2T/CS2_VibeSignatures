@@ -29,7 +29,7 @@ FUNC_XREFS_LINUX = [
         "xref_signatures": [],
         "xref_funcs": [],
         "exclude_funcs": [],
-        "exclude_strings": [],
+        "exclude_strings": ["CLoopModeGame::ReceivedServerInfo restarting loopmode game systems from"],
         "exclude_gvs": [],
         "exclude_signatures": [],
     },

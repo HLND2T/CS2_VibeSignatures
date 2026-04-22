@@ -15,7 +15,7 @@ FUNC_XREFS = [
                      "xref_signatures": [],
                      "xref_funcs": ['CLoopModeGame_SetGameSystemState'],
                      "exclude_funcs": ['CLoopModeGame_SetWorldSession'],
-                     "exclude_strings": [],
+                     "exclude_strings": ["CLoopModeGame::ReceivedServerInfo restarting loopmode game systems from"],
                      "exclude_gvs": [],
                      "exclude_signatures": [],
                  },

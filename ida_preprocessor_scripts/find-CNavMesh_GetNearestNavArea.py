@@ -10,7 +10,7 @@ TARGET_FUNCTION_NAMES = [
 FUNC_XREFS = [
                  {
                      "func_name": 'CNavMesh_GetNearestNavArea',
-                     "xref_strings": ['CNavMesh::GetNearestNavArea'],
+                     "xref_strings": ['GetNearestNav: Start Position'],
                      "xref_gvs": [],
                      "xref_signatures": [],
                      "xref_funcs": [],

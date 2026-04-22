@@ -230,6 +230,363 @@ class TestResolveArtifactPathIntegration(unittest.TestCase):
             ]
         )
 
+
+class TestParseConfig(unittest.TestCase):
+    def test_parse_config_reads_skip_if_exists(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            config_path = Path(temp_dir) / "config.yaml"
+            config_path.write_text(
+                """
+modules:
+  - name: engine
+    path_windows: game/bin/win64/engine2.dll
+    path_linux: game/bin/linuxsteamrt64/libengine2.so
+    skills:
+      - name: find-CEngineServiceMgr_DeactivateLoop
+        expected_output:
+          - CEngineServiceMgr_DeactivateLoop.{platform}.yaml
+        expected_input:
+          - CEngineServiceMgr__MainLoop.{platform}.yaml
+        skip_if_exists:
+          - ILoopType_DeallocateLoopMode.{platform}.yaml
+""".strip()
+                + "\n",
+                encoding="utf-8",
+            )
+
+            modules = ida_analyze_bin.parse_config(str(config_path))
+
+        self.assertEqual(
+            ["ILoopType_DeallocateLoopMode.{platform}.yaml"],
+            modules[0]["skills"][0]["skip_if_exists"],
+        )
+
+    def test_parse_config_defaults_skip_if_exists_to_empty_list(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            config_path = Path(temp_dir) / "config.yaml"
+            config_path.write_text(
+                """
+modules:
+  - name: engine
+    path_windows: game/bin/win64/engine2.dll
+    path_linux: game/bin/linuxsteamrt64/libengine2.so
+    skills:
+      - name: find-CEngineServiceMgr_DeactivateLoop
+        expected_output:
+          - CEngineServiceMgr_DeactivateLoop.{platform}.yaml
+        expected_input:
+          - CEngineServiceMgr__MainLoop.{platform}.yaml
+""".strip()
+                + "\n",
+                encoding="utf-8",
+            )
+
+            modules = ida_analyze_bin.parse_config(str(config_path))
+
+        self.assertEqual(
+            [],
+            modules[0]["skills"][0]["skip_if_exists"],
+        )
+
+
+class TestSkillOrdering(unittest.TestCase):
+    def test_topological_sort_skills_keeps_ilooptype_after_deactivateloop(
+        self,
+    ) -> None:
+        skills = [
+            {
+                "name": "find-ILoopType_DeallocateLoopMode",
+                "expected_output": ["ILoopType_DeallocateLoopMode.{platform}.yaml"],
+                "expected_input": ["CEngineServiceMgr__MainLoop.{platform}.yaml"],
+                "prerequisite": ["find-CEngineServiceMgr_DeactivateLoop"],
+            },
+            {
+                "name": "find-CEngineServiceMgr_DeactivateLoop",
+                "expected_output": ["CEngineServiceMgr_DeactivateLoop.{platform}.yaml"],
+                "expected_input": ["CEngineServiceMgr__MainLoop.{platform}.yaml"],
+                "skip_if_exists": ["ILoopType_DeallocateLoopMode.{platform}.yaml"],
+            },
+            {
+                "name": "find-CEngineServiceMgr__MainLoop",
+                "expected_output": ["CEngineServiceMgr__MainLoop.{platform}.yaml"],
+            },
+        ]
+
+        ordered = ida_analyze_bin.topological_sort_skills(skills)
+
+        self.assertLess(
+            ordered.index("find-CEngineServiceMgr_DeactivateLoop"),
+            ordered.index("find-ILoopType_DeallocateLoopMode"),
+        )
+
+
+class TestProcessBinary(unittest.TestCase):
+    def test_process_binary_treats_absent_ok_as_skip_and_continues(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            binary_dir = Path(temp_dir) / "engine"
+            binary_dir.mkdir(parents=True, exist_ok=True)
+            binary_path = str(binary_dir / "libengine2.so")
+            (binary_dir / "CEngineServiceMgr__MainLoop.windows.yaml").write_text(
+                "func_name: CEngineServiceMgr__MainLoop\n",
+                encoding="utf-8",
+            )
+
+            def _fake_preprocess(*, skill_name, expected_outputs, **_kwargs):
+                if skill_name == "find-CEngineServiceMgr_DeactivateLoop":
+                    return "absent_ok"
+                Path(expected_outputs[0]).write_text(
+                    "func_name: ILoopType_DeallocateLoopMode\n",
+                    encoding="utf-8",
+                )
+                return "success"
+
+            with (
+                patch.object(
+                    ida_analyze_bin,
+                    "start_idalib_mcp",
+                    return_value=object(),
+                ),
+                patch.object(
+                    ida_analyze_bin,
+                    "ensure_mcp_available",
+                    side_effect=lambda process, *_args, **_kwargs: (process, True),
+                ),
+                patch.object(
+                    ida_analyze_bin,
+                    "_run_validate_expected_input_artifacts_via_mcp",
+                    return_value=[],
+                ),
+                patch.object(
+                    ida_analyze_bin,
+                    "_run_preprocess_single_skill_via_mcp",
+                    side_effect=_fake_preprocess,
+                ),
+                patch.object(
+                    ida_analyze_bin,
+                    "run_skill",
+                    return_value=False,
+                ) as mock_run_skill,
+                patch.object(
+                    ida_analyze_bin,
+                    "quit_ida_gracefully",
+                    return_value=None,
+                ),
+            ):
+                success, fail, skip = ida_analyze_bin.process_binary(
+                    binary_path=binary_path,
+                    skills=[
+                        {
+                            "name": "find-CEngineServiceMgr_DeactivateLoop",
+                            "expected_output": ["CEngineServiceMgr_DeactivateLoop.{platform}.yaml"],
+                            "expected_input": ["CEngineServiceMgr__MainLoop.{platform}.yaml"],
+                        },
+                        {
+                            "name": "find-ILoopType_DeallocateLoopMode",
+                            "expected_output": ["ILoopType_DeallocateLoopMode.{platform}.yaml"],
+                            "expected_input": ["CEngineServiceMgr__MainLoop.{platform}.yaml"],
+                            "prerequisite": ["find-CEngineServiceMgr_DeactivateLoop"],
+                        },
+                    ],
+                    old_binary_dir=None,
+                    platform="windows",
+                    agent="codex",
+                    max_retries=1,
+                    debug=True,
+                    host="127.0.0.1",
+                    port=39091,
+                    ida_args=None,
+                    llm_model="gpt-5.4",
+                    llm_apikey=None,
+                    llm_baseurl=None,
+                    llm_temperature=None,
+                    llm_effort="high",
+                    llm_fake_as="codex",
+                )
+
+        self.assertEqual((1, 0, 1), (success, fail, skip))
+        mock_run_skill.assert_not_called()
+
+    def test_process_binary_skips_when_all_skip_if_exists_artifacts_exist_before_ida_start(
+        self,
+    ) -> None:
+        with TemporaryDirectory() as temp_dir:
+            binary_dir = Path(temp_dir) / "bin" / "14141" / "engine"
+            binary_dir.mkdir(parents=True, exist_ok=True)
+            binary_path = str(binary_dir / "libengine2.so")
+            (binary_dir / "ILoopType_DeallocateLoopMode.windows.yaml").write_text(
+                "func_name: ILoopType_DeallocateLoopMode\n",
+                encoding="utf-8",
+            )
+
+            with patch.object(
+                ida_analyze_bin,
+                "start_idalib_mcp",
+                return_value=None,
+            ) as mock_start_ida:
+                success, fail, skip = ida_analyze_bin.process_binary(
+                    binary_path=binary_path,
+                    skills=[
+                        {
+                            "name": "find-CEngineServiceMgr_DeactivateLoop",
+                            "expected_output": ["CEngineServiceMgr_DeactivateLoop.{platform}.yaml"],
+                            "expected_input": ["CEngineServiceMgr__MainLoop.{platform}.yaml"],
+                            "skip_if_exists": ["ILoopType_DeallocateLoopMode.{platform}.yaml"],
+                        }
+                    ],
+                    agent="codex",
+                    host="127.0.0.1",
+                    port=13337,
+                    ida_args="",
+                    platform="windows",
+                    debug=False,
+                    max_retries=1,
+                )
+
+        self.assertEqual((0, 0, 1), (success, fail, skip))
+        mock_start_ida.assert_not_called()
+
+    def test_process_binary_does_not_skip_when_skip_if_exists_artifacts_are_partial(
+        self,
+    ) -> None:
+        skills = [
+            {
+                "name": "find-CEngineServiceMgr_DeactivateLoop",
+                "expected_output": ["CEngineServiceMgr_DeactivateLoop.{platform}.yaml"],
+                "expected_input": [],
+                "skip_if_exists": [
+                    "ILoopType_DeallocateLoopMode.{platform}.yaml",
+                    "ILoopType_OtherMode.{platform}.yaml",
+                ],
+            }
+        ]
+
+        with TemporaryDirectory() as temp_dir:
+            binary_dir = Path(temp_dir) / "bin" / "14141" / "engine"
+            binary_dir.mkdir(parents=True, exist_ok=True)
+            binary_path = str(binary_dir / "libengine2.so")
+            (binary_dir / "ILoopType_DeallocateLoopMode.windows.yaml").write_text(
+                "func_name: ILoopType_DeallocateLoopMode\n",
+                encoding="utf-8",
+            )
+
+            fake_process = object()
+
+            with (
+                patch.object(
+                    ida_analyze_bin,
+                    "start_idalib_mcp",
+                    return_value=fake_process,
+                ) as mock_start_ida,
+                patch.object(
+                    ida_analyze_bin,
+                    "ensure_mcp_available",
+                    return_value=(fake_process, True),
+                ),
+                patch.object(
+                    ida_analyze_bin,
+                    "_run_validate_expected_input_artifacts_via_mcp",
+                    return_value=[],
+                ),
+                patch.object(
+                    ida_analyze_bin,
+                    "_run_preprocess_single_skill_via_mcp",
+                    return_value="failed",
+                ) as mock_preprocess,
+                patch.object(ida_analyze_bin, "run_skill", return_value=False) as mock_run_skill,
+                patch.object(ida_analyze_bin, "quit_ida_gracefully", return_value=None),
+            ):
+                success, fail, skip = ida_analyze_bin.process_binary(
+                    binary_path=binary_path,
+                    skills=skills,
+                    agent="codex",
+                    host="127.0.0.1",
+                    port=13337,
+                    ida_args="",
+                    platform="windows",
+                    debug=False,
+                    max_retries=1,
+                )
+
+        self.assertEqual((0, 1, 0), (success, fail, skip))
+        mock_start_ida.assert_called_once()
+        mock_preprocess.assert_called_once()
+        mock_run_skill.assert_called_once()
+
+    def test_process_binary_rechecks_skip_if_exists_before_running_skill(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            binary_dir = Path(temp_dir) / "bin" / "14141" / "engine"
+            binary_dir.mkdir(parents=True, exist_ok=True)
+            binary_path = str(binary_dir / "libengine2.so")
+            (binary_dir / "CEngineServiceMgr__MainLoop.windows.yaml").write_text(
+                "func_name: CEngineServiceMgr__MainLoop\n",
+                encoding="utf-8",
+            )
+
+            def _fake_preprocess(*, skill_name, expected_outputs, **_kwargs):
+                if skill_name == "produce-ilooptype":
+                    Path(expected_outputs[0]).write_text(
+                        "func_name: ILoopType_DeallocateLoopMode\n",
+                        encoding="utf-8",
+                    )
+                    return "success"
+                return "failed"
+
+            with (
+                patch.object(ida_analyze_bin, "start_idalib_mcp", return_value=object()),
+                patch.object(
+                    ida_analyze_bin,
+                    "ensure_mcp_available",
+                    side_effect=lambda process, *_args, **_kwargs: (process, True),
+                ),
+                patch.object(
+                    ida_analyze_bin,
+                    "_run_validate_expected_input_artifacts_via_mcp",
+                    return_value=[],
+                ),
+                patch.object(
+                    ida_analyze_bin,
+                    "_run_preprocess_single_skill_via_mcp",
+                    side_effect=_fake_preprocess,
+                ) as mock_preprocess,
+                patch.object(ida_analyze_bin, "run_skill", return_value=False) as mock_run_skill,
+                patch.object(ida_analyze_bin, "quit_ida_gracefully", return_value=None),
+            ):
+                success, fail, skip = ida_analyze_bin.process_binary(
+                    binary_path=binary_path,
+                    skills=[
+                        {
+                            "name": "produce-ilooptype",
+                            "expected_output": ["ILoopType_DeallocateLoopMode.{platform}.yaml"],
+                            "expected_input": [],
+                        },
+                        {
+                            "name": "find-CEngineServiceMgr_DeactivateLoop",
+                            "expected_output": ["CEngineServiceMgr_DeactivateLoop.{platform}.yaml"],
+                            "expected_input": ["CEngineServiceMgr__MainLoop.{platform}.yaml"],
+                            "skip_if_exists": ["ILoopType_DeallocateLoopMode.{platform}.yaml"],
+                            "prerequisite": ["produce-ilooptype"],
+                        },
+                    ],
+                    old_binary_dir=None,
+                    platform="windows",
+                    agent="codex",
+                    max_retries=1,
+                    debug=True,
+                    host="127.0.0.1",
+                    port=39091,
+                    ida_args=None,
+                    llm_model="gpt-5.4",
+                    llm_apikey=None,
+                    llm_baseurl=None,
+                    llm_temperature=None,
+                    llm_effort="high",
+                    llm_fake_as="codex",
+                )
+
+        self.assertEqual((1, 0, 1), (success, fail, skip))
+        self.assertEqual(1, mock_preprocess.call_count)
+        mock_run_skill.assert_not_called()
+
     def test_process_binary_rejects_illegal_expected_input_without_crash(self) -> None:
         binary_path = str(Path('/tmp/bin/14141/networksystem/networksystem.dll'))
         skills = [

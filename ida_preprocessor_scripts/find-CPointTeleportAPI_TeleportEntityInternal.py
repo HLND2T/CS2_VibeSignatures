@@ -1,30 +1,32 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CCSPlayerController_RegisterThink skill."""
+"""Preprocess script for find-CPointTeleportAPI_TeleportEntityInternal skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = [
-    "CCSPlayerController_RegisterThink",
+    "CPointTeleportAPI_TeleportEntityInternal",
 ]
 
 FUNC_XREFS = [
-                 {
-                     "func_name": 'CCSPlayerController_RegisterThink',
-                     "xref_strings": ['FULLMATCH:CCSPlayerController', 'FULLMATCH:PlayerForceTeamThink', 'FULLMATCH:ResetForceTeamThink', 'FULLMATCH:ResourceDataThink', 'FULLMATCH:InventoryUpdateThink'],
-                     "xref_gvs": [],
-                     "xref_signatures": [],
-                     "xref_funcs": [],
-                     "exclude_funcs": [],
-                     "exclude_strings": [],
-                     "exclude_gvs": [],
-                     "exclude_signatures": [],
-                 },
-             ]
+    {
+        "func_name": "CPointTeleportAPI_TeleportEntityInternal",
+        "xref_strings": [
+            "ERROR: (%s) can't teleport object (%s) as it has a parent (%s)!",
+        ],
+        "xref_gvs": [],
+        "xref_signatures": [],
+        "xref_funcs": [],
+        "exclude_funcs": ["CPointTeleport_Activate"],
+        "exclude_strings": [],
+        "exclude_gvs": [],
+        "exclude_signatures": [],
+    },
+]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
     (
-        "CCSPlayerController_RegisterThink",
+        "CPointTeleportAPI_TeleportEntityInternal",
         [
             "func_name",
             "func_sig",

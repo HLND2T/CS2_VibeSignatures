@@ -7,12 +7,26 @@ TARGET_FUNCTION_NAMES = [
     "RegisterSchemaTypeOverride_CEntityHandle",
 ]
 
-FUNC_XREFS = [
+FUNC_XREFS_WINDOWS = [
                  {
                      "func_name": 'RegisterSchemaTypeOverride_CEntityHandle',
                      "xref_strings": ['CEntityHandle', 'ehandle'],
                      "xref_gvs": [],
-                     "xref_signatures": ['A8 99 30 96'],
+                     "xref_signatures": ['48 8B ?? 48 FF A0 ?? ?? ?? ??'],
+                     "xref_funcs": [],
+                     "exclude_funcs": [],
+                     "exclude_strings": [],
+                     "exclude_gvs": [],
+                     "exclude_signatures": [],
+                 },
+             ]
+
+FUNC_XREFS_LINUX = [
+                 {
+                     "func_name": 'RegisterSchemaTypeOverride_CEntityHandle',
+                     "xref_strings": ['CEntityHandle', 'ehandle'],
+                     "xref_gvs": [],
+                     "xref_signatures": ['48 8B 80 ?? ?? ?? ?? FF E0'],
                      "xref_funcs": [],
                      "exclude_funcs": [],
                      "exclude_strings": [],
@@ -50,7 +64,7 @@ async def preprocess_skill(
         platform=platform,
         image_base=image_base,
         func_names=TARGET_FUNCTION_NAMES,
-        func_xrefs=FUNC_XREFS,
+        func_xrefs=FUNC_XREFS_WINDOWS if platform == "windows" else FUNC_XREFS_LINUX,
         func_vtable_relations=FUNC_VTABLE_RELATIONS,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,

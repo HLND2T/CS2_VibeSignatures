@@ -16,7 +16,7 @@ FUNC_XREFS = [
                      "func_name": 'TraceAttack',
                      "xref_strings": ['bullet_impact'],
                      "xref_gvs": [],
-                     "xref_signatures": [],
+                     "xref_signatures": ["0B 30 1C 00"],
                      "xref_funcs": ['CBaseEntity_TakeDamageOld'],
                      "exclude_funcs": [],
                      "exclude_strings": [],

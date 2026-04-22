@@ -14,6 +14,7 @@ FUNC_XREFS = [
         "xref_gvs": ["CPlayer_MovementServices_s_pRunCommandPawn"],
         "xref_signatures": [],
         "xref_funcs": [],
+        "xref_floats": ["64.0", "0.5"], #only works when common_funcs can be intersected via xref_strings/xref_gvs/xref_signatures/xref_funcs
         "exclude_funcs": [
             "CPlayer_MovementServices_ForceButtons",
             "CPlayer_MovementServices_ForceButtonState",
@@ -21,6 +22,7 @@ FUNC_XREFS = [
         "exclude_strings": [],
         "exclude_gvs": [],
         "exclude_signatures": [],
+        "exclude_floats": [], #only works when common_funcs can be intersected via xref_strings/xref_gvs/xref_signatures/xref_funcs
     },
 ]
 

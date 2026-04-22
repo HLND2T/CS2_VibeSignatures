@@ -7,28 +7,11 @@ TARGET_FUNCTION_NAMES = [
     "CCSPlayer_MovementServices_WalkMove",
 ]
 
-FUNC_XREFS_WINDOWS = [
+FUNC_XREFS = [
     {
         "func_name": "CCSPlayer_MovementServices_WalkMove",
         "xref_strings": [
-            "FullWalkMovePreMove",
             "PlayerMove_PostMove",
-        ],
-        "xref_gvs": [],
-        "xref_signatures": [],
-        "xref_funcs": [],
-        "exclude_funcs": [],
-        "exclude_strings": [],
-        "exclude_gvs": [],
-        "exclude_signatures": [],
-    },
-]
-
-FUNC_XREFS_LINUX = [
-    {
-        "func_name": "CCSPlayer_MovementServices_WalkMove",
-        "xref_strings": [
-            "FULLMATCH:FullWalkMovePreMove",
         ],
         "xref_gvs": [],
         "xref_signatures": [],
@@ -67,7 +50,7 @@ async def preprocess_skill(
         platform=platform,
         image_base=image_base,
         func_names=TARGET_FUNCTION_NAMES,
-        func_xrefs=FUNC_XREFS_WINDOWS if platform == "windows" else FUNC_XREFS_LINUX,
+        func_xrefs=FUNC_XREFS,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
     )

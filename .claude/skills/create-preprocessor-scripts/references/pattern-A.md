@@ -83,7 +83,7 @@ FUNC_XREFS_LINUX = [
     {
         "func_name": "{FUNC_NAME}",
         "xref_strings": [
-            "./gameinterface.cpp:30",  # Shorter path-based string on Linux
+            "./gameinterface.cpp:3",  # Shorter path-based string on Linux
         ],
         "xref_gvs": [], "xref_signatures": [], "xref_funcs": [],
         "exclude_funcs": [], "exclude_strings": [], "exclude_gvs": [], "exclude_signatures": [],

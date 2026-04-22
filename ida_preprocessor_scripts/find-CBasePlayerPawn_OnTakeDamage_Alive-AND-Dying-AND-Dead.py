@@ -4,67 +4,70 @@
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = [
-    "CBaseEntity_OnTakeDamage_Alive",
-    "CBaseEntity_OnTakeDamage_Dying",
-    "CBaseEntity_OnTakeDamage_Dead",
+    "CBasePlayerPawn_OnTakeDamage_Alive",
+    "CBasePlayerPawn_OnTakeDamage_Dying",
+    "CBasePlayerPawn_OnTakeDamage_Dead",
 ]
 
 LLM_DECOMPILE = [
     # (symbol_name, path_to_prompt, path_to_reference)
     (
-        "CBaseEntity_OnTakeDamage_Alive",
+        "CBasePlayerPawn_OnTakeDamage_Alive",
         "prompt/call_llm_decompile.md",
-        "references/server/CBaseEntity_OnTakeDamage.{platform}.yaml",
+        "references/server/CBasePlayerPawn_OnTakeDamage.{platform}.yaml",
     ),
     (
-        "CBaseEntity_OnTakeDamage_Dying",
+        "CBasePlayerPawn_OnTakeDamage_Dying",
         "prompt/call_llm_decompile.md",
-        "references/server/CBaseEntity_OnTakeDamage.{platform}.yaml",
+        "references/server/CBasePlayerPawn_OnTakeDamage.{platform}.yaml",
     ),
     (
-        "CBaseEntity_OnTakeDamage_Dead",
+        "CBasePlayerPawn_OnTakeDamage_Dead",
         "prompt/call_llm_decompile.md",
-        "references/server/CBaseEntity_OnTakeDamage.{platform}.yaml",
+        "references/server/CBasePlayerPawn_OnTakeDamage.{platform}.yaml",
     ),
 ]
 
 FUNC_VTABLE_RELATIONS = [
     # (func_name, vtable_class)
-    ("CBaseEntity_OnTakeDamage_Alive", "CBasePlayerPawn"),
-    ("CBaseEntity_OnTakeDamage_Dying", "CBasePlayerPawn"),
-    ("CBaseEntity_OnTakeDamage_Dead", "CBasePlayerPawn"),
+    ("CBasePlayerPawn_OnTakeDamage_Alive", "CBasePlayerPawn"),
+    ("CBasePlayerPawn_OnTakeDamage_Dying", "CBasePlayerPawn"),
+    ("CBasePlayerPawn_OnTakeDamage_Dead", "CBasePlayerPawn"),
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
     (
-        "CBaseEntity_OnTakeDamage_Alive",
+        "CBasePlayerPawn_OnTakeDamage_Alive",
         [
             "func_name",
             "vfunc_sig",
             "vfunc_offset",
             "vfunc_index",
             "vtable_name",
+            "vfunc_sig_allow_across_function_boundary:true",
         ],
     ),
     (
-        "CBaseEntity_OnTakeDamage_Dying",
+        "CBasePlayerPawn_OnTakeDamage_Dying",
         [
             "func_name",
             "vfunc_sig",
             "vfunc_offset",
             "vfunc_index",
             "vtable_name",
+            "vfunc_sig_allow_across_function_boundary:true",
         ],
     ),
     (
-        "CBaseEntity_OnTakeDamage_Dead",
+        "CBasePlayerPawn_OnTakeDamage_Dead",
         [
             "func_name",
             "vfunc_sig",
             "vfunc_offset",
             "vfunc_index",
             "vtable_name",
+            "vfunc_sig_allow_across_function_boundary:true",
         ],
     ),
 ]
