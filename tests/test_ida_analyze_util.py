@@ -4964,6 +4964,76 @@ found_struct_offset: []
         self.assertEqual("0x68", result["vfunc_offset"])
         self.assertEqual(13, result["vfunc_index"])
 
+    async def test_preprocess_struct_offset_sig_via_mcp_emits_default_zero_disp(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            old_path = Path(temp_dir) / "CGameResourceService_m_pEntitySystem.old.yaml"
+            new_path = Path(temp_dir) / "CGameResourceService_m_pEntitySystem.windows.yaml"
+            _write_yaml(
+                old_path,
+                {
+                    "struct_name": "CGameResourceService",
+                    "member_name": "m_pEntitySystem",
+                    "offset": "0x50",
+                    "size": 8,
+                    "offset_sig": "49 8B 4E ??",
+                },
+            )
+
+            session = AsyncMock()
+
+            def _fake_call_tool(*, name: str, arguments: dict[str, object]):
+                if name == "find_bytes":
+                    self.assertEqual(
+                        {"patterns": ["49 8B 4E ??"], "limit": 2},
+                        arguments,
+                    )
+                    return _FakeCallToolResult(
+                        [
+                            {
+                                "matches": ["0x1801BA12A"],
+                                "n": 1,
+                            }
+                        ]
+                    )
+                if name == "py_eval":
+                    code = arguments["code"]
+                    self.assertIn("inst_addr = sig_addr + 0", code)
+                    return _py_eval_payload(
+                        {
+                            "offset": 0x58,
+                            "sig_va": "0x1801BA12A",
+                            "inst_va": "0x1801BA12A",
+                            "offset_size": 1,
+                        }
+                    )
+                raise AssertionError(f"unexpected MCP tool: {name}")
+
+            session.call_tool.side_effect = _fake_call_tool
+
+            result = await ida_analyze_util.preprocess_struct_offset_sig_via_mcp(
+                session=session,
+                new_path=str(new_path),
+                old_path=str(old_path),
+                image_base=0x180000000,
+                new_binary_dir=temp_dir,
+                platform="windows",
+                debug=True,
+            )
+
+        self.assertEqual(
+            {
+                "struct_name": "CGameResourceService",
+                "member_name": "m_pEntitySystem",
+                "offset": "0x58",
+                "offset_sig": "49 8B 4E ??",
+                "offset_sig_disp": 0,
+                "size": 8,
+            },
+            result,
+        )
+
     async def test_preprocess_gen_struct_offset_sig_via_mcp_generates_current_version_sig(
         self,
     ) -> None:
