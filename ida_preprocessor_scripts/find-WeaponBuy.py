@@ -10,7 +10,7 @@ TARGET_FUNCTION_NAMES = [
 FUNC_XREFS_WINDOWS = [
                          {
                              "func_name": 'WeaponBuy',
-                             "xref_strings": ['item_purchase', 'FULLMATCH:userid', 'FULLMATCH:team', 'FULLMATCH:loadout', 'FULLMATCH:weapon'],
+                             "xref_strings": ['item_purchase', 'FULLMATCH:userid', 'FULLMATCH:loadout', 'FULLMATCH:weapon'],
                              "xref_gvs": [],
                              "xref_signatures": [],
                              "xref_funcs": [],
@@ -24,7 +24,7 @@ FUNC_XREFS_WINDOWS = [
 FUNC_XREFS_LINUX = [
                        {
                            "func_name": 'WeaponBuy',
-                           "xref_strings": ['item_purchase', 'FULLMATCH:team', 'FULLMATCH:weapon', 'FULLMATCH:loadout'],
+                           "xref_strings": ['item_purchase', 'FULLMATCH:weapon', 'FULLMATCH:loadout'],
                            "xref_gvs": [],
                            "xref_signatures": [],
                            "xref_funcs": [],
