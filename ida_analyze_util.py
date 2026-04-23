@@ -5299,6 +5299,7 @@ async def preprocess_struct_offset_sig_via_mcp(
         "member_name": member_name,
         "offset": hex(offset_int),
         "offset_sig": offset_sig,
+        "offset_sig_disp": offset_sig_disp,
     }
 
     raw_size = old_data.get("size")
@@ -5310,9 +5311,6 @@ async def preprocess_struct_offset_sig_via_mcp(
         except Exception:
             if debug:
                 print(f"    Preprocess: invalid size in {os.path.basename(old_path)}")
-
-    if offset_sig_disp > 0:
-        new_data["offset_sig_disp"] = offset_sig_disp
 
     if debug:
         print(
