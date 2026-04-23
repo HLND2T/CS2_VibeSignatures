@@ -6,7 +6,7 @@ disasm_code: |-
   .text:00000001800ACE4A                 jz      short locret_1800ACE85
   .text:00000001800ACE4C                 test    edx, edx
   .text:00000001800ACE4E                 js      short loc_1800ACE77
-  .text:00000001800ACE50                 cmp     edx, [rax+250h]
+  .text:00000001800ACE50                 cmp     edx, [rax+250h] ; 0x250 = CNetworkGameServer::ClientList
   .text:00000001800ACE56                 jge     short loc_1800ACE77
   .text:00000001800ACE58                 mov     rax, [rax+258h]
   .text:00000001800ACE5F                 movsxd  rcx, edx
@@ -24,7 +24,7 @@ procedure: |-
 
     if ( g_pGameServer )
     {
-      if ( a2 < 0 || a2 >= *(_DWORD *)(g_pGameServer + 592) )
+      if ( a2 < 0 || a2 >= *(_DWORD *)(g_pGameServer + 592) ) // 592 = 0x250 = CNetworkGameServer::ClientList
       {
         ConMsg("tried to sprint to a non-client\n");
       }

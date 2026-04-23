@@ -6,7 +6,7 @@ disasm_code: |-
   .text:00000000006B17BA                 jz      short locret_6B1800
   .text:00000000006B17BC                 test    esi, esi
   .text:00000000006B17BE                 js      short loc_6B17F0
-  .text:00000000006B17C0                 cmp     esi, [rax+250h]
+  .text:00000000006B17C0                 cmp     esi, [rax+250h] ; 0x250 = CNetworkGameServer::ClientList
   .text:00000000006B17C6                 jge     short loc_6B17F0
   .text:00000000006B17C8                 mov     rax, [rax+258h]
   .text:00000000006B17CF                 movsxd  rsi, esi
@@ -29,7 +29,7 @@ procedure: |-
     result = g_pGameServer;
     if ( g_pGameServer )
     {
-      if ( a2 < 0 || a2 >= *(_DWORD *)(g_pGameServer + 592) )
+      if ( a2 < 0 || a2 >= *(_DWORD *)(g_pGameServer + 592) ) // 592 = 0x250 = CNetworkGameServer::ClientList
       {
         return sub_2B1F60("tried to sprint to a non-client\n");
       }

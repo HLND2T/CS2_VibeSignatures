@@ -461,10 +461,11 @@ modules:
         expected_output:
           - CNetworkGameServer_GetFreeClient.{platform}.yaml
 
-      - name: find-g_pGameServer-AND-CServerSideClientBase_ClientPrintf
+      - name: find-g_pGameServer-AND-CServerSideClientBase_ClientPrintf-AND-CNetworkGameServer_ClientList
         expected_output:
           - g_pGameServer.{platform}.yaml
           - CServerSideClientBase_ClientPrintf.{platform}.yaml
+          - CNetworkGameServer_ClientList.{platform}.yaml
         expected_input:
           - CEngineServer_ClientPrintf.{platform}.yaml
 
@@ -840,6 +841,13 @@ modules:
         alias:
           - CServerSideClientBase::ClientPrintf
           - ClientPrintf
+
+      - name: CNetworkGameServer_ClientList
+        category: structmember
+        struct: CNetworkGameServer
+        member: ClientList
+        alias:
+          - CNetworkGameServer::ClientList
 
       - name: CNetworkGameServerBase_SendPeerList
         category: func

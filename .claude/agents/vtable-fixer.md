@@ -18,3 +18,5 @@ Rules:
 - When new unknown virtual function found in the vtable, named it `unk_XXX` just like existing unknown ones.
 - When some of the virtual functions from reference YAMLs are missing, for example there is `From YAML:[10] GetXXX` and `From YAML:[12] GetZZZ` but there is no `From YAML:[11] GetYYY`, use declarations from cpp header by default: `From compiler report:[11] GetYYY`. DO NOT treat them as being removed, unless you are 100% sure it has been removed because of vfunc index shift.
 - YOU MUST ensure the new vtable layout after edit matches vfunc index from reference YAMLs.
+- If the prototype of new virtual functions are unknown, leave them `virtual void KnownFunctionName() = 0;`;
+- If there are gaps between known functions, leave the unkown functions `virtual void unk001() = 0;`, `virtual void unk002() = 0;` or something like that.

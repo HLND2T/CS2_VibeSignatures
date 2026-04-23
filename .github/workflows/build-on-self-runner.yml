@@ -120,7 +120,12 @@ jobs:
       - name: Run C++ tests
         shell: pwsh
         run: |
-          uv run run_cpp_tests.py -gamever "$env:GAMEVER" -fixheader -debug
+          $latestTag = uv run python -c "import yaml; d=yaml.safe_load(open('download.yaml')); print(d['downloads'][-1]['tag'])"
+          $args = @('-gamever', $env:GAMEVER, '-debug')
+          if ($env:GAMEVER -eq $latestTag) {
+            $args += '-fixheader'
+          }
+          uv run run_cpp_tests.py @args
 
       - name: Archive release payload
         shell: pwsh
