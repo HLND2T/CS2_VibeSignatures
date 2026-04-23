@@ -5,6 +5,7 @@ import json
 import os
 
 from ida_analyze_util import (
+    _build_ida_strings_setup_py_lines,
     parse_mcp_result,
     preprocess_gen_func_sig_via_mcp,
     write_func_yaml,
@@ -98,9 +99,9 @@ def _build_define_inputfunc_py_eval(
         }
     )
     body_lines = [
-        "import idaapi, idautils, idc, ida_bytes",
+        "import idaapi, idautils, idc, ida_bytes, ida_nalt",
         "input_name = params['input_name']",
-        f"handler_ptr_offset = {int(handler_ptr_offset)}",
+        "handler_ptr_offset = params['handler_ptr_offset']",
         "allowed_segment_names = set(params['allowed_segment_names'])",
         "string_eas = []",
         "items = []",
@@ -109,36 +110,43 @@ def _build_define_inputfunc_py_eval(
         "    if not seg:",
         "        return None",
         "    return idc.get_segm_name(seg.start_ea)",
-        "for item in idautils.Strings():",
-        "    try:",
-        "        if str(item) == input_name:",
-        "            string_eas.append(hex(int(item.ea)))",
-        "    except Exception:",
-        "        pass",
-        "if len(string_eas) == 1:",
-        "    string_ea = int(string_eas[0], 16)",
-        "    for xref in idautils.XrefsTo(string_ea, 0):",
-        "        xref_from = int(xref.frm)",
-        "        xref_seg_name = _seg_name(xref_from)",
-        "        if xref_seg_name not in allowed_segment_names:",
-        "            continue",
-        "        handler_ptr_ea = xref_from + handler_ptr_offset",
-        "        try:",
-        "            handler_va = int(ida_bytes.get_qword(handler_ptr_ea))",
-        "        except Exception:",
-        "            continue",
-        "        handler_seg_name = _seg_name(handler_va)",
-        "        if handler_seg_name == '.text':",
-        "            items.append({",
-        "                'string_ea': hex(string_ea),",
-        "                'xref_from': hex(xref_from),",
-        "                'xref_seg_name': xref_seg_name,",
-        "                'handler_ptr_ea': hex(handler_ptr_ea),",
-        "                'handler_va': hex(handler_va),",
-        "                'handler_seg_name': handler_seg_name,",
-        "            })",
-        "return {'string_eas': string_eas, 'items': items}",
     ]
+    body_lines.extend(
+        _build_ida_strings_setup_py_lines(strings_var_name="strings")
+    )
+    body_lines.extend(
+        [
+            "for item in strings:",
+            "    try:",
+            "        if str(item) == input_name:",
+            "            string_eas.append(hex(int(item.ea)))",
+            "    except Exception:",
+            "        pass",
+            "if len(string_eas) == 1:",
+            "    string_ea = int(string_eas[0], 16)",
+            "    for xref in idautils.XrefsTo(string_ea, 0):",
+            "        xref_from = int(xref.frm)",
+            "        xref_seg_name = _seg_name(xref_from)",
+            "        if xref_seg_name not in allowed_segment_names:",
+            "            continue",
+            "        handler_ptr_ea = xref_from + handler_ptr_offset",
+            "        try:",
+            "            handler_va = int(ida_bytes.get_qword(handler_ptr_ea))",
+            "        except Exception:",
+            "            continue",
+            "        handler_seg_name = _seg_name(handler_va)",
+            "        if handler_seg_name == '.text':",
+            "            items.append({",
+            "                'string_ea': hex(string_ea),",
+            "                'xref_from': hex(xref_from),",
+            "                'xref_seg_name': xref_seg_name,",
+            "                'handler_ptr_ea': hex(handler_ptr_ea),",
+            "                'handler_va': hex(handler_va),",
+            "                'handler_seg_name': handler_seg_name,",
+            "            })",
+            "return {'string_eas': string_eas, 'items': items}",
+        ]
+    )
     lines = [
         "import json, traceback",
         f"params = json.loads({params!r})",

@@ -2005,6 +2005,177 @@ class TestGenerateYamlDesiredFieldsContract(unittest.IsolatedAsyncioTestCase):
         )
 
 
+class TestIdaStringEnumerationSupport(unittest.TestCase):
+    def test_resolve_ida_string_min_length_defaults_to_four(self) -> None:
+        with patch.dict(os.environ, {}, clear=True):
+            self.assertEqual(4, ida_analyze_util._resolve_ida_string_min_length())
+
+    def test_resolve_ida_string_min_length_handles_invalid_zero_and_valid_value(
+        self,
+    ) -> None:
+        with patch.dict(
+            os.environ,
+            {"CS2VIBE_STRING_MIN_LENGTH": "invalid"},
+            clear=True,
+        ):
+            self.assertEqual(4, ida_analyze_util._resolve_ida_string_min_length())
+
+        with patch.dict(
+            os.environ,
+            {"CS2VIBE_STRING_MIN_LENGTH": ""},
+            clear=True,
+        ):
+            self.assertEqual(4, ida_analyze_util._resolve_ida_string_min_length())
+
+        with patch.dict(
+            os.environ,
+            {"CS2VIBE_STRING_MIN_LENGTH": "0"},
+            clear=True,
+        ):
+            self.assertEqual(4, ida_analyze_util._resolve_ida_string_min_length())
+
+        with patch.dict(
+            os.environ,
+            {"CS2VIBE_STRING_MIN_LENGTH": "6"},
+            clear=True,
+        ):
+            self.assertEqual(6, ida_analyze_util._resolve_ida_string_min_length())
+
+    def test_build_ida_strings_setup_py_lines_uses_default_min_length(self) -> None:
+        with patch.dict(os.environ, {}, clear=True):
+            py_lines = ida_analyze_util._build_ida_strings_setup_py_lines()
+
+        self.assertEqual(
+            [
+                "strings = idautils.Strings(default_setup=False)",
+                "strings.setup(strtypes=[ida_nalt.STRTYPE_C], minlen=4)",
+            ],
+            py_lines,
+        )
+
+    def test_build_ida_strings_setup_py_lines_supports_explicit_min_length(
+        self,
+    ) -> None:
+        with patch.dict(os.environ, {}, clear=True):
+            py_lines = ida_analyze_util._build_ida_strings_setup_py_lines(min_length=6)
+
+        self.assertEqual(
+            [
+                "strings = idautils.Strings(default_setup=False)",
+                "strings.setup(strtypes=[ida_nalt.STRTYPE_C], minlen=6)",
+            ],
+            py_lines,
+        )
+
+    def test_build_ida_strings_setup_py_lines_supports_custom_var_name(
+        self,
+    ) -> None:
+        with patch.dict(os.environ, {}, clear=True):
+            py_lines = ida_analyze_util._build_ida_strings_setup_py_lines(
+                min_length=6,
+                strings_var_name="ida_strings",
+            )
+
+        self.assertEqual(
+            [
+                "ida_strings = idautils.Strings(default_setup=False)",
+                "ida_strings.setup(strtypes=[ida_nalt.STRTYPE_C], minlen=6)",
+            ],
+            py_lines,
+        )
+
+    def test_build_ida_strings_setup_py_lines_reads_env_min_length(self) -> None:
+        with patch.dict(
+            os.environ,
+            {ida_analyze_util.IDA_STRING_MIN_LENGTH_ENV_VAR: "8"},
+            clear=True,
+        ):
+            py_lines = ida_analyze_util._build_ida_strings_setup_py_lines()
+
+        self.assertEqual(
+            [
+                "strings = idautils.Strings(default_setup=False)",
+                "strings.setup(strtypes=[ida_nalt.STRTYPE_C], minlen=8)",
+            ],
+            py_lines,
+        )
+
+    def test_build_ida_exact_string_index_py_lines_builds_single_scan_index(
+        self,
+    ) -> None:
+        with patch.dict(os.environ, {}, clear=True):
+            py_lines = ida_analyze_util._build_ida_exact_string_index_py_lines()
+
+        self.assertEqual(
+            [
+                "exact_string_hits = {text: [] for text in target_strings if text}",
+                "strings = idautils.Strings(default_setup=False)",
+                "strings.setup(strtypes=[ida_nalt.STRTYPE_C], minlen=4)",
+                "for item in strings:",
+                "    try:",
+                "        text = str(item)",
+                "        ea = int(item.ea)",
+                "    except Exception:",
+                "        continue",
+                "    if text in exact_string_hits:",
+                "        exact_string_hits[text].append(ea)",
+            ],
+            py_lines,
+        )
+
+    def test_build_ida_exact_string_index_py_lines_reads_env_min_length(self) -> None:
+        with patch.dict(
+            os.environ,
+            {ida_analyze_util.IDA_STRING_MIN_LENGTH_ENV_VAR: "8"},
+            clear=True,
+        ):
+            py_lines = ida_analyze_util._build_ida_exact_string_index_py_lines()
+
+        self.assertEqual(
+            [
+                "exact_string_hits = {text: [] for text in target_strings if text}",
+                "strings = idautils.Strings(default_setup=False)",
+                "strings.setup(strtypes=[ida_nalt.STRTYPE_C], minlen=8)",
+                "for item in strings:",
+                "    try:",
+                "        text = str(item)",
+                "        ea = int(item.ea)",
+                "    except Exception:",
+                "        continue",
+                "    if text in exact_string_hits:",
+                "        exact_string_hits[text].append(ea)",
+            ],
+            py_lines,
+        )
+
+    def test_build_ida_exact_string_index_py_lines_supports_custom_var_names(
+        self,
+    ) -> None:
+        with patch.dict(os.environ, {}, clear=True):
+            py_lines = ida_analyze_util._build_ida_exact_string_index_py_lines(
+                target_texts_var_name="target_texts",
+                result_var_name="result_map",
+                min_length=6,
+            )
+
+        self.assertEqual(
+            [
+                "result_map = {text: [] for text in target_texts if text}",
+                "strings = idautils.Strings(default_setup=False)",
+                "strings.setup(strtypes=[ida_nalt.STRTYPE_C], minlen=6)",
+                "for item in strings:",
+                "    try:",
+                "        text = str(item)",
+                "        ea = int(item.ea)",
+                "    except Exception:",
+                "        continue",
+                "    if text in result_map:",
+                "        result_map[text].append(ea)",
+            ],
+            py_lines,
+        )
+
+
 class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
     async def test_collect_xref_func_starts_for_string_uses_substring_by_default(
         self,
@@ -2031,6 +2202,14 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
             debug=True,
         )
         py_code = session.call_tool.await_args.kwargs["arguments"]["code"]
+        self.assertIn("import ida_nalt, idautils, json", py_code)
+        self.assertIn("strings = idautils.Strings(default_setup=False)", py_code)
+        self.assertIn(
+            "strings.setup(strtypes=[ida_nalt.STRTYPE_C], minlen=4)",
+            py_code,
+        )
+        self.assertIn("for s in strings:", py_code)
+        self.assertNotIn("for s in idautils.Strings():", py_code)
         self.assertIn('search_str = "_projectile"', py_code)
         self.assertIn("if search_str in current_str:", py_code)
         self.assertNotIn("if current_str == search_str:", py_code)
@@ -2064,6 +2243,42 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
         self.assertIn("if current_str == search_str:", py_code)
         self.assertNotIn("if search_str in current_str:", py_code)
         self.assertNotIn("FULLMATCH:_projectile", py_code)
+
+    async def test_collect_xref_func_starts_for_string_reads_env_min_length(
+        self,
+    ) -> None:
+        session = AsyncMock()
+        session.call_tool.return_value = _py_eval_payload(["0x180001123"])
+
+        with (
+            patch.dict(
+                os.environ,
+                {ida_analyze_util.IDA_STRING_MIN_LENGTH_ENV_VAR: "6"},
+                clear=True,
+            ),
+            patch.object(
+                ida_analyze_util,
+                "_normalize_func_starts_for_code_addrs",
+                AsyncMock(return_value={0x180001000}),
+            ) as mock_normalize,
+        ):
+            result = await ida_analyze_util._collect_xref_func_starts_for_string(
+                session=session,
+                xref_string="_projectile",
+                debug=False,
+            )
+
+        self.assertEqual({0x180001000}, result)
+        mock_normalize.assert_awaited_once_with(
+            session=session,
+            code_addrs={0x180001123},
+            debug=False,
+        )
+        py_code = session.call_tool.await_args.kwargs["arguments"]["code"]
+        self.assertIn(
+            "strings.setup(strtypes=[ida_nalt.STRTYPE_C], minlen=6)",
+            py_code,
+        )
 
     async def test_collect_xref_func_starts_for_string_normalizes_raw_xref_from_addrs(
         self,

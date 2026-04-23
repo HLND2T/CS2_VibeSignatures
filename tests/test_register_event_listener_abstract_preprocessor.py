@@ -48,6 +48,12 @@ class TestBuildRegisterEventListenerPyEval(unittest.TestCase):
         self.assertIn("source_func_va", code)
         self.assertIn("0x180010000", code)
         self.assertIn("anchor_event_name", code)
+        self.assertIn("target_texts = [anchor_event_name]", code)
+        self.assertIn("string_hits = {text: [] for text in target_texts if text}", code)
+        self.assertIn("strings = idautils.Strings(default_setup=False)", code)
+        self.assertEqual(1, code.count("for item in strings:"))
+        self.assertIn("anchor_string_addrs = string_hits.get(anchor_event_name, [])", code)
+        self.assertNotIn("for item in idautils.Strings():", code)
         self.assertIn("_recover_register_value", code)
         self.assertIn("anchor callee not found", code)
         self.assertIn("temp_callback_slot", code)
@@ -102,6 +108,31 @@ class TestBuildRegisterEventListenerPyEval(unittest.TestCase):
 
             def __str__(self) -> str:
                 return self.text
+
+        class FakeStrings:
+            last_instance = None
+
+            def __init__(self, default_setup: bool = True) -> None:
+                self.default_setup = default_setup
+                self.setup_kwargs = None
+                self.items = [
+                    FakeString(
+                        poll_string_va,
+                        "CLoopModeGame::OnClientPollNetworking",
+                    ),
+                    FakeString(
+                        advance_string_va,
+                        "CLoopModeGame::OnClientAdvanceTick",
+                    ),
+                ]
+                FakeStrings.last_instance = self
+
+            def setup(self, **kwargs) -> None:
+                self.setup_kwargs = kwargs
+                return None
+
+            def __iter__(self):
+                return iter(self.items)
 
         class FakeLine:
             def __init__(self, line: str) -> None:
@@ -192,10 +223,7 @@ class TestBuildRegisterEventListenerPyEval(unittest.TestCase):
             is_code=lambda flags: bool(flags),
         )
         fake_idautils = types.SimpleNamespace(
-            Strings=lambda: [
-                FakeString(poll_string_va, "CLoopModeGame::OnClientPollNetworking"),
-                FakeString(advance_string_va, "CLoopModeGame::OnClientAdvanceTick"),
-            ],
+            Strings=FakeStrings,
             XrefsTo=fake_xrefs_to,
         )
         fake_hexrays = types.SimpleNamespace(
@@ -220,6 +248,7 @@ class TestBuildRegisterEventListenerPyEval(unittest.TestCase):
             "idaapi": fake_idaapi,
             "ida_bytes": types.SimpleNamespace(get_full_flags=lambda ea: ea in instructions),
             "idautils": fake_idautils,
+            "ida_nalt": types.SimpleNamespace(STRTYPE_C=0),
             "idc": fake_idc,
         }
         namespace = {}
@@ -227,6 +256,13 @@ class TestBuildRegisterEventListenerPyEval(unittest.TestCase):
         with patch.dict("sys.modules", modules):
             exec(code, namespace)
 
+        strings_instance = FakeStrings.last_instance
+        self.assertIsNotNone(strings_instance)
+        self.assertFalse(strings_instance.default_setup)
+        self.assertEqual(
+            {"strtypes": [0], "minlen": 4},
+            strings_instance.setup_kwargs,
+        )
         payload = json.loads(namespace["result"])
         self.assertTrue(payload["ok"], payload)
         items_by_event = {item["event_name"]: item for item in payload["items"]}

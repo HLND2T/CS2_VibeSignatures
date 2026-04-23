@@ -83,6 +83,12 @@ Example outputs:
 - `vcall_finder/14141/g_pNetworkMessages/networksystem/windows/sub_140123450.yaml`
 - `vcall_finder/14141/g_pNetworkMessages.txt`
 
+* IDA preprocessor environment:
+  - `CS2VIBE_STRING_MIN_LENGTH`: controls the minimum string length used by IDA preprocessor string enumeration logic only
+  - Default: `4`
+  - Empty, non-integer, or values `<1` fall back to `4`
+  - This is not an LLM parameter
+
 #### 2.5 Prepare reference YAML for `LLM_DECOMPILE`
 
 Reference YAML path:

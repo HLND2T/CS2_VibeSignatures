@@ -9,6 +9,7 @@ import json
 import os
 
 from ida_analyze_util import (
+    _build_ida_strings_setup_py_lines,
     parse_mcp_result,
     preprocess_common_skill,
     preprocess_gen_func_sig_via_mcp,
@@ -64,24 +65,30 @@ async def _linux_resolve_via_string_xref(
 
     # Use py_eval: find exact "TestActivator" string, get data xrefs,
     # read 64-bit pointer at xref_addr + 0x10, verify it's a function start.
-    py_code = (
-        "import idautils, idc, json\n"
-        "search_str = 'TestActivator'\n"
-        "func_va = None\n"
-        "for s in idautils.Strings():\n"
-        "    if str(s) == search_str:\n"
-        "        for xref in idautils.XrefsTo(s.ea, 0):\n"
-        f"            ptr_addr = xref.frm + {STRING_XREF_FUNC_PTR_OFFSET}\n"
-        "            candidate = idc.get_qword(ptr_addr)\n"
-        "            if candidate and candidate != 0xFFFFFFFFFFFFFFFF:\n"
-        "                func_start = idc.get_func_attr(candidate, idc.FUNCATTR_START)\n"
-        "                if func_start == candidate:\n"
-        "                    func_va = candidate\n"
-        "                    break\n"
-        "    if func_va is not None:\n"
-        "        break\n"
-        "result = json.dumps(hex(func_va) if func_va else None)\n"
+    py_lines = [
+        "import idautils, idc, ida_nalt, json",
+        "search_str = 'TestActivator'",
+        "func_va = None",
+    ]
+    py_lines.extend(_build_ida_strings_setup_py_lines(strings_var_name="strings"))
+    py_lines.extend(
+        [
+            "for s in strings:",
+            "    if str(s) == search_str:",
+            "        for xref in idautils.XrefsTo(s.ea, 0):",
+            f"            ptr_addr = xref.frm + {STRING_XREF_FUNC_PTR_OFFSET}",
+            "            candidate = idc.get_qword(ptr_addr)",
+            "            if candidate and candidate != 0xFFFFFFFFFFFFFFFF:",
+            "                func_start = idc.get_func_attr(candidate, idc.FUNCATTR_START)",
+            "                if func_start == candidate:",
+            "                    func_va = candidate",
+            "                    break",
+            "    if func_va is not None:",
+            "        break",
+            "result = json.dumps(hex(func_va) if func_va else None)",
+        ]
     )
+    py_code = "\n".join(py_lines) + "\n"
 
     try:
         eval_result = await session.call_tool(

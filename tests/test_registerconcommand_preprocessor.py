@@ -52,6 +52,15 @@ class TestBuildRegisterConCommandPyEval(unittest.TestCase):
         self.assertIn("_recover_register_value", code)
         self.assertIn("def _seg_name(ea):", code)
         self.assertIn("handler_seg_name != '.text'", code)
+        self.assertIn("import idaapi, idautils, idc, ida_bytes, ida_nalt", code)
+        self.assertIn("target_texts = [command_name, help_string]", code)
+        self.assertIn("string_hits = {text: [] for text in target_texts if text}", code)
+        self.assertIn("strings = idautils.Strings(default_setup=False)", code)
+        self.assertIn("for item in strings:", code)
+        self.assertEqual(1, code.count("for item in strings:"))
+        self.assertIn("command_string_addrs = string_hits.get(command_name, [])", code)
+        self.assertIn("help_string_addrs = string_hits.get(help_string, [])", code)
+        self.assertNotIn("for item in idautils.Strings():", code)
         self.assertIn("def _collect_candidates(params):", code)
         self.assertIn(
             "    def _analyze_call(call_ea):\n"

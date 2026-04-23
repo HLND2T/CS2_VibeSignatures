@@ -6,6 +6,7 @@ Run C++ tests declared in config.yaml and compare clang vtable dumps with YAML r
 import argparse
 import json
 import shlex
+import os
 import subprocess
 import sys
 import tempfile
@@ -85,8 +86,8 @@ def parse_args():
     )
     parser.add_argument(
         "-agent",
-        default=DEFAULT_AGENT,
-        help=f"Agent executable to use for header fixing, e.g. claude/codex (default: {DEFAULT_AGENT})",
+        default=os.environ.get("CS2VIBE_AGENT", DEFAULT_AGENT),
+        help=f"Agent executable to use for analysis, e.g., claude, claude.cmd, codex, codex.cmd (default: {DEFAULT_AGENT}, or set CS2VIBE_AGENT env var)"
     )
     parser.add_argument(
         "-maxretry",

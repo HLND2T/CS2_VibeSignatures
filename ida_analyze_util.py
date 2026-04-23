@@ -207,6 +207,83 @@ else:
     })
 '''
 
+DEFAULT_IDA_STRING_MIN_LENGTH = 4
+IDA_STRING_MIN_LENGTH_ENV_VAR = "CS2VIBE_STRING_MIN_LENGTH"
+
+
+def _coerce_ida_string_min_length(value):
+    try:
+        min_length = int(str(value).strip())
+    except (TypeError, ValueError):
+        return DEFAULT_IDA_STRING_MIN_LENGTH
+    if min_length < 1:
+        return DEFAULT_IDA_STRING_MIN_LENGTH
+    return min_length
+
+
+def _resolve_ida_string_min_length():
+    raw_min_length = os.getenv(IDA_STRING_MIN_LENGTH_ENV_VAR)
+    if raw_min_length is None:
+        return DEFAULT_IDA_STRING_MIN_LENGTH
+    return _coerce_ida_string_min_length(raw_min_length)
+
+
+def _build_ida_strings_setup_py_lines(
+    *,
+    min_length: int | None = None,
+    strings_var_name: str = "strings",
+) -> list[str]:
+    """Return py_eval code lines for idautils.Strings C-string setup.
+
+    调用方需先在 py_eval 代码中导入 ``idautils`` 与 ``ida_nalt``；
+    本 helper 仅返回代码行列表，不注入 import 语句。
+    """
+    if min_length is None:
+        resolved_min_length = _resolve_ida_string_min_length()
+    else:
+        resolved_min_length = _coerce_ida_string_min_length(min_length)
+    return [
+        f"{strings_var_name} = idautils.Strings(default_setup=False)",
+        (
+            f"{strings_var_name}.setup("
+            "strtypes=[ida_nalt.STRTYPE_C], "
+            f"minlen={resolved_min_length}"
+            ")"
+        ),
+    ]
+
+
+def _build_ida_exact_string_index_py_lines(
+    target_texts_var_name="target_strings",
+    result_var_name="exact_string_hits",
+    min_length=None,
+    *,
+    target_strings_var_name=None,
+    hits_var_name=None,
+):
+    """Return py_eval code lines that build `{text: [ea...]}` exact-hit index.
+
+    调用方需先在 py_eval 代码中导入 ``idautils`` 与 ``ida_nalt``；
+    本 helper 仅返回代码行列表，不注入 import 语句。
+    """
+    if target_strings_var_name is not None:
+        target_texts_var_name = target_strings_var_name
+    if hits_var_name is not None:
+        result_var_name = hits_var_name
+
+    return [
+        f"{result_var_name} = {{text: [] for text in {target_texts_var_name} if text}}",
+        *_build_ida_strings_setup_py_lines(min_length=min_length),
+        "for item in strings:",
+        "    try:",
+        "        text = str(item)",
+        "        ea = int(item.ea)",
+        "    except Exception:",
+        "        continue",
+        f"    if text in {result_var_name}:",
+        f"        {result_var_name}[text].append(ea)",
+    ]
+
 
 def parse_mcp_result(result):
     """Parse CallToolResult content to a Python object."""
@@ -5968,17 +6045,19 @@ async def _collect_xref_func_starts_for_string(session, xref_string, debug=False
             return set()
         match_expr = "current_str == search_str"
 
-    py_code = (
-        "import idautils, json\n"
-        f"search_str = {json.dumps(search_str)}\n"
-        "code_addrs = set()\n"
-        "for s in idautils.Strings():\n"
-        "    current_str = str(s)\n"
-        f"    if {match_expr}:\n"
-        "        for xref in idautils.XrefsTo(s.ea, 0):\n"
-        "            code_addrs.add(xref.frm)\n"
-        "result = json.dumps([hex(ea) for ea in sorted(code_addrs)])\n"
-    )
+    py_lines = [
+        "import ida_nalt, idautils, json",
+        f"search_str = {json.dumps(search_str)}",
+        "code_addrs = set()",
+        *_build_ida_strings_setup_py_lines(strings_var_name="strings"),
+        "for s in strings:",
+        "    current_str = str(s)",
+        f"    if {match_expr}:",
+        "        for xref in idautils.XrefsTo(s.ea, 0):",
+        "            code_addrs.add(xref.frm)",
+        "result = json.dumps([hex(ea) for ea in sorted(code_addrs)])",
+    ]
+    py_code = "\n".join(py_lines) + "\n"
 
     try:
         eval_result = await session.call_tool(

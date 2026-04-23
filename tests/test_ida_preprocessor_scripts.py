@@ -75,6 +75,10 @@ SHOW_HUD_HINT_SCRIPT_PATH = Path(
     "ida_preprocessor_scripts/"
     "find-ShowHudHint.py"
 )
+CBASEFILTER_INPUTTESTACTIVATOR_SCRIPT_PATH = Path(
+    "ida_preprocessor_scripts/"
+    "find-CBaseFilter_InputTestActivator.py"
+)
 ON_EVENT_MAP_CALLBACKS_CLIENT_SCRIPT_PATH = Path(
     "ida_preprocessor_scripts/"
     "find-CLoopModeGame_OnEventMapCallbacks-client.py"
@@ -742,6 +746,69 @@ class TestFindShowHudHint(unittest.IsolatedAsyncioTestCase):
             rename_to="ShowHudHint",
             debug=True,
         )
+
+
+class TestFindCBaseFilterInputTestActivator(unittest.IsolatedAsyncioTestCase):
+    async def test_linux_fallback_uses_shared_strings_setup_and_preserves_xref_resolution(
+        self,
+    ) -> None:
+        module = _load_module(
+            CBASEFILTER_INPUTTESTACTIVATOR_SCRIPT_PATH,
+            "find_CBaseFilter_InputTestActivator",
+        )
+        session = AsyncMock()
+        session.call_tool.side_effect = [
+            _py_eval_payload("0x180123450"),
+            {"name": "rename"},
+        ]
+
+        with tempfile.TemporaryDirectory() as tmpdir, patch.object(
+            module,
+            "preprocess_gen_func_sig_via_mcp",
+            AsyncMock(
+                return_value={
+                    "func_sig": "48 89 5C 24 ? 57 48 83 EC ?",
+                    "func_size": "0x90",
+                }
+            ),
+        ), patch.object(module, "write_func_yaml"):
+            result = await module._linux_resolve_via_string_xref(
+                session=session,
+                expected_outputs=[
+                    str(
+                        Path(tmpdir)
+                        / "CBaseFilter_InputTestActivator.linux.yaml"
+                    )
+                ],
+                platform="linux",
+                image_base=0x180000000,
+                debug=True,
+            )
+
+        self.assertTrue(result)
+        py_code = session.call_tool.await_args_list[0].kwargs["arguments"]["code"]
+        self.assertIn(
+            "strings = idautils.Strings(default_setup=False)",
+            py_code,
+        )
+        self.assertIn(
+            "strings.setup(strtypes=[ida_nalt.STRTYPE_C], minlen=4)",
+            py_code,
+        )
+        self.assertIn("for s in strings:", py_code)
+        self.assertNotIn("for s in idautils.Strings():", py_code)
+        self.assertIn("for xref in idautils.XrefsTo(s.ea, 0):", py_code)
+        self.assertTrue(
+            (
+                "ptr_addr = xref.frm + 0x10" in py_code
+                or "ptr_addr = xref.frm + 16" in py_code
+            )
+        )
+        self.assertIn(
+            "func_start = idc.get_func_attr(candidate, idc.FUNCATTR_START)",
+            py_code,
+        )
+        self.assertIn("if func_start == candidate:", py_code)
 
 
 class TestFindCLoopModeGameOnEventMapCallbacksClient(

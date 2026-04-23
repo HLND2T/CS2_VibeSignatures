@@ -10,6 +10,7 @@ except ImportError:
     yaml = None
 
 from ida_analyze_util import (
+    _build_ida_exact_string_index_py_lines,
     parse_mcp_result,
     preprocess_gen_func_sig_via_mcp,
     write_func_yaml,
@@ -25,13 +26,15 @@ def _run():
     except Exception:
         return {'ok': False, 'error': 'ida_hexrays unavailable'}
     try:
-        import idaapi, ida_bytes, idautils, idc
+        import idaapi, ida_bytes, idautils, ida_nalt, idc
         params = json.loads(__PARAMS_JSON__)
         platform = params['platform']
         source_func_va = params['source_func_va']
         anchor_event_name = params['anchor_event_name']
         search_window_after_anchor = int(params['search_window_after_anchor'])
         search_window_before_call = int(params['search_window_before_call'])
+        target_texts = [anchor_event_name]
+__EXACT_STRING_INDEX_LINES__
         _DIRECT_VALUE_TYPES = (
             int(idaapi.o_imm),
             int(idaapi.o_mem),
@@ -39,17 +42,6 @@ def _run():
             int(idaapi.o_far),
             int(idaapi.o_displ),
         )
-        def _scan_exact_strings(target_text):
-            hits = []
-            if not target_text:
-                return hits
-            for item in idautils.Strings():
-                try:
-                    if str(item) == target_text:
-                        hits.append(int(item.ea))
-                except Exception:
-                    pass
-            return hits
         def _read_string(ea):
             if ea in (None, 0, idaapi.BADADDR):
                 return None
@@ -234,7 +226,8 @@ def _run():
         items = []
         seen_calls = set()
         anchor_calls = []
-        for string_ea in _scan_exact_strings(anchor_event_name):
+        anchor_string_addrs = string_hits.get(anchor_event_name, [])
+        for string_ea in anchor_string_addrs:
             for xref in idautils.XrefsTo(string_ea, 0):
                 xref_ea = int(xref.frm)
                 if not source_func.start_ea <= xref_ea < source_func.end_ea:
@@ -394,8 +387,17 @@ def _build_register_event_listener_py_eval(
             "search_window_before_call": search_window_before_call,
         }
     )
+    exact_string_index_lines = "\n".join(
+        "        " + line
+        for line in _build_ida_exact_string_index_py_lines(
+            target_texts_var_name="target_texts",
+            result_var_name="string_hits",
+        )
+    )
     return _REGISTER_EVENT_LISTENER_PY_EVAL_TEMPLATE.replace(
         "__PARAMS_JSON__", repr(params)
+    ).replace(
+        "__EXACT_STRING_INDEX_LINES__", exact_string_index_lines
     ).lstrip()
 
 async def _collect_register_event_listener_candidates(

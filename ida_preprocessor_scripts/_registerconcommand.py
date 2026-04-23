@@ -5,6 +5,7 @@ import json
 import os
 
 from ida_analyze_util import (
+    _build_ida_exact_string_index_py_lines,
     parse_mcp_result,
     preprocess_gen_func_sig_via_mcp,
     write_func_yaml,
@@ -59,8 +60,12 @@ def _build_registerconcommand_py_eval(
             "debug": bool(debug),
         }
     )
+    string_index_lines = _build_ida_exact_string_index_py_lines(
+        target_texts_var_name="target_texts",
+        result_var_name="string_hits",
+    )
     body_lines = [
-        "import idaapi, idautils, idc, ida_bytes",
+        "import idaapi, idautils, idc, ida_bytes, ida_nalt",
         "global debug_log",
         "platform = params['platform']",
         f"search_window_before_call = {int(search_window_before_call)}",
@@ -105,18 +110,6 @@ def _build_registerconcommand_py_eval(
         "        return idc.get_segm_name(seg.start_ea)",
         "    except Exception:",
         "        return None",
-        "def _scan_exact_strings(target_text):",
-        "    if not target_text:",
-        "        return []",
-        "    hits = []",
-        "    for item in idautils.Strings():",
-        "        try:",
-        "            if str(item) == target_text:",
-        "                hits.append(int(item.ea))",
-        "        except Exception:",
-        "            pass",
-        "    _debug(f\"string_hits text={target_text!r} count={len(hits)} addrs={_fmt_list(hits)}\")",
-        "    return hits",
         "def _read_string(ea):",
         "    if ea in (None, 0, idaapi.BADADDR):",
         "        return None",
@@ -249,8 +242,12 @@ def _build_registerconcommand_py_eval(
         "f\"platform={platform} command_name={command_name!r} help_string={help_string!r} "
         "before={search_window_before_call} after={search_window_after_xref}\"",
         "_debug(inputs)",
-        "command_string_addrs = _scan_exact_strings(command_name)",
-        "help_string_addrs = _scan_exact_strings(help_string)",
+        "target_texts = [command_name, help_string]",
+        *string_index_lines,
+        "command_string_addrs = string_hits.get(command_name, [])",
+        "help_string_addrs = string_hits.get(help_string, [])",
+        "_debug(f\"string_hits text={command_name!r} count={len(command_string_addrs)} addrs={_fmt_list(command_string_addrs)}\")",
+        "_debug(f\"string_hits text={help_string!r} count={len(help_string_addrs)} addrs={_fmt_list(help_string_addrs)}\")",
         "seed_string_addrs = []",
         "seed_string_addrs.extend(command_string_addrs)",
         "seed_string_addrs.extend(help_string_addrs)",

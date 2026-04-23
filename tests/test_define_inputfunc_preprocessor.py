@@ -26,7 +26,7 @@ def _py_eval_payload(payload: object) -> _FakeCallToolResult:
 
 
 class TestBuildDefineInputFuncPyEval(unittest.TestCase):
-    def test_build_define_inputfunc_py_eval_embeds_exact_string_offset_and_text_filter(
+    def test_build_define_inputfunc_py_eval_uses_param_offset_and_text_filter(
         self,
     ) -> None:
         code = define_inputfunc._build_define_inputfunc_py_eval(
@@ -36,7 +36,8 @@ class TestBuildDefineInputFuncPyEval(unittest.TestCase):
         )
 
         self.assertIn("ShowHudHint", code)
-        self.assertIn("handler_ptr_offset = 16", code)
+        self.assertIn("handler_ptr_offset = params['handler_ptr_offset']", code)
+        self.assertNotIn("handler_ptr_offset = 16", code)
         self.assertIn("allowed_segment_names", code)
         self.assertIn("idautils.Strings", code)
         self.assertIn("idautils.XrefsTo", code)
@@ -53,9 +54,28 @@ class TestBuildDefineInputFuncPyEval(unittest.TestCase):
         )
 
         self.assertIn("CustomInput", code)
-        self.assertIn("handler_ptr_offset = 24", code)
+        self.assertIn("handler_ptr_offset = params['handler_ptr_offset']", code)
+        self.assertNotIn("handler_ptr_offset = 24", code)
         self.assertIn(".data.rel.ro", code)
         compile(code, "<define_inputfunc_py_eval_custom>", "exec")
+
+    def test_build_define_inputfunc_py_eval_uses_shared_strings_setup(self) -> None:
+        code = define_inputfunc._build_define_inputfunc_py_eval(
+            input_name="ShowHudHint",
+            handler_ptr_offset=0x10,
+            allowed_segment_names=(".data",),
+        )
+
+        self.assertIn(
+            "strings = idautils.Strings(default_setup=False)",
+            code,
+        )
+        self.assertIn(
+            "strings.setup(strtypes=[ida_nalt.STRTYPE_C], minlen=4)",
+            code,
+        )
+        self.assertIn("for item in strings:", code)
+        self.assertNotIn("for item in idautils.Strings():", code)
 
 
 class TestCollectDefineInputFuncCandidates(unittest.IsolatedAsyncioTestCase):
@@ -106,7 +126,8 @@ class TestCollectDefineInputFuncCandidates(unittest.IsolatedAsyncioTestCase):
         )
         code = session.call_tool.await_args.kwargs["arguments"]["code"]
         self.assertIn("ShowHudHint", code)
-        self.assertIn("handler_ptr_offset = 16", code)
+        self.assertIn("handler_ptr_offset = params['handler_ptr_offset']", code)
+        self.assertNotIn("handler_ptr_offset = 16", code)
 
     async def test_collect_define_inputfunc_candidates_returns_none_on_invalid_payload(
         self,
