@@ -13,7 +13,6 @@ FUNC_XREFS = [
         "xref_strings": [
             "FULLMATCH:server_shutdown",
             "FULLMATCH:reason",
-            "FULLMATCH:quit",
         ],
         "xref_gvs": [],
         "xref_signatures": [],
