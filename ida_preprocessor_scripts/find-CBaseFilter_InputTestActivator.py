@@ -198,7 +198,11 @@ async def preprocess_skill(
                 output_path = p
                 break
         if output_path:
-            old_yaml_path = old_yaml_map.get(output_filename)
+            old_yaml_path = None
+            if old_yaml_map:
+                old_yaml_path = old_yaml_map.get(output_path)
+                if old_yaml_path is None:
+                    old_yaml_path = old_yaml_map.get(output_filename)
             if old_yaml_path and os.path.exists(old_yaml_path):
                 reuse_result = await preprocess_func_sig_via_mcp(
                     session=session,
