@@ -131,21 +131,29 @@ jobs:
         shell: pwsh
         working-directory: ${{ github.workspace }}
         run: |
-          7z a "gamedata-$($env:GAMEVER).7z" "bin\$($env:GAMEVER)" "dist" "hl2sdk_cs2" -r `
-          "-x!*.dll" `
-          "-x!*.so" `
-          "-x!*.i64" `
-          "-x!*.id0" `
-          "-x!*.id1" `
-          "-x!*.id2" `
-          "-x!*.nam" `
-          "-x!*.til" `
-          "-x!.git" `
-          "-x!.git-blame-ignore-revs" `
-          "-x!.gitmodules"
-          "-x!__pycache__"
-          "-x!gamedata.py"
-          "-x!config.yaml"
+          $archiveArgs = @(
+            "a"
+            "gamedata-$($env:GAMEVER).7z"
+            "bin\$($env:GAMEVER)"
+            "dist"
+            "hl2sdk_cs2"
+            "-r"
+            "-x!*.dll"
+            "-x!*.so"
+            "-x!*.i64"
+            "-x!*.id0"
+            "-x!*.id1"
+            "-x!*.id2"
+            "-x!*.nam"
+            "-x!*.til"
+            "-x!.git"
+            "-x!.git-blame-ignore-revs"
+            "-x!.gitmodules"
+            "-xr!__pycache__"
+            "-xr!gamedata.py"
+            "-xr!config.yaml"
+          )
+          & 7z @archiveArgs
 
       - name: Create release
         if: startsWith(github.ref, 'refs/tags/')
