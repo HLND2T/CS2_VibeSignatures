@@ -51,13 +51,13 @@ def _duplicate_slot_payload() -> dict[str, object]:
 async def _run_preprocess(module: object, session: AsyncMock, new_binary_dir: Path) -> bool:
     return await module.preprocess_igamesystem_slot_dispatch_skill(
         session=session,
-        expected_outputs=["/tmp/IGameSystem_GamePostInit.windows.yaml"],
+        expected_outputs=["/tmp/IGameSystem_OnGamePostInit.windows.yaml"],
         new_binary_dir=str(new_binary_dir),
         platform="windows",
         dispatcher_yaml_stem="IGameSystem_LoopPostInitAllSystems",
         target_specs=[
             {
-                "target_name": "IGameSystem_GamePostInit",
+                "target_name": "IGameSystem_OnGamePostInit",
                 "vtable_name": "IGameSystem",
                 "dispatch_rank": 0,
             }
@@ -70,9 +70,9 @@ async def _run_preprocess(module: object, session: AsyncMock, new_binary_dir: Pa
 
 def _assert_slot_only_yaml(mock_write: object) -> None:
     mock_write.assert_called_once_with(
-        "/tmp/IGameSystem_GamePostInit.windows.yaml",
+        "/tmp/IGameSystem_OnGamePostInit.windows.yaml",
         {
-            "func_name": "IGameSystem_GamePostInit",
+            "func_name": "IGameSystem_OnGamePostInit",
             "vtable_name": "IGameSystem",
             "vfunc_offset": "0x28",
             "vfunc_index": 5,
@@ -125,13 +125,13 @@ class TestPreprocessIgameSystemSlotDispatchSkill(unittest.IsolatedAsyncioTestCas
             ) as mock_py_eval, patch.object(module, "write_func_yaml") as mock_write:
                 result = await module.preprocess_igamesystem_slot_dispatch_skill(
                     session=session,
-                    expected_outputs=["/tmp/IGameSystem_GamePostInit.windows.yaml"],
+                    expected_outputs=["/tmp/IGameSystem_OnGamePostInit.windows.yaml"],
                     new_binary_dir=str(new_binary_dir),
                     platform="windows",
                     dispatcher_yaml_stem="IGameSystem_LoopPostInitAllSystems",
                     target_specs=[
                         {
-                            "target_name": "IGameSystem_GamePostInit",
+                            "target_name": "IGameSystem_OnGamePostInit",
                             "vtable_name": "IGameSystem",
                         }
                     ],
@@ -148,7 +148,7 @@ class TestPreprocessIgameSystemSlotDispatchSkill(unittest.IsolatedAsyncioTestCas
 class TestGamePostInitSkill(unittest.IsolatedAsyncioTestCase):
     async def test_preprocess_skill_delegates_to_slot_dispatch_helper(self) -> None:
         module = importlib.import_module(
-            "ida_preprocessor_scripts.find-IGameSystem_GamePostInit"
+            "ida_preprocessor_scripts.find-IGameSystem_OnGamePostInit"
         )
         session = AsyncMock()
 
@@ -159,8 +159,8 @@ class TestGamePostInitSkill(unittest.IsolatedAsyncioTestCase):
         ) as mock_helper:
             result = await module.preprocess_skill(
                 session=session,
-                skill_name="find-IGameSystem_GamePostInit",
-                expected_outputs=["/tmp/IGameSystem_GamePostInit.windows.yaml"],
+                skill_name="find-IGameSystem_OnGamePostInit",
+                expected_outputs=["/tmp/IGameSystem_OnGamePostInit.windows.yaml"],
                 old_yaml_map={},
                 new_binary_dir="/tmp/bin/server",
                 platform="windows",
@@ -171,13 +171,13 @@ class TestGamePostInitSkill(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(result)
         mock_helper.assert_awaited_once_with(
             session=session,
-            expected_outputs=["/tmp/IGameSystem_GamePostInit.windows.yaml"],
+            expected_outputs=["/tmp/IGameSystem_OnGamePostInit.windows.yaml"],
             new_binary_dir="/tmp/bin/server",
             platform="windows",
             dispatcher_yaml_stem="IGameSystem_LoopPostInitAllSystems",
             target_specs=[
                 {
-                    "target_name": "IGameSystem_GamePostInit",
+                    "target_name": "IGameSystem_OnGamePostInit",
                     "vtable_name": "IGameSystem",
                     "dispatch_rank": 0,
                 }
@@ -199,12 +199,12 @@ class TestGamePostInitConfig(unittest.TestCase):
         skills = [
             skill
             for skill in server_module.get("skills", [])
-            if skill.get("name") == "find-IGameSystem_GamePostInit"
+            if skill.get("name") == "find-IGameSystem_OnGamePostInit"
         ]
         symbols = [
             symbol
             for symbol in server_module.get("symbols", [])
-            if symbol.get("name") == "IGameSystem_GamePostInit"
+            if symbol.get("name") == "IGameSystem_OnGamePostInit"
         ]
         self.assertEqual(1, len(skills))
         self.assertEqual(1, len(symbols))
@@ -212,7 +212,7 @@ class TestGamePostInitConfig(unittest.TestCase):
         symbol = symbols[0]
 
         self.assertEqual(
-            ["IGameSystem_GamePostInit.{platform}.yaml"],
+            ["IGameSystem_OnGamePostInit.{platform}.yaml"],
             skill["expected_output"],
         )
         self.assertEqual(

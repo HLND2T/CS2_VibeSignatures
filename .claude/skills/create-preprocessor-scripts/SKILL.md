@@ -627,14 +627,14 @@ vfunc_index: 5
 
 ### Example: IGameSystem vfuncs via dispatch scan -- single predecessor, two targets (Pattern J)
 
-**User says:** Find `IGameSystem_ServerPreEntityThink` and `IGameSystem_ServerPostEntityThink` in server. Both appear as callback arguments to `IGameSystem_DispatchCall(...)` in `CSource2Server_GameFrame`. The decompile shows:
+**User says:** Find `IGameSystem_OnServerPreEntityThink` and `IGameSystem_OnServerPostEntityThink` in server. Both appear as callback arguments to `IGameSystem_DispatchCall(...)` in `CSource2Server_GameFrame`. The decompile shows:
 ```c
 IGameSystem_DispatchCall(v30, (__int64 (__fastcall *)(...))GameSystem_OnServerPreEntityThink, (__int64)&v45);
 // ... entity simulation ...
 IGameSystem_DispatchCall(v37, (__int64 (__fastcall *)(...))GameSystem_OnServerPostEntityThink, (__int64)&v45);
 ```
 
-**Result:** `ida_preprocessor_scripts/find-IGameSystem_ServerPreEntityThink-AND-IGameSystem_ServerPostEntityThink.py` with:
+**Result:** `ida_preprocessor_scripts/find-IGameSystem_OnServerPreEntityThink-AND-IGameSystem_OnServerPostEntityThink.py` with:
 - `SOURCE_YAML_STEM = "CSource2Server_GameFrame"` -- predecessor already found by a Pattern B script
 - `TARGET_SPECS`: two entries, `rename_to` values taken directly from the decompile callback names
 - `VIA_INTERNAL_WRAPPER = False` -- `CSource2Server_GameFrame` contains the dispatch calls directly (no nested helper)
@@ -646,8 +646,8 @@ IGameSystem_DispatchCall(v37, (__int64 (__fastcall *)(...))GameSystem_OnServerPo
 ```python
 SOURCE_YAML_STEM = "CSource2Server_GameFrame"
 TARGET_SPECS = [
-    {"target_name": "IGameSystem_ServerPreEntityThink",  "rename_to": "GameSystem_OnServerPreEntityThink"},
-    {"target_name": "IGameSystem_ServerPostEntityThink", "rename_to": "GameSystem_OnServerPostEntityThink"},
+    {"target_name": "IGameSystem_OnServerPreEntityThink",  "rename_to": "GameSystem_OnServerPreEntityThink"},
+    {"target_name": "IGameSystem_OnServerPostEntityThink", "rename_to": "GameSystem_OnServerPostEntityThink"},
 ]
 VIA_INTERNAL_WRAPPER = False
 INTERNAL_RENAME_TO = None
@@ -656,10 +656,10 @@ MULTI_ORDER = "index"
 
 **config.yaml:**
 ```yaml
-      - name: find-IGameSystem_ServerPreEntityThink-AND-IGameSystem_ServerPostEntityThink
+      - name: find-IGameSystem_OnServerPreEntityThink-AND-IGameSystem_OnServerPostEntityThink
         expected_output:
-          - IGameSystem_ServerPreEntityThink.{platform}.yaml
-          - IGameSystem_ServerPostEntityThink.{platform}.yaml
+          - IGameSystem_OnServerPreEntityThink.{platform}.yaml
+          - IGameSystem_OnServerPostEntityThink.{platform}.yaml
         expected_input:
           - CSource2Server_GameFrame.{platform}.yaml
           - IGameSystem_vtable.{platform}.yaml
@@ -675,9 +675,9 @@ MULTI_ORDER = "index"
 
 ### Example: IGameSystem abstract vfunc via slot dispatch scan (Pattern K)
 
-**User says:** Find `IGameSystem_GamePreShutdown` in server. It's an abstract `IGameSystem` vfunc (slot-only, no `func_sig` needed) dispatched by `IGameSystem_LoopPreShutdownAllSystems`, which iterates all game systems and calls their `GamePreShutdown` vfunc via `[rax+offset]`. The dispatcher YAML stem is `IGameSystem_LoopPreShutdownAllSystems`.
+**User says:** Find `IGameSystem_OnGamePreShutdown` in server. It's an abstract `IGameSystem` vfunc (slot-only, no `func_sig` needed) dispatched by `IGameSystem_LoopPreShutdownAllSystems`, which iterates all game systems and calls their `GamePreShutdown` vfunc via `[rax+offset]`. The dispatcher YAML stem is `IGameSystem_LoopPreShutdownAllSystems`.
 
-**Result:** `ida_preprocessor_scripts/find-IGameSystem_GamePreShutdown.py` with:
+**Result:** `ida_preprocessor_scripts/find-IGameSystem_OnGamePreShutdown.py` with:
 
 ```python
 from ida_preprocessor_scripts._igamesystem_slot_dispatch_common import (
@@ -688,7 +688,7 @@ DISPATCHER_YAML_STEM = "IGameSystem_LoopPreShutdownAllSystems"
 
 TARGET_SPECS = [
     {
-        "target_name": "IGameSystem_GamePreShutdown",
+        "target_name": "IGameSystem_OnGamePreShutdown",
         "vtable_name": "IGameSystem",
         "dispatch_rank": 0,
     },
@@ -714,16 +714,16 @@ async def preprocess_skill(session, skill_name, expected_outputs, old_yaml_map,
 
 **config.yaml:**
 ```yaml
-      - name: find-IGameSystem_GamePreShutdown
+      - name: find-IGameSystem_OnGamePreShutdown
         expected_output:
-          - IGameSystem_GamePreShutdown.{platform}.yaml
+          - IGameSystem_OnGamePreShutdown.{platform}.yaml
         expected_input:
           - IGameSystem_LoopPreShutdownAllSystems.{platform}.yaml
 ```
 
 **config.yaml symbol entry:**
 ```yaml
-      - name: IGameSystem_GamePreShutdown
+      - name: IGameSystem_OnGamePreShutdown
         category: vfunc
         alias:
           - IGameSystem::GamePreShutdown
@@ -731,7 +731,7 @@ async def preprocess_skill(session, skill_name, expected_outputs, old_yaml_map,
 
 **Output YAML (both platforms):**
 ```yaml
-func_name: IGameSystem_GamePreShutdown
+func_name: IGameSystem_OnGamePreShutdown
 vtable_name: IGameSystem
 vfunc_offset: '0x...'
 vfunc_index: ...

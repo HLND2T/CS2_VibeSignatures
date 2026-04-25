@@ -46,42 +46,42 @@
 
 ## Updated Callers (current)
 ### SpawnGroup series
-- `find-IGameSystem_PreSpawnGroupLoad.py`
+- `find-IGameSystem_OnPreSpawnGroupLoad.py`
   - `dispatch_rank=0`
   - `EXPECTED_DISPATCH_COUNT=2`
-- `find-IGameSystem_PostSpawnGroupLoad.py`
+- `find-IGameSystem_OnPostSpawnGroupLoad.py`
   - `dispatch_rank=1`
   - `EXPECTED_DISPATCH_COUNT=2`
-- `find-IGameSystem_PostSpawnGroupUnload.py`
+- `find-IGameSystem_OnPostSpawnGroupUnload.py`
   - `dispatch_rank=1`
   - `EXPECTED_DISPATCH_COUNT=2`
-- `find-IGameSystem_PreSpawnGroupUnload.py`
+- `find-IGameSystem_OnPreSpawnGroupUnload.py`
   - single-target default mapping
 
 ### ClientPreEntityThink case
-- `find-IGameSystem_ClientPreEntityThink.py`
+- `find-IGameSystem_OnClientPreEntityThink.py`
   - observed dispatch indices: `22 / 23 / 24`
-  - `IGameSystem_ClientPreEntityThink` uses `dispatch_rank=0` (index 22)
+  - `IGameSystem_OnClientPreEntityThink` uses `dispatch_rank=0` (index 22)
   - `EXPECTED_DISPATCH_COUNT=3`
 
 ## Rationale
 Mapping now relies on deterministic index ordering plus strict entry-count assertions, which is more stable under compiler/reordering differences.
 
 ### SpawnGroupPrecache / SpawnGroupUncache
-- `find-IGameSystem_SpawnGroupPrecache.py`
-  - source: `CSpawnGroupMgrGameSystem_SpawnGroupPrecache`
+- `find-IGameSystem_OnSpawnGroupPrecache.py`
+  - source: `CSpawnGroupMgrGameSystem_OnSpawnGroupPrecache`
   - single-target default mapping (1 dispatch)
-- `find-IGameSystem_SpawnGroupUncache.py`
+- `find-IGameSystem_OnSpawnGroupUncache.py`
   - source: `CSpawnGroupMgrGameSystem_SpawnGroupActuallyShutdown`
   - `dispatch_rank=0`
   - `EXPECTED_DISPATCH_COUNT=2`
 
 ## Files Involved
 - `ida_preprocessor_scripts/_igamesystem_dispatch_common.py`
-- `ida_preprocessor_scripts/find-IGameSystem_PreSpawnGroupLoad.py`
-- `ida_preprocessor_scripts/find-IGameSystem_PostSpawnGroupLoad.py`
-- `ida_preprocessor_scripts/find-IGameSystem_PostSpawnGroupUnload.py`
-- `ida_preprocessor_scripts/find-IGameSystem_PreSpawnGroupUnload.py`
-- `ida_preprocessor_scripts/find-IGameSystem_SpawnGroupPrecache.py`
-- `ida_preprocessor_scripts/find-IGameSystem_SpawnGroupUncache.py`
-- `ida_preprocessor_scripts/find-IGameSystem_ClientPreEntityThink.py`
+- `ida_preprocessor_scripts/find-IGameSystem_OnPreSpawnGroupLoad.py`
+- `ida_preprocessor_scripts/find-IGameSystem_OnPostSpawnGroupLoad.py`
+- `ida_preprocessor_scripts/find-IGameSystem_OnPostSpawnGroupUnload.py`
+- `ida_preprocessor_scripts/find-IGameSystem_OnPreSpawnGroupUnload.py`
+- `ida_preprocessor_scripts/find-IGameSystem_OnSpawnGroupPrecache.py`
+- `ida_preprocessor_scripts/find-IGameSystem_OnSpawnGroupUncache.py`
+- `ida_preprocessor_scripts/find-IGameSystem_OnClientPreEntityThink.py`
