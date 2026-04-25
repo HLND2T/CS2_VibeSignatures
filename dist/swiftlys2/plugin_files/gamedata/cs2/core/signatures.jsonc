@@ -1,182 +1,246 @@
 {
+    // it has "BombPlanted" sent through it
     "CEntityInstance::AcceptInput": {
         "lib": "server",
         "windows": "48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 49 8B F0 48 8B D9 48 8B 0D ? ? ? ?",
         "linux": "55 48 89 F0 48 89 E5 41 57 49 89 FF 41 56 48 8D 7D ?"
     },
+    // called by the above one
     "CEntityIdentity::AcceptInput": {
         "lib": "server",
         "windows": "48 89 5C 24 ? 48 89 54 24 ? 48 89 4C 24 ? 55 56 57 41 54 41 55 41 56 41 57 48 8D AC 24 ? ? ? ? 48 81 EC ? ? ? ? 48 8B 02",
         "linux": "55 49 89 D3 48 89 E5 41 57 45 89 CF"
     },
+    // search for "CCSPlayerPawnBase::SwitchTeam" (not sure why it has this) or "CCSPlayerController::SwitchTeam"
     "CCSPlayerController::SwitchTeam": {
         "lib": "server",
-        "windows": "40 53 57 48 81 EC 88 00 00 00 48 8B D9 8B FA 8B CA E8 ? ? ? ? 48 85 C0 0F 84 ? ? ? ? 8D 47 FE 83 F8 01 0F 87 ? ? ? ? 0F B6 83 44 03 00 00 3B F8 0F 84 ? ? ? ?",
-        "linux": "55 48 89 E5 41 54 49 89 FC 89 F7 53 89 F3 E8 ? ? ? ? 48 85 C0 74 ? 8D 43 FE 83 F8 01 77 ? 41 0F B6 84 24 24 06 00 00 39 C3 74 ? 89 DE 4C 89 E7 5B 41 5C 5D E9 ? ? ? ?"
+        "windows": "40 53 57 48 81 EC ? ? ? ? 48 8B D9 8B FA",
+        "linux": "55 48 89 E5 41 54 49 89 FC 89 F7"
     },
+    // Search for a function which receives the arguments "info_deathmatch_spawn", -1
     "UTIL::CreateEntityByName": {
         "lib": "server",
-        "windows": "48 83 EC 48 C6 44 24 30 00 4C 8B C1 48 8B 0D ? ? ? ? 45 33 C9 C7 44 24 28 FF FF FF FF 89 54 24 20 BA FF FF FF FF E8 ? ? ? ? 48 83 C4 48 C3",
+        "windows": "48 83 EC ? C6 44 24 ? ? 4C 8B C1",
         "linux": "48 8D 05 ? ? ? ? 55 48 89 FA"
     },
+    // Search "Changes's player's model", look for a function containing 'models/%s.vmdl'. Below V_snprintf is the one
+    // This matches 2 functions, however they're literally identical
+    // Taken from CS2Fixes (https://github.com/Source2ZE/CS2Fixes)
     "CBaseModelEntity::SetModel": {
         "lib": "server",
-        "windows": "40 53 48 83 EC ? 48 8B D9 4C 8B C2 48 8B 0D ? ? ? ? 48 8D 54 24 ? 48 8B 01 FF 50 ? 48 8B 54 24 ? 48 8B CB E8 ? ? ? ? 48 83 C4 ? 5B C3 CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC 48 89 5C 24 ?",
-        "linux": "55 48 89 E5 53 48 89 FB 48 83 EC ? 48 8D 05 ? ? ? ? 48 8B 38 48 8B 07 FF 50 ? 48 89 DF 48 8B 5D ? C9 48 89 C6 E9 ? ? ? ? CC CC CC CC 55"
+        "windows": "40 53 48 83 EC ? 48 8B D9 4C 8B C2 48 8B 0D 15 11 ? ?",
+        "linux": "55 48 89 E5 53 48 89 FB 48 83 EC ? 48 8D 05 75 ? ? ? 48 8B 38"
     },
+    // Function that only has "hammerUniqueId" string, signature points to the outer if statement that determines if hammerid gets written to schema
+    "SetSchemaHammerUniqueId": {
+        "lib": "server",
+        "windows": "75 ? 48 8B 03 48 8B CB FF 90 ? ? ? ? 84 C0 74 ? 48 8D 05",
+        "linux": "75 ? 48 8B 03 48 8D 15 ? ? ? ? 48 8B 80 ? ? ? ? 48 39 D0 75 ? 48 83 C4"
+    },
+    // The function has "classname" in it. It can be found when searching for UTIL::CreateEntityByName
+    // or, in GiveNamedItem it's in a bunch of if blocks
     "CBaseEntity::DispatchSpawn": {
         "lib": "server",
-        "windows": "48 89 5C 24 10 57 48 83 EC 30 48 8B DA 48 8B F9 48 85 C9 0F 84 ? ? ? ? 48 85 D2 75 ? B9 38 00 00 00 48 89 74 24 40 E8 ? ? ? ? 48 8B D8 48 85 C0 74 ? 45 33 C0 33 D2 48 8B C8 E8",
+        "windows": "48 89 5C 24 ? 57 48 83 EC ? 48 8B DA 48 8B F9 48 85 C9 0F 84 ? ? ? ? 48 85 D2",
         "linux": "48 85 FF 74 ? 55 48 89 E5 41 55 41 54 49 89 FC"
     },
+    // Search for "Removed %s(%s)\n" and it's the next function call
     "UTIL::Remove": {
         "lib": "server",
-        "windows": "48 85 C9 74 0F 48 8B D1 48 8B 0D ? ? ? ? E9 ? ? ? ? C3",
-        "linux": "48 89 FE 48 85 FF 74 18 48 8D 05 ? ? ? ? 48 8B 38 E9 ? ? ? ?"
+        "windows": "48 85 C9 74 ? 48 8B D1 48 8B 0D ? ? ? ?",
+        "linux": "48 89 FE 48 85 FF 74 ? 48 8D 05 ? ? ? ? 48"
     },
+    // search for "CSource2GameClients::StartHLTVServer: game event %s not found.\n"
     "LegacyGameEventListener": {
         "lib": "server",
-        "windows": "48 8B 15 ? ? ? ? 48 85 D2 74 14 83 F9 3F 77 0F 48 63 C1 48 83 C0 04 48 C1 E0 04 48 03 C2 C3 33 C0 C3",
-        "linux": "48 8B 05 ? ? ? ? 48 85 C0 74 ? 83 FF 3F 77 ? 48 63 FF 48 C1 E7 04 48 8D 44 38 40 C3"
+        "windows": "48 8B 15 ? ? ? ? 48 85 D2 74 ? 83 F9 ? 77 ?",
+        "linux": "48 8B 05 ? ? ? ? 48 85 C0 74 ? 83 FF ? 77 ? 48 63 FF 48 C1 E7 ? 48 8D 44 38 ?"
     },
+    // search for "set item texture prefab", "set item texture wear", "set item texture seed" or "kill eater"
+    // enter in that function, enter in the nested one and you found the sig
     "CAttributeList::SetOrAddAttributeValueByName": {
         "lib": "server",
         "windows": "40 53 55 41 56 48 81 EC ? ? ? ? 0F 29 74 24",
         "linux": "55 48 89 E5 41 57 41 56 49 89 FE 41 55 41 54 53 48 89 F3 48 83 EC ? F3 0F 11 85"
     },
+    // Search for "break_radius", the constructor is called at the end of the function
+    // More simple is to search for the VTable and see when it's being set
     "CTakeDamageInfo::Constructor": {
         "lib": "server",
         "windows": "48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 41 56 48 83 EC ? 45 33 F6 48 C7 41",
         "linux": "49 BB ? ? ? ? ? ? ? ? 55"
     },
+    // Search for "No conversion from %s to float now\n", the function should be the last one being called
     "CEntityIOOutput::FireOutputInternal": {
         "lib": "server",
-        "windows": "4C 89 4C 24 ? 48 89 4C 24 ? 53 56 57 41 55 41 56 41 57 48 81 EC ? ? ? ? 48 8B 05 ? ? ? ? 4D 8B F0",
-        "linux": "55 48 89 E5 41 57 49 89 FF 41 56 41 55 41 54 49 89 D4 53 48 89 F3 48 83 EC 78 48 8D 05 ? ? ? ? 48 89 BD 78 FF FF FF 48 89 4D A0 F3 0F 11 45 9C 4C 89 45 A8 48 8B 00 4C 89 8D 70 FF FF FF"
+        "windows": "4C 89 4C 24 ? 48 89 4C 24 ? 53 56",
+        "linux": "55 48 89 E5 41 57 49 89 FF 41 56 41 55 41 54 49 89 D4 53 48 89 F3 48 83 EC ?"
     },
+    // Search for "controller" which is being used 2 times in a function.
+    // The SetPawn is the last function being called (not the one in return)
     "CBasePlayerController::SetPawn": {
         "lib": "server",
         "windows": "44 88 4C 24 ? 53 57",
         "linux": "55 48 8D 87 ? ? ? ? 48 89 E5 41 57 41 56 41 89 CE 41 55 45 89 CD"
     },
+    // The function contains "enter_buyzone", "exit_buyzone", "userid", "canbuy", "exit_rescue_zone"
     "CCSPlayerPawn::PostThink": {
         "lib": "server",
         "windows": "40 55 53 56 57 41 54 48 8D 6C 24 ? 48 81 EC ? ? ? ? 4C 89 AC 24 ? ? ? ?",
         "linux": "55 48 89 E5 41 57 49 89 FF 41 56 41 55 41 54 53 48 81 EC ? ? ? ? E8 ? ? ? ? 41 80 BF ? 15 00 00 ?"
     },
+    // The function contains "#SFUI_Notice_Terrorists_Surrender", "#SFUI_Notice_CTs_Surrender" and other SFUI messages
     "CGameRules::TerminateRound": {
         "lib": "server",
         "windows": "48 8B C4 4C 89 48 ? 48 89 48 ? 55 56 41 56",
         "linux": "55 48 89 E5 41 57 49 89 FF 41 56 41 55 41 54 53 48 81 EC ? ? ? ? 48 8D 05 ? ? ? ? F3 0F 11 85 ? ? ? ?"
     },
+    // Search for "CBaseEntity::TakeDamageOld"
     "CBaseEntity::TakeDamage": {
         "lib": "server",
-        "windows": "40 55 41 54 41 55 41 56 41 57 48 81 EC ? ? ? ? 48 8D 6C 24 ? 48 89 9D ? ? ? ? 45 33 ED",
-        "linux": "55 48 89 E5 41 57 41 56 41 55 49 89 FD 41 54 49 89 F4 53 48 89 D3 48 83 EC ? 48 85 D2"
+        "windows": "40 55 53 56 57 41 54 48 8D 6C 24 ? 48 81 EC ? ? ? ? 4D 8B E0",
+        "linux": "55 48 89 E5 41 57 41 56 41 55 49 89 FD 31 FF"
     },
+    // "Error - cannot add bots after game is over."
     "BotNavIgnore1": {
         "lib": "server",
-        "windows": "0F 84 ? ? ? ? 80 B8 ? ? ? ? 00 0F 84 ? ? ? ? 80 3D ? ? ? ? 00 74 15",
-        "linux": "0F 84 ? ? ? ? 44 0F B6 B0 ? ? ? ? 45 84 F6 0F 84"
+        "windows": "0F 84 ? ? ? ? 80 B8 ? ? ? ? ? 0F 84 ? ? ? ? 80 3D ? ? ? ? ? 74",
+        "linux": "0F 84 ? ? ? ? 44 0F B6 B0"
     },
+    // "Error - cannot add bots after game is over."
     "BotNavIgnore2": {
         "lib": "server",
-        "windows": "0F 84 ? ? ? ? 80 B8 ? ? ? ? 00 0F 84 ? ? ? ? 80 3D ? ? ? ? 00 74 15",
-        "linux": "0F 84 ? ? ? ? 44 0F B6 B0 ? ? ? ? 45 84 F6 0F 84"
+        "windows": "0F 84 ? ? ? ? 80 B8 ? ? ? ? ? 0F 84 ? ? ? ? 80 3D ? ? ? ? ? 74",
+        "linux": "0F 84 ? ? ? ? 44 0F B6 B0"
     },
+    // "Error - cannot add bots after game is over."
     "BotNavIgnore3": {
         "lib": "server",
-        "windows": "0F 84 ? ? ? ? 80 B8 ? ? ? ? 00 0F 84 ? ? ? ? 80 3D ? ? ? ? 00 74 15",
-        "linux": "0F 84 ? ? ? ? 44 0F B6 B0 ? ? ? ? 45 84 F6 0F 84"
+        "windows": "0F 84 ? ? ? ? 80 B8 ? ? ? ? ? 0F 84 ? ? ? ? 80 3D ? ? ? ? ? 74",
+        "linux": "0F 84 ? ? ? ? 44 0F B6 B0"
     },
+    // Search "Game System %s is defined twice!\n" and get the sig to the first qword referenced
     "IGameSystem::InitAllSystems->pFirst": {
         "lib": "server",
         "windows": "48 8B 1D ? ? ? ? 48 85 DB 0F 84 ? ? ? ? BD",
         "linux": "4C 8B 35 ? ? ? ? 4D 85 F6 75 ? E9"
     },
+    // Find string "%sRecv usercmd %d.  Margin:%5.1fms net +%2d queue =%5.1f total\n"
     "CCSPlayerController::ProcessUserCmd": {
         "lib": "server",
         "windows": "48 8B C4 44 88 48 20 44 89 40 18 48 89 50 10 53",
         "linux": "55 48 89 E5 41 57 41 56 41 55 41 54 53 48 89 FB 48 83 EC ? 89 4D"
     },
+    // Find strng "gameeventmanager->Init()".
     "CSource2Server::g_GameEventManager": {
         "lib": "server",
         "windows": "48 83 EC ? 48 83 3D ? ? ? ? ? 74 ? 33 C9 E8 ? ? ? ? FF 15 ? ? ? ?",
         "linux": "55 48 89 E5 41 55 41 54 53 48 83 EC ? 48 8D 05 ? ? ? ? 48 83 38 ?"
     },
+    // There's a reference with "SetPosition" as argument
     "CEntitySystem::AddEntityIOEvent": {
         "lib": "server",
-        "windows": "48 89 5C 24 18 4C 89 4C 24 20 48 89 4C 24 08 55 56 57 41 54 41 55 41 56 41 57 48 83 EC 20 49 8B F9 4C 8B C9 41 BD FF 7F 00 00 48 85 D2 74 ? 48 8B 42 10 48 85 C0 74 ? 8B 50 10",
-        "linux": "55 48 89 E5 41 55 49 89 CD 41 54 49 89 FC 53 BB FF FF FF FF 48 83 EC 38 48 85 F6 74 ? 48 8B 46 10 48 85 C0 74 ? 8B 58 10 8B 48 30 C1 EB 0F 83 E1 01 29 CB 83 78 10 FF 0F 84 ? ? ? ?"
+        "windows": "48 89 5C 24 ? 4C 89 4C 24 ? 48 89 4C 24 ? 55 56 57 41 54 41 55 41 56 41 57 48 83 EC ? 49 8B F9",
+        "linux": "55 48 89 E5 41 55 49 89 CD 41 54 49 89 FC 53 BB ? ? ? ?"
     },
+    // Function with 5 arguments next to sv_walkable_normal references
+    // Alternative, search for "Stuck" text, above it you'll find something like `v5 = *(_DWORD *)sub_180A517A0(a1, (unsigned int)&v38, a2, (int)a2 + 200, 11, (__int64)v29);`
+    // Enter in that function, and you'll find a function called outside of any block with 6 arguments, enter in it and in there it's the 2nd function being called
     "TracePlayerBBox": {
         "lib": "server",
-        "windows": "4C 89 44 24 ? 55 53 56 57 41 55 41 56 48 8D AC 24",
-        "linux": "55 48 89 E5 41 57 49 89 FF 41 56 49 89 D6 41 55 49 89 CD"
+        "windows": "48 8B C4 4C 89 40 ? 48 89 48 ? 55 53 56 57",
+        "linux": "55 48 89 E5 41 57 41 56 49 89 D6 41 55 49 89 CD 41 54 53 48 89 F3"
     },
+    // Find string 'Physics/TraceShape (Server)'
     "TraceShape": {
         "lib": "server",
         "windows": "48 89 5C 24 ? 48 89 4C 24 ? 55 57",
         "linux": "55 48 89 E5 41 57 49 89 CF 41 56 49 89 F6 41 55 4D 89 C5"
     },
+    // Find string '[AI BT]: '%s' is unable to purchase item '%s'. Moving on to the next bot.',
+    // the string is in an if block, and the if statement contains the call to this function
     "CCSPlayer_ItemServices::CanAcquire": {
         "lib": "server",
-        "windows": "44 89 44 24 18 48 89 54 24 10 48 89 4C 24 08 55 53 56 57 41 55 41 56 41 57 48 8B EC 48 81 EC ? ? ? ? 48 83 79 38 00 49 8B D9 45 8B E8 4C 8B FA 48 8B F9 75 05 E8 ? ? ? ?",
-        "linux": "55 48 89 E5 41 57 41 56 41 55 49 89 CD 41 54 49 89 FC 53 48 89 F3 48 83 EC 78 4C 8B 77 38 89 55 BC 4D 85 F6 0F 84 ? ? ? ? 48 8D 45 CC 4D 85 ED 4C 0F 44 E8 41 C7 45 00 00 00 00 00 48 85 DB"
+        "windows": "44 89 44 24 ? 48 89 54 24 ? 48 89 4C 24 ? 55 53 56 57 41 55 41 56 41 57 48 8B EC",
+        "linux": "55 48 89 E5 41 57 41 56 41 55 49 89 CD 41 54 49 89 FC 53 48 89 F3 48 83 EC"
     },
+    // Find string 'Client %d(%s) tried to send a RebroadcastSourceId msg.' which is in
+    // a logging call. On linux search for the one which is being used in CServerSideClient.
     "INetworkMessageProcessingPreFilter::FilterMessage": {
         "lib": "engine2",
         "windows": "40 53 48 83 EC ? 48 8B 02 48 8B D9 48 8B CA",
         "linux": "55 48 89 E5 53 48 89 FB 48 89 F7 48 83 EC ? 48 8B 06 FF 50 ? 48 89 C2 31 C0 48 39 15 ? ? ? ? 74 ? 48 8B 5D ? C9 C3 0F 1F 80 ? ? ? ? 8B 3D ? ? ? ? BE ? ? ? ? E8 ? ? ? ? 84 C0 74 ? 48 8B 43 ? 4C 8D 05 ? ? ? ? BE ? ? ? ? 0F B7 4B"
     },
+    // Called in `Msg(...)`, receives 2nd argument LOG_GENERAL
     "CLoggingSystem::LogDirect": {
         "lib": "tier0",
         "windows": "4C 89 4C 24 ? 44 89 44 24 ? 89 54 24 ? 55",
         "linux": "55 49 89 FA 48 89 E5 41 57 41 56 41 89 D6"
     },
+    // Find string 'Unknown command '%s'!\n'
     "Cmd_ExecuteCommand": {
         "lib": "engine2",
         "windows": "48 89 5C 24 ? 4C 89 4C 24 ? 48 89 4C 24 ? 55 56 57 41 54 41 55 41 56 41 57 48 8D AC 24",
         "linux": "55 48 89 E5 41 57 41 56 41 89 F6 41 55 49 89 FD 41 54 4D 89 C4"
     },
+    // Search for "smokegrenade_projectile" / "BaseGrenade.JumpThrowF" being used in a function call.
+    // The sig is called before a CBufferString::Purge
+    // Another trail, look for "weapon_%s", then in an if there's a function with like 6 arguments being called
+    // enter in it, then the return value is the function we want
     "GetWeaponCSDataFromKey": {
         "lib": "server",
         "windows": "48 89 5C 24 ? 57 48 83 EC ? 33 FF 4C 8B CA 8B D9",
-        "linux": "55 31 D2 48 89 E5 41 57 41 56 41 55 41 54 41 89 FC"
+        "linux": "48 85 F6 0F 84 ? ? ? ? 55 48 89 E5 41 57 41 56 41 55 49 89 F5 41 54 53 48 81 EC ? ? ? ? 80 3E ? 75 ? 31 C0 48 81 C4 ? ? ? ? 5B 41 5C 41 5D 41 5E 41 5F 5D C3 0F 1F 80 ? ? ? ? 4C 8D A5"
     },
+    // Search for "ParticleEffect" and the function contains it
     "DispatchParticleEffect": {
         "lib": "server",
         "windows": "48 89 5C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 4C 89 74 24 ? 55 48 8D 6C 24 ? 48 81 EC ? ? ? ? 48 8B D9 41 0F B6 F9",
         "linux": "55 48 89 E5 41 57 41 56 41 55 41 89 CD 41 54 53 48 89 D3"
     },
+    // Search for "smokegrenade_projectile" and it should be at the top of the function used
     "CSmokeGrenadeProjectile::EmitGrenade": {
         "lib": "server",
         "windows": "48 8B C4 48 89 58 ? 48 89 68 ? 48 89 70 ? 57 41 56 41 57 48 81 EC ? ? ? ? 48 8B B4 24 ? ? ? ? 4D 8B F8",
         "linux": "55 4C 89 C1 48 89 E5 41 57 45 89 CF 41 56 49 89 FE"
     },
+    // Search for "flashbang_projectile" and it should be at the top of the function used
     "CFlashbangProjectile::EmitGrenade": {
         "lib": "server",
         "windows": "48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B 6C 24 ? 49 8B F8",
         "linux": "55 4C 89 C1 48 89 E5 41 57 45 89 CF 41 56 49 89 D6 48 89 F2 48 89 FE 41 55 49 89 FD 41 54 48 8D 3D ? ? ? ? 4D 89 C4 53 48 83 EC ? E8 ? ? ? ? 4C 89 F6"
     },
+    // Search for "hegrenade_projectile" and it should be at the top of the function used
     "CHEGrenadeProjectile::EmitGrenade": {
         "lib": "server",
         "windows": "48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B AC 24 ? ? ? ? 49 8B F8",
         "linux": "55 4C 89 C1 48 89 E5 41 57 49 89 D7"
     },
+    // Search for "decoy_projectile" and it should be at the top of the function used
     "CDecoyProjectile::EmitGrenade": {
         "lib": "server",
-        "windows": "48 8B C4 55 56 48 81 EC",
+        "windows": "48 8B C4 55 56 48 81 EC ? ? ? ? 48 89 58 ? 48 8B D9",
         "linux": "55 4C 89 C1 48 89 E5 41 57 45 89 CF 41 56 49 89 D6 48 89 F2 48 89 FE 41 55 49 89 FD 41 54 48 8D 3D ? ? ? ? 4D 89 C4 53 48 83 EC ? E8 ? ? ? ? 45 31 C0"
     },
+    // Search for "molotov_projectile" and it should be at the top of the function used
     "CMolotovProjectile::EmitGrenade": {
         "lib": "server",
         "windows": "48 8B C4 48 89 58 ? 4C 89 40 ? 48 89 48 ? 55 56 57 41 54 41 55 41 56 41 57 48 8D 6C 24",
         "linux": "55 48 8D 05 ? ? ? ? 48 89 E5 41 57 41 56 41 55 41 54 49 89 FC 53 48 81 EC ? ? ? ? 4C 8D 35"
     },
+    // Find any datamap function ( 'InventoryUpdateThink' for example )
+    // And check the xref of it except the definition xref
+    // It's function pointer will be passed to this function as the second parameter
+    // Another trace: 'CChoreoComponent::AddSceneEvent:  event->GetActor() was NULL!!!'
     "DispatchDatamapFunction": {
         "lib": "server",
         "windows": "40 53 56 41 56 48 83 EC ? 44 89 44 24",
-        "linux": "55 48 89 E5 41 57 49 89 D7 89 CA"
+        "linux": "55 48 89 E5 41 57 4D 89 C7 41 56 49 89 D6 89 CA"
+    },
+    // Search for "#SFUI_Notice_YouDroppedWeapon"
+    "CCSPlayer_WeaponServices::DropWeapon": {
+        "lib": "server",
+        "windows": "48 89 74 24 20 57 41 54 41 57 48 83 EC 40 45",
+        "linux": "55 48 89 E5 41 57 41 56 41 55 41 89 D5 41 54 49 89 FC 48 89 F7"
     }
 }
