@@ -1,0 +1,249 @@
+func_name: CGameResourceService_LoadGameResourceManifestGroup
+func_va: '0x584f10'
+disasm_code: |-
+  .text:0000000000584F10                 push    rbp
+  .text:0000000000584F11                 mov     rbp, rsp
+  .text:0000000000584F14                 push    r15
+  .text:0000000000584F16                 push    r14
+  .text:0000000000584F18                 push    r13
+  .text:0000000000584F1A                 push    r12
+  .text:0000000000584F1C                 push    rbx
+  .text:0000000000584F1D                 sub     rsp, 138h
+  .text:0000000000584F24                 cmp     qword ptr [rdi+50h], 0
+  .text:0000000000584F29                 mov     [rbp+var_148], rcx
+  .text:0000000000584F30                 jz      loc_585168
+  .text:0000000000584F36                 test    rsi, rsi
+  .text:0000000000584F39                 jz      loc_585168
+  .text:0000000000584F3F                 mov     rbx, rdi
+  .text:0000000000584F42                 mov     r15d, edx
+  .text:0000000000584F45                 mov     r13d, r8d
+  .text:0000000000584F48                 mov     [rbp+var_158], rsi
+  .text:0000000000584F4F                 ; _QWORD
+  .text:0000000000584F4F                 mov     edi, 0A8h; _QWORD
+  .text:0000000000584F54                 call    __Znwm; operator new(ulong)
+  .text:0000000000584F59                 movsx   edx, r15b
+  .text:0000000000584F5D                 movsx   r8d, r13b
+  .text:0000000000584F61                 mov     rsi, rbx
+  .text:0000000000584F64                 mov     rcx, [rbp+var_148]
+  .text:0000000000584F6B                 mov     r12, rax
+  .text:0000000000584F6E                 mov     rdi, rax
+  .text:0000000000584F71                 call    sub_577E10
+  .text:0000000000584F76                 mov     r14, [r12+0A0h]
+  .text:0000000000584F7E                 lea     rdi, [rbp+var_140]
+  .text:0000000000584F85                 mov     rdx, [rbp+var_158]
+  .text:0000000000584F8C                 lea     rsi, aSS_4; "%s.%s"
+  .text:0000000000584F93                 mov     [rbp+var_150], rdi
+  .text:0000000000584F9A                 lea     rcx, aVrgrp; "vrgrp"
+  .text:0000000000584FA1                 lea     rax, [r14+8]
+  .text:0000000000584FA5                 test    r14, r14
+  .text:0000000000584FA8                 cmovnz  r14, rax
+  .text:0000000000584FAC                 xor     eax, eax
+  .text:0000000000584FAE                 call    sub_4895C0
+  .text:0000000000584FB3                 lea     rsi, [rbp+var_138]
+  .text:0000000000584FBA                 test    [rbp+var_139], 40h
+  .text:0000000000584FC1                 jnz     short loc_584FDA
+  .text:0000000000584FC3                 ; _QWORD
+  .text:0000000000584FC3                 lea     rsi, s1; _QWORD
+  .text:0000000000584FCA                 test    dword ptr [rbp-13Ch], 3FFFFFFFh
+  .text:0000000000584FD4                 jnz     loc_585120
+  .text:0000000000584FDA                 xor     eax, eax
+  .text:0000000000584FDC                 mov     [rbp+var_158], rsi
+  .text:0000000000584FE3                 lea     rdi, aCgameresources_5; "CGameResourceService::BuildResourceMani"...
+  .text:0000000000584FEA                 call    _COM_TimestampedLog
+  .text:0000000000584FEF                 mov     rdi, [rbx+50h]
+  .text:0000000000584FF3                 mov     rsi, [rbp+var_158]
+  .text:0000000000584FFA                 test    rdi, rdi
+  .text:0000000000584FFD                 jz      short loc_58501E
+  .text:0000000000584FFF                 mov     rax, [rdi]
+  .text:0000000000585002                 xor     edx, edx
+  .text:0000000000585004                 mov     rcx, r14
+  .text:0000000000585007                 cmp     byte ptr [rbx+35h], 0
+  .text:000000000058500B                 ; 0x18 = IEntityResourceManifestBuilder_BuildResourceManifest_ManifestNameOrGroupName
+  .text:000000000058500B                 mov     rax, [rax+18h]
+  .text:000000000058500F                 jz      loc_585110
+  .text:0000000000585015                 call    rax
+  .text:0000000000585017                 ; _QWORD
+  .text:0000000000585017                 mov     rsi, [rbp+var_158]; _QWORD
+  .text:000000000058501E                 lea     rdi, aCgameresources_6; "CGameResourceService::BuildResourceMani"...
+  .text:0000000000585025                 xor     eax, eax
+  .text:0000000000585027                 call    _COM_TimestampedLog
+  .text:000000000058502C                 ; this
+  .text:000000000058502C                 mov     rdi, [rbp+var_150]; this
+  .text:0000000000585033                 ; int
+  .text:0000000000585033                 xor     esi, esi; int
+  .text:0000000000585035                 call    __ZN13CBufferString5PurgeEi; CBufferString::Purge(int)
+  .text:000000000058503A                 mov     rax, [r14]
+  .text:000000000058503D                 lea     rdx, sub_57C090
+  .text:0000000000585044                 mov     rax, [rax+48h]
+  .text:0000000000585048                 cmp     rax, rdx
+  .text:000000000058504B                 jnz     loc_585130
+  .text:0000000000585051                 mov     ebx, [r14+28h]
+  .text:0000000000585055                 test    ebx, ebx
+  .text:0000000000585057                 jz      loc_58513F
+  .text:000000000058505D                 mov     rax, [r14]
+  .text:0000000000585060                 mov     [r14+10Ch], ebx
+  .text:0000000000585067                 lea     rdx, sub_57C0A0
+  .text:000000000058506E                 mov     rax, [rax+50h]
+  .text:0000000000585072                 cmp     rax, rdx
+  .text:0000000000585075                 jnz     loc_585170
+  .text:000000000058507B                 mov     edx, [r14+28h]
+  .text:000000000058507F                 xor     eax, eax
+  .text:0000000000585081                 test    edx, edx
+  .text:0000000000585083                 jle     short loc_585089
+  .text:0000000000585085                 mov     rax, [r14+30h]
+  .text:0000000000585089                 mov     rdi, cs:qword_97B7B8
+  .text:0000000000585090                 mov     [rbp+var_138], rax
+  .text:0000000000585097                 mov     rax, [rbp+var_148]
+  .text:000000000058509E                 mov     [rbp+var_130], 0
+  .text:00000000005850A5                 mov     [rbp+var_140], ebx
+  .text:00000000005850AB                 mov     rsi, [rbp+var_150]
+  .text:00000000005850B2                 mov     [rbp+var_118], 0
+  .text:00000000005850BD                 mov     [rbp+var_110], 0
+  .text:00000000005850C8                 mov     [rbp+var_12F], r15b
+  .text:00000000005850CF                 mov     [rbp+var_128], rax
+  .text:00000000005850D6                 mov     [rbp+var_120], r13b
+  .text:00000000005850DD                 mov     rax, [rdi]
+  .text:00000000005850E0                 call    qword ptr [rax+0B0h]
+  .text:00000000005850E6                 mov     rdi, r12
+  .text:00000000005850E9                 mov     rsi, rax
+  .text:00000000005850EC                 call    sub_575F10
+  .text:00000000005850F1                 add     rsp, 138h
+  .text:00000000005850F8                 mov     rax, r12
+  .text:00000000005850FB                 pop     rbx
+  .text:00000000005850FC                 pop     r12
+  .text:00000000005850FE                 pop     r13
+  .text:0000000000585100                 pop     r14
+  .text:0000000000585102                 pop     r15
+  .text:0000000000585104                 pop     rbp
+  .text:0000000000585105                 retn
+  .text:0000000000585110                 mov     [rbp+var_158], rsi
+  .text:0000000000585117                 jmp     loc_585015
+  .text:0000000000585120                 mov     rsi, [rbp+var_138]
+  .text:0000000000585127                 jmp     loc_584FDA
+  .text:0000000000585130                 mov     rdi, r14
+  .text:0000000000585133                 call    rax
+  .text:0000000000585135                 mov     ebx, eax
+  .text:0000000000585137                 test    ebx, ebx
+  .text:0000000000585139                 jnz     loc_58505D
+  .text:000000000058513F                 mov     rax, [r12+0A0h]
+  .text:0000000000585147                 test    rax, rax
+  .text:000000000058514A                 jz      short loc_585180
+  .text:000000000058514C                 movzx   edx, byte ptr [rax+158h]
+  .text:0000000000585153                 test    dl, 10h
+  .text:0000000000585156                 jz      short loc_585180
+  .text:0000000000585158                 or      edx, 20h
+  .text:000000000058515B                 mov     [rax+158h], dl
+  .text:0000000000585161                 nop     dword ptr [rax+00000000h]
+  .text:0000000000585168                 xor     r12d, r12d
+  .text:000000000058516B                 jmp     short loc_5850F1
+  .text:0000000000585170                 mov     rdi, r14
+  .text:0000000000585173                 call    rax
+  .text:0000000000585175                 jmp     loc_585089
+  .text:0000000000585180                 mov     rdi, r12
+  .text:0000000000585183                 call    sub_576890
+  .text:0000000000585188                 ; _QWORD
+  .text:0000000000585188                 mov     esi, 0A8h; _QWORD
+  .text:000000000058518D                 ; _QWORD
+  .text:000000000058518D                 mov     rdi, r12; _QWORD
+  .text:0000000000585190                 call    __ZdlPvm; operator delete(void *,ulong)
+  .text:0000000000585195                 jmp     short loc_585168
+procedure: |-
+  __int64 __fastcall sub_584F10(__int64 a1, __int64 a2, char a3, __int64 a4, char a5)
+  {
+    __int64 v7; // r12
+    int v8; // r8d
+    int v9; // r9d
+    __int64 *v10; // r14
+    __int64 v11; // rdx
+    const char *v12; // rsi
+    __int64 v13; // rdx
+    __int64 v14; // rdi
+    __int64 (__fastcall *v15)(); // rax
+    int v16; // ebx
+    __int64 v17; // rax
+    __int64 (__fastcall *v18)(); // rax
+    __int64 v19; // rax
+    __int64 v20; // rax
+    __int64 v22; // rax
+    char v23; // dl
+    int v25; // [rsp+20h] [rbp-140h] BYREF
+    int v26; // [rsp+24h] [rbp-13Ch]
+    const char *v27; // [rsp+28h] [rbp-138h] BYREF
+    char v28; // [rsp+30h] [rbp-130h]
+    char v29; // [rsp+31h] [rbp-12Fh]
+    __int64 v30; // [rsp+38h] [rbp-128h]
+    char v31; // [rsp+40h] [rbp-120h]
+    __int64 v32; // [rsp+48h] [rbp-118h]
+    __int64 v33; // [rsp+50h] [rbp-110h]
+
+    if ( !*(_QWORD *)(a1 + 80) || !a2 )
+      return 0;
+    v7 = operator new(168);
+    sub_577E10(v7, a1, (unsigned int)a3, a4, (unsigned int)a5);
+    v10 = *(__int64 **)(v7 + 160);
+    if ( v10 )
+      ++v10;
+    sub_4895C0((unsigned int)&v25, (unsigned int)"%s.%s", a2, (unsigned int)"vrgrp", v8, v9);
+    v12 = (const char *)&v27;
+    if ( (v26 & 0x40000000) == 0 )
+    {
+      v12 = &s1;
+      if ( (v26 & 0x3FFFFFFF) != 0 )
+        v12 = v27;
+    }
+    COM_TimestampedLog("CGameResourceService::BuildResourceManifest(start) [manifest group %s]", v12, v11);
+    v14 = *(_QWORD *)(a1 + 80);
+    if ( v14 )
+      (*(void (__fastcall **)(__int64, const char *, _QWORD, __int64 *))(*(_QWORD *)v14 + 24LL))(v14, v12, 0, v10);// 0x18 = IEntityResourceManifestBuilder_BuildResourceManifest_ManifestNameOrGroupName
+    COM_TimestampedLog("CGameResourceService::BuildResourceManifest(finish) [manifest group %s]", v12, v13);
+    CBufferString::Purge((CBufferString *)&v25, 0);
+    v15 = *(__int64 (__fastcall **)())(*v10 + 72);
+    if ( v15 != sub_57C090 )
+    {
+      v16 = ((__int64 (__fastcall *)(__int64 *))v15)(v10);
+      if ( v16 )
+        goto LABEL_12;
+      goto LABEL_18;
+    }
+    v16 = *((_DWORD *)v10 + 10);
+    if ( !v16 )
+    {
+  LABEL_18:
+      v22 = *(_QWORD *)(v7 + 160);
+      if ( v22 && (v23 = *(_BYTE *)(v22 + 344), (v23 & 0x10) != 0) )
+      {
+        *(_BYTE *)(v22 + 344) = v23 | 0x20;
+      }
+      else
+      {
+        sub_576890(v7);
+        operator delete(v7, 168);
+      }
+      return 0;
+    }
+  LABEL_12:
+    v17 = *v10;
+    *((_DWORD *)v10 + 67) = v16;
+    v18 = *(__int64 (__fastcall **)())(v17 + 80);
+    if ( v18 == sub_57C0A0 )
+    {
+      v19 = 0;
+      if ( *((int *)v10 + 10) > 0 )
+        v19 = v10[6];
+    }
+    else
+    {
+      v19 = ((__int64 (__fastcall *)(__int64 *))v18)(v10);
+    }
+    v27 = (const char *)v19;
+    v28 = 0;
+    v25 = v16;
+    v32 = 0;
+    v33 = 0;
+    v29 = a3;
+    v30 = a4;
+    v31 = a5;
+    v20 = (*(__int64 (__fastcall **)(__int64, int *))(*(_QWORD *)qword_97B7B8 + 176LL))(qword_97B7B8, &v25);
+    sub_575F10(v7, v20);
+    return v7;
+  }

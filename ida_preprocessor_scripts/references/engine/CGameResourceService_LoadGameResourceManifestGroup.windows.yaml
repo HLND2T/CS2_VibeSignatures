@@ -1,0 +1,239 @@
+func_name: CGameResourceService_LoadGameResourceManifestGroup
+func_va: '0x1801ae770'
+disasm_code: |-
+  .text:00000001801AE770                 mov     [rsp+arg_8], rbx
+  .text:00000001801AE775                 mov     [rsp+arg_10], rbp
+  .text:00000001801AE77A                 mov     [rsp+arg_18], rsi
+  .text:00000001801AE77F                 push    rdi
+  .text:00000001801AE780                 push    r12
+  .text:00000001801AE782                 push    r13
+  .text:00000001801AE784                 push    r14
+  .text:00000001801AE786                 push    r15
+  .text:00000001801AE788                 sub     rsp, 170h
+  .text:00000001801AE78F                 cmp     qword ptr [rcx+58h], 0
+  .text:00000001801AE794                 mov     r14, r9
+  .text:00000001801AE797                 movzx   r15d, r8b
+  .text:00000001801AE79B                 mov     rbx, rdx
+  .text:00000001801AE79E                 mov     rbp, rcx
+  .text:00000001801AE7A1                 jz      loc_1801AE8B9
+  .text:00000001801AE7A7                 test    rdx, rdx
+  .text:00000001801AE7AA                 jz      loc_1801AE8B9
+  .text:00000001801AE7B0                 mov     rax, cs:g_pMemAlloc
+  .text:00000001801AE7B7                 mov     edx, 0A8h
+  .text:00000001801AE7BC                 mov     rcx, [rax]
+  .text:00000001801AE7BF                 mov     rax, [rcx]
+  .text:00000001801AE7C2                 call    qword ptr [rax+8]
+  .text:00000001801AE7C5                 movzx   r12d, [rsp+198h+arg_20]
+  .text:00000001801AE7CE                 xor     r13d, r13d
+  .text:00000001801AE7D1                 test    rax, rax
+  .text:00000001801AE7D4                 jz      short loc_1801AE7F2
+  .text:00000001801AE7D6                 mov     r9, r14
+  .text:00000001801AE7D9                 mov     [rsp+198h+var_178], r12b
+  .text:00000001801AE7DE                 movzx   r8d, r15b
+  .text:00000001801AE7E2                 mov     rdx, rbp
+  .text:00000001801AE7E5                 mov     rcx, rax
+  .text:00000001801AE7E8                 call    sub_1801AA5B0
+  .text:00000001801AE7ED                 mov     rdi, rax
+  .text:00000001801AE7F0                 jmp     short loc_1801AE7F5
+  .text:00000001801AE7F2                 mov     rdi, r13
+  .text:00000001801AE7F5                 mov     rax, [rdi+0A0h]
+  .text:00000001801AE7FC                 lea     r9, aVrgrp; "vrgrp"
+  .text:00000001801AE803                 test    rax, rax
+  .text:00000001801AE806                 lea     rdx, aSS_7; "%s.%s"
+  .text:00000001801AE80D                 mov     r8, rbx
+  .text:00000001801AE810                 lea     rcx, [rsp+198h+var_130]
+  .text:00000001801AE815                 lea     rsi, [rax+8]
+  .text:00000001801AE819                 cmovz   rsi, r13
+  .text:00000001801AE81D                 call    sub_1800249A0
+  .text:00000001801AE822                 mov     ecx, [rax+4]
+  .text:00000001801AE825                 bt      ecx, 1Eh
+  .text:00000001801AE829                 jnb     short loc_1801AE831
+  .text:00000001801AE82B                 lea     rbx, [rax+8]
+  .text:00000001801AE82F                 jmp     short loc_1801AE846
+  .text:00000001801AE831                 test    ecx, 3FFFFFFFh
+  .text:00000001801AE837                 jbe     short loc_1801AE83F
+  .text:00000001801AE839                 mov     rbx, [rax+8]
+  .text:00000001801AE83D                 jmp     short loc_1801AE846
+  .text:00000001801AE83F                 lea     rbx, unk_180524F9F
+  .text:00000001801AE846                 mov     rdx, rbx
+  .text:00000001801AE849                 lea     rcx, aCgameresources_4; "CGameResourceService::BuildResourceMani"...
+  .text:00000001801AE850                 call    cs:COM_TimestampedLog
+  .text:00000001801AE856                 mov     rcx, [rbp+58h]
+  .text:00000001801AE85A                 test    rcx, rcx
+  .text:00000001801AE85D                 jz      short loc_1801AE86E
+  .text:00000001801AE85F                 mov     rax, [rcx]
+  .text:00000001801AE862                 mov     r9, rsi
+  .text:00000001801AE865                 xor     r8d, r8d
+  .text:00000001801AE868                 mov     rdx, rbx
+  .text:00000001801AE86B                 call    qword ptr [rax+8] ; 0x8 = IEntityResourceManifestBuilder_BuildResourceManifest_ManifestNameOrGroupName
+  .text:00000001801AE86E                 mov     rdx, rbx
+  .text:00000001801AE871                 lea     rcx, aCgameresources_5; "CGameResourceService::BuildResourceMani"...
+  .text:00000001801AE878                 call    cs:COM_TimestampedLog
+  .text:00000001801AE87E                 xor     edx, edx
+  .text:00000001801AE880                 lea     rcx, [rsp+198h+var_130]
+  .text:00000001801AE885                 call    cs:?Purge@CBufferString@@QEAAXH@Z; CBufferString::Purge(int)
+  .text:00000001801AE88B                 mov     rax, [rsi]
+  .text:00000001801AE88E                 mov     rcx, rsi
+  .text:00000001801AE891                 call    qword ptr [rax+48h]
+  .text:00000001801AE894                 mov     ebx, eax
+  .text:00000001801AE896                 test    eax, eax
+  .text:00000001801AE898                 jnz     short loc_1801AE8F9
+  .text:00000001801AE89A                 mov     rcx, [rdi+0A0h]
+  .text:00000001801AE8A1                 test    rcx, rcx
+  .text:00000001801AE8A4                 jz      short loc_1801AE8DC
+  .text:00000001801AE8A6                 movzx   eax, byte ptr [rcx+158h]
+  .text:00000001801AE8AD                 test    al, 10h
+  .text:00000001801AE8AF                 jz      short loc_1801AE8DC
+  .text:00000001801AE8B1                 or      al, 20h
+  .text:00000001801AE8B3                 mov     [rcx+158h], al
+  .text:00000001801AE8B9                 xor     eax, eax
+  .text:00000001801AE8BB                 lea     r11, [rsp+198h+var_28]
+  .text:00000001801AE8C3                 mov     rbx, [r11+38h]
+  .text:00000001801AE8C7                 mov     rbp, [r11+40h]
+  .text:00000001801AE8CB                 mov     rsi, [r11+48h]
+  .text:00000001801AE8CF                 mov     rsp, r11
+  .text:00000001801AE8D2                 pop     r15
+  .text:00000001801AE8D4                 pop     r14
+  .text:00000001801AE8D6                 pop     r13
+  .text:00000001801AE8D8                 pop     r12
+  .text:00000001801AE8DA                 pop     rdi
+  .text:00000001801AE8DB                 retn
+  .text:00000001801AE8DC                 mov     rcx, rdi
+  .text:00000001801AE8DF                 call    sub_1801AA6F0
+  .text:00000001801AE8E4                 mov     rax, cs:g_pMemAlloc
+  .text:00000001801AE8EB                 mov     rdx, rdi
+  .text:00000001801AE8EE                 mov     rcx, [rax]
+  .text:00000001801AE8F1                 mov     rax, [rcx]
+  .text:00000001801AE8F4                 call    qword ptr [rax+18h]
+  .text:00000001801AE8F7                 jmp     short loc_1801AE8B9
+  .text:00000001801AE8F9                 mov     rax, [rsi]
+  .text:00000001801AE8FC                 mov     rcx, rsi
+  .text:00000001801AE8FF                 mov     [rsi+10Ch], ebx
+  .text:00000001801AE905                 call    qword ptr [rax+50h]
+  .text:00000001801AE908                 mov     rcx, cs:g_pResourceSystem
+  .text:00000001801AE90F                 lea     rdx, [rsp+198h+var_168]
+  .text:00000001801AE914                 mov     [rsp+198h+var_160], rax
+  .text:00000001801AE919                 mov     [rsp+198h+var_158], r13b
+  .text:00000001801AE91E                 mov     [rsp+198h+var_140], r13
+  .text:00000001801AE923                 mov     rax, [rcx]
+  .text:00000001801AE926                 mov     [rsp+198h+var_138], r13
+  .text:00000001801AE92B                 mov     [rsp+198h+var_168], ebx
+  .text:00000001801AE92F                 mov     [rsp+198h+var_157], r15b
+  .text:00000001801AE934                 mov     [rsp+198h+var_150], r14
+  .text:00000001801AE939                 mov     [rsp+198h+var_148], r12b
+  .text:00000001801AE93E                 call    qword ptr [rax+0B0h]
+  .text:00000001801AE944                 lea     rcx, [rdi+50h]
+  .text:00000001801AE948                 mov     [rsp+198h+arg_0], rax
+  .text:00000001801AE950                 lea     rdx, [rsp+198h+arg_0]
+  .text:00000001801AE958                 mov     rbx, rax
+  .text:00000001801AE95B                 call    sub_18004FA70
+  .text:00000001801AE960                 mov     rcx, cs:g_pResourceSystem
+  .text:00000001801AE967                 lea     r8, sub_1801AB370
+  .text:00000001801AE96E                 mov     r9, rdi
+  .text:00000001801AE971                 mov     rdx, rbx
+  .text:00000001801AE974                 mov     r10, [rcx]
+  .text:00000001801AE977                 call    qword ptr [r10+0B8h]
+  .text:00000001801AE97E                 mov     rax, rdi
+  .text:00000001801AE981                 jmp     loc_1801AE8BB
+procedure: |-
+  __int64 __fastcall CGameResourceService_LoadGameResourceManifestGroup(
+          __int64 a1,
+          __int64 a2,
+          unsigned __int8 a3,
+          __int64 a4,
+          char a5)
+  {
+    __int64 v9; // rax
+    char v10; // r12
+    __int64 v11; // rdi
+    __int64 v12; // rax
+    _DWORD *v13; // rsi
+    __int64 v14; // rax
+    int v15; // ecx
+    const char *v16; // rbx
+    __int64 v17; // rcx
+    int v18; // ebx
+    __int64 v19; // rcx
+    char v20; // al
+    __int64 v22; // rax
+    __int64 v23; // rax
+    __int64 v24; // rbx
+    int v25; // [rsp+30h] [rbp-168h] BYREF
+    __int64 v26; // [rsp+38h] [rbp-160h]
+    char v27; // [rsp+40h] [rbp-158h]
+    unsigned __int8 v28; // [rsp+41h] [rbp-157h]
+    __int64 v29; // [rsp+48h] [rbp-150h]
+    char v30; // [rsp+50h] [rbp-148h]
+    __int64 v31; // [rsp+58h] [rbp-140h]
+    __int64 v32; // [rsp+60h] [rbp-138h]
+    _BYTE v33[264]; // [rsp+68h] [rbp-130h] BYREF
+    __int64 v34; // [rsp+1A0h] [rbp+8h] BYREF
+
+    if ( !*(_QWORD *)(a1 + 88) || !a2 )
+      return 0;
+    v9 = (*(__int64 (__fastcall **)(_QWORD, __int64))(*g_pMemAlloc + 8LL))(g_pMemAlloc, 168);
+    v10 = a5;
+    if ( v9 )
+      v11 = sub_1801AA5B0(v9, a1, a3, a4, a5);
+    else
+      v11 = 0;
+    v12 = *(_QWORD *)(v11 + 160);
+    v13 = (_DWORD *)(v12 + 8);
+    if ( !v12 )
+      v13 = nullptr;
+    v14 = sub_1800249A0(v33, "%s.%s", a2, "vrgrp");
+    v15 = *(_DWORD *)(v14 + 4);
+    if ( (v15 & 0x40000000) != 0 )
+    {
+      v16 = (const char *)(v14 + 8);
+    }
+    else if ( (v15 & 0x3FFFFFFF) != 0 )
+    {
+      v16 = *(const char **)(v14 + 8);
+    }
+    else
+    {
+      v16 = (const char *)&unk_180524F9F;
+    }
+    COM_TimestampedLog("CGameResourceService::BuildResourceManifest(start) [manifest group %s]", v16);
+    v17 = *(_QWORD *)(a1 + 88);
+    if ( v17 )
+      (*(void (__fastcall **)(__int64, const char *, _QWORD, _DWORD *))(*(_QWORD *)v17 + 8LL))(v17, v16, 0, v13);// 0x8 = IEntityResourceManifestBuilder_BuildResourceManifest_ManifestNameOrGroupName
+    COM_TimestampedLog("CGameResourceService::BuildResourceManifest(finish) [manifest group %s]", v16);
+    CBufferString::Purge((CBufferString *)v33, 0);
+    v18 = (*(__int64 (__fastcall **)(_DWORD *))(*(_QWORD *)v13 + 72LL))(v13);
+    if ( !v18 )
+    {
+      v19 = *(_QWORD *)(v11 + 160);
+      if ( v19 && (v20 = *(_BYTE *)(v19 + 344), (v20 & 0x10) != 0) )
+      {
+        *(_BYTE *)(v19 + 344) = v20 | 0x20;
+      }
+      else
+      {
+        sub_1801AA6F0(v11);
+        (*(void (__fastcall **)(_QWORD, __int64))(*g_pMemAlloc + 24LL))(g_pMemAlloc, v11);
+      }
+      return 0;
+    }
+    v22 = *(_QWORD *)v13;
+    v13[67] = v18;
+    v26 = (*(__int64 (__fastcall **)(_DWORD *))(v22 + 80))(v13);
+    v27 = 0;
+    v31 = 0;
+    v23 = *(_QWORD *)g_pResourceSystem;
+    v32 = 0;
+    v25 = v18;
+    v28 = a3;
+    v29 = a4;
+    v30 = v10;
+    v34 = (*(__int64 (__fastcall **)(__int64, int *))(v23 + 176))(g_pResourceSystem, &v25);
+    v24 = v34;
+    sub_18004FA70(v11 + 80, &v34);
+    (*(void (__fastcall **)(__int64, __int64, __int64 (__fastcall *)(), __int64))(*(_QWORD *)g_pResourceSystem + 184LL))(
+      g_pResourceSystem,
+      v24,
+      sub_1801AB370,
+      v11);
+    return v11;
+  }
