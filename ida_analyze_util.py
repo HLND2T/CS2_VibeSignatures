@@ -209,6 +209,10 @@ else:
 
 DEFAULT_IDA_STRING_MIN_LENGTH = 4
 IDA_STRING_MIN_LENGTH_ENV_VAR = "CS2VIBE_STRING_MIN_LENGTH"
+IDA_STRING_SETUP_STATE_NODE = "$CS2VIBE_STRING_SETUP_STATE"
+IDA_STRING_SETUP_STATE_VERSION = 1
+IDA_STRING_SETUP_STRTYPES_LABEL = "STRTYPE_C"
+_IDA_STRING_MIN_LENGTH_AUTO = object()
 
 
 def _coerce_ida_string_min_length(value):
@@ -221,50 +225,109 @@ def _coerce_ida_string_min_length(value):
     return min_length
 
 
-def _resolve_ida_string_min_length():
+def _resolve_ida_string_min_length_config():
     raw_min_length = os.getenv(IDA_STRING_MIN_LENGTH_ENV_VAR)
     if raw_min_length is None:
-        return DEFAULT_IDA_STRING_MIN_LENGTH
+        return None
+    if not str(raw_min_length).strip():
+        return None
     return _coerce_ida_string_min_length(raw_min_length)
 
 
-def _build_ida_strings_setup_py_lines(
+def _resolve_ida_string_min_length():
+    resolved = _resolve_ida_string_min_length_config()
+    if resolved is None:
+        return DEFAULT_IDA_STRING_MIN_LENGTH
+    return resolved
+
+
+def _resolve_ida_string_min_length_for_py_lines(min_length):
+    if min_length is _IDA_STRING_MIN_LENGTH_AUTO:
+        return _resolve_ida_string_min_length_config()
+    if min_length is None:
+        return None
+    return _coerce_ida_string_min_length(min_length)
+
+
+def _build_ida_strings_enumerator_py_lines(
     *,
-    min_length: int | None = None,
+    min_length=_IDA_STRING_MIN_LENGTH_AUTO,
     strings_var_name: str = "strings",
 ) -> list[str]:
-    """Return py_eval code lines for idautils.Strings C-string setup.
+    """Return py_eval code lines for IDA string enumeration.
 
-    调用方需先在 py_eval 代码中导入 ``idautils`` 与 ``ida_nalt``；
-    本 helper 仅返回代码行列表，不注入 import 语句。
+    ``None`` min_length means using the IDB's current string-list state without
+    calling ``Strings.setup``. Integer min_length emits a netnode-guarded setup.
     """
-    if min_length is None:
-        resolved_min_length = _resolve_ida_string_min_length()
-    else:
-        resolved_min_length = _coerce_ida_string_min_length(min_length)
-    return [
+    resolved_min_length = _resolve_ida_string_min_length_for_py_lines(min_length)
+    lines = [
         f"{strings_var_name} = idautils.Strings(default_setup=False)",
+    ]
+    if resolved_min_length is None:
+        return lines
+
+    expected_state = {
+        "version": IDA_STRING_SETUP_STATE_VERSION,
+        "minlen": resolved_min_length,
+        "strtypes": IDA_STRING_SETUP_STRTYPES_LABEL,
+    }
+    return [
+        "import ida_netnode, json",
+        *lines,
+        f"CS2VIBE_STRING_SETUP_STATE_NODE = {IDA_STRING_SETUP_STATE_NODE!r}",
+        "def _cs2vibe_string_setup_node():",
+        "    return ida_netnode.netnode(CS2VIBE_STRING_SETUP_STATE_NODE, 0, True)",
+        "def _cs2vibe_read_string_setup_state():",
+        "    try:",
+        "        raw = _cs2vibe_string_setup_node().valobj()",
+        "        if isinstance(raw, bytes):",
+        "            raw = raw.decode('utf-8', errors='ignore')",
+        "        if raw is None or raw == '':",
+        "            return None",
+        "        return json.loads(str(raw))",
+        "    except Exception:",
+        "        return None",
+        "def _cs2vibe_write_string_setup_state(state):",
+        "    try:",
+        "        payload = json.dumps(state, sort_keys=True)",
+        "        _cs2vibe_string_setup_node().set(payload)",
+        "    except Exception:",
+        "        pass",
+        f"expected_state = {expected_state!r}",
+        "if _cs2vibe_read_string_setup_state() != expected_state:",
         (
-            f"{strings_var_name}.setup("
+            f"    {strings_var_name}.setup("
             "strtypes=[ida_nalt.STRTYPE_C], "
             f"minlen={resolved_min_length}"
             ")"
         ),
+        "    _cs2vibe_write_string_setup_state(expected_state)",
     ]
+
+
+def _build_ida_strings_setup_py_lines(
+    *,
+    min_length=_IDA_STRING_MIN_LENGTH_AUTO,
+    strings_var_name: str = "strings",
+) -> list[str]:
+    return _build_ida_strings_enumerator_py_lines(
+        min_length=min_length,
+        strings_var_name=strings_var_name,
+    )
 
 
 def _build_ida_exact_string_index_py_lines(
     target_texts_var_name="target_strings",
     result_var_name="exact_string_hits",
-    min_length=None,
+    min_length=_IDA_STRING_MIN_LENGTH_AUTO,
     *,
     target_strings_var_name=None,
     hits_var_name=None,
 ):
-    """Return py_eval code lines that build `{text: [ea...]}` exact-hit index.
+    """Return py_eval code lines that build `{text: [ea_list]}` exact-hit index.
 
-    调用方需先在 py_eval 代码中导入 ``idautils`` 与 ``ida_nalt``；
-    本 helper 仅返回代码行列表，不注入 import 语句。
+    调用方需先在 py_eval 代码中导入 ``idautils`` 与 ``ida_nalt``；本 helper 在
+    显式 minlen 配置时会额外注入 ``ida_netnode`` 与 ``json`` import。
     """
     if target_strings_var_name is not None:
         target_texts_var_name = target_strings_var_name
@@ -273,7 +336,7 @@ def _build_ida_exact_string_index_py_lines(
 
     return [
         f"{result_var_name} = {{text: [] for text in {target_texts_var_name} if text}}",
-        *_build_ida_strings_setup_py_lines(min_length=min_length),
+        *_build_ida_strings_enumerator_py_lines(min_length=min_length),
         "for item in strings:",
         "    try:",
         "        text = str(item)",
