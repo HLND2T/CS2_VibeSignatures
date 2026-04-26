@@ -356,6 +356,155 @@ class TestVtableAliasSupport(unittest.IsolatedAsyncioTestCase):
             py_code,
         )
 
+    def test_build_vtable_py_eval_resolves_exact_windows_rtti_alias(self) -> None:
+        rtti_symbol = (
+            "??_R4?$CEntityComponentHelperT@VCBodyComponent@@V?"
+            "$CEntityComponentHelperReferenced@VCBodyComponent@@@@@@6B@"
+        )
+        vfuncs = [
+            0x1801CA460,
+            0x1801BAE70,
+            0x1801BC640,
+            0x1801BBB40,
+            0x1801B52D0,
+            0x1801BB090,
+        ]
+
+        result = self._run_vtable_py_eval(
+            class_name="CEntityComponentHelperT_CBodyComponent",
+            symbol_aliases=[
+                rtti_symbol,
+                "_ZTV23CEntityComponentHelperTI14CBodyComponent32"
+                "CEntityComponentHelperReferencedIS0_EE",
+            ],
+            name_to_ea={rtti_symbol: 0x181917500},
+            name_by_ea={0x1815A1618: "CEntityComponentHelperT_CBodyComponent_vtable"},
+            data_refs={0x181917500: [0x1815A1610]},
+            ptr_values={
+                0x1815A1618 + idx * 8: vfunc
+                for idx, vfunc in enumerate(vfuncs)
+            }
+            | {0x1815A1648: 0},
+            func_addrs=set(vfuncs),
+        )
+
+        self.assertEqual(
+            "CEntityComponentHelperT_CBodyComponent_vtable",
+            result["vtable_symbol"],
+        )
+        self.assertEqual("0x1815a1618", result["vtable_va"])
+        self.assertEqual(6, result["vtable_numvfunc"])
+        self.assertEqual(
+            {str(idx): hex(vfunc) for idx, vfunc in enumerate(vfuncs)},
+            result["vtable_entries"],
+        )
+
+    def _run_vtable_py_eval(
+        self,
+        *,
+        class_name: str,
+        symbol_aliases: list[str],
+        name_to_ea: dict[str, int],
+        name_by_ea: dict[int, str],
+        data_refs: dict[int, list[int]],
+        ptr_values: dict[int, int],
+        func_addrs: set[int],
+    ) -> dict[str, object]:
+        py_code = ida_analyze_util._build_vtable_py_eval(
+            class_name,
+            symbol_aliases=symbol_aliases,
+        )
+        exec_globals = {"__builtins__": __builtins__}
+
+        with patch.dict(
+            sys.modules,
+            self._build_fake_vtable_ida_modules(
+                name_to_ea=name_to_ea,
+                name_by_ea=name_by_ea,
+                data_refs=data_refs,
+                ptr_values=ptr_values,
+                func_addrs=func_addrs,
+            ),
+            clear=False,
+        ):
+            exec(py_code, exec_globals)
+
+        return json.loads(exec_globals["result"])
+
+    def _build_fake_vtable_ida_modules(
+        self,
+        *,
+        name_to_ea: dict[str, int],
+        name_by_ea: dict[int, str],
+        data_refs: dict[int, list[int]],
+        ptr_values: dict[int, int],
+        func_addrs: set[int],
+    ) -> dict[str, types.ModuleType]:
+        ida_auto = types.ModuleType("ida_auto")
+        ida_auto.auto_wait = lambda: None
+
+        idaapi = types.ModuleType("idaapi")
+        idaapi.BADADDR = -1
+        idaapi.inf_is_64bit = lambda: True
+        idaapi.get_func = lambda ea: (
+            types.SimpleNamespace(start_ea=ea, end_ea=ea + 1)
+            if ea in func_addrs
+            else None
+        )
+        idaapi.add_func = lambda ea: None
+
+        ida_bytes = types.ModuleType("ida_bytes")
+        ida_bytes.DELIT_SIMPLE = 0
+        ida_bytes.del_items = lambda *args: None
+        ida_bytes.get_qword = lambda ea: ptr_values.get(ea, 0)
+        ida_bytes.get_dword = lambda ea: 0
+        ida_bytes.get_full_flags = lambda ea: 1 if ea in func_addrs else 0
+        ida_bytes.is_code = lambda flags: bool(flags)
+
+        ida_name = types.ModuleType("ida_name")
+        ida_name.get_name_ea = lambda badaddr, name: name_to_ea.get(name, badaddr)
+        ida_name.get_name = lambda ea: name_by_ea.get(ea, "")
+
+        idautils = types.ModuleType("idautils")
+        idautils.DataRefsTo = lambda ea: data_refs.get(ea, [])
+
+        idc = types.ModuleType("idc")
+        idc.create_insn = lambda ea: True
+
+        ida_segment = self._build_fake_vtable_ida_segment_module()
+        return {
+            "ida_auto": ida_auto,
+            "ida_bytes": ida_bytes,
+            "ida_name": ida_name,
+            "idaapi": idaapi,
+            "ida_segment": ida_segment,
+            "idautils": idautils,
+            "idc": idc,
+        }
+
+    def _build_fake_vtable_ida_segment_module(self) -> types.ModuleType:
+        ida_segment = types.ModuleType("ida_segment")
+        ida_segment.SEGPERM_EXEC = 1
+        rdata_seg = types.SimpleNamespace(
+            start_ea=0x181500000,
+            end_ea=0x182000000,
+            perm=0,
+        )
+        text_seg = types.SimpleNamespace(
+            start_ea=0x180000000,
+            end_ea=0x181000000,
+            perm=1,
+        )
+        ida_segment.get_segm_by_name = (
+            lambda name: rdata_seg if name == ".rdata" else None
+        )
+        ida_segment.getseg = lambda ea: (
+            rdata_seg if rdata_seg.start_ea <= ea < rdata_seg.end_ea else
+            text_seg if text_seg.start_ea <= ea < text_seg.end_ea else
+            None
+        )
+        return ida_segment
+
     async def test_preprocess_common_skill_passes_aliases_to_vtable_lookup(self) -> None:
         alias_map = {
             "CGameSystemReallocatingFactory_CSpawnGroupMgrGameSystem": [

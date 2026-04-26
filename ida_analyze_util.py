@@ -45,6 +45,23 @@ vtable_start = None
 vtable_symbol = ""
 is_linux = False
 
+def _resolve_windows_rtti_symbol(symbol_name, fallback_vtable_symbol=None):
+    col_addr = ida_name.get_name_ea(idaapi.BADADDR, symbol_name)
+    if col_addr == idaapi.BADADDR:
+        return None
+    rdata_seg = ida_segment.get_segm_by_name(".rdata")
+    for ref in idautils.DataRefsTo(col_addr):
+        if rdata_seg and not (rdata_seg.start_ea <= ref < rdata_seg.end_ea):
+            continue
+        vtable_start = ref + ptr_size
+        sym = (
+            ida_name.get_name(vtable_start)
+            or fallback_vtable_symbol
+            or ("vftable@" + hex(vtable_start))
+        )
+        return (vtable_start, sym, False)
+    return None
+
 def _try_direct_symbol(symbol_name):
     if not symbol_name:
         return None
@@ -52,7 +69,14 @@ def _try_direct_symbol(symbol_name):
     if addr == idaapi.BADADDR:
         return None
     if symbol_name.startswith("_ZTV"):
-        return (addr + 0x10, symbol_name + " + 0x10", True)
+        linux_address_point_offset = 2 * ptr_size
+        return (
+            addr + linux_address_point_offset,
+            symbol_name + " + " + hex(linux_address_point_offset),
+            True,
+        )
+    if symbol_name.startswith("??_R4"):
+        return _resolve_windows_rtti_symbol(symbol_name)
     return (addr, symbol_name, False)
 
 def _debug(message):
@@ -131,17 +155,13 @@ if vtable_start is None:
 # RTTI fallback: Windows ??_R4ClassName@@6B@
 if vtable_start is None:
     col_name = "??_R4" + class_name + "@@6B@"
-    col_addr = ida_name.get_name_ea(idaapi.BADADDR, col_name)
-    if col_addr != idaapi.BADADDR:
+    _found = _resolve_windows_rtti_symbol(
+        col_name,
+        "??_7" + class_name + "@@6B@",
+    )
+    if _found:
         is_linux = False
-        rdata_seg = ida_segment.get_segm_by_name(".rdata")
-        for ref in idautils.DataRefsTo(col_addr):
-            if rdata_seg and not (rdata_seg.start_ea <= ref < rdata_seg.end_ea):
-                continue
-            vtable_start = ref + ptr_size
-            sym = ida_name.get_name(vtable_start) or ("??_7" + class_name + "@@6B@")
-            vtable_symbol = sym
-            break
+        vtable_start, vtable_symbol, is_linux = _found
 
 # RTTI fallback: Linux _ZTI<len>ClassName
 if vtable_start is None:
