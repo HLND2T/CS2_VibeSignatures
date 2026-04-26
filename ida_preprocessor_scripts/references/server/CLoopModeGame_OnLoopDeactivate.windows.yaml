@@ -1,0 +1,102 @@
+func_name: CLoopModeGame_OnLoopDeactivate
+func_va: '0x180baa4f0'
+disasm_code: |-
+  .text:0000000180BAA4F0                 mov     [rsp+arg_0], rbx
+  .text:0000000180BAA4F5                 mov     [rsp+arg_8], rbp
+  .text:0000000180BAA4FA                 mov     [rsp+arg_10], rsi
+  .text:0000000180BAA4FF                 push    rdi
+  .text:0000000180BAA500                 sub     rsp, 20h
+  .text:0000000180BAA504                 mov     rax, [rcx+10h]
+  .text:0000000180BAA508                 mov     rbx, rcx
+  .text:0000000180BAA50B                 add     rcx, 10h
+  .text:0000000180BAA50F                 mov     rbp, r8
+  .text:0000000180BAA512                 mov     rdi, rdx
+  .text:0000000180BAA515                 call    qword ptr [rax+28h]
+  .text:0000000180BAA518                 mov     rcx, cs:g_pToolFramework2
+  .text:0000000180BAA51F                 movzx   esi, al
+  .text:0000000180BAA522                 mov     cs:byte_181F5EDB4, 0
+  .text:0000000180BAA529                 test    rcx, rcx
+  .text:0000000180BAA52C                 jz      short loc_180BAA53D
+  .text:0000000180BAA52E                 mov     r9, [rcx]
+  .text:0000000180BAA531                 xor     r8d, r8d
+  .text:0000000180BAA534                 mov     dl, 1
+  .text:0000000180BAA536                 call    qword ptr [r9+148h]
+  .text:0000000180BAA53D                 movzx   edx, sil
+  .text:0000000180BAA541                 mov     rcx, rdi
+  .text:0000000180BAA544                 call    IGameSystem_LoopDeactivateAllSystems
+  .text:0000000180BAA549                 mov     edx, 37h ; '7'
+  .text:0000000180BAA54E                 mov     rcx, rbx
+  .text:0000000180BAA551                 call    CLoopModeGame_ShutdownServer
+  .text:0000000180BAA556                 mov     rcx, cs:g_pEntitySystem
+  .text:0000000180BAA55D                 test    rcx, rcx
+  .text:0000000180BAA560                 jz      short loc_180BAA578
+  .text:0000000180BAA562                 mov     rax, [rcx]
+  .text:0000000180BAA565                 xor     edx, edx
+  .text:0000000180BAA567                 call    qword ptr [rax+60h] ; 0x60 = CEntitySystem_ClearEntityDatabase
+  .text:0000000180BAA56A                 mov     rcx, cs:g_pEntitySystem
+  .text:0000000180BAA571                 xor     edx, edx
+  .text:0000000180BAA573                 call    sub_1811F8C00
+  .text:0000000180BAA578                 mov     rcx, [rbx+460h]
+  .text:0000000180BAA57F                 test    rcx, rcx
+  .text:0000000180BAA582                 jz      short loc_180BAA5A4
+  .text:0000000180BAA584                 mov     rax, [rcx]
+  .text:0000000180BAA587                 xor     edx, edx
+  .text:0000000180BAA589                 call    qword ptr [rax+8]
+  .text:0000000180BAA58C                 mov     rcx, [rbx+460h]
+  .text:0000000180BAA593                 mov     rax, [rcx]
+  .text:0000000180BAA596                 call    qword ptr [rax+30h]
+  .text:0000000180BAA599                 mov     qword ptr [rbx+460h], 0
+  .text:0000000180BAA5A4                 mov     rcx, [rbx+60h]
+  .text:0000000180BAA5A8                 test    rcx, rcx
+  .text:0000000180BAA5AB                 jz      short loc_180BAA5BC
+  .text:0000000180BAA5AD                 mov     rax, [rcx]
+  .text:0000000180BAA5B0                 mov     r9b, 1
+  .text:0000000180BAA5B3                 mov     r8, rbp
+  .text:0000000180BAA5B6                 mov     rdx, rdi
+  .text:0000000180BAA5B9                 call    qword ptr [rax+28h]
+  .text:0000000180BAA5BC                 mov     rcx, cs:off_181C10CC0
+  .text:0000000180BAA5C3                 mov     rax, [rcx]
+  .text:0000000180BAA5C6                 mov     rbx, [rsp+28h+arg_0]
+  .text:0000000180BAA5CB                 mov     rbp, [rsp+28h+arg_8]
+  .text:0000000180BAA5D0                 mov     rsi, [rsp+28h+arg_10]
+  .text:0000000180BAA5D5                 add     rsp, 20h
+  .text:0000000180BAA5D9                 pop     rdi
+  .text:0000000180BAA5DA                 jmp     qword ptr [rax+8]
+procedure: |-
+  __int64 __fastcall CLoopModeGame_OnLoopDeactivate(_QWORD *a1, __int64 a2, __int64 a3)
+  {
+    __int64 v6; // rdx
+    unsigned __int8 v7; // si
+    __int64 v8; // r9
+    __int64 v9; // rcx
+    __int64 v10; // rcx
+
+    v7 = (*(__int64 (__fastcall **)(_QWORD *))(a1[2] + 40LL))(a1 + 2);
+    byte_181F5EDB4 = 0;
+    if ( g_pToolFramework2 )
+    {
+      LOBYTE(v6) = 1;
+      (*(void (__fastcall **)(__int64, __int64, _QWORD))(*(_QWORD *)g_pToolFramework2 + 328LL))(g_pToolFramework2, v6, 0);
+    }
+    IGameSystem_LoopDeactivateAllSystems(a2, v7);
+    CLoopModeGame_ShutdownServer((__int64)a1, 0x37u);
+    if ( g_pEntitySystem )
+    {
+      (*(void (__fastcall **)(__int64, _QWORD))(*(_QWORD *)g_pEntitySystem + 96LL))(g_pEntitySystem, 0);// CEntitySystem_ClearEntityDatabase
+      sub_1811F8C00(g_pEntitySystem, 0);
+    }
+    v9 = a1[140];
+    if ( v9 )
+    {
+      (*(void (__fastcall **)(__int64, _QWORD))(*(_QWORD *)v9 + 8LL))(v9, 0);
+      (*(void (__fastcall **)(_QWORD))(*(_QWORD *)a1[140] + 48LL))(a1[140]);
+      a1[140] = 0;
+    }
+    v10 = a1[12];
+    if ( v10 )
+    {
+      LOBYTE(v8) = 1;
+      (*(void (__fastcall **)(__int64, __int64, __int64, __int64))(*(_QWORD *)v10 + 40LL))(v10, a2, a3, v8);
+    }
+    return ((__int64 (__fastcall *)(__int64 (__fastcall ***)()))(*off_181C10CC0)[1])(off_181C10CC0);
+  }

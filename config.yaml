@@ -2520,6 +2520,10 @@ modules:
         expected_output:
           - GiveNamedItem.{platform}.yaml
 
+      - name: find-CEntitySystem_vtable
+        expected_output:
+          - CEntitySystem_vtable.{platform}.yaml
+
       - name: find-CEntitySystem_CreateEntityByName
         expected_output:
           - CEntitySystem_CreateEntityByName.{platform}.yaml
@@ -3532,6 +3536,13 @@ modules:
           - CLoopModeGame_ShutdownServer.{platform}.yaml
           - CLoopModeGame_vtable.{platform}.yaml
 
+      - name: find-CEntitySystem_ClearEntityDatabase
+        expected_output:
+          - CEntitySystem_ClearEntityDatabase.{platform}.yaml
+        expected_input:
+          - CLoopModeGame_OnLoopDeactivate.{platform}.yaml
+          - CEntitySystem_vtable.{platform}.yaml
+
       - name: find-ILoopMode_OnLoopDeactivate
         expected_output:
           - ILoopMode_OnLoopDeactivate.{platform}.yaml
@@ -4156,6 +4167,9 @@ modules:
 
       - name: GiveNamedItem
         category: func
+
+      - name: CEntitySystem_vtable
+        category: vtable
 
       - name: CEntitySystem_CreateEntityByName
         category: func
@@ -4906,6 +4920,11 @@ modules:
         category: func
         alias:
           - CEntitySystem::Activate
+
+      - name: CEntitySystem_ClearEntityDatabase
+        category: vfunc
+        alias:
+          - CEntitySystem::ClearEntityDatabase
 
       - name: INetworkMessages_SetNetworkSerializationContextData
         category: vfunc

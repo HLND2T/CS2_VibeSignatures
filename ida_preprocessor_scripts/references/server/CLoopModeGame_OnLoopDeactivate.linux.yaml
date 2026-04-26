@@ -1,0 +1,170 @@
+func_name: CLoopModeGame_OnLoopDeactivate
+func_va: '0x15c6ab0'
+disasm_code: |-
+  .text:00000000015C6AB0                 push    rbp
+  .text:00000000015C6AB1                 mov     rbp, rsp
+  .text:00000000015C6AB4                 push    r14
+  .text:00000000015C6AB6                 mov     r14, rdx
+  .text:00000000015C6AB9                 push    r13
+  .text:00000000015C6ABB                 lea     rdx, sub_15BE8F0
+  .text:00000000015C6AC2                 push    r12
+  .text:00000000015C6AC4                 mov     r12, rsi
+  .text:00000000015C6AC7                 push    rbx
+  .text:00000000015C6AC8                 mov     rax, [rdi]
+  .text:00000000015C6ACB                 mov     rbx, rdi
+  .text:00000000015C6ACE                 mov     rax, [rax+68h]
+  .text:00000000015C6AD2                 cmp     rax, rdx
+  .text:00000000015C6AD5                 jnz     loc_15C6BF0
+  .text:00000000015C6ADB                 movzx   r13d, byte ptr [rdi+6Fh]
+  .text:00000000015C6AE0                 lea     rax, unk_2741EF0
+  .text:00000000015C6AE7                 mov     cs:byte_26D9BB8, 0
+  .text:00000000015C6AEE                 mov     rdi, [rax]
+  .text:00000000015C6AF1                 test    rdi, rdi
+  .text:00000000015C6AF4                 jz      short loc_15C6B06
+  .text:00000000015C6AF6                 mov     rax, [rdi]
+  .text:00000000015C6AF9                 xor     edx, edx
+  .text:00000000015C6AFB                 mov     esi, 1
+  .text:00000000015C6B00                 call    qword ptr [rax+148h]
+  .text:00000000015C6B06                 movzx   esi, r13b
+  .text:00000000015C6B0A                 mov     rdi, r12
+  .text:00000000015C6B0D                 call    sub_DF95D0
+  .text:00000000015C6B12                 mov     rdi, rbx
+  .text:00000000015C6B15                 mov     esi, 37h ; '7'
+  .text:00000000015C6B1A                 call    sub_15C6910
+  .text:00000000015C6B1F                 lea     r13, g_pEntitySystem
+  .text:00000000015C6B26                 mov     rdi, [r13+0]
+  .text:00000000015C6B2A                 test    rdi, rdi
+  .text:00000000015C6B2D                 jz      short loc_15C6B42
+  .text:00000000015C6B2F                 mov     rax, [rdi]
+  .text:00000000015C6B32                 xor     esi, esi
+  .text:00000000015C6B34                 call    qword ptr [rax+68h] ; 0x68 = CEntitySystem_ClearEntityDatabase
+  .text:00000000015C6B37                 mov     rdi, [r13+0]
+  .text:00000000015C6B3B                 xor     esi, esi
+  .text:00000000015C6B3D                 call    sub_1E58020
+  .text:00000000015C6B42                 mov     rdi, [rbx+460h]
+  .text:00000000015C6B49                 test    rdi, rdi
+  .text:00000000015C6B4C                 jz      short loc_15C6B6E
+  .text:00000000015C6B4E                 mov     rax, [rdi]
+  .text:00000000015C6B51                 xor     esi, esi
+  .text:00000000015C6B53                 call    qword ptr [rax+8]
+  .text:00000000015C6B56                 mov     rdi, [rbx+460h]
+  .text:00000000015C6B5D                 mov     rax, [rdi]
+  .text:00000000015C6B60                 call    qword ptr [rax+30h]
+  .text:00000000015C6B63                 mov     qword ptr [rbx+460h], 0
+  .text:00000000015C6B6E                 mov     rdi, [rbx+60h]
+  .text:00000000015C6B72                 test    rdi, rdi
+  .text:00000000015C6B75                 jz      short loc_15C6B88
+  .text:00000000015C6B77                 mov     rax, [rdi]
+  .text:00000000015C6B7A                 mov     ecx, 1
+  .text:00000000015C6B7F                 mov     rdx, r14
+  .text:00000000015C6B82                 mov     rsi, r12
+  .text:00000000015C6B85                 call    qword ptr [rax+28h]
+  .text:00000000015C6B88                 mov     rdi, cs:off_24C4100
+  .text:00000000015C6B8F                 lea     rdx, sub_15BE850
+  .text:00000000015C6B96                 mov     rax, [rdi]
+  .text:00000000015C6B99                 mov     rax, [rax+8]
+  .text:00000000015C6B9D                 cmp     rax, rdx
+  .text:00000000015C6BA0                 jnz     short loc_15C6C00
+  .text:00000000015C6BA2                 mov     esi, [rdi+8]
+  .text:00000000015C6BA5                 test    esi, esi
+  .text:00000000015C6BA7                 jle     short loc_15C6BDE
+  .text:00000000015C6BA9                 xor     edx, edx
+  .text:00000000015C6BAB                 xor     eax, eax
+  .text:00000000015C6BAD                 jmp     short loc_15C6BC5
+  .text:00000000015C6BB0                 mov     qword ptr [rcx], 0
+  .text:00000000015C6BB7                 mov     esi, [rdi+8]
+  .text:00000000015C6BBA                 add     eax, 1
+  .text:00000000015C6BBD                 add     rdx, 68h ; 'h'
+  .text:00000000015C6BC1                 cmp     esi, eax
+  .text:00000000015C6BC3                 jle     short loc_15C6BDE
+  .text:00000000015C6BC5                 mov     r8, [rdi+10h]
+  .text:00000000015C6BC9                 mov     rcx, [r8+rdx+8]
+  .text:00000000015C6BCE                 test    rcx, rcx
+  .text:00000000015C6BD1                 jnz     short loc_15C6BB0
+  .text:00000000015C6BD3                 add     eax, 1
+  .text:00000000015C6BD6                 add     rdx, 68h ; 'h'
+  .text:00000000015C6BDA                 cmp     eax, esi
+  .text:00000000015C6BDC                 jl      short loc_15C6BC9
+  .text:00000000015C6BDE                 pop     rbx
+  .text:00000000015C6BDF                 pop     r12
+  .text:00000000015C6BE1                 pop     r13
+  .text:00000000015C6BE3                 pop     r14
+  .text:00000000015C6BE5                 pop     rbp
+  .text:00000000015C6BE6                 retn
+  .text:00000000015C6BF0                 call    rax
+  .text:00000000015C6BF2                 mov     r13d, eax
+  .text:00000000015C6BF5                 jmp     loc_15C6AE0
+  .text:00000000015C6C00                 pop     rbx
+  .text:00000000015C6C01                 pop     r12
+  .text:00000000015C6C03                 pop     r13
+  .text:00000000015C6C05                 pop     r14
+  .text:00000000015C6C07                 pop     rbp
+  .text:00000000015C6C08                 jmp     rax
+procedure: |-
+  unsigned __int64 __fastcall sub_15C6AB0(__int64 a1, __int64 a2, __int64 a3)
+  {
+    __int64 (*v5)(void); // rax
+    unsigned __int8 v6; // r13
+    __int64 v7; // rdi
+    __int64 v8; // rdi
+    __int64 *v9; // rdi
+    unsigned __int64 result; // rax
+    int v11; // esi
+    __int64 v12; // rdx
+    _QWORD *v13; // rcx
+
+    v5 = *(__int64 (**)(void))(*(_QWORD *)a1 + 104LL);
+    if ( v5 == sub_15BE8F0 )
+      v6 = *(_BYTE *)(a1 + 111);
+    else
+      v6 = v5();
+    byte_26D9BB8 = 0;
+    if ( qword_2741EF0 )
+      (*(void (__fastcall **)(_QWORD *, __int64, _QWORD))(*qword_2741EF0 + 328LL))(qword_2741EF0, 1, 0);
+    sub_DF95D0(a2, v6);
+    sub_15C6910(a1, 55);
+    if ( g_pEntitySystem )
+    {
+      (*(void (__fastcall **)(_QWORD, _QWORD))(*(_QWORD *)g_pEntitySystem + 104LL))(g_pEntitySystem, 0); // 104LL = 0x68 = CEntitySystem_ClearEntityDatabase
+      sub_1E58020(g_pEntitySystem, 0);
+    }
+    v7 = *(_QWORD *)(a1 + 1120);
+    if ( v7 )
+    {
+      (*(void (__fastcall **)(__int64, _QWORD))(*(_QWORD *)v7 + 8LL))(v7, 0);
+      (*(void (__fastcall **)(_QWORD))(**(_QWORD **)(a1 + 1120) + 48LL))(*(_QWORD *)(a1 + 1120));
+      *(_QWORD *)(a1 + 1120) = 0;
+    }
+    v8 = *(_QWORD *)(a1 + 96);
+    if ( v8 )
+      (*(void (__fastcall **)(__int64, __int64, __int64, __int64))(*(_QWORD *)v8 + 40LL))(v8, a2, a3, 1);
+    v9 = off_24C4100;
+    result = *(_QWORD *)(*off_24C4100 + 8);
+    if ( (__int64 (__fastcall *)())result != sub_15BE850 )
+      return ((__int64 (*)(void))result)();
+    v11 = *((_DWORD *)off_24C4100 + 2);
+    if ( v11 > 0 )
+    {
+      v12 = 0;
+      LODWORD(result) = 0;
+      do
+      {
+        while ( 1 )
+        {
+          v13 = *(_QWORD **)(v9[2] + v12 + 8);
+          if ( !v13 )
+            break;
+          *v13 = 0;
+          v11 = *((_DWORD *)v9 + 2);
+          result = (unsigned int)(result + 1);
+          v12 += 104;
+          if ( v11 <= (int)result )
+            return result;
+        }
+        result = (unsigned int)(result + 1);
+        v12 += 104;
+      }
+      while ( (int)result < v11 );
+    }
+    return result;
+  }
