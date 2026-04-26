@@ -1,4 +1,5 @@
 import json
+import os
 import unittest
 from unittest.mock import AsyncMock, patch
 
@@ -59,23 +60,48 @@ class TestBuildDefineInputFuncPyEval(unittest.TestCase):
         self.assertIn(".data.rel.ro", code)
         compile(code, "<define_inputfunc_py_eval_custom>", "exec")
 
-    def test_build_define_inputfunc_py_eval_uses_shared_strings_setup(self) -> None:
-        code = define_inputfunc._build_define_inputfunc_py_eval(
-            input_name="ShowHudHint",
-            handler_ptr_offset=0x10,
-            allowed_segment_names=(".data",),
-        )
+    def test_build_define_inputfunc_py_eval_skips_strings_setup_by_default(
+        self,
+    ) -> None:
+        with patch.dict(os.environ, {}, clear=True):
+            code = define_inputfunc._build_define_inputfunc_py_eval(
+                input_name="ShowHudHint",
+                handler_ptr_offset=0x10,
+                allowed_segment_names=(".data",),
+            )
 
         self.assertIn(
             "strings = idautils.Strings(default_setup=False)",
             code,
         )
-        self.assertIn(
-            "strings.setup(strtypes=[ida_nalt.STRTYPE_C], minlen=4)",
-            code,
-        )
+        self.assertNotIn("strings.setup(", code)
+        self.assertNotIn("ida_netnode", code)
         self.assertIn("for item in strings:", code)
         self.assertNotIn("for item in idautils.Strings():", code)
+
+    def test_build_define_inputfunc_py_eval_uses_netnode_guard_for_explicit_minlen(
+        self,
+    ) -> None:
+        with patch.dict(
+            os.environ,
+            {"CS2VIBE_STRING_MIN_LENGTH": "6"},
+            clear=True,
+        ):
+            code = define_inputfunc._build_define_inputfunc_py_eval(
+                input_name="ShowHudHint",
+                handler_ptr_offset=0x10,
+                allowed_segment_names=(".data",),
+            )
+
+        self.assertIn("import ida_netnode, json", code)
+        self.assertIn(
+            "expected_state = {'version': 1, 'minlen': 6, 'strtypes': 'STRTYPE_C'}",
+            code,
+        )
+        self.assertIn(
+            "strings.setup(strtypes=[ida_nalt.STRTYPE_C], minlen=6)",
+            code,
+        )
 
 
 class TestCollectDefineInputFuncCandidates(unittest.IsolatedAsyncioTestCase):

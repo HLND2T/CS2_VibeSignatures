@@ -795,10 +795,8 @@ class TestFindCBaseFilterInputTestActivator(unittest.IsolatedAsyncioTestCase):
             "strings = idautils.Strings(default_setup=False)",
             py_code,
         )
-        self.assertIn(
-            "strings.setup(strtypes=[ida_nalt.STRTYPE_C], minlen=4)",
-            py_code,
-        )
+        self.assertNotIn("strings.setup(", py_code)
+        self.assertNotIn("ida_netnode", py_code)
         self.assertIn("for s in strings:", py_code)
         self.assertNotIn("for s in idautils.Strings():", py_code)
         self.assertIn("for xref in idautils.XrefsTo(s.ea, 0):", py_code)

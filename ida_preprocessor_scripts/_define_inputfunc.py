@@ -5,7 +5,7 @@ import json
 import os
 
 from ida_analyze_util import (
-    _build_ida_strings_setup_py_lines,
+    _build_ida_strings_enumerator_py_lines,
     parse_mcp_result,
     preprocess_gen_func_sig_via_mcp,
     write_func_yaml,
@@ -112,7 +112,7 @@ def _build_define_inputfunc_py_eval(
         "    return idc.get_segm_name(seg.start_ea)",
     ]
     body_lines.extend(
-        _build_ida_strings_setup_py_lines(strings_var_name="strings")
+        _build_ida_strings_enumerator_py_lines(strings_var_name="strings")
     )
     body_lines.extend(
         [
