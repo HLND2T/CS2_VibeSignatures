@@ -178,6 +178,24 @@ def _lookup_expected_input_artifact_category(
     return category_map.get(symbol_name)
 
 
+def _is_current_module_artifact_path(artifact_path, binary_dir):
+    """Return whether artifact addresses can be checked in this binary's IDB."""
+    if not binary_dir:
+        return True
+
+    try:
+        artifact_resolved = Path(artifact_path).resolve()
+        binary_dir_resolved = Path(binary_dir).resolve()
+        return (
+            os.path.commonpath(
+                [os.fspath(artifact_resolved), os.fspath(binary_dir_resolved)]
+            )
+            == os.fspath(binary_dir_resolved)
+        )
+    except (OSError, ValueError):
+        return True
+
+
 def _parse_py_eval_result_json(result):
     payload = _parse_tool_json_content(result)
     if not isinstance(payload, dict):
@@ -246,6 +264,7 @@ async def validate_expected_input_artifacts_via_session(
     session,
     expected_inputs,
     platform,
+    binary_dir=None,
     debug=False,
     config_path=DEFAULT_CONFIG_FILE,
 ):
@@ -279,6 +298,10 @@ async def validate_expected_input_artifacts_via_session(
         raw_func_va = artifact_payload.get("func_va")
         func_va_text = str(raw_func_va or "").strip()
         should_require_func_va = (category == "func")
+        should_inspect_func_va = _is_current_module_artifact_path(
+            artifact_path,
+            binary_dir,
+        )
 
         if should_require_func_va and not func_va_text:
             issues.append("missing required field func_va")
@@ -294,36 +317,42 @@ async def validate_expected_input_artifacts_via_session(
             except (TypeError, ValueError):
                 issues.append(f"invalid func_va value {func_va_text!r}")
             else:
-                inspect_payload = await _inspect_func_va_via_session(session, func_va_text)
-                if inspect_payload is not None:
-                    has_segment = bool(inspect_payload.get("has_segment"))
-                    segment_name = str(inspect_payload.get("segment_name", "")).strip()
-                    if not has_segment:
-                        issues.append(
-                            f"func_va={func_va_text} is not mapped to any segment"
-                        )
-                    elif segment_name != ".text":
-                        issues.append(
-                            f"func_va={func_va_text} resolves to segment {segment_name!r} "
-                            "instead of '.text'"
-                        )
-                    elif not inspect_payload.get("has_function"):
-                        issues.append(
-                            f"func_va={func_va_text} does not resolve to a function"
-                        )
-                    elif not inspect_payload.get("is_function_start"):
-                        function_start = str(
-                            inspect_payload.get("function_start", "")
-                        ).strip() or "<unknown>"
-                        issues.append(
-                            f"func_va={func_va_text} resolves inside function "
-                            f"{function_start} instead of a function start"
-                        )
-                elif debug:
-                    print(
-                        "  Warning: unable to inspect expected_input func_va via MCP: "
-                        f"{artifact_path} ({func_va_text})"
+                if should_inspect_func_va:
+                    inspect_payload = await _inspect_func_va_via_session(
+                        session,
+                        func_va_text,
                     )
+                    if inspect_payload is not None:
+                        has_segment = bool(inspect_payload.get("has_segment"))
+                        segment_name = str(
+                            inspect_payload.get("segment_name", "")
+                        ).strip()
+                        if not has_segment:
+                            issues.append(
+                                f"func_va={func_va_text} is not mapped to any segment"
+                            )
+                        elif segment_name != ".text":
+                            issues.append(
+                                f"func_va={func_va_text} resolves to segment {segment_name!r} "
+                                "instead of '.text'"
+                            )
+                        elif not inspect_payload.get("has_function"):
+                            issues.append(
+                                f"func_va={func_va_text} does not resolve to a function"
+                            )
+                        elif not inspect_payload.get("is_function_start"):
+                            function_start = str(
+                                inspect_payload.get("function_start", "")
+                            ).strip() or "<unknown>"
+                            issues.append(
+                                f"func_va={func_va_text} resolves inside function "
+                                f"{function_start} instead of a function start"
+                            )
+                    elif debug:
+                        print(
+                            "  Warning: unable to inspect expected_input func_va via MCP: "
+                            f"{artifact_path} ({func_va_text})"
+                        )
 
         if issues:
             invalid_artifacts.append(f"{artifact_path}: {'; '.join(issues)}")
@@ -482,6 +511,7 @@ async def validate_expected_input_artifacts_via_mcp(
     port=DEFAULT_PORT,
     expected_inputs=None,
     platform="",
+    binary_dir=None,
     debug=False,
     config_path=DEFAULT_CONFIG_FILE,
 ):
@@ -503,6 +533,7 @@ async def validate_expected_input_artifacts_via_mcp(
                         session,
                         expected_inputs=expected_inputs,
                         platform=platform,
+                        binary_dir=binary_dir,
                         debug=debug,
                         config_path=config_path,
                     )
@@ -518,6 +549,7 @@ def _run_validate_expected_input_artifacts_via_mcp(
     port,
     expected_inputs,
     platform,
+    binary_dir=None,
     debug=False,
     config_path=DEFAULT_CONFIG_FILE,
 ):
@@ -527,6 +559,7 @@ def _run_validate_expected_input_artifacts_via_mcp(
             port=port,
             expected_inputs=expected_inputs,
             platform=platform,
+            binary_dir=binary_dir,
             debug=debug,
             config_path=config_path,
         )
@@ -1741,6 +1774,7 @@ def process_binary(
                 port=port,
                 expected_inputs=expected_inputs,
                 platform=platform,
+                binary_dir=binary_dir,
                 debug=debug,
             )
             if invalid_expected_inputs:

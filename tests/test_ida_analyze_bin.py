@@ -755,6 +755,66 @@ class TestExpectedInputArtifactValidation(unittest.IsolatedAsyncioTestCase):
         )
         self.assertIn("missing required field func_sig", issues[0])
 
+    async def test_validate_expected_input_artifacts_skips_func_va_mapping_for_sibling_module_artifact(
+        self,
+    ) -> None:
+        with TemporaryDirectory() as temp_dir:
+            gamever_dir = Path(temp_dir) / "bin" / "14155"
+            engine_dir = gamever_dir / "engine"
+            server_dir = gamever_dir / "server"
+            engine_dir.mkdir(parents=True, exist_ok=True)
+            server_dir.mkdir(parents=True, exist_ok=True)
+            artifact_path = (
+                server_dir
+                / "CGameEntitySystem_BuildResourceManifest_ManifestNameOrGroupName.linux.yaml"
+            )
+            artifact_path.write_text(
+                "\n".join(
+                    [
+                        "func_name: CGameEntitySystem_BuildResourceManifest_ManifestNameOrGroupName",
+                        "func_va: '0x1527d60'",
+                        "func_rva: '0x1527d60'",
+                        "func_size: '0x11b'",
+                        "func_sig: AA BB",
+                        "vtable_name: CGameEntitySystem",
+                        "vfunc_offset: '0x18'",
+                        "vfunc_index: 3",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            with (
+                patch.object(
+                    ida_analyze_bin,
+                    "_lookup_expected_input_artifact_category",
+                    return_value="vfunc",
+                ),
+                patch.object(
+                    ida_analyze_bin,
+                    "_inspect_func_va_via_session",
+                    AsyncMock(
+                        return_value={
+                            "has_segment": False,
+                            "segment_name": "",
+                            "has_function": False,
+                            "function_start": "",
+                            "is_function_start": False,
+                        }
+                    ),
+                ) as mock_inspect_func_va,
+            ):
+                issues = await ida_analyze_bin.validate_expected_input_artifacts_via_session(
+                    session=MagicMock(),
+                    expected_inputs=[str(artifact_path)],
+                    platform="linux",
+                    binary_dir=str(engine_dir),
+                    debug=False,
+                )
+
+        self.assertEqual([], issues)
+        mock_inspect_func_va.assert_not_awaited()
+
 
 class _FakePipe:
     def __init__(self, chunks: list[str]) -> None:
