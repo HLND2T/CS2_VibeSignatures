@@ -2044,6 +2044,10 @@ modules:
         expected_input:
           - CPlayer_MovementServices_ForceButtons.{platform}.yaml
 
+      - name: find-CEntityComponentHelperT_CBodyComponent_vtable
+        expected_output:
+          - CEntityComponentHelperT_CBodyComponent_vtable.{platform}.yaml
+
       - name: find-CEntityInstance_vtable
         expected_output:
           - CEntityInstance_vtable.{platform}.yaml
@@ -2537,6 +2541,13 @@ modules:
           - CEntitySystem_DestroyEntity.{platform}.yaml
         expected_input:
           - CEntitySystem_PrecacheEntity.{platform}.yaml
+
+      - name: find-CEntityInstance_Disconnect-AND-CEntityComponentHelperT_Free
+        expected_output:
+          - CEntityInstance_Disconnect.{platform}.yaml
+          - CEntityComponentHelperT_Free.{platform}.yaml
+        expected_input:
+          - CEntitySystem_DestroyEntity.{platform}.yaml
 
       - name: find-UTIL_CreateEntityByName-AND-CBaseEntity_DispatchSpawn
         expected_output:
@@ -3709,6 +3720,9 @@ modules:
         category: gv
         alias:
           - CPlayer_MovementServices::s_pRunCommandPawn
+
+      - name: CEntityComponentHelperT_CBodyComponent_vtable
+        category: vtable
 
       - name: CEntityInstance_vtable
         category: vtable
@@ -4978,6 +4992,16 @@ modules:
         category: vfunc
         alias:
           - CEntityInstance::Precache
+
+      - name: CEntityInstance_Disconnect
+        category: vfunc
+        alias:
+          - CEntityInstance::Disconnect
+
+      - name: CEntityComponentHelperT_Free
+        category: vfunc
+        alias:
+          - CEntityComponentHelperT::Free
 
       - name: CScriptedSequence_SynchronizeSequence
         category: func

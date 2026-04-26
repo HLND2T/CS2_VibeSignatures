@@ -1,0 +1,120 @@
+func_name: CEntitySystem_DestroyEntity
+func_va: '0x1e4f930'
+disasm_code: |-
+  .text:0000000001E4F930                 push    rbp
+  .text:0000000001E4F931                 mov     rbp, rsp
+  .text:0000000001E4F934                 push    r15
+  .text:0000000001E4F936                 push    r14
+  .text:0000000001E4F938                 push    r13
+  .text:0000000001E4F93A                 mov     r13, rdi
+  .text:0000000001E4F93D                 push    r12
+  .text:0000000001E4F93F                 push    rbx
+  .text:0000000001E4F940                 sub     rsp, 8
+  .text:0000000001E4F944                 mov     r14, [rdi+10h]
+  .text:0000000001E4F948                 lea     rax, byte_27BA2EF
+  .text:0000000001E4F94F                 mov     rdi, [r14]
+  .text:0000000001E4F952                 mov     r15, [r14+8]
+  .text:0000000001E4F956                 mov     byte ptr [rax], 0
+  .text:0000000001E4F959                 mov     rax, [rdi]
+  .text:0000000001E4F95C                 call    qword ptr [rax+38h] ; 0x38 = CEntityInstance_Disconnect
+  .text:0000000001E4F95F                 test    byte ptr [r15+70h], 2
+  .text:0000000001E4F964                 jz      short loc_1E4F9C1
+  .text:0000000001E4F966                 mov     eax, [r15+90h]
+  .text:0000000001E4F96D                 mov     edx, eax
+  .text:0000000001E4F96F                 sub     edx, 1
+  .text:0000000001E4F972                 js      short loc_1E4F9C1
+  .text:0000000001E4F974                 lea     r8, nullsub_163
+  .text:0000000001E4F97B                 movsxd  rbx, edx
+  .text:0000000001E4F97E                 movsxd  r12, eax
+  .text:0000000001E4F981                 mov     edx, edx
+  .text:0000000001E4F983                 shl     rbx, 4
+  .text:0000000001E4F987                 sub     r12, rdx
+  .text:0000000001E4F98A                 shl     r12, 4
+  .text:0000000001E4F98E                 sub     r12, 20h ; ' '
+  .text:0000000001E4F992                 nop     word ptr [rax+rax+00h]
+  .text:0000000001E4F998                 mov     rax, [r15+98h]
+  .text:0000000001E4F99F                 add     rax, rbx
+  .text:0000000001E4F9A2                 mov     rdi, [rax+8]
+  .text:0000000001E4F9A6                 test    byte ptr [rdi+8], 2
+  .text:0000000001E4F9AA                 jz      short loc_1E4F9B8
+  .text:0000000001E4F9AC                 mov     rdx, [rdi]
+  .text:0000000001E4F9AF                 mov     rcx, [rdx+28h] ; 0x28 = CEntityComponentHelperT_Free
+  .text:0000000001E4F9B3                 cmp     rcx, r8
+  .text:0000000001E4F9B6                 jnz     short loc_1E4F9F0
+  .text:0000000001E4F9B8                 sub     rbx, 10h
+  .text:0000000001E4F9BC                 cmp     r12, rbx
+  .text:0000000001E4F9BF                 jnz     short loc_1E4F998
+  .text:0000000001E4F9C1                 mov     rsi, r13
+  .text:0000000001E4F9C4                 mov     rdi, r15
+  .text:0000000001E4F9C7                 call    sub_1E3B720
+  .text:0000000001E4F9CC                 mov     rsi, r13
+  .text:0000000001E4F9CF                 mov     rdi, r15
+  .text:0000000001E4F9D2                 call    sub_1E3B740
+  .text:0000000001E4F9D7                 mov     qword ptr [r14], 0
+  .text:0000000001E4F9DE                 add     rsp, 8
+  .text:0000000001E4F9E2                 pop     rbx
+  .text:0000000001E4F9E3                 pop     r12
+  .text:0000000001E4F9E5                 pop     r13
+  .text:0000000001E4F9E7                 pop     r14
+  .text:0000000001E4F9E9                 pop     r15
+  .text:0000000001E4F9EB                 pop     rbp
+  .text:0000000001E4F9EC                 retn
+  .text:0000000001E4F9F0                 mov     rdx, [rax]
+  .text:0000000001E4F9F3                 mov     rsi, r14
+  .text:0000000001E4F9F6                 add     rdx, r13
+  .text:0000000001E4F9F9                 call    rcx
+  .text:0000000001E4F9FB                 lea     r8, nullsub_163
+  .text:0000000001E4FA02                 jmp     short loc_1E4F9B8
+procedure: |-
+  __int64 __fastcall CEntitySystem_DestroyEntity(__int64 a1)
+  {
+    __int64 *v2; // r14
+    __int64 v3; // rdi
+    __int64 v4; // r15
+    __int64 v5; // rdx
+    __int64 v6; // rbx
+    unsigned __int64 v7; // r12
+    _QWORD *v8; // rax
+    _BYTE *v9; // rdi
+    __int64 (__fastcall *v10)(); // rcx
+    __int64 result; // rax
+
+    v2 = *(__int64 **)(a1 + 16);
+    v3 = *v2;
+    v4 = v2[1];
+    byte_27BA2EF = 0;
+    (*(void (__fastcall **)(__int64))(*(_QWORD *)v3 + 56LL))(v3);// 0x38 = CEntityInstance_Disconnect
+    if ( (*(_BYTE *)(v4 + 112) & 2) != 0 )
+    {
+      v5 = (unsigned int)(*(_DWORD *)(v4 + 144) - 1);
+      if ( (int)v5 >= 0 )
+      {
+        v5 = (unsigned int)v5;
+        v6 = 16LL * (int)v5;
+        v7 = 16 * (*(int *)(v4 + 144) - (unsigned __int64)(unsigned int)v5) - 32;
+        do
+        {
+          v8 = (_QWORD *)(v6 + *(_QWORD *)(v4 + 152));
+          v9 = (_BYTE *)v8[1];
+          if ( (v9[8] & 2) != 0 )
+          {
+            v5 = *(_QWORD *)v9;
+            v10 = *(__int64 (__fastcall **)())(*(_QWORD *)v9 + 40LL);// 0x28 = CEntityComponentHelperT_Free
+            if ( v10 != nullsub_163 )
+              ((void (__fastcall *)(_BYTE *, __int64 *, __int64, __int64 (__fastcall *)(), __int64 (__fastcall *)()))v10)(
+                v9,
+                v2,
+                a1 + *v8,
+                v10,
+                nullsub_163);
+          }
+          v6 -= 16;
+        }
+        while ( v7 != v6 );
+      }
+    }
+    sub_1E3B720(v4, a1, v5);
+    result = sub_1E3B740(v4, a1);
+    *v2 = 0;
+    return result;
+  }
