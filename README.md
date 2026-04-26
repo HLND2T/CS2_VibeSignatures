@@ -84,9 +84,11 @@ Example outputs:
 - `vcall_finder/14141/g_pNetworkMessages.txt`
 
 * IDA preprocessor environment:
-  - `CS2VIBE_STRING_MIN_LENGTH`: controls the minimum string length used by IDA preprocessor string enumeration logic only
-  - Default: `4`
-  - Empty, non-integer, or values `<1` fall back to `4`
+  - `CS2VIBE_STRING_MIN_LENGTH`: controls optional IDA string-list setup for preprocessor string enumeration only
+  - Unset or empty: do not call `idautils.Strings.setup`; use the IDB's current string-list state
+  - Integer `>=1`: call `idautils.Strings.setup(strtypes=[ida_nalt.STRTYPE_C], minlen=<value>)` when the current IDB has not already been set up with the same parameters
+  - Non-integer or values `<1`: fall back to `4` and use the same IDB-level setup guard
+  - Setup state is stored per IDB; changing the effective `minlen` triggers setup again
   - This is not an LLM parameter
 
 #### 2.5 Prepare reference YAML for `LLM_DECOMPILE`
