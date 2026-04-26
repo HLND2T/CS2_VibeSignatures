@@ -1,5 +1,6 @@
 import importlib
 import json
+import os
 import types
 import unittest
 from unittest.mock import AsyncMock, patch
@@ -36,13 +37,14 @@ class TestBuildRegisterEventListenerPyEval(unittest.TestCase):
         self,
     ) -> None:
         register_event_listener = _import_register_event_listener_module()
-        code = register_event_listener._build_register_event_listener_py_eval(
-            platform="windows",
-            source_func_va="0x180010000",
-            anchor_event_name="CLoopModeGame::OnClientPollNetworking",
-            search_window_after_anchor=24,
-            search_window_before_call=64,
-        )
+        with patch.dict(os.environ, {}, clear=True):
+            code = register_event_listener._build_register_event_listener_py_eval(
+                platform="windows",
+                source_func_va="0x180010000",
+                anchor_event_name="CLoopModeGame::OnClientPollNetworking",
+                search_window_after_anchor=24,
+                search_window_before_call=64,
+            )
 
         self.assertIn("ida_hexrays", code)
         self.assertIn("source_func_va", code)
@@ -52,12 +54,43 @@ class TestBuildRegisterEventListenerPyEval(unittest.TestCase):
         self.assertIn("string_hits = {text: [] for text in target_texts if text}", code)
         self.assertIn("strings = idautils.Strings(default_setup=False)", code)
         self.assertEqual(1, code.count("for item in strings:"))
+        self.assertNotIn("strings.setup(", code)
+        self.assertNotIn("ida_netnode", code)
         self.assertIn("anchor_string_addrs = string_hits.get(anchor_event_name, [])", code)
         self.assertNotIn("for item in idautils.Strings():", code)
         self.assertIn("_recover_register_value", code)
         self.assertIn("anchor callee not found", code)
         self.assertIn("temp_callback_slot", code)
         compile(code, "<register_event_listener_windows>", "exec")
+
+    def test_build_register_event_listener_py_eval_uses_netnode_guard_for_explicit_minlen(
+        self,
+    ) -> None:
+        register_event_listener = _import_register_event_listener_module()
+
+        with patch.dict(
+            os.environ,
+            {"CS2VIBE_STRING_MIN_LENGTH": "6"},
+            clear=True,
+        ):
+            code = register_event_listener._build_register_event_listener_py_eval(
+                platform="windows",
+                source_func_va="0x180010000",
+                anchor_event_name="CLoopModeGame::OnClientPollNetworking",
+                search_window_after_anchor=24,
+                search_window_before_call=64,
+            )
+
+        self.assertIn("import ida_netnode, json", code)
+        self.assertIn(
+            "expected_state = {'version': 1, 'minlen': 6, 'strtypes': 'STRTYPE_C'}",
+            code,
+        )
+        self.assertIn(
+            "strings.setup(strtypes=[ida_nalt.STRTYPE_C], minlen=6)",
+            code,
+        )
+        self.assertEqual(1, code.count("for item in strings:"))
 
     def test_build_register_event_listener_py_eval_linux_recovers_reused_temp_base_register(
         self,
@@ -236,13 +269,14 @@ class TestBuildRegisterEventListenerPyEval(unittest.TestCase):
             decompile=lambda _ea: FakeCFunc(),
         )
 
-        code = register_event_listener._build_register_event_listener_py_eval(
-            platform="linux",
-            source_func_va=hex(source_func_va),
-            anchor_event_name="CLoopModeGame::OnClientPollNetworking",
-            search_window_after_anchor=64,
-            search_window_before_call=64,
-        )
+        with patch.dict(os.environ, {}, clear=True):
+            code = register_event_listener._build_register_event_listener_py_eval(
+                platform="linux",
+                source_func_va=hex(source_func_va),
+                anchor_event_name="CLoopModeGame::OnClientPollNetworking",
+                search_window_after_anchor=64,
+                search_window_before_call=64,
+            )
         modules = {
             "ida_hexrays": fake_hexrays,
             "idaapi": fake_idaapi,
@@ -259,10 +293,7 @@ class TestBuildRegisterEventListenerPyEval(unittest.TestCase):
         strings_instance = FakeStrings.last_instance
         self.assertIsNotNone(strings_instance)
         self.assertFalse(strings_instance.default_setup)
-        self.assertEqual(
-            {"strtypes": [0], "minlen": 4},
-            strings_instance.setup_kwargs,
-        )
+        self.assertIsNone(strings_instance.setup_kwargs)
         payload = json.loads(namespace["result"])
         self.assertTrue(payload["ok"], payload)
         items_by_event = {item["event_name"]: item for item in payload["items"]}

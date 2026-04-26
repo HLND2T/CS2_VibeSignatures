@@ -1,4 +1,5 @@
 import json
+import os
 import unittest
 from unittest.mock import AsyncMock, patch
 
@@ -29,16 +30,17 @@ class TestBuildRegisterConCommandPyEval(unittest.TestCase):
     def test_build_registerconcommand_py_eval_linux_embeds_exact_match_and_linux_registers(
         self,
     ) -> None:
-        code = registerconcommand._build_registerconcommand_py_eval(
-            platform="linux",
-            command_name="bot_add",
-            help_string=(
-                "bot_add <t|ct> <type> <difficulty> <name> - "
-                "Adds a bot matching the given criteria."
-            ),
-            search_window_before_call=48,
-            search_window_after_xref=24,
-        )
+        with patch.dict(os.environ, {}, clear=True):
+            code = registerconcommand._build_registerconcommand_py_eval(
+                platform="linux",
+                command_name="bot_add",
+                help_string=(
+                    "bot_add <t|ct> <type> <difficulty> <name> - "
+                    "Adds a bot matching the given criteria."
+                ),
+                search_window_before_call=48,
+                search_window_after_xref=24,
+            )
 
         self.assertIn("bot_add", code)
         self.assertIn("Adds a bot matching the given criteria.", code)
@@ -58,6 +60,8 @@ class TestBuildRegisterConCommandPyEval(unittest.TestCase):
         self.assertIn("strings = idautils.Strings(default_setup=False)", code)
         self.assertIn("for item in strings:", code)
         self.assertEqual(1, code.count("for item in strings:"))
+        self.assertNotIn("strings.setup(", code)
+        self.assertNotIn("ida_netnode", code)
         self.assertIn("command_string_addrs = string_hits.get(command_name, [])", code)
         self.assertIn("help_string_addrs = string_hits.get(help_string, [])", code)
         self.assertNotIn("for item in idautils.Strings():", code)
@@ -70,6 +74,33 @@ class TestBuildRegisterConCommandPyEval(unittest.TestCase):
         )
         self.assertIn("return candidates", code)
         compile(code, "<registerconcommand_py_eval_linux>", "exec")
+
+    def test_build_registerconcommand_py_eval_uses_netnode_guard_for_explicit_minlen(
+        self,
+    ) -> None:
+        with patch.dict(
+            os.environ,
+            {"CS2VIBE_STRING_MIN_LENGTH": "6"},
+            clear=True,
+        ):
+            code = registerconcommand._build_registerconcommand_py_eval(
+                platform="linux",
+                command_name="bot_add",
+                help_string="Adds a bot matching the given criteria.",
+                search_window_before_call=48,
+                search_window_after_xref=24,
+            )
+
+        self.assertIn("import ida_netnode, json", code)
+        self.assertIn(
+            "expected_state = {'version': 1, 'minlen': 6, 'strtypes': 'STRTYPE_C'}",
+            code,
+        )
+        self.assertIn(
+            "strings.setup(strtypes=[ida_nalt.STRTYPE_C], minlen=6)",
+            code,
+        )
+        self.assertEqual(1, code.count("for item in strings:"))
 
     def test_build_registerconcommand_py_eval_windows_embeds_slot_recovery_logic(
         self,
