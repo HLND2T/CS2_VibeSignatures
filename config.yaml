@@ -2547,10 +2547,11 @@ modules:
         expected_output:
           - CEntitySystem_PrecacheEntity.{platform}.yaml
 
-      - name: find-CEntitySystem_DestroyEntity-AND-CEntitySystem_DoAllocateEntity
+      - name: find-CEntitySystem_DestroyEntity-AND-CEntitySystem_DoAllocateEntity-AND-CEntitySystem_ConstructEntity
         expected_output:
           - CEntitySystem_DestroyEntity.{platform}.yaml
           - CEntitySystem_DoAllocateEntity.{platform}.yaml
+          - CEntitySystem_ConstructEntity.{platform}.yaml
         expected_input:
           - CEntitySystem_PrecacheEntity.{platform}.yaml
 
@@ -4239,6 +4240,11 @@ modules:
         category: func
         alias:
           - CEntitySystem::DoAllocateEntity
+
+      - name: CEntitySystem_ConstructEntity
+        category: func
+        alias:
+          - CEntitySystem::ConstructEntity
 
       - name: UTIL_CreateEntityByName
         category: func

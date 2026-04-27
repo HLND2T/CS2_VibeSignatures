@@ -28,7 +28,7 @@ disasm_code: |-
   .text:0000000001E68D6D                 and     eax, 0Fh
   .text:0000000001E68D70                 cmp     al, 6
   .text:0000000001E68D72                 jz      short loc_1E68DA8
-  .text:0000000001E68D74                 lea     rbx, dword_27BA5DC
+  .text:0000000001E68D74                 lea     rbx, g_pLoggingChannelEntitySystem
   .text:0000000001E68D7B                 ; _QWORD
   .text:0000000001E68D7B                 mov     esi, 3; _QWORD
   .text:0000000001E68D80                 ; _QWORD
@@ -90,7 +90,7 @@ disasm_code: |-
   .text:0000000001E68E5D                 lea     rax, haystack
   .text:0000000001E68E64                 test    rdx, rdx
   .text:0000000001E68E67                 cmovz   rdx, rax
-  .text:0000000001E68E6B                 call    sub_1E68440
+  .text:0000000001E68E6B                 call    CEntitySystem_ConstructEntity
   .text:0000000001E68E70                 test    al, al
   .text:0000000001E68E72                 jz      short loc_1E68EB5
   .text:0000000001E68E74                 mov     rdx, r14
@@ -136,34 +136,34 @@ disasm_code: |-
   .text:0000000001E68F10                 call    _LoggingSystem_Log
   .text:0000000001E68F15                 jmp     loc_1E68D8F
 procedure: |-
-  __int64 __fastcall CEntitySystem_PrecacheEntity(_DWORD *a1, __int64 a2, unsigned int a3)
+  __int64 __fastcall CEntitySystem_PrecacheEntity(_DWORD *a1, _QWORD *a2, unsigned int a3)
   {
     _WORD *v5; // rax
     __int64 v6; // r12
-    __int64 v8; // rsi
-    __int64 *v9; // r13
+    char *v8; // rsi
+    __int64 *Entity; // r13
     int v10; // eax
     __int64 (__fastcall *v11)(); // rdx
-    const char *v12; // rdx
+    char *v12; // rdx
     __int64 v13; // [rsp+8h] [rbp-48h]
     _QWORD v14[8]; // [rsp+10h] [rbp-40h] BYREF
 
     v14[0] = -971301790;
     v14[1] = "classname";
-    v5 = (_WORD *)sub_1E4DC00(a2, v14, 0);
+    v5 = (_WORD *)sub_1E4DC00(a2, (int *)v14, nullptr);
     if ( v5 )
     {
       if ( ((*v5 >> 2) & 0xF) == 6 )
       {
-        v8 = sub_1B086D0(v5, &haystack);
+        v8 = (char *)sub_1B086D0((__int64)v5, &haystack);
         if ( v8 )
         {
           v14[0] = 0;
-          v13 = sub_1E5ECC0(a1, v8, v14);
+          v13 = sub_1E5ECC0((__int64)a1, v8, (CUtlString *)v14);
           if ( !v13 )
             goto LABEL_23;
-          v9 = (__int64 *)CEntitySystem_DoAllocateEntity(a1, 0, 0xFFFFFFFFLL, 0xFFFFFFFFLL, 1, 0);
-          v9[1] = v13;
+          Entity = CEntitySystem_DoAllocateEntity((__int64)a1, 0, 0xFFFFFFFFLL, 0xFFFFFFFFLL, 1u, 0);
+          Entity[1] = v13;
           if ( (*(_DWORD *)(v13 + 104) & 4) != 0 )
           {
             a3 = 0;
@@ -187,20 +187,20 @@ procedure: |-
           }
           v10 = 1;
   LABEL_15:
-          *(__int64 *)((char *)v9 + 52) = _mm_insert_epi32(_mm_cvtsi32_si128(a3), v10, 1).m128i_u64[0];
-          v12 = (const char *)v14[0];
+          *(__int64 *)((char *)Entity + 52) = _mm_insert_epi32(_mm_cvtsi32_si128(a3), v10, 1).m128i_u64[0];
+          v12 = (char *)v14[0];
           if ( !v14[0] )
-            v12 = &haystack;
-          if ( (unsigned __int8)sub_1E68440(a1, v9, v12) )
+            v12 = (char *)&haystack;
+          if ( (unsigned __int8)CEntitySystem_ConstructEntity((__int64)a1, Entity, v12) )
           {
-            v6 = *v9;
-            if ( (unsigned __int8)sub_1E68C50(a1, v9, a2) )
+            v6 = *Entity;
+            if ( (unsigned __int8)sub_1E68C50((__int64)a1, Entity, (__int64)a2) )
               goto LABEL_19;
-            v9 = *(__int64 **)(v6 + 16);
+            Entity = *(__int64 **)(v6 + 16);
             CEntitySystem_DestroyEntity(v6);
           }
-          sub_1E446E0(v9, 0);
-          sub_1E51E80(a1 + 4, v9, 1);
+          sub_1E446E0(Entity, 0);
+          sub_1E51E80((__int64)(a1 + 4), (unsigned __int64)Entity, 1);
   LABEL_23:
           v6 = 0;
   LABEL_19:
@@ -210,7 +210,10 @@ procedure: |-
         }
       }
     }
-    if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_27BA5DC, 3) )
-      LoggingSystem_Log((unsigned int)dword_27BA5DC, 3, "CEntitySystem::PrecacheEntity: Classname missing from entity!\n");
+    if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)g_pLoggingChannelEntitySystem, 3) )
+      LoggingSystem_Log(
+        (unsigned int)g_pLoggingChannelEntitySystem,
+        3,
+        "CEntitySystem::PrecacheEntity: Classname missing from entity!\n");
     return 0;
   }
