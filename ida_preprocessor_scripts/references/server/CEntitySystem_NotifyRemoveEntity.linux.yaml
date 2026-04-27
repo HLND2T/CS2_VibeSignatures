@@ -1,0 +1,66 @@
+func_name: CEntitySystem_NotifyRemoveEntity
+func_va: '0x1e63030'
+disasm_code: |-
+  .text:0000000001E63030                 mov     eax, [rsi+30h]
+  .text:0000000001E63033                 test    ah, 48h
+  .text:0000000001E63036                 jz      short loc_1E63040
+  .text:0000000001E63038                 retn
+  .text:0000000001E63040                 push    rbp
+  .text:0000000001E63041                 and     eax, 1
+  .text:0000000001E63044                 mov     rbp, rsp
+  .text:0000000001E63047                 push    rbx
+  .text:0000000001E63048                 mov     rbx, rsi
+  .text:0000000001E6304B                 sub     rsp, 18h
+  .text:0000000001E6304F                 mov     rdx, [rdi]
+  .text:0000000001E63052                 mov     rcx, [rdx+88h] ; 0x88 = 136LL = CEntityInstance_OnRemoveEntity
+  .text:0000000001E63059                 mov     edx, [rsi+10h]
+  .text:0000000001E6305C                 shr     edx, 0Fh
+  .text:0000000001E6305F                 sub     edx, eax
+  .text:0000000001E63061                 cmp     dword ptr [rsi+10h], 0FFFFFFFFh
+  .text:0000000001E63065                 jz      short loc_1E630B0
+  .text:0000000001E63067                 movzx   eax, word ptr [rsi+10h]
+  .text:0000000001E6306B                 and     ax, 7FFFh
+  .text:0000000001E6306F                 movzx   eax, ax
+  .text:0000000001E63072                 shl     edx, 0Fh
+  .text:0000000001E63075                 or      edx, eax
+  .text:0000000001E63077                 lea     rax, nullsub_1672
+  .text:0000000001E6307E                 cmp     rcx, rax
+  .text:0000000001E63081                 jnz     short loc_1E630A0
+  .text:0000000001E63083                 mov     rsi, rbx
+  .text:0000000001E63086                 call    sub_1E62E30
+  .text:0000000001E6308B                 mov     rdi, [rbx+8]
+  .text:0000000001E6308F                 mov     rsi, rbx
+  .text:0000000001E63092                 mov     rbx, [rbp-8]
+  .text:0000000001E63096                 leave
+  .text:0000000001E63097                 jmp     sub_1E3BFF0
+  .text:0000000001E630A0                 mov     [rbp-18h], rdi
+  .text:0000000001E630A4                 mov     rsi, [rbx]
+  .text:0000000001E630A7                 call    rcx
+  .text:0000000001E630A9                 mov     rdi, [rbp-18h]
+  .text:0000000001E630AD                 jmp     short loc_1E63083
+  .text:0000000001E630B0                 mov     eax, 7FFFh
+  .text:0000000001E630B5                 jmp     short loc_1E6306F
+procedure: |-
+  __int64 __fastcall CEntitySystem_NotifyRemoveEntity(__int64 a1, __int64 a2)
+  {
+    __int64 result; // rax
+    __int64 (__fastcall *v3)(); // rcx
+    unsigned __int16 v4; // ax
+    __int64 v5; // rdx
+
+    result = *(unsigned int *)(a2 + 48);
+    if ( (result & 0x4800) == 0 )
+    {
+      v3 = *(__int64 (__fastcall **)())(*(_QWORD *)a1 + 136LL);// 0x88 = 136LL = CEntityInstance_OnRemoveEntity
+      if ( *(_DWORD *)(a2 + 16) == -1 )
+        v4 = 0x7FFF;
+      else
+        v4 = *(_WORD *)(a2 + 16) & 0x7FFF;
+      v5 = v4 | (((*(_DWORD *)(a2 + 16) >> 15) - (*(_DWORD *)(a2 + 48) & 1u)) << 15);
+      if ( v3 != nullsub_1672 )
+        ((void (__fastcall *)(__int64, _QWORD, __int64))v3)(a1, *(_QWORD *)a2, v5);
+      sub_1E62E30(a1, a2, v5);
+      return sub_1E3BFF0(*(_QWORD *)(a2 + 8), a2);
+    }
+    return result;
+  }

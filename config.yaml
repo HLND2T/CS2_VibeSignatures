@@ -2798,6 +2798,13 @@ modules:
         expected_input:
           - CEntitySystem_RemoveEntityImmediate.{platform}.yaml
 
+      - name: find-CEntityInstance_OnRemoveEntity
+        expected_output:
+          - CEntityInstance_OnRemoveEntity.{platform}.yaml
+        expected_input:
+          - CEntitySystem_NotifyRemoveEntity.{platform}.yaml
+          - CEntityInstance_vtable.{platform}.yaml
+
       - name: find-CBasePlayerPawn_CommitSuicide
         expected_output:
           - CBasePlayerPawn_CommitSuicide.{platform}.yaml
@@ -5140,6 +5147,11 @@ modules:
         category: vfunc
         alias:
           - CEntityInstance::AddedToEntityDatabase
+
+      - name: CEntityInstance_OnRemoveEntity
+        category: vfunc
+        alias:
+          - CEntityInstance::OnRemoveEntity
 
       - name: CEntityComponentHelperT_Free
         category: vfunc
