@@ -1,0 +1,352 @@
+func_name: CEntitySystem_CreateEntity
+func_va: '0x1e687e0'
+disasm_code: |-
+  .text:0000000001E687E0                 push    rbp
+  .text:0000000001E687E1                 mov     rbp, rsp
+  .text:0000000001E687E4                 push    r15
+  .text:0000000001E687E6                 push    r14
+  .text:0000000001E687E8                 mov     r14d, r9d
+  .text:0000000001E687EB                 push    r13
+  .text:0000000001E687ED                 push    r12
+  .text:0000000001E687EF                 push    rbx
+  .text:0000000001E687F0                 sub     rsp, 28h
+  .text:0000000001E687F4                 mov     [rbp+var_38], esi
+  .text:0000000001E687F7                 mov     r15d, [rbp+arg_8]
+  .text:0000000001E687FB                 mov     [rbp+var_40], rcx
+  .text:0000000001E687FF                 mov     [rbp+var_34], r9d
+  .text:0000000001E68803                 test    rdx, rdx
+  .text:0000000001E68806                 jz      loc_1E68A10
+  .text:0000000001E6880C                 mov     r13, rdi
+  .text:0000000001E6880F                 mov     rdi, rdx
+  .text:0000000001E68812                 mov     rbx, rdx
+  .text:0000000001E68815                 mov     r12d, r8d
+  .text:0000000001E68818                 call    sub_1E3B760
+  .text:0000000001E6881D                 test    al, al
+  .text:0000000001E6881F                 jz      loc_1E6899B
+  .text:0000000001E68825                 mov     rdi, rbx
+  .text:0000000001E68828                 call    sub_1E3B780
+  .text:0000000001E6882D                 mov     r10d, [rax+60h]
+  .text:0000000001E68831                 and     r10d, 10h
+  .text:0000000001E68835                 jnz     loc_1E68A50
+  .text:0000000001E6883B                 mov     r9d, [rbx+68h]
+  .text:0000000001E6883F                 mov     rax, rbx
+  .text:0000000001E68842                 test    r9b, 8
+  .text:0000000001E68846                 jz      short loc_1E6886E
+  .text:0000000001E68848                 jmp     loc_1E68960
+  .text:0000000001E68860                 mov     rax, [rax+18h]
+  .text:0000000001E68864                 test    byte ptr [rax+68h], 8
+  .text:0000000001E68868                 jnz     loc_1E68960
+  .text:0000000001E6886E                 mov     rax, [rax+58h]
+  .text:0000000001E68872                 test    rax, rax
+  .text:0000000001E68875                 jnz     short loc_1E68860
+  .text:0000000001E68877                 cmp     r12d, 1
+  .text:0000000001E6887B                 jz      loc_1E689C0
+  .text:0000000001E68881                 cmp     r12d, 2
+  .text:0000000001E68885                 jz      loc_1E689EB
+  .text:0000000001E6888B                 xor     esi, esi
+  .text:0000000001E6888D                 test    r12d, r12d
+  .text:0000000001E68890                 jz      loc_1E68A9D
+  .text:0000000001E68896                 nop     word ptr [rax+rax+00000000h]
+  .text:0000000001E688A0                 mov     ecx, [rbp+arg_0]
+  .text:0000000001E688A3                 shr     r9d, 6
+  .text:0000000001E688A7                 movzx   r8d, r15b
+  .text:0000000001E688AB                 mov     rdi, r13
+  .text:0000000001E688AE                 mov     edx, [rbp+var_34]
+  .text:0000000001E688B1                 and     r9d, 1
+  .text:0000000001E688B5                 mov     [rbp+var_44], r10d
+  .text:0000000001E688B9                 call    CEntitySystem_DoAllocateEntity
+  .text:0000000001E688BE                 mov     r12, rax
+  .text:0000000001E688C1                 test    rax, rax
+  .text:0000000001E688C4                 jz      loc_1E6899B
+  .text:0000000001E688CA                 mov     [rax+8], rbx
+  .text:0000000001E688CE                 mov     eax, [rbx+68h]
+  .text:0000000001E688D1                 mov     r10d, [rbp+var_44]
+  .text:0000000001E688D5                 test    al, 4
+  .text:0000000001E688D7                 jnz     short loc_1E688F0
+  .text:0000000001E688D9                 mov     r10d, [rbp+var_38]
+  .text:0000000001E688DD                 cmp     r10d, 0FFFFFFFFh
+  .text:0000000001E688E1                 jnz     short loc_1E688F0
+  .text:0000000001E688E3                 mov     r10d, [r13+1F40h]
+  .text:0000000001E688EA                 nop     word ptr [rax+rax+00h]
+  .text:0000000001E688F0                 and     eax, 400h
+  .text:0000000001E688F5                 jnz     loc_1E689B0
+  .text:0000000001E688FB                 mov     rdx, [r13+0]
+  .text:0000000001E688FF                 lea     rcx, CEntitySystem_GetSpawnGroupWorldId
+  .text:0000000001E68906                 mov     rdx, [rdx+90h]
+  .text:0000000001E6890D                 cmp     rdx, rcx
+  .text:0000000001E68910                 jnz     loc_1E68AE5
+  .text:0000000001E68916                 mov     rdx, [rbp+var_40]
+  .text:0000000001E6891A                 movd    xmm0, r10d
+  .text:0000000001E6891F                 mov     rsi, r12
+  .text:0000000001E68922                 mov     rdi, r13
+  .text:0000000001E68925                 pinsrd  xmm0, eax, 1
+  .text:0000000001E6892B                 movq    qword ptr [r12+34h], xmm0
+  .text:0000000001E68932                 call    CEntitySystem_ConstructEntity
+  .text:0000000001E68937                 test    al, al
+  .text:0000000001E68939                 jz      loc_1E68AFA
+  .text:0000000001E6893F                 test    byte ptr [r12+31h], 8
+  .text:0000000001E68945                 jz      loc_1E68A00
+  .text:0000000001E6894B                 mov     rax, [r12]
+  .text:0000000001E6894F                 add     rsp, 28h
+  .text:0000000001E68953                 pop     rbx
+  .text:0000000001E68954                 pop     r12
+  .text:0000000001E68956                 pop     r13
+  .text:0000000001E68958                 pop     r14
+  .text:0000000001E6895A                 pop     r15
+  .text:0000000001E6895C                 pop     rbp
+  .text:0000000001E6895D                 retn
+  .text:0000000001E68960                 mov     eax, [rax+118h]
+  .text:0000000001E68966                 cmp     eax, 0FFFFFFFFh
+  .text:0000000001E68969                 jz      loc_1E68877
+  .text:0000000001E6896F                 mov     ecx, eax
+  .text:0000000001E68971                 shr     eax, 0Fh
+  .text:0000000001E68974                 and     ecx, 7FFFh
+  .text:0000000001E6897A                 mov     [rbp+arg_0], eax
+  .text:0000000001E6897D                 mov     [rbp+var_34], ecx
+  .text:0000000001E68980                 cmp     r12d, 1
+  .text:0000000001E68984                 jz      short loc_1E689C0
+  .text:0000000001E68986                 cmp     r12d, 2
+  .text:0000000001E6898A                 jz      short loc_1E6899B
+  .text:0000000001E6898C                 test    r12d, r12d
+  .text:0000000001E6898F                 jnz     short loc_1E689F1
+  .text:0000000001E68991                 test    r9b, 1
+  .text:0000000001E68995                 jz      loc_1E68ACD
+  .text:0000000001E6899B                 add     rsp, 28h
+  .text:0000000001E6899F                 xor     eax, eax
+  .text:0000000001E689A1                 pop     rbx
+  .text:0000000001E689A2                 pop     r12
+  .text:0000000001E689A4                 pop     r13
+  .text:0000000001E689A6                 pop     r14
+  .text:0000000001E689A8                 pop     r15
+  .text:0000000001E689AA                 pop     rbp
+  .text:0000000001E689AB                 retn
+  .text:0000000001E689B0                 mov     eax, 1
+  .text:0000000001E689B5                 jmp     loc_1E68916
+  .text:0000000001E689C0                 test    r9b, 1
+  .text:0000000001E689C4                 jnz     short loc_1E6899B
+  .text:0000000001E689C6                 cmp     qword ptr [rbx+0E0h], 0
+  .text:0000000001E689CE                 jz      short loc_1E6899B
+  .text:0000000001E689D0                 mov     eax, [r13+0BBCh]
+  .text:0000000001E689D7                 test    eax, eax
+  .text:0000000001E689D9                 jz      short loc_1E689E1
+  .text:0000000001E689DB                 cmp     [rbp+var_34], 0FFFFFFFFh
+  .text:0000000001E689DF                 jz      short loc_1E6899B
+  .text:0000000001E689E1                 mov     esi, 1
+  .text:0000000001E689E6                 jmp     loc_1E688A0
+  .text:0000000001E689EB                 cmp     r14d, 0FFFFFFFFh
+  .text:0000000001E689EF                 jnz     short loc_1E6899B
+  .text:0000000001E689F1                 xor     esi, esi
+  .text:0000000001E689F3                 jmp     loc_1E688A0
+  .text:0000000001E68A00                 mov     rsi, r12
+  .text:0000000001E68A03                 mov     rdi, r13
+  .text:0000000001E68A06                 call    CEntitySystem_AddEntityToEntityDataBase
+  .text:0000000001E68A0B                 jmp     loc_1E6894B
+  .text:0000000001E68A10                 lea     rbx, g_pLoggingChannelEntitySystem
+  .text:0000000001E68A17                 ; _QWORD
+  .text:0000000001E68A17                 mov     esi, 3; _QWORD
+  .text:0000000001E68A1C                 ; _QWORD
+  .text:0000000001E68A1C                 mov     edi, [rbx]; _QWORD
+  .text:0000000001E68A1E                 call    _LoggingSystem_IsChannelEnabled
+  .text:0000000001E68A23                 test    al, al
+  .text:0000000001E68A25                 jz      loc_1E6899B
+  .text:0000000001E68A2B                 ; _QWORD
+  .text:0000000001E68A2B                 mov     edi, [rbx]; _QWORD
+  .text:0000000001E68A2D                 mov     ecx, r14d
+  .text:0000000001E68A30                 ; _QWORD
+  .text:0000000001E68A30                 mov     esi, 3; _QWORD
+  .text:0000000001E68A35                 xor     eax, eax
+  .text:0000000001E68A37                 lea     rdx, aCannotCreateAn; "Cannot create an entity because entity "...
+  .text:0000000001E68A3E                 call    _LoggingSystem_Log
+  .text:0000000001E68A43                 jmp     loc_1E6899B
+  .text:0000000001E68A50                 lea     r12, g_pLoggingChannelEntitySystem
+  .text:0000000001E68A57                 ; _QWORD
+  .text:0000000001E68A57                 mov     esi, 3; _QWORD
+  .text:0000000001E68A5C                 ; _QWORD
+  .text:0000000001E68A5C                 mov     edi, [r12]; _QWORD
+  .text:0000000001E68A60                 call    _LoggingSystem_IsChannelEnabled
+  .text:0000000001E68A65                 test    al, al
+  .text:0000000001E68A67                 jz      loc_1E6899B
+  .text:0000000001E68A6D                 mov     rax, [rbx+50h]
+  .text:0000000001E68A71                 lea     rcx, aNoClassInfo; "<no class info>"
+  .text:0000000001E68A78                 test    rax, rax
+  .text:0000000001E68A7B                 jz      short loc_1E68A81
+  .text:0000000001E68A7D                 mov     rcx, [rax+8]
+  .text:0000000001E68A81                 ; _QWORD
+  .text:0000000001E68A81                 mov     edi, [r12]; _QWORD
+  .text:0000000001E68A85                 lea     rdx, aCannotCreateAS; "Cannot create a %s entity because the c"...
+  .text:0000000001E68A8C                 ; _QWORD
+  .text:0000000001E68A8C                 mov     esi, 3; _QWORD
+  .text:0000000001E68A91                 xor     eax, eax
+  .text:0000000001E68A93                 call    _LoggingSystem_Log
+  .text:0000000001E68A98                 jmp     loc_1E6899B
+  .text:0000000001E68A9D                 mov     eax, r9d
+  .text:0000000001E68AA0                 and     eax, 1
+  .text:0000000001E68AA3                 cmp     r14d, 0FFFFFFFFh
+  .text:0000000001E68AA7                 jnz     loc_1E68991
+  .text:0000000001E68AAD                 or      eax, [r13+0BBCh]
+  .text:0000000001E68AB4                 jnz     loc_1E688A0
+  .text:0000000001E68ABA                 xor     esi, esi
+  .text:0000000001E68ABC                 cmp     qword ptr [rbx+0E0h], 0
+  .text:0000000001E68AC4                 setnz   sil
+  .text:0000000001E68AC8                 jmp     loc_1E688A0
+  .text:0000000001E68ACD                 cmp     qword ptr [rbx+0E0h], 0
+  .text:0000000001E68AD5                 mov     esi, 1
+  .text:0000000001E68ADA                 jnz     loc_1E688A0
+  .text:0000000001E68AE0                 jmp     loc_1E6899B
+  .text:0000000001E68AE5                 mov     esi, r10d
+  .text:0000000001E68AE8                 mov     [rbp+var_34], r10d
+  .text:0000000001E68AEC                 mov     rdi, r13
+  .text:0000000001E68AEF                 call    rdx
+  .text:0000000001E68AF1                 mov     r10d, [rbp+var_34]
+  .text:0000000001E68AF5                 jmp     loc_1E68916
+  .text:0000000001E68AFA                 xor     esi, esi
+  .text:0000000001E68AFC                 mov     rdi, r12
+  .text:0000000001E68AFF                 call    sub_1E446E0
+  .text:0000000001E68B04                 lea     rdi, [r13+10h]
+  .text:0000000001E68B08                 mov     edx, 1
+  .text:0000000001E68B0D                 mov     rsi, r12
+  .text:0000000001E68B10                 call    sub_1E51E80
+  .text:0000000001E68B15                 jmp     loc_1E6899B
+procedure: |-
+  __int64 __fastcall CEntitySystem_CreateEntity(
+          _DWORD *a1,
+          unsigned int a2,
+          __int64 a3,
+          __int64 a4,
+          int a5,
+          unsigned int a6,
+          unsigned int a7,
+          unsigned __int8 a8)
+  {
+    int v11; // r9d
+    __int64 v12; // rax
+    __int64 v13; // rax
+    unsigned __int8 v14; // si
+    _QWORD *EntityIdentity; // rax
+    unsigned __int64 v16; // r12
+    unsigned int v17; // r10d
+    int v18; // eax
+    __int64 (__fastcall *v19)(); // rdx
+    unsigned int v21; // eax
+    unsigned int v24; // [rsp+1Ch] [rbp-34h]
+    unsigned int v25; // [rsp+1Ch] [rbp-34h]
+
+    v24 = a6;
+    if ( !a3 )
+    {
+      if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)g_pLoggingChannelEntitySystem, 3) )
+        LoggingSystem_Log(
+          (unsigned int)g_pLoggingChannelEntitySystem,
+          3,
+          "Cannot create an entity because entity class is NULL %d\n");
+      return 0;
+    }
+    if ( !(unsigned __int8)sub_1E3B760(a3) )
+      return 0;
+    if ( (*(_DWORD *)(sub_1E3B780(a3) + 96) & 0x10) != 0 )
+    {
+      if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)g_pLoggingChannelEntitySystem, 3) )
+        LoggingSystem_Log(
+          (unsigned int)g_pLoggingChannelEntitySystem,
+          3,
+          "Cannot create a %s entity because the class has limited schema metadata\n");
+      return 0;
+    }
+    v11 = *(_DWORD *)(a3 + 104);
+    v12 = a3;
+    if ( (v11 & 8) == 0 )
+    {
+      while ( 1 )
+      {
+        v13 = *(_QWORD *)(v12 + 88);
+        if ( !v13 )
+          break;
+        v12 = *(_QWORD *)(v13 + 24);
+        if ( (*(_BYTE *)(v12 + 104) & 8) != 0 )
+          goto LABEL_22;
+      }
+  LABEL_8:
+      if ( a5 != 1 )
+      {
+        if ( a5 != 2 )
+        {
+          v14 = 0;
+          if ( a5 )
+            goto LABEL_11;
+          if ( a6 == -1 )
+          {
+            if ( !(a1[751] | *(_DWORD *)(a3 + 104) & 1) )
+              v14 = *(_QWORD *)(a3 + 224) != 0;
+            goto LABEL_11;
+          }
+          goto LABEL_26;
+        }
+        if ( a6 != -1 )
+          return 0;
+  LABEL_35:
+        v14 = 0;
+        goto LABEL_11;
+      }
+  LABEL_29:
+      if ( (v11 & 1) != 0 || !*(_QWORD *)(a3 + 224) || a1[751] && v24 == -1 )
+        return 0;
+      v14 = 1;
+      goto LABEL_11;
+    }
+  LABEL_22:
+    v21 = *(_DWORD *)(v12 + 280);
+    if ( v21 == -1 )
+      goto LABEL_8;
+    a7 = v21 >> 15;
+    v24 = v21 & 0x7FFF;
+    if ( a5 == 1 )
+      goto LABEL_29;
+    if ( a5 == 2 )
+      return 0;
+    if ( a5 )
+      goto LABEL_35;
+  LABEL_26:
+    if ( (v11 & 1) != 0 )
+      return 0;
+    v14 = 1;
+    if ( !*(_QWORD *)(a3 + 224) )
+      return 0;
+  LABEL_11:
+    EntityIdentity = CEntitySystem_DoAllocateEntity((__int64)a1, v14, v24, a7, a8, (*(_DWORD *)(a3 + 104) & 0x40) != 0);
+    v16 = (unsigned __int64)EntityIdentity;
+    if ( !EntityIdentity )
+      return 0;
+    EntityIdentity[1] = a3;
+    v17 = 0;
+    if ( (*(_DWORD *)(a3 + 104) & 4) == 0 )
+    {
+      v17 = a2;
+      if ( a2 == -1 )
+        v17 = a1[2000];
+    }
+    v18 = *(_DWORD *)(a3 + 104) & 0x400;
+    if ( v18 )
+    {
+      v18 = 1;
+    }
+    else
+    {
+      v19 = *(__int64 (__fastcall **)())(*(_QWORD *)a1 + 144LL);
+      if ( v19 != CEntitySystem_GetSpawnGroupWorldId )
+      {
+        v25 = v17;
+        v18 = ((__int64 (__fastcall *)(_DWORD *, _QWORD))v19)(a1, v17);
+        v17 = v25;
+      }
+    }
+    *(_QWORD *)(v16 + 52) = _mm_insert_epi32(_mm_cvtsi32_si128(v17), v18, 1).m128i_u64[0];
+    if ( !(unsigned __int8)CEntitySystem_ConstructEntity(a1, v16, a4) )
+    {
+      sub_1E446E0(v16, 0);
+      sub_1E51E80((__int64)(a1 + 4), v16, 1);
+      return 0;
+    }
+    if ( (*(_BYTE *)(v16 + 49) & 8) == 0 )
+      CEntitySystem_AddEntityToEntityDataBase(a1, v16);
+    return *(_QWORD *)v16;
+  }
