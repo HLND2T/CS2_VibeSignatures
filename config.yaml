@@ -2791,6 +2791,13 @@ modules:
         expected_input:
           - EntInfo_CommandHandler.{platform}.yaml
 
+      - name: find-CEntitySystem_NotifyRemoveEntity-AND-CEntitySystem_DestroyEntityInternal
+        expected_output:
+          - CEntitySystem_NotifyRemoveEntity.{platform}.yaml
+          - CEntitySystem_DestroyEntityInternal.{platform}.yaml
+        expected_input:
+          - CEntitySystem_RemoveEntityImmediate.{platform}.yaml
+
       - name: find-CBasePlayerPawn_CommitSuicide
         expected_output:
           - CBasePlayerPawn_CommitSuicide.{platform}.yaml
@@ -5032,6 +5039,16 @@ modules:
         category: func
         alias:
           - CEntitySystem::RemoveEntityImmediate
+
+      - name: CEntitySystem_NotifyRemoveEntity
+        category: func
+        alias:
+          - CEntitySystem::NotifyRemoveEntity
+
+      - name: CEntitySystem_DestroyEntityInternal
+        category: func
+        alias:
+          - CEntitySystem::DestroyEntityInternal
 
       - name: ClientPrintToController
         category: func

@@ -1,0 +1,280 @@
+func_name: CEntitySystem_RemoveEntityImmediate
+func_va: '0x1e64150'
+disasm_code: |-
+  .text:0000000001E64150                 test    rsi, rsi
+  .text:0000000001E64153                 jz      locret_1E64300
+  .text:0000000001E64159                 push    rbp
+  .text:0000000001E6415A                 mov     rbp, rsp
+  .text:0000000001E6415D                 push    r15
+  .text:0000000001E6415F                 push    r14
+  .text:0000000001E64161                 push    r13
+  .text:0000000001E64163                 push    r12
+  .text:0000000001E64165                 mov     r12, rdi
+  .text:0000000001E64168                 push    rbx
+  .text:0000000001E64169                 mov     rbx, rsi
+  .text:0000000001E6416C                 sub     rsp, 18h
+  .text:0000000001E64170                 mov     eax, [rsi+30h]
+  .text:0000000001E64173                 test    ah, 8
+  .text:0000000001E64176                 jnz     loc_1E642C8
+  .text:0000000001E6417C                 test    ah, 2
+  .text:0000000001E6417F                 jnz     loc_1E6429A
+  .text:0000000001E64185                 mov     ecx, [rdi+0BC8h]
+  .text:0000000001E6418B                 test    ecx, ecx
+  .text:0000000001E6418D                 jg      loc_1E642B0
+  .text:0000000001E64193                 add     dword ptr [rdi+0BCCh], 1
+  .text:0000000001E6419A                 mov     eax, [rsi+30h]
+  .text:0000000001E6419D                 mov     r14, [rsi]
+  .text:0000000001E641A0                 mov     edx, eax
+  .text:0000000001E641A2                 or      edx, 10h
+  .text:0000000001E641A5                 mov     [rsi+30h], edx
+  .text:0000000001E641A8                 test    r14, r14
+  .text:0000000001E641AB                 jz      loc_1E64260
+  .text:0000000001E641B1                 and     eax, 4
+  .text:0000000001E641B4                 mov     r13d, eax
+  .text:0000000001E641B7                 jnz     loc_1E64255
+  .text:0000000001E641BD                 mov     rax, [rdi]
+  .text:0000000001E641C0                 lea     rdx, sub_1E4F560
+  .text:0000000001E641C7                 mov     [rbp-38h], rsi
+  .text:0000000001E641CB                 mov     rax, [rax+0C0h]
+  .text:0000000001E641D2                 cmp     rax, rdx
+  .text:0000000001E641D5                 jnz     loc_1E643B8
+  .text:0000000001E641DB                 lea     r15, g_pResourceSystem
+  .text:0000000001E641E2                 mov     rdi, [r15]
+  .text:0000000001E641E5                 test    rdi, rdi
+  .text:0000000001E641E8                 jz      loc_1E64340
+  .text:0000000001E641EE                 mov     rax, [rdi]
+  .text:0000000001E641F1                 call    qword ptr [rax+1E8h]
+  .text:0000000001E641F7                 mov     rdi, rax
+  .text:0000000001E641FA                 mov     rax, [rax]
+  .text:0000000001E641FD                 call    qword ptr [rax+28h]
+  .text:0000000001E64200                 mov     rdx, [rbp-38h]
+  .text:0000000001E64204                 test    al, al
+  .text:0000000001E64206                 jnz     loc_1E64358
+  .text:0000000001E6420C                 mov     byte ptr [r12+0BDCh], 0
+  .text:0000000001E64215                 lea     rax, byte_27BA2E9
+  .text:0000000001E6421C                 mov     rdi, [rdx]
+  .text:0000000001E6421F                 mov     byte ptr [rax], 0
+  .text:0000000001E64222                 mov     rax, [rdi]
+  .text:0000000001E64225                 call    qword ptr [rax+78h]
+  .text:0000000001E64228                 cmp     byte ptr [r12+0BDCh], 0
+  .text:0000000001E64231                 jz      short loc_1E64255
+  .text:0000000001E64233                 mov     rdi, [r15]
+  .text:0000000001E64236                 mov     rax, [rdi]
+  .text:0000000001E64239                 call    qword ptr [rax+1E8h]
+  .text:0000000001E6423F                 mov     ecx, 2
+  .text:0000000001E64244                 mov     edx, 17h
+  .text:0000000001E64249                 mov     esi, r13d
+  .text:0000000001E6424C                 mov     rdi, rax
+  .text:0000000001E6424F                 mov     rax, [rax]
+  .text:0000000001E64252                 call    qword ptr [rax+18h]
+  .text:0000000001E64255                 mov     rsi, rbx
+  .text:0000000001E64258                 mov     rdi, r12
+  .text:0000000001E6425B                 call    CEntitySystem_NotifyRemoveEntity
+  .text:0000000001E64260                 mov     rdi, r14
+  .text:0000000001E64263                 call    CEntitySystem_DestroyEntityInternal
+  .text:0000000001E64268                 xor     esi, esi
+  .text:0000000001E6426A                 mov     rdi, rbx
+  .text:0000000001E6426D                 call    sub_1E446E0
+  .text:0000000001E64272                 lea     rdi, [r12+10h]
+  .text:0000000001E64277                 mov     edx, 1
+  .text:0000000001E6427C                 mov     rsi, rbx
+  .text:0000000001E6427F                 call    sub_1E51E80
+  .text:0000000001E64284                 sub     dword ptr [r12+0BCCh], 1
+  .text:0000000001E6428D                 jnz     short loc_1E6429A
+  .text:0000000001E6428F                 cmp     byte ptr [r12+0BDBh], 0
+  .text:0000000001E64298                 jnz     short loc_1E64308
+  .text:0000000001E6429A                 add     rsp, 18h
+  .text:0000000001E6429E                 pop     rbx
+  .text:0000000001E6429F                 pop     r12
+  .text:0000000001E642A1                 pop     r13
+  .text:0000000001E642A3                 pop     r14
+  .text:0000000001E642A5                 pop     r15
+  .text:0000000001E642A7                 pop     rbp
+  .text:0000000001E642A8                 retn
+  .text:0000000001E642B0                 add     rsp, 18h
+  .text:0000000001E642B4                 pop     rbx
+  .text:0000000001E642B5                 pop     r12
+  .text:0000000001E642B7                 pop     r13
+  .text:0000000001E642B9                 pop     r14
+  .text:0000000001E642BB                 pop     r15
+  .text:0000000001E642BD                 pop     rbp
+  .text:0000000001E642BE                 jmp     sub_1E643E0
+  .text:0000000001E642C8                 mov     rdi, [rsi]
+  .text:0000000001E642CB                 call    CEntitySystem_DestroyEntityInternal
+  .text:0000000001E642D0                 mov     rdi, rbx
+  .text:0000000001E642D3                 xor     esi, esi
+  .text:0000000001E642D5                 call    sub_1E446E0
+  .text:0000000001E642DA                 add     rsp, 18h
+  .text:0000000001E642DE                 mov     rsi, rbx
+  .text:0000000001E642E1                 mov     edx, 1
+  .text:0000000001E642E6                 pop     rbx
+  .text:0000000001E642E7                 lea     rdi, [r12+10h]
+  .text:0000000001E642EC                 pop     r12
+  .text:0000000001E642EE                 pop     r13
+  .text:0000000001E642F0                 pop     r14
+  .text:0000000001E642F2                 pop     r15
+  .text:0000000001E642F4                 pop     rbp
+  .text:0000000001E642F5                 jmp     sub_1E51E80
+  .text:0000000001E64300                 retn
+  .text:0000000001E64308                 mov     edx, [r12+0BC4h]
+  .text:0000000001E64310                 test    edx, edx
+  .text:0000000001E64312                 jnz     short loc_1E6429A
+  .text:0000000001E64314                 mov     eax, [r12+0BC0h]
+  .text:0000000001E6431C                 test    eax, eax
+  .text:0000000001E6431E                 jnz     loc_1E643C8
+  .text:0000000001E64324                 add     rsp, 18h
+  .text:0000000001E64328                 mov     rdi, r12
+  .text:0000000001E6432B                 xor     esi, esi
+  .text:0000000001E6432D                 pop     rbx
+  .text:0000000001E6432E                 pop     r12
+  .text:0000000001E64330                 pop     r13
+  .text:0000000001E64332                 pop     r14
+  .text:0000000001E64334                 pop     r15
+  .text:0000000001E64336                 pop     rbp
+  .text:0000000001E64337                 jmp     CEntitySystem_PurgeRemovedEntities
+  .text:0000000001E64340                 mov     byte ptr [r12+0BDCh], 0
+  .text:0000000001E64349                 mov     rdx, rsi
+  .text:0000000001E6434C                 jmp     loc_1E64215
+  .text:0000000001E64358                 mov     byte ptr [r12+0BDCh], 1
+  .text:0000000001E64361                 mov     eax, [rdx+10h]
+  .text:0000000001E64364                 mov     ecx, [rdx+30h]
+  .text:0000000001E64367                 shr     eax, 0Fh
+  .text:0000000001E6436A                 and     ecx, 1
+  .text:0000000001E6436D                 sub     eax, ecx
+  .text:0000000001E6436F                 cmp     dword ptr [rdx+10h], 0FFFFFFFFh
+  .text:0000000001E64373                 jz      short loc_1E643D6
+  .text:0000000001E64375                 movzx   edx, word ptr [rdx+10h]
+  .text:0000000001E64379                 and     dx, 7FFFh
+  .text:0000000001E6437E                 mov     rdi, [r15]
+  .text:0000000001E64381                 movzx   edx, dx
+  .text:0000000001E64384                 shl     eax, 0Fh
+  .text:0000000001E64387                 or      eax, edx
+  .text:0000000001E64389                 mov     r13d, eax
+  .text:0000000001E6438C                 mov     rax, [rdi]
+  .text:0000000001E6438F                 call    qword ptr [rax+1E8h]
+  .text:0000000001E64395                 mov     edx, 17h
+  .text:0000000001E6439A                 mov     ecx, 1
+  .text:0000000001E6439F                 mov     esi, r13d
+  .text:0000000001E643A2                 mov     rdi, rax
+  .text:0000000001E643A5                 mov     rax, [rax]
+  .text:0000000001E643A8                 call    qword ptr [rax+18h]
+  .text:0000000001E643AB                 mov     rdx, [rbp-38h]
+  .text:0000000001E643AF                 jmp     loc_1E64215
+  .text:0000000001E643B8                 lea     rdx, [rbp-38h]
+  .text:0000000001E643BC                 mov     esi, 1
+  .text:0000000001E643C1                 call    rax
+  .text:0000000001E643C3                 jmp     loc_1E64255
+  .text:0000000001E643C8                 mov     byte ptr [r12+0BD8h], 1
+  .text:0000000001E643D1                 jmp     loc_1E6429A
+  .text:0000000001E643D6                 mov     edx, 7FFFh
+  .text:0000000001E643DB                 jmp     short loc_1E6437E
+procedure: |-
+  void __fastcall CEntitySystem_RemoveEntityImmediate(__int64 *a1, unsigned __int64 a2)
+  {
+    int v3; // eax
+    int v4; // eax
+    __int64 v5; // r14
+    unsigned int v6; // r13d
+    __int64 v7; // rax
+    __int64 (__fastcall *v8)(__int64, int, __int64 **); // rax
+    __int64 v9; // rax
+    char v10; // al
+    unsigned __int64 v11; // rdx
+    __int64 v12; // rdi
+    __int64 v13; // rax
+    bool v14; // zf
+    int v15; // eax
+    unsigned __int16 v16; // dx
+    __int64 v17; // rax
+    unsigned __int64 v18; // [rsp-40h] [rbp-40h] BYREF
+
+    if ( a2 )
+    {
+      v3 = *(_DWORD *)(a2 + 48);
+      if ( (v3 & 0x800) != 0 )
+      {
+        CEntitySystem_DestroyEntityInternal(*(_QWORD *)a2);
+        sub_1E446E0(a2);
+        sub_1E51E80((__int64)(a1 + 2), a2, 1);
+      }
+      else if ( (v3 & 0x200) == 0 )
+      {
+        if ( *((int *)a1 + 754) > 0 )
+        {
+          sub_1E643E0();
+        }
+        else
+        {
+          ++*((_DWORD *)a1 + 755);
+          v4 = *(_DWORD *)(a2 + 48);
+          v5 = *(_QWORD *)a2;
+          *(_DWORD *)(a2 + 48) = v4 | 0x10;
+          if ( v5 )
+          {
+            v6 = v4 & 4;
+            if ( (v4 & 4) == 0 )
+            {
+              v7 = *a1;
+              v18 = a2;
+              v8 = *(__int64 (__fastcall **)(__int64, int, __int64 **))(v7 + 192);
+              if ( v8 == sub_1E4F560 )
+              {
+                if ( g_pResourceSystem )
+                {
+                  v9 = (*(__int64 (__fastcall **)(_QWORD *))(*g_pResourceSystem + 488LL))(g_pResourceSystem);
+                  v10 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)v9 + 40LL))(v9);
+                  v11 = v18;
+                  if ( v10 )
+                  {
+                    *((_BYTE *)a1 + 3036) = 1;
+                    v15 = (*(_DWORD *)(v11 + 16) >> 15) - (*(_DWORD *)(v11 + 48) & 1);
+                    if ( *(_DWORD *)(v11 + 16) == -1 )
+                      v16 = 0x7FFF;
+                    else
+                      v16 = *(_WORD *)(v11 + 16) & 0x7FFF;
+                    v6 = v16 | (v15 << 15);
+                    v17 = (*(__int64 (__fastcall **)(_QWORD *))(*g_pResourceSystem + 488LL))(g_pResourceSystem);
+                    (*(void (__fastcall **)(__int64, _QWORD, __int64, __int64))(*(_QWORD *)v17 + 24LL))(v17, v6, 23, 1);
+                    v11 = v18;
+                  }
+                  else
+                  {
+                    *((_BYTE *)a1 + 3036) = 0;
+                  }
+                }
+                else
+                {
+                  *((_BYTE *)a1 + 3036) = 0;
+                  v11 = a2;
+                }
+                v12 = *(_QWORD *)v11;
+                byte_27BA2E9 = 0;
+                (*(void (__fastcall **)(__int64))(*(_QWORD *)v12 + 120LL))(v12);
+                if ( *((_BYTE *)a1 + 3036) )
+                {
+                  v13 = (*(__int64 (__fastcall **)(_QWORD *))(*g_pResourceSystem + 488LL))(g_pResourceSystem);
+                  (*(void (__fastcall **)(__int64, _QWORD, __int64, __int64))(*(_QWORD *)v13 + 24LL))(v13, v6, 23, 2);
+                }
+              }
+              else
+              {
+                v8((__int64)a1, 1, (__int64 **)&v18);
+              }
+            }
+            CEntitySystem_NotifyRemoveEntity((__int64)a1, a2);
+          }
+          CEntitySystem_DestroyEntityInternal(v5);
+          sub_1E446E0(a2);
+          sub_1E51E80((__int64)(a1 + 2), a2, 1);
+          v14 = (*((_DWORD *)a1 + 755))-- == 1;
+          if ( v14 && *((_BYTE *)a1 + 3035) && !*((_DWORD *)a1 + 753) )
+          {
+            if ( *((_DWORD *)a1 + 752) )
+              *((_BYTE *)a1 + 3032) = 1;
+            else
+              CEntitySystem_PurgeRemovedEntities((__int64)a1, 0);
+          }
+        }
+      }
+    }
+  }
