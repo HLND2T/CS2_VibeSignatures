@@ -27,6 +27,8 @@ The user or issue will provide some or all of:
 | **Module** | Which DLL/SO the function lives in | `server`, `engine`, `networksystem`, `client` |
 | **Category** | Symbol type | `func`, `vfunc`, `structmember`, `patch`, `vtable` |
 | **xref_strings** | Debug strings for xref-based discovery | `"CT_Water.StepLeft"` |
+| **xref_gvs** | Global variable VA (e.g. vtable address) to find functions that reference it | vtable VA from `SomeClass_vtable.{platform}.yaml` |
+| **xref_funcs** | Known callee function name to find its callers | `"CPlayerCommandQueue_ctor"` |
 | **Predecessor function** | Function to decompile for LLM_DECOMPILE patterns | `CBaseEntity_TakeDamageOld` |
 | **VTable class** | Class owning the vtable (for vfuncs) | `CBasePlayerPawn` |
 | **Desired YAML fields** | Which fields the output YAML needs | `func_name, func_sig, func_va, func_rva, func_size` |
@@ -62,6 +64,10 @@ From the user's input, determine:
 1. **Is the target a function, vfunc, or struct member offset?**
    - Has `xref_strings` + category `func` -> **Pattern A**
    - Has `xref_strings` + category `vfunc` -> **Pattern B**
+   - Has `xref_gvs` (vtable VA from a vtable YAML) + category `func` -> **Pattern A** with dynamic FUNC_XREFS (read vtable VA at runtime; see "Dynamic FUNC_XREFS via xref_gvs" note)
+   - Has `xref_gvs` (vtable VA from a vtable YAML) + category `vfunc` -> **Pattern B** with dynamic FUNC_XREFS
+   - Has `xref_funcs` (known callee function name) + category `func` -> **Pattern A** (static FUNC_XREFS; see "xref_funcs: finding callers of a known function" note)
+   - Has `xref_funcs` (known callee function name) + category `vfunc` -> **Pattern B** (static FUNC_XREFS)
    - Has predecessor function + category `vfunc` -> **Pattern C**
    - Has predecessor function + category `func` -> **Pattern D**
    - Has predecessor function + category `structmember` -> **Pattern E**
@@ -117,6 +123,110 @@ FUNC_XREFS = [
         "exclude_funcs": [], "exclude_strings": [], "exclude_gvs": [], "exclude_signatures": [],
     },
 ]
+```
+
+#### Dynamic FUNC_XREFS via `xref_gvs` (vtable VA)
+
+When the target function is the **constructor** (or any other function that references a class's vtable), use `xref_gvs` with the vtable's virtual address. Because the vtable VA is only known after IDA analysis, it cannot be hardcoded -- it must be read from the vtable's output YAML at runtime.
+
+This requires a custom `preprocess_skill` that:
+1. Reads `vtable_va` from `{VtableClass}_vtable.{platform}.yaml` in `new_binary_dir`
+2. Builds `func_xrefs` dynamically with the VA in `xref_gvs`
+3. Passes the dynamic list to `preprocess_common_skill`
+
+```python
+import os
+try:
+    import yaml
+except ImportError:
+    yaml = None
+
+def _read_vtable_va(yaml_path):
+    try:
+        with open(yaml_path, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f)
+        if isinstance(data, dict):
+            va = data.get("vtable_va")
+            if va:
+                return str(va)
+    except Exception:
+        pass
+    return None
+
+async def preprocess_skill(
+    session, skill_name, expected_outputs, old_yaml_map,
+    new_binary_dir, platform, image_base, debug=False,
+):
+    vtable_yaml_path = os.path.join(new_binary_dir, f"SomeClass_vtable.{platform}.yaml")
+    vtable_va = _read_vtable_va(vtable_yaml_path)
+    if not vtable_va:
+        if debug:
+            print("    Preprocess: SomeClass_vtable vtable_va not found, cannot resolve xref_gvs")
+        return False
+
+    func_xrefs = [
+        {
+            "func_name": "SomeClass_ctor",
+            "xref_strings": [],
+            "xref_gvs": [str(vtable_va)],
+            "xref_signatures": [],
+            "xref_funcs": [],
+            "exclude_funcs": [],
+            "exclude_strings": [],
+            "exclude_gvs": [],
+            "exclude_signatures": [],
+        },
+    ]
+    return await preprocess_common_skill(
+        session=session,
+        expected_outputs=expected_outputs,
+        old_yaml_map=old_yaml_map,
+        new_binary_dir=new_binary_dir,
+        platform=platform,
+        image_base=image_base,
+        func_names=TARGET_FUNCTION_NAMES,
+        func_xrefs=func_xrefs,
+        generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
+        debug=debug,
+    )
+```
+
+**config.yaml `expected_input`:** must include the vtable YAML so it is guaranteed to be resolved before this script runs.
+
+**Multiple xrefs / `exclude_signatures`:** If more than one function references the vtable (e.g. constructor + destructor), the intersection yields >1 result and the skill fails. Use `exclude_signatures` to exclude the unwanted function(s). If the ambiguity is platform-specific, make the exclusion conditional:
+
+```python
+exclude_signatures = ["66 83 ?? FF"] if platform == "linux" else []
+```
+
+To find the right bytes to exclude: look up the two candidate addresses in IDA, read the first ~4 bytes of the function to exclude, and use those as the `exclude_signatures` pattern with `??` wildcards where needed.
+
+#### `xref_funcs`: Finding Callers of a Known Function (Patterns A & B)
+
+When the target function is discoverable as a **caller** of another already-known function, use `xref_funcs` with the callee's name. Unlike `xref_gvs`, the function name is available at script-write time, so `FUNC_XREFS` can be a static module-level constant -- no dynamic building required.
+
+```python
+FUNC_XREFS = [
+    {
+        "func_name": "TargetFunc",
+        "xref_strings": [],
+        "xref_gvs": [],
+        "xref_signatures": [],
+        "xref_funcs": ["KnownCalleeFunc"],   # callee that the target calls
+        "exclude_funcs": [],
+        "exclude_strings": [],
+        "exclude_gvs": [],
+        "exclude_signatures": [],
+    },
+]
+```
+
+**config.yaml `expected_input`:** include the callee's output YAML to guarantee it is renamed in IDA before this script runs (the name lookup requires the rename to have happened):
+
+```yaml
+        expected_input:
+          - KnownCalleeFunc.{platform}.yaml        # ensures callee is renamed first
+          - TargetClass_vtable.{platform}.yaml     # if target is a vfunc (Pattern B)
 ```
 
 #### Struct Member Mixin (for any pattern)
@@ -749,3 +859,57 @@ vfunc_index: ...
 async def preprocess_skill(session, skill_name, expected_outputs, old_yaml_map,
                            new_binary_dir, platform, image_base, debug=False):
 ```
+
+### Example: Constructor via vtable xref_gvs (Pattern A, dynamic FUNC_XREFS)
+
+**User says:** Find `CPlayerCommandQueue_ctor` in server. It's the constructor -- identifiable as the function that writes the `CPlayerCommandQueue` vtable pointer. Find it via `xref_gvs` on `CPlayerCommandQueue_vtable`.
+
+**Result:** Two scripts required (vtable first, then ctor):
+
+1. `ida_preprocessor_scripts/find-CPlayerCommandQueue_vtable.py` (vtable discovery, same as any other vtable script):
+   - `TARGET_CLASS_NAMES = ["CPlayerCommandQueue"]`
+
+2. `ida_preprocessor_scripts/find-CPlayerCommandQueue_ctor.py` (Pattern A, dynamic FUNC_XREFS):
+   - Imports `os` and `yaml`
+   - `_read_vtable_va()` helper reads `vtable_va` from the vtable YAML
+   - `preprocess_skill` builds `func_xrefs` at runtime with `xref_gvs: [vtable_va]`
+   - Linux had 2 xref candidates; added `exclude_signatures = ["66 83 ?? FF"] if platform == "linux" else []`
+
+**config.yaml:**
+```yaml
+      - name: find-CPlayerCommandQueue_vtable
+        expected_output:
+          - CPlayerCommandQueue_vtable.{platform}.yaml
+
+      - name: find-CPlayerCommandQueue_ctor
+        expected_output:
+          - CPlayerCommandQueue_ctor.{platform}.yaml
+        expected_input:
+          - CPlayerCommandQueue_vtable.{platform}.yaml
+```
+
+**Key insight -- vtable VA is runtime-only:** The vtable VA changes with every binary update, so it cannot be hardcoded. The `_read_vtable_va()` helper reads it from the vtable YAML written earlier in the same `ida_analyze_bin.py` run. The vtable skill must appear first in config.yaml (via `expected_input`) so it executes before the ctor skill.
+
+**Key insight -- multiple xref candidates:** A vtable is typically written by the constructor AND sometimes by a destructor or copy constructor. If >1 function is found, the skill fails with `"xref intersection yielded N function(s) (need exactly 1)"`. Read the first few bytes of each candidate in IDA, pick the non-constructor, and add an `exclude_signatures` entry. Use a platform conditional if the ambiguity only appears on one platform.
+
+### Example: Virtual function via xref_funcs (Pattern B, static FUNC_XREFS)
+
+**User says:** Find `CCSPlayerController_Connect` in server. It's a vfunc of `CCSPlayerController`. It calls `CPlayerCommandQueue_ctor` internally, so use `xref_funcs: ["CPlayerCommandQueue_ctor"]`.
+
+**Result:** `ida_preprocessor_scripts/find-CCSPlayerController_Connect.py` with:
+- Static `FUNC_XREFS` -- no dynamic building needed, function name is known at write time
+- `xref_funcs: ["CPlayerCommandQueue_ctor"]`
+- `FUNC_VTABLE_RELATIONS`: `("CCSPlayerController_Connect", "CCSPlayerController")`
+- `GENERATE_YAML_DESIRED_FIELDS` with `func_name, func_sig, func_va, func_rva, func_size, vtable_name, vfunc_offset, vfunc_index`
+
+**config.yaml:**
+```yaml
+      - name: find-CCSPlayerController_Connect
+        expected_output:
+          - CCSPlayerController_Connect.{platform}.yaml
+        expected_input:
+          - CPlayerCommandQueue_ctor.{platform}.yaml
+          - CCSPlayerController_vtable.{platform}.yaml
+```
+
+**Key insight -- `expected_input` for `xref_funcs`:** The `xref_funcs` lookup resolves the callee by its IDA name. The callee is only renamed when its output YAML is written. Always list the callee's YAML in `expected_input` to guarantee it runs (and gets renamed in IDA) before this script executes. Without this ordering, the name lookup silently finds nothing and the skill fails.

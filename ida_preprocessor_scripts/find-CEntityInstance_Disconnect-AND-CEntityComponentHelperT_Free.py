@@ -32,6 +32,9 @@ GENERATE_YAML_DESIRED_FIELDS = [
         "CEntityInstance_Disconnect",
         [
             "func_name",
+            "func_va",
+            "func_rva",
+            "func_size",
             "vfunc_sig",
             "vtable_name",
             "vfunc_offset",

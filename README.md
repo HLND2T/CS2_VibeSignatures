@@ -28,17 +28,10 @@ Currently, all signatures/offsets from **CounterStrikeSharp** and **CS2Fixes** c
 
 ## Overall workflow
 
-#### 0. Install deps with uv
+### 1. Download CS2 depot and copy binaries to workspace
 
 ```bash
-uv sync
-```
-
-#### 1. Download CS2 depot and copy binaries to workspace
-
-```bash
-DepotDownloader -app 730 -depot 2347771 -os all-platform -dir cs2_depot [-branch animgraph_2_beta]
-DepotDownloader -app 730 -depot 2347773 -os all-platform -dir cs2_depot [-branch animgraph_2_beta]
+uv download_depot.py
 
 uv run copy_depot_bin.py -gamever 14141 -platform all-platform
 uv run copy_depot_bin.py -gamever 14141 -platform all-platform -checkonly
@@ -46,23 +39,11 @@ uv run copy_depot_bin.py -gamever 14141 -platform all-platform -checkonly
 
 Use `-checkonly` in CI or preflight scripts when you only need to know whether all expected target binaries already exist under `bin/<gamever>/...`. In this mode the script only checks target paths, does not require a populated `cs2_depot`, returns `0` when all expected binaries are ready, `1` when any target is missing, and `2` for configuration or argument errors.
 
-#### 2. Find and generate signatures for all symbols declared in `config.yaml`
+### 2. Find and generate signatures for all symbols declared in `config.yaml`
 
  ```bash
  uv run ida_analyze_bin.py -gamever 14141 [-oldgamever=14140] [-configyaml=path/to/config.yaml] [-modules=server] [-platform=windows] [-agent=claude/codex/"claude.cmd"/"codex.cmd"] [-maxretry=3] [-vcall_finder=g_pNetworkMessages|*] [-llm_model=gpt-4o] [-llm_apikey=your-key] [-llm_baseurl=https://api.example.com/v1] [-llm_temperature=0.2] [-llm_effort=medium] [-llm_fake_as=codex] [-debug]
  ```
-
-* Old signatures from `bin/{previous_gamever}/{module}/{symbol}.{platform}.yaml` will be used to find symbols in current version of game binaries directly through mcp call before actually running Agent SKILL(s). No token will be consumed in this case.
-
-* `-agent="claude.cmd"` is for claude cli installed from Windows npm
-
-* `-vcall_finder=g_pNetworkMessages` filters by an object declared in the module-level `vcall_finder` config; `-vcall_finder=*` processes every declared object from `config.yaml`.
-
-* When `-vcall_finder` is enabled, the script exports full disassembly and pseudocode for each referencing function into `vcall_finder/{gamever}/{object_name}/{module}/{platform}/`, then runs LLM aggregation after all module/platform IDA work finishes; if a detail YAML already has a top-level `found_vcall`, that function skips the LLM call and reuses the cached result directly.
-
-* After a successful LLM response, the script immediately writes back `found_vcall: [...]` or `found_vcall: []` to the corresponding detail YAML so reruns can skip that function's LLM call.
-
-* `vcall_finder/{gamever}/{object_name}.txt` is now an appended YAML document stream; each record directly contains `insn_va`, `insn_disasm`, and `vfunc_offset` without a nested `found_vcall:` wrapper.
 
 * Shared LLM CLI parameters:
   - `-llm_apikey`: required when an LLM-backed workflow is enabled, including `vcall_finder` aggregation and `LLM_DECOMPILE`
@@ -73,6 +54,22 @@ Use `-checkonly` in CI or preflight scripts when you only need to know whether a
   - `-llm_fake_as`: optional; `codex` switches to direct `/v1/responses` SSE transport
   - Env fallbacks: `CS2VIBE_LLM_APIKEY`, `CS2VIBE_LLM_BASEURL`, `CS2VIBE_LLM_MODEL`, `CS2VIBE_LLM_TEMPERATURE`, `CS2VIBE_LLM_EFFORT`, `CS2VIBE_LLM_FAKE_AS`
   - LLM workflows do not read `OPENAI_API_KEY`, `OPENAI_API_BASE`, or `OPENAI_API_MODEL`
+
+* Old signatures from `bin/{previous_gamever}/{module}/{symbol}.{platform}.yaml` will be used to find symbols in current version of game binaries directly through mcp call before actually running Agent SKILL(s). No token will be consumed in this case.
+
+* `-agent="claude.cmd"` is for claude cli installed from Windows npm
+
+* We prefer programmatic preprocessor scripts > LLM_DECOMPILE based preprocessor scripts > Agent with `SKILL.md`
+
+#### vcall_finder related
+
+* `-vcall_finder=g_pNetworkMessages` filters by an object declared in the module-level `vcall_finder` config; `-vcall_finder=*` processes every declared object from `config.yaml`.
+
+* When `-vcall_finder` is enabled, the script exports full disassembly and pseudocode for each referencing function into `vcall_finder/{gamever}/{object_name}/{module}/{platform}/`, then runs LLM aggregation after all module/platform IDA work finishes; if a detail YAML already has a top-level `found_vcall`, that function skips the LLM call and reuses the cached result directly.
+
+* After a successful LLM response, the script immediately writes back `found_vcall: [...]` or `found_vcall: []` to the corresponding detail YAML so reruns can skip that function's LLM call.
+
+* `vcall_finder/{gamever}/{object_name}.txt` is now an appended YAML document stream; each record directly contains `insn_va`, `insn_disasm`, and `vfunc_offset` without a nested `found_vcall:` wrapper.
 
 ```bash
 uv run ida_analyze_bin.py -gamever=14141 -modules=networksystem -platform=windows -vcall_finder=g_pNetworkMessages -llm_model=gpt-5.4 -llm_apikey=your-key -llm_effort=high -llm_fake_as=codex -llm_baseurl=http://127.0.0.1:8080/v1
@@ -91,7 +88,7 @@ Example outputs:
   - Setup state is stored per IDB; changing the effective `minlen` triggers setup again
   - This is not an LLM parameter
 
-#### 2.5 Prepare reference YAML for `LLM_DECOMPILE`
+#### reference YAML for `LLM_DECOMPILE`
 
 Reference YAML path:
 
@@ -126,13 +123,13 @@ uv run generate_reference_yaml.py -gamever 14141 -module engine -platform window
      - `("CNetworkMessages_FindNetworkGroup", "prompt/call_llm_decompile.md", "references/engine/CNetworkGameClient_RecordEntityBandwidth.windows.yaml")`
    - `LLM_DECOMPILE` uses the same shared `ida_analyze_bin.py` `-llm_*` flags: `-llm_model`, `-llm_apikey`, `-llm_baseurl`, `-llm_temperature`, `-llm_effort`, `-llm_fake_as`
 
-#### 3. Convert yaml(s) to gamedata json / txt
+### 3. Convert yaml(s) to gamedata json / txt
 
 ```bash
 uv run update_gamedata.py -gamever 14141 [-debug]
 ```
 
-#### 4. Run cpp tests and check if cpp headers mismatch from yaml(s)
+### 4. Run cpp tests and check if cpp headers mismatch from yaml(s)
 
 ```bash
 uv run run_cpp_tests.py -gamever 14141 [-debug] [-fixheader] [-agent=claude/codex/"claude.cmd"/"codex.cmd"] 
@@ -290,7 +287,6 @@ Claude Code:
 /create-preprocessor-scripts Create "find-CGameResourceService_m_pEntitySystem" in engine by LLM_DECOMPILE with "CGameResourceService_BuildResourceManifest", where CGameResourceService_m_pEntitySystem is a struct offset.
 ```
 
-
 ## How to create SKILL for patch
 
 * A patch SKILL locates a specific instruction inside a known function and generates replacement bytes to change its behavior at runtime (e.g., force/skip a branch, NOP a call). The target function should already have a corresponding find-SKILL output available (typically via `expected_input`).
@@ -345,7 +341,7 @@ Mitigation: You should run `python py-activate-idalib.py` under `C:\Program File
 
 Mitigation: Try `set IDADIR=C:\Program Files\IDA Professional 9.0` or add `IDADIR=C:\Program Files\IDA Professional 9.0` to your system environment.
 
-## Jenkins workflow references
+## CI/CD workflow references
 
 ```bash
 @echo Download latest game binaries
