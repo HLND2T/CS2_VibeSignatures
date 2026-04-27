@@ -5,7 +5,7 @@ from ida_analyze_util import preprocess_common_skill
 
 INHERIT_VFUNCS = [
     # (target_func_name, inherit_vtable_class, base_vfunc_name, generate_func_sig)
-    ("CEntityInstance_Connect", "CEntityInstance", "CCSPlayerController_Connect", False),
+    ("CEntityInstance_Connect", "CEntityInstance", "CBasePlayerController_Connect", False),
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
@@ -34,7 +34,7 @@ async def preprocess_skill(
     image_base,
     debug=False,
 ):
-    """Reuse old YAML first; fallback to inheriting vtable slot index from CCSPlayerController_Connect."""
+    """Reuse old YAML first; fallback to inheriting vtable slot index from CBasePlayerController_Connect."""
     _ = skill_name
 
     return await preprocess_common_skill(

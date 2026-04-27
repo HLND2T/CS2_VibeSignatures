@@ -2216,6 +2216,13 @@ modules:
         expected_output:
           - CBasePlayerController_ProcessUsercmds.{platform}.yaml
 
+      - name: find-CBasePlayerController_Connect
+        expected_output:
+          - CBasePlayerController_Connect.{platform}.yaml
+        expected_input:
+          - CPlayerCommandQueue_ctor.{platform}.yaml
+          - CBasePlayerController_vtable.{platform}.yaml
+
       - name: find-FireTarget_CommandHandler
         expected_output:
           - FireTarget_CommandHandler.{platform}.yaml
@@ -3343,7 +3350,7 @@ modules:
           - CEntityInstance_Connect.{platform}.yaml
         expected_input:
           - CEntityInstance_vtable.{platform}.yaml
-          - CCSPlayerController_Connect.{platform}.yaml
+          - CBasePlayerController_Connect.{platform}.yaml
 
       - name: find-CScriptedSequence_SynchronizeSequence
         expected_output:
@@ -3887,6 +3894,11 @@ modules:
         category: func
         alias:
           - CBasePlayerController::GetPawn
+
+      - name: CBasePlayerController_Connect
+        category: vfunc
+        alias:
+          - CBasePlayerController::Connect
 
       - name: CSource2GameClients_ClientDisconnect
         category: vfunc
