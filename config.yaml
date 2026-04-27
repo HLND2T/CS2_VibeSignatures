@@ -2549,6 +2549,15 @@ modules:
         expected_input:
           - CEntitySystem_CreateEntity.{platform}.yaml
 
+      - name: find-CEntitySystem_OnAddEntity-AND-CEntityInstance_AddedToEntityDatabase
+        expected_output:
+          - CEntitySystem_OnAddEntity.{platform}.yaml
+          - CEntityInstance_AddedToEntityDatabase.{platform}.yaml
+        expected_input:
+          - CEntitySystem_AddEntityToEntityDataBase.{platform}.yaml
+          - CEntitySystem_vtable.{platform}.yaml
+          - CEntityInstance_vtable.{platform}.yaml
+
       - name: find-CEntitySystem_PrecacheEntity
         expected_output:
           - CEntitySystem_PrecacheEntity.{platform}.yaml
@@ -4239,6 +4248,11 @@ modules:
         alias:
           - CEntitySystem::AddEntityToEntityDataBase
 
+      - name: CEntitySystem_OnAddEntity
+        category: vfunc
+        alias:
+          - CEntitySystem::OnAddEntity
+
       - name: CEntitySystem_PrecacheEntity
         category: func
         alias:
@@ -5060,6 +5074,11 @@ modules:
         category: vfunc
         alias:
           - CEntityInstance::Disconnect
+
+      - name: CEntityInstance_AddedToEntityDatabase
+        category: vfunc
+        alias:
+          - CEntityInstance::AddedToEntityDatabase
 
       - name: CEntityComponentHelperT_Free
         category: vfunc

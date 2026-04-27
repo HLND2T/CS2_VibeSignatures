@@ -1,0 +1,79 @@
+func_name: CEntitySystem_AddEntityToEntityDataBase
+func_va: '0x1811f2f00'
+disasm_code: |-
+  .text:00000001811F2F00                 mov     [rsp+arg_0], rbx
+  .text:00000001811F2F05                 push    rdi
+  .text:00000001811F2F06                 sub     rsp, 20h
+  .text:00000001811F2F0A                 mov     eax, [rdx+30h]
+  .text:00000001811F2F0D                 mov     rbx, rdx
+  .text:00000001811F2F10                 shr     eax, 0Eh
+  .text:00000001811F2F13                 mov     rdi, rcx
+  .text:00000001811F2F16                 test    al, 1
+  .text:00000001811F2F18                 jnz     short loc_1811F2F7A
+  .text:00000001811F2F1A                 mov     rcx, [rdx+8]
+  .text:00000001811F2F1E                 call    sub_1811DC2F0
+  .text:00000001811F2F23                 mov     edx, [rbx+10h]
+  .text:00000001811F2F26                 mov     ecx, 7FFFh
+  .text:00000001811F2F2B                 mov     eax, [rbx+30h]
+  .text:00000001811F2F2E                 mov     r8d, edx
+  .text:00000001811F2F31                 or      eax, 4
+  .text:00000001811F2F34                 shr     r8d, 0Fh
+  .text:00000001811F2F38                 mov     [rbx+30h], eax
+  .text:00000001811F2F3B                 and     eax, 1
+  .text:00000001811F2F3E                 mov     r9, [rdi]
+  .text:00000001811F2F41                 sub     r8d, eax
+  .text:00000001811F2F44                 mov     eax, edx
+  .text:00000001811F2F46                 shl     r8d, 0Fh
+  .text:00000001811F2F4A                 and     eax, ecx
+  .text:00000001811F2F4C                 cmp     edx, 0FFFFFFFFh
+  .text:00000001811F2F4F                 mov     rdx, [rbx]
+  .text:00000001811F2F52                 cmovnz  ecx, eax
+  .text:00000001811F2F55                 or      r8d, ecx
+  .text:00000001811F2F58                 mov     rcx, rdi
+  .text:00000001811F2F5B                 ; 0x78 = 120LL = CEntitySystem_OnAddEntity
+  .text:00000001811F2F5B                 call    qword ptr [r9+78h]; 0x78 = 120LL = CEntitySystem_OnAddEntity
+  .text:00000001811F2F5F                 mov     cs:byte_1820B0583, 0
+  .text:00000001811F2F66                 mov     rcx, [rbx]
+  .text:00000001811F2F69                 mov     rax, [rcx]
+  .text:00000001811F2F6C                 mov     rbx, [rsp+28h+arg_0]
+  .text:00000001811F2F71                 add     rsp, 20h
+  .text:00000001811F2F75                 pop     rdi
+  .text:00000001811F2F76                 ; 0x40 = 64LL = CEntityInstance_AddedToEntityDatabase
+  .text:00000001811F2F76                 jmp     qword ptr [rax+40h]; 0x40 = 64LL = CEntityInstance_AddedToEntityDatabase
+  .text:00000001811F2F7A                 or      dword ptr [rdx+30h], 4
+  .text:00000001811F2F7E                 mov     rbx, [rsp+28h+arg_0]
+  .text:00000001811F2F83                 add     rsp, 20h
+  .text:00000001811F2F87                 pop     rdi
+  .text:00000001811F2F88                 retn
+procedure: |-
+  __int64 __fastcall CEntitySystem_AddEntityToEntityDataBase(__int64 a1, __int64 pEntity)
+  {
+    __int64 result; // rax
+    unsigned int v5; // edx
+    int v6; // ecx
+    int v7; // eax
+
+    result = *(_DWORD *)(pEntity + 48) >> 14;
+    if ( (*(_DWORD *)(pEntity + 48) & 0x4000) != 0 )
+    {
+      *(_DWORD *)(pEntity + 48) |= 4u;
+    }
+    else
+    {
+      sub_1811DC2F0(*(_QWORD *)(pEntity + 8));
+      v5 = *(_DWORD *)(pEntity + 16);
+      v6 = 0x7FFF;
+      v7 = *(_DWORD *)(pEntity + 48) | 4;
+      *(_DWORD *)(pEntity + 48) = v7;
+      if ( v5 != -1 )
+        v6 = v5 & 0x7FFF;
+      (*(void (__fastcall **)(__int64, _QWORD, _QWORD))(*(_QWORD *)a1
+                                                      + 120LL))(// 0x78 = 120LL = CEntitySystem_OnAddEntity
+        a1,
+        *(_QWORD *)pEntity,
+        v6 | (((v5 >> 15) - (v7 & 1)) << 15));
+      byte_1820B0583 = 0;
+      return (*(__int64 (__fastcall **)(_QWORD))(**(_QWORD **)pEntity + 64LL))(*(_QWORD *)pEntity);// 0x40 = 64LL = CEntityInstance_AddedToEntityDatabase
+    }
+    return result;
+  }

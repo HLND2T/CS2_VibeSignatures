@@ -1,0 +1,102 @@
+func_name: CEntitySystem_AddEntityToEntityDataBase
+func_va: '0x1e53630'
+disasm_code: |-
+  .text:0000000001E53630                 push    rbp
+  .text:0000000001E53631                 mov     rbp, rsp
+  .text:0000000001E53634                 push    r12
+  .text:0000000001E53636                 push    rbx
+  .text:0000000001E53637                 mov     eax, [rsi+30h]
+  .text:0000000001E5363A                 mov     rbx, rsi
+  .text:0000000001E5363D                 test    ah, 40h
+  .text:0000000001E53640                 jz      short loc_1E53650
+  .text:0000000001E53642                 or      eax, 4
+  .text:0000000001E53645                 mov     [rsi+30h], eax
+  .text:0000000001E53648                 pop     rbx
+  .text:0000000001E53649                 pop     r12
+  .text:0000000001E5364B                 pop     rbp
+  .text:0000000001E5364C                 retn
+  .text:0000000001E53650                 mov     r12, rdi
+  .text:0000000001E53653                 mov     rdi, [rsi+8]
+  .text:0000000001E53657                 call    sub_1E3BFC0
+  .text:0000000001E5365C                 mov     eax, [rbx+30h]
+  .text:0000000001E5365F                 mov     edx, eax
+  .text:0000000001E53661                 and     eax, 1
+  .text:0000000001E53664                 or      edx, 4
+  .text:0000000001E53667                 mov     [rbx+30h], edx
+  .text:0000000001E5366A                 mov     rdx, [r12]
+  .text:0000000001E5366E                 ; 0x80 = 128LL = CEntitySystem_OnAddEntity
+  .text:0000000001E5366E                 mov     rcx, [rdx+80h]; 0x80 = 128LL = CEntitySystem_OnAddEntity
+  .text:0000000001E53675                 mov     edx, [rbx+10h]
+  .text:0000000001E53678                 shr     edx, 0Fh
+  .text:0000000001E5367B                 sub     edx, eax
+  .text:0000000001E5367D                 cmp     dword ptr [rbx+10h], 0FFFFFFFFh
+  .text:0000000001E53681                 jz      short loc_1E536C0
+  .text:0000000001E53683                 movzx   eax, word ptr [rbx+10h]
+  .text:0000000001E53687                 and     ax, 7FFFh
+  .text:0000000001E5368B                 movzx   eax, ax
+  .text:0000000001E5368E                 shl     edx, 0Fh
+  .text:0000000001E53691                 mov     rdi, [rbx]
+  .text:0000000001E53694                 or      edx, eax
+  .text:0000000001E53696                 lea     rax, nullsub_1671
+  .text:0000000001E5369D                 cmp     rcx, rax
+  .text:0000000001E536A0                 jnz     short loc_1E536D0
+  .text:0000000001E536A2                 lea     rax, byte_27BA2EE
+  .text:0000000001E536A9                 mov     byte ptr [rax], 0
+  .text:0000000001E536AC                 mov     rax, [rdi]
+  .text:0000000001E536AF                 pop     rbx
+  .text:0000000001E536B0                 pop     r12
+  .text:0000000001E536B2                 pop     rbp
+  .text:0000000001E536B3                 ; 0x48 = 72LL = CEntityInstance_AddedToEntityDatabase
+  .text:0000000001E536B3                 mov     rax, [rax+48h]; 0x48 = 72LL = CEntityInstance_AddedToEntityDatabase
+  .text:0000000001E536B7                 jmp     rax
+  .text:0000000001E536C0                 mov     eax, 7FFFh
+  .text:0000000001E536C5                 jmp     short loc_1E5368B
+  .text:0000000001E536D0                 mov     rsi, rdi
+  .text:0000000001E536D3                 mov     rdi, r12
+  .text:0000000001E536D6                 call    rcx
+  .text:0000000001E536D8                 mov     rdi, [rbx]
+  .text:0000000001E536DB                 jmp     short loc_1E536A2
+procedure: |-
+  __int64 __fastcall CEntitySystem_AddEntityToEntityDataBase(__int64 a1, __int64 *a2)
+  {
+    int v2; // eax
+    __int64 *v3; // rbx
+    __int64 result; // rax
+    int v6; // edx
+    __int64 (__fastcall *v7)(); // rcx
+    int v8; // edx
+    unsigned __int16 v9; // ax
+    __int64 v10; // rdi
+    __int64 v11; // rdx
+
+    v2 = *((_DWORD *)a2 + 12);
+    v3 = a2;
+    if ( (v2 & 0x4000) != 0 )
+    {
+      result = v2 | 4u;
+      *((_DWORD *)a2 + 12) = result;
+    }
+    else
+    {
+      sub_1E3BFC0(a2[1]);
+      v6 = *((_DWORD *)a2 + 12);
+      *((_DWORD *)a2 + 12) = v6 | 4;
+      v7 = *(__int64 (__fastcall **)())(*(_QWORD *)a1 + 128LL);// 0x80 = 128LL = CEntitySystem_OnAddEntity
+      v8 = (*((_DWORD *)a2 + 4) >> 15) - (v6 & 1);
+      if ( *((_DWORD *)a2 + 4) == -1 )
+        v9 = 0x7FFF;
+      else
+        v9 = a2[2] & 0x7FFF;
+      v10 = *a2;
+      v11 = v9 | (unsigned int)(v8 << 15);
+      if ( v7 != nullsub_1671 )
+      {
+        a2 = (__int64 *)*a2;
+        ((void (__fastcall *)(__int64, __int64, __int64))v7)(a1, *v3, v11);
+        v10 = *v3;
+      }
+      byte_27BA2EE = 0;
+      return (*(__int64 (__fastcall **)(__int64, __int64 *, __int64))(*(_QWORD *)v10 + 72LL))(v10, a2, v11);// 0x48 = 72LL = CEntityInstance_AddedToEntityDatabase
+    }
+    return result;
+  }
