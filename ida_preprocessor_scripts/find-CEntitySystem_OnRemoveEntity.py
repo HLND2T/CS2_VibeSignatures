@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CEntityInstance_OnRemoveEntity skill."""
+"""Preprocess script for find-CEntitySystem_OnRemoveEntity skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = [
-    "CEntityInstance_OnRemoveEntity",
+    "CEntitySystem_OnRemoveEntity",
 ]
 
 LLM_DECOMPILE = [
     # (symbol_name, path_to_prompt, path_to_reference)
     (
-        "CEntityInstance_OnRemoveEntity",
+        "CEntitySystem_OnRemoveEntity",
         "prompt/call_llm_decompile.md",
         "references/server/CEntitySystem_NotifyRemoveEntity.{platform}.yaml",
     ),
@@ -18,13 +18,13 @@ LLM_DECOMPILE = [
 
 FUNC_VTABLE_RELATIONS = [
     # (func_name, vtable_class)
-    ("CEntityInstance_OnRemoveEntity", "CEntityInstance"),
+    ("CEntitySystem_OnRemoveEntity", "CEntityInstance"),
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
     (
-        "CEntityInstance_OnRemoveEntity",
+        "CEntitySystem_OnRemoveEntity",
         [
             "func_name",
             "func_va",
