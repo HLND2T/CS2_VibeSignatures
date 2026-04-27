@@ -1916,6 +1916,8 @@ modules:
     vcall_finder:
       - g_pNetworkMessages
       - g_pFlattenedSerializers
+      - g_pEntitySystem
+      - g_pGameEntitySystem
 
     skills:
       - name: find-CSource2Server_vtable
@@ -2946,6 +2948,13 @@ modules:
           - CGameEntitySystem_Activate.{platform}.yaml
         expected_input:
           - CGameEntitySystem_vtable.{platform}.yaml
+
+      - name: find-CBodyGameSystem_ProcessSpawnGroupSceneNodes-AND-CGameEntitySystem_CheckGlobalState
+        expected_output:
+          - CBodyGameSystem_ProcessSpawnGroupSceneNodes.{platform}.yaml
+          - CGameEntitySystem_CheckGlobalState.{platform}.yaml
+        expected_input:
+          - CGameEntitySystem_Activate.{platform}.yaml
 
       - name: find-IGameSystem_OnBuildGameSessionManifest
         expected_output:
@@ -4622,6 +4631,16 @@ modules:
         category: vfunc
         alias:
           - CGameEntitySystem::Activate
+
+      - name: CBodyGameSystem_ProcessSpawnGroupSceneNodes
+        category: func
+        alias:
+          - CBodyGameSystem::ProcessSpawnGroupSceneNodes
+
+      - name: CGameEntitySystem_CheckGlobalState
+        category: func
+        alias:
+          - CGameEntitySystem::CheckGlobalState
 
       - name: IGameSystem_OnBuildGameSessionManifest
         category: vfunc
