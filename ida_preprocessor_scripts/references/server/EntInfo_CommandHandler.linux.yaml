@@ -1,0 +1,349 @@
+func_name: EntInfo_CommandHandler
+func_va: '0x169dc10'
+disasm_code: |-
+  .text:000000000169DC10                 push    rbp
+  .text:000000000169DC11                 mov     rbp, rsp
+  .text:000000000169DC14                 push    r15
+  .text:000000000169DC16                 push    r14
+  .text:000000000169DC18                 push    r13
+  .text:000000000169DC1A                 push    r12
+  .text:000000000169DC1C                 push    rbx
+  .text:000000000169DC1D                 mov     rbx, rsi
+  .text:000000000169DC20                 sub     rsp, 88h
+  .text:000000000169DC27                 call    sub_163B6B0
+  .text:000000000169DC2C                 test    rax, rax
+  .text:000000000169DC2F                 jz      loc_169DE66
+  .text:000000000169DC35                 cmp     dword ptr [rbx+438h], 1
+  .text:000000000169DC3C                 mov     r13, rax
+  .text:000000000169DC3F                 jle     loc_169DE78
+  .text:000000000169DC45                 lea     rax, g_pEntitySystem
+  .text:000000000169DC4C                 sub     rsp, 8
+  .text:000000000169DC50                 xor     ecx, ecx
+  .text:000000000169DC52                 xor     esi, esi
+  .text:000000000169DC54                 mov     r9d, 0FFFFFFFFh
+  .text:000000000169DC5A                 mov     r8d, 0FFFFFFFFh
+  .text:000000000169DC60                 mov     rdi, [rax]
+  .text:000000000169DC63                 mov     rax, [rbx+440h]
+  .text:000000000169DC6A                 mov     rdx, [rax+8]
+  .text:000000000169DC6E                 push    0
+  .text:000000000169DC70                 call    CEntitySystem_CreateEntityByName
+  .text:000000000169DC75                 pop     r9
+  .text:000000000169DC77                 mov     r15, rax
+  .text:000000000169DC7A                 pop     r10
+  .text:000000000169DC7C                 test    rax, rax
+  .text:000000000169DC7F                 jz      loc_169DEB0
+  .text:000000000169DC85                 mov     [rbp+var_A0], 0
+  .text:000000000169DC90                 mov     rdi, [rax+10h]
+  .text:000000000169DC94                 lea     rsi, [rbp+var_B0]
+  .text:000000000169DC9B                 mov     [rbp+var_B0], 0
+  .text:000000000169DCA6                 mov     [rbp+var_A8], 0
+  .text:000000000169DCB1                 call    sub_1E441C0
+  .text:000000000169DCB6                 movsxd  r14, dword ptr [rbp+var_B0]
+  .text:000000000169DCBD                 test    r14d, r14d
+  .text:000000000169DCC0                 jle     short loc_169DD3D
+  .text:000000000169DCC2                 lea     rbx, [rbp+var_70]
+  .text:000000000169DCC6                 shl     r14, 3
+  .text:000000000169DCCA                 xor     r12d, r12d
+  .text:000000000169DCCD                 nop     dword ptr [rax]
+  .text:000000000169DCD0                 mov     rax, [rbp+var_A8]
+  .text:000000000169DCD7                 lea     rsi, aOutputS; "  output: %s\n"
+  .text:000000000169DCDE                 ; void *
+  .text:000000000169DCDE                 mov     rdi, rbx; void *
+  .text:000000000169DCE1                 mov     rax, [rax+r12]
+  .text:000000000169DCE5                 mov     rdx, [rax]
+  .text:000000000169DCE8                 xor     eax, eax
+  .text:000000000169DCEA                 call    CBufferString__AppendFormat
+  .text:000000000169DCEF                 lea     rdx, [rbp+var_68]
+  .text:000000000169DCF3                 test    [rbp+var_69], 40h
+  .text:000000000169DCF7                 jnz     short loc_169DD0D
+  .text:000000000169DCF9                 lea     rdx, haystack
+  .text:000000000169DD00                 test    dword ptr [rbp-6Ch], 3FFFFFFFh
+  .text:000000000169DD07                 jz      short loc_169DD0D
+  .text:000000000169DD09                 mov     rdx, qword ptr [rbp+var_68]
+  .text:000000000169DD0D                 sub     rsp, 8
+  .text:000000000169DD11                 xor     ecx, ecx
+  .text:000000000169DD13                 xor     r9d, r9d
+  .text:000000000169DD16                 push    0
+  .text:000000000169DD18                 xor     r8d, r8d
+  .text:000000000169DD1B                 mov     esi, 2
+  .text:000000000169DD20                 mov     rdi, r13
+  .text:000000000169DD23                 call    ClientPrintToController
+  .text:000000000169DD28                 add     r12, 8
+  .text:000000000169DD2C                 ; int
+  .text:000000000169DD2C                 xor     esi, esi; int
+  .text:000000000169DD2E                 ; this
+  .text:000000000169DD2E                 mov     rdi, rbx; this
+  .text:000000000169DD31                 call    __ZN13CBufferString5PurgeEi; CBufferString::Purge(int)
+  .text:000000000169DD36                 pop     rcx
+  .text:000000000169DD37                 pop     rsi
+  .text:000000000169DD38                 cmp     r14, r12
+  .text:000000000169DD3B                 jnz     short loc_169DCD0
+  .text:000000000169DD3D                 mov     [rbp+var_80], 0
+  .text:000000000169DD45                 mov     rdi, [r15+10h]
+  .text:000000000169DD49                 lea     rsi, [rbp+var_90]
+  .text:000000000169DD50                 mov     [rbp+var_90], 0
+  .text:000000000169DD5B                 mov     [rbp+var_88], 0
+  .text:000000000169DD66                 call    sub_1E44070
+  .text:000000000169DD6B                 movsxd  r14, dword ptr [rbp+var_90]
+  .text:000000000169DD72                 test    r14d, r14d
+  .text:000000000169DD75                 jle     short loc_169DDF2
+  .text:000000000169DD77                 lea     rbx, [rbp+var_70]
+  .text:000000000169DD7B                 shl     r14, 3
+  .text:000000000169DD7F                 xor     r12d, r12d
+  .text:000000000169DD82                 nop     word ptr [rax+rax+00h]
+  .text:000000000169DD88                 mov     rax, [rbp+var_88]
+  .text:000000000169DD8F                 lea     rsi, aInputS; "  input: %s\n"
+  .text:000000000169DD96                 ; void *
+  .text:000000000169DD96                 mov     rdi, rbx; void *
+  .text:000000000169DD99                 mov     rdx, [rax+r12]
+  .text:000000000169DD9D                 xor     eax, eax
+  .text:000000000169DD9F                 call    CBufferString__AppendFormat
+  .text:000000000169DDA4                 lea     rdx, [rbp+var_68]
+  .text:000000000169DDA8                 test    [rbp+var_69], 40h
+  .text:000000000169DDAC                 jnz     short loc_169DDC2
+  .text:000000000169DDAE                 lea     rdx, haystack
+  .text:000000000169DDB5                 test    dword ptr [rbp-6Ch], 3FFFFFFFh
+  .text:000000000169DDBC                 jz      short loc_169DDC2
+  .text:000000000169DDBE                 mov     rdx, qword ptr [rbp+var_68]
+  .text:000000000169DDC2                 sub     rsp, 8
+  .text:000000000169DDC6                 xor     r9d, r9d
+  .text:000000000169DDC9                 xor     r8d, r8d
+  .text:000000000169DDCC                 push    0
+  .text:000000000169DDCE                 xor     ecx, ecx
+  .text:000000000169DDD0                 mov     esi, 2
+  .text:000000000169DDD5                 mov     rdi, r13
+  .text:000000000169DDD8                 call    ClientPrintToController
+  .text:000000000169DDDD                 add     r12, 8
+  .text:000000000169DDE1                 ; int
+  .text:000000000169DDE1                 xor     esi, esi; int
+  .text:000000000169DDE3                 ; this
+  .text:000000000169DDE3                 mov     rdi, rbx; this
+  .text:000000000169DDE6                 call    __ZN13CBufferString5PurgeEi; CBufferString::Purge(int)
+  .text:000000000169DDEB                 pop     rax
+  .text:000000000169DDEC                 pop     rdx
+  .text:000000000169DDED                 cmp     r12, r14
+  .text:000000000169DDF0                 jnz     short loc_169DD88
+  .text:000000000169DDF2                 lea     rax, g_pEntitySystem
+  .text:000000000169DDF9                 mov     rsi, [r15+10h]
+  .text:000000000169DDFD                 mov     rdi, [rax]
+  .text:000000000169DE00                 call    CEntitySystem_RemoveEntityImmediate
+  .text:000000000169DE05                 cmp     dword ptr [rbp+var_80+4], 3FFFFFFFh
+  .text:000000000169DE0C                 mov     dword ptr [rbp+var_90], 0
+  .text:000000000169DE16                 ja      short loc_169DE34
+  .text:000000000169DE18                 mov     rsi, [rbp+var_88]
+  .text:000000000169DE1F                 test    rsi, rsi
+  .text:000000000169DE22                 jz      short loc_169DE34
+  .text:000000000169DE24                 mov     rax, cs:g_pMemAlloc_ptr
+  .text:000000000169DE2B                 mov     rdi, [rax]
+  .text:000000000169DE2E                 mov     rax, [rdi]
+  .text:000000000169DE31                 call    qword ptr [rax+20h]
+  .text:000000000169DE34                 cmp     dword ptr [rbp+var_A0+4], 3FFFFFFFh
+  .text:000000000169DE3E                 mov     dword ptr [rbp+var_B0], 0
+  .text:000000000169DE48                 ja      short loc_169DE66
+  .text:000000000169DE4A                 mov     rsi, [rbp+var_A8]
+  .text:000000000169DE51                 test    rsi, rsi
+  .text:000000000169DE54                 jz      short loc_169DE66
+  .text:000000000169DE56                 mov     rax, cs:g_pMemAlloc_ptr
+  .text:000000000169DE5D                 mov     rdi, [rax]
+  .text:000000000169DE60                 mov     rax, [rdi]
+  .text:000000000169DE63                 call    qword ptr [rax+20h]
+  .text:000000000169DE66                 lea     rsp, [rbp-28h]
+  .text:000000000169DE6A                 pop     rbx
+  .text:000000000169DE6B                 pop     r12
+  .text:000000000169DE6D                 pop     r13
+  .text:000000000169DE6F                 pop     r14
+  .text:000000000169DE71                 pop     r15
+  .text:000000000169DE73                 pop     rbp
+  .text:000000000169DE74                 retn
+  .text:000000000169DE78                 sub     rsp, 8
+  .text:000000000169DE7C                 xor     r9d, r9d
+  .text:000000000169DE7F                 xor     r8d, r8d
+  .text:000000000169DE82                 push    0
+  .text:000000000169DE84                 xor     ecx, ecx
+  .text:000000000169DE86                 mov     esi, 2
+  .text:000000000169DE8B                 mov     rdi, rax
+  .text:000000000169DE8E                 lea     rdx, aUsageEntInfoCl; "Usage:\n   ent_info <class name>\n"
+  .text:000000000169DE95                 call    ClientPrintToController
+  .text:000000000169DE9A                 pop     r11
+  .text:000000000169DE9C                 pop     rbx
+  .text:000000000169DE9D                 lea     rsp, [rbp-28h]
+  .text:000000000169DEA1                 pop     rbx
+  .text:000000000169DEA2                 pop     r12
+  .text:000000000169DEA4                 pop     r13
+  .text:000000000169DEA6                 pop     r14
+  .text:000000000169DEA8                 pop     r15
+  .text:000000000169DEAA                 pop     rbp
+  .text:000000000169DEAB                 retn
+  .text:000000000169DEB0                 cmp     dword ptr [rbx+438h], 1
+  .text:000000000169DEB7                 lea     rdx, haystack
+  .text:000000000169DEBE                 jle     short loc_169DECB
+  .text:000000000169DEC0                 mov     rax, [rbx+440h]
+  .text:000000000169DEC7                 mov     rdx, [rax+8]
+  .text:000000000169DECB                 lea     rbx, [rbp+var_70]
+  .text:000000000169DECF                 xor     eax, eax
+  .text:000000000169DED1                 lea     rsi, aNoSuchEntityS; "no such entity %s\n"
+  .text:000000000169DED8                 ; void *
+  .text:000000000169DED8                 mov     rdi, rbx; void *
+  .text:000000000169DEDB                 call    CBufferString__AppendFormat
+  .text:000000000169DEE0                 lea     rdx, [rbp+var_68]
+  .text:000000000169DEE4                 test    [rbp+var_69], 40h
+  .text:000000000169DEE8                 jnz     short loc_169DEFE
+  .text:000000000169DEEA                 lea     rdx, haystack
+  .text:000000000169DEF1                 test    dword ptr [rbp-6Ch], 3FFFFFFFh
+  .text:000000000169DEF8                 jz      short loc_169DEFE
+  .text:000000000169DEFA                 mov     rdx, qword ptr [rbp+var_68]
+  .text:000000000169DEFE                 sub     rsp, 8
+  .text:000000000169DF02                 xor     r8d, r8d
+  .text:000000000169DF05                 mov     rdi, r13
+  .text:000000000169DF08                 push    0
+  .text:000000000169DF0A                 xor     r9d, r9d
+  .text:000000000169DF0D                 xor     ecx, ecx
+  .text:000000000169DF0F                 mov     esi, 2
+  .text:000000000169DF14                 call    ClientPrintToController
+  .text:000000000169DF19                 ; this
+  .text:000000000169DF19                 mov     rdi, rbx; this
+  .text:000000000169DF1C                 ; int
+  .text:000000000169DF1C                 xor     esi, esi; int
+  .text:000000000169DF1E                 call    __ZN13CBufferString5PurgeEi; CBufferString::Purge(int)
+  .text:000000000169DF23                 pop     rdi
+  .text:000000000169DF24                 pop     r8
+  .text:000000000169DF26                 lea     rsp, [rbp-28h]
+  .text:000000000169DF2A                 pop     rbx
+  .text:000000000169DF2B                 pop     r12
+  .text:000000000169DF2D                 pop     r13
+  .text:000000000169DF2F                 pop     r14
+  .text:000000000169DF31                 pop     r15
+  .text:000000000169DF33                 pop     rbp
+  .text:000000000169DF34                 retn
+procedure: |-
+  void __fastcall EntInfo_CommandHandler(__int64 a1, __int64 a2)
+  {
+    __int64 v2; // rax
+    int v3; // r13d
+    __int64 EntityByName; // rax
+    __int64 v5; // rdx
+    __int64 v6; // rcx
+    __int64 v7; // r8
+    __int64 v8; // r15
+    __int64 v9; // rdi
+    __int64 v10; // r14
+    __int64 v11; // r12
+    char *v12; // rdx
+    __int64 v13; // rdi
+    __int64 v14; // r14
+    __int64 v15; // r12
+    char *v16; // rdx
+    const char *v17; // rdx
+    char *v18; // rdx
+    __int64 v19; // [rsp-10h] [rbp-C0h]
+    __int64 v20; // [rsp+0h] [rbp-B0h] BYREF
+    __int64 v21; // [rsp+8h] [rbp-A8h]
+    __int64 v22; // [rsp+10h] [rbp-A0h]
+    __int64 v23; // [rsp+20h] [rbp-90h] BYREF
+    __int64 v24; // [rsp+28h] [rbp-88h]
+    __int64 v25; // [rsp+30h] [rbp-80h]
+    _BYTE v26[4]; // [rsp+40h] [rbp-70h] BYREF
+    int v27; // [rsp+44h] [rbp-6Ch]
+    _DWORD v28[26]; // [rsp+48h] [rbp-68h] BYREF
+
+    v2 = sub_163B6B0(a1);
+    if ( v2 )
+    {
+      v3 = v2;
+      if ( *(int *)(a2 + 1080) <= 1 )
+      {
+        ClientPrintToController(v2, 2, (int)"Usage:\n   ent_info <class name>\n", 0, 0, 0, 0);
+      }
+      else
+      {
+        EntityByName = CEntitySystem_CreateEntityByName(
+                         (_DWORD *)g_pEntitySystem,
+                         0,
+                         *(_BYTE **)(*(_QWORD *)(a2 + 1088) + 8LL),
+                         0,
+                         0xFFFFFFFF,
+                         0xFFFFFFFF,
+                         0);
+        v8 = EntityByName;
+        if ( EntityByName )
+        {
+          v22 = 0;
+          v9 = *(_QWORD *)(EntityByName + 16);
+          v20 = 0;
+          v21 = 0;
+          sub_1E441C0(v9, &v20, v5, v6, v7, v19);
+          if ( (int)v20 > 0 )
+          {
+            v10 = 8LL * (int)v20;
+            v11 = 0;
+            do
+            {
+              CBufferString::AppendFormat(v26, "  output: %s\n", **(const char ***)(v21 + v11));
+              v12 = (char *)v28;
+              if ( (v27 & 0x40000000) == 0 )
+              {
+                v12 = &haystack;
+                if ( (v27 & 0x3FFFFFFF) != 0 )
+                  LODWORD(v12) = v28[0];
+              }
+              ClientPrintToController(v3, 2, (int)v12, 0, 0, 0, 0);
+              v11 += 8;
+              CBufferString::Purge((CBufferString *)v26, 0);
+            }
+            while ( v10 != v11 );
+          }
+          v25 = 0;
+          v13 = *(_QWORD *)(v8 + 16);
+          v23 = 0;
+          v24 = 0;
+          sub_1E44070(v13, &v23);
+          if ( (int)v23 > 0 )
+          {
+            v14 = 8LL * (int)v23;
+            v15 = 0;
+            do
+            {
+              CBufferString::AppendFormat(v26, "  input: %s\n", *(const char **)(v24 + v15));
+              v16 = (char *)v28;
+              if ( (v27 & 0x40000000) == 0 )
+              {
+                v16 = &haystack;
+                if ( (v27 & 0x3FFFFFFF) != 0 )
+                  LODWORD(v16) = v28[0];
+              }
+              ClientPrintToController(v3, 2, (int)v16, 0, 0, 0, 0);
+              v15 += 8;
+              CBufferString::Purge((CBufferString *)v26, 0);
+            }
+            while ( v15 != v14 );
+          }
+          CEntitySystem_RemoveEntityImmediate((__int64 *)g_pEntitySystem, *(_QWORD *)(v8 + 16));
+          LODWORD(v23) = 0;
+          if ( HIDWORD(v25) <= 0x3FFFFFFF && v24 )
+            (*(void (__fastcall **)(_QWORD *))(*g_pMemAlloc + 32LL))(g_pMemAlloc);
+          LODWORD(v20) = 0;
+          if ( HIDWORD(v22) <= 0x3FFFFFFF )
+          {
+            if ( v21 )
+              (*(void (__fastcall **)(_QWORD *))(*g_pMemAlloc + 32LL))(g_pMemAlloc);
+          }
+        }
+        else
+        {
+          v17 = &haystack;
+          if ( *(int *)(a2 + 1080) > 1 )
+            v17 = *(const char **)(*(_QWORD *)(a2 + 1088) + 8LL);
+          CBufferString::AppendFormat(v26, "no such entity %s\n", v17);
+          v18 = (char *)v28;
+          if ( (v27 & 0x40000000) == 0 )
+          {
+            v18 = &haystack;
+            if ( (v27 & 0x3FFFFFFF) != 0 )
+              LODWORD(v18) = v28[0];
+          }
+          ClientPrintToController(v3, 2, (int)v18, 0, 0, 0, 0);
+          CBufferString::Purge((CBufferString *)v26, 0);
+        }
+      }
+    }
+  }

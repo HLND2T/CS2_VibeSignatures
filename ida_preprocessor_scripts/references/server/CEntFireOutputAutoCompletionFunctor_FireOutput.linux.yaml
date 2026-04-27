@@ -46,7 +46,7 @@ disasm_code: |-
   .text:000000000161FCF6                 mov     [rbp+var_68], 0
   .text:000000000161FCFE                 mov     qword ptr [rbp-60h], 0
   .text:000000000161FD06                 mov     rdi, [rax+10h]
-  .text:000000000161FD0A                 call    sub_1D58AE0
+  .text:000000000161FD0A                 call    CEntityInstance_FindOutputsByName
   .text:000000000161FD0F                 mov     eax, dword ptr [rbp+var_70]
   .text:000000000161FD12                 test    eax, eax
   .text:000000000161FD14                 jle     loc_161FDB0
@@ -134,7 +134,7 @@ procedure: |-
     v11 = 0;
     v17 = 0;
     v18 = 0;
-    sub_1D58AE0(*(_QWORD *)(v14 + 16), a4, &v16);
+    CEntityInstance_FindOutputsByName(*(_QWORD *)(v14 + 16), a4, &v16);
     if ( (int)v16 <= 0 )
     {
       result = sub_97F3E0("Couldn't find output named '%s' on entity '%s'.\n", a4, a3);

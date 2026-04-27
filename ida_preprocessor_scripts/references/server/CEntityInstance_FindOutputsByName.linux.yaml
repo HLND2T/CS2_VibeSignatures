@@ -1,0 +1,127 @@
+func_name: CEntityInstance_FindOutputsByName
+func_va: '0x1e44ae0'
+disasm_code: |-
+  .text:0000000001E44AE0                 push    rbp
+  .text:0000000001E44AE1                 mov     rbp, rsp
+  .text:0000000001E44AE4                 push    r15
+  .text:0000000001E44AE6                 push    r14
+  .text:0000000001E44AE8                 push    r13
+  .text:0000000001E44AEA                 mov     r13, rsi
+  .text:0000000001E44AED                 push    r12
+  .text:0000000001E44AEF                 mov     r12, rdx
+  .text:0000000001E44AF2                 push    rbx
+  .text:0000000001E44AF3                 mov     rbx, rdi
+  .text:0000000001E44AF6                 sub     rsp, 8
+  .text:0000000001E44AFA                 mov     rdx, [rdi]
+  .text:0000000001E44AFD                 mov     rdi, [rdi+8]
+  .text:0000000001E44B01                 call    sub_1E3D5A0
+  .text:0000000001E44B06                 test    rax, rax
+  .text:0000000001E44B09                 jz      short loc_1E44B30
+  .text:0000000001E44B0B                 movsxd  r15, dword ptr [r12]
+  .text:0000000001E44B0F                 mov     r14, rax
+  .text:0000000001E44B12                 mov     eax, r15d
+  .text:0000000001E44B15                 cmp     r15d, [r12+10h]
+  .text:0000000001E44B1A                 jz      loc_1E44BC0
+  .text:0000000001E44B20                 add     eax, 1
+  .text:0000000001E44B23                 mov     [r12], eax
+  .text:0000000001E44B27                 mov     rax, [r12+8]
+  .text:0000000001E44B2C                 mov     [rax+r15*8], r14
+  .text:0000000001E44B30                 mov     rdi, [rbx]
+  .text:0000000001E44B33                 lea     rdx, CEntitySystem_OnRemoveEntity
+  .text:0000000001E44B3A                 mov     rax, [rdi]
+  .text:0000000001E44B3D                 mov     rax, [rax+88h]   ; 0x88 = CEntityInstance_ScriptEntityIO
+  .text:0000000001E44B44                 cmp     rax, rdx
+  .text:0000000001E44B47                 jnz     short loc_1E44B90
+  .text:0000000001E44B49                 mov     rax, [rbx+8]
+  .text:0000000001E44B4D                 lea     rdx, xmmword_27BA840
+  .text:0000000001E44B54                 mov     rax, [rax+80h]
+  .text:0000000001E44B5B                 movsxd  rdx, dword ptr [rdx+20h]
+  .text:0000000001E44B5F                 movzx   eax, word ptr [rax+rdx*2]
+  .text:0000000001E44B63                 cmp     ax, 0FFFFh
+  .text:0000000001E44B67                 jz      short loc_1E44BAD
+  .text:0000000001E44B69                 mov     rdi, [rdi+rax]
+  .text:0000000001E44B6D                 test    rdi, rdi
+  .text:0000000001E44B70                 jz      short loc_1E44BAD
+  .text:0000000001E44B72                 add     rsp, 8
+  .text:0000000001E44B76                 mov     rdx, r12
+  .text:0000000001E44B79                 mov     rsi, r13
+  .text:0000000001E44B7C                 pop     rbx
+  .text:0000000001E44B7D                 pop     r12
+  .text:0000000001E44B7F                 pop     r13
+  .text:0000000001E44B81                 pop     r14
+  .text:0000000001E44B83                 pop     r15
+  .text:0000000001E44B85                 pop     rbp
+  .text:0000000001E44B86                 jmp     sub_1E7A000
+  .text:0000000001E44B90                 call    rax
+  .text:0000000001E44B92                 mov     rdi, rax
+  .text:0000000001E44B95                 test    rax, rax
+  .text:0000000001E44B98                 jz      short loc_1E44BA5
+  .text:0000000001E44B9A                 mov     rdx, r12
+  .text:0000000001E44B9D                 mov     rsi, r13
+  .text:0000000001E44BA0                 call    sub_1E32820
+  .text:0000000001E44BA5                 mov     rdi, [rbx]
+  .text:0000000001E44BA8                 test    rdi, rdi
+  .text:0000000001E44BAB                 jnz     short loc_1E44B49
+  .text:0000000001E44BAD                 add     rsp, 8
+  .text:0000000001E44BB1                 pop     rbx
+  .text:0000000001E44BB2                 pop     r12
+  .text:0000000001E44BB4                 pop     r13
+  .text:0000000001E44BB6                 pop     r14
+  .text:0000000001E44BB8                 pop     r15
+  .text:0000000001E44BBA                 pop     rbp
+  .text:0000000001E44BBB                 retn
+  .text:0000000001E44BC0                 lea     rdi, [r12+8]
+  .text:0000000001E44BC5                 mov     esi, 1
+  .text:0000000001E44BCA                 call    sub_1E449C0
+  .text:0000000001E44BCF                 mov     eax, [r12]
+  .text:0000000001E44BD3                 jmp     loc_1E44B20
+procedure: |-
+  __int64 __fastcall CEntityInstance_FindOutputsByName(__int64 *a1, __int64 a2, int *a3)
+  {
+    __int64 v5; // rax
+    __int64 v6; // r15
+    __int64 v7; // r14
+    int v8; // eax
+    __int64 v9; // rdi
+    __int64 (__fastcall *v10)(); // rax
+    __int64 result; // rax
+    __int64 v12; // rdi
+    __int64 v13; // rcx
+    __int64 v14; // r8
+    __int64 v15; // r9
+
+    v5 = sub_1E3D5A0(a1[1], a2, *a1);
+    if ( v5 )
+    {
+      v6 = *a3;
+      v7 = v5;
+      v8 = v6;
+      if ( (_DWORD)v6 == a3[4] )
+      {
+        sub_1E449C0(a3 + 2, 1);
+        v8 = *a3;
+      }
+      *a3 = v8 + 1;
+      *(_QWORD *)(*((_QWORD *)a3 + 1) + 8 * v6) = v7;
+    }
+    v9 = *a1;
+    v10 = *(__int64 (__fastcall **)())(*(_QWORD *)*a1 + 136LL);// 0x88 = 136LL = CEntityInstance_ScriptEntityIO
+    if ( v10 == CEntitySystem_OnRemoveEntity )
+      goto LABEL_6;
+    result = v10();
+    if ( result )
+      result = sub_1E32820(result, a2, a3, v13, v14, v15);
+    v9 = *a1;
+    if ( *a1 )
+    {
+  LABEL_6:
+      result = *(unsigned __int16 *)(*(_QWORD *)(a1[1] + 128) + 2LL * (int)qword_27BA860);
+      if ( (_WORD)result != 0xFFFF )
+      {
+        v12 = *(_QWORD *)(v9 + result);
+        if ( v12 )
+          return sub_1E7A000(v12, a2, a3);
+      }
+    }
+    return result;
+  }

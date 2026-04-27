@@ -1,0 +1,113 @@
+func_name: CGameSceneNode_OnParentChanged
+func_va: '0x155e2b0'
+disasm_code: |-
+  .text:000000000155E2B0                 push    rbp
+  .text:000000000155E2B1                 mov     rbp, rsp
+  .text:000000000155E2B4                 push    r14
+  .text:000000000155E2B6                 push    r13
+  .text:000000000155E2B8                 mov     r13, rsi
+  .text:000000000155E2BB                 push    r12
+  .text:000000000155E2BD                 push    rbx
+  .text:000000000155E2BE                 mov     r12, [rdi+30h]
+  .text:000000000155E2C2                 mov     rbx, rdi
+  .text:000000000155E2C5                 mov     rax, [r12]
+  .text:000000000155E2C9                 mov     rdi, r12
+  .text:000000000155E2CC                 call    qword ptr [rax+2A0h]
+  .text:000000000155E2D2                 cmp     qword ptr [rbx+38h], 0
+  .text:000000000155E2D7                 jz      short loc_155E302
+  .text:000000000155E2D9                 mov     rax, [r12]
+  .text:000000000155E2DD                 lea     r14, sub_9A4FC0
+  .text:000000000155E2E4                 mov     rax, [rax+218h]
+  .text:000000000155E2EB                 cmp     rax, r14
+  .text:000000000155E2EE                 jnz     short loc_155E358
+  .text:000000000155E2F0                 mov     rdi, [r12+6B8h]
+  .text:000000000155E2F8                 test    rdi, rdi
+  .text:000000000155E2FB                 jz      short loc_155E302
+  .text:000000000155E2FD                 call    sub_16A6450
+  .text:000000000155E302                 mov     rdi, rbx
+  .text:000000000155E305                 call    sub_155E1F0
+  .text:000000000155E30A                 lea     rax, g_pEntitySystem
+  .text:000000000155E311                 mov     rdx, [rbx+38h]
+  .text:000000000155E315                 mov     rdi, [rax]
+  .text:000000000155E318                 mov     rax, [rdi]
+  .text:000000000155E31B                 ; 0x78 = 120LL = CEntitySystem_OnEntityParentChanged
+  .text:000000000155E31B                 mov     rax, [rax+78h]; 0x78 = 120LL = CEntitySystem_OnEntityParentChanged
+  .text:000000000155E31F                 test    rdx, rdx
+  .text:000000000155E322                 jz      short loc_155E328
+  .text:000000000155E324                 mov     rdx, [rdx+30h]
+  .text:000000000155E328                 mov     rsi, [rbx+30h]
+  .text:000000000155E32C                 call    rax
+  .text:000000000155E32E                 mov     rax, [r12]
+  .text:000000000155E332                 mov     rax, [rax+470h]
+  .text:000000000155E339                 test    r13, r13
+  .text:000000000155E33C                 jz      short loc_155E342
+  .text:000000000155E33E                 mov     r13, [r13+30h]
+  .text:000000000155E342                 pop     rbx
+  .text:000000000155E343                 mov     rsi, r13
+  .text:000000000155E346                 mov     rdi, r12
+  .text:000000000155E349                 pop     r12
+  .text:000000000155E34B                 pop     r13
+  .text:000000000155E34D                 pop     r14
+  .text:000000000155E34F                 pop     rbp
+  .text:000000000155E350                 jmp     rax
+  .text:000000000155E358                 mov     rdi, r12
+  .text:000000000155E35B                 call    rax
+  .text:000000000155E35D                 test    rax, rax
+  .text:000000000155E360                 jz      short loc_155E302
+  .text:000000000155E362                 mov     rax, [r12]
+  .text:000000000155E366                 mov     rax, [rax+218h]
+  .text:000000000155E36D                 cmp     rax, r14
+  .text:000000000155E370                 jz      short loc_155E37C
+  .text:000000000155E372                 mov     rdi, r12
+  .text:000000000155E375                 call    rax
+  .text:000000000155E377                 mov     rdi, rax
+  .text:000000000155E37A                 jmp     short loc_155E2FD
+  .text:000000000155E37C                 mov     rdi, [r12+6B8h]
+  .text:000000000155E384                 jmp     loc_155E2FD
+procedure: |-
+  __int64 __fastcall CGameSceneNode_OnParentChanged(__int64 a1, __int64 a2)
+  {
+    __int64 v2; // r13
+    _QWORD *v3; // r12
+    __int64 (__fastcall *v5)(__int64); // rax
+    __int64 v6; // rdi
+    __int64 v7; // rdx
+    __int64 (__fastcall *v9)(__int64); // rax
+
+    v2 = a2;
+    v3 = *(_QWORD **)(a1 + 48);
+    (*(void (__fastcall **)(_QWORD *))(*v3 + 672LL))(v3);
+    if ( *(_QWORD *)(a1 + 56) )
+    {
+      v5 = *(__int64 (__fastcall **)(__int64))(*v3 + 536LL);
+      if ( v5 == sub_9A4FC0 )
+      {
+        v6 = v3[215];
+        if ( !v6 )
+          goto LABEL_5;
+        goto LABEL_4;
+      }
+      if ( v5((__int64)v3) )
+      {
+        v9 = *(__int64 (__fastcall **)(__int64))(*v3 + 536LL);
+        if ( v9 == sub_9A4FC0 )
+          v6 = v3[215];
+        else
+          v6 = v9((__int64)v3);
+  LABEL_4:
+        sub_16A6450(v6);
+      }
+    }
+  LABEL_5:
+    sub_155E1F0((_QWORD *)a1);
+    v7 = *(_QWORD *)(a1 + 56);
+    if ( v7 )
+      v7 = *(_QWORD *)(v7 + 48);
+    (*(void (__fastcall **)(_QWORD, _QWORD, __int64))(*(_QWORD *)g_pEntitySystem + 120LL))(// 0x78 = 120LL = CEntitySystem_OnEntityParentChanged
+      g_pEntitySystem,
+      *(_QWORD *)(a1 + 48),
+      v7);
+    if ( a2 )
+      v2 = *(_QWORD *)(a2 + 48);
+    return (*(__int64 (__fastcall **)(_QWORD *, __int64))(*v3 + 1136LL))(v3, v2);
+  }

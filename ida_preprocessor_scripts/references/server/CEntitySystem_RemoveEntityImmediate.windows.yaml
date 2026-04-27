@@ -1,0 +1,207 @@
+func_name: CEntitySystem_RemoveEntityImmediate
+func_va: '0x1811ea450'
+disasm_code: |-
+  .text:00000001811EA450                 test    rdx, rdx
+  .text:00000001811EA453                 jz      locret_1811EA604
+  .text:00000001811EA459                 push    rdi
+  .text:00000001811EA45A                 push    r14
+  .text:00000001811EA45C                 sub     rsp, 38h
+  .text:00000001811EA460                 mov     eax, [rdx+30h]
+  .text:00000001811EA463                 mov     r14, rdx
+  .text:00000001811EA466                 mov     [rsp+48h+arg_0], rbx
+  .text:00000001811EA46B                 mov     rdi, rcx
+  .text:00000001811EA46E                 bt      eax, 0Bh
+  .text:00000001811EA472                 jnb     loc_1811EA553
+  .text:00000001811EA478                 mov     [rsp+48h+arg_10], rbp
+  .text:00000001811EA47D                 mov     [rsp+48h+var_20], r12
+  .text:00000001811EA482                 mov     r12, [rdx]
+  .text:00000001811EA485                 mov     [rsp+48h+var_28], r15
+  .text:00000001811EA48A                 mov     r15, [r12+10h]
+  .text:00000001811EA48F                 mov     rbp, [r15+8]
+  .text:00000001811EA493                 mov     cs:byte_1820B0582, 0
+  .text:00000001811EA49A                 mov     rcx, [r15]
+  .text:00000001811EA49D                 mov     rax, [rcx]
+  .text:00000001811EA4A0                 call    qword ptr [rax+30h]
+  .text:00000001811EA4A3                 mov     eax, [rbp+70h]
+  .text:00000001811EA4A6                 shr     eax, 1
+  .text:00000001811EA4A8                 test    al, 1
+  .text:00000001811EA4AA                 jz      short loc_1811EA502
+  .text:00000001811EA4AC                 mov     eax, [rbp+90h]
+  .text:00000001811EA4B2                 sub     eax, 1
+  .text:00000001811EA4B5                 movsxd  rbx, eax
+  .text:00000001811EA4B8                 js      short loc_1811EA502
+  .text:00000001811EA4BA                 mov     [rsp+48h+var_18], rsi
+  .text:00000001811EA4BF                 mov     rsi, rbx
+  .text:00000001811EA4C2                 shl     rsi, 4
+  .text:00000001811EA4C6                 nop     word ptr [rax+rax+00000000h]
+  .text:00000001811EA4D0                 mov     rax, [rbp+98h]
+  .text:00000001811EA4D7                 mov     rcx, [rsi+rax+8]
+  .text:00000001811EA4DC                 test    byte ptr [rcx+8], 2
+  .text:00000001811EA4E0                 jz      short loc_1811EA4F3
+  .text:00000001811EA4E2                 mov     r8, [rsi+rax]
+  .text:00000001811EA4E6                 mov     rdx, r15
+  .text:00000001811EA4E9                 mov     r9, [rcx]
+  .text:00000001811EA4EC                 add     r8, r12
+  .text:00000001811EA4EF                 call    qword ptr [r9+28h]
+  .text:00000001811EA4F3                 sub     rsi, 10h
+  .text:00000001811EA4F7                 sub     rbx, 1
+  .text:00000001811EA4FB                 jns     short loc_1811EA4D0
+  .text:00000001811EA4FD                 mov     rsi, [rsp+48h+var_18]
+  .text:00000001811EA502                 mov     rdx, r12
+  .text:00000001811EA505                 mov     rcx, rbp
+  .text:00000001811EA508                 call    sub_1811DD630
+  .text:00000001811EA50D                 mov     rdx, r12
+  .text:00000001811EA510                 mov     rcx, rbp
+  .text:00000001811EA513                 call    sub_1811DDAB0
+  .text:00000001811EA518                 xor     edx, edx
+  .text:00000001811EA51A                 mov     qword ptr [r15], 0
+  .text:00000001811EA521                 mov     rcx, r14
+  .text:00000001811EA524                 call    sub_18120E670
+  .text:00000001811EA529                 lea     rcx, [rdi+10h]
+  .text:00000001811EA52D                 mov     r8b, 1
+  .text:00000001811EA530                 mov     rdx, r14
+  .text:00000001811EA533                 mov     r15, [rsp+48h+var_28]
+  .text:00000001811EA538                 mov     r12, [rsp+48h+var_20]
+  .text:00000001811EA53D                 mov     rbp, [rsp+48h+arg_10]
+  .text:00000001811EA542                 mov     rbx, [rsp+48h+arg_0]
+  .text:00000001811EA547                 add     rsp, 38h
+  .text:00000001811EA54B                 pop     r14
+  .text:00000001811EA54D                 pop     rdi
+  .text:00000001811EA54E                 jmp     sub_1811EE5A0
+  .text:00000001811EA553                 bt      eax, 9
+  .text:00000001811EA557                 jb      loc_1811EA5F8
+  .text:00000001811EA55D                 cmp     dword ptr [rcx+0BC8h], 0
+  .text:00000001811EA564                 jle     short loc_1811EA577
+  .text:00000001811EA566                 mov     rbx, [rsp+48h+arg_0]
+  .text:00000001811EA56B                 add     rsp, 38h
+  .text:00000001811EA56F                 pop     r14
+  .text:00000001811EA571                 pop     rdi
+  .text:00000001811EA572                 jmp     CEntitySystem_QueueRemoveEntity
+  .text:00000001811EA577                 inc     dword ptr [rcx+0BCCh]
+  .text:00000001811EA57D                 mov     eax, [rdx+30h]
+  .text:00000001811EA580                 mov     rbx, [rdx]
+  .text:00000001811EA583                 or      eax, 10h
+  .text:00000001811EA586                 mov     [rdx+30h], eax
+  .text:00000001811EA589                 test    rbx, rbx
+  .text:00000001811EA58C                 jz      short loc_1811EA5B5
+  .text:00000001811EA58E                 test    al, 4
+  .text:00000001811EA590                 jnz     short loc_1811EA5AA
+  .text:00000001811EA592                 mov     rax, [rcx]
+  .text:00000001811EA595                 lea     r8, [rsp+48h+arg_8]
+  .text:00000001811EA59A                 mov     edx, 1
+  .text:00000001811EA59F                 mov     [rsp+48h+arg_8], r14
+  .text:00000001811EA5A4                 call    qword ptr [rax+0B8h]
+  .text:00000001811EA5AA                 mov     rdx, r14
+  .text:00000001811EA5AD                 mov     rcx, rdi
+  .text:00000001811EA5B0                 call    CEntitySystem_NotifyRemoveEntity
+  .text:00000001811EA5B5                 xor     r8d, r8d
+  .text:00000001811EA5B8                 mov     rdx, rbx
+  .text:00000001811EA5BB                 mov     rcx, rdi
+  .text:00000001811EA5BE                 call    CEntitySystem_DestroyEntityInternal
+  .text:00000001811EA5C3                 xor     edx, edx
+  .text:00000001811EA5C5                 mov     rcx, r14
+  .text:00000001811EA5C8                 call    sub_18120E670
+  .text:00000001811EA5CD                 lea     rcx, [rdi+10h]
+  .text:00000001811EA5D1                 mov     r8b, 1
+  .text:00000001811EA5D4                 mov     rdx, r14
+  .text:00000001811EA5D7                 call    sub_1811EE5A0
+  .text:00000001811EA5DC                 sub     dword ptr [rdi+0BCCh], 1
+  .text:00000001811EA5E3                 jnz     short loc_1811EA5F8
+  .text:00000001811EA5E5                 cmp     byte ptr [rdi+0BDBh], 0
+  .text:00000001811EA5EC                 jz      short loc_1811EA5F8
+  .text:00000001811EA5EE                 xor     edx, edx
+  .text:00000001811EA5F0                 mov     rcx, rdi
+  .text:00000001811EA5F3                 call    CEntitySystem_PurgeRemovedEntities
+  .text:00000001811EA5F8                 mov     rbx, [rsp+48h+arg_0]
+  .text:00000001811EA5FD                 add     rsp, 38h
+  .text:00000001811EA601                 pop     r14
+  .text:00000001811EA603                 pop     rdi
+  .text:00000001811EA604                 retn
+procedure: |-
+  void __fastcall CEntitySystem_RemoveEntityImmediate(__int64 a1, __int64 a2)
+  {
+    int v2; // eax
+    __int64 v5; // r12
+    __int64 v6; // r15
+    __int64 v7; // rbp
+    int v8; // eax
+    __int64 v9; // rbx
+    __int64 v10; // rsi
+    __int64 v11; // rax
+    _BYTE *v12; // rcx
+    __int64 v13; // rbx
+    int v14; // eax
+    __int64 v15; // rax
+    bool v16; // zf
+    __int64 v17; // [rsp+58h] [rbp+10h] BYREF
+
+    if ( a2 )
+    {
+      v2 = *(_DWORD *)(a2 + 48);
+      if ( (v2 & 0x800) != 0 )
+      {
+        v5 = *(_QWORD *)a2;
+        v6 = *(_QWORD *)(*(_QWORD *)a2 + 16LL);
+        v7 = *(_QWORD *)(v6 + 8);
+        byte_1820B0582 = 0;
+        (*(void (__fastcall **)(_QWORD))(**(_QWORD **)v6 + 48LL))(*(_QWORD *)v6);
+        if ( (*(_DWORD *)(v7 + 112) & 2) != 0 )
+        {
+          v8 = *(_DWORD *)(v7 + 144) - 1;
+          v9 = v8;
+          if ( v8 >= 0 )
+          {
+            v10 = 16LL * v8;
+            do
+            {
+              v11 = *(_QWORD *)(v7 + 152);
+              v12 = *(_BYTE **)(v10 + v11 + 8);
+              if ( (v12[8] & 2) != 0 )
+                (*(void (__fastcall **)(_BYTE *, __int64, __int64))(*(_QWORD *)v12 + 40LL))(
+                  v12,
+                  v6,
+                  v5 + *(_QWORD *)(v10 + v11));
+              v10 -= 16;
+              --v9;
+            }
+            while ( v9 >= 0 );
+          }
+        }
+        sub_1811DD630(v7, v5);
+        sub_1811DDAB0(v7, v5);
+        *(_QWORD *)v6 = 0;
+        sub_18120E670(a2);
+        sub_1811EE5A0(a1 + 16, a2, 1);
+      }
+      else if ( (v2 & 0x200) == 0 )
+      {
+        if ( *(int *)(a1 + 3016) <= 0 )
+        {
+          ++*(_DWORD *)(a1 + 3020);
+          v13 = *(_QWORD *)a2;
+          v14 = *(_DWORD *)(a2 + 48) | 0x10;
+          *(_DWORD *)(a2 + 48) = v14;
+          if ( v13 )
+          {
+            if ( (v14 & 4) == 0 )
+            {
+              v15 = *(_QWORD *)a1;
+              v17 = a2;
+              (*(void (__fastcall **)(__int64, __int64, __int64 *))(v15 + 184))(a1, 1, &v17);// (numEntities, entities)?
+            }
+            CEntitySystem_NotifyRemoveEntity((__int64 *)a1, a2);
+          }
+          CEntitySystem_DestroyEntityInternal(a1, v13, 0);
+          sub_18120E670(a2);
+          sub_1811EE5A0(a1 + 16, a2, 1);
+          v16 = (*(_DWORD *)(a1 + 3020))-- == 1;
+          if ( v16 && *(_BYTE *)(a1 + 3035) )
+            CEntitySystem_PurgeRemovedEntities(a1, 0);
+        }
+        else
+        {
+          CEntitySystem_QueueRemoveEntity(a1, (_DWORD *)a2);
+        }
+      }
+    }
+  }

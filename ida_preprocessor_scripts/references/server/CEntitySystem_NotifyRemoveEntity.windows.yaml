@@ -1,0 +1,66 @@
+func_name: CEntitySystem_NotifyRemoveEntity
+func_va: '0x1811f2f90'
+disasm_code: |-
+  .text:00000001811F2F90                 mov     [rsp+arg_0], rbx
+  .text:00000001811F2F95                 push    rdi
+  .text:00000001811F2F96                 sub     rsp, 20h
+  .text:00000001811F2F9A                 mov     r10d, [rdx+30h]
+  .text:00000001811F2F9E                 mov     rbx, rdx
+  .text:00000001811F2FA1                 mov     rdi, rcx
+  .text:00000001811F2FA4                 bt      r10d, 0Bh
+  .text:00000001811F2FA9                 jb      short loc_1811F3003
+  .text:00000001811F2FAB                 mov     eax, r10d
+  .text:00000001811F2FAE                 shr     eax, 0Eh
+  .text:00000001811F2FB1                 test    al, 1
+  .text:00000001811F2FB3                 jnz     short loc_1811F3003
+  .text:00000001811F2FB5                 mov     edx, [rdx+10h]
+  .text:00000001811F2FB8                 and     r10d, 1
+  .text:00000001811F2FBC                 mov     r9, [rcx]
+  .text:00000001811F2FBF                 mov     r8d, edx
+  .text:00000001811F2FC2                 shr     r8d, 0Fh
+  .text:00000001811F2FC6                 mov     eax, edx
+  .text:00000001811F2FC8                 sub     r8d, r10d
+  .text:00000001811F2FCB                 mov     ecx, 7FFFh
+  .text:00000001811F2FD0                 and     eax, ecx
+  .text:00000001811F2FD2                 shl     r8d, 0Fh
+  .text:00000001811F2FD6                 cmp     edx, 0FFFFFFFFh
+  .text:00000001811F2FD9                 mov     rdx, [rbx]
+  .text:00000001811F2FDC                 cmovnz  ecx, eax
+  .text:00000001811F2FDF                 or      r8d, ecx
+  .text:00000001811F2FE2                 mov     rcx, rdi
+  .text:00000001811F2FE5                 call    qword ptr [r9+80h] ; 0x80 = 128LL = CEntitySystem_OnRemoveEntity
+  .text:00000001811F2FEC                 mov     rdx, rbx
+  .text:00000001811F2FEF                 mov     rcx, rdi
+  .text:00000001811F2FF2                 call    sub_1811F4440
+  .text:00000001811F2FF7                 mov     rcx, [rbx+8]
+  .text:00000001811F2FFB                 mov     rdx, rbx
+  .text:00000001811F2FFE                 call    sub_1811DECA0
+  .text:00000001811F3003                 mov     rbx, [rsp+28h+arg_0]
+  .text:00000001811F3008                 add     rsp, 20h
+  .text:00000001811F300C                 pop     rdi
+  .text:00000001811F300D                 retn
+procedure: |-
+  void __fastcall CEntitySystem_NotifyRemoveEntity(__int64 *a1, __int64 a2)
+  {
+    int v2; // r10d
+    unsigned int v5; // edx
+    __int64 v6; // r9
+    int v7; // ecx
+
+    v2 = *(_DWORD *)(a2 + 48);
+    if ( (v2 & 0x800) == 0 && (v2 & 0x4000) == 0 )
+    {
+      v5 = *(_DWORD *)(a2 + 16);
+      v6 = *a1;
+      v7 = 0x7FFF;
+      if ( v5 != -1 )
+        v7 = v5 & 0x7FFF;
+      (*(void (__fastcall **)(__int64 *, _QWORD, _QWORD))(v6
+                                                        + 128))(// 0x80 = 128LL = CEntitySystem_OnRemoveEntity
+        a1,
+        *(_QWORD *)a2,
+        v7 | (((v5 >> 15) - (v2 & 1)) << 15));
+      sub_1811F4440((__int64)a1, a2);
+      sub_1811DECA0(*(_QWORD *)(a2 + 8), a2);
+    }
+  }
