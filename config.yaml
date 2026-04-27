@@ -3086,6 +3086,16 @@ modules:
           - CBaseAnimGraph_GetAnimationController.{platform}.yaml
           - CGameSceneNode_vtable.{platform}.yaml
 
+      - name: find-CSkeletonInstance_vtable
+        expected_output:
+          - CSkeletonInstance_vtable.{platform}.yaml
+
+      - name: find-CSkeletonInstance_PostDataUpdate
+        expected_output:
+          - CSkeletonInstance_PostDataUpdate.{platform}.yaml
+        expected_input:
+          - CSkeletonInstance_vtable.{platform}.yaml
+
       - name: find-CPointTeleportAPI_TeleportEntityInternal
         expected_output:
           - CPointTeleportAPI_TeleportEntityInternal.{platform}.yaml
@@ -4847,6 +4857,14 @@ modules:
 
       - name: CSkeletonInstance
         category: struct
+
+      - name: CSkeletonInstance_vtable
+        category: vtable
+
+      - name: CSkeletonInstance_PostDataUpdate
+        category: vfunc
+        alias:
+          - CSkeletonInstance::PostDataUpdate
 
       - name: CPointTeleportAPI_TeleportEntityInternal
         category: func
