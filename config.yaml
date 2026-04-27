@@ -2956,6 +2956,13 @@ modules:
         expected_input:
           - CGameEntitySystem_Activate.{platform}.yaml
 
+      - name: find-CGameSceneNode_AcquireParent
+        expected_output:
+          - CGameSceneNode_AcquireParent.{platform}.yaml
+        expected_input:
+          - CBodyGameSystem_ProcessSpawnGroupSceneNodes.{platform}.yaml
+          - CGameSceneNode_vtable.{platform}.yaml
+
       - name: find-IGameSystem_OnBuildGameSessionManifest
         expected_output:
           - IGameSystem_OnBuildGameSessionManifest.{platform}.yaml
@@ -4817,6 +4824,11 @@ modules:
         member: m_skeletonInstance
         alias:
           - CBaseAnimGraph::m_skeletonInstance
+
+      - name: CGameSceneNode_AcquireParent
+        category: vfunc
+        alias:
+          - CGameSceneNode::AcquireParent
 
       - name: CGameSceneNode_GetSkeletonInstance
         category: vfunc
