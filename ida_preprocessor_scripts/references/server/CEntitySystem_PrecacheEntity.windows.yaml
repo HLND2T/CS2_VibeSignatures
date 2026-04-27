@@ -46,7 +46,7 @@ disasm_code: |-
   .text:00000001811E62AA                 mov     byte ptr [rsp+0B8h+var_98], 1
   .text:00000001811E62AF                 mov     r9d, 0FFFFFFFFh
   .text:00000001811E62B5                 mov     r8d, 0FFFFFFFFh
-  .text:00000001811E62BB                 call    CEntitySystem_AllocateEntityIdentity
+  .text:00000001811E62BB                 call    CEntitySystem_DoAllocateEntity
   .text:00000001811E62C0                 mov     rbx, rax
   .text:00000001811E62C3                 test    rax, rax
   .text:00000001811E62C6                 jnz     short loc_1811E62FC
@@ -208,7 +208,7 @@ procedure: |-
           v9 = sub_1811ED0E0(a1, v8, &v17);
           if ( !v9 )
             goto LABEL_26;
-          v10 = CEntitySystem_AllocateEntityIdentity((int)a1 + 16, 0, -1, -1, 1, 0);
+          v10 = CEntitySystem_DoAllocateEntity((int)a1 + 16, 0, -1, -1, 1, 0);
           v11 = v10;
           if ( !v10 )
           {

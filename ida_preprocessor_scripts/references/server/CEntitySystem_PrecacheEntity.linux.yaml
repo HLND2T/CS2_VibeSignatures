@@ -64,7 +64,7 @@ disasm_code: |-
   .text:0000000001E68DEA                 mov     edx, 0FFFFFFFFh
   .text:0000000001E68DEF                 xor     esi, esi
   .text:0000000001E68DF1                 mov     rdi, rbx
-  .text:0000000001E68DF4                 call    CEntitySystem_AllocateEntityIdentity
+  .text:0000000001E68DF4                 call    CEntitySystem_DoAllocateEntity
   .text:0000000001E68DF9                 mov     r10, [rbp+var_48]
   .text:0000000001E68DFD                 mov     r13, rax
   .text:0000000001E68E00                 mov     [rax+8], r10
@@ -162,7 +162,7 @@ procedure: |-
           v13 = sub_1E5ECC0(a1, v8, v14);
           if ( !v13 )
             goto LABEL_23;
-          v9 = (__int64 *)CEntitySystem_AllocateEntityIdentity(a1, 0, 0xFFFFFFFFLL, 0xFFFFFFFFLL, 1, 0);
+          v9 = (__int64 *)CEntitySystem_DoAllocateEntity(a1, 0, 0xFFFFFFFFLL, 0xFFFFFFFFLL, 1, 0);
           v9[1] = v13;
           if ( (*(_DWORD *)(v13 + 104) & 4) != 0 )
           {

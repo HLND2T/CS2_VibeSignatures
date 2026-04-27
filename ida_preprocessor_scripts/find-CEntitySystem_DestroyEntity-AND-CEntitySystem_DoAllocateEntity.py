@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CEntitySystem_DestroyEntity-AND-CEntitySystem_AllocateEntityIdentity skill."""
+"""Preprocess script for find-CEntitySystem_DestroyEntity-AND-CEntitySystem_DoAllocateEntity skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = [
     "CEntitySystem_DestroyEntity",
-    "CEntitySystem_AllocateEntityIdentity",
+    "CEntitySystem_DoAllocateEntity",
 ]
 
 LLM_DECOMPILE = [
@@ -16,7 +16,7 @@ LLM_DECOMPILE = [
         "references/server/CEntitySystem_PrecacheEntity.{platform}.yaml",
     ),
     (
-        "CEntitySystem_AllocateEntityIdentity",
+        "CEntitySystem_DoAllocateEntity",
         "prompt/call_llm_decompile.md",
         "references/server/CEntitySystem_PrecacheEntity.{platform}.yaml",
     ),
@@ -35,7 +35,7 @@ GENERATE_YAML_DESIRED_FIELDS = [
         ],
     ),
     (
-        "CEntitySystem_AllocateEntityIdentity",
+        "CEntitySystem_DoAllocateEntity",
         [
             "func_name",
             "func_sig",
