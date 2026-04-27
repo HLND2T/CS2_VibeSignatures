@@ -1,0 +1,219 @@
+func_name: CGameSceneNode_PostDataUpdate
+func_va: '0x155e390'
+disasm_code: |-
+  .text:000000000155E390                 push    rbp
+  .text:000000000155E391                 mov     rbp, rsp
+  .text:000000000155E394                 push    r12
+  .text:000000000155E396                 push    rbx
+  .text:000000000155E397                 mov     rbx, rdi
+  .text:000000000155E39A                 sub     rsp, 10h
+  .text:000000000155E39E                 movzx   eax, byte ptr [rdi+0E9h]
+  .text:000000000155E3A5                 mov     edx, eax
+  .text:000000000155E3A7                 and     edx, 0FFFFFFDFh
+  .text:000000000155E3AA                 and     esi, 1
+  .text:000000000155E3AD                 mov     [rdi+0E9h], dl
+  .text:000000000155E3B3                 jnz     loc_155E4B0
+  .text:000000000155E3B9                 movzx   eax, byte ptr [rbx+0E9h]
+  .text:000000000155E3C0                 test    al, 1
+  .text:000000000155E3C2                 jnz     loc_155E4CB
+  .text:000000000155E3C8                 mov     ecx, eax
+  .text:000000000155E3CA                 mov     edx, eax
+  .text:000000000155E3CC                 shr     cl, 3
+  .text:000000000155E3CF                 shr     dl, 4
+  .text:000000000155E3D2                 and     ecx, 1
+  .text:000000000155E3D5                 and     edx, 1
+  .text:000000000155E3D8                 test    al, 4
+  .text:000000000155E3DA                 jnz     loc_155E510
+  .text:000000000155E3E0                 test    cl, cl
+  .text:000000000155E3E2                 jz      loc_155E580
+  .text:000000000155E3E8                 and     byte ptr [rbx+0E9h], 0F7h
+  .text:000000000155E3EF                 mov     r12d, 6
+  .text:000000000155E3F5                 mov     eax, 2
+  .text:000000000155E3FA                 test    dl, dl
+  .text:000000000155E3FC                 jz      loc_155E537
+  .text:000000000155E402                 and     byte ptr [rbx+0E9h], 0EFh
+  .text:000000000155E409                 cmp     byte ptr [rbx+0ECh], 0
+  .text:000000000155E410                 jnz     loc_155E547
+  .text:000000000155E416                 mov     rax, [rbx+80h]
+  .text:000000000155E41D                 lea     rdi, [rbx+0D4h]
+  .text:000000000155E424                 or      r12d, 100h
+  .text:000000000155E42B                 movss   xmm1, dword ptr [rbx+0C4h]
+  .text:000000000155E433                 movss   xmm0, dword ptr [rbx+88h]
+  .text:000000000155E43B                 movss   dword ptr [rbx+0E0h], xmm1
+  .text:000000000155E443                 mov     [rbx+0C8h], rax
+  .text:000000000155E44A                 mov     rax, [rbx+0B8h]
+  .text:000000000155E451                 movss   dword ptr [rbx+0D0h], xmm0
+  .text:000000000155E459                 movss   [rbp+var_14], xmm1
+  .text:000000000155E45E                 mov     [rbx+0D4h], rax
+  .text:000000000155E465                 mov     eax, [rbx+0C0h]
+  .text:000000000155E46B                 mov     [rbx+0DCh], eax
+  .text:000000000155E471                 call    sub_1BD5830
+  .text:000000000155E476                 movss   xmm2, dword ptr [rbx+0D0h]
+  .text:000000000155E47E                 movss   xmm1, [rbp+var_14]
+  .text:000000000155E483                 movaps  xmmword ptr [rbx+20h], xmm0
+  .text:000000000155E487                 movss   xmm0, dword ptr [rbx+0C8h]
+  .text:000000000155E48F                 insertps xmm0, dword ptr [rbx+0CCh], 10h
+  .text:000000000155E499                 unpcklps xmm2, xmm1
+  .text:000000000155E49C                 movlhps xmm0, xmm2
+  .text:000000000155E49F                 movaps  xmmword ptr [rbx+10h], xmm0
+  .text:000000000155E4A3                 jmp     loc_155E547
+  .text:000000000155E4B0                 lea     rdi, [rdi+70h]
+  .text:000000000155E4B4                 and     eax, 0FFFFFFC3h
+  .text:000000000155E4B7                 or      eax, 1Ch
+  .text:000000000155E4BA                 mov     [rdi+79h], al
+  .text:000000000155E4BD                 call    sub_155CA10
+  .text:000000000155E4C2                 test    rax, rax
+  .text:000000000155E4C5                 jz      loc_155E3B9
+  .text:000000000155E4CB                 mov     rax, [rbx]
+  .text:000000000155E4CE                 mov     esi, 1
+  .text:000000000155E4D3                 mov     rdi, rbx
+  .text:000000000155E4D6                 mov     r12, [rbx+38h]
+  .text:000000000155E4DA                 and     byte ptr [rbx+0E9h], 0FEh
+  .text:000000000155E4E1                 call    qword ptr [rax+90h]
+  .text:000000000155E4E7                 mov     rax, [rbx]
+  .text:000000000155E4EA                 mov     esi, 1
+  .text:000000000155E4EF                 mov     rdi, rbx
+  .text:000000000155E4F2                 call    qword ptr [rax+98h]
+  .text:000000000155E4F8                 mov     rsi, r12
+  .text:000000000155E4FB                 mov     rdi, rbx
+  .text:000000000155E4FE                 call    CGameSceneNode_OnParentChanged
+  .text:000000000155E503                 movzx   eax, byte ptr [rbx+0E9h]
+  .text:000000000155E50A                 jmp     loc_155E3C8
+  .text:000000000155E510                 and     eax, 0FFFFFFFBh
+  .text:000000000155E513                 mov     [rbx+0E9h], al
+  .text:000000000155E519                 test    cl, cl
+  .text:000000000155E51B                 jz      short loc_155E560
+  .text:000000000155E51D                 and     byte ptr [rbx+0E9h], 0F7h
+  .text:000000000155E524                 mov     r12d, 7
+  .text:000000000155E52A                 mov     eax, 3
+  .text:000000000155E52F                 test    dl, dl
+  .text:000000000155E531                 jnz     loc_155E402
+  .text:000000000155E537                 mov     r12d, eax
+  .text:000000000155E53A                 cmp     byte ptr [rbx+0ECh], 0
+  .text:000000000155E541                 jz      loc_155E416
+  .text:000000000155E547                 mov     rax, [rbx]
+  .text:000000000155E54A                 mov     esi, r12d
+  .text:000000000155E54D                 mov     rdi, rbx
+  .text:000000000155E550                 mov     rax, [rax+60h]
+  .text:000000000155E554                 add     rsp, 10h
+  .text:000000000155E558                 pop     rbx
+  .text:000000000155E559                 pop     r12
+  .text:000000000155E55B                 pop     rbp
+  .text:000000000155E55C                 jmp     rax
+  .text:000000000155E560                 mov     r12d, 1
+  .text:000000000155E566                 test    dl, dl
+  .text:000000000155E568                 jz      short loc_155E53A
+  .text:000000000155E56A                 and     byte ptr [rbx+0E9h], 0EFh
+  .text:000000000155E571                 mov     r12d, 5
+  .text:000000000155E577                 jmp     loc_155E409
+  .text:000000000155E580                 test    dl, dl
+  .text:000000000155E582                 jz      short loc_155E5A0
+  .text:000000000155E584                 and     byte ptr [rbx+0E9h], 0EFh
+  .text:000000000155E58B                 mov     r12d, 4
+  .text:000000000155E591                 jmp     loc_155E409
+  .text:000000000155E5A0                 add     rsp, 10h
+  .text:000000000155E5A4                 pop     rbx
+  .text:000000000155E5A5                 pop     r12
+  .text:000000000155E5A7                 pop     rbp
+  .text:000000000155E5A8                 retn
+procedure: |-
+  __int64 __fastcall CGameSceneNode_PostDataUpdate(__int64 *a1, char a2)
+  {
+    char v3; // al
+    __int64 v4; // rsi
+    __int64 result; // rax
+    bool v6; // dl
+    unsigned int v7; // r12d
+    int v8; // eax
+    __int64 v9; // rax
+    unsigned int v10; // xmm1_4
+    __int128 v11; // xmm0
+    __int64 v12; // rax
+    __m128 v13; // xmm2
+    __int64 v14; // rdi
+    __int64 v15; // rax
+    __int64 v16; // r12
+
+    v3 = *((_BYTE *)a1 + 233);
+    v4 = a2 & 1;
+    *((_BYTE *)a1 + 233) = v3 & 0xDF;
+    if ( (_DWORD)v4 && (v14 = (__int64)(a1 + 14), *(_BYTE *)(v14 + 121) = v3 & 0xC3 | 0x1C, sub_155CA10(v14))
+      || (result = *((unsigned __int8 *)a1 + 233), (result & 1) != 0) )
+    {
+      v15 = *a1;
+      v16 = a1[7];
+      *((_BYTE *)a1 + 233) &= ~1u;
+      (*(void (__fastcall **)(__int64 *, __int64))(v15 + 144))(a1, 1);
+      (*(void (__fastcall **)(__int64 *, __int64))(*a1 + 152))(a1, 1);
+      v4 = v16;
+      CGameSceneNode_OnParentChanged((__int64)a1, v16);
+      result = *((unsigned __int8 *)a1 + 233);
+    }
+    v6 = (result & 0x10) != 0;
+    if ( (result & 4) != 0 )
+    {
+      *((_BYTE *)a1 + 233) = result & 0xFB;
+      if ( (result & 8) != 0 )
+      {
+        *((_BYTE *)a1 + 233) &= ~8u;
+        v7 = 7;
+        v8 = 3;
+        if ( v6 )
+          goto LABEL_6;
+  LABEL_13:
+        v7 = v8;
+        goto LABEL_14;
+      }
+      v7 = 1;
+      if ( (result & 0x10) == 0 )
+      {
+  LABEL_14:
+        if ( *((_BYTE *)a1 + 236) )
+          return (*(__int64 (__fastcall **)(__int64 *, _QWORD))(*a1 + 96))(a1, v7);
+        goto LABEL_8;
+      }
+      *((_BYTE *)a1 + 233) &= ~0x10u;
+      v7 = 5;
+  LABEL_7:
+      if ( *((_BYTE *)a1 + 236) )
+        return (*(__int64 (__fastcall **)(__int64 *, _QWORD))(*a1 + 96))(a1, v7);
+  LABEL_8:
+      v9 = a1[16];
+      v7 |= 0x100u;
+      v10 = *((_DWORD *)a1 + 49);
+      v11 = *((unsigned int *)a1 + 34);
+      *((_DWORD *)a1 + 56) = v10;
+      a1[25] = v9;
+      v12 = a1[23];
+      *((_DWORD *)a1 + 52) = v11;
+      *(__int64 *)((char *)a1 + 212) = v12;
+      *((_DWORD *)a1 + 55) = *((_DWORD *)a1 + 48);
+      *(double *)&v11 = sub_1BD5830((char *)a1 + 212, v4);
+      v13 = (__m128)*((unsigned int *)a1 + 52);
+      *((_OWORD *)a1 + 2) = v11;
+      *((__m128 *)a1 + 1) = _mm_movelh_ps(
+                              _mm_insert_ps((__m128)*((unsigned int *)a1 + 50), (__m128)*((unsigned int *)a1 + 51), 16),
+                              _mm_unpacklo_ps(v13, (__m128)v10));
+      return (*(__int64 (__fastcall **)(__int64 *, _QWORD))(*a1 + 96))(a1, v7);
+    }
+    if ( (result & 8) != 0 )
+    {
+      *((_BYTE *)a1 + 233) &= ~8u;
+      v7 = 6;
+      v8 = 2;
+      if ( v6 )
+      {
+  LABEL_6:
+        *((_BYTE *)a1 + 233) &= ~0x10u;
+        goto LABEL_7;
+      }
+      goto LABEL_13;
+    }
+    if ( (result & 0x10) != 0 )
+    {
+      *((_BYTE *)a1 + 233) &= ~0x10u;
+      v7 = 4;
+      goto LABEL_7;
+    }
+    return result;
+  }

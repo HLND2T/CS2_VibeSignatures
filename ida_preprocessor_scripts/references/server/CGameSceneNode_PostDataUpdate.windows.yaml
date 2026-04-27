@@ -1,0 +1,237 @@
+func_name: CGameSceneNode_PostDataUpdate
+func_va: '0x180b6ade0'
+disasm_code: |-
+  .text:0000000180B6ADE0                 mov     [rsp+arg_8], rsi
+  .text:0000000180B6ADE5                 push    rdi
+  .text:0000000180B6ADE6                 sub     rsp, 30h
+  .text:0000000180B6ADEA                 movzx   eax, byte ptr [rcx+0E9h]
+  .text:0000000180B6ADF1                 xor     esi, esi
+  .text:0000000180B6ADF3                 and     al, 0DFh
+  .text:0000000180B6ADF5                 mov     rdi, rcx
+  .text:0000000180B6ADF8                 mov     [rcx+0E9h], al
+  .text:0000000180B6ADFE                 test    dl, 1
+  .text:0000000180B6AE01                 jz      loc_180B6AEBE
+  .text:0000000180B6AE07                 or      al, 1Ch
+  .text:0000000180B6AE09                 mov     [rcx+0E9h], al
+  .text:0000000180B6AE0F                 mov     ecx, [rcx+78h]
+  .text:0000000180B6AE12                 cmp     ecx, 0FFFFFFFFh
+  .text:0000000180B6AE15                 jz      loc_180B6AEBE
+  .text:0000000180B6AE1B                 mov     r8, cs:g_pGameEntitySystem_m_EntityList
+  .text:0000000180B6AE22                 test    r8, r8
+  .text:0000000180B6AE25                 jz      loc_180B6AEBE
+  .text:0000000180B6AE2B                 cmp     ecx, 0FFFFFFFEh
+  .text:0000000180B6AE2E                 jz      short loc_180B6AE5E
+  .text:0000000180B6AE30                 mov     eax, ecx
+  .text:0000000180B6AE32                 and     eax, 7FFFh
+  .text:0000000180B6AE37                 mov     edx, eax
+  .text:0000000180B6AE39                 shr     rax, 9
+  .text:0000000180B6AE3D                 mov     r9, [r8+rax*8]
+  .text:0000000180B6AE41                 test    r9, r9
+  .text:0000000180B6AE44                 jz      short loc_180B6AE5E
+  .text:0000000180B6AE46                 and     edx, 1FFh
+  .text:0000000180B6AE4C                 imul    rax, rdx, 70h ; 'p'
+  .text:0000000180B6AE50                 add     rax, r9
+  .text:0000000180B6AE53                 jz      short loc_180B6AE5E
+  .text:0000000180B6AE55                 cmp     [rax+10h], ecx
+  .text:0000000180B6AE58                 cmovnz  rax, rsi
+  .text:0000000180B6AE5C                 jmp     short loc_180B6AE61
+  .text:0000000180B6AE5E                 mov     rax, rsi
+  .text:0000000180B6AE61                 test    rax, rax
+  .text:0000000180B6AE64                 jz      short loc_180B6AEBE
+  .text:0000000180B6AE66                 mov     rcx, [rax]
+  .text:0000000180B6AE69                 test    rcx, rcx
+  .text:0000000180B6AE6C                 jz      short loc_180B6AEBE
+  .text:0000000180B6AE6E                 mov     rax, [rcx+10h]
+  .text:0000000180B6AE72                 mov     rdx, [rax]
+  .text:0000000180B6AE75                 test    rdx, rdx
+  .text:0000000180B6AE78                 jz      short loc_180B6AEBE
+  .text:0000000180B6AE7A                 mov     rax, [rax+8]
+  .text:0000000180B6AE7E                 movsxd  rcx, cs:dword_181B69BE0
+  .text:0000000180B6AE85                 mov     rax, [rax+80h]
+  .text:0000000180B6AE8C                 movzx   r8d, word ptr [rax+rcx*2]
+  .text:0000000180B6AE91                 mov     eax, 0FFFFh
+  .text:0000000180B6AE96                 cmp     r8w, ax
+  .text:0000000180B6AE9A                 jz      short loc_180B6AEA2
+  .text:0000000180B6AE9C                 mov     rcx, [r8+rdx]
+  .text:0000000180B6AEA0                 jmp     short loc_180B6AEA5
+  .text:0000000180B6AEA2                 mov     rcx, rsi
+  .text:0000000180B6AEA5                 test    rcx, rcx
+  .text:0000000180B6AEA8                 jz      short loc_180B6AEBE
+  .text:0000000180B6AEAA                 mov     edx, [rdi+7Ch]
+  .text:0000000180B6AEAD                 call    sub_1801C4550
+  .text:0000000180B6AEB2                 test    rax, rax
+  .text:0000000180B6AEB5                 jz      short loc_180B6AEBE
+  .text:0000000180B6AEB7                 or      byte ptr [rdi+0E9h], 1
+  .text:0000000180B6AEBE                 movzx   eax, byte ptr [rdi+0E9h]
+  .text:0000000180B6AEC5                 test    al, 1
+  .text:0000000180B6AEC7                 jz      short loc_180B6AF06
+  .text:0000000180B6AEC9                 and     al, 0FEh
+  .text:0000000180B6AECB                 mov     [rsp+38h+arg_0], rbx
+  .text:0000000180B6AED0                 mov     rbx, [rdi+38h]
+  .text:0000000180B6AED4                 mov     dl, 1
+  .text:0000000180B6AED6                 mov     [rdi+0E9h], al
+  .text:0000000180B6AEDC                 mov     rcx, rdi
+  .text:0000000180B6AEDF                 mov     rax, [rdi]
+  .text:0000000180B6AEE2                 call    qword ptr [rax+88h]
+  .text:0000000180B6AEE8                 mov     rax, [rdi]
+  .text:0000000180B6AEEB                 mov     dl, 1
+  .text:0000000180B6AEED                 mov     rcx, rdi
+  .text:0000000180B6AEF0                 call    qword ptr [rax+90h]
+  .text:0000000180B6AEF6                 mov     rdx, rbx
+  .text:0000000180B6AEF9                 mov     rcx, rdi
+  .text:0000000180B6AEFC                 call    CGameSceneNode_OnParentChanged; a1 = CGameSceneNode *
+  .text:0000000180B6AF01                 mov     rbx, [rsp+38h+arg_0]
+  .text:0000000180B6AF06                 movzx   eax, byte ptr [rdi+0E9h]
+  .text:0000000180B6AF0D                 test    al, 4
+  .text:0000000180B6AF0F                 jz      short loc_180B6AF1E
+  .text:0000000180B6AF11                 and     al, 0FBh
+  .text:0000000180B6AF13                 mov     esi, 1
+  .text:0000000180B6AF18                 mov     [rdi+0E9h], al
+  .text:0000000180B6AF1E                 test    al, 8
+  .text:0000000180B6AF20                 jz      short loc_180B6AF2D
+  .text:0000000180B6AF22                 or      esi, 2
+  .text:0000000180B6AF25                 and     al, 0F7h
+  .text:0000000180B6AF27                 mov     [rdi+0E9h], al
+  .text:0000000180B6AF2D                 test    al, 10h
+  .text:0000000180B6AF2F                 jz      short loc_180B6AF3C
+  .text:0000000180B6AF31                 or      esi, 4
+  .text:0000000180B6AF34                 and     al, 0EFh
+  .text:0000000180B6AF36                 mov     [rdi+0E9h], al
+  .text:0000000180B6AF3C                 test    esi, esi
+  .text:0000000180B6AF3E                 jz      short loc_180B6AFB5
+  .text:0000000180B6AF40                 cmp     byte ptr [rdi+0ECh], 0
+  .text:0000000180B6AF47                 jnz     short loc_180B6AFAA
+  .text:0000000180B6AF49                 lea     rdx, [rdi+80h]
+  .text:0000000180B6AF50                 lea     rcx, [rsp+38h+var_18]
+  .text:0000000180B6AF55                 call    sub_1801B2610
+  .text:0000000180B6AF5A                 movss   xmm3, dword ptr [rdi+0C4h]
+  .text:0000000180B6AF62                 lea     r8, [rdi+0C8h]
+  .text:0000000180B6AF69                 lea     rdx, [rdi+0D4h]
+  .text:0000000180B6AF70                 lea     rcx, [rdi+10h]
+  .text:0000000180B6AF74                 movsd   xmm0, qword ptr [rax]
+  .text:0000000180B6AF78                 movsd   qword ptr [r8], xmm0
+  .text:0000000180B6AF7D                 mov     eax, [rax+8]
+  .text:0000000180B6AF80                 mov     [r8+8], eax
+  .text:0000000180B6AF84                 movsd   xmm0, qword ptr [rdi+0B8h]
+  .text:0000000180B6AF8C                 movsd   qword ptr [rdx], xmm0
+  .text:0000000180B6AF90                 mov     eax, [rdi+0C0h]
+  .text:0000000180B6AF96                 movss   dword ptr [rdi+0E0h], xmm3
+  .text:0000000180B6AF9E                 mov     [rdx+8], eax
+  .text:0000000180B6AFA1                 call    sub_1803D9BF0
+  .text:0000000180B6AFA6                 bts     esi, 8
+  .text:0000000180B6AFAA                 mov     rax, [rdi]
+  .text:0000000180B6AFAD                 mov     edx, esi
+  .text:0000000180B6AFAF                 mov     rcx, rdi
+  .text:0000000180B6AFB2                 call    qword ptr [rax+58h]
+  .text:0000000180B6AFB5                 mov     rsi, [rsp+38h+arg_8]
+  .text:0000000180B6AFBA                 add     rsp, 30h
+  .text:0000000180B6AFBE                 pop     rdi
+  .text:0000000180B6AFBF                 retn
+procedure: |-
+  char __fastcall CGameSceneNode_PostDataUpdate(__int64 a1, unsigned __int64 a2)
+  {
+    unsigned int v2; // esi
+    char v3; // al
+    int v5; // ecx
+    __int64 v6; // r9
+    _DWORD *v7; // rax
+    unsigned __int64 *v8; // rax
+    __int64 v9; // r8
+    __int64 v10; // rcx
+    char v11; // al
+    __int64 v12; // rbx
+    __int64 v13; // rdx
+    char result; // al
+    _DWORD *v15; // rax
+    int v16; // xmm3_4
+    _DWORD v17[6]; // [rsp+20h] [rbp-18h] BYREF
+
+    v2 = 0;
+    v3 = *(_BYTE *)(a1 + 233) & 0xDF;
+    *(_BYTE *)(a1 + 233) = v3;
+    if ( (a2 & 1) != 0 )
+    {
+      *(_BYTE *)(a1 + 233) = v3 | 0x1C;
+      v5 = *(_DWORD *)(a1 + 120);
+      if ( v5 != -1 )
+      {
+        if ( g_pGameEntitySystem_m_EntityList )
+        {
+          if ( v5 != -2
+            && (a2 = v5 & 0x7FFF, (v6 = *(_QWORD *)(g_pGameEntitySystem_m_EntityList + 8 * (a2 >> 9))) != 0)
+            && (a2 &= 0x1FFu, (v7 = (_DWORD *)(v6 + 112 * a2)) != nullptr) )
+          {
+            if ( v7[4] != v5 )
+              v7 = nullptr;
+          }
+          else
+          {
+            v7 = nullptr;
+          }
+          if ( v7 )
+          {
+            if ( *(_QWORD *)v7 )
+            {
+              v8 = *(unsigned __int64 **)(*(_QWORD *)v7 + 16LL);
+              a2 = *v8;
+              if ( *v8 )
+              {
+                v9 = *(unsigned __int16 *)(*(_QWORD *)(v8[1] + 128) + 2LL * dword_181B69BE0);
+                v10 = (_WORD)v9 == 0xFFFF ? 0LL : *(_QWORD *)(v9 + a2);
+                if ( v10 && sub_1801C4550(v10, *(_DWORD *)(a1 + 124)) )
+                  *(_BYTE *)(a1 + 233) |= 1u;
+              }
+            }
+          }
+        }
+      }
+    }
+    v11 = *(_BYTE *)(a1 + 233);
+    if ( (v11 & 1) != 0 )
+    {
+      v12 = *(_QWORD *)(a1 + 56);
+      LOBYTE(a2) = 1;
+      *(_BYTE *)(a1 + 233) = v11 & 0xFE;
+      (*(void (__fastcall **)(__int64, unsigned __int64))(*(_QWORD *)a1 + 136LL))(a1, a2);
+      LOBYTE(v13) = 1;
+      (*(void (__fastcall **)(__int64, __int64))(*(_QWORD *)a1 + 144LL))(a1, v13);
+      CGameSceneNode_OnParentChanged(a1, v12);
+    }
+    result = *(_BYTE *)(a1 + 233);
+    if ( (result & 4) != 0 )
+    {
+      result &= ~4u;
+      v2 = 1;
+      *(_BYTE *)(a1 + 233) = result;
+    }
+    if ( (result & 8) != 0 )
+    {
+      v2 |= 2u;
+      result &= ~8u;
+      *(_BYTE *)(a1 + 233) = result;
+    }
+    if ( (result & 0x10) != 0 )
+    {
+      v2 |= 4u;
+      result &= ~0x10u;
+      *(_BYTE *)(a1 + 233) = result;
+    }
+    if ( v2 )
+    {
+      if ( !*(_BYTE *)(a1 + 236) )
+      {
+        v15 = sub_1801B2610(v17, (_DWORD *)(a1 + 128));
+        v16 = *(_DWORD *)(a1 + 196);
+        *(_QWORD *)(a1 + 200) = *(_QWORD *)v15;
+        *(_DWORD *)(a1 + 208) = v15[2];
+        *(_QWORD *)(a1 + 212) = *(_QWORD *)(a1 + 184);
+        LODWORD(v15) = *(_DWORD *)(a1 + 192);
+        *(_DWORD *)(a1 + 224) = v16;
+        *(_DWORD *)(a1 + 220) = (_DWORD)v15;
+        sub_1803D9BF0(a1 + 16);
+        v2 |= 0x100u;
+      }
+      return (*(char (__fastcall **)(__int64, _QWORD))(*(_QWORD *)a1 + 88LL))(a1, v2);
+    }
+    return result;
+  }
