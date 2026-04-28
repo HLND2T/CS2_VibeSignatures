@@ -1,15 +1,15 @@
 # preprocess_vtable_via_mcp
 
 ## Overview
-`preprocess_vtable_via_mcp` 是 `ida_analyze_util.py` 中按类名解析 vtable 的异步 helper，并支持可选的显式 mangled symbol aliases。它不依赖旧 YAML，而是通过 MCP `py_eval` 执行统一模板脚本，再把返回结果规范化为可写入 vtable YAML 的结构。
+`preprocess_vtable_via_mcp` is an async helper in `ida_analyze_util.py` that resolves a vtable by class name and supports optional explicit mangled symbol aliases. It does not depend on old YAML; instead, it runs a shared template script through MCP `py_eval` and normalizes the result into a structure that can be written into vtable YAML.
 
 ## Responsibilities
-- 接收 `class_name` 与可选的 `symbol_aliases`，构造对应的 IDA 查询脚本。
-- 调用 MCP `py_eval` 并解析外层返回包装。
-- 把模板返回的 JSON 字符串反序列化成结构化 vtable 信息。
-- 基于 `image_base` 计算 `vtable_rva`。
-- 把 JSON 序列化导致的 `vtable_entries` 字符串 key 转回整数。
-- 返回可直接交给 `write_vtable_yaml` 的标准化结果。
+- Accept `class_name` and optional `symbol_aliases`, and construct the corresponding IDA query script.
+- Invoke MCP `py_eval` and unwrap the outer result wrapper.
+- Deserialize the JSON string returned by the template into structured vtable information.
+- Compute `vtable_rva` from `image_base`.
+- Convert the string keys in `vtable_entries` caused by JSON serialization back into integers.
+- Return a normalized result that can be passed directly to `write_vtable_yaml`.
 
 ## Involved Files & Symbols
 - `ida_analyze_util.py` - `preprocess_vtable_via_mcp`
@@ -17,28 +17,28 @@
 - `ida_analyze_util.py` - `_VTABLE_PY_EVAL_TEMPLATE`
 
 ## Architecture
-1. 构造 `py_eval` 代码
-   - `_build_vtable_py_eval(class_name, symbol_aliases)` 会同时注入 `CLASS_NAME_PLACEHOLDER` 与 `CANDIDATE_SYMBOLS_PLACEHOLDER`。
-2. 执行 MCP 调用
-   - 运行 `session.call_tool(name="py_eval", arguments={"code": py_code})`。
-   - 用 `parse_mcp_result` 去掉一层返回包装。
-3. 解析模板结果
-   - 期望拿到带有 `result` JSON 字符串的 dict。
-   - 反序列化为 `vtable_info`。
-4. 规范化并返回
-   - 计算 `vtable_rva = int(vtable_va, 16) - image_base`。
-   - 把 `vtable_entries` 的 key 从字符串转成 `int`。
-   - 返回 `vtable_class`、`vtable_symbol`、`vtable_va`、`vtable_rva`、`vtable_size`、`vtable_numvfunc`、`vtable_entries`。
+1. Build `py_eval` code
+   - `_build_vtable_py_eval(class_name, symbol_aliases)` injects both `CLASS_NAME_PLACEHOLDER` and `CANDIDATE_SYMBOLS_PLACEHOLDER`.
+2. Execute the MCP call
+   - Run `session.call_tool(name="py_eval", arguments={"code": py_code})`.
+   - Use `parse_mcp_result` to remove one layer of result wrapping.
+3. Parse the template result
+   - Expect a dict containing a `result` JSON string.
+   - Deserialize it into `vtable_info`.
+4. Normalize and return
+   - Compute `vtable_rva = int(vtable_va, 16) - image_base`.
+   - Convert `vtable_entries` keys from strings to `int`.
+   - Return `vtable_class`, `vtable_symbol`, `vtable_va`, `vtable_rva`, `vtable_size`, `vtable_numvfunc`, and `vtable_entries`.
 
 ### Core strategy inside `_VTABLE_PY_EVAL_TEMPLATE`
-- 先尝试显式传入的 `candidate_symbols`。
-- 若仍未解析成功，再尝试自动推导的直接符号：
+- First try the explicitly provided `candidate_symbols`.
+- If resolution still fails, try automatically derived direct symbols:
   - Windows: `??_7<Class>@@6B@`
-  - Linux: `_ZTV<len><Class>`，并把起始地址调整为 `+0x10`
-- 直接符号失败后再走 RTTI fallback：
-  - Windows: `??_R4<Class>@@6B@` + `.rdata` 引用
-  - Linux: `_ZTI<len><Class>` 引用 + offset-to-top 规则
-- 最后按指针宽度解析 vtable entries，并在遇到非代码或边界条件时停止。
+  - Linux: `_ZTV<len><Class>`, with the start address adjusted by `+0x10`
+- If direct-symbol lookup fails, fall back to RTTI:
+  - Windows: `??_R4<Class>@@6B@` + `.rdata` references
+  - Linux: `_ZTI<len><Class>` references + the offset-to-top rule
+- Finally, parse vtable entries by pointer width and stop when non-code or boundary conditions are encountered.
 
 ```mermaid
 flowchart TD
@@ -56,16 +56,16 @@ flowchart TD
 - Internal: `_build_vtable_py_eval`, `_VTABLE_PY_EVAL_TEMPLATE`, `parse_mcp_result`
 - MCP: `py_eval`
 - Stdlib: `json`
-- IDA API（模板脚本内）: `ida_bytes`, `ida_name`, `idaapi`, `idautils`, `ida_segment`
+- IDA API (inside the template script): `ida_bytes`, `ida_name`, `idaapi`, `idautils`, `ida_segment`
 
 ## Notes
-- 函数体里仍然忽略 `platform` 参数；平台差异主要体现在模板内部的符号选择逻辑。
-- `image_base` 必须可参与整数减法，否则 `vtable_rva` 计算会失败。
-- 关键结果字段使用直接索引读取；模板返回结构异常时，可能抛异常而不是平滑返回 `None`。
-- `vtable_entries` 的 key 转换依赖每个 key 都能被 `int()` 成功解析。
-- 该 helper 只返回数据，不负责落盘；真正写 YAML 由上层调用者完成。
+- The function body still ignores the `platform` parameter; platform differences are primarily handled by the symbol-selection logic inside the template.
+- `image_base` must support integer subtraction, otherwise `vtable_rva` computation fails.
+- Key result fields are accessed by direct indexing; if the template returns an unexpected structure, this can raise an exception rather than returning `None` cleanly.
+- Conversion of `vtable_entries` keys depends on every key being parseable by `int()`.
+- This helper only returns data and does not persist it; actual YAML writing is handled by the caller.
 
 ## Callers
-- `ida_analyze_util.py` 中的 `preprocess_func_sig_via_mcp` 会在缺失 vtable YAML 时按需调用它。
-- `ida_analyze_util.py` 中的 `preprocess_common_skill` 会把它用于直接的 vtable target。
-- `ida_analyze_util.py` 中的 `preprocess_common_skill` 也会在 `func_vtable_relations` 元数据补全时调用它。
+- `preprocess_func_sig_via_mcp` in `ida_analyze_util.py` calls it on demand when the vtable YAML is missing.
+- `preprocess_common_skill` in `ida_analyze_util.py` uses it for direct vtable targets.
+- `preprocess_common_skill` in `ida_analyze_util.py` also calls it when filling `func_vtable_relations` metadata.

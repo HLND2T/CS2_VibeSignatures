@@ -60,6 +60,24 @@ O --> P["ida_preprocessor_scripts/references/<module>/<func_name>.<platform>.yam
 - In auto-start mode, the script always attempts graceful MCP / IDA shutdown in a `finally` block.
 - The exported `func_name` stays aligned with the user-requested canonical symbol name, even if the underlying IDA function name differs.
 
+## Example yamls
+Observed reference YAMLs keep the same top-level field order: `func_name`, `func_va`, `disasm_code`, `procedure`.
+
+```yaml
+func_name: CEngineServiceMgr__MainLoop
+func_va: '0x18021cbf0'
+disasm_code: |-
+  .text:000000018021CBF0                 mov     rax, rsp
+procedure: |-
+  __int64 __fastcall CEngineServiceMgr__MainLoop(__int64 a1, double a2)
+```
+
+- `ida_preprocessor_scripts/references/engine/CEngineServiceMgr__MainLoop.windows.yaml` - representative Windows `engine` sample with long disassembly and non-empty pseudocode.
+- `ida_preprocessor_scripts/references/engine/CEngineServiceMgr__MainLoop.linux.yaml` - Linux counterpart of the same logical symbol; confirms cross-platform output keeps the same four-field schema.
+- `ida_preprocessor_scripts/references/networksystem/CNetChan_ParseMessagesDemo.windows.yaml` - `networksystem` sample where `procedure` starts after a relatively short disassembly block.
+- `ida_preprocessor_scripts/references/client/CLoopModeGame_ReceivedServerInfo.windows.yaml` - `client` sample whose `procedure` begins with a multiline function signature.
+- `ida_preprocessor_scripts/references/server/CBaseEntity_Spawn.windows.yaml` - `server` sample with a compact `void`-returning pseudocode body.
+
 ## Callers (optional)
 - `README.md` and `README_CN.md` document direct CLI invocation via `uv run generate_reference_yaml.py ...`
 - `tests/test_generate_reference_yaml.py` imports `generate_reference_yaml` and exercises `run_reference_generation(...)` / `main()`

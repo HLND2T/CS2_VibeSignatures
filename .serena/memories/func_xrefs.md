@@ -1,36 +1,70 @@
-# preprocess_common_skill func_xrefs
+# func_xrefs
 
-## Summary
-- `preprocess_common_skill` 只接受 `dict` 风格 `func_xrefs`
-- 允许字段固定为：
-  - `func_name`
-  - `xref_strings`
-  - `xref_gvs`
-  - `xref_signatures`
-  - `xref_funcs`
-  - `exclude_funcs`
-  - `exclude_strings`
-  - `exclude_gvs`
-  - `exclude_signatures`
-- 正向源 `xref_strings` / `xref_gvs` / `xref_signatures` / `xref_funcs` 不能同时为空
-- 规范化后的配置会传给 `preprocess_func_xrefs_via_mcp` 作为统一 func xref fallback
+## Overview
+`func_xrefs` is the dict-based xref fallback configuration consumed by `preprocess_common_skill` for function targets. It is used when direct `func_sig` relocation fails, and it can also be the only lookup path for functions that appear only in the `func_xrefs` list.
 
-## Contract
-- 旧 tuple schema 不再支持，命中后直接视为非法配置
-- `xref_strings`、`xref_gvs`、`xref_signatures`、`xref_funcs` 是正向候选源，多个正向源之间取交集
-- `exclude_strings` 与 `exclude_gvs` 是全局排除集合：在正向交集后做差集
-- `exclude_signatures` 只在剩余候选函数内部检查，命中即排除该候选函数
-- `exclude_strings`、`exclude_gvs` 无命中时不视为失败，只视为空排除集
-- `xref_gvs` / `exclude_gvs` 中的每个元素既可以是 gv 符号名，也可以是显式 `0x...` 地址字面量
+## Responsibilities
+- Define one normalized xref-resolution spec per target function through `func_name` plus validated list fields.
+- Register xref-only function targets so they still enter the normal function output pipeline.
+- Control when xref-based fast-path probing is allowed before YAML-backed dependencies are ready.
+- Drive candidate intersection and exclusion logic through `preprocess_func_xrefs_via_mcp`.
 
-## Operational notes
-- `xref_gvs` / `exclude_gvs` 为符号名时依赖对应 YAML 的 `gv_va`；为显式 `0x...` 地址时直接按 EA 查询 xref
-- 显式地址字面量目前按 `0x` 前缀判定；示例：`xref_gvs: ["0x1805407C8"]`
-- `xref_funcs` / `exclude_funcs` 依赖对应 YAML 的 `func_va`
-- `_can_probe_future_func_fast_path` 仅检查真正依赖 YAML 的 func/gv 符号；显式 `0x...` 地址不会阻塞 fast-path
-- 纯显式地址的 gv xref 配置即使没有 `new_binary_dir` 也可工作；但只要混入符号型 gv / func 依赖，仍需要对应 YAML 已存在
-- `CCSPlayer_MovementServices_ProcessMovement` 使用 `CPlayer_MovementServices_s_pRunCommandPawn` 作为 gv xref 回退源
+## Involved Files & Symbols
+- `ida_analyze_util.py` - `preprocess_common_skill`
+- `ida_analyze_util.py` - `_build_target_kind_map`
+- `ida_analyze_util.py` - `_try_preprocess_func_without_llm`
+- `ida_analyze_util.py` - `_can_probe_future_func_fast_path`
+- `ida_analyze_util.py` - `preprocess_func_xrefs_via_mcp`
+- `ida_analyze_util.py` - `_collect_xref_func_starts_for_string`
+- `ida_analyze_util.py` - `_collect_xref_func_starts_for_signature`
+- `ida_analyze_util.py` - `_filter_func_addrs_by_signature_via_mcp`
+- `ida_analyze_util.py` - `_filter_func_addrs_by_float_xrefs_via_mcp`
+- `ida_analyze_util.py` - `_normalize_float_xref_values`
+- `tests/test_ida_analyze_util.py` - xref/signature/vtable/float filter coverage for the contract
+- `tests/test_ida_preprocessor_scripts.py` - script-level forwarding coverage for `func_xrefs`
 
-## Related memories
-- `preprocess_common_skill_func_xrefs`：同一配置入口的较新摘要
-- `preprocess_func_xrefs_via_mcp`：底层 xref 解析、候选集求交与排除逻辑
+## Architecture
+`func_xrefs` starts as a list of dict specs passed into `preprocess_common_skill`. That function validates the allowed keys, normalizes every list field, rejects duplicate targets and empty positive-source specs, then stores the result in `func_xrefs_map`. The target names from that map are merged into the function target set, so a symbol can be generated even when it is absent from `func_names`.
+
+When a function is processed, `_try_preprocess_func_without_llm` first attempts `preprocess_func_sig_via_mcp`. If that fails and the function has a `func_xrefs` spec, it falls back to `preprocess_func_xrefs_via_mcp`. `_can_probe_future_func_fast_path` is checked earlier for LLM-assisted flows so that YAML-backed `xref_funcs` / symbolic `xref_gvs` dependencies are not probed before their current-version YAML files exist.
+
+`preprocess_func_xrefs_via_mcp` builds positive candidate sets from `xref_strings`, `xref_gvs`, `xref_signatures`, `xref_funcs`, and optional `vtable_class` entries. It intersects those sets, subtracts `exclude_funcs`, `exclude_strings`, and `exclude_gvs`, then applies `exclude_signatures` and readonly scalar float filters. The result must collapse to exactly one function start before YAML data is emitted.
+
+```mermaid
+flowchart TD
+    A["Preprocessor script passes func_xrefs specs"] --> B["preprocess_common_skill validates and normalizes func_xrefs_map"]
+    B --> C["Merge xref-only names into function target set"]
+    C --> D["Try preprocess_func_sig_via_mcp first"]
+    D --> E{"func_sig path succeeded?"}
+    E -- Yes --> F["Emit function YAML"]
+    E -- No --> G["preprocess_func_xrefs_via_mcp"]
+    G --> H["Collect positive candidate sets from strings, gvs, signatures, funcs, and optional vtable entries"]
+    H --> I["Intersect candidates"]
+    I --> J["Subtract exclude funcs, strings, and gvs"]
+    J --> K["Apply exclude signatures and float filters"]
+    K --> L{"Exactly one function remains?"}
+    L -- No --> M["Return None"]
+    L -- Yes --> N["Generate func_sig or basic func metadata"]
+    N --> F
+```
+
+## Dependencies
+- Internal helpers: `_build_target_kind_map`, `_try_preprocess_func_without_llm`, `_can_probe_future_func_fast_path`, `_collect_xref_func_starts_for_string`, `_collect_xref_func_starts_for_ea`, `_collect_xref_func_starts_for_signature`, `_filter_func_addrs_by_signature_via_mcp`, `_filter_func_addrs_by_float_xrefs_via_mcp`, `_load_symbol_addr_from_current_yaml`, `_load_gv_or_explicit_ea`, `preprocess_gen_func_sig_via_mcp`
+- MCP tools used by the underlying flow: `py_eval` for string/float inspection and `find_bytes` for signature search
+- Artifact dependencies: current-version `*.{platform}.yaml` files for `func_va` / `gv_va`, plus optional `*_vtable.{platform}.yaml`
+
+## Notes
+- Only dict-style specs are accepted now; the older tuple schema is rejected.
+- Supported keys are `func_name`, `xref_strings`, `xref_gvs`, `xref_signatures`, `xref_funcs`, `xref_floats`, `exclude_funcs`, `exclude_strings`, `exclude_gvs`, `exclude_signatures`, and `exclude_floats`.
+- At least one positive source among `xref_strings`, `xref_gvs`, `xref_signatures`, and `xref_funcs` is required. `xref_floats` and `exclude_floats` are post-intersection filters, not positive candidate sources.
+- `xref_strings` uses substring matching by default; the `FULLMATCH:` prefix switches a string entry to exact matching.
+- `xref_signatures` first probes within already narrowed candidates when the candidate set is small enough; otherwise it falls back to a global `find_bytes` search.
+- Symbolic `xref_gvs` / `exclude_gvs` and all `xref_funcs` / `exclude_funcs` require current-version YAML artifacts in `new_binary_dir`. Explicit `0x...` gv addresses bypass that YAML lookup.
+- When a dependency function has no callers, `xref_funcs` can still contribute a candidate if that function address is present in the selected vtable entry set.
+- Float filters only inspect scalar SSE/AVX instructions that read readonly `.rdata` / `.rodata` constants, and non-finite float values are rejected during normalization.
+- The xref pipeline is fail-closed: invalid normalization, missing required dependency artifacts, helper probe failures, or non-unique final candidates all return `None`.
+
+## Callers
+- `_try_preprocess_func_without_llm` in `ida_analyze_util.py`
+- `preprocess_common_skill` in `ida_analyze_util.py`
+- preprocessor entry scripts under `ida_preprocessor_scripts/find-*.py`, which pass `func_xrefs` specs into `preprocess_common_skill`

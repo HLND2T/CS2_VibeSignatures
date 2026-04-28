@@ -1,15 +1,15 @@
 # preprocess_func_sig_via_mcp
 
 ## Overview
-`preprocess_func_sig_via_mcp` 是 `ida_analyze_util.py` 中函数类 YAML 的主复用入口。它优先复用旧版 `func_sig`；若旧 YAML 没有 `func_sig`，则可回退到 `vfunc_sig + vtable metadata`，但当前实现已经不会在该回退路径里自动再生成新的 `func_sig`。
+`preprocess_func_sig_via_mcp` is the main reuse entry for function-style YAML in `ida_analyze_util.py`. It prefers reusing an old `func_sig`; if the old YAML has no `func_sig`, it can fall back to `vfunc_sig + vtable metadata`, but the current implementation no longer auto-generates a new `func_sig` inside that fallback path.
 
 ## Responsibilities
-- 校验前置条件：PyYAML 可用性、旧 YAML 存在与可解析性、以及 `mangled_class_names` 的归一化结果。
-- 通过 MCP `find_bytes` + `_get_func_info` 复用旧 `func_sig`，并要求唯一命中且命中点必须是函数头。
-- 当 `func_sig` 缺失时，校验 `vfunc_sig/vtable_name/vfunc_index/vfunc_offset`，并借助新版本 vtable YAML 解析目标函数。
-- 在缺失 vtable YAML 时，调用 `preprocess_vtable_via_mcp` + `write_vtable_yaml` 现场生成，并在有别名时透传 mangled symbol aliases。
-- 生成标准函数 YAML 数据；如果主路径已有 `vtable_name`，会反查新 vtable 并补全 `vfunc_offset/vfunc_index`。
-- 对没有旧 `func_va` 的纯元数据 vfunc 条目，只保留并回写 `vfunc_sig/vtable_name/vfunc_offset/vfunc_index`。
+- Validate prerequisites: PyYAML availability, old YAML existence and parseability, and the normalization result of `mangled_class_names`.
+- Reuse the old `func_sig` through MCP `find_bytes` + `_get_func_info`, requiring a unique match and requiring the matched address to be a function head.
+- When `func_sig` is missing, validate `vfunc_sig/vtable_name/vfunc_index/vfunc_offset` and resolve the target function via current-version vtable YAML.
+- When vtable YAML is missing, generate it on demand via `preprocess_vtable_via_mcp` + `write_vtable_yaml`, and forward mangled symbol aliases when aliases exist.
+- Produce standard function YAML data; if the main path already has `vtable_name`, reverse-look up the new vtable and fill `vfunc_offset/vfunc_index`.
+- For metadata-only vfunc entries without an old `func_va`, preserve and write back only `vfunc_sig/vtable_name/vfunc_offset/vfunc_index`.
 
 ## Involved Files & Symbols
 - `ida_analyze_util.py` - `preprocess_func_sig_via_mcp`
@@ -19,23 +19,23 @@
 - `ida_analyze_util.py` - `_get_mangled_class_aliases`
 
 ## Architecture
-1. 输入校验
-   - 若 PyYAML 不可用、`old_path` 不存在、旧 YAML 不能解析成 dict，或 `mangled_class_names` 归一化失败，则直接返回 `None`。
-2. 主路径：旧 `func_sig`
-   - `find_bytes(limit=2)` 必须唯一命中。
-   - `_get_func_info` 要求命中地址就是函数头，并返回 `func_va/func_size`。
-3. 回退路径：旧 YAML 没有 `func_sig`
-   - 必须有 `vfunc_sig`、`vtable_name`，以及 `vfunc_index` / `vfunc_offset` 至少一个。
-   - 使用 8 字节步长规范化 slot 元数据，并强制满足 `vfunc_offset == vfunc_index * 8`。
-   - `find_bytes(limit=2)` 必须唯一命中 `vfunc_sig`。
-   - 如果旧 YAML 没有 `func_va`，在这里直接返回只含 `func_name/vfunc_sig/vtable_name/vfunc_offset/vfunc_index` 的元数据结果，不再解析 vtable。
-   - 否则从 `new_binary_dir` 读取 `{vtable_name}_vtable.{platform}.yaml`；缺失时现场生成，再按 `vfunc_index` 定位函数地址并调用 `_get_func_info`。
-4. 结果组装
-   - 能解析出具体函数时，都会返回 `func_name`。
-   - 主 `func_sig` 路径保留旧 `func_sig`。
-   - vfunc 回退路径保留 `vfunc_sig/vtable_name/vfunc_offset/vfunc_index`。
-5. 主路径的额外 vtable 对齐
-   - 若主路径已有 `vtable_name`，会重新加载或生成新 vtable YAML，反查 `func_va` 在新 `vtable_entries` 中的索引，并写回新的 `vfunc_offset/vfunc_index`。
+1. Input validation
+   - Return `None` immediately if PyYAML is unavailable, `old_path` does not exist, the old YAML cannot be parsed into a dict, or `mangled_class_names` normalization fails.
+2. Main path: old `func_sig`
+   - `find_bytes(limit=2)` must return a unique match.
+   - `_get_func_info` requires the matched address to be the function head and returns `func_va/func_size`.
+3. Fallback path: old YAML has no `func_sig`
+   - `vfunc_sig` and `vtable_name` must exist, and at least one of `vfunc_index` / `vfunc_offset` must exist.
+   - Normalize slot metadata using an 8-byte stride, and enforce `vfunc_offset == vfunc_index * 8`.
+   - `find_bytes(limit=2)` must uniquely match `vfunc_sig`.
+   - If the old YAML has no `func_va`, return a metadata-only result containing `func_name/vfunc_sig/vtable_name/vfunc_offset/vfunc_index` and stop without resolving the vtable.
+   - Otherwise, read `{vtable_name}_vtable.{platform}.yaml` from `new_binary_dir`; if it is missing, generate it on demand, then locate the function address by `vfunc_index` and call `_get_func_info`.
+4. Result assembly
+   - Whenever a concrete function is resolved, return `func_name`.
+   - Preserve the old `func_sig` on the main `func_sig` path.
+   - Preserve `vfunc_sig/vtable_name/vfunc_offset/vfunc_index` on the vfunc fallback path.
+5. Extra vtable alignment for the main path
+   - If the main path already has `vtable_name`, reload or regenerate the new vtable YAML, reverse-look up the index of `func_va` in the new `vtable_entries`, and write back the new `vfunc_offset/vfunc_index`.
 
 ```mermaid
 flowchart TD
@@ -61,17 +61,17 @@ flowchart TD
 - Internal: `parse_mcp_result`, `preprocess_vtable_via_mcp`, `write_vtable_yaml`, `_normalize_mangled_class_names`, `_get_mangled_class_aliases`
 - MCP: `find_bytes`, `py_eval`
 - Stdlib / third-party: `os`, `json`, `yaml`
-- Resource dependency: old YAML，以及可选的当前版本 `*_vtable.{platform}.yaml`
+- Resource dependency: old YAML, plus optional current-version `*_vtable.{platform}.yaml`
 
 ## Notes
-- 路径选择仍然是单向的：只要旧 YAML 里存在 `func_sig`，主路径失败后不会自动回退到 `vfunc_sig`。
-- `_get_func_info` 要求命中地址必须是函数头，中段命中会被拒绝。
-- vtable slot 计算仍写死为 8 字节步长。
-- `_load_vtable_data` 有副作用：缺失时会现场生成并写出 vtable YAML。
-- 如果旧 YAML 没有 `func_va`，该函数仍可能成功，但结果只包含 vfunc 元数据，不含 `func_va/func_rva/func_size`。
-- 当前实现不会在 vfunc 回退路径中调用 `preprocess_gen_func_sig_via_mcp`。
+- Path selection is still one-way: as long as the old YAML contains `func_sig`, the main path does not automatically fall back to `vfunc_sig` after failure.
+- `_get_func_info` requires the matched address to be a function head; mid-function matches are rejected.
+- Vtable slot computation is still hard-coded to an 8-byte stride.
+- `_load_vtable_data` has side effects: when data is missing, it generates and writes vtable YAML on the spot.
+- If the old YAML has no `func_va`, this function can still succeed, but the result contains only vfunc metadata and omits `func_va/func_rva/func_size`.
+- The current implementation does not call `preprocess_gen_func_sig_via_mcp` inside the vfunc fallback path.
 
 ## Callers
-- `ida_analyze_util.py` 中的 `preprocess_common_skill` 把它作为普通 func 流水线的主入口。
-- `ida_analyze_util.py` 中的 `preprocess_common_skill` 也会在 inherited-vfunc fallback 之前先走它作为 fast path。
-- `tests/test_ida_analyze_util.py` 对其直接行为有覆盖。
+- `preprocess_common_skill` in `ida_analyze_util.py` uses it as the primary entry for the normal function pipeline.
+- `preprocess_common_skill` in `ida_analyze_util.py` also runs it as a fast path before inherited-vfunc fallback.
+- `tests/test_ida_analyze_util.py` covers its direct behavior.
