@@ -703,6 +703,115 @@ class TestProcessBinary(unittest.TestCase):
         self.assertIn("missing required field func_sig", stdout.getvalue())
         mock_quit_ida.assert_called_once_with(fake_process, "127.0.0.1", 13337, debug=False)
 
+    def test_process_binary_does_not_start_ida_for_post_process_when_rename_is_false(
+        self,
+    ) -> None:
+        with TemporaryDirectory() as temp_dir:
+            binary_dir = Path(temp_dir) / "bin" / "14141" / "server"
+            binary_dir.mkdir(parents=True, exist_ok=True)
+            binary_path = str(binary_dir / "server.dll")
+            (binary_dir / "CEntFireOutputAutoCompletionFunctor_FireOutput.windows.yaml").write_text(
+                "func_name: CEntFireOutputAutoCompletionFunctor_FireOutput\n"
+                "func_va: '0x180c165c0'\n",
+                encoding="utf-8",
+            )
+
+            with (
+                patch.object(ida_analyze_bin, "start_idalib_mcp") as mock_start_ida,
+                patch.object(
+                    ida_analyze_bin,
+                    "_run_post_process_expected_outputs_via_mcp",
+                    create=True,
+                ) as mock_post_process,
+            ):
+                success, fail, skip = ida_analyze_bin.process_binary(
+                    binary_path=binary_path,
+                    skills=[
+                        {
+                            "name": "find-CEntFireOutputAutoCompletionFunctor_FireOutput",
+                            "expected_output": [
+                                "CEntFireOutputAutoCompletionFunctor_FireOutput.{platform}.yaml"
+                            ],
+                            "expected_input": [],
+                        }
+                    ],
+                    agent="codex",
+                    host="127.0.0.1",
+                    port=13337,
+                    ida_args="",
+                    platform="windows",
+                    debug=False,
+                    max_retries=1,
+                )
+
+        self.assertEqual((0, 0, 1), (success, fail, skip))
+        mock_start_ida.assert_not_called()
+        mock_post_process.assert_not_called()
+
+    def test_process_binary_runs_post_process_when_rename_true_and_outputs_exist(
+        self,
+    ) -> None:
+        fake_process = object()
+
+        with TemporaryDirectory() as temp_dir:
+            binary_dir = Path(temp_dir) / "bin" / "14141" / "server"
+            binary_dir.mkdir(parents=True, exist_ok=True)
+            binary_path = str(binary_dir / "server.dll")
+            (binary_dir / "CEntFireOutputAutoCompletionFunctor_FireOutput.windows.yaml").write_text(
+                "func_name: CEntFireOutputAutoCompletionFunctor_FireOutput\n"
+                "func_va: '0x180c165c0'\n",
+                encoding="utf-8",
+            )
+
+            with (
+                patch.object(
+                    ida_analyze_bin,
+                    "start_idalib_mcp",
+                    return_value=fake_process,
+                ) as mock_start_ida,
+                patch.object(
+                    ida_analyze_bin,
+                    "ensure_mcp_available",
+                    return_value=(fake_process, True),
+                ),
+                patch.object(
+                    ida_analyze_bin,
+                    "_run_post_process_expected_outputs_via_mcp",
+                    return_value=True,
+                    create=True,
+                ) as mock_post_process,
+                patch.object(
+                    ida_analyze_bin,
+                    "quit_ida_gracefully",
+                    return_value=None,
+                ) as mock_quit_ida,
+            ):
+                success, fail, skip = ida_analyze_bin.process_binary(
+                    binary_path=binary_path,
+                    skills=[
+                        {
+                            "name": "find-CEntFireOutputAutoCompletionFunctor_FireOutput",
+                            "expected_output": [
+                                "CEntFireOutputAutoCompletionFunctor_FireOutput.{platform}.yaml"
+                            ],
+                            "expected_input": [],
+                        }
+                    ],
+                    agent="codex",
+                    host="127.0.0.1",
+                    port=13337,
+                    ida_args="",
+                    platform="windows",
+                    debug=False,
+                    max_retries=1,
+                    rename=True,
+                )
+
+        self.assertEqual((0, 0, 1), (success, fail, skip))
+        mock_start_ida.assert_called_once_with(binary_path, "127.0.0.1", 13337, "", False)
+        mock_post_process.assert_called_once()
+        mock_quit_ida.assert_called_once_with(fake_process, "127.0.0.1", 13337, debug=False)
+
 
 class TestExpectedInputArtifactValidation(unittest.IsolatedAsyncioTestCase):
     async def test_validate_expected_input_artifacts_reports_invalid_func_va_and_missing_func_sig(self) -> None:
@@ -1257,6 +1366,41 @@ class TestParseArgsLlmOptions(unittest.TestCase):
 
         self.assertEqual(2, exc.exception.code)
         self.assertIn("-vcall_finder_model", fake_stderr.getvalue())
+
+    @patch.object(ida_analyze_bin, "resolve_oldgamever", return_value="14140")
+    def test_parse_args_defaults_rename_to_false(
+        self,
+        _mock_resolve_oldgamever,
+    ) -> None:
+        with patch(
+            "sys.argv",
+            [
+                "ida_analyze_bin.py",
+                "-gamever",
+                "14141",
+            ],
+        ):
+            args = ida_analyze_bin.parse_args()
+
+        self.assertFalse(args.rename)
+
+    @patch.object(ida_analyze_bin, "resolve_oldgamever", return_value="14140")
+    def test_parse_args_accepts_rename(
+        self,
+        _mock_resolve_oldgamever,
+    ) -> None:
+        with patch(
+            "sys.argv",
+            [
+                "ida_analyze_bin.py",
+                "-gamever",
+                "14141",
+                "-rename",
+            ],
+        ):
+            args = ida_analyze_bin.parse_args()
+
+        self.assertTrue(args.rename)
 
 
 class TestProcessBinaryLlmWiring(unittest.TestCase):
