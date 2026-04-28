@@ -566,6 +566,63 @@ def _run_validate_expected_input_artifacts_via_mcp(
     )
 
 
+def _run_post_process_expected_outputs_via_mcp(
+    *,
+    host,
+    port,
+    yaml_items,
+    debug=False,
+):
+    """Run post_process for collected expected output YAML mappings."""
+    if not yaml_items:
+        return True
+    return asyncio.run(
+        post_process_expected_outputs_via_mcp(
+            host=host,
+            port=port,
+            yaml_items=yaml_items,
+            debug=debug,
+        )
+    )
+
+
+async def post_process_expected_outputs_via_mcp(
+    host=DEFAULT_HOST,
+    port=DEFAULT_PORT,
+    yaml_items=None,
+    debug=False,
+):
+    """Connect to IDA MCP and execute post_process actions."""
+    yaml_items = list(yaml_items or [])
+    if not yaml_items:
+        return True
+
+    server_url = f"http://{host}:{port}/mcp"
+
+    try:
+        async with httpx.AsyncClient(
+            follow_redirects=True,
+            timeout=httpx.Timeout(10.0, read=120.0),
+            trust_env=False,
+        ) as http_client:
+            async with streamable_http_client(server_url, http_client=http_client) as (
+                read_stream,
+                write_stream,
+                _,
+            ):
+                async with ClientSession(read_stream, write_stream) as session:
+                    await session.initialize()
+                    return await post_process_expected_outputs_via_session(
+                        session,
+                        yaml_items,
+                        debug=debug,
+                    )
+    except Exception as exc:
+        if debug:
+            print(f"  Post-process: MCP connection failed: {exc}")
+        return False
+
+
 async def preprocess_single_vcall_object_via_mcp(
     host,
     port,
@@ -955,6 +1012,11 @@ def parse_args():
         help="Enable debug output"
     )
     parser.add_argument(
+        "-rename",
+        action="store_true",
+        help="Run post_process rename/comment pass for existing expected output YAML files",
+    )
+    parser.add_argument(
         "-maxretry",
         type=int,
         default=3,
@@ -1259,9 +1321,13 @@ def topological_sort_skills(skills):
     return sorted_names
 
 
-def should_start_binary_processing(skills_to_process, vcall_targets):
-    """Start IDA when either skills or vcall_finder still has work to do."""
-    return bool(skills_to_process or vcall_targets)
+def should_start_binary_processing(
+    skills_to_process,
+    vcall_targets,
+    post_process_yaml_items=None,
+):
+    """Start IDA when skills, vcall_finder, or post_process still has work to do."""
+    return bool(skills_to_process or vcall_targets or post_process_yaml_items)
 
 
 def resolve_artifact_path(binary_dir, artifact_path, platform):
@@ -1291,6 +1357,373 @@ def expand_expected_paths(binary_dir, paths, platform):
 def all_expected_outputs_exist(expected_outputs):
     """Return True when every expected output already exists on disk."""
     return bool(expected_outputs) and all(os.path.exists(path) for path in expected_outputs)
+
+
+def _load_post_process_yaml_mapping(path, debug=False):
+    """Load one post_process YAML file and return a mapping payload or None."""
+    try:
+        with open(path, "r", encoding="utf-8") as handle:
+            payload = yaml.safe_load(handle)
+    except Exception as exc:
+        if debug:
+            print(f"  Post-process: skipping unreadable YAML {path}: {exc}")
+        return None
+
+    if not isinstance(payload, dict):
+        if debug:
+            print(f"  Post-process: skipping non-mapping YAML {path}")
+        return None
+    return payload
+
+
+def _collect_post_process_yaml_mappings(
+    binary_dir,
+    sorted_skill_names,
+    skill_map,
+    platform,
+    debug=False,
+):
+    """Collect existing expected output YAML mappings in stable skill/output order."""
+    yaml_items = []
+    seen_paths = set()
+
+    for skill_name in sorted_skill_names:
+        skill = skill_map[skill_name]
+        skill_platform = skill.get("platform")
+        if skill_platform and skill_platform != platform:
+            continue
+        try:
+            expected_outputs = expand_expected_paths(
+                binary_dir,
+                skill.get("expected_output", []),
+                platform,
+            )
+        except ValueError as exc:
+            if debug:
+                print(f"  Post-process: skipping {skill_name}: {exc}")
+            continue
+
+        for output_path in expected_outputs:
+            resolved_path = str(Path(output_path).resolve())
+            if not _is_current_module_artifact_path(resolved_path, binary_dir):
+                if debug:
+                    print(
+                        "  Post-process: skipping YAML outside current module dir "
+                        f"{resolved_path}"
+                    )
+                continue
+            if resolved_path in seen_paths:
+                continue
+            seen_paths.add(resolved_path)
+            if not os.path.exists(resolved_path):
+                continue
+            payload = _load_post_process_yaml_mapping(resolved_path, debug=debug)
+            if payload is None:
+                continue
+            yaml_items.append((resolved_path, payload))
+
+    return yaml_items
+
+
+def _empty_post_process_actions():
+    return {
+        "func_renames": [],
+        "data_renames": [],
+        "sig_comments": [],
+    }
+
+
+def _extend_post_process_actions(target, source):
+    target["func_renames"].extend(source["func_renames"])
+    target["data_renames"].extend(source["data_renames"])
+    target["sig_comments"].extend(source["sig_comments"])
+
+
+def _parse_post_process_int(value):
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str):
+        raw = value.strip()
+        if not raw:
+            return None
+        try:
+            return int(raw, 0)
+        except ValueError:
+            return None
+    return None
+
+
+def _parse_post_process_addr(value):
+    parsed = _parse_post_process_int(value)
+    if parsed is None or parsed < 0:
+        return None
+    return f"0x{parsed:x}"
+
+
+def _post_process_text(value):
+    if not isinstance(value, str):
+        return None
+    stripped = value.strip()
+    return stripped or None
+
+
+def _format_post_process_offset_comment(offset_value, label):
+    return f"0x{offset_value:X} = {offset_value}LL = {label}"
+
+
+def _build_post_process_actions_from_yaml(payload, source_path, debug=False):
+    actions = _empty_post_process_actions()
+    if not isinstance(payload, dict):
+        return actions
+
+    vtable_class = _post_process_text(payload.get("vtable_class"))
+    vtable_addr = _parse_post_process_addr(payload.get("vtable_va"))
+    if vtable_class and vtable_addr:
+        actions["data_renames"].append(
+            {
+                "addr": vtable_addr,
+                "name": f"{vtable_class}_vtable",
+                "kind": "vtable",
+            }
+        )
+    elif debug and (payload.get("vtable_class") is not None or payload.get("vtable_va") is not None):
+        print(f"  Post-process: skipped invalid vtable rename in {source_path}")
+
+    func_name = _post_process_text(payload.get("func_name"))
+    func_addr = _parse_post_process_addr(payload.get("func_va"))
+    if func_name and func_addr:
+        actions["func_renames"].append({"addr": func_addr, "name": func_name})
+    elif debug and (payload.get("func_name") is not None or payload.get("func_va") is not None):
+        print(f"  Post-process: skipped invalid function rename in {source_path}")
+
+    gv_name = _post_process_text(payload.get("gv_name"))
+    gv_addr = _parse_post_process_addr(payload.get("gv_va"))
+    if gv_name and gv_addr:
+        actions["data_renames"].append(
+            {
+                "addr": gv_addr,
+                "name": gv_name,
+                "kind": "global",
+            }
+        )
+    elif debug and (payload.get("gv_name") is not None or payload.get("gv_va") is not None):
+        print(f"  Post-process: skipped invalid global rename in {source_path}")
+
+    vfunc_sig = _post_process_text(payload.get("vfunc_sig"))
+    vfunc_offset = _parse_post_process_int(payload.get("vfunc_offset"))
+    has_vfunc_sig_disp = "vfunc_sig_disp" in payload
+    raw_vfunc_sig_disp = payload.get("vfunc_sig_disp")
+    vfunc_sig_disp = _parse_post_process_int(raw_vfunc_sig_disp)
+    if not has_vfunc_sig_disp:
+        vfunc_sig_disp = 0
+    if (
+        func_name
+        and vfunc_sig
+        and vfunc_offset is not None
+        and vfunc_offset >= 0
+        and vfunc_sig_disp is not None
+        and vfunc_sig_disp >= 0
+    ):
+        actions["sig_comments"].append(
+            {
+                "pattern": vfunc_sig,
+                "disp": vfunc_sig_disp,
+                "comment": _format_post_process_offset_comment(vfunc_offset, func_name),
+                "source_path": source_path,
+                "kind": "vfunc_sig",
+            }
+        )
+    elif debug and (payload.get("vfunc_sig") is not None or payload.get("vfunc_offset") is not None):
+        print(f"  Post-process: skipped invalid vfunc_sig comment in {source_path}")
+
+    struct_name = _post_process_text(payload.get("struct_name"))
+    member_name = _post_process_text(payload.get("member_name"))
+    offset_sig = _post_process_text(payload.get("offset_sig"))
+    offset_value = _parse_post_process_int(payload.get("offset"))
+    has_offset_sig_disp = "offset_sig_disp" in payload
+    raw_offset_sig_disp = payload.get("offset_sig_disp")
+    offset_sig_disp = _parse_post_process_int(raw_offset_sig_disp)
+    if not has_offset_sig_disp:
+        offset_sig_disp = 0
+    if (
+        struct_name
+        and member_name
+        and offset_sig
+        and offset_value is not None
+        and offset_value >= 0
+        and offset_sig_disp is not None
+        and offset_sig_disp >= 0
+    ):
+        actions["sig_comments"].append(
+            {
+                "pattern": offset_sig,
+                "disp": offset_sig_disp,
+                "comment": _format_post_process_offset_comment(
+                    offset_value,
+                    f"{struct_name}::{member_name}",
+                ),
+                "source_path": source_path,
+                "kind": "offset_sig",
+            }
+        )
+    elif debug and (payload.get("offset_sig") is not None or payload.get("offset") is not None):
+        print(f"  Post-process: skipped invalid offset_sig comment in {source_path}")
+
+    return actions
+
+
+def _parse_post_process_match_addr(value):
+    parsed = _parse_post_process_int(value)
+    if parsed is None or parsed < 0:
+        return None
+    return parsed
+
+
+async def _find_post_process_signature_comment_addr(session, action, debug=False):
+    try:
+        result = await session.call_tool(
+            name="find_bytes",
+            arguments={"patterns": [action["pattern"]], "limit": 2},
+        )
+        payload = _parse_tool_json_content(result)
+    except Exception as exc:
+        if debug:
+            print(f"  Post-process: find_bytes failed for {action['source_path']}: {exc}")
+        return None
+
+    if not isinstance(payload, list) or not payload:
+        return None
+    entry = payload[0]
+    if not isinstance(entry, dict):
+        return None
+
+    matches = entry.get("matches", [])
+    if not isinstance(matches, list):
+        matches = []
+    match_count = entry.get("n", len(matches))
+    if match_count != 1 or not matches:
+        if debug:
+            print(
+                "  Post-process: skipped "
+                f"{action['kind']} comment in {action['source_path']} "
+                f"because signature matched {match_count}"
+            )
+        return None
+
+    match_addr = _parse_post_process_match_addr(matches[0])
+    if match_addr is None:
+        if debug:
+            print(f"  Post-process: unparsable signature match in {action['source_path']}")
+        return None
+    return match_addr + action["disp"]
+
+
+async def _post_process_set_comments(session, comment_items, debug=False):
+    if not comment_items:
+        return
+
+    try:
+        result = await session.call_tool(
+            name="set_comments",
+            arguments={"items": comment_items},
+        )
+        payload = _parse_tool_json_content(result)
+        if isinstance(payload, dict):
+            for item in payload.get("items", []):
+                if isinstance(item, dict) and item.get("error") and debug:
+                    print(
+                        "  Post-process: set_comments item failed "
+                        f"at {item.get('addr')}: {item.get('error')}"
+                    )
+        return
+    except Exception as exc:
+        if debug:
+            print(f"  Post-process: set_comments unavailable, using py_eval fallback: {exc}")
+
+    for item in comment_items:
+        addr_int = _parse_post_process_int(item["addr"])
+        if addr_int is None:
+            continue
+        code = (
+            "import idc\n"
+            f"idc.set_cmt({addr_int}, {json.dumps(item['comment'])}, 0)\n"
+        )
+        try:
+            await session.call_tool(name="py_eval", arguments={"code": code})
+        except Exception as exc:
+            if debug:
+                print(
+                    "  Post-process: py_eval comment fallback failed "
+                    f"at {item['addr']}: {exc}"
+                )
+
+
+async def _post_process_func_renames(session, func_renames, debug=False):
+    if not func_renames:
+        return
+    try:
+        await session.call_tool(
+            name="rename",
+            arguments={"batch": {"func": func_renames}},
+        )
+    except Exception as exc:
+        if debug:
+            print(f"  Post-process: function rename batch failed: {exc}")
+
+
+async def _post_process_data_renames(session, data_renames, debug=False):
+    for item in data_renames:
+        addr_int = _parse_post_process_int(item["addr"])
+        if addr_int is None:
+            continue
+        code = (
+            "import idc\n"
+            f"idc.set_name({addr_int}, {json.dumps(item['name'])}, idc.SN_NOWARN)\n"
+        )
+        try:
+            await session.call_tool(name="py_eval", arguments={"code": code})
+        except Exception as exc:
+            if debug:
+                print(
+                    "  Post-process: data rename failed "
+                    f"{item['addr']} -> {item['name']}: {exc}"
+                )
+
+
+async def post_process_expected_outputs_via_session(
+    session,
+    yaml_items,
+    debug=False,
+):
+    actions = _empty_post_process_actions()
+    for source_path, payload in yaml_items:
+        _extend_post_process_actions(
+            actions,
+            _build_post_process_actions_from_yaml(payload, source_path, debug=debug),
+        )
+
+    comment_items = []
+    for action in actions["sig_comments"]:
+        comment_addr = await _find_post_process_signature_comment_addr(
+            session,
+            action,
+            debug=debug,
+        )
+        if comment_addr is None:
+            continue
+        comment_items.append(
+            {
+                "addr": f"0x{comment_addr:x}",
+                "comment": action["comment"],
+            }
+        )
+
+    await _post_process_set_comments(session, comment_items, debug=debug)
+    await _post_process_func_renames(session, actions["func_renames"], debug=debug)
+    await _post_process_data_renames(session, actions["data_renames"], debug=debug)
+    return True
 
 
 def should_skip_skill_for_existing_artifacts(binary_dir, skill, platform):
@@ -1636,6 +2069,7 @@ def process_binary(
     llm_temperature=None,
     llm_effort="medium",
     llm_fake_as=None,
+    rename=False,
 ):
     """
     Process a single binary file.
@@ -1652,6 +2086,7 @@ def process_binary(
         debug: Enable debug output
         max_retries: Default maximum number of retry attempts for skill execution
         old_binary_dir: Directory containing old version YAML files for signature reuse
+        rename: Run module/platform post_process over valid expected output YAML mappings
 
     Returns:
         Tuple of (success_count, fail_count, skip_count)
@@ -1709,15 +2144,43 @@ def process_binary(
                 skills_to_process.append((skill_name, expected_outputs, skill_max_retries))
 
     vcall_targets = list(vcall_targets or [])
+    startup_post_process_yaml_items = []
+    startup_post_process_failed = False
+    if rename:
+        try:
+            startup_post_process_yaml_items = _collect_post_process_yaml_mappings(
+                binary_dir,
+                sorted_skill_names,
+                skill_map,
+                platform,
+                debug=debug,
+            )
+        except Exception as exc:
+            startup_post_process_failed = True
+            fail_count += 1
+            if debug:
+                print(f"  Post-process preflight collection failed: {exc}")
 
-    if not should_start_binary_processing(skills_to_process, vcall_targets):
-        print("  All skills already have yaml files and no vcall_finder targets remain, skipping IDA startup")
+    if not should_start_binary_processing(
+        skills_to_process,
+        vcall_targets,
+        startup_post_process_yaml_items,
+    ):
+        if startup_post_process_failed:
+            print("  Post-process preflight failed before IDA startup")
+        else:
+            print("  All skills already have yaml files and no vcall_finder/post_process targets remain, skipping IDA startup")
         return success_count, fail_count, skip_count
 
     # Start idalib-mcp
     process = start_idalib_mcp(binary_path, host, port, ida_args, debug)
     if process is None:
-        return success_count, fail_count + len(skills_to_process) + len(vcall_targets), skip_count
+        post_process_failure = 1 if startup_post_process_yaml_items else 0
+        return (
+            success_count,
+            fail_count + len(skills_to_process) + len(vcall_targets) + post_process_failure,
+            skip_count,
+        )
 
     try:
         # Process each skill: try preprocess first, then run_skill if needed
@@ -1913,6 +2376,48 @@ def process_binary(
                     f"skipped_functions={skipped_functions}"
                 )
 
+        post_process_yaml_items = []
+        post_process_collection_failed = False
+        if rename and not startup_post_process_failed:
+            try:
+                post_process_yaml_items = _collect_post_process_yaml_mappings(
+                    binary_dir,
+                    sorted_skill_names,
+                    skill_map,
+                    platform,
+                    debug=debug,
+                )
+            except Exception as exc:
+                post_process_collection_failed = True
+                fail_count += 1
+                if debug:
+                    print(f"  Post-process final collection failed: {exc}")
+
+        if rename and post_process_collection_failed:
+            print("  Post-process failed during YAML recollection")
+        elif rename and post_process_yaml_items:
+            process, mcp_ok = ensure_mcp_available(
+                process, binary_path, host, port, ida_args, debug
+            )
+            if not mcp_ok:
+                fail_count += 1
+                print("  Failed to restore MCP connection, skipping post_process")
+            else:
+                try:
+                    post_process_ok = _run_post_process_expected_outputs_via_mcp(
+                        host=host,
+                        port=port,
+                        yaml_items=post_process_yaml_items,
+                        debug=debug,
+                    )
+                except Exception as exc:
+                    post_process_ok = False
+                    if debug:
+                        print(f"  Post-process error: {exc}")
+                if not post_process_ok:
+                    fail_count += 1
+                    print("  Post-process failed")
+
     finally:
         # Gracefully quit IDA via MCP to avoid breaking IDB
         quit_ida_gracefully(process, host, port, debug=debug)
@@ -2037,6 +2542,7 @@ def main():
                 llm_temperature=args.llm_temperature,
                 llm_effort=args.llm_effort,
                 llm_fake_as=args.llm_fake_as,
+                rename=args.rename,
             )
             total_success += success
             total_fail += fail
