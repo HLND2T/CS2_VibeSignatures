@@ -1428,10 +1428,10 @@ modules:
           - CLoopModeGame_OnClientPauseSimulate.{platform}.yaml
           - IGameSystem_vtable.{platform}.yaml
 
-      - name: find-IGameSystem_OnPreClientUpdate-AND-IGameSystem_OnClientUpdate
+      - name: find-IGameSystem_OnClientPreUpdate-AND-IGameSystem_OnClientPostUpdate
         expected_output:
-          - IGameSystem_OnPreClientUpdate.{platform}.yaml
-          - IGameSystem_OnClientUpdate.{platform}.yaml
+          - IGameSystem_OnClientPreUpdate.{platform}.yaml
+          - IGameSystem_OnClientPostUpdate.{platform}.yaml
         expected_input:
           - CLoopModeGame_OnClientSimulate.{platform}.yaml
           - IGameSystem_vtable.{platform}.yaml
@@ -1485,10 +1485,10 @@ modules:
           - CLoopModeGame_OnClientPostOutput.{platform}.yaml
           - IGameSystem_vtable.{platform}.yaml
 
-      - name: find-IGameSystem_OnClientPreRender-AND-IGameSystem_OnClientPreRenderEx
+      - name: find-IGameSystem_OnClientPreRender-AND-IGameSystem_OnClientPreRenderAlt
         expected_output:
           - IGameSystem_OnClientPreRender.{platform}.yaml
-          - IGameSystem_OnClientPreRenderEx.{platform}.yaml
+          - IGameSystem_OnClientPreRenderAlt.{platform}.yaml
         expected_input:
           - CLoopModeGame_OnClientPreOutput.{platform}.yaml
           - IGameSystem_vtable.{platform}.yaml
@@ -1805,15 +1805,15 @@ modules:
         alias:
           - IGameSystem::OnClientPauseSimulate
 
-      - name: IGameSystem_OnPreClientUpdate
+      - name: IGameSystem_OnClientPreUpdate
         category: vfunc
         alias:
-          - IGameSystem::OnPreClientUpdate
+          - IGameSystem::OnClientPreUpdate
 
-      - name: IGameSystem_OnClientUpdate
+      - name: IGameSystem_OnClientPostUpdate
         category: vfunc
         alias:
-          - IGameSystem::OnClientUpdate
+          - IGameSystem::OnClientPostUpdate
 
       - name: IGameSystem_OnClientPostDataUpdate
         category: vfunc
@@ -1855,10 +1855,10 @@ modules:
         alias:
           - IGameSystem::OnClientPreRender
 
-      - name: IGameSystem_OnClientPreRenderEx
+      - name: IGameSystem_OnClientPreRenderAlt
         category: vfunc
         alias:
-          - IGameSystem::OnClientPreRenderEx
+          - IGameSystem::OnClientPreRenderAlt
 
       - name: CSource2Client_vtable
         category: vtable
@@ -3679,10 +3679,10 @@ modules:
           - CLoopModeGame_OnServerBeginAsyncPostTickWork.{platform}.yaml
           - IGameSystem_vtable.{platform}.yaml
 
-      - name: find-IGameSystem_OnBeforeServerEndAsyncPostTickWork-AND-IGameSystem_OnServerEndAsyncPostTickWork
+      - name: find-IGameSystem_OnServerPreEndAsyncPostTickWork-AND-IGameSystem_OnServerPostEndAsyncPostTickWork
         expected_output:
-          - IGameSystem_OnBeforeServerEndAsyncPostTickWork.{platform}.yaml
-          - IGameSystem_OnServerEndAsyncPostTickWork.{platform}.yaml
+          - IGameSystem_OnServerPreEndAsyncPostTickWork.{platform}.yaml
+          - IGameSystem_OnServerPostEndAsyncPostTickWork.{platform}.yaml
         expected_input:
           - CLoopModeGame_OnServerEndAsyncPostTickWork.{platform}.yaml
           - IGameSystem_vtable.{platform}.yaml
@@ -4907,15 +4907,15 @@ modules:
         alias:
           - IGameSystem::OnServerBeginAsyncPostTickWork
 
-      - name: IGameSystem_OnBeforeServerEndAsyncPostTickWork
+      - name: IGameSystem_OnServerPreEndAsyncPostTickWork
         category: vfunc
         alias:
-          - IGameSystem::OnBeforeServerEndAsyncPostTickWork
+          - IGameSystem::OnServerPreEndAsyncPostTickWork
 
-      - name: IGameSystem_OnServerEndAsyncPostTickWork
+      - name: IGameSystem_OnServerPostEndAsyncPostTickWork
         category: vfunc
         alias:
-          - IGameSystem::OnServerEndAsyncPostTickWork
+          - IGameSystem::OnServerPostEndAsyncPostTickWork
 
       - name: IGameSystem_OnOutOfGameFrameBoundary
         category: vfunc

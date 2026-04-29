@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-IGameSystem_OnClientPreRender-AND-IGameSystem_OnClientPreRenderEx skill."""
+"""Preprocess script for find-IGameSystem_OnServerPreEndAsyncPostTickWork-AND-IGameSystem_OnServerPostEndAsyncPostTickWork skill."""
 
 from ida_preprocessor_scripts._igamesystem_dispatch_common import (
     preprocess_igamesystem_dispatch_skill,
 )
 
-SOURCE_YAML_STEM = "CLoopModeGame_OnClientPreOutput"
+SOURCE_YAML_STEM = "CLoopModeGame_OnServerEndAsyncPostTickWork"
 TARGET_SPECS = [
-    {"target_name": "IGameSystem_OnClientPreRender", "rename_to": "GameSystem_OnClientPreRender"},
-    {"target_name": "IGameSystem_OnClientPreRenderEx", "rename_to": "GameSystem_OnClientPreRenderEx"},
+    {"target_name": "IGameSystem_OnServerPreEndAsyncPostTickWork", "rename_to": "GameSystem_OnServerPreEndAsyncPostTickWork"},
+    {"target_name": "IGameSystem_OnServerPostEndAsyncPostTickWork", "rename_to": "GameSystem_OnServerPostEndAsyncPostTickWork"},
 ]
-VIA_INTERNAL_WRAPPER = True
-INTERNAL_RENAME_TO = "CLoopModeGame_OnClientPreOutputInternal"
+VIA_INTERNAL_WRAPPER = False
+INTERNAL_RENAME_TO = None
 MULTI_ORDER = "index"
 
 

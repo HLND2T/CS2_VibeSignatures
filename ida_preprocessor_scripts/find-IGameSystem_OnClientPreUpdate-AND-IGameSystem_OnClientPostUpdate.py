@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-IGameSystem_OnBeforeServerEndAsyncPostTickWork-AND-IGameSystem_OnServerEndAsyncPostTickWork skill."""
+"""Preprocess script for find-IGameSystem_OnClientPreUpdate-AND-IGameSystem_OnClientPostUpdate skill."""
 
 from ida_preprocessor_scripts._igamesystem_dispatch_common import (
     preprocess_igamesystem_dispatch_skill,
 )
 
-SOURCE_YAML_STEM = "CLoopModeGame_OnServerEndAsyncPostTickWork"
+SOURCE_YAML_STEM = "CLoopModeGame_OnClientSimulate"
 TARGET_SPECS = [
-    {"target_name": "IGameSystem_OnBeforeServerEndAsyncPostTickWork", "rename_to": "GameSystem_OnBeforeServerEndAsyncPostTickWork"},
-    {"target_name": "IGameSystem_OnServerEndAsyncPostTickWork", "rename_to": "GameSystem_OnServerEndAsyncPostTickWork"},
+    {"target_name": "IGameSystem_OnClientPreUpdate", "rename_to": "GameSystem_OnClientPreUpdate"},
+    {"target_name": "IGameSystem_OnClientPostUpdate", "rename_to": "GameSystem_OnClientPostUpdate"},
 ]
 VIA_INTERNAL_WRAPPER = False
 INTERNAL_RENAME_TO = None
-MULTI_ORDER = "index"
+MULTI_ORDER = "scan"
 
 
 async def preprocess_skill(

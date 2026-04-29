@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-IGameSystem_OnPreClientUpdate-AND-IGameSystem_OnClientUpdate skill."""
+"""Preprocess script for find-IGameSystem_OnClientPreRender-AND-IGameSystem_OnClientPreRenderAlt skill."""
 
 from ida_preprocessor_scripts._igamesystem_dispatch_common import (
     preprocess_igamesystem_dispatch_skill,
 )
 
-SOURCE_YAML_STEM = "CLoopModeGame_OnClientSimulate"
+SOURCE_YAML_STEM = "CLoopModeGame_OnClientPreOutput"
 TARGET_SPECS = [
-    {"target_name": "IGameSystem_OnPreClientUpdate", "rename_to": "GameSystem_OnPreClientUpdate"},
-    {"target_name": "IGameSystem_OnClientUpdate", "rename_to": "GameSystem_OnClientUpdate"},
+    {"target_name": "IGameSystem_OnClientPreRender", "rename_to": "GameSystem_OnClientPreRender"},
+    {"target_name": "IGameSystem_OnClientPreRenderAlt", "rename_to": "GameSystem_OnClientPreRenderAlt"},
 ]
-VIA_INTERNAL_WRAPPER = False
-INTERNAL_RENAME_TO = None
-MULTI_ORDER = "scan"
+VIA_INTERNAL_WRAPPER = True
+INTERNAL_RENAME_TO = "CLoopModeGame_OnClientPreOutputInternal"
+MULTI_ORDER = "index"
 
 
 async def preprocess_skill(
