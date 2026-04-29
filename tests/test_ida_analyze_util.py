@@ -9722,7 +9722,7 @@ found_struct_offset: []
         func_name = "INetworkMessages_SetNetworkSerializationContextData"
         output_path = f"/tmp/{func_name}.linux.yaml"
         target_detail_payload = {
-            "func_name": "CEntitySystem_Activate",
+            "func_name": "CEntitySystem_Init",
             "func_va": "0x1D85700",
             "disasm_code": "call    qword ptr [rax+0A8h]",
             "procedure": "return this->vfptr[21](this, ctx);",

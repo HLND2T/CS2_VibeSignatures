@@ -2186,12 +2186,12 @@ class TestFindINetworkMessagesSetNetworkSerializationContextDataAndCFlattenedSer
             (
                 "INetworkMessages_SetNetworkSerializationContextData",
                 "prompt/call_llm_decompile.md",
-                "references/server/CEntitySystem_Activate.{platform}.yaml",
+                "references/server/CEntitySystem_Init.{platform}.yaml",
             ),
             (
                 "IFlattenedSerializers_CreateFieldChangedEventQueue",
                 "prompt/call_llm_decompile.md",
-                "references/server/CEntitySystem_Activate.{platform}.yaml",
+                "references/server/CEntitySystem_Init.{platform}.yaml",
             ),
         ]
         expected_func_vtable_relations = [

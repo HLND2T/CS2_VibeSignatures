@@ -1,4 +1,4 @@
-func_name: CEntitySystem_RemoveEntityImmediate
+func_name: CEntitySystem_DestroyEntityImmediate
 func_va: '0x1811ea450'
 disasm_code: |-
   .text:00000001811EA450                 test    rdx, rdx
@@ -93,11 +93,11 @@ disasm_code: |-
   .text:00000001811EA5A4                 call    qword ptr [rax+0B8h]
   .text:00000001811EA5AA                 mov     rdx, r14
   .text:00000001811EA5AD                 mov     rcx, rdi
-  .text:00000001811EA5B0                 call    CEntitySystem_NotifyRemoveEntity
+  .text:00000001811EA5B0                 call    CEntitySystem_OnRemoveEntityFromDatabase
   .text:00000001811EA5B5                 xor     r8d, r8d
   .text:00000001811EA5B8                 mov     rdx, rbx
   .text:00000001811EA5BB                 mov     rcx, rdi
-  .text:00000001811EA5BE                 call    CEntitySystem_DestroyEntityInternal
+  .text:00000001811EA5BE                 call    CEntitySystem_DoDestructEntity
   .text:00000001811EA5C3                 xor     edx, edx
   .text:00000001811EA5C5                 mov     rcx, r14
   .text:00000001811EA5C8                 call    sub_18120E670
@@ -111,14 +111,14 @@ disasm_code: |-
   .text:00000001811EA5EC                 jz      short loc_1811EA5F8
   .text:00000001811EA5EE                 xor     edx, edx
   .text:00000001811EA5F0                 mov     rcx, rdi
-  .text:00000001811EA5F3                 call    CEntitySystem_PurgeRemovedEntities
+  .text:00000001811EA5F3                 call    CEntitySystem_ExecuteQueuedDeletion
   .text:00000001811EA5F8                 mov     rbx, [rsp+48h+arg_0]
   .text:00000001811EA5FD                 add     rsp, 38h
   .text:00000001811EA601                 pop     r14
   .text:00000001811EA603                 pop     rdi
   .text:00000001811EA604                 retn
 procedure: |-
-  void __fastcall CEntitySystem_RemoveEntityImmediate(__int64 a1, __int64 a2)
+  void __fastcall CEntitySystem_DestroyEntityImmediate(__int64 a1, __int64 a2)
   {
     int v2; // eax
     __int64 v5; // r12
@@ -189,14 +189,14 @@ procedure: |-
               v17 = a2;
               (*(void (__fastcall **)(__int64, __int64, __int64 *))(v15 + 184))(a1, 1, &v17);// (numEntities, entities)?
             }
-            CEntitySystem_NotifyRemoveEntity((__int64 *)a1, a2);
+            CEntitySystem_OnRemoveEntityFromDatabase((__int64 *)a1, a2);
           }
-          CEntitySystem_DestroyEntityInternal(a1, v13, 0);
+          CEntitySystem_DoDestructEntity(a1, v13, 0);
           sub_18120E670(a2);
           sub_1811EE5A0(a1 + 16, a2, 1);
           v16 = (*(_DWORD *)(a1 + 3020))-- == 1;
           if ( v16 && *(_BYTE *)(a1 + 3035) )
-            CEntitySystem_PurgeRemovedEntities(a1, 0);
+            CEntitySystem_ExecuteQueuedDeletion(a1, 0);
         }
         else
         {

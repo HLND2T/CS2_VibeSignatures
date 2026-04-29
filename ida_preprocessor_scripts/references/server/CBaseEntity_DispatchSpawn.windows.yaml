@@ -1,0 +1,91 @@
+func_name: CBaseEntity_DispatchSpawn
+func_va: '0x180bfa160'
+disasm_code: |-
+  .text:0000000180BFA160                 mov     [rsp+arg_8], rbx
+  .text:0000000180BFA165                 push    rdi
+  .text:0000000180BFA166                 sub     rsp, 30h
+  .text:0000000180BFA16A                 mov     rbx, rdx
+  .text:0000000180BFA16D                 mov     rdi, rcx
+  .text:0000000180BFA170                 test    rcx, rcx
+  .text:0000000180BFA173                 jz      loc_180BFA214
+  .text:0000000180BFA179                 test    rdx, rdx
+  .text:0000000180BFA17C                 jnz     short loc_180BFA1F6
+  .text:0000000180BFA17E                 mov     ecx, 38h ; '8'
+  .text:0000000180BFA183                 mov     [rsp+38h+arg_0], rsi
+  .text:0000000180BFA188                 call    operator_new
+  .text:0000000180BFA18D                 mov     rbx, rax
+  .text:0000000180BFA190                 test    rax, rax
+  .text:0000000180BFA193                 jz      short loc_180BFA1A4
+  .text:0000000180BFA195                 xor     r8d, r8d
+  .text:0000000180BFA198                 xor     edx, edx
+  .text:0000000180BFA19A                 mov     rcx, rax
+  .text:0000000180BFA19D                 call    sub_1811FDBB0
+  .text:0000000180BFA1A2                 jmp     short loc_180BFA1A6
+  .text:0000000180BFA1A4                 xor     ebx, ebx
+  .text:0000000180BFA1A6                 mov     rax, [rdi+10h]
+  .text:0000000180BFA1AA                 lea     rsi, byte_18159A988
+  .text:0000000180BFA1B1                 lea     rdx, [rsp+38h+var_18]
+  .text:0000000180BFA1B6                 mov     [rsp+38h+var_18], 0FFFFFFFFC61B1C62h
+  .text:0000000180BFA1BF                 mov     rcx, [rax+20h]
+  .text:0000000180BFA1C3                 lea     rax, aClassname; "classname"
+  .text:0000000180BFA1CA                 test    rcx, rcx
+  .text:0000000180BFA1CD                 mov     [rsp+38h+var_10], rax
+  .text:0000000180BFA1D2                 cmovnz  rsi, rcx
+  .text:0000000180BFA1D6                 mov     rcx, rbx
+  .text:0000000180BFA1D9                 call    sub_1811FE8E0
+  .text:0000000180BFA1DE                 test    rax, rax
+  .text:0000000180BFA1E1                 jz      short loc_180BFA1F1
+  .text:0000000180BFA1E3                 mov     r8, rsi
+  .text:0000000180BFA1E6                 mov     rdx, rax
+  .text:0000000180BFA1E9                 mov     rcx, rbx
+  .text:0000000180BFA1EC                 call    sub_1811FF740
+  .text:0000000180BFA1F1                 mov     rsi, [rsp+38h+arg_0]
+  .text:0000000180BFA1F6                 mov     rcx, cs:g_pEntitySystem
+  .text:0000000180BFA1FD                 mov     r8, rbx
+  .text:0000000180BFA200                 mov     rdx, rdi
+  .text:0000000180BFA203                 call    CEntitySystem_QueueSpawnEntity
+  .text:0000000180BFA208                 mov     rcx, cs:g_pEntitySystem
+  .text:0000000180BFA20F                 call    CEntitySystem_ExecuteQueuedCreation
+  .text:0000000180BFA214                 mov     rbx, [rsp+38h+arg_8]
+  .text:0000000180BFA219                 xor     eax, eax
+  .text:0000000180BFA21B                 add     rsp, 30h
+  .text:0000000180BFA21F                 pop     rdi
+  .text:0000000180BFA220                 retn
+procedure: |-
+  __int64 __fastcall CBaseEntity_DispatchSpawn(__int64 a1, __int64 a2)
+  {
+    __int64 v2; // rbx
+    __int64 *v4; // rax
+    __int64 v5; // rax
+    char *v6; // rsi
+    char *v7; // rcx
+    __int64 v8; // rax
+    _QWORD v10[3]; // [rsp+20h] [rbp-18h] BYREF
+
+    v2 = a2;
+    if ( a1 )
+    {
+      if ( !a2 )
+      {
+        v4 = (__int64 *)operator_new(56);
+        v2 = (__int64)v4;
+        if ( v4 )
+          sub_1811FDBB0(v4, 0, 0);
+        else
+          v2 = 0;
+        v5 = *(_QWORD *)(a1 + 16);
+        v6 = byte_18159A988;
+        v10[0] = -971301790;
+        v7 = *(char **)(v5 + 32);
+        v10[1] = "classname";
+        if ( v7 )
+          v6 = v7;
+        v8 = sub_1811FE8E0(v2, (__int64)v10);
+        if ( v8 )
+          sub_1811FF740(v2, v8, (__int64)v6);
+      }
+      CEntitySystem_QueueSpawnEntity(g_pEntitySystem, a1, v2);
+      CEntitySystem_ExecuteQueuedCreation(g_pEntitySystem);
+    }
+    return 0;
+  }

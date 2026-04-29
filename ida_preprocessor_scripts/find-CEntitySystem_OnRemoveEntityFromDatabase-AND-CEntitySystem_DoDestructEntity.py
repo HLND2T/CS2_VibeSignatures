@@ -1,31 +1,31 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CEntitySystem_NotifyRemoveEntity-AND-CEntitySystem_DestroyEntityInternal skill."""
+"""Preprocess script for find-CEntitySystem_OnRemoveEntityFromDatabase-AND-CEntitySystem_DoDestructEntity skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = [
-    "CEntitySystem_NotifyRemoveEntity",
-    "CEntitySystem_DestroyEntityInternal",
+    "CEntitySystem_OnRemoveEntityFromDatabase",
+    "CEntitySystem_DoDestructEntity",
 ]
 
 LLM_DECOMPILE = [
     # (symbol_name, path_to_prompt, path_to_reference)
     (
-        "CEntitySystem_NotifyRemoveEntity",
+        "CEntitySystem_OnRemoveEntityFromDatabase",
         "prompt/call_llm_decompile.md",
-        "references/server/CEntitySystem_RemoveEntityImmediate.{platform}.yaml",
+        "references/server/CEntitySystem_DestroyEntityImmediate.{platform}.yaml",
     ),
     (
-        "CEntitySystem_DestroyEntityInternal",
+        "CEntitySystem_DoDestructEntity",
         "prompt/call_llm_decompile.md",
-        "references/server/CEntitySystem_RemoveEntityImmediate.{platform}.yaml",
+        "references/server/CEntitySystem_DestroyEntityImmediate.{platform}.yaml",
     ),
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
     (
-        "CEntitySystem_NotifyRemoveEntity",
+        "CEntitySystem_OnRemoveEntityFromDatabase",
         [
             "func_name",
             "func_sig",
@@ -35,7 +35,7 @@ GENERATE_YAML_DESIRED_FIELDS = [
         ],
     ),
     (
-        "CEntitySystem_DestroyEntityInternal",
+        "CEntitySystem_DoDestructEntity",
         [
             "func_name",
             "func_sig",

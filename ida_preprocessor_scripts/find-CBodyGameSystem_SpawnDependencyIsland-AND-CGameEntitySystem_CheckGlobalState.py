@@ -1,39 +1,47 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CEntitySystem_OnEntityParentChanged skill."""
+"""Preprocess script for find-CBodyGameSystem_SpawnDependencyIsland-AND-CGameEntitySystem_CheckGlobalState skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = [
-    "CEntitySystem_OnEntityParentChanged",
+    "CBodyGameSystem_SpawnDependencyIsland",
+    "CGameEntitySystem_CheckGlobalState",
 ]
 
 LLM_DECOMPILE = [
     # (symbol_name, path_to_prompt, path_to_reference)
     (
-        "CEntitySystem_OnEntityParentChanged",
+        "CBodyGameSystem_SpawnDependencyIsland",
         "prompt/call_llm_decompile.md",
-        "references/server/CGameSceneNode_UpdateEntityForHierarchyChange.{platform}.yaml",
+        "references/server/CGameEntitySystem_Spawn.{platform}.yaml",
     ),
-]
-
-FUNC_VTABLE_RELATIONS = [
-    # (func_name, vtable_class)
-    ("CEntitySystem_OnEntityParentChanged", "CEntitySystem"),
+    (
+        "CGameEntitySystem_CheckGlobalState",
+        "prompt/call_llm_decompile.md",
+        "references/server/CGameEntitySystem_Spawn.{platform}.yaml",
+    ),
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
     (
-        "CEntitySystem_OnEntityParentChanged",
+        "CBodyGameSystem_SpawnDependencyIsland",
         [
             "func_name",
+            "func_sig",
             "func_va",
             "func_rva",
             "func_size",
-            "vfunc_sig",
-            "vfunc_offset",
-            "vfunc_index",
-            "vtable_name",
+        ],
+    ),
+    (
+        "CGameEntitySystem_CheckGlobalState",
+        [
+            "func_name",
+            "func_sig",
+            "func_va",
+            "func_rva",
+            "func_size",
         ],
     ),
 ]
@@ -51,7 +59,6 @@ async def preprocess_skill(
         platform=platform,
         image_base=image_base,
         func_names=TARGET_FUNCTION_NAMES,
-        func_vtable_relations=FUNC_VTABLE_RELATIONS,
         llm_decompile_specs=LLM_DECOMPILE,
         llm_config=llm_config,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,

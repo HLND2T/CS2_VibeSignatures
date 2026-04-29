@@ -1,0 +1,92 @@
+func_name: CBaseEntity_DispatchSpawn
+func_va: '0x163c400'
+disasm_code: |-
+  .text:000000000163C400                 test    rdi, rdi
+  .text:000000000163C403                 jz      short loc_163C450
+  .text:000000000163C405                 push    rbp
+  .text:000000000163C406                 mov     rbp, rsp
+  .text:000000000163C409                 push    r13
+  .text:000000000163C40B                 push    r12
+  .text:000000000163C40D                 mov     r12, rdi
+  .text:000000000163C410                 push    rbx
+  .text:000000000163C411                 mov     rbx, rsi
+  .text:000000000163C414                 sub     rsp, 18h
+  .text:000000000163C418                 test    rsi, rsi
+  .text:000000000163C41B                 jz      short loc_163C458
+  .text:000000000163C41D                 lea     r13, g_pEntitySystem
+  .text:000000000163C424                 mov     rdx, rbx
+  .text:000000000163C427                 mov     rsi, r12
+  .text:000000000163C42A                 mov     rdi, [r13+0]
+  .text:000000000163C42E                 call    CEntitySystem_QueueSpawnEntity
+  .text:000000000163C433                 mov     rdi, [r13+0]
+  .text:000000000163C437                 call    CEntitySystem_ExecuteQueuedCreation
+  .text:000000000163C43C                 add     rsp, 18h
+  .text:000000000163C440                 xor     eax, eax
+  .text:000000000163C442                 pop     rbx
+  .text:000000000163C443                 pop     r12
+  .text:000000000163C445                 pop     r13
+  .text:000000000163C447                 pop     rbp
+  .text:000000000163C448                 retn
+  .text:000000000163C450                 xor     eax, eax
+  .text:000000000163C452                 retn
+  .text:000000000163C458                 ; _QWORD
+  .text:000000000163C458                 mov     edi, 38h ; '8'; _QWORD
+  .text:000000000163C45D                 call    __Znwm; operator new(ulong)
+  .text:000000000163C462                 xor     edx, edx
+  .text:000000000163C464                 xor     esi, esi
+  .text:000000000163C466                 mov     rdi, rax
+  .text:000000000163C469                 mov     rbx, rax
+  .text:000000000163C46C                 call    sub_1E4D510
+  .text:000000000163C471                 mov     rax, [r12+10h]
+  .text:000000000163C476                 lea     rsi, [rbp-30h]
+  .text:000000000163C47A                 mov     rdi, rbx
+  .text:000000000163C47D                 lea     rdx, haystack
+  .text:000000000163C484                 mov     qword ptr [rbp-30h], 0FFFFFFFFC61B1C62h
+  .text:000000000163C48C                 mov     rax, [rax+20h]
+  .text:000000000163C490                 test    rax, rax
+  .text:000000000163C493                 cmovnz  rdx, rax
+  .text:000000000163C497                 lea     rax, aClassname; "classname"
+  .text:000000000163C49E                 mov     r13, rdx
+  .text:000000000163C4A1                 mov     [rbp-28h], rax
+  .text:000000000163C4A5                 call    sub_1E4DD00
+  .text:000000000163C4AA                 mov     rsi, rax
+  .text:000000000163C4AD                 test    rax, rax
+  .text:000000000163C4B0                 jz      loc_163C41D
+  .text:000000000163C4B6                 mov     rdx, r13
+  .text:000000000163C4B9                 mov     rdi, rbx
+  .text:000000000163C4BC                 call    sub_1E4DB30
+  .text:000000000163C4C1                 jmp     loc_163C41D
+procedure: |-
+  __int64 __fastcall CBaseEntity_DispatchSpawn(__int64 a1, __int64 *a2, double a3, double a4)
+  {
+    __int64 *v4; // rbx
+    __int64 v6; // rax
+    char *v7; // rdx
+    char *v8; // rax
+    __int64 v9; // r13
+    __int64 v10; // rsi
+    __int64 v11[7]; // [rsp-38h] [rbp-38h] BYREF
+
+    if ( !a1 )
+      return 0;
+    v4 = a2;
+    if ( !a2 )
+    {
+      v4 = (__int64 *)operator new(56);
+      sub_1E4D510(v4, 0, 0);
+      v6 = *(_QWORD *)(a1 + 16);
+      v7 = &haystack;
+      v11[0] = -971301790;
+      v8 = *(char **)(v6 + 32);
+      if ( v8 )
+        v7 = v8;
+      v9 = (__int64)v7;
+      v11[1] = (__int64)"classname";
+      v10 = sub_1E4DD00((__int64)v4, v11);
+      if ( v10 )
+        sub_1E4DB30((__int64)v4, v10, v9);
+    }
+    CEntitySystem_QueueSpawnEntity(g_pEntitySystem, a1, v4);
+    CEntitySystem_ExecuteQueuedCreation(g_pEntitySystem, a3, a4);
+    return 0;
+  }

@@ -1,4 +1,4 @@
-func_name: CBodyGameSystem_ProcessSpawnGroupSceneNodes
+func_name: CBodyGameSystem_SpawnDependencyIsland
 func_va: '0xde8300'
 disasm_code: |-
   .text:0000000000DE8300                 mov     rax, 8000000000000200h
@@ -154,8 +154,8 @@ disasm_code: |-
   .text:0000000000DE85DA                 mov     rdi, [rax+rbx]
   .text:0000000000DE85DE                 add     rbx, 8
   .text:0000000000DE85E2                 mov     rax, [rdi]
-  .text:0000000000DE85E5                 ; 0xA8 = 168LL = CGameSceneNode_AcquireParent
-  .text:0000000000DE85E5                 call    qword ptr [rax+0A8h]; 0xA8 = 168LL = CGameSceneNode_AcquireParent
+  .text:0000000000DE85E5                 ; 0xA8 = 168LL = CGameSceneNode_PreInstanceSpawn
+  .text:0000000000DE85E5                 call    qword ptr [rax+0A8h]; 0xA8 = 168LL = CGameSceneNode_PreInstanceSpawn
   .text:0000000000DE85EB                 cmp     r13, rbx
   .text:0000000000DE85EE                 jnz     short loc_DE85D0
   .text:0000000000DE85F0                 mov     esi, [rbp+var_1070]
@@ -249,7 +249,7 @@ disasm_code: |-
   .text:0000000000DE876A                 xor     esi, esi
   .text:0000000000DE876C                 jmp     loc_DE85FD
 procedure: |-
-  unsigned __int64 __fastcall CBodyGameSystem_ProcessSpawnGroupSceneNodes(__int64 a1, int a2, int a3, __int64 **a4)
+  unsigned __int64 __fastcall CBodyGameSystem_SpawnDependencyIsland(__int64 a1, int a2, int a3, __int64 **a4)
   {
     unsigned __int64 result; // rax
     __int64 **v5; // rax
@@ -397,7 +397,7 @@ procedure: |-
             {
               v28 = *(_QWORD *)&v46[v27];
               v27 += 8;
-              (*(void (__fastcall **)(__int64, unsigned int *))(*(_QWORD *)v28 + 168LL))(v28, &v41);// 0xA8 = 168LL = CGameSceneNode_AcquireParent
+              (*(void (__fastcall **)(__int64, unsigned int *))(*(_QWORD *)v28 + 168LL))(v28, &v41);// 0xA8 = 168LL = CGameSceneNode_PreInstanceSpawn
             }
             while ( v24 != v27 );
             v29 = v41;

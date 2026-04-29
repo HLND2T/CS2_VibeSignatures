@@ -1,4 +1,4 @@
-func_name: CEntitySystem_RemoveEntityImmediate
+func_name: CEntitySystem_DestroyEntityImmediate
 func_va: '0x1e64150'
 disasm_code: |-
   .text:0000000001E64150                 test    rsi, rsi
@@ -69,9 +69,9 @@ disasm_code: |-
   .text:0000000001E64252                 call    qword ptr [rax+18h]
   .text:0000000001E64255                 mov     rsi, rbx
   .text:0000000001E64258                 mov     rdi, r12
-  .text:0000000001E6425B                 call    CEntitySystem_NotifyRemoveEntity
+  .text:0000000001E6425B                 call    CEntitySystem_OnRemoveEntityFromDatabase
   .text:0000000001E64260                 mov     rdi, r14
-  .text:0000000001E64263                 call    CEntitySystem_DestroyEntityInternal
+  .text:0000000001E64263                 call    CEntitySystem_DoDestructEntity
   .text:0000000001E64268                 xor     esi, esi
   .text:0000000001E6426A                 mov     rdi, rbx
   .text:0000000001E6426D                 call    sub_1E446E0
@@ -100,7 +100,7 @@ disasm_code: |-
   .text:0000000001E642BD                 pop     rbp
   .text:0000000001E642BE                 jmp     sub_1E643E0
   .text:0000000001E642C8                 mov     rdi, [rsi]
-  .text:0000000001E642CB                 call    CEntitySystem_DestroyEntityInternal
+  .text:0000000001E642CB                 call    CEntitySystem_DoDestructEntity
   .text:0000000001E642D0                 mov     rdi, rbx
   .text:0000000001E642D3                 xor     esi, esi
   .text:0000000001E642D5                 call    sub_1E446E0
@@ -131,7 +131,7 @@ disasm_code: |-
   .text:0000000001E64332                 pop     r14
   .text:0000000001E64334                 pop     r15
   .text:0000000001E64336                 pop     rbp
-  .text:0000000001E64337                 jmp     CEntitySystem_PurgeRemovedEntities
+  .text:0000000001E64337                 jmp     CEntitySystem_ExecuteQueuedDeletion
   .text:0000000001E64340                 mov     byte ptr [r12+0BDCh], 0
   .text:0000000001E64349                 mov     rdx, rsi
   .text:0000000001E6434C                 jmp     loc_1E64215
@@ -169,7 +169,7 @@ disasm_code: |-
   .text:0000000001E643D6                 mov     edx, 7FFFh
   .text:0000000001E643DB                 jmp     short loc_1E6437E
 procedure: |-
-  void __fastcall CEntitySystem_RemoveEntityImmediate(__int64 *a1, unsigned __int64 a2)
+  void __fastcall CEntitySystem_DestroyEntityImmediate(__int64 *a1, unsigned __int64 a2)
   {
     int v3; // eax
     int v4; // eax
@@ -193,7 +193,7 @@ procedure: |-
       v3 = *(_DWORD *)(a2 + 48);
       if ( (v3 & 0x800) != 0 )
       {
-        CEntitySystem_DestroyEntityInternal(*(_QWORD *)a2);
+        CEntitySystem_DoDestructEntity(*(_QWORD *)a2);
         sub_1E446E0(a2);
         sub_1E51E80((__int64)(a1 + 2), a2, 1);
       }
@@ -261,9 +261,9 @@ procedure: |-
                 v8((__int64)a1, 1, (__int64 **)&v18);
               }
             }
-            CEntitySystem_NotifyRemoveEntity((__int64)a1, a2);
+            CEntitySystem_OnRemoveEntityFromDatabase((__int64)a1, a2);
           }
-          CEntitySystem_DestroyEntityInternal(v5);
+          CEntitySystem_DoDestructEntity(v5);
           sub_1E446E0(a2);
           sub_1E51E80((__int64)(a1 + 2), a2, 1);
           v14 = (*((_DWORD *)a1 + 755))-- == 1;
@@ -272,7 +272,7 @@ procedure: |-
             if ( *((_DWORD *)a1 + 752) )
               *((_BYTE *)a1 + 3032) = 1;
             else
-              CEntitySystem_PurgeRemovedEntities((__int64)a1, 0);
+              CEntitySystem_ExecuteQueuedDeletion((__int64)a1, 0);
           }
         }
       }

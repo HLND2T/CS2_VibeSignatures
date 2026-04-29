@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CEntitySystem_RemoveEntity skill."""
+"""Preprocess script for find-CEntitySystem_QueueDestroyEntity skill."""
 
 from ida_preprocessor_scripts._direct_branch_target_common import (
     preprocess_direct_branch_target_skill,
 )
 
 
-SOURCE_FUNCTION_NAME = "SV_Kill_SmokeGrenade_CommandHandler"
+SOURCE_FUNCTION_NAME = "UTIL_Remove"
 
 TARGET_FUNCTION_NAMES = [
-    "CEntitySystem_RemoveEntity",
+    "CEntitySystem_QueueDestroyEntity",
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     (
-        "CEntitySystem_RemoveEntity",
+        "CEntitySystem_QueueDestroyEntity",
         [
             "func_name",
             "func_sig",

@@ -1,31 +1,31 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CBodyGameSystem_ProcessSpawnGroupSceneNodes-AND-CGameEntitySystem_CheckGlobalState skill."""
+"""Preprocess script for find-CEntitySystem_ExecuteQueuedActivates-AND-CEntitySystem_ExecuteQueuedPostDataUpdateAndActivates skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = [
-    "CBodyGameSystem_ProcessSpawnGroupSceneNodes",
-    "CGameEntitySystem_CheckGlobalState",
+    "CEntitySystem_ExecuteQueuedActivates",
+    "CEntitySystem_ExecuteQueuedPostDataUpdateAndActivates",
 ]
 
 LLM_DECOMPILE = [
     # (symbol_name, path_to_prompt, path_to_reference)
     (
-        "CBodyGameSystem_ProcessSpawnGroupSceneNodes",
+        "CEntitySystem_ExecuteQueuedActivates",
         "prompt/call_llm_decompile.md",
-        "references/server/CGameEntitySystem_Activate.{platform}.yaml",
+        "references/server/CEntitySystem_ExecuteQueuedCreation.{platform}.yaml",
     ),
     (
-        "CGameEntitySystem_CheckGlobalState",
+        "CEntitySystem_ExecuteQueuedPostDataUpdateAndActivates",
         "prompt/call_llm_decompile.md",
-        "references/server/CGameEntitySystem_Activate.{platform}.yaml",
+        "references/server/CEntitySystem_ExecuteQueuedCreation.{platform}.yaml",
     ),
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
     (
-        "CBodyGameSystem_ProcessSpawnGroupSceneNodes",
+        "CEntitySystem_ExecuteQueuedActivates",
         [
             "func_name",
             "func_sig",
@@ -35,7 +35,7 @@ GENERATE_YAML_DESIRED_FIELDS = [
         ],
     ),
     (
-        "CGameEntitySystem_CheckGlobalState",
+        "CEntitySystem_ExecuteQueuedPostDataUpdateAndActivates",
         [
             "func_name",
             "func_sig",

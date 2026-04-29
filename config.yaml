@@ -2178,9 +2178,9 @@ modules:
         expected_output:
           - SV_Kill_SmokeGrenade_CommandHandler.{platform}.yaml
 
-      - name: find-CEntitySystem_RemoveEntity
+      - name: find-CEntitySystem_QueueDestroyEntity
         expected_output:
-          - CEntitySystem_RemoveEntity.{platform}.yaml
+          - CEntitySystem_QueueDestroyEntity.{platform}.yaml
         expected_input:
           - SV_Kill_SmokeGrenade_CommandHandler.{platform}.yaml
 
@@ -2208,6 +2208,12 @@ modules:
       - name: find-CSource2GameClients_ClientDisconnect
         expected_output:
           - CSource2GameClients_ClientDisconnect.{platform}.yaml
+        expected_input:
+          - CSource2GameClients_vtable.{platform}.yaml
+
+      - name: find-CSource2GameClients_ClientPutInServer
+        expected_output:
+          - CSource2GameClients_ClientPutInServer.{platform}.yaml
         expected_input:
           - CSource2GameClients_vtable.{platform}.yaml
 
@@ -2671,6 +2677,28 @@ modules:
         expected_input:
           - GiveNamedItem.{platform}.yaml
 
+      - name: find-CEntitySystem_QueueSpawnEntity-AND-CEntitySystem_ExecuteQueuedCreation
+        expected_output:
+          - CEntitySystem_QueueSpawnEntity.{platform}.yaml
+          - CEntitySystem_ExecuteQueuedCreation.{platform}.yaml
+        expected_input:
+          - CBaseEntity_DispatchSpawn.{platform}.yaml
+
+      - name: find-CEntitySystem_ExecuteQueuedActivates-AND-CEntitySystem_ExecuteQueuedPostDataUpdateAndActivates
+        expected_output:
+          - CEntitySystem_ExecuteQueuedActivates.{platform}.yaml
+          - CEntitySystem_ExecuteQueuedPostDataUpdateAndActivates.{platform}.yaml
+        expected_input:
+          - CEntitySystem_ExecuteQueuedCreation.{platform}.yaml
+
+      - name: find-CEntitySystem_Activate-AND-CEntitySystem_PostDataUpdate
+        expected_output:
+          - CEntitySystem_Activate.{platform}.yaml
+          - CEntitySystem_PostDataUpdate.{platform}.yaml
+        expected_input:
+          - CEntitySystem_ExecuteQueuedPostDataUpdateAndActivates.{platform}.yaml
+          - CEntitySystem_vtable.{platform}.yaml
+
       - name: find-CNetworkTransmitComponent_StateChanged
         expected_output:
           - CNetworkTransmitComponent_StateChanged.{platform}.yaml
@@ -2865,25 +2893,25 @@ modules:
         expected_output:
           - EntInfo_CommandHandler.{platform}.yaml
 
-      - name: find-CEntitySystem_RemoveEntityImmediate-AND-ClientPrintToController
+      - name: find-CEntitySystem_DestroyEntityImmediate-AND-ClientPrintToController
         expected_output:
-          - CEntitySystem_RemoveEntityImmediate.{platform}.yaml
+          - CEntitySystem_DestroyEntityImmediate.{platform}.yaml
           - ClientPrintToController.{platform}.yaml
         expected_input:
           - EntInfo_CommandHandler.{platform}.yaml
 
-      - name: find-CEntitySystem_NotifyRemoveEntity-AND-CEntitySystem_DestroyEntityInternal
+      - name: find-CEntitySystem_OnRemoveEntityFromDatabase-AND-CEntitySystem_DoDestructEntity
         expected_output:
-          - CEntitySystem_NotifyRemoveEntity.{platform}.yaml
-          - CEntitySystem_DestroyEntityInternal.{platform}.yaml
+          - CEntitySystem_OnRemoveEntityFromDatabase.{platform}.yaml
+          - CEntitySystem_DoDestructEntity.{platform}.yaml
         expected_input:
-          - CEntitySystem_RemoveEntityImmediate.{platform}.yaml
+          - CEntitySystem_DestroyEntityImmediate.{platform}.yaml
 
       - name: find-CEntitySystem_OnRemoveEntity
         expected_output:
           - CEntitySystem_OnRemoveEntity.{platform}.yaml
         expected_input:
-          - CEntitySystem_NotifyRemoveEntity.{platform}.yaml
+          - CEntitySystem_OnRemoveEntityFromDatabase.{platform}.yaml
           - CEntityInstance_vtable.{platform}.yaml
 
       - name: find-CBasePlayerPawn_CommitSuicide
@@ -3035,24 +3063,24 @@ modules:
         expected_input:
           - CGameEntitySystem_vtable.{platform}.yaml
 
-      - name: find-CGameEntitySystem_Activate
+      - name: find-CGameEntitySystem_Spawn
         expected_output:
-          - CGameEntitySystem_Activate.{platform}.yaml
+          - CGameEntitySystem_Spawn.{platform}.yaml
         expected_input:
           - CGameEntitySystem_vtable.{platform}.yaml
 
-      - name: find-CBodyGameSystem_ProcessSpawnGroupSceneNodes-AND-CGameEntitySystem_CheckGlobalState
+      - name: find-CBodyGameSystem_SpawnDependencyIsland-AND-CGameEntitySystem_CheckGlobalState
         expected_output:
-          - CBodyGameSystem_ProcessSpawnGroupSceneNodes.{platform}.yaml
+          - CBodyGameSystem_SpawnDependencyIsland.{platform}.yaml
           - CGameEntitySystem_CheckGlobalState.{platform}.yaml
         expected_input:
-          - CGameEntitySystem_Activate.{platform}.yaml
+          - CGameEntitySystem_Spawn.{platform}.yaml
 
-      - name: find-CGameSceneNode_AcquireParent
+      - name: find-CGameSceneNode_PreInstanceSpawn
         expected_output:
-          - CGameSceneNode_AcquireParent.{platform}.yaml
+          - CGameSceneNode_PreInstanceSpawn.{platform}.yaml
         expected_input:
-          - CBodyGameSystem_ProcessSpawnGroupSceneNodes.{platform}.yaml
+          - CBodyGameSystem_SpawnDependencyIsland.{platform}.yaml
           - CGameSceneNode_vtable.{platform}.yaml
 
       - name: find-IGameSystem_OnBuildGameSessionManifest
@@ -3195,9 +3223,9 @@ modules:
           - CSkeletonInstance_PostDataUpdate.{platform}.yaml
           - CGameSceneNode_vtable.{platform}.yaml
 
-      - name: find-CGameSceneNode_OnParentChanged
+      - name: find-CGameSceneNode_UpdateEntityForHierarchyChange
         expected_output:
-          - CGameSceneNode_OnParentChanged.{platform}.yaml
+          - CGameSceneNode_UpdateEntityForHierarchyChange.{platform}.yaml
         expected_input:
           - CGameSceneNode_PostDataUpdate.{platform}.yaml
 
@@ -3205,7 +3233,7 @@ modules:
         expected_output:
           - CEntitySystem_OnEntityParentChanged.{platform}.yaml
         expected_input:
-          - CGameSceneNode_OnParentChanged.{platform}.yaml
+          - CGameSceneNode_UpdateEntityForHierarchyChange.{platform}.yaml
           - CEntitySystem_vtable.{platform}.yaml
 
       - name: find-CPointTeleportAPI_TeleportEntityInternal
@@ -3494,9 +3522,9 @@ modules:
         expected_output:
           - ShowHudHint.{platform}.yaml
 
-      - name: find-CEntitySystem_Activate
+      - name: find-CEntitySystem_Init
         expected_output:
-          - CEntitySystem_Activate.{platform}.yaml
+          - CEntitySystem_Init.{platform}.yaml
 
       - name: find-INetworkMessages_SetNetworkSerializationContextData-AND-IFlattenedSerializers_CreateFieldChangedEventQueue
         expected_output:
@@ -4065,10 +4093,10 @@ modules:
       - name: SV_Kill_SmokeGrenade_CommandHandler
         category: func
 
-      - name: CEntitySystem_RemoveEntity
+      - name: CEntitySystem_QueueDestroyEntity
         category: func
         alias:
-          - CEntitySystem::RemoveEntity
+          - CEntitySystem::QueueDestroyEntity
 
       - name: CBaseModelEntity_SetModel
         category: func
@@ -4124,6 +4152,11 @@ modules:
         category: vfunc
         alias:
           - CSource2GameClients::ClientDisconnect
+
+      - name: CSource2GameClients_ClientPutInServer
+        category: vfunc
+        alias:
+          - CSource2GameClients::ClientPutInServer
 
       - name: FireTarget_CommandHandler
         category: func
@@ -4556,6 +4589,36 @@ modules:
           - CBaseEntity::DispatchSpawn
           - DispatchSpawn
 
+      - name: CEntitySystem_QueueSpawnEntity
+        category: func
+        alias:
+          - CEntitySystem::QueueSpawnEntity
+
+      - name: CEntitySystem_ExecuteQueuedCreation
+        category: func
+        alias:
+          - CEntitySystem::ExecuteQueuedCreation
+
+      - name: CEntitySystem_ExecuteQueuedActivates
+        category: func
+        alias:
+          - CEntitySystem::ExecuteQueuedActivates
+
+      - name: CEntitySystem_ExecuteQueuedPostDataUpdateAndActivates
+        category: func
+        alias:
+          - CEntitySystem::ExecuteQueuedPostDataUpdateAndActivates
+
+      - name: CEntitySystem_Activate
+        category: vfunc
+        alias:
+          - CEntitySystem::Activate
+
+      - name: CEntitySystem_PostDataUpdate
+        category: vfunc
+        alias:
+          - CEntitySystem::PostDataUpdate
+
       - name: CBaseEntity_SetStateChanged
         category: vfunc
         alias:
@@ -4852,15 +4915,15 @@ modules:
         alias:
           - CGameEntitySystem::FindEntityProcedural
 
-      - name: CGameEntitySystem_Activate
+      - name: CGameEntitySystem_Spawn
         category: vfunc
         alias:
-          - CGameEntitySystem::Activate
+          - CGameEntitySystem::Spawn
 
-      - name: CBodyGameSystem_ProcessSpawnGroupSceneNodes
+      - name: CBodyGameSystem_SpawnDependencyIsland
         category: func
         alias:
-          - CBodyGameSystem::ProcessSpawnGroupSceneNodes
+          - CBodyGameSystem::SpawnDependencyIsland
 
       - name: CGameEntitySystem_CheckGlobalState
         category: func
@@ -5043,10 +5106,10 @@ modules:
         alias:
           - CBaseAnimGraph::m_skeletonInstance
 
-      - name: CGameSceneNode_AcquireParent
+      - name: CGameSceneNode_PreInstanceSpawn
         category: vfunc
         alias:
-          - CGameSceneNode::AcquireParent
+          - CGameSceneNode::PreInstanceSpawn
 
       - name: CGameSceneNode_GetSkeletonInstance
         category: vfunc
@@ -5079,10 +5142,10 @@ modules:
         alias:
           - CGameSceneNode::PostDataUpdate
 
-      - name: CGameSceneNode_OnParentChanged
+      - name: CGameSceneNode_UpdateEntityForHierarchyChange
         category: func
         alias:
-          - CGameSceneNode::OnParentChanged
+          - CGameSceneNode::UpdateEntityForHierarchyChange
 
       - name: CPointTeleportAPI_TeleportEntityInternal
         category: func
@@ -5309,20 +5372,20 @@ modules:
         alias:
           - CC_Ent_Info
 
-      - name: CEntitySystem_RemoveEntityImmediate
+      - name: CEntitySystem_DestroyEntityImmediate
         category: func
         alias:
-          - CEntitySystem::RemoveEntityImmediate
+          - CEntitySystem::DestroyEntityImmediate
 
-      - name: CEntitySystem_NotifyRemoveEntity
+      - name: CEntitySystem_OnRemoveEntityFromDatabase
         category: func
         alias:
-          - CEntitySystem::NotifyRemoveEntity
+          - CEntitySystem::OnRemoveEntityFromDatabase
 
-      - name: CEntitySystem_DestroyEntityInternal
+      - name: CEntitySystem_DoDestructEntity
         category: func
         alias:
-          - CEntitySystem::DestroyEntityInternal
+          - CEntitySystem::DoDestructEntity
 
       - name: ClientPrintToController
         category: func
@@ -5348,10 +5411,10 @@ modules:
         alias:
           - UTIL_GetPlayerControllerForEntity
 
-      - name: CEntitySystem_Activate
+      - name: CEntitySystem_Init
         category: func
         alias:
-          - CEntitySystem::Activate
+          - CEntitySystem::Init
 
       - name: CEntitySystem_ClearEntityDatabase
         category: vfunc

@@ -1,37 +1,46 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CEntitySystem_Activate skill."""
+"""Preprocess script for find-CGameEntitySystem_Spawn skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = [
-    "CEntitySystem_Activate",
+    "CGameEntitySystem_Spawn",
 ]
 
 FUNC_XREFS = [
-                 {
-                     "func_name": 'CEntitySystem_Activate',
-                     "xref_strings": ['EntitySystem - Class Tables'],
-                     "xref_gvs": [],
-                     "xref_signatures": [],
-                     "xref_funcs": [],
-                     "exclude_funcs": [],
-                     "exclude_strings": [],
-                     "exclude_gvs": [],
-                     "exclude_signatures": [],
-                 },
-             ]
+    {
+        "func_name": "CGameEntitySystem_Spawn",
+        "xref_strings": [
+            "Memory trash in SortEntities.. overran the number of entity islands supported!",
+        ],
+        "xref_gvs": [],
+        "xref_signatures": [],
+        "xref_funcs": [],
+        "exclude_funcs": [],
+        "exclude_strings": [],
+        "exclude_gvs": [],
+        "exclude_signatures": [],
+    },
+]
 
+FUNC_VTABLE_RELATIONS = [
+    # (func_name, vtable_class)
+    ("CGameEntitySystem_Spawn", "CGameEntitySystem"),
+]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
     (
-        "CEntitySystem_Activate",
+        "CGameEntitySystem_Spawn",
         [
             "func_name",
             "func_va",
             "func_rva",
             "func_size",
             "func_sig",
+            "vtable_name",
+            "vfunc_offset",
+            "vfunc_index",
         ],
     ),
 ]
@@ -50,6 +59,7 @@ async def preprocess_skill(
         image_base=image_base,
         func_names=TARGET_FUNCTION_NAMES,
         func_xrefs=FUNC_XREFS,
+        func_vtable_relations=FUNC_VTABLE_RELATIONS,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
     )

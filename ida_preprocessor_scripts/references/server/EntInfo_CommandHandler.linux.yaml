@@ -126,7 +126,7 @@ disasm_code: |-
   .text:000000000169DDF2                 lea     rax, g_pEntitySystem
   .text:000000000169DDF9                 mov     rsi, [r15+10h]
   .text:000000000169DDFD                 mov     rdi, [rax]
-  .text:000000000169DE00                 call    CEntitySystem_RemoveEntityImmediate
+  .text:000000000169DE00                 call    CEntitySystem_DestroyEntityImmediate
   .text:000000000169DE05                 cmp     dword ptr [rbp+var_80+4], 3FFFFFFFh
   .text:000000000169DE0C                 mov     dword ptr [rbp+var_90], 0
   .text:000000000169DE16                 ja      short loc_169DE34
@@ -317,7 +317,7 @@ procedure: |-
             }
             while ( v15 != v14 );
           }
-          CEntitySystem_RemoveEntityImmediate((__int64 *)g_pEntitySystem, *(_QWORD *)(v8 + 16));
+          CEntitySystem_DestroyEntityImmediate((__int64 *)g_pEntitySystem, *(_QWORD *)(v8 + 16));
           LODWORD(v23) = 0;
           if ( HIDWORD(v25) <= 0x3FFFFFFF && v24 )
             (*(void (__fastcall **)(_QWORD *))(*g_pMemAlloc + 32LL))(g_pMemAlloc);

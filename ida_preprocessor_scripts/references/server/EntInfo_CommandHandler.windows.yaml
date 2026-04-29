@@ -158,7 +158,7 @@ disasm_code: |-
   .text:0000000180C25F19                 jl      short loc_180C25EB0
   .text:0000000180C25F1B                 mov     rdx, [r13+10h]
   .text:0000000180C25F1F                 mov     rcx, cs:g_pEntitySystem
-  .text:0000000180C25F26                 call    CEntitySystem_RemoveEntityImmediate
+  .text:0000000180C25F26                 call    CEntitySystem_DestroyEntityImmediate
   .text:0000000180C25F2B                 mov     eax, dword ptr [rbp+57h+var_70+4]
   .text:0000000180C25F2E                 mov     r15, [rsp+0C0h+arg_18]
   .text:0000000180C25F36                 mov     rsi, [rsp+0C0h+arg_0]
@@ -326,7 +326,7 @@ procedure: |-
             }
             while ( v17 < v16 );
           }
-          CEntitySystem_RemoveEntityImmediate(g_pEntitySystem, *(_DWORD **)(v6 + 16));
+          CEntitySystem_DestroyEntityImmediate(g_pEntitySystem, *(_DWORD **)(v6 + 16));
           v21 = HIDWORD(v27);
           v22 = v26;
           v25 = 0;

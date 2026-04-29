@@ -1,4 +1,4 @@
-func_name: CBodyGameSystem_ProcessSpawnGroupSceneNodes
+func_name: CBodyGameSystem_SpawnDependencyIsland
 func_va: '0x1805395d0'
 disasm_code: |-
   .text:00000001805395D0                 mov     [rsp-8+arg_18], r9
@@ -147,8 +147,8 @@ disasm_code: |-
   .text:00000001805397FC                 nop     dword ptr [rax+00h]
   .text:0000000180539800                 mov     rcx, [r8+rbx*8]
   .text:0000000180539804                 mov     rax, [rcx]
-  .text:0000000180539807                 ; 0x98 = 152LL = CGameSceneNode_AcquireParent
-  .text:0000000180539807                 call    qword ptr [rax+98h]; 0x98 = 152LL = CGameSceneNode_AcquireParent
+  .text:0000000180539807                 ; 0x98 = 152LL = CGameSceneNode_PreInstanceSpawn
+  .text:0000000180539807                 call    qword ptr [rax+98h]; 0x98 = 152LL = CGameSceneNode_PreInstanceSpawn
   .text:000000018053980D                 mov     r8, [rbp+1070h+var_1048]
   .text:0000000180539811                 inc     rbx
   .text:0000000180539814                 cmp     rbx, rdi
@@ -258,7 +258,7 @@ disasm_code: |-
   .text:0000000180539991                 pop     rbp
   .text:0000000180539992                 retn
 procedure: |-
-  int __fastcall CBodyGameSystem_ProcessSpawnGroupSceneNodes(__int64 a1, int a2, int a3, _QWORD **a4)
+  int __fastcall CBodyGameSystem_SpawnDependencyIsland(__int64 a1, int a2, int a3, _QWORD **a4)
   {
     __int64 v4; // r14
     __int64 v5; // rbx
@@ -468,7 +468,7 @@ procedure: |-
         v25 = 0;
         do
         {
-          LODWORD(v7) = (*(__int64 (__fastcall **)(_QWORD))(**(_QWORD **)(v9 + 8 * v25) + 152LL))(*(_QWORD *)(v9 + 8 * v25));// 0x98 = 152LL = CGameSceneNode_AcquireParent
+          LODWORD(v7) = (*(__int64 (__fastcall **)(_QWORD))(**(_QWORD **)(v9 + 8 * v25) + 152LL))(*(_QWORD *)(v9 + 8 * v25));// 0x98 = 152LL = CGameSceneNode_PreInstanceSpawn
           v9 = (__int64)v42;
           ++v25;
         }

@@ -76,7 +76,7 @@ disasm_code: |-
   .text:000000000155E4F2                 call    qword ptr [rax+98h]
   .text:000000000155E4F8                 mov     rsi, r12
   .text:000000000155E4FB                 mov     rdi, rbx
-  .text:000000000155E4FE                 call    CGameSceneNode_OnParentChanged
+  .text:000000000155E4FE                 call    CGameSceneNode_UpdateEntityForHierarchyChange
   .text:000000000155E503                 movzx   eax, byte ptr [rbx+0E9h]
   .text:000000000155E50A                 jmp     loc_155E3C8
   .text:000000000155E510                 and     eax, 0FFFFFFFBh
@@ -146,7 +146,7 @@ procedure: |-
       (*(void (__fastcall **)(__int64 *, __int64))(v15 + 144))(a1, 1);
       (*(void (__fastcall **)(__int64 *, __int64))(*a1 + 152))(a1, 1);
       v4 = v16;
-      CGameSceneNode_OnParentChanged((__int64)a1, v16);
+      CGameSceneNode_UpdateEntityForHierarchyChange((__int64)a1, v16);
       result = *((unsigned __int8 *)a1 + 233);
     }
     v6 = (result & 0x10) != 0;

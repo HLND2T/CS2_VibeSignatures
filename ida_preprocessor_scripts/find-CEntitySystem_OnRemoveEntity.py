@@ -12,7 +12,7 @@ LLM_DECOMPILE = [
     (
         "CEntitySystem_OnRemoveEntity",
         "prompt/call_llm_decompile.md",
-        "references/server/CEntitySystem_NotifyRemoveEntity.{platform}.yaml",
+        "references/server/CEntitySystem_OnRemoveEntityFromDatabase.{platform}.yaml",
     ),
 ]
 

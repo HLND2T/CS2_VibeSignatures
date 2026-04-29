@@ -1,39 +1,42 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-INetworkMessages_SetNetworkSerializationContextData-AND-IFlattenedSerializers_CreateFieldChangedEventQueue skill."""
+"""Preprocess script for find-CEntitySystem_Activate-AND-CEntitySystem_PostDataUpdate skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = [
-    "INetworkMessages_SetNetworkSerializationContextData",
-    "IFlattenedSerializers_CreateFieldChangedEventQueue",
+    "CEntitySystem_Activate",
+    "CEntitySystem_PostDataUpdate",
 ]
 
 LLM_DECOMPILE = [
     # (symbol_name, path_to_prompt, path_to_reference)
     (
-        "INetworkMessages_SetNetworkSerializationContextData",
+        "CEntitySystem_Activate",
         "prompt/call_llm_decompile.md",
-        "references/server/CEntitySystem_Init.{platform}.yaml",
+        "references/server/CEntitySystem_ExecuteQueuedPostDataUpdateAndActivates.{platform}.yaml",
     ),
     (
-        "IFlattenedSerializers_CreateFieldChangedEventQueue",
+        "CEntitySystem_PostDataUpdate",
         "prompt/call_llm_decompile.md",
-        "references/server/CEntitySystem_Init.{platform}.yaml",
+        "references/server/CEntitySystem_ExecuteQueuedPostDataUpdateAndActivates.{platform}.yaml",
     ),
 ]
 
 FUNC_VTABLE_RELATIONS = [
     # (func_name, vtable_class)
-    ("INetworkMessages_SetNetworkSerializationContextData", "INetworkMessages"),
-    ("IFlattenedSerializers_CreateFieldChangedEventQueue", "IFlattenedSerializers"),
+    ("CEntitySystem_Activate", "CEntitySystem"),
+    ("CEntitySystem_PostDataUpdate", "CEntitySystem"),
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
     (
-        "INetworkMessages_SetNetworkSerializationContextData",
+        "CEntitySystem_Activate",
         [
             "func_name",
+            "func_va",
+            "func_rva",
+            "func_size",
             "vfunc_sig",
             "vfunc_offset",
             "vfunc_index",
@@ -41,9 +44,12 @@ GENERATE_YAML_DESIRED_FIELDS = [
         ],
     ),
     (
-        "IFlattenedSerializers_CreateFieldChangedEventQueue",
+        "CEntitySystem_PostDataUpdate",
         [
             "func_name",
+            "func_va",
+            "func_rva",
+            "func_size",
             "vfunc_sig",
             "vfunc_offset",
             "vfunc_index",
@@ -56,8 +62,7 @@ async def preprocess_skill(
     session, skill_name, expected_outputs, old_yaml_map,
     new_binary_dir, platform, image_base, llm_config=None, debug=False,
 ):
-
-    """Locate target vfunc(s) via preprocessing and LLM decompile fallback."""
+    """Reuse previous gamever vfunc_sig to locate target vfunction(s) and write YAML."""
     return await preprocess_common_skill(
         session=session,
         expected_outputs=expected_outputs,

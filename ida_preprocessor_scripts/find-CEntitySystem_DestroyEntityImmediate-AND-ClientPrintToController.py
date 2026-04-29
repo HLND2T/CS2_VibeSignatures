@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CEntitySystem_RemoveEntityImmediate-AND-ClientPrintToController skill."""
+"""Preprocess script for find-CEntitySystem_DestroyEntityImmediate-AND-ClientPrintToController skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = [
-    "CEntitySystem_RemoveEntityImmediate",
+    "CEntitySystem_DestroyEntityImmediate",
     "ClientPrintToController",
 ]
 
 LLM_DECOMPILE = [
     # (symbol_name, path_to_prompt, path_to_reference)
     (
-        "CEntitySystem_RemoveEntityImmediate",
+        "CEntitySystem_DestroyEntityImmediate",
         "prompt/call_llm_decompile.md",
         "references/server/EntInfo_CommandHandler.{platform}.yaml",
     ),
@@ -25,7 +25,7 @@ LLM_DECOMPILE = [
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
     (
-        "CEntitySystem_RemoveEntityImmediate",
+        "CEntitySystem_DestroyEntityImmediate",
         [
             "func_name",
             "func_sig",
