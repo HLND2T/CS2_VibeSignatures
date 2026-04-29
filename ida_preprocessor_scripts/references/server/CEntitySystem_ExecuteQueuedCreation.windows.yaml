@@ -1,0 +1,148 @@
+func_name: CEntitySystem_ExecuteQueuedCreation
+func_va: '0x1811ebee0'
+disasm_code: |-
+  .text:00000001811EBEE0                 mov     [rsp+arg_0], rbx
+  .text:00000001811EBEE5                 push    rdi
+  .text:00000001811EBEE6                 sub     rsp, 100h
+  .text:00000001811EBEED                 inc     dword ptr [rcx+0BC0h]
+  .text:00000001811EBEF3                 lea     rax, [rsp+108h+var_E0]
+  .text:00000001811EBEF8                 mov     [rsp+108h+var_E0], 0
+  .text:00000001811EBF01                 mov     rbx, rcx
+  .text:00000001811EBF04                 mov     [rsp+108h+var_D8], 32h ; '2'
+  .text:00000001811EBF0C                 mov     [rsp+108h+var_D4], 80000000h
+  .text:00000001811EBF14                 test    al, 3
+  .text:00000001811EBF16                 jz      short loc_1811EBF1D
+  .text:00000001811EBF18                 call    sub_1814DD520
+  .text:00000001811EBF1D                 lea     rax, [rsp+108h+var_D0]
+  .text:00000001811EBF22                 mov     dword ptr [rsp+108h+a2], 0
+  .text:00000001811EBF2A                 mov     [rsp+108h+var_E0], rax
+  .text:00000001811EBF2F                 nop
+  .text:00000001811EBF30                 lea     rdx, [rsp+108h+a2]
+  .text:00000001811EBF35                 mov     rcx, rbx
+  .text:00000001811EBF38                 call    sub_1811EEE10
+  .text:00000001811EBF3D                 cmp     dword ptr [rbx+0BE0h], 0
+  .text:00000001811EBF44                 jg      short loc_1811EBF30
+  .text:00000001811EBF46                 cmp     byte ptr [rbx+0BDAh], 0
+  .text:00000001811EBF4D                 movzx   edi, byte ptr [rbx+0BDFh]
+  .text:00000001811EBF54                 mov     byte ptr [rbx+0BDFh], 1
+  .text:00000001811EBF5B                 jz      short loc_1811EBF75
+  .text:00000001811EBF5D                 cmp     dword ptr [rbx+0BC0h], 1
+  .text:00000001811EBF64                 jg      short loc_1811EBF75
+  .text:00000001811EBF66                 lea     rdx, [rsp+108h+a2]
+  .text:00000001811EBF6B                 mov     rcx, rbx
+  .text:00000001811EBF6E                 call    CEntitySystem_ExecuteQueuedPostDataUpdateAndActivates
+  .text:00000001811EBF73                 jmp     short loc_1811EBF82
+  .text:00000001811EBF75                 ; a2
+  .text:00000001811EBF75                 lea     rdx, [rsp+108h+a2]; a2
+  .text:00000001811EBF7A                 ; a1
+  .text:00000001811EBF7A                 mov     rcx, rbx; a1
+  .text:00000001811EBF7D                 call    CEntitySystem_ExecuteQueuedActivates
+  .text:00000001811EBF82                 mov     eax, [rbx+0BC0h]
+  .text:00000001811EBF88                 dec     eax
+  .text:00000001811EBF8A                 mov     [rbx+0BDFh], dil
+  .text:00000001811EBF91                 mov     [rbx+0BC0h], eax
+  .text:00000001811EBF97                 test    eax, eax
+  .text:00000001811EBF99                 jg      short loc_1811EBFC4
+  .text:00000001811EBF9B                 cmp     byte ptr [rbx+0BD8h], 0
+  .text:00000001811EBFA2                 jz      short loc_1811EBFBC
+  .text:00000001811EBFA4                 movzx   edx, byte ptr [rbx+0BD9h]
+  .text:00000001811EBFAB                 mov     rcx, rbx
+  .text:00000001811EBFAE                 call    CEntitySystem_ExecuteQueuedDeletion
+  .text:00000001811EBFB3                 mov     word ptr [rbx+0BD8h], 0
+  .text:00000001811EBFBC                 mov     rcx, rbx
+  .text:00000001811EBFBF                 call    sub_1811ECCB0
+  .text:00000001811EBFC4                 cmp     [rsp+108h+var_D8], 0
+  .text:00000001811EBFC9                 mov     rdx, [rsp+108h+var_E0]
+  .text:00000001811EBFCE                 mov     dword ptr [rsp+108h+a2], 0
+  .text:00000001811EBFD6                 jl      short loc_1811EC024
+  .text:00000001811EBFD8                 lea     rax, [rsp+108h+var_D0]
+  .text:00000001811EBFDD                 cmp     rdx, rax
+  .text:00000001811EBFE0                 jz      short loc_1811EC024
+  .text:00000001811EBFE2                 test    rdx, rdx
+  .text:00000001811EBFE5                 jz      short loc_1811EC001
+  .text:00000001811EBFE7                 test    [rsp+108h+var_D4], 0C0000000h
+  .text:00000001811EBFEF                 jnz     short loc_1811EC001
+  .text:00000001811EBFF1                 mov     rax, cs:g_pMemAlloc
+  .text:00000001811EBFF8                 mov     rcx, [rax]
+  .text:00000001811EBFFB                 mov     rax, [rcx]
+  .text:00000001811EBFFE                 call    qword ptr [rax+18h]
+  .text:00000001811EC001                 mov     eax, [rsp+108h+var_D4]
+  .text:00000001811EC005                 lea     rdx, [rsp+108h+var_D0]
+  .text:00000001811EC00A                 and     eax, 3FFFFFFFh
+  .text:00000001811EC00F                 mov     [rsp+108h+var_E0], rdx
+  .text:00000001811EC014                 bts     eax, 1Fh
+  .text:00000001811EC018                 mov     [rsp+108h+var_D8], 32h ; '2'
+  .text:00000001811EC020                 mov     [rsp+108h+var_D4], eax
+  .text:00000001811EC024                 test    [rsp+108h+var_D4], 0C0000000h
+  .text:00000001811EC02C                 jnz     short loc_1811EC043
+  .text:00000001811EC02E                 test    rdx, rdx
+  .text:00000001811EC031                 jz      short loc_1811EC043
+  .text:00000001811EC033                 mov     rax, cs:g_pMemAlloc
+  .text:00000001811EC03A                 mov     rcx, [rax]
+  .text:00000001811EC03D                 mov     rax, [rcx]
+  .text:00000001811EC040                 call    qword ptr [rax+18h]
+  .text:00000001811EC043                 mov     rbx, [rsp+108h+arg_0]
+  .text:00000001811EC04B                 add     rsp, 100h
+  .text:00000001811EC052                 pop     rdi
+  .text:00000001811EC053                 retn
+procedure: |-
+  void __fastcall CEntitySystem_ExecuteQueuedCreation(__int64 a1)
+  {
+    bool v2; // zf
+    char v3; // di
+    __int64 v4; // rdx
+    int v5; // eax
+    _BYTE *v6; // rdx
+    __int64 a2; // [rsp+20h] [rbp-E8h] BYREF
+    _BYTE *v8; // [rsp+28h] [rbp-E0h] BYREF
+    int v9; // [rsp+30h] [rbp-D8h]
+    unsigned int v10; // [rsp+34h] [rbp-D4h]
+    _BYTE v11[208]; // [rsp+38h] [rbp-D0h] BYREF
+
+    ++*(_DWORD *)(a1 + 3008);
+    v8 = nullptr;
+    v9 = 50;
+    v10 = 0x80000000;
+    if ( ((unsigned __int8)&v8 & 3) != 0 )
+      sub_1814DD520();
+    LODWORD(a2) = 0;
+    v8 = v11;
+    do
+      sub_1811EEE10(a1, (int *)&a2);
+    while ( *(int *)(a1 + 3040) > 0 );
+    v2 = *(_BYTE *)(a1 + 3034) == 0;
+    v3 = *(_BYTE *)(a1 + 3039);
+    *(_BYTE *)(a1 + 3039) = 1;
+    if ( v2 || *(int *)(a1 + 3008) > 1 )
+      CEntitySystem_ExecuteQueuedActivates(a1, (__int64)&a2);
+    else
+      CEntitySystem_ExecuteQueuedPostDataUpdateAndActivates(a1, (__int64)&a2);
+    v5 = *(_DWORD *)(a1 + 3008) - 1;
+    *(_BYTE *)(a1 + 3039) = v3;
+    *(_DWORD *)(a1 + 3008) = v5;
+    if ( v5 <= 0 )
+    {
+      if ( *(_BYTE *)(a1 + 3032) )
+      {
+        CEntitySystem_ExecuteQueuedDeletion(a1, *(_BYTE *)(a1 + 3033));
+        *(_WORD *)(a1 + 3032) = 0;
+      }
+      sub_1811ECCB0(a1, v4);
+    }
+    v6 = v8;
+    LODWORD(a2) = 0;
+    if ( v9 >= 0 && v8 != v11 )
+    {
+      if ( v8 && (v10 & 0xC0000000) == 0 )
+        (*(void (__fastcall **)(_QWORD, _BYTE *))(*g_pMemAlloc + 24LL))(g_pMemAlloc, v8);
+      v6 = v11;
+      v8 = v11;
+      v9 = 50;
+      v10 = v10 & 0x3FFFFFFF | 0x80000000;
+    }
+    if ( (v10 & 0xC0000000) == 0 )
+    {
+      if ( v6 )
+        (*(void (__fastcall **)(_QWORD))(*g_pMemAlloc + 24LL))(g_pMemAlloc);
+    }
+  }

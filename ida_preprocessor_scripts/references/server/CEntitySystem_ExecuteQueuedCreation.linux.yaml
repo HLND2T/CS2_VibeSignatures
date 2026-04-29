@@ -1,0 +1,176 @@
+func_name: CEntitySystem_ExecuteQueuedCreation
+func_va: '0x1e63f20'
+disasm_code: |-
+  .text:0000000001E63F20                 push    rbp
+  .text:0000000001E63F21                 mov     rbp, rsp
+  .text:0000000001E63F24                 push    r14
+  .text:0000000001E63F26                 push    r13
+  .text:0000000001E63F28                 push    r12
+  .text:0000000001E63F2A                 push    rbx
+  .text:0000000001E63F2B                 mov     rbx, rdi
+  .text:0000000001E63F2E                 sub     rsp, 0E0h
+  .text:0000000001E63F35                 rdtsc
+  .text:0000000001E63F37                 add     dword ptr [rdi+0BC0h], 1
+  .text:0000000001E63F3E                 mov     rax, 8000000000000032h
+  .text:0000000001E63F48                 mov     [rbp+var_100], 0
+  .text:0000000001E63F52                 mov     [rbp+var_F0], rax
+  .text:0000000001E63F59                 lea     r13, [rbp+var_E8]
+  .text:0000000001E63F60                 mov     [rbp+var_F8], r13
+  .text:0000000001E63F67                 lea     r12, [rbp+var_100]
+  .text:0000000001E63F6E                 xchg    ax, ax
+  .text:0000000001E63F70                 mov     rsi, r12
+  .text:0000000001E63F73                 mov     rdi, rbx
+  .text:0000000001E63F76                 call    sub_1E572C0
+  .text:0000000001E63F7B                 mov     r8d, [rbx+0BE0h]
+  .text:0000000001E63F82                 test    r8d, r8d
+  .text:0000000001E63F85                 jg      short loc_1E63F70
+  .text:0000000001E63F87                 cmp     byte ptr [rbx+0BDAh], 0
+  .text:0000000001E63F8E                 mov     rsi, r12
+  .text:0000000001E63F91                 mov     rdi, rbx
+  .text:0000000001E63F94                 movzx   r14d, byte ptr [rbx+0BDFh]
+  .text:0000000001E63F9C                 mov     byte ptr [rbx+0BDFh], 1
+  .text:0000000001E63FA3                 jz      short loc_1E63FB2
+  .text:0000000001E63FA5                 cmp     dword ptr [rbx+0BC0h], 1
+  .text:0000000001E63FAC                 jle     loc_1E64090
+  .text:0000000001E63FB2                 call    CEntitySystem_ExecuteQueuedActivates
+  .text:0000000001E63FB7                 mov     eax, [rbx+0BC0h]
+  .text:0000000001E63FBD                 mov     [rbx+0BDFh], r14b
+  .text:0000000001E63FC4                 sub     eax, 1
+  .text:0000000001E63FC7                 mov     [rbx+0BC0h], eax
+  .text:0000000001E63FCD                 test    eax, eax
+  .text:0000000001E63FCF                 jg      short loc_1E63FF8
+  .text:0000000001E63FD1                 cmp     byte ptr [rbx+0BD8h], 0
+  .text:0000000001E63FD8                 jnz     short loc_1E64050
+  .text:0000000001E63FDA                 mov     esi, [rbx+0BB8h]
+  .text:0000000001E63FE0                 test    esi, esi
+  .text:0000000001E63FE2                 jg      short loc_1E63FF6
+  .text:0000000001E63FE4                 mov     ecx, [rbx+0C58h]
+  .text:0000000001E63FEA                 test    ecx, ecx
+  .text:0000000001E63FEC                 jz      short loc_1E63FF6
+  .text:0000000001E63FEE                 mov     rdi, rbx
+  .text:0000000001E63FF1                 call    sub_1E56FE0
+  .text:0000000001E63FF6                 rdtsc
+  .text:0000000001E63FF8                 mov     [rbp+var_100], 0
+  .text:0000000001E64002                 mov     edx, dword ptr [rbp+var_F0]
+  .text:0000000001E64008                 mov     eax, dword ptr [rbp+var_F0+4]
+  .text:0000000001E6400E                 test    edx, edx
+  .text:0000000001E64010                 js      short loc_1E64078
+  .text:0000000001E64012                 mov     rsi, [rbp+var_F8]
+  .text:0000000001E64019                 cmp     rsi, r13
+  .text:0000000001E6401C                 jz      loc_1E640C0
+  .text:0000000001E64022                 cmp     eax, 3FFFFFFFh
+  .text:0000000001E64027                 ja      short loc_1E6403E
+  .text:0000000001E64029                 test    rsi, rsi
+  .text:0000000001E6402C                 jz      short loc_1E6403E
+  .text:0000000001E6402E                 mov     rax, cs:g_pMemAlloc_ptr
+  .text:0000000001E64035                 mov     rdi, [rax]
+  .text:0000000001E64038                 mov     rax, [rdi]
+  .text:0000000001E6403B                 call    qword ptr [rax+20h]
+  .text:0000000001E6403E                 add     rsp, 0E0h
+  .text:0000000001E64045                 pop     rbx
+  .text:0000000001E64046                 pop     r12
+  .text:0000000001E64048                 pop     r13
+  .text:0000000001E6404A                 pop     r14
+  .text:0000000001E6404C                 pop     rbp
+  .text:0000000001E6404D                 retn
+  .text:0000000001E64050                 or      eax, [rbx+0BC4h]
+  .text:0000000001E64056                 jz      short loc_1E640A0
+  .text:0000000001E64058                 xor     edi, edi
+  .text:0000000001E6405A                 mov     [rbx+0BD8h], di
+  .text:0000000001E64061                 mov     esi, [rbx+0BB8h]
+  .text:0000000001E64067                 test    esi, esi
+  .text:0000000001E64069                 jle     loc_1E63FE4
+  .text:0000000001E6406F                 jmp     short loc_1E63FF6
+  .text:0000000001E64078                 cmp     eax, 3FFFFFFFh
+  .text:0000000001E6407D                 ja      short loc_1E6403E
+  .text:0000000001E6407F                 mov     rsi, [rbp+var_F8]
+  .text:0000000001E64086                 test    rsi, rsi
+  .text:0000000001E64089                 jnz     short loc_1E6402E
+  .text:0000000001E6408B                 jmp     short loc_1E6403E
+  .text:0000000001E64090                 call    CEntitySystem_ExecuteQueuedPostDataUpdateAndActivates
+  .text:0000000001E64095                 jmp     loc_1E63FB7
+  .text:0000000001E640A0                 movzx   esi, byte ptr [rbx+0BD9h]
+  .text:0000000001E640A7                 mov     rdi, rbx
+  .text:0000000001E640AA                 call    CEntitySystem_ExecuteQueuedDeletion
+  .text:0000000001E640AF                 xor     edi, edi
+  .text:0000000001E640B1                 mov     [rbx+0BD8h], di
+  .text:0000000001E640B8                 jmp     short loc_1E64061
+  .text:0000000001E640C0                 cmp     eax, 3FFFFFFFh
+  .text:0000000001E640C5                 ja      loc_1E6403E
+  .text:0000000001E640CB                 mov     rax, cs:g_pMemAlloc_ptr
+  .text:0000000001E640D2                 mov     rsi, r13
+  .text:0000000001E640D5                 mov     rdi, [rax]
+  .text:0000000001E640D8                 mov     rax, [rdi]
+  .text:0000000001E640DB                 call    qword ptr [rax+20h]
+  .text:0000000001E640DE                 jmp     loc_1E6403E
+procedure: |-
+  __int64 __fastcall CEntitySystem_ExecuteQueuedCreation(__int64 a1, double a2, double a3)
+  {
+    bool v3; // zf
+    char v4; // r14
+    int v5; // eax
+    int v6; // eax
+    __int64 result; // rax
+    int v8; // [rsp+0h] [rbp-100h] BYREF
+    _BYTE *v9; // [rsp+8h] [rbp-F8h]
+    unsigned __int64 v10; // [rsp+10h] [rbp-F0h]
+    _BYTE v11[232]; // [rsp+18h] [rbp-E8h] BYREF
+
+    __rdtsc();
+    ++*(_DWORD *)(a1 + 3008);
+    v8 = 0;
+    v10 = 0x8000000000000032LL;
+    v9 = v11;
+    do
+      sub_1E572C0((__int64 *)a1, &v8, a2, a3);
+    while ( *(int *)(a1 + 3040) > 0 );
+    v3 = *(_BYTE *)(a1 + 3034) == 0;
+    v4 = *(_BYTE *)(a1 + 3039);
+    *(_BYTE *)(a1 + 3039) = 1;
+    if ( v3 || *(int *)(a1 + 3008) > 1 )
+      CEntitySystem_ExecuteQueuedActivates(a1, &v8);
+    else
+      CEntitySystem_ExecuteQueuedPostDataUpdateAndActivates(a1, &v8);
+    v5 = *(_DWORD *)(a1 + 3008);
+    *(_BYTE *)(a1 + 3039) = v4;
+    v6 = v5 - 1;
+    *(_DWORD *)(a1 + 3008) = v6;
+    if ( v6 <= 0 )
+    {
+      if ( *(_BYTE *)(a1 + 3032) )
+      {
+        if ( !(*(_DWORD *)(a1 + 3012) | v6) )
+          CEntitySystem_ExecuteQueuedDeletion(a1, *(_BYTE *)(a1 + 3033));
+        *(_WORD *)(a1 + 3032) = 0;
+        if ( *(int *)(a1 + 3000) > 0 )
+          goto LABEL_11;
+      }
+      else if ( *(int *)(a1 + 3000) > 0 )
+      {
+  LABEL_11:
+        __rdtsc();
+        goto LABEL_12;
+      }
+      if ( *(_DWORD *)(a1 + 3160) )
+        sub_1E56FE0(a1);
+      goto LABEL_11;
+    }
+  LABEL_12:
+    v8 = 0;
+    result = HIDWORD(v10);
+    if ( (v10 & 0x80000000) != 0LL )
+    {
+      if ( HIDWORD(v10) <= 0x3FFFFFFF && v9 )
+        return (*(__int64 (__fastcall **)(_QWORD *))(*g_pMemAlloc + 32LL))(g_pMemAlloc);
+    }
+    else if ( v9 == v11 )
+    {
+      if ( HIDWORD(v10) <= 0x3FFFFFFF )
+        return (*(__int64 (__fastcall **)(_QWORD *, _BYTE *))(*g_pMemAlloc + 32LL))(g_pMemAlloc, v11);
+    }
+    else if ( HIDWORD(v10) <= 0x3FFFFFFF && v9 )
+    {
+      return (*(__int64 (__fastcall **)(_QWORD *))(*g_pMemAlloc + 32LL))(g_pMemAlloc);
+    }
+    return result;
+  }

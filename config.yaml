@@ -2684,6 +2684,13 @@ modules:
         expected_input:
           - CBaseEntity_DispatchSpawn.{platform}.yaml
 
+      - name: find-CEntitySystem_ExecuteQueuedActivates-AND-CEntitySystem_ExecuteQueuedPostDataUpdateAndActivates
+        expected_output:
+          - CEntitySystem_ExecuteQueuedActivates.{platform}.yaml
+          - CEntitySystem_ExecuteQueuedPostDataUpdateAndActivates.{platform}.yaml
+        expected_input:
+          - CEntitySystem_ExecuteQueuedCreation.{platform}.yaml
+
       - name: find-CNetworkTransmitComponent_StateChanged
         expected_output:
           - CNetworkTransmitComponent_StateChanged.{platform}.yaml
@@ -4583,6 +4590,16 @@ modules:
         category: func
         alias:
           - CEntitySystem::ExecuteQueuedCreation
+
+      - name: CEntitySystem_ExecuteQueuedActivates
+        category: func
+        alias:
+          - CEntitySystem::ExecuteQueuedActivates
+
+      - name: CEntitySystem_ExecuteQueuedPostDataUpdateAndActivates
+        category: func
+        alias:
+          - CEntitySystem::ExecuteQueuedPostDataUpdateAndActivates
 
       - name: CBaseEntity_SetStateChanged
         category: vfunc
