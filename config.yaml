@@ -2221,6 +2221,14 @@ modules:
         expected_output:
           - ClientPutInServer.{platform}.yaml
 
+      - name: find-CSource2GameClients_ClientConnect
+        expected_output:
+          - CSource2GameClients_ClientConnect.{platform}.yaml
+        expected_input:
+          - ClientPutInServer.{platform}.yaml
+          - CSource2GameClients_ClientPutInServer.{platform}.yaml
+          - CSource2GameClients_vtable.{platform}.yaml
+
       - name: find-CSource2GameClients_ClientActive
         expected_output:
           - CSource2GameClients_ClientActive.{platform}.yaml
@@ -4212,6 +4220,11 @@ modules:
 
       - name: ClientPutInServer
         category: func
+
+      - name: CSource2GameClients_ClientConnect
+        category: vfunc
+        alias:
+          - CSource2GameClients::ClientConnect
 
       - name: CSource2GameClients_ClientActive
         category: vfunc
