@@ -18,7 +18,7 @@ LLM_DECOMPILE = [
 
 FUNC_VTABLE_RELATIONS = [
     # (func_name, vtable_class)
-    ("CEntitySystem_OnRemoveEntity", "CEntityInstance"),
+    ("CEntitySystem_OnRemoveEntity", "CEntitySystem"),
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
