@@ -1137,6 +1137,281 @@ class TestProcessBinary(unittest.TestCase):
         self.assertEqual(1, mock_preprocess.call_count)
         mock_run_skill.assert_not_called()
 
+    def test_process_binary_skips_optional_only_skill_when_preprocess_fails_without_output(
+        self,
+    ) -> None:
+        with TemporaryDirectory() as temp_dir:
+            binary_dir = Path(temp_dir) / "bin" / "14141" / "engine"
+            binary_dir.mkdir(parents=True, exist_ok=True)
+            binary_path = str(binary_dir / "libengine2.so")
+            (binary_dir / "CEngineServiceMgr__MainLoop.windows.yaml").write_text(
+                "func_name: CEngineServiceMgr__MainLoop\n",
+                encoding="utf-8",
+            )
+            fake_process = object()
+
+            with (
+                patch.object(ida_analyze_bin, "start_idalib_mcp", return_value=fake_process),
+                patch.object(
+                    ida_analyze_bin,
+                    "ensure_mcp_available",
+                    return_value=(fake_process, True),
+                ),
+                patch.object(
+                    ida_analyze_bin,
+                    "_run_validate_expected_input_artifacts_via_mcp",
+                    return_value=[],
+                ),
+                patch.object(
+                    ida_analyze_bin,
+                    "_run_preprocess_single_skill_via_mcp",
+                    return_value="failed",
+                ) as mock_preprocess,
+                patch.object(ida_analyze_bin, "run_skill", return_value=False) as mock_run_skill,
+                patch.object(ida_analyze_bin, "quit_ida_gracefully", return_value=None),
+            ):
+                success, fail, skip = ida_analyze_bin.process_binary(
+                    binary_path=binary_path,
+                    skills=[
+                        {
+                            "name": "find-CEngineServiceMgr_DeactivateLoop",
+                            "optional_output": [
+                                "CEngineServiceMgr_DeactivateLoop.{platform}.yaml"
+                            ],
+                            "expected_input": [
+                                "CEngineServiceMgr__MainLoop.{platform}.yaml"
+                            ],
+                        }
+                    ],
+                    old_binary_dir=None,
+                    platform="windows",
+                    agent="codex",
+                    max_retries=1,
+                    debug=True,
+                    host="127.0.0.1",
+                    port=39091,
+                    ida_args=None,
+                    llm_model="gpt-5.4",
+                    llm_apikey=None,
+                    llm_baseurl=None,
+                    llm_temperature=None,
+                    llm_effort="high",
+                    llm_fake_as="codex",
+                )
+
+        self.assertEqual((0, 0, 1), (success, fail, skip))
+        mock_preprocess.assert_called_once()
+        self.assertEqual(
+            [
+                str(binary_dir / "CEngineServiceMgr_DeactivateLoop.windows.yaml"),
+            ],
+            mock_preprocess.call_args.kwargs["expected_outputs"],
+        )
+        mock_run_skill.assert_not_called()
+
+    def test_process_binary_counts_optional_only_skill_success_when_preprocess_writes_output(
+        self,
+    ) -> None:
+        with TemporaryDirectory() as temp_dir:
+            binary_dir = Path(temp_dir) / "bin" / "14141" / "engine"
+            binary_dir.mkdir(parents=True, exist_ok=True)
+            binary_path = str(binary_dir / "libengine2.so")
+            (binary_dir / "CEngineServiceMgr__MainLoop.windows.yaml").write_text(
+                "func_name: CEngineServiceMgr__MainLoop\n",
+                encoding="utf-8",
+            )
+
+            def _fake_preprocess(*, expected_outputs, **_kwargs):
+                Path(expected_outputs[0]).write_text(
+                    "func_name: CEngineServiceMgr_DeactivateLoop\n",
+                    encoding="utf-8",
+                )
+                return "success"
+
+            with (
+                patch.object(ida_analyze_bin, "start_idalib_mcp", return_value=object()),
+                patch.object(
+                    ida_analyze_bin,
+                    "ensure_mcp_available",
+                    side_effect=lambda process, *_args, **_kwargs: (process, True),
+                ),
+                patch.object(
+                    ida_analyze_bin,
+                    "_run_validate_expected_input_artifacts_via_mcp",
+                    return_value=[],
+                ),
+                patch.object(
+                    ida_analyze_bin,
+                    "_run_preprocess_single_skill_via_mcp",
+                    side_effect=_fake_preprocess,
+                ),
+                patch.object(ida_analyze_bin, "run_skill", return_value=False) as mock_run_skill,
+                patch.object(ida_analyze_bin, "quit_ida_gracefully", return_value=None),
+            ):
+                success, fail, skip = ida_analyze_bin.process_binary(
+                    binary_path=binary_path,
+                    skills=[
+                        {
+                            "name": "find-CEngineServiceMgr_DeactivateLoop",
+                            "optional_output": [
+                                "CEngineServiceMgr_DeactivateLoop.{platform}.yaml"
+                            ],
+                            "expected_input": [
+                                "CEngineServiceMgr__MainLoop.{platform}.yaml"
+                            ],
+                        }
+                    ],
+                    old_binary_dir=None,
+                    platform="windows",
+                    agent="codex",
+                    max_retries=1,
+                    debug=True,
+                    host="127.0.0.1",
+                    port=39091,
+                    ida_args=None,
+                    llm_model="gpt-5.4",
+                    llm_apikey=None,
+                    llm_baseurl=None,
+                    llm_temperature=None,
+                    llm_effort="high",
+                    llm_fake_as="codex",
+                )
+
+        self.assertEqual((1, 0, 0), (success, fail, skip))
+        mock_run_skill.assert_not_called()
+
+    def test_process_binary_passes_required_plus_optional_to_preprocess_but_only_requires_expected_output(
+        self,
+    ) -> None:
+        with TemporaryDirectory() as temp_dir:
+            binary_dir = Path(temp_dir) / "bin" / "14141" / "engine"
+            binary_dir.mkdir(parents=True, exist_ok=True)
+            binary_path = str(binary_dir / "libengine2.so")
+
+            def _fake_preprocess(*, expected_outputs, **_kwargs):
+                self.assertEqual(
+                    [
+                        str(binary_dir / "Required.windows.yaml"),
+                        str(binary_dir / "Optional.windows.yaml"),
+                    ],
+                    expected_outputs,
+                )
+                Path(expected_outputs[0]).write_text(
+                    "func_name: Required\n",
+                    encoding="utf-8",
+                )
+                return "success"
+
+            with (
+                patch.object(ida_analyze_bin, "start_idalib_mcp", return_value=object()),
+                patch.object(
+                    ida_analyze_bin,
+                    "ensure_mcp_available",
+                    side_effect=lambda process, *_args, **_kwargs: (process, True),
+                ),
+                patch.object(
+                    ida_analyze_bin,
+                    "_run_validate_expected_input_artifacts_via_mcp",
+                    return_value=[],
+                ),
+                patch.object(
+                    ida_analyze_bin,
+                    "_run_preprocess_single_skill_via_mcp",
+                    side_effect=_fake_preprocess,
+                ),
+                patch.object(ida_analyze_bin, "run_skill", return_value=False) as mock_run_skill,
+                patch.object(ida_analyze_bin, "quit_ida_gracefully", return_value=None),
+            ):
+                success, fail, skip = ida_analyze_bin.process_binary(
+                    binary_path=binary_path,
+                    skills=[
+                        {
+                            "name": "find-required-and-optional",
+                            "expected_output": ["Required.{platform}.yaml"],
+                            "optional_output": ["Optional.{platform}.yaml"],
+                            "expected_input": [],
+                        }
+                    ],
+                    old_binary_dir=None,
+                    platform="windows",
+                    agent="codex",
+                    max_retries=1,
+                    debug=True,
+                    host="127.0.0.1",
+                    port=39091,
+                    ida_args=None,
+                    llm_model="gpt-5.4",
+                    llm_apikey=None,
+                    llm_baseurl=None,
+                    llm_temperature=None,
+                    llm_effort="high",
+                    llm_fake_as="codex",
+                )
+
+        self.assertEqual((1, 0, 0), (success, fail, skip))
+        mock_run_skill.assert_not_called()
+
+    def test_process_binary_agent_skill_validates_only_required_outputs(
+        self,
+    ) -> None:
+        with TemporaryDirectory() as temp_dir:
+            binary_dir = Path(temp_dir) / "bin" / "14141" / "engine"
+            binary_dir.mkdir(parents=True, exist_ok=True)
+            binary_path = str(binary_dir / "libengine2.so")
+            fake_process = object()
+
+            with (
+                patch.object(ida_analyze_bin, "start_idalib_mcp", return_value=fake_process),
+                patch.object(
+                    ida_analyze_bin,
+                    "ensure_mcp_available",
+                    return_value=(fake_process, True),
+                ),
+                patch.object(
+                    ida_analyze_bin,
+                    "_run_validate_expected_input_artifacts_via_mcp",
+                    return_value=[],
+                ),
+                patch.object(
+                    ida_analyze_bin,
+                    "_run_preprocess_single_skill_via_mcp",
+                    return_value="failed",
+                ),
+                patch.object(ida_analyze_bin, "run_skill", return_value=True) as mock_run_skill,
+                patch.object(ida_analyze_bin, "quit_ida_gracefully", return_value=None),
+            ):
+                success, fail, skip = ida_analyze_bin.process_binary(
+                    binary_path=binary_path,
+                    skills=[
+                        {
+                            "name": "find-required-and-optional",
+                            "expected_output": ["Required.{platform}.yaml"],
+                            "optional_output": ["Optional.{platform}.yaml"],
+                            "expected_input": [],
+                        }
+                    ],
+                    old_binary_dir=None,
+                    platform="windows",
+                    agent="codex",
+                    max_retries=1,
+                    debug=True,
+                    host="127.0.0.1",
+                    port=39091,
+                    ida_args=None,
+                    llm_model="gpt-5.4",
+                    llm_apikey=None,
+                    llm_baseurl=None,
+                    llm_temperature=None,
+                    llm_effort="high",
+                    llm_fake_as="codex",
+                )
+
+        self.assertEqual((1, 0, 0), (success, fail, skip))
+        self.assertEqual(
+            [str(binary_dir / "Required.windows.yaml")],
+            mock_run_skill.call_args.kwargs["expected_yaml_paths"],
+        )
+
     def test_process_binary_rejects_illegal_expected_input_without_crash(self) -> None:
         binary_path = str(Path('/tmp/bin/14141/networksystem/networksystem.dll'))
         skills = [

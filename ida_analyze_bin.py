@@ -2219,8 +2219,14 @@ def process_binary(
 
     try:
         # Process each skill: try preprocess first, then run_skill if needed
-        for skill_index, (skill_name, expected_outputs, skill_max_retries) in enumerate(skills_to_process):
-            if all_expected_outputs_exist(expected_outputs):
+        for skill_index, (
+            skill_name,
+            required_outputs,
+            optional_outputs,
+            preprocess_outputs,
+            skill_max_retries,
+        ) in enumerate(skills_to_process):
+            if should_skip_skill_for_existing_outputs(required_outputs, optional_outputs):
                 print(f"  Skipping skill: {skill_name} (all outputs exist)")
                 skip_count += 1
                 continue
@@ -2292,7 +2298,7 @@ def process_binary(
             old_yaml_map = None
             if old_binary_dir:
                 old_yaml_map = {}
-                for new_path in expected_outputs:
+                for new_path in preprocess_outputs:
                     filename = os.path.basename(new_path)
                     old_path = os.path.join(old_binary_dir, filename)
                     old_yaml_map[new_path] = old_path
@@ -2302,7 +2308,7 @@ def process_binary(
                     host=host,
                     port=port,
                     skill_name=skill_name,
-                    expected_outputs=expected_outputs,
+                    expected_outputs=preprocess_outputs,
                     old_yaml_map=old_yaml_map,
                     new_binary_dir=binary_dir,
                     platform=platform,
@@ -2331,11 +2337,31 @@ def process_binary(
                 preprocess_status = PREPROCESS_STATUS_FAILED
 
             if preprocess_status == PREPROCESS_STATUS_SUCCESS:
-                missing_outputs = [p for p in expected_outputs if not os.path.exists(p)]
-                if missing_outputs:
+                missing_required_outputs = [
+                    p for p in required_outputs if not os.path.exists(p)
+                ]
+                optional_output_generated = any(
+                    os.path.exists(p) for p in optional_outputs
+                )
+                if missing_required_outputs:
                     fail_count += 1
-                    missing_names = [os.path.basename(p) for p in missing_outputs]
-                    print(f"  Pre-processed but missing expected_output: {skill_name} ({', '.join(missing_names)})")
+                    missing_names = [
+                        os.path.basename(p) for p in missing_required_outputs
+                    ]
+                    print(
+                        f"  Pre-processed but missing expected_output: {skill_name} "
+                        f"({', '.join(missing_names)})"
+                    )
+                elif (
+                    not required_outputs
+                    and optional_outputs
+                    and not optional_output_generated
+                ):
+                    skip_count += 1
+                    print(
+                        f"  Skipping skill: {skill_name} "
+                        "(optional outputs not generated)"
+                    )
                 else:
                     success_count += 1
                     if old_binary_dir:
@@ -2348,14 +2374,28 @@ def process_binary(
                 print(f"  Skipping skill: {skill_name} (preprocess reported absent_ok)")
                 continue
 
-            if all_expected_outputs_exist(expected_outputs):
+            if should_skip_skill_for_existing_outputs(required_outputs, optional_outputs):
                 print(f"  Skipping skill: {skill_name} (all outputs exist)")
                 skip_count += 1
                 continue
 
+            if not required_outputs and optional_outputs:
+                skip_count += 1
+                print(
+                    f"  Skipping skill: {skill_name} "
+                    "(optional outputs not generated)"
+                )
+                continue
+
             print(f"  Processing skill: {skill_name}")
 
-            if run_skill(skill_name, agent, debug, expected_yaml_paths=expected_outputs, max_retries=skill_max_retries):
+            if run_skill(
+                skill_name,
+                agent,
+                debug,
+                expected_yaml_paths=required_outputs,
+                max_retries=skill_max_retries,
+            ):
                 success_count += 1
                 print(f"    Success")
             else:
