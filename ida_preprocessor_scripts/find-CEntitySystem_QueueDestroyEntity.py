@@ -6,7 +6,7 @@ from ida_preprocessor_scripts._direct_branch_target_common import (
 )
 
 
-SOURCE_FUNCTION_NAME = "UTIL_Remove"
+SOURCE_FUNCTION_NAME = "SV_Kill_SmokeGrenade_CommandHandler"
 
 TARGET_FUNCTION_NAMES = [
     "CEntitySystem_QueueDestroyEntity",
