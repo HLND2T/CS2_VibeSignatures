@@ -922,6 +922,79 @@ class TestProcessBinary(unittest.TestCase):
         self.assertEqual((0, 0, 1), (success, fail, skip))
         mock_start_ida.assert_not_called()
 
+    def test_process_binary_skips_optional_only_skill_when_optional_output_exists_before_ida_start(
+        self,
+    ) -> None:
+        with TemporaryDirectory() as temp_dir:
+            binary_dir = Path(temp_dir) / "bin" / "14141" / "engine"
+            binary_dir.mkdir(parents=True, exist_ok=True)
+            binary_path = str(binary_dir / "libengine2.so")
+            (binary_dir / "CEngineServiceMgr_DeactivateLoop.windows.yaml").write_text(
+                "func_name: CEngineServiceMgr_DeactivateLoop\n",
+                encoding="utf-8",
+            )
+
+            with patch.object(
+                ida_analyze_bin,
+                "start_idalib_mcp",
+                return_value=None,
+            ) as mock_start_ida:
+                success, fail, skip = ida_analyze_bin.process_binary(
+                    binary_path=binary_path,
+                    skills=[
+                        {
+                            "name": "find-CEngineServiceMgr_DeactivateLoop",
+                            "optional_output": [
+                                "CEngineServiceMgr_DeactivateLoop.{platform}.yaml"
+                            ],
+                            "expected_input": [
+                                "CEngineServiceMgr__MainLoop.{platform}.yaml"
+                            ],
+                        }
+                    ],
+                    agent="codex",
+                    host="127.0.0.1",
+                    port=13337,
+                    ida_args="",
+                    platform="windows",
+                    debug=False,
+                    max_retries=1,
+                )
+
+        self.assertEqual((0, 0, 1), (success, fail, skip))
+        mock_start_ida.assert_not_called()
+
+    def test_process_binary_rejects_illegal_optional_output_before_ida_start(
+        self,
+    ) -> None:
+        binary_path = str(Path("/tmp/bin/14141/engine/libengine2.so"))
+
+        with patch.object(
+            ida_analyze_bin,
+            "start_idalib_mcp",
+            return_value=None,
+        ) as mock_start_ida:
+            success, fail, skip = ida_analyze_bin.process_binary(
+                binary_path=binary_path,
+                skills=[
+                    {
+                        "name": "find-CEngineServiceMgr_DeactivateLoop",
+                        "optional_output": ["../../outside/secret.{platform}.yaml"],
+                        "expected_input": [],
+                    }
+                ],
+                agent="codex",
+                host="127.0.0.1",
+                port=13337,
+                ida_args="",
+                platform="windows",
+                debug=False,
+                max_retries=1,
+            )
+
+        self.assertEqual((0, 1, 0), (success, fail, skip))
+        mock_start_ida.assert_not_called()
+
     def test_process_binary_does_not_skip_when_skip_if_exists_artifacts_are_partial(
         self,
     ) -> None:

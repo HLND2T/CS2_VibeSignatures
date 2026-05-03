@@ -1360,6 +1360,28 @@ def all_expected_outputs_exist(expected_outputs):
     return bool(expected_outputs) and all(os.path.exists(path) for path in expected_outputs)
 
 
+def expand_skill_output_paths(binary_dir, skill, platform):
+    """Return required, optional, and preprocessor output paths for one skill."""
+    required_outputs = expand_expected_paths(
+        binary_dir,
+        skill.get("expected_output", []) or [],
+        platform,
+    )
+    optional_outputs = expand_expected_paths(
+        binary_dir,
+        skill.get("optional_output", []) or [],
+        platform,
+    )
+    return required_outputs, optional_outputs, required_outputs + optional_outputs
+
+
+def should_skip_skill_for_existing_outputs(required_outputs, optional_outputs):
+    """Return True when configured output artifacts make processing unnecessary."""
+    if required_outputs:
+        return all_expected_outputs_exist(required_outputs)
+    return all_expected_outputs_exist(optional_outputs)
+
+
 def _load_post_process_yaml_mapping(path, debug=False):
     """Load one post_process YAML file and return a mapping payload or None."""
     try:
@@ -2105,7 +2127,7 @@ def process_binary(
     # Topological sort skills based on inferred dependency tree
     sorted_skill_names = topological_sort_skills(skills)
 
-    # Filter skills that need processing (skip if all expected outputs already exist)
+    # Filter skills that need processing (skip if configured outputs already exist)
     skills_to_process = []
     for skill_name in sorted_skill_names:
         skill = skill_map[skill_name]
@@ -2116,13 +2138,17 @@ def process_binary(
             skip_count += 1
             continue
         try:
-            expected_outputs = expand_expected_paths(binary_dir, skill["expected_output"], platform)
+            required_outputs, optional_outputs, preprocess_outputs = expand_skill_output_paths(
+                binary_dir,
+                skill,
+                platform,
+            )
         except ValueError as e:
             fail_count += 1
             print(f"  Failed: {skill_name} ({e})")
             continue
-        # Check if all output files already exist
-        if all_expected_outputs_exist(expected_outputs):
+        # Check if configured output files already make the skill unnecessary.
+        if should_skip_skill_for_existing_outputs(required_outputs, optional_outputs):
             print(f"  Skipping skill: {skill_name} (all outputs exist)")
             skip_count += 1
         else:
@@ -2142,7 +2168,15 @@ def process_binary(
             else:
                 # Use skill-specific max_retries if provided, otherwise use default
                 skill_max_retries = skill.get("max_retries") or max_retries
-                skills_to_process.append((skill_name, expected_outputs, skill_max_retries))
+                skills_to_process.append(
+                    (
+                        skill_name,
+                        required_outputs,
+                        optional_outputs,
+                        preprocess_outputs,
+                        skill_max_retries,
+                    )
+                )
 
     vcall_targets = list(vcall_targets or [])
     startup_post_process_yaml_items = []
