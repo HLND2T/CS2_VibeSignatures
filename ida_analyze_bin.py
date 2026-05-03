@@ -1158,7 +1158,8 @@ def parse_config(config_path):
             if skill_name:
                 skills.append({
                     "name": skill_name,
-                    "expected_output": skill.get("expected_output", []),
+                    "expected_output": skill.get("expected_output", []) or [],
+                    "optional_output": skill.get("optional_output", []) or [],
                     "expected_input": skill.get("expected_input", []),
                     "expected_input_windows": skill.get("expected_input_windows", []) or [],
                     "expected_input_linux": skill.get("expected_input_linux", []) or [],

@@ -288,6 +288,55 @@ modules:
             modules[0]["skills"][0]["skip_if_exists"],
         )
 
+    def test_parse_config_reads_optional_output(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            config_path = Path(temp_dir) / "config.yaml"
+            config_path.write_text(
+                """
+modules:
+  - name: engine
+    path_windows: game/bin/win64/engine2.dll
+    path_linux: game/bin/linuxsteamrt64/libengine2.so
+    skills:
+      - name: find-CEngineServiceMgr_DeactivateLoop
+        optional_output:
+          - CEngineServiceMgr_DeactivateLoop.{platform}.yaml
+        expected_input:
+          - CEngineServiceMgr__MainLoop.{platform}.yaml
+""".strip()
+                + "\n",
+                encoding="utf-8",
+            )
+
+            modules = ida_analyze_bin.parse_config(str(config_path))
+
+        self.assertEqual(
+            ["CEngineServiceMgr_DeactivateLoop.{platform}.yaml"],
+            modules[0]["skills"][0]["optional_output"],
+        )
+
+    def test_parse_config_defaults_optional_output_to_empty_list(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            config_path = Path(temp_dir) / "config.yaml"
+            config_path.write_text(
+                """
+modules:
+  - name: engine
+    path_windows: game/bin/win64/engine2.dll
+    path_linux: game/bin/linuxsteamrt64/libengine2.so
+    skills:
+      - name: find-CEngineServiceMgr_DeactivateLoop
+        expected_input:
+          - CEngineServiceMgr__MainLoop.{platform}.yaml
+""".strip()
+                + "\n",
+                encoding="utf-8",
+            )
+
+            modules = ida_analyze_bin.parse_config(str(config_path))
+
+        self.assertEqual([], modules[0]["skills"][0]["optional_output"])
+
 
 class TestSkillOrdering(unittest.TestCase):
     def test_topological_sort_skills_keeps_ilooptype_after_deactivateloop(
@@ -318,6 +367,23 @@ class TestSkillOrdering(unittest.TestCase):
             ordered.index("find-CEngineServiceMgr_DeactivateLoop"),
             ordered.index("find-CLoopTypeBase_DeallocateLoopMode"),
         )
+
+    def test_topological_sort_skills_ignores_optional_output(self) -> None:
+        skills = [
+            {
+                "name": "consumer",
+                "expected_output": ["Consumer.{platform}.yaml"],
+                "expected_input": ["OptionalOnly.{platform}.yaml"],
+            },
+            {
+                "name": "optional_producer",
+                "optional_output": ["OptionalOnly.{platform}.yaml"],
+            },
+        ]
+
+        ordered = ida_analyze_bin.topological_sort_skills(skills)
+
+        self.assertEqual(["consumer", "optional_producer"], ordered)
 
 
 class TestPostProcessActionCollection(unittest.TestCase):
