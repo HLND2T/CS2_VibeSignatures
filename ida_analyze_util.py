@@ -18,13 +18,11 @@ except ImportError:
 try:
     from ida_llm_utils import (
         call_llm_text,
-        create_openai_client,
         normalize_optional_effort,
         normalize_optional_temperature,
     )
 except Exception:
     call_llm_text = None
-    create_openai_client = None
     normalize_optional_effort = None
     normalize_optional_temperature = None
 
@@ -2469,11 +2467,6 @@ def _prepare_llm_decompile_request(
         default=8.0,
     )
 
-    if fake_as != "codex" and not callable(create_openai_client):
-        if debug:
-            print(f"    Preprocess: create_openai_client unavailable for {func_name}")
-        return None
-
     if isinstance(llm_spec, dict):
         llm_specs = [llm_spec]
     elif isinstance(llm_spec, (tuple, list)) and llm_spec:
@@ -2602,25 +2595,6 @@ def _prepare_llm_decompile_request(
     reference_yaml_path = reference_yaml_paths[0]
     target_func_name = target_func_names[0]
 
-    if fake_as == "codex":
-        client = None
-    else:
-        try:
-            client = create_openai_client(
-                api_key,
-                base_url,
-                api_key_required_message=(
-                    "llm_config.api_key is required for llm_decompile fallback"
-                ),
-            )
-        except Exception as exc:
-            if debug:
-                print(
-                    f"    Preprocess: llm_decompile client unavailable for "
-                    f"{func_name}: {exc}"
-                )
-            return None
-
     if debug:
         print(
             f"    Preprocess: llm_decompile request ready for {func_name}: "
@@ -2635,7 +2609,6 @@ def _prepare_llm_decompile_request(
         )
 
     return {
-        "client": client,
         "model": model,
         "prompt_path": os.fspath(prompt_path),
         "reference_items": reference_items,
@@ -2683,9 +2656,9 @@ def _build_llm_decompile_request_cache_key(llm_request):
 
 
 async def call_llm_decompile(
-    client,
-    model,
-    symbol_name_list,
+    client=None,
+    model=None,
+    symbol_name_list=None,
     disasm_code="",
     procedure="",
     disasm_for_reference="",
@@ -2785,7 +2758,6 @@ async def call_llm_decompile(
             debug=True,
         )
     request_kwargs = {
-        "client": client,
         "model": str(model).strip(),
         "messages": [
             {"role": "system", "content": system_prompt},
@@ -2793,6 +2765,8 @@ async def call_llm_decompile(
         ],
         "debug": debug,
     }
+    if client is not None:
+        request_kwargs["client"] = client
     try:
         normalized_temperature = temperature
         if normalized_temperature is not None and callable(normalize_optional_temperature):
@@ -8435,7 +8409,6 @@ async def preprocess_common_skill(
             )
             primary_target_detail = llm_target_details[0]
             return await call_llm_decompile(
-                client=llm_request["client"],
                 model=llm_request["model"],
                 symbol_name_list=llm_symbol_name_list,
                 disasm_code=primary_target_detail.get("disasm_code", ""),

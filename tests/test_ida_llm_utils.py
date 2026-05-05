@@ -175,6 +175,44 @@ class TestCallLlmText(unittest.TestCase):
             reasoning_effort="medium",
         )
 
+    @patch("ida_llm_utils.create_openai_client")
+    def test_call_llm_text_creates_request_client_when_missing(
+        self,
+        mock_create_openai_client,
+    ) -> None:
+        response = SimpleNamespace(
+            choices=[SimpleNamespace(message=SimpleNamespace(content="done"))]
+        )
+        create = MagicMock(return_value=response)
+        client = SimpleNamespace(
+            chat=SimpleNamespace(
+                completions=SimpleNamespace(create=create),
+            )
+        )
+        mock_create_openai_client.return_value = client
+        messages = [{"role": "user", "content": "hello"}]
+
+        text = ida_llm_utils.call_llm_text(
+            model="gpt-5.4",
+            messages=messages,
+            api_key="test-api-key",
+            base_url="https://example.invalid/v1",
+        )
+
+        self.assertEqual("done", text)
+        mock_create_openai_client.assert_called_once_with(
+            "test-api-key",
+            "https://example.invalid/v1",
+            api_key_required_message=(
+                "api_key is required for OpenAI-compatible LLM requests"
+            ),
+        )
+        create.assert_called_once_with(
+            model="gpt-5.4",
+            messages=messages,
+            reasoning_effort="medium",
+        )
+
 
 class _CodexHandler(BaseHTTPRequestHandler):
     content_type = "text/event-stream"

@@ -221,13 +221,10 @@ found_vcall:
 
 class TestAggregateVcallResultsForObject(unittest.TestCase):
     @patch("ida_vcall_finder.call_llm_text")
-    @patch("ida_vcall_finder.create_openai_client")
-    def test_aggregate_vcall_results_for_object_uses_shared_client_factory(
+    def test_aggregate_vcall_results_for_object_passes_request_credentials(
         self,
-        mock_create_openai_client,
         mock_call_llm_text,
     ) -> None:
-        mock_create_openai_client.return_value = object()
         mock_call_llm_text.return_value = """
 found_vcall:
   - insn_va: 0x12345678
@@ -269,11 +266,6 @@ found_vcall:
             )
 
             self.assertEqual({"status": "success", "processed": 1, "failed": 0}, stats)
-            mock_create_openai_client.assert_called_once_with(
-                api_key="test-api-key",
-                base_url="https://example.invalid/v1",
-                api_key_required_message="-llm_apikey is required when -vcall_finder is enabled",
-            )
             saved_detail = ida_vcall_finder.load_yaml_file(detail_path)
             self.assertEqual(
                 [
@@ -293,15 +285,21 @@ found_vcall:
             self.assertIn("insn_va: '0x12345678'", summary_text)
             self.assertIn("func_name: sub_2000", summary_text)
             self.assertEqual(0.45, mock_call_llm_text.call_args.kwargs["temperature"])
+            self.assertEqual(
+                "test-api-key",
+                mock_call_llm_text.call_args.kwargs["api_key"],
+            )
+            self.assertEqual(
+                "https://example.invalid/v1",
+                mock_call_llm_text.call_args.kwargs["base_url"],
+            )
+            self.assertNotIn("client", mock_call_llm_text.call_args.kwargs)
 
     @patch("ida_vcall_finder.call_openai_for_vcalls")
-    @patch("ida_vcall_finder._get_or_create_llm_client")
     def test_aggregate_vcall_results_for_object_forwards_effort_and_codex(
         self,
-        mock_get_or_create_llm_client,
         mock_call_openai_for_vcalls,
     ) -> None:
-        mock_get_or_create_llm_client.return_value = None
         mock_call_openai_for_vcalls.return_value = [
             {
                 "insn_va": "0x12345678",
@@ -346,17 +344,8 @@ found_vcall:
             )
 
         self.assertEqual({"status": "success", "processed": 1, "failed": 0}, stats)
-        mock_get_or_create_llm_client.assert_called_once()
-        self.assertEqual("codex", mock_get_or_create_llm_client.call_args.kwargs["fake_as"])
-        self.assertEqual(
-            "test-api-key",
-            mock_get_or_create_llm_client.call_args.kwargs["api_key"],
-        )
-        self.assertEqual(
-            "https://example.invalid/v1",
-            mock_get_or_create_llm_client.call_args.kwargs["base_url"],
-        )
         mock_call_openai_for_vcalls.assert_called_once()
+        self.assertIsNone(mock_call_openai_for_vcalls.call_args.args[0])
         self.assertEqual("high", mock_call_openai_for_vcalls.call_args.kwargs["effort"])
         self.assertEqual("codex", mock_call_openai_for_vcalls.call_args.kwargs["fake_as"])
         self.assertEqual(
@@ -368,27 +357,6 @@ found_vcall:
             mock_call_openai_for_vcalls.call_args.kwargs["base_url"],
         )
         self.assertEqual(0.45, mock_call_openai_for_vcalls.call_args.kwargs["temperature"])
-
-    @patch("ida_vcall_finder.create_openai_client")
-    def test_get_or_create_llm_client_skips_client_factory_for_codex(
-        self,
-        mock_create_openai_client,
-    ) -> None:
-        mock_create_openai_client.side_effect = AssertionError(
-            "should not be called in codex mode"
-        )
-
-        client_ref = {"client": None}
-        llm_client = ida_vcall_finder._get_or_create_llm_client(
-            client_ref,
-            api_key="test-api-key",
-            base_url="https://example.invalid/v1",
-            fake_as="codex",
-        )
-
-        self.assertIsNone(llm_client)
-        self.assertIsNone(client_ref["client"])
-        mock_create_openai_client.assert_not_called()
 
 
 if __name__ == "__main__":
