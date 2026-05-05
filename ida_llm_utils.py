@@ -294,6 +294,15 @@ def call_llm_text(
             temperature=temperature,
         )
 
+    if client is None:
+        client = create_openai_client(
+            api_key,
+            base_url,
+            api_key_required_message=(
+                "api_key is required for OpenAI-compatible LLM requests"
+            ),
+        )
+
     request_kwargs = {
         "model": require_nonempty_text(model, "model"),
         "messages": messages,

@@ -5073,7 +5073,7 @@ found_struct_offset: []
                 )
 
         self.assertIsNotNone(request)
-        self.assertIsNone(request["client"])
+        self.assertNotIn("client", request)
         self.assertEqual("codex", request["fake_as"])
         self.assertEqual("high", request["effort"])
         self.assertEqual("test-api-key", request["api_key"])
@@ -6880,7 +6880,6 @@ found_struct_offset: []
                     "procedure": "return this->vfptr[13](this);",
                 },
             )
-            fake_client = object()
             expected_detail_export_code = _function_detail_export_py_eval(
                 target_detail_payload["func_va"]
             )
@@ -6907,11 +6906,6 @@ found_struct_offset: []
                 ida_analyze_util,
                 "_get_preprocessor_scripts_dir",
                 return_value=preprocessor_dir,
-            ), patch.object(
-                ida_analyze_util,
-                "create_openai_client",
-                return_value=fake_client,
-                create=True,
             ), patch.object(
                 ida_analyze_util,
                 "preprocess_func_sig_via_mcp",
@@ -6997,7 +6991,7 @@ found_struct_offset: []
 
         self.assertTrue(result)
         mock_call_llm_decompile.assert_awaited_once()
-        self.assertIs(fake_client, mock_call_llm_decompile.call_args.kwargs["client"])
+        self.assertNotIn("client", mock_call_llm_decompile.call_args.kwargs)
         self.assertEqual(
             "gpt-4.1-mini",
             mock_call_llm_decompile.call_args.kwargs["model"],

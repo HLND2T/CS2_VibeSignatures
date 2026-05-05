@@ -13,7 +13,6 @@ import yaml
 from ida_analyze_util import build_remote_text_export_py_eval, parse_mcp_result
 from ida_llm_utils import (
     call_llm_text,
-    create_openai_client,
     normalize_optional_temperature,
     require_nonempty_text,
 )
@@ -270,13 +269,14 @@ def call_openai_for_vcalls(
     started_at = time.monotonic()
     request_kwargs = {
         "model": model,
-        "client": client,
         "messages": [
             {"role": "system", "content": "You are a reverse engineering expert."},
             {"role": "user", "content": render_vcall_prompt(detail)},
         ],
         "debug": debug,
     }
+    if client is not None:
+        request_kwargs["client"] = client
     normalized_temperature = normalize_optional_temperature(temperature)
     if normalized_temperature is not None:
         request_kwargs["temperature"] = normalized_temperature
@@ -305,7 +305,6 @@ def call_openai_for_vcalls(
 
 def _aggregate_vcall_detail_file(
     *,
-    client_ref,
     api_key,
     base_url,
     temperature,
@@ -340,14 +339,8 @@ def _aggregate_vcall_detail_file(
                 debug,
             )
         else:
-            llm_client = _get_or_create_llm_client(
-                client_ref,
-                api_key=api_key,
-                base_url=base_url,
-                fake_as=fake_as,
-            )
             found_vcall = call_openai_for_vcalls(
-                llm_client,
+                None,
                 detail,
                 model,
                 temperature=temperature,
@@ -394,7 +387,6 @@ def _aggregate_vcall_detail_file(
 
 def _aggregate_vcall_detail_paths(
     *,
-    client_ref,
     api_key,
     base_url,
     temperature,
@@ -412,7 +404,6 @@ def _aggregate_vcall_detail_paths(
     for detail_index, detail_path in enumerate(detail_paths, start=1):
         request_label = f"[{detail_index}/{total_paths}] '{detail_path}'"
         success = _aggregate_vcall_detail_file(
-            client_ref=client_ref,
             api_key=api_key,
             base_url=base_url,
             temperature=temperature,
@@ -453,7 +444,6 @@ def aggregate_vcall_results_for_object(
         return {"status": "skipped", "processed": 0, "failed": 0}
 
     initialize_vcall_summary_stream(summary_path)
-    client_ref = {"client": client}
     _print_vcall_debug(f"summary stream reset '{summary_path}'", debug)
     _print_vcall_debug(
         "OpenAI aggregation "
@@ -463,7 +453,6 @@ def aggregate_vcall_results_for_object(
     )
 
     processed, failed = _aggregate_vcall_detail_paths(
-        client_ref=client_ref,
         api_key=api_key,
         base_url=base_url,
         temperature=temperature,
@@ -565,27 +554,6 @@ def _read_cached_found_vcalls(detail: Mapping[str, Any]) -> tuple[bool, list[dic
     if "found_vcall" not in detail_data:
         return False, []
     return True, normalize_found_vcalls(detail_data.get("found_vcall"))
-
-
-def _get_or_create_llm_client(
-    client_ref: dict[str, Any],
-    *,
-    api_key: str | None,
-    base_url: str | None,
-    fake_as: str | None,
-):
-    if str(fake_as or "").strip().lower() == "codex":
-        return None
-
-    llm_client = client_ref.get("client")
-    if llm_client is None:
-        llm_client = create_openai_client(
-            api_key=api_key,
-            base_url=base_url,
-            api_key_required_message="-llm_apikey is required when -vcall_finder is enabled",
-        )
-        client_ref["client"] = llm_client
-    return llm_client
 
 
 def _resolve_vcall_aggregation_status(processed: int, failed: int) -> str:
