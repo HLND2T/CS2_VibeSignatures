@@ -3475,6 +3475,8 @@ modules:
       - name: find-CBaseEntity_DrawDebugTextOverlays
         expected_output:
           - CBaseEntity_DrawDebugTextOverlays.{platform}.yaml
+        expected_input:
+          - CBaseEntity_vtable.{platform}.yaml
 
       - name: find-CBaseEntity_Spawn
         expected_output:
@@ -3767,6 +3769,13 @@ modules:
           - CEntityInstance_Precache.{platform}.yaml
         expected_input:
           - CEntityInstance_vtable.{platform}.yaml
+
+      - name: find-CEntityInstance_DrawDebugTextOverlays
+        expected_output:
+          - CEntityInstance_DrawDebugTextOverlays.{platform}.yaml
+        expected_input:
+          - CEntityInstance_vtable.{platform}.yaml
+          - CBaseEntity_DrawDebugTextOverlays.{platform}.yaml
 
       - name: find-CEntityInstance_Connect
         expected_output:
@@ -5416,7 +5425,7 @@ modules:
           - Activate
 
       - name: CBaseEntity_DrawDebugTextOverlays
-        category: func
+        category: vfunc
         alias:
           - CBaseEntity::DrawDebugTextOverlays
 
@@ -5714,6 +5723,11 @@ modules:
         category: vfunc
         alias:
           - CEntityInstance::Precache
+
+      - name: CEntityInstance_DrawDebugTextOverlays
+        category: vfunc
+        alias:
+          - CEntityInstance::DrawDebugTextOverlays
 
       - name: CEntityInstance_Connect
         category: vfunc
