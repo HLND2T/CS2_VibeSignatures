@@ -3492,6 +3492,13 @@ modules:
           - CEntitySystem_PreDataUpdate.{platform}.yaml
           - CBaseEntity_vtable.{platform}.yaml
 
+      - name: find-CBaseEntity_OnDataUnchangedInPVS
+        expected_output:
+          - CBaseEntity_OnDataUnchangedInPVS.{platform}.yaml
+        expected_input:
+          - SomeCaller_Func.{platform}.yaml
+          - CBaseEntity_vtable.{platform}.yaml
+
       - name: find-CBaseEntity_Spawn
         expected_output:
           - CBaseEntity_Spawn.{platform}.yaml
@@ -3801,6 +3808,12 @@ modules:
           - CEntityInstance_PreDataUpdate.{platform}.yaml
         expected_input:
           - CBaseEntity_PreDataUpdate.{platform}.yaml
+
+      - name: find-CEntityInstance_OnDataUnchangedInPVS
+        expected_output:
+          - CEntityInstance_OnDataUnchangedInPVS.{platform}.yaml
+        expected_input:
+          - CBaseEntity_OnDataUnchangedInPVS.{platform}.yaml
 
       - name: find-CEntityInstance_Connect
         expected_output:
@@ -5464,6 +5477,11 @@ modules:
         alias:
           - CBaseEntity::PreDataUpdate
 
+      - name: CBaseEntity_OnDataUnchangedInPVS
+        category: vfunc
+        alias:
+          - CBaseEntity::OnDataUnchangedInPVS
+
       - name: CCheckTransmitInfo
         category: struct
 
@@ -5773,6 +5791,11 @@ modules:
         category: vfunc
         alias:
           - CEntityInstance::PreDataUpdate
+
+      - name: CEntityInstance_OnDataUnchangedInPVS
+        category: vfunc
+        alias:
+          - CEntityInstance::OnDataUnchangedInPVS
 
       - name: CEntityInstance_Connect
         category: vfunc
