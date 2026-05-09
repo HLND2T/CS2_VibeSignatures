@@ -2866,6 +2866,19 @@ modules:
         expected_output:
           - CEntitySystem_CreateEntity.{platform}.yaml
 
+      - name: find-CBaseEntity_RequiredEdictIndex
+        expected_output:
+          - CBaseEntity_RequiredEdictIndex.{platform}.yaml
+        expected_input:
+          - CEntitySystem_CreateEntity.{platform}.yaml
+          - CBaseEntity_vtable.{platform}.yaml
+
+      - name: find-CEntityInstance_RequiredEdictIndex
+        expected_output:
+          - CEntityInstance_RequiredEdictIndex.{platform}.yaml
+        expected_input:
+          - CBaseEntity_RequiredEdictIndex.{platform}.yaml
+
       - name: find-CEntitySystem_AddEntityToEntityDataBase
         expected_output:
           - CEntitySystem_AddEntityToEntityDataBase.{platform}.yaml
@@ -4925,6 +4938,16 @@ modules:
         category: func
         alias:
           - CEntitySystem::CreateEntity
+
+      - name: CBaseEntity_RequiredEdictIndex
+        category: vfunc
+        alias:
+          - CBaseEntity::RequiredEdictIndex
+
+      - name: CEntityInstance_RequiredEdictIndex
+        category: vfunc
+        alias:
+          - CEntityInstance::RequiredEdictIndex
 
       - name: CEntitySystem_AddEntityToEntityDataBase
         category: func
