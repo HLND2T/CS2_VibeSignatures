@@ -4087,6 +4087,13 @@ modules:
         expected_input:
           - CEntitySaveRestoreBlockHandler_vtable.{platform}.yaml
 
+      - name: find-IGameSystem_OnSaveGame
+        expected_output:
+          - IGameSystem_OnSaveGame.{platform}.yaml
+        expected_input:
+          - CEntitySaveRestoreBlockHandler_PreSave.{platform}.yaml
+          - IGameSystem_vtable.{platform}.yaml
+
       - name: find-CEntitySaveRestoreBlockHandler_SaveInternal
         expected_output:
           - CEntitySaveRestoreBlockHandler_SaveInternal.{platform}.yaml
@@ -5351,6 +5358,11 @@ modules:
         category: vfunc
         alias:
           - IGameSystem::OnServerPostEndAsyncPostTickWork
+
+      - name: IGameSystem_OnSaveGame
+        category: vfunc
+        alias:
+          - IGameSystem::OnSaveGame
 
       - name: IGameSystem_OnOutOfGameFrameBoundary
         category: vfunc
