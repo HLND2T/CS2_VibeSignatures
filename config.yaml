@@ -2821,6 +2821,16 @@ modules:
         expected_output:
           - CEntitySystem_vtable.{platform}.yaml
 
+      - name: find-CEntitySaveRestoreBlockHandler_vtable
+        expected_output:
+          - CEntitySaveRestoreBlockHandler_vtable.{platform}.yaml
+
+      - name: find-CEntitySaveRestoreBlockHandler_Save
+        expected_output:
+          - CEntitySaveRestoreBlockHandler_Save.{platform}.yaml
+        expected_input:
+          - CEntitySaveRestoreBlockHandler_vtable.{platform}.yaml
+
       - name: find-CEntitySystem_CreateEntityByName
         expected_output:
           - CEntitySystem_CreateEntityByName.{platform}.yaml
@@ -4832,6 +4842,14 @@ modules:
 
       - name: CEntitySystem_vtable
         category: vtable
+
+      - name: CEntitySaveRestoreBlockHandler_vtable
+        category: vtable
+
+      - name: CEntitySaveRestoreBlockHandler_Save
+        category: vfunc
+        alias:
+          - CEntitySaveRestoreBlockHandler::Save
 
       - name: CEntitySystem_CreateEntityByName
         category: func
