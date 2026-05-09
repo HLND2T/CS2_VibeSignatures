@@ -2844,6 +2844,13 @@ modules:
           - CEntitySaveRestoreBlockHandler_Save.{platform}.yaml
           - CBaseEntity_vtable.{platform}.yaml
 
+      - name: find-CBaseEntity_OnSave
+        expected_output:
+          - CBaseEntity_OnSave.{platform}.yaml
+        expected_input:
+          - CEntitySaveRestoreBlockHandler_Save.{platform}.yaml
+          - CBaseEntity_vtable.{platform}.yaml
+
       - name: find-CBaseEntity_Restore
         expected_output:
           - CBaseEntity_Restore.{platform}.yaml
@@ -4892,6 +4899,11 @@ modules:
         category: vfunc
         alias:
           - CBaseEntity::Save
+
+      - name: CBaseEntity_OnSave
+        category: vfunc
+        alias:
+          - CBaseEntity::OnSave
 
       - name: CBaseEntity_Restore
         category: vfunc
