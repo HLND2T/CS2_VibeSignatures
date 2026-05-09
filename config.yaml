@@ -4077,6 +4077,59 @@ modules:
         expected_input:
           - CPlayerCommandQueue_vtable.{platform}.yaml
 
+      - name: find-CEntitySaveRestoreBlockHandler_vtable
+        expected_output:
+          - CEntitySaveRestoreBlockHandler_vtable.{platform}.yaml
+
+      - name: find-CEntitySaveRestoreBlockHandler_PreSave
+        expected_output:
+          - CEntitySaveRestoreBlockHandler_PreSave.{platform}.yaml
+        expected_input:
+          - CEntitySaveRestoreBlockHandler_vtable.{platform}.yaml
+
+      - name: find-IGameSystem_OnSaveGame
+        expected_output:
+          - IGameSystem_OnSaveGame.{platform}.yaml
+        expected_input:
+          - CEntitySaveRestoreBlockHandler_PreSave.{platform}.yaml
+          - IGameSystem_vtable.{platform}.yaml
+
+      - name: find-CEntitySaveRestoreBlockHandler_SaveInternal
+        expected_output:
+          - CEntitySaveRestoreBlockHandler_SaveInternal.{platform}.yaml
+
+      - name: find-CEntitySaveRestoreBlockHandler_Save
+        expected_output:
+          - CEntitySaveRestoreBlockHandler_Save.{platform}.yaml
+        expected_input:
+          - CEntitySaveRestoreBlockHandler_SaveInternal.{platform}.yaml
+          - CEntitySaveRestoreBlockHandler_vtable.{platform}.yaml
+
+      - name: find-CEntitySaveRestoreBlockHandler_Restore
+        expected_output:
+          - CEntitySaveRestoreBlockHandler_Restore.{platform}.yaml
+        expected_input:
+          - CEntitySaveRestoreBlockHandler_vtable.{platform}.yaml
+
+      - name: find-CEntitySaveRestoreBlockHandler_DoRestoreEntity
+        expected_output:
+          - CEntitySaveRestoreBlockHandler_DoRestoreEntity.{platform}.yaml
+
+      - name: find-CEntityInstance_Restore
+        expected_output:
+          - CEntityInstance_Restore.{platform}.yaml
+        expected_input:
+          - CEntitySaveRestoreBlockHandler_DoRestoreEntity.{platform}.yaml
+          - CEntityInstance_vtable.{platform}.yaml
+
+      - name: find-CEntityInstance_ObjectCaps-AND-CEntityInstance_Save
+        expected_output:
+          - CEntityInstance_ObjectCaps.{platform}.yaml
+          - CEntityInstance_Save.{platform}.yaml
+        expected_input:
+          - CEntitySaveRestoreBlockHandler_SaveInternal.{platform}.yaml
+          - CEntityInstance_vtable.{platform}.yaml
+
     symbols:
       - name: CSource2Server_vtable
         category: vtable
@@ -4240,6 +4293,49 @@ modules:
 
       - name: CBaseEntity_vtable
         category: vtable
+
+      - name: CEntitySaveRestoreBlockHandler_vtable
+        category: vtable
+
+      - name: CEntitySaveRestoreBlockHandler_PreSave
+        category: vfunc
+        alias:
+          - CEntitySaveRestoreBlockHandler::PreSave
+
+      - name: CEntitySaveRestoreBlockHandler_SaveInternal
+        category: func
+        alias:
+          - CEntitySaveRestoreBlockHandler::SaveInternal
+
+      - name: CEntitySaveRestoreBlockHandler_Save
+        category: vfunc
+        alias:
+          - CEntitySaveRestoreBlockHandler::Save
+
+      - name: CEntitySaveRestoreBlockHandler_Restore
+        category: vfunc
+        alias:
+          - CEntitySaveRestoreBlockHandler::Restore
+
+      - name: CEntitySaveRestoreBlockHandler_DoRestoreEntity
+        category: func
+        alias:
+          - CEntitySaveRestoreBlockHandler::DoRestoreEntity
+
+      - name: CEntityInstance_ObjectCaps
+        category: vfunc
+        alias:
+          - CEntityInstance::ObjectCaps
+
+      - name: CEntityInstance_Save
+        category: vfunc
+        alias:
+          - CEntityInstance::Save
+
+      - name: CEntityInstance_Restore
+        category: vfunc
+        alias:
+          - CEntityInstance::Restore
 
       - name: CGameSceneNode_vtable
         category: vtable
@@ -5294,6 +5390,11 @@ modules:
         category: vfunc
         alias:
           - IGameSystem::OnServerPostEndAsyncPostTickWork
+
+      - name: IGameSystem_OnSaveGame
+        category: vfunc
+        alias:
+          - IGameSystem::OnSaveGame
 
       - name: IGameSystem_OnOutOfGameFrameBoundary
         category: vfunc

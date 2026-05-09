@@ -1,23 +1,23 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CBaseEntity_NetworkStateChanged skill."""
+"""Preprocess script for find-CEntitySaveRestoreBlockHandler_Restore skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = [
-    "CBaseEntity_NetworkStateChanged",
+    "CEntitySaveRestoreBlockHandler_Restore",
 ]
 
 FUNC_XREFS = [
     {
-        "func_name": "CBaseEntity_NetworkStateChanged",
-        "xref_strings": [],
+        "func_name": "CEntitySaveRestoreBlockHandler_Restore",
+        "xref_strings": [
+            "%s:  CEntitySaveRestoreBlockHandler::Restore:  Player already exists",
+        ],
         "xref_gvs": [],
         "xref_signatures": [],
-        "xref_funcs": [
-            "CNetworkTransmitComponent_StateChanged",
-        ],
+        "xref_funcs": [],
         "exclude_funcs": [],
-        "exclude_strings": ["CNetworkTransmitComponent::StateChanged(%s) @%s:%d"],
+        "exclude_strings": [],
         "exclude_gvs": [],
         "exclude_signatures": [],
     },
@@ -25,18 +25,19 @@ FUNC_XREFS = [
 
 FUNC_VTABLE_RELATIONS = [
     # (func_name, vtable_class)
-    ("CBaseEntity_NetworkStateChanged", "CBaseEntity"),
+    ("CEntitySaveRestoreBlockHandler_Restore", "CEntitySaveRestoreBlockHandler"),
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
     (
-        "CBaseEntity_NetworkStateChanged",
+        "CEntitySaveRestoreBlockHandler_Restore",
         [
             "func_name",
             "func_va",
             "func_rva",
             "func_size",
+            "func_sig",
             "vtable_name",
             "vfunc_offset",
             "vfunc_index",

@@ -1,52 +1,43 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CBaseEntity_NetworkStateChanged skill."""
+"""Preprocess script for find-CEntityInstance_Restore skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = [
-    "CBaseEntity_NetworkStateChanged",
+    "CEntityInstance_Restore",
 ]
 
-FUNC_XREFS = [
-    {
-        "func_name": "CBaseEntity_NetworkStateChanged",
-        "xref_strings": [],
-        "xref_gvs": [],
-        "xref_signatures": [],
-        "xref_funcs": [
-            "CNetworkTransmitComponent_StateChanged",
-        ],
-        "exclude_funcs": [],
-        "exclude_strings": ["CNetworkTransmitComponent::StateChanged(%s) @%s:%d"],
-        "exclude_gvs": [],
-        "exclude_signatures": [],
-    },
+LLM_DECOMPILE = [
+    # (symbol_name, path_to_prompt, path_to_reference)
+    (
+        "CEntityInstance_Restore",
+        "prompt/call_llm_decompile.md",
+        "references/server/CEntitySaveRestoreBlockHandler_DoRestoreEntity.{platform}.yaml",
+    ),
 ]
 
 FUNC_VTABLE_RELATIONS = [
     # (func_name, vtable_class)
-    ("CBaseEntity_NetworkStateChanged", "CBaseEntity"),
+    ("CEntityInstance_Restore", "CEntityInstance"),
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
+    # slot-only: CEntityInstance_Restore is an abstract/interface vfunc -- no func_sig needed
     (
-        "CBaseEntity_NetworkStateChanged",
+        "CEntityInstance_Restore",
         [
             "func_name",
-            "func_va",
-            "func_rva",
-            "func_size",
-            "vtable_name",
             "vfunc_offset",
             "vfunc_index",
+            "vtable_name",
         ],
     ),
 ]
 
 async def preprocess_skill(
     session, skill_name, expected_outputs, old_yaml_map,
-    new_binary_dir, platform, image_base, debug=False,
+    new_binary_dir, platform, image_base, llm_config=None, debug=False,
 ):
     """Reuse previous gamever func_sig to locate target function(s) and write YAML."""
     return await preprocess_common_skill(
@@ -57,8 +48,9 @@ async def preprocess_skill(
         platform=platform,
         image_base=image_base,
         func_names=TARGET_FUNCTION_NAMES,
-        func_xrefs=FUNC_XREFS,
         func_vtable_relations=FUNC_VTABLE_RELATIONS,
+        llm_decompile_specs=LLM_DECOMPILE,
+        llm_config=llm_config,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
     )

@@ -1,0 +1,279 @@
+func_name: CEntitySaveRestoreBlockHandler_DoRestoreEntity
+func_va: '0x180b4b0d0'
+disasm_code: |-
+  .text:0000000180B4B0D0                 mov     [rsp+arg_8], rbx
+  .text:0000000180B4B0D5                 mov     [rsp+arg_10], rbp
+  .text:0000000180B4B0DA                 push    rsi
+  .text:0000000180B4B0DB                 push    rdi
+  .text:0000000180B4B0DC                 push    r14
+  .text:0000000180B4B0DE                 sub     rsp, 60h
+  .text:0000000180B4B0E2                 lea     rdi, [rdx+10h]
+  .text:0000000180B4B0E6                 mov     r14, r8
+  .text:0000000180B4B0E9                 mov     rsi, rdx
+  .text:0000000180B4B0EC                 mov     ebp, 7FFFh
+  .text:0000000180B4B0F1                 test    rdx, rdx
+  .text:0000000180B4B0F4                 jz      short loc_180B4B121
+  .text:0000000180B4B0F6                 mov     rax, [rdi]
+  .text:0000000180B4B0F9                 test    rax, rax
+  .text:0000000180B4B0FC                 jz      short loc_180B4B121
+  .text:0000000180B4B0FE                 mov     edx, [rax+10h]
+  .text:0000000180B4B101                 mov     ecx, ebp
+  .text:0000000180B4B103                 mov     eax, [rax+30h]
+  .text:0000000180B4B106                 mov     ebx, edx
+  .text:0000000180B4B108                 and     eax, 1
+  .text:0000000180B4B10B                 shr     ebx, 0Fh
+  .text:0000000180B4B10E                 sub     ebx, eax
+  .text:0000000180B4B110                 mov     eax, edx
+  .text:0000000180B4B112                 and     eax, ebp
+  .text:0000000180B4B114                 shl     ebx, 0Fh
+  .text:0000000180B4B117                 cmp     edx, 0FFFFFFFFh
+  .text:0000000180B4B11A                 cmovnz  ecx, eax
+  .text:0000000180B4B11D                 or      ebx, ecx
+  .text:0000000180B4B11F                 jmp     short loc_180B4B126
+  .text:0000000180B4B121                 mov     ebx, 0FFFFFFFFh
+  .text:0000000180B4B126                 test    rsi, rsi
+  .text:0000000180B4B129                 jz      loc_180B4B2FC
+  .text:0000000180B4B12F                 mov     ecx, cs:dword_181EE6690
+  .text:0000000180B4B135                 mov     edx, 1
+  .text:0000000180B4B13A                 mov     [rsp+78h+arg_0], r15
+  .text:0000000180B4B142                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:0000000180B4B148                 lea     r15, byte_18159B990
+  .text:0000000180B4B14F                 test    al, al
+  .text:0000000180B4B151                 jz      loc_180B4B1E0
+  .text:0000000180B4B157                 mov     rcx, [rdi]
+  .text:0000000180B4B15A                 mov     r9, r15
+  .text:0000000180B4B15D                 mov     r10, r15
+  .text:0000000180B4B160                 mov     rax, [rcx+18h]
+  .text:0000000180B4B164                 test    rax, rax
+  .text:0000000180B4B167                 cmovnz  r9, rax
+  .text:0000000180B4B16B                 mov     rax, [rcx+20h]
+  .text:0000000180B4B16F                 test    rax, rax
+  .text:0000000180B4B172                 cmovnz  r10, rax
+  .text:0000000180B4B176                 test    rcx, rcx
+  .text:0000000180B4B179                 jz      short loc_180B4B1A2
+  .text:0000000180B4B17B                 mov     r8d, [rcx+10h]
+  .text:0000000180B4B17F                 mov     edx, ebp
+  .text:0000000180B4B181                 mov     ecx, [rcx+30h]
+  .text:0000000180B4B184                 mov     eax, r8d
+  .text:0000000180B4B187                 and     ecx, 1
+  .text:0000000180B4B18A                 shr     eax, 0Fh
+  .text:0000000180B4B18D                 sub     eax, ecx
+  .text:0000000180B4B18F                 mov     ecx, r8d
+  .text:0000000180B4B192                 and     ecx, ebp
+  .text:0000000180B4B194                 shl     eax, 0Fh
+  .text:0000000180B4B197                 cmp     r8d, 0FFFFFFFFh
+  .text:0000000180B4B19B                 cmovnz  edx, ecx
+  .text:0000000180B4B19E                 or      eax, edx
+  .text:0000000180B4B1A0                 jmp     short loc_180B4B1A7
+  .text:0000000180B4B1A2                 mov     eax, 0FFFFFFFFh
+  .text:0000000180B4B1A7                 mov     [rsp+78h+var_48], r9
+  .text:0000000180B4B1AC                 lea     r8, aSOnrestoreDSS; "%s:  onrestore  %d %s [%s]\n"
+  .text:0000000180B4B1B3                 mov     ecx, eax
+  .text:0000000180B4B1B5                 mov     [rsp+78h+var_50], r10
+  .text:0000000180B4B1BA                 and     ecx, ebp
+  .text:0000000180B4B1BC                 lea     r9, aSv; "SV"
+  .text:0000000180B4B1C3                 cmp     eax, 0FFFFFFFFh
+  .text:0000000180B4B1C6                 mov     edx, ebp
+  .text:0000000180B4B1C8                 cmovnz  edx, ecx
+  .text:0000000180B4B1CB                 mov     ecx, cs:dword_181EE6690
+  .text:0000000180B4B1D1                 mov     dword ptr [rsp+78h+var_58], edx
+  .text:0000000180B4B1D5                 mov     edx, 1
+  .text:0000000180B4B1DA                 call    cs:LoggingSystem_Log
+  .text:0000000180B4B1E0                 mov     rcx, [rdi]
+  .text:0000000180B4B1E3                 mov     eax, [rcx+30h]
+  .text:0000000180B4B1E6                 bt      eax, 8
+  .text:0000000180B4B1EA                 jnb     short loc_180B4B1F3
+  .text:0000000180B4B1EC                 btr     eax, 8
+  .text:0000000180B4B1F0                 mov     [rcx+30h], eax
+  .text:0000000180B4B1F3                 mov     rax, [r14]
+  .text:0000000180B4B1F6                 mov     rdx, rsi
+  .text:0000000180B4B1F9                 mov     rcx, r14
+  .text:0000000180B4B1FC                 call    qword ptr [rax+1F8h]
+  .text:0000000180B4B202                 mov     rax, [r14]
+  .text:0000000180B4B205                 mov     rcx, r14
+  .text:0000000180B4B208                 call    qword ptr [rax+1B0h]
+  .text:0000000180B4B20E                 mov     rcx, rax
+  .text:0000000180B4B211                 call    sub_1806A1810
+  .text:0000000180B4B216                 mov     rdx, [rdi]
+  .text:0000000180B4B219                 movzx   r10d, al
+  .text:0000000180B4B21D                 test    rdx, rdx
+  .text:0000000180B4B220                 jz      short loc_180B4B249
+  .text:0000000180B4B222                 mov     r8d, [rdx+10h]
+  .text:0000000180B4B226                 mov     ecx, r8d
+  .text:0000000180B4B229                 mov     edx, [rdx+30h]
+  .text:0000000180B4B22C                 mov     eax, r8d
+  .text:0000000180B4B22F                 and     edx, 1
+  .text:0000000180B4B232                 shr     ecx, 0Fh
+  .text:0000000180B4B235                 sub     ecx, edx
+  .text:0000000180B4B237                 and     eax, ebp
+  .text:0000000180B4B239                 shl     ecx, 0Fh
+  .text:0000000180B4B23C                 mov     edx, ebp
+  .text:0000000180B4B23E                 cmp     r8d, 0FFFFFFFFh
+  .text:0000000180B4B242                 cmovnz  edx, eax
+  .text:0000000180B4B245                 or      ecx, edx
+  .text:0000000180B4B247                 jmp     short loc_180B4B24E
+  .text:0000000180B4B249                 mov     ecx, 0FFFFFFFFh
+  .text:0000000180B4B24E                 mov     eax, ecx
+  .text:0000000180B4B250                 mov     r9d, 1
+  .text:0000000180B4B256                 and     eax, ebp
+  .text:0000000180B4B258                 mov     r8d, r10d
+  .text:0000000180B4B25B                 cmp     ecx, 0FFFFFFFFh
+  .text:0000000180B4B25E                 mov     rdx, r14
+  .text:0000000180B4B261                 lea     rcx, [rsp+78h+var_38]
+  .text:0000000180B4B266                 cmovnz  ebp, eax
+  .text:0000000180B4B269                 lea     rax, aD_3; "%d | "
+  .text:0000000180B4B270                 mov     dword ptr [rsp+78h+var_50], ebp
+  .text:0000000180B4B274                 mov     [rsp+78h+var_58], rax
+  .text:0000000180B4B279                 call    sub_180B32B50
+  .text:0000000180B4B27E                 mov     rax, [rsi]
+  .text:0000000180B4B281                 mov     rdx, r14
+  .text:0000000180B4B284                 mov     rcx, rsi
+  .text:0000000180B4B287                 call    qword ptr [rax+0B0h]  ; 0xB0 = CEntityInstance_Restore
+  .text:0000000180B4B28D                 mov     rcx, [rsp+78h+var_38]
+  .text:0000000180B4B292                 test    rcx, rcx
+  .text:0000000180B4B295                 jz      short loc_180B4B2D3
+  .text:0000000180B4B297                 mov     rax, [rcx]
+  .text:0000000180B4B29A                 call    qword ptr [rax+208h]
+  .text:0000000180B4B2A0                 test    eax, eax
+  .text:0000000180B4B2A2                 jnz     short loc_180B4B2CA
+  .text:0000000180B4B2A4                 mov     rcx, [rsp+78h+var_38]
+  .text:0000000180B4B2A9                 movzx   edx, [rsp+78h+var_28]
+  .text:0000000180B4B2AE                 mov     rax, [rcx]
+  .text:0000000180B4B2B1                 mov     r9, [rax+1C8h]
+  .text:0000000180B4B2B8                 mov     rax, [rsp+78h+var_30]
+  .text:0000000180B4B2BD                 test    rax, rax
+  .text:0000000180B4B2C0                 cmovnz  r15, rax
+  .text:0000000180B4B2C4                 mov     r8, r15
+  .text:0000000180B4B2C7                 call    r9
+  .text:0000000180B4B2CA                 mov     [rsp+78h+var_38], 0
+  .text:0000000180B4B2D3                 cmp     [rsp+78h+var_30], 0
+  .text:0000000180B4B2D9                 mov     r15, [rsp+78h+arg_0]
+  .text:0000000180B4B2E1                 jz      short loc_180B4B2EE
+  .text:0000000180B4B2E3                 lea     rcx, [rsp+78h+var_30]
+  .text:0000000180B4B2E8                 call    cs:?FreeMemoryBlock@CUtlString@@AEAAXXZ; CUtlString::FreeMemoryBlock(void)
+  .text:0000000180B4B2EE                 mov     rax, [r14]
+  .text:0000000180B4B2F1                 xor     edx, edx
+  .text:0000000180B4B2F3                 mov     rcx, r14
+  .text:0000000180B4B2F6                 call    qword ptr [rax+1F8h]
+  .text:0000000180B4B2FC                 cmp     ebx, 0FFFFFFFFh
+  .text:0000000180B4B2FF                 lea     r11, [rsp+78h+var_18]
+  .text:0000000180B4B304                 mov     rbx, [r11+28h]
+  .text:0000000180B4B308                 mov     rbp, [r11+30h]
+  .text:0000000180B4B30C                 setnz   al
+  .text:0000000180B4B30F                 mov     rsp, r11
+  .text:0000000180B4B312                 pop     r14
+  .text:0000000180B4B314                 pop     rdi
+  .text:0000000180B4B315                 pop     rsi
+  .text:0000000180B4B316                 retn
+procedure: |-
+  bool __fastcall CEntitySaveRestoreBlockHandler_DoRestoreEntity(__int64 a1, __int64 *a2, __int64 a3)
+  {
+    __int64 *v3; // rdi
+    int v6; // ebp
+    __int64 v7; // rax
+    unsigned int v8; // edx
+    int v9; // ecx
+    int v10; // ebx
+    char *v11; // r15
+    __int64 v12; // rcx
+    char *v13; // r9
+    char *v14; // r10
+    unsigned int v15; // r8d
+    int v16; // edx
+    int v17; // eax
+    int v18; // edx
+    int v19; // eax
+    __int64 v20; // rax
+    unsigned __int8 v21; // al
+    __int64 v22; // rdx
+    unsigned int v23; // r8d
+    int v24; // ecx
+    int v25; // edx
+    int v26; // ecx
+    __int64 v28; // [rsp+40h] [rbp-38h] BYREF
+    char *v29; // [rsp+48h] [rbp-30h] BYREF
+    unsigned __int8 v30; // [rsp+50h] [rbp-28h]
+
+    v3 = a2 + 2;
+    v6 = 0x7FFF;
+    if ( a2 && (v7 = *v3) != 0 )
+    {
+      v8 = *(_DWORD *)(v7 + 16);
+      v9 = 0x7FFF;
+      if ( v8 != -1 )
+        v9 = v8 & 0x7FFF;
+      v10 = v9 | (((v8 >> 15) - (*(_DWORD *)(v7 + 48) & 1)) << 15);
+    }
+    else
+    {
+      v10 = -1;
+    }
+    if ( a2 )
+    {
+      v11 = byte_18159B990;
+      if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_181EE6690, 1) )
+      {
+        v12 = *v3;
+        v13 = byte_18159B990;
+        v14 = byte_18159B990;
+        if ( *(_QWORD *)(*v3 + 24) )
+          v13 = *(char **)(*v3 + 24);
+        if ( *(_QWORD *)(v12 + 32) )
+          v14 = *(char **)(v12 + 32);
+        if ( v12 )
+        {
+          v15 = *(_DWORD *)(v12 + 16);
+          v16 = 0x7FFF;
+          if ( v15 != -1 )
+            v16 = v15 & 0x7FFF;
+          v17 = v16 | (((v15 >> 15) - (*(_DWORD *)(v12 + 48) & 1)) << 15);
+        }
+        else
+        {
+          v17 = -1;
+        }
+        v18 = 0x7FFF;
+        if ( v17 != -1 )
+          v18 = v17 & 0x7FFF;
+        LoggingSystem_Log((unsigned int)dword_181EE6690, 1, "%s:  onrestore  %d %s [%s]\n", "SV", v18, v14, v13);
+      }
+      v19 = *(_DWORD *)(*v3 + 48);
+      if ( (v19 & 0x100) != 0 )
+        *(_DWORD *)(*v3 + 48) = v19 & 0xFFFFFEFF;
+      (*(void (__fastcall **)(__int64, __int64 *))(*(_QWORD *)a3 + 504LL))(a3, a2);
+      v20 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)a3 + 432LL))(a3);
+      v21 = sub_1806A1810(v20);
+      v22 = *v3;
+      if ( *v3 )
+      {
+        v23 = *(_DWORD *)(v22 + 16);
+        v24 = ((v23 >> 15) - (*(_DWORD *)(v22 + 48) & 1)) << 15;
+        v25 = 0x7FFF;
+        if ( v23 != -1 )
+          v25 = v23 & 0x7FFF;
+        v26 = v25 | v24;
+      }
+      else
+      {
+        v26 = -1;
+      }
+      if ( v26 != -1 )
+        v6 = v26 & 0x7FFF;
+      sub_180B32B50((unsigned int)&v28, a3, v21, 1, "%d | ", v6);
+      (*(void (__fastcall **)(__int64 *, __int64))(*a2 + 176))(a2, a3);// 176LL = 0xB0 = CEntityInstance_Restore
+      if ( v28 )
+      {
+        if ( !(*(unsigned int (__fastcall **)(__int64))(*(_QWORD *)v28 + 520LL))(v28) )
+        {
+          if ( v29 )
+            v11 = v29;
+          (*(void (__fastcall **)(__int64, _QWORD, char *))(*(_QWORD *)v28 + 456LL))(v28, v30, v11);
+        }
+        v28 = 0;
+      }
+      if ( v29 )
+        CUtlString::FreeMemoryBlock((CUtlString *)&v29);
+      (*(void (__fastcall **)(__int64, _QWORD))(*(_QWORD *)a3 + 504LL))(a3, 0);
+    }
+    return v10 != -1;
+  }
