@@ -1,0 +1,238 @@
+func_name: CEntitySaveRestoreBlockHandler_PreSave
+func_va: '0x180b21050'
+disasm_code: |-
+  .text:0000000180B21050                 mov     r11, rsp
+  .text:0000000180B21053                 mov     [r11+10h], rbx
+  .text:0000000180B21057                 push    rbp
+  .text:0000000180B21058                 push    rsi
+  .text:0000000180B21059                 push    rdi
+  .text:0000000180B2105A                 push    r12
+  .text:0000000180B2105C                 push    r15
+  .text:0000000180B2105E                 sub     rsp, 40h
+  .text:0000000180B21062                 mov     r15, rcx
+  .text:0000000180B21065                 mov     [r11+18h], r8
+  .text:0000000180B21069                 mov     ecx, cs:dword_181B9ADE0
+  .text:0000000180B2106F                 xor     r12d, r12d
+  .text:0000000180B21072                 mov     rsi, r8
+  .text:0000000180B21075                 mov     rbp, rdx
+  .text:0000000180B21078                 test    ecx, ecx
+  .text:0000000180B2107A                 jns     short loc_180B210E9
+  .text:0000000180B2107C                 mov     r9d, cs:TlsIndex
+  .text:0000000180B21083                 lea     rax, ??_7CDontUseThisGameSystem@@6B@; const CDontUseThisGameSystem::`vftable'
+  .text:0000000180B2108A                 mov     [r11-38h], rax
+  .text:0000000180B2108E                 mov     rax, gs:58h
+  .text:0000000180B21097                 mov     ecx, 218h
+  .text:0000000180B2109C                 mov     [r11-30h], r12
+  .text:0000000180B210A0                 mov     rax, [rax+r9*8]
+  .text:0000000180B210A4                 mov     eax, [rcx+rax]
+  .text:0000000180B210A7                 cmp     cs:dword_181E148B8, eax
+  .text:0000000180B210AD                 jg      loc_180B21246
+  .text:0000000180B210B3                 mov     rax, cs:qword_181E148B0
+  .text:0000000180B210BA                 lea     rcx, [rsp+68h+var_38]
+  .text:0000000180B210BF                 mov     rbx, [rsp+68h+var_38]
+  .text:0000000180B210C4                 mov     [rsp+68h+var_38], rax
+  .text:0000000180B210C9                 call    GameSystem_OnSaveGame
+  .text:0000000180B210CE                 lea     rcx, [rsp+68h+var_38]
+  .text:0000000180B210D3                 mov     [rsp+68h+var_38], rbx
+  .text:0000000180B210D8                 mov     cs:dword_181B9ADE0, eax
+  .text:0000000180B210DE                 call    sub_180507F70
+  .text:0000000180B210E3                 mov     ecx, cs:dword_181B9ADE0
+  .text:0000000180B210E9                 lea     r8, [rsp+68h+arg_10]
+  .text:0000000180B210F1                 lea     rdx, GameSystem_OnSaveGame
+  .text:0000000180B210F8                 call    IGameSystem__DispatchEventInternal
+  .text:0000000180B210FD                 mov     edi, r12d
+  .text:0000000180B21100                 cmp     [rsi], r12d
+  .text:0000000180B21103                 jle     loc_180B21227
+  .text:0000000180B21109                 mov     [rsp+68h+arg_0], r14
+  .text:0000000180B2110E                 mov     r14, r12
+  .text:0000000180B21111                 mov     rax, [rsi+8]
+  .text:0000000180B21115                 mov     ecx, [r14+rax]
+  .text:0000000180B21119                 cmp     ecx, 0FFFFFFFFh
+  .text:0000000180B2111C                 jz      loc_180B211E4
+  .text:0000000180B21122                 mov     r8, cs:qword_181D958F8
+  .text:0000000180B21129                 test    r8, r8
+  .text:0000000180B2112C                 jz      loc_180B211E4
+  .text:0000000180B21132                 cmp     ecx, 0FFFFFFFEh
+  .text:0000000180B21135                 jz      short loc_180B21165
+  .text:0000000180B21137                 mov     eax, ecx
+  .text:0000000180B21139                 and     eax, 7FFFh
+  .text:0000000180B2113E                 mov     edx, eax
+  .text:0000000180B21140                 shr     rax, 9
+  .text:0000000180B21144                 mov     r9, [r8+rax*8]
+  .text:0000000180B21148                 test    r9, r9
+  .text:0000000180B2114B                 jz      short loc_180B21165
+  .text:0000000180B2114D                 and     edx, 1FFh
+  .text:0000000180B21153                 imul    rbx, rdx, 70h ; 'p'
+  .text:0000000180B21157                 add     rbx, r9
+  .text:0000000180B2115A                 jz      short loc_180B21165
+  .text:0000000180B2115C                 cmp     [rbx+10h], ecx
+  .text:0000000180B2115F                 cmovnz  rbx, r12
+  .text:0000000180B21163                 jmp     short loc_180B21168
+  .text:0000000180B21165                 mov     rbx, r12
+  .text:0000000180B21168                 test    rbx, rbx
+  .text:0000000180B2116B                 jz      short loc_180B211E4
+  .text:0000000180B2116D                 mov     rcx, [rbx]
+  .text:0000000180B21170                 test    rcx, rcx
+  .text:0000000180B21173                 jnz     short loc_180B211D9
+  .text:0000000180B21175                 mov     ecx, cs:dword_181EE6690
+  .text:0000000180B2117B                 mov     edx, 3
+  .text:0000000180B21180                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:0000000180B21186                 test    al, al
+  .text:0000000180B21188                 jz      loc_180B21214
+  .text:0000000180B2118E                 mov     rax, [rbx+20h]
+  .text:0000000180B21192                 lea     rdx, byte_18159B990
+  .text:0000000180B21199                 test    rax, rax
+  .text:0000000180B2119C                 lea     rcx, byte_18159B990
+  .text:0000000180B211A3                 mov     r9d, edi
+  .text:0000000180B211A6                 lea     r8, aPresaveDEntity; "PreSave(%d):  entity instance is missin"...
+  .text:0000000180B211AD                 cmovnz  rdx, rax
+  .text:0000000180B211B1                 mov     rax, [rbx+18h]
+  .text:0000000180B211B5                 mov     [rsp+68h+var_40], rdx
+  .text:0000000180B211BA                 test    rax, rax
+  .text:0000000180B211BD                 mov     edx, 3
+  .text:0000000180B211C2                 cmovnz  rcx, rax
+  .text:0000000180B211C6                 mov     [rsp+68h+var_48], rcx
+  .text:0000000180B211CB                 mov     ecx, cs:dword_181EE6690
+  .text:0000000180B211D1                 call    cs:LoggingSystem_Log
+  .text:0000000180B211D7                 jmp     short loc_180B21214
+  .text:0000000180B211D9                 mov     rax, [rcx]
+  .text:0000000180B211DC                 call    qword ptr [rax+0B8h]
+  .text:0000000180B211E2                 jmp     short loc_180B21214
+  .text:0000000180B211E4                 mov     ecx, cs:dword_181EE6690
+  .text:0000000180B211EA                 mov     edx, 3
+  .text:0000000180B211EF                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:0000000180B211F5                 test    al, al
+  .text:0000000180B211F7                 jz      short loc_180B21214
+  .text:0000000180B211F9                 mov     ecx, cs:dword_181EE6690
+  .text:0000000180B211FF                 lea     r8, aPresaveDEntity_0; "PreSave(%d):  entity identity is missin"...
+  .text:0000000180B21206                 mov     r9d, edi
+  .text:0000000180B21209                 mov     edx, 3
+  .text:0000000180B2120E                 call    cs:LoggingSystem_Log
+  .text:0000000180B21214                 inc     edi
+  .text:0000000180B21216                 add     r14, 4
+  .text:0000000180B2121A                 cmp     edi, [rsi]
+  .text:0000000180B2121C                 jl      loc_180B21111
+  .text:0000000180B21222                 mov     r14, [rsp+68h+arg_0]
+  .text:0000000180B21227                 mov     r8, rsi
+  .text:0000000180B2122A                 mov     rdx, rbp
+  .text:0000000180B2122D                 mov     rcx, r15
+  .text:0000000180B21230                 call    CEntitySaveRestoreBlockHandler_SaveInitEntities
+  .text:0000000180B21235                 mov     rbx, [rsp+68h+arg_8]
+  .text:0000000180B2123A                 add     rsp, 40h
+  .text:0000000180B2123E                 pop     r15
+  .text:0000000180B21240                 pop     r12
+  .text:0000000180B21242                 pop     rdi
+  .text:0000000180B21243                 pop     rsi
+  .text:0000000180B21244                 pop     rbp
+  .text:0000000180B21245                 retn
+  .text:0000000180B21246                 lea     rcx, dword_181E148B8
+  .text:0000000180B2124D                 call    sub_1814F7154
+  .text:0000000180B21252                 cmp     cs:dword_181E148B8, 0FFFFFFFFh
+  .text:0000000180B21259                 jnz     loc_180B210B3
+  .text:0000000180B2125F                 mov     rax, cs:off_181B9AF10
+  .text:0000000180B21266                 lea     rcx, dword_181E148B8
+  .text:0000000180B2126D                 mov     cs:qword_181E148B0, rax
+  .text:0000000180B21274                 call    sub_1814F70E8
+  .text:0000000180B21279                 jmp     loc_180B210B3
+procedure: |-
+  __int64 __fastcall CEntitySaveRestoreBlockHandler_PreSave(__int64 a1, __int64 a2, __int64 a3)
+  {
+    __int64 v4; // rcx
+    _QWORD *ThreadLocalStoragePointer; // rax
+    __int64 v8; // rbx
+    int v9; // eax
+    unsigned int v10; // edi
+    __int64 v11; // r14
+    int v12; // ecx
+    __int64 v13; // r9
+    _QWORD *v14; // rbx
+    char *v15; // rdx
+    char *v16; // rcx
+    _QWORD v18[7]; // [rsp+30h] [rbp-38h] BYREF
+    __int64 v19; // [rsp+80h] [rbp+18h] BYREF
+
+    v19 = a3;
+    v4 = (unsigned int)dword_181B9ADE0;
+    if ( dword_181B9ADE0 < 0 )
+    {
+      v18[0] = &CDontUseThisGameSystem::`vftable';
+      ThreadLocalStoragePointer = NtCurrentTeb()->ThreadLocalStoragePointer;
+      v18[1] = 0;
+      if ( dword_181E148B8 > *(_DWORD *)(ThreadLocalStoragePointer[TlsIndex] + 536LL) )
+      {
+        sub_1814F7154(&dword_181E148B8);
+        if ( dword_181E148B8 == -1 )
+        {
+          qword_181E148B0 = (__int64)off_181B9AF10[0];
+          sub_1814F70E8(&dword_181E148B8);
+        }
+      }
+      v8 = v18[0];
+      v18[0] = qword_181E148B0;
+      v9 = GameSystem_OnSaveGame(v18);
+      v18[0] = v8;
+      dword_181B9ADE0 = v9;
+      sub_180507F70(v18);
+      v4 = (unsigned int)dword_181B9ADE0;
+    }
+    IGameSystem::DispatchEventInternal(v4, GameSystem_OnSaveGame, &v19);
+    v10 = 0;
+    if ( *(int *)a3 > 0 )
+    {
+      v11 = 0;
+      do
+      {
+        v12 = *(_DWORD *)(v11 + *(_QWORD *)(a3 + 8));
+        if ( v12 == -1 || !qword_181D958F8 )
+          goto LABEL_32;
+        if ( v12 != -2
+          && (v13 = *(_QWORD *)(qword_181D958F8 + 8 * ((unsigned __int64)(v12 & 0x7FFF) >> 9))) != 0
+          && (v14 = (_QWORD *)(v13 + 112LL * (v12 & 0x1FF))) != nullptr )
+        {
+          if ( *((_DWORD *)v14 + 4) != v12 )
+            v14 = nullptr;
+        }
+        else
+        {
+          v14 = nullptr;
+        }
+        if ( v14 )
+        {
+          if ( *v14 )
+          {
+            (*(void (__fastcall **)(_QWORD))(*(_QWORD *)*v14 + 184LL))(*v14);
+          }
+          else if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_181EE6690, 3) )
+          {
+            v15 = byte_18159B990;
+            v16 = byte_18159B990;
+            if ( v14[4] )
+              v15 = (char *)v14[4];
+            if ( v14[3] )
+              v16 = (char *)v14[3];
+            LoggingSystem_Log(
+              (unsigned int)dword_181EE6690,
+              3,
+              "PreSave(%d):  entity instance is missing for (%s, %s), may cause a crash\n",
+              v10,
+              v16,
+              v15);
+          }
+        }
+        else
+        {
+  LABEL_32:
+          if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_181EE6690, 3) )
+            LoggingSystem_Log(
+              (unsigned int)dword_181EE6690,
+              3,
+              "PreSave(%d):  entity identity is missing, may cause a crash\n",
+              v10);
+        }
+        ++v10;
+        v11 += 4;
+      }
+      while ( (signed int)v10 < *(_DWORD *)a3 );
+    }
+    return CEntitySaveRestoreBlockHandler_SaveInitEntities(a1, a2, a3);
+  }

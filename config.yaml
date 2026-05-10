@@ -4122,6 +4122,19 @@ modules:
           - CEntitySaveRestoreBlockHandler_DoRestoreEntity.{platform}.yaml
           - CEntityInstance_vtable.{platform}.yaml
 
+      - name: find-CEntitySaveRestoreBlockHandler_SaveInitEntities
+        expected_output:
+          - CEntitySaveRestoreBlockHandler_SaveInitEntities.{platform}.yaml
+        expected_input:
+          - CEntitySaveRestoreBlockHandler_PreSave.{platform}.yaml
+
+      - name: find-CEntityInstance_RequiredEdictIndex
+        expected_output:
+          - CEntityInstance_RequiredEdictIndex.{platform}.yaml
+        expected_input:
+          - CEntitySaveRestoreBlockHandler_SaveInitEntities.{platform}.yaml
+          - CEntityInstance_vtable.{platform}.yaml
+
       - name: find-CEntityInstance_ObjectCaps-AND-CEntityInstance_Save
         expected_output:
           - CEntityInstance_ObjectCaps.{platform}.yaml
@@ -4336,6 +4349,16 @@ modules:
         category: vfunc
         alias:
           - CEntityInstance::Restore
+
+      - name: CEntitySaveRestoreBlockHandler_SaveInitEntities
+        category: func
+        alias:
+          - CEntitySaveRestoreBlockHandler::SaveInitEntities
+
+      - name: CEntityInstance_RequiredEdictIndex
+        category: vfunc
+        alias:
+          - CEntityInstance::RequiredEdictIndex
 
       - name: CGameSceneNode_vtable
         category: vtable

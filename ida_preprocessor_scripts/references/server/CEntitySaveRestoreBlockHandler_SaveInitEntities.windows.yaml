@@ -1,0 +1,251 @@
+func_name: CEntitySaveRestoreBlockHandler_SaveInitEntities
+func_va: '0x180b800f0'
+disasm_code: |-
+  .text:0000000180B800F0                 push    rbp
+  .text:0000000180B800F2                 push    rsi
+  .text:0000000180B800F3                 push    r12
+  .text:0000000180B800F5                 push    r15
+  .text:0000000180B800F7                 sub     rsp, 38h
+  .text:0000000180B800FB                 lea     rbp, [rdx+18h]
+  .text:0000000180B800FF                 mov     r15, r8
+  .text:0000000180B80102                 mov     edx, [r8]
+  .text:0000000180B80105                 mov     rcx, rbp
+  .text:0000000180B80108                 call    CGameSaveRestoreInfo__InitEntityTable
+  .text:0000000180B8010D                 xor     r12d, r12d
+  .text:0000000180B80110                 mov     esi, r12d
+  .text:0000000180B80113                 cmp     [r15], r12d
+  .text:0000000180B80116                 jle     loc_180B802BB
+  .text:0000000180B8011C                 mov     [rsp+58h+arg_0], rbx
+  .text:0000000180B80121                 mov     [rsp+58h+arg_10], rdi
+  .text:0000000180B80126                 mov     [rsp+58h+var_28], r14
+  .text:0000000180B8012B                 mov     r14d, r12d
+  .text:0000000180B8012E                 xchg    ax, ax
+  .text:0000000180B80130                 mov     rax, [r15+8]
+  .text:0000000180B80134                 mov     ecx, [r14+rax]
+  .text:0000000180B80138                 cmp     ecx, 0FFFFFFFFh
+  .text:0000000180B8013B                 jz      short loc_180B80189
+  .text:0000000180B8013D                 mov     r8, cs:qword_181D958F8
+  .text:0000000180B80144                 test    r8, r8
+  .text:0000000180B80147                 jz      short loc_180B80189
+  .text:0000000180B80149                 cmp     ecx, 0FFFFFFFEh
+  .text:0000000180B8014C                 jz      short loc_180B8017C
+  .text:0000000180B8014E                 mov     eax, ecx
+  .text:0000000180B80150                 and     eax, 7FFFh
+  .text:0000000180B80155                 mov     edx, eax
+  .text:0000000180B80157                 shr     rax, 9
+  .text:0000000180B8015B                 mov     r9, [r8+rax*8]
+  .text:0000000180B8015F                 test    r9, r9
+  .text:0000000180B80162                 jz      short loc_180B8017C
+  .text:0000000180B80164                 and     edx, 1FFh
+  .text:0000000180B8016A                 imul    rax, rdx, 70h ; 'p'
+  .text:0000000180B8016E                 add     rax, r9
+  .text:0000000180B80171                 jz      short loc_180B8017C
+  .text:0000000180B80173                 cmp     [rax+10h], ecx
+  .text:0000000180B80176                 cmovnz  rax, r12
+  .text:0000000180B8017A                 jmp     short loc_180B8017F
+  .text:0000000180B8017C                 mov     rax, r12
+  .text:0000000180B8017F                 test    rax, rax
+  .text:0000000180B80182                 jz      short loc_180B80189
+  .text:0000000180B80184                 mov     rbx, [rax]
+  .text:0000000180B80187                 jmp     short loc_180B8018C
+  .text:0000000180B80189                 mov     rbx, r12
+  .text:0000000180B8018C                 mov     edx, esi
+  .text:0000000180B8018E                 mov     rcx, rbp
+  .text:0000000180B80191                 call    CGameSaveRestoreInfo__GetEntityInfo
+  .text:0000000180B80196                 lea     rdx, [rsp+58h+arg_8]
+  .text:0000000180B8019B                 mov     rdi, rax
+  .text:0000000180B8019E                 mov     [rax], esi
+  .text:0000000180B801A0                 mov     rcx, [rbx]
+  .text:0000000180B801A3                 ; 0xD8 = 216LL = CEntityInstance_RequiredEdictIndex
+  .text:0000000180B801A3                 mov     r8, [rcx+0D8h]; 0xD8 = 216LL = CEntityInstance_RequiredEdictIndex
+  .text:0000000180B801AA                 mov     rcx, rbx
+  .text:0000000180B801AD                 call    r8
+  .text:0000000180B801B0                 mov     ecx, [rax]
+  .text:0000000180B801B2                 mov     [rdi+4], ecx
+  .text:0000000180B801B5                 mov     rcx, [rbx+10h]
+  .text:0000000180B801B9                 test    rcx, rcx
+  .text:0000000180B801BC                 jz      short loc_180B801EC
+  .text:0000000180B801BE                 mov     r8d, [rcx+10h]
+  .text:0000000180B801C2                 mov     edx, 7FFFh
+  .text:0000000180B801C7                 mov     ecx, [rcx+30h]
+  .text:0000000180B801CA                 mov     eax, r8d
+  .text:0000000180B801CD                 and     ecx, 1
+  .text:0000000180B801D0                 shr     eax, 0Fh
+  .text:0000000180B801D3                 sub     eax, ecx
+  .text:0000000180B801D5                 mov     ecx, r8d
+  .text:0000000180B801D8                 and     ecx, 7FFFh
+  .text:0000000180B801DE                 shl     eax, 0Fh
+  .text:0000000180B801E1                 cmp     r8d, 0FFFFFFFFh
+  .text:0000000180B801E5                 cmovnz  edx, ecx
+  .text:0000000180B801E8                 or      eax, edx
+  .text:0000000180B801EA                 jmp     short loc_180B801F1
+  .text:0000000180B801EC                 mov     eax, 0FFFFFFFFh
+  .text:0000000180B801F1                 mov     ecx, eax
+  .text:0000000180B801F3                 mov     edx, 7FFFh
+  .text:0000000180B801F8                 and     ecx, 7FFFh
+  .text:0000000180B801FE                 cmp     eax, 0FFFFFFFFh
+  .text:0000000180B80201                 cmovnz  edx, ecx
+  .text:0000000180B80204                 mov     [rdi+8], edx
+  .text:0000000180B80207                 mov     rax, [rbx+10h]
+  .text:0000000180B8020B                 test    rax, rax
+  .text:0000000180B8020E                 jz      short loc_180B8023E
+  .text:0000000180B80210                 mov     edx, [rax+10h]
+  .text:0000000180B80213                 mov     ecx, 7FFFh
+  .text:0000000180B80218                 mov     eax, [rax+30h]
+  .text:0000000180B8021B                 mov     r8d, edx
+  .text:0000000180B8021E                 and     eax, 1
+  .text:0000000180B80221                 shr     r8d, 0Fh
+  .text:0000000180B80225                 sub     r8d, eax
+  .text:0000000180B80228                 mov     eax, edx
+  .text:0000000180B8022A                 and     eax, 7FFFh
+  .text:0000000180B8022F                 shl     r8d, 0Fh
+  .text:0000000180B80233                 cmp     edx, 0FFFFFFFFh
+  .text:0000000180B80236                 cmovnz  ecx, eax
+  .text:0000000180B80239                 or      r8d, ecx
+  .text:0000000180B8023C                 jmp     short loc_180B80244
+  .text:0000000180B8023E                 mov     r8d, 0FFFFFFFFh
+  .text:0000000180B80244                 mov     [rdi+10h], r8d
+  .text:0000000180B80248                 mov     rbx, [rbx+20h]
+  .text:0000000180B8024C                 test    rbx, rbx
+  .text:0000000180B8024F                 jz      short loc_180B8029D
+  .text:0000000180B80251                 mov     [rdi+48h], rbx
+  .text:0000000180B80255                 inc     word ptr [rbx+20h]
+  .text:0000000180B80259                 cmp     [rbx+24h], r12b
+  .text:0000000180B8025D                 jz      short loc_180B8029D
+  .text:0000000180B8025F                 mov     rcx, cs:LOG_GENERAL
+  .text:0000000180B80266                 mov     edx, 2
+  .text:0000000180B8026B                 mov     ecx, [rcx]
+  .text:0000000180B8026D                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:0000000180B80273                 test    al, al
+  .text:0000000180B80275                 jz      short loc_180B8029D
+  .text:0000000180B80277                 mov     rcx, cs:LOG_GENERAL
+  .text:0000000180B8027E                 lea     r8, aKv0xPAddrefRef; "kv 0x%p AddRef refcount == %d\n"
+  .text:0000000180B80285                 movsx   eax, word ptr [rbx+20h]
+  .text:0000000180B80289                 mov     r9, rbx
+  .text:0000000180B8028C                 mov     edx, 2
+  .text:0000000180B80291                 mov     [rsp+58h+var_38], eax
+  .text:0000000180B80295                 mov     ecx, [rcx]
+  .text:0000000180B80297                 call    cs:LoggingSystem_Log
+  .text:0000000180B8029D                 inc     esi
+  .text:0000000180B8029F                 add     r14, 4
+  .text:0000000180B802A3                 cmp     esi, [r15]
+  .text:0000000180B802A6                 jl      loc_180B80130
+  .text:0000000180B802AC                 mov     r14, [rsp+58h+var_28]
+  .text:0000000180B802B1                 mov     rdi, [rsp+58h+arg_10]
+  .text:0000000180B802B6                 mov     rbx, [rsp+58h+arg_0]
+  .text:0000000180B802BB                 mov     rcx, rbp
+  .text:0000000180B802BE                 call    CGameSaveRestoreInfo__BuildEntityHash
+  .text:0000000180B802C3                 mov     al, 1
+  .text:0000000180B802C5                 add     rsp, 38h
+  .text:0000000180B802C9                 pop     r15
+  .text:0000000180B802CB                 pop     r12
+  .text:0000000180B802CD                 pop     rsi
+  .text:0000000180B802CE                 pop     rbp
+  .text:0000000180B802CF                 retn
+procedure: |-
+  char __fastcall CEntitySaveRestoreBlockHandler::SaveInitEntities(__int64 a1, __int64 a2, unsigned int *a3)
+  {
+    __int64 v3; // rbp
+    int v5; // esi
+    __int64 v6; // r14
+    int v7; // ecx
+    __int64 v8; // r9
+    __int64 v9; // rax
+    _QWORD *v10; // rbx
+    __int64 EntityInfo; // rdi
+    __int64 v12; // rcx
+    unsigned int v13; // r8d
+    int v14; // edx
+    int v15; // eax
+    int v16; // edx
+    __int64 v17; // rax
+    unsigned int v18; // edx
+    int v19; // ecx
+    int v20; // r8d
+    __int64 v21; // rbx
+
+    v3 = a2 + 24;
+    CGameSaveRestoreInfo::InitEntityTable(a2 + 24, *a3);
+    v5 = 0;
+    if ( (int)*a3 > 0 )
+    {
+      v6 = 0;
+      do
+      {
+        v7 = *(_DWORD *)(v6 + *((_QWORD *)a3 + 1));
+        if ( v7 == -1 || !qword_181D958F8 )
+          goto LABEL_14;
+        if ( v7 != -2
+          && (v8 = *(_QWORD *)(qword_181D958F8 + 8 * ((unsigned __int64)(v7 & 0x7FFF) >> 9))) != 0
+          && (v9 = v8 + 112LL * (v7 & 0x1FF)) != 0 )
+        {
+          if ( *(_DWORD *)(v9 + 16) != v7 )
+            v9 = 0;
+        }
+        else
+        {
+          v9 = 0;
+        }
+        if ( v9 )
+          v10 = *(_QWORD **)v9;
+        else
+  LABEL_14:
+          v10 = nullptr;
+        EntityInfo = CGameSaveRestoreInfo::GetEntityInfo(v3, v5);
+        *(_DWORD *)EntityInfo = v5;
+        *(_DWORD *)(EntityInfo + 4) = *(_DWORD *)(*(__int64 (__fastcall **)(_QWORD *))(*v10 + 216LL))(v10);// 0xD8 = 216LL = CEntityInstance_RequiredEdictIndex
+        v12 = v10[2];
+        if ( v12 )
+        {
+          v13 = *(_DWORD *)(v12 + 16);
+          v14 = 0x7FFF;
+          if ( v13 != -1 )
+            v14 = v13 & 0x7FFF;
+          v15 = v14 | (((v13 >> 15) - (*(_DWORD *)(v12 + 48) & 1)) << 15);
+        }
+        else
+        {
+          v15 = -1;
+        }
+        v16 = 0x7FFF;
+        if ( v15 != -1 )
+          v16 = v15 & 0x7FFF;
+        *(_DWORD *)(EntityInfo + 8) = v16;
+        v17 = v10[2];
+        if ( v17 )
+        {
+          v18 = *(_DWORD *)(v17 + 16);
+          v19 = 0x7FFF;
+          if ( v18 != -1 )
+            v19 = v18 & 0x7FFF;
+          v20 = v19 | (((v18 >> 15) - (*(_DWORD *)(v17 + 48) & 1)) << 15);
+        }
+        else
+        {
+          v20 = -1;
+        }
+        *(_DWORD *)(EntityInfo + 16) = v20;
+        v21 = v10[4];
+        if ( v21 )
+        {
+          *(_QWORD *)(EntityInfo + 72) = v21;
+          ++*(_WORD *)(v21 + 32);
+          if ( *(_BYTE *)(v21 + 36) )
+          {
+            if ( (unsigned __int8)LoggingSystem_IsChannelEnabled(LOG_GENERAL, 2) )
+              LoggingSystem_Log(
+                LOG_GENERAL,
+                2,
+                "kv 0x%p AddRef refcount == %d\n",
+                (const void *)v21,
+                *(__int16 *)(v21 + 32));
+          }
+        }
+        ++v5;
+        v6 += 4;
+      }
+      while ( v5 < (int)*a3 );
+    }
+    CGameSaveRestoreInfo::BuildEntityHash(v3);
+    return 1;
+  }
