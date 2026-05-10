@@ -6277,6 +6277,33 @@ modules:
         shared: true
 
 cpp_tests:
+  - name: CEntityInstance_MSVC
+    symbol: CEntityInstance
+    cpp: cpp_tests/centityinstance.cpp
+    headers:
+    - hl2sdk_cs2/public/entity2/entityinstance.h # This is for LLM agent
+    claude_permission_mode: acceptEdits
+    claude_allowed_tools: Read,Edit,MultiEdit,Write
+    target: x86_64-pc-windows-msvc
+    include_directories:
+      - cpp_tests/stubs
+      - hl2sdk_cs2/game/shared
+      - hl2sdk_cs2/public
+      - hl2sdk_cs2/public/mathlib
+      - hl2sdk_cs2/public/tier0
+      - hl2sdk_cs2/public/tier1
+    defines:
+      - COMPILER_MSVC=1
+      - COMPILER_MSVC64=1
+      - _MSVC_STL_USE_ABORT_AS_DOOM_FUNCTION
+    additional_compiler_options:
+      - fms-extensions
+      - fms-compatibility
+      - Xclang
+      - fdump-vtable-layouts
+    reference_modules:
+      - server # bin/{gamever}/server/CEntityInstance_*.{platform}.yaml
+
   - name: IGameSystem_MSVC
     symbol: IGameSystem
     cpp: cpp_tests/igamesystem.cpp
