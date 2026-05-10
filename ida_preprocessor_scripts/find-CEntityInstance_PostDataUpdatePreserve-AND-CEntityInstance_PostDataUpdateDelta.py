@@ -35,18 +35,20 @@ GENERATE_YAML_DESIRED_FIELDS = [
         "CEntityInstance_PostDataUpdatePreserve",
         [
             "func_name",
-            "vtable_name",
+            "vfunc_sig",
             "vfunc_offset",
             "vfunc_index",
+            "vtable_name",
         ],
     ),
     (
         "CEntityInstance_PostDataUpdateDelta",
         [
             "func_name",
-            "vtable_name",
+            "vfunc_sig",
             "vfunc_offset",
             "vfunc_index",
+            "vtable_name",
         ],
     ),
 ]

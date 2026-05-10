@@ -28,6 +28,7 @@ GENERATE_YAML_DESIRED_FIELDS = [
         "CEntityInstance_RequiredEdictIndex",
         [
             "func_name",
+            "vfunc_sig",
             "vfunc_offset",
             "vfunc_index",
             "vtable_name",

@@ -24,9 +24,10 @@ GENERATE_YAML_DESIRED_FIELDS = [
         "CEntityInstance_ScriptEntityIO",
         [
             "func_name",
-            "vtable_name",
+            "vfunc_sig",
             "vfunc_offset",
             "vfunc_index",
+            "vtable_name",
         ],
     ),
 ]

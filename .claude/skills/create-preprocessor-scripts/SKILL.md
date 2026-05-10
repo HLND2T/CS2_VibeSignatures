@@ -68,7 +68,7 @@ From the user's input, determine:
    - Has `xref_gvs` (vtable VA from a vtable YAML) + category `vfunc` -> **Pattern B** with dynamic FUNC_XREFS
    - Has `xref_funcs` (known callee function name) + category `func` -> **Pattern A** (static FUNC_XREFS; see "xref_funcs: finding callers of a known function" note)
    - Has `xref_funcs` (known callee function name) + category `vfunc` -> **Pattern B** (static FUNC_XREFS)
-   - Has predecessor function + category `vfunc` -> **Pattern C**
+   - Has predecessor function + category `vfunc` -> **Pattern C** (`vfunc_sig` is ALWAYS required in `GENERATE_YAML_DESIRED_FIELDS` -- see "vfunc_sig is MANDATORY for Pattern C" note below)
    - Has predecessor function + category `func` -> **Pattern D**
    - Has predecessor function + category `structmember` -> **Pattern E**
    - Has base vfunc name + category `vfunc` (derived-class override of known base vfunc) -> **Pattern F**
@@ -269,6 +269,16 @@ The `vtable_name` from `FUNC_VTABLE_RELATIONS` is used as **metadata** written t
 
 **Rule of thumb:** If any field in `GENERATE_YAML_DESIRED_FIELDS` starts with `vfunc_` or equals `vtable_name`, the target MUST have an entry in `FUNC_VTABLE_RELATIONS`.
 
+#### CRITICAL -- `vfunc_sig` is MANDATORY for Pattern C (vfunc via LLM_DECOMPILE)
+
+For ANY vfunc discovered via LLM_DECOMPILE (Pattern C), `GENERATE_YAML_DESIRED_FIELDS` **MUST** include `vfunc_sig`. This is non-negotiable -- the slot index alone is not stable across binary updates without a signature anchor on the actual vfunc body.
+
+This rule applies to BOTH variants:
+- **Standard Pattern C** (also a downstream predecessor): `func_name, func_va, func_rva, func_size, vfunc_sig, vfunc_offset, vfunc_index, vtable_name`
+- **Slim Pattern C** (not a downstream predecessor): `func_name, vfunc_sig, vfunc_offset, vfunc_index, vtable_name`
+
+Pure slot-only output (`func_name, vtable_name, vfunc_offset, vfunc_index` with NO `vfunc_sig`) is reserved for Pattern F slot-only / Pattern I / Pattern K -- it is NOT a valid output shape for Pattern C. Examples that follow this rule: `find-CEntityInstance_ScriptEntityIO.py`, `find-CEntityInstance_Restore.py`, `find-CEntityInstance_RequiredEdictIndex.py`, `find-CEntityInstance_PreDataUpdate.py`, `find-CEntityInstance_PostDataUpdate.py`, `find-CEntityInstance_NetworkUpdateState.py`.
+
 ### Key Differences Between Patterns
 
 | Aspect | Pattern A (func + xref) | Pattern B (vfunc + xref) | Pattern C (vfunc + LLM) | Pattern D (func + LLM) | Pattern E (structmember + LLM) | Pattern F (vfunc + inherit) | Pattern G (ConCommand handler) | Pattern H (ordinal vtable) | Pattern I (iface vfunc thunk walk) | Pattern J (IGameSystem dispatch) | Pattern K (IGameSystem slot dispatch) |
@@ -281,7 +291,7 @@ The `vtable_name` from `FUNC_VTABLE_RELATIONS` is used as **metadata** written t
 | Helper module | `preprocess_common_skill` | `preprocess_common_skill` | `preprocess_common_skill` | `preprocess_common_skill` | `preprocess_common_skill` | `preprocess_common_skill` | `preprocess_registerconcommand_skill` | `preprocess_ordinal_vtable_via_mcp` | `py_eval` + `write_func_yaml` (custom) | `preprocess_igamesystem_dispatch_skill` | `preprocess_igamesystem_slot_dispatch_skill` (from `_igamesystem_slot_dispatch_common`) |
 | Target list | `TARGET_FUNCTION_NAMES` | `TARGET_FUNCTION_NAMES` | `TARGET_FUNCTION_NAMES` | `TARGET_FUNCTION_NAMES` | `TARGET_STRUCT_MEMBER_NAMES` | (none -- defined in INHERIT_VFUNCS) | `TARGET_FUNCTION_NAMES` | `TARGET_CLASS_NAME` (single string) | `TARGET_FUNC_NAME` + `PREDECESSOR_STEM` (module-level constants) | `TARGET_SPECS` (list of dicts with `target_name`, `rename_to`, optional `dispatch_rank`) | `TARGET_SPECS` (list of dicts with `target_name`, `vtable_name`, optional `dispatch_rank`) |
 | preprocess param | `func_names=` | `func_names=` | `func_names=` | `func_names=` | `struct_member_names=` | `inherit_vfuncs=` | `command_name=`, `help_string=` | `class_name=`, `ordinal=` | (custom: reads YAML, calls `py_eval`) | `source_yaml_stem=`, `target_specs=`, `via_internal_wrapper=`, `multi_order=` | `dispatcher_yaml_stem=`, `target_specs=`, `multi_order=`, `expected_dispatch_count=` |
-| YAML fields | func_name, func_sig, func_va, func_rva, func_size | Same + vtable_name, vfunc_offset, vfunc_index | func_name, func_va, func_rva, func_size, vfunc_sig, vfunc_offset, vfunc_index, vtable_name | func_name, func_sig, func_va, func_rva, func_size | struct_name, member_name, offset, size, offset_sig, offset_sig_disp | Standard: func_name, func_va, func_rva, func_size, func_sig, vtable_name, vfunc_offset, vfunc_index; Slot-only: func_name, vtable_name, vfunc_offset, vfunc_index | func_name, func_sig, func_va, func_rva, func_size | (vtable YAML via write_vtable_yaml) | func_name, vtable_name, vfunc_offset, vfunc_index | func_name, func_va, func_rva, func_size, func_sig, vtable_name, vfunc_offset, vfunc_index | func_name, vtable_name, vfunc_offset, vfunc_index |
+| YAML fields | func_name, func_sig, func_va, func_rva, func_size | Same + vtable_name, vfunc_offset, vfunc_index | **vfunc_sig ALWAYS required**. Standard: func_name, func_va, func_rva, func_size, vfunc_sig, vfunc_offset, vfunc_index, vtable_name. Slim (not a downstream predecessor): func_name, vfunc_sig, vfunc_offset, vfunc_index, vtable_name | func_name, func_sig, func_va, func_rva, func_size | struct_name, member_name, offset, size, offset_sig, offset_sig_disp | Standard: func_name, func_va, func_rva, func_size, func_sig, vtable_name, vfunc_offset, vfunc_index; Slot-only: func_name, vtable_name, vfunc_offset, vfunc_index | func_name, func_sig, func_va, func_rva, func_size | (vtable YAML via write_vtable_yaml) | func_name, vtable_name, vfunc_offset, vfunc_index | func_name, func_va, func_rva, func_size, func_sig, vtable_name, vfunc_offset, vfunc_index | func_name, vtable_name, vfunc_offset, vfunc_index |
 | config category | `func` | `vfunc` | `vfunc` | `func` | `structmember` | `vfunc` | `func` | `vtable` | `vfunc` | `vfunc` | `vfunc` |
 
 ---

@@ -23,14 +23,14 @@ FUNC_VTABLE_RELATIONS = [
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
-    # IMPORTANT: must be exactly these four fields to trigger slot-only mode
     (
         "CEntityInstance_PreDataUpdate",
         [
             "func_name",
-            "vtable_name",
+            "vfunc_sig",
             "vfunc_offset",
             "vfunc_index",
+            "vtable_name",
         ],
     ),
 ]

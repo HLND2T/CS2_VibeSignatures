@@ -28,9 +28,10 @@ GENERATE_YAML_DESIRED_FIELDS = [
         "CEntityInstance_NetworkUpdateState",
         [
             "func_name",
-            "vtable_name",
+            "vfunc_sig",
             "vfunc_offset",
             "vfunc_index",
+            "vtable_name",
         ],
     ),
 ]
