@@ -1,0 +1,399 @@
+func_name: CEntitySaveRestoreBlockHandler_RestoreEntity
+func_va: '0x180b792b0'
+disasm_code: |-
+  .text:0000000180B792B0                 mov     [rsp+arg_10], rbx
+  .text:0000000180B792B5                 mov     [rsp+arg_18], rbp
+  .text:0000000180B792BA                 push    rdi
+  .text:0000000180B792BB                 sub     rsp, 60h
+  .text:0000000180B792BF                 mov     r9d, [rsp+68h+arg_20]
+  .text:0000000180B792C7                 mov     rbx, rdx
+  .text:0000000180B792CA                 call    CEntitySaveRestoreBlockHandler_DoRestoreEntity
+  .text:0000000180B792CF                 test    al, al
+  .text:0000000180B792D1                 jz      loc_180B79630
+  .text:0000000180B792D7                 test    rbx, rbx
+  .text:0000000180B792DA                 jz      loc_180B79630
+  .text:0000000180B792E0                 mov     rdx, [rbx+348h]
+  .text:0000000180B792E7                 test    rdx, rdx
+  .text:0000000180B792EA                 jz      loc_180B79630
+  .text:0000000180B792F0                 mov     rcx, cs:off_181C46F88
+  .text:0000000180B792F7                 mov     rax, [rcx]
+  .text:0000000180B792FA                 call    qword ptr [rax+20h]
+  .text:0000000180B792FD                 mov     rcx, cs:off_181C46F88
+  .text:0000000180B79304                 mov     ebp, eax
+  .text:0000000180B79306                 mov     rdx, [rcx]
+  .text:0000000180B79309                 test    eax, eax
+  .text:0000000180B7930B                 js      loc_180B79556
+  .text:0000000180B79311                 mov     r8, [rdx+28h]
+  .text:0000000180B79315                 mov     edx, eax
+  .text:0000000180B79317                 call    r8
+  .text:0000000180B7931A                 cmp     al, 2
+  .text:0000000180B7931C                 jnz     loc_180B793ED
+  .text:0000000180B79322                 mov     ecx, cs:dword_181F5FE24
+  .text:0000000180B79328                 mov     edx, 1
+  .text:0000000180B7932D                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:0000000180B79333                 test    al, al
+  .text:0000000180B79335                 jz      loc_180B793D6
+  .text:0000000180B7933B                 mov     rax, [rbx+348h]
+  .text:0000000180B79342                 lea     rdi, byte_18159B990
+  .text:0000000180B79349                 mov     rcx, [rbx+10h]
+  .text:0000000180B7934D                 test    rax, rax
+  .text:0000000180B79350                 mov     r9, rdi
+  .text:0000000180B79353                 cmovnz  r9, rax
+  .text:0000000180B79357                 mov     rax, [rcx+20h]
+  .text:0000000180B7935B                 test    rax, rax
+  .text:0000000180B7935E                 cmovnz  rdi, rax
+  .text:0000000180B79362                 test    rcx, rcx
+  .text:0000000180B79365                 jz      short loc_180B793A2
+  .text:0000000180B79367                 mov     edx, [rcx+10h]
+  .text:0000000180B7936A                 mov     r8d, edx
+  .text:0000000180B7936D                 mov     eax, [rcx+30h]
+  .text:0000000180B79370                 mov     ecx, 7FFFh
+  .text:0000000180B79375                 shr     r8d, 0Fh
+  .text:0000000180B79379                 and     eax, 1
+  .text:0000000180B7937C                 sub     r8d, eax
+  .text:0000000180B7937F                 mov     eax, edx
+  .text:0000000180B79381                 and     eax, 7FFFh
+  .text:0000000180B79386                 shl     r8d, 0Fh
+  .text:0000000180B7938A                 cmp     edx, 0FFFFFFFFh
+  .text:0000000180B7938D                 cmovnz  ecx, eax
+  .text:0000000180B79390                 or      r8d, ecx
+  .text:0000000180B79393                 cmp     r8d, 0FFFFFFFFh
+  .text:0000000180B79397                 jz      short loc_180B793A2
+  .text:0000000180B79399                 and     r8d, 7FFFh
+  .text:0000000180B793A0                 jmp     short loc_180B793A8
+  .text:0000000180B793A2                 mov     r8d, 7FFFh
+  .text:0000000180B793A8                 mov     ecx, cs:dword_181F5FE24
+  .text:0000000180B793AE                 mov     edx, 1
+  .text:0000000180B793B3                 mov     [rsp+68h+var_38], r9
+  .text:0000000180B793B8                 lea     r9, aSv; "SV"
+  .text:0000000180B793BF                 mov     [rsp+68h+var_40], rdi
+  .text:0000000180B793C4                 mov     dword ptr [rsp+68h+var_48], r8d
+  .text:0000000180B793C9                 lea     r8, aSRemovingGloba; "%s:  removing GLOBAL_DEAD global entity"...
+  .text:0000000180B793D0                 call    cs:LoggingSystem_Log
+  .text:0000000180B793D6                 mov     eax, 0FFFFFFFFh
+  .text:0000000180B793DB                 lea     r11, [rsp+68h+var_8]
+  .text:0000000180B793E0                 mov     rbx, [r11+20h]
+  .text:0000000180B793E4                 mov     rbp, [r11+28h]
+  .text:0000000180B793E8                 mov     rsp, r11
+  .text:0000000180B793EB                 pop     rdi
+  .text:0000000180B793EC                 retn
+  .text:0000000180B793ED                 mov     rcx, cs:off_181C46F88
+  .text:0000000180B793F4                 mov     edx, ebp
+  .text:0000000180B793F6                 mov     rax, [rcx]
+  .text:0000000180B793F9                 call    qword ptr [rax+30h]
+  .text:0000000180B793FC                 mov     rcx, cs:off_181C47C28
+  .text:0000000180B79403                 mov     r8, rax
+  .text:0000000180B79406                 mov     rdx, [rcx+60h]
+  .text:0000000180B7940A                 cmp     rdx, rax
+  .text:0000000180B7940D                 jz      loc_180B79630
+  .text:0000000180B79413                 test    rdx, rdx
+  .text:0000000180B79416                 jz      short loc_180B7943B
+  .text:0000000180B79418                 test    rax, rax
+  .text:0000000180B7941B                 jz      short loc_180B7943B
+  .text:0000000180B7941D                 sub     r8, rdx
+  .text:0000000180B79420                 movzx   ecx, byte ptr [rdx]
+  .text:0000000180B79423                 movzx   eax, byte ptr [rdx+r8]
+  .text:0000000180B79428                 sub     ecx, eax
+  .text:0000000180B7942A                 jnz     short loc_180B79433
+  .text:0000000180B7942C                 inc     rdx
+  .text:0000000180B7942F                 test    eax, eax
+  .text:0000000180B79431                 jnz     short loc_180B79420
+  .text:0000000180B79433                 test    ecx, ecx
+  .text:0000000180B79435                 jz      loc_180B79630
+  .text:0000000180B7943B                 mov     rax, [rbx+10h]
+  .text:0000000180B7943F                 mov     ecx, [rax+30h]
+  .text:0000000180B79442                 shr     ecx, 7
+  .text:0000000180B79445                 test    cl, 1
+  .text:0000000180B79448                 jnz     loc_180B79630
+  .text:0000000180B7944E                 mov     ecx, cs:dword_181F5FE24
+  .text:0000000180B79454                 mov     edx, 1
+  .text:0000000180B79459                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:0000000180B7945F                 test    al, al
+  .text:0000000180B79461                 jz      loc_180B79531
+  .text:0000000180B79467                 mov     rax, [rbx+348h]
+  .text:0000000180B7946E                 lea     rdi, byte_18159B990
+  .text:0000000180B79475                 mov     rcx, [rbx+10h]
+  .text:0000000180B79479                 test    rax, rax
+  .text:0000000180B7947C                 mov     [rsp+68h+arg_0], rsi
+  .text:0000000180B79481                 mov     [rsp+68h+arg_8], r14
+  .text:0000000180B79486                 mov     r14, rdi
+  .text:0000000180B79489                 cmovnz  r14, rax
+  .text:0000000180B7948D                 mov     rax, [rcx+20h]
+  .text:0000000180B79491                 test    rax, rax
+  .text:0000000180B79494                 cmovnz  rdi, rax
+  .text:0000000180B79498                 test    rcx, rcx
+  .text:0000000180B7949B                 jz      short loc_180B794D1
+  .text:0000000180B7949D                 mov     edx, [rcx+10h]
+  .text:0000000180B794A0                 mov     esi, edx
+  .text:0000000180B794A2                 mov     eax, [rcx+30h]
+  .text:0000000180B794A5                 mov     ecx, 7FFFh
+  .text:0000000180B794AA                 shr     esi, 0Fh
+  .text:0000000180B794AD                 and     eax, 1
+  .text:0000000180B794B0                 sub     esi, eax
+  .text:0000000180B794B2                 mov     eax, edx
+  .text:0000000180B794B4                 and     eax, 7FFFh
+  .text:0000000180B794B9                 shl     esi, 0Fh
+  .text:0000000180B794BC                 cmp     edx, 0FFFFFFFFh
+  .text:0000000180B794BF                 cmovnz  ecx, eax
+  .text:0000000180B794C2                 or      esi, ecx
+  .text:0000000180B794C4                 cmp     esi, 0FFFFFFFFh
+  .text:0000000180B794C7                 jz      short loc_180B794D1
+  .text:0000000180B794C9                 and     esi, 7FFFh
+  .text:0000000180B794CF                 jmp     short loc_180B794D6
+  .text:0000000180B794D1                 mov     esi, 7FFFh
+  .text:0000000180B794D6                 mov     rcx, cs:off_181C46F88
+  .text:0000000180B794DD                 mov     edx, ebp
+  .text:0000000180B794DF                 mov     rax, [rcx]
+  .text:0000000180B794E2                 call    qword ptr [rax+30h]
+  .text:0000000180B794E5                 mov     [rsp+68h+var_28], r14
+  .text:0000000180B794EA                 lea     r9, aSv; "SV"
+  .text:0000000180B794F1                 mov     [rsp+68h+var_30], rdi
+  .text:0000000180B794F6                 lea     r8, aSMarkingGlobal; "%s:  marking global entity dormant (cur"...
+  .text:0000000180B794FD                 mov     dword ptr [rsp+68h+var_38], esi
+  .text:0000000180B79501                 mov     edx, 1
+  .text:0000000180B79506                 mov     [rsp+68h+var_40], rax
+  .text:0000000180B7950B                 mov     rax, cs:off_181C47C28
+  .text:0000000180B79512                 mov     rcx, [rax+60h]
+  .text:0000000180B79516                 mov     [rsp+68h+var_48], rcx
+  .text:0000000180B7951B                 mov     ecx, cs:dword_181F5FE24
+  .text:0000000180B79521                 call    cs:LoggingSystem_Log
+  .text:0000000180B79527                 mov     r14, [rsp+68h+arg_8]
+  .text:0000000180B7952C                 mov     rsi, [rsp+68h+arg_0]
+  .text:0000000180B79531                 mov     rcx, cs:g_pGameEntitySystem
+  .text:0000000180B79538                 lea     r8, [rsp+68h+var_18]
+  .text:0000000180B7953D                 mov     edx, 1
+  .text:0000000180B79542                 mov     [rsp+68h+var_18], rbx
+  .text:0000000180B79547                 mov     [rsp+68h+var_10], 0
+  .text:0000000180B7954C                 call    CEntitySystem_SetInPVS
+  .text:0000000180B79551                 jmp     loc_180B79630
+  .text:0000000180B79556                 mov     rax, cs:off_181C47C28
+  .text:0000000180B7955D                 lea     rdi, byte_18159B990
+  .text:0000000180B79564                 mov     r10, [rdx+10h]
+  .text:0000000180B79568                 mov     r9b, 1
+  .text:0000000180B7956B                 mov     rdx, rdi
+  .text:0000000180B7956E                 mov     r8, [rax+60h]
+  .text:0000000180B79572                 mov     rax, [rbx+348h]
+  .text:0000000180B79579                 test    rax, rax
+  .text:0000000180B7957C                 cmovnz  rdx, rax
+  .text:0000000180B79580                 call    r10
+  .text:0000000180B79583                 mov     ecx, cs:dword_181F5FE24
+  .text:0000000180B79589                 mov     edx, 1
+  .text:0000000180B7958E                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:0000000180B79594                 test    al, al
+  .text:0000000180B79596                 jz      loc_180B79630
+  .text:0000000180B7959C                 mov     rax, [rbx+348h]
+  .text:0000000180B795A3                 mov     r9, rdi
+  .text:0000000180B795A6                 mov     rcx, [rbx+10h]
+  .text:0000000180B795AA                 test    rax, rax
+  .text:0000000180B795AD                 cmovnz  r9, rax
+  .text:0000000180B795B1                 mov     rax, [rcx+20h]
+  .text:0000000180B795B5                 test    rax, rax
+  .text:0000000180B795B8                 cmovnz  rdi, rax
+  .text:0000000180B795BC                 test    rcx, rcx
+  .text:0000000180B795BF                 jz      short loc_180B795FC
+  .text:0000000180B795C1                 mov     edx, [rcx+10h]
+  .text:0000000180B795C4                 mov     r8d, edx
+  .text:0000000180B795C7                 mov     eax, [rcx+30h]
+  .text:0000000180B795CA                 mov     ecx, 7FFFh
+  .text:0000000180B795CF                 shr     r8d, 0Fh
+  .text:0000000180B795D3                 and     eax, 1
+  .text:0000000180B795D6                 sub     r8d, eax
+  .text:0000000180B795D9                 mov     eax, edx
+  .text:0000000180B795DB                 and     eax, 7FFFh
+  .text:0000000180B795E0                 shl     r8d, 0Fh
+  .text:0000000180B795E4                 cmp     edx, 0FFFFFFFFh
+  .text:0000000180B795E7                 cmovnz  ecx, eax
+  .text:0000000180B795EA                 or      r8d, ecx
+  .text:0000000180B795ED                 cmp     r8d, 0FFFFFFFFh
+  .text:0000000180B795F1                 jz      short loc_180B795FC
+  .text:0000000180B795F3                 and     r8d, 7FFFh
+  .text:0000000180B795FA                 jmp     short loc_180B79602
+  .text:0000000180B795FC                 mov     r8d, 7FFFh
+  .text:0000000180B79602                 mov     ecx, cs:dword_181F5FE24
+  .text:0000000180B79608                 mov     edx, 1
+  .text:0000000180B7960D                 mov     [rsp+68h+var_38], r9
+  .text:0000000180B79612                 lea     r9, aSv; "SV"
+  .text:0000000180B79619                 mov     [rsp+68h+var_40], rdi
+  .text:0000000180B7961E                 mov     dword ptr [rsp+68h+var_48], r8d
+  .text:0000000180B79623                 lea     r8, aSAddedGlobalEn; "%s:  added global entity %d %s (%s)\n"
+  .text:0000000180B7962A                 call    cs:LoggingSystem_Log
+  .text:0000000180B79630                 lea     r11, [rsp+68h+var_8]
+  .text:0000000180B79635                 xor     eax, eax
+  .text:0000000180B79637                 mov     rbx, [r11+20h]
+  .text:0000000180B7963B                 mov     rbp, [r11+28h]
+  .text:0000000180B7963F                 mov     rsp, r11
+  .text:0000000180B79642                 pop     rdi
+  .text:0000000180B79643                 retn
+procedure: |-
+  __int64 __fastcall CEntitySaveRestoreBlockHandler_RestoreEntity(__int64 a1, __int64 *a2, __int64 a3)
+  {
+    int v4; // eax
+    __int64 v5; // r9
+    unsigned int v6; // ebp
+    __int64 v7; // rdx
+    const char *v8; // rdi
+    __int64 v9; // rcx
+    const char *v10; // r9
+    unsigned int v11; // edx
+    int v12; // eax
+    int v13; // ecx
+    int v14; // r8d
+    __int64 v16; // rax
+    unsigned __int8 *v17; // rdx
+    __int64 v18; // r8
+    int v19; // eax
+    int v20; // ecx
+    const char *v21; // rdi
+    __int64 v22; // rcx
+    const char *v23; // r14
+    unsigned int v24; // edx
+    int v25; // eax
+    int v26; // ecx
+    int v27; // esi
+    const char *v28; // rax
+    const char *v29; // rdi
+    void (__fastcall *v30)(_UNKNOWN ***, char *, _QWORD, __int64); // r10
+    char *v31; // rdx
+    const char *v32; // r9
+    __int64 v33; // rcx
+    unsigned int v34; // edx
+    int v35; // eax
+    int v36; // ecx
+    int v37; // r8d
+    __int64 *v38; // [rsp+50h] [rbp-18h] BYREF
+    char v39; // [rsp+58h] [rbp-10h]
+
+    if ( !CEntitySaveRestoreBlockHandler_DoRestoreEntity(a1, a2, a3) || !a2 || !a2[105] )
+      return 0;
+    v4 = ((__int64 (__fastcall *)(_UNKNOWN ***))(*off_181C46F88)[4])(off_181C46F88);
+    v6 = v4;
+    v7 = (__int64)*off_181C46F88;
+    if ( v4 < 0 )
+    {
+      v29 = byte_18159B990;
+      v30 = *(void (__fastcall **)(_UNKNOWN ***, char *, _QWORD, __int64))(v7 + 16);
+      LOBYTE(v5) = 1;
+      v31 = byte_18159B990;
+      if ( a2[105] )
+        v31 = (char *)a2[105];
+      v30(off_181C46F88, v31, *((_QWORD *)off_181C47C28 + 12), v5);
+      if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_181F5FE24, 1) )
+      {
+        v32 = byte_18159B990;
+        v33 = a2[2];
+        if ( a2[105] )
+          v32 = (const char *)a2[105];
+        if ( *(_QWORD *)(v33 + 32) )
+          v29 = *(const char **)(v33 + 32);
+        if ( !v33 )
+          goto LABEL_52;
+        v34 = *(_DWORD *)(v33 + 16);
+        v35 = *(_DWORD *)(v33 + 48);
+        v36 = 0x7FFF;
+        if ( v34 != -1 )
+          v36 = v34 & 0x7FFF;
+        if ( (v36 | (((v34 >> 15) - (v35 & 1)) << 15)) == 0xFFFFFFFF )
+  LABEL_52:
+          v37 = 0x7FFF;
+        else
+          v37 = v36 & 0x7FFF;
+        LoggingSystem_Log((unsigned int)dword_181F5FE24, 1, "%s:  added global entity %d %s (%s)\n", "SV", v37, v29, v32);
+      }
+      return 0;
+    }
+    if ( (*(unsigned __int8 (__fastcall **)(_UNKNOWN ***, _QWORD))(v7 + 40))(off_181C46F88, (unsigned int)v4) != 2 )
+    {
+      v16 = ((__int64 (__fastcall *)(_UNKNOWN ***, _QWORD))(*off_181C46F88)[6])(off_181C46F88, v6);
+      v17 = *((unsigned __int8 **)off_181C47C28 + 12);
+      if ( v17 != (unsigned __int8 *)v16 )
+      {
+        if ( !v17 || !v16 )
+          goto LABEL_26;
+        v18 = v16 - (_QWORD)v17;
+        do
+        {
+          v19 = v17[v18];
+          v20 = *v17 - v19;
+          if ( v20 )
+            break;
+          ++v17;
+        }
+        while ( v19 );
+        if ( v20 )
+        {
+  LABEL_26:
+          if ( (*(_DWORD *)(a2[2] + 48) & 0x80) == 0 )
+          {
+            if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_181F5FE24, 1) )
+            {
+              v21 = byte_18159B990;
+              v22 = a2[2];
+              v23 = byte_18159B990;
+              if ( a2[105] )
+                v23 = (const char *)a2[105];
+              if ( *(_QWORD *)(v22 + 32) )
+                v21 = *(const char **)(v22 + 32);
+              if ( !v22 )
+                goto LABEL_37;
+              v24 = *(_DWORD *)(v22 + 16);
+              v25 = *(_DWORD *)(v22 + 48);
+              v26 = 0x7FFF;
+              if ( v24 != -1 )
+                v26 = v24 & 0x7FFF;
+              if ( (v26 | (((v24 >> 15) - (v25 & 1)) << 15)) == 0xFFFFFFFF )
+  LABEL_37:
+                v27 = 0x7FFF;
+              else
+                v27 = v26 & 0x7FFF;
+              v28 = (const char *)((__int64 (__fastcall *)(_UNKNOWN ***, _QWORD))(*off_181C46F88)[6])(off_181C46F88, v6);
+              LoggingSystem_Log(
+                (unsigned int)dword_181F5FE24,
+                1,
+                "%s:  marking global entity dormant (current:'%s' vs last active in:'%s') %d %s (%s)\n",
+                "SV",
+                *((const char **)off_181C47C28 + 12),
+                v28,
+                v27,
+                v21,
+                v23);
+            }
+            v38 = a2;
+            v39 = 0;
+            CEntitySystem_SetInPVS(g_pGameEntitySystem, 1, &v38);
+          }
+        }
+      }
+      return 0;
+    }
+    if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_181F5FE24, 1) )
+    {
+      v8 = byte_18159B990;
+      v9 = a2[2];
+      v10 = byte_18159B990;
+      if ( a2[105] )
+        v10 = (const char *)a2[105];
+      if ( *(_QWORD *)(v9 + 32) )
+        v8 = *(const char **)(v9 + 32);
+      if ( !v9 )
+        goto LABEL_16;
+      v11 = *(_DWORD *)(v9 + 16);
+      v12 = *(_DWORD *)(v9 + 48);
+      v13 = 0x7FFF;
+      if ( v11 != -1 )
+        v13 = v11 & 0x7FFF;
+      if ( (v13 | (((v11 >> 15) - (v12 & 1)) << 15)) == 0xFFFFFFFF )
+  LABEL_16:
+        v14 = 0x7FFF;
+      else
+        v14 = v13 & 0x7FFF;
+      LoggingSystem_Log(
+        (unsigned int)dword_181F5FE24,
+        1,
+        "%s:  removing GLOBAL_DEAD global entity %d %s (%s)\n",
+        "SV",
+        v14,
+        v8,
+        v10);
+    }
+    return 0xFFFFFFFFLL;
+  }
