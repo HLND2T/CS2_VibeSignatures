@@ -3837,6 +3837,22 @@ modules:
         expected_input:
           - CBaseEntity_DrawDebugTextOverlays.{platform}.yaml
 
+      - name: find-CRagdollProp_vtable
+        expected_output:
+          - CRagdollProp_vtable.{platform}.yaml
+
+      - name: find-CRagdollProp_DrawEntityDebugOverlays
+        expected_output:
+          - CRagdollProp_DrawEntityDebugOverlays.{platform}.yaml
+        expected_input:
+          - CRagdollProp_vtable.{platform}.yaml
+
+      - name: find-CEntityInstance_DrawEntityDebugOverlays
+        expected_output:
+          - CEntityInstance_DrawEntityDebugOverlays.{platform}.yaml
+        expected_input:
+          - CRagdollProp_DrawEntityDebugOverlays.{platform}.yaml
+
       - name: find-CEntityInstance_PostDataUpdate
         expected_output:
           - CEntityInstance_PostDataUpdate.{platform}.yaml
@@ -5680,6 +5696,11 @@ modules:
         alias:
           - CBaseEntity::DrawDebugTextOverlays
 
+      - name: CRagdollProp_DrawEntityDebugOverlays
+        category: vfunc
+        alias:
+          - CRagdollProp::DrawEntityDebugOverlays
+
       - name: CBaseEntity_ReloadPrivateScripts
         category: vfunc
         alias:
@@ -6005,6 +6026,11 @@ modules:
         alias:
           - CEntityInstance::DrawDebugTextOverlays
 
+      - name: CEntityInstance_DrawEntityDebugOverlays
+        category: vfunc
+        alias:
+          - CEntityInstance::DrawEntityDebugOverlays
+
       - name: CEntityInstance_PostDataUpdateDelta
         category: vfunc
         alias:
@@ -6075,6 +6101,9 @@ modules:
         alias:
           - INetworkMessages::GetLoggingChannel
         shared: true
+
+      - name: CRagdollProp_vtable
+        category: vtable
 
       - name: CPhysicsEntitySolver_vtable
         category: vtable
