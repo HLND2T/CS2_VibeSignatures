@@ -2866,6 +2866,10 @@ modules:
         expected_output:
           - CEntitySystem_CreateEntity.{platform}.yaml
 
+      - name: find-CEntitySystem_DoConstructEntity
+        expected_output:
+          - CEntitySystem_DoConstructEntity.{platform}.yaml
+
       - name: find-CBaseEntity_RequiredEdictIndex
         expected_output:
           - CBaseEntity_RequiredEdictIndex.{platform}.yaml
@@ -2928,6 +2932,10 @@ modules:
           - CEntitySystem_ExecuteQueuedCreation.{platform}.yaml
         expected_input:
           - CBaseEntity_DispatchSpawn.{platform}.yaml
+
+      - name: find-CLoadingSpawnGroup_CreateEntityToSpawn
+        expected_output:
+          - CLoadingSpawnGroup_CreateEntityToSpawn.{platform}.yaml
 
       - name: find-CEntitySystem_ExecuteQueuedActivates-AND-CEntitySystem_ExecuteQueuedPostDataUpdateAndActivates
         expected_output:
@@ -3276,6 +3284,24 @@ modules:
           - CEntityInstance_m_CScriptComponent.{platform}.yaml
         expected_input:
           - CEntityInstance_FindOutputsByName.{platform}.yaml
+
+      - name: find-CEntityInstance_m_pKeyValues
+        expected_output:
+          - CEntityInstance_m_pKeyValues.{platform}.yaml
+        expected_input:
+          - CLoadingSpawnGroup_CreateEntityToSpawn.{platform}.yaml
+
+      - name: find-CEntityInstance_m_pEntity
+        expected_output:
+          - CEntityInstance_m_pEntity.{platform}.yaml
+        expected_input:
+          - CEntitySystem_DoConstructEntity.{platform}.yaml
+
+      - name: find-CEntityInstance_m_hPrivateScope
+        expected_output:
+          - CEntityInstance_m_hPrivateScope.{platform}.yaml
+        expected_input:
+          - CEntityInstance_ValidatePrivateScriptScope.{platform}.yaml
 
       - name: find-CEntityInstance_ScriptEntityIO
         expected_output:
@@ -3857,6 +3883,16 @@ modules:
           - CEntityInstance_ReloadPrivateScripts.{platform}.yaml
         expected_input:
           - CBaseEntity_ReloadPrivateScripts.{platform}.yaml
+
+      - name: find-CEntityInstance_ValidatePrivateScriptScope
+        expected_output:
+          - CEntityInstance_ValidatePrivateScriptScope.{platform}.yaml
+
+      - name: find-CEntityInstance_m_iszPrivateVScripts
+        expected_output:
+          - CEntityInstance_m_iszPrivateVScripts.{platform}.yaml
+        expected_input:
+          - CEntityInstance_ReloadPrivateScripts.{platform}.yaml
 
       - name: find-CEntityInstance_Save
         expected_output:
@@ -4945,6 +4981,11 @@ modules:
         alias:
           - CEntitySystem::CreateEntity
 
+      - name: CEntitySystem_DoConstructEntity
+        category: func
+        alias:
+          - CEntitySystem::DoConstructEntity
+
       - name: CBaseEntity_RequiredEdictIndex
         category: vfunc
         alias:
@@ -5015,6 +5056,12 @@ modules:
         category: func
         alias:
           - CEntitySystem::ExecuteQueuedCreation
+
+      - name: CLoadingSpawnGroup_CreateEntityToSpawn
+        category: func
+        alias:
+          - CLoadingSpawnGroup::CreateEntityToSpawn
+          - ILoadingSpawnGroup::CreateEntityToSpawn
 
       - name: CEntitySystem_ExecuteQueuedActivates
         category: func
@@ -5295,6 +5342,16 @@ modules:
         category: structmember
         alias:
           - CEntityInstance::m_CScriptComponent
+
+      - name: CEntityInstance_m_pKeyValues
+        category: structmember
+        alias:
+          - CEntityInstance::m_pKeyValues
+
+      - name: CEntityInstance_m_pEntity
+        category: structmember
+        alias:
+          - CEntityInstance::m_pEntity
 
       - name: CEntityInstance_ScriptEntityIO
         category: vfunc
@@ -5914,6 +5971,21 @@ modules:
         category: vfunc
         alias:
           - CEntityInstance::ReloadPrivateScripts
+
+      - name: CEntityInstance_ValidatePrivateScriptScope
+        category: func
+        alias:
+          - CEntityInstance::ValidatePrivateScriptScope
+
+      - name: CEntityInstance_m_iszPrivateVScripts
+        category: structmember
+        alias:
+          - CEntityInstance::m_iszPrivateVScripts
+
+      - name: CEntityInstance_m_hPrivateScope
+        category: structmember
+        alias:
+          - CEntityInstance::m_hPrivateScope
 
       - name: CEntityInstance_Save
         category: vfunc
