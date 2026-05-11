@@ -2964,6 +2964,10 @@ modules:
           - CEntitySystem_PrecacheEntity.{platform}.yaml
           - CEntitySystem_vtable.{platform}.yaml
 
+      - name: find-CEntitySystem_DoConstructEntity
+        expected_output:
+          - CEntitySystem_DoConstructEntity.{platform}.yaml
+
       - name: find-CEntityInstance_Disconnect-AND-CEntityComponentHelperT_Free
         expected_output:
           - CEntityInstance_Disconnect.{platform}.yaml
@@ -3628,6 +3632,16 @@ modules:
           - IGameTypes_CreateWorkshopMapGroup.{platform}.yaml
         expected_input:
           - CDedicatedServerWorkshopManager_SwitchToWorkshopMapGroup.{platform}.yaml
+
+      - name: find-CLoadingSpawnGroup_vtable
+        expected_output:
+          - CLoadingSpawnGroup_vtable.{platform}.yaml
+
+      - name: find-CLoadingSpawnGroup_CreateEntityToSpawn
+        expected_output:
+          - CLoadingSpawnGroup_CreateEntityToSpawn.{platform}.yaml
+        expected_input:
+          - CLoadingSpawnGroup_vtable.{platform}.yaml
 
       - name: find-CSpawnGroupMgrGameSystem_vtable
         expected_output:
@@ -5171,6 +5185,11 @@ modules:
         alias:
           - CEntitySystem::ConstructEntity
 
+      - name: CEntitySystem_DoConstructEntity
+        category: func
+        alias:
+          - CEntitySystem::DoConstructEntity
+
       - name: CEntitySystem_GetSpawnGroupWorldId
         category: vfunc
         alias:
@@ -5869,6 +5888,14 @@ modules:
         category: vfunc
         alias:
           - IGameSystem::OnPostSpawnGroupUnload
+
+      - name: CLoadingSpawnGroup_vtable
+        category: vtable
+
+      - name: CLoadingSpawnGroup_CreateEntityToSpawn
+        category: vfunc
+        alias:
+          - CLoadingSpawnGroup::CreateEntityToSpawn
 
       - name: CSpawnGroupMgrGameSystem_OnSpawnGroupPrecache
         category: vfunc
