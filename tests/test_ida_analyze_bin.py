@@ -797,6 +797,31 @@ class TestPostProcessMcpExecution(unittest.IsolatedAsyncioTestCase):
         )
 
 
+class TestStartIdalibMcp(unittest.TestCase):
+    @patch.object(ida_analyze_bin, "wait_for_port", return_value=True)
+    @patch("ida_analyze_bin.subprocess.Popen")
+    def test_start_idalib_mcp_non_debug_discards_server_output(
+        self,
+        mock_popen,
+        _mock_wait_for_port,
+    ) -> None:
+        fake_process = MagicMock()
+        mock_popen.return_value = fake_process
+
+        process = ida_analyze_bin.start_idalib_mcp(
+            "bin/14160/client/client.dll",
+            host="127.0.0.1",
+            port=13337,
+            debug=False,
+        )
+
+        self.assertIs(fake_process, process)
+        mock_popen.assert_called_once()
+        _args, kwargs = mock_popen.call_args
+        self.assertEqual(ida_analyze_bin.subprocess.DEVNULL, kwargs["stdout"])
+        self.assertEqual(ida_analyze_bin.subprocess.DEVNULL, kwargs["stderr"])
+
+
 class TestProcessBinary(unittest.TestCase):
     def test_process_binary_treats_absent_ok_as_skip_and_continues(self) -> None:
         with TemporaryDirectory() as temp_dir:

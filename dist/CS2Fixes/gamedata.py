@@ -2,7 +2,7 @@
 """
 CS2Fixes Gamedata Update Module
 
-Updates cs2fixes.games.txt for CS2Fixes plugin (VDF format).
+Updates cs2fixes.jsonc for CS2Fixes plugin (JSONC format).
 """
 
 import os
@@ -11,27 +11,22 @@ import sys
 # Add project root to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 from gamedata_utils import (
-    convert_sig_to_cs2fixes,
-    normalize_func_name_colons_to_underscore
+    convert_sig_to_css,
+    load_jsonc,
+    normalize_func_name_colons_to_underscore,
+    save_jsonc,
 )
-
-try:
-    import vdf
-except ImportError:
-    print("Error: Missing required dependency: vdf")
-    print("Please install required dependencies with: uv sync")
-    vdf = None
 
 # Module metadata
 MODULE_NAME = "CS2Fixes"
 MODULE_ENABLED = True
 
 # Relative path to gamedata file within this dist directory
-GAMEDATA_PATH = "gamedata/cs2fixes.games.txt"
+GAMEDATA_PATH = "gamedata/cs2fixes.jsonc"
 
 # Upstream download sources: (raw_url, relative_dest_path)
 DOWNLOAD_SOURCES = [
-    ("https://raw.githubusercontent.com/Source2ZE/CS2Fixes/main/gamedata/cs2fixes.games.txt",
+    ("https://raw.githubusercontent.com/Source2ZE/CS2Fixes/refs/heads/ag2/gamedata/cs2fixes.jsonc",
      GAMEDATA_PATH),
 ]
 
@@ -47,7 +42,7 @@ STRUCT_MEMBER_OFFSET_DIVISOR = {
 
 def update(yaml_data, func_lib_map, platforms, dist_dir, alias_to_name_map, debug=False):
     """
-    Update CS2Fixes cs2fixes.games.txt file (VDF format).
+    Update CS2Fixes cs2fixes.jsonc file (JSONC format).
 
     Args:
         yaml_data: Loaded YAML data
@@ -60,30 +55,21 @@ def update(yaml_data, func_lib_map, platforms, dist_dir, alias_to_name_map, debu
     Returns:
         Tuple of (updated_count, skipped_count, updated_symbols, skipped_symbols)
     """
-    if vdf is None:
-        print("  Error: vdf module not available")
-        return 0, 0, [], []
-
     gamedata_path = os.path.join(dist_dir, GAMEDATA_PATH)
 
     if not os.path.exists(gamedata_path):
         print(f"  Warning: CS2Fixes gamedata not found: {gamedata_path}")
         return 0, 0, [], []
 
-    # Load existing gamedata (handle BOM)
-    with open(gamedata_path, "r", encoding="utf-8-sig") as f:
-        content = f.read()
-
-    # Parse VDF
-    gamedata = vdf.loads(content)
+    gamedata = load_jsonc(gamedata_path)
 
     updated_count = 0
     skipped_count = 0
     updated_symbols = []
     skipped_symbols = []
 
-    # Navigate to csgo section
-    csgo = gamedata.get("Games", {}).get("csgo", {})
+    # CS2Fixes JSONC keeps the sections at the file root.
+    csgo = gamedata
 
     # Update Signatures
     signatures = csgo.get("Signatures", {})
@@ -118,8 +104,9 @@ def update(yaml_data, func_lib_map, platforms, dist_dir, alias_to_name_map, debu
 
         # Update platform signatures
         for platform in platforms:
-            if platform in yaml_entry and "func_sig" in yaml_entry[platform]:
-                sig = convert_sig_to_cs2fixes(yaml_entry[platform]["func_sig"])
+            if (platform in entry and platform in yaml_entry
+                    and "func_sig" in yaml_entry[platform]):
+                sig = convert_sig_to_css(yaml_entry[platform]["func_sig"])
                 entry[platform] = sig
                 updated_count += 1
                 if debug:
@@ -149,10 +136,11 @@ def update(yaml_data, func_lib_map, platforms, dist_dir, alias_to_name_map, debu
         # Update platform offsets
         for platform in platforms:
             if platform in yaml_entry:
+                if platform not in entry:
+                    continue
                 # Check for vfunc_index (virtual function offset)
                 if "vfunc_index" in yaml_entry[platform]:
-                    # CS2Fixes uses string values for offsets
-                    entry[platform] = str(yaml_entry[platform]["vfunc_index"])
+                    entry[platform] = yaml_entry[platform]["vfunc_index"]
                     updated_count += 1
                     if debug:
                         updated_symbols.append({
@@ -166,7 +154,7 @@ def update(yaml_data, func_lib_map, platforms, dist_dir, alias_to_name_map, debu
                     divisor = STRUCT_MEMBER_OFFSET_DIVISOR.get(func_name)
                     if divisor:
                         offset_val = offset_val // divisor
-                    entry[platform] = str(offset_val)
+                    entry[platform] = offset_val
                     updated_count += 1
                     if debug:
                         updated_symbols.append({
@@ -217,8 +205,9 @@ def update(yaml_data, func_lib_map, platforms, dist_dir, alias_to_name_map, debu
 
         # Update platform patch bytes
         for platform in platforms:
-            if platform in yaml_entry and "patch_bytes" in yaml_entry[platform]:
-                patch_bytes = convert_sig_to_cs2fixes(
+            if (platform in entry and platform in yaml_entry
+                    and "patch_bytes" in yaml_entry[platform]):
+                patch_bytes = convert_sig_to_css(
                     yaml_entry[platform]["patch_bytes"]
                 )
                 entry[platform] = patch_bytes
@@ -230,14 +219,6 @@ def update(yaml_data, func_lib_map, platforms, dist_dir, alias_to_name_map, debu
                         "platform": platform
                     })
 
-    # Write back with BOM
-    # Use vdf.dumps() to get string, then manually fix escaped backslashes
-    vdf_content = vdf.dumps(gamedata, pretty=True)
-    # VDF library escapes backslashes, but CS2Fixes expects single backslash
-    # Replace \\x with \x in signature strings
-    vdf_content = vdf_content.replace("\\\\x", "\\x")
-
-    with open(gamedata_path, "w", encoding="utf-8-sig") as f:
-        f.write(vdf_content)
+    save_jsonc(gamedata_path, gamedata)
 
     return updated_count, skipped_count, updated_symbols, skipped_symbols

@@ -2,9 +2,20 @@
 
 **Use when:** function IS virtual (has vtable slot), discovered by decompiling a known predecessor function.
 
+## CRITICAL -- `vfunc_sig` is ALWAYS required for Pattern C
+
+For ANY vfunc discovered via LLM_DECOMPILE, `GENERATE_YAML_DESIRED_FIELDS` **MUST** include `vfunc_sig`. This rule applies regardless of whether the script also emits `func_va`/`func_rva`/`func_size`. Pure slot-only (`func_name, vtable_name, vfunc_offset, vfunc_index` only, no `vfunc_sig`) is reserved for Pattern F slot-only / Pattern I / Pattern K -- it is NOT a valid output shape for Pattern C.
+
+Why: LLM_DECOMPILE picks the slot from a decompile of the predecessor; without a `vfunc_sig` the discovered slot has no signature anchor for cross-binary stability. `vfunc_sig` provides the signature byte pattern of the actual vfunc body so it can be re-located across binary updates even if the vtable layout shifts.
+
+The two valid Pattern C field sets are:
+
+- **Standard Pattern C** (also a downstream predecessor): `func_name, func_va, func_rva, func_size, vfunc_sig, vfunc_offset, vfunc_index, vtable_name`
+- **Slim Pattern C** (not a predecessor): `func_name, vfunc_sig, vfunc_offset, vfunc_index, vtable_name`
+
 ## Important -- `func_va` in output YAMLs
 
-If this function will be used as a **predecessor** by a downstream LLM_DECOMPILE script (i.e., another script decompiles this function to find further targets), you **MUST** include `func_va`, `func_rva`, and `func_size` in `GENERATE_YAML_DESIRED_FIELDS`. The downstream script resolves the predecessor's address by reading `func_va` from the output YAML. Without it, the LLM_DECOMPILE fallback fails with "failed to resolve llm_decompile target function address". When in doubt, always include `func_va` -- it never hurts.
+If this function will be used as a **predecessor** by a downstream LLM_DECOMPILE script (i.e., another script decompiles this function to find further targets), you **MUST** also include `func_va`, `func_rva`, and `func_size` in `GENERATE_YAML_DESIRED_FIELDS` (Standard Pattern C). The downstream script resolves the predecessor's address by reading `func_va` from the output YAML. Without it, the LLM_DECOMPILE fallback fails with "failed to resolve llm_decompile target function address". When in doubt, always include `func_va` -- it never hurts.
 
 ## Template
 
@@ -34,15 +45,16 @@ FUNC_VTABLE_RELATIONS = [
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
-    # Include func_va/func_rva/func_size if this function is a predecessor for downstream LLM_DECOMPILE
+    # ALWAYS include "vfunc_sig" for Pattern C.
+    # Include func_va/func_rva/func_size only if this function is a predecessor for downstream LLM_DECOMPILE.
     (
         "{FUNC_NAME_1}",
         [
             "func_name",
-            "func_va",
-            "func_rva",
-            "func_size",
-            "vfunc_sig",
+            "func_va",      # omit if not a downstream predecessor
+            "func_rva",     # omit if not a downstream predecessor
+            "func_size",    # omit if not a downstream predecessor
+            "vfunc_sig",    # REQUIRED -- never omit for Pattern C
             "vfunc_offset",
             "vfunc_index",
             "vtable_name",
@@ -76,6 +88,7 @@ async def preprocess_skill(
 
 - [ ] `TARGET_FUNCTION_NAMES` lists all functions the script should find
 - [ ] `LLM_DECOMPILE` reference path points to the correct predecessor function YAML
+- [ ] `GENERATE_YAML_DESIRED_FIELDS` includes `vfunc_sig` for EVERY target (mandatory for Pattern C)
 - [ ] `FUNC_VTABLE_RELATIONS` lists correct vtable class for each target that has `vtable_name` or `vfunc_*` in its `GENERATE_YAML_DESIRED_FIELDS`
 - [ ] `preprocess_skill` signature includes `llm_config=None`
 - [ ] `preprocess_common_skill` call passes `func_names=`, `func_vtable_relations=`, `llm_decompile_specs=`, and `llm_config=`

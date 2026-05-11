@@ -1,31 +1,30 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CEntityInstance_PostDataUpdate skill."""
+"""Preprocess script for find-CEntityInstance_PreDataUpdate skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = [
-    "CEntityInstance_PostDataUpdate",
+    "CEntityInstance_PreDataUpdate",
 ]
 
 LLM_DECOMPILE = [
     # (symbol_name, path_to_prompt, path_to_reference)
     (
-        "CEntityInstance_PostDataUpdate",
+        "CEntityInstance_PreDataUpdate",
         "prompt/call_llm_decompile.md",
-        "references/server/CEntityInstance_PostDataUpdateDelta.{platform}.yaml",
+        "references/client/CLoopModeGame_OnPreDataUpdate.{platform}.yaml",
     ),
 ]
 
 FUNC_VTABLE_RELATIONS = [
     # (func_name, vtable_class)
-    ("CEntityInstance_PostDataUpdate", "CEntityInstance"),
+    ("CEntityInstance_PreDataUpdate", "CEntityInstance"),
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
-    # IMPORTANT: must be exactly these four fields to trigger slot-only mode
     (
-        "CEntityInstance_PostDataUpdate",
+        "CEntityInstance_PreDataUpdate",
         [
             "func_name",
             "vfunc_sig",
@@ -40,7 +39,7 @@ async def preprocess_skill(
     session, skill_name, expected_outputs, old_yaml_map,
     new_binary_dir, platform, image_base, llm_config=None, debug=False,
 ):
-    """Reuse previous gamever vfunc slot; fallback to LLM_DECOMPILE on CEntityInstance_PostDataUpdateDelta wrapper."""
+    """Reuse previous gamever vfunc slot; fallback to LLM_DECOMPILE on CLoopModeGame_OnPreDataUpdate."""
     return await preprocess_common_skill(
         session=session,
         expected_outputs=expected_outputs,

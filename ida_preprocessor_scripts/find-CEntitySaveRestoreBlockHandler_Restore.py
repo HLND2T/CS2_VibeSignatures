@@ -29,6 +29,7 @@ FUNC_VTABLE_RELATIONS = [
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
+    # (symbol_name, generate_yaml_fields)
     (
         "CEntitySaveRestoreBlockHandler_Restore",
         [

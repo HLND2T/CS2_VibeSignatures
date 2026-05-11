@@ -1,0 +1,11 @@
+func_name: CEntityInstance_NetworkUpdateState_thunk
+func_va: '0x18120f480'
+disasm_code: |-
+  .text:000000018120F480                 mov     rax, [rcx]
+  .text:000000018120F483                 ; 0xF8 = 248LL = CEntityInstance_NetworkUpdateState
+  .text:000000018120F483                 jmp     qword ptr [rax+0F8h]; 0xF8 = 248LL = CEntityInstance_NetworkUpdateState
+procedure: |-
+  __int64 __fastcall sub_18120F480(__int64 a1, bool a2)
+  {
+    return (*(__int64 (__fastcall **)(__int64, bool))(*(_QWORD *)a1 + 248LL))(a1, a2);// 0xF8 = 248LL = CEntityInstance_NetworkUpdateState
+  }

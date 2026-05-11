@@ -1,0 +1,97 @@
+func_name: CLoopModeGame_OnPreDataUpdate
+func_va: '0x15cb960'
+disasm_code: |-
+  .text:00000000015CB960                 mov     edi, [rsi]
+  .text:00000000015CB962                 test    edi, edi
+  .text:00000000015CB964                 jle     locret_15CBA07
+  .text:00000000015CB96A                 push    rbp
+  .text:00000000015CB96B                 mov     rbp, rsp
+  .text:00000000015CB96E                 push    r12
+  .text:00000000015CB970                 xor     r12d, r12d
+  .text:00000000015CB973                 push    rbx
+  .text:00000000015CB974                 mov     rbx, rsi
+  .text:00000000015CB977                 mov     r8, [rbx+8]
+  .text:00000000015CB97B                 lea     rcx, [r8+r12*8]
+  .text:00000000015CB97F                 mov     esi, [rcx]
+  .text:00000000015CB981                 cmp     esi, 7FFEh
+  .text:00000000015CB987                 ja      short loc_15CB9C1
+  .text:00000000015CB989                 lea     rax, qword_47FAC88
+  .text:00000000015CB990                 mov     rdx, [rax]
+  .text:00000000015CB993                 mov     eax, esi
+  .text:00000000015CB995                 sar     eax, 9
+  .text:00000000015CB998                 cdqe
+  .text:00000000015CB99A                 mov     rax, [rdx+rax*8+10h]
+  .text:00000000015CB99F                 test    rax, rax
+  .text:00000000015CB9A2                 jz      short loc_15CB9C1
+  .text:00000000015CB9A4                 mov     edx, esi
+  .text:00000000015CB9A6                 and     edx, 1FFh
+  .text:00000000015CB9AC                 imul    rdx, 70h ; 'p'
+  .text:00000000015CB9B0                 add     rax, rdx
+  .text:00000000015CB9B3                 movzx   edx, word ptr [rax+10h]
+  .text:00000000015CB9B7                 and     edx, 7FFFh
+  .text:00000000015CB9BD                 cmp     edx, esi
+  .text:00000000015CB9BF                 jz      short loc_15CB9D0
+  .text:00000000015CB9C1                 lea     rdi, aOnpredataupdat; "OnPreDataUpdate: missing ent %d"
+  .text:00000000015CB9C8                 xor     eax, eax
+  .text:00000000015CB9CA                 call    _Plat_FatalError
+  .text:00000000015CB9CF                 nop
+  .text:00000000015CB9D0                 mov     esi, [rcx+4]
+  .text:00000000015CB9D3                 test    sil, 4
+  .text:00000000015CB9D7                 jnz     short loc_15CB9F8
+  .text:00000000015CB9D9                 mov     rdi, [rax]
+  .text:00000000015CB9DC                 add     r12, 1
+  .text:00000000015CB9E0                 mov     rax, [rdi]
+  .text:00000000015CB9E3                 call    qword ptr [rax+98h]  ; 98h = CEntityInstance_PreDataUpdate
+  .text:00000000015CB9E9                 mov     edi, [rbx]
+  .text:00000000015CB9EB                 cmp     edi, r12d
+  .text:00000000015CB9EE                 jg      short loc_15CB977
+  .text:00000000015CB9F0                 pop     rbx
+  .text:00000000015CB9F1                 pop     r12
+  .text:00000000015CB9F3                 pop     rbp
+  .text:00000000015CB9F4                 retn
+  .text:00000000015CB9F8                 add     r12, 1
+  .text:00000000015CB9FC                 cmp     edi, r12d
+  .text:00000000015CB9FF                 jg      loc_15CB97B
+  .text:00000000015CBA05                 jmp     short loc_15CB9F0
+  .text:00000000015CBA07                 retn
+procedure: |-
+  void __fastcall CLoopModeGame_OnPreDataUpdate(__int64 a1, __int64 a2)
+  {
+    const char *v2; // rdi
+    __int64 v3; // r12
+    __int64 v5; // r8
+    int *v6; // rcx
+    int v7; // esi
+    __int64 v8; // rax
+    _WORD *v9; // rax
+
+    LODWORD(v2) = *(_DWORD *)a2;
+    if ( *(int *)a2 > 0 )
+    {
+      v3 = 0;
+      do
+      {
+        v5 = *(_QWORD *)(a2 + 8);
+        while ( 1 )
+        {
+          v6 = (int *)(v5 + 8 * v3);
+          v7 = *v6;
+          if ( (unsigned int)*v6 > 0x7FFE
+            || (v8 = *(_QWORD *)(qword_47FAC88 + 8LL * (v7 >> 9) + 16)) == 0
+            || (v9 = (_WORD *)(112LL * (v7 & 0x1FF) + v8), (v9[8] & 0x7FFF) != v7) )
+          {
+            v2 = "OnPreDataUpdate: missing ent %d";
+            v9 = (_WORD *)Plat_FatalError("OnPreDataUpdate: missing ent %d", v7);
+          }
+          if ( (v6[1] & 4) == 0 )
+            break;
+          if ( (int)v2 <= (int)++v3 )
+            return;
+        }
+        ++v3;
+        (*(void (__fastcall **)(_QWORD))(**(_QWORD **)v9 + 152LL))(*(_QWORD *)v9);  // 152LL = 0x98 = CEntityInstance_PreDataUpdate
+        LODWORD(v2) = *(_DWORD *)a2;
+      }
+      while ( *(_DWORD *)a2 > (int)v3 );
+    }
+  }

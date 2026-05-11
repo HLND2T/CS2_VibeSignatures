@@ -1,0 +1,11 @@
+func_name: CEntityInstance_PostDataUpdateDelta
+func_va: '0x18120baf0'
+disasm_code: |-
+  .text:000000018120BAF0                 mov     rax, [rcx]
+  .text:000000018120BAF3                 ; 58h = CEntityInstance_PostDataUpdate
+  .text:000000018120BAF3                 jmp     qword ptr [rax+58h]; 58h = CEntityInstance_PostDataUpdate
+procedure: |-
+  __int64 __fastcall CEntityInstance_PostDataUpdateDelta(__int64 a1)
+  {
+    return (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)a1 + 88LL))(a1);   // 88LL = 0x58 = CEntityInstance_PostDataUpdate
+  }

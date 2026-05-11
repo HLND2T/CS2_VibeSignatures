@@ -17,7 +17,7 @@ FUNC_XREFS = [
             "CNetworkTransmitComponent_StateChanged",
         ],
         "exclude_funcs": [],
-        "exclude_strings": [],
+        "exclude_strings": ["CNetworkTransmitComponent::StateChanged(%s) @%s:%d"],
         "exclude_gvs": [],
         "exclude_signatures": [],
     },

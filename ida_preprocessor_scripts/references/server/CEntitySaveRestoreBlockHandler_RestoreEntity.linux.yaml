@@ -1,0 +1,339 @@
+func_name: CEntitySaveRestoreBlockHandler_RestoreEntity
+func_va: '0x1566af0'
+disasm_code: |-
+  .text:0000000001566AF0                 push    rbp
+  .text:0000000001566AF1                 mov     ecx, r8d
+  .text:0000000001566AF4                 mov     rbp, rsp
+  .text:0000000001566AF7                 push    r15
+  .text:0000000001566AF9                 push    r14
+  .text:0000000001566AFB                 push    r13
+  .text:0000000001566AFD                 push    r12
+  .text:0000000001566AFF                 push    rbx
+  .text:0000000001566B00                 mov     rbx, rsi
+  .text:0000000001566B03                 sub     rsp, 38h
+  .text:0000000001566B07                 call    CEntitySaveRestoreBlockHandler_DoRestoreEntity
+  .text:0000000001566B0C                 test    rbx, rbx
+  .text:0000000001566B0F                 jz      loc_1566B98
+  .text:0000000001566B15                 test    al, al
+  .text:0000000001566B17                 jz      short loc_1566B98
+  .text:0000000001566B19                 mov     rsi, [rbx+628h]
+  .text:0000000001566B20                 test    rsi, rsi
+  .text:0000000001566B23                 jz      short loc_1566B98
+  .text:0000000001566B25                 lea     r13, off_24FA7F8
+  .text:0000000001566B2C                 mov     rdi, [r13+0]
+  .text:0000000001566B30                 mov     rax, [rdi]
+  .text:0000000001566B33                 call    qword ptr [rax+20h]
+  .text:0000000001566B36                 mov     rdi, [r13+0]
+  .text:0000000001566B3A                 mov     r12d, eax
+  .text:0000000001566B3D                 mov     rax, [rdi]
+  .text:0000000001566B40                 test    r12d, r12d
+  .text:0000000001566B43                 js      short loc_1566BB0
+  .text:0000000001566B45                 mov     esi, r12d
+  .text:0000000001566B48                 call    qword ptr [rax+28h]
+  .text:0000000001566B4B                 cmp     al, 2
+  .text:0000000001566B4D                 jz      loc_1566D43
+  .text:0000000001566B53                 mov     rdi, [r13+0]
+  .text:0000000001566B57                 mov     esi, r12d
+  .text:0000000001566B5A                 mov     rax, [rdi]
+  .text:0000000001566B5D                 call    qword ptr [rax+30h]
+  .text:0000000001566B60                 lea     r14, off_24FA868
+  .text:0000000001566B67                 mov     rdx, [r14]
+  .text:0000000001566B6A                 ; s1
+  .text:0000000001566B6A                 mov     rdi, [rdx+60h]; s1
+  .text:0000000001566B6E                 cmp     rax, rdi
+  .text:0000000001566B71                 jz      short loc_1566B98
+  .text:0000000001566B73                 test    rdi, rdi
+  .text:0000000001566B76                 jz      loc_1566C60
+  .text:0000000001566B7C                 test    rax, rax
+  .text:0000000001566B7F                 jz      loc_1566C60
+  .text:0000000001566B85                 ; s2
+  .text:0000000001566B85                 mov     rsi, rax; s2
+  .text:0000000001566B88                 call    strcmp
+  .text:0000000001566B8D                 test    eax, eax
+  .text:0000000001566B8F                 jnz     loc_1566C60
+  .text:0000000001566B95                 nop     dword ptr [rax]
+  .text:0000000001566B98                 xor     eax, eax
+  .text:0000000001566B9A                 lea     rsp, [rbp-28h]
+  .text:0000000001566B9E                 pop     rbx
+  .text:0000000001566B9F                 pop     r12
+  .text:0000000001566BA1                 pop     r13
+  .text:0000000001566BA3                 pop     r14
+  .text:0000000001566BA5                 pop     r15
+  .text:0000000001566BA7                 pop     rbp
+  .text:0000000001566BA8                 retn
+  .text:0000000001566BB0                 lea     rdx, off_24FA868
+  .text:0000000001566BB7                 lea     r12, haystack
+  .text:0000000001566BBE                 mov     ecx, 1
+  .text:0000000001566BC3                 mov     rsi, [rbx+628h]
+  .text:0000000001566BCA                 mov     rdx, [rdx]
+  .text:0000000001566BCD                 test    rsi, rsi
+  .text:0000000001566BD0                 cmovz   rsi, r12
+  .text:0000000001566BD4                 mov     rdx, [rdx+60h]
+  .text:0000000001566BD8                 call    qword ptr [rax+10h]
+  .text:0000000001566BDB                 lea     r15, dword_26DB0B0
+  .text:0000000001566BE2                 ; _QWORD
+  .text:0000000001566BE2                 mov     esi, 1; _QWORD
+  .text:0000000001566BE7                 ; _QWORD
+  .text:0000000001566BE7                 mov     edi, [r15]; _QWORD
+  .text:0000000001566BEA                 call    _LoggingSystem_IsChannelEnabled
+  .text:0000000001566BEF                 test    al, al
+  .text:0000000001566BF1                 jz      short loc_1566B98
+  .text:0000000001566BF3                 mov     rdi, [rbx+10h]
+  .text:0000000001566BF7                 ; _QWORD
+  .text:0000000001566BF7                 mov     esi, 1; _QWORD
+  .text:0000000001566BFC                 mov     rax, [rbx+628h]
+  .text:0000000001566C03                 mov     r9, [rdi+20h]
+  .text:0000000001566C07                 test    rax, rax
+  .text:0000000001566C0A                 cmovz   rax, r12
+  .text:0000000001566C0E                 test    r9, r9
+  .text:0000000001566C11                 mov     rcx, rax
+  .text:0000000001566C14                 cmovz   r9, r12
+  .text:0000000001566C18                 call    sub_152CA40
+  .text:0000000001566C1D                 ; _QWORD
+  .text:0000000001566C1D                 mov     edi, [r15]; _QWORD
+  .text:0000000001566C20                 lea     rdx, aSAddedGlobalEn; "%s:  added global entity %d %s (%s)\n"
+  .text:0000000001566C27                 mov     r8d, eax
+  .text:0000000001566C2A                 and     r8d, 7FFFh
+  .text:0000000001566C31                 cmp     eax, 0FFFFFFFFh
+  .text:0000000001566C34                 mov     eax, 7FFFh
+  .text:0000000001566C39                 cmovz   r8d, eax
+  .text:0000000001566C3D                 sub     rsp, 8
+  .text:0000000001566C41                 xor     eax, eax
+  .text:0000000001566C43                 push    rcx
+  .text:0000000001566C44                 lea     rcx, aSv_0; "SV"
+  .text:0000000001566C4B                 call    _LoggingSystem_Log
+  .text:0000000001566C50                 pop     rax
+  .text:0000000001566C51                 pop     rdx
+  .text:0000000001566C52                 jmp     loc_1566B98
+  .text:0000000001566C60                 mov     rax, [rbx+10h]
+  .text:0000000001566C64                 test    byte ptr [rax+30h], 80h
+  .text:0000000001566C68                 jnz     loc_1566B98
+  .text:0000000001566C6E                 lea     r15, dword_26DB0B0
+  .text:0000000001566C75                 ; _QWORD
+  .text:0000000001566C75                 mov     esi, 1; _QWORD
+  .text:0000000001566C7A                 ; _QWORD
+  .text:0000000001566C7A                 mov     edi, [r15]; _QWORD
+  .text:0000000001566C7D                 call    _LoggingSystem_IsChannelEnabled
+  .text:0000000001566C82                 test    al, al
+  .text:0000000001566C84                 jz      loc_1566D21
+  .text:0000000001566C8A                 mov     rdi, [rbx+10h]
+  .text:0000000001566C8E                 lea     rax, haystack
+  .text:0000000001566C95                 mov     esi, r12d
+  .text:0000000001566C98                 mov     rcx, [rbx+628h]
+  .text:0000000001566C9F                 mov     rdx, [rdi+20h]
+  .text:0000000001566CA3                 test    rcx, rcx
+  .text:0000000001566CA6                 cmovz   rcx, rax
+  .text:0000000001566CAA                 test    rdx, rdx
+  .text:0000000001566CAD                 mov     [rbp+var_58], rcx
+  .text:0000000001566CB1                 cmovz   rdx, rax
+  .text:0000000001566CB5                 mov     [rbp+var_50], rdx
+  .text:0000000001566CB9                 call    sub_152CA40
+  .text:0000000001566CBE                 mov     rdi, [r13+0]
+  .text:0000000001566CC2                 mov     r10d, eax
+  .text:0000000001566CC5                 and     r10d, 7FFFh
+  .text:0000000001566CCC                 cmp     eax, 0FFFFFFFFh
+  .text:0000000001566CCF                 mov     eax, 7FFFh
+  .text:0000000001566CD4                 cmovz   r10d, eax
+  .text:0000000001566CD8                 mov     rax, [rdi]
+  .text:0000000001566CDB                 mov     [rbp+var_44], r10d
+  .text:0000000001566CDF                 call    qword ptr [rax+30h]
+  .text:0000000001566CE2                 mov     rcx, [rbp+var_58]
+  .text:0000000001566CE6                 sub     rsp, 8
+  .text:0000000001566CEA                 ; _QWORD
+  .text:0000000001566CEA                 mov     esi, 1; _QWORD
+  .text:0000000001566CEF                 mov     r9, rax
+  .text:0000000001566CF2                 mov     rax, [r14]
+  .text:0000000001566CF5                 ; _QWORD
+  .text:0000000001566CF5                 mov     edi, [r15]; _QWORD
+  .text:0000000001566CF8                 mov     r8, [rax+60h]
+  .text:0000000001566CFC                 push    rcx
+  .text:0000000001566CFD                 lea     rcx, aSv_0; "SV"
+  .text:0000000001566D04                 xor     eax, eax
+  .text:0000000001566D06                 mov     rdx, [rbp+var_50]
+  .text:0000000001566D0A                 push    rdx
+  .text:0000000001566D0B                 mov     r10d, [rbp+var_44]
+  .text:0000000001566D0F                 lea     rdx, aSMarkingGlobal; "%s:  marking global entity dormant (cur"...
+  .text:0000000001566D16                 push    r10
+  .text:0000000001566D18                 call    _LoggingSystem_Log
+  .text:0000000001566D1D                 add     rsp, 20h
+  .text:0000000001566D21                 mov     rdi, cs:g_pGameEntitySystem
+  .text:0000000001566D28                 lea     rdx, [rbp+var_40]
+  .text:0000000001566D2C                 mov     esi, 1
+  .text:0000000001566D31                 mov     [rbp+var_40], rbx
+  .text:0000000001566D35                 mov     [rbp+var_38], 0
+  .text:0000000001566D39                 call    CEntitySystem_SetInPVS
+  .text:0000000001566D3E                 jmp     loc_1566B98
+  .text:0000000001566D43                 lea     r15, dword_26DB0B0
+  .text:0000000001566D4A                 ; _QWORD
+  .text:0000000001566D4A                 mov     esi, 1; _QWORD
+  .text:0000000001566D4F                 ; _QWORD
+  .text:0000000001566D4F                 mov     edi, [r15]; _QWORD
+  .text:0000000001566D52                 call    _LoggingSystem_IsChannelEnabled
+  .text:0000000001566D57                 test    al, al
+  .text:0000000001566D59                 jz      short loc_1566DBC
+  .text:0000000001566D5B                 mov     rax, [rbx+628h]
+  .text:0000000001566D62                 lea     rcx, haystack
+  .text:0000000001566D69                 mov     rdi, [rbx+10h]
+  .text:0000000001566D6D                 lea     r9, haystack
+  .text:0000000001566D74                 test    rax, rax
+  .text:0000000001566D77                 cmovnz  rcx, rax
+  .text:0000000001566D7B                 mov     rax, [rdi+20h]
+  .text:0000000001566D7F                 test    rax, rax
+  .text:0000000001566D82                 cmovnz  r9, rax
+  .text:0000000001566D86                 call    sub_152CA40
+  .text:0000000001566D8B                 mov     r8d, eax
+  .text:0000000001566D8E                 cmp     eax, 0FFFFFFFFh
+  .text:0000000001566D91                 jz      short loc_1566DC4
+  .text:0000000001566D93                 and     r8d, 7FFFh
+  .text:0000000001566D9A                 push    rsi
+  .text:0000000001566D9B                 lea     rdx, aSRemovingGloba; "%s:  removing GLOBAL_DEAD global entity"...
+  .text:0000000001566DA2                 ; _QWORD
+  .text:0000000001566DA2                 mov     esi, 1; _QWORD
+  .text:0000000001566DA7                 xor     eax, eax
+  .text:0000000001566DA9                 push    rcx
+  .text:0000000001566DAA                 ; _QWORD
+  .text:0000000001566DAA                 mov     edi, [r15]; _QWORD
+  .text:0000000001566DAD                 lea     rcx, aSv_0; "SV"
+  .text:0000000001566DB4                 call    _LoggingSystem_Log
+  .text:0000000001566DB9                 pop     rdi
+  .text:0000000001566DBA                 pop     r8
+  .text:0000000001566DBC                 or      eax, 0FFFFFFFFh
+  .text:0000000001566DBF                 jmp     loc_1566B9A
+  .text:0000000001566DC4                 mov     r8d, 7FFFh
+  .text:0000000001566DCA                 jmp     short loc_1566D9A
+procedure: |-
+  __int64 __fastcall CEntitySaveRestoreBlockHandler_RestoreEntity(__int64 a1, _QWORD *a2, _QWORD *a3)
+  {
+    char v4; // al
+    unsigned int v5; // r12d
+    __int64 v6; // rax
+    const char *v7; // rax
+    const char *v8; // rdi
+    const bool *v10; // rsi
+    __int64 v11; // rdx
+    __int64 v12; // r8
+    __int64 v13; // rdi
+    const bool *v14; // rax
+    const bool *v15; // r9
+    int v16; // eax
+    __int64 v17; // r8
+    __int64 v18; // r8
+    __int64 v19; // r9
+    __int64 v20; // rdi
+    const bool *v21; // rcx
+    const bool *v22; // rdx
+    int v23; // eax
+    int v24; // r10d
+    const char *v25; // rax
+    __int64 v26; // rdx
+    __int64 v27; // r8
+    const bool *v28; // rcx
+    __int64 v29; // rdi
+    const bool *v30; // r9
+    int v31; // eax
+    const char *v32; // rcx
+    const char *v33; // r9
+    int v34; // r8d
+    const char *v35; // [rsp+8h] [rbp-58h]
+    const char *v36; // [rsp+10h] [rbp-50h]
+    int v37; // [rsp+1Ch] [rbp-44h]
+    _QWORD *v38; // [rsp+20h] [rbp-40h] BYREF
+    char v39; // [rsp+28h] [rbp-38h]
+
+    v4 = CEntitySaveRestoreBlockHandler_DoRestoreEntity(a1, a2, a3);
+    if ( !a2 || !v4 || !a2[197] )
+      return 0;
+    v5 = (*(__int64 (__fastcall **)(__int64 *))(*off_24FA7F8[0] + 32))(off_24FA7F8[0]);
+    v6 = *off_24FA7F8[0];
+    if ( (v5 & 0x80000000) != 0 )
+    {
+      v10 = (const bool *)a2[197];
+      if ( !v10 )
+        v10 = &haystack;
+      (*(void (__fastcall **)(__int64 *, const bool *, _QWORD, __int64))(v6 + 16))(
+        off_24FA7F8[0],
+        v10,
+        *((_QWORD *)off_24FA868 + 12),
+        1);
+      if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_26DB0B0, 1) )
+      {
+        v13 = a2[2];
+        v14 = (const bool *)a2[197];
+        v15 = *(const bool **)(v13 + 32);
+        if ( !v14 )
+          v14 = &haystack;
+        if ( !v15 )
+          v15 = &haystack;
+        v16 = sub_152CA40(v13, 1, v11, v14, v12, v15);
+        v17 = v16 & 0x7FFF;
+        if ( v16 == -1 )
+          v17 = 0x7FFF;
+        LoggingSystem_Log((unsigned int)dword_26DB0B0, 1, "%s:  added global entity %d %s (%s)\n", "SV", v17);
+      }
+      return 0;
+    }
+    if ( (*(unsigned __int8 (__fastcall **)(__int64 *, _QWORD))(v6 + 40))(off_24FA7F8[0], v5) != 2 )
+    {
+      v7 = (const char *)(*(__int64 (__fastcall **)(__int64 *, _QWORD))(*off_24FA7F8[0] + 48))(off_24FA7F8[0], v5);
+      v8 = *((const char **)off_24FA868 + 12);
+      if ( v7 != v8 && (!v8 || !v7 || strcmp(v8, v7)) && *(char *)(a2[2] + 48LL) >= 0 )
+      {
+        if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_26DB0B0, 1) )
+        {
+          v20 = a2[2];
+          v21 = (const bool *)a2[197];
+          v22 = *(const bool **)(v20 + 32);
+          if ( !v21 )
+            v21 = &haystack;
+          v35 = (const char *)v21;
+          if ( !v22 )
+            v22 = &haystack;
+          v36 = (const char *)v22;
+          v23 = sub_152CA40(v20, v5, v22, v21, v18, v19);
+          v24 = v23 & 0x7FFF;
+          if ( v23 == -1 )
+            v24 = 0x7FFF;
+          v37 = v24;
+          v25 = (const char *)(*(__int64 (__fastcall **)(__int64 *))(*off_24FA7F8[0] + 48))(off_24FA7F8[0]);
+          LoggingSystem_Log(
+            (unsigned int)dword_26DB0B0,
+            1,
+            "%s:  marking global entity dormant (current:'%s' vs last active in:'%s') %d %s (%s)\n",
+            "SV",
+            *((const char **)off_24FA868 + 12),
+            v25,
+            v37,
+            v36,
+            v35);
+        }
+        v38 = a2;
+        v39 = 0;
+        CEntitySystem_SetInPVS(g_pGameEntitySystem, 1, &v38);
+      }
+      return 0;
+    }
+    if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_26DB0B0, 1) )
+    {
+      v28 = &haystack;
+      v29 = a2[2];
+      v30 = &haystack;
+      if ( a2[197] )
+        v28 = (const bool *)a2[197];
+      if ( *(_QWORD *)(v29 + 32) )
+        v30 = *(const bool **)(v29 + 32);
+      v31 = sub_152CA40(v29, 1, v26, v28, v27, v30);
+      if ( v31 == -1 )
+        v34 = 0x7FFF;
+      else
+        v34 = v31 & 0x7FFF;
+      LoggingSystem_Log(
+        (unsigned int)dword_26DB0B0,
+        1,
+        "%s:  removing GLOBAL_DEAD global entity %d %s (%s)\n",
+        "SV",
+        v34,
+        v33,
+        v32);
+    }
+    return 0xFFFFFFFFLL;
+  }

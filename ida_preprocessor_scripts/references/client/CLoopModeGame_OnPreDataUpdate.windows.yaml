@@ -1,0 +1,113 @@
+func_name: CLoopModeGame_OnPreDataUpdate
+func_va: '0x1809b7850'
+disasm_code: |-
+  .text:00000001809B7850                 mov     [rsp+arg_10], rbx
+  .text:00000001809B7855                 push    rsi
+  .text:00000001809B7856                 sub     rsp, 20h
+  .text:00000001809B785A                 xor     ebx, ebx
+  .text:00000001809B785C                 mov     rsi, rdx
+  .text:00000001809B785F                 cmp     [rdx], ebx
+  .text:00000001809B7861                 jle     loc_1809B790D
+  .text:00000001809B7867                 mov     [rsp+28h+arg_0], rdi
+  .text:00000001809B786C                 mov     edi, ebx
+  .text:00000001809B786E                 xchg    ax, ax
+  .text:00000001809B7870                 mov     rcx, [rsi+8]
+  .text:00000001809B7874                 mov     r11, cs:qword_1824D0DC0
+  .text:00000001809B787B                 mov     eax, [rcx+rdi]
+  .text:00000001809B787E                 mov     r8d, eax
+  .text:00000001809B7881                 mov     r10d, [rcx+rdi+4]
+  .text:00000001809B7886                 mov     [rsp+28h+arg_8], eax
+  .text:00000001809B788A                 cmp     eax, 7FFEh
+  .text:00000001809B788F                 ja      loc_1809B7918
+  .text:00000001809B7895                 mov     edx, eax
+  .text:00000001809B7897                 sar     edx, 9
+  .text:00000001809B789A                 cmp     edx, 3Fh ; '?'
+  .text:00000001809B789D                 ja      short loc_1809B7918
+  .text:00000001809B789F                 movsxd  rcx, edx
+  .text:00000001809B78A2                 mov     r9, [r11+rcx*8+10h]
+  .text:00000001809B78A7                 test    r9, r9
+  .text:00000001809B78AA                 jz      short loc_1809B7918
+  .text:00000001809B78AC                 and     r8d, 1FFh
+  .text:00000001809B78B3                 imul    rcx, r8, 70h ; 'p'
+  .text:00000001809B78B7                 add     rcx, r9
+  .text:00000001809B78BA                 jz      short loc_1809B7918
+  .text:00000001809B78BC                 mov     ecx, [rcx+10h]
+  .text:00000001809B78BF                 and     ecx, 7FFFh
+  .text:00000001809B78C5                 cmp     ecx, eax
+  .text:00000001809B78C7                 setz    cl
+  .text:00000001809B78CA                 test    cl, cl
+  .text:00000001809B78CC                 jz      short loc_1809B7918
+  .text:00000001809B78CE                 and     eax, 1FFh
+  .text:00000001809B78D3                 movsxd  rcx, edx
+  .text:00000001809B78D6                 imul    r8, rax, 70h ; 'p'
+  .text:00000001809B78DA                 add     r8, [r11+rcx*8+10h]
+  .text:00000001809B78DF                 jz      short loc_1809B7918
+  .text:00000001809B78E1                 mov     eax, r10d
+  .text:00000001809B78E4                 shr     eax, 2
+  .text:00000001809B78E7                 test    al, 1
+  .text:00000001809B78E9                 jnz     short loc_1809B78FA
+  .text:00000001809B78EB                 mov     rcx, [r8]
+  .text:00000001809B78EE                 mov     edx, r10d
+  .text:00000001809B78F1                 mov     rax, [rcx]
+  .text:00000001809B78F4                 ; 0x90 = 144LL = CEntityInstance_PreDataUpdate
+  .text:00000001809B78F4                 call    qword ptr [rax+90h]; 0x90 = 144LL = CEntityInstance_PreDataUpdate
+  .text:00000001809B78FA                 inc     ebx
+  .text:00000001809B78FC                 add     rdi, 8
+  .text:00000001809B7900                 cmp     ebx, [rsi]
+  .text:00000001809B7902                 jl      loc_1809B7870
+  .text:00000001809B7908                 mov     rdi, [rsp+28h+arg_0]
+  .text:00000001809B790D                 mov     rbx, [rsp+28h+arg_10]
+  .text:00000001809B7912                 add     rsp, 20h
+  .text:00000001809B7916                 pop     rsi
+  .text:00000001809B7917                 retn
+  .text:00000001809B7918                 lea     rcx, [rsp+28h+arg_8]
+  .text:00000001809B791D                 call    sub_180958D30
+  .text:00000001809B7922                 mov     edx, eax
+  .text:00000001809B7924                 lea     rcx, aOnpredataupdat; "OnPreDataUpdate: missing ent %d"
+  .text:00000001809B792B                 call    cs:Plat_FatalError
+procedure: |-
+  void __fastcall CLoopModeGame_OnPreDataUpdate(__int64 a1, unsigned __int64 a2)
+  {
+    int v2; // ebx
+    unsigned __int64 v3; // rsi
+    __int64 v4; // rdi
+    __int64 v5; // rcx
+    int v6; // eax
+    __int64 pEntity; // r8
+    unsigned int v8; // r10d
+    __int64 v9; // r9
+    __int64 v10; // rcx
+    int v11; // eax
+    int v12; // [rsp+38h] [rbp+10h] BYREF
+
+    v2 = 0;
+    v3 = a2;
+    if ( *(int *)a2 > 0 )
+    {
+      v4 = 0;
+      do
+      {
+        v5 = *(_QWORD *)(v3 + 8);
+        v6 = *(_DWORD *)(v5 + v4);
+        pEntity = (unsigned int)v6;
+        v8 = *(_DWORD *)(v5 + v4 + 4);
+        v12 = v6;
+        if ( (unsigned int)v6 > 0x7FFE
+          || (a2 = (unsigned int)(v6 >> 9), (unsigned int)a2 > 0x3F)
+          || (v9 = *(_QWORD *)(qword_1824D0DC0 + 8LL * (int)a2 + 16)) == 0
+          || (pEntity = v6 & 0x1FF, (v10 = v9 + 112 * pEntity) == 0)
+          || (*(_DWORD *)(v10 + 16) & 0x7FFF) != v6
+          || (pEntity = *(_QWORD *)(qword_1824D0DC0 + 8LL * (int)a2 + 16) + 112LL * (v6 & 0x1FF)) == 0 )
+        {
+          v11 = sub_180958D30(&v12, a2, pEntity);
+          Plat_FatalError("OnPreDataUpdate: missing ent %d", v11);
+          JUMPOUT(0x1809B7931LL);
+        }
+        if ( (v8 & 4) == 0 )
+          (*(void (__fastcall **)(_QWORD, _QWORD))(**(_QWORD **)pEntity + 144LL))(*(_QWORD *)pEntity, v8);// 0x90 = 144LL = CEntityInstance_PreDataUpdate
+        ++v2;
+        v4 += 8;
+      }
+      while ( v2 < *(_DWORD *)v3 );
+    }
+  }

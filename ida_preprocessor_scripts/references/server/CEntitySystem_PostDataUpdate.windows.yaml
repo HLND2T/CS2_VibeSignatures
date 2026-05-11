@@ -1,69 +1,71 @@
 func_name: CEntitySystem_PostDataUpdate
-func_va: '0x1811f4760'
+func_va: '0x1811f4700'
 disasm_code: |-
-  .text:00000001811F4760                 mov     [rsp+arg_0], rbx
-  .text:00000001811F4765                 push    rdi
-  .text:00000001811F4766                 sub     rsp, 20h
-  .text:00000001811F476A                 mov     rax, [rcx+0C80h]
-  .text:00000001811F4771                 mov     rdi, r8
-  .text:00000001811F4774                 movss   xmm2, dword ptr [rcx+0BD4h]
-  .text:00000001811F477C                 mov     rcx, rax
-  .text:00000001811F477F                 movsxd  rbx, edx
-  .text:00000001811F4782                 mov     edx, 80000001h
-  .text:00000001811F4787                 mov     r9, [rax]
-  .text:00000001811F478A                 call    qword ptr [r9+18h]
-  .text:00000001811F478E                 test    rbx, rbx
-  .text:00000001811F4791                 jle     short loc_1811F47D4
-  .text:00000001811F4793                 nop     dword ptr [rax+00h]
-  .text:00000001811F4797                 nop     word ptr [rax+rax+00000000h]
-  .text:00000001811F47A0                 mov     rax, [rdi]
-  .text:00000001811F47A3                 and     dword ptr [rax+30h], 0FFFFFFF7h
-  .text:00000001811F47A7                 mov     cs:byte_1820B15C6, 0
-  .text:00000001811F47AE                 mov     rcx, [rax]
-  .text:00000001811F47B1                 mov     edx, [rdi+8]
-  .text:00000001811F47B4                 mov     eax, edx
-  .text:00000001811F47B6                 shr     eax, 2
-  .text:00000001811F47B9                 mov     r8, [rcx]
-  .text:00000001811F47BC                 test    al, 1
-  .text:00000001811F47BE                 jz      short loc_1811F47C6
-  .text:00000001811F47C0                 call    qword ptr [r8+60h]
-  .text:00000001811F47C4                 jmp     short loc_1811F47CA
-  .text:00000001811F47C6                 call    qword ptr [r8+50h]       ; 50h = CBaseEntity_PostDataUpdate
-  .text:00000001811F47CA                 add     rdi, 10h
-  .text:00000001811F47CE                 sub     rbx, 1
-  .text:00000001811F47D2                 jnz     short loc_1811F47A0
-  .text:00000001811F47D4                 mov     rbx, [rsp+28h+arg_0]
-  .text:00000001811F47D9                 add     rsp, 20h
-  .text:00000001811F47DD                 pop     rdi
-  .text:00000001811F47DE                 retn
+  .text:00000001811F4700                 mov     [rsp+arg_0], rbx
+  .text:00000001811F4705                 push    rdi
+  .text:00000001811F4706                 sub     rsp, 20h
+  .text:00000001811F470A                 mov     rax, [rcx+0C80h]
+  .text:00000001811F4711                 mov     rdi, r8
+  .text:00000001811F4714                 movss   xmm2, dword ptr [rcx+0BD4h]
+  .text:00000001811F471C                 mov     rcx, rax
+  .text:00000001811F471F                 movsxd  rbx, edx
+  .text:00000001811F4722                 mov     edx, 80000001h
+  .text:00000001811F4727                 mov     r9, [rax]
+  .text:00000001811F472A                 call    qword ptr [r9+18h]
+  .text:00000001811F472E                 test    rbx, rbx
+  .text:00000001811F4731                 jle     short loc_1811F4774
+  .text:00000001811F4733                 nop     dword ptr [rax+00h]
+  .text:00000001811F4737                 nop     word ptr [rax+rax+00000000h]
+  .text:00000001811F4740                 mov     rax, [rdi]
+  .text:00000001811F4743                 and     dword ptr [rax+30h], 0FFFFFFF7h
+  .text:00000001811F4747                 mov     cs:g_bReceivedChainedPostDataUpdate, 0
+  .text:00000001811F474E                 mov     rcx, [rax]
+  .text:00000001811F4751                 mov     edx, [rdi+8]
+  .text:00000001811F4754                 mov     eax, edx
+  .text:00000001811F4756                 shr     eax, 2
+  .text:00000001811F4759                 mov     r8, [rcx]
+  .text:00000001811F475C                 test    al, 1
+  .text:00000001811F475E                 jz      short loc_1811F4766
+  .text:00000001811F4760                 ; 0x60 = 96LL = CEntityInstance_PostDataUpdatePreserve
+  .text:00000001811F4760                 call    qword ptr [r8+60h]; 0x60 = 96LL = CEntityInstance_PostDataUpdatePreserve
+  .text:00000001811F4764                 jmp     short loc_1811F476A
+  .text:00000001811F4766                 ; 0x50 = 80LL = CEntityInstance_PostDataUpdateDelta
+  .text:00000001811F4766                 call    qword ptr [r8+50h]; 0x50 = 80LL = CEntityInstance_PostDataUpdateDelta
+  .text:00000001811F476A                 add     rdi, 10h
+  .text:00000001811F476E                 sub     rbx, 1
+  .text:00000001811F4772                 jnz     short loc_1811F4740
+  .text:00000001811F4774                 mov     rbx, [rsp+28h+arg_0]
+  .text:00000001811F4779                 add     rsp, 20h
+  .text:00000001811F477D                 pop     rdi
+  .text:00000001811F477E                 retn
 procedure: |-
-  __int64 __fastcall sub_1811F4760(__int64 a1, int a2, __int64 ***a3)
+  void __fastcall CEntitySystem_PostDataUpdate(__int64 a1, int a2, __int64 a3)
   {
     __int64 v4; // rbx
-    __int64 result; // rax
-    __int64 **v6; // rax
-    __int64 v7; // r8
+    __int64 **v5; // rax
+    __int64 *pEntity; // rcx
+    int updateType; // edx
+    __int64 v8; // r8
 
     v4 = a2;
-    result = (*(__int64 (__fastcall **)(_QWORD, __int64))(**(_QWORD **)(a1 + 3200) + 24LL))(
-               *(_QWORD *)(a1 + 3200),
-               2147483649LL);
+    (*(void (__fastcall **)(_QWORD, __int64))(**(_QWORD **)(a1 + 3200) + 24LL))(*(_QWORD *)(a1 + 3200), 2147483649LL);
     if ( v4 > 0 )
     {
       do
       {
-        v6 = *a3;
-        *((_DWORD *)v6 + 12) &= ~8u;
-        byte_1820B15C6 = 0;
-        v7 = **v6;
-        if ( ((_DWORD)a3[1] & 4) != 0 )
-          result = (*(__int64 (**)(void))(v7 + 96))();
+        v5 = *(__int64 ***)a3;
+        *((_DWORD *)v5 + 12) &= ~8u;
+        g_bReceivedChainedPostDataUpdate = 0;
+        pEntity = *v5;
+        updateType = *(_DWORD *)(a3 + 8);
+        v8 = **v5;
+        if ( (updateType & 4) != 0 )
+          (*(void (__thiscall **)(__int64, int))(v8 + 96))((__int64)pEntity, updateType);// 0x60 = 96LL = CEntityInstance_PostDataUpdatePreserve
         else
-          result = (*(__int64 (**)(void))(v7 + 80))();   // 80LL = 0x50 = CBaseEntity_PostDataUpdate
-        a3 += 2;
+          (*(void (__thiscall **)(__int64, int))(v8 + 80))((__int64)pEntity, updateType);// 0x50 = 80LL = CEntityInstance_PostDataUpdateDelta
+        a3 += 16;
         --v4;
       }
       while ( v4 );
     }
-    return result;
   }

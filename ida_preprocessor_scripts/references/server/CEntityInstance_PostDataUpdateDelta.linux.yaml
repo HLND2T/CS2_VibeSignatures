@@ -1,0 +1,23 @@
+func_name: CEntityInstance_PostDataUpdateDelta
+func_va: '0x1e461e0'
+disasm_code: |-
+  .text:0000000001E461E0                 mov     rax, [rdi]
+  .text:0000000001E461E3                 lea     rdx, CEntityInstance_PostDataUpdatePreserve
+  .text:0000000001E461EA                 ; 60h = CEntityInstance_PostDataUpdate
+  .text:0000000001E461EA                 mov     rax, [rax+60h]   ; 60h = CEntityInstance_PostDataUpdate
+  .text:0000000001E461EE                 cmp     rax, rdx
+  .text:0000000001E461F1                 jnz     short loc_1E46200
+  .text:0000000001E461F3                 mov     cs:byte_27BB16B, 1
+  .text:0000000001E461FA                 retn
+  .text:0000000001E46200                 jmp     rax              ; tail-call CEntityInstance_PostDataUpdate (loaded above from [vtable+60h])
+procedure: |-
+  __int64 (*__fastcall CEntityInstance_PostDataUpdateDelta(__int64 a1))(void)
+  {
+    __int64 (*result)(void); // rax
+
+    result = *(__int64 (**)(void))(*(_QWORD *)a1 + 96LL);   // 96LL = 0x60 = CEntityInstance_PostDataUpdate
+    if ( result != CEntityInstance_PostDataUpdatePreserve )
+      return (__int64 (*)(void))result();
+    byte_27BB16B = 1;
+    return result;
+  }

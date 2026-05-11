@@ -1,0 +1,22 @@
+func_name: CEntityInstance_NetworkUpdateState_thunk
+func_va: '0x1e757f0'
+disasm_code: |-
+  .text:0000000001E757F0                 mov     rax, [rdi]
+  .text:0000000001E757F3                 lea     rdx, nullsub_1663
+  .text:0000000001E757FA                 ; 0x100 = 256LL = CEntityInstance_NetworkUpdateState
+  .text:0000000001E757FA                 mov     rax, [rax+100h]; 0x100 = 256LL = CEntityInstance_NetworkUpdateState
+  .text:0000000001E75801                 cmp     rax, rdx
+  .text:0000000001E75804                 jnz     short loc_1E75810
+  .text:0000000001E75806                 retn
+  .text:0000000001E75810                 movzx   esi, sil
+  .text:0000000001E75814                 jmp     rax
+procedure: |-
+  __int64 (__fastcall *__fastcall CEntityInstance_NetworkUpdateState_thunk(__int64 a1, unsigned __int8 a2))()
+  {
+    __int64 (__fastcall *result)(); // rax
+
+    result = *(__int64 (__fastcall **)())(*(_QWORD *)a1 + 256LL);// 0x100 = 256LL = CEntityInstance_NetworkUpdateState
+    if ( result != nullsub_1663 )
+      return (__int64 (__fastcall *)())((__int64 (__fastcall *)(__int64, _QWORD))result)(a1, a2);
+    return result;
+  }

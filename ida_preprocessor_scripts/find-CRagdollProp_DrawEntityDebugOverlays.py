@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CBaseEntity_ReloadPrivateScripts skill."""
+"""Preprocess script for find-CRagdollProp_DrawEntityDebugOverlays skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = [
-    "CBaseEntity_ReloadPrivateScripts",
+    "CRagdollProp_DrawEntityDebugOverlays",
 ]
 
 FUNC_XREFS = [
     {
-        "func_name": "CBaseEntity_ReloadPrivateScripts",
+        "func_name": "CRagdollProp_DrawEntityDebugOverlays",
         "xref_strings": [
-            "FULLMATCH:%s executing script: %s\n",
+            "mass %.1f",
         ],
         "xref_gvs": [],
         "xref_signatures": [],
@@ -25,20 +25,19 @@ FUNC_XREFS = [
 
 FUNC_VTABLE_RELATIONS = [
     # (func_name, vtable_class)
-    ("CBaseEntity_ReloadPrivateScripts", "CBaseEntity"),
+    ("CRagdollProp_DrawEntityDebugOverlays", "CRagdollProp"),
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
     (
-        "CBaseEntity_ReloadPrivateScripts",
+        "CRagdollProp_DrawEntityDebugOverlays",
         [
             "func_name",
             "func_va",
             "func_rva",
             "func_size",
             "func_sig",
-            "func_sig_allow_across_function_boundary:true",
             "vtable_name",
             "vfunc_offset",
             "vfunc_index",
