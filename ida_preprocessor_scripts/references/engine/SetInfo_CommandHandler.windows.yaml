@@ -1,0 +1,300 @@
+func_name: SetInfo_CommandHandler
+func_va: '0x180103e90'
+disasm_code: |-
+  .text:0000000180103E90                 push    rbp
+  .text:0000000180103E92                 push    r15
+  .text:0000000180103E94                 lea     rbp, [rsp-4Fh]
+  .text:0000000180103E99                 sub     rsp, 0D8h
+  .text:0000000180103EA0                 xor     r15d, r15d
+  .text:0000000180103EA3                 cmp     dword ptr [rdx+438h], 3
+  .text:0000000180103EAA                 jz      short loc_180103EC4
+  .text:0000000180103EAC                 lea     rcx, aSyntaxSetinfoK; "Syntax: setinfo <key> <value>\n"
+  .text:0000000180103EB3                 call    cs:Msg
+  .text:0000000180103EB9                 add     rsp, 0D8h
+  .text:0000000180103EC0                 pop     r15
+  .text:0000000180103EC2                 pop     rbp
+  .text:0000000180103EC3                 retn
+  .text:0000000180103EC4                 mov     rax, [rdx+440h]
+  .text:0000000180103ECB                 xor     r9d, r9d
+  .text:0000000180103ECE                 mov     rcx, cs:qword_1806845B8
+  .text:0000000180103ED5                 lea     rdx, [rbp+57h+arg_8]
+  .text:0000000180103ED9                 mov     [rsp+0E0h+var_18], rdi
+  .text:0000000180103EE1                 mov     [rsp+0E0h+var_20], r14
+  .text:0000000180103EE9                 mov     rdi, [rax+8]
+  .text:0000000180103EED                 mov     r14, [rax+10h]
+  .text:0000000180103EF1                 mov     r8, rdi
+  .text:0000000180103EF4                 mov     rax, [rcx]
+  .text:0000000180103EF7                 call    qword ptr [rax+88h]
+  .text:0000000180103EFD                 cmp     qword ptr [rax], 0FFFFh
+  .text:0000000180103F04                 jz      short loc_180103F1B
+  .text:0000000180103F06                 mov     rdx, rdi
+  .text:0000000180103F09                 lea     rcx, aNameSIsAlready; "Name %s is already registered as consol"...
+  .text:0000000180103F10                 call    cs:Msg
+  .text:0000000180103F16                 jmp     loc_18010418C
+  .text:0000000180103F1B                 mov     rcx, cs:qword_1806845B8
+  .text:0000000180103F22                 lea     rdx, [rbp+57h+arg_10]
+  .text:0000000180103F26                 mov     r9d, 1
+  .text:0000000180103F2C                 mov     [rsp+0E0h+arg_0], rbx
+  .text:0000000180103F34                 mov     r8, rdi
+  .text:0000000180103F37                 mov     rax, [rcx]
+  .text:0000000180103F3A                 call    qword ptr [rax+58h]
+  .text:0000000180103F3D                 mov     r8d, 0FFFFFFFFh
+  .text:0000000180103F43                 lea     rcx, [rbp+57h+var_B0]
+  .text:0000000180103F47                 mov     rdx, [rax]
+  .text:0000000180103F4A                 call    sub_1803FB340
+  .text:0000000180103F4F                 mov     rax, qword ptr [rbp+57h+var_B0+8]
+  .text:0000000180103F53                 test    rax, rax
+  .text:0000000180103F56                 jz      loc_180103FF7
+  .text:0000000180103F5C                 mov     rax, [rax+30h]
+  .text:0000000180103F60                 bt      rax, 0Ah
+  .text:0000000180103F65                 jb      loc_180103FF7
+  .text:0000000180103F6B                 shr     rax, 9
+  .text:0000000180103F6F                 test    al, 1
+  .text:0000000180103F71                 jnz     short loc_180103F88
+  .text:0000000180103F73                 mov     rdx, rdi
+  .text:0000000180103F76                 lea     rcx, aConvarSIsAlrea; "Convar %s is already registered but not"...
+  .text:0000000180103F7D                 call    cs:Msg
+  .text:0000000180103F83                 jmp     loc_18010417B
+  .text:0000000180103F88                 call    sub_180073C10
+  .text:0000000180103F8D                 mov     rcx, qword ptr [rbp+57h+var_B0+8]
+  .text:0000000180103F91                 add     eax, 0FFFFFFFEh
+  .text:0000000180103F94                 test    eax, 0FFFFFFFDh
+  .text:0000000180103F99                 jz      short loc_180103FA9
+  .text:0000000180103F9B                 movzx   eax, byte ptr [rcx+30h]
+  .text:0000000180103F9F                 shr     al, 1
+  .text:0000000180103FA1                 test    al, 1
+  .text:0000000180103FA3                 jnz     loc_18010417B
+  .text:0000000180103FA9                 mov     eax, [rcx+30h]
+  .text:0000000180103FAC                 shr     rax, 0Eh
+  .text:0000000180103FB0                 test    al, 1
+  .text:0000000180103FB2                 jz      loc_1801040CD
+  .text:0000000180103FB8                 mov     edx, 0FFFFFFFFh
+  .text:0000000180103FBD                 lea     rcx, unk_180689E38
+  .text:0000000180103FC4                 call    sub_1803FB9B0
+  .text:0000000180103FC9                 test    rax, rax
+  .text:0000000180103FCC                 jnz     short loc_180103FD9
+  .text:0000000180103FCE                 mov     rax, cs:qword_180689E40
+  .text:0000000180103FD5                 mov     rax, [rax+8]
+  .text:0000000180103FD9                 cmp     [rax], r15b
+  .text:0000000180103FDC                 jnz     loc_1801040CD
+  .text:0000000180103FE2                 mov     rdx, rdi
+  .text:0000000180103FE5                 lea     rcx, aConvarSIsMarke; "Convar %s is marked as cheat and cheats"...
+  .text:0000000180103FEC                 call    cs:Msg
+  .text:0000000180103FF2                 jmp     loc_18010417B
+  .text:0000000180103FF7                 mov     rcx, rdi
+  .text:0000000180103FFA                 mov     [rsp+0E0h+var_10], rsi
+  .text:0000000180104002                 call    cs:MemAlloc_StrDupFunc
+  .text:0000000180104008                 mov     rcx, cs:g_pMemAlloc
+  .text:000000018010400F                 mov     rsi, rax
+  .text:0000000180104012                 mov     rcx, [rcx]
+  .text:0000000180104015                 mov     rdx, [rcx]
+  .text:0000000180104018                 mov     r8, [rdx+8]
+  .text:000000018010401C                 mov     edx, 10h
+  .text:0000000180104021                 call    r8
+  .text:0000000180104024                 mov     rbx, rax
+  .text:0000000180104027                 test    rax, rax
+  .text:000000018010402A                 jz      loc_1801040BB
+  .text:0000000180104030                 xorps   xmm0, xmm0
+  .text:0000000180104033                 mov     dword ptr [rbp+57h+var_A0], r15d
+  .text:0000000180104037                 xorps   xmm1, xmm1
+  .text:000000018010403A                 mov     word ptr [rbp+57h+var_A0+5], r15w
+  .text:000000018010403F                 mov     r8d, 9
+  .text:0000000180104045                 mov     [rbp+57h+var_68], r15
+  .text:0000000180104049                 mov     edx, 0FFFFFFFFh
+  .text:000000018010404E                 mov     [rbp+57h+var_40], r8w
+  .text:0000000180104053                 mov     rcx, rax
+  .text:0000000180104056                 mov     [rbp+57h+var_60], r15
+  .text:000000018010405A                 movups  xmmword ptr [rbp+57h+var_A0+7], xmm0
+  .text:000000018010405E                 mov     [rbp+57h+var_58], r15
+  .text:0000000180104062                 movups  [rbp+57h+var_89], xmm1
+  .text:0000000180104066                 mov     [rbp+57h+var_50], r15
+  .text:000000018010406A                 movups  xmmword ptr [rbp+57h+var_79], xmm0
+  .text:000000018010406E                 mov     [rbp+57h+var_48], r15
+  .text:0000000180104072                 mov     [rbp+57h+var_30], r15b
+  .text:0000000180104076                 mov     [rbp+57h+var_38], r15
+  .text:000000018010407A                 call    sub_1803FB340
+  .text:000000018010407F                 lea     rdx, unk_180523F9F
+  .text:0000000180104086                 mov     byte ptr [rbp+57h+var_A0+4], 1
+  .text:000000018010408A                 lea     rcx, [rbp+57h+var_A0+7]
+  .text:000000018010408E                 mov     [rbp+57h+var_A0+7], r15
+  .text:0000000180104092                 call    cs:?Set@CUtlString@@QEAAXPEBD@Z; CUtlString::Set(char const *)
+  .text:0000000180104098                 lea     rax, [rbp+57h+var_A0]
+  .text:000000018010409C                 mov     r8d, 200h
+  .text:00000001801040A2                 lea     r9, aCustomUserInfo; "Custom user info value"
+  .text:00000001801040A9                 mov     [rsp+0E0h+var_C0], rax
+  .text:00000001801040AE                 mov     rdx, rsi
+  .text:00000001801040B1                 mov     rcx, rbx
+  .text:00000001801040B4                 call    sub_1803FBBD0
+  .text:00000001801040B9                 jmp     short loc_1801040BE
+  .text:00000001801040BB                 mov     rbx, r15
+  .text:00000001801040BE                 movups  xmm0, xmmword ptr [rbx]
+  .text:00000001801040C1                 mov     rsi, [rsp+0E0h+var_10]
+  .text:00000001801040C9                 movups  [rbp+57h+var_B0], xmm0
+  .text:00000001801040CD                 mov     r8, r14
+  .text:00000001801040D0                 lea     rcx, [rbp+57h+var_B0]
+  .text:00000001801040D4                 mov     edx, 0FFFFFFFFh
+  .text:00000001801040D9                 call    sub_1803FC920
+  .text:00000001801040DE                 mov     rcx, cs:g_pNetworkClientService
+  .text:00000001801040E5                 mov     rax, [rcx]
+  .text:00000001801040E8                 ; 0x100 = 256LL = INetworkClientService_IsConnected
+  .text:00000001801040E8                 call    qword ptr [rax+100h]; 0x100 = 256LL = INetworkClientService_IsConnected
+  .text:00000001801040EE                 test    al, al
+  .text:00000001801040F0                 jz      loc_18010417B
+  .text:00000001801040F6                 mov     rbx, cs:qword_1809090C0
+  .text:00000001801040FD                 lea     rcx, [rbp+57h+var_A0]
+  .text:0000000180104101                 xor     eax, eax
+  .text:0000000180104103                 mov     [rbp-39h], r15d
+  .text:0000000180104107                 mov     [rbp+57h+var_60], rax
+  .text:000000018010410B                 xorps   xmm0, xmm0
+  .text:000000018010410E                 lea     rax, ??_7CNETMsg_SetConVar_t@@6B@; const CNETMsg_SetConVar_t::`vftable'
+  .text:0000000180104115                 movsd   qword ptr [rbp-41h], xmm0
+  .text:000000018010411A                 mov     [rbp+57h+var_A0], rax
+  .text:000000018010411E                 mov     r8, r14
+  .text:0000000180104121                 lea     rax, ??_7CNETMsg_SetConVar_t@@6B@_0; const CNETMsg_SetConVar_t::`vftable'
+  .text:0000000180104128                 mov     [rbp+57h+var_8C], 0FFh
+  .text:000000018010412C                 mov     rdx, rdi
+  .text:000000018010412F                 mov     qword ptr [rbp+57h+var_79+9], rax
+  .text:0000000180104133                 mov     qword ptr [rbp+57h+var_89+1], 0FFFFFFFFFFFFFFFFh
+  .text:000000018010413B                 mov     dword ptr [rbp+57h+var_89+9], 0BF800000h
+  .text:0000000180104142                 mov     qword ptr [rbp+57h+var_79+1], 0FFFFFFFFFFFFFFFFh
+  .text:000000018010414A                 mov     [rbp+57h+var_68], r15
+  .text:000000018010414E                 mov     dword ptr [rbp+57h+var_60+4], r15d
+  .text:0000000180104152                 mov     [rbp+57h+var_58], r15
+  .text:0000000180104156                 call    sub_18009BFA0
+  .text:000000018010415B                 mov     rcx, [rbx+0F0h]
+  .text:0000000180104162                 lea     rdx, [rbp+57h+var_A0]
+  .text:0000000180104166                 mov     r8b, 0FFh
+  .text:0000000180104169                 mov     rax, [rcx]
+  .text:000000018010416C                 call    qword ptr [rax+138h]
+  .text:0000000180104172                 lea     rcx, [rbp+57h+var_A0]
+  .text:0000000180104176                 call    sub_18005F7E0
+  .text:000000018010417B                 lea     rcx, [rbp+57h+var_B0]
+  .text:000000018010417F                 call    _guard_check_icall_nop
+  .text:0000000180104184                 mov     rbx, [rsp+0E0h+arg_0]
+  .text:000000018010418C                 mov     rdi, [rsp+0E0h+var_18]
+  .text:0000000180104194                 mov     r14, [rsp+0E0h+var_20]
+  .text:000000018010419C                 add     rsp, 0D8h
+  .text:00000001801041A3                 pop     r15
+  .text:00000001801041A5                 pop     rbp
+  .text:00000001801041A6                 retn
+procedure: |-
+  char __fastcall sub_180103E90(__int64 a1, __int64 a2)
+  {
+    char result; // al
+    __int64 v3; // rax
+    const char *v4; // rdi
+    __int64 v5; // r14
+    _QWORD *v6; // rax
+    __int64 v7; // rax
+    _BYTE *v8; // rax
+    int v9; // esi
+    __int64 v10; // rax
+    __int128 *v11; // rbx
+    __int64 v12; // rbx
+    __int64 v13; // r8
+    __int128 v14; // [rsp+30h] [rbp-59h] BYREF
+    _BYTE v15[23]; // [rsp+40h] [rbp-49h] BYREF
+    __int128 v16; // [rsp+57h] [rbp-32h]
+    _BYTE v17[17]; // [rsp+67h] [rbp-22h]
+    __int64 v18; // [rsp+78h] [rbp-11h]
+    __int64 v19; // [rsp+80h] [rbp-9h]
+    __int64 v20; // [rsp+88h] [rbp-1h]
+    __int64 v21; // [rsp+90h] [rbp+7h]
+    __int64 v22; // [rsp+98h] [rbp+Fh]
+    __int16 v23; // [rsp+A0h] [rbp+17h]
+    __int64 v24; // [rsp+A8h] [rbp+1Fh]
+    char v25; // [rsp+B0h] [rbp+27h]
+    char v26; // [rsp+F8h] [rbp+6Fh] BYREF
+    char v27; // [rsp+100h] [rbp+77h] BYREF
+
+    if ( *(_DWORD *)(a2 + 1080) != 3 )
+      return Msg("Syntax: setinfo <key> <value>\n");
+    v3 = *(_QWORD *)(a2 + 1088);
+    v4 = *(const char **)(v3 + 8);
+    v5 = *(_QWORD *)(v3 + 16);
+    if ( *(_QWORD *)(*(__int64 (__fastcall **)(__int64, char *, const char *, _QWORD))(*(_QWORD *)qword_1806845B8 + 136LL))(
+                      qword_1806845B8,
+                      &v26,
+                      v4,
+                      0) != 0xFFFF )
+      return Msg("Name %s is already registered as console command\n", v4);
+    v6 = (_QWORD *)(*(__int64 (__fastcall **)(__int64, char *, const char *, __int64))(*(_QWORD *)qword_1806845B8 + 88LL))(
+                     qword_1806845B8,
+                     &v27,
+                     v4,
+                     1);
+    sub_1803FB340(&v14, *v6);
+    if ( !*((_QWORD *)&v14 + 1) || (v7 = *(_QWORD *)(*((_QWORD *)&v14 + 1) + 48LL), (v7 & 0x400) != 0) )
+    {
+      v9 = MemAlloc_StrDupFunc(v4);
+      v10 = (*(__int64 (__fastcall **)(_QWORD, __int64))(*g_pMemAlloc + 8LL))(g_pMemAlloc, 16);
+      v11 = (__int128 *)v10;
+      if ( v10 )
+      {
+        *(_DWORD *)v15 = 0;
+        memset(&v15[5], 0, 18);
+        v18 = 0;
+        v23 = 9;
+        v19 = 0;
+        v20 = 0;
+        v16 = 0;
+        v21 = 0;
+        *(_OWORD *)v17 = 0;
+        v22 = 0;
+        v25 = 0;
+        v24 = 0;
+        sub_1803FB340(v10, 0xFFFFFFFFLL);
+        v15[4] = 1;
+        *(_QWORD *)&v15[7] = 0;
+        CUtlString::Set((CUtlString *)&v15[7], (const char *)&unk_180523F9F);
+        sub_1803FBBD0((_DWORD)v11, v9, 512, (unsigned int)"Custom user info value", (__int64)v15);
+      }
+      else
+      {
+        v11 = nullptr;
+      }
+      v14 = *v11;
+  LABEL_20:
+      sub_1803FC920(&v14, 0xFFFFFFFFLL, v5);
+      result = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)g_pNetworkClientService + 256LL))(g_pNetworkClientService);// 0x100 = 256LL = INetworkClientService_IsConnected
+      if ( result )
+      {
+        v12 = qword_1809090C0;
+        *(_DWORD *)&v15[16] = 0;
+        v19 = 0;
+        *(_QWORD *)&v15[8] = 0;
+        *(_QWORD *)v15 = &CNETMsg_SetConVar_t::`vftable';
+        v15[20] = -1;
+        *(_QWORD *)&v17[9] = &CNETMsg_SetConVar_t::`vftable';
+        *(_QWORD *)((char *)&v16 + 1) = -1;
+        *(_DWORD *)((char *)&v16 + 9) = -1082130432;
+        *(_QWORD *)&v17[1] = -1;
+        v18 = 0;
+        v20 = 0;
+        sub_18009BFA0(v15, v4, v5);
+        LOBYTE(v13) = -1;
+        (*(void (__fastcall **)(_QWORD, _BYTE *, __int64))(**(_QWORD **)(v12 + 240) + 312LL))(
+          *(_QWORD *)(v12 + 240),
+          v15,
+          v13);
+        return sub_18005F7E0(v15);
+      }
+      return result;
+    }
+    if ( (v7 & 0x200) == 0 )
+      return Msg("Convar %s is already registered but not as user info value\n", v4);
+    if ( (((unsigned int)sub_180073C10() - 2) & 0xFFFFFFFD) == 0
+      || (result = *(_BYTE *)(*((_QWORD *)&v14 + 1) + 48LL) >> 1, (*(_BYTE *)(*((_QWORD *)&v14 + 1) + 48LL) & 2) == 0) )
+    {
+      if ( (*(_DWORD *)(*((_QWORD *)&v14 + 1) + 48LL) & 0x4000LL) != 0 )
+      {
+        v8 = (_BYTE *)sub_1803FB9B0(&unk_180689E38, 0xFFFFFFFFLL);
+        if ( !v8 )
+          v8 = *(_BYTE **)(qword_180689E40 + 8);
+        if ( !*v8 )
+          return Msg("Convar %s is marked as cheat and cheats are off\n", v4);
+      }
+      goto LABEL_20;
+    }
+    return result;
+  }

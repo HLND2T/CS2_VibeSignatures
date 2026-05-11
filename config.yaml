@@ -610,6 +610,36 @@ modules:
         expected_output:
           - CNetworkGameServerBase_ConnectClient.{platform}.yaml
 
+      - name: find-CNetworkGameServerBase_vtable
+        expected_output:
+          - CNetworkGameServerBase_vtable.{platform}.yaml
+
+      - name: find-CNetworkGameServerBase_ServerSimulate-windows
+        platform: windows
+        expected_output:
+          - CNetworkGameServerBase_ServerSimulate.{platform}.yaml
+        expected_input:
+          - CNetworkGameServerBase_vtable.{platform}.yaml
+
+      - name: find-CNetworkGameServerBase_ServerSimulateInternal-linux
+        platform: linux
+        expected_output:
+          - CNetworkGameServerBase_ServerSimulateInternal.{platform}.yaml
+
+      - name: find-CNetworkGameServerBase_ServerSimulate-linux
+        platform: linux
+        expected_output:
+          - CNetworkGameServerBase_ServerSimulate.{platform}.yaml
+        expected_input:
+          - CNetworkGameServerBase_ServerSimulateInternal.{platform}.yaml
+          - CNetworkGameServerBase_vtable.{platform}.yaml
+
+      - name: find-INetworkClientService_IsActive
+        expected_output:
+          - INetworkClientService_IsActive.{platform}.yaml
+        expected_input:
+          - CNetworkGameServerBase_ServerSimulate.{platform}.yaml
+
       - name: find-CNetworkGameServer_GetFreeClient
         expected_output:
           - CNetworkGameServer_GetFreeClient.{platform}.yaml
@@ -957,6 +987,16 @@ modules:
         expected_input:
           - CLoopTypeSimple_FrameUpdate.{platform}.yaml
 
+      - name: find-SetInfo_CommandHandler
+        expected_output:
+          - SetInfo_CommandHandler.{platform}.yaml
+
+      - name: find-INetworkClientService_IsConnected
+        expected_output:
+          - INetworkClientService_IsConnected.{platform}.yaml
+        expected_input:
+          - SetInfo_CommandHandler.{platform}.yaml
+
     symbols:
       - name: CNetworkGameServer_vtable
         category: vtable
@@ -1033,6 +1073,19 @@ modules:
         category: func
         alias:
           - CNetworkGameServerBase::ConnectClient
+
+      - name: CNetworkGameServerBase_vtable
+        category: vtable
+
+      - name: CNetworkGameServerBase_ServerSimulateInternal
+        category: func
+        alias:
+          - CNetworkGameServerBase::ServerSimulateInternal
+
+      - name: CNetworkGameServerBase_ServerSimulate
+        category: vfunc
+        alias:
+          - CNetworkGameServerBase::ServerSimulate
 
       - name: CNetworkGameServer_GetFreeClient
         category: func
@@ -1121,6 +1174,21 @@ modules:
         alias:
           - INetworkMessages::FindNetworkGroup
         shared: true
+
+      - name: INetworkClientService_IsActive
+        category: vfunc
+        alias:
+          - INetworkClientService::IsActive
+        shared: true
+
+      - name: INetworkClientService_IsConnected
+        category: vfunc
+        alias:
+          - INetworkClientService::IsConnected
+        shared: true
+
+      - name: SetInfo_CommandHandler
+        category: func
 
       - name: CNetworkClientService_vtable
         category: vtable
@@ -2896,6 +2964,10 @@ modules:
           - CEntitySystem_PrecacheEntity.{platform}.yaml
           - CEntitySystem_vtable.{platform}.yaml
 
+      - name: find-CEntitySystem_DoConstructEntity
+        expected_output:
+          - CEntitySystem_DoConstructEntity.{platform}.yaml
+
       - name: find-CEntityInstance_Disconnect-AND-CEntityComponentHelperT_Free
         expected_output:
           - CEntityInstance_Disconnect.{platform}.yaml
@@ -3561,6 +3633,16 @@ modules:
         expected_input:
           - CDedicatedServerWorkshopManager_SwitchToWorkshopMapGroup.{platform}.yaml
 
+      - name: find-CLoadingSpawnGroup_vtable
+        expected_output:
+          - CLoadingSpawnGroup_vtable.{platform}.yaml
+
+      - name: find-CLoadingSpawnGroup_CreateEntityToSpawn
+        expected_output:
+          - CLoadingSpawnGroup_CreateEntityToSpawn.{platform}.yaml
+        expected_input:
+          - CLoadingSpawnGroup_vtable.{platform}.yaml
+
       - name: find-CSpawnGroupMgrGameSystem_vtable
         expected_output:
           - CSpawnGroupMgrGameSystem_vtable.{platform}.yaml
@@ -3840,6 +3922,10 @@ modules:
           - CEntityInstance_ReloadPrivateScripts.{platform}.yaml
         expected_input:
           - CBaseEntity_ReloadPrivateScripts.{platform}.yaml
+
+      - name: find-CEntityInstance_ValidatePrivateScriptScope
+        expected_output:
+          - CEntityInstance_ValidatePrivateScriptScope.{platform}.yaml
 
       - name: find-CEntityInstance_NetworkStateChanged
         expected_output:
@@ -5103,6 +5189,11 @@ modules:
         alias:
           - CEntitySystem::ConstructEntity
 
+      - name: CEntitySystem_DoConstructEntity
+        category: func
+        alias:
+          - CEntitySystem::DoConstructEntity
+
       - name: CEntitySystem_GetSpawnGroupWorldId
         category: vfunc
         alias:
@@ -5802,6 +5893,14 @@ modules:
         alias:
           - IGameSystem::OnPostSpawnGroupUnload
 
+      - name: CLoadingSpawnGroup_vtable
+        category: vtable
+
+      - name: CLoadingSpawnGroup_CreateEntityToSpawn
+        category: vfunc
+        alias:
+          - CLoadingSpawnGroup::CreateEntityToSpawn
+
       - name: CSpawnGroupMgrGameSystem_OnSpawnGroupPrecache
         category: vfunc
         alias:
@@ -6027,6 +6126,11 @@ modules:
         category: vfunc
         alias:
           - CEntityInstance::ReloadPrivateScripts
+
+      - name: CEntityInstance_ValidatePrivateScriptScope
+        category: func
+        alias:
+          - CEntityInstance::ValidatePrivateScriptScope
 
       - name: CEntityInstance_NetworkStateChanged
         category: vfunc

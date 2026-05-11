@@ -1,0 +1,320 @@
+func_name: SetInfo_CommandHandler
+func_va: '0x7010a0'
+disasm_code: |-
+  .text:00000000007010A0                 cmp     dword ptr [rsi+438h], 3
+  .text:00000000007010A7                 jnz     loc_7012F8
+  .text:00000000007010AD                 push    rbp
+  .text:00000000007010AE                 xor     edx, edx
+  .text:00000000007010B0                 mov     rbp, rsp
+  .text:00000000007010B3                 push    r15
+  .text:00000000007010B5                 push    r14
+  .text:00000000007010B7                 push    r13
+  .text:00000000007010B9                 push    r12
+  .text:00000000007010BB                 push    rbx
+  .text:00000000007010BC                 sub     rsp, 0A8h
+  .text:00000000007010C3                 mov     rax, [rsi+440h]
+  .text:00000000007010CA                 mov     rdi, cs:qword_97B050
+  .text:00000000007010D1                 mov     r12, [rax+8]
+  .text:00000000007010D5                 mov     r13, [rax+10h]
+  .text:00000000007010D9                 mov     rax, [rdi]
+  .text:00000000007010DC                 mov     rsi, r12
+  .text:00000000007010DF                 call    qword ptr [rax+88h]
+  .text:00000000007010E5                 cmp     rax, 0FFFFh
+  .text:00000000007010EB                 jnz     loc_7012D0
+  .text:00000000007010F1                 mov     rdi, cs:qword_97B050
+  .text:00000000007010F8                 mov     edx, 1
+  .text:00000000007010FD                 mov     rsi, r12
+  .text:0000000000701100                 lea     r14, [rbp-0C0h]
+  .text:0000000000701107                 mov     rax, [rdi]
+  .text:000000000070110A                 call    qword ptr [rax+58h]
+  .text:000000000070110D                 mov     rdi, r14
+  .text:0000000000701110                 mov     rsi, rax
+  .text:0000000000701113                 call    sub_8FDAE0
+  .text:0000000000701118                 mov     rax, [rbp-0B8h]
+  .text:000000000070111F                 test    rax, rax
+  .text:0000000000701122                 jz      short loc_701131
+  .text:0000000000701124                 mov     rax, [rax+30h]
+  .text:0000000000701128                 test    ah, 4
+  .text:000000000070112B                 jz      loc_701310
+  .text:0000000000701131                 mov     rdi, r12
+  .text:0000000000701134                 call    _MemAlloc_StrDupFunc
+  .text:0000000000701139                 ; _QWORD
+  .text:0000000000701139                 mov     edi, 10h; _QWORD
+  .text:000000000070113E                 mov     r15, rax
+  .text:0000000000701141                 call    __Znwm; operator new(ulong)
+  .text:0000000000701146                 mov     rdi, cs:qword_97B050
+  .text:000000000070114D                 mov     edx, 9
+  .text:0000000000701152                 mov     esi, 0FFFFFFFFh
+  .text:0000000000701157                 mov     rbx, rax
+  .text:000000000070115A                 xor     eax, eax
+  .text:000000000070115C                 pxor    xmm0, xmm0
+  .text:0000000000701160                 mov     dword ptr [rbp-0B0h], 0
+  .text:000000000070116A                 mov     [rbp-0ACh], ax
+  .text:0000000000701171                 mov     byte ptr [rbp-0AAh], 0
+  .text:0000000000701178                 movups  xmmword ptr [rbp-0A9h], xmm0
+  .text:000000000070117F                 movups  xmmword ptr [rbp-99h], xmm0
+  .text:0000000000701186                 movups  xmmword ptr [rbp-89h], xmm0
+  .text:000000000070118D                 mov     qword ptr [rbp-78h], 0
+  .text:0000000000701195                 mov     qword ptr [rbp-70h], 0
+  .text:000000000070119D                 mov     qword ptr [rbp-68h], 0
+  .text:00000000007011A5                 mov     qword ptr [rbp-60h], 0
+  .text:00000000007011AD                 mov     qword ptr [rbp-58h], 0
+  .text:00000000007011B5                 mov     byte ptr [rbp-40h], 0
+  .text:00000000007011B9                 mov     qword ptr [rbp-48h], 0
+  .text:00000000007011C1                 mov     [rbp-50h], dx
+  .text:00000000007011C5                 mov     [rbx], rsi
+  .text:00000000007011C8                 mov     qword ptr [rbx+8], 0
+  .text:00000000007011D0                 test    rdi, rdi
+  .text:00000000007011D3                 jz      loc_701440
+  .text:00000000007011D9                 mov     rax, [rdi]
+  .text:00000000007011DC                 call    qword ptr [rax+158h]
+  .text:00000000007011E2                 mov     [rbx+8], rax
+  .text:00000000007011E6                 test    rax, rax
+  .text:00000000007011E9                 jz      loc_701440
+  .text:00000000007011EF                 mov     eax, 0FFFFFFFFh
+  .text:00000000007011F4                 mov     byte ptr [rbp-0ACh], 1
+  .text:00000000007011FB                 lea     r8, [rbp-0B0h]
+  .text:0000000000701202                 mov     [rbx], rax
+  .text:0000000000701205                 ; this
+  .text:0000000000701205                 lea     rdi, [rbp-0A9h]; this
+  .text:000000000070120C                 mov     [rbp-0C8h], r8
+  .text:0000000000701213                 ; char *
+  .text:0000000000701213                 lea     rsi, s1; char *
+  .text:000000000070121A                 mov     qword ptr [rbp-0A9h], 0
+  .text:0000000000701225                 call    __ZN10CUtlString3SetEPKc; CUtlString::Set(char const*)
+  .text:000000000070122A                 mov     rdi, rbx
+  .text:000000000070122D                 mov     edx, 200h
+  .text:0000000000701232                 mov     rsi, r15
+  .text:0000000000701235                 mov     r8, [rbp-0C8h]
+  .text:000000000070123C                 lea     rcx, aCustomUserInfo; "Custom user info value"
+  .text:0000000000701243                 call    sub_753170
+  .text:0000000000701248                 movdqu  xmm0, xmmword ptr [rbx]
+  .text:000000000070124C                 movaps  xmmword ptr [rbp-0C0h], xmm0
+  .text:0000000000701253                 mov     rdi, [rbp-0B8h]
+  .text:000000000070125A                 mov     esi, 0FFFFFFFFh
+  .text:000000000070125F                 call    sub_910520
+  .text:0000000000701264                 mov     rdx, r13
+  .text:0000000000701267                 mov     rdi, r14
+  .text:000000000070126A                 xor     r8d, r8d
+  .text:000000000070126D                 mov     rcx, rax
+  .text:0000000000701270                 mov     esi, 0FFFFFFFFh
+  .text:0000000000701275                 call    sub_753590
+  .text:000000000070127A                 mov     rdi, cs:g_pNetworkClientService
+  .text:0000000000701281                 lea     rdx, sub_5C51E0
+  .text:0000000000701288                 mov     rax, [rdi]
+  .text:000000000070128B                 mov     rax, [rax+108h]  ; 0x108 = INetworkClientService_IsConnected (slot-only: abstract interface vfunc, no func_va)
+  .text:0000000000701292                 cmp     rax, rdx
+  .text:0000000000701295                 jnz     loc_701370
+  .text:000000000070129B                 mov     rax, [rdi+0A0h]
+  .text:00000000007012A2                 test    rax, rax
+  .text:00000000007012A5                 jz      short loc_7012B4
+  .text:00000000007012A7                 cmp     dword ptr [rax+240h], 1
+  .text:00000000007012AE                 jg      loc_70137A
+  .text:00000000007012B4                 add     rsp, 0A8h
+  .text:00000000007012BB                 pop     rbx
+  .text:00000000007012BC                 pop     r12
+  .text:00000000007012BE                 pop     r13
+  .text:00000000007012C0                 pop     r14
+  .text:00000000007012C2                 pop     r15
+  .text:00000000007012C4                 pop     rbp
+  .text:00000000007012C5                 retn
+  .text:00000000007012D0                 add     rsp, 0A8h
+  .text:00000000007012D7                 mov     rsi, r12
+  .text:00000000007012DA                 xor     eax, eax
+  .text:00000000007012DC                 pop     rbx
+  .text:00000000007012DD                 lea     rdi, aNameSIsAlready; "Name %s is already registered as consol"...
+  .text:00000000007012E4                 pop     r12
+  .text:00000000007012E6                 pop     r13
+  .text:00000000007012E8                 pop     r14
+  .text:00000000007012EA                 pop     r15
+  .text:00000000007012EC                 pop     rbp
+  .text:00000000007012ED                 jmp     _Msg
+  .text:00000000007012F8                 lea     rdi, aSyntaxSetinfoK; "Syntax: setinfo <key> <value>\n"
+  .text:00000000007012FF                 xor     eax, eax
+  .text:0000000000701301                 jmp     _Msg
+  .text:0000000000701310                 test    ah, 2
+  .text:0000000000701313                 jz      loc_701460
+  .text:0000000000701319                 call    sub_503D40
+  .text:000000000070131E                 mov     rdi, [rbp-0B8h]
+  .text:0000000000701325                 sub     eax, 2
+  .text:0000000000701328                 and     eax, 0FFFFFFFDh
+  .text:000000000070132B                 mov     rdx, [rdi+30h]
+  .text:000000000070132F                 jz      short loc_70133A
+  .text:0000000000701331                 test    dl, 2
+  .text:0000000000701334                 jnz     loc_7012B4
+  .text:000000000070133A                 and     dh, 40h
+  .text:000000000070133D                 jz      loc_70125A
+  .text:0000000000701343                 lea     rdi, qword_981180
+  .text:000000000070134A                 mov     esi, 0FFFFFFFFh
+  .text:000000000070134F                 call    sub_4FB750
+  .text:0000000000701354                 test    al, al
+  .text:0000000000701356                 jz      loc_701476
+  .text:000000000070135C                 mov     rdi, [rbp-0B8h]
+  .text:0000000000701363                 jmp     loc_70125A
+  .text:0000000000701370                 call    rax
+  .text:0000000000701372                 test    al, al
+  .text:0000000000701374                 jz      loc_7012B4
+  .text:000000000070137A                 mov     r14, qword ptr cs:xmmword_97C2D8+8
+  .text:0000000000701381                 lea     rbx, [rbp-0B0h]
+  .text:0000000000701388                 mov     rdx, r13
+  .text:000000000070138B                 mov     rsi, r12
+  .text:000000000070138E                 mov     rdi, rbx
+  .text:0000000000701391                 pxor    xmm0, xmm0
+  .text:0000000000701395                 mov     rax, 0FF00000000h
+  .text:000000000070139F                 movaps  xmmword ptr [rbp-70h], xmm0
+  .text:00000000007013A3                 mov     [rbp-0A0h], rax
+  .text:00000000007013AA                 mov     eax, 0BF800000h
+  .text:00000000007013AF                 mov     [rbp-90h], rax
+  .text:00000000007013B6                 lea     rax, off_953160
+  .text:00000000007013BD                 mov     [rbp-0B0h], rax
+  .text:00000000007013C4                 add     rax, 40h ; '@'
+  .text:00000000007013C8                 mov     [rbp-80h], rax
+  .text:00000000007013CC                 mov     qword ptr [rbp-0A8h], 0
+  .text:00000000007013D7                 mov     qword ptr [rbp-98h], 0FFFFFFFFFFFFFFFFh
+  .text:00000000007013E2                 mov     qword ptr [rbp-88h], 0FFFFFFFFFFFFFFFFh
+  .text:00000000007013ED                 mov     qword ptr [rbp-78h], 0
+  .text:00000000007013F5                 call    sub_699920
+  .text:00000000007013FA                 mov     rdi, [r14+0F0h]
+  .text:0000000000701401                 mov     edx, 0FFFFFFFFh
+  .text:0000000000701406                 mov     rsi, rbx
+  .text:0000000000701409                 mov     rax, [rdi]
+  .text:000000000070140C                 call    qword ptr [rax+140h]
+  .text:0000000000701412                 lea     rax, off_942D50
+  .text:0000000000701419                 mov     [rbp-0B0h], rax
+  .text:0000000000701420                 lea     rdi, [rbp-80h]
+  .text:0000000000701424                 add     rax, 40h ; '@'
+  .text:0000000000701428                 mov     [rbp-80h], rax
+  .text:000000000070142C                 call    sub_4A8730
+  .text:0000000000701431                 jmp     loc_7012B4
+  .text:0000000000701440                 mov     edi, 9
+  .text:0000000000701445                 call    sub_752D20
+  .text:000000000070144A                 mov     rax, [rax+50h]
+  .text:000000000070144E                 mov     [rbx+8], rax
+  .text:0000000000701452                 jmp     loc_7011EF
+  .text:0000000000701460                 lea     rdi, aConvarSIsAlrea; "Convar %s is already registered but not"...
+  .text:0000000000701467                 mov     rsi, r12
+  .text:000000000070146A                 xor     eax, eax
+  .text:000000000070146C                 call    _Msg
+  .text:0000000000701471                 jmp     loc_7012B4
+  .text:0000000000701476                 lea     rdi, aConvarSIsMarke; "Convar %s is marked as cheat and cheats"...
+  .text:000000000070147D                 mov     rsi, r12
+  .text:0000000000701480                 xor     eax, eax
+  .text:0000000000701482                 call    _Msg
+  .text:0000000000701487                 jmp     loc_7012B4
+procedure: |-
+  __int64 __fastcall SetInfo_CommandHandler(__int64 a1, __int64 a2)
+  {
+    __int64 v2; // rax
+    const char *v3; // r12
+    __int64 v4; // r13
+    __int64 v5; // rsi
+    __int64 v6; // rax
+    __int64 v7; // r15
+    __m128i *v8; // rax
+    __int64 v9; // rdi
+    __m128i *v10; // rbx
+    __int64 v11; // rax
+    __int64 v12; // rdi
+    __int64 v13; // rax
+    __int64 (*v14)(void); // rax
+    __int64 result; // rax
+    int v16; // eax
+    __int64 v17; // rdx
+    __int64 v18; // r14
+    __m128i v19; // [rsp-C8h] [rbp-C8h] BYREF
+    _BYTE v20[56]; // [rsp-B8h] [rbp-B8h] BYREF
+    __int64 v21; // [rsp-80h] [rbp-80h]
+    __int128 v22; // [rsp-78h] [rbp-78h]
+    __int64 v23; // [rsp-68h] [rbp-68h]
+    __int64 v24; // [rsp-60h] [rbp-60h]
+    __int16 v25; // [rsp-58h] [rbp-58h]
+    __int64 v26; // [rsp-50h] [rbp-50h]
+    char v27; // [rsp-48h] [rbp-48h]
+
+    if ( *(_DWORD *)(a2 + 1080) != 3 )
+      return Msg("Syntax: setinfo <key> <value>\n");
+    v2 = *(_QWORD *)(a2 + 1088);
+    v3 = *(const char **)(v2 + 8);
+    v4 = *(_QWORD *)(v2 + 16);
+    if ( (*(__int64 (__fastcall **)(__int64, const char *, _QWORD))(*(_QWORD *)qword_97B050 + 136LL))(qword_97B050, v3, 0) != 0xFFFF )
+      return Msg("Name %s is already registered as console command\n", v3);
+    v5 = (*(__int64 (__fastcall **)(__int64, const char *, __int64))(*(_QWORD *)qword_97B050 + 88LL))(qword_97B050, v3, 1);
+    sub_8FDAE0(&v19, v5);
+    if ( !v19.m128i_i64[1] || (v6 = *(_QWORD *)(v19.m128i_i64[1] + 48), (v6 & 0x400) != 0) )
+    {
+      v7 = MemAlloc_StrDupFunc(v3);
+      v8 = (__m128i *)operator new(16);
+      v9 = qword_97B050;
+      v10 = v8;
+      memset(v20, 0, 55);
+      v21 = 0;
+      v22 = 0u;
+      v23 = 0;
+      v24 = 0;
+      v27 = 0;
+      v26 = 0;
+      v25 = 9;
+      v8->m128i_i64[0] = 0xFFFFFFFFLL;
+      v8->m128i_i64[1] = 0;
+      if ( !v9 || (v11 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)v9 + 344LL))(v9), (v10->m128i_i64[1] = v11) == 0) )
+        v10->m128i_i64[1] = *(_QWORD *)(sub_752D20(9) + 80);
+      v20[4] = 1;
+      v10->m128i_i64[0] = 0xFFFFFFFFLL;
+      *(_QWORD *)&v20[7] = 0;
+      CUtlString::Set((CUtlString *)&v20[7], (const char *)&s1);
+      sub_753170(v10, v7, 512, "Custom user info value", v20);
+      v19 = _mm_loadu_si128(v10);
+      v12 = v19.m128i_i64[1];
+      goto LABEL_8;
+    }
+    if ( (v6 & 0x200) == 0 )
+      return Msg("Convar %s is already registered but not as user info value\n", v3);
+    v16 = sub_503D40();
+    v12 = v19.m128i_i64[1];
+    result = (v16 - 2) & 0xFFFFFFFD;
+    v17 = *(_QWORD *)(v19.m128i_i64[1] + 48);
+    if ( !(_DWORD)result || (v17 & 2) == 0 )
+    {
+      if ( (v17 & 0x4000) != 0 )
+      {
+        if ( !(unsigned __int8)sub_4FB750(&qword_981180, 0xFFFFFFFFLL) )
+          return Msg("Convar %s is marked as cheat and cheats are off\n", v3);
+        v12 = v19.m128i_i64[1];
+      }
+  LABEL_8:
+      v13 = sub_910520(v12, 0xFFFFFFFFLL);
+      sub_753590(&v19, 0xFFFFFFFFLL, v4, v13, 0);
+      v14 = *(__int64 (**)(void))(*(_QWORD *)g_pNetworkClientService + 264LL);  // 0x108 = 264LL = INetworkClientService_IsConnected (slot-only: abstract interface vfunc, no func_va - sub_5C51E0 is NOT INetworkClientService_IsConnected)
+      if ( v14 == sub_5C51E0 )
+      {
+        result = *(_QWORD *)(g_pNetworkClientService + 160);
+        if ( !result || *(int *)(result + 576) <= 1 )
+          return result;
+      }
+      else
+      {
+        result = v14();
+        if ( !(_BYTE)result )
+          return result;
+      }
+      v18 = *((_QWORD *)&xmmword_97C2D8 + 1);
+      v22 = 0;
+      *(_QWORD *)&v20[16] = 0xFF00000000LL;
+      *(_QWORD *)&v20[32] = 3212836864LL;
+      *(_QWORD *)v20 = &off_953160;
+      *(_QWORD *)&v20[48] = off_9531A0;
+      *(_QWORD *)&v20[8] = 0;
+      *(_QWORD *)&v20[24] = -1;
+      *(_QWORD *)&v20[40] = -1;
+      v21 = 0;
+      sub_699920(v20, v3, v4);
+      (*(void (__fastcall **)(_QWORD, _BYTE *, __int64))(**(_QWORD **)(v18 + 240) + 320LL))(
+        *(_QWORD *)(v18 + 240),
+        v20,
+        0xFFFFFFFFLL);
+      *(_QWORD *)v20 = &off_942D50;
+      *(_QWORD *)&v20[48] = off_942D90;
+      return sub_4A8730(&v20[48]);
+    }
+    return result;
+  }
