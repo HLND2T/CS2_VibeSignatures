@@ -1,0 +1,89 @@
+func_name: CEntityInstance_ValidatePrivateScriptScope
+func_va: '0x18120e540'
+disasm_code: |-
+  .text:000000018120E540                 push    rbx
+  .text:000000018120E542                 sub     rsp, 30h
+  .text:000000018120E546                 cmp     qword ptr [rcx+18h], 0 ; 0x18 = CEntityInstance::m_hPrivateScope (structmember, struct=CEntityInstance, member=m_hPrivateScope)
+  .text:000000018120E54B                 mov     rbx, rcx
+  .text:000000018120E54E                 jnz     loc_18120E5FF
+  .text:000000018120E554                 mov     rcx, cs:qword_181E16008
+  .text:000000018120E55B                 test    rcx, rcx
+  .text:000000018120E55E                 jz      loc_18120E5FF
+  .text:000000018120E564                 mov     rax, [rcx]
+  .text:000000018120E567                 xor     r8d, r8d
+  .text:000000018120E56A                 xor     edx, edx
+  .text:000000018120E56C                 call    qword ptr [rax+90h]
+  .text:000000018120E572                 mov     [rbx+18h], rax ; 0x18 = CEntityInstance::m_hPrivateScope (structmember, struct=CEntityInstance, member=m_hPrivateScope)
+  .text:000000018120E576                 test    rax, rax
+  .text:000000018120E579                 jz      loc_18120E5FF
+  .text:000000018120E57F                 mov     [rsp+38h+arg_0], rdi
+  .text:000000018120E584                 mov     rdi, [rbx+10h] ; 0x10 = CEntityInstance::m_pEntity (structmember, struct=CEntityInstance, member=m_pEntity)
+  .text:000000018120E588                 cmp     qword ptr [rdi+28h], 0
+  .text:000000018120E58D                 jnz     short loc_18120E5A5
+  .text:000000018120E58F                 xor     r8d, r8d
+  .text:000000018120E592                 lea     rcx, qword_1820B1840
+  .text:000000018120E599                 mov     rdx, rbx
+  .text:000000018120E59C                 call    sub_1812198D0
+  .text:000000018120E5A1                 mov     [rdi+28h], rax
+  .text:000000018120E5A5                 mov     rax, [rbx+10h] ; 0x10 = CEntityInstance::m_pEntity (structmember, struct=CEntityInstance, member=m_pEntity)
+  .text:000000018120E5A9                 lea     r9, [rsp+38h+var_18]
+  .text:000000018120E5AE                 mov     rdx, [rbx+18h] ; 0x18 = CEntityInstance::m_hPrivateScope (structmember, struct=CEntityInstance, member=m_hPrivateScope)
+  .text:000000018120E5B2                 lea     r8, aThisentity; "thisEntity"
+  .text:000000018120E5B9                 mov     rcx, [rax+28h]
+  .text:000000018120E5BD                 xor     eax, eax
+  .text:000000018120E5BF                 mov     [rsp+38h+var_18], rcx
+  .text:000000018120E5C4                 mov     rcx, cs:qword_181E16008
+  .text:000000018120E5CB                 mov     [rsp+38h+var_10], 1Fh
+  .text:000000018120E5D0                 mov     [rsp+38h+var_E], ax
+  .text:000000018120E5D5                 mov     rax, [rcx]
+  .text:000000018120E5D8                 call    qword ptr [rax+108h]
+  .text:000000018120E5DE                 test    byte ptr [rsp+38h+var_E], 1
+  .text:000000018120E5E3                 mov     rdi, [rsp+38h+arg_0]
+  .text:000000018120E5E8                 jz      short loc_18120E5FF
+  .text:000000018120E5EA                 mov     rax, cs:g_pMemAlloc
+  .text:000000018120E5F1                 mov     rdx, [rsp+38h+var_18]
+  .text:000000018120E5F6                 mov     rcx, [rax]
+  .text:000000018120E5F9                 mov     rax, [rcx]
+  .text:000000018120E5FC                 call    qword ptr [rax+18h]
+  .text:000000018120E5FF                 add     rsp, 30h
+  .text:000000018120E603                 pop     rbx
+  .text:000000018120E604                 retn
+procedure: |-
+  void __fastcall sub_18120E540(__int64 a1)
+  {
+    __int64 v2; // rax
+    __int64 v3; // rdi
+    __int64 v4; // rdx
+    __int64 v5; // [rsp+20h] [rbp-18h] BYREF
+    char v6; // [rsp+28h] [rbp-10h]
+    __int16 v7; // [rsp+2Ah] [rbp-Eh]
+
+    if ( !*(_QWORD *)(a1 + 24) ) // 24 = 0x18 = CEntityInstance::m_hPrivateScope (structmember, struct=CEntityInstance, member=m_hPrivateScope)
+    {
+      if ( qword_181E16008 )
+      {
+        v2 = (*(__int64 (__fastcall **)(__int64, _QWORD, _QWORD))(*(_QWORD *)qword_181E16008 + 144LL))(
+               qword_181E16008,
+               0,
+               0);
+        *(_QWORD *)(a1 + 24) = v2; // 24 = 0x18 = CEntityInstance::m_hPrivateScope (structmember, struct=CEntityInstance, member=m_hPrivateScope)
+        if ( v2 )
+        {
+          v3 = *(_QWORD *)(a1 + 16); // 16 = 0x10 = CEntityInstance::m_pEntity (structmember, struct=CEntityInstance, member=m_pEntity)
+          if ( !*(_QWORD *)(v3 + 40) )
+            *(_QWORD *)(v3 + 40) = sub_1812198D0(&qword_1820B1840, a1, 0);
+          v4 = *(_QWORD *)(a1 + 24); // 24 = 0x18 = CEntityInstance::m_hPrivateScope (structmember, struct=CEntityInstance, member=m_hPrivateScope)
+          v5 = *(_QWORD *)(*(_QWORD *)(a1 + 16) + 40LL); // 16 = 0x10 = CEntityInstance::m_pEntity (structmember, struct=CEntityInstance, member=m_pEntity)
+          v6 = 31;
+          v7 = 0;
+          (*(void (__fastcall **)(__int64, __int64, const char *, __int64 *))(*(_QWORD *)qword_181E16008 + 264LL))(
+            qword_181E16008,
+            v4,
+            "thisEntity",
+            &v5);
+          if ( (v7 & 1) != 0 )
+            (*(void (__fastcall **)(_QWORD, __int64))(*g_pMemAlloc + 24LL))(g_pMemAlloc, v5);
+        }
+      }
+    }
+  }

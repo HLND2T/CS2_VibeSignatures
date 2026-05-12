@@ -3578,11 +3578,12 @@ modules:
           - CPointTeleport_Activate.{platform}.yaml
           - CBaseEntity_vtable.{platform}.yaml
 
-      - name: find-CEntityInstance_m_pEntity
+      - name: find-CEntityInstance_m_pEntity-AND-CEntityInstance_m_hPrivateScope
         expected_output:
           - CEntityInstance_m_pEntity.{platform}.yaml
+          - CEntityInstance_m_hPrivateScope.{platform}.yaml
         expected_input:
-          - CBaseEntity_Activate.{platform}.yaml
+          - CEntityInstance_ValidatePrivateScriptScope.{platform}.yaml
 
       - name: find-CBaseEntity_CollisionRulesChanged
         expected_output:
@@ -4486,6 +4487,13 @@ modules:
         member: m_pEntity
         alias:
           - CEntityInstance::m_pEntity
+
+      - name: CEntityInstance_m_hPrivateScope
+        category: structmember
+        struct: CEntityInstance
+        member: m_hPrivateScope
+        alias:
+          - CEntityInstance::m_hPrivateScope
 
       - name: CBaseEntity_vtable
         category: vtable

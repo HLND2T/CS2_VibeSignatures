@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CEntityInstance_m_pEntity skill."""
+"""Preprocess script for find-CEntityInstance_m_pEntity-AND-CEntityInstance_m_hPrivateScope skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_STRUCT_MEMBER_NAMES = [
     "CEntityInstance_m_pEntity",
+    "CEntityInstance_m_hPrivateScope",
 ]
 
 LLM_DECOMPILE = [
@@ -12,7 +13,12 @@ LLM_DECOMPILE = [
     (
         "CEntityInstance_m_pEntity",
         "prompt/call_llm_decompile.md",
-        "references/server/CBaseEntity_Activate.{platform}.yaml",
+        "references/server/CEntityInstance_ValidatePrivateScriptScope.{platform}.yaml",
+    ),
+    (
+        "CEntityInstance_m_hPrivateScope",
+        "prompt/call_llm_decompile.md",
+        "references/server/CEntityInstance_ValidatePrivateScriptScope.{platform}.yaml",
     ),
 ]
 
@@ -30,13 +36,25 @@ GENERATE_YAML_DESIRED_FIELDS = [
             "offset_sig_allow_across_function_boundary:true",
         ],
     ),
+    (
+        "CEntityInstance_m_hPrivateScope",
+        [
+            "struct_name",
+            "member_name",
+            "offset",
+            "size",
+            "offset_sig",
+            "offset_sig_disp",
+            "offset_sig_allow_across_function_boundary:true",
+        ],
+    ),
 ]
 
 async def preprocess_skill(
     session, skill_name, expected_outputs, old_yaml_map,
     new_binary_dir, platform, image_base, llm_config=None, debug=False,
 ):
-    """Reuse previous gamever offset_sig to locate target struct offset and write YAML."""
+    """Reuse previous gamever offset_sig to locate target struct offsets and write YAMLs."""
     return await preprocess_common_skill(
         session=session,
         expected_outputs=expected_outputs,
