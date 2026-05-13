@@ -1,0 +1,227 @@
+func_name: CEntityInstance_UpdateOnRemove
+func_va: '0x1e47110'
+disasm_code: |-
+  .text:0000000001E47110                 push    rbp
+  .text:0000000001E47111                 mov     rbp, rsp
+  .text:0000000001E47114                 push    r13
+  .text:0000000001E47116                 push    r12
+  .text:0000000001E47118                 push    rbx
+  .text:0000000001E47119                 mov     rbx, rdi
+  .text:0000000001E4711C                 sub     rsp, 8
+  .text:0000000001E47120                 mov     rdi, [rdi+28h] ; 0x28 = 40 = CEntityInstance::m_CScriptComponent (structmember, struct=CEntityInstance, member=m_CScriptComponent)
+  .text:0000000001E47124                 mov     cs:byte_27BB9E9, 1
+  .text:0000000001E4712B                 test    rdi, rdi
+  .text:0000000001E4712E                 jz      short loc_1E47138
+  .text:0000000001E47130                 mov     rsi, rbx
+  .text:0000000001E47133                 call    sub_1E7C710
+  .text:0000000001E47138                 mov     rdx, [rbx+18h]
+  .text:0000000001E4713C                 test    rdx, rdx
+  .text:0000000001E4713F                 jz      loc_1E47240
+  .text:0000000001E47145                 lea     r13, qword_25F5128
+  .text:0000000001E4714C                 mov     ecx, 1
+  .text:0000000001E47151                 lea     rsi, aUpdateonremove; "UpdateOnRemove"
+  .text:0000000001E47158                 mov     rdi, [r13+0]
+  .text:0000000001E4715C                 mov     rax, [rdi]
+  .text:0000000001E4715F                 call    qword ptr [rax+0B0h]
+  .text:0000000001E47165                 mov     r12, rax
+  .text:0000000001E47168                 test    rax, rax
+  .text:0000000001E4716B                 jz      short loc_1E4719F
+  .text:0000000001E4716D                 mov     rdi, [r13+0]
+  .text:0000000001E47171                 sub     rsp, 8
+  .text:0000000001E47175                 xor     edx, edx
+  .text:0000000001E47177                 xor     r9d, r9d
+  .text:0000000001E4717A                 xor     r8d, r8d
+  .text:0000000001E4717D                 xor     ecx, ecx
+  .text:0000000001E4717F                 mov     rsi, r12
+  .text:0000000001E47182                 mov     rax, [rdi]
+  .text:0000000001E47185                 push    1
+  .text:0000000001E47187                 call    qword ptr [rax+0C0h]
+  .text:0000000001E4718D                 mov     rdi, [r13+0]
+  .text:0000000001E47191                 mov     rsi, r12
+  .text:0000000001E47194                 mov     rax, [rdi]
+  .text:0000000001E47197                 call    qword ptr [rax+0B8h]
+  .text:0000000001E4719D                 pop     rax
+  .text:0000000001E4719E                 pop     rdx
+  .text:0000000001E4719F                 mov     r12, [rbx+10h]
+  .text:0000000001E471A3                 test    r12, r12
+  .text:0000000001E471A6                 jz      short loc_1E471CD
+  .text:0000000001E471A8                 mov     rdx, [r12+28h]
+  .text:0000000001E471AD                 test    rdx, rdx
+  .text:0000000001E471B0                 jz      short loc_1E471CD
+  .text:0000000001E471B2                 lea     rdi, xmmword_27BBFC0
+  .text:0000000001E471B9                 mov     rsi, rbx
+  .text:0000000001E471BC                 call    sub_1E7B140
+  .text:0000000001E471C1                 mov     rax, [rbx+10h]
+  .text:0000000001E471C5                 mov     qword ptr [rax+28h], 0
+  .text:0000000001E471CD                 mov     rsi, [rbx+18h]
+  .text:0000000001E471D1                 test    rsi, rsi
+  .text:0000000001E471D4                 jz      short loc_1E471F6
+  .text:0000000001E471D6                 lea     rax, qword_25F5128
+  .text:0000000001E471DD                 mov     rdi, [rax]
+  .text:0000000001E471E0                 test    rdi, rdi
+  .text:0000000001E471E3                 jz      short loc_1E471EE
+  .text:0000000001E471E5                 mov     rax, [rdi]
+  .text:0000000001E471E8                 call    qword ptr [rax+0A8h]
+  .text:0000000001E471EE                 mov     qword ptr [rbx+18h], 0
+  .text:0000000001E471F6                 mov     r12, [rbx+10h]
+  .text:0000000001E471FA                 test    byte ptr [r12+31h], 40h
+  .text:0000000001E47200                 jz      short loc_1E47260
+  .text:0000000001E47202                 mov     r12, [rbx+20h] ; 0x20 = 32 = CEntityInstance::m_pKeyValues (structmember, struct=CEntityInstance, member=m_pKeyValues)
+  .text:0000000001E47206                 test    r12, r12
+  .text:0000000001E47209                 jz      short loc_1E47233
+  .text:0000000001E4720B                 cmp     byte ptr [r12+24h], 0
+  .text:0000000001E47211                 jnz     short loc_1E47290
+  .text:0000000001E47213                 movzx   eax, word ptr [r12+20h]
+  .text:0000000001E47219                 sub     eax, 1
+  .text:0000000001E4721C                 mov     [r12+20h], ax
+  .text:0000000001E47222                 test    ax, ax
+  .text:0000000001E47225                 jle     loc_1E472E0
+  .text:0000000001E4722B                 mov     qword ptr [rbx+20h], 0 ; 0x20 = 32 = CEntityInstance::m_pKeyValues (structmember, struct=CEntityInstance, member=m_pKeyValues)
+  .text:0000000001E47233                 lea     rsp, [rbp-18h]
+  .text:0000000001E47237                 pop     rbx
+  .text:0000000001E47238                 pop     r12
+  .text:0000000001E4723A                 pop     r13
+  .text:0000000001E4723C                 pop     rbp
+  .text:0000000001E4723D                 retn
+  .text:0000000001E47240                 mov     r12, [rbx+10h]
+  .text:0000000001E47244                 test    r12, r12
+  .text:0000000001E47247                 jz      short loc_1E471FA
+  .text:0000000001E47249                 mov     rdx, [r12+28h]
+  .text:0000000001E4724E                 test    rdx, rdx
+  .text:0000000001E47251                 jnz     loc_1E471B2
+  .text:0000000001E47257                 jmp     loc_1E471CD
+  .text:0000000001E47260                 lea     rax, qword_27BBC28
+  .text:0000000001E47267                 mov     rsi, r12
+  .text:0000000001E4726A                 mov     rdi, [rax]
+  .text:0000000001E4726D                 call    sub_1E644B0
+  .text:0000000001E47272                 mov     rax, [rbx+10h]
+  .text:0000000001E47276                 mov     rsi, r12
+  .text:0000000001E47279                 mov     rdi, [rax+8]
+  .text:0000000001E4727D                 call    sub_1E3D670
+  .text:0000000001E47282                 jmp     loc_1E47202
+  .text:0000000001E47290                 mov     r13, cs:LOG_GENERAL_ptr
+  .text:0000000001E47297                 ; _QWORD
+  .text:0000000001E47297                 mov     esi, 2; _QWORD
+  .text:0000000001E4729C                 ; _QWORD
+  .text:0000000001E4729C                 mov     edi, [r13+0]; _QWORD
+  .text:0000000001E472A0                 call    _LoggingSystem_IsChannelEnabled
+  .text:0000000001E472A5                 test    al, al
+  .text:0000000001E472A7                 jz      loc_1E47213
+  .text:0000000001E472AD                 movsx   eax, word ptr [r12+20h]
+  .text:0000000001E472B3                 mov     rcx, r12
+  .text:0000000001E472B6                 ; _QWORD
+  .text:0000000001E472B6                 mov     esi, 2; _QWORD
+  .text:0000000001E472BB                 ; _QWORD
+  .text:0000000001E472BB                 mov     edi, [r13+0]; _QWORD
+  .text:0000000001E472BF                 lea     rdx, aKv0xPReleaseRe; "kv 0x%p Release refcount == %d\n"
+  .text:0000000001E472C6                 lea     r8d, [rax-1]
+  .text:0000000001E472CA                 xor     eax, eax
+  .text:0000000001E472CC                 call    _LoggingSystem_Log
+  .text:0000000001E472D1                 jmp     loc_1E47213
+  .text:0000000001E472E0                 mov     rdi, r12
+  .text:0000000001E472E3                 call    sub_1E4EC50
+  .text:0000000001E472E8                 ; _QWORD
+  .text:0000000001E472E8                 mov     esi, 38h ; '8'; _QWORD
+  .text:0000000001E472ED                 ; _QWORD
+  .text:0000000001E472ED                 mov     rdi, r12; _QWORD
+  .text:0000000001E472F0                 call    __ZdlPvm; operator delete(void *,ulong)
+  .text:0000000001E472F5                 jmp     loc_1E4722B
+procedure: |-
+  void __fastcall CEntityInstance_UpdateOnRemove(_QWORD *a1, __int64 a2)
+  {
+    __int64 v3; // rdi
+    __int64 v4; // rdx
+    __int64 v5; // rax
+    __int64 v6; // r12
+    __int64 v7; // r12
+    __int64 v8; // r12
+    __int64 v9; // r12
+    __int16 v10; // ax
+    __int64 v11; // [rsp-8h] [rbp-28h]
+
+    v3 = a1[5];  // 5*8 = 40 = 0x28 = CEntityInstance::m_CScriptComponent (structmember, struct=CEntityInstance, member=m_CScriptComponent)
+    byte_27BB9E9 = 1;
+    if ( v3 )
+    {
+      a2 = (__int64)a1;
+      sub_1E7C710(v3, a1);
+    }
+    v4 = a1[3];
+    if ( v4 )
+    {
+      v5 = (*(__int64 (__fastcall **)(__int64, const char *, __int64, __int64))(*(_QWORD *)qword_25F5128 + 176LL))(
+             qword_25F5128,
+             "UpdateOnRemove",
+             v4,
+             1);
+      v6 = v5;
+      if ( v5 )
+      {
+        (*(void (__fastcall **)(__int64, __int64, _QWORD, _QWORD, _QWORD, _QWORD, __int64))(*(_QWORD *)qword_25F5128
+                                                                                          + 192LL))(
+          qword_25F5128,
+          v5,
+          0,
+          0,
+          0,
+          0,
+          1);
+        (*(void (__fastcall **)(__int64, __int64))(*(_QWORD *)qword_25F5128 + 184LL))(qword_25F5128, v6);
+        v4 = v11;
+      }
+      v7 = a1[2];
+      if ( !v7 )
+        goto LABEL_9;
+      v4 = *(_QWORD *)(v7 + 40);
+      if ( !v4 )
+        goto LABEL_9;
+      goto LABEL_8;
+    }
+    v8 = a1[2];
+    if ( !v8 )
+      goto LABEL_14;
+    v4 = *(_QWORD *)(v8 + 40);
+    if ( v4 )
+    {
+  LABEL_8:
+      sub_1E7B140(&xmmword_27BBFC0, a1);
+      *(_QWORD *)(a1[2] + 40LL) = 0;
+    }
+  LABEL_9:
+    a2 = a1[3];
+    if ( a2 )
+    {
+      if ( qword_25F5128 )
+        (*(void (__fastcall **)(__int64, __int64, __int64))(*(_QWORD *)qword_25F5128 + 168LL))(qword_25F5128, a2, v4);
+      a1[3] = 0;
+    }
+    v8 = a1[2];
+  LABEL_14:
+    if ( (*(_BYTE *)(v8 + 49) & 0x40) == 0 )
+    {
+      sub_1E644B0(qword_27BBC28, v8, v4);
+      a2 = v8;
+      sub_1E3D670(*(_QWORD *)(a1[2] + 8LL), v8);
+    }
+    v9 = a1[4];  // 4*8 = 32 = 0x20 = CEntityInstance::m_pKeyValues (structmember, struct=CEntityInstance, member=m_pKeyValues)
+    if ( v9 )
+    {
+      if ( *(_BYTE *)(v9 + 36) )
+      {
+        a2 = 2;
+        if ( (unsigned __int8)LoggingSystem_IsChannelEnabled(LOG_GENERAL, 2) )
+        {
+          a2 = 2;
+          LoggingSystem_Log(LOG_GENERAL, 2, "kv 0x%p Release refcount == %d\n");
+        }
+      }
+      v10 = *(_WORD *)(v9 + 32) - 1;
+      *(_WORD *)(v9 + 32) = v10;
+      if ( v10 <= 0 )
+      {
+        sub_1E4EC50(v9, a2, v4);
+        operator delete(v9, 56);
+      }
+      a1[4] = 0;  // 4*8 = 32 = 0x20 = CEntityInstance::m_pKeyValues (structmember, struct=CEntityInstance, member=m_pKeyValues)
+    }
+  }

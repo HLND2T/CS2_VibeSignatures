@@ -1,0 +1,204 @@
+func_name: CEntityInstance_UpdateOnRemove
+func_va: '0x18120e400'
+disasm_code: |-
+  .text:000000018120E400                 mov     [rsp+arg_0], rbx
+  .text:000000018120E405                 mov     [rsp+arg_8], rsi
+  .text:000000018120E40A                 push    rdi
+  .text:000000018120E40B                 sub     rsp, 40h
+  .text:000000018120E40F                 mov     rbx, rcx
+  .text:000000018120E412                 mov     cs:byte_1820B15C8, 1
+  .text:000000018120E419                 ; 0x28 = 40 = CEntityInstance::m_CScriptComponent (structmember, struct=CEntityInstance, member=m_CScriptComponent)
+  .text:000000018120E419                 mov     rcx, [rcx+28h]; 0x28 = 40 = CEntityInstance::m_CScriptComponent (structmember, struct=CEntityInstance, member=m_CScriptComponent)
+  .text:000000018120E41D                 test    rcx, rcx
+  .text:000000018120E420                 jz      short loc_18120E42A
+  .text:000000018120E422                 mov     rdx, rbx
+  .text:000000018120E425                 call    sub_18121BA10
+  .text:000000018120E42A                 mov     r8, [rbx+18h]
+  .text:000000018120E42E                 xor     esi, esi
+  .text:000000018120E430                 test    r8, r8
+  .text:000000018120E433                 jz      short loc_18120E496
+  .text:000000018120E435                 mov     rcx, cs:qword_181E16008
+  .text:000000018120E43C                 lea     rdx, aUpdateonremove; "UpdateOnRemove"
+  .text:000000018120E443                 mov     r9b, 1
+  .text:000000018120E446                 mov     rax, [rcx]
+  .text:000000018120E449                 call    qword ptr [rax+0A8h]
+  .text:000000018120E44F                 mov     rdi, rax
+  .text:000000018120E452                 test    rax, rax
+  .text:000000018120E455                 jz      short loc_18120E496
+  .text:000000018120E457                 mov     rcx, cs:qword_181E16008
+  .text:000000018120E45E                 xor     r9d, r9d
+  .text:000000018120E461                 mov     [rsp+48h+var_18], 1
+  .text:000000018120E466                 xor     r8d, r8d
+  .text:000000018120E469                 mov     [rsp+48h+var_20], rsi
+  .text:000000018120E46E                 mov     [rsp+48h+var_28], rsi
+  .text:000000018120E473                 mov     rdx, [rcx]
+  .text:000000018120E476                 mov     r10, [rdx+0B8h]
+  .text:000000018120E47D                 mov     rdx, rax
+  .text:000000018120E480                 call    r10
+  .text:000000018120E483                 mov     rcx, cs:qword_181E16008
+  .text:000000018120E48A                 mov     rdx, rdi
+  .text:000000018120E48D                 mov     rax, [rcx]
+  .text:000000018120E490                 call    qword ptr [rax+0B0h]
+  .text:000000018120E496                 mov     rdi, [rbx+10h]
+  .text:000000018120E49A                 test    rdi, rdi
+  .text:000000018120E49D                 jz      short loc_18120E4C3
+  .text:000000018120E49F                 mov     r8, [rdi+28h]
+  .text:000000018120E4A3                 test    r8, r8
+  .text:000000018120E4A6                 jz      short loc_18120E4C3
+  .text:000000018120E4A8                 mov     rdx, rbx
+  .text:000000018120E4AB                 lea     rcx, qword_1820B1900
+  .text:000000018120E4B2                 call    sub_181219C10
+  .text:000000018120E4B7                 mov     rax, [rbx+10h]
+  .text:000000018120E4BB                 mov     [rax+28h], rsi
+  .text:000000018120E4BF                 mov     rdi, [rbx+10h]
+  .text:000000018120E4C3                 mov     rdx, [rbx+18h]
+  .text:000000018120E4C7                 test    rdx, rdx
+  .text:000000018120E4CA                 jz      short loc_18120E4E9
+  .text:000000018120E4CC                 mov     rcx, cs:qword_181E16008
+  .text:000000018120E4D3                 test    rcx, rcx
+  .text:000000018120E4D6                 jz      short loc_18120E4E5
+  .text:000000018120E4D8                 mov     rax, [rcx]
+  .text:000000018120E4DB                 call    qword ptr [rax+0A0h]
+  .text:000000018120E4E1                 mov     rdi, [rbx+10h]
+  .text:000000018120E4E5                 mov     [rbx+18h], rsi
+  .text:000000018120E4E9                 mov     eax, [rdi+30h]
+  .text:000000018120E4EC                 shr     eax, 0Eh
+  .text:000000018120E4EF                 test    al, 1
+  .text:000000018120E4F1                 jnz     short loc_18120E512
+  .text:000000018120E4F3                 mov     rcx, cs:qword_1820B1418
+  .text:000000018120E4FA                 mov     rdx, rdi
+  .text:000000018120E4FD                 call    sub_1811F5B20
+  .text:000000018120E502                 mov     rcx, [rbx+10h]
+  .text:000000018120E506                 mov     rdx, rdi
+  .text:000000018120E509                 mov     rcx, [rcx+8]
+  .text:000000018120E50D                 call    sub_1811E0380
+  .text:000000018120E512                 ; 0x20 = 32 = CEntityInstance::m_pKeyValues (structmember, struct=CEntityInstance, member=m_pKeyValues)
+  .text:000000018120E512                 mov     rdi, [rbx+20h]; 0x20 = 32 = CEntityInstance::m_pKeyValues (structmember, struct=CEntityInstance, member=m_pKeyValues)
+  .text:000000018120E516                 test    rdi, rdi
+  .text:000000018120E519                 jz      short loc_18120E584
+  .text:000000018120E51B                 cmp     [rdi+24h], sil
+  .text:000000018120E51F                 jz      short loc_18120E561
+  .text:000000018120E521                 mov     rcx, cs:LOG_GENERAL
+  .text:000000018120E528                 mov     edx, 2
+  .text:000000018120E52D                 mov     ecx, [rcx]
+  .text:000000018120E52F                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:000000018120E535                 test    al, al
+  .text:000000018120E537                 jz      short loc_18120E561
+  .text:000000018120E539                 mov     rcx, cs:LOG_GENERAL
+  .text:000000018120E540                 lea     r8, aKv0xPReleaseRe; "kv 0x%p Release refcount == %d\n"
+  .text:000000018120E547                 movsx   eax, word ptr [rdi+20h]
+  .text:000000018120E54B                 mov     r9, rdi
+  .text:000000018120E54E                 dec     eax
+  .text:000000018120E550                 mov     edx, 2
+  .text:000000018120E555                 mov     dword ptr [rsp+48h+var_28], eax
+  .text:000000018120E559                 mov     ecx, [rcx]
+  .text:000000018120E55B                 call    cs:LoggingSystem_Log
+  .text:000000018120E561                 dec     word ptr [rdi+20h]
+  .text:000000018120E565                 cmp     [rdi+20h], si
+  .text:000000018120E569                 jg      short loc_18120E580
+  .text:000000018120E56B                 mov     rcx, rdi
+  .text:000000018120E56E                 call    sub_1811FF380
+  .text:000000018120E573                 mov     edx, 38h ; '8'
+  .text:000000018120E578                 mov     rcx, rdi
+  .text:000000018120E57B                 call    sub_180E77290
+  .text:000000018120E580                 mov     [rbx+20h], rsi
+  .text:000000018120E584                 mov     rbx, [rsp+48h+arg_0]
+  .text:000000018120E589                 mov     rsi, [rsp+48h+arg_8]
+  .text:000000018120E58E                 add     rsp, 40h
+  .text:000000018120E592                 pop     rdi
+  .text:000000018120E593                 retn
+procedure: |-
+  __int64 __fastcall CEntityInstance_UpdateOnRemove(__int64 a1, __int64 a2, __int64 a3, __int64 a4)
+  {
+    __int64 v5; // rcx
+    __int64 v6; // r8
+    __int64 v7; // rax
+    __int64 v8; // rdi
+    __int64 v9; // rdi
+    __int64 v10; // rdx
+    __int64 result; // rax
+    __int64 v12; // rdi
+    char v13; // [rsp+30h] [rbp-18h]
+
+    byte_1820B15C8 = 1;
+    v5 = *(_QWORD *)(a1 + 40);                    // 0x28 = 40 = CEntityInstance::m_CScriptComponent (structmember, struct=CEntityInstance, member=m_CScriptComponent)
+    if ( v5 )
+      sub_18121BA10(v5, a1);
+    v6 = *(_QWORD *)(a1 + 24);
+    if ( v6 )
+    {
+      LOBYTE(a4) = 1;
+      v7 = (*(__int64 (__fastcall **)(__int64, const char *, __int64, __int64))(*(_QWORD *)qword_181E16008 + 168LL))(
+             qword_181E16008,
+             "UpdateOnRemove",
+             v6,
+             a4);
+      v8 = v7;
+      if ( v7 )
+      {
+        v13 = 1;
+        (*(void (__fastcall **)(__int64, __int64, _QWORD, _QWORD, _QWORD, _QWORD, char))(*(_QWORD *)qword_181E16008 + 184LL))(
+          qword_181E16008,
+          v7,
+          0,
+          0,
+          0,
+          0,
+          v13);
+        (*(void (__fastcall **)(__int64, __int64))(*(_QWORD *)qword_181E16008 + 176LL))(qword_181E16008, v8);
+      }
+    }
+    v9 = *(_QWORD *)(a1 + 16);
+    if ( v9 )
+    {
+      v6 = *(_QWORD *)(v9 + 40);
+      if ( v6 )
+      {
+        sub_181219C10(&qword_1820B1900, a1);
+        *(_QWORD *)(*(_QWORD *)(a1 + 16) + 40LL) = 0;
+        v9 = *(_QWORD *)(a1 + 16);
+      }
+    }
+    v10 = *(_QWORD *)(a1 + 24);
+    if ( v10 )
+    {
+      if ( qword_181E16008 )
+      {
+        (*(void (__fastcall **)(__int64, __int64, __int64, __int64))(*(_QWORD *)qword_181E16008 + 160LL))(
+          qword_181E16008,
+          v10,
+          v6,
+          a4);
+        v9 = *(_QWORD *)(a1 + 16);
+      }
+      *(_QWORD *)(a1 + 24) = 0;
+    }
+    result = *(_DWORD *)(v9 + 48) >> 14;
+    if ( (*(_DWORD *)(v9 + 48) & 0x4000) == 0 )
+    {
+      sub_1811F5B20(qword_1820B1418, v9);
+      result = sub_1811E0380(*(_QWORD *)(*(_QWORD *)(a1 + 16) + 8LL), v9);
+    }
+    v12 = *(_QWORD *)(a1 + 32);                   // 0x20 = 32 = CEntityInstance::m_pKeyValues (structmember, struct=CEntityInstance, member=m_pKeyValues)
+    if ( v12 )
+    {
+      if ( *(_BYTE *)(v12 + 36) )
+      {
+        result = LoggingSystem_IsChannelEnabled(LOG_GENERAL, 2);
+        if ( (_BYTE)result )
+          result = LoggingSystem_Log(
+                     LOG_GENERAL,
+                     2,
+                     "kv 0x%p Release refcount == %d\n",
+                     (const void *)v12,
+                     *(__int16 *)(v12 + 32) - 1);
+      }
+      if ( (__int16)--*(_WORD *)(v12 + 32) <= 0 )
+      {
+        sub_1811FF380(v12);
+        result = sub_180E77290(v12, 56);
+      }
+      *(_QWORD *)(a1 + 32) = 0;
+    }
+    return result;
+  }

@@ -3317,17 +3317,12 @@ modules:
         expected_input:
           - CEntFireOutputAutoCompletionFunctor_FireOutput.{platform}.yaml
 
-      - name: find-CEntityInstance_m_CScriptComponent
+      - name: find-CEntityInstance_m_CScriptComponent-AND-CEntityInstance_m_pKeyValues
         expected_output:
           - CEntityInstance_m_CScriptComponent.{platform}.yaml
-        expected_input:
-          - CEntityInstance_FindOutputsByName.{platform}.yaml
-
-      - name: find-CEntityInstance_m_pKeyValues
-        expected_output:
           - CEntityInstance_m_pKeyValues.{platform}.yaml
         expected_input:
-          - CLoadingSpawnGroup_CreateEntityToSpawn.{platform}.yaml
+          - CEntityInstance_UpdateOnRemove.{platform}.yaml
 
       - name: find-CEntityInstance_m_pEntity
         expected_output:
@@ -5565,11 +5560,15 @@ modules:
 
       - name: CEntityInstance_m_CScriptComponent
         category: structmember
+        struct: CEntityInstance
+        member: m_CScriptComponent
         alias:
           - CEntityInstance::m_CScriptComponent
 
       - name: CEntityInstance_m_pKeyValues
         category: structmember
+        struct: CEntityInstance
+        member: m_pKeyValues
         alias:
           - CEntityInstance::m_pKeyValues
 
