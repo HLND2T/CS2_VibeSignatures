@@ -1036,6 +1036,65 @@ modules:
           - CServerSideClientBase_vtable.{platform}.yaml
           - CDelayedCall2_CServerSideClientBase_UpdateAcknowledgedFramecountCall_vtable.{platform}.yaml
 
+      - name: find-CServerSideClientBase_ProcessStringCmd
+        expected_output:
+          - CServerSideClientBase_ProcessStringCmd.{platform}.yaml
+        expected_input:
+          - CServerSideClientBase_vtable.{platform}.yaml
+
+      - name: find-CNETMsg_SpawnGroup_LoadCompleted_t_vtable
+        expected_output:
+          - CNETMsg_SpawnGroup_LoadCompleted_t_vtable.{platform}.yaml
+
+      - name: find-CServerSideClientBase_MarkSpawnGroupLoadCompleted-windows
+        platform: windows
+        expected_output:
+          - CServerSideClientBase_MarkSpawnGroupLoadCompleted.{platform}.yaml
+
+      - name: find-CServerSideClientBase_ProcessSpawnGroup_LoadCompleted-windows
+        platform: windows
+        expected_output:
+          - CServerSideClientBase_ProcessSpawnGroup_LoadCompleted.{platform}.yaml
+        expected_input:
+          - CServerSideClientBase_MarkSpawnGroupLoadCompleted.{platform}.yaml
+          - CServerSideClientBase_vtable.{platform}.yaml
+
+      - name: find-CServerSideClientBase_ProcessSpawnGroup_LoadCompleted-linux
+        platform: linux
+        expected_output:
+          - CServerSideClientBase_ProcessSpawnGroup_LoadCompleted.{platform}.yaml
+        expected_input:
+          - CNETMsg_SpawnGroup_LoadCompleted_t_vtable.{platform}.yaml
+          - CServerSideClientBase_vtable.{platform}.yaml
+
+      - name: find-CServerSideClientBase_ProcessClientInfo
+        expected_output:
+          - CServerSideClientBase_ProcessClientInfo.{platform}.yaml
+        expected_input:
+          - CServerSideClientBase_vtable.{platform}.yaml
+
+      - name: find-CDelayedCall2_CServerSideClientBase_ProcessBaselineAckCall_vtable
+        expected_output:
+          - CDelayedCall2_CServerSideClientBase_ProcessBaselineAckCall_vtable.{platform}.yaml
+
+      - name: find-CServerSideClientBase_ProcessBaselineAck
+        expected_output:
+          - CServerSideClientBase_ProcessBaselineAck.{platform}.yaml
+        expected_input:
+          - CServerSideClientBase_vtable.{platform}.yaml
+          - CDelayedCall2_CServerSideClientBase_ProcessBaselineAckCall_vtable.{platform}.yaml
+
+      - name: find-CServerSideClientBase_ProcessSplitPlayerConnectInternal
+        expected_output:
+          - CServerSideClientBase_ProcessSplitPlayerConnectInternal.{platform}.yaml
+
+      - name: find-CServerSideClientBase_ProcessSplitPlayerConnect
+        expected_output:
+          - CServerSideClientBase_ProcessSplitPlayerConnect.{platform}.yaml
+        expected_input:
+          - CServerSideClientBase_ProcessSplitPlayerConnectInternal.{platform}.yaml
+          - CServerSideClientBase_vtable.{platform}.yaml
+
     symbols:
       - name: CNetworkGameServer_vtable
         category: vtable
@@ -1523,6 +1582,47 @@ modules:
         category: vfunc
         alias:
           - CServerSideClientBase::ProcessTick
+
+      - name: CServerSideClientBase_ProcessStringCmd
+        category: vfunc
+        alias:
+          - CServerSideClientBase::ProcessStringCmd
+
+      - name: CNETMsg_SpawnGroup_LoadCompleted_t_vtable
+        category: vtable
+
+      - name: CServerSideClientBase_MarkSpawnGroupLoadCompleted
+        category: func
+        alias:
+          - CServerSideClientBase::MarkSpawnGroupLoadCompleted
+
+      - name: CServerSideClientBase_ProcessSpawnGroup_LoadCompleted
+        category: vfunc
+        alias:
+          - CServerSideClientBase::ProcessSpawnGroup_LoadCompleted
+
+      - name: CServerSideClientBase_ProcessClientInfo
+        category: vfunc
+        alias:
+          - CServerSideClientBase::ProcessClientInfo
+
+      - name: CDelayedCall2_CServerSideClientBase_ProcessBaselineAckCall_vtable
+        category: vtable
+
+      - name: CServerSideClientBase_ProcessBaselineAck
+        category: vfunc
+        alias:
+          - CServerSideClientBase::ProcessBaselineAck
+
+      - name: CServerSideClientBase_ProcessSplitPlayerConnectInternal
+        category: func
+        alias:
+          - CServerSideClientBase::ProcessSplitPlayerConnectInternal
+
+      - name: CServerSideClientBase_ProcessSplitPlayerConnect
+        category: vfunc
+        alias:
+          - CServerSideClientBase::ProcessSplitPlayerConnect
 
   - name: client
     path_windows: game/csgo/bin/win64/client.dll
