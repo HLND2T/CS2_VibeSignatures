@@ -7,7 +7,23 @@ TARGET_FUNCTION_NAMES = [
     "CBaseEntity_NetworkStateChanged",
 ]
 
-FUNC_XREFS = [
+FUNC_XREFS_WINDOWS = [
+    {
+        "func_name": "CBaseEntity_NetworkStateChanged",
+        "xref_strings": ["CNetworkTransmitComponent::StateChanged(%s) @%s:%d"],
+        "xref_gvs": [],
+        "xref_signatures": [],
+        "xref_funcs": [
+            "CNetworkTransmitComponent_StateChanged",
+        ],
+        "exclude_funcs": [],
+        "exclude_strings": [],
+        "exclude_gvs": [],
+        "exclude_signatures": [],
+    },
+]
+
+FUNC_XREFS_LINUX = [
     {
         "func_name": "CBaseEntity_NetworkStateChanged",
         "xref_strings": [],
@@ -57,7 +73,7 @@ async def preprocess_skill(
         platform=platform,
         image_base=image_base,
         func_names=TARGET_FUNCTION_NAMES,
-        func_xrefs=FUNC_XREFS,
+        func_xrefs=FUNC_XREFS_WINDOWS if platform == "windows" else FUNC_XREFS_LINUX,
         func_vtable_relations=FUNC_VTABLE_RELATIONS,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
