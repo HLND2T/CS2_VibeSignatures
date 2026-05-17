@@ -1,0 +1,56 @@
+func_name: CAM_Command_CommandHandler
+func_va: '0x180aea580'
+disasm_code: |-
+  .text:0000000180AEA580                 push    rbx
+  .text:0000000180AEA582                 sub     rsp, 20h
+  .text:0000000180AEA586                 cmp     dword ptr [rdx+438h], 2
+  .text:0000000180AEA58D                 mov     rbx, rdx
+  .text:0000000180AEA590                 jge     short loc_180AEA5A5
+  .text:0000000180AEA592                 lea     rcx, aCamCommand01Or; "cam_command <0, 1, or 2>\n"
+  .text:0000000180AEA599                 call    cs:__imp_Msg
+  .text:0000000180AEA59F                 add     rsp, 20h
+  .text:0000000180AEA5A3                 pop     rbx
+  .text:0000000180AEA5A4                 retn
+  .text:0000000180AEA5A5                 mov     rcx, cs:g_pSource2EngineToClient
+  .text:0000000180AEA5AC                 lea     rdx, [rsp+28h+arg_8]
+  .text:0000000180AEA5B1                 mov     rax, [rcx]
+  .text:0000000180AEA5B4                 call    qword ptr [rax+308h]
+  .text:0000000180AEA5BA                 cmp     [rsp+28h+arg_8], 0
+  .text:0000000180AEA5BF                 jnz     short loc_180AEA5FF
+  .text:0000000180AEA5C1                 cmp     dword ptr [rbx+438h], 1
+  .text:0000000180AEA5C8                 jle     short loc_180AEA5D7
+  .text:0000000180AEA5CA                 mov     rax, [rbx+440h]
+  .text:0000000180AEA5D1                 mov     rcx, [rax+8]
+  .text:0000000180AEA5D5                 jmp     short loc_180AEA5DE
+  .text:0000000180AEA5D7                 lea     rcx, byte_181919088
+  .text:0000000180AEA5DE                 call    cs:V_atoi
+  .text:0000000180AEA5E4                 movsxd  rcx, [rsp+28h+arg_8]
+  .text:0000000180AEA5E9                 mov     r8, cs:g_pCSGOInput
+  .text:0000000180AEA5F0                 imul    rdx, rcx, 928h
+  .text:0000000180AEA5F7                 mov     [rdx+r8+6A8h], eax
+  .text:0000000180AEA5FF                 add     rsp, 20h
+  .text:0000000180AEA603                 pop     rbx
+  .text:0000000180AEA604                 retn
+procedure: |-
+  __int64 __fastcall CAM_Command_CommandHandler(__int64 a1, __int64 a2)
+  {
+    __int64 result; // rax
+    char *v4; // rcx
+    int v5; // [rsp+38h] [rbp+10h] BYREF
+
+    if ( *(int *)(a2 + 1080) < 2 )
+      return Msg("cam_command <0, 1, or 2>\n");
+    result = (*(__int64 (__fastcall **)(__int64, int *))(*(_QWORD *)g_pSource2EngineToClient + 776LL))(
+               g_pSource2EngineToClient,
+               &v5);
+    if ( !v5 )
+    {
+      if ( *(int *)(a2 + 1080) <= 1 )
+        v4 = byte_181919088;
+      else
+        v4 = *(char **)(*(_QWORD *)(a2 + 1088) + 8LL);
+      result = V_atoi(v4);
+      *(_DWORD *)(2344LL * v5 + g_pCSGOInput + 1704) = result;
+    }
+    return result;
+  }

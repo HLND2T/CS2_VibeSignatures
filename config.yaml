@@ -2001,6 +2001,16 @@ modules:
         expected_input:
           - CPrediction_PostNetworkDataReceived.{platform}.yaml
 
+      - name: find-CAM_Command_CommandHandler
+        expected_output:
+          - CAM_Command_CommandHandler.{platform}.yaml
+
+      - name: find-g_pCSGOInput
+        expected_output:
+          - g_pCSGOInput.{platform}.yaml
+        expected_input:
+          - CAM_Command_CommandHandler.{platform}.yaml
+
     symbols:
       - name: CLoopModeGame_RegisterEventMapInternal
         category: func
@@ -2321,6 +2331,12 @@ modules:
         category: vfunc
         alias:
           - IEngineServiceMgr::GetActiveLoopClientServerMode
+
+      - name: CAM_Command_CommandHandler
+        category: func
+
+      - name: g_pCSGOInput
+        category: gv
 
   - name: server
     path_windows: game/csgo/bin/win64/server.dll

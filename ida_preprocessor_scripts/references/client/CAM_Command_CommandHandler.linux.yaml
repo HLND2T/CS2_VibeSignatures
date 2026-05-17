@@ -1,0 +1,53 @@
+func_name: CAM_Command_CommandHandler
+func_va: '0x1754190'
+disasm_code: |-
+  .text:0000000001754190                 cmp     dword ptr [rsi+438h], 1
+  .text:0000000001754197                 jle     short loc_17541F0
+  .text:0000000001754199                 mov     rdi, cs:Source2EngineToClient
+  .text:00000000017541A0                 push    rbp
+  .text:00000000017541A1                 mov     rbp, rsp
+  .text:00000000017541A4                 push    r12
+  .text:00000000017541A6                 push    rbx
+  .text:00000000017541A7                 mov     rbx, rsi
+  .text:00000000017541AA                 mov     rax, [rdi]
+  .text:00000000017541AD                 call    qword ptr [rax+308h]
+  .text:00000000017541B3                 test    eax, eax
+  .text:00000000017541B5                 jnz     short loc_17541E9
+  .text:00000000017541B7                 lea     rax, g_pCSGOInput
+  .text:00000000017541BE                 lea     rdi, haystack
+  .text:00000000017541C5                 cmp     dword ptr [rbx+438h], 1
+  .text:00000000017541CC                 mov     r12, [rax]
+  .text:00000000017541CF                 jle     short loc_17541DC
+  .text:00000000017541D1                 mov     rax, [rbx+440h]
+  .text:00000000017541D8                 ; _QWORD
+  .text:00000000017541D8                 mov     rdi, [rax+8]; _QWORD
+  .text:00000000017541DC                 call    _V_atoi
+  .text:00000000017541E1                 mov     [r12+6A8h], eax
+  .text:00000000017541E9                 pop     rbx
+  .text:00000000017541EA                 pop     r12
+  .text:00000000017541EC                 pop     rbp
+  .text:00000000017541ED                 retn
+  .text:00000000017541F0                 lea     rdi, aCamCommand01Or; "cam_command <0, 1, or 2>\n"
+  .text:00000000017541F7                 xor     eax, eax
+  .text:00000000017541F9                 jmp     _Msg
+procedure: |-
+  __int64 __fastcall CAM_Command_CommandHandler(__int64 a1, __int64 a2)
+  {
+    __int64 result; // rax
+    char *v3; // rdi
+    __int64 v4; // r12
+
+    if ( *(int *)(a2 + 1080) <= 1 )
+      return Msg("cam_command <0, 1, or 2>\n");
+    result = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)Source2EngineToClient + 776LL))(Source2EngineToClient);
+    if ( !(_DWORD)result )
+    {
+      v3 = &haystack;
+      v4 = g_pCSGOInput;
+      if ( *(int *)(a2 + 1080) > 1 )
+        v3 = *(char **)(*(_QWORD *)(a2 + 1088) + 8LL);
+      result = V_atoi(v3);
+      *(_DWORD *)(v4 + 1704) = result;
+    }
+    return result;
+  }
