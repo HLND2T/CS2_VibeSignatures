@@ -1,3 +1,4 @@
+import argparse
 from pathlib import Path
 import tempfile
 import unittest
@@ -437,7 +438,298 @@ class TestBumpDownload(unittest.TestCase):
             )
 
             bump_download.write_github_output(output, updated=False, tag=None)
-            self.assertEqual("updated=false\n", output.read_text(encoding="utf-8"))
+            self.assertEqual(
+                "updated=true\ntag=14161\nupdated=false\n",
+                output.read_text(encoding="utf-8"),
+            )
+
+    @patch("bump_download.subprocess.run")
+    def test_create_commit_and_tag_runs_expected_git_commands(self, mock_run) -> None:
+        bump_download.create_commit_and_tag(
+            config_path=Path("download.yaml"),
+            tag="14161",
+            patch_version="1.41.6.1",
+        )
+
+        self.assertEqual(
+            [
+                call(["git", "add", "download.yaml"], check=True),
+                call(
+                    ["git", "commit", "-m", "chore(download): 更新 1.41.6.1 下载清单"],
+                    check=True,
+                ),
+                call(["git", "tag", "14161"], check=True),
+            ],
+            mock_run.call_args_list,
+        )
+
+    @patch("bump_download.create_commit_and_tag")
+    @patch(
+        "bump_download.discover_latest",
+        return_value=("1.41.6.1", {"2347771": "11", "2347773": "22"}),
+    )
+    def test_dry_run_does_not_commit(self, _discover, commit) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            config = Path(tmp) / "download.yaml"
+            config.write_text(
+                "downloads:\n"
+                '  - tag: "14160"\n'
+                "    name: 1.41.6.0\n"
+                "    manifests:\n"
+                '      "2347771": "1"\n'
+                '      "2347773": "2"\n',
+                encoding="utf-8",
+            )
+            args = argparse.Namespace(
+                config=str(config),
+                depotdir=str(Path(tmp) / "depot"),
+                app="730",
+                os="all-platform",
+                username=None,
+                password=None,
+                remember_password=False,
+                github_output=None,
+                dry_run=True,
+            )
+
+            self.assertEqual(0, bump_download.run(args))
+
+        commit.assert_not_called()
+
+    @patch("bump_download.remote_tag_exists")
+    @patch("bump_download.local_tag_exists")
+    @patch("bump_download.create_commit_and_tag")
+    @patch(
+        "bump_download.discover_latest",
+        return_value=("1.41.6.1", {"2347771": "11", "2347773": "22"}),
+    )
+    def test_dry_run_existing_entry_does_not_check_git(
+        self,
+        _discover,
+        commit,
+        local_tag_exists,
+        remote_tag_exists,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            config = Path(tmp) / "download.yaml"
+            config.write_text(
+                "downloads:\n"
+                '  - tag: "14161"\n'
+                "    name: 1.41.6.1\n"
+                "    manifests:\n"
+                '      "2347771": "11"\n'
+                '      "2347773": "22"\n',
+                encoding="utf-8",
+            )
+            args = argparse.Namespace(
+                config=str(config),
+                depotdir=str(Path(tmp) / "depot"),
+                app="730",
+                os="all-platform",
+                username=None,
+                password=None,
+                remember_password=False,
+                github_output=None,
+                dry_run=True,
+            )
+
+            self.assertEqual(0, bump_download.run(args))
+
+        commit.assert_not_called()
+        local_tag_exists.assert_not_called()
+        remote_tag_exists.assert_not_called()
+
+    @patch("bump_download.remote_tag_exists", return_value=False)
+    @patch("bump_download.local_tag_exists", return_value=False)
+    def test_tag_repair_when_entry_exists_but_remote_tag_missing(
+        self, _local, _remote
+    ) -> None:
+        downloads = [
+            {
+                "tag": "14161",
+                "name": "1.41.6.1",
+                "manifests": {"2347771": "11", "2347773": "22"},
+            }
+        ]
+
+        plan = bump_download.plan_tag_repair(
+            downloads,
+            patch_version="1.41.6.1",
+            manifests={"2347771": "11", "2347773": "22"},
+        )
+
+        self.assertIsNotNone(plan)
+        self.assertTrue(plan.updated)
+        self.assertTrue(plan.repair_tag)
+        self.assertEqual("14161", plan.tag)
+
+    @patch("bump_download.create_commit_and_tag")
+    @patch("bump_download.remote_tag_exists", return_value=False)
+    @patch("bump_download.local_tag_exists", return_value=False)
+    @patch("bump_download.ensure_clean_worktree")
+    @patch(
+        "bump_download.discover_latest",
+        return_value=("1.41.6.1", {"2347771": "11", "2347773": "22"}),
+    )
+    def test_run_new_entry_commits_tag_and_writes_output(
+        self,
+        _discover,
+        ensure_clean_worktree,
+        local_tag_exists,
+        remote_tag_exists,
+        create_commit_and_tag,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            config = Path(tmp) / "download.yaml"
+            output = Path(tmp) / "github_output.txt"
+            config.write_text(
+                "downloads:\n"
+                '  - tag: "14160"\n'
+                "    name: 1.41.6.0\n"
+                "    manifests:\n"
+                '      "2347771": "1"\n'
+                '      "2347773": "2"\n',
+                encoding="utf-8",
+            )
+            args = argparse.Namespace(
+                config=str(config),
+                depotdir=str(Path(tmp) / "depot"),
+                app="730",
+                os="all-platform",
+                username=None,
+                password=None,
+                remember_password=False,
+                github_output=str(output),
+                dry_run=False,
+            )
+
+            self.assertEqual(0, bump_download.run(args))
+            text = config.read_text(encoding="utf-8")
+            output_text = output.read_text(encoding="utf-8")
+
+        ensure_clean_worktree.assert_called_once_with()
+        local_tag_exists.assert_called_once_with("14161")
+        remote_tag_exists.assert_called_once_with("14161")
+        create_commit_and_tag.assert_called_once_with(config, "14161", "1.41.6.1")
+        self.assertIn('tag: "14161"', text)
+        self.assertIn("name: 1.41.6.1", text)
+        self.assertIn('"2347771": "11"', text)
+        self.assertIn('"2347773": "22"', text)
+        self.assertEqual("updated=true\ntag=14161\n", output_text)
+
+    @patch("bump_download.create_commit_and_tag")
+    @patch("bump_download.ensure_clean_worktree")
+    @patch("bump_download.remote_tag_exists", return_value=True)
+    @patch(
+        "bump_download.discover_latest",
+        return_value=("1.41.6.1", {"2347771": "11", "2347773": "22"}),
+    )
+    def test_run_existing_entry_remote_tag_present_writes_no_update(
+        self,
+        _discover,
+        remote_tag_exists,
+        ensure_clean_worktree,
+        create_commit_and_tag,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            config = Path(tmp) / "download.yaml"
+            output = Path(tmp) / "github_output.txt"
+            original_text = (
+                "downloads:\n"
+                '  - tag: "14161"\n'
+                "    name: 1.41.6.1\n"
+                "    manifests:\n"
+                '      "2347771": "11"\n'
+                '      "2347773": "22"\n'
+            )
+            config.write_text(original_text, encoding="utf-8")
+            args = argparse.Namespace(
+                config=str(config),
+                depotdir=str(Path(tmp) / "depot"),
+                app="730",
+                os="all-platform",
+                username=None,
+                password=None,
+                remember_password=False,
+                github_output=str(output),
+                dry_run=False,
+            )
+
+            self.assertEqual(0, bump_download.run(args))
+            self.assertEqual(original_text, config.read_text(encoding="utf-8"))
+            output_text = output.read_text(encoding="utf-8")
+
+        remote_tag_exists.assert_called_once_with("14161")
+        ensure_clean_worktree.assert_not_called()
+        create_commit_and_tag.assert_not_called()
+        self.assertEqual("updated=false\n", output_text)
+
+    @patch("bump_download.create_commit_and_tag")
+    @patch("bump_download.create_repair_tag")
+    @patch("bump_download.ensure_local_tag_matches_head")
+    @patch("bump_download.ensure_clean_worktree")
+    @patch("bump_download.remote_tag_exists", return_value=False)
+    @patch(
+        "bump_download.discover_latest",
+        return_value=("1.41.6.1", {"2347771": "11", "2347773": "22"}),
+    )
+    def test_run_repair_mode_creates_tag_and_writes_update(
+        self,
+        _discover,
+        remote_tag_exists,
+        ensure_clean_worktree,
+        ensure_local_tag_matches_head,
+        create_repair_tag,
+        create_commit_and_tag,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            config = Path(tmp) / "download.yaml"
+            output = Path(tmp) / "github_output.txt"
+            original_text = (
+                "downloads:\n"
+                '  - tag: "14161"\n'
+                "    name: 1.41.6.1\n"
+                "    manifests:\n"
+                '      "2347771": "11"\n'
+                '      "2347773": "22"\n'
+            )
+            config.write_text(original_text, encoding="utf-8")
+            args = argparse.Namespace(
+                config=str(config),
+                depotdir=str(Path(tmp) / "depot"),
+                app="730",
+                os="all-platform",
+                username=None,
+                password=None,
+                remember_password=False,
+                github_output=str(output),
+                dry_run=False,
+            )
+
+            self.assertEqual(0, bump_download.run(args))
+            self.assertEqual(original_text, config.read_text(encoding="utf-8"))
+            output_text = output.read_text(encoding="utf-8")
+
+        remote_tag_exists.assert_called_once_with("14161")
+        ensure_clean_worktree.assert_called_once_with()
+        ensure_local_tag_matches_head.assert_called_once_with("14161")
+        create_repair_tag.assert_called_once_with("14161")
+        create_commit_and_tag.assert_not_called()
+        self.assertEqual("updated=true\ntag=14161\n", output_text)
+
+    @patch("bump_download.parse_args", return_value=argparse.Namespace())
+    def test_main_maps_known_errors_to_exit_codes(self, _parse_args) -> None:
+        cases = [
+            (bump_download.BumpError("bad config"), 1),
+            (FileNotFoundError(), 1),
+            (bump_download.subprocess.CalledProcessError(7, ["git"]), 7),
+        ]
+
+        for error, expected in cases:
+            with self.subTest(error=type(error).__name__):
+                with patch("bump_download.run", side_effect=error):
+                    with patch("builtins.print"):
+                        self.assertEqual(expected, bump_download.main())
 
     def test_load_config_wraps_invalid_yaml(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

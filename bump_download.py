@@ -299,7 +299,58 @@ def write_github_output(output_path: Path | None, updated: bool, tag: str | None
     lines = [f"updated={'true' if updated else 'false'}"]
     if updated and tag:
         lines.append(f"tag={tag}")
-    output_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    with output_path.open("a", encoding="utf-8") as handle:
+        handle.write("\n".join(lines) + "\n")
+
+
+def git_output(command: list[str]) -> str:
+    completed = subprocess.run(command, check=False, capture_output=True, text=True)
+    return completed.stdout.strip()
+
+
+def local_tag_exists(tag: str) -> bool:
+    completed = subprocess.run(
+        ["git", "rev-parse", "-q", "--verify", f"refs/tags/{tag}"],
+        check=False,
+    )
+    return completed.returncode == 0
+
+
+def remote_tag_exists(tag: str) -> bool:
+    completed = subprocess.run(
+        ["git", "ls-remote", "--exit-code", "--tags", "origin", tag],
+        check=False,
+    )
+    return completed.returncode == 0
+
+
+def ensure_clean_worktree() -> None:
+    status = git_output(["git", "status", "--porcelain"])
+    if status:
+        raise BumpError("Working tree has uncommitted changes")
+
+
+def create_commit_and_tag(config_path: Path, tag: str, patch_version: str) -> None:
+    subprocess.run(["git", "add", str(config_path)], check=True)
+    subprocess.run(
+        ["git", "commit", "-m", f"chore(download): 更新 {patch_version} 下载清单"],
+        check=True,
+    )
+    subprocess.run(["git", "tag", tag], check=True)
+
+
+def create_repair_tag(tag: str) -> None:
+    if not local_tag_exists(tag):
+        subprocess.run(["git", "tag", tag], check=True)
+
+
+def ensure_local_tag_matches_head(tag: str) -> None:
+    if not local_tag_exists(tag):
+        return
+    tag_commit = git_output(["git", "rev-list", "-n", "1", tag])
+    head_commit = git_output(["git", "rev-parse", "HEAD"])
+    if tag_commit != head_commit:
+        raise BumpError(f"Local tag {tag} does not point to HEAD")
 
 
 def _default_branch_entries(
@@ -367,3 +418,105 @@ def plan_download_entry(
         patch_version=patch_version,
         manifests=manifests,
     )
+
+
+def plan_tag_repair(
+    downloads: list[dict[str, Any]],
+    patch_version: str,
+    manifests: dict[str, str],
+) -> BumpPlan | None:
+    """Return a repair plan when config has the entry but remote tag is missing."""
+    no_update_plan = plan_download_entry(downloads, patch_version, manifests)
+    if no_update_plan.updated:
+        return None
+    if remote_tag_exists(no_update_plan.tag):
+        return None
+    return BumpPlan(
+        updated=True,
+        tag=no_update_plan.tag,
+        patch_version=patch_version,
+        manifests=manifests,
+        repair_tag=True,
+    )
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Discover CS2 default-branch depot manifests and update download.yaml."
+    )
+    parser.add_argument("-config", default=DEFAULT_CONFIG_FILE)
+    parser.add_argument("-depotdir", default=DEFAULT_DEPOT_DIR)
+    parser.add_argument("-app", default=DEFAULT_APP_ID)
+    parser.add_argument("-os", default=DEFAULT_OS)
+    parser.add_argument("-username", default=None)
+    parser.add_argument("-password", default=None)
+    parser.add_argument("-remember-password", action="store_true")
+    parser.add_argument("-github-output", default=None)
+    parser.add_argument("-dry-run", action="store_true")
+    return parser.parse_args()
+
+
+def run(args: argparse.Namespace) -> int:
+    config_path = Path(args.config)
+    depot_dir = Path(args.depotdir)
+    patch_version, manifests = discover_latest(
+        app=args.app,
+        os_name=args.os,
+        depot_dir=depot_dir,
+        username=args.username,
+        password=args.password,
+        remember_password=args.remember_password,
+    )
+    data, downloads = load_config(config_path)
+    plan = plan_download_entry(downloads, patch_version, manifests)
+    output_path = Path(args.github_output) if args.github_output else None
+
+    if args.dry_run:
+        if not plan.updated:
+            print(f"No update for {patch_version}: {manifests}")
+            write_github_output(output_path, updated=False, tag=None)
+        else:
+            print(f"Would update download.yaml with tag {plan.tag}: {manifests}")
+            write_github_output(output_path, updated=True, tag=plan.tag)
+        return 0
+
+    if not plan.updated:
+        repair_plan = plan_tag_repair(downloads, patch_version, manifests)
+        if repair_plan is None:
+            print(f"No update for {patch_version}: {manifests}")
+            write_github_output(output_path, updated=False, tag=None)
+            return 0
+        plan = repair_plan
+
+    ensure_clean_worktree()
+    if plan.repair_tag:
+        ensure_local_tag_matches_head(plan.tag)
+        create_repair_tag(plan.tag)
+    else:
+        if local_tag_exists(plan.tag) or remote_tag_exists(plan.tag):
+            raise BumpError(f"Tag already exists: {plan.tag}")
+        append_download_entry(downloads, plan)
+        save_config(config_path, data)
+        create_commit_and_tag(config_path, plan.tag, plan.patch_version)
+    write_github_output(output_path, updated=True, tag=plan.tag)
+    print(f"Prepared bump tag {plan.tag} for {patch_version}")
+    return 0
+
+
+def main() -> int:
+    args = parse_args()
+    try:
+        return run(args)
+    except BumpError as exc:
+        print(f"Error: {exc}")
+        return 1
+    except FileNotFoundError:
+        print("Error: DepotDownloader executable not found in PATH")
+        return 1
+    except subprocess.CalledProcessError as exc:
+        print(f"Error: command failed with exit code {exc.returncode}")
+        return exc.returncode or 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
