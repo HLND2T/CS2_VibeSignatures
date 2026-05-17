@@ -74,6 +74,19 @@ class TestBumpDownload(unittest.TestCase):
         with self.assertRaises(bump_download.BumpError):
             bump_download.parse_patch_version(text)
 
+    @patch("builtins.print")
+    @patch("bump_download.subprocess.run")
+    def test_run_command_redacts_password_in_logs(self, mock_run, mock_print) -> None:
+        command = ["DepotDownloader", "-app", "730", "-password", "secret"]
+
+        bump_download.run_command(command)
+
+        printed = mock_print.call_args.args[0]
+        self.assertIn("-password <redacted>", printed)
+        self.assertNotIn("secret", printed)
+        mock_run.assert_called_once_with(command, check=True)
+        self.assertEqual("secret", mock_run.call_args.args[0][4])
+
     @patch("bump_download.subprocess.run")
     def test_fetch_manifest_only_uses_isolated_directory(self, mock_run) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -92,26 +105,24 @@ class TestBumpDownload(unittest.TestCase):
             )
 
         self.assertEqual("12345", manifest_id)
-        self.assertEqual(
-            [
-                "DepotDownloader",
-                "-app",
-                "730",
-                "-depot",
-                "2347771",
-                "-os",
-                "all-platform",
-                "-dir",
-                str(isolated),
-                "-username",
-                "user",
-                "-password",
-                "pass",
-                "-remember-password",
-                "-manifest-only",
-            ],
-            mock_run.call_args.args[0],
-        )
+        expected_command = [
+            "DepotDownloader",
+            "-app",
+            "730",
+            "-depot",
+            "2347771",
+            "-os",
+            "all-platform",
+            "-dir",
+            str(isolated),
+            "-username",
+            "user",
+            "-password",
+            "pass",
+            "-remember-password",
+            "-manifest-only",
+        ]
+        mock_run.assert_called_once_with(expected_command, check=True)
 
     @patch("bump_download.subprocess.run")
     def test_download_steam_inf_uses_manifest_and_filelist(self, mock_run) -> None:
@@ -133,9 +144,24 @@ class TestBumpDownload(unittest.TestCase):
 
         self.assertEqual("1.41.6.1", patch_version)
         command = mock_run.call_args.args[0]
-        self.assertIn("-manifest", command)
-        self.assertIn("999", command)
-        self.assertIn("-filelist", command)
+        filelist_path = Path(command[command.index("-filelist") + 1])
+        expected_command = [
+            "DepotDownloader",
+            "-app",
+            "730",
+            "-depot",
+            "2347770",
+            "-os",
+            "all-platform",
+            "-dir",
+            str(depot_dir),
+            "-manifest",
+            "999",
+            "-filelist",
+            str(filelist_path),
+        ]
+        mock_run.assert_called_once_with(expected_command, check=True)
+        self.assertFalse(filelist_path.exists())
 
     @patch("bump_download.subprocess.run")
     def test_download_steam_inf_deletes_temporary_filelist(self, mock_run) -> None:

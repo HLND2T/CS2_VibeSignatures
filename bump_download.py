@@ -79,9 +79,23 @@ def _append_auth_args(
         command.append("-remember-password")
 
 
+def _redact_command(command: list[str]) -> list[str]:
+    redacted: list[str] = []
+    skip_next = False
+    for part in command:
+        if skip_next:
+            redacted.append("<redacted>")
+            skip_next = False
+            continue
+        redacted.append(part)
+        if part == "-password":
+            skip_next = True
+    return redacted
+
+
 def run_command(command: list[str]) -> None:
     """Run a subprocess command and let callers normalize errors."""
-    print(f"Running: {' '.join(command)}")
+    print(f"Running: {' '.join(_redact_command(command))}")
     subprocess.run(command, check=True)
 
 
