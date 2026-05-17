@@ -65,6 +65,141 @@ def parse_patch_version(steam_inf_text: str) -> str:
     raise BumpError("PatchVersion not found in steam.inf")
 
 
+def _append_auth_args(
+    command: list[str],
+    username: str | None,
+    password: str | None,
+    remember_password: bool,
+) -> None:
+    if username:
+        command.extend(["-username", username])
+    if password:
+        command.extend(["-password", password])
+    if remember_password:
+        command.append("-remember-password")
+
+
+def run_command(command: list[str]) -> None:
+    """Run a subprocess command and let callers normalize errors."""
+    print(f"Running: {' '.join(command)}")
+    subprocess.run(command, check=True)
+
+
+def fetch_manifest_id(
+    depot: str,
+    app: str,
+    os_name: str,
+    output_dir: Path,
+    username: str | None,
+    password: str | None,
+    remember_password: bool,
+) -> str:
+    """Run DepotDownloader -manifest-only in an isolated directory."""
+    output_dir.mkdir(parents=True, exist_ok=True)
+    command = [
+        "DepotDownloader",
+        "-app",
+        str(app),
+        "-depot",
+        str(depot),
+        "-os",
+        str(os_name),
+        "-dir",
+        str(output_dir),
+    ]
+    _append_auth_args(command, username, password, remember_password)
+    command.append("-manifest-only")
+    run_command(command)
+    return find_manifest_id(output_dir, depot)
+
+
+def download_and_parse_steam_inf(
+    manifest_id: str,
+    app: str,
+    os_name: str,
+    depot_dir: Path,
+    username: str | None,
+    password: str | None,
+    remember_password: bool,
+) -> str:
+    """Download only game\\csgo\\steam.inf from depot 2347770 and parse PatchVersion."""
+    depot_dir.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile(
+        "w", encoding="utf-8", delete=False, suffix=".txt"
+    ) as handle:
+        handle.write(f"{STEAM_INF_PATH}\n")
+        filelist_path = Path(handle.name)
+    try:
+        command = [
+            "DepotDownloader",
+            "-app",
+            str(app),
+            "-depot",
+            "2347770",
+            "-os",
+            str(os_name),
+            "-dir",
+            str(depot_dir),
+            "-manifest",
+            str(manifest_id),
+            "-filelist",
+            str(filelist_path),
+        ]
+        _append_auth_args(command, username, password, remember_password)
+        run_command(command)
+    finally:
+        filelist_path.unlink(missing_ok=True)
+
+    steam_inf_path = depot_dir / "game" / "csgo" / "steam.inf"
+    if not steam_inf_path.is_file():
+        raise BumpError(f"steam.inf not found: {steam_inf_path}")
+    return parse_patch_version(steam_inf_path.read_text(encoding="utf-8"))
+
+
+def discover_latest(
+    app: str,
+    os_name: str,
+    depot_dir: Path,
+    username: str | None,
+    password: str | None,
+    remember_password: bool,
+) -> tuple[str, dict[str, str]]:
+    """Discover PatchVersion and default-branch binary depot manifests."""
+    with tempfile.TemporaryDirectory(prefix="cs2-manifests-") as tmp:
+        manifest_dir = Path(tmp)
+        base_manifest = fetch_manifest_id(
+            depot="2347770",
+            app=app,
+            os_name=os_name,
+            output_dir=manifest_dir / "2347770",
+            username=username,
+            password=password,
+            remember_password=remember_password,
+        )
+        patch_version = download_and_parse_steam_inf(
+            manifest_id=base_manifest,
+            app=app,
+            os_name=os_name,
+            depot_dir=depot_dir,
+            username=username,
+            password=password,
+            remember_password=remember_password,
+        )
+        manifests = {
+            depot: fetch_manifest_id(
+                depot=depot,
+                app=app,
+                os_name=os_name,
+                output_dir=manifest_dir / depot,
+                username=username,
+                password=password,
+                remember_password=remember_password,
+            )
+            for depot in DEFAULT_BRANCH_DEPOTS
+        }
+    return patch_version, manifests
+
+
 @dataclass(frozen=True)
 class BumpPlan:
     """Decision result for the current depot manifests."""

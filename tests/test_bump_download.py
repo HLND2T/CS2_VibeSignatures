@@ -1,6 +1,7 @@
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import ANY, call, patch
 
 import bump_download
 
@@ -72,6 +73,157 @@ class TestBumpDownload(unittest.TestCase):
 
         with self.assertRaises(bump_download.BumpError):
             bump_download.parse_patch_version(text)
+
+    @patch("bump_download.subprocess.run")
+    def test_fetch_manifest_only_uses_isolated_directory(self, mock_run) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            isolated = Path(tmp) / "manifest"
+            isolated.mkdir()
+            (isolated / "manifest_2347771_12345.txt").write_text("", encoding="utf-8")
+
+            manifest_id = bump_download.fetch_manifest_id(
+                depot="2347771",
+                app="730",
+                os_name="all-platform",
+                output_dir=isolated,
+                username="user",
+                password="pass",
+                remember_password=True,
+            )
+
+        self.assertEqual("12345", manifest_id)
+        self.assertEqual(
+            [
+                "DepotDownloader",
+                "-app",
+                "730",
+                "-depot",
+                "2347771",
+                "-os",
+                "all-platform",
+                "-dir",
+                str(isolated),
+                "-username",
+                "user",
+                "-password",
+                "pass",
+                "-remember-password",
+                "-manifest-only",
+            ],
+            mock_run.call_args.args[0],
+        )
+
+    @patch("bump_download.subprocess.run")
+    def test_download_steam_inf_uses_manifest_and_filelist(self, mock_run) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            depot_dir = Path(tmp)
+            steam_inf = depot_dir / "game" / "csgo" / "steam.inf"
+            steam_inf.parent.mkdir(parents=True)
+            steam_inf.write_text("PatchVersion=1.41.6.1\n", encoding="utf-8")
+
+            patch_version = bump_download.download_and_parse_steam_inf(
+                manifest_id="999",
+                app="730",
+                os_name="all-platform",
+                depot_dir=depot_dir,
+                username=None,
+                password=None,
+                remember_password=False,
+            )
+
+        self.assertEqual("1.41.6.1", patch_version)
+        command = mock_run.call_args.args[0]
+        self.assertIn("-manifest", command)
+        self.assertIn("999", command)
+        self.assertIn("-filelist", command)
+
+    @patch("bump_download.subprocess.run")
+    def test_download_steam_inf_deletes_temporary_filelist(self, mock_run) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            depot_dir = Path(tmp)
+            steam_inf = depot_dir / "game" / "csgo" / "steam.inf"
+            steam_inf.parent.mkdir(parents=True)
+            steam_inf.write_text("PatchVersion=1.41.6.1\n", encoding="utf-8")
+
+            bump_download.download_and_parse_steam_inf(
+                manifest_id="999",
+                app="730",
+                os_name="all-platform",
+                depot_dir=depot_dir,
+                username=None,
+                password=None,
+                remember_password=False,
+            )
+
+            command = mock_run.call_args.args[0]
+            filelist_path = Path(command[command.index("-filelist") + 1])
+            self.assertFalse(filelist_path.exists())
+
+    @patch("bump_download.download_and_parse_steam_inf", return_value="1.41.6.1")
+    @patch("bump_download.fetch_manifest_id", side_effect=["base", "win", "linux"])
+    def test_discover_latest_fetches_patch_version_and_manifests(
+        self,
+        mock_fetch_manifest_id,
+        mock_download_and_parse_steam_inf,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            depot_dir = Path(tmp) / "depot"
+
+            patch_version, manifests = bump_download.discover_latest(
+                app="730",
+                os_name="all-platform",
+                depot_dir=depot_dir,
+                username="user",
+                password="pass",
+                remember_password=True,
+            )
+
+        self.assertEqual("1.41.6.1", patch_version)
+        self.assertEqual({"2347771": "win", "2347773": "linux"}, manifests)
+        self.assertEqual(
+            ["2347770", "2347771", "2347773"],
+            [mock_call.kwargs["depot"] for mock_call in mock_fetch_manifest_id.call_args_list],
+        )
+        mock_fetch_manifest_id.assert_has_calls(
+            [
+                call(
+                    depot="2347770",
+                    app="730",
+                    os_name="all-platform",
+                    output_dir=ANY,
+                    username="user",
+                    password="pass",
+                    remember_password=True,
+                ),
+                call(
+                    depot="2347771",
+                    app="730",
+                    os_name="all-platform",
+                    output_dir=ANY,
+                    username="user",
+                    password="pass",
+                    remember_password=True,
+                ),
+                call(
+                    depot="2347773",
+                    app="730",
+                    os_name="all-platform",
+                    output_dir=ANY,
+                    username="user",
+                    password="pass",
+                    remember_password=True,
+                ),
+            ]
+        )
+        mock_download_and_parse_steam_inf.assert_called_once_with(
+            manifest_id="base",
+            app="730",
+            os_name="all-platform",
+            depot_dir=depot_dir,
+            username="user",
+            password="pass",
+            remember_password=True,
+        )
 
     def test_plan_new_entry_for_new_patch_version(self) -> None:
         downloads = [
