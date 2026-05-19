@@ -3565,9 +3565,23 @@ modules:
         expected_output:
           - CInferno_InfernoThink.{platform}.yaml
 
-      - name: find-UTIL_Remove
+      - name: find-CPhysExplosion_vtable
         expected_output:
+          - CPhysExplosion_vtable.{platform}.yaml
+
+      - name: find-CPhysExplosion_Activate
+        expected_output:
+          - CPhysExplosion_Activate.{platform}.yaml
+        expected_input:
+          - CBaseEntity_Activate.{platform}.yaml
+          - CPhysExplosion_vtable.{platform}.yaml
+
+      - name: find-CPhysExplosion_Explode-AND-UTIL_Remove
+        expected_output:
+          - CPhysExplosion_Explode.{platform}.yaml
           - UTIL_Remove.{platform}.yaml
+        expected_input:
+          - CPhysExplosion_Activate.{platform}.yaml
 
       - name: find-Host_Say
         expected_output:
@@ -6044,6 +6058,20 @@ modules:
         category: func
         alias:
           - CInferno::InfernoThink
+
+      - name: CPhysExplosion_vtable
+        category: vtable
+        shared: true
+
+      - name: CPhysExplosion_Activate
+        category: vfunc
+        alias:
+          - CPhysExplosion::Activate
+
+      - name: CPhysExplosion_Explode
+        category: func
+        alias:
+          - CPhysExplosion::Explode
 
       - name: UTIL_Remove
         category: func

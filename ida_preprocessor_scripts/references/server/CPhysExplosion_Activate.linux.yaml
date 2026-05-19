@@ -1,0 +1,32 @@
+func_name: CPhysExplosion_Activate
+func_va: '0x183a4b0'
+disasm_code: |-
+  .text:000000000183A4B0                 push    rbp
+  .text:000000000183A4B1                 mov     rbp, rsp
+  .text:000000000183A4B4                 push    rbx
+  .text:000000000183A4B5                 mov     rbx, rdi
+  .text:000000000183A4B8                 sub     rsp, 8
+  .text:000000000183A4BC                 call    CBaseEntity_Activate
+  .text:000000000183A4C1                 cmp     byte ptr [rbx+788h], 0
+  .text:000000000183A4C8                 jnz     short loc_183A4D0
+  .text:000000000183A4CA                 mov     rbx, [rbp+var_8]
+  .text:000000000183A4CE                 leave
+  .text:000000000183A4CF                 retn
+  .text:000000000183A4D0                 mov     rdi, rbx
+  .text:000000000183A4D3                 mov     rdx, rbx
+  .text:000000000183A4D6                 mov     rsi, rbx
+  .text:000000000183A4D9                 call    CPhysExplosion_Explode
+  .text:000000000183A4DE                 mov     rdi, rbx
+  .text:000000000183A4E1                 mov     rbx, [rbp+var_8]
+  .text:000000000183A4E5                 leave
+  .text:000000000183A4E6                 jmp     UTIL_Remove
+procedure: |-
+  void __fastcall CPhysExplosion_Activate(__int64 a1, unsigned int a2)
+  {
+    CBaseEntity_Activate((__int64 *)a1, a2);
+    if ( *(_BYTE *)(a1 + 1928) )
+    {
+      CPhysExplosion_Explode(a1, a1, a1);
+      UTIL_Remove(a1);
+    }
+  }

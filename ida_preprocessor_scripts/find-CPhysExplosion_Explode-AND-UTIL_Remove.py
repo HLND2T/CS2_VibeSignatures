@@ -1,23 +1,39 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-UTIL_Remove skill."""
+"""Preprocess script for find-CPhysExplosion_Explode-AND-UTIL_Remove skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = [
+    "CPhysExplosion_Explode",
     "UTIL_Remove",
 ]
 
 LLM_DECOMPILE = [
     # (symbol_name, path_to_prompt, path_to_reference)
     (
+        "CPhysExplosion_Explode",
+        "prompt/call_llm_decompile.md",
+        "references/server/CPhysExplosion_Activate.{platform}.yaml",
+    ),
+    (
         "UTIL_Remove",
         "prompt/call_llm_decompile.md",
-        "references/server/CInferno_InfernoThink.{platform}.yaml",
+        "references/server/CPhysExplosion_Activate.{platform}.yaml",
     ),
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
+    (
+        "CPhysExplosion_Explode",
+        [
+            "func_name",
+            "func_sig",
+            "func_va",
+            "func_rva",
+            "func_size",
+        ],
+    ),
     # No func_sig: UTIL_Remove is a tiny stub whose head bytes are not unique in the
     # binary. LLM_DECOMPILE is used to locate it each time.
     (
