@@ -35,6 +35,7 @@ GENERATE_YAML_DESIRED_FIELDS = [
             "vfunc_offset",
             "vfunc_index",
             "vtable_name",
+            "vfunc_sig_allow_across_function_boundary:true:",
         ],
     ),
     (
@@ -45,6 +46,7 @@ GENERATE_YAML_DESIRED_FIELDS = [
             "vfunc_offset",
             "vfunc_index",
             "vtable_name",
+            "vfunc_sig_allow_across_function_boundary:true:",
         ],
     ),
 ]
