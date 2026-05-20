@@ -734,6 +734,24 @@ modules:
           - CNetworkClientService_vtable.{platform}.yaml
           - ../client/INetworkClientService_SendNetMessage.{platform}.yaml
 
+      - name: find-CNetworkClientService_PrintSpawnGroupStatus
+        expected_output:
+          - CNetworkClientService_PrintSpawnGroupStatus.{platform}.yaml
+        expected_input:
+          - CNetworkClientService_vtable.{platform}.yaml
+
+      - name: find-CNetworkClientService_IsActive
+        expected_output:
+          - CNetworkClientService_IsActive.{platform}.yaml
+        expected_input:
+          - INetworkClientService_IsActive.{platform}.yaml
+
+      - name: find-CNetworkClientService_IsConnected
+        expected_output:
+          - CNetworkClientService_IsConnected.{platform}.yaml
+        expected_input:
+          - INetworkClientService_IsConnected.{platform}.yaml
+
       - name: find-CNetworkServerService_vtable
         expected_output:
           - CNetworkServerService_vtable.{platform}.yaml
@@ -1335,6 +1353,21 @@ modules:
         category: vfunc
         alias:
           - CNetworkClientService::SendNetMessage
+
+      - name: CNetworkClientService_PrintSpawnGroupStatus
+        category: vfunc
+        alias:
+          - CNetworkClientService::PrintSpawnGroupStatus
+
+      - name: CNetworkClientService_IsActive
+        category: vfunc
+        alias:
+          - CNetworkClientService::IsActive
+
+      - name: CNetworkClientService_IsConnected
+        category: vfunc
+        alias:
+          - CNetworkClientService::IsConnected
 
       - name: CNetworkServerService_vtable
         category: vtable
