@@ -756,6 +756,12 @@ modules:
           - CNetworkGameClientBase_DeferActivate.{platform}.yaml
           - CNetworkClientService_vtable.{platform}.yaml
 
+      - name: find-CNetworkClientService_PrintConnectionStatus
+        expected_output:
+          - CNetworkClientService_PrintConnectionStatus.{platform}.yaml
+        expected_input:
+          - CNetworkClientService_vtable.{platform}.yaml
+
       - name: find-CNetworkClientService_ServerCmd
         platform: windows
         expected_output:
@@ -1427,6 +1433,11 @@ modules:
         category: vfunc
         alias:
           - CNetworkClientService::FinishChangeLevel
+
+      - name: CNetworkClientService_PrintConnectionStatus
+        category: vfunc
+        alias:
+          - CNetworkClientService::PrintConnectionStatus
 
       - name: CNetworkClientService_ServerCmd
         category: vfunc
