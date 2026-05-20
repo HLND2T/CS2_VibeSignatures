@@ -741,6 +741,13 @@ modules:
           - CNetworkGameClientBase_SendStringCmd.{platform}.yaml
           - CNetworkClientService_vtable.{platform}.yaml
 
+      - name: find-CNetworkClientService_StartChangeLevel
+        expected_output:
+          - CNetworkClientService_StartChangeLevel.{platform}.yaml
+        expected_input:
+          - CNetworkGameClientBase_StartChangeLevel.{platform}.yaml
+          - CNetworkClientService_vtable.{platform}.yaml
+
       - name: find-CNetworkClientService_ServerCmd
         platform: windows
         expected_output:
@@ -1171,6 +1178,12 @@ modules:
         expected_input:
           - CNetworkGameClientBase_vtable.{platform}.yaml
 
+      - name: find-CNetworkGameClientBase_StartChangeLevel
+        expected_output:
+          - CNetworkGameClientBase_StartChangeLevel.{platform}.yaml
+        expected_input:
+          - CNetworkGameClientBase_vtable.{platform}.yaml
+
     symbols:
       - name: CNetworkGameServer_vtable
         category: vtable
@@ -1386,6 +1399,11 @@ modules:
         category: vfunc
         alias:
           - CNetworkClientService::SendStringCmd
+
+      - name: CNetworkClientService_StartChangeLevel
+        category: vfunc
+        alias:
+          - CNetworkClientService::StartChangeLevel
 
       - name: CNetworkClientService_ServerCmd
         category: vfunc
@@ -1757,6 +1775,11 @@ modules:
         category: vfunc
         alias:
           - CNetworkGameClientBase::SendStringCmd
+
+      - name: CNetworkGameClientBase_StartChangeLevel
+        category: vfunc
+        alias:
+          - CNetworkGameClientBase::StartChangeLevel
 
   - name: client
     path_windows: game/csgo/bin/win64/client.dll
