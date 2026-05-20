@@ -799,6 +799,21 @@ modules:
           - CNetworkClientService_vtable.{platform}.yaml
           - INetworkClientService_IsConnected.{platform}.yaml
 
+      - name: find-CNetworkClientService_Shutdown
+        expected_output:
+          - CNetworkClientService_Shutdown.{platform}.yaml
+        expected_input:
+          - IAppSystem_Shutdown.{platform}.yaml
+          - CNetworkClientService_vtable.{platform}.yaml
+
+      - name: find-CNetworkClientService_DisconnectGameNow
+        expected_output:
+          - CNetworkClientService_DisconnectGameNow.{platform}.yaml
+        expected_input:
+          - CNetworkGameClient_DisconnectGame.{platform}.yaml
+          - CNetworkClientService_Shutdown.{platform}.yaml
+          - CNetworkClientService_vtable.{platform}.yaml
+
       - name: find-CGameClientConnectPrerequisite_vtable
         expected_output:
           - CGameClientConnectPrerequisite_vtable.{platform}.yaml
@@ -1525,6 +1540,16 @@ modules:
         category: vfunc
         alias:
           - CNetworkClientService::IsConnected
+
+      - name: CNetworkClientService_Shutdown
+        category: vfunc
+        alias:
+          - CNetworkClientService::Shutdown
+
+      - name: CNetworkClientService_DisconnectGameNow
+        category: vfunc
+        alias:
+          - CNetworkClientService::DisconnectGameNow
 
       - name: CGameClientConnectPrerequisite_vtable
         category: vtable
