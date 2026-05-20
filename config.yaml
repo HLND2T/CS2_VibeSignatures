@@ -734,6 +734,13 @@ modules:
           - CNetworkClientService_vtable.{platform}.yaml
           - ../client/INetworkClientService_SendNetMessage.{platform}.yaml
 
+      - name: find-CNetworkClientService_ServerCmd
+        platform: windows
+        expected_output:
+          - CNetworkClientService_ServerCmd.{platform}.yaml
+        expected_input:
+          - CNetworkClientService_vtable.{platform}.yaml
+
       - name: find-CNetworkClientService_GetDisconnectReason
         expected_output:
           - CNetworkClientService_GetDisconnectReason.{platform}.yaml
@@ -1361,6 +1368,11 @@ modules:
         category: vfunc
         alias:
           - CNetworkClientService::SendNetMessage
+
+      - name: CNetworkClientService_ServerCmd
+        category: vfunc
+        alias:
+          - CNetworkClientService::ServerCmd
 
       - name: CNetworkClientService_GetDisconnectReason
         category: vfunc
