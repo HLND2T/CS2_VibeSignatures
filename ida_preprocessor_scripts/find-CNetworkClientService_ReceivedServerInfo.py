@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CNetworkClientService_ProcessGameSessionManifest skill."""
+"""Preprocess script for find-CNetworkClientService_ReceivedServerInfo skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = [
-    "CNetworkClientService_ProcessGameSessionManifest",
+    "CNetworkClientService_ReceivedServerInfo",
 ]
 
 FUNC_XREFS = [
     {
-        "func_name": "CNetworkClientService_ProcessGameSessionManifest",
+        "func_name": "CNetworkClientService_ReceivedServerInfo",
         "xref_strings": [
             "Client GameSessionManifest received from server",
         ],
@@ -25,13 +25,13 @@ FUNC_XREFS = [
 
 FUNC_VTABLE_RELATIONS = [
     # (func_name, vtable_class)
-    ("CNetworkClientService_ProcessGameSessionManifest", "CNetworkClientService"),
+    ("CNetworkClientService_ReceivedServerInfo", "CNetworkClientService"),
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
     (
-        "CNetworkClientService_ProcessGameSessionManifest",
+        "CNetworkClientService_ReceivedServerInfo",
         [
             "func_name",
             "func_va",
