@@ -734,6 +734,13 @@ modules:
           - CNetworkClientService_vtable.{platform}.yaml
           - ../client/INetworkClientService_SendNetMessage.{platform}.yaml
 
+      - name: find-CNetworkClientService_SendStringCmd
+        expected_output:
+          - CNetworkClientService_SendStringCmd.{platform}.yaml
+        expected_input:
+          - CNetworkGameClientBase_SendStringCmd.{platform}.yaml
+          - CNetworkClientService_vtable.{platform}.yaml
+
       - name: find-CNetworkClientService_ServerCmd
         platform: windows
         expected_output:
@@ -1158,6 +1165,12 @@ modules:
         expected_input:
           - CNetworkGameClientBase_vtable.{platform}.yaml
 
+      - name: find-CNetworkGameClientBase_SendStringCmd
+        expected_output:
+          - CNetworkGameClientBase_SendStringCmd.{platform}.yaml
+        expected_input:
+          - CNetworkGameClientBase_vtable.{platform}.yaml
+
     symbols:
       - name: CNetworkGameServer_vtable
         category: vtable
@@ -1368,6 +1381,11 @@ modules:
         category: vfunc
         alias:
           - CNetworkClientService::SendNetMessage
+
+      - name: CNetworkClientService_SendStringCmd
+        category: vfunc
+        alias:
+          - CNetworkClientService::SendStringCmd
 
       - name: CNetworkClientService_ServerCmd
         category: vfunc
@@ -1734,6 +1752,11 @@ modules:
         category: vfunc
         alias:
           - CNetworkGameClientBase::ProcessSetConVar
+
+      - name: CNetworkGameClientBase_SendStringCmd
+        category: vfunc
+        alias:
+          - CNetworkGameClientBase::SendStringCmd
 
   - name: client
     path_windows: game/csgo/bin/win64/client.dll
