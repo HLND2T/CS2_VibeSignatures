@@ -2083,6 +2083,13 @@ modules:
         expected_output:
           - CUserMessage_ExtraUserData_vtable.{platform}.yaml
 
+      - name: find-SendViolationReport-windows
+        platform: windows
+        expected_output:
+          - SendViolationReport.{platform}.yaml
+        expected_input:
+          - CUserMessage_ExtraUserData_vtable.{platform}.yaml
+
     symbols:
       - name: CLoopModeGame_RegisterEventMapInternal
         category: func
@@ -2478,6 +2485,9 @@ modules:
 
       - name: CUserMessage_ExtraUserData_vtable
         category: vtable
+
+      - name: SendViolationReport
+        category: func
 
   - name: server
     path_windows: game/csgo/bin/win64/server.dll
