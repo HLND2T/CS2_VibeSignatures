@@ -87,6 +87,9 @@ ON_EVENT_MAP_CALLBACKS_CLIENT_SCRIPT_PATH = Path(
     "ida_preprocessor_scripts/"
     "find-CLoopModeGame_OnEventMapCallbacks-client.py"
 )
+INTERFACE_GLOBALS_PPGLOBAL_SCRIPT_PATH = Path(
+    "ida_preprocessor_scripts/find-g_pInterfaceGlobals_ppGlobal.py"
+)
 
 class _FakeStreamableHttpClient:
     async def __aenter__(self):
@@ -2778,6 +2781,202 @@ class TestFindCEngineServiceMgrDeactivateLoop(unittest.IsolatedAsyncioTestCase):
             )
 
         self.assertFalse(result)
+
+
+class TestFindGInterfaceGlobalsPpGlobal(unittest.IsolatedAsyncioTestCase):
+    def _build_entries(self, module, platform="windows"):
+        return [
+            {
+                "index": index,
+                "entry_va": hex(0x180400000 + index * 0x10),
+                "interface_name": interface_name,
+                "interface_name_va": hex(0x180500000 + index * 0x20),
+                "pp_global_va": hex(0x180600000 + index * 0x8),
+            }
+            for index, (interface_name, _) in enumerate(
+                module._expected_entries_for_platform(platform)
+            )
+        ]
+
+    async def _run_with_entries(
+        self,
+        module,
+        actual_entries,
+        drop_last_output=False,
+        platform="windows",
+    ):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            input_path = Path(temp_dir) / f"g_pInterfaceGlobals.{platform}.yaml"
+            input_path.write_text(
+                "gv_name: g_pInterfaceGlobals\n"
+                "gv_va: '0x1804cd5c0'\n"
+                "gv_rva: '0x4cd5c0'\n",
+                encoding="utf-8",
+            )
+            expected_outputs = [
+                str(Path(temp_dir) / f"{gv_name}.{platform}.yaml")
+                for gv_name in module._expected_gv_names_for_platform(platform)
+            ]
+            if drop_last_output:
+                expected_outputs = expected_outputs[:-1]
+
+            session = AsyncMock()
+            session.call_tool.side_effect = [
+                _py_eval_payload(actual_entries),
+                _py_eval_payload({"renamed": True}),
+            ]
+
+            with patch.object(module, "write_gv_yaml") as mock_write:
+                result = await module.preprocess_skill(
+                    session=session,
+                    skill_name="find-g_pInterfaceGlobals_ppGlobal",
+                    expected_outputs=expected_outputs,
+                    old_yaml_map={},
+                    new_binary_dir=temp_dir,
+                    platform=platform,
+                    image_base=0x180000000,
+                    debug=True,
+                )
+
+        return result, mock_write
+
+    async def test_preprocess_skill_writes_minimal_gv_yaml_from_interface_names(
+        self,
+    ) -> None:
+        module = _load_module(
+            INTERFACE_GLOBALS_PPGLOBAL_SCRIPT_PATH,
+            "find_g_pInterfaceGlobals_ppGlobal",
+        )
+        actual_entries = self._build_entries(module)
+
+        result, mock_write = await self._run_with_entries(module, actual_entries)
+
+        self.assertTrue(result)
+        self.assertEqual(len(module.WINDOWS_EXPECTED_ENTRIES), mock_write.call_count)
+        first_path, first_payload = mock_write.call_args_list[0].args
+        self.assertTrue(first_path.endswith("g_pVApplication.windows.yaml"))
+        self.assertEqual(
+            {
+                "gv_name": "g_pVApplication",
+                "gv_va": "0x180600000",
+                "gv_rva": "0x600000",
+            },
+            first_payload,
+        )
+
+    async def test_preprocess_skill_excludes_nav_globals_on_linux(self) -> None:
+        module = _load_module(
+            INTERFACE_GLOBALS_PPGLOBAL_SCRIPT_PATH,
+            "find_g_pInterfaceGlobals_ppGlobal_linux",
+        )
+        actual_entries = self._build_entries(module, platform="linux")
+
+        result, mock_write = await self._run_with_entries(
+            module,
+            actual_entries,
+            platform="linux",
+        )
+
+        self.assertTrue(result)
+        self.assertEqual(len(module.LINUX_EXPECTED_ENTRIES), mock_write.call_count)
+        written_paths = [call_args.args[0] for call_args in mock_write.call_args_list]
+        self.assertFalse(
+            any(path.endswith("g_pNavGameTest.linux.yaml") for path in written_paths)
+        )
+        self.assertFalse(
+            any(path.endswith("g_pNavSystem.linux.yaml") for path in written_paths)
+        )
+        self.assertEqual(
+            ("Vrad3_001", "g_pRAD3"),
+            module.LINUX_EXPECTED_ENTRIES[-1],
+        )
+
+    async def test_preprocess_skill_fails_on_missing_entry(self) -> None:
+        module = _load_module(
+            INTERFACE_GLOBALS_PPGLOBAL_SCRIPT_PATH,
+            "find_g_pInterfaceGlobals_ppGlobal_missing",
+        )
+        actual_entries = self._build_entries(module)[:-1]
+
+        result, mock_write = await self._run_with_entries(module, actual_entries)
+
+        self.assertFalse(result)
+        mock_write.assert_not_called()
+
+    async def test_preprocess_skill_allows_trailing_extra_entries(self) -> None:
+        module = _load_module(
+            INTERFACE_GLOBALS_PPGLOBAL_SCRIPT_PATH,
+            "find_g_pInterfaceGlobals_ppGlobal_extra",
+        )
+        actual_entries = self._build_entries(module)
+        actual_entries.append(
+            {
+                "index": len(actual_entries),
+                "entry_va": hex(0x180400000 + len(actual_entries) * 0x10),
+                "interface_name": "ExtraInterface001",
+                "interface_name_va": "0x180700000",
+                "pp_global_va": "0x180710000",
+            }
+        )
+
+        result, mock_write = await self._run_with_entries(module, actual_entries)
+
+        self.assertTrue(result)
+        self.assertEqual(len(module.WINDOWS_EXPECTED_ENTRIES), mock_write.call_count)
+        written_paths = [call_args.args[0] for call_args in mock_write.call_args_list]
+        self.assertFalse(any("ExtraInterface001" in path for path in written_paths))
+
+    async def test_preprocess_skill_allows_entries_out_of_order(self) -> None:
+        module = _load_module(
+            INTERFACE_GLOBALS_PPGLOBAL_SCRIPT_PATH,
+            "find_g_pInterfaceGlobals_ppGlobal_out_of_order",
+        )
+        actual_entries = self._build_entries(module)
+        actual_entries[-2], actual_entries[-1] = (
+            actual_entries[-1],
+            actual_entries[-2],
+        )
+
+        result, mock_write = await self._run_with_entries(module, actual_entries)
+
+        self.assertTrue(result)
+        payloads = {
+            call_args.args[1]["gv_name"]: call_args.args[1]
+            for call_args in mock_write.call_args_list
+        }
+        self.assertEqual("0x180600370", payloads["g_pNavSystem"]["gv_va"])
+        self.assertEqual("0x180600378", payloads["g_pNavGameTest"]["gv_va"])
+
+    async def test_preprocess_skill_fails_on_interface_name_mismatch(self) -> None:
+        module = _load_module(
+            INTERFACE_GLOBALS_PPGLOBAL_SCRIPT_PATH,
+            "find_g_pInterfaceGlobals_ppGlobal_mismatch",
+        )
+        actual_entries = self._build_entries(module)
+        actual_entries[1]["interface_name"] = "WrongInterface001"
+
+        result, mock_write = await self._run_with_entries(module, actual_entries)
+
+        self.assertFalse(result)
+        mock_write.assert_not_called()
+
+    async def test_preprocess_skill_fails_when_expected_output_is_missing(
+        self,
+    ) -> None:
+        module = _load_module(
+            INTERFACE_GLOBALS_PPGLOBAL_SCRIPT_PATH,
+            "find_g_pInterfaceGlobals_ppGlobal_missing_output",
+        )
+        actual_entries = self._build_entries(module)
+
+        result, mock_write = await self._run_with_entries(
+            module,
+            actual_entries,
+            drop_last_output=True,
+        )
+
+        self.assertFalse(result)
+        mock_write.assert_not_called()
 
 
 if __name__ == "__main__":

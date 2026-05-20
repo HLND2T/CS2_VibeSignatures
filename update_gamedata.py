@@ -370,6 +370,14 @@ def load_all_yaml_data(config, bin_dir, gamever, platforms, debug=False):
             if not func_name:
                 continue
 
+            symbol_platform = symbol.get("platform")
+            if symbol_platform:
+                target_platforms = [p for p in platforms if p == symbol_platform]
+                if not target_platforms:
+                    continue
+            else:
+                target_platforms = platforms
+
             category = symbol.get("category")
             aliases = symbol.get("alias", [])
             if isinstance(aliases, str):
@@ -396,7 +404,7 @@ def load_all_yaml_data(config, bin_dir, gamever, platforms, debug=False):
                     print(f"  Warning: structmember {func_name} missing struct or member field")
                     continue
 
-                for platform in platforms:
+                for platform in target_platforms:
                     member_yaml_path = os.path.join(
                         bin_dir, gamever, module_name, f"{func_name}.{platform}.yaml"
                     )
@@ -448,7 +456,7 @@ def load_all_yaml_data(config, bin_dir, gamever, platforms, debug=False):
                         print(f"  Warning: Struct member YAML not found: {member_yaml_path}")
             else:
                 # Original logic for func/vfunc/struct types, with patch alias fallback.
-                for platform in platforms:
+                for platform in target_platforms:
                     candidate_names = [func_name]
                     if category == "patch":
                         candidate_names.extend(aliases)

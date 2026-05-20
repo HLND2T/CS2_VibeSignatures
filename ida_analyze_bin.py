@@ -1159,6 +1159,8 @@ def parse_config(config_path):
                 skills.append({
                     "name": skill_name,
                     "expected_output": skill.get("expected_output", []) or [],
+                    "expected_output_windows": skill.get("expected_output_windows", []) or [],
+                    "expected_output_linux": skill.get("expected_output_linux", []) or [],
                     "optional_output": skill.get("optional_output", []) or [],
                     "expected_input": skill.get("expected_input", []),
                     "expected_input_windows": skill.get("expected_input_windows", []) or [],
@@ -1255,7 +1257,10 @@ def topological_sort_skills(skills):
     producers_by_output = {}
     for skill in skills:
         producer_name = skill["name"]
-        for output_path in skill.get("expected_output", []):
+        all_outputs = list(skill.get("expected_output", []) or [])
+        all_outputs += list(skill.get("expected_output_windows", []) or [])
+        all_outputs += list(skill.get("expected_output_linux", []) or [])
+        for output_path in all_outputs:
             if not output_path:
                 continue
             normalized_output = normalize_artifact_path(output_path)
@@ -1362,9 +1367,12 @@ def all_expected_outputs_exist(expected_outputs):
 
 def expand_skill_output_paths(binary_dir, skill, platform):
     """Return required, optional, and preprocessor output paths for one skill."""
+    platform_output_key = f"expected_output_{platform}"
+    combined_outputs = list(skill.get("expected_output", []) or [])
+    combined_outputs += list(skill.get(platform_output_key, []) or [])
     required_outputs = expand_expected_paths(
         binary_dir,
-        skill.get("expected_output", []) or [],
+        combined_outputs,
         platform,
     )
     optional_outputs = expand_expected_paths(
@@ -1416,9 +1424,12 @@ def _collect_post_process_yaml_mappings(
         if skill_platform and skill_platform != platform:
             continue
         try:
+            platform_output_key = f"expected_output_{platform}"
+            combined_outputs = list(skill.get("expected_output", []) or [])
+            combined_outputs += list(skill.get(platform_output_key, []) or [])
             expected_outputs = expand_expected_paths(
                 binary_dir,
-                skill.get("expected_output", []),
+                combined_outputs,
                 platform,
             )
         except ValueError as exc:

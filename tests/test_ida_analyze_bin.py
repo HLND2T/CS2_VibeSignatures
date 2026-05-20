@@ -230,6 +230,34 @@ class TestResolveArtifactPathIntegration(unittest.TestCase):
             ]
         )
 
+    def test_expand_skill_output_paths_includes_platform_expected_outputs(self) -> None:
+        binary_dir = str(Path("/tmp/bin/14141/engine"))
+        skill = {
+            "expected_output": ["Common.{platform}.yaml"],
+            "expected_output_windows": ["WindowsOnly.{platform}.yaml"],
+            "expected_output_linux": ["LinuxOnly.{platform}.yaml"],
+            "optional_output": ["Optional.{platform}.yaml"],
+        }
+
+        required, optional, preprocess = ida_analyze_bin.expand_skill_output_paths(
+            binary_dir,
+            skill,
+            "windows",
+        )
+
+        self.assertEqual(
+            [
+                str(Path("/tmp/bin/14141/engine/Common.windows.yaml").resolve()),
+                str(Path("/tmp/bin/14141/engine/WindowsOnly.windows.yaml").resolve()),
+            ],
+            required,
+        )
+        self.assertEqual(
+            [str(Path("/tmp/bin/14141/engine/Optional.windows.yaml").resolve())],
+            optional,
+        )
+        self.assertEqual(required + optional, preprocess)
+
 
 class TestParseConfig(unittest.TestCase):
     def test_parse_config_reads_skip_if_exists(self) -> None:
@@ -315,6 +343,41 @@ modules:
             modules[0]["skills"][0]["optional_output"],
         )
 
+    def test_parse_config_reads_platform_expected_outputs(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            config_path = Path(temp_dir) / "config.yaml"
+            config_path.write_text(
+                """
+modules:
+  - name: engine
+    path_windows: game/bin/win64/engine2.dll
+    path_linux: game/bin/linuxsteamrt64/libengine2.so
+    skills:
+      - name: find-g_pInterfaceGlobals_ppGlobal
+        expected_output:
+          - Common.{platform}.yaml
+        expected_output_windows:
+          - WindowsOnly.{platform}.yaml
+        expected_output_linux:
+          - LinuxOnly.{platform}.yaml
+""".strip()
+                + "\n",
+                encoding="utf-8",
+            )
+
+            modules = ida_analyze_bin.parse_config(str(config_path))
+
+        skill = modules[0]["skills"][0]
+        self.assertEqual(["Common.{platform}.yaml"], skill["expected_output"])
+        self.assertEqual(
+            ["WindowsOnly.{platform}.yaml"],
+            skill["expected_output_windows"],
+        )
+        self.assertEqual(
+            ["LinuxOnly.{platform}.yaml"],
+            skill["expected_output_linux"],
+        )
+
     def test_parse_config_defaults_optional_output_to_empty_list(self) -> None:
         with TemporaryDirectory() as temp_dir:
             config_path = Path(temp_dir) / "config.yaml"
@@ -336,6 +399,8 @@ modules:
             modules = ida_analyze_bin.parse_config(str(config_path))
 
         self.assertEqual([], modules[0]["skills"][0]["optional_output"])
+        self.assertEqual([], modules[0]["skills"][0]["expected_output_windows"])
+        self.assertEqual([], modules[0]["skills"][0]["expected_output_linux"])
 
 
 class TestSkillOrdering(unittest.TestCase):
