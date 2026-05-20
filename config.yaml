@@ -881,6 +881,16 @@ modules:
         expected_input:
           - CNetworkServerService_Init.{platform}.yaml
 
+      - name: find-CNetworkGameClient_vtable
+        expected_output:
+          - CNetworkGameClient_vtable.{platform}.yaml
+
+      - name: find-CNetworkGameClient_DisconnectGame
+        expected_output:
+          - CNetworkGameClient_DisconnectGame.{platform}.yaml
+        expected_input:
+          - CNetworkGameClient_vtable.{platform}.yaml
+
       - name: find-INetworkMessages_FindNetworkGroup
         expected_output:
           - INetworkMessages_FindNetworkGroup.{platform}.yaml
@@ -1235,6 +1245,18 @@ modules:
         expected_output:
           - CNetworkGameClientBase_DeferActivate.{platform}.yaml
 
+      - name: find-CNetworkGameClientBase_Connect
+        expected_output:
+          - CNetworkGameClientBase_Connect.{platform}.yaml
+        expected_input:
+          - CNetworkGameClientBase_vtable.{platform}.yaml
+
+      - name: find-CNetworkGameClientBase_DisconnectGame
+        expected_output:
+          - CNetworkGameClientBase_DisconnectGame.{platform}.yaml
+        expected_input:
+          - CNetworkGameClientBase_vtable.{platform}.yaml
+
     symbols:
       - name: CNetworkGameServer_vtable
         category: vtable
@@ -1406,6 +1428,14 @@ modules:
         alias:
           - CNetworkGameClient::RecordEntityBandwidth
           - RecordEntityBandwidth
+
+      - name: CNetworkGameClient_vtable
+        category: vtable
+
+      - name: CNetworkGameClient_DisconnectGame
+        category: vfunc
+        alias:
+          - CNetworkGameClient::DisconnectGame
 
       - name: INetworkMessages_FindNetworkGroup
         category: vfunc
@@ -1874,6 +1904,16 @@ modules:
         category: func
         alias:
           - CNetworkGameClientBase::DeferActivate
+
+      - name: CNetworkGameClientBase_Connect
+        category: vfunc
+        alias:
+          - CNetworkGameClientBase::Connect
+
+      - name: CNetworkGameClientBase_DisconnectGame
+        category: vfunc
+        alias:
+          - CNetworkGameClientBase::DisconnectGame
 
   - name: client
     path_windows: game/csgo/bin/win64/client.dll
