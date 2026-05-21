@@ -58,9 +58,6 @@ PATCH_COMPAT_ALIASES = {
     "CCSBotManager_AddBot_BotNavIgnore": [
         "BotNavIgnore",
     ],
-    "CPhysBox_Use_PatchCaller": [
-        "CPhysBox_Use",
-    ],
 }
 
 
