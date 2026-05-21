@@ -1,0 +1,18 @@
+func_name: CEnvEntityIgniter_Precache
+func_va: '0x180c888e0'
+disasm_code: |-
+  .text:0000000180C888E0                 push    rbx
+  .text:0000000180C888E2                 sub     rsp, 20h
+  .text:0000000180C888E6                 mov     rbx, rdx
+  .text:0000000180C888E9                 call    CBaseEntity_Precache
+  .text:0000000180C888EE                 mov     rdx, rbx
+  .text:0000000180C888F1                 lea     rcx, aEntityflame; "entityflame"
+  .text:0000000180C888F8                 add     rsp, 20h
+  .text:0000000180C888FC                 pop     rbx
+  .text:0000000180C888FD                 jmp     UTIL_PrecacheOther
+procedure: |-
+  __int64 __fastcall CEnvEntityIgniter_Precache(__int64 a1, __int64 *a2)
+  {
+    CBaseEntity_Precache(a1, a2);
+    return UTIL_PrecacheOther("entityflame", a2);
+  }
