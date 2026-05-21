@@ -80,8 +80,8 @@ disasm_code: |-
   .text:00000000011DE40F                 mov     rax, [rbx]
   .text:00000000011DE412                 lea     r14, [rbp+var_70]
   .text:00000000011DE416                 mov     rsi, r14
-  .text:00000000011DE419                 ; 0xF8 = 248LL = CEntityInstance_AssignChangeAccessorPathIds
-  .text:00000000011DE419                 call    qword ptr [rax+0F8h]; 0xF8 = 248LL = CEntityInstance_AssignChangeAccessorPathIds
+  .text:00000000011DE419                 ; 0xF8 = 248LL = CEntityInstance_AssignChangeAccessorPathIdsPolymorphic
+  .text:00000000011DE419                 call    qword ptr [rax+0F8h]; 0xF8 = 248LL = CEntityInstance_AssignChangeAccessorPathIdsPolymorphic
   .text:00000000011DE41F                 cmp     dword ptr [rbp+var_50+0Ch], 3FFFFFFFh
   .text:00000000011DE426                 mov     dword ptr [rbp+var_58], 0
   .text:00000000011DE42D                 ja      short loc_11DE448
@@ -305,8 +305,8 @@ disasm_code: |-
   .text:00000000011DE7D2                 mov     rax, [rbx]
   .text:00000000011DE7D5                 mov     rsi, r14
   .text:00000000011DE7D8                 mov     rdi, rbx
-  .text:00000000011DE7DB                 ; 0xF0 = 240LL = CEntityInstance_AddChangeAccessorPath
-  .text:00000000011DE7DB                 call    qword ptr [rax+0F0h]; 0xF0 = 240LL = CEntityInstance_AddChangeAccessorPath
+  .text:00000000011DE7DB                 ; 0xF0 = 240LL = CEntityInstance_AddChangeAccessorPathPolymorphic
+  .text:00000000011DE7DB                 call    qword ptr [rax+0F0h]; 0xF0 = 240LL = CEntityInstance_AddChangeAccessorPathPolymorphic
   .text:00000000011DE7E1                 jmp     loc_11DE4F3
   .text:00000000011DE7F0                 mov     r8d, 1
   .text:00000000011DE7F6                 mov     r9d, 7FFFh
@@ -427,7 +427,7 @@ procedure: |-
         ++v43.m128i_i32[0];
         LODWORD(v44) = v36;
         *(_DWORD *)v43.m128i_i64[1] = v11;
-        result = (*(__int64 (__fastcall **)(_QWORD *, __m128i *))(*a1 + 248LL))(a1, &v43);// 0xF8 = 248LL = CEntityInstance_AssignChangeAccessorPathIds
+        result = (*(__int64 (__fastcall **)(_QWORD *, __m128i *))(*a1 + 248LL))(a1, &v43);// 0xF8 = 248LL = CEntityInstance_AssignChangeAccessorPathIdsPolymorphic
         LODWORD(v45) = 0;
         if ( inserted.m128i_i32[3] <= 0x3FFFFFFFu && inserted.m128i_i64[0] )
           result = (*(__int64 (__fastcall **)(_QWORD *))(*g_pMemAlloc + 32LL))(g_pMemAlloc);
@@ -490,7 +490,7 @@ procedure: |-
       LOWORD(v45) = v45 + 1;
       v43.m128i_i16[v34] = a5;
     }
-    result = (*(__int64 (__fastcall **)(_QWORD *, __m128i *))(*a1 + 240LL))(a1, &v43);// 0xF0 = 240LL = CEntityInstance_AddChangeAccessorPath
+    result = (*(__int64 (__fastcall **)(_QWORD *, __m128i *))(*a1 + 240LL))(a1, &v43);// 0xF0 = 240LL = CEntityInstance_AddChangeAccessorPathPolymorphic
   LABEL_15:
     if ( !a7 )
       return result;

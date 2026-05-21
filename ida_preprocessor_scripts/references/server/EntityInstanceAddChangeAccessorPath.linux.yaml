@@ -1,0 +1,22 @@
+func_name: EntityInstanceAddChangeAccessorPath
+func_va: '0x1eb8070'
+disasm_code: |-
+  .text:0000000001EB8070                 mov     rax, [rdi]
+  .text:0000000001EB8073                 lea     rdx, sub_1E88FC0
+  .text:0000000001EB807A                 mov     rax, [rax+128h]  ; 128h = CEntityInstance_AddChangeAccessorPath
+  .text:0000000001EB8081                 cmp     rax, rdx
+  .text:0000000001EB8084                 jnz     short loc_1EB8090
+  .text:0000000001EB8086                 mov     eax, 0FFFFFFFFh
+  .text:0000000001EB808B                 retn
+  .text:0000000001EB8090                 jmp     rax
+procedure: |-
+  __int64 __fastcall EntityInstanceAddChangeAccessorPath(__int64 a1)
+  {
+    __int64 (*v1)(void); // rax
+
+    v1 = *(__int64 (**)(void))(*(_QWORD *)a1 + 296LL);// 296LL = 0x128 = CEntityInstance_AddChangeAccessorPath
+    if ( v1 == sub_1E88FC0 )
+      return 0xFFFFFFFFLL;
+    else
+      return v1();
+  }

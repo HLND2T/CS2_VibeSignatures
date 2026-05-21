@@ -1,0 +1,140 @@
+func_name: CUtlVectorEmbeddedNetworkVar_CSPerRoundStats_t_NetworkVar_m_perRoundStats_SetCount
+func_va: '0x1801e6810'
+disasm_code: |-
+  .text:00000001801E6810                 mov     [rsp+arg_10], rbx
+  .text:00000001801E6815                 mov     [rsp+arg_18], rsi
+  .text:00000001801E681A                 push    rdi
+  .text:00000001801E681B                 sub     rsp, 40h
+  .text:00000001801E681F                 movsxd  rsi, edx
+  .text:00000001801E6822                 lea     r8, [rsp+48h+arg_0]
+  .text:00000001801E6827                 mov     dl, 1
+  .text:00000001801E6829                 mov     [rsp+48h+arg_0], 0FFFFFFFFFFFFFFFFh
+  .text:00000001801E6832                 mov     rdi, rcx
+  .text:00000001801E6835                 call    CNetworkUtlVectorEmbedded_NetworkStateChanged_m_perRoundStats
+  .text:00000001801E683A                 imul    rbx, rsi, 68h ; 'h'
+  .text:00000001801E683E                 add     rbx, [rdi+8]
+  .text:00000001801E6842                 mov     byte ptr [rbx+2Ch], 1
+  .text:00000001801E6846                 cmp     qword ptr [rdi+38h], 0
+  .text:00000001801E684B                 jz      loc_1801E68F7
+  .text:00000001801E6851                 movsx   rcx, word ptr [rdi+60h]
+  .text:00000001801E6856                 lea     rdx, [rdi+48h]
+  .text:00000001801E685A                 xor     al, al
+  .text:00000001801E685C                 mov     [rsp+48h+var_E], al
+  .text:00000001801E6860                 cmp     ecx, 0Ah
+  .text:00000001801E6863                 jg      short loc_1801E68E4
+  .text:00000001801E6865                 mov     [rsp+48h+var_10], cx
+  .text:00000001801E686A                 test    cx, cx
+  .text:00000001801E686D                 jle     short loc_1801E6891
+  .text:00000001801E686F                 mov     r8, rcx
+  .text:00000001801E6872                 add     r8, r8
+  .text:00000001801E6875                 cmp     [rdx+1Ah], al
+  .text:00000001801E6878                 jz      short loc_1801E687D
+  .text:00000001801E687A                 mov     rdx, [rdx]
+  .text:00000001801E687D                 lea     rcx, [rsp+48h+var_28]
+  .text:00000001801E6882                 call    sub_181576780
+  .text:00000001801E6887                 movzx   eax, [rsp+48h+var_E]
+  .text:00000001801E688C                 movzx   ecx, [rsp+48h+var_10]
+  .text:00000001801E6891                 test    al, al
+  .text:00000001801E6893                 jnz     short loc_1801E68D6
+  .text:00000001801E6895                 cmp     cx, 0Ah
+  .text:00000001801E6899                 jge     short loc_1801E68C3
+  .text:00000001801E689B                 mov     rdx, [rdi+38h]
+  .text:00000001801E689F                 lea     r8, [rsp+48h+var_28]
+  .text:00000001801E68A4                 movsx   rax, cx
+  .text:00000001801E68A8                 inc     cx
+  .text:00000001801E68AB                 mov     [rsp+48h+var_10], cx
+  .text:00000001801E68B0                 lea     rcx, [rsp+48h+arg_8]
+  .text:00000001801E68B5                 mov     [rsp+rax*2+48h+var_28], si
+  .text:00000001801E68BA                 call    EntityInstanceAddChangeAccessorPath
+  .text:00000001801E68BF                 mov     ecx, [rax]
+  .text:00000001801E68C1                 jmp     short loc_1801E68FC
+  .text:00000001801E68C3                 mov     edx, 0Ah
+  .text:00000001801E68C8                 lea     rcx, aPathAddtotailF; "Path_AddToTail failed, depth already =="...
+  .text:00000001801E68CF                 call    cs:Plat_FatalError
+  .text:00000001801E68D5                 ; Trap to Debugger
+  .text:00000001801E68D5                 int     3; Trap to Debugger
+  .text:00000001801E68D6                 lea     rcx, aPathAddtotailF_0; "Path_AddToTail failed for read only CFi"...
+  .text:00000001801E68DD                 call    cs:Plat_FatalError
+  .text:00000001801E68E3                 ; Trap to Debugger
+  .text:00000001801E68E3                 int     3; Trap to Debugger
+  .text:00000001801E68E4                 mov     edx, 0Ah
+  .text:00000001801E68E9                 lea     rcx, aPathSetcountFa; "Path_SetCount failed, depth already == "...
+  .text:00000001801E68F0                 call    cs:Plat_FatalError
+  .text:00000001801E68F6                 ; Trap to Debugger
+  .text:00000001801E68F6                 int     3; Trap to Debugger
+  .text:00000001801E68F7                 mov     ecx, 0FFFFFFFFh
+  .text:00000001801E68FC                 mov     [rbx+28h], ecx
+  .text:00000001801E68FF                 mov     r9, rbx
+  .text:00000001801E6902                 mov     rdx, [rdi+38h]
+  .text:00000001801E6906                 lea     rcx, [rbx+8]
+  .text:00000001801E690A                 xor     r8d, r8d
+  .text:00000001801E690D                 mov     rbx, [rsp+48h+arg_10]
+  .text:00000001801E6912                 mov     rsi, [rsp+48h+arg_18]
+  .text:00000001801E6917                 add     rsp, 40h
+  .text:00000001801E691B                 pop     rdi
+  .text:00000001801E691C                 jmp     EntityInstanceAssignChangeAccessorPathIds
+procedure: |-
+  __int64 __fastcall CUtlVectorEmbeddedNetworkVar_CSPerRoundStats_t_NetworkVar_m_perRoundStats_SetCount(
+          __int64 a1,
+          int a2)
+  {
+    __int64 v2; // rsi
+    __int64 v4; // rbx
+    __int64 v5; // rcx
+    _QWORD *v6; // rdx
+    char v7; // al
+    __int64 v8; // rdx
+    int v9; // ecx
+    _WORD v11[12]; // [rsp+20h] [rbp-28h] BYREF
+    __int16 v12; // [rsp+38h] [rbp-10h]
+    char v13; // [rsp+3Ah] [rbp-Eh]
+    __int64 v14; // [rsp+50h] [rbp+8h] BYREF
+    char v15; // [rsp+58h] [rbp+10h] BYREF
+
+    v2 = a2;
+    v14 = -1;
+    CNetworkUtlVectorEmbedded_NetworkStateChanged_m_perRoundStats(a1, 1, (unsigned int *)&v14);
+    v4 = *(_QWORD *)(a1 + 8) + 104 * v2;
+    *(_BYTE *)(v4 + 44) = 1;
+    if ( *(_QWORD *)(a1 + 56) )
+    {
+      v5 = *(__int16 *)(a1 + 96);
+      v6 = (_QWORD *)(a1 + 72);
+      v7 = 0;
+      v13 = 0;
+      if ( (int)v5 > 10 )
+      {
+        Plat_FatalError("Path_SetCount failed, depth already == DEFAULT_MAX_PATH_DEPTH(%d)", 10);
+        __debugbreak();
+      }
+      v12 = v5;
+      if ( (__int16)v5 > 0 )
+      {
+        if ( *(_BYTE *)(a1 + 98) )
+          v6 = (_QWORD *)*v6;
+        sub_181576780(v11, v6, 2 * v5);
+        v7 = v13;
+        LOWORD(v5) = v12;
+      }
+      if ( v7 )
+      {
+        Plat_FatalError("Path_AddToTail failed for read only CFieldPath", v6);
+        __debugbreak();
+      }
+      if ( (__int16)v5 >= 10 )
+      {
+        Plat_FatalError("Path_AddToTail failed, depth already == DEFAULT_MAX_PATH_DEPTH(%d)", 10);
+        __debugbreak();
+      }
+      v8 = *(_QWORD *)(a1 + 56);
+      v12 = v5 + 1;
+      v11[(__int16)v5] = v2;
+      v9 = *(_DWORD *)EntityInstanceAddChangeAccessorPath((__int64)&v15, v8);
+    }
+    else
+    {
+      v9 = -1;
+    }
+    *(_DWORD *)(v4 + 40) = v9;
+    return EntityInstanceAssignChangeAccessorPathIds(v4 + 8, *(_QWORD *)(a1 + 56), 0, v4);
+  }

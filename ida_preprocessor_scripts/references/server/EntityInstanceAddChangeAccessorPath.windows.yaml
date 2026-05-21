@@ -1,0 +1,21 @@
+func_name: EntityInstanceAddChangeAccessorPath
+func_va: '0x18123d710'
+disasm_code: |-
+  .text:000000018123D710                 push    rbx
+  .text:000000018123D712                 sub     rsp, 20h
+  .text:000000018123D716                 mov     rax, [rdx]
+  .text:000000018123D719                 mov     r9, rdx
+  .text:000000018123D71C                 mov     rbx, rcx
+  .text:000000018123D71F                 mov     rdx, rcx
+  .text:000000018123D722                 mov     rcx, r9
+  .text:000000018123D725                 call    qword ptr [rax+120h]  ; 120h = CEntityInstance_AddChangeAccessorPath
+  .text:000000018123D72B                 mov     rax, rbx
+  .text:000000018123D72E                 add     rsp, 20h
+  .text:000000018123D732                 pop     rbx
+  .text:000000018123D733                 retn
+procedure: |-
+  __int64 __fastcall EntityInstanceAddChangeAccessorPath(__int64 a1, __int64 a2)
+  {
+    (*(void (__fastcall **)(__int64, __int64))(*(_QWORD *)a2 + 288LL))(a2, a1);// 288LL = 0x120 = CEntityInstance_AddChangeAccessorPath
+    return a1;
+  }

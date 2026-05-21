@@ -119,8 +119,8 @@ disasm_code: |-
   .text:00000001808856E4                 mov     rcx, r14
   .text:00000001808856E7                 mov     [rax], ebx
   .text:00000001808856E9                 mov     rax, [r14]
-  .text:00000001808856EC                 ; 0xF0 = 240LL = CEntityInstance_AssignChangeAccessorPathIds
-  .text:00000001808856EC                 call    qword ptr [rax+0F0h]; 0xF0 = 240LL = CEntityInstance_AssignChangeAccessorPathIds
+  .text:00000001808856EC                 ; 0xF0 = 240LL = CEntityInstance_AssignChangeAccessorPathIdsPolymorphic
+  .text:00000001808856EC                 call    qword ptr [rax+0F0h]; 0xF0 = 240LL = CEntityInstance_AssignChangeAccessorPathIdsPolymorphic
   .text:00000001808856F2                 mov     eax, dword ptr [rbp+37h+var_48+4]
   .text:00000001808856F5                 mov     rdx, [rbp+37h+var_50]
   .text:00000001808856F9                 mov     dword ptr [rbp+37h+var_58], edi
@@ -203,8 +203,8 @@ disasm_code: |-
   .text:0000000180885814                 mov     rax, [r14]
   .text:0000000180885817                 lea     rdx, [rbp+37h+var_70]
   .text:000000018088581B                 mov     rcx, r14
-  .text:000000018088581E                 ; 0xE8 = 232LL = CEntityInstance_AddChangeAccessorPath
-  .text:000000018088581E                 call    qword ptr [rax+0E8h]; 0xE8 = 232LL = CEntityInstance_AddChangeAccessorPath
+  .text:000000018088581E                 ; 0xE8 = 232LL = CEntityInstance_AddChangeAccessorPathPolymorphic
+  .text:000000018088581E                 call    qword ptr [rax+0E8h]; 0xE8 = 232LL = CEntityInstance_AddChangeAccessorPathPolymorphic
   .text:0000000180885824                 cmp     [rbp+37h+arg_38], 0
   .text:0000000180885828                 jz      loc_180885AA4
   .text:000000018088582E                 mov     rbx, [r12]
@@ -513,7 +513,7 @@ procedure: |-
         LODWORD(v50) = (_DWORD)v50 + 1;
         LODWORD(v52) = i;
         *(_DWORD *)v51 = v16;
-        (*(void (__fastcall **)(_QWORD *, const char **))(*a1 + 240LL))(a1, &v50);// 0xF0 = 240LL = CEntityInstance_AssignChangeAccessorPathIds
+        (*(void (__fastcall **)(_QWORD *, const char **))(*a1 + 240LL))(a1, &v50);// 0xF0 = 240LL = CEntityInstance_AssignChangeAccessorPathIdsPolymorphic
         v19 = HIDWORD(v55);
         v20 = v54;
         LODWORD(v53) = 0;
@@ -590,7 +590,7 @@ procedure: |-
           LOWORD(v53) = v53 + 1;
           *((_WORD *)&v50 + v23) = a6;
         }
-        (*(void (__fastcall **)(_QWORD *, const char **))(*a1 + 232LL))(a1, &v50);// 0xE8 = 232LL = CEntityInstance_AddChangeAccessorPath
+        (*(void (__fastcall **)(_QWORD *, const char **))(*a1 + 232LL))(a1, &v50);// 0xE8 = 232LL = CEntityInstance_AddChangeAccessorPathPolymorphic
       }
     }
     if ( a8 && *a4 )

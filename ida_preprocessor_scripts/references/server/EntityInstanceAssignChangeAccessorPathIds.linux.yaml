@@ -1,0 +1,112 @@
+func_name: EntityInstanceAssignChangeAccessorPathIds
+func_va: '0x1eb86b0'
+disasm_code: |-
+  .text:0000000001EB86B0                 push    rbp
+  .text:0000000001EB86B1                 mov     rbp, rsp
+  .text:0000000001EB86B4                 push    r15
+  .text:0000000001EB86B6                 push    r14
+  .text:0000000001EB86B8                 mov     r14, rsi
+  .text:0000000001EB86BB                 push    r13
+  .text:0000000001EB86BD                 push    r12
+  .text:0000000001EB86BF                 mov     r12, rcx
+  .text:0000000001EB86C2                 push    rbx
+  .text:0000000001EB86C3                 mov     rbx, rdi
+  .text:0000000001EB86C6                 sub     rsp, 38h
+  .text:0000000001EB86CA                 mov     [rbp+var_54], edx
+  .text:0000000001EB86CD                 movsxd  rdx, dword ptr [rdi+8]
+  .text:0000000001EB86D1                 mov     rax, [rdi+10h]
+  .text:0000000001EB86D5                 mov     [rdi], rsi
+  .text:0000000001EB86D8                 lea     rdx, [rdx+rdx*4]
+  .text:0000000001EB86DC                 lea     r13, [rax+rdx*8]
+  .text:0000000001EB86E0                 mov     r15, rax
+  .text:0000000001EB86E3                 cmp     rax, r13
+  .text:0000000001EB86E6                 jz      short loc_1EB8725
+  .text:0000000001EB86E8                 nop     dword ptr [rax+rax+00000000h]
+  .text:0000000001EB86F0                 mov     edi, [r15+20h]
+  .text:0000000001EB86F4                 movdqu  xmm0, xmmword ptr [r15+8]
+  .text:0000000001EB86FA                 movq    rdx, xmm0
+  .text:0000000001EB86FF                 movups  [rbp+var_48], xmm0
+  .text:0000000001EB8703                 add     rdi, r12
+  .text:0000000001EB8706                 mov     [r15], rdi
+  .text:0000000001EB8709                 add     rdi, qword ptr [rbp+var_48+8]
+  .text:0000000001EB870D                 test    dl, 1
+  .text:0000000001EB8710                 jz      short loc_1EB8758
+  .text:0000000001EB8712                 mov     rcx, [rdi]
+  .text:0000000001EB8715                 add     r15, 28h ; '('
+  .text:0000000001EB8719                 mov     rsi, rbx
+  .text:0000000001EB871C                 call    qword ptr [rcx+rdx-1]
+  .text:0000000001EB8720                 cmp     r13, r15
+  .text:0000000001EB8723                 jnz     short loc_1EB86F0
+  .text:0000000001EB8725                 test    r14, r14
+  .text:0000000001EB8728                 jz      short loc_1EB8746
+  .text:0000000001EB872A                 cmp     byte ptr [rbp+var_54], 0
+  .text:0000000001EB872E                 jz      short loc_1EB8746
+  .text:0000000001EB8730                 mov     rax, [r14]
+  .text:0000000001EB8733                 lea     rdx, nullsub_1665
+  .text:0000000001EB873A                 mov     rax, [rax+130h]  ; 130h = CEntityInstance_AssignChangeAccessorPathIds
+  .text:0000000001EB8741                 cmp     rax, rdx
+  .text:0000000001EB8744                 jnz     short loc_1EB8770
+  .text:0000000001EB8746                 add     rsp, 38h
+  .text:0000000001EB874A                 pop     rbx
+  .text:0000000001EB874B                 pop     r12
+  .text:0000000001EB874D                 pop     r13
+  .text:0000000001EB874F                 pop     r14
+  .text:0000000001EB8751                 pop     r15
+  .text:0000000001EB8753                 pop     rbp
+  .text:0000000001EB8754                 retn
+  .text:0000000001EB8758                 add     r15, 28h ; '('
+  .text:0000000001EB875C                 mov     rsi, rbx
+  .text:0000000001EB875F                 call    rdx
+  .text:0000000001EB8761                 cmp     r13, r15
+  .text:0000000001EB8764                 jnz     short loc_1EB86F0
+  .text:0000000001EB8766                 jmp     short loc_1EB8725
+  .text:0000000001EB8770                 add     rsp, 38h
+  .text:0000000001EB8774                 mov     rdi, r14
+  .text:0000000001EB8777                 pop     rbx
+  .text:0000000001EB8778                 pop     r12
+  .text:0000000001EB877A                 pop     r13
+  .text:0000000001EB877C                 pop     r14
+  .text:0000000001EB877E                 pop     r15
+  .text:0000000001EB8780                 pop     rbp
+  .text:0000000001EB8781                 jmp     rax
+procedure: |-
+  void (*__fastcall EntityInstanceAssignChangeAccessorPathIds(__int64 a1, __int64 a2, char a3, __int64 a4))()
+  {
+    __int64 v6; // rdx
+    void (*result)(); // rax
+    void (*v8)(); // r13
+    void (*i)(); // r15
+    __int64 v10; // xmm0_8
+    __int64 v11; // rdi
+    _QWORD *v12; // rdi
+
+    v6 = *(int *)(a1 + 8);
+    result = *(void (**)())(a1 + 16);
+    *(_QWORD *)a1 = a2;
+    v8 = (void (*)())((char *)result + 40 * v6);
+    for ( i = result; v8 != i; result = (void (*)())((__int64 (__fastcall *)(_QWORD *, __int64))v10)(v12, a1) )
+    {
+      while ( 1 )
+      {
+        *(__m128i *)&v10 = _mm_loadu_si128((const __m128i *)((char *)i + 8));
+        v11 = a4 + *((unsigned int *)i + 8);
+        *(_QWORD *)i = v11;
+        v12 = (_QWORD *)(*(&v10 + 1) + v11);
+        if ( (v10 & 1) == 0 )
+          break;
+        i = (void (*)())((char *)i + 40);
+        result = (void (*)())(*(__int64 (__fastcall **)(_QWORD *, __int64))(*v12 + v10 - 1))(v12, a1);
+        if ( v8 == i )
+          goto LABEL_4;
+      }
+      i = (void (*)())((char *)i + 40);
+    }
+  LABEL_4:
+    if ( a2 && a3 )
+    {
+      result = *(void (**)())(*(_QWORD *)a2 + 304LL);// 304LL = 0x130 = CEntityInstance_AssignChangeAccessorPathIds
+      if ( result != nullsub_1665 )
+        return (void (*)())((__int64 (__fastcall *(__fastcall *)(__int64))())result)(a2);
+    }
+    return result;
+  }

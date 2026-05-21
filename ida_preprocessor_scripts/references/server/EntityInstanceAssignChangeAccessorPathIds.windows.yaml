@@ -1,0 +1,69 @@
+func_name: EntityInstanceAssignChangeAccessorPathIds
+func_va: '0x18123bec0'
+disasm_code: |-
+  .text:000000018123BEC0                 mov     [rsp+arg_0], rbx
+  .text:000000018123BEC5                 mov     [rsp+arg_8], rbp
+  .text:000000018123BECA                 mov     [rsp+arg_10], rsi
+  .text:000000018123BECF                 push    rdi
+  .text:000000018123BED0                 push    r14
+  .text:000000018123BED2                 push    r15
+  .text:000000018123BED4                 sub     rsp, 20h
+  .text:000000018123BED8                 mov     [rcx], rdx
+  .text:000000018123BEDB                 mov     rbp, r9
+  .text:000000018123BEDE                 mov     rbx, [rcx+10h]
+  .text:000000018123BEE2                 movzx   r15d, r8b
+  .text:000000018123BEE6                 movsxd  rsi, dword ptr [rcx+8]
+  .text:000000018123BEEA                 mov     rdi, rdx
+  .text:000000018123BEED                 shl     rsi, 5
+  .text:000000018123BEF1                 mov     r14, rcx
+  .text:000000018123BEF4                 add     rsi, rbx
+  .text:000000018123BEF7                 cmp     rbx, rsi
+  .text:000000018123BEFA                 jz      short loc_18123BF1B
+  .text:000000018123BEFC                 nop     dword ptr [rax+00h]
+  .text:000000018123BF00                 mov     ecx, [rbx+18h]
+  .text:000000018123BF03                 mov     rdx, r14
+  .text:000000018123BF06                 add     rcx, rbp
+  .text:000000018123BF09                 mov     [rbx], rcx
+  .text:000000018123BF0C                 mov     rax, [rbx+8]
+  .text:000000018123BF10                 call    rax
+  .text:000000018123BF12                 add     rbx, 20h ; ' '
+  .text:000000018123BF16                 cmp     rbx, rsi
+  .text:000000018123BF19                 jnz     short loc_18123BF00
+  .text:000000018123BF1B                 test    rdi, rdi
+  .text:000000018123BF1E                 jz      short loc_18123BF31
+  .text:000000018123BF20                 test    r15b, r15b
+  .text:000000018123BF23                 jz      short loc_18123BF31
+  .text:000000018123BF25                 mov     rax, [rdi]
+  .text:000000018123BF28                 mov     rcx, rdi
+  .text:000000018123BF2B                 call    qword ptr [rax+128h]  ; 128h = CEntityInstance_AssignChangeAccessorPathIds
+  .text:000000018123BF31                 mov     rbx, [rsp+38h+arg_0]
+  .text:000000018123BF36                 mov     rbp, [rsp+38h+arg_8]
+  .text:000000018123BF3B                 mov     rsi, [rsp+38h+arg_10]
+  .text:000000018123BF40                 add     rsp, 20h
+  .text:000000018123BF44                 pop     r15
+  .text:000000018123BF46                 pop     r14
+  .text:000000018123BF48                 pop     rdi
+  .text:000000018123BF49                 retn
+procedure: |-
+  __int64 __fastcall EntityInstanceAssignChangeAccessorPathIds(__int64 a1, __int64 a2, char a3, __int64 a4)
+  {
+    __int64 v5; // rbx
+    __int64 i; // rsi
+    __int64 v10; // rcx
+    __int64 result; // rax
+
+    *(_QWORD *)a1 = a2;
+    v5 = *(_QWORD *)(a1 + 16);
+    for ( i = v5 + 32LL * *(int *)(a1 + 8); v5 != i; v5 += 32 )
+    {
+      v10 = a4 + *(unsigned int *)(v5 + 24);
+      *(_QWORD *)v5 = v10;
+      result = (*(__int64 (__fastcall **)(__int64, __int64))(v5 + 8))(v10, a1);
+    }
+    if ( a2 )
+    {
+      if ( a3 )
+        return (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)a2 + 296LL))(a2);// 296LL = 0x128 = CEntityInstance_AssignChangeAccessorPathIds
+    }
+    return result;
+  }

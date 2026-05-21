@@ -5773,6 +5773,26 @@ modules:
         expected_output:
           - CNetworkUtlVectorEmbedded_NetworkStateChanged_m_vecRenderAttributes.{platform}.yaml
 
+      - name: find-CNetworkUtlVectorEmbedded_NetworkStateChanged_m_perRoundStats
+        expected_output:
+          - CNetworkUtlVectorEmbedded_NetworkStateChanged_m_perRoundStats.{platform}.yaml
+
+      - name: find-CUtlVectorEmbeddedNetworkVar_CSPerRoundStats_t_NetworkVar_m_perRoundStats_SetCount-windows
+        platform: windows
+        expected_output:
+          - CUtlVectorEmbeddedNetworkVar_CSPerRoundStats_t_NetworkVar_m_perRoundStats_SetCount.{platform}.yaml
+        expected_input:
+          - CNetworkUtlVectorEmbedded_NetworkStateChanged_m_perRoundStats.{platform}.yaml
+
+      - name: find-EntityInstanceAddChangeAccessorPath-AND-EntityInstanceAssignChangeAccessorPathIds
+        expected_output:
+          - EntityInstanceAddChangeAccessorPath.{platform}.yaml
+          - EntityInstanceAssignChangeAccessorPathIds.{platform}.yaml
+        expected_input:
+          - CNetworkUtlVectorEmbedded_NetworkStateChanged_m_perRoundStats.{platform}.yaml
+        expected_input_windows:
+          - CUtlVectorEmbeddedNetworkVar_CSPerRoundStats_t_NetworkVar_m_perRoundStats_SetCount.{platform}.yaml
+
       - name: find-CNetworkUtlVectorEmbedded_TryLateResolve_m_vecRenderAttributes
         platform: windows
         expected_output:
@@ -6092,12 +6112,26 @@ modules:
         expected_output:
           - PolymorphicHelper_t__SetPolymorphicPointer.{platform}.yaml
 
-      - name: find-CEntityInstance_AddChangeAccessorPath-AND-CEntityInstance_AssignChangeAccessorPathIds
+      - name: find-CEntityInstance_AddChangeAccessorPathPolymorphic-AND-CEntityInstance_AssignChangeAccessorPathIdsPolymorphic
         expected_output:
-          - CEntityInstance_AddChangeAccessorPath.{platform}.yaml
-          - CEntityInstance_AssignChangeAccessorPathIds.{platform}.yaml
+          - CEntityInstance_AddChangeAccessorPathPolymorphic.{platform}.yaml
+          - CEntityInstance_AssignChangeAccessorPathIdsPolymorphic.{platform}.yaml
         expected_input:
           - PolymorphicHelper_t__SetPolymorphicPointer.{platform}.yaml
+          - CEntityInstance_vtable.{platform}.yaml
+
+      - name: find-CEntityInstance_AddChangeAccessorPath
+        expected_output:
+          - CEntityInstance_AddChangeAccessorPath.{platform}.yaml
+        expected_input:
+          - EntityInstanceAddChangeAccessorPath.{platform}.yaml
+          - CEntityInstance_vtable.{platform}.yaml
+
+      - name: find-CEntityInstance_AssignChangeAccessorPathIds
+        expected_output:
+          - CEntityInstance_AssignChangeAccessorPathIds.{platform}.yaml
+        expected_input:
+          - EntityInstanceAssignChangeAccessorPathIds.{platform}.yaml
           - CEntityInstance_vtable.{platform}.yaml
 
       - name: find-CNavPhysicsInterface_vtable
@@ -6506,6 +6540,16 @@ modules:
         category: func
         alias:
           - PolymorphicHelper_t::SetPolymorphicPointer
+
+      - name: CEntityInstance_AddChangeAccessorPathPolymorphic
+        category: vfunc
+        alias:
+          - CEntityInstance::AddChangeAccessorPathPolymorphic
+
+      - name: CEntityInstance_AssignChangeAccessorPathIdsPolymorphic
+        category: vfunc
+        alias:
+          - CEntityInstance::AssignChangeAccessorPathIdsPolymorphic
 
       - name: CEntityInstance_AddChangeAccessorPath
         category: vfunc
@@ -8788,6 +8832,22 @@ modules:
         category: func
         alias:
           - CNetworkUtlVectorEmbedded<CRenderAttribute>::NetworkStateChanged_m_vecRenderAttributes
+
+      - name: CNetworkUtlVectorEmbedded_NetworkStateChanged_m_perRoundStats
+        category: func
+        alias:
+          - CNetworkUtlVectorEmbedded<CSPerRoundStats_t>::NetworkStateChanged_m_perRoundStats
+
+      - name: CUtlVectorEmbeddedNetworkVar_CSPerRoundStats_t_NetworkVar_m_perRoundStats_SetCount
+        category: func
+        alias:
+          - CUtlVectorEmbeddedNetworkVar<CSPerRoundStats_t, NetworkVar>::SetCount
+
+      - name: EntityInstanceAddChangeAccessorPath
+        category: func
+
+      - name: EntityInstanceAssignChangeAccessorPathIds
+        category: func
 
       - name: CNetworkUtlVectorEmbedded_TryLateResolve_m_vecRenderAttributes
         category: func
