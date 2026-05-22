@@ -1,0 +1,133 @@
+func_name: CGameEntitySystem_BuildResourceManifest_ManifestNameOrGroupName
+func_va: '0x180b42fc0'
+disasm_code: |-
+  .text:0000000180B42FC0                 mov     [rsp+arg_0], rbx
+  .text:0000000180B42FC5                 mov     [rsp+arg_8], rbp
+  .text:0000000180B42FCA                 mov     [rsp+arg_10], rsi
+  .text:0000000180B42FCF                 mov     [rsp+arg_18], rdi
+  .text:0000000180B42FD4                 push    r14
+  .text:0000000180B42FD6                 sub     rsp, 40h
+  .text:0000000180B42FDA                 mov     rbp, r9
+  .text:0000000180B42FDD                 mov     rbx, r8
+  .text:0000000180B42FE0                 mov     rdi, rdx
+  .text:0000000180B42FE3                 mov     rsi, rcx
+  .text:0000000180B42FE6                 call    sub_1803DE7B0
+  .text:0000000180B42FEB                 mov     cl, 1
+  .text:0000000180B42FED                 movzx   r14d, al
+  .text:0000000180B42FF1                 call    sub_1803E9060
+  .text:0000000180B42FF6                 mov     r9, rbp
+  .text:0000000180B42FF9                 mov     r8, rbx
+  .text:0000000180B42FFC                 mov     rdx, rdi
+  .text:0000000180B42FFF                 mov     rcx, rsi
+  .text:0000000180B43002                 call    sub_1811E82E0
+  .text:0000000180B43007                 lea     rdx, aGamesessionman; "GameSessionManifest.vrgrp"
+  .text:0000000180B4300E                 mov     rcx, rdi
+  .text:0000000180B43011                 call    cs:V_stricmp_fast
+  .text:0000000180B43017                 test    eax, eax
+  .text:0000000180B43019                 jnz     loc_180B430B9
+  .text:0000000180B4301F                 ; 0x8 = 8 = CEntitySystem::m_pCurrentManifest (structmember, struct=CEntitySystem, member=m_pCurrentManifest)
+  .text:0000000180B4301F                 mov     rdi, [rsi+8]; 0x8 = 8 = CEntitySystem::m_pCurrentManifest (structmember, struct=CEntitySystem, member=m_pCurrentManifest)
+  .text:0000000180B43023                 mov     [rsi+8], rbp; 0x8 = 8 = CEntitySystem::m_pCurrentManifest (structmember, struct=CEntitySystem, member=m_pCurrentManifest)
+  .text:0000000180B43027                 mov     ecx, cs:dword_181B9ADC8
+  .text:0000000180B4302D                 mov     [rsp+48h+var_28], rbp
+  .text:0000000180B43032                 test    ecx, ecx
+  .text:0000000180B43034                 jns     short loc_180B430A4
+  .text:0000000180B43036                 mov     ecx, cs:TlsIndex
+  .text:0000000180B4303C                 lea     rax, ??_7CDontUseThisGameSystem@@6B@; const CDontUseThisGameSystem::`vftable'
+  .text:0000000180B43043                 mov     [rsp+48h+var_20], rax
+  .text:0000000180B43048                 mov     rax, gs:58h
+  .text:0000000180B43051                 mov     edx, 218h
+  .text:0000000180B43056                 mov     [rsp+48h+var_18], 0
+  .text:0000000180B4305F                 mov     rax, [rax+rcx*8]
+  .text:0000000180B43063                 mov     eax, [rdx+rax]
+  .text:0000000180B43066                 cmp     cs:dword_181E14850, eax
+  .text:0000000180B4306C                 jg      short loc_180B430DC
+  .text:0000000180B4306E                 mov     rax, cs:qword_181E14848
+  .text:0000000180B43075                 lea     rcx, [rsp+48h+var_20]
+  .text:0000000180B4307A                 mov     rbx, [rsp+48h+var_20]
+  .text:0000000180B4307F                 mov     [rsp+48h+var_20], rax
+  .text:0000000180B43084                 call    sub_1805087D0
+  .text:0000000180B43089                 lea     rcx, [rsp+48h+var_20]
+  .text:0000000180B4308E                 mov     [rsp+48h+var_20], rbx
+  .text:0000000180B43093                 mov     cs:dword_181B9ADC8, eax
+  .text:0000000180B43099                 call    sub_180507F80
+  .text:0000000180B4309E                 mov     ecx, cs:dword_181B9ADC8
+  .text:0000000180B430A4                 lea     r8, [rsp+48h+var_28]
+  .text:0000000180B430A9                 lea     rdx, sub_1805087D0
+  .text:0000000180B430B0                 call    sub_180512270
+  .text:0000000180B430B5                 ; 0x8 = 8 = CEntitySystem::m_pCurrentManifest (structmember, struct=CEntitySystem, member=m_pCurrentManifest)
+  .text:0000000180B430B5                 mov     [rsi+8], rdi; 0x8 = 8 = CEntitySystem::m_pCurrentManifest (structmember, struct=CEntitySystem, member=m_pCurrentManifest)
+  .text:0000000180B430B9                 movzx   ecx, r14b
+  .text:0000000180B430BD                 mov     rbx, [rsp+48h+arg_0]
+  .text:0000000180B430C2                 mov     rbp, [rsp+48h+arg_8]
+  .text:0000000180B430C7                 mov     rsi, [rsp+48h+arg_10]
+  .text:0000000180B430CC                 mov     rdi, [rsp+48h+arg_18]
+  .text:0000000180B430D1                 add     rsp, 40h
+  .text:0000000180B430D5                 pop     r14
+  .text:0000000180B430D7                 jmp     sub_1803E9060
+  .text:0000000180B430DC                 lea     rcx, dword_181E14850
+  .text:0000000180B430E3                 call    sub_1814F7664
+  .text:0000000180B430E8                 cmp     cs:dword_181E14850, 0FFFFFFFFh
+  .text:0000000180B430EF                 jnz     loc_180B4306E
+  .text:0000000180B430F5                 mov     rax, cs:off_181B9AEE0
+  .text:0000000180B430FC                 lea     rcx, dword_181E14850
+  .text:0000000180B43103                 mov     cs:qword_181E14848, rax
+  .text:0000000180B4310A                 call    sub_1814F75F8
+  .text:0000000180B4310F                 jmp     loc_180B4306E
+procedure: |-
+  __int64 __fastcall CGameEntitySystem_BuildResourceManifest_ManifestNameOrGroupName(
+          __int64 a1,
+          __int64 a2,
+          __int64 a3,
+          __int64 a4)
+  {
+    unsigned __int8 v8; // al
+    __int64 v9; // rcx
+    unsigned __int8 v10; // r14
+    __int64 v11; // r8
+    __int64 v12; // rdi
+    __int64 v13; // rcx
+    _QWORD *ThreadLocalStoragePointer; // rax
+    __int64 v15; // rbx
+    int v16; // eax
+    __int64 v18; // [rsp+20h] [rbp-28h] BYREF
+    _QWORD v19[4]; // [rsp+28h] [rbp-20h] BYREF
+
+    v8 = sub_1803DE7B0();
+    LOBYTE(v9) = 1;
+    v10 = v8;
+    sub_1803E9060(v9);
+    sub_1811E82E0(a1, a2, a3, a4);
+    if ( !(unsigned int)V_stricmp_fast(a2, "GameSessionManifest.vrgrp", v11) )
+    {
+      v12 = *(_QWORD *)(a1 + 8);// 0x8 = 8 = CEntitySystem::m_pCurrentManifest (structmember, struct=CEntitySystem, member=m_pCurrentManifest)
+      *(_QWORD *)(a1 + 8) = a4;// 0x8 = 8 = CEntitySystem::m_pCurrentManifest (structmember, struct=CEntitySystem, member=m_pCurrentManifest)
+      v13 = (unsigned int)dword_181B9ADC8;
+      v18 = a4;
+      if ( dword_181B9ADC8 < 0 )
+      {
+        v19[0] = &CDontUseThisGameSystem::`vftable';
+        ThreadLocalStoragePointer = NtCurrentTeb()->ThreadLocalStoragePointer;
+        v19[1] = 0;
+        if ( dword_181E14850 > *(_DWORD *)(ThreadLocalStoragePointer[TlsIndex] + 536LL) )
+        {
+          sub_1814F7664(&dword_181E14850);
+          if ( dword_181E14850 == -1 )
+          {
+            qword_181E14848 = (__int64)off_181B9AEE0[0];
+            sub_1814F75F8(&dword_181E14850);
+          }
+        }
+        v15 = v19[0];
+        v19[0] = qword_181E14848;
+        v16 = sub_1805087D0(v19);
+        v19[0] = v15;
+        dword_181B9ADC8 = v16;
+        sub_180507F80(v19);
+        v13 = (unsigned int)dword_181B9ADC8;
+      }
+      sub_180512270(v13, sub_1805087D0, &v18);
+      *(_QWORD *)(a1 + 8) = v12;// 0x8 = 8 = CEntitySystem::m_pCurrentManifest (structmember, struct=CEntitySystem, member=m_pCurrentManifest)
+    }
+    return sub_1803E9060(v10);
+  }
