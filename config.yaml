@@ -4594,6 +4594,17 @@ modules:
         expected_output:
           - CEntitySystem_vtable.{platform}.yaml
 
+      - name: find-CEntitySystem_RegisterEntityClass
+        expected_output:
+          - CEntitySystem_RegisterEntityClass.{platform}.yaml
+
+      - name: find-CEntitySystem_m_entClassesByCPPClassname-AND-CEntitySystem_m_entClassesByClassname
+        expected_output:
+          - CEntitySystem_m_entClassesByCPPClassname.{platform}.yaml
+          - CEntitySystem_m_entClassesByClassname.{platform}.yaml
+        expected_input:
+          - CEntitySystem_RegisterEntityClass.{platform}.yaml
+
       - name: find-CEntitySystem_CreateEntityByName
         expected_output:
           - CEntitySystem_CreateEntityByName.{platform}.yaml
@@ -5135,6 +5146,12 @@ modules:
         expected_input:
           - CGameEntitySystem_vtable.{platform}.yaml
 
+      - name: find-CEntitySystem_m_pCurrentManifest
+        expected_output:
+          - CEntitySystem_m_pCurrentManifest.{platform}.yaml
+        expected_input:
+          - CGameEntitySystem_BuildResourceManifest_ManifestNameOrGroupName.{platform}.yaml
+
       - name: find-CGameEntitySystem_BuildResourceManifest_KeyValuesVectors
         expected_output:
           - CGameEntitySystem_BuildResourceManifest_KeyValuesVectors.{platform}.yaml
@@ -5663,6 +5680,12 @@ modules:
 
       - name: find-CEntitySystem_Init
         expected_output:
+          - CEntitySystem_Init.{platform}.yaml
+
+      - name: find-CEntitySystem_m_sEntSystemName
+        expected_output:
+          - CEntitySystem_m_sEntSystemName.{platform}.yaml
+        expected_input:
           - CEntitySystem_Init.{platform}.yaml
 
       - name: find-INetworkMessages_SetNetworkSerializationContextData-AND-IFlattenedSerializers_CreateFieldChangedEventQueue
@@ -7329,6 +7352,21 @@ modules:
       - name: CEntitySystem_vtable
         category: vtable
 
+      - name: CEntitySystem_RegisterEntityClass
+        category: func
+        alias:
+          - CEntitySystem::RegisterEntityClass
+
+      - name: CEntitySystem_m_entClassesByCPPClassname
+        category: structmember
+        struct: CEntitySystem
+        member: m_entClassesByCPPClassname
+
+      - name: CEntitySystem_m_entClassesByClassname
+        category: structmember
+        struct: CEntitySystem
+        member: m_entClassesByClassname
+
       - name: CEntitySystem_CreateEntityByName
         category: func
         alias:
@@ -8173,6 +8211,11 @@ modules:
         alias:
           - CGameEntitySystem::BuildResourceManifest_ManifestNameOrGroupName
 
+      - name: CEntitySystem_m_pCurrentManifest
+        category: structmember
+        struct: CEntitySystem
+        member: m_pCurrentManifest
+
       - name: CGameEntitySystem_BuildResourceManifest_KeyValuesVectors
         category: vfunc
         alias:
@@ -8719,6 +8762,11 @@ modules:
         category: func
         alias:
           - CEntitySystem::Init
+
+      - name: CEntitySystem_m_sEntSystemName
+        category: structmember
+        struct: CEntitySystem
+        member: m_sEntSystemName
 
       - name: CEntitySystem_ClearEntityDatabase
         category: vfunc

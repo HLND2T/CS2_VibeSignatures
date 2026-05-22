@@ -1,0 +1,223 @@
+func_name: CEntitySystem_RegisterEntityClass
+func_va: '0x1811f56c0'
+disasm_code: |-
+  .text:00000001811F56C0                 push    rbp
+  .text:00000001811F56C2                 push    rbx
+  .text:00000001811F56C3                 push    rsi
+  .text:00000001811F56C4                 push    rdi
+  .text:00000001811F56C5                 push    r12
+  .text:00000001811F56C7                 push    r14
+  .text:00000001811F56C9                 push    r15
+  .text:00000001811F56CB                 lea     rbp, [rsp-27h]
+  .text:00000001811F56D0                 sub     rsp, 0A0h
+  .text:00000001811F56D7                 mov     rbx, rdx
+  .text:00000001811F56DA                 mov     rdi, rcx
+  .text:00000001811F56DD                 test    rdx, rdx
+  .text:00000001811F56E0                 jz      loc_1811F57A0
+  .text:00000001811F56E6                 mov     r8, [rdx+50h]
+  .text:00000001811F56EA                 ; 0xA90 = 2704 = CEntitySystem::m_entClassesByCPPClassname (structmember, struct=CEntitySystem, member=m_entClassesByCPPClassname)
+  .text:00000001811F56EA                 lea     r14, [rcx+0A90h]; 0xA90 = 2704 = CEntitySystem::m_entClassesByCPPClassname (structmember, struct=CEntitySystem, member=m_entClassesByCPPClassname)
+  .text:00000001811F56F1                 lea     rcx, [r14+8]
+  .text:00000001811F56F5                 mov     [rbp+57h+var_90], r14
+  .text:00000001811F56F9                 lea     rdx, [rbp+57h+arg_8]
+  .text:00000001811F56FD                 mov     [rbp+57h+var_80], r14
+  .text:00000001811F5701                 mov     rax, [r8+8]
+  .text:00000001811F5705                 mov     [rbp+57h+arg_18], rax
+  .text:00000001811F5709                 mov     rax, [r8]
+  .text:00000001811F570C                 lea     r8, [rbp+57h+var_90]
+  .text:00000001811F5710                 mov     [rbp+57h+arg_10], rax
+  .text:00000001811F5714                 lea     rax, [rbp+57h+arg_18]
+  .text:00000001811F5718                 mov     [rbp+57h+var_88], rax
+  .text:00000001811F571C                 call    sub_1811E2BC0
+  .text:00000001811F5721                 mov     r12d, 0FFFFh
+  .text:00000001811F5727                 cmp     [rax+2], r12w
+  .text:00000001811F572C                 jz      loc_1811F57B7
+  .text:00000001811F5732                 mov     ecx, cs:dword_1820B1848
+  .text:00000001811F5738                 mov     edx, 5
+  .text:00000001811F573D                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:00000001811F5743                 test    al, al
+  .text:00000001811F5745                 jz      short loc_1811F57A0
+  .text:00000001811F5747                 mov     rax, [rbp+57h+arg_18]
+  .text:00000001811F574B                 lea     rcx, aCBuildworkerCs_62; "C:\\buildworker\\csgo_rel_win64\\build"...
+  .text:00000001811F5752                 mov     [rbp+57h+var_78], rcx
+  .text:00000001811F5756                 lea     r9, aMultipleRegist; "Multiple registration of class %s\n"
+  .text:00000001811F575D                 lea     rcx, aCentitysystemR_1; "CEntitySystem::RegisterEntityClass"
+  .text:00000001811F5764                 mov     [rbp+57h+var_70], 276h
+  .text:00000001811F576B                 mov     [rbp+57h+var_68], rcx
+  .text:00000001811F576F                 lea     r8, [rbp+57h+var_78]
+  .text:00000001811F5773                 mov     ecx, cs:dword_1820B1848
+  .text:00000001811F5779                 xorps   xmm0, xmm0
+  .text:00000001811F577C                 xorps   xmm1, xmm1
+  .text:00000001811F577F                 mov     [rbp+57h+var_40], 0
+  .text:00000001811F5786                 mov     edx, 5
+  .text:00000001811F578B                 mov     [rsp+0D0h+var_B0], rax
+  .text:00000001811F5790                 movdqu  [rbp+57h+var_60], xmm0
+  .text:00000001811F5795                 movdqu  [rbp+57h+var_50], xmm1
+  .text:00000001811F579A                 call    cs:?LoggingSystem_Log@@YA?AW4LoggingResponse_t@@HW4LoggingSeverity_t@@AEBULoggingRareOptions_t@@PEBDZZ; LoggingSystem_Log(int,LoggingSeverity_t,LoggingRareOptions_t const &,char const *,...)
+  .text:00000001811F57A0                 mov     eax, 0FFFFFFFFh
+  .text:00000001811F57A5                 add     rsp, 0A0h
+  .text:00000001811F57AC                 pop     r15
+  .text:00000001811F57AE                 pop     r14
+  .text:00000001811F57B0                 pop     r12
+  .text:00000001811F57B2                 pop     rdi
+  .text:00000001811F57B3                 pop     rsi
+  .text:00000001811F57B4                 pop     rbx
+  .text:00000001811F57B5                 pop     rbp
+  .text:00000001811F57B6                 retn
+  .text:00000001811F57B7                 cmp     [rbp+57h+arg_10], 0
+  .text:00000001811F57BC                 ; 0xAB0 = 2736 = CEntitySystem::m_entClassesByClassname (structmember, struct=CEntitySystem, member=m_entClassesByClassname)
+  .text:00000001811F57BC                 lea     rsi, [rdi+0AB0h]; 0xAB0 = 2736 = CEntitySystem::m_entClassesByClassname (structmember, struct=CEntitySystem, member=m_entClassesByClassname)
+  .text:00000001811F57C3                 jz      loc_1811F58A4
+  .text:00000001811F57C9                 lea     rax, [rbp+57h+arg_10]
+  .text:00000001811F57CD                 mov     [rbp+57h+var_90], rsi
+  .text:00000001811F57D1                 lea     rcx, [rsi+8]
+  .text:00000001811F57D5                 mov     [rbp+57h+var_88], rax
+  .text:00000001811F57D9                 lea     r8, [rbp+57h+var_90]
+  .text:00000001811F57DD                 mov     [rbp+57h+var_80], rsi
+  .text:00000001811F57E1                 lea     rdx, [rbp+57h+arg_8]
+  .text:00000001811F57E5                 call    sub_1811E2BC0
+  .text:00000001811F57EA                 movzx   r15d, word ptr [rax+2]
+  .text:00000001811F57EF                 cmp     r15w, r12w
+  .text:00000001811F57F3                 jz      loc_1811F58A4
+  .text:00000001811F57F9                 mov     ecx, cs:dword_1820B1848
+  .text:00000001811F57FF                 mov     edx, 5
+  .text:00000001811F5804                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:00000001811F580A                 test    al, al
+  .text:00000001811F580C                 jz      short loc_1811F57A0
+  .text:00000001811F580E                 mov     eax, 7FFFh
+  .text:00000001811F5813                 test    [rdi+0ABAh], ax
+  .text:00000001811F581A                 jnz     short loc_1811F5820
+  .text:00000001811F581C                 xor     edx, edx
+  .text:00000001811F581E                 jmp     short loc_1811F5827
+  .text:00000001811F5820                 mov     rdx, [rdi+0AC0h]
+  .text:00000001811F5827                 lea     rcx, [r15+r15*2]
+  .text:00000001811F582B                 xorps   xmm0, xmm0
+  .text:00000001811F582E                 mov     rax, [rdx+rcx*8+10h]
+  .text:00000001811F5833                 lea     r9, aMultipleEntity_0; "Multiple entity classes have the same d"...
+  .text:00000001811F583A                 xorps   xmm1, xmm1
+  .text:00000001811F583D                 lea     r8, [rbp+57h+var_78]
+  .text:00000001811F5841                 mov     edx, 5
+  .text:00000001811F5846                 mov     rcx, [rax+50h]
+  .text:00000001811F584A                 mov     rax, [rcx+8]
+  .text:00000001811F584E                 lea     rcx, aCBuildworkerCs_62; "C:\\buildworker\\csgo_rel_win64\\build"...
+  .text:00000001811F5855                 mov     [rsp+0D0h+var_A0], rax
+  .text:00000001811F585A                 mov     rax, [rbp+57h+arg_18]
+  .text:00000001811F585E                 mov     [rbp+57h+var_78], rcx
+  .text:00000001811F5862                 lea     rcx, aCentitysystemR_1; "CEntitySystem::RegisterEntityClass"
+  .text:00000001811F5869                 mov     [rsp+0D0h+var_A8], rax
+  .text:00000001811F586E                 mov     rax, [rbp+57h+arg_10]
+  .text:00000001811F5872                 mov     [rbp+57h+var_68], rcx
+  .text:00000001811F5876                 mov     ecx, cs:dword_1820B1848
+  .text:00000001811F587C                 mov     [rsp+0D0h+var_B0], rax
+  .text:00000001811F5881                 mov     [rbp+57h+var_70], 280h
+  .text:00000001811F5888                 movdqu  [rbp+57h+var_60], xmm0
+  .text:00000001811F588D                 mov     [rbp+57h+var_40], 0
+  .text:00000001811F5894                 movdqu  [rbp+57h+var_50], xmm1
+  .text:00000001811F5899                 call    cs:?LoggingSystem_Log@@YA?AW4LoggingResponse_t@@HW4LoggingSeverity_t@@AEBULoggingRareOptions_t@@PEBDZZ; LoggingSystem_Log(int,LoggingSeverity_t,LoggingRareOptions_t const &,char const *,...)
+  .text:00000001811F589F                 jmp     loc_1811F57A0
+  .text:00000001811F58A4                 mov     rcx, rbx
+  .text:00000001811F58A7                 call    sub_1811E0050
+  .text:00000001811F58AC                 mov     rax, [rbp+57h+arg_10]
+  .text:00000001811F58B0                 test    rax, rax
+  .text:00000001811F58B3                 jz      short loc_1811F58C9
+  .text:00000001811F58B5                 lea     rdx, [rbp+57h+var_90]
+  .text:00000001811F58B9                 mov     [rbp+57h+var_90], rax
+  .text:00000001811F58BD                 mov     rcx, rsi
+  .text:00000001811F58C0                 mov     [rbp+57h+var_88], rbx
+  .text:00000001811F58C4                 call    sub_1811F16D0
+  .text:00000001811F58C9                 mov     rax, [rbp+57h+arg_18]
+  .text:00000001811F58CD                 lea     rdx, [rbp+57h+var_90]
+  .text:00000001811F58D1                 mov     rcx, r14
+  .text:00000001811F58D4                 mov     [rbp+57h+var_90], rax
+  .text:00000001811F58D8                 mov     [rbp+57h+var_88], rbx
+  .text:00000001811F58DC                 call    sub_1811F16D0
+  .text:00000001811F58E1                 movzx   eax, ax
+  .text:00000001811F58E4                 jmp     loc_1811F57A5
+procedure: |-
+  __int64 __fastcall CEntitySystem_RegisterEntityClass(__int64 a1, __int64 a2)
+  {
+    __int64 v4; // r8
+    __int64 v5; // r14
+    __int64 v7; // r15
+    __int64 v8; // rdx
+    const char *v9; // [rsp+30h] [rbp-49h]
+    const char *v10; // [rsp+40h] [rbp-39h] BYREF
+    const char **v11; // [rsp+48h] [rbp-31h]
+    __int64 v12; // [rsp+50h] [rbp-29h]
+    const char *v13; // [rsp+58h] [rbp-21h] BYREF
+    int v14; // [rsp+60h] [rbp-19h]
+    const char *v15; // [rsp+68h] [rbp-11h]
+    __int128 v16; // [rsp+70h] [rbp-9h]
+    __int128 v17; // [rsp+80h] [rbp+7h]
+    int v18; // [rsp+90h] [rbp+17h]
+    char v19; // [rsp+E8h] [rbp+6Fh] BYREF
+    const char *v20; // [rsp+F0h] [rbp+77h] BYREF
+    const char *v21; // [rsp+F8h] [rbp+7Fh] BYREF
+
+    if ( !a2 )
+      return 0xFFFFFFFFLL;
+    v4 = *(_QWORD *)(a2 + 80);
+    v5 = a1 + 2704;// 0xA90 = 2704 = CEntitySystem::m_entClassesByCPPClassname (structmember, struct=CEntitySystem, member=m_entClassesByCPPClassname)
+    v10 = (const char *)(a1 + 2704);// 0xA90 = 2704 = CEntitySystem::m_entClassesByCPPClassname (structmember, struct=CEntitySystem, member=m_entClassesByCPPClassname)
+    v12 = a1 + 2704;// 0xA90 = 2704 = CEntitySystem::m_entClassesByCPPClassname (structmember, struct=CEntitySystem, member=m_entClassesByCPPClassname)
+    v21 = *(const char **)(v4 + 8);
+    v20 = *(const char **)v4;
+    v11 = &v21;
+    if ( *(_WORD *)(sub_1811E2BC0(a1 + 2712, &v19, &v10) + 2) != 0xFFFF )
+    {
+      if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_1820B1848, 5) )
+      {
+        v13 = "C:\\buildworker\\csgo_rel_win64\\build\\src\\entity2\\entitysystem.cpp";
+        v14 = 630;
+        v15 = "CEntitySystem::RegisterEntityClass";
+        v18 = 0;
+        v16 = 0;
+        v17 = 0;
+        LoggingSystem_Log((unsigned int)dword_1820B1848, 5, &v13, "Multiple registration of class %s\n", v21);
+      }
+      return 0xFFFFFFFFLL;
+    }
+    if ( v20 )
+    {
+      v10 = (const char *)(a1 + 2736);// 0xAB0 = 2736 = CEntitySystem::m_entClassesByClassname (structmember, struct=CEntitySystem, member=m_entClassesByClassname)
+      v11 = &v20;
+      v12 = a1 + 2736;// 0xAB0 = 2736 = CEntitySystem::m_entClassesByClassname (structmember, struct=CEntitySystem, member=m_entClassesByClassname)
+      v7 = *(unsigned __int16 *)(sub_1811E2BC0(a1 + 2744, &v19, &v10) + 2);
+      if ( (_WORD)v7 != 0xFFFF )
+      {
+        if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_1820B1848, 5) )
+        {
+          if ( (*(_WORD *)(a1 + 2746) & 0x7FFF) != 0 )
+            v8 = *(_QWORD *)(a1 + 2752);
+          else
+            v8 = 0;
+          v9 = *(const char **)(*(_QWORD *)(*(_QWORD *)(v8 + 24 * v7 + 16) + 80LL) + 8LL);
+          v13 = "C:\\buildworker\\csgo_rel_win64\\build\\src\\entity2\\entitysystem.cpp";
+          v15 = "CEntitySystem::RegisterEntityClass";
+          v14 = 640;
+          v16 = 0;
+          v18 = 0;
+          v17 = 0;
+          LoggingSystem_Log(
+            (unsigned int)dword_1820B1848,
+            5,
+            &v13,
+            "Multiple entity classes have the same designer name \"%s\" ( class %s and class %s )\n",
+            v20,
+            v21,
+            v9);
+        }
+        return 0xFFFFFFFFLL;
+      }
+    }
+    sub_1811E0050(a2);
+    if ( v20 )
+    {
+      v10 = v20;
+      v11 = (const char **)a2;
+      sub_1811F16D0(a1 + 2736, &v10);// 0xAB0 = 2736 = CEntitySystem::m_entClassesByClassname (structmember, struct=CEntitySystem, member=m_entClassesByClassname)
+    }
+    v10 = v21;
+    v11 = (const char **)a2;
+    return (unsigned __int16)sub_1811F16D0(v5, &v10);
+  }

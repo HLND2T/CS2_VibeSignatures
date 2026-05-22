@@ -1,0 +1,252 @@
+func_name: CEntitySystem_RegisterEntityClass
+func_va: '0x1e67830'
+disasm_code: |-
+  .text:0000000001E67830                 test    rsi, rsi
+  .text:0000000001E67833                 jz      loc_1E67AA4
+  .text:0000000001E67839                 push    rbp
+  .text:0000000001E6783A                 mov     rbp, rsp
+  .text:0000000001E6783D                 push    r15
+  .text:0000000001E6783F                 push    r14
+  .text:0000000001E67841                 ; 0xA90 = 2704 = CEntitySystem::m_entClassesByCPPClassname (structmember, struct=CEntitySystem, member=m_entClassesByCPPClassname)
+  .text:0000000001E67841                 lea     r14, [rdi+0A90h]; 0xA90 = 2704 = CEntitySystem::m_entClassesByCPPClassname (structmember, struct=CEntitySystem, member=m_entClassesByCPPClassname)
+  .text:0000000001E67848                 push    r13
+  .text:0000000001E6784A                 lea     r13, [rbp-70h]
+  .text:0000000001E6784E                 push    r12
+  .text:0000000001E67850                 mov     r12, rsi
+  .text:0000000001E67853                 push    rbx
+  .text:0000000001E67854                 mov     rbx, rdi
+  .text:0000000001E67857                 lea     rdi, [rdi+0A98h]
+  .text:0000000001E6785E                 sub     rsp, 68h
+  .text:0000000001E67862                 mov     rax, [rsi+50h]
+  .text:0000000001E67866                 mov     rsi, r13
+  .text:0000000001E67869                 mov     rdx, [rax+8]
+  .text:0000000001E6786D                 mov     [rbp-80h], rdx
+  .text:0000000001E67871                 mov     rax, [rax]
+  .text:0000000001E67874                 mov     [rbp-70h], r14
+  .text:0000000001E67878                 mov     [rbp-60h], r14
+  .text:0000000001E6787C                 mov     [rbp-78h], rax
+  .text:0000000001E67880                 lea     rax, [rbp-80h]
+  .text:0000000001E67884                 mov     [rbp-68h], rax
+  .text:0000000001E67888                 call    sub_1E5FED0
+  .text:0000000001E6788D                 mov     rdx, rax
+  .text:0000000001E67890                 mov     [rbp-8Ch], ax
+  .text:0000000001E67897                 shr     rax, 20h
+  .text:0000000001E6789B                 shr     rdx, 10h
+  .text:0000000001E6789F                 mov     [rbp-88h], ax
+  .text:0000000001E678A6                 mov     [rbp-8Ah], dx
+  .text:0000000001E678AD                 cmp     dx, 0FFFFh
+  .text:0000000001E678B1                 jnz     loc_1E67969
+  .text:0000000001E678B7                 cmp     qword ptr [rbp-78h], 0
+  .text:0000000001E678BC                 jz      short loc_1E6790C
+  .text:0000000001E678BE                 ; 0xAB0 = 2736 = CEntitySystem::m_entClassesByClassname (structmember, struct=CEntitySystem, member=m_entClassesByClassname)
+  .text:0000000001E678BE                 lea     rax, [rbx+0AB0h]; 0xAB0 = 2736 = CEntitySystem::m_entClassesByClassname (structmember, struct=CEntitySystem, member=m_entClassesByClassname)
+  .text:0000000001E678C5                 mov     rsi, r13
+  .text:0000000001E678C8                 lea     rdx, [rbp-78h]
+  .text:0000000001E678CC                 mov     [rbp-70h], rax
+  .text:0000000001E678D0                 lea     rdi, [rbx+0AB8h]
+  .text:0000000001E678D7                 mov     [rbp-68h], rdx
+  .text:0000000001E678DB                 mov     [rbp-60h], rax
+  .text:0000000001E678DF                 call    sub_1E5FED0
+  .text:0000000001E678E4                 mov     r15, rax
+  .text:0000000001E678E7                 mov     [rbp-86h], ax
+  .text:0000000001E678EE                 shr     rax, 20h
+  .text:0000000001E678F2                 shr     r15, 10h
+  .text:0000000001E678F6                 mov     [rbp-82h], ax
+  .text:0000000001E678FD                 mov     [rbp-84h], r15w
+  .text:0000000001E67905                 cmp     r15w, 0FFFFh
+  .text:0000000001E6790A                 jnz     short loc_1E6798B
+  .text:0000000001E6790C                 mov     rdi, r12
+  .text:0000000001E6790F                 call    sub_1E3CF10
+  .text:0000000001E67914                 mov     rax, [rbp-78h]
+  .text:0000000001E67918                 test    rax, rax
+  .text:0000000001E6791B                 jz      short loc_1E6793C
+  .text:0000000001E6791D                 ; 0xAB0 = 2736 = CEntitySystem::m_entClassesByClassname (structmember, struct=CEntitySystem, member=m_entClassesByClassname)
+  .text:0000000001E6791D                 lea     rdi, [rbx+0AB0h]; 0xAB0 = 2736 = CEntitySystem::m_entClassesByClassname (structmember, struct=CEntitySystem, member=m_entClassesByClassname)
+  .text:0000000001E67924                 movq    xmm0, rax
+  .text:0000000001E67929                 mov     rsi, r13
+  .text:0000000001E6792C                 pinsrq  xmm0, r12, 1
+  .text:0000000001E67933                 movaps  xmmword ptr [rbp-70h], xmm0
+  .text:0000000001E67937                 call    sub_1E67440
+  .text:0000000001E6793C                 movq    xmm0, qword ptr [rbp-80h]
+  .text:0000000001E67941                 mov     rsi, r13
+  .text:0000000001E67944                 mov     rdi, r14
+  .text:0000000001E67947                 pinsrq  xmm0, r12, 1
+  .text:0000000001E6794E                 movaps  xmmword ptr [rbp-70h], xmm0
+  .text:0000000001E67952                 call    sub_1E67440
+  .text:0000000001E67957                 movzx   eax, ax
+  .text:0000000001E6795A                 lea     rsp, [rbp-28h]
+  .text:0000000001E6795E                 pop     rbx
+  .text:0000000001E6795F                 pop     r12
+  .text:0000000001E67961                 pop     r13
+  .text:0000000001E67963                 pop     r14
+  .text:0000000001E67965                 pop     r15
+  .text:0000000001E67967                 pop     rbp
+  .text:0000000001E67968                 retn
+  .text:0000000001E67969                 lea     rbx, dword_27BBCDC
+  .text:0000000001E67970                 ; _QWORD
+  .text:0000000001E67970                 mov     esi, 5; _QWORD
+  .text:0000000001E67975                 ; _QWORD
+  .text:0000000001E67975                 mov     edi, [rbx]; _QWORD
+  .text:0000000001E67977                 call    _LoggingSystem_IsChannelEnabled
+  .text:0000000001E6797C                 test    al, al
+  .text:0000000001E6797E                 jnz     loc_1E67A3F
+  .text:0000000001E67984                 mov     eax, 0FFFFFFFFh
+  .text:0000000001E67989                 jmp     short loc_1E6795A
+  .text:0000000001E6798B                 lea     r12, dword_27BBCDC
+  .text:0000000001E67992                 ; _QWORD
+  .text:0000000001E67992                 mov     esi, 5; _QWORD
+  .text:0000000001E67997                 ; _QWORD
+  .text:0000000001E67997                 mov     edi, [r12]; _QWORD
+  .text:0000000001E6799B                 call    _LoggingSystem_IsChannelEnabled
+  .text:0000000001E679A0                 test    al, al
+  .text:0000000001E679A2                 jz      short loc_1E67984
+  .text:0000000001E679A4                 xor     eax, eax
+  .text:0000000001E679A6                 test    word ptr [rbx+0ABAh], 7FFFh
+  .text:0000000001E679AF                 jz      short loc_1E679B8
+  .text:0000000001E679B1                 mov     rax, [rbx+0AC0h]
+  .text:0000000001E679B8                 movzx   r15d, r15w
+  .text:0000000001E679BC                 sub     rsp, 8
+  .text:0000000001E679C0                 ; _QWORD
+  .text:0000000001E679C0                 mov     edi, [r12]; _QWORD
+  .text:0000000001E679C4                 ; _QWORD
+  .text:0000000001E679C4                 mov     esi, 5; _QWORD
+  .text:0000000001E679C9                 lea     rdx, [r15+r15*2]
+  .text:0000000001E679CD                 mov     rax, [rax+rdx*8+10h]
+  .text:0000000001E679D2                 lea     rcx, aEntitysystemCp; "entitysystem.cpp"
+  .text:0000000001E679D9                 ; _QWORD
+  .text:0000000001E679D9                 mov     rdx, r13; _QWORD
+  .text:0000000001E679DC                 mov     rax, [rax+50h]
+  .text:0000000001E679E0                 mov     rax, [rax+8]
+  .text:0000000001E679E4                 mov     [rbp-70h], rcx
+  .text:0000000001E679E8                 lea     rcx, aRegisterentity; "RegisterEntityClass"
+  .text:0000000001E679EF                 mov     [rbp-60h], rcx
+  .text:0000000001E679F3                 lea     rcx, aMultipleEntity; "Multiple entity classes have the same d"...
+  .text:0000000001E679FA                 mov     dword ptr [rbp-68h], 27Fh
+  .text:0000000001E67A01                 mov     qword ptr [rbp-58h], 0
+  .text:0000000001E67A09                 mov     qword ptr [rbp-50h], 0
+  .text:0000000001E67A11                 mov     qword ptr [rbp-48h], 0
+  .text:0000000001E67A19                 mov     qword ptr [rbp-40h], 0
+  .text:0000000001E67A21                 mov     dword ptr [rbp-38h], 0
+  .text:0000000001E67A28                 push    rax
+  .text:0000000001E67A29                 mov     r9, [rbp-80h]
+  .text:0000000001E67A2D                 xor     eax, eax
+  .text:0000000001E67A2F                 mov     r8, [rbp-78h]
+  .text:0000000001E67A33                 call    __Z17LoggingSystem_Logi17LoggingSeverity_tRK20LoggingRareOptions_tPKcz; LoggingSystem_Log(int,LoggingSeverity_t,LoggingRareOptions_t const&,char const*,...)
+  .text:0000000001E67A38                 pop     rax
+  .text:0000000001E67A39                 pop     rdx
+  .text:0000000001E67A3A                 jmp     loc_1E67984
+  .text:0000000001E67A3F                 ; _QWORD
+  .text:0000000001E67A3F                 mov     edi, [rbx]; _QWORD
+  .text:0000000001E67A41                 ; _QWORD
+  .text:0000000001E67A41                 mov     rdx, r13; _QWORD
+  .text:0000000001E67A44                 ; _QWORD
+  .text:0000000001E67A44                 mov     esi, 5; _QWORD
+  .text:0000000001E67A49                 mov     dword ptr [rbp-68h], 276h
+  .text:0000000001E67A50                 mov     r8, [rbp-80h]
+  .text:0000000001E67A54                 lea     rax, aEntitysystemCp; "entitysystem.cpp"
+  .text:0000000001E67A5B                 mov     qword ptr [rbp-58h], 0
+  .text:0000000001E67A63                 mov     [rbp-70h], rax
+  .text:0000000001E67A67                 lea     rax, aRegisterentity; "RegisterEntityClass"
+  .text:0000000001E67A6E                 mov     [rbp-60h], rax
+  .text:0000000001E67A72                 lea     rcx, aMultipleRegist; "Multiple registration of class %s\n"
+  .text:0000000001E67A79                 xor     eax, eax
+  .text:0000000001E67A7B                 mov     qword ptr [rbp-50h], 0
+  .text:0000000001E67A83                 mov     qword ptr [rbp-48h], 0
+  .text:0000000001E67A8B                 mov     qword ptr [rbp-40h], 0
+  .text:0000000001E67A93                 mov     dword ptr [rbp-38h], 0
+  .text:0000000001E67A9A                 call    __Z17LoggingSystem_Logi17LoggingSeverity_tRK20LoggingRareOptions_tPKcz; LoggingSystem_Log(int,LoggingSeverity_t,LoggingRareOptions_t const&,char const*,...)
+  .text:0000000001E67A9F                 jmp     loc_1E67984
+  .text:0000000001E67AA4                 or      eax, 0FFFFFFFFh
+  .text:0000000001E67AA7                 retn
+procedure: |-
+  __int64 __fastcall sub_1E67830(__int64 a1, signed __int64 a2)
+  {
+    __int64 *v2; // rax
+    __int64 v3; // rax
+    unsigned __int64 v4; // rax
+    unsigned __int64 v5; // r15
+    __int64 v7; // rax
+    const char *v8; // rax
+    __m128i v9; // [rsp-88h] [rbp-88h] BYREF
+    __m128i inserted; // [rsp-78h] [rbp-78h] BYREF
+    const char *v11; // [rsp-68h] [rbp-68h]
+    __int64 v12; // [rsp-60h] [rbp-60h]
+    __int64 v13; // [rsp-58h] [rbp-58h]
+    __int64 v14; // [rsp-50h] [rbp-50h]
+    __int64 v15; // [rsp-48h] [rbp-48h]
+    int v16; // [rsp-40h] [rbp-40h]
+
+    if ( !a2 )
+      return 0xFFFFFFFFLL;
+    v2 = *(__int64 **)(a2 + 80);
+    v9.m128i_i64[0] = v2[1];
+    v3 = *v2;
+    inserted.m128i_i64[0] = a1 + 2704;// 0xA90 = 2704 = CEntitySystem::m_entClassesByCPPClassname (structmember, struct=CEntitySystem, member=m_entClassesByCPPClassname)
+    v11 = (const char *)(a1 + 2704);// 0xA90 = 2704 = CEntitySystem::m_entClassesByCPPClassname (structmember, struct=CEntitySystem, member=m_entClassesByCPPClassname)
+    v9.m128i_i64[1] = v3;
+    inserted.m128i_i64[1] = (__int64)&v9;
+    if ( (unsigned int)sub_1E5FED0(a1 + 2712, &inserted) >> 16 != 0xFFFF )
+    {
+      if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_27BBCDC, 5) )
+      {
+        inserted.m128i_i32[2] = 630;
+        v12 = 0;
+        inserted.m128i_i64[0] = (__int64)"entitysystem.cpp";
+        v11 = "RegisterEntityClass";
+        v13 = 0;
+        v14 = 0;
+        v15 = 0;
+        v16 = 0;
+        LoggingSystem_Log(
+          (unsigned int)dword_27BBCDC,
+          5,
+          &inserted,
+          "Multiple registration of class %s\n",
+          (const char *)v9.m128i_i64[0]);
+      }
+      return 0xFFFFFFFFLL;
+    }
+    if ( v9.m128i_i64[1] )
+    {
+      inserted.m128i_i64[0] = a1 + 2736;// 0xAB0 = 2736 = CEntitySystem::m_entClassesByClassname (structmember, struct=CEntitySystem, member=m_entClassesByClassname)
+      inserted.m128i_i64[1] = (__int64)&v9.m128i_i64[1];
+      v11 = (const char *)(a1 + 2736);// 0xAB0 = 2736 = CEntitySystem::m_entClassesByClassname (structmember, struct=CEntitySystem, member=m_entClassesByClassname)
+      v4 = sub_1E5FED0(a1 + 2744, &inserted);
+      v5 = v4 >> 16;
+      if ( WORD1(v4) != 0xFFFF )
+      {
+        if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_27BBCDC, 5) )
+        {
+          v7 = 0;
+          if ( (*(_WORD *)(a1 + 2746) & 0x7FFF) != 0 )
+            v7 = *(_QWORD *)(a1 + 2752);
+          v8 = *(const char **)(*(_QWORD *)(*(_QWORD *)(v7 + 24LL * (unsigned __int16)v5 + 16) + 80LL) + 8LL);
+          inserted.m128i_i64[0] = (__int64)"entitysystem.cpp";
+          v11 = "RegisterEntityClass";
+          inserted.m128i_i32[2] = 639;
+          v12 = 0;
+          v13 = 0;
+          v14 = 0;
+          v15 = 0;
+          v16 = 0;
+          LoggingSystem_Log(
+            (unsigned int)dword_27BBCDC,
+            5,
+            &inserted,
+            "Multiple entity classes have the same designer name \"%s\" ( class %s and class %s )\n",
+            (const char *)v9.m128i_i64[1],
+            (const char *)v9.m128i_i64[0],
+            v8);
+        }
+        return 0xFFFFFFFFLL;
+      }
+    }
+    sub_1E3CF10(a2);
+    if ( v9.m128i_i64[1] )
+    {
+      inserted = _mm_insert_epi64((__m128i)v9.m128i_u64[1], a2, 1);
+      sub_1E67440(a1 + 2736, &inserted);// 0xAB0 = 2736 = CEntitySystem::m_entClassesByClassname (structmember, struct=CEntitySystem, member=m_entClassesByClassname)
+    }
+    inserted = _mm_insert_epi64(_mm_loadl_epi64(&v9), a2, 1);
+    return (unsigned __int16)sub_1E67440(a1 + 2704, &inserted);// 0xA90 = 2704 = CEntitySystem::m_entClassesByCPPClassname (structmember, struct=CEntitySystem, member=m_entClassesByCPPClassname)
+  }
