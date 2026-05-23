@@ -1,0 +1,47 @@
+func_name: CLoopModeRegistry_UnregisterLoopModes
+func_va: '0x1d89350'
+disasm_code: |-
+  .text:0000000001D89350                 push    rbp
+  .text:0000000001D89351                 mov     rbp, rsp
+  .text:0000000001D89354                 push    r12
+  .text:0000000001D89356                 push    rbx
+  .text:0000000001D89357                 mov     rbx, cs:qword_2772318
+  .text:0000000001D8935E                 test    rbx, rbx
+  .text:0000000001D89361                 jz      short loc_1D8938E
+  .text:0000000001D89363                 lea     r12, g_pEngineServiceMgr
+  .text:0000000001D8936A                 nop     word ptr [rax+rax+00h]
+  .text:0000000001D89370                 mov     rdi, [r12]
+  .text:0000000001D89374                 mov     rcx, [rbx+18h]
+  .text:0000000001D89378                 mov     rdx, [rbx+10h]
+  .text:0000000001D8937C                 mov     rsi, [rbx+8]
+  .text:0000000001D89380                 mov     rax, [rdi]
+  .text:0000000001D89383                 call    qword ptr [rax+70h]  ; 70h = IEngineServiceMgr_UnregisterLoopMode
+  .text:0000000001D89386                 mov     rbx, [rbx]
+  .text:0000000001D89389                 test    rbx, rbx
+  .text:0000000001D8938C                 jnz     short loc_1D89370
+  .text:0000000001D8938E                 pop     rbx
+  .text:0000000001D8938F                 pop     r12
+  .text:0000000001D89391                 pop     rbp
+  .text:0000000001D89392                 retn
+procedure: |-
+  __int64 CLoopModeRegistry_UnregisterLoopModes()
+  {
+    _QWORD *v0; // rbx
+    __int64 result; // rax
+
+    v0 = (_QWORD *)qword_2772318;
+    if ( qword_2772318 )
+    {
+      do
+      {
+        result = (*(__int64 (__fastcall **)(_QWORD *, _QWORD, _QWORD, _QWORD))(*g_pEngineServiceMgr + 112LL))( // 112LL = 0x70 = IEngineServiceMgr_UnregisterLoopMode
+                   g_pEngineServiceMgr,
+                   v0[1],
+                   v0[2],
+                   v0[3]);
+        v0 = (_QWORD *)*v0;
+      }
+      while ( v0 );
+    }
+    return result;
+  }

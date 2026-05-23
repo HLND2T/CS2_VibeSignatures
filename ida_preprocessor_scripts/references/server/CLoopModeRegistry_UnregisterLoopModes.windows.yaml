@@ -1,0 +1,45 @@
+func_name: CLoopModeRegistry_UnregisterLoopModes
+func_va: '0x1811e30e0'
+disasm_code: |-
+  .text:00000001811E30E0                 push    rbx
+  .text:00000001811E30E2                 sub     rsp, 20h
+  .text:00000001811E30E6                 mov     rbx, cs:qword_1820B9388
+  .text:00000001811E30ED                 test    rbx, rbx
+  .text:00000001811E30F0                 jz      short loc_1811E3121
+  .text:00000001811E30F2                 nop     dword ptr [rax+00h]
+  .text:00000001811E30F6                 nop     word ptr [rax+rax+00000000h]
+  .text:00000001811E3100                 mov     rcx, cs:g_pEngineServiceMgr
+  .text:00000001811E3107                 mov     r9, [rbx+18h]
+  .text:00000001811E310B                 mov     r8, [rbx+10h]
+  .text:00000001811E310F                 mov     rdx, [rbx+8]
+  .text:00000001811E3113                 mov     rax, [rcx]
+  .text:00000001811E3116                 call    qword ptr [rax+70h]  ; 70h = IEngineServiceMgr_UnregisterLoopMode
+  .text:00000001811E3119                 mov     rbx, [rbx]
+  .text:00000001811E311C                 test    rbx, rbx
+  .text:00000001811E311F                 jnz     short loc_1811E3100
+  .text:00000001811E3121                 add     rsp, 20h
+  .text:00000001811E3125                 pop     rbx
+  .text:00000001811E3126                 retn
+procedure: |-
+  __int64 CLoopModeRegistry_UnregisterLoopModes()
+  {
+    _QWORD *v0; // rbx
+    __int64 result; // rax
+
+    v0 = (_QWORD *)qword_1820B9388;
+    if ( qword_1820B9388 )
+    {
+      do
+      {
+        result = (*(__int64 (__fastcall **)(__int64, _QWORD, _QWORD, _QWORD))(*(_QWORD *)g_pEngineServiceMgr
+                                                                            + 112LL))( // 112LL = 0x70 = IEngineServiceMgr_UnregisterLoopMode
+                   g_pEngineServiceMgr,
+                   v0[1],
+                   v0[2],
+                   v0[3]);
+        v0 = (_QWORD *)*v0;
+      }
+      while ( v0 );
+    }
+    return result;
+  }

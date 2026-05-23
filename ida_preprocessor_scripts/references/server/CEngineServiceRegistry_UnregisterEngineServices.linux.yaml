@@ -1,0 +1,45 @@
+func_name: CEngineServiceRegistry_UnregisterEngineServices
+func_va: '0x1d89570'
+disasm_code: |-
+  .text:0000000001D89570                 push    rbp
+  .text:0000000001D89571                 mov     rbp, rsp
+  .text:0000000001D89574                 push    r12
+  .text:0000000001D89576                 push    rbx
+  .text:0000000001D89577                 mov     rbx, cs:qword_2772320
+  .text:0000000001D8957E                 test    rbx, rbx
+  .text:0000000001D89581                 jz      short loc_1D895AA
+  .text:0000000001D89583                 lea     r12, g_pEngineServiceMgr
+  .text:0000000001D8958A                 nop     word ptr [rax+rax+00h]
+  .text:0000000001D89590                 mov     rdi, [r12]
+  .text:0000000001D89594                 mov     rdx, [rbx+8]
+  .text:0000000001D89598                 mov     rsi, [rbx+10h]
+  .text:0000000001D8959C                 mov     rax, [rdi]
+  .text:0000000001D8959F                 call    qword ptr [rax+60h]  ; 60h = IEngineServiceMgr_UnregisterEngineService
+  .text:0000000001D895A2                 mov     rbx, [rbx]
+  .text:0000000001D895A5                 test    rbx, rbx
+  .text:0000000001D895A8                 jnz     short loc_1D89590
+  .text:0000000001D895AA                 pop     rbx
+  .text:0000000001D895AB                 pop     r12
+  .text:0000000001D895AD                 pop     rbp
+  .text:0000000001D895AE                 retn
+procedure: |-
+  __int64 CEngineServiceRegistry_UnregisterEngineServices()
+  {
+    _QWORD *v0; // rbx
+    __int64 result; // rax
+
+    v0 = (_QWORD *)qword_2772320;
+    if ( qword_2772320 )
+    {
+      do
+      {
+        result = (*(__int64 (__fastcall **)(_QWORD *, _QWORD, _QWORD))(*g_pEngineServiceMgr + 96LL))( // 96LL = 0x60 = IEngineServiceMgr_UnregisterEngineService
+                   g_pEngineServiceMgr,
+                   v0[2],
+                   v0[1]);
+        v0 = (_QWORD *)*v0;
+      }
+      while ( v0 );
+    }
+    return result;
+  }
