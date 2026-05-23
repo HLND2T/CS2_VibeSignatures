@@ -1974,6 +1974,7 @@ def run_skill(skill_name, agent="claude", debug=False, expected_yaml_paths=None,
 
     # Verify SKILL.md exists before launching agent
     skill_md_path = os.path.join(".claude", "skills", skill_name, "SKILL.md")
+    print(f"    Falling back to: {skill_md_path}")
     if not os.path.exists(skill_md_path):
         print(f"    Error: Skill file not found: {skill_md_path}")
         return False
