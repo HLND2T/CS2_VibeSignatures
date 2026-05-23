@@ -2738,6 +2738,10 @@ modules:
         expected_output:
           - CGameSystemReallocatingFactory_CSpawnGroupMgrGameSystem_vtable.{platform}.yaml
 
+      - name: find-CGameSystemReallocatingFactory_CSource2EntitySystem_vtable
+        expected_output:
+          - CGameSystemReallocatingFactory_CSource2EntitySystem_vtable.{platform}.yaml
+
       - name: find-CGameSystemReallocatingFactory_CSpawnGroupMgrGameSystem_Deallocate-impl
         expected_output:
           - CGameSystemReallocatingFactory_CSpawnGroupMgrGameSystem_Deallocate.{platform}.yaml
@@ -2821,6 +2825,18 @@ modules:
       - name: find-CEntitySystem_Init
         expected_output:
           - CEntitySystem_Init.{platform}.yaml
+
+      - name: find-CEntitySystem_PostCreateEntitySystem
+        expected_output:
+          - CEntitySystem_PostCreateEntitySystem.{platform}.yaml
+        expected_input:
+          - CEntitySystem_Init.{platform}.yaml
+          - CEntitySystem_ctor.{platform}.yaml
+          - CEntitySystem_CreateEntitySystem.{platform}.yaml
+
+      - name: find-CSource2EntitySystem_StaticInit
+        expected_output:
+          - CSource2EntitySystem_StaticInit.{platform}.yaml
 
       - name: find-CSkeletonInstance_vtable
         expected_output:
@@ -3349,6 +3365,19 @@ modules:
         category: func
         alias:
           - CEntitySystem::Init
+
+      - name: CEntitySystem_PostCreateEntitySystem
+        category: func
+        alias:
+          - CEntitySystem::PostCreateEntitySystem
+
+      - name: CSource2EntitySystem_StaticInit
+        category: func
+        alias:
+          - CSource2EntitySystem::StaticInit
+
+      - name: CGameSystemReallocatingFactory_CSource2EntitySystem_vtable
+        category: vtable
 
       - name: CSkeletonInstance
         category: struct
@@ -5539,6 +5568,10 @@ modules:
         expected_output:
           - CSpawnGroupMgrGameSystem_vtable2.{platform}.yaml
 
+      - name: find-CGameSystemReallocatingFactory_CSource2EntitySystem_vtable
+        expected_output:
+          - CGameSystemReallocatingFactory_CSource2EntitySystem_vtable.{platform}.yaml
+
       - name: find-CSpawnGroupMgrGameSystem_DoesGameSystemReallocate
         expected_output:
           - CSpawnGroupMgrGameSystem_DoesGameSystemReallocate.{platform}.yaml
@@ -5791,6 +5824,18 @@ modules:
           - CEntitySystem_m_sEntSystemName.{platform}.yaml
         expected_input:
           - CEntitySystem_Init.{platform}.yaml
+
+      - name: find-CEntitySystem_PostCreateEntitySystem
+        expected_output:
+          - CEntitySystem_PostCreateEntitySystem.{platform}.yaml
+        expected_input:
+          - CEntitySystem_Init.{platform}.yaml
+          - CEntitySystem_ctor.{platform}.yaml
+          - CEntitySystem_CreateEntitySystem.{platform}.yaml
+
+      - name: find-CSource2EntitySystem_StaticInit
+        expected_output:
+          - CSource2EntitySystem_StaticInit.{platform}.yaml
 
       - name: find-INetworkMessages_SetNetworkSerializationContextData-AND-IFlattenedSerializers_CreateFieldChangedEventQueue
         expected_output:
@@ -6443,6 +6488,9 @@ modules:
         category: vtable
 
       - name: CGameSystemReallocatingFactory_CSpawnGroupMgrGameSystem_vtable
+        category: vtable
+
+      - name: CGameSystemReallocatingFactory_CSource2EntitySystem_vtable
         category: vtable
 
       - name: CGameSystemReallocatingFactory_CSpawnGroupMgrGameSystem_Deallocate
@@ -8871,6 +8919,16 @@ modules:
         category: func
         alias:
           - CEntitySystem::Init
+
+      - name: CEntitySystem_PostCreateEntitySystem
+        category: func
+        alias:
+          - CEntitySystem::PostCreateEntitySystem
+
+      - name: CSource2EntitySystem_StaticInit
+        category: func
+        alias:
+          - CSource2EntitySystem::StaticInit
 
       - name: CEntitySystem_m_sEntSystemName
         category: structmember
