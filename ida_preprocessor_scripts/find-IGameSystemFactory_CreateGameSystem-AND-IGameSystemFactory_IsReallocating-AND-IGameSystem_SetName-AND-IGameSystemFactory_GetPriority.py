@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-IGameSystemFactory_CreateGameSystem-AND-IGameSystemFactory_IsReallocating-AND-IGameSystem_SetName skill."""
+"""Preprocess script for find-IGameSystemFactory_CreateGameSystem-AND-IGameSystemFactory_IsReallocating-AND-IGameSystem_SetName-AND-IGameSystemFactory_GetPriority skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
@@ -7,14 +7,16 @@ TARGET_FUNCTION_NAMES = [
     "IGameSystemFactory_CreateGameSystem",
     "IGameSystemFactory_IsReallocating",
     "IGameSystem_SetName",
+    "IGameSystemFactory_GetPriority",
 ]
 
 LLM_DECOMPILE = [
     # (symbol_name, path_to_prompt, path_to_reference)
-    # All three vfunc offsets found by decompiling IGameSystem_AddByName:
+    # All four vfunc offsets found by decompiling IGameSystem_AddByName:
     #   IGameSystemFactory_CreateGameSystem = first virtual call through IGameSystemFactory vtable (*v2), allocates a new game system
-    #   IGameSystemFactory_IsReallocating  = second virtual call through IGameSystemFactory vtable (*v2), boolean check
-    #   IGameSystem_SetName         = conditional virtual call through IGameSystem vtable (v7 = allocated instance)
+    #   IGameSystemFactory_IsReallocating   = second virtual call through IGameSystemFactory vtable (*v2), boolean check
+    #   IGameSystem_SetName                 = conditional virtual call through IGameSystem vtable (v7 = allocated instance)
+    #   IGameSystemFactory_GetPriority      = virtual call through IGameSystemFactory vtable at offset 0x30, returns priority int
     (
         "IGameSystemFactory_CreateGameSystem",
         "prompt/call_llm_decompile.md",
@@ -30,6 +32,11 @@ LLM_DECOMPILE = [
         "prompt/call_llm_decompile.md",
         "references/client/IGameSystem_AddByName.{platform}.yaml",
     ),
+    (
+        "IGameSystemFactory_GetPriority",
+        "prompt/call_llm_decompile.md",
+        "references/client/IGameSystem_AddByName.{platform}.yaml",
+    ),
 ]
 
 FUNC_VTABLE_RELATIONS = [
@@ -37,6 +44,7 @@ FUNC_VTABLE_RELATIONS = [
     ("IGameSystemFactory_CreateGameSystem", "IGameSystemFactory"),
     ("IGameSystemFactory_IsReallocating", "IGameSystemFactory"),
     ("IGameSystem_SetName", "IGameSystem"),
+    ("IGameSystemFactory_GetPriority", "IGameSystemFactory"),
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
@@ -68,6 +76,17 @@ GENERATE_YAML_DESIRED_FIELDS = [
             "func_name",
             "vfunc_sig",
             "vfunc_sig_max_match:2",  # Signature at offset 0x1D8 matches multiple call sites
+            "vfunc_offset",
+            "vfunc_index",
+            "vtable_name",
+        ],
+    ),
+    (
+        "IGameSystemFactory_GetPriority",
+        [
+            "func_name",
+            "vfunc_sig",
+            "vfunc_sig_max_match:2",
             "vfunc_offset",
             "vfunc_index",
             "vtable_name",

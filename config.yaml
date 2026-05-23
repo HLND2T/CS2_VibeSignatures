@@ -2562,11 +2562,12 @@ modules:
         expected_input:
           - CLoopModeGame_ReceivedServerInfo.{platform}.yaml
 
-      - name: find-IGameSystemFactory_CreateGameSystem-AND-IGameSystemFactory_IsReallocating-AND-IGameSystem_SetName
+      - name: find-IGameSystemFactory_CreateGameSystem-AND-IGameSystemFactory_IsReallocating-AND-IGameSystem_SetName-AND-IGameSystemFactory_GetPriority
         expected_output:
           - IGameSystemFactory_CreateGameSystem.{platform}.yaml
           - IGameSystemFactory_IsReallocating.{platform}.yaml
           - IGameSystem_SetName.{platform}.yaml
+          - IGameSystemFactory_GetPriority.{platform}.yaml
         expected_input:
           - IGameSystem_AddByName.{platform}.yaml
 
@@ -3340,6 +3341,11 @@ modules:
         category: vfunc
         alias:
           - IGameSystemFactory::Init
+
+      - name: IGameSystemFactory_GetPriority
+        category: vfunc
+        alias:
+          - IGameSystemFactory::GetPriority
 
       - name: CPrediction_vtable
         category: vtable
