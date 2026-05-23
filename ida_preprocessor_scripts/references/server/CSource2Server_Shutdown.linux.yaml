@@ -1,0 +1,95 @@
+func_name: CSource2Server_Shutdown
+func_va: '0x177ab50'
+disasm_code: |-
+  .text:000000000177AB50                 push    rbp
+  .text:000000000177AB51                 mov     rbp, rsp
+  .text:000000000177AB54                 push    r13
+  .text:000000000177AB56                 push    r12
+  .text:000000000177AB58                 push    rbx
+  .text:000000000177AB59                 sub     rsp, 8
+  .text:000000000177AB5D                 lea     rax, gameeventmanager
+  .text:000000000177AB64                 mov     rdi, [rax]
+  .text:000000000177AB67                 call    CGameEventManager_Shutdown
+  .text:000000000177AB6C                 lea     rbx, off_24CA008
+  .text:000000000177AB73                 mov     r12, [rbx]
+  .text:000000000177AB76                 mov     rax, [r12]
+  .text:000000000177AB7A                 mov     r13, [rax+50h]
+  .text:000000000177AB7E                 call    sub_1557630
+  .text:000000000177AB83                 mov     rdi, r12
+  .text:000000000177AB86                 mov     rsi, rax
+  .text:000000000177AB89                 call    r13
+  .text:000000000177AB8C                 mov     r12, [rbx]
+  .text:000000000177AB8F                 mov     rax, [r12]
+  .text:000000000177AB93                 mov     r13, [rax+50h]
+  .text:000000000177AB97                 call    sub_1489B50
+  .text:000000000177AB9C                 mov     rdi, r12
+  .text:000000000177AB9F                 mov     rsi, rax
+  .text:000000000177ABA2                 call    r13
+  .text:000000000177ABA5                 mov     r12, [rbx]
+  .text:000000000177ABA8                 mov     rax, [r12]
+  .text:000000000177ABAC                 mov     r13, [rax+50h]
+  .text:000000000177ABB0                 call    sub_1802E00
+  .text:000000000177ABB5                 mov     rdi, r12
+  .text:000000000177ABB8                 mov     rsi, rax
+  .text:000000000177ABBB                 call    r13
+  .text:000000000177ABBE                 mov     rbx, [rbx]
+  .text:000000000177ABC1                 mov     rax, [rbx]
+  .text:000000000177ABC4                 mov     r12, [rax+50h]
+  .text:000000000177ABC8                 call    sub_1558D80
+  .text:000000000177ABCD                 mov     rdi, rbx
+  .text:000000000177ABD0                 mov     rsi, rax
+  .text:000000000177ABD3                 call    r12
+  .text:000000000177ABD6                 call    CLoopModeRegistry_UnregisterLoopModes
+  .text:000000000177ABDB                 call    CEngineServiceRegistry_UnregisterEngineServices
+  .text:000000000177ABE0                 call    ReleaseParticleEffects
+  .text:000000000177ABE5                 call    ReleaseCSBotManager
+  .text:000000000177ABEA                 call    sub_1E89B80
+  .text:000000000177ABEF                 add     rsp, 8
+  .text:000000000177ABF3                 pop     rbx
+  .text:000000000177ABF4                 ; _QWORD
+  .text:000000000177ABF4                 mov     rdi, rax; _QWORD
+  .text:000000000177ABF7                 pop     r12
+  .text:000000000177ABF9                 pop     r13
+  .text:000000000177ABFB                 pop     rbp
+  .text:000000000177ABFC                 jmp     sub_1E457A0
+procedure: |-
+  __int64 CSource2Server_Shutdown()
+  {
+    __int64 *v0; // r12
+    void (__fastcall *v1)(__int64 *, __int64); // r13
+    __int64 v2; // rax
+    __int64 *v3; // r12
+    void (__fastcall *v4)(__int64 *, __int64); // r13
+    __int64 v5; // rax
+    __int64 *v6; // r12
+    void (__fastcall *v7)(__int64 *, __int64); // r13
+    __int64 v8; // rax
+    __int64 *v9; // rbx
+    void (__fastcall *v10)(__int64 *, __int64); // r12
+    __int64 v11; // rax
+    __int64 v12; // rax
+
+    CGameEventManager_Shutdown(&s_GameEventManager);
+    v0 = off_24CA008;
+    v1 = *(void (__fastcall **)(__int64 *, __int64))(*off_24CA008 + 80);
+    v2 = sub_1557630();
+    v1(v0, v2);
+    v3 = off_24CA008;
+    v4 = *(void (__fastcall **)(__int64 *, __int64))(*off_24CA008 + 80);
+    v5 = sub_1489B50();
+    v4(v3, v5);
+    v6 = off_24CA008;
+    v7 = *(void (__fastcall **)(__int64 *, __int64))(*off_24CA008 + 80);
+    v8 = sub_1802E00();
+    v7(v6, v8);
+    v9 = off_24CA008;
+    v10 = *(void (__fastcall **)(__int64 *, __int64))(*off_24CA008 + 80);
+    v11 = sub_1558D80();
+    v10(v9, v11);
+    CLoopModeRegistry_UnregisterLoopModes();
+    CEngineServiceRegistry_UnregisterEngineServices();
+    ReleaseParticleEffects();
+    ReleaseCSBotManager();
+    v12 = sub_1E89B80();
+    return sub_1E457A0(v12);
+  }

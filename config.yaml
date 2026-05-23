@@ -4742,6 +4742,14 @@ modules:
           - CSource2Server_vtable.{platform}.yaml
           - ../engine/IAppSystem_Shutdown.{platform}.yaml
 
+      - name: find-CGameEventManager_Shutdown-AND-CLoopModeRegistry_UnregisterLoopModes-AND-CEngineServiceRegistry_UnregisterEngineServices
+        expected_output:
+          - CGameEventManager_Shutdown.{platform}.yaml
+          - CLoopModeRegistry_UnregisterLoopModes.{platform}.yaml
+          - CEngineServiceRegistry_UnregisterEngineServices.{platform}.yaml
+        expected_input:
+          - CSource2Server_Shutdown.{platform}.yaml
+
       - name: find-CSource2Server_Init
         expected_output:
           - CSource2Server_Init.{platform}.yaml
@@ -7686,6 +7694,21 @@ modules:
         category: vfunc
         alias:
           - CSource2Server::Shutdown
+
+      - name: CGameEventManager_Shutdown
+        category: func
+        alias:
+          - CGameEventManager::Shutdown
+
+      - name: CLoopModeRegistry_UnregisterLoopModes
+        category: func
+        alias:
+          - CLoopModeRegistry::UnregisterLoopModes
+
+      - name: CEngineServiceRegistry_UnregisterEngineServices
+        category: func
+        alias:
+          - CEngineServiceRegistry::UnregisterEngineServices
 
       - name: CSource2Server_GameFrame
         category: vfunc

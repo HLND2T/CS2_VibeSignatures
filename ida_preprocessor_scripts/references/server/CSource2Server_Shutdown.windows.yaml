@@ -1,0 +1,77 @@
+func_name: CSource2Server_Shutdown
+func_va: '0x180ce82a0'
+disasm_code: |-
+  .text:0000000180CE82A0                 push    rbx
+  .text:0000000180CE82A2                 sub     rsp, 20h
+  .text:0000000180CE82A6                 mov     rcx, cs:gameeventmanager
+  .text:0000000180CE82AD                 call    CGameEventManager_Shutdown
+  .text:0000000180CE82B2                 mov     rax, cs:off_181C164A8
+  .text:0000000180CE82B9                 mov     rcx, [rax]
+  .text:0000000180CE82BC                 mov     rbx, [rcx+50h]
+  .text:0000000180CE82C0                 call    sub_180B5EA80
+  .text:0000000180CE82C5                 mov     rcx, cs:off_181C164A8
+  .text:0000000180CE82CC                 mov     rdx, rax
+  .text:0000000180CE82CF                 call    rbx
+  .text:0000000180CE82D1                 mov     rax, cs:off_181C164A8
+  .text:0000000180CE82D8                 mov     rcx, [rax]
+  .text:0000000180CE82DB                 mov     rbx, [rcx+50h]
+  .text:0000000180CE82DF                 call    sub_180ABCBE0
+  .text:0000000180CE82E4                 mov     rcx, cs:off_181C164A8
+  .text:0000000180CE82EB                 mov     rdx, rax
+  .text:0000000180CE82EE                 call    rbx
+  .text:0000000180CE82F0                 mov     rax, cs:off_181C164A8
+  .text:0000000180CE82F7                 mov     rcx, [rax]
+  .text:0000000180CE82FA                 mov     rbx, [rcx+50h]
+  .text:0000000180CE82FE                 call    sub_180D47490
+  .text:0000000180CE8303                 mov     rcx, cs:off_181C164A8
+  .text:0000000180CE830A                 mov     rdx, rax
+  .text:0000000180CE830D                 call    rbx
+  .text:0000000180CE830F                 mov     rax, cs:off_181C164A8
+  .text:0000000180CE8316                 mov     rcx, [rax]
+  .text:0000000180CE8319                 mov     rbx, [rcx+50h]
+  .text:0000000180CE831D                 call    sub_180B5E910
+  .text:0000000180CE8322                 mov     rcx, cs:off_181C164A8
+  .text:0000000180CE8329                 mov     rdx, rax
+  .text:0000000180CE832C                 call    rbx
+  .text:0000000180CE832E                 call    CLoopModeRegistry_UnregisterLoopModes
+  .text:0000000180CE8333                 call    CEngineServiceRegistry_UnregisterEngineServices
+  .text:0000000180CE8338                 call    ReleaseParticleEffects
+  .text:0000000180CE833D                 call    ReleaseCSBotManager
+  .text:0000000180CE8342                 call    sub_18120CFD0
+  .text:0000000180CE8347                 mov     rcx, rax
+  .text:0000000180CE834A                 add     rsp, 20h
+  .text:0000000180CE834E                 pop     rbx
+  .text:0000000180CE834F                 jmp     sub_1811E7E10
+procedure: |-
+  __int64 CSource2Server_Shutdown()
+  {
+    __int64 (__fastcall *v0)(); // rbx
+    __int64 (__fastcall ***v1)(); // rax
+    __int64 (__fastcall *v2)(); // rbx
+    __int64 v3; // rax
+    __int64 (__fastcall *v4)(); // rbx
+    __int64 v5; // rax
+    __int64 (__fastcall *v6)(); // rbx
+    __int64 v7; // rax
+    __int64 *v8; // rax
+
+    CGameEventManager_Shutdown((__int64)gameeventmanager);
+    v0 = (*off_181C164A8)[10];
+    v1 = sub_180B5EA80();
+    ((void (__fastcall *)(__int64 (__fastcall ***)(), __int64 (__fastcall ***)()))v0)(off_181C164A8, v1);
+    v2 = (*off_181C164A8)[10];
+    v3 = sub_180ABCBE0();
+    ((void (__fastcall *)(__int64 (__fastcall ***)(), __int64))v2)(off_181C164A8, v3);
+    v4 = (*off_181C164A8)[10];
+    v5 = sub_180D47490();
+    ((void (__fastcall *)(__int64 (__fastcall ***)(), __int64))v4)(off_181C164A8, v5);
+    v6 = (*off_181C164A8)[10];
+    v7 = sub_180B5E910();
+    ((void (__fastcall *)(__int64 (__fastcall ***)(), __int64))v6)(off_181C164A8, v7);
+    CLoopModeRegistry_UnregisterLoopModes();
+    CEngineServiceRegistry_UnregisterEngineServices();
+    ReleaseParticleEffects();
+    ReleaseCSBotManager();
+    v8 = sub_18120CFD0();
+    return sub_1811E7E10((__int64)v8);
+  }
