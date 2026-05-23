@@ -2000,6 +2000,11 @@ modules:
         alias:
           - CEngineServiceMgr::GetActiveLoopClientServerMode
 
+      - name: CEngineServiceMgr_GetEventDispatcher
+        category: vfunc
+        alias:
+          - CEngineServiceMgr::GetEventDispatcher
+
       - name: CEngineGameUI_vtable
         category: vtable
 
@@ -2527,6 +2532,12 @@ modules:
           - IGameSystem_ShutdownAllSystems.{platform}.yaml
         expected_input:
           - CLoopModeFactory_CLoopModeGame_Shutdown.{platform}.yaml
+
+      - name: find-IGameSystemFactory_Shutdown
+        expected_output:
+          - IGameSystemFactory_Shutdown.{platform}.yaml
+        expected_input:
+          - IGameSystem_ShutdownAllSystems.{platform}.yaml
 
       - name: find-CEntityInstance_vtable
         expected_output:
@@ -3505,6 +3516,11 @@ modules:
         category: vfunc
         alias:
           - IGameSystemFactory::GetPriority
+
+      - name: IGameSystemFactory_Shutdown
+        category: vfunc
+        alias:
+          - IGameSystemFactory::Shutdown
 
       - name: CPrediction_vtable
         category: vtable
@@ -6348,6 +6364,12 @@ modules:
         expected_input:
           - CLoopModeFactory_CLoopModeGame_Shutdown.{platform}.yaml
 
+      - name: find-IGameSystemFactory_Shutdown
+        expected_output:
+          - IGameSystemFactory_Shutdown.{platform}.yaml
+        expected_input:
+          - IGameSystem_ShutdownAllSystems.{platform}.yaml
+
       - name: find-CLoopModeGame_OnLoopActivate
         expected_output:
           - CLoopModeGame_OnLoopActivate.{platform}.yaml
@@ -6814,6 +6836,11 @@ modules:
         category: vfunc
         alias:
           - IGameSystemFactory::Init
+
+      - name: IGameSystemFactory_Shutdown
+        category: vfunc
+        alias:
+          - IGameSystemFactory::Shutdown
 
       - name: CGameSystemReallocatingFactory_CSpawnGroupMgrGameSystem_DestroyGameSystem
         category: vfunc
@@ -10052,6 +10079,13 @@ modules:
         expected_input:
           - CEngineServiceMgr_vtable.{platform}.yaml
           - ../client/IEngineServiceMgr_GetActiveLoopClientServerMode.{platform}.yaml
+
+      - name: find-CEngineServiceMgr_GetEventDispatcher
+        expected_output:
+          - CEngineServiceMgr_GetEventDispatcher.{platform}.yaml
+        expected_input:
+          - CEngineServiceMgr_vtable.{platform}.yaml
+          - ../client/IEngineServiceMgr_GetEventDispatcher.{platform}.yaml
 
       - name: find-CLoopTypeBase_GetClientServerMode
         expected_output:

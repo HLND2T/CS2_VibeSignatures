@@ -1,0 +1,45 @@
+func_name: IGameSystem_ShutdownAllSystems
+func_va: '0x18036b180'
+disasm_code: |-
+  .text:000000018036B180                 push    rbx
+  .text:000000018036B182                 sub     rsp, 20h
+  .text:000000018036B186                 lea     rcx, dword_1821D6450
+  .text:000000018036B18D                 call    sub_180361BA0
+  .text:000000018036B192                 mov     eax, cs:dword_181FE0518
+  .text:000000018036B198                 sub     eax, 1
+  .text:000000018036B19B                 movsxd  rbx, eax
+  .text:000000018036B19E                 js      short loc_18036B1C5
+  .text:000000018036B1A0                 mov     rax, cs:qword_1821D6488
+  .text:000000018036B1A7                 movzx   ecx, word ptr [rax+rbx*2]
+  .text:000000018036B1AB                 mov     rax, cs:qword_181FE04E8
+  .text:000000018036B1B2                 add     rcx, rcx
+  .text:000000018036B1B5                 mov     rcx, [rax+rcx*8]
+  .text:000000018036B1B9                 mov     rax, [rcx]
+  .text:000000018036B1BC                 call    qword ptr [rax+10h]  ; 10h = IGameSystemFactory_Shutdown
+  .text:000000018036B1BF                 sub     rbx, 1
+  .text:000000018036B1C3                 jns     short loc_18036B1A0
+  .text:000000018036B1C5                 add     rsp, 20h
+  .text:000000018036B1C9                 pop     rbx
+  .text:000000018036B1CA                 retn
+procedure: |-
+  __int64 IGameSystem_ShutdownAllSystems()
+  {
+    __int64 result; // rax
+    __int64 v1; // rbx
+    __int64 v2; // rcx
+
+    sub_180361BA0(&dword_1821D6450);
+    result = (unsigned int)(dword_181FE0518 - 1);
+    v1 = (int)result;
+    if ( dword_181FE0518 - 1 >= 0 )
+    {
+      do
+      {
+        v2 = *(_QWORD *)(qword_181FE04E8 + 16LL * *(unsigned __int16 *)(qword_1821D6488 + 2 * v1));
+        result = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)v2 + 16LL))(v2);  // 16LL = 0x10 = IGameSystemFactory_Shutdown
+        --v1;
+      }
+      while ( v1 >= 0 );
+    }
+    return result;
+  }

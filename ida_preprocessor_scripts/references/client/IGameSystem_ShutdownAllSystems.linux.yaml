@@ -1,0 +1,125 @@
+func_name: IGameSystem_ShutdownAllSystems
+func_va: '0xe48a00'
+disasm_code: |-
+  .text:0000000000E48A00                 movsxd  rax, dword ptr cs:qword_4497DD0
+  .text:0000000000E48A07                 push    rbp
+  .text:0000000000E48A08                 mov     rbp, rsp
+  .text:0000000000E48A0B                 push    r12
+  .text:0000000000E48A0D                 push    rbx
+  .text:0000000000E48A0E                 mov     edx, eax
+  .text:0000000000E48A10                 sub     edx, 1
+  .text:0000000000E48A13                 js      short loc_E48A73
+  .text:0000000000E48A15                 movsxd  rcx, edx
+  .text:0000000000E48A18                 mov     edx, edx
+  .text:0000000000E48A1A                 lea     rbx, [rcx+rcx*2]
+  .text:0000000000E48A1E                 sub     rax, rdx
+  .text:0000000000E48A21                 lea     rax, [rax+rax*2]
+  .text:0000000000E48A25                 shl     rbx, 3
+  .text:0000000000E48A29                 lea     r12, ds:0FFFFFFFFFFFFFFD0h[rax*8]
+  .text:0000000000E48A31                 nop     dword ptr [rax+00000000h]
+  .text:0000000000E48A38                 mov     rax, cs:qword_4497DD8
+  .text:0000000000E48A3F                 add     rax, rbx
+  .text:0000000000E48A42                 cmp     dword ptr [rax+14h], 3FFFFFFFh
+  .text:0000000000E48A49                 mov     dword ptr [rax], 0
+  .text:0000000000E48A4F                 ja      short loc_E48A6A
+  .text:0000000000E48A51                 mov     rsi, [rax+8]
+  .text:0000000000E48A55                 test    rsi, rsi
+  .text:0000000000E48A58                 jz      short loc_E48A6A
+  .text:0000000000E48A5A                 mov     rax, cs:g_pMemAlloc_ptr
+  .text:0000000000E48A61                 mov     rdi, [rax]
+  .text:0000000000E48A64                 mov     rax, [rdi]
+  .text:0000000000E48A67                 call    qword ptr [rax+20h]
+  .text:0000000000E48A6A                 sub     rbx, 18h
+  .text:0000000000E48A6E                 cmp     r12, rbx
+  .text:0000000000E48A71                 jnz     short loc_E48A38
+  .text:0000000000E48A73                 cmp     dword ptr cs:qword_4497DE0+4, 3FFFFFFFh
+  .text:0000000000E48A7D                 mov     dword ptr cs:qword_4497DD0, 0
+  .text:0000000000E48A87                 ja      short loc_E48ABA
+  .text:0000000000E48A89                 mov     rsi, cs:qword_4497DD8
+  .text:0000000000E48A90                 test    rsi, rsi
+  .text:0000000000E48A93                 jz      short loc_E48AB0
+  .text:0000000000E48A95                 mov     rax, cs:g_pMemAlloc_ptr
+  .text:0000000000E48A9C                 mov     rdi, [rax]
+  .text:0000000000E48A9F                 mov     rax, [rdi]
+  .text:0000000000E48AA2                 call    qword ptr [rax+20h]
+  .text:0000000000E48AA5                 mov     cs:qword_4497DD8, 0
+  .text:0000000000E48AB0                 mov     dword ptr cs:qword_4497DE0, 0
+  .text:0000000000E48ABA                 movsxd  rax, cs:dword_4497D58
+  .text:0000000000E48AC1                 mov     edx, eax
+  .text:0000000000E48AC3                 sub     edx, 1
+  .text:0000000000E48AC6                 js      short loc_E48B08
+  .text:0000000000E48AC8                 movsxd  rbx, edx
+  .text:0000000000E48ACB                 mov     edx, edx
+  .text:0000000000E48ACD                 sub     rax, rdx
+  .text:0000000000E48AD0                 add     rbx, rbx
+  .text:0000000000E48AD3                 lea     r12, [rax+rax-4]
+  .text:0000000000E48AD8                 nop     dword ptr [rax+rax+00000000h]
+  .text:0000000000E48AE0                 mov     rax, cs:qword_4497D08
+  .text:0000000000E48AE7                 movzx   eax, word ptr [rax+rbx]
+  .text:0000000000E48AEB                 sub     rbx, 2
+  .text:0000000000E48AEF                 shl     rax, 4
+  .text:0000000000E48AF3                 add     rax, cs:qword_4497D28
+  .text:0000000000E48AFA                 mov     rdi, [rax]
+  .text:0000000000E48AFD                 mov     rax, [rdi]
+  .text:0000000000E48B00                 call    qword ptr [rax+10h]  ; 10h = IGameSystemFactory_Shutdown
+  .text:0000000000E48B03                 cmp     r12, rbx
+  .text:0000000000E48B06                 jnz     short loc_E48AE0
+  .text:0000000000E48B08                 pop     rbx
+  .text:0000000000E48B09                 pop     r12
+  .text:0000000000E48B0B                 pop     rbp
+  .text:0000000000E48B0C                 retn
+procedure: |-
+  __int64 IGameSystem_ShutdownAllSystems()
+  {
+    __int64 v0; // rdx
+    __int64 v1; // rbx
+    unsigned __int64 v2; // r12
+    __int64 v3; // rax
+    bool v4; // cc
+    __int64 result; // rax
+    __int64 v6; // rbx
+    unsigned __int64 v7; // r12
+    __int64 v8; // rax
+
+    v0 = (unsigned int)(qword_4497DD0 - 1);
+    if ( (int)qword_4497DD0 - 1 >= 0 )
+    {
+      v0 = (unsigned int)v0;
+      v1 = 24LL * (int)v0;
+      v2 = 24 * ((int)qword_4497DD0 - (unsigned __int64)(unsigned int)v0) - 48;
+      do
+      {
+        v3 = v1 + qword_4497DD8;
+        v4 = *(_DWORD *)(v1 + qword_4497DD8 + 20) <= 0x3FFFFFFFu;
+        *(_DWORD *)(v1 + qword_4497DD8) = 0;
+        if ( v4 && *(_QWORD *)(v3 + 8) )
+          (*(void (__fastcall **)(_QWORD *))(*g_pMemAlloc + 32LL))(g_pMemAlloc);
+        v1 -= 24;
+      }
+      while ( v2 != v1 );
+    }
+    LODWORD(qword_4497DD0) = 0;
+    if ( HIDWORD(qword_4497DE0) <= 0x3FFFFFFF )
+    {
+      if ( qword_4497DD8 )
+      {
+        (*(void (__fastcall **)(_QWORD *, __int64, __int64))(*g_pMemAlloc + 32LL))(g_pMemAlloc, qword_4497DD8, v0);
+        qword_4497DD8 = 0;
+      }
+      LODWORD(qword_4497DE0) = 0;
+    }
+    result = dword_4497D58;
+    if ( dword_4497D58 - 1 >= 0 )
+    {
+      v6 = 2LL * (dword_4497D58 - 1);
+      v7 = 2 * (dword_4497D58 - (unsigned __int64)(unsigned int)(dword_4497D58 - 1)) - 4;
+      do
+      {
+        v8 = *(unsigned __int16 *)(qword_4497D08 + v6);
+        v6 -= 2;
+        result = (*(__int64 (__fastcall **)(_QWORD))(**(_QWORD **)(qword_4497D28 + 16 * v8) + 16LL))(*(_QWORD *)(qword_4497D28 + 16 * v8));  // 16LL = 0x10 = IGameSystemFactory_Shutdown
+      }
+      while ( v7 != v6 );
+    }
+    return result;
+  }
