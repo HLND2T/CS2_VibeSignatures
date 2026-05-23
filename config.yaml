@@ -2562,10 +2562,10 @@ modules:
         expected_input:
           - CLoopModeGame_ReceivedServerInfo.{platform}.yaml
 
-      - name: find-IGameSystemFactory_CreateGameSystem-AND-IGameSystemFactory_DoesGameSystemReallocate-AND-IGameSystem_SetName
+      - name: find-IGameSystemFactory_CreateGameSystem-AND-IGameSystemFactory_IsReallocating-AND-IGameSystem_SetName
         expected_output:
           - IGameSystemFactory_CreateGameSystem.{platform}.yaml
-          - IGameSystemFactory_DoesGameSystemReallocate.{platform}.yaml
+          - IGameSystemFactory_IsReallocating.{platform}.yaml
           - IGameSystem_SetName.{platform}.yaml
         expected_input:
           - IGameSystem_AddByName.{platform}.yaml
@@ -2724,7 +2724,7 @@ modules:
         expected_output:
           - CSpawnGroupMgrGameSystem_DoesGameSystemReallocate.{platform}.yaml
         expected_input:
-          - IGameSystemFactory_DoesGameSystemReallocate.{platform}.yaml
+          - IGameSystemFactory_IsReallocating.{platform}.yaml
           - CSpawnGroupMgrGameSystem_vtable2.{platform}.yaml
 
       - name: find-IGameSystem_DoesGameSystemReallocate
@@ -3194,10 +3194,10 @@ modules:
         alias:
           - IGameSystemFactory::CreateGameSystem
 
-      - name: IGameSystemFactory_DoesGameSystemReallocate
+      - name: IGameSystemFactory_IsReallocating
         category: vfunc
         alias:
-          - IGameSystemFactory::DoesGameSystemReallocate
+          - IGameSystemFactory::IsReallocating
 
       - name: IGameSystem_SetName
         category: vfunc
@@ -5614,7 +5614,7 @@ modules:
         expected_output:
           - CSpawnGroupMgrGameSystem_DoesGameSystemReallocate.{platform}.yaml
         expected_input:
-          - ../client/IGameSystemFactory_DoesGameSystemReallocate.{platform}.yaml
+          - ../client/IGameSystemFactory_IsReallocating.{platform}.yaml
           - CSpawnGroupMgrGameSystem_vtable2.{platform}.yaml
 
       - name: find-CSpawnGroupMgrGameSystem_GetSpawnGroups

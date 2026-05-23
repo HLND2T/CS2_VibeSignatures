@@ -39,12 +39,12 @@ GENERATE_YAML_DESIRED_FIELDS = [
     ),
 ]
 
-# Signature templates — last byte is IGameSystemFactory_DoesGameSystemReallocate vfunc_offset
+# Signature templates — last byte is IGameSystemFactory_IsReallocating vfunc_offset
 # Windows: mov rcx, cs:[rip+??]; mov rax, [rcx]; jmp [rax+OFFSET]
 _SIG_WINDOWS_TEMPLATE = "48 8B 0D ?? ?? ?? ?? 48 8B 01 48 FF 60 {:02X}"
 # Linux: mov rdi, cs:[rip+??]; mov rax, [rdi]; jmp [rax+OFFSET]
 _SIG_LINUX_TEMPLATE = "48 8B 3D ?? ?? ?? ?? 48 8B 07 FF 60 {:02X}"
-_FACTORY_STEM = "IGameSystemFactory_DoesGameSystemReallocate"
+_FACTORY_STEM = "IGameSystemFactory_IsReallocating"
 
 
 def _build_factory_yaml_paths(new_binary_dir, platform):
@@ -91,7 +91,7 @@ async def preprocess_skill(
             print("    Preprocess: PyYAML is required")
         return False
 
-    # Load vfunc_offset from IGameSystemFactory_DoesGameSystemReallocate YAML
+    # Load vfunc_offset from IGameSystemFactory_IsReallocating YAML
     vfunc_offset, factory_yaml_path = _read_factory_vfunc_offset(
         new_binary_dir,
         platform,
@@ -100,7 +100,7 @@ async def preprocess_skill(
         if debug:
             print(
                 "    Preprocess: failed to read vfunc_offset from "
-                "IGameSystemFactory_DoesGameSystemReallocate YAML"
+                "IGameSystemFactory_IsReallocating YAML"
             )
         return False
 

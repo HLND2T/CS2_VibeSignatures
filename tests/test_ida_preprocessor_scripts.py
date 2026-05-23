@@ -1592,14 +1592,14 @@ class TestFindCSpawnGroupMgrGameSystemDoesGameSystemReallocate(
                     / "bin"
                     / "14141"
                     / "server"
-                    / "IGameSystemFactory_DoesGameSystemReallocate.linux.yaml"
+                    / "IGameSystemFactory_IsReallocating.linux.yaml"
                 ),
                 str(
                     Path(temp_dir)
                     / "bin"
                     / "14141"
                     / "client"
-                    / "IGameSystemFactory_DoesGameSystemReallocate.linux.yaml"
+                    / "IGameSystemFactory_IsReallocating.linux.yaml"
                 ),
             ],
             paths,
@@ -1665,7 +1665,7 @@ class TestFindCSpawnGroupMgrGameSystemDoesGameSystemReallocate(
             server_dir.mkdir(parents=True, exist_ok=True)
             client_dir.mkdir(parents=True, exist_ok=True)
             (
-                client_dir / "IGameSystemFactory_DoesGameSystemReallocate.linux.yaml"
+                client_dir / "IGameSystemFactory_IsReallocating.linux.yaml"
             ).write_text("vfunc_offset: 0x20\n", encoding="utf-8")
 
             with patch.object(
