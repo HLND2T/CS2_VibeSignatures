@@ -1,0 +1,181 @@
+func_name: IGameSystem_PostInit
+func_va: '0x180530360'
+disasm_code: |-
+  .text:0000000180530360                 push    rbp
+  .text:0000000180530362                 push    rdi
+  .text:0000000180530363                 push    r13
+  .text:0000000180530365                 sub     rsp, 40h
+  .text:0000000180530369                 call    cs:Plat_NotifyOSAppIsNotHung
+  .text:000000018053036F                 mov     ebp, cs:dword_181BA2D48
+  .text:0000000180530375                 xor     r13d, r13d
+  .text:0000000180530378                 mov     edi, r13d
+  .text:000000018053037B                 test    ebp, ebp
+  .text:000000018053037D                 jz      loc_1805304DA
+  .text:0000000180530383                 mov     [rsp+58h+arg_8], rbx
+  .text:0000000180530388                 mov     [rsp+58h+arg_10], rsi
+  .text:000000018053038D                 mov     [rsp+58h+arg_18], r12
+  .text:0000000180530392                 lea     r12, ??_7CDontUseThisGameSystem@@6B@; const CDontUseThisGameSystem::`vftable'
+  .text:0000000180530399                 mov     [rsp+58h+var_20], r14
+  .text:000000018053039E                 mov     r14d, cs:TlsIndex
+  .text:00000001805303A5                 mov     [rsp+58h+var_28], r15
+  .text:00000001805303AA                 mov     r15, gs:58h
+  .text:00000001805303B3                 nop     dword ptr [rax+00h]
+  .text:00000001805303B7                 nop     word ptr [rax+rax+00000000h]
+  .text:00000001805303C0                 mov     rax, cs:qword_181E1C6C0
+  .text:00000001805303C7                 movsxd  rcx, edi
+  .text:00000001805303CA                 movzx   edx, word ptr [rax+rcx*2]
+  .text:00000001805303CE                 mov     rax, cs:qword_181BA2D18
+  .text:00000001805303D5                 add     rdx, rdx
+  .text:00000001805303D8                 mov     rsi, [rax+rdx*8]
+  .text:00000001805303DC                 call    cs:Plat_RelativeTicks
+  .text:00000001805303E2                 mov     rdx, [rsi]
+  .text:00000001805303E5                 mov     rcx, rsi
+  .text:00000001805303E8                 mov     rbx, rax
+  .text:00000001805303EB                 call    qword ptr [rdx+8]  ; 8h = IGameSystemFactory_PostInit
+  .text:00000001805303EE                 call    cs:Plat_RelativeTicks
+  .text:00000001805303F4                 sub     rax, rbx
+  .text:00000001805303F7                 lea     rcx, [rsp+58h+arg_0]
+  .text:00000001805303FC                 mov     [rsp+58h+arg_0], rax
+  .text:0000000180530401                 call    sub_1805213B0
+  .text:0000000180530406                 mov     rdx, [rsi+10h]
+  .text:000000018053040A                 lea     rcx, aIgamesystemPos; "IGameSystem::PostInit( %-80s ) %8.3f ms"...
+  .text:0000000180530411                 movaps  xmm2, xmm0
+  .text:0000000180530414                 movq    r8, xmm0
+  .text:0000000180530419                 call    cs:COM_TimestampedLog
+  .text:000000018053041F                 call    cs:Plat_NotifyOSAppIsNotHung
+  .text:0000000180530425                 mov     rax, [rsi]
+  .text:0000000180530428                 mov     rcx, rsi
+  .text:000000018053042B                 call    qword ptr [rax+40h]
+  .text:000000018053042E                 test    al, al
+  .text:0000000180530430                 jnz     loc_1805304B7
+  .text:0000000180530436                 mov     rax, [rsi]
+  .text:0000000180530439                 mov     rcx, rsi
+  .text:000000018053043C                 call    qword ptr [rax+48h]  ; 48h = IGameSystemFactory_GetStaticGameSystem
+  .text:000000018053043F                 mov     edx, cs:dword_181BA2E50
+  .text:0000000180530445                 mov     rbx, rax
+  .text:0000000180530448                 test    edx, edx
+  .text:000000018053044A                 jns     short loc_180530494
+  .text:000000018053044C                 mov     rcx, [r15+r14*8]
+  .text:0000000180530450                 mov     eax, 218h
+  .text:0000000180530455                 mov     [rsp+58h+var_30], r13
+  .text:000000018053045A                 mov     [rsp+58h+var_38], r12
+  .text:000000018053045F                 mov     ecx, [rax+rcx]
+  .text:0000000180530462                 cmp     cs:dword_181E1CBB8, ecx
+  .text:0000000180530468                 jg      short loc_1805304E3
+  .text:000000018053046A                 mov     rax, cs:qword_181E1CBB0
+  .text:0000000180530471                 lea     rcx, [rsp+58h+var_38]
+  .text:0000000180530476                 mov     [rsp+58h+var_38], rax
+  .text:000000018053047B                 call    sub_18050D1E0
+  .text:0000000180530480                 mov     edx, eax
+  .text:0000000180530482                 mov     cs:dword_181BA2E50, eax
+  .text:0000000180530488                 lea     rax, IGameSystem_vtable
+  .text:000000018053048F                 mov     [rsp+58h+var_38], rax
+  .text:0000000180530494                 mov     rax, [rbx]
+  .text:0000000180530497                 movsxd  rcx, edx
+  .text:000000018053049A                 mov     rax, [rax+rcx*8]
+  .text:000000018053049E                 cmp     [r12+rcx*8], rax
+  .text:00000001805304A2                 jz      short loc_1805304B7
+  .text:00000001805304A4                 mov     rax, cs:off_181BA33E8
+  .text:00000001805304AB                 lea     rcx, off_181BA33E8
+  .text:00000001805304B2                 mov     r8, rbx
+  .text:00000001805304B5                 call    qword ptr [rax]
+  .text:00000001805304B7                 inc     edi
+  .text:00000001805304B9                 cmp     edi, ebp
+  .text:00000001805304BB                 jb      loc_1805303C0
+  .text:00000001805304C1                 mov     r15, [rsp+58h+var_28]
+  .text:00000001805304C6                 mov     r14, [rsp+58h+var_20]
+  .text:00000001805304CB                 mov     r12, [rsp+58h+arg_18]
+  .text:00000001805304D0                 mov     rsi, [rsp+58h+arg_10]
+  .text:00000001805304D5                 mov     rbx, [rsp+58h+arg_8]
+  .text:00000001805304DA                 add     rsp, 40h
+  .text:00000001805304DE                 pop     r13
+  .text:00000001805304E0                 pop     rdi
+  .text:00000001805304E1                 pop     rbp
+  .text:00000001805304E2                 retn
+  .text:00000001805304E3                 lea     rcx, dword_181E1CBB8
+  .text:00000001805304EA                 call    sub_1814FE9A4
+  .text:00000001805304EF                 cmp     cs:dword_181E1CBB8, 0FFFFFFFFh
+  .text:00000001805304F6                 jnz     loc_18053046A
+  .text:00000001805304FC                 mov     rax, cs:off_181BA3020
+  .text:0000000180530503                 lea     rcx, dword_181E1CBB8
+  .text:000000018053050A                 mov     cs:qword_181E1CBB0, rax
+  .text:0000000180530511                 call    sub_1814FE938
+  .text:0000000180530516                 jmp     loc_18053046A
+procedure: |-
+  void *__fastcall IGameSystem_PostInit(__int64 a1, __int64 a2)
+  {
+    void *result; // rax
+    unsigned int v3; // ebp
+    signed int v4; // edi
+    __int64 v5; // r14
+    _QWORD *ThreadLocalStoragePointer; // r15
+    _QWORD *v7; // rsi
+    __int64 v8; // rbx
+    __int64 v9; // rdx
+    __int64 v10; // rcx
+    double v11; // xmm0_8
+    __int64 v12; // rdx
+    __int64 v13; // rcx
+    __int64 v14; // rax
+    __int64 v15; // rdx
+    _QWORD *v16; // rbx
+    __int64 v17; // rcx
+    unsigned int v18; // eax
+    _QWORD v19[2]; // [rsp+20h] [rbp-38h] BYREF
+    __int64 v20; // [rsp+60h] [rbp+8h] BYREF
+
+    result = (void *)Plat_NotifyOSAppIsNotHung(a1, a2);
+    v3 = dword_181BA2D48;
+    v4 = 0;
+    if ( dword_181BA2D48 )
+    {
+      v5 = (unsigned int)TlsIndex;
+      ThreadLocalStoragePointer = NtCurrentTeb()->ThreadLocalStoragePointer;
+      do
+      {
+        v7 = *(_QWORD **)(qword_181BA2D18 + 16LL * *(unsigned __int16 *)(qword_181E1C6C0 + 2LL * v4));
+        v8 = Plat_RelativeTicks(v4, 2LL * *(unsigned __int16 *)(qword_181E1C6C0 + 2LL * v4));
+        (*(void (__fastcall **)(_QWORD *))(*v7 + 8LL))(v7);// 8LL = 0x8 = IGameSystemFactory_PostInit
+        v20 = Plat_RelativeTicks(v10, v9) - v8;
+        v11 = sub_1805213B0(&v20);
+        COM_TimestampedLog("IGameSystem::PostInit( %-80s ) %8.3f msec", v7[2], v11);
+        Plat_NotifyOSAppIsNotHung(v13, v12);
+        result = (void *)(*(__int64 (__fastcall **)(_QWORD *))(*v7 + 64LL))(v7);// IGameSystemFactory_IsReallocating
+        if ( !(_BYTE)result )
+        {
+          v14 = (*(__int64 (__fastcall **)(_QWORD *))(*v7 + 72LL))(v7);// 72LL = 0x48 = IGameSystemFactory_GetStaticGameSystem
+          v15 = (unsigned int)dword_181BA2E50;
+          v16 = (_QWORD *)v14;
+          if ( dword_181BA2E50 < 0 )
+          {
+            v17 = ThreadLocalStoragePointer[v5];
+            v19[1] = 0;
+            v19[0] = &CDontUseThisGameSystem::`vftable';
+            if ( dword_181E1CBB8 > *(_DWORD *)(v17 + 536) )
+            {
+              sub_1814FE9A4(&dword_181E1CBB8);
+              if ( dword_181E1CBB8 == -1 )
+              {
+                qword_181E1CBB0 = (__int64)off_181BA3020[0];
+                sub_1814FE938(&dword_181E1CBB8);
+              }
+            }
+            v19[0] = qword_181E1CBB0;
+            v18 = sub_18050D1E0((__int64)v19);
+            v15 = v18;
+            dword_181BA2E50 = v18;
+            v19[0] = IGameSystem_vtable;
+          }
+          result = *(void **)(*v16 + 8LL * (int)v15);
+          if ( *(&CDontUseThisGameSystem::`vftable' + (int)v15) != result )
+            result = (void *)((__int64 (__fastcall *)(__int64 (__fastcall ***)(), __int64, _QWORD *))*off_181BA33E8)(
+                               &off_181BA33E8,
+                               v15,
+                               v16);
+        }
+        ++v4;
+      }
+      while ( v4 < v3 );
+    }
+    return result;
+  }

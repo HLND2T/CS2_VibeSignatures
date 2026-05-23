@@ -2566,6 +2566,13 @@ modules:
         expected_output:
           - IGameSystem_PostInit.{platform}.yaml
 
+      - name: find-IGameSystemFactory_PostInit-AND-IGameSystemFactory_GetStaticGameSystem
+        expected_output:
+          - IGameSystemFactory_PostInit.{platform}.yaml
+          - IGameSystemFactory_GetStaticGameSystem.{platform}.yaml
+        expected_input:
+          - IGameSystem_PostInit.{platform}.yaml
+
       - name: find-IGameSystemFactory_CreateGameSystem-AND-IGameSystemFactory_IsReallocating-AND-IGameSystem_SetName-AND-IGameSystemFactory_GetPriority
         expected_output:
           - IGameSystemFactory_CreateGameSystem.{platform}.yaml
@@ -3204,6 +3211,16 @@ modules:
         category: func
         alias:
           - IGameSystem::PostInit
+
+      - name: IGameSystemFactory_PostInit
+        category: vfunc
+        alias:
+          - IGameSystemFactory::PostInit
+
+      - name: IGameSystemFactory_GetStaticGameSystem
+        category: vfunc
+        alias:
+          - IGameSystemFactory::GetStaticGameSystem
 
       - name: IGameSystemFactory_CreateGameSystem
         category: vfunc
@@ -5056,6 +5073,13 @@ modules:
 
       - name: find-IGameSystem_PostInit
         expected_output:
+          - IGameSystem_PostInit.{platform}.yaml
+
+      - name: find-IGameSystemFactory_PostInit-AND-IGameSystemFactory_GetStaticGameSystem
+        expected_output:
+          - IGameSystemFactory_PostInit.{platform}.yaml
+          - IGameSystemFactory_GetStaticGameSystem.{platform}.yaml
+        expected_input:
           - IGameSystem_PostInit.{platform}.yaml
 
       - name: find-IGameSystem_LoopPostInitAllSystems_pEventDispatcher-AND-IGameSystem_LoopDestroyAllSystems_s_GameSystems
@@ -7851,6 +7875,16 @@ modules:
         category: func
         alias:
           - IGameSystem::PostInit
+
+      - name: IGameSystemFactory_PostInit
+        category: vfunc
+        alias:
+          - IGameSystemFactory::PostInit
+
+      - name: IGameSystemFactory_GetStaticGameSystem
+        category: vfunc
+        alias:
+          - IGameSystemFactory::GetStaticGameSystem
 
       - name: IGameSystem_InitAllSystems_pFirst
         category: gv
