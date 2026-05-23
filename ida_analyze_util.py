@@ -6195,6 +6195,73 @@ async def _collect_xref_func_starts_for_ea(session, target_ea, debug=False):
     )
 
 
+async def _collect_single_call_or_jump_xref_func_starts_for_ea(
+    session, target_ea, debug=False
+):
+    """
+    Collect function-start addresses that contain exactly one call/jump xref
+    to the specified target address.
+
+    Returns:
+        Set[int]: Function start addresses, or None on py_eval failure.
+    """
+    try:
+        target_ea_int = _parse_int_value(target_ea)
+    except Exception:
+        return set()
+
+    py_code = (
+        "import idautils, ida_xref, idc, json\n"
+        f"target_ea = {target_ea_int}\n"
+        "type_names = ('fl_CF', 'fl_CN', 'fl_JF', 'fl_JN')\n"
+        "call_jump_types = {\n"
+        "    getattr(ida_xref, name)\n"
+        "    for name in type_names\n"
+        "    if hasattr(ida_xref, name)\n"
+        "}\n"
+        "code_addrs = set()\n"
+        "for xref in idautils.XrefsTo(target_ea, 0):\n"
+        "    mnem = idc.print_insn_mnem(xref.frm).lower()\n"
+        "    if xref.type in call_jump_types or mnem in {'call', 'jmp'}:\n"
+        "        code_addrs.add(xref.frm)\n"
+        "result = json.dumps([hex(ea) for ea in sorted(code_addrs)])\n"
+    )
+
+    try:
+        eval_result = await session.call_tool(
+            name="py_eval",
+            arguments={"code": py_code},
+        )
+        eval_data = parse_mcp_result(eval_result)
+    except Exception as e:
+        if debug:
+            print(f"    Preprocess: py_eval error for call/jump xref search: {e}")
+        return None
+
+    code_addrs = _parse_int_set_from_py_eval(eval_data, debug=debug)
+    if code_addrs is None:
+        return None
+
+    call_counts_by_func = {}
+    for code_addr in sorted(code_addrs):
+        func_start = await _normalize_func_start_for_code_addr(
+            session=session,
+            code_addr=code_addr,
+            debug=debug,
+        )
+        if func_start is None:
+            continue
+        call_counts_by_func[func_start] = (
+            call_counts_by_func.get(func_start, 0) + 1
+        )
+
+    return {
+        func_start
+        for func_start, call_count in call_counts_by_func.items()
+        if call_count == 1
+    }
+
+
 async def _collect_xref_func_starts_for_signature(
     session, xref_signature, debug=False
 ):
@@ -7208,19 +7275,28 @@ async def preprocess_func_xrefs_via_mcp(
     debug=False,
     xref_floats=None,
     exclude_floats=None,
+    inline_alias=None,
 ):
     """
     Resolve target function by intersecting candidate sets collected from
-    configured string/gv/signature/function xrefs, plus optional vtable
-    entries from a class name or vtable artifact stem, then applying
-    configured exclusions.
+    configured string/gv/signature/function xrefs, optional inline-alias
+    callers or fallback alias body, plus optional vtable entries from a class
+    name or vtable artifact stem, then applying configured exclusions.
     """
+    if inline_alias is not None and (
+        not isinstance(inline_alias, str) or not inline_alias
+    ):
+        if debug:
+            print(f"    Preprocess: invalid inline_alias for {func_name}")
+        return None
+
     has_explicit_positive_source = any(
         (
             xref_strings,
             xref_gvs,
             xref_signatures,
             xref_funcs,
+            inline_alias,
         )
     )
     xref_floats = xref_floats or []
@@ -7233,7 +7309,11 @@ async def preprocess_func_xrefs_via_mcp(
             )
         return None
 
-    dep_func_names = list(xref_funcs or []) + list(exclude_funcs or [])
+    dep_func_names = (
+        list(xref_funcs or [])
+        + list(exclude_funcs or [])
+        + ([inline_alias] if inline_alias else [])
+    )
     dep_gv_names = [
         gv_name
         for gv_name in list(xref_gvs or []) + list(exclude_gvs or [])
@@ -7371,6 +7451,44 @@ async def preprocess_func_xrefs_via_mcp(
                     f"    Preprocess: empty candidate set for signature xref: {short}"
                 )
             return None
+        candidate_sets.append(addr_set)
+
+    if inline_alias:
+        inline_alias_va = _load_symbol_addr_from_current_yaml(
+            new_binary_dir,
+            platform,
+            inline_alias,
+            "func_va",
+            debug=debug,
+            debug_label="inline_alias",
+        )
+        if inline_alias_va is None:
+            return None
+
+        addr_set = await _collect_single_call_or_jump_xref_func_starts_for_ea(
+            session=session,
+            target_ea=inline_alias_va,
+            debug=debug,
+        )
+        if addr_set is None:
+            if debug:
+                print(
+                    f"    Preprocess: failed to collect inline_alias callers: "
+                    f"{inline_alias}"
+                )
+            return None
+        if not addr_set:
+            addr_set = {inline_alias_va}
+            if debug:
+                print(
+                    f"    Preprocess: no single call/jump caller for "
+                    f"{inline_alias}; using alias function itself"
+                )
+        elif debug:
+            print(
+                f"    Preprocess: inline_alias {inline_alias} matched "
+                f"{len(addr_set)} caller function(s)"
+            )
         candidate_sets.append(addr_set)
 
     for dep_func_name in (xref_funcs or []):
@@ -7668,6 +7786,7 @@ async def _try_preprocess_func_without_llm(
             xref_signatures=xref_spec["xref_signatures"],
             xref_funcs=xref_spec["xref_funcs"],
             xref_floats=xref_spec["xref_floats"],
+            inline_alias=xref_spec["inline_alias"],
             exclude_funcs=xref_spec["exclude_funcs"],
             exclude_strings=xref_spec["exclude_strings"],
             exclude_gvs=xref_spec["exclude_gvs"],
@@ -7696,9 +7815,11 @@ def _can_probe_future_func_fast_path(
     if not isinstance(xref_spec, dict):
         return True
 
+    inline_alias = xref_spec.get("inline_alias")
     dependency_symbol_names = (
         list(xref_spec.get("xref_funcs") or [])
         + list(xref_spec.get("exclude_funcs") or [])
+        + ([inline_alias] if inline_alias else [])
         + [
             gv_name
             for gv_name in (xref_spec.get("xref_gvs") or [])
@@ -7793,9 +7914,9 @@ async def preprocess_common_skill(
     - ``func_xrefs``: locate functions via unified xref fallback through
       ``preprocess_func_xrefs_via_mcp``. Each element is a dict with
       ``func_name`` plus list fields for positive xref sources
-      (``xref_strings``, ``xref_gvs``, ``xref_signatures``, ``xref_funcs``)
-      and optional post-intersection scalar readonly float/double filters
-      (``xref_floats``)
+      (``xref_strings``, ``xref_gvs``, ``xref_signatures``, ``xref_funcs``,
+      ``inline_alias``) and optional post-intersection scalar readonly
+      float/double filters (``xref_floats``)
       and exclusions (``exclude_funcs``, ``exclude_strings``,
       ``exclude_gvs``, ``exclude_signatures``, ``exclude_floats``).
       ``xref_floats``/``exclude_floats`` do not count as positive xref
@@ -7832,8 +7953,8 @@ async def preprocess_common_skill(
         func_xrefs: List of dict specs for unified xref-based function lookup
             (may be empty/None). Supported keys are func_name,
             xref_strings/xref_gvs/xref_signatures/xref_funcs,
-            xref_floats, exclude_funcs/exclude_strings/exclude_gvs/
-            exclude_signatures/exclude_floats.
+            inline_alias, xref_floats, exclude_funcs/exclude_strings/
+            exclude_gvs/exclude_signatures/exclude_floats.
         func_vtable_relations: List of (func_name, vtable_class) tuples for
             enriching function YAML with vtable metadata; the vtable value may
             be a canonical class name or a vtable artifact stem
@@ -7882,6 +8003,7 @@ async def preprocess_common_skill(
         "xref_gvs",
         "xref_signatures",
         "xref_funcs",
+        "inline_alias",
         "xref_floats",
         "exclude_funcs",
         "exclude_strings",
@@ -7958,11 +8080,24 @@ async def preprocess_common_skill(
                     return False
             normalized_spec[field_name] = field_list
 
+        inline_alias = spec.get("inline_alias")
+        if inline_alias is not None and (
+            not isinstance(inline_alias, str) or not inline_alias
+        ):
+            if debug:
+                print(
+                    f"    Preprocess: invalid inline_alias for "
+                    f"{func_name}: {inline_alias}"
+                )
+            return False
+        normalized_spec["inline_alias"] = inline_alias
+
         if (
             not normalized_spec["xref_strings"]
             and not normalized_spec["xref_gvs"]
             and not normalized_spec["xref_signatures"]
             and not normalized_spec["xref_funcs"]
+            and not normalized_spec["inline_alias"]
         ):
             if debug:
                 print(f"    Preprocess: empty func_xrefs spec for {func_name}")

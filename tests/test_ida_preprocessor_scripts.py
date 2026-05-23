@@ -63,6 +63,10 @@ CNETWORK_SERVER_SERVICE_INIT_SCRIPT_PATH = Path(
     "ida_preprocessor_scripts/"
     "find-CNetworkServerService_Init.py"
 )
+CLOOPMODE_FACTORY_GAME_INIT_SCRIPT_PATH = Path(
+    "ida_preprocessor_scripts/"
+    "find-CLoopModeFactory_CLoopModeGame_Init.py"
+)
 PROCESS_MOVEMENT_SCRIPT_PATH = Path(
     "ida_preprocessor_scripts/"
     "find-CCSPlayer_MovementServices_ProcessMovement.py"
@@ -2549,6 +2553,80 @@ class TestFindCNetworkServerServiceInit(unittest.IsolatedAsyncioTestCase):
             platform="windows",
             image_base=0x180000000,
             func_names=["CNetworkServerService_Init"],
+            func_xrefs=expected_func_xrefs,
+            func_vtable_relations=expected_func_vtable_relations,
+            generate_yaml_desired_fields=expected_generate_yaml_desired_fields,
+            debug=True,
+        )
+
+
+class TestFindCLoopModeFactoryCLoopModeGameInit(unittest.IsolatedAsyncioTestCase):
+    async def test_script_forwards_inline_alias_func_xrefs(self) -> None:
+        module = _load_module(
+            CLOOPMODE_FACTORY_GAME_INIT_SCRIPT_PATH,
+            "find_CLoopModeFactory_CLoopModeGame_Init",
+        )
+        mock_preprocess_common_skill = AsyncMock(return_value=True)
+        expected_func_xrefs = [
+            {
+                "func_name": "CLoopModeFactory_CLoopModeGame_Init",
+                "xref_strings": [],
+                "xref_gvs": [],
+                "xref_signatures": [],
+                "xref_funcs": [],
+                "exclude_funcs": [],
+                "exclude_strings": [],
+                "exclude_gvs": [],
+                "exclude_signatures": [],
+                "inline_alias": "CLoopModeGame_StaticInit",
+            }
+        ]
+        expected_func_vtable_relations = [
+            (
+                "CLoopModeFactory_CLoopModeGame_Init",
+                "CLoopModeFactory_CLoopModeGame_vtable",
+            )
+        ]
+        expected_generate_yaml_desired_fields = [
+            (
+                "CLoopModeFactory_CLoopModeGame_Init",
+                [
+                    "func_name",
+                    "func_va",
+                    "func_rva",
+                    "func_size",
+                    "vtable_name",
+                    "vfunc_offset",
+                    "vfunc_index",
+                ],
+            )
+        ]
+
+        with patch.object(
+            module,
+            "preprocess_common_skill",
+            mock_preprocess_common_skill,
+        ):
+            result = await module.preprocess_skill(
+                session="session",
+                skill_name="skill",
+                expected_outputs=["out.yaml"],
+                old_yaml_map={"k": "v"},
+                new_binary_dir="bin_dir",
+                platform="windows",
+                image_base=0x180000000,
+                debug=True,
+            )
+
+        self.assertTrue(result)
+        mock_preprocess_common_skill.assert_awaited_once_with(
+            session="session",
+            expected_outputs=["out.yaml"],
+            old_yaml_map={"k": "v"},
+            new_binary_dir="bin_dir",
+            platform="windows",
+            image_base=0x180000000,
+            func_names=["CLoopModeFactory_CLoopModeGame_Init"],
             func_xrefs=expected_func_xrefs,
             func_vtable_relations=expected_func_vtable_relations,
             generate_yaml_desired_fields=expected_generate_yaml_desired_fields,

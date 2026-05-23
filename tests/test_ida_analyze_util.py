@@ -3656,6 +3656,148 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
         )
         mock_load_symbol.assert_called_once()
 
+    async def test_preprocess_func_xrefs_uses_inline_alias_single_caller(
+        self,
+    ) -> None:
+        with patch.object(
+            ida_analyze_util,
+            "_load_symbol_addr_from_current_yaml",
+            return_value=0x180200000,
+        ) as mock_load_symbol, patch.object(
+            ida_analyze_util,
+            "_collect_single_call_or_jump_xref_func_starts_for_ea",
+            AsyncMock(return_value={0x180300000}),
+        ) as mock_collect_callers, patch.object(
+            ida_analyze_util,
+            "preprocess_gen_func_sig_via_mcp",
+            AsyncMock(
+                return_value={
+                    "func_va": "0x180300000",
+                    "func_rva": "0x300000",
+                    "func_size": "0x20",
+                    "func_sig": "55 48 89 E5",
+                }
+            ),
+        ) as mock_gen_sig:
+            result = await ida_analyze_util.preprocess_func_xrefs_via_mcp(
+                session="session",
+                func_name="CLoopModeFactory_CLoopModeGame_Init",
+                xref_strings=[],
+                xref_gvs=[],
+                xref_signatures=[],
+                xref_funcs=[],
+                exclude_funcs=[],
+                exclude_strings=[],
+                exclude_gvs=[],
+                exclude_signatures=[],
+                inline_alias="CLoopModeGame_StaticInit",
+                new_binary_dir="bin_dir",
+                platform="linux",
+                image_base=0x180000000,
+                debug=True,
+            )
+
+        self.assertEqual("CLoopModeFactory_CLoopModeGame_Init", result["func_name"])
+        self.assertEqual("0x180300000", result["func_va"])
+        mock_load_symbol.assert_called_once_with(
+            "bin_dir",
+            "linux",
+            "CLoopModeGame_StaticInit",
+            "func_va",
+            debug=True,
+            debug_label="inline_alias",
+        )
+        mock_collect_callers.assert_awaited_once_with(
+            session="session",
+            target_ea=0x180200000,
+            debug=True,
+        )
+        self.assertEqual(0x180300000, mock_gen_sig.await_args.kwargs["func_va"])
+
+    async def test_preprocess_func_xrefs_uses_inline_alias_self_without_callers(
+        self,
+    ) -> None:
+        with patch.object(
+            ida_analyze_util,
+            "_load_symbol_addr_from_current_yaml",
+            return_value=0x180200000,
+        ), patch.object(
+            ida_analyze_util,
+            "_collect_single_call_or_jump_xref_func_starts_for_ea",
+            AsyncMock(return_value=set()),
+        ) as mock_collect_callers, patch.object(
+            ida_analyze_util,
+            "preprocess_gen_func_sig_via_mcp",
+            AsyncMock(
+                return_value={
+                    "func_va": "0x180200000",
+                    "func_rva": "0x200000",
+                    "func_size": "0x80",
+                    "func_sig": "48 89 5C 24 08",
+                }
+            ),
+        ) as mock_gen_sig:
+            result = await ida_analyze_util.preprocess_func_xrefs_via_mcp(
+                session="session",
+                func_name="CLoopModeFactory_CLoopModeGame_Init",
+                xref_strings=[],
+                xref_gvs=[],
+                xref_signatures=[],
+                xref_funcs=[],
+                exclude_funcs=[],
+                exclude_strings=[],
+                exclude_gvs=[],
+                exclude_signatures=[],
+                inline_alias="CLoopModeGame_StaticInit",
+                new_binary_dir="bin_dir",
+                platform="windows",
+                image_base=0x180000000,
+                debug=True,
+            )
+
+        self.assertEqual("CLoopModeFactory_CLoopModeGame_Init", result["func_name"])
+        self.assertEqual("0x180200000", result["func_va"])
+        mock_collect_callers.assert_awaited_once()
+        self.assertEqual(0x180200000, mock_gen_sig.await_args.kwargs["func_va"])
+
+    async def test_single_call_or_jump_xref_helper_requires_one_xref_per_function(
+        self,
+    ) -> None:
+        session = AsyncMock()
+        session.call_tool = AsyncMock(
+            return_value=_py_eval_payload(
+                ["0x180101000", "0x180101020", "0x180202000"]
+            )
+        )
+
+        with patch.object(
+            ida_analyze_util,
+            "_normalize_func_start_for_code_addr",
+            AsyncMock(
+                side_effect=[
+                    0x180100000,
+                    0x180100000,
+                    0x180200000,
+                ]
+            ),
+        ) as mock_normalize:
+            helper = getattr(
+                ida_analyze_util,
+                "_collect_single_call_or_jump_xref_func_starts_for_ea",
+            )
+            result = await helper(
+                session=session,
+                target_ea=0x180300000,
+                debug=True,
+            )
+
+        self.assertEqual({0x180200000}, result)
+        self.assertEqual(3, mock_normalize.await_count)
+        self.assertIn(
+            "fl_CF",
+            session.call_tool.await_args.kwargs["arguments"]["code"],
+        )
+
     async def test_preprocess_func_xrefs_fails_when_signature_set_is_empty(
         self,
     ) -> None:
@@ -3735,6 +3877,7 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
                         "xref_gvs": ["g_NetworkingState"],
                         "xref_signatures": ["C7 44 24 40 64 FF FF FF"],
                         "xref_funcs": ["LoggingChannel_Shutdown"],
+                        "inline_alias": "LoggingChannel_StaticInit",
                         "xref_floats": ["64.0", "0.5"],
                         "exclude_funcs": ["LoggingChannel_Rebuild"],
                         "exclude_strings": ["FULLMATCH:Networking"],
@@ -3771,6 +3914,10 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             ["LoggingChannel_Shutdown"],
             mock_func_xrefs.call_args.kwargs["xref_funcs"],
+        )
+        self.assertEqual(
+            "LoggingChannel_StaticInit",
+            mock_func_xrefs.call_args.kwargs["inline_alias"],
         )
         self.assertEqual(
             ["64.0", "0.5"],
@@ -3900,6 +4047,72 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertFalse(result)
+
+    async def test_preprocess_common_skill_allows_inline_alias_positive_source(
+        self,
+    ) -> None:
+        with patch.object(
+            ida_analyze_util,
+            "preprocess_func_sig_via_mcp",
+            AsyncMock(return_value=None),
+        ), patch.object(
+            ida_analyze_util,
+            "preprocess_func_xrefs_via_mcp",
+            AsyncMock(
+                return_value={
+                    "func_name": "CLoopModeFactory_CLoopModeGame_Init",
+                    "func_va": "0x180200000",
+                    "func_rva": "0x200000",
+                    "func_size": "0x80",
+                }
+            ),
+        ) as mock_func_xrefs, patch.object(
+            ida_analyze_util,
+            "write_func_yaml",
+        ) as mock_write_func_yaml, patch.object(
+            ida_analyze_util,
+            "_rename_func_in_ida",
+            AsyncMock(return_value=None),
+        ):
+            result = await ida_analyze_util.preprocess_common_skill(
+                session="session",
+                expected_outputs=[
+                    "/tmp/CLoopModeFactory_CLoopModeGame_Init.windows.yaml"
+                ],
+                old_yaml_map={},
+                new_binary_dir="/tmp",
+                platform="windows",
+                image_base=0x180000000,
+                func_names=["CLoopModeFactory_CLoopModeGame_Init"],
+                func_xrefs=[
+                    {
+                        "func_name": "CLoopModeFactory_CLoopModeGame_Init",
+                        "xref_strings": [],
+                        "xref_gvs": [],
+                        "xref_signatures": [],
+                        "xref_funcs": [],
+                        "exclude_funcs": [],
+                        "exclude_strings": [],
+                        "exclude_gvs": [],
+                        "exclude_signatures": [],
+                        "inline_alias": "CLoopModeGame_StaticInit",
+                    }
+                ],
+                generate_yaml_desired_fields=[
+                    (
+                        "CLoopModeFactory_CLoopModeGame_Init",
+                        ["func_name", "func_va", "func_rva", "func_size"],
+                    )
+                ],
+                debug=True,
+            )
+
+        self.assertTrue(result)
+        self.assertEqual(
+            "CLoopModeGame_StaticInit",
+            mock_func_xrefs.call_args.kwargs["inline_alias"],
+        )
+        mock_write_func_yaml.assert_called_once()
 
     async def test_preprocess_common_skill_rejects_invalid_float_xref_values(
         self,
@@ -4064,6 +4277,54 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertTrue(result)
+
+    def test_can_probe_future_func_fast_path_requires_inline_alias_yaml(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            result_before_yaml = ida_analyze_util._can_probe_future_func_fast_path(
+                func_name="CLoopModeFactory_CLoopModeGame_Init",
+                func_xrefs_map={
+                    "CLoopModeFactory_CLoopModeGame_Init": {
+                        "xref_strings": [],
+                        "xref_gvs": [],
+                        "xref_signatures": [],
+                        "xref_funcs": [],
+                        "exclude_funcs": [],
+                        "exclude_strings": [],
+                        "exclude_gvs": [],
+                        "exclude_signatures": [],
+                        "inline_alias": "CLoopModeGame_StaticInit",
+                    }
+                },
+                new_binary_dir=temp_dir,
+                platform="windows",
+                debug=True,
+            )
+            alias_yaml_path = Path(temp_dir) / "CLoopModeGame_StaticInit.windows.yaml"
+            alias_yaml_path.write_text("func_va: '0x180200000'\n", encoding="utf-8")
+            result_after_yaml = ida_analyze_util._can_probe_future_func_fast_path(
+                func_name="CLoopModeFactory_CLoopModeGame_Init",
+                func_xrefs_map={
+                    "CLoopModeFactory_CLoopModeGame_Init": {
+                        "xref_strings": [],
+                        "xref_gvs": [],
+                        "xref_signatures": [],
+                        "xref_funcs": [],
+                        "exclude_funcs": [],
+                        "exclude_strings": [],
+                        "exclude_gvs": [],
+                        "exclude_signatures": [],
+                        "inline_alias": "CLoopModeGame_StaticInit",
+                    }
+                },
+                new_binary_dir=temp_dir,
+                platform="windows",
+                debug=True,
+            )
+
+        self.assertFalse(result_before_yaml)
+        self.assertTrue(result_after_yaml)
 
 
 class TestFunctionDetailExportPyEvalBuilder(unittest.IsolatedAsyncioTestCase):
