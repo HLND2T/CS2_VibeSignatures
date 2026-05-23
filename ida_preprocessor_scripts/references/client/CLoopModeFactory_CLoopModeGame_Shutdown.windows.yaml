@@ -1,0 +1,41 @@
+func_name: CLoopModeFactory_CLoopModeGame_Shutdown
+func_va: '0x18099cd70'
+disasm_code: |-
+  .text:000000018099CD70                 push    rbx
+  .text:000000018099CD72                 sub     rsp, 30h
+  .text:000000018099CD76                 call    sub_181166E20
+  .text:000000018099CD7B                 mov     rcx, cs:g_pEngineServiceMgr
+  .text:000000018099CD82                 mov     rax, [rcx]
+  .text:000000018099CD85                 call    qword ptr [rax+0E8h]  ; E8h = IEngineServiceMgr_GetEventDispatcher
+  .text:000000018099CD8B                 mov     rbx, rax
+  .text:000000018099CD8E                 call    nullsub_325
+  .text:000000018099CD93                 mov     rdx, cs:off_1819F4B28
+  .text:000000018099CD9A                 lea     rcx, [rsp+38h+arg_8]
+  .text:000000018099CD9F                 call    unknown_libname_425; Microsoft VisualC v7/14 64bit runtime
+  .text:000000018099CDA4                 mov     r8, [rsp+38h+arg_8]
+  .text:000000018099CDA9                 lea     rax, sub_18016D940
+  .text:000000018099CDB0                 mov     [rsp+38h+var_10], rax
+  .text:000000018099CDB5                 lea     rdx, [rsp+38h+var_18]
+  .text:000000018099CDBA                 lea     rax, IGameSystem_PostInit
+  .text:000000018099CDC1                 mov     rcx, rbx
+  .text:000000018099CDC4                 mov     [rsp+38h+var_18], rax
+  .text:000000018099CDC9                 call    sub_18091C740
+  .text:000000018099CDCE                 add     rsp, 30h
+  .text:000000018099CDD2                 pop     rbx
+  .text:000000018099CDD3                 jmp     IGameSystem_ShutdownAllSystems
+procedure: |-
+  __int64 CLoopModeFactory_CLoopModeGame_Shutdown()
+  {
+    __int64 v0; // rbx
+    _QWORD v2[3]; // [rsp+20h] [rbp-18h] BYREF
+    __int64 v3; // [rsp+48h] [rbp+10h] BYREF
+
+    sub_181166E20();
+    v0 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)g_pEngineServiceMgr + 232LL))(g_pEngineServiceMgr); // 232LL = 0xE8 = IEngineServiceMgr_GetEventDispatcher
+    nullsub_325();
+    unknown_libname_425(&v3, &unk_18201C850);
+    v2[1] = sub_18016D940;
+    v2[0] = IGameSystem_PostInit;
+    sub_18091C740(v0, v2, v3);
+    return IGameSystem_ShutdownAllSystems();
+  }

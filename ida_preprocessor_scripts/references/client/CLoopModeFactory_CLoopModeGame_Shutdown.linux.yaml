@@ -1,0 +1,151 @@
+func_name: CLoopModeFactory_CLoopModeGame_Shutdown
+func_va: '0x15d6c10'
+disasm_code: |-
+  .text:00000000015D6C10                 push    rbp
+  .text:00000000015D6C11                 mov     rbp, rsp
+  .text:00000000015D6C14                 push    rbx
+  .text:00000000015D6C15                 sub     rsp, 48h
+  .text:00000000015D6C19                 call    sub_1F49CC0
+  .text:00000000015D6C1E                 lea     rax, g_pEngineServiceMgr
+  .text:00000000015D6C25                 mov     rdi, [rax]
+  .text:00000000015D6C28                 mov     rax, [rdi]
+  .text:00000000015D6C2B                 call    qword ptr [rax+0E8h]  ; E8h = IEngineServiceMgr_GetEventDispatcher
+  .text:00000000015D6C31                 mov     rbx, rax
+  .text:00000000015D6C34                 call    nullsub_563
+  .text:00000000015D6C39                 lea     rax, off_41ECF30
+  .text:00000000015D6C40                 mov     rdi, [rax]
+  .text:00000000015D6C43                 call    sub_2A2DA30
+  .text:00000000015D6C48                 lea     rdx, IGameSystem_PostInit
+  .text:00000000015D6C4F                 lea     rcx, sub_BFADF0
+  .text:00000000015D6C56                 mov     [rbp+var_20], 0
+  .text:00000000015D6C5E                 mov     [rbp+var_28], rcx
+  .text:00000000015D6C62                 mov     [rbp+var_48], rax
+  .text:00000000015D6C66                 mov     [rbp+var_30], rdx
+  .text:00000000015D6C6A                 test    rax, rax
+  .text:00000000015D6C6D                 jz      loc_15D6D0B
+  .text:00000000015D6C73                 mov     rdi, rax
+  .text:00000000015D6C76                 call    sub_2A2DA40
+  .text:00000000015D6C7B                 test    al, al
+  .text:00000000015D6C7D                 jz      loc_15D6D0B
+  .text:00000000015D6C83                 call    _ThreadGetCurrentId
+  .text:00000000015D6C88                 ; unsigned __int64
+  .text:00000000015D6C88                 mov     rsi, rax; unsigned __int64
+  .text:00000000015D6C8B                 cmp     rax, [rbx+8]
+  .text:00000000015D6C8F                 jz      loc_15D6D18
+  .text:00000000015D6C95                 mov     eax, [rbx]
+  .text:00000000015D6C97                 test    eax, eax
+  .text:00000000015D6C99                 jz      loc_15D6D20
+  .text:00000000015D6C9F                 ; this
+  .text:00000000015D6C9F                 mov     rdi, rbx; this
+  .text:00000000015D6CA2                 call    __ZN12CAtomicMutex11AcquireLockEy; CAtomicMutex::AcquireLock(ulong long)
+  .text:00000000015D6CA7                 lea     rdx, [rbp+var_48]
+  .text:00000000015D6CAB                 lea     rsi, [rbx+18h]
+  .text:00000000015D6CAF                 lea     rdi, [rbx+20h]
+  .text:00000000015D6CB3                 call    sub_15D0D20
+  .text:00000000015D6CB8                 mov     rsi, rax
+  .text:00000000015D6CBB                 mov     [rbp+var_3C], rax
+  .text:00000000015D6CBF                 shr     rsi, 20h
+  .text:00000000015D6CC3                 mov     [rbp+var_34], edx
+  .text:00000000015D6CC6                 cmp     esi, [rbx+20h]
+  .text:00000000015D6CC9                 jnb     short loc_15D6CF6
+  .text:00000000015D6CCB                 mov     eax, esi
+  .text:00000000015D6CCD                 lea     rdx, [rax+rax*2]
+  .text:00000000015D6CD1                 shl     rdx, 4
+  .text:00000000015D6CD5                 test    dword ptr [rbx+24h], 7FFFFFFFh
+  .text:00000000015D6CDC                 jz      short loc_15D6D48
+  .text:00000000015D6CDE                 add     rdx, [rbx+28h]
+  .text:00000000015D6CE2                 cmp     esi, [rdx]
+  .text:00000000015D6CE4                 jz      short loc_15D6CF6
+  .text:00000000015D6CE6                 ; _QWORD
+  .text:00000000015D6CE6                 add     rdx, 18h; _QWORD
+  .text:00000000015D6CEA                 ; _QWORD
+  .text:00000000015D6CEA                 mov     rdi, rbx; _QWORD
+  .text:00000000015D6CED                 ; _QWORD
+  .text:00000000015D6CED                 lea     rsi, [rbp+var_30]; _QWORD
+  .text:00000000015D6CF1                 call    __ZN21CEventDispatcher_Base28UnregisterEventListener_BaseERK20CUtlAbstractDelegateR10CUtlVectorINS_19EventListenerInfo_tEi25CUtlVectorMemory_GrowableIS4_iLm0EEE; CEventDispatcher_Base::UnregisterEventListener_Base(CUtlAbstractDelegate const&,CUtlVector<CEventDispatcher_Base::EventListenerInfo_t,int,CUtlVectorMemory_Growable<CEventDispatcher_Base::EventListenerInfo_t,int,0ul>> &)
+  .text:00000000015D6CF6                 sub     word ptr [rbx+4], 1
+  .text:00000000015D6CFB                 jnz     short loc_15D6D0B
+  .text:00000000015D6CFD                 mov     qword ptr [rbx+8], 0
+  .text:00000000015D6D05                 lock sub dword ptr [rbx], 3
+  .text:00000000015D6D09                 jnz     short loc_15D6D50
+  .text:00000000015D6D0B                 mov     rbx, [rbp+var_8]
+  .text:00000000015D6D0F                 leave
+  .text:00000000015D6D10                 jmp     IGameSystem_ShutdownAllSystems
+  .text:00000000015D6D18                 add     word ptr [rbx+4], 1
+  .text:00000000015D6D1D                 jmp     short loc_15D6CA7
+  .text:00000000015D6D20                 mov     edx, 3
+  .text:00000000015D6D25                 lock cmpxchg [rbx], edx
+  .text:00000000015D6D29                 jnz     loc_15D6C9F
+  .text:00000000015D6D2F                 mov     eax, 1
+  .text:00000000015D6D34                 mov     [rbx+8], rsi
+  .text:00000000015D6D38                 mov     [rbx+4], ax
+  .text:00000000015D6D3C                 jmp     loc_15D6CA7
+  .text:00000000015D6D48                 cmp     [rdx], esi
+  .text:00000000015D6D4A                 jnz     short loc_15D6CE6
+  .text:00000000015D6D4C                 jmp     short loc_15D6CF6
+  .text:00000000015D6D50                 ; unsigned int *
+  .text:00000000015D6D50                 mov     rdi, rbx; unsigned int *
+  .text:00000000015D6D53                 call    __Z21ThreadAtomicNotifyOnePKj; ThreadAtomicNotifyOne(uint const*)
+  .text:00000000015D6D58                 jmp     short loc_15D6D0B
+procedure: |-
+  __int64 CLoopModeFactory_CLoopModeGame_Shutdown()
+  {
+    __int64 v0; // rbx
+    __int64 v1; // rax
+    unsigned __int64 CurrentId; // rsi
+    int v3; // edx
+    __int64 v4; // rdx
+    __int64 v7; // [rsp+8h] [rbp-48h] BYREF
+    __int64 v8; // [rsp+14h] [rbp-3Ch]
+    int v9; // [rsp+1Ch] [rbp-34h]
+    _QWORD v10[5]; // [rsp+20h] [rbp-30h] BYREF
+
+    sub_1F49CC0();
+    v0 = (*(__int64 (__fastcall **)(_QWORD *))(*g_pEngineServiceMgr + 232LL))(g_pEngineServiceMgr); // 232LL = 0xE8 = IEngineServiceMgr_GetEventDispatcher
+    nullsub_563();
+    v1 = sub_2A2DA30(&unk_43DE5C0);
+    v10[2] = 0;
+    v10[1] = sub_BFADF0;
+    v7 = v1;
+    v10[0] = IGameSystem_PostInit;
+    if ( !v1 || !(unsigned __int8)sub_2A2DA40(v1) )
+      return IGameSystem_ShutdownAllSystems();
+    CurrentId = ThreadGetCurrentId();
+    if ( CurrentId == *(_QWORD *)(v0 + 8) )
+    {
+      ++*(_WORD *)(v0 + 4);
+    }
+    else if ( *(_DWORD *)v0 || _InterlockedCompareExchange((volatile signed __int32 *)v0, 3, 0) )
+    {
+      CAtomicMutex::AcquireLock((CAtomicMutex *)v0, CurrentId);
+    }
+    else
+    {
+      *(_QWORD *)(v0 + 8) = CurrentId;
+      *(_WORD *)(v0 + 4) = 1;
+    }
+    v8 = sub_15D0D20(v0 + 32, v0 + 24, &v7);
+    v9 = v3;
+    if ( HIDWORD(v8) < *(_DWORD *)(v0 + 32) )
+    {
+      v4 = 48LL * HIDWORD(v8);
+      if ( (*(_DWORD *)(v0 + 36) & 0x7FFFFFFF) == 0 )
+      {
+        if ( *(_DWORD *)v4 == HIDWORD(v8) )
+          goto LABEL_10;
+        goto LABEL_9;
+      }
+      v4 += *(_QWORD *)(v0 + 40);
+      if ( HIDWORD(v8) != *(_DWORD *)v4 )
+  LABEL_9:
+        CEventDispatcher_Base::UnregisterEventListener_Base(v0, v10, v4 + 24);
+    }
+  LABEL_10:
+    if ( (*(_WORD *)(v0 + 4))-- == 1 )
+    {
+      *(_QWORD *)(v0 + 8) = 0;
+      if ( _InterlockedSub((volatile signed __int32 *)v0, 3u) )
+        ThreadAtomicNotifyOne((const unsigned int *)v0);
+    }
+    return IGameSystem_ShutdownAllSystems();
+  }

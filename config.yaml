@@ -2521,6 +2521,13 @@ modules:
           - CLoopModeFactory_CLoopModeGame_vtable.{platform}.yaml
           - ../engine/ILoopModeFactory_Shutdown.{platform}.yaml
 
+      - name: find-IEngineServiceMgr_GetEventDispatcher-AND-IGameSystem_ShutdownAllSystems
+        expected_output:
+          - IEngineServiceMgr_GetEventDispatcher.{platform}.yaml
+          - IGameSystem_ShutdownAllSystems.{platform}.yaml
+        expected_input:
+          - CLoopModeFactory_CLoopModeGame_Shutdown.{platform}.yaml
+
       - name: find-CEntityInstance_vtable
         expected_output:
           - CEntityInstance_vtable.{platform}.yaml
@@ -3368,6 +3375,11 @@ modules:
         alias:
           - IGameSystem::DestroyAllGameSystems
 
+      - name: IGameSystem_ShutdownAllSystems
+        category: func
+        alias:
+          - IGameSystem::ShutdownAllSystems
+
       - name: IGameSystem_LoopDestroyAllSystems
         category: func
         alias:
@@ -3506,6 +3518,11 @@ modules:
         category: vfunc
         alias:
           - IEngineServiceMgr::GetActiveLoopClientServerMode
+
+      - name: IEngineServiceMgr_GetEventDispatcher
+        category: vfunc
+        alias:
+          - IEngineServiceMgr::GetEventDispatcher
 
       - name: CAM_Command_CommandHandler
         category: func
@@ -6323,6 +6340,13 @@ modules:
         expected_input:
           - CLoopModeFactory_CLoopModeGame_vtable.{platform}.yaml
           - ../engine/ILoopModeFactory_Shutdown.{platform}.yaml
+
+      - name: find-IEngineServiceMgr_GetEventDispatcher-AND-IGameSystem_ShutdownAllSystems
+        expected_output:
+          - IEngineServiceMgr_GetEventDispatcher.{platform}.yaml
+          - IGameSystem_ShutdownAllSystems.{platform}.yaml
+        expected_input:
+          - CLoopModeFactory_CLoopModeGame_Shutdown.{platform}.yaml
 
       - name: find-CLoopModeGame_OnLoopActivate
         expected_output:
@@ -9604,6 +9628,11 @@ modules:
         category: func
         alias:
           - IGameSystem::DestroyAllGameSystems
+
+      - name: IGameSystem_ShutdownAllSystems
+        category: func
+        alias:
+          - IGameSystem::ShutdownAllSystems
 
       - name: IGameSystem_LoopDestroyAllSystems
         category: func
