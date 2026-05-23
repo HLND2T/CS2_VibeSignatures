@@ -4735,6 +4735,13 @@ modules:
         expected_input:
           - CSource2Server_PreShutdown.{platform}.yaml
 
+      - name: find-CSource2Server_Shutdown
+        expected_output:
+          - CSource2Server_Shutdown.{platform}.yaml
+        expected_input:
+          - CSource2Server_vtable.{platform}.yaml
+          - ../engine/IAppSystem_Shutdown.{platform}.yaml
+
       - name: find-CSource2Server_Init
         expected_output:
           - CSource2Server_Init.{platform}.yaml
@@ -7674,6 +7681,11 @@ modules:
         category: vfunc
         alias:
           - IAppSystem::PreShutdown
+
+      - name: CSource2Server_Shutdown
+        category: vfunc
+        alias:
+          - CSource2Server::Shutdown
 
       - name: CSource2Server_GameFrame
         category: vfunc
