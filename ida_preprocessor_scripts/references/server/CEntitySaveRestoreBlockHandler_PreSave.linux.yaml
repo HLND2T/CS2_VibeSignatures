@@ -1,146 +1,146 @@
 func_name: CEntitySaveRestoreBlockHandler_PreSave
-func_va: '0x1551300'
+func_va: '0x1558fd0'
 disasm_code: |-
-  .text:0000000001551300                 push    rbp
-  .text:0000000001551301                 mov     rbp, rsp
-  .text:0000000001551304                 push    r15
-  .text:0000000001551306                 mov     r15, rsi
-  .text:0000000001551309                 push    r14
-  .text:000000000155130B                 push    r13
-  .text:000000000155130D                 push    r12
-  .text:000000000155130F                 push    rbx
-  .text:0000000001551310                 mov     rbx, rdx
-  .text:0000000001551313                 sub     rsp, 38h
-  .text:0000000001551317                 mov     [rbp+var_58], rdi
-  .text:000000000155131B                 mov     edi, cs:dword_246E410
-  .text:0000000001551321                 mov     [rbp+var_48], rdx
-  .text:0000000001551325                 test    edi, edi
-  .text:0000000001551327                 js      loc_1551480
-  .text:000000000155132D                 lea     rcx, [rbp+var_48]
-  .text:0000000001551331                 mov     esi, 189h
-  .text:0000000001551336                 xor     edx, edx
-  .text:0000000001551338                 call    sub_DEF450
-  .text:000000000155133D                 mov     eax, [rbx]
-  .text:000000000155133F                 xor     r14d, r14d
-  .text:0000000001551342                 test    eax, eax
-  .text:0000000001551344                 jg      short loc_1551373
-  .text:0000000001551346                 jmp     loc_15513FF
-  .text:0000000001551350                 mov     rdi, [r13+0]
-  .text:0000000001551354                 test    rdi, rdi
-  .text:0000000001551357                 jz      loc_1551420
-  .text:000000000155135D                 mov     rax, [rdi]
-  .text:0000000001551360                 call    qword ptr [rax+0C0h]
-  .text:0000000001551366                 add     r14, 1
-  .text:000000000155136A                 cmp     [rbx], r14d
-  .text:000000000155136D                 jle     loc_15513FF
-  .text:0000000001551373                 mov     rax, [rbx+8]
-  .text:0000000001551377                 mov     r12d, r14d
-  .text:000000000155137A                 lea     rax, [rax+r14*4]
-  .text:000000000155137E                 mov     ecx, [rax]
-  .text:0000000001551380                 cmp     ecx, 0FFFFFFFFh
-  .text:0000000001551383                 jz      short loc_15513BF
-  .text:0000000001551385                 mov     rsi, cs:qword_2566120
-  .text:000000000155138C                 cmp     ecx, 0FFFFFFFEh
-  .text:000000000155138F                 jz      short loc_15513BF
-  .text:0000000001551391                 test    rsi, rsi
-  .text:0000000001551394                 jz      short loc_15513BF
-  .text:0000000001551396                 movzx   eax, word ptr [rax]
-  .text:0000000001551399                 mov     rdx, rax
-  .text:000000000155139C                 shr     rdx, 9
-  .text:00000000015513A0                 and     edx, 3Fh
-  .text:00000000015513A3                 mov     rdx, [rsi+rdx*8]
-  .text:00000000015513A7                 test    rdx, rdx
-  .text:00000000015513AA                 jz      short loc_15513BF
-  .text:00000000015513AC                 and     eax, 1FFh
-  .text:00000000015513B1                 imul    rax, 70h ; 'p'
-  .text:00000000015513B5                 lea     r13, [rdx+rax]
-  .text:00000000015513B9                 cmp     ecx, [r13+10h]
-  .text:00000000015513BD                 jz      short loc_1551350
-  .text:00000000015513BF                 lea     r13, dword_265D880
-  .text:00000000015513C6                 ; _QWORD
-  .text:00000000015513C6                 mov     esi, 3; _QWORD
-  .text:00000000015513CB                 ; _QWORD
-  .text:00000000015513CB                 mov     edi, [r13+0]; _QWORD
-  .text:00000000015513CF                 call    _LoggingSystem_IsChannelEnabled
-  .text:00000000015513D4                 test    al, al
-  .text:00000000015513D6                 jz      short loc_1551366
-  .text:00000000015513D8                 ; _QWORD
-  .text:00000000015513D8                 mov     edi, [r13+0]; _QWORD
-  .text:00000000015513DC                 mov     ecx, r12d
-  .text:00000000015513DF                 ; _QWORD
-  .text:00000000015513DF                 mov     esi, 3; _QWORD
-  .text:00000000015513E4                 xor     eax, eax
-  .text:00000000015513E6                 lea     rdx, aPresaveDEntity; "PreSave(%d):  entity identity is missin"...
-  .text:00000000015513ED                 add     r14, 1
-  .text:00000000015513F1                 call    _LoggingSystem_Log
-  .text:00000000015513F6                 cmp     [rbx], r14d
-  .text:00000000015513F9                 jg      loc_1551373
-  .text:00000000015513FF                 mov     rdi, [rbp+var_58]
-  .text:0000000001551403                 mov     rdx, rbx
-  .text:0000000001551406                 mov     rsi, r15
-  .text:0000000001551409                 call    CEntitySaveRestoreBlockHandler_SaveInitEntities
-  .text:000000000155140E                 add     rsp, 38h
-  .text:0000000001551412                 pop     rbx
-  .text:0000000001551413                 pop     r12
-  .text:0000000001551415                 pop     r13
-  .text:0000000001551417                 pop     r14
-  .text:0000000001551419                 pop     r15
-  .text:000000000155141B                 pop     rbp
-  .text:000000000155141C                 retn
-  .text:0000000001551420                 lea     rax, dword_265D880
-  .text:0000000001551427                 ; _QWORD
-  .text:0000000001551427                 mov     esi, 3; _QWORD
-  .text:000000000155142C                 ; _QWORD
-  .text:000000000155142C                 mov     edi, [rax]; _QWORD
-  .text:000000000155142E                 call    _LoggingSystem_IsChannelEnabled
-  .text:0000000001551433                 test    al, al
-  .text:0000000001551435                 jz      loc_1551366
-  .text:000000000155143B                 mov     r9, [r13+20h]
-  .text:000000000155143F                 lea     rax, haystack
-  .text:0000000001551446                 mov     ecx, r14d
-  .text:0000000001551449                 lea     rsi, dword_265D880
-  .text:0000000001551450                 lea     rdx, aPresaveDEntity_0; "PreSave(%d):  entity instance is missin"...
-  .text:0000000001551457                 mov     r8, [r13+18h]
-  .text:000000000155145B                 test    r9, r9
-  .text:000000000155145E                 cmovz   r9, rax
-  .text:0000000001551462                 ; _QWORD
-  .text:0000000001551462                 mov     edi, [rsi]; _QWORD
-  .text:0000000001551464                 ; _QWORD
-  .text:0000000001551464                 mov     esi, 3; _QWORD
-  .text:0000000001551469                 test    r8, r8
-  .text:000000000155146C                 cmovz   r8, rax
-  .text:0000000001551470                 xor     eax, eax
-  .text:0000000001551472                 call    _LoggingSystem_Log
-  .text:0000000001551477                 jmp     loc_1551366
-  .text:0000000001551480                 lea     r13, off_2288498
-  .text:0000000001551487                 mov     [rbp+var_38], 0
-  .text:000000000155148F                 mov     [rbp+var_40], r13
-  .text:0000000001551493                 movzx   eax, cs:byte_25EF240
-  .text:000000000155149A                 test    al, al
-  .text:000000000155149C                 jz      short loc_15514D3
-  .text:000000000155149E                 mov     rax, cs:qword_25EF248
-  .text:00000000015514A5                 lea     r12, [rbp+var_40]
-  .text:00000000015514A9                 mov     rdi, r12
-  .text:00000000015514AC                 mov     [rbp+var_40], rax
-  .text:00000000015514B0                 call    qword ptr [rax+188h]
-  .text:00000000015514B6                 mov     rdi, r12
-  .text:00000000015514B9                 mov     [rbp+var_40], r13
-  .text:00000000015514BD                 mov     cs:dword_246E410, eax
-  .text:00000000015514C3                 call    nullsub_503
-  .text:00000000015514C8                 mov     edi, cs:dword_246E410
-  .text:00000000015514CE                 jmp     loc_155132D
-  .text:00000000015514D3                 lea     r12, byte_25EF240
-  .text:00000000015514DA                 ; _QWORD
-  .text:00000000015514DA                 mov     rdi, r12; _QWORD
-  .text:00000000015514DD                 call    ___cxa_guard_acquire
-  .text:00000000015514E2                 test    eax, eax
-  .text:00000000015514E4                 jz      short loc_155149E
-  .text:00000000015514E6                 mov     rax, cs:off_246DDC0
-  .text:00000000015514ED                 ; _QWORD
-  .text:00000000015514ED                 mov     rdi, r12; _QWORD
-  .text:00000000015514F0                 mov     cs:qword_25EF248, rax
-  .text:00000000015514F7                 call    ___cxa_guard_release
-  .text:00000000015514FC                 jmp     short loc_155149E
+  .text:0000000001558FD0                 push    rbp
+  .text:0000000001558FD1                 mov     rbp, rsp
+  .text:0000000001558FD4                 push    r15
+  .text:0000000001558FD6                 mov     r15, rsi
+  .text:0000000001558FD9                 push    r14
+  .text:0000000001558FDB                 push    r13
+  .text:0000000001558FDD                 push    r12
+  .text:0000000001558FDF                 push    rbx
+  .text:0000000001558FE0                 mov     rbx, rdx
+  .text:0000000001558FE3                 sub     rsp, 38h
+  .text:0000000001558FE7                 mov     [rbp+var_58], rdi
+  .text:0000000001558FEB                 mov     edi, cs:dword_24776D0
+  .text:0000000001558FF1                 mov     [rbp+var_48], rdx
+  .text:0000000001558FF5                 test    edi, edi
+  .text:0000000001558FF7                 js      loc_1559150
+  .text:0000000001558FFD                 lea     rcx, [rbp+var_48]
+  .text:0000000001559001                 mov     esi, 189h
+  .text:0000000001559006                 xor     edx, edx
+  .text:0000000001559008                 call    sub_DF54D0
+  .text:000000000155900D                 mov     eax, [rbx]
+  .text:000000000155900F                 xor     r14d, r14d
+  .text:0000000001559012                 test    eax, eax
+  .text:0000000001559014                 jg      short loc_1559043
+  .text:0000000001559016                 jmp     loc_15590CF
+  .text:0000000001559020                 mov     rdi, [r13+0]
+  .text:0000000001559024                 test    rdi, rdi
+  .text:0000000001559027                 jz      loc_15590F0
+  .text:000000000155902D                 mov     rax, [rdi]
+  .text:0000000001559030                 call    qword ptr [rax+0C0h]  ; 0C0h = CEntityInstance_OnSave
+  .text:0000000001559036                 add     r14, 1
+  .text:000000000155903A                 cmp     [rbx], r14d
+  .text:000000000155903D                 jle     loc_15590CF
+  .text:0000000001559043                 mov     rax, [rbx+8]
+  .text:0000000001559047                 mov     r12d, r14d
+  .text:000000000155904A                 lea     rax, [rax+r14*4]
+  .text:000000000155904E                 mov     ecx, [rax]
+  .text:0000000001559050                 cmp     ecx, 0FFFFFFFFh
+  .text:0000000001559053                 jz      short loc_155908F
+  .text:0000000001559055                 mov     rsi, cs:qword_256F420
+  .text:000000000155905C                 cmp     ecx, 0FFFFFFFEh
+  .text:000000000155905F                 jz      short loc_155908F
+  .text:0000000001559061                 test    rsi, rsi
+  .text:0000000001559064                 jz      short loc_155908F
+  .text:0000000001559066                 movzx   eax, word ptr [rax]
+  .text:0000000001559069                 mov     rdx, rax
+  .text:000000000155906C                 shr     rdx, 9
+  .text:0000000001559070                 and     edx, 3Fh
+  .text:0000000001559073                 mov     rdx, [rsi+rdx*8]
+  .text:0000000001559077                 test    rdx, rdx
+  .text:000000000155907A                 jz      short loc_155908F
+  .text:000000000155907C                 and     eax, 1FFh
+  .text:0000000001559081                 imul    rax, 70h ; 'p'
+  .text:0000000001559085                 lea     r13, [rdx+rax]
+  .text:0000000001559089                 cmp     ecx, [r13+10h]
+  .text:000000000155908D                 jz      short loc_1559020
+  .text:000000000155908F                 lea     r13, dword_2666BA0
+  .text:0000000001559096                 ; _QWORD
+  .text:0000000001559096                 mov     esi, 3; _QWORD
+  .text:000000000155909B                 ; _QWORD
+  .text:000000000155909B                 mov     edi, [r13+0]; _QWORD
+  .text:000000000155909F                 call    _LoggingSystem_IsChannelEnabled
+  .text:00000000015590A4                 test    al, al
+  .text:00000000015590A6                 jz      short loc_1559036
+  .text:00000000015590A8                 ; _QWORD
+  .text:00000000015590A8                 mov     edi, [r13+0]; _QWORD
+  .text:00000000015590AC                 mov     ecx, r12d
+  .text:00000000015590AF                 ; _QWORD
+  .text:00000000015590AF                 mov     esi, 3; _QWORD
+  .text:00000000015590B4                 xor     eax, eax
+  .text:00000000015590B6                 lea     rdx, aPresaveDEntity; "PreSave(%d):  entity identity is missin"...
+  .text:00000000015590BD                 add     r14, 1
+  .text:00000000015590C1                 call    _LoggingSystem_Log
+  .text:00000000015590C6                 cmp     [rbx], r14d
+  .text:00000000015590C9                 jg      loc_1559043
+  .text:00000000015590CF                 mov     rdi, [rbp+var_58]
+  .text:00000000015590D3                 mov     rdx, rbx
+  .text:00000000015590D6                 mov     rsi, r15
+  .text:00000000015590D9                 call    CEntitySaveRestoreBlockHandler_SaveInitEntities
+  .text:00000000015590DE                 add     rsp, 38h
+  .text:00000000015590E2                 pop     rbx
+  .text:00000000015590E3                 pop     r12
+  .text:00000000015590E5                 pop     r13
+  .text:00000000015590E7                 pop     r14
+  .text:00000000015590E9                 pop     r15
+  .text:00000000015590EB                 pop     rbp
+  .text:00000000015590EC                 retn
+  .text:00000000015590F0                 lea     rax, dword_2666BA0
+  .text:00000000015590F7                 ; _QWORD
+  .text:00000000015590F7                 mov     esi, 3; _QWORD
+  .text:00000000015590FC                 ; _QWORD
+  .text:00000000015590FC                 mov     edi, [rax]; _QWORD
+  .text:00000000015590FE                 call    _LoggingSystem_IsChannelEnabled
+  .text:0000000001559103                 test    al, al
+  .text:0000000001559105                 jz      loc_1559036
+  .text:000000000155910B                 mov     r9, [r13+20h]
+  .text:000000000155910F                 lea     rax, haystack
+  .text:0000000001559116                 mov     ecx, r14d
+  .text:0000000001559119                 lea     rsi, dword_2666BA0
+  .text:0000000001559120                 lea     rdx, aPresaveDEntity_0; "PreSave(%d):  entity instance is missin"...
+  .text:0000000001559127                 mov     r8, [r13+18h]
+  .text:000000000155912B                 test    r9, r9
+  .text:000000000155912E                 cmovz   r9, rax
+  .text:0000000001559132                 ; _QWORD
+  .text:0000000001559132                 mov     edi, [rsi]; _QWORD
+  .text:0000000001559134                 ; _QWORD
+  .text:0000000001559134                 mov     esi, 3; _QWORD
+  .text:0000000001559139                 test    r8, r8
+  .text:000000000155913C                 cmovz   r8, rax
+  .text:0000000001559140                 xor     eax, eax
+  .text:0000000001559142                 call    _LoggingSystem_Log
+  .text:0000000001559147                 jmp     loc_1559036
+  .text:0000000001559150                 lea     r13, off_22917A8
+  .text:0000000001559157                 mov     [rbp+var_38], 0
+  .text:000000000155915F                 mov     [rbp+var_40], r13
+  .text:0000000001559163                 movzx   eax, cs:byte_25F8560
+  .text:000000000155916A                 test    al, al
+  .text:000000000155916C                 jz      short loc_15591A3
+  .text:000000000155916E                 mov     rax, cs:qword_25F8568
+  .text:0000000001559175                 lea     r12, [rbp+var_40]
+  .text:0000000001559179                 mov     rdi, r12
+  .text:000000000155917C                 mov     [rbp+var_40], rax
+  .text:0000000001559180                 call    qword ptr [rax+188h]
+  .text:0000000001559186                 mov     rdi, r12
+  .text:0000000001559189                 mov     [rbp+var_40], r13
+  .text:000000000155918D                 mov     cs:dword_24776D0, eax
+  .text:0000000001559193                 call    nullsub_503
+  .text:0000000001559198                 mov     edi, cs:dword_24776D0
+  .text:000000000155919E                 jmp     loc_1558FFD
+  .text:00000000015591A3                 lea     r12, byte_25F8560
+  .text:00000000015591AA                 ; _QWORD
+  .text:00000000015591AA                 mov     rdi, r12; _QWORD
+  .text:00000000015591AD                 call    ___cxa_guard_acquire
+  .text:00000000015591B2                 test    eax, eax
+  .text:00000000015591B4                 jz      short loc_155916E
+  .text:00000000015591B6                 mov     rax, cs:off_2477080
+  .text:00000000015591BD                 ; _QWORD
+  .text:00000000015591BD                 mov     rdi, r12; _QWORD
+  .text:00000000015591C0                 mov     cs:qword_25F8568, rax
+  .text:00000000015591C7                 call    ___cxa_guard_release
+  .text:00000000015591CC                 jmp     short loc_155916E
 procedure: |-
   __int64 __fastcall CEntitySaveRestoreBlockHandler_PreSave(__int64 a1, __int64 a2, __int64 a3)
   {
@@ -150,33 +150,30 @@ procedure: |-
     int v7; // ecx
     unsigned __int64 v8; // rax
     __int64 v9; // rdx
-    _QWORD *v10; // r13
-    int v11; // ecx
-    const bool *v13; // r9
-    const bool *v14; // r8
-    int v15; // eax
-    __int64 v17; // [rsp+18h] [rbp-48h] BYREF
-    _QWORD v18[8]; // [rsp+20h] [rbp-40h] BYREF
+    _DWORD *v10; // r13
+    int v12; // eax
+    __int64 v14; // [rsp+18h] [rbp-48h] BYREF
+    _QWORD v15[8]; // [rsp+20h] [rbp-40h] BYREF
 
-    v4 = (unsigned int)dword_246E410;
-    v17 = a3;
-    if ( dword_246E410 < 0 )
+    v4 = (unsigned int)dword_24776D0;
+    v14 = a3;
+    if ( dword_24776D0 < 0 )
     {
-      v18[1] = 0;
-      v18[0] = off_2288498;
-      if ( !(_BYTE)byte_25EF240 && (unsigned int)__cxa_guard_acquire(&byte_25EF240) )
+      v15[1] = 0;
+      v15[0] = off_22917A8;
+      if ( !(_BYTE)byte_25F8560 && (unsigned int)__cxa_guard_acquire(&byte_25F8560) )
       {
-        qword_25EF248 = (__int64)off_246DDC0[0];
-        __cxa_guard_release(&byte_25EF240);
+        qword_25F8568 = (__int64)off_2477080[0];
+        __cxa_guard_release(&byte_25F8560);
       }
-      v18[0] = qword_25EF248;
-      v15 = (*(__int64 (__fastcall **)(_QWORD *))(qword_25EF248 + 392))(v18);
-      v18[0] = off_2288498;
-      dword_246E410 = v15;
-      nullsub_503(v18);
-      v4 = (unsigned int)dword_246E410;
+      v15[0] = qword_25F8568;
+      v12 = (*(__int64 (__fastcall **)(_QWORD *))(qword_25F8568 + 392))(v15);
+      v15[0] = off_22917A8;
+      dword_24776D0 = v12;
+      nullsub_503(v15);
+      v4 = (unsigned int)dword_24776D0;
     }
-    sub_DEF450(v4, 393, 0, &v17);
+    sub_DF54D0(v4, 393, 0, &v14);
     v5 = 0;
     if ( *(int *)a3 > 0 )
     {
@@ -186,57 +183,47 @@ procedure: |-
         v7 = *(_DWORD *)v6;
         if ( *(_DWORD *)v6 != -1 && v7 != -2 )
         {
-          if ( qword_2566120 )
+          if ( qword_256F420 )
           {
             v8 = *v6;
-            v9 = *(_QWORD *)(qword_2566120 + 8 * ((v8 >> 9) & 0x3F));
+            v9 = *(_QWORD *)(qword_256F420 + 8 * ((v8 >> 9) & 0x3F));
             if ( v9 )
             {
-              v10 = (_QWORD *)(v9 + 112 * (v8 & 0x1FF));
-              if ( v7 == *((_DWORD *)v10 + 4) )
+              v10 = (_DWORD *)(v9 + 112 * (v8 & 0x1FF));
+              if ( v7 == v10[4] )
                 break;
             }
           }
         }
-        if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_265D880, 3) )
+        if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_2666BA0, 3) )
         {
-          v11 = v5++;
+          ++v5;
           LoggingSystem_Log(
-            (unsigned int)dword_265D880,
+            (unsigned int)dword_2666BA0,
             3,
-            "PreSave(%d):  entity identity is missing, may cause a crash\n",
-            v11);
+            "PreSave(%d):  entity identity is missing, may cause a crash\n");
           if ( *(_DWORD *)a3 <= (int)v5 )
-            return CEntitySaveRestoreBlockHandler_SaveInitEntities(a1, a2, a3);
+            return CEntitySaveRestoreBlockHandler_SaveInitEntities(a1, a2, (unsigned int *)a3);
         }
         else
         {
   LABEL_6:
           if ( *(_DWORD *)a3 <= (int)++v5 )
-            return CEntitySaveRestoreBlockHandler_SaveInitEntities(a1, a2, a3);
+            return CEntitySaveRestoreBlockHandler_SaveInitEntities(a1, a2, (unsigned int *)a3);
         }
       }
-      if ( *v10 )
+      if ( *(_QWORD *)v10 )
       {
-        (*(void (__fastcall **)(_QWORD))(*(_QWORD *)*v10 + 192LL))(*v10);
+        (*(void (__fastcall **)(_QWORD))(**(_QWORD **)v10 + 192LL))(*(_QWORD *)v10);// 192LL = 0xC0 = CEntityInstance_OnSave
       }
-      else if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_265D880, 3) )
+      else if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_2666BA0, 3) )
       {
-        v13 = (const bool *)v10[4];
-        v14 = (const bool *)v10[3];
-        if ( !v13 )
-          v13 = &haystack;
-        if ( !v14 )
-          v14 = &haystack;
         LoggingSystem_Log(
-          (unsigned int)dword_265D880,
+          (unsigned int)dword_2666BA0,
           3,
-          "PreSave(%d):  entity instance is missing for (%s, %s), may cause a crash\n",
-          (unsigned int)v5,
-          v14,
-          v13);
+          "PreSave(%d):  entity instance is missing for (%s, %s), may cause a crash\n");
       }
       goto LABEL_6;
     }
-    return CEntitySaveRestoreBlockHandler_SaveInitEntities(a1, a2, a3);
+    return CEntitySaveRestoreBlockHandler_SaveInitEntities(a1, a2, (unsigned int *)a3);
   }
