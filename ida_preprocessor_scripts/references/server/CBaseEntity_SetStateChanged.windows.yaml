@@ -1,0 +1,140 @@
+func_name: CBaseEntity_SetStateChanged
+func_va: '0x180189ba0'
+disasm_code: |-
+  .text:0000000180189BA0                 mov     rax, rsp
+  .text:0000000180189BA3                 push    rsi
+  .text:0000000180189BA4                 sub     rsp, 140h
+  .text:0000000180189BAB                 cmp     dword ptr [rdx], 0
+  .text:0000000180189BAE                 mov     rsi, rcx
+  .text:0000000180189BB1                 mov     [rax+10h], rbp
+  .text:0000000180189BB5                 mov     rbp, rdx
+  .text:0000000180189BB8                 mov     [rax+18h], rdi
+  .text:0000000180189BBC                 jz      short loc_180189BD2
+  .text:0000000180189BBE                 mov     r8, rdx
+  .text:0000000180189BC1                 mov     rdx, rcx
+  .text:0000000180189BC4                 add     rcx, 38h ; '8' ; 0x38 = CBaseEntity::m_NetworkTransmitComponent (structmember, struct=CBaseEntity, member=m_NetworkTransmitComponent)
+  .text:0000000180189BC8                 call    CNetworkTransmitComponent_StateChanged
+  .text:0000000180189BCD                 jmp     loc_180189CA3
+  .text:0000000180189BD2                 cmp     byte ptr [rcx+1C0h], 0
+  .text:0000000180189BD9                 jnz     loc_180189CA3
+  .text:0000000180189BDF                 mov     rax, [rcx+48h]
+  .text:0000000180189BE3                 test    rax, rax
+  .text:0000000180189BE6                 jz      short loc_180189BFA
+  .text:0000000180189BE8                 cmp     byte ptr [rax+18h], 0
+  .text:0000000180189BEC                 jz      short loc_180189BFA
+  .text:0000000180189BEE                 mov     byte ptr [rcx+1BDh], 1
+  .text:0000000180189BF5                 jmp     loc_180189CA3
+  .text:0000000180189BFA                 mov     rax, [rdx+28h]
+  .text:0000000180189BFE                 mov     [rsp+148h+arg_0], rbx
+  .text:0000000180189C06                 test    rax, rax
+  .text:0000000180189C09                 mov     ebx, [rdx+30h]
+  .text:0000000180189C0C                 mov     [rsp+148h+arg_18], r14
+  .text:0000000180189C14                 lea     r14, Src
+  .text:0000000180189C1B                 mov     rcx, r14
+  .text:0000000180189C1E                 cmovnz  rcx, rax
+  .text:0000000180189C22                 call    cs:V_UnqualifiedFileName
+  .text:0000000180189C28                 mov     rcx, [rbp+20h]
+  .text:0000000180189C2C                 lea     rdx, aCnetworktransm; "CNetworkTransmitComponent::StateChanged"...
+  .text:0000000180189C33                 test    rcx, rcx
+  .text:0000000180189C36                 mov     [rsp+148h+var_128], ebx
+  .text:0000000180189C3A                 mov     r8, r14
+  .text:0000000180189C3D                 mov     r9, rax
+  .text:0000000180189C40                 cmovnz  r8, rcx
+  .text:0000000180189C44                 lea     rcx, [rsp+148h+var_118]
+  .text:0000000180189C49                 call    sub_18017E2C0
+  .text:0000000180189C4E                 mov     rbx, [rsp+148h+arg_0]
+  .text:0000000180189C56                 mov     ecx, [rax+4]
+  .text:0000000180189C59                 bt      ecx, 1Eh
+  .text:0000000180189C5D                 jnb     short loc_180189C65
+  .text:0000000180189C5F                 lea     r14, [rax+8]
+  .text:0000000180189C63                 jmp     short loc_180189C71
+  .text:0000000180189C65                 test    ecx, 3FFFFFFFh
+  .text:0000000180189C6B                 jbe     short loc_180189C71
+  .text:0000000180189C6D                 mov     r14, [rax+8]
+  .text:0000000180189C71                 mov     rdx, r14
+  .text:0000000180189C74                 lea     rcx, [rsi+38h]  ; 0x38 = CBaseEntity::m_NetworkTransmitComponent (structmember, struct=CBaseEntity, member=m_NetworkTransmitComponent)
+  .text:0000000180189C78                 call    sub_1801C7EF0
+  .text:0000000180189C7D                 xor     edx, edx
+  .text:0000000180189C7F                 lea     rcx, [rsp+148h+var_118]
+  .text:0000000180189C84                 call    cs:?Purge@CBufferString@@QEAAXH@Z; CBufferString::Purge(int)
+  .text:0000000180189C8A                 lock or dword ptr [rsi+1B8h], 3
+  .text:0000000180189C92                 mov     r14, [rsp+148h+arg_18]
+  .text:0000000180189C9A                 xor     eax, eax
+  .text:0000000180189C9C                 mov     [rsi+1D6h], ax
+  .text:0000000180189CA3                 mov     rax, cs:off_181C4FC68
+  .text:0000000180189CAA                 mov     rdi, [rsp+148h+arg_10]
+  .text:0000000180189CB2                 mov     rbp, [rsp+148h+arg_8]
+  .text:0000000180189CBA                 movss   xmm0, dword ptr [rax+30h]
+  .text:0000000180189CBF                 comiss  xmm0, dword ptr [rsi+280h]
+  .text:0000000180189CC6                 jbe     short loc_180189CD9
+  .text:0000000180189CC8                 xor     eax, eax
+  .text:0000000180189CCA                 movss   dword ptr [rsi+280h], xmm0
+  .text:0000000180189CD2                 mov     [rsi+278h], rax
+  .text:0000000180189CD9                 add     rsp, 140h
+  .text:0000000180189CE0                 pop     rsi
+  .text:0000000180189CE1                 retn
+procedure: |-
+  void *__fastcall CBaseEntity_SetStateChanged(__int64 a1, __int64 a2)
+  {
+    __int64 v4; // rax
+    int v5; // ebx
+    char *v6; // r14
+    char *v7; // rcx
+    __int64 v8; // rax
+    char *v9; // r8
+    __int64 v10; // rax
+    int v11; // ecx
+    void *result; // rax
+    float v13; // xmm0_4
+    int v14; // [rsp+20h] [rbp-128h]
+    _BYTE v15[280]; // [rsp+30h] [rbp-118h] BYREF
+
+    if ( *(_DWORD *)a2 )
+    {
+      CNetworkTransmitComponent_StateChanged(a1 + 56, a1, a2);  // 56 = 0x38 = CBaseEntity::m_NetworkTransmitComponent (structmember, struct=CBaseEntity, member=m_NetworkTransmitComponent)
+    }
+    else if ( !*(_BYTE *)(a1 + 448) )
+    {
+      v4 = *(_QWORD *)(a1 + 72);
+      if ( v4 && *(_BYTE *)(v4 + 24) )
+      {
+        *(_BYTE *)(a1 + 445) = 1;
+      }
+      else
+      {
+        v5 = *(_DWORD *)(a2 + 48);
+        v6 = Src;
+        v7 = Src;
+        if ( *(_QWORD *)(a2 + 40) )
+          v7 = *(char **)(a2 + 40);
+        v8 = V_UnqualifiedFileName(v7);
+        v14 = v5;
+        v9 = Src;
+        if ( *(_QWORD *)(a2 + 32) )
+          v9 = *(char **)(a2 + 32);
+        v10 = sub_18017E2C0(v15, "CNetworkTransmitComponent::StateChanged(%s) @%s:%d", v9, v8, v14);
+        v11 = *(_DWORD *)(v10 + 4);
+        if ( (v11 & 0x40000000) != 0 )
+        {
+          v6 = (char *)(v10 + 8);
+        }
+        else if ( (v11 & 0x3FFFFFFF) != 0 )
+        {
+          v6 = *(char **)(v10 + 8);
+        }
+        sub_1801C7EF0(a1 + 56, v6);  // 56 = 0x38 = CBaseEntity::m_NetworkTransmitComponent (structmember, struct=CBaseEntity, member=m_NetworkTransmitComponent)
+        CBufferString::Purge((CBufferString *)v15, 0);
+        _InterlockedOr((volatile signed __int32 *)(a1 + 440), 3u);
+        *(_WORD *)(a1 + 470) = 0;
+      }
+    }
+    result = off_181C4FC68;
+    v13 = *((float *)off_181C4FC68 + 12);
+    if ( v13 > *(float *)(a1 + 640) )
+    {
+      *(float *)(a1 + 640) = v13;
+      *(_QWORD *)(a1 + 632) = 0;
+      return nullptr;
+    }
+    return result;
+  }

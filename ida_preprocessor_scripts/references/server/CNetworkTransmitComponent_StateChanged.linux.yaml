@@ -1,0 +1,745 @@
+func_name: CNetworkTransmitComponent_StateChanged
+func_va: '0xa0b210'
+disasm_code: |-
+  .text:0000000000A0B210                 cmp     byte ptr [rdi+2E0h], 0
+  .text:0000000000A0B217                 jnz     locret_A0B410
+  .text:0000000000A0B21D                 push    rbp
+  .text:0000000000A0B21E                 mov     rbp, rsp
+  .text:0000000000A0B221                 push    r15
+  .text:0000000000A0B223                 push    r14
+  .text:0000000000A0B225                 mov     r14, rdx
+  .text:0000000000A0B228                 push    r13
+  .text:0000000000A0B22A                 push    r12
+  .text:0000000000A0B22C                 mov     r12, rsi
+  .text:0000000000A0B22F                 push    rbx
+  .text:0000000000A0B230                 sub     rsp, 168h
+  .text:0000000000A0B237                 mov     rdx, [rsi+10h]
+  .text:0000000000A0B23B                 mov     eax, [rdx+30h]
+  .text:0000000000A0B23E                 test    ah, 3
+  .text:0000000000A0B241                 jnz     loc_A0B400
+  .text:0000000000A0B247                 mov     rbx, rdi
+  .text:0000000000A0B24A                 test    ah, 8
+  .text:0000000000A0B24D                 jnz     loc_A0B750
+  .text:0000000000A0B253                 cmp     dword ptr [rdx+10h], 0FFFFFFFFh
+  .text:0000000000A0B257                 jz      loc_A0B400
+  .text:0000000000A0B25D                 movzx   eax, word ptr [rdx+10h]
+  .text:0000000000A0B261                 and     ax, 7FFFh
+  .text:0000000000A0B265                 cmp     ax, 3FFFh
+  .text:0000000000A0B269                 ja      loc_A0B400
+  .text:0000000000A0B26F                 mov     rax, [rbx+10h]
+  .text:0000000000A0B273                 test    rax, rax
+  .text:0000000000A0B276                 jz      short loc_A0B282
+  .text:0000000000A0B278                 cmp     byte ptr [rax+18h], 0
+  .text:0000000000A0B27C                 jnz     loc_A0B790
+  .text:0000000000A0B282                 cmp     cs:byte_2444C15, 0
+  .text:0000000000A0B289                 jz      loc_A0B3F8
+  .text:0000000000A0B28F                 movzx   r15d, cs:byte_2444C14
+  .text:0000000000A0B297                 test    r15b, r15b
+  .text:0000000000A0B29A                 jz      loc_A0B3F8
+  .text:0000000000A0B2A0                 mov     edi, cs:dword_2574414
+  .text:0000000000A0B2A6                 test    edi, edi
+  .text:0000000000A0B2A8                 jg      loc_A0B418
+  .text:0000000000A0B2AE                 mov     eax, cs:dword_2444C10
+  .text:0000000000A0B2B4                 cmp     eax, 0FFFFFFFEh
+  .text:0000000000A0B2B7                 jz      loc_A0B900
+  .text:0000000000A0B2BD                 cmp     eax, 0FFFFFFFDh
+  .text:0000000000A0B2C0                 jz      loc_A0B418
+  .text:0000000000A0B2C6                 mov     rdi, r12
+  .text:0000000000A0B2C9                 call    sub_1E51490
+  .text:0000000000A0B2CE                 cmp     dword ptr [r14+38h], 0FFFFFFFEh
+  .text:0000000000A0B2D3                 mov     edx, cs:dword_2444C10
+  .text:0000000000A0B2D9                 jz      loc_A0B9F8
+  .text:0000000000A0B2DF                 cmp     eax, edx
+  .text:0000000000A0B2E1                 setz    r15b
+  .text:0000000000A0B2E5                 mov     rcx, [rbx+8]
+  .text:0000000000A0B2E9                 test    rcx, rcx
+  .text:0000000000A0B2EC                 jz      loc_A0B918
+  .text:0000000000A0B2F2                 lea     rax, [rbx+2F4h]
+  .text:0000000000A0B2F9                 mov     rdi, r12
+  .text:0000000000A0B2FC                 mov     [rbp-168h], rcx
+  .text:0000000000A0B303                 mov     [rbp-188h], rax
+  .text:0000000000A0B30A                 mov     eax, [r14+34h]
+  .text:0000000000A0B30E                 mov     [rbp-148h], ax
+  .text:0000000000A0B315                 mov     eax, [r14+38h]
+  .text:0000000000A0B319                 mov     [rbp-14Ch], eax
+  .text:0000000000A0B31F                 call    sub_1E51490
+  .text:0000000000A0B324                 mov     r13, [r14+10h]
+  .text:0000000000A0B328                 mov     [rbp-17Ch], eax
+  .text:0000000000A0B32E                 lea     rax, qword_2700F88
+  .text:0000000000A0B335                 mov     rax, [rax]
+  .text:0000000000A0B338                 prefetcht0 byte ptr [rax]
+  .text:0000000000A0B33B                 movsxd  rax, dword ptr [r14+8]
+  .text:0000000000A0B33F                 mov     qword ptr [rbp-158h], 0
+  .text:0000000000A0B34A                 lea     r11, [r13+rax*4+0]
+  .text:0000000000A0B34F                 cmp     r11, r13
+  .text:0000000000A0B352                 jz      loc_A0B400
+  .text:0000000000A0B358                 mov     rcx, [rbp-168h]
+  .text:0000000000A0B35F                 mov     r14, r13
+  .text:0000000000A0B362                 mov     [rbp-168h], r11
+  .text:0000000000A0B369                 mov     [rbp-178h], r12
+  .text:0000000000A0B370                 mov     [rbp-170h], rcx
+  .text:0000000000A0B377                 jmp     short loc_A0B396
+  .text:0000000000A0B380                 test    r15b, r15b
+  .text:0000000000A0B383                 jnz     loc_A0B760
+  .text:0000000000A0B389                 add     r14, 4
+  .text:0000000000A0B38D                 cmp     [rbp-168h], r14
+  .text:0000000000A0B394                 jz      short loc_A0B400
+  .text:0000000000A0B396                 mov     eax, [r14]
+  .text:0000000000A0B399                 mov     [rbp-150h], eax
+  .text:0000000000A0B39F                 mov     eax, [rbx+2D8h]  ; 0x2D8 = CNetworkTransmitComponent::m_nStateFlags (structmember, struct=CNetworkTransmitComponent, member=m_nStateFlags)
+  .text:0000000000A0B3A5                 test    al, 2
+  .text:0000000000A0B3A7                 jnz     short loc_A0B380
+  .text:0000000000A0B3A9                 mov     rsi, [rbp-170h]
+  .text:0000000000A0B3B0                 lea     r12, [rbp-150h]
+  .text:0000000000A0B3B7                 mov     rdi, rbx
+  .text:0000000000A0B3BA                 mov     rdx, r12
+  .text:0000000000A0B3BD                 call    sub_9F8240
+  .text:0000000000A0B3C2                 test    al, al
+  .text:0000000000A0B3C4                 jz      loc_A0B578
+  .text:0000000000A0B3CA                 test    r15b, r15b
+  .text:0000000000A0B3CD                 jz      short loc_A0B389
+  .text:0000000000A0B3CF                 lea     r8, aIgnored; " ignored"
+  .text:0000000000A0B3D6                 mov     rdx, [rbp-170h]
+  .text:0000000000A0B3DD                 mov     rcx, r12
+  .text:0000000000A0B3E0                 mov     rdi, rbx
+  .text:0000000000A0B3E3                 mov     rsi, [rbp-178h]
+  .text:0000000000A0B3EA                 call    sub_A0ACC0
+  .text:0000000000A0B3EF                 jmp     short loc_A0B389
+  .text:0000000000A0B3F8                 lock or dword ptr [rbx+2D8h], 2  ; 0x2D8 = CNetworkTransmitComponent::m_nStateFlags (structmember, struct=CNetworkTransmitComponent, member=m_nStateFlags)
+  .text:0000000000A0B400                 lea     rsp, [rbp-28h]
+  .text:0000000000A0B404                 pop     rbx
+  .text:0000000000A0B405                 pop     r12
+  .text:0000000000A0B407                 pop     r13
+  .text:0000000000A0B409                 pop     r14
+  .text:0000000000A0B40B                 pop     r15
+  .text:0000000000A0B40D                 pop     rbp
+  .text:0000000000A0B40E                 retn
+  .text:0000000000A0B410                 retn
+  .text:0000000000A0B418                 cmp     dword ptr [r14+38h], 0FFFFFFFEh
+  .text:0000000000A0B41D                 jnz     loc_A0B2E5
+  .text:0000000000A0B423                 mov     rcx, [r14+10h]
+  .text:0000000000A0B427                 lea     r13, [rbp-150h]
+  .text:0000000000A0B42E                 mov     qword ptr [rbp-150h], 0
+  .text:0000000000A0B439                 movsxd  rax, dword ptr [r14+8]
+  .text:0000000000A0B43D                 lea     rax, [rcx+rax*4]
+  .text:0000000000A0B441                 cmp     rcx, rax
+  .text:0000000000A0B444                 jz      loc_A0B4C7
+  .text:0000000000A0B44A                 mov     [rbp-168h], rbx
+  .text:0000000000A0B451                 lea     r13, [rbp-150h]
+  .text:0000000000A0B458                 mov     rbx, rcx
+  .text:0000000000A0B45B                 mov     r15, rax
+  .text:0000000000A0B45E                 lea     r12, [rbp-140h]
+  .text:0000000000A0B465                 nop     dword ptr [rax]
+  .text:0000000000A0B468                 mov     edx, [rbx]
+  .text:0000000000A0B46A                 lea     rsi, aU_1; "%u,"
+  .text:0000000000A0B471                 mov     rdi, r12
+  .text:0000000000A0B474                 xor     eax, eax
+  .text:0000000000A0B476                 call    sub_9A70A0
+  .text:0000000000A0B47B                 lea     rsi, [rbp-138h]
+  .text:0000000000A0B482                 test    byte ptr [rbp-139h], 40h
+  .text:0000000000A0B489                 jnz     short loc_A0B4A5
+  .text:0000000000A0B48B                 lea     rsi, haystack
+  .text:0000000000A0B492                 test    dword ptr [rbp-13Ch], 3FFFFFFFh
+  .text:0000000000A0B49C                 jz      short loc_A0B4A5
+  .text:0000000000A0B49E                 ; _QWORD
+  .text:0000000000A0B49E                 mov     rsi, [rbp-138h]; _QWORD
+  .text:0000000000A0B4A5                 ; _QWORD
+  .text:0000000000A0B4A5                 mov     rdi, r13; _QWORD
+  .text:0000000000A0B4A8                 add     rbx, 4
+  .text:0000000000A0B4AC                 call    __ZN10CUtlStringpLEPKc; CUtlString::operator+=(char const*)
+  .text:0000000000A0B4B1                 ; int
+  .text:0000000000A0B4B1                 xor     esi, esi; int
+  .text:0000000000A0B4B3                 ; this
+  .text:0000000000A0B4B3                 mov     rdi, r12; this
+  .text:0000000000A0B4B6                 call    __ZN13CBufferString5PurgeEi; CBufferString::Purge(int)
+  .text:0000000000A0B4BB                 cmp     r15, rbx
+  .text:0000000000A0B4BE                 jnz     short loc_A0B468
+  .text:0000000000A0B4C0                 mov     rbx, [rbp-168h]
+  .text:0000000000A0B4C7                 lea     rsi, asc_87F8CC; ","
+  .text:0000000000A0B4CE                 ; this
+  .text:0000000000A0B4CE                 mov     rdi, r13; this
+  .text:0000000000A0B4D1                 call    __ZN10CUtlString9TrimRightEPKc; CUtlString::TrimRight(char const*)
+  .text:0000000000A0B4D6                 lea     r12, dword_2701020
+  .text:0000000000A0B4DD                 ; _QWORD
+  .text:0000000000A0B4DD                 mov     esi, 2; _QWORD
+  .text:0000000000A0B4E2                 ; _QWORD
+  .text:0000000000A0B4E2                 mov     edi, [r12]; _QWORD
+  .text:0000000000A0B4E6                 call    _LoggingSystem_IsChannelEnabled
+  .text:0000000000A0B4EB                 test    al, al
+  .text:0000000000A0B4ED                 jz      short loc_A0B559
+  .text:0000000000A0B4EF                 lea     rax, haystack
+  .text:0000000000A0B4F6                 mov     rdx, [rbx+2E8h]
+  .text:0000000000A0B4FD                 ; _QWORD
+  .text:0000000000A0B4FD                 mov     esi, 2; _QWORD
+  .text:0000000000A0B502                 mov     rcx, [rbp-150h]
+  .text:0000000000A0B509                 mov     r9d, [r14+8]
+  .text:0000000000A0B50D                 mov     rdi, [rdx+10h]
+  .text:0000000000A0B511                 test    rcx, rcx
+  .text:0000000000A0B514                 cmovz   rcx, rax
+  .text:0000000000A0B518                 mov     rdx, [rdi+20h]
+  .text:0000000000A0B51C                 test    rdx, rdx
+  .text:0000000000A0B51F                 cmovnz  rax, rdx
+  .text:0000000000A0B523                 mov     r8, rax
+  .text:0000000000A0B526                 call    sub_9E9470
+  .text:0000000000A0B52B                 ; _QWORD
+  .text:0000000000A0B52B                 mov     edi, [r12]; _QWORD
+  .text:0000000000A0B52F                 mov     edx, eax
+  .text:0000000000A0B531                 and     edx, 7FFFh
+  .text:0000000000A0B537                 cmp     eax, 0FFFFFFFFh
+  .text:0000000000A0B53A                 mov     eax, 7FFFh
+  .text:0000000000A0B53F                 cmovnz  eax, edx
+  .text:0000000000A0B542                 sub     rsp, 8
+  .text:0000000000A0B546                 push    rcx
+  .text:0000000000A0B547                 lea     rdx, aDSDOffsetSSAre; "%d %s [%d] offset(s) %s are culled\n"
+  .text:0000000000A0B54E                 mov     ecx, eax
+  .text:0000000000A0B550                 xor     eax, eax
+  .text:0000000000A0B552                 call    _LoggingSystem_Log
+  .text:0000000000A0B557                 pop     rcx
+  .text:0000000000A0B558                 pop     rsi
+  .text:0000000000A0B559                 cmp     qword ptr [rbp-150h], 0
+  .text:0000000000A0B561                 jz      loc_A0B400
+  .text:0000000000A0B567                 ; this
+  .text:0000000000A0B567                 mov     rdi, r13; this
+  .text:0000000000A0B56A                 call    __ZN10CUtlString15FreeMemoryBlockEv; CUtlString::FreeMemoryBlock(void)
+  .text:0000000000A0B56F                 jmp     loc_A0B400
+  .text:0000000000A0B578                 lock or dword ptr [rbx+2D8h], 1  ; 0x2D8 = CNetworkTransmitComponent::m_nStateFlags (structmember, struct=CNetworkTransmitComponent, member=m_nStateFlags)
+  .text:0000000000A0B580                 lea     rax, qword_2700F88
+  .text:0000000000A0B587                 mov     esi, 0FFFFFFFFh
+  .text:0000000000A0B58C                 lea     rdi, qword_25744F0
+  .text:0000000000A0B593                 mov     rax, [rax]
+  .text:0000000000A0B596                 movzx   r13d, word ptr ds:stru_23E380.r_offset[rax]
+  .text:0000000000A0B59E                 call    sub_1B10F70
+  .text:0000000000A0B5A3                 test    rax, rax
+  .text:0000000000A0B5A6                 jz      loc_A0B830
+  .text:0000000000A0B5AC                 movzx   eax, byte ptr [rax]
+  .text:0000000000A0B5AF                 test    al, al
+  .text:0000000000A0B5B1                 jz      loc_A0B677
+  .text:0000000000A0B5B7                 mov     eax, cs:dword_25744A0
+  .text:0000000000A0B5BD                 cmp     r13d, eax
+  .text:0000000000A0B5C0                 jz      short loc_A0B5D2
+  .text:0000000000A0B5C2                 cmp     eax, 0FFFFFFFFh
+  .text:0000000000A0B5C5                 jnz     loc_A0B7E0
+  .text:0000000000A0B5CB                 mov     cs:dword_25744A0, r13d
+  .text:0000000000A0B5D2                 mov     ecx, [rbp-150h]
+  .text:0000000000A0B5D8                 lea     r13, [rbp-140h]
+  .text:0000000000A0B5DF                 xor     eax, eax
+  .text:0000000000A0B5E1                 mov     edx, [rbp-17Ch]
+  .text:0000000000A0B5E7                 lea     rsi, aDDDD_0; "%d %d %d %d\n"
+  .text:0000000000A0B5EE                 mov     rdi, r13
+  .text:0000000000A0B5F1                 mov     r9d, [rbp-14Ch]
+  .text:0000000000A0B5F8                 movsx   r8d, word ptr [rbp-148h]
+  .text:0000000000A0B600                 call    sub_9A70A0
+  .text:0000000000A0B605                 lea     rcx, [rbp-138h]
+  .text:0000000000A0B60C                 test    byte ptr [rbp-139h], 40h
+  .text:0000000000A0B613                 jnz     short loc_A0B62C
+  .text:0000000000A0B615                 lea     rcx, haystack
+  .text:0000000000A0B61C                 test    dword ptr [rbp-13Ch], 3FFFFFFFh
+  .text:0000000000A0B626                 jnz     loc_A0B7D0
+  .text:0000000000A0B62C                 cmp     cs:byte_25744A4, 0
+  .text:0000000000A0B633                 jnz     loc_A0B7BA
+  .text:0000000000A0B639                 mov     rsi, cs:qword_2574498
+  .text:0000000000A0B640                 mov     cs:byte_25744A4, 1
+  .text:0000000000A0B647                 test    rsi, rsi
+  .text:0000000000A0B64A                 jz      loc_A0B7A0
+  .text:0000000000A0B650                 lea     rax, qword_274C230
+  .text:0000000000A0B657                 lea     rdx, aS_27; "%s"
+  .text:0000000000A0B65E                 mov     rdi, [rax]
+  .text:0000000000A0B661                 xor     eax, eax
+  .text:0000000000A0B663                 mov     r8, [rdi]
+  .text:0000000000A0B666                 call    qword ptr [r8+1C0h]
+  .text:0000000000A0B66D                 ; int
+  .text:0000000000A0B66D                 xor     esi, esi; int
+  .text:0000000000A0B66F                 ; this
+  .text:0000000000A0B66F                 mov     rdi, r13; this
+  .text:0000000000A0B672                 call    __ZN13CBufferString5PurgeEi; CBufferString::Purge(int)
+  .text:0000000000A0B677                 cmp     qword ptr [rbp-158h], 0
+  .text:0000000000A0B67F                 jz      loc_A0B878
+  .text:0000000000A0B685                 mov     edx, [rbx+2E4h]
+  .text:0000000000A0B68B                 test    edx, edx
+  .text:0000000000A0B68D                 js      loc_A0B840
+  .text:0000000000A0B693                 mov     rax, [rbp-158h]
+  .text:0000000000A0B69A                 mov     rsi, r12
+  .text:0000000000A0B69D                 lea     rdi, [rax+8]
+  .text:0000000000A0B6A1                 call    sub_9FB960
+  .text:0000000000A0B6A6                 test    al, al
+  .text:0000000000A0B6A8                 jnz     short loc_A0B6E0
+  .text:0000000000A0B6AA                 xor     eax, eax
+  .text:0000000000A0B6AC                 cmp     cs:byte_2574410, 0
+  .text:0000000000A0B6B3                 mov     [rbx+2F6h], ax
+  .text:0000000000A0B6BA                 jz      short loc_A0B6D8
+  .text:0000000000A0B6BC                 mov     eax, [rbx+2D8h]  ; 0x2D8 = CNetworkTransmitComponent::m_nStateFlags (structmember, struct=CNetworkTransmitComponent, member=m_nStateFlags)
+  .text:0000000000A0B6C2                 test    al, 2
+  .text:0000000000A0B6C4                 jnz     short loc_A0B6D8
+  .text:0000000000A0B6C6                 lea     rsi, aCnetworktransm_2; "CNetworkTransmitComponent::StateChanged"...
+  .text:0000000000A0B6CD                 mov     rdi, rbx
+  .text:0000000000A0B6D0                 call    sub_9EBF40
+  .text:0000000000A0B6D5                 nop     dword ptr [rax]
+  .text:0000000000A0B6D8                 lock or dword ptr [rbx+2D8h], 2  ; 0x2D8 = CNetworkTransmitComponent::m_nStateFlags (structmember, struct=CNetworkTransmitComponent, member=m_nStateFlags)
+  .text:0000000000A0B6E0                 lea     r8, haystack
+  .text:0000000000A0B6E7                 test    r15b, r15b
+  .text:0000000000A0B6EA                 jnz     loc_A0B3D6
+  .text:0000000000A0B6F0                 cmp     cs:byte_2574412, 0
+  .text:0000000000A0B6F7                 jz      loc_A0B389
+  .text:0000000000A0B6FD                 mov     rax, [rbp-178h]
+  .text:0000000000A0B704                 lea     rsi, [rbp-140h]
+  .text:0000000000A0B70B                 xor     r8d, r8d
+  .text:0000000000A0B70E                 mov     rdi, rbx
+  .text:0000000000A0B711                 mov     rax, [rax+10h]
+  .text:0000000000A0B715                 mov     rdx, [rax+8]
+  .text:0000000000A0B719                 mov     rcx, [rdx+0D8h]
+  .text:0000000000A0B720                 mov     rdx, [rdx+0E0h]
+  .text:0000000000A0B727                 mov     [rbp-140h], rcx
+  .text:0000000000A0B72E                 mov     rcx, r12
+  .text:0000000000A0B731                 mov     [rbp-138h], rdx
+  .text:0000000000A0B738                 mov     rax, [rax+8]
+  .text:0000000000A0B73C                 mov     rax, [rax+50h]
+  .text:0000000000A0B740                 mov     rdx, [rax+8]
+  .text:0000000000A0B744                 call    sub_A09940
+  .text:0000000000A0B749                 jmp     loc_A0B389
+  .text:0000000000A0B750                 test    al, 40h
+  .text:0000000000A0B752                 jnz     loc_A0B26F
+  .text:0000000000A0B758                 jmp     loc_A0B400
+  .text:0000000000A0B760                 mov     rsi, [rbp-170h]
+  .text:0000000000A0B767                 lea     r12, [rbp-150h]
+  .text:0000000000A0B76E                 mov     rdi, rbx
+  .text:0000000000A0B771                 mov     rdx, r12
+  .text:0000000000A0B774                 call    sub_9F8240
+  .text:0000000000A0B779                 lea     r8, aIgnoredFlFullE; " ignored FL_FULL_EDICT_CHANGED"
+  .text:0000000000A0B780                 test    al, al
+  .text:0000000000A0B782                 jz      loc_A0B389
+  .text:0000000000A0B788                 jmp     loc_A0B3D6
+  .text:0000000000A0B790                 mov     byte ptr [rbx+2DDh], 1
+  .text:0000000000A0B797                 jmp     loc_A0B400
+  .text:0000000000A0B7A0                 lea     rdi, qword_2574480
+  .text:0000000000A0B7A7                 mov     [rbp-190h], rcx
+  .text:0000000000A0B7AE                 call    sub_9EA7C0
+  .text:0000000000A0B7B3                 mov     rcx, [rbp-190h]
+  .text:0000000000A0B7BA                 mov     rsi, cs:qword_2574498
+  .text:0000000000A0B7C1                 test    rsi, rsi
+  .text:0000000000A0B7C4                 jnz     loc_A0B650
+  .text:0000000000A0B7CA                 jmp     loc_A0B66D
+  .text:0000000000A0B7D0                 mov     rcx, [rbp-138h]
+  .text:0000000000A0B7D7                 jmp     loc_A0B62C
+  .text:0000000000A0B7E0                 cmp     cs:byte_25744A4, 0
+  .text:0000000000A0B7E7                 jnz     loc_A0B8E1
+  .text:0000000000A0B7ED                 mov     rsi, cs:qword_2574498
+  .text:0000000000A0B7F4                 mov     cs:byte_25744A4, 1
+  .text:0000000000A0B7FB                 test    rsi, rsi
+  .text:0000000000A0B7FE                 jz      loc_A0B8D5
+  .text:0000000000A0B804                 lea     rax, qword_274C230
+  .text:0000000000A0B80B                 lea     rcx, aTick; "tick\n"
+  .text:0000000000A0B812                 lea     rdx, aS_27; "%s"
+  .text:0000000000A0B819                 mov     rdi, [rax]
+  .text:0000000000A0B81C                 xor     eax, eax
+  .text:0000000000A0B81E                 mov     r8, [rdi]
+  .text:0000000000A0B821                 call    qword ptr [r8+1C0h]
+  .text:0000000000A0B828                 jmp     loc_A0B5CB
+  .text:0000000000A0B830                 mov     rax, cs:qword_25744F8
+  .text:0000000000A0B837                 mov     rax, [rax+8]
+  .text:0000000000A0B83B                 jmp     loc_A0B5AC
+  .text:0000000000A0B840                 lea     rdi, qword_2574420
+  .text:0000000000A0B847                 mov     esi, 0FFFFFFFFh
+  .text:0000000000A0B84C                 call    sub_1B10F70
+  .text:0000000000A0B851                 test    rax, rax
+  .text:0000000000A0B854                 jz      short loc_A0B860
+  .text:0000000000A0B856                 mov     edx, [rax]
+  .text:0000000000A0B858                 jmp     loc_A0B693
+  .text:0000000000A0B860                 mov     rax, cs:qword_2574428
+  .text:0000000000A0B867                 mov     rax, [rax+8]
+  .text:0000000000A0B86B                 mov     edx, [rax]
+  .text:0000000000A0B86D                 jmp     loc_A0B693
+  .text:0000000000A0B878                 mov     rdx, [rbp-170h]
+  .text:0000000000A0B87F                 lea     rcx, [rbp-158h]
+  .text:0000000000A0B886                 mov     rdi, rbx
+  .text:0000000000A0B889                 mov     rsi, [rbp-188h]
+  .text:0000000000A0B890                 call    sub_9F8620
+  .text:0000000000A0B895                 test    al, al
+  .text:0000000000A0B897                 jnz     loc_A0B685
+  .text:0000000000A0B89D                 xor     edx, edx
+  .text:0000000000A0B89F                 cmp     cs:byte_2574410, 0
+  .text:0000000000A0B8A6                 mov     [rbx+2F6h], dx
+  .text:0000000000A0B8AD                 jz      loc_A0B6D8
+  .text:0000000000A0B8B3                 mov     eax, [rbx+2D8h]  ; 0x2D8 = CNetworkTransmitComponent::m_nStateFlags (structmember, struct=CNetworkTransmitComponent, member=m_nStateFlags)
+  .text:0000000000A0B8B9                 test    al, 2
+  .text:0000000000A0B8BB                 jnz     loc_A0B6D8
+  .text:0000000000A0B8C1                 lea     rsi, aCnetworktransm_3; "CNetworkTransmitComponent::StateChanged"...
+  .text:0000000000A0B8C8                 mov     rdi, rbx
+  .text:0000000000A0B8CB                 call    sub_9EBF40
+  .text:0000000000A0B8D0                 jmp     loc_A0B6D8
+  .text:0000000000A0B8D5                 lea     rdi, qword_2574480
+  .text:0000000000A0B8DC                 call    sub_9EA7C0
+  .text:0000000000A0B8E1                 mov     rsi, cs:qword_2574498
+  .text:0000000000A0B8E8                 test    rsi, rsi
+  .text:0000000000A0B8EB                 jnz     loc_A0B804
+  .text:0000000000A0B8F1                 jmp     loc_A0B5CB
+  .text:0000000000A0B900                 xor     r15d, r15d
+  .text:0000000000A0B903                 cmp     dword ptr [r14+38h], 0FFFFFFFEh
+  .text:0000000000A0B908                 jnz     loc_A0B2E5
+  .text:0000000000A0B90E                 jmp     loc_A0B400
+  .text:0000000000A0B918                 ; _QWORD
+  .text:0000000000A0B918                 mov     edi, 180h; _QWORD
+  .text:0000000000A0B91D                 call    __Znwm; operator new(ulong)
+  .text:0000000000A0B922                 lea     r13, [rax+38h]
+  .text:0000000000A0B926                 mov     rcx, rax
+  .text:0000000000A0B929                 mov     rax, 400000000h
+  .text:0000000000A0B933                 mov     [rcx], rax
+  .text:0000000000A0B936                 mov     rax, 8000000000000004h
+  .text:0000000000A0B940                 mov     qword ptr [rcx+18h], 0
+  .text:0000000000A0B948                 mov     qword ptr [rcx+28h], 0
+  .text:0000000000A0B950                 mov     [rcx+30h], rax
+  .text:0000000000A0B954                 test    cl, 7
+  .text:0000000000A0B957                 jnz     loc_A0BA05
+  .text:0000000000A0B95D                 pcmpeqd xmm0, xmm0
+  .text:0000000000A0B961                 mov     [rcx+28h], r13
+  .text:0000000000A0B965                 mov     dword ptr [rcx+20h], 0
+  .text:0000000000A0B96C                 mov     qword ptr [rcx+0E0h], 0
+  .text:0000000000A0B977                 movups  xmmword ptr [rcx+60h], xmm0
+  .text:0000000000A0B97B                 movups  xmmword ptr [rcx+70h], xmm0
+  .text:0000000000A0B97F                 movups  xmmword ptr [rcx+80h], xmm0
+  .text:0000000000A0B986                 movups  xmmword ptr [rcx+90h], xmm0
+  .text:0000000000A0B98D                 movups  xmmword ptr [rcx+0A0h], xmm0
+  .text:0000000000A0B994                 movups  xmmword ptr [rcx+0B0h], xmm0
+  .text:0000000000A0B99B                 movups  xmmword ptr [rcx+0C0h], xmm0
+  .text:0000000000A0B9A2                 movups  xmmword ptr [rcx+0D0h], xmm0
+  .text:0000000000A0B9A9                 mov     qword ptr [rcx+170h], 0
+  .text:0000000000A0B9B4                 movups  xmmword ptr [rcx+0F0h], xmm0
+  .text:0000000000A0B9BB                 movups  xmmword ptr [rcx+100h], xmm0
+  .text:0000000000A0B9C2                 movups  xmmword ptr [rcx+110h], xmm0
+  .text:0000000000A0B9C9                 movups  xmmword ptr [rcx+120h], xmm0
+  .text:0000000000A0B9D0                 movups  xmmword ptr [rcx+130h], xmm0
+  .text:0000000000A0B9D7                 movups  xmmword ptr [rcx+140h], xmm0
+  .text:0000000000A0B9DE                 movups  xmmword ptr [rcx+150h], xmm0
+  .text:0000000000A0B9E5                 movups  xmmword ptr [rcx+160h], xmm0
+  .text:0000000000A0B9EC                 mov     [rbx+8], rcx
+  .text:0000000000A0B9F0                 jmp     loc_A0B2F2
+  .text:0000000000A0B9F8                 cmp     eax, edx
+  .text:0000000000A0B9FA                 jnz     loc_A0B400
+  .text:0000000000A0BA00                 jmp     loc_A0B423
+  .text:0000000000A0BA05                 mov     [rbp-168h], rcx
+  .text:0000000000A0BA0C                 call    sub_1B25B60
+  .text:0000000000A0BA11                 mov     rcx, [rbp-168h]
+  .text:0000000000A0BA18                 jmp     loc_A0B95D
+procedure: |-
+  void __fastcall CNetworkTransmitComponent_StateChanged(__int64 a1, __int64 a2, __int64 a3, __int64 a4, int a5, int a6)
+  {
+    __int64 v7; // rdx
+    int v8; // eax
+    __int64 v9; // rbx
+    __int64 v10; // rax
+    char v11; // r15
+    int v12; // eax
+    __int64 v13; // rcx
+    int v14; // eax
+    _DWORD *v15; // r13
+    __int64 v16; // rax
+    __int64 v17; // rcx
+    _DWORD *v18; // r14
+    const char *v19; // r8
+    _DWORD *v20; // rcx
+    _DWORD *v21; // rbx
+    _DWORD *v22; // r15
+    const bool *v23; // rsi
+    const bool *v24; // rax
+    const bool *v25; // rcx
+    __int64 v26; // rdi
+    __int64 v27; // rdx
+    int v28; // r13d
+    _BYTE *v29; // rax
+    const char *v30; // rcx
+    __int64 v31; // rsi
+    bool v32; // zf
+    __int64 v33; // rax
+    __int64 v34; // rdx
+    __int64 v35; // rcx
+    __int64 v36; // rdx
+    char v37; // al
+    __int64 v38; // rsi
+    __int64 v39; // rax
+    __int64 v40; // r13
+    const char *v41; // [rsp-198h] [rbp-198h]
+    int v42; // [rsp-184h] [rbp-184h]
+    __int64 v44; // [rsp-178h] [rbp-178h]
+    __int64 v45; // [rsp-170h] [rbp-170h]
+    _DWORD *v46; // [rsp-170h] [rbp-170h]
+    __int64 v47; // [rsp-170h] [rbp-170h]
+    __int64 v48; // [rsp-160h] [rbp-160h] BYREF
+    const bool *v49; // [rsp-158h] [rbp-158h] BYREF
+    __int16 v50; // [rsp-150h] [rbp-150h]
+    __int64 v51; // [rsp-148h] [rbp-148h] BYREF
+    _QWORD v52[39]; // [rsp-140h] [rbp-140h] BYREF
+    __int64 v53; // [rsp-8h] [rbp-8h] BYREF
+
+    if ( *(_BYTE *)(a1 + 736) )
+      return;
+    v7 = *(_QWORD *)(a2 + 16);
+    v8 = *(_DWORD *)(v7 + 48);
+    if ( (v8 & 0x300) != 0 )
+      return;
+    v9 = a1;
+    if ( (v8 & 0x800) != 0 )
+    {
+      if ( (v8 & 0x40) == 0 )
+        return;
+    }
+    else if ( *(_DWORD *)(v7 + 16) == -1 || (*(_WORD *)(v7 + 16) & 0x7FFFu) > 0x3FFF )
+    {
+      return;
+    }
+    v10 = *(_QWORD *)(a1 + 16);
+    if ( v10 && *(_BYTE *)(v10 + 24) )
+    {
+      *(_BYTE *)(a1 + 733) = 1;
+      return;
+    }
+    if ( !byte_2444C15 || (v11 = byte_2444C14) == 0 )
+    {
+      _InterlockedOr((volatile signed __int32 *)(a1 + 728), 2u);  // 728 = 0x2D8 = CNetworkTransmitComponent::m_nStateFlags (structmember, struct=CNetworkTransmitComponent, member=m_nStateFlags)
+      return;
+    }
+    if ( dword_2574414 <= 0 )
+    {
+      if ( dword_2444C10 == -2 )
+      {
+        v11 = 0;
+        if ( *(_DWORD *)(a3 + 56) == -2 )
+          return;
+        goto LABEL_15;
+      }
+      if ( dword_2444C10 != -3 )
+      {
+        v12 = sub_1E51490(a2, a2, v7);
+        v7 = (unsigned int)dword_2444C10;
+        if ( *(_DWORD *)(a3 + 56) != -2 )
+        {
+          v11 = v12 == dword_2444C10;
+          goto LABEL_15;
+        }
+        if ( v12 != dword_2444C10 )
+          return;
+  LABEL_29:
+        v20 = *(_DWORD **)(a3 + 16);
+        v49 = nullptr;
+        if ( v20 != &v20[*(int *)(a3 + 8)] )
+        {
+          v21 = v20;
+          v22 = &v20[*(int *)(a3 + 8)];
+          do
+          {
+            sub_9A70A0((unsigned int)&v53 - 320, (unsigned int)"%u,", *v21, (_DWORD)v20, a5, a6);
+            v23 = (const bool *)v52;
+            if ( (v51 & 0x4000000000000000LL) == 0 )
+            {
+              v23 = &haystack;
+              if ( (v51 & 0x3FFFFFFF00000000LL) != 0 )
+                v23 = (const bool *)v52[0];
+            }
+            ++v21;
+            CUtlString::operator+=(&v49, v23);
+            CBufferString::Purge((CBufferString *)&v51, 0);
+          }
+          while ( v22 != v21 );
+          v9 = a1;
+        }
+        CUtlString::TrimRight((CUtlString *)&v49, ",");
+        if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_2701020, 2) )
+        {
+          v24 = &haystack;
+          v25 = v49;
+          v26 = *(_QWORD *)(*(_QWORD *)(v9 + 744) + 16LL);
+          if ( !v49 )
+            v25 = &haystack;
+          v27 = *(_QWORD *)(v26 + 32);
+          if ( v27 )
+            v24 = *(const bool **)(v26 + 32);
+          sub_9E9470(v26, 2, v27, v25, v24, *(unsigned int *)(a3 + 8));
+          LoggingSystem_Log((unsigned int)dword_2701020, 2, "%d %s [%d] offset(s) %s are culled\n");
+        }
+        if ( v49 )
+          CUtlString::FreeMemoryBlock((CUtlString *)&v49);
+        return;
+      }
+    }
+    if ( *(_DWORD *)(a3 + 56) == -2 )
+      goto LABEL_29;
+  LABEL_15:
+    v13 = *(_QWORD *)(a1 + 8);
+    if ( !v13 )
+    {
+      v39 = operator new(384);
+      v40 = v39 + 56;
+      v13 = v39;
+      *(_QWORD *)v39 = 0x400000000LL;
+      *(_QWORD *)(v39 + 24) = 0;
+      *(_QWORD *)(v39 + 40) = 0;
+      *(_QWORD *)(v39 + 48) = 0x8000000000000004LL;
+      if ( (v39 & 7) != 0 )
+      {
+        v47 = v39;
+        sub_1B25B60(384, a2);
+        v13 = v47;
+      }
+      *(_QWORD *)(v13 + 40) = v40;
+      *(_DWORD *)(v13 + 32) = 0;
+      *(_QWORD *)(v13 + 224) = 0;
+      *(_OWORD *)(v13 + 96) = -1;
+      *(_OWORD *)(v13 + 112) = -1;
+      *(_OWORD *)(v13 + 128) = -1;
+      *(_OWORD *)(v13 + 144) = -1;
+      *(_OWORD *)(v13 + 160) = -1;
+      *(_OWORD *)(v13 + 176) = -1;
+      *(_OWORD *)(v13 + 192) = -1;
+      *(_OWORD *)(v13 + 208) = -1;
+      *(_QWORD *)(v13 + 368) = 0;
+      *(_OWORD *)(v13 + 240) = -1;
+      *(_OWORD *)(v13 + 256) = -1;
+      *(_OWORD *)(v13 + 272) = -1;
+      *(_OWORD *)(v13 + 288) = -1;
+      *(_OWORD *)(v13 + 304) = -1;
+      *(_OWORD *)(v13 + 320) = -1;
+      *(_OWORD *)(v13 + 336) = -1;
+      *(_OWORD *)(v13 + 352) = -1;
+      *(_QWORD *)(a1 + 8) = v13;
+    }
+    v45 = v13;
+    v50 = *(_DWORD *)(a3 + 52);
+    HIDWORD(v49) = *(_DWORD *)(a3 + 56);
+    v14 = sub_1E51490(a2, a2, v7);
+    v15 = *(_DWORD **)(a3 + 16);
+    v42 = v14;
+    _mm_prefetch((const char *)qword_2700F88, 1);
+    v16 = *(int *)(a3 + 8);
+    v48 = 0;
+    if ( &v15[v16] != v15 )
+    {
+      v17 = v45;
+      v18 = v15;
+      v46 = &v15[v16];
+      v44 = v17;
+      while ( 1 )
+      {
+        LODWORD(v49) = *v18;
+        if ( (*(_DWORD *)(a1 + 728) & 2) != 0 )  // 728 = 0x2D8 = CNetworkTransmitComponent::m_nStateFlags (structmember, struct=CNetworkTransmitComponent, member=m_nStateFlags)
+        {
+          if ( !v11 )
+            goto LABEL_19;
+          v37 = sub_9F8240(a1, v44, &v49);
+          v19 = " ignored FL_FULL_EDICT_CHANGED";
+          if ( !v37 )
+            goto LABEL_19;
+          goto LABEL_24;
+        }
+        if ( !(unsigned __int8)sub_9F8240(a1, v44, &v49) )
+          break;
+        if ( v11 )
+        {
+          v19 = " ignored";
+  LABEL_24:
+          sub_A0ACC0(a1, a2, v44, &v49, v19);
+        }
+  LABEL_19:
+        if ( v46 == ++v18 )
+          return;
+      }
+      _InterlockedOr((volatile signed __int32 *)(a1 + 728), 1u);  // 728 = 0x2D8 = CNetworkTransmitComponent::m_nStateFlags (structmember, struct=CNetworkTransmitComponent, member=m_nStateFlags)
+      v28 = *(unsigned __int16 *)((char *)&stru_23E380.r_offset + qword_2700F88);
+      v29 = (_BYTE *)sub_1B10F70(&qword_25744F0, 0xFFFFFFFFLL);
+      if ( !v29 )
+        v29 = *(_BYTE **)(qword_25744F8 + 8);
+      if ( !*v29 )
+      {
+  LABEL_57:
+        if ( v48 || (unsigned __int8)sub_9F8620(a1, a1 + 756, v44, &v48) )
+        {
+          if ( *(int *)(a1 + 740) < 0 )
+            sub_1B10F70(&qword_2574420, 0xFFFFFFFFLL);
+          if ( (unsigned __int8)sub_9FB960(v48 + 8, &v49) )
+          {
+  LABEL_65:
+            v19 = (const char *)&haystack;
+            if ( !v11 )
+            {
+              if ( byte_2574412 )
+              {
+                v33 = *(_QWORD *)(a2 + 16);
+                v34 = *(_QWORD *)(v33 + 8);
+                v35 = *(_QWORD *)(v34 + 216);
+                v36 = *(_QWORD *)(v34 + 224);
+                v51 = v35;
+                v52[0] = v36;
+                sub_A09940(a1, &v51, *(_QWORD *)(*(_QWORD *)(*(_QWORD *)(v33 + 8) + 80LL) + 8LL), &v49, 0);
+              }
+              goto LABEL_19;
+            }
+            goto LABEL_24;
+          }
+          v32 = byte_2574410 == 0;
+          *(_WORD *)(a1 + 758) = 0;
+          if ( !v32 && (*(_DWORD *)(a1 + 728) & 2) == 0 )  // 728 = 0x2D8 = CNetworkTransmitComponent::m_nStateFlags (structmember, struct=CNetworkTransmitComponent, member=m_nStateFlags)
+            sub_9EBF40(a1, "CNetworkTransmitComponent::StateChanged( overflowed offsets )");
+        }
+        else
+        {
+          v32 = byte_2574410 == 0;
+          *(_WORD *)(a1 + 758) = 0;
+          if ( !v32 && (*(_DWORD *)(a1 + 728) & 2) == 0 )  // 728 = 0x2D8 = CNetworkTransmitComponent::m_nStateFlags (structmember, struct=CNetworkTransmitComponent, member=m_nStateFlags)
+            sub_9EBF40(a1, "CNetworkTransmitComponent::StateChanged( overflowed shared changeinfos )");
+        }
+        _InterlockedOr((volatile signed __int32 *)(a1 + 728), 2u);  // 728 = 0x2D8 = CNetworkTransmitComponent::m_nStateFlags (structmember, struct=CNetworkTransmitComponent, member=m_nStateFlags)
+        goto LABEL_65;
+      }
+      if ( v28 == dword_25744A0 )
+      {
+  LABEL_50:
+        sub_9A70A0((unsigned int)&v51, (unsigned int)"%d %d %d %d\n", v42, (_DWORD)v49, v50, HIDWORD(v49));
+        v30 = (const char *)v52;
+        if ( (v51 & 0x4000000000000000LL) == 0 )
+        {
+          v30 = (const char *)&haystack;
+          if ( (v51 & 0x3FFFFFFF00000000LL) != 0 )
+            v30 = (const char *)v52[0];
+        }
+        if ( !byte_25744A4 )
+        {
+          v31 = qword_2574498;
+          byte_25744A4 = 1;
+          if ( qword_2574498 )
+          {
+  LABEL_55:
+            (*(void (**)(_QWORD *, __int64, const char *, ...))(*qword_274C230 + 448LL))(qword_274C230, v31, "%s", v30);
+  LABEL_56:
+            CBufferString::Purge((CBufferString *)&v51, 0);
+            goto LABEL_57;
+          }
+          v41 = v30;
+          sub_9EA7C0(&qword_2574480);
+          v30 = v41;
+        }
+        v31 = qword_2574498;
+        if ( !qword_2574498 )
+          goto LABEL_56;
+        goto LABEL_55;
+      }
+      if ( dword_25744A0 == -1 )
+      {
+  LABEL_49:
+        dword_25744A0 = v28;
+        goto LABEL_50;
+      }
+      if ( !byte_25744A4 )
+      {
+        v38 = qword_2574498;
+        byte_25744A4 = 1;
+        if ( qword_2574498 )
+        {
+  LABEL_78:
+          (*(void (**)(_QWORD *, __int64, const char *, ...))(*qword_274C230 + 448LL))(qword_274C230, v38, "%s", "tick\n");
+          goto LABEL_49;
+        }
+        sub_9EA7C0(&qword_2574480);
+      }
+      v38 = qword_2574498;
+      if ( !qword_2574498 )
+        goto LABEL_49;
+      goto LABEL_78;
+    }
+  }

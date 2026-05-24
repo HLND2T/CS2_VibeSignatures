@@ -1,0 +1,70 @@
+func_name: CBaseEntity_SetStateChanged
+func_va: '0x9b95b0'
+disasm_code: |-
+  .text:00000000009B95B0                 push    rbp
+  .text:00000000009B95B1                 mov     rbp, rsp
+  .text:00000000009B95B4                 push    rbx
+  .text:00000000009B95B5                 mov     rbx, rdi
+  .text:00000000009B95B8                 add     rdi, 38h ; '8' ; 0x38 = CBaseEntity::m_NetworkTransmitComponent (structmember, struct=CBaseEntity, member=m_NetworkTransmitComponent)
+  .text:00000000009B95BC                 sub     rsp, 8
+  .text:00000000009B95C0                 mov     eax, [rsi]
+  .text:00000000009B95C2                 test    eax, eax
+  .text:00000000009B95C4                 jnz     short loc_9B9640
+  .text:00000000009B95C6                 cmp     byte ptr [rbx+318h], 0
+  .text:00000000009B95CD                 jnz     short loc_9B95E8
+  .text:00000000009B95CF                 mov     rax, [rbx+48h]
+  .text:00000000009B95D3                 test    rax, rax
+  .text:00000000009B95D6                 jz      short loc_9B9610
+  .text:00000000009B95D8                 cmp     byte ptr [rax+18h], 0
+  .text:00000000009B95DC                 jz      short loc_9B9610
+  .text:00000000009B95DE                 mov     byte ptr [rbx+315h], 1
+  .text:00000000009B95E5                 nop     dword ptr [rax]
+  .text:00000000009B95E8                 lea     rax, off_2503B68
+  .text:00000000009B95EF                 mov     rax, [rax]
+  .text:00000000009B95F2                 movss   xmm0, dword ptr [rax+30h]
+  .text:00000000009B95F7                 comiss  xmm0, dword ptr [rbx+538h]
+  .text:00000000009B95FE                 ja      short loc_9B9620
+  .text:00000000009B9600                 mov     rbx, [rbp+var_8]
+  .text:00000000009B9604                 leave
+  .text:00000000009B9605                 retn
+  .text:00000000009B9610                 call    sub_9B94F0
+  .text:00000000009B9615                 jmp     short loc_9B95E8
+  .text:00000000009B9620                 movss   dword ptr [rbx+538h], xmm0
+  .text:00000000009B9628                 mov     qword ptr [rbx+530h], 0
+  .text:00000000009B9633                 mov     rbx, [rbp+var_8]
+  .text:00000000009B9637                 leave
+  .text:00000000009B9638                 retn
+  .text:00000000009B9640                 mov     rdx, rsi
+  .text:00000000009B9643                 mov     rsi, rbx
+  .text:00000000009B9646                 call    CNetworkTransmitComponent_StateChanged
+  .text:00000000009B964B                 jmp     short loc_9B95E8
+procedure: |-
+  void *__fastcall CBaseEntity_SetStateChanged(__int64 a1, _DWORD *a2, __int64 a3, __int64 a4, int a5, int a6)
+  {
+    __int64 v7; // rdi
+    __int64 v8; // rax
+    void *result; // rax
+    float v10; // xmm0_4
+
+    v7 = a1 + 56;                                 // 56 = 0x38 = CBaseEntity::m_NetworkTransmitComponent (structmember, struct=CBaseEntity, member=m_NetworkTransmitComponent)
+    if ( *a2 )
+    {
+      CNetworkTransmitComponent_StateChanged(v7, a1, (__int64)a2, a4, a5, a6);
+    }
+    else if ( !*(_BYTE *)(a1 + 792) )
+    {
+      v8 = *(_QWORD *)(a1 + 72);
+      if ( v8 && *(_BYTE *)(v8 + 24) )
+        *(_BYTE *)(a1 + 789) = 1;
+      else
+        sub_9B94F0(v7);
+    }
+    result = off_2503B68;
+    v10 = *((float *)off_2503B68 + 12);
+    if ( v10 > *(float *)(a1 + 1336) )
+    {
+      *(float *)(a1 + 1336) = v10;
+      *(_QWORD *)(a1 + 1328) = 0;
+    }
+    return result;
+  }

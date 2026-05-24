@@ -5145,6 +5145,26 @@ modules:
           - CBaseEntity_vtable.{platform}.yaml
           - CNetworkTransmitComponent_StateChanged.{platform}.yaml
 
+      - name: find-CBaseEntity_m_NetworkTransmitComponent
+        expected_output:
+          - CBaseEntity_m_NetworkTransmitComponent.{platform}.yaml
+        expected_input:
+          - CBaseEntity_SetStateChanged.{platform}.yaml
+
+      - name: find-CNetworkTransmitComponent_m_nStateFlags
+        expected_output:
+          - CNetworkTransmitComponent_m_nStateFlags.{platform}.yaml
+        expected_input:
+          - CNetworkTransmitComponent_StateChanged.{platform}.yaml
+
+      - name: find-CBaseEntity_FullEdictChanged
+        expected_output:
+          - CBaseEntity_FullEdictChanged.{platform}.yaml
+        expected_input:
+          - CBaseEntity_vtable.{platform}.yaml
+          - CBaseEntity_m_NetworkTransmitComponent.{platform}.yaml
+          - CNetworkTransmitComponent_m_nStateFlags.{platform}.yaml
+
       - name: find-CBaseCombatCharacter_OnKilled
         expected_output:
           - CBaseCombatCharacter_OnKilled.{platform}.yaml
@@ -6294,6 +6314,12 @@ modules:
           - CEntityInstance_NetworkStateChanged.{platform}.yaml
         expected_input:
           - CBaseEntity_NetworkStateChanged.{platform}.yaml
+
+      - name: find-CEntityInstance_FullEdictChanged
+        expected_output:
+          - CEntityInstance_FullEdictChanged.{platform}.yaml
+        expected_input:
+          - CBaseEntity_FullEdictChanged.{platform}.yaml
 
       - name: find-CEntityInstance_NetworkStateChangedLog
         expected_output:
@@ -8168,10 +8194,29 @@ modules:
         alias:
           - CBaseEntity::NetworkStateChanged
 
+      - name: CBaseEntity_FullEdictChanged
+        category: vfunc
+        alias:
+          - CBaseEntity::FullEdictChanged
+
+      - name: CBaseEntity_m_NetworkTransmitComponent
+        category: structmember
+        struct: CBaseEntity
+        member: m_NetworkTransmitComponent
+        alias:
+          - CBaseEntity::m_NetworkTransmitComponent
+
       - name: CNetworkTransmitComponent_StateChanged
         category: func
         alias:
           - CNetworkTransmitComponent::StateChanged
+
+      - name: CNetworkTransmitComponent_m_nStateFlags
+        category: structmember
+        struct: CNetworkTransmitComponent
+        member: m_nStateFlags
+        alias:
+          - CNetworkTransmitComponent::m_nStateFlags
 
       - name: Host_Say
         category: func
@@ -9546,6 +9591,11 @@ modules:
         category: vfunc
         alias:
           - CEntityInstance::NetworkStateChanged
+
+      - name: CEntityInstance_FullEdictChanged
+        category: vfunc
+        alias:
+          - CEntityInstance::FullEdictChanged
 
       - name: CEntityInstance_NetworkUpdateState
         category: vfunc
