@@ -2689,14 +2689,19 @@ modules:
         expected_input:
           - IGameSystem_PostInit.{platform}.yaml
 
-      - name: find-IGameSystemFactory_CreateGameSystem-AND-IGameSystemFactory_IsReallocating-AND-IGameSystem_SetName-AND-IGameSystemFactory_GetPriority
+      - name: find-IGameSystem_LoopInitAllSystems
         expected_output:
+          - IGameSystem_LoopInitAllSystems.{platform}.yaml
+
+      - name: find-IGameSystemFactory_ShouldAutoAdd-AND-IGameSystemFactory_CreateGameSystem-AND-IGameSystemFactory_IsReallocating-AND-IGameSystem_SetName-AND-IGameSystemFactory_GetPriority
+        expected_output:
+          - IGameSystemFactory_ShouldAutoAdd.{platform}.yaml
           - IGameSystemFactory_CreateGameSystem.{platform}.yaml
           - IGameSystemFactory_IsReallocating.{platform}.yaml
           - IGameSystem_SetName.{platform}.yaml
           - IGameSystemFactory_GetPriority.{platform}.yaml
         expected_input:
-          - IGameSystem_AddByName.{platform}.yaml
+          - IGameSystem_LoopInitAllSystems.{platform}.yaml
 
       - name: find-IGameSystem_DestroyAllGameSystems-AND-IGameSystem_LoopDestroyAllSystems-AND-IGameSystem_LoopPreShutdownAllSystems
         expected_output:
@@ -3351,6 +3356,11 @@ modules:
         alias:
           - IGameSystem::InitAllSystems
 
+      - name: IGameSystem_LoopInitAllSystems
+        category: func
+        alias:
+          - IGameSystem::LoopInitAllSystems
+
       - name: IGameSystemFactory_PostInit
         category: vfunc
         alias:
@@ -3360,6 +3370,11 @@ modules:
         category: vfunc
         alias:
           - IGameSystemFactory::GetStaticGameSystem
+
+      - name: IGameSystemFactory_ShouldAutoAdd
+        category: vfunc
+        alias:
+          - IGameSystemFactory::ShouldAutoAdd
 
       - name: IGameSystemFactory_CreateGameSystem
         category: vfunc
@@ -5259,6 +5274,10 @@ modules:
           - IGameSystem_InitAllSystems_pFirst.{platform}.yaml
         expected_input:
           - IGameSystem_InitAllSystems.{platform}.yaml
+
+      - name: find-IGameSystem_LoopInitAllSystems
+        expected_output:
+          - IGameSystem_LoopInitAllSystems.{platform}.yaml
 
       - name: find-IGameSystem_LoopPostInitAllSystems
         expected_output:
@@ -8139,6 +8158,11 @@ modules:
         alias:
           - IGameSystem::InitAllSystems
 
+      - name: IGameSystem_LoopInitAllSystems
+        category: func
+        alias:
+          - IGameSystem::LoopInitAllSystems
+
       - name: IGameSystem_LoopPostInitAllSystems
         category: func
         alias:
@@ -10471,6 +10495,33 @@ cpp_tests:
       - fdump-vtable-layouts
     reference_modules:
       - engine # bin/{gamever}/engine/CLoopTypeClientServer_*.{platform}.yaml
+
+  - name: IGameSystemFactory_MSVC
+    symbol: IGameSystemFactory
+    cpp: cpp_tests/igamesystemfactory.cpp
+    headers:
+    - hl2sdk_cs2/game/shared/igamesystemfactory.h # This is for LLM agent
+    claude_permission_mode: acceptEdits
+    claude_allowed_tools: Read,Edit,MultiEdit,Write
+    target: x86_64-pc-windows-msvc
+    include_directories:
+      - cpp_tests/stubs
+      - hl2sdk_cs2/game/shared
+      - hl2sdk_cs2/public
+      - hl2sdk_cs2/public/tier0
+      - hl2sdk_cs2/public/tier1
+    defines:
+      - COMPILER_MSVC=1
+      - COMPILER_MSVC64=1
+      - _MSVC_STL_USE_ABORT_AS_DOOM_FUNCTION
+    additional_compiler_options:
+      - fms-extensions
+      - fms-compatibility
+      - Xclang
+      - fdump-vtable-layouts
+    reference_modules:
+      - server # bin/{gamever}/server/IGameSystemFactory_*.{platform}.yaml
+      - client # bin/{gamever}/client/IGameSystemFactory_*.{platform}.yaml
 
   - name: SDL_Mouse_MSVC
     symbol: SDL_Mouse

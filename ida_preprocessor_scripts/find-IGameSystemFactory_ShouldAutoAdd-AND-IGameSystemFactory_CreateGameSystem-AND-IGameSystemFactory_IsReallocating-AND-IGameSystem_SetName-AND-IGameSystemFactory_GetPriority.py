@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-IGameSystemFactory_CreateGameSystem-AND-IGameSystemFactory_IsReallocating-AND-IGameSystem_SetName-AND-IGameSystemFactory_GetPriority skill."""
+"""Preprocess script for find-IGameSystemFactory_ShouldAutoAdd-AND-IGameSystemFactory_CreateGameSystem-AND-IGameSystemFactory_IsReallocating-AND-IGameSystem_SetName-AND-IGameSystemFactory_GetPriority skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = [
+    "IGameSystemFactory_ShouldAutoAdd",
     "IGameSystemFactory_CreateGameSystem",
     "IGameSystemFactory_IsReallocating",
     "IGameSystem_SetName",
@@ -12,35 +13,42 @@ TARGET_FUNCTION_NAMES = [
 
 LLM_DECOMPILE = [
     # (symbol_name, path_to_prompt, path_to_reference)
-    # All four vfunc offsets found by decompiling IGameSystem_AddByName:
-    #   IGameSystemFactory_CreateGameSystem = first virtual call through IGameSystemFactory vtable (*v2), allocates a new game system
-    #   IGameSystemFactory_IsReallocating   = second virtual call through IGameSystemFactory vtable (*v2), boolean check
-    #   IGameSystem_SetName                 = conditional virtual call through IGameSystem vtable (v7 = allocated instance)
-    #   IGameSystemFactory_GetPriority      = virtual call through IGameSystemFactory vtable at offset 0x30, returns priority int
+    # All five vfunc offsets found by decompiling IGameSystem_LoopInitAllSystems:
+    #   IGameSystemFactory_ShouldAutoAdd    = virtual call through IGameSystemFactory vtable, boolean gate before adding
+    #   IGameSystemFactory_CreateGameSystem = virtual call through IGameSystemFactory vtable (*v), allocates a new game system
+    #   IGameSystemFactory_IsReallocating   = virtual call through IGameSystemFactory vtable (*v), boolean check
+    #   IGameSystem_SetName                 = conditional virtual call through IGameSystem vtable (allocated instance)
+    #   IGameSystemFactory_GetPriority      = virtual call through IGameSystemFactory vtable, returns priority int
+    (
+        "IGameSystemFactory_ShouldAutoAdd",
+        "prompt/call_llm_decompile.md",
+        "references/client/IGameSystem_LoopInitAllSystems.{platform}.yaml",
+    ),
     (
         "IGameSystemFactory_CreateGameSystem",
         "prompt/call_llm_decompile.md",
-        "references/client/IGameSystem_AddByName.{platform}.yaml",
+        "references/client/IGameSystem_LoopInitAllSystems.{platform}.yaml",
     ),
     (
         "IGameSystemFactory_IsReallocating",
         "prompt/call_llm_decompile.md",
-        "references/client/IGameSystem_AddByName.{platform}.yaml",
+        "references/client/IGameSystem_LoopInitAllSystems.{platform}.yaml",
     ),
     (
         "IGameSystem_SetName",
         "prompt/call_llm_decompile.md",
-        "references/client/IGameSystem_AddByName.{platform}.yaml",
+        "references/client/IGameSystem_LoopInitAllSystems.{platform}.yaml",
     ),
     (
         "IGameSystemFactory_GetPriority",
         "prompt/call_llm_decompile.md",
-        "references/client/IGameSystem_AddByName.{platform}.yaml",
+        "references/client/IGameSystem_LoopInitAllSystems.{platform}.yaml",
     ),
 ]
 
 FUNC_VTABLE_RELATIONS = [
     # (func_name, vtable_class)
+    ("IGameSystemFactory_ShouldAutoAdd", "IGameSystemFactory"),
     ("IGameSystemFactory_CreateGameSystem", "IGameSystemFactory"),
     ("IGameSystemFactory_IsReallocating", "IGameSystemFactory"),
     ("IGameSystem_SetName", "IGameSystem"),
@@ -49,6 +57,16 @@ FUNC_VTABLE_RELATIONS = [
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
+    (
+        "IGameSystemFactory_ShouldAutoAdd",
+        [
+            "func_name",
+            "vfunc_sig",
+            "vfunc_offset",
+            "vfunc_index",
+            "vtable_name",
+        ],
+    ),
     (
         "IGameSystemFactory_CreateGameSystem",
         [
@@ -64,7 +82,7 @@ GENERATE_YAML_DESIRED_FIELDS = [
         [
             "func_name",
             "vfunc_sig",
-            "vfunc_sig_max_match:2",  # Called from both IGameSystem_AddByName and IGameSystem_Add, so signature matches 2 call sites
+            "vfunc_sig_max_match:2",  # Called from both IGameSystem_LoopInitAllSystems and IGameSystem_Add, so signature matches 2 call sites
             "vfunc_offset",
             "vfunc_index",
             "vtable_name",
@@ -99,7 +117,7 @@ async def preprocess_skill(
     session, skill_name, expected_outputs, old_yaml_map,
     new_binary_dir, platform, image_base, llm_config=None, debug=False,
 ):
-    """Reuse previous gamever vfunc_sig to locate target function(s); fallback to LLM_DECOMPILE of IGameSystem_AddByName."""
+    """Reuse previous gamever vfunc_sig to locate target function(s); fallback to LLM_DECOMPILE of IGameSystem_LoopInitAllSystems."""
     _ = skill_name
     return await preprocess_common_skill(
         session=session,
