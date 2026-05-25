@@ -1,16 +1,22 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CEntitySystem_m_sEntSystemName skill."""
+"""Preprocess script for find-CEntitySystem_m_sEntSystemName-AND-CEntitySystem_m_entityComponentHelpers skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_STRUCT_MEMBER_NAMES = [
     "CEntitySystem_m_sEntSystemName",
+    "CEntitySystem_m_entityComponentHelpers",
 ]
 
 LLM_DECOMPILE = [
     # (symbol_name, path_to_prompt, path_to_reference)
     (
         "CEntitySystem_m_sEntSystemName",
+        "prompt/call_llm_decompile.md",
+        "references/server/CEntitySystem_Init.{platform}.yaml",
+    ),
+    (
+        "CEntitySystem_m_entityComponentHelpers",
         "prompt/call_llm_decompile.md",
         "references/server/CEntitySystem_Init.{platform}.yaml",
     ),
@@ -29,13 +35,24 @@ GENERATE_YAML_DESIRED_FIELDS = [
             "offset_sig_disp",
         ],
     ),
+    (
+        "CEntitySystem_m_entityComponentHelpers",
+        [
+            "struct_name",
+            "member_name",
+            "offset",
+            #"size",
+            "offset_sig",
+            "offset_sig_disp",
+        ],
+    ),
 ]
 
 async def preprocess_skill(
     session, skill_name, expected_outputs, old_yaml_map,
     new_binary_dir, platform, image_base, llm_config=None, debug=False,
 ):
-    """Reuse previous gamever offset_sig to locate target struct offset and write YAML."""
+    """Reuse previous gamever offset_sig to locate target struct offsets and write YAML."""
     return await preprocess_common_skill(
         session=session,
         expected_outputs=expected_outputs,
