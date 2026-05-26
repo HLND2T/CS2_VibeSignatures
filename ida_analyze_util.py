@@ -1026,11 +1026,20 @@ def _get_preprocessor_scripts_dir():
     return Path(__file__).resolve().parent / "ida_preprocessor_scripts"
 
 
-def _resolve_llm_decompile_template_value(value, platform):
+def _derive_module_name(new_binary_dir):
+    if not new_binary_dir:
+        return ""
+    return os.path.basename(os.path.normpath(str(new_binary_dir)))
+
+
+def _resolve_llm_decompile_template_value(value, platform, module_name=None):
     resolved = str(value or "")
     platform_text = str(platform or "").strip()
     if platform_text:
         resolved = resolved.replace("{platform}", platform_text)
+    module_text = str(module_name or "").strip()
+    if module_text:
+        resolved = resolved.replace("{module_name}", module_text)
     return resolved
 
 
@@ -2398,8 +2407,10 @@ def _prepare_llm_decompile_request(
     llm_decompile_specs_map,
     llm_config,
     platform=None,
+    new_binary_dir=None,
     debug=False,
 ):
+    module_name = _derive_module_name(new_binary_dir)
     llm_spec = (llm_decompile_specs_map or {}).get(func_name)
     if llm_spec is None:
         return None
@@ -2522,6 +2533,7 @@ def _prepare_llm_decompile_request(
         _resolve_llm_decompile_template_value(
             prompt_value,
             platform,
+            module_name=module_name,
         )
     )
     if not prompt_path.is_absolute():
@@ -2562,6 +2574,7 @@ def _prepare_llm_decompile_request(
             _resolve_llm_decompile_template_value(
                 reference_value,
                 platform,
+                module_name=module_name,
             )
         )
         if not reference_yaml_path.is_absolute():
@@ -2684,6 +2697,7 @@ async def call_llm_decompile(
     target_blocks=None,
     prompt_template=None,
     platform=None,
+    new_binary_dir=None,
     temperature=None,
     effort=None,
     api_key=None,
@@ -2695,6 +2709,7 @@ async def call_llm_decompile(
     retry_max_delay=None,
     debug=False,
 ):
+    module_name = _derive_module_name(new_binary_dir)
     if not callable(call_llm_text):
         if debug:
             print("    Preprocess: call_llm_text unavailable for llm_decompile")
@@ -2734,6 +2749,7 @@ async def call_llm_decompile(
             prompt = _resolve_llm_decompile_template_value(
                 prompt_template,
                 platform,
+                module_name=module_name,
             ).format(
                 symbol_name_list=symbol_name_text,
                 disasm_for_reference=str(disasm_for_reference or ""),
@@ -2743,6 +2759,7 @@ async def call_llm_decompile(
                 reference_blocks=str(reference_blocks or ""),
                 target_blocks=str(target_blocks or ""),
                 platform=str(platform or "").strip(),
+                module_name=module_name,
             )
         except Exception as exc:
             if debug:
@@ -8463,6 +8480,7 @@ async def preprocess_common_skill(
                     llm_decompile_specs_map,
                     llm_config,
                     platform=platform,
+                    new_binary_dir=new_binary_dir,
                     debug=debug,
                 )
             candidate_request = llm_request_cache.get(candidate_func_name)
@@ -8490,6 +8508,7 @@ async def preprocess_common_skill(
                     llm_decompile_specs_map,
                     llm_config,
                     platform=platform,
+                    new_binary_dir=new_binary_dir,
                     debug=debug,
                 )
             candidate_request = llm_request_cache.get(candidate_gv_name)
@@ -8527,6 +8546,7 @@ async def preprocess_common_skill(
                     llm_decompile_specs_map,
                     llm_config,
                     platform=platform,
+                    new_binary_dir=new_binary_dir,
                     debug=debug,
                 )
             candidate_request = llm_request_cache.get(candidate_struct_name)
@@ -8571,6 +8591,7 @@ async def preprocess_common_skill(
                 target_blocks=target_blocks,
                 prompt_template=llm_request["prompt_template"],
                 platform=platform,
+                new_binary_dir=new_binary_dir,
                 temperature=llm_request.get("temperature"),
                 effort=llm_request.get("effort"),
                 api_key=llm_request.get("api_key"),
@@ -8627,6 +8648,7 @@ async def preprocess_common_skill(
                     llm_decompile_specs_map,
                     llm_config,
                     platform=platform,
+                    new_binary_dir=new_binary_dir,
                     debug=debug,
                 )
             llm_request = llm_request_cache.get(func_name)
@@ -8907,6 +8929,7 @@ async def preprocess_common_skill(
                     llm_decompile_specs_map,
                     llm_config,
                     platform=platform,
+                    new_binary_dir=new_binary_dir,
                     debug=debug,
                 )
             llm_request = llm_request_cache.get(gv_name)
@@ -9045,6 +9068,7 @@ async def preprocess_common_skill(
                     llm_decompile_specs_map,
                     llm_config,
                     platform=platform,
+                    new_binary_dir=new_binary_dir,
                     debug=debug,
                 )
             llm_request = llm_request_cache.get(struct_member_name)

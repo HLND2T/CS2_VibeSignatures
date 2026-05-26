@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """Preprocess script for find-CSource2EntitySystem_StaticInit-decompiles skill."""
 
-import os
-
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = [
@@ -101,38 +99,36 @@ async def preprocess_skill(
     new_binary_dir, platform, image_base, llm_config=None, debug=False,
 ):
     """Reuse previous gamever vfunc_sig/gv_sig/offset_sig to locate targets and write YAML."""
-    module_name = os.path.basename(os.path.normpath(new_binary_dir)) if new_binary_dir else "server"
-
     llm_decompile = [
         (
             "IGameResourceService_SetEntityResourceManifestHandler",
             "prompt/call_llm_decompile.md",
-            f"references/{module_name}/CSource2EntitySystem_StaticInit.{{platform}}.yaml",
+            "references/{module_name}/CSource2EntitySystem_StaticInit.{platform}.yaml",
         ),
         (
             "g_pGameResourceService",
             "prompt/call_llm_decompile.md",
-            f"references/{module_name}/CSource2EntitySystem_StaticInit.{{platform}}.yaml",
+            "references/{module_name}/CSource2EntitySystem_StaticInit.{platform}.yaml",
         ),
         (
             "g_pGameEntitySystem",
             "prompt/call_llm_decompile.md",
-            f"references/{module_name}/CSource2EntitySystem_StaticInit.{{platform}}.yaml",
+            "references/{module_name}/CSource2EntitySystem_StaticInit.{platform}.yaml",
         ),
         (
             "CEntitySystem_m_entityIONotifiers",
             "prompt/call_llm_decompile.md",
-            f"references/{module_name}/CSource2EntitySystem_StaticInit.{{platform}}.yaml",
+            "references/{module_name}/CSource2EntitySystem_StaticInit.{platform}.yaml",
         ),
         (
             "CEntitySystem_EnableAutoDeletionExecution",
             "prompt/call_llm_decompile.md",
-            f"references/{module_name}/CSource2EntitySystem_StaticInit.{{platform}}.yaml",
+            "references/{module_name}/CSource2EntitySystem_StaticInit.{platform}.yaml",
         ),
         (
             "CEntitySystem_InstallPostSpawnCallback",
             "prompt/call_llm_decompile.md",
-            f"references/{module_name}/CSource2EntitySystem_StaticInit.{{platform}}.yaml",
+            "references/{module_name}/CSource2EntitySystem_StaticInit.{platform}.yaml",
         ),
     ]
 
