@@ -1305,6 +1305,7 @@ class TestGenerateYamlDesiredFieldsContract(unittest.IsolatedAsyncioTestCase):
                     "generation_options": {
                         "vfunc_sig_max_match": 10,
                     },
+                    "optional_fields": set(),
                 }
             },
             result,
@@ -1520,6 +1521,7 @@ class TestGenerateYamlDesiredFieldsContract(unittest.IsolatedAsyncioTestCase):
                         "gv_sig_allow_across_function_boundary": True,
                         "offset_sig_allow_across_function_boundary": True,
                     },
+                    "optional_fields": set(),
                 }
             },
             result,
