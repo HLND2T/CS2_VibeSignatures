@@ -6794,6 +6794,59 @@ modules:
           - CEntitySaveRestoreBlockHandler_SaveInternal.{platform}.yaml
           - CEntityInstance_vtable.{platform}.yaml
 
+      - name: find-CreateEntityTransitionList
+        expected_output:
+          - CreateEntityTransitionList.{platform}.yaml
+
+      - name: find-CEntitySaveRestoreBlockHandler_WriteSaveHeaders
+        expected_output:
+          - CEntitySaveRestoreBlockHandler_WriteSaveHeaders.{platform}.yaml
+        expected_input:
+          - CEntitySaveRestoreBlockHandler_vtable.{platform}.yaml
+
+      - name: find-CEntitySaveRestoreBlockHandler_ReadRestoreHeaders
+        expected_output:
+          - CEntitySaveRestoreBlockHandler_ReadRestoreHeaders.{platform}.yaml
+        expected_input:
+          - CEntitySaveRestoreBlockHandler_vtable.{platform}.yaml
+          - CEntitySaveRestoreBlockHandler_WriteSaveHeaders.{platform}.yaml
+
+      - name: find-CEntity2SaveRestore_vtable
+        expected_output:
+          - CEntity2SaveRestore_vtable.{platform}.yaml
+
+      - name: find-CEntity2SaveRestore_StreamEntitiesFromFile
+        expected_output:
+          - CEntity2SaveRestore_StreamEntitiesFromFile.{platform}.yaml
+        expected_input:
+          - CEntity2SaveRestore_vtable.{platform}.yaml
+
+      - name: find-CSaveRestoreBlockSet_vtable
+        expected_output:
+          - CSaveRestoreBlockSet_vtable.{platform}.yaml
+
+      - name: find-CEntity2SaveRestore_StreamEntitiesFromFile-decompiles
+        expected_output:
+          - CSaveRestoreBlockSet_PreRestore.{platform}.yaml
+          - CSaveRestoreBlockSet_PostRestore.{platform}.yaml
+        expected_input:
+          - CEntity2SaveRestore_StreamEntitiesFromFile.{platform}.yaml
+          - CSaveRestoreBlockSet_vtable.{platform}.yaml
+
+      - name: find-CEntitySaveRestoreBlockHandler_PreRestore
+        expected_output:
+          - CEntitySaveRestoreBlockHandler_PreRestore.{platform}.yaml
+        expected_input:
+          - CEntitySaveRestoreBlockHandler_vtable.{platform}.yaml
+          - CSaveRestoreBlockSet_PreRestore.{platform}.yaml
+
+      - name: find-CEntitySaveRestoreBlockHandler_PostRestore
+        expected_output:
+          - CEntitySaveRestoreBlockHandler_PostRestore.{platform}.yaml
+        expected_input:
+          - CEntitySaveRestoreBlockHandler_vtable.{platform}.yaml
+          - CSaveRestoreBlockSet_PostRestore.{platform}.yaml
+
       - name: find-PolymorphicHelper_t__SetPolymorphicPointer
         expected_output:
           - PolymorphicHelper_t__SetPolymorphicPointer.{platform}.yaml
@@ -7255,6 +7308,52 @@ modules:
         category: func
         alias:
           - CEntitySaveRestoreBlockHandler::RestoreEntity
+
+      - name: CreateEntityTransitionList
+        category: func
+        alias:
+          - CreateEntityTransitionList
+
+      - name: CEntitySaveRestoreBlockHandler_WriteSaveHeaders
+        category: vfunc
+        alias:
+          - CEntitySaveRestoreBlockHandler::WriteSaveHeaders
+
+      - name: CEntitySaveRestoreBlockHandler_ReadRestoreHeaders
+        category: vfunc
+        alias:
+          - CEntitySaveRestoreBlockHandler::ReadRestoreHeaders
+
+      - name: CEntity2SaveRestore_vtable
+        category: vtable
+
+      - name: CEntity2SaveRestore_StreamEntitiesFromFile
+        category: vfunc
+        alias:
+          - CEntity2SaveRestore::StreamEntitiesFromFile
+
+      - name: CSaveRestoreBlockSet_vtable
+        category: vtable
+
+      - name: CSaveRestoreBlockSet_PreRestore
+        category: vfunc
+        alias:
+          - CSaveRestoreBlockSet::PreRestore
+
+      - name: CSaveRestoreBlockSet_PostRestore
+        category: vfunc
+        alias:
+          - CSaveRestoreBlockSet::PostRestore
+
+      - name: CEntitySaveRestoreBlockHandler_PreRestore
+        category: vfunc
+        alias:
+          - CEntitySaveRestoreBlockHandler::PreRestore
+
+      - name: CEntitySaveRestoreBlockHandler_PostRestore
+        category: vfunc
+        alias:
+          - CEntitySaveRestoreBlockHandler::PostRestore
 
       - name: CEntitySystem_SetInPVS
         category: func

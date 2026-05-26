@@ -1,0 +1,877 @@
+func_name: CEntity2SaveRestore_StreamEntitiesFromFile
+func_va: '0x15b4f50'
+disasm_code: |-
+  .text:00000000015B4F50                 push    rbp
+  .text:00000000015B4F51                 mov     rbp, rsp
+  .text:00000000015B4F54                 push    r15
+  .text:00000000015B4F56                 push    r14
+  .text:00000000015B4F58                 lea     r14, [rbp+var_190]
+  .text:00000000015B4F5F                 push    r13
+  .text:00000000015B4F61                 mov     r13, rcx
+  .text:00000000015B4F64                 push    r12
+  .text:00000000015B4F66                 push    rbx
+  .text:00000000015B4F67                 mov     rbx, rsi
+  .text:00000000015B4F6A                 mov     rsi, rdi
+  .text:00000000015B4F6D                 sub     rsp, 248h
+  .text:00000000015B4F74                 mov     [rbp+var_238], rdi
+  .text:00000000015B4F7B                 mov     rdi, r14
+  .text:00000000015B4F7E                 mov     [rbp+var_240], rdx
+  .text:00000000015B4F85                 mov     [rbp+var_24C], r8d
+  .text:00000000015B4F8C                 call    CEntity2SaveRestore__GetSaveGameSpawnGroupName
+  .text:00000000015B4F91                 mov     rdx, [rbp+var_190]
+  .text:00000000015B4F98                 lea     rax, haystack
+  .text:00000000015B4F9F                 lea     rdi, [rbp+var_140]
+  .text:00000000015B4FA6                 lea     rcx, a1; "1"
+  .text:00000000015B4FAD                 mov     [rbp+var_248], rdi
+  .text:00000000015B4FB4                 lea     rsi, aSaveSHlS; "save/%s.hl%s"
+  .text:00000000015B4FBB                 test    rdx, rdx
+  .text:00000000015B4FBE                 cmovz   rdx, rax
+  .text:00000000015B4FC2                 xor     eax, eax
+  .text:00000000015B4FC4                 call    V_sprintf
+  .text:00000000015B4FC9                 cmp     [rbp+var_190], 0
+  .text:00000000015B4FD1                 jz      short loc_15B4FDB
+  .text:00000000015B4FD3                 ; this
+  .text:00000000015B4FD3                 mov     rdi, r14; this
+  .text:00000000015B4FD6                 call    __ZN10CUtlString15FreeMemoryBlockEv; CUtlString::FreeMemoryBlock(void)
+  .text:00000000015B4FDB                 lea     r15, [rbp+var_1E0]
+  .text:00000000015B4FE2                 ; _QWORD
+  .text:00000000015B4FE2                 xor     edx, edx; _QWORD
+  .text:00000000015B4FE4                 ; _QWORD
+  .text:00000000015B4FE4                 xor     ecx, ecx; _QWORD
+  .text:00000000015B4FE6                 ; _QWORD
+  .text:00000000015B4FE6                 xor     esi, esi; _QWORD
+  .text:00000000015B4FE8                 ; _QWORD
+  .text:00000000015B4FE8                 mov     rdi, r15; _QWORD
+  .text:00000000015B4FEB                 call    __ZN10CUtlBufferC1EiiNS_13BufferFlags_tE; CUtlBuffer::CUtlBuffer(int,int,CUtlBuffer::BufferFlags_t)
+  .text:00000000015B4FF0                 mov     rax, [r13+0]
+  .text:00000000015B4FF4                 lea     rdx, sub_152DE00
+  .text:00000000015B4FFB                 mov     rax, [rax+18h]
+  .text:00000000015B4FFF                 cmp     rax, rdx
+  .text:00000000015B5002                 jnz     loc_15B55F0
+  .text:00000000015B5008                 lea     r12, [r13+1228h]
+  .text:00000000015B500F                 mov     rax, [r12]
+  .text:00000000015B5013                 lea     rsi, [rbp+var_138]
+  .text:00000000015B501A                 mov     rax, [rax+10h]
+  .text:00000000015B501E                 test    [rbp+var_139], 40h
+  .text:00000000015B5025                 jnz     short loc_15B503A
+  .text:00000000015B5027                 lea     rsi, haystack
+  .text:00000000015B502E                 test    dword ptr [rbp-13Ch], 3FFFFFFFh
+  .text:00000000015B5038                 jnz     short loc_15B5090
+  .text:00000000015B503A                 mov     rdx, r15
+  .text:00000000015B503D                 mov     rdi, r12
+  .text:00000000015B5040                 call    rax
+  .text:00000000015B5042                 mov     r15d, eax
+  .text:00000000015B5045                 test    al, al
+  .text:00000000015B5047                 jnz     short loc_15B50A6
+  .text:00000000015B5049                 mov     dword ptr [rbp+var_1E0], 0
+  .text:00000000015B5053                 mov     eax, dword ptr [rbp+var_1E0+4]
+  .text:00000000015B5059                 test    eax, 7FFFFFFFh
+  .text:00000000015B505E                 jz      short loc_15B5068
+  .text:00000000015B5060                 test    eax, eax
+  .text:00000000015B5062                 jns     loc_15B5500
+  .text:00000000015B5068                 ; this
+  .text:00000000015B5068                 mov     rdi, [rbp+var_248]; this
+  .text:00000000015B506F                 ; int
+  .text:00000000015B506F                 xor     esi, esi; int
+  .text:00000000015B5071                 call    __ZN13CBufferString5PurgeEi; CBufferString::Purge(int)
+  .text:00000000015B5076                 add     rsp, 248h
+  .text:00000000015B507D                 mov     eax, r15d
+  .text:00000000015B5080                 pop     rbx
+  .text:00000000015B5081                 pop     r12
+  .text:00000000015B5083                 pop     r13
+  .text:00000000015B5085                 pop     r14
+  .text:00000000015B5087                 pop     r15
+  .text:00000000015B5089                 pop     rbp
+  .text:00000000015B508A                 retn
+  .text:00000000015B5090                 mov     rdx, r15
+  .text:00000000015B5093                 mov     rsi, [rbp+var_138]
+  .text:00000000015B509A                 mov     rdi, r12
+  .text:00000000015B509D                 call    rax
+  .text:00000000015B509F                 mov     r15d, eax
+  .text:00000000015B50A2                 test    al, al
+  .text:00000000015B50A4                 jz      short loc_15B5049
+  .text:00000000015B50A6                 mov     rsi, [rbp+var_240]
+  .text:00000000015B50AD                 xor     edx, edx
+  .text:00000000015B50AF                 mov     rdi, [rbp+var_238]
+  .text:00000000015B50B6                 call    sub_1554AC0
+  .text:00000000015B50BB                 mov     ecx, [rbp+var_1CC]
+  .text:00000000015B50C1                 xor     edx, edx
+  .text:00000000015B50C3                 test    dword ptr [rbp+var_1E0+4], 7FFFFFFFh
+  .text:00000000015B50CD                 jz      short loc_15B50D6
+  .text:00000000015B50CF                 mov     rdx, [rbp+var_1D8]
+  .text:00000000015B50D6                 mov     rsi, [rbp+var_240]
+  .text:00000000015B50DD                 mov     rdi, [rbp+var_238]
+  .text:00000000015B50E4                 call    sub_1554BB0
+  .text:00000000015B50E9                 mov     [rbp+var_260], rax
+  .text:00000000015B50F0                 test    rax, rax
+  .text:00000000015B50F3                 jz      loc_15B55C0
+  .text:00000000015B50F9                 lea     rax, [rax+18h]
+  .text:00000000015B50FD                 mov     rsi, r13
+  .text:00000000015B5100                 mov     rdi, rax
+  .text:00000000015B5103                 mov     [rbp+var_268], rax
+  .text:00000000015B510A                 call    sub_FA9000
+  .text:00000000015B510F                 lea     rax, off_2503B68
+  .text:00000000015B5116                 mov     rsi, [rbp+var_260]
+  .text:00000000015B511D                 mov     rax, [rax]
+  .text:00000000015B5120                 mov     rdi, rsi
+  .text:00000000015B5123                 movss   xmm0, dword ptr [rax+30h]
+  .text:00000000015B5128                 movss   dword ptr [rsi+338h], xmm0
+  .text:00000000015B5130                 mov     eax, [rax+44h]
+  .text:00000000015B5133                 mov     [rsi+33Ch], eax
+  .text:00000000015B5139                 call    sub_1591EC0
+  .text:00000000015B513E                 mov     rdi, r14
+  .text:00000000015B5141                 mov     rsi, rax
+  .text:00000000015B5144                 mov     r13, rax
+  .text:00000000015B5147                 call    sub_1552090
+  .text:00000000015B514C                 mov     rax, [rbx]
+  .text:00000000015B514F                 lea     rcx, _ZN20CSaveRestoreBlockSet10PreRestoreEv; CSaveRestoreBlockSet::PreRestore(void)
+  .text:00000000015B5156                 mov     rdx, [rax+28h]
+  .text:00000000015B515A                 cmp     rdx, rcx
+  .text:00000000015B515D                 jnz     loc_15B5860
+  .text:00000000015B5163                 mov     esi, [rbx+10h]
+  .text:00000000015B5166                 test    esi, esi
+  .text:00000000015B5168                 jle     short loc_15B518B
+  .text:00000000015B516A                 xor     r14d, r14d
+  .text:00000000015B516D                 nop     dword ptr [rax]
+  .text:00000000015B5170                 mov     rax, [rbx+18h]
+  .text:00000000015B5174                 mov     rdi, [rax+r14*8]
+  .text:00000000015B5178                 add     r14, 1
+  .text:00000000015B517C                 mov     rax, [rdi]
+  .text:00000000015B517F                 call    qword ptr [rax+28h]  ; 28h = CSaveRestoreBlockSet_PreRestore
+  .text:00000000015B5182                 cmp     [rbx+10h], r14d
+  .text:00000000015B5186                 jg      short loc_15B5170
+  .text:00000000015B5188                 mov     rax, [rbx]
+  .text:00000000015B518B                 mov     rsi, r13
+  .text:00000000015B518E                 mov     rdi, rbx
+  .text:00000000015B5191                 call    qword ptr [rax+30h]
+  .text:00000000015B5194                 lea     r14, dword_2666BA0
+  .text:00000000015B519B                 ; _QWORD
+  .text:00000000015B519B                 mov     esi, 1; _QWORD
+  .text:00000000015B51A0                 ; _QWORD
+  .text:00000000015B51A0                 mov     edi, [r14]; _QWORD
+  .text:00000000015B51A3                 call    _LoggingSystem_IsChannelEnabled
+  .text:00000000015B51A8                 test    al, al
+  .text:00000000015B51AA                 jnz     loc_15B5758
+  .text:00000000015B51B0                 mov     r14, [rbp+var_260]
+  .text:00000000015B51B7                 mov     rdx, r13
+  .text:00000000015B51BA                 mov     rdi, [rbp+var_238]
+  .text:00000000015B51C1                 mov     rsi, r14
+  .text:00000000015B51C4                 call    sub_156D940
+  .text:00000000015B51C9                 mov     rcx, [rbp+var_240]
+  .text:00000000015B51D0                 mov     rdx, r14
+  .text:00000000015B51D3                 mov     rsi, r12
+  .text:00000000015B51D6                 mov     rdi, [rbp+var_238]
+  .text:00000000015B51DD                 call    sub_156C7D0
+  .text:00000000015B51E2                 lea     rax, off_2503B68
+  .text:00000000015B51E9                 lea     rcx, _ZN20CSaveRestoreBlockSet7RestoreEP8IRestorejb; CSaveRestoreBlockSet::Restore(IRestore *,uint,bool)
+  .text:00000000015B51F0                 mov     rax, [rax]
+  .text:00000000015B51F3                 movss   xmm0, dword ptr [rax+30h]
+  .text:00000000015B51F8                 movss   dword ptr [r14+338h], xmm0
+  .text:00000000015B5201                 mov     eax, [rax+44h]
+  .text:00000000015B5204                 mov     [r14+33Ch], eax
+  .text:00000000015B520B                 mov     rdx, [rbx]
+  .text:00000000015B520E                 mov     rax, [rdx+38h]
+  .text:00000000015B5212                 cmp     rax, rcx
+  .text:00000000015B5215                 jnz     loc_15B5840
+  .text:00000000015B521B                 mov     ecx, [rbx+10h]
+  .text:00000000015B521E                 test    ecx, ecx
+  .text:00000000015B5220                 jle     loc_15B5812
+  .text:00000000015B5226                 lea     rax, [rbp+var_200]
+  .text:00000000015B522D                 xor     r14d, r14d
+  .text:00000000015B5230                 mov     [rbp+var_24D], r15b
+  .text:00000000015B5237                 mov     [rbp+var_258], rax
+  .text:00000000015B523E                 xchg    ax, ax
+  .text:00000000015B5240                 mov     rax, [rbx+18h]
+  .text:00000000015B5244                 mov     r12, [rax+r14*8]
+  .text:00000000015B5248                 mov     rax, [r12]
+  .text:00000000015B524C                 mov     rdi, r12
+  .text:00000000015B524F                 call    qword ptr [rax]
+  .text:00000000015B5251                 lea     rsi, aEntities; "Entities"
+  .text:00000000015B5258                 ; _QWORD
+  .text:00000000015B5258                 mov     rdi, rax; _QWORD
+  .text:00000000015B525B                 call    _V_stricmp_fast
+  .text:00000000015B5260                 mov     rdi, r12
+  .text:00000000015B5263                 mov     r15d, eax
+  .text:00000000015B5266                 mov     rax, [r12]
+  .text:00000000015B526A                 call    qword ptr [rax]
+  .text:00000000015B526C                 mov     rdi, [rbp+var_258]
+  .text:00000000015B5273                 xor     ecx, ecx
+  .text:00000000015B5275                 test    r15d, r15d
+  .text:00000000015B5278                 setnz   cl
+  .text:00000000015B527B                 mov     r9, rax
+  .text:00000000015B527E                 mov     rsi, r13
+  .text:00000000015B5281                 lea     r8, a1616s; "%-16.16s | "
+  .text:00000000015B5288                 xor     eax, eax
+  .text:00000000015B528A                 xor     edx, edx
+  .text:00000000015B528C                 call    sub_1570830
+  .text:00000000015B5291                 mov     rax, [rbx]
+  .text:00000000015B5294                 lea     rsi, CSaveRestoreBlockSet__CallBlockHandlerRestore
+  .text:00000000015B529B                 mov     rax, [rax+58h]
+  .text:00000000015B529F                 cmp     rax, rsi
+  .text:00000000015B52A2                 jnz     loc_15B5698
+  .text:00000000015B52A8                 mov     rax, [r13+0]
+  .text:00000000015B52AC                 mov     rdi, r12
+  .text:00000000015B52AF                 mov     r15, [rax+40h]
+  .text:00000000015B52B3                 mov     rax, [r12]
+  .text:00000000015B52B7                 call    qword ptr [rax]
+  .text:00000000015B52B9                 mov     rdx, rax
+  .text:00000000015B52BC                 xor     eax, eax
+  .text:00000000015B52BE                 test    rdx, rdx
+  .text:00000000015B52C1                 jz      short loc_15B52CC
+  .text:00000000015B52C3                 cmp     byte ptr [rdx], 0
+  .text:00000000015B52C6                 jnz     loc_15B56B8
+  .text:00000000015B52CC                 lea     rsi, sub_1538F00
+  .text:00000000015B52D3                 mov     [rbp+var_220], eax
+  .text:00000000015B52D9                 mov     [rbp+var_21C], 0FFFFFFFFh
+  .text:00000000015B52E3                 mov     [rbp+var_218], rdx
+  .text:00000000015B52EA                 cmp     r15, rsi
+  .text:00000000015B52ED                 jnz     loc_15B56E0
+  .text:00000000015B52F3                 mov     rdi, [r13+138h]
+  .text:00000000015B52FA                 movzx   ecx, word ptr [rdi]
+  .text:00000000015B52FD                 shr     cx, 2
+  .text:00000000015B5301                 and     ecx, 0Fh
+  .text:00000000015B5304                 cmp     cl, 8
+  .text:00000000015B5307                 jz      loc_15B5624
+  .text:00000000015B530D                 mov     [rbp+var_208], rdx
+  .text:00000000015B5314                 xor     ecx, ecx
+  .text:00000000015B5316                 lea     rdx, [rbp+var_224]
+  .text:00000000015B531D                 mov     [rbp+var_210], eax
+  .text:00000000015B5323                 lea     rsi, [rbp+var_210]
+  .text:00000000015B532A                 mov     [rbp+var_224], 0FFFFFFFFh
+  .text:00000000015B5334                 mov     [rbp+var_20C], 0FFFFFFFFh
+  .text:00000000015B533E                 call    sub_1B1E6B0
+  .text:00000000015B5343                 test    rax, rax
+  .text:00000000015B5346                 jnz     loc_15B5618
+  .text:00000000015B534C                 mov     rdi, [rbp+var_200]
+  .text:00000000015B5353                 test    rdi, rdi
+  .text:00000000015B5356                 jz      short loc_15B53D0
+  .text:00000000015B5358                 mov     rax, [rdi]
+  .text:00000000015B535B                 lea     rsi, sub_1535D00
+  .text:00000000015B5362                 mov     rax, [rax+210h]
+  .text:00000000015B5369                 cmp     rax, rsi
+  .text:00000000015B536C                 jnz     loc_15B56D8
+  .text:00000000015B5372                 mov     eax, [rdi-1Ch]
+  .text:00000000015B5375                 sub     eax, 1
+  .text:00000000015B5378                 mov     [rdi-1Ch], eax
+  .text:00000000015B537B                 test    eax, eax
+  .text:00000000015B537D                 jnz     short loc_15B53C5
+  .text:00000000015B537F                 mov     rdi, [rbp+var_200]
+  .text:00000000015B5386                 lea     rcx, haystack
+  .text:00000000015B538D                 mov     rdx, [rbp+var_1F8]
+  .text:00000000015B5394                 movzx   esi, [rbp+var_1F0]
+  .text:00000000015B539B                 mov     rax, [rdi]
+  .text:00000000015B539E                 test    rdx, rdx
+  .text:00000000015B53A1                 cmovz   rdx, rcx
+  .text:00000000015B53A5                 mov     rax, [rax+1D0h]
+  .text:00000000015B53AC                 lea     rcx, sub_156CF20
+  .text:00000000015B53B3                 cmp     rax, rcx
+  .text:00000000015B53B6                 jnz     loc_15B5700
+  .text:00000000015B53BC                 sub     rdi, 48h ; 'H'
+  .text:00000000015B53C0                 call    sub_156CE30
+  .text:00000000015B53C5                 mov     [rbp+var_200], 0
+  .text:00000000015B53D0                 cmp     [rbp+var_1F8], 0
+  .text:00000000015B53D8                 jz      loc_15B5600
+  .text:00000000015B53DE                 ; this
+  .text:00000000015B53DE                 lea     rdi, [rbp+var_1F8]; this
+  .text:00000000015B53E5                 add     r14, 1
+  .text:00000000015B53E9                 call    __ZN10CUtlString15FreeMemoryBlockEv; CUtlString::FreeMemoryBlock(void)
+  .text:00000000015B53EE                 cmp     [rbx+10h], r14d
+  .text:00000000015B53F2                 jg      loc_15B5240
+  .text:00000000015B53F8                 movzx   r15d, [rbp+var_24D]
+  .text:00000000015B5400                 mov     rax, [rbx]
+  .text:00000000015B5403                 lea     rdx, _ZN20CSaveRestoreBlockSet11PostRestoreEv; CSaveRestoreBlockSet::PostRestore(void)
+  .text:00000000015B540A                 mov     rax, [rax+40h]
+  .text:00000000015B540E                 cmp     rax, rdx
+  .text:00000000015B5411                 jnz     loc_15B5830
+  .text:00000000015B5417                 mov     eax, [rbx+10h]
+  .text:00000000015B541A                 xor     r12d, r12d
+  .text:00000000015B541D                 test    eax, eax
+  .text:00000000015B541F                 jle     short loc_15B5440
+  .text:00000000015B5421                 nop     dword ptr [rax+00000000h]
+  .text:00000000015B5428                 mov     rax, [rbx+18h]
+  .text:00000000015B542C                 mov     rdi, [rax+r12*8]
+  .text:00000000015B5430                 add     r12, 1
+  .text:00000000015B5434                 mov     rax, [rdi]
+  .text:00000000015B5437                 call    qword ptr [rax+40h]  ; 40h = CSaveRestoreBlockSet_PostRestore
+  .text:00000000015B543A                 cmp     [rbx+10h], r12d
+  .text:00000000015B543E                 jg      short loc_15B5428
+  .text:00000000015B5440                 mov     r12, [rbp+var_268]
+  .text:00000000015B5447                 xor     ebx, ebx
+  .text:00000000015B5449                 mov     r13, [rbp+arg_8]
+  .text:00000000015B544D                 jmp     short loc_15B5453
+  .text:00000000015B5450                 add     ebx, 1
+  .text:00000000015B5453                 mov     rdi, r12
+  .text:00000000015B5456                 call    CGameSaveRestoreInfo__NumEntities
+  .text:00000000015B545B                 cmp     ebx, eax
+  .text:00000000015B545D                 jge     loc_15B5520
+  .text:00000000015B5463                 mov     esi, ebx
+  .text:00000000015B5465                 mov     rdi, r12
+  .text:00000000015B5468                 call    sub_FA89B0
+  .text:00000000015B546D                 mov     edx, [rax+0Ch]
+  .text:00000000015B5470                 cmp     edx, 7FFEh
+  .text:00000000015B5476                 ja      short loc_15B5450
+  .text:00000000015B5478                 lea     rax, g_pEntitySystem
+  .text:00000000015B547F                 mov     rcx, [rax]
+  .text:00000000015B5482                 mov     eax, edx
+  .text:00000000015B5484                 sar     eax, 9
+  .text:00000000015B5487                 cdqe
+  .text:00000000015B5489                 mov     rax, [rcx+rax*8+10h]
+  .text:00000000015B548E                 test    rax, rax
+  .text:00000000015B5491                 jz      short loc_15B5450
+  .text:00000000015B5493                 mov     ecx, edx
+  .text:00000000015B5495                 and     ecx, 1FFh
+  .text:00000000015B549B                 imul    rcx, 70h ; 'p'
+  .text:00000000015B549F                 add     rax, rcx
+  .text:00000000015B54A2                 movzx   ecx, word ptr [rax+10h]
+  .text:00000000015B54A6                 and     ecx, 7FFFh
+  .text:00000000015B54AC                 cmp     ecx, edx
+  .text:00000000015B54AE                 jnz     short loc_15B5450
+  .text:00000000015B54B0                 mov     r14d, [rax+10h]
+  .text:00000000015B54B4                 mov     edx, [rax+30h]
+  .text:00000000015B54B7                 shr     r14d, 0Fh
+  .text:00000000015B54BB                 and     edx, 1
+  .text:00000000015B54BE                 sub     r14d, edx
+  .text:00000000015B54C1                 cmp     dword ptr [rax+10h], 0FFFFFFFFh
+  .text:00000000015B54C5                 jz      loc_15B5808
+  .text:00000000015B54CB                 movsxd  rax, dword ptr [r13+0]
+  .text:00000000015B54CF                 shl     r14d, 0Fh
+  .text:00000000015B54D3                 or      r14d, ecx
+  .text:00000000015B54D6                 mov     edx, eax
+  .text:00000000015B54D8                 cmp     eax, [r13+10h]
+  .text:00000000015B54DC                 jz      loc_15B5730
+  .text:00000000015B54E2                 add     edx, 1
+  .text:00000000015B54E5                 mov     [r13+0], edx
+  .text:00000000015B54E9                 mov     rdx, [r13+8]
+  .text:00000000015B54ED                 mov     [rdx+rax*4], r14d
+  .text:00000000015B54F1                 jmp     loc_15B5450
+  .text:00000000015B5500                 mov     rax, cs:g_pMemAlloc_ptr
+  .text:00000000015B5507                 mov     rsi, [rbp+var_1D8]
+  .text:00000000015B550E                 mov     rdi, [rax]
+  .text:00000000015B5511                 mov     rax, [rdi]
+  .text:00000000015B5514                 call    qword ptr [rax+20h]
+  .text:00000000015B5517                 jmp     loc_15B5068
+  .text:00000000015B5520                 mov     rbx, [rbp+var_238]
+  .text:00000000015B5527                 mov     rsi, [rbp+var_240]
+  .text:00000000015B552E                 mov     rdi, [rbx+128h]
+  .text:00000000015B5535                 call    sub_15B4AC0
+  .text:00000000015B553A                 mov     rsi, [rbp+var_268]
+  .text:00000000015B5541                 mov     rdi, rax
+  .text:00000000015B5544                 call    sub_FAFBC0
+  .text:00000000015B5549                 mov     rdi, [rbp+var_260]
+  .text:00000000015B5550                 call    sub_1552BA0
+  .text:00000000015B5555                 cmp     qword ptr [rbx+0D0h], 0
+  .text:00000000015B555D                 jz      loc_15B57B8
+  .text:00000000015B5563                 mov     rbx, [rbp+var_238]
+  .text:00000000015B556A                 mov     eax, [rbx+0D8h]
+  .text:00000000015B5570                 mov     [rbp+var_24C], eax
+  .text:00000000015B5576                 sub     eax, 1
+  .text:00000000015B5579                 mov     [rbx+0D8h], eax
+  .text:00000000015B557F                 jnz     short loc_15B55C0
+  .text:00000000015B5581                 mov     rbx, [rbx+0D0h]
+  .text:00000000015B5588                 test    rbx, rbx
+  .text:00000000015B558B                 jz      short loc_15B55A2
+  .text:00000000015B558D                 ; this
+  .text:00000000015B558D                 mov     rdi, rbx; this
+  .text:00000000015B5590                 call    __ZN12CMemoryStackD1Ev; CMemoryStack::~CMemoryStack()
+  .text:00000000015B5595                 ; _QWORD
+  .text:00000000015B5595                 mov     esi, 50h ; 'P'; _QWORD
+  .text:00000000015B559A                 ; _QWORD
+  .text:00000000015B559A                 mov     rdi, rbx; _QWORD
+  .text:00000000015B559D                 call    __ZdlPvm; operator delete(void *,ulong)
+  .text:00000000015B55A2                 mov     rax, [rbp+var_238]
+  .text:00000000015B55A9                 mov     qword ptr [rax+0D0h], 0
+  .text:00000000015B55B4                 mov     dword ptr [rax+0D8h], 0
+  .text:00000000015B55BE                 xchg    ax, ax
+  .text:00000000015B55C0                 mov     rax, [rbp+var_238]
+  .text:00000000015B55C7                 cmp     byte ptr [rax+7Ch], 0
+  .text:00000000015B55CB                 jz      loc_15B5049
+  .text:00000000015B55D1                 mov     rcx, [rbp+arg_0]
+  .text:00000000015B55D5                 xor     edx, edx
+  .text:00000000015B55D7                 mov     rdi, rax
+  .text:00000000015B55DA                 mov     rsi, [rbp+var_240]
+  .text:00000000015B55E1                 call    sub_153F970
+  .text:00000000015B55E6                 jmp     loc_15B5049
+  .text:00000000015B55F0                 mov     rdi, r13
+  .text:00000000015B55F3                 call    rax
+  .text:00000000015B55F5                 mov     r12, rax
+  .text:00000000015B55F8                 jmp     loc_15B500F
+  .text:00000000015B5600                 add     r14, 1
+  .text:00000000015B5604                 cmp     [rbx+10h], r14d
+  .text:00000000015B5608                 jg      loc_15B5240
+  .text:00000000015B560E                 jmp     loc_15B53F8
+  .text:00000000015B5618                 lea     rdi, [r13+10h]
+  .text:00000000015B561C                 mov     rsi, rax
+  .text:00000000015B561F                 call    sub_1B24310
+  .text:00000000015B5624                 mov     rax, [r13+0]
+  .text:00000000015B5628                 lea     rsi, sub_D45F10
+  .text:00000000015B562F                 mov     rax, [rax+248h]
+  .text:00000000015B5636                 cmp     rax, rsi
+  .text:00000000015B5639                 jnz     loc_15B5720
+  .text:00000000015B563F                 mov     rax, [r13+138h]
+  .text:00000000015B5646                 movzx   eax, word ptr [rax]
+  .text:00000000015B5649                 shr     ax, 2
+  .text:00000000015B564D                 and     eax, 0Fh
+  .text:00000000015B5650                 cmp     al, 1
+  .text:00000000015B5652                 jz      short loc_15B566C
+  .text:00000000015B5654                 mov     rax, [r12]
+  .text:00000000015B5658                 mov     ecx, 1
+  .text:00000000015B565D                 mov     rsi, r13
+  .text:00000000015B5660                 mov     rdi, r12
+  .text:00000000015B5663                 mov     edx, [rbp+var_24C]
+  .text:00000000015B5669                 call    qword ptr [rax+38h]
+  .text:00000000015B566C                 mov     rax, [r13+0]
+  .text:00000000015B5670                 lea     rcx, sub_1535D40
+  .text:00000000015B5677                 mov     rax, [rax+48h]
+  .text:00000000015B567B                 cmp     rax, rcx
+  .text:00000000015B567E                 jnz     loc_15B5710
+  .text:00000000015B5684                 lea     rdi, [r13+10h]
+  .text:00000000015B5688                 call    sub_1B244F0
+  .text:00000000015B568D                 jmp     loc_15B534C
+  .text:00000000015B5698                 mov     ecx, [rbp+var_24C]
+  .text:00000000015B569E                 mov     rdx, r13
+  .text:00000000015B56A1                 mov     rsi, r12
+  .text:00000000015B56A4                 mov     rdi, rbx
+  .text:00000000015B56A7                 mov     r8d, 1
+  .text:00000000015B56AD                 call    rax
+  .text:00000000015B56AF                 jmp     loc_15B534C
+  .text:00000000015B56B8                 mov     rdi, rdx
+  .text:00000000015B56BB                 mov     [rbp+var_270], rdx
+  .text:00000000015B56C2                 call    sub_153DDC0
+  .text:00000000015B56C7                 mov     rdx, [rbp+var_270]
+  .text:00000000015B56CE                 jmp     loc_15B52CC
+  .text:00000000015B56D8                 call    rax
+  .text:00000000015B56DA                 jmp     loc_15B537B
+  .text:00000000015B56E0                 lea     rsi, [rbp+var_220]
+  .text:00000000015B56E7                 mov     rdi, r13
+  .text:00000000015B56EA                 call    r15
+  .text:00000000015B56ED                 test    al, al
+  .text:00000000015B56EF                 jz      loc_15B534C
+  .text:00000000015B56F5                 jmp     loc_15B5624
+  .text:00000000015B5700                 call    rax
+  .text:00000000015B5702                 jmp     loc_15B53C5
+  .text:00000000015B5710                 mov     rdi, r13
+  .text:00000000015B5713                 call    rax
+  .text:00000000015B5715                 jmp     loc_15B534C
+  .text:00000000015B5720                 mov     rdi, r13
+  .text:00000000015B5723                 call    rax
+  .text:00000000015B5725                 jmp     loc_15B5646
+  .text:00000000015B5730                 lea     rdi, [r13+8]
+  .text:00000000015B5734                 mov     esi, 1
+  .text:00000000015B5739                 mov     [rbp+var_24C], eax
+  .text:00000000015B573F                 call    sub_AE1280
+  .text:00000000015B5744                 mov     edx, [r13+0]
+  .text:00000000015B5748                 movsxd  rax, [rbp+var_24C]
+  .text:00000000015B574F                 jmp     loc_15B54E2
+  .text:00000000015B5758                 mov     rdi, [rbp+var_268]
+  .text:00000000015B575F                 call    CGameSaveRestoreInfo__NumEntities
+  .text:00000000015B5764                 lea     r8, [rbp+var_138]
+  .text:00000000015B576B                 mov     r9d, eax
+  .text:00000000015B576E                 test    [rbp+var_139], 40h
+  .text:00000000015B5775                 jnz     short loc_15B5791
+  .text:00000000015B5777                 lea     r8, haystack
+  .text:00000000015B577E                 test    dword ptr [rbp-13Ch], 3FFFFFFFh
+  .text:00000000015B5788                 jz      short loc_15B5791
+  .text:00000000015B578A                 mov     r8, [rbp+var_138]
+  .text:00000000015B5791                 ; _QWORD
+  .text:00000000015B5791                 mov     edi, [r14]; _QWORD
+  .text:00000000015B5794                 lea     rcx, aSv_0; "SV"
+  .text:00000000015B579B                 ; _QWORD
+  .text:00000000015B579B                 mov     esi, 1; _QWORD
+  .text:00000000015B57A0                 xor     eax, eax
+  .text:00000000015B57A2                 lea     rdx, aSStreamentitie_1; "%s:  StreamEntitiesFromFile:  '%s' [%d "...
+  .text:00000000015B57A9                 call    _LoggingSystem_Log
+  .text:00000000015B57AE                 jmp     loc_15B51B0
+  .text:00000000015B57B8                 ; _QWORD
+  .text:00000000015B57B8                 mov     edi, 50h ; 'P'; _QWORD
+  .text:00000000015B57BD                 call    __Znwm; operator new(ulong)
+  .text:00000000015B57C2                 ; this
+  .text:00000000015B57C2                 mov     rdi, rax; this
+  .text:00000000015B57C5                 mov     rbx, rax
+  .text:00000000015B57C8                 call    __ZN12CMemoryStackC1Ev; CMemoryStack::CMemoryStack(void)
+  .text:00000000015B57CD                 mov     rax, [rbp+var_238]
+  .text:00000000015B57D4                 ; unsigned int
+  .text:00000000015B57D4                 mov     r9d, 10h; unsigned int
+  .text:00000000015B57DA                 ; unsigned int
+  .text:00000000015B57DA                 mov     r8d, 230000h; unsigned int
+  .text:00000000015B57E0                 ; unsigned int
+  .text:00000000015B57E0                 mov     ecx, 40h ; '@'; unsigned int
+  .text:00000000015B57E5                 ; unsigned int
+  .text:00000000015B57E5                 mov     edx, 2000000h; unsigned int
+  .text:00000000015B57EA                 ; this
+  .text:00000000015B57EA                 mov     rdi, rbx; this
+  .text:00000000015B57ED                 lea     rsi, aCsavememory; "CSaveMemory"
+  .text:00000000015B57F4                 mov     [rax+0D0h], rbx
+  .text:00000000015B57FB                 call    __ZN12CMemoryStack4InitEPKcjjjj; CMemoryStack::Init(char const*,uint,uint,uint,uint)
+  .text:00000000015B5800                 jmp     loc_15B5563
+  .text:00000000015B5808                 mov     ecx, 7FFFh
+  .text:00000000015B580D                 jmp     loc_15B54CB
+  .text:00000000015B5812                 mov     rax, [rdx+40h]
+  .text:00000000015B5816                 lea     rdx, _ZN20CSaveRestoreBlockSet11PostRestoreEv; CSaveRestoreBlockSet::PostRestore(void)
+  .text:00000000015B581D                 cmp     rax, rdx
+  .text:00000000015B5820                 jz      loc_15B5440
+  .text:00000000015B5826                 nop     word ptr [rax+rax+00000000h]
+  .text:00000000015B5830                 mov     rdi, rbx
+  .text:00000000015B5833                 call    rax
+  .text:00000000015B5835                 jmp     loc_15B5440
+  .text:00000000015B5840                 mov     edx, [rbp+var_24C]
+  .text:00000000015B5846                 mov     ecx, 1
+  .text:00000000015B584B                 mov     rsi, r13
+  .text:00000000015B584E                 mov     rdi, rbx
+  .text:00000000015B5851                 call    rax
+  .text:00000000015B5853                 jmp     loc_15B5400
+  .text:00000000015B5860                 mov     rdi, rbx
+  .text:00000000015B5863                 call    rdx
+  .text:00000000015B5865                 jmp     loc_15B5188
+procedure: |-
+  __int64 __fastcall CEntity2SaveRestore_StreamEntitiesFromFile(
+          __int64 a1,
+          CSaveRestoreBlockSet *a2,
+          __int64 a3,
+          __int64 a4,
+          unsigned int a5,
+          __int64 a6,
+          __int64 a7,
+          int *a8)
+  {
+    int v10; // r8d
+    int v11; // r9d
+    const bool *v12; // rdx
+    __int64 (__fastcall *v13)(); // rax
+    __int64 v14; // r12
+    const bool *v15; // rsi
+    __int64 (__fastcall *v16)(__int64, __int64, int *); // rax
+    unsigned int v17; // r15d
+    __int64 v19; // r8
+    __int64 v20; // r9
+    __int64 v21; // rdx
+    __int64 v22; // rax
+    _DWORD *v23; // rax
+    _QWORD *v24; // r13
+    __int64 v25; // rax
+    __int64 (__fastcall *v26)(); // rdx
+    __int64 v27; // r14
+    __int64 v28; // rdi
+    _DWORD *v29; // rax
+    __int64 (__fastcall *v30)(); // rax
+    __int64 v31; // r14
+    __int64 v32; // r12
+    __int64 v33; // rax
+    int v34; // r15d
+    int v35; // eax
+    __int64 (__fastcall *v36)(); // rax
+    __int64 (__fastcall *v37)(); // r15
+    char *v38; // rdx
+    int v39; // eax
+    _WORD *v40; // rdi
+    __int64 v41; // rax
+    __int64 (*v42)(void); // rax
+    int v43; // eax
+    const bool *v44; // rdx
+    __int64 (__fastcall *v45)(); // rax
+    __int64 (__fastcall *v46)(CSaveRestoreBlockSet *__hidden); // rax
+    __int64 i; // r12
+    __int64 v48; // rdi
+    int j; // ebx
+    int v50; // edx
+    __int64 v51; // rax
+    __int64 v52; // rax
+    int v53; // ecx
+    int v54; // r14d
+    __int64 v55; // rax
+    int v56; // r14d
+    int v57; // edx
+    __int64 v58; // rax
+    __int64 v59; // rdx
+    __int64 v60; // rcx
+    CMemoryStack *v61; // rbx
+    __int64 (__fastcall *v62)(); // rax
+    _WORD *v63; // rax
+    __int64 (__fastcall *v64)(); // rax
+    CMemoryStack *v65; // rbx
+    char *v66; // [rsp+0h] [rbp-270h]
+    __int64 v67; // [rsp+8h] [rbp-268h]
+    __int64 v68; // [rsp+10h] [rbp-260h]
+    unsigned __int8 v69; // [rsp+23h] [rbp-24Dh]
+    int v71; // [rsp+24h] [rbp-24Ch]
+    int v72; // [rsp+24h] [rbp-24Ch]
+    int v75; // [rsp+4Ch] [rbp-224h] BYREF
+    _DWORD v76[2]; // [rsp+50h] [rbp-220h] BYREF
+    char *v77; // [rsp+58h] [rbp-218h]
+    _DWORD v78[2]; // [rsp+60h] [rbp-210h] BYREF
+    char *v79; // [rsp+68h] [rbp-208h]
+    __int64 v80; // [rsp+70h] [rbp-200h] BYREF
+    const bool *v81; // [rsp+78h] [rbp-1F8h] BYREF
+    unsigned __int8 v82; // [rsp+80h] [rbp-1F0h]
+    int v83; // [rsp+90h] [rbp-1E0h] BYREF
+    int v84; // [rsp+94h] [rbp-1DCh]
+    __int64 v85; // [rsp+98h] [rbp-1D8h]
+    unsigned int v86; // [rsp+A4h] [rbp-1CCh]
+    _QWORD v87[10]; // [rsp+E0h] [rbp-190h] BYREF
+    _BYTE v88[4]; // [rsp+130h] [rbp-140h] BYREF
+    int v89; // [rsp+134h] [rbp-13Ch]
+    __int64 v90; // [rsp+138h] [rbp-138h] BYREF
+
+    CEntity2SaveRestore::GetSaveGameSpawnGroupName(v87, a1, a3);
+    LODWORD(v12) = v87[0];
+    if ( !v87[0] )
+      v12 = &haystack;
+    V_sprintf((unsigned int)v88, (unsigned int)"save/%s.hl%s", (_DWORD)v12, (unsigned int)"1", v10, v11);
+    if ( v87[0] )
+      CUtlString::FreeMemoryBlock((CUtlString *)v87);
+    CUtlBuffer::CUtlBuffer(&v83, 0, 0, 0);
+    v13 = *(__int64 (__fastcall **)())(*(_QWORD *)a4 + 24LL);
+    if ( v13 == sub_152DE00 )
+      v14 = a4 + 4648;
+    else
+      v14 = ((__int64 (__fastcall *)(__int64))v13)(a4);
+    v15 = (const bool *)&v90;
+    v16 = *(__int64 (__fastcall **)(__int64, __int64, int *))(*(_QWORD *)v14 + 16LL);
+    if ( (v89 & 0x40000000) == 0 && (v15 = &haystack, (v89 & 0x3FFFFFFF) != 0) )
+    {
+      v17 = v16(v14, v90, &v83);
+      if ( !(_BYTE)v17 )
+        goto LABEL_10;
+    }
+    else
+    {
+      v17 = v16(v14, (__int64)v15, &v83);
+      if ( !(_BYTE)v17 )
+        goto LABEL_10;
+    }
+    sub_1554AC0(a1, a3, 0);
+    v21 = 0;
+    if ( (v84 & 0x7FFFFFFF) != 0 )
+      v21 = v85;
+    v22 = sub_1554BB0(a1, a3, v21, v86, v19, v20);
+    v68 = v22;
+    if ( v22 )
+    {
+      v67 = v22 + 24;
+      sub_FA9000(v22 + 24, a4);
+      v23 = off_2503B68;
+      *(_DWORD *)(v68 + 824) = *((_DWORD *)off_2503B68 + 12);
+      *(_DWORD *)(v68 + 828) = v23[17];
+      v24 = (_QWORD *)sub_1591EC0(v68);
+      sub_1552090(v87, v24);
+      v25 = *(_QWORD *)a2;
+      v26 = *(__int64 (__fastcall **)())(*(_QWORD *)a2 + 40LL);// 40LL = 0x28 = CSaveRestoreBlockSet_PreRestore
+      if ( v26 == CSaveRestoreBlockSet::PreRestore )
+      {
+        if ( *((int *)a2 + 4) <= 0 )
+          goto LABEL_23;
+        v27 = 0;
+        do
+        {
+          v28 = *(_QWORD *)(*((_QWORD *)a2 + 3) + 8 * v27++);
+          (*(void (__fastcall **)(__int64))(*(_QWORD *)v28 + 40LL))(v28);
+        }
+        while ( *((_DWORD *)a2 + 4) > (int)v27 );
+      }
+      else
+      {
+        ((void (__fastcall *)(CSaveRestoreBlockSet *))v26)(a2);
+      }
+      v25 = *(_QWORD *)a2;
+  LABEL_23:
+      (*(void (__fastcall **)(CSaveRestoreBlockSet *, _QWORD *))(v25 + 48))(a2, v24);// 48 = 0x30 = CSaveRestoreBlockSet_ReadRestoreHeaders
+      if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_2666BA0, 1) )
+      {
+        CGameSaveRestoreInfo::NumEntities(v67);
+        LoggingSystem_Log((unsigned int)dword_2666BA0, 1, "%s:  StreamEntitiesFromFile:  '%s' [%d entities]\n");
+      }
+      sub_156D940(a1, v68, v24);
+      sub_156C7D0(a1, v14, v68, a3);
+      v29 = off_2503B68;
+      *(_DWORD *)(v68 + 824) = *((_DWORD *)off_2503B68 + 12);
+      *(_DWORD *)(v68 + 828) = v29[17];
+      v30 = *(__int64 (__fastcall **)())(*(_QWORD *)a2 + 56LL);// 56LL = 0x38 = CSaveRestoreBlockSet_Restore
+      if ( v30 == CSaveRestoreBlockSet::Restore )
+      {
+        if ( *((int *)a2 + 4) > 0 )
+        {
+          v31 = 0;
+          v69 = v17;
+          while ( 1 )
+          {
+            v32 = *(_QWORD *)(*((_QWORD *)a2 + 3) + 8 * v31);
+            v33 = (**(__int64 (__fastcall ***)(__int64))v32)(v32);
+            v34 = V_stricmp_fast(v33, "Entities");
+            v35 = (**(__int64 (__fastcall ***)(__int64))v32)(v32);
+            sub_1570830((unsigned int)&v80, (_DWORD)v24, 0, v34 != 0, (unsigned int)"%-16.16s | ", v35, (char)v66);
+            v36 = *(__int64 (__fastcall **)())(*(_QWORD *)a2 + 88LL);// CSaveRestoreBlockSet::CallBlockHandlerRestore
+            if ( v36 == CSaveRestoreBlockSet::CallBlockHandlerRestore )
+            {
+              v37 = *(__int64 (__fastcall **)())(*v24 + 64LL);
+              v38 = (char *)(**(__int64 (__fastcall ***)(__int64))v32)(v32);
+              v39 = 0;
+              if ( v38 && *v38 )
+              {
+                v66 = v38;
+                v39 = sub_153DDC0(v38);
+                v38 = v66;
+              }
+              v76[0] = v39;
+              v76[1] = -1;
+              v77 = v38;
+              if ( v37 == sub_1538F00 )
+              {
+                v40 = (_WORD *)v24[39];
+                if ( ((*v40 >> 2) & 0xF) == 8 )
+                  goto LABEL_73;
+                v79 = v38;
+                v78[0] = v39;
+                v75 = -1;
+                v78[1] = -1;
+                v41 = sub_1B1E6B0(v40, v78, &v75, 0);
+                if ( v41 )
+                {
+                  sub_1B24310(v24 + 2, v41);
+  LABEL_73:
+                  v62 = *(__int64 (__fastcall **)())(*v24 + 584LL);
+                  if ( v62 == sub_D45F10 )
+                    v63 = (_WORD *)v24[39];
+                  else
+                    v63 = (_WORD *)((__int64 (__fastcall *)(_QWORD *))v62)(v24);
+                  if ( ((*v63 >> 2) & 0xF) != 1 )
+                    (*(void (__fastcall **)(__int64, _QWORD *, _QWORD, __int64))(*(_QWORD *)v32 + 56LL))(v32, v24, a5, 1);
+                  v64 = *(__int64 (__fastcall **)())(*v24 + 72LL);
+                  if ( v64 == sub_1535D40 )
+                    sub_1B244F0(v24 + 2);
+                  else
+                    ((void (__fastcall *)(_QWORD *))v64)(v24);
+                }
+              }
+              else if ( ((unsigned __int8 (__fastcall *)(_QWORD *, _DWORD *))v37)(v24, v76) )
+              {
+                goto LABEL_73;
+              }
+            }
+            else
+            {
+              ((void (__fastcall *)(CSaveRestoreBlockSet *, __int64, _QWORD *, _QWORD, __int64))v36)(a2, v32, v24, a5, 1);
+            }
+            if ( v80 )
+            {
+              v42 = *(__int64 (**)(void))(*(_QWORD *)v80 + 528LL);
+              if ( v42 == sub_1535D00 )
+              {
+                v43 = *(_DWORD *)(v80 - 28) - 1;
+                *(_DWORD *)(v80 - 28) = v43;
+              }
+              else
+              {
+                v43 = v42();
+              }
+              if ( !v43 )
+              {
+                v44 = v81;
+                if ( !v81 )
+                  v44 = &haystack;
+                v45 = *(__int64 (__fastcall **)())(*(_QWORD *)v80 + 464LL);
+                if ( v45 == sub_156CF20 )
+                  sub_156CE30(v80 - 72, v82, v44);
+                else
+                  ((void (__fastcall *)(__int64, _QWORD, const bool *))v45)(v80, v82, v44);
+              }
+              v80 = 0;
+            }
+            if ( v81 )
+            {
+              ++v31;
+              CUtlString::FreeMemoryBlock((CUtlString *)&v81);
+              if ( *((_DWORD *)a2 + 4) <= (int)v31 )
+                goto LABEL_46;
+            }
+            else if ( *((_DWORD *)a2 + 4) <= (int)++v31 )
+            {
+  LABEL_46:
+              v17 = v69;
+              goto LABEL_47;
+            }
+          }
+        }
+        v46 = *(__int64 (__fastcall **)(CSaveRestoreBlockSet *__hidden))(*(_QWORD *)a2 + 64LL);// 64LL = 0x40 = CSaveRestoreBlockSet_PostRestore
+        if ( v46 == CSaveRestoreBlockSet::PostRestore )
+          goto LABEL_50;
+      }
+      else
+      {
+        ((void (__fastcall *)(CSaveRestoreBlockSet *, _QWORD *, _QWORD, __int64))v30)(a2, v24, a5, 1);
+  LABEL_47:
+        v46 = *(__int64 (__fastcall **)(CSaveRestoreBlockSet *__hidden))(*(_QWORD *)a2 + 64LL);// 64LL = 0x40 = CSaveRestoreBlockSet_PostRestore
+        if ( v46 == CSaveRestoreBlockSet::PostRestore )
+        {
+          for ( i = 0; *((_DWORD *)a2 + 4) > (int)i; ++i )
+          {
+            v48 = *(_QWORD *)(*((_QWORD *)a2 + 3) + 8 * i);
+            (*(void (__fastcall **)(__int64))(*(_QWORD *)v48 + 64LL))(v48);
+          }
+          goto LABEL_50;
+        }
+      }
+      v46(a2);
+  LABEL_50:
+      for ( j = 0; j < (int)CGameSaveRestoreInfo::NumEntities(v67); ++j )
+      {
+        v50 = *(_DWORD *)(sub_FA89B0(v67) + 12);
+        if ( (unsigned int)v50 <= 0x7FFE )
+        {
+          v51 = *(_QWORD *)(g_pEntitySystem + 8LL * (v50 >> 9) + 16);
+          if ( v51 )
+          {
+            v52 = 112LL * (v50 & 0x1FF) + v51;
+            v53 = *(_WORD *)(v52 + 16) & 0x7FFF;
+            if ( v53 == v50 )
+            {
+              v54 = (*(_DWORD *)(v52 + 16) >> 15) - (*(_DWORD *)(v52 + 48) & 1);
+              if ( *(_DWORD *)(v52 + 16) == -1 )
+                v53 = 0x7FFF;
+              v55 = *a8;
+              v56 = v53 | (v54 << 15);
+              v57 = v55;
+              if ( (_DWORD)v55 == a8[4] )
+              {
+                v72 = *a8;
+                sub_AE1280(a8 + 2, 1);
+                v57 = *a8;
+                v55 = v72;
+              }
+              *a8 = v57 + 1;
+              *(_DWORD *)(*((_QWORD *)a8 + 1) + 4 * v55) = v56;
+            }
+          }
+        }
+      }
+      v58 = sub_15B4AC0(*(_QWORD *)(a1 + 296), a3);
+      sub_FAFBC0(v58, v67);
+      sub_1552BA0(v68, v67, v59, v60);
+      if ( !*(_QWORD *)(a1 + 208) )
+      {
+        v65 = (CMemoryStack *)operator new(80);
+        CMemoryStack::CMemoryStack(v65);
+        *(_QWORD *)(a1 + 208) = v65;
+        CMemoryStack::Init(v65, "CSaveMemory", 0x2000000u, 0x40u, 0x230000u, 0x10u);
+      }
+      v71 = *(_DWORD *)(a1 + 216);
+      *(_DWORD *)(a1 + 216) = v71 - 1;
+      if ( v71 == 1 )
+      {
+        v61 = *(CMemoryStack **)(a1 + 208);
+        if ( v61 )
+        {
+          CMemoryStack::~CMemoryStack(v61);
+          operator delete(v61, 80);
+        }
+        *(_QWORD *)(a1 + 208) = 0;
+        *(_DWORD *)(a1 + 216) = 0;
+      }
+    }
+    if ( *(_BYTE *)(a1 + 124) )
+      sub_153F970(a1, a3, 0, a7);
+  LABEL_10:
+    v83 = 0;
+    if ( (v84 & 0x7FFFFFFF) != 0 && v84 >= 0 )
+      (*(void (__fastcall **)(_QWORD *, __int64))(*g_pMemAlloc + 32LL))(g_pMemAlloc, v85);
+    CBufferString::Purge((CBufferString *)v88, 0);
+    return v17;
+  }
