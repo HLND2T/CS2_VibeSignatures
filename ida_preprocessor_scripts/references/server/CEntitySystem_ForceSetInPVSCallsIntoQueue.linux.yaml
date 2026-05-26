@@ -1,0 +1,45 @@
+func_name: CEntitySystem_ForceSetInPVSCallsIntoQueue
+func_va: '0x1e59090'
+disasm_code: |-
+  .text:0000000001E59090                 mov     eax, [rdi+0BB8h]  ; 0xBB8 = 3000 = CEntitySystem::m_nSuppressDormancyChangeCount (structmember, struct=CEntitySystem, member=m_nSuppressDormancyChangeCount)
+  .text:0000000001E59096                 test    sil, sil
+  .text:0000000001E59099                 jz      short loc_1E590A8
+  .text:0000000001E5909B                 add     eax, 1
+  .text:0000000001E5909E                 mov     [rdi+0BB8h], eax  ; 0xBB8 = 3000 = CEntitySystem::m_nSuppressDormancyChangeCount (structmember, struct=CEntitySystem, member=m_nSuppressDormancyChangeCount)
+  .text:0000000001E590A4                 retn
+  .text:0000000001E590A8                 sub     eax, 1
+  .text:0000000001E590AB                 mov     [rdi+0BB8h], eax  ; 0xBB8 = 3000 = CEntitySystem::m_nSuppressDormancyChangeCount (structmember, struct=CEntitySystem, member=m_nSuppressDormancyChangeCount)
+  .text:0000000001E590B1                 jnz     short locret_1E590D0
+  .text:0000000001E590B3                 mov     edx, [rdi+0BC0h]
+  .text:0000000001E590B9                 test    edx, edx
+  .text:0000000001E590BB                 jnz     short locret_1E590D0
+  .text:0000000001E590BD                 mov     eax, [rdi+0C58h]
+  .text:0000000001E590C3                 test    eax, eax
+  .text:0000000001E590C5                 jz      short locret_1E590D0
+  .text:0000000001E590C7                 jmp     sub_1E58660
+  .text:0000000001E590D0                 retn
+procedure: |-
+  __int64 __fastcall CEntitySystem_ForceSetInPVSCallsIntoQueue(_DWORD *a1, char a2)
+  {
+    int v2; // eax
+    __int64 result; // rax
+
+    v2 = a1[750];  // a1[750] = offset 0xBB8 = 3000 = CEntitySystem::m_nSuppressDormancyChangeCount (structmember, struct=CEntitySystem, member=m_nSuppressDormancyChangeCount)
+    if ( a2 )
+    {
+      result = (unsigned int)(v2 + 1);
+      a1[750] = result;  // a1[750] = offset 0xBB8 = 3000 = CEntitySystem::m_nSuppressDormancyChangeCount (structmember, struct=CEntitySystem, member=m_nSuppressDormancyChangeCount)
+    }
+    else
+    {
+      result = (unsigned int)(v2 - 1);
+      a1[750] = result;  // a1[750] = offset 0xBB8 = 3000 = CEntitySystem::m_nSuppressDormancyChangeCount (structmember, struct=CEntitySystem, member=m_nSuppressDormancyChangeCount)
+      if ( !(_DWORD)result && !a1[752] )
+      {
+        result = (unsigned int)a1[790];
+        if ( (_DWORD)result )
+          return sub_1E58660(a1);
+      }
+    }
+    return result;
+  }

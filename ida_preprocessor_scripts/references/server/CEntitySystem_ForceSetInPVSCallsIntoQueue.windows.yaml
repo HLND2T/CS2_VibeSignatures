@@ -1,0 +1,36 @@
+func_name: CEntitySystem_ForceSetInPVSCallsIntoQueue
+func_va: '0x1811efab0'
+disasm_code: |-
+  .text:00000001811EFAB0                 mov     eax, [rcx+0BB8h]  ; 0xBB8 = 3000 = CEntitySystem::m_nSuppressDormancyChangeCount (structmember, struct=CEntitySystem, member=m_nSuppressDormancyChangeCount)
+  .text:00000001811EFAB6                 test    dl, dl
+  .text:00000001811EFAB8                 jz      short loc_1811EFAC3
+  .text:00000001811EFABA                 inc     eax
+  .text:00000001811EFABC                 mov     [rcx+0BB8h], eax  ; 0xBB8 = 3000 = CEntitySystem::m_nSuppressDormancyChangeCount (structmember, struct=CEntitySystem, member=m_nSuppressDormancyChangeCount)
+  .text:00000001811EFAC2                 retn
+  .text:00000001811EFAC3                 sub     eax, 1
+  .text:00000001811EFAC6                 mov     [rcx+0BB8h], eax  ; 0xBB8 = 3000 = CEntitySystem::m_nSuppressDormancyChangeCount (structmember, struct=CEntitySystem, member=m_nSuppressDormancyChangeCount)
+  .text:00000001811EFACC                 jnz     short locret_1811EFADB
+  .text:00000001811EFACE                 cmp     dword ptr [rcx+0BC0h], 0
+  .text:00000001811EFAD5                 jz      sub_1811EE390
+  .text:00000001811EFADB                 retn
+procedure: |-
+  __int64 __fastcall sub_1811EFAB0(__int64 a1, char a2)
+  {
+    int v2; // eax
+    __int64 result; // rax
+
+    v2 = *(_DWORD *)(a1 + 3000);  // 3000 = 0xBB8 = CEntitySystem::m_nSuppressDormancyChangeCount (structmember, struct=CEntitySystem, member=m_nSuppressDormancyChangeCount)
+    if ( a2 )
+    {
+      result = (unsigned int)(v2 + 1);
+      *(_DWORD *)(a1 + 3000) = result;  // 3000 = 0xBB8 = CEntitySystem::m_nSuppressDormancyChangeCount (structmember, struct=CEntitySystem, member=m_nSuppressDormancyChangeCount)
+    }
+    else
+    {
+      result = (unsigned int)(v2 - 1);
+      *(_DWORD *)(a1 + 3000) = result;  // 3000 = 0xBB8 = CEntitySystem::m_nSuppressDormancyChangeCount (structmember, struct=CEntitySystem, member=m_nSuppressDormancyChangeCount)
+      if ( !(_DWORD)result && !*(_DWORD *)(a1 + 3008) )
+        return sub_1811EE390(a1);
+    }
+    return result;
+  }
