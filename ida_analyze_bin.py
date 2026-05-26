@@ -2219,6 +2219,22 @@ def process_binary(
             print("  All skills already have yaml files and no vcall_finder/post_process targets remain, skipping IDA startup")
         return success_count, fail_count, skip_count
 
+    # Refuse to start IDA if an `.id0` lock file exists next to the binary —
+    # that means another IDA instance currently has this IDB open, and starting
+    # idalib-mcp on top of it would corrupt the database.
+    lock_file = f"{binary_path}.id0"
+    if os.path.exists(lock_file):
+        print(
+            f"  Failed: IDB lock file detected ({lock_file}); another IDA instance "
+            f"has this database open. Close it and retry."
+        )
+        post_process_failure = 1 if startup_post_process_yaml_items else 0
+        return (
+            success_count,
+            fail_count + len(skills_to_process) + len(vcall_targets) + post_process_failure,
+            skip_count,
+        )
+
     # Start idalib-mcp
     process = start_idalib_mcp(binary_path, host, port, ida_args, debug)
     if process is None:
