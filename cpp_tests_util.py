@@ -17,10 +17,15 @@ VFTABLE_HEADER_RE = re.compile(
     r"^\s*(?:VFTable|VTable) indices for '([^']+)' \((\d+) (?:entry|entries)\)\.\s*$"
 )
 VFTABLE_ENTRY_RE = re.compile(r"^\s*(\d+)\s+\|\s+(.+?)\s*$")
-RECORD_LAYOUT_ENTRY_RE = re.compile(r"^\s*(\d+)(?::[0-9\-]+)?\s+\|\s+(.+?)\s*$")
+# Group 2 captures the run of spaces between `|` and the declaration so the
+# parser can derive nesting depth from clang's 2-space-per-level indentation.
+RECORD_LAYOUT_ENTRY_RE = re.compile(r"^\s*(\d+)(?::[0-9\-]+)?\s+\|( +)(.+?)\s*$")
 RECORD_LAYOUT_SIZE_RE = re.compile(r"^\s*\|\s+\[sizeof=(\d+),")
 RECORD_KIND_RE = re.compile(r"^(?:struct|class|union)\s+(.+?)\s*$")
 IDENTIFIER_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+_TRAILING_BASE_MARKER_RE = re.compile(r"\s*\((?:empty|base|primary base)\)\s*$")
+_ANONYMOUS_TAG_TRAILING_RE = re.compile(r"\((?:anonymous|unnamed)\s+at[^)]*\)\s*$")
+_TYPE_KEYWORDS = frozenset({"class", "struct", "union", "const", "volatile", "signed", "unsigned"})
 
 
 def map_target_triple_to_platform(target_triple: str) -> Optional[str]:
@@ -99,12 +104,12 @@ def parse_vftable_layouts(compiler_output: str) -> Dict[str, Dict[str, Any]]:
             continue
 
         index = int(entry.group(1))
-        # Stop at section boundary to avoid swallowing "N | ..." lines
-        # from other vtable-related blocks in clang output.
-        if index >= current_declared_entries:
-            current_class = None
-            current_declared_entries = 0
-            continue
+        # Sections are already bounded by the next ``VFTable …`` header, a blank
+        # line, or by reaching the declared entry count post-insertion (below).
+        # Don't reject indices that exceed ``declared``: clang reports the count
+        # of NEW virtuals a class introduces but emits absolute slot numbers in
+        # the merged vtable, so a class that inherits from a 10-vfunc primary
+        # base lists its own 14 entries at indices 10..23 — well past 14.
 
         signature = entry.group(2).strip()
         member_name = _extract_member_name(signature, current_class)
@@ -139,14 +144,28 @@ def parse_record_layouts(compiler_output: str) -> Dict[str, Dict[str, Any]]:
     """
     Parse clang `-fdump-record-layouts` output.
 
+    Nested fields are qualified with their parent member's path (dot-separated).
+    Transparent containers — base classes (``(primary base)`` / ``(base)``) and
+    anonymous inline ``union``/``struct`` blocks — do not contribute a path
+    segment, so their members appear directly under the enclosing named field
+    (mirroring how C++ resolves them at the source level).
+
     Returns:
         {
           "<StructName>": {
             "sizeof": int | None,
             "members_by_name": {
-              "<member>": {"offset": int, "declaration": "<field line>"}
+              "<qualified.path>": {
+                "offset": int,
+                "declaration": "<field line>",
+                "short_name": "<bare member>",
+                "depth": int,
+              }
             },
-            "members_by_offset": {<offset>: ["<member>", ...]},
+            "members_by_offset": {<offset>: ["<qualified.path>", ...]},
+            "members_by_short_name": {
+              "<bare member>": ["<qualified.path>", ...]
+            },
             "member_count": int
           },
           ...
@@ -155,17 +174,22 @@ def parse_record_layouts(compiler_output: str) -> Dict[str, Dict[str, Any]]:
     parsed: Dict[str, Dict[str, Any]] = {}
     current_record: Optional[str] = None
     expect_record_header = False
+    # Stack of (depth, qualified_prefix). Transparent containers reuse their
+    # parent's prefix so children don't pick up a phantom path segment.
+    stack: List[tuple[int, str]] = []
 
     for raw_line in compiler_output.splitlines():
         if raw_line.strip() == "*** Dumping AST Record Layout":
             current_record = None
             expect_record_header = True
+            stack = []
             continue
 
         size_match = RECORD_LAYOUT_SIZE_RE.match(raw_line)
         if size_match and current_record:
             parsed[current_record]["sizeof"] = int(size_match.group(1))
             current_record = None
+            stack = []
             continue
 
         entry = RECORD_LAYOUT_ENTRY_RE.match(raw_line)
@@ -173,34 +197,66 @@ def parse_record_layouts(compiler_output: str) -> Dict[str, Dict[str, Any]]:
             continue
 
         offset = int(entry.group(1))
-        declaration = entry.group(2).strip()
-        record_name = _extract_record_name(declaration)
-        if record_name and (expect_record_header or current_record is None):
-            current_record = record_name
-            expect_record_header = False
-            parsed[current_record] = {
-                "sizeof": None,
-                "members_by_name": {},
-                "members_by_offset": {},
-                "member_count": 0,
-            }
-            continue
+        # `|` is followed by one leading space for the record header (depth 0)
+        # and two additional spaces per nesting level after that.
+        depth = max(0, (len(entry.group(2)) - 1) // 2)
+        declaration = entry.group(3).strip()
+
+        if expect_record_header or current_record is None:
+            record_name = _extract_record_name(declaration)
+            if record_name:
+                current_record = record_name
+                expect_record_header = False
+                parsed[current_record] = {
+                    "sizeof": None,
+                    "members_by_name": {},
+                    "members_by_offset": {},
+                    "members_by_short_name": {},
+                    "member_count": 0,
+                }
+                stack = [(depth, "")]
+                continue
 
         expect_record_header = False
         if current_record is None:
             continue
 
-        member_name = _extract_record_member_name(declaration)
-        if not member_name:
+        # Drop stack frames that aren't ancestors of the current line.
+        while stack and stack[-1][0] >= depth:
+            stack.pop()
+
+        parent_prefix = stack[-1][1] if stack else ""
+
+        if _is_transparent_container(declaration):
+            stack.append((depth, parent_prefix))
             continue
 
-        parsed[current_record]["members_by_name"][member_name] = {
+        member_name = _extract_record_member_name(declaration)
+        if not member_name:
+            # Non-member descriptor (e.g. "(... vftable pointer)") — propagate
+            # the parent's namespace through this depth so any indented children
+            # still resolve correctly.
+            stack.append((depth, parent_prefix))
+            continue
+
+        qualified_name = (
+            f"{parent_prefix}.{member_name}" if parent_prefix else member_name
+        )
+
+        parsed[current_record]["members_by_name"][qualified_name] = {
             "offset": offset,
             "declaration": declaration,
+            "short_name": member_name,
+            "depth": depth,
         }
         parsed[current_record]["members_by_offset"].setdefault(offset, []).append(
-            member_name
+            qualified_name
         )
+        parsed[current_record]["members_by_short_name"].setdefault(
+            member_name, []
+        ).append(qualified_name)
+
+        stack.append((depth, qualified_name))
 
     for record in parsed.values():
         record["member_count"] = len(record["members_by_name"])
@@ -215,21 +271,109 @@ def _extract_record_name(declaration: str) -> str:
     return match.group(1).strip()
 
 
+def _is_transparent_container(declaration: str) -> bool:
+    """Return True for record-layout lines whose children should be hoisted
+    into the enclosing named field's namespace.
+
+    These are inheritance markers — ``class X (primary base)`` / ``(base)`` —
+    and inline anonymous tags — ``union T::(anonymous at ...)``. Both behave
+    like C++ does at the source level: members are reached without going
+    through a synthetic path segment.
+    """
+    text = declaration.strip()
+    if not text:
+        return False
+    text = _TRAILING_BASE_MARKER_RE.sub("", text).strip()
+    if not text:
+        return True
+    if _ANONYMOUS_TAG_TRAILING_RE.search(text):
+        return True
+    # ``class X`` / ``struct X`` / ``union X`` with no member-name suffix is
+    # also a base-class line that lost its ``(base)`` marker via the strip above.
+    flattened = _strip_balanced_groups(text).replace("::", " ").strip()
+    tokens = IDENTIFIER_RE.findall(flattened)
+    if len(tokens) == 2 and tokens[0] in {"class", "struct", "union"}:
+        return True
+    return False
+
+
+def _strip_balanced_groups(text: str) -> str:
+    """Remove ``<...>``, ``(...)`` and ``[...]`` runs so the outer type/name
+    tokens become trivially extractable. Unmatched closers are kept verbatim so
+    we never lose actual member names if clang ever emits something odd."""
+    out: list[str] = []
+    angle = paren = bracket = 0
+    for c in text:
+        if c == "<":
+            angle += 1
+            continue
+        if c == ">":
+            if angle > 0:
+                angle -= 1
+                continue
+        if c == "(":
+            paren += 1
+            continue
+        if c == ")":
+            if paren > 0:
+                paren -= 1
+                continue
+        if c == "[":
+            bracket += 1
+            continue
+        if c == "]":
+            if bracket > 0:
+                bracket -= 1
+                continue
+        if angle == 0 and paren == 0 and bracket == 0:
+            out.append(c)
+    return "".join(out)
+
+
 def _extract_record_member_name(declaration: str) -> str:
+    """Return the bare member name on a record-layout entry, or '' if the line
+    is a type-only descriptor (base class, anonymous container, vftable pointer)."""
     text = declaration.strip()
     if not text:
         return ""
-    if re.match(r"^(?:struct|class|union)\s+[A-Za-z_][A-Za-z0-9_:<>]*$", text):
+
+    # Strip trailing ``(empty)`` / ``(base)`` / ``(primary base)`` markers so
+    # what remains is a regular ``<type> <name>`` declaration (or pure type).
+    text = _TRAILING_BASE_MARKER_RE.sub("", text).strip()
+    if not text:
         return ""
 
-    func_ptr = re.search(r"\(\*\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)", text)
+    # Wholly parenthesized lines like ``(... vftable pointer)`` are descriptors.
+    if text.startswith("(") and text.endswith(")"):
+        return ""
+
+    # ``union X::(anonymous at ...)`` with no trailing identifier is an inline
+    # anonymous container, not a named field.
+    if _ANONYMOUS_TAG_TRAILING_RE.search(text):
+        return ""
+
+    # Function pointer member: ``void (*m_pfn)(...)`` keeps its name inside the
+    # first paren group, so bracket-stripping would lose it.
+    func_ptr = re.search(r"\(\s*\*\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)", text)
     if func_ptr:
         return func_ptr.group(1)
 
-    identifiers = IDENTIFIER_RE.findall(text)
-    if not identifiers:
+    flattened = _strip_balanced_groups(text).replace("::", " ").strip()
+    if not flattened:
         return ""
-    return identifiers[-1]
+
+    tokens = IDENTIFIER_RE.findall(flattened)
+    if not tokens:
+        return ""
+
+    # ``class X`` / ``struct X`` / ``union X`` alone: type-only, no member name.
+    if len(tokens) == 2 and tokens[0] in {"class", "struct", "union"}:
+        return ""
+
+    last = tokens[-1]
+    if last in _TYPE_KEYWORDS:
+        return ""
+    return last
 
 
 def _parse_int_maybe(value: Any) -> Optional[int]:
@@ -709,9 +853,24 @@ def compare_compiler_record_layout_with_yaml(
         return report
 
     compiler_members = compiler_record.get("members_by_name", {})
+    compiler_short_index = compiler_record.get("members_by_short_name", {})
     for member_name, ref_item in _sorted_struct_members(reference_members):
-        compiled = compiler_members.get(member_name)
         expected_offset = ref_item.get("offset")
+        compiled = compiler_members.get(member_name)
+        if compiled is None:
+            # YAML references commonly use bare names like ``m_pHead`` while the
+            # compiler entry is qualified (``m_usedList.m_pHead``). Disambiguate
+            # by offset; otherwise accept the only candidate if there is one.
+            candidates = compiler_short_index.get(member_name, [])
+            matching = [
+                compiler_members[c]
+                for c in candidates
+                if compiler_members.get(c, {}).get("offset") == expected_offset
+            ]
+            if matching:
+                compiled = matching[0]
+            elif len(candidates) == 1:
+                compiled = compiler_members[candidates[0]]
         if compiled is None:
             report["differences"].append(
                 {
