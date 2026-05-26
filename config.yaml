@@ -6265,6 +6265,12 @@ modules:
         expected_output:
           - CEntitySystem_AddEntityToNameList.{platform}.yaml
 
+      - name: find-CEntitySystem_m_entityNames
+        expected_output:
+          - CEntitySystem_m_entityNames.{platform}.yaml
+        expected_input:
+          - CEntitySystem_AddEntityToNameList.{platform}.yaml
+
       - name: find-CEntitySystem_m_sEntSystemName-AND-CEntitySystem_m_entityComponentHelpers
         expected_output:
           - CEntitySystem_m_sEntSystemName.{platform}.yaml
@@ -9606,6 +9612,11 @@ modules:
         category: func
         alias:
           - CSource2EntitySystem::StaticInit
+
+      - name: CEntitySystem_m_entityNames
+        category: structmember
+        struct: CEntitySystem
+        member: m_entityNames
 
       - name: CEntitySystem_m_sEntSystemName
         category: structmember

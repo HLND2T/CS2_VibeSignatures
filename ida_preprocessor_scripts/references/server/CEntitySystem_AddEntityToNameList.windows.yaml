@@ -14,7 +14,7 @@ disasm_code: |-
   .text:00000001811E5FEC                 jz      loc_1811E61FF
   .text:00000001811E5FF2                 mov     [rsp+70h+arg_0], rdi
   .text:00000001811E5FFA                 lea     rax, [rbp+arg_18]
-  .text:00000001811E5FFE                 lea     rdi, [rcx+0AF0h] ; 0x0AF0 = 2800 = CEntitySystem::m_entityNames (structmember, struct=CEntitySystem, member=m_entityNames)
+  .text:00000001811E5FFE                 lea     rdi, [rcx+0AF0h]  ; 0xAF0 = 2800 = CEntitySystem::m_entityNames (structmember, struct=CEntitySystem, member=m_entityNames)
   .text:00000001811E6005                 mov     [rsp+70h+var_8], r14
   .text:00000001811E600A                 lea     rcx, [rdi+8]
   .text:00000001811E600E                 mov     [rsp+70h+var_10], r15
@@ -185,10 +185,10 @@ procedure: |-
     v30 = result;
     if ( result )
     {
-      v5 = (const char *)(a1 + 2800); // 0x0AF0 = 2800 = CEntitySystem::m_entityNames (structmember, struct=CEntitySystem, member=m_entityNames)
-      v18 = (_DWORD *)(a1 + 2800);
+      v5 = (const char *)(a1 + 2800);  // 0xAF0 = 2800 = CEntitySystem::m_entityNames (structmember, struct=CEntitySystem, member=m_entityNames)
+      v18 = (_DWORD *)(a1 + 2800);  // 0xAF0 = 2800 = CEntitySystem::m_entityNames
       v19 = &v30;
-      v20 = a1 + 2800;
+      v20 = a1 + 2800;  // 0xAF0 = 2800 = CEntitySystem::m_entityNames
       v6 = *(unsigned __int16 *)(sub_1811E2FE0(a1 + 2808, &v28, &v18) + 2);
       if ( (_WORD)v6 == 0xFFFF )
       {

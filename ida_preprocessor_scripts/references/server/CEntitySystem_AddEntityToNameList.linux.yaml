@@ -46,7 +46,7 @@ disasm_code: |-
   .text:0000000001E633F9                 mov     r12, rdi
   .text:0000000001E633FC                 mov     rbx, rsi
   .text:0000000001E633FF                 lea     rdx, [rbp+var_58]
-  .text:0000000001E63403                 lea     rsi, [rdi+0AF0h] ; 0x0AF0 = 2800 = CEntitySystem::m_entityNames (structmember, struct=CEntitySystem, member=m_entityNames)
+  .text:0000000001E63403                 lea     rsi, [rdi+0AF0h]  ; 0xAF0 = 2800 = CEntitySystem::m_entityNames (structmember, struct=CEntitySystem, member=m_entityNames)
   .text:0000000001E6340A                 mov     rdi, r13
   .text:0000000001E6340D                 call    sub_1E51150
   .text:0000000001E63412                 mov     rdx, rax
@@ -258,7 +258,7 @@ disasm_code: |-
   .text:0000000001E63794                 jbe     loc_1E638A2
   .text:0000000001E6379A                 mov     edx, 7FFFh
   .text:0000000001E6379F                 movzx   eax, dx
-  .text:0000000001E637A2                 mov     [rbp+var_80], edx
+  .text:0000000001E637A2                 mov     dword ptr [rbp+var_80], edx
   .text:0000000001E637A5                 lea     r11, [rax+rax*2]
   .text:0000000001E637A9                 mov     rax, cs:g_pMemAlloc_ptr
   .text:0000000001E637B0                 mov     [rbp+var_79], r8b
@@ -377,7 +377,7 @@ disasm_code: |-
   .text:0000000001E63993                 mov     ecx, dword ptr [rbp+var_78]
   .text:0000000001E63996                 movzx   r8d, [rbp+var_79]
   .text:0000000001E6399B                 cmp     r11, rax
-  .text:0000000001E6399E                 mov     edx, [rbp+var_80]
+  .text:0000000001E6399E                 mov     edx, dword ptr [rbp+var_80]
   .text:0000000001E639A1                 cmovnb  rax, r11
   .text:0000000001E639A5                 xor     esi, esi
   .text:0000000001E639A7                 test    word ptr [r12+0AFAh], 7FFFh
@@ -495,7 +495,7 @@ procedure: |-
     if ( !v4 )
       return;
     v5 = a1 + 2808;
-    v7 = sub_1E51150(a1 + 2808, a1 + 2800, &v71); // 0x0AF0 = 2800 = CEntitySystem::m_entityNames (structmember, struct=CEntitySystem, member=m_entityNames)
+    v7 = sub_1E51150(a1 + 2808, a1 + 2800, &v71);  // 0xAF0 = 2800 = CEntitySystem::m_entityNames (structmember, struct=CEntitySystem, member=m_entityNames)
     v8 = v7 >> 16;
     if ( WORD1(v7) == 0xFFFF )
     {
