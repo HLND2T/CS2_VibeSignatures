@@ -72,7 +72,7 @@ disasm_code: |-
   .text:00000001811F0BF4                 nop     dword ptr [rax+00h]
   .text:00000001811F0BF8                 nop     dword ptr [rax+rax+00000000h]
   .text:00000001811F0C00                 mov     rax, [rbx+10h]
-  .text:00000001811F0C04                 lea     rbp, [rsi+0AD0h]  ; 0xAD0 = 2768 = CEntitySystem::m_entityComponentHelpers (structmember, struct=CEntitySystem, member=m_entityComponentHelpers)
+  .text:00000001811F0C04                 lea     rbp, [rsi+0AD0h]
   .text:00000001811F0C0B                 lea     r8, [rsp+0C8h+var_80]
   .text:00000001811F0C10                 mov     [rsp+0C8h+var_80], rbp
   .text:00000001811F0C15                 lea     rdx, [rsp+0C8h+arg_0]
@@ -530,8 +530,8 @@ procedure: |-
     for ( j = 0; v14; v14 = *(_QWORD *)(v14 + 32) )
     {
       v16 = *(const char ***)(v14 + 16);
-      v60[0] = a1 + 2768;  // 0xAD0 = 2768 = CEntitySystem::m_entityComponentHelpers (structmember, struct=CEntitySystem, member=m_entityComponentHelpers)
-      v60[2] = a1 + 2768;  // 0xAD0 = 2768 = CEntitySystem::m_entityComponentHelpers (structmember, struct=CEntitySystem, member=m_entityComponentHelpers)
+      v60[0] = a1 + 2768;
+      v60[2] = a1 + 2768;
       ++j;
       v57 = *v16;
       v60[1] = &v57;
@@ -539,7 +539,7 @@ procedure: |-
       {
         v58 = v57;
         v59 = (__int64 (__fastcall *)())v14;
-        v17 = (unsigned __int16)sub_1811F1870(a1 + 2768, &v58);  // 0xAD0 = 2768 = CEntitySystem::m_entityComponentHelpers (structmember, struct=CEntitySystem, member=m_entityComponentHelpers)
+        v17 = (unsigned __int16)sub_1811F1870(a1 + 2768, &v58);
       }
       else
       {
