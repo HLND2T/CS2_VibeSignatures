@@ -1,217 +1,217 @@
 func_name: CSource2EntitySystem_StaticInit
-func_va: '0x180b8d740'
+func_va: '0x180b87d50'
 disasm_code: |-
-  .text:0000000180B8D740                 mov     [rsp-18h+arg_0], rbx
-  .text:0000000180B8D745                 mov     [rsp-18h+arg_8], rsi
-  .text:0000000180B8D74A                 mov     [rsp-18h+arg_10], rdi
-  .text:0000000180B8D74F                 push    rbp
-  .text:0000000180B8D750                 push    r14
-  .text:0000000180B8D752                 push    r15
-  .text:0000000180B8D754                 mov     rbp, rsp
-  .text:0000000180B8D757                 sub     rsp, 50h
-  .text:0000000180B8D75B                 mov     eax, cs:dword_1820B9400
-  .text:0000000180B8D761                 xor     r15d, r15d
-  .text:0000000180B8D764                 mov     ecx, eax
-  .text:0000000180B8D766                 inc     eax
-  .text:0000000180B8D768                 mov     cs:dword_1820B9400, eax
-  .text:0000000180B8D76E                 test    ecx, ecx
-  .text:0000000180B8D770                 jg      short loc_180B8D7A8
-  .text:0000000180B8D772                 mov     ecx, 20F0h
-  .text:0000000180B8D777                 call    operator_new
-  .text:0000000180B8D77C                 test    rax, rax
-  .text:0000000180B8D77F                 jz      short loc_180B8D78B
-  .text:0000000180B8D781                 mov     rcx, rax
-  .text:0000000180B8D784                 call    CGameEntitySystem_ctor
-  .text:0000000180B8D789                 jmp     short loc_180B8D78E
-  .text:0000000180B8D78B                 mov     rax, r15
-  .text:0000000180B8D78E                 xor     r9d, r9d
-  .text:0000000180B8D791                 mov     [rsp+50h+var_30], r15b
-  .text:0000000180B8D796                 xor     r8d, r8d
-  .text:0000000180B8D799                 lea     rdx, aServerEntities; "server_entities"
-  .text:0000000180B8D7A0                 mov     rcx, rax
-  .text:0000000180B8D7A3                 call    CEntitySystem_PostCreateEntitySystem
-  .text:0000000180B8D7A8                 mov     rbx, cs:g_pEntitySystem
-  .text:0000000180B8D7AF                 mov     cs:g_pGameEntitySystem, rbx
-  .text:0000000180B8D7B6                 movsxd  r14, dword ptr [rbx+0B90h]  ; 0xB90 = 2960 = CEntitySystem::m_entityIONotifiers (structmember, struct=CEntitySystem, member=m_entityIONotifiers)
-  .text:0000000180B8D7BD                 cmp     r14d, [rbx+0BA0h]
-  .text:0000000180B8D7C4                 jnz     loc_180B8D88F
-  .text:0000000180B8D7CA                 test    dword ptr [rbx+0BA4h], 40000000h
-  .text:0000000180B8D7D4                 jnz     loc_180B8D88F
-  .text:0000000180B8D7DA                 mov     ecx, [rbx+0BA0h]
-  .text:0000000180B8D7E0                 cmp     ecx, 7FFFFFFEh
-  .text:0000000180B8D7E6                 jle     short loc_180B8D7F3
-  .text:0000000180B8D7E8                 mov     edx, 1
-  .text:0000000180B8D7ED                 call    cs:UtlVectorMemory_FailedAllocation
-  .text:0000000180B8D7F3                 mov     ecx, [rbx+0BA0h]
-  .text:0000000180B8D7F9                 mov     r9d, 8
-  .text:0000000180B8D7FF                 mov     edx, [rbx+0BA4h]
-  .text:0000000180B8D805                 and     edx, 3FFFFFFFh
-  .text:0000000180B8D80B                 lea     esi, [rcx+1]
-  .text:0000000180B8D80E                 mov     r8d, esi
-  .text:0000000180B8D811                 call    cs:UtlVectorMemory_CalcNewAllocationCount
-  .text:0000000180B8D817                 mov     edi, eax
-  .text:0000000180B8D819                 cmp     eax, esi
-  .text:0000000180B8D81B                 jge     short loc_180B8D83E
-  .text:0000000180B8D81D                 test    eax, eax
-  .text:0000000180B8D81F                 jnz     short loc_180B8D830
-  .text:0000000180B8D821                 cmp     esi, 0FFFFFFFFh
-  .text:0000000180B8D824                 jg      short loc_180B8D830
-  .text:0000000180B8D826                 mov     edi, 0FFFFFFFFh
-  .text:0000000180B8D82B                 jmp     short loc_180B8D83E
-  .text:0000000180B8D830                 lea     eax, [rdi+rsi]
-  .text:0000000180B8D833                 cdq
-  .text:0000000180B8D834                 sub     eax, edx
-  .text:0000000180B8D836                 sar     eax, 1
-  .text:0000000180B8D838                 mov     edi, eax
-  .text:0000000180B8D83A                 cmp     eax, esi
-  .text:0000000180B8D83C                 jl      short loc_180B8D830
-  .text:0000000180B8D83E                 movsxd  r9, dword ptr [rbx+0BA0h]
-  .text:0000000180B8D845                 mov     rcx, [rbx+0B98h]
-  .text:0000000180B8D84C                 shl     r9, 3
-  .text:0000000180B8D850                 movsxd  r8, edi
-  .text:0000000180B8D853                 shl     r8, 3
-  .text:0000000180B8D857                 test    dword ptr [rbx+0BA4h], 0C0000000h
-  .text:0000000180B8D861                 setz    dl
-  .text:0000000180B8D864                 call    cs:UtlVectorMemory_Alloc
-  .text:0000000180B8D86A                 mov     [rbx+0B98h], rax
-  .text:0000000180B8D871                 mov     eax, [rbx+0BA4h]
-  .text:0000000180B8D877                 test    eax, 0C0000000h
-  .text:0000000180B8D87C                 jz      short loc_180B8D889
-  .text:0000000180B8D87E                 and     eax, 3FFFFFFFh
-  .text:0000000180B8D883                 mov     [rbx+0BA4h], eax
-  .text:0000000180B8D889                 mov     [rbx+0BA0h], edi
-  .text:0000000180B8D88F                 inc     dword ptr [rbx+0B90h]  ; 0xB90 = 2960 = CEntitySystem::m_entityIONotifiers (structmember, struct=CEntitySystem, member=m_entityIONotifiers)
-  .text:0000000180B8D895                 lea     rdx, off_181C16478
-  .text:0000000180B8D89C                 mov     rax, [rbx+0B98h]
-  .text:0000000180B8D8A3                 mov     ecx, 1340h
-  .text:0000000180B8D8A8                 mov     [rax+r14*8], rdx
-  .text:0000000180B8D8AC                 call    operator_new
-  .text:0000000180B8D8B1                 test    rax, rax
-  .text:0000000180B8D8B4                 jz      short loc_180B8D8C3
-  .text:0000000180B8D8B6                 mov     rcx, rax
-  .text:0000000180B8D8B9                 call    sub_180B38C50
-  .text:0000000180B8D8BE                 mov     rdi, rax
-  .text:0000000180B8D8C1                 jmp     short loc_180B8D8C6
-  .text:0000000180B8D8C3                 mov     rdi, r15
-  .text:0000000180B8D8C6                 mov     rax, cs:g_pGameEntitySystem
-  .text:0000000180B8D8CD                 mov     rcx, rdi
-  .text:0000000180B8D8D0                 mov     [rax+20D8h], rdi
-  .text:0000000180B8D8D7                 mov     rax, [rdi]
-  .text:0000000180B8D8DA                 call    qword ptr [rax]
-  .text:0000000180B8D8DC                 mov     rax, [rdi]
-  .text:0000000180B8D8DF                 mov     rcx, cs:qword_181F65210
-  .text:0000000180B8D8E6                 mov     rbx, [rax+88h]
-  .text:0000000180B8D8ED                 mov     rax, [rcx]
-  .text:0000000180B8D8F0                 call    qword ptr [rax+0C0h]
-  .text:0000000180B8D8F6                 mov     rdx, rax
-  .text:0000000180B8D8F9                 mov     rcx, rdi
-  .text:0000000180B8D8FC                 call    rbx
-  .text:0000000180B8D8FE                 call    sub_180B7AFE0
-  .text:0000000180B8D903                 mov     rcx, cs:g_pGameEntitySystem
-  .text:0000000180B8D90A                 mov     dl, 1
-  .text:0000000180B8D90C                 call    sub_1811F3F90
-  .text:0000000180B8D911                 mov     rcx, cs:qword_181F65210
-  .text:0000000180B8D918                 add     rcx, 8
-  .text:0000000180B8D91C                 mov     rax, [rcx]
-  .text:0000000180B8D91F                 call    qword ptr [rax+0A8h]
-  .text:0000000180B8D925                 test    al, al
-  .text:0000000180B8D927                 jnz     short loc_180B8D93D
-  .text:0000000180B8D929                 mov     rcx, cs:g_pVApplication
-  .text:0000000180B8D930                 mov     rax, [rcx]
-  .text:0000000180B8D933                 call    qword ptr [rax+0B0h]
-  .text:0000000180B8D939                 test    al, al
-  .text:0000000180B8D93B                 jz      short loc_180B8D963
-  .text:0000000180B8D93D                 mov     rcx, cs:g_pGameEntitySystem
-  .text:0000000180B8D944                 lea     rax, sub_180B68B10
-  .text:0000000180B8D94B                 mov     [rbp+var_18], rax
-  .text:0000000180B8D94F                 lea     rdx, [rbp+var_20]
-  .text:0000000180B8D953                 lea     rax, sub_180B56140
-  .text:0000000180B8D95A                 mov     [rbp+var_20], rax
-  .text:0000000180B8D95E                 call    sub_1811FA800
-  .text:0000000180B8D963                 mov     rcx, cs:g_pGameResourceService
-  .text:0000000180B8D96A                 test    rcx, rcx
-  .text:0000000180B8D96D                 jz      short loc_180B8D97F
-  .text:0000000180B8D96F                 mov     rax, [rcx]
-  .text:0000000180B8D972                 mov     rdx, cs:g_pGameEntitySystem
-  .text:0000000180B8D979                 call    qword ptr [rax+110h]  ; 110h = IGameResourceService_SetEntityResourceManifestHandler
-  .text:0000000180B8D97F                 mov     rax, cs:g_pEntitySystem
-  .text:0000000180B8D986                 lea     rcx, [rbp+var_20]
-  .text:0000000180B8D98A                 mov     r14, cs:g_pGameEntitySystem
-  .text:0000000180B8D991                 mov     [rbp+var_18], 1388h
-  .text:0000000180B8D999                 mov     [rbp+var_10], r15b
-  .text:0000000180B8D99D                 mov     esi, [rax+278h]
-  .text:0000000180B8D9A3                 lea     rax, aCgameentitysys_0; "CGameEntitySystem::InitEntity2NetworkCl"...
-  .text:0000000180B8D9AA                 mov     [rbp+var_20], rax
-  .text:0000000180B8D9AE                 call    cs:ToolsStallMonitorInternal_BeginScope
-  .text:0000000180B8D9B4                 mov     ecx, 48h ; 'H'
-  .text:0000000180B8D9B9                 call    operator_new
-  .text:0000000180B8D9BE                 mov     rdi, rax
-  .text:0000000180B8D9C1                 test    rax, rax
-  .text:0000000180B8D9C4                 jz      short loc_180B8DA1C
-  .text:0000000180B8D9C6                 lea     rax, ??_7CEntity2NetworkClasses@@6B@; const CEntity2NetworkClasses::`vftable'
-  .text:0000000180B8D9CD                 xor     edx, edx
-  .text:0000000180B8D9CF                 mov     [rdi], rax
-  .text:0000000180B8D9D2                 lea     rcx, [rdi+30h]
-  .text:0000000180B8D9D6                 lea     rax, ??_7CEntity2NetworkClasses@@6B@_0; const CEntity2NetworkClasses::`vftable'
-  .text:0000000180B8D9DD                 mov     r8d, 1
-  .text:0000000180B8D9E3                 mov     [rdi+8], rax
-  .text:0000000180B8D9E7                 mov     [rdi+18h], r15
-  .text:0000000180B8D9EB                 mov     [rdi+20h], r15
-  .text:0000000180B8D9EF                 mov     [rdi+10h], r15d
-  .text:0000000180B8D9F3                 mov     [rdi+28h], r15b
-  .text:0000000180B8D9F7                 mov     [rdi+30h], r15d
-  .text:0000000180B8D9FB                 mov     [rdi+38h], r15
-  .text:0000000180B8D9FF                 call    sub_180B52ED0
-  .text:0000000180B8DA04                 mov     eax, 0FFFFh
-  .text:0000000180B8DA09                 mov     edx, esi
-  .text:0000000180B8DA0B                 mov     rcx, rdi
-  .text:0000000180B8DA0E                 mov     [rdi+40h], eax
-  .text:0000000180B8DA11                 mov     [rdi+44h], ax
-  .text:0000000180B8DA15                 call    sub_180B62730
-  .text:0000000180B8DA1A                 jmp     short loc_180B8DA1F
-  .text:0000000180B8DA1C                 mov     rdi, r15
-  .text:0000000180B8DA1F                 lea     rcx, [rbp+var_20]
-  .text:0000000180B8DA23                 mov     [r14+20E0h], rdi
-  .text:0000000180B8DA2A                 call    cs:ToolsStallMonitorInternal_EndScope
-  .text:0000000180B8DA30                 mov     rcx, cs:g_pEntitySystem
-  .text:0000000180B8DA37                 lea     rax, sub_180B4E030
-  .text:0000000180B8DA3E                 lea     rbx, sub_180B68B50
-  .text:0000000180B8DA45                 mov     [rbp+var_20], rax
-  .text:0000000180B8DA49                 lea     r8, [rbp+var_20]
-  .text:0000000180B8DA4D                 mov     [rbp+var_18], rbx
-  .text:0000000180B8DA51                 mov     dl, 28h ; '('
-  .text:0000000180B8DA53                 call    sub_1811FA820
-  .text:0000000180B8DA58                 mov     rcx, cs:g_pEntitySystem
-  .text:0000000180B8DA5F                 lea     rax, sub_180B4DFA0
-  .text:0000000180B8DA66                 lea     r8, [rbp+var_20]
-  .text:0000000180B8DA6A                 mov     [rbp+var_20], rax
-  .text:0000000180B8DA6E                 mov     dl, 36h ; '6'
-  .text:0000000180B8DA70                 mov     [rbp+var_18], rbx
-  .text:0000000180B8DA74                 call    sub_1811FA820
-  .text:0000000180B8DA79                 mov     rcx, cs:g_pEntitySystem
-  .text:0000000180B8DA80                 lea     rax, sub_180B4DF50
-  .text:0000000180B8DA87                 lea     r8, [rbp+var_20]
-  .text:0000000180B8DA8B                 mov     [rbp+var_20], rax
-  .text:0000000180B8DA8F                 mov     dl, 43h ; 'C'
-  .text:0000000180B8DA91                 mov     [rbp+var_18], rbx
-  .text:0000000180B8DA95                 call    sub_1811FA820
-  .text:0000000180B8DA9A                 mov     rcx, cs:g_pFlattenedSerializers
-  .text:0000000180B8DAA1                 lea     rdx, sub_180B68B20
-  .text:0000000180B8DAA8                 mov     rax, [rcx]
-  .text:0000000180B8DAAB                 mov     [rbp+var_18], rdx
-  .text:0000000180B8DAAF                 lea     rdx, unknown_libname_200; Microsoft VisualC v7/14 64bit runtime
-  .text:0000000180B8DAB6                 mov     [rbp+var_20], rdx
-  .text:0000000180B8DABA                 lea     rdx, [rbp+var_20]
-  .text:0000000180B8DABE                 call    qword ptr [rax+108h]
-  .text:0000000180B8DAC4                 mov     rbx, [rsp+50h+arg_0]
-  .text:0000000180B8DAC9                 mov     al, 1
-  .text:0000000180B8DACB                 mov     rsi, [rsp+50h+arg_8]
-  .text:0000000180B8DAD0                 mov     rdi, [rsp+50h+arg_10]
-  .text:0000000180B8DAD8                 add     rsp, 50h
-  .text:0000000180B8DADC                 pop     r15
-  .text:0000000180B8DADE                 pop     r14
-  .text:0000000180B8DAE0                 pop     rbp
-  .text:0000000180B8DAE1                 retn
+  .text:0000000180B87D50                 mov     [rsp-18h+arg_0], rbx
+  .text:0000000180B87D55                 mov     [rsp-18h+arg_8], rsi
+  .text:0000000180B87D5A                 mov     [rsp-18h+arg_10], rdi
+  .text:0000000180B87D5F                 push    rbp
+  .text:0000000180B87D60                 push    r14
+  .text:0000000180B87D62                 push    r15
+  .text:0000000180B87D64                 mov     rbp, rsp
+  .text:0000000180B87D67                 sub     rsp, 50h
+  .text:0000000180B87D6B                 mov     eax, cs:dword_1820B1420
+  .text:0000000180B87D71                 xor     r15d, r15d
+  .text:0000000180B87D74                 mov     ecx, eax
+  .text:0000000180B87D76                 inc     eax
+  .text:0000000180B87D78                 mov     cs:dword_1820B1420, eax
+  .text:0000000180B87D7E                 test    ecx, ecx
+  .text:0000000180B87D80                 jg      short loc_180B87DB8
+  .text:0000000180B87D82                 mov     ecx, 20F0h
+  .text:0000000180B87D87                 call    sub_180E77230
+  .text:0000000180B87D8C                 test    rax, rax
+  .text:0000000180B87D8F                 jz      short loc_180B87D9B
+  .text:0000000180B87D91                 mov     rcx, rax
+  .text:0000000180B87D94                 call    CGameEntitySystem_ctor
+  .text:0000000180B87D99                 jmp     short loc_180B87D9E
+  .text:0000000180B87D9B                 mov     rax, r15
+  .text:0000000180B87D9E                 xor     r9d, r9d
+  .text:0000000180B87DA1                 mov     [rsp+50h+var_30], r15b
+  .text:0000000180B87DA6                 xor     r8d, r8d
+  .text:0000000180B87DA9                 lea     rdx, aServerEntities; "server_entities"
+  .text:0000000180B87DB0                 mov     rcx, rax
+  .text:0000000180B87DB3                 call    CEntitySystem_PostCreateEntitySystem
+  .text:0000000180B87DB8                 mov     rbx, cs:g_pEntitySystem
+  .text:0000000180B87DBF                 mov     cs:g_pGameEntitySystem, rbx
+  .text:0000000180B87DC6                 movsxd  r14, dword ptr [rbx+0B90h]  ; 0xB90 = 2960 = CEntitySystem::m_entityIONotifiers (structmember, struct=CEntitySystem, member=m_entityIONotifiers)
+  .text:0000000180B87DCD                 cmp     r14d, [rbx+0BA0h]
+  .text:0000000180B87DD4                 jnz     loc_180B87E9F
+  .text:0000000180B87DDA                 test    dword ptr [rbx+0BA4h], 40000000h
+  .text:0000000180B87DE4                 jnz     loc_180B87E9F
+  .text:0000000180B87DEA                 mov     ecx, [rbx+0BA0h]
+  .text:0000000180B87DF0                 cmp     ecx, 7FFFFFFEh
+  .text:0000000180B87DF6                 jle     short loc_180B87E03
+  .text:0000000180B87DF8                 mov     edx, 1
+  .text:0000000180B87DFD                 call    cs:UtlVectorMemory_FailedAllocation
+  .text:0000000180B87E03                 mov     ecx, [rbx+0BA0h]
+  .text:0000000180B87E09                 mov     r9d, 8
+  .text:0000000180B87E0F                 mov     edx, [rbx+0BA4h]
+  .text:0000000180B87E15                 and     edx, 3FFFFFFFh
+  .text:0000000180B87E1B                 lea     esi, [rcx+1]
+  .text:0000000180B87E1E                 mov     r8d, esi
+  .text:0000000180B87E21                 call    cs:UtlVectorMemory_CalcNewAllocationCount
+  .text:0000000180B87E27                 mov     edi, eax
+  .text:0000000180B87E29                 cmp     eax, esi
+  .text:0000000180B87E2B                 jge     short loc_180B87E4E
+  .text:0000000180B87E2D                 test    eax, eax
+  .text:0000000180B87E2F                 jnz     short loc_180B87E40
+  .text:0000000180B87E31                 cmp     esi, 0FFFFFFFFh
+  .text:0000000180B87E34                 jg      short loc_180B87E40
+  .text:0000000180B87E36                 mov     edi, 0FFFFFFFFh
+  .text:0000000180B87E3B                 jmp     short loc_180B87E4E
+  .text:0000000180B87E40                 lea     eax, [rdi+rsi]
+  .text:0000000180B87E43                 cdq
+  .text:0000000180B87E44                 sub     eax, edx
+  .text:0000000180B87E46                 sar     eax, 1
+  .text:0000000180B87E48                 mov     edi, eax
+  .text:0000000180B87E4A                 cmp     eax, esi
+  .text:0000000180B87E4C                 jl      short loc_180B87E40
+  .text:0000000180B87E4E                 movsxd  r9, dword ptr [rbx+0BA0h]
+  .text:0000000180B87E55                 mov     rcx, [rbx+0B98h]
+  .text:0000000180B87E5C                 shl     r9, 3
+  .text:0000000180B87E60                 movsxd  r8, edi
+  .text:0000000180B87E63                 shl     r8, 3
+  .text:0000000180B87E67                 test    dword ptr [rbx+0BA4h], 0C0000000h
+  .text:0000000180B87E71                 setz    dl
+  .text:0000000180B87E74                 call    cs:UtlVectorMemory_Alloc
+  .text:0000000180B87E7A                 mov     [rbx+0B98h], rax
+  .text:0000000180B87E81                 mov     eax, [rbx+0BA4h]
+  .text:0000000180B87E87                 test    eax, 0C0000000h
+  .text:0000000180B87E8C                 jz      short loc_180B87E99
+  .text:0000000180B87E8E                 and     eax, 3FFFFFFFh
+  .text:0000000180B87E93                 mov     [rbx+0BA4h], eax
+  .text:0000000180B87E99                 mov     [rbx+0BA0h], edi
+  .text:0000000180B87E9F                 inc     dword ptr [rbx+0B90h]  ; 0xB90 = 2960 = CEntitySystem::m_entityIONotifiers (structmember, struct=CEntitySystem, member=m_entityIONotifiers)
+  .text:0000000180B87EA5                 lea     rdx, off_181C0E148
+  .text:0000000180B87EAC                 mov     rax, [rbx+0B98h]
+  .text:0000000180B87EB3                 mov     ecx, 1340h
+  .text:0000000180B87EB8                 mov     [rax+r14*8], rdx
+  .text:0000000180B87EBC                 call    sub_180E77230
+  .text:0000000180B87EC1                 test    rax, rax
+  .text:0000000180B87EC4                 jz      short loc_180B87ED3
+  .text:0000000180B87EC6                 mov     rcx, rax
+  .text:0000000180B87EC9                 call    sub_180B33270
+  .text:0000000180B87ECE                 mov     rdi, rax
+  .text:0000000180B87ED1                 jmp     short loc_180B87ED6
+  .text:0000000180B87ED3                 mov     rdi, r15
+  .text:0000000180B87ED6                 mov     rax, cs:g_pGameEntitySystem
+  .text:0000000180B87EDD                 mov     rcx, rdi
+  .text:0000000180B87EE0                 mov     [rax+20D8h], rdi
+  .text:0000000180B87EE7                 mov     rax, [rdi]
+  .text:0000000180B87EEA                 call    qword ptr [rax]
+  .text:0000000180B87EEC                 mov     rax, [rdi]
+  .text:0000000180B87EEF                 mov     rcx, cs:qword_181F5CF90
+  .text:0000000180B87EF6                 mov     rbx, [rax+88h]
+  .text:0000000180B87EFD                 mov     rax, [rcx]
+  .text:0000000180B87F00                 call    qword ptr [rax+0C0h]
+  .text:0000000180B87F06                 mov     rdx, rax
+  .text:0000000180B87F09                 mov     rcx, rdi
+  .text:0000000180B87F0C                 call    rbx
+  .text:0000000180B87F0E                 call    sub_180B755F0
+  .text:0000000180B87F13                 mov     rcx, cs:g_pGameEntitySystem
+  .text:0000000180B87F1A                 mov     dl, 1
+  .text:0000000180B87F1C                 call    sub_1811EC840
+  .text:0000000180B87F21                 mov     rcx, cs:qword_181F5CF90
+  .text:0000000180B87F28                 add     rcx, 8
+  .text:0000000180B87F2C                 mov     rax, [rcx]
+  .text:0000000180B87F2F                 call    qword ptr [rax+0A8h]
+  .text:0000000180B87F35                 test    al, al
+  .text:0000000180B87F37                 jnz     short loc_180B87F4D
+  .text:0000000180B87F39                 mov     rcx, cs:qword_182117A80
+  .text:0000000180B87F40                 mov     rax, [rcx]
+  .text:0000000180B87F43                 call    qword ptr [rax+0B0h]
+  .text:0000000180B87F49                 test    al, al
+  .text:0000000180B87F4B                 jz      short loc_180B87F73
+  .text:0000000180B87F4D                 mov     rcx, cs:g_pGameEntitySystem
+  .text:0000000180B87F54                 lea     rax, sub_180B63120
+  .text:0000000180B87F5B                 mov     [rbp+var_18], rax
+  .text:0000000180B87F5F                 lea     rdx, [rbp+var_20]
+  .text:0000000180B87F63                 lea     rax, sub_180B50750
+  .text:0000000180B87F6A                 mov     [rbp+var_20], rax
+  .text:0000000180B87F6E                 call    sub_1811F30B0
+  .text:0000000180B87F73                 mov     rcx, cs:g_pGameResourceService
+  .text:0000000180B87F7A                 test    rcx, rcx
+  .text:0000000180B87F7D                 jz      short loc_180B87F8F
+  .text:0000000180B87F7F                 mov     rax, [rcx]
+  .text:0000000180B87F82                 mov     rdx, cs:g_pGameEntitySystem
+  .text:0000000180B87F89                 call    qword ptr [rax+110h]
+  .text:0000000180B87F8F                 mov     rax, cs:g_pEntitySystem
+  .text:0000000180B87F96                 lea     rcx, [rbp+var_20]
+  .text:0000000180B87F9A                 mov     r14, cs:g_pGameEntitySystem
+  .text:0000000180B87FA1                 mov     [rbp+var_18], 1388h
+  .text:0000000180B87FA9                 mov     [rbp+var_10], r15b
+  .text:0000000180B87FAD                 mov     esi, [rax+278h]
+  .text:0000000180B87FB3                 lea     rax, aCgameentitysys_0; "CGameEntitySystem::InitEntity2NetworkCl"...
+  .text:0000000180B87FBA                 mov     [rbp+var_20], rax
+  .text:0000000180B87FBE                 call    cs:ToolsStallMonitorInternal_BeginScope
+  .text:0000000180B87FC4                 mov     ecx, 48h ; 'H'
+  .text:0000000180B87FC9                 call    sub_180E77230
+  .text:0000000180B87FCE                 mov     rdi, rax
+  .text:0000000180B87FD1                 test    rax, rax
+  .text:0000000180B87FD4                 jz      short loc_180B8802C
+  .text:0000000180B87FD6                 lea     rax, ??_7CEntity2NetworkClasses@@6B@; const CEntity2NetworkClasses::`vftable'
+  .text:0000000180B87FDD                 xor     edx, edx
+  .text:0000000180B87FDF                 mov     [rdi], rax
+  .text:0000000180B87FE2                 lea     rcx, [rdi+30h]
+  .text:0000000180B87FE6                 lea     rax, ??_7CEntity2NetworkClasses@@6B@_0; const CEntity2NetworkClasses::`vftable'
+  .text:0000000180B87FED                 mov     r8d, 1
+  .text:0000000180B87FF3                 mov     [rdi+8], rax
+  .text:0000000180B87FF7                 mov     [rdi+18h], r15
+  .text:0000000180B87FFB                 mov     [rdi+20h], r15
+  .text:0000000180B87FFF                 mov     [rdi+10h], r15d
+  .text:0000000180B88003                 mov     [rdi+28h], r15b
+  .text:0000000180B88007                 mov     [rdi+30h], r15d
+  .text:0000000180B8800B                 mov     [rdi+38h], r15
+  .text:0000000180B8800F                 call    sub_180B4D4F0
+  .text:0000000180B88014                 mov     eax, 0FFFFh
+  .text:0000000180B88019                 mov     edx, esi
+  .text:0000000180B8801B                 mov     rcx, rdi
+  .text:0000000180B8801E                 mov     [rdi+40h], eax
+  .text:0000000180B88021                 mov     [rdi+44h], ax
+  .text:0000000180B88025                 call    sub_180B5CD40
+  .text:0000000180B8802A                 jmp     short loc_180B8802F
+  .text:0000000180B8802C                 mov     rdi, r15
+  .text:0000000180B8802F                 lea     rcx, [rbp+var_20]
+  .text:0000000180B88033                 mov     [r14+20E0h], rdi
+  .text:0000000180B8803A                 call    cs:ToolsStallMonitorInternal_EndScope
+  .text:0000000180B88040                 mov     rcx, cs:g_pEntitySystem
+  .text:0000000180B88047                 lea     rax, sub_180B48650
+  .text:0000000180B8804E                 lea     rbx, sub_180B63160
+  .text:0000000180B88055                 mov     [rbp+var_20], rax
+  .text:0000000180B88059                 lea     r8, [rbp+var_20]
+  .text:0000000180B8805D                 mov     [rbp+var_18], rbx
+  .text:0000000180B88061                 mov     dl, 28h ; '('
+  .text:0000000180B88063                 call    sub_1811F30D0
+  .text:0000000180B88068                 mov     rcx, cs:g_pEntitySystem
+  .text:0000000180B8806F                 lea     rax, sub_180B485C0
+  .text:0000000180B88076                 lea     r8, [rbp+var_20]
+  .text:0000000180B8807A                 mov     [rbp+var_20], rax
+  .text:0000000180B8807E                 mov     dl, 36h ; '6'
+  .text:0000000180B88080                 mov     [rbp+var_18], rbx
+  .text:0000000180B88084                 call    sub_1811F30D0
+  .text:0000000180B88089                 mov     rcx, cs:g_pEntitySystem
+  .text:0000000180B88090                 lea     rax, sub_180B48570
+  .text:0000000180B88097                 lea     r8, [rbp+var_20]
+  .text:0000000180B8809B                 mov     [rbp+var_20], rax
+  .text:0000000180B8809F                 mov     dl, 43h ; 'C'
+  .text:0000000180B880A1                 mov     [rbp+var_18], rbx
+  .text:0000000180B880A5                 call    sub_1811F30D0
+  .text:0000000180B880AA                 mov     rcx, cs:qword_182117C90
+  .text:0000000180B880B1                 lea     rdx, sub_180B63130
+  .text:0000000180B880B8                 mov     rax, [rcx]
+  .text:0000000180B880BB                 mov     [rbp+var_18], rdx
+  .text:0000000180B880BF                 lea     rdx, unknown_libname_200; Microsoft VisualC v7/14 64bit runtime
+  .text:0000000180B880C6                 mov     [rbp+var_20], rdx
+  .text:0000000180B880CA                 lea     rdx, [rbp+var_20]
+  .text:0000000180B880CE                 call    qword ptr [rax+108h]
+  .text:0000000180B880D4                 mov     rbx, [rsp+50h+arg_0]
+  .text:0000000180B880D9                 mov     al, 1
+  .text:0000000180B880DB                 mov     rsi, [rsp+50h+arg_8]
+  .text:0000000180B880E0                 mov     rdi, [rsp+50h+arg_10]
+  .text:0000000180B880E8                 add     rsp, 50h
+  .text:0000000180B880EC                 pop     r15
+  .text:0000000180B880EE                 pop     r14
+  .text:0000000180B880F0                 pop     rbp
+  .text:0000000180B880F1                 retn
 procedure: |-
   char CSource2EntitySystem_StaticInit()
   {
@@ -231,22 +231,23 @@ procedure: |-
     __int64 v13; // rdi
     void (__fastcall *v14)(__int64, __int64); // rbx
     __int64 v15; // rax
-    __int64 v16; // r14
-    unsigned int v17; // esi
-    __int64 v18; // rax
-    __int64 v19; // rdi
-    __int64 v20; // rdx
+    __int64 v16; // rdx
+    __int64 v17; // r14
+    unsigned int v18; // esi
+    __int64 v19; // rax
+    __int64 v20; // rdi
     __int64 v21; // rdx
     __int64 v22; // rdx
-    __int64 v23; // rax
-    __int64 (__fastcall *v25)(unsigned int, __int64); // [rsp+30h] [rbp-20h] BYREF
-    __int64 v26; // [rsp+38h] [rbp-18h]
-    char v27; // [rsp+40h] [rbp-10h]
+    __int64 v23; // rdx
+    __int64 v24; // rax
+    const char *v26; // [rsp+30h] [rbp-20h] BYREF
+    __int64 v27; // [rsp+38h] [rbp-18h]
+    char v28; // [rsp+40h] [rbp-10h]
 
-    v0 = dword_1820B9400++;
+    v0 = dword_1820B1420++;
     if ( v0 <= 0 )
     {
-      v1 = operator_new(8432);
+      v1 = sub_180E77230(8432);
       if ( v1 )
         v2 = CGameEntitySystem_ctor(v1);
       else
@@ -255,7 +256,7 @@ procedure: |-
     }
     v3 = g_pEntitySystem;
     g_pGameEntitySystem = g_pEntitySystem;
-    v4 = *(int *)(g_pEntitySystem + 2960);  // 0xB90 = 2960 = CEntitySystem::m_entityIONotifiers (structmember, struct=CEntitySystem, member=m_entityIONotifiers)
+    v4 = *(int *)(g_pEntitySystem + 2960);  // 2960 = 0xB90 = CEntitySystem::m_entityIONotifiers (structmember, struct=CEntitySystem, member=m_entityIONotifiers)
     if ( (_DWORD)v4 == *(_DWORD *)(g_pEntitySystem + 2976) && (*(_DWORD *)(g_pEntitySystem + 2980) & 0x40000000) == 0 )
     {
       v5 = *(unsigned int *)(g_pEntitySystem + 2976);
@@ -288,78 +289,76 @@ procedure: |-
         *(_DWORD *)(v3 + 2980) = v11 & 0x3FFFFFFF;
       *(_DWORD *)(v3 + 2976) = v10;
     }
-    ++*(_DWORD *)(v3 + 2960);  // 0xB90 = 2960 = CEntitySystem::m_entityIONotifiers (structmember, struct=CEntitySystem, member=m_entityIONotifiers)
-    *(_QWORD *)(*(_QWORD *)(v3 + 2968) + 8 * v4) = &off_181C16478;
-    v12 = operator_new(4928);
+    ++*(_DWORD *)(v3 + 2960);  // 2960 = 0xB90 = CEntitySystem::m_entityIONotifiers (structmember, struct=CEntitySystem, member=m_entityIONotifiers)
+    *(_QWORD *)(*(_QWORD *)(v3 + 2968) + 8 * v4) = &off_181C0E148;
+    v12 = sub_180E77230(4928);
     if ( v12 )
-      v13 = sub_180B38C50(v12);
+      v13 = sub_180B33270(v12);
     else
       v13 = 0;
     *(_QWORD *)(g_pGameEntitySystem + 8408) = v13;
     (**(void (__fastcall ***)(__int64))v13)(v13);
     v14 = *(void (__fastcall **)(__int64, __int64))(*(_QWORD *)v13 + 136LL);
-    v15 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)qword_181F65210 + 192LL))(qword_181F65210);
+    v15 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)qword_181F5CF90 + 192LL))(qword_181F5CF90);
     v14(v13, v15);
-    sub_180B7AFE0();
-    sub_1811F3F90(g_pGameEntitySystem, 1);
-    if ( (*(unsigned __int8 (__fastcall **)(__int64))(*(_QWORD *)(qword_181F65210 + 8) + 168LL))(qword_181F65210 + 8)
-      || (*(unsigned __int8 (__fastcall **)(__int64))(*(_QWORD *)g_pVApplication + 176LL))(g_pVApplication) )
+    sub_180B755F0();
+    LOBYTE(v16) = 1;
+    sub_1811EC840(g_pGameEntitySystem, v16);
+    if ( (*(unsigned __int8 (__fastcall **)(__int64))(*(_QWORD *)(qword_181F5CF90 + 8) + 168LL))(qword_181F5CF90 + 8)
+      || (*(unsigned __int8 (__fastcall **)(__int64))(*(_QWORD *)qword_182117A80 + 176LL))(qword_182117A80) )
     {
-      v26 = (__int64)sub_180B68B10;
-      v25 = sub_180B56140;
-      sub_1811FA800(g_pGameEntitySystem, (__int64 *)&v25);
+      v27 = (__int64)sub_180B63120;
+      v26 = (const char *)sub_180B50750;
+      sub_1811F30B0(g_pGameEntitySystem, &v26);
     }
     if ( g_pGameResourceService )
-      (*(void (__fastcall **)(__int64, __int64))(*(_QWORD *)g_pGameResourceService
-                                               + 272LL))(// 272LL = 0x110 = IGameResourceService_SetEntityResourceManifestHandler
+      (*(void (__fastcall **)(__int64, __int64))(*(_QWORD *)g_pGameResourceService + 272LL))(
         g_pGameResourceService,
         g_pGameEntitySystem);
-    v16 = g_pGameEntitySystem;
-    v26 = 5000;
-    v27 = 0;
-    v17 = *(_DWORD *)(g_pEntitySystem + 632);
-    v25 = (__int64 (__fastcall *)(unsigned int, __int64))"CGameEntitySystem::InitEntity2NetworkClasses";
-    ToolsStallMonitorInternal_BeginScope(&v25);
-    v18 = operator_new(72);
-    v19 = v18;
-    if ( v18 )
+    v17 = g_pGameEntitySystem;
+    v27 = 5000;
+    v28 = 0;
+    v18 = *(_DWORD *)(g_pEntitySystem + 632);
+    v26 = "CGameEntitySystem::InitEntity2NetworkClasses";
+    ToolsStallMonitorInternal_BeginScope(&v26);
+    v19 = sub_180E77230(72);
+    v20 = v19;
+    if ( v19 )
     {
-      *(_QWORD *)v18 = &CEntity2NetworkClasses::`vftable';
-      *(_QWORD *)(v18 + 8) = &CEntity2NetworkClasses::`vftable';
-      *(_QWORD *)(v18 + 24) = 0;
-      *(_QWORD *)(v18 + 32) = 0;
-      *(_DWORD *)(v18 + 16) = 0;
-      *(_BYTE *)(v18 + 40) = 0;
-      *(_DWORD *)(v18 + 48) = 0;
-      *(_QWORD *)(v18 + 56) = 0;
-      sub_180B52ED0(v18 + 48, 0, 1);
-      *(_DWORD *)(v19 + 64) = 0xFFFF;
-      *(_WORD *)(v19 + 68) = -1;
-      sub_180B62730(v19, v17);
+      *(_QWORD *)v19 = &CEntity2NetworkClasses::`vftable';
+      *(_QWORD *)(v19 + 8) = &CEntity2NetworkClasses::`vftable';
+      *(_QWORD *)(v19 + 24) = 0;
+      *(_QWORD *)(v19 + 32) = 0;
+      *(_DWORD *)(v19 + 16) = 0;
+      *(_BYTE *)(v19 + 40) = 0;
+      *(_DWORD *)(v19 + 48) = 0;
+      *(_QWORD *)(v19 + 56) = 0;
+      sub_180B4D4F0(v19 + 48, 0, 1);
+      *(_DWORD *)(v20 + 64) = 0xFFFF;
+      *(_WORD *)(v20 + 68) = -1;
+      sub_180B5CD40(v20, v18);
     }
     else
     {
-      v19 = 0;
+      v20 = 0;
     }
-    *(_QWORD *)(v16 + 8416) = v19;
-    ToolsStallMonitorInternal_EndScope(&v25);
-    v25 = (__int64 (__fastcall *)(unsigned int, __int64))sub_180B4E030;
-    v26 = (__int64)sub_180B68B50;
-    LOBYTE(v20) = 40;
-    sub_1811FA820(g_pEntitySystem, v20, &v25);
-    v25 = (__int64 (__fastcall *)(unsigned int, __int64))sub_180B4DFA0;
-    LOBYTE(v21) = 54;
-    v26 = (__int64)sub_180B68B50;
-    sub_1811FA820(g_pEntitySystem, v21, &v25);
-    v25 = (__int64 (__fastcall *)(unsigned int, __int64))sub_180B4DF50;
-    LOBYTE(v22) = 67;
-    v26 = (__int64)sub_180B68B50;
-    sub_1811FA820(g_pEntitySystem, v22, &v25);
-    v23 = *(_QWORD *)g_pFlattenedSerializers;
-    v26 = (__int64)sub_180B68B20;
-    v25 = (__int64 (__fastcall *)(unsigned int, __int64))unknown_libname_200;
-    (*(void (__fastcall **)(__int64, __int64 (__fastcall **)(unsigned int, __int64)))(v23 + 264))(
-      g_pFlattenedSerializers,
-      &v25);
+    *(_QWORD *)(v17 + 8416) = v20;
+    ToolsStallMonitorInternal_EndScope(&v26);
+    v26 = (const char *)sub_180B48650;
+    v27 = (__int64)sub_180B63160;
+    LOBYTE(v21) = 40;
+    sub_1811F30D0(g_pEntitySystem, v21, &v26);
+    v26 = (const char *)sub_180B485C0;
+    LOBYTE(v22) = 54;
+    v27 = (__int64)sub_180B63160;
+    sub_1811F30D0(g_pEntitySystem, v22, &v26);
+    v26 = (const char *)sub_180B48570;
+    LOBYTE(v23) = 67;
+    v27 = (__int64)sub_180B63160;
+    sub_1811F30D0(g_pEntitySystem, v23, &v26);
+    v24 = *(_QWORD *)qword_182117C90;
+    v27 = (__int64)sub_180B63130;
+    v26 = (const char *)unknown_libname_200;
+    (*(void (__fastcall **)(__int64, const char **))(v24 + 264))(qword_182117C90, &v26);
     return 1;
   }
