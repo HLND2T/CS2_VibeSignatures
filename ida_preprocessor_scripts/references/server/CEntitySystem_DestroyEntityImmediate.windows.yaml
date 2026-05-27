@@ -109,7 +109,8 @@ disasm_code: |-
   .text:00000001811EA5D7                 call    sub_1811EE5A0
   .text:00000001811EA5DC                 sub     dword ptr [rdi+0BCCh], 1; 0xBCC = 3020 = CEntitySystem::m_nSuppressAutoDeletionExecutionCount (structmember, struct=CEntitySystem, member=m_nSuppressAutoDeletionExecutionCount)
   .text:00000001811EA5E3                 jnz     short loc_1811EA5F8
-  .text:00000001811EA5E5                 cmp     byte ptr [rdi+0BDBh], 0
+  .text:00000001811EA5E5                 ; 0xBDB = 3035 = CEntitySystem::m_bEnableAutoDeletionExecution (structmember, struct=CEntitySystem, member=m_bEnableAutoDeletionExecution)
+  .text:00000001811EA5E5                 cmp     byte ptr [rdi+0BDBh], 0; 0xBDB = 3035 = CEntitySystem::m_bEnableAutoDeletionExecution (structmember, struct=CEntitySystem, member=m_bEnableAutoDeletionExecution)
   .text:00000001811EA5EC                 jz      short loc_1811EA5F8
   .text:00000001811EA5EE                 xor     edx, edx
   .text:00000001811EA5F0                 mov     rcx, rdi
@@ -197,7 +198,7 @@ procedure: |-
           sub_18120E670(a2);
           sub_1811EE5A0(a1 + 16, a2, 1);
           v16 = (*(_DWORD *)(a1 + 3020))-- == 1;// 3020 = 0xBCC = CEntitySystem::m_nSuppressAutoDeletionExecutionCount (structmember, struct=CEntitySystem, member=m_nSuppressAutoDeletionExecutionCount)
-          if ( v16 && *(_BYTE *)(a1 + 3035) )
+          if ( v16 && *(_BYTE *)(a1 + 3035) )// 3035 = 0xBDB = CEntitySystem::m_bEnableAutoDeletionExecution (structmember, struct=CEntitySystem, member=m_bEnableAutoDeletionExecution)
             CEntitySystem_ExecuteQueuedDeletion(a1, 0);
         }
         else

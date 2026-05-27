@@ -83,7 +83,8 @@ disasm_code: |-
   .text:0000000001E6427F                 call    sub_1E51E80
   .text:0000000001E64284                 sub     dword ptr [r12+0BCCh], 1; 0xBCC = 3020 = CEntitySystem::m_nSuppressAutoDeletionExecutionCount (structmember, struct=CEntitySystem, member=m_nSuppressAutoDeletionExecutionCount)
   .text:0000000001E6428D                 jnz     short loc_1E6429A
-  .text:0000000001E6428F                 cmp     byte ptr [r12+0BDBh], 0
+  .text:0000000001E6428F                 ; 0xBDB = 3035 = CEntitySystem::m_bEnableAutoDeletionExecution (structmember, struct=CEntitySystem, member=m_bEnableAutoDeletionExecution)
+  .text:0000000001E6428F                 cmp     byte ptr [r12+0BDBh], 0; 0xBDB = 3035 = CEntitySystem::m_bEnableAutoDeletionExecution (structmember, struct=CEntitySystem, member=m_bEnableAutoDeletionExecution)
   .text:0000000001E64298                 jnz     short loc_1E64308
   .text:0000000001E6429A                 add     rsp, 18h
   .text:0000000001E6429E                 pop     rbx
@@ -269,7 +270,7 @@ procedure: |-
           sub_1E446E0(a2);
           sub_1E51E80((__int64)(a1 + 2), a2, 1);
           v14 = (*((_DWORD *)a1 + 755))-- == 1;// 755*4 = 3020 = 0xBCC = CEntitySystem::m_nSuppressAutoDeletionExecutionCount (structmember, struct=CEntitySystem, member=m_nSuppressAutoDeletionExecutionCount)
-          if ( v14 && *((_BYTE *)a1 + 3035) && !*((_DWORD *)a1 + 753) )
+          if ( v14 && *((_BYTE *)a1 + 3035) && !*((_DWORD *)a1 + 753) )// 3035 = 0xBDB = CEntitySystem::m_bEnableAutoDeletionExecution (structmember, struct=CEntitySystem, member=m_bEnableAutoDeletionExecution)
           {
             if ( *((_DWORD *)a1 + 752) )
               *((_BYTE *)a1 + 3032) = 1;

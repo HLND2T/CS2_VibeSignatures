@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CEntitySystem_m_nSuppressDestroyImmediateCount-AND-CEntitySystem_m_nSuppressAutoDeletionExecutionCount skill."""
+"""Preprocess script for find-CEntitySystem_m_nSuppressDestroyImmediateCount-AND-CEntitySystem_m_nSuppressAutoDeletionExecutionCount-AND-CEntitySystem_m_bEnableAutoDeletionExecution skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_STRUCT_MEMBER_NAMES = [
     "CEntitySystem_m_nSuppressDestroyImmediateCount",
     "CEntitySystem_m_nSuppressAutoDeletionExecutionCount",
+    "CEntitySystem_m_bEnableAutoDeletionExecution",
 ]
 
 LLM_DECOMPILE = [
@@ -17,6 +18,11 @@ LLM_DECOMPILE = [
     ),
     (
         "CEntitySystem_m_nSuppressAutoDeletionExecutionCount",
+        "prompt/call_llm_decompile.md",
+        "references/server/CEntitySystem_DestroyEntityImmediate.{platform}.yaml",
+    ),
+    (
+        "CEntitySystem_m_bEnableAutoDeletionExecution",
         "prompt/call_llm_decompile.md",
         "references/server/CEntitySystem_DestroyEntityImmediate.{platform}.yaml",
     ),
@@ -36,6 +42,17 @@ GENERATE_YAML_DESIRED_FIELDS = [
     ),
     (
         "CEntitySystem_m_nSuppressAutoDeletionExecutionCount",
+        [
+            "struct_name",
+            "member_name",
+            "offset",
+            #"size",
+            "offset_sig",
+            "offset_sig_disp",
+        ],
+    ),
+    (
+        "CEntitySystem_m_bEnableAutoDeletionExecution",
         [
             "struct_name",
             "member_name",
