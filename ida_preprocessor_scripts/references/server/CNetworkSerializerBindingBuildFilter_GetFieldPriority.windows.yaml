@@ -1,0 +1,96 @@
+func_name: CNetworkSerializerBindingBuildFilter_GetFieldPriority
+func_va: '0x18120f150'
+disasm_code: |-
+  .text:000000018120F150                 mov     [rsp+arg_0], rbx
+  .text:000000018120F155                 push    rdi
+  .text:000000018120F156                 sub     rsp, 40h
+  .text:000000018120F15A                 mov     rax, [rdx+8]
+  .text:000000018120F15E                 mov     rbx, rdx
+  .text:000000018120F161                 mov     rdi, rcx
+  .text:000000018120F164                 mov     rcx, cs:g_pEntitySystem
+  .text:000000018120F16B                 cmp     byte ptr [rax], 43h ; 'C'
+  .text:000000018120F16E                 lea     rdx, [rax+1]
+  .text:000000018120F172                 cmovnz  rdx, rax
+  .text:000000018120F176                 call    CEntitySystem_FindComponentTypeByName
+  .text:000000018120F17B                 test    rax, rax
+  .text:000000018120F17E                 jnz     short loc_18120F1BB
+  .text:000000018120F180                 cmp     [rbx+0B0h], eax
+  .text:000000018120F186                 jle     short loc_18120F1AB
+  .text:000000018120F188                 mov     rax, [rbx+0B8h]
+  .text:000000018120F18F                 mov     rdx, [rax]
+  .text:000000018120F192                 test    rdx, rdx
+  .text:000000018120F195                 jz      short loc_18120F1AB
+  .text:000000018120F197                 mov     rax, [rdi]
+  .text:000000018120F19A                 mov     rcx, rdi
+  .text:000000018120F19D                 call    qword ptr [rax+18h]
+  .text:000000018120F1A0                 mov     rbx, [rsp+48h+arg_0]
+  .text:000000018120F1A5                 add     rsp, 40h
+  .text:000000018120F1A9                 pop     rdi
+  .text:000000018120F1AA                 retn
+  .text:000000018120F1AB                 mov     rbx, [rsp+48h+arg_0]
+  .text:000000018120F1B0                 mov     eax, 80000000h
+  .text:000000018120F1B5                 add     rsp, 40h
+  .text:000000018120F1B9                 pop     rdi
+  .text:000000018120F1BA                 retn
+  .text:000000018120F1BB                 mov     eax, [rax+18h]
+  .text:000000018120F1BE                 cmp     eax, 80000000h
+  .text:000000018120F1C3                 jnz     short loc_18120F1A0
+  .text:000000018120F1C5                 lea     rax, aCBuildworkerCs_64; "C:\\buildworker\\csgo_rel_win64\\build"...
+  .text:000000018120F1CC                 mov     [rsp+48h+var_10], 2Fh ; '/'
+  .text:000000018120F1D4                 mov     [rsp+48h+var_28], rax
+  .text:000000018120F1D9                 mov     rcx, rbx
+  .text:000000018120F1DC                 lea     rax, aCnetworkserial_1; "CNetworkSerializerBindingBuildFilter::G"...
+  .text:000000018120F1E3                 mov     [rsp+48h+var_C], 16h
+  .text:000000018120F1EB                 mov     [rsp+48h+var_20], rax
+  .text:000000018120F1F0                 lea     rax, aNpriorityNetwo; "nPriority != NETWORK_FIELD_CHANGE_DEFAU"...
+  .text:000000018120F1F7                 mov     [rsp+48h+var_18], rax
+  .text:000000018120F1FC                 call    sub_18120F220
+  .text:000000018120F201                 mov     r8, rax
+  .text:000000018120F204                 lea     rdx, aComponentSIlle; "Component %s illegally specified INT_MI"...
+  .text:000000018120F20B                 lea     rcx, [rsp+48h+var_28]
+  .text:000000018120F210                 call    cs:?Assert_ConditionFailed_Fatal@@YAXAEBU_AssertCompileTimeConstantStruct_t@@PEBDZZ; Assert_ConditionFailed_Fatal(_AssertCompileTimeConstantStruct_t const &,char const *,...)
+procedure: |-
+  __int64 __fastcall sub_18120F150(__int64 a1, __int64 a2)
+  {
+    _BYTE *v2; // rax
+    _BYTE *v5; // rdx
+    __int64 v6; // rax
+    __int64 result; // rax
+    const char *v8; // rax
+    _QWORD v9[3]; // [rsp+20h] [rbp-28h] BYREF
+    int v10; // [rsp+38h] [rbp-10h]
+    int v11; // [rsp+3Ch] [rbp-Ch]
+
+    v2 = *(_BYTE **)(a2 + 8);
+    v5 = v2 + 1;
+    if ( *v2 != 67 )
+      v5 = v2;
+    v6 = CEntitySystem_FindComponentTypeByName(g_pEntitySystem, v5);
+    if ( v6 )
+    {
+      result = *(unsigned int *)(v6 + 24);
+      if ( (_DWORD)result == 0x80000000 )
+      {
+        v10 = 47;
+        v9[0] = "C:\\buildworker\\csgo_rel_win64\\build\\src\\entity2\\entity2_networking.cpp";
+        v11 = 22;
+        v9[1] = "CNetworkSerializerBindingBuildFilter::GetFieldPriority";
+        v9[2] = "nPriority != NETWORK_FIELD_CHANGE_DEFAULT_PRIORITY";
+        v8 = (const char *)sub_18120F220(a2);
+        Assert_ConditionFailed_Fatal(
+          (const struct _AssertCompileTimeConstantStruct_t *)v9,
+          "Component %s illegally specified INT_MIN as its priority!\n",
+          v8);
+        JUMPOUT(0x18120F216LL);
+      }
+    }
+    else if ( *(int *)(a2 + 176) > 0 && **(_QWORD **)(a2 + 184) )
+    {
+      return (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)a1 + 24LL))(a1);
+    }
+    else
+    {
+      return 0x80000000LL;
+    }
+    return result;
+  }

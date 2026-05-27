@@ -1,0 +1,65 @@
+func_name: CEntitySystem_FindComponentTypeByName
+func_va: '0x1e617f0'
+disasm_code: |-
+  .text:0000000001E617F0                 push    rbp
+  .text:0000000001E617F1                 lea     rax, [rdi+0AD0h]  ; 0AD0h = CEntitySystem::m_entityComponentHelpers (structmember, struct=CEntitySystem, member=m_entityComponentHelpers)
+  .text:0000000001E617F8                 mov     rbp, rsp
+  .text:0000000001E617FB                 push    rbx
+  .text:0000000001E617FC                 mov     rbx, rdi
+  .text:0000000001E617FF                 add     rdi, 0AD8h
+  .text:0000000001E61806                 lea     rdx, [rbp+var_48]
+  .text:0000000001E6180A                 sub     rsp, 48h
+  .text:0000000001E6180E                 mov     [rbp+var_48], rsi
+  .text:0000000001E61812                 lea     rsi, [rbp+var_30]
+  .text:0000000001E61816                 mov     [rbp+var_28], rdx
+  .text:0000000001E6181A                 mov     [rbp+var_30], rax
+  .text:0000000001E6181E                 mov     [rbp+var_20], rax
+  .text:0000000001E61822                 call    sub_1E616C0
+  .text:0000000001E61827                 mov     rdx, rax
+  .text:0000000001E6182A                 mov     [rbp+var_36], ax
+  .text:0000000001E6182E                 shr     rax, 20h
+  .text:0000000001E61832                 shr     rdx, 10h
+  .text:0000000001E61836                 mov     [rbp+var_32], ax
+  .text:0000000001E6183A                 xor     eax, eax
+  .text:0000000001E6183C                 mov     [rbp+var_34], dx
+  .text:0000000001E61840                 cmp     dx, 0FFFFh
+  .text:0000000001E61844                 jz      short loc_1E61864
+  .text:0000000001E61846                 test    word ptr [rbx+0ADAh], 7FFFh
+  .text:0000000001E6184F                 jz      short loc_1E61858
+  .text:0000000001E61851                 mov     rax, [rbx+0AE0h]
+  .text:0000000001E61858                 movzx   edx, dx
+  .text:0000000001E6185B                 lea     rdx, [rdx+rdx*2]
+  .text:0000000001E6185F                 mov     rax, [rax+rdx*8+10h]
+  .text:0000000001E61864                 mov     rbx, [rbp+var_8]
+  .text:0000000001E61868                 leave
+  .text:0000000001E61869                 retn
+procedure: |-
+  __int64 __fastcall CEntitySystem_FindComponentTypeByName(__int64 a1, __int64 a2)
+  {
+    unsigned __int64 v2; // rax
+    unsigned __int64 v3; // rdx
+    __int64 result; // rax
+    __int64 v5; // [rsp+8h] [rbp-48h] BYREF
+    __int16 v6; // [rsp+1Ah] [rbp-36h]
+    __int16 v7; // [rsp+1Ch] [rbp-34h]
+    __int16 v8; // [rsp+1Eh] [rbp-32h]
+    _QWORD v9[5]; // [rsp+20h] [rbp-30h] BYREF
+
+    v5 = a2;
+    v9[1] = &v5;
+    v9[0] = a1 + 2768;  // 2768 = 0xAD0 = CEntitySystem::m_entityComponentHelpers (structmember, struct=CEntitySystem, member=m_entityComponentHelpers)
+    v9[2] = a1 + 2768;  // 2768 = 0xAD0 = CEntitySystem::m_entityComponentHelpers (structmember, struct=CEntitySystem, member=m_entityComponentHelpers)
+    v2 = sub_1E616C0(a1 + 2776, v9);
+    v6 = v2;
+    v3 = v2 >> 16;
+    v8 = WORD2(v2);
+    result = 0;
+    v7 = v3;
+    if ( (_WORD)v3 != 0xFFFF )
+    {
+      if ( (*(_WORD *)(a1 + 2778) & 0x7FFF) != 0 )
+        result = *(_QWORD *)(a1 + 2784);
+      return *(_QWORD *)(result + 24LL * (unsigned __int16)v3 + 16);
+    }
+    return result;
+  }

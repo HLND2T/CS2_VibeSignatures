@@ -1,0 +1,91 @@
+func_name: CEntitySystem_QueueDestroyEntity
+func_va: '0x1811f4ed0'
+disasm_code: |-
+  .text:00000001811F4ED0                 test    rdx, rdx
+  .text:00000001811F4ED3                 jz      locret_1811F4F84
+  .text:00000001811F4ED9                 push    rdi
+  .text:00000001811F4EDA                 sub     rsp, 20h
+  .text:00000001811F4EDE                 mov     [rsp+28h+arg_0], rbx
+  .text:00000001811F4EE3                 mov     rdi, rcx
+  .text:00000001811F4EE6                 mov     rbx, [rdx+10h]
+  .text:00000001811F4EEA                 test    rbx, rbx
+  .text:00000001811F4EED                 jz      loc_1811F4F7A
+  .text:00000001811F4EF3                 cmp     qword ptr [rbx], 0
+  .text:00000001811F4EF7                 jnz     short loc_1811F4F1C
+  .text:00000001811F4EF9                 xor     edx, edx
+  .text:00000001811F4EFB                 mov     rcx, rbx
+  .text:00000001811F4EFE                 call    CEntityIdentity_FreeAttributes
+  .text:00000001811F4F03                 lea     rcx, [rdi+10h]
+  .text:00000001811F4F07                 mov     r8b, 1
+  .text:00000001811F4F0A                 mov     rdx, rbx
+  .text:00000001811F4F0D                 mov     rbx, [rsp+28h+arg_0]
+  .text:00000001811F4F12                 add     rsp, 20h
+  .text:00000001811F4F16                 pop     rdi
+  .text:00000001811F4F17                 jmp     CConcreteEntityList_FreeEntity
+  .text:00000001811F4F1C                 mov     eax, [rbx+30h]
+  .text:00000001811F4F1F                 bt      eax, 0Bh
+  .text:00000001811F4F23                 jnb     short loc_1811F4F37
+  .text:00000001811F4F25                 mov     rdx, rbx
+  .text:00000001811F4F28                 mov     rbx, [rsp+28h+arg_0]
+  .text:00000001811F4F2D                 add     rsp, 20h
+  .text:00000001811F4F31                 pop     rdi
+  .text:00000001811F4F32                 jmp     CEntitySystem_DestroyEntityImmediate
+  .text:00000001811F4F37                 bt      eax, 9
+  .text:00000001811F4F3B                 jb      short loc_1811F4F7A
+  .text:00000001811F4F3D                 bts     eax, 9
+  .text:00000001811F4F41                 add     rcx, 0C10h
+  .text:00000001811F4F48                 mov     [rbx+30h], eax
+  .text:00000001811F4F4B                 call    sub_1811E67E0
+  .text:00000001811F4F50                 movsxd  rcx, eax
+  .text:00000001811F4F53                 mov     rax, [rdi+0C18h]
+  .text:00000001811F4F5A                 mov     [rax+rcx*8], rbx
+  .text:00000001811F4F5E                 cmp     dword ptr [rdi+0BCCh], 0
+  .text:00000001811F4F65                 jnz     short loc_1811F4F7A
+  .text:00000001811F4F67                 cmp     byte ptr [rdi+0BDBh], 0
+  .text:00000001811F4F6E                 jz      short loc_1811F4F7A
+  .text:00000001811F4F70                 xor     edx, edx
+  .text:00000001811F4F72                 mov     rcx, rdi
+  .text:00000001811F4F75                 call    CEntitySystem_ExecuteQueuedDeletion
+  .text:00000001811F4F7A                 mov     rbx, [rsp+28h+arg_0]
+  .text:00000001811F4F7F                 add     rsp, 20h
+  .text:00000001811F4F83                 pop     rdi
+  .text:00000001811F4F84                 retn
+procedure: |-
+  void __fastcall CEntitySystem_QueueDestroyEntity(__int64 a1, __int64 a2)
+  {
+    __int64 v3; // rbx
+    __int64 v4; // r8
+    int v5; // eax
+
+    if ( a2 )
+    {
+      v3 = *(_QWORD *)(a2 + 16);
+      if ( v3 )
+      {
+        if ( *(_QWORD *)v3 )
+        {
+          v5 = *(_DWORD *)(v3 + 48);
+          if ( (v5 & 0x800) != 0 )
+          {
+            CEntitySystem_DestroyEntityImmediate(a1, *(_DWORD **)(a2 + 16));
+          }
+          else if ( (v5 & 0x200) == 0 )
+          {
+            *(_DWORD *)(v3 + 48) = v5 | 0x200;
+            *(_QWORD *)(*(_QWORD *)(a1 + 3096) + 8LL * (int)sub_1811E67E0(a1 + 3088)) = v3;
+            if ( !*(_DWORD *)(a1 + 3020) )
+            {
+              if ( *(_BYTE *)(a1 + 3035) )
+                CEntitySystem_ExecuteQueuedDeletion(a1, 0);
+            }
+          }
+        }
+        else
+        {
+          CEntityIdentity_FreeAttributes(v3, 0);
+          LOBYTE(v4) = 1;
+          CConcreteEntityList_FreeEntity(a1 + 16, v3, v4);
+        }
+      }
+    }
+  }

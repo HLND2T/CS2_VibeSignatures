@@ -1,0 +1,163 @@
+func_name: CNetworkSerializerBindingBuildFilter_GetFieldPriority
+func_va: '0x1e75c90'
+disasm_code: |-
+  .text:0000000001E75C90                 push    rbp
+  .text:0000000001E75C91                 lea     rax, aGetfieldpriori; "GetFieldPriority"
+  .text:0000000001E75C98                 mov     rbp, rsp
+  .text:0000000001E75C9B                 push    r13
+  .text:0000000001E75C9D                 mov     r13, rsi
+  .text:0000000001E75CA0                 push    r12
+  .text:0000000001E75CA2                 push    rbx
+  .text:0000000001E75CA3                 mov     rbx, rdi
+  .text:0000000001E75CA6                 sub     rsp, 38h
+  .text:0000000001E75CAA                 mov     rsi, [rsi+8]
+  .text:0000000001E75CAE                 lea     r12, g_pEntitySystem
+  .text:0000000001E75CB5                 movq    xmm0, cs:off_24158A0; "entity2_networking.cpp"
+  .text:0000000001E75CBD                 pinsrq  xmm0, rax, 1
+  .text:0000000001E75CC4                 xor     eax, eax
+  .text:0000000001E75CC6                 cmp     byte ptr [rsi], 43h ; 'C'
+  .text:0000000001E75CC9                 movaps  [rbp+var_50], xmm0
+  .text:0000000001E75CCD                 mov     rdi, [r12]
+  .text:0000000001E75CD1                 setz    al
+  .text:0000000001E75CD4                 add     rsi, rax
+  .text:0000000001E75CD7                 call    CEntitySystem_FindComponentTypeByName
+  .text:0000000001E75CDC                 test    rax, rax
+  .text:0000000001E75CDF                 jz      short loc_1E75D00
+  .text:0000000001E75CE1                 mov     eax, [rax+18h]
+  .text:0000000001E75CE4                 cmp     eax, 80000000h
+  .text:0000000001E75CE9                 jz      loc_1E75DF0
+  .text:0000000001E75CEF                 add     rsp, 38h
+  .text:0000000001E75CF3                 pop     rbx
+  .text:0000000001E75CF4                 pop     r12
+  .text:0000000001E75CF6                 pop     r13
+  .text:0000000001E75CF8                 pop     rbp
+  .text:0000000001E75CF9                 retn
+  .text:0000000001E75D00                 mov     edx, [r13+0B0h]
+  .text:0000000001E75D07                 test    edx, edx
+  .text:0000000001E75D09                 jle     loc_1E75DB0
+  .text:0000000001E75D0F                 mov     rax, [r13+0B8h]
+  .text:0000000001E75D16                 mov     r13, [rax]
+  .text:0000000001E75D19                 test    r13, r13
+  .text:0000000001E75D1C                 jz      loc_1E75DB0
+  .text:0000000001E75D22                 mov     rax, [rbx]
+  .text:0000000001E75D25                 lea     rdx, CNetworkSerializerBindingBuildFilter_GetFieldPriority
+  .text:0000000001E75D2C                 mov     rax, [rax+20h]
+  .text:0000000001E75D30                 cmp     rax, rdx
+  .text:0000000001E75D33                 jnz     loc_1E75DC0
+  .text:0000000001E75D39                 mov     rsi, [r13+8]
+  .text:0000000001E75D3D                 xor     eax, eax
+  .text:0000000001E75D3F                 mov     rdi, [r12]
+  .text:0000000001E75D43                 cmp     byte ptr [rsi], 43h ; 'C'
+  .text:0000000001E75D46                 setz    al
+  .text:0000000001E75D49                 add     rsi, rax
+  .text:0000000001E75D4C                 call    CEntitySystem_FindComponentTypeByName
+  .text:0000000001E75D51                 test    rax, rax
+  .text:0000000001E75D54                 jz      short loc_1E75DA0
+  .text:0000000001E75D56                 mov     eax, [rax+18h]
+  .text:0000000001E75D59                 cmp     eax, 80000000h
+  .text:0000000001E75D5E                 jnz     short loc_1E75CEF
+  .text:0000000001E75D60                 movdqa  xmm1, [rbp+var_50]
+  .text:0000000001E75D65                 movaps  xmmword ptr [rbp+var_40], xmm1
+  .text:0000000001E75D69                 lea     rax, aNpriorityNetwo; "nPriority != NETWORK_FIELD_CHANGE_DEFAU"...
+  .text:0000000001E75D70                 mov     [rbp+var_28], 2Fh ; '/'
+  .text:0000000001E75D77                 mov     [rbp+var_30], rax
+  .text:0000000001E75D7B                 movzx   eax, [rbp+var_24]
+  .text:0000000001E75D7F                 ; _QWORD
+  .text:0000000001E75D7F                 lea     rdi, [rbp+var_40]; _QWORD
+  .text:0000000001E75D83                 lea     rsi, aComponentSIlle; "Component %s illegally specified INT_MI"...
+  .text:0000000001E75D8A                 and     eax, 0FFFFFF80h
+  .text:0000000001E75D8D                 or      eax, 16h
+  .text:0000000001E75D90                 mov     [rbp+var_24], al
+  .text:0000000001E75D93                 mov     rdx, [r13+8]
+  .text:0000000001E75D97                 xor     eax, eax
+  .text:0000000001E75D99                 call    __Z28Assert_ConditionFailed_FatalRK34_AssertCompileTimeConstantStruct_tPKcz; Assert_ConditionFailed_Fatal(_AssertCompileTimeConstantStruct_t const&,char const*,...)
+  .text:0000000001E75D9E                 xchg    ax, ax
+  .text:0000000001E75DA0                 mov     eax, [r13+0B0h]
+  .text:0000000001E75DA7                 test    eax, eax
+  .text:0000000001E75DA9                 jg      short loc_1E75DD8
+  .text:0000000001E75DAB                 nop     dword ptr [rax+rax+00h]
+  .text:0000000001E75DB0                 mov     eax, 80000000h
+  .text:0000000001E75DB5                 jmp     loc_1E75CEF
+  .text:0000000001E75DC0                 mov     rsi, r13
+  .text:0000000001E75DC3                 add     rsp, 38h
+  .text:0000000001E75DC7                 mov     rdi, rbx
+  .text:0000000001E75DCA                 pop     rbx
+  .text:0000000001E75DCB                 pop     r12
+  .text:0000000001E75DCD                 pop     r13
+  .text:0000000001E75DCF                 pop     rbp
+  .text:0000000001E75DD0                 jmp     rax
+  .text:0000000001E75DD8                 mov     rax, [r13+0B8h]
+  .text:0000000001E75DDF                 mov     rsi, [rax]
+  .text:0000000001E75DE2                 test    rsi, rsi
+  .text:0000000001E75DE5                 jz      short loc_1E75DB0
+  .text:0000000001E75DE7                 mov     rax, [rbx]
+  .text:0000000001E75DEA                 mov     rax, [rax+20h]
+  .text:0000000001E75DEE                 jmp     short loc_1E75DC3
+  .text:0000000001E75DF0                 movdqa  xmm2, [rbp+var_50]
+  .text:0000000001E75DF5                 movaps  xmmword ptr [rbp+var_40], xmm2
+  .text:0000000001E75DF9                 jmp     loc_1E75D69
+procedure: |-
+  __int64 __fastcall CNetworkSerializerBindingBuildFilter_GetFieldPriority(__int64 a1, __int64 a2)
+  {
+    __int64 v2; // r13
+    _BYTE *v3; // rsi
+    bool v4; // zf
+    __int64 v5; // rax
+    __int64 result; // rax
+    __int64 (__fastcall *v7)(); // rax
+    __int64 v8; // rax
+    __int64 v9; // rsi
+    __m128i inserted; // [rsp+0h] [rbp-50h] BYREF
+    __m128i v11; // [rsp+10h] [rbp-40h] BYREF
+    const char *v12; // [rsp+20h] [rbp-30h]
+    int v13; // [rsp+28h] [rbp-28h]
+    char v14; // [rsp+2Ch] [rbp-24h]
+
+    v2 = a2;
+    v3 = *(_BYTE **)(a2 + 8);
+    v4 = *v3 == 67;
+    inserted = _mm_insert_epi64(_mm_loadl_epi64((const __m128i *)&off_24158A0), (signed __int64)"GetFieldPriority", 1);
+    v5 = CEntitySystem_FindComponentTypeByName(g_pEntitySystem, &v3[v4]);
+    if ( v5 )
+    {
+      result = *(unsigned int *)(v5 + 24);
+      if ( (_DWORD)result != 0x80000000 )
+        return result;
+      goto LABEL_9;
+    }
+    if ( *(int *)(v2 + 176) <= 0 )
+      return 0x80000000LL;
+    v2 = **(_QWORD **)(v2 + 184);
+    if ( !v2 )
+      return 0x80000000LL;
+    v7 = *(__int64 (__fastcall **)())(*(_QWORD *)a1 + 32LL);
+    if ( v7 != CNetworkSerializerBindingBuildFilter_GetFieldPriority )
+      return ((__int64 (__fastcall *)(__int64, __int64))v7)(a1, v2);
+    v8 = CEntitySystem_FindComponentTypeByName(g_pEntitySystem, (**(_BYTE **)(v2 + 8) == 67) + *(_QWORD *)(v2 + 8));
+    if ( !v8 )
+    {
+  LABEL_10:
+      if ( *(int *)(v2 + 176) > 0 )
+      {
+        v9 = **(_QWORD **)(v2 + 184);
+        if ( v9 )
+          return (*(__int64 (__fastcall **)(__int64, __int64))(*(_QWORD *)a1 + 32LL))(a1, v9);
+      }
+      return 0x80000000LL;
+    }
+    result = *(unsigned int *)(v8 + 24);
+    if ( (_DWORD)result == 0x80000000 )
+    {
+  LABEL_9:
+      v11 = _mm_load_si128(&inserted);
+      v13 = 47;
+      v12 = "nPriority != NETWORK_FIELD_CHANGE_DEFAULT_PRIORITY";
+      v14 = v14 & 0x80 | 0x16;
+      Assert_ConditionFailed_Fatal(
+        &v11,
+        "Component %s illegally specified INT_MIN as its priority!\n",
+        *(const char **)(v2 + 8));
+      goto LABEL_10;
+    }
+    return result;
+  }

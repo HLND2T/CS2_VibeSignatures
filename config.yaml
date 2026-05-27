@@ -3166,6 +3166,16 @@ modules:
         expected_input:
           - g_pInterfaceGlobals.{platform}.yaml
 
+      - name: find-CNetworkSerializerBindingBuildFilter_vtable
+        expected_output:
+          - CNetworkSerializerBindingBuildFilter_vtable.{platform}.yaml
+
+      - name: find-CNetworkSerializerBindingBuildFilter_GetFieldPriority
+        expected_output:
+          - CNetworkSerializerBindingBuildFilter_GetFieldPriority.{platform}.yaml
+        expected_input:
+          - CNetworkSerializerBindingBuildFilter_vtable.{platform}.yaml
+
     symbols:
       - name: CLoopModeGame_RegisterEventMapInternal
         category: func
@@ -4046,6 +4056,14 @@ modules:
       - name: g_pInterfaceGlobals
         category: gv
 
+      - name: CNetworkSerializerBindingBuildFilter_vtable
+        category: vtable
+
+      - name: CNetworkSerializerBindingBuildFilter_GetFieldPriority
+        category: vfunc
+        alias:
+          - CNetworkSerializerBindingBuildFilter::GetFieldPriority
+
   - name: server
     path_windows: game/csgo/bin/win64/server.dll
     path_linux: game/csgo/bin/linuxsteamrt64/libserver.so
@@ -4360,6 +4378,13 @@ modules:
           - CEntitySystem_QueueDestroyEntity.{platform}.yaml
         expected_input:
           - SV_Kill_SmokeGrenade_CommandHandler.{platform}.yaml
+
+      - name: find-CEntitySystem_ExecuteQueuedDeletion-AND-CEntitySystem_m_nExecuteQueuedDeletionDepth
+        expected_output:
+          - CEntitySystem_ExecuteQueuedDeletion.{platform}.yaml
+          - CEntitySystem_m_nExecuteQueuedDeletionDepth.{platform}.yaml
+        expected_input:
+          - CEntitySystem_QueueDestroyEntity.{platform}.yaml
 
       - name: find-CBaseModelEntity_SetModel-AND-CBaseEntity_SetGravityScale
         expected_output:
@@ -7025,6 +7050,28 @@ modules:
         expected_input:
           - g_pInterfaceGlobals.{platform}.yaml
 
+      - name: find-CNetworkSerializerBindingBuildFilter_vtable
+        expected_output:
+          - CNetworkSerializerBindingBuildFilter_vtable.{platform}.yaml
+
+      - name: find-CNetworkSerializerBindingBuildFilter_GetFieldPriority
+        expected_output:
+          - CNetworkSerializerBindingBuildFilter_GetFieldPriority.{platform}.yaml
+        expected_input:
+          - CNetworkSerializerBindingBuildFilter_vtable.{platform}.yaml
+
+      - name: find-CEntitySystem_FindComponentTypeByName
+        expected_output:
+          - CEntitySystem_FindComponentTypeByName.{platform}.yaml
+        expected_input:
+          - CNetworkSerializerBindingBuildFilter_GetFieldPriority.{platform}.yaml
+
+      - name: find-CEntitySystem_m_entityComponentHelpers
+        expected_output:
+          - CEntitySystem_m_entityComponentHelpers.{platform}.yaml
+        expected_input:
+          - CEntitySystem_FindComponentTypeByName.{platform}.yaml
+
     symbols:
       - name: CSource2Server_vtable
         category: vtable
@@ -7592,6 +7639,18 @@ modules:
         category: func
         alias:
           - CEntitySystem::QueueDestroyEntity
+
+      - name: CEntitySystem_ExecuteQueuedDeletion
+        category: func
+        alias:
+          - CEntitySystem::ExecuteQueuedDeletion
+
+      - name: CEntitySystem_m_nExecuteQueuedDeletionDepth
+        category: structmember
+        struct: CEntitySystem
+        member: m_nExecuteQueuedDeletionDepth
+        alias:
+          - CEntitySystem::m_nExecuteQueuedDeletionDepth
 
       - name: CBaseModelEntity_SetModel
         category: func
@@ -8357,6 +8416,13 @@ modules:
         member: m_entityNames
         alias:
           - CEntitySystem::m_entityNames
+
+      - name: CEntitySystem_m_entityComponentHelpers
+        category: structmember
+        struct: CEntitySystem
+        member: m_entityComponentHelpers
+        alias:
+          - CEntitySystem::m_entityComponentHelpers
 
       - name: CEntityIdentity_FreeAttributes
         category: func
@@ -10488,6 +10554,19 @@ modules:
 
       - name: g_pInterfaceGlobals
         category: gv
+
+      - name: CNetworkSerializerBindingBuildFilter_vtable
+        category: vtable
+
+      - name: CNetworkSerializerBindingBuildFilter_GetFieldPriority
+        category: vfunc
+        alias:
+          - CNetworkSerializerBindingBuildFilter::GetFieldPriority
+
+      - name: CEntitySystem_FindComponentTypeByName
+        category: func
+        alias:
+          - CEntitySystem::FindComponentTypeByName
 
   - name: engine # Execute skills for engine2.dll again after client.dll
     path_windows: game/bin/win64/engine2.dll
