@@ -4,7 +4,7 @@ disasm_code: |-
   .text:00000001811EBEE0                 mov     [rsp+arg_0], rbx
   .text:00000001811EBEE5                 push    rdi
   .text:00000001811EBEE6                 sub     rsp, 100h
-  .text:00000001811EBEED                 inc     dword ptr [rcx+0BC0h]
+  .text:00000001811EBEED                 inc     dword ptr [rcx+0BC0h]; 0xBC0 = 3008 = CEntitySystem::m_nExecuteQueuedCreationDepth (structmember, struct=CEntitySystem, member=m_nExecuteQueuedCreationDepth)
   .text:00000001811EBEF3                 lea     rax, [rsp+108h+var_E0]
   .text:00000001811EBEF8                 mov     [rsp+108h+var_E0], 0
   .text:00000001811EBF01                 mov     rbx, rcx
@@ -26,7 +26,7 @@ disasm_code: |-
   .text:00000001811EBF4D                 movzx   edi, byte ptr [rbx+0BDFh]
   .text:00000001811EBF54                 mov     byte ptr [rbx+0BDFh], 1
   .text:00000001811EBF5B                 jz      short loc_1811EBF75
-  .text:00000001811EBF5D                 cmp     dword ptr [rbx+0BC0h], 1
+  .text:00000001811EBF5D                 cmp     dword ptr [rbx+0BC0h], 1; 0xBC0 = 3008 = CEntitySystem::m_nExecuteQueuedCreationDepth (structmember, struct=CEntitySystem, member=m_nExecuteQueuedCreationDepth)
   .text:00000001811EBF64                 jg      short loc_1811EBF75
   .text:00000001811EBF66                 lea     rdx, [rsp+108h+a2]
   .text:00000001811EBF6B                 mov     rcx, rbx
@@ -37,10 +37,10 @@ disasm_code: |-
   .text:00000001811EBF7A                 ; a1
   .text:00000001811EBF7A                 mov     rcx, rbx; a1
   .text:00000001811EBF7D                 call    CEntitySystem_ExecuteQueuedActivates
-  .text:00000001811EBF82                 mov     eax, [rbx+0BC0h]
+  .text:00000001811EBF82                 mov     eax, [rbx+0BC0h]; 0xBC0 = 3008 = CEntitySystem::m_nExecuteQueuedCreationDepth (structmember, struct=CEntitySystem, member=m_nExecuteQueuedCreationDepth)
   .text:00000001811EBF88                 dec     eax
   .text:00000001811EBF8A                 mov     [rbx+0BDFh], dil
-  .text:00000001811EBF91                 mov     [rbx+0BC0h], eax
+  .text:00000001811EBF91                 mov     [rbx+0BC0h], eax; 0xBC0 = 3008 = CEntitySystem::m_nExecuteQueuedCreationDepth (structmember, struct=CEntitySystem, member=m_nExecuteQueuedCreationDepth)
   .text:00000001811EBF97                 test    eax, eax
   .text:00000001811EBF99                 jg      short loc_1811EBFC4
   .text:00000001811EBF9B                 cmp     byte ptr [rbx+0BD8h], 0
@@ -99,7 +99,7 @@ procedure: |-
     unsigned int v10; // [rsp+34h] [rbp-D4h]
     _BYTE v11[208]; // [rsp+38h] [rbp-D0h] BYREF
 
-    ++*(_DWORD *)(a1 + 3008);
+    ++*(_DWORD *)(a1 + 3008);// 0xBC0 = 3008 = CEntitySystem::m_nExecuteQueuedCreationDepth (structmember, struct=CEntitySystem, member=m_nExecuteQueuedCreationDepth)
     v8 = nullptr;
     v9 = 50;
     v10 = 0x80000000;
@@ -113,13 +113,13 @@ procedure: |-
     v2 = *(_BYTE *)(a1 + 3034) == 0;
     v3 = *(_BYTE *)(a1 + 3039);
     *(_BYTE *)(a1 + 3039) = 1;
-    if ( v2 || *(int *)(a1 + 3008) > 1 )
+    if ( v2 || *(int *)(a1 + 3008) > 1 )// 0xBC0 = 3008 = CEntitySystem::m_nExecuteQueuedCreationDepth (structmember, struct=CEntitySystem, member=m_nExecuteQueuedCreationDepth)
       CEntitySystem_ExecuteQueuedActivates(a1, (__int64)&a2);
     else
       CEntitySystem_ExecuteQueuedPostDataUpdateAndActivates(a1, (__int64)&a2);
-    v5 = *(_DWORD *)(a1 + 3008) - 1;
+    v5 = *(_DWORD *)(a1 + 3008) - 1;// 0xBC0 = 3008 = CEntitySystem::m_nExecuteQueuedCreationDepth (structmember, struct=CEntitySystem, member=m_nExecuteQueuedCreationDepth)
     *(_BYTE *)(a1 + 3039) = v3;
-    *(_DWORD *)(a1 + 3008) = v5;
+    *(_DWORD *)(a1 + 3008) = v5;// 0xBC0 = 3008 = CEntitySystem::m_nExecuteQueuedCreationDepth (structmember, struct=CEntitySystem, member=m_nExecuteQueuedCreationDepth)
     if ( v5 <= 0 )
     {
       if ( *(_BYTE *)(a1 + 3032) )
