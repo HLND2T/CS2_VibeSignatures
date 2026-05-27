@@ -16,7 +16,7 @@ disasm_code: |-
   .text:00000001811F0AF4                 call    cs:?Set@CUtlString@@QEAAXPEBD@Z; CUtlString::Set(char const *)
   .text:00000001811F0AFA                 movzx   eax, [rsp+0C8h+arg_20]
   .text:00000001811F0B02                 mov     cs:byte_1820B15C0, al
-  .text:00000001811F0B08                 mov     [rsi+0BBCh], ebx
+  .text:00000001811F0B08                 mov     [rsi+0BBCh], ebx; 0xBBC = 3004 = CEntitySystem::m_eNetworkSerializationMode (structmember, struct=CEntitySystem, member=m_eNetworkSerializationMode)
   .text:00000001811F0B0E                 cmp     edi, 1
   .text:00000001811F0B11                 jnz     short loc_1811F0B23
   .text:00000001811F0B13                 cmp     cs:qword_182117C88, 0
@@ -269,7 +269,7 @@ disasm_code: |-
   .text:00000001811F0F4E                 jz      short loc_1811F0F94
   .text:00000001811F0F50                 mov     rax, [rcx]
   .text:00000001811F0F53                 lea     r9, [rsi+1EC8h]
-  .text:00000001811F0F5A                 mov     r8d, [rsi+0BBCh]
+  .text:00000001811F0F5A                 mov     r8d, [rsi+0BBCh]; 0xBBC = 3004 = CEntitySystem::m_eNetworkSerializationMode (structmember, struct=CEntitySystem, member=m_eNetworkSerializationMode)
   .text:00000001811F0F61                 lea     rdx, aStringTTable; "string_t_table"
   .text:00000001811F0F68                 ; 0xA0 = 160LL = INetworkMessages_SetNetworkSerializationContextData
   .text:00000001811F0F68                 call    qword ptr [rax+0A0h]; 0xA0 = 160LL = INetworkMessages_SetNetworkSerializationContextData
@@ -501,7 +501,7 @@ procedure: |-
 
     CUtlString::Set((CUtlString *)(a1 + 2696), a2);// 0xA88 = 2696 = CEntitySystem::m_sEntSystemName (structmember, struct=CEntitySystem, member=m_sEntSystemName)
     byte_1820B15C0 = a5;
-    *(_DWORD *)(a1 + 3004) = a4;
+    *(_DWORD *)(a1 + 3004) = a4;// 0xBBC = 3004 = CEntitySystem::m_eNetworkSerializationMode (structmember, struct=CEntitySystem, member=m_eNetworkSerializationMode)
     v8 = a3 == 1 && qword_182117C88;
     *(_BYTE *)(a1 + 3034) = v8;
     CUtlScratchMemoryPool::Init((CUtlScratchMemoryPool *)(a1 + 3256), 0x400u, 0, nullptr, 0);
@@ -659,7 +659,7 @@ procedure: |-
       (*(void (__fastcall **)(__int64, const char *, _QWORD, __int64))(*(_QWORD *)qword_182117C88 + 160LL))( // 0xA0 = 160LL = INetworkMessages_SetNetworkSerializationContextData
         qword_182117C88,
         "string_t_table",
-        *(unsigned int *)(a1 + 3004),
+        *(unsigned int *)(a1 + 3004),// 0xBBC = 3004 = CEntitySystem::m_eNetworkSerializationMode (structmember, struct=CEntitySystem, member=m_eNetworkSerializationMode)
         a1 + 7880);
       v35 = *(_QWORD *)qword_182117C88;
       v59 = sub_1811E4FA0;

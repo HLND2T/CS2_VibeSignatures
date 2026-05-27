@@ -18,7 +18,7 @@ disasm_code: |-
   .text:0000000001E738A0                 sub     rsp, 68h
   .text:0000000001E738A4                 call    __ZN10CUtlString3SetEPKc; CUtlString::Set(char const*)
   .text:0000000001E738A9                 lea     rax, unk_27BB9F1
-  .text:0000000001E738B0                 mov     [rbx+0BBCh], r13d
+  .text:0000000001E738B0                 mov     [rbx+0BBCh], r13d; 0xBBC = 3004 = CEntitySystem::m_eNetworkSerializationMode (structmember, struct=CEntitySystem, member=m_eNetworkSerializationMode)
   .text:0000000001E738B7                 mov     [rax], r14b
   .text:0000000001E738BA                 cmp     r12d, 1
   .text:0000000001E738BE                 jz      loc_1E73C08
@@ -132,7 +132,7 @@ disasm_code: |-
   .text:0000000001E73AA6                 jz      short loc_1E73AF7
   .text:0000000001E73AA8                 mov     rax, [rdi]
   .text:0000000001E73AAB                 lea     rsi, aStringTTable; "string_t_table"
-  .text:0000000001E73AB2                 mov     edx, [rbx+0BBCh]
+  .text:0000000001E73AB2                 mov     edx, [rbx+0BBCh]; 0xBBC = 3004 = CEntitySystem::m_eNetworkSerializationMode (structmember, struct=CEntitySystem, member=m_eNetworkSerializationMode)
   .text:0000000001E73AB8                 lea     rcx, [rbx+1ED0h]
   .text:0000000001E73ABF                 ; 0xA0 = 160LL = INetworkMessages_SetNetworkSerializationContextData
   .text:0000000001E73ABF                 call    qword ptr [rax+0A0h]; 0xA0 = 160LL = INetworkMessages_SetNetworkSerializationContextData
@@ -638,7 +638,7 @@ procedure: |-
     __m128i v68; // [rsp+48h] [rbp-48h]
 
     CUtlString::Set((CUtlString *)(a1 + 2696), a2);// 0xA88 = 2696 = CEntitySystem::m_sEntSystemName (structmember, struct=CEntitySystem, member=m_sEntSystemName)
-    *(_DWORD *)(a1 + 3004) = a4;
+    *(_DWORD *)(a1 + 3004) = a4;// 0xBBC = 3004 = CEntitySystem::m_eNetworkSerializationMode (structmember, struct=CEntitySystem, member=m_eNetworkSerializationMode)
     unk_27BB9F1 = a5;
     v9 = a3 == 1 && qword_2743670 != nullptr;
     *(_BYTE *)(a1 + 3034) = v9;
@@ -856,7 +856,7 @@ procedure: |-
       (*(void (__fastcall **)(_QWORD *, const char *, _QWORD, __int64))(*qword_2743670 + 160LL))( // 0xA0 = 160LL = INetworkMessages_SetNetworkSerializationContextData
         qword_2743670,
         "string_t_table",
-        *(unsigned int *)(a1 + 3004),
+        *(unsigned int *)(a1 + 3004),// 0xBBC = 3004 = CEntitySystem::m_eNetworkSerializationMode (structmember, struct=CEntitySystem, member=m_eNetworkSerializationMode)
         a1 + 7888);
       v66 = (__m128i)0x121uLL;
       v20 = _mm_loadu_si128(&v66);
