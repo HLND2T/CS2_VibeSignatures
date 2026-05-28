@@ -5180,10 +5180,11 @@ modules:
         expected_input:
           - CEntitySystem_ExecuteQueuedCreation.{platform}.yaml
 
-      - name: find-CEntitySystem_Activate-AND-CEntitySystem_PostDataUpdate
+      - name: find-CEntitySystem_Activate-AND-CEntitySystem_PostDataUpdate-AND-CEntitySystem_m_queuedPostDataUpdates
         expected_output:
           - CEntitySystem_Activate.{platform}.yaml
           - CEntitySystem_PostDataUpdate.{platform}.yaml
+          - CEntitySystem_m_queuedPostDataUpdates.{platform}.yaml
         expected_input:
           - CEntitySystem_ExecuteQueuedPostDataUpdateAndActivates.{platform}.yaml
           - CEntitySystem_vtable.{platform}.yaml
@@ -7464,6 +7465,13 @@ modules:
         member: m_queuedCreations
         alias:
           - CEntitySystem::m_queuedCreations
+
+      - name: CEntitySystem_m_queuedPostDataUpdates
+        category: structmember
+        struct: CEntitySystem
+        member: m_queuedPostDataUpdates
+        alias:
+          - CEntitySystem::m_queuedPostDataUpdates
 
       - name: CEntitySystem_m_queuedDormancyChanges
         category: structmember

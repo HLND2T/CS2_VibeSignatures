@@ -138,7 +138,7 @@ disasm_code: |-
   .text:00000001811ECB7F                 movss   xmm2, dword ptr [r15+0BD4h]
   .text:00000001811ECB88                 mov     rax, [rcx]
   .text:00000001811ECB8B                 call    qword ptr [rax+18h]
-  .text:00000001811ECB8E                 mov     edx, [r15+0BF8h]
+  .text:00000001811ECB8E                 mov     edx, [r15+0BF8h]  ; 0BF8h = CEntitySystem::m_queuedPostDataUpdates (structmember, struct=CEntitySystem, member=m_queuedPostDataUpdates)
   .text:00000001811ECB95                 mov     r13, [rsp+200h+var_20]
   .text:00000001811ECB9D                 mov     rdi, [rsp+200h+var_10]
   .text:00000001811ECBA5                 test    edx, edx
@@ -158,7 +158,7 @@ disasm_code: |-
   .text:00000001811ECBE0                 mov     rax, [rcx]
   .text:00000001811ECBE3                 call    qword ptr [rax+20h]
   .text:00000001811ECBE6                 mov     edx, dword ptr [rsp+200h+var_1E0]
-  .text:00000001811ECBEA                 mov     [r15+0BF8h], esi
+  .text:00000001811ECBEA                 mov     [r15+0BF8h], esi  ; 0BF8h = CEntitySystem::m_queuedPostDataUpdates (structmember, struct=CEntitySystem, member=m_queuedPostDataUpdates)
   .text:00000001811ECBF1                 test    edx, edx
   .text:00000001811ECBF3                 jle     short loc_1811ECC18
   .text:00000001811ECBF5                 cmp     byte ptr [r15+0BDDh], 0
@@ -326,13 +326,13 @@ procedure: |-
       while ( v4 < *(_DWORD *)v2 );
     }
     (*(void (__fastcall **)(_QWORD, __int64))(**(_QWORD **)(a1 + 3200) + 24LL))(*(_QWORD *)(a1 + 3200), 1024);
-    v20 = *(unsigned int *)(a1 + 3064);
+    v20 = *(unsigned int *)(a1 + 3064);  // 3064 = 0xBF8 = CEntitySystem::m_queuedPostDataUpdates (structmember, struct=CEntitySystem, member=m_queuedPostDataUpdates)
     if ( (int)v20 <= 0 )
       (*(void (__fastcall **)(_QWORD, __int64))(**(_QWORD **)(a1 + 3200) + 24LL))(*(_QWORD *)(a1 + 3200), 2147483649LL);
     else
       (*(void (__fastcall **)(__int64, __int64, _QWORD))(*(_QWORD *)a1 + 168LL))(a1, v20, *(_QWORD *)(a1 + 3072));// 0xA8 = 168LL = CEntitySystem_PostDataUpdate
     LODWORD(v21) = (*(__int64 (__fastcall **)(_QWORD))(**(_QWORD **)(a1 + 3200) + 32LL))(*(_QWORD *)(a1 + 3200));
-    *(_DWORD *)(a1 + 3064) = 0;
+    *(_DWORD *)(a1 + 3064) = 0;  // 3064 = 0xBF8 = CEntitySystem::m_queuedPostDataUpdates (structmember, struct=CEntitySystem, member=m_queuedPostDataUpdates)
     if ( v24 > 0 )
       LODWORD(v21) = (*(__int64 (__fastcall **)(__int64, _QWORD, _BYTE *, _QWORD))(*(_QWORD *)a1
                                                                                  + 160LL))(// 0xA0 = 160LL = CEntitySystem_Activate
