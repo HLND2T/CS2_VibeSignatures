@@ -24,7 +24,8 @@ disasm_code: |-
   .text:0000000001E738BE                 jz      loc_1E73C08
   .text:0000000001E738C4                 lea     r13, qword_2743670
   .text:0000000001E738CB                 xor     eax, eax
-  .text:0000000001E738CD                 mov     [rbx+0BDAh], al
+  .text:0000000001E738CD                 ; 0xBDA = 3034 = CEntitySystem::m_eNetworkSerializationMode (structmember, struct=CEntitySystem, member=m_eNetworkSerializationMode)
+  .text:0000000001E738CD                 mov     [rbx+0BDAh], al; 0xBDA = 3034 = CEntitySystem::m_eNetworkSerializationMode (structmember, struct=CEntitySystem, member=m_eNetworkSerializationMode)
   .text:0000000001E738D3                 ; bool
   .text:0000000001E738D3                 xor     r8d, r8d; bool
   .text:0000000001E738D6                 ; void *
@@ -641,7 +642,7 @@ procedure: |-
     *(_DWORD *)(a1 + 3004) = a4;
     unk_27BB9F1 = a5;
     v9 = a3 == 1 && qword_2743670 != nullptr;
-    *(_BYTE *)(a1 + 3034) = v9;
+    *(_BYTE *)(a1 + 3034) = v9;         // 3034 = 0xBDA = CEntitySystem::m_eNetworkSerializationMode (structmember, struct=CEntitySystem, member=m_eNetworkSerializationMode)
     CUtlScratchMemoryPool::Init((CUtlScratchMemoryPool *)(a1 + 3264), 0x400u, 0, nullptr, 0);
     qword_25669A8 = a1;
     qword_25669A0 = a1 + 16;

@@ -18,10 +18,12 @@ disasm_code: |-
   .text:0000000001E64176                 jnz     loc_1E642C8
   .text:0000000001E6417C                 test    ah, 2
   .text:0000000001E6417F                 jnz     loc_1E6429A
-  .text:0000000001E64185                 mov     ecx, [rdi+0BC8h]
+  .text:0000000001E64185                 ; 0xBC8 = 3016 = CEntitySystem::m_nSuppressDestroyImmediateCount (structmember, struct=CEntitySystem, member=m_nSuppressDestroyImmediateCount)
+  .text:0000000001E64185                 mov     ecx, [rdi+0BC8h]; 0xBC8 = 3016 = CEntitySystem::m_nSuppressDestroyImmediateCount (structmember, struct=CEntitySystem, member=m_nSuppressDestroyImmediateCount)
   .text:0000000001E6418B                 test    ecx, ecx
   .text:0000000001E6418D                 jg      loc_1E642B0
-  .text:0000000001E64193                 add     dword ptr [rdi+0BCCh], 1
+  .text:0000000001E64193                 ; 0xBCC = 3020 = CEntitySystem::m_nSuppressAutoDeletionExecutionCount (structmember, struct=CEntitySystem, member=m_nSuppressAutoDeletionExecutionCount)
+  .text:0000000001E64193                 add     dword ptr [rdi+0BCCh], 1; 0xBCC = 3020 = CEntitySystem::m_nSuppressAutoDeletionExecutionCount (structmember, struct=CEntitySystem, member=m_nSuppressAutoDeletionExecutionCount)
   .text:0000000001E6419A                 mov     eax, [rsi+30h]
   .text:0000000001E6419D                 mov     r14, [rsi]
   .text:0000000001E641A0                 mov     edx, eax
@@ -79,9 +81,10 @@ disasm_code: |-
   .text:0000000001E64277                 mov     edx, 1
   .text:0000000001E6427C                 mov     rsi, rbx
   .text:0000000001E6427F                 call    sub_1E51E80
-  .text:0000000001E64284                 sub     dword ptr [r12+0BCCh], 1
+  .text:0000000001E64284                 sub     dword ptr [r12+0BCCh], 1; 0xBCC = 3020 = CEntitySystem::m_nSuppressAutoDeletionExecutionCount (structmember, struct=CEntitySystem, member=m_nSuppressAutoDeletionExecutionCount)
   .text:0000000001E6428D                 jnz     short loc_1E6429A
-  .text:0000000001E6428F                 cmp     byte ptr [r12+0BDBh], 0
+  .text:0000000001E6428F                 ; 0xBDB = 3035 = CEntitySystem::m_bEnableAutoDeletionExecution (structmember, struct=CEntitySystem, member=m_bEnableAutoDeletionExecution)
+  .text:0000000001E6428F                 cmp     byte ptr [r12+0BDBh], 0; 0xBDB = 3035 = CEntitySystem::m_bEnableAutoDeletionExecution (structmember, struct=CEntitySystem, member=m_bEnableAutoDeletionExecution)
   .text:0000000001E64298                 jnz     short loc_1E64308
   .text:0000000001E6429A                 add     rsp, 18h
   .text:0000000001E6429E                 pop     rbx
@@ -199,13 +202,13 @@ procedure: |-
       }
       else if ( (v3 & 0x200) == 0 )
       {
-        if ( *((int *)a1 + 754) > 0 )
+        if ( *((int *)a1 + 754) > 0 )// 754*4 = 3016 = 0xBC8 = CEntitySystem::m_nSuppressDestroyImmediateCount (structmember, struct=CEntitySystem, member=m_nSuppressDestroyImmediateCount)
         {
           sub_1E643E0();
         }
         else
         {
-          ++*((_DWORD *)a1 + 755);
+          ++*((_DWORD *)a1 + 755);// 755*4 = 3020 = 0xBCC = CEntitySystem::m_nSuppressAutoDeletionExecutionCount (structmember, struct=CEntitySystem, member=m_nSuppressAutoDeletionExecutionCount)
           v4 = *(_DWORD *)(a2 + 48);
           v5 = *(_QWORD *)a2;
           *(_DWORD *)(a2 + 48) = v4 | 0x10;
@@ -266,8 +269,8 @@ procedure: |-
           CEntitySystem_DoDestructEntity(v5);
           sub_1E446E0(a2);
           sub_1E51E80((__int64)(a1 + 2), a2, 1);
-          v14 = (*((_DWORD *)a1 + 755))-- == 1;
-          if ( v14 && *((_BYTE *)a1 + 3035) && !*((_DWORD *)a1 + 753) )
+          v14 = (*((_DWORD *)a1 + 755))-- == 1;// 755*4 = 3020 = 0xBCC = CEntitySystem::m_nSuppressAutoDeletionExecutionCount (structmember, struct=CEntitySystem, member=m_nSuppressAutoDeletionExecutionCount)
+          if ( v14 && *((_BYTE *)a1 + 3035) && !*((_DWORD *)a1 + 753) )// 3035 = 0xBDB = CEntitySystem::m_bEnableAutoDeletionExecution (structmember, struct=CEntitySystem, member=m_bEnableAutoDeletionExecution)
           {
             if ( *((_DWORD *)a1 + 752) )
               *((_BYTE *)a1 + 3032) = 1;

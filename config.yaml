@@ -5500,6 +5500,14 @@ modules:
         expected_input:
           - CEntitySystem_DestroyEntityImmediate.{platform}.yaml
 
+      - name: find-CEntitySystem_m_nSuppressDestroyImmediateCount-AND-CEntitySystem_m_nSuppressAutoDeletionExecutionCount-AND-CEntitySystem_m_bEnableAutoDeletionExecution
+        expected_output:
+          - CEntitySystem_m_nSuppressDestroyImmediateCount.{platform}.yaml
+          - CEntitySystem_m_nSuppressAutoDeletionExecutionCount.{platform}.yaml
+          - CEntitySystem_m_bEnableAutoDeletionExecution.{platform}.yaml
+        expected_input:
+          - CEntitySystem_DestroyEntityImmediate.{platform}.yaml
+
       - name: find-CEntitySystem_OnRemoveEntity
         expected_output:
           - CEntitySystem_OnRemoveEntity.{platform}.yaml
@@ -6281,9 +6289,12 @@ modules:
         expected_output:
           - CEntitySystem_Init.{platform}.yaml
 
-      - name: find-CEntitySystem_m_sEntSystemName
+      - name: find-CEntitySystem_Init-decompiles
         expected_output:
+          - INetworkMessages_SetNetworkSerializationContextData.{platform}.yaml
+          - IFlattenedSerializers_CreateFieldChangedEventQueue.{platform}.yaml
           - CEntitySystem_m_sEntSystemName.{platform}.yaml
+          - CEntitySystem_m_eNetworkSerializationMode.{platform}.yaml
         expected_input:
           - CEntitySystem_Init.{platform}.yaml
 
@@ -6310,11 +6321,6 @@ modules:
           - CEntitySystem_InstallPostSpawnCallback.{platform}.yaml
         expected_input:
           - CSource2EntitySystem_StaticInit.{platform}.yaml
-      - name: find-INetworkMessages_SetNetworkSerializationContextData-AND-IFlattenedSerializers_CreateFieldChangedEventQueue
-        expected_output:
-          - INetworkMessages_SetNetworkSerializationContextData.{platform}.yaml
-          - IFlattenedSerializers_CreateFieldChangedEventQueue.{platform}.yaml
-
       - name: find-INetworkMessages_RegisterSchemaTypeOverride
         expected_output:
           - INetworkMessages_RegisterSchemaTypeOverride.{platform}.yaml
@@ -9816,6 +9822,26 @@ modules:
         category: structmember
         struct: CEntitySystem
         member: m_sEntSystemName
+
+      - name: CEntitySystem_m_eNetworkSerializationMode
+        category: structmember
+        struct: CEntitySystem
+        member: m_eNetworkSerializationMode
+
+      - name: CEntitySystem_m_nSuppressDestroyImmediateCount
+        category: structmember
+        struct: CEntitySystem
+        member: m_nSuppressDestroyImmediateCount
+
+      - name: CEntitySystem_m_nSuppressAutoDeletionExecutionCount
+        category: structmember
+        struct: CEntitySystem
+        member: m_nSuppressAutoDeletionExecutionCount
+
+      - name: CEntitySystem_m_bEnableAutoDeletionExecution
+        category: structmember
+        struct: CEntitySystem
+        member: m_bEnableAutoDeletionExecution
 
       - name: CEntitySystem_ClearEntityDatabase
         category: vfunc
