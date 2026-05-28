@@ -20,7 +20,7 @@ disasm_code: |-
   .text:00000001811EBF30                 lea     rdx, [rsp+108h+a2]
   .text:00000001811EBF35                 mov     rcx, rbx
   .text:00000001811EBF38                 call    sub_1811EEE10
-  .text:00000001811EBF3D                 cmp     dword ptr [rbx+0BE0h], 0
+  .text:00000001811EBF3D                 cmp     dword ptr [rbx+0BE0h], 0  ; 0BE0h = CEntitySystem::m_queuedCreations (structmember, struct=CEntitySystem, member=m_queuedCreations)
   .text:00000001811EBF44                 jg      short loc_1811EBF30
   .text:00000001811EBF46                 cmp     byte ptr [rbx+0BDAh], 0
   .text:00000001811EBF4D                 movzx   edi, byte ptr [rbx+0BDFh]
@@ -109,7 +109,7 @@ procedure: |-
     v8 = v11;
     do
       sub_1811EEE10(a1, (int *)&a2);
-    while ( *(int *)(a1 + 3040) > 0 );
+    while ( *(int *)(a1 + 3040) > 0 );  // 3040 = 0xBE0 = CEntitySystem::m_queuedCreations (structmember, struct=CEntitySystem, member=m_queuedCreations)
     v2 = *(_BYTE *)(a1 + 3034) == 0;
     v3 = *(_BYTE *)(a1 + 3039);
     *(_BYTE *)(a1 + 3039) = 1;

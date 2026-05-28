@@ -5167,6 +5167,12 @@ modules:
         expected_input:
           - CBaseEntity_DispatchSpawn.{platform}.yaml
 
+      - name: find-CEntitySystem_m_queuedCreations
+        expected_output:
+          - CEntitySystem_m_queuedCreations.{platform}.yaml
+        expected_input:
+          - CEntitySystem_ExecuteQueuedCreation.{platform}.yaml
+
       - name: find-CEntitySystem_ExecuteQueuedActivates-AND-CEntitySystem_ExecuteQueuedPostDataUpdateAndActivates
         expected_output:
           - CEntitySystem_ExecuteQueuedActivates.{platform}.yaml
@@ -7451,6 +7457,13 @@ modules:
         member: m_nExecuteQueuedCreationDepth
         alias:
           - CEntitySystem::m_nExecuteQueuedCreationDepth
+
+      - name: CEntitySystem_m_queuedCreations
+        category: structmember
+        struct: CEntitySystem
+        member: m_queuedCreations
+        alias:
+          - CEntitySystem::m_queuedCreations
 
       - name: CEntitySystem_m_queuedDormancyChanges
         category: structmember

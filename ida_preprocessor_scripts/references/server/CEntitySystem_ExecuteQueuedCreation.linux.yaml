@@ -21,7 +21,7 @@ disasm_code: |-
   .text:0000000001E63F70                 mov     rsi, r12
   .text:0000000001E63F73                 mov     rdi, rbx
   .text:0000000001E63F76                 call    sub_1E572C0
-  .text:0000000001E63F7B                 mov     r8d, [rbx+0BE0h]
+  .text:0000000001E63F7B                 mov     r8d, [rbx+0BE0h]  ; 0BE0h = CEntitySystem::m_queuedCreations (structmember, struct=CEntitySystem, member=m_queuedCreations)
   .text:0000000001E63F82                 test    r8d, r8d
   .text:0000000001E63F85                 jg      short loc_1E63F70
   .text:0000000001E63F87                 cmp     byte ptr [rbx+0BDAh], 0
@@ -123,7 +123,7 @@ procedure: |-
     v9 = v11;
     do
       sub_1E572C0((__int64 *)a1, &v8, a2, a3);
-    while ( *(int *)(a1 + 3040) > 0 );
+    while ( *(int *)(a1 + 3040) > 0 );  // 3040 = 0xBE0 = CEntitySystem::m_queuedCreations (structmember, struct=CEntitySystem, member=m_queuedCreations)
     v3 = *(_BYTE *)(a1 + 3034) == 0;
     v4 = *(_BYTE *)(a1 + 3039);
     *(_BYTE *)(a1 + 3039) = 1;
