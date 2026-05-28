@@ -18,7 +18,7 @@ disasm_code: |-
   .text:0000000001E6477B                 xor     r14d, r14d
   .text:0000000001E6477E                 mov     r12, 6DB6DB6DB6DB6DB7h
   .text:0000000001E64788                 mov     [rbp+var_840], rax
-  .text:0000000001E6478F                 mov     eax, [rbx+0C10h]
+  .text:0000000001E6478F                 mov     eax, [rbx+0C10h]  ; 0C10h = CEntitySystem::m_queuedDeletion (structmember, struct=CEntitySystem, member=m_queuedDeletion)
   .text:0000000001E64795                 lea     r13, [rbp+var_838]
   .text:0000000001E6479C                 mov     [rbp+var_848], r13
   .text:0000000001E647A3                 mov     [rbp+var_898], r14d
@@ -133,7 +133,7 @@ disasm_code: |-
   .text:0000000001E649CD                 test    r11d, r11d
   .text:0000000001E649D0                 jz      loc_1E64A58
   .text:0000000001E649D6                 movsxd  r10, [rbp+var_898]
-  .text:0000000001E649DD                 movsxd  r13, dword ptr [rbx+0C40h]
+  .text:0000000001E649DD                 movsxd  r13, dword ptr [rbx+0C40h]  ; 0C40h = CEntitySystem::m_queuedDeferredDeletions (structmember, struct=CEntitySystem, member=m_queuedDeferredDeletions)
   .text:0000000001E649E4                 ; _QWORD
   .text:0000000001E649E4                 mov     edi, [rbx+0C50h]; _QWORD
   .text:0000000001E649EA                 mov     r8, [rbx+0C18h]
@@ -141,7 +141,7 @@ disasm_code: |-
   .text:0000000001E649F5                 cmp     r15d, edi
   .text:0000000001E649F8                 jg      loc_1E650EC
   .text:0000000001E649FE                 lea     rdi, [r8+r10*8]
-  .text:0000000001E64A02                 mov     [rbx+0C40h], r15d
+  .text:0000000001E64A02                 mov     [rbx+0C40h], r15d  ; 0C40h = CEntitySystem::m_queuedDeferredDeletions (structmember, struct=CEntitySystem, member=m_queuedDeferredDeletions)
   .text:0000000001E64A09                 test    rdi, rdi
   .text:0000000001E64A0C                 jz      loc_1E65226
   .text:0000000001E64A12                 test    r11d, r11d
@@ -162,7 +162,7 @@ disasm_code: |-
   .text:0000000001E64A58                 cmp     [rbp+var_8A1], 0
   .text:0000000001E64A5F                 jnz     loc_1E64D30
   .text:0000000001E64A65                 mov     edi, [rbp+var_894]
-  .text:0000000001E64A6B                 mov     edx, [rbx+0C10h]
+  .text:0000000001E64A6B                 mov     edx, [rbx+0C10h]  ; 0C10h = CEntitySystem::m_queuedDeletion (structmember, struct=CEntitySystem, member=m_queuedDeletion)
   .text:0000000001E64A71                 movsxd  rax, dword ptr [rbp+var_840]
   .text:0000000001E64A78                 mov     [rbp+var_898], edi
   .text:0000000001E64A7E                 cmp     edi, edx
@@ -171,7 +171,7 @@ disasm_code: |-
   .text:0000000001E64A88                 mov     edx, [rbp+var_894]
   .text:0000000001E64A8E                 test    edx, edx
   .text:0000000001E64A90                 jnz     loc_1E647D0
-  .text:0000000001E64A96                 mov     dword ptr [rbx+0C10h], 0
+  .text:0000000001E64A96                 mov     dword ptr [rbx+0C10h], 0  ; 0C10h = CEntitySystem::m_queuedDeletion (structmember, struct=CEntitySystem, member=m_queuedDeletion)
   .text:0000000001E64AA0                 mov     edx, dword ptr [rbp+var_840+4]
   .text:0000000001E64AA6                 mov     r13, [rbp+var_8C8]
   .text:0000000001E64AAD                 mov     [rbp+var_850], 0
@@ -310,7 +310,7 @@ disasm_code: |-
   .text:0000000001E64D14                 jmp     loc_1E64C54
   .text:0000000001E64D20                 mov     esi, 7FFFh
   .text:0000000001E64D25                 jmp     loc_1E6498B
-  .text:0000000001E64D30                 movsxd  r13, dword ptr [rbx+0C40h]
+  .text:0000000001E64D30                 movsxd  r13, dword ptr [rbx+0C40h]  ; 0C40h = CEntitySystem::m_queuedDeferredDeletions (structmember, struct=CEntitySystem, member=m_queuedDeferredDeletions)
   .text:0000000001E64D37                 xor     r15d, r15d
   .text:0000000001E64D3A                 mov     rax, r13
   .text:0000000001E64D3D                 shl     r13, 3
@@ -390,7 +390,7 @@ disasm_code: |-
   .text:0000000001E64E62                 add     r15, 8
   .text:0000000001E64E66                 cmp     r15, r13
   .text:0000000001E64E69                 jnz     loc_1E64D50
-  .text:0000000001E64E6F                 mov     dword ptr [rbx+0C40h], 0
+  .text:0000000001E64E6F                 mov     dword ptr [rbx+0C40h], 0  ; 0C40h = CEntitySystem::m_queuedDeferredDeletions (structmember, struct=CEntitySystem, member=m_queuedDeferredDeletions)
   .text:0000000001E64E79                 jmp     loc_1E64A65
   .text:0000000001E64E80                 mov     edx, ecx
   .text:0000000001E64E82                 sar     edx, 9
@@ -851,7 +851,8 @@ procedure: |-
     if ( a2 )
       sub_1E59110();
     v115 = 0x8000000000000100LL;
-    v3 = *(_DWORD *)(a1 + 3088);
+    v3 = *(_DWORD *)(a1 + 3088);  // 3088 = 0xC10 = CEntitySystem::m_queuedDeletion (structmember, struct=CEntitySystem, member=m_queuedDeletion)
+    // 3112 = 0xC28 = CEntitySystem::m_queuedDeallocations (structmember, struct=CEntitySystem, member=m_queuedDeallocations) [inferred from struct layout: three consecutive 24-byte vector structs at 0xC10, 0xC28, 0xC40; passed to sub_1E59110 when a2 != 0]
     v114 = v116;
     v100 = 0;
     v104 = v3;
@@ -1008,7 +1009,7 @@ procedure: |-
           goto LABEL_33;
         v9 = v100;
   LABEL_28:
-        v24 = *((int *)v2 + 784);
+        v24 = *((int *)v2 + 784);  // 3136 = 0xC40 = CEntitySystem::m_queuedDeferredDeletions (structmember, struct=CEntitySystem, member=m_queuedDeferredDeletions)
         v25 = *((unsigned int *)v2 + 788);
         v26 = v2[387];
         v27 = v6 + v24;
@@ -1305,7 +1306,7 @@ procedure: |-
             if ( v39 == v41 )
             {
   LABEL_78:
-              *((_DWORD *)v2 + 784) = 0;
+              *((_DWORD *)v2 + 784) = 0;  // 3136 = 0xC40 = CEntitySystem::m_queuedDeferredDeletions (structmember, struct=CEntitySystem, member=m_queuedDeferredDeletions)
               goto LABEL_34;
             }
           }
@@ -1315,19 +1316,19 @@ procedure: |-
           goto LABEL_67;
         }
   LABEL_34:
-        v31 = *((_DWORD *)v2 + 772);
+        v31 = *((_DWORD *)v2 + 772);  // 3088 = 0xC10 = CEntitySystem::m_queuedDeletion (structmember, struct=CEntitySystem, member=m_queuedDeletion)
         result = (int)v115;
         v100 = v104;
         if ( v104 < v31 )
         {
-          v104 = *((_DWORD *)v2 + 772);
+          v104 = *((_DWORD *)v2 + 772);  // 3088 = 0xC10 = CEntitySystem::m_queuedDeletion (structmember, struct=CEntitySystem, member=m_queuedDeletion)
           if ( v31 )
             continue;
         }
         break;
       }
     }
-    *((_DWORD *)v2 + 772) = 0;
+    *((_DWORD *)v2 + 772) = 0;  // 3088 = 0xC10 = CEntitySystem::m_queuedDeletion (structmember, struct=CEntitySystem, member=m_queuedDeletion)
     v32 = HIDWORD(v115);
     v113 = 0;
     --*((_DWORD *)v2 + 753); // 3012 = 0xBC4 = CEntitySystem::m_nExecuteQueuedDeletionDepth (structmember, struct=CEntitySystem, member=m_nExecuteQueuedDeletionDepth)

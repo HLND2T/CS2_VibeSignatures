@@ -51,7 +51,7 @@ disasm_code: |-
   .text:00000001811ED966                 jz      short loc_1811ED970
   .text:00000001811ED968                 call    sub_1814DEBA0
   .text:00000001811ED96D                 mov     rbx, rdi
-  .text:00000001811ED970                 mov     r14d, [r13+0C10h]
+  .text:00000001811ED970                 mov     r14d, [r13+0C10h]  ; 0C10h = CEntitySystem::m_queuedDeletion (structmember, struct=CEntitySystem, member=m_queuedDeletion)
   .text:00000001811ED977                 lea     rax, [rsp+880h+var_840]
   .text:00000001811ED97C                 mov     [rsp+880h+var_850], rax
   .text:00000001811ED981                 mov     r15d, esi
@@ -209,7 +209,7 @@ disasm_code: |-
   .text:00000001811EDBD6                 jl      short loc_1811EDB62
   .text:00000001811EDBD8                 mov     rax, [r13+0C18h]
   .text:00000001811EDBDF                 mov     edi, r14d
-  .text:00000001811EDBE2                 movsxd  r14, dword ptr [r13+0C40h]
+  .text:00000001811EDBE2                 movsxd  r14, dword ptr [r13+0C40h]  ; 0C40h = CEntitySystem::m_queuedDeferredDeletions (structmember, struct=CEntitySystem, member=m_queuedDeferredDeletions)
   .text:00000001811EDBE9                 movsxd  rcx, r15d
   .text:00000001811EDBEC                 lea     rbx, [rax+rcx*8]
   .text:00000001811EDBF0                 sub     edi, r15d
@@ -222,7 +222,7 @@ disasm_code: |-
   .text:00000001811EDC0A                 lea     rcx, [r13+0C48h]
   .text:00000001811EDC11                 sub     edx, eax
   .text:00000001811EDC13                 call    sub_1811F0330
-  .text:00000001811EDC18                 mov     [r13+0C40h], esi
+  .text:00000001811EDC18                 mov     [r13+0C40h], esi  ; 0C40h = CEntitySystem::m_queuedDeferredDeletions (structmember, struct=CEntitySystem, member=m_queuedDeferredDeletions)
   .text:00000001811EDC1F                 movsxd  rdx, edi
   .text:00000001811EDC22                 test    edi, edi
   .text:00000001811EDC24                 jle     short loc_1811EDC8A
@@ -250,7 +250,7 @@ disasm_code: |-
   .text:00000001811EDC8A                 xor     esi, esi
   .text:00000001811EDC8C                 cmp     [rbp+780h+arg_8], 0
   .text:00000001811EDC93                 jz      loc_1811EDD9B
-  .text:00000001811EDC99                 movsxd  rcx, dword ptr [r13+0C40h]
+  .text:00000001811EDC99                 movsxd  rcx, dword ptr [r13+0C40h]  ; 0C40h = CEntitySystem::m_queuedDeferredDeletions (structmember, struct=CEntitySystem, member=m_queuedDeferredDeletions)
   .text:00000001811EDCA0                 mov     rax, rsi
   .text:00000001811EDCA3                 mov     [rbp+780h+arg_0], rax
   .text:00000001811EDCAA                 mov     [rsp+880h+var_860], rcx
@@ -310,8 +310,8 @@ disasm_code: |-
   .text:00000001811EDD82                 cmp     rax, [rsp+880h+var_860]
   .text:00000001811EDD87                 jl      loc_1811EDCC0
   .text:00000001811EDD8D                 mov     r15d, [rbp+780h+arg_10]
-  .text:00000001811EDD94                 mov     [r13+0C40h], esi
-  .text:00000001811EDD9B                 mov     eax, [r13+0C10h]
+  .text:00000001811EDD94                 mov     [r13+0C40h], esi  ; 0C40h = CEntitySystem::m_queuedDeferredDeletions (structmember, struct=CEntitySystem, member=m_queuedDeferredDeletions)
+  .text:00000001811EDD9B                 mov     eax, [r13+0C10h]  ; 0C10h = CEntitySystem::m_queuedDeletion (structmember, struct=CEntitySystem, member=m_queuedDeletion)
   .text:00000001811EDDA2                 cmp     eax, [rbp+780h+arg_18]
   .text:00000001811EDDA8                 cmovg   r15d, [rbp+780h+arg_18]
   .text:00000001811EDDB0                 cmovle  eax, esi
@@ -327,7 +327,7 @@ disasm_code: |-
   .text:00000001811EDDE1                 mov     r15, [rsp+880h+var_38]
   .text:00000001811EDDE9                 mov     r14, [rsp+880h+var_30]
   .text:00000001811EDDF1                 mov     rdi, [rsp+880h+var_20]
-  .text:00000001811EDDF9                 mov     [r13+0C10h], esi
+  .text:00000001811EDDF9                 mov     [r13+0C10h], esi  ; 0C10h = CEntitySystem::m_queuedDeletion (structmember, struct=CEntitySystem, member=m_queuedDeletion)
   .text:00000001811EDE00                 mov     [rsp+880h+var_858], esi
   .text:00000001811EDE04                 mov     rsi, [rsp+880h+var_18]
   .text:00000001811EDE0C                 jl      short loc_1811EDE5F
@@ -451,7 +451,8 @@ procedure: |-
           sub_1814DEBA0();
           v2 = v5;
         }
-        v6 = *(_DWORD *)(a1 + 3088);
+        v6 = *(_DWORD *)(a1 + 3088);  // 3088 = 0xC10 = CEntitySystem::m_queuedDeletion (structmember, struct=CEntitySystem, member=m_queuedDeletion)
+        // 3112 = 0xC28 = CEntitySystem::m_queuedDeallocations (structmember, struct=CEntitySystem, member=m_queuedDeallocations) [inferred from struct layout: three consecutive 24-byte vector structs at 0xC10, 0xC28, 0xC40; passed to sub_1811ED740 when a2 != 0]
         v53 = v56;
         v7 = 0;
         v60 = v6;
@@ -562,7 +563,7 @@ procedure: |-
               while ( v23 < v6 );
             }
             v27 = v6;
-            v28 = *(int *)(a1 + 3136);
+            v28 = *(int *)(a1 + 3136);  // 3136 = 0xC40 = CEntitySystem::m_queuedDeferredDeletions (structmember, struct=CEntitySystem, member=m_queuedDeferredDeletions)
             v29 = *(_QWORD *)(a1 + 3096) + 8LL * v7;
             v30 = v27 - v7;
             if ( v30 )
@@ -571,7 +572,7 @@ procedure: |-
               v32 = v28 + v30;
               if ( (int)v28 + v30 > v31 )
                 sub_1811F0330(a1 + 3144, (unsigned int)(v32 - v31));
-              *(_DWORD *)(a1 + 3136) = v32;
+              *(_DWORD *)(a1 + 3136) = v32;  // 3136 = 0xC40 = CEntitySystem::m_queuedDeferredDeletions (structmember, struct=CEntitySystem, member=m_queuedDeferredDeletions)
               v33 = v30;
               if ( v30 > 0 )
               {
@@ -605,7 +606,7 @@ procedure: |-
             {
               v38 = 0;
               v57 = 0;
-              v51 = *(int *)(a1 + 3136);
+              v51 = *(int *)(a1 + 3136);  // 3136 = 0xC40 = CEntitySystem::m_queuedDeferredDeletions (structmember, struct=CEntitySystem, member=m_queuedDeferredDeletions)
               if ( v51 > 0 )
               {
                 do
@@ -650,9 +651,9 @@ procedure: |-
                 while ( v38 < v51 );
                 v7 = v59;
               }
-              *(_DWORD *)(a1 + 3136) = 0;
+              *(_DWORD *)(a1 + 3136) = 0;  // 3136 = 0xC40 = CEntitySystem::m_queuedDeferredDeletions (structmember, struct=CEntitySystem, member=m_queuedDeferredDeletions)
             }
-            v49 = *(_DWORD *)(a1 + 3088);
+            v49 = *(_DWORD *)(a1 + 3088);  // 3088 = 0xC10 = CEntitySystem::m_queuedDeletion (structmember, struct=CEntitySystem, member=m_queuedDeletion)
             if ( v49 <= v60 )
               v49 = 0;
             else
@@ -666,7 +667,7 @@ procedure: |-
         }
         --*v2;
         v50 = v54 < 0;
-        *(_DWORD *)(a1 + 3088) = 0;
+        *(_DWORD *)(a1 + 3088) = 0;  // 3088 = 0xC10 = CEntitySystem::m_queuedDeletion (structmember, struct=CEntitySystem, member=m_queuedDeletion)
         if ( !v50 && v53 != v56 )
         {
           if ( v53 && (v55 & 0xC0000000) == 0 )

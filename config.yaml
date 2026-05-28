@@ -4379,12 +4379,20 @@ modules:
         expected_input:
           - SV_Kill_SmokeGrenade_CommandHandler.{platform}.yaml
 
-      - name: find-CEntitySystem_ExecuteQueuedDeletion-AND-CEntitySystem_m_nExecuteQueuedDeletionDepth
+      - name: find-CEntitySystem_ExecuteQueuedDeletion
         expected_output:
           - CEntitySystem_ExecuteQueuedDeletion.{platform}.yaml
-          - CEntitySystem_m_nExecuteQueuedDeletionDepth.{platform}.yaml
         expected_input:
           - CEntitySystem_QueueDestroyEntity.{platform}.yaml
+
+      - name: find-CEntitySystem_m_nExecuteQueuedDeletionDepth-AND-CEntitySystem_m_queuedDeletion-AND-CEntitySystem_m_queuedDeallocations-AND-CEntitySystem_m_queuedDeferredDeletions
+        expected_output:
+          - CEntitySystem_m_nExecuteQueuedDeletionDepth.{platform}.yaml
+          - CEntitySystem_m_queuedDeletion.{platform}.yaml
+          - CEntitySystem_m_queuedDeallocations.{platform}.yaml
+          - CEntitySystem_m_queuedDeferredDeletions.{platform}.yaml
+        expected_input:
+          - CEntitySystem_ExecuteQueuedDeletion.{platform}.yaml
 
       - name: find-CBaseModelEntity_SetModel-AND-CBaseEntity_SetGravityScale
         expected_output:
@@ -7678,6 +7686,27 @@ modules:
         member: m_nExecuteQueuedDeletionDepth
         alias:
           - CEntitySystem::m_nExecuteQueuedDeletionDepth
+
+      - name: CEntitySystem_m_queuedDeletion
+        category: structmember
+        struct: CEntitySystem
+        member: m_queuedDeletion
+        alias:
+          - CEntitySystem::m_queuedDeletion
+
+      - name: CEntitySystem_m_queuedDeallocations
+        category: structmember
+        struct: CEntitySystem
+        member: m_queuedDeallocations
+        alias:
+          - CEntitySystem::m_queuedDeallocations
+
+      - name: CEntitySystem_m_queuedDeferredDeletions
+        category: structmember
+        struct: CEntitySystem
+        member: m_queuedDeferredDeletions
+        alias:
+          - CEntitySystem::m_queuedDeferredDeletions
 
       - name: CBaseModelEntity_SetModel
         category: func
