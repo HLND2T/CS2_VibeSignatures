@@ -305,7 +305,7 @@ disasm_code: |-
   .text:00000001811F0FEA                 mov     qword ptr [rcx+4Ch], 0C80000h
   .text:00000001811F0FF2                 jmp     short loc_1811F0FF7
   .text:00000001811F0FF4                 mov     rcx, r15
-  .text:00000001811F0FF7                 mov     [rsi+0C88h], rcx
+  .text:00000001811F0FF7                 mov     [rsi+0C88h], rcx  ; 0C88h = CEntitySystem::m_pNetworkFieldScratchData (structmember, struct=CEntitySystem, member=m_pNetworkFieldScratchData)
   .text:00000001811F0FFE                 mov     edx, 10000h
   .text:00000001811F1003                 mov     rax, [rcx]
   .text:00000001811F1006                 mov     r8d, cs:dword_1820B1848
@@ -316,7 +316,7 @@ disasm_code: |-
   .text:00000001811F1025                 mov     rax, [rcx]
   .text:00000001811F1028                 ; 0x118 = 280LL = IFlattenedSerializers_CreateFieldChangedEventQueue
   .text:00000001811F1028                 call    qword ptr [rax+118h]; 0x118 = 280LL = IFlattenedSerializers_CreateFieldChangedEventQueue
-  .text:00000001811F102E                 mov     [rsi+0C80h], rax
+  .text:00000001811F102E                 mov     [rsi+0C80h], rax  ; 0C80h = CEntitySystem::m_pNetworkFieldChangedEventQueue (structmember, struct=CEntitySystem, member=m_pNetworkFieldChangedEventQueue)
   .text:00000001811F1035                 cmp     cs:byte_1820B151C, r15b
   .text:00000001811F103C                 jnz     loc_1811F11EE
   .text:00000001811F1042                 movzx   ecx, word ptr [rsi+0AA8h]
@@ -690,7 +690,7 @@ procedure: |-
       {
         v38 = 0;
       }
-      *(_QWORD *)(a1 + 3208) = v38;
+      *(_QWORD *)(a1 + 3208) = v38;        // 3208 = 0xC88 = CEntitySystem::m_pNetworkFieldScratchData (structmember, struct=CEntitySystem, member=m_pNetworkFieldScratchData)
       (*(void (__fastcall **)(__int64, __int64, _QWORD))(*(_QWORD *)v38 + 8LL))(
         v38,
         0x10000,
@@ -699,7 +699,7 @@ procedure: |-
                  qword_182117C90,
                  *(_QWORD *)(a1 + 3208),
                  *(_QWORD *)(a1 + 3216));         // 0x118 = 280LL = IFlattenedSerializers_CreateFieldChangedEventQueue
-      *(_QWORD *)(a1 + 3200) = result;
+      *(_QWORD *)(a1 + 3200) = result;     // 3200 = 0xC80 = CEntitySystem::m_pNetworkFieldChangedEventQueue (structmember, struct=CEntitySystem, member=m_pNetworkFieldChangedEventQueue)
     }
     if ( !byte_1820B151C )
     {
