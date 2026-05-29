@@ -14,9 +14,6 @@ TARGET_GLOBALVAR_NAMES = [
     "g_pGameEntitySystem",
 ]
 
-TARGET_STRUCT_MEMBER_NAMES = [
-    "CEntitySystem_m_entityIONotifiers",
-]
 
 FUNC_VTABLE_RELATIONS = [
     # (func_name, vtable_class)
@@ -59,17 +56,6 @@ GENERATE_YAML_DESIRED_FIELDS = [
             "gv_inst_offset",
             "gv_inst_length",
             "gv_inst_disp",
-        ],
-    ),
-    (
-        "CEntitySystem_m_entityIONotifiers",
-        [
-            "struct_name",
-            "member_name",
-            "offset",
-            "size",
-            "offset_sig",
-            "offset_sig_disp",
         ],
     ),
     (
@@ -116,11 +102,6 @@ async def preprocess_skill(
             "references/{module_name}/CSource2EntitySystem_StaticInit.{platform}.yaml",
         ),
         (
-            "CEntitySystem_m_entityIONotifiers",
-            "prompt/call_llm_decompile.md",
-            "references/{module_name}/CSource2EntitySystem_StaticInit.{platform}.yaml",
-        ),
-        (
             "CEntitySystem_EnableAutoDeletionExecution",
             "prompt/call_llm_decompile.md",
             "references/{module_name}/CSource2EntitySystem_StaticInit.{platform}.yaml",
@@ -141,7 +122,6 @@ async def preprocess_skill(
         image_base=image_base,
         func_names=TARGET_FUNCTION_NAMES,
         gv_names=TARGET_GLOBALVAR_NAMES,
-        struct_member_names=TARGET_STRUCT_MEMBER_NAMES,
         func_vtable_relations=FUNC_VTABLE_RELATIONS,
         llm_decompile_specs=llm_decompile,
         llm_config=llm_config,

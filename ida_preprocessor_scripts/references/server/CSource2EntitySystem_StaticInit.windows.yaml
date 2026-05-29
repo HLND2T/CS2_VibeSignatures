@@ -180,21 +180,21 @@ disasm_code: |-
   .text:0000000180B8DA49                 lea     r8, [rbp+var_20]
   .text:0000000180B8DA4D                 mov     [rbp+var_18], rbx
   .text:0000000180B8DA51                 mov     dl, 28h ; '('
-  .text:0000000180B8DA53                 call    sub_1811FA820
+  .text:0000000180B8DA53                 call    sub_1811FA820  ; CEntitySystem_InstallCreationWrapperCallbacks
   .text:0000000180B8DA58                 mov     rcx, cs:g_pEntitySystem
   .text:0000000180B8DA5F                 lea     rax, sub_180B4DFA0
   .text:0000000180B8DA66                 lea     r8, [rbp+var_20]
   .text:0000000180B8DA6A                 mov     [rbp+var_20], rax
   .text:0000000180B8DA6E                 mov     dl, 36h ; '6'
   .text:0000000180B8DA70                 mov     [rbp+var_18], rbx
-  .text:0000000180B8DA74                 call    sub_1811FA820
+  .text:0000000180B8DA74                 call    sub_1811FA820  ; CEntitySystem_InstallCreationWrapperCallbacks
   .text:0000000180B8DA79                 mov     rcx, cs:g_pEntitySystem
   .text:0000000180B8DA80                 lea     rax, sub_180B4DF50
   .text:0000000180B8DA87                 lea     r8, [rbp+var_20]
   .text:0000000180B8DA8B                 mov     [rbp+var_20], rax
   .text:0000000180B8DA8F                 mov     dl, 43h ; 'C'
   .text:0000000180B8DA91                 mov     [rbp+var_18], rbx
-  .text:0000000180B8DA95                 call    sub_1811FA820
+  .text:0000000180B8DA95                 call    sub_1811FA820  ; CEntitySystem_InstallCreationWrapperCallbacks
   .text:0000000180B8DA9A                 mov     rcx, cs:g_pFlattenedSerializers
   .text:0000000180B8DAA1                 lea     rdx, sub_180B68B20
   .text:0000000180B8DAA8                 mov     rax, [rcx]
@@ -346,15 +346,15 @@ procedure: |-
     v25 = (__int64 (__fastcall *)(unsigned int, __int64))sub_180B4E030;
     v26 = (__int64)sub_180B68B50;
     LOBYTE(v20) = 40;
-    sub_1811FA820(g_pEntitySystem, v20, &v25);
+    CEntitySystem_InstallCreationWrapperCallbacks(g_pEntitySystem, v20, &v25);
     v25 = (__int64 (__fastcall *)(unsigned int, __int64))sub_180B4DFA0;
     LOBYTE(v21) = 54;
     v26 = (__int64)sub_180B68B50;
-    sub_1811FA820(g_pEntitySystem, v21, &v25);
+    CEntitySystem_InstallCreationWrapperCallbacks(g_pEntitySystem, v21, &v25);
     v25 = (__int64 (__fastcall *)(unsigned int, __int64))sub_180B4DF50;
     LOBYTE(v22) = 67;
     v26 = (__int64)sub_180B68B50;
-    sub_1811FA820(g_pEntitySystem, v22, &v25);
+    CEntitySystem_InstallCreationWrapperCallbacks(g_pEntitySystem, v22, &v25);
     v23 = *(_QWORD *)g_pFlattenedSerializers;
     v26 = (__int64)sub_180B68B20;
     v25 = (__int64 (__fastcall *)(unsigned int, __int64))unknown_libname_200;

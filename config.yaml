@@ -6331,9 +6331,15 @@ modules:
           - IGameResourceService_SetEntityResourceManifestHandler.{platform}.yaml
           - g_pGameResourceService.{platform}.yaml
           - g_pGameEntitySystem.{platform}.yaml
-          - CEntitySystem_m_entityIONotifiers.{platform}.yaml
           - CEntitySystem_EnableAutoDeletionExecution.{platform}.yaml
           - CEntitySystem_InstallPostSpawnCallback.{platform}.yaml
+        expected_input:
+          - CSource2EntitySystem_StaticInit.{platform}.yaml
+
+      - name: find-CEntitySystem_m_entityIONotifiers-AND-CEntitySystem_InstallCreationWrapperCallbacks
+        expected_output:
+          - CEntitySystem_m_entityIONotifiers.{platform}.yaml
+          - CEntitySystem_InstallCreationWrapperCallbacks.{platform}.yaml
         expected_input:
           - CSource2EntitySystem_StaticInit.{platform}.yaml
       - name: find-INetworkMessages_RegisterSchemaTypeOverride
@@ -7707,6 +7713,18 @@ modules:
         member: m_queuedDeferredDeletions
         alias:
           - CEntitySystem::m_queuedDeferredDeletions
+
+      - name: CEntitySystem_m_entityIONotifiers
+        category: structmember
+        struct: CEntitySystem
+        member: m_entityIONotifiers
+        alias:
+          - CEntitySystem::m_entityIONotifiers
+
+      - name: CEntitySystem_InstallCreationWrapperCallbacks
+        category: func
+        alias:
+          - CEntitySystem::InstallCreationWrapperCallbacks
 
       - name: CBaseModelEntity_SetModel
         category: func

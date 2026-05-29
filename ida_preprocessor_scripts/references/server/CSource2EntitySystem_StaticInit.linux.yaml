@@ -156,7 +156,7 @@ disasm_code: |-
   .text:00000000015BC928                 mov     esi, 28h ; '('
   .text:00000000015BC92D                 mov     [rbp+var_50+10h], 0
   .text:00000000015BC935                 mov     [rbp+var_50], rax
-  .text:00000000015BC939                 call    sub_1E67E40
+  .text:00000000015BC939                 call    sub_1E67E40  ; CEntitySystem_InstallCreationWrapperCallbacks
   .text:00000000015BC93E                 mov     rdi, [r13+0]
   .text:00000000015BC942                 mov     rdx, r12
   .text:00000000015BC945                 mov     [rbp+var_50+8], rbx
@@ -164,7 +164,7 @@ disasm_code: |-
   .text:00000000015BC950                 mov     esi, 36h ; '6'
   .text:00000000015BC955                 mov     [rbp+var_50+10h], 0
   .text:00000000015BC95D                 mov     [rbp+var_50], rax
-  .text:00000000015BC961                 call    sub_1E67E40
+  .text:00000000015BC961                 call    sub_1E67E40  ; CEntitySystem_InstallCreationWrapperCallbacks
   .text:00000000015BC966                 mov     rdi, [r13+0]
   .text:00000000015BC96A                 mov     rdx, r12
   .text:00000000015BC96D                 mov     [rbp+var_50+8], rbx
@@ -172,7 +172,7 @@ disasm_code: |-
   .text:00000000015BC978                 mov     esi, 43h ; 'C'
   .text:00000000015BC97D                 mov     [rbp+var_50+10h], 0
   .text:00000000015BC985                 mov     [rbp+var_50], rax
-  .text:00000000015BC989                 call    sub_1E67E40
+  .text:00000000015BC989                 call    sub_1E67E40  ; CEntitySystem_InstallCreationWrapperCallbacks
   .text:00000000015BC98E                 lea     rax, g_pFlattenedSerializers
   .text:00000000015BC995                 lea     rcx, sub_152F010
   .text:00000000015BC99C                 mov     rsi, r12
@@ -337,15 +337,15 @@ procedure: |-
     v20[1] = (__int64)sub_152EFF0;
     v20[2] = 0;
     v20[0] = (__int64)sub_156AEA0;
-    sub_1E67E40(g_pEntitySystem, 40, v20);
+    CEntitySystem_InstallCreationWrapperCallbacks(g_pEntitySystem, 40, v20);
     v20[1] = (__int64)sub_152EFF0;
     v20[2] = 0;
     v20[0] = (__int64)sub_156AF70;
-    sub_1E67E40(g_pEntitySystem, 54, v20);
+    CEntitySystem_InstallCreationWrapperCallbacks(g_pEntitySystem, 54, v20);
     v20[1] = (__int64)sub_152EFF0;
     v20[2] = 0;
     v20[0] = (__int64)sub_1530BE0;
-    sub_1E67E40(g_pEntitySystem, 67, v20);
+    CEntitySystem_InstallCreationWrapperCallbacks(g_pEntitySystem, 67, v20);
     v16 = *(void (__fastcall **)(_QWORD *, __int64 *))(*g_pFlattenedSerializers + 264LL);
     v20[1] = (__int64)sub_152F010;
     v20[2] = 0;
