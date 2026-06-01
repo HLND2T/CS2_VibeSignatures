@@ -6319,8 +6319,16 @@ modules:
           - CEntitySystem_m_entityIONotifiers.{platform}.yaml
           - CEntitySystem_EnableAutoDeletionExecution.{platform}.yaml
           - CEntitySystem_InstallPostSpawnCallback.{platform}.yaml
+          - CEntitySystem_InstallCreationWrapperCallbacks.{platform}.yaml
         expected_input:
           - CSource2EntitySystem_StaticInit.{platform}.yaml
+
+      - name: find-CEntitySystem_m_EntityPostSpawnCallback
+        expected_output:
+          - CEntitySystem_m_EntityPostSpawnCallback.{platform}.yaml
+        expected_input:
+          - CEntitySystem_InstallCreationWrapperCallbacks.{platform}.yaml
+
       - name: find-INetworkMessages_RegisterSchemaTypeOverride
         expected_output:
           - INetworkMessages_RegisterSchemaTypeOverride.{platform}.yaml
@@ -8430,6 +8438,13 @@ modules:
         alias:
           - CEntitySystem::m_entityComponentHelpers
 
+      - name: CEntitySystem_m_EntityPostSpawnCallback
+        category: structmember
+        struct: CEntitySystem
+        member: m_EntityPostSpawnCallback
+        alias:
+          - CEntitySystem::m_EntityPostSpawnCallback
+
       - name: CEntityIdentity_FreeAttributes
         category: func
         alias:
@@ -8455,6 +8470,11 @@ modules:
         category: func
         alias:
           - CEntitySystem::QueueSpawnEntity
+
+      - name: CEntitySystem_InstallCreationWrapperCallbacks
+        category: func
+        alias:
+          - CEntitySystem::InstallCreationWrapperCallbacks
 
       - name: CEntitySystem_ExecuteQueuedCreation
         category: func

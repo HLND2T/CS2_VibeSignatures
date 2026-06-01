@@ -1,0 +1,90 @@
+func_name: CEntitySystem_InstallCreationWrapperCallbacks
+func_va: '0x1811f30d0'
+disasm_code: |-
+  .text:00000001811F30D0                 mov     [rsp+arg_0], rbx
+  .text:00000001811F30D5                 mov     [rsp+arg_10], rsi
+  .text:00000001811F30DA                 mov     [rsp+arg_8], dl
+  .text:00000001811F30DE                 push    rdi
+  .text:00000001811F30DF                 sub     rsp, 30h
+  .text:00000001811F30E3                 lea     rbx, [rcx+0C98h]  ; 0C98h = CEntitySystem::m_EntityPostSpawnCallback (structmember, struct=CEntitySystem, member=m_EntityPostSpawnCallback)
+  .text:00000001811F30EA                 movzx   edi, dl
+  .text:00000001811F30ED                 mov     rcx, rbx
+  .text:00000001811F30F0                 lea     rdx, [rsp+38h+arg_8]
+  .text:00000001811F30F5                 mov     rsi, r8
+  .text:00000001811F30F8                 call    sub_1811E24F0
+  .text:00000001811F30FD                 cmp     eax, 0FFFFFFFFh
+  .text:00000001811F3100                 jz      short loc_1811F313E
+  .text:00000001811F3102                 movsxd  rcx, eax
+  .text:00000001811F3105                 shl     rcx, 5
+  .text:00000001811F3109                 test    dword ptr [rbx+4], 7FFFFFFFh
+  .text:00000001811F3110                 jnz     short loc_1811F3120
+  .text:00000001811F3112                 mov     r8d, [rcx]
+  .text:00000001811F3115                 and     r8d, 3FFFFFFFh
+  .text:00000001811F311C                 xor     eax, eax
+  .text:00000001811F311E                 jmp     short loc_1811F312F
+  .text:00000001811F3120                 mov     rax, [rbx+8]
+  .text:00000001811F3124                 mov     r8d, [rcx+rax]
+  .text:00000001811F3128                 and     r8d, 3FFFFFFFh
+  .text:00000001811F312F                 lea     rdx, [rax+8]
+  .text:00000001811F3133                 add     rdx, rcx
+  .text:00000001811F3136                 mov     rcx, rbx
+  .text:00000001811F3139                 call    sub_1811E1C70
+  .text:00000001811F313E                 imul    ecx, edi, 5BD1E995h
+  .text:00000001811F3144                 mov     r8, rsi
+  .text:00000001811F3147                 mov     [rsp+38h+var_18], 0
+  .text:00000001811F3150                 mov     eax, ecx
+  .text:00000001811F3152                 shr     eax, 18h
+  .text:00000001811F3155                 xor     eax, ecx
+  .text:00000001811F3157                 mov     rcx, rbx
+  .text:00000001811F315A                 imul    edx, eax, 5BD1E995h
+  .text:00000001811F3160                 xor     edx, 0BE1CF30h
+  .text:00000001811F3166                 mov     eax, edx
+  .text:00000001811F3168                 shr     eax, 0Dh
+  .text:00000001811F316B                 xor     eax, edx
+  .text:00000001811F316D                 imul    edx, eax, 5BD1E995h
+  .text:00000001811F3173                 mov     r9d, edx
+  .text:00000001811F3176                 shr     r9d, 0Fh
+  .text:00000001811F317A                 xor     r9d, edx
+  .text:00000001811F317D                 lea     rdx, [rsp+38h+arg_8]
+  .text:00000001811F3182                 call    sub_1811E1960
+  .text:00000001811F3187                 mov     rbx, [rsp+38h+arg_0]
+  .text:00000001811F318C                 mov     rsi, [rsp+38h+arg_10]
+  .text:00000001811F3191                 add     rsp, 30h
+  .text:00000001811F3195                 pop     rdi
+  .text:00000001811F3196                 retn
+procedure: |-
+  __int64 __fastcall CEntitySystem_InstallCreationWrapperCallbacks(__int64 a1, unsigned __int8 a2, int a3)
+  {
+    __int64 v3; // rbx
+    int v4; // edi
+    int v6; // eax
+    _DWORD *v7; // rcx
+    __int64 v8; // r8
+    __int64 v9; // rax
+    unsigned int v10; // eax
+    unsigned __int8 v12; // [rsp+48h] [rbp+10h] BYREF
+
+    v12 = a2;
+    v3 = a1 + 3224;  // 3224 = 0xC98 = CEntitySystem::m_EntityPostSpawnCallback (structmember, struct=CEntitySystem, member=m_EntityPostSpawnCallback)
+    v4 = a2;
+    v6 = sub_1811E24F0(a1 + 3224, &v12);
+    if ( v6 != -1 )
+    {
+      v7 = (_DWORD *)(32LL * v6);
+      if ( (*(_DWORD *)(v3 + 4) & 0x7FFFFFFF) != 0 )
+      {
+        v9 = *(_QWORD *)(v3 + 8);
+        v8 = *(_DWORD *)((char *)v7 + v9) & 0x3FFFFFFF;
+      }
+      else
+      {
+        v8 = *v7 & 0x3FFFFFFF;
+        v9 = 0;
+      }
+      sub_1811E1C70(v3, (char *)v7 + v9 + 8, v8);
+    }
+    v10 = (1540483477 * ((1540483477 * v4) ^ ((unsigned int)(1540483477 * v4) >> 24)))
+        ^ 0xBE1CF30
+        ^ (((1540483477 * ((1540483477 * v4) ^ ((unsigned int)(1540483477 * v4) >> 24))) ^ 0xBE1CF30) >> 13);
+    return sub_1811E1960(v3, (unsigned int)&v12, a3, (1540483477 * v10) ^ ((1540483477 * v10) >> 15), 0);
+  }

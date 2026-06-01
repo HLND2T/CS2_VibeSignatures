@@ -7,6 +7,7 @@ TARGET_FUNCTION_NAMES = [
     "IGameResourceService_SetEntityResourceManifestHandler",
     "CEntitySystem_EnableAutoDeletionExecution",
     "CEntitySystem_InstallPostSpawnCallback",
+    "CEntitySystem_InstallCreationWrapperCallbacks",
 ]
 
 TARGET_GLOBALVAR_NAMES = [
@@ -92,6 +93,16 @@ GENERATE_YAML_DESIRED_FIELDS = [
             "func_size",
         ],
     ),
+    (
+        "CEntitySystem_InstallCreationWrapperCallbacks",
+        [
+            "func_name",
+            "func_sig",
+            "func_va",
+            "func_rva",
+            "func_size",
+        ],
+    ),
 ]
 
 async def preprocess_skill(
@@ -127,6 +138,11 @@ async def preprocess_skill(
         ),
         (
             "CEntitySystem_InstallPostSpawnCallback",
+            "prompt/call_llm_decompile.md",
+            "references/{module_name}/CSource2EntitySystem_StaticInit.{platform}.yaml",
+        ),
+        (
+            "CEntitySystem_InstallCreationWrapperCallbacks",
             "prompt/call_llm_decompile.md",
             "references/{module_name}/CSource2EntitySystem_StaticInit.{platform}.yaml",
         ),
