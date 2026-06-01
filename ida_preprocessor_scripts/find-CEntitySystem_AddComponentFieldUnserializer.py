@@ -7,7 +7,7 @@ TARGET_FUNCTION_NAMES = [
     "CEntitySystem_AddComponentFieldUnserializer",
 ]
 
-FUNC_XREFS = [
+FUNC_XREFS_WINDOWS = [
     {
         "func_name": "CEntitySystem_AddComponentFieldUnserializer",
         "xref_strings": [
@@ -15,6 +15,19 @@ FUNC_XREFS = [
         ],
         "xref_gvs": [], "xref_signatures": [], "xref_funcs": [],
         "exclude_funcs": [], "exclude_strings": [], "exclude_gvs": [], "exclude_signatures": [],
+    },
+]
+
+FUNC_XREFS_LINUX = [
+    {
+        "func_name": "CEntitySystem_AddComponentFieldUnserializer",
+        "xref_strings": [
+            "Field %s::%s cannot have sub-keyfields since it is an atomic type!\n",
+        ],
+        "xref_gvs": [], "xref_signatures": [], "xref_funcs": [],
+        "exclude_funcs": [], "exclude_strings": [], "exclude_gvs": [],
+        # sub_1E6DCC0 also references this string but is an internal helper; exclude it
+        "exclude_signatures": ["55 4D 89 C2"],
     },
 ]
 
@@ -46,7 +59,7 @@ async def preprocess_skill(
         platform=platform,
         image_base=image_base,
         func_names=TARGET_FUNCTION_NAMES,
-        func_xrefs=FUNC_XREFS,
+        func_xrefs=FUNC_XREFS_WINDOWS if platform == "windows" else FUNC_XREFS_LINUX,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
     )
