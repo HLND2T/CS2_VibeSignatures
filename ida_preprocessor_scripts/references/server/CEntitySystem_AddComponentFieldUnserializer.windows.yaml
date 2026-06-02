@@ -1,0 +1,1753 @@
+func_name: CEntitySystem_AddComponentFieldUnserializer
+func_va: '0x1811e9000'
+disasm_code: |-
+  .text:00000001811E9000                 mov     [rsp-8+arg_8], rbx
+  .text:00000001811E9005                 mov     [rsp-8+arg_18], r9
+  .text:00000001811E900A                 mov     [rsp-8+arg_10], r8
+  .text:00000001811E900F                 mov     [rsp-8+arg_0], rcx
+  .text:00000001811E9014                 push    rbp
+  .text:00000001811E9015                 push    rsi
+  .text:00000001811E9016                 push    rdi
+  .text:00000001811E9017                 push    r12
+  .text:00000001811E9019                 push    r13
+  .text:00000001811E901B                 push    r14
+  .text:00000001811E901D                 push    r15
+  .text:00000001811E901F                 lea     rbp, [rsp-370h]
+  .text:00000001811E9027                 sub     rsp, 470h
+  .text:00000001811E902E                 mov     r15d, [r8+18h]
+  .text:00000001811E9032                 xor     r10d, r10d
+  .text:00000001811E9035                 mov     rbx, [r8+10h]
+  .text:00000001811E9039                 mov     r13d, edx
+  .text:00000001811E903C                 mov     rdx, [rbp+3A0h+arg_20]
+  .text:00000001811E9043                 mov     r14, rcx
+  .text:00000001811E9046                 mov     ecx, [r8+28h]
+  .text:00000001811E904A                 mov     rdi, r9
+  .text:00000001811E904D                 mov     [rbp+3A0h+var_420], r15d
+  .text:00000001811E9051                 mov     r12, r8
+  .text:00000001811E9054                 mov     [rsp+4A0h+var_450], 0
+  .text:00000001811E9059                 movzx   eax, word ptr [rdx+14h]
+  .text:00000001811E905D                 mov     [rbp+3A0h+var_41C], 1
+  .text:00000001811E9064                 mov     [rbp+3A0h+var_418], r10d
+  .text:00000001811E9068                 mov     [rbp+3A0h+var_410], r10d
+  .text:00000001811E906C                 test    ecx, ecx
+  .text:00000001811E906E                 js      short loc_1811E909A
+  .text:00000001811E9070                 mov     [rbp+3A0h+var_418], ecx
+  .text:00000001811E9073                 mov     rbx, rdx
+  .text:00000001811E9076                 mov     rcx, rdx
+  .text:00000001811E9079                 mov     [rsp+4A0h+var_450], 1
+  .text:00000001811E907E                 mov     [rbp+3A0h+var_41C], eax
+  .text:00000001811E9081                 call    sub_1814F1660
+  .text:00000001811E9086                 mov     rsi, [r12+10h]
+  .text:00000001811E908B                 xor     r10d, r10d
+  .text:00000001811E908E                 mov     [rbp+3A0h+var_3F0], rsi
+  .text:00000001811E9092                 mov     [rbp+3A0h+var_410], eax
+  .text:00000001811E9095                 jmp     loc_1811E9147
+  .text:00000001811E909A                 mov     [rbp+3A0h+var_3F0], rbx
+  .text:00000001811E909E                 mov     rsi, rbx
+  .text:00000001811E90A1                 cmp     eax, 1
+  .text:00000001811E90A4                 jbe     loc_1811E9144
+  .text:00000001811E90AA                 cmp     byte ptr [rdx], 8
+  .text:00000001811E90AD                 mov     [rbp+3A0h+var_3F0], rbx
+  .text:00000001811E90B1                 jz      loc_1811E9144
+  .text:00000001811E90B7                 mov     ecx, cs:dword_1820B1848
+  .text:00000001811E90BD                 mov     edx, 5
+  .text:00000001811E90C2                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:00000001811E90C8                 test    al, al
+  .text:00000001811E90CA                 jz      loc_1811EA05A
+  .text:00000001811E90D0                 mov     ecx, cs:dword_1820B1848
+  .text:00000001811E90D6                 lea     rax, aCBuildworkerCs_62; "C:\\buildworker\\csgo_rel_win64\\build"...
+  .text:00000001811E90DD                 xor     r8d, r8d
+  .text:00000001811E90E0                 mov     [rbp+3A0h+var_220], rax
+  .text:00000001811E90E7                 lea     rax, aCentitysystemD; "CEntitySystem::DataDesc_AddComponentFie"...
+  .text:00000001811E90EE                 mov     [rbp+3A0h+var_1E8], r8d
+  .text:00000001811E90F5                 xorps   xmm0, xmm0
+  .text:00000001811E90F8                 mov     [rsp+4A0h+var_478], rdi
+  .text:00000001811E90FD                 xorps   xmm1, xmm1
+  .text:00000001811E9100                 mov     [rbp+3A0h+var_210], rax
+  .text:00000001811E9107                 lea     r9, aFieldSOfClassS; "Field \"%s\" of class \"%s\" cannot be "...
+  .text:00000001811E910E                 mov     [rbp+3A0h+var_218], 4BAh
+  .text:00000001811E9118                 lea     r8, [rbp+3A0h+var_220]
+  .text:00000001811E911F                 mov     [rsp+4A0h+var_480], rbx
+  .text:00000001811E9124                 mov     edx, 5
+  .text:00000001811E9129                 movdqu  [rbp+3A0h+var_208], xmm0
+  .text:00000001811E9131                 movdqu  [rbp+3A0h+var_1F8], xmm1
+  .text:00000001811E9139                 call    cs:?LoggingSystem_Log@@YA?AW4LoggingResponse_t@@HW4LoggingSeverity_t@@AEBULoggingRareOptions_t@@PEBDZZ; LoggingSystem_Log(int,LoggingSeverity_t,LoggingRareOptions_t const &,char const *,...)
+  .text:00000001811E913F                 jmp     loc_1811EA05A
+  .text:00000001811E9144                 mov     rbx, rdx
+  .text:00000001811E9147                 mov     eax, [rbx+18h]
+  .text:00000001811E914A                 and     eax, 10h
+  .text:00000001811E914D                 cmp     byte ptr [rbx], 0Ah
+  .text:00000001811E9150                 mov     [rbp+3A0h+var_3F8], eax
+  .text:00000001811E9153                 jnz     short loc_1811E915F
+  .text:00000001811E9155                 mov     r9, [rbx+38h]
+  .text:00000001811E9159                 mov     [rbp+3A0h+var_408], r9
+  .text:00000001811E915D                 jmp     short loc_1811E9163
+  .text:00000001811E915F                 mov     [rbp+3A0h+var_408], r10
+  .text:00000001811E9163                 mov     r8, [r12+8]
+  .text:00000001811E9168                 lea     rax, asc_1815E4188; "."
+  .text:00000001811E916F                 mov     qword ptr [rbp+3A0h+var_1C8], r10
+  .text:00000001811E9176                 mov     [rbp+3A0h+var_1CC], 0C00000C8h
+  .text:00000001811E9180                 test    r8, r8
+  .text:00000001811E9183                 jz      short loc_1811E91FB
+  .text:00000001811E9185                 cmp     byte ptr [r8], 0
+  .text:00000001811E9189                 jz      short loc_1811E91FB
+  .text:00000001811E918B                 test    rsi, rsi
+  .text:00000001811E918E                 jz      short loc_1811E91D2
+  .text:00000001811E9190                 cmp     byte ptr [rsi], 0
+  .text:00000001811E9193                 jz      short loc_1811E91D2
+  .text:00000001811E9195                 mov     qword ptr [rsp+4A0h+var_440], r8
+  .text:00000001811E919A                 lea     rcx, [rbp+3A0h+var_1D0]
+  .text:00000001811E91A1                 lea     r8, [rsp+4A0h+var_440]
+  .text:00000001811E91A6                 mov     [rbp+3A0h+var_1D0], r10d
+  .text:00000001811E91AD                 xor     r9d, r9d
+  .text:00000001811E91B0                 mov     qword ptr [rsp+4A0h+var_440+8], rax
+  .text:00000001811E91B5                 mov     edx, 3
+  .text:00000001811E91BA                 mov     [rsp+4A0h+var_430], rsi
+  .text:00000001811E91BF                 mov     byte ptr [rsp+4A0h+var_480], 0
+  .text:00000001811E91C4                 call    cs:?AppendConcat@CBufferString@@QEAAPEBDHPEBQEBDPEBH_N@Z; CBufferString::AppendConcat(int,char const * const *,int const *,bool)
+  .text:00000001811E91CA                 xor     r9d, r9d
+  .text:00000001811E91CD                 mov     edx, r9d
+  .text:00000001811E91D0                 jmp     short loc_1811E9225
+  .text:00000001811E91D2                 xor     edx, edx
+  .text:00000001811E91D4                 mov     [rbp+3A0h+var_1D0], r10d
+  .text:00000001811E91DB                 mov     r9d, 0FFFFFFFFh
+  .text:00000001811E91E1                 mov     byte ptr [rsp+4A0h+var_480], 0
+  .text:00000001811E91E6                 lea     rcx, [rbp+3A0h+var_1D0]
+  .text:00000001811E91ED                 call    cs:?Insert@CBufferString@@QEAAPEBDHPEBDH_N@Z; CBufferString::Insert(int,char const *,int,bool)
+  .text:00000001811E91F3                 xor     r9d, r9d
+  .text:00000001811E91F6                 mov     edx, r9d
+  .text:00000001811E91F9                 jmp     short loc_1811E9225
+  .text:00000001811E91FB                 mov     r9d, 0FFFFFFFFh
+  .text:00000001811E9201                 mov     [rbp+3A0h+var_1D0], r10d
+  .text:00000001811E9208                 mov     r8, rsi
+  .text:00000001811E920B                 mov     byte ptr [rsp+4A0h+var_480], 0
+  .text:00000001811E9210                 xor     edx, edx
+  .text:00000001811E9212                 lea     rcx, [rbp+3A0h+var_1D0]
+  .text:00000001811E9219                 call    cs:?Insert@CBufferString@@QEAAPEBDHPEBDH_N@Z; CBufferString::Insert(int,char const *,int,bool)
+  .text:00000001811E921F                 mov     rdx, rsi
+  .text:00000001811E9222                 xor     r9d, r9d
+  .text:00000001811E9225                 mov     eax, [rbp+3A0h+var_1CC]
+  .text:00000001811E922B                 mov     rcx, qword ptr [rbp+3A0h+var_1C8]
+  .text:00000001811E9232                 mov     [rbp+3A0h+var_400], rdx
+  .text:00000001811E9236                 bt      eax, 1Eh
+  .text:00000001811E923A                 jnb     short loc_1811E9245
+  .text:00000001811E923C                 lea     rsi, [rbp+3A0h+var_1C8]
+  .text:00000001811E9243                 jmp     short loc_1811E9255
+  .text:00000001811E9245                 test    eax, 3FFFFFFFh
+  .text:00000001811E924A                 lea     rsi, byte_18159B988
+  .text:00000001811E9251                 cmova   rsi, rcx
+  .text:00000001811E9255                 cmp     [rbp+3A0h+var_41C], 0
+  .text:00000001811E9259                 mov     r8d, r9d
+  .text:00000001811E925C                 mov     [rbp+3A0h+var_100], r9d
+  .text:00000001811E9263                 mov     [rbp+3A0h+var_F8], r9
+  .text:00000001811E926A                 mov     [rbp+3A0h+var_FC], 0C00000C8h
+  .text:00000001811E9274                 mov     [rbp+3A0h+var_414], r9d
+  .text:00000001811E9278                 jbe     loc_1811EA03C
+  .text:00000001811E927E                 cmp     [rsp+4A0h+var_450], 0
+  .text:00000001811E9283                 lea     r10, aOrigin; "origin"
+  .text:00000001811E928A                 jz      short loc_1811E92F6
+  .text:00000001811E928C                 bt      eax, 1Eh
+  .text:00000001811E9290                 jnb     short loc_1811E929B
+  .text:00000001811E9292                 lea     rdx, [rbp+3A0h+var_1C8]
+  .text:00000001811E9299                 jmp     short loc_1811E92AB
+  .text:00000001811E929B                 test    eax, 3FFFFFFFh
+  .text:00000001811E92A0                 lea     rdx, byte_18159B988
+  .text:00000001811E92A7                 cmova   rdx, rcx
+  .text:00000001811E92AB                 add     r8d, [rbp+3A0h+var_418]
+  .text:00000001811E92AF                 lea     rcx, [rbp+3A0h+var_100]
+  .text:00000001811E92B6                 call    cs:?Format@CBufferString@@QEAAHPEBDZZ; CBufferString::Format(char const *,...)
+  .text:00000001811E92BC                 mov     eax, [rbp+3A0h+var_FC]
+  .text:00000001811E92C2                 bt      eax, 1Eh
+  .text:00000001811E92C6                 jnb     short loc_1811E92D1
+  .text:00000001811E92C8                 lea     rsi, [rbp+3A0h+var_F8]
+  .text:00000001811E92CF                 jmp     short loc_1811E92E5
+  .text:00000001811E92D1                 test    eax, 3FFFFFFFh
+  .text:00000001811E92D6                 lea     rsi, byte_18159B988
+  .text:00000001811E92DD                 cmova   rsi, [rbp+3A0h+var_F8]
+  .text:00000001811E92E5                 xor     r9d, r9d
+  .text:00000001811E92E8                 lea     r10, aOrigin; "origin"
+  .text:00000001811E92EF                 mov     edx, r9d
+  .text:00000001811E92F2                 mov     [rbp+3A0h+var_400], rdx
+  .text:00000001811E92F6                 cmp     [rbp+3A0h+var_3F8], 0
+  .text:00000001811E92FA                 jz      loc_1811E944F
+  .text:00000001811E9300                 mov     r14, 0FFFFFFFFFFFFFFFFh
+  .text:00000001811E9307                 nop     word ptr [rax+rax+00000000h]
+  .text:00000001811E9310                 cmp     byte ptr [rsi+r14+1], 0
+  .text:00000001811E9316                 lea     r14, [r14+1]
+  .text:00000001811E931A                 jnz     short loc_1811E9310
+  .text:00000001811E931C                 mov     rdi, [r12]
+  .text:00000001811E9320                 add     rdi, 1A0h
+  .text:00000001811E9327                 movsxd  r12, dword ptr [rdi]
+  .text:00000001811E932A                 cmp     r12d, [rdi+10h]
+  .text:00000001811E932E                 jnz     loc_1811E93E0
+  .text:00000001811E9334                 test    dword ptr [rdi+14h], 40000000h
+  .text:00000001811E933B                 jnz     loc_1811E93E0
+  .text:00000001811E9341                 mov     ecx, [rdi+10h]
+  .text:00000001811E9344                 cmp     ecx, 7FFFFFFEh
+  .text:00000001811E934A                 jle     short loc_1811E9357
+  .text:00000001811E934C                 mov     edx, 1
+  .text:00000001811E9351                 call    cs:UtlVectorMemory_FailedAllocation
+  .text:00000001811E9357                 mov     ecx, [rdi+10h]
+  .text:00000001811E935A                 mov     r9d, 20h ; ' '
+  .text:00000001811E9360                 mov     edx, [rdi+14h]
+  .text:00000001811E9363                 and     edx, 3FFFFFFFh
+  .text:00000001811E9369                 lea     r15d, [rcx+1]
+  .text:00000001811E936D                 mov     r8d, r15d
+  .text:00000001811E9370                 call    cs:UtlVectorMemory_CalcNewAllocationCount
+  .text:00000001811E9376                 mov     ebx, eax
+  .text:00000001811E9378                 cmp     eax, r15d
+  .text:00000001811E937B                 jge     short loc_1811E93A0
+  .text:00000001811E937D                 test    eax, eax
+  .text:00000001811E937F                 jnz     short loc_1811E9390
+  .text:00000001811E9381                 cmp     r15d, 0FFFFFFFFh
+  .text:00000001811E9385                 jg      short loc_1811E9390
+  .text:00000001811E9387                 mov     ebx, 0FFFFFFFFh
+  .text:00000001811E938C                 jmp     short loc_1811E93A0
+  .text:00000001811E9390                 lea     eax, [rbx+r15]
+  .text:00000001811E9394                 cdq
+  .text:00000001811E9395                 sub     eax, edx
+  .text:00000001811E9397                 sar     eax, 1
+  .text:00000001811E9399                 mov     ebx, eax
+  .text:00000001811E939B                 cmp     eax, r15d
+  .text:00000001811E939E                 jl      short loc_1811E9390
+  .text:00000001811E93A0                 movsxd  r9, dword ptr [rdi+10h]
+  .text:00000001811E93A4                 mov     rcx, [rdi+8]
+  .text:00000001811E93A8                 shl     r9, 5
+  .text:00000001811E93AC                 test    dword ptr [rdi+14h], 0C0000000h
+  .text:00000001811E93B3                 movsxd  r8, ebx
+  .text:00000001811E93B6                 setz    dl
+  .text:00000001811E93B9                 shl     r8, 5
+  .text:00000001811E93BD                 call    cs:UtlVectorMemory_Alloc
+  .text:00000001811E93C3                 mov     [rdi+8], rax
+  .text:00000001811E93C7                 mov     eax, [rdi+14h]
+  .text:00000001811E93CA                 test    eax, 0C0000000h
+  .text:00000001811E93CF                 jz      short loc_1811E93D9
+  .text:00000001811E93D1                 and     eax, 3FFFFFFFh
+  .text:00000001811E93D6                 mov     [rdi+14h], eax
+  .text:00000001811E93D9                 mov     r15d, [rbp+3A0h+var_420]
+  .text:00000001811E93DD                 mov     [rdi+10h], ebx
+  .text:00000001811E93E0                 inc     dword ptr [rdi]
+  .text:00000001811E93E2                 mov     rdx, r12
+  .text:00000001811E93E5                 mov     rax, [rdi+8]
+  .text:00000001811E93E9                 xor     r8d, r8d
+  .text:00000001811E93EC                 mov     r12, [rbp+3A0h+arg_10]
+  .text:00000001811E93F3                 shl     rdx, 5
+  .text:00000001811E93F7                 mov     [rdx+rax+10h], r8
+  .text:00000001811E93FC                 mov     rax, [r12]
+  .text:00000001811E9400                 mov     rdi, [rax+1A8h]
+  .text:00000001811E9407                 lea     eax, [r14+1]
+  .text:00000001811E940B                 movsxd  rbx, eax
+  .text:00000001811E940E                 add     rdi, rdx
+  .text:00000001811E9411                 mov     rcx, rbx
+  .text:00000001811E9414                 call    sub_180E772D0
+  .text:00000001811E9419                 mov     r8, rbx
+  .text:00000001811E941C                 mov     [rdi], rax
+  .text:00000001811E941F                 mov     rdx, rsi
+  .text:00000001811E9422                 mov     rcx, rax
+  .text:00000001811E9425                 call    sub_18154A090
+  .text:00000001811E942A                 mov     r14, [rbp+3A0h+arg_0]
+  .text:00000001811E9431                 xor     r9d, r9d
+  .text:00000001811E9434                 mov     rbx, [rbp+3A0h+arg_20]
+  .text:00000001811E943B                 mov     [rdi+8], r9d
+  .text:00000001811E943F                 mov     [rdi+18h], r15d
+  .text:00000001811E9443                 mov     rdi, [rbp+3A0h+arg_18]
+  .text:00000001811E944A                 jmp     loc_1811E9F81
+  .text:00000001811E944F                 mov     rcx, [rbp+3A0h+var_408]
+  .text:00000001811E9453                 test    rcx, rcx
+  .text:00000001811E9456                 jz      loc_1811E972A
+  .text:00000001811E945C                 mov     eax, [rbx+18h]
+  .text:00000001811E945F                 test    al, 40h
+  .text:00000001811E9461                 jnz     loc_1811E94F1
+  .text:00000001811E9467                 shr     eax, 12h
+  .text:00000001811E946A                 test    al, 1
+  .text:00000001811E946C                 jz      short loc_1811E9473
+  .text:00000001811E946E                 mov     ebx, r13d
+  .text:00000001811E9471                 jmp     short loc_1811E947B
+  .text:00000001811E9473                 mov     rdi, [rcx+10h]
+  .text:00000001811E9477                 lea     ebx, [r13+1]
+  .text:00000001811E947B                 mov     rax, [r12+20h]
+  .text:00000001811E9480                 mov     r9, rdi
+  .text:00000001811E9483                 mov     [rsp+4A0h+var_460], rax
+  .text:00000001811E9488                 mov     r8, rsi
+  .text:00000001811E948B                 mov     rax, [r12]
+  .text:00000001811E948F                 mov     edx, ebx
+  .text:00000001811E9491                 mov     [rsp+4A0h+var_468], rax
+  .text:00000001811E9496                 mov     byte ptr [rsp+4A0h+var_470], 1
+  .text:00000001811E949B                 mov     dword ptr [rsp+4A0h+var_478], r15d
+  .text:00000001811E94A0                 mov     [rsp+4A0h+var_480], rcx
+  .text:00000001811E94A5                 mov     rcx, r14
+  .text:00000001811E94A8                 call    sub_1811EAA30
+  .text:00000001811E94AD                 mov     rax, [r12+20h]
+  .text:00000001811E94B2                 mov     r8, rsi
+  .text:00000001811E94B5                 mov     r9, [rbp+3A0h+var_408]
+  .text:00000001811E94B9                 mov     edx, ebx
+  .text:00000001811E94BB                 mov     [rsp+4A0h+var_468], rax
+  .text:00000001811E94C0                 mov     rcx, r14
+  .text:00000001811E94C3                 mov     rax, [r12]
+  .text:00000001811E94C7                 mov     [rsp+4A0h+var_470], rax
+  .text:00000001811E94CC                 mov     byte ptr [rsp+4A0h+var_478], 1
+  .text:00000001811E94D1                 mov     [rsp+4A0h+var_480], r9
+  .text:00000001811E94D6                 mov     r9, rdi
+  .text:00000001811E94D9                 call    sub_1811EA080
+  .text:00000001811E94DE                 mov     rdi, [rbp+3A0h+arg_18]
+  .text:00000001811E94E5                 mov     rbx, [rbp+3A0h+arg_20]
+  .text:00000001811E94EC                 jmp     loc_1811E9F7E
+  .text:00000001811E94F1                 lea     rdx, [rbp+3A0h+var_1E0]
+  .text:00000001811E94F8                 lea     rcx, [r14+0CB8h]  ; 0CB8h = CEntitySystem::m_DataDescKeyUnserializerss (structmember, struct=CEntitySystem, member=m_DataDescKeyUnserializerss)
+  .text:00000001811E94FF                 call    cs:?GetCurrentAllocPoint@CUtlScratchMemoryPool@@QEBA?AUUtlScratchMemoryPoolMark_t@@XZ; CUtlScratchMemoryPool::GetCurrentAllocPoint(void)
+  .text:00000001811E9505                 lea     rcx, [rbp+3A0h+var_3E0]
+  .text:00000001811E9509                 call    sub_1811E42C0
+  .text:00000001811E950E                 mov     rax, [r12+20h]
+  .text:00000001811E9513                 lea     edx, [r13+1]
+  .text:00000001811E9517                 mov     r9, [rbp+3A0h+var_408]
+  .text:00000001811E951B                 xor     r8d, r8d
+  .text:00000001811E951E                 mov     [rsp+4A0h+var_460], rax
+  .text:00000001811E9523                 mov     rcx, r14
+  .text:00000001811E9526                 lea     rax, [rbp+3A0h+var_3E0]
+  .text:00000001811E952A                 mov     [rsp+4A0h+var_468], rax
+  .text:00000001811E952F                 mov     byte ptr [rsp+4A0h+var_470], 1
+  .text:00000001811E9534                 mov     dword ptr [rsp+4A0h+var_478], r8d
+  .text:00000001811E9539                 mov     r8, rsi
+  .text:00000001811E953C                 mov     [rsp+4A0h+var_480], r9
+  .text:00000001811E9541                 mov     r9, [r9+10h]
+  .text:00000001811E9545                 call    sub_1811EAA30
+  .text:00000001811E954A                 mov     rax, [r12+20h]
+  .text:00000001811E954F                 lea     edx, [r13+1]
+  .text:00000001811E9553                 mov     [rsp+4A0h+var_468], rax
+  .text:00000001811E9558                 mov     r8, rsi
+  .text:00000001811E955B                 lea     rax, [rbp+3A0h+var_3E0]
+  .text:00000001811E955F                 mov     rcx, r14
+  .text:00000001811E9562                 mov     [rsp+4A0h+var_470], rax
+  .text:00000001811E9567                 mov     rax, [rbp+3A0h+var_408]
+  .text:00000001811E956B                 mov     byte ptr [rsp+4A0h+var_478], 1
+  .text:00000001811E9570                 mov     [rsp+4A0h+var_480], rax
+  .text:00000001811E9575                 mov     r9, [rax+10h]
+  .text:00000001811E9579                 call    sub_1811EA080
+  .text:00000001811E957E                 mov     eax, dword ptr [rbp+3A0h+var_3D8+4]
+  .text:00000001811E9581                 test    eax, eax
+  .text:00000001811E9583                 jnz     short loc_1811E95D0
+  .text:00000001811E9585                 cmp     [rbp+3A0h+var_240], eax
+  .text:00000001811E958B                 jnz     short loc_1811E95D0
+  .text:00000001811E958D                 cmp     [rbp+3A0h+var_258], eax
+  .text:00000001811E9593                 jnz     short loc_1811E95D0
+  .text:00000001811E9595                 movaps  xmm0, [rbp+3A0h+var_1E0]
+  .text:00000001811E959C                 lea     rdx, [rsp+4A0h+var_440]
+  .text:00000001811E95A1                 lea     rcx, [r14+0CB8h]  ; 0CB8h = CEntitySystem::m_DataDescKeyUnserializerss (structmember, struct=CEntitySystem, member=m_DataDescKeyUnserializerss)
+  .text:00000001811E95A8                 movdqa  [rsp+4A0h+var_440], xmm0
+  .text:00000001811E95AE                 call    cs:?FreeToAllocPoint@CUtlScratchMemoryPool@@QEAAXUUtlScratchMemoryPoolMark_t@@@Z; CUtlScratchMemoryPool::FreeToAllocPoint(UtlScratchMemoryPoolMark_t)
+  .text:00000001811E95B4                 lea     rcx, [rbp+3A0h+var_3E0]
+  .text:00000001811E95B8                 call    sub_1811E4D00
+  .text:00000001811E95BD                 mov     rdi, [rbp+3A0h+arg_18]
+  .text:00000001811E95C4                 mov     rbx, [rbp+3A0h+arg_20]
+  .text:00000001811E95CB                 jmp     loc_1811E9F7E
+  .text:00000001811E95D0                 mov     edx, 30h ; '0'
+  .text:00000001811E95D5                 lea     rcx, [r14+0CB8h]  ; 0CB8h = CEntitySystem::m_DataDescKeyUnserializerss (structmember, struct=CEntitySystem, member=m_DataDescKeyUnserializerss)
+  .text:00000001811E95DC                 mov     r8d, 10h
+  .text:00000001811E95E2                 call    cs:?AllocAligned@CUtlScratchMemoryPool@@QEAAPEAXHH@Z; CUtlScratchMemoryPool::AllocAligned(int,int)
+  .text:00000001811E95E8                 mov     r15, rax
+  .text:00000001811E95EB                 lea     r8, [r14+0CB8h]  ; 0CB8h = CEntitySystem::m_DataDescKeyUnserializerss (structmember, struct=CEntitySystem, member=m_DataDescKeyUnserializerss)
+  .text:00000001811E95F2                 xor     eax, eax
+  .text:00000001811E95F4                 lea     rdx, [rbp+3A0h+var_3E0]
+  .text:00000001811E95F8                 mov     rcx, r15
+  .text:00000001811E95FB                 mov     [r15], rax
+  .text:00000001811E95FE                 mov     qword ptr [r15+8], 9
+  .text:00000001811E9606                 mov     [r15+10h], rax
+  .text:00000001811E960A                 mov     [r15+18h], rax
+  .text:00000001811E960E                 mov     [r15+20h], rax
+  .text:00000001811E9612                 mov     [r15+28h], rax
+  .text:00000001811E9616                 call    sub_1811F1470
+  .text:00000001811E961B                 mov     r14, [r12]
+  .text:00000001811E961F                 add     r14, 188h
+  .text:00000001811E9626                 movsxd  r12, dword ptr [r14]
+  .text:00000001811E9629                 cmp     r12d, [r14+10h]
+  .text:00000001811E962D                 jnz     loc_1811E96DE
+  .text:00000001811E9633                 test    dword ptr [r14+14h], 40000000h
+  .text:00000001811E963B                 jnz     loc_1811E96DE
+  .text:00000001811E9641                 mov     ecx, [r14+10h]
+  .text:00000001811E9645                 cmp     ecx, 7FFFFFFEh
+  .text:00000001811E964B                 jle     short loc_1811E9658
+  .text:00000001811E964D                 mov     edx, 1
+  .text:00000001811E9652                 call    cs:UtlVectorMemory_FailedAllocation
+  .text:00000001811E9658                 mov     ecx, [r14+10h]
+  .text:00000001811E965C                 mov     r9d, 10h
+  .text:00000001811E9662                 mov     edx, [r14+14h]
+  .text:00000001811E9666                 and     edx, 3FFFFFFFh
+  .text:00000001811E966C                 lea     edi, [rcx+1]
+  .text:00000001811E966F                 mov     r8d, edi
+  .text:00000001811E9672                 call    cs:UtlVectorMemory_CalcNewAllocationCount
+  .text:00000001811E9678                 mov     ebx, eax
+  .text:00000001811E967A                 cmp     eax, edi
+  .text:00000001811E967C                 jge     short loc_1811E969E
+  .text:00000001811E967E                 test    eax, eax
+  .text:00000001811E9680                 jnz     short loc_1811E9690
+  .text:00000001811E9682                 cmp     edi, 0FFFFFFFFh
+  .text:00000001811E9685                 jg      short loc_1811E9690
+  .text:00000001811E9687                 mov     ebx, 0FFFFFFFFh
+  .text:00000001811E968C                 jmp     short loc_1811E969E
+  .text:00000001811E9690                 lea     eax, [rbx+rdi]
+  .text:00000001811E9693                 cdq
+  .text:00000001811E9694                 sub     eax, edx
+  .text:00000001811E9696                 sar     eax, 1
+  .text:00000001811E9698                 mov     ebx, eax
+  .text:00000001811E969A                 cmp     eax, edi
+  .text:00000001811E969C                 jl      short loc_1811E9690
+  .text:00000001811E969E                 movsxd  r9, dword ptr [r14+10h]
+  .text:00000001811E96A2                 mov     rcx, [r14+8]
+  .text:00000001811E96A6                 shl     r9, 4
+  .text:00000001811E96AA                 test    dword ptr [r14+14h], 0C0000000h
+  .text:00000001811E96B2                 movsxd  r8, ebx
+  .text:00000001811E96B5                 setz    dl
+  .text:00000001811E96B8                 shl     r8, 4
+  .text:00000001811E96BC                 call    cs:UtlVectorMemory_Alloc
+  .text:00000001811E96C2                 mov     [r14+8], rax
+  .text:00000001811E96C6                 mov     eax, [r14+14h]
+  .text:00000001811E96CA                 test    eax, 0C0000000h
+  .text:00000001811E96CF                 jz      short loc_1811E96DA
+  .text:00000001811E96D1                 and     eax, 3FFFFFFFh
+  .text:00000001811E96D6                 mov     [r14+14h], eax
+  .text:00000001811E96DA                 mov     [r14+10h], ebx
+  .text:00000001811E96DE                 inc     dword ptr [r14]
+  .text:00000001811E96E1                 mov     rcx, r12
+  .text:00000001811E96E4                 mov     r12, [rbp+3A0h+arg_10]
+  .text:00000001811E96EB                 shl     rcx, 4
+  .text:00000001811E96EF                 mov     rax, [r12]
+  .text:00000001811E96F3                 add     rcx, [rax+190h]
+  .text:00000001811E96FA                 mov     eax, [rbp+3A0h+var_420]
+  .text:00000001811E96FD                 mov     [rcx], eax
+  .text:00000001811E96FF                 mov     [rcx+8], r15
+  .text:00000001811E9703                 lea     rcx, [rbp+3A0h+var_3E0]
+  .text:00000001811E9707                 call    sub_1811E4D00
+  .text:00000001811E970C                 mov     r15d, [rbp+3A0h+var_420]
+  .text:00000001811E9710                 mov     rdi, [rbp+3A0h+arg_18]
+  .text:00000001811E9717                 mov     r14, [rbp+3A0h+arg_0]
+  .text:00000001811E971E                 mov     rbx, [rbp+3A0h+arg_20]
+  .text:00000001811E9725                 jmp     loc_1811E9F7E
+  .text:00000001811E972A                 movzx   eax, byte ptr [rbx]
+  .text:00000001811E972D                 cmp     al, 3Bh ; ';'
+  .text:00000001811E972F                 jnz     loc_1811E9925
+  .text:00000001811E9735                 mov     [rbp-38h], r9
+  .text:00000001811E9739                 mov     [rbp+3A0h+var_3DC], 0C00000C8h
+  .text:00000001811E9740                 test    rsi, rsi
+  .text:00000001811E9743                 jz      short loc_1811E9786
+  .text:00000001811E9745                 cmp     byte ptr [rsi], 0
+  .text:00000001811E9748                 jz      short loc_1811E9786
+  .text:00000001811E974A                 mov     [rbp+3A0h+var_3E0], r9d
+  .text:00000001811E974E                 lea     rax, asc_1815E4188; "."
+  .text:00000001811E9755                 xor     r9d, r9d
+  .text:00000001811E9758                 mov     qword ptr [rsp+4A0h+var_440+8], rax
+  .text:00000001811E975D                 lea     r8, [rsp+4A0h+var_440]
+  .text:00000001811E9762                 mov     qword ptr [rsp+4A0h+var_440], rsi
+  .text:00000001811E9767                 mov     edx, 3
+  .text:00000001811E976C                 mov     [rsp+4A0h+var_430], r10
+  .text:00000001811E9771                 lea     rcx, [rbp+3A0h+var_3E0]
+  .text:00000001811E9775                 mov     byte ptr [rsp+4A0h+var_480], 0
+  .text:00000001811E977A                 call    cs:?AppendConcat@CBufferString@@QEAAPEBDHPEBQEBDPEBH_N@Z; CBufferString::AppendConcat(int,char const * const *,int const *,bool)
+  .text:00000001811E9780                 xor     edx, edx
+  .text:00000001811E9782                 mov     ecx, edx
+  .text:00000001811E9784                 jmp     short loc_1811E97AD
+  .text:00000001811E9786                 mov     [rbp+3A0h+var_3E0], r9d
+  .text:00000001811E978A                 lea     rcx, [rbp+3A0h+var_3E0]
+  .text:00000001811E978E                 mov     r9d, 0FFFFFFFFh
+  .text:00000001811E9794                 mov     byte ptr [rsp+4A0h+var_480], 0
+  .text:00000001811E9799                 mov     r8, r10
+  .text:00000001811E979C                 xor     edx, edx
+  .text:00000001811E979E                 call    cs:?Insert@CBufferString@@QEAAPEBDHPEBDH_N@Z; CBufferString::Insert(int,char const *,int,bool)
+  .text:00000001811E97A4                 lea     rcx, aOrigin; "origin"
+  .text:00000001811E97AB                 xor     edx, edx
+  .text:00000001811E97AD                 mov     eax, [rbp+3A0h+var_3DC]
+  .text:00000001811E97B0                 bt      eax, 1Eh
+  .text:00000001811E97B4                 jnb     short loc_1811E97BC
+  .text:00000001811E97B6                 lea     rax, [rbp+3A0h+var_3D8]
+  .text:00000001811E97BA                 jmp     short loc_1811E97CD
+  .text:00000001811E97BC                 test    eax, 3FFFFFFFh
+  .text:00000001811E97C1                 lea     rax, byte_18159B988
+  .text:00000001811E97C8                 cmova   rax, [rbp+3A0h+var_3D8]
+  .text:00000001811E97CD                 mov     [rsp+4A0h+var_458], 0
+  .text:00000001811E97D2                 lea     ebx, [r13+1]
+  .text:00000001811E97D6                 mov     dword ptr [rsp+4A0h+var_460], r15d
+  .text:00000001811E97DB                 mov     r9, rdi
+  .text:00000001811E97DE                 mov     byte ptr [rsp+4A0h+var_468], 3
+  .text:00000001811E97E3                 mov     r8, r12
+  .text:00000001811E97E6                 mov     [rsp+4A0h+var_470], rdx
+  .text:00000001811E97EB                 mov     edx, ebx
+  .text:00000001811E97ED                 mov     [rsp+4A0h+var_478], rcx
+  .text:00000001811E97F2                 mov     rcx, r14
+  .text:00000001811E97F5                 mov     [rsp+4A0h+var_480], rax
+  .text:00000001811E97FA                 call    sub_1811E6210
+  .text:00000001811E97FF                 test    rsi, rsi
+  .text:00000001811E9802                 jz      short loc_1811E986F
+  .text:00000001811E9804                 cmp     byte ptr [rsi], 0
+  .text:00000001811E9807                 jz      short loc_1811E986F
+  .text:00000001811E9809                 mov     eax, [rbp+3A0h+var_3DC]
+  .text:00000001811E980C                 test    eax, 3FFFFFFFh
+  .text:00000001811E9811                 jbe     short loc_1811E9827
+  .text:00000001811E9813                 bt      eax, 1Eh
+  .text:00000001811E9817                 lea     ebx, [r13+1]
+  .text:00000001811E981B                 lea     rax, [rbp+3A0h+var_3D8]
+  .text:00000001811E981F                 cmovnb  rax, [rbp+3A0h+var_3D8]
+  .text:00000001811E9824                 mov     byte ptr [rax], 0
+  .text:00000001811E9827                 and     [rbp+3A0h+var_3E0], 0C0000000h
+  .text:00000001811E982E                 lea     rax, asc_1815E4188; "."
+  .text:00000001811E9835                 mov     qword ptr [rsp+4A0h+var_440+8], rax
+  .text:00000001811E983A                 lea     r8, [rsp+4A0h+var_440]
+  .text:00000001811E983F                 lea     rax, aAngles; "angles"
+  .text:00000001811E9846                 mov     qword ptr [rsp+4A0h+var_440], rsi
+  .text:00000001811E984B                 xor     r9d, r9d
+  .text:00000001811E984E                 mov     [rsp+4A0h+var_430], rax
+  .text:00000001811E9853                 mov     edx, 3
+  .text:00000001811E9858                 mov     byte ptr [rsp+4A0h+var_480], 0
+  .text:00000001811E985D                 lea     rcx, [rbp+3A0h+var_3E0]
+  .text:00000001811E9861                 call    cs:?AppendConcat@CBufferString@@QEAAPEBDHPEBQEBDPEBH_N@Z; CBufferString::AppendConcat(int,char const * const *,int const *,bool)
+  .text:00000001811E9867                 xor     r8d, r8d
+  .text:00000001811E986A                 mov     edx, r8d
+  .text:00000001811E986D                 jmp     short loc_1811E98BC
+  .text:00000001811E986F                 mov     eax, [rbp+3A0h+var_3DC]
+  .text:00000001811E9872                 test    eax, 3FFFFFFFh
+  .text:00000001811E9877                 jbe     short loc_1811E988D
+  .text:00000001811E9879                 bt      eax, 1Eh
+  .text:00000001811E987D                 lea     ebx, [r13+1]
+  .text:00000001811E9881                 lea     rax, [rbp+3A0h+var_3D8]
+  .text:00000001811E9885                 cmovnb  rax, [rbp+3A0h+var_3D8]
+  .text:00000001811E988A                 mov     byte ptr [rax], 0
+  .text:00000001811E988D                 and     [rbp+3A0h+var_3E0], 0C0000000h
+  .text:00000001811E9894                 lea     r8, aAngles; "angles"
+  .text:00000001811E989B                 mov     r9d, 0FFFFFFFFh
+  .text:00000001811E98A1                 mov     byte ptr [rsp+4A0h+var_480], 0
+  .text:00000001811E98A6                 xor     edx, edx
+  .text:00000001811E98A8                 lea     rcx, [rbp+3A0h+var_3E0]
+  .text:00000001811E98AC                 call    cs:?Insert@CBufferString@@QEAAPEBDHPEBDH_N@Z; CBufferString::Insert(int,char const *,int,bool)
+  .text:00000001811E98B2                 lea     rdx, aAngles; "angles"
+  .text:00000001811E98B9                 xor     r8d, r8d
+  .text:00000001811E98BC                 mov     eax, [rbp+3A0h+var_3DC]
+  .text:00000001811E98BF                 bt      eax, 1Eh
+  .text:00000001811E98C3                 jnb     short loc_1811E98CB
+  .text:00000001811E98C5                 lea     rcx, [rbp+3A0h+var_3D8]
+  .text:00000001811E98C9                 jmp     short loc_1811E98DC
+  .text:00000001811E98CB                 test    eax, 3FFFFFFFh
+  .text:00000001811E98D0                 lea     rcx, byte_18159B988
+  .text:00000001811E98D7                 cmova   rcx, [rbp+3A0h+var_3D8]
+  .text:00000001811E98DC                 mov     [rsp+4A0h+var_458], 0
+  .text:00000001811E98E1                 lea     eax, [r15+10h]
+  .text:00000001811E98E5                 mov     dword ptr [rsp+4A0h+var_460], eax
+  .text:00000001811E98E9                 mov     byte ptr [rsp+4A0h+var_468], 4
+  .text:00000001811E98EE                 mov     [rsp+4A0h+var_470], r8
+  .text:00000001811E98F3                 mov     [rsp+4A0h+var_478], rdx
+  .text:00000001811E98F8                 mov     [rsp+4A0h+var_480], rcx
+  .text:00000001811E98FD                 mov     r9, rdi
+  .text:00000001811E9900                 mov     r8, r12
+  .text:00000001811E9903                 mov     edx, ebx
+  .text:00000001811E9905                 mov     rcx, r14
+  .text:00000001811E9908                 call    sub_1811E6210
+  .text:00000001811E990D                 xor     edx, edx
+  .text:00000001811E990F                 lea     rcx, [rbp+3A0h+var_3E0]
+  .text:00000001811E9913                 call    cs:?Purge@CBufferString@@QEAAXH@Z; CBufferString::Purge(int)
+  .text:00000001811E9919                 mov     rbx, [rbp+3A0h+arg_20]
+  .text:00000001811E9920                 jmp     loc_1811E9F7E
+  .text:00000001811E9925                 cmp     al, 3Ch ; '<'
+  .text:00000001811E9927                 jnz     loc_1811E9AEB
+  .text:00000001811E992D                 mov     [rbp+3A0h+var_3D8], r9
+  .text:00000001811E9931                 mov     [rbp+3A0h+var_3DC], 0C00000C8h
+  .text:00000001811E9938                 test    rsi, rsi
+  .text:00000001811E993B                 jz      short loc_1811E997E
+  .text:00000001811E993D                 cmp     byte ptr [rsi], 0
+  .text:00000001811E9940                 jz      short loc_1811E997E
+  .text:00000001811E9942                 mov     [rbp+3A0h+var_3E0], r9d
+  .text:00000001811E9946                 lea     rax, asc_1815E4188; "."
+  .text:00000001811E994D                 xor     r9d, r9d
+  .text:00000001811E9950                 mov     qword ptr [rsp+4A0h+var_440+8], rax
+  .text:00000001811E9955                 lea     r8, [rsp+4A0h+var_440]
+  .text:00000001811E995A                 mov     qword ptr [rsp+4A0h+var_440], rsi
+  .text:00000001811E995F                 mov     edx, 3
+  .text:00000001811E9964                 mov     [rsp+4A0h+var_430], r10
+  .text:00000001811E9969                 lea     rcx, [rbp+3A0h+var_3E0]
+  .text:00000001811E996D                 mov     byte ptr [rsp+4A0h+var_480], 0
+  .text:00000001811E9972                 call    cs:?AppendConcat@CBufferString@@QEAAPEBDHPEBQEBDPEBH_N@Z; CBufferString::AppendConcat(int,char const * const *,int const *,bool)
+  .text:00000001811E9978                 xor     edx, edx
+  .text:00000001811E997A                 mov     ecx, edx
+  .text:00000001811E997C                 jmp     short loc_1811E99A5
+  .text:00000001811E997E                 mov     [rbp+3A0h+var_3E0], r9d
+  .text:00000001811E9982                 lea     rcx, [rbp+3A0h+var_3E0]
+  .text:00000001811E9986                 mov     r9d, 0FFFFFFFFh
+  .text:00000001811E998C                 mov     byte ptr [rsp+4A0h+var_480], 0
+  .text:00000001811E9991                 mov     r8, r10
+  .text:00000001811E9994                 xor     edx, edx
+  .text:00000001811E9996                 call    cs:?Insert@CBufferString@@QEAAPEBDHPEBDH_N@Z; CBufferString::Insert(int,char const *,int,bool)
+  .text:00000001811E999C                 lea     rcx, aOrigin; "origin"
+  .text:00000001811E99A3                 xor     edx, edx
+  .text:00000001811E99A5                 mov     eax, [rbp+3A0h+var_3DC]
+  .text:00000001811E99A8                 bt      eax, 1Eh
+  .text:00000001811E99AC                 jnb     short loc_1811E99B4
+  .text:00000001811E99AE                 lea     rax, [rbp+3A0h+var_3D8]
+  .text:00000001811E99B2                 jmp     short loc_1811E99C5
+  .text:00000001811E99B4                 test    eax, 3FFFFFFFh
+  .text:00000001811E99B9                 lea     rax, byte_18159B988
+  .text:00000001811E99C0                 cmova   rax, [rbp+3A0h+var_3D8]
+  .text:00000001811E99C5                 mov     [rsp+4A0h+var_458], 0
+  .text:00000001811E99CA                 lea     ebx, [r13+1]
+  .text:00000001811E99CE                 mov     dword ptr [rsp+4A0h+var_460], r15d
+  .text:00000001811E99D3                 mov     r9, rdi
+  .text:00000001811E99D6                 mov     byte ptr [rsp+4A0h+var_468], 0Eh
+  .text:00000001811E99DB                 mov     r8, r12
+  .text:00000001811E99DE                 mov     [rsp+4A0h+var_470], rdx
+  .text:00000001811E99E3                 mov     edx, ebx
+  .text:00000001811E99E5                 mov     [rsp+4A0h+var_478], rcx
+  .text:00000001811E99EA                 mov     rcx, r14
+  .text:00000001811E99ED                 mov     [rsp+4A0h+var_480], rax
+  .text:00000001811E99F2                 call    sub_1811E6210
+  .text:00000001811E99F7                 test    rsi, rsi
+  .text:00000001811E99FA                 jz      short loc_1811E9A67
+  .text:00000001811E99FC                 cmp     byte ptr [rsi], 0
+  .text:00000001811E99FF                 jz      short loc_1811E9A67
+  .text:00000001811E9A01                 mov     eax, [rbp+3A0h+var_3DC]
+  .text:00000001811E9A04                 test    eax, 3FFFFFFFh
+  .text:00000001811E9A09                 jbe     short loc_1811E9A1F
+  .text:00000001811E9A0B                 bt      eax, 1Eh
+  .text:00000001811E9A0F                 lea     ebx, [r13+1]
+  .text:00000001811E9A13                 lea     rax, [rbp+3A0h+var_3D8]
+  .text:00000001811E9A17                 cmovnb  rax, [rbp+3A0h+var_3D8]
+  .text:00000001811E9A1C                 mov     byte ptr [rax], 0
+  .text:00000001811E9A1F                 and     [rbp+3A0h+var_3E0], 0C0000000h
+  .text:00000001811E9A26                 lea     rax, asc_1815E4188; "."
+  .text:00000001811E9A2D                 mov     qword ptr [rsp+4A0h+var_440+8], rax
+  .text:00000001811E9A32                 lea     r8, [rsp+4A0h+var_440]
+  .text:00000001811E9A37                 lea     rax, aAngles; "angles"
+  .text:00000001811E9A3E                 mov     qword ptr [rsp+4A0h+var_440], rsi
+  .text:00000001811E9A43                 xor     r9d, r9d
+  .text:00000001811E9A46                 mov     [rsp+4A0h+var_430], rax
+  .text:00000001811E9A4B                 mov     edx, 3
+  .text:00000001811E9A50                 mov     byte ptr [rsp+4A0h+var_480], 0
+  .text:00000001811E9A55                 lea     rcx, [rbp+3A0h+var_3E0]
+  .text:00000001811E9A59                 call    cs:?AppendConcat@CBufferString@@QEAAPEBDHPEBQEBDPEBH_N@Z; CBufferString::AppendConcat(int,char const * const *,int const *,bool)
+  .text:00000001811E9A5F                 xor     r8d, r8d
+  .text:00000001811E9A62                 mov     edx, r8d
+  .text:00000001811E9A65                 jmp     short loc_1811E9AB4
+  .text:00000001811E9A67                 mov     eax, [rbp+3A0h+var_3DC]
+  .text:00000001811E9A6A                 test    eax, 3FFFFFFFh
+  .text:00000001811E9A6F                 jbe     short loc_1811E9A85
+  .text:00000001811E9A71                 bt      eax, 1Eh
+  .text:00000001811E9A75                 lea     ebx, [r13+1]
+  .text:00000001811E9A79                 lea     rax, [rbp+3A0h+var_3D8]
+  .text:00000001811E9A7D                 cmovnb  rax, [rbp+3A0h+var_3D8]
+  .text:00000001811E9A82                 mov     byte ptr [rax], 0
+  .text:00000001811E9A85                 and     [rbp+3A0h+var_3E0], 0C0000000h
+  .text:00000001811E9A8C                 lea     r8, aAngles; "angles"
+  .text:00000001811E9A93                 mov     r9d, 0FFFFFFFFh
+  .text:00000001811E9A99                 mov     byte ptr [rsp+4A0h+var_480], 0
+  .text:00000001811E9A9E                 xor     edx, edx
+  .text:00000001811E9AA0                 lea     rcx, [rbp+3A0h+var_3E0]
+  .text:00000001811E9AA4                 call    cs:?Insert@CBufferString@@QEAAPEBDHPEBDH_N@Z; CBufferString::Insert(int,char const *,int,bool)
+  .text:00000001811E9AAA                 lea     rdx, aAngles; "angles"
+  .text:00000001811E9AB1                 xor     r8d, r8d
+  .text:00000001811E9AB4                 mov     eax, [rbp+3A0h+var_3DC]
+  .text:00000001811E9AB7                 bt      eax, 1Eh
+  .text:00000001811E9ABB                 jnb     short loc_1811E9AC3
+  .text:00000001811E9ABD                 lea     rcx, [rbp+3A0h+var_3D8]
+  .text:00000001811E9AC1                 jmp     short loc_1811E9AD4
+  .text:00000001811E9AC3                 test    eax, 3FFFFFFFh
+  .text:00000001811E9AC8                 lea     rcx, byte_18159B988
+  .text:00000001811E9ACF                 cmova   rcx, [rbp+3A0h+var_3D8]
+  .text:00000001811E9AD4                 mov     [rsp+4A0h+var_458], 0
+  .text:00000001811E9AD9                 lea     eax, [r15+10h]
+  .text:00000001811E9ADD                 mov     dword ptr [rsp+4A0h+var_460], eax
+  .text:00000001811E9AE1                 mov     byte ptr [rsp+4A0h+var_468], 2Fh ; '/'
+  .text:00000001811E9AE6                 jmp     loc_1811E98EE
+  .text:00000001811E9AEB                 cmp     al, 40h ; '@'
+  .text:00000001811E9AED                 jnz     loc_1811E9CB1
+  .text:00000001811E9AF3                 mov     [rbp+3A0h+var_3D8], r9
+  .text:00000001811E9AF7                 mov     [rbp+3A0h+var_3DC], 0C00000C8h
+  .text:00000001811E9AFE                 test    rsi, rsi
+  .text:00000001811E9B01                 jz      short loc_1811E9B44
+  .text:00000001811E9B03                 cmp     byte ptr [rsi], 0
+  .text:00000001811E9B06                 jz      short loc_1811E9B44
+  .text:00000001811E9B08                 mov     [rbp+3A0h+var_3E0], r9d
+  .text:00000001811E9B0C                 lea     rax, asc_1815E4188; "."
+  .text:00000001811E9B13                 xor     r9d, r9d
+  .text:00000001811E9B16                 mov     qword ptr [rsp+4A0h+var_440+8], rax
+  .text:00000001811E9B1B                 lea     r8, [rsp+4A0h+var_440]
+  .text:00000001811E9B20                 mov     qword ptr [rsp+4A0h+var_440], rsi
+  .text:00000001811E9B25                 mov     edx, 3
+  .text:00000001811E9B2A                 mov     [rsp+4A0h+var_430], r10
+  .text:00000001811E9B2F                 lea     rcx, [rbp+3A0h+var_3E0]
+  .text:00000001811E9B33                 mov     byte ptr [rsp+4A0h+var_480], 0
+  .text:00000001811E9B38                 call    cs:?AppendConcat@CBufferString@@QEAAPEBDHPEBQEBDPEBH_N@Z; CBufferString::AppendConcat(int,char const * const *,int const *,bool)
+  .text:00000001811E9B3E                 xor     edx, edx
+  .text:00000001811E9B40                 mov     ecx, edx
+  .text:00000001811E9B42                 jmp     short loc_1811E9B6B
+  .text:00000001811E9B44                 mov     [rbp+3A0h+var_3E0], r9d
+  .text:00000001811E9B48                 lea     rcx, [rbp+3A0h+var_3E0]
+  .text:00000001811E9B4C                 mov     r9d, 0FFFFFFFFh
+  .text:00000001811E9B52                 mov     byte ptr [rsp+4A0h+var_480], 0
+  .text:00000001811E9B57                 mov     r8, r10
+  .text:00000001811E9B5A                 xor     edx, edx
+  .text:00000001811E9B5C                 call    cs:?Insert@CBufferString@@QEAAPEBDHPEBDH_N@Z; CBufferString::Insert(int,char const *,int,bool)
+  .text:00000001811E9B62                 lea     rcx, aOrigin; "origin"
+  .text:00000001811E9B69                 xor     edx, edx
+  .text:00000001811E9B6B                 mov     eax, [rbp+3A0h+var_3DC]
+  .text:00000001811E9B6E                 bt      eax, 1Eh
+  .text:00000001811E9B72                 jnb     short loc_1811E9B7A
+  .text:00000001811E9B74                 lea     rax, [rbp+3A0h+var_3D8]
+  .text:00000001811E9B78                 jmp     short loc_1811E9B8B
+  .text:00000001811E9B7A                 test    eax, 3FFFFFFFh
+  .text:00000001811E9B7F                 lea     rax, byte_18159B988
+  .text:00000001811E9B86                 cmova   rax, [rbp+3A0h+var_3D8]
+  .text:00000001811E9B8B                 mov     [rsp+4A0h+var_458], 0
+  .text:00000001811E9B90                 mov     dword ptr [rsp+4A0h+var_460], r15d
+  .text:00000001811E9B95                 mov     byte ptr [rsp+4A0h+var_468], 3
+  .text:00000001811E9B9A                 mov     [rsp+4A0h+var_470], rdx
+  .text:00000001811E9B9F                 lea     ebx, [r13+1]
+  .text:00000001811E9BA3                 mov     [rsp+4A0h+var_478], rcx
+  .text:00000001811E9BA8                 mov     edx, ebx
+  .text:00000001811E9BAA                 mov     rcx, r14
+  .text:00000001811E9BAD                 mov     [rsp+4A0h+var_480], rax
+  .text:00000001811E9BB2                 mov     r9, rdi
+  .text:00000001811E9BB5                 mov     r8, r12
+  .text:00000001811E9BB8                 call    sub_1811E6210
+  .text:00000001811E9BBD                 test    rsi, rsi
+  .text:00000001811E9BC0                 jz      short loc_1811E9C2D
+  .text:00000001811E9BC2                 cmp     byte ptr [rsi], 0
+  .text:00000001811E9BC5                 jz      short loc_1811E9C2D
+  .text:00000001811E9BC7                 mov     eax, [rbp+3A0h+var_3DC]
+  .text:00000001811E9BCA                 test    eax, 3FFFFFFFh
+  .text:00000001811E9BCF                 jbe     short loc_1811E9BE5
+  .text:00000001811E9BD1                 bt      eax, 1Eh
+  .text:00000001811E9BD5                 lea     ebx, [r13+1]
+  .text:00000001811E9BD9                 lea     rax, [rbp+3A0h+var_3D8]
+  .text:00000001811E9BDD                 cmovnb  rax, [rbp+3A0h+var_3D8]
+  .text:00000001811E9BE2                 mov     byte ptr [rax], 0
+  .text:00000001811E9BE5                 and     [rbp+3A0h+var_3E0], 0C0000000h
+  .text:00000001811E9BEC                 lea     rax, asc_1815E4188; "."
+  .text:00000001811E9BF3                 mov     qword ptr [rsp+4A0h+var_440+8], rax
+  .text:00000001811E9BF8                 lea     r8, [rsp+4A0h+var_440]
+  .text:00000001811E9BFD                 lea     rax, aAngles; "angles"
+  .text:00000001811E9C04                 mov     byte ptr [rsp+4A0h+var_480], 0
+  .text:00000001811E9C09                 xor     r9d, r9d
+  .text:00000001811E9C0C                 mov     [rsp+4A0h+var_430], rax
+  .text:00000001811E9C11                 mov     edx, 3
+  .text:00000001811E9C16                 mov     qword ptr [rsp+4A0h+var_440], rsi
+  .text:00000001811E9C1B                 lea     rcx, [rbp+3A0h+var_3E0]
+  .text:00000001811E9C1F                 call    cs:?AppendConcat@CBufferString@@QEAAPEBDHPEBQEBDPEBH_N@Z; CBufferString::AppendConcat(int,char const * const *,int const *,bool)
+  .text:00000001811E9C25                 xor     r8d, r8d
+  .text:00000001811E9C28                 mov     edx, r8d
+  .text:00000001811E9C2B                 jmp     short loc_1811E9C7A
+  .text:00000001811E9C2D                 mov     eax, [rbp+3A0h+var_3DC]
+  .text:00000001811E9C30                 test    eax, 3FFFFFFFh
+  .text:00000001811E9C35                 jbe     short loc_1811E9C4B
+  .text:00000001811E9C37                 bt      eax, 1Eh
+  .text:00000001811E9C3B                 lea     ebx, [r13+1]
+  .text:00000001811E9C3F                 lea     rax, [rbp+3A0h+var_3D8]
+  .text:00000001811E9C43                 cmovnb  rax, [rbp+3A0h+var_3D8]
+  .text:00000001811E9C48                 mov     byte ptr [rax], 0
+  .text:00000001811E9C4B                 and     [rbp+3A0h+var_3E0], 0C0000000h
+  .text:00000001811E9C52                 lea     r8, aAngles; "angles"
+  .text:00000001811E9C59                 mov     r9d, 0FFFFFFFFh
+  .text:00000001811E9C5F                 mov     byte ptr [rsp+4A0h+var_480], 0
+  .text:00000001811E9C64                 xor     edx, edx
+  .text:00000001811E9C66                 lea     rcx, [rbp+3A0h+var_3E0]
+  .text:00000001811E9C6A                 call    cs:?Insert@CBufferString@@QEAAPEBDHPEBDH_N@Z; CBufferString::Insert(int,char const *,int,bool)
+  .text:00000001811E9C70                 lea     rdx, aAngles; "angles"
+  .text:00000001811E9C77                 xor     r8d, r8d
+  .text:00000001811E9C7A                 mov     eax, [rbp+3A0h+var_3DC]
+  .text:00000001811E9C7D                 bt      eax, 1Eh
+  .text:00000001811E9C81                 jnb     short loc_1811E9C89
+  .text:00000001811E9C83                 lea     rcx, [rbp+3A0h+var_3D8]
+  .text:00000001811E9C87                 jmp     short loc_1811E9C9A
+  .text:00000001811E9C89                 test    eax, 3FFFFFFFh
+  .text:00000001811E9C8E                 lea     rcx, byte_18159B988
+  .text:00000001811E9C95                 cmova   rcx, [rbp+3A0h+var_3D8]
+  .text:00000001811E9C9A                 mov     [rsp+4A0h+var_458], 0
+  .text:00000001811E9C9F                 lea     eax, [r15+0Ch]
+  .text:00000001811E9CA3                 mov     dword ptr [rsp+4A0h+var_460], eax
+  .text:00000001811E9CA7                 mov     byte ptr [rsp+4A0h+var_468], 1
+  .text:00000001811E9CAC                 jmp     loc_1811E98EE
+  .text:00000001811E9CB1                 cmp     al, 41h ; 'A'
+  .text:00000001811E9CB3                 jnz     loc_1811E9D77
+  .text:00000001811E9CB9                 mov     [rbp+3A0h+var_3D8], r9
+  .text:00000001811E9CBD                 mov     [rbp+3A0h+var_3DC], 0C00000C8h
+  .text:00000001811E9CC4                 test    rsi, rsi
+  .text:00000001811E9CC7                 jz      short loc_1811E9D0A
+  .text:00000001811E9CC9                 cmp     byte ptr [rsi], 0
+  .text:00000001811E9CCC                 jz      short loc_1811E9D0A
+  .text:00000001811E9CCE                 mov     [rbp+3A0h+var_3E0], r9d
+  .text:00000001811E9CD2                 lea     rax, asc_1815E4188; "."
+  .text:00000001811E9CD9                 xor     r9d, r9d
+  .text:00000001811E9CDC                 mov     qword ptr [rsp+4A0h+var_440+8], rax
+  .text:00000001811E9CE1                 lea     r8, [rsp+4A0h+var_440]
+  .text:00000001811E9CE6                 mov     qword ptr [rsp+4A0h+var_440], rsi
+  .text:00000001811E9CEB                 mov     edx, 3
+  .text:00000001811E9CF0                 mov     [rsp+4A0h+var_430], r10
+  .text:00000001811E9CF5                 lea     rcx, [rbp+3A0h+var_3E0]
+  .text:00000001811E9CF9                 mov     byte ptr [rsp+4A0h+var_480], 0
+  .text:00000001811E9CFE                 call    cs:?AppendConcat@CBufferString@@QEAAPEBDHPEBQEBDPEBH_N@Z; CBufferString::AppendConcat(int,char const * const *,int const *,bool)
+  .text:00000001811E9D04                 xor     edx, edx
+  .text:00000001811E9D06                 mov     ecx, edx
+  .text:00000001811E9D08                 jmp     short loc_1811E9D31
+  .text:00000001811E9D0A                 mov     [rbp+3A0h+var_3E0], r9d
+  .text:00000001811E9D0E                 lea     rcx, [rbp+3A0h+var_3E0]
+  .text:00000001811E9D12                 mov     r9d, 0FFFFFFFFh
+  .text:00000001811E9D18                 mov     byte ptr [rsp+4A0h+var_480], 0
+  .text:00000001811E9D1D                 mov     r8, r10
+  .text:00000001811E9D20                 xor     edx, edx
+  .text:00000001811E9D22                 call    cs:?Insert@CBufferString@@QEAAPEBDHPEBDH_N@Z; CBufferString::Insert(int,char const *,int,bool)
+  .text:00000001811E9D28                 lea     rcx, aOrigin; "origin"
+  .text:00000001811E9D2F                 xor     edx, edx
+  .text:00000001811E9D31                 mov     eax, [rbp+3A0h+var_3DC]
+  .text:00000001811E9D34                 bt      eax, 1Eh
+  .text:00000001811E9D38                 jnb     short loc_1811E9D52
+  .text:00000001811E9D3A                 mov     [rsp+4A0h+var_458], 0
+  .text:00000001811E9D3F                 lea     rax, [rbp+3A0h+var_3D8]
+  .text:00000001811E9D43                 mov     dword ptr [rsp+4A0h+var_460], r15d
+  .text:00000001811E9D48                 mov     byte ptr [rsp+4A0h+var_468], 0Eh
+  .text:00000001811E9D4D                 jmp     loc_1811E9B9A
+  .text:00000001811E9D52                 test    eax, 3FFFFFFFh
+  .text:00000001811E9D57                 mov     [rsp+4A0h+var_458], 0
+  .text:00000001811E9D5C                 lea     rax, byte_18159B988
+  .text:00000001811E9D63                 mov     dword ptr [rsp+4A0h+var_460], r15d
+  .text:00000001811E9D68                 cmova   rax, [rbp+3A0h+var_3D8]
+  .text:00000001811E9D6D                 mov     byte ptr [rsp+4A0h+var_468], 0Eh
+  .text:00000001811E9D72                 jmp     loc_1811E9B9A
+  .text:00000001811E9D77                 cmp     al, 16h
+  .text:00000001811E9D79                 jnz     loc_1811E9F46
+  .text:00000001811E9D7F                 mov     [rbp+3A0h+var_3D8], r9
+  .text:00000001811E9D83                 mov     [rbp+3A0h+var_3DC], 0C00000C8h
+  .text:00000001811E9D8A                 test    rsi, rsi
+  .text:00000001811E9D8D                 jz      short loc_1811E9DD0
+  .text:00000001811E9D8F                 cmp     byte ptr [rsi], 0
+  .text:00000001811E9D92                 jz      short loc_1811E9DD0
+  .text:00000001811E9D94                 mov     [rbp+3A0h+var_3E0], r9d
+  .text:00000001811E9D98                 lea     rax, asc_1815E4188; "."
+  .text:00000001811E9D9F                 xor     r9d, r9d
+  .text:00000001811E9DA2                 mov     qword ptr [rsp+4A0h+var_440+8], rax
+  .text:00000001811E9DA7                 lea     r8, [rsp+4A0h+var_440]
+  .text:00000001811E9DAC                 mov     qword ptr [rsp+4A0h+var_440], rsi
+  .text:00000001811E9DB1                 mov     edx, 3
+  .text:00000001811E9DB6                 mov     [rsp+4A0h+var_430], r10
+  .text:00000001811E9DBB                 lea     rcx, [rbp+3A0h+var_3E0]
+  .text:00000001811E9DBF                 mov     byte ptr [rsp+4A0h+var_480], 0
+  .text:00000001811E9DC4                 call    cs:?AppendConcat@CBufferString@@QEAAPEBDHPEBQEBDPEBH_N@Z; CBufferString::AppendConcat(int,char const * const *,int const *,bool)
+  .text:00000001811E9DCA                 xor     edx, edx
+  .text:00000001811E9DCC                 mov     ecx, edx
+  .text:00000001811E9DCE                 jmp     short loc_1811E9DF7
+  .text:00000001811E9DD0                 mov     [rbp+3A0h+var_3E0], r9d
+  .text:00000001811E9DD4                 lea     rcx, [rbp+3A0h+var_3E0]
+  .text:00000001811E9DD8                 mov     r9d, 0FFFFFFFFh
+  .text:00000001811E9DDE                 mov     byte ptr [rsp+4A0h+var_480], 0
+  .text:00000001811E9DE3                 mov     r8, r10
+  .text:00000001811E9DE6                 xor     edx, edx
+  .text:00000001811E9DE8                 call    cs:?Insert@CBufferString@@QEAAPEBDHPEBDH_N@Z; CBufferString::Insert(int,char const *,int,bool)
+  .text:00000001811E9DEE                 lea     rcx, aOrigin; "origin"
+  .text:00000001811E9DF5                 xor     edx, edx
+  .text:00000001811E9DF7                 mov     eax, [rbp+3A0h+var_3DC]
+  .text:00000001811E9DFA                 bt      eax, 1Eh
+  .text:00000001811E9DFE                 jnb     short loc_1811E9E06
+  .text:00000001811E9E00                 lea     rax, [rbp+3A0h+var_3D8]
+  .text:00000001811E9E04                 jmp     short loc_1811E9E17
+  .text:00000001811E9E06                 test    eax, 3FFFFFFFh
+  .text:00000001811E9E0B                 lea     rax, byte_18159B988
+  .text:00000001811E9E12                 cmova   rax, [rbp+3A0h+var_3D8]
+  .text:00000001811E9E17                 mov     [rsp+4A0h+var_458], 1
+  .text:00000001811E9E1C                 lea     ebx, [r13+1]
+  .text:00000001811E9E20                 mov     dword ptr [rsp+4A0h+var_460], r15d
+  .text:00000001811E9E25                 mov     r9, rdi
+  .text:00000001811E9E28                 mov     byte ptr [rsp+4A0h+var_468], 0Eh
+  .text:00000001811E9E2D                 mov     r8, r12
+  .text:00000001811E9E30                 mov     [rsp+4A0h+var_470], rdx
+  .text:00000001811E9E35                 mov     edx, ebx
+  .text:00000001811E9E37                 mov     [rsp+4A0h+var_478], rcx
+  .text:00000001811E9E3C                 mov     rcx, r14
+  .text:00000001811E9E3F                 mov     [rsp+4A0h+var_480], rax
+  .text:00000001811E9E44                 call    sub_1811E6210
+  .text:00000001811E9E49                 test    rsi, rsi
+  .text:00000001811E9E4C                 jz      short loc_1811E9EB7
+  .text:00000001811E9E4E                 cmp     byte ptr [rsi], 0
+  .text:00000001811E9E51                 jz      short loc_1811E9EB7
+  .text:00000001811E9E53                 mov     eax, [rbp+3A0h+var_3DC]
+  .text:00000001811E9E56                 test    eax, 3FFFFFFFh
+  .text:00000001811E9E5B                 jbe     short loc_1811E9E71
+  .text:00000001811E9E5D                 bt      eax, 1Eh
+  .text:00000001811E9E61                 lea     ebx, [r13+1]
+  .text:00000001811E9E65                 lea     rax, [rbp+3A0h+var_3D8]
+  .text:00000001811E9E69                 cmovnb  rax, [rbp+3A0h+var_3D8]
+  .text:00000001811E9E6E                 mov     byte ptr [rax], 0
+  .text:00000001811E9E71                 and     [rbp+3A0h+var_3E0], 0C0000000h
+  .text:00000001811E9E78                 lea     rax, asc_1815E4188; "."
+  .text:00000001811E9E7F                 mov     qword ptr [rsp+4A0h+var_440+8], rax
+  .text:00000001811E9E84                 lea     r8, [rsp+4A0h+var_440]
+  .text:00000001811E9E89                 lea     rax, aAngles; "angles"
+  .text:00000001811E9E90                 mov     qword ptr [rsp+4A0h+var_440], rsi
+  .text:00000001811E9E95                 xor     r9d, r9d
+  .text:00000001811E9E98                 mov     [rsp+4A0h+var_430], rax
+  .text:00000001811E9E9D                 mov     edx, 3
+  .text:00000001811E9EA2                 mov     byte ptr [rsp+4A0h+var_480], 0
+  .text:00000001811E9EA7                 lea     rcx, [rbp+3A0h+var_3E0]
+  .text:00000001811E9EAB                 call    cs:?AppendConcat@CBufferString@@QEAAPEBDHPEBQEBDPEBH_N@Z; CBufferString::AppendConcat(int,char const * const *,int const *,bool)
+  .text:00000001811E9EB1                 xor     edx, edx
+  .text:00000001811E9EB3                 mov     ecx, edx
+  .text:00000001811E9EB5                 jmp     short loc_1811E9F03
+  .text:00000001811E9EB7                 mov     eax, [rbp+3A0h+var_3DC]
+  .text:00000001811E9EBA                 test    eax, 3FFFFFFFh
+  .text:00000001811E9EBF                 jbe     short loc_1811E9ED5
+  .text:00000001811E9EC1                 bt      eax, 1Eh
+  .text:00000001811E9EC5                 lea     ebx, [r13+1]
+  .text:00000001811E9EC9                 lea     rax, [rbp+3A0h+var_3D8]
+  .text:00000001811E9ECD                 cmovnb  rax, [rbp+3A0h+var_3D8]
+  .text:00000001811E9ED2                 mov     byte ptr [rax], 0
+  .text:00000001811E9ED5                 and     [rbp+3A0h+var_3E0], 0C0000000h
+  .text:00000001811E9EDC                 lea     r8, aAngles; "angles"
+  .text:00000001811E9EE3                 mov     r9d, 0FFFFFFFFh
+  .text:00000001811E9EE9                 mov     byte ptr [rsp+4A0h+var_480], 0
+  .text:00000001811E9EEE                 xor     edx, edx
+  .text:00000001811E9EF0                 lea     rcx, [rbp+3A0h+var_3E0]
+  .text:00000001811E9EF4                 call    cs:?Insert@CBufferString@@QEAAPEBDHPEBDH_N@Z; CBufferString::Insert(int,char const *,int,bool)
+  .text:00000001811E9EFA                 lea     rcx, aAngles; "angles"
+  .text:00000001811E9F01                 xor     edx, edx
+  .text:00000001811E9F03                 mov     eax, [rbp+3A0h+var_3DC]
+  .text:00000001811E9F06                 bt      eax, 1Eh
+  .text:00000001811E9F0A                 jnb     short loc_1811E9F12
+  .text:00000001811E9F0C                 lea     rax, [rbp+3A0h+var_3D8]
+  .text:00000001811E9F10                 jmp     short loc_1811E9F23
+  .text:00000001811E9F12                 test    eax, 3FFFFFFFh
+  .text:00000001811E9F17                 lea     rax, byte_18159B988
+  .text:00000001811E9F1E                 cmova   rax, [rbp+3A0h+var_3D8]
+  .text:00000001811E9F23                 mov     [rsp+4A0h+var_458], 1
+  .text:00000001811E9F28                 mov     dword ptr [rsp+4A0h+var_460], r15d
+  .text:00000001811E9F2D                 mov     byte ptr [rsp+4A0h+var_468], 2Fh ; '/'
+  .text:00000001811E9F32                 mov     [rsp+4A0h+var_470], rdx
+  .text:00000001811E9F37                 mov     [rsp+4A0h+var_478], rcx
+  .text:00000001811E9F3C                 mov     [rsp+4A0h+var_480], rax
+  .text:00000001811E9F41                 jmp     loc_1811E98FD
+  .text:00000001811E9F46                 mov     rax, [rbp+3A0h+var_3F0]
+  .text:00000001811E9F4A                 cmp     byte ptr [rax], 0
+  .text:00000001811E9F4D                 jz      short loc_1811E9FB4
+  .text:00000001811E9F4F                 mov     [rsp+4A0h+var_458], 0
+  .text:00000001811E9F54                 mov     r9, rdi
+  .text:00000001811E9F57                 mov     dword ptr [rsp+4A0h+var_460], r15d
+  .text:00000001811E9F5C                 mov     r8, r12
+  .text:00000001811E9F5F                 mov     byte ptr [rsp+4A0h+var_468], 0
+  .text:00000001811E9F64                 mov     rcx, r14
+  .text:00000001811E9F67                 mov     [rsp+4A0h+var_470], rbx
+  .text:00000001811E9F6C                 mov     [rsp+4A0h+var_478], rdx
+  .text:00000001811E9F71                 mov     edx, r13d
+  .text:00000001811E9F74                 mov     [rsp+4A0h+var_480], rsi
+  .text:00000001811E9F79                 call    sub_1811E6210
+  .text:00000001811E9F7E                 xor     r9d, r9d
+  .text:00000001811E9F81                 mov     r8d, [rbp+3A0h+var_414]
+  .text:00000001811E9F85                 add     r15d, [rbp+3A0h+var_410]
+  .text:00000001811E9F89                 inc     r8d
+  .text:00000001811E9F8C                 mov     [rbp+3A0h+var_414], r8d
+  .text:00000001811E9F90                 mov     [rbp+3A0h+var_420], r15d
+  .text:00000001811E9F94                 cmp     r8d, [rbp+3A0h+var_41C]
+  .text:00000001811E9F98                 jge     loc_1811EA03C
+  .text:00000001811E9F9E                 mov     rcx, qword ptr [rbp+3A0h+var_1C8]
+  .text:00000001811E9FA5                 mov     eax, [rbp+3A0h+var_1CC]
+  .text:00000001811E9FAB                 mov     rdx, [rbp+3A0h+var_400]
+  .text:00000001811E9FAF                 jmp     loc_1811E927E
+  .text:00000001811E9FB4                 mov     ecx, cs:dword_1820B1848
+  .text:00000001811E9FBA                 mov     edx, 5
+  .text:00000001811E9FBF                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:00000001811E9FC5                 test    al, al
+  .text:00000001811E9FC7                 jz      short loc_1811EA03C
+  .text:00000001811E9FC9                 mov     ecx, cs:dword_1820B1848
+  .text:00000001811E9FCF                 lea     rax, aCBuildworkerCs_62; "C:\\buildworker\\csgo_rel_win64\\build"...
+  .text:00000001811E9FD6                 mov     [rbp+3A0h+var_220], rax
+  .text:00000001811E9FDD                 lea     r9, aFieldSSCannotH; "Field %s::%s cannot have sub-keyfields "...
+  .text:00000001811E9FE4                 xor     r8d, r8d
+  .text:00000001811E9FE7                 mov     [rbp+3A0h+var_218], 566h
+  .text:00000001811E9FF1                 lea     rax, aCentitysystemD; "CEntitySystem::DataDesc_AddComponentFie"...
+  .text:00000001811E9FF8                 mov     [rbp+3A0h+var_1E8], r8d
+  .text:00000001811E9FFF                 mov     [rbp+3A0h+var_210], rax
+  .text:00000001811EA006                 lea     r8, [rbp+3A0h+var_220]
+  .text:00000001811EA00D                 mov     rax, [rbx+8]
+  .text:00000001811EA011                 xorps   xmm0, xmm0
+  .text:00000001811EA014                 xorps   xmm1, xmm1
+  .text:00000001811EA017                 mov     [rsp+4A0h+var_478], rax
+  .text:00000001811EA01C                 mov     edx, 5
+  .text:00000001811EA021                 mov     [rsp+4A0h+var_480], rdi
+  .text:00000001811EA026                 movdqu  [rbp+3A0h+var_208], xmm0
+  .text:00000001811EA02E                 movdqu  [rbp+3A0h+var_1F8], xmm1
+  .text:00000001811EA036                 call    cs:?LoggingSystem_Log@@YA?AW4LoggingResponse_t@@HW4LoggingSeverity_t@@AEBULoggingRareOptions_t@@PEBDZZ; LoggingSystem_Log(int,LoggingSeverity_t,LoggingRareOptions_t const &,char const *,...)
+  .text:00000001811EA03C                 xor     edx, edx
+  .text:00000001811EA03E                 lea     rcx, [rbp+3A0h+var_100]
+  .text:00000001811EA045                 call    cs:?Purge@CBufferString@@QEAAXH@Z; CBufferString::Purge(int)
+  .text:00000001811EA04B                 xor     edx, edx
+  .text:00000001811EA04D                 lea     rcx, [rbp+3A0h+var_1D0]
+  .text:00000001811EA054                 call    cs:?Purge@CBufferString@@QEAAXH@Z; CBufferString::Purge(int)
+  .text:00000001811EA05A                 mov     rbx, [rsp+4A0h+arg_8]
+  .text:00000001811EA062                 add     rsp, 470h
+  .text:00000001811EA069                 pop     r15
+  .text:00000001811EA06B                 pop     r14
+  .text:00000001811EA06D                 pop     r13
+  .text:00000001811EA06F                 pop     r12
+  .text:00000001811EA071                 pop     rdi
+  .text:00000001811EA072                 pop     rsi
+  .text:00000001811EA073                 pop     rbp
+  .text:00000001811EA074                 retn
+procedure: |-
+  void __fastcall CEntitySystem_AddComponentFieldUnserializer(__int64 a1, int a2, __int64 a3, const char *a4, __int64 a5)
+  {
+    int v5; // r15d
+    const char *v6; // rbx
+    __int64 v8; // r14
+    int v9; // ecx
+    const char *v10; // rdi
+    __int64 *v11; // r12
+    unsigned int v12; // eax
+    __int64 v13; // rbx
+    int v14; // eax
+    const char *v15; // rsi
+    bool v16; // zf
+    const char *v17; // r8
+    __int64 v18; // rdx
+    int v19; // eax
+    const char *v20; // rcx
+    const __m128i *v21; // rsi
+    __int64 v22; // r8
+    const char *v23; // rdx
+    __int64 v24; // r14
+    int *v25; // rdi
+    __int64 v26; // r12
+    __int64 v27; // rcx
+    __int64 v28; // rcx
+    int v29; // r15d
+    int v30; // eax
+    __int64 v31; // rdx
+    int v32; // ebx
+    int v33; // eax
+    __int64 v34; // rdx
+    __int64 v35; // rdi
+    __m128i *v36; // rax
+    int v37; // eax
+    int v38; // ebx
+    _QWORD *v39; // r15
+    int *v40; // r14
+    __int64 v41; // r12
+    __int64 v42; // rcx
+    __int64 v43; // rcx
+    int v44; // edi
+    int v45; // eax
+    __int64 v46; // rdx
+    int v47; // ebx
+    int v48; // eax
+    __int64 v49; // rcx
+    __int64 v50; // rcx
+    char v51; // al
+    const char *v52; // rcx
+    char *v53; // rax
+    int v54; // ebx
+    _BYTE *v55; // rax
+    const char *v56; // rdx
+    _BYTE *v57; // rax
+    char *v58; // rcx
+    const char *v59; // rcx
+    char *v60; // rax
+    int v61; // ebx
+    _BYTE *v62; // rax
+    const char *v63; // rdx
+    _BYTE *v64; // rax
+    char *v65; // rcx
+    const char *v66; // rcx
+    char *v67; // rax
+    int v68; // ebx
+    _BYTE *v69; // rax
+    const char *v70; // rdx
+    _BYTE *v71; // rax
+    char *v72; // rcx
+    const char *v73; // rcx
+    char *v74; // rax
+    int v75; // ebx
+    _BYTE *v76; // rax
+    const char *v77; // rcx
+    _BYTE *v78; // rax
+    char *v79; // rax
+    const char *v80; // [rsp+28h] [rbp-D8h]
+    char v81; // [rsp+38h] [rbp-C8h]
+    __int16 v82; // [rsp+40h] [rbp-C0h]
+    char v83; // [rsp+50h] [rbp-B0h]
+    __int128 v84; // [rsp+60h] [rbp-A0h] BYREF
+    const char *v85; // [rsp+70h] [rbp-90h]
+    int v86; // [rsp+80h] [rbp-80h]
+    int v87; // [rsp+84h] [rbp-7Ch]
+    int v88; // [rsp+88h] [rbp-78h]
+    int v89; // [rsp+8Ch] [rbp-74h]
+    int v90; // [rsp+90h] [rbp-70h]
+    __int64 v91; // [rsp+98h] [rbp-68h]
+    __int64 v92; // [rsp+A0h] [rbp-60h]
+    int v93; // [rsp+A8h] [rbp-58h]
+    const char *v94; // [rsp+B0h] [rbp-50h]
+    int v95; // [rsp+C0h] [rbp-40h] BYREF
+    int v96; // [rsp+C4h] [rbp-3Ch]
+    _QWORD v97[48]; // [rsp+C8h] [rbp-38h] BYREF
+    int v98; // [rsp+248h] [rbp+148h]
+    int v99; // [rsp+260h] [rbp+160h]
+    const char *v100; // [rsp+280h] [rbp+180h] BYREF
+    int v101; // [rsp+288h] [rbp+188h]
+    const char *v102; // [rsp+290h] [rbp+190h]
+    __int128 v103; // [rsp+298h] [rbp+198h]
+    __int128 v104; // [rsp+2A8h] [rbp+1A8h]
+    int v105; // [rsp+2B8h] [rbp+1B8h]
+    __int128 v106; // [rsp+2C0h] [rbp+1C0h] BYREF
+    int v107; // [rsp+2D0h] [rbp+1D0h] BYREF
+    int v108; // [rsp+2D4h] [rbp+1D4h]
+    char v109[200]; // [rsp+2D8h] [rbp+1D8h] BYREF
+    int v110; // [rsp+3A0h] [rbp+2A0h] BYREF
+    int v111; // [rsp+3A4h] [rbp+2A4h]
+    const __m128i *v112; // [rsp+3A8h] [rbp+2A8h] BYREF
+
+    v5 = *(_DWORD *)(a3 + 24);
+    v6 = *(const char **)(a3 + 16);
+    v8 = a1;
+    v9 = *(_DWORD *)(a3 + 40);
+    v10 = a4;
+    v86 = v5;
+    v11 = (__int64 *)a3;
+    v83 = 0;
+    v12 = *(unsigned __int16 *)(a5 + 20);
+    v87 = 1;
+    v88 = 0;
+    v90 = 0;
+    if ( v9 < 0 )
+    {
+      v94 = v6;
+      v15 = v6;
+      if ( v12 > 1 )
+      {
+        v16 = *(_BYTE *)a5 == 8;
+        v94 = v6;
+        if ( !v16 )
+        {
+          if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_1820B1848, 5) )
+          {
+            v100 = "C:\\buildworker\\csgo_rel_win64\\build\\src\\entity2\\entitysystem.cpp";
+            v105 = 0;
+            v102 = "CEntitySystem::DataDesc_AddComponentFieldUnserializer";
+            v101 = 1210;
+            v103 = 0;
+            v104 = 0;
+            LoggingSystem_Log(
+              (unsigned int)dword_1820B1848,
+              5,
+              &v100,
+              "Field \"%s\" of class \"%s\" cannot be unserialized yet (lacking array support)!\n",
+              v6,
+              v10);
+          }
+          return;
+        }
+      }
+      v13 = a5;
+    }
+    else
+    {
+      v88 = v9;
+      v13 = a5;
+      v83 = 1;
+      v87 = v12;
+      v14 = sub_1814F1660(a5);
+      v15 = (const char *)v11[2];
+      v94 = v15;
+      v90 = v14;
+    }
+    v16 = *(_BYTE *)v13 == 10;
+    v93 = *(_DWORD *)(v13 + 24) & 0x10;
+    if ( v16 )
+      v91 = *(_QWORD *)(v13 + 56);
+    else
+      v91 = 0;
+    v17 = (const char *)v11[1];
+    *(_QWORD *)v109 = 0;
+    v108 = -1073741624;
+    if ( v17 && *v17 )
+    {
+      if ( v15 && *v15 )
+      {
+        *(_QWORD *)&v84 = v17;
+        v107 = 0;
+        *((_QWORD *)&v84 + 1) = ".";
+        v85 = v15;
+        CBufferString::AppendConcat((CBufferString *)&v107, 3, (const char *const *)&v84, nullptr, 0);
+        v18 = 0;
+      }
+      else
+      {
+        v107 = 0;
+        CBufferString::Insert((CBufferString *)&v107, 0, v17, -1, 0);
+        v18 = 0;
+      }
+    }
+    else
+    {
+      v107 = 0;
+      CBufferString::Insert((CBufferString *)&v107, 0, v15, -1, 0);
+      v18 = (__int64)v15;
+    }
+    v19 = v108;
+    v20 = *(const char **)v109;
+    v92 = v18;
+    if ( (v108 & 0x40000000) != 0 )
+    {
+      v21 = (const __m128i *)v109;
+    }
+    else
+    {
+      v21 = (const __m128i *)byte_18159B988;
+      if ( (v108 & 0x3FFFFFFF) != 0 )
+        v21 = *(const __m128i **)v109;
+    }
+    v22 = 0;
+    v110 = 0;
+    v112 = nullptr;
+    v111 = -1073741624;
+    v89 = 0;
+    if ( v87 )
+    {
+      while ( 1 )
+      {
+        if ( v83 )
+        {
+          if ( (v19 & 0x40000000) != 0 )
+          {
+            CBufferString::Format((CBufferString *)&v110, v109, (unsigned int)(v88 + v22));
+          }
+          else
+          {
+            v23 = byte_18159B988;
+            if ( (v19 & 0x3FFFFFFF) != 0 )
+              v23 = v20;
+            CBufferString::Format((CBufferString *)&v110, v23, (unsigned int)(v88 + v22));
+          }
+          if ( (v111 & 0x40000000) != 0 )
+          {
+            v21 = (const __m128i *)&v112;
+          }
+          else
+          {
+            v21 = (const __m128i *)byte_18159B988;
+            if ( (v111 & 0x3FFFFFFF) != 0 )
+              v21 = v112;
+          }
+          v18 = 0;
+          v92 = 0;
+        }
+        if ( v93 )
+        {
+          v24 = -1;
+          do
+            v16 = v21->m128i_i8[++v24] == 0;
+          while ( !v16 );
+          v25 = (int *)(*v11 + 416);
+          v26 = *v25;
+          if ( (_DWORD)v26 == v25[4] && (v25[5] & 0x40000000) == 0 )
+          {
+            v27 = (unsigned int)v25[4];
+            if ( (_DWORD)v27 == 0x7FFFFFFF )
+              UtlVectorMemory_FailedAllocation(v27, 1);
+            v28 = (unsigned int)v25[4];
+            v29 = v28 + 1;
+            v30 = UtlVectorMemory_CalcNewAllocationCount(v28, v25[5] & 0x3FFFFFFF, (unsigned int)(v28 + 1), 32);
+            v32 = v30;
+            if ( v30 < v29 )
+            {
+              if ( v30 || v29 > -1 )
+              {
+                do
+                {
+                  v31 = (unsigned int)((v32 + v29) >> 31);
+                  v32 = (v32 + v29) / 2;
+                }
+                while ( v32 < v29 );
+              }
+              else
+              {
+                v32 = -1;
+              }
+            }
+            LOBYTE(v31) = (v25[5] & 0xC0000000) == 0;
+            *((_QWORD *)v25 + 1) = UtlVectorMemory_Alloc(*((_QWORD *)v25 + 1), v31, 32LL * v32, 32LL * v25[4]);
+            v33 = v25[5];
+            if ( (v33 & 0xC0000000) != 0 )
+              v25[5] = v33 & 0x3FFFFFFF;
+            v5 = v86;
+            v25[4] = v32;
+          }
+          ++*v25;
+          v34 = v26;
+          v11 = (__int64 *)a3;
+          v34 *= 32;
+          *(_QWORD *)(v34 + *((_QWORD *)v25 + 1) + 16) = 0;
+          v35 = v34 + *(_QWORD *)(*(_QWORD *)a3 + 424LL);
+          v36 = (__m128i *)sub_180E772D0((int)v24 + 1);
+          *(_QWORD *)v35 = v36;
+          sub_18154A090(v36, v21, (int)v24 + 1);
+          v8 = a1;
+          v13 = a5;
+          *(_DWORD *)(v35 + 8) = 0;
+          *(_DWORD *)(v35 + 24) = v5;
+          v10 = a4;
+        }
+        else if ( v91 )
+        {
+          v37 = *(_DWORD *)(v13 + 24);
+          if ( (v37 & 0x40) != 0 )
+          {
+            CUtlScratchMemoryPool::GetCurrentAllocPoint(v8 + 3256  // 3256 = 0xCB8 = CEntitySystem::m_DataDescKeyUnserializerss (structmember, struct=CEntitySystem, member=m_DataDescKeyUnserializerss), &v106, v22);
+            sub_1811E42C0(&v95);
+            sub_1811EAA30(v8, a2 + 1, (_DWORD)v21, *(_QWORD *)(v91 + 16), v91, 0, 1, (__int64)&v95, v11[4]);
+            sub_1811EA080(v8, a2 + 1, (_DWORD)v21, *(_QWORD *)(v91 + 16), v91, 1, (__int64)&v95, v11[4]);
+            if ( HIDWORD(v97[0]) || v99 || v98 != HIDWORD(v97[0]) )
+            {
+              v39 = CUtlScratchMemoryPool::AllocAligned((CUtlScratchMemoryPool *)(v8 + 3256  // 3256 = 0xCB8 = CEntitySystem::m_DataDescKeyUnserializerss (structmember, struct=CEntitySystem, member=m_DataDescKeyUnserializerss)), 48, 16);
+              *v39 = 0;
+              v39[1] = 9;
+              v39[2] = 0;
+              v39[3] = 0;
+              v39[4] = 0;
+              v39[5] = 0;
+              sub_1811F1470(v39, &v95, v8 + 3256  // 3256 = 0xCB8 = CEntitySystem::m_DataDescKeyUnserializerss (structmember, struct=CEntitySystem, member=m_DataDescKeyUnserializerss));
+              v40 = (int *)(*v11 + 392);
+              v41 = *v40;
+              if ( (_DWORD)v41 == v40[4] && (v40[5] & 0x40000000) == 0 )
+              {
+                v42 = (unsigned int)v40[4];
+                if ( (_DWORD)v42 == 0x7FFFFFFF )
+                  UtlVectorMemory_FailedAllocation(v42, 1);
+                v43 = (unsigned int)v40[4];
+                v44 = v43 + 1;
+                v45 = UtlVectorMemory_CalcNewAllocationCount(v43, v40[5] & 0x3FFFFFFF, (unsigned int)(v43 + 1), 16);
+                v47 = v45;
+                if ( v45 < v44 )
+                {
+                  if ( v45 || v44 > -1 )
+                  {
+                    do
+                    {
+                      v46 = (unsigned int)((v47 + v44) >> 31);
+                      v47 = (v47 + v44) / 2;
+                    }
+                    while ( v47 < v44 );
+                  }
+                  else
+                  {
+                    v47 = -1;
+                  }
+                }
+                LOBYTE(v46) = (v40[5] & 0xC0000000) == 0;
+                *((_QWORD *)v40 + 1) = UtlVectorMemory_Alloc(*((_QWORD *)v40 + 1), v46, 16LL * v47, 16LL * v40[4]);
+                v48 = v40[5];
+                if ( (v48 & 0xC0000000) != 0 )
+                  v40[5] = v48 & 0x3FFFFFFF;
+                v40[4] = v47;
+              }
+              ++*v40;
+              v49 = v41;
+              v11 = (__int64 *)a3;
+              v50 = *(_QWORD *)(*(_QWORD *)a3 + 400LL) + 16 * v49;
+              *(_DWORD *)v50 = v86;
+              *(_QWORD *)(v50 + 8) = v39;
+              sub_1811E4D00(&v95);
+              v5 = v86;
+              v10 = a4;
+              v8 = a1;
+              v13 = a5;
+            }
+            else
+            {
+              v84 = v106;
+              CUtlScratchMemoryPool::FreeToAllocPoint(v8 + 3256  // 3256 = 0xCB8 = CEntitySystem::m_DataDescKeyUnserializerss (structmember, struct=CEntitySystem, member=m_DataDescKeyUnserializerss), &v84);
+              sub_1811E4D00(&v95);
+              v10 = a4;
+              v13 = a5;
+            }
+          }
+          else
+          {
+            if ( (v37 & 0x40000) != 0 )
+            {
+              v38 = a2;
+            }
+            else
+            {
+              v10 = *(const char **)(v91 + 16);
+              v38 = a2 + 1;
+            }
+            sub_1811EAA30(v8, v38, (_DWORD)v21, (_DWORD)v10, v91, v5, 1, *v11, v11[4]);
+            sub_1811EA080(v8, v38, (_DWORD)v21, (_DWORD)v10, v91, 1, *v11, v11[4]);
+            v10 = a4;
+            v13 = a5;
+          }
+        }
+        else
+        {
+          v51 = *(_BYTE *)v13;
+          if ( *(_BYTE *)v13 == 59 )
+          {
+            v97[0] = 0;
+            v96 = -1073741624;
+            if ( v21 && v21->m128i_i8[0] )
+            {
+              v95 = 0;
+              *((_QWORD *)&v84 + 1) = ".";
+              *(_QWORD *)&v84 = v21;
+              v85 = "origin";
+              CBufferString::AppendConcat((CBufferString *)&v95, 3, (const char *const *)&v84, nullptr, 0);
+              v52 = nullptr;
+            }
+            else
+            {
+              v95 = 0;
+              CBufferString::Insert((CBufferString *)&v95, 0, "origin", -1, 0);
+              v52 = "origin";
+            }
+            if ( (v96 & 0x40000000) != 0 )
+            {
+              v53 = (char *)v97;
+            }
+            else
+            {
+              v53 = byte_18159B988;
+              if ( (v96 & 0x3FFFFFFF) != 0 )
+                v53 = (char *)v97[0];
+            }
+            v54 = a2 + 1;
+            sub_1811E6210(v8, a2 + 1, (_DWORD)v11, (_DWORD)v10, (__int64)v53, (__int64)v52, 0, 3, v5, 0);
+            if ( v21 && v21->m128i_i8[0] )
+            {
+              if ( (v96 & 0x3FFFFFFF) != 0 )
+              {
+                v54 = a2 + 1;
+                v55 = v97;
+                if ( (v96 & 0x40000000) == 0 )
+                  v55 = (_BYTE *)v97[0];
+                *v55 = 0;
+              }
+              v95 &= 0xC0000000;
+              *((_QWORD *)&v84 + 1) = ".";
+              *(_QWORD *)&v84 = v21;
+              v85 = "angles";
+              CBufferString::AppendConcat((CBufferString *)&v95, 3, (const char *const *)&v84, nullptr, 0);
+              v56 = nullptr;
+            }
+            else
+            {
+              if ( (v96 & 0x3FFFFFFF) != 0 )
+              {
+                v54 = a2 + 1;
+                v57 = v97;
+                if ( (v96 & 0x40000000) == 0 )
+                  v57 = (_BYTE *)v97[0];
+                *v57 = 0;
+              }
+              v95 &= 0xC0000000;
+              CBufferString::Insert((CBufferString *)&v95, 0, "angles", -1, 0);
+              v56 = "angles";
+            }
+            if ( (v96 & 0x40000000) != 0 )
+            {
+              v58 = (char *)v97;
+            }
+            else
+            {
+              v58 = byte_18159B988;
+              if ( (v96 & 0x3FFFFFFF) != 0 )
+                v58 = (char *)v97[0];
+            }
+            sub_1811E6210(v8, v54, (_DWORD)v11, (_DWORD)v10, (__int64)v58, (__int64)v56, 0, 4, v5 + 16, 0);
+            goto LABEL_99;
+          }
+          switch ( v51 )
+          {
+            case 60:
+              v97[0] = 0;
+              v96 = -1073741624;
+              if ( v21 && v21->m128i_i8[0] )
+              {
+                v95 = 0;
+                *((_QWORD *)&v84 + 1) = ".";
+                *(_QWORD *)&v84 = v21;
+                v85 = "origin";
+                CBufferString::AppendConcat((CBufferString *)&v95, 3, (const char *const *)&v84, nullptr, 0);
+                v59 = nullptr;
+              }
+              else
+              {
+                v95 = 0;
+                CBufferString::Insert((CBufferString *)&v95, 0, "origin", -1, 0);
+                v59 = "origin";
+              }
+              if ( (v96 & 0x40000000) != 0 )
+              {
+                v60 = (char *)v97;
+              }
+              else
+              {
+                v60 = byte_18159B988;
+                if ( (v96 & 0x3FFFFFFF) != 0 )
+                  v60 = (char *)v97[0];
+              }
+              v61 = a2 + 1;
+              sub_1811E6210(v8, a2 + 1, (_DWORD)v11, (_DWORD)v10, (__int64)v60, (__int64)v59, 0, 14, v5, 0);
+              if ( v21 && v21->m128i_i8[0] )
+              {
+                if ( (v96 & 0x3FFFFFFF) != 0 )
+                {
+                  v61 = a2 + 1;
+                  v62 = v97;
+                  if ( (v96 & 0x40000000) == 0 )
+                    v62 = (_BYTE *)v97[0];
+                  *v62 = 0;
+                }
+                v95 &= 0xC0000000;
+                *((_QWORD *)&v84 + 1) = ".";
+                *(_QWORD *)&v84 = v21;
+                v85 = "angles";
+                CBufferString::AppendConcat((CBufferString *)&v95, 3, (const char *const *)&v84, nullptr, 0);
+                v63 = nullptr;
+              }
+              else
+              {
+                if ( (v96 & 0x3FFFFFFF) != 0 )
+                {
+                  v61 = a2 + 1;
+                  v64 = v97;
+                  if ( (v96 & 0x40000000) == 0 )
+                    v64 = (_BYTE *)v97[0];
+                  *v64 = 0;
+                }
+                v95 &= 0xC0000000;
+                CBufferString::Insert((CBufferString *)&v95, 0, "angles", -1, 0);
+                v63 = "angles";
+              }
+              if ( (v96 & 0x40000000) != 0 )
+              {
+                v65 = (char *)v97;
+              }
+              else
+              {
+                v65 = byte_18159B988;
+                if ( (v96 & 0x3FFFFFFF) != 0 )
+                  v65 = (char *)v97[0];
+              }
+              sub_1811E6210(v8, v61, (_DWORD)v11, (_DWORD)v10, (__int64)v65, (__int64)v63, 0, 47, v5 + 16, 0);
+              goto LABEL_99;
+            case 64:
+              v97[0] = 0;
+              v96 = -1073741624;
+              if ( v21 && v21->m128i_i8[0] )
+              {
+                v95 = 0;
+                *((_QWORD *)&v84 + 1) = ".";
+                *(_QWORD *)&v84 = v21;
+                v85 = "origin";
+                CBufferString::AppendConcat((CBufferString *)&v95, 3, (const char *const *)&v84, nullptr, 0);
+                v66 = nullptr;
+              }
+              else
+              {
+                v95 = 0;
+                CBufferString::Insert((CBufferString *)&v95, 0, "origin", -1, 0);
+                v66 = "origin";
+              }
+              if ( (v96 & 0x40000000) != 0 )
+              {
+                v67 = (char *)v97;
+              }
+              else
+              {
+                v67 = byte_18159B988;
+                if ( (v96 & 0x3FFFFFFF) != 0 )
+                  v67 = (char *)v97[0];
+              }
+              v82 = v5;
+              v81 = 3;
+              goto LABEL_136;
+            case 65:
+              v97[0] = 0;
+              v96 = -1073741624;
+              if ( v21 && v21->m128i_i8[0] )
+              {
+                v95 = 0;
+                *((_QWORD *)&v84 + 1) = ".";
+                *(_QWORD *)&v84 = v21;
+                v85 = "origin";
+                CBufferString::AppendConcat((CBufferString *)&v95, 3, (const char *const *)&v84, nullptr, 0);
+                v66 = nullptr;
+              }
+              else
+              {
+                v95 = 0;
+                CBufferString::Insert((CBufferString *)&v95, 0, "origin", -1, 0);
+                v66 = "origin";
+              }
+              if ( (v96 & 0x40000000) != 0 )
+              {
+                v67 = (char *)v97;
+                v82 = v5;
+                v81 = 14;
+              }
+              else
+              {
+                v67 = byte_18159B988;
+                v82 = v5;
+                if ( (v96 & 0x3FFFFFFF) != 0 )
+                  v67 = (char *)v97[0];
+                v81 = 14;
+              }
+  LABEL_136:
+              v68 = a2 + 1;
+              sub_1811E6210(v8, a2 + 1, (_DWORD)v11, (_DWORD)v10, (__int64)v67, (__int64)v66, 0, v81, v82, 0);
+              if ( v21 && v21->m128i_i8[0] )
+              {
+                if ( (v96 & 0x3FFFFFFF) != 0 )
+                {
+                  v68 = a2 + 1;
+                  v69 = v97;
+                  if ( (v96 & 0x40000000) == 0 )
+                    v69 = (_BYTE *)v97[0];
+                  *v69 = 0;
+                }
+                v95 &= 0xC0000000;
+                *((_QWORD *)&v84 + 1) = ".";
+                v85 = "angles";
+                *(_QWORD *)&v84 = v21;
+                CBufferString::AppendConcat((CBufferString *)&v95, 3, (const char *const *)&v84, nullptr, 0);
+                v70 = nullptr;
+              }
+              else
+              {
+                if ( (v96 & 0x3FFFFFFF) != 0 )
+                {
+                  v68 = a2 + 1;
+                  v71 = v97;
+                  if ( (v96 & 0x40000000) == 0 )
+                    v71 = (_BYTE *)v97[0];
+                  *v71 = 0;
+                }
+                v95 &= 0xC0000000;
+                CBufferString::Insert((CBufferString *)&v95, 0, "angles", -1, 0);
+                v70 = "angles";
+              }
+              if ( (v96 & 0x40000000) != 0 )
+              {
+                v72 = (char *)v97;
+              }
+              else
+              {
+                v72 = byte_18159B988;
+                if ( (v96 & 0x3FFFFFFF) != 0 )
+                  v72 = (char *)v97[0];
+              }
+              sub_1811E6210(v8, v68, (_DWORD)v11, (_DWORD)v10, (__int64)v72, (__int64)v70, 0, 1, v5 + 12, 0);
+  LABEL_99:
+              CBufferString::Purge((CBufferString *)&v95, 0);
+              v13 = a5;
+              goto LABEL_191;
+            case 22:
+              v97[0] = 0;
+              v96 = -1073741624;
+              if ( v21 && v21->m128i_i8[0] )
+              {
+                v95 = 0;
+                *((_QWORD *)&v84 + 1) = ".";
+                *(_QWORD *)&v84 = v21;
+                v85 = "origin";
+                CBufferString::AppendConcat((CBufferString *)&v95, 3, (const char *const *)&v84, nullptr, 0);
+                v73 = nullptr;
+              }
+              else
+              {
+                v95 = 0;
+                CBufferString::Insert((CBufferString *)&v95, 0, "origin", -1, 0);
+                v73 = "origin";
+              }
+              if ( (v96 & 0x40000000) != 0 )
+              {
+                v74 = (char *)v97;
+              }
+              else
+              {
+                v74 = byte_18159B988;
+                if ( (v96 & 0x3FFFFFFF) != 0 )
+                  v74 = (char *)v97[0];
+              }
+              v75 = a2 + 1;
+              sub_1811E6210(v8, a2 + 1, (_DWORD)v11, (_DWORD)v10, (__int64)v74, (__int64)v73, 0, 14, v5, 1);
+              if ( v21 && v21->m128i_i8[0] )
+              {
+                if ( (v96 & 0x3FFFFFFF) != 0 )
+                {
+                  v75 = a2 + 1;
+                  v76 = v97;
+                  if ( (v96 & 0x40000000) == 0 )
+                    v76 = (_BYTE *)v97[0];
+                  *v76 = 0;
+                }
+                v95 &= 0xC0000000;
+                *((_QWORD *)&v84 + 1) = ".";
+                *(_QWORD *)&v84 = v21;
+                v85 = "angles";
+                CBufferString::AppendConcat((CBufferString *)&v95, 3, (const char *const *)&v84, nullptr, 0);
+                v77 = nullptr;
+              }
+              else
+              {
+                if ( (v96 & 0x3FFFFFFF) != 0 )
+                {
+                  v75 = a2 + 1;
+                  v78 = v97;
+                  if ( (v96 & 0x40000000) == 0 )
+                    v78 = (_BYTE *)v97[0];
+                  *v78 = 0;
+                }
+                v95 &= 0xC0000000;
+                CBufferString::Insert((CBufferString *)&v95, 0, "angles", -1, 0);
+                v77 = "angles";
+              }
+              if ( (v96 & 0x40000000) != 0 )
+              {
+                v79 = (char *)v97;
+              }
+              else
+              {
+                v79 = byte_18159B988;
+                if ( (v96 & 0x3FFFFFFF) != 0 )
+                  v79 = (char *)v97[0];
+              }
+              sub_1811E6210(v8, v75, (_DWORD)v11, (_DWORD)v10, (__int64)v79, (__int64)v77, 0, 47, v5, 1);
+              goto LABEL_99;
+          }
+          if ( !*v94 )
+          {
+            if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_1820B1848, 5) )
+            {
+              v100 = "C:\\buildworker\\csgo_rel_win64\\build\\src\\entity2\\entitysystem.cpp";
+              v101 = 1382;
+              v105 = 0;
+              v102 = "CEntitySystem::DataDesc_AddComponentFieldUnserializer";
+              v80 = *(const char **)(v13 + 8);
+              v103 = 0;
+              v104 = 0;
+              LoggingSystem_Log(
+                (unsigned int)dword_1820B1848,
+                5,
+                &v100,
+                "Field %s::%s cannot have sub-keyfields since it is an atomic type!\n",
+                v10,
+                v80);
+            }
+            break;
+          }
+          sub_1811E6210(v8, a2, (_DWORD)v11, (_DWORD)v10, (__int64)v21, v18, v13, 0, v5, 0);
+        }
+  LABEL_191:
+        v5 += v90;
+        v22 = (unsigned int)(v89 + 1);
+        v89 = v22;
+        v86 = v5;
+        if ( (int)v22 >= v87 )
+          break;
+        v20 = *(const char **)v109;
+        v19 = v108;
+        v18 = v92;
+      }
+    }
+    CBufferString::Purge((CBufferString *)&v110, 0);
+    CBufferString::Purge((CBufferString *)&v107, 0);
+  }

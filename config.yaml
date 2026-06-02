@@ -6295,8 +6295,20 @@ modules:
           - IFlattenedSerializers_CreateFieldChangedEventQueue.{platform}.yaml
           - CEntitySystem_m_sEntSystemName.{platform}.yaml
           - CEntitySystem_m_eNetworkSerializationMode.{platform}.yaml
+          - CEntitySystem_m_pNetworkFieldChangedEventQueue.{platform}.yaml
+          - CEntitySystem_m_pNetworkFieldScratchData.{platform}.yaml
         expected_input:
           - CEntitySystem_Init.{platform}.yaml
+
+      - name: find-CEntitySystem_AddComponentFieldUnserializer
+        expected_output:
+          - CEntitySystem_AddComponentFieldUnserializer.{platform}.yaml
+
+      - name: find-CEntitySystem_m_DataDescKeyUnserializerss
+        expected_output:
+          - CEntitySystem_m_DataDescKeyUnserializerss.{platform}.yaml
+        expected_input:
+          - CEntitySystem_AddComponentFieldUnserializer.{platform}.yaml
 
       - name: find-CEntitySystem_PostCreateEntitySystem
         expected_output:
@@ -9827,6 +9839,26 @@ modules:
         category: structmember
         struct: CEntitySystem
         member: m_eNetworkSerializationMode
+
+      - name: CEntitySystem_m_pNetworkFieldChangedEventQueue
+        category: structmember
+        struct: CEntitySystem
+        member: m_pNetworkFieldChangedEventQueue
+
+      - name: CEntitySystem_m_pNetworkFieldScratchData
+        category: structmember
+        struct: CEntitySystem
+        member: m_pNetworkFieldScratchData
+
+      - name: CEntitySystem_AddComponentFieldUnserializer
+        category: func
+        alias:
+          - CEntitySystem::AddComponentFieldUnserializer
+
+      - name: CEntitySystem_m_DataDescKeyUnserializerss
+        category: structmember
+        struct: CEntitySystem
+        member: m_DataDescKeyUnserializerss
 
       - name: CEntitySystem_m_nSuppressDestroyImmediateCount
         category: structmember
