@@ -11,6 +11,8 @@ TARGET_FUNCTION_NAMES = [
 TARGET_STRUCT_MEMBER_NAMES = [
     "CEntitySystem_m_sEntSystemName",
     "CEntitySystem_m_eNetworkSerializationMode",
+    "CEntitySystem_m_pNetworkFieldChangedEventQueue",
+    "CEntitySystem_m_pNetworkFieldScratchData",
 ]
 
 LLM_DECOMPILE = [
@@ -32,6 +34,16 @@ LLM_DECOMPILE = [
     ),
     (
         "CEntitySystem_m_eNetworkSerializationMode",
+        "prompt/call_llm_decompile.md",
+        "references/server/CEntitySystem_Init.{platform}.yaml",
+    ),
+    (
+        "CEntitySystem_m_pNetworkFieldChangedEventQueue",
+        "prompt/call_llm_decompile.md",
+        "references/server/CEntitySystem_Init.{platform}.yaml",
+    ),
+    (
+        "CEntitySystem_m_pNetworkFieldScratchData",
         "prompt/call_llm_decompile.md",
         "references/server/CEntitySystem_Init.{platform}.yaml",
     ),
@@ -78,6 +90,28 @@ GENERATE_YAML_DESIRED_FIELDS = [
     ),
     (
         "CEntitySystem_m_eNetworkSerializationMode",
+        [
+            "struct_name",
+            "member_name",
+            "offset",
+            #"size",
+            "offset_sig",
+            "offset_sig_disp",
+        ],
+    ),
+    (
+        "CEntitySystem_m_pNetworkFieldChangedEventQueue",
+        [
+            "struct_name",
+            "member_name",
+            "offset",
+            #"size",
+            "offset_sig",
+            "offset_sig_disp",
+        ],
+    ),
+    (
+        "CEntitySystem_m_pNetworkFieldScratchData",
         [
             "struct_name",
             "member_name",
