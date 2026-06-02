@@ -12,9 +12,8 @@ disasm_code: |-
   .text:0000000001E73892                 mov     r12d, edx
   .text:0000000001E73895                 push    rbx
   .text:0000000001E73896                 mov     rbx, rdi
-  .text:0000000001E73899                 ; 0xA88 = 2696 = CEntitySystem::m_sEntSystemName (structmember, struct=CEntitySystem, member=m_sEntSystemName)
   .text:0000000001E73899                 ; this
-  .text:0000000001E73899                 add     rdi, 0A88h; 0xA88 = 2696 = CEntitySystem::m_sEntSystemName (structmember, struct=CEntitySystem, member=m_sEntSystemName)
+  .text:0000000001E73899                 add     rdi, 0A88h; this
   .text:0000000001E738A0                 sub     rsp, 68h
   .text:0000000001E738A4                 call    __ZN10CUtlString3SetEPKc; CUtlString::Set(char const*)
   .text:0000000001E738A9                 lea     rax, unk_27BB9F1
@@ -24,8 +23,7 @@ disasm_code: |-
   .text:0000000001E738BE                 jz      loc_1E73C08
   .text:0000000001E738C4                 lea     r13, qword_2743670
   .text:0000000001E738CB                 xor     eax, eax
-  .text:0000000001E738CD                 ; 0xBDA = 3034 = CEntitySystem::m_eNetworkSerializationMode (structmember, struct=CEntitySystem, member=m_eNetworkSerializationMode)
-  .text:0000000001E738CD                 mov     [rbx+0BDAh], al; 0xBDA = 3034 = CEntitySystem::m_eNetworkSerializationMode (structmember, struct=CEntitySystem, member=m_eNetworkSerializationMode)
+  .text:0000000001E738CD                 mov     [rbx+0BDAh], al
   .text:0000000001E738D3                 ; bool
   .text:0000000001E738D3                 xor     r8d, r8d; bool
   .text:0000000001E738D6                 ; void *
@@ -226,7 +224,7 @@ disasm_code: |-
   .text:0000000001E73C5E                 ; _QWORD
   .text:0000000001E73C5E                 mov     edx, 4E200h; _QWORD
   .text:0000000001E73C63                 lea     rax, off_24156E8
-  .text:0000000001E73C6A                 mov     [rbx+0C90h], r12
+  .text:0000000001E73C6A                 mov     [rbx+0C90h], r12; 0xC90 = 3216 = CEntitySystem::m_pNetworkFieldScratchData (structmember, struct=CEntitySystem, member=m_pNetworkFieldScratchData)
   .text:0000000001E73C71                 mov     [r12], rax
   .text:0000000001E73C75                 mov     rax, 0C8000000000000h
   .text:0000000001E73C7F                 mov     [r12+48h], rax
@@ -304,12 +302,12 @@ disasm_code: |-
   .text:0000000001E73DC0                 mov     [rax+rdx*8], r13
   .text:0000000001E73DC4                 lea     rax, qword_2743668
   .text:0000000001E73DCB                 mov     rdx, [rbx+0C98h]
-  .text:0000000001E73DD2                 mov     rsi, [rbx+0C90h]
+  .text:0000000001E73DD2                 mov     rsi, [rbx+0C90h]; 0xC90 = 3216 = CEntitySystem::m_pNetworkFieldScratchData (structmember, struct=CEntitySystem, member=m_pNetworkFieldScratchData)
   .text:0000000001E73DD9                 mov     rdi, [rax]
   .text:0000000001E73DDC                 mov     rax, [rdi]
   .text:0000000001E73DDF                 ; 0x118 = 280LL = IFlattenedSerializers_CreateFieldChangedEventQueue
   .text:0000000001E73DDF                 call    qword ptr [rax+118h]; 0x118 = 280LL = IFlattenedSerializers_CreateFieldChangedEventQueue
-  .text:0000000001E73DE5                 mov     [rbx+0C88h], rax
+  .text:0000000001E73DE5                 mov     [rbx+0C88h], rax; 0xC88 = 3208 = CEntitySystem::m_pNetworkFieldChangedEventQueue (structmember, struct=CEntitySystem, member=m_pNetworkFieldChangedEventQueue)
   .text:0000000001E73DEC                 jmp     loc_1E73B0C
   .text:0000000001E73DF2                 jmp     short loc_1E73DF2
   .text:0000000001E73DF8                 mov     esi, [r15+14h]
@@ -638,11 +636,11 @@ procedure: |-
     __int64 v67; // [rsp+40h] [rbp-50h] BYREF
     __m128i v68; // [rsp+48h] [rbp-48h]
 
-    CUtlString::Set((CUtlString *)(a1 + 2696), a2);// 0xA88 = 2696 = CEntitySystem::m_sEntSystemName (structmember, struct=CEntitySystem, member=m_sEntSystemName)
+    CUtlString::Set((CUtlString *)(a1 + 2696), a2);
     *(_DWORD *)(a1 + 3004) = a4;
     unk_27BB9F1 = a5;
     v9 = a3 == 1 && qword_2743670 != nullptr;
-    *(_BYTE *)(a1 + 3034) = v9;         // 3034 = 0xBDA = CEntitySystem::m_eNetworkSerializationMode (structmember, struct=CEntitySystem, member=m_eNetworkSerializationMode)
+    *(_BYTE *)(a1 + 3034) = v9;
     CUtlScratchMemoryPool::Init((CUtlScratchMemoryPool *)(a1 + 3264), 0x400u, 0, nullptr, 0);
     qword_25669A8 = a1;
     qword_25669A0 = a1 + 16;
@@ -854,11 +852,11 @@ procedure: |-
     COM_TimestampedLog("EntitySystem - Class Tables");
     if ( qword_2743670 )
     {
-      (*(void (__fastcall **)(_QWORD *, const char *, _QWORD, __int64))(*qword_2743670 + 160LL))( // 0xA0 = 160LL = INetworkMessages_SetNetworkSerializationContextData
+      (*(void (__fastcall **)(_QWORD *, const char *, _QWORD, __int64))(*qword_2743670 + 160LL))(
         qword_2743670,
         "string_t_table",
         *(unsigned int *)(a1 + 3004),
-        a1 + 7888);
+        a1 + 7888);                               // 0xA0 = 160LL = INetworkMessages_SetNetworkSerializationContextData
       v66 = (__m128i)0x121uLL;
       v20 = _mm_loadu_si128(&v66);
       v21 = *qword_2743670;
@@ -870,7 +868,7 @@ procedure: |-
     if ( *(_BYTE *)(a1 + 3034) )
     {
       v25 = operator new(88);
-      *(_QWORD *)(a1 + 3216) = v25;
+      *(_QWORD *)(a1 + 3216) = v25;  // 3216 = 0xC90 = CEntitySystem::m_pNetworkFieldScratchData (structmember, struct=CEntitySystem, member=m_pNetworkFieldScratchData)
       *(_QWORD *)v25 = off_24156E8;
       *(_QWORD *)(v25 + 72) = 0xC8000000000000LL;
       *(_QWORD *)(v25 + 8) = 0;
@@ -951,9 +949,9 @@ procedure: |-
       *(_QWORD *)(v33 + 8LL * v31) = v30;
       result = (*(__int64 (__fastcall **)(_QWORD *, _QWORD, _QWORD))(*qword_2743668 + 280LL))(
                  qword_2743668,
-                 *(_QWORD *)(a1 + 3216),
+                 *(_QWORD *)(a1 + 3216),            // 3216 = 0xC90 = CEntitySystem::m_pNetworkFieldScratchData (structmember, struct=CEntitySystem, member=m_pNetworkFieldScratchData)
                  *(_QWORD *)(a1 + 3224));         // 0x118 = 280LL = IFlattenedSerializers_CreateFieldChangedEventQueue
-      *(_QWORD *)(a1 + 3208) = result;
+      *(_QWORD *)(a1 + 3208) = result;  // 3208 = 0xC88 = CEntitySystem::m_pNetworkFieldChangedEventQueue (structmember, struct=CEntitySystem, member=m_pNetworkFieldChangedEventQueue)
     }
     if ( byte_27BBA40 )
       goto LABEL_31;
