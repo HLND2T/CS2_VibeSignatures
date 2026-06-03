@@ -12,9 +12,7 @@ disasm_code: |-
   .text:0000000001E73892                 mov     r12d, edx
   .text:0000000001E73895                 push    rbx
   .text:0000000001E73896                 mov     rbx, rdi
-  .text:0000000001E73899                 ; 0xA88 = 2696 = CEntitySystem::m_sEntSystemName (structmember, struct=CEntitySystem, member=m_sEntSystemName)
-  .text:0000000001E73899                 ; this
-  .text:0000000001E73899                 add     rdi, 0A88h; 0xA88 = 2696 = CEntitySystem::m_sEntSystemName (structmember, struct=CEntitySystem, member=m_sEntSystemName)
+  .text:0000000001E73899                 add     rdi, 0A88h  ; 0A88h = CEntitySystem::m_sEntSystemName (structmember, struct=CEntitySystem, member=m_sEntSystemName)
   .text:0000000001E738A0                 sub     rsp, 68h
   .text:0000000001E738A4                 call    __ZN10CUtlString3SetEPKc; CUtlString::Set(char const*)
   .text:0000000001E738A9                 lea     rax, unk_27BB9F1
@@ -24,8 +22,7 @@ disasm_code: |-
   .text:0000000001E738BE                 jz      loc_1E73C08
   .text:0000000001E738C4                 lea     r13, qword_2743670
   .text:0000000001E738CB                 xor     eax, eax
-  .text:0000000001E738CD                 ; 0xBDA = 3034 = CEntitySystem::m_eNetworkSerializationMode (structmember, struct=CEntitySystem, member=m_eNetworkSerializationMode)
-  .text:0000000001E738CD                 mov     [rbx+0BDAh], al; 0xBDA = 3034 = CEntitySystem::m_eNetworkSerializationMode (structmember, struct=CEntitySystem, member=m_eNetworkSerializationMode)
+  .text:0000000001E738CD                 mov     [rbx+0BDAh], al  ; 0BDAh = CEntitySystem::m_eNetworkSerializationMode (structmember, struct=CEntitySystem, member=m_eNetworkSerializationMode)
   .text:0000000001E738D3                 ; bool
   .text:0000000001E738D3                 xor     r8d, r8d; bool
   .text:0000000001E738D6                 ; void *
@@ -134,7 +131,7 @@ disasm_code: |-
   .text:0000000001E73AA8                 mov     rax, [rdi]
   .text:0000000001E73AAB                 lea     rsi, aStringTTable; "string_t_table"
   .text:0000000001E73AB2                 mov     edx, [rbx+0BBCh]
-  .text:0000000001E73AB8                 lea     rcx, [rbx+1ED0h]
+  .text:0000000001E73AB8                 lea     rcx, [rbx+1ED0h]  ; 1ED0h = CEntitySystem::m_Symbols (structmember, struct=CEntitySystem, member=m_Symbols)
   .text:0000000001E73ABF                 ; 0xA0 = 160LL = INetworkMessages_SetNetworkSerializationContextData
   .text:0000000001E73ABF                 call    qword ptr [rax+0A0h]; 0xA0 = 160LL = INetworkMessages_SetNetworkSerializationContextData
   .text:0000000001E73AC5                 mov     rdi, [r13+0]
@@ -638,11 +635,11 @@ procedure: |-
     __int64 v67; // [rsp+40h] [rbp-50h] BYREF
     __m128i v68; // [rsp+48h] [rbp-48h]
 
-    CUtlString::Set((CUtlString *)(a1 + 2696), a2);// 0xA88 = 2696 = CEntitySystem::m_sEntSystemName (structmember, struct=CEntitySystem, member=m_sEntSystemName)
+    CUtlString::Set((CUtlString *)(a1 + 2696), a2);  // 2696 = 0xA88 = CEntitySystem::m_sEntSystemName (structmember, struct=CEntitySystem, member=m_sEntSystemName)
     *(_DWORD *)(a1 + 3004) = a4;
     unk_27BB9F1 = a5;
     v9 = a3 == 1 && qword_2743670 != nullptr;
-    *(_BYTE *)(a1 + 3034) = v9;         // 3034 = 0xBDA = CEntitySystem::m_eNetworkSerializationMode (structmember, struct=CEntitySystem, member=m_eNetworkSerializationMode)
+    *(_BYTE *)(a1 + 3034) = v9;  // 3034 = 0xBDA = CEntitySystem::m_eNetworkSerializationMode (structmember, struct=CEntitySystem, member=m_eNetworkSerializationMode)
     CUtlScratchMemoryPool::Init((CUtlScratchMemoryPool *)(a1 + 3264), 0x400u, 0, nullptr, 0);
     qword_25669A8 = a1;
     qword_25669A0 = a1 + 16;
@@ -854,11 +851,11 @@ procedure: |-
     COM_TimestampedLog("EntitySystem - Class Tables");
     if ( qword_2743670 )
     {
-      (*(void (__fastcall **)(_QWORD *, const char *, _QWORD, __int64))(*qword_2743670 + 160LL))( // 0xA0 = 160LL = INetworkMessages_SetNetworkSerializationContextData
+      (*(void (__fastcall **)(_QWORD *, const char *, _QWORD, __int64))(*qword_2743670 + 160LL))(
         qword_2743670,
         "string_t_table",
         *(unsigned int *)(a1 + 3004),
-        a1 + 7888);
+        a1 + 7888);                               // 7888 = 0x1ED0 = CEntitySystem::m_Symbols (structmember, struct=CEntitySystem, member=m_Symbols); 0xA0 = 160LL = INetworkMessages_SetNetworkSerializationContextData
       v66 = (__m128i)0x121uLL;
       v20 = _mm_loadu_si128(&v66);
       v21 = *qword_2743670;
