@@ -15,6 +15,7 @@ TARGET_FUNCTION_NAMES = [
 
 TARGET_STRUCT_MEMBER_NAMES = [
     "CEntitySystem_m_EntityList",
+    "CEntitySystem_m_hActiveSpawnGroup",
 ]
 
 LLM_DECOMPILE = [
@@ -46,6 +47,11 @@ LLM_DECOMPILE = [
     ),
     (
         "CEntitySystem_m_EntityList",
+        "prompt/call_llm_decompile.md",
+        "references/server/CEntitySystem_PrecacheEntity.{platform}.yaml",
+    ),
+    (
+        "CEntitySystem_m_hActiveSpawnGroup",
         "prompt/call_llm_decompile.md",
         "references/server/CEntitySystem_PrecacheEntity.{platform}.yaml",
     ),
@@ -131,6 +137,17 @@ GENERATE_YAML_DESIRED_FIELDS = [
             "offset_sig",
             "offset_sig_disp",
             "offset_sig_allow_across_function_boundary:true",
+        ],
+    ),
+    (
+        "CEntitySystem_m_hActiveSpawnGroup",
+        [
+            "struct_name",
+            "member_name",
+            "offset",
+            "size",
+            "offset_sig",
+            "offset_sig_disp",
         ],
     ),
     (

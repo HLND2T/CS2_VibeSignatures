@@ -99,7 +99,8 @@ disasm_code: |-
   .text:000000018121459E                 jmp     short loc_1812145AB
   .text:00000001812145A0                 cmp     esi, 0FFFFFFFFh
   .text:00000001812145A3                 jnz     short loc_1812145AB
-  .text:00000001812145A5                 mov     esi, [rdi+1F38h]
+  .text:00000001812145A5                 ; 0x1F38 = 7992 = CEntitySystem::m_hActiveSpawnGroup (structmember, struct=CEntitySystem, member=m_hActiveSpawnGroup)
+  .text:00000001812145A5                 mov     esi, [rdi+1F38h]; 0x1F38 = 7992 = CEntitySystem::m_hActiveSpawnGroup (structmember, struct=CEntitySystem, member=m_hActiveSpawnGroup)
   .text:00000001812145AB                 shr     ecx, 0Ah
   .text:00000001812145AE                 test    cl, 1
   .text:00000001812145B1                 jnz     short loc_1812145CE
@@ -255,7 +256,7 @@ procedure: |-
           }
           else if ( a3 == -1 )
           {
-            a3 = *(_DWORD *)(a1 + 7992);
+            a3 = *(_DWORD *)(a1 + 7992);// 0x1F38 = 7992 = CEntitySystem::m_hActiveSpawnGroup (structmember, struct=CEntitySystem, member=m_hActiveSpawnGroup)
           }
           if ( (v12 & 0x400) != 0 )
             v13 = 1;

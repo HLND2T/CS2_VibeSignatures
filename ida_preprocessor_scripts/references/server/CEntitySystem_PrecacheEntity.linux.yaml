@@ -73,7 +73,8 @@ disasm_code: |-
   .text:0000000001EACE0A                 jnz     loc_1EACED8
   .text:0000000001EACE10                 cmp     r12d, 0FFFFFFFFh
   .text:0000000001EACE14                 jnz     short loc_1EACE1D
-  .text:0000000001EACE16                 mov     r12d, [rbx+1F40h]
+  .text:0000000001EACE16                 ; 0x1F40 = 8000 = CEntitySystem::m_hActiveSpawnGroup (structmember, struct=CEntitySystem, member=m_hActiveSpawnGroup)
+  .text:0000000001EACE16                 mov     r12d, [rbx+1F40h]; 0x1F40 = 8000 = CEntitySystem::m_hActiveSpawnGroup (structmember, struct=CEntitySystem, member=m_hActiveSpawnGroup)
   .text:0000000001EACE1D                 and     eax, 400h
   .text:0000000001EACE22                 jnz     loc_1EACEE6
   .text:0000000001EACE28                 mov     rdx, [rbx]
@@ -182,7 +183,7 @@ procedure: |-
           else
           {
             if ( a3 == -1 )
-              a3 = a1[2000];
+              a3 = a1[2000];// 0x1F40 = 8000 = CEntitySystem::m_hActiveSpawnGroup (structmember, struct=CEntitySystem, member=m_hActiveSpawnGroup)
             v10 = *(_DWORD *)(v13 + 104) & 0x400;
             if ( !v10 )
               goto LABEL_13;
