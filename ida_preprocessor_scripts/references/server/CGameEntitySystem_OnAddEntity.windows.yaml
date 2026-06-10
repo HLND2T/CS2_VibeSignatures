@@ -1,0 +1,79 @@
+func_name: CGameEntitySystem_OnAddEntity
+func_va: '0x180b6f470'
+disasm_code: |-
+  .text:0000000180B6F470                 mov     [rsp+arg_8], rsi
+  .text:0000000180B6F475                 push    rdi
+  .text:0000000180B6F476                 sub     rsp, 20h
+  .text:0000000180B6F47A                 mov     r9d, 7FFFh
+  .text:0000000180B6F480                 mov     eax, r8d
+  .text:0000000180B6F483                 and     eax, r9d
+  .text:0000000180B6F486                 mov     rsi, rdx
+  .text:0000000180B6F489                 cmp     r8d, 0FFFFFFFFh
+  .text:0000000180B6F48D                 mov     rdi, rcx
+  .text:0000000180B6F490                 cmovnz  r9d, eax
+  .text:0000000180B6F494                 cmp     r9d, 4000h
+  .text:0000000180B6F49B                 jnb     short loc_180B6F4AA
+  .text:0000000180B6F49D                 ; 8336 = 0x2090 = CGameEntitySystem::m_iNetworkedEntCount (structmember, struct=CGameEntitySystem, member=m_iNetworkedEntCount)
+  .text:0000000180B6F49D                 inc     dword ptr [rcx+2090h]; 8336 = 0x2090 = CGameEntitySystem::m_iNetworkedEntCount (structmember, struct=CGameEntitySystem, member=m_iNetworkedEntCount)
+  .text:0000000180B6F4A3                 test    rdx, rdx
+  .text:0000000180B6F4A6                 jz      short loc_180B6F4FE
+  .text:0000000180B6F4A8                 jmp     short loc_180B6F4C5
+  .text:0000000180B6F4AA                 test    rsi, rsi
+  .text:0000000180B6F4AD                 jz      short loc_180B6F4FE
+  .text:0000000180B6F4AF                 mov     rax, [rdx]
+  .text:0000000180B6F4B2                 mov     rcx, rsi
+  .text:0000000180B6F4B5                 call    qword ptr [rax+370h]
+  .text:0000000180B6F4BB                 test    al, al
+  .text:0000000180B6F4BD                 jz      short loc_180B6F4C5
+  .text:0000000180B6F4BF                 inc     dword ptr [rdi+2094h]
+  .text:0000000180B6F4C5                 mov     eax, [rdi+20C0h]
+  .text:0000000180B6F4CB                 sub     eax, 1
+  .text:0000000180B6F4CE                 mov     [rsp+28h+arg_0], rbx
+  .text:0000000180B6F4D3                 movsxd  rbx, eax
+  .text:0000000180B6F4D6                 js      short loc_180B6F4F9
+  .text:0000000180B6F4D8                 nop     dword ptr [rax+rax+00000000h]
+  .text:0000000180B6F4E0                 mov     rax, [rdi+20C8h]
+  .text:0000000180B6F4E7                 mov     rdx, rsi
+  .text:0000000180B6F4EA                 mov     rcx, [rax+rbx*8]
+  .text:0000000180B6F4EE                 mov     rax, [rcx]
+  .text:0000000180B6F4F1                 call    qword ptr [rax]
+  .text:0000000180B6F4F3                 sub     rbx, 1
+  .text:0000000180B6F4F7                 jns     short loc_180B6F4E0
+  .text:0000000180B6F4F9                 mov     rbx, [rsp+28h+arg_0]
+  .text:0000000180B6F4FE                 mov     rsi, [rsp+28h+arg_8]
+  .text:0000000180B6F503                 add     rsp, 20h
+  .text:0000000180B6F507                 pop     rdi
+  .text:0000000180B6F508                 retn
+procedure: |-
+  __int64 __fastcall CGameEntitySystem_OnAddEntity(__int64 a1, __int64 a2, int a3)
+  {
+    unsigned int v3; // r9d
+    __int64 result; // rax
+    __int64 i; // rbx
+    __int64 (__fastcall ***v8)(_QWORD, __int64); // rcx
+
+    v3 = 0x7FFF;
+    result = a3 & 0x7FFF;
+    if ( a3 != -1 )
+      v3 = a3 & 0x7FFF;
+    if ( v3 >= 0x4000 )
+    {
+      if ( !a2 )
+        return result;
+      if ( (*(unsigned __int8 (__fastcall **)(__int64))(*(_QWORD *)a2 + 880LL))(a2) )
+        ++*(_DWORD *)(a1 + 8340);
+    }
+    else
+    {
+      ++*(_DWORD *)(a1 + 8336);// 8336 = 0x2090 = CGameEntitySystem::m_iNetworkedEntCount (structmember, struct=CGameEntitySystem, member=m_iNetworkedEntCount)
+      if ( !a2 )
+        return result;
+    }
+    result = (unsigned int)(*(_DWORD *)(a1 + 8384) - 1);
+    for ( i = (int)result; i >= 0; --i )
+    {
+      v8 = *(__int64 (__fastcall ****)(_QWORD, __int64))(*(_QWORD *)(a1 + 8392) + 8 * i);
+      result = (**v8)(v8, a2);
+    }
+    return result;
+  }

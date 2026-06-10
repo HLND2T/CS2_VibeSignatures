@@ -1,0 +1,93 @@
+func_name: CGameEntitySystem_OnAddEntity
+func_va: '0x1534c10'
+disasm_code: |-
+  .text:0000000001534C10                 push    rbp
+  .text:0000000001534C11                 mov     rbp, rsp
+  .text:0000000001534C14                 push    r14
+  .text:0000000001534C16                 mov     r14, rdi
+  .text:0000000001534C19                 push    r13
+  .text:0000000001534C1B                 push    r12
+  .text:0000000001534C1D                 mov     r12, rsi
+  .text:0000000001534C20                 push    rbx
+  .text:0000000001534C21                 cmp     edx, 0FFFFFFFFh
+  .text:0000000001534C24                 jz      short loc_1534C88
+  .text:0000000001534C26                 and     dx, 7FFFh
+  .text:0000000001534C2B                 cmp     dx, 3FFFh
+  .text:0000000001534C30                 ja      short loc_1534C88
+  .text:0000000001534C32                 ; 8352 = 0x20A0 = CGameEntitySystem::m_iNetworkedEntCount (structmember, struct=CGameEntitySystem, member=m_iNetworkedEntCount)
+  .text:0000000001534C32                 add     dword ptr [rdi+20A0h], 1; 8352 = 0x20A0 = CGameEntitySystem::m_iNetworkedEntCount (structmember, struct=CGameEntitySystem, member=m_iNetworkedEntCount)
+  .text:0000000001534C39                 test    rsi, rsi
+  .text:0000000001534C3C                 jz      short loc_1534C7C
+  .text:0000000001534C3E                 movsxd  rax, dword ptr [r14+20D0h]
+  .text:0000000001534C45                 mov     edx, eax
+  .text:0000000001534C47                 sub     edx, 1
+  .text:0000000001534C4A                 js      short loc_1534C7C
+  .text:0000000001534C4C                 movsxd  rbx, edx
+  .text:0000000001534C4F                 mov     edx, edx
+  .text:0000000001534C51                 sub     rax, rdx
+  .text:0000000001534C54                 shl     rbx, 3
+  .text:0000000001534C58                 lea     r13, ds:0FFFFFFFFFFFFFFF0h[rax*8]
+  .text:0000000001534C60                 mov     rax, [r14+20D8h]
+  .text:0000000001534C67                 mov     rsi, r12
+  .text:0000000001534C6A                 mov     rdi, [rax+rbx]
+  .text:0000000001534C6E                 sub     rbx, 8
+  .text:0000000001534C72                 mov     rax, [rdi]
+  .text:0000000001534C75                 call    qword ptr [rax]
+  .text:0000000001534C77                 cmp     r13, rbx
+  .text:0000000001534C7A                 jnz     short loc_1534C60
+  .text:0000000001534C7C                 pop     rbx
+  .text:0000000001534C7D                 pop     r12
+  .text:0000000001534C7F                 pop     r13
+  .text:0000000001534C81                 pop     r14
+  .text:0000000001534C83                 pop     rbp
+  .text:0000000001534C84                 retn
+  .text:0000000001534C88                 test    r12, r12
+  .text:0000000001534C8B                 jz      short loc_1534C7C
+  .text:0000000001534C8D                 mov     rax, [r12]
+  .text:0000000001534C91                 lea     rdx, sub_9B0860
+  .text:0000000001534C98                 mov     rax, [rax+368h]
+  .text:0000000001534C9F                 cmp     rax, rdx
+  .text:0000000001534CA2                 jz      short loc_1534C3E
+  .text:0000000001534CA4                 mov     rdi, r12
+  .text:0000000001534CA7                 call    rax
+  .text:0000000001534CA9                 test    al, al
+  .text:0000000001534CAB                 jz      short loc_1534C3E
+  .text:0000000001534CAD                 add     dword ptr [r14+20A4h], 1
+  .text:0000000001534CB5                 jmp     short loc_1534C3E
+procedure: |-
+  void __fastcall CGameEntitySystem_OnAddEntity(__int64 a1, __int64 a2, int a3)
+  {
+    int v4; // edx
+    __int64 v5; // rbx
+    unsigned __int64 v6; // r13
+    void (__fastcall ***v7)(_QWORD, __int64); // rdi
+    __int64 (__fastcall *v8)(); // rax
+
+    if ( a3 == -1 || (a3 & 0x7FFFu) > 0x3FFF )
+    {
+      if ( !a2 )
+        return;
+      v8 = *(__int64 (__fastcall **)())(*(_QWORD *)a2 + 872LL);
+      if ( v8 != sub_9B0860 && ((unsigned __int8 (__fastcall *)(__int64))v8)(a2) )
+        ++*(_DWORD *)(a1 + 8356);
+    }
+    else
+    {
+      ++*(_DWORD *)(a1 + 8352);// 8352 = 0x20A0 = CGameEntitySystem::m_iNetworkedEntCount (structmember, struct=CGameEntitySystem, member=m_iNetworkedEntCount)
+      if ( !a2 )
+        return;
+    }
+    v4 = *(_DWORD *)(a1 + 8400) - 1;
+    if ( v4 >= 0 )
+    {
+      v5 = 8LL * v4;
+      v6 = 8 * (*(int *)(a1 + 8400) - (unsigned __int64)(unsigned int)v4) - 16;
+      do
+      {
+        v7 = *(void (__fastcall ****)(_QWORD, __int64))(*(_QWORD *)(a1 + 8408) + v5);
+        v5 -= 8;
+        (**v7)(v7, a2);
+      }
+      while ( v6 != v5 );
+    }
+  }

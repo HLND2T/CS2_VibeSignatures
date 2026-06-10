@@ -5134,6 +5134,19 @@ modules:
           - CEntitySystem_vtable.{platform}.yaml
           - CEntityInstance_vtable.{platform}.yaml
 
+      - name: find-CGameEntitySystem_OnAddEntity
+        expected_output:
+          - CGameEntitySystem_OnAddEntity.{platform}.yaml
+        expected_input:
+          - CEntitySystem_AddEntityToEntityDataBase.{platform}.yaml
+          - CGameEntitySystem_vtable.{platform}.yaml
+
+      - name: find-CGameEntitySystem_m_iNetworkedEntCount
+        expected_output:
+          - CGameEntitySystem_m_iNetworkedEntCount.{platform}.yaml
+        expected_input:
+          - CGameEntitySystem_OnAddEntity.{platform}.yaml
+
       - name: find-CEntitySystem_PrecacheEntity
         expected_output:
           - CEntitySystem_PrecacheEntity.{platform}.yaml
@@ -9316,6 +9329,16 @@ modules:
 
       - name: CGameEntitySystem_vtable
         category: vtable
+
+      - name: CGameEntitySystem_OnAddEntity
+        category: vfunc
+        alias:
+          - CGameEntitySystem::OnAddEntity
+
+      - name: CGameEntitySystem_m_iNetworkedEntCount
+        category: structmember
+        struct: CGameEntitySystem
+        member: m_iNetworkedEntCount
 
       - name: CGameEntitySystem_BuildResourceManifest_ManifestNameOrGroupName
         category: vfunc
