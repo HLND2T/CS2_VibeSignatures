@@ -1,0 +1,238 @@
+func_name: CGameEntitySystem_RegisterSpawnGroupEntityFilter
+func_va: '0x180b7b020'
+disasm_code: |-
+  .text:0000000180B7B020                 mov     rax, rsp
+  .text:0000000180B7B023                 push    rbp
+  .text:0000000180B7B024                 push    rdi
+  .text:0000000180B7B025                 lea     rbp, [rax-5Fh]
+  .text:0000000180B7B029                 sub     rsp, 0B8h
+  .text:0000000180B7B030                 mov     rdi, cs:qword_181F64488
+  .text:0000000180B7B037                 test    rdi, rdi
+  .text:0000000180B7B03A                 jz      loc_180B7B23F
+  .text:0000000180B7B040                 mov     [rax+18h], rbx
+  .text:0000000180B7B044                 mov     [rax-18h], rsi
+  .text:0000000180B7B048                 mov     [rax-28h], r13
+  .text:0000000180B7B04C                 mov     [rax-30h], r14
+  .text:0000000180B7B050                 mov     [rax-38h], r15
+  .text:0000000180B7B054                 mov     [rax-20h], r12
+  .text:0000000180B7B058                 nop     dword ptr [rax+rax+00000000h]
+  .text:0000000180B7B060                 mov     r14, [rdi+8]
+  .text:0000000180B7B064                 mov     rbx, cs:g_pGameEntitySystem
+  .text:0000000180B7B06B                 mov     rax, [rdi]
+  .text:0000000180B7B06E                 mov     r13d, [rdi+10h]
+  .text:0000000180B7B072                 mov     [rbp+57h+arg_8], rax
+  .text:0000000180B7B076                 mov     [rbp+57h+arg_0], r14
+  .text:0000000180B7B07A                 ; 0x2098 = 8344 = CGameEntitySystem::m_spawnGroupEntityFilters(structmember,struct=CGameEntitySystem,member=m_spawnGroupEntityFilters)
+  .text:0000000180B7B07A                 lea     r15, [rbx+2098h]; 0x2098 = 8344 = CGameEntitySystem::m_spawnGroupEntityFilters(structmember,struct=CGameEntitySystem,member=m_spawnGroupEntityFilters)
+  .text:0000000180B7B081                 test    r14, r14
+  .text:0000000180B7B084                 jz      short loc_180B7B0DC
+  .text:0000000180B7B086                 lea     rax, [rbp+57h+arg_0]
+  .text:0000000180B7B08A                 mov     [rbp+57h+var_70], r15
+  .text:0000000180B7B08E                 lea     r8, [rbp+57h+var_70]
+  .text:0000000180B7B092                 mov     [rbp+57h+var_68], rax
+  .text:0000000180B7B096                 lea     rdx, [rbp+57h+var_80]
+  .text:0000000180B7B09A                 mov     [rbp+57h+var_60], r15
+  .text:0000000180B7B09E                 lea     rcx, [r15+8]
+  .text:0000000180B7B0A2                 call    sub_180B2E1D0
+  .text:0000000180B7B0A7                 movsxd  r12, dword ptr [rax+4]
+  .text:0000000180B7B0AB                 cmp     r12d, 0FFFFFFFFh
+  .text:0000000180B7B0AF                 jz      short loc_180B7B0DC
+  .text:0000000180B7B0B1                 test    dword ptr [rbx+20A4h], 7FFFFFFFh
+  .text:0000000180B7B0BB                 jnz     short loc_180B7B0C1
+  .text:0000000180B7B0BD                 xor     edx, edx
+  .text:0000000180B7B0BF                 jmp     short loc_180B7B0C8
+  .text:0000000180B7B0C1                 mov     rdx, [rbx+20A8h]
+  .text:0000000180B7B0C8                 lea     rcx, [r12+r12*4]
+  .text:0000000180B7B0CC                 cmp     [rdx+rcx*8+20h], r13d
+  .text:0000000180B7B0D1                 jge     loc_180B7B202
+  .text:0000000180B7B0D7                 jmp     loc_180B7B1BF
+  .text:0000000180B7B0DC                 mov     rcx, r14
+  .text:0000000180B7B0DF                 call    cs:MemAlloc_StrDupFunc
+  .text:0000000180B7B0E5                 xorps   xmm0, xmm0
+  .text:0000000180B7B0E8                 mov     [rbp+57h+var_70], r15
+  .text:0000000180B7B0EC                 mov     r14, rax
+  .text:0000000180B7B0EF                 mov     [rbp+57h+var_58], rax
+  .text:0000000180B7B0F3                 lea     rax, [rbp+57h+var_58]
+  .text:0000000180B7B0F7                 mov     byte ptr [rbp+57h+var_68], 1
+  .text:0000000180B7B0FB                 lea     r8, [rbp+57h+var_70]
+  .text:0000000180B7B0FF                 mov     [rbp+57h+var_60], rax
+  .text:0000000180B7B103                 lea     rdx, [rbp+57h+var_A0]
+  .text:0000000180B7B107                 lea     rcx, [r15+8]
+  .text:0000000180B7B10B                 movups  [rbp+57h+var_50], xmm0
+  .text:0000000180B7B10F                 call    sub_180B2F900
+  .text:0000000180B7B114                 movsxd  r12, dword ptr [rbp+57h+var_A0+4]
+  .text:0000000180B7B118                 cmp     r12d, 0FFFFFFFFh
+  .text:0000000180B7B11C                 jz      short loc_180B7B19B
+  .text:0000000180B7B11E                 lea     rax, aCBuildworkerCs_0; "C:\\buildworker\\csgo_rel_win64\\build"...
+  .text:0000000180B7B125                 mov     [rbp+57h+var_40], 0E6h
+  .text:0000000180B7B12C                 mov     [rbp+57h+var_58], rax
+  .text:0000000180B7B130                 lea     rdx, aFoundExistingV; "Found existing value when inserting int"...
+  .text:0000000180B7B137                 lea     rax, aCutldictStruct_3; "CUtlDict<struct CGameEntitySystem::Spaw"...
+  .text:0000000180B7B13E                 mov     [rbp+57h+var_3C], 14h
+  .text:0000000180B7B145                 mov     qword ptr [rbp+57h+var_50], rax
+  .text:0000000180B7B149                 lea     rcx, [rbp+57h+var_58]
+  .text:0000000180B7B14D                 lea     rax, aFalse; "false"
+  .text:0000000180B7B154                 mov     qword ptr [rbp+57h+var_50+8], rax
+  .text:0000000180B7B158                 call    cs:?Assert_ConditionFailed@@YA_NAEBU_AssertCompileTimeConstantStruct_t@@PEBDZZ; Assert_ConditionFailed(_AssertCompileTimeConstantStruct_t const &,char const *,...)
+  .text:0000000180B7B15E                 test    al, al
+  .text:0000000180B7B160                 jz      short loc_180B7B163
+  .text:0000000180B7B162                 ; Trap to Debugger
+  .text:0000000180B7B162                 int     3; Trap to Debugger
+  .text:0000000180B7B163                 test    dword ptr [rbx+20A4h], 7FFFFFFFh
+  .text:0000000180B7B16D                 jnz     short loc_180B7B173
+  .text:0000000180B7B16F                 xor     edx, edx
+  .text:0000000180B7B171                 jmp     short loc_180B7B17A
+  .text:0000000180B7B173                 mov     rdx, [rbx+20A8h]
+  .text:0000000180B7B17A                 lea     rcx, [r12+r12*4]
+  .text:0000000180B7B17E                 xorps   xmm0, xmm0
+  .text:0000000180B7B181                 movups  xmmword ptr [rdx+rcx*8+18h], xmm0
+  .text:0000000180B7B186                 mov     rax, cs:g_pMemAlloc
+  .text:0000000180B7B18D                 mov     rdx, r14
+  .text:0000000180B7B190                 mov     rcx, [rax]
+  .text:0000000180B7B193                 mov     rax, [rcx]
+  .text:0000000180B7B196                 call    qword ptr [rax+18h]
+  .text:0000000180B7B199                 jmp     short loc_180B7B1BF
+  .text:0000000180B7B19B                 movsd   xmm0, [rbp+57h+var_A0]
+  .text:0000000180B7B1A0                 lea     r8, [rbp+57h+var_58]
+  .text:0000000180B7B1A4                 mov     eax, [rbp+57h+var_98]
+  .text:0000000180B7B1A7                 lea     rdx, [rbp+57h+var_90]
+  .text:0000000180B7B1AB                 lea     rcx, [r15+8]
+  .text:0000000180B7B1AF                 movsd   [rbp+57h+var_90], xmm0
+  .text:0000000180B7B1B4                 mov     [rbp+57h+var_88], eax
+  .text:0000000180B7B1B7                 call    sub_180B2A9D0
+  .text:0000000180B7B1BC                 mov     r12d, eax
+  .text:0000000180B7B1BF                 test    dword ptr [rbx+20A4h], 7FFFFFFFh
+  .text:0000000180B7B1C9                 jnz     short loc_180B7B1CF
+  .text:0000000180B7B1CB                 xor     edx, edx
+  .text:0000000180B7B1CD                 jmp     short loc_180B7B1D6
+  .text:0000000180B7B1CF                 mov     rdx, [rbx+20A8h]
+  .text:0000000180B7B1D6                 movsxd  rax, r12d
+  .text:0000000180B7B1D9                 lea     rcx, [rax+rax*4]
+  .text:0000000180B7B1DD                 mov     rax, [rbp+57h+arg_8]
+  .text:0000000180B7B1E1                 mov     [rdx+rcx*8+18h], rax
+  .text:0000000180B7B1E6                 test    dword ptr [rbx+20A4h], 7FFFFFFFh
+  .text:0000000180B7B1F0                 jnz     short loc_180B7B1F6
+  .text:0000000180B7B1F2                 xor     eax, eax
+  .text:0000000180B7B1F4                 jmp     short loc_180B7B1FD
+  .text:0000000180B7B1F6                 mov     rax, [rbx+20A8h]
+  .text:0000000180B7B1FD                 mov     [rax+rcx*8+20h], r13d
+  .text:0000000180B7B202                 mov     rdi, [rdi+18h]
+  .text:0000000180B7B206                 test    rdi, rdi
+  .text:0000000180B7B209                 jnz     loc_180B7B060
+  .text:0000000180B7B20F                 mov     r15, [rsp+0C0h+var_30]
+  .text:0000000180B7B217                 mov     r14, [rsp+0C0h+var_28]
+  .text:0000000180B7B21F                 mov     r13, [rsp+0C0h+var_20]
+  .text:0000000180B7B227                 mov     r12, [rsp+0C0h+var_18]
+  .text:0000000180B7B22F                 mov     rsi, [rsp+0B0h]
+  .text:0000000180B7B237                 mov     rbx, [rsp+0C0h+arg_10]
+  .text:0000000180B7B23F                 add     rsp, 0B8h
+  .text:0000000180B7B246                 pop     rdi
+  .text:0000000180B7B247                 pop     rbp
+  .text:0000000180B7B248                 retn
+procedure: |-
+  _UNKNOWN **sub_180B7B020()
+  {
+    _UNKNOWN **result; // rax
+    __int64 i; // rdi
+    __int64 v2; // r14
+    __int64 v3; // rbx
+    int v4; // r13d
+    __int64 v5; // r15
+    __int64 v6; // r12
+    __int64 v7; // rdx
+    __int64 v8; // rax
+    __int64 v9; // r14
+    __int64 v10; // rdx
+    __int64 v11; // rdx
+    __int64 v12; // [rsp+28h] [rbp-49h] BYREF
+    int v13; // [rsp+30h] [rbp-41h]
+    __int64 v14; // [rsp+38h] [rbp-39h] BYREF
+    int v15; // [rsp+40h] [rbp-31h]
+    _BYTE v16[16]; // [rsp+48h] [rbp-29h] BYREF
+    __int64 v17; // [rsp+58h] [rbp-19h] BYREF
+    __int64 *v18; // [rsp+60h] [rbp-11h]
+    const char **v19; // [rsp+68h] [rbp-9h]
+    const char *v20; // [rsp+70h] [rbp-1h] BYREF
+    __int128 v21; // [rsp+78h] [rbp+7h]
+    int v22; // [rsp+88h] [rbp+17h]
+    int v23; // [rsp+8Ch] [rbp+1Bh]
+    _UNKNOWN *retaddr; // [rsp+D0h] [rbp+5Fh] BYREF
+    __int64 v25; // [rsp+D8h] [rbp+67h] BYREF
+    __int64 v26; // [rsp+E0h] [rbp+6Fh]
+
+    result = &retaddr;
+    for ( i = qword_181F64488; i; i = *(_QWORD *)(i + 24) )
+    {
+      v2 = *(_QWORD *)(i + 8);
+      v3 = g_pGameEntitySystem;
+      v4 = *(_DWORD *)(i + 16);
+      v26 = *(_QWORD *)i;
+      v25 = v2;
+      v5 = g_pGameEntitySystem + 8344;            // 0x2098 = 8344 = CGameEntitySystem::m_spawnGroupEntityFilters(structmember,struct=CGameEntitySystem,member=m_spawnGroupEntityFilters)
+      if ( !v2
+        || (v17 = g_pGameEntitySystem + 8344,
+            v18 = &v25,
+            v19 = (const char **)(g_pGameEntitySystem + 8344),
+            result = (_UNKNOWN **)sub_180B2E1D0(g_pGameEntitySystem + 8352, v16, &v17),
+            v6 = *((int *)result + 1),
+            (_DWORD)v6 == -1) )
+      {
+        v8 = MemAlloc_StrDupFunc(v2);
+        v17 = v5;
+        v9 = v8;
+        v20 = (const char *)v8;
+        LOBYTE(v18) = 1;
+        v19 = &v20;
+        v21 = 0;
+        sub_180B2F900(v5 + 8, &v12, &v17);
+        v6 = SHIDWORD(v12);
+        if ( HIDWORD(v12) == -1 )
+        {
+          v14 = v12;
+          v15 = v13;
+          LODWORD(v6) = sub_180B2A9D0(v5 + 8, &v14, &v20);
+        }
+        else
+        {
+          v22 = 230;
+          v20 = "C:\\buildworker\\csgo_rel_win64\\build\\src\\public\\tier0\\utldict.h";
+          v23 = 20;
+          *(_QWORD *)&v21 = "CUtlDict<struct CGameEntitySystem::SpawnGroupEntityFilterInfo_t,class CDefFastCaselessStringLess>::Insert";
+          *((_QWORD *)&v21 + 1) = "false";
+          if ( Assert_ConditionFailed(
+                 (const struct _AssertCompileTimeConstantStruct_t *)&v20,
+                 "Found existing value when inserting into dict - replacing existing value with new value. If this is inten"
+                 "ded behavior, use InsertOrReplace. If leaving existing values alone is intended, use InsertIfNotFound.") )
+          {
+            __debugbreak();
+          }
+          if ( (*(_DWORD *)(v3 + 8356) & 0x7FFFFFFF) != 0 )
+            v10 = *(_QWORD *)(v3 + 8360);
+          else
+            v10 = 0;
+          *(_OWORD *)(v10 + 40 * v6 + 24) = 0;
+          (*(void (__fastcall **)(_QWORD, __int64))(*g_pMemAlloc + 24LL))(g_pMemAlloc, v9);
+        }
+      }
+      else
+      {
+        if ( (*(_DWORD *)(v3 + 8356) & 0x7FFFFFFF) != 0 )
+          v7 = *(_QWORD *)(v3 + 8360);
+        else
+          v7 = 0;
+        if ( *(_DWORD *)(v7 + 40 * v6 + 32) >= v4 )
+          continue;
+      }
+      if ( (*(_DWORD *)(v3 + 8356) & 0x7FFFFFFF) != 0 )
+        v11 = *(_QWORD *)(v3 + 8360);
+      else
+        v11 = 0;
+      *(_QWORD *)(v11 + 40LL * (int)v6 + 24) = v26;
+      if ( (*(_DWORD *)(v3 + 8356) & 0x7FFFFFFF) != 0 )
+        result = *(_UNKNOWN ***)(v3 + 8360);
+      else
+        result = nullptr;
+      LODWORD(result[5 * (int)v6 + 4]) = v4;
+    }
+    return result;
+  }

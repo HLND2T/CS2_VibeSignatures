@@ -6349,8 +6349,15 @@ modules:
           - CEntitySystem_EnableAutoDeletionExecution.{platform}.yaml
           - CEntitySystem_InstallPostSpawnCallback.{platform}.yaml
           - CEntitySystem_InstallCreationWrapperCallbacks.{platform}.yaml
+          - CGameEntitySystem_RegisterSpawnGroupEntityFilter.{platform}.yaml
         expected_input:
           - CSource2EntitySystem_StaticInit.{platform}.yaml
+
+      - name: find-CGameEntitySystem_m_spawnGroupEntityFilters
+        expected_output:
+          - CGameEntitySystem_m_spawnGroupEntityFilters.{platform}.yaml
+        expected_input:
+          - CGameEntitySystem_RegisterSpawnGroupEntityFilter.{platform}.yaml
 
       - name: find-CEntitySystem_m_EntityPostSpawnCallback
         expected_output:
@@ -9351,6 +9358,18 @@ modules:
         category: func
         alias:
           - CGameEntitySystem::CheckGlobalState
+
+      - name: CGameEntitySystem_RegisterSpawnGroupEntityFilter
+        category: func
+        alias:
+          - CGameEntitySystem::RegisterSpawnGroupEntityFilter
+
+      - name: CGameEntitySystem_m_spawnGroupEntityFilters
+        category: structmember
+        struct: CGameEntitySystem
+        member: m_spawnGroupEntityFilters
+        alias:
+          - CGameEntitySystem::m_spawnGroupEntityFilters
 
       - name: IGameSystem_OnBuildGameSessionManifest
         category: vfunc
