@@ -14,6 +14,7 @@ TARGET_STRUCT_MEMBER_NAMES = [
     "CEntitySystem_m_Symbols",
     "CEntitySystem_m_pNetworkFieldChangedEventQueue",
     "CEntitySystem_m_pNetworkFieldScratchData",
+    "CGameEntitySystem_m_pEntity2SaveRestore",
 ]
 
 LLM_DECOMPILE = [
@@ -50,6 +51,11 @@ LLM_DECOMPILE = [
     ),
     (
         "CEntitySystem_m_pNetworkFieldScratchData",
+        "prompt/call_llm_decompile.md",
+        "references/server/CEntitySystem_Init.{platform}.yaml",
+    ),
+    (
+        "CGameEntitySystem_m_pEntity2SaveRestore",
         "prompt/call_llm_decompile.md",
         "references/server/CEntitySystem_Init.{platform}.yaml",
     ),
@@ -139,6 +145,18 @@ GENERATE_YAML_DESIRED_FIELDS = [
             "offset_sig",
             "offset_sig_disp",
             #"offset_sig_max_match:2",
+            "offset_sig_allow_across_function_boundary:true",
+        ],
+    ),
+    (
+        "CGameEntitySystem_m_pEntity2SaveRestore",
+        [
+            "struct_name",
+            "member_name",
+            "offset",
+            #"size",
+            "offset_sig",
+            "offset_sig_disp",
             "offset_sig_allow_across_function_boundary:true",
         ],
     ),
