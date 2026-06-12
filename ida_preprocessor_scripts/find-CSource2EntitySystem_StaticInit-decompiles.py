@@ -10,6 +10,10 @@ TARGET_FUNCTION_NAMES = [
     "CEntitySystem_InstallCreationWrapperCallbacks",
 ]
 
+TARGET_FUNCTION_NAMES_WINDOWS = [
+    "CSpawnGroupEntityFilterRegistrar_RegisterSpawnGroupEntityFilters",
+]
+
 TARGET_GLOBALVAR_NAMES = [
     "g_pGameResourceService",
     "g_pGameEntitySystem",
@@ -103,6 +107,16 @@ GENERATE_YAML_DESIRED_FIELDS = [
             "func_size",
         ],
     ),
+    (
+        "CSpawnGroupEntityFilterRegistrar_RegisterSpawnGroupEntityFilters",
+        [
+            "func_name",
+            "func_sig",
+            "func_va",
+            "func_rva",
+            "func_size",
+        ],
+    ),
 ]
 
 async def preprocess_skill(
@@ -148,6 +162,18 @@ async def preprocess_skill(
         ),
     ]
 
+    func_names = list(TARGET_FUNCTION_NAMES)
+
+    if platform == "windows":
+        func_names += TARGET_FUNCTION_NAMES_WINDOWS
+        llm_decompile.append(
+            (
+                "CSpawnGroupEntityFilterRegistrar_RegisterSpawnGroupEntityFilters",
+                "prompt/call_llm_decompile.md",
+                "references/{module_name}/CSource2EntitySystem_StaticInit.{platform}.yaml",
+            ),
+        )
+
     return await preprocess_common_skill(
         session=session,
         expected_outputs=expected_outputs,
@@ -155,7 +181,7 @@ async def preprocess_skill(
         new_binary_dir=new_binary_dir,
         platform=platform,
         image_base=image_base,
-        func_names=TARGET_FUNCTION_NAMES,
+        func_names=func_names,
         gv_names=TARGET_GLOBALVAR_NAMES,
         struct_member_names=TARGET_STRUCT_MEMBER_NAMES,
         func_vtable_relations=FUNC_VTABLE_RELATIONS,
