@@ -5153,6 +5153,13 @@ modules:
         expected_output:
           - CEntitySystem_PrecacheEntity.{platform}.yaml
 
+      - name: find-CEntitySystem_InvokePrecacheCallback
+        expected_output:
+          - CEntitySystem_InvokePrecacheCallback.{platform}.yaml
+        expected_input:
+          - CEntitySystem_PrecacheEntity.{platform}.yaml
+          - CEntitySystem_vtable.{platform}.yaml
+
       - name: find-CEntitySystem_PrecacheEntity-decompiles
         expected_output:
           - CEntitySystem_DestroyEntity.{platform}.yaml
@@ -8448,6 +8455,11 @@ modules:
         category: func
         alias:
           - CEntitySystem::PrecacheEntity
+
+      - name: CEntitySystem_InvokePrecacheCallback
+        category: vfunc
+        alias:
+          - CEntitySystem::InvokePrecacheCallback
 
       - name: CEntitySystem_DestroyEntity
         category: func
