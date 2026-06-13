@@ -305,21 +305,20 @@ disasm_code: |-
   .text:00000001811F877A                 mov     qword ptr [rcx+4Ch], 0C80000h
   .text:00000001811F8782                 jmp     short loc_1811F8787
   .text:00000001811F8784                 mov     rcx, r15
-  .text:00000001811F8787                 ; 3208 = 0xC88 = CEntitySystem::m_pNetworkFieldScratchData (structmember, struct=CEntitySystem, member=m_pNetworkFieldScratchData)
-  .text:00000001811F8787                 mov     [rsi+0C88h], rcx; 3208 = 0xC88 = CEntitySystem::m_pNetworkFieldScratchData (structmember, struct=CEntitySystem, member=m_pNetworkFieldScratchData)
+  .text:00000001811F8787                 ; 0xC88 = 3208LL = CEntitySystem::m_pNetworkFieldScratchData
+  .text:00000001811F8787                 mov     [rsi+0C88h], rcx; 0xC88 = 3208LL = CEntitySystem::m_pNetworkFieldScratchData
   .text:00000001811F878E                 mov     edx, 10000h
   .text:00000001811F8793                 mov     rax, [rcx]
   .text:00000001811F8796                 mov     r8d, cs:dword_1820B98C8
   .text:00000001811F879D                 call    qword ptr [rax+8]
   .text:00000001811F87A0                 mov     rcx, cs:g_pFlattenedSerializers
   .text:00000001811F87A7                 mov     r8, [rsi+0C90h]
-  .text:00000001811F87AE                 ; 3208 = 0xC88 = CEntitySystem::m_pNetworkFieldScratchData (structmember, struct=CEntitySystem, member=m_pNetworkFieldScratchData)
-  .text:00000001811F87AE                 mov     rdx, [rsi+0C88h]; 3208 = 0xC88 = CEntitySystem::m_pNetworkFieldScratchData (structmember, struct=CEntitySystem, member=m_pNetworkFieldScratchData)
+  .text:00000001811F87AE                 mov     rdx, [rsi+0C88h]
   .text:00000001811F87B5                 mov     rax, [rcx]
   .text:00000001811F87B8                 ; 0x118 = 280LL = IFlattenedSerializers_CreateFieldChangedEventQueue
   .text:00000001811F87B8                 call    qword ptr [rax+118h]; 0x118 = 280LL = IFlattenedSerializers_CreateFieldChangedEventQueue
-  .text:00000001811F87BE                 ; 3200 = 0xC80 = CEntitySystem::m_pNetworkFieldChangedEventQueue (structmember, struct=CEntitySystem, member=m_pNetworkFieldChangedEventQueue)
-  .text:00000001811F87BE                 mov     [rsi+0C80h], rax; 3200 = 0xC80 = CEntitySystem::m_pNetworkFieldChangedEventQueue (structmember, struct=CEntitySystem, member=m_pNetworkFieldChangedEventQueue)
+  .text:00000001811F87BE                 ; 0xC80 = 3200LL = CEntitySystem::m_pNetworkFieldChangedEventQueue
+  .text:00000001811F87BE                 mov     [rsi+0C80h], rax; 0xC80 = 3200LL = CEntitySystem::m_pNetworkFieldChangedEventQueue
   .text:00000001811F87C5                 cmp     cs:byte_1820B959C, r15b
   .text:00000001811F87CC                 jnz     loc_1811F897E
   .text:00000001811F87D2                 movzx   ecx, word ptr [rsi+0AA8h]
@@ -440,7 +439,7 @@ disasm_code: |-
   .text:00000001811F89A3                 pop     rsi
   .text:00000001811F89A4                 retn
 procedure: |-
-  __int64 __fastcall CEntitySystem_Init(__int64 a1, const char *a2, int a3, int a4, char a5)
+  __int64 __fastcall sub_1811F8260(__int64 a1, const char *a2, int a3, int a4, char a5)
   {
     bool v8; // al
     __int64 v9; // rdx
@@ -483,12 +482,12 @@ procedure: |-
     __int64 v46; // rbx
     __int64 v47; // rbp
     __int64 v48; // rax
-    char *v49; // rdx
+    unsigned __int8 *v49; // rdx
     unsigned int v50; // r9d
     __int64 v51; // rsi
     unsigned __int8 jj; // cl
     int v53; // eax
-    char *v54; // rcx
+    unsigned __int8 *v54; // rcx
     unsigned int v55; // edx
     unsigned __int8 kk; // al
     const char *v57; // [rsp+30h] [rbp-98h] BYREF
@@ -693,17 +692,16 @@ procedure: |-
       {
         v38 = 0;
       }
-      *(_QWORD *)(a1 + 3208) = v38;               // 3208 = 0xC88 = CEntitySystem::m_pNetworkFieldScratchData (structmember, struct=CEntitySystem, member=m_pNetworkFieldScratchData)
+      *(_QWORD *)(a1 + 3208) = v38;               // 0xC88 = 3208LL = CEntitySystem::m_pNetworkFieldScratchData
       (*(void (__fastcall **)(__int64, __int64, _QWORD))(*(_QWORD *)v38 + 8LL))(
         v38,
         0x10000,
         (unsigned int)dword_1820B98C8);
-      result = (*(__int64 (__fastcall **)(__int64, _QWORD, _QWORD))(*(_QWORD *)g_pFlattenedSerializers
-                                                                  + 280LL))(// 0x118 = 280LL = IFlattenedSerializers_CreateFieldChangedEventQueue
+      result = (*(__int64 (__fastcall **)(__int64, _QWORD, _QWORD))(*(_QWORD *)g_pFlattenedSerializers + 280LL))(
                  g_pFlattenedSerializers,
-                 *(_QWORD *)(a1 + 3208),          // 3208 = 0xC88 = CEntitySystem::m_pNetworkFieldScratchData (structmember, struct=CEntitySystem, member=m_pNetworkFieldScratchData)
-                 *(_QWORD *)(a1 + 3216));
-      *(_QWORD *)(a1 + 3200) = result;            // 3200 = 0xC80 = CEntitySystem::m_pNetworkFieldChangedEventQueue (structmember, struct=CEntitySystem, member=m_pNetworkFieldChangedEventQueue)
+                 *(_QWORD *)(a1 + 3208),
+                 *(_QWORD *)(a1 + 3216));         // 0x118 = 280LL = IFlattenedSerializers_CreateFieldChangedEventQueue
+      *(_QWORD *)(a1 + 3200) = result;            // 0xC80 = 3200LL = CEntitySystem::m_pNetworkFieldChangedEventQueue
     }
     if ( !byte_1820B959C )
     {
@@ -745,11 +743,11 @@ procedure: |-
         do
         {
           v48 = (*(__int64 (**)(void))v46)();
-          v49 = byte_1815A2980;
+          v49 = (unsigned __int8 *)&byte_1815A2980;
           v50 = -2128831035;
           v51 = v48;
           if ( *(_QWORD *)(v48 + 16) )
-            v49 = *(char **)(v48 + 16);
+            v49 = *(unsigned __int8 **)(v48 + 16);
           for ( jj = *v49; *v49; v50 = 16777619 * (v50 ^ v53) )
           {
             v53 = jj;
@@ -758,10 +756,10 @@ procedure: |-
           result = sub_1811E92E0(v47, v51 + 16, (v50 >> 21) + (v50 ^ (v50 << 17)), 0);
           if ( (_DWORD)result == -1 )
           {
-            v54 = byte_1815A2980;
+            v54 = (unsigned __int8 *)&byte_1815A2980;
             v55 = -2128831035;
             if ( *(_QWORD *)(v51 + 16) )
-              v54 = *(char **)(v51 + 16);
+              v54 = *(unsigned __int8 **)(v51 + 16);
             for ( kk = *v54; *v54; kk = *v54 )
             {
               ++v54;

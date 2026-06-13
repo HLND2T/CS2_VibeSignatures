@@ -15,7 +15,7 @@ disasm_code: |-
   .text:0000000001E7C3D9                 ; 0xA88 = 2696LL = CEntitySystem::m_sEntSystemName
   .text:0000000001E7C3D9                 add     rdi, 0A88h; 0xA88 = 2696LL = CEntitySystem::m_sEntSystemName
   .text:0000000001E7C3E0                 sub     rsp, 68h
-  .text:0000000001E7C3E4                 call    __ZN10CUtlString3SetEPKc; CUtlString::Set(char const*)
+  .text:0000000001E7C3E4                 call    sub_9849D0
   .text:0000000001E7C3E9                 lea     rax, unk_27C4271
   .text:0000000001E7C3F0                 mov     [rbx+0BBCh], r13d
   .text:0000000001E7C3F7                 mov     [rax], r14b
@@ -25,17 +25,12 @@ disasm_code: |-
   .text:0000000001E7C40B                 xor     eax, eax
   .text:0000000001E7C40D                 ; 0xBDA = 3034LL = CEntitySystem::m_eNetworkSerializationMode
   .text:0000000001E7C40D                 mov     [rbx+0BDAh], al; 0xBDA = 3034LL = CEntitySystem::m_eNetworkSerializationMode
-  .text:0000000001E7C413                 ; bool
-  .text:0000000001E7C413                 xor     r8d, r8d; bool
-  .text:0000000001E7C416                 ; void *
-  .text:0000000001E7C416                 xor     ecx, ecx; void *
-  .text:0000000001E7C418                 ; unsigned int
-  .text:0000000001E7C418                 xor     edx, edx; unsigned int
-  .text:0000000001E7C41A                 ; this
-  .text:0000000001E7C41A                 lea     rdi, [rbx+0CC0h]; this
-  .text:0000000001E7C421                 ; unsigned int
-  .text:0000000001E7C421                 mov     esi, 400h; unsigned int
-  .text:0000000001E7C426                 call    __ZN21CUtlScratchMemoryPool4InitEjjPvb; CUtlScratchMemoryPool::Init(uint,uint,void *,bool)
+  .text:0000000001E7C413                 xor     r8d, r8d
+  .text:0000000001E7C416                 xor     ecx, ecx
+  .text:0000000001E7C418                 xor     edx, edx
+  .text:0000000001E7C41A                 lea     rdi, [rbx+0CC0h]
+  .text:0000000001E7C421                 mov     esi, 400h
+  .text:0000000001E7C426                 call    sub_984120
   .text:0000000001E7C42B                 lea     r14, qword_27C41A8
   .text:0000000001E7C432                 lea     rax, [rbx+10h]
   .text:0000000001E7C436                 mov     cs:qword_256F1A8, rbx
@@ -126,14 +121,15 @@ disasm_code: |-
   .text:0000000001E7C5CB                 jnz     loc_1E7CA3E
   .text:0000000001E7C5D1                 lea     rdi, aEntitysystemCl; "EntitySystem - Class Tables"
   .text:0000000001E7C5D8                 xor     eax, eax
-  .text:0000000001E7C5DA                 call    _COM_TimestampedLog
+  .text:0000000001E7C5DA                 call    sub_985030
   .text:0000000001E7C5DF                 mov     rdi, [r13+0]
   .text:0000000001E7C5E3                 test    rdi, rdi
   .text:0000000001E7C5E6                 jz      short loc_1E7C637
   .text:0000000001E7C5E8                 mov     rax, [rdi]
   .text:0000000001E7C5EB                 lea     rsi, aStringTTable; "string_t_table"
   .text:0000000001E7C5F2                 mov     edx, [rbx+0BBCh]
-  .text:0000000001E7C5F8                 lea     rcx, [rbx+1ED0h]
+  .text:0000000001E7C5F8                 ; 0x1ED0 = 7888LL = CEntitySystem::m_Symbols
+  .text:0000000001E7C5F8                 lea     rcx, [rbx+1ED0h]; 0x1ED0 = 7888LL = CEntitySystem::m_Symbols
   .text:0000000001E7C5FF                 ; 0xA0 = 160LL = INetworkMessages_SetNetworkSerializationContextData
   .text:0000000001E7C5FF                 call    qword ptr [rax+0A0h]; 0xA0 = 160LL = INetworkMessages_SetNetworkSerializationContextData
   .text:0000000001E7C605                 mov     rdi, [r13+0]
@@ -160,8 +156,7 @@ disasm_code: |-
   .text:0000000001E7C66B                 pop     r15
   .text:0000000001E7C66D                 pop     rbp
   .text:0000000001E7C66E                 retn
-  .text:0000000001E7C670                 ; _QWORD
-  .text:0000000001E7C670                 mov     edi, [r15+10h]; _QWORD
+  .text:0000000001E7C670                 mov     edi, [r15+10h]
   .text:0000000001E7C674                 cmp     r14d, edi
   .text:0000000001E7C677                 jg      loc_1E7C938
   .text:0000000001E7C67D                 mov     [r15], r14d
@@ -212,21 +207,16 @@ disasm_code: |-
   .text:0000000001E7C778                 mov     rdi, rbx
   .text:0000000001E7C77B                 call    sub_1E68880
   .text:0000000001E7C780                 jmp     loc_1E7C659
-  .text:0000000001E7C788                 ; _QWORD
-  .text:0000000001E7C788                 mov     edi, 58h ; 'X'; _QWORD
-  .text:0000000001E7C78D                 call    __Znwm; operator new(ulong)
-  .text:0000000001E7C792                 ; _QWORD
-  .text:0000000001E7C792                 mov     ecx, 1; _QWORD
-  .text:0000000001E7C797                 ; _QWORD
-  .text:0000000001E7C797                 xor     esi, esi; _QWORD
-  .text:0000000001E7C799                 ; _QWORD
-  .text:0000000001E7C799                 xor     edi, edi; _QWORD
+  .text:0000000001E7C788                 mov     edi, 58h ; 'X'
+  .text:0000000001E7C78D                 call    sub_97A1D0
+  .text:0000000001E7C792                 mov     ecx, 1
+  .text:0000000001E7C797                 xor     esi, esi
+  .text:0000000001E7C799                 xor     edi, edi
   .text:0000000001E7C79B                 mov     r12, rax
-  .text:0000000001E7C79E                 ; _QWORD
-  .text:0000000001E7C79E                 mov     edx, 4E200h; _QWORD
+  .text:0000000001E7C79E                 mov     edx, 4E200h
   .text:0000000001E7C7A3                 lea     rax, off_241DF48
-  .text:0000000001E7C7AA                 ; 3216 = 0xC90 = CEntitySystem::m_pNetworkFieldScratchData (structmember, struct=CEntitySystem, member=m_pNetworkFieldScratchData)
-  .text:0000000001E7C7AA                 mov     [rbx+0C90h], r12; 3216 = 0xC90 = CEntitySystem::m_pNetworkFieldScratchData (structmember, struct=CEntitySystem, member=m_pNetworkFieldScratchData)
+  .text:0000000001E7C7AA                 ; 0xC90 = 3216LL = CEntitySystem::m_pNetworkFieldScratchData
+  .text:0000000001E7C7AA                 mov     [rbx+0C90h], r12; 0xC90 = 3216LL = CEntitySystem::m_pNetworkFieldScratchData
   .text:0000000001E7C7B1                 mov     [r12], rax
   .text:0000000001E7C7B5                 mov     rax, 0C8000000000000h
   .text:0000000001E7C7BF                 mov     [r12+48h], rax
@@ -241,21 +231,17 @@ disasm_code: |-
   .text:0000000001E7C804                 mov     dword ptr [r12+28h], 0
   .text:0000000001E7C80D                 mov     qword ptr [r12+3Ch], 0
   .text:0000000001E7C816                 mov     qword ptr [r12+50h], 0
-  .text:0000000001E7C81F                 call    _UtlVectorMemory_CalcNewAllocationCount
+  .text:0000000001E7C81F                 call    sub_984790
   .text:0000000001E7C824                 mov     r13d, eax
   .text:0000000001E7C827                 cmp     eax, 4E1FFh
   .text:0000000001E7C82C                 jle     loc_1E7C932
   .text:0000000001E7C832                 xor     esi, esi
-  .text:0000000001E7C834                 ; _QWORD
-  .text:0000000001E7C834                 movsxd  rcx, dword ptr [r12+18h]; _QWORD
-  .text:0000000001E7C839                 ; _QWORD
-  .text:0000000001E7C839                 movsxd  rdx, eax; _QWORD
+  .text:0000000001E7C834                 movsxd  rcx, dword ptr [r12+18h]
+  .text:0000000001E7C839                 movsxd  rdx, eax
   .text:0000000001E7C83C                 cmp     dword ptr [r12+1Ch], 3FFFFFFFh
-  .text:0000000001E7C845                 ; _QWORD
-  .text:0000000001E7C845                 mov     rdi, [r12+10h]; _QWORD
-  .text:0000000001E7C84A                 ; _QWORD
-  .text:0000000001E7C84A                 setbe   sil; _QWORD
-  .text:0000000001E7C84E                 call    _UtlVectorMemory_Alloc
+  .text:0000000001E7C845                 mov     rdi, [r12+10h]
+  .text:0000000001E7C84A                 setbe   sil
+  .text:0000000001E7C84E                 call    sub_9843C0
   .text:0000000001E7C853                 mov     [r12+10h], rax
   .text:0000000001E7C858                 mov     eax, [r12+1Ch]
   .text:0000000001E7C85D                 cmp     eax, 3FFFFFFFh
@@ -267,33 +253,25 @@ disasm_code: |-
   .text:0000000001E7C878                 xor     eax, eax
   .text:0000000001E7C87A                 mov     dword ptr [r12+8], 4E200h
   .text:0000000001E7C883                 xchg    eax, [rdx]
-  .text:0000000001E7C885                 ; _QWORD
-  .text:0000000001E7C885                 mov     edi, 50h ; 'P'; _QWORD
+  .text:0000000001E7C885                 mov     edi, 50h ; 'P'
   .text:0000000001E7C88A                 mov     [r12+44h], r14d
   .text:0000000001E7C88F                 mov     eax, [r12+20h]
   .text:0000000001E7C894                 mov     dword ptr [r12+40h], 10000h
-  .text:0000000001E7C89D                 call    __Znwm; operator new(ulong)
-  .text:0000000001E7C8A2                 ; this
-  .text:0000000001E7C8A2                 mov     rdi, rax; this
+  .text:0000000001E7C89D                 call    sub_97A1D0
+  .text:0000000001E7C8A2                 mov     rdi, rax
   .text:0000000001E7C8A5                 mov     r13, rax
-  .text:0000000001E7C8A8                 call    __ZN12CMemoryStackC1Ev; CMemoryStack::CMemoryStack(void)
-  .text:0000000001E7C8AD                 ; unsigned int
-  .text:0000000001E7C8AD                 mov     edx, [r12+40h]; unsigned int
-  .text:0000000001E7C8B2                 ; unsigned int
-  .text:0000000001E7C8B2                 mov     r9d, 10h; unsigned int
-  .text:0000000001E7C8B8                 ; this
-  .text:0000000001E7C8B8                 mov     rdi, r13; this
-  .text:0000000001E7C8BB                 ; unsigned int
-  .text:0000000001E7C8BB                 mov     r8d, 1000h; unsigned int
-  .text:0000000001E7C8C1                 ; unsigned int
-  .text:0000000001E7C8C1                 mov     ecx, 1000h; unsigned int
+  .text:0000000001E7C8A8                 call    sub_984550
+  .text:0000000001E7C8AD                 mov     edx, [r12+40h]
+  .text:0000000001E7C8B2                 mov     r9d, 10h
+  .text:0000000001E7C8B8                 mov     rdi, r13
+  .text:0000000001E7C8BB                 mov     r8d, 1000h
+  .text:0000000001E7C8C1                 mov     ecx, 1000h
   .text:0000000001E7C8C6                 lea     rsi, aCnetworkfields; "CNetworkFieldScratchData.m_MemoryStacks"...
-  .text:0000000001E7C8CD                 call    __ZN12CMemoryStack4InitEPKcjjjj; CMemoryStack::Init(char const*,uint,uint,uint,uint)
+  .text:0000000001E7C8CD                 call    sub_983FE0
   .text:0000000001E7C8D2                 test    al, al
   .text:0000000001E7C8D4                 jz      loc_1E7CDBB
   .text:0000000001E7C8DA                 mov     r14d, [r12+28h]
-  .text:0000000001E7C8DF                 ; _QWORD
-  .text:0000000001E7C8DF                 mov     edi, [r12+38h]; _QWORD
+  .text:0000000001E7C8DF                 mov     edi, [r12+38h]
   .text:0000000001E7C8E4                 cmp     r14d, edi
   .text:0000000001E7C8E7                 jz      loc_1E7CBF7
   .text:0000000001E7C8ED                 mov     rax, [r12+30h]
@@ -304,14 +282,13 @@ disasm_code: |-
   .text:0000000001E7C900                 mov     [rax+rdx*8], r13
   .text:0000000001E7C904                 lea     rax, g_pFlattenedSerializers
   .text:0000000001E7C90B                 mov     rdx, [rbx+0C98h]
-  .text:0000000001E7C912                 ; 3216 = 0xC90 = CEntitySystem::m_pNetworkFieldScratchData (structmember, struct=CEntitySystem, member=m_pNetworkFieldScratchData)
-  .text:0000000001E7C912                 mov     rsi, [rbx+0C90h]; 3216 = 0xC90 = CEntitySystem::m_pNetworkFieldScratchData (structmember, struct=CEntitySystem, member=m_pNetworkFieldScratchData)
+  .text:0000000001E7C912                 mov     rsi, [rbx+0C90h]
   .text:0000000001E7C919                 mov     rdi, [rax]
   .text:0000000001E7C91C                 mov     rax, [rdi]
   .text:0000000001E7C91F                 ; 0x118 = 280LL = IFlattenedSerializers_CreateFieldChangedEventQueue
   .text:0000000001E7C91F                 call    qword ptr [rax+118h]; 0x118 = 280LL = IFlattenedSerializers_CreateFieldChangedEventQueue
-  .text:0000000001E7C925                 ; 3208 = 0xC88 = CEntitySystem::m_pNetworkFieldScratchData (structmember, struct=CEntitySystem, member=m_pNetworkFieldScratchData)
-  .text:0000000001E7C925                 mov     [rbx+0C88h], rax; 3208 = 0xC88 = CEntitySystem::m_pNetworkFieldScratchData (structmember, struct=CEntitySystem, member=m_pNetworkFieldScratchData)
+  .text:0000000001E7C925                 ; 0xC88 = 3208LL = CEntitySystem::m_pNetworkFieldChangedEventQueue
+  .text:0000000001E7C925                 mov     [rbx+0C88h], rax; 0xC88 = 3208LL = CEntitySystem::m_pNetworkFieldChangedEventQueue
   .text:0000000001E7C92C                 jmp     loc_1E7C64C
   .text:0000000001E7C932                 jmp     short loc_1E7C932
   .text:0000000001E7C938                 mov     esi, [r15+14h]
@@ -326,16 +303,13 @@ disasm_code: |-
   .text:0000000001E7C95C                 sub     r12d, edi
   .text:0000000001E7C95F                 movsxd  rdx, r12d
   .text:0000000001E7C962                 add     rax, rdx
-  .text:0000000001E7C965                 ; _QWORD
-  .text:0000000001E7C965                 mov     edx, r14d; _QWORD
+  .text:0000000001E7C965                 mov     edx, r14d
   .text:0000000001E7C968                 cmp     rax, 7FFFFFFFh
   .text:0000000001E7C96E                 jg      loc_1E7CBA1
-  .text:0000000001E7C974                 ; _QWORD
-  .text:0000000001E7C974                 and     esi, 3FFFFFFFh; _QWORD
-  .text:0000000001E7C97A                 ; _QWORD
-  .text:0000000001E7C97A                 mov     ecx, 8; _QWORD
+  .text:0000000001E7C974                 and     esi, 3FFFFFFFh
+  .text:0000000001E7C97A                 mov     ecx, 8
   .text:0000000001E7C97F                 mov     [rbp+var_78], edx
-  .text:0000000001E7C982                 call    _UtlVectorMemory_CalcNewAllocationCount
+  .text:0000000001E7C982                 call    sub_984790
   .text:0000000001E7C987                 mov     edx, [rbp+var_78]
   .text:0000000001E7C98A                 mov     r12d, eax
   .text:0000000001E7C98D                 cmp     eax, edx
@@ -352,16 +326,12 @@ disasm_code: |-
   .text:0000000001E7C9B6                 movsxd  rcx, dword ptr [r15+10h]
   .text:0000000001E7C9BA                 movsxd  rdx, r12d
   .text:0000000001E7C9BD                 xor     esi, esi
-  .text:0000000001E7C9BF                 ; _QWORD
-  .text:0000000001E7C9BF                 shl     rdx, 3; _QWORD
-  .text:0000000001E7C9C3                 ; _QWORD
-  .text:0000000001E7C9C3                 mov     rdi, [r15+8]; _QWORD
-  .text:0000000001E7C9C7                 ; _QWORD
-  .text:0000000001E7C9C7                 shl     rcx, 3; _QWORD
+  .text:0000000001E7C9BF                 shl     rdx, 3
+  .text:0000000001E7C9C3                 mov     rdi, [r15+8]
+  .text:0000000001E7C9C7                 shl     rcx, 3
   .text:0000000001E7C9CB                 cmp     dword ptr [r15+14h], 3FFFFFFFh
-  .text:0000000001E7C9D3                 ; _QWORD
-  .text:0000000001E7C9D3                 setbe   sil; _QWORD
-  .text:0000000001E7C9D7                 call    _UtlVectorMemory_Alloc
+  .text:0000000001E7C9D3                 setbe   sil
+  .text:0000000001E7C9D7                 call    sub_9843C0
   .text:0000000001E7C9DC                 mov     [r15+8], rax
   .text:0000000001E7C9E0                 mov     eax, [r15+14h]
   .text:0000000001E7C9E4                 cmp     eax, 3FFFFFFFh
@@ -429,23 +399,20 @@ disasm_code: |-
   .text:0000000001E7CB2D                 and     cx, 7FFFh
   .text:0000000001E7CB32                 movzx   edx, r15w
   .text:0000000001E7CB36                 xor     eax, eax
-  .text:0000000001E7CB38                 ; n
-  .text:0000000001E7CB38                 add     rdx, rdx; n
+  .text:0000000001E7CB38                 add     rdx, rdx
   .text:0000000001E7CB3B                 test    cx, cx
   .text:0000000001E7CB3E                 jz      short loc_1E7CB47
   .text:0000000001E7CB40                 mov     rax, [rbx+0AA0h]
   .text:0000000001E7CB47                 mov     rax, [rax+r14+10h]
-  .text:0000000001E7CB4C                 ; c
-  .text:0000000001E7CB4C                 mov     esi, 0FFh; c
-  .text:0000000001E7CB51                 ; s
-  .text:0000000001E7CB51                 mov     rdi, [rax+80h]; s
-  .text:0000000001E7CB58                 call    _memset
+  .text:0000000001E7CB4C                 mov     esi, 0FFh
+  .text:0000000001E7CB51                 mov     rdi, [rax+80h]
+  .text:0000000001E7CB58                 call    sub_985C30
   .text:0000000001E7CB5D                 xor     eax, eax
   .text:0000000001E7CB5F                 test    word ptr [rbx+0A9Ah], 7FFFh
   .text:0000000001E7CB68                 jz      short loc_1E7CB71
   .text:0000000001E7CB6A                 mov     rax, [rbx+0AA0h]
   .text:0000000001E7CB71                 mov     r15, [rax+r14+10h]
-  .text:0000000001E7CB76                 call    _CommandLine
+  .text:0000000001E7CB76                 call    sub_984890
   .text:0000000001E7CB7B                 mov     esi, 46F20F89h
   .text:0000000001E7CB80                 mov     rdi, rax
   .text:0000000001E7CB83                 mov     rax, [rax]
@@ -456,9 +423,8 @@ disasm_code: |-
   .text:0000000001E7CB91                 jnz     loc_1E7CAC0
   .text:0000000001E7CB97                 call    sub_1E6A680
   .text:0000000001E7CB9C                 jmp     loc_1E7CAC5
-  .text:0000000001E7CBA1                 ; _QWORD
-  .text:0000000001E7CBA1                 mov     esi, r12d; _QWORD
-  .text:0000000001E7CBA4                 call    _UtlVectorMemory_FailedAllocation
+  .text:0000000001E7CBA1                 mov     esi, r12d
+  .text:0000000001E7CBA4                 call    sub_984EE0
   .text:0000000001E7CBA9                 mov     edi, [r15+10h]
   .text:0000000001E7CBAD                 mov     esi, [r15+14h]
   .text:0000000001E7CBB1                 lea     edx, [r12+rdi]
@@ -485,14 +451,11 @@ disasm_code: |-
   .text:0000000001E7CC16                 cmp     edi, 7FFFFFFFh
   .text:0000000001E7CC1C                 jz      loc_1E7CDA2
   .text:0000000001E7CC22                 lea     r8d, [rdi+1]
-  .text:0000000001E7CC26                 ; _QWORD
-  .text:0000000001E7CC26                 and     esi, 3FFFFFFFh; _QWORD
-  .text:0000000001E7CC2C                 ; _QWORD
-  .text:0000000001E7CC2C                 mov     ecx, 8; _QWORD
-  .text:0000000001E7CC31                 ; _QWORD
-  .text:0000000001E7CC31                 mov     edx, r8d; _QWORD
+  .text:0000000001E7CC26                 and     esi, 3FFFFFFFh
+  .text:0000000001E7CC2C                 mov     ecx, 8
+  .text:0000000001E7CC31                 mov     edx, r8d
   .text:0000000001E7CC34                 mov     [rbp+var_78], r8d
-  .text:0000000001E7CC38                 call    _UtlVectorMemory_CalcNewAllocationCount
+  .text:0000000001E7CC38                 call    sub_984790
   .text:0000000001E7CC3D                 mov     r8d, [rbp+var_78]
   .text:0000000001E7CC41                 mov     r15d, eax
   .text:0000000001E7CC44                 cmp     r8d, eax
@@ -500,16 +463,12 @@ disasm_code: |-
   .text:0000000001E7CC49                 movsxd  rcx, dword ptr [r12+38h]
   .text:0000000001E7CC4E                 movsxd  rdx, r15d
   .text:0000000001E7CC51                 xor     esi, esi
-  .text:0000000001E7CC53                 ; _QWORD
-  .text:0000000001E7CC53                 shl     rdx, 3; _QWORD
-  .text:0000000001E7CC57                 ; _QWORD
-  .text:0000000001E7CC57                 mov     rdi, [r12+30h]; _QWORD
-  .text:0000000001E7CC5C                 ; _QWORD
-  .text:0000000001E7CC5C                 shl     rcx, 3; _QWORD
+  .text:0000000001E7CC53                 shl     rdx, 3
+  .text:0000000001E7CC57                 mov     rdi, [r12+30h]
+  .text:0000000001E7CC5C                 shl     rcx, 3
   .text:0000000001E7CC60                 cmp     dword ptr [r12+3Ch], 3FFFFFFFh
-  .text:0000000001E7CC69                 ; _QWORD
-  .text:0000000001E7CC69                 setbe   sil; _QWORD
-  .text:0000000001E7CC6D                 call    _UtlVectorMemory_Alloc
+  .text:0000000001E7CC69                 setbe   sil
+  .text:0000000001E7CC6D                 call    sub_9843C0
   .text:0000000001E7CC72                 mov     edx, [r12+3Ch]
   .text:0000000001E7CC77                 mov     [r12+30h], rax
   .text:0000000001E7CC7C                 cmp     edx, 3FFFFFFFh
@@ -567,20 +526,19 @@ disasm_code: |-
   .text:0000000001E7CD97                 cmp     ax, 0FFFFh
   .text:0000000001E7CD9B                 jnz     short loc_1E7CD50
   .text:0000000001E7CD9D                 jmp     loc_1E7C773
-  .text:0000000001E7CDA2                 ; _QWORD
-  .text:0000000001E7CDA2                 mov     esi, 1; _QWORD
-  .text:0000000001E7CDA7                 call    _UtlVectorMemory_FailedAllocation
+  .text:0000000001E7CDA2                 mov     esi, 1
+  .text:0000000001E7CDA7                 call    sub_984EE0
   .text:0000000001E7CDAC                 mov     edi, [r12+38h]
   .text:0000000001E7CDB1                 mov     esi, [r12+3Ch]
   .text:0000000001E7CDB6                 jmp     loc_1E7CC22
   .text:0000000001E7CDBB                 mov     esi, [r12+40h]
   .text:0000000001E7CDC0                 lea     rdi, aCnetworkfields_0; "CNetworkFieldScratchData::Init failed o"...
-  .text:0000000001E7CDC7                 call    _Plat_FatalError
+  .text:0000000001E7CDC7                 call    sub_984D60
 procedure: |-
-  __int64 __fastcall CEntitySystem_Init(__int64 a1, const char *a2, int a3, int a4, char a5)
+  __int64 __fastcall sub_1E7C3C0(__int64 a1, __int64 a2, int a3, int a4, char a5)
   {
     bool v9; // al
-    signed __int64 v10; // r12
+    __int64 v10; // r12
     __int64 i; // r12
     __int64 v12; // r12
     unsigned int j; // r14d
@@ -600,7 +558,7 @@ procedure: |-
     int v27; // eax
     int v28; // r13d
     unsigned int v29; // eax
-    CMemoryStack *v30; // r13
+    __int64 v30; // r13
     __int64 v31; // rdx
     int v32; // r14d
     __int64 v33; // rdi
@@ -641,12 +599,12 @@ procedure: |-
     __int64 v68; // [rsp+40h] [rbp-50h] BYREF
     __m128i v69; // [rsp+48h] [rbp-48h]
 
-    CUtlString::Set((CUtlString *)(a1 + 2696), a2);// 0xA88 = 2696LL = CEntitySystem::m_sEntSystemName
+    sub_9849D0(a1 + 2696);                        // 0xA88 = 2696LL = CEntitySystem::m_sEntSystemName
     *(_DWORD *)(a1 + 3004) = a4;
     unk_27C4271 = a5;
     v9 = a3 == 1 && g_pNetworkMessages != nullptr;
     *(_BYTE *)(a1 + 3034) = v9;                   // 0xBDA = 3034LL = CEntitySystem::m_eNetworkSerializationMode
-    CUtlScratchMemoryPool::Init((CUtlScratchMemoryPool *)(a1 + 3264), 0x400u, 0, nullptr, 0);
+    sub_984120(a1 + 3264, 1024, 0, 0, 0);
     qword_256F1A8 = a1;
     qword_256F1A0 = a1 + 16;
     v10 = qword_27C41A8;
@@ -708,15 +666,15 @@ procedure: |-
           v38 = j;
           if ( (int)(j - qword_27C4180) + (__int64)(int)qword_27C4180 > 0x7FFFFFFF )
           {
-            UtlVectorMemory_FailedAllocation((unsigned int)qword_27C4180, v37, j);
+            sub_984EE0((unsigned int)qword_27C4180, v37, j);
             v23 = (unsigned int)qword_27C4180;
             v36 = HIDWORD(qword_27C4180);
             v38 = v37 + (unsigned int)qword_27C4180;
           }
           v66 = v38;
-          for ( k = UtlVectorMemory_CalcNewAllocationCount(v23, v36 & 0x3FFFFFFF, v38, 8); k < v66; k = (k + v66) / 2 )
+          for ( k = sub_984790(v23, v36 & 0x3FFFFFFF, v38, 8); k < v66; k = (k + v66) / 2 )
             ;
-          qword_27C4178 = UtlVectorMemory_Alloc(
+          qword_27C4178 = sub_9843C0(
                             qword_27C4178,
                             HIDWORD(qword_27C4180) <= 0x3FFFFFFF,
                             8LL * k,
@@ -832,12 +790,12 @@ procedure: |-
                 v49 = 0;
                 if ( v45 )
                   v49 = *(_QWORD *)(a1 + 2720);
-                memset(*(void **)(*(_QWORD *)(v49 + v47 + 16) + 128LL), 255, 2LL * v46);
+                sub_985C30(*(_QWORD *)(*(_QWORD *)(v49 + v47 + 16) + 128LL), 255, 2LL * v46);
                 v50 = 0;
                 if ( (*(_WORD *)(a1 + 2714) & 0x7FFF) != 0 )
                   v50 = *(_QWORD *)(a1 + 2720);
                 v51 = *(_QWORD *)(v50 + v47 + 16);
-                v52 = CommandLine();
+                v52 = sub_984890();
                 if ( (*(unsigned __int8 (__fastcall **)(__int64, __int64))(*(_QWORD *)v52 + 32LL))(v52, 1190268809) )
                   sub_1E6AF00(a1, v51);
                 else
@@ -856,14 +814,14 @@ procedure: |-
       }
     }
   LABEL_27:
-    COM_TimestampedLog("EntitySystem - Class Tables");
+    sub_985030("EntitySystem - Class Tables");
     if ( g_pNetworkMessages )
     {
       (*(void (__fastcall **)(_QWORD *, const char *, _QWORD, __int64))(*g_pNetworkMessages + 160LL))(
         g_pNetworkMessages,
         "string_t_table",
         *(unsigned int *)(a1 + 3004),
-        a1 + 7888);                               // 0xA0 = 160LL = INetworkMessages_SetNetworkSerializationContextData
+        a1 + 7888);                               // 0x1ED0 = 7888LL = CEntitySystem::m_Symbols
       v67 = (__m128i)0x121uLL;
       v20 = _mm_loadu_si128(&v67);
       v21 = *g_pNetworkMessages;
@@ -874,9 +832,9 @@ procedure: |-
     result = sub_1E7AD40(a1);
     if ( *(_BYTE *)(a1 + 3034) )
     {
-      v25 = operator new(88);
-      *(_QWORD *)(a1 + 3216) = v25;               // 3216 = 0xC90 = CEntitySystem::m_pNetworkFieldScratchData (structmember, struct=CEntitySystem, member=m_pNetworkFieldScratchData)
-      *(_QWORD *)v25 = &off_241DF48;
+      v25 = sub_97A1D0(88);
+      *(_QWORD *)(a1 + 3216) = v25;               // 0xC90 = 3216LL = CEntitySystem::m_pNetworkFieldScratchData
+      *(_QWORD *)v25 = off_241DF48;
       *(_QWORD *)(v25 + 72) = 0xC8000000000000LL;
       *(_QWORD *)(v25 + 8) = 0;
       *(_QWORD *)(v25 + 16) = 0;
@@ -888,14 +846,14 @@ procedure: |-
       *(_DWORD *)(v25 + 40) = 0;
       *(_QWORD *)(v25 + 60) = 0;
       *(_QWORD *)(v25 + 80) = 0;
-      v27 = UtlVectorMemory_CalcNewAllocationCount(0, 0, 320000, 1);
+      v27 = sub_984790(0, 0, 320000, 1);
       v28 = v27;
       if ( v27 <= 319999 )
       {
         while ( 1 )
           ;
       }
-      *(_QWORD *)(v25 + 16) = UtlVectorMemory_Alloc(
+      *(_QWORD *)(v25 + 16) = sub_9843C0(
                                 *(_QWORD *)(v25 + 16),
                                 *(_DWORD *)(v25 + 28) <= 0x3FFFFFFFu,
                                 v27,
@@ -908,17 +866,17 @@ procedure: |-
       _InterlockedExchange((volatile __int32 *)(v25 + 32), 0);
       *(_DWORD *)(v25 + 68) = v26;
       *(_DWORD *)(v25 + 64) = 0x10000;
-      v30 = (CMemoryStack *)operator new(80);
-      CMemoryStack::CMemoryStack(v30);
-      if ( !(unsigned __int8)CMemoryStack::Init(
+      v30 = sub_97A1D0(80);
+      sub_984550(v30);
+      if ( !(unsigned __int8)sub_983FE0(
                                v30,
                                "CNetworkFieldScratchData.m_MemoryStacks[ 0 ]",
-                               *(_DWORD *)(v25 + 64),
-                               0x1000u,
-                               0x1000u,
-                               0x10u) )
+                               *(unsigned int *)(v25 + 64),
+                               4096,
+                               4096,
+                               16) )
       {
-        Plat_FatalError("CNetworkFieldScratchData::Init failed on buffer of %u bytes.", *(_DWORD *)(v25 + 64));
+        sub_984D60("CNetworkFieldScratchData::Init failed on buffer of %u bytes.", *(_DWORD *)(v25 + 64));
         JUMPOUT(0x1E7CDCC);
       }
       v32 = *(_DWORD *)(v25 + 40);
@@ -927,19 +885,15 @@ procedure: |-
       {
         if ( (_DWORD)v33 == 0x7FFFFFFF )
         {
-          UtlVectorMemory_FailedAllocation(v33, 1, v31);
+          sub_984EE0(v33, 1, v31);
           v33 = *(unsigned int *)(v25 + 56);
           v54 = *(_DWORD *)(v25 + 60);
         }
-        v55 = UtlVectorMemory_CalcNewAllocationCount(v33, v54 & 0x3FFFFFFF, (unsigned int)(v33 + 1), 8);
+        v55 = sub_984790(v33, v54 & 0x3FFFFFFF, (unsigned int)(v33 + 1), 8);
         v56 = v33 + 1;
         for ( n = v55; v56 > n; n = (n + v56) / 2 )
           ;
-        v34 = UtlVectorMemory_Alloc(
-                *(_QWORD *)(v25 + 48),
-                *(_DWORD *)(v25 + 60) <= 0x3FFFFFFFu,
-                8LL * n,
-                8LL * *(int *)(v25 + 56));
+        v34 = sub_9843C0(*(_QWORD *)(v25 + 48), *(_DWORD *)(v25 + 60) <= 0x3FFFFFFFu, 8LL * n, 8LL * *(int *)(v25 + 56));
         v58 = *(_DWORD *)(v25 + 60);
         *(_QWORD *)(v25 + 48) = v34;
         if ( v58 > 0x3FFFFFFF )
@@ -954,12 +908,11 @@ procedure: |-
       }
       *(_DWORD *)(v25 + 40) = v35 + 1;
       *(_QWORD *)(v34 + 8LL * v32) = v30;
-      result = (*(__int64 (__fastcall **)(_QWORD *, _QWORD, _QWORD))(*g_pFlattenedSerializers
-                                                                   + 280LL))(// 0x118 = 280LL = IFlattenedSerializers_CreateFieldChangedEventQueue
+      result = (*(__int64 (__fastcall **)(_QWORD *, _QWORD, _QWORD))(*g_pFlattenedSerializers + 280LL))(
                  g_pFlattenedSerializers,
-                 *(_QWORD *)(a1 + 3216),          // 3216 = 0xC90 = CEntitySystem::m_pNetworkFieldScratchData (structmember, struct=CEntitySystem, member=m_pNetworkFieldScratchData)
-                 *(_QWORD *)(a1 + 3224));
-      *(_QWORD *)(a1 + 3208) = result;            // 3208 = 0xC88 = CEntitySystem::m_pNetworkFieldChangedEventQueue (structmember, struct=CEntitySystem, member=m_pNetworkFieldChangedEventQueue)
+                 *(_QWORD *)(a1 + 3216),
+                 *(_QWORD *)(a1 + 3224));         // 0x118 = 280LL = IFlattenedSerializers_CreateFieldChangedEventQueue
+      *(_QWORD *)(a1 + 3208) = result;            // 0xC88 = 3208LL = CEntitySystem::m_pNetworkFieldChangedEventQueue
     }
     if ( byte_27C42C0 )
       goto LABEL_31;
