@@ -1,0 +1,156 @@
+func_name: CGameMoney_OnMoneySpent
+func_va: '0x18028d000'
+disasm_code: |-
+  .text:000000018028D000                 push    rbx
+  .text:000000018028D002                 sub     rsp, 20h
+  .text:000000018028D006                 mov     rbx, rdx
+  .text:000000018028D009                 sub     ecx, 2
+  .text:000000018028D00C                 jz      loc_18028D0AF
+  .text:000000018028D012                 sub     ecx, 1
+  .text:000000018028D015                 jz      short loc_18028D091
+  .text:000000018028D017                 sub     ecx, 1
+  .text:000000018028D01A                 jz      loc_18028D0C1
+  .text:000000018028D020                 sub     ecx, 1
+  .text:000000018028D023                 jz      short loc_18028D07B
+  .text:000000018028D025                 cmp     ecx, 1
+  .text:000000018028D028                 jz      short loc_18028D032
+  .text:000000018028D02A                 xor     eax, eax
+  .text:000000018028D02C                 add     rsp, 20h
+  .text:000000018028D030                 pop     rbx
+  .text:000000018028D031                 retn
+  .text:000000018028D032                 mov     rax, [rdx]
+  .text:000000018028D035                 mov     r8, [rax+170h]  ; 170h = CEntityInstance_Schema_DynamicBinding, This is vcall to CEntityInstance::Schema_DynamicBinding
+  .text:000000018028D03C                 lea     rax, sub_1802B90F0
+  .text:000000018028D043                 cmp     r8, rax
+  .text:000000018028D046                 jnz     short loc_18028D067
+  .text:000000018028D048                 lea     rdx, qword_181B7A370
+  .text:000000018028D04F                 lea     rcx, [rsp+28h+arg_18]
+  .text:000000018028D054                 call    unknown_libname_328; Microsoft VisualC v7/14 64bit runtime
+  .text:000000018028D059                 lea     rax, [rsp+28h+arg_18]
+  .text:000000018028D05E                 mov     rax, [rax]
+  .text:000000018028D061                 add     rsp, 20h
+  .text:000000018028D065                 pop     rbx
+  .text:000000018028D066                 retn
+  .text:000000018028D067                 lea     rdx, [rsp+28h+arg_18]
+  .text:000000018028D06C                 mov     rcx, rbx
+  .text:000000018028D06F                 call    r8
+  .text:000000018028D072                 mov     rax, [rax]
+  .text:000000018028D075                 add     rsp, 20h
+  .text:000000018028D079                 pop     rbx
+  .text:000000018028D07A                 retn
+  .text:000000018028D07B                 mov     rax, [rdx]
+  .text:000000018028D07E                 xor     edx, edx
+  .text:000000018028D080                 mov     rcx, rbx
+  .text:000000018028D083                 call    qword ptr [rax+20h]
+  .text:000000018028D086                 mov     eax, 1
+  .text:000000018028D08B                 add     rsp, 20h
+  .text:000000018028D08F                 pop     rbx
+  .text:000000018028D090                 retn
+  .text:000000018028D091                 test    rbx, rbx
+  .text:000000018028D094                 jz      short loc_18028D0A4
+  .text:000000018028D096                 mov     rax, [rdx]
+  .text:000000018028D099                 mov     edx, 1
+  .text:000000018028D09E                 mov     rcx, rbx
+  .text:000000018028D0A1                 call    qword ptr [rax+20h]
+  .text:000000018028D0A4                 mov     eax, 1
+  .text:000000018028D0A9                 add     rsp, 20h
+  .text:000000018028D0AD                 pop     rbx
+  .text:000000018028D0AE                 retn
+  .text:000000018028D0AF                 mov     ecx, 7B8h
+  .text:000000018028D0B4                 call    operator_new
+  .text:000000018028D0B9                 mov     rbx, rax
+  .text:000000018028D0BC                 test    rax, rax
+  .text:000000018028D0BF                 jz      short loc_18028D11D
+  .text:000000018028D0C1                 mov     rcx, rbx
+  .text:000000018028D0C4                 call    sub_180AA9AE0
+  .text:000000018028D0C9                 xor     eax, eax
+  .text:000000018028D0CB                 lea     rcx, ??_7CGameMoney@@6B@; const CGameMoney::`vftable'
+  .text:000000018028D0D2                 mov     [rbx+768h], rax
+  .text:000000018028D0D9                 mov     [rbx], rcx
+  .text:000000018028D0DC                 lea     rcx, CEntityIOOutput_vtable
+  .text:000000018028D0E3                 mov     [rbx+778h], rcx
+  .text:000000018028D0EA                 mov     [rbx+780h], rax
+  .text:000000018028D0F1                 mov     [rbx+788h], rax
+  .text:000000018028D0F8                 mov     [rbx+790h], rcx
+  .text:000000018028D0FF                 mov     [rbx+798h], rax
+  .text:000000018028D106                 mov     [rbx+7A0h], rax
+  .text:000000018028D10D                 mov     [rbx+7B0h], rax
+  .text:000000018028D114                 mov     rax, rbx
+  .text:000000018028D117                 add     rsp, 20h
+  .text:000000018028D11B                 pop     rbx
+  .text:000000018028D11C                 retn
+  .text:000000018028D11D                 add     rsp, 20h
+  .text:000000018028D121                 pop     rbx
+  .text:000000018028D122                 retn
+procedure: |-
+  __int64 __fastcall CGameMoney_OnMoneySpent(int a1, _QWORD *a2)
+  {
+    __int64 v2; // rbx
+    int v3; // ecx
+    int v4; // ecx
+    int v5; // ecx
+    int v6; // ecx
+    __int64 result; // rax
+    _QWORD *(__fastcall *v8)(__int64, __int64 *); // r8
+    __int64 v9; // [rsp+48h] [rbp+20h] BYREF
+
+    v2 = (__int64)a2;
+    v3 = a1 - 2;
+    if ( !v3 )
+    {
+      result = operator_new(1976);
+      v2 = result;
+      if ( !result )
+        return result;
+      goto LABEL_15;
+    }
+    v4 = v3 - 1;
+    if ( v4 )
+    {
+      v5 = v4 - 1;
+      if ( v5 )
+      {
+        v6 = v5 - 1;
+        if ( v6 )
+        {
+          if ( v6 == 1 )
+          {
+            v8 = *(_QWORD *(__fastcall **)(__int64, __int64 *))(*a2 + 368LL);  // 368LL = 0x170 = CEntityInstance_Schema_DynamicBinding, This is vcall to CEntityInstance::Schema_DynamicBinding
+            if ( v8 == sub_1802B90F0 )
+            {
+              unknown_libname_328(&v9, &qword_181B7A370);
+              return v9;
+            }
+            else
+            {
+              return *v8((__int64)a2, &v9);
+            }
+          }
+          else
+          {
+            return 0;
+          }
+        }
+        else
+        {
+          (*(void (__fastcall **)(_QWORD *, _QWORD))(*a2 + 32LL))(a2, 0);
+          return 1;
+        }
+      }
+  LABEL_15:
+      sub_180AA9AE0(v2);
+      *(_QWORD *)(v2 + 1896) = 0;
+      *(_QWORD *)v2 = &CGameMoney::`vftable';
+      *(_QWORD *)(v2 + 1912) = CEntityIOOutput_vtable;
+      *(_QWORD *)(v2 + 1920) = 0;
+      *(_QWORD *)(v2 + 1928) = 0;
+      *(_QWORD *)(v2 + 1936) = CEntityIOOutput_vtable;
+      *(_QWORD *)(v2 + 1944) = 0;
+      *(_QWORD *)(v2 + 1952) = 0;
+      *(_QWORD *)(v2 + 1968) = 0;
+      return v2;
+    }
+    if ( a2 )
+      (*(void (__fastcall **)(_QWORD *, __int64))(*a2 + 32LL))(a2, 1);
+    return 1;
+  }

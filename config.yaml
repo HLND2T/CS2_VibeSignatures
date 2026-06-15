@@ -4145,6 +4145,33 @@ modules:
         expected_output:
           - CCSGameRules_vtable.{platform}.yaml
 
+      - name: find-CGameMoney_vtable
+        expected_output:
+          - CGameMoney_vtable.{platform}.yaml
+
+      - name: find-CGameMoney_OnMoneySpent
+        expected_output:
+          - CGameMoney_OnMoneySpent.{platform}.yaml
+        expected_input:
+          - CGameMoney_vtable.{platform}.yaml
+
+      - name: find-CGameMoney_m_DataMap
+        expected_output:
+          - CGameMoney_m_DataMap.{platform}.yaml
+
+      - name: find-CGameMoney_GetDataDescMap
+        expected_output:
+          - CGameMoney_GetDataDescMap.{platform}.yaml
+        expected_input:
+          - CGameMoney_m_DataMap.{platform}.yaml
+          - CGameMoney_vtable.{platform}.yaml
+
+      - name: find-CEntityInstance_GetDataDescMap
+        expected_output:
+          - CEntityInstance_GetDataDescMap.{platform}.yaml
+        expected_input:
+          - CGameMoney_GetDataDescMap.{platform}.yaml
+
       - name: find-CCSPlayer_ItemServices_vtable
         expected_output:
           - CCSPlayer_ItemServices_vtable.{platform}.yaml
@@ -6993,6 +7020,13 @@ modules:
           - EntityInstanceAssignChangeAccessorPathIds.{platform}.yaml
           - CEntityInstance_vtable.{platform}.yaml
 
+      - name: find-CEntityInstance_Schema_DynamicBinding
+        expected_output:
+          - CEntityInstance_Schema_DynamicBinding.{platform}.yaml
+        expected_input:
+          - CGameMoney_OnMoneySpent.{platform}.yaml
+          - CEntityInstance_vtable.{platform}.yaml
+
       - name: find-CNavPhysicsInterface_vtable
         expected_output:
           - CNavPhysicsInterface_vtable.{platform}.yaml
@@ -7243,6 +7277,24 @@ modules:
 
       - name: CCSGameRules_vtable
         category: vtable
+
+      - name: CGameMoney_vtable
+        category: vtable
+
+      - name: CGameMoney_OnMoneySpent
+        category: func
+        alias:
+          - CGameMoney::OnMoneySpent
+
+      - name: CGameMoney_m_DataMap
+        category: gv
+        alias:
+          - CGameMoney::m_DataMap
+
+      - name: CGameMoney_GetDataDescMap
+        category: vfunc
+        alias:
+          - CGameMoney::GetDataDescMap
 
       - name: CCSPlayer_ItemServices_vtable
         category: vtable
@@ -10071,6 +10123,11 @@ modules:
         alias:
           - CEntityInstance::Precache
 
+      - name: CEntityInstance_GetDataDescMap
+        category: vfunc
+        alias:
+          - CEntityInstance::GetDataDescMap
+
       - name: CEntityInstance_ReloadPrivateScripts
         category: vfunc
         alias:
@@ -10155,6 +10212,11 @@ modules:
         category: vfunc
         alias:
           - CEntityInstance::OnSetDormant
+
+      - name: CEntityInstance_Schema_DynamicBinding
+        category: vfunc
+        alias:
+          - CEntityInstance::Schema_DynamicBinding
 
       - name: CEntitySystem_OnRemoveEntity
         category: vfunc

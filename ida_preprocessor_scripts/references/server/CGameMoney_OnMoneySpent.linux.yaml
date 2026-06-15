@@ -1,0 +1,153 @@
+func_name: CGameMoney_OnMoneySpent
+func_va: '0xb02600'
+disasm_code: |-
+  .text:0000000000B02600                 ; switch 7 cases
+  .text:0000000000B02600                 cmp     edi, 6; switch 7 cases
+  .text:0000000000B02603                 ja      def_B02621; jumptable 0000000000B02621 default case
+  .text:0000000000B02609                 push    rbp
+  .text:0000000000B0260A                 lea     rdx, jpt_B02621
+  .text:0000000000B02611                 mov     edi, edi
+  .text:0000000000B02613                 mov     rbp, rsp
+  .text:0000000000B02616                 sub     rsp, 10h
+  .text:0000000000B0261A                 movsxd  rax, ds:(jpt_B02621 - 789BE8h)[rdx+rdi*4]
+  .text:0000000000B0261E                 add     rax, rdx
+  .text:0000000000B02621                 ; switch jump
+  .text:0000000000B02621                 jmp     rax; switch jump
+  .text:0000000000B02628                 ; jumptable 0000000000B02621 case 6
+  .text:0000000000B02628                 mov     rax, [rsi]; jumptable 0000000000B02621 case 6
+  .text:0000000000B0262B                 lea     rdx, sub_AFEBB0
+  .text:0000000000B02632                 mov     rax, [rax+178h]  ; 178h = CEntityInstance_Schema_DynamicBinding, This is vcall to CEntityInstance::Schema_DynamicBinding
+  .text:0000000000B02639                 cmp     rax, rdx
+  .text:0000000000B0263C                 jnz     loc_B02780
+  .text:0000000000B02642                 lea     rdi, unk_244DE80
+  .text:0000000000B02649                 call    sub_1D8C150
+  .text:0000000000B0264E                 leave
+  .text:0000000000B0264F                 retn
+  .text:0000000000B02650                 ; jumptable 0000000000B02621 case 2
+  .text:0000000000B02650                 mov     edi, 0A98h; jumptable 0000000000B02621 case 2
+  .text:0000000000B02655                 call    __Znwm; operator new(ulong)
+  .text:0000000000B0265A                 mov     rdi, rax
+  .text:0000000000B0265D                 mov     [rbp-8], rax
+  .text:0000000000B02661                 call    sub_14AC5A0
+  .text:0000000000B02666                 mov     rax, [rbp-8]
+  .text:0000000000B0266A                 lea     rcx, CGameMoney_vtable
+  .text:0000000000B02671                 lea     rdx, _ZTV15CEntityIOOutput; `vtable for'CEntityIOOutput
+  .text:0000000000B02678                 mov     qword ptr [rax+0A48h], 0
+  .text:0000000000B02683                 add     rdx, 10h
+  .text:0000000000B02687                 mov     [rax], rcx
+  .text:0000000000B0268A                 mov     [rax+0A58h], rdx
+  .text:0000000000B02691                 mov     qword ptr [rax+0A60h], 0
+  .text:0000000000B0269C                 mov     qword ptr [rax+0A68h], 0
+  .text:0000000000B026A7                 mov     [rax+0A70h], rdx
+  .text:0000000000B026AE                 mov     qword ptr [rax+0A78h], 0
+  .text:0000000000B026B9                 mov     qword ptr [rax+0A80h], 0
+  .text:0000000000B026C4                 mov     qword ptr [rax+0A90h], 0
+  .text:0000000000B026CF                 leave
+  .text:0000000000B026D0                 retn
+  .text:0000000000B026D8                 ; jumptable 0000000000B02621 case 4
+  .text:0000000000B026D8                 mov     rdi, rsi; jumptable 0000000000B02621 case 4
+  .text:0000000000B026DB                 mov     [rbp-8], rsi
+  .text:0000000000B026DF                 call    sub_14AC5A0
+  .text:0000000000B026E4                 mov     rsi, [rbp-8]
+  .text:0000000000B026E8                 lea     rax, CGameMoney_vtable
+  .text:0000000000B026EF                 mov     [rsi], rax
+  .text:0000000000B026F2                 lea     rax, _ZTV15CEntityIOOutput; `vtable for'CEntityIOOutput
+  .text:0000000000B026F9                 mov     qword ptr [rsi+0A48h], 0
+  .text:0000000000B02704                 mov     qword ptr [rsi+0A60h], 0
+  .text:0000000000B0270F                 mov     qword ptr [rsi+0A68h], 0
+  .text:0000000000B0271A                 mov     qword ptr [rsi+0A78h], 0
+  .text:0000000000B02725                 add     rax, 10h
+  .text:0000000000B02729                 mov     [rsi+0A58h], rax
+  .text:0000000000B02730                 mov     [rsi+0A70h], rax
+  .text:0000000000B02737                 mov     rax, rsi
+  .text:0000000000B0273A                 mov     qword ptr [rsi+0A80h], 0
+  .text:0000000000B02745                 mov     qword ptr [rsi+0A90h], 0
+  .text:0000000000B02750                 leave
+  .text:0000000000B02751                 retn
+  .text:0000000000B02758                 ; jumptable 0000000000B02621 case 5
+  .text:0000000000B02758                 mov     rax, [rsi]; jumptable 0000000000B02621 case 5
+  .text:0000000000B0275B                 mov     rdi, rsi
+  .text:0000000000B0275E                 call    qword ptr [rax+20h]
+  .text:0000000000B02761                 leave
+  .text:0000000000B02762                 mov     eax, 1
+  .text:0000000000B02767                 retn
+  .text:0000000000B02770                 ; jumptable 0000000000B02621 case 3
+  .text:0000000000B02770                 test    rsi, rsi; jumptable 0000000000B02621 case 3
+  .text:0000000000B02773                 jz      short locret_B02761
+  .text:0000000000B02775                 mov     rax, [rsi]
+  .text:0000000000B02778                 mov     rdi, rsi
+  .text:0000000000B0277B                 call    qword ptr [rax+28h]
+  .text:0000000000B0277E                 jmp     short locret_B02761
+  .text:0000000000B02780                 mov     rdi, rsi
+  .text:0000000000B02783                 call    rax
+  .text:0000000000B02785                 leave
+  .text:0000000000B02786                 retn
+  .text:0000000000B02787                 ; jumptable 0000000000B02621 cases 0,1
+  .text:0000000000B02787                 leave; jumptable 0000000000B02621 cases 0,1
+  .text:0000000000B02788                 xor     eax, eax
+  .text:0000000000B0278A                 retn
+  .text:0000000000B0278B                 ; jumptable 0000000000B02621 default case
+  .text:0000000000B0278B                 xor     eax, eax; jumptable 0000000000B02621 default case
+  .text:0000000000B0278D                 retn
+procedure: |-
+  float *__fastcall CGameMoney_OnMoneySpent(int a1, float *a2)
+  {
+    __int64 (*v2)(); // rax
+    float *result; // rax
+    __int64 v4; // [rsp-10h] [rbp-10h]
+
+    switch ( a1 )
+    {
+      case 0:
+      case 1:
+        result = nullptr;
+        break;
+      case 2:
+        v4 = operator new(2712);
+        sub_14AC5A0((float *)v4);
+        *(_QWORD *)(v4 + 2632) = 0;
+        *(_QWORD *)v4 = CGameMoney_vtable;
+        *(_QWORD *)(v4 + 2648) = CEntityIOOutput_vtable;
+        *(_QWORD *)(v4 + 2656) = 0;
+        *(_QWORD *)(v4 + 2664) = 0;
+        *(_QWORD *)(v4 + 2672) = CEntityIOOutput_vtable;
+        *(_QWORD *)(v4 + 2680) = 0;
+        *(_QWORD *)(v4 + 2688) = 0;
+        *(_QWORD *)(v4 + 2704) = 0;
+        result = (float *)v4;
+        break;
+      case 3:
+        if ( a2 )
+          (*(void (__fastcall **)(float *))(*(_QWORD *)a2 + 40LL))(a2);
+        goto LABEL_7;
+      case 4:
+        sub_14AC5A0(a2);
+        *(_QWORD *)a2 = CGameMoney_vtable;
+        *((_QWORD *)a2 + 329) = 0;
+        *((_QWORD *)a2 + 332) = 0;
+        *((_QWORD *)a2 + 333) = 0;
+        *((_QWORD *)a2 + 335) = 0;
+        *((_QWORD *)a2 + 331) = CEntityIOOutput_vtable;
+        *((_QWORD *)a2 + 334) = CEntityIOOutput_vtable;
+        *((_QWORD *)a2 + 336) = 0;
+        *((_QWORD *)a2 + 338) = 0;
+        result = a2;
+        break;
+      case 5:
+        (*(void (__fastcall **)(float *))(*(_QWORD *)a2 + 32LL))(a2);
+  LABEL_7:
+        result = (float *)(dword_0 + 1);
+        break;
+      case 6:
+        v2 = *(__int64 (**)())(*(_QWORD *)a2 + 376LL);  // 376LL = 0x178 = CEntityInstance_Schema_DynamicBinding, This is vcall to CEntityInstance::Schema_DynamicBinding
+        if ( v2 == sub_AFEBB0 )
+          result = (float *)sub_1D8C150((__int64)&unk_244DE80);
+        else
+          result = (float *)((__int64 (__fastcall *)(float *))v2)(a2);
+        break;
+      default:
+        result = nullptr;
+        break;
+    }
+    return result;
+  }
