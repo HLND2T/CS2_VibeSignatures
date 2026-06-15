@@ -43,13 +43,69 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
+      - name: Preview download bump
+        id: preview
+        shell: pwsh
+        run: uv run bump_download.py -config download.yaml -depotdir cs2_depot -username "$env:STEAM_USERNAME" -password "$env:STEAM_PASSWORD" -remember-password -dry-run -github-output "$env:GITHUB_OUTPUT"
+
+      - name: Check duplicate bump target
+        id: duplicate
+        if: steps.preview.outputs.updated == 'true'
+        uses: actions/github-script@v7
+        env:
+          BUMP_TAG: ${{ steps.preview.outputs.tag }}
+        with:
+          script: |
+            const tag = process.env.BUMP_TAG;
+            if (!tag || !tag.trim()) {
+              throw new Error('steps.preview.outputs.tag is empty.');
+            }
+
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const title = `chore(download): Update manifest for ${tag}`;
+
+            try {
+              await github.rest.git.getRef({
+                owner,
+                repo,
+                ref: `tags/${tag}`,
+              });
+              core.notice(`Tag ${tag} already exists. Skipping bump pull request.`);
+              core.setOutput('skip_pr', 'true');
+              core.setOutput('reason', 'tag_exists');
+              return;
+            } catch (error) {
+              if (error.status !== 404) {
+                throw error;
+              }
+            }
+
+            const pulls = await github.paginate(github.rest.pulls.list, {
+              owner,
+              repo,
+              state: 'open',
+              per_page: 100,
+            });
+            const existingPull = pulls.find((pull) => pull.title === title);
+
+            if (existingPull) {
+              core.notice(`Bump pull request already exists: ${existingPull.html_url}`);
+              core.setOutput('skip_pr', 'true');
+              core.setOutput('reason', 'pull_request_exists');
+              return;
+            }
+
+            core.setOutput('skip_pr', 'false');
+
       - name: Bump download config
         id: bump
+        if: steps.preview.outputs.updated != 'true' || steps.duplicate.outputs.skip_pr != 'true'
         shell: pwsh
         run: uv run bump_download.py -config download.yaml -depotdir cs2_depot -username "$env:STEAM_USERNAME" -password "$env:STEAM_PASSWORD" -remember-password -github-output "$env:GITHUB_OUTPUT"
 
       - name: Push bump branch
-        if: steps.bump.outputs.updated == 'true' && steps.bump.outputs.repair_tag != 'true'
+        if: steps.bump.outputs.updated == 'true' && steps.bump.outputs.repair_tag != 'true' && steps.duplicate.outputs.skip_pr != 'true'
         id: branch
         shell: pwsh
         run: |
@@ -67,25 +123,57 @@ jobs:
           "branch=$branch" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
       - name: Create or update bump pull request
-        if: steps.bump.outputs.updated == 'true' && steps.bump.outputs.repair_tag != 'true'
+        if: steps.bump.outputs.updated == 'true' && steps.bump.outputs.repair_tag != 'true' && steps.duplicate.outputs.skip_pr != 'true'
         uses: actions/github-script@v7
+        env:
+          BUMP_TAG: ${{ steps.bump.outputs.tag }}
+          BUMP_BRANCH: ${{ steps.branch.outputs.branch }}
         with:
           script: |
-            const tag = '${{ steps.bump.outputs.tag }}';
-            const branch = '${{ steps.branch.outputs.branch }}';
+            const tag = process.env.BUMP_TAG;
+            const branch = process.env.BUMP_BRANCH;
+            if (!tag || !tag.trim()) {
+              throw new Error('steps.bump.outputs.tag is empty.');
+            }
+            if (!branch || !branch.trim()) {
+              throw new Error('steps.branch.outputs.branch is empty.');
+            }
+
             const owner = context.repo.owner;
             const repo = context.repo.repo;
+            const title = `chore(download): Update manifest for ${tag}`;
 
-            const { data: pulls } = await github.rest.pulls.list({
+            try {
+              await github.rest.git.getRef({
+                owner,
+                repo,
+                ref: `tags/${tag}`,
+              });
+              core.notice(`Tag ${tag} already exists. Skipping bump pull request.`);
+              return;
+            } catch (error) {
+              if (error.status !== 404) {
+                throw error;
+              }
+            }
+
+            const pulls = await github.paginate(github.rest.pulls.list, {
               owner,
               repo,
               state: 'open',
-              head: `${owner}:${branch}`,
-              base: 'main',
+              per_page: 100,
+            });
+            const existingPull = pulls.find((pull) => {
+              if (pull.title === title) {
+                return true;
+              }
+              return pull.base.ref === 'main' &&
+                pull.head.ref === branch &&
+                pull.head.repo?.full_name === `${owner}/${repo}`;
             });
 
-            if (pulls.length > 0) {
-              core.notice(`Bump pull request already exists: ${pulls[0].html_url}`);
+            if (existingPull) {
+              core.notice(`Bump pull request already exists: ${existingPull.html_url}`);
               return;
             }
 
@@ -94,7 +182,7 @@ jobs:
               repo,
               base: 'main',
               head: branch,
-              title: `chore(download): 更新 ${tag} 下载清单`,
+              title,
               body: [
                 `Automated download bump for tag \`${tag}\`.`,
                 '',
