@@ -92,7 +92,7 @@ disasm_code: |-
   .text:00000001811EA595                 lea     r8, [rsp+48h+arg_8]
   .text:00000001811EA59A                 mov     edx, 1
   .text:00000001811EA59F                 mov     [rsp+48h+arg_8], r14
-  .text:00000001811EA5A4                 call    qword ptr [rax+0B8h]
+  .text:00000001811EA5A4                 call    qword ptr [rax+0B8h]  ; 0B8h = CEntitySystem_UpdateOnRemove
   .text:00000001811EA5AA                 mov     rdx, r14
   .text:00000001811EA5AD                 mov     rcx, rdi
   .text:00000001811EA5B0                 call    CEntitySystem_OnRemoveEntityFromDatabase
@@ -190,7 +190,7 @@ procedure: |-
             {
               v15 = *(_QWORD *)a1;
               v17 = a2;
-              (*(void (__fastcall **)(__int64, __int64, __int64 *))(v15 + 184))(a1, 1, &v17);// (numEntities, entities)?
+              (*(void (__fastcall **)(__int64, __int64, __int64 *))(v15 + 184))(a1, 1, &v17);// 184LL = 0xB8 = CEntitySystem_UpdateOnRemove
             }
             CEntitySystem_OnRemoveEntityFromDatabase((__int64 *)a1, a2);
           }

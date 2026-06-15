@@ -37,7 +37,7 @@ disasm_code: |-
   .text:0000000001E641BD                 mov     rax, [rdi]
   .text:0000000001E641C0                 lea     rdx, sub_1E4F560
   .text:0000000001E641C7                 mov     [rbp-38h], rsi
-  .text:0000000001E641CB                 mov     rax, [rax+0C0h]
+  .text:0000000001E641CB                 mov     rax, [rax+0C0h]  ; 0C0h = CEntitySystem_UpdateOnRemove
   .text:0000000001E641D2                 cmp     rax, rdx
   .text:0000000001E641D5                 jnz     loc_1E643B8
   .text:0000000001E641DB                 lea     r15, g_pResourceSystem
@@ -219,7 +219,7 @@ procedure: |-
             {
               v7 = *a1;
               v18 = a2;
-              v8 = *(__int64 (__fastcall **)(__int64, int, __int64 **))(v7 + 192);
+              v8 = *(__int64 (__fastcall **)(__int64, int, __int64 **))(v7 + 192);  // 192LL = 0xC0 = CEntitySystem_UpdateOnRemove
               if ( v8 == sub_1E4F560 )
               {
                 if ( g_pResourceSystem )

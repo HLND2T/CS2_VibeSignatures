@@ -5569,12 +5569,14 @@ modules:
         expected_input:
           - EntInfo_CommandHandler.{platform}.yaml
 
-      - name: find-CEntitySystem_OnRemoveEntityFromDatabase-AND-CEntitySystem_DoDestructEntity
+      - name: find-CEntitySystem_DestroyEntityImmediate-decompiles
         expected_output:
           - CEntitySystem_OnRemoveEntityFromDatabase.{platform}.yaml
           - CEntitySystem_DoDestructEntity.{platform}.yaml
+          - CEntitySystem_UpdateOnRemove.{platform}.yaml
         expected_input:
           - CEntitySystem_DestroyEntityImmediate.{platform}.yaml
+          - CEntitySystem_vtable.{platform}.yaml
 
       - name: find-CEntitySystem_m_nSuppressDestroyImmediateCount-AND-CEntitySystem_m_nSuppressAutoDeletionExecutionCount-AND-CEntitySystem_m_bEnableAutoDeletionExecution
         expected_output:
@@ -9947,6 +9949,11 @@ modules:
         category: func
         alias:
           - CEntitySystem::DoDestructEntity
+
+      - name: CEntitySystem_UpdateOnRemove
+        category: vfunc
+        alias:
+          - CEntitySystem::UpdateOnRemove
 
       - name: ClientPrintToController
         category: func
