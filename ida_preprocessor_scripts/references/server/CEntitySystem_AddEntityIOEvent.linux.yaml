@@ -1,0 +1,113 @@
+func_name: CEntitySystem_AddEntityIOEvent
+func_va: '0x1e744c0'
+disasm_code: |-
+  .text:0000000001E744C0                 push    rbp
+  .text:0000000001E744C1                 mov     rbp, rsp
+  .text:0000000001E744C4                 push    r13
+  .text:0000000001E744C6                 mov     r13, rcx
+  .text:0000000001E744C9                 push    r12
+  .text:0000000001E744CB                 mov     r12, rdi
+  .text:0000000001E744CE                 push    rbx
+  .text:0000000001E744CF                 mov     ebx, 0FFFFFFFFh
+  .text:0000000001E744D4                 sub     rsp, 38h
+  .text:0000000001E744D8                 test    rsi, rsi
+  .text:0000000001E744DB                 jz      short loc_1E7450E
+  .text:0000000001E744DD                 mov     rax, [rsi+10h]
+  .text:0000000001E744E1                 test    rax, rax
+  .text:0000000001E744E4                 jz      short loc_1E7450E
+  .text:0000000001E744E6                 mov     ebx, [rax+10h]
+  .text:0000000001E744E9                 mov     ecx, [rax+30h]
+  .text:0000000001E744EC                 shr     ebx, 0Fh
+  .text:0000000001E744EF                 and     ecx, 1
+  .text:0000000001E744F2                 sub     ebx, ecx
+  .text:0000000001E744F4                 cmp     dword ptr [rax+10h], 0FFFFFFFFh
+  .text:0000000001E744F8                 jz      loc_1E74588
+  .text:0000000001E744FE                 movzx   eax, word ptr [rax+10h]
+  .text:0000000001E74502                 and     ax, 7FFFh
+  .text:0000000001E74506                 shl     ebx, 0Fh
+  .text:0000000001E74509                 movzx   eax, ax
+  .text:0000000001E7450C                 or      ebx, eax
+  .text:0000000001E7450E                 test    rdx, rdx
+  .text:0000000001E74511                 jz      short loc_1E74550
+  .text:0000000001E74513                 xor     eax, eax
+  .text:0000000001E74515                 cmp     byte ptr [rdx], 0
+  .text:0000000001E74518                 jnz     short loc_1E74550
+  .text:0000000001E7451A                 mov     [rbp+var_28], rax
+  .text:0000000001E7451E                 sub     rsp, 8
+  .text:0000000001E74522                 mov     rcx, r13
+  .text:0000000001E74525                 mov     esi, ebx
+  .text:0000000001E74527                 push    [rbp+arg_10]
+  .text:0000000001E7452A                 lea     rdx, [rbp+var_28]
+  .text:0000000001E7452E                 mov     rdi, r12
+  .text:0000000001E74531                 push    [rbp+arg_8]
+  .text:0000000001E74534                 mov     eax, [rbp+arg_0]
+  .text:0000000001E74537                 push    rax
+  .text:0000000001E74538                 call    CEntitySystem_AddEntityIOEventBuildStruct
+  .text:0000000001E7453D                 add     rsp, 20h
+  .text:0000000001E74541                 lea     rsp, [rbp-18h]
+  .text:0000000001E74545                 pop     rbx
+  .text:0000000001E74546                 pop     r12
+  .text:0000000001E74548                 pop     r13
+  .text:0000000001E7454A                 pop     rbp
+  .text:0000000001E7454B                 retn
+  .text:0000000001E74550                 lea     rdi, [rbp+var_30]
+  .text:0000000001E74554                 movss   [rbp+var_44], xmm0
+  .text:0000000001E74559                 lea     rsi, [r12+1ED0h]
+  .text:0000000001E74561                 mov     [rbp+var_40], r9
+  .text:0000000001E74565                 mov     [rbp+var_38], r8
+  .text:0000000001E74569                 call    sub_1E71540
+  .text:0000000001E7456E                 mov     rax, [rbp+var_30]
+  .text:0000000001E74572                 mov     r9, [rbp+var_40]
+  .text:0000000001E74576                 mov     r8, [rbp+var_38]
+  .text:0000000001E7457A                 movss   xmm0, [rbp+var_44]
+  .text:0000000001E7457F                 jmp     short loc_1E7451A
+  .text:0000000001E74588                 mov     eax, 7FFFh
+  .text:0000000001E7458D                 jmp     loc_1E74506
+procedure: |-
+  __int64 __fastcall CEntitySystem_AddEntityIOEvent(
+          __int64 a1,
+          __int64 a2,
+          _BYTE *a3,
+          int a4,
+          int a5,
+          int a6,
+          int a7,
+          __int64 a8,
+          __int64 a9)
+  {
+    int v10; // ebx
+    __int64 v11; // rax
+    int v12; // ebx
+    unsigned __int16 v13; // ax
+    __int64 v14; // rax
+    int v16; // [rsp+10h] [rbp-40h]
+    int v17; // [rsp+18h] [rbp-38h]
+    __int64 v18; // [rsp+20h] [rbp-30h] BYREF
+    __int64 v19; // [rsp+28h] [rbp-28h] BYREF
+
+    v10 = -1;
+    if ( a2 )
+    {
+      v11 = *(_QWORD *)(a2 + 16);
+      if ( v11 )
+      {
+        v12 = (*(_DWORD *)(v11 + 16) >> 15) - (*(_DWORD *)(v11 + 48) & 1);
+        if ( *(_DWORD *)(v11 + 16) == -1 )
+          v13 = 0x7FFF;
+        else
+          v13 = *(_WORD *)(v11 + 16) & 0x7FFF;
+        v10 = v13 | (v12 << 15);
+      }
+    }
+    if ( !a3 || (v14 = 0, *a3) )
+    {
+      v16 = a6;
+      v17 = a5;
+      sub_1E71540(&v18, a1 + 7888);
+      v14 = v18;
+      a6 = v16;
+      a5 = v17;
+    }
+    v19 = v14;
+    return CEntitySystem_AddEntityIOEventBuildStruct(a1, v10, (unsigned int)&v19, a4, a5, a6, a7, a8, a9);
+  }
