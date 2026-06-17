@@ -56,7 +56,7 @@ LLM_DECOMPILE = [
         "references/server/CEntitySystem_Init.{platform}.yaml",
     ),
     (
-        "CEntitySystem_m_pNetworkFieldScratchData",
+        "CEntitySystem_m_pFieldChangeLimitSpew",
         "prompt/call_llm_decompile.md",
         "references/server/CEntitySystem_Init.{platform}.yaml",
     ),
