@@ -24,7 +24,8 @@ disasm_code: |-
   .text:00000001811F82AD                 movzx   eax, dil
   .text:00000001811F82B1                 jmp     short loc_1811F82B5
   .text:00000001811F82B3                 xor     al, al
-  .text:00000001811F82B5                 lea     rcx, [rsi+0CB8h]
+  .text:00000001811F82B5                 ; 0xCB8 = 3256LL = CEntitySystem::m_ComponentUnserializerInfoAllocator
+  .text:00000001811F82B5                 lea     rcx, [rsi+0CB8h]; 0xCB8 = 3256LL = CEntitySystem::m_ComponentUnserializerInfoAllocator
   .text:00000001811F82BC                 ; 0xBDA = 3034LL = CEntitySystem::m_eNetworkSerializationMode
   .text:00000001811F82BC                 mov     [rsi+0BDAh], al; 0xBDA = 3034LL = CEntitySystem::m_eNetworkSerializationMode
   .text:00000001811F82C2                 xor     r9d, r9d
@@ -509,7 +510,7 @@ procedure: |-
     *(_DWORD *)(a1 + 3004) = a4;
     v8 = a3 == 1 && g_pNetworkMessages;
     *(_BYTE *)(a1 + 3034) = v8;                   // 0xBDA = 3034LL = CEntitySystem::m_eNetworkSerializationMode
-    CUtlScratchMemoryPool::Init((CUtlScratchMemoryPool *)(a1 + 3256), 0x400u, 0, nullptr, 0);
+    CUtlScratchMemoryPool::Init((CUtlScratchMemoryPool *)(a1 + 3256), 0x400u, 0, nullptr, 0);// 0xCB8 = 3256LL = CEntitySystem::m_ComponentUnserializerInfoAllocator
     v11 = qword_1820B9438;
     v12 = a1 + 16;
     qword_181E1C888 = a1;
