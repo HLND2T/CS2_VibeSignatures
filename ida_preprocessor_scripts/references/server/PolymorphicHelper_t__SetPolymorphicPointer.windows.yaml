@@ -215,7 +215,8 @@ disasm_code: |-
   .text:0000000180885841                 js      loc_180885A60
   .text:0000000180885847                 mov     rax, [r14]
   .text:000000018088584A                 mov     rcx, r14
-  .text:000000018088584D                 call    qword ptr [rax+138h]
+  .text:000000018088584D                 ; 0x138 = 312LL = CEntityInstance_GetChangeAccessorPathInfo_1
+  .text:000000018088584D                 call    qword ptr [rax+138h]  ; 0x138 = 312LL = CEntityInstance_GetChangeAccessorPathInfo_1
   .text:0000000180885853                 mov     ecx, [rax+4]
   .text:0000000180885856                 and     ecx, 7FFFFFFFh
   .text:000000018088585C                 jnz     short loc_180885884
@@ -598,7 +599,7 @@ procedure: |-
       v24 = *((int *)*a4 + 10);
       if ( (int)v24 >= 0 )
       {
-        v25 = (*(__int64 (__fastcall **)(_QWORD *, __int64))(*a1 + 312LL))(a1, v13);
+        v25 = (*(__int64 (__fastcall **)(_QWORD *, __int64))(*a1 + 312LL))(a1, v13);  // 312LL = 0x138 = CEntityInstance_GetChangeAccessorPathInfo_1
         if ( (*(_DWORD *)(v25 + 4) & 0x7FFFFFFF) != 0 )
         {
           v26 = (_QWORD *)(v25 + 8);

@@ -139,7 +139,8 @@ disasm_code: |-
   .text:00000000011DE51D                 mov     rdi, rbx
   .text:00000000011DE520                 mov     r13, [rax]
   .text:00000000011DE523                 mov     rax, [rbx]
-  .text:00000000011DE526                 call    qword ptr [rax+138h]
+  .text:00000000011DE526                 ; 0x138 = 312LL = CEntityInstance_GetChangeAccessorPathInfo_1
+  .text:00000000011DE526                 call    qword ptr [rax+138h]  ; 0x138 = 312LL = CEntityInstance_GetChangeAccessorPathInfo_1
   .text:00000000011DE52C                 mov     edx, [rax+4]
   .text:00000000011DE52F                 and     edx, 7FFFFFFFh
   .text:00000000011DE535                 jz      loc_11DE830
@@ -501,7 +502,7 @@ procedure: |-
     if ( (int)a4 >= 0 )
     {
       a3 = (__int64 *)qword_26F8388;
-      v14 = (*(__int64 (__fastcall **)(_QWORD *))(*a1 + 312LL))(a1);
+      v14 = (*(__int64 (__fastcall **)(_QWORD *))(*a1 + 312LL))(a1);  // 312LL = 0x138 = CEntityInstance_GetChangeAccessorPathInfo_1
       if ( (*(_DWORD *)(v14 + 4) & 0x7FFFFFFF) == 0 )
       {
         v15 = 0;
