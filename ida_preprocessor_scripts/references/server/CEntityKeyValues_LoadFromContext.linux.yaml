@@ -1,0 +1,161 @@
+func_name: CEntityKeyValues_LoadFromContext
+func_va: '0x1e58750'
+disasm_code: |-
+  .text:0000000001E58750                 test    rsi, rsi
+  .text:0000000001E58753                 jz      loc_1E588E0
+  .text:0000000001E58759                 push    rbp
+  .text:0000000001E5875A                 lea     rax, aVersion; "version"
+  .text:0000000001E58761                 mov     edx, 0FFFFFFFFh
+  .text:0000000001E58766                 mov     rbp, rsp
+  .text:0000000001E58769                 push    r14
+  .text:0000000001E5876B                 lea     r14, [rbp-60h]
+  .text:0000000001E5876F                 push    r13
+  .text:0000000001E58771                 mov     r13, rdi
+  .text:0000000001E58774                 push    r12
+  .text:0000000001E58776                 push    rbx
+  .text:0000000001E58777                 mov     rbx, rsi
+  .text:0000000001E5877A                 mov     rsi, r14
+  .text:0000000001E5877D                 sub     rsp, 50h
+  .text:0000000001E58781                 mov     rdi, rbx
+  .text:0000000001E58784                 mov     qword ptr [rbp-60h], 0FFFFFFFFCA0850D5h
+  .text:0000000001E5878C                 mov     [rbp-58h], rax
+  .text:0000000001E58790                 call    sub_1B1DE40
+  .text:0000000001E58795                 mov     r12d, eax
+  .text:0000000001E58798                 cmp     eax, 1
+  .text:0000000001E5879B                 jz      short loc_1E587D0
+  .text:0000000001E5879D                 lea     rbx, dword_27C455C
+  .text:0000000001E587A4                 mov     esi, 5
+  .text:0000000001E587A9                 mov     edi, [rbx]
+  .text:0000000001E587AB                 call    sub_983F70
+  .text:0000000001E587B0                 test    al, al
+  .text:0000000001E587B2                 jnz     loc_1E58870
+  .text:0000000001E587B8                 add     rsp, 50h
+  .text:0000000001E587BC                 xor     eax, eax
+  .text:0000000001E587BE                 pop     rbx
+  .text:0000000001E587BF                 pop     r12
+  .text:0000000001E587C1                 pop     r13
+  .text:0000000001E587C3                 pop     r14
+  .text:0000000001E587C5                 pop     rbp
+  .text:0000000001E587C6                 retn
+  .text:0000000001E587D0                 lea     r12, [rbp-64h]
+  .text:0000000001E587D4                 mov     rdi, r13
+  .text:0000000001E587D7                 call    sub_1E57920; CEntityKeyValues_Initialized
+  .text:0000000001E587DC                 xor     ecx, ecx
+  .text:0000000001E587DE                 mov     rdx, r12
+  .text:0000000001E587E1                 mov     rsi, r14
+  .text:0000000001E587E4                 lea     rax, aValues; "values"
+  .text:0000000001E587EB                 mov     rdi, rbx
+  .text:0000000001E587EE                 mov     dword ptr [rbp-64h], 0FFFFFFFFh
+  .text:0000000001E587F5                 mov     qword ptr [rbp-60h], 0FFFFFFFFDACDDCE8h
+  .text:0000000001E587FD                 mov     [rbp-58h], rax
+  .text:0000000001E58801                 call    sub_1B1E770
+  .text:0000000001E58806                 test    rax, rax
+  .text:0000000001E58809                 jz      short loc_1E58817
+  .text:0000000001E5880B                 mov     rdi, [r13+10h]
+  .text:0000000001E5880F                 mov     rsi, rax
+  .text:0000000001E58812                 call    sub_1B22970
+  .text:0000000001E58817                 xor     ecx, ecx
+  .text:0000000001E58819                 mov     rdx, r12
+  .text:0000000001E5881C                 mov     rsi, r14
+  .text:0000000001E5881F                 mov     dword ptr [rbp-64h], 0FFFFFFFFh
+  .text:0000000001E58826                 mov     rax, 0FFFFFFFF1D9B29BBh
+  .text:0000000001E58830                 mov     rdi, rbx
+  .text:0000000001E58833                 mov     [rbp-60h], rax
+  .text:0000000001E58837                 lea     rax, aAttributes; "attributes"
+  .text:0000000001E5883E                 mov     [rbp-58h], rax
+  .text:0000000001E58842                 call    sub_1B1E770
+  .text:0000000001E58847                 test    rax, rax
+  .text:0000000001E5884A                 jz      short loc_1E58858
+  .text:0000000001E5884C                 mov     rdi, [r13+18h]
+  .text:0000000001E58850                 mov     rsi, rax
+  .text:0000000001E58853                 call    sub_1B22970
+  .text:0000000001E58858                 add     rsp, 50h
+  .text:0000000001E5885C                 mov     eax, 1
+  .text:0000000001E58861                 pop     rbx
+  .text:0000000001E58862                 pop     r12
+  .text:0000000001E58864                 pop     r13
+  .text:0000000001E58866                 pop     r14
+  .text:0000000001E58868                 pop     rbp
+  .text:0000000001E58869                 retn
+  .text:0000000001E58870                 mov     edi, [rbx]
+  .text:0000000001E58872                 lea     rax, aEntitykeyvalue; "entitykeyvalues.cpp"
+  .text:0000000001E58879                 mov     r9d, r12d
+  .text:0000000001E5887C                 mov     rdx, r14
+  .text:0000000001E5887F                 mov     [rbp-60h], rax
+  .text:0000000001E58883                 mov     r8d, 1
+  .text:0000000001E58889                 mov     esi, 5
+  .text:0000000001E5888E                 lea     rax, aLoadfromkv3; "LoadFromKV3"
+  .text:0000000001E58895                 mov     dword ptr [rbp-58h], 2D2h
+  .text:0000000001E5889C                 mov     [rbp-50h], rax
+  .text:0000000001E588A0                 lea     rcx, aCentitykeyvalu; "CEntityKeyValues::LoadFromContext: Inva"...
+  .text:0000000001E588A7                 xor     eax, eax
+  .text:0000000001E588A9                 mov     qword ptr [rbp-48h], 0
+  .text:0000000001E588B1                 mov     qword ptr [rbp-40h], 0
+  .text:0000000001E588B9                 mov     qword ptr [rbp-38h], 0
+  .text:0000000001E588C1                 mov     qword ptr [rbp-30h], 0
+  .text:0000000001E588C9                 mov     dword ptr [rbp-28h], 0
+  .text:0000000001E588D0                 call    sub_983DB0
+  .text:0000000001E588D5                 jmp     loc_1E587B8
+  .text:0000000001E588E0                 xor     eax, eax
+  .text:0000000001E588E2                 retn
+procedure: |-
+  __int64 __fastcall CEntityKeyValues_LoadFromContext(__int64 a1, __int64 a2)
+  {
+    int v2; // r12d
+    __int64 v4; // rax
+    __int64 v5; // rax
+    int v6; // [rsp-6Ch] [rbp-6Ch] BYREF
+    __int64 v7; // [rsp-68h] [rbp-68h] BYREF
+    const char *v8; // [rsp-60h] [rbp-60h]
+    const char *v9; // [rsp-58h] [rbp-58h]
+    __int64 v10; // [rsp-50h] [rbp-50h]
+    __int64 v11; // [rsp-48h] [rbp-48h]
+    __int64 v12; // [rsp-40h] [rbp-40h]
+    __int64 v13; // [rsp-38h] [rbp-38h]
+    int v14; // [rsp-30h] [rbp-30h]
+
+    if ( !a2 )
+      return 0;
+    v7 = -905424683;
+    v8 = "version";
+    v2 = sub_1B1DE40(a2, &v7, 0xFFFFFFFFLL);
+    if ( v2 == 1 )
+    {
+      sub_1E57920(a1); // CEntityKeyValues_Initialized
+      v6 = -1;
+      v7 = -624042776;
+      v8 = "values";
+      v4 = sub_1B1E770(a2, &v7, &v6, 0);
+      if ( v4 )
+        sub_1B22970(*(_QWORD *)(a1 + 16), v4);
+      v6 = -1;
+      v7 = -3798259269LL;
+      v8 = "attributes";
+      v5 = sub_1B1E770(a2, &v7, &v6, 0);
+      if ( v5 )
+        sub_1B22970(*(_QWORD *)(a1 + 24), v5);
+      return 1;
+    }
+    else
+    {
+      if ( (unsigned __int8)sub_983F70((unsigned int)dword_27C455C, 5) )
+      {
+        v7 = (__int64)"entitykeyvalues.cpp";
+        LODWORD(v8) = 722;
+        v9 = "LoadFromKV3";
+        v10 = 0;
+        v11 = 0;
+        v12 = 0;
+        v13 = 0;
+        v14 = 0;
+        sub_983DB0(
+          (unsigned int)dword_27C455C,
+          5,
+          &v7,
+          "CEntityKeyValues::LoadFromContext: Invalid version! Expected %d, encountered %d!\n",
+          1,
+          v2);
+      }
+      return 0;
+    }
+  }

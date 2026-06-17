@@ -1,0 +1,139 @@
+func_name: CEntityKeyValues_LoadFromContext
+func_va: '0x181207bc0'
+disasm_code: |-
+  .text:0000000181207BC0                 mov     [rsp+arg_0], rbx
+  .text:0000000181207BC5                 mov     [rsp+arg_10], rsi
+  .text:0000000181207BCA                 push    rdi
+  .text:0000000181207BCB                 sub     rsp, 80h
+  .text:0000000181207BD2                 mov     rbx, rdx
+  .text:0000000181207BD5                 mov     rdi, rcx
+  .text:0000000181207BD8                 test    rdx, rdx
+  .text:0000000181207BDB                 jz      loc_181207C8C
+  .text:0000000181207BE1                 lea     rax, aVersion; "version"
+  .text:0000000181207BE8                 mov     [rsp+88h+var_58], 0FFFFFFFFCA0850D5h
+  .text:0000000181207BF1                 mov     r8d, 0FFFFFFFFh
+  .text:0000000181207BF7                 mov     [rsp+88h+var_50], rax
+  .text:0000000181207BFC                 lea     rdx, [rsp+88h+var_58]
+  .text:0000000181207C01                 mov     rcx, rbx
+  .text:0000000181207C04                 call    sub_1814DC050
+  .text:0000000181207C09                 mov     esi, eax
+  .text:0000000181207C0B                 cmp     eax, 1
+  .text:0000000181207C0E                 jz      loc_181207CA3
+  .text:0000000181207C14                 mov     ecx, dword ptr cs:unk_1820B98C8
+  .text:0000000181207C1A                 mov     edx, 5
+  .text:0000000181207C1F                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:0000000181207C25                 test    al, al
+  .text:0000000181207C27                 jz      short loc_181207C8C
+  .text:0000000181207C29                 mov     ecx, dword ptr cs:unk_1820B98C8
+  .text:0000000181207C2F                 lea     rax, aCBuildworkerCs_63; "C:\\buildworker\\csgo_rel_win64\\build"...
+  .text:0000000181207C36                 mov     [rsp+88h+var_48], rax
+  .text:0000000181207C3B                 lea     r9, aCentitykeyvalu_0; "CEntityKeyValues::LoadFromContext: Inva"...
+  .text:0000000181207C42                 lea     rax, aCentitykeyvalu_1; "CEntityKeyValues::LoadFromKV3"
+  .text:0000000181207C49                 mov     [rsp+88h+var_60], esi
+  .text:0000000181207C4D                 xorps   xmm0, xmm0
+  .text:0000000181207C50                 mov     [rsp+88h+var_38], rax
+  .text:0000000181207C55                 xorps   xmm1, xmm1
+  .text:0000000181207C58                 mov     [rsp+88h+var_40], 2D3h
+  .text:0000000181207C60                 lea     r8, [rsp+88h+var_48]
+  .text:0000000181207C65                 mov     [rsp+88h+var_10], 0
+  .text:0000000181207C6D                 mov     edx, 5
+  .text:0000000181207C72                 mov     [rsp+88h+var_68], 1
+  .text:0000000181207C7A                 movdqu  [rsp+88h+var_30], xmm0
+  .text:0000000181207C80                 movdqu  [rsp+88h+var_20], xmm1
+  .text:0000000181207C86                 call    cs:LoggingSystem_Log
+  .text:0000000181207C8C                 xor     al, al
+  .text:0000000181207C8E                 lea     r11, [rsp+88h+var_8]
+  .text:0000000181207C96                 mov     rbx, [r11+10h]
+  .text:0000000181207C9A                 mov     rsi, [r11+20h]
+  .text:0000000181207C9E                 mov     rsp, r11
+  .text:0000000181207CA1                 pop     rdi
+  .text:0000000181207CA2                 retn
+  .text:0000000181207CA3                 mov     rcx, rdi
+  .text:0000000181207CA6                 call    sub_181207A90; CEntityKeyValues_Initialized
+  .text:0000000181207CAB                 lea     rax, aValues; "values"
+  .text:0000000181207CB2                 mov     [rsp+88h+arg_8], 0FFFFFFFFh
+  .text:0000000181207CBD                 xor     r9d, r9d
+  .text:0000000181207CC0                 mov     [rsp+88h+var_50], rax
+  .text:0000000181207CC5                 lea     r8, [rsp+88h+arg_8]
+  .text:0000000181207CCD                 mov     [rsp+88h+var_58], 0FFFFFFFFDACDDCE8h
+  .text:0000000181207CD6                 lea     rdx, [rsp+88h+var_58]
+  .text:0000000181207CDB                 mov     rcx, rbx
+  .text:0000000181207CDE                 call    sub_1814DA7F0
+  .text:0000000181207CE3                 test    rax, rax
+  .text:0000000181207CE6                 jz      short loc_181207CF4
+  .text:0000000181207CE8                 mov     rcx, [rdi+10h]
+  .text:0000000181207CEC                 mov     rdx, rax
+  .text:0000000181207CEF                 call    sub_1814D9460
+  .text:0000000181207CF4                 lea     rax, aAttributes; "attributes"
+  .text:0000000181207CFB                 mov     [rsp+88h+arg_8], 0FFFFFFFFh
+  .text:0000000181207D06                 xor     r9d, r9d
+  .text:0000000181207D09                 mov     [rsp+88h+var_50], rax
+  .text:0000000181207D0E                 lea     r8, [rsp+88h+arg_8]
+  .text:0000000181207D16                 mov     dword ptr [rsp+88h+var_58], 1D9B29BBh
+  .text:0000000181207D1E                 lea     rdx, [rsp+88h+var_58]
+  .text:0000000181207D23                 mov     dword ptr [rsp+88h+var_58+4], 0FFFFFFFFh
+  .text:0000000181207D2B                 mov     rcx, rbx
+  .text:0000000181207D2E                 call    sub_1814DA7F0
+  .text:0000000181207D33                 test    rax, rax
+  .text:0000000181207D36                 jz      short loc_181207D44
+  .text:0000000181207D38                 mov     rcx, [rdi+18h]
+  .text:0000000181207D3C                 mov     rdx, rax
+  .text:0000000181207D3F                 call    sub_1814D9460
+  .text:0000000181207D44                 mov     al, 1
+  .text:0000000181207D46                 jmp     loc_181207C8E
+procedure: |-
+  char __fastcall CEntityKeyValues_LoadFromContext(__int64 a1, __int64 a2)
+  {
+    int v4; // esi
+    __int64 v6; // rax
+    __int64 v7; // rax
+    __int64 v8; // [rsp+30h] [rbp-58h] BYREF
+    const char *v9; // [rsp+38h] [rbp-50h]
+    const char *v10; // [rsp+40h] [rbp-48h] BYREF
+    int v11; // [rsp+48h] [rbp-40h]
+    const char *v12; // [rsp+50h] [rbp-38h]
+    __int128 v13; // [rsp+58h] [rbp-30h]
+    __int128 v14; // [rsp+68h] [rbp-20h]
+    int v15; // [rsp+78h] [rbp-10h]
+    int v16; // [rsp+98h] [rbp+10h] BYREF
+
+    if ( !a2 )
+      return 0;
+    v8 = -905424683;
+    v9 = "version";
+    v4 = sub_1814DC050(a2, &v8, 0xFFFFFFFFLL);
+    if ( v4 != 1 )
+    {
+      if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)unk_1820B98C8, 5) )
+      {
+        v10 = "C:\\buildworker\\csgo_rel_win64\\build\\src\\entity2\\entitykeyvalues.cpp";
+        v12 = "CEntityKeyValues::LoadFromKV3";
+        v11 = 723;
+        v15 = 0;
+        v13 = 0;
+        v14 = 0;
+        LoggingSystem_Log(
+          (unsigned int)unk_1820B98C8,
+          5,
+          &v10,
+          "CEntityKeyValues::LoadFromContext: Invalid version! Expected %d, encountered %d!\n",
+          1,
+          v4);
+      }
+      return 0;
+    }
+    sub_181207A90((_BYTE *)a1); // CEntityKeyValues_Initialized
+    v16 = -1;
+    v9 = "values";
+    v8 = -624042776;
+    v6 = sub_1814DA7F0(a2, &v8, &v16, 0);
+    if ( v6 )
+      sub_1814D9460(*(_QWORD *)(a1 + 16), v6);
+    v16 = -1;
+    v9 = "attributes";
+    v8 = -3798259269LL;
+    v7 = sub_1814DA7F0(a2, &v8, &v16, 0);
+    if ( v7 )
+      sub_1814D9460(*(_QWORD *)(a1 + 24), v7);
+    return 1;
+  }

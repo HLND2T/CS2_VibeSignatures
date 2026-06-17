@@ -1,0 +1,82 @@
+func_name: CEntityKeyValues_Initialized
+func_va: '0x181207a90'
+disasm_code: |-
+  .text:0000000181207A90                 push    rbx
+  .text:0000000181207A92                 sub     rsp, 20h
+  .text:0000000181207A96                 cmp     qword ptr [rcx], 0
+  .text:0000000181207A9A                 mov     rbx, rcx
+  .text:0000000181207A9D                 jnz     loc_181207B29
+  .text:0000000181207AA3                 movzx   eax, byte ptr [rcx+25h]
+  .text:0000000181207AA7                 dec     al
+  .text:0000000181207AA9                 cmp     al, 1
+  .text:0000000181207AAB                 ja      short loc_181207AE8
+  .text:0000000181207AAD                 mov     rdx, cs:1820B9498h
+  .text:0000000181207AB4                 add     rdx, 0CC8h
+  .text:0000000181207ABB                 mov     [rcx], rdx
+  .text:0000000181207ABE                 mov     rcx, cs:1820B9498h
+  .text:0000000181207AC5                 lea     rax, [rcx+0CC8h]
+  .text:0000000181207ACC                 cmp     rdx, rax
+  .text:0000000181207ACF                 jnz     short loc_181207B18
+  .text:0000000181207AD1                 inc     dword ptr [rcx+0BD0h] ; 0xBD0 = 3024 = CEntitySystem::m_nEntityKeyValuesAllocatorRefCount (structmember, struct=CEntitySystem, member=m_nEntityKeyValuesAllocatorRefCount)
+  .text:0000000181207AD7                 mov     rcx, rbx
+  .text:0000000181207ADA                 call    sub_181207B40
+  .text:0000000181207ADF                 mov     rax, [rbx]
+  .text:0000000181207AE2                 add     rsp, 20h
+  .text:0000000181207AE6                 pop     rbx
+  .text:0000000181207AE7                 retn
+  .text:0000000181207AE8                 mov     ecx, 1200h
+  .text:0000000181207AED                 mov     [rsp+28h+arg_0], rdi
+  .text:0000000181207AF2                 call    sub_180E7C960
+  .text:0000000181207AF7                 mov     rdi, rax
+  .text:0000000181207AFA                 test    rax, rax
+  .text:0000000181207AFD                 jz      short loc_181207B0E
+  .text:0000000181207AFF                 mov     edx, 1
+  .text:0000000181207B04                 mov     rcx, rax
+  .text:0000000181207B07                 call    sub_1814D6420
+  .text:0000000181207B0C                 jmp     short loc_181207B10
+  .text:0000000181207B0E                 xor     edi, edi
+  .text:0000000181207B10                 mov     [rbx], rdi
+  .text:0000000181207B13                 mov     rdi, [rsp+28h+arg_0]
+  .text:0000000181207B18                 mov     rcx, rbx
+  .text:0000000181207B1B                 call    sub_181207B40
+  .text:0000000181207B20                 mov     rax, [rbx]
+  .text:0000000181207B23                 add     rsp, 20h
+  .text:0000000181207B27                 pop     rbx
+  .text:0000000181207B28                 retn
+  .text:0000000181207B29                 mov     rax, [rcx]
+  .text:0000000181207B2C                 add     rsp, 20h
+  .text:0000000181207B30                 pop     rbx
+  .text:0000000181207B31                 retn
+procedure: |-
+  __int64 __fastcall CEntityKeyValues_Initialized(_BYTE *a1)
+  {
+    __int64 v2; // rdx
+    __int64 v4; // rax
+    __int64 v5; // rdi
+
+    if ( *(_QWORD *)a1 )
+      return *(_QWORD *)a1;
+    if ( (unsigned __int8)(a1[37] - 1) > 1u )
+    {
+      v4 = sub_180E7C960(4608);
+      v5 = v4;
+      if ( v4 )
+        sub_1814D6420(v4, 1);
+      else
+        v5 = 0;
+      *(_QWORD *)a1 = v5;
+    }
+    else
+    {
+      v2 = MEMORY[0x1820B9498] + 3272;
+      *(_QWORD *)a1 = MEMORY[0x1820B9498] + 3272;
+      if ( v2 == MEMORY[0x1820B9498] + 3272 )
+      {
+        ++*(_DWORD *)(MEMORY[0x1820B9498] + 3024); // 0xBD0 = 3024 = CEntitySystem::m_nEntityKeyValuesAllocatorRefCount (structmember, struct=CEntitySystem, member=m_nEntityKeyValuesAllocatorRefCount)
+        sub_181207B40(a1);
+        return *(_QWORD *)a1;
+      }
+    }
+    sub_181207B40(a1);
+    return *(_QWORD *)a1;
+  }
