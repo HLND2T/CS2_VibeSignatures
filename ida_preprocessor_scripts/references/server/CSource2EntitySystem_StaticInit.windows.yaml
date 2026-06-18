@@ -95,7 +95,7 @@ disasm_code: |-
   .text:0000000180B8D8C3                 mov     rdi, r15
   .text:0000000180B8D8C6                 mov     rax, cs:g_pGameEntitySystem
   .text:0000000180B8D8CD                 mov     rcx, rdi
-  .text:0000000180B8D8D0                 mov     [rax+20D8h], rdi
+  .text:0000000180B8D8D0                 mov     [rax+20D8h], rdi  ; 20D8h = CGameEntitySystem_m_pEntity2SaveRestore (structmember, struct=CGameEntitySystem, member=m_pEntity2SaveRestore)
   .text:0000000180B8D8D7                 mov     rax, [rdi]
   .text:0000000180B8D8DA                 call    qword ptr [rax]
   .text:0000000180B8D8DC                 mov     rax, [rdi]
@@ -295,7 +295,7 @@ procedure: |-
       v13 = sub_180B38C50(v12);
     else
       v13 = 0;
-    *(_QWORD *)(g_pGameEntitySystem + 8408) = v13;
+    *(_QWORD *)(g_pGameEntitySystem + 8408) = v13;  // 8408 = 0x20D8 = CGameEntitySystem_m_pEntity2SaveRestore (structmember, struct=CGameEntitySystem, member=m_pEntity2SaveRestore)
     (**(void (__fastcall ***)(__int64))v13)(v13);
     v14 = *(void (__fastcall **)(__int64, __int64))(*(_QWORD *)v13 + 136LL);
     v15 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)qword_181F65210 + 192LL))(qword_181F65210);

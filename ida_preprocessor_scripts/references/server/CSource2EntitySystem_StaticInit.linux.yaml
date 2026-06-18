@@ -48,7 +48,7 @@ disasm_code: |-
   .text:00000000015BC737                 mov     rax, cs:g_pGameEntitySystem
   .text:00000000015BC73E                 lea     rdx, aMod_0; "MOD"
   .text:00000000015BC745                 lea     rsi, aSave; "save/"
-  .text:00000000015BC74C                 mov     [rax+20E8h], rbx
+  .text:00000000015BC74C                 mov     [rax+20E8h], rbx  ; 20E8h = CGameEntitySystem_m_pEntity2SaveRestore (structmember, struct=CGameEntitySystem, member=m_pEntity2SaveRestore)
   .text:00000000015BC753                 lea     rax, qword_274C230
   .text:00000000015BC75A                 mov     rdi, [rax]
   .text:00000000015BC75D                 mov     rax, [rdi]
@@ -275,7 +275,7 @@ procedure: |-
     *(_QWORD *)(*(_QWORD *)(v2 + 2968) + 8 * v3) = &off_24C9FE0;
     v5 = operator new(4928);
     sub_1569780(v5);
-    *(_QWORD *)(g_pGameEntitySystem + 8424) = v5;
+    *(_QWORD *)(g_pGameEntitySystem + 8424) = v5;  // 8424 = 0x20E8 = CGameEntitySystem_m_pEntity2SaveRestore (structmember, struct=CGameEntitySystem, member=m_pEntity2SaveRestore)
     (*(void (__fastcall **)(_QWORD *, const char *, const char *))(*qword_274C230 + 384LL))(qword_274C230, "save/", "MOD");
     v7 = g_pVApplication_0;
     if ( !g_pVApplication_0

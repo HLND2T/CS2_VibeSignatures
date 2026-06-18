@@ -46,7 +46,7 @@ disasm_code: |-
   .text:00000000015C0AF9                 mov     rax, cs:g_pGameEntitySystem
   .text:00000000015C0B00                 lea     rdx, aMod; "MOD"
   .text:00000000015C0B07                 lea     rsi, aSave; "save/"
-  .text:00000000015C0B0E                 mov     [rax+20E8h], rbx
+  .text:00000000015C0B0E                 mov     [rax+20E8h], rbx  ; 20E8h = CGameEntitySystem_m_pEntity2SaveRestore (structmember, struct=CGameEntitySystem, member=m_pEntity2SaveRestore)
   .text:00000000015C0B15                 lea     rax, g_pFileSystem
   .text:00000000015C0B1C                 mov     rdi, [rax]
   .text:00000000015C0B1F                 mov     rax, [rdi]
@@ -269,7 +269,7 @@ procedure: |-
     *(_QWORD *)(*(_QWORD *)(v2 + 2968) + 8 * v3) = &off_4404C60;
     v5 = operator new(4920);
     sub_1556BF0(v5);
-    *(_QWORD *)(g_pGameEntitySystem + 8424) = v5;
+    *(_QWORD *)(g_pGameEntitySystem + 8424) = v5;  // 8424 = 0x20E8 = CGameEntitySystem_m_pEntity2SaveRestore (structmember, struct=CGameEntitySystem, member=m_pEntity2SaveRestore)
     (*(void (__fastcall **)(_QWORD *, const char *, const char *))(*g_pFileSystem + 384LL))(g_pFileSystem, "save/", "MOD");
     v6 = CommandLine();
     if ( !(*(unsigned int (__fastcall **)(__int64, __int64, _QWORD))(*(_QWORD *)v6 + 48LL))(v6, 1877996950, 0) )

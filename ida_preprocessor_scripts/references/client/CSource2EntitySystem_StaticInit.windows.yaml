@@ -152,7 +152,7 @@ disasm_code: |-
   .text:000000018098F707                 mov     rbx, r15
   .text:000000018098F70A                 mov     rax, cs:g_pGameEntitySystem
   .text:000000018098F711                 mov     rcx, rbx
-  .text:000000018098F714                 mov     [rax+20D8h], rbx
+  .text:000000018098F714                 mov     [rax+20D8h], rbx  ; 20D8h = CGameEntitySystem_m_pEntity2SaveRestore (structmember, struct=CGameEntitySystem, member=m_pEntity2SaveRestore)
   .text:000000018098F71B                 mov     rax, [rbx]
   .text:000000018098F71E                 mov     rdx, [rax]
   .text:000000018098F721                 lea     rax, sub_18095E160
@@ -420,7 +420,7 @@ procedure: |-
     {
       v12 = 0;
     }
-    *(_QWORD *)(g_pGameEntitySystem + 8408) = v12;
+    *(_QWORD *)(g_pGameEntitySystem + 8408) = v12;  // 8408 = 0x20D8 = CGameEntitySystem_m_pEntity2SaveRestore (structmember, struct=CGameEntitySystem, member=m_pEntity2SaveRestore)
     v14 = **(void (__fastcall ***)(__int64))v12;
     if ( (char *)v14 == (char *)sub_18095E160 )
       sub_18095E160(v12);

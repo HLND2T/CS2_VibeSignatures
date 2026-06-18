@@ -21,6 +21,7 @@ TARGET_GLOBALVAR_NAMES = [
 
 TARGET_STRUCT_MEMBER_NAMES = [
     "CEntitySystem_m_entityIONotifiers",
+    "CGameEntitySystem_m_pEntity2SaveRestore",
 ]
 
 FUNC_VTABLE_RELATIONS = [
@@ -68,6 +69,17 @@ GENERATE_YAML_DESIRED_FIELDS = [
     ),
     (
         "CEntitySystem_m_entityIONotifiers",
+        [
+            "struct_name",
+            "member_name",
+            "offset",
+            "size",
+            "offset_sig",
+            "offset_sig_disp",
+        ],
+    ),
+    (
+        "CGameEntitySystem_m_pEntity2SaveRestore",
         [
             "struct_name",
             "member_name",
@@ -142,6 +154,11 @@ async def preprocess_skill(
         ),
         (
             "CEntitySystem_m_entityIONotifiers",
+            "prompt/call_llm_decompile.md",
+            "references/{module_name}/CSource2EntitySystem_StaticInit.{platform}.yaml",
+        ),
+        (
+            "CGameEntitySystem_m_pEntity2SaveRestore",
             "prompt/call_llm_decompile.md",
             "references/{module_name}/CSource2EntitySystem_StaticInit.{platform}.yaml",
         ),
