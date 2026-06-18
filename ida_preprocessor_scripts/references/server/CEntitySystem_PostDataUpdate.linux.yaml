@@ -1,50 +1,51 @@
 func_name: CEntitySystem_PostDataUpdate
-func_va: '0x1e502e0'
+func_va: '0x1e59620'
 disasm_code: |-
-  .text:0000000001E502E0                 push    rbp
-  .text:0000000001E502E1                 mov     rbp, rsp
-  .text:0000000001E502E4                 push    r13
-  .text:0000000001E502E6                 push    r12
-  .text:0000000001E502E8                 movsxd  r12, esi
-  .text:0000000001E502EB                 mov     esi, 80000001h
-  .text:0000000001E502F0                 push    rbx
-  .text:0000000001E502F1                 mov     rbx, rdx
-  .text:0000000001E502F4                 sub     rsp, 8
-  .text:0000000001E502F8                 mov     rax, [rdi+0C88h]
-  .text:0000000001E502FF                 movss   xmm0, dword ptr [rdi+0BD4h]
-  .text:0000000001E50307                 mov     rdx, [rax]
-  .text:0000000001E5030A                 mov     rdi, rax
-  .text:0000000001E5030D                 call    qword ptr [rdx+20h]
-  .text:0000000001E50310                 test    r12d, r12d
-  .text:0000000001E50313                 jle     short loc_1E5035B
-  .text:0000000001E50315                 shl     r12, 4
-  .text:0000000001E50319                 lea     r13, byte_27BB16B
-  .text:0000000001E50320                 add     r12, rbx
-  .text:0000000001E50323                 jmp     short loc_1E50334
-  .text:0000000001E50328                 ; 0x68 = 104LL = CEntityInstance_PostDataUpdatePreserve
-  .text:0000000001E50328                 call    qword ptr [rax+68h]; 0x68 = 104LL = CEntityInstance_PostDataUpdatePreserve
-  .text:0000000001E5032B                 add     rbx, 10h
-  .text:0000000001E5032F                 cmp     r12, rbx
-  .text:0000000001E50332                 jz      short loc_1E5035B
-  .text:0000000001E50334                 mov     rax, [rbx]
-  .text:0000000001E50337                 mov     byte ptr [r13+0], 0
-  .text:0000000001E5033C                 and     dword ptr [rax+30h], 0FFFFFFF7h
-  .text:0000000001E50340                 mov     rdi, [rax]
-  .text:0000000001E50343                 mov     esi, [rbx+8]
-  .text:0000000001E50346                 mov     rax, [rdi]
-  .text:0000000001E50349                 test    sil, 4
-  .text:0000000001E5034D                 jnz     short loc_1E50328
-  .text:0000000001E5034F                 ; 0x58 = 88LL = CEntityInstance_PostDataUpdateDelta
-  .text:0000000001E5034F                 call    qword ptr [rax+58h]; 0x58 = 88LL = CEntityInstance_PostDataUpdateDelta
-  .text:0000000001E50352                 add     rbx, 10h
-  .text:0000000001E50356                 cmp     r12, rbx
-  .text:0000000001E50359                 jnz     short loc_1E50334
-  .text:0000000001E5035B                 add     rsp, 8
-  .text:0000000001E5035F                 pop     rbx
-  .text:0000000001E50360                 pop     r12
-  .text:0000000001E50362                 pop     r13
-  .text:0000000001E50364                 pop     rbp
-  .text:0000000001E50365                 retn
+  .text:0000000001E59620                 push    rbp
+  .text:0000000001E59621                 mov     rbp, rsp
+  .text:0000000001E59624                 push    r13
+  .text:0000000001E59626                 push    r12
+  .text:0000000001E59628                 movsxd  r12, esi
+  .text:0000000001E5962B                 mov     esi, 80000001h
+  .text:0000000001E59630                 push    rbx
+  .text:0000000001E59631                 mov     rbx, rdx
+  .text:0000000001E59634                 sub     rsp, 8
+  .text:0000000001E59638                 mov     rax, [rdi+0C88h]
+  .text:0000000001E5963F                 ; 0xBD4 = 3028LL = CEntitySystem::m_flChangeCallbackSpewThreshold(structmember,struct=CEntitySystem,member=m_flChangeCallbackSpewThreshold)
+  .text:0000000001E5963F                 movss   xmm0, dword ptr [rdi+0BD4h]; 0xBD4 = 3028LL = CEntitySystem::m_flChangeCallbackSpewThreshold(structmember,struct=CEntitySystem,member=m_flChangeCallbackSpewThreshold)
+  .text:0000000001E59647                 mov     rdx, [rax]
+  .text:0000000001E5964A                 mov     rdi, rax
+  .text:0000000001E5964D                 call    qword ptr [rdx+20h]
+  .text:0000000001E59650                 test    r12d, r12d
+  .text:0000000001E59653                 jle     short loc_1E5969B
+  .text:0000000001E59655                 shl     r12, 4
+  .text:0000000001E59659                 lea     r13, byte_27C426B
+  .text:0000000001E59660                 add     r12, rbx
+  .text:0000000001E59663                 jmp     short loc_1E59674
+  .text:0000000001E59668                 ; 0x68 = 104LL = CEntityInstance_PostDataUpdatePreserve
+  .text:0000000001E59668                 call    qword ptr [rax+68h]; 0x68 = 104LL = CEntityInstance_PostDataUpdatePreserve
+  .text:0000000001E5966B                 add     rbx, 10h
+  .text:0000000001E5966F                 cmp     r12, rbx
+  .text:0000000001E59672                 jz      short loc_1E5969B
+  .text:0000000001E59674                 mov     rax, [rbx]
+  .text:0000000001E59677                 mov     byte ptr [r13+0], 0
+  .text:0000000001E5967C                 and     dword ptr [rax+30h], 0FFFFFFF7h
+  .text:0000000001E59680                 mov     rdi, [rax]
+  .text:0000000001E59683                 mov     esi, [rbx+8]
+  .text:0000000001E59686                 mov     rax, [rdi]
+  .text:0000000001E59689                 test    sil, 4
+  .text:0000000001E5968D                 jnz     short loc_1E59668
+  .text:0000000001E5968F                 ; 0x58 = 88LL = CEntityInstance_PostDataUpdateDelta
+  .text:0000000001E5968F                 call    qword ptr [rax+58h]; 0x58 = 88LL = CEntityInstance_PostDataUpdateDelta
+  .text:0000000001E59692                 add     rbx, 10h
+  .text:0000000001E59696                 cmp     r12, rbx
+  .text:0000000001E59699                 jnz     short loc_1E59674
+  .text:0000000001E5969B                 add     rsp, 8
+  .text:0000000001E5969F                 pop     rbx
+  .text:0000000001E596A0                 pop     r12
+  .text:0000000001E596A2                 pop     r13
+  .text:0000000001E596A4                 pop     rbp
+  .text:0000000001E596A5                 retn
 procedure: |-
   __int64 __fastcall CEntitySystem_PostDataUpdate(__int64 a1, int a2, __int64 ***a3)
   {
@@ -56,7 +57,7 @@ procedure: |-
     result = (*(__int64 (__fastcall **)(_QWORD, __int64, float))(**(_QWORD **)(a1 + 3208) + 32LL))(
                *(_QWORD *)(a1 + 3208),
                2147483649LL,
-               *(float *)(a1 + 3028));
+               *(float *)(a1 + 3028));            // 0xBD4 = 3028LL = CEntitySystem::m_flChangeCallbackSpewThreshold(structmember,struct=CEntitySystem,member=m_flChangeCallbackSpewThreshold)
     if ( a2 > 0 )
     {
       v5 = &a3[2 * a2];
@@ -65,7 +66,7 @@ procedure: |-
         while ( 1 )
         {
           v6 = *a3;
-          byte_27BB16B = 0;
+          byte_27C426B = 0;
           *((_DWORD *)v6 + 12) &= ~8u;
           v7 = **v6;
           if ( ((_DWORD)a3[1] & 4) == 0 )

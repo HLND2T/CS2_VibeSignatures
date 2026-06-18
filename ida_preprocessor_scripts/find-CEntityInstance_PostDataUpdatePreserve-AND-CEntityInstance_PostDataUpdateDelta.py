@@ -8,6 +8,10 @@ TARGET_FUNCTION_NAMES = [
     "CEntityInstance_PostDataUpdateDelta",
 ]
 
+TARGET_STRUCT_MEMBER_NAMES = [
+    "CEntitySystem_m_flChangeCallbackSpewThreshold",
+]
+
 LLM_DECOMPILE = [
     # (symbol_name, path_to_prompt, path_to_reference)
     (
@@ -17,6 +21,11 @@ LLM_DECOMPILE = [
     ),
     (
         "CEntityInstance_PostDataUpdateDelta",
+        "prompt/call_llm_decompile.md",
+        "references/server/CEntitySystem_PostDataUpdate.{platform}.yaml",
+    ),
+    (
+        "CEntitySystem_m_flChangeCallbackSpewThreshold",
         "prompt/call_llm_decompile.md",
         "references/server/CEntitySystem_PostDataUpdate.{platform}.yaml",
     ),
@@ -54,6 +63,17 @@ GENERATE_YAML_DESIRED_FIELDS = [
             "vtable_name",
         ],
     ),
+    (
+        "CEntitySystem_m_flChangeCallbackSpewThreshold",
+        [
+            "struct_name",
+            "member_name",
+            "offset",
+            "size",
+            "offset_sig",
+            "offset_sig_disp",
+        ],
+    ),
 ]
 
 async def preprocess_skill(
@@ -69,6 +89,7 @@ async def preprocess_skill(
         platform=platform,
         image_base=image_base,
         func_names=TARGET_FUNCTION_NAMES,
+        struct_member_names=TARGET_STRUCT_MEMBER_NAMES,
         func_vtable_relations=FUNC_VTABLE_RELATIONS,
         llm_decompile_specs=LLM_DECOMPILE,
         llm_config=llm_config,
