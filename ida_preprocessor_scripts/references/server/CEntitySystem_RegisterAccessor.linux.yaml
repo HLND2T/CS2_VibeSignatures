@@ -1,0 +1,18 @@
+func_name: CEntitySystem_RegisterAccessor
+func_va: '0x1e62220'
+disasm_code: |-
+  .text:0000000001E62220                 cmp     esi, 1Fh
+  .text:0000000001E62223                 ja      short locret_1E6223A
+  .text:0000000001E62225                 movsxd  rsi, esi
+  .text:0000000001E62228                 cmp     qword ptr [rdi+rsi*8+1F80h], 0 ; 0x1F80 = 8064 = CEntitySystem::m_Accessors (structmember, struct=CEntitySystem, member=m_Accessors)
+  .text:0000000001E62231                 lea     rax, [rsi+3F0h]
+  .text:0000000001E62238                 jz      short loc_1E62240
+  .text:0000000001E6223A                 retn
+  .text:0000000001E62240                 mov     [rdi+rax*8], rdx               ; rax = rsi+0x3F0 => effective offset = rsi*8+0x1F80 = CEntitySystem::m_Accessors (structmember, struct=CEntitySystem, member=m_Accessors)
+  .text:0000000001E62244                 retn
+procedure: |-
+  void __fastcall CEntitySystem_RegisterAccessor(__int64 a1, signed int a2, __int64 a3)
+  {
+    if ( (unsigned int)a2 <= 0x1F && !*(_QWORD *)(a1 + 8LL * a2 + 8064) )  // 8064 = 0x1F80 = CEntitySystem::m_Accessors (structmember, struct=CEntitySystem, member=m_Accessors)
+      *(_QWORD *)(a1 + 8 * (a2 + 1008LL)) = a3;                             // 8 * 1008 = 8064 = 0x1F80 = CEntitySystem::m_Accessors (structmember, struct=CEntitySystem, member=m_Accessors)
+  }

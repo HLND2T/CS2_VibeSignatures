@@ -1,0 +1,23 @@
+func_name: CEntitySystem_RegisterAccessor
+func_va: '0x1811ec950'
+disasm_code: |-
+  .text:00000001811EC950                 cmp     edx, 1Fh
+  .text:00000001811EC953                 ja      short locret_1811EC96B
+  .text:00000001811EC955                 movsxd  rax, edx
+  .text:00000001811EC958                 cmp     qword ptr [rcx+rax*8+1F70h], 0 ; 0x1F70 = 8048 = CEntitySystem::m_Accessors (structmember, struct=CEntitySystem, member=m_Accessors)
+  .text:00000001811EC961                 jnz     short locret_1811EC96B
+  .text:00000001811EC963                 mov     [rcx+rax*8+1F70h], r8          ; 0x1F70 = 8048 = CEntitySystem::m_Accessors (structmember, struct=CEntitySystem, member=m_Accessors)
+  .text:00000001811EC96B                 retn
+procedure: |-
+  __int64 __fastcall CEntitySystem_RegisterAccessor(__int64 a1, signed int a2, __int64 a3)
+  {
+    __int64 result; // rax
+
+    if ( (unsigned int)a2 <= 0x1F )
+    {
+      result = a2;
+      if ( !*(_QWORD *)(a1 + 8LL * a2 + 8048) )   // 8048 = 0x1F70 = CEntitySystem::m_Accessors (structmember, struct=CEntitySystem, member=m_Accessors)
+        *(_QWORD *)(a1 + 8LL * a2 + 8048) = a3;   // 8048 = 0x1F70 = CEntitySystem::m_Accessors (structmember, struct=CEntitySystem, member=m_Accessors)
+    }
+    return result;
+  }
