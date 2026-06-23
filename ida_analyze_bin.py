@@ -2083,26 +2083,6 @@ def run_skill(skill_name, agent="claude", debug=False, expected_yaml_paths=None,
     return False
 
 
-def _is_idb_file_locked(path):
-    """Return True if *path* is currently held open (OS-level) by another process.
-
-    Uses an exclusive-open attempt rather than mere file existence so that stale
-    .id0 files left by a previous idalib-mcp session that exited cleanly do not
-    trigger a false-positive lock warning.
-
-    IDA Pro opens database files with no share mode (exclusive access), so any
-    open() attempt while IDA has the file open raises PermissionError/OSError.
-    """
-    if not os.path.exists(path):
-        return False
-    try:
-        with open(path, "r+b"):
-            pass
-        return False
-    except (IOError, OSError):
-        return True
-
-
 def process_binary(
     binary_path,
     skills,
@@ -2239,12 +2219,11 @@ def process_binary(
             print("  All skills already have yaml files and no vcall_finder/post_process targets remain, skipping IDA startup")
         return success_count, fail_count, skip_count
 
-    # Refuse to start IDA if an `.id0` file is held open by another process —
-    # starting idalib-mcp on top of an already-open IDB would corrupt the database.
-    # Use OS-level lock detection (not mere existence) so stale files left by a
-    # previous idalib-mcp session that exited cleanly do not block the next run.
+    # Refuse to start IDA if an `.id0` lock file exists next to the binary —
+    # that means another IDA instance currently has this IDB open, and starting
+    # idalib-mcp on top of it would corrupt the database.
     lock_file = f"{binary_path}.id0"
-    if _is_idb_file_locked(lock_file):
+    if os.path.exists(lock_file):
         print(
             f"  Failed: IDB lock file detected ({lock_file}); another IDA instance "
             f"has this database open. Close it and retry."
