@@ -1,0 +1,23 @@
+func_name: PolymorphicHelper_t__GetChangeAccessorPathInfo_2
+func_va: '0x1e7e410'
+disasm_code: |-
+  .text:0000000001E7E410                 mov     rax, [rdi]
+  .text:0000000001E7E413                 lea     rcx, sub_1E4F2C0
+  .text:0000000001E7E41A                 ; 0x148 = 328LL = CEntityInstance::GetChangeAccessorPathInfo_2
+  .text:0000000001E7E41A                 mov     rax, [rax+148h]; 0x148 = 328LL = CEntityInstance::GetChangeAccessorPathInfo_2
+  .text:0000000001E7E421                 cmp     rax, rcx
+  .text:0000000001E7E424                 jnz     short loc_1E7E430
+  .text:0000000001E7E426                 xor     eax, eax
+  .text:0000000001E7E428                 retn
+  .text:0000000001E7E430                 jmp     rax
+procedure: |-
+  __int64 __fastcall sub_1E7E410(__int64 a1)
+  {
+    __int64 (*v1)(void); // rax
+
+    v1 = *(__int64 (**)(void))(*(_QWORD *)a1 + 328LL);// 0x148 = 328LL = CEntityInstance::GetChangeAccessorPathInfo_2
+    if ( v1 == sub_1E4F2C0 )
+      return 0;
+    else
+      return v1();
+  }
