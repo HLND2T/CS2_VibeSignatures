@@ -1,0 +1,229 @@
+func_name: CGameEntitySystem_ctor
+func_va: '0x180b38f20'
+disasm_code: |-
+  .text:0000000180B38F20                 mov     [rsp+arg_0], rbx
+  .text:0000000180B38F25                 mov     [rsp+arg_8], rsi
+  .text:0000000180B38F2A                 push    rdi
+  .text:0000000180B38F2B                 sub     rsp, 20h
+  .text:0000000180B38F2F                 mov     rdi, rcx
+  .text:0000000180B38F32                 call    CEntitySystem_ctor
+  .text:0000000180B38F37                 xor     esi, esi
+  .text:0000000180B38F39                 lea     rbx, [rdi+20A0h]
+  .text:0000000180B38F40                 mov     [rdi+2090h], rsi
+  .text:0000000180B38F47                 lea     rax, CGameEntitySystem_vtable
+  .text:0000000180B38F4E                 mov     [rdi], rax
+  .text:0000000180B38F51                 xor     edx, edx
+  .text:0000000180B38F53                 mov     [rdi+2098h], sil
+  .text:0000000180B38F5A                 mov     r8d, 1
+  .text:0000000180B38F60                 mov     rcx, rbx
+  .text:0000000180B38F63                 mov     [rbx], rsi
+  .text:0000000180B38F66                 mov     [rbx+8], rsi
+  .text:0000000180B38F6A                 call    sub_180B53920
+  .text:0000000180B38F6F                 mov     dword ptr [rbx+10h], 0FFFFFFFFh
+  .text:0000000180B38F76                 mov     ecx, 28h ; '('
+  .text:0000000180B38F7B                 mov     [rbx+14h], esi
+  .text:0000000180B38F7E                 mov     dword ptr [rbx+18h], 0FFFFFFFFh
+  .text:0000000180B38F85                 mov     [rdi+20C8h], rsi
+  .text:0000000180B38F8C                 mov     [rdi+20D0h], rsi
+  .text:0000000180B38F93                 mov     [rdi+20C0h], esi
+  .text:0000000180B38F99                 mov     [rdi+20D8h], rsi
+  .text:0000000180B38FA0                 mov     [rdi+20E0h], rsi
+  .text:0000000180B38FA7                 call    sub_180E7C960
+  .text:0000000180B38FAC                 test    rax, rax
+  .text:0000000180B38FAF                 jz      short loc_180B38FD4
+  .text:0000000180B38FB1                 mov     [rax+8], rsi
+  .text:0000000180B38FB5                 lea     rcx, ??_7?$CEntityDataInstantiator@Ugroundlink_t@@@@6B@; const CEntityDataInstantiator<groundlink_t>::`vftable'
+  .text:0000000180B38FBC                 mov     [rax], rcx
+  .text:0000000180B38FBF                 mov     [rax+10h], rsi
+  .text:0000000180B38FC3                 mov     dword ptr [rax+20h], 40h ; '@'
+  .text:0000000180B38FCA                 mov     [rax+24h], sil
+  .text:0000000180B38FCE                 mov     [rax+18h], rsi
+  .text:0000000180B38FD2                 jmp     short loc_180B38FD7
+  .text:0000000180B38FD4 loc_180B38FD4:
+  .text:0000000180B38FD4                 mov     rax, rsi
+  .text:0000000180B38FD7 loc_180B38FD7:
+  .text:0000000180B38FD7                 mov     r8, rax
+  .text:0000000180B38FDA                 xor     edx, edx
+  .text:0000000180B38FDC                 mov     rcx, rdi
+  .text:0000000180B38FDF                 call    CEntitySystem_RegisterAccessor
+  .text:0000000180B38FE4                 mov     ecx, 28h ; '('
+  .text:0000000180B38FE9                 call    sub_180E7C960
+  .text:0000000180B38FEE                 lea     rbx, ??_7?$CEntityDataInstantiator@VCWatcherList@@@@6B@; const CEntityDataInstantiator<CWatcherList>::`vftable'
+  .text:0000000180B38FF5                 test    rax, rax
+  .text:0000000180B38FF8                 jz      short loc_180B39016
+  .text:0000000180B38FFA                 mov     [rax], rbx
+  .text:0000000180B38FFD                 mov     [rax+8], rsi
+  .text:0000000180B39001                 mov     [rax+10h], rsi
+  .text:0000000180B39005                 mov     dword ptr [rax+20h], 40h ; '@'
+  .text:0000000180B3900C                 mov     [rax+24h], sil
+  .text:0000000180B39010                 mov     [rax+18h], rsi
+  .text:0000000180B39014                 jmp     short loc_180B39019
+  .text:0000000180B39016 loc_180B39016:
+  .text:0000000180B39016                 mov     rax, rsi
+  .text:0000000180B39019 loc_180B39019:
+  .text:0000000180B39019                 mov     r8, rax
+  .text:0000000180B3901C                 mov     edx, 2
+  .text:0000000180B39021                 mov     rcx, rdi
+  .text:0000000180B39024                 call    CEntitySystem_RegisterAccessor
+  .text:0000000180B39029                 mov     ecx, 28h ; '('
+  .text:0000000180B3902E                 call    sub_180E7C960
+  .text:0000000180B39033                 test    rax, rax
+  .text:0000000180B39036                 jz      short loc_180B3905B
+  .text:0000000180B39038                 mov     [rax+8], rsi
+  .text:0000000180B3903C                 lea     rcx, ??_7?$CEntityDataInstantiator@Uphysicspushlist_t@@@@6B@; const CEntityDataInstantiator<physicspushlist_t>::`vftable'
+  .text:0000000180B39043                 mov     [rax], rcx
+  .text:0000000180B39046                 mov     [rax+10h], rsi
+  .text:0000000180B3904A                 mov     dword ptr [rax+20h], 40h ; '@'
+  .text:0000000180B39051                 mov     [rax+24h], sil
+  .text:0000000180B39055                 mov     [rax+18h], rsi
+  .text:0000000180B39059                 jmp     short loc_180B3905E
+  .text:0000000180B3905B loc_180B3905B:
+  .text:0000000180B3905B                 mov     rax, rsi
+  .text:0000000180B3905E loc_180B3905E:
+  .text:0000000180B3905E                 mov     r8, rax
+  .text:0000000180B39061                 mov     edx, 3
+  .text:0000000180B39066                 mov     rcx, rdi
+  .text:0000000180B39069                 call    CEntitySystem_RegisterAccessor
+  .text:0000000180B3906E                 mov     ecx, 28h ; '('
+  .text:0000000180B39073                 call    sub_180E7C960
+  .text:0000000180B39078                 test    rax, rax
+  .text:0000000180B3907B                 jz      short loc_180B39099
+  .text:0000000180B3907D                 mov     [rax], rbx
+  .text:0000000180B39080                 mov     [rax+8], rsi
+  .text:0000000180B39084                 mov     [rax+10h], rsi
+  .text:0000000180B39088                 mov     dword ptr [rax+20h], 40h ; '@'
+  .text:0000000180B3908F                 mov     [rax+24h], sil
+  .text:0000000180B39093                 mov     [rax+18h], rsi
+  .text:0000000180B39097                 jmp     short loc_180B3909C
+  .text:0000000180B39099 loc_180B39099:
+  .text:0000000180B39099                 mov     rax, rsi
+  .text:0000000180B3909C loc_180B3909C:
+  .text:0000000180B3909C                 mov     r8, rax
+  .text:0000000180B3909F                 mov     edx, 4
+  .text:0000000180B390A4                 mov     rcx, rdi
+  .text:0000000180B390A7                 call    CEntitySystem_RegisterAccessor
+  .text:0000000180B390AC                 mov     ecx, 28h ; '('
+  .text:0000000180B390B1                 call    sub_180E7C960
+  .text:0000000180B390B6                 test    rax, rax
+  .text:0000000180B390B9                 jz      short loc_180B390D7
+  .text:0000000180B390BB                 mov     [rax], rbx
+  .text:0000000180B390BE                 mov     [rax+8], rsi
+  .text:0000000180B390C2                 mov     [rax+10h], rsi
+  .text:0000000180B390C6                 mov     dword ptr [rax+20h], 40h ; '@'
+  .text:0000000180B390CD                 mov     [rax+24h], sil
+  .text:0000000180B390D1                 mov     [rax+18h], rsi
+  .text:0000000180B390D5                 jmp     short loc_180B390DA
+  .text:0000000180B390D7 loc_180B390D7:
+  .text:0000000180B390D7                 mov     rax, rsi
+  .text:0000000180B390DA loc_180B390DA:
+  .text:0000000180B390DA                 mov     r8, rax
+  .text:0000000180B390DD                 mov     edx, 5
+  .text:0000000180B390E2                 mov     rcx, rdi
+  .text:0000000180B390E5                 call    CEntitySystem_RegisterAccessor
+  .text:0000000180B390EA                 mov     rbx, [rsp+28h+arg_0]
+  .text:0000000180B390EF                 mov     rax, rdi
+  .text:0000000180B390F2                 mov     rsi, [rsp+28h+arg_8]
+  .text:0000000180B390F7                 add     rsp, 20h
+  .text:0000000180B390FB                 pop     rdi
+  .text:0000000180B390FC                 retn
+procedure: |-
+  __int64 __fastcall CGameEntitySystem_ctor(__int64 a1)
+  {
+    __int64 v2; // rax
+    __int64 v3; // rax
+    __int64 v4; // rax
+    __int64 v5; // rax
+    __int64 v6; // rax
+
+    CEntitySystem_ctor(a1);
+    *(_QWORD *)(a1 + 8336) = 0;
+    *(_QWORD *)a1 = &CGameEntitySystem_vtable;
+    *(_BYTE *)(a1 + 8344) = 0;
+    *(_QWORD *)(a1 + 8352) = 0;
+    *(_QWORD *)(a1 + 8360) = 0;
+    sub_180B53920(a1 + 8352, 0, 1);
+    *(_DWORD *)(a1 + 8368) = -1;
+    *(_DWORD *)(a1 + 8372) = 0;
+    *(_DWORD *)(a1 + 8376) = -1;
+    *(_QWORD *)(a1 + 8392) = 0;
+    *(_QWORD *)(a1 + 8400) = 0;
+    *(_DWORD *)(a1 + 8384) = 0;
+    *(_QWORD *)(a1 + 8408) = 0;
+    *(_QWORD *)(a1 + 8416) = 0;
+    v2 = sub_180E7C960(40);
+    if ( v2 )
+    {
+      *(_QWORD *)(v2 + 8) = 0;
+      *(_QWORD *)v2 = &CEntityDataInstantiator<groundlink_t>::`vftable';
+      *(_QWORD *)(v2 + 16) = 0;
+      *(_DWORD *)(v2 + 32) = 64;
+      *(_BYTE *)(v2 + 36) = 0;
+      *(_QWORD *)(v2 + 24) = 0;
+    }
+    else
+    {
+      v2 = 0;
+    }
+    CEntitySystem_RegisterAccessor(a1, 0, v2);
+    v3 = sub_180E7C960(40);
+    if ( v3 )
+    {
+      *(_QWORD *)v3 = &CEntityDataInstantiator<CWatcherList>::`vftable';
+      *(_QWORD *)(v3 + 8) = 0;
+      *(_QWORD *)(v3 + 16) = 0;
+      *(_DWORD *)(v3 + 32) = 64;
+      *(_BYTE *)(v3 + 36) = 0;
+      *(_QWORD *)(v3 + 24) = 0;
+    }
+    else
+    {
+      v3 = 0;
+    }
+    CEntitySystem_RegisterAccessor(a1, 2, v3);
+    v4 = sub_180E7C960(40);
+    if ( v4 )
+    {
+      *(_QWORD *)(v4 + 8) = 0;
+      *(_QWORD *)v4 = &CEntityDataInstantiator<physicspushlist_t>::`vftable';
+      *(_QWORD *)(v4 + 16) = 0;
+      *(_DWORD *)(v4 + 32) = 64;
+      *(_BYTE *)(v4 + 36) = 0;
+      *(_QWORD *)(v4 + 24) = 0;
+    }
+    else
+    {
+      v4 = 0;
+    }
+    CEntitySystem_RegisterAccessor(a1, 3, v4);
+    v5 = sub_180E7C960(40);
+    if ( v5 )
+    {
+      *(_QWORD *)v5 = &CEntityDataInstantiator<CWatcherList>::`vftable';
+      *(_QWORD *)(v5 + 8) = 0;
+      *(_QWORD *)(v5 + 16) = 0;
+      *(_DWORD *)(v5 + 32) = 64;
+      *(_BYTE *)(v5 + 36) = 0;
+      *(_QWORD *)(v5 + 24) = 0;
+    }
+    else
+    {
+      v5 = 0;
+    }
+    CEntitySystem_RegisterAccessor(a1, 4, v5);
+    v6 = sub_180E7C960(40);
+    if ( v6 )
+    {
+      *(_QWORD *)v6 = &CEntityDataInstantiator<CWatcherList>::`vftable';
+      *(_QWORD *)(v6 + 8) = 0;
+      *(_QWORD *)(v6 + 16) = 0;
+      *(_DWORD *)(v6 + 32) = 64;
+      *(_BYTE *)(v6 + 36) = 0;
+      *(_QWORD *)(v6 + 24) = 0;
+    }
+    else
+    {
+      v6 = 0;
+    }
+    CEntitySystem_RegisterAccessor(a1, 5, v6);
+    return a1;
+  }
