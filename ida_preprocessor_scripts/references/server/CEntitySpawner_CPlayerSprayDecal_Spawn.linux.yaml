@@ -29,7 +29,7 @@ disasm_code: |-
   .text:0000000000B1736E                 mov     [rbp+var_1A4], eax
   .text:0000000000B17374                 lea     rax, g_pEntitySystem
   .text:0000000000B1737B                 mov     rdi, [rax]
-  .text:0000000000B1737E                 call    sub_1E62140
+  .text:0000000000B1737E                 call    CEntityKeyValuesAllocator_GetTempBuffer
   .text:0000000000B17383                 movdqa  xmm0, xmmword ptr [rax]
   .text:0000000000B17387                 mov     [rbp+var_1C8], 0
   .text:0000000000B17392                 movaps  [rbp+var_1A0], xmm0
@@ -1051,7 +1051,7 @@ procedure: |-
     v107 = -1;
     v4 = g_pEntitySystem + 3280;                  // 0xCD0 = 3280 = CEntitySystem::m_EntityKeyValuesAllocator(structmember,struct=CEntitySystem,member=m_EntityKeyValuesAllocator)
     v101 = sub_1E62130(g_pEntitySystem);
-    v5 = (const __m128i *)sub_1E62140(g_pEntitySystem);
+    v5 = (const __m128i *)CEntityKeyValuesAllocator_GetTempBuffer(g_pEntitySystem);
     v96 = 0;
     v102[0] = _mm_load_si128(v5);
     v97 = v4;

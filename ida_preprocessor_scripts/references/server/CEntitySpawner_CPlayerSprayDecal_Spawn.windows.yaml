@@ -29,7 +29,7 @@ disasm_code: |-
   .text:00000001802A4CDD                 call    sub_1811F7750
   .text:00000001802A4CE2                 mov     rcx, cs:g_pEntitySystem
   .text:00000001802A4CE9                 mov     [rbp+0C0h+var_CC], eax
-  .text:00000001802A4CEC                 call    sub_1811F7A50
+  .text:00000001802A4CEC                 call    CEntityKeyValuesAllocator_GetTempBuffer
   .text:00000001802A4CF1                 mov     rcx, cs:g_pVApplication
   .text:00000001802A4CF8                 movaps  xmm0, xmmword ptr [rax]
   .text:00000001802A4CFB                 movaps  [rbp+0C0h+var_C0], xmm0
@@ -658,7 +658,7 @@ procedure: |-
     v80 = -1;
     v81 = 0;
     v74 = sub_1811F7750(g_pEntitySystem);
-    v5 = (_OWORD *)sub_1811F7A50(g_pEntitySystem);
+    v5 = (_OWORD *)CEntityKeyValuesAllocator_GetTempBuffer(g_pEntitySystem);
     v75[0] = *v5;
     v75[1] = v5[1];
     v6 = v5[2];

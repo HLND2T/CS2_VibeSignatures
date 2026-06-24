@@ -1,0 +1,18 @@
+func_name: CEntityKeyValuesAllocator_GetTempBuffer
+func_va: '0x1811f7a90'
+disasm_code: |-
+  .text:00000001811F7A90  cmp     dword ptr [rcx+0BC0h], 1
+  .text:00000001811F7A97  lea     rax, [rcx+1F40h]; 0x1F40 = 8000LL = CEntitySystem::m_vSpawnOriginOffset(structmember,struct=CEntitySystem,member=m_vSpawnOriginOffset)
+  .text:00000001811F7A9E  lea     rdx, xmmword_1815EFC90
+  .text:00000001811F7AA5  cmovg   rax, rdx
+  .text:00000001811F7AA9  retn
+procedure: |-
+  __int128 *__fastcall sub_1811F7A90(__int64 a1)
+  {
+    __int128 *result; // rax
+
+    result = (__int128 *)(a1 + 8000);             // 8000 = 0x1F40 = CEntitySystem::m_vSpawnOriginOffset (structmember, struct=CEntitySystem, member=m_vSpawnOriginOffset)
+    if ( *(int *)(a1 + 3008) > 1 )
+      return &xmmword_1815EFC90;
+    return result;
+  }

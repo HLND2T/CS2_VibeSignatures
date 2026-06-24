@@ -1,0 +1,20 @@
+func_name: CEntityKeyValuesAllocator_GetTempBuffer
+func_va: '0x1e62200'
+disasm_code: |-
+  .text:0000000001E62200  cmp     dword ptr [rdi+0BC0h], 1
+  .text:0000000001E62207  lea     rax, xmmword_7A9FC0
+  .text:0000000001E6220E  jle     short loc_1E62218
+  .text:0000000001E62210  retn
+  .text:0000000001E62211  nop     dword ptr [rax+00000000h]
+  .text:0000000001E62218  lea     rax, [rdi+1F50h]; 0x1F50 = 8016LL = CEntitySystem::m_vSpawnOriginOffset(structmember,struct=CEntitySystem,member=m_vSpawnOriginOffset)
+  .text:0000000001E6221F  retn
+procedure: |-
+  __int128 *__fastcall CEntityKeyValuesAllocator_GetTempBuffer(__int64 a1)
+  {
+    __int128 *result; // rax
+
+    result = &xmmword_7A9FC0;
+    if ( *(int *)(a1 + 3008) <= 1 )
+      return (__int128 *)(a1 + 8016);             // 8016 = 0x1F50 = CEntitySystem::m_vSpawnOriginOffset (structmember, struct=CEntitySystem, member=m_vSpawnOriginOffset)
+    return result;
+  }
