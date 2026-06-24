@@ -119,6 +119,9 @@ GENERATE_YAML_DESIRED_FIELDS = [
             "func_size",
         ],
     ),
+]
+
+GENERATE_YAML_DESIRED_FIELDS_WINDOWS = [
     (
         "CSpawnGroupEntityFilterRegistrar_RegisterSpawnGroupEntityFilters",
         [
@@ -180,9 +183,11 @@ async def preprocess_skill(
     ]
 
     func_names = list(TARGET_FUNCTION_NAMES)
+    generate_yaml_desired_fields = list(GENERATE_YAML_DESIRED_FIELDS)
 
     if platform == "windows":
         func_names += TARGET_FUNCTION_NAMES_WINDOWS
+        generate_yaml_desired_fields += GENERATE_YAML_DESIRED_FIELDS_WINDOWS
         llm_decompile.append(
             (
                 "CSpawnGroupEntityFilterRegistrar_RegisterSpawnGroupEntityFilters",
@@ -204,6 +209,6 @@ async def preprocess_skill(
         func_vtable_relations=FUNC_VTABLE_RELATIONS,
         llm_decompile_specs=llm_decompile,
         llm_config=llm_config,
-        generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
+        generate_yaml_desired_fields=generate_yaml_desired_fields,
         debug=debug,
     )
