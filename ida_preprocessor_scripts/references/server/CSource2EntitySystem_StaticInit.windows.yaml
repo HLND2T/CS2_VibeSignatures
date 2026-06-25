@@ -171,7 +171,7 @@ disasm_code: |-
   .text:0000000180B8DA1A                 jmp     short loc_180B8DA1F
   .text:0000000180B8DA1C                 mov     rdi, r15
   .text:0000000180B8DA1F                 lea     rcx, [rbp+var_20]
-  .text:0000000180B8DA23                 mov     [r14+20E0h], rdi
+  .text:0000000180B8DA23                 mov     [r14+20E0h], rdi  ; 20E0h = CGameEntitySystem::m_pEntity2Networkables (structmember, struct=CGameEntitySystem, member=m_pEntity2Networkables)
   .text:0000000180B8DA2A                 call    cs:ToolsStallMonitorInternal_EndScope
   .text:0000000180B8DA30                 mov     rcx, cs:g_pEntitySystem
   .text:0000000180B8DA37                 lea     rax, sub_180B4E030
@@ -341,7 +341,7 @@ procedure: |-
     {
       v19 = 0;
     }
-    *(_QWORD *)(v16 + 8416) = v19;
+    *(_QWORD *)(v16 + 8416) = v19;  // 8416 = 0x20E0 = CGameEntitySystem::m_pEntity2Networkables (structmember, struct=CGameEntitySystem, member=m_pEntity2Networkables)
     ToolsStallMonitorInternal_EndScope(&v25);
     v25 = (__int64 (__fastcall *)(unsigned int, __int64))sub_180B4E030;
     v26 = (__int64)sub_180B68B50;

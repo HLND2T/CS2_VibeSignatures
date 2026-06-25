@@ -14,6 +14,10 @@ TARGET_FUNCTION_NAMES_WINDOWS = [
     "CSpawnGroupEntityFilterRegistrar_RegisterSpawnGroupEntityFilters",
 ]
 
+TARGET_FUNCTION_NAMES_LINUX = [
+    "CEntity2NetworkClasses_ServerClass_InitEntity2NetworkClasses",
+]
+
 TARGET_GLOBALVAR_NAMES = [
     "g_pGameResourceService",
     "g_pGameEntitySystem",
@@ -22,6 +26,10 @@ TARGET_GLOBALVAR_NAMES = [
 TARGET_STRUCT_MEMBER_NAMES = [
     "CEntitySystem_m_entityIONotifiers",
     "CGameEntitySystem_m_pEntity2SaveRestore",
+]
+
+TARGET_STRUCT_MEMBER_NAMES_WINDOWS = [
+    "CGameEntitySystem_m_pEntity2Networkables",
 ]
 
 FUNC_VTABLE_RELATIONS = [
@@ -121,6 +129,19 @@ GENERATE_YAML_DESIRED_FIELDS = [
     ),
 ]
 
+GENERATE_YAML_DESIRED_FIELDS_LINUX = [
+    (
+        "CEntity2NetworkClasses_ServerClass_InitEntity2NetworkClasses",
+        [
+            "func_name",
+            "func_sig",
+            "func_va",
+            "func_rva",
+            "func_size",
+        ],
+    ),
+]
+
 GENERATE_YAML_DESIRED_FIELDS_WINDOWS = [
     (
         "CSpawnGroupEntityFilterRegistrar_RegisterSpawnGroupEntityFilters",
@@ -130,6 +151,17 @@ GENERATE_YAML_DESIRED_FIELDS_WINDOWS = [
             "func_va",
             "func_rva",
             "func_size",
+        ],
+    ),
+    (
+        "CGameEntitySystem_m_pEntity2Networkables",
+        [
+            "struct_name",
+            "member_name",
+            "offset",
+            "size",
+            "offset_sig",
+            "offset_sig_disp",
         ],
     ),
 ]
@@ -175,22 +207,30 @@ async def preprocess_skill(
             "prompt/call_llm_decompile.md",
             "references/{module_name}/CSource2EntitySystem_StaticInit.{platform}.yaml",
         ),
-        (
-            "CEntitySystem_InstallCreationWrapperCallbacks",
-            "prompt/call_llm_decompile.md",
-            "references/{module_name}/CSource2EntitySystem_StaticInit.{platform}.yaml",
-        ),
     ]
 
     func_names = list(TARGET_FUNCTION_NAMES)
+    struct_member_names = list(TARGET_STRUCT_MEMBER_NAMES)
     generate_yaml_desired_fields = list(GENERATE_YAML_DESIRED_FIELDS)
+
+    if platform == "linux":
+        func_names += TARGET_FUNCTION_NAMES_LINUX
+        generate_yaml_desired_fields += GENERATE_YAML_DESIRED_FIELDS_LINUX
 
     if platform == "windows":
         func_names += TARGET_FUNCTION_NAMES_WINDOWS
+        struct_member_names += TARGET_STRUCT_MEMBER_NAMES_WINDOWS
         generate_yaml_desired_fields += GENERATE_YAML_DESIRED_FIELDS_WINDOWS
         llm_decompile.append(
             (
                 "CSpawnGroupEntityFilterRegistrar_RegisterSpawnGroupEntityFilters",
+                "prompt/call_llm_decompile.md",
+                "references/{module_name}/CSource2EntitySystem_StaticInit.{platform}.yaml",
+            ),
+        )
+        llm_decompile.append(
+            (
+                "CGameEntitySystem_m_pEntity2Networkables",
                 "prompt/call_llm_decompile.md",
                 "references/{module_name}/CSource2EntitySystem_StaticInit.{platform}.yaml",
             ),
@@ -205,7 +245,7 @@ async def preprocess_skill(
         image_base=image_base,
         func_names=func_names,
         gv_names=TARGET_GLOBALVAR_NAMES,
-        struct_member_names=TARGET_STRUCT_MEMBER_NAMES,
+        struct_member_names=struct_member_names,
         func_vtable_relations=FUNC_VTABLE_RELATIONS,
         llm_decompile_specs=llm_decompile,
         llm_config=llm_config,

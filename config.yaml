@@ -6472,8 +6472,11 @@ modules:
           - CEntitySystem_EnableAutoDeletionExecution.{platform}.yaml
           - CEntitySystem_InstallPostSpawnCallback.{platform}.yaml
           - CEntitySystem_InstallCreationWrapperCallbacks.{platform}.yaml
+        expected_output_linux:
+          - CEntity2NetworkClasses_ServerClass_InitEntity2NetworkClasses.{platform}.yaml
         expected_output_windows:
           - CSpawnGroupEntityFilterRegistrar_RegisterSpawnGroupEntityFilters.{platform}.yaml
+          - CGameEntitySystem_m_pEntity2Networkables.{platform}.yaml
         expected_input:
           - CSource2EntitySystem_StaticInit.{platform}.yaml
 
@@ -6483,6 +6486,13 @@ modules:
         expected_input:
           - CSpawnGroupEntityFilterRegistrar_RegisterSpawnGroupEntityFilters.{platform}.yaml
         platform: windows
+
+      - name: find-CGameEntitySystem_m_pEntity2Networkables-linux
+        expected_output:
+          - CGameEntitySystem_m_pEntity2Networkables.{platform}.yaml
+        expected_input:
+          - CEntity2NetworkClasses_ServerClass_InitEntity2NetworkClasses.{platform}.yaml
+        platform: linux
 
       - name: find-CEntitySystem_m_EntityPostSpawnCallback
         expected_output:
@@ -10168,6 +10178,18 @@ modules:
         member: m_spawnGroupEntityFilters
         alias:
           - CGameEntitySystem::m_spawnGroupEntityFilters
+
+      - name: CGameEntitySystem_m_pEntity2Networkables
+        category: structmember
+        struct: CGameEntitySystem
+        member: m_pEntity2Networkables
+        alias:
+          - CGameEntitySystem::m_pEntity2Networkables
+
+      - name: CEntity2NetworkClasses_ServerClass_InitEntity2NetworkClasses
+        category: func
+        alias:
+          - CEntity2NetworkClasses<ServerClass>::InitEntity2NetworkClasses
 
       - name: CEntitySystem_m_sEntSystemName
         category: structmember
