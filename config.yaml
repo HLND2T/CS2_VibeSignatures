@@ -998,6 +998,17 @@ modules:
         expected_input:
           - CEngineServer_vtable.{platform}.yaml
 
+      - name: find-CEngineServer_CNetChan_PrintNetStats
+        expected_output:
+          - CEngineServer_CNetChan_PrintNetStats.{platform}.yaml
+
+      - name: find-CEngineServer_DumpNetStats
+        expected_output:
+          - CEngineServer_DumpNetStats.{platform}.yaml
+        expected_input:
+          - CEngineServer_CNetChan_PrintNetStats.{platform}.yaml
+          - CEngineServer_vtable.{platform}.yaml
+
       - name: find-CLoopTypeClientServerService_vtable
         expected_output:
           - CLoopTypeClientServerService_vtable.{platform}.yaml
@@ -1817,6 +1828,14 @@ modules:
         category: vfunc
         alias:
           - CEngineServer::ClientPrintf
+
+      - name: CEngineServer_CNetChan_PrintNetStats
+        category: func
+
+      - name: CEngineServer_DumpNetStats
+        category: vfunc
+        alias:
+          - CEngineServer::DumpNetStats
 
       - name: CLoopTypeClientServerService_vtable
         category: vtable
