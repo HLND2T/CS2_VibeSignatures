@@ -989,6 +989,19 @@ modules:
         expected_input:
           - CEngineServer_vtable.{platform}.yaml
 
+      - name: find-CEngineServer_ChangeLevel
+        expected_output:
+          - CEngineServer_ChangeLevel.{platform}.yaml
+        expected_input:
+          - CEngineServer_vtable.{platform}.yaml
+
+      - name: find-CEngineServer_IsMapValid
+        expected_output:
+          - CEngineServer_IsMapValid.{platform}.yaml
+        expected_input:
+          - CEngineServer_vtable.{platform}.yaml
+          - CEngineServer_ChangeLevel.{platform}.yaml
+
       - name: find-CLoopTypeClientServerService_vtable
         expected_output:
           - CLoopTypeClientServerService_vtable.{platform}.yaml
@@ -1808,6 +1821,16 @@ modules:
         category: vfunc
         alias:
           - CEngineServer::ClientPrintf
+
+      - name: CEngineServer_ChangeLevel
+        category: vfunc
+        alias:
+          - CEngineServer::ChangeLevel
+
+      - name: CEngineServer_IsMapValid
+        category: vfunc
+        alias:
+          - CEngineServer::IsMapValid
 
       - name: CLoopTypeClientServerService_vtable
         category: vtable
