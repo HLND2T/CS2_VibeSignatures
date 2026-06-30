@@ -989,6 +989,17 @@ modules:
         expected_input:
           - CEngineServer_vtable.{platform}.yaml
 
+      - name: find-CEngineServer_SetFrameTimeAmnesty_Impl
+        expected_output:
+          - CEngineServer_SetFrameTimeAmnesty_Impl.{platform}.yaml
+
+      - name: find-CEngineServer_SetFrameTimeAmnesty
+        expected_output:
+          - CEngineServer_SetFrameTimeAmnesty.{platform}.yaml
+        expected_input:
+          - CEngineServer_SetFrameTimeAmnesty_Impl.{platform}.yaml
+          - CEngineServer_vtable.{platform}.yaml
+
       - name: find-CEngineServer_GetSteamUniverse-windows
         platform: windows
         expected_output:
@@ -1828,6 +1839,16 @@ modules:
         category: vfunc
         alias:
           - CEngineServer::ClientPrintf
+
+      - name: CEngineServer_SetFrameTimeAmnesty_Impl
+        category: func
+        alias:
+          - CEngineServer::SetFrameTimeAmnesty_Impl
+
+      - name: CEngineServer_SetFrameTimeAmnesty
+        category: vfunc
+        alias:
+          - CEngineServer::SetFrameTimeAmnesty
 
       - name: CEngineServer_GetSteamUniverse
         category: vfunc
