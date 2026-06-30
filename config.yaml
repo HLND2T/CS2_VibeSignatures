@@ -5469,6 +5469,19 @@ modules:
         expected_input:
           - CEntityKeyValues_Initialized.{platform}.yaml
 
+      - name: find-CEntitySystem_AddRefKeyValues
+        expected_output:
+          - CEntitySystem_AddRefKeyValues.{platform}.yaml
+        expected_input:
+          - CEntitySystem_vtable.{platform}.yaml
+
+      - name: find-CEntitySystem_ReleaseKeyValues
+        expected_output:
+          - CEntitySystem_ReleaseKeyValues.{platform}.yaml
+        expected_input:
+          - CEntitySystem_vtable.{platform}.yaml
+          - CEntitySystem_Spawn.{platform}.yaml
+
       - name: find-CCSPlayerController_HandleCommandDrop
         expected_output:
           - CCSPlayerController_HandleCommandDrop.{platform}.yaml
@@ -5885,6 +5898,13 @@ modules:
           - CGameEntitySystem_Spawn.{platform}.yaml
         expected_input:
           - CGameEntitySystem_vtable.{platform}.yaml
+
+      - name: find-CEntitySystem_Spawn
+        expected_output:
+          - CEntitySystem_Spawn.{platform}.yaml
+        expected_input:
+          - CEntitySystem_vtable.{platform}.yaml
+          - CGameEntitySystem_Spawn.{platform}.yaml
 
       - name: find-CBodyGameSystem_SpawnDependencyIsland-AND-CGameEntitySystem_CheckGlobalState
         expected_output:
@@ -6446,6 +6466,8 @@ modules:
           - CEntitySystem_m_pNetworkFieldScratchData.{platform}.yaml
           - CEntitySystem_m_pFieldChangeLimitSpew.{platform}.yaml
           - CEntitySystem_m_ComponentUnserializerInfoAllocator.{platform}.yaml
+        expected_output_linux:
+          - CEntitySystem_ProcessEntityRegistrars.{platform}.yaml
         expected_input:
           - CEntitySystem_Init.{platform}.yaml
 
@@ -6492,6 +6514,13 @@ modules:
           - CGameEntitySystem_m_pEntity2Networkables.{platform}.yaml
         expected_input:
           - CEntity2NetworkClasses_ServerClass_InitEntity2NetworkClasses.{platform}.yaml
+        platform: linux
+
+      - name: find-CEntitySystem_m_EntityMaterialAttributes-linux
+        expected_output:
+          - CEntitySystem_m_EntityMaterialAttributes.{platform}.yaml
+        expected_input:
+          - CEntitySystem_ProcessEntityRegistrars.{platform}.yaml
         platform: linux
 
       - name: find-CEntitySystem_m_EntityPostSpawnCallback
@@ -8897,6 +8926,16 @@ modules:
         alias:
           - CEntitySystem::m_nEntityKeyValuesAllocatorRefCount
 
+      - name: CEntitySystem_AddRefKeyValues
+        category: vfunc
+        alias:
+          - CEntitySystem::AddRefKeyValues
+
+      - name: CEntitySystem_ReleaseKeyValues
+        category: vfunc
+        alias:
+          - CEntitySystem::ReleaseKeyValues
+
       - name: CCSPlayerController_HandleCommandDrop
         category: func
         alias:
@@ -9600,6 +9639,11 @@ modules:
         alias:
           - CGameEntitySystem::Spawn
 
+      - name: CEntitySystem_Spawn
+        category: vfunc
+        alias:
+          - CEntitySystem::Spawn
+
       - name: CBodyGameSystem_SpawnDependencyIsland
         category: func
         alias:
@@ -10157,6 +10201,11 @@ modules:
         alias:
           - CEntitySystem::Init
 
+      - name: CEntitySystem_ProcessEntityRegistrars
+        category: func
+        alias:
+          - CEntitySystem::ProcessEntityRegistrars
+
       - name: CEntitySystem_PostCreateEntitySystem
         category: func
         alias:
@@ -10235,6 +10284,13 @@ modules:
         member: m_Symbols
         alias:
           - CEntitySystem::m_ComponentUnserializerInfoAllocator
+
+      - name: CEntitySystem_m_EntityMaterialAttributes
+        category: structmember
+        struct: CEntitySystem
+        member: m_EntityMaterialAttributes
+        alias:
+          - CEntitySystem::m_EntityMaterialAttributes
 
       - name: CEntitySystem_m_flChangeCallbackSpewThreshold
         category: structmember

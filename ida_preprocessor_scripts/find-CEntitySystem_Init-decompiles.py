@@ -8,6 +8,10 @@ TARGET_FUNCTION_NAMES = [
     "IFlattenedSerializers_CreateFieldChangedEventQueue",
 ]
 
+TARGET_FUNCTION_NAMES_LINUX = [
+    "CEntitySystem_ProcessEntityRegistrars",
+]
+
 TARGET_STRUCT_MEMBER_NAMES = [
     "CEntitySystem_m_sEntSystemName",
     "CEntitySystem_m_eNetworkSerializationMode",
@@ -16,6 +20,10 @@ TARGET_STRUCT_MEMBER_NAMES = [
     "CEntitySystem_m_pNetworkFieldScratchData",
     "CEntitySystem_m_pFieldChangeLimitSpew",
     "CEntitySystem_m_ComponentUnserializerInfoAllocator",
+]
+
+TARGET_STRUCT_MEMBER_NAMES_WINDOWS = [
+    "CEntitySystem_m_EntityMaterialAttributes",
 ]
 
 LLM_DECOMPILE = [
@@ -180,12 +188,62 @@ GENERATE_YAML_DESIRED_FIELDS = [
     ),
 ]
 
+GENERATE_YAML_DESIRED_FIELDS_WINDOWS = [
+    (
+        "CEntitySystem_m_EntityMaterialAttributes",
+        [
+            "struct_name",
+            "member_name",
+            "offset",
+            #"size",
+            "offset_sig",
+            "offset_sig_disp",
+        ],
+    ),
+]
+
+GENERATE_YAML_DESIRED_FIELDS_LINUX = [
+    (
+        "CEntitySystem_ProcessEntityRegistrars",
+        [
+            "func_name",
+            "func_sig",
+            "func_va",
+            "func_rva",
+            "func_size",
+        ],
+    ),
+]
+
 
 async def preprocess_skill(
     session, skill_name, expected_outputs, old_yaml_map,
     new_binary_dir, platform, image_base, llm_config=None, debug=False,
 ):
     """Locate vfuncs and struct member offsets from CEntitySystem_Init via LLM decompile."""
+    func_names = list(TARGET_FUNCTION_NAMES)
+    struct_member_names = list(TARGET_STRUCT_MEMBER_NAMES)
+    llm_decompile = list(LLM_DECOMPILE)
+    generate_yaml_desired_fields = list(GENERATE_YAML_DESIRED_FIELDS)
+
+    if platform == "linux":
+        func_names += TARGET_FUNCTION_NAMES_LINUX
+        generate_yaml_desired_fields += GENERATE_YAML_DESIRED_FIELDS_LINUX
+        llm_decompile.append((
+            "CEntitySystem_ProcessEntityRegistrars",
+            "prompt/call_llm_decompile.md",
+            "references/server/CEntitySystem_Init.{platform}.yaml",
+        ))
+
+    if platform == "windows":
+        struct_member_names += TARGET_STRUCT_MEMBER_NAMES_WINDOWS
+        generate_yaml_desired_fields += GENERATE_YAML_DESIRED_FIELDS_WINDOWS
+        llm_decompile.append((
+            "CEntitySystem_m_EntityMaterialAttributes",
+            "prompt/call_llm_decompile.md",
+            "references/server/CEntitySystem_Init.{platform}.yaml",
+        ))
+
     return await preprocess_common_skill(
         session=session,
         expected_outputs=expected_outputs,
@@ -193,11 +251,11 @@ async def preprocess_skill(
         new_binary_dir=new_binary_dir,
         platform=platform,
         image_base=image_base,
-        func_names=TARGET_FUNCTION_NAMES,
-        struct_member_names=TARGET_STRUCT_MEMBER_NAMES,
+        func_names=func_names,
+        struct_member_names=struct_member_names,
         func_vtable_relations=FUNC_VTABLE_RELATIONS,
-        llm_decompile_specs=LLM_DECOMPILE,
+        llm_decompile_specs=llm_decompile,
         llm_config=llm_config,
-        generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
+        generate_yaml_desired_fields=generate_yaml_desired_fields,
         debug=debug,
     )

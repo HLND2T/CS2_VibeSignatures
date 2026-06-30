@@ -1,44 +1,53 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CEntityInstance_GetChangeAccessorPathInfo_2 skill."""
+"""Preprocess script for find-CEntitySystem_ReleaseKeyValues skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = [
-    "CEntityInstance_GetChangeAccessorPathInfo_2",
+    "CEntitySystem_ReleaseKeyValues",
 ]
 
-LLM_DECOMPILE = [
-    # (symbol_name, path_to_prompt, path_to_reference)
-    (
-        "CEntityInstance_GetChangeAccessorPathInfo_2",
-        "prompt/call_llm_decompile.md",
-        "references/server/PolymorphicHelper_t__GetChangeAccessorPathInfo_2.{platform}.yaml",
-    ),
+FUNC_XREFS = [
+    {
+        "func_name": "CEntitySystem_ReleaseKeyValues",
+        "xref_strings": [
+            "kv 0x%p Release refcount == %d\n",
+        ],
+        "xref_gvs": [],
+        "xref_signatures": [],
+        "xref_funcs": [],
+        "exclude_funcs": ["CEntitySystem_Spawn"],
+        "exclude_strings": ["kv 0x%p AddRef refcount == %d\n"],
+        "exclude_gvs": [],
+        "exclude_signatures": [],
+    },
 ]
 
 FUNC_VTABLE_RELATIONS = [
-    # (func_name, vtable_class)
-    ("CEntityInstance_GetChangeAccessorPathInfo_2", "CEntityInstance"),
+    # use artifact stem since expected_input has CEntitySystem_vtable.{platform}.yaml
+    ("CEntitySystem_ReleaseKeyValues", "CEntitySystem_vtable"),
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
     (
-        "CEntityInstance_GetChangeAccessorPathInfo_2",
+        "CEntitySystem_ReleaseKeyValues",
         [
             "func_name",
-            "vfunc_sig",
+            "func_va",
+            "func_rva",
+            "func_size",
+            "func_sig",
+            "vtable_name",
             "vfunc_offset",
             "vfunc_index",
-            "vtable_name",
-            "vfunc_sig_allow_across_function_boundary:true",
         ],
     ),
 ]
 
 async def preprocess_skill(
     session, skill_name, expected_outputs, old_yaml_map,
-    new_binary_dir, platform, image_base, llm_config=None, debug=False,
+    new_binary_dir, platform, image_base, debug=False,
 ):
     """Reuse previous gamever func_sig to locate target function(s) and write YAML."""
     return await preprocess_common_skill(
@@ -49,9 +58,8 @@ async def preprocess_skill(
         platform=platform,
         image_base=image_base,
         func_names=TARGET_FUNCTION_NAMES,
+        func_xrefs=FUNC_XREFS,
         func_vtable_relations=FUNC_VTABLE_RELATIONS,
-        llm_decompile_specs=LLM_DECOMPILE,
-        llm_config=llm_config,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
     )
