@@ -5475,6 +5475,13 @@ modules:
         expected_input:
           - CEntitySystem_vtable.{platform}.yaml
 
+      - name: find-CEntitySystem_ReleaseKeyValues
+        expected_output:
+          - CEntitySystem_ReleaseKeyValues.{platform}.yaml
+        expected_input:
+          - CEntitySystem_vtable.{platform}.yaml
+          - CEntitySystem_Spawn.{platform}.yaml
+
       - name: find-CCSPlayerController_HandleCommandDrop
         expected_output:
           - CCSPlayerController_HandleCommandDrop.{platform}.yaml
@@ -5891,6 +5898,13 @@ modules:
           - CGameEntitySystem_Spawn.{platform}.yaml
         expected_input:
           - CGameEntitySystem_vtable.{platform}.yaml
+
+      - name: find-CEntitySystem_Spawn
+        expected_output:
+          - CEntitySystem_Spawn.{platform}.yaml
+        expected_input:
+          - CEntitySystem_vtable.{platform}.yaml
+          - CGameEntitySystem_Spawn.{platform}.yaml
 
       - name: find-CBodyGameSystem_SpawnDependencyIsland-AND-CGameEntitySystem_CheckGlobalState
         expected_output:
@@ -8907,6 +8921,11 @@ modules:
         alias:
           - CEntitySystem::AddRefKeyValues
 
+      - name: CEntitySystem_ReleaseKeyValues
+        category: vfunc
+        alias:
+          - CEntitySystem::ReleaseKeyValues
+
       - name: CCSPlayerController_HandleCommandDrop
         category: func
         alias:
@@ -9609,6 +9628,11 @@ modules:
         category: vfunc
         alias:
           - CGameEntitySystem::Spawn
+
+      - name: CEntitySystem_Spawn
+        category: vfunc
+        alias:
+          - CEntitySystem::Spawn
 
       - name: CBodyGameSystem_SpawnDependencyIsland
         category: func
