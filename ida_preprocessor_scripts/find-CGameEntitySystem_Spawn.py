@@ -24,8 +24,8 @@ FUNC_XREFS = [
 ]
 
 FUNC_VTABLE_RELATIONS = [
-    # (func_name, vtable_class)
-    ("CGameEntitySystem_Spawn", "CGameEntitySystem"),
+    # use artifact stem since expected_input has CGameEntitySystem_vtable.{platform}.yaml
+    ("CGameEntitySystem_Spawn", "CGameEntitySystem_vtable"),
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
