@@ -1,0 +1,76 @@
+func_name: CEntity2NetworkClasses_ServerClass_InitEntity2NetworkClasses
+func_va: '0x15bc690'
+disasm_code: |-
+  .text:00000000015BC690                 push    rbp
+  .text:00000000015BC691                 lea     rax, aInitentity2net; "InitEntity2NetworkClasses"
+  .text:00000000015BC698                 mov     rbp, rsp
+  .text:00000000015BC69B                 push    r14
+  .text:00000000015BC69D                 lea     r14, [rbp+var_40]
+  .text:00000000015BC6A1                 push    r13
+  .text:00000000015BC6A3                 mov     r13d, esi
+  .text:00000000015BC6A6                 push    r12
+  .text:00000000015BC6A8                 mov     r12, rdi
+  .text:00000000015BC6AB                 ; _QWORD
+  .text:00000000015BC6AB                 mov     rdi, r14; _QWORD
+  .text:00000000015BC6AE                 push    rbx
+  .text:00000000015BC6AF                 sub     rsp, 20h
+  .text:00000000015BC6B3                 mov     [rbp+var_40], rax
+  .text:00000000015BC6B7                 mov     [rbp+var_38], 1388h
+  .text:00000000015BC6BF                 mov     [rbp+var_30], 0
+  .text:00000000015BC6C3                 call    _ToolsStallMonitorInternal_BeginScope
+  .text:00000000015BC6C8                 ; _QWORD
+  .text:00000000015BC6C8                 mov     edi, 48h ; 'H'; _QWORD
+  .text:00000000015BC6CD                 call    __Znwm; operator new(ulong)
+  .text:00000000015BC6D2                 mov     esi, r13d
+  .text:00000000015BC6D5                 movq    xmm0, cs:off_2363480
+  .text:00000000015BC6DD                 mov     rbx, rax
+  .text:00000000015BC6E0                 lea     rax, off_2360410
+  .text:00000000015BC6E7                 mov     rdi, rbx
+  .text:00000000015BC6EA                 mov     qword ptr [rbx+10h], 0
+  .text:00000000015BC6F2                 pinsrq  xmm0, rax, 1
+  .text:00000000015BC6F9                 mov     qword ptr [rbx+18h], 0
+  .text:00000000015BC701                 mov     rax, 0FFFF0000FFFFh
+  .text:00000000015BC70B                 movups  xmmword ptr [rbx], xmm0
+  .text:00000000015BC70E                 mov     [rbx+40h], rax
+  .text:00000000015BC712                 mov     qword ptr [rbx+20h], 0
+  .text:00000000015BC71A                 mov     qword ptr [rbx+30h], 0
+  .text:00000000015BC722                 mov     qword ptr [rbx+38h], 0
+  .text:00000000015BC72A                 call    sub_15BAAE0
+  .text:00000000015BC72F                 mov     [r12+20F0h], rbx; 0x20F0 = 8432LL = CGameEntitySystem::m_pEntity2Networkables (structmember, struct=CGameEntitySystem, member=m_pEntity2Networkables)
+  .text:00000000015BC737                 ; _QWORD
+  .text:00000000015BC737                 mov     rdi, r14; _QWORD
+  .text:00000000015BC73A                 call    _ToolsStallMonitorInternal_EndScope
+  .text:00000000015BC73F                 add     rsp, 20h
+  .text:00000000015BC743                 pop     rbx
+  .text:00000000015BC744                 pop     r12
+  .text:00000000015BC746                 pop     r13
+  .text:00000000015BC748                 pop     r14
+  .text:00000000015BC74A                 pop     rbp
+  .text:00000000015BC74B                 retn
+procedure: |-
+  __int64 __fastcall CEntity2NetworkClasses_ServerClass_InitEntity2NetworkClasses(__int64 a1, unsigned int a2)
+  {
+    __m128i *v2; // rax
+    __m128i v3; // xmm0
+    __m128i *v4; // rbx
+    _QWORD v6[2]; // [rsp+0h] [rbp-40h] BYREF
+    char v7; // [rsp+10h] [rbp-30h]
+
+    v6[0] = "InitEntity2NetworkClasses";
+    v6[1] = 5000;
+    v7 = 0;
+    ToolsStallMonitorInternal_BeginScope(v6);
+    v2 = (__m128i *)operator new(72);
+    v3 = _mm_loadl_epi64((const __m128i *)off_2363480);
+    v4 = v2;
+    v2[1].m128i_i64[0] = 0;
+    v2[1].m128i_i64[1] = 0;
+    *v2 = _mm_insert_epi64(v3, (signed __int64)off_2360410, 1);
+    v2[4].m128i_i64[0] = 0xFFFF0000FFFFLL;
+    v2[2].m128i_i64[0] = 0;
+    v2[3].m128i_i64[0] = 0;
+    v2[3].m128i_i64[1] = 0;
+    sub_15BAAE0(v2, a2);
+    *(_QWORD *)(a1 + 8432) = v4;                  // 0x20F0 = 8432LL = CGameEntitySystem::m_pEntity2Networkables (structmember, struct=CGameEntitySystem, member=m_pEntity2Networkables)
+    return ToolsStallMonitorInternal_EndScope(v6);
+  }

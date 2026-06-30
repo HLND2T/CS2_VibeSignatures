@@ -216,6 +216,13 @@ async def preprocess_skill(
     if platform == "linux":
         func_names += TARGET_FUNCTION_NAMES_LINUX
         generate_yaml_desired_fields += GENERATE_YAML_DESIRED_FIELDS_LINUX
+        llm_decompile.append(
+            (
+                "CEntity2NetworkClasses_ServerClass_InitEntity2NetworkClasses",
+                "prompt/call_llm_decompile.md",
+                "references/{module_name}/CSource2EntitySystem_StaticInit.{platform}.yaml",
+            ),
+        )
 
     if platform == "windows":
         func_names += TARGET_FUNCTION_NAMES_WINDOWS
