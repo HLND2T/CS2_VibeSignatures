@@ -1450,6 +1450,13 @@ modules:
         expected_output:
           - CMapListService_vtable.{platform}.yaml
 
+      - name: find-CMapListService_IsMapValid-windows
+        platform: windows
+        expected_output:
+          - CMapListService_IsMapValid.{platform}.yaml
+        expected_input:
+          - CMapListService_vtable.{platform}.yaml
+
     symbols:
       - name: CNetworkGameServer_vtable
         category: vtable
@@ -4208,6 +4215,11 @@ modules:
 
       - name: CMapListService_vtable
         category: vtable
+
+      - name: CMapListService_IsMapValid
+        category: vfunc
+        alias:
+          - CMapListService::IsMapValid
 
   - name: server
     path_windows: game/csgo/bin/win64/server.dll
