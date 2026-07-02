@@ -1457,6 +1457,14 @@ modules:
         expected_input:
           - CMapListService_vtable.{platform}.yaml
 
+      - name: find-CEngineServer_IsMapValid-windows
+        platform: windows
+        expected_output:
+          - CEngineServer_IsMapValid.{platform}.yaml
+        expected_input:
+          - CMapListService_IsMapValid.{platform}.yaml
+          - CEngineServer_vtable.{platform}.yaml
+
     symbols:
       - name: CNetworkGameServer_vtable
         category: vtable
@@ -1957,6 +1965,11 @@ modules:
         category: vfunc
         alias:
           - CEngineServer::LightStyle
+
+      - name: CEngineServer_IsMapValid
+        category: vfunc
+        alias:
+          - CEngineServer::IsMapValid
 
       - name: CLoopTypeClientServerService_vtable
         category: vtable
