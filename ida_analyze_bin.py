@@ -1851,6 +1851,36 @@ def wait_for_port(host, port, timeout=60):
     return False
 
 
+def wait_for_port_released(host, port, timeout=30):
+    """
+    Wait for a port to stop listening (released by a previous process).
+
+    Prevents WinError 10048 / EADDRINUSE when starting a new idalib-mcp
+    session immediately after the previous one exits.
+
+    Args:
+        host: Host address
+        port: Port number
+        timeout: Maximum time to wait in seconds
+
+    Returns:
+        True if port is free within timeout, False otherwise
+    """
+    start = time.time()
+    while time.time() - start < timeout:
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(1)
+            result = sock.connect_ex((host, port))
+            sock.close()
+            if result != 0:
+                return True  # connection refused — port is free
+        except socket.error:
+            return True
+        time.sleep(1)
+    return False
+
+
 def start_idalib_mcp(binary_path, host=DEFAULT_HOST, port=DEFAULT_PORT, ida_args="", debug=False):
     """
     Start idalib-mcp as a background process.
@@ -1865,6 +1895,9 @@ def start_idalib_mcp(binary_path, host=DEFAULT_HOST, port=DEFAULT_PORT, ida_args
     Returns:
         subprocess.Popen object if successful, None if failed
     """
+    if not wait_for_port_released(host, port, timeout=30):
+        print(f"  Warning: port {port} still in use after 30s, proceeding anyway")
+
     cmd = ["uv", "run", "idalib-mcp", "--unsafe", "--host", host, "--port", str(port)]
 
     if ida_args:
