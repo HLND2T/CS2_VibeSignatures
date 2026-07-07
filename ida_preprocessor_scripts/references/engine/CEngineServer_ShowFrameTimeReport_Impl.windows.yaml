@@ -1,0 +1,587 @@
+func_name: CEngineServer_ShowFrameTimeReport_Impl
+func_va: '0x18021f7c0'
+disasm_code: |-
+  .text:000000018021F7C0                 mov     [rsp+arg_10], r8d
+  .text:000000018021F7C5                 push    rbp
+  .text:000000018021F7C6                 push    rsi
+  .text:000000018021F7C7                 push    rdi
+  .text:000000018021F7C8                 sub     rsp, 100h
+  .text:000000018021F7CF                 mov     edi, r8d
+  .text:000000018021F7D2                 movzx   ebp, dl
+  .text:000000018021F7D5                 mov     rsi, rcx
+  .text:000000018021F7D8                 test    r8d, r8d
+  .text:000000018021F7DB                 jns     short loc_18021F7ED
+  .text:000000018021F7DD                 mov     rax, cs:LOG_VPROF
+  .text:000000018021F7E4                 mov     edi, [rax]
+  .text:000000018021F7E6                 mov     [rsp+118h+arg_10], edi
+  .text:000000018021F7ED                 cmp     dword ptr [rcx+8], 0
+  .text:000000018021F7F1                 mov     [rsp+118h+arg_8], rbx
+  .text:000000018021F7F9                 jz      loc_18021FDA9
+  .text:000000018021F7FF                 mov     rbx, [rcx+10h]
+  .text:000000018021F803                 cmp     dword ptr [rbx+10h], 1
+  .text:000000018021F807                 jl      loc_18021FDA9
+  .text:000000018021F80D                 mov     edx, 2
+  .text:000000018021F812                 mov     ecx, edi
+  .text:000000018021F814                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:000000018021F81A                 test    bpl, bpl
+  .text:000000018021F81D                 jz      short loc_18021F894
+  .text:000000018021F81F                 test    al, al
+  .text:000000018021F821                 jz      short loc_18021F837
+  .text:000000018021F823                 lea     r8, asc_180525034; "\n"
+  .text:000000018021F82A                 mov     edx, 2
+  .text:000000018021F82F                 mov     ecx, edi
+  .text:000000018021F831                 call    cs:LoggingSystem_Log
+  .text:000000018021F837                 mov     edx, 2
+  .text:000000018021F83C                 mov     ecx, edi
+  .text:000000018021F83E                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:000000018021F844                 test    al, al
+  .text:000000018021F846                 jz      short loc_18021F85C
+  .text:000000018021F848                 lea     r8, aPerformanceRep; "-- Performance report --\n"
+  .text:000000018021F84F                 mov     edx, 2
+  .text:000000018021F854                 mov     ecx, edi
+  .text:000000018021F856                 call    cs:LoggingSystem_Log
+  .text:000000018021F85C                 mov     edx, 2
+  .text:000000018021F861                 mov     ecx, edi
+  .text:000000018021F863                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:000000018021F869                 test    al, al
+  .text:000000018021F86B                 jz      short loc_18021F8B6
+  .text:000000018021F86D                 mov     eax, [rsi]
+  .text:000000018021F86F                 lea     r8, aSummaryOfDFram; "Summary of %d frames and %d 1-second in"...
+  .text:000000018021F876                 mov     r9d, [rbx+10h]
+  .text:000000018021F87A                 mov     edx, 2
+  .text:000000018021F87F                 mov     dword ptr [rsp+118h+var_F0], eax
+  .text:000000018021F883                 mov     ecx, edi
+  .text:000000018021F885                 mov     eax, [rbx+14h]
+  .text:000000018021F888                 mov     dword ptr [rsp+118h+var_F8], eax
+  .text:000000018021F88C                 call    cs:LoggingSystem_Log
+  .text:000000018021F892                 jmp     short loc_18021F8B6
+  .text:000000018021F894                 test    al, al
+  .text:000000018021F896                 jz      short loc_18021F8B6
+  .text:000000018021F898                 mov     eax, [rsi]
+  .text:000000018021F89A                 lea     r8, aSummaryOfDFram_0; "Summary of %d frames.  (%d frames exclu"...
+  .text:000000018021F8A1                 mov     r9d, [rbx+10h]
+  .text:000000018021F8A5                 mov     edx, 2
+  .text:000000018021F8AA                 mov     ecx, edi
+  .text:000000018021F8AC                 mov     dword ptr [rsp+118h+var_F8], eax
+  .text:000000018021F8B0                 call    cs:LoggingSystem_Log
+  .text:000000018021F8B6                 call    NET_IsDedicated
+  .text:000000018021F8BB                 test    al, al
+  .text:000000018021F8BD                 jz      short loc_18021F8C4
+  .text:000000018021F8BF                 test    bpl, bpl
+  .text:000000018021F8C2                 jnz     short loc_18021F918
+  .text:000000018021F8C4                 mov     edx, 2
+  .text:000000018021F8C9                 mov     ecx, edi
+  .text:000000018021F8CB                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:000000018021F8D1                 test    al, al
+  .text:000000018021F8D3                 jz      short loc_18021F90F
+  .text:000000018021F8D5                 movss   xmm2, cs:dword_18058368C
+  .text:000000018021F8DD                 lea     r8, aFpsAvg1fP11f; "FPS: Avg=%.1f, P1=%.1f\n"
+  .text:000000018021F8E4                 movaps  xmm0, xmm2
+  .text:000000018021F8E7                 mov     edx, 2
+  .text:000000018021F8EC                 divss   xmm2, dword ptr [rbx+2Ch]
+  .text:000000018021F8F1                 mov     ecx, edi
+  .text:000000018021F8F3                 divss   xmm0, dword ptr [rbx+3Ch]
+  .text:000000018021F8F8                 cvtps2pd xmm3, xmm2
+  .text:000000018021F8FB                 cvtps2pd xmm1, xmm0
+  .text:000000018021F8FE                 movq    r9, xmm3
+  .text:000000018021F903                 movsd   [rsp+118h+var_F8], xmm1
+  .text:000000018021F909                 call    cs:LoggingSystem_Log
+  .text:000000018021F90F                 test    bpl, bpl
+  .text:000000018021F912                 jz      loc_18021FD96
+  .text:000000018021F918                 mov     [rsp+118h+var_20], r12
+  .text:000000018021F920                 mov     edx, 2
+  .text:000000018021F925                 mov     [rsp+118h+var_28], r13
+  .text:000000018021F92D                 mov     ecx, edi
+  .text:000000018021F92F                 mov     [rsp+118h+var_30], r14
+  .text:000000018021F937                 mov     [rsp+118h+var_38], r15
+  .text:000000018021F93F                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:000000018021F945                 test    al, al
+  .text:000000018021F947                 jz      short loc_18021F95D
+  .text:000000018021F949                 lea     r8, asc_180525034; "\n"
+  .text:000000018021F950                 mov     edx, 2
+  .text:000000018021F955                 mov     ecx, edi
+  .text:000000018021F957                 call    cs:LoggingSystem_Log
+  .text:000000018021F95D                 mov     rbp, [rsi+10h]
+  .text:000000018021F961                 xor     r12d, r12d
+  .text:000000018021F964                 movsxd  rax, dword ptr [rsi+8]
+  .text:000000018021F968                 xor     ebx, ebx
+  .text:000000018021F96A                 imul    rdx, rax, 70h ; 'p'
+  .text:000000018021F96E                 movaps  [rsp+118h+var_48], xmm6
+  .text:000000018021F976                 movaps  [rsp+118h+var_58], xmm7
+  .text:000000018021F97E                 xor     r13d, r13d
+  .text:000000018021F981                 mov     [rsp+118h+var_90], r12
+  .text:000000018021F989                 add     rdx, rbp
+  .text:000000018021F98C                 xor     r15d, r15d
+  .text:000000018021F98F                 mov     [rsp+118h+var_88], rdx
+  .text:000000018021F997                 mov     ecx, 1
+  .text:000000018021F99C                 cmp     rbp, rdx
+  .text:000000018021F99F                 jz      loc_18021FAD2
+  .text:000000018021F9A5                 movss   xmm6, cs:dword_1805835B0
+  .text:000000018021F9AD                 mov     edi, ebx
+  .text:000000018021F9AF                 movss   xmm7, cs:dword_1805835B8
+  .text:000000018021F9B7                 nop     word ptr [rax+rax+00000000h]
+  .text:000000018021F9C0                 inc     ecx
+  .text:000000018021F9C2                 mov     [rsp+118h+arg_0], ecx
+  .text:000000018021F9C9                 cmp     ecx, 0Ah
+  .text:000000018021F9CC                 jle     short loc_18021F9DE
+  .text:000000018021F9CE                 comiss  xmm6, dword ptr [rbp+18h]
+  .text:000000018021F9D2                 jbe     short loc_18021F9DE
+  .text:000000018021F9D4                 comiss  xmm7, dword ptr [rbp+28h]
+  .text:000000018021F9D8                 ja      loc_18021FAAF
+  .text:000000018021F9DE                 mov     eax, r15d
+  .text:000000018021F9E1                 cmp     r15d, ebx
+  .text:000000018021F9E4                 jnz     loc_18021FAA6
+  .text:000000018021F9EA                 mov     r14d, edi
+  .text:000000018021F9ED                 and     r14d, 0C0000000h
+  .text:000000018021F9F4                 test    r14d, 7FFFFFFFh
+  .text:000000018021F9FB                 jnz     loc_18021FAA6
+  .text:000000018021FA01                 movsxd  r12, ebx
+  .text:000000018021FA04                 cmp     r12, 7FFFFFFEh
+  .text:000000018021FA0B                 jle     short loc_18021FA1A
+  .text:000000018021FA0D                 mov     edx, 1
+  .text:000000018021FA12                 mov     ecx, ebx
+  .text:000000018021FA14                 call    cs:UtlVectorMemory_FailedAllocation
+  .text:000000018021FA1A                 mov     r13d, edi
+  .text:000000018021FA1D                 lea     esi, [rbx+1]
+  .text:000000018021FA20                 and     r13d, 3FFFFFFFh
+  .text:000000018021FA27                 mov     r9d, 8
+  .text:000000018021FA2D                 mov     edx, r13d
+  .text:000000018021FA30                 mov     r8d, esi
+  .text:000000018021FA33                 mov     ecx, ebx
+  .text:000000018021FA35                 call    cs:UtlVectorMemory_CalcNewAllocationCount
+  .text:000000018021FA3B                 mov     ebx, eax
+  .text:000000018021FA3D                 cmp     eax, esi
+  .text:000000018021FA3F                 jge     short loc_18021FA5F
+  .text:000000018021FA41                 test    eax, eax
+  .text:000000018021FA43                 jnz     short loc_18021FA51
+  .text:000000018021FA45                 cmp     esi, 0FFFFFFFFh
+  .text:000000018021FA48                 jg      short loc_18021FA51
+  .text:000000018021FA4A                 mov     ebx, 0FFFFFFFFh
+  .text:000000018021FA4F                 jmp     short loc_18021FA5F
+  .text:000000018021FA51                 lea     eax, [rbx+rsi]
+  .text:000000018021FA54                 cdq
+  .text:000000018021FA55                 sub     eax, edx
+  .text:000000018021FA57                 sar     eax, 1
+  .text:000000018021FA59                 mov     ebx, eax
+  .text:000000018021FA5B                 cmp     eax, esi
+  .text:000000018021FA5D                 jl      short loc_18021FA51
+  .text:000000018021FA5F                 mov     rcx, [rsp+118h+var_90]
+  .text:000000018021FA67                 lea     r9, ds:0[r12*8]
+  .text:000000018021FA6F                 movsxd  r8, ebx
+  .text:000000018021FA72                 shl     r8, 3
+  .text:000000018021FA76                 test    r14d, r14d
+  .text:000000018021FA79                 setz    dl
+  .text:000000018021FA7C                 call    cs:UtlVectorMemory_Alloc
+  .text:000000018021FA82                 mov     ecx, [rsp+118h+arg_0]
+  .text:000000018021FA89                 test    r14d, r14d
+  .text:000000018021FA8C                 mov     rdx, [rsp+118h+var_88]
+  .text:000000018021FA94                 mov     r12, rax
+  .text:000000018021FA97                 mov     [rsp+118h+var_90], rax
+  .text:000000018021FA9F                 cmovnz  edi, r13d
+  .text:000000018021FAA3                 mov     eax, r15d
+  .text:000000018021FAA6                 cdqe
+  .text:000000018021FAA8                 inc     r15d
+  .text:000000018021FAAB                 mov     [r12+rax*8], rbp
+  .text:000000018021FAAF                 add     rbp, 70h ; 'p'
+  .text:000000018021FAB3                 cmp     rbp, rdx
+  .text:000000018021FAB6                 jnz     loc_18021F9C0
+  .text:000000018021FABC                 mov     [rsp+118h+arg_0], edi
+  .text:000000018021FAC3                 mov     r13d, [rsp+118h+arg_0]
+  .text:000000018021FACB                 mov     edi, [rsp+118h+arg_10]
+  .text:000000018021FAD2                 movsxd  rax, r15d
+  .text:000000018021FAD5                 mov     ebx, 0Ah
+  .text:000000018021FADA                 mov     r15, [rsp+118h+var_38]
+  .text:000000018021FAE2                 mov     rdx, r12
+  .text:000000018021FAE5                 lea     r14, [r12+rax*8]
+  .text:000000018021FAE9                 cmp     r12, r14
+  .text:000000018021FAEC                 jz      short loc_18021FB17
+  .text:000000018021FAEE                 xchg    ax, ax
+  .text:000000018021FAF0                 mov     rax, [rdx]
+  .text:000000018021FAF3                 mov     rcx, [rax+8]
+  .text:000000018021FAF7                 mov     rax, 0FFFFFFFFFFFFFFFFh
+  .text:000000018021FAFE                 xchg    ax, ax
+  .text:000000018021FB00                 inc     rax
+  .text:000000018021FB03                 cmp     byte ptr [rcx+rax], 0
+  .text:000000018021FB07                 jnz     short loc_18021FB00
+  .text:000000018021FB09                 cmp     ebx, eax
+  .text:000000018021FB0B                 cmovle  ebx, eax
+  .text:000000018021FB0E                 add     rdx, 8
+  .text:000000018021FB12                 cmp     rdx, r14
+  .text:000000018021FB15                 jnz     short loc_18021FAF0
+  .text:000000018021FB17                 mov     [rsp+118h+var_98], 0
+  .text:000000018021FB23                 test    ebx, ebx
+  .text:000000018021FB25                 jle     short loc_18021FB4B
+  .text:000000018021FB27                 mov     esi, ebx
+  .text:000000018021FB29                 nop     dword ptr [rax+00000000h]
+  .text:000000018021FB30                 lea     rdx, asc_18057E6C8; "-"
+  .text:000000018021FB37                 lea     rcx, [rsp+118h+var_98]
+  .text:000000018021FB3F                 call    cs:?Append@CUtlString@@QEAAXPEBD@Z; CUtlString::Append(char const *)
+  .text:000000018021FB45                 sub     rsi, 1
+  .text:000000018021FB49                 jnz     short loc_18021FB30
+  .text:000000018021FB4B                 mov     edx, 2
+  .text:000000018021FB50                 mov     ecx, edi
+  .text:000000018021FB52                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:000000018021FB58                 lea     rsi, unk_180524F9F
+  .text:000000018021FB5F                 test    al, al
+  .text:000000018021FB61                 jz      short loc_18021FB7F
+  .text:000000018021FB63                 mov     r9d, ebx
+  .text:000000018021FB66                 mov     [rsp+118h+var_F8], rsi
+  .text:000000018021FB6B                 lea     r8, aSAllFramesActi; "%*s  All frames         Active frames  "...
+  .text:000000018021FB72                 mov     edx, 2
+  .text:000000018021FB77                 mov     ecx, edi
+  .text:000000018021FB79                 call    cs:LoggingSystem_Log
+  .text:000000018021FB7F                 mov     edx, 2
+  .text:000000018021FB84                 mov     ecx, edi
+  .text:000000018021FB86                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:000000018021FB8C                 test    al, al
+  .text:000000018021FB8E                 jz      short loc_18021FBAC
+  .text:000000018021FB90                 mov     r9d, ebx
+  .text:000000018021FB93                 mov     [rsp+118h+var_F8], rsi
+  .text:000000018021FB98                 lea     r8, aSAvgP99NAvgP99; "%*s    Avg    P99        N    Avg    P9"...
+  .text:000000018021FB9F                 mov     edx, 2
+  .text:000000018021FBA4                 mov     ecx, edi
+  .text:000000018021FBA6                 call    cs:LoggingSystem_Log
+  .text:000000018021FBAC                 mov     edx, 2
+  .text:000000018021FBB1                 mov     ecx, edi
+  .text:000000018021FBB3                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:000000018021FBB9                 test    al, al
+  .text:000000018021FBBB                 jz      short loc_18021FBE8
+  .text:000000018021FBBD                 mov     rax, [rsp+118h+var_98]
+  .text:000000018021FBC5                 lea     r8, aS_23; "%*s ------ ------   ------ ------ -----"...
+  .text:000000018021FBCC                 test    rax, rax
+  .text:000000018021FBCF                 mov     r9d, ebx
+  .text:000000018021FBD2                 mov     edx, 2
+  .text:000000018021FBD7                 mov     ecx, edi
+  .text:000000018021FBD9                 cmovnz  rsi, rax
+  .text:000000018021FBDD                 mov     [rsp+118h+var_F8], rsi
+  .text:000000018021FBE2                 call    cs:LoggingSystem_Log
+  .text:000000018021FBE8                 mov     rsi, r12
+  .text:000000018021FBEB                 cmp     r12, r14
+  .text:000000018021FBEE                 jz      loc_18021FD0F
+  .text:000000018021FBF4                 movaps  [rsp+118h+var_78], xmm9
+  .text:000000018021FBFD                 movss   xmm9, cs:dword_1805837C4
+  .text:000000018021FC06                 movaps  [rsp+118h+var_68], xmm8
+  .text:000000018021FC0F                 nop
+  .text:000000018021FC10                 mov     rbp, [rsi]
+  .text:000000018021FC13                 mov     edx, 2
+  .text:000000018021FC18                 mov     ecx, edi
+  .text:000000018021FC1A                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:000000018021FC20                 test    al, al
+  .text:000000018021FC22                 jz      loc_18021FCF0
+  .text:000000018021FC28                 movss   xmm0, dword ptr [rbp+4Ch]
+  .text:000000018021FC2D                 lea     r8, aS72f72f9d72f72; "%*s%7.2f%7.2f%9d%7.2f%7.2f%9.2f%7.2f%9d"...
+  .text:000000018021FC34                 movss   xmm1, dword ptr [rbp+48h]
+  .text:000000018021FC39                 mov     r9d, ebx
+  .text:000000018021FC3C                 mov     eax, [rbp+14h]
+  .text:000000018021FC3F                 mov     edx, 2
+  .text:000000018021FC44                 mulss   xmm0, xmm9
+  .text:000000018021FC49                 mov     ecx, edi
+  .text:000000018021FC4B                 mulss   xmm1, xmm9
+  .text:000000018021FC50                 cvtps2pd xmm8, xmm0
+  .text:000000018021FC54                 movss   xmm0, dword ptr [rbp+60h]
+  .text:000000018021FC59                 movsd   [rsp+118h+var_A8], xmm8
+  .text:000000018021FC60                 cvtps2pd xmm6, xmm1
+  .text:000000018021FC63                 movss   xmm1, dword ptr [rbp+5Ch]
+  .text:000000018021FC68                 movsd   [rsp+118h+var_B0], xmm6
+  .text:000000018021FC6E                 mov     [rsp+118h+var_B8], eax
+  .text:000000018021FC72                 mov     eax, [rbp+10h]
+  .text:000000018021FC75                 mulss   xmm0, xmm9
+  .text:000000018021FC7A                 mulss   xmm1, xmm9
+  .text:000000018021FC7F                 cvtps2pd xmm7, xmm0
+  .text:000000018021FC82                 movss   xmm0, dword ptr [rbp+28h]
+  .text:000000018021FC87                 movsd   [rsp+118h+var_C0], xmm7
+  .text:000000018021FC8D                 cvtps2pd xmm5, xmm1
+  .text:000000018021FC90                 movss   xmm1, dword ptr [rbp+18h]
+  .text:000000018021FC95                 movsd   [rsp+118h+var_C8], xmm5
+  .text:000000018021FC9B                 mulss   xmm0, xmm9
+  .text:000000018021FCA0                 mulss   xmm1, xmm9
+  .text:000000018021FCA5                 cvtps2pd xmm4, xmm0
+  .text:000000018021FCA8                 movss   xmm0, dword ptr [rbp+3Ch]
+  .text:000000018021FCAD                 movsd   [rsp+118h+var_D0], xmm4
+  .text:000000018021FCB3                 cvtps2pd xmm2, xmm1
+  .text:000000018021FCB6                 movss   xmm1, dword ptr [rbp+2Ch]
+  .text:000000018021FCBB                 movsd   [rsp+118h+var_D8], xmm2
+  .text:000000018021FCC1                 mov     [rsp+118h+var_E0], eax
+  .text:000000018021FCC5                 mov     rax, [rbp+8]
+  .text:000000018021FCC9                 mulss   xmm0, xmm9
+  .text:000000018021FCCE                 mulss   xmm1, xmm9
+  .text:000000018021FCD3                 cvtps2pd xmm3, xmm0
+  .text:000000018021FCD6                 cvtps2pd xmm0, xmm1
+  .text:000000018021FCD9                 movsd   [rsp+118h+var_E8], xmm3
+  .text:000000018021FCDF                 movsd   [rsp+118h+var_F0], xmm0
+  .text:000000018021FCE5                 mov     [rsp+118h+var_F8], rax
+  .text:000000018021FCEA                 call    cs:LoggingSystem_Log
+  .text:000000018021FCF0                 add     rsi, 8
+  .text:000000018021FCF4                 cmp     rsi, r14
+  .text:000000018021FCF7                 jnz     loc_18021FC10
+  .text:000000018021FCFD                 movaps  xmm9, [rsp+118h+var_78]
+  .text:000000018021FD06                 movaps  xmm8, [rsp+118h+var_68]
+  .text:000000018021FD0F                 mov     edx, 2
+  .text:000000018021FD14                 mov     ecx, edi
+  .text:000000018021FD16                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:000000018021FD1C                 movaps  xmm7, [rsp+118h+var_58]
+  .text:000000018021FD24                 movaps  xmm6, [rsp+118h+var_48]
+  .text:000000018021FD2C                 mov     r14, [rsp+118h+var_30]
+  .text:000000018021FD34                 test    al, al
+  .text:000000018021FD36                 jz      short loc_18021FD4C
+  .text:000000018021FD38                 lea     r8, asc_180525034; "\n"
+  .text:000000018021FD3F                 mov     edx, 2
+  .text:000000018021FD44                 mov     ecx, edi
+  .text:000000018021FD46                 call    cs:LoggingSystem_Log
+  .text:000000018021FD4C                 cmp     [rsp+118h+var_98], 0
+  .text:000000018021FD55                 jz      short loc_18021FD65
+  .text:000000018021FD57                 lea     rcx, [rsp+118h+var_98]
+  .text:000000018021FD5F                 call    cs:?FreeMemoryBlock@CUtlString@@AEAAXXZ; CUtlString::FreeMemoryBlock(void)
+  .text:000000018021FD65                 test    r13d, 0C0000000h
+  .text:000000018021FD6C                 mov     r13, [rsp+118h+var_28]
+  .text:000000018021FD74                 jnz     short loc_18021FD8E
+  .text:000000018021FD76                 test    r12, r12
+  .text:000000018021FD79                 jz      short loc_18021FD8E
+  .text:000000018021FD7B                 mov     rax, cs:g_pMemAlloc
+  .text:000000018021FD82                 mov     rdx, r12
+  .text:000000018021FD85                 mov     rcx, [rax]
+  .text:000000018021FD88                 mov     rax, [rcx]
+  .text:000000018021FD8B                 call    qword ptr [rax+18h]
+  .text:000000018021FD8E                 mov     r12, [rsp+118h+var_20]
+  .text:000000018021FD96                 mov     rbx, [rsp+118h+arg_8]
+  .text:000000018021FD9E                 add     rsp, 100h
+  .text:000000018021FDA5                 pop     rdi
+  .text:000000018021FDA6                 pop     rsi
+  .text:000000018021FDA7                 pop     rbp
+  .text:000000018021FDA8                 retn
+  .text:000000018021FDA9                 mov     edx, 2
+  .text:000000018021FDAE                 mov     ecx, edi
+  .text:000000018021FDB0                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:000000018021FDB6                 test    al, al
+  .text:000000018021FDB8                 jz      short loc_18021FD96
+  .text:000000018021FDBA                 lea     r8, aNoVprofLiteDat_0; "No vprof lite data recorded\n"
+  .text:000000018021FDC1                 mov     edx, 2
+  .text:000000018021FDC6                 mov     ecx, edi
+  .text:000000018021FDC8                 call    cs:LoggingSystem_Log
+  .text:000000018021FDCE                 jmp     short loc_18021FD96
+procedure: |-
+  void __fastcall sub_18021F7C0(_DWORD *a1, char a2, int a3)
+  {
+    unsigned int v3; // edi
+    __int64 v6; // rbx
+    char IsChannelEnabled; // al
+    __int64 v8; // rbp
+    __int64 *v9; // r12
+    __int64 v10; // rax
+    int v11; // ebx
+    __int64 v12; // rdx
+    int v13; // r15d
+    int v14; // ecx
+    int v15; // eax
+    __int64 v16; // r12
+    int v17; // esi
+    int v18; // eax
+    __int64 v19; // rdx
+    __int64 v20; // rax
+    int v21; // ebx
+    __int64 *v22; // rdx
+    __int64 *v23; // r14
+    __int64 v24; // rax
+    __int64 v25; // rsi
+    void *v26; // rsi
+    __int64 *i; // rsi
+    __int64 v28; // rbp
+    void *v29; // [rsp+80h] [rbp-98h] BYREF
+    __int64 v30; // [rsp+88h] [rbp-90h]
+    __int64 v31; // [rsp+90h] [rbp-88h]
+    int v32; // [rsp+120h] [rbp+8h]
+    int v33; // [rsp+130h] [rbp+18h]
+
+    v33 = a3;
+    v3 = a3;
+    if ( a3 < 0 )
+    {
+      v3 = LOG_VPROF;
+      v33 = LOG_VPROF;
+    }
+    if ( a1[2] && (v6 = *((_QWORD *)a1 + 2), *(int *)(v6 + 16) >= 1) )
+    {
+      IsChannelEnabled = LoggingSystem_IsChannelEnabled(v3, 2);
+      if ( a2 )
+      {
+        if ( IsChannelEnabled )
+          LoggingSystem_Log(v3, 2, "\n");
+        if ( (unsigned __int8)LoggingSystem_IsChannelEnabled(v3, 2) )
+          LoggingSystem_Log(v3, 2, "-- Performance report --\n");
+        if ( (unsigned __int8)LoggingSystem_IsChannelEnabled(v3, 2) )
+          LoggingSystem_Log(
+            v3,
+            2,
+            "Summary of %d frames and %d 1-second intervals.  (%d frames excluded from analysis.)\n",
+            *(_DWORD *)(v6 + 16),
+            *(_DWORD *)(v6 + 20),
+            *a1);
+      }
+      else if ( IsChannelEnabled )
+      {
+        LoggingSystem_Log(
+          v3,
+          2,
+          "Summary of %d frames.  (%d frames excluded from analysis.)\n",
+          *(_DWORD *)(v6 + 16),
+          *a1);
+      }
+      if ( (unsigned __int8)NET_IsDedicated() && a2 )
+        goto LABEL_69;
+      if ( (unsigned __int8)LoggingSystem_IsChannelEnabled(v3, 2) )
+        LoggingSystem_Log(
+          v3,
+          2,
+          "FPS: Avg=%.1f, P1=%.1f\n",
+          (float)(1.0 / *(float *)(v6 + 44)),
+          (float)(1.0 / *(float *)(v6 + 60)));
+      if ( a2 )
+      {
+  LABEL_69:
+        if ( (unsigned __int8)LoggingSystem_IsChannelEnabled(v3, 2) )
+          LoggingSystem_Log(v3, 2, "\n");
+        v8 = *((_QWORD *)a1 + 2);
+        v9 = nullptr;
+        v10 = (int)a1[2];
+        v11 = 0;
+        v30 = 0;
+        v12 = v8 + 112 * v10;
+        v13 = 0;
+        v31 = v12;
+        v14 = 1;
+        if ( v8 != v12 )
+        {
+          do
+          {
+            v32 = ++v14;
+            if ( v14 <= 10 || *(float *)(v8 + 24) >= 0.000099999997 || *(float *)(v8 + 40) >= 0.00050000002 )
+            {
+              v15 = v13;
+              if ( v13 == v11 )
+              {
+                v16 = v11;
+                if ( v11 > 2147483646LL )
+                  UtlVectorMemory_FailedAllocation((unsigned int)v11, 1);
+                v17 = v11 + 1;
+                v18 = UtlVectorMemory_CalcNewAllocationCount((unsigned int)v11, 0, (unsigned int)(v11 + 1), 8);
+                v11 = v18;
+                if ( v18 < v17 )
+                {
+                  if ( v18 || v17 > -1 )
+                  {
+                    do
+                    {
+                      v19 = (unsigned int)((v11 + v17) >> 31);
+                      v11 = (v11 + v17) / 2;
+                    }
+                    while ( v11 < v17 );
+                  }
+                  else
+                  {
+                    v11 = -1;
+                  }
+                }
+                LOBYTE(v19) = 1;
+                v20 = UtlVectorMemory_Alloc(v30, v19, 8LL * v11, 8 * v16);
+                v14 = v32;
+                v12 = v31;
+                v9 = (__int64 *)v20;
+                v30 = v20;
+                v15 = v13;
+              }
+              ++v13;
+              v9[v15] = v8;
+            }
+            v8 += 112;
+          }
+          while ( v8 != v12 );
+          v3 = v33;
+        }
+        v21 = 10;
+        v22 = v9;
+        v23 = &v9[v13];
+        if ( v9 != v23 )
+        {
+          do
+          {
+            v24 = -1;
+            do
+              ++v24;
+            while ( *(_BYTE *)(*(_QWORD *)(*v22 + 8) + v24) );
+            if ( v21 <= (int)v24 )
+              v21 = v24;
+            ++v22;
+          }
+          while ( v22 != v23 );
+        }
+        v29 = nullptr;
+        if ( v21 > 0 )
+        {
+          v25 = (unsigned int)v21;
+          do
+          {
+            CUtlString::Append((CUtlString *)&v29, "-");
+            --v25;
+          }
+          while ( v25 );
+        }
+        v26 = &unk_180524F9F;
+        if ( (unsigned __int8)LoggingSystem_IsChannelEnabled(v3, 2) )
+          LoggingSystem_Log(
+            v3,
+            2,
+            "%*s  All frames         Active frames       1s max (all)      1s max (active)  \n",
+            v21,
+            (const char *)&unk_180524F9F);
+        if ( (unsigned __int8)LoggingSystem_IsChannelEnabled(v3, 2) )
+          LoggingSystem_Log(
+            v3,
+            2,
+            "%*s    Avg    P99        N    Avg    P99      P50    P95        N    P50    P95\n",
+            v21,
+            (const char *)&unk_180524F9F);
+        if ( (unsigned __int8)LoggingSystem_IsChannelEnabled(v3, 2) )
+        {
+          if ( v29 )
+            v26 = v29;
+          LoggingSystem_Log(
+            v3,
+            2,
+            "%*s ------ ------   ------ ------ ------   ------ ------   ------ ------ ------\n",
+            (unsigned int)v21,
+            v26);
+        }
+        for ( i = v9; i != v23; ++i )
+        {
+          v28 = *i;
+          if ( (unsigned __int8)LoggingSystem_IsChannelEnabled(v3, 2) )
+            LoggingSystem_Log(
+              v3,
+              2,
+              "%*s%7.2f%7.2f%9d%7.2f%7.2f%9.2f%7.2f%9d%7.2f%7.2f\n",
+              v21,
+              *(const char **)(v28 + 8),
+              (float)(*(float *)(v28 + 44) * 1000.0),
+              (float)(*(float *)(v28 + 60) * 1000.0),
+              *(_DWORD *)(v28 + 16),
+              (float)(*(float *)(v28 + 24) * 1000.0),
+              (float)(*(float *)(v28 + 40) * 1000.0),
+              (float)(*(float *)(v28 + 92) * 1000.0),
+              (float)(*(float *)(v28 + 96) * 1000.0),
+              *(_DWORD *)(v28 + 20),
+              (float)(*(float *)(v28 + 72) * 1000.0),
+              (float)(*(float *)(v28 + 76) * 1000.0));
+        }
+        if ( (unsigned __int8)LoggingSystem_IsChannelEnabled(v3, 2) )
+          LoggingSystem_Log(v3, 2, "\n");
+        if ( v29 )
+          CUtlString::FreeMemoryBlock((CUtlString *)&v29);
+        if ( v9 )
+          (*(void (__fastcall **)(_QWORD, __int64 *))(*g_pMemAlloc + 24LL))(g_pMemAlloc, v9);
+      }
+    }
+    else if ( (unsigned __int8)LoggingSystem_IsChannelEnabled(v3, 2) )
+    {
+      LoggingSystem_Log(v3, 2, "No vprof lite data recorded\n");
+    }
+  }
