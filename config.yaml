@@ -870,6 +870,13 @@ modules:
           - NET_IsDedicated.{platform}.yaml
         expected_input:
           - CEngineServer_ShowFrameTimeReport_Impl.{platform}.yaml
+      - name: find-CEngineServer_IsDedicatedServer-windows
+        platform: windows
+        expected_output:
+          - CEngineServer_IsDedicatedServer.{platform}.yaml
+        expected_input:
+          - NET_IsDedicated.{platform}.yaml
+          - CEngineServer_vtable.{platform}.yaml
       - name: find-CEngineServer_ShowFrameTimeReport
         expected_output:
           - CEngineServer_ShowFrameTimeReport.{platform}.yaml
@@ -1698,6 +1705,10 @@ modules:
         category: func
         alias:
           - NET_IsDedicated
+      - name: CEngineServer_IsDedicatedServer
+        category: vfunc
+        alias:
+          - CEngineServer::IsDedicatedServer
       - name: CEngineServer_ShowFrameTimeReport
         category: vfunc
         alias:
