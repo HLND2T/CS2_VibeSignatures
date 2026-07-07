@@ -640,6 +640,11 @@ modules:
       - name: find-CNetworkClientService_vtable
         expected_output:
           - CNetworkClientService_vtable.{platform}.yaml
+      - name: find-CNetworkClientService_Connect
+        expected_output:
+          - CNetworkClientService_Connect.{platform}.yaml
+        expected_input:
+          - CNetworkClientService_vtable.{platform}.yaml
       - name: find-CNetworkClientService_ReceivedServerInfo
         expected_output:
           - CNetworkClientService_ReceivedServerInfo.{platform}.yaml
@@ -1514,6 +1519,10 @@ modules:
         category: func
       - name: CNetworkClientService_vtable
         category: vtable
+      - name: CNetworkClientService_Connect
+        category: vfunc
+        alias:
+          - CNetworkClientService::Connect
       - name: CNetworkClientService_ReceivedServerInfo
         category: vfunc
         alias:
