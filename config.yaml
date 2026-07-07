@@ -943,6 +943,12 @@ modules:
       - name: find-CServerSideClientBase_GetNetworkIDString_Impl
         expected_output:
           - CServerSideClientBase_GetNetworkIDString_Impl.{platform}.yaml
+      - name: find-CEngineServer_GetPlayerNetworkIDString
+        expected_output:
+          - CEngineServer_GetPlayerNetworkIDString.{platform}.yaml
+        expected_input:
+          - CServerSideClientBase_GetNetworkIDString_Impl.{platform}.yaml
+          - CEngineServer_vtable.{platform}.yaml
       - name: find-CEngineServer_GetPlayerInfo
         expected_output:
           - CEngineServer_GetPlayerInfo.{platform}.yaml
@@ -1712,6 +1718,10 @@ modules:
         category: func
         alias:
           - CServerSideClientBase::GetNetworkIDString
+      - name: CEngineServer_GetPlayerNetworkIDString
+        category: vfunc
+        alias:
+          - CEngineServer::GetPlayerNetworkIDString
       - name: CEngineServer_GetPlayerInfo
         category: vfunc
         alias:
