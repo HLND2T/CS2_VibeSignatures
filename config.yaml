@@ -844,6 +844,13 @@ modules:
       - name: find-CTier1Application_vtable
         expected_output:
           - CTier1Application_vtable.{platform}.yaml
+      - name: find-CTier1Application_GetGameMode-linux
+        platform: linux
+        expected_output:
+          - CTier1Application_GetGameMode.{platform}.yaml
+        expected_input:
+          - CNetworkClientService_Connect.{platform}.yaml
+          - CTier1Application_vtable.{platform}.yaml
       - name: find-CEngineServer_DumpNetStats
         expected_output:
           - CEngineServer_DumpNetStats.{platform}.yaml
@@ -1688,6 +1695,10 @@ modules:
         category: vtable
       - name: CTier1Application_vtable
         category: vtable
+      - name: CTier1Application_GetGameMode
+        category: vfunc
+        alias:
+          - CTier1Application::GetGameMode
       - name: CEngineServer_DumpNetStats
         category: vfunc
         alias:
