@@ -1350,11 +1350,6 @@ modules:
       - name: find-CEngineServer_vtable
         expected_output:
           - CEngineServer_vtable.{platform}.yaml
-      - name: find-CEngineServer_GetAchievementMgr
-        expected_output:
-          - CEngineServer_GetAchievementMgr.{platform}.yaml
-        expected_input:
-          - ../server/CBasePlayerController_SetConnectedState_Impl.{platform}.yaml
       - name: find-CMapListService_vtable
         expected_output:
           - CMapListService_vtable.{platform}.yaml
@@ -2769,10 +2764,6 @@ modules:
           - INetworkGameClient::SendStringCmd
       - name: CEngineServer_vtable
         category: vtable
-      - name: CEngineServer_GetAchievementMgr
-        category: vfunc
-        alias:
-          - CEngineServer::GetAchievementMgr
       - name: CMapListService_vtable
         category: vtable
       - name: CEngineServer_DumpNetStats
@@ -5897,6 +5888,11 @@ modules:
           - CBasePlayerController_SetConnectedState_Impl.{platform}.yaml
         expected_input:
           - CSource2GameClients_ClientDisconnect.{platform}.yaml
+      - name: find-CEngineServer_GetAchievementMgr
+        expected_output:
+          - CEngineServer_GetAchievementMgr.{platform}.yaml
+        expected_input:
+          - CBasePlayerController_SetConnectedState_Impl.{platform}.yaml
       - name: find-CBasePlayerController_SetPlayerName
         expected_output:
           - CBasePlayerController_SetPlayerName.{platform}.yaml
@@ -8889,6 +8885,10 @@ modules:
         category: func
         alias:
           - CBasePlayerController::SetConnectedState_Impl
+      - name: CEngineServer_GetAchievementMgr
+        category: vfunc
+        alias:
+          - CEngineServer::GetAchievementMgr
       - name: CBasePlayerController_Connect
         category: vfunc
         alias:
