@@ -1174,11 +1174,13 @@ def _normalize_llm_decompile_spec(spec, debug=False):
         if debug:
             print(f"    Preprocess: invalid llm_decompile expected_size for {symbol_name}: {expected_size!r}")
         return None
-    target_context = str(spec.get("target_context", "mcp") or "").strip().lower()
-    if target_context not in _LLM_DECOMPILE_TARGET_CONTEXTS:
-        if debug:
-            print(f"    Preprocess: invalid llm_decompile target_context for {symbol_name}: {target_context!r}")
-        return None
+    target_context = None
+    if "target_context" in spec:
+        target_context = str(spec.get("target_context") or "").strip().lower()
+        if target_context not in _LLM_DECOMPILE_TARGET_CONTEXTS:
+            if debug:
+                print(f"    Preprocess: invalid llm_decompile target_context for {symbol_name}: {target_context!r}")
+            return None
     raw_policy = spec.get("dependency_policy")
     if not isinstance(raw_policy, dict) or not raw_policy:
         if debug:
@@ -1207,8 +1209,9 @@ def _normalize_llm_decompile_spec(spec, debug=False):
         "reference_yaml_paths": references,
         "expected_result_sections": sections,
         "dependency_policy": dependency_policy,
-        "target_context": target_context,
     }
+    if target_context is not None:
+        normalized["target_context"] = target_context
     if instruction_rules is not None:
         normalized["instruction_rules"] = instruction_rules
     if "expected_size" in spec:
