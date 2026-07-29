@@ -1365,6 +1365,12 @@ modules:
           - CEngineServer_ClientPrintf.{platform}.yaml
         expected_input:
           - CEngineServer_vtable.{platform}.yaml
+      - name: find-CEngineServer_GetAchievementMgr-decompiles
+        expected_output:
+          - CEngineServer_GetAchievementMgr.{platform}.yaml
+        expected_input:
+          - CEngineServer_vtable.{platform}.yaml
+          - ../server/CBasePlayerController_SetConnectedState_Impl.{platform}.yaml
       - name: find-GetFrameTimeAmnesty
         optional_output:
           - GetFrameTimeAmnesty.{platform}.yaml
@@ -2774,6 +2780,10 @@ modules:
         category: vfunc
         alias:
           - CEngineServer::ClientPrintf
+      - name: CEngineServer_GetAchievementMgr
+        category: vfunc
+        alias:
+          - CEngineServer::GetAchievementMgr
       - name: CEngineServer_GetFrameTimeAmnesty
         category: vfunc
         alias:
@@ -5883,6 +5893,11 @@ modules:
           - CBasePlayerController_GetPawn.{platform}.yaml
         expected_input:
           - CSource2GameClients_ClientDisconnect.{platform}.yaml
+      - name: find-CBasePlayerController_SetConnectedState_Impl-decompiles
+        expected_output:
+          - CBasePlayerController_SetConnectedState_Impl.{platform}.yaml
+        expected_input:
+          - CSource2GameClients_ClientDisconnect.{platform}.yaml
       - name: find-CBasePlayerController_SetPlayerName
         expected_output:
           - CBasePlayerController_SetPlayerName.{platform}.yaml
@@ -8871,6 +8886,10 @@ modules:
         category: func
         alias:
           - CBasePlayerController::GetPawn
+      - name: CBasePlayerController_SetConnectedState_Impl
+        category: func
+        alias:
+          - CBasePlayerController::SetConnectedState_Impl
       - name: CBasePlayerController_Connect
         category: vfunc
         alias:
