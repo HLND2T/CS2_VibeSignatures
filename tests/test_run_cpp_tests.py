@@ -22,6 +22,11 @@ class TestParseArgsLegacyFixHeader(unittest.TestCase):
                 run_cpp_tests.parse_args()
 
 
+class TestDefaultClang(unittest.TestCase):
+    @patch.object(run_cpp_tests.shutil, "which", side_effect=lambda compiler: compiler == "clang-cl")
+    def test_falls_back_to_clang_cl_when_clang_plus_plus_is_missing(self, _mock_which) -> None:
+        self.assertEqual("clang-cl", run_cpp_tests.resolve_default_clang())
+
 class TestParseVftableLayouts(unittest.TestCase):
     def test_parses_single_entry_vftable_indices_header(self) -> None:
         compiler_output = (

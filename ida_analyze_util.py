@@ -1069,9 +1069,10 @@ _LLM_DECOMPILE_REQUIRED_SPEC_KEYS = frozenset(
         "dependency_policy",
     }
 )
-_LLM_DECOMPILE_OPTIONAL_SPEC_KEYS = frozenset({"instruction_rules", "expected_size"})
+_LLM_DECOMPILE_OPTIONAL_SPEC_KEYS = frozenset({"instruction_rules", "expected_size", "target_context"})
 _LLM_DECOMPILE_SPEC_KEYS = _LLM_DECOMPILE_REQUIRED_SPEC_KEYS | _LLM_DECOMPILE_OPTIONAL_SPEC_KEYS
 _LLM_DECOMPILE_DEPENDENCY_POLICIES = frozenset({"required", "optional"})
+_LLM_DECOMPILE_TARGET_CONTEXTS = frozenset({"mcp", "reference"})
 
 
 def _normalize_string_list(values, *, field_name, symbol_name, valid_values=None, allow_empty=False, debug=False):
@@ -1173,6 +1174,11 @@ def _normalize_llm_decompile_spec(spec, debug=False):
         if debug:
             print(f"    Preprocess: invalid llm_decompile expected_size for {symbol_name}: {expected_size!r}")
         return None
+    target_context = str(spec.get("target_context", "mcp") or "").strip().lower()
+    if target_context not in _LLM_DECOMPILE_TARGET_CONTEXTS:
+        if debug:
+            print(f"    Preprocess: invalid llm_decompile target_context for {symbol_name}: {target_context!r}")
+        return None
     raw_policy = spec.get("dependency_policy")
     if not isinstance(raw_policy, dict) or not raw_policy:
         if debug:
@@ -1201,6 +1207,7 @@ def _normalize_llm_decompile_spec(spec, debug=False):
         "reference_yaml_paths": references,
         "expected_result_sections": sections,
         "dependency_policy": dependency_policy,
+        "target_context": target_context,
     }
     if instruction_rules is not None:
         normalized["instruction_rules"] = instruction_rules
@@ -8373,23 +8380,26 @@ async def preprocess_common_skill(
 
     async def _call_llm_decompile_for_request(llm_request, llm_symbol_name_list):
         try:
-            target_func_names = llm_request.get("target_func_names")
-            if target_func_names is None:
-                target_func_name = str(llm_request.get("target_func_name", "") or "").strip()
-                target_func_names = [target_func_name] if target_func_name else []
-            target_kwargs = {
-                "new_binary_dir": new_binary_dir,
-                "platform": platform,
-                "debug": debug,
-            }
-            alias_lookup = (llm_config or {}).get("symbol_aliases")
-            if alias_lookup:
-                target_kwargs["alias_lookup"] = alias_lookup
-            llm_target_details = await _load_llm_decompile_target_details_via_mcp(
-                session,
-                target_func_names,
-                **target_kwargs,
-            )
+            if llm_request.get("target_context") == "reference":
+                llm_target_details = llm_request.get("reference_items") or []
+            else:
+                target_func_names = llm_request.get("target_func_names")
+                if target_func_names is None:
+                    target_func_name = str(llm_request.get("target_func_name", "") or "").strip()
+                    target_func_names = [target_func_name] if target_func_name else []
+                target_kwargs = {
+                    "new_binary_dir": new_binary_dir,
+                    "platform": platform,
+                    "debug": debug,
+                }
+                alias_lookup = (llm_config or {}).get("symbol_aliases")
+                if alias_lookup:
+                    target_kwargs["alias_lookup"] = alias_lookup
+                llm_target_details = await _load_llm_decompile_target_details_via_mcp(
+                    session,
+                    target_func_names,
+                    **target_kwargs,
+                )
             if not llm_target_details:
                 return _empty_llm_decompile_result()
             reference_blocks, target_blocks = _render_llm_decompile_blocks(

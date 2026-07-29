@@ -4,6 +4,7 @@ Run C++ tests declared in the selected analysis config and compare clang layouts
 """
 
 import argparse
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -39,6 +40,14 @@ DEFAULT_CLANG = "clang++"
 DEFAULT_CPP_STD = "c++20"
 
 
+def resolve_default_clang() -> str:
+    """Prefer clang++ and fall back to clang-cl when only LLVM's MSVC driver is installed."""
+    for compiler in (DEFAULT_CLANG, "clang-cl"):
+        if shutil.which(compiler):
+            return compiler
+    return DEFAULT_CLANG
+
+
 def parse_args():
     """Parse CLI arguments."""
     parser = argparse.ArgumentParser(description="Run configured C++ tests with clang++ and compare vtable metadata")
@@ -55,7 +64,7 @@ def parse_args():
     )
     parser.add_argument(
         "-clang",
-        default=DEFAULT_CLANG,
+        default=resolve_default_clang(),
         help=f"clang++ executable path (default: {DEFAULT_CLANG})",
     )
     parser.add_argument(

@@ -1365,12 +1365,6 @@ modules:
           - CEngineServer_ClientPrintf.{platform}.yaml
         expected_input:
           - CEngineServer_vtable.{platform}.yaml
-      - name: find-CEngineServer_GetAchievementMgr-decompiles
-        expected_output:
-          - CEngineServer_GetAchievementMgr.{platform}.yaml
-        expected_input:
-          - CEngineServer_vtable.{platform}.yaml
-          - ../server/CBasePlayerController_SetConnectedState_Impl.{platform}.yaml
       - name: find-GetFrameTimeAmnesty
         optional_output:
           - GetFrameTimeAmnesty.{platform}.yaml
@@ -11310,6 +11304,12 @@ modules:
     path_windows: game/bin/win64/engine2.dll
     path_linux: game/bin/linuxsteamrt64/libengine2.so
     skills:
+      - name: find-CEngineServer_GetAchievementMgr-decompiles
+        expected_output:
+          - CEngineServer_GetAchievementMgr.{platform}.yaml
+        expected_input:
+          - CEngineServer_vtable.{platform}.yaml
+          - ../server/CBasePlayerController_SetConnectedState_Impl.{platform}.yaml
       - name: find-CInputService_ProcessCommandBuffer
         platform: windows
         expected_output:

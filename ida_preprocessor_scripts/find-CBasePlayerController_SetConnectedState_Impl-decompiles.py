@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """Preprocess find-CBasePlayerController_SetConnectedState_Impl via LLM decompile."""
 
 from ida_analyze_util import preprocess_common_skill

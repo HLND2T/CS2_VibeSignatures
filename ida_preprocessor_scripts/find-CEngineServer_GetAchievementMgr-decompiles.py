@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """Preprocess find-CEngineServer_GetAchievementMgr via LLM decompile."""
 
 from ida_analyze_util import preprocess_common_skill
@@ -14,6 +14,7 @@ LLM_DECOMPILE = [
         "reference_yaml_paths": [
             "references/server/CBasePlayerController_SetConnectedState_Impl.{platform}.yaml",
         ],
+        "target_context": "reference",
         "expected_result_sections": ["found_vcall"],
         "dependency_policy": {
             "CBasePlayerController_SetConnectedState_Impl.{platform}.yaml": "required",
@@ -31,7 +32,6 @@ GENERATE_YAML_DESIRED_FIELDS = [
         "CEngineServer_GetAchievementMgr",
         [
             "func_name",
-            "vfunc_sig",
             "vfunc_offset",
             "vfunc_index",
             "vtable_name",

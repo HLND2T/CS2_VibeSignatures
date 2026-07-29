@@ -1471,6 +1471,12 @@ def _prepare_llm_decompile_request(
             )
         return None
 
+    target_context = str(llm_spec.get("target_context", "mcp") or "").strip().lower()
+    if target_context not in {"mcp", "reference"}:
+        if debug:
+            print(f"    Preprocess: invalid llm_decompile target context for {func_name}: {target_context!r}")
+        return None
+
     scripts_dir = _get_preprocessor_scripts_dir(preprocessor_scripts_dir)
     prompt_path = Path(
         _resolve_llm_decompile_template_value(
@@ -1564,6 +1570,7 @@ def _prepare_llm_decompile_request(
         "reference_items": reference_items,
         "reference_yaml_paths": reference_yaml_paths,
         "target_func_names": target_func_names,
+        "target_context": target_context,
         "reference_yaml_path": reference_yaml_path,
         "expected_result_sections": list(expected_result_sections),
         "prompt_template": prompt_template,
