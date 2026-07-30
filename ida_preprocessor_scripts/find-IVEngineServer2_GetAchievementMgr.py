@@ -16,9 +16,9 @@ LLM_DECOMPILE = [
     {
         "symbol_name": "IVEngineServer2_GetAchievementMgr",
         "prompt_path": "prompt/call_llm_decompile.md",
-        "reference_yaml_paths": ["references/server/CBasePlayerController_SetConnectedState.{platform}.yaml"],
+        "reference_yaml_paths": ["references/server/CBasePlayerController_SetConnected.{platform}.yaml"],
         "expected_result_sections": ["found_vcall"],
-        "dependency_policy": {"CBasePlayerController_SetConnectedState.{platform}.yaml": "required"},
+        "dependency_policy": {"CBasePlayerController_SetConnected.{platform}.yaml": "required"},
     },
 ]
 
@@ -47,7 +47,7 @@ async def preprocess_skill(
     llm_config=None,
     debug=False,
 ):
-    """Find IVEngineServer2::GetAchievementMgr from SetConnectedState."""
+    """Find IVEngineServer2::GetAchievementMgr from SetConnected."""
     _ = skill_name
     return await preprocess_common_skill(
         session=session,
