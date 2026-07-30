@@ -347,6 +347,12 @@ modules:
           - g_pLoggingChannel.{platform}.yaml
         expected_input:
           - CNetChan_ParseMessagesDemoInternal.{platform}.yaml
+      - name: find-CNetworkMessages_GetNetMessageInfo
+        expected_output:
+          - CNetworkMessages_GetNetMessageInfo.{platform}.yaml
+        expected_input:
+          - CNetworkMessages_vtable.{platform}.yaml
+          - CNetChan_ParseMessagesDemoInternal.{platform}.yaml
       - name: find-CNetworkMessages_FindNetworkMessagePartial
         expected_output:
           - CNetworkMessages_FindNetworkMessagePartial.{platform}.yaml
@@ -401,6 +407,11 @@ modules:
         category: vfunc
         alias:
           - CNetworkMessages::FindOrCreateNetMessage
+        shared: true
+      - name: CNetworkMessages_GetNetMessageInfo
+        category: vfunc
+        alias:
+          - CNetworkMessages::GetNetMessageInfo
         shared: true
       - name: CNetworkMessages_SerializeInternal
         category: func
