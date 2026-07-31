@@ -7990,9 +7990,27 @@ modules:
       - name: find-CLoopModeGame_vtable
         expected_output:
           - CLoopModeGame_vtable.{platform}.yaml
+      - name: find-CLoopModeGame_ctor
+        expected_output:
+          - CLoopModeGame_ctor.{platform}.yaml
       - name: find-CLoopModeFactory_CLoopModeGame_vtable
         expected_output:
           - CLoopModeFactory_CLoopModeGame_vtable.{platform}.yaml
+      - name: find-CLoopModeFactory_CLoopModeGame_CreateLoopMode-noinline
+        optional_output:
+          - CLoopModeFactory_CLoopModeGame_CreateLoopMode.{platform}.yaml
+        expected_input:
+          - CLoopModeGame_ctor.{platform}.yaml
+          - CLoopModeFactory_CLoopModeGame_vtable.{platform}.yaml
+      - name: find-CLoopModeFactory_CLoopModeGame_CreateLoopMode-inlined
+        expected_output:
+          - CLoopModeFactory_CLoopModeGame_CreateLoopMode.{platform}.yaml
+        expected_input:
+          - CLoopModeFactory_CLoopModeGame_vtable.{platform}.yaml
+        skip_if_exists:
+          - CLoopModeFactory_CLoopModeGame_CreateLoopMode.{platform}.yaml
+        prerequisite:
+          - find-CLoopModeFactory_CLoopModeGame_CreateLoopMode-noinline
       - name: find-CLoopModeGame_StaticInit
         expected_output:
           - CLoopModeGame_StaticInit.{platform}.yaml
@@ -11152,6 +11170,10 @@ modules:
         category: func
         alias:
           - CLoopModeGame::StaticInit
+      - name: CLoopModeGame_ctor
+        category: func
+        alias:
+          - CLoopModeGame::CLoopModeGame
       - name: CLoopModeGame_vtable
         category: vtable
       - name: CLoopModeFactory_CLoopModeGame_vtable
@@ -11160,6 +11182,10 @@ modules:
         category: vfunc
         alias:
           - CLoopModeFactory<CLoopModeGame>::Init
+      - name: CLoopModeFactory_CLoopModeGame_CreateLoopMode
+        category: vfunc
+        alias:
+          - CLoopModeFactory<CLoopModeGame>::CreateLoopMode
       - name: CLoopModeFactory_CLoopModeGame_Shutdown
         category: vfunc
         alias:
