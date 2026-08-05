@@ -1996,6 +1996,17 @@ modules:
         expected_input:
           - CServerSideClientBase_vtable.{platform}.yaml
           - CDelayedCall2_CServerSideClientBase_UpdateAcknowledgedFramecountCall_vtable.{platform}.yaml
+      - name: find-CServerSideClientBase_SendServerInfo
+        expected_output:
+          - CServerSideClientBase_SendServerInfo.{platform}.yaml
+        expected_input:
+          - CServerSideClientBase_vtable.{platform}.yaml
+      - name: find-CNetworkGameServerBase_FillServerInfo
+        expected_output:
+          - CNetworkGameServerBase_FillServerInfo.{platform}.yaml
+        expected_input:
+          - CServerSideClientBase_SendServerInfo.{platform}.yaml
+          - CNetworkGameServer_vtable.{platform}.yaml
       - name: find-CServerSideClientBase_ProcessStringCmd
         expected_output:
           - CServerSideClientBase_ProcessStringCmd.{platform}.yaml
@@ -3329,6 +3340,14 @@ modules:
         category: vfunc
         alias:
           - CServerSideClientBase::ProcessTick
+      - name: CServerSideClientBase_SendServerInfo
+        category: vfunc
+        alias:
+          - CServerSideClientBase::SendServerInfo
+      - name: CNetworkGameServerBase_FillServerInfo
+        category: vfunc
+        alias:
+          - CNetworkGameServerBase::FillServerInfo
       - name: CServerSideClientBase_ProcessStringCmd
         category: vfunc
         alias:
