@@ -36,7 +36,7 @@ test('opens the static symbol browser without a Process API connection', async (
   const indexResponse = await page.request.get('gamesymbols/index.json')
   expect(indexResponse.ok()).toBeTruthy()
   const index = await indexResponse.json()
-  expect(index.schemaVersion).toBe(3)
+  expect(index.schemaVersion).toBe(4)
   const currentVersion = index.versions[0]
   expect(currentVersion.sha256).toMatch(/^[0-9a-f]{64}$/)
   expect(currentVersion.url).toBe(`${currentVersion.gameVersion}.${currentVersion.sha256}.json`)
@@ -48,12 +48,15 @@ test('opens the static symbol browser without a Process API connection', async (
   expect(datasetBytes.byteLength).toBe(currentVersion.size)
   expect(createHash('sha256').update(datasetBytes).digest('hex')).toBe(currentVersion.sha256)
   const dataset = JSON.parse(datasetBytes.toString('utf8'))
-  expect(dataset.schemaVersion).toBe(2)
+  expect(dataset.schemaVersion).toBe(3)
   expect(dataset.source.lastPublishTime).toBe(currentVersion.lastPublishTime)
   expect(Object.keys(dataset.binaries).length).toBeGreaterThan(0)
-  const firstBinary = Object.values(Object.values(dataset.binaries)[0] as Record<string, unknown>)[0] as Record<string, string>
+  const firstBinary = Object.values(Object.values(dataset.binaries)[0] as Record<string, unknown>)[0] as Record<string, unknown>
   expect(firstBinary.sha256).toMatch(/^[0-9a-f]{64}$/)
   expect(firstBinary.md5).toMatch(/^[0-9a-f]{32}$/)
+  expect(firstBinary.crc32).toMatch(/^[0-9a-f]{8}$/)
+  expect(firstBinary.crc64).toMatch(/^[0-9a-f]{16}$/)
+  expect(firstBinary.size).toEqual(expect.any(Number))
 
   await page.goto('symbols')
   await page.getByRole('button', { name: 'API 设置' }).click()

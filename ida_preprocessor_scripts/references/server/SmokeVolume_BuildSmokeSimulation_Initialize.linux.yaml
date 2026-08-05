@@ -71,7 +71,7 @@ disasm_code: |-
   .text:00000000014023E5                 mov     rsi, [r12+18h]; src
   .text:00000000014023EA                 ; dest
   .text:00000000014023EA                 mov     rdi, r14; dest
-  .text:00000000014023ED                 mov     [r12+70h], r13
+  .text:00000000014023ED                 mov     [r12+70h], r13  ; 70h = SmokeVolume::m_pStorage (structmember, struct=SmokeVolume, member=m_pStorage)
   .text:00000000014023F2                 mov     byte ptr ds:stru_10B008.r_offset[r13], 0
   .text:00000000014023FA                 ; n
   .text:00000000014023FA                 mov     edx, 1000h; n
@@ -126,7 +126,7 @@ procedure: |-
     memset((void *)(v6 + 8), 0, 0x1000u);
     memset(v7, 0, 0x8000u);
     v9 = *(const void **)(a1 + 24);
-    *(_QWORD *)(a1 + 112) = v6;
+    *(_QWORD *)(a1 + 112) = v6; // 112 = 0x70 = SmokeVolume::m_pStorage (structmember, struct=SmokeVolume, member=m_pStorage)
     *((_BYTE *)&stru_10B008.r_offset + v6) = 0;
     memcpy((void *)(v6 + 8), v9, 0x1000u);
     *(_DWORD *)(a1 + 12) = v3;  // 12 = 0xC = SmokeVolume::m_flStartTime (structmember, struct=SmokeVolume, member=m_flStartTime)

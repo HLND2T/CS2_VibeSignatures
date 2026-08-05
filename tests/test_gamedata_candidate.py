@@ -374,11 +374,39 @@ class TestGamedataCandidate(unittest.TestCase):
             generator = modules / "fixture"
             generator.mkdir(parents=True)
             (generator / "gamedata.py").write_text(
-                'MODULE_NAME="Fixture"\nOUTPUT_PATHS=("config.yaml",)\nDOWNLOAD_SOURCES=()\n',
+                'MODULE_NAME="Fixture"\nOUTPUT_PATHS=("config.yaml",)\nDOWNLOAD_SOURCES=()\nupdate=lambda *_args: None\n',
                 encoding="utf-8",
             )
 
             with self.assertRaisesRegex(GamedataContractError, "forbidden extension"):
+                discover_generator_modules(modules)
+
+    def test_contract_validates_generator_api_v2_context_signature(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            modules = Path(tmp) / "gamedata-generators"
+            generator = modules / "fixture"
+            generator.mkdir(parents=True)
+            (generator / "gamedata.py").write_text(
+                'MODULE_NAME="Fixture"\n'
+                "GENERATOR_API_VERSION=2\n"
+                'OUTPUT_PATHS=("payload.txt",)\n'
+                "DOWNLOAD_SOURCES=()\n"
+                "def update(*_args):\n    return 0, 0, [], []\n",
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(GamedataContractError, "must accept a context keyword argument"):
+                discover_generator_modules(modules)
+
+            (generator / "gamedata.py").write_text(
+                'MODULE_NAME="Fixture"\n'
+                "GENERATOR_API_VERSION=3\n"
+                'OUTPUT_PATHS=("payload.txt",)\n'
+                "DOWNLOAD_SOURCES=()\n"
+                "def update(*_args, context):\n    return 0, 0, [], []\n",
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(GamedataContractError, "unsupported GENERATOR_API_VERSION"):
                 discover_generator_modules(modules)
 
 

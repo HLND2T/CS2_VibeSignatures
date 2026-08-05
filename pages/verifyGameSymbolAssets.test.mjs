@@ -21,6 +21,44 @@ async function temporaryRoot() {
 async function writeCurrentAssets(directory, gameVersion, marker) {
   await mkdir(directory, { recursive: true })
   const dataset = {
+    schemaVersion: 3,
+    source: { gameVersion },
+    binaries: {
+      server: {
+        windows: {
+          path: 'game/bin/win64/server.dll',
+          sha256: '1'.repeat(64),
+          md5: '2'.repeat(32),
+          crc32: '3'.repeat(8),
+          crc64: '4'.repeat(16),
+          size: 123,
+        },
+      },
+    },
+    records: [{ marker }],
+  }
+  const bytes = Buffer.from(JSON.stringify(dataset), 'utf8')
+  const digest = createHash('sha256').update(bytes).digest('hex')
+  const url = `${gameVersion}.${digest}.json`
+  await writeFile(join(directory, url), bytes)
+  await writeFile(join(directory, 'index.json'), JSON.stringify({
+    schemaVersion: 4,
+    versions: [{
+      gameVersion,
+      url,
+      sha256: digest,
+      size: bytes.byteLength,
+      snapshotSchemaVersion: 5,
+      fileCount: 1,
+      lastPublishTime: '2026-07-28T00:00:00Z',
+    }],
+  }))
+  return { bytes, digest, url }
+}
+
+async function writeLegacySnapshot(directory, gameVersion, marker) {
+  await mkdir(directory, { recursive: true })
+  const dataset = {
     schemaVersion: 2,
     source: { gameVersion },
     records: [{ marker }],
@@ -29,19 +67,22 @@ async function writeCurrentAssets(directory, gameVersion, marker) {
   const digest = createHash('sha256').update(bytes).digest('hex')
   const url = `${gameVersion}.${digest}.json`
   await writeFile(join(directory, url), bytes)
+  return { bytes, digest, url }
+}
+
+async function writeIndex(directory, gameVersion, asset) {
   await writeFile(join(directory, 'index.json'), JSON.stringify({
-    schemaVersion: 3,
+    schemaVersion: 4,
     versions: [{
       gameVersion,
-      url,
-      sha256: digest,
-      size: bytes.byteLength,
+      url: asset.url,
+      sha256: asset.digest,
+      size: asset.bytes.byteLength,
       snapshotSchemaVersion: 4,
       fileCount: 1,
       lastPublishTime: '2026-07-28T00:00:00Z',
     }],
   }))
-  return { bytes, digest, url }
 }
 
 afterEach(async () => {
@@ -50,7 +91,7 @@ afterEach(async () => {
 })
 
 describe('immutable game-symbol asset verification', () => {
-  it('verifies index v3 metadata against the exact snapshot bytes', async () => {
+  it('verifies index v4 metadata against the exact snapshot bytes', async () => {
     const root = await temporaryRoot()
     const current = join(root, 'current')
     const asset = await writeCurrentAssets(current, '14172', '最终字节')
@@ -79,6 +120,30 @@ describe('immutable game-symbol asset verification', () => {
     expect(await readFile(join(current, second.url))).toEqual(second.bytes)
   })
 
+  it('preserves legacy schema v2 snapshots as immutable archive history', async () => {
+    const root = await temporaryRoot()
+    const current = join(root, 'current')
+    const archive = join(root, 'archive')
+    const legacy = await writeLegacySnapshot(archive, '14172', 'legacy')
+    const latest = await writeCurrentAssets(current, '14172', 'latest')
+
+    const result = await mergeImmutableArchive(current, archive)
+
+    expect(result.added).toBe(1)
+    expect(result.archived).toBe(2)
+    expect(await readFile(join(archive, latest.url))).toEqual(latest.bytes)
+    expect(await readFile(join(current, legacy.url))).toEqual(legacy.bytes)
+  })
+
+  it('rejects legacy schema v2 snapshots when the current index points to them', async () => {
+    const root = await temporaryRoot()
+    const current = join(root, 'current')
+    const legacy = await writeLegacySnapshot(current, '14172', 'legacy')
+    await writeIndex(current, '14172', legacy)
+
+    await expect(verifyGameSymbolAssetDirectory(current)).rejects.toThrow(/snapshot body game version or schema/)
+  })
+
   it('rejects any modification of an archived content-addressed snapshot', async () => {
     const root = await temporaryRoot()
     const current = join(root, 'current')
@@ -95,6 +160,7 @@ describe('immutable game-symbol asset verification', () => {
     const current = join(root, 'current')
     const archive = join(root, 'archive')
     const manifestPath = join(root, 'verification.json')
+    const legacy = await writeLegacySnapshot(archive, '14172', 'legacy')
     const first = await writeCurrentAssets(current, '14172', 'first')
     const staleIndex = await readFile(join(current, 'index.json'))
     await mergeImmutableArchive(current, archive)
@@ -119,8 +185,9 @@ describe('immutable game-symbol asset verification', () => {
       attempts: 2,
       delayMs: 0,
       batchSize: 2,
-    })).resolves.toEqual(expect.objectContaining({ verified: 2 }))
+    })).resolves.toEqual(expect.objectContaining({ verified: 3 }))
     expect(indexRequests).toBe(2)
+    expect(fetchMock.mock.calls.some(([input]) => String(input).includes(legacy.url))).toBe(true)
     expect(fetchMock.mock.calls.some(([input]) => String(input).includes(first.url))).toBe(true)
     expect(fetchMock.mock.calls.some(([input]) => String(input).includes(second.url))).toBe(true)
   })

@@ -16,6 +16,9 @@ export interface GameSymbolBinary {
   path: string
   sha256: string
   md5: string
+  crc32: string
+  crc64: string
+  size: number
 }
 
 export type GameSymbolBinaries = Record<string, Partial<Record<GameSymbolPlatform, GameSymbolBinary>>>
@@ -32,7 +35,7 @@ export interface GameSymbolRecord {
 }
 
 export interface GameSymbolDataset {
-  schemaVersion: 2
+  schemaVersion: 3
   source: {
     gameVersion: string
     snapshotSchemaVersion: number
@@ -53,7 +56,7 @@ export interface GameSymbolDataset {
 }
 
 export interface GameSymbolIndex {
-  schemaVersion: 3
+  schemaVersion: 4
   versions: GameSymbolIndexVersion[]
 }
 
@@ -148,6 +151,12 @@ function requiredInteger(value: unknown, field: string, source: string): number 
   return value as number
 }
 
+function requiredNonNegativeInteger(value: unknown, field: string, source: string): number {
+  const integer = requiredInteger(value, field, source)
+  if (integer < 0) throw new Error(`${source}: ${field} must be a non-negative integer`)
+  return integer
+}
+
 function optionalInteger(value: unknown, fallback: number, field: string, source: string): number {
   if (value === undefined) return fallback
   return requiredInteger(value, field, source)
@@ -176,9 +185,14 @@ function normalizeBinaries(value: unknown, source: string): GameSymbolBinaries {
       const path = requiredString(metadataValue.path, `binaries.${module}.${platform}.path`, source)
       const sha256 = requiredString(metadataValue.sha256, `binaries.${module}.${platform}.sha256`, source)
       const md5 = requiredString(metadataValue.md5, `binaries.${module}.${platform}.md5`, source)
+      const crc32 = requiredString(metadataValue.crc32, `binaries.${module}.${platform}.crc32`, source)
+      const crc64 = requiredString(metadataValue.crc64, `binaries.${module}.${platform}.crc64`, source)
+      const size = requiredNonNegativeInteger(metadataValue.size, `binaries.${module}.${platform}.size`, source)
       if (!/^[0-9a-f]{64}$/.test(sha256)) throw new Error(`${source}: binaries.${module}.${platform}.sha256 is invalid`)
       if (!/^[0-9a-f]{32}$/.test(md5)) throw new Error(`${source}: binaries.${module}.${platform}.md5 is invalid`)
-      platforms[platform] = { path, sha256, md5 }
+      if (!/^[0-9a-f]{8}$/.test(crc32)) throw new Error(`${source}: binaries.${module}.${platform}.crc32 is invalid`)
+      if (!/^[0-9a-f]{16}$/.test(crc64)) throw new Error(`${source}: binaries.${module}.${platform}.crc64 is invalid`)
+      platforms[platform] = { path, sha256, md5, crc32, crc64, size }
     }
     binaries[module] = platforms
   }
@@ -210,6 +224,8 @@ export function normalizeGameSymbolSnapshot(raw: unknown, expectedGameVersion: s
 
   const gameVersion = requiredString(raw.game_version, 'game_version', source)
   if (gameVersion !== expectedGameVersion) throw new Error(`${source}: game_version ${gameVersion} does not match filename ${expectedGameVersion}`)
+  const snapshotSchemaVersion = requiredInteger(raw.schema_version, 'schema_version', source)
+  if (snapshotSchemaVersion !== 5) throw new Error(`${source}: schema_version must be 5`)
 
   const files = raw.files
   if (!isObject(files)) throw new Error(`${source}: files must be a mapping`)
@@ -249,10 +265,10 @@ export function normalizeGameSymbolSnapshot(raw: unknown, expectedGameVersion: s
   })
 
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     source: {
       gameVersion,
-      snapshotSchemaVersion: requiredInteger(raw.schema_version, 'schema_version', source),
+      snapshotSchemaVersion,
       configDigestVersion: optionalInteger(raw.config_digest_version, 1, 'config_digest_version', source),
       analysisOutputContractVersion: optionalInteger(raw.analysis_output_contract_version, 1, 'analysis_output_contract_version', source),
       configSha256: requiredString(raw.config_sha256, 'config_sha256', source),
@@ -290,7 +306,7 @@ export function encodeGameSymbolAsset(dataset: GameSymbolDataset): EncodedGameSy
 
 export function createGameSymbolIndex(assets: EncodedGameSymbolAsset[]): GameSymbolIndex {
   return {
-    schemaVersion: 3,
+    schemaVersion: 4,
     versions: assets
       .map((asset) => ({
         gameVersion: asset.dataset.source.gameVersion,

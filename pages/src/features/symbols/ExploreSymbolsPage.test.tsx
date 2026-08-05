@@ -13,15 +13,15 @@ vi.mock('./data', () => ({
 }))
 
 const dataset: GameSymbolDataset = {
-  schemaVersion: 2,
+  schemaVersion: 3,
   source: {
-    gameVersion: '14172', snapshotSchemaVersion: 4, configDigestVersion: 2,
+    gameVersion: '14172', snapshotSchemaVersion: 5, configDigestVersion: 2,
     analysisOutputContractVersion: 1, configSha256: 'sha256:test', fileCount: 3,
     lastPublishTime: '2026-07-27T04:42:43Z',
   },
   binaries: {
     server: {
-      windows: { path: 'game/bin/win64/server.dll', sha256: '1'.repeat(64), md5: '2'.repeat(32) },
+      windows: { path: 'game/bin/win64/server.dll', sha256: '1'.repeat(64), md5: '2'.repeat(32), crc32: '3'.repeat(8), crc64: '4'.repeat(16), size: 123 },
     },
   },
   modules: [
@@ -45,10 +45,10 @@ describe('ExploreSymbolsPage', () => {
 
   beforeEach(() => {
     vi.mocked(getGameSymbolIndex).mockResolvedValue({
-      schemaVersion: 3,
+      schemaVersion: 4,
       versions: [
-        { gameVersion: '14172', url: `14172.${'a'.repeat(64)}.json`, sha256: 'a'.repeat(64), size: 123, snapshotSchemaVersion: 4, fileCount: 3, lastPublishTime: '2026-07-27T04:42:43Z' },
-        { gameVersion: '14171', url: `14171.${'b'.repeat(64)}.json`, sha256: 'b'.repeat(64), size: 122, snapshotSchemaVersion: 4, fileCount: 2, lastPublishTime: '2026-07-26T01:02:03Z' },
+        { gameVersion: '14172', url: `14172.${'a'.repeat(64)}.json`, sha256: 'a'.repeat(64), size: 123, snapshotSchemaVersion: 5, fileCount: 3, lastPublishTime: '2026-07-27T04:42:43Z' },
+        { gameVersion: '14171', url: `14171.${'b'.repeat(64)}.json`, sha256: 'b'.repeat(64), size: 122, snapshotSchemaVersion: 5, fileCount: 2, lastPublishTime: '2026-07-26T01:02:03Z' },
       ],
     })
     vi.mocked(getGameSymbolDataset).mockImplementation(async (version) => ({

@@ -3,6 +3,8 @@ from pathlib import Path, PurePosixPath
 
 from binary_hashing import hash_file
 from gamedata_candidate import GamedataCandidateError, verify_published_gamedata
+from gamesymbol_snapshot_lib.codec import BINARY_METADATA_KEYS
+from gamesymbol_snapshot_lib.operations import load_snapshot_context
 from release_workflow_lib.errors import ReleaseWorkflowError
 from release_workflow_lib.hashing import (
     contained_path,
@@ -19,7 +21,6 @@ from release_workflow_lib.hashing import (
 from release_workflow_lib.manifests import (
     ALLOWED_REPOSITORIES,
     SCHEMA_VERSION,
-    TRACKED_FIELDS,
     build_tracked_manifest,
     load_tracked_manifest,
     parse_abandon_output_branch,
@@ -31,7 +32,6 @@ from release_workflow_lib.manifests import (
     validate_tracked_manifest,
     verify_tracked_outputs,
 )
-from gamesymbol_snapshot_lib.operations import load_snapshot_context
 
 
 ABANDON_REASON_MAX_LENGTH = 500
@@ -54,7 +54,7 @@ def verify_snapshot_binaries(document: dict, stage_bin: Path) -> int:
                 actual = hash_file(binary)
             except OSError as exc:
                 raise ReleaseWorkflowError(f"unable to hash staged snapshot binary {binary}: {exc}") from exc
-            expected = {"md5": metadata["md5"], "sha256": metadata["sha256"]}
+            expected = {key: metadata[key] for key in BINARY_METADATA_KEYS if key != "path"}
             if actual != expected:
                 raise ReleaseWorkflowError(
                     f"snapshot binary hash mismatch for {module}/{platform}: expected={expected!r} actual={actual!r}"

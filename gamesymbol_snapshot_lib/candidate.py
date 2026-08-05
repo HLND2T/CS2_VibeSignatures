@@ -104,7 +104,14 @@ def build_candidate_snapshot(
 ) -> CandidateInfo:
     output, session = _validate_staging_paths(output_path, session_path)
     try:
-        pack_snapshot(game_version, bin_root, config_path, output, last_publish_time=last_publish_time)
+        pack_snapshot(
+            game_version,
+            bin_root,
+            config_path,
+            output,
+            last_publish_time=last_publish_time,
+            binary_metadata_source_path=Path("gamesymbols") / f"{game_version}.yaml",
+        )
         store = SnapshotSymbolStore.open(
             output,
             expected_game_version=str(game_version),

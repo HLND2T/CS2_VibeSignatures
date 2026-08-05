@@ -5,8 +5,9 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from binary_hashing import hash_file
 from gamedata_candidate import build_candidate, publish_candidate
-from gamesymbol_snapshot_lib.codec import build_snapshot_document, canonical_snapshot_bytes
+from gamesymbol_snapshot_lib.codec import build_snapshot_document, canonical_snapshot_bytes, parse_snapshot_bytes
 from gamesymbol_snapshot_lib.config import load_contract
 from release_workflow_lib.errors import ReleaseWorkflowError
 from release_workflow_lib.hashing import (
@@ -62,6 +63,7 @@ class ReleaseFixture:
         client_binary = self.bin_source / "client" / "client.dll"
         client_binary.parent.mkdir()
         client_binary.write_bytes(b"dll")
+        client_hashes = hash_file(client_binary)
         (self.bin_source / "client" / "client.yaml").write_text("value: 1\n", encoding="utf-8")
         self.analysis_config.write_text(
             "modules:\n  - name: client\n    path_windows: game/bin/win64/client.dll\n    skills: []\n",
@@ -78,8 +80,7 @@ class ReleaseFixture:
                     "client": {
                         "windows": {
                             "path": "game/bin/win64/client.dll",
-                            "sha256": hashlib.sha256(b"dll").hexdigest(),
-                            "md5": hashlib.md5(b"dll").hexdigest(),
+                            **client_hashes,
                         }
                     }
                 },
@@ -220,6 +221,9 @@ class TestReleaseWorkflow(unittest.TestCase):
                         "path": "game/bin/win64/server.dll",
                         "sha256": "1" * 64,
                         "md5": "2" * 32,
+                        "crc32": "3" * 8,
+                        "crc64": "4" * 16,
+                        "size": 3,
                     }
                 }
             },
@@ -327,6 +331,18 @@ class TestReleaseWorkflow(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             fixture = ReleaseFixture(Path(tmp))
             (fixture.bin_source / "client" / "client.dll").write_bytes(b"changed")
+
+            with self.assertRaisesRegex(ReleaseWorkflowError, "snapshot binary hash mismatch"):
+                fixture.stage()
+
+            self.assertFalse((fixture.staging / fixture.gamever / fixture.build_id).exists())
+
+    def test_stage_rejects_snapshot_crc64_mismatch(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            fixture = ReleaseFixture(Path(tmp))
+            document = parse_snapshot_bytes(fixture.candidate.read_bytes())
+            document["binaries"]["client"]["windows"]["crc64"] = "0" * 16
+            fixture.candidate.write_bytes(canonical_snapshot_bytes(document))
 
             with self.assertRaisesRegex(ReleaseWorkflowError, "snapshot binary hash mismatch"):
                 fixture.stage()

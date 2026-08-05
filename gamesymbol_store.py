@@ -82,6 +82,9 @@ class SymbolStore(Protocol):
     @property
     def file_count(self) -> int: ...
 
+    @property
+    def binaries(self) -> Mapping[str, Any]: ...
+
     def contains(self, module: str, filename: str) -> bool: ...
 
     def get(self, module: str, filename: str) -> Mapping[str, Any] | None: ...
@@ -142,6 +145,7 @@ class _MemorySymbolStore:
         config_sha256: str,
         source_sha256: str,
         files: Mapping[str, Mapping],
+        binaries: Mapping[str, Any] | None = None,
     ):
         self._game_version = str(game_version)
         self._schema_version = schema_version
@@ -149,6 +153,7 @@ class _MemorySymbolStore:
         self._config_sha256 = config_sha256
         self._candidate_sha256 = source_sha256
         self._files = {path: copy.deepcopy(payload) for path, payload in files.items()}
+        self._binaries = copy.deepcopy(binaries or {})
         self._modules: dict[str, list[str]] = {}
         for path in sorted(self._files):
             module, _filename = _split_store_path(path)
@@ -177,6 +182,10 @@ class _MemorySymbolStore:
     @property
     def file_count(self) -> int:
         return len(self._files)
+
+    @property
+    def binaries(self) -> Mapping[str, Any]:
+        return copy.deepcopy(self._binaries)
 
     def contains(self, module: str, filename: str) -> bool:
         return self._key(module, filename) in self._files
@@ -243,6 +252,7 @@ class SnapshotSymbolStore(_MemorySymbolStore):
             config_sha256=document["config_sha256"],
             source_sha256=digest,
             files=document["files"],
+            binaries=document.get("binaries", {}),
         )
 
 

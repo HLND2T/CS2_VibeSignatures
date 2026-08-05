@@ -87,6 +87,15 @@ gamedata/<GAMEVER>/CS2Fixes/gamedata/cs2fixes.jsonc
 
 `CCSPlayerPawn_GetMaxSpeed` is skipped because it is not present in `server.dll`.
 
+### [CS2FOW](https://gitlab.com/karola3vax-group/cs2fow)
+
+```text
+gamedata/<GAMEVER>/CS2FOW/gamedata/cs2fow.games.txt
+```
+
+CS2FOW output is generated for game version `14174` and later. Server binary size and CRC32 values come from the
+same immutable symbol snapshot as the generated offsets and RVAs.
+
 ### [swiftlys2](https://github.com/swiftly-solution/swiftlys2)
 
 ```text

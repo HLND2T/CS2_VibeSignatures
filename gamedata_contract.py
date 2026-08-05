@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import importlib.util
+import inspect
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
-from types import ModuleType
+from types import MappingProxyType, ModuleType
+from typing import Any
 
 from release_workflow_lib.hashing import (
     canonical_json_bytes,
@@ -18,16 +21,36 @@ MODULE_DIRECTORY_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*\Z")
 GAMEVER_RE = re.compile(r"\d+[a-z]?\Z")
 ALLOWED_OUTPUT_SUFFIXES = {".json", ".jsonc", ".txt"}
 RESERVED_MODULE_DIRECTORIES = {"completed", "cleanup-trash", "locks", "pr-index"}
+SUPPORTED_GENERATOR_API_VERSIONS = {1, 2}
 
 
 class GamedataContractError(ValueError):
     pass
 
 
+def _freeze_context_value(value):
+    if isinstance(value, Mapping):
+        return MappingProxyType({key: _freeze_context_value(item) for key, item in value.items()})
+    if isinstance(value, list):
+        return tuple(_freeze_context_value(item) for item in value)
+    return value
+
+
+@dataclass(frozen=True)
+class GeneratorContext:
+    game_version: str
+    binaries: Mapping[str, Any]
+
+    def __post_init__(self):
+        object.__setattr__(self, "game_version", str(self.game_version))
+        object.__setattr__(self, "binaries", _freeze_context_value(self.binaries))
+
+
 @dataclass(frozen=True)
 class GeneratorModule:
     directory: str
     name: str
+    api_version: int
     source_dir: Path
     module: ModuleType
     output_paths: tuple[str, ...]
@@ -39,6 +62,7 @@ class GeneratorModule:
         return {
             "directory": self.directory,
             "name": self.name,
+            "api_version": self.api_version,
             "output_paths": list(self.output_paths),
             "download_sources": [list(item) for item in self.download_sources],
             "static_sources": [list(item) for item in self.static_sources],
@@ -87,6 +111,26 @@ def _module_contract(directory: str, source_dir: Path, module: ModuleType) -> Ge
     name = getattr(module, "MODULE_NAME", None)
     if not isinstance(name, str) or not name.strip():
         raise GamedataContractError(f"generator {directory} has no valid MODULE_NAME")
+    api_version = getattr(module, "GENERATOR_API_VERSION", 1)
+    if (
+        isinstance(api_version, bool)
+        or not isinstance(api_version, int)
+        or api_version not in SUPPORTED_GENERATOR_API_VERSIONS
+    ):
+        raise GamedataContractError(f"generator {directory} has unsupported GENERATOR_API_VERSION: {api_version!r}")
+    update = getattr(module, "update", None)
+    if not callable(update):
+        raise GamedataContractError(f"generator {directory} has no callable update")
+    if api_version == 2:
+        try:
+            context_parameter = inspect.signature(update).parameters.get("context")
+        except (TypeError, ValueError) as exc:
+            raise GamedataContractError(f"generator {directory} has an unreadable update signature: {exc}") from exc
+        if context_parameter is None or context_parameter.kind not in {
+            inspect.Parameter.POSITIONAL_OR_KEYWORD,
+            inspect.Parameter.KEYWORD_ONLY,
+        }:
+            raise GamedataContractError(f"generator {directory} API v2 update must accept a context keyword argument")
     declared = getattr(module, "OUTPUT_PATHS", None)
     if not isinstance(declared, (tuple, list)) or not declared:
         raise GamedataContractError(f"generator {directory} must declare non-empty OUTPUT_PATHS")
@@ -146,6 +190,7 @@ def _module_contract(directory: str, source_dir: Path, module: ModuleType) -> Ge
     return GeneratorModule(
         directory=directory,
         name=name.strip(),
+        api_version=api_version,
         source_dir=source_dir,
         module=module,
         output_paths=output_paths,

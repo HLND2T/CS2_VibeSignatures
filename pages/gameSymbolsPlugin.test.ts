@@ -4,7 +4,7 @@ import { attachAliasesToDataset, buildConfigAliasIndex, createGameSymbolIndex, e
 
 function snapshot(files: Record<string, Record<string, unknown>>, gameVersion = '14168b') {
   return {
-    schema_version: 4,
+    schema_version: 5,
     last_publish_time: '2026-01-02T03:04:05Z',
     binaries: {
       server: {
@@ -12,11 +12,17 @@ function snapshot(files: Record<string, Record<string, unknown>>, gameVersion = 
           path: 'game/bin/win64/server.dll',
           sha256: '1'.repeat(64),
           md5: '2'.repeat(32),
+          crc32: '3'.repeat(8),
+          crc64: '4'.repeat(16),
+          size: 123,
         },
         linux: {
           path: 'game/bin/linuxsteamrt64/libserver.so',
           sha256: '3'.repeat(64),
           md5: '4'.repeat(32),
+          crc32: '5'.repeat(8),
+          crc64: '6'.repeat(16),
+          size: 456,
         },
       },
     },
@@ -38,12 +44,15 @@ describe('gameSymbolsPlugin normalization', () => {
     }), '14168b', 'snapshot.yaml')
 
     expect(dataset.source.gameVersion).toBe('14168b')
-    expect(dataset.schemaVersion).toBe(2)
+    expect(dataset.schemaVersion).toBe(3)
     expect(dataset.source.lastPublishTime).toBe('2026-01-02T03:04:05Z')
     expect(dataset.binaries.server.windows).toEqual({
       path: 'game/bin/win64/server.dll',
       sha256: '1'.repeat(64),
       md5: '2'.repeat(32),
+      crc32: '3'.repeat(8),
+      crc64: '4'.repeat(16),
+      size: 123,
     })
     expect(dataset.modules).toEqual([
       { name: 'client', count: 1, windowsCount: 1, linuxCount: 0 },
@@ -62,7 +71,10 @@ describe('gameSymbolsPlugin normalization', () => {
     expect(() => normalizeGameSymbolSnapshot(value, '14169', 'snapshot.yaml')).toThrow(/does not match filename/)
     expect(() => normalizeGameSymbolSnapshot(snapshot({ 'server\\nested/Test.windows.yaml': { func_name: 'Test' } }), '14168b', 'snapshot.yaml')).toThrow(/invalid symbol path/)
     expect(() => normalizeGameSymbolSnapshot({ ...value, last_publish_time: 'invalid' }, '14168b', 'snapshot.yaml')).toThrow(/last_publish_time/)
-    expect(() => normalizeGameSymbolSnapshot({ ...value, binaries: { server: { windows: { path: 'server.dll', sha256: 'A'.repeat(64), md5: '2'.repeat(32) } } } }, '14168b', 'snapshot.yaml')).toThrow(/sha256/)
+    expect(() => normalizeGameSymbolSnapshot({ ...value, schema_version: 4 }, '14168b', 'snapshot.yaml')).toThrow(/schema_version/)
+    expect(() => normalizeGameSymbolSnapshot({ ...value, binaries: { server: { windows: { path: 'server.dll', sha256: 'A'.repeat(64), md5: '2'.repeat(32), crc32: '3'.repeat(8), crc64: '4'.repeat(16), size: 1 } } } }, '14168b', 'snapshot.yaml')).toThrow(/sha256/)
+    expect(() => normalizeGameSymbolSnapshot({ ...value, binaries: { server: { windows: { path: 'server.dll', sha256: '1'.repeat(64), md5: '2'.repeat(32), crc32: 'A'.repeat(8), crc64: '4'.repeat(16), size: 1 } } } }, '14168b', 'snapshot.yaml')).toThrow(/crc32/)
+    expect(() => normalizeGameSymbolSnapshot({ ...value, binaries: { server: { windows: { path: 'server.dll', sha256: '1'.repeat(64), md5: '2'.repeat(32), crc32: '3'.repeat(8), crc64: '4'.repeat(16), size: -1 } } } }, '14168b', 'snapshot.yaml')).toThrow(/size/)
   })
 
   it('sorts versions newest first without treating suffixes as numbers', () => {
@@ -70,7 +82,7 @@ describe('gameSymbolsPlugin normalization', () => {
     const revision = normalizeGameSymbolSnapshot(snapshot({}, '14168b'), '14168b', '14168b.yaml')
     const latest = normalizeGameSymbolSnapshot(snapshot({}, '14169'), '14169', '14169.yaml')
     const index = createGameSymbolIndex([older, latest, revision].map(encodeGameSymbolAsset))
-    expect(index.schemaVersion).toBe(3)
+    expect(index.schemaVersion).toBe(4)
     expect(index.versions.map((entry) => entry.gameVersion)).toEqual(['14169', '14168b', '14168'])
     expect(index.versions[0]).toEqual(expect.objectContaining({
       lastPublishTime: '2026-01-02T03:04:05Z',

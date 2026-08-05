@@ -4,6 +4,9 @@ export interface GameSymbolBinary {
   path: string
   sha256: string
   md5: string
+  crc32: string
+  crc64: string
+  size: number
 }
 
 export type GameSymbolBinaries = Record<string, Partial<Record<GameSymbolPlatform, GameSymbolBinary>>>
@@ -19,7 +22,7 @@ export interface GameSymbolIndexVersion {
 }
 
 export interface GameSymbolIndex {
-  schemaVersion: 3
+  schemaVersion: 4
   versions: GameSymbolIndexVersion[]
 }
 
@@ -35,7 +38,7 @@ export interface GameSymbolRecord {
 }
 
 export interface GameSymbolDataset {
-  schemaVersion: 2
+  schemaVersion: 3
   source: {
     gameVersion: string
     snapshotSchemaVersion: number

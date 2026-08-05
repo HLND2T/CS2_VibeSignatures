@@ -116,7 +116,7 @@ disasm_code: |-
   .text:0000000180959B68                 lea     rcx, [rbx+8]; void *
   .text:0000000180959B6C                 ; Size
   .text:0000000180959B6C                 mov     r8d, 1000h; Size
-  .text:0000000180959B72                 mov     [rdi+70h], rbx
+  .text:0000000180959B72                 mov     [rdi+70h], rbx  ; 70h = SmokeVolume::m_pStorage (structmember, struct=SmokeVolume, member=m_pStorage)
   .text:0000000180959B76                 call    memcpy
   .text:0000000180959B7B                 movss   xmm0, [rbp+70h+arg_20]
   .text:0000000180959B83                 lea     rcx, [rbp+70h+arg_20]
@@ -382,7 +382,7 @@ procedure: |-
       v18 = nullptr;
     }
     v19 = *(const void **)(pSmokeVolume + 24);
-    *(_QWORD *)(pSmokeVolume + 112) = v18;        // 112 = 0x70 = SmokeVolume::m_pStorage
+    *(_QWORD *)(pSmokeVolume + 112) = v18;        // 112 = 0x70 = SmokeVolume::m_pStorage (structmember, struct=SmokeVolume, member=m_pStorage)
     memcpy(v18 + 8, v19, 0x1000u);
     *(_DWORD *)(pSmokeVolume + 12) = a5;          // 12 = 0xC = SmokeVolume::m_flStartTime (structmember, struct=SmokeVolume, member=m_flStartTime)
     v20 = sub_1808CA090(&a5, 0);

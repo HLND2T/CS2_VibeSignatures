@@ -59,8 +59,10 @@ UNIT_MODULES = frozenset(
     {
         "test_agent_runner",
         "test_analysis_config",
+        "test_binary_hashing",
         "test_bump_download",
         "test_copy_depot_bin",
+        "test_cs2fow_gamedata",
         "test_define_inputfunc_preprocessor",
         "test_download_depot",
         "test_format_repo_files",

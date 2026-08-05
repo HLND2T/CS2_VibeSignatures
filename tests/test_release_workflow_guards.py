@@ -73,6 +73,9 @@ class LegacyBootstrapFixture:
                         "path": "game/bin/win64/server.dll",
                         "sha256": "1" * 64,
                         "md5": "2" * 32,
+                        "crc32": "3" * 8,
+                        "crc64": "4" * 16,
+                        "size": 3,
                     }
                 }
             },
@@ -193,6 +196,9 @@ class TestReleaseWorkflowGuards(unittest.TestCase):
                                         "path": "game/bin/win64/server.dll",
                                         "sha256": "1" * 64,
                                         "md5": "2" * 32,
+                                        "crc32": "3" * 8,
+                                        "crc64": "4" * 16,
+                                        "size": 3,
                                     }
                                 }
                             },
@@ -305,6 +311,9 @@ class TestReleaseWorkflowGuards(unittest.TestCase):
                             "path": "game/bin/win64/server.dll",
                             "sha256": "1" * 64,
                             "md5": "2" * 32,
+                            "crc32": "3" * 8,
+                            "crc64": "4" * 16,
+                            "size": 3,
                         }
                     }
                 },

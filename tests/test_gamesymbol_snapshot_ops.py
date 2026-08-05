@@ -55,13 +55,19 @@ class TestPack(unittest.TestCase):
                 return_value="2026-01-02T03:04:05Z",
             ):
                 first = workspace.pack()
-                second = workspace.pack()
+                with patch("gamesymbol_snapshot_lib.operations.hash_file") as hash_file:
+                    second = workspace.pack()
+            hash_file.assert_not_called()
             data = yaml.safe_load(first)
 
         self.assertEqual(first, second)
         self.assertTrue(first.endswith(b"\n"))
         self.assertNotIn(b"\r\n", first)
-        self.assertEqual(4, data["schema_version"])
+        self.assertIn(b"md5: '456c46feb1e3507ab7e6bdab725bc96d'", first)
+        self.assertIn(b"sha256: 'd9e10855383c0d0615236b12bf43e0c7e43c64cf5fe376bc4ea01564d9b29afb'", first)
+        self.assertIn(b"crc32: 'b9a89d30'", first)
+        self.assertIn(b"crc64: '8335b2f68cbb0fc8'", first)
+        self.assertEqual(5, data["schema_version"])
         self.assertEqual(1, data["analysis_output_contract_version"])
         self.assertEqual(2, data["config_digest_version"])
         self.assertEqual("14168", data["game_version"])
@@ -69,14 +75,20 @@ class TestPack(unittest.TestCase):
         self.assertEqual(
             {
                 "linux": {
+                    "crc32": "aef367dd",
+                    "crc64": "24ee2986c00bf5d6",
                     "md5": hashlib.md5(b"linux-binary").hexdigest(),
                     "path": "game/bin/linuxsteamrt64/server.so",
                     "sha256": hashlib.sha256(b"linux-binary").hexdigest(),
+                    "size": 12,
                 },
                 "windows": {
+                    "crc32": "b9a89d30",
+                    "crc64": "8335b2f68cbb0fc8",
                     "md5": hashlib.md5(b"windows-binary").hexdigest(),
                     "path": "game/bin/win64/server.dll",
                     "sha256": hashlib.sha256(b"windows-binary").hexdigest(),
+                    "size": 14,
                 },
             },
             data["binaries"]["server"],

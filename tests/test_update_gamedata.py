@@ -15,6 +15,15 @@ from gamesymbol_store import DirectorySymbolStore
 
 class RecordingStore:
     candidate_sha256 = "fixture-sha256"
+    game_version = "14141"
+    binaries = {
+        "server": {
+            "windows": {
+                "size": 123,
+                "crc32": "000000ff",
+            }
+        }
+    }
 
     def __init__(self, payloads=None):
         self.payloads = payloads or {}
@@ -455,6 +464,48 @@ class TestGenerateGamedataDiagnostics(unittest.TestCase):
         self.assertIn("Unique warning diagnostics: 2", rendered)
         self.assertIn("Warning observations: 3", rendered)
         self.assertIn("Duplicate observations suppressed: 1", rendered)
+
+    def test_generator_api_v2_receives_immutable_snapshot_context(self) -> None:
+        received = {}
+
+        def update(*_args, context):
+            received["context"] = context
+            return 0, 0, [], []
+
+        with TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config_path = root / "config.yaml"
+            config_path.write_text("modules: []\n", encoding="utf-8")
+            source_dir = root / "generator"
+            source_dir.mkdir()
+            contract = SimpleNamespace(
+                name="Fixture",
+                directory="fixture",
+                api_version=2,
+                source_dir=source_dir,
+                static_sources=(),
+                download_sources=(),
+                module=SimpleNamespace(update=update),
+            )
+            with (
+                patch.object(update_gamedata, "open_snapshot_store", return_value=RecordingStore()),
+                patch.object(update_gamedata, "discover_generator_modules", return_value=[contract]),
+                patch.object(update_gamedata, "generator_contract_sha256", return_value="contract-sha256"),
+            ):
+                update_gamedata.generate_gamedata(
+                    gamever="14141",
+                    snapshot_path=root / "snapshot.yaml",
+                    config_path=config_path,
+                    modules_dir=root,
+                    output_root=root / "output",
+                    platforms=["windows"],
+                )
+
+        context = received["context"]
+        self.assertEqual("14141", context.game_version)
+        self.assertEqual(123, context.binaries["server"]["windows"]["size"])
+        with self.assertRaises(TypeError):
+            context.binaries["server"]["windows"]["size"] = 0
 
 
 if __name__ == "__main__":

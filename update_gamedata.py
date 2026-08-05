@@ -30,6 +30,7 @@ import shutil
 from analysis_config import AnalysisConfigError, resolve_analysis_config
 from gamedata_config_validation import finding_delta, print_config_findings, validate_gamedata_config
 from gamedata_contract import (
+    GeneratorContext,
     GamedataContractError,
     canonicalize_output_text,
     discover_generator_modules,
@@ -223,6 +224,10 @@ def generate_gamedata(
     )
     print("Symbol source: snapshot")
     print(f"Candidate SHA-256: {symbol_store.candidate_sha256}")
+    generator_context = GeneratorContext(
+        game_version=symbol_store.game_version,
+        binaries=symbol_store.binaries,
+    )
     print(f"Generator directory: {modules_dir}")
     print(f"Versioned output directory: {output_root}")
     print(f"Platforms: {', '.join(platforms)}")
@@ -271,9 +276,14 @@ def generate_gamedata(
             )
         module_output_root = os.path.join(output_root, contract.directory)
         try:
-            updated, skipped, updated_symbols, skipped_symbols = contract.module.update(
-                yaml_data, func_lib_map, platforms, module_output_root, alias_map, debug
-            )
+            update_args = (yaml_data, func_lib_map, platforms, module_output_root, alias_map, debug)
+            if getattr(contract, "api_version", 1) == 2:
+                updated, skipped, updated_symbols, skipped_symbols = contract.module.update(
+                    *update_args,
+                    context=generator_context,
+                )
+            else:
+                updated, skipped, updated_symbols, skipped_symbols = contract.module.update(*update_args)
         except Exception as exc:
             if strict:
                 raise GamedataContractError(f"generator {contract.directory} failed: {exc}") from exc

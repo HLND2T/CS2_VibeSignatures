@@ -42,4 +42,4 @@ canonical tracked output 是 `gamesymbols/<GAMEVER>.yaml` 与 `gamedata/<GAMEVER
 
 ## 支持的 gamedata
 
-本项目为 CounterStrikeSharp、CS2Fixes、swiftlys2、plugify、cs2kz-metamod、modsharp 和 CS2Surf/Timer 生成按版本保存的 gamedata。具体路径与例外见[支持的 gamedata](docs/zh-CN/snapshot-and-gamedata.md)。
+本项目为 CounterStrikeSharp、CS2Fixes、CS2FOW、swiftlys2、plugify、cs2kz-metamod、modsharp 和 CS2Surf/Timer 生成按版本保存的 gamedata。具体路径与例外见[支持的 gamedata](docs/zh-CN/snapshot-and-gamedata.md)。

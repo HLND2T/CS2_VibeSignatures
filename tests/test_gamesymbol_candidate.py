@@ -17,6 +17,7 @@ from gamesymbol_snapshot_lib.candidate import (
 )
 from gamesymbol_snapshot_lib.config import load_contract
 from gamesymbol_snapshot_lib.errors import SnapshotMismatchError
+from gamesymbol_snapshot_lib.operations import pack_snapshot
 from gamesymbol_store import CandidateChangedError
 from tests.gamesymbol_snapshot_test_support import module, skill, write_binary, write_config, write_yaml
 
@@ -84,9 +85,29 @@ class TestCandidateLifecycle(unittest.TestCase):
                 self.assertEqual(info.candidate_sha256, published.candidate_sha256)
                 manifest = json.loads(workspace.session.read_text())
                 self.assertEqual(2, manifest["schema_version"])
-                self.assertEqual(4, manifest["snapshot_schema_version"])
+                self.assertEqual(5, manifest["snapshot_schema_version"])
                 self.assertEqual(2, manifest["config_digest_version"])
                 self.assertEqual("published", manifest["state"])
+            finally:
+                os.chdir(previous)
+
+    def test_build_reuses_binary_metadata_from_tracked_snapshot(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            previous = Path.cwd()
+            os.chdir(temp_dir)
+            try:
+                workspace = CandidateWorkspace(Path(temp_dir))
+                tracked_snapshot = Path(temp_dir) / "gamesymbols" / f"{workspace.gamever}.yaml"
+                with patch(
+                    "gamesymbol_snapshot_lib.operations._utc_publish_time",
+                    return_value="2026-01-02T03:04:05Z",
+                ):
+                    pack_snapshot(workspace.gamever, workspace.bindir, workspace.config, tracked_snapshot)
+                    with patch("gamesymbol_snapshot_lib.operations.hash_file") as hash_file:
+                        workspace.build()
+
+                hash_file.assert_not_called()
+                self.assertEqual(tracked_snapshot.read_bytes(), workspace.candidate.read_bytes())
             finally:
                 os.chdir(previous)
 

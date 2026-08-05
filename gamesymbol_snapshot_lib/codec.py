@@ -13,7 +13,8 @@ from trusted_yaml import load_yaml
 LEGACY_SCHEMA_VERSION = 1
 SCHEMA_2_VERSION = 2
 SCHEMA_3_VERSION = 3
-SCHEMA_VERSION = 4
+SCHEMA_4_VERSION = 4
+SCHEMA_VERSION = 5
 SCHEMA_1_KEYS = ("schema_version", "game_version", "config_sha256", "file_count", "files")
 SCHEMA_2_KEYS = (
     "schema_version",
@@ -48,12 +49,26 @@ SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 MD5_PATTERN = re.compile(r"^[0-9a-f]{32}$")
 PUBLISH_TIME_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
 BINARY_PLATFORMS = ("windows", "linux")
-BINARY_METADATA_KEYS = ("path", "sha256", "md5")
+BINARY_METADATA_KEYS = ("path", "sha256", "md5", "crc32", "crc64", "size")
+LEGACY_BINARY_METADATA_KEYS = ("path", "sha256", "md5")
+CRC32_PATTERN = re.compile(r"^[0-9a-f]{8}$")
+CRC64_PATTERN = re.compile(r"^[0-9a-f]{16}$")
 
 
 class CanonicalDumper(yaml.SafeDumper):
     def ignore_aliases(self, data):
         return True
+
+
+class _QuotedString(str):
+    """A string whose YAML representation must remain explicitly quoted."""
+
+
+def _represent_quoted_string(dumper, value):
+    return dumper.represent_scalar("tag:yaml.org,2002:str", value, style="'")
+
+
+CanonicalDumper.add_representer(_QuotedString, _represent_quoted_string)
 
 
 def _key_sort_key(key):
@@ -66,6 +81,23 @@ def canonicalize(value):
     if isinstance(value, list):
         return [canonicalize(item) for item in value]
     return value
+
+
+def _canonicalize_binaries(binaries: Mapping, schema_version: int) -> dict:
+    canonical_binaries = canonicalize(binaries)
+    if schema_version != SCHEMA_VERSION:
+        return canonical_binaries
+    for platforms in canonical_binaries.values():
+        if not isinstance(platforms, dict):
+            continue
+        for metadata in platforms.values():
+            if not isinstance(metadata, dict):
+                continue
+            for field in ("md5", "sha256", "crc32", "crc64"):
+                value = metadata.get(field)
+                if isinstance(value, str):
+                    metadata[field] = _QuotedString(value)
+    return canonical_binaries
 
 
 def canonical_yaml_bytes(value) -> bytes:
@@ -88,7 +120,7 @@ def snapshot_config_digest_version(document: Mapping) -> int:
     schema_version = document.get("schema_version")
     if schema_version == LEGACY_SCHEMA_VERSION:
         return 1
-    if schema_version in {SCHEMA_2_VERSION, SCHEMA_3_VERSION, SCHEMA_VERSION}:
+    if schema_version in {SCHEMA_2_VERSION, SCHEMA_3_VERSION, SCHEMA_4_VERSION, SCHEMA_VERSION}:
         version = document.get("config_digest_version")
         if not isinstance(version, int) or isinstance(version, bool) or version != 2:
             raise SnapshotSchemaError(
@@ -106,7 +138,7 @@ def snapshot_analysis_output_contract_version(document: Mapping) -> int:
     schema_version = document.get("schema_version")
     if schema_version in {LEGACY_SCHEMA_VERSION, SCHEMA_2_VERSION}:
         return 1
-    if schema_version in {SCHEMA_3_VERSION, SCHEMA_VERSION}:
+    if schema_version in {SCHEMA_3_VERSION, SCHEMA_4_VERSION, SCHEMA_VERSION}:
         version = document.get("analysis_output_contract_version")
         if not isinstance(version, int) or isinstance(version, bool) or version < 1:
             raise SnapshotSchemaError(
@@ -160,7 +192,7 @@ def build_snapshot_document(
             "file_count": len(ordered_files),
             "files": ordered_files,
         }
-    if schema_version not in {SCHEMA_3_VERSION, SCHEMA_VERSION}:
+    if schema_version not in {SCHEMA_3_VERSION, SCHEMA_4_VERSION, SCHEMA_VERSION}:
         raise SnapshotSchemaError(
             f"unsupported snapshot schema_version: {schema_version!r}",
             reason="unsupported_snapshot_schema",
@@ -195,11 +227,11 @@ def build_snapshot_document(
     if schema_version == SCHEMA_3_VERSION:
         return document
     if last_publish_time is None or binaries is None:
-        raise SnapshotSchemaError("schema 4 snapshots require last_publish_time and binaries")
+        raise SnapshotSchemaError("published snapshots require last_publish_time and binaries")
     return {
-        "schema_version": SCHEMA_VERSION,
+        "schema_version": schema_version,
         "last_publish_time": last_publish_time,
-        "binaries": canonicalize(binaries),
+        "binaries": _canonicalize_binaries(binaries, schema_version),
         **{key: value for key, value in document.items() if key != "schema_version"},
     }
 
@@ -228,6 +260,7 @@ def _validate_metadata(document: object, expected_game_version: str | None) -> d
         LEGACY_SCHEMA_VERSION: SCHEMA_1_KEYS,
         SCHEMA_2_VERSION: SCHEMA_2_KEYS,
         SCHEMA_3_VERSION: SCHEMA_3_KEYS,
+        SCHEMA_4_VERSION: SCHEMA_4_KEYS,
         SCHEMA_VERSION: SCHEMA_4_KEYS,
     }.get(schema_version)
     if expected_keys is None:
@@ -253,7 +286,7 @@ def _validate_metadata(document: object, expected_game_version: str | None) -> d
     count = document.get("file_count")
     if not isinstance(count, int) or isinstance(count, bool) or count != len(document["files"]):
         raise SnapshotSchemaError("snapshot file_count does not match files")
-    if schema_version == SCHEMA_VERSION:
+    if schema_version in {SCHEMA_4_VERSION, SCHEMA_VERSION}:
         _validate_publish_metadata(document)
     return document
 
@@ -277,6 +310,8 @@ def _validate_publish_metadata(document: dict) -> None:
         datetime.strptime(publish_time, "%Y-%m-%dT%H:%M:%SZ")
     except ValueError as exc:
         raise SnapshotSchemaError("snapshot last_publish_time is invalid") from exc
+    schema_version = document["schema_version"]
+    metadata_keys = LEGACY_BINARY_METADATA_KEYS if schema_version == SCHEMA_4_VERSION else BINARY_METADATA_KEYS
     binaries = document.get("binaries")
     if not isinstance(binaries, dict):
         raise SnapshotSchemaError("snapshot binaries must be a mapping")
@@ -295,13 +330,21 @@ def _validate_publish_metadata(document: dict) -> None:
             raise SnapshotSchemaError(f"snapshot binaries.{module} contains an unsupported platform")
         for platform, metadata in platforms.items():
             context = f"snapshot binaries.{module}.{platform}"
-            if not isinstance(metadata, dict) or set(metadata) != set(BINARY_METADATA_KEYS):
-                raise SnapshotSchemaError(f"{context} must contain exactly: {', '.join(BINARY_METADATA_KEYS)}")
+            if not isinstance(metadata, dict) or set(metadata) != set(metadata_keys):
+                raise SnapshotSchemaError(f"{context} must contain exactly: {', '.join(metadata_keys)}")
             metadata["path"] = _validate_binary_path(metadata.get("path"), f"{context}.path")
             if not isinstance(metadata.get("sha256"), str) or not SHA256_PATTERN.fullmatch(metadata["sha256"]):
                 raise SnapshotSchemaError(f"{context}.sha256 is invalid")
             if not isinstance(metadata.get("md5"), str) or not MD5_PATTERN.fullmatch(metadata["md5"]):
                 raise SnapshotSchemaError(f"{context}.md5 is invalid")
+            if schema_version == SCHEMA_VERSION:
+                if not isinstance(metadata.get("crc32"), str) or not CRC32_PATTERN.fullmatch(metadata["crc32"]):
+                    raise SnapshotSchemaError(f"{context}.crc32 is invalid")
+                if not isinstance(metadata.get("crc64"), str) or not CRC64_PATTERN.fullmatch(metadata["crc64"]):
+                    raise SnapshotSchemaError(f"{context}.crc64 is invalid")
+                size = metadata.get("size")
+                if not isinstance(size, int) or isinstance(size, bool) or size < 0:
+                    raise SnapshotSchemaError(f"{context}.size must be a non-negative integer")
 
 
 def parse_snapshot_bytes(data: bytes, expected_game_version: str | None = None) -> dict:
