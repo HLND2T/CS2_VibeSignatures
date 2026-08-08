@@ -824,6 +824,12 @@ modules:
           - CNetworkGameServer_GetFreeClient.{platform}.yaml
         expected_input:
           - CNetworkGameServerBase_ConnectClient.{platform}.yaml
+      - name: find-CNetworkGameServerBase_CheckPassword
+        expected_output:
+          - CNetworkGameServerBase_CheckPassword.{platform}.yaml
+        expected_input:
+          - CNetworkGameServerBase_ConnectClient.{platform}.yaml
+          - CNetworkGameServer_vtable.{platform}.yaml
       - name: find-CNetworkGameServerBase_CreateFakeClient
         expected_output:
           - CNetworkGameServerBase_CreateFakeClient.{platform}.yaml
@@ -2487,6 +2493,10 @@ modules:
         category: vfunc
         alias:
           - CNetworkGameServerBase::GetPassword
+      - name: CNetworkGameServerBase_CheckPassword
+        category: vfunc
+        alias:
+          - CNetworkGameServerBase::CheckPassword
       - name: CNetworkGameServerBase_OnKickById
         category: func
         alias:
