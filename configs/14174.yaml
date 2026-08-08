@@ -789,6 +789,15 @@ modules:
           - CNetworkGameServerBase_SendPeerList.{platform}.yaml
         expected_input:
           - CSVCMsg_PeerList_t_vtable.{platform}.yaml
+      - name: find-CNetworkGameServerBase_SendChallenge
+        expected_output:
+          - CNetworkGameServerBase_SendChallenge.{platform}.yaml
+      - name: find-CNetworkGameServerBase_GetChallengeType
+        expected_output:
+          - CNetworkGameServerBase_GetChallengeType.{platform}.yaml
+        expected_input:
+          - CNetworkGameServerBase_SendChallenge.{platform}.yaml
+          - CNetworkGameServer_vtable.{platform}.yaml
       - name: find-CNetworkGameServerBase_ConnectClient
         expected_output:
           - CNetworkGameServerBase_ConnectClient.{platform}.yaml
@@ -2290,6 +2299,14 @@ modules:
         category: func
         alias:
           - CNetworkGameServerBase::SendPeerList
+      - name: CNetworkGameServerBase_SendChallenge
+        category: func
+        alias:
+          - CNetworkGameServerBase::SendChallenge
+      - name: CNetworkGameServerBase_GetChallengeType
+        category: vfunc
+        alias:
+          - CNetworkGameServerBase::GetChallengeType
       - name: CNetworkGameServerBase_ConnectClient
         category: func
         alias:
