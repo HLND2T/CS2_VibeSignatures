@@ -7,7 +7,6 @@ TARGET_FUNCTION_NAMES = [
     "IGameSystemFactory_ShouldAutoAdd",
     "IGameSystemFactory_CreateGameSystem",
     "IGameSystemFactory_IsReallocating",
-    "IGameSystem_SetName",
     "IGameSystemFactory_GetPriority",
 ]
 
@@ -46,17 +45,6 @@ LLM_DECOMPILE = [
         },
     },
     {
-        "symbol_name": "IGameSystem_SetName",
-        "prompt_path": "prompt/call_llm_decompile.md",
-        "reference_yaml_paths": [
-            "references/client/IGameSystem_LoopInitAllSystems.{platform}.yaml",
-        ],
-        "expected_result_sections": ["found_vcall"],
-        "dependency_policy": {
-            "IGameSystem_LoopInitAllSystems.{platform}.yaml": "required",
-        },
-    },
-    {
         "symbol_name": "IGameSystemFactory_GetPriority",
         "prompt_path": "prompt/call_llm_decompile.md",
         "reference_yaml_paths": [
@@ -74,7 +62,6 @@ FUNC_VTABLE_RELATIONS = [
     ("IGameSystemFactory_ShouldAutoAdd", "IGameSystemFactory"),
     ("IGameSystemFactory_CreateGameSystem", "IGameSystemFactory"),
     ("IGameSystemFactory_IsReallocating", "IGameSystemFactory"),
-    ("IGameSystem_SetName", "IGameSystem"),
     ("IGameSystemFactory_GetPriority", "IGameSystemFactory"),
 ]
 
@@ -106,17 +93,6 @@ GENERATE_YAML_DESIRED_FIELDS = [
             "func_name",
             "vfunc_sig",
             "vfunc_sig_max_match:2",  # Called from both IGameSystem_LoopInitAllSystems and IGameSystem_Add, so signature matches 2 call sites
-            "vfunc_offset",
-            "vfunc_index",
-            "vtable_name",
-        ],
-    ),
-    (
-        "IGameSystem_SetName",
-        [
-            "func_name",
-            "vfunc_sig",
-            "vfunc_sig_max_match:2",  # Signature at offset 0x1D8 matches multiple call sites
             "vfunc_offset",
             "vfunc_index",
             "vtable_name",

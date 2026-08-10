@@ -3988,10 +3988,15 @@ modules:
           - IGameSystemFactory_ShouldAutoAdd.{platform}.yaml
           - IGameSystemFactory_CreateGameSystem.{platform}.yaml
           - IGameSystemFactory_IsReallocating.{platform}.yaml
-          - IGameSystem_SetName.{platform}.yaml
           - IGameSystemFactory_GetPriority.{platform}.yaml
         expected_input:
           - IGameSystem_LoopInitAllSystems.{platform}.yaml
+      - name: find-IGameSystem_SetName
+        expected_output:
+          - IGameSystem_SetName.{platform}.yaml
+        expected_input:
+          - IGameSystem_AddByName.{platform}.yaml
+          - IGameSystem_vtable.{platform}.yaml
       - name: find-CLoopModeGame_LoopShutdown-AND-CLoopModeGame_Shutdown-decompiles
         expected_output:
           - IGameSystem_DestroyAllGameSystems.{platform}.yaml
