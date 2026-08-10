@@ -498,6 +498,31 @@ class TestCanonicalVtablePreprocessors(unittest.IsolatedAsyncioTestCase):
                     written_payload["vtable_symbol"],
                 )
 
+    async def test_source2_server_vtable2_propagates_lookup_errors(self) -> None:
+        module = _load_module(
+            Path("ida_preprocessor_scripts/find-CSource2Server_vtable2.py"),
+            "diagnostic_CSource2Server_vtable2",
+        )
+        with (
+            patch.object(module, "_read_yaml", return_value={"vtable_va": "0x1"}),
+            patch.object(
+                module,
+                "_lookup_vtable2",
+                AsyncMock(side_effect=RuntimeError("lookup exploded")),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "lookup exploded"):
+                await module.preprocess_skill(
+                    session="session",
+                    skill_name="skill",
+                    expected_outputs=["tmp/CSource2Server_vtable2.windows.yaml"],
+                    old_yaml_map={},
+                    new_binary_dir="bin_dir",
+                    platform="windows",
+                    image_base=0x180000000,
+                    debug=False,
+                )
+
 
 class TestFindOnServerVoiceDataIsPlayingDemoCallee(unittest.IsolatedAsyncioTestCase):
     async def test_generates_patch_yaml_from_unique_vfunc_signature_match(self) -> None:

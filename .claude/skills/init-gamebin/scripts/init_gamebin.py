@@ -2,7 +2,6 @@
 """Idempotently initialize release binaries for one GAMEVER."""
 
 import argparse
-import os
 import re
 import shutil
 import subprocess
@@ -190,11 +189,7 @@ def merge_archive_bin(extract_root: Path, bin_root: Path, gamever: str) -> tuple
 
 
 def depot_download_command(gamever: str, config_path: Path) -> list[str]:
-    """Build the workflow-compatible depot command without leaking credentials."""
-    username = os.environ.get("STEAM_USERNAME")
-    password = os.environ.get("STEAM_PASSWORD")
-    if bool(username) != bool(password):
-        raise InitGamebinError("STEAM_USERNAME and STEAM_PASSWORD must be configured together")
+    """Build the workflow-compatible depot command."""
     command = [
         "uv",
         "run",
@@ -208,8 +203,6 @@ def depot_download_command(gamever: str, config_path: Path) -> list[str]:
         "-configyaml",
         str(config_path),
     ]
-    if username and password:
-        command.extend(["-username", username, "-password", password, "-remember-password"])
     return command
 
 

@@ -4,6 +4,7 @@ Download depot manifests by exact tag matching from download.yaml.
 """
 
 import argparse
+import os
 import subprocess
 import sys
 import tempfile
@@ -59,8 +60,16 @@ def parse_args() -> argparse.Namespace:
         default=DEFAULT_OS,
         help=f"DepotDownloader -os value (default: {DEFAULT_OS})",
     )
-    parser.add_argument("-username", default=None, help="Steam username for restricted content")
-    parser.add_argument("-password", default=None, help="Steam password for restricted content")
+    parser.add_argument(
+        "-username",
+        default=os.getenv("DEPOTDOWNLOADER_STEAM_USERNAME"),
+        help="Steam username for restricted content (default: DEPOTDOWNLOADER_STEAM_USERNAME)",
+    )
+    parser.add_argument(
+        "-password",
+        default=os.getenv("DEPOTDOWNLOADER_STEAM_PASSWORD"),
+        help="Steam password for restricted content (default: DEPOTDOWNLOADER_STEAM_PASSWORD)",
+    )
     parser.add_argument(
         "-remember-password",
         action="store_true",

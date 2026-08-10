@@ -1,6 +1,5 @@
 import importlib.util
 import io
-import os
 import subprocess
 import tempfile
 import unittest
@@ -101,20 +100,10 @@ class TestInitGamebin(unittest.TestCase):
             self.assertEqual(b"existing", (target / "server.dll").read_bytes())
             self.assertEqual(b"linux", (target / "server.so").read_bytes())
 
-    def test_depot_credentials_must_be_paired_and_are_added_together(self) -> None:
-        config = Path("repo/configs/14168.yaml")
-        with patch.dict(os.environ, {"STEAM_USERNAME": "user"}, clear=True):
-            with self.assertRaisesRegex(init_gamebin.InitGamebinError, "configured together"):
-                init_gamebin.depot_download_command("14168", config)
-        with patch.dict(os.environ, {"STEAM_USERNAME": "user", "STEAM_PASSWORD": "secret"}, clear=True):
-            command = init_gamebin.depot_download_command("14168", config)
-        self.assertEqual(["-username", "user", "-password", "secret", "-remember-password"], command[-5:])
-
     def test_depot_fallback_uses_workflow_commands_in_order(self) -> None:
         root = Path("repo")
         config = root / "configs" / "14168.yaml"
         with (
-            patch.dict(os.environ, {}, clear=True),
             patch.object(init_gamebin, "run_command", return_value=completed([])) as run,
         ):
             init_gamebin.run_depot_fallback(root, "14168", config)
