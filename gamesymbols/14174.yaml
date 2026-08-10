@@ -121,8 +121,8 @@ binaries:
       sha256: '6f5aa8c32e30d5369579f0e18bf97ec72e2076d3c06906efbfcc77f0c4111b80'
       size: 4592280
 config_digest_version: 2
-config_sha256: sha256:0c4319a7feee2d70a07236b06d6ecffaecc45fa70d92f43fb439663d2a59c457
-file_count: 3333
+config_sha256: sha256:2eab47b81cfea0e54cb5c2a4cf7df5c5a1d306b48db529edfd1fc8b18fe5b8ee
+file_count: 3335
 files:
   SDL3/SDL_GetMouse.windows.yaml:
     func_name: SDL_GetMouse
@@ -10647,16 +10647,22 @@ files:
     vtable_name: CNetworkGameServer_vtable
   engine/CNetworkGameServerBase_FillServerInfo.linux.yaml:
     func_name: CNetworkGameServerBase_FillServerInfo
+    func_rva: '0x50c030'
+    func_size: '0xc7e'
+    func_va: '0x50c030'
     vfunc_index: 79
     vfunc_offset: '0x278'
     vfunc_sig: FF 90 78 02 00 00 49 8B 3F
-    vtable_name: CNetworkGameServerBase_vtable
+    vtable_name: CNetworkGameServer
   engine/CNetworkGameServerBase_FillServerInfo.windows.yaml:
     func_name: CNetworkGameServerBase_FillServerInfo
+    func_rva: '0xa88c0'
+    func_size: '0x5ec'
+    func_va: '0x1800a88c0'
     vfunc_index: 74
     vfunc_offset: '0x250'
     vfunc_sig: FF 90 50 02 00 00 48 8B 0D ?? ?? ?? ?? 4C 8D 85 ?? ?? ?? ??
-    vtable_name: CNetworkGameServerBase_vtable
+    vtable_name: CNetworkGameServer
   engine/CNetworkGameServerBase_FinishChangeLevel.linux.yaml:
     func_name: CNetworkGameServerBase_FinishChangeLevel
     func_rva: '0x502600'
@@ -10835,32 +10841,26 @@ files:
     vtable_name: CNetworkGameServerBase
   engine/CNetworkGameServerBase_IsChangelevelPending.linux.yaml:
     func_name: CNetworkGameServerBase_IsChangelevelPending
-    func_rva: '0x4f0fd0'
-    func_size: '0x8'
-    func_va: '0x4f0fd0'
     vfunc_index: 41
     vfunc_offset: '0x148'
-    vtable_name: CNetworkGameServerBase
+    vfunc_sig: 48 8B 80 48 01 00 00 48 39 D0 0F 85 ?? ?? ?? ?? 0F B6 83 ?? 02 00 00
+    vtable_name: CNetworkGameServer_vtable
   engine/CNetworkGameServerBase_IsChangelevelPending.windows.yaml:
     func_name: CNetworkGameServerBase_IsChangelevelPending
-    func_rva: '0xb3d10'
-    func_size: '0x8'
-    func_va: '0x1800b3d10'
     vfunc_index: 41
     vfunc_offset: '0x148'
-    vtable_name: CNetworkGameServerBase
+    vfunc_sig: FF 90 48 01 00 00 84 C0 75 ?? 48 8B 0D ?? ?? ?? ??
+    vtable_name: CNetworkGameServer_vtable
   engine/CNetworkGameServerBase_IsHLTV.linux.yaml:
     func_name: CNetworkGameServerBase_IsHLTV
     vfunc_index: 75
     vfunc_offset: '0x258'
-    vfunc_sig: FF 90 58 02 00 00 84 C0 75 ?? 48 8D 05 ?? ?? ?? ?? 48 8B 00
-    vtable_name: CNetworkGameServerBase
+    vtable_name: CNetworkGameServer_vtable
   engine/CNetworkGameServerBase_IsHLTV.windows.yaml:
     func_name: CNetworkGameServerBase_IsHLTV
     vfunc_index: 70
     vfunc_offset: '0x230'
-    vfunc_sig: FF 90 30 02 00 00 84 C0 0F 85 ?? ?? ?? ?? 48 8B 05 ?? ?? ?? ??
-    vtable_name: CNetworkGameServerBase
+    vtable_name: CNetworkGameServer_vtable
   engine/CNetworkGameServerBase_IsSaveRestoreAllowed.linux.yaml:
     func_name: CNetworkGameServerBase_IsSaveRestoreAllowed
     func_rva: '0x4f16c0'
@@ -12054,6 +12054,24 @@ files:
     func_sig: 48 89 5C 24 ?? 48 89 7C 24 ?? 55 48 8B EC 48 83 EC ?? 0F 10 02
     func_size: '0x14e'
     func_va: '0x1801dfec0'
+  engine/CNetworkServerService_PrintSpawnGroupStatus.linux.yaml:
+    func_name: CNetworkServerService_PrintSpawnGroupStatus
+    func_rva: '0x3fd680'
+    func_sig: 48 8B BF 50 01 ?? ?? 48 85 FF 74 0C 48 8B 07 FF A0 A8 ?? ?? ??
+    func_size: '0x5a'
+    func_va: '0x3fd680'
+    vfunc_index: 32
+    vfunc_offset: '0x100'
+    vtable_name: CNetworkServerService_vtable
+  engine/CNetworkServerService_PrintSpawnGroupStatus.windows.yaml:
+    func_name: CNetworkServerService_PrintSpawnGroupStatus
+    func_rva: '0x1e1420'
+    func_sig: 48 83 EC ?? 48 8B 89 ?? ?? ?? ?? 48 85 C9 74 ?? 48 8B 01 48 83 C4 ?? 48 FF A0 ?? ?? ?? ??
+    func_size: '0x55'
+    func_va: '0x1801e1420'
+    vfunc_index: 31
+    vfunc_offset: '0xf8'
+    vtable_name: CNetworkServerService_vtable
   engine/CNetworkServerService_RegisterEventMapInternal.linux.yaml:
     func_name: CNetworkServerService_RegisterEventMapInternal
     func_rva: '0x409240'
@@ -12481,7 +12499,7 @@ files:
     func_va: '0x527620'
     vfunc_index: 52
     vfunc_offset: '0x1a0'
-    vtable_name: CServerSideClientBase_vtable
+    vtable_name: CServerSideClientBase
   engine/CServerSideClientBase_SendServerInfo.windows.yaml:
     func_name: CServerSideClientBase_SendServerInfo
     func_rva: '0xc5720'
@@ -12490,7 +12508,7 @@ files:
     func_va: '0x1800c5720'
     vfunc_index: 48
     vfunc_offset: '0x180'
-    vtable_name: CServerSideClientBase_vtable
+    vtable_name: CServerSideClientBase
   engine/CServerSideClientBase_SetConVarUserInfo.linux.yaml:
     func_name: CServerSideClientBase_SetConVarUserInfo
     func_rva: '0x5237c0'
@@ -42784,5 +42802,5 @@ files:
     vtable_symbol: ??_7CVPhys2World@@6B@
     vtable_va: '0x1803c57d0'
 game_version: '14174'
-last_publish_time: '2026-08-07T07:32:31Z'
+last_publish_time: '2026-08-10T01:27:50Z'
 schema_version: 5
