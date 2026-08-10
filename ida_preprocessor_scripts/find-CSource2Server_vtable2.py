@@ -202,11 +202,8 @@ async def preprocess_skill(
     if not output_path or not isinstance(main_data, dict):
         return False
 
-    try:
-        main_vtable_va = _parse_int(main_data["vtable_va"])
-        selected = await _lookup_vtable2(session, platform, main_vtable_va, image_base, debug)
-    except Exception:
-        return False
+    main_vtable_va = _parse_int(main_data["vtable_va"])
+    selected = await _lookup_vtable2(session, platform, main_vtable_va, image_base, debug)
 
     if not isinstance(selected, dict):
         return False

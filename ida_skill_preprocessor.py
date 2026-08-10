@@ -10,6 +10,8 @@ and delegates preprocessing to the script's exported method.
 import importlib.util
 import inspect
 import re
+import sys
+import traceback
 from pathlib import Path
 
 from ida_analyze_util import parse_mcp_result
@@ -35,6 +37,15 @@ PREPROCESS_STATUS_SUCCESS = PreprocessStatus("success", True)
 PREPROCESS_STATUS_FAILED = PreprocessStatus("failed", False)
 PREPROCESS_STATUS_ABSENT_OK = PreprocessStatus("absent_ok", True)
 PREPROCESS_STATUS_NO_SCRIPT = PreprocessStatus("no_script", False)
+
+
+def report_preprocess_exception(skill_name, phase, exc, debug=False):
+    exception_type = type(exc).__name__
+    exception_message = str(exc)
+    exception_details = f"{exception_type}: {exception_message}" if exception_message else exception_type
+    print(f"    Preprocess error [{phase}] for {skill_name}: {exception_details}")
+    if debug:
+        traceback.print_exception(type(exc), exc, exc.__traceback__, file=sys.stdout)
 
 
 def _normalize_preprocess_status(result):
@@ -71,8 +82,7 @@ def _get_preprocess_entry(skill_name, debug=False):
     try:
         spec.loader.exec_module(module)
     except Exception as e:
-        if debug:
-            print(f"    Preprocess: failed to import script {script_path}: {e}")
+        report_preprocess_exception(skill_name, "script import", e, debug=debug)
         _SCRIPT_ENTRY_CACHE[skill_name] = None
         return None
 
@@ -196,12 +206,10 @@ async def preprocess_single_skill_via_mcp(
                     result = await result
                 return _normalize_preprocess_status(result)
             except Exception as e:
-                if debug:
-                    print(f"    Preprocess: script execution failed for {skill_name}: {e}")
+                report_preprocess_exception(skill_name, "script execution", e, debug=debug)
                 return PREPROCESS_STATUS_FAILED
 
     except Exception as e:
-        if debug:
-            print(f"  Preprocess MCP connection error for {skill_name}: {e}")
+        report_preprocess_exception(skill_name, "MCP session", e, debug=debug)
 
     return PREPROCESS_STATUS_FAILED

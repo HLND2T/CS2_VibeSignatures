@@ -2399,6 +2399,102 @@ class TestProcessBinary(unittest.TestCase):
         mock_preprocess.assert_not_called()
         mock_run_skill.assert_called_once()
 
+    def test_process_binary_skip_pp_skips_optional_only_skill_when_agent_writes_no_output(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            binary_dir = Path(temp_dir) / "bin" / "14141" / "engine"
+            binary_dir.mkdir(parents=True, exist_ok=True)
+            binary_path = str(binary_dir / "libengine2.so")
+            fake_process = object()
+            skill_name = "find-optional-agent-skill"
+
+            with (
+                patch.object(ida_analyze_bin, "start_idalib_mcp", return_value=fake_process),
+                patch.object(ida_analyze_bin, "ensure_mcp_available", return_value=(fake_process, True)),
+                patch.object(
+                    ida_analyze_bin,
+                    "_run_validate_expected_input_artifacts_via_mcp",
+                    return_value=[],
+                ),
+                patch.object(ida_analyze_bin, "_run_preprocess_single_skill_via_mcp") as mock_preprocess,
+                patch.object(ida_analyze_bin, "run_skill", return_value=True) as mock_run_skill,
+                patch.object(ida_analyze_bin, "_report_skill_status") as mock_report_skill_status,
+                patch.object(ida_analyze_bin, "quit_ida_gracefully", return_value=None),
+            ):
+                counts = ida_analyze_bin.process_binary(
+                    binary_path=binary_path,
+                    skills=[
+                        {
+                            "name": skill_name,
+                            "optional_output": ["OptionalAgentSkill.{platform}.yaml"],
+                            "expected_input": [],
+                        }
+                    ],
+                    agent="codex",
+                    host="127.0.0.1",
+                    port=13337,
+                    ida_args="",
+                    platform="windows",
+                    max_retries=1,
+                    skip_pp=True,
+                )
+
+        self.assertEqual((0, 0, 1), counts)
+        mock_preprocess.assert_not_called()
+        self.assertEqual([], mock_run_skill.call_args.kwargs["expected_yaml_paths"])
+        mock_report_skill_status.assert_any_call(
+            None,
+            None,
+            skill_name,
+            TaskStatus.SKIPPED,
+            ProcessPhase.FINISHED,
+            reason=ProcessReason.OPTIONAL_OUTPUT_ABSENT,
+        )
+
+    def test_process_binary_skip_pp_succeeds_optional_only_skill_when_agent_writes_output(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            binary_dir = Path(temp_dir) / "bin" / "14141" / "engine"
+            binary_dir.mkdir(parents=True, exist_ok=True)
+            binary_path = str(binary_dir / "libengine2.so")
+            optional_output = binary_dir / "OptionalAgentSkill.windows.yaml"
+            fake_process = object()
+
+            def write_optional_output(*_args, **_kwargs):
+                optional_output.write_text("func_name: OptionalAgentSkill\n", encoding="utf-8")
+                return True
+
+            with (
+                patch.object(ida_analyze_bin, "start_idalib_mcp", return_value=fake_process),
+                patch.object(ida_analyze_bin, "ensure_mcp_available", return_value=(fake_process, True)),
+                patch.object(
+                    ida_analyze_bin,
+                    "_run_validate_expected_input_artifacts_via_mcp",
+                    return_value=[],
+                ),
+                patch.object(ida_analyze_bin, "_run_preprocess_single_skill_via_mcp") as mock_preprocess,
+                patch.object(ida_analyze_bin, "run_skill", side_effect=write_optional_output),
+                patch.object(ida_analyze_bin, "quit_ida_gracefully", return_value=None),
+            ):
+                counts = ida_analyze_bin.process_binary(
+                    binary_path=binary_path,
+                    skills=[
+                        {
+                            "name": "find-optional-agent-skill",
+                            "optional_output": ["OptionalAgentSkill.{platform}.yaml"],
+                            "expected_input": [],
+                        }
+                    ],
+                    agent="codex",
+                    host="127.0.0.1",
+                    port=13337,
+                    ida_args="",
+                    platform="windows",
+                    max_retries=1,
+                    skip_pp=True,
+                )
+
+        self.assertEqual((1, 0, 0), counts)
+        mock_preprocess.assert_not_called()
+
     def test_process_binary_skips_when_all_skip_if_exists_artifacts_exist_before_ida_start(
         self,
     ) -> None:
@@ -2701,6 +2797,61 @@ class TestProcessBinary(unittest.TestCase):
             "a_preprocess_fails",
             mock_preprocess.call_args.kwargs["skill_name"],
         )
+        mock_run_skill.assert_called_once()
+
+    def test_process_binary_reports_unexpected_preprocess_exception_before_fallback(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            binary_dir = Path(temp_dir) / "bin" / "14141" / "engine"
+            binary_dir.mkdir(parents=True, exist_ok=True)
+            binary_path = str(binary_dir / "libengine2.so")
+            fake_process = object()
+
+            with (
+                patch.object(ida_analyze_bin, "start_idalib_mcp", return_value=fake_process),
+                patch.object(
+                    ida_analyze_bin,
+                    "ensure_mcp_available",
+                    return_value=(fake_process, True),
+                ),
+                patch.object(
+                    ida_analyze_bin,
+                    "_run_validate_expected_input_artifacts_via_mcp",
+                    return_value=[],
+                ),
+                patch.object(
+                    ida_analyze_bin,
+                    "_run_preprocess_single_skill_via_mcp",
+                    side_effect=RuntimeError("runner exploded"),
+                ),
+                patch.object(ida_analyze_bin, "report_preprocess_exception") as mock_report_exception,
+                patch.object(ida_analyze_bin, "run_skill", return_value=True) as mock_run_skill,
+                patch.object(ida_analyze_bin, "quit_ida_gracefully", return_value=None),
+            ):
+                success, fail, skip = ida_analyze_bin.process_binary(
+                    binary_path=binary_path,
+                    skills=[
+                        {
+                            "name": "a_preprocess_raises",
+                            "expected_output": ["A.{platform}.yaml"],
+                            "expected_input": [],
+                        },
+                    ],
+                    old_binary_dir=None,
+                    platform="windows",
+                    agent="codex",
+                    max_retries=1,
+                    debug=False,
+                    host="127.0.0.1",
+                    port=39091,
+                    ida_args=None,
+                )
+
+        self.assertEqual((1, 0, 0), (success, fail, skip))
+        mock_report_exception.assert_called_once()
+        self.assertEqual("a_preprocess_raises", mock_report_exception.call_args.args[0])
+        self.assertEqual("runner dispatch", mock_report_exception.call_args.args[1])
+        self.assertIsInstance(mock_report_exception.call_args.args[2], RuntimeError)
+        self.assertFalse(mock_report_exception.call_args.kwargs["debug"])
         mock_run_skill.assert_called_once()
 
     def test_process_binary_skips_vcall_targets_after_preprocess_fallback_failure(self) -> None:

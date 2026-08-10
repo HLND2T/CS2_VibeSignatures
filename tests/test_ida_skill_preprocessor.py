@@ -1,5 +1,7 @@
 import types
 import unittest
+from contextlib import redirect_stdout
+from io import StringIO
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import ida_skill_preprocessor
@@ -20,7 +22,7 @@ class TestPreprocessSingleSkillViaMcp(unittest.IsolatedAsyncioTestCase):
         self.open_session_patcher = patch.object(
             ida_skill_preprocessor,
             "open_ida_mcp_session",
-            return_value=_async_context(_FakeClientSession("read-stream", "write-stream")),
+            side_effect=lambda *args, **kwargs: _async_context(_FakeClientSession("read-stream", "write-stream")),
         )
         self.open_session_patcher.start()
         self.addCleanup(self.open_session_patcher.stop)
@@ -406,6 +408,50 @@ class TestPreprocessSingleSkillViaMcp(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("success", result)
         self.assertEqual(0x180000000, received["args"]["image_base"])
         self.assertTrue(received["args"]["debug"])
+
+    async def test_reports_script_exceptions_without_requiring_debug(self) -> None:
+        async def fake_preprocess_skill(**kwargs):
+            raise RuntimeError("exploded")
+
+        for debug in (False, True):
+            with self.subTest(debug=debug):
+                output = StringIO()
+                with (
+                    patch.object(
+                        ida_skill_preprocessor,
+                        "_get_preprocess_entry",
+                        return_value=fake_preprocess_skill,
+                    ),
+                    patch.object(
+                        ida_skill_preprocessor,
+                        "open_ida_mcp_session",
+                        return_value=_async_context(_FakeClientSession("read-stream", "write-stream")),
+                    ),
+                    patch.object(
+                        ida_skill_preprocessor,
+                        "parse_mcp_result",
+                        return_value={"result": "0x180000000"},
+                    ),
+                    redirect_stdout(output),
+                ):
+                    result = await ida_skill_preprocessor.preprocess_single_skill_via_mcp(
+                        host="127.0.0.1",
+                        port=13337,
+                        skill_name="find-CNetworkMessages_FindNetworkGroup",
+                        expected_outputs=["out.yaml"],
+                        old_yaml_map={},
+                        new_binary_dir="bin_dir",
+                        platform="windows",
+                        debug=debug,
+                    )
+
+                diagnostic = output.getvalue()
+                self.assertEqual("failed", result)
+                self.assertIn(
+                    "Preprocess error [script execution] for find-CNetworkMessages_FindNetworkGroup: RuntimeError: exploded",
+                    diagnostic,
+                )
+                self.assertEqual(debug, "Traceback (most recent call last):" in diagnostic)
 
     async def test_normalizes_script_statuses(self) -> None:
         cases = [
