@@ -4,10 +4,13 @@ Download depot manifests by exact tag matching from download.yaml.
 """
 
 import argparse
+import os
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
+
+from dotenv import load_dotenv
 
 try:
     import yaml
@@ -18,6 +21,9 @@ except ImportError as exc:
 
 from depot_util import append_auth_args, run_command
 from analysis_config import AnalysisConfigError, resolve_analysis_config
+
+
+load_dotenv()
 
 
 DEFAULT_CONFIG_FILE = "download.yaml"
@@ -59,14 +65,25 @@ def parse_args() -> argparse.Namespace:
         default=DEFAULT_OS,
         help=f"DepotDownloader -os value (default: {DEFAULT_OS})",
     )
-    parser.add_argument("-username", default=None, help="Steam username for restricted content")
-    parser.add_argument("-password", default=None, help="Steam password for restricted content")
+    parser.add_argument(
+        "-username",
+        default=os.getenv("DEPOTDOWNLOADER_STEAM_USERNAME"),
+        help="Steam username for restricted content (default: DEPOTDOWNLOADER_STEAM_USERNAME)",
+    )
+    parser.add_argument(
+        "-password",
+        default=os.getenv("DEPOTDOWNLOADER_STEAM_PASSWORD"),
+        help="Steam password for restricted content (default: DEPOTDOWNLOADER_STEAM_PASSWORD)",
+    )
     parser.add_argument(
         "-remember-password",
         action="store_true",
         help="Remember password for subsequent logins",
     )
-    return parser.parse_args()
+    args = parser.parse_args()
+    if not args.remember_password and args.username and args.password:
+        args.remember_password = True
+    return args
 
 
 def load_downloads(config_path: str) -> list[dict]:

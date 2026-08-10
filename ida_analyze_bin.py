@@ -66,6 +66,7 @@ from ida_skill_preprocessor import (
     PREPROCESS_STATUS_NO_SCRIPT,
     PREPROCESS_STATUS_SUCCESS,
     preprocess_single_skill_via_mcp,
+    report_preprocess_exception,
 )
 from ida_mcp_session import (
     McpConnectionError,
@@ -1584,26 +1585,7 @@ def _run_preprocess_single_skill_via_mcp(
         "symbol_aliases": symbol_aliases,
     }
 
-    try:
-        return asyncio.run(preprocess_single_skill_via_mcp(**preprocess_kwargs))
-    except TypeError as exc:
-        if "unexpected keyword argument" not in str(exc):
-            raise
-
-        fallback_kwargs = dict(preprocess_kwargs)
-        fallback_kwargs.pop("llm_model", None)
-        fallback_kwargs.pop("llm_apikey", None)
-        fallback_kwargs.pop("llm_baseurl", None)
-        fallback_kwargs.pop("llm_temperature", None)
-        fallback_kwargs.pop("llm_effort", None)
-        fallback_kwargs.pop("llm_fake_as", None)
-        fallback_kwargs.pop("llm_max_retries", None)
-        fallback_kwargs.pop("symbol_aliases", None)
-        fallback_kwargs.pop("expected_inputs", None)
-        fallback_kwargs.pop("optional_inputs", None)
-        fallback_kwargs.pop("expected_binary", None)
-        fallback_kwargs.pop("explicit_database", None)
-        return asyncio.run(preprocess_single_skill_via_mcp(**fallback_kwargs))
+    return asyncio.run(preprocess_single_skill_via_mcp(**preprocess_kwargs))
 
 
 def _optional_config_description(value, owner):
@@ -3487,8 +3469,7 @@ def process_binary(
                         symbol_aliases=symbol_aliases,
                     )
                 except Exception as e:
-                    if debug:
-                        print(f"  Pre-processing error for {skill_name}: {e}")
+                    report_preprocess_exception(skill_name, "runner dispatch", e, debug=debug)
                     preprocess_status = PREPROCESS_STATUS_FAILED
 
             if preprocess_status is True or preprocess_status == PREPROCESS_STATUS_SUCCESS:
@@ -3637,15 +3618,28 @@ def process_binary(
                 agent_model=agent_model,
                 progress_callback=progress_callback,
             ):
-                success_count += 1
-                print("    Success")
-                _report_skill_status(
-                    reporting,
-                    job_id,
-                    skill_name,
-                    TaskStatus.SUCCEEDED,
-                    ProcessPhase.FINISHED,
-                )
+                optional_output_generated = any(os.path.exists(path) for path in optional_outputs)
+                if not required_outputs and optional_outputs and not optional_output_generated:
+                    skip_count += 1
+                    print("    Skipped: optional outputs not generated")
+                    _report_skill_status(
+                        reporting,
+                        job_id,
+                        skill_name,
+                        TaskStatus.SKIPPED,
+                        ProcessPhase.FINISHED,
+                        reason=ProcessReason.OPTIONAL_OUTPUT_ABSENT,
+                    )
+                else:
+                    success_count += 1
+                    print("    Success")
+                    _report_skill_status(
+                        reporting,
+                        job_id,
+                        skill_name,
+                        TaskStatus.SUCCEEDED,
+                        ProcessPhase.FINISHED,
+                    )
             else:
                 fail_count += 1
                 print("    Failed")

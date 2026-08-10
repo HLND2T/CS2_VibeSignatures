@@ -19,8 +19,8 @@ jobs:
     environment: win64
     runs-on: [self-hosted, windows, x64]
     env:
-      STEAM_USERNAME: ${{ secrets.STEAM_USERNAME }}
-      STEAM_PASSWORD: ${{ secrets.STEAM_PASSWORD }}
+      DEPOTDOWNLOADER_STEAM_USERNAME: ${{ secrets.DEPOTDOWNLOADER_STEAM_USERNAME }}
+      DEPOTDOWNLOADER_STEAM_PASSWORD: ${{ secrets.DEPOTDOWNLOADER_STEAM_PASSWORD }}
       PERSISTED_WORKSPACE: ${{ secrets.PERSISTED_WORKSPACE }}
     steps:
       - name: Checkout main
@@ -49,7 +49,7 @@ jobs:
       - name: Preview download bump
         id: preview
         shell: pwsh
-        run: uv run bump_download.py -config download.yaml -configs-dir configs -depotdir cs2_depot -username "$env:STEAM_USERNAME" -password "$env:STEAM_PASSWORD" -remember-password -dry-run -github-output "$env:GITHUB_OUTPUT"
+        run: uv run bump_download.py -config download.yaml -configs-dir configs -depotdir cs2_depot -username "$env:DEPOTDOWNLOADER_STEAM_USERNAME" -password "$env:DEPOTDOWNLOADER_STEAM_PASSWORD" -remember-password -dry-run -github-output "$env:GITHUB_OUTPUT"
 
       - name: Check duplicate bump target
         id: duplicate
@@ -105,7 +105,7 @@ jobs:
         id: bump
         if: steps.preview.outputs.updated != 'true' || steps.duplicate.outputs.skip_pr != 'true'
         shell: pwsh
-        run: uv run bump_download.py -config download.yaml -configs-dir configs -depotdir cs2_depot -username "$env:STEAM_USERNAME" -password "$env:STEAM_PASSWORD" -remember-password -github-output "$env:GITHUB_OUTPUT"
+        run: uv run bump_download.py -config download.yaml -configs-dir configs -depotdir cs2_depot -username "$env:DEPOTDOWNLOADER_STEAM_USERNAME" -password "$env:DEPOTDOWNLOADER_STEAM_PASSWORD" -remember-password -github-output "$env:GITHUB_OUTPUT"
 
       - name: Push bump branch
         if: steps.bump.outputs.updated == 'true' && steps.bump.outputs.dispatch_build != 'true' && steps.duplicate.outputs.skip_pr != 'true'
