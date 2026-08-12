@@ -1,0 +1,421 @@
+func_name: CSteam3ServerS1_InitGameServer
+func_va: '0x576ae0'
+disasm_code: |-
+  .text:0000000000576AE0                 push    rbp
+  .text:0000000000576AE1                 mov     rbp, rsp
+  .text:0000000000576AE4                 push    r15
+  .text:0000000000576AE6                 push    r14
+  .text:0000000000576AE8                 push    r13
+  .text:0000000000576AEA                 push    r12
+  .text:0000000000576AEC                 push    rbx
+  .text:0000000000576AED                 mov     rbx, rdi
+  .text:0000000000576AF0                 sub     rsp, 2418h
+  .text:0000000000576AF7                 mov     [rbp+var_2434], esi
+  .text:0000000000576AFD                 call    sub_575D30
+  .text:0000000000576B02                 cmp     eax, [rbx+0C8h]
+  .text:0000000000576B08                 jz      loc_576DFE
+  .text:0000000000576B0E                 lea     r12, off_9D7F10
+  .text:0000000000576B15                 mov     rdi, r12
+  .text:0000000000576B18                 call    sub_2CA3A0
+  .text:0000000000576B1D                 cmp     qword ptr [rax], 0
+  .text:0000000000576B21                 jz      short loc_576B35
+  .text:0000000000576B23                 mov     esi, [rbx+0C8h]
+  .text:0000000000576B29                 test    esi, esi
+  .text:0000000000576B2B                 jle     short loc_576B35
+  .text:0000000000576B2D                 mov     rdi, rbx
+  .text:0000000000576B30                 call    sub_575EB0
+  .text:0000000000576B35                 mov     dword ptr [rbx+138h], 0
+  .text:0000000000576B3F                 mov     rdi, rbx
+  .text:0000000000576B42                 call    sub_575D30
+  .text:0000000000576B47                 lea     r14, [rbp+var_1030]
+  .text:0000000000576B4E                 mov     [rbx+0C8h], eax
+  .text:0000000000576B54                 lea     rax, g_pVApplication
+  .text:0000000000576B5B                 mov     rdi, [rax]
+  .text:0000000000576B5E                 mov     rax, [rdi]
+  .text:0000000000576B61                 call    qword ptr [rax+0E0h]
+  .text:0000000000576B67                 xor     edi, edi
+  .text:0000000000576B69                 mov     r13, rax
+  .text:0000000000576B6C                 call    sub_2C7D50
+  .text:0000000000576B71                 mov     ecx, 1000h
+  .text:0000000000576B76                 mov     rdx, r14
+  .text:0000000000576B79                 mov     rsi, r13
+  .text:0000000000576B7C                 mov     rdi, rax
+  .text:0000000000576B7F                 call    sub_2C9290
+  .text:0000000000576B84                 lea     rax, [rbp+var_2030]
+  .text:0000000000576B8B                 mov     edx, 1000h
+  .text:0000000000576B90                 mov     rdi, r14
+  .text:0000000000576B93                 mov     rsi, rax
+  .text:0000000000576B96                 mov     [rbp+var_2440], rax
+  .text:0000000000576B9D                 call    sub_2C9D10
+  .text:0000000000576BA2                 lea     r14, g_pNetworkSystem
+  .text:0000000000576BA9                 lea     rax, dword_9D7958
+  .text:0000000000576BB0                 mov     rdi, [r14]
+  .text:0000000000576BB3                 mov     esi, [rax]
+  .text:0000000000576BB5                 mov     rax, [rdi]
+  .text:0000000000576BB8                 call    qword ptr [rax+118h]
+  .text:0000000000576BBE                 mov     rdi, [r14]
+  .text:0000000000576BC1                 mov     r15d, eax
+  .text:0000000000576BC4                 mov     [rbp+var_2436], ax
+  .text:0000000000576BCB                 lea     rax, dword_9D7950
+  .text:0000000000576BD2                 mov     esi, [rax]
+  .text:0000000000576BD4                 mov     rax, [rdi]
+  .text:0000000000576BD7                 call    qword ptr [rax+110h]
+  .text:0000000000576BDD                 mov     r13d, eax
+  .text:0000000000576BE0                 mov     [rbp+var_2438], ax
+  .text:0000000000576BE7                 lea     rax, g_pNetworkServerService
+  .text:0000000000576BEE                 mov     rdi, [rax]
+  .text:0000000000576BF1                 mov     rax, [rdi]
+  .text:0000000000576BF4                 ; 0x0C8 = 200LL = CNetworkServerService_IsActiveInGame
+  .text:0000000000576BF4                 call    qword ptr [rax+0C8h]; 0x0C8 = 200LL = CNetworkServerService_IsActiveInGame
+  .text:0000000000576BFA                 mov     esi, 2
+  .text:0000000000576BFF                 test    al, al
+  .text:0000000000576C01                 cmovz   r15d, r13d
+  .text:0000000000576C05                 mov     [rbx+13Ch], r15w
+  .text:0000000000576C0D                 lea     r15, dword_A30294
+  .text:0000000000576C14                 mov     edi, [r15]
+  .text:0000000000576C17                 call    sub_2C9B50
+  .text:0000000000576C1C                 test    al, al
+  .text:0000000000576C1E                 jnz     loc_576E10
+  .text:0000000000576C24                 lea     r13, [rbp+var_2430]
+  .text:0000000000576C2B                 xor     edi, edi
+  .text:0000000000576C2D                 call    sub_2CA2B0
+  .text:0000000000576C32                 mov     edx, 400h
+  .text:0000000000576C37                 xor     esi, esi
+  .text:0000000000576C39                 mov     rdi, r13
+  .text:0000000000576C3C                 call    sub_2CA7F0
+  .text:0000000000576C41                 call    sub_3BB720
+  .text:0000000000576C46                 mov     ecx, [rbx+0C8h]
+  .text:0000000000576C4C                 sub     rsp, 8
+  .text:0000000000576C50                 mov     edx, 0FFFFh
+  .text:0000000000576C55                 mov     edi, [rbx+138h]
+  .text:0000000000576C5B                 mov     r8, rax
+  .text:0000000000576C5E                 movzx   esi, [rbp+var_2436]
+  .text:0000000000576C65                 lea     r9, aSteamutils010_1; "SteamUtils010"
+  .text:0000000000576C6C                 push    r13
+  .text:0000000000576C6E                 call    sub_2CA380
+  .text:0000000000576C73                 pop     rdx
+  .text:0000000000576C74                 pop     rcx
+  .text:0000000000576C75                 test    eax, eax
+  .text:0000000000576C77                 jnz     loc_576F4C
+  .text:0000000000576C7D                 call    sub_86C9F0
+  .text:0000000000576C82                 movzx   edi, al
+  .text:0000000000576C85                 call    sub_34BC00
+  .text:0000000000576C8A                 mov     rdi, r12
+  .text:0000000000576C8D                 call    sub_2CA3A0
+  .text:0000000000576C92                 cmp     qword ptr [rax], 0
+  .text:0000000000576C96                 jz      loc_576F33
+  .text:0000000000576C9C                 mov     edi, [r15]
+  .text:0000000000576C9F                 mov     esi, 2
+  .text:0000000000576CA4                 call    sub_2C9B50
+  .text:0000000000576CA9                 test    al, al
+  .text:0000000000576CAB                 jnz     loc_576E30
+  .text:0000000000576CB1                 mov     rdi, r12
+  .text:0000000000576CB4                 call    sub_2CA3A0
+  .text:0000000000576CB9                 mov     r13, [rax]
+  .text:0000000000576CBC                 mov     rax, [r13+0]
+  .text:0000000000576CC0                 mov     r15, [rax+8]
+  .text:0000000000576CC4                 call    sub_3BB740
+  .text:0000000000576CC9                 mov     rdi, r13
+  .text:0000000000576CCC                 mov     rsi, rax
+  .text:0000000000576CCF                 call    r15
+  .text:0000000000576CD2                 mov     rdi, r12
+  .text:0000000000576CD5                 call    sub_2CA3A0
+  .text:0000000000576CDA                 mov     r13, [rax]
+  .text:0000000000576CDD                 mov     rax, [r13+0]
+  .text:0000000000576CE1                 mov     r15, [rax+10h]
+  .text:0000000000576CE5                 lea     rax, qword_9E2328
+  .text:0000000000576CEC                 mov     rdi, [rax]
+  .text:0000000000576CEF                 mov     rax, [rdi]
+  .text:0000000000576CF2                 call    qword ptr [rax+58h]
+  .text:0000000000576CF5                 mov     rdi, r13
+  .text:0000000000576CF8                 mov     rsi, rax
+  .text:0000000000576CFB                 call    r15
+  .text:0000000000576CFE                 mov     rdi, r12
+  .text:0000000000576D01                 call    sub_2CA3A0
+  .text:0000000000576D06                 mov     r13, [rax]
+  .text:0000000000576D09                 mov     rax, [r13+0]
+  .text:0000000000576D0D                 mov     r15, [rax+20h]
+  .text:0000000000576D11                 call    sub_86C9F0
+  .text:0000000000576D16                 mov     rdi, r13
+  .text:0000000000576D19                 movzx   esi, al
+  .text:0000000000576D1C                 call    r15
+  .text:0000000000576D1F                 mov     rdi, r12
+  .text:0000000000576D22                 call    sub_2CA3A0
+  .text:0000000000576D27                 mov     rsi, [rbp+var_2440]
+  .text:0000000000576D2E                 mov     rdi, [rax]
+  .text:0000000000576D31                 mov     rax, [rdi]
+  .text:0000000000576D34                 call    qword ptr [rax+18h]
+  .text:0000000000576D37                 mov     rdi, r12
+  .text:0000000000576D3A                 call    sub_2CA3A0
+  .text:0000000000576D3F                 movzx   esi, [rbp+var_2438]
+  .text:0000000000576D46                 mov     rdi, [rax]
+  .text:0000000000576D49                 mov     rax, [rdi]
+  .text:0000000000576D4C                 call    qword ptr [rax+88h]
+  .text:0000000000576D52                 lea     rax, g_pVApplication
+  .text:0000000000576D59                 mov     rdi, [rax]
+  .text:0000000000576D5C                 mov     rax, [rdi]
+  .text:0000000000576D5F                 call    qword ptr [rax+98h]
+  .text:0000000000576D65                 lea     rsi, aGmsRequirelogi; "GMS/RequireLoginForDedicatedServers"
+  .text:0000000000576D6C                 xor     edx, edx
+  .text:0000000000576D6E                 mov     rdi, rax
+  .text:0000000000576D71                 call    sub_2CA0E0
+  .text:0000000000576D76                 test    eax, eax
+  .text:0000000000576D78                 jz      short loc_576DD1
+  .text:0000000000576D7A                 mov     rsi, [rbx+140h]
+  .text:0000000000576D81                 test    rsi, rsi
+  .text:0000000000576D84                 jz      short loc_576D8F
+  .text:0000000000576D86                 cmp     byte ptr [rsi], 0
+  .text:0000000000576D89                 jnz     loc_576E50
+  .text:0000000000576D8F                 lea     rax, g_pSource2Server
+  .text:0000000000576D96                 mov     rdi, [rax]
+  .text:0000000000576D99                 mov     rax, [rdi]
+  .text:0000000000576D9C                 call    qword ptr [rax+58h]
+  .text:0000000000576D9F                 test    al, al
+  .text:0000000000576DA1                 jnz     loc_576E90
+  .text:0000000000576DA7                 lea     rax, g_pVApplication
+  .text:0000000000576DAE                 mov     rdi, [rax]
+  .text:0000000000576DB1                 mov     rax, [rdi]
+  .text:0000000000576DB4                 call    qword ptr [rax+120h]
+  .text:0000000000576DBA                 cmp     eax, 2
+  .text:0000000000576DBD                 jz      loc_576EA8
+  .text:0000000000576DC3                 lea     rdi, aLoggingIntoAno; "Logging into anonymous listen server ac"...
+  .text:0000000000576DCA                 xor     eax, eax
+  .text:0000000000576DCC                 call    sub_2C9150
+  .text:0000000000576DD1                 mov     rdi, r12
+  .text:0000000000576DD4                 call    sub_2CA3A0
+  .text:0000000000576DD9                 mov     rdi, [rax]
+  .text:0000000000576DDC                 mov     rax, [rdi]
+  .text:0000000000576DDF                 call    qword ptr [rax+30h]
+  .text:0000000000576DE2                 mov     rdi, [r14]
+  .text:0000000000576DE5                 mov     rax, [rdi]
+  .text:0000000000576DE8                 call    qword ptr [rax+58h]
+  .text:0000000000576DEB                 cmp     byte ptr [rbp+var_2434], 0
+  .text:0000000000576DF2                 jz      short loc_576DFE
+  .text:0000000000576DF4                 xor     esi, esi
+  .text:0000000000576DF6                 mov     rdi, rbx
+  .text:0000000000576DF9                 call    CSteam3Server_SendUpdatedServerDetails
+  .text:0000000000576DFE                 lea     rsp, [rbp-28h]
+  .text:0000000000576E02                 pop     rbx
+  .text:0000000000576E03                 pop     r12
+  .text:0000000000576E05                 pop     r13
+  .text:0000000000576E07                 pop     r14
+  .text:0000000000576E09                 pop     r15
+  .text:0000000000576E0B                 pop     rbp
+  .text:0000000000576E0C                 retn
+  .text:0000000000576E10                 mov     edi, [r15]
+  .text:0000000000576E13                 lea     rdx, aSteamgameserve_4; "SteamGameServer_Init()\n"
+  .text:0000000000576E1A                 mov     esi, 2
+  .text:0000000000576E1F                 xor     eax, eax
+  .text:0000000000576E21                 call    sub_2C8BC0
+  .text:0000000000576E26                 jmp     loc_576C24
+  .text:0000000000576E30                 mov     edi, [r15]
+  .text:0000000000576E33                 lea     rdx, aSteamgameserve_5; "SteamGameServer_Init() OK, logging on t"...
+  .text:0000000000576E3A                 mov     esi, 2
+  .text:0000000000576E3F                 xor     eax, eax
+  .text:0000000000576E41                 call    sub_2C8BC0
+  .text:0000000000576E46                 jmp     loc_576CB1
+  .text:0000000000576E50                 lea     rdi, aLoggingIntoSte; "Logging into Steam gameserver account w"...
+  .text:0000000000576E57                 xor     eax, eax
+  .text:0000000000576E59                 call    sub_2C9150
+  .text:0000000000576E5E                 mov     rdi, r12
+  .text:0000000000576E61                 call    sub_2CA3A0
+  .text:0000000000576E66                 mov     rsi, [rbx+140h]
+  .text:0000000000576E6D                 lea     rdx, unk_27CC16
+  .text:0000000000576E74                 mov     rdi, [rax]
+  .text:0000000000576E77                 test    rsi, rsi
+  .text:0000000000576E7A                 cmovz   rsi, rdx
+  .text:0000000000576E7E                 mov     rax, [rdi]
+  .text:0000000000576E81                 call    qword ptr [rax+28h]
+  .text:0000000000576E84                 jmp     loc_576DE2
+  .text:0000000000576E90                 lea     rdi, aLoggingInAsOff; "Logging in as official server anonymous"...
+  .text:0000000000576E97                 xor     eax, eax
+  .text:0000000000576E99                 call    sub_2C9150
+  .text:0000000000576E9E                 jmp     loc_576DD1
+  .text:0000000000576EA8                 lea     r15, asc_299E90; "***************************************"...
+  .text:0000000000576EAF                 xor     eax, eax
+  .text:0000000000576EB1                 lea     r13, asc_29F890; "*                                      "...
+  .text:0000000000576EB8                 mov     rdi, r15
+  .text:0000000000576EBB                 call    sub_2C8A30
+  .text:0000000000576EC0                 mov     rdi, r13
+  .text:0000000000576EC3                 xor     eax, eax
+  .text:0000000000576EC5                 call    sub_2C8A30
+  .text:0000000000576ECA                 lea     rdi, aNoSteamAccount; "*  No Steam account token was specified"...
+  .text:0000000000576ED1                 xor     eax, eax
+  .text:0000000000576ED3                 call    sub_2C8A30
+  .text:0000000000576ED8                 lea     rdi, aLoggingIntoAno_0; "*  Logging into anonymous game server a"...
+  .text:0000000000576EDF                 xor     eax, eax
+  .text:0000000000576EE1                 call    sub_2C8A30
+  .text:0000000000576EE6                 lea     rdi, aConnectionsWil; "*  Connections will be restricted to LA"...
+  .text:0000000000576EED                 xor     eax, eax
+  .text:0000000000576EEF                 call    sub_2C8A30
+  .text:0000000000576EF4                 mov     rdi, r13
+  .text:0000000000576EF7                 xor     eax, eax
+  .text:0000000000576EF9                 call    sub_2C8A30
+  .text:0000000000576EFE                 lea     rdi, aToCreateAGameS; "*  To create a game server account go t"...
+  .text:0000000000576F05                 xor     eax, eax
+  .text:0000000000576F07                 call    sub_2C8A30
+  .text:0000000000576F0C                 lea     rdi, aHttpSteamcommu; "*  http://steamcommunity.com/dev/manage"...
+  .text:0000000000576F13                 xor     eax, eax
+  .text:0000000000576F15                 call    sub_2C8A30
+  .text:0000000000576F1A                 mov     rdi, r13
+  .text:0000000000576F1D                 xor     eax, eax
+  .text:0000000000576F1F                 call    sub_2C8A30
+  .text:0000000000576F24                 mov     rdi, r15
+  .text:0000000000576F27                 xor     eax, eax
+  .text:0000000000576F29                 call    sub_2C8A30
+  .text:0000000000576F2E                 jmp     loc_576DD1
+  .text:0000000000576F33                 movdqa  xmm0, cs:xmmword_267FA0
+  .text:0000000000576F3B                 movaps  [rbp+var_2430], xmm0
+  .text:0000000000576F42                 mov     dword ptr [rbp+var_2430+0Fh], offset loc_726576
+  .text:0000000000576F4C                 lea     rdi, aFailedToInitia_0; "Failed to initialize Steamworks SDK for"...
+  .text:0000000000576F53                 mov     rsi, r13
+  .text:0000000000576F56                 xor     eax, eax
+  .text:0000000000576F58                 call    sub_2C7F20
+procedure: |-
+  __int64 __fastcall CSteam3ServerS1_InitGameServer(__int64 a1, char a2)
+  {
+    __int64 result; // rax
+    __int64 v3; // r13
+    __int64 v4; // rax
+    unsigned __int16 v5; // r15
+    unsigned __int16 v6; // r13
+    __int64 v7; // rax
+    unsigned __int8 v8; // al
+    __int64 v9; // rax
+    __int64 v10; // r13
+    void (__fastcall *v11)(__int64, __int64); // r15
+    __int64 v12; // rax
+    __int64 v13; // rax
+    __int64 v14; // r13
+    void (__fastcall *v15)(__int64, __int64); // r15
+    __int64 v16; // rax
+    __int64 v17; // rax
+    __int64 v18; // r13
+    void (__fastcall *v19)(__int64, _QWORD); // r15
+    unsigned __int8 v20; // al
+    _QWORD *v21; // rax
+    _QWORD *v22; // rax
+    __int64 v23; // rax
+    const char *v24; // rsi
+    _QWORD *v25; // rax
+    _QWORD *v26; // rax
+    void *v27; // rsi
+    unsigned __int16 v28; // [rsp+8h] [rbp-2438h]
+    unsigned __int16 v29; // [rsp+Ah] [rbp-2436h]
+    _BYTE v31[1007]; // [rsp+10h] [rbp-2430h] BYREF
+    _BYTE v32[4096]; // [rsp+410h] [rbp-2030h] BYREF
+    _BYTE v33[4144]; // [rsp+1410h] [rbp-1030h] BYREF
+
+    result = ((__int64 (*)(void))sub_575D30)();
+    if ( (_DWORD)result != *(_DWORD *)(a1 + 200) )
+    {
+      if ( *(_QWORD *)sub_2CA3A0(&off_9D7F10) && *(int *)(a1 + 200) > 0 )
+        sub_575EB0(a1);
+      *(_DWORD *)(a1 + 312) = 0;
+      *(_DWORD *)(a1 + 200) = sub_575D30(a1);
+      v3 = (*(__int64 (__fastcall **)(_QWORD *))(*g_pVApplication + 224LL))(g_pVApplication);
+      v4 = sub_2C7D50(0);
+      sub_2C9290(v4, v3, v33, 4096);
+      sub_2C9D10(v33, v32, 4096);
+      v5 = (*(__int64 (__fastcall **)(_QWORD *, _QWORD))(*g_pNetworkSystem + 280LL))(
+             g_pNetworkSystem,
+             (unsigned int)dword_9D7958);
+      v29 = v5;
+      v6 = (*(__int64 (__fastcall **)(_QWORD *, _QWORD))(*g_pNetworkSystem + 272LL))(
+             g_pNetworkSystem,
+             (unsigned int)dword_9D7950);
+      v28 = v6;
+      if ( !(*(unsigned __int8 (__fastcall **)(_QWORD *))(*g_pNetworkServerService + 200LL))(g_pNetworkServerService) )// 0x0C8 = 200LL = CNetworkServerService_IsActiveInGame
+        v5 = v6;
+      *(_WORD *)(a1 + 316) = v5;
+      if ( (unsigned __int8)sub_2C9B50((unsigned int)dword_A30294, 2) )
+        sub_2C8BC0((unsigned int)dword_A30294, 2, "SteamGameServer_Init()\n");
+      sub_2CA2B0(0);
+      sub_2CA7F0(v31, 0, 1024);
+      v7 = sub_3BB720();
+      if ( !(unsigned int)sub_2CA380(
+                            *(unsigned int *)(a1 + 312),
+                            v29,
+                            0xFFFF,
+                            *(unsigned int *)(a1 + 200),
+                            v7,
+                            "SteamUtils010",
+                            v31) )
+      {
+        v8 = sub_86C9F0();
+        sub_34BC00(v8);
+        if ( *(_QWORD *)sub_2CA3A0(&off_9D7F10) )
+        {
+          if ( (unsigned __int8)sub_2C9B50((unsigned int)dword_A30294, 2) )
+            sub_2C8BC0((unsigned int)dword_A30294, 2, "SteamGameServer_Init() OK, logging on to Steam\n");
+          v9 = sub_2CA3A0(&off_9D7F10);
+          v10 = *(_QWORD *)v9;
+          v11 = *(void (__fastcall **)(__int64, __int64))(**(_QWORD **)v9 + 8LL);
+          v12 = sub_3BB740();
+          v11(v10, v12);
+          v13 = sub_2CA3A0(&off_9D7F10);
+          v14 = *(_QWORD *)v13;
+          v15 = *(void (__fastcall **)(__int64, __int64))(**(_QWORD **)v13 + 16LL);
+          v16 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)qword_9E2328 + 88LL))(qword_9E2328);
+          v15(v14, v16);
+          v17 = sub_2CA3A0(&off_9D7F10);
+          v18 = *(_QWORD *)v17;
+          v19 = *(void (__fastcall **)(__int64, _QWORD))(**(_QWORD **)v17 + 32LL);
+          v20 = sub_86C9F0();
+          v19(v18, v20);
+          v21 = (_QWORD *)sub_2CA3A0(&off_9D7F10);
+          (*(void (__fastcall **)(_QWORD, _BYTE *))(*(_QWORD *)*v21 + 24LL))(*v21, v32);
+          v22 = (_QWORD *)sub_2CA3A0(&off_9D7F10);
+          (*(void (__fastcall **)(_QWORD, _QWORD))(*(_QWORD *)*v22 + 136LL))(*v22, v28);
+          v23 = (*(__int64 (__fastcall **)(_QWORD *))(*g_pVApplication + 152LL))(g_pVApplication);
+          if ( (unsigned int)sub_2CA0E0(v23, "GMS/RequireLoginForDedicatedServers", 0) )
+          {
+            v24 = *(const char **)(a1 + 320);
+            if ( v24 && *v24 )
+            {
+              sub_2C9150("Logging into Steam gameserver account with logon token '%.8sxxxxxxxxxxxxxxxxxxxxxxxx'\n", v24);
+              v26 = (_QWORD *)sub_2CA3A0(&off_9D7F10);
+              v27 = *(void **)(a1 + 320);
+              if ( !v27 )
+                v27 = &unk_27CC16;
+              (*(void (__fastcall **)(_QWORD, void *))(*(_QWORD *)*v26 + 40LL))(*v26, v27);
+              goto LABEL_20;
+            }
+            if ( (*(unsigned __int8 (__fastcall **)(_QWORD *))(*g_pSource2Server + 88LL))(g_pSource2Server) )
+            {
+              sub_2C9150("Logging in as official server anonymously.\n");
+            }
+            else if ( (*(unsigned int (__fastcall **)(_QWORD *))(*g_pVApplication + 288LL))(g_pVApplication) == 2 )
+            {
+              sub_2C8A30("****************************************************\n");
+              sub_2C8A30("*                                                  *\n");
+              sub_2C8A30("*  No Steam account token was specified.           *\n");
+              sub_2C8A30("*  Logging into anonymous game server account.     *\n");
+              sub_2C8A30("*  Connections will be restricted to LAN only.     *\n");
+              sub_2C8A30("*                                                  *\n");
+              sub_2C8A30("*  To create a game server account go to           *\n");
+              sub_2C8A30("*  http://steamcommunity.com/dev/managegameservers *\n");
+              sub_2C8A30("*                                                  *\n");
+              sub_2C8A30("****************************************************\n");
+            }
+            else
+            {
+              sub_2C9150("Logging into anonymous listen server account.\n");
+            }
+          }
+          v25 = (_QWORD *)sub_2CA3A0(&off_9D7F10);
+          (*(void (__fastcall **)(_QWORD))(*(_QWORD *)*v25 + 48LL))(*v25);
+  LABEL_20:
+          result = (*(__int64 (__fastcall **)(_QWORD *))(*g_pNetworkSystem + 88LL))(g_pNetworkSystem);
+          if ( a2 )
+            return CSteam3Server_SendUpdatedServerDetails(a1, 0);
+          return result;
+        }
+        *(__m128i *)v31 = _mm_load_si128((const __m128i *)&xmmword_267FA0);
+        *(_DWORD *)&v31[15] = (_DWORD)&loc_726576;
+      }
+      sub_2C7F20("Failed to initialize Steamworks SDK for gameserver.  %s", v31);
+      JUMPOUT(0x576F5D);
+    }
+    return result;
+  }
