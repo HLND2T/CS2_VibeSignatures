@@ -6245,6 +6245,21 @@ modules:
       - name: find-CBasePlayerPawn_vtable
         expected_output:
           - CBasePlayerPawn_vtable.{platform}.yaml
+      - name: find-CBaseAnimGraph_vtable
+        expected_output:
+          - CBaseAnimGraph_vtable.{platform}.yaml
+      - name: find-CBaseAnimGraph_UpdateOnRemove
+        expected_output:
+          - CBaseAnimGraph_UpdateOnRemove.{platform}.yaml
+        expected_input:
+          - CBaseAnimGraph_vtable.{platform}.yaml
+          - CBaseEntity_UpdateOnRemove.{platform}.yaml
+      - name: find-CBasePlayerPawn_UpdateOnRemove
+        expected_output:
+          - CBasePlayerPawn_UpdateOnRemove.{platform}.yaml
+        expected_input:
+          - CBasePlayerPawn_vtable.{platform}.yaml
+          - CBaseAnimGraph_UpdateOnRemove.{platform}.yaml
       - name: find-CCSPlayerPawn_vtable
         expected_output:
           - CCSPlayerPawn_vtable.{platform}.yaml
@@ -9474,6 +9489,16 @@ modules:
         category: vtable
       - name: CBasePlayerPawn_vtable
         category: vtable
+      - name: CBaseAnimGraph_vtable
+        category: vtable
+      - name: CBaseAnimGraph_UpdateOnRemove
+        category: vfunc
+        alias:
+          - CBaseAnimGraph::UpdateOnRemove
+      - name: CBasePlayerPawn_UpdateOnRemove
+        category: vfunc
+        alias:
+          - CBasePlayerPawn::UpdateOnRemove
       - name: CCSPlayerPawn_vtable
         category: vtable
       - name: CCSPlayerPawnBase_vtable
