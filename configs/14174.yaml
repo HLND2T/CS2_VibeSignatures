@@ -6245,6 +6245,21 @@ modules:
       - name: find-CBasePlayerPawn_vtable
         expected_output:
           - CBasePlayerPawn_vtable.{platform}.yaml
+      - name: find-CBaseAnimGraph_vtable
+        expected_output:
+          - CBaseAnimGraph_vtable.{platform}.yaml
+      - name: find-CBaseAnimGraph_OnRestore
+        expected_output:
+          - CBaseAnimGraph_OnRestore.{platform}.yaml
+        expected_input:
+          - CBaseAnimGraph_vtable.{platform}.yaml
+          - CBaseEntity_OnRestore.{platform}.yaml
+      - name: find-CBasePlayerPawn_OnRestore
+        expected_output:
+          - CBasePlayerPawn_OnRestore.{platform}.yaml
+        expected_input:
+          - CBasePlayerPawn_vtable.{platform}.yaml
+          - CBaseAnimGraph_OnRestore.{platform}.yaml
       - name: find-CCSPlayerPawn_vtable
         expected_output:
           - CCSPlayerPawn_vtable.{platform}.yaml
@@ -9474,6 +9489,16 @@ modules:
         category: vtable
       - name: CBasePlayerPawn_vtable
         category: vtable
+      - name: CBaseAnimGraph_vtable
+        category: vtable
+      - name: CBaseAnimGraph_OnRestore
+        category: vfunc
+        alias:
+          - CBaseAnimGraph::OnRestore
+      - name: CBasePlayerPawn_OnRestore
+        category: vfunc
+        alias:
+          - CBasePlayerPawn::OnRestore
       - name: CCSPlayerPawn_vtable
         category: vtable
       - name: CCSPlayerPawnBase_vtable
