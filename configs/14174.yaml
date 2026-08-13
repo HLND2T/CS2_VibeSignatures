@@ -6225,6 +6225,15 @@ modules:
           - CBaseEntity_UpdateOnRemove.{platform}.yaml
         expected_input:
           - CBaseEntity_vtable.{platform}.yaml
+      - name: find-PhysCollisionDust
+        expected_output:
+          - PhysCollisionDust.{platform}.yaml
+      - name: find-CBaseEntity_VPhysicsCollision
+        expected_output:
+          - CBaseEntity_VPhysicsCollision.{platform}.yaml
+        expected_input:
+          - PhysCollisionDust.{platform}.yaml
+          - CBaseEntity_vtable.{platform}.yaml
       - name: find-CEntityInstance_OnRestore
         expected_output:
           - CEntityInstance_OnRestore.{platform}.yaml
@@ -9284,6 +9293,12 @@ modules:
         category: vfunc
         alias:
           - CBaseEntity::UpdateOnRemove
+      - name: PhysCollisionDust
+        category: func
+      - name: CBaseEntity_VPhysicsCollision
+        category: vfunc
+        alias:
+          - CBaseEntity::VPhysicsCollision
       - name: CEntityInstance_OnRestore
         category: vfunc
         alias:
