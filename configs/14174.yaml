@@ -8442,6 +8442,18 @@ modules:
       - name: find-CRagdollProp_vtable
         expected_output:
           - CRagdollProp_vtable.{platform}.yaml
+      - name: find-CRagdollProp_Disconnect
+        expected_output:
+          - CRagdollProp_Disconnect.{platform}.yaml
+        expected_input:
+          - CRagdollProp_vtable.{platform}.yaml
+          - CEntityInstance_Disconnect.{platform}.yaml
+      - name: find-CBasePlayerPawn_Disconnect
+        expected_output:
+          - CBasePlayerPawn_Disconnect.{platform}.yaml
+        expected_input:
+          - CBasePlayerPawn_vtable.{platform}.yaml
+          - CRagdollProp_Disconnect.{platform}.yaml
       - name: find-CRagdollProp_DrawEntityDebugOverlays
         expected_output:
           - CRagdollProp_DrawEntityDebugOverlays.{platform}.yaml
@@ -11355,6 +11367,14 @@ modules:
         category: vfunc
         alias:
           - CRagdollProp::DrawEntityDebugOverlays
+      - name: CRagdollProp_Disconnect
+        category: vfunc
+        alias:
+          - CRagdollProp::Disconnect
+      - name: CBasePlayerPawn_Disconnect
+        category: vfunc
+        alias:
+          - CBasePlayerPawn::Disconnect
       - name: CBaseEntity_ReloadPrivateScripts
         category: vfunc
         alias:
