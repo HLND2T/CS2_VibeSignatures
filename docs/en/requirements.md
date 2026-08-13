@@ -11,6 +11,7 @@
 5. [ida-pro-mcp](https://github.com/mrexodia/ida-pro-mcp)
 6. [idalib](https://docs.hex-rays.com/user-guide/idalib), required by `ida_analyze_bin.py`
 7. Clang/LLVM, with `clang` available in `PATH`. [llvm-msvc](https://github.com/backengineering/llvm-msvc) is recommended.
+8. [binsync](https://github.com/binsync/binsync)
 
 Install the Python dependencies after cloning the repository:
 
@@ -29,8 +30,7 @@ Use SKILL: init-gamebin to initialize the latest game version's binaries.
 
 The skill resolves `latest` from the repository's version list, downloads or merges the matching binaries without
 overwriting existing files, and then delegates symbol YAML restoration to `restore-from-snapshot`. If no game version
-is specified, the skill lists the available entries and asks you to choose one; do not guess a version or substitute an
-unlisted version.
+is specified, the skill lists the available entries and asks you to choose one
 
 ## Troubleshooting
 

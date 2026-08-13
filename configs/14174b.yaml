@@ -567,6 +567,15 @@ modules:
           - CNetworkGameServer_ActivateServer.{platform}.yaml
         expected_input:
           - CNetworkGameServer_vtable.{platform}.yaml
+      - name: find-CNetworkGameServerBase_ReplyChallenge
+        expected_output:
+          - CNetworkGameServerBase_ReplyChallenge.{platform}.yaml
+      - name: find-CNetworkGameServerBase_GetChallengeType
+        expected_output:
+          - CNetworkGameServerBase_GetChallengeType.{platform}.yaml
+        expected_input:
+          - CNetworkGameServerBase_ReplyChallenge.{platform}.yaml
+          - CNetworkGameServerBase_vtable.{platform}.yaml
       - name: find-CNetworkStringTableContainer_DirectUpdate
         optional_output:
           - CNetworkStringTableContainer_DirectUpdate.{platform}.yaml
@@ -600,6 +609,11 @@ modules:
         expected_input:
           - CNetworkGameServer_vtable.{platform}.yaml
           - CNetworkGameServerBase_Shutdown.{platform}.yaml
+      - name: find-ISource2Server_GetAllServerClasses
+        expected_output:
+          - ISource2Server_GetAllServerClasses.{platform}.yaml
+        expected_input:
+          - CNetworkGameServer_Shutdown.{platform}.yaml
       - name: find-CNetworkGameServer_SpawnServer
         expected_output:
           - CNetworkGameServer_SpawnServer.{platform}.yaml
@@ -665,6 +679,7 @@ modules:
       - name: find-CNetworkGameServerBase_CheckTimeouts-decompiles
         expected_output:
           - CNetworkGameServerBase_IsHLTV.{platform}.yaml
+          - ISource2Server_ShouldTimeoutClient.{platform}.yaml
         expected_input:
           - CNetworkGameServerBase_CheckTimeouts.{platform}.yaml
           - CNetworkGameServerBase_vtable.{platform}.yaml
@@ -819,11 +834,13 @@ modules:
           - CNetworkGameServerBase_ServerSimulate.{platform}.yaml
         expected_input_linux:
           - CNetworkGameServerBase_ServerSimulateInternal.{platform}.yaml
-      - name: find-CNetworkGameServer_GetFreeClient
+      - name: find-CNetworkGameServerBase_ConnectClient-decompiles
         expected_output:
           - CNetworkGameServer_GetFreeClient.{platform}.yaml
+          - CNetworkGameServerBase_CheckPassword.{platform}.yaml
         expected_input:
           - CNetworkGameServerBase_ConnectClient.{platform}.yaml
+          - CNetworkGameServer_vtable.{platform}.yaml
       - name: find-CNetworkGameServerBase_CreateFakeClient
         expected_output:
           - CNetworkGameServerBase_CreateFakeClient.{platform}.yaml
@@ -1299,6 +1316,12 @@ modules:
         expected_input:
           - CNetworkGameServerBase_vtable.{platform}.yaml
           - INetworkGameServer_ServerEndSimulate.{platform}.yaml
+      - name: find-CNetworkGameServerBase_CalculateCPUUsage
+        expected_output:
+          - CNetworkGameServerBase_CalculateCPUUsage.{platform}.yaml
+        expected_input:
+          - CNetworkGameServerBase_vtable.{platform}.yaml
+          - CNetworkGameServerBase_ServerEndSimulate.{platform}.yaml
       - name: find-INetworkGameServer_ServerPostSimulate
         expected_output:
           - INetworkGameServer_ServerPostSimulate.{platform}.yaml
@@ -1811,6 +1834,11 @@ modules:
         expected_input:
           - CLoopTypeClientServer_vtable.{platform}.yaml
           - CLoopTypeClientSimple_ActivateEngineServices.{platform}.yaml
+      - name: find-ISource2Server_GetActiveWorldName
+        expected_output:
+          - ISource2Server_GetActiveWorldName.{platform}.yaml
+        expected_input:
+          - CLoopTypeClientServer_ActivateLoop.{platform}.yaml
       - name: find-CLoopTypeClientServer_AllocateLoopMode
         expected_output:
           - CLoopTypeClientServer_AllocateLoopMode.{platform}.yaml
@@ -2294,6 +2322,10 @@ modules:
         category: func
         alias:
           - CNetworkGameServerBase::ConnectClient
+      - name: CNetworkGameServerBase_CheckPassword
+        category: vfunc
+        alias:
+          - CNetworkGameServerBase::CheckPassword
       - name: CNetworkGameServerBase_vtable
         category: vtable
       - name: CNetworkGameServerBase_GetClientConnectionType
@@ -2435,6 +2467,14 @@ modules:
         category: vfunc
         alias:
           - CNetworkGameServer::DirectUpdate
+      - name: CNetworkGameServerBase_ReplyChallenge
+        category: func
+        alias:
+          - CNetworkGameServerBase::ReplyChallenge
+      - name: CNetworkGameServerBase_GetChallengeType
+        category: vfunc
+        alias:
+          - CNetworkGameServerBase::GetChallengeType
       - name: CNetworkGameServer_Init
         category: vfunc
         alias:
@@ -2443,6 +2483,10 @@ modules:
         category: vfunc
         alias:
           - CNetworkGameServer::Shutdown
+      - name: ISource2Server_GetAllServerClasses
+        category: vfunc
+        alias:
+          - ISource2Server::GetAllServerClasses
       - name: CNetworkGameServer_SpawnServer
         category: vfunc
         alias:
@@ -2483,6 +2527,10 @@ modules:
         category: vfunc
         alias:
           - CNetworkGameServerBase::IsHLTV
+      - name: ISource2Server_ShouldTimeoutClient
+        category: vfunc
+        alias:
+          - ISource2Server::ShouldTimeoutClient
       - name: CNetworkGameServerBase_GetPassword
         category: vfunc
         alias:
@@ -3001,6 +3049,10 @@ modules:
         category: vfunc
         alias:
           - CNetworkGameServerBase::ServerEndSimulate
+      - name: CNetworkGameServerBase_CalculateCPUUsage
+        category: vfunc
+        alias:
+          - CNetworkGameServerBase::CalculateCPUUsage
       - name: INetworkGameServer_ServerPostSimulate
         category: vfunc
         alias:
@@ -3279,6 +3331,10 @@ modules:
         category: vfunc
         alias:
           - CLoopTypeClientServer::ActivateLoop
+      - name: ISource2Server_GetActiveWorldName
+        category: vfunc
+        alias:
+          - ISource2Server::GetActiveWorldName
       - name: CLoopTypeClientServer_AllocateLoopMode
         category: vfunc
         alias:
@@ -5965,6 +6021,24 @@ modules:
       - name: find-CSource2Server_vtable
         expected_output:
           - CSource2Server_vtable.{platform}.yaml
+      - name: find-CSource2Server_GetAllServerClasses
+        expected_output:
+          - CSource2Server_GetAllServerClasses.{platform}.yaml
+        expected_input:
+          - CSource2Server_vtable.{platform}.yaml
+          - ../engine/ISource2Server_GetAllServerClasses.{platform}.yaml
+      - name: find-CSource2Server_GetActiveWorldName
+        expected_output:
+          - CSource2Server_GetActiveWorldName.{platform}.yaml
+        expected_input:
+          - CSource2Server_vtable.{platform}.yaml
+          - ../engine/ISource2Server_GetActiveWorldName.{platform}.yaml
+      - name: find-CSource2Server_ShouldTimeoutClient
+        expected_output:
+          - CSource2Server_ShouldTimeoutClient.{platform}.yaml
+        expected_input:
+          - CSource2Server_vtable.{platform}.yaml
+          - ../engine/ISource2Server_ShouldTimeoutClient.{platform}.yaml
       - name: find-CUserMessageServerFrameTime_t_vtable
         expected_output:
           - CUserMessageServerFrameTime_t_vtable.{platform}.yaml
@@ -6144,6 +6218,11 @@ modules:
       - name: find-CBaseEntity_OnRestore
         expected_output:
           - CBaseEntity_OnRestore.{platform}.yaml
+        expected_input:
+          - CBaseEntity_vtable.{platform}.yaml
+      - name: find-CBaseEntity_UpdateOnRemove
+        expected_output:
+          - CBaseEntity_UpdateOnRemove.{platform}.yaml
         expected_input:
           - CBaseEntity_vtable.{platform}.yaml
       - name: find-CEntityInstance_OnRestore
@@ -6710,6 +6789,12 @@ modules:
           - CCSPlayerController_Connect.{platform}.yaml
         expected_input:
           - CPlayerCommandQueue_ctor.{platform}.yaml
+          - CCSPlayerController_vtable.{platform}.yaml
+      - name: find-CCSPlayerController_Disconnect
+        expected_output:
+          - CCSPlayerController_Disconnect.{platform}.yaml
+        expected_input:
+          - CEntityInstance_Disconnect.{platform}.yaml
           - CCSPlayerController_vtable.{platform}.yaml
       - name: find-CCSPlayerController_SwitchTeam
         expected_output:
@@ -7407,6 +7492,12 @@ modules:
         expected_input:
           - CBaseEntity_vtable.{platform}.yaml
           - CEntityInstance_Precache.{platform}.yaml
+      - name: find-CCSPlayerController_AddedToEntityDatabase
+        expected_output:
+          - CCSPlayerController_AddedToEntityDatabase.{platform}.yaml
+        expected_input:
+          - CCSPlayerController_vtable.{platform}.yaml
+          - CEntityInstance_AddedToEntityDatabase.{platform}.yaml
       - name: find-CEnvEntityIgniter_Precache
         expected_output:
           - CEnvEntityIgniter_Precache.{platform}.yaml
@@ -7604,6 +7695,12 @@ modules:
           - CEntityInstance_vdtor.{platform}.yaml
         expected_input:
           - CBaseEntity_vdtor.{platform}.yaml
+      - name: find-CEntityInstance_dtor
+        expected_output:
+          - CEntityInstance_dtor.{platform}.yaml
+        expected_input:
+          - CEntityInstance_vtable.{platform}.yaml
+          - CEntityInstance_UpdateOnRemove.{platform}.yaml
       - name: find-CEntityInstance_Spawn
         expected_output:
           - CEntityInstance_Spawn.{platform}.yaml
@@ -8376,6 +8473,12 @@ modules:
           - CEntityInstance_OnSetDormant.{platform}.yaml
         expected_input:
           - CCSPlayerPawnBase_OnSetDormant.{platform}.yaml
+      - name: find-CBaseEntity_OnSetDormant
+        expected_output:
+          - CBaseEntity_OnSetDormant.{platform}.yaml
+        expected_input:
+          - CBaseEntity_vtable.{platform}.yaml
+          - CEntityInstance_OnSetDormant.{platform}.yaml
       - name: find-CScriptedSequence_SynchronizeSequence
         expected_output:
           - CScriptedSequence_SynchronizeSequence.{platform}.yaml
@@ -8548,6 +8651,15 @@ modules:
       - name: find-CEngineServer_UnloadSpawnGroup
         expected_output:
           - CEngineServer_UnloadSpawnGroup.{platform}.yaml
+        expected_input_windows:
+          - CLoopModeGame_LoopInit.{platform}.yaml
+        expected_input_linux:
+          - CLoopModeGame_LoopInitInternal.{platform}.yaml
+      - name: find-CLoopModeGame_LoopInit-decompiles
+        expected_output:
+          - CNetworkServerService_SetGameSpawnGroupMgr.{platform}.yaml
+          - CNetworkServerService_AddServerPrerequisites.{platform}.yaml
+          - CNetworkServerService_SetFinalSimulationTickThisFrame.{platform}.yaml
         expected_input_windows:
           - CLoopModeGame_LoopInit.{platform}.yaml
         expected_input_linux:
@@ -8803,6 +8915,12 @@ modules:
           - CEntityInstance_AddChangeAccessorPath.{platform}.yaml
         expected_input:
           - EntityInstanceAddChangeAccessorPath.{platform}.yaml
+      - name: find-CBaseEntity_AddChangeAccessorPath
+        expected_output:
+          - CBaseEntity_AddChangeAccessorPath.{platform}.yaml
+        expected_input:
+          - CBaseEntity_vtable.{platform}.yaml
+          - CEntityInstance_AddChangeAccessorPath.{platform}.yaml
       - name: find-CEntityInstance_AssignChangeAccessorPathIds
         expected_output:
           - CEntityInstance_AssignChangeAccessorPathIds.{platform}.yaml
@@ -8964,6 +9082,18 @@ modules:
     symbols:
       - name: CSource2Server_vtable
         category: vtable
+      - name: CSource2Server_GetAllServerClasses
+        category: vfunc
+        alias:
+          - CSource2Server::GetAllServerClasses
+      - name: CSource2Server_GetActiveWorldName
+        category: vfunc
+        alias:
+          - CSource2Server::GetActiveWorldName
+      - name: CSource2Server_ShouldTimeoutClient
+        category: vfunc
+        alias:
+          - CSource2Server::ShouldTimeoutClient
       - name: CUserMessageServerFrameTime_t_vtable
         category: vtable
       - name: CSource2Server_vtable2
@@ -9171,6 +9301,10 @@ modules:
         category: vfunc
         alias:
           - CBaseEntity::OnRestore
+      - name: CBaseEntity_UpdateOnRemove
+        category: vfunc
+        alias:
+          - CBaseEntity::UpdateOnRemove
       - name: CEntityInstance_OnRestore
         category: vfunc
         alias:
@@ -9193,6 +9327,10 @@ modules:
         category: vfunc
         alias:
           - CEntityInstance::~CEntityInstance (virtual)
+      - name: CEntityInstance_dtor
+        category: func
+        alias:
+          - CEntityInstance::~CEntityInstance
       - name: CEntitySaveRestoreBlockHandler_vtable
         category: vtable
       - name: CEntitySaveRestoreBlockHandler_PreSave
@@ -9333,6 +9471,10 @@ modules:
         category: vfunc
         alias:
           - CEntityInstance::AddChangeAccessorPath
+      - name: CBaseEntity_AddChangeAccessorPath
+        category: vfunc
+        alias:
+          - CBaseEntity::AddChangeAccessorPath
       - name: CEntityInstance_AssignChangeAccessorPathIds
         category: vfunc
         alias:
@@ -9880,6 +10022,10 @@ modules:
         category: vfunc
         alias:
           - CCSPlayerController::Connect
+      - name: CCSPlayerController_Disconnect
+        category: vfunc
+        alias:
+          - CCSPlayerController::Disconnect
       - name: CCSPlayerController_SwitchTeam
         category: func
         alias:
@@ -10716,11 +10862,19 @@ modules:
         category: func
         alias:
           - CBaseEntity::ScriptGetAbsOrigin
+      - name: CBaseEntity_OnSetDormant
+        category: vfunc
+        alias:
+          - CBaseEntity::OnSetDormant
       - name: CBaseEntity_Precache
         category: vfunc
         alias:
           - CBaseEntity::Precache
           - Precache
+      - name: CCSPlayerController_AddedToEntityDatabase
+        category: vfunc
+        alias:
+          - CCSPlayerController::AddedToEntityDatabase
       - name: CEnvEntityIgniter_Precache
         category: vfunc
         alias:
@@ -11271,6 +11425,18 @@ modules:
         category: vfunc
         alias:
           - CEngineServer::UnloadSpawnGroup
+      - name: CNetworkServerService_SetGameSpawnGroupMgr
+        category: vfunc
+        alias:
+          - CNetworkServerService::SetGameSpawnGroupMgr
+      - name: CNetworkServerService_AddServerPrerequisites
+        category: vfunc
+        alias:
+          - CNetworkServerService::AddServerPrerequisites
+      - name: CNetworkServerService_SetFinalSimulationTickThisFrame
+        category: vfunc
+        alias:
+          - CNetworkServerService::SetFinalSimulationTickThisFrame
       - name: CSpawnGroupMgrGameSystem_GetSpawnGroups
         category: func
         alias:

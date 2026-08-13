@@ -198,8 +198,12 @@ jobs:
             } elseif ($trackedSnapshots.Count -eq 1) {
               $baseSnapshotRepoPath = $trackedSnapshots[0]
             } else {
+              # --first-parent is required: git suppresses the --name-only file list for
+              # merge commits, and a base-sync merge that republishes a snapshot differs
+              # from both parents, so it is not simplified away either. Without it the
+              # file list comes back empty and the count check below fails.
               $latestSnapshotChange = @(
-                git log -1 --format=%H --name-only $baseRef -- gamesymbols |
+                git log -1 --format=%H --name-only --first-parent $baseRef -- gamesymbols |
                   Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
               )
               if ($LASTEXITCODE -ne 0 -or $latestSnapshotChange.Count -lt 2) {

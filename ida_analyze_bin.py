@@ -758,7 +758,10 @@ def validate_opened_binary_identity(binary_path, platform, survey_payload):
     input_sha256 = _metadata_hash(metadata, "input_sha256")
     # survey_binary may not hash a reused IDB, while ida_nalt still exposes
     # the hash of the original input binary recorded in that database.
-    effective_sha256 = input_sha256 if _is_ida_database_path(opened_path) else (opened_sha256 or input_sha256)
+    opened_is_ida_database = _is_ida_database_path(opened_path)
+    if opened_is_ida_database and not input_sha256:
+        reasons.append("IDB input sha256 is unavailable")
+    effective_sha256 = input_sha256 if opened_is_ida_database else (opened_sha256 or input_sha256)
     opened_md5 = _metadata_hash(metadata, "md5")
     expected_hashes = None
     if effective_sha256 or opened_md5:
@@ -818,11 +821,6 @@ def verify_opened_binary_via_mcp(
             print(f"    Reason: {exc}")
             return False
         ok, reasons = validate_opened_binary_identity(binary_path, platform, survey)
-        metadata = survey.get("metadata") if isinstance(survey, dict) else {}
-        if ok and isinstance(metadata, dict) and _is_ida_database_path(metadata.get("path")):
-            if not _metadata_hash(metadata, "input_sha256"):
-                ok = False
-                reasons = ["IDB input sha256 is unavailable"]
         if ok:
             return True
         retryable = reasons in (

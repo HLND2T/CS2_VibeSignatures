@@ -691,7 +691,7 @@ disasm_code: |-
   .text:0000000180BDAAE4                 mov     rcx, cs:g_pNetworkServerService
   .text:0000000180BDAAEB                 lea     rdx, [rbp+0F0h+var_50]
   .text:0000000180BDAAF2                 mov     rax, [rcx]
-  .text:0000000180BDAAF5                 call    qword ptr [rax+100h]
+  .text:0000000180BDAAF5                 call    qword ptr [rax+100h] ; 100h = 0x100 = CNetworkServerService_SetFinalSimulationTickThisFrame (vfunc_index 32)
   .text:0000000180BDAAFB                 mov     rcx, rax
   .text:0000000180BDAAFE                 xor     edx, edx
   .text:0000000180BDAB00                 call    cs:?ToString@netadr_t@@QEBAPEBD_N@Z; netadr_t::ToString(bool)
@@ -919,7 +919,7 @@ disasm_code: |-
   .text:0000000180BDAEAF                 mov     rcx, cs:g_pNetworkServerService
   .text:0000000180BDAEB6                 mov     rdx, cs:qword_181ED26C0
   .text:0000000180BDAEBD                 mov     rax, [rcx]
-  .text:0000000180BDAEC0                 call    qword ptr [rax+0D8h]
+  .text:0000000180BDAEC0                 call    qword ptr [rax+0D8h] ; 0D8h = 0xD8 = CNetworkServerService_SetGameSpawnGroupMgr (vfunc_index 27)
   .text:0000000180BDAEC6                 xor     ebx, ebx
   .text:0000000180BDAEC8                 test    r15d, r15d
   .text:0000000180BDAECB                 jle     short loc_180BDAF04
@@ -946,7 +946,7 @@ disasm_code: |-
   .text:0000000180BDAF1A                 mov     byte ptr [rsp+1F0h+var_1D0], dl
   .text:0000000180BDAF1E                 lea     rdx, [rbp+0F0h+var_120]
   .text:0000000180BDAF22                 mov     rax, [rcx]
-  .text:0000000180BDAF25                 call    qword ptr [rax+0E0h]
+  .text:0000000180BDAF25                 call    qword ptr [rax+0E0h] ; 0E0h = 0xE0 = CNetworkServerService_AddServerPrerequisites (vfunc_index 28)
   .text:0000000180BDAF2B                 mov     rbx, [rbp+0F0h+var_B0]
   .text:0000000180BDAF2F                 lea     rax, ??_7?$CBaseCmdKeyValues@VCSVCMsg_GameSessionConfiguration@@@@6B@; const CBaseCmdKeyValues<CSVCMsg_GameSessionConfiguration>::`vftable'
   .text:0000000180BDAF36                 mov     [rbp+0F0h+var_120], rax
@@ -1825,7 +1825,7 @@ procedure: |-
           &v145,
           v74,
           v83);
-        v84 = (netadr_t *)(*(__int64 (__fastcall **)(__int64, _BYTE *))(*(_QWORD *)g_pNetworkServerService + 256LL))(
+        v84 = (netadr_t *)(*(__int64 (__fastcall **)(__int64, _BYTE *))(*(_QWORD *)g_pNetworkServerService + 256LL))(// 256LL = 0x100 = CNetworkServerService_SetFinalSimulationTickThisFrame (g_pNetworkServerService, vfunc_index 32)
                             g_pNetworkServerService,
                             v164);
         v85 = netadr_t::ToString(v84, 0);
@@ -1954,7 +1954,7 @@ procedure: |-
           goto LABEL_212;
         }
         sub_180C20FD0(&v165);
-        (*(void (__fastcall **)(__int64, __int64))(*(_QWORD *)g_pNetworkServerService + 216LL))(
+        (*(void (__fastcall **)(__int64, __int64))(*(_QWORD *)g_pNetworkServerService + 216LL))(// 216LL = 0xD8 = CNetworkServerService_SetGameSpawnGroupMgr (g_pNetworkServerService, vfunc_index 27)
           g_pNetworkServerService,
           qword_181ED26C0);
         for ( i = 0; i < v3; ++i )
@@ -1966,7 +1966,7 @@ procedure: |-
             *(_DWORD *)(v5 + 1072) = v102;
         }
         LOBYTE(v126) = v133;
-        (*(void (__fastcall **)(__int64, void ***, const char *, void (__fastcall ***)(_QWORD, _QWORD), _DWORD))(*(_QWORD *)g_pNetworkServerService + 224LL))(
+        (*(void (__fastcall **)(__int64, void ***, const char *, void (__fastcall ***)(_QWORD, _QWORD), _DWORD))(*(_QWORD *)g_pNetworkServerService + 224LL))(// 224LL = 0xE0 = CNetworkServerService_AddServerPrerequisites (g_pNetworkServerService, vfunc_index 28)
           g_pNetworkServerService,
           &v145,
           "GameSessionManifest",
