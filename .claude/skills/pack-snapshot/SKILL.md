@@ -1,6 +1,7 @@
 ---
 name: pack-snapshot
 description: Pack configured symbol YAML from a versioned bin directory into the canonical tracked game-symbol snapshot and verify it against the same analysis config. Use when explicitly asked to pack, rebuild, refresh, or verify a repository game-symbol snapshot for one GAMEVER.
+disable-model-invocation: true
 ---
 
 # Pack Snapshot
