@@ -3,9 +3,24 @@
 
 from ida_analyze_util import preprocess_common_skill
 
-INHERIT_VFUNCS = [
-    # (target_func_name, inherit_vtable_class, base_vfunc_name, generate_func_sig)
-    ("CBasePlayerController_Spawn", "CBasePlayerController", "CFlashbangProjectile_Spawn", True),
+TARGET_FUNCTION_NAMES = ["CBasePlayerController_Spawn"]
+
+FUNC_XREFS = [
+    {
+        "func_name": "CBasePlayerController_Spawn",
+        "xref_strings": ["playername"],
+        "xref_gvs": [],
+        "xref_signatures": [],
+        "xref_funcs": ["CBaseEntity_Spawn"],
+        "exclude_funcs": [],
+        "exclude_strings": [],
+        "exclude_gvs": [],
+        "exclude_signatures": [],
+    },
+]
+
+FUNC_VTABLE_RELATIONS = [
+    ("CBasePlayerController_Spawn", "CBasePlayerController_vtable"),
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
@@ -36,7 +51,7 @@ async def preprocess_skill(
     image_base,
     debug=False,
 ):
-    """Reuse old func_sig first; fallback to vtable index + generated signature when needed."""
+    """Locate the base player-controller Spawn vfunc from its xrefs."""
     _ = skill_name
 
     return await preprocess_common_skill(
@@ -46,7 +61,9 @@ async def preprocess_skill(
         new_binary_dir=new_binary_dir,
         platform=platform,
         image_base=image_base,
-        inherit_vfuncs=INHERIT_VFUNCS,
+        func_names=TARGET_FUNCTION_NAMES,
+        func_xrefs=FUNC_XREFS,
+        func_vtable_relations=FUNC_VTABLE_RELATIONS,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
     )
