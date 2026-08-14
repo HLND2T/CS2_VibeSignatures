@@ -4274,6 +4274,12 @@ modules:
       - name: find-CGameEntitySystem_vtable
         expected_output:
           - CGameEntitySystem_vtable.{platform}.yaml
+      - name: find-CGameEntitySystem_InvokePrecacheCallback
+        expected_output:
+          - CGameEntitySystem_InvokePrecacheCallback.{platform}.yaml
+        expected_input:
+          - CEntitySystem_InvokePrecacheCallback.{platform}.yaml
+          - CGameEntitySystem_vtable.{platform}.yaml
       - name: find-CGameEventManager_vtable
         expected_output:
           - CGameEventManager_vtable.{platform}.yaml
@@ -5128,6 +5134,10 @@ modules:
           - IGameSystem::OnClientPreEntityThink
       - name: CGameEntitySystem_vtable
         category: vtable
+      - name: CGameEntitySystem_InvokePrecacheCallback
+        category: vfunc
+        alias:
+          - CGameEntitySystem::InvokePrecacheCallback
       - name: CGameEventManager_vtable
         category: vtable
       - name: CNetworkGameClient_OnSource1Source1LegacyGameEvent
