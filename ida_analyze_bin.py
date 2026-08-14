@@ -254,6 +254,7 @@ def _absolute_path_preserve_spelling(path):
 SURVEY_CURRENT_IDB_PATH_PY_EVAL = (
     "import json\n"
     "path = ''\n"
+    "input_sha256 = ''\n"
     "try:\n"
     "    import idaapi\n"
     "    path = idaapi.get_path(idaapi.PATH_TYPE_IDB) or ''\n"
@@ -265,7 +266,19 @@ SURVEY_CURRENT_IDB_PATH_PY_EVAL = (
     "        path = idc.get_idb_path() or ''\n"
     "    except Exception:\n"
     "        pass\n"
-    "result = json.dumps({'metadata': {'path': path}})\n"
+    "try:\n"
+    "    import ida_nalt\n"
+    "    raw_sha256 = ida_nalt.retrieve_input_file_sha256()\n"
+    "    if isinstance(raw_sha256, (bytes, bytearray)):\n"
+    "        input_sha256 = bytes(raw_sha256).hex()\n"
+    "    elif isinstance(raw_sha256, str):\n"
+    "        input_sha256 = raw_sha256.strip()\n"
+    "except Exception:\n"
+    "    pass\n"
+    "metadata = {'path': path}\n"
+    "if input_sha256:\n"
+    "    metadata['input_sha256'] = input_sha256\n"
+    "result = json.dumps({'metadata': metadata})\n"
 )
 
 
@@ -550,12 +563,19 @@ def _merge_metadata_path(payload, path_payload):
         return payload
 
     if not isinstance(payload, dict):
-        return {"metadata": {"path": resolved_path}}
+        merged_metadata = {"path": resolved_path}
+        input_sha256 = path_metadata.get("input_sha256")
+        if isinstance(input_sha256, str) and input_sha256.strip():
+            merged_metadata["input_sha256"] = input_sha256.strip()
+        return {"metadata": merged_metadata}
 
     metadata = payload.get("metadata")
     merged_payload = dict(payload)
     merged_metadata = dict(metadata) if isinstance(metadata, dict) else {}
     merged_metadata["path"] = resolved_path
+    input_sha256 = path_metadata.get("input_sha256")
+    if isinstance(input_sha256, str) and input_sha256.strip():
+        merged_metadata["input_sha256"] = input_sha256.strip()
     merged_payload["metadata"] = merged_metadata
     return merged_payload
 
@@ -692,7 +712,19 @@ def _hash_file(path):
 
 def _metadata_hash(metadata, key):
     value = metadata.get(key)
-    return value.strip().lower() if isinstance(value, str) and value.strip() else ""
+    if not isinstance(value, str):
+        return ""
+    normalized = value.strip().lower()
+    if normalized in {"", "unavailable", "unknown", "none", "null"}:
+        return ""
+    return normalized
+
+
+def _is_ida_database_path(path):
+    if not isinstance(path, str):
+        return False
+    lowered = path.strip().lower()
+    return lowered.endswith((".i64", ".idb"))
 
 
 def _parse_metadata_int(metadata, key):
@@ -721,19 +753,28 @@ def validate_opened_binary_identity(binary_path, platform, survey_payload):
         if base_address is not None and base_address >= _PE_STYLE_BASE_ADDRESS:
             reasons.append(f"PE-style base_address for linux target: {hex(base_address)}")
 
+    opened_path = metadata.get("path")
     opened_sha256 = _metadata_hash(metadata, "sha256")
+    input_sha256 = _metadata_hash(metadata, "input_sha256")
+    # survey_binary may not hash a reused IDB, while ida_nalt still exposes
+    # the hash of the original input binary recorded in that database.
+    opened_is_ida_database = _is_ida_database_path(opened_path)
+    if opened_is_ida_database and not input_sha256:
+        reasons.append("IDB input sha256 is unavailable")
+    effective_sha256 = input_sha256 if opened_is_ida_database else (opened_sha256 or input_sha256)
     opened_md5 = _metadata_hash(metadata, "md5")
     expected_hashes = None
-    if opened_sha256 or opened_md5:
+    if effective_sha256 or opened_md5:
         try:
             expected_hashes = _hash_file(binary_path)
         except OSError as exc:
             reasons.append(f"could not hash expected binary: {exc}")
 
-    if opened_sha256 and expected_hashes:
+    if effective_sha256 and expected_hashes:
         expected_sha256 = expected_hashes["sha256"]
-        if opened_sha256 != expected_sha256:
-            reasons.append(f"sha256 mismatch: expected {expected_sha256}, opened {opened_sha256}")
+        if effective_sha256 != expected_sha256:
+            label = "opened" if opened_sha256 else "IDB input"
+            reasons.append(f"sha256 mismatch: expected {expected_sha256}, {label} {effective_sha256}")
         return not reasons, reasons
 
     if opened_md5 and expected_hashes:
@@ -742,7 +783,6 @@ def validate_opened_binary_identity(binary_path, platform, survey_payload):
             reasons.append(f"md5 mismatch: expected {expected_md5}, opened {opened_md5}")
         return not reasons, reasons
 
-    opened_path = metadata.get("path")
     expected_path = normalize_binary_identity_path(_absolute_path_preserve_spelling(binary_path))
     normalized_opened_path = normalize_binary_identity_path(opened_path) if isinstance(opened_path, str) else ""
     if not normalized_opened_path:
@@ -797,6 +837,7 @@ def verify_opened_binary_via_mcp(
     opened_path = metadata.get("path") if isinstance(metadata, dict) else None
     base_address = metadata.get("base_address") if isinstance(metadata, dict) else None
     opened_sha256 = metadata.get("sha256") if isinstance(metadata, dict) else None
+    input_sha256 = metadata.get("input_sha256") if isinstance(metadata, dict) else None
     opened_md5 = metadata.get("md5") if isinstance(metadata, dict) else None
 
     print("  Failed: opened binary verification failed")
@@ -807,6 +848,8 @@ def verify_opened_binary_via_mcp(
         print(f"    Opened base_address: {base_address}")
     if opened_sha256:
         print(f"    Opened sha256: {opened_sha256}")
+    if input_sha256:
+        print(f"    IDB input sha256: {input_sha256}")
     if opened_md5:
         print(f"    Opened md5: {opened_md5}")
     for reason in reasons:
@@ -1179,6 +1222,40 @@ def stop_idalib_mcp_process(process, debug=False):
             process.wait(timeout=5)
         except (OSError, subprocess.TimeoutExpired):
             pass
+
+
+def _ida_database_paths(binary_path):
+    """Return the IDA database and lock/side files associated with a binary."""
+    base = os.fspath(binary_path)
+    database_paths = [
+        f"{base}.i64",
+        f"{base}.idb",
+        f"{base}.id0",
+        f"{base}.id1",
+        f"{base}.id2",
+        f"{base}.nam",
+        f"{base}.til",
+    ]
+    for database_path in (f"{base}.i64", f"{base}.idb"):
+        database_paths.extend(f"{database_path}{suffix}" for suffix in (".id0", ".id1", ".id2", ".nam", ".til"))
+    return database_paths
+
+
+def _invalidate_ida_database(binary_path, debug=False):
+    removed = []
+    for database_path in _ida_database_paths(binary_path):
+        try:
+            if os.path.isfile(database_path):
+                os.remove(database_path)
+                removed.append(database_path)
+        except OSError as exc:
+            if debug:
+                print(f"  Warning: unable to remove stale IDA database file {database_path}: {exc}")
+    return removed
+
+
+def _has_ida_database(binary_path):
+    return any(os.path.isfile(path) for path in _ida_database_paths(binary_path)[:2])
 
 
 def resolve_oldgamever(gamever, bin_dir):
@@ -3137,6 +3214,31 @@ def process_binary(
             debug,
             recovery_budget=recovery_budget,
         )
+        if not verified:
+            if _has_ida_database(binary_path):
+                print(
+                    "  Existing IDA database failed binary identity verification; rebuilding from the original binary"
+                )
+                stop_idalib_mcp_process(process, debug=debug)
+                released = wait_for_port_release(host, port)
+                if debug and not released:
+                    print(f"  MCP port {host}:{port} remained in use before IDB rebuild")
+                removed = _invalidate_ida_database(binary_path, debug=debug)
+                if removed:
+                    print(f"  Removed stale IDA database files: {', '.join(removed)}")
+                process = start_idalib_mcp(binary_path, host, port, ida_args, debug)
+                if process is not None:
+                    process, verified = verify_owned_mcp_with_single_recovery(
+                        process,
+                        binary_path,
+                        platform,
+                        host,
+                        port,
+                        ida_args,
+                        debug,
+                        recovery_budget=recovery_budget,
+                    )
+
         if not verified:
             pending_count = _pending_binary_work_count(
                 skills_to_process=skills_to_process,

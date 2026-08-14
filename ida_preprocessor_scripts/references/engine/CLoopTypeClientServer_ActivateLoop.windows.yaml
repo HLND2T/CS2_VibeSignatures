@@ -1,0 +1,130 @@
+func_name: CLoopTypeClientServer_ActivateLoop
+func_va: '0x1802244b0'
+disasm_code: |-
+  .text:00000001802244B0                 mov     [rsp+arg_0], rbx
+  .text:00000001802244B5                 mov     [rsp+arg_8], rsi
+  .text:00000001802244BA                 push    rdi
+  .text:00000001802244BB                 sub     rsp, 30h
+  .text:00000001802244BF                 mov     r10, [rcx+0C8h]
+  .text:00000001802244C6                 mov     rdi, rcx
+  .text:00000001802244C9                 mov     r9, [rcx+0B0h]
+  .text:00000001802244D0                 mov     rax, [rcx+98h]
+  .text:00000001802244D7                 mov     qword ptr cs:xmmword_18090F4E0+8, rax
+  .text:00000001802244DE                 mov     qword ptr cs:xmmword_18090F4E0, r9
+  .text:00000001802244E5                 mov     cs:qword_18090F4F0, r10
+  .text:00000001802244EC                 call    CLoopTypeClientSimple_ActivateEngineServices
+  .text:00000001802244F1                 call    cs:Plat_FloatTime
+  .text:00000001802244F7                 mov     rcx, cs:g_pSource2Server
+  .text:00000001802244FE                 lea     rsi, aUnknown; "unknown"
+  .text:0000000180224505                 xor     eax, eax
+  .text:0000000180224507                 movsd   qword ptr [rdi+78h], xmm0
+  .text:000000018022450C                 mov     [rdi+0F0h], rax
+  .text:0000000180224513                 mov     [rdi+0F8h], eax
+  .text:0000000180224519                 mov     [rdi+0E0h], rax
+  .text:0000000180224520                 mov     [rdi+0E8h], eax
+  .text:0000000180224526                 mov     [rdi+100h], rax
+  .text:000000018022452D                 mov     [rdi+108h], eax
+  .text:0000000180224533                 mov     [rdi+118h], rax
+  .text:000000018022453A                 mov     [rdi+80h], rax
+  .text:0000000180224541                 mov     [rdi+0D8h], eax
+  .text:0000000180224547                 mov     [rdi+110h], rax
+  .text:000000018022454E                 mov     [rdi+128h], ax
+  .text:0000000180224555                 mov     [rdi+12Ah], al
+  .text:000000018022455B                 mov     [rdi+130h], rax
+  .text:0000000180224562                 mov     [rdi+138h], rax
+  .text:0000000180224569                 test    rcx, rcx
+  .text:000000018022456C                 jz      short loc_18022457A
+  .text:000000018022456E                 mov     rax, [rcx]
+  .text:0000000180224571                 ; 0x0F0 = 240LL = ISource2Server_GetActiveWorldName
+  .text:0000000180224571                 call    qword ptr [rax+0F0h]; 0x0F0 = 240LL = ISource2Server_GetActiveWorldName
+  .text:0000000180224577                 mov     rsi, rax
+  .text:000000018022457A                 mov     rbx, [rdi+178h]
+  .text:0000000180224581                 mov     rcx, rbx
+  .text:0000000180224584                 call    sub_18021F750
+  .text:0000000180224589                 mov     edx, [rbx+24h]
+  .text:000000018022458C                 test    edx, 3FFFFFFFh
+  .text:0000000180224592                 jbe     short loc_1802245A4
+  .text:0000000180224594                 lea     rcx, [rbx+28h]
+  .text:0000000180224598                 bt      edx, 1Eh
+  .text:000000018022459C                 jb      short loc_1802245A1
+  .text:000000018022459E                 mov     rcx, [rcx]
+  .text:00000001802245A1                 mov     byte ptr [rcx], 0
+  .text:00000001802245A4                 and     dword ptr [rbx+20h], 0C0000000h
+  .text:00000001802245AB                 lea     rcx, [rbx+20h]
+  .text:00000001802245AF                 mov     r9d, 0FFFFFFFFh
+  .text:00000001802245B5                 mov     [rsp+38h+var_18], 0
+  .text:00000001802245BA                 mov     r8, rsi
+  .text:00000001802245BD                 xor     edx, edx
+  .text:00000001802245BF                 call    cs:?Insert@CBufferString@@QEAAPEBDHPEBDH_N@Z; CBufferString::Insert(int,char const *,int,bool)
+  .text:00000001802245C5                 mov     rcx, cs:g_pEngineServiceMgr
+  .text:00000001802245CC                 mov     rax, [rcx]
+  .text:00000001802245CF                 call    qword ptr [rax+0F0h]
+  .text:00000001802245D5                 movsd   xmm2, qword ptr [rdi+118h]
+  .text:00000001802245DD                 mov     r9b, 1
+  .text:00000001802245E0                 cvtpd2ps xmm2, xmm2
+  .text:00000001802245E4                 xor     edx, edx
+  .text:00000001802245E6                 mov     rcx, rax
+  .text:00000001802245E9                 mov     r8, [rax]
+  .text:00000001802245EC                 mov     rbx, [rsp+38h+arg_0]
+  .text:00000001802245F1                 mov     rsi, [rsp+38h+arg_8]
+  .text:00000001802245F6                 add     rsp, 30h
+  .text:00000001802245FA                 pop     rdi
+  .text:00000001802245FB                 jmp     qword ptr [r8+20h]
+procedure: |-
+  __int64 __fastcall CLoopTypeClientServer_ActivateLoop(__int64 a1, __int64 a2, __int64 a3)
+  {
+    __int64 v3; // r10
+    __int64 v5; // r9
+    __int64 v6; // rdx
+    __int64 v7; // rcx
+    double v8; // xmm0_8
+    __int64 v9; // rcx
+    const char *v10; // rsi
+    __int64 v11; // rbx
+    int v12; // edx
+    _QWORD *v13; // rcx
+    _QWORD *v14; // rax
+    __int64 v15; // r9
+
+    v3 = *(_QWORD *)(a1 + 200);
+    v5 = *(_QWORD *)(a1 + 176);
+    *((_QWORD *)&xmmword_18090F4E0 + 1) = *(_QWORD *)(a1 + 152);
+    *(_QWORD *)&xmmword_18090F4E0 = v5;
+    qword_18090F4F0 = v3;
+    CLoopTypeClientSimple_ActivateEngineServices(a1, a2, a3);
+    v8 = Plat_FloatTime(v7, v6);
+    v9 = g_pSource2Server;
+    v10 = "unknown";
+    *(double *)(a1 + 120) = v8;
+    *(_QWORD *)(a1 + 240) = 0;
+    *(_DWORD *)(a1 + 248) = 0;
+    *(_QWORD *)(a1 + 224) = 0;
+    *(_DWORD *)(a1 + 232) = 0;
+    *(_QWORD *)(a1 + 256) = 0;
+    *(_DWORD *)(a1 + 264) = 0;
+    *(_QWORD *)(a1 + 280) = 0;
+    *(_QWORD *)(a1 + 128) = 0;
+    *(_DWORD *)(a1 + 216) = 0;
+    *(_QWORD *)(a1 + 272) = 0;
+    *(_WORD *)(a1 + 296) = 0;
+    *(_BYTE *)(a1 + 298) = 0;
+    *(_QWORD *)(a1 + 304) = 0;
+    *(_QWORD *)(a1 + 312) = 0;
+    if ( v9 )
+      v10 = (const char *)(*(__int64 (__fastcall **)(__int64))(*(_QWORD *)v9 + 240LL))(v9);// 0x0F0 = 240LL = ISource2Server_GetActiveWorldName
+    v11 = *(_QWORD *)(a1 + 376);
+    sub_18021F750(v11);
+    v12 = *(_DWORD *)(v11 + 36);
+    if ( (v12 & 0x3FFFFFFF) != 0 )
+    {
+      v13 = (_QWORD *)(v11 + 40);
+      if ( (v12 & 0x40000000) == 0 )
+        v13 = (_QWORD *)*v13;
+      *(_BYTE *)v13 = 0;
+    }
+    *(_DWORD *)(v11 + 32) &= 0xC0000000;
+    CBufferString::Insert((CBufferString *)(v11 + 32), 0, v10, -1, 0);
+    v14 = (_QWORD *)(*(__int64 (__fastcall **)(__int64))(*(_QWORD *)g_pEngineServiceMgr + 240LL))(g_pEngineServiceMgr);
+    LOBYTE(v15) = 1;
+    return (*(__int64 (__fastcall **)(_QWORD *, _QWORD, _QWORD, __int64))(*v14 + 32LL))(v14, 0, *v14, v15);
+  }

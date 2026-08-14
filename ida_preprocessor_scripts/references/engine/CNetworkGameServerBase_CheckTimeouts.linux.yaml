@@ -60,7 +60,7 @@ disasm_code: |-
   .text:00000000004F9CE3                 mov     rdi, r15
   .text:00000000004F9CE6                 mov     [rbp-158h], rax
   .text:00000000004F9CED                 mov     rcx, [r15]
-  .text:00000000004F9CF0                 mov     rdx, [rdx+0C8h]
+  .text:00000000004F9CF0                 mov     rdx, [rdx+0C8h] ; 0C8h = ISource2Server_ShouldTimeoutClient
   .text:00000000004F9CF7                 mov     [rbp-150h], rdx
   .text:00000000004F9CFE                 call    qword ptr [rcx+0A0h]
   .text:00000000004F9D04                 mov     esi, [r14+48h]
@@ -307,7 +307,7 @@ procedure: |-
         if ( !(*(unsigned __int8 (__fastcall **)(__int64))(*(_QWORD *)a1 + 600LL))(a1) // 600LL = 0x258 = CNetworkGameServerBase_IsHLTV
           && g_pSource2Server
           && (v19 = g_pSource2Server,
-              v22 = *(unsigned __int8 (__fastcall **)(_QWORD *, _QWORD))(*g_pSource2Server + 200LL),
+              v22 = *(unsigned __int8 (__fastcall **)(_QWORD *, _QWORD))(*g_pSource2Server + 200LL),// 200LL = 0xC8 = ISource2Server_ShouldTimeoutClient
               (*(void (__fastcall **)(__int64))(*(_QWORD *)v7 + 160LL))(v7),
               v22(v19, v5[18])) )
         {

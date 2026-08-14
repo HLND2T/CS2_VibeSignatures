@@ -1,0 +1,194 @@
+func_name: CNetworkGameServerBase_ServerEndSimulate
+func_va: '0x509ab0'
+disasm_code: |-
+  .text:0000000000509AB0                 push    rbp
+  .text:0000000000509AB1                 mov     rbp, rsp
+  .text:0000000000509AB4                 push    r12
+  .text:0000000000509AB6                 mov     r12, rdi
+  .text:0000000000509AB9                 push    rbx
+  .text:0000000000509ABA                 call    sub_4F97E0
+  .text:0000000000509ABF                 cmp     dword ptr [r12+38h], 2
+  .text:0000000000509AC5                 jle     short loc_509AF3
+  .text:0000000000509AC7                 mov     rax, [r12]
+  .text:0000000000509ACB                 lea     rdx, CNetworkGameServerBase_IsChangelevelPending
+  .text:0000000000509AD2                 mov     rax, [rax+148h]
+  .text:0000000000509AD9                 cmp     rax, rdx
+  .text:0000000000509ADC                 jnz     loc_509C60
+  .text:0000000000509AE2                 movzx   eax, byte ptr [r12+2B8h]
+  .text:0000000000509AEB                 test    al, al
+  .text:0000000000509AED                 jnz     loc_509BB8
+  .text:0000000000509AF3                 mov     rdi, r12
+  .text:0000000000509AF6                 xor     ebx, ebx
+  .text:0000000000509AF8                 call    CNetworkGameServerBase_SpawnGroupThink
+  .text:0000000000509AFD                 mov     rdi, r12
+  .text:0000000000509B00                 call    CNetworkGameServerBase_CheckTimeouts
+  .text:0000000000509B05                 mov     eax, [r12+248h]
+  .text:0000000000509B0D                 test    eax, eax
+  .text:0000000000509B0F                 jg      short loc_509B31
+  .text:0000000000509B11                 jmp     short loc_509B4E
+  .text:0000000000509B18                 mov     rax, [rdi]
+  .text:0000000000509B1B                 add     rbx, 1
+  .text:0000000000509B1F                 call    qword ptr [rax+1C8h]
+  .text:0000000000509B25                 mov     eax, [r12+248h]
+  .text:0000000000509B2D                 cmp     eax, ebx
+  .text:0000000000509B2F                 jle     short loc_509B4E
+  .text:0000000000509B31                 mov     rdx, [r12+250h]
+  .text:0000000000509B39                 mov     rdi, [rdx+rbx*8]
+  .text:0000000000509B3D                 cmp     byte ptr [rdi+140h], 0
+  .text:0000000000509B44                 jnz     short loc_509B18
+  .text:0000000000509B46                 add     rbx, 1
+  .text:0000000000509B4A                 cmp     eax, ebx
+  .text:0000000000509B4C                 jg      short loc_509B39
+  .text:0000000000509B4E                 mov     rdi, r12
+  .text:0000000000509B51                 call    CNetworkGameServerBase_SendPeerList
+  .text:0000000000509B56                 mov     rax, [r12]
+  .text:0000000000509B5A                 lea     rdx, sub_4F2C70; 0x2C0 = 704LL = CNetworkGameServerBase_CalculateCPUUsage (default impl sub_4F2C70)
+  .text:0000000000509B61                 mov     rax, [rax+2C0h]; 0x2C0 = 704LL = CNetworkGameServerBase_CalculateCPUUsage
+  .text:0000000000509B68                 cmp     rax, rdx
+  .text:0000000000509B6B                 jnz     loc_509C40
+  .text:0000000000509B71                 lea     rdi, unk_A301B0
+  .text:0000000000509B78                 mov     esi, 0FFFFFFFFh
+  .text:0000000000509B7D                 call    sub_5E60F0
+  .text:0000000000509B82                 test    rax, rax
+  .text:0000000000509B85                 jz      loc_509C28
+  .text:0000000000509B8B                 movzx   eax, byte ptr [rax]
+  .text:0000000000509B8E                 test    al, al
+  .text:0000000000509B90                 jnz     short loc_509BD0
+  .text:0000000000509B92                 lea     rax, unk_C70584
+  .text:0000000000509B99                 mov     eax, [rax]
+  .text:0000000000509B9B                 test    eax, eax
+  .text:0000000000509B9D                 jg      short loc_509BC0
+  .text:0000000000509B9F                 mov     rdi, r12
+  .text:0000000000509BA2                 call    sub_4F7F30
+  .text:0000000000509BA7                 mov     rax, [r12]
+  .text:0000000000509BAB                 mov     rdi, r12
+  .text:0000000000509BAE                 call    qword ptr [rax+178h]
+  .text:0000000000509BB4                 test    al, al
+  .text:0000000000509BB6                 jnz     short loc_509C10
+  .text:0000000000509BB8                 pop     rbx
+  .text:0000000000509BB9                 pop     r12
+  .text:0000000000509BBB                 pop     rbp
+  .text:0000000000509BBC                 retn
+  .text:0000000000509BC0                 mov     rdi, r12
+  .text:0000000000509BC3                 call    sub_4FDE10
+  .text:0000000000509BC8                 jmp     short loc_509B9F
+  .text:0000000000509BD0                 call    sub_2C8260
+  .text:0000000000509BD5                 movss   xmm1, cs:dword_26956C
+  .text:0000000000509BDD                 addss   xmm1, dword ptr [r12+448h]
+  .text:0000000000509BE7                 cvtsd2ss xmm0, xmm0
+  .text:0000000000509BEB                 comiss  xmm0, xmm1
+  .text:0000000000509BEE                 jbe     short loc_509B92
+  .text:0000000000509BF0                 movss   dword ptr [r12+448h], xmm0
+  .text:0000000000509BFA                 call    sub_2C8580
+  .text:0000000000509BFF                 movss   dword ptr [r12+44Ch], xmm0
+  .text:0000000000509C09                 jmp     short loc_509B92
+  .text:0000000000509C10                 call    sub_575B00
+  .text:0000000000509C15                 pop     rbx
+  .text:0000000000509C16                 pop     r12
+  .text:0000000000509C18                 mov     rdi, rax
+  .text:0000000000509C1B                 pop     rbp
+  .text:0000000000509C1C                 jmp     sub_5769F0
+  .text:0000000000509C28                 mov     rax, cs:qword_A301B8
+  .text:0000000000509C2F                 mov     rax, [rax+8]
+  .text:0000000000509C33                 movzx   eax, byte ptr [rax]
+  .text:0000000000509C36                 test    al, al
+  .text:0000000000509C38                 jz      loc_509B92
+  .text:0000000000509C3E                 jmp     short loc_509BD0
+  .text:0000000000509C40                 mov     rdi, r12
+  .text:0000000000509C43                 call    rax
+  .text:0000000000509C45                 lea     rax, unk_C70584
+  .text:0000000000509C4C                 mov     eax, [rax]
+  .text:0000000000509C4E                 test    eax, eax
+  .text:0000000000509C50                 jle     loc_509B9F
+  .text:0000000000509C56                 jmp     loc_509BC0
+  .text:0000000000509C60                 mov     rdi, r12
+  .text:0000000000509C63                 call    rax
+  .text:0000000000509C65                 jmp     loc_509AEB
+procedure: |-
+  __int64 __fastcall CNetworkGameServerBase_ServerEndSimulate(__int64 a1, __int64 a2, double a3, double a4)
+  {
+    __int64 (__fastcall *v5)(); // rax
+    __int64 result; // rax
+    __int64 v7; // rbx
+    int v8; // eax
+    _BYTE *v9; // rdi
+    __int64 (__fastcall *v10)(); // rax
+    _BYTE *v11; // rax
+    float v12; // xmm0_4
+    __int64 v13; // rax
+
+    sub_4F97E0(a3, a4);
+    if ( *(int *)(a1 + 56) <= 2
+      || ((v5 = *(__int64 (__fastcall **)())(*(_QWORD *)a1 + 328LL), v5 != CNetworkGameServerBase_IsChangelevelPending)
+        ? (result = ((__int64 (__fastcall *)(__int64))v5)(a1))
+        : (result = *(unsigned __int8 *)(a1 + 696)),
+          !(_BYTE)result) )
+    {
+      v7 = 0;
+      CNetworkGameServerBase_SpawnGroupThink((unsigned int *)a1);
+      CNetworkGameServerBase_CheckTimeouts(a1);
+      v8 = *(_DWORD *)(a1 + 584);
+      if ( v8 > 0 )
+      {
+        do
+        {
+          while ( 1 )
+          {
+            v9 = *(_BYTE **)(*(_QWORD *)(a1 + 592) + 8 * v7);
+            if ( !v9[320] )
+              break;
+            ++v7;
+            (*(void (__fastcall **)(_BYTE *))(*(_QWORD *)v9 + 456LL))(v9);
+            v8 = *(_DWORD *)(a1 + 584);
+            if ( v8 <= (int)v7 )
+              goto LABEL_10;
+          }
+          ++v7;
+        }
+        while ( v8 > (int)v7 );
+      }
+  LABEL_10:
+      CNetworkGameServerBase_SendPeerList(a1, a2);
+      v10 = *(__int64 (__fastcall **)())(*(_QWORD *)a1 + 704LL);// 704LL = 0x2C0 = CNetworkGameServerBase_CalculateCPUUsage
+      if ( v10 != sub_4F2C70 )
+      {
+        ((void (__fastcall *)(__int64))v10)(a1);// 704LL = 0x2C0 = CNetworkGameServerBase_CalculateCPUUsage
+        if ( unk_C70584 <= 0 )
+        {
+  LABEL_14:
+          sub_4F7F30(a1);
+          result = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)a1 + 376LL))(a1);
+          if ( (_BYTE)result )
+          {
+            v13 = sub_575B00();
+            return sub_5769F0(v13);
+          }
+          return result;
+        }
+  LABEL_16:
+        sub_4FDE10(a1);
+        goto LABEL_14;
+      }
+      v11 = (_BYTE *)sub_5E60F0(&unk_A301B0, 0xFFFFFFFFLL);
+      if ( v11 )
+      {
+        if ( !*v11 )
+          goto LABEL_13;
+      }
+      else if ( !**(_BYTE **)(qword_A301B8 + 8) )
+      {
+        goto LABEL_13;
+      }
+      v12 = sub_2C8260(a3, a4);
+      if ( v12 > (float)(*(float *)(a1 + 1096) + 1.0) )
+      {
+        *(float *)(a1 + 1096) = v12;
+        *(float *)(a1 + 1100) = sub_2C8580();
+      }
+  LABEL_13:
+      if ( unk_C70584 <= 0 )
+        goto LABEL_14;
+      goto LABEL_16;
+    }
+    return result;
+  }
