@@ -59,11 +59,12 @@ the Steam depot fallback only for a missing Release asset. After every configure
    and GitHub remote/default-branch/`binary_hash` state.
 3. Uses `gh` to read public repositories without requiring `HLND2T` organization permissions. Only an explicit HTTP 404
    is treated as missing; every other API failure stops the command.
-4. Creates a missing `HLND2T/CS2_VibeSignatures_binsync_<GAMEVER>_<MODULE_FILENAME>` repository as public. Creation
-   requires an authenticated `gh` user with permission to create repositories in `HLND2T`.
-5. Restores a newly created or empty remote from every local `binsync/*` branch when a valid unlocked
+4. Requires the `HLND2T/CS2_VibeSignatures_binsync_<GAMEVER>_<MODULE_FILENAME>` repository to already exist; a missing
+   remote stops the command with a clear reason. BinSync recovery never creates a repository, so it can only restore
+   from a pre-existing remote.
+5. Restores a previously empty remote from every local `binsync/*` branch when a valid unlocked
    `<MODULE_FILENAME>.bsproj` exists. Otherwise it creates the standard BinSync `Root commit`, `binsync/__root__`, and
-   `binsync/<OS_USER>` branches. It sets the default branch only for a newly created or previously empty repository.
+   `binsync/<OS_USER>` branches. It sets the default branch only for a previously empty repository.
 6. Writes `<MODULE_FILENAME>.binsync.json` only after the remote validates successfully. The sidecar uses the current OS
    user as a fallback, the canonical HTTPS remote, explicit `<MODULE_FILENAME>.bsproj`, the binary MD5,
    `force_user: false`, and `auto_clone: true`.

@@ -494,7 +494,12 @@ def preflight_binsync(root: Path, gamever: str, config_path: Path, user: str | N
             remote_state = inspect_remote(root, repo_name, binary_md5)
         except InitGamebinError as exc:
             raise InitGamebinError(f"BinSync preflight failed for {binary_path}: {exc}") from exc
-        if local_repo_locked and remote_state.status in {"missing", "empty"}:
+        if remote_state.status == "missing":
+            raise InitGamebinError(
+                f"BinSync preflight failed for {binary_path}: BinSync remote repository "
+                f"{GITHUB_OWNER}/{repo_name} does not exist; recovery requires a pre-existing remote"
+            )
+        if local_repo_locked and remote_state.status == "empty":
             raise InitGamebinError(
                 f"BinSync preflight failed for {binary_path}: local repo is locked and cannot restore the remote: "
                 f"{repo_path}"
@@ -515,31 +520,6 @@ def preflight_binsync(root: Path, gamever: str, config_path: Path, user: str | N
             )
         )
     return plans
-
-
-def create_public_remote(root: Path, repo_name: str) -> None:
-    """Create one missing public GitHub repository via the REST API.
-
-    The REST `POST /orgs/{org}/repos` endpoint works with fine-grained PATs that
-    hold `Administration: Write` on the org, unlike `gh repo create` which uses the
-    GraphQL `createRepository` mutation and rejects fine-grained tokens.
-    """
-    run_command(
-        [
-            "gh",
-            "api",
-            "--method",
-            "POST",
-            f"orgs/{GITHUB_OWNER}/repos",
-            "-f",
-            f"name={repo_name}",
-            "-f",
-            "visibility=public",
-        ],
-        root,
-        capture=True,
-        label=f"creating public GitHub repository {GITHUB_OWNER}/{repo_name}",
-    )
 
 
 def local_binsync_refs(repo_path: Path) -> list[str]:
@@ -676,7 +656,7 @@ def format_binsync_summary(summary: dict) -> str:
     """Format the durable BinSync work completed so far."""
     return (
         f"{summary['targets']} targets, {summary['remote_verified']} remotes verified, "
-        f"{summary['remote_created']} remotes created, {summary['remote_restored']} restored from local history, "
+        f"{summary['remote_restored']} restored from local history, "
         f"{summary['remote_initialized']} minimally initialized, {summary['sidecar_created']} sidecars created, "
         f"{summary['sidecar_existing']} existing sidecars matched"
     )
@@ -687,7 +667,6 @@ def execute_binsync_plans(root: Path, plans: list[BinSyncPlan], user: str) -> di
     summary = {
         "targets": len(plans),
         "remote_verified": 0,
-        "remote_created": 0,
         "remote_restored": 0,
         "remote_initialized": 0,
         "sidecar_created": 0,
@@ -700,9 +679,10 @@ def execute_binsync_plans(root: Path, plans: list[BinSyncPlan], user: str) -> di
                 raise InitGamebinError(f"binary changed after preflight: expected {plan.binary_md5}, got {current_md5}")
             remote_state = inspect_remote(root, plan.repo_name, plan.binary_md5)
             if remote_state.status == "missing":
-                create_public_remote(root, plan.repo_name)
-                summary["remote_created"] += 1
-                remote_state = inspect_remote(root, plan.repo_name, plan.binary_md5)
+                raise InitGamebinError(
+                    f"BinSync remote repository {GITHUB_OWNER}/{plan.repo_name} does not exist; "
+                    f"recovery requires a pre-existing remote, refusing to create one"
+                )
             if remote_state.status == "empty":
                 if plan.local_repo_exists:
                     local_repo_exists, local_repo_locked = validate_local_binsync_repo(

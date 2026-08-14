@@ -34,7 +34,6 @@ def binsync_summary(**overrides):
     result = {
         "targets": 2,
         "remote_verified": 2,
-        "remote_created": 0,
         "remote_restored": 0,
         "remote_initialized": 0,
         "sidecar_created": 2,
@@ -435,6 +434,50 @@ class TestInitGamebin(unittest.TestCase):
         initialize.assert_not_called()
         set_default.assert_not_called()
         self.assertEqual(1, summary["remote_verified"])
+
+    def test_execute_plans_fails_on_missing_remote_instead_of_creating(self) -> None:
+        binary = Path("bin/14175/engine/engine2.dll")
+        _, _, repo_path, sidecar_data = init_gamebin.expected_sidecar(binary, "a" * 32, "14175", "HZDEV")
+        plan = init_gamebin.BinSyncPlan(
+            binary_path=binary,
+            binary_md5="a" * 32,
+            repo_name="CS2_VibeSignatures_binsync_14175_engine2.dll",
+            remote_url=sidecar_data["remote"],
+            repo_path=repo_path,
+            sidecar_path=Path(f"{binary}.binsync.json"),
+            sidecar_data=sidecar_data,
+            sidecar_exists=False,
+            local_repo_exists=False,
+            local_repo_locked=False,
+            remote_state=init_gamebin.RemoteState("missing"),
+        )
+        with (
+            patch.object(init_gamebin, "file_md5", return_value="a" * 32),
+            patch.object(init_gamebin, "inspect_remote", return_value=init_gamebin.RemoteState("missing")),
+            patch.object(init_gamebin, "initialize_minimal_binsync_remote") as initialize,
+            patch.object(init_gamebin, "set_remote_default_branch") as set_default,
+            patch.object(init_gamebin, "write_sidecar_atomic") as write,
+        ):
+            with self.assertRaisesRegex(init_gamebin.InitGamebinError, "does not exist"):
+                init_gamebin.execute_binsync_plans(Path("repo"), [plan], "HZDEV")
+        initialize.assert_not_called()
+        set_default.assert_not_called()
+        write.assert_not_called()
+
+    def test_preflight_fails_when_remote_repository_is_missing(self) -> None:
+        root = Path("repo")
+        config = root / "configs" / "14168.yaml"
+        binary = Path("bin/14168/engine/engine2.dll")
+        with (
+            patch.object(init_gamebin, "binsync_user", return_value="HZDEV"),
+            patch.object(init_gamebin, "configured_binary_paths", return_value=[binary]),
+            patch.object(init_gamebin, "file_md5", return_value="a" * 32),
+            patch.object(init_gamebin, "validate_sidecar", return_value=False),
+            patch.object(init_gamebin, "validate_local_binsync_repo", return_value=(False, False)),
+            patch.object(init_gamebin, "inspect_remote", return_value=init_gamebin.RemoteState("missing")),
+        ):
+            with self.assertRaisesRegex(init_gamebin.InitGamebinError, "does not exist"):
+                init_gamebin.preflight_binsync(root, "14168", config)
 
     def test_depot_fallback_uses_workflow_commands_in_order(self) -> None:
         root = Path("repo")
