@@ -5,6 +5,7 @@ description: |
   Runs run_cpp_tests.py to obtain layout diffs, maps failing cpp_tests entries to their configured headers, edits only
   those headers, and repeats validation until the differences are resolved. Triggers: fix cpp headers, fix-cppheaders,
   repair vtable layout, repair record layout, header layout differences.
+disable-model-invocation: true
 ---
 
 # Fix C++ Headers

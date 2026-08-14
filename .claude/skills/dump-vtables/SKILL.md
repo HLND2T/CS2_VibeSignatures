@@ -4,6 +4,7 @@ description: |
   Batch-dump vtables from IDA Pro MCP by searching mangled symbol patterns, then write a merged YAML file beside the binary.
   Use this skill when you need to find and export all vtables matching a name pattern (e.g., all GameSystem vtables) in one shot.
   Triggers: dump vtables, batch vtable dump, export vtables, dump all vtables matching pattern
+disable-model-invocation: true
 ---
 
 # Dump VTables by Symbol Pattern
