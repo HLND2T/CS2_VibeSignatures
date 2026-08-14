@@ -1,6 +1,7 @@
 ---
 name: abandon-staged-release
 description: Safely discover the unique trusted merged generated-output PR and dispatch the protected recovery workflow for one explicitly identified unpromoted staged release. Use only when the user explicitly asks to abandon or clean a GAMEVER/BUILD_ID, or supplies a trusted GitHub Actions run/job URL for the staged build or a run uniquely blocked by it, after promotion failed before promote-bin.
+disable-model-invocation: true
 ---
 
 # Abandon Staged Release
