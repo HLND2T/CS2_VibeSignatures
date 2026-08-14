@@ -11,7 +11,7 @@ FUNC_XREFS = [{
     "exclude_funcs": [], "exclude_strings": ["CCSPlayer_BulletServices *"],
     "exclude_gvs": [], "exclude_signatures": [],
 }]
-FUNC_VTABLE_RELATIONS = [("CCSPlayerPawn_CreatePlayerPawnServices", "CCSPlayerPawn")]
+FUNC_VTABLE_RELATIONS = [("CCSPlayerPawn_CreatePlayerPawnServices", "CCSPlayerPawn_vtable")]
 GENERATE_YAML_DESIRED_FIELDS = [(
     "CCSPlayerPawn_CreatePlayerPawnServices",
     ["func_name", "func_va", "func_rva", "func_size", "func_sig", "vtable_name", "vfunc_offset", "vfunc_index"],
