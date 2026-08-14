@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Push accumulated IDA symbols to every configured binary's BinSync remote.
 
-This is a best-effort, workflow-internal step: it resolves each configured
-Windows/Linux binary from the analysis config and force-pushes the IDA
-artifacts already persisted in that binary's ``.i64`` database. It never fails
-the surrounding workflow — a missing interpreter or an individual push failure
-is reported on stderr and the script still exits 0.
+Each configured Windows/Linux binary is resolved from the analysis config and
+force-pushed from the IDA artifacts already persisted in that binary's ``.i64``
+database. Pushes are mandatory: a missing interpreter/headless script/capability
+or any individual push failure makes this script exit non-zero, so callers
+(e.g. the release workflow) can enforce that the BinSync flow must succeed.
 """
 
 import argparse
@@ -130,19 +130,19 @@ def main(argv=None) -> int:
 
     python_exe = shutil.which(args.python)
     if not python_exe:
-        print(f"BinSync push skipped: python not found: {args.python}", file=sys.stderr)
-        return 0
+        print(f"BinSync push failed: python not found: {args.python}", file=sys.stderr)
+        return 1
 
     if not Path(args.headless_script).is_file():
-        print(f"BinSync push skipped: headless script not found: {args.headless_script}", file=sys.stderr)
-        return 0
+        print(f"BinSync push failed: headless script not found: {args.headless_script}", file=sys.stderr)
+        return 1
 
     supported, detail = probe_capability(python_exe)
     if not supported:
-        print(f"BinSync push skipped: {python_exe} lacks idalib/binsync/declib", file=sys.stderr)
+        print(f"BinSync push failed: {python_exe} lacks idalib/binsync/declib", file=sys.stderr)
         if detail:
             print(detail, file=sys.stderr)
-        return 0
+        return 1
 
     config_path = resolve_analysis_config(args.gamever, repo_root=REPOSITORY_ROOT)
     manifests = collect_manifest_symbols(REPOSITORY_ROOT, args.gamever, config_path)
@@ -166,7 +166,7 @@ def main(argv=None) -> int:
             print(f"BinSync push FAILED for {binary_path.name} (exit {code})", file=sys.stderr)
 
     print(f"BinSync push done: {pushed} pushed, {failed} failed")
-    return 0
+    return 1 if failed else 0
 
 
 if __name__ == "__main__":
