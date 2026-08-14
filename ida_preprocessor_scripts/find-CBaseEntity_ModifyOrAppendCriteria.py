@@ -25,7 +25,7 @@ FUNC_XREFS = [
 
 FUNC_VTABLE_RELATIONS = [
     # (func_name, vtable_class)
-    ("CBaseEntity_ModifyOrAppendCriteria", "CBaseEntity"),
+    ("CBaseEntity_ModifyOrAppendCriteria", "CBaseEntity_vtable"),
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
