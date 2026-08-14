@@ -49,6 +49,9 @@ Run from the owning repository root with the BinSync decision applied:
 uv run init_gamebin.py prepare <GAMEVER-or-latest> --binsync <enable|skip>
 ```
 
+Never pass `--create-missing-binsync-remotes` from this manual skill flow. That mutating option is reserved for the
+trusted `build-on-self-runner` workflow.
+
 Without `--binsync`, BinSync is skipped and never probed. `--binsync enable` probes first and **fails**
 (instead of skipping) when the environment cannot run BinSync. The script checks existing binaries,
 downloads and non-overwritingly merges `gamebin-<GAMEVER>.7z` when needed, and uses
@@ -59,9 +62,9 @@ the Steam depot fallback only for a missing Release asset. After every configure
    and GitHub remote/default-branch/`binary_hash` state.
 3. Uses `gh` to read public repositories without requiring `HLND2T` organization permissions. Only an explicit HTTP 404
    is treated as missing; every other API failure stops the command.
-4. Requires the `HLND2T/CS2_VibeSignatures_binsync_<GAMEVER>_<MODULE_FILENAME>` repository to already exist; a missing
-   remote stops the command with a clear reason. BinSync recovery never creates a repository, so it can only restore
-   from a pre-existing remote.
+4. Requires the `HLND2T/CS2_VibeSignatures_binsync_<GAMEVER>_<MODULE_FILENAME>` repository to already exist during this
+   manual skill flow; a missing remote stops the command with a clear reason. Only the trusted build workflow passes
+   the explicit repository-creation option.
 5. Restores a previously empty remote from every local `binsync/*` branch when a valid unlocked
    `<MODULE_FILENAME>.bsproj` exists. Otherwise it creates the standard BinSync `Root commit`, `binsync/__root__`, and
    `binsync/<OS_USER>` branches. It sets the default branch only for a previously empty repository.
