@@ -7926,6 +7926,18 @@ modules:
           - CBaseAnimGraph_GetAnimationController.{platform}.yaml
         expected_input:
           - CScriptedSequence_SynchronizeSequence.{platform}.yaml
+      - name: find-CBaseAnimGraph_vtable
+        expected_output:
+          - CBaseAnimGraph_vtable.{platform}.yaml
+      - name: find-RemoveNetworkFieldChanges
+        expected_output:
+          - RemoveNetworkFieldChanges.{platform}.yaml
+      - name: find-CBaseAnimGraph_NetworkStateChanged
+        expected_output:
+          - CBaseAnimGraph_NetworkStateChanged.{platform}.yaml
+        expected_input:
+          - RemoveNetworkFieldChanges.{platform}.yaml
+          - CBaseAnimGraph_vtable.{platform}.yaml
       - name: find-CBaseAnimGraph_GetAnimationController-decompiles
         expected_output:
           - CBaseAnimGraph_m_skeletonInstance.{platform}.yaml
@@ -11340,6 +11352,14 @@ modules:
         category: func
         alias:
           - CBaseAnimGraph::GetAnimationController
+      - name: CBaseAnimGraph_vtable
+        category: vtable
+      - name: RemoveNetworkFieldChanges
+        category: func
+      - name: CBaseAnimGraph_NetworkStateChanged
+        category: vfunc
+        alias:
+          - CBaseAnimGraph::NetworkStateChanged
       - name: CBaseAnimGraph_m_skeletonInstance
         category: structmember
         struct: CBaseAnimGraph
