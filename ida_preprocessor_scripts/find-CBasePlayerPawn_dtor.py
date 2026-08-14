@@ -4,7 +4,7 @@ from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = ["CBasePlayerPawn_dtor"]
 FUNC_XREFS = [{"func_name": "CBasePlayerPawn_dtor", "xref_strings": [], "xref_gvs": ["CBasePlayerPawn_vtable"], "xref_signatures": [], "xref_funcs": [], "exclude_funcs": [], "exclude_strings": [], "exclude_gvs": [], "exclude_signatures": []}]
-FUNC_VTABLE_RELATIONS = [("CBasePlayerPawn_dtor", "CBasePlayerPawn")]
+FUNC_VTABLE_RELATIONS = [("CBasePlayerPawn_dtor", "CBasePlayerPawn_vtable")]
 GENERATE_YAML_DESIRED_FIELDS = [("CBasePlayerPawn_dtor", ["func_name", "func_va", "func_rva", "func_size", "func_sig", "vtable_name", "vfunc_offset", "vfunc_index"])]
 
 async def preprocess_skill(session, skill_name, expected_outputs, old_yaml_map, new_binary_dir, platform, image_base, debug=False):
