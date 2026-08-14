@@ -6412,6 +6412,18 @@ modules:
       - name: find-CBaseModelEntity_SetRenderAttribute
         expected_output:
           - CBaseModelEntity_SetRenderAttribute.{platform}.yaml
+      - name: find-CBaseModelEntity_vtable
+        expected_output:
+          - CBaseModelEntity_vtable.{platform}.yaml
+      - name: find-CBaseModelEntity_PlayStepSound_Internal
+        expected_output:
+          - CBaseModelEntity_PlayStepSound_Internal.{platform}.yaml
+      - name: find-CBaseModelEntity_PlayStepSound
+        expected_output:
+          - CBaseModelEntity_PlayStepSound.{platform}.yaml
+        expected_input:
+          - CBaseModelEntity_PlayStepSound_Internal.{platform}.yaml
+          - CBaseModelEntity_vtable.{platform}.yaml
       - name: find-CBaseEntity_GetScriptDescInternal
         expected_output:
           - CBaseEntity_GetScriptDescInternal.{platform}.yaml
@@ -9572,6 +9584,12 @@ modules:
         category: func
         alias:
           - CBaseModelEntity::GetBoneTransform
+      - name: CBaseModelEntity_PlayStepSound_Internal
+        category: func
+      - name: CBaseModelEntity_PlayStepSound
+        category: vfunc
+        alias:
+          - CBaseModelEntity::PlayStepSound
       - name: CBasePlayerPawn_OnTakeDamage
         category: vfunc
         alias:
