@@ -36,7 +36,7 @@
 2. 非 closed 事件进入 `validate`。条件要求仓库在白名单、PR head 来自当前仓库，并排除两类 GitHub Actions bot PR：`bump-download/*` + `chore(download): Update manifest for `，以及 build workflow 创建、同时包含 validated snapshot 与生成 gamedata 的 `gamesymbols/*` + `chore(gamesymbols): add ` 输出 PR。相同排除条件也应用于 closed 事件的 `finalize-pr-workspace`。
 3. 在 `RUNNER_WORKSPACE/CS2_VibeSignatures-pr-<PR>` 创建隔离目录；每次验证先删除旧目录，再初始化 Git 仓库、抓取并 detached checkout `refs/pull/<PR>/merge`，同时初始化 submodules。
 4. 执行格式检查，并从 PR merge 结果的 `download.yaml` 最后一项读取 `GAMEVER`。
-5. 将 `cs2_depot` 链接到持久化 depot；要求 `PERSISTED_WORKSPACE/bin/<GAMEVER>` 已存在，按 `.stignore` 排除规则复制到真实的 PR 工作区 `bin`。本 workflow 不负责下载缺失二进制。
+5. 要求 `PERSISTED_WORKSPACE/bin/<GAMEVER>` 已存在，按 `.stignore` 排除规则复制到真实的 PR 工作区 `bin`。本 workflow 不链接 `cs2_depot`，也不负责下载缺失二进制。
 6. 以 `HEAD^1` 作为 PR base parent，提取 base `configs/<GAMEVER>.yaml`。若 base 已有同版本 snapshot，则直接提取；否则寻找 base 中排序后的最后一个 tracked snapshot，并使用其发布 commit 对应的 config；若完全没有 snapshot，则进入 bootstrap。
 7. 有 base snapshot 时先 `restore`。同版本场景运行 `invalidate`，依据 base/head config、snapshot 与 Git refs 只失效受影响结果；新版本场景保留旧版本结果供 signature 复用，但清空当前版本全部 YAML；bootstrap 场景直接从空的当前版本 YAML 开始重建。
 8. 运行 Python unit tests，再执行 IDA 分析。
@@ -54,7 +54,7 @@ D{"Finalization eligibility and Bot-PR exclusions pass?"}
 E["Prepare isolated PR workspace"]
 F["Fetch refs/pull/<PR>/merge and detached checkout"]
 G["Check formatting; read GAMEVER from download.yaml"]
-H["Link persistent depot; copy persisted bin/<GAMEVER> with .stignore exclusions"]
+H["Copy persisted bin/<GAMEVER> with .stignore exclusions"]
 I["Extract base config and snapshot from HEAD^1"]
 J{"Base has same-version snapshot?"}
 K["Restore same-version base; invalidate affected outputs"]
@@ -103,8 +103,8 @@ U --> V
 ## Dependencies
 - GitHub Actions `win64` environment，以及标签为 `self-hosted`, `windows`, `x64` 的 runner。
 - GitHub PR merge ref：`refs/pull/<PR>/merge`；workflow 仅有 `contents: read` 权限。
-- Secrets：必须有 `PERSISTED_WORKSPACE`；IDA 分析使用 `CS2VIBE_AGENT` 与 LLM 配置。Steam secrets 虽配置在 env 中，但当前 PR 流程没有 depot 下载步骤。
-- 持久化资源：`PERSISTED_WORKSPACE/cs2_depot`、`PERSISTED_WORKSPACE/bin/<GAMEVER>`、`PERSISTED_WORKSPACE/bin/.stignore`。
+- Secrets：必须有 `PERSISTED_WORKSPACE`；IDA 分析使用 `CS2VIBE_AGENT` 与 LLM 配置。PR 流程不链接 `cs2_depot`，也没有 depot 下载步骤。
+- 持久化资源：`PERSISTED_WORKSPACE/bin/<GAMEVER>`、`PERSISTED_WORKSPACE/bin/.stignore`。
 - 工具链：PowerShell、`git`、`robocopy`、`mklink`、`uv`、Python、IDA / idalib-mcp、LLM agent、Clang/C++。
 - 仓库数据：base/head `configs/<GAMEVER>.yaml`、`download.yaml`、base/head `gamesymbols/*.yaml`、submodules。
 - 相关 Serena memory：`mem:ida_analyze_bin`、`mem:update_gamedata`、`mem:run_cpp_tests`。
@@ -113,7 +113,7 @@ U --> V
 - concurrency group 为 `pr-self-runner-<repository>-<PR number>`，且 `cancel-in-progress: true`；同一 PR 的旧验证会被新提交取消。
 - fork PR 被跳过，因为流程需要受保护 secrets 和 self-hosted runner；特定 bot `bump-download/*` manifest PR，以及 build workflow 创建的 `gamesymbols/*` snapshot/gamedata 输出 PR，都会被 `validate` 与 `finalize-pr-workspace` 显式跳过。过滤器同时校验 Bot 身份、head 分支前缀和标题前缀，避免误伤普通人工 PR。
 - workflow 验证的是 GitHub 合成的 merge commit；`HEAD^1` 被当作 base parent，当前 `HEAD` 是合并结果。
-- PR 流程不会下载 depot；如果持久化 `bin/<GAMEVER>` 不存在，验证直接失败。因此正式 build/cache 准备是新版本 PR 验证的外部前置条件。
+- PR 流程不链接 `cs2_depot` 也不下载 depot；如果持久化 `bin/<GAMEVER>` 不存在，验证直接失败。因此正式 build/cache 准备是新版本 PR 验证的外部前置条件。
 - `.stignore` 解析只接受扁平文件名或目录名；注释、空行和否定规则被忽略，包含嵌套路径的 pattern 会被拒绝。
 - 实际候选是 compare、gamedata 和 C++ tests 的唯一 symbol source。PR workflow 不调用 `gamesymbol_candidate.py publish`，也不会把 PR 产生的 YAML 写回 `PERSISTED_WORKSPACE`。
 - PR head 必须包含与实际分析结果一致的 `gamesymbols/<GAMEVER>.yaml`；compare 失败会阻止后续验证。

@@ -198,8 +198,12 @@ jobs:
             } elseif ($trackedSnapshots.Count -eq 1) {
               $baseSnapshotRepoPath = $trackedSnapshots[0]
             } else {
+              # --first-parent is required: git suppresses the --name-only file list for
+              # merge commits, and a base-sync merge that republishes a snapshot differs
+              # from both parents, so it is not simplified away either. Without it the
+              # file list comes back empty and the count check below fails.
               $latestSnapshotChange = @(
-                git log -1 --format=%H --name-only $baseRef -- gamesymbols |
+                git log -1 --format=%H --name-only --first-parent $baseRef -- gamesymbols |
                   Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
               )
               if ($LASTEXITCODE -ne 0 -or $latestSnapshotChange.Count -lt 2) {
@@ -253,38 +257,10 @@ jobs:
           "GAMEVER=$validationGamever" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           Write-Host "PR validation GAMEVER=$validationGamever (release GAMEVER=$env:PR_GAMEVER)"
 
-      - name: Prepare persisted depot link and PR bin copy
+      - name: Prepare PR bin copy
         id: prepare-bin
         shell: pwsh
         run: |
-          function Ensure-DirectoryLink {
-            param(
-              [Parameter(Mandatory=$true)][string]$LinkPath,
-              [Parameter(Mandatory=$true)][string]$TargetPath
-            )
-
-            if (-not (Test-Path -LiteralPath $TargetPath -PathType Container)) {
-              New-Item -ItemType Directory -Path $TargetPath -Force | Out-Null
-            }
-
-            if (Test-Path -LiteralPath $LinkPath) {
-              $item = Get-Item -LiteralPath $LinkPath -Force
-              if (-not ($item.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
-                throw "$LinkPath exists but is not a directory junction or symlink."
-              }
-              $actualTarget = [string]$item.Target
-              if ([IO.Path]::GetFullPath($actualTarget) -ne [IO.Path]::GetFullPath($TargetPath)) {
-                throw "$LinkPath link target mismatch: $actualTarget"
-              }
-              return
-            }
-
-            cmd /c mklink /d "$LinkPath" "$TargetPath"
-            if ($LASTEXITCODE -ne 0) {
-              throw "Failed to create directory link $LinkPath -> $TargetPath"
-            }
-          }
-
           function Get-BinCopyExcludes {
             param(
               [Parameter(Mandatory=$true)][string]$IgnoreFile
@@ -328,15 +304,10 @@ jobs:
           }
 
           Set-Location $env:WORKSPACE
-          $depotTarget = Join-Path $env:PERSISTED_WORKSPACE "cs2_depot"
           $persistedBinRoot = Join-Path $env:PERSISTED_WORKSPACE "bin"
           $sourceBinGamever = Join-Path $persistedBinRoot $env:GAMEVER
           $workspaceBinRoot = Join-Path $env:WORKSPACE "bin"
           $targetBinGamever = Join-Path $workspaceBinRoot $env:GAMEVER
-
-          Ensure-DirectoryLink `
-            -LinkPath (Join-Path $env:WORKSPACE "cs2_depot") `
-            -TargetPath $depotTarget
 
           if (-not (Test-Path -LiteralPath $sourceBinGamever -PathType Container)) {
             throw "Persisted bin source for GAMEVER=$env:GAMEVER does not exist: $sourceBinGamever"
