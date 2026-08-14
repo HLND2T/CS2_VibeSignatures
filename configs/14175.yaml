@@ -7081,6 +7081,13 @@ modules:
       - name: find-CEntitySystem_vtable
         expected_output:
           - CEntitySystem_vtable.{platform}.yaml
+      - name: find-CEntitySystem_BuildResourceManifest_ManifestNameOrGroupName
+        expected_output:
+          - CEntitySystem_BuildResourceManifest_ManifestNameOrGroupName.{platform}.yaml
+        expected_input:
+          - CEntitySystem_PrecacheEntity.{platform}.yaml
+          - CEntitySystem_DestroyEntity.{platform}.yaml
+          - CEntitySystem_vtable.{platform}.yaml
       - name: find-CEntitySystem_RegisterEntityClass
         expected_output:
           - CEntitySystem_RegisterEntityClass.{platform}.yaml
@@ -10258,6 +10265,10 @@ modules:
         category: func
       - name: CEntitySystem_vtable
         category: vtable
+      - name: CEntitySystem_BuildResourceManifest_ManifestNameOrGroupName
+        category: vfunc
+        alias:
+          - CEntitySystem::BuildResourceManifest_ManifestNameOrGroupName
       - name: CEntitySystem_RegisterEntityClass
         category: func
         alias:
