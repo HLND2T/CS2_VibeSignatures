@@ -7926,6 +7926,18 @@ modules:
           - CBaseAnimGraph_GetAnimationController.{platform}.yaml
         expected_input:
           - CScriptedSequence_SynchronizeSequence.{platform}.yaml
+      - name: find-CBaseAnimating_vtable
+        expected_output:
+          - CBaseAnimating_vtable.{platform}.yaml
+      - name: find-CEntityFlame_Create
+        expected_output:
+          - CEntityFlame_Create.{platform}.yaml
+      - name: find-CBaseAnimating_Ignite
+        expected_output:
+          - CBaseAnimating_Ignite.{platform}.yaml
+        expected_input:
+          - CEntityFlame_Create.{platform}.yaml
+          - CBaseAnimating_vtable.{platform}.yaml
       - name: find-CBaseAnimGraph_GetAnimationController-decompiles
         expected_output:
           - CBaseAnimGraph_m_skeletonInstance.{platform}.yaml
@@ -11340,6 +11352,14 @@ modules:
         category: func
         alias:
           - CBaseAnimGraph::GetAnimationController
+      - name: CBaseAnimating_vtable
+        category: vtable
+      - name: CEntityFlame_Create
+        category: func
+      - name: CBaseAnimating_Ignite
+        category: vfunc
+        alias:
+          - CBaseAnimating::Ignite
       - name: CBaseAnimGraph_m_skeletonInstance
         category: structmember
         struct: CBaseAnimGraph
