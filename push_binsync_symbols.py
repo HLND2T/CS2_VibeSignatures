@@ -9,15 +9,27 @@ is reported on stderr and the script still exits 0.
 """
 
 import argparse
+import json
 import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
+
+import yaml
 
 REPOSITORY_ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(REPOSITORY_ROOT))
 
-from init_gamebin import configured_binary_paths, resolve_analysis_config  # noqa: E402
+from init_gamebin import (  # noqa: E402
+    iter_configured_binaries,
+    load_yaml_document,
+    resolve_analysis_config,
+)
+
+# Symbol categories that map to a BinSync function vs. global-variable artifact.
+FUNCTION_CATEGORIES = frozenset({"func", "vfunc"})
+GLOBAL_CATEGORIES = frozenset({"gv"})
 
 # Mirror the exact imports headless_force_push.py performs, so a passing probe
 # guarantees the push script can actually start in the same interpreter.
@@ -44,12 +56,73 @@ def probe_capability(python_exe: str) -> tuple[bool, str]:
     return False, (result.stderr or result.stdout).strip()
 
 
-def push_binary(python_exe: str, headless_script: str, binary_path: Path) -> int:
+def push_binary(python_exe: str, headless_script: str, binary_path: Path, manifest_path: Path) -> int:
     """Run headless_force_push.py for one binary in its own idalib process."""
-    return subprocess.run(
-        [python_exe, headless_script, str(binary_path), "--push"],
-        check=False,
-    ).returncode
+    cmd = [python_exe, headless_script, str(binary_path), "--push"]
+    if manifest_path is not None:
+        cmd += ["--artifacts-file", str(manifest_path)]
+    return subprocess.run(cmd, check=False).returncode
+
+
+def collect_manifest_symbols(root: Path, gamever: str, config_path: Path) -> dict[str, dict[str, list[int]]]:
+    """Map ``(module, platform) -> {"functions": [rva, ...], "globals": [rva, ...]}``.
+
+    Only ``func``/``vfunc`` and ``gv`` symbols explicitly declared under each
+    module's ``symbols:`` are selected. The target address is read from the
+    generated ``{symbol}.{platform}.yaml`` (``func_rva`` for functions, ``gv_rva``
+    for globals), which is already in the lifted/RVA form BinSync uses as its
+    function/global key. Types, segments, and undeclared functions/globals are
+    deliberately excluded.
+    """
+    document = load_yaml_document(config_path, "analysis config")
+    modules = document.get("modules") or []
+    manifest: dict[str, dict[str, list[int]]] = {}
+
+    for module_name, platform, binary_path in iter_configured_binaries(root, gamever, config_path):
+        module_dir = binary_path.parent
+        functions: list[int] = []
+        globals: list[int] = []
+
+        for module in modules:
+            if module.get("name") != module_name:
+                continue
+            for symbol in module.get("symbols") or []:
+                category = symbol.get("category")
+                symbol_name = symbol.get("name")
+                if not isinstance(symbol_name, str) or category not in FUNCTION_CATEGORIES | GLOBAL_CATEGORIES:
+                    continue
+                symbol_platform = symbol.get("platform")
+                if symbol_platform and symbol_platform != platform:
+                    continue
+
+                yaml_path = module_dir / f"{symbol_name}.{platform}.yaml"
+                try:
+                    data = yaml.safe_load(yaml_path.read_text(encoding="utf-8")) or {}
+                except (OSError, yaml.YAMLError):
+                    continue
+
+                key = "func_rva" if category in FUNCTION_CATEGORIES else "gv_rva"
+                raw = data.get(key)
+                try:
+                    addr = int(str(raw), 0)
+                except (TypeError, ValueError):
+                    continue
+                (functions if category in FUNCTION_CATEGORIES else globals).append(addr)
+
+        manifest[f"{module_name}/{platform}"] = {
+            "functions": sorted(set(functions)),
+            "globals": sorted(set(globals)),
+        }
+
+    return manifest
+
+
+def build_manifest(entries: dict[str, list]) -> Path:
+    """Write a temp JSON manifest and return its path."""
+    fd, path = tempfile.mkstemp(prefix="binsync_manifest_", suffix=".json")
+    with open(fd, "w", encoding="utf-8") as handle:
+        json.dump(entries, handle)
+    return Path(path)
 
 
 def main(argv=None) -> int:
@@ -72,12 +145,20 @@ def main(argv=None) -> int:
         return 0
 
     config_path = resolve_analysis_config(args.gamever, repo_root=REPOSITORY_ROOT)
-    binaries = configured_binary_paths(REPOSITORY_ROOT, args.gamever, config_path)
+    manifests = collect_manifest_symbols(REPOSITORY_ROOT, args.gamever, config_path)
 
     pushed = 0
     failed = 0
-    for binary_path in binaries:
-        code = push_binary(python_exe, args.headless_script, binary_path)
+    for module_name, platform, binary_path in iter_configured_binaries(REPOSITORY_ROOT, args.gamever, config_path):
+        entries = manifests.get(f"{module_name}/{platform}")
+        if entries is None or not (entries["functions"] or entries["globals"]):
+            print(f"BinSync push skipped (no declared symbols): {binary_path.name}", file=sys.stderr)
+            continue
+        manifest_path = build_manifest(entries)
+        try:
+            code = push_binary(python_exe, args.headless_script, binary_path, manifest_path)
+        finally:
+            manifest_path.unlink(missing_ok=True)
         if code == 0:
             pushed += 1
         else:

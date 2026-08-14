@@ -184,17 +184,22 @@ def binsync_user(root: Path) -> str:
     return user
 
 
-def configured_binary_paths(root: Path, gamever: str, config_path: Path) -> list[Path]:
-    """Return unique configured Windows/Linux binaries in first-seen order."""
+def iter_configured_binaries(root: Path, gamever: str, config_path: Path):
+    """Yield ``(module_name, platform, binary_path)`` for every configured binary.
+
+    Order is first-seen across modules, then ``windows`` before ``linux`` within
+    each module. Duplicate real paths are skipped and cross-platform filename
+    collisions are rejected, exactly like :func:`configured_binary_paths`.
+    """
     document = load_yaml_document(config_path, "analysis config")
     modules = document.get("modules")
     if not isinstance(modules, list):
         raise InitGamebinError("analysis config field 'modules' must be a list")
 
     gamever_root = (root / "bin" / gamever).resolve()
-    paths = []
     seen_paths = set()
     filename_paths = {}
+    found_any = False
     for index, module in enumerate(modules):
         if not isinstance(module, dict):
             raise InitGamebinError(f"analysis config modules[{index}] must be a mapping")
@@ -235,10 +240,16 @@ def configured_binary_paths(root: Path, gamever: str, config_path: Path) -> list
                 )
             filename_paths[filename_key] = path_key
             seen_paths.add(path_key)
-            paths.append(binary_path)
-    if not paths:
+            found_any = True
+            yield module_name, platform, binary_path
+
+    if not found_any:
         raise InitGamebinError(f"analysis config contains no Windows or Linux binaries for GAMEVER {gamever}")
-    return paths
+
+
+def configured_binary_paths(root: Path, gamever: str, config_path: Path) -> list[Path]:
+    """Return unique configured Windows/Linux binaries in first-seen order."""
+    return [binary_path for _module, _platform, binary_path in iter_configured_binaries(root, gamever, config_path)]
 
 
 def expected_sidecar(binary_path: Path, binary_md5: str, gamever: str, user: str) -> tuple[str, str, Path, dict]:

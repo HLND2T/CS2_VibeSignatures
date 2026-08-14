@@ -198,6 +198,28 @@ def force_push_all(controller: BSController, arts: dict[str, list], use_decompil
     )
 
 
+def force_push_selected(
+    controller: BSController, func_addrs: list[int], global_addrs: list[int], use_decompilation: bool = False
+) -> None:
+    """Force push only the listed functions + globals (no types or segments)."""
+    controller.force_push_all(
+        func_addrs,
+        global_addrs,
+        [],
+        [],
+        use_decompilation=use_decompilation,
+    )
+
+
+def load_manifest(artifacts_file: str) -> dict[str, list]:
+    """Load a push manifest ``{"functions": [...], "globals": [...]}`` (addrs in lifted/RVA form)."""
+    data = json.loads(pathlib.Path(artifacts_file).read_text(encoding="utf-8"))
+    return {
+        "functions": list(data.get("functions", [])),
+        "globals": list(data.get("globals", [])),
+    }
+
+
 def print_summary(arts: dict[str, list]) -> None:
     print("BinSync force push — collected artifacts:")
     print(f"  functions : {len(arts['functions'])}")
@@ -221,6 +243,11 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
         "--use-decompilation",
         action="store_true",
         help="Also push function args + stack vars (requires Hex-Rays; usually unavailable headless).",
+    )
+    parser.add_argument(
+        "--artifacts-file",
+        help='JSON manifest {"functions": [...], "globals": [...]} restricting the push to those '
+        "lifted/RVA addresses. Types and segments are skipped when a manifest is provided.",
     )
     parser.add_argument(
         "--ignore-md5",
@@ -272,14 +299,27 @@ def main(argv: list[str] | None = None) -> int:
 
     connect_controller(controller, user, repo, remote)
 
-    arts = collect_artifacts(controller)
-    print_summary(arts)
-
-    if not args.push:
-        _log.info("Dry run: nothing committed/pushed. Re-run with --push to apply.")
+    if args.artifacts_file:
+        manifest = load_manifest(args.artifacts_file)
+        func_addrs = manifest["functions"]
+        global_addrs = manifest["globals"]
+        print("BinSync force push — selected artifacts (from manifest):")
+        print(f"  functions : {len(func_addrs)}")
+        print(f"  globals   : {len(global_addrs)}")
+        if not args.push:
+            _log.info("Dry run: nothing committed/pushed. Re-run with --push to apply.")
+        else:
+            force_push_selected(controller, func_addrs, global_addrs, use_decompilation=args.use_decompilation)
+            _log.info("Force push complete.")
     else:
-        force_push_all(controller, arts, use_decompilation=args.use_decompilation)
-        _log.info("Force push complete.")
+        arts = collect_artifacts(controller)
+        print_summary(arts)
+
+        if not args.push:
+            _log.info("Dry run: nothing committed/pushed. Re-run with --push to apply.")
+        else:
+            force_push_all(controller, arts, use_decompilation=args.use_decompilation)
+            _log.info("Force push complete.")
 
     controller.shutdown()
     return 0
