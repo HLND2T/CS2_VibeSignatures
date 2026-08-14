@@ -798,7 +798,7 @@ class TestEnsureMcpAvailableRecoveryBudget(unittest.TestCase):
 
 
 class TestOpenedBinaryIdentityValidationHashes(unittest.TestCase):
-    def test_accepts_ida_database_suffix_for_expected_binary_path(self) -> None:
+    def test_rejects_ida_database_path_without_input_sha256(self) -> None:
         with TemporaryDirectory() as temp_dir:
             binary_path = Path(temp_dir) / "bin" / "14141" / "server" / "libserver.so"
             binary_path.parent.mkdir(parents=True, exist_ok=True)
@@ -810,10 +810,10 @@ class TestOpenedBinaryIdentityValidationHashes(unittest.TestCase):
                 {"metadata": {"path": f"{binary_path}.i64", "base_address": "0x0"}},
             )
 
-        self.assertTrue(ok, reasons)
-        self.assertEqual([], reasons)
+        self.assertFalse(ok)
+        self.assertEqual(["IDB input sha256 is unavailable"], reasons)
 
-    def test_unavailable_survey_hash_is_not_compared_as_a_digest(self) -> None:
+    def test_unavailable_idb_input_hash_is_rejected_without_digest_comparison(self) -> None:
         with TemporaryDirectory() as temp_dir:
             binary_path = Path(temp_dir) / "bin" / "14141" / "server" / "server.dll"
             binary_path.parent.mkdir(parents=True, exist_ok=True)
@@ -832,9 +832,31 @@ class TestOpenedBinaryIdentityValidationHashes(unittest.TestCase):
                 },
             )
 
-        self.assertTrue(ok, reasons)
+        self.assertFalse(ok)
         self.assertNotIn("sha256 mismatch", " ".join(reasons))
-        self.assertEqual([], reasons)
+        self.assertEqual(["IDB input sha256 is unavailable"], reasons)
+
+    def test_missing_idb_input_hash_preserves_other_identity_failures(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            binary_path = Path(temp_dir) / "bin" / "14141" / "server" / "libserver.so"
+            binary_path.parent.mkdir(parents=True, exist_ok=True)
+            binary_path.write_bytes(b"server-binary")
+
+            ok, reasons = ida_analyze_bin.validate_opened_binary_identity(
+                str(binary_path),
+                "linux",
+                {
+                    "metadata": {
+                        "path": "D:/wrong/libserver.so.i64",
+                        "base_address": "0x180000000",
+                    }
+                },
+            )
+
+        self.assertFalse(ok)
+        self.assertTrue(any("PE-style base_address" in reason for reason in reasons), reasons)
+        self.assertIn("IDB input sha256 is unavailable", reasons)
+        self.assertTrue(any("path mismatch" in reason for reason in reasons), reasons)
 
     def test_accepts_idb_input_sha256_when_it_matches_original_binary(self) -> None:
         with TemporaryDirectory() as temp_dir:

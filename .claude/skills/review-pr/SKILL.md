@@ -1,6 +1,7 @@
 ---
 name: review-pr
 description: Review an open or local CS2_VibeSignatures pull request for correctness, with special scrutiny of IDA preprocessor design, duplicated LLM_DECOMPILE work, interface-versus-concrete virtual-function ownership, INHERIT_VFUNCS chains, requested YAML fields, config dependencies, generated snapshots, and regression coverage. Use when the user asks to review, inspect, audit, or fix a PR. Report evidence-backed findings first and never modify, commit, push, comment on, close, or merge the PR until the user explicitly approves the proposed fixes; after approval, fix the existing PR branch directly without creating or merging another PR.
+disable-model-invocation: true
 ---
 
 # Review Pull Request
