@@ -1,6 +1,7 @@
 ---
 name: restore-from-snapshot
 description: Restore versioned symbol YAML from a canonical same-version snapshot, optionally replace trusted YAML, or explicitly force a different base GAMEVER snapshot after user confirmation while skipping target trust checks. Use when asked to restore, unpack, hydrate, or seed game-symbol YAML from tracked snapshots, including when delegated by init-gamebin.
+disable-model-invocation: true
 ---
 
 # Restore From Snapshot

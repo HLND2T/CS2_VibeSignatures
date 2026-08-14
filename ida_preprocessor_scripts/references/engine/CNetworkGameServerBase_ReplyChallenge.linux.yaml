@@ -1,0 +1,453 @@
+func_name: CNetworkGameServerBase_ReplyChallenge
+func_va: '0x4fa710'
+disasm_code: |-
+  .text:00000000004FA710                 push    rbp
+  .text:00000000004FA711                 mov     ecx, 0FFFFFFFFh
+  .text:00000000004FA716                 mov     rbp, rsp
+  .text:00000000004FA719                 push    r15
+  .text:00000000004FA71B                 push    r14
+  .text:00000000004FA71D                 mov     r14, rdx
+  .text:00000000004FA720                 mov     edx, 200h
+  .text:00000000004FA725                 push    r13
+  .text:00000000004FA727                 mov     r13, rdi
+  .text:00000000004FA72A                 push    r12
+  .text:00000000004FA72C                 mov     r12, rsi
+  .text:00000000004FA72F                 push    rbx
+  .text:00000000004FA730                 lea     rbx, [rbp+var_2A0]
+  .text:00000000004FA737                 sub     rsp, 278h
+  .text:00000000004FA73E                 mov     rdi, rbx
+  .text:00000000004FA741                 lea     rsi, [rbp+var_230]
+  .text:00000000004FA748                 call    sub_5E1560
+  .text:00000000004FA74D                 mov     rax, [r13+0]
+  .text:00000000004FA751                 mov     rdi, r13
+  .text:00000000004FA754                 mov     rsi, r12
+  .text:00000000004FA757                 ; 0x2B0 = 688LL = CNetworkGameServerBase_GetChallengeType
+  .text:00000000004FA757                 call    qword ptr [rax+2B0h]; 0x2B0 = 688LL = CNetworkGameServerBase_GetChallengeType
+  .text:00000000004FA75D                 mov     edx, 20h ; ' '
+  .text:00000000004FA762                 mov     esi, 0FFFFFFFFh
+  .text:00000000004FA767                 mov     rdi, rbx
+  .text:00000000004FA76A                 mov     r13d, eax
+  .text:00000000004FA76D                 call    sub_5E15E0
+  .text:00000000004FA772                 mov     eax, [rbp+var_294]
+  .text:00000000004FA778                 mov     ecx, [rbp+var_290]
+  .text:00000000004FA77E                 mov     edx, eax
+  .text:00000000004FA780                 sub     edx, ecx
+  .text:00000000004FA782                 cmp     edx, 7
+  .text:00000000004FA785                 jle     loc_4FAA10
+  .text:00000000004FA78B                 mov     rdx, [rbp+var_2A0]
+  .text:00000000004FA792                 lea     eax, [rcx+8]
+  .text:00000000004FA795                 mov     r8d, ecx
+  .text:00000000004FA798                 mov     [rbp+var_290], eax
+  .text:00000000004FA79E                 mov     eax, ecx
+  .text:00000000004FA7A0                 and     r8d, 1Fh
+  .text:00000000004FA7A4                 sar     eax, 5
+  .text:00000000004FA7A7                 cdqe
+  .text:00000000004FA7A9                 lea     rsi, [rdx+rax*4]
+  .text:00000000004FA7AD                 mov     edx, 41h ; 'A'
+  .text:00000000004FA7B2                 mov     eax, 7Fh
+  .text:00000000004FA7B7                 rol     edx, cl
+  .text:00000000004FA7B9                 mov     ecx, 1Fh
+  .text:00000000004FA7BE                 mov     edi, [rsi]
+  .text:00000000004FA7C0                 sub     ecx, r8d
+  .text:00000000004FA7C3                 shr     eax, cl
+  .text:00000000004FA7C5                 mov     ecx, eax
+  .text:00000000004FA7C7                 and     eax, 1
+  .text:00000000004FA7CA                 lea     r9, [rsi+rax*4]
+  .text:00000000004FA7CE                 mov     eax, edx
+  .text:00000000004FA7D0                 xor     edx, edi
+  .text:00000000004FA7D2                 mov     r10d, [r9]
+  .text:00000000004FA7D5                 xor     eax, r10d
+  .text:00000000004FA7D8                 and     eax, ecx
+  .text:00000000004FA7DA                 mov     ecx, r8d
+  .text:00000000004FA7DD                 xor     eax, r10d
+  .text:00000000004FA7E0                 mov     [r9], eax
+  .text:00000000004FA7E3                 mov     eax, 0FFh
+  .text:00000000004FA7E8                 shl     eax, cl
+  .text:00000000004FA7EA                 and     eax, edx
+  .text:00000000004FA7EC                 xor     eax, edi
+  .text:00000000004FA7EE                 mov     [rsi], eax
+  .text:00000000004FA7F0                 xor     esi, esi
+  .text:00000000004FA7F2                 mov     edx, 20h ; ' '
+  .text:00000000004FA7F7                 mov     rdi, rbx
+  .text:00000000004FA7FA                 call    sub_5E15E0
+  .text:00000000004FA7FF                 mov     edx, 20h ; ' '
+  .text:00000000004FA804                 mov     esi, r13d
+  .text:00000000004FA807                 mov     rdi, rbx
+  .text:00000000004FA80A                 call    sub_5E15E0
+  .text:00000000004FA80F                 cmp     r13d, 3
+  .text:00000000004FA813                 jz      loc_4FA930
+  .text:00000000004FA819                 mov     edx, 10h
+  .text:00000000004FA81E                 mov     esi, 1
+  .text:00000000004FA823                 mov     rdi, rbx
+  .text:00000000004FA826                 call    sub_5E15E0
+  .text:00000000004FA82B                 xor     esi, esi
+  .text:00000000004FA82D                 mov     rdi, rbx
+  .text:00000000004FA830                 call    sub_5E1F80
+  .text:00000000004FA835                 mov     edx, [rbp+var_294]
+  .text:00000000004FA83B                 mov     eax, [rbp+var_290]
+  .text:00000000004FA841                 mov     ecx, edx
+  .text:00000000004FA843                 sub     ecx, eax
+  .text:00000000004FA845                 cmp     ecx, 7
+  .text:00000000004FA848                 jle     loc_4FA918
+  .text:00000000004FA84E                 lea     edx, [rax+8]
+  .text:00000000004FA851                 mov     edi, eax
+  .text:00000000004FA853                 sar     eax, 5
+  .text:00000000004FA856                 mov     [rbp+var_290], edx
+  .text:00000000004FA85C                 and     edi, 1Fh
+  .text:00000000004FA85F                 cdqe
+  .text:00000000004FA861                 mov     ecx, 1Fh
+  .text:00000000004FA866                 mov     rdx, [rbp+var_2A0]
+  .text:00000000004FA86D                 sub     ecx, edi
+  .text:00000000004FA86F                 lea     rsi, [rdx+rax*4]
+  .text:00000000004FA873                 mov     edx, 7Fh
+  .text:00000000004FA878                 mov     eax, 0FFh
+  .text:00000000004FA87D                 shr     edx, cl
+  .text:00000000004FA87F                 mov     ecx, edi
+  .text:00000000004FA881                 shl     eax, cl
+  .text:00000000004FA883                 mov     r8d, edx
+  .text:00000000004FA886                 not     edx
+  .text:00000000004FA888                 not     eax
+  .text:00000000004FA88A                 and     eax, [rsi]
+  .text:00000000004FA88C                 and     r8d, 1
+  .text:00000000004FA890                 and     [rsi+r8*4], edx
+  .text:00000000004FA894                 mov     [rsi], eax
+  .text:00000000004FA896                 mov     rsi, r14
+  .text:00000000004FA899                 mov     rdi, rbx
+  .text:00000000004FA89C                 call    sub_5E20D0
+  .text:00000000004FA8A1                 cmp     dword ptr [r12+1Ch], 4
+  .text:00000000004FA8A7                 mov     esi, 2
+  .text:00000000004FA8AC                 jnz     short loc_4FA8B3
+  .text:00000000004FA8AE                 mov     esi, 1
+  .text:00000000004FA8B3                 mov     edi, cs:dword_A30294
+  .text:00000000004FA8B9                 call    sub_2C9B50
+  .text:00000000004FA8BE                 test    al, al
+  .text:00000000004FA8C0                 jnz     loc_4FAA28
+  .text:00000000004FA8C6                 lea     rax, g_pNetworkSystem
+  .text:00000000004FA8CD                 mov     rdi, [rax]
+  .text:00000000004FA8D0                 mov     rax, [rdi]
+  .text:00000000004FA8D3                 call    qword ptr [rax+160h]
+  .text:00000000004FA8D9                 mov     esi, [r12+70h]
+  .text:00000000004FA8DE                 xor     r9d, r9d
+  .text:00000000004FA8E1                 mov     r8d, 5
+  .text:00000000004FA8E7                 mov     rdi, rax
+  .text:00000000004FA8EA                 mov     eax, [rbp+var_290]
+  .text:00000000004FA8F0                 mov     rdx, [rbp+var_2A0]
+  .text:00000000004FA8F7                 lea     ecx, [rax+7]
+  .text:00000000004FA8FA                 mov     rax, [rdi]
+  .text:00000000004FA8FD                 sar     ecx, 3
+  .text:00000000004FA900                 call    qword ptr [rax+58h]
+  .text:00000000004FA903                 add     rsp, 278h
+  .text:00000000004FA90A                 pop     rbx
+  .text:00000000004FA90B                 pop     r12
+  .text:00000000004FA90D                 pop     r13
+  .text:00000000004FA90F                 pop     r14
+  .text:00000000004FA911                 pop     r15
+  .text:00000000004FA913                 pop     rbp
+  .text:00000000004FA914                 retn
+  .text:00000000004FA918                 mov     [rbp+var_290], edx
+  .text:00000000004FA91E                 mov     [rbp+var_280], 1
+  .text:00000000004FA925                 jmp     loc_4FA896
+  .text:00000000004FA930                 call    sub_575B00
+  .text:00000000004FA935                 mov     rdi, rax
+  .text:00000000004FA938                 call    sub_5762A0
+  .text:00000000004FA93D                 mov     edx, 10h
+  .text:00000000004FA942                 xor     esi, esi
+  .text:00000000004FA944                 mov     rdi, rbx
+  .text:00000000004FA947                 mov     r15, [rax]
+  .text:00000000004FA94A                 call    sub_5E15E0
+  .text:00000000004FA94F                 mov     rdi, rbx
+  .text:00000000004FA952                 mov     rsi, r15
+  .text:00000000004FA955                 call    sub_5E1F80
+  .text:00000000004FA95A                 lea     r15, off_9D7F10
+  .text:00000000004FA961                 call    sub_575B00
+  .text:00000000004FA966                 mov     rdi, r15
+  .text:00000000004FA969                 call    sub_2CA3A0
+  .text:00000000004FA96E                 mov     rdx, rax
+  .text:00000000004FA971                 xor     eax, eax
+  .text:00000000004FA973                 cmp     qword ptr [rdx], 0
+  .text:00000000004FA977                 jz      short loc_4FA98D
+  .text:00000000004FA979                 mov     rdi, r15
+  .text:00000000004FA97C                 call    sub_2CA3A0
+  .text:00000000004FA981                 mov     rdi, [rax]
+  .text:00000000004FA984                 mov     rax, [rdi]
+  .text:00000000004FA987                 call    qword ptr [rax+48h]
+  .text:00000000004FA98A                 movzx   eax, al
+  .text:00000000004FA98D                 mov     edx, [rbp+var_294]
+  .text:00000000004FA993                 mov     ecx, [rbp+var_290]
+  .text:00000000004FA999                 mov     esi, edx
+  .text:00000000004FA99B                 sub     esi, ecx
+  .text:00000000004FA99D                 cmp     esi, 7
+  .text:00000000004FA9A0                 jle     loc_4FA918
+  .text:00000000004FA9A6                 mov     rsi, [rbp+var_2A0]
+  .text:00000000004FA9AD                 lea     edx, [rcx+8]
+  .text:00000000004FA9B0                 mov     r8d, ecx
+  .text:00000000004FA9B3                 rol     eax, cl
+  .text:00000000004FA9B5                 mov     [rbp+var_290], edx
+  .text:00000000004FA9BB                 mov     edx, ecx
+  .text:00000000004FA9BD                 and     r8d, 1Fh
+  .text:00000000004FA9C1                 mov     ecx, 1Fh
+  .text:00000000004FA9C6                 sar     edx, 5
+  .text:00000000004FA9C9                 sub     ecx, r8d
+  .text:00000000004FA9CC                 movsxd  rdx, edx
+  .text:00000000004FA9CF                 lea     rsi, [rsi+rdx*4]
+  .text:00000000004FA9D3                 mov     edx, 7Fh
+  .text:00000000004FA9D8                 shr     edx, cl
+  .text:00000000004FA9DA                 mov     edi, [rsi]
+  .text:00000000004FA9DC                 mov     ecx, edx
+  .text:00000000004FA9DE                 and     edx, 1
+  .text:00000000004FA9E1                 lea     r9, [rsi+rdx*4]
+  .text:00000000004FA9E5                 mov     edx, eax
+  .text:00000000004FA9E7                 mov     r10d, [r9]
+  .text:00000000004FA9EA                 xor     eax, edi
+  .text:00000000004FA9EC                 xor     edx, r10d
+  .text:00000000004FA9EF                 and     edx, ecx
+  .text:00000000004FA9F1                 mov     ecx, r8d
+  .text:00000000004FA9F4                 xor     edx, r10d
+  .text:00000000004FA9F7                 mov     [r9], edx
+  .text:00000000004FA9FA                 mov     edx, 0FFh
+  .text:00000000004FA9FF                 shl     edx, cl
+  .text:00000000004FAA01                 and     edx, eax
+  .text:00000000004FAA03                 xor     edx, edi
+  .text:00000000004FAA05                 mov     [rsi], edx
+  .text:00000000004FAA07                 jmp     loc_4FA896
+  .text:00000000004FAA10                 mov     [rbp+var_290], eax
+  .text:00000000004FAA16                 mov     [rbp+var_280], 1
+  .text:00000000004FAA1D                 jmp     loc_4FA7F0
+  .text:00000000004FAA28                 mov     eax, [r12+1Ch]
+  .text:00000000004FAA2D                 cmp     eax, 3
+  .text:00000000004FAA30                 ja      loc_4FAAE0
+  .text:00000000004FAA36                 cmp     eax, 1
+  .text:00000000004FAA39                 ja      short loc_4FAA80
+  .text:00000000004FAA3B                 test    eax, eax
+  .text:00000000004FAA3D                 jz      loc_4FAB08
+  .text:00000000004FAA43                 mov     ecx, [r12+18h]
+  .text:00000000004FAA48                 lea     rdx, unk_27CC16
+  .text:00000000004FAA4F                 mov     r14d, [r12+14h]
+  .text:00000000004FAA54                 test    ecx, ecx
+  .text:00000000004FAA56                 jz      loc_4FAB58
+  .text:00000000004FAA5C                 lea     rbx, [rbp+var_270]
+  .text:00000000004FAA63                 mov     ecx, r14d
+  .text:00000000004FAA66                 xor     eax, eax
+  .text:00000000004FAA68                 lea     rsi, aSD_5; "%s:%d"
+  .text:00000000004FAA6F                 mov     rdi, rbx
+  .text:00000000004FAA72                 call    sub_2CF290
+  .text:00000000004FAA77                 jmp     short loc_4FAAAC
+  .text:00000000004FAA80                 mov     eax, [r12+18h]
+  .text:00000000004FAA85                 lea     rdx, unk_27CC16
+  .text:00000000004FAA8C                 test    eax, eax
+  .text:00000000004FAA8E                 jz      loc_4FAB40
+  .text:00000000004FAA94                 lea     rbx, [rbp+var_270]
+  .text:00000000004FAA9B                 xor     eax, eax
+  .text:00000000004FAA9D                 lea     rsi, aS_23; "=%s"
+  .text:00000000004FAAA4                 mov     rdi, rbx
+  .text:00000000004FAAA7                 call    sub_2CF290
+  .text:00000000004FAAAC                 cmp     dword ptr [r12+1Ch], 4
+  .text:00000000004FAAB2                 mov     esi, 1
+  .text:00000000004FAAB7                 jz      short loc_4FAABE
+  .text:00000000004FAAB9                 mov     esi, 2
+  .text:00000000004FAABE                 mov     edi, cs:dword_A30294
+  .text:00000000004FAAC4                 mov     r9, rbx
+  .text:00000000004FAAC7                 mov     r8d, r13d
+  .text:00000000004FAACA                 xor     ecx, ecx
+  .text:00000000004FAACC                 lea     rdx, aSendingS2cChal; "Sending S2C_CHALLENGE [%u auth %d] to %"...
+  .text:00000000004FAAD3                 xor     eax, eax
+  .text:00000000004FAAD5                 call    sub_2C8BC0
+  .text:00000000004FAADA                 jmp     loc_4FA8C6
+  .text:00000000004FAAE0                 cmp     eax, 4
+  .text:00000000004FAAE3                 jnz     short loc_4FAB28
+  .text:00000000004FAAE5                 mov     edx, [r12+14h]
+  .text:00000000004FAAEA                 lea     rbx, [rbp+var_270]
+  .text:00000000004FAAF1                 xor     eax, eax
+  .text:00000000004FAAF3                 lea     rsi, aLoopbackD; "loopback:%d"
+  .text:00000000004FAAFA                 mov     rdi, rbx
+  .text:00000000004FAAFD                 call    sub_2CF290
+  .text:00000000004FAB02                 jmp     short loc_4FAAAC
+  .text:00000000004FAB08                 lea     rbx, [rbp+var_270]
+  .text:00000000004FAB0F                 xor     ecx, ecx
+  .text:00000000004FAB11                 mov     edx, 40h ; '@'
+  .text:00000000004FAB16                 mov     rsi, rbx
+  .text:00000000004FAB19                 mov     rdi, r12
+  .text:00000000004FAB1C                 call    sub_2C95A0
+  .text:00000000004FAB21                 jmp     short loc_4FAAAC
+  .text:00000000004FAB28                 mov     [rbp+var_270], 0
+  .text:00000000004FAB2F                 lea     rbx, [rbp+var_270]
+  .text:00000000004FAB36                 jmp     loc_4FAAB9
+  .text:00000000004FAB40                 lea     rdi, [r12+0Ch]
+  .text:00000000004FAB45                 call    sub_599F20
+  .text:00000000004FAB4A                 mov     rdx, rax
+  .text:00000000004FAB4D                 jmp     loc_4FAA94
+  .text:00000000004FAB58                 lea     rdi, [r12+0Ch]
+  .text:00000000004FAB5D                 call    sub_599F20
+  .text:00000000004FAB62                 mov     rdx, rax
+  .text:00000000004FAB65                 jmp     loc_4FAA5C
+procedure: |-
+  __int64 __fastcall CNetworkGameServerBase_SendChallenge(__int64 a1, _DWORD *a2, __int64 a3)
+  {
+    unsigned int v5; // r13d
+    int v6; // ecx
+    int *v7; // rsi
+    int v8; // edi
+    int v9; // eax
+    int v10; // edx
+    int v11; // edx
+    int v12; // eax
+    char v13; // di
+    int *v14; // rsi
+    unsigned int v15; // edx
+    int v16; // eax
+    __int64 v17; // rsi
+    int v18; // ecx
+    int v19; // r8d
+    int v20; // r9d
+    __int64 v21; // rax
+    void *v23; // rax
+    __int64 v24; // r15
+    _QWORD *v25; // rdx
+    int v26; // eax
+    _QWORD *v27; // rax
+    int v28; // ecx
+    int *v29; // rsi
+    int v30; // edi
+    int v31; // edx
+    int v32; // eax
+    unsigned int v33; // eax
+    void *v34; // rdx
+    int v35; // r14d
+    void *v36; // rdx
+    __int64 v37; // rsi
+    __int64 v38; // [rsp+0h] [rbp-2A0h] BYREF
+    int v39; // [rsp+Ch] [rbp-294h]
+    int v40; // [rsp+10h] [rbp-290h]
+    char v41; // [rsp+20h] [rbp-280h]
+    char v42[64]; // [rsp+30h] [rbp-270h] BYREF
+    char v43[560]; // [rsp+70h] [rbp-230h] BYREF
+
+    sub_5E1560(&v38, v43, 512, 0xFFFFFFFFLL);
+    v5 = (*(__int64 (__fastcall **)(__int64, _DWORD *))(*(_QWORD *)a1 + 688LL))(a1, a2);// 0x2B0 = 688LL = CNetworkGameServerBase_GetChallengeType
+    sub_5E15E0(&v38, 0xFFFFFFFFLL, 32);
+    v6 = v40;
+    if ( v39 - v40 <= 7 )
+    {
+      v40 = v39;
+      v41 = 1;
+    }
+    else
+    {
+      v40 += 8;
+      v7 = (int *)(v38 + 4LL * (v6 >> 5));
+      v8 = *v7;
+      v9 = __ROL4__(65, v6);
+      v10 = *v7 ^ v9;
+      v7[(0x7Fu >> (31 - (v6 & 0x1F))) & 1] ^= (0x7Fu >> (31 - (v6 & 0x1F)))
+                                             & (v7[(0x7Fu >> (31 - (v6 & 0x1F))) & 1]
+                                              ^ v9);
+      *v7 = v8 ^ v10 & (255 << (v6 & 0x1F));
+    }
+    sub_5E15E0(&v38, 0, 32);
+    sub_5E15E0(&v38, v5, 32);
+    if ( v5 != 3 )
+    {
+      sub_5E15E0(&v38, 1, 16);
+      sub_5E1F80(&v38, 0);
+      v11 = v39;
+      v12 = v40;
+      if ( v39 - v40 > 7 )
+      {
+        v40 += 8;
+        v13 = v12 & 0x1F;
+        v14 = (int *)(v38 + 4LL * (v12 >> 5));
+        v15 = ~(0x7Fu >> (31 - (v12 & 0x1F)));
+        v16 = *v14 & ~(255 << (v12 & 0x1F));
+        v14[(0x7Fu >> (31 - v13)) & 1] &= v15;
+        *v14 = v16;
+        goto LABEL_6;
+      }
+      goto LABEL_10;
+    }
+    v23 = sub_575B00();
+    v24 = *(_QWORD *)sub_5762A0(v23);
+    sub_5E15E0(&v38, 0, 16);
+    sub_5E1F80(&v38, v24);
+    sub_575B00();
+    v25 = (_QWORD *)sub_2CA3A0(&off_9D7F10);
+    v26 = 0;
+    if ( *v25 )
+    {
+      v27 = (_QWORD *)sub_2CA3A0(&off_9D7F10);
+      v26 = (*(unsigned __int8 (__fastcall **)(_QWORD))(*(_QWORD *)*v27 + 72LL))(*v27);
+    }
+    v11 = v39;
+    v28 = v40;
+    if ( v39 - v40 <= 7 )
+    {
+  LABEL_10:
+      v40 = v11;
+      v41 = 1;
+      goto LABEL_6;
+    }
+    v40 += 8;
+    v29 = (int *)(v38 + 4LL * (v28 >> 5));
+    v30 = *v29;
+    v31 = __ROL4__(v26, v28);
+    v32 = *v29 ^ v31;
+    v29[(0x7Fu >> (31 - (v28 & 0x1F))) & 1] ^= (0x7Fu >> (31 - (v28 & 0x1F)))
+                                             & (v29[(0x7Fu >> (31 - (v28 & 0x1F))) & 1]
+                                              ^ v31);
+    *v29 = v30 ^ v32 & (255 << (v28 & 0x1F));
+  LABEL_6:
+    sub_5E20D0(&v38, a3);
+    v17 = 2;
+    if ( a2[7] == 4 )
+      v17 = 1;
+    if ( (unsigned __int8)sub_2C9B50((unsigned int)dword_A30294, v17) )
+    {
+      v33 = a2[7];
+      if ( v33 > 3 )
+      {
+        if ( v33 != 4 )
+        {
+          v42[0] = 0;
+          goto LABEL_26;
+        }
+        sub_2CF290((unsigned int)v42, (unsigned int)"loopback:%d", a2[5], v18, v19, v20);
+      }
+      else if ( v33 > 1 )
+      {
+        v36 = &unk_27CC16;
+        if ( !a2[6] )
+          LODWORD(v36) = sub_599F20(a2 + 3, v17, &unk_27CC16);
+        sub_2CF290((unsigned int)v42, (unsigned int)"=%s", (_DWORD)v36, v18, v19, v20);
+      }
+      else if ( v33 )
+      {
+        v34 = &unk_27CC16;
+        v35 = a2[5];
+        if ( !a2[6] )
+          LODWORD(v34) = sub_599F20(a2 + 3, v17, &unk_27CC16);
+        sub_2CF290((unsigned int)v42, (unsigned int)"%s:%d", (_DWORD)v34, v35, v19, v20);
+      }
+      else
+      {
+        sub_2C95A0(a2, v42, 64, 0);
+      }
+      v37 = 1;
+      if ( a2[7] == 4 )
+      {
+  LABEL_27:
+        sub_2C8BC0((unsigned int)dword_A30294, v37, "Sending S2C_CHALLENGE [%u auth %d] to %s\n", 0, v5, v42);
+        goto LABEL_9;
+      }
+  LABEL_26:
+      v37 = 2;
+      goto LABEL_27;
+    }
+  LABEL_9:
+    v21 = (*(__int64 (__fastcall **)(_QWORD *))(*g_pNetworkSystem + 352LL))(g_pNetworkSystem);
+    return (*(__int64 (__fastcall **)(__int64, _QWORD, __int64, _QWORD, __int64, _QWORD))(*(_QWORD *)v21 + 88LL))(
+             v21,
+             (unsigned int)a2[28],
+             v38,
+             (unsigned int)((v40 + 7) >> 3),
+             5,
+             0);
+  }

@@ -566,6 +566,28 @@ class TestOpenedBinaryIdentityValidation(unittest.TestCase):
         self.assertEqual(1, survey_binary.await_count)
         sleep.assert_not_called()
 
+    def test_verification_rejects_reused_idb_without_input_hash_without_hash_mismatch(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            binary_path = Path(temp_dir) / "server.dll"
+            binary_path.write_bytes(b"server-binary")
+            survey = {
+                "metadata": {
+                    "path": f"{binary_path}.i64",
+                    "sha256": "unavailable",
+                    "base_address": "0x180000000",
+                }
+            }
+
+            with (
+                patch.object(ida_analyze_bin, "survey_binary_via_mcp", new=AsyncMock(return_value=survey)),
+                patch("sys.stdout", new_callable=io.StringIO) as stdout,
+            ):
+                verified = ida_analyze_bin.verify_opened_binary_via_mcp(str(binary_path), "windows")
+
+        self.assertFalse(verified)
+        self.assertIn("IDB input sha256 is unavailable", stdout.getvalue())
+        self.assertNotIn("sha256 mismatch", stdout.getvalue())
+
 
 class TestOwnedMcpVerificationRecovery(unittest.TestCase):
     def test_restarts_an_unhealthy_owned_worker_once_and_reverifies(self) -> None:
@@ -776,7 +798,7 @@ class TestEnsureMcpAvailableRecoveryBudget(unittest.TestCase):
 
 
 class TestOpenedBinaryIdentityValidationHashes(unittest.TestCase):
-    def test_accepts_ida_database_suffix_for_expected_binary_path(self) -> None:
+    def test_rejects_ida_database_path_without_input_sha256(self) -> None:
         with TemporaryDirectory() as temp_dir:
             binary_path = Path(temp_dir) / "bin" / "14141" / "server" / "libserver.so"
             binary_path.parent.mkdir(parents=True, exist_ok=True)
@@ -786,6 +808,74 @@ class TestOpenedBinaryIdentityValidationHashes(unittest.TestCase):
                 str(binary_path),
                 "linux",
                 {"metadata": {"path": f"{binary_path}.i64", "base_address": "0x0"}},
+            )
+
+        self.assertFalse(ok)
+        self.assertEqual(["IDB input sha256 is unavailable"], reasons)
+
+    def test_unavailable_idb_input_hash_is_rejected_without_digest_comparison(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            binary_path = Path(temp_dir) / "bin" / "14141" / "server" / "server.dll"
+            binary_path.parent.mkdir(parents=True, exist_ok=True)
+            binary_path.write_bytes(b"server-binary")
+
+            ok, reasons = ida_analyze_bin.validate_opened_binary_identity(
+                str(binary_path),
+                "windows",
+                {
+                    "metadata": {
+                        "path": f"{binary_path}.i64",
+                        "sha256": "unavailable",
+                        "input_sha256": "UNKNOWN",
+                        "base_address": "0x180000000",
+                    }
+                },
+            )
+
+        self.assertFalse(ok)
+        self.assertNotIn("sha256 mismatch", " ".join(reasons))
+        self.assertEqual(["IDB input sha256 is unavailable"], reasons)
+
+    def test_missing_idb_input_hash_preserves_other_identity_failures(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            binary_path = Path(temp_dir) / "bin" / "14141" / "server" / "libserver.so"
+            binary_path.parent.mkdir(parents=True, exist_ok=True)
+            binary_path.write_bytes(b"server-binary")
+
+            ok, reasons = ida_analyze_bin.validate_opened_binary_identity(
+                str(binary_path),
+                "linux",
+                {
+                    "metadata": {
+                        "path": "D:/wrong/libserver.so.i64",
+                        "base_address": "0x180000000",
+                    }
+                },
+            )
+
+        self.assertFalse(ok)
+        self.assertTrue(any("PE-style base_address" in reason for reason in reasons), reasons)
+        self.assertIn("IDB input sha256 is unavailable", reasons)
+        self.assertTrue(any("path mismatch" in reason for reason in reasons), reasons)
+
+    def test_accepts_idb_input_sha256_when_it_matches_original_binary(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            binary_path = Path(temp_dir) / "bin" / "14141" / "server" / "server.dll"
+            binary_path.parent.mkdir(parents=True, exist_ok=True)
+            binary_path.write_bytes(b"same-binary")
+            expected_sha256 = ida_analyze_bin._hash_file(str(binary_path))["sha256"]
+
+            ok, reasons = ida_analyze_bin.validate_opened_binary_identity(
+                str(binary_path),
+                "windows",
+                {
+                    "metadata": {
+                        "path": f"{binary_path}.i64",
+                        "sha256": "unavailable",
+                        "input_sha256": expected_sha256,
+                        "base_address": "0x180000000",
+                    }
+                },
             )
 
         self.assertTrue(ok, reasons)
@@ -820,7 +910,7 @@ class TestOpenedBinaryIdentityValidationHashes(unittest.TestCase):
                 {
                     "metadata": {
                         "path": "D:/moved/server.dll.i64",
-                        "sha256": "a1f82722bc8e33aa9100d16001377c07366a779a2c42bc58fdeba9cf8fa9f1fd",
+                        "input_sha256": "a1f82722bc8e33aa9100d16001377c07366a779a2c42bc58fdeba9cf8fa9f1fd",
                         "base_address": "0x180000000",
                     }
                 },
@@ -840,7 +930,7 @@ class TestOpenedBinaryIdentityValidationHashes(unittest.TestCase):
                 {
                     "metadata": {
                         "path": "D:/moved/server.dll.i64",
-                        "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+                        "input_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
                         "base_address": "0x180000000",
                     }
                 },
@@ -3996,6 +4086,69 @@ class TestProcessBinaryOpenedBinaryVerification(unittest.TestCase):
         mock_quit_ida.assert_not_called()
         self.mock_stop_ida.assert_called_once_with(fake_process, debug=False)
         self.mock_wait_for_release.assert_called_once_with("127.0.0.1", 13337)
+
+    def test_process_binary_rebuilds_a_stale_ida_database_once(self) -> None:
+        first_process = MagicMock()
+        first_process.poll.return_value = None
+        rebuilt_process = MagicMock()
+        rebuilt_process.poll.return_value = None
+
+        with TemporaryDirectory() as temp_dir:
+            binary_dir = Path(temp_dir) / "bin" / "14141" / "server"
+            binary_dir.mkdir(parents=True, exist_ok=True)
+            binary_path = str(binary_dir / "server.dll")
+            Path(binary_path).write_bytes(b"server-binary")
+            stale_idb = Path(f"{binary_path}.i64")
+            stale_idb.write_bytes(b"stale-idb")
+
+            def _fake_preprocess(*, expected_outputs, **_kwargs):
+                Path(expected_outputs[0]).write_text("func_name: Rebuilt\n", encoding="utf-8")
+                return "success"
+
+            verification_results = iter([False])
+
+            def _verify_once_then_pass(*_args, **_kwargs):
+                return next(verification_results, True)
+
+            with (
+                patch.object(
+                    ida_analyze_bin, "start_idalib_mcp", side_effect=[first_process, rebuilt_process]
+                ) as start_ida,
+                patch.object(
+                    ida_analyze_bin, "verify_opened_binary_via_mcp", side_effect=_verify_once_then_pass
+                ) as verify,
+                patch.object(ida_analyze_bin, "ensure_mcp_available", return_value=(rebuilt_process, True)),
+                patch.object(ida_analyze_bin, "_run_preprocess_single_skill_via_mcp", side_effect=_fake_preprocess),
+                patch.object(ida_analyze_bin, "quit_ida_gracefully") as quit_ida,
+            ):
+                result = ida_analyze_bin.process_binary(
+                    binary_path=binary_path,
+                    skills=[
+                        {
+                            "name": "find-rebuilt",
+                            "expected_output": ["Rebuilt.{platform}.yaml"],
+                            "expected_input": [],
+                        }
+                    ],
+                    agent="codex",
+                    host="127.0.0.1",
+                    port=13337,
+                    ida_args="",
+                    platform="windows",
+                    max_retries=1,
+                )
+
+        self.assertEqual((1, 0, 0), result)
+        self.assertEqual(2, start_ida.call_count)
+        self.assertEqual(4, verify.call_count)
+        self.assertFalse(stale_idb.exists())
+        quit_ida.assert_called_once_with(
+            rebuilt_process,
+            "127.0.0.1",
+            13337,
+            expected_binary=binary_path,
+            debug=False,
+        )
 
     def test_process_binary_recovers_initial_inactive_worker_once(self) -> None:
         original_process = object()

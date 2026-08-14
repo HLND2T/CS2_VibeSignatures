@@ -1,0 +1,188 @@
+func_name: CNetworkGameServer_Shutdown
+func_va: '0x18009c210'
+disasm_code: |-
+  .text:000000018009C210                 push    rbp
+  .text:000000018009C212                 sub     rsp, 20h
+  .text:000000018009C216                 cmp     cs:byte_1806129BC, 0
+  .text:000000018009C21D                 mov     [rsp+28h+arg_0], rbx
+  .text:000000018009C222                 mov     rbx, rcx
+  .text:000000018009C225                 mov     [rsp+28h+arg_10], rdi
+  .text:000000018009C22A                 jz      short loc_18009C241
+  .text:000000018009C22C                 xor     edx, edx
+  .text:000000018009C22E                 mov     cs:byte_1806129BC, 0
+  .text:000000018009C235                 lea     rcx, off_180612910
+  .text:000000018009C23C                 call    CSteam3Server_SendUpdatedServerDetails
+  .text:000000018009C241                 mov     rcx, rbx
+  .text:000000018009C244                 call    CNetworkGameServerBase_Shutdown
+  .text:000000018009C249                 mov     rcx, cs:g_pSource2Server
+  .text:000000018009C250                 test    rcx, rcx
+  .text:000000018009C253                 jz      short loc_18009C283
+  .text:000000018009C255                 mov     rax, [rcx]
+  .text:000000018009C258                 ; 0x0E8 = 232LL = ISource2Server_GetAllServerClasses
+  .text:000000018009C258                 call    qword ptr [rax+0E8h]; 0x0E8 = 232LL = ISource2Server_GetAllServerClasses
+  .text:000000018009C25E                 mov     rcx, [rax+8]
+  .text:000000018009C262                 movsxd  rax, dword ptr [rax]
+  .text:000000018009C265                 lea     rdx, [rcx+rax*8]
+  .text:000000018009C269                 cmp     rcx, rdx
+  .text:000000018009C26C                 jz      short loc_18009C283
+  .text:000000018009C26E                 xchg    ax, ax
+  .text:000000018009C270                 mov     rax, [rcx]
+  .text:000000018009C273                 add     rcx, 8
+  .text:000000018009C277                 mov     dword ptr [rax+2Ch], 0FFFFFFFFh
+  .text:000000018009C27E                 cmp     rcx, rdx
+  .text:000000018009C281                 jnz     short loc_18009C270
+  .text:000000018009C283                 xor     ebp, ebp
+  .text:000000018009C285                 mov     [rsp+28h+arg_8], rsi
+  .text:000000018009C28A                 mov     edi, ebp
+  .text:000000018009C28C                 cmp     [rbx+2C0h], ebp
+  .text:000000018009C292                 jle     short loc_18009C2DC
+  .text:000000018009C294                 mov     esi, ebp
+  .text:000000018009C296                 nop     word ptr [rax+rax+00000000h]
+  .text:000000018009C2A0                 mov     rax, [rbx+2C8h]
+  .text:000000018009C2A7                 mov     rdx, rbx
+  .text:000000018009C2AA                 mov     rcx, [rsi+rax]
+  .text:000000018009C2AE                 mov     rax, [rcx]
+  .text:000000018009C2B1                 call    qword ptr [rax+8]
+  .text:000000018009C2B4                 mov     rax, [rbx+2C8h]
+  .text:000000018009C2BB                 mov     rcx, [rsi+rax]
+  .text:000000018009C2BF                 test    rcx, rcx
+  .text:000000018009C2C2                 jz      short loc_18009C2CE
+  .text:000000018009C2C4                 mov     rax, [rcx]
+  .text:000000018009C2C7                 mov     edx, 1
+  .text:000000018009C2CC                 call    qword ptr [rax]
+  .text:000000018009C2CE                 inc     edi
+  .text:000000018009C2D0                 add     rsi, 8
+  .text:000000018009C2D4                 cmp     edi, [rbx+2C0h]
+  .text:000000018009C2DA                 jl      short loc_18009C2A0
+  .text:000000018009C2DC                 mov     eax, [rbx+328h]
+  .text:000000018009C2E2                 mov     [rbx+2C0h], ebp
+  .text:000000018009C2E8                 test    eax, eax
+  .text:000000018009C2EA                 jnz     short loc_18009C32D
+  .text:000000018009C2EC                 mov     rdi, [rbx+318h]
+  .text:000000018009C2F3                 movsxd  rax, dword ptr [rbx+310h]
+  .text:000000018009C2FA                 lea     rsi, [rdi+rax*8]
+  .text:000000018009C2FE                 cmp     rdi, rsi
+  .text:000000018009C301                 jz      short loc_18009C327
+  .text:000000018009C303                 nop     dword ptr [rax+00h]
+  .text:000000018009C307                 nop     word ptr [rax+rax+00000000h]
+  .text:000000018009C310                 mov     r8d, [rdi+4]
+  .text:000000018009C314                 mov     rcx, rbx
+  .text:000000018009C317                 mov     edx, [rdi]
+  .text:000000018009C319                 call    CNetworkGameServerBase_AsyncUnloadSpawnGroupInternal
+  .text:000000018009C31E                 add     rdi, 8
+  .text:000000018009C322                 cmp     rdi, rsi
+  .text:000000018009C325                 jnz     short loc_18009C310
+  .text:000000018009C327                 mov     [rbx+310h], ebp
+  .text:000000018009C32D                 lea     rcx, aDeactivatestea; "DeactivateSteamGameServer(start)"
+  .text:000000018009C334                 call    cs:COM_TimestampedLog
+  .text:000000018009C33A                 mov     rax, [rbx]
+  .text:000000018009C33D                 mov     rcx, rbx
+  .text:000000018009C340                 call    qword ptr [rax+178h]
+  .text:000000018009C346                 mov     rdi, [rsp+28h+arg_10]
+  .text:000000018009C34B                 mov     rsi, [rsp+28h+arg_8]
+  .text:000000018009C350                 test    al, al
+  .text:000000018009C352                 jz      short loc_18009C38E
+  .text:000000018009C354                 cmp     [rbx+2B8h], bpl
+  .text:000000018009C35B                 jnz     short loc_18009C38E
+  .text:000000018009C35D                 cmp     [rbx+2BAh], bpl
+  .text:000000018009C364                 jnz     short loc_18009C38E
+  .text:000000018009C366                 lea     rcx, off_180612910
+  .text:000000018009C36D                 mov     cs:qword_1809105D0, rbp
+  .text:000000018009C374                 call    sub_1800F85B0
+  .text:000000018009C379                 mov     rcx, cs:g_pSource2Server
+  .text:000000018009C380                 test    rcx, rcx
+  .text:000000018009C383                 jz      short loc_18009C38E
+  .text:000000018009C385                 mov     rax, [rcx]
+  .text:000000018009C388                 call    qword ptr [rax+150h]
+  .text:000000018009C38E                 lea     rcx, aDeactivatestea_0; "DeactivateSteamGameServer(finished)"
+  .text:000000018009C395                 call    cs:COM_TimestampedLog
+  .text:000000018009C39B                 cmp     qword ptr cs:xmmword_1808CCE00, rbp
+  .text:000000018009C3A2                 mov     rbx, [rsp+28h+arg_0]
+  .text:000000018009C3A7                 jz      short loc_18009C3D7
+  .text:000000018009C3A9                 lea     rdx, aLogFileClosed; "Log file closed\n"
+  .text:000000018009C3B0                 lea     rcx, qword_1808CCDD0
+  .text:000000018009C3B7                 call    sub_1800E2200
+  .text:000000018009C3BC                 mov     rcx, cs:g_pFileSystem
+  .text:000000018009C3C3                 mov     rdx, qword ptr cs:xmmword_1808CCE00
+  .text:000000018009C3CA                 mov     rax, [rcx]
+  .text:000000018009C3CD                 call    qword ptr [rax+70h]
+  .text:000000018009C3D0                 mov     qword ptr cs:xmmword_1808CCE00, rbp
+  .text:000000018009C3D7                 add     rsp, 20h
+  .text:000000018009C3DB                 pop     rbp
+  .text:000000018009C3DC                 retn
+procedure: |-
+  __int64 __fastcall CNetworkGameServer_Shutdown(__int64 a1)
+  {
+    int *v2; // rax
+    __int64 *v3; // rcx
+    __int64 *i; // rdx
+    __int64 v5; // rax
+    int v6; // edi
+    __int64 v7; // rsi
+    void (__fastcall ***v8)(_QWORD, __int64); // rcx
+    int v9; // eax
+    unsigned int *v10; // rdi
+    unsigned int *j; // rsi
+    __int64 result; // rax
+
+    if ( byte_1806129BC )
+    {
+      byte_1806129BC = 0;
+      CSteam3Server_SendUpdatedServerDetails(&off_180612910, 0);
+    }
+    CNetworkGameServerBase_Shutdown(a1);
+    if ( g_pSource2Server )
+    {
+      v2 = (int *)(*(__int64 (__fastcall **)(__int64))(*(_QWORD *)g_pSource2Server + 232LL))(g_pSource2Server);// 0x0E8 = 232LL = ISource2Server_GetAllServerClasses
+      v3 = *((__int64 **)v2 + 1);
+      for ( i = &v3[*v2]; v3 != i; *(_DWORD *)(v5 + 44) = -1 )
+        v5 = *v3++;
+    }
+    v6 = 0;
+    if ( *(int *)(a1 + 704) > 0 )
+    {
+      v7 = 0;
+      do
+      {
+        (*(void (__fastcall **)(_QWORD, __int64))(**(_QWORD **)(v7 + *(_QWORD *)(a1 + 712)) + 8LL))(
+          *(_QWORD *)(v7 + *(_QWORD *)(a1 + 712)),
+          a1);
+        v8 = *(void (__fastcall ****)(_QWORD, __int64))(v7 + *(_QWORD *)(a1 + 712));
+        if ( v8 )
+          (**v8)(v8, 1);
+        ++v6;
+        v7 += 8;
+      }
+      while ( v6 < *(_DWORD *)(a1 + 704) );
+    }
+    v9 = *(_DWORD *)(a1 + 808);
+    *(_DWORD *)(a1 + 704) = 0;
+    if ( !v9 )
+    {
+      v10 = *(unsigned int **)(a1 + 792);
+      for ( j = &v10[2 * *(int *)(a1 + 784)]; v10 != j; v10 += 2 )
+        CNetworkGameServerBase_AsyncUnloadSpawnGroupInternal(a1, *v10, v10[1]);
+      *(_DWORD *)(a1 + 784) = 0;
+    }
+    COM_TimestampedLog("DeactivateSteamGameServer(start)");
+    if ( (*(unsigned __int8 (__fastcall **)(__int64))(*(_QWORD *)a1 + 376LL))(a1) )
+    {
+      if ( !*(_BYTE *)(a1 + 696) && !*(_BYTE *)(a1 + 698) )
+      {
+        qword_1809105D0 = 0;
+        sub_1800F85B0(&off_180612910);
+        if ( g_pSource2Server )
+          (*(void (__fastcall **)(__int64))(*(_QWORD *)g_pSource2Server + 336LL))(g_pSource2Server);
+      }
+    }
+    result = COM_TimestampedLog("DeactivateSteamGameServer(finished)");
+    if ( (_QWORD)xmmword_1808CCE00 )
+    {
+      sub_1800E2200(&qword_1808CCDD0, "Log file closed\n");
+      result = (*(__int64 (__fastcall **)(__int64, _QWORD))(*(_QWORD *)g_pFileSystem + 112LL))(
+                 g_pFileSystem,
+                 xmmword_1808CCE00);
+      *(_QWORD *)&xmmword_1808CCE00 = 0;
+    }
+    return result;
+  }

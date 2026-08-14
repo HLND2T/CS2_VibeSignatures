@@ -198,8 +198,12 @@ jobs:
             } elseif ($trackedSnapshots.Count -eq 1) {
               $baseSnapshotRepoPath = $trackedSnapshots[0]
             } else {
+              # --first-parent is required: git suppresses the --name-only file list for
+              # merge commits, and a base-sync merge that republishes a snapshot differs
+              # from both parents, so it is not simplified away either. Without it the
+              # file list comes back empty and the count check below fails.
               $latestSnapshotChange = @(
-                git log -1 --format=%H --name-only $baseRef -- gamesymbols |
+                git log -1 --format=%H --name-only --first-parent $baseRef -- gamesymbols |
                   Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
               )
               if ($LASTEXITCODE -ne 0 -or $latestSnapshotChange.Count -lt 2) {
@@ -253,38 +257,10 @@ jobs:
           "GAMEVER=$validationGamever" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           Write-Host "PR validation GAMEVER=$validationGamever (release GAMEVER=$env:PR_GAMEVER)"
 
-      - name: Prepare persisted depot link and PR bin copy
+      - name: Prepare PR bin copy
         id: prepare-bin
         shell: pwsh
         run: |
-          function Ensure-DirectoryLink {
-            param(
-              [Parameter(Mandatory=$true)][string]$LinkPath,
-              [Parameter(Mandatory=$true)][string]$TargetPath
-            )
-
-            if (-not (Test-Path -LiteralPath $TargetPath -PathType Container)) {
-              New-Item -ItemType Directory -Path $TargetPath -Force | Out-Null
-            }
-
-            if (Test-Path -LiteralPath $LinkPath) {
-              $item = Get-Item -LiteralPath $LinkPath -Force
-              if (-not ($item.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
-                throw "$LinkPath exists but is not a directory junction or symlink."
-              }
-              $actualTarget = [string]$item.Target
-              if ([IO.Path]::GetFullPath($actualTarget) -ne [IO.Path]::GetFullPath($TargetPath)) {
-                throw "$LinkPath link target mismatch: $actualTarget"
-              }
-              return
-            }
-
-            cmd /c mklink /d "$LinkPath" "$TargetPath"
-            if ($LASTEXITCODE -ne 0) {
-              throw "Failed to create directory link $LinkPath -> $TargetPath"
-            }
-          }
-
           function Get-BinCopyExcludes {
             param(
               [Parameter(Mandatory=$true)][string]$IgnoreFile
@@ -328,15 +304,10 @@ jobs:
           }
 
           Set-Location $env:WORKSPACE
-          $depotTarget = Join-Path $env:PERSISTED_WORKSPACE "cs2_depot"
           $persistedBinRoot = Join-Path $env:PERSISTED_WORKSPACE "bin"
           $sourceBinGamever = Join-Path $persistedBinRoot $env:GAMEVER
           $workspaceBinRoot = Join-Path $env:WORKSPACE "bin"
           $targetBinGamever = Join-Path $workspaceBinRoot $env:GAMEVER
-
-          Ensure-DirectoryLink `
-            -LinkPath (Join-Path $env:WORKSPACE "cs2_depot") `
-            -TargetPath $depotTarget
 
           if (-not (Test-Path -LiteralPath $sourceBinGamever -PathType Container)) {
             throw "Persisted bin source for GAMEVER=$env:GAMEVER does not exist: $sourceBinGamever"
@@ -381,6 +352,28 @@ jobs:
           }
 
           Write-Host "Copied persisted bin/$env:GAMEVER into PR workspace; robocopy exit code $robocopyExitCode"
+          $global:LASTEXITCODE = 0
+
+          # Also copy persisted *.i64 databases (excluded by .stignore) so
+          # idalib-mcp can reuse them and skip the initial auto-analysis pass.
+          $i64RobocopyArgs = @(
+            $sourceBinGamever
+            $targetBinGamever
+            "*.i64"
+            "/S"
+            "/COPY:DAT"
+            "/DCOPY:DAT"
+            "/R:2"
+            "/W:5"
+            "/XF"
+            "*.id0"
+          )
+          robocopy @i64RobocopyArgs
+          $i64ExitCode = $LASTEXITCODE
+          if ($i64ExitCode -ge 8) {
+            throw "Failed to copy persisted *.i64 databases; robocopy exit code $i64ExitCode"
+          }
+          Write-Host "Copied persisted *.i64 databases; robocopy exit code $i64ExitCode"
           $global:LASTEXITCODE = 0
 
       - name: Restore deterministic base and invalidate affected outputs
@@ -692,6 +685,8 @@ jobs:
         startsWith(github.event.pull_request.title, 'chore(gamesymbols): publish '))
     environment: win64
     runs-on: [self-hosted, windows, x64]
+    env:
+      PERSISTED_WORKSPACE: ${{ secrets.PERSISTED_WORKSPACE }}
     steps:
       - name: Finalize PR workspace
         id: finalize-workspace
@@ -740,6 +735,45 @@ jobs:
           }
 
           Write-Host "PR closed (merged=$prWasMerged); candidate validation never writes persisted YAML."
+
+          if ($prWasMerged -eq "true") {
+            $prBinRoot = Join-Path $prWorkspace "bin"
+            if (Test-Path -LiteralPath $prBinRoot -PathType Container) {
+              $persistedBinRoot = Join-Path $env:PERSISTED_WORKSPACE "bin"
+              Get-ChildItem -LiteralPath $prBinRoot -Directory | ForEach-Object {
+                $gamever = $_.Name
+                $sourceGameverDir = $_.FullName
+                $targetGameverDir = Join-Path $persistedBinRoot $gamever
+                if (-not (Test-Path -LiteralPath $targetGameverDir -PathType Container)) {
+                  New-Item -ItemType Directory -Path $targetGameverDir -Force | Out-Null
+                }
+                $i64Args = @(
+                  $sourceGameverDir
+                  $targetGameverDir
+                  "*.i64"
+                  "/S"
+                  "/COPY:DAT"
+                  "/DCOPY:DAT"
+                  "/R:2"
+                  "/W:5"
+                  "/XF"
+                  "*.id0"
+                )
+                robocopy @i64Args
+                $i64Exit = $LASTEXITCODE
+                if ($i64Exit -ge 8) {
+                  Write-Host "::warning title=i64-persist::Failed to persist *.i64 for GAMEVER=$gamever; robocopy exit code $i64Exit"
+                } else {
+                  Write-Host "Persisted *.i64 databases for GAMEVER=$gamever back to PERSISTED_WORKSPACE"
+                }
+                $global:LASTEXITCODE = 0
+              }
+            } else {
+              Write-Host "No bin directory in PR workspace; nothing to persist."
+            }
+          } else {
+            Write-Host "PR was closed without merging; skipping *.i64 persistence."
+          }
 
           Set-Location $workspaceRoot
 

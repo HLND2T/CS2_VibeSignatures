@@ -1,0 +1,58 @@
+{
+  "Addresses": {
+    // str "CNetChan::SendNetMessage: SerializeAbstract for message %s failed!\n"
+    "INetChannel::SendNetMessage": {
+      "library": "networksystem",
+      "linux": "55 48 89 E5 41 57 41 89 D7 41 56 4C 8D B7",
+      "windows": "48 89 5C 24 ? 48 89 6C 24 ? 56 57 41 56 48 83 EC ? 41 0F B6 F0",
+      "refs": {
+        "strings": [
+          "CNetChan::SendNetMessage: SerializeAbstract for message %s failed!\n"
+        ],
+        "vtable": "CNetChan"
+      }
+    },
+    "IScriptVM::CreateVM": {
+      "library": "vscript",
+      "linux": "55 4C 8D 05 ? ? ? ?",
+      "windows": "48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 48 89 7C 24 20 41 56 48 83 EC ? 48 8B D9",
+      "refs": {
+        "strings": [
+          "WARNING: Lua unable to create VM\n"
+        ]
+      }
+    }
+  },
+  "VFuncs": {
+    "CGameEventManager::FireEvent": {
+      "linux": 8,
+      "windows": 7
+    },
+    // server.dll -> xref 'sv_phys_stop_at_collision' 最上面的 __fastcall
+    "CVPhys2World::GenerateIntersectionNotifications": {
+      "linux": 121,
+      "windows": 121
+    },
+    "IGameEventSystem::PostEventAbstract": {
+      "linux": 15,
+      "windows": 16
+    },
+    // IGameTypes
+    // in CreateEndMapVote with g_pGameTypes
+    "IGameTypes::GetMapGroupMapList": {
+      "linux": 64,
+      "windows": 63
+    },
+    "INetworkServerService::StartupServer": {
+      "linux": 27,
+      "windows": 26
+    },
+    // 在resourcesystem里搜 "Resource \"%s\" was not precached but was loaded by a just in time blocking load.\n"
+    // 往上拉有个 (*(unsigned int (__fastcall **)(uintptr_t, __int64))(*(_QWORD *)a1 + offset))(a1, a2) == 3的
+    // offset / 8 就是 index
+    "IResourceSystem::GetResourceStatus": {
+      "linux": 49,
+      "windows": 51
+    }
+  }
+}
