@@ -23,7 +23,7 @@ LLM_DECOMPILE = [
 
 FUNC_VTABLE_RELATIONS = [
     # (func_name, vtable_class)
-    ("CNetworkServerService_GetServerSerializersCRC", "CNetworkServerService"),
+    ("CNetworkServerService_GetServerSerializersCRC", "CNetworkServerService_vtable"),
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
