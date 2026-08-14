@@ -7926,6 +7926,14 @@ modules:
           - CBaseAnimGraph_GetAnimationController.{platform}.yaml
         expected_input:
           - CScriptedSequence_SynchronizeSequence.{platform}.yaml
+      - name: find-CBaseAnimating_vtable
+        expected_output:
+          - CBaseAnimating_vtable.{platform}.yaml
+      - name: find-CBaseAnimating_Dissolve
+        expected_output:
+          - CBaseAnimating_Dissolve.{platform}.yaml
+        expected_input:
+          - CBaseAnimating_vtable.{platform}.yaml
       - name: find-CBaseAnimGraph_GetAnimationController-decompiles
         expected_output:
           - CBaseAnimGraph_m_skeletonInstance.{platform}.yaml
@@ -11340,6 +11348,12 @@ modules:
         category: func
         alias:
           - CBaseAnimGraph::GetAnimationController
+      - name: CBaseAnimating_vtable
+        category: vtable
+      - name: CBaseAnimating_Dissolve
+        category: vfunc
+        alias:
+          - CBaseAnimating::Dissolve
       - name: CBaseAnimGraph_m_skeletonInstance
         category: structmember
         struct: CBaseAnimGraph
