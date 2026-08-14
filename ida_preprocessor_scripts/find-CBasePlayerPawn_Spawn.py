@@ -3,7 +3,7 @@
 from ida_analyze_util import preprocess_common_skill
 TARGET_FUNCTION_NAMES = ["CBasePlayerPawn_Spawn"]
 FUNC_XREFS = [{"func_name": "CBasePlayerPawn_Spawn", "xref_strings": ["FULLMATCH:Removing relationship for lost entity\n"], "xref_gvs": [], "xref_signatures": [], "xref_funcs": [], "exclude_funcs": [], "exclude_strings": [], "exclude_gvs": [], "exclude_signatures": []}]
-FUNC_VTABLE_RELATIONS = [("CBasePlayerPawn_Spawn", "CBasePlayerPawn")]
+FUNC_VTABLE_RELATIONS = [("CBasePlayerPawn_Spawn", "CBasePlayerPawn_vtable")]
 GENERATE_YAML_DESIRED_FIELDS = [("CBasePlayerPawn_Spawn", ["func_name", "func_va", "func_rva", "func_size", "func_sig", "vtable_name", "vfunc_offset", "vfunc_index"])]
 async def preprocess_skill(session, skill_name, expected_outputs, old_yaml_map, new_binary_dir, platform, image_base, debug=False):
     _ = skill_name
