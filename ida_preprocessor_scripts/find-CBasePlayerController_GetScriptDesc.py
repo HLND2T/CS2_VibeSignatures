@@ -23,7 +23,7 @@ FUNC_XREFS = [
 
 FUNC_VTABLE_RELATIONS = [
     # (func_name, vtable_class)
-    ("CBasePlayerController_GetScriptDesc", "CBasePlayerController"),
+    ("CBasePlayerController_GetScriptDesc", "CBasePlayerController_vtable"),
 ]
 
 
