@@ -1,0 +1,72 @@
+func_name: CNetworkGameServer_Shutdown
+func_va: '0x5151a0'
+disasm_code: |-
+  .text:00000000005151A0                 push    rbp
+  .text:00000000005151A1                 mov     rbp, rsp
+  .text:00000000005151A4                 push    rbx
+  .text:00000000005151A5                 mov     rbx, rdi
+  .text:00000000005151A8                 sub     rsp, 8
+  .text:00000000005151AC                 call    sub_575B00
+  .text:00000000005151B1                 mov     rdi, rax
+  .text:00000000005151B4                 call    sub_5769C0
+  .text:00000000005151B9                 mov     rdi, rbx
+  .text:00000000005151BC                 call    CNetworkGameServerBase_Shutdown
+  .text:00000000005151C1                 lea     rax, g_pSource2Server
+  .text:00000000005151C8                 mov     rdi, [rax]
+  .text:00000000005151CB                 test    rdi, rdi
+  .text:00000000005151CE                 jz      short loc_515213
+  .text:00000000005151D0                 mov     rax, [rdi]
+  .text:00000000005151D3                 ; 0x0E8 = 232LL = ISource2Server_GetAllServerClasses
+  .text:00000000005151D3                 call    qword ptr [rax+0E8h]; 0x0E8 = 232LL = ISource2Server_GetAllServerClasses
+  .text:00000000005151D9                 mov     rdx, rax
+  .text:00000000005151DC                 mov     rax, [rax+8]
+  .text:00000000005151E0                 movsxd  rdx, dword ptr [rdx]
+  .text:00000000005151E3                 lea     rcx, [rax+rdx*8]
+  .text:00000000005151E7                 cmp     rcx, rax
+  .text:00000000005151EA                 jz      short loc_515213
+  .text:00000000005151EC                 nop     word ptr [rax+rax+00000000h]
+  .text:00000000005151F7                 nop     word ptr [rax+rax+00000000h]
+  .text:0000000000515200                 mov     rdx, [rax]
+  .text:0000000000515203                 add     rax, 8
+  .text:0000000000515207                 mov     dword ptr [rdx+2Ch], 0FFFFFFFFh
+  .text:000000000051520E                 cmp     rax, rcx
+  .text:0000000000515211                 jnz     short loc_515200
+  .text:0000000000515213                 mov     rdi, rbx
+  .text:0000000000515216                 call    sub_50AEE0
+  .text:000000000051521B                 lea     rdi, aDeactivatestea; "DeactivateSteamGameServer(start)"
+  .text:0000000000515222                 xor     eax, eax
+  .text:0000000000515224                 call    sub_2CA1C0
+  .text:0000000000515229                 mov     rdi, rbx
+  .text:000000000051522C                 call    sub_4F7A90
+  .text:0000000000515231                 lea     rdi, aDeactivatestea_0; "DeactivateSteamGameServer(finished)"
+  .text:0000000000515238                 xor     eax, eax
+  .text:000000000051523A                 call    sub_2CA1C0
+  .text:000000000051523F                 lea     rdi, qword_C6FA00
+  .text:0000000000515246                 mov     rbx, [rbp+var_8]
+  .text:000000000051524A                 leave
+  .text:000000000051524B                 jmp     sub_5570B0
+procedure: |-
+  __int64 __fastcall CNetworkGameServer_Shutdown(__int64 a1)
+  {
+    __int64 v1; // rax
+    int *v2; // rdx
+    __int64 *v3; // rax
+    __int64 *i; // rcx
+    __int64 v5; // rdx
+
+    v1 = sub_575B00();
+    sub_5769C0(v1);
+    CNetworkGameServerBase_Shutdown(a1);
+    if ( g_pSource2Server )
+    {
+      v2 = (int *)(*(__int64 (__fastcall **)(_QWORD *))(*g_pSource2Server + 232LL))(g_pSource2Server);// 0x0E8 = 232LL = ISource2Server_GetAllServerClasses
+      v3 = *((__int64 **)v2 + 1);
+      for ( i = &v3[*v2]; v3 != i; *(_DWORD *)(v5 + 44) = -1 )
+        v5 = *v3++;
+    }
+    sub_50AEE0(a1);
+    sub_2CA1C0("DeactivateSteamGameServer(start)");
+    sub_4F7A90(a1);
+    sub_2CA1C0("DeactivateSteamGameServer(finished)");
+    return sub_5570B0(&qword_C6FA00);
+  }

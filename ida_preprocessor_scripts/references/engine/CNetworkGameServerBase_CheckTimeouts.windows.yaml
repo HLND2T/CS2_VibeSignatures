@@ -129,7 +129,7 @@ disasm_code: |-
   .text:00000001800AC096                 jz      loc_1800AC1AC
   .text:00000001800AC09C                 mov     rax, [rax]
   .text:00000001800AC09F                 mov     rcx, rsi
-  .text:00000001800AC0A2                 mov     rbx, [rax+0C8h]
+  .text:00000001800AC0A2                 mov     rbx, [rax+0C8h] ; 0C8h = ISource2Server_ShouldTimeoutClient
   .text:00000001800AC0A9                 mov     rax, [rsi]
   .text:00000001800AC0AC                 call    qword ptr [rax+0A0h]
   .text:00000001800AC0B2                 mov     edx, [rdi+48h]
@@ -357,7 +357,7 @@ procedure: |-
           {
             if ( g_pSource2Server )
             {
-              v19 = *(unsigned __int8 (__fastcall **)(__int64, _QWORD))(*(_QWORD *)g_pSource2Server + 200LL);
+              v19 = *(unsigned __int8 (__fastcall **)(__int64, _QWORD))(*(_QWORD *)g_pSource2Server + 200LL);// 200LL = 0xC8 = ISource2Server_ShouldTimeoutClient
               v1 = (*(double (__fastcall **)(__int64 *))(*v12 + 160))(v12);
               if ( v19(g_pSource2Server, *(unsigned int *)(v5 + 72)) )
               {
