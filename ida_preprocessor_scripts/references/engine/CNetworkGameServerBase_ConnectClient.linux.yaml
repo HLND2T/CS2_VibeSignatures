@@ -257,7 +257,7 @@ disasm_code: |-
   .text:000000000068D5D2                 mov     rsi, rbx
   .text:000000000068D5D5                 mov     rcx, [rbp+var_3C0]
   .text:000000000068D5DC                 mov     rax, [rdi]
-  .text:000000000068D5DF                 call    qword ptr [rax+2A8h]
+  .text:000000000068D5DF                 call    qword ptr [rax+2A8h] ; 2A8h = CNetworkGameServerBase_CheckPassword
   .text:000000000068D5E5                 test    al, al
   .text:000000000068D5E7                 jz      loc_68DF50
   .text:000000000068D5ED                 mov     rax, [rbp+var_3B8]
@@ -2050,7 +2050,7 @@ procedure: |-
       }
     }
     v30 = a3;
-    if ( !(*(unsigned __int8 (__fastcall **)(__int64, __int64, __int64, const char *))(*(_QWORD *)a1 + 680LL))(
+    if ( !(*(unsigned __int8 (__fastcall **)(__int64, __int64, __int64, const char *))(*(_QWORD *)a1 + 680LL))( // 680LL = 0x2A8 = CNetworkGameServerBase_CheckPassword
             a1,
             a3,
             a6,

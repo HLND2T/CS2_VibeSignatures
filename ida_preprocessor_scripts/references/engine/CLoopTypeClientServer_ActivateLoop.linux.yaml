@@ -1,0 +1,100 @@
+func_name: CLoopTypeClientServer_ActivateLoop
+func_va: '0x38e6d0'
+disasm_code: |-
+  .text:000000000038E6D0                 push    rbp
+  .text:000000000038E6D1                 mov     rbp, rsp
+  .text:000000000038E6D4                 push    rbx
+  .text:000000000038E6D5                 mov     rbx, rdi
+  .text:000000000038E6D8                 sub     rsp, 8
+  .text:000000000038E6DC                 mov     rax, [rdi+0C8h]
+  .text:000000000038E6E3                 mov     rcx, [rdi+0B0h]
+  .text:000000000038E6EA                 mov     rdi, [rdi+98h]
+  .text:000000000038E6F1                 mov     cs:qword_9E5420, rax
+  .text:000000000038E6F8                 mov     qword ptr cs:xmmword_9E5410, rcx
+  .text:000000000038E6FF                 mov     qword ptr cs:xmmword_9E5410+8, rdi
+  .text:000000000038E706                 mov     rdi, rbx
+  .text:000000000038E709                 call    CLoopTypeClientSimple_ActivateEngineServices
+  .text:000000000038E70E                 call    sub_2C8260
+  .text:000000000038E713                 xor     eax, eax
+  .text:000000000038E715                 mov     qword ptr [rbx+80h], 0
+  .text:000000000038E720                 mov     [rbx+128h], ax
+  .text:000000000038E727                 lea     rax, g_pSource2Server
+  .text:000000000038E72E                 lea     rsi, aUnknown_0; "unknown"
+  .text:000000000038E735                 movsd   qword ptr [rbx+78h], xmm0
+  .text:000000000038E73A                 pxor    xmm0, xmm0
+  .text:000000000038E73E                 mov     qword ptr [rbx+0F0h], 0
+  .text:000000000038E749                 mov     dword ptr [rbx+0F8h], 0
+  .text:000000000038E753                 mov     rdi, [rax]
+  .text:000000000038E756                 mov     qword ptr [rbx+0E0h], 0
+  .text:000000000038E761                 mov     dword ptr [rbx+0E8h], 0
+  .text:000000000038E76B                 mov     qword ptr [rbx+100h], 0
+  .text:000000000038E776                 mov     dword ptr [rbx+108h], 0
+  .text:000000000038E780                 mov     dword ptr [rbx+0D8h], 0
+  .text:000000000038E78A                 mov     qword ptr [rbx+110h], 0
+  .text:000000000038E795                 mov     qword ptr [rbx+118h], 0
+  .text:000000000038E7A0                 mov     byte ptr [rbx+12Ah], 0
+  .text:000000000038E7A7                 movups  xmmword ptr [rbx+130h], xmm0
+  .text:000000000038E7AE                 test    rdi, rdi
+  .text:000000000038E7B1                 jz      short loc_38E7BF
+  .text:000000000038E7B3                 mov     rax, [rdi]
+  .text:000000000038E7B6                 call    qword ptr [rax+0F0h]; 0x0F0 = 240LL = ISource2Server_GetActiveWorldName
+  .text:000000000038E7BC                 mov     rsi, rax
+  .text:000000000038E7BF                 mov     rdi, [rbx+178h]
+  .text:000000000038E7C6                 call    sub_37BE50
+  .text:000000000038E7CB                 lea     rax, g_pEngineServiceMgr
+  .text:000000000038E7D2                 mov     rdi, [rax]
+  .text:000000000038E7D5                 mov     rax, [rdi]
+  .text:000000000038E7D8                 call    qword ptr [rax+0F0h]
+  .text:000000000038E7DE                 pxor    xmm0, xmm0
+  .text:000000000038E7E2                 mov     edx, 1
+  .text:000000000038E7E7                 cvtsd2ss xmm0, qword ptr [rbx+118h]
+  .text:000000000038E7EF                 mov     rdi, rax
+  .text:000000000038E7F2                 mov     rax, [rax]
+  .text:000000000038E7F5                 xor     esi, esi
+  .text:000000000038E7F7                 mov     rbx, [rbp+var_8]
+  .text:000000000038E7FB                 mov     rax, [rax+20h]
+  .text:000000000038E7FF                 leave
+  .text:000000000038E800                 jmp     rax
+procedure: |-
+  __int64 __fastcall CLoopTypeClientServer_ActivateLoop(__int64 a1, __int64 a2, __int64 a3, double a4, double a5)
+  {
+    __int64 v6; // rax
+    __int64 v7; // rcx
+    __int64 v8; // rdi
+    double v9; // xmm0_8
+    const char *v10; // rsi
+    _QWORD *v11; // rdi
+    __int64 v12; // rax
+    float v13; // xmm0_4
+
+    v6 = *(_QWORD *)(a1 + 200);
+    v7 = *(_QWORD *)(a1 + 176);
+    v8 = *(_QWORD *)(a1 + 152);
+    qword_9E5420 = v6;
+    *(_QWORD *)&xmmword_9E5410 = v7;
+    *((_QWORD *)&xmmword_9E5410 + 1) = v8;
+    CLoopTypeClientSimple_ActivateEngineServices(a1, a2, a3);
+    v9 = sub_2C8260(a4, a5);
+    *(_QWORD *)(a1 + 128) = 0;
+    *(_WORD *)(a1 + 296) = 0;
+    v10 = "unknown";
+    *(double *)(a1 + 120) = v9;
+    *(_QWORD *)(a1 + 240) = 0;
+    *(_DWORD *)(a1 + 248) = 0;
+    v11 = g_pSource2Server;
+    *(_QWORD *)(a1 + 224) = 0;
+    *(_DWORD *)(a1 + 232) = 0;
+    *(_QWORD *)(a1 + 256) = 0;
+    *(_DWORD *)(a1 + 264) = 0;
+    *(_DWORD *)(a1 + 216) = 0;
+    *(_QWORD *)(a1 + 272) = 0;
+    *(_QWORD *)(a1 + 280) = 0;
+    *(_BYTE *)(a1 + 298) = 0;
+    *(_OWORD *)(a1 + 304) = 0;
+    if ( v11 )
+      v10 = (const char *)(*(__int64 (__fastcall **)(_QWORD *, const char *))(*v11 + 240LL))(v11, "unknown");// 0x0F0 = 240LL = ISource2Server_GetActiveWorldName
+    sub_37BE50(*(_QWORD *)(a1 + 376), v10);
+    v12 = (*(__int64 (__fastcall **)(_QWORD *))(*g_pEngineServiceMgr + 240LL))(g_pEngineServiceMgr);
+    v13 = *(double *)(a1 + 280);
+    return (*(__int64 (__fastcall **)(__int64, _QWORD, __int64, float))(*(_QWORD *)v12 + 32LL))(v12, 0, 1, v13);
+  }

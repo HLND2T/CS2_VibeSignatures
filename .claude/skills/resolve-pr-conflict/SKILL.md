@@ -7,6 +7,7 @@ description: |
   merge commit, and pushing without force. Use when a PR is CONFLICTING/DIRTY or needs its base branch synchronized,
   especially when configs/GAMEVER.yaml or gamesymbols/GAMEVER.yaml changed. Stop after push and check-status
   reporting; never merge or auto-merge the PR.
+disable-model-invocation: true
 ---
 
 # Resolve PR Conflict

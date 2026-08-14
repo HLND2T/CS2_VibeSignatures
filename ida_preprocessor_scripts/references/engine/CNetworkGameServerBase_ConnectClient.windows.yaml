@@ -221,7 +221,7 @@ disasm_code: |-
   .text:00000001800B188C                 mov     r8, rdi
   .text:00000001800B188F                 mov     rdx, r14
   .text:00000001800B1892                 mov     rcx, r12
-  .text:00000001800B1895                 call    qword ptr [rax+280h]
+  .text:00000001800B1895                 call    qword ptr [rax+280h] ; 280h = CNetworkGameServerBase_CheckPassword
   .text:00000001800B189B                 test    al, al
   .text:00000001800B189D                 jnz     short loc_1800B18FC
   .text:00000001800B189F                 mov     ecx, cs:dword_1808C87C0
@@ -1103,7 +1103,7 @@ procedure: |-
         0);
       return 0;
     }
-    if ( !(*(unsigned __int8 (__fastcall **)(__int64, __int64, __int64, const char *))(*(_QWORD *)a1 + 640LL))(
+    if ( !(*(unsigned __int8 (__fastcall **)(__int64, __int64, __int64, const char *))(*(_QWORD *)a1 + 640LL))( // 640LL = 0x280 = CNetworkGameServerBase_CheckPassword
             a1,
             a3,
             a6,

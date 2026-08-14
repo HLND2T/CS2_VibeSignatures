@@ -117,17 +117,18 @@ class TestCS2FOWGamedata(unittest.TestCase):
             if "=" in line
         }
 
-    def test_contract_declares_v2_remote_source_and_output(self) -> None:
+    def test_contract_declares_v2_static_source_and_output(self) -> None:
         self.assertEqual(2, self.contract.api_version)
         self.assertEqual(("gamedata/cs2fow.games.txt",), self.contract.output_paths)
+        self.assertEqual((), self.contract.download_sources)
         self.assertEqual(
             (
                 (
-                    "https://gitlab.com/karola3vax-group/cs2fow/-/raw/main/gamedata/cs2fow.games.txt?ref_type=heads",
+                    "templates/cs2fow.games.txt",
                     "gamedata/cs2fow.games.txt",
                 ),
             ),
-            self.contract.download_sources,
+            self.contract.static_sources,
         )
 
     def test_updates_all_assignments_and_preserves_formatting(self) -> None:

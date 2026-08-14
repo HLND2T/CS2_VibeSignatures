@@ -1,34 +1,35 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CNetworkGameServer_GetFreeClient skill."""
+"""Preprocess script for find-CNetworkGameServerBase_ReplyChallenge skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = [
-    "CNetworkGameServer_GetFreeClient",
+    "CNetworkGameServerBase_ReplyChallenge",
 ]
 
-LLM_DECOMPILE = [
+FUNC_XREFS = [
     {
-        "symbol_name": "CNetworkGameServer_GetFreeClient",
-        "prompt_path": "prompt/call_llm_decompile.md",
-        "reference_yaml_paths": [
-            "references/engine/CNetworkGameServerBase_ConnectClient.{platform}.yaml",
+        "func_name": "CNetworkGameServerBase_ReplyChallenge",
+        "xref_strings": [
+            "Sending S2C_CHALLENGE [%u auth %d] to %s\n",
         ],
-        "expected_result_sections": ["found_call"],
-        "dependency_policy": {
-            "CNetworkGameServerBase_ConnectClient.{platform}.yaml": "required",
-        },
+        "xref_gvs": [],
+        "xref_signatures": [],
+        "xref_funcs": [],
+        "exclude_funcs": [],
+        "exclude_strings": [],
+        "exclude_gvs": [],
+        "exclude_signatures": [],
     },
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
-    # No func_sig: GetFreeClient's head bytes are not unique in the binary.
-    # LLM_DECOMPILE is used to locate it each time.
     (
-        "CNetworkGameServer_GetFreeClient",
+        "CNetworkGameServerBase_ReplyChallenge",
         [
             "func_name",
+            "func_sig",
             "func_va",
             "func_rva",
             "func_size",
@@ -45,7 +46,6 @@ async def preprocess_skill(
     new_binary_dir,
     platform,
     image_base,
-    llm_config=None,
     debug=False,
 ):
     """Reuse previous gamever func_sig to locate target function(s) and write YAML."""
@@ -57,8 +57,7 @@ async def preprocess_skill(
         platform=platform,
         image_base=image_base,
         func_names=TARGET_FUNCTION_NAMES,
-        llm_decompile_specs=LLM_DECOMPILE,
-        llm_config=llm_config,
+        func_xrefs=FUNC_XREFS,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
     )
