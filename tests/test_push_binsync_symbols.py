@@ -66,10 +66,10 @@ class TestCollectManifestSymbols(unittest.TestCase):
             config = self._make_config(root)
             manifest = push_binsync_symbols.collect_manifest_symbols(root, "14174", config)
 
-            self.assertEqual(manifest["engine/windows"]["functions"], [0xbab40])
-            self.assertEqual(manifest["engine/windows"]["globals"], [0x688b08])
-            self.assertEqual(manifest["engine/linux"]["functions"], [0x533b70])
-            self.assertEqual(manifest["engine/linux"]["globals"], [0xc72230])
+            self.assertEqual(manifest["engine/windows"]["functions"], [0xBAB40])
+            self.assertEqual(manifest["engine/windows"]["globals"], [0x688B08])
+            self.assertEqual(manifest["engine/linux"]["functions"], [0x533B70])
+            self.assertEqual(manifest["engine/linux"]["globals"], [0xC72230])
 
     def test_collect_excludes_struct_and_missing_and_null_rva(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -79,7 +79,9 @@ class TestCollectManifestSymbols(unittest.TestCase):
 
             for platform in ("windows", "linux"):
                 # struct, undeclared-file, and null-rva symbols must not leak in.
-                self.assertEqual(manifest[f"engine/{platform}"]["functions"], [0x533b70] if platform == "linux" else [0xbab40])
+                self.assertEqual(
+                    manifest[f"engine/{platform}"]["functions"], [0x533B70] if platform == "linux" else [0xBAB40]
+                )
                 self.assertEqual(len(manifest[f"engine/{platform}"]["functions"]), 1)
                 self.assertEqual(len(manifest[f"engine/{platform}"]["globals"]), 1)
 
