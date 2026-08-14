@@ -6412,6 +6412,14 @@ modules:
       - name: find-CBaseModelEntity_SetRenderAttribute
         expected_output:
           - CBaseModelEntity_SetRenderAttribute.{platform}.yaml
+      - name: find-CBaseModelEntity_vtable
+        expected_output:
+          - CBaseModelEntity_vtable.{platform}.yaml
+      - name: find-CBaseModelEntity_DamageDecal
+        expected_output:
+          - CBaseModelEntity_DamageDecal.{platform}.yaml
+        expected_input:
+          - CBaseModelEntity_vtable.{platform}.yaml
       - name: find-CBaseEntity_GetScriptDescInternal
         expected_output:
           - CBaseEntity_GetScriptDescInternal.{platform}.yaml
@@ -9572,6 +9580,12 @@ modules:
         category: func
         alias:
           - CBaseModelEntity::GetBoneTransform
+      - name: CBaseModelEntity_vtable
+        category: vtable
+      - name: CBaseModelEntity_DamageDecal
+        category: vfunc
+        alias:
+          - CBaseModelEntity::DamageDecal
       - name: CBasePlayerPawn_OnTakeDamage
         category: vfunc
         alias:
