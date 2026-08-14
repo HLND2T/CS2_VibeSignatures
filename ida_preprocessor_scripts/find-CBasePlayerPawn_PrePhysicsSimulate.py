@@ -10,7 +10,7 @@ FUNC_XREFS = [{
     "xref_gvs": [], "xref_signatures": [], "xref_funcs": [],
     "exclude_funcs": [], "exclude_strings": [], "exclude_gvs": [], "exclude_signatures": [],
 }]
-FUNC_VTABLE_RELATIONS = [("CBasePlayerPawn_PrePhysicsSimulate", "CBasePlayerPawn")]
+FUNC_VTABLE_RELATIONS = [("CBasePlayerPawn_PrePhysicsSimulate", "CBasePlayerPawn_vtable")]
 GENERATE_YAML_DESIRED_FIELDS = [(
     "CBasePlayerPawn_PrePhysicsSimulate",
     ["func_name", "func_va", "func_rva", "func_size", "func_sig", "vtable_name", "vfunc_offset", "vfunc_index"],
