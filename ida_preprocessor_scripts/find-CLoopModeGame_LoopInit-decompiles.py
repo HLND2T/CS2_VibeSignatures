@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Preprocess script for find-CLoopModeGame_LoopInit-decompiles skill.
 
-Finds three CNetworkServerService virtual functions that are invoked on the
+Finds three INetworkServerService virtual functions that are invoked on the
 ``g_pNetworkServerService`` instance from inside CLoopModeGame::LoopInit:
 
-  * CNetworkServerService_SetGameSpawnGroupMgr
-  * CNetworkServerService_AddServerPrerequisites
-  * CNetworkServerService_SetFinalSimulationTickThisFrame
+  * INetworkServerService_SetGameSpawnGroupMgr
+  * INetworkServerService_AddServerPrerequisites
+  * INetworkServerService_SetFinalSimulationTickThisFrame
 
 They are discovered via LLM_DECOMPILE of the CLoopModeGame::LoopInit predecessor.
 The vcall to each lives in a different predecessor per platform: on Windows
@@ -16,9 +16,9 @@ separate CLoopModeGame::LoopInitInternal where the vcalls actually reside. The
 reference func_name drives which function is decompiled in the new binary, so
 each platform points at its own predecessor (mirrors find-CEngineServer_UnloadSpawnGroup).
 
-CNetworkServerService's concrete body lives in engine2.dll, so no
-CNetworkServerService_vtable YAML is consumed here -- ``vtable_name`` is metadata
-only. The vfunc_sig anchors on the vcall instruction inside the server
+The concrete CNetworkServerService body lives in engine2.dll, so no
+CNetworkServerService_vtable YAML is consumed here -- ``vtable_name`` is
+metadata only. The vfunc_sig anchors on the vcall instruction inside the server
 predecessor, matching the CEngineServer::UnloadSpawnGroup / IGameTypes offset
 pattern. Slim Pattern C: not a downstream predecessor, so func_va/rva/size are
 omitted; vfunc_sig is mandatory for Pattern C.
@@ -27,14 +27,14 @@ omitted; vfunc_sig is mandatory for Pattern C.
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = [
-    "CNetworkServerService_SetGameSpawnGroupMgr",
-    "CNetworkServerService_AddServerPrerequisites",
-    "CNetworkServerService_SetFinalSimulationTickThisFrame",
+    "INetworkServerService_SetGameSpawnGroupMgr",
+    "INetworkServerService_AddServerPrerequisites",
+    "INetworkServerService_SetFinalSimulationTickThisFrame",
 ]
 
 LLM_DECOMPILE_WINDOWS = [
     {
-        "symbol_name": "CNetworkServerService_SetGameSpawnGroupMgr",
+        "symbol_name": "INetworkServerService_SetGameSpawnGroupMgr",
         "prompt_path": "prompt/call_llm_decompile.md",
         "reference_yaml_paths": [
             "references/server/CLoopModeGame_LoopInit.{platform}.yaml",
@@ -45,7 +45,7 @@ LLM_DECOMPILE_WINDOWS = [
         },
     },
     {
-        "symbol_name": "CNetworkServerService_AddServerPrerequisites",
+        "symbol_name": "INetworkServerService_AddServerPrerequisites",
         "prompt_path": "prompt/call_llm_decompile.md",
         "reference_yaml_paths": [
             "references/server/CLoopModeGame_LoopInit.{platform}.yaml",
@@ -56,7 +56,7 @@ LLM_DECOMPILE_WINDOWS = [
         },
     },
     {
-        "symbol_name": "CNetworkServerService_SetFinalSimulationTickThisFrame",
+        "symbol_name": "INetworkServerService_SetFinalSimulationTickThisFrame",
         "prompt_path": "prompt/call_llm_decompile.md",
         "reference_yaml_paths": [
             "references/server/CLoopModeGame_LoopInit.{platform}.yaml",
@@ -70,7 +70,7 @@ LLM_DECOMPILE_WINDOWS = [
 
 LLM_DECOMPILE_LINUX = [
     {
-        "symbol_name": "CNetworkServerService_SetGameSpawnGroupMgr",
+        "symbol_name": "INetworkServerService_SetGameSpawnGroupMgr",
         "prompt_path": "prompt/call_llm_decompile.md",
         "reference_yaml_paths": [
             "references/server/CLoopModeGame_LoopInitInternal.{platform}.yaml",
@@ -81,7 +81,7 @@ LLM_DECOMPILE_LINUX = [
         },
     },
     {
-        "symbol_name": "CNetworkServerService_AddServerPrerequisites",
+        "symbol_name": "INetworkServerService_AddServerPrerequisites",
         "prompt_path": "prompt/call_llm_decompile.md",
         "reference_yaml_paths": [
             "references/server/CLoopModeGame_LoopInitInternal.{platform}.yaml",
@@ -92,7 +92,7 @@ LLM_DECOMPILE_LINUX = [
         },
     },
     {
-        "symbol_name": "CNetworkServerService_SetFinalSimulationTickThisFrame",
+        "symbol_name": "INetworkServerService_SetFinalSimulationTickThisFrame",
         "prompt_path": "prompt/call_llm_decompile.md",
         "reference_yaml_paths": [
             "references/server/CLoopModeGame_LoopInitInternal.{platform}.yaml",
@@ -108,9 +108,9 @@ FUNC_VTABLE_RELATIONS = [
     # (func_name, vtable_class) -- vtable_name is metadata only; the
     # CNetworkServerService body lives in engine2.dll, so no
     # CNetworkServerService_vtable YAML is consumed here.
-    ("CNetworkServerService_SetGameSpawnGroupMgr", "CNetworkServerService_vtable"),
-    ("CNetworkServerService_AddServerPrerequisites", "CNetworkServerService_vtable"),
-    ("CNetworkServerService_SetFinalSimulationTickThisFrame", "CNetworkServerService_vtable"),
+    ("INetworkServerService_SetGameSpawnGroupMgr", "CNetworkServerService_vtable"),
+    ("INetworkServerService_AddServerPrerequisites", "CNetworkServerService_vtable"),
+    ("INetworkServerService_SetFinalSimulationTickThisFrame", "CNetworkServerService_vtable"),
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
@@ -120,7 +120,7 @@ GENERATE_YAML_DESIRED_FIELDS = [
     # the predecessor with distinct forward context, so the caller-anchored
     # vfunc_sig is unique (default max_match).
     (
-        "CNetworkServerService_SetGameSpawnGroupMgr",
+        "INetworkServerService_SetGameSpawnGroupMgr",
         [
             "func_name",
             "vfunc_sig",
@@ -130,7 +130,7 @@ GENERATE_YAML_DESIRED_FIELDS = [
         ],
     ),
     (
-        "CNetworkServerService_AddServerPrerequisites",
+        "INetworkServerService_AddServerPrerequisites",
         [
             "func_name",
             "vfunc_sig",
@@ -140,7 +140,7 @@ GENERATE_YAML_DESIRED_FIELDS = [
         ],
     ),
     (
-        "CNetworkServerService_SetFinalSimulationTickThisFrame",
+        "INetworkServerService_SetFinalSimulationTickThisFrame",
         [
             "func_name",
             "vfunc_sig",
