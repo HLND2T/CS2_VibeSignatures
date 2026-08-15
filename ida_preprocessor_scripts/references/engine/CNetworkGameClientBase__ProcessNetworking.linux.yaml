@@ -150,8 +150,8 @@ disasm_code: |-
   .text:00000000004E0938                 mov     [rbp-68h], r10d
   .text:00000000004E093C                 mov     rdi, [rax]
   .text:00000000004E093F                 mov     rax, [rdi]
-  .text:00000000004E0942                 ; 0x0F0 = 240LL = CNetworkServerService_IsServerRunning
-  .text:00000000004E0942                 call    qword ptr [rax+0F0h]; 0x0F0 = 240LL = CNetworkServerService_IsServerRunning
+  .text:00000000004E0942                 ; 0x0F0 = 240LL = INetworkServerService_IsServerRunning
+  .text:00000000004E0942                 call    qword ptr [rax+0F0h]; 0x0F0 = 240LL = INetworkServerService_IsServerRunning
   .text:00000000004E0948                 mov     r10d, [rbp-68h]
   .text:00000000004E094C                 mov     [rbp-75h], al
   .text:00000000004E094F                 mov     eax, dword ptr ds:j_RGBAToYRow_SSSE3[rbx]
@@ -1697,7 +1697,7 @@ procedure: |-
           {
   LABEL_28:
             v177 = v18;
-            v19 = (*(__int64 (__fastcall **)(_QWORD *))(*g_pNetworkServerService + 240LL))(g_pNetworkServerService);// 0x0F0 = 240LL = CNetworkServerService_IsServerRunning
+            v19 = (*(__int64 (__fastcall **)(_QWORD *))(*g_pNetworkServerService + 240LL))(g_pNetworkServerService);// 0x0F0 = 240LL = INetworkServerService_IsServerRunning
             v20 = v177;
             v167 = v19;
             v21 = *(_DWORD *)((char *)j_RGBAToYRow_SSSE3 + v1);

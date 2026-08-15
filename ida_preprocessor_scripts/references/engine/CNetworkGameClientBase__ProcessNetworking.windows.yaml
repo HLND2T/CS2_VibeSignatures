@@ -398,8 +398,8 @@ disasm_code: |-
   .text:00000001800672C2                 mov     ebx, dword ptr [rsp+158h+arg_10]
   .text:00000001800672C9                 mov     rcx, cs:g_pNetworkServerService
   .text:00000001800672D0                 mov     rax, [rcx]
-  .text:00000001800672D3                 ; 0x0E8 = 232LL = CNetworkServerService_IsServerRunning
-  .text:00000001800672D3                 call    qword ptr [rax+0E8h]; 0x0E8 = 232LL = CNetworkServerService_IsServerRunning
+  .text:00000001800672D3                 ; 0x0E8 = 232LL = INetworkServerService_IsServerRunning
+  .text:00000001800672D3                 call    qword ptr [rax+0E8h]; 0x0E8 = 232LL = INetworkServerService_IsServerRunning
   .text:00000001800672D9                 mov     ecx, [rdi+2CAEF0h]
   .text:00000001800672DF                 xorps   xmm9, xmm9
   .text:00000001800672E3                 mov     byte ptr [rsp+158h+arg_0], al
@@ -1491,7 +1491,7 @@ procedure: |-
               v39 = v48 - 4;
               v43 = v125;
             }
-            v56 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)g_pNetworkServerService + 232LL))(g_pNetworkServerService);// 0x0E8 = 232LL = CNetworkServerService_IsServerRunning
+            v56 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)g_pNetworkServerService + 232LL))(g_pNetworkServerService);// 0x0E8 = 232LL = INetworkServerService_IsServerRunning
             v57 = *(_DWORD *)(a1 + 2928368);
             for ( LOBYTE(v124) = v56; v57 < v39; v40 = v126 )
             {

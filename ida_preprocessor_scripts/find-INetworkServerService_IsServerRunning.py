@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CNetworkServerService_IsServerRunning skill."""
+"""Preprocess script for find-INetworkServerService_IsServerRunning skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = [
-    "CNetworkServerService_IsServerRunning",
+    "INetworkServerService_IsServerRunning",
 ]
 
 LLM_DECOMPILE = [
     {
-        "symbol_name": "CNetworkServerService_IsServerRunning",
+        "symbol_name": "INetworkServerService_IsServerRunning",
         "prompt_path": "prompt/call_llm_decompile.md",
         "reference_yaml_paths": [
             "references/engine/CNetworkGameClientBase__ProcessNetworking.{platform}.yaml",
@@ -23,14 +23,14 @@ LLM_DECOMPILE = [
 
 FUNC_VTABLE_RELATIONS = [
     # (func_name, vtable_class)
-    ("CNetworkServerService_IsServerRunning", "CNetworkServerService_vtable"),
+    ("INetworkServerService_IsServerRunning", "CNetworkServerService_vtable"),
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
     # slim Pattern C: not a downstream predecessor -- vfunc_sig is MANDATORY
     (
-        "CNetworkServerService_IsServerRunning",
+        "INetworkServerService_IsServerRunning",
         [
             "func_name",
             "vfunc_sig",
