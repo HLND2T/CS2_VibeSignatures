@@ -184,17 +184,22 @@ def binsync_user(root: Path) -> str:
     return user
 
 
-def configured_binary_paths(root: Path, gamever: str, config_path: Path) -> list[Path]:
-    """Return unique configured Windows/Linux binaries in first-seen order."""
+def iter_configured_binaries(root: Path, gamever: str, config_path: Path):
+    """Yield ``(module_name, platform, binary_path)`` for every configured binary.
+
+    Order is first-seen across modules, then ``windows`` before ``linux`` within
+    each module. Duplicate real paths are skipped and cross-platform filename
+    collisions are rejected, exactly like :func:`configured_binary_paths`.
+    """
     document = load_yaml_document(config_path, "analysis config")
     modules = document.get("modules")
     if not isinstance(modules, list):
         raise InitGamebinError("analysis config field 'modules' must be a list")
 
     gamever_root = (root / "bin" / gamever).resolve()
-    paths = []
     seen_paths = set()
     filename_paths = {}
+    found_any = False
     for index, module in enumerate(modules):
         if not isinstance(module, dict):
             raise InitGamebinError(f"analysis config modules[{index}] must be a mapping")
@@ -235,10 +240,16 @@ def configured_binary_paths(root: Path, gamever: str, config_path: Path) -> list
                 )
             filename_paths[filename_key] = path_key
             seen_paths.add(path_key)
-            paths.append(binary_path)
-    if not paths:
+            found_any = True
+            yield module_name, platform, binary_path
+
+    if not found_any:
         raise InitGamebinError(f"analysis config contains no Windows or Linux binaries for GAMEVER {gamever}")
-    return paths
+
+
+def configured_binary_paths(root: Path, gamever: str, config_path: Path) -> list[Path]:
+    """Return unique configured Windows/Linux binaries in first-seen order."""
+    return [binary_path for _module, _platform, binary_path in iter_configured_binaries(root, gamever, config_path)]
 
 
 def expected_sidecar(binary_path: Path, binary_md5: str, gamever: str, user: str) -> tuple[str, str, Path, dict]:
@@ -469,7 +480,14 @@ def inspect_remote(root: Path, repo_name: str, binary_md5: str) -> RemoteState:
     return RemoteState("valid", default_branch)
 
 
-def preflight_binsync(root: Path, gamever: str, config_path: Path, user: str | None = None) -> list[BinSyncPlan]:
+def preflight_binsync(
+    root: Path,
+    gamever: str,
+    config_path: Path,
+    user: str | None = None,
+    *,
+    allow_remote_creation: bool = False,
+) -> list[BinSyncPlan]:
     """Validate all existing local and remote state before making any BinSync changes."""
     user = user or binsync_user(root)
     plans = []
@@ -483,6 +501,11 @@ def preflight_binsync(root: Path, gamever: str, config_path: Path, user: str | N
             remote_state = inspect_remote(root, repo_name, binary_md5)
         except InitGamebinError as exc:
             raise InitGamebinError(f"BinSync preflight failed for {binary_path}: {exc}") from exc
+        if remote_state.status == "missing" and not allow_remote_creation:
+            raise InitGamebinError(
+                f"BinSync preflight failed for {binary_path}: BinSync remote repository "
+                f"{GITHUB_OWNER}/{repo_name} does not exist; recovery requires a pre-existing remote"
+            )
         if local_repo_locked and remote_state.status in {"missing", "empty"}:
             raise InitGamebinError(
                 f"BinSync preflight failed for {binary_path}: local repo is locked and cannot restore the remote: "
@@ -507,12 +530,7 @@ def preflight_binsync(root: Path, gamever: str, config_path: Path, user: str | N
 
 
 def create_public_remote(root: Path, repo_name: str) -> None:
-    """Create one missing public GitHub repository via the REST API.
-
-    The REST `POST /orgs/{org}/repos` endpoint works with fine-grained PATs that
-    hold `Administration: Write` on the org, unlike `gh repo create` which uses the
-    GraphQL `createRepository` mutation and rejects fine-grained tokens.
-    """
+    """Create one missing public GitHub repository via the organization REST API."""
     run_command(
         [
             "gh",
@@ -671,7 +689,13 @@ def format_binsync_summary(summary: dict) -> str:
     )
 
 
-def execute_binsync_plans(root: Path, plans: list[BinSyncPlan], user: str) -> dict:
+def execute_binsync_plans(
+    root: Path,
+    plans: list[BinSyncPlan],
+    user: str,
+    *,
+    allow_remote_creation: bool = False,
+) -> dict:
     """Apply fully preflighted BinSync plans and return a stable summary."""
     summary = {
         "targets": len(plans),
@@ -689,6 +713,11 @@ def execute_binsync_plans(root: Path, plans: list[BinSyncPlan], user: str) -> di
                 raise InitGamebinError(f"binary changed after preflight: expected {plan.binary_md5}, got {current_md5}")
             remote_state = inspect_remote(root, plan.repo_name, plan.binary_md5)
             if remote_state.status == "missing":
+                if not allow_remote_creation:
+                    raise InitGamebinError(
+                        f"BinSync remote repository {GITHUB_OWNER}/{plan.repo_name} does not exist; "
+                        f"recovery requires a pre-existing remote, refusing to create one"
+                    )
                 create_public_remote(root, plan.repo_name)
                 summary["remote_created"] += 1
                 remote_state = inspect_remote(root, plan.repo_name, plan.binary_md5)
@@ -725,11 +754,28 @@ def execute_binsync_plans(root: Path, plans: list[BinSyncPlan], user: str) -> di
     return summary
 
 
-def prepare_binsync_projects(root: Path, gamever: str, config_path: Path) -> dict:
+def prepare_binsync_projects(
+    root: Path,
+    gamever: str,
+    config_path: Path,
+    *,
+    allow_remote_creation: bool = False,
+) -> dict:
     """Preflight every target, then provision recovery metadata and remotes."""
     user = binsync_user(root)
-    plans = preflight_binsync(root, gamever, config_path, user)
-    return execute_binsync_plans(root, plans, user)
+    plans = preflight_binsync(
+        root,
+        gamever,
+        config_path,
+        user,
+        allow_remote_creation=allow_remote_creation,
+    )
+    return execute_binsync_plans(
+        root,
+        plans,
+        user,
+        allow_remote_creation=allow_remote_creation,
+    )
 
 
 def download_release_asset(url: str, destination: Path) -> bool:
@@ -849,13 +895,22 @@ def run_depot_fallback(root: Path, gamever: str, config_path: Path) -> None:
     run_command(command, root, label="copy_depot_bin.py")
 
 
-def prepare(root: Path, requested: str, *, binsync_mode: str = "skip") -> dict:
+def prepare(
+    root: Path,
+    requested: str,
+    *,
+    binsync_mode: str = "skip",
+    allow_remote_creation: bool = False,
+) -> dict:
     """Prepare configured binaries and return a summary.
 
     BinSync recovery is opt-in: the default "skip" mode never probes or
     provisions; "enable" probes availability first and fails loudly when the
-    environment cannot run BinSync (used by CI).
+    environment cannot run BinSync. Missing remote creation requires a separate,
+    explicit permission intended for trusted CI.
     """
+    if allow_remote_creation and binsync_mode != "enable":
+        raise InitGamebinError("--create-missing-binsync-remotes requires --binsync enable")
     versions = load_versions(root / "download.yaml")
     gamever = select_version(requested, versions)
     try:
@@ -883,7 +938,12 @@ def prepare(root: Path, requested: str, *, binsync_mode: str = "skip") -> dict:
         available, reason = probe_binsync(root)
         if not available:
             raise InitGamebinError(f"BinSync initialization is unavailable and was requested: {reason}")
-        binsync = prepare_binsync_projects(root, gamever, config_path)
+        binsync = prepare_binsync_projects(
+            root,
+            gamever,
+            config_path,
+            allow_remote_creation=allow_remote_creation,
+        )
     return {
         "gamever": gamever,
         "source": source,
@@ -915,6 +975,11 @@ def main(argv=None) -> int:
         default="skip",
         help="Enable or skip BinSync recovery (default: skip)",
     )
+    prepare_parser.add_argument(
+        "--create-missing-binsync-remotes",
+        action="store_true",
+        help="Create missing public BinSync repositories in HLND2T (trusted CI only)",
+    )
     args = parser.parse_args(argv)
     try:
         root = repository_root()
@@ -928,7 +993,12 @@ def main(argv=None) -> int:
             print(f"BinSync unavailable: {reason}")
             return 1
         else:
-            result = prepare(root, args.gamever, binsync_mode=args.binsync)
+            result = prepare(
+                root,
+                args.gamever,
+                binsync_mode=args.binsync,
+                allow_remote_creation=args.create_missing_binsync_remotes,
+            )
             print(f"Selected GAMEVER: {result['gamever']}")
             print(f"Binary source: {result['source']}")
             print(f"Archive merge: {result['copied']} copied, {result['skipped']} skipped")
