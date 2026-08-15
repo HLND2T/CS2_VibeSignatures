@@ -1280,6 +1280,17 @@ modules:
           - CNetworkServerService_DisconnectGameNow.{platform}.yaml
         expected_input:
           - CNetworkServerService_vtable.{platform}.yaml
+      - name: find-CNetworkGameClientBase__ProcessNetworking
+        expected_output:
+          - CNetworkGameClientBase__ProcessNetworking.{platform}.yaml
+        expected_input:
+          - CNetworkGameClient_vtable.{platform}.yaml
+      - name: find-INetworkServerService_IsServerRunning
+        expected_output:
+          - INetworkServerService_IsServerRunning.{platform}.yaml
+        expected_input:
+          - CNetworkGameClientBase__ProcessNetworking.{platform}.yaml
+          - CNetworkServerService_vtable.{platform}.yaml
       - name: find-CNetworkServerService_OnEventMapCallbacks-engine
         expected_output:
           - CNetworkServerService_OnServerAdvanceTick.{platform}.yaml
@@ -2678,6 +2689,10 @@ modules:
           - CMsgSource2NetworkFlowQuality::PrintStats
       - name: CNetworkGameClient_vtable
         category: vtable
+      - name: CNetworkGameClientBase__ProcessNetworking
+        category: vfunc
+        alias:
+          - CNetworkGameClientBase::ProcessNetworking
       - name: CNetworkGameClient_CreateMove
         category: vfunc
         platform: windows
@@ -2969,6 +2984,10 @@ modules:
           - CNetworkClientService::AllocateRemoteConnectionClient
       - name: CNetworkServerService_vtable
         category: vtable
+      - name: INetworkServerService_IsServerRunning
+        category: vfunc
+        alias:
+          - INetworkServerService::IsServerRunning
       - name: CNetworkServerService_Init
         category: vfunc
         alias:
