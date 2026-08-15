@@ -2988,6 +2988,18 @@ modules:
         category: vfunc
         alias:
           - INetworkServerService::IsServerRunning
+      - name: CNetworkServerService_SetGameSpawnGroupMgr
+        category: vfunc
+        alias:
+          - CNetworkServerService::SetGameSpawnGroupMgr
+      - name: CNetworkServerService_AddServerPrerequisites
+        category: vfunc
+        alias:
+          - CNetworkServerService::AddServerPrerequisites
+      - name: CNetworkServerService_SetFinalSimulationTickThisFrame
+        category: vfunc
+        alias:
+          - CNetworkServerService::SetFinalSimulationTickThisFrame
       - name: CNetworkServerService_Init
         category: vfunc
         alias:
@@ -8691,9 +8703,9 @@ modules:
           - CLoopModeGame_LoopInitInternal.{platform}.yaml
       - name: find-CLoopModeGame_LoopInit-decompiles
         expected_output:
-          - CNetworkServerService_SetGameSpawnGroupMgr.{platform}.yaml
-          - CNetworkServerService_AddServerPrerequisites.{platform}.yaml
-          - CNetworkServerService_SetFinalSimulationTickThisFrame.{platform}.yaml
+          - INetworkServerService_SetGameSpawnGroupMgr.{platform}.yaml
+          - INetworkServerService_AddServerPrerequisites.{platform}.yaml
+          - INetworkServerService_SetFinalSimulationTickThisFrame.{platform}.yaml
         expected_input_windows:
           - CLoopModeGame_LoopInit.{platform}.yaml
         expected_input_linux:
@@ -11463,18 +11475,18 @@ modules:
         category: vfunc
         alias:
           - CEngineServer::UnloadSpawnGroup
-      - name: CNetworkServerService_SetGameSpawnGroupMgr
+      - name: INetworkServerService_SetGameSpawnGroupMgr
         category: vfunc
         alias:
-          - CNetworkServerService::SetGameSpawnGroupMgr
-      - name: CNetworkServerService_AddServerPrerequisites
+          - INetworkServerService::SetGameSpawnGroupMgr
+      - name: INetworkServerService_AddServerPrerequisites
         category: vfunc
         alias:
-          - CNetworkServerService::AddServerPrerequisites
-      - name: CNetworkServerService_SetFinalSimulationTickThisFrame
+          - INetworkServerService::AddServerPrerequisites
+      - name: INetworkServerService_SetFinalSimulationTickThisFrame
         category: vfunc
         alias:
-          - CNetworkServerService::SetFinalSimulationTickThisFrame
+          - INetworkServerService::SetFinalSimulationTickThisFrame
       - name: CSpawnGroupMgrGameSystem_GetSpawnGroups
         category: func
         alias:
@@ -12409,6 +12421,24 @@ modules:
         expected_input:
           - CEngineClient_vtable.{platform}.yaml
           - ../client/IVEngineClient2_IsPlayingDemo.{platform}.yaml
+      - name: find-CNetworkServerService_SetGameSpawnGroupMgr
+        expected_output:
+          - CNetworkServerService_SetGameSpawnGroupMgr.{platform}.yaml
+        expected_input:
+          - CNetworkServerService_vtable.{platform}.yaml
+          - ../server/INetworkServerService_SetGameSpawnGroupMgr.{platform}.yaml
+      - name: find-CNetworkServerService_AddServerPrerequisites
+        expected_output:
+          - CNetworkServerService_AddServerPrerequisites.{platform}.yaml
+        expected_input:
+          - CNetworkServerService_vtable.{platform}.yaml
+          - ../server/INetworkServerService_AddServerPrerequisites.{platform}.yaml
+      - name: find-CNetworkServerService_SetFinalSimulationTickThisFrame
+        expected_output:
+          - CNetworkServerService_SetFinalSimulationTickThisFrame.{platform}.yaml
+        expected_input:
+          - CNetworkServerService_vtable.{platform}.yaml
+          - ../server/INetworkServerService_SetFinalSimulationTickThisFrame.{platform}.yaml
       - name: find-INetworkGameClient_SendStringCmd
         expected_output:
           - INetworkGameClient_SendStringCmd.{platform}.yaml
