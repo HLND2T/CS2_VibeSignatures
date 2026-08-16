@@ -1289,6 +1289,17 @@ modules:
         expected_input:
           - CSteam3ServerS1_InitGameServer.{platform}.yaml
           - CNetworkServerService_vtable.{platform}.yaml
+      - name: find-CNetworkGameClientBase__ProcessNetworking
+        expected_output:
+          - CNetworkGameClientBase__ProcessNetworking.{platform}.yaml
+        expected_input:
+          - CNetworkGameClient_vtable.{platform}.yaml
+      - name: find-INetworkServerService_IsServerRunning
+        expected_output:
+          - INetworkServerService_IsServerRunning.{platform}.yaml
+        expected_input:
+          - CNetworkGameClientBase__ProcessNetworking.{platform}.yaml
+          - CNetworkServerService_vtable.{platform}.yaml
       - name: find-CNetworkServerService_OnEventMapCallbacks-engine
         expected_output:
           - CNetworkServerService_OnServerAdvanceTick.{platform}.yaml
@@ -2687,6 +2698,10 @@ modules:
           - CMsgSource2NetworkFlowQuality::PrintStats
       - name: CNetworkGameClient_vtable
         category: vtable
+      - name: CNetworkGameClientBase__ProcessNetworking
+        category: vfunc
+        alias:
+          - CNetworkGameClientBase::ProcessNetworking
       - name: CNetworkGameClient_CreateMove
         category: vfunc
         platform: windows
@@ -2986,6 +3001,22 @@ modules:
         category: vfunc
         alias:
           - CNetworkServerService::IsActiveInGame
+      - name: INetworkServerService_IsServerRunning
+        category: vfunc
+        alias:
+          - INetworkServerService::IsServerRunning
+      - name: CNetworkServerService_SetGameSpawnGroupMgr
+        category: vfunc
+        alias:
+          - CNetworkServerService::SetGameSpawnGroupMgr
+      - name: CNetworkServerService_AddServerPrerequisites
+        category: vfunc
+        alias:
+          - CNetworkServerService::AddServerPrerequisites
+      - name: CNetworkServerService_SetFinalSimulationTickThisFrame
+        category: vfunc
+        alias:
+          - CNetworkServerService::SetFinalSimulationTickThisFrame
       - name: CNetworkServerService_Init
         category: vfunc
         alias:
@@ -8689,9 +8720,9 @@ modules:
           - CLoopModeGame_LoopInitInternal.{platform}.yaml
       - name: find-CLoopModeGame_LoopInit-decompiles
         expected_output:
-          - CNetworkServerService_SetGameSpawnGroupMgr.{platform}.yaml
-          - CNetworkServerService_AddServerPrerequisites.{platform}.yaml
-          - CNetworkServerService_SetFinalSimulationTickThisFrame.{platform}.yaml
+          - INetworkServerService_SetGameSpawnGroupMgr.{platform}.yaml
+          - INetworkServerService_AddServerPrerequisites.{platform}.yaml
+          - INetworkServerService_SetFinalSimulationTickThisFrame.{platform}.yaml
         expected_input_windows:
           - CLoopModeGame_LoopInit.{platform}.yaml
         expected_input_linux:
@@ -11461,18 +11492,18 @@ modules:
         category: vfunc
         alias:
           - CEngineServer::UnloadSpawnGroup
-      - name: CNetworkServerService_SetGameSpawnGroupMgr
+      - name: INetworkServerService_SetGameSpawnGroupMgr
         category: vfunc
         alias:
-          - CNetworkServerService::SetGameSpawnGroupMgr
-      - name: CNetworkServerService_AddServerPrerequisites
+          - INetworkServerService::SetGameSpawnGroupMgr
+      - name: INetworkServerService_AddServerPrerequisites
         category: vfunc
         alias:
-          - CNetworkServerService::AddServerPrerequisites
-      - name: CNetworkServerService_SetFinalSimulationTickThisFrame
+          - INetworkServerService::AddServerPrerequisites
+      - name: INetworkServerService_SetFinalSimulationTickThisFrame
         category: vfunc
         alias:
-          - CNetworkServerService::SetFinalSimulationTickThisFrame
+          - INetworkServerService::SetFinalSimulationTickThisFrame
       - name: CSpawnGroupMgrGameSystem_GetSpawnGroups
         category: func
         alias:
@@ -12407,6 +12438,24 @@ modules:
         expected_input:
           - CEngineClient_vtable.{platform}.yaml
           - ../client/IVEngineClient2_IsPlayingDemo.{platform}.yaml
+      - name: find-CNetworkServerService_SetGameSpawnGroupMgr
+        expected_output:
+          - CNetworkServerService_SetGameSpawnGroupMgr.{platform}.yaml
+        expected_input:
+          - CNetworkServerService_vtable.{platform}.yaml
+          - ../server/INetworkServerService_SetGameSpawnGroupMgr.{platform}.yaml
+      - name: find-CNetworkServerService_AddServerPrerequisites
+        expected_output:
+          - CNetworkServerService_AddServerPrerequisites.{platform}.yaml
+        expected_input:
+          - CNetworkServerService_vtable.{platform}.yaml
+          - ../server/INetworkServerService_AddServerPrerequisites.{platform}.yaml
+      - name: find-CNetworkServerService_SetFinalSimulationTickThisFrame
+        expected_output:
+          - CNetworkServerService_SetFinalSimulationTickThisFrame.{platform}.yaml
+        expected_input:
+          - CNetworkServerService_vtable.{platform}.yaml
+          - ../server/INetworkServerService_SetFinalSimulationTickThisFrame.{platform}.yaml
       - name: find-INetworkGameClient_SendStringCmd
         expected_output:
           - INetworkGameClient_SendStringCmd.{platform}.yaml
@@ -13245,3 +13294,29 @@ cpp_tests:
     reference_modules:
       - engine  # bin/{gamever}/engine/ISource2Server_*.{platform}.yaml
       - server  # bin/{gamever}/server/CSource2Server_*.{platform}.yaml
+  - name: INetworkServerService_MSVC
+    symbol: INetworkServerService
+    alias_symbols:
+      - CNetworkServerService
+    cpp: cpp_tests/inetworkserverservice.cpp
+    headers:
+      - hl2sdk_cs2/public/iserver.h  # Used by the fix-cppheaders SKILL
+    target: x86_64-pc-windows-msvc
+    include_directories:
+      - hl2sdk_cs2/game/shared
+      - hl2sdk_cs2/public
+      - hl2sdk_cs2/public/tier0
+      - hl2sdk_cs2/public/tier1
+      - hl2sdk_cs2/public/mathlib
+    defines:
+      - COMPILER_MSVC=1
+      - COMPILER_MSVC64=1
+      - _MSVC_STL_USE_ABORT_AS_DOOM_FUNCTION
+    additional_compiler_options:
+      - fms-extensions
+      - fms-compatibility
+      - Xclang
+      - fdump-vtable-layouts
+    reference_modules:
+      - engine  # bin/{gamever}/engine/CNetworkServerService_*.{platform}.yaml
+      - server  # bin/{gamever}/server/CNetworkServerService_*.{platform}.yaml
