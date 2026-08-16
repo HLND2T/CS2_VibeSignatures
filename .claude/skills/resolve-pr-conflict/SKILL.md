@@ -5,9 +5,9 @@ description: |
   dev branch, resolving config and generated gamesymbol snapshot conflicts, cleaning up stale non-latest gamever
   config, snapshot, gamedata, and release-manifest changes, generating missing current-version artifacts with
   ida_analyze_bin.py, running the immutable candidate validation and publication lifecycle, creating a merge commit,
-  pushing without force, then running /review-pr as a read-only audit of the resolved PR. Use when a PR is
+  pushing without force, then running /review-pr-for-preprocessor-script as a read-only audit of the resolved PR. Use when a PR is
   CONFLICTING/DIRTY or needs its base branch synchronized, especially when configs/GAMEVER.yaml or
-  gamesymbols/GAMEVER.yaml changed. Stop after push, check-status reporting, and the read-only review-pr audit; never
+  gamesymbols/GAMEVER.yaml changed. Stop after push, check-status reporting, and the read-only review-pr-for-preprocessor-script audit; never
   merge or auto-merge the PR.
 disable-model-invocation: true
 ---
@@ -284,16 +284,18 @@ report the pushed branch and commit plus the last known check state; do not infe
 ## Step 11 — Review the Resolved PR
 
 After the push, run the repository review skill as a read-only audit of the resolved PR. The pushed merge commit is the
-review target: `review-pr` reviews `base...head` and verifies the PR's config/script/snapshot changes against the base
-tree, including the stale-gamever gate for `configs/<GAMEVER>.yaml`.
+review target: `review-pr-for-preprocessor-script` reviews `base...head` and verifies the PR's config/script/snapshot
+changes against the base tree, including the stale-gamever gate for `configs/<GAMEVER>.yaml`.
 
-Invoke `/review-pr` with the same `<PR>` now that the merge commit is pushed. Treat `review-pr`'s findings as part of
-this skill's outcome, but do **not** begin repair in this invocation: this skill stops after push, check-status
-reporting, and the review audit. If `review-pr` finds actionable defects, report them with the concrete repair plan and
-the explicit consent question, then stop. If it finds none, state that the resolved PR passed review.
+Invoke `/review-pr-for-preprocessor-script` with the same `<PR>` now that the merge commit is pushed. Treat
+`review-pr-for-preprocessor-script`'s findings as part of this skill's outcome, but do **not** begin repair in this
+invocation: this skill stops after push, check-status reporting, and the review audit. If
+`review-pr-for-preprocessor-script` finds actionable defects, report them with the concrete repair plan and the explicit
+consent question, then stop. If it finds none, state that the resolved PR passed review.
 
-`review-pr` is read-only for this step and never modifies, commits, pushes, or merges. If it reports the head SHA has
-moved since `PR_HEAD_SHA` (the pushed merge commit), present the updated diff and stop without further mutation.
+`review-pr-for-preprocessor-script` is read-only for this step and never modifies, commits, pushes, or merges. If it
+reports the head SHA has moved since `PR_HEAD_SHA` (the pushed merge commit), present the updated diff and stop without
+further mutation.
 
 Then **STOP**. Never run any of the following in this skill:
 
@@ -315,5 +317,5 @@ Report:
 - game version, official candidate SHA-256, runnable-test count, and zero failure counters;
 - published snapshot SHA-256 equality and any versioned gamedata changes;
 - pushed remote branch and latest known PR/check state;
-- the `/review-pr` audit result: findings (or "no actionable findings") and the consent question if defects were found;
+- the `/review-pr-for-preprocessor-script` audit result: findings (or "no actionable findings") and the consent question if defects were found;
 - explicit statement: `PR was not merged by resolve-pr-conflict`.
