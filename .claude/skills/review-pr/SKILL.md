@@ -59,7 +59,9 @@ Use `git show <BASE_OID>:<path>` or a temporary worktree for base-tree content. 
 
 ## Step 3: Apply Repository-Specific Review Gates
 
-Read [preprocessor-review-patterns.md](references/preprocessor-review-patterns.md) whenever the PR changes preprocessor scripts, analysis configs, reference YAML, or generated symbol snapshots. Apply every applicable gate, not only the two examples.
+Read [preprocessor-review-patterns.md](references/preprocessor-review-patterns.md) whenever the PR changes preprocessor scripts, analysis configs, reference YAML, or generated symbol snapshots. Apply every applicable gate in that reference, not only the examples shown here.
+
+Apply gate 5 (Reject Stale-Gamever Config Changes) whenever the PR touches `configs/<GAMEVER>.yaml`, `gamesymbols/<GAMEVER>.yaml`, `gamedata/<GAMEVER>/`, or `release-manifests/<GAMEVER>.json`. The latest gamever is the last `tag:` entry in `download.yaml` (matching `init_gamebin.py`'s `LATEST_GAMEVER=versions[-1]`). A PR may modify analysis configs or generated outputs only for the latest gamever; a change to any older gamever is a defect unless the PR explicitly documents a justified historical backport. Flag the stale-gamever paths even when the same change also appears in the latest config.
 
 Additionally check general correctness:
 
@@ -69,7 +71,8 @@ Additionally check general correctness:
 - requested YAML fields are necessary and generatable for the target;
 - deterministic logic is preferred over an added LLM call when repository primitives already express the relationship;
 - tests cover new reusable behavior or high-risk branches;
-- generated snapshots correspond to config/script changes and do not conceal stale or hand-edited output.
+- generated snapshots correspond to config/script changes and do not conceal stale or hand-edited output;
+- config and analysis-output changes target only the latest gamever (last `tag:` in `download.yaml`), not a stale historical gamever.
 
 Run focused read-only tests or linters when practical. Do not run publication workflows or commands that rewrite tracked files during review.
 

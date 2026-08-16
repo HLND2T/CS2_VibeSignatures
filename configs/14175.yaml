@@ -1280,6 +1280,15 @@ modules:
           - CNetworkServerService_DisconnectGameNow.{platform}.yaml
         expected_input:
           - CNetworkServerService_vtable.{platform}.yaml
+      - name: find-CSteam3ServerS1_InitGameServer
+        expected_output:
+          - CSteam3ServerS1_InitGameServer.{platform}.yaml
+      - name: find-INetworkServerService_IsActiveInGame
+        expected_output:
+          - INetworkServerService_IsActiveInGame.{platform}.yaml
+        expected_input:
+          - CSteam3ServerS1_InitGameServer.{platform}.yaml
+          - CNetworkServerService_vtable.{platform}.yaml
       - name: find-CNetworkGameClientBase__ProcessNetworking
         expected_output:
           - CNetworkGameClientBase__ProcessNetworking.{platform}.yaml
@@ -2984,6 +2993,14 @@ modules:
           - CNetworkClientService::AllocateRemoteConnectionClient
       - name: CNetworkServerService_vtable
         category: vtable
+      - name: CSteam3ServerS1_InitGameServer
+        category: func
+        alias:
+          - CSteam3ServerS1::InitGameServer
+      - name: INetworkServerService_IsActiveInGame
+        category: vfunc
+        alias:
+          - INetworkServerService::IsActiveInGame
       - name: INetworkServerService_IsServerRunning
         category: vfunc
         alias:
