@@ -14,8 +14,8 @@ disasm_code: |-
   .text:00000001800D3505                 mov     [rax-20h], r14
   .text:00000001800D3509                 mov     r14, rdx
   .text:00000001800D350C                 mov     rax, [rcx]
-  .text:00000001800D350F                 ; 0x148 = 328LL = CNetworkServerService_GetServerSerializersCRC
-  .text:00000001800D350F                 call    qword ptr [rax+148h]; 0x148 = 328LL = CNetworkServerService_GetServerSerializersCRC
+  .text:00000001800D350F                 ; 0x148 = 328LL = INetworkServerService_GetServerSerializersCRC
+  .text:00000001800D350F                 call    qword ptr [rax+148h]; 0x148 = 328LL = INetworkServerService_GetServerSerializersCRC
   .text:00000001800D3515                 mov     r13, rax
   .text:00000001800D3518                 lea     rcx, [rax+30h]
   .text:00000001800D351C                 call    sub_1801676F0
@@ -211,7 +211,7 @@ procedure: |-
     _QWORD v30[5]; // [rsp+78h] [rbp-50h] BYREF
 
     LODWORD(v4) = 0;
-    v6 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)g_pNetworkServerService + 328LL))(g_pNetworkServerService);// 0x148 = 328LL = CNetworkServerService_GetServerSerializersCRC
+    v6 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)g_pNetworkServerService + 328LL))(g_pNetworkServerService);// 0x148 = 328LL = INetworkServerService_GetServerSerializersCRC
     v7 = sub_1801676F0(v6 + 48);
     v8 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)g_pSource2Server + 232LL))(g_pSource2Server);
     sub_1800D37B0(v9, v27, v8);
