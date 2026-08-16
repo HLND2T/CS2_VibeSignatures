@@ -52,8 +52,8 @@ disasm_code: |-
   .text:00000001800F8215                 mov     rcx, cs:g_pNetworkServerService
   .text:00000001800F821C                 movzx   r15d, ax
   .text:00000001800F8220                 mov     rdx, [rcx]
-  .text:00000001800F8223                 ; 0x0C0 = 192LL = CNetworkServerService_IsActiveInGame
-  .text:00000001800F8223                 call    qword ptr [rdx+0C0h]; 0x0C0 = 192LL = CNetworkServerService_IsActiveInGame
+  .text:00000001800F8223                 ; 0x0C0 = 192LL = INetworkServerService_IsActiveInGame
+  .text:00000001800F8223                 call    qword ptr [rdx+0C0h]; 0x0C0 = 192LL = INetworkServerService_IsActiveInGame
   .text:00000001800F8229                 movzx   ecx, r15w
   .text:00000001800F822D                 mov     edx, 2
   .text:00000001800F8232                 test    al, al
@@ -298,7 +298,7 @@ procedure: |-
       v10 = (*(__int64 (__fastcall **)(__int64, _QWORD))(*(_QWORD *)g_pNetworkSystem + 272LL))(
               g_pNetworkSystem,
               (unsigned int)dword_18060EFB8);
-      v11 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)g_pNetworkServerService + 192LL))(g_pNetworkServerService);// 0x0C0 = 192LL = CNetworkServerService_IsActiveInGame
+      v11 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)g_pNetworkServerService + 192LL))(g_pNetworkServerService);// 0x0C0 = 192LL = INetworkServerService_IsActiveInGame
       v12 = v10;
       if ( v11 )
         v12 = v9;

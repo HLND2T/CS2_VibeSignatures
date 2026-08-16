@@ -65,8 +65,8 @@ disasm_code: |-
   .text:0000000000576BE7                 lea     rax, g_pNetworkServerService
   .text:0000000000576BEE                 mov     rdi, [rax]
   .text:0000000000576BF1                 mov     rax, [rdi]
-  .text:0000000000576BF4                 ; 0x0C8 = 200LL = CNetworkServerService_IsActiveInGame
-  .text:0000000000576BF4                 call    qword ptr [rax+0C8h]; 0x0C8 = 200LL = CNetworkServerService_IsActiveInGame
+  .text:0000000000576BF4                 ; 0x0C8 = 200LL = INetworkServerService_IsActiveInGame
+  .text:0000000000576BF4                 call    qword ptr [rax+0C8h]; 0x0C8 = 200LL = INetworkServerService_IsActiveInGame
   .text:0000000000576BFA                 mov     esi, 2
   .text:0000000000576BFF                 test    al, al
   .text:0000000000576C01                 cmovz   r15d, r13d
@@ -325,7 +325,7 @@ procedure: |-
              g_pNetworkSystem,
              (unsigned int)dword_9D7950);
       v28 = v6;
-      if ( !(*(unsigned __int8 (__fastcall **)(_QWORD *))(*g_pNetworkServerService + 200LL))(g_pNetworkServerService) )// 0x0C8 = 200LL = CNetworkServerService_IsActiveInGame
+      if ( !(*(unsigned __int8 (__fastcall **)(_QWORD *))(*g_pNetworkServerService + 200LL))(g_pNetworkServerService) )// 0x0C8 = 200LL = INetworkServerService_IsActiveInGame
         v5 = v6;
       *(_WORD *)(a1 + 316) = v5;
       if ( (unsigned __int8)sub_2C9B50((unsigned int)dword_A30294, 2) )

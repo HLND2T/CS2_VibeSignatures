@@ -1,27 +1,27 @@
 ---
-name: find-CNetworkServerService_IsActiveInGame
+name: find-INetworkServerService_IsActiveInGame
 description: |
-  Final-guarantee fallback for the find-CNetworkServerService_IsActiveInGame preprocessor.
-  Recovers CNetworkServerService::IsActiveInGame (a virtual function of the CNetworkServerService vtable)
+  Final-guarantee fallback for the find-INetworkServerService_IsActiveInGame preprocessor.
+  Recovers INetworkServerService::IsActiveInGame (a virtual function of the CNetworkServerService vtable)
   in CS2 engine2.dll / libengine2.so by decompiling its known predecessor CSteam3ServerS1_InitGameServer
   and identifying the virtual call on g_pNetworkServerService. Use this skill only when the
   deterministic/LLM preprocessor
-  (ida_preprocessor_scripts/find-CNetworkServerService_IsActiveInGame.py) could not resolve the target.
-  Trigger: CNetworkServerService_IsActiveInGame
+  (ida_preprocessor_scripts/find-INetworkServerService_IsActiveInGame.py) could not resolve the target.
+  Trigger: INetworkServerService_IsActiveInGame
 disable-model-invocation: true
 ---
 
-# Find CNetworkServerService_IsActiveInGame (final-guarantee fallback)
+# Find INetworkServerService_IsActiveInGame (final-guarantee fallback)
 
-Recover the virtual function `CNetworkServerService::IsActiveInGame` in CS2 `engine2.dll` /
+Recover the virtual function `INetworkServerService::IsActiveInGame` in CS2 `engine2.dll` /
 `libengine2.so` using IDA Pro MCP tools. This is the **Agent fallback** for the
-`find-CNetworkServerService_IsActiveInGame` skill: it runs only when the preprocessor script returned
+`find-INetworkServerService_IsActiveInGame` skill: it runs only when the preprocessor script returned
 failure (almost always a transient LLM error, or the predecessor's call structure moved).
 
 ## Realworld Function References
 
 Read the platform-relevant reference YAMLs before searching in IDA. They contain the annotated virtual
-call site (`; 0x0C0/0x0C8 = ... = CNetworkServerService_IsActiveInGame`). Treat their addresses as
+call site (`; 0x0C0/0x0C8 = ... = INetworkServerService_IsActiveInGame`). Treat their addresses as
 reference-build values only; verify against the current binary.
 
 - Windows baseline: `ida_preprocessor_scripts/references/engine/CSteam3ServerS1_InitGameServer.windows.yaml`
@@ -41,7 +41,7 @@ mcp__ida-pro-mcp__decompile addr="<CSteam3ServerS1_InitGameServer.func_va>"
 
 ## Step 2. Locate the virtual call to the target
 
-`CNetworkServerService::IsActiveInGame(this)` is an indirect virtual call on the global
+`INetworkServerService::IsActiveInGame(this)` is an indirect virtual call on the global
 `g_pNetworkServerService`. Anchor by its **semantic fingerprint**, not a fixed offset:
 
 - It is the `call qword ptr [reg + <off>]` where `reg = *g_pNetworkServerService` (load the vtable from
@@ -63,13 +63,13 @@ The vtable offset differs per platform; derive it from the located call instruct
 ## Step 3. Resolve the vfunc body, generate the signature, and write the YAML
 
 1. From the resolved `vfunc_offset`, read the vtable slot of `CNetworkServerService_vtable` to obtain the
-   concrete function address, and rename it to `CNetworkServerService_IsActiveInGame` with
+   concrete function address, and rename it to `INetworkServerService_IsActiveInGame` with
    `mcp__ida-pro-mcp__rename`.
 2. **ALWAYS** Use SKILL `/generate-signature-for-vfuncoffset` for the vfunc at the resolved address/offset
    to obtain a validated `vfunc_sig`.
 3. **ALWAYS** Use SKILL `/write-vfunc-as-yaml` with:
-   - `func_name`: `CNetworkServerService_IsActiveInGame`
-   - `vtable_name`: `CNetworkServerService`
+   - `func_name`: `INetworkServerService_IsActiveInGame`
+   - `vtable_name`: `CNetworkServerService_vtable`
    - `vfunc_sig`: the validated signature from step 2
    - `vfunc_offset` / `vfunc_index`: the resolved values
 
@@ -77,8 +77,8 @@ The vtable offset differs per platform; derive it from the located call instruct
 
 Written beside the binary by the writer skill, one file per platform:
 
-- Windows (`engine2.dll`): `CNetworkServerService_IsActiveInGame.windows.yaml`
-- Linux (`libengine2.so`): `CNetworkServerService_IsActiveInGame.linux.yaml`
+- Windows (`engine2.dll`): `INetworkServerService_IsActiveInGame.windows.yaml`
+- Linux (`libengine2.so`): `INetworkServerService_IsActiveInGame.linux.yaml`
 
 ## Failure handling
 

@@ -40,6 +40,7 @@ INetworkServerService * networkserverservice();
 int main() {
 
     networkserverservice()->IsServerRunning();
+    networkserverservice()->IsActiveInGame();
 
     return 0;
 }
