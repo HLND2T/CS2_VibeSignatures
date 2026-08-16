@@ -88,3 +88,23 @@ For every changed finder, verify:
 - generated output changes are a consequence of the design change, not the only evidence supporting it.
 
 Treat a green snapshot comparison as necessary but insufficient: it validates reproducibility of the current config, not semantic symbol ownership or efficient analysis design.
+
+## 5. Reject Stale-Gamever Config Changes
+
+### Trigger signals
+
+- The PR modifies `configs/<GAMEVER>.yaml`, `gamesymbols/<GAMEVER>.yaml`, or other `<GAMEVER>`-scoped tracked paths.
+- `<GAMEVER>` is not the latest version in `download.yaml`.
+- The same symbol/finder change also exists (or belongs) in the latest gamever's config.
+
+### Review method
+
+1. Read the last `tag:` entry in `download.yaml`; that is the canonical latest gamever. The list is chronological, so the newest version is always last (matching `init_gamebin.py`'s `LATEST_GAMEVER=versions[-1]`).
+2. Collect every `<GAMEVER>` that appears in PR-changed paths matching `configs/<GAMEVER>.yaml`, `gamesymbols/<GAMEVER>.yaml`, `gamedata/<GAMEVER>/`, or `release-manifests/<GAMEVER>.json`.
+3. Flag each one that is not the latest gamever.
+4. Distinguish "stale config change" from "historical backport": a stale change adds/removes symbols or finders in an old config as if it were the current analysis model; a legitimate historical fix would be scoped and justified. Treat the stale change as a defect unless the PR explicitly documents a backport intent.
+5. When the latest gamever config already has (or should have) the same finders/symbols, require the PR to carry the change only in the latest config and verify the generated snapshot reflects it.
+
+### Finding rule
+
+Raise a finding when the PR changes a config or analysis output for a gamever that is not the latest. The analysis model is single-versioned: producers, expected inputs, symbol definitions, and aliases belong in the latest gamever config, not replayed into stale ones. Adding finders to an old config that reference symbols undefined in that config is a concrete defect, not merely redundant. The latest gamever is authoritative; anything else is a hard stop for the review.
