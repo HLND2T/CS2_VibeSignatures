@@ -1,12 +1,18 @@
 ---
-name: review-pr
-description: Review an open or local CS2_VibeSignatures pull request for correctness, with special scrutiny of IDA preprocessor design, duplicated LLM_DECOMPILE work, interface-versus-concrete virtual-function ownership, INHERIT_VFUNCS chains, requested YAML fields, config dependencies, generated snapshots, and regression coverage. Use when the user asks to review, inspect, audit, or fix a PR. Report evidence-backed findings first and never modify, commit, push, comment on, close, or merge the PR until the user explicitly approves the proposed fixes; after approval, fix the existing PR branch directly without creating or merging another PR.
-disable-model-invocation: true
+name: review-pr-for-preprocessor-script
+description: Review an open or local CS2_VibeSignatures pull request for correctness, but ONLY when the PR changes or adds IDA preprocessor scripts. With special scrutiny of IDA preprocessor design, duplicated LLM_DECOMPILE work, interface-versus-concrete virtual-function ownership, INHERIT_VFUNCS chains, requested YAML fields, config dependencies, generated snapshots, and regression coverage. Do not use for PRs that do not touch ida_preprocessor_scripts/; refuse those instead. Use when the user asks to review, inspect, audit, or fix a PR that changes/adds preprocessor scripts. Report evidence-backed findings first and never modify, commit, push, comment on, close, or merge the PR until the user explicitly approves the proposed fixes; after approval, fix the existing PR branch directly without creating or merging another PR.
 ---
 
 # Review Pull Request
 
 Review one PR against its base branch. Treat review and repair as separate phases.
+
+## Scope Gate
+
+This skill applies ONLY to PRs that change or add IDA preprocessor scripts under `ida_preprocessor_scripts/`. Before
+reviewing, inspect the PR's changed files (e.g. `gh pr view <PR> --json files`). If the PR does not touch
+`ida_preprocessor_scripts/` — for example it only changes C++ code, configs, or generated snapshots — refuse with a
+short explanation and do not proceed with any review steps. Do not fall back to a general review.
 
 ## Safety Boundary
 

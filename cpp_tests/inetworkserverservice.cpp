@@ -41,6 +41,7 @@ int main() {
 
     networkserverservice()->IsServerRunning();
     networkserverservice()->IsActiveInGame();
+    networkserverservice()->GetServerSerializersCRC();
 
     return 0;
 }
