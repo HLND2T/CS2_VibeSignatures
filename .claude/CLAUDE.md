@@ -15,7 +15,3 @@ This file provides guidance and important rules working with code in this reposi
 #### When Notes Are Insufficient (On-Demand Querying and Reading)
 
 - Check `README.md`
-
-## IDA Pro MCP Tools Reference
-
-See basic memory note: `ida-pro-mcp`
