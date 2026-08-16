@@ -11,7 +11,6 @@ This file provides guidance and important rules working with code in this reposi
 - Notes live in `memory/` (markdown with YAML frontmatter: `title`/`type`/`permalink`), tracked in git.
 - Basic Memory is registered as MCP server `basic-memory`, pinned to the `cs2-vibesignatures` project (`--project cs2-vibesignatures` via project-level `.mcp.json`).
 - Prefer Basic Memory MCP tools (`search_notes` / `read_note` / `write_note` / `edit_note`) for project knowledge.
-- Start from `[[core]]` as the graph root; the note graph and add/update thresholds are defined in `memory/memory_maintenance.md`.
 
 #### When Notes Are Insufficient (On-Demand Querying and Reading)
 
