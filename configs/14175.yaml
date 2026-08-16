@@ -3010,6 +3010,10 @@ modules:
         category: vfunc
         alias:
           - INetworkServerService::GetServerSerializersCRC
+      - name: CNetworkServerService_GetServerSerializersCRC
+        category: vfunc
+        alias:
+          - CNetworkServerService::GetServerSerializersCRC
       - name: CSteam3ServerS1_InitGameServer
         category: func
         alias:
@@ -12473,6 +12477,12 @@ modules:
         expected_input:
           - CNetworkServerService_vtable.{platform}.yaml
           - ../server/INetworkServerService_SetFinalSimulationTickThisFrame.{platform}.yaml
+      - name: find-CNetworkServerService_GetServerSerializersCRC
+        expected_output:
+          - CNetworkServerService_GetServerSerializersCRC.{platform}.yaml
+        expected_input:
+          - CNetworkServerService_vtable.{platform}.yaml
+          - INetworkServerService_GetServerSerializersCRC.{platform}.yaml
       - name: find-INetworkGameClient_SendStringCmd
         expected_output:
           - INetworkGameClient_SendStringCmd.{platform}.yaml
