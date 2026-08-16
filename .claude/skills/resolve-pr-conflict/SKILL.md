@@ -4,9 +4,10 @@ description: |
   Resolve an open same-repository GitHub PR conflict in CS2_VibeSignatures by merging the PR base branch into its
   dev branch, resolving config and generated gamesymbol snapshot conflicts, generating missing current-version
   artifacts with ida_analyze_bin.py, running the immutable candidate validation and publication lifecycle, creating a
-  merge commit, and pushing without force. Use when a PR is CONFLICTING/DIRTY or needs its base branch synchronized,
-  especially when configs/GAMEVER.yaml or gamesymbols/GAMEVER.yaml changed. Stop after push and check-status
-  reporting; never merge or auto-merge the PR.
+  merge commit, pushing without force, then running /review-pr as a read-only audit of the resolved PR. Use when a PR
+  is CONFLICTING/DIRTY or needs its base branch synchronized, especially when configs/GAMEVER.yaml or
+  gamesymbols/GAMEVER.yaml changed. Stop after push, check-status reporting, and the read-only review-pr audit; never
+  merge or auto-merge the PR.
 disable-model-invocation: true
 ---
 
@@ -249,6 +250,20 @@ gh pr checks <PR>
 Pending checks are an acceptable endpoint for this skill. If GitHub becomes unreachable after a successful push,
 report the pushed branch and commit plus the last known check state; do not infer success and do not attempt PR merge.
 
+## Step 10 — Review the Resolved PR
+
+After the push, run the repository review skill as a read-only audit of the resolved PR. The pushed merge commit is the
+review target: `review-pr` reviews `base...head` and verifies the PR's config/script/snapshot changes against the base
+tree, including the stale-gamever gate for `configs/<GAMEVER>.yaml`.
+
+Invoke `/review-pr` with the same `<PR>` now that the merge commit is pushed. Treat `review-pr`'s findings as part of
+this skill's outcome, but do **not** begin repair in this invocation: this skill stops after push, check-status
+reporting, and the review audit. If `review-pr` finds actionable defects, report them with the concrete repair plan and
+the explicit consent question, then stop. If it finds none, state that the resolved PR passed review.
+
+`review-pr` is read-only for this step and never modifies, commits, pushes, or merges. If it reports the head SHA has
+moved since `PR_HEAD_SHA` (the pushed merge commit), present the updated diff and stop without further mutation.
+
 Then **STOP**. Never run any of the following in this skill:
 
 ```text
@@ -268,4 +283,5 @@ Report:
 - game version, official candidate SHA-256, runnable-test count, and zero failure counters;
 - published snapshot SHA-256 equality and any versioned gamedata changes;
 - pushed remote branch and latest known PR/check state;
+- the `/review-pr` audit result: findings (or "no actionable findings") and the consent question if defects were found;
 - explicit statement: `PR was not merged by resolve-pr-conflict`.
