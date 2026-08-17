@@ -62,6 +62,7 @@ class TestInitGamebin(unittest.TestCase):
         self.assertIn("allow_implicit_invocation: false", agent)
         self.assertIn("$restore-from-snapshot", skill)
         self.assertIn("<MODULE_FILENAME>.binsync.json", skill)
+        self.assertIn("auto_sync_all: true", skill)
         self.assertIn("--create-missing-binsync-remotes", workflow)
         self.assertIn("Never pass `--create-missing-binsync-remotes`", skill)
         self.assertIn("BinSync recovery", agent)
@@ -167,6 +168,7 @@ class TestInitGamebin(unittest.TestCase):
         self.assertEqual("engine2.dll.bsproj", sidecar["repo_path"])
         self.assertEqual(False, sidecar["force_user"])
         self.assertEqual(True, sidecar["auto_clone"])
+        self.assertEqual(True, sidecar["auto_sync_all"])
 
     def test_sidecar_validation_is_semantic_but_schema_strict(self) -> None:
         expected = {
@@ -176,10 +178,15 @@ class TestInitGamebin(unittest.TestCase):
             "expected_md5": "a" * 32,
             "force_user": False,
             "auto_clone": True,
+            "auto_sync_all": True,
         }
+        legacy = {field: value for field, value in expected.items() if field != "auto_sync_all"}
         with tempfile.TemporaryDirectory() as temp_dir:
             sidecar = Path(temp_dir) / "engine2.dll.binsync.json"
             sidecar.write_text(json.dumps(dict(reversed(list(expected.items())))), encoding="utf-8")
+            self.assertTrue(init_gamebin.validate_sidecar(sidecar, expected))
+
+            sidecar.write_text(json.dumps(legacy), encoding="utf-8")
             self.assertTrue(init_gamebin.validate_sidecar(sidecar, expected))
 
             sidecar.write_text(json.dumps({**expected, "extra": True}), encoding="utf-8")
@@ -190,6 +197,10 @@ class TestInitGamebin(unittest.TestCase):
             with self.assertRaisesRegex(init_gamebin.InitGamebinError, "auto_clone"):
                 init_gamebin.validate_sidecar(sidecar, expected)
 
+            sidecar.write_text(json.dumps({**expected, "auto_sync_all": False}), encoding="utf-8")
+            with self.assertRaisesRegex(init_gamebin.InitGamebinError, "auto_sync_all"):
+                init_gamebin.validate_sidecar(sidecar, expected)
+
     def test_write_sidecar_atomic_uses_canonical_json(self) -> None:
         data = {
             "user": "HZDEV",
@@ -198,6 +209,7 @@ class TestInitGamebin(unittest.TestCase):
             "expected_md5": "a" * 32,
             "force_user": False,
             "auto_clone": True,
+            "auto_sync_all": True,
         }
         with tempfile.TemporaryDirectory() as temp_dir:
             path = Path(temp_dir) / "engine2.dll.binsync.json"

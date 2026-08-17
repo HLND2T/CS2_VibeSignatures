@@ -70,12 +70,13 @@ the Steam depot fallback only for a missing Release asset. After every configure
    `binsync/<OS_USER>` branches. It sets the default branch only for a previously empty repository.
 6. Writes `<MODULE_FILENAME>.binsync.json` only after the remote validates successfully. The sidecar uses the current OS
    user as a fallback, the canonical HTTPS remote, explicit `<MODULE_FILENAME>.bsproj`, the binary MD5,
-   `force_user: false`, and `auto_clone: true`.
+   `force_user: false`, `auto_clone: true`, and `auto_sync_all: true`.
 
 The script never reads or writes `BinSyncDLConfig.toml`, never clones missing `.bsproj` repositories into `bin/`, and
 never fetches or pushes an already-valid remote/local pair. IDA's BinSync auto-recovery performs the later clone.
 
-Existing sidecars must contain exactly the six expected fields and match semantically. Existing local repositories must
+Existing sidecars must contain the six required fields and match semantically. They may also include `auto_sync_all`,
+which must be `true` when present; unknown extra fields remain a conflict. Existing local repositories must
 have the expected `origin`, `binsync/__root__`, and `binary_hash`. Existing non-empty remotes must already use
 `binsync/__root__` as their default branch and expose the matching `binary_hash`. Stop on any conflict; never overwrite,
 move, delete, repair, or change the default branch of existing state. A local `binsync.lock` is allowed for read-only

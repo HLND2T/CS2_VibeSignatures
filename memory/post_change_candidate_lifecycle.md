@@ -7,14 +7,19 @@ permalink: cs2-vibesignatures/post-change-candidate-lifecycle
 # Post-Change Candidate Lifecycle
 
 ## Overview
-`/create-pr` owns delivery from an already-staged change. It invokes three ordered skills to prepare, validate, and
-publish one immutable symbol candidate plus its matching gamedata candidate, then commits the authorized staged
-paths and validated current-version outputs, pushes a `dev*` branch, and opens the PR. Candidate validation never
-reads directly from `bin` or falls back to a tracked head snapshot.
+`/create-pr` owns delivery from an already-staged change (or an already-committed branch). It classifies the
+delivered change with `.claude/skills/create-pr/scripts/classify_delivery.py`. If any changed path feeds the CS2
+symbols pipeline, it invokes the three ordered candidate skills to prepare, validate, and publish one immutable
+symbol candidate plus its matching gamedata candidate, then commits the authorized staged paths and validated
+current-version outputs, pushes a `dev*` branch, and opens the PR. Changes that touch no symbols-related path skip
+the lifecycle and are delivered directly as a plain PR. Candidate validation never reads directly from `bin` or
+falls back to a tracked head snapshot.
 
 ## Responsibilities
-- `/create-pr`: treat the initial staged diff as the authorized change set, orchestrate the three candidate skills,
-  stage only formatter refreshes plus current-version publication outputs, commit, push, and create the PR.
+- `/create-pr`: run `classify_delivery.py` against the staged or committed change set. If `LIFECYCLE=1`, treat that
+  diff as the authorized change set, orchestrate the three candidate skills, stage only formatter refreshes plus
+  current-version publication outputs, commit, push, and create the PR. If `LIFECYCLE=0`, skip the candidate
+  lifecycle and create the PR directly from the captured change.
 - `/prepare-post-change-candidate`: resolve one `GAMEVER`, format tracked files, build and guard isolated symbol and
   gamedata candidates, mark the gamedata step, and return candidate/session paths plus candidate SHA-256.
 - `/post-change-validation`: guard the exact symbol candidate, run real C++ tests against its bytes, reject skipped or
@@ -24,6 +29,7 @@ reads directly from `bin` or falls back to a tracked head snapshot.
 
 ## Involved Files & Symbols
 - `.claude/skills/create-pr/SKILL.md` - staged-change delivery and PR orchestration contract.
+- `.claude/skills/create-pr/scripts/classify_delivery.py` - mechanical CS2 Symbols vs plain-PR classification.
 - `.claude/skills/prepare-post-change-candidate/SKILL.md` - preparation contract.
 - `.claude/skills/post-change-validation/SKILL.md` - C++ validation contract.
 - `.claude/skills/publish-post-change-candidate/SKILL.md` - publication contract.
@@ -35,16 +41,18 @@ reads directly from `bin` or falls back to a tracked head snapshot.
 ```text
 explicitly staged task changes
   --> create-pr
-    --> configs/<GAMEVER>.yaml + bin/<GAMEVER>/
-      --> prepare-post-change-candidate
-        --> <GAMEVER>.yaml + candidate session
-        --> gamedata candidate + gamedata session
-      --> post-change-validation
-        --> candidate session marked cpp_tests/validated
-      --> publish-post-change-candidate
-        --> gamesymbols/<GAMEVER>.yaml
-        --> gamedata/<GAMEVER>
-    --> refresh authorized index --> commit --> push dev* --> PR against main
+    --> classify_delivery.py
+      LIFECYCLE=0 --> commit (if staged) --> push dev* --> PR against main
+      LIFECYCLE=1 --> configs/<GAMEVER>.yaml + bin/<GAMEVER>/
+        --> prepare-post-change-candidate
+          --> <GAMEVER>.yaml + candidate session
+          --> gamedata candidate + gamedata session
+        --> post-change-validation
+          --> candidate session marked cpp_tests/validated
+        --> publish-post-change-candidate
+          --> gamesymbols/<GAMEVER>.yaml
+          --> gamedata/<GAMEVER>
+        --> refresh authorized index --> commit --> push dev* --> PR against main
 ```
 
 ## Dependencies
@@ -59,3 +67,5 @@ explicitly staged task changes
 - Validation may advance the untracked candidate session but does not edit tracked files or candidate bytes.
 - Publication never rebuilds or reserializes candidate bytes after validation begins.
 - Any failed, skipped, or non-runnable gate stops `/create-pr` before commit, push, and PR creation.
+- A delivered change whose classifier result is `LIFECYCLE=0` skips prepare/validate/publish entirely: no `gamever`
+  is resolved and the PR body never claims candidate preparation, C++ validation, or publication.

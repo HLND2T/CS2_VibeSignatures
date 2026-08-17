@@ -30,7 +30,9 @@ DOWNLOAD_TIMEOUT = (30, 300)
 COPY_BUFFER_SIZE = 1024 * 1024
 GITHUB_OWNER = "HLND2T"
 BINSYNC_ROOT_BRANCH = "binsync/__root__"
-BINSYNC_SIDECAR_FIELDS = frozenset({"user", "remote", "repo_path", "expected_md5", "force_user", "auto_clone"})
+BINSYNC_SIDECAR_REQUIRED_FIELDS = frozenset({"user", "remote", "repo_path", "expected_md5", "force_user", "auto_clone"})
+BINSYNC_SIDECAR_OPTIONAL_FIELDS = frozenset({"auto_sync_all"})
+BINSYNC_SIDECAR_FIELDS = BINSYNC_SIDECAR_REQUIRED_FIELDS | BINSYNC_SIDECAR_OPTIONAL_FIELDS
 
 
 class InitGamebinError(Exception):
@@ -265,6 +267,7 @@ def expected_sidecar(binary_path: Path, binary_md5: str, gamever: str, user: str
         "expected_md5": binary_md5,
         "force_user": False,
         "auto_clone": True,
+        "auto_sync_all": True,
     }
     return repo_name, remote_url, repo_path, sidecar_data
 
@@ -279,9 +282,14 @@ def validate_sidecar(sidecar_path: Path, expected: dict) -> bool:
         actual = json.loads(sidecar_path.read_text(encoding="utf-8"))
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
         raise InitGamebinError(f"unable to read BinSync sidecar {sidecar_path}: {exc}") from exc
-    if not isinstance(actual, dict) or set(actual) != BINSYNC_SIDECAR_FIELDS:
+    if not isinstance(actual, dict):
+        raise InitGamebinError(f"BinSync sidecar has a conflicting schema: {sidecar_path}")
+    actual_keys = set(actual)
+    if not BINSYNC_SIDECAR_REQUIRED_FIELDS <= actual_keys <= BINSYNC_SIDECAR_FIELDS:
         raise InitGamebinError(f"BinSync sidecar has a conflicting schema: {sidecar_path}")
     for field, expected_value in expected.items():
+        if field not in actual:
+            continue
         actual_value = actual[field]
         if type(actual_value) is not type(expected_value) or actual_value != expected_value:
             raise InitGamebinError(f"BinSync sidecar field {field!r} conflicts with the expected value: {sidecar_path}")
