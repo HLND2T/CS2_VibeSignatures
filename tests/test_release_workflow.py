@@ -327,6 +327,24 @@ class TestReleaseWorkflow(unittest.TestCase):
             self.assertNotIn("timestamp", tracked)
             self.assertNotIn(str(fixture.root), tracked_path.read_text(encoding="utf-8"))
 
+    def test_stage_excludes_binsync_git_metadata(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            fixture = ReleaseFixture(Path(tmp))
+            binsync = fixture.bin_source / "client" / "client.dll.bsproj"
+            git_object = binsync / ".git" / "objects" / "ab" / "object"
+            git_object.parent.mkdir(parents=True)
+            git_object.write_bytes(b"git object")
+            (binsync / "symbols.toml").write_text("symbols = []\n", encoding="utf-8")
+
+            pending = fixture.stage()
+
+            staged_binsync = (
+                fixture.staging / fixture.gamever / fixture.build_id / "bin" / fixture.gamever / "client" / binsync.name
+            )
+            self.assertTrue((staged_binsync / "symbols.toml").is_file())
+            self.assertFalse((staged_binsync / ".git").exists())
+            self.assertFalse(any("/.git/" in f"/{entry['path']}/" for entry in pending["bin_files"]))
+
     def test_stage_rejects_snapshot_binary_hash_mismatch(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             fixture = ReleaseFixture(Path(tmp))
