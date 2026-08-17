@@ -2,28 +2,20 @@
 
 # 二进制获取与符号分析
 
-## 下载 CS2 depot
+## 初始化最新游戏版本的 binaries
 
-下载配置的 depot 版本，再将目标二进制复制到工作区：
+对于新检出的仓库，在运行符号分析前请使用 `SKILL: init-gamebin` 初始化 `download.yaml` 中最新游戏版本的
+binaries。
 
-```bash
-uv run download_depot.py -tag 14156
+使用以下提示词：
 
-uv run copy_depot_bin.py -gamever 14156 -platform all-platform
-uv run copy_depot_bin.py -gamever 14156 -platform all-platform -checkonly
+```text
+Use SKILL: init-gamebin to initialize the latest game version's binaries.
 ```
 
-当只需要确认 `bin/<gamever>/...` 下的目标二进制是否齐全时，可在 CI 或预检查脚本中使用 `-checkonly`。该模式只检查目标路径，不要求 `cs2_depot` 已准备完成；全部就绪时返回 `0`，缺少任一目标文件时返回 `1`，配置或参数错误时返回 `2`。
+该 SKILL 会从仓库版本列表解析最新的游戏版本号，下载或合并对应的 binaries 且不会覆盖已有文件，然后从打包的snapshot中恢复 symbol YAMLs。
 
-定时的 `Bump Download` GitHub Actions 工作流会维护 `download.yaml`。它通过 `bump_download.py` 查询 CS2 default branch，仅在发现的 `PatchVersion` 和 depot manifest 需要新增记录时追加条目，创建对应的本地 commit 与 tag，并由工作流推送。
-
-在不写入 Git 状态的情况下本地预览：
-
-```bash
-uv run bump_download.py -config download.yaml -depotdir cs2_depot -dry-run
-```
-
-如果 DepotDownloader 需要登录，可追加工作流中使用的 `-username`、`-password` 和 `-remember-password` 参数。
+如果没有指定游戏版本，skill 会先列出可用版本并向你询问。
 
 ## 分析配置中的符号
 
@@ -35,7 +27,7 @@ Analyzer 为 `configs/<GAMEVER>.yaml` 声明的符号查找并生成 signatures�
 uv run ida_analyze_bin.py -gamever 14156 [-oldgamever=14155] [-configyaml=path/to/custom.yaml] [-modules=server] [-skill=find-CBaseEntity_vtable] [-platform=windows] [-agent=claude/codex/opencode/"claude.cmd"/"codex.cmd"/"opencode.cmd"] [-maxretry=3] [-vcall_finder=g_pNetworkMessages] [-llm_model=gpt-4o] [-llm_apikey=your-key] [-llm_baseurl=https://api.example.com/v1] [-llm_temperature=0.2] [-llm_effort=medium] [-llm_fake_as=codex] [-rename] [-debug]
 ```
 
-共享 LLM 参数：
+可选 LLM 参数：
 
 - `-llm_apikey`：启用 LLM 流程时必需，包括 `vcall_finder` 聚合与 `LLM_DECOMPILE`。
 - `-llm_baseurl`：可选的兼容 base URL；使用 `-llm_fake_as=codex` 时必填。

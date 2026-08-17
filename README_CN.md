@@ -19,16 +19,6 @@ uv run ida_analyze_bin.py -gamever 14156 -oldgamever 14155
 
 这些命令会填充 `bin/<GAMEVER>/`，并运行已配置的确定性、LLM-assisted 与 Agent-assisted 分析。发布 tracked output 前，还需继续执行 immutable candidate、gamedata 与 C++ 验证流程。
 
-## 工作流
-
-1. [下载 CS2 depot 并复制目标二进制](docs/zh-CN/analysis.md)。
-2. [分析 `configs/<GAMEVER>.yaml` 声明的符号](docs/zh-CN/analysis.md)。
-3. [构建同一个 immutable symbol 与 gamedata candidate](docs/zh-CN/snapshot-and-gamedata.md)。
-4. [针对该 candidate 运行 C++ layout 验证](docs/zh-CN/snapshot-and-gamedata.md)。
-5. [发布验证后的 snapshot 与版本化 gamedata](docs/zh-CN/snapshot-and-gamedata.md)。
-
-canonical tracked output 是 `gamesymbols/<GAMEVER>.yaml` 与 `gamedata/<GAMEVER>/`。单个 symbol 的分析 YAML 仍作为私有可变状态保存在 `bin/<GAMEVER>/`。
-
 ## 文档
 
 - [依赖与环境配置](docs/zh-CN/requirements.md)
@@ -39,6 +29,8 @@ canonical tracked output 是 `gamesymbols/<GAMEVER>.yaml` 与 `gamedata/<GAMEVER
 - [Snapshot、gamedata 与 C++ 验证](docs/zh-CN/snapshot-and-gamedata.md)
 - [创建符号分析 skill](docs/zh-CN/creating-skills.md)
 - [CI/CD 与 Jenkins 工作流参考](docs/zh-CN/ci-cd.md)
+
+canonical tracked output 是 `gamesymbols/<GAMEVER>.yaml` 与 `gamedata/<GAMEVER>/`。单个 symbol 的分析 YAML 仍作为私有可变状态保存在 `bin/<GAMEVER>/`。
 
 ## 支持的 gamedata
 

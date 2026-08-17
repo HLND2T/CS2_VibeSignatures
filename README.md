@@ -19,16 +19,6 @@ uv run ida_analyze_bin.py -gamever 14156 -oldgamever 14155
 
 These commands populate `bin/<GAMEVER>/` and run the configured deterministic, LLM-assisted, and Agent-assisted analysis. Continue with the immutable candidate, gamedata, and C++ validation flow before publishing tracked outputs.
 
-## Workflow
-
-1. [Download the CS2 depot and copy target binaries](docs/en/analysis.md#download-the-cs2-depot).
-2. [Analyze symbols declared by `configs/<GAMEVER>.yaml`](docs/en/analysis.md#analyze-configured-symbols).
-3. [Build one immutable symbol and gamedata candidate](docs/en/snapshot-and-gamedata.md#immutable-candidate-transaction).
-4. [Run C++ layout validation against that candidate](docs/en/snapshot-and-gamedata.md#run-c-layout-validation).
-5. [Publish the validated snapshot and versioned gamedata](docs/en/snapshot-and-gamedata.md#immutable-candidate-transaction).
-
-Canonical tracked outputs are `gamesymbols/<GAMEVER>.yaml` and `gamedata/<GAMEVER>/`. Per-symbol analysis YAML remains private mutable state under `bin/<GAMEVER>/`.
-
 ## Documentation
 
 - [Requirements and environment setup](docs/en/requirements.md)
@@ -39,6 +29,8 @@ Canonical tracked outputs are `gamesymbols/<GAMEVER>.yaml` and `gamedata/<GAMEVE
 - [Snapshots, gamedata, and C++ validation](docs/en/snapshot-and-gamedata.md)
 - [Creating symbol-analysis skills](docs/en/creating-skills.md)
 - [CI/CD and Jenkins workflow reference](docs/en/ci-cd.md)
+
+Canonical tracked outputs are `gamesymbols/<GAMEVER>.yaml` and `gamedata/<GAMEVER>/`. Per-symbol analysis YAML remains private mutable state under `bin/<GAMEVER>/`.
 
 ## Supported gamedata
 
