@@ -846,7 +846,7 @@ class TestRunSkillMcpListPreflight(unittest.TestCase):
         _mock_exists,
     ) -> None:
         preflight_process = _FakePopen(
-            stdout_chunks=["serena: http://127.0.0.1:9131/mcp (HTTP) - Connected\n"],
+            stdout_chunks=["basic-memory: http://127.0.0.1:9131/mcp (HTTP) - Connected\n"],
             stderr_chunks=[],
             returncode=0,
         )
@@ -980,7 +980,7 @@ class TestRunSkillMcpListPreflight(unittest.TestCase):
         _mock_exists,
     ) -> None:
         mock_popen.return_value = _FakePopen(
-            stdout_chunks=["serena: http://127.0.0.1:9131/mcp (HTTP) - Connected\n"],
+            stdout_chunks=["basic-memory: http://127.0.0.1:9131/mcp (HTTP) - Connected\n"],
             stderr_chunks=[],
             returncode=0,
         )
