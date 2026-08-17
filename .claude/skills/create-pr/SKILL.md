@@ -5,6 +5,7 @@ description: |
   user asks to create or open a PR, including when there are no staged changes but the clean current branch is not
   main and has commits ahead of origin/main. Both modes use the full immutable candidate lifecycle. An
   already-committed branch receives a supplemental publication commit without rewriting its existing commits.
+disable-model-invocation: true
 ---
 
 # Create Pull Request
