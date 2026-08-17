@@ -10,7 +10,7 @@ binaries。
 使用以下提示词：
 
 ```text
-Use SKILL: init-gamebin to initialize the latest game version's binaries.
+Use SKILL: init-gamebin
 ```
 
 该 SKILL 会从仓库版本列表解析最新的游戏版本号，下载或合并对应的 binaries 且不会覆盖已有文件，然后从打包的snapshot中恢复 symbol YAMLs。

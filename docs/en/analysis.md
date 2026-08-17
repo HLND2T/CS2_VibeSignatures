@@ -6,7 +6,7 @@ For a new checkout, use `SKILL: init-gamebin` to initialize the binaries for the
 `download.yaml` before running symbol analysis. Ask the agent explicitly:
 
 ```text
-Use SKILL: init-gamebin to initialize the latest game version's binaries.
+Use SKILL: init-gamebin
 ```
 
 The skill resolves `latest` from the repository's version list, downloads or merges the matching binaries without overwriting existing files, and then restore symbol YAMLs. If no game version is specified, the skill lists the available entries and asks you to choose one.
