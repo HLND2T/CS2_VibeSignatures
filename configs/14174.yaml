@@ -6233,6 +6233,10 @@ modules:
           - CBaseEntity_VPhysicsCollision.{platform}.yaml
         expected_input:
           - PhysCollisionDust.{platform}.yaml
+      - name: find-CBaseEntity_ModifyOrAppendCriteria
+        expected_output:
+          - CBaseEntity_ModifyOrAppendCriteria.{platform}.yaml
+        expected_input:
           - CBaseEntity_vtable.{platform}.yaml
       - name: find-CEntityInstance_OnRestore
         expected_output:
@@ -6900,6 +6904,16 @@ modules:
           - g_networkstringtable.{platform}.yaml
           - g_pGameTypes.{platform}.yaml
         expected_input:
+          - CSource2Server_Connect.{platform}.yaml
+      - name: find-GlobalVarsWarningFunc
+        expected_output:
+          - GlobalVarsWarningFunc.{platform}.yaml
+      - name: find-CSource2Server_SetGlobals
+        expected_output:
+          - CSource2Server_SetGlobals.{platform}.yaml
+        expected_input:
+          - GlobalVarsWarningFunc.{platform}.yaml
+          - CSource2Server_vtable.{platform}.yaml
           - CSource2Server_Connect.{platform}.yaml
       - name: find-IAppSystem_Connect
         expected_output:
@@ -8482,6 +8496,12 @@ modules:
           - CEntityInstance_OnSetDormant.{platform}.yaml
         expected_input:
           - CCSPlayerPawnBase_OnSetDormant.{platform}.yaml
+      - name: find-CBaseEntity_OnSetDormant
+        expected_output:
+          - CBaseEntity_OnSetDormant.{platform}.yaml
+        expected_input:
+          - CBaseEntity_vtable.{platform}.yaml
+          - CEntityInstance_OnSetDormant.{platform}.yaml
       - name: find-CScriptedSequence_SynchronizeSequence
         expected_output:
           - CScriptedSequence_SynchronizeSequence.{platform}.yaml
@@ -8654,6 +8674,15 @@ modules:
       - name: find-CEngineServer_UnloadSpawnGroup
         expected_output:
           - CEngineServer_UnloadSpawnGroup.{platform}.yaml
+        expected_input_windows:
+          - CLoopModeGame_LoopInit.{platform}.yaml
+        expected_input_linux:
+          - CLoopModeGame_LoopInitInternal.{platform}.yaml
+      - name: find-CLoopModeGame_LoopInit-decompiles
+        expected_output:
+          - CNetworkServerService_SetGameSpawnGroupMgr.{platform}.yaml
+          - CNetworkServerService_AddServerPrerequisites.{platform}.yaml
+          - CNetworkServerService_SetFinalSimulationTickThisFrame.{platform}.yaml
         expected_input_windows:
           - CLoopModeGame_LoopInit.{platform}.yaml
         expected_input_linux:
@@ -8909,6 +8938,12 @@ modules:
           - CEntityInstance_AddChangeAccessorPath.{platform}.yaml
         expected_input:
           - EntityInstanceAddChangeAccessorPath.{platform}.yaml
+      - name: find-CBaseEntity_AddChangeAccessorPath
+        expected_output:
+          - CBaseEntity_AddChangeAccessorPath.{platform}.yaml
+        expected_input:
+          - CBaseEntity_vtable.{platform}.yaml
+          - CEntityInstance_AddChangeAccessorPath.{platform}.yaml
       - name: find-CEntityInstance_AssignChangeAccessorPathIds
         expected_output:
           - CEntityInstance_AssignChangeAccessorPathIds.{platform}.yaml
@@ -9299,6 +9334,10 @@ modules:
         category: vfunc
         alias:
           - CBaseEntity::VPhysicsCollision
+      - name: CBaseEntity_ModifyOrAppendCriteria
+        category: vfunc
+        alias:
+          - CBaseEntity::ModifyOrAppendCriteria
       - name: CEntityInstance_OnRestore
         category: vfunc
         alias:
@@ -9465,6 +9504,10 @@ modules:
         category: vfunc
         alias:
           - CEntityInstance::AddChangeAccessorPath
+      - name: CBaseEntity_AddChangeAccessorPath
+        category: vfunc
+        alias:
+          - CBaseEntity::AddChangeAccessorPath
       - name: CEntityInstance_AssignChangeAccessorPathIds
         category: vfunc
         alias:
@@ -10852,6 +10895,10 @@ modules:
         category: func
         alias:
           - CBaseEntity::ScriptGetAbsOrigin
+      - name: CBaseEntity_OnSetDormant
+        category: vfunc
+        alias:
+          - CBaseEntity::OnSetDormant
       - name: CBaseEntity_Precache
         category: vfunc
         alias:
@@ -11411,6 +11458,18 @@ modules:
         category: vfunc
         alias:
           - CEngineServer::UnloadSpawnGroup
+      - name: CNetworkServerService_SetGameSpawnGroupMgr
+        category: vfunc
+        alias:
+          - CNetworkServerService::SetGameSpawnGroupMgr
+      - name: CNetworkServerService_AddServerPrerequisites
+        category: vfunc
+        alias:
+          - CNetworkServerService::AddServerPrerequisites
+      - name: CNetworkServerService_SetFinalSimulationTickThisFrame
+        category: vfunc
+        alias:
+          - CNetworkServerService::SetFinalSimulationTickThisFrame
       - name: CSpawnGroupMgrGameSystem_GetSpawnGroups
         category: func
         alias:

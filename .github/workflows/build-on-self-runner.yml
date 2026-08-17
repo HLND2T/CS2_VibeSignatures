@@ -218,27 +218,25 @@ jobs:
             --gamever "$env:GAMEVER" --bindir bin --github-output "$env:GITHUB_OUTPUT"
           if ($LASTEXITCODE -ne 0) { throw "Failed to prepare old-version signature baseline." }
 
-      - name: Check cached binaries
-        id: cache
+      - name: Initialize binaries and BinSync recovery
+        id: init-binaries
         shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.HLND2T_GH_TOKEN }}
         run: |
-          $PSNativeCommandUseErrorActionPreference = $false
-          uv run copy_depot_bin.py -gamever "$env:GAMEVER" -platform all-platform -config "$env:ANALYSIS_CONFIG" -checkonly
-          $code = $LASTEXITCODE
-          if ($code -eq 0) { "ready=true" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append; exit 0 }
-          if ($code -eq 1) { "ready=false" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append; exit 0 }
-          throw "copy_depot_bin.py -checkonly failed with exit code $code"
-
-      - name: Download and copy missing depot binaries
-        id: download-binaries
-        if: steps.cache.outputs.ready != 'true'
-        shell: pwsh
-        run: |
-          uv run download_depot.py -tag "$env:GAMEVER" -depotdir cs2_depot -config download.yaml -configyaml "$env:ANALYSIS_CONFIG" `
-            -username "$env:DEPOTDOWNLOADER_STEAM_USERNAME" -password "$env:DEPOTDOWNLOADER_STEAM_PASSWORD" -remember-password
-          if ($LASTEXITCODE -ne 0) { throw "download_depot.py failed with exit code $LASTEXITCODE" }
-          uv run copy_depot_bin.py -gamever "$env:GAMEVER" -platform all-platform -config "$env:ANALYSIS_CONFIG"
-          if ($LASTEXITCODE -ne 0) { throw "copy_depot_bin.py failed with exit code $LASTEXITCODE" }
+          gh auth setup-git
+          if ($LASTEXITCODE -ne 0) { throw "gh auth setup-git failed with exit code $LASTEXITCODE" }
+          $orgLogin = gh api /orgs/HLND2T --jq .login
+          if ($LASTEXITCODE -ne 0) {
+            throw "HLND2T_GH_TOKEN could not authenticate to the HLND2T organization (gh api /orgs/HLND2T exited $LASTEXITCODE). Verify the token is valid, not expired, and has access to the HLND2T organization."
+          }
+          if ($orgLogin.Trim() -ne "HLND2T") {
+            throw "HLND2T_GH_TOKEN authenticated to an unexpected organization: '$($orgLogin.Trim())' (expected HLND2T)."
+          }
+          Write-Host "HLND2T_GH_TOKEN authenticated to $($orgLogin.Trim())"
+          uv run init_gamebin.py prepare "$env:GAMEVER" --binsync enable `
+            --create-missing-binsync-remotes
+          if ($LASTEXITCODE -ne 0) { throw "init_gamebin.py prepare failed with exit code $LASTEXITCODE" }
 
       - name: Analyze binaries with normal producer scheduling
         id: analyze
@@ -254,6 +252,21 @@ jobs:
           $args += '-debug'
           uv run ida_analyze_bin.py @args
           if ($LASTEXITCODE -ne 0) { throw "ida_analyze_bin.py failed with exit code $LASTEXITCODE" }
+
+      - name: Push accumulated symbols to BinSync remotes
+        id: binsync-push
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.HLND2T_GH_TOKEN }}
+        run: |
+          gh auth setup-git
+          if ($LASTEXITCODE -ne 0) { throw "gh auth setup-git failed with exit code $LASTEXITCODE" }
+          $pythonExe = (Get-Command python -ErrorAction SilentlyContinue).Source
+          if ([string]::IsNullOrWhiteSpace($pythonExe)) {
+            throw "BinSync push requires python on PATH"
+          }
+          uv run python push_binsync_symbols.py "$env:GAMEVER" --python "$pythonExe"
+          if ($LASTEXITCODE -ne 0) { throw "push_binsync_symbols.py failed with exit code $LASTEXITCODE" }
 
       - name: Build immutable symbol and gamedata candidates
         id: build-candidates

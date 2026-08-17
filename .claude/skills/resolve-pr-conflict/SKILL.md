@@ -2,11 +2,14 @@
 name: resolve-pr-conflict
 description: |
   Resolve an open same-repository GitHub PR conflict in CS2_VibeSignatures by merging the PR base branch into its
-  dev branch, resolving config and generated gamesymbol snapshot conflicts, generating missing current-version
-  artifacts with ida_analyze_bin.py, running the immutable candidate validation and publication lifecycle, creating a
-  merge commit, and pushing without force. Use when a PR is CONFLICTING/DIRTY or needs its base branch synchronized,
-  especially when configs/GAMEVER.yaml or gamesymbols/GAMEVER.yaml changed. Stop after push and check-status
-  reporting; never merge or auto-merge the PR.
+  dev branch, resolving config and generated gamesymbol snapshot conflicts, cleaning up stale non-latest gamever
+  config, snapshot, gamedata, and release-manifest changes, running a read-only /review-pr-for-preprocessor-script
+  audit right after conflict resolution and before preflight to catch design defects early, generating missing
+  current-version artifacts with ida_analyze_bin.py, running the immutable candidate validation and publication
+  lifecycle, creating a merge commit, and pushing without force. Use when a PR is CONFLICTING/DIRTY or needs its base
+  branch synchronized, especially when configs/GAMEVER.yaml or gamesymbols/GAMEVER.yaml changed. Stop after push and
+  check-status reporting; never merge or auto-merge the PR.
+disable-model-invocation: true
 ---
 
 # Resolve PR Conflict
@@ -83,7 +86,8 @@ An exit code `1` is expected only when Git reports merge conflicts. Any other me
 Resolve each path as follows:
 
 - `configs/<GAMEVER>.yaml`: preserve the semantically required entries from both parents, including skill ordering,
-  prerequisites, expected inputs/outputs, symbols, and aliases. Avoid duplicate entries.
+  prerequisites, expected inputs/outputs, symbols, and aliases. Avoid duplicate entries. If `<GAMEVER>` is not the latest
+  gamever in `download.yaml`, do not resolve forward — revert the whole path to base in Step 4 instead.
 - `gamesymbols/<GAMEVER>.yaml`: because the enforced direction is PR head <- base, select the base snapshot only as a
   temporary valid placeholder:
 
@@ -108,7 +112,55 @@ git status --short
 Require exactly one `GAMEVER` when config, analysis output, or gamesymbol paths are involved. Confirm
 `configs/$GAMEVER.yaml` exists.
 
-## Step 4 — Preflight Required Analysis Artifacts
+## Step 4 — Clean Up Stale (Non-Latest) Gamever Changes
+
+The analysis model is single-versioned: producers, expected inputs, symbol definitions, aliases, and generated
+outputs belong only in the latest gamever config. The latest gamever is the last `tag:` entry in `download.yaml`
+(chronological, matching `init_gamebin.py`'s `LATEST_GAMEVER = versions[-1]`). Never preserve, forward-resolve, or
+replay a non-latest gamever's config, analysis-output, or snapshot changes into the merged result.
+
+Collect every `<GAMEVER>` in the original PR and merged conflict paths that matches `configs/<GAMEVER>.yaml`,
+`gamesymbols/<GAMEVER>.yaml`, `gamedata/<GAMEVER>/`, or `release-manifests/<GAMEVER>.json`. For each gamever that is
+**not** the latest, revert those paths to the base snapshot so the merge carries no stale config or snapshot change:
+
+```bash
+LATEST_GAMEVER="$(grep -oE 'tag: *"[0-9]+[ab]*"' download.yaml | tail -1 | grep -oE '[0-9]+[ab]*')"
+for GV in <NON_LATEST_GAMEVERS>; do
+  git checkout <REMOTE>/<BASE_BRANCH> -- \
+    "configs/$GV.yaml" \
+    "gamesymbols/$GV.yaml" \
+    "gamedata/$GV" \
+    "release-manifests/$GV.json"
+  git add -- "configs/$GV.yaml" "gamesymbols/$GV.yaml" "gamedata/$GV" "release-manifests/$GV.json"
+done
+```
+
+Treat each reverted path exactly like a resolved conflict: require no unmerged entries, no conflict markers, and a
+clean diff for that path. If a legitimately justified historical backport exists, it must be explicitly documented in
+the PR before it can be preserved; absent that, a non-latest gamever change is a defect and is reverted unconditionally.
+
+If the PR itself is about the latest gamever and introduces no non-latest gamever paths, this step is a no-op.
+
+## Step 5 — Review the Resolved PR
+
+Run the repository review skill as a read-only audit of the resolved PR before investing in preflight, candidate, and
+publication work. Catch preprocessor design defects early rather than after push.
+
+Invoke `/review-pr-for-preprocessor-script` with the same `<PR>` now that the merge is resolved and stale-gamever
+cleanup is staged. The review audits the PR's config/script/snapshot changes against the base tree, including the
+stale-gamever gate for `configs/<GAMEVER>.yaml`.
+
+Treat `review-pr-for-preprocessor-script`'s findings as part of this skill's outcome, but do **not** begin repair in
+this invocation: repair of the existing PR is a separate explicitly authorized task. If
+`review-pr-for-preprocessor-script` finds actionable defects, report them and stop to ask the user how to deal with each
+issue — for example whether to fix the existing PR now or abandon this invocation — and do not continue to the later
+steps. If it finds none, state that the resolved PR passed review and continue to Step 6.
+
+`review-pr-for-preprocessor-script` is read-only for this step and never modifies, commits, pushes, or merges. If it
+reports the PR head has moved since the captured `PR_HEAD_SHA`, present the updated diff and stop without further
+mutation.
+
+## Step 6 — Preflight Required Analysis Artifacts
 
 Before invoking the official candidate skill, build a disposable symbol-only preflight candidate in a unique temporary
 directory. Never use this preflight candidate for validation or publication:
@@ -122,7 +174,7 @@ uv run gamesymbol_candidate.py build \
   -session "$PREFLIGHT_ROOT/$GAMEVER.session.json"
 ```
 
-If it succeeds, continue to Step 5 and ignore the disposable candidate.
+If it succeeds, continue to Step 7 and ignore the disposable candidate.
 
 If it reports `Missing required symbol YAML`, use the exact missing list to locate each producer in the merged config.
 For every producer:
@@ -155,7 +207,7 @@ unavailable required credentials, or ambiguous producer selection. Do not copy a
 After generating artifacts, create a new disposable preflight root and rerun the preflight once. If required YAML is
 still missing, stop and report it; do not loop indefinitely.
 
-## Step 5 — Prepare the Official Immutable Candidate
+## Step 7 — Prepare the Official Immutable Candidate
 
 Always invoke `/prepare-post-change-candidate` with the resolved `GAMEVER`. Do not reuse the disposable preflight
 candidate.
@@ -166,9 +218,9 @@ fails, stop the entire task.
 Formatting may change only paths already participating in the merge or original PR, plus current-version publication
 paths. Report and stop on any unrelated tracked change.
 
-## Step 6 — Validate the Exact Candidate
+## Step 8 — Validate the Exact Candidate
 
-Always invoke `/post-change-validation` with the same `GAMEVER`, candidate, and candidate session returned by Step 5.
+Always invoke `/post-change-validation` with the same `GAMEVER`, candidate, and candidate session returned by Step 7.
 
 Require all of the following evidence:
 
@@ -181,7 +233,7 @@ Require all of the following evidence:
 If validation fails or is non-runnable, stop exactly as that skill requires. Do not repair, retry, publish, commit, or
 push within this invocation.
 
-## Step 7 — Publish the Validated Candidate
+## Step 9 — Publish the Validated Candidate
 
 Always invoke `/publish-post-change-candidate` with the same `GAMEVER`, candidate, candidate session, and gamedata
 session. Never rebuild or reserialize after validation begins.
@@ -195,7 +247,7 @@ may modify only:
 
 Any other tracked change is a hard stop.
 
-## Step 8 — Review and Create the Merge Commit
+## Step 10 — Review and Create the Merge Commit
 
 Stage only explicit resolved/authorized paths and validated publication outputs. Never use `git add .` or
 `git add -A`.
@@ -225,7 +277,7 @@ git commit \
 Verify the commit has exactly two parents in this order: `PR_HEAD_SHA BASE_HEAD_SHA`. Require a clean worktree after
 commit.
 
-## Step 9 — Push Without Force and Stop Before PR Merge
+## Step 11 — Push Without Force and Stop Before PR Merge
 
 Immediately before push, confirm the remote PR head is still `PR_HEAD_SHA`. If it changed, stop; never overwrite the
 other update.
@@ -264,7 +316,10 @@ Report:
 
 - PR URL, base branch, head branch, original PR SHA, base SHA, and pushed merge-commit SHA;
 - resolved conflict paths and generated artifact paths;
+- non-latest gamever paths reverted to base in Step 4 and the verified latest gamever;
 - game version, official candidate SHA-256, runnable-test count, and zero failure counters;
 - published snapshot SHA-256 equality and any versioned gamedata changes;
 - pushed remote branch and latest known PR/check state;
+- the `/review-pr-for-preprocessor-script` audit result (Step 5): findings (or "no actionable findings") and the consent
+  question if defects were found;
 - explicit statement: `PR was not merged by resolve-pr-conflict`.
