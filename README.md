@@ -28,8 +28,8 @@ These commands populate `bin/<GAMEVER>/` and run the configured deterministic, L
 - [Reference YAML for `LLM_DECOMPILE`](docs/en/reference-yaml.md)
 - [Snapshots, gamedata, and C++ validation](docs/en/snapshot-and-gamedata.md)
 - [Creating symbol-analysis skills](docs/en/creating-skills.md)
-- [CI/CD and Jenkins workflow reference](docs/en/ci-cd.md)
 - [Contributing symbol-analysis skills via a pull request](docs/en/conributing-via-pr.md)
+- [CI/CD and Jenkins workflow reference](docs/en/ci-cd.md)
 
 Canonical tracked outputs are `gamesymbols/<GAMEVER>.yaml` and `gamedata/<GAMEVER>/`. Per-symbol analysis YAML remains private mutable state under `bin/<GAMEVER>/`.
 

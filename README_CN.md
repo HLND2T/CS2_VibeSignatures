@@ -28,8 +28,8 @@ uv run ida_analyze_bin.py -gamever 14156 -oldgamever 14155
 - [`LLM_DECOMPILE` reference YAML](docs/zh-CN/reference-yaml.md)
 - [Snapshot、gamedata 与 C++ 验证](docs/zh-CN/snapshot-and-gamedata.md)
 - [创建符号分析 skill](docs/zh-CN/creating-skills.md)
-- [CI/CD 与 Jenkins 工作流参考](docs/zh-CN/ci-cd.md)
 - [通过 Pull Request 贡献符号分析 skill](docs/zh-CN/conributing-via-pr.md)
+- [CI/CD 与 Jenkins 工作流参考](docs/zh-CN/ci-cd.md)
 
 canonical tracked output 是 `gamesymbols/<GAMEVER>.yaml` 与 `gamedata/<GAMEVER>/`。单个 symbol 的分析 YAML 仍作为私有可变状态保存在 `bin/<GAMEVER>/`。
 
