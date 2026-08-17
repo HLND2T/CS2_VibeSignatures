@@ -137,6 +137,9 @@ class TestSymbolStoreArchitecture(unittest.TestCase):
         self.assertIn("git commit", create_pr)
         self.assertIn("git push -u origin", create_pr)
         self.assertIn("gh pr create", create_pr)
+        self.assertIn(".claude/skills/create-pr/scripts/classify_delivery.py", create_pr)
+        self.assertIn("LIFECYCLE=0", create_pr)
+        self.assertIn("Skip Steps 3 through 6 entirely", create_pr)
 
         for caller_name in POST_CHANGE_CALLERS:
             with self.subTest(caller=caller_name):
