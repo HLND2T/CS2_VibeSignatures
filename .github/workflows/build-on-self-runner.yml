@@ -234,7 +234,8 @@ jobs:
             throw "HLND2T_GH_TOKEN authenticated to an unexpected organization: '$($orgLogin.Trim())' (expected HLND2T)."
           }
           Write-Host "HLND2T_GH_TOKEN authenticated to $($orgLogin.Trim())"
-          uv run init_gamebin.py prepare "$env:GAMEVER" --binsync enable
+          uv run init_gamebin.py prepare "$env:GAMEVER" --binsync enable `
+            --create-missing-binsync-remotes
           if ($LASTEXITCODE -ne 0) { throw "init_gamebin.py prepare failed with exit code $LASTEXITCODE" }
 
       - name: Analyze binaries with normal producer scheduling
@@ -255,18 +256,17 @@ jobs:
       - name: Push accumulated symbols to BinSync remotes
         id: binsync-push
         shell: pwsh
-        continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.HLND2T_GH_TOKEN }}
         run: |
           gh auth setup-git
-          if ($LASTEXITCODE -ne 0) { Write-Warning "gh auth setup-git failed with exit code $LASTEXITCODE" }
+          if ($LASTEXITCODE -ne 0) { throw "gh auth setup-git failed with exit code $LASTEXITCODE" }
           $pythonExe = (Get-Command python -ErrorAction SilentlyContinue).Source
           if ([string]::IsNullOrWhiteSpace($pythonExe)) {
-            Write-Warning "BinSync push skipped: no python on PATH"
-            exit 0
+            throw "BinSync push requires python on PATH"
           }
           uv run python push_binsync_symbols.py "$env:GAMEVER" --python "$pythonExe"
+          if ($LASTEXITCODE -ne 0) { throw "push_binsync_symbols.py failed with exit code $LASTEXITCODE" }
 
       - name: Build immutable symbol and gamedata candidates
         id: build-candidates
