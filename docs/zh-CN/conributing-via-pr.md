@@ -4,22 +4,6 @@
 
 完成符号分析 skill 的创建并在本地验证后，可使用 `SKILL: create-pr`（调用方式为 `/create-pr`）将其共享到项目中。该 skill 会先对 staged change 分类：涉及 CS2 Symbols 的路径会走 candidate 准备、验证和发布，再提交、推送并创建 Pull Request；不涉及 symbols 的改动则直接创建 PR。
 
-## 调用 `create-pr` 前
-
-1. 先完成该 skill 的专项检查。对于新的符号分析 skill，通常包括新的 `SKILL.md`、preprocessor 或辅助脚本，以及对应的配置或 reference 更新。
-2. 在仓库根目录只暂存本次贡献涉及的文件，不要使用全仓库 add 命令：
-
-   ```bash
-   git add -- .claude/skills/<skill-name>/SKILL.md
-   git add -- <preprocessor-or-supporting-files> <config-or-reference-files>
-   git diff --cached --name-only
-   ```
-
-3. 确认没有未暂存的 tracked changes。已有的无关 untracked files 可以保留未跟踪状态，`create-pr` 会保留它们。
-4. 确认仓库存在 `origin` remote，且 `gh auth status` 认证成功。若改动涉及 CS2 Symbols，必须解析出唯一的游戏版本：可以向 skill 传入 `gamever`，也可以在 `.env` 中设置 `CS2VIBE_GAMEVER`。不涉及 symbols 的改动不需要 `gamever`。
-
-`gamesymbols/<GAMEVER>.yaml` 与 `gamedata/<GAMEVER>/` 属于生成输出。通过验证后由 `create-pr` 发布，无需在此流程中手动暂存。
-
 ## 调用 skill
 
 可以这样请求 agent：
@@ -31,7 +15,9 @@ branch: dev-find-example
 commit_title: feat(skills): add find-example symbol-analysis skill
 ```
 
-`branch`、commit title、PR 标题/正文以及 issue 编号都是可选的；省略时，`create-pr` 会根据 staged diff 生成合适的值。它会从 `dev*` 分支针对 `main` 创建 PR，不会直接向 `main` 提交。
+`branch`、commit title、PR 标题/正文以及 issue 编号都是可选的。省略时，`create-pr` 会根据 staged diff 生成合适的值。
+
+它会从 `dev*` 分支针对 `main` 创建 PR，不会直接向 `main` 提交。
 
 ## `create-pr` 执行的步骤
 
