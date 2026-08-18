@@ -3266,7 +3266,7 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
             mock_normalize.await_args_list,
         )
 
-    async def test_filter_func_addrs_by_float_xrefs_keeps_xref_matches_and_excludes_hits(
+    async def test_filter_func_addrs_by_float_xrefs_requires_all_xrefs_and_excludes_any_hit(
         self,
     ) -> None:
         session = AsyncMock()
@@ -3279,7 +3279,13 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
                             "const_ea": "0x181000000",
                             "kind": "float",
                             "value": 64.0,
-                        }
+                        },
+                        {
+                            "inst_ea": "0x180100018",
+                            "const_ea": "0x181000004",
+                            "kind": "float",
+                            "value": 0.5,
+                        },
                     ],
                     "xref_hit": True,
                     "exclude_hit": False,
@@ -3288,9 +3294,9 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
                     "constants": [
                         {
                             "inst_ea": "0x180200010",
-                            "const_ea": "0x181000004",
+                            "const_ea": "0x181000008",
                             "kind": "float",
-                            "value": 1.0,
+                            "value": 64.0,
                         }
                     ],
                     "xref_hit": False,
@@ -3300,10 +3306,22 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
                     "constants": [
                         {
                             "inst_ea": "0x180300010",
-                            "const_ea": "0x181000008",
+                            "const_ea": "0x18100000c",
+                            "kind": "float",
+                            "value": 64.0,
+                        },
+                        {
+                            "inst_ea": "0x180300018",
+                            "const_ea": "0x181000010",
                             "kind": "float",
                             "value": 0.5,
-                        }
+                        },
+                        {
+                            "inst_ea": "0x180300020",
+                            "const_ea": "0x181000014",
+                            "kind": "float",
+                            "value": 128.0,
+                        },
                     ],
                     "xref_hit": True,
                     "exclude_hit": True,
@@ -3315,7 +3333,7 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
             session=session,
             func_addrs={0x180100000, 0x180200000, 0x180300000},
             xref_floats=["64.0", "0.5"],
-            exclude_floats=["0.5"],
+            exclude_floats=["128.0"],
             debug=True,
         )
 
@@ -3330,7 +3348,10 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
         self.assertIn('"mulsd"', py_code)
         self.assertIn('"vmulss"', py_code)
         self.assertIn('"vmulsd"', py_code)
+        self.assertIn("xref_hits = [False] * len(xref_values)", py_code)
+        self.assertIn("xref_hit = all(xref_hits)", py_code)
         self.assertIn("globals().update(locals())", py_code)
+        compile(py_code, "<float_xref_filter>", "exec")
 
     async def test_filter_func_addrs_by_float_xrefs_fails_closed_on_invalid_payload(
         self,
@@ -5377,6 +5398,37 @@ class TestLlmDecompileSupport(unittest.IsolatedAsyncioTestCase):
         symbol_name = ida_llm_decompile._get_llm_result_symbol_name("found_struct_offset", entry)
 
         self.assertEqual("SDL_Mouse_Warp_Mouse", symbol_name)
+
+    def test_resolve_struct_member_entry_names_accepts_flattened_nested_member(self) -> None:
+        resolved_names = ida_analyze_util._resolve_struct_member_entry_names(
+            "CSkeletonInstance",
+            "m_modelState.m_simulationState",
+            "CSkeletonInstance",
+            "m_modelState_m_simulationState",
+        )
+
+        self.assertEqual(
+            ("CSkeletonInstance", "m_modelState.m_simulationState"),
+            resolved_names,
+        )
+
+    def test_resolve_struct_member_entry_names_rejects_different_target(self) -> None:
+        for entry_struct_name, entry_member_name in (
+            ("CSomeOtherStruct", "m_modelState_m_simulationState"),
+            ("CSkeletonInstance", "m_modelState_m_renderState"),
+        ):
+            with self.subTest(
+                entry_struct_name=entry_struct_name,
+                entry_member_name=entry_member_name,
+            ):
+                self.assertIsNone(
+                    ida_analyze_util._resolve_struct_member_entry_names(
+                        "CSkeletonInstance",
+                        "m_modelState.m_simulationState",
+                        entry_struct_name,
+                        entry_member_name,
+                    )
+                )
 
     def test_get_llm_result_symbol_name_rejects_incomplete_struct_members(self) -> None:
         for entry in (
@@ -8736,6 +8788,135 @@ found_struct_offset: []
             "got CSomeOtherStruct.m_wrongField",
             printed,
         )
+
+    async def test_preprocess_common_skill_accepts_flattened_nested_struct_member_name(
+        self,
+    ) -> None:
+        struct_member_name = "CSkeletonInstance_m_modelState_m_simulationState"
+        with tempfile.TemporaryDirectory() as temp_dir:
+            module_dir = Path(temp_dir) / "client"
+            target_output = module_dir / f"{struct_member_name}.windows.yaml"
+            old_path = module_dir / "old" / f"{struct_member_name}.windows.yaml"
+            _write_yaml(
+                old_path,
+                {
+                    "struct_name": "CSkeletonInstance",
+                    "member_name": "m_modelState.m_simulationState",
+                    "offset": "0x1c0",
+                    "size": 8,
+                },
+            )
+
+            llm_request = {
+                "client": None,
+                "model": "gpt-5.4",
+                "prompt_path": "/tmp/prompt.md",
+                "reference_yaml_path": "/tmp/reference.yaml",
+                "prompt_template": "ignored",
+                "target_func_name": "CSkeletonInstance_PostDataUpdate",
+                "disasm_for_reference": "",
+                "procedure_for_reference": "",
+            }
+            llm_result = {
+                "found_vcall": [],
+                "found_call": [],
+                "found_funcptr": [],
+                "found_gv": [],
+                "found_struct_offset": [
+                    {
+                        "insn_va": "0x180A66DB8",
+                        "insn_disasm": "lea rcx, [rsi+1C0h]",
+                        "offset": "0x1C0",
+                        "struct_name": "CSkeletonInstance",
+                        "member_name": "m_modelState_m_simulationState",
+                        "size": "8",
+                    }
+                ],
+            }
+
+            async def _fake_direct_struct_offset(**kwargs):
+                return {
+                    "struct_name": kwargs["struct_name"],
+                    "member_name": kwargs["member_name"],
+                    "offset": "0x1c0",
+                    "size": 8,
+                    "offset_sig": "48 8D 8E ?? ?? ?? ??",
+                    "offset_sig_disp": 0,
+                }
+
+            with (
+                patch.object(
+                    ida_analyze_util,
+                    "preprocess_struct_offset_sig_via_mcp",
+                    AsyncMock(return_value=None),
+                ),
+                patch.object(
+                    ida_analyze_util,
+                    "_prepare_llm_decompile_request",
+                    return_value=llm_request,
+                ),
+                patch.object(
+                    ida_analyze_util,
+                    "_load_llm_decompile_target_details_via_mcp",
+                    AsyncMock(return_value=[{"disasm_code": "", "procedure": ""}]),
+                ),
+                patch.object(
+                    ida_analyze_util,
+                    "call_llm_decompile",
+                    AsyncMock(return_value=llm_result),
+                ),
+                patch.object(
+                    ida_analyze_util,
+                    "_preprocess_direct_struct_offset_sig_via_mcp",
+                    side_effect=_fake_direct_struct_offset,
+                ) as mock_direct_struct_offset,
+                patch.object(ida_analyze_util, "write_struct_offset_yaml") as mock_write_struct_offset_yaml,
+            ):
+                result = await ida_analyze_util.preprocess_common_skill(
+                    session=AsyncMock(),
+                    expected_outputs=[str(target_output)],
+                    old_yaml_map={str(target_output): str(old_path)},
+                    new_binary_dir=str(module_dir),
+                    platform="windows",
+                    image_base=0x180000000,
+                    struct_member_names=[struct_member_name],
+                    llm_decompile_specs=[
+                        {
+                            "symbol_name": struct_member_name,
+                            "prompt_path": "prompt/call_llm_decompile.md",
+                            "reference_yaml_paths": [
+                                "references/client/CSkeletonInstance_PostDataUpdate.windows.yaml",
+                            ],
+                            "expected_result_sections": ["found_struct_offset"],
+                            "dependency_policy": {
+                                "CSkeletonInstance_PostDataUpdate.{platform}.yaml": "required",
+                            },
+                        },
+                    ],
+                    llm_config={"model": "gpt-5.4"},
+                    generate_yaml_desired_fields=[
+                        (
+                            struct_member_name,
+                            [
+                                "struct_name",
+                                "member_name",
+                                "offset",
+                                "size",
+                                "offset_sig",
+                                "offset_sig_disp",
+                            ],
+                        )
+                    ],
+                    debug=True,
+                )
+
+        self.assertTrue(result)
+        self.assertEqual(
+            "m_modelState.m_simulationState",
+            mock_direct_struct_offset.call_args.kwargs["member_name"],
+        )
+        written_payload = mock_write_struct_offset_yaml.call_args.args[1]
+        self.assertEqual("m_modelState.m_simulationState", written_payload["member_name"])
 
     async def test_preprocess_gen_vfunc_sig_via_mcp_guards_cross_boundary_decode(
         self,

@@ -1,5 +1,6 @@
 import os
 import shutil
+import stat
 import tempfile
 import unittest
 from pathlib import Path
@@ -67,6 +68,35 @@ class TestCompletedReleaseCleanup(unittest.TestCase):
 
             self.assertEqual("resumed", result["status"])
             self.assertFalse(trash.exists())
+
+    def test_cleanup_retries_readonly_files(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            fixture = ReleaseFixture(Path(tmp))
+            stage_dir = _finalize_fixture(fixture)
+            readonly = (
+                stage_dir
+                / "bin"
+                / fixture.gamever
+                / "client"
+                / "client.dll.bsproj"
+                / ".git"
+                / "objects"
+                / "ab"
+                / "readonly-object"
+            )
+            readonly.parent.mkdir(parents=True)
+            readonly.write_bytes(b"git object")
+            os.chmod(readonly, stat.S_IREAD)
+
+            result = cleanup_completed(
+                staging_root=fixture.staging,
+                persisted_root=fixture.root / "persisted",
+                gamever=fixture.gamever,
+                build_id=fixture.build_id,
+            )
+
+            self.assertEqual("removed", result["status"])
+            self.assertFalse(stage_dir.exists())
 
     def test_legacy_stage_requires_explicit_provenance_migration(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

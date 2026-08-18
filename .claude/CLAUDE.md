@@ -4,17 +4,18 @@ This file provides guidance and important rules working with code in this reposi
 
 ## When coding / building plan
 
- - Use a progressive disclosure approach for agent coding in this repository: start from high-level information in Serena memories, and only locate/read specific files or symbols when necessary to avoid expanding too much context at once.
+- Use a progressive disclosure approach for agent coding in this repository: start from high-level information in the Basic Memory knowledge base, and only locate/read specific files or symbols when necessary to avoid expanding too much context at once.
 
-#### Serena memories (Keep context clean)
+## Basic Memory knowledge base (Keep context clean)
 
-- Perfer use serena mcp tools to understand the architecture and code hierarchy quickly.
-- **ALWAYS** Call Serena's `activate_project` before reading memories.
+- Notes live in `memory/` (markdown with YAML frontmatter: `title`/`type`/`permalink`), tracked in git.
+- Basic Memory is registered as MCP server `basic-memory`, pinned to the `cs2-vibesignatures` project (`--project cs2-vibesignatures` via project-level `.mcp.json`).
+- Prefer Basic Memory MCP tools (`search_notes` / `read_note` / `write_note` / `edit_note`) for project knowledge.
 
-#### When Memories Are Insufficient (On-Demand Querying and Reading)
+## When Notes Are Insufficient (On-Demand Querying and Reading)
 
-- Check `READMD.md`
+- Check `README.md`
 
-## IDA Pro MCP Tools Reference
+## Explore SKILLs
 
-See serena memory: `ida-pro-mcp`
+- project-level SKILLs should be explored from `.claude/skills` even when we are using Codex.
