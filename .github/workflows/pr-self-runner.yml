@@ -345,6 +345,10 @@ jobs:
             $robocopyArgs += $excludes.Dirs
           }
 
+          # Skip any subdirectory whose name matches *.bsproj
+          $robocopyArgs += "/XD"
+          $robocopyArgs += "*.bsproj"
+
           robocopy @robocopyArgs
           $robocopyExitCode = $LASTEXITCODE
           if ($robocopyExitCode -ge 8) {

@@ -1,29 +1,15 @@
 [Back to README](../../README.md) | [中文](../zh-CN/analysis.md)
 
-# Binary acquisition and symbol analysis
+# Initialize the latest game binaries
 
-## Download the CS2 depot
+For a new checkout, use `SKILL: init-gamebin` to initialize the binaries for the latest game version listed in
+`download.yaml` before running symbol analysis. Ask the agent explicitly:
 
-Download the configured depot version, then copy the target binaries into the workspace:
-
-```bash
-uv run download_depot.py -tag 14156
-
-uv run copy_depot_bin.py -gamever 14156 -platform all-platform
-uv run copy_depot_bin.py -gamever 14156 -platform all-platform -checkonly
+```text
+Use SKILL: init-gamebin
 ```
 
-Use `-checkonly` in CI or preflight scripts when you only need to know whether all expected target binaries already exist under `bin/<gamever>/...`. This mode only checks target paths, does not require a populated `cs2_depot`, returns `0` when all expected binaries are ready, `1` when any target is missing, and `2` for configuration or argument errors.
-
-The scheduled `Bump Download` GitHub Actions workflow keeps `download.yaml` current. It runs `bump_download.py` against the CS2 default branch, appends an entry only when the discovered `PatchVersion` and depot manifests require it, creates the matching local commit and tag, and pushes them from the workflow.
-
-Preview a bump locally without writing Git state:
-
-```bash
-uv run bump_download.py -config download.yaml -depotdir cs2_depot -dry-run
-```
-
-If DepotDownloader needs authentication, add the same `-username`, `-password`, and `-remember-password` flags used by the workflow.
+The skill resolves `latest` from the repository's version list, downloads or merges the matching binaries without overwriting existing files, and then restore symbol YAMLs. If no game version is specified, the skill lists the available entries and asks you to choose one.
 
 ## Analyze configured symbols
 
@@ -35,7 +21,7 @@ Command synopsis:
 uv run ida_analyze_bin.py -gamever 14156 [-oldgamever=14155] [-configyaml=path/to/custom.yaml] [-modules=server] [-skill=find-CBaseEntity_vtable] [-platform=windows] [-agent=claude/codex/opencode/"claude.cmd"/"codex.cmd"/"opencode.cmd"] [-maxretry=3] [-vcall_finder=g_pNetworkMessages] [-llm_model=gpt-4o] [-llm_apikey=your-key] [-llm_baseurl=https://api.example.com/v1] [-llm_temperature=0.2] [-llm_effort=medium] [-llm_fake_as=codex] [-rename] [-debug]
 ```
 
-Shared LLM parameters:
+Optional LLM parameters:
 
 - `-llm_apikey`: required when an LLM-backed workflow is enabled, including `vcall_finder` aggregation and `LLM_DECOMPILE`.
 - `-llm_baseurl`: optional custom compatible base URL; required with `-llm_fake_as=codex`.
