@@ -5,6 +5,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 from release_workflow_lib.errors import ReleaseWorkflowError
+from release_workflow_lib.filesystem import remove_tree
 from release_workflow_lib.hashing import (
     contained_path,
     file_inventory,
@@ -163,7 +164,7 @@ def reconstruct_workspace(repo_root: Path, stage_dir: Path, gamever: str) -> Pat
     target = contained_path(repo_root, "bin", gamever)
     if target.exists():
         reject_reparse_points(target)
-        shutil.rmtree(target)
+        remove_tree(target)
     target.parent.mkdir(parents=True, exist_ok=True)
     shutil.copytree(source, target, copy_function=shutil.copy2)
     return target
@@ -229,10 +230,10 @@ def _swap_verified_bin(
         raise ReleaseWorkflowError(f"promotion backup already exists while accepted bin differs: {backup}")
     if incoming.exists():
         reject_reparse_points(incoming)
-        shutil.rmtree(incoming)
+        remove_tree(incoming)
     shutil.copytree(source, incoming, copy_function=shutil.copy2)
     if verify_inventory(incoming, expected_files) != expected_hash:
-        shutil.rmtree(incoming)
+        remove_tree(incoming)
         raise ReleaseWorkflowError("incoming accepted-bin directory failed verification")
     moved_old = False
     try:
@@ -372,7 +373,7 @@ def finalize_promotion(
     backup = state.get("backup")
     if backup and Path(backup).exists():
         reject_reparse_points(Path(backup))
-        shutil.rmtree(backup)
+        remove_tree(Path(backup))
     persisted_root = accepted.parent.parent
     incoming_path, backup_path = _recovery_paths(persisted_root, pending["gamever"], pending["build_id"])
     if incoming_path.exists() or backup_path.exists():
@@ -459,7 +460,7 @@ def cleanup_completed(*, staging_root: Path, persisted_root: Path, gamever: str,
             resumed = True
         else:
             return {"status": "already-absent", "gamever": gamever, "build_id": build_id}
-    shutil.rmtree(trash_dir)
+    remove_tree(trash_dir)
     return {"status": "resumed" if resumed else "removed", "gamever": gamever, "build_id": build_id}
 
 
