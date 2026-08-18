@@ -7946,6 +7946,15 @@ modules:
       - name: find-CPhysicsGameSystem_ProcessContactEvents
         expected_output:
           - CPhysicsGameSystem_ProcessContactEvents.{platform}.yaml
+      - name: find-PlayImpactPhysicsDust
+        expected_output:
+          - PlayImpactPhysicsDust.{platform}.yaml
+      - name: find-CBaseEntity_VPhysicsCollision
+        expected_output:
+          - CBaseEntity_VPhysicsCollision.{platform}.yaml
+        expected_input:
+          - PlayImpactPhysicsDust.{platform}.yaml
+          - CBaseEntity_vtable.{platform}.yaml
       - name: find-CPhysicsGameSystem_ProcessContactEvents-decompiles
         expected_output:
           - IVPhys2World_GetTouchingList.{platform}.yaml
@@ -11379,6 +11388,12 @@ modules:
         category: func
         alias:
           - CPhysicsGameSystem::ProcessContactEvents
+      - name: PlayImpactPhysicsDust
+        category: func
+      - name: CBaseEntity_VPhysicsCollision
+        category: vfunc
+        alias:
+          - CBaseEntity::VPhysicsCollision
       - name: CBaseEntity_VPhysicsStartTouch
         category: func
         alias:
