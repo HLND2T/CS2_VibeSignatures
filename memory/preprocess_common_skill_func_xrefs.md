@@ -14,18 +14,23 @@ permalink: cs2-vibesignatures/preprocess-common-skill-func-xrefs
   - `xref_gvs`
   - `xref_signatures`
   - `xref_funcs`
+  - `inline_alias`
+  - `xref_floats`
   - `exclude_funcs`
   - `exclude_strings`
   - `exclude_gvs`
   - `exclude_signatures`
+  - `exclude_floats`
   - `exclude_callees`
-- The positive sources `xref_strings` / `xref_gvs` / `xref_signatures` / `xref_funcs` cannot all be empty at the same time
+- At least one positive source among `xref_strings` / `xref_gvs` / `xref_signatures` / `xref_funcs` / `inline_alias` is required
 
 ## Contract
 - The old tuple schema is no longer supported; any match is treated as invalid configuration immediately
 - `exclude_strings` and `exclude_gvs` are global exclusion sets: they are subtracted after the positive intersection
 - `exclude_callees` is the inverse of `xref_funcs`: it subtracts candidates that CALL the named function(s) (callers of the callee, collected via `_collect_xref_func_starts_for_ea` on the callee's `func_va`). Use it when the collider is unnamed (so `exclude_funcs`, which drops the func itself, cannot address it) and is separated only by a callee the target lacks. Depends on the callee's current-version func YAML (`func_va`); list it in `expected_input`
 - `exclude_signatures` is checked only within the remaining candidate functions; a match excludes that candidate function
+- `xref_floats` is a post-intersection AND filter: every configured scalar readonly float/double value must be present in the candidate function
+- `exclude_floats` is a post-intersection OR filter: any configured scalar readonly float/double value excludes the candidate function
 - Missing hits for `exclude_strings` and `exclude_gvs` are not treated as failures; they are simply treated as empty exclusion sets
 - Each element in `xref_gvs` / `exclude_gvs` can be either a gv symbol name or an explicit `0x...` address literal
 

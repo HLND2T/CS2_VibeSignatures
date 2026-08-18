@@ -6980,7 +6980,7 @@ async def _filter_func_addrs_by_float_xrefs_via_mcp(
     exclude_floats,
     debug=False,
 ):
-    """Filter function addresses by readonly scalar float/double xrefs."""
+    """Require all configured float xrefs and reject any excluded float xref."""
     func_addr_set = set(func_addrs or [])
     if not func_addr_set:
         return set()
@@ -7048,12 +7048,9 @@ async def _filter_func_addrs_by_float_xrefs_via_mcp(
         '    seg_name = ida_segment.get_segm_name(seg) or ""\n'
         '    return seg_name == ".rdata" or seg_name.startswith(".rodata")\n'
         "\n"
-        "def _matches(value, expected_values, kind):\n"
+        "def _matches(value, expected, kind):\n"
         '    epsilon = FLOAT_EPSILON if kind == "float" else DOUBLE_EPSILON\n'
-        "    for expected in expected_values:\n"
-        "        if abs(value - expected) < epsilon:\n"
-        "            return True\n"
-        "    return False\n"
+        "    return abs(value - expected) < epsilon\n"
         "\n"
         "def _read_scalar_value(target_ea, kind):\n"
         '    if kind == "float":\n'
@@ -7072,7 +7069,7 @@ async def _filter_func_addrs_by_float_xrefs_via_mcp(
         "for func_ea in func_addrs:\n"
         "    func = ida_funcs.get_func(func_ea)\n"
         "    constants = []\n"
-        "    xref_hit = False\n"
+        "    xref_hits = [False] * len(xref_values)\n"
         "    exclude_hit = False\n"
         "    if func:\n"
         "        for insn_ea in idautils.FuncItems(func.start_ea):\n"
@@ -7095,10 +7092,13 @@ async def _filter_func_addrs_by_float_xrefs_via_mcp(
         '                    "kind": kind,\n'
         '                    "value": value,\n'
         "                })\n"
-        "                if _matches(value, xref_values, kind):\n"
-        "                    xref_hit = True\n"
-        "                if _matches(value, exclude_values, kind):\n"
-        "                    exclude_hit = True\n"
+        "                for xref_idx, expected in enumerate(xref_values):\n"
+        "                    if _matches(value, expected, kind):\n"
+        "                        xref_hits[xref_idx] = True\n"
+        "                for expected in exclude_values:\n"
+        "                    if _matches(value, expected, kind):\n"
+        "                        exclude_hit = True\n"
+        "    xref_hit = all(xref_hits)\n"
         "    out[hex(func_ea)] = {\n"
         '        "constants": constants,\n'
         '        "xref_hit": xref_hit,\n'
@@ -7777,8 +7777,9 @@ async def preprocess_common_skill(
       ``exclude_callees``). ``exclude_callees`` drops candidates that CALL the
       named function(s) -- the inverse of ``xref_funcs`` -- for cases where the
       collider is unnamed and separated only by a callee the target lacks.
-      ``xref_floats``/``exclude_floats`` do not count as positive xref
-      candidate sources. ``xref_gvs``/``exclude_gvs``
+      Every configured ``xref_floats`` value must be present in a candidate;
+      any matching ``exclude_floats`` value rejects it. These float filters do
+      not count as positive xref candidate sources. ``xref_gvs``/``exclude_gvs``
       entries may be YAML symbol names or explicit ``0x...`` addresses.
       Symbolic entries are resolved from current-version YAML files in
       ``new_binary_dir``.
