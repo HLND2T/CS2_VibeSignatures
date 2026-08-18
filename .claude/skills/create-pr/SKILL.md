@@ -61,7 +61,11 @@ Both modes share one classification gate (Step 2, the bundled classifier). Never
   publication in the PR body when the lifecycle was skipped. You may override only from `0` to `1` when a captured
   path clearly feeds the symbols pipeline and the classifier missed it. Never override `1` to `0`.
 - Stop on the first failed/non-runnable gate. Do not repair or retry inside this skill, and do not commit, push, or
-  create a PR after a gate failure.
+  create a PR after a gate failure. The sole exception is Step 3a: when `/prepare-post-change-candidate` fails only
+  because `bin/$GAMEVER/` is missing analysis artifacts that the config's `modules` contract already declares (the
+  `Missing required symbol YAML:` marker), this skill may run the module analyzer once to fill those artifacts and
+  retry preparation exactly once. Any other failure — or a second failure after that fill — still hard-stops with no
+  commit, push, or PR.
 
 ## Step 1: Select and Guard the Delivery Mode
 
@@ -221,6 +225,44 @@ After preparation, inspect `git diff --name-only`. Formatting may have changed a
 `INITIAL_STAGED_PATHS` in `staged-delivery`, or to `INITIAL_COMMITTED_PATHS` in `committed-branch`. If any other
 tracked path changed, stop and report it; do not stage it or continue.
 
+## Step 3a: Recover Missing Analysis Artifacts (Prepare Failure Only)
+
+Use this step only when `/prepare-post-change-candidate` fails **exclusively** at `gamesymbol_candidate.py build` with
+the `Missing required symbol YAML:` marker — i.e. the config's `modules` contract declares analysis artifacts that are
+absent from `bin/$GAMEVER/`. This is a `bin`/config drift, not a change to the delivered source. Any other prepare
+failure (formatter, guard, gamedata build, malformed YAML, undeclared YAML, etc.) is a hard stop; do not invoke this
+step for it.
+
+The declared analyzer is already idempotent and skip-if-exists, so the fill runs only skills whose outputs are
+missing. It may only ever add untracked `bin/$GAMEVER/` files (never tracked or staged paths), and it runs the full
+module dependency graph — safer than a per-skill fill, since prerequisites are honored.
+
+Procedure:
+
+1. Parse the missing artifact lines from the failure output. Each line is `<module>/<Symbol>.<platform>.yaml`. Collect
+   the **module** names only — the part before the first `/` — deduplicated and in order. Stop if any line does not
+   match `<module>/<symbol>.{windows,linux}.yaml` or any module contains `/` or `\`.
+
+2. For every such module, run the analyzer from the repository root. The config already declares every missing
+   artifact, so no `-skill` filter is needed; run the whole module and let `skip-if-exists` limit the work:
+
+   ```bash
+   uv run ida_analyze_bin.py -gamever "$GAMEVER" -modules "$MODULES" 
+   ```
+
+   where `$MODULES` is the comma-joined, deduplicated module list from step 1. Any nonzero exit stops this step and
+   the whole task. Start it as a background task and poll until it finishes — never impose a 64-second timeout on IDA
+   analysis.
+
+3. Re-verify on disk that every parsed missing artifact now exists, then re-run `/prepare-post-change-candidate` with
+   the same `gamever` exactly once. Use the new candidate/session paths it returns for Steps 4 and 5; do not reuse the
+   failed attempt's paths. If preparation fails again, stop the whole task; there is no second recovery attempt.
+
+4. Re-inspect `git status --short`. The recovery must leave the working tree and index exactly as Step 1 recorded them:
+   no tracked file may become modified or staged, and no path outside `bin/$GAMEVER/` may appear as untracked. Any
+   tracked change not already present in the initial authorized path list is a hard stop; `bin/` files remain untracked
+   and are never committed.
+
 ## Step 4: Validate the Exact Candidate
 
 In lifecycle mode only, **ALWAYS** Use SKILL `/post-change-validation` with the same `gamever`, candidate path, and
@@ -379,6 +421,9 @@ the remote branch and exact failure; do not delete the branch, force-push, or cr
 - [ ] No unstaged tracked changes existed at invocation.
 - [ ] Step 2 ran `classify_delivery.py` for the selected mode. `LIFECYCLE=1` ran Steps 3-6; `LIFECYCLE=0` skipped
       them and created the PR directly from the captured change, without lifecycle claims in the body.
+- [ ] Step 3a ran only when prepare failed with the `Missing required symbol YAML:` marker; it derived modules from
+      those paths, ran the module analyzer once (background, no 64s timeout), verified the artifacts, retried prepare
+      once, and left the tracked tree/index untouched (only untracked `bin/` files added).
 - [ ] `staged-delivery`: initial cached diff is task-related; all candidate gates passed (lifecycle mode); final staged
       paths are authorized; commit is on a `dev*` branch and follows repository format.
 - [ ] `committed-branch`: the full candidate lifecycle passed (lifecycle mode); formatter changes stay within captured
