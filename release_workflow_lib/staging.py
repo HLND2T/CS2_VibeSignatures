@@ -6,6 +6,7 @@ from gamedata_candidate import GamedataCandidateError, verify_published_gamedata
 from gamesymbol_snapshot_lib.codec import BINARY_METADATA_KEYS
 from gamesymbol_snapshot_lib.operations import load_snapshot_context
 from release_workflow_lib.errors import ReleaseWorkflowError
+from release_workflow_lib.filesystem import remove_tree
 from release_workflow_lib.hashing import (
     contained_path,
     file_inventory,
@@ -36,6 +37,12 @@ from release_workflow_lib.manifests import (
 
 ABANDON_REASON_MAX_LENGTH = 500
 PROMOTION_STATE_MARKERS = ("PROMOTION_STARTED", "PROMOTED.json", "PROMOTION_COMPLETE")
+
+
+def _ignore_binsync_git(directory: str, names: list[str]) -> set[str]:
+    if Path(directory).suffix.lower() == ".bsproj" and ".git" in names:
+        return {".git"}
+    return set()
 
 
 def verify_snapshot_binaries(document: dict, stage_bin: Path) -> int:
@@ -208,7 +215,7 @@ def stage_build(
     stage_bin = stage_dir / "bin" / gamever
     stage_bin.parent.mkdir(parents=True, exist_ok=True)
     try:
-        shutil.copytree(bin_source, stage_bin, copy_function=shutil.copy2)
+        shutil.copytree(bin_source, stage_bin, copy_function=shutil.copy2, ignore=_ignore_binsync_git)
         return _write_stage_manifests(
             repo_root=repo_root,
             stage_dir=stage_dir,
@@ -226,7 +233,7 @@ def stage_build(
         )
     except Exception:
         if stage_dir.exists():
-            shutil.rmtree(stage_dir)
+            remove_tree(stage_dir)
         raise
 
 
@@ -330,7 +337,7 @@ def cleanup_unmerged(staging_root: Path, pr_number: int, event_head_sha: str) ->
 def _remove_indexed_pending(staging_root: Path, pr_number: int, stage_dir: Path) -> None:
     index_path = contained_path(Path(staging_root), "pr-index", f"{pr_number}.json")
     reject_reparse_points(stage_dir)
-    shutil.rmtree(stage_dir)
+    remove_tree(stage_dir)
     index_path.unlink()
 
 
@@ -403,5 +410,5 @@ def cleanup_incomplete(staging_root: Path, gamever: str, build_id: str) -> bool:
     if not stage_dir.exists() or (stage_dir / "READY").is_file():
         return False
     reject_reparse_points(stage_dir)
-    shutil.rmtree(stage_dir)
+    remove_tree(stage_dir)
     return True

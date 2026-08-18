@@ -1,7 +1,6 @@
 ---
 name: generate-reference-yaml
 description: Generate reference YAML via project CLI into ida_preprocessor_scripts/references/<module>/<func_name>.<platform>.yaml
-disable-model-invocation: true
 ---
 
 # Generate Reference YAML
