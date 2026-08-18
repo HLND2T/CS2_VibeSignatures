@@ -2691,6 +2691,47 @@ async def _post_process_set_comments(session, comment_items, debug=False):
                 print(f"  Post-process: py_eval comment fallback failed at {item['addr']}: {exc}")
 
 
+def _build_func_rename_py_eval(batch):
+    """Build an idc.set_name-based rename script for one function batch.
+
+    The MCP `rename` tool places every newly-named function into the /vibe/
+    function dirtree (api_modify.py `_place_func_in_vibe_dir`). That side effect
+    is unwanted for post-processing, so we rename via IDA Python directly, which
+    only sets the name and leaves the function dirtree untouched.
+    """
+    items = [
+        {
+            "addr": str(item.get("addr", "")).strip(),
+            "name": str(item.get("name", "")).strip(),
+        }
+        for item in batch
+    ]
+    items_json = json.dumps(items)
+    return (
+        "import json\n"
+        "import ida_funcs, idc\n"
+        f"items = json.loads({items_json!r})\n"
+        "results = []\n"
+        "for item in items:\n"
+        "    entry = {'addr': item.get('addr'), 'name': item.get('name')}\n"
+        "    try:\n"
+        "        ea = int(item['addr'], 0)\n"
+        "        func = ida_funcs.get_func(ea)\n"
+        "        if func is None:\n"
+        "            entry['error'] = 'Function not found'\n"
+        "            results.append(entry)\n"
+        "            continue\n"
+        "        ok = idc.set_name(func.start_ea, item['name'], idc.SN_NOWARN)\n"
+        "        if not ok:\n"
+        "            entry['error'] = 'IDA rejected name'\n"
+        "        results.append(entry)\n"
+        "    except Exception as exc:\n"
+        "        entry['error'] = str(exc)\n"
+        "        results.append(entry)\n"
+        "result = json.dumps({'items': results})\n"
+    )
+
+
 async def _post_process_func_renames(session, func_renames, debug=False):
     if not func_renames:
         return
@@ -2714,14 +2755,22 @@ async def _post_process_func_renames(session, func_renames, debug=False):
             )
         try:
             result = await session.call_tool(
-                name="rename",
-                arguments={"batch": {"func": batch}},
+                name="py_eval",
+                arguments={"code": _build_func_rename_py_eval(batch)},
             )
-            payload = _parse_tool_json_content(result)
-            if isinstance(payload, dict) and debug:
-                for item in payload.get("func", []):
-                    if isinstance(item, dict) and item.get("error"):
-                        print(f"  Post-process: function rename item failed {item.get('addr')}: {item.get('error')}")
+            payload = _parse_py_eval_result_json(result)
+            if isinstance(payload, dict):
+                if debug:
+                    for item in payload.get("items", []):
+                        if isinstance(item, dict) and item.get("error"):
+                            print(
+                                f"  Post-process: function rename item failed {item.get('addr')}: {item.get('error')}"
+                            )
+            elif debug:
+                raw = _parse_tool_json_content(result)
+                stderr_text = raw.get("stderr") if isinstance(raw, dict) else None
+                if stderr_text:
+                    print(f"  Post-process: function rename py_eval failed: {stderr_text}")
         except Exception as exc:
             if debug:
                 print(

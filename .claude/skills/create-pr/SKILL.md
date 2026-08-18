@@ -3,8 +3,12 @@ name: create-pr
 description: |
   Create a GitHub pull request from either staged task changes or an already-committed current branch. Use when the
   user asks to create or open a PR, including when there are no staged changes but the clean current branch is not
-  main and has commits ahead of origin/main. Both modes use the full immutable candidate lifecycle. An
-  already-committed branch receives a supplemental publication commit without rewriting its existing commits.
+  main and has commits ahead of origin/main. Delivered changes that touch the CS2 symbols pipeline run the full
+  immutable candidate lifecycle (prepare, validate, publish, refresh). Changes that touch no CS2 Symbols-related path
+  skip the lifecycle and open the PR directly. Classification uses
+  `.claude/skills/create-pr/scripts/classify_delivery.py`; do not guess. An already-committed branch receives a
+  supplemental publication commit only when the lifecycle runs.
+disable-model-invocation: true
 ---
 
 # Create Pull Request
@@ -12,19 +16,21 @@ description: |
 Create one pull request using exactly one delivery mode:
 
 - `staged-delivery` - deliver the caller's staged changes through candidate preparation, validation, publication,
-  commit, push, and PR creation. Treat the index at invocation time as the authorized change set. The only additional
-  paths this mode may stage are formatter updates to those same paths and validated
+  commit, push, and PR creation — or directly as a plain PR when the staged change touches no CS2 Symbols-related
+  path. Treat the index at invocation time as the authorized change set. The only additional paths this mode may
+  stage are formatter updates to those same paths and validated
   `gamesymbols/<GAMEVER>.yaml` / `gamedata/<GAMEVER>/` outputs.
 - `committed-branch` - when the index is empty, deliver the existing commits on a clean non-`main` current branch
   that is ahead of `origin/main`. Treat the captured `origin/main...HEAD` diff as the authorized source change set.
-  Run the same candidate lifecycle, then commit only formatter changes to those captured paths and validated
-  `gamesymbols/<GAMEVER>.yaml` / `gamedata/<GAMEVER>/` publication outputs. Never rewrite existing commits.
+  Run the same candidate lifecycle — or deliver the branch directly as a plain PR when no changed path is CS2
+  Symbols-related. Never rewrite existing commits.
 
-Never mix the two modes in one invocation.
+Both modes share one classification gate (Step 2, the bundled classifier). Never mix the two modes in one invocation.
 
 ## Inputs
 
-- `gamever` - required in both modes. Use the caller-provided value; if omitted, read `CS2VIBE_GAMEVER` from `.env`.
+- `gamever` - required only when the delivered change is CS2 Symbols-related (see Step 2). Use the caller-provided
+  value; if omitted, read `CS2VIBE_GAMEVER` from `.env`. The plain-PR path never resolves or requires `gamever`.
 - `branch` - optional `dev*` branch name for `staged-delivery`. If omitted while on `main`, derive a concise
   `dev-<topic>` name from the staged change. Ignore this input in `committed-branch`; use the current branch exactly.
 - `commit_title` - optional Conventional Commit title for `staged-delivery`. If omitted, derive it from the staged
@@ -33,15 +39,14 @@ Never mix the two modes in one invocation.
   actual validation results.
 - `issue` - optional GitHub issue number. Add `Closes #<issue>` to the PR body when supplied.
 
-After selecting either mode, resolve exactly one non-empty `GAMEVER`. Set `ANALYSIS_CONFIG="configs/$GAMEVER.yaml"`
-and stop if that file does not exist. Never fall back to another game version.
-
 ## Safety Rules
 
 - Run from the repository root and require an `origin` remote plus successful `gh auth status`.
 - Never commit directly to `main`, force-push, amend an existing commit, or use `git add -A` / `git add .`.
 - Preserve unrelated untracked files and never stage them.
-- **Never impose a 64-second execution timeout** on candidate preparation, C++ validation, or candidate publication. When a command may outlive the interactive timeout, start it as a background task and poll its log and exit status until it finishes.
+- **Never impose a 64-second execution timeout** on candidate preparation, C++ validation, or candidate publication.
+  When a command may outlive the interactive timeout, start it as a background task and poll its log and exit status
+  until it finishes.
 - Require zero unstaged tracked changes at invocation. This forbids partially staged paths and prevents the
   formatter from absorbing unrelated work.
 - In `staged-delivery`, treat the initial staged path list as immutable authorization. Do not add other source,
@@ -49,6 +54,12 @@ and stop if that file does not exist. Never fall back to another game version.
 - In `committed-branch`, require an empty index, a non-`main` attached branch, at least one commit ahead of
   `origin/main`, and a non-empty `origin/main...HEAD` diff. Preserve the captured `HEAD` as the parent of at most one
   supplemental publication commit; preserve the current branch and captured committed path list until push.
+- After capturing the change set, run the bundled classifier and obey `LIFECYCLE=`. When it prints `LIFECYCLE=0`,
+  skip the entire candidate lifecycle: do not resolve `gamever`, do not invoke `/prepare-post-change-candidate`,
+  `/post-change-validation`, or `/publish-post-change-candidate`, and do not run the formatter. Deliver the captured
+  staged or committed change exactly as-is. Never claim candidate preparation, C++ validation, or candidate
+  publication in the PR body when the lifecycle was skipped. You may override only from `0` to `1` when a captured
+  path clearly feeds the symbols pipeline and the classifier missed it. Never override `1` to `0`.
 - Stop on the first failed/non-runnable gate. Do not repair or retry inside this skill, and do not commit, push, or
   create a PR after a gate failure.
 
@@ -169,9 +180,39 @@ For either mode, set `PR_BRANCH` to the intended dev branch or captured current 
 `gh pr list --state open --head <PR_BRANCH> --json url`. Stop if an open PR already exists for it. Never create a
 duplicate PR.
 
-## Step 2: Prepare the Immutable Candidate
+## Step 2: Classify the Change and Choose the Delivery Path
 
-In both modes, **ALWAYS** Use SKILL `/prepare-post-change-candidate` with the resolved `gamever`.
+Do not classify by inspection. After Step 1, run the bundled classifier from the repository root against the selected
+mode's change set:
+
+```powershell
+# staged-delivery
+uv run python .claude/skills/create-pr/scripts/classify_delivery.py --cached
+
+# committed-branch
+uv run python .claude/skills/create-pr/scripts/classify_delivery.py --committed
+```
+
+The script reads `git diff --name-status` itself (including both sides of a rename). If it exits non-zero, stop. Read
+`LIFECYCLE=` from the first output line. The `matched=` line is a count; the following lines are the matching paths.
+
+Decide:
+
+- **Lifecycle mode** (`LIFECYCLE=1`): at least one captured path feeds symbol analysis, the canonical snapshot,
+  versioned gamedata, or C++ validation. Run Steps 3 through 6, then Step 7 and Step 8.
+- **Plain-PR mode** (`LIFECYCLE=0`): no captured path is CS2 Symbols-related (for example only `.claude/skills/`,
+  `docs/`, `memory/`, `pages/`, `.github/`, `tests/`, `README*`, `download.yaml`, `config.toml`, `.mcp.json`,
+  `release_workflow.py`, `release_workflow_lib/`, or process-monitoring modules). Skip Steps 3 through 6 entirely,
+  proceed directly to Step 7 and Step 8, and deliver the captured change exactly as-is.
+
+Override only `0` → `1` when a captured path clearly feeds the symbols pipeline and is missing from the matched list.
+Never override `1` → `0`.
+
+## Step 3: Prepare the Immutable Candidate
+
+In lifecycle mode only, resolve exactly one non-empty `GAMEVER`. Set `ANALYSIS_CONFIG="configs/$GAMEVER.yaml"`
+and stop if that file does not exist. Never fall back to another game version. Then **ALWAYS** Use SKILL
+`/prepare-post-change-candidate` with the resolved `gamever`.
 
 Retain the returned candidate path, candidate session path, gamedata session path, and candidate SHA-256. If the
 skill fails, stop the entire task.
@@ -180,17 +221,17 @@ After preparation, inspect `git diff --name-only`. Formatting may have changed a
 `INITIAL_STAGED_PATHS` in `staged-delivery`, or to `INITIAL_COMMITTED_PATHS` in `committed-branch`. If any other
 tracked path changed, stop and report it; do not stage it or continue.
 
-## Step 3: Validate the Exact Candidate
+## Step 4: Validate the Exact Candidate
 
-In both modes, **ALWAYS** Use SKILL `/post-change-validation` with the same `gamever`, candidate path, and candidate
-session path returned by `/prepare-post-change-candidate`.
+In lifecycle mode only, **ALWAYS** Use SKILL `/post-change-validation` with the same `gamever`, candidate path, and
+candidate session path returned by `/prepare-post-change-candidate`.
 
 Require explicit success, runnable C++ tests, and zero failure counters. If validation fails or is non-runnable,
 stop exactly as that skill requires. Do not publish, commit, push, or create a PR.
 
-## Step 4: Publish the Validated Candidate
+## Step 5: Publish the Validated Candidate
 
-Only after validation succeeds in either mode, **ALWAYS** Use SKILL `/publish-post-change-candidate` with the same
+Only after validation succeeds in lifecycle mode, **ALWAYS** Use SKILL `/publish-post-change-candidate` with the same
 `gamever`, candidate path, candidate session path, and gamedata session path.
 
 Require the published snapshot SHA-256 to equal the validated candidate SHA-256. Publication may modify only:
@@ -202,10 +243,10 @@ Require the published snapshot SHA-256 to equal the validated candidate SHA-256.
 Compare `git status --short` with the status recorded in Step 1. Any new or modified path outside that allowlist is
 a hard stop. Preserve pre-existing unrelated untracked files and leave them untracked.
 
-## Step 5: Refresh the Authorized Index
+## Step 6: Refresh the Authorized Index
 
-Refresh formatter changes only for existing files in the active mode's initial authorized path list, passing every
-path explicitly:
+In lifecycle mode, refresh formatter changes only for existing files in the active mode's initial authorized path
+list, passing every path explicitly:
 
 ```bash
 git add -- <explicit-existing-initial-authorized-paths>
@@ -229,7 +270,7 @@ an allowed current-version publication path. Review the final cached diff before
 require a non-empty staged diff. In `committed-branch`, an empty staged diff is permitted only when formatter and
 publication are both no-ops; record it and create no empty supplemental commit.
 
-## Step 6: Create the Required Commit
+## Step 7: Create the Required Commit
 
 If currently on `main`, create the validated branch now:
 
@@ -239,11 +280,13 @@ git switch -c <dev-branch>
 
 If already on the intended branch, remain there. In `staged-delivery`, derive or validate `commit_title` using the
 repository format `<type>(scope): <summary>`: start with a verb, keep it at most 100 characters, and omit the final
-period. In `committed-branch`, use `chore(gamesymbols): publish <GAMEVER> snapshot` for the non-empty supplemental
-publication commit.
+period. In `committed-branch` lifecycle mode, use `chore(gamesymbols): publish <GAMEVER> snapshot` for the non-empty
+supplemental publication commit. In `committed-branch` plain-PR mode, there is no supplemental commit.
 
-In `staged-delivery`, commit exactly the staged index. In `committed-branch`, commit exactly the non-empty staged
-publication index; when it is empty, skip this command and retain `INITIAL_HEAD`:
+Commit exactly the staged index in `staged-delivery` (both lifecycle and plain-PR). In `committed-branch` lifecycle
+mode, commit exactly the non-empty staged publication index; when it is empty, skip this command and retain
+`INITIAL_HEAD`. In `committed-branch` plain-PR mode, the captured commits are already the complete change and the
+index is empty, so skip this command and retain `INITIAL_HEAD`:
 
 ```bash
 git commit -m "<commit_title>" -m "Co-Authored-By: Codex"
@@ -253,7 +296,7 @@ Verify any new commit's changed paths match the final staged path list and that 
 In `committed-branch`, require the supplemental commit's parent to equal `INITIAL_HEAD`, proving no existing commit
 was rewritten. Do not amend if verification fails; stop and report the mismatch.
 
-## Step 7: Push and Create the Pull Request
+## Step 8: Push and Create the Pull Request
 
 In `committed-branch`, re-run the following immediately before push:
 
@@ -267,10 +310,10 @@ git diff --name-only origin/main...HEAD
 ```
 
 Require the branch to equal `INITIAL_BRANCH`, `INITIAL_HEAD` to remain an ancestor of `HEAD`, and both index and
-tracked worktree to be clean. Require the ahead count to remain greater than zero and the final committed path list to
-equal the union of `INITIAL_COMMITTED_PATHS` and the authorized formatter/publication paths. If a supplemental commit
-was made, require it to be the direct child of `INITIAL_HEAD`; otherwise require `HEAD` to equal `INITIAL_HEAD`.
-Stop if any condition fails.
+tracked worktree to be clean. Require the ahead count to remain greater than zero. Require the final committed path
+list to equal the union of `INITIAL_COMMITTED_PATHS` and the authorized formatter/publication paths in lifecycle
+mode, or to equal `INITIAL_COMMITTED_PATHS` exactly in plain-PR mode. If a supplemental commit was made, require it to
+be the direct child of `INITIAL_HEAD`; otherwise require `HEAD` to equal `INITIAL_HEAD`. Stop if any condition fails.
 
 Push without force:
 
@@ -283,7 +326,7 @@ Build the PR title from `pr_title` when supplied. Otherwise, use the new commit 
 supplemental publication commit does not become the PR title.
 
 Build the body from the delivered committed diff and actual results. Never claim a validation that this invocation
-did not run. Use this concise shape in both modes:
+did not run. In lifecycle mode, use this concise shape in both modes:
 
 ```markdown
 ## Summary
@@ -299,11 +342,24 @@ did not run. Use this concise shape in both modes:
 Closes #<issue>
 ```
 
-For `committed-branch`, retain the candidate lifecycle lines and add this truthful delivery evidence:
+In plain-PR mode, omit the three candidate lifecycle lines entirely; the lifecycle was not run and must not be
+claimed. Use this shape:
+
+```markdown
+## Summary
+- <behavioral change>
+
+## Validation
+- implementation-specific tests: <commands/results supplied by the caller>
+
+Closes #<issue>
+```
+
+For `committed-branch`, add the truthful delivery evidence in both modes:
 
 ```markdown
 - existing committed branch: `<AHEAD_COUNT>` initial commit(s) ahead of `origin/main`; supplemental publication commit:
-  <created or not needed because publication was a no-op>
+  <created, not needed because publication was a no-op, or not created because the lifecycle was skipped>
 ```
 
 Omit the issue line when no issue was supplied. Create the PR explicitly against `main`:
@@ -312,18 +368,20 @@ Omit the issue line when no issue was supplied. Create the PR explicitly against
 gh pr create --base main --head <PR_BRANCH> --title "<pr_title>" --body "<pr_body>"
 ```
 
-Report the branch, commit SHA, pushed remote, PR URL, game version, candidate SHA-256, and final committed path list
-for both modes. In `committed-branch`, also report `INITIAL_HEAD`, the initial ahead count, and whether a supplemental
-publication commit was created. If push succeeds but PR creation fails, report the remote branch and exact failure;
-do not delete the branch, force-push, or create another commit.
+Report the branch, commit SHA, pushed remote, PR URL, and final committed path list for both modes; report the game
+version and candidate SHA-256 only in lifecycle mode. In `committed-branch`, also report `INITIAL_HEAD`, the initial
+ahead count, and whether a supplemental publication commit was created. If push succeeds but PR creation fails, report
+the remote branch and exact failure; do not delete the branch, force-push, or create another commit.
 
 ## Checklist
 
 - [ ] Exactly one mode was selected: non-empty initial index, or clean non-`main` branch ahead of `origin/main`.
 - [ ] No unstaged tracked changes existed at invocation.
-- [ ] `staged-delivery`: initial cached diff is task-related; all candidate gates passed; final staged paths are
-      authorized; commit is on a `dev*` branch and follows repository format.
-- [ ] `committed-branch`: the full candidate lifecycle passed; formatter changes stay within captured committed paths;
-      publication outputs are staged and committed when non-empty; the original HEAD is preserved as the supplemental
-      commit parent; branch and worktree are clean before push.
+- [ ] Step 2 ran `classify_delivery.py` for the selected mode. `LIFECYCLE=1` ran Steps 3-6; `LIFECYCLE=0` skipped
+      them and created the PR directly from the captured change, without lifecycle claims in the body.
+- [ ] `staged-delivery`: initial cached diff is task-related; all candidate gates passed (lifecycle mode); final staged
+      paths are authorized; commit is on a `dev*` branch and follows repository format.
+- [ ] `committed-branch`: the full candidate lifecycle passed (lifecycle mode); formatter changes stay within captured
+      committed paths; publication outputs are staged and committed when non-empty; the original HEAD is preserved as
+      the supplemental commit parent; branch and worktree are clean before push.
 - [ ] No duplicate open PR existed; branch was pushed without force; exactly one PR was created against `main`.

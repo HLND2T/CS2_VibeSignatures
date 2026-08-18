@@ -9,6 +9,7 @@ import run_test_suite
 class TestSuiteClassifier(unittest.TestCase):
     def test_classifies_primary_suite_boundaries(self) -> None:
         cases = {
+            "tests.test_create_pr_classify_delivery.TestCreatePrClassifyDelivery.test_example": ("unit",),
             "tests.test_ida_analyze_util.TestLlmDecompileSupport.test_example": ("unit",),
             "tests.test_symbol_store_architecture.TestSymbolStoreArchitecture.test_example": ("repository-contract",),
             "tests.test_process_reporter_redis.TestRedisProcessReporterIntegration.test_example": (
