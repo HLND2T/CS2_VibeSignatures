@@ -2764,8 +2764,7 @@ async def _post_process_func_renames(session, func_renames, debug=False):
                     for item in payload.get("items", []):
                         if isinstance(item, dict) and item.get("error"):
                             print(
-                                "  Post-process: function rename item failed "
-                                f"{item.get('addr')}: {item.get('error')}"
+                                f"  Post-process: function rename item failed {item.get('addr')}: {item.get('error')}"
                             )
             elif debug:
                 raw = _parse_tool_json_content(result)
