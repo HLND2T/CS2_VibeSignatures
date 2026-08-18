@@ -250,6 +250,7 @@ jobs:
           $args = @('-gamever', $env:GAMEVER, '-configyaml', $env:ANALYSIS_CONFIG)
           $args += @('-oldgamever', $env:OLDGAMEVER)
           $args += '-debug'
+          $args += '-rename'
           uv run ida_analyze_bin.py @args
           if ($LASTEXITCODE -ne 0) { throw "ida_analyze_bin.py failed with exit code $LASTEXITCODE" }
 
