@@ -3266,7 +3266,7 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
             mock_normalize.await_args_list,
         )
 
-    async def test_filter_func_addrs_by_float_xrefs_keeps_xref_matches_and_excludes_hits(
+    async def test_filter_func_addrs_by_float_xrefs_requires_all_xrefs_and_excludes_any_hit(
         self,
     ) -> None:
         session = AsyncMock()
@@ -3279,7 +3279,13 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
                             "const_ea": "0x181000000",
                             "kind": "float",
                             "value": 64.0,
-                        }
+                        },
+                        {
+                            "inst_ea": "0x180100018",
+                            "const_ea": "0x181000004",
+                            "kind": "float",
+                            "value": 0.5,
+                        },
                     ],
                     "xref_hit": True,
                     "exclude_hit": False,
@@ -3288,9 +3294,9 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
                     "constants": [
                         {
                             "inst_ea": "0x180200010",
-                            "const_ea": "0x181000004",
+                            "const_ea": "0x181000008",
                             "kind": "float",
-                            "value": 1.0,
+                            "value": 64.0,
                         }
                     ],
                     "xref_hit": False,
@@ -3300,10 +3306,22 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
                     "constants": [
                         {
                             "inst_ea": "0x180300010",
-                            "const_ea": "0x181000008",
+                            "const_ea": "0x18100000c",
+                            "kind": "float",
+                            "value": 64.0,
+                        },
+                        {
+                            "inst_ea": "0x180300018",
+                            "const_ea": "0x181000010",
                             "kind": "float",
                             "value": 0.5,
-                        }
+                        },
+                        {
+                            "inst_ea": "0x180300020",
+                            "const_ea": "0x181000014",
+                            "kind": "float",
+                            "value": 128.0,
+                        },
                     ],
                     "xref_hit": True,
                     "exclude_hit": True,
@@ -3315,7 +3333,7 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
             session=session,
             func_addrs={0x180100000, 0x180200000, 0x180300000},
             xref_floats=["64.0", "0.5"],
-            exclude_floats=["0.5"],
+            exclude_floats=["128.0"],
             debug=True,
         )
 
@@ -3330,7 +3348,10 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
         self.assertIn('"mulsd"', py_code)
         self.assertIn('"vmulss"', py_code)
         self.assertIn('"vmulsd"', py_code)
+        self.assertIn("xref_hits = [False] * len(xref_values)", py_code)
+        self.assertIn("xref_hit = all(xref_hits)", py_code)
         self.assertIn("globals().update(locals())", py_code)
+        compile(py_code, "<float_xref_filter>", "exec")
 
     async def test_filter_func_addrs_by_float_xrefs_fails_closed_on_invalid_payload(
         self,
