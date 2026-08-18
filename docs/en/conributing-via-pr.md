@@ -15,7 +15,7 @@ branch: dev-find-example
 commit_title: feat(skills): add find-example symbol-analysis skill
 ```
 
-`branch`, `commit_title`, PR title/body, and an issue number are optional. 
+`branch`, `commit_title`, PR title/body, and an issue number are optional.
 
 If omitted, `create-pr` derives suitable values from the staged diff.
 
