@@ -12,29 +12,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  approval:
-    name: Await PR approval
-    if: >-
-      github.event.action != 'closed' &&
-      (github.repository == 'HLND2T/CS2_VibeSignatures' ||
-       github.repository == 'hzqst/CS2_VibeSignatures') &&
-      github.event.pull_request.head.repo.full_name == github.repository &&
-      !(github.event.pull_request.user.login == 'github-actions[bot]' &&
-        startsWith(github.event.pull_request.head.ref, 'bump-download/') &&
-        startsWith(github.event.pull_request.title, 'chore(download): Update manifest for ')) &&
-      !(github.event.pull_request.user.login == 'github-actions[bot]' &&
-        startsWith(github.event.pull_request.head.ref, 'gamesymbols/build/') &&
-        startsWith(github.event.pull_request.title, 'chore(gamesymbols): publish '))
-    environment:
-      name: pr-approval
-    runs-on: ubuntu-latest
-    permissions: {}
-    steps:
-      - name: Approval granted
-        run: Write-Output 'PR approval received; starting validation.'
-
   validate:
-    needs: approval
     if: >-
       github.event.action != 'closed' &&
       (github.repository == 'HLND2T/CS2_VibeSignatures' ||
@@ -709,7 +687,7 @@ jobs:
       !(github.event.pull_request.user.login == 'github-actions[bot]' &&
         startsWith(github.event.pull_request.head.ref, 'gamesymbols/build/') &&
         startsWith(github.event.pull_request.title, 'chore(gamesymbols): publish '))
-    environment: win64
+    environment: win64-cleanup
     runs-on: [self-hosted, windows, x64]
     env:
       PERSISTED_WORKSPACE: ${{ secrets.PERSISTED_WORKSPACE }}
