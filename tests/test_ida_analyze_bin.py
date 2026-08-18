@@ -1943,6 +1943,12 @@ class TestPostProcessMcpExecution(unittest.IsolatedAsyncioTestCase):
     async def test_post_process_expected_outputs_via_session_executes_renames_and_comments(
         self,
     ) -> None:
+        func_renames = [
+            {
+                "addr": "0x180c165c0",
+                "name": "CCSPlayer_ItemServices_DropActivePlayerWeapon",
+            }
+        ]
         session = MagicMock()
         session.call_tool = AsyncMock(
             side_effect=[
@@ -1956,7 +1962,7 @@ class TestPostProcessMcpExecution(unittest.IsolatedAsyncioTestCase):
                     ]
                 ),
                 _tool_result({"items": [{"addr": "0x180a32c62", "ok": True}]}),
-                _tool_result({"renamed": True}),
+                _tool_result({"result": json.dumps({"items": func_renames})}),
                 _tool_result({"result": ""}),
             ]
         )
@@ -1999,17 +2005,8 @@ class TestPostProcessMcpExecution(unittest.IsolatedAsyncioTestCase):
                     },
                 ),
                 call(
-                    name="rename",
-                    arguments={
-                        "batch": {
-                            "func": [
-                                {
-                                    "addr": "0x180c165c0",
-                                    "name": "CCSPlayer_ItemServices_DropActivePlayerWeapon",
-                                }
-                            ]
-                        }
-                    },
+                    name="py_eval",
+                    arguments={"code": ida_analyze_bin._build_func_rename_py_eval(func_renames)},
                 ),
                 call(
                     name="py_eval",
@@ -2024,6 +2021,10 @@ class TestPostProcessMcpExecution(unittest.IsolatedAsyncioTestCase):
             ],
             session.call_tool.await_args_list,
         )
+        func_rename_code = session.call_tool.await_args_list[2].kwargs["arguments"]["code"]
+        self.assertIn("import ida_funcs, idc", func_rename_code)
+        self.assertIn("idc.set_name(func.start_ea, item['name'], idc.SN_NOWARN)", func_rename_code)
+        self.assertIn(json.dumps(func_renames), func_rename_code)
 
     async def test_post_process_expected_outputs_via_session_skips_non_unique_signature_matches(
         self,
@@ -2145,7 +2146,7 @@ class TestPostProcessMcpExecution(unittest.IsolatedAsyncioTestCase):
                         ]
                     }
                 ),
-                _tool_result({"renamed": True}),
+                _tool_result({"result": json.dumps({"items": []})}),
             ]
         )
 
@@ -2166,15 +2167,18 @@ class TestPostProcessMcpExecution(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertTrue(ok)
-        self.assertEqual("rename", session.call_tool.await_args_list[-1].kwargs["name"])
-        self.assertNotIn(
-            "py_eval",
+        self.assertEqual(
+            ["find_bytes", "set_comments", "py_eval"],
             [call_item.kwargs["name"] for call_item in session.call_tool.await_args_list],
         )
+        func_rename_code = session.call_tool.await_args_list[-1].kwargs["arguments"]["code"]
+        self.assertIn("0x180c165c0", func_rename_code)
+        self.assertIn("CCSPlayer_ItemServices_DropActivePlayerWeapon", func_rename_code)
+        self.assertIn("idc.set_name(func.start_ea, item['name'], idc.SN_NOWARN)", func_rename_code)
 
     async def test_post_process_func_renames_splits_large_batches(self) -> None:
         session = MagicMock()
-        session.call_tool = AsyncMock(return_value=_tool_result({"func": []}))
+        session.call_tool = AsyncMock(return_value=_tool_result({"result": json.dumps({"items": []})}))
         func_renames = [{"addr": f"0x{index:x}", "name": f"Func_{index}"} for index in range(101)]
 
         await ida_analyze_bin._post_process_func_renames(
@@ -2185,8 +2189,16 @@ class TestPostProcessMcpExecution(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(3, session.call_tool.await_count)
         self.assertEqual(
-            [50, 50, 1],
-            [len(call_item.kwargs["arguments"]["batch"]["func"]) for call_item in session.call_tool.await_args_list],
+            ["py_eval", "py_eval", "py_eval"],
+            [call_item.kwargs["name"] for call_item in session.call_tool.await_args_list],
+        )
+        self.assertEqual(
+            [
+                ida_analyze_bin._build_func_rename_py_eval(func_renames[:50]),
+                ida_analyze_bin._build_func_rename_py_eval(func_renames[50:100]),
+                ida_analyze_bin._build_func_rename_py_eval(func_renames[100:]),
+            ],
+            [call_item.kwargs["arguments"]["code"] for call_item in session.call_tool.await_args_list],
         )
 
     async def test_post_process_func_renames_debug_logs_failed_batch_items(self) -> None:
