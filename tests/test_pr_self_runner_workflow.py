@@ -43,6 +43,13 @@ class TestPrSelfRunnerWorkflow(unittest.TestCase):
         )
         self.assertEqual(sorted(order), order)
 
+    def test_submodule_cache_uses_node24_action_and_shallow_update(self) -> None:
+        self.assertEqual("actions/cache@v5", self.steps["restore-submodule-cache"]["uses"])
+        self.assertIn(
+            "git submodule update --init --recursive --depth 1 --jobs 8",
+            self.steps["sync-submodules"]["run"],
+        )
+
     def test_pr_validation_uses_one_candidate_and_never_publishes(self) -> None:
         self.assertIn("ACTUAL_CANDIDATE_SNAPSHOT=$candidate", self.steps["build-snapshot"]["run"])
         self.assertIn('-expected "$env:HEAD_SNAPSHOT"', self.steps["compare-snapshot"]["run"])
