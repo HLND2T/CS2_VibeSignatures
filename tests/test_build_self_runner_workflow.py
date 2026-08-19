@@ -40,6 +40,18 @@ class TestBuildSelfRunnerWorkflow(unittest.TestCase):
             step_order(self.build_job, "test-suites", "analyze", "build-candidates", "cpp-tests"),
         )
 
+    def test_submodule_cache_uses_node24_action_and_shallow_update(self) -> None:
+        self.assertEqual("actions/cache@v5", self.build_steps["restore-submodule-cache"]["uses"])
+        self.assertIn(
+            "git submodule update --init --recursive --depth 1 --jobs 8",
+            self.build_steps["sync-submodules"]["run"],
+        )
+
+    def test_submodule_cache_key_is_deterministic(self) -> None:
+        key_step = self.build_steps["submodule-cache-key"]["run"]
+        self.assertIn("git ls-tree HEAD", key_step)
+        self.assertNotIn("submodule status --recursive", key_step)
+
     def test_candidate_validation_precedes_staging_and_output_pr(self) -> None:
         expected_order = step_order(
             self.build_job,
