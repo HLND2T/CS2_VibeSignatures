@@ -125,6 +125,7 @@ jobs:
       DEPOTDOWNLOADER_STEAM_USERNAME: ${{ secrets.DEPOTDOWNLOADER_STEAM_USERNAME }}
       DEPOTDOWNLOADER_STEAM_PASSWORD: ${{ secrets.DEPOTDOWNLOADER_STEAM_PASSWORD }}
       PERSISTED_WORKSPACE: ${{ secrets.PERSISTED_WORKSPACE }}
+      SUBMODULE_CACHE_VERSION: v1
     steps:
       - name: Checkout exact generator source
         id: checkout-source
@@ -132,7 +133,42 @@ jobs:
         with:
           ref: ${{ needs.preflight.outputs.source_sha }}
           fetch-depth: 0
-          submodules: true
+          submodules: false
+
+      - name: Compute submodule cache key
+        id: submodule-cache-key
+        working-directory: ${{ github.workspace }}
+        shell: pwsh
+        run: |
+          $content = @()
+          $content += Get-Content -Raw .gitmodules
+          $content += ""
+          $content += git submodule status --recursive
+
+          $sha = [System.Security.Cryptography.SHA256]::Create()
+          $bytes = [System.Text.Encoding]::UTF8.GetBytes(($content -join "`n"))
+          $hash = [System.BitConverter]::ToString($sha.ComputeHash($bytes)).Replace("-", "").ToLowerInvariant()
+
+          "hash=$hash" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Restore submodule cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            .git/modules
+            hl2sdk_cs2
+          key: ${{ runner.os }}-submodules-${{ env.SUBMODULE_CACHE_VERSION }}-${{ steps.submodule-cache-key.outputs.hash }}
+          restore-keys: |
+            ${{ runner.os }}-submodules-${{ env.SUBMODULE_CACHE_VERSION }}-
+
+      - name: Sync and update submodules
+        working-directory: ${{ github.workspace }}
+        shell: pwsh
+        run: |
+          git submodule sync --recursive
+          if ($LASTEXITCODE -ne 0) { throw "git submodule sync failed." }
+          git submodule update --init --recursive --depth 1 --jobs 8
+          if ($LASTEXITCODE -ne 0) { throw "git submodule update failed." }
 
       - name: Prepare persisted depot link and real bin copy
         id: prepare-workspace
@@ -328,7 +364,7 @@ jobs:
           } else {
             $remoteSha = ($remoteBranch -split '\s+')[0]
             if ($remoteSha -notmatch '^[0-9a-fA-F]{40}$') { throw "Invalid commit returned for $sdkRef." }
-            git -C $sdkPath fetch --no-tags $sdkRemote "refs/heads/$sdkRef"
+            git -C $sdkPath fetch --no-tags --depth 1 $sdkRemote "refs/heads/$sdkRef"
             if ($LASTEXITCODE -ne 0) { throw "Unable to fetch $sdkRef from hl2sdk." }
             $fetchedSha = (git -C $sdkPath rev-parse FETCH_HEAD).Trim()
             if ($LASTEXITCODE -ne 0 -or $fetchedSha -ne $remoteSha) {
