@@ -732,7 +732,7 @@ jobs:
             # "<run_id>-<run_attempt>"; sort numerically (a lexicographic sort
             # would mis-order 1000 vs 999).
             $latestRun = Get-ChildItem -LiteralPath $prStaging -Directory |
-              Sort-Object @{ Expression = { [int](($_.Name -split '-')[0]) }; Descending = $true },
+              Sort-Object @{ Expression = { [long](($_.Name -split '-')[0]) }; Descending = $true },
                           @{ Expression = { [int](($_.Name -split '-')[1]) }; Descending = $true } |
               Select-Object -First 1
             if (-not $latestRun) {
