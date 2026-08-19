@@ -8,7 +8,7 @@ TARGET_FUNCTION_NAMES = ["CBasePlayerPawn_PhysicsSimulate"]
 FUNC_XREFS = [
     {
         "func_name": "CBasePlayerPawn_PhysicsSimulate",
-        "xref_strings": ["FULLMATCH:CBasePlayerPawn_PhysicsSimulate"],
+        "xref_strings": ["FULLMATCH:PhysicsSimulate"],
         "xref_gvs": [],
         "xref_signatures": [],
         "xref_funcs": [],
