@@ -47,6 +47,11 @@ class TestBuildSelfRunnerWorkflow(unittest.TestCase):
             self.build_steps["sync-submodules"]["run"],
         )
 
+    def test_submodule_cache_key_is_deterministic(self) -> None:
+        key_step = self.build_steps["submodule-cache-key"]["run"]
+        self.assertIn("git ls-tree HEAD", key_step)
+        self.assertNotIn("submodule status --recursive", key_step)
+
     def test_candidate_validation_precedes_staging_and_output_pr(self) -> None:
         expected_order = step_order(
             self.build_job,

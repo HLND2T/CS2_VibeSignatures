@@ -50,6 +50,11 @@ class TestPrSelfRunnerWorkflow(unittest.TestCase):
             self.steps["sync-submodules"]["run"],
         )
 
+    def test_submodule_cache_key_is_deterministic(self) -> None:
+        key_step = self.steps["submodule-cache-key"]["run"]
+        self.assertIn("git ls-tree HEAD", key_step)
+        self.assertNotIn("submodule status --recursive", key_step)
+
     def test_pr_validation_uses_one_candidate_and_never_publishes(self) -> None:
         self.assertIn("ACTUAL_CANDIDATE_SNAPSHOT=$candidate", self.steps["build-snapshot"]["run"])
         self.assertIn('-expected "$env:HEAD_SNAPSHOT"', self.steps["compare-snapshot"]["run"])

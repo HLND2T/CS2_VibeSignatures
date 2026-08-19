@@ -123,7 +123,11 @@ jobs:
           $content = @()
           $content += Get-Content -Raw .gitmodules
           $content += ""
-          $content += git submodule status --recursive
+          # The submodule state prefix (- for uninitialized, ' ' for initialized)
+          # differs by working-tree state, so a key derived from that output drifts
+          # between the miss and save phases and the cache never hits. Read the
+          # committed gitlink SHAs from HEAD instead; they are deterministic.
+          $content += git ls-tree HEAD
 
           $sha = [System.Security.Cryptography.SHA256]::Create()
           $bytes = [System.Text.Encoding]::UTF8.GetBytes(($content -join "`n"))
