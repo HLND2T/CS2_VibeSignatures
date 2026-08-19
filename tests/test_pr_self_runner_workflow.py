@@ -105,15 +105,47 @@ class TestPrSelfRunnerWorkflow(unittest.TestCase):
         self.assertEqual("always()", self.steps["restore-sdk"]["if"])
         self.assertIn('git -C $sdkPath checkout --detach "$env:SDK_PINNED_SHA"', self.steps["restore-sdk"]["run"])
 
-    def test_closed_event_cleanup_leaves_workspace_before_safe_deletion(self) -> None:
+    def test_validate_stages_analyzed_yaml_for_merge_promotion(self) -> None:
+        run = self.steps["stage-yaml"]["run"]
+
+        self.assertIn('Join-Path $env:PERSISTED_WORKSPACE "pr-yaml-staging"', run)
+        self.assertIn('robocopy $gameRoot $runStaging "*.yaml" /S', run)
+        self.assertIn("gamever.txt", run)
+        # The analyzed YAML is staged only after full validation succeeds.
+        order = step_order(self.validate, "mark-success", "stage-yaml", "cleanup")
+        self.assertEqual(sorted(order), order)
+
+    def test_validate_never_publishes_or_pushes(self) -> None:
+        commands = "\n".join(str(step.get("run", "")) for step in self.validate["steps"])
+        self.assertNotIn("gamesymbol_candidate.py publish", commands)
+        self.assertNotIn("gamedata_candidate.py publish", commands)
+        self.assertNotIn("gh release", commands)
+        self.assertNotIn("git commit", commands)
+        self.assertNotIn("git push", commands)
+        self.assertNotIn("gh pr", commands)
+
+    def test_validate_checkout_uses_pr_merge_ref_with_full_history(self) -> None:
+        checkout = self.steps["checkout-merge"]
+        self.assertEqual("actions/checkout@v5", checkout["uses"])
+        self.assertEqual(
+            "refs/pull/${{ github.event.pull_request.number }}/merge",
+            checkout["with"]["ref"],
+        )
+        self.assertEqual(0, checkout["with"]["fetch-depth"])
+
+    def test_closed_event_promotes_staged_yaml_on_merge(self) -> None:
         finalize = workflow_job(self.workflow, "finalize-pr-workspace")
         step = steps_by_id(finalize)["finalize-workspace"]
         run = step["run"]
 
-        self.assertIn("Set-Location $workspaceRoot", run)
-        self.assertIn("Remove-Item -LiteralPath $prWorkspace -Recurse -Force", run)
-        self.assertLess(run.index("Set-Location $workspaceRoot"), run.index("Remove-Item -LiteralPath $prWorkspace"))
-        self.assertIn("Refusing to remove PR workspace because it is a reparse point", run)
+        self.assertIn("pr-yaml-staging", run)
+        self.assertIn("gamever.txt", run)
+        self.assertIn('robocopy $latestRun.FullName $targetGamever "*.yaml" /S', run)
+        # Only *.yaml is promoted back to PERSISTED_WORKSPACE; *.i64 is not.
+        self.assertNotIn("*.i64", run)
+        # No per-PR workspace cleanup anymore.
+        self.assertNotIn("Remove-Item -LiteralPath $prWorkspace", run)
+        self.assertNotIn("$RUNNER_WORKSPACE", run)
 
 
 if __name__ == "__main__":

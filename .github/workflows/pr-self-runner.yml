@@ -27,6 +27,8 @@ jobs:
     environment: win64
     runs-on: [self-hosted, windows, x64]
     env:
+      WORKSPACE: ${{ github.workspace }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
       CS2VIBE_AGENT: ${{ secrets.CS2VIBE_AGENT }}
       CS2VIBE_AGENT_MODEL: ${{ secrets.CS2VIBE_AGENT_MODEL }}
       CS2VIBE_LLM_APIKEY: ${{ secrets.CS2VIBE_LLM_APIKEY }}
@@ -38,82 +40,16 @@ jobs:
       SUBMODULE_CACHE_VERSION: v1
 
     steps:
-      - name: Prepare PR workspace variables
-        id: prepare-workspace
-        shell: pwsh
-        run: |
-          $prNumber = "${{ github.event.pull_request.number }}"
-          if ([string]::IsNullOrWhiteSpace($prNumber)) {
-            throw "Unable to determine pull request number."
-          }
-
-          if ([string]::IsNullOrWhiteSpace($env:RUNNER_WORKSPACE)) {
-            throw "RUNNER_WORKSPACE is not configured."
-          }
-
-          if ([string]::IsNullOrWhiteSpace($env:PERSISTED_WORKSPACE)) {
-            throw "PERSISTED_WORKSPACE secret is not configured for the win64 environment."
-          }
-
-          $workspaceRoot = [IO.Path]::GetFullPath($env:RUNNER_WORKSPACE)
-          $workspaceName = "CS2_VibeSignatures-pr-$prNumber"
-          $prWorkspace = [IO.Path]::GetFullPath((Join-Path $workspaceRoot $workspaceName))
-
-          if ((Split-Path -Leaf $prWorkspace) -ne $workspaceName) {
-            throw "Resolved PR workspace leaf mismatch: $prWorkspace"
-          }
-
-          $rootWithSeparator = $workspaceRoot.TrimEnd('\') + '\'
-          if (-not $prWorkspace.StartsWith($rootWithSeparator, [StringComparison]::OrdinalIgnoreCase)) {
-            throw "Resolved PR workspace is outside RUNNER_WORKSPACE: $prWorkspace"
-          }
-
-          "PR_NUMBER=$prNumber" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "PR_WORKSPACE=$prWorkspace" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "WORKSPACE=$prWorkspace" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          $prWorkspacePosix = $prWorkspace -replace '\\', '/'
-          "PR_WORKSPACE_POSIX=$prWorkspacePosix" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-
       - name: Checkout PR merge ref
         id: checkout-merge
-        shell: pwsh
-        run: |
-          $workspaceName = "CS2_VibeSignatures-pr-$env:PR_NUMBER"
-          $workspaceRoot = [IO.Path]::GetFullPath($env:RUNNER_WORKSPACE)
-          $prWorkspace = [IO.Path]::GetFullPath($env:PR_WORKSPACE)
-          $rootWithSeparator = $workspaceRoot.TrimEnd('\') + '\'
-
-          if ((Split-Path -Leaf $prWorkspace) -ne $workspaceName) {
-            throw "Refusing to clean unexpected workspace leaf: $prWorkspace"
-          }
-          if (-not $prWorkspace.StartsWith($rootWithSeparator, [StringComparison]::OrdinalIgnoreCase)) {
-            throw "Refusing to clean workspace outside RUNNER_WORKSPACE: $prWorkspace"
-          }
-
-          if (Test-Path -LiteralPath $prWorkspace) {
-            Remove-Item -LiteralPath $prWorkspace -Recurse -Force
-          }
-          New-Item -ItemType Directory -Path $prWorkspace -Force | Out-Null
-
-          Set-Location $prWorkspace
-          $repoUrl = "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
-          $mergeRef = "refs/pull/$env:PR_NUMBER/merge"
-          $localRef = "refs/remotes/origin/pr-$env:PR_NUMBER-merge"
-
-          git init
-          if ($LASTEXITCODE -ne 0) { throw "git init failed." }
-
-          git remote add origin $repoUrl
-          if ($LASTEXITCODE -ne 0) { throw "git remote add failed." }
-
-          git fetch --prune origin ("+" + $mergeRef + ":" + $localRef)
-          if ($LASTEXITCODE -ne 0) { throw "git fetch $mergeRef failed." }
-
-          git checkout --detach $localRef
-          if ($LASTEXITCODE -ne 0) { throw "git checkout $localRef failed." }
-
-          $safeDirectory = $prWorkspace -replace '\\', '/'
-          git config --global --add safe.directory "$safeDirectory"
+        uses: actions/checkout@v5
+        with:
+          ref: refs/pull/${{ github.event.pull_request.number }}/merge
+          # Full history is required so the merge commit's base parent
+          # (pull_request.base.sha) is available for deterministic base snapshot
+          # extraction without re-fetching refs by hand.
+          fetch-depth: 0
+          submodules: false
 
       - name: Compute submodule cache key
         id: submodule-cache-key
@@ -140,8 +76,8 @@ jobs:
         uses: actions/cache@v5
         with:
           path: |
-            ${{ env.PR_WORKSPACE_POSIX }}/.git/modules
-            ${{ env.PR_WORKSPACE_POSIX }}/hl2sdk_cs2
+            .git/modules
+            hl2sdk_cs2
           key: ${{ runner.os }}-submodules-${{ env.SUBMODULE_CACHE_VERSION }}-${{ steps.submodule-cache-key.outputs.hash }}
           restore-keys: |
             ${{ runner.os }}-submodules-${{ env.SUBMODULE_CACHE_VERSION }}-
@@ -625,6 +561,9 @@ jobs:
         shell: pwsh
         run: |
           $sdkPath = Join-Path $env:WORKSPACE "hl2sdk_cs2"
+          $safeSdkPath = ([IO.Path]::GetFullPath($sdkPath) -replace '\\', '/')
+          git config --global --add safe.directory "$safeSdkPath"
+          if ($LASTEXITCODE -ne 0) { throw "Failed to trust hl2sdk_cs2 Git directory." }
           $sdkRef = "cs2-$env:GAMEVER"
           $sdkRemote = "https://github.com/HLND2T/hl2sdk.git"
           $pinnedSha = (git -C $sdkPath rev-parse HEAD).Trim()
@@ -707,6 +646,41 @@ jobs:
           Set-Location $env:WORKSPACE
           "validated" | Out-File -LiteralPath ".snapshot-validation-success" -Encoding ascii
 
+      - name: Stage analyzed YAML for merge promotion
+        id: stage-yaml
+        shell: pwsh
+        run: |
+          Set-Location $env:WORKSPACE
+
+          $gameRoot = [IO.Path]::GetFullPath((Join-Path $env:WORKSPACE "bin\$env:GAMEVER"))
+          $workspaceRoot = [IO.Path]::GetFullPath($env:WORKSPACE)
+          $workspacePrefix = $workspaceRoot.TrimEnd('\') + '\'
+          if (-not $gameRoot.StartsWith($workspacePrefix, [StringComparison]::OrdinalIgnoreCase)) {
+            throw "Resolved game root is outside the validation workspace: $gameRoot"
+          }
+          if (-not (Test-Path -LiteralPath $gameRoot -PathType Container)) {
+            throw "Current game root does not exist: $gameRoot"
+          }
+
+          $stagingRoot = Join-Path $env:PERSISTED_WORKSPACE "pr-yaml-staging"
+          $prStaging = Join-Path $stagingRoot $env:PR_NUMBER
+          $runStaging = Join-Path $prStaging "${{ github.run_id }}-${{ github.run_attempt }}"
+          New-Item -ItemType Directory -Path $runStaging -Force | Out-Null
+
+          # Record the GAMEVER so the merge finalizer can route this run's
+          # analyzed YAML back to the correct persisted bin directory.
+          $env:GAMEVER | Out-File -LiteralPath (Join-Path $runStaging "gamever.txt") -Encoding ascii
+
+          # Only the analyzed *.yaml artifacts are staged; *.i64 databases are
+          # not persisted by the PR pipeline anymore.
+          robocopy $gameRoot $runStaging "*.yaml" /S /COPY:DAT /DCOPY:DAT /R:2 /W:5
+          $rc = $LASTEXITCODE
+          if ($rc -ge 8) {
+            throw "Failed to stage analyzed YAML for GAMEVER=$env:GAMEVER; robocopy exit code $rc"
+          }
+          $global:LASTEXITCODE = 0
+          Write-Host "Staged analyzed YAML for GAMEVER=$env:GAMEVER into $runStaging"
+
       - name: Clean candidate session
         id: cleanup
         if: always()
@@ -733,7 +707,7 @@ jobs:
     env:
       PERSISTED_WORKSPACE: ${{ secrets.PERSISTED_WORKSPACE }}
     steps:
-      - name: Finalize PR workspace
+      - name: Promote staged YAML on merge
         id: finalize-workspace
         shell: pwsh
         run: |
@@ -744,83 +718,49 @@ jobs:
             throw "Unable to determine pull request number."
           }
 
-          if ([string]::IsNullOrWhiteSpace($env:RUNNER_WORKSPACE)) {
-            throw "RUNNER_WORKSPACE is not configured."
-          }
-
-          $workspaceRoot = [IO.Path]::GetFullPath($env:RUNNER_WORKSPACE)
-          $workspaceName = "CS2_VibeSignatures-pr-$prNumber"
-          $prWorkspace = [IO.Path]::GetFullPath((Join-Path $workspaceRoot $workspaceName))
-          $workspaceRootWithSeparator = $workspaceRoot.TrimEnd('\') + '\'
-
-          if ((Split-Path -Leaf $prWorkspace) -ne $workspaceName) {
-            throw "Resolved PR workspace leaf mismatch: $prWorkspace"
-          }
-
-          if (-not $prWorkspace.StartsWith($workspaceRootWithSeparator, [StringComparison]::OrdinalIgnoreCase)) {
-            throw "Resolved PR workspace is outside RUNNER_WORKSPACE: $prWorkspace"
-          }
-
-          if (-not (Test-Path -LiteralPath $prWorkspace)) {
+          $prStaging = [IO.Path]::GetFullPath((Join-Path $env:PERSISTED_WORKSPACE "pr-yaml-staging\$prNumber"))
+          if (-not (Test-Path -LiteralPath $prStaging -PathType Container)) {
             if ($prWasMerged -eq "true") {
-              throw "PR workspace does not exist for merged PR: $prWorkspace"
+              throw "Merged PR has no staged YAML directory: $prStaging"
             }
-
-            Write-Host "PR workspace does not exist; nothing to delete: $prWorkspace"
+            Write-Host "No staged YAML for PR $prNumber; nothing to promote."
             exit 0
           }
 
-          if (-not (Test-Path -LiteralPath $prWorkspace -PathType Container)) {
-            throw "PR workspace exists but is not a directory: $prWorkspace"
-          }
-
-          $workspaceItem = Get-Item -LiteralPath $prWorkspace -Force
-          if ($workspaceItem.Attributes -band [IO.FileAttributes]::ReparsePoint) {
-            throw "Refusing to remove PR workspace because it is a reparse point: $prWorkspace"
-          }
-
-          Write-Host "PR closed (merged=$prWasMerged); candidate validation never writes persisted YAML."
-
           if ($prWasMerged -eq "true") {
-            $prBinRoot = Join-Path $prWorkspace "bin"
-            if (Test-Path -LiteralPath $prBinRoot -PathType Container) {
-              $persistedBinRoot = Join-Path $env:PERSISTED_WORKSPACE "bin"
-              Get-ChildItem -LiteralPath $prBinRoot -Directory | ForEach-Object {
-                $gamever = $_.Name
-                $sourceGameverDir = $_.FullName
-                $targetGameverDir = Join-Path $persistedBinRoot $gamever
-                if (-not (Test-Path -LiteralPath $targetGameverDir -PathType Container)) {
-                  New-Item -ItemType Directory -Path $targetGameverDir -Force | Out-Null
-                }
-                $i64Args = @(
-                  $sourceGameverDir
-                  $targetGameverDir
-                  "*.i64"
-                  "/S"
-                  "/COPY:DAT"
-                  "/DCOPY:DAT"
-                  "/R:2"
-                  "/W:5"
-                  "/XF"
-                  "*.id0"
-                )
-                robocopy @i64Args
-                $i64Exit = $LASTEXITCODE
-                if ($i64Exit -ge 8) {
-                  Write-Host "::warning title=i64-persist::Failed to persist *.i64 for GAMEVER=$gamever; robocopy exit code $i64Exit"
-                } else {
-                  Write-Host "Persisted *.i64 databases for GAMEVER=$gamever back to PERSISTED_WORKSPACE"
-                }
-                $global:LASTEXITCODE = 0
-              }
-            } else {
-              Write-Host "No bin directory in PR workspace; nothing to persist."
+            # Prefer the latest successful validate run. Directory names are
+            # "<run_id>-<run_attempt>"; sort numerically (a lexicographic sort
+            # would mis-order 1000 vs 999).
+            $latestRun = Get-ChildItem -LiteralPath $prStaging -Directory |
+              Sort-Object @{ Expression = { [int](($_.Name -split '-')[0]) }; Descending = $true },
+                          @{ Expression = { [int](($_.Name -split '-')[1]) }; Descending = $true } |
+              Select-Object -First 1
+            if (-not $latestRun) {
+              throw "Merged PR has staged YAML directory but no run subdirectories: $prStaging"
             }
+
+            $gameverMarker = Join-Path $latestRun.FullName "gamever.txt"
+            if (-not (Test-Path -LiteralPath $gameverMarker -PathType Leaf)) {
+              throw "Staged run is missing gamever.txt: $latestRun.FullName"
+            }
+            $gamever = (Get-Content -LiteralPath $gameverMarker -Raw).Trim()
+            if ([string]::IsNullOrWhiteSpace($gamever)) {
+              throw "Staged run has an empty gamever marker: $latestRun.FullName"
+            }
+
+            $targetGamever = Join-Path $env:PERSISTED_WORKSPACE "bin\$gamever"
+            New-Item -ItemType Directory -Path $targetGamever -Force | Out-Null
+
+            robocopy $latestRun.FullName $targetGamever "*.yaml" /S /COPY:DAT /DCOPY:DAT /R:2 /W:5 /XF gamever.txt
+            $rc = $LASTEXITCODE
+            if ($rc -ge 8) {
+              throw "Failed to promote staged YAML for GAMEVER=$gamever; robocopy exit code $rc"
+            }
+            $global:LASTEXITCODE = 0
+            Write-Host "Promoted validated YAML for GAMEVER=$gamever into $targetGamever"
           } else {
-            Write-Host "PR was closed without merging; skipping *.i64 persistence."
+            Write-Host "PR $prNumber was closed without merging; skipping YAML promotion."
           }
 
-          Set-Location $workspaceRoot
-
-          Remove-Item -LiteralPath $prWorkspace -Recurse -Force
-          Write-Host "Removed PR workspace: $prWorkspace"
+          Remove-Item -LiteralPath $prStaging -Recurse -Force
+          Write-Host "Removed staged YAML directory: $prStaging"
