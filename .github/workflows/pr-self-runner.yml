@@ -687,7 +687,7 @@ jobs:
       !(github.event.pull_request.user.login == 'github-actions[bot]' &&
         startsWith(github.event.pull_request.head.ref, 'gamesymbols/build/') &&
         startsWith(github.event.pull_request.title, 'chore(gamesymbols): publish '))
-    environment: win64
+    environment: win64-cleanup
     runs-on: [self-hosted, windows, x64]
     env:
       PERSISTED_WORKSPACE: ${{ secrets.PERSISTED_WORKSPACE }}

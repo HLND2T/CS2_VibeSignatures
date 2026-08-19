@@ -11,7 +11,7 @@ FUNC_XREFS = [
         "xref_strings": [],
         "xref_gvs": [],
         "xref_signatures": [],
-        "xref_funcs": ["PlayImpactPhysicsDust"],
+        "xref_funcs": ["PhysCollisionDust"],
         "exclude_funcs": [],
         "exclude_strings": [],
         "exclude_gvs": [],
@@ -32,7 +32,7 @@ GENERATE_YAML_DESIRED_FIELDS = [
 async def preprocess_skill(
     session, skill_name, expected_outputs, old_yaml_map, new_binary_dir, platform, image_base, debug=False
 ):
-    """Find the CBaseEntity vfunc that calls PlayImpactPhysicsDust."""
+    """Find the CBaseEntity vfunc that calls PhysCollisionDust."""
     _ = skill_name
     return await preprocess_common_skill(
         session=session,

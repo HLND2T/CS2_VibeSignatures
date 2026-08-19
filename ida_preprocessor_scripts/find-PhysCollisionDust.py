@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-PlayImpactPhysicsDust skill."""
+"""Preprocess script for find-PhysCollisionDust skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
-TARGET_FUNCTION_NAMES = ["PlayImpactPhysicsDust"]
+TARGET_FUNCTION_NAMES = ["PhysCollisionDust"]
 
 FUNC_XREFS = [
     {
-        "func_name": "PlayImpactPhysicsDust",
+        "func_name": "PhysCollisionDust",
         "xref_strings": ["impact_physics_dust.vpcf"],
         "xref_gvs": [],
         "xref_signatures": [],
@@ -20,14 +20,14 @@ FUNC_XREFS = [
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
-    ("PlayImpactPhysicsDust", ["func_name", "func_sig", "func_va", "func_rva", "func_size"]),
+    ("PhysCollisionDust", ["func_name", "func_sig", "func_va", "func_rva", "func_size"]),
 ]
 
 
 async def preprocess_skill(
     session, skill_name, expected_outputs, old_yaml_map, new_binary_dir, platform, image_base, debug=False
 ):
-    """Find PlayImpactPhysicsDust from its particle-system resource string."""
+    """Find PhysCollisionDust from its particle-system resource string."""
     _ = skill_name
     return await preprocess_common_skill(
         session=session,

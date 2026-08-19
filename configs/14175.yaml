@@ -7090,6 +7090,11 @@ modules:
           - CGameRules_ClientSettingsChanged.{platform}.yaml
         expected_input:
           - CGameRules_vtable.{platform}.yaml
+      - name: find-CGameRules_SetGamePaused
+        expected_output:
+          - CGameRules_SetGamePaused.{platform}.yaml
+        expected_input:
+          - CGameRules_vtable.{platform}.yaml
       - name: find-CGameRulesGameSystem_OnGameInit
         expected_output:
           - CGameRulesGameSystem_OnGameInit.{platform}.yaml
@@ -7946,14 +7951,14 @@ modules:
       - name: find-CPhysicsGameSystem_ProcessContactEvents
         expected_output:
           - CPhysicsGameSystem_ProcessContactEvents.{platform}.yaml
-      - name: find-PlayImpactPhysicsDust
+      - name: find-PhysCollisionDust
         expected_output:
-          - PlayImpactPhysicsDust.{platform}.yaml
+          - PhysCollisionDust.{platform}.yaml
       - name: find-CBaseEntity_VPhysicsCollision
         expected_output:
           - CBaseEntity_VPhysicsCollision.{platform}.yaml
         expected_input:
-          - PlayImpactPhysicsDust.{platform}.yaml
+          - PhysCollisionDust.{platform}.yaml
           - CBaseEntity_vtable.{platform}.yaml
       - name: find-CPhysicsGameSystem_ProcessContactEvents-decompiles
         expected_output:
@@ -8724,6 +8729,12 @@ modules:
           - CLoopModeGame_OnFrameBoundary.{platform}.yaml
         expected_input:
           - CLoopModeGame_RegisterEventMapInternal.{platform}.yaml
+      - name: find-CLoopModeGame_RegisterEventMap
+        expected_output:
+          - CLoopModeGame_RegisterEventMap.{platform}.yaml
+        expected_input:
+          - CLoopModeGame_RegisterEventMapInternal.{platform}.yaml
+          - CLoopModeGame_vtable.{platform}.yaml
       - name: find-IGameSystem_OnServerAdvanceTick
         expected_output:
           - IGameSystem_OnServerAdvanceTick.{platform}.yaml
@@ -10210,6 +10221,10 @@ modules:
         category: vfunc
         alias:
           - CGameRules::ClientSettingsChanged
+      - name: CGameRules_SetGamePaused
+        category: vfunc
+        alias:
+          - CGameRules::SetGamePaused
       - name: CGameRulesGameSystem_OnGameInit
         category: vfunc
         alias:
@@ -11388,7 +11403,7 @@ modules:
         category: func
         alias:
           - CPhysicsGameSystem::ProcessContactEvents
-      - name: PlayImpactPhysicsDust
+      - name: PhysCollisionDust
         category: func
       - name: CBaseEntity_VPhysicsCollision
         category: vfunc
@@ -12135,6 +12150,10 @@ modules:
         category: func
         alias:
           - CLoopModeGame::RegisterEventMapInternal
+      - name: CLoopModeGame_RegisterEventMap
+        category: vfunc
+        alias:
+          - CLoopModeGame::RegisterEventMap
       - name: CLoopModeGame_dtor
         category: func
         alias:
@@ -13415,3 +13434,26 @@ cpp_tests:
     reference_modules:
       - engine  # bin/{gamever}/engine/CNetworkServerService_*.{platform}.yaml
       - server  # bin/{gamever}/server/CNetworkServerService_*.{platform}.yaml
+  - name: ICommandLine_MSVC
+    symbol: ICommandLine
+    cpp: cpp_tests/icommandline.cpp
+    headers:
+      - hl2sdk_cs2/public/tier0/icommandline.h  # Used by the fix-cppheaders SKILL
+    target: x86_64-pc-windows-msvc
+    include_directories:
+      - hl2sdk_cs2/game/shared
+      - hl2sdk_cs2/public
+      - hl2sdk_cs2/public/tier0
+      - hl2sdk_cs2/public/tier1
+      - hl2sdk_cs2/public/mathlib
+    defines:
+      - COMPILER_MSVC=1
+      - COMPILER_MSVC64=1
+      - _MSVC_STL_USE_ABORT_AS_DOOM_FUNCTION
+    additional_compiler_options:
+      - fms-extensions
+      - fms-compatibility
+      - Xclang
+      - fdump-vtable-layouts
+    # No reference_modules yet: ICommandLine has no binary reference YAMLs
+    # (tier0/vstdlib is not an analyzed module). Compile-only validation.
