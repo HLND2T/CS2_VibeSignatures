@@ -19,9 +19,6 @@ jobs:
        github.repository == 'hzqst/CS2_VibeSignatures') &&
       github.event.pull_request.head.repo.full_name == github.repository &&
       !(github.event.pull_request.user.login == 'github-actions[bot]' &&
-        startsWith(github.event.pull_request.head.ref, 'bump-download/') &&
-        startsWith(github.event.pull_request.title, 'chore(download): Update manifest for ')) &&
-      !(github.event.pull_request.user.login == 'github-actions[bot]' &&
         startsWith(github.event.pull_request.head.ref, 'gamesymbols/build/') &&
         startsWith(github.event.pull_request.title, 'chore(gamesymbols): publish '))
     environment: win64
@@ -53,6 +50,7 @@ jobs:
 
       - name: Compute submodule cache key
         id: submodule-cache-key
+        if: steps.detect-bump.outputs.is-bump != 'true'
         shell: pwsh
         run: |
           Set-Location $env:WORKSPACE
@@ -73,6 +71,7 @@ jobs:
 
       - name: Restore submodule cache
         id: restore-submodule-cache
+        if: steps.detect-bump.outputs.is-bump != 'true'
         uses: actions/cache@v5
         with:
           path: |
@@ -84,6 +83,7 @@ jobs:
 
       - name: Sync and update submodules
         id: sync-submodules
+        if: steps.detect-bump.outputs.is-bump != 'true'
         shell: pwsh
         run: |
           Set-Location $env:WORKSPACE
@@ -99,8 +99,39 @@ jobs:
           Set-Location $env:WORKSPACE
           uv run python format_repo_files.py --check
 
+      - name: Detect bump-download PR
+        id: detect-bump
+        shell: pwsh
+        run: |
+          $isBot = "${{ github.event.pull_request.user.login }}" -eq "github-actions[bot]"
+          $headRef = "${{ github.event.pull_request.head.ref }}"
+          $title = "${{ github.event.pull_request.title }}"
+          $isBump = $isBot -and $headRef.StartsWith("bump-download/") -and $title.StartsWith("chore(download): Update manifest for ")
+          # PowerShell bool ToString() yields capitalized True/False; emit lowercase
+          # so the downstream string comparisons against 'true' are case-exact.
+          $isBumpLower = if ($isBump) { "true" } else { "false" }
+          "is-bump=$isBumpLower" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          Write-Host "Detected bump-download PR: $isBumpLower"
+
+      - name: Bump-download lightweight validation
+        id: bump-light
+        if: steps.detect-bump.outputs.is-bump == 'true'
+        shell: pwsh
+        run: |
+          Set-Location $env:WORKSPACE
+          $gamever = (uv run python -c "import yaml; d=yaml.safe_load(open('download.yaml', encoding='utf-8')); print(d['downloads'][-1]['tag'])").Trim()
+          if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($gamever)) {
+            throw "Failed to read latest game version from download.yaml."
+          }
+          $configPath = Join-Path $env:WORKSPACE "configs\$gamever.yaml"
+          if (-not (Test-Path -LiteralPath $configPath -PathType Leaf)) {
+            throw "Missing analysis config for bump tag $gamever: $configPath"
+          }
+          Write-Host "Bump-download validation OK: GAMEVER=$gamever config=$configPath"
+
       - name: Determine release version from PR download config
         id: select-version
+        if: steps.detect-bump.outputs.is-bump != 'true'
         shell: pwsh
         run: |
           Set-Location $env:WORKSPACE
@@ -119,6 +150,7 @@ jobs:
 
       - name: Extract deterministic base snapshot
         id: base-snapshot
+        if: steps.detect-bump.outputs.is-bump != 'true'
         shell: pwsh
         run: |
           Set-Location $env:WORKSPACE
@@ -236,6 +268,7 @@ jobs:
 
       - name: Prepare PR bin copy
         id: prepare-bin
+        if: steps.detect-bump.outputs.is-bump != 'true'
         shell: pwsh
         run: |
           function Get-BinCopyExcludes {
@@ -359,6 +392,7 @@ jobs:
 
       - name: Restore deterministic base and invalidate affected outputs
         id: restore-base
+        if: steps.detect-bump.outputs.is-bump != 'true'
         shell: pwsh
         run: |
           Set-Location $env:WORKSPACE
@@ -469,6 +503,7 @@ jobs:
 
       - name: Run Python test suites
         id: test-suites
+        if: steps.detect-bump.outputs.is-bump != 'true'
         shell: pwsh
         run: |
           Set-Location $env:WORKSPACE
@@ -479,6 +514,7 @@ jobs:
 
       - name: Analyze binaries
         id: analyze
+        if: steps.detect-bump.outputs.is-bump != 'true'
         shell: pwsh
         run: |
           Set-Location $env:WORKSPACE
@@ -489,6 +525,7 @@ jobs:
 
       - name: Build actual candidate snapshot
         id: build-snapshot
+        if: steps.detect-bump.outputs.is-bump != 'true'
         shell: pwsh
         run: |
           Set-Location $env:WORKSPACE
@@ -512,6 +549,7 @@ jobs:
 
       - name: Compare actual candidate with PR head snapshot
         id: compare-snapshot
+        if: steps.detect-bump.outputs.is-bump != 'true'
         shell: pwsh
         run: |
           Set-Location $env:WORKSPACE
@@ -527,6 +565,7 @@ jobs:
 
       - name: Build isolated versioned gamedata candidate
         id: build-gamedata
+        if: steps.detect-bump.outputs.is-bump != 'true'
         shell: pwsh
         run: |
           Set-Location $env:WORKSPACE
@@ -558,6 +597,7 @@ jobs:
 
       - name: Select versioned SDK for C++ ABI validation
         id: select-sdk
+        if: steps.detect-bump.outputs.is-bump != 'true'
         shell: pwsh
         run: |
           $sdkPath = Join-Path $env:WORKSPACE "hl2sdk_cs2"
@@ -604,6 +644,7 @@ jobs:
 
       - name: Run C++ tests
         id: cpp-tests
+        if: steps.detect-bump.outputs.is-bump != 'true'
         shell: pwsh
         run: |
           Set-Location $env:WORKSPACE
@@ -641,6 +682,7 @@ jobs:
 
       - name: Mark snapshot validation success
         id: mark-success
+        if: steps.detect-bump.outputs.is-bump != 'true'
         shell: pwsh
         run: |
           Set-Location $env:WORKSPACE
@@ -648,6 +690,7 @@ jobs:
 
       - name: Stage analyzed YAML for merge promotion
         id: stage-yaml
+        if: steps.detect-bump.outputs.is-bump != 'true'
         shell: pwsh
         run: |
           Set-Location $env:WORKSPACE
