@@ -34,5 +34,6 @@ Preflight -> required reusable warm-cache producer -> consumer IDA identity chec
 - `stage-build` excludes `.i64`, legacy `.idb`, and all known IDA side files before building the private inventory. Promotion therefore removes any historical accepted IDB copies instead of duplicating the warm-cache payload.
 - Output PR paths remain exactly the requested snapshot, `gamedata/<GAMEVER>/**`, and release manifest.
 ## Callers
-- `repository_dispatch.types: [build-on-self-runner]`.
-- Machine-oriented `workflow_dispatch`.
+- `repository_dispatch.types: [build-on-self-runner]` only for a provenance-verified merged `bump-download/<GAMEVER>` PR.
+- Machine-oriented `workflow_dispatch` for explicit human-authorized retries and republishes.
+- Scheduled bump discovery never retries an accepted version whose release build failed; a failed automatic attempt requires explicit human dispatch.

@@ -191,7 +191,6 @@ class BumpPlan:
     tag: str
     patch_version: str
     manifests: dict[str, str]
-    dispatch_build: bool = False
     analysis_config_source_gamever: str | None = None
     analysis_config_path: str | None = None
 
@@ -263,7 +262,6 @@ def write_github_output(
     output_path: Path | None,
     updated: bool,
     tag: str | None,
-    dispatch_build: bool = False,
     analysis_config_source_gamever: str | None = None,
     analysis_config_path: str | None = None,
 ) -> None:
@@ -277,8 +275,6 @@ def write_github_output(
         lines.append(f"analysis_config_source_gamever={analysis_config_source_gamever}")
     if updated and analysis_config_path:
         lines.append(f"analysis_config_path={analysis_config_path}")
-    if dispatch_build:
-        lines.append("dispatch_build=true")
     with output_path.open("a", encoding="utf-8") as handle:
         handle.write("\n".join(lines) + "\n")
 
@@ -458,28 +454,6 @@ def plan_download_entry(
     )
 
 
-def plan_missing_release_build(
-    downloads: list[dict[str, Any]],
-    patch_version: str,
-    manifests: dict[str, str],
-    configs_dir: Path | None = None,
-) -> BumpPlan | None:
-    """Dispatch a new-version build when config is accepted but its release tag is absent."""
-    no_update_plan = plan_download_entry(downloads, patch_version, manifests, configs_dir=configs_dir)
-    if no_update_plan.updated:
-        return None
-    if remote_tag_exists(no_update_plan.tag):
-        return None
-    return BumpPlan(
-        updated=True,
-        tag=no_update_plan.tag,
-        patch_version=patch_version,
-        manifests=manifests,
-        dispatch_build=True,
-        analysis_config_path=no_update_plan.analysis_config_path,
-    )
-
-
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Discover CS2 default-branch depot manifests and update download.yaml."
@@ -516,82 +490,65 @@ def run(args: argparse.Namespace) -> int:
 
     if args.dry_run:
         if not plan.updated:
-            dispatch_plan = plan_missing_release_build(downloads, patch_version, manifests, configs_dir=configs_dir)
-            if dispatch_plan is None:
-                print(f"No update for {patch_version}: {manifests}")
-                write_github_output(output_path, updated=False, tag=None)
-                return 0
-            plan = dispatch_plan
-            print(f"Would dispatch build for accepted tag {plan.tag}")
-            write_github_output(
-                output_path,
-                updated=True,
-                tag=plan.tag,
-                dispatch_build=True,
-                analysis_config_path=plan.analysis_config_path,
-            )
-        else:
-            print(
-                f"Would update download.yaml with tag {plan.tag}: {manifests}; "
-                f"seed {plan.analysis_config_source_gamever} -> {plan.analysis_config_path}"
-            )
-            write_github_output(
-                output_path,
-                updated=True,
-                tag=plan.tag,
-                analysis_config_source_gamever=plan.analysis_config_source_gamever,
-                analysis_config_path=plan.analysis_config_path,
-            )
-        return 0
-
-    if not plan.updated:
-        dispatch_plan = plan_missing_release_build(downloads, patch_version, manifests, configs_dir=configs_dir)
-        if dispatch_plan is None:
             print(f"No update for {patch_version}: {manifests}")
             write_github_output(output_path, updated=False, tag=None)
             return 0
-        plan = dispatch_plan
+        print(
+            f"Would update download.yaml with tag {plan.tag}: {manifests}; "
+            f"seed {plan.analysis_config_source_gamever} -> {plan.analysis_config_path}"
+        )
+        write_github_output(
+            output_path,
+            updated=True,
+            tag=plan.tag,
+            analysis_config_source_gamever=plan.analysis_config_source_gamever,
+            analysis_config_path=plan.analysis_config_path,
+        )
+        return 0
 
-    if not plan.dispatch_build:
-        ensure_clean_worktree()
-        if local_tag_exists(plan.tag) or remote_tag_exists(plan.tag):
-            raise BumpError(f"Tag already exists: {plan.tag}")
-        original_download = config_path.read_bytes()
-        target_path = None
-        target_existed = False
-        try:
-            append_download_entry(downloads, plan)
-            save_config(config_path, data)
-            if configs_dir is None:
-                create_commit(config_path, plan.patch_version)
-            else:
-                source_gamever = plan.analysis_config_source_gamever
-                if not source_gamever:
-                    raise BumpError("New download entry is missing analysis config seed metadata")
-                source_path, target_path = _config_seed_paths(configs_dir, source_gamever, plan.tag)
-                target_existed = target_path.exists()
-                target_path.write_bytes(source_path.read_bytes())
-                create_commit([config_path, target_path], plan.patch_version)
-        except Exception:
-            config_path.write_bytes(original_download)
-            if target_path is not None and not target_existed:
-                target_path.unlink(missing_ok=True)
-            staged_paths = [config_path, *([target_path] if target_path is not None else [])]
-            subprocess.run(
-                ["git", "restore", "--staged", "--", *(str(path) for path in staged_paths)],
-                check=False,
-                capture_output=True,
-            )
-            raise
+    if not plan.updated:
+        print(f"No update for {patch_version}: {manifests}")
+        write_github_output(output_path, updated=False, tag=None)
+        return 0
+
+    ensure_clean_worktree()
+    if local_tag_exists(plan.tag) or remote_tag_exists(plan.tag):
+        raise BumpError(f"Tag already exists: {plan.tag}")
+    original_download = config_path.read_bytes()
+    target_path = None
+    target_existed = False
+    try:
+        append_download_entry(downloads, plan)
+        save_config(config_path, data)
+        if configs_dir is None:
+            create_commit(config_path, plan.patch_version)
+        else:
+            source_gamever = plan.analysis_config_source_gamever
+            if not source_gamever:
+                raise BumpError("New download entry is missing analysis config seed metadata")
+            source_path, target_path = _config_seed_paths(configs_dir, source_gamever, plan.tag)
+            target_existed = target_path.exists()
+            target_path.write_bytes(source_path.read_bytes())
+            create_commit([config_path, target_path], plan.patch_version)
+    except Exception:
+        config_path.write_bytes(original_download)
+        if target_path is not None and not target_existed:
+            target_path.unlink(missing_ok=True)
+        staged_paths = [config_path, *([target_path] if target_path is not None else [])]
+        subprocess.run(
+            ["git", "restore", "--staged", "--", *(str(path) for path in staged_paths)],
+            check=False,
+            capture_output=True,
+        )
+        raise
     write_github_output(
         output_path,
         updated=True,
         tag=plan.tag,
-        dispatch_build=plan.dispatch_build,
         analysis_config_source_gamever=plan.analysis_config_source_gamever,
         analysis_config_path=plan.analysis_config_path,
     )
-    print(f"Prepared release build request {plan.tag} for {patch_version}")
+    print(f"Prepared download bump {plan.tag} for {patch_version}")
     return 0
 
 

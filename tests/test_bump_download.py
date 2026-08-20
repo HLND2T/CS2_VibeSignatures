@@ -474,18 +474,6 @@ class TestBumpDownload(unittest.TestCase):
                 output.read_text(encoding="utf-8"),
             )
 
-            dispatch_output = Path(tmp) / "dispatch_out.txt"
-            bump_download.write_github_output(
-                dispatch_output,
-                updated=True,
-                tag="14161",
-                dispatch_build=True,
-            )
-            self.assertEqual(
-                "updated=true\ntag=14161\ndispatch_build=true\n",
-                dispatch_output.read_text(encoding="utf-8"),
-            )
-
     @patch("bump_download.subprocess.run")
     def test_create_commit_does_not_create_a_release_tag(self, mock_run) -> None:
         bump_download.create_commit(
@@ -623,7 +611,7 @@ class TestBumpDownload(unittest.TestCase):
         "bump_download.discover_latest",
         return_value=("1.41.6.1", {"2347771": "11", "2347773": "22"}),
     )
-    def test_dry_run_existing_entry_checks_release_tag_for_recovery(
+    def test_dry_run_existing_entry_is_no_update_without_release_checks(
         self,
         _discover,
         commit,
@@ -632,6 +620,7 @@ class TestBumpDownload(unittest.TestCase):
     ) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             config = Path(tmp) / "download.yaml"
+            output = Path(tmp) / "github_output.txt"
             config.write_text(
                 "downloads:\n"
                 '  - tag: "14161"\n'
@@ -649,59 +638,17 @@ class TestBumpDownload(unittest.TestCase):
                 username=None,
                 password=None,
                 remember_password=False,
-                github_output=None,
+                github_output=str(output),
                 dry_run=True,
             )
 
             self.assertEqual(0, bump_download.run(args))
+            output_text = output.read_text(encoding="utf-8")
 
         commit.assert_not_called()
         local_tag_exists.assert_not_called()
-        remote_tag_exists.assert_called_once_with("14161")
-
-    @patch("bump_download.remote_tag_exists", return_value=False)
-    def test_missing_release_build_when_entry_exists_but_remote_tag_missing(self, _remote) -> None:
-        downloads = [
-            {
-                "tag": "14161",
-                "name": "1.41.6.1",
-                "manifests": {"2347771": "11", "2347773": "22"},
-            }
-        ]
-
-        plan = bump_download.plan_missing_release_build(
-            downloads,
-            patch_version="1.41.6.1",
-            manifests={"2347771": "11", "2347773": "22"},
-        )
-
-        self.assertIsNotNone(plan)
-        self.assertTrue(plan.updated)
-        self.assertTrue(plan.dispatch_build)
-        self.assertEqual("14161", plan.tag)
-
-    @patch("bump_download.subprocess.run")
-    def test_missing_release_build_raises_when_remote_check_fails(self, mock_run) -> None:
-        mock_run.return_value = bump_download.subprocess.CompletedProcess(
-            ["git", "ls-remote"],
-            128,
-            stdout="",
-            stderr="fatal: unable to access origin\n",
-        )
-        downloads = [
-            {
-                "tag": "14161",
-                "name": "1.41.6.1",
-                "manifests": {"2347771": "11", "2347773": "22"},
-            }
-        ]
-
-        with self.assertRaisesRegex(bump_download.BumpError, "fatal: unable to access origin"):
-            bump_download.plan_missing_release_build(
-                downloads,
-                patch_version="1.41.6.1",
-                manifests={"2347771": "11", "2347773": "22"},
-            )
+        remote_tag_exists.assert_not_called()
+        self.assertEqual("updated=false\n", output_text)
 
     @patch("bump_download.create_commit")
     @patch("bump_download.remote_tag_exists", return_value=False)
@@ -759,14 +706,16 @@ class TestBumpDownload(unittest.TestCase):
 
     @patch("bump_download.create_commit")
     @patch("bump_download.ensure_clean_worktree")
-    @patch("bump_download.remote_tag_exists", return_value=True)
+    @patch("bump_download.remote_tag_exists")
+    @patch("bump_download.local_tag_exists")
     @patch(
         "bump_download.discover_latest",
         return_value=("1.41.6.1", {"2347771": "11", "2347773": "22"}),
     )
-    def test_run_existing_entry_remote_tag_present_writes_no_update(
+    def test_run_existing_entry_is_no_update_without_release_checks(
         self,
         _discover,
+        local_tag_exists,
         remote_tag_exists,
         ensure_clean_worktree,
         create_commit,
@@ -799,57 +748,11 @@ class TestBumpDownload(unittest.TestCase):
             self.assertEqual(original_text, config.read_text(encoding="utf-8"))
             output_text = output.read_text(encoding="utf-8")
 
-        remote_tag_exists.assert_called_once_with("14161")
+        local_tag_exists.assert_not_called()
+        remote_tag_exists.assert_not_called()
         ensure_clean_worktree.assert_not_called()
         create_commit.assert_not_called()
         self.assertEqual("updated=false\n", output_text)
-
-    @patch("bump_download.create_commit")
-    @patch("bump_download.ensure_clean_worktree")
-    @patch("bump_download.remote_tag_exists", return_value=False)
-    @patch(
-        "bump_download.discover_latest",
-        return_value=("1.41.6.1", {"2347771": "11", "2347773": "22"}),
-    )
-    def test_run_missing_release_mode_dispatches_without_local_mutation(
-        self,
-        _discover,
-        remote_tag_exists,
-        ensure_clean_worktree,
-        create_commit,
-    ) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            config = Path(tmp) / "download.yaml"
-            output = Path(tmp) / "github_output.txt"
-            original_text = (
-                "downloads:\n"
-                '  - tag: "14161"\n'
-                "    name: 1.41.6.1\n"
-                "    manifests:\n"
-                '      "2347771": "11"\n'
-                '      "2347773": "22"\n'
-            )
-            config.write_text(original_text, encoding="utf-8")
-            args = argparse.Namespace(
-                config=str(config),
-                depotdir=str(Path(tmp) / "depot"),
-                app="730",
-                os="all-platform",
-                username=None,
-                password=None,
-                remember_password=False,
-                github_output=str(output),
-                dry_run=False,
-            )
-
-            self.assertEqual(0, bump_download.run(args))
-            self.assertEqual(original_text, config.read_text(encoding="utf-8"))
-            output_text = output.read_text(encoding="utf-8")
-
-        remote_tag_exists.assert_called_once_with("14161")
-        ensure_clean_worktree.assert_not_called()
-        create_commit.assert_not_called()
-        self.assertEqual("updated=true\ntag=14161\ndispatch_build=true\n", output_text)
 
     @patch("bump_download.parse_args", return_value=argparse.Namespace())
     def test_main_maps_known_errors_to_exit_codes(self, _parse_args) -> None:

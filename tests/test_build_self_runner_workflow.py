@@ -33,6 +33,16 @@ class TestBuildSelfRunnerWorkflow(unittest.TestCase):
         self.assertEqual("${{ needs.preflight.outputs.source_sha }}", warmup["with"]["source_sha"])
         self.assertEqual("inherit", warmup["secrets"])
 
+    def test_repository_dispatch_requires_merged_bump_pr_provenance(self) -> None:
+        preflight = workflow_job(self.build_workflow, "preflight")
+        resolve = steps_by_id(preflight)["resolve"]["run"]
+
+        self.assertIn('if ("${{ github.event_name }}" -eq "repository_dispatch")', resolve)
+        self.assertIn("repository_dispatch requires a numeric source_pull_request", resolve)
+        self.assertIn('gh api "repos/${{ github.repository }}/pulls/$sourcePullRequest"', resolve)
+        self.assertIn('$pull.head.ref -ne "bump-download/$gamever"', resolve)
+        self.assertIn("$pull.merge_commit_sha -ne $sourceSha", resolve)
+
     def test_fast_and_full_test_suites_run_before_analysis(self) -> None:
         tests_step = self.build_steps["test-suites"]
         run = tests_step["run"]
@@ -153,6 +163,8 @@ class TestBuildSelfRunnerWorkflow(unittest.TestCase):
         self.assertEqual({"contents": "write", "pull-requests": "write"}, bump["permissions"])
         self.assertIn("git fetch origin --prune --prune-tags --tags", bump_steps["sync-refs"]["run"])
         self.assertNotIn("git tag", "\n".join(str(step.get("run", "")) for step in bump_job["steps"]))
+        self.assertNotIn("dispatch-existing", bump_steps)
+        self.assertNotIn("dispatch_build", "\n".join(str(step.get("run", "")) for step in bump_job["steps"]))
 
         dispatch = load_workflow("tag-bump-after-merge.yml")
         dispatch_job = workflow_job(dispatch, "dispatch-build")

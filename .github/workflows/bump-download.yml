@@ -108,7 +108,7 @@ jobs:
         run: uv run bump_download.py -config download.yaml -configs-dir configs -depotdir cs2_depot -username "$env:DEPOTDOWNLOADER_STEAM_USERNAME" -password "$env:DEPOTDOWNLOADER_STEAM_PASSWORD" -remember-password -github-output "$env:GITHUB_OUTPUT"
 
       - name: Push bump branch
-        if: steps.bump.outputs.updated == 'true' && steps.bump.outputs.dispatch_build != 'true' && steps.duplicate.outputs.skip_pr != 'true'
+        if: steps.bump.outputs.updated == 'true' && steps.duplicate.outputs.skip_pr != 'true'
         id: branch
         shell: pwsh
         run: |
@@ -127,7 +127,7 @@ jobs:
 
       - name: Create or update bump pull request
         id: create-pr
-        if: steps.bump.outputs.updated == 'true' && steps.bump.outputs.dispatch_build != 'true' && steps.duplicate.outputs.skip_pr != 'true'
+        if: steps.bump.outputs.updated == 'true' && steps.duplicate.outputs.skip_pr != 'true'
         uses: actions/github-script@v7
         env:
           BUMP_TAG: ${{ steps.bump.outputs.tag }}
@@ -200,58 +200,3 @@ jobs:
             });
 
             core.notice(`Created bump pull request: ${pull.html_url}`);
-
-      - name: Dispatch build for an accepted config entry without a release tag
-        id: dispatch-existing
-        if: steps.bump.outputs.updated == 'true' && steps.bump.outputs.dispatch_build == 'true'
-        shell: pwsh
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          $tag = "${{ steps.bump.outputs.tag }}"
-          if ([string]::IsNullOrWhiteSpace($tag)) {
-            throw "steps.bump.outputs.tag is empty."
-          }
-
-          $headSha = git rev-parse origin/main
-          if ($LASTEXITCODE -ne 0) {
-            throw "Failed to resolve HEAD."
-          }
-
-          $existingTag = git ls-remote --tags origin "refs/tags/$tag"
-          if ($LASTEXITCODE -ne 0) {
-            throw "Failed to query remote tag $tag."
-          }
-
-          if (-not [string]::IsNullOrWhiteSpace($existingTag)) {
-            throw "Tag $tag appeared before output promotion; refusing unsafe dispatch."
-          }
-
-          git cat-file -e "$headSha`:configs/$tag.yaml"
-          if ($LASTEXITCODE -ne 0) {
-            throw "Accepted GAMEVER $tag is missing configs/$tag.yaml at origin/main; refusing recovery dispatch."
-          }
-
-          $payload = @{
-            event_type = "build-on-self-runner"
-            client_payload = @{
-              gamever = $tag
-              source_sha = $headSha.Trim()
-              mode = "new"
-            }
-          } | ConvertTo-Json -Depth 5
-
-          $headers = @{
-            Authorization = "Bearer $env:GITHUB_TOKEN"
-            Accept = "application/vnd.github+json"
-            "X-GitHub-Api-Version" = "2022-11-28"
-          }
-
-          Invoke-RestMethod `
-            -Method Post `
-            -Uri "https://api.github.com/repos/${{ github.repository }}/dispatches" `
-            -Headers $headers `
-            -ContentType "application/json" `
-            -Body $payload
-
-          Write-Host "Dispatched mode=new build-on-self-runner for accepted config entry $tag."
