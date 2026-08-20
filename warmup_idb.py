@@ -6,12 +6,13 @@ IDA's initial auto-analysis pass, so warming those databases ahead of the
 analysis keeps that pass off the critical path. Each binary is warmed by a
 separate bare-idalib worker process (:mod:`warmup_idb_worker`) so there is no
 idalib-mcp port to contend for; ``--max-concurrency`` bounds how many workers
-run at once (defaulting to ``$IDB_WARMUP_MAX_CONCURRENCY``, or 2 when unset).
+run at once (defaulting to ``$IDB_WARMUP_MAX_CONCURRENCY``, or 2 when unset),
+and each worker has a bounded timeout.
 
-Warming is a pure optimization. A worker failure only leaves that binary clean
-(its database side files are removed), so the downstream analyze step simply
-falls back to running auto-analysis inline. A non-zero exit therefore means one
-or more binaries are not pre-warmed, never that they are corrupted.
+Warming is a pure optimization. Worker failures trigger bounded cleanup so the
+downstream analyze step can fall back to running auto-analysis inline. Cleanup
+failures are reported explicitly rather than silently treating residual files
+as a safe fallback.
 """
 
 from __future__ import annotations
@@ -21,6 +22,7 @@ import os
 import shutil
 import subprocess
 import sys
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
@@ -31,7 +33,10 @@ from analysis_config import resolve_analysis_config  # noqa: E402
 from init_gamebin import iter_configured_binaries  # noqa: E402
 
 DEFAULT_MAX_CONCURRENCY = 2
+DEFAULT_WORKER_TIMEOUT_SECONDS = 30 * 60
 CONCURRENCY_ENV = "IDB_WARMUP_MAX_CONCURRENCY"
+INVALIDATION_MAX_ATTEMPTS = 3
+INVALIDATION_RETRY_DELAY_SECONDS = 1.0
 
 # IDA database and side files, mirroring ida_analyze_bin._ida_database_paths.
 _IDB_SUFFIXES = (".i64", ".idb", ".id0", ".id1", ".id2", ".nam", ".til")
@@ -52,16 +57,44 @@ def _is_warm(binary_path: Path) -> bool:
     return any(path.is_file() for path in packed) and not lock.exists()
 
 
-def _invalidate_ida_database(binary_path: Path) -> list[str]:
+def _invalidate_ida_database(binary_path: Path) -> tuple[list[str], list[str]]:
+    paths = _ida_database_paths(binary_path)
     removed = []
-    for path in _ida_database_paths(binary_path):
-        try:
-            if path.is_file():
+    removed_set = set()
+    last_errors = {}
+
+    for attempt in range(INVALIDATION_MAX_ATTEMPTS):
+        attempt_errors = {}
+        for path in paths:
+            try:
                 path.unlink()
-                removed.append(str(path))
-        except OSError:
-            pass
-    return removed
+                path_text = str(path)
+                if path_text not in removed_set:
+                    removed.append(path_text)
+                    removed_set.add(path_text)
+            except FileNotFoundError:
+                continue
+            except OSError as exc:
+                attempt_errors[path] = str(exc)
+
+        if not attempt_errors:
+            return removed, []
+
+        last_errors = attempt_errors
+        if attempt + 1 < INVALIDATION_MAX_ATTEMPTS:
+            time.sleep(INVALIDATION_RETRY_DELAY_SECONDS)
+
+    failures = [f"{path}: {error}" for path, error in last_errors.items()]
+    return removed, failures
+
+
+def _invalidate_after_failure(binary_path: Path) -> None:
+    _removed, failures = _invalidate_ida_database(binary_path)
+    if failures:
+        print(
+            f"warmup: database cleanup incomplete for {binary_path.name}: {'; '.join(failures)}",
+            file=sys.stderr,
+        )
 
 
 def _parse_concurrency(raw: str | None) -> int:
@@ -74,21 +107,42 @@ def _parse_concurrency(raw: str | None) -> int:
     return value if value >= 1 else DEFAULT_MAX_CONCURRENCY
 
 
-def _warm_one(python_exe: str, worker_script: Path, binary_path: Path) -> bool:
-    result = subprocess.run(
-        [python_exe, str(worker_script), str(binary_path)],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+def _warm_one(
+    python_exe: str,
+    worker_script: Path,
+    binary_path: Path,
+    timeout_seconds: int = DEFAULT_WORKER_TIMEOUT_SECONDS,
+) -> bool:
+    command = [python_exe, str(worker_script), str(binary_path)]
+    try:
+        result = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            errors="replace",
+            check=False,
+            timeout=timeout_seconds,
+        )
+    except subprocess.TimeoutExpired:
+        print(
+            f"warmup: worker timed out after {timeout_seconds}s for {binary_path.name}",
+            file=sys.stderr,
+        )
+        _invalidate_after_failure(binary_path)
+        return False
+    except (OSError, subprocess.SubprocessError) as exc:
+        print(f"warmup: worker could not run for {binary_path.name}: {exc}", file=sys.stderr)
+        _invalidate_after_failure(binary_path)
+        return False
+
     if result.returncode != 0:
         detail = (result.stderr or result.stdout or "").strip()
         print(f"warmup: worker failed for {binary_path.name}: {detail}", file=sys.stderr)
-        _invalidate_ida_database(binary_path)
+        _invalidate_after_failure(binary_path)
         return False
     if not _is_warm(binary_path):
         print(f"warmup: worker reported success but no warm database for {binary_path.name}", file=sys.stderr)
-        _invalidate_ida_database(binary_path)
+        _invalidate_after_failure(binary_path)
         return False
     return True
 
@@ -106,6 +160,12 @@ def parse_args(argv=None) -> argparse.Namespace:
         "--max-concurrency",
         default=os.environ.get(CONCURRENCY_ENV),
         help=f"Max concurrent workers (default: ${CONCURRENCY_ENV} or {DEFAULT_MAX_CONCURRENCY})",
+    )
+    parser.add_argument(
+        "--worker-timeout-seconds",
+        type=int,
+        default=DEFAULT_WORKER_TIMEOUT_SECONDS,
+        help=f"Timeout for each worker process (default: {DEFAULT_WORKER_TIMEOUT_SECONDS} seconds)",
     )
     return parser.parse_args(argv)
 
@@ -135,18 +195,31 @@ def main(argv=None) -> int:
         return 0
 
     max_concurrency = _parse_concurrency(args.max_concurrency)
+    if args.worker_timeout_seconds < 1:
+        print("warmup: --worker-timeout-seconds must be at least 1", file=sys.stderr)
+        return 1
     print(
         f"warmup: {len(binaries)} configured binaries, {skipped} already warm, "
-        f"{len(pending)} to warm (max concurrency {max_concurrency})"
+        f"{len(pending)} to warm (max concurrency {max_concurrency}, "
+        f"worker timeout {args.worker_timeout_seconds}s)"
     )
 
     warmed = 0
     failed = 0
     with ThreadPoolExecutor(max_workers=max_concurrency) as pool:
-        futures = {pool.submit(_warm_one, python_exe, worker_script, binary): binary for binary in pending}
+        futures = {
+            pool.submit(_warm_one, python_exe, worker_script, binary, args.worker_timeout_seconds): binary
+            for binary in pending
+        }
         for future in as_completed(futures):
             binary = futures[future]
-            if future.result():
+            try:
+                success = future.result()
+            except Exception as exc:
+                print(f"warmup: unexpected worker error for {binary.name}: {exc}", file=sys.stderr)
+                _invalidate_after_failure(binary)
+                success = False
+            if success:
                 warmed += 1
                 print(f"warmup: warmed {binary.name}")
             else:

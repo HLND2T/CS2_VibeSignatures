@@ -3,6 +3,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 SCRIPT = Path("warmup_idb.py")
 SPEC = importlib.util.spec_from_file_location("warmup_idb", SCRIPT)
@@ -47,12 +48,45 @@ class TestWarmupIdbHelpers(unittest.TestCase):
             for suffix in (".i64", ".id0", ".id1"):
                 Path(f"{binary}{suffix}").write_bytes(b"x")
 
-            warmup_idb._invalidate_ida_database(binary)
+            removed, failures = warmup_idb._invalidate_ida_database(binary)
 
+            self.assertCountEqual(
+                [str(Path(f"{binary}{suffix}")) for suffix in (".i64", ".id0", ".id1")],
+                removed,
+            )
+            self.assertEqual([], failures)
             self.assertFalse(Path(f"{binary}.i64").exists())
             self.assertFalse(Path(f"{binary}.id0").exists())
             self.assertFalse(Path(f"{binary}.id1").exists())
             self.assertTrue(binary.exists())
+
+    def test_invalidate_retries_and_reports_residual_files(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            binary = Path(temp_dir) / "server.dll"
+            binary.write_bytes(b"MZ")
+            database = Path(f"{binary}.i64")
+            database.write_bytes(b"locked")
+            original_unlink = Path.unlink
+
+            def fail_database_unlink(path: Path, *args, **kwargs):
+                if path == database:
+                    raise PermissionError("locked")
+                return original_unlink(path, *args, **kwargs)
+
+            with (
+                patch.object(Path, "unlink", autospec=True, side_effect=fail_database_unlink) as unlink,
+                patch.object(warmup_idb.time, "sleep") as sleep,
+            ):
+                removed, failures = warmup_idb._invalidate_ida_database(binary)
+
+            self.assertEqual([], removed)
+            self.assertEqual(1, len(failures))
+            self.assertIn(str(database), failures[0])
+            self.assertEqual(
+                len(warmup_idb._ida_database_paths(binary)) * warmup_idb.INVALIDATION_MAX_ATTEMPTS,
+                unlink.call_count,
+            )
+            self.assertEqual(warmup_idb.INVALIDATION_MAX_ATTEMPTS - 1, sleep.call_count)
 
     def test_warm_one_success_leaves_packed_database(self) -> None:
         worker = _warm_worker_script(
@@ -82,6 +116,32 @@ class TestWarmupIdbHelpers(unittest.TestCase):
                 self.assertFalse(Path(f"{binary}.id0").exists())
         finally:
             worker.unlink(missing_ok=True)
+
+    def test_warm_one_timeout_invalidates_database(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            binary = Path(temp_dir) / "engine2.dll"
+            binary.write_bytes(b"MZ")
+            Path(f"{binary}.id0").write_bytes(b"stale-lock")
+
+            with patch.object(
+                warmup_idb.subprocess,
+                "run",
+                side_effect=warmup_idb.subprocess.TimeoutExpired([sys.executable, "worker.py"], 5),
+            ):
+                self.assertFalse(warmup_idb._warm_one(sys.executable, Path("worker.py"), binary, timeout_seconds=5))
+
+            self.assertFalse(Path(f"{binary}.id0").exists())
+
+    def test_warm_one_spawn_error_invalidates_database(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            binary = Path(temp_dir) / "engine2.dll"
+            binary.write_bytes(b"MZ")
+            Path(f"{binary}.id0").write_bytes(b"stale-lock")
+
+            with patch.object(warmup_idb.subprocess, "run", side_effect=OSError("cannot start process")):
+                self.assertFalse(warmup_idb._warm_one(sys.executable, Path("worker.py"), binary))
+
+            self.assertFalse(Path(f"{binary}.id0").exists())
 
 
 if __name__ == "__main__":
