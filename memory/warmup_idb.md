@@ -36,6 +36,10 @@ Caller GAMEVER/source SHA -> reusable warmup workflow -> isolated binary prepara
 - `IDB_WARMUP_MAX_CONCURRENCY` and optional `IDB_WARMUP_MAX_MEMORY_MIB` environment variables.
 - [[build-on-self-runner]] and [[pr-self-runner]] callers.
 ## Notes
+- Cache-key formula: `sha256(canonical_json{gamever, ida_version, binaries})`, where `binaries` is the list of configured-binary records, each `{module, platform, path, size, sha256}`. It is derived from the configured binary set + IDA kernel version only; the analysis-config file bytes themselves are **not** hashed into the key.
+- The binary record list comes from `iter_configured_binaries`, which reads `configs/<GAMEVER>.yaml` `modules[].path_windows`/`path_linux` — i.e. only the *declared* binaries participate, not the whole `bin/<GAMEVER>/` tree.
+- Therefore a config edit that only changes non-binary-list fields (analysis parameters, IDA script settings) leaves the cache key unchanged and does **not** trigger re-warmup, even though actual IDB output may differ. Only changes that alter the declared module/path/platform set produce a new key. This is a deliberate contract: the key binds *what* gets analyzed, not *how*.
+
 - The old release path was not actually disconnected: workspace `.i64` files were copied by `stage-build` into `release-staging`, then the merged generated-output PR caused `promote-bin` to transactionally replace `PERSISTED_WORKSPACE/bin/<GAMEVER>`. Merely finishing the build was insufficient; generated-output merge and promotion were the old visibility gate. Current staging excludes all IDA database artifacts, so the accepted tree no longer receives that second copy.
 - The only supported cache source is an explicit immutable generation returned by this workflow; PR/release baseline copies also exclude the complete tracked IDA suffix set.
 - Generation directories are immutable. READY is an atomic convenience pointer; callers restore the returned generation ID and cache key, so a later READY update cannot create a cross-workflow race.

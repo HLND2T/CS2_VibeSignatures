@@ -439,19 +439,17 @@ def restore_cache(
             expected_ida_version=ida_version,
         )
         destination_bin_root = Path(repo_root).resolve() / "bin" / gamever
+        resolved_repo_root = Path(repo_root).resolve()
         for binary in manifest["binaries"]:
             relative = normalized_relative_path(binary.get("path", ""))
             database_relative = normalized_relative_path(binary.get("database_path", ""))
             if database_relative != f"{relative}.i64":
                 raise IdbCacheError(f"invalid database path for cached binary {relative}")
-            _atomic_copy(
-                contained_path(payload_root, *Path(relative).parts),
-                contained_path(destination_bin_root, *Path(relative).parts),
-            )
-            _atomic_copy(
-                contained_path(payload_root, *Path(database_relative).parts),
-                contained_path(destination_bin_root, *Path(database_relative).parts),
-            )
+            for payload_relative in (relative, database_relative):
+                payload_path = contained_path(payload_root, *Path(payload_relative).parts)
+                target = contained_path(destination_bin_root, *Path(payload_relative).parts)
+                reject_reparse_components(resolved_repo_root, target)
+                _atomic_copy(payload_path, target)
         restored_binaries = _binary_records(Path(repo_root), gamever)
         restored_cache_key = _cache_key(gamever, manifest["ida_version"], restored_binaries)
         if restored_cache_key != expected_cache_key:

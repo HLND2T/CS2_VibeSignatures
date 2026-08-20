@@ -261,6 +261,52 @@ class TestIdbCache(unittest.TestCase):
 
             self.assertFalse((destination / "bin").exists())
 
+    def test_restore_rejects_reparse_component_on_target_path(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            source = root / "source"
+            destination = root / "destination"
+            persisted = root / "persisted"
+            gamever = "14180"
+            self._write_source(source, gamever)
+
+            with self._patch_config():
+                published = idb_cache.publish_cache(
+                    repo_root=source,
+                    persisted_root=persisted,
+                    gamever=gamever,
+                    ida_version="9.2",
+                    generation_suffix="106-1",
+                )
+
+            # Create a junction at destination/bin/<gamever> pointing inside the
+            # destination root so contained_path still accepts it but the restore
+            # reparse-component check must reject it.
+            bin_root = destination / "bin"
+            bin_root.mkdir(parents=True, exist_ok=True)
+            link = bin_root / gamever
+            link_target = destination / "bin" / f"{gamever}-link-target"
+            link_target.mkdir(parents=True, exist_ok=True)
+            if os.name == "nt":
+                result = os.system(f'cmd /c mklink /j "{link}" "{link_target}"')
+                if result != 0:
+                    self.skipTest("unable to create a junction on this host")
+            else:
+                try:
+                    link.symlink_to(link_target, target_is_directory=True)
+                except OSError as exc:
+                    self.skipTest(f"unable to create a symlink on this host: {exc}")
+
+            with self.assertRaisesRegex(idb_cache.IdbCacheError, "reparse"):
+                idb_cache.restore_cache(
+                    repo_root=destination,
+                    persisted_root=persisted,
+                    gamever=gamever,
+                    generation=published["generation"],
+                    expected_cache_key=published["cache_key"],
+                    ida_version="9.2",
+                )
+
     def test_prune_removes_only_old_unprotected_generations_and_incoming(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)

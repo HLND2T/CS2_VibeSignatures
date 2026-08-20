@@ -141,19 +141,17 @@ class TestPrSelfRunnerWorkflow(unittest.TestCase):
         self.assertEqual("always()", self.steps["restore-sdk"]["if"])
         self.assertIn('git -C $sdkPath checkout --detach "$env:SDK_PINNED_SHA"', self.steps["restore-sdk"]["run"])
 
-    def test_published_cache_replaces_persisted_i64_copy(self) -> None:
+    def test_published_cache_restores_binaries_and_idb(self) -> None:
         self.assertIn("idb_cache.py restore", self.steps["restore-idb-cache"]["run"])
         self.assertIn("IDB_CACHE_GENERATION", self.steps["restore-idb-cache"]["run"])
+        self.assertIn('--cache-key "$env:IDB_CACHE_KEY"', self.steps["restore-idb-cache"]["run"])
         self.assertIn('--ida-version "$env:IDA_VERSION"', self.steps["restore-idb-cache"]["run"])
         self.assertIn("warmup_idb_worker.py --print-ida-version", self.steps["resolve-consumer-ida"]["run"])
-        prepare = self.steps["prepare-bin"]["run"]
-        self.assertNotIn("Also copy persisted *.i64", prepare)
-        self.assertNotIn("$i64RobocopyArgs", prepare)
-        for suffix in ("*.i64", "*.idb", "*.id0", "*.id1", "*.id2", "*.nam", "*.til"):
-            self.assertIn(suffix, prepare)
+        # No separate persisted-bin copy remains; restore is the only binary/.i64
+        # source in the validation job.
+        self.assertNotIn("prepare-bin", self.steps)
         order = step_order(
             self.validate,
-            "prepare-bin",
             "resolve-consumer-ida",
             "restore-idb-cache",
             "restore-base",
