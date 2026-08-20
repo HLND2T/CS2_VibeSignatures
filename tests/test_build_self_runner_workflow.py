@@ -118,6 +118,7 @@ class TestBuildSelfRunnerWorkflow(unittest.TestCase):
         promote = workflow_job(workflow, "promote")
         steps = steps_by_id(promote)
 
+        self.assertEqual("Promote output PR #${{ github.event.pull_request.number }}", workflow["run-name"])
         self.assertEqual({"contents": "write", "pull-requests": "read"}, workflow["permissions"])
         self.assertEqual(["closed"], workflow["on"]["pull_request"]["types"])
         self.assertEqual("resolve", promote["needs"])

@@ -1,6 +1,8 @@
+import io
 import os
 import tempfile
 import unittest
+from contextlib import redirect_stderr
 from pathlib import Path
 from unittest.mock import patch
 
@@ -91,6 +93,32 @@ class TestIdbCache(unittest.TestCase):
                     ida_version="9.2",
                     generation_suffix="101-1",
                 )
+
+    def test_publish_preserves_primary_failure_when_incoming_cleanup_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            source = root / "source"
+            gamever = "14180"
+            self._write_source(source, gamever)
+            (source / "bin" / gamever / "engine" / "libengine2.so.i64").unlink()
+            stderr = io.StringIO()
+
+            with (
+                self._patch_config(),
+                patch.object(idb_cache, "remove_tree", side_effect=OSError("cleanup denied")),
+                redirect_stderr(stderr),
+                self.assertRaisesRegex(idb_cache.IdbCacheError, "warm IDB is missing"),
+            ):
+                idb_cache.publish_cache(
+                    repo_root=source,
+                    persisted_root=root / "persisted",
+                    gamever=gamever,
+                    ida_version="9.2",
+                    generation_suffix="101-2",
+                )
+
+            self.assertIn("failed to remove incomplete cache publication", stderr.getvalue())
+            self.assertIn("cleanup denied", stderr.getvalue())
 
     def test_restore_rejects_tampered_generation(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

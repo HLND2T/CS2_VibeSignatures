@@ -98,9 +98,9 @@ jobs:
           }
           $workspaceBin = Join-Path $workspace "bin"
           New-Item -ItemType Directory -Path $workspaceBin -Force | Out-Null
-           if ((Get-Item $workspaceBin -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) {
-             throw "Warmup workspace bin must be a real directory."
-           }
+          if ((Get-Item $workspaceBin -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) {
+            throw "Warmup workspace bin must be a real directory."
+          }
       - name: Prune stale warm-cache state
         id: prune-cache
         shell: pwsh

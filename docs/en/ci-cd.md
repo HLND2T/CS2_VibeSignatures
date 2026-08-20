@@ -32,6 +32,10 @@ generations plus the READY generation; older generations are eligible for remova
 excludes all IDA database artifacts, so transactional promotion no longer creates a second accepted copy below
 `PERSISTED_WORKSPACE/bin/<GAMEVER>`.
 
+Pruning is intentionally limited to the GAMEVER being produced. Cache roots for retired GAMEVERs are not removed
+automatically; runner operators must periodically delete unused `idb-cache/<GAMEVER>` roots after confirming that no
+active PR or release run still references their explicit generations.
+
 ```batch
 @echo Analyze game binaries
 

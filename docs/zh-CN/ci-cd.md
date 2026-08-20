@@ -30,6 +30,10 @@ producer 会清理超过 24 小时的中断 `.incoming-*` 目录，并至少保�
 generation；其他 generation 满七天后才允许清理。release staging 会排除全部 IDA database artifacts，因此
 promotion 不再在 accepted `PERSISTED_WORKSPACE/bin/<GAMEVER>` 中制造第二份 IDB。
 
+清理范围有意限制在当前 producer 处理的 GAMEVER。已退役 GAMEVER 的 cache root 不会被自动删除；runner
+维护者需要定期人工删除不再使用的 `idb-cache/<GAMEVER>`，并在删除前确认没有进行中的 PR 或 release run
+仍引用其中的 explicit generation。
+
 ```batch
 @echo Analyze game binaries
 

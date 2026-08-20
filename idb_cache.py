@@ -398,11 +398,15 @@ def publish_cache(
     except (OSError, ReleaseWorkflowError, ValueError) as exc:
         raise IdbCacheError(str(exc)) from exc
     finally:
+        active_exception = sys.exc_info()[1]
         if incoming is not None and incoming.exists():
             try:
                 remove_tree(incoming)
             except OSError as exc:
-                raise IdbCacheError(f"failed to remove incomplete cache publication {incoming}: {exc}") from exc
+                message = f"failed to remove incomplete cache publication {incoming}: {exc}"
+                if active_exception is None:
+                    raise IdbCacheError(message) from exc
+                print(f"Warning: {message}; preserving original publication failure", file=sys.stderr)
 
 
 def _atomic_copy(source: Path, target: Path) -> None:

@@ -109,7 +109,7 @@ def resolve_validation_selection(repo_root: Path, base_ref: str) -> ValidationSe
         return ValidationSelection(pr_gamever, pr_gamever, None, None)
     commit_lines = _git_lines(
         repo_root,
-        ["log", "-1", "--format=%H", "--first-parent", base_ref, "--", snapshot_path],
+        ["log", "-1", "--format=%H", base_ref, "--", snapshot_path],
     )
     if len(commit_lines) != 1 or not SHA_PATTERN.fullmatch(commit_lines[0]):
         raise PrValidationVersionError(f"failed to locate the commit that published {snapshot_path}")

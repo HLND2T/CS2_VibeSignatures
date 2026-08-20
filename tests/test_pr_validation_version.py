@@ -57,7 +57,7 @@ class TestPrValidationVersion(unittest.TestCase):
                     ["1" * 40, "gamesymbols/14179.yaml"],
                     ["2" * 40],
                 ],
-            ),
+            ) as git_lines,
         ):
             selection = pr_validation_version.resolve_validation_selection(Path("."), "3" * 40)
 
@@ -65,6 +65,14 @@ class TestPrValidationVersion(unittest.TestCase):
         self.assertEqual("14179", selection.gamever)
         self.assertEqual("gamesymbols/14179.yaml", selection.base_snapshot_path)
         self.assertEqual("2" * 40, selection.base_snapshot_commit)
+        self.assertEqual(
+            ["log", "-1", "--format=%H", "--name-only", "--first-parent", "3" * 40, "--", "gamesymbols"],
+            git_lines.call_args_list[1].args[1],
+        )
+        self.assertEqual(
+            ["log", "-1", "--format=%H", "3" * 40, "--", "gamesymbols/14179.yaml"],
+            git_lines.call_args_list[2].args[1],
+        )
 
 
 if __name__ == "__main__":
