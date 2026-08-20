@@ -57,6 +57,7 @@ jobs:
           $gamever = "${{ inputs.gamever || github.event.client_payload.gamever }}"
           $sourceSha = "${{ inputs.source_sha || github.event.client_payload.source_sha }}"
           $mode = "${{ inputs.mode || github.event.client_payload.mode }}"
+          $sourcePullRequest = "${{ github.event.client_payload.source_pull_request }}"
           $allowLegacyBootstrap = "${{ inputs.allow_legacy_bootstrap || github.event.client_payload.allow_legacy_bootstrap || 'false' }}".ToLowerInvariant()
           if ($allowLegacyBootstrap -notin @("true", "false")) {
             throw "allow_legacy_bootstrap must be true or false."
@@ -74,6 +75,27 @@ jobs:
             --source-sha "$sourceSha" `
             --mode "$mode" `
             --default-ref "origin/${{ github.event.repository.default_branch }}"
+          if ("${{ github.event_name }}" -eq "repository_dispatch") {
+            if ($sourcePullRequest -notmatch '^[1-9][0-9]*$') {
+              throw "repository_dispatch requires a numeric source_pull_request."
+            }
+            $pullJson = gh api "repos/${{ github.repository }}/pulls/$sourcePullRequest"
+            if ($LASTEXITCODE -ne 0) { throw "Failed to query source pull request #$sourcePullRequest." }
+            $pull = $pullJson | ConvertFrom-Json
+            if (-not $pull.merged_at) { throw "Source pull request #$sourcePullRequest is not merged." }
+            if ($pull.head.repo.full_name -ne "${{ github.repository }}") {
+              throw "Source pull request #$sourcePullRequest is not from the trusted repository."
+            }
+            if ($pull.base.ref -ne "${{ github.event.repository.default_branch }}") {
+              throw "Source pull request #$sourcePullRequest did not target the default branch."
+            }
+            if ($pull.head.ref -ne "bump-download/$gamever") {
+              throw "Source pull request #$sourcePullRequest is not the bump PR for $gamever."
+            }
+            if ($pull.merge_commit_sha -ne $sourceSha) {
+              throw "Source pull request #$sourcePullRequest merge SHA does not match source_sha."
+            }
+          }
           if ($mode -eq "republish") {
             gh release view "$gamever" --repo "${{ github.repository }}" > $null
             if ($LASTEXITCODE -ne 0) { throw "mode=republish requires Release $gamever to exist." }
