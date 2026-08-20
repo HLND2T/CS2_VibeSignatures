@@ -29,9 +29,12 @@ class TestWarmupIdbWorkflow(unittest.TestCase):
         self.assertEqual(["self-hosted", "windows", "x64"], self.job["runs-on"])
         order = step_order(
             self.job,
+            "validate-source",
             "checkout-source",
+            "verify-source",
             "setup-uv",
             "prepare-workspace",
+            "prune-cache",
             "init-binaries",
             "resolve-ida",
             "probe-cache",
@@ -40,6 +43,9 @@ class TestWarmupIdbWorkflow(unittest.TestCase):
             "resolve-output",
         )
         self.assertEqual(sorted(order), order)
+        self.assertIn("source_sha must be a full commit SHA", self.steps["validate-source"]["run"])
+        self.assertIn("git rev-parse HEAD", self.steps["verify-source"]["run"])
+        self.assertIn("idb_cache.py prune", self.steps["prune-cache"]["run"])
         self.assertNotIn("continue-on-error", self.steps["warmup-idb"])
         self.assertEqual("steps.probe-cache.outputs.cache-hit != 'true'", self.steps["warmup-idb"]["if"])
         self.assertIn("warmup_idb.py", self.steps["warmup-idb"]["run"])

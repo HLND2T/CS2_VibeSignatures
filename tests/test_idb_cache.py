@@ -1,3 +1,4 @@
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -59,6 +60,7 @@ class TestIdbCache(unittest.TestCase):
                     gamever=gamever,
                     generation=published["generation"],
                     expected_cache_key=published["cache_key"],
+                    ida_version="9.2",
                 )
 
             self.assertTrue(probed["cache_hit"])
@@ -126,6 +128,40 @@ class TestIdbCache(unittest.TestCase):
                     gamever=gamever,
                     generation=published["generation"],
                     expected_cache_key=published["cache_key"],
+                    ida_version="9.2",
+                )
+
+    def test_restore_rejects_manifest_identity_that_disagrees_with_cache_key(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            source = root / "source"
+            persisted = root / "persisted"
+            gamever = "14180"
+            self._write_source(source, gamever)
+
+            with self._patch_config():
+                published = idb_cache.publish_cache(
+                    repo_root=source,
+                    persisted_root=persisted,
+                    gamever=gamever,
+                    ida_version="9.2",
+                    generation_suffix="102-2",
+                )
+            manifest_path = (
+                persisted / "idb-cache" / gamever / "generations" / published["generation"] / "manifest.json"
+            )
+            manifest = idb_cache.load_json_object(manifest_path)
+            manifest["binaries"][0]["module"] = "tampered"
+            idb_cache.write_canonical_json(manifest_path, manifest)
+
+            with self.assertRaisesRegex(idb_cache.IdbCacheError, "manifest identity"):
+                idb_cache.restore_cache(
+                    repo_root=root / "destination",
+                    persisted_root=persisted,
+                    gamever=gamever,
+                    generation=published["generation"],
+                    expected_cache_key=published["cache_key"],
+                    ida_version="9.2",
                 )
 
     def test_explicit_generation_is_stable_after_ready_moves(self) -> None:
@@ -159,6 +195,7 @@ class TestIdbCache(unittest.TestCase):
                     gamever=gamever,
                     generation=first["generation"],
                     expected_cache_key=first["cache_key"],
+                    ida_version="9.2",
                 )
 
             self.assertNotEqual(first["cache_key"], second["cache_key"])
@@ -166,6 +203,103 @@ class TestIdbCache(unittest.TestCase):
                 b"server-v1",
                 (destination / "bin" / gamever / "server" / "server.dll").read_bytes(),
             )
+
+    def test_restore_rejects_consumer_ida_version_mismatch_before_copy(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            source = root / "source"
+            destination = root / "destination"
+            persisted = root / "persisted"
+            gamever = "14180"
+            self._write_source(source, gamever)
+
+            with self._patch_config():
+                published = idb_cache.publish_cache(
+                    repo_root=source,
+                    persisted_root=persisted,
+                    gamever=gamever,
+                    ida_version="9.2",
+                    generation_suffix="105-1",
+                )
+                with self.assertRaisesRegex(idb_cache.IdbCacheError, "IDA version mismatch"):
+                    idb_cache.restore_cache(
+                        repo_root=destination,
+                        persisted_root=persisted,
+                        gamever=gamever,
+                        generation=published["generation"],
+                        expected_cache_key=published["cache_key"],
+                        ida_version="9.1",
+                    )
+
+            self.assertFalse((destination / "bin").exists())
+
+    def test_prune_removes_only_old_unprotected_generations_and_incoming(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            source = root / "source"
+            persisted = root / "persisted"
+            gamever = "14180"
+            published = []
+            with self._patch_config():
+                for index in range(4):
+                    self._write_source(source, gamever, marker=f"v{index}".encode())
+                    published.append(
+                        idb_cache.publish_cache(
+                            repo_root=source,
+                            persisted_root=persisted,
+                            gamever=gamever,
+                            ida_version="9.2",
+                            generation_suffix=f"20{index}-1",
+                        )
+                    )
+            generations_root = persisted / "idb-cache" / gamever / "generations"
+            now = 10_000_000.0
+            for index, generation in enumerate(published):
+                path = generations_root / generation["generation"]
+                age = (len(published) - index + 1) * 3600
+                os.utime(path, (now - age, now - age))
+            recent_incoming = generations_root / ".incoming-recent"
+            stale_incoming = generations_root / ".incoming-stale"
+            recent_incoming.mkdir()
+            stale_incoming.mkdir()
+            os.utime(recent_incoming, (now - 1800, now - 1800))
+            os.utime(stale_incoming, (now - 7200, now - 7200))
+
+            result = idb_cache.prune_cache(
+                persisted_root=persisted,
+                gamever=gamever,
+                keep_generations=1,
+                generation_min_age_hours=1,
+                incoming_max_age_hours=1,
+                now=now,
+            )
+
+            ready_generation = published[-1]["generation"]
+            self.assertTrue((generations_root / ready_generation).is_dir())
+            self.assertEqual(3, len(result["removed_generations"]))
+            self.assertEqual([".incoming-stale"], result["removed_incoming"])
+            self.assertTrue(recent_incoming.is_dir())
+
+    def test_publish_builds_payload_inventory_once(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            source = root / "source"
+            gamever = "14180"
+            self._write_source(source, gamever)
+
+            with (
+                self._patch_config(),
+                patch.object(idb_cache, "file_inventory", wraps=idb_cache.file_inventory) as inventory,
+            ):
+                idb_cache.publish_cache(
+                    repo_root=source,
+                    persisted_root=root / "persisted",
+                    gamever=gamever,
+                    ida_version="9.2",
+                    generation_suffix="106-1",
+                )
+
+            inventory.assert_called_once()
 
 
 if __name__ == "__main__":

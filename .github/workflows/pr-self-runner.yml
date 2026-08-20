@@ -21,7 +21,11 @@ jobs:
     outputs:
       requires_warmup: ${{ steps.identify.outputs.requires-warmup }}
       gamever: ${{ steps.resolve-version.outputs.gamever }}
+      pr_gamever: ${{ steps.resolve-version.outputs.pr_gamever }}
+      base_snapshot_path: ${{ steps.resolve-version.outputs.base_snapshot_path }}
+      base_snapshot_commit: ${{ steps.resolve-version.outputs.base_snapshot_commit }}
       source_sha: ${{ steps.identify.outputs.source-sha }}
+      base_sha: ${{ steps.identify.outputs.base-sha }}
     steps:
       - name: Checkout PR merge ref for cache identity
         id: checkout-preflight
@@ -33,18 +37,27 @@ jobs:
       - name: Resolve PR cache eligibility and immutable source
         id: identify
         shell: pwsh
+        env:
+          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_USER_LOGIN: ${{ github.event.pull_request.user.login }}
         run: |
-          $isBot = "${{ github.event.pull_request.user.login }}" -eq "github-actions[bot]"
-          $headRef = "${{ github.event.pull_request.head.ref }}"
-          $title = "${{ github.event.pull_request.title }}"
+          $isBot = $env:PR_USER_LOGIN -eq "github-actions[bot]"
+          $headRef = $env:PR_HEAD_REF
+          $title = $env:PR_TITLE
           $isBump = $isBot -and $headRef.StartsWith("bump-download/") -and $title.StartsWith("chore(download): Update manifest for ")
           $requiresWarmup = if ($isBump) { "false" } else { "true" }
           $sourceSha = (git rev-parse HEAD).Trim()
           if ($LASTEXITCODE -ne 0 -or $sourceSha -notmatch '^[0-9a-fA-F]{40}$') {
             throw "Unable to resolve the PR merge commit SHA."
           }
+          $baseSha = (git rev-parse HEAD^1).Trim()
+          if ($LASTEXITCODE -ne 0 -or $baseSha -notmatch '^[0-9a-fA-F]{40}$') {
+            throw "Unable to resolve the PR merge base SHA."
+          }
           "requires-warmup=$requiresWarmup" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "source-sha=$sourceSha" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "source-sha=$($sourceSha.ToLowerInvariant())" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "base-sha=$($baseSha.ToLowerInvariant())" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
       - name: Set up uv for validation version resolution
         id: setup-preflight-uv
         if: steps.identify.outputs.requires-warmup == 'true'
@@ -56,7 +69,7 @@ jobs:
         run: |
           uv run python pr_validation_version.py `
             --repo-root "${{ github.workspace }}" `
-            --base-ref "${{ github.event.pull_request.base.sha }}" `
+            --base-ref "${{ steps.identify.outputs.base-sha }}" `
             --github-output "$env:GITHUB_OUTPUT"
           if ($LASTEXITCODE -ne 0) { throw "Failed to resolve PR validation GAMEVER." }
   pr-warmup-idb:
@@ -87,6 +100,15 @@ jobs:
       CS2VIBE_LLM_FAKE_AS: ${{ secrets.CS2VIBE_LLM_FAKE_AS }}
       CS2VIBE_LLM_MODEL: ${{ secrets.CS2VIBE_LLM_MODEL }}
       PERSISTED_WORKSPACE: ${{ secrets.PERSISTED_WORKSPACE }}
+      PR_SOURCE_SHA: ${{ needs.pr-preflight.outputs.source_sha }}
+      PR_BASE_SHA: ${{ needs.pr-preflight.outputs.base_sha }}
+      PREFLIGHT_PR_GAMEVER: ${{ needs.pr-preflight.outputs.pr_gamever }}
+      PREFLIGHT_GAMEVER: ${{ needs.pr-preflight.outputs.gamever }}
+      PREFLIGHT_BASE_SNAPSHOT_PATH: ${{ needs.pr-preflight.outputs.base_snapshot_path }}
+      PREFLIGHT_BASE_SNAPSHOT_COMMIT: ${{ needs.pr-preflight.outputs.base_snapshot_commit }}
+      PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+      PR_TITLE: ${{ github.event.pull_request.title }}
+      PR_USER_LOGIN: ${{ github.event.pull_request.user.login }}
       IDB_CACHE_GENERATION: ${{ needs.pr-warmup-idb.outputs.generation }}
       IDB_CACHE_KEY: ${{ needs.pr-warmup-idb.outputs.cache_key }}
       SUBMODULE_CACHE_VERSION: v1
@@ -95,19 +117,29 @@ jobs:
         id: checkout-merge
         uses: actions/checkout@v5
         with:
-          ref: refs/pull/${{ github.event.pull_request.number }}/merge
-          # Full history is required so the merge commit's base parent
-          # (pull_request.base.sha) is available for deterministic base snapshot
-          # extraction without re-fetching refs by hand.
+          ref: ${{ needs.pr-preflight.outputs.source_sha }}
+          # Full history keeps the pinned merge commit, its pinned base parent,
+          # and historical snapshot publication commits available locally.
           fetch-depth: 0
           submodules: false
+      - name: Verify immutable PR source checkout
+        id: verify-source
+        shell: pwsh
+        run: |
+          if ($env:PR_SOURCE_SHA -notmatch '^[0-9a-f]{40}$') {
+            throw "Preflight source SHA is invalid."
+          }
+          $actualSourceSha = (git rev-parse HEAD).Trim().ToLowerInvariant()
+          if ($LASTEXITCODE -ne 0 -or $actualSourceSha -ne $env:PR_SOURCE_SHA) {
+            throw "PR source checkout drifted: expected=$env:PR_SOURCE_SHA actual=$actualSourceSha"
+          }
       - name: Detect bump-download PR
         id: detect-bump
         shell: pwsh
         run: |
-          $isBot = "${{ github.event.pull_request.user.login }}" -eq "github-actions[bot]"
-          $headRef = "${{ github.event.pull_request.head.ref }}"
-          $title = "${{ github.event.pull_request.title }}"
+          $isBot = $env:PR_USER_LOGIN -eq "github-actions[bot]"
+          $headRef = $env:PR_HEAD_REF
+          $title = $env:PR_TITLE
           $isBump = $isBot -and $headRef.StartsWith("bump-download/") -and $title.StartsWith("chore(download): Update manifest for ")
           # PowerShell bool ToString() yields capitalized True/False; emit lowercase
           # so the downstream string comparisons against 'true' are case-exact.
@@ -188,6 +220,9 @@ jobs:
           if ([string]::IsNullOrWhiteSpace($gamever)) {
             throw "Latest game version from download.yaml is empty."
           }
+          if ($gamever -ne $env:PREFLIGHT_PR_GAMEVER) {
+            throw "PR release GAMEVER drifted after preflight: preflight=$env:PREFLIGHT_PR_GAMEVER validate=$gamever"
+          }
           "PR_GAMEVER=$gamever" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           Write-Host "PR release GAMEVER=$gamever"
       - name: Extract deterministic base snapshot
@@ -214,7 +249,7 @@ jobs:
               throw "Failed to extract $Revision`:$RepoPath"
             }
           }
-          $baseRef = "${{ github.event.pull_request.base.sha }}".Trim()
+          $baseRef = $env:PR_BASE_SHA
           if ($baseRef -notmatch '^[0-9a-fA-F]{40}$') {
             throw "Invalid pull request base SHA: $baseRef"
           }
@@ -222,83 +257,56 @@ jobs:
           if ($LASTEXITCODE -ne 0) {
             throw "Pull request base commit is unavailable: $baseRef"
           }
-           $baseConfig = Join-Path $baseDir "base-config.yaml"
-          $trackedSnapshots = @(
-            git ls-tree -r --name-only $baseRef -- gamesymbols |
-              Where-Object { $_ -match '^gamesymbols/[^/]+\.yaml$' }
-          )
-          if ($LASTEXITCODE -ne 0) {
-            throw "Failed to list game-symbol snapshots from base commit $baseRef."
-          }
-          if ($trackedSnapshots.Count -eq 0) {
+          $baseConfig = Join-Path $baseDir "base-config.yaml"
+          $baseSnapshotRepoPath = $env:PREFLIGHT_BASE_SNAPSHOT_PATH
+          $baseSnapshotCommit = $env:PREFLIGHT_BASE_SNAPSHOT_COMMIT
+          if ([string]::IsNullOrWhiteSpace($baseSnapshotRepoPath)) {
+            if (-not [string]::IsNullOrWhiteSpace($baseSnapshotCommit)) {
+              throw "Preflight returned a snapshot commit without a snapshot path."
+            }
             $baseGamever = ""
             $baseSnapshot = ""
             $hasBaseSnapshot = "false"
             $validationGamever = $env:PR_GAMEVER
             Write-Host "Base commit $baseRef has no snapshot; bootstrap PR validation will rebuild $validationGamever."
           } else {
-            $sameVersionSnapshot = "gamesymbols/$env:PR_GAMEVER.yaml"
-            if ($trackedSnapshots -contains $sameVersionSnapshot) {
-              $baseSnapshotRepoPath = $sameVersionSnapshot
-            } elseif ($trackedSnapshots.Count -eq 1) {
-              $baseSnapshotRepoPath = $trackedSnapshots[0]
-            } else {
-              # --first-parent is required: git suppresses the --name-only file list for
-              # merge commits, and a base-sync merge that republishes a snapshot differs
-              # from both parents, so it is not simplified away either. Without it the
-              # file list comes back empty and the count check below fails.
-              $latestSnapshotChange = @(
-                git log -1 --format=%H --name-only --first-parent $baseRef -- gamesymbols |
-                  Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
-              )
-              if ($LASTEXITCODE -ne 0 -or $latestSnapshotChange.Count -lt 2) {
-                throw "Failed to locate the latest snapshot publication in base commit history."
-              }
-              $latestSnapshotPaths = @(
-                $latestSnapshotChange[1..($latestSnapshotChange.Count - 1)] |
-                  Where-Object { $trackedSnapshots -contains $_ }
-              )
-              if ($latestSnapshotPaths.Count -ne 1) {
-                $snapshotList = $latestSnapshotPaths -join ", "
-                throw "Latest base snapshot publication is ambiguous: $snapshotList"
-              }
-              $baseSnapshotRepoPath = $latestSnapshotPaths[0]
+            if ($baseSnapshotRepoPath -notmatch '^gamesymbols/[^/]+\.yaml$') {
+              throw "Invalid preflight snapshot path: $baseSnapshotRepoPath"
+            }
+            if ($baseSnapshotCommit -notmatch '^[0-9a-f]{40}$') {
+              throw "Invalid preflight snapshot commit: $baseSnapshotCommit"
             }
             $baseGamever = [IO.Path]::GetFileNameWithoutExtension($baseSnapshotRepoPath)
-            $baseSnapshotCommit = git log -1 --format=%H $baseRef -- "$baseSnapshotRepoPath"
-            if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($baseSnapshotCommit)) {
-              throw "Failed to locate the commit that published $baseSnapshotRepoPath."
-            }
-            $baseSnapshotCommit = $baseSnapshotCommit.Trim()
+            git cat-file -e "$baseSnapshotCommit^{commit}"
+            if ($LASTEXITCODE -ne 0) { throw "Preflight snapshot commit is unavailable: $baseSnapshotCommit" }
             $baseSnapshot = Join-Path $baseDir "$baseGamever.yaml"
-             $versionedBaseConfig = "configs/$baseGamever.yaml"
-             git cat-file -e "$baseSnapshotCommit`:$versionedBaseConfig"
-             if ($LASTEXITCODE -eq 0) {
-               Export-GitBlob $baseSnapshotCommit $versionedBaseConfig $baseConfig
-             } else {
-               Export-GitBlob $baseSnapshotCommit "config.yaml" $baseConfig
-             }
+            $versionedBaseConfig = "configs/$baseGamever.yaml"
+            git cat-file -e "$baseSnapshotCommit`:$versionedBaseConfig"
+            if ($LASTEXITCODE -eq 0) {
+              Export-GitBlob $baseSnapshotCommit $versionedBaseConfig $baseConfig
+            } else {
+              Export-GitBlob $baseSnapshotCommit "config.yaml" $baseConfig
+            }
             Export-GitBlob $baseRef $baseSnapshotRepoPath $baseSnapshot
             $hasBaseSnapshot = "true"
             $validationGamever = $baseGamever
           }
-           $headSnapshotRepoPath = "gamesymbols/$validationGamever.yaml"
-           $headSnapshot = Join-Path $baseDir "head-$validationGamever.yaml"
-           Export-GitBlob "HEAD" $headSnapshotRepoPath $headSnapshot
-           $headConfig = Join-Path $env:WORKSPACE "configs\$validationGamever.yaml"
-           if (-not (Test-Path -LiteralPath $headConfig -PathType Leaf)) {
-             throw "Missing head analysis config: $headConfig"
-           }
-           $preflightGamever = "${{ needs.pr-preflight.outputs.gamever }}"
-           if ($validationGamever -ne $preflightGamever) {
-             throw "PR validation GAMEVER drifted after warmup: preflight=$preflightGamever validate=$validationGamever"
-           }
+          $headSnapshotRepoPath = "gamesymbols/$validationGamever.yaml"
+          $headSnapshot = Join-Path $baseDir "head-$validationGamever.yaml"
+          Export-GitBlob "HEAD" $headSnapshotRepoPath $headSnapshot
+          $headConfig = Join-Path $env:WORKSPACE "configs\$validationGamever.yaml"
+          if (-not (Test-Path -LiteralPath $headConfig -PathType Leaf)) {
+            throw "Missing head analysis config: $headConfig"
+          }
+          if ($validationGamever -ne $env:PREFLIGHT_GAMEVER) {
+            throw "PR validation GAMEVER drifted after warmup: preflight=$env:PREFLIGHT_GAMEVER validate=$validationGamever"
+          }
           "BASE_REF=$baseRef" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "BASE_CONFIG=$baseConfig" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "BASE_SNAPSHOT=$baseSnapshot" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "BASE_GAMEVER=$baseGamever" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-           "HEAD_SNAPSHOT=$headSnapshot" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-           "HEAD_CONFIG=$headConfig" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "HEAD_SNAPSHOT=$headSnapshot" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "HEAD_CONFIG=$headConfig" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "HAS_BASE_SNAPSHOT=$hasBaseSnapshot" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "GAMEVER=$validationGamever" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           Write-Host "PR validation GAMEVER=$validationGamever (release GAMEVER=$env:PR_GAMEVER)"
@@ -357,6 +365,10 @@ jobs:
           New-Item -ItemType Directory -Path $targetBinGamever -Force | Out-Null
           if (Test-Path -LiteralPath $sourceBinGamever -PathType Container) {
             $excludes = Get-BinCopyExcludes -IgnoreFile (Join-Path $persistedBinRoot ".stignore")
+            $excludes.Files = @(
+              $excludes.Files + @("*.i64", "*.idb", "*.id0", "*.id1", "*.id2", "*.nam", "*.til") |
+                Sort-Object -Unique
+            )
             $robocopyArgs = @(
               $sourceBinGamever
               $targetBinGamever
@@ -386,6 +398,30 @@ jobs:
           } else {
             Write-Host "No accepted persisted bin/$env:GAMEVER exists yet; using the published warm cache as the binary source."
           }
+      - name: Resolve consumer IDA identity
+        id: resolve-consumer-ida
+        if: steps.detect-bump.outputs.is-bump != 'true'
+        shell: pwsh
+        run: |
+          $pythonExe = (Get-Command python -ErrorAction SilentlyContinue).Source
+          $idalibMcpExe = (Get-Command idalib-mcp -ErrorAction SilentlyContinue).Source
+          if ([string]::IsNullOrWhiteSpace($pythonExe) -or [string]::IsNullOrWhiteSpace($idalibMcpExe)) {
+            throw "python with idalib and idalib-mcp must both be available on PATH."
+          }
+          $pythonExe = [IO.Path]::GetFullPath($pythonExe)
+          $idalibMcpExe = [IO.Path]::GetFullPath($idalibMcpExe)
+          $pythonDir = Split-Path -Parent $pythonExe
+          $mcpDir = Split-Path -Parent $idalibMcpExe
+          $pythonScriptsDir = Join-Path $pythonDir "Scripts"
+          if (-not [StringComparer]::OrdinalIgnoreCase.Equals($mcpDir, $pythonDir) -and `
+              -not [StringComparer]::OrdinalIgnoreCase.Equals($mcpDir, $pythonScriptsDir)) {
+            throw "python and idalib-mcp resolve to different installations: python=$pythonExe idalib-mcp=$idalibMcpExe"
+          }
+          $idaVersion = (& $pythonExe warmup_idb_worker.py --print-ida-version).Trim()
+          if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($idaVersion)) {
+            throw "Failed to resolve the consumer IDA kernel version."
+          }
+          "IDA_VERSION=$idaVersion" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Restore required published warm IDB cache
         id: restore-idb-cache
         if: steps.detect-bump.outputs.is-bump != 'true'
@@ -397,7 +433,8 @@ jobs:
             --persisted-root "$env:PERSISTED_WORKSPACE" `
             --gamever "$env:GAMEVER" `
             --generation "$env:IDB_CACHE_GENERATION" `
-            --cache-key "$env:IDB_CACHE_KEY"
+            --cache-key "$env:IDB_CACHE_KEY" `
+            --ida-version "$env:IDA_VERSION"
           if ($LASTEXITCODE -ne 0) { throw "Required published IDB cache restore failed." }
       - name: Restore deterministic base and invalidate affected outputs
         id: restore-base

@@ -205,6 +205,29 @@ jobs:
           uv run release_workflow.py check-pending `
             --staging-root "$env:PERSISTED_WORKSPACE\release-staging" `
             --gamever "$env:GAMEVER" --build-id "$env:BUILD_ID"
+      - name: Resolve consumer IDA identity
+        id: resolve-consumer-ida
+        shell: pwsh
+        run: |
+          $pythonExe = (Get-Command python -ErrorAction SilentlyContinue).Source
+          $idalibMcpExe = (Get-Command idalib-mcp -ErrorAction SilentlyContinue).Source
+          if ([string]::IsNullOrWhiteSpace($pythonExe) -or [string]::IsNullOrWhiteSpace($idalibMcpExe)) {
+            throw "python with idalib and idalib-mcp must both be available on PATH."
+          }
+          $pythonExe = [IO.Path]::GetFullPath($pythonExe)
+          $idalibMcpExe = [IO.Path]::GetFullPath($idalibMcpExe)
+          $pythonDir = Split-Path -Parent $pythonExe
+          $mcpDir = Split-Path -Parent $idalibMcpExe
+          $pythonScriptsDir = Join-Path $pythonDir "Scripts"
+          if (-not [StringComparer]::OrdinalIgnoreCase.Equals($mcpDir, $pythonDir) -and `
+              -not [StringComparer]::OrdinalIgnoreCase.Equals($mcpDir, $pythonScriptsDir)) {
+            throw "python and idalib-mcp resolve to different installations: python=$pythonExe idalib-mcp=$idalibMcpExe"
+          }
+          $idaVersion = (& $pythonExe warmup_idb_worker.py --print-ida-version).Trim()
+          if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($idaVersion)) {
+            throw "Failed to resolve the consumer IDA kernel version."
+          }
+          "IDA_VERSION=$idaVersion" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Restore required published warm IDB cache
         id: restore-idb-cache
         shell: pwsh
@@ -214,7 +237,8 @@ jobs:
             --persisted-root "$env:PERSISTED_WORKSPACE" `
             --gamever "$env:GAMEVER" `
             --generation "$env:IDB_CACHE_GENERATION" `
-            --cache-key "$env:IDB_CACHE_KEY"
+            --cache-key "$env:IDB_CACHE_KEY" `
+            --ida-version "$env:IDA_VERSION"
           if ($LASTEXITCODE -ne 0) { throw "Required published IDB cache restore failed." }
       - name: Resolve immutable analysis config
         id: resolve-config

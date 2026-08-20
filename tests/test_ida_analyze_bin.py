@@ -4166,7 +4166,10 @@ class TestProcessBinaryOpenedBinaryVerification(unittest.TestCase):
         with TemporaryDirectory() as temp_dir:
             binary_path = Path(temp_dir) / "server.dll"
             binary_path.write_bytes(b"server-binary")
-            with patch.object(ida_analyze_bin, "start_idalib_mcp") as start_ida:
+            with (
+                patch.object(ida_analyze_bin, "start_idalib_mcp") as start_ida,
+                patch.object(ida_analyze_bin, "_abort_binary_reporting") as abort_reporting,
+            ):
                 result = ida_analyze_bin.process_binary(
                     binary_path=str(binary_path),
                     skills=[
@@ -4186,6 +4189,7 @@ class TestProcessBinaryOpenedBinaryVerification(unittest.TestCase):
 
         self.assertEqual((0, 1, 0), result)
         start_ida.assert_not_called()
+        self.assertEqual(ProcessReason.MISSING_INPUT, abort_reporting.call_args.args[2])
 
     def test_process_binary_does_not_rebuild_invalid_database_in_strict_mode(self) -> None:
         fake_process = MagicMock()

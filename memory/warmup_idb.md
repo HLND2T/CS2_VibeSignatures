@@ -13,13 +13,15 @@ permalink: cs2-vibesignatures/warmup-idb
 - Derive cache identity from configured binary paths/hashes plus the IDA kernel version.
 - Reuse a verified matching generation; otherwise force-invalidate local IDA side files and warm every configured binary.
 - Publish binary plus `.i64` payloads only after the complete inventory validates.
+- Prune stale incoming directories and aged generations without deleting the READY or newest retained generations.
 - Return the exact immutable generation and cache key to the caller so later READY changes cannot redirect an in-flight consumer.
+- Require each consumer to match the producer IDA kernel version before restoration.
 - Fail the caller when preparation, warmup, publication, restoration, or strict IDB validation fails; CI has no inline auto-analysis fallback.
 ## Involved Files & Symbols
 - `.github/workflows/warmup-idb.yml` - reusable/manual cache producer and per-GAMEVER concurrency boundary.
 - `warmup_idb.py` - bounded worker orchestration, forced invalidation, timeout, and memory controls.
 - `warmup_idb_worker.py` - one-binary warm worker and IDA kernel-version probe.
-- `idb_cache.py` - cache identity, immutable generation publication, inventory verification, READY pointer, and explicit-generation restore.
+- `idb_cache.py` - cache identity, immutable generation publication, inventory verification, retention pruning, READY pointer, and explicit-generation restore.
 - `ida_analyze_bin.py` - `-require_warm_idb` strict consumer mode.
 - `pr_validation_version.py` - resolves the exact PR validation GAMEVER before invoking the producer.
 - `.github/workflows/build-on-self-runner.yml` - required producer caller and explicit generation consumer.
@@ -34,10 +36,12 @@ Caller GAMEVER/source SHA -> reusable warmup workflow -> isolated binary prepara
 - `IDB_WARMUP_MAX_CONCURRENCY` and optional `IDB_WARMUP_MAX_MEMORY_MIB` environment variables.
 - [[build-on-self-runner]] and [[pr-self-runner]] callers.
 ## Notes
-- The old release path was not actually disconnected: workspace `.i64` files were copied by `stage-build` into `release-staging`, then the merged generated-output PR caused `promote-bin` to transactionally replace `PERSISTED_WORKSPACE/bin/<GAMEVER>`. Merely finishing the build was insufficient; generated-output merge and promotion were the old visibility gate.
-- Accepted `PERSISTED_WORKSPACE/bin/<GAMEVER>` may still contain release-staged `.i64`, but PR/release preparation excludes IDA database files. The only supported cache source is an explicit immutable generation returned by this workflow.
+- The old release path was not actually disconnected: workspace `.i64` files were copied by `stage-build` into `release-staging`, then the merged generated-output PR caused `promote-bin` to transactionally replace `PERSISTED_WORKSPACE/bin/<GAMEVER>`. Merely finishing the build was insufficient; generated-output merge and promotion were the old visibility gate. Current staging excludes all IDA database artifacts, so the accepted tree no longer receives that second copy.
+- The only supported cache source is an explicit immutable generation returned by this workflow; PR/release baseline copies also exclude the complete tracked IDA suffix set.
 - Generation directories are immutable. READY is an atomic convenience pointer; callers restore the returned generation ID and cache key, so a later READY update cannot create a cross-workflow race.
+- Each producer run prunes `.incoming-*` directories older than 24 hours. It retains the three newest generations and the READY generation, and only removes other generations after seven days so in-flight explicit-generation consumers have a safety window.
 - Cache identity is binary-content and IDA-version based, not GAMEVER-only. A config change that changes the configured binary set produces another key; unrelated source changes reuse the existing generation.
+- Restore compares the consumer's local IDA kernel version with the producer manifest before copying payload files. Workflows also require `python` and `idalib-mcp` to resolve from the same installation directory.
 - Warmup is no longer best-effort in CI. Any worker failure, missing `.i64`, residual lock, inventory mismatch, or restore mismatch fails the caller before analysis.
 - `ida_analyze_bin.py -require_warm_idb` rejects a missing database and does not delete/rebuild a database that fails binary identity verification.
 - Worker concurrency remains process-level: each bare-idalib worker owns one database and uses no MCP port.

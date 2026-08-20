@@ -95,10 +95,19 @@ class TestBuildSelfRunnerWorkflow(unittest.TestCase):
         )
 
     def test_build_restores_required_published_cache_before_analysis(self) -> None:
-        order = step_order(self.build_job, "prepare-workspace", "restore-idb-cache", "init-binaries", "analyze")
+        order = step_order(
+            self.build_job,
+            "prepare-workspace",
+            "resolve-consumer-ida",
+            "restore-idb-cache",
+            "init-binaries",
+            "analyze",
+        )
         self.assertEqual(sorted(order), order)
         self.assertIn("idb_cache.py restore", self.build_steps["restore-idb-cache"]["run"])
         self.assertIn("IDB_CACHE_GENERATION", self.build_steps["restore-idb-cache"]["run"])
+        self.assertIn('--ida-version "$env:IDA_VERSION"', self.build_steps["restore-idb-cache"]["run"])
+        self.assertIn("warmup_idb_worker.py --print-ida-version", self.build_steps["resolve-consumer-ida"]["run"])
         self.assertIn("*.i64", self.build_steps["prepare-workspace"]["run"])
         self.assertIn("/XF", self.build_steps["prepare-workspace"]["run"])
         self.assertIn("-require_warm_idb", self.build_steps["analyze"]["run"])
@@ -129,6 +138,7 @@ class TestBuildSelfRunnerWorkflow(unittest.TestCase):
         self.assertEqual(sorted(promotion_order), promotion_order)
         self.assertIn("release_workflow.py verify-promotion", steps["verify"]["run"])
         self.assertIn("release_workflow.py promote-bin", steps["promote-bin"]["run"])
+        self.assertIn('"-x!*.idb"', steps["create-archives"]["run"])
         self.assertIn("gh release", steps["publish-release"]["run"])
         self.assertIn("release_workflow.py finalize-promotion", steps["finalize-promotion"]["run"])
 

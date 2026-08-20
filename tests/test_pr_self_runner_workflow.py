@@ -23,6 +23,11 @@ class TestPrSelfRunnerWorkflow(unittest.TestCase):
         self.assertEqual("./.github/workflows/warmup-idb.yml", self.warmup["uses"])
         self.assertEqual("${{ needs.pr-preflight.outputs.gamever }}", self.warmup["with"]["gamever"])
         self.assertEqual("${{ needs.pr-preflight.outputs.source_sha }}", self.warmup["with"]["source_sha"])
+        self.assertEqual("${{ steps.resolve-version.outputs.pr_gamever }}", self.preflight["outputs"]["pr_gamever"])
+        self.assertEqual(
+            "${{ steps.resolve-version.outputs.base_snapshot_path }}",
+            self.preflight["outputs"]["base_snapshot_path"],
+        )
         self.assertEqual(["pr-preflight", "pr-warmup-idb"], self.validate["needs"])
         self.assertIn("needs.pr-warmup-idb.result == 'success'", self.validate["if"])
         finalize = workflow_job(self.workflow, "finalize-pr-workspace")
@@ -68,6 +73,7 @@ class TestPrSelfRunnerWorkflow(unittest.TestCase):
         order = step_order(
             self.validate,
             "checkout-merge",
+            "verify-source",
             "detect-bump",
             "submodule-cache-key",
             "restore-submodule-cache",
@@ -127,6 +133,8 @@ class TestPrSelfRunnerWorkflow(unittest.TestCase):
         self.assertIn("PR_GAMEVER=$gamever", self.steps["select-version"]["run"])
         self.assertIn("BASE_GAMEVER=$baseGamever", self.steps["base-snapshot"]["run"])
         self.assertIn("HEAD_CONFIG=$headConfig", self.steps["base-snapshot"]["run"])
+        self.assertNotIn("git log -1 --format=%H --name-only", self.steps["base-snapshot"]["run"])
+        self.assertIn("PREFLIGHT_BASE_SNAPSHOT_PATH", self.steps["base-snapshot"]["run"])
         self.assertIn('-configyaml "$env:HEAD_CONFIG"', self.steps["analyze"]["run"])
         self.assertIn("-require_warm_idb", self.steps["analyze"]["run"])
         self.assertIn('-configyaml "$env:HEAD_CONFIG"', self.steps["cpp-tests"]["run"])
@@ -136,10 +144,21 @@ class TestPrSelfRunnerWorkflow(unittest.TestCase):
     def test_published_cache_replaces_persisted_i64_copy(self) -> None:
         self.assertIn("idb_cache.py restore", self.steps["restore-idb-cache"]["run"])
         self.assertIn("IDB_CACHE_GENERATION", self.steps["restore-idb-cache"]["run"])
+        self.assertIn('--ida-version "$env:IDA_VERSION"', self.steps["restore-idb-cache"]["run"])
+        self.assertIn("warmup_idb_worker.py --print-ida-version", self.steps["resolve-consumer-ida"]["run"])
         prepare = self.steps["prepare-bin"]["run"]
         self.assertNotIn("Also copy persisted *.i64", prepare)
         self.assertNotIn("$i64RobocopyArgs", prepare)
-        order = step_order(self.validate, "prepare-bin", "restore-idb-cache", "restore-base", "analyze")
+        for suffix in ("*.i64", "*.idb", "*.id0", "*.id1", "*.id2", "*.nam", "*.til"):
+            self.assertIn(suffix, prepare)
+        order = step_order(
+            self.validate,
+            "prepare-bin",
+            "resolve-consumer-ida",
+            "restore-idb-cache",
+            "restore-base",
+            "analyze",
+        )
         self.assertEqual(sorted(order), order)
 
     def test_validate_stages_analyzed_yaml_for_merge_promotion(self) -> None:
@@ -161,14 +180,26 @@ class TestPrSelfRunnerWorkflow(unittest.TestCase):
         self.assertNotIn("git push", commands)
         self.assertNotIn("gh pr", commands)
 
-    def test_validate_checkout_uses_pr_merge_ref_with_full_history(self) -> None:
+    def test_validate_checkout_uses_pinned_preflight_source_with_full_history(self) -> None:
         checkout = self.steps["checkout-merge"]
         self.assertEqual("actions/checkout@v5", checkout["uses"])
         self.assertEqual(
-            "refs/pull/${{ github.event.pull_request.number }}/merge",
+            "${{ needs.pr-preflight.outputs.source_sha }}",
             checkout["with"]["ref"],
         )
         self.assertEqual(0, checkout["with"]["fetch-depth"])
+        self.assertIn("git rev-parse HEAD", self.steps["verify-source"]["run"])
+        self.assertIn("PR_SOURCE_SHA", self.steps["verify-source"]["run"])
+
+    def test_untrusted_pr_fields_are_passed_via_environment(self) -> None:
+        identify = steps_by_id(self.preflight)["identify"]
+        detect = self.steps["detect-bump"]
+        for step in (identify, detect):
+            run = step["run"]
+            self.assertIn("$env:PR_TITLE", run)
+            self.assertIn("$env:PR_HEAD_REF", run)
+            self.assertIn("$env:PR_USER_LOGIN", run)
+            self.assertNotIn("${{ github.event.pull_request.title }}", run)
 
     def test_closed_event_promotes_staged_yaml_on_merge(self) -> None:
         finalize = workflow_job(self.workflow, "finalize-pr-workspace")

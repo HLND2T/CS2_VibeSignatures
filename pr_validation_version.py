@@ -7,16 +7,26 @@ import argparse
 import re
 import subprocess
 import sys
+from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 
 from trusted_yaml import load_yaml_file
 
 
 SNAPSHOT_PATTERN = re.compile(r"^gamesymbols/[^/]+\.yaml$")
+SHA_PATTERN = re.compile(r"^[0-9a-fA-F]{40}$")
 
 
 class PrValidationVersionError(RuntimeError):
     pass
+
+
+@dataclass(frozen=True)
+class ValidationSelection:
+    pr_gamever: str
+    gamever: str
+    base_snapshot_path: str | None
+    base_snapshot_commit: str | None
 
 
 def _snapshot_gamever(path: str) -> str:
@@ -25,26 +35,37 @@ def _snapshot_gamever(path: str) -> str:
     return PurePosixPath(path).stem
 
 
-def select_validation_gamever(
+def select_validation_snapshot(
     pr_gamever: str,
     tracked_snapshots: list[str],
     latest_snapshot_paths: list[str],
-) -> str:
+) -> str | None:
     pr_gamever = str(pr_gamever).strip()
     if not pr_gamever:
         raise PrValidationVersionError("PR GAMEVER is empty")
     tracked_snapshots = sorted(set(tracked_snapshots))
     if not tracked_snapshots:
-        return pr_gamever
+        return None
     same_version = f"gamesymbols/{pr_gamever}.yaml"
     if same_version in tracked_snapshots:
-        return pr_gamever
+        return same_version
     if len(tracked_snapshots) == 1:
-        return _snapshot_gamever(tracked_snapshots[0])
+        return tracked_snapshots[0]
+    if not latest_snapshot_paths:
+        raise PrValidationVersionError("failed to locate the latest base snapshot publication")
     candidates = [path for path in latest_snapshot_paths if path in tracked_snapshots]
     if len(candidates) != 1:
         raise PrValidationVersionError(f"latest base snapshot publication is ambiguous: {', '.join(candidates)}")
-    return _snapshot_gamever(candidates[0])
+    return candidates[0]
+
+
+def select_validation_gamever(
+    pr_gamever: str,
+    tracked_snapshots: list[str],
+    latest_snapshot_paths: list[str],
+) -> str:
+    snapshot = select_validation_snapshot(pr_gamever, tracked_snapshots, latest_snapshot_paths)
+    return _snapshot_gamever(snapshot) if snapshot else str(pr_gamever).strip()
 
 
 def _git_lines(repo_root: Path, arguments: list[str]) -> list[str]:
@@ -59,8 +80,11 @@ def _git_lines(repo_root: Path, arguments: list[str]) -> list[str]:
     return [line.strip() for line in result.stdout.splitlines() if line.strip()]
 
 
-def resolve_validation_gamever(repo_root: Path, base_ref: str) -> str:
+def resolve_validation_selection(repo_root: Path, base_ref: str) -> ValidationSelection:
     repo_root = Path(repo_root).resolve()
+    base_ref = str(base_ref).strip()
+    if not SHA_PATTERN.fullmatch(base_ref):
+        raise PrValidationVersionError(f"base ref must be a full commit SHA: {base_ref}")
     document = load_yaml_file(repo_root / "download.yaml")
     downloads = document.get("downloads") if isinstance(document, dict) else None
     if not isinstance(downloads, list) or not downloads or not isinstance(downloads[-1], dict):
@@ -77,8 +101,28 @@ def resolve_validation_gamever(repo_root: Path, base_ref: str) -> str:
             repo_root,
             ["log", "-1", "--format=%H", "--name-only", "--first-parent", base_ref, "--", "gamesymbols"],
         )
-        latest_paths = latest_change[1:] if latest_change else []
-    return select_validation_gamever(pr_gamever, tracked, latest_paths)
+        if len(latest_change) < 2 or not SHA_PATTERN.fullmatch(latest_change[0]):
+            raise PrValidationVersionError("failed to locate the latest base snapshot publication")
+        latest_paths = latest_change[1:]
+    snapshot_path = select_validation_snapshot(pr_gamever, tracked, latest_paths)
+    if snapshot_path is None:
+        return ValidationSelection(pr_gamever, pr_gamever, None, None)
+    commit_lines = _git_lines(
+        repo_root,
+        ["log", "-1", "--format=%H", "--first-parent", base_ref, "--", snapshot_path],
+    )
+    if len(commit_lines) != 1 or not SHA_PATTERN.fullmatch(commit_lines[0]):
+        raise PrValidationVersionError(f"failed to locate the commit that published {snapshot_path}")
+    return ValidationSelection(
+        pr_gamever=pr_gamever,
+        gamever=_snapshot_gamever(snapshot_path),
+        base_snapshot_path=snapshot_path,
+        base_snapshot_commit=commit_lines[0].lower(),
+    )
+
+
+def resolve_validation_gamever(repo_root: Path, base_ref: str) -> str:
+    return resolve_validation_selection(repo_root, base_ref).gamever
 
 
 def parse_args(argv=None) -> argparse.Namespace:
@@ -92,14 +136,17 @@ def parse_args(argv=None) -> argparse.Namespace:
 def main(argv=None) -> int:
     args = parse_args(argv)
     try:
-        gamever = resolve_validation_gamever(Path(args.repo_root), args.base_ref)
+        selection = resolve_validation_selection(Path(args.repo_root), args.base_ref)
     except (OSError, PrValidationVersionError) as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 1
     if args.github_output:
         with Path(args.github_output).open("a", encoding="utf-8") as handle:
-            handle.write(f"gamever={gamever}\n")
-    print(gamever)
+            handle.write(f"pr_gamever={selection.pr_gamever}\n")
+            handle.write(f"gamever={selection.gamever}\n")
+            handle.write(f"base_snapshot_path={selection.base_snapshot_path or ''}\n")
+            handle.write(f"base_snapshot_commit={selection.base_snapshot_commit or ''}\n")
+    print(selection.gamever)
     return 0
 
 

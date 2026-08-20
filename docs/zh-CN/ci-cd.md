@@ -20,14 +20,15 @@ GitHub Actions 中的 PR 与 release 分析不允许临时创建 IDB。两个流
 inventory 与 IDA 版本生成 cache identity，并且只有在所有 `.i64` 与完整 payload inventory 都通过校验后，
 才会把 immutable generation 发布到 `PERSISTED_WORKSPACE/idb-cache/<GAMEVER>/generations/`。
 
-producer 会把精确的 generation 与 cache key 返回调用方。PR/release job 不再从
+producer 会把精确的 generation 与 cache key 返回调用方。PR/release job 会先校验本机 IDA kernel version
+与 producer 一致，再恢复该 generation；它们不再从
 `PERSISTED_WORKSPACE/bin/<GAMEVER>` 复制 `.i64`，而是恢复该 generation，并使用 `-require_warm_idb` 运行
 `ida_analyze_bin.py`。warm cache 缺失、损坏、identity 不匹配或生产失败都会阻止分析；CI 不允许回退到 inline
 IDA auto-analysis。因此即使 generated-output PR 尚未合并，普通 PR 也能消费已经发布的 warm cache。
 
-release staging 仍会把分析后的 workspace `bin/<GAMEVER>` 整体复制到 `release-staging`；generated-output PR
-合并后，promotion 会事务性替换 accepted `PERSISTED_WORKSPACE/bin/<GAMEVER>`。其中的 `.i64` 属于 release
-state，但不再是后续 PR/release 的 cache 来源。
+producer 会清理超过 24 小时的中断 `.incoming-*` 目录，并至少保留最新三个 generation 与 READY 指向的
+generation；其他 generation 满七天后才允许清理。release staging 会排除全部 IDA database artifacts，因此
+promotion 不再在 accepted `PERSISTED_WORKSPACE/bin/<GAMEVER>` 中制造第二份 IDB。
 
 ```batch
 @echo Analyze game binaries

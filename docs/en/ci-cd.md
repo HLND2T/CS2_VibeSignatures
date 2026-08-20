@@ -21,14 +21,16 @@ cache identity from the binary inventory and IDA version, and publishes an immut
 `PERSISTED_WORKSPACE/idb-cache/<GAMEVER>/generations/` only after every `.i64` and the complete payload inventory pass
 validation.
 
-The producer returns the exact generation and cache key to its caller. PR and release jobs restore that generation
+The producer returns the exact generation and cache key to its caller. PR and release jobs verify that their local
+IDA kernel version matches the producer, restore that generation
 instead of copying `.i64` files from `PERSISTED_WORKSPACE/bin/<GAMEVER>`, then run `ida_analyze_bin.py` with
 `-require_warm_idb`. A missing, damaged, mismatched, or failed warm cache stops analysis; CI never falls back to inline
 IDA auto-analysis. This also lets a PR consume the cache before the generated-output PR is merged.
 
-Release staging still copies the analyzed workspace `bin/<GAMEVER>` tree into `release-staging`; after the generated
-output PR is merged, transactional promotion replaces the accepted `PERSISTED_WORKSPACE/bin/<GAMEVER>` tree. Those
-accepted `.i64` files are release state, not the cache source used by later PR/release consumers.
+The producer prunes interrupted `.incoming-*` directories after 24 hours and retains at least the three newest cache
+generations plus the READY generation; older generations are eligible for removal after seven days. Release staging
+excludes all IDA database artifacts, so transactional promotion no longer creates a second accepted copy below
+`PERSISTED_WORKSPACE/bin/<GAMEVER>`.
 
 ```batch
 @echo Analyze game binaries

@@ -3227,7 +3227,7 @@ def process_binary(
         _abort_binary_reporting(
             reporting,
             job_id,
-            ProcessReason.MCP_UNAVAILABLE,
+            ProcessReason.MISSING_INPUT,
             "Required warm IDB is missing",
         )
         return success_count, fail_count, skip_count
