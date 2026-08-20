@@ -280,6 +280,27 @@ jobs:
             --create-missing-binsync-remotes
           if ($LASTEXITCODE -ne 0) { throw "init_gamebin.py prepare failed with exit code $LASTEXITCODE" }
 
+      - name: Warm up IDA databases concurrently
+        id: warmup-idb
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          # Pure optimization: warm <binary>.i64 for every configured binary
+          # with bare idalib (no MCP port) so the analyze step reuses them and
+          # skips IDA's initial auto-analysis pass. A failure only means the
+          # analyze step falls back to inline auto-analysis; it never fails the
+          # build. IDB_WARMUP_MAX_CONCURRENCY is a win64 environment variable.
+          $pythonExe = (Get-Command python -ErrorAction SilentlyContinue).Source
+          if ([string]::IsNullOrWhiteSpace($pythonExe)) {
+            Write-Host "Warmup skipped: python not on PATH"
+            exit 0
+          }
+          $maxConcurrency = $env:IDB_WARMUP_MAX_CONCURRENCY
+          if ([string]::IsNullOrWhiteSpace($maxConcurrency)) { $maxConcurrency = "2" }
+          uv run python warmup_idb.py "$env:GAMEVER" `
+            --python "$pythonExe" `
+            --max-concurrency "$maxConcurrency"
+
       - name: Analyze binaries with normal producer scheduling
         id: analyze
         shell: pwsh

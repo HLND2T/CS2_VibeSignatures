@@ -88,6 +88,21 @@ class TestBuildSelfRunnerWorkflow(unittest.TestCase):
             self.build_steps["restore-sdk"]["run"],
         )
 
+    def test_warmup_idb_precedes_analyze_and_is_best_effort(self) -> None:
+        warmup = self.build_steps["warmup-idb"]
+        run = warmup["run"]
+
+        # Wired between init-binaries and analyze, before any analysis runs.
+        order = step_order(self.build_job, "init-binaries", "warmup-idb", "analyze")
+        self.assertEqual(sorted(order), order)
+
+        # Pure optimization: it must never fail the build.
+        self.assertTrue(warmup.get("continue-on-error", False))
+        self.assertIn("warmup_idb.py", run)
+        self.assertIn('--python "$pythonExe"', run)
+        self.assertIn("IDB_WARMUP_MAX_CONCURRENCY", run)
+        self.assertIn('--max-concurrency "$maxConcurrency"', run)
+
     def test_promotion_is_bound_to_accepted_merge_and_validation_order(self) -> None:
         workflow = load_workflow("promote-release-after-output-merge.yml")
         promote = workflow_job(workflow, "promote")
