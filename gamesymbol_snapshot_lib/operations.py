@@ -271,7 +271,7 @@ def load_snapshot_context(snapshot_path, config_path, game_version, bindir, requ
     return SnapshotContext(document, raw, contract)
 
 
-def _atomic_write(path: Path, data: bytes) -> None:
+def _atomic_write(path: Path, data: bytes, *, durable: bool = True) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = None
     try:
@@ -279,7 +279,8 @@ def _atomic_write(path: Path, data: bytes) -> None:
             temporary = Path(handle.name)
             handle.write(data)
             handle.flush()
-            os.fsync(handle.fileno())
+            if durable:
+                os.fsync(handle.fileno())
         os.replace(temporary, path)
     finally:
         if temporary and temporary.exists():
@@ -326,12 +327,12 @@ def _delete_yaml_tree(game_root: Path) -> None:
         path.unlink()
 
 
-def _write_document_files(contract, document: dict, overwrite: bool) -> None:
+def _write_document_files(contract, document: dict, overwrite: bool, *, durable: bool = True) -> None:
     for key, payload in document["files"].items():
         target = path_from_key(contract.game_root, key)
         if target.exists() and not overwrite:
             continue
-        _atomic_write(target, canonical_yaml_bytes(payload))
+        _atomic_write(target, canonical_yaml_bytes(payload), durable=durable)
 
 
 def _round_trip_document(document: dict, game_version: str, config_path) -> bytes:
@@ -340,7 +341,7 @@ def _round_trip_document(document: dict, game_version: str, config_path) -> byte
         bindir = Path(temp_dir) / "bin"
         contract = load_contract(config_path, game_version, bindir, digest_version)
         ensure_real_tree(bindir, contract.game_root)
-        _write_document_files(contract, document, overwrite=True)
+        _write_document_files(contract, document, overwrite=True, durable=False)
         actual = build_actual_document(
             contract,
             schema_version=document["schema_version"],
