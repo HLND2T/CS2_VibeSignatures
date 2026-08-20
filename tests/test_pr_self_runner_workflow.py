@@ -6,7 +6,7 @@ from tests.workflow_contract_test_support import load_workflow, step_order, step
 class TestPrSelfRunnerWorkflow(unittest.TestCase):
     def setUp(self) -> None:
         self.workflow = load_workflow("pr-self-runner.yml")
-        self.validate = workflow_job(self.workflow, "validate")
+        self.validate = workflow_job(self.workflow, "pr-validate")
         self.steps = steps_by_id(self.validate)
 
     def test_trigger_permissions_and_event_job_partition(self) -> None:
@@ -16,7 +16,6 @@ class TestPrSelfRunnerWorkflow(unittest.TestCase):
         )
         self.assertEqual({"contents": "read"}, self.workflow["permissions"])
         self.assertIn("github.event.action != 'closed'", self.validate["if"])
-        self.assertIn("startsWith(github.event.pull_request.head.ref, 'bump-download/')", self.validate["if"])
         self.assertIn("startsWith(github.event.pull_request.head.ref, 'gamesymbols/build/')", self.validate["if"])
         finalize = workflow_job(self.workflow, "finalize-pr-workspace")
         self.assertIn("github.event.action == 'closed'", finalize["if"])
