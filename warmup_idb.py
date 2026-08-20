@@ -1,19 +1,17 @@
 #!/usr/bin/env python3
 """Concurrently warm IDA databases for every configured binary of one GAMEVER.
 
-The release ``analyze`` step already reuses an existing ``<binary>.i64`` to skip
-IDA's initial auto-analysis pass, so warming those databases ahead of the
-analysis keeps that pass off the critical path. Each binary is warmed by a
-separate bare-idalib worker process (:mod:`warmup_idb_worker`) so there is no
-idalib-mcp port to contend for; ``--max-concurrency`` bounds how many workers
+The reusable warm-cache workflow runs this producer before publishing an
+immutable cache generation for PR and release consumers. Each binary is warmed
+by a separate bare-idalib worker process (:mod:`warmup_idb_worker`) so there is
+no idalib-mcp port to contend for; ``--max-concurrency`` bounds how many workers
 run at once (defaulting to ``$IDB_WARMUP_MAX_CONCURRENCY``, or 2 when unset),
 ``$IDB_WARMUP_MAX_MEMORY_MIB`` enables memory-aware admission plus an aggregate
 Windows Job limit, and each worker has a bounded timeout.
 
-Warming is a pure optimization. Worker failures trigger bounded cleanup so the
-downstream analyze step can fall back to running auto-analysis inline. Cleanup
-failures are reported explicitly rather than silently treating residual files
-as a safe fallback.
+Worker failures invalidate partial IDA side files and make the command fail.
+CI consumers require the resulting published database and never fall back to
+inline auto-analysis.
 """
 
 from __future__ import annotations
@@ -199,6 +197,11 @@ def parse_args(argv=None) -> argparse.Namespace:
         default=os.environ.get(MEMORY_BUDGET_ENV),
         help=f"Aggregate warmup Job memory budget (default: ${MEMORY_BUDGET_ENV}; unset disables memory controls)",
     )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Invalidate every configured IDA database before warming",
+    )
     return parser.parse_args(argv)
 
 
@@ -219,6 +222,15 @@ def main(argv=None) -> int:
         binary_path
         for _module, _platform, binary_path in iter_configured_binaries(REPOSITORY_ROOT, args.gamever, config_path)
     ]
+
+    if args.force:
+        cleanup_failures = []
+        for binary in binaries:
+            _removed, failures = _invalidate_ida_database(binary)
+            cleanup_failures.extend(failures)
+        if cleanup_failures:
+            print(f"warmup: forced database cleanup failed: {'; '.join(cleanup_failures)}", file=sys.stderr)
+            return 1
 
     pending = [binary for binary in binaries if not _is_warm(binary)]
     skipped = len(binaries) - len(pending)

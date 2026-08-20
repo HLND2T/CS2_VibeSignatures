@@ -4162,6 +4162,71 @@ class TestProcessBinaryOpenedBinaryVerification(unittest.TestCase):
             debug=False,
         )
 
+    def test_process_binary_requires_existing_warm_database_in_strict_mode(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            binary_path = Path(temp_dir) / "server.dll"
+            binary_path.write_bytes(b"server-binary")
+            with patch.object(ida_analyze_bin, "start_idalib_mcp") as start_ida:
+                result = ida_analyze_bin.process_binary(
+                    binary_path=str(binary_path),
+                    skills=[
+                        {
+                            "name": "find-required-cache",
+                            "expected_output": ["Required.{platform}.yaml"],
+                            "expected_input": [],
+                        }
+                    ],
+                    agent="codex",
+                    host="127.0.0.1",
+                    port=13337,
+                    ida_args="",
+                    platform="windows",
+                    require_warm_idb=True,
+                )
+
+        self.assertEqual((0, 1, 0), result)
+        start_ida.assert_not_called()
+
+    def test_process_binary_does_not_rebuild_invalid_database_in_strict_mode(self) -> None:
+        fake_process = MagicMock()
+        fake_process.poll.return_value = None
+        with TemporaryDirectory() as temp_dir:
+            binary_path = Path(temp_dir) / "server.dll"
+            binary_path.write_bytes(b"server-binary")
+            database = Path(f"{binary_path}.i64")
+            database.write_bytes(b"invalid-idb")
+            with (
+                patch.object(ida_analyze_bin, "start_idalib_mcp", return_value=fake_process) as start_ida,
+                patch.object(
+                    ida_analyze_bin,
+                    "verify_owned_mcp_with_single_recovery",
+                    return_value=(fake_process, False),
+                ),
+                patch.object(ida_analyze_bin, "_invalidate_ida_database") as invalidate,
+            ):
+                result = ida_analyze_bin.process_binary(
+                    binary_path=str(binary_path),
+                    skills=[
+                        {
+                            "name": "find-required-cache",
+                            "expected_output": ["Required.{platform}.yaml"],
+                            "expected_input": [],
+                        }
+                    ],
+                    agent="codex",
+                    host="127.0.0.1",
+                    port=13337,
+                    ida_args="",
+                    platform="windows",
+                    require_warm_idb=True,
+                )
+                database_survived = database.exists()
+
+        self.assertEqual((0, 1, 0), result)
+        start_ida.assert_called_once()
+        invalidate.assert_not_called()
+        self.assertTrue(database_survived)
+
     def test_process_binary_recovers_initial_inactive_worker_once(self) -> None:
         original_process = object()
         restarted_process = object()
@@ -4690,6 +4755,16 @@ class TestInspectFuncVaPyEvalSelfHeal(unittest.IsolatedAsyncioTestCase):
     clear=False,
 )
 class TestParseArgsLlmOptions(unittest.TestCase):
+    @patch.object(ida_analyze_bin, "resolve_oldgamever", return_value="14140")
+    def test_parse_args_accepts_require_warm_idb(self, _mock_resolve_oldgamever) -> None:
+        with patch(
+            "sys.argv",
+            ["ida_analyze_bin.py", "-gamever", "14141", "-require_warm_idb"],
+        ):
+            args = ida_analyze_bin.parse_args()
+
+        self.assertTrue(args.require_warm_idb)
+
     def test_parse_vcall_finder_filter_preserves_order_and_deduplicates(self) -> None:
         selector = ida_analyze_bin.parse_vcall_finder_filter("g_pSecond, g_pFirst, g_pSecond")
 

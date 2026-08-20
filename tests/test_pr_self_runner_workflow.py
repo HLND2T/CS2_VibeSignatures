@@ -6,6 +6,8 @@ from tests.workflow_contract_test_support import load_workflow, step_order, step
 class TestPrSelfRunnerWorkflow(unittest.TestCase):
     def setUp(self) -> None:
         self.workflow = load_workflow("pr-self-runner.yml")
+        self.preflight = workflow_job(self.workflow, "pr-preflight")
+        self.warmup = workflow_job(self.workflow, "pr-warmup-idb")
         self.validate = workflow_job(self.workflow, "pr-validate")
         self.steps = steps_by_id(self.validate)
 
@@ -15,8 +17,14 @@ class TestPrSelfRunnerWorkflow(unittest.TestCase):
             self.workflow["on"]["pull_request"]["types"],
         )
         self.assertEqual({"contents": "read"}, self.workflow["permissions"])
-        self.assertIn("github.event.action != 'closed'", self.validate["if"])
-        self.assertIn("startsWith(github.event.pull_request.head.ref, 'gamesymbols/build/')", self.validate["if"])
+        self.assertIn("github.event.action != 'closed'", self.preflight["if"])
+        self.assertIn("startsWith(github.event.pull_request.head.ref, 'gamesymbols/build/')", self.preflight["if"])
+        self.assertEqual("pr-preflight", self.warmup["needs"])
+        self.assertEqual("./.github/workflows/warmup-idb.yml", self.warmup["uses"])
+        self.assertEqual("${{ needs.pr-preflight.outputs.gamever }}", self.warmup["with"]["gamever"])
+        self.assertEqual("${{ needs.pr-preflight.outputs.source_sha }}", self.warmup["with"]["source_sha"])
+        self.assertEqual(["pr-preflight", "pr-warmup-idb"], self.validate["needs"])
+        self.assertIn("needs.pr-warmup-idb.result == 'success'", self.validate["if"])
         finalize = workflow_job(self.workflow, "finalize-pr-workspace")
         self.assertIn("github.event.action == 'closed'", finalize["if"])
         steps_by_id(finalize)
@@ -120,9 +128,19 @@ class TestPrSelfRunnerWorkflow(unittest.TestCase):
         self.assertIn("BASE_GAMEVER=$baseGamever", self.steps["base-snapshot"]["run"])
         self.assertIn("HEAD_CONFIG=$headConfig", self.steps["base-snapshot"]["run"])
         self.assertIn('-configyaml "$env:HEAD_CONFIG"', self.steps["analyze"]["run"])
+        self.assertIn("-require_warm_idb", self.steps["analyze"]["run"])
         self.assertIn('-configyaml "$env:HEAD_CONFIG"', self.steps["cpp-tests"]["run"])
         self.assertEqual("always()", self.steps["restore-sdk"]["if"])
         self.assertIn('git -C $sdkPath checkout --detach "$env:SDK_PINNED_SHA"', self.steps["restore-sdk"]["run"])
+
+    def test_published_cache_replaces_persisted_i64_copy(self) -> None:
+        self.assertIn("idb_cache.py restore", self.steps["restore-idb-cache"]["run"])
+        self.assertIn("IDB_CACHE_GENERATION", self.steps["restore-idb-cache"]["run"])
+        prepare = self.steps["prepare-bin"]["run"]
+        self.assertNotIn("Also copy persisted *.i64", prepare)
+        self.assertNotIn("$i64RobocopyArgs", prepare)
+        order = step_order(self.validate, "prepare-bin", "restore-idb-cache", "restore-base", "analyze")
+        self.assertEqual(sorted(order), order)
 
     def test_validate_stages_analyzed_yaml_for_merge_promotion(self) -> None:
         run = self.steps["stage-yaml"]["run"]

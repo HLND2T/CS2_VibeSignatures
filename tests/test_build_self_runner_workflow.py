@@ -22,10 +22,16 @@ class TestBuildSelfRunnerWorkflow(unittest.TestCase):
             {"actions": "read", "contents": "write", "pull-requests": "write"},
             self.build_workflow["permissions"],
         )
-        self.assertEqual("preflight", self.build_job["needs"])
+        self.assertEqual(["preflight", "warmup-idb"], self.build_job["needs"])
         preflight = workflow_job(self.build_workflow, "preflight")
         self.assertEqual("${{ steps.resolve.outputs.source_sha }}", preflight["outputs"]["source_sha"])
         self.assertIn("github.repository == 'HLND2T/CS2_VibeSignatures'", preflight["if"])
+        warmup = workflow_job(self.build_workflow, "warmup-idb")
+        self.assertEqual("preflight", warmup["needs"])
+        self.assertEqual("./.github/workflows/warmup-idb.yml", warmup["uses"])
+        self.assertEqual("${{ needs.preflight.outputs.gamever }}", warmup["with"]["gamever"])
+        self.assertEqual("${{ needs.preflight.outputs.source_sha }}", warmup["with"]["source_sha"])
+        self.assertEqual("inherit", warmup["secrets"])
 
     def test_fast_and_full_test_suites_run_before_analysis(self) -> None:
         tests_step = self.build_steps["test-suites"]
@@ -88,28 +94,15 @@ class TestBuildSelfRunnerWorkflow(unittest.TestCase):
             self.build_steps["restore-sdk"]["run"],
         )
 
-    def test_warmup_idb_precedes_analyze_and_is_best_effort(self) -> None:
-        warmup = self.build_steps["warmup-idb"]
-        run = warmup["run"]
-
-        # Wired between init-binaries and analyze, before any analysis runs.
-        order = step_order(self.build_job, "init-binaries", "warmup-idb", "analyze")
+    def test_build_restores_required_published_cache_before_analysis(self) -> None:
+        order = step_order(self.build_job, "prepare-workspace", "restore-idb-cache", "init-binaries", "analyze")
         self.assertEqual(sorted(order), order)
-
-        # Pure optimization: it must never fail the build.
-        self.assertTrue(warmup.get("continue-on-error", False))
-        self.assertIn("warmup_idb.py", run)
-        self.assertIn('--python "$pythonExe"', run)
-        self.assertIn("IDB_WARMUP_MAX_CONCURRENCY", run)
-        self.assertIn('--max-concurrency "$maxConcurrency"', run)
-        self.assertEqual(
-            "${{ vars.IDB_WARMUP_MAX_CONCURRENCY }}",
-            self.build_job["env"]["IDB_WARMUP_MAX_CONCURRENCY"],
-        )
-        self.assertEqual(
-            "${{ vars.IDB_WARMUP_MAX_MEMORY_MIB }}",
-            self.build_job["env"]["IDB_WARMUP_MAX_MEMORY_MIB"],
-        )
+        self.assertIn("idb_cache.py restore", self.build_steps["restore-idb-cache"]["run"])
+        self.assertIn("IDB_CACHE_GENERATION", self.build_steps["restore-idb-cache"]["run"])
+        self.assertIn("*.i64", self.build_steps["prepare-workspace"]["run"])
+        self.assertIn("/XF", self.build_steps["prepare-workspace"]["run"])
+        self.assertIn("-require_warm_idb", self.build_steps["analyze"]["run"])
+        self.assertNotIn("warmup-idb", self.build_steps)
 
     def test_promotion_is_bound_to_accepted_merge_and_validation_order(self) -> None:
         workflow = load_workflow("promote-release-after-output-merge.yml")

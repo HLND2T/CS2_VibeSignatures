@@ -15,6 +15,20 @@ uv run copy_depot_bin.py -gamever %CS2_GAMEVER% -platform %CS2_PLATFORM%
 
 ## 分析二进制
 
+GitHub Actions 中的 PR 与 release 分析不允许临时创建 IDB。两个流程都会先调用 reusable
+`.github/workflows/warmup-idb.yml` producer。它在隔离 workspace 中准备配置声明的 binaries，根据 binary
+inventory 与 IDA 版本生成 cache identity，并且只有在所有 `.i64` 与完整 payload inventory 都通过校验后，
+才会把 immutable generation 发布到 `PERSISTED_WORKSPACE/idb-cache/<GAMEVER>/generations/`。
+
+producer 会把精确的 generation 与 cache key 返回调用方。PR/release job 不再从
+`PERSISTED_WORKSPACE/bin/<GAMEVER>` 复制 `.i64`，而是恢复该 generation，并使用 `-require_warm_idb` 运行
+`ida_analyze_bin.py`。warm cache 缺失、损坏、identity 不匹配或生产失败都会阻止分析；CI 不允许回退到 inline
+IDA auto-analysis。因此即使 generated-output PR 尚未合并，普通 PR 也能消费已经发布的 warm cache。
+
+release staging 仍会把分析后的 workspace `bin/<GAMEVER>` 整体复制到 `release-staging`；generated-output PR
+合并后，promotion 会事务性替换 accepted `PERSISTED_WORKSPACE/bin/<GAMEVER>`。其中的 `.i64` 属于 release
+state，但不再是后续 PR/release 的 cache 来源。
+
 ```batch
 @echo Analyze game binaries
 

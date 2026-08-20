@@ -1,6 +1,5 @@
 name: Build On Self Runner
 run-name: Release build ${{ inputs.gamever || github.event.client_payload.gamever }}
-
 on:
   workflow_dispatch:
     inputs:
@@ -24,16 +23,13 @@ on:
         type: boolean
   repository_dispatch:
     types: [build-on-self-runner]
-
 permissions:
   actions: read
   contents: write
   pull-requests: write
-
 concurrency:
   group: release-build-${{ github.repository }}-${{ inputs.gamever || github.event.client_payload.gamever }}
   cancel-in-progress: false
-
 jobs:
   preflight:
     if: github.repository == 'HLND2T/CS2_VibeSignatures' || github.repository == 'hzqst/CS2_VibeSignatures'
@@ -50,10 +46,8 @@ jobs:
         with:
           ref: ${{ github.event.repository.default_branch }}
           fetch-depth: 0
-
       - uses: astral-sh/setup-uv@v9.0.0
         id: setup-uv
-
       - name: Resolve and validate dispatch contract
         id: resolve
         shell: pwsh
@@ -80,7 +74,6 @@ jobs:
             --source-sha "$sourceSha" `
             --mode "$mode" `
             --default-ref "origin/${{ github.event.repository.default_branch }}"
-
           if ($mode -eq "republish") {
             gh release view "$gamever" --repo "${{ github.repository }}" > $null
             if ($LASTEXITCODE -ne 0) { throw "mode=republish requires Release $gamever to exist." }
@@ -88,7 +81,6 @@ jobs:
             gh release view "$gamever" --repo "${{ github.repository }}" *> $null
             if ($LASTEXITCODE -eq 0) { throw "mode=new requires Release $gamever to be absent." }
           }
-
           $canonicalPrefix = "gamesymbols/build/$gamever/"
           $legacyPrefix = "gamesymbols/$gamever/build-"
           $openJson = gh pr list --state open --limit 100 --json headRefName,url
@@ -104,9 +96,15 @@ jobs:
           "source_sha=$sourceSha" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "mode=$mode" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "allow_legacy_bootstrap=$allowLegacyBootstrap" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-
-  build:
+  warmup-idb:
     needs: preflight
+    uses: ./.github/workflows/warmup-idb.yml
+    with:
+      gamever: ${{ needs.preflight.outputs.gamever }}
+      source_sha: ${{ needs.preflight.outputs.source_sha }}
+    secrets: inherit
+  build:
+    needs: [preflight, warmup-idb]
     environment: win64
     runs-on: [self-hosted, windows, x64]
     env:
@@ -114,6 +112,8 @@ jobs:
       SOURCE_SHA: ${{ needs.preflight.outputs.source_sha }}
       MODE: ${{ needs.preflight.outputs.mode }}
       ALLOW_LEGACY_BOOTSTRAP: ${{ needs.preflight.outputs.allow_legacy_bootstrap }}
+      IDB_CACHE_GENERATION: ${{ needs.warmup-idb.outputs.generation }}
+      IDB_CACHE_KEY: ${{ needs.warmup-idb.outputs.cache_key }}
       BUILD_ID: ${{ github.run_id }}-${{ github.run_attempt }}
       CS2VIBE_AGENT: ${{ secrets.CS2VIBE_AGENT }}
       CS2VIBE_AGENT_MODEL: ${{ secrets.CS2VIBE_AGENT_MODEL }}
@@ -122,8 +122,6 @@ jobs:
       CS2VIBE_LLM_EFFORT: ${{ secrets.CS2VIBE_LLM_EFFORT }}
       CS2VIBE_LLM_FAKE_AS: ${{ secrets.CS2VIBE_LLM_FAKE_AS }}
       CS2VIBE_LLM_MODEL: ${{ secrets.CS2VIBE_LLM_MODEL }}
-      IDB_WARMUP_MAX_CONCURRENCY: ${{ vars.IDB_WARMUP_MAX_CONCURRENCY }}
-      IDB_WARMUP_MAX_MEMORY_MIB: ${{ vars.IDB_WARMUP_MAX_MEMORY_MIB }}
       DEPOTDOWNLOADER_STEAM_USERNAME: ${{ secrets.DEPOTDOWNLOADER_STEAM_USERNAME }}
       DEPOTDOWNLOADER_STEAM_PASSWORD: ${{ secrets.DEPOTDOWNLOADER_STEAM_PASSWORD }}
       PERSISTED_WORKSPACE: ${{ secrets.PERSISTED_WORKSPACE }}
@@ -136,7 +134,6 @@ jobs:
           ref: ${{ needs.preflight.outputs.source_sha }}
           fetch-depth: 0
           submodules: false
-
       - name: Compute submodule cache key
         id: submodule-cache-key
         working-directory: ${{ github.workspace }}
@@ -150,13 +147,10 @@ jobs:
           # between the miss and save phases and the cache never hits. Read the
           # committed gitlink SHAs from HEAD instead; they are deterministic.
           $content += git ls-tree HEAD
-
           $sha = [System.Security.Cryptography.SHA256]::Create()
           $bytes = [System.Text.Encoding]::UTF8.GetBytes(($content -join "`n"))
           $hash = [System.BitConverter]::ToString($sha.ComputeHash($bytes)).Replace("-", "").ToLowerInvariant()
-
           "hash=$hash" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-
       - name: Restore submodule cache
         id: restore-submodule-cache
         uses: actions/cache@v5
@@ -167,7 +161,6 @@ jobs:
           key: ${{ runner.os }}-submodules-${{ env.SUBMODULE_CACHE_VERSION }}-${{ steps.submodule-cache-key.outputs.hash }}
           restore-keys: |
             ${{ runner.os }}-submodules-${{ env.SUBMODULE_CACHE_VERSION }}-
-
       - name: Sync and update submodules
         id: sync-submodules
         working-directory: ${{ github.workspace }}
@@ -177,7 +170,6 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "git submodule sync failed." }
           git submodule update --init --recursive --depth 1 --jobs 8
           if ($LASTEXITCODE -ne 0) { throw "git submodule update failed." }
-
       - name: Prepare persisted depot link and real bin copy
         id: prepare-workspace
         shell: pwsh
@@ -203,7 +195,8 @@ jobs:
           New-Item -ItemType Directory -Path $workspaceGamever -Force | Out-Null
           $persistedGamever = Join-Path $env:PERSISTED_WORKSPACE "bin\$env:GAMEVER"
           if (Test-Path -LiteralPath $persistedGamever -PathType Container) {
-            robocopy $persistedGamever $workspaceGamever /E /COPY:DAT /DCOPY:DAT /R:2 /W:5
+            robocopy $persistedGamever $workspaceGamever /E /COPY:DAT /DCOPY:DAT /R:2 /W:5 `
+              /XF *.i64 *.idb *.id0 *.id1 *.id2 *.nam *.til
             if ($LASTEXITCODE -ge 8) { throw "Failed to copy persisted bin/$env:GAMEVER." }
             $global:LASTEXITCODE = 0
             Write-Host "Copied persisted bin/$env:GAMEVER into build workspace"
@@ -212,7 +205,17 @@ jobs:
           uv run release_workflow.py check-pending `
             --staging-root "$env:PERSISTED_WORKSPACE\release-staging" `
             --gamever "$env:GAMEVER" --build-id "$env:BUILD_ID"
-
+      - name: Restore required published warm IDB cache
+        id: restore-idb-cache
+        shell: pwsh
+        run: |
+          uv run python idb_cache.py restore `
+            --repo-root "${{ github.workspace }}" `
+            --persisted-root "$env:PERSISTED_WORKSPACE" `
+            --gamever "$env:GAMEVER" `
+            --generation "$env:IDB_CACHE_GENERATION" `
+            --cache-key "$env:IDB_CACHE_KEY"
+          if ($LASTEXITCODE -ne 0) { throw "Required published IDB cache restore failed." }
       - name: Resolve immutable analysis config
         id: resolve-config
         shell: pwsh
@@ -226,7 +229,6 @@ jobs:
           "ANALYSIS_CONFIG_SHA256=$hash" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
           Write-Host "Analysis config: $config"
           Write-Host "Analysis config SHA-256: $hash"
-
       - name: Check formatting and run repository test suites
         id: test-suites
         shell: pwsh
@@ -237,7 +239,6 @@ jobs:
             uv run python tests/run_test_suite.py $suite -b --durations 30
             if ($LASTEXITCODE -ne 0) { throw "Repository test suite failed: $suite" }
           }
-
       - name: Restore accepted same-version state and invalidate affected outputs
         id: restore-state
         if: env.MODE == 'republish'
@@ -253,7 +254,6 @@ jobs:
             $args += '--allow-legacy-bootstrap'
           }
           uv run release_workflow.py @args
-
       - name: Prepare trusted old-version signature baseline
         id: oldgamever
         shell: pwsh
@@ -261,7 +261,6 @@ jobs:
           uv run release_workflow.py prepare-oldgamever `
             --gamever "$env:GAMEVER" --bindir bin --github-output "$env:GITHUB_OUTPUT"
           if ($LASTEXITCODE -ne 0) { throw "Failed to prepare old-version signature baseline." }
-
       - name: Initialize binaries and BinSync recovery
         id: init-binaries
         shell: pwsh
@@ -281,28 +280,6 @@ jobs:
           uv run init_gamebin.py prepare "$env:GAMEVER" --binsync enable `
             --create-missing-binsync-remotes
           if ($LASTEXITCODE -ne 0) { throw "init_gamebin.py prepare failed with exit code $LASTEXITCODE" }
-
-      - name: Warm up IDA databases concurrently
-        id: warmup-idb
-        continue-on-error: true
-        shell: pwsh
-        run: |
-          # Pure optimization: warm <binary>.i64 for every configured binary
-          # with bare idalib (no MCP port) so the analyze step reuses them and
-          # skips IDA's initial auto-analysis pass. A failure only means the
-          # analyze step falls back to inline auto-analysis; it never fails the
-          # build. Concurrency and memory budgets come from win64 variables.
-          $pythonExe = (Get-Command python -ErrorAction SilentlyContinue).Source
-          if ([string]::IsNullOrWhiteSpace($pythonExe)) {
-            Write-Host "Warmup skipped: python not on PATH"
-            exit 0
-          }
-          $maxConcurrency = $env:IDB_WARMUP_MAX_CONCURRENCY
-          if ([string]::IsNullOrWhiteSpace($maxConcurrency)) { $maxConcurrency = "2" }
-          uv run python warmup_idb.py "$env:GAMEVER" `
-            --python "$pythonExe" `
-            --max-concurrency "$maxConcurrency"
-
       - name: Analyze binaries with normal producer scheduling
         id: analyze
         shell: pwsh
@@ -313,12 +290,12 @@ jobs:
             throw "Old-version signature policy was not resolved."
           }
           $args = @('-gamever', $env:GAMEVER, '-configyaml', $env:ANALYSIS_CONFIG)
+          $args += '-require_warm_idb'
           $args += @('-oldgamever', $env:OLDGAMEVER)
           $args += '-debug'
           $args += '-rename'
           uv run ida_analyze_bin.py @args
           if ($LASTEXITCODE -ne 0) { throw "ida_analyze_bin.py failed with exit code $LASTEXITCODE" }
-
       - name: Push accumulated symbols to BinSync remotes
         id: binsync-push
         shell: pwsh
@@ -333,7 +310,6 @@ jobs:
           }
           uv run python push_binsync_symbols.py "$env:GAMEVER" --python "$pythonExe"
           if ($LASTEXITCODE -ne 0) { throw "push_binsync_symbols.py failed with exit code $LASTEXITCODE" }
-
       - name: Build immutable symbol and gamedata candidates
         id: build-candidates
         shell: pwsh
@@ -364,7 +340,6 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "candidate guard failed after gamedata" }
           uv run gamesymbol_candidate.py mark -candidate "$candidate" -session "$session" -step gamedata
           if ($LASTEXITCODE -ne 0) { throw "failed to mark gamedata validation" }
-
       - name: Select versioned SDK for C++ ABI validation
         id: select-sdk
         shell: pwsh
@@ -380,10 +355,8 @@ jobs:
             throw "Unable to resolve the pinned hl2sdk_cs2 commit."
           }
           "SDK_PINNED_SHA=$pinnedSha" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-
           $remoteBranch = git -C $sdkPath ls-remote --heads $sdkRemote "refs/heads/$sdkRef"
           if ($LASTEXITCODE -ne 0) { throw "Unable to query $sdkRef from hl2sdk." }
-
           if ([string]::IsNullOrWhiteSpace($remoteBranch)) {
             "SDK_ABI_REF=pinned-submodule" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
             "SDK_ABI_SHA=$pinnedSha" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
@@ -410,7 +383,6 @@ jobs:
             "SDK_ABI_SHA=$selectedSha" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
             Write-Host "C++ ABI SDK selection: GAMEVER=$env:GAMEVER; ref=$sdkRef; selected SHA=$selectedSha; pinned SHA=$pinnedSha"
           }
-
       - name: Run C++ tests
         id: cpp-tests
         shell: pwsh
@@ -423,7 +395,6 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "candidate guard failed after C++ tests" }
           uv run gamesymbol_candidate.py mark -candidate "$env:ACTUAL_CANDIDATE_SNAPSHOT" -session "$env:CANDIDATE_SESSION" -step cpp_tests
           if ($LASTEXITCODE -ne 0) { throw "failed to mark C++ validation" }
-
       - name: Restore pinned SDK revision
         id: restore-sdk
         if: always()
@@ -444,7 +415,6 @@ jobs:
             throw "Restored SDK commit does not match SDK_PINNED_SHA."
           }
           Write-Host "C++ ABI SDK restore: restored pinned SHA=$restoredSha"
-
       - name: Publish fully validated immutable candidate
         id: publish-candidate
         shell: pwsh
@@ -456,7 +426,6 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "gamedata candidate guard failed before publication" }
           uv run gamedata_candidate.py publish -session "$env:GAMEDATA_SESSION" -outputdir "gamedata/$env:GAMEVER"
           if ($LASTEXITCODE -ne 0) { throw "gamedata publication failed with exit code $LASTEXITCODE" }
-
           $allowedSnapshot = "gamesymbols/$env:GAMEVER.yaml"
           $allowedGamedataPrefix = "gamedata/$env:GAMEVER/"
           $changedPaths = git status --porcelain=v1 --untracked-files=all | ForEach-Object {
@@ -469,7 +438,6 @@ jobs:
           if ($rejected.Count -gt 0) {
             throw "Candidate publication changed paths outside the exact release outputs: $($rejected -join ', ')"
           }
-
       - name: Stage validated pending state and tracked manifest
         id: stage-pending
         shell: pwsh
@@ -489,7 +457,6 @@ jobs:
             --analysis-config "$env:ANALYSIS_CONFIG" `
             --gamedata-session "$env:GAMEDATA_SESSION" `
             --workflow-run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-
       - name: Create immutable generated-output branch and PR
         id: create-output-pr
         env:
@@ -518,12 +485,11 @@ jobs:
             --staging-root "$env:PERSISTED_WORKSPACE\release-staging" --pr-number $prNumber `
             --gamever "$env:GAMEVER" --build-id "$env:BUILD_ID" --pr-head-sha "$headSha"
           Write-Host "Generated-output PR: $prUrl"
-
       - name: Clean incomplete staging and candidate session
         id: cleanup
         if: always()
         shell: pwsh
-        run: |
+        run: |-
           if ($env:PERSISTED_WORKSPACE -and $env:GAMEVER -and $env:BUILD_ID) {
             uv run release_workflow.py cleanup-incomplete `
               --staging-root "$env:PERSISTED_WORKSPACE\release-staging" `

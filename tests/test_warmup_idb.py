@@ -225,6 +225,41 @@ class TestWarmupIdbHelpers(unittest.TestCase):
             Path(f"{binary}.id0").write_bytes(b"lock")
             self.assertFalse(warmup_idb._is_warm(binary))
 
+    def test_force_invalidates_existing_database_before_warming(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            binary = Path(temp_dir) / "engine2.dll"
+            binary.write_bytes(b"MZ")
+            Path(f"{binary}.i64").write_bytes(b"old-db")
+
+            def warm_one(_python, _worker, binary_path, _timeout, _gate):
+                Path(f"{binary_path}.i64").write_bytes(b"new-db")
+                return True
+
+            with (
+                patch.object(warmup_idb.shutil, "which", return_value=sys.executable),
+                patch.object(warmup_idb, "resolve_analysis_config", return_value=Path("config.yaml")),
+                patch.object(
+                    warmup_idb,
+                    "iter_configured_binaries",
+                    return_value=[("engine", "windows", binary)],
+                ),
+                patch.object(warmup_idb, "_warm_one", side_effect=warm_one) as warm,
+            ):
+                result = warmup_idb.main(
+                    [
+                        "14180",
+                        "--python",
+                        sys.executable,
+                        "--worker-script",
+                        str(Path("warmup_idb_worker.py").resolve()),
+                        "--force",
+                    ]
+                )
+
+            self.assertEqual(0, result)
+            warm.assert_called_once()
+            self.assertEqual(b"new-db", Path(f"{binary}.i64").read_bytes())
+
     def test_parse_concurrency_defaults_and_clamps(self) -> None:
         self.assertEqual(warmup_idb._parse_concurrency(None), 2)
         self.assertEqual(warmup_idb._parse_concurrency(""), 2)

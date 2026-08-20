@@ -15,6 +15,7 @@ import sys
 
 # idapro must be imported first to initialize idalib.
 import idapro  # noqa: F401
+import idaapi
 import ida_auto  # noqa: F401
 import ida_loader  # noqa: F401
 
@@ -44,8 +45,14 @@ def warm_binary(binary_path: str) -> int:
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("binary", help="Path to the binary whose IDB to warm.")
+    parser.add_argument("binary", nargs="?", help="Path to the binary whose IDB to warm.")
+    parser.add_argument("--print-ida-version", action="store_true")
     args = parser.parse_args(argv)
+    if args.print_ida_version:
+        print(idaapi.get_kernel_version())
+        return 0
+    if not args.binary:
+        parser.error("binary is required unless --print-ida-version is used")
     return warm_binary(args.binary)
 
 
