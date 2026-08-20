@@ -48,6 +48,20 @@ jobs:
           fetch-depth: 0
           submodules: false
 
+      - name: Detect bump-download PR
+        id: detect-bump
+        shell: pwsh
+        run: |
+          $isBot = "${{ github.event.pull_request.user.login }}" -eq "github-actions[bot]"
+          $headRef = "${{ github.event.pull_request.head.ref }}"
+          $title = "${{ github.event.pull_request.title }}"
+          $isBump = $isBot -and $headRef.StartsWith("bump-download/") -and $title.StartsWith("chore(download): Update manifest for ")
+          # PowerShell bool ToString() yields capitalized True/False; emit lowercase
+          # so the downstream string comparisons against 'true' are case-exact.
+          $isBumpLower = if ($isBump) { "true" } else { "false" }
+          "is-bump=$isBumpLower" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          Write-Host "Detected bump-download PR: $isBumpLower"
+
       - name: Compute submodule cache key
         id: submodule-cache-key
         if: steps.detect-bump.outputs.is-bump != 'true'
@@ -98,20 +112,6 @@ jobs:
         run: |
           Set-Location $env:WORKSPACE
           uv run python format_repo_files.py --check
-
-      - name: Detect bump-download PR
-        id: detect-bump
-        shell: pwsh
-        run: |
-          $isBot = "${{ github.event.pull_request.user.login }}" -eq "github-actions[bot]"
-          $headRef = "${{ github.event.pull_request.head.ref }}"
-          $title = "${{ github.event.pull_request.title }}"
-          $isBump = $isBot -and $headRef.StartsWith("bump-download/") -and $title.StartsWith("chore(download): Update manifest for ")
-          # PowerShell bool ToString() yields capitalized True/False; emit lowercase
-          # so the downstream string comparisons against 'true' are case-exact.
-          $isBumpLower = if ($isBump) { "true" } else { "false" }
-          "is-bump=$isBumpLower" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          Write-Host "Detected bump-download PR: $isBumpLower"
 
       - name: Bump-download lightweight validation
         id: bump-light

@@ -49,6 +49,26 @@ class TestPrSelfRunnerWorkflow(unittest.TestCase):
             self.steps["sync-submodules"]["run"],
         )
 
+    def test_bump_detection_precedes_dependent_steps(self) -> None:
+        condition = "steps.detect-bump.outputs.is-bump != 'true'"
+        for step_id in (
+            "submodule-cache-key",
+            "restore-submodule-cache",
+            "sync-submodules",
+        ):
+            self.assertEqual(condition, self.steps[step_id]["if"])
+        order = step_order(
+            self.validate,
+            "checkout-merge",
+            "detect-bump",
+            "submodule-cache-key",
+            "restore-submodule-cache",
+            "sync-submodules",
+            "format",
+            "bump-light",
+        )
+        self.assertEqual(sorted(order), order)
+
     def test_submodule_cache_key_is_deterministic(self) -> None:
         key_step = self.steps["submodule-cache-key"]["run"]
         self.assertIn("git ls-tree HEAD", key_step)
