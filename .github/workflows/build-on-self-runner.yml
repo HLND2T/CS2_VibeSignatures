@@ -123,6 +123,7 @@ jobs:
       CS2VIBE_LLM_FAKE_AS: ${{ secrets.CS2VIBE_LLM_FAKE_AS }}
       CS2VIBE_LLM_MODEL: ${{ secrets.CS2VIBE_LLM_MODEL }}
       IDB_WARMUP_MAX_CONCURRENCY: ${{ vars.IDB_WARMUP_MAX_CONCURRENCY }}
+      IDB_WARMUP_MAX_MEMORY_MIB: ${{ vars.IDB_WARMUP_MAX_MEMORY_MIB }}
       DEPOTDOWNLOADER_STEAM_USERNAME: ${{ secrets.DEPOTDOWNLOADER_STEAM_USERNAME }}
       DEPOTDOWNLOADER_STEAM_PASSWORD: ${{ secrets.DEPOTDOWNLOADER_STEAM_PASSWORD }}
       PERSISTED_WORKSPACE: ${{ secrets.PERSISTED_WORKSPACE }}
@@ -290,7 +291,7 @@ jobs:
           # with bare idalib (no MCP port) so the analyze step reuses them and
           # skips IDA's initial auto-analysis pass. A failure only means the
           # analyze step falls back to inline auto-analysis; it never fails the
-          # build. IDB_WARMUP_MAX_CONCURRENCY is a win64 environment variable.
+          # build. Concurrency and memory budgets come from win64 variables.
           $pythonExe = (Get-Command python -ErrorAction SilentlyContinue).Source
           if ([string]::IsNullOrWhiteSpace($pythonExe)) {
             Write-Host "Warmup skipped: python not on PATH"

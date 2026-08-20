@@ -106,6 +106,10 @@ class TestBuildSelfRunnerWorkflow(unittest.TestCase):
             "${{ vars.IDB_WARMUP_MAX_CONCURRENCY }}",
             self.build_job["env"]["IDB_WARMUP_MAX_CONCURRENCY"],
         )
+        self.assertEqual(
+            "${{ vars.IDB_WARMUP_MAX_MEMORY_MIB }}",
+            self.build_job["env"]["IDB_WARMUP_MAX_MEMORY_MIB"],
+        )
 
     def test_promotion_is_bound_to_accepted_merge_and_validation_order(self) -> None:
         workflow = load_workflow("promote-release-after-output-merge.yml")

@@ -1,9 +1,15 @@
 import importlib.util
+import os
+import subprocess
 import sys
 import tempfile
 import unittest
+from contextlib import redirect_stdout
+from io import StringIO
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
+
+from warmup_memory import MemoryLaunchGate, MemorySnapshot, WindowsJobMemoryController
 
 SCRIPT = Path("warmup_idb.py")
 SPEC = importlib.util.spec_from_file_location("warmup_idb", SCRIPT)
@@ -19,7 +25,193 @@ def _warm_worker_script(source: str) -> Path:
     return Path(path)
 
 
+class FakeWindowsJobApi:
+    def __init__(self, *, assign_error: OSError | None = None) -> None:
+        self.assign_error = assign_error
+        self.calls = []
+
+    def create_job(self):
+        self.calls.append(("create",))
+        return 123
+
+    def set_job_memory_limit(self, handle, budget_bytes):
+        self.calls.append(("limit", handle, budget_bytes))
+
+    def assign_current_process(self, handle):
+        self.calls.append(("assign", handle))
+        if self.assign_error is not None:
+            raise self.assign_error
+
+    def query_job_memory(self, handle):
+        self.calls.append(("job-memory", handle))
+        return 256
+
+    def close_handle(self, handle):
+        self.calls.append(("close", handle))
+
+
 class TestWarmupIdbHelpers(unittest.TestCase):
+    def test_main_enables_memory_controller_and_passes_gate_to_workers(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            binary = Path(temp_dir) / "engine2.dll"
+            binary.write_bytes(b"MZ")
+            controller = MagicMock()
+            controller.snapshot.return_value = MemorySnapshot(job_bytes=256 * warmup_idb.MIB)
+            gate = MagicMock()
+            gate.soft_limit_bytes = int(32768 * warmup_idb.MIB * 0.85)
+
+            with (
+                patch.object(warmup_idb.shutil, "which", return_value=sys.executable),
+                patch.object(warmup_idb, "resolve_analysis_config", return_value=Path("config.yaml")),
+                patch.object(
+                    warmup_idb,
+                    "iter_configured_binaries",
+                    return_value=[("engine", "windows", binary)],
+                ),
+                patch.object(warmup_idb, "_is_warm", return_value=False),
+                patch.object(warmup_idb, "WindowsJobMemoryController", return_value=controller) as controller_type,
+                patch.object(warmup_idb, "MemoryLaunchGate", return_value=gate) as gate_type,
+                patch.object(warmup_idb, "_warm_one", return_value=True) as warm_one,
+            ):
+                result = warmup_idb.main(
+                    [
+                        "14176",
+                        "--python",
+                        sys.executable,
+                        "--worker-script",
+                        str(Path("warmup_idb_worker.py").resolve()),
+                        "--max-memory-mib",
+                        "32768",
+                    ]
+                )
+
+            self.assertEqual(0, result)
+            controller_type.assert_called_once_with(32768 * warmup_idb.MIB)
+            self.assertEqual(256 * warmup_idb.MIB, gate_type.call_args.kwargs["baseline_job_bytes"])
+            self.assertIs(controller.snapshot, gate_type.call_args.kwargs["snapshot"])
+            self.assertEqual(1, warm_one.call_count)
+            self.assertIs(gate, warm_one.call_args.args[4])
+
+    def test_main_does_not_launch_workers_when_job_setup_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            binary = Path(temp_dir) / "engine2.dll"
+            binary.write_bytes(b"MZ")
+
+            with (
+                patch.object(warmup_idb.shutil, "which", return_value=sys.executable),
+                patch.object(warmup_idb, "resolve_analysis_config", return_value=Path("config.yaml")),
+                patch.object(
+                    warmup_idb,
+                    "iter_configured_binaries",
+                    return_value=[("engine", "windows", binary)],
+                ),
+                patch.object(warmup_idb, "_is_warm", return_value=False),
+                patch.object(
+                    warmup_idb,
+                    "WindowsJobMemoryController",
+                    side_effect=OSError("nested job rejected"),
+                ),
+                patch.object(warmup_idb, "_warm_one") as warm_one,
+            ):
+                result = warmup_idb.main(
+                    [
+                        "14176",
+                        "--python",
+                        sys.executable,
+                        "--worker-script",
+                        str(Path("warmup_idb_worker.py").resolve()),
+                        "--max-memory-mib",
+                        "32768",
+                    ]
+                )
+
+            self.assertEqual(1, result)
+            warm_one.assert_not_called()
+
+    def test_parse_memory_budget_accepts_unset_and_positive_mib(self) -> None:
+        self.assertIsNone(warmup_idb._parse_memory_budget_mib(None))
+        self.assertIsNone(warmup_idb._parse_memory_budget_mib(""))
+        self.assertEqual(32768, warmup_idb._parse_memory_budget_mib(" 32768 "))
+        with self.assertRaisesRegex(ValueError, "positive integer"):
+            warmup_idb._parse_memory_budget_mib("0")
+        with self.assertRaisesRegex(ValueError, "positive integer"):
+            warmup_idb._parse_memory_budget_mib("invalid")
+
+    def test_memory_gate_waits_for_job_headroom(self) -> None:
+        snapshots = iter(
+            [
+                MemorySnapshot(job_bytes=80),
+                MemorySnapshot(job_bytes=20),
+            ]
+        )
+        gate = MemoryLaunchGate(
+            snapshot=lambda: next(snapshots),
+            budget_bytes=100,
+            baseline_job_bytes=0,
+            soft_limit_ratio=0.85,
+            initial_worker_reservation_bytes=20,
+            poll_interval_seconds=0,
+            launch_interval_seconds=0,
+        )
+
+        output = StringIO()
+        with redirect_stdout(output):
+            gate.wait_for_launch("engine2.dll")
+            gate.worker_finished()
+
+        self.assertIn("memory pressure; delaying engine2.dll", output.getvalue())
+        self.assertIn("memory recovered; launching engine2.dll", output.getvalue())
+
+    def test_windows_job_controller_sets_limit_before_assigning(self) -> None:
+        api = FakeWindowsJobApi()
+        controller = WindowsJobMemoryController(4096, api=api)
+
+        self.assertEqual(
+            [("create",), ("limit", 123, 4096), ("assign", 123)],
+            api.calls,
+        )
+        self.assertEqual(MemorySnapshot(job_bytes=256), controller.snapshot())
+
+    def test_windows_job_controller_closes_unassigned_job_on_failure(self) -> None:
+        api = FakeWindowsJobApi(assign_error=OSError("nested job rejected"))
+
+        with self.assertRaisesRegex(OSError, "nested job rejected"):
+            WindowsJobMemoryController(4096, api=api)
+
+        self.assertEqual(("close", 123), api.calls[-1])
+
+    @unittest.skipUnless(os.name == "nt", "Windows Job Object integration test")
+    def test_windows_job_controller_smoke_in_child_process(self) -> None:
+        source = (
+            "import subprocess\n"
+            "import sys\n"
+            "from warmup_memory import WindowsJobMemoryController\n"
+            "controller = WindowsJobMemoryController(1024 * 1024 * 1024)\n"
+            "baseline = controller.snapshot()\n"
+            'child_source = "import time; data = bytearray(64 * 1024 * 1024); print(len(data), flush=True); time.sleep(10)"\n'
+            "child = subprocess.Popen([sys.executable, '-c', child_source], stdout=subprocess.PIPE, text=True)\n"
+            "try:\n"
+            "    assert child.stdout is not None\n"
+            "    assert child.stdout.readline().strip() == str(64 * 1024 * 1024)\n"
+            "    snapshot = controller.snapshot()\n"
+            "    assert snapshot.job_bytes >= baseline.job_bytes + 32 * 1024 * 1024\n"
+            "finally:\n"
+            "    child.terminate()\n"
+            "    child.wait(timeout=5)\n"
+            "print('ok', flush=True)\n"
+        )
+        result = subprocess.run(
+            [sys.executable, "-c", source],
+            cwd=Path.cwd(),
+            capture_output=True,
+            text=True,
+            timeout=15,
+            check=False,
+        )
+
+        self.assertEqual(0, result.returncode, result.stderr or result.stdout)
+        self.assertEqual("ok", result.stdout.strip())
+
     def test_is_warm_requires_packed_db_and_no_lock(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             binary = Path(temp_dir) / "engine2.dll"

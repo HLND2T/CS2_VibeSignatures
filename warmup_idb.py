@@ -7,7 +7,8 @@ analysis keeps that pass off the critical path. Each binary is warmed by a
 separate bare-idalib worker process (:mod:`warmup_idb_worker`) so there is no
 idalib-mcp port to contend for; ``--max-concurrency`` bounds how many workers
 run at once (defaulting to ``$IDB_WARMUP_MAX_CONCURRENCY``, or 2 when unset),
-and each worker has a bounded timeout.
+``$IDB_WARMUP_MAX_MEMORY_MIB`` enables memory-aware admission plus an aggregate
+Windows Job limit, and each worker has a bounded timeout.
 
 Warming is a pure optimization. Worker failures trigger bounded cleanup so the
 downstream analyze step can fall back to running auto-analysis inline. Cleanup
@@ -31,10 +32,12 @@ sys.path.insert(0, str(REPOSITORY_ROOT))
 
 from analysis_config import resolve_analysis_config  # noqa: E402
 from init_gamebin import iter_configured_binaries  # noqa: E402
+from warmup_memory import MIB, MemoryLaunchGate, WindowsJobMemoryController  # noqa: E402
 
 DEFAULT_MAX_CONCURRENCY = 2
 DEFAULT_WORKER_TIMEOUT_SECONDS = 30 * 60
 CONCURRENCY_ENV = "IDB_WARMUP_MAX_CONCURRENCY"
+MEMORY_BUDGET_ENV = "IDB_WARMUP_MAX_MEMORY_MIB"
 INVALIDATION_MAX_ATTEMPTS = 3
 INVALIDATION_RETRY_DELAY_SECONDS = 1.0
 
@@ -107,14 +110,31 @@ def _parse_concurrency(raw: str | None) -> int:
     return value if value >= 1 else DEFAULT_MAX_CONCURRENCY
 
 
+def _parse_memory_budget_mib(raw: str | None) -> int | None:
+    if raw is None or not raw.strip():
+        return None
+    try:
+        value = int(raw.strip())
+    except ValueError as exc:
+        raise ValueError(f"{MEMORY_BUDGET_ENV} must be a positive integer MiB value") from exc
+    if value < 1:
+        raise ValueError(f"{MEMORY_BUDGET_ENV} must be a positive integer MiB value")
+    return value
+
+
 def _warm_one(
     python_exe: str,
     worker_script: Path,
     binary_path: Path,
     timeout_seconds: int = DEFAULT_WORKER_TIMEOUT_SECONDS,
+    memory_gate: MemoryLaunchGate | None = None,
 ) -> bool:
     command = [python_exe, str(worker_script), str(binary_path)]
+    gate_acquired = False
     try:
+        if memory_gate is not None:
+            memory_gate.wait_for_launch(binary_path.name, timeout_seconds=timeout_seconds)
+            gate_acquired = True
         result = subprocess.run(
             command,
             capture_output=True,
@@ -123,6 +143,10 @@ def _warm_one(
             check=False,
             timeout=timeout_seconds,
         )
+    except TimeoutError as exc:
+        print(f"warmup: memory admission timed out for {binary_path.name}: {exc}", file=sys.stderr)
+        _invalidate_after_failure(binary_path)
+        return False
     except subprocess.TimeoutExpired:
         print(
             f"warmup: worker timed out after {timeout_seconds}s for {binary_path.name}",
@@ -134,6 +158,9 @@ def _warm_one(
         print(f"warmup: worker could not run for {binary_path.name}: {exc}", file=sys.stderr)
         _invalidate_after_failure(binary_path)
         return False
+    finally:
+        if gate_acquired:
+            memory_gate.worker_finished()
 
     if result.returncode != 0:
         detail = (result.stderr or result.stdout or "").strip()
@@ -167,6 +194,11 @@ def parse_args(argv=None) -> argparse.Namespace:
         default=DEFAULT_WORKER_TIMEOUT_SECONDS,
         help=f"Timeout for each worker process (default: {DEFAULT_WORKER_TIMEOUT_SECONDS} seconds)",
     )
+    parser.add_argument(
+        "--max-memory-mib",
+        default=os.environ.get(MEMORY_BUDGET_ENV),
+        help=f"Aggregate warmup Job memory budget (default: ${MEMORY_BUDGET_ENV}; unset disables memory controls)",
+    )
     return parser.parse_args(argv)
 
 
@@ -195,9 +227,35 @@ def main(argv=None) -> int:
         return 0
 
     max_concurrency = _parse_concurrency(args.max_concurrency)
+    try:
+        max_memory_mib = _parse_memory_budget_mib(args.max_memory_mib)
+    except ValueError as exc:
+        print(f"warmup: {exc}", file=sys.stderr)
+        return 1
     if args.worker_timeout_seconds < 1:
         print("warmup: --worker-timeout-seconds must be at least 1", file=sys.stderr)
         return 1
+
+    memory_gate = None
+    if max_memory_mib is None:
+        print(f"warmup: {MEMORY_BUDGET_ENV} is unset; memory-aware admission and hard Job limit are disabled")
+    else:
+        memory_budget_bytes = max_memory_mib * MIB
+        try:
+            memory_controller = WindowsJobMemoryController(memory_budget_bytes)
+            baseline = memory_controller.snapshot()
+            memory_gate = MemoryLaunchGate(
+                snapshot=memory_controller.snapshot,
+                budget_bytes=memory_budget_bytes,
+                baseline_job_bytes=baseline.job_bytes,
+            )
+        except (OSError, ValueError) as exc:
+            print(f"warmup: failed to enable memory controls: {exc}", file=sys.stderr)
+            return 1
+        print(
+            f"warmup: memory controls enabled (hard {max_memory_mib} MiB, "
+            f"soft {memory_gate.soft_limit_bytes / MIB:.0f} MiB)"
+        )
     print(
         f"warmup: {len(binaries)} configured binaries, {skipped} already warm, "
         f"{len(pending)} to warm (max concurrency {max_concurrency}, "
@@ -208,7 +266,14 @@ def main(argv=None) -> int:
     failed = 0
     with ThreadPoolExecutor(max_workers=max_concurrency) as pool:
         futures = {
-            pool.submit(_warm_one, python_exe, worker_script, binary, args.worker_timeout_seconds): binary
+            pool.submit(
+                _warm_one,
+                python_exe,
+                worker_script,
+                binary,
+                args.worker_timeout_seconds,
+                memory_gate,
+            ): binary
             for binary in pending
         }
         for future in as_completed(futures):
