@@ -382,7 +382,7 @@ def _worktree_gamedata_inventory(repo_root: Path, gamever: str) -> list[dict[str
     if not root.is_dir() or _is_link_or_reparse(root):
         raise PublishedRecheckError(f"published gamedata is missing or unsafe: {root}")
     inventory: list[dict[str, object]] = []
-    for path in sorted(root.rglob("*")):
+    for path in root.rglob("*"):
         if _is_link_or_reparse(path):
             raise PublishedRecheckError(f"published gamedata must not contain links: {path}")
         if not path.is_file():
@@ -391,7 +391,12 @@ def _worktree_gamedata_inventory(repo_root: Path, gamever: str) -> list[dict[str
         inventory.append({"path": relative, "size": path.stat().st_size, "sha256": _sha256_file(path)})
     if not inventory:
         raise PublishedRecheckError(f"published gamedata is empty: {root}")
-    return inventory
+    # Order by the canonical POSIX string path (case-sensitive) so the manifest
+    # matches gamedata_contract.prefixed_output_inventory, which sorts by the
+    # string "path" key. Sorting raw Path objects here is case-insensitive on
+    # Windows and would produce a different file order (and thus a different
+    # manifest) for case-mixed trees such as gamedata/14176.
+    return sorted(inventory, key=lambda item: str(item["path"]))
 
 
 def _worktree_changed_paths(repo_root: Path) -> list[str]:
