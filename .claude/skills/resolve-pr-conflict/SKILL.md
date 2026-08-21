@@ -5,7 +5,8 @@ description: |
   dev branch, resolving config and generated gamesymbol snapshot conflicts, migrating non-latest gamever config
   changes into the latest gamever and reverting stale snapshot, gamedata, and release-manifest changes, running a
   read-only review audit (defined in .claude/skills/resolve-pr-conflict/references/review-pr.md)
-  right after conflict resolution to catch design defects early, creating a source-only merge commit, and pushing
+  right after conflict resolution to catch design defects early, running the repository formatter so the pushed merge
+  commit passes CI formatting, creating a source-only merge commit, and pushing
   without force so pr-self-runner CI can validate the resulting snapshot/gamedata candidates. Use when a PR is
   CONFLICTING/DIRTY or needs its base
   branch synchronized, especially when configs/GAMEVER.yaml or gamesymbols/GAMEVER.yaml changed. Stop after push and
@@ -185,7 +186,35 @@ not continue to the later steps. If it finds none, state that the resolved PR pa
 The review audit is read-only for this step and never modifies, commits, pushes, or merges. If it reports the PR head has
 moved since the captured `PR_HEAD_SHA`, present the updated diff and stop without further mutation.
 
-## Step 6 — Review and Create the Merge Commit
+## Step 6 — Format the Resolved Tree
+
+Before staging, run the repository formatter so the pushed merge commit passes the CI `Check formatting` step
+(`uv run python format_repo_files.py --check` in `.github/workflows/pr-self-runner.yml`):
+
+```bash
+uv run python format_repo_files.py
+git status --short
+```
+
+The formatter covers all tracked `*.py` and `*.yaml` files and always skips generated reference YAML
+(`ida_preprocessor_scripts/references/`), gamesymbol snapshots (`gamesymbols/`), and `.claude/`/`.codex/` YAML files,
+so agent skill/config files keep their own formatting.
+
+Keep formatting changes on paths that belong to the resolved PR. Formatting-only changes to any path outside the PR's
+scope must be reverted before staging so the merge commit contains the original PR intent and conflict resolutions
+only:
+
+```bash
+git checkout -- <OUT_OF_SCOPE_FORMATTED_PATH>
+```
+
+Require the formatting check to pass before continuing to Step 7:
+
+```bash
+uv run python format_repo_files.py --check
+```
+
+## Step 7 — Review and Create the Merge Commit
 
 Stage only explicit resolved/authorized source paths. Never use `git add .` or `git add -A`, and do not stage locally
 generated snapshot/gamedata outputs.
@@ -214,7 +243,7 @@ git commit \
 Verify the commit has exactly two parents in this order: `PR_HEAD_SHA BASE_HEAD_SHA`. Require a clean worktree after
 commit.
 
-## Step 7 — Push Without Force and Stop Before PR Merge
+## Step 8 — Push Without Force and Stop Before PR Merge
 
 Immediately before push, confirm the remote PR head is still `PR_HEAD_SHA`. If it changed, stop; never overwrite the
 other update.
@@ -253,6 +282,8 @@ Report:
 
 - PR URL, base branch, head branch, original PR SHA, base SHA, and pushed merge-commit SHA;
 - resolved conflict paths;
+- formatting result: the resolved tree passed `format_repo_files.py --check`, with out-of-scope formatting-only
+  changes reverted in Step 6;
 - non-latest gamever config changes migrated into the latest gamever config and their source paths reverted to base in
   Step 4, non-latest snapshot/gamedata/release-manifest paths reverted to base, and the verified latest gamever;
 - game version when resolved and a statement that PR CI owns candidate/C++ validation while snapshot/gamedata
