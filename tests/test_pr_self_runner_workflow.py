@@ -9,69 +9,40 @@ class TestPrSelfRunnerWorkflow(unittest.TestCase):
         self.preflight = workflow_job(self.workflow, "pr-preflight")
         self.warmup = workflow_job(self.workflow, "pr-warmup-idb")
         self.full = workflow_job(self.workflow, "pr-validate-full")
-        self.recheck = workflow_job(self.workflow, "pr-published-recheck")
         self.terminal = workflow_job(self.workflow, "pr-validate")
         self.steps = steps_by_id(self.full)
-        self.recheck_steps = steps_by_id(self.recheck)
 
     def test_triggers_permissions_and_stable_terminal_check(self) -> None:
         self.assertEqual(
             ["opened", "synchronize", "reopened", "ready_for_review", "closed"],
             self.workflow["on"]["pull_request"]["types"],
         )
-        dispatch_inputs = self.workflow["on"]["workflow_dispatch"]["inputs"]
-        expected_inputs = {
-            "validation_mode",
-            "pr_number",
-            "expected_head_sha",
-            "validated_head_sha",
-            "validated_base_sha",
-            "gamever",
-            "snapshot_sha256",
-            "gamedata_manifest_sha256",
-        }
-        self.assertEqual(expected_inputs, set(dispatch_inputs))
-        for value in dispatch_inputs.values():
-            self.assertTrue(value["required"])
-            self.assertEqual("string", value["type"])
+        self.assertNotIn("workflow_dispatch", self.workflow["on"])
         self.assertEqual({"contents": "read"}, self.workflow["permissions"])
-        self.assertEqual(
-            {"actions": "write", "contents": "write", "pull-requests": "read"},
-            self.full["permissions"],
-        )
+        self.assertEqual({"pull-requests": "read"}, self.full["permissions"])
         self.assertEqual("pr-validate", self.terminal["name"])
-        self.assertEqual(
-            ["pr-preflight", "pr-validate-full", "pr-published-recheck"],
-            self.terminal["needs"],
-        )
+        self.assertEqual(["pr-preflight", "pr-validate-full"], self.terminal["needs"])
+        self.assertNotIn("pr-published-recheck", self.workflow["jobs"])
         terminal_run = steps_by_id(self.terminal)["terminal"]["run"]
-        self.assertIn('VALIDATION_PATH" == "full', terminal_run)
-        self.assertIn('VALIDATION_PATH" == "published-recheck', terminal_run)
-        self.assertIn('RECHECK_RESULT" == "skipped', terminal_run)
-        self.assertIn('FULL_RESULT" == "skipped', terminal_run)
-        self.assertIn('VERIFIED_HEAD_SHA" == "$EXPECTED_HEAD_SHA', terminal_run)
-        self.assertIn('VERIFIED_GAMEDATA_MANIFEST_SHA256" == "$EXPECTED_GAMEDATA_MANIFEST_SHA256', terminal_run)
+        self.assertIn('PREFLIGHT_RESULT" == "success', terminal_run)
+        self.assertIn('FULL_RESULT" == "success', terminal_run)
+        self.assertNotIn("published-recheck", terminal_run)
+        self.assertNotIn("RECHECK_RESULT", terminal_run)
 
     def test_event_normalization_and_phase_separated_concurrency(self) -> None:
         group = self.workflow["concurrency"]["group"]
-        self.assertIn("github.event.pull_request.number || inputs.pr_number", group)
-        self.assertIn("recheck-{0}", group)
-        self.assertIn("inputs.expected_head_sha", group)
-        self.assertIn("'full'", group)
+        self.assertIn("github.event.pull_request.number", group)
+        self.assertNotIn("inputs.pr_number", group)
+        self.assertNotIn("recheck-{0}", group)
+        self.assertNotIn("inputs.expected_head_sha", group)
         self.assertTrue(self.workflow["concurrency"]["cancel-in-progress"])
-        self.assertIn("github.event_name == 'workflow_dispatch'", self.preflight["if"])
+        self.assertNotIn("github.event_name == 'workflow_dispatch'", self.preflight["if"])
         self.assertIn("github.event.pull_request.head.repo.full_name == github.repository", self.preflight["if"])
         preflight_steps = steps_by_id(self.preflight)
-        actor_gate = preflight_steps["validate-dispatch-inputs"]["run"]
-        self.assertIn('GITHUB_ACTOR" == "github-actions[bot]', actor_gate)
-        self.assertIn(".sender.login", actor_gate)
-        self.assertIn("published-recheck", actor_gate)
-        self.assertIn("pr_published_recheck.py verify-dispatch", preflight_steps["dispatch"]["run"])
-        self.assertIn("refs/pull/${PR_NUMBER}/merge", preflight_steps["dispatch-merge"]["run"])
-        classify = preflight_steps["classify-published"]
-        self.assertEqual("github.event_name == 'pull_request'", classify["if"])
-        self.assertIn("classify-pull-request", classify["run"])
-        self.assertIn("steps.classify-published.outputs.validation-path", self.preflight["outputs"]["validation_path"])
+        self.assertNotIn("validate-dispatch-inputs", preflight_steps)
+        self.assertNotIn("classify-published", preflight_steps)
+        self.assertNotIn("dispatch", preflight_steps)
+        self.assertNotIn("dispatch-merge", preflight_steps)
 
     def test_warmup_and_full_validation_only_run_on_full_path(self) -> None:
         self.assertEqual("pr-preflight", self.warmup["needs"])
@@ -83,7 +54,7 @@ class TestPrSelfRunnerWorkflow(unittest.TestCase):
         self.assertIn("needs.pr-preflight.outputs.validation_path == 'full'", self.full["if"])
         self.assertIn("needs.pr-warmup-idb.result == 'success'", self.full["if"])
 
-    def test_full_validation_build_publish_push_dispatch_order(self) -> None:
+    def test_full_validation_build_test_stage_order(self) -> None:
         test_run = self.steps["test-suites"]["run"]
         for suite_name in ("unit", "repository-contract", "redis-integration", "release-integration", "all"):
             self.assertIn(suite_name, test_run)
@@ -100,20 +71,15 @@ class TestPrSelfRunnerWorkflow(unittest.TestCase):
             "restore-sdk",
             "mark-success",
             "stage-yaml",
-            "verify-tracked-clean",
-            "select-publication-head",
-            "publication",
-            "commit-publication",
-            "cleanup-before-push",
-            "remote-head-recheck",
-            "push-publication",
-            "dispatch-published-recheck",
             "cleanup",
         )
         self.assertEqual(sorted(order), order)
         self.assertNotIn("compare-snapshot", self.steps)
+        self.assertNotIn("publication", self.steps)
+        self.assertNotIn("push-publication", self.steps)
+        self.assertNotIn("dispatch-published-recheck", self.steps)
 
-    def test_candidate_and_gamedata_are_published_from_guarded_sessions(self) -> None:
+    def test_candidate_and_gamedata_are_built_and_validated(self) -> None:
         build = self.steps["build-snapshot"]["run"]
         self.assertIn("ACTUAL_CANDIDATE_SNAPSHOT=$candidate", build)
         self.assertIn("SNAPSHOT_SHA256=$snapshotSha256", build)
@@ -124,62 +90,8 @@ class TestPrSelfRunnerWorkflow(unittest.TestCase):
         self.assertIn("GAMEDATA_MANIFEST_SHA256=$gamedataManifestSha256", gamedata)
         self.assertNotIn("gamedata_candidate.py verify-tracked", gamedata)
         self.assertIn('-snapshot "$env:ACTUAL_CANDIDATE_SNAPSHOT"', self.steps["cpp-tests"]["run"])
-        publication = self.steps["publication"]["run"]
-        self.assertIn("gamesymbol_candidate.py guard", publication)
-        self.assertIn("gamedata_candidate.py guard", publication)
-        self.assertIn("gamesymbol_candidate.py publish", publication)
-        self.assertIn("gamedata_candidate.py publish", publication)
-        self.assertIn("pr_published_recheck.py verify-publication", publication)
-
-    def test_publication_commit_push_and_dispatch_are_hardened(self) -> None:
-        select = self.steps["select-publication-head"]["run"]
-        self.assertIn("git fetch --no-tags origin", select)
-        self.assertIn("pr_published_recheck.py verify-existing-commit", select)
-        self.assertIn("reuse-published=true", select)
-        self.assertIn('--github-env "$env:GITHUB_ENV"', select)
-        commit = self.steps["commit-publication"]["run"]
-        self.assertIn('git add -- "gamesymbols/$env:GAMEVER.yaml" "gamedata/$env:GAMEVER"', commit)
-        self.assertIn('git config user.name "github-actions[bot]"', commit)
-        self.assertIn("Validated-Head-SHA:", commit)
-        self.assertIn("Validated-Base-SHA:", commit)
-        self.assertIn("Snapshot-SHA256:", commit)
-        self.assertIn("Gamedata-Manifest-SHA256:", commit)
-        self.assertIn("Co-Authored-By: Codex <codex@openai.com>", commit)
-        self.assertIn("pr_published_recheck.py verify-commit", commit)
-        remote = self.steps["remote-head-recheck"]["run"]
-        self.assertIn("git ls-remote --heads origin", remote)
-        self.assertIn("$remoteHeadSha -ne $env:PR_HEAD_SHA", remote)
-        push = self.steps["push-publication"]["run"]
-        self.assertIn('git push origin "HEAD:refs/heads/$env:PR_HEAD_REF"', push)
-        self.assertNotIn("--force", push)
-        dispatch = self.steps["dispatch-published-recheck"]
-        self.assertEqual("${{ github.token }}", dispatch["env"]["GH_TOKEN"])
-        self.assertIn("gh workflow run pr-self-runner.yml", dispatch["run"])
-        self.assertIn('--ref "$env:PR_HEAD_REF"', dispatch["run"])
-        self.assertIn("-f expected_head_sha=", dispatch["run"])
-        self.assertIn("Bot commit was published", dispatch["run"])
-
-    def test_published_recheck_is_ubuntu_only_and_skips_heavy_validation(self) -> None:
-        self.assertEqual("pr-preflight", self.recheck["needs"])
-        self.assertEqual("ubuntu-latest", self.recheck["runs-on"])
-        serialized = str(self.recheck)
-        self.assertNotIn("self-hosted", serialized)
-        self.assertNotIn("pr-warmup-idb", serialized)
-        self.assertNotIn("github.event.pull_request", serialized)
-        commands = "\n".join(str(step.get("run", "")) for step in self.recheck["steps"])
-        self.assertIn("pr_published_recheck.py verify-dispatch", commands)
-        for forbidden in (
-            "ida_analyze_bin.py",
-            "gamesymbol_candidate.py build",
-            "gamedata_candidate.py build",
-            "run_cpp_tests.py",
-            "stage-yaml",
-            "git push",
-        ):
-            self.assertNotIn(forbidden, commands)
-        self.assertIn("published-recheck", self.recheck_steps["require-recheck-path"]["run"])
-        self.assertEqual("github.event_name == 'pull_request'", self.recheck_steps["verify-pull-request"]["if"])
-        self.assertIn("verify-pull-request", self.recheck_steps["verify-pull-request"]["run"])
+        self.assertNotIn("gamesymbol_candidate.py publish", build)
+        self.assertNotIn("gamedata_candidate.py publish", gamedata)
 
     def test_submodule_cache_and_bump_partition_are_preserved(self) -> None:
         self.assertEqual("actions/cache@v5", self.steps["restore-submodule-cache"]["uses"])
@@ -222,13 +134,14 @@ class TestPrSelfRunnerWorkflow(unittest.TestCase):
         self.assertEqual("always()", self.steps["restore-sdk"]["if"])
         self.assertIn('git -C $sdkPath checkout --detach "$env:SDK_PINNED_SHA"', self.steps["restore-sdk"]["run"])
 
-    def test_analyzed_yaml_staging_precedes_publication(self) -> None:
+    def test_analyzed_yaml_staging_is_final_validation_output(self) -> None:
         run = self.steps["stage-yaml"]["run"]
         self.assertIn('Join-Path $env:PERSISTED_WORKSPACE "pr-yaml-staging"', run)
         self.assertIn('robocopy $gameRoot $runStaging "*.yaml" /S', run)
         self.assertIn("gamever.txt", run)
-        order = step_order(self.full, "mark-success", "stage-yaml", "select-publication-head")
+        order = step_order(self.full, "mark-success", "stage-yaml", "cleanup")
         self.assertEqual(sorted(order), order)
+        self.assertNotIn("select-publication-head", self.steps)
 
     def test_full_checkout_uses_normalized_preflight_values(self) -> None:
         checkout = self.steps["checkout-merge"]
@@ -236,7 +149,7 @@ class TestPrSelfRunnerWorkflow(unittest.TestCase):
         self.assertEqual("${{ needs.pr-preflight.outputs.source_sha }}", checkout["with"]["ref"])
         self.assertEqual(0, checkout["with"]["fetch-depth"])
         self.assertIn("PR_SOURCE_SHA", self.steps["verify-source"]["run"])
-        self.assertEqual("${{ needs.pr-preflight.outputs.head_sha }}", self.full["env"]["PR_HEAD_SHA"])
+        self.assertNotIn("PR_HEAD_SHA", self.full["env"])
         self.assertEqual("${{ needs.pr-preflight.outputs.head_ref }}", self.full["env"]["PR_HEAD_REF"])
 
     def test_untrusted_pr_fields_are_passed_via_environment(self) -> None:
