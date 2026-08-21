@@ -162,11 +162,7 @@ def sync_accepted_bin(*, repo_root: Path, persisted_root: Path, gamever: str) ->
     source_skeleton = _filtered_skeleton(source_root)
 
     with _version_lock(lock_path):
-        if (
-            target.is_dir()
-            and _filtered_skeleton(target) == source_skeleton
-            and not _contains_ida_state(target)
-        ):
+        if target.is_dir() and _filtered_skeleton(target) == source_skeleton and not _contains_ida_state(target):
             return {"synced": False, "gamever": gamever, "hash": None}
         expected_files, expected_hash = _filtered_inventory(source_root)
         moved_old = _swap_verified_bin(
