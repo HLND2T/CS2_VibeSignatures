@@ -41,8 +41,9 @@ head. A stable terminal job named `pr-validate` aggregates exactly one valid pat
 ## Architecture
 1. Pull-request preflight checks out `refs/pull/<PR>/merge`; dispatch preflight validates required inputs and checks out
    the expected bot head.
-2. Dispatch verification queries the live PR and validates bot provenance. Matching base selects
-   `published-recheck`; base drift fetches the current merge ref and selects `full`.
+2. PR preflight classifies a canonical bot publication commit from the immutable PR head and selects
+   `published-recheck` when its provenance and validated base match; otherwise it selects `full`. Dispatch verification
+   queries the live PR and applies the same provenance checks, with base drift selecting `full`.
 3. Full non-bump runs consume an explicit warm-cache generation and perform baseline restore/invalidation, repository
    tests, strict IDA analysis, candidate/gamedata build, and C++ validation.
 4. Full success stages analyzed YAML, switches from the merge ref to the exact PR head, publishes the same candidate
@@ -58,8 +59,10 @@ head. A stable terminal job named `pr-validate` aggregates exactly one valid pat
 - `PERSISTED_WORKSPACE/idb-cache/<GAMEVER>` and `PERSISTED_WORKSPACE/pr-yaml-staging/<PR>`.
 
 ## Notes
-- `GITHUB_TOKEN` bot pushes do not recursively trigger `pull_request.synchronize`, so explicit
-  `workflow_dispatch --ref <PR_HEAD_REF>` is mandatory.
+- A bot publication push can also produce a `pull_request.synchronize` run; preflight verifies its canonical provenance
+  and routes that event to the same lightweight recheck instead of repeating full validation.
+- Explicit `workflow_dispatch --ref <PR_HEAD_REF>` remains mandatory after full publication and is the recovery path
+  when a bot push event is suppressed or delayed.
 - Concurrency is separated into `full` and `recheck-<expected_head_sha>` groups.
 - Candidate/config/generator inputs needed after checkout are copied below runner temp.
 - Idempotent publisher reruns verify an already-pushed H2 and only redispatch it.

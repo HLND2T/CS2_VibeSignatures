@@ -111,6 +111,52 @@ class TestCandidateLifecycle(unittest.TestCase):
             finally:
                 os.chdir(previous)
 
+    def test_build_reuses_publish_time_when_snapshot_payload_is_unchanged(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            previous = Path.cwd()
+            os.chdir(temp_dir)
+            try:
+                workspace = CandidateWorkspace(Path(temp_dir))
+                tracked_snapshot = Path(temp_dir) / "gamesymbols" / f"{workspace.gamever}.yaml"
+                with patch(
+                    "gamesymbol_snapshot_lib.operations._utc_publish_time",
+                    return_value="2026-01-02T03:04:05Z",
+                ):
+                    pack_snapshot(workspace.gamever, workspace.bindir, workspace.config, tracked_snapshot)
+                with patch(
+                    "gamesymbol_snapshot_lib.operations._utc_publish_time",
+                    return_value="2026-01-02T04:05:06Z",
+                ):
+                    workspace.build()
+
+                self.assertEqual(tracked_snapshot.read_bytes(), workspace.candidate.read_bytes())
+            finally:
+                os.chdir(previous)
+
+    def test_build_updates_publish_time_when_snapshot_payload_changes(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            previous = Path.cwd()
+            os.chdir(temp_dir)
+            try:
+                workspace = CandidateWorkspace(Path(temp_dir))
+                tracked_snapshot = Path(temp_dir) / "gamesymbols" / f"{workspace.gamever}.yaml"
+                with patch(
+                    "gamesymbol_snapshot_lib.operations._utc_publish_time",
+                    return_value="2026-01-02T03:04:05Z",
+                ):
+                    pack_snapshot(workspace.gamever, workspace.bindir, workspace.config, tracked_snapshot)
+                write_yaml(workspace.bindir / workspace.gamever / "server" / "Foo.windows.yaml", {"func_name": "Changed"})
+                with patch(
+                    "gamesymbol_snapshot_lib.operations._utc_publish_time",
+                    return_value="2026-01-02T04:05:06Z",
+                ):
+                    workspace.build()
+
+                document = parse_snapshot_bytes(workspace.candidate.read_bytes())
+                self.assertEqual("2026-01-02T04:05:06Z", document["last_publish_time"])
+            finally:
+                os.chdir(previous)
+
     def test_guard_rejects_content_and_identity_changes(self) -> None:
         with TemporaryDirectory() as temp_dir:
             workspace = CandidateWorkspace(Path(temp_dir))

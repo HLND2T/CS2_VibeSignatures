@@ -293,6 +293,50 @@ def verify_existing_publication(repo_root: Path, expected: PublicationProvenance
     return provenance
 
 
+def _publication_provenance_from_message(repo_root: Path, expected_head_sha: str) -> PublicationProvenance:
+    message = _commit_message(repo_root.resolve(), expected_head_sha)
+    lines = message.splitlines()
+    subject_prefix = "chore(gamesymbols): publish "
+    subject_suffix = " snapshot"
+    if len(lines) != 7 or not lines[0].startswith(subject_prefix) or not lines[0].endswith(subject_suffix):
+        raise PublishedRecheckError("commit is not a canonical publication commit")
+    gamever = lines[0][len(subject_prefix) : -len(subject_suffix)]
+    if not GAMEVER_RE.fullmatch(gamever):
+        raise PublishedRecheckError("publication commit has an invalid game version")
+    validated_head_prefix = "Validated-Head-SHA: "
+    validated_base_prefix = "Validated-Base-SHA: "
+    snapshot_prefix = "Snapshot-SHA256: "
+    gamedata_prefix = "Gamedata-Manifest-SHA256: "
+    if not lines[2].startswith(validated_head_prefix) or not lines[3].startswith(validated_base_prefix):
+        raise PublishedRecheckError("publication commit is missing validated head/base trailers")
+    if not lines[4].startswith(snapshot_prefix) or not lines[5].startswith(gamedata_prefix):
+        raise PublishedRecheckError("publication commit is missing digest trailers")
+    provenance = PublicationProvenance(
+        expected_head_sha=_lower_sha(expected_head_sha, "published commit"),
+        validated_head_sha=_lower_sha(lines[2][len(validated_head_prefix) :], "Validated-Head-SHA trailer"),
+        validated_base_sha=_lower_sha(lines[3][len(validated_base_prefix) :], "Validated-Base-SHA trailer"),
+        gamever=gamever,
+        snapshot_sha256=_lower_sha256(lines[4][len(snapshot_prefix) :], "Snapshot-SHA256 trailer"),
+        gamedata_manifest_sha256=_lower_sha256(lines[5][len(gamedata_prefix) :], "Gamedata-Manifest-SHA256 trailer"),
+    )
+    if message != canonical_commit_message(provenance):
+        raise PublishedRecheckError("publication commit message is not canonical")
+    return provenance
+
+
+def classify_pull_request_publication(
+    *, repo_root: Path, expected_head_sha: str, validated_base_sha: str
+) -> PublicationProvenance | None:
+    try:
+        provenance = _publication_provenance_from_message(repo_root, expected_head_sha)
+        if provenance.validated_base_sha != _lower_sha(validated_base_sha, "pull request base SHA"):
+            return None
+        verify_published_commit(repo_root, provenance)
+    except PublishedRecheckError:
+        return None
+    return provenance
+
+
 def _required_mapping(value: object, label: str) -> Mapping[str, Any]:
     if not isinstance(value, Mapping):
         raise PublishedRecheckError(f"GitHub API response is missing {label}")
@@ -520,6 +564,14 @@ def _parser() -> argparse.ArgumentParser:
     existing.add_argument("--repo-root", default=".")
     existing.add_argument("--github-output")
     existing.add_argument("--github-env")
+    classify = commands.add_parser("classify-pull-request")
+    classify.add_argument("--repo-root", default=".")
+    classify.add_argument("--head-sha", required=True)
+    classify.add_argument("--base-sha", required=True)
+    classify.add_argument("--github-output")
+    verify_pr = commands.add_parser("verify-pull-request")
+    verify_pr.add_argument("--repo-root", default=".")
+    verify_pr.add_argument("--github-output")
     publication = commands.add_parser("verify-publication")
     publication.add_argument("--repo-root", default=".")
     publication.add_argument("--gamever", required=True)
@@ -538,6 +590,26 @@ def _run(args: argparse.Namespace) -> None:
             gamedata_session=Path(args.gamedata_session),
         )
         _write_github_output(args.github_output, result)
+        return
+
+    if args.command == "classify-pull-request":
+        provenance = classify_pull_request_publication(
+            repo_root=Path(args.repo_root),
+            expected_head_sha=args.head_sha,
+            validated_base_sha=args.base_sha,
+        )
+        if provenance is not None:
+            _write_github_output(
+                args.github_output,
+                {
+                    "validation-path": VALIDATION_MODE,
+                    "requires-warmup": "false",
+                    "gamever": provenance.gamever,
+                    "validated-head-sha": provenance.validated_head_sha,
+                    "snapshot-sha256": provenance.snapshot_sha256,
+                    "gamedata-manifest-sha256": provenance.gamedata_manifest_sha256,
+                },
+            )
         return
 
     inputs = validate_dispatch_inputs(_dispatch_values_from_environment())
@@ -568,6 +640,43 @@ def _run(args: argparse.Namespace) -> None:
             {
                 "SNAPSHOT_SHA256": provenance.snapshot_sha256,
                 "GAMEDATA_MANIFEST_SHA256": provenance.gamedata_manifest_sha256,
+            },
+        )
+        return
+    if args.command == "verify-pull-request":
+        repository = os.environ.get("GITHUB_REPOSITORY", "")
+        token = os.environ.get("GITHUB_TOKEN", "")
+        if not token:
+            raise PublishedRecheckError("GITHUB_TOKEN is required for pull request verification")
+        context = DispatchContext(
+            repository=repository,
+            github_sha=inputs.provenance.expected_head_sha,
+            ref_name=os.environ.get("PR_HEAD_REF", ""),
+            actor=os.environ.get("GITHUB_ACTOR", ""),
+            sender=_event_sender(Path(os.environ["GITHUB_EVENT_PATH"])),
+        )
+        pull_request = _github_api_pull_request(repository, inputs.pr_number, token)
+        result = verify_dispatch(
+            inputs=inputs,
+            context=context,
+            pull_request=pull_request,
+            repo_root=Path(args.repo_root),
+        )
+        _write_github_output(
+            args.github_output,
+            {
+                "validation_path": result.validation_path,
+                "pr_number": result.pr_number,
+                "head_sha": result.head_sha,
+                "head_ref": result.head_ref,
+                "base_sha": result.base_sha,
+                "title": result.title,
+                "user_login": result.user_login,
+                "requires_warmup": "false",
+                "snapshot_sha256": result.snapshot_sha256,
+                "gamedata_manifest_sha256": result.gamedata_manifest_sha256,
+                "validated_head_sha": inputs.provenance.validated_head_sha,
+                "validated_base_sha": inputs.provenance.validated_base_sha,
             },
         )
         return
@@ -610,6 +719,8 @@ def _run(args: argparse.Namespace) -> None:
             "requires_warmup": "false" if is_bump else "true",
             "snapshot_sha256": result.snapshot_sha256,
             "gamedata_manifest_sha256": result.gamedata_manifest_sha256,
+            "validated_head_sha": inputs.provenance.validated_head_sha,
+            "validated_base_sha": inputs.provenance.validated_base_sha,
         },
     )
 

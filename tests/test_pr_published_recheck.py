@@ -13,6 +13,7 @@ from pr_published_recheck import (
     PublishedRecheckError,
     PublicationProvenance,
     canonical_commit_message,
+    classify_pull_request_publication,
     validate_dispatch_inputs,
     verify_dispatch,
     verify_dispatch_stable,
@@ -186,6 +187,28 @@ class TestPrPublishedRecheck(unittest.TestCase):
         )
         self.assertEqual("published-recheck", first.validation_path)
         self.assertEqual(first, second)
+
+    def test_valid_bot_commit_classifies_pull_request_as_published_recheck(self) -> None:
+        self.fixture.publish()
+
+        provenance = classify_pull_request_publication(
+            repo_root=self.repo,
+            expected_head_sha=self.fixture.expected_head_sha,
+            validated_base_sha=self.fixture.validated_base_sha,
+        )
+
+        self.assertEqual(self.fixture.provenance, provenance)
+
+    def test_publication_classification_rejects_base_drift(self) -> None:
+        self.fixture.publish()
+
+        provenance = classify_pull_request_publication(
+            repo_root=self.repo,
+            expected_head_sha=self.fixture.expected_head_sha,
+            validated_base_sha="d" * 40,
+        )
+
+        self.assertIsNone(provenance)
 
     def test_existing_bot_commit_reuses_its_original_validated_digests(self) -> None:
         self.fixture.publish()
