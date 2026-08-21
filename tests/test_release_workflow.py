@@ -345,6 +345,20 @@ class TestReleaseWorkflow(unittest.TestCase):
             self.assertFalse((staged_binsync / ".git").exists())
             self.assertFalse(any("/.git/" in f"/{entry['path']}/" for entry in pending["bin_files"]))
 
+    def test_stage_excludes_all_ida_database_artifacts(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            fixture = ReleaseFixture(Path(tmp))
+            binary = fixture.bin_source / "client" / "client.dll"
+            for suffix in (".i64", ".idb", ".id0", ".id1", ".id2", ".nam", ".til"):
+                Path(f"{binary}{suffix}").write_bytes(b"private IDA state")
+
+            pending = fixture.stage()
+
+            staged_client = fixture.staging / fixture.gamever / fixture.build_id / "bin" / fixture.gamever / "client"
+            for suffix in (".i64", ".idb", ".id0", ".id1", ".id2", ".nam", ".til"):
+                self.assertFalse(Path(f"{staged_client / 'client.dll'}{suffix}").exists())
+                self.assertFalse(any(entry["path"].lower().endswith(suffix) for entry in pending["bin_files"]))
+
     def test_stage_rejects_snapshot_binary_hash_mismatch(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             fixture = ReleaseFixture(Path(tmp))

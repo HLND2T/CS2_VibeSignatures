@@ -116,12 +116,12 @@ Require:
 
 Check out the existing PR head branch without creating a replacement PR. Implement only approved findings. For preprocessor changes, keep config producers/consumers, scripts, tests, reference YAML, and desired output fields coherent.
 
-Run focused tests first. When analysis outputs, configs, generators, or C++ tests change, follow the exact immutable lifecycle:
+Run focused tests first. When analysis outputs, configs, generators, or C++ tests change, commit only the approved source
+repair and push it normally to the existing head branch. Candidate preparation, C++ validation, and matching
+snapshot/gamedata publication are then performed by `.github/workflows/pr-self-runner.yml`; do not generate or publish
+those tracked outputs locally.
 
-1. use `/prepare-post-change-candidate` for the affected game version;
-2. use `/post-change-validation` on that exact candidate;
-3. use `/publish-post-change-candidate` only after validation succeeds.
-
-Stop on any failed, skipped, or non-runnable gate. Commit using the repository Conventional Commit format plus `Co-Authored-By: Codex <codex@openai.com>`, then push normally to the same head branch. Never force-push, merge, enable auto-merge, close the PR, or create a second PR.
+Commit using the repository Conventional Commit format plus `Co-Authored-By: Codex <codex@openai.com>`. Never
+force-push, merge, enable auto-merge, close the PR, or create a second PR.
 
 Report the repaired findings, commands and results, commit SHA, pushed branch, and PR URL.

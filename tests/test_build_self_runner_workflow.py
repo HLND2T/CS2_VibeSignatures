@@ -22,10 +22,26 @@ class TestBuildSelfRunnerWorkflow(unittest.TestCase):
             {"actions": "read", "contents": "write", "pull-requests": "write"},
             self.build_workflow["permissions"],
         )
-        self.assertEqual("preflight", self.build_job["needs"])
+        self.assertEqual(["preflight", "warmup-idb"], self.build_job["needs"])
         preflight = workflow_job(self.build_workflow, "preflight")
         self.assertEqual("${{ steps.resolve.outputs.source_sha }}", preflight["outputs"]["source_sha"])
         self.assertIn("github.repository == 'HLND2T/CS2_VibeSignatures'", preflight["if"])
+        warmup = workflow_job(self.build_workflow, "warmup-idb")
+        self.assertEqual("preflight", warmup["needs"])
+        self.assertEqual("./.github/workflows/warmup-idb.yml", warmup["uses"])
+        self.assertEqual("${{ needs.preflight.outputs.gamever }}", warmup["with"]["gamever"])
+        self.assertEqual("${{ needs.preflight.outputs.source_sha }}", warmup["with"]["source_sha"])
+        self.assertEqual("inherit", warmup["secrets"])
+
+    def test_repository_dispatch_requires_merged_bump_pr_provenance(self) -> None:
+        preflight = workflow_job(self.build_workflow, "preflight")
+        resolve = steps_by_id(preflight)["resolve"]["run"]
+
+        self.assertIn('if ("${{ github.event_name }}" -eq "repository_dispatch")', resolve)
+        self.assertIn("repository_dispatch requires a numeric source_pull_request", resolve)
+        self.assertIn('gh api "repos/${{ github.repository }}/pulls/$sourcePullRequest"', resolve)
+        self.assertIn('$pull.head.ref -ne "bump-download/$gamever"', resolve)
+        self.assertIn("$pull.merge_commit_sha -ne $sourceSha", resolve)
 
     def test_fast_and_full_test_suites_run_before_analysis(self) -> None:
         tests_step = self.build_steps["test-suites"]
@@ -88,11 +104,31 @@ class TestBuildSelfRunnerWorkflow(unittest.TestCase):
             self.build_steps["restore-sdk"]["run"],
         )
 
+    def test_build_restores_required_published_cache_before_analysis(self) -> None:
+        order = step_order(
+            self.build_job,
+            "prepare-workspace",
+            "resolve-consumer-ida",
+            "restore-idb-cache",
+            "init-binaries",
+            "analyze",
+        )
+        self.assertEqual(sorted(order), order)
+        self.assertIn("idb_cache.py restore", self.build_steps["restore-idb-cache"]["run"])
+        self.assertIn("IDB_CACHE_GENERATION", self.build_steps["restore-idb-cache"]["run"])
+        self.assertIn('--ida-version "$env:IDA_VERSION"', self.build_steps["restore-idb-cache"]["run"])
+        self.assertIn("warmup_idb_worker.py --print-ida-version", self.build_steps["resolve-consumer-ida"]["run"])
+        self.assertIn("*.i64", self.build_steps["prepare-workspace"]["run"])
+        self.assertIn("/XF", self.build_steps["prepare-workspace"]["run"])
+        self.assertIn("-require_warm_idb", self.build_steps["analyze"]["run"])
+        self.assertNotIn("warmup-idb", self.build_steps)
+
     def test_promotion_is_bound_to_accepted_merge_and_validation_order(self) -> None:
         workflow = load_workflow("promote-release-after-output-merge.yml")
         promote = workflow_job(workflow, "promote")
         steps = steps_by_id(promote)
 
+        self.assertEqual("Promote output PR #${{ github.event.pull_request.number }}", workflow["run-name"])
         self.assertEqual({"contents": "write", "pull-requests": "read"}, workflow["permissions"])
         self.assertEqual(["closed"], workflow["on"]["pull_request"]["types"])
         self.assertEqual("resolve", promote["needs"])
@@ -113,6 +149,7 @@ class TestBuildSelfRunnerWorkflow(unittest.TestCase):
         self.assertEqual(sorted(promotion_order), promotion_order)
         self.assertIn("release_workflow.py verify-promotion", steps["verify"]["run"])
         self.assertIn("release_workflow.py promote-bin", steps["promote-bin"]["run"])
+        self.assertIn('"-x!*.idb"', steps["create-archives"]["run"])
         self.assertIn("gh release", steps["publish-release"]["run"])
         self.assertIn("release_workflow.py finalize-promotion", steps["finalize-promotion"]["run"])
 
@@ -126,6 +163,8 @@ class TestBuildSelfRunnerWorkflow(unittest.TestCase):
         self.assertEqual({"contents": "write", "pull-requests": "write"}, bump["permissions"])
         self.assertIn("git fetch origin --prune --prune-tags --tags", bump_steps["sync-refs"]["run"])
         self.assertNotIn("git tag", "\n".join(str(step.get("run", "")) for step in bump_job["steps"]))
+        self.assertNotIn("dispatch-existing", bump_steps)
+        self.assertNotIn("dispatch_build", "\n".join(str(step.get("run", "")) for step in bump_job["steps"]))
 
         dispatch = load_workflow("tag-bump-after-merge.yml")
         dispatch_job = workflow_job(dispatch, "dispatch-build")

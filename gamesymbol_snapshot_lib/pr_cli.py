@@ -11,7 +11,7 @@ from gamesymbol_snapshot_lib.config import LATEST_CONFIG_DIGEST_VERSION, load_co
 from gamesymbol_snapshot_lib.model import ChangedPath, SnapshotContext
 from gamesymbol_snapshot_lib.operations import load_snapshot_context
 from gamesymbol_snapshot_lib.paths import ensure_real_tree, path_from_key
-from gamesymbol_snapshot_lib.pr_validation import build_invalidation_plan
+from gamesymbol_snapshot_lib.pr_validation import build_invalidation_plan, required_source_index_sides
 
 
 def parse_args(argv=None):
@@ -83,7 +83,7 @@ def _changed_paths(base_ref: str, head_ref: str, repo_root: Path) -> list[Change
 
 def _revision_sources(ref: str, repo_root: Path) -> dict[str, str]:
     result = subprocess.run(
-        ["git", "archive", "--format=tar", ref, "--", "ida_preprocessor_scripts"],
+        ["git", "archive", "--format=tar", ref, "--", "ida_preprocessor_scripts/*.py"],
         cwd=repo_root,
         capture_output=True,
         check=False,
@@ -139,6 +139,9 @@ def _run(args) -> None:
     base = load_snapshot_context(args.basesnapshot, args.baseconfigyaml, args.gamever, args.bindir)
     head = _load_head_context(head_snapshot, args.headconfigyaml, args.gamever, args.bindir, base)
     changes = _changed_paths(args.baseref, args.headref, repo_root)
+    needs_base_sources, needs_head_sources = required_source_index_sides(changes)
+    base_sources = _revision_sources(args.baseref, repo_root) if needs_base_sources else {}
+    head_sources = _revision_sources(args.headref, repo_root) if needs_head_sources else {}
     plan = build_invalidation_plan(
         base.contract,
         head.contract,
@@ -146,8 +149,8 @@ def _run(args) -> None:
         head.document,
         changes,
         repo_root,
-        base_sources=_revision_sources(args.baseref, repo_root),
-        head_sources=_revision_sources(args.headref, repo_root),
+        base_sources=base_sources,
+        head_sources=head_sources,
     )
     deleted = _delete_paths(head.contract, plan.paths)
     for reason in plan.reasons:

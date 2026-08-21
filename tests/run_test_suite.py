@@ -29,6 +29,7 @@ REPOSITORY_CONTRACT_MODULES = frozenset(
         "test_smoke_ida_mcp_2",
         "test_symbol_store_architecture",
         "test_trigger_release_build",
+        "test_warmup_idb_workflow",
     }
 )
 REPOSITORY_CONTRACT_PREFIXES = (
@@ -79,6 +80,7 @@ UNIT_MODULES = frozenset(
         "test_gamesymbol_store",
         "test_generate_reference_yaml",
         "test_ida_analyze_bin",
+        "test_idb_cache",
         "test_ida_analyze_util",
         "test_ida_llm_utils",
         "test_ida_mcp_session",
@@ -102,6 +104,8 @@ UNIT_MODULES = frozenset(
         "test_process_scheduler_redis",
         "test_process_status_reader_redis",
         "test_prune_pr_expected_output_bin",
+        "test_pr_published_recheck",
+        "test_pr_validation_version",
         "test_push_binsync_symbols",
         "test_ordinal_vtable_common",
         "test_register_api_callbacks_preprocessor",
@@ -112,6 +116,7 @@ UNIT_MODULES = frozenset(
         "test_test_suite_runner",
         "test_trusted_yaml",
         "test_update_gamedata",
+        "test_warmup_idb",
     }
 )
 

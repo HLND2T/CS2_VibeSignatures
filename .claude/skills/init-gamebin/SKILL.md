@@ -90,6 +90,37 @@ If the command fails, stop immediately and report its exact error as:
 
 Do not attempt an alternate download, edit `.env`, or proceed to symbol restoration.
 
+## Warm Up IDB (optional)
+
+After binary preparation succeeds, ask whether to warm the IDA databases for the selected GAMEVER.
+Warmup runs full IDA auto-analysis on every configured binary (via `warmup_idb.py`) and leaves
+`<binary>.i64` beside each binary so later analysis is fast. It is slow and resource-heavy, so it is
+opt-in.
+
+1. Resolve a Python interpreter with idalib — the same probe the workflows use:
+
+   ```powershell
+   $pythonExe = (Get-Command python -ErrorAction SilentlyContinue).Source
+   & $pythonExe warmup_idb_worker.py --print-ida-version
+   ```
+
+   If the probe fails or prints no version, tell the user IDB warmup is skipped and why (no Python
+   with idalib available), then proceed to symbol restoration without warming.
+2. If the interpreter is available, **ask** the user whether to warm the IDB databases for `<GAMEVER>`
+   and wait for an explicit yes/no. Never warm without explicit consent.
+   - Yes → run the warmup producer from the owning repository root:
+
+     ```powershell
+     uv run python warmup_idb.py <GAMEVER> --python "$pythonExe"
+     ```
+
+     Already-warm databases (an existing `.i64`/`.idb` with no `.id0` lock) are skipped; add `--force`
+     only if the user wants every configured database invalidated and re-warmed. If the command fails,
+     stop and report its exact error to user.
+
+     Do not silently continue to symbol restoration after a failed warmup.
+   - No → skip warmup and proceed to symbol restoration.
+
 ## Restore Symbol YAML
 
 After binary preparation succeeds, invoke the project-level `$restore-from-snapshot` skill with the selected GAMEVER.

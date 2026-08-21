@@ -7,126 +7,61 @@ permalink: cs2-vibesignatures/pr-self-runner
 # pr-self-runner
 
 ## Overview
-`.github/workflows/pr-self-runner.yml` 是同仓库 PR 的确定性验证流水线：它在默认 `$GITHUB_WORKSPACE` 检出 GitHub 生成的 PR merge ref，从持久化二进制缓存恢复确定性基线，只重建受影响结果，并验证 PR 提交的 canonical game-symbol snapshot 与实际分析结果完全一致。验证成功后，分析产物 YAML 会 staged 到 `PERSISTED_WORKSPACE/pr-yaml-staging/<PR>`；PR 合并时由独立 job 将最新成功 run 的 YAML promote 回 `PERSISTED_WORKSPACE/bin/<GAMEVER>`。
+`.github/workflows/pr-self-runner.yml` owns deterministic validation and publication for same-repository PRs. A full
+path validates an immutable merge ref on the self-hosted Windows runner, publishes the exact guarded snapshot/gamedata
+candidate as a bot commit on the PR head, then explicitly dispatches an Ubuntu-only lightweight recheck for the new
+head. A stable terminal job named `pr-validate` aggregates exactly one valid path.
 
 ## Responsibilities
-- 监听 PR 打开、更新、重新打开、转为 ready 和关闭事件，并按 PR 编号串行化/取消过期运行。
-- 只验证受信任仓库中的同仓库 PR，拒绝 fork PR，并跳过特定的自动 `bump-download` manifest PR 与 build workflow 创建的 `gamesymbols/<GAMEVER>` snapshot/gamedata 输出 PR。
-- 在默认 workspace 用 `actions/checkout` 检出 `refs/pull/<PR>/merge`（`fetch-depth: 0`），验证合并结果而非单独 head commit。
-- 从持久化缓存复制目标版本二进制，并从 merge commit 的 base parent（`pull_request.base.sha`）提取确定性 base config/snapshot。
-- 同版本变更时只失效受影响的输出；新版本或 bootstrap 场景按边界恢复旧 snapshot 或清空当前版本 YAML。
-- 运行 Python 单元测试、IDA 分析，构建实际候选 snapshot，并与 PR head 中的 `gamesymbols/<GAMEVER>.yaml` 比较。
-- 让 gamedata 更新与 C++ 测试只消费实际候选，成功后写入验证标记、并把分析产物 YAML staged 到 `PERSISTED_WORKSPACE/pr-yaml-staging/<PR>/<run_id>-<run_attempt>`。
-- PR 合并时从 staging 中最新 run 将 `*.yaml` promote 回 `PERSISTED_WORKSPACE/bin/<GAMEVER>`；未合并则丢弃 staging。不回传 `*.i64`。
+- Normalize `pull_request` and `workflow_dispatch` events into PR number, immutable head/base/source SHAs, ref, user,
+  title, validation path, and GAMEVER selection.
+- Reject forks/generated-output PRs on the full path and reject untrusted/manual published-recheck dispatches.
+- Run `pr-warmup-idb` only for non-bump `validation_path=full` runs.
+- Restore the explicit warm-cache generation, validate reparse/cache/IDA identity, and analyze with
+  `ida_analyze_bin.py -require_warm_idb`.
+- Build one immutable symbol candidate and matching isolated gamedata candidate, then run C++ ABI tests against the
+  exact symbol bytes.
+- Stage analyzed `bin/<GAMEVER>/**/*.yaml` before any remote write so merge finalization remains unchanged.
+- Checkout the exact PR head, publish `gamesymbols/<GAMEVER>.yaml` plus `gamedata/<GAMEVER>/`, enforce allowed paths
+  and both digests, create the canonical bot provenance commit, recheck the remote head, push normally, and dispatch
+  `published-recheck`.
+- Recheck the live PR, actor/sender, commit parent/base/message, allowed paths, snapshot digest, and gamedata manifest on
+  Ubuntu without warmup, IDA, rebuilds, C++ tests, staging, or publication.
 
 ## Involved Files & Symbols
-- `.github/workflows/pr-self-runner.yml` - workflow `PR Self Runner Validation`
-- `.github/workflows/pr-self-runner.yml` - job `validate`
-- `.github/workflows/pr-self-runner.yml` - job `finalize-pr-workspace`
-- `download.yaml` - 最后一项 `downloads[-1].tag` 决定 `GAMEVER`
-- `configs/<GAMEVER>.yaml` - PR head 分析配置
-- `gamesymbols/<GAMEVER>.yaml` - PR head 的 expected canonical snapshot
-- `gamesymbol_snapshot.py` - `restore` 确定性 base snapshot
-- `gamesymbol_pr_validation.py` - `invalidate` 同版本受影响输出
-- `gamesymbol_candidate.py` - `build` / `compare` / `guard` / `mark`
-- `ida_analyze_bin.py` - 基于恢复/失效后的工作区执行分析
-- `gamedata_candidate.py` - 从实际候选在隔离目录生成并 guard 版本化 gamedata
-- `run_cpp_tests.py` - 从实际候选执行 C++ 编译与布局验证
-- `PERSISTED_WORKSPACE/bin/.stignore` - robocopy 的简单文件/目录排除规则
-- `tests/test_pr_self_runner_workflow.py` - 触发条件、顺序、候选边界和关闭清理约束测试
+- `.github/workflows/pr-self-runner.yml` - jobs `pr-preflight`, `pr-warmup-idb`, `pr-validate-full`,
+  `pr-published-recheck`, stable `pr-validate`, and `finalize-pr-workspace`.
+- `.github/workflows/warmup-idb.yml` - reusable immutable cache producer.
+- `pr_validation_version.py` - resolves the exact full-path validation GAMEVER from the pinned base.
+- `pr_published_recheck.py` - published commit/API/path/digest verifier and worktree publication guard.
+- `idb_cache.py`, `ida_analyze_bin.py`, `gamesymbol_candidate.py`, `gamedata_candidate.py`,
+  `run_cpp_tests.py` - full validation and candidate lifecycle.
+- `tests/test_pr_self_runner_workflow.py`, `tests/test_pr_published_recheck.py` - DAG and behavior contracts.
 
 ## Architecture
-大致流程：
-
-1. workflow 监听 `opened`、`synchronize`、`reopened`、`ready_for_review`、`closed`；同一 repository + PR number 只保留最新运行。
-2. 非 closed 事件进入 `validate`。条件要求仓库在白名单、PR head 来自当前仓库，并排除两类 GitHub Actions bot PR：`bump-download/*` + `chore(download): Update manifest for `，以及 build workflow 创建、同时包含 validated snapshot 与生成 gamedata 的 `gamesymbols/*` + `chore(gamesymbols): add ` 输出 PR。相同排除条件也应用于 closed 事件的 `finalize-pr-workspace`。
-3. 在默认 `$GITHUB_WORKSPACE` 用 `actions/checkout`（`fetch-depth: 0`，`submodules: false`）检出 `refs/pull/<PR>/merge`，随后初始化 submodules。
-4. 执行格式检查，并从 PR merge 结果的 `download.yaml` 最后一项读取 `GAMEVER`。
-5. 要求 `PERSISTED_WORKSPACE/bin/<GAMEVER>` 已存在，按 `.stignore` 排除规则复制到真实的 PR 工作区 `bin`。本 workflow 不链接 `cs2_depot`，也不负责下载缺失二进制。
-6. 以 `HEAD^1` 作为 PR base parent，提取 base `configs/<GAMEVER>.yaml`。若 base 已有同版本 snapshot，则直接提取；否则寻找 base 中排序后的最后一个 tracked snapshot，并使用其发布 commit 对应的 config；若完全没有 snapshot，则进入 bootstrap。
-7. 有 base snapshot 时先 `restore`。同版本场景运行 `invalidate`，依据 base/head config、snapshot 与 Git refs 只失效受影响结果；新版本场景保留旧版本结果供 signature 复用，但清空当前版本全部 YAML；bootstrap 场景直接从空的当前版本 YAML 开始重建。
-8. 运行 Python unit tests，再执行 IDA 分析。
-9. 在 `RUNNER_TEMP` 构建实际候选 snapshot，并与 PR head 的 `gamesymbols/<GAMEVER>.yaml` 比较；不一致即失败。
-10. 对实际候选依次执行 guard、gamedata 更新、mark，以及 guard、C++ 测试、mark。成功后在 workspace 写入 `.snapshot-validation-success`。
-11. 验证成功后，`stage-yaml` 把 `bin/<GAMEVER>` 下的 `*.yaml`（含 `gamever.txt` 标记）robocopy 到 `PERSISTED_WORKSPACE/pr-yaml-staging/<PR>/<run_id>-<run_attempt>`。每次验证都用 `always()` 清理临时候选 session。
-12. closed 事件只进入 `finalize-pr-workspace`：读取 `pr-yaml-staging/<PR>` 中最新 run（按 `run_id`/`run_attempt` 数值排序），若 PR 已合并则把其 `*.yaml` promote 回 `PERSISTED_WORKSPACE/bin/<GAMEVER>`（`/XF gamever.txt`），然后递归删除整个 `<PR>` staging 目录。未合并 PR 仅清理 staging。
-
-```mermaid
-flowchart TD
-A["Pull request event"]
-B{"Action is closed?"}
-C{"Validation eligibility and Bot-PR exclusions pass?"}
-D{"Finalization eligibility and Bot-PR exclusions pass?"}
-E["Checkout refs/pull/<PR>/merge into default workspace"]
-F["Sync submodules"]
-G["Check formatting; read GAMEVER from download.yaml"]
-H["Copy persisted bin/<GAMEVER> with .stignore exclusions"]
-I["Extract base config and snapshot from base parent"]
-J{"Base has same-version snapshot?"}
-K["Restore same-version base; invalidate affected outputs"]
-L{"An older tracked snapshot exists?"}
-M["Restore older base; clear current-version YAML"]
-N["Bootstrap with empty current-version YAML"]
-O["Run Python unit tests"]
-P["Analyze binaries"]
-Q["Build actual candidate snapshot"]
-R["Compare candidate with PR head gamesymbols/<GAMEVER>.yaml"]
-S["Guard candidate; update gamedata; mark gamedata"]
-T["Guard candidate; run C++ tests; mark cpp_tests"]
-U["Write .snapshot-validation-success; stage analyzed YAML"]
-V["Always clean candidate session"]
-W["On merge: promote staged YAML; clean PR staging"]
-X["Job is skipped"]
-
-A --> B
-B -->|No| C
-B -->|Yes| D
-C -->|No| X
-C -->|Yes| E
-D -->|No| X
-D -->|Yes| W
-E --> F
-F --> G
-G --> H
-H --> I
-I --> J
-J -->|Yes| K
-J -->|No| L
-L -->|Yes| M
-L -->|No| N
-K --> O
-M --> O
-N --> O
-O --> P
-P --> Q
-Q --> R
-R --> S
-S --> T
-T --> U
-U --> V
-```
+1. Pull-request preflight checks out `refs/pull/<PR>/merge`; dispatch preflight validates required inputs and checks out
+   the expected bot head.
+2. Dispatch verification queries the live PR and validates bot provenance. Matching base selects
+   `published-recheck`; base drift fetches the current merge ref and selects `full`.
+3. Full non-bump runs consume an explicit warm-cache generation and perform baseline restore/invalidation, repository
+   tests, strict IDA analysis, candidate/gamedata build, and C++ validation.
+4. Full success stages analyzed YAML, switches from the merge ref to the exact PR head, publishes the same candidate
+   bytes, creates H2 with H1 as its sole parent, cleans candidate state, checks the remote still points to H1, pushes,
+   and explicitly dispatches H2.
+5. Published recheck repeats API/provenance/path/digest verification on Ubuntu and emits verified head/base/digests.
+6. The terminal `pr-validate` job accepts only one successful internal path; merged-PR finalization continues promoting
+   the latest staged analyzed YAML into accepted persisted bin.
 
 ## Dependencies
-- GitHub Actions `win64` environment，以及标签为 `self-hosted`, `windows`, `x64` 的 runner。
-- GitHub PR merge ref：`refs/pull/<PR>/merge`；workflow 仅有 `contents: read` 权限。
-- Secrets：必须有 `PERSISTED_WORKSPACE`；IDA 分析使用 `CS2VIBE_AGENT` 与 LLM 配置。PR 流程不链接 `cs2_depot`，也没有 depot 下载步骤。
-- 持久化资源：`PERSISTED_WORKSPACE/bin/<GAMEVER>`、`PERSISTED_WORKSPACE/bin/.stignore`、`PERSISTED_WORKSPACE/pr-yaml-staging/<PR>`（validate 写入、finalize 消费）。
-- 工具链：PowerShell、`git`、`robocopy`、`mklink`、`uv`、Python、IDA / idalib-mcp、LLM agent、Clang/C++。
-- 仓库数据：base/head `configs/<GAMEVER>.yaml`、`download.yaml`、base/head `gamesymbols/*.yaml`、submodules。
-- 相关 note：[[ida_analyze_bin]]、[[update_gamedata]]、[[run_cpp_tests]]。
+- GitHub PR merge refs and API, protected `win64` environment, self-hosted Windows runner, Ubuntu hosted runner.
+- `contents: write` and `actions: write` are scoped to `pr-validate-full`; read permissions remain elsewhere.
+- `PERSISTED_WORKSPACE/idb-cache/<GAMEVER>` and `PERSISTED_WORKSPACE/pr-yaml-staging/<PR>`.
 
 ## Notes
-- concurrency group 为 `pr-self-runner-<repository>-<PR number>`，且 `cancel-in-progress: true`；同一 PR 的旧验证会被新提交取消。
-- fork PR 被跳过，因为流程需要受保护 secrets 和 self-hosted runner；特定 bot `bump-download/*` manifest PR，以及 build workflow 创建的 `gamesymbols/*` snapshot/gamedata 输出 PR，都会被 `validate` 与 `finalize-pr-workspace` 显式跳过。过滤器同时校验 Bot 身份、head 分支前缀和标题前缀，避免误伤普通人工 PR。
-- workflow 验证的是 GitHub 合成的 merge commit；base parent 由 `actions/checkout`（`fetch-depth: 0`）提供，`pull_request.base.sha` 始终在本地对象库。
-- PR 流程不链接 `cs2_depot` 也不下载 depot；如果持久化 `bin/<GAMEVER>` 不存在，验证直接失败。因此正式 build/cache 准备是新版本 PR 验证的外部前置条件。
-- `.stignore` 解析只接受扁平文件名或目录名；注释、空行和否定规则被忽略，包含嵌套路径的 pattern 会被拒绝。
-- 实际候选是 compare、gamedata 和 C++ tests 的唯一 symbol source。PR workflow 不调用 `gamesymbol_candidate.py publish`；分析产物 YAML 只写入 staging，仅当 PR 合并时才由 finalize promote 回 `PERSISTED_WORKSPACE`。
-- PR head 必须包含与实际分析结果一致的 `gamesymbols/<GAMEVER>.yaml`；compare 失败会阻止后续验证。
-- `.snapshot-validation-success` 只在 C++ 测试成功后写入；当前 workflow 内不再读取该标记，它用于表明 workspace 已完成全链路验证。
-- 新版本分支会恢复旧 snapshot 以允许旧 signature 复用，但会删除当前版本目录下所有 YAML，避免把持久化缓存中的当前版本中间结果当作可信输入。
-- closed 事件不会运行 `validate`；它只运行 finalize。staging 目录名 `<run_id>-<run_attempt>`，finalize 按 `run_id`/`run_attempt` 数值排序取最新；合并 PR 缺少 staging 被视为异常，未合并且无 staging 则安全 no-op。
-- 不再有 per-PR 隔离工作区或 `*.i64` 回传；workspace 由 `actions/checkout` 的 `clean` 与 runner 管理。
-
-## Callers
-- GitHub pull request actions：`opened`、`synchronize`、`reopened`、`ready_for_review`、`closed`
+- `GITHUB_TOKEN` bot pushes do not recursively trigger `pull_request.synchronize`, so explicit
+  `workflow_dispatch --ref <PR_HEAD_REF>` is mandatory.
+- Concurrency is separated into `full` and `recheck-<expected_head_sha>` groups.
+- Candidate/config/generator inputs needed after checkout are copied below runner temp.
+- Idempotent publisher reruns verify an already-pushed H2 and only redispatch it.
+- Head drift rejects push; base drift rejects lightweight reuse and returns to the full merge-ref path.
+- Bump-download PRs retain lightweight full-path validation and do not publish symbol outputs.

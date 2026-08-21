@@ -18,7 +18,7 @@ The Analyzer finds and generates signatures for symbols declared in `configs/<GA
 Command synopsis:
 
 ```bash
-uv run ida_analyze_bin.py -gamever 14156 [-oldgamever=14155] [-configyaml=path/to/custom.yaml] [-modules=server] [-skill=find-CBaseEntity_vtable] [-platform=windows] [-agent=claude/codex/opencode/"claude.cmd"/"codex.cmd"/"opencode.cmd"] [-maxretry=3] [-vcall_finder=g_pNetworkMessages] [-llm_model=gpt-4o] [-llm_apikey=your-key] [-llm_baseurl=https://api.example.com/v1] [-llm_temperature=0.2] [-llm_effort=medium] [-llm_fake_as=codex] [-rename] [-debug]
+uv run ida_analyze_bin.py -gamever 14156 [-oldgamever=14155] [-configyaml=path/to/custom.yaml] [-modules=server] [-skill=find-CBaseEntity_vtable] [-platform=windows] [-agent=claude/codex/opencode/"claude.cmd"/"codex.cmd"/"opencode.cmd"] [-maxretry=3] [-vcall_finder=g_pNetworkMessages] [-llm_model=gpt-4o] [-llm_apikey=your-key] [-llm_baseurl=https://api.example.com/v1] [-llm_temperature=0.2] [-llm_effort=medium] [-llm_fake_as=codex] [-require_warm_idb] [-rename] [-debug]
 ```
 
 Optional LLM parameters:
@@ -40,6 +40,7 @@ Analyzer behavior:
 - Prefer programmatic preprocessors, then `LLM_DECOMPILE` preprocessors, then Agent skills.
 - `-skill=<exact-name>` only runs an exact skill name within the active `-modules` filter. It does not run prerequisites automatically; required `expected_input` artifacts must already exist.
 - `-rename` runs rename/comment post-processing over existing expected-output YAML files.
+- `-require_warm_idb` requires a pre-existing `.i64`/`.idb`. Missing databases or binary-identity verification failures stop the binary without deleting the database or rebuilding it through inline auto-analysis. PR and release CI always enable this mode after restoring a published cache generation.
 
 Process reporting, the Redis-backed Scheduler, and the progress dashboard are documented in [Process reporting, scheduling, and dashboard](process-monitoring.md).
 
