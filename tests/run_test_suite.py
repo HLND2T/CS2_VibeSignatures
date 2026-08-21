@@ -104,6 +104,7 @@ UNIT_MODULES = frozenset(
         "test_process_scheduler_redis",
         "test_process_status_reader_redis",
         "test_prune_pr_expected_output_bin",
+        "test_pr_published_recheck",
         "test_pr_validation_version",
         "test_push_binsync_symbols",
         "test_ordinal_vtable_common",

@@ -4,9 +4,9 @@ description: |
   Resolve an open same-repository GitHub PR conflict in CS2_VibeSignatures by merging the PR base branch into its
   dev branch, resolving config and generated gamesymbol snapshot conflicts, cleaning up stale non-latest gamever
   config, snapshot, gamedata, and release-manifest changes, running a read-only /review-pr-for-preprocessor-script
-  audit right after conflict resolution and before preflight to catch design defects early, generating missing
-  current-version artifacts with ida_analyze_bin.py, running the immutable candidate validation and publication
-  lifecycle, creating a merge commit, and pushing without force. Use when a PR is CONFLICTING/DIRTY or needs its base
+  audit right after conflict resolution to catch design defects early, creating a source-only merge commit, and pushing
+  without force so pr-self-runner CI can validate and publish the resulting snapshot/gamedata. Use when a PR is
+  CONFLICTING/DIRTY or needs its base
   branch synchronized, especially when configs/GAMEVER.yaml or gamesymbols/GAMEVER.yaml changed. Stop after push and
   check-status reporting; never merge or auto-merge the PR.
 disable-model-invocation: true
@@ -34,7 +34,8 @@ multiple snapshot publications in one invocation.
 - Never hand-edit generated snapshot digest, file count, publish time, or candidate bytes.
 - Never use a tracked snapshot as downstream validation input and never publish directly from `bin`.
 - Stop on an ambiguous non-generated conflict and ask the user; do not choose a side without semantic evidence.
-- Stop on the first failed/non-runnable official candidate gate. Do not publish, commit, or push after a gate failure.
+- Never run candidate preparation, C++ validation, or snapshot/gamedata publication locally; those gates belong to
+  `.github/workflows/pr-self-runner.yml` after push.
 - After push, report PR checks once. Do not invoke `gh pr merge`, enable auto-merge, call a merge API, switch to `main`,
   or clean up branches. PR merge is a separate explicitly authorized task.
 
@@ -96,8 +97,8 @@ Resolve each path as follows:
   git add -- "gamesymbols/<GAMEVER>.yaml"
   ```
 
-  This placeholder must be replaced by `/publish-post-change-candidate` before the merge commit. Never commit it as the
-  final resolution.
+  Commit this base snapshot only as a conflict-resolution placeholder. `pr-self-runner.yml` replaces it with the
+  freshly validated snapshot after the merge commit is pushed.
 - Source, tests, or documentation: read the exact conflicting code and resolve semantically. Stop and ask when intent is
   ambiguous.
 
@@ -143,8 +144,8 @@ If the PR itself is about the latest gamever and introduces no non-latest gameve
 
 ## Step 5 — Review the Resolved PR
 
-Run the repository review skill as a read-only audit of the resolved PR before investing in preflight, candidate, and
-publication work. Catch preprocessor design defects early rather than after push.
+Run the repository review skill as a read-only audit of the resolved PR before creating the merge commit. Catch
+preprocessor design defects early rather than after push.
 
 Invoke `/review-pr-for-preprocessor-script` with the same `<PR>` now that the merge is resolved and stale-gamever
 cleanup is staged. The review audits the PR's config/script/snapshot changes against the base tree, including the
@@ -160,101 +161,13 @@ steps. If it finds none, state that the resolved PR passed review and continue t
 reports the PR head has moved since the captured `PR_HEAD_SHA`, present the updated diff and stop without further
 mutation.
 
-## Step 6 — Preflight Required Analysis Artifacts
+## Step 6 — Review and Create the Merge Commit
 
-Before invoking the official candidate skill, build a disposable symbol-only preflight candidate in a unique temporary
-directory. Never use this preflight candidate for validation or publication:
-
-```bash
-uv run gamesymbol_candidate.py build \
-  -gamever "$GAMEVER" \
-  -bindir bin \
-  -configyaml "configs/$GAMEVER.yaml" \
-  -output "$PREFLIGHT_ROOT/$GAMEVER.yaml" \
-  -session "$PREFLIGHT_ROOT/$GAMEVER.session.json"
-```
-
-If it succeeds, continue to Step 7 and ignore the disposable candidate.
-
-If it reports `Missing required symbol YAML`, use the exact missing list to locate each producer in the merged config.
-For every producer:
-
-1. Identify its module, exact skill name, selected platforms, `expected_input`, `prerequisite`, `optional_output`, and
-   `skip_if_exists` chain.
-2. Run prerequisite producers before consumers. `ida_analyze_bin.py -skill` does **not** automatically run
-   prerequisites.
-3. Preserve config order for noinline/inlined or other fallback chains.
-4. Run only the required module, platforms, and exact skill against the current version:
-
-   ```bash
-   uv run python ida_analyze_bin.py \
-     -gamever "$GAMEVER" \
-     -oldgamever none \
-     -configyaml "configs/$GAMEVER.yaml" \
-     -bindir bin \
-     -modules <MODULE> \
-     -platform <COMMA_SEPARATED_PLATFORMS> \
-     -skill <EXACT_SKILL_NAME> \
-     -debug
-   ```
-
-5. Require `Failed: 0`. A configured fallback skipped because all outputs exist is acceptable.
-6. Read every generated YAML and require a non-empty, parseable artifact containing the configured desired fields.
-
-Stop for missing producer definitions, absent expected inputs with no in-scope producer, IDA/MCP infrastructure errors,
-unavailable required credentials, or ambiguous producer selection. Do not copy artifacts from the tracked snapshot.
-
-After generating artifacts, create a new disposable preflight root and rerun the preflight once. If required YAML is
-still missing, stop and report it; do not loop indefinitely.
-
-## Step 7 — Prepare the Official Immutable Candidate
-
-Always invoke `/prepare-post-change-candidate` with the resolved `GAMEVER`. Do not reuse the disposable preflight
-candidate.
-
-Retain the returned candidate path, candidate session path, gamedata session path, and candidate SHA-256. If the skill
-fails, stop the entire task.
-
-Formatting may change only paths already participating in the merge or original PR, plus current-version publication
-paths. Report and stop on any unrelated tracked change.
-
-## Step 8 — Validate the Exact Candidate
-
-Always invoke `/post-change-validation` with the same `GAMEVER`, candidate, and candidate session returned by Step 7.
-
-Require all of the following evidence:
-
-- process exit code `0`;
-- `=== running cpp_tests ===` and `=== done ===`;
-- runnable tests greater than zero;
-- zero compile failures, invalid test items, and layout/vtable/record differences;
-- no non-runnable-test warning.
-
-If validation fails or is non-runnable, stop exactly as that skill requires. Do not repair, retry, publish, commit, or
-push within this invocation.
-
-## Step 9 — Publish the Validated Candidate
-
-Always invoke `/publish-post-change-candidate` with the same `GAMEVER`, candidate, candidate session, and gamedata
-session. Never rebuild or reserialize after validation begins.
-
-Require the SHA-256 of `gamesymbols/$GAMEVER.yaml` to equal the validated candidate SHA-256 byte-for-byte. Publication
-may modify only:
-
-- paths already involved in the original PR/merge and changed by formatting;
-- `gamesymbols/$GAMEVER.yaml`;
-- files under `gamedata/$GAMEVER/`.
-
-Any other tracked change is a hard stop.
-
-## Step 10 — Review and Create the Merge Commit
-
-Stage only explicit resolved/authorized paths and validated publication outputs. Never use `git add .` or
-`git add -A`.
+Stage only explicit resolved/authorized source paths. Never use `git add .` or `git add -A`, and do not stage locally
+generated snapshot/gamedata outputs.
 
 ```bash
 git add -- <EXPLICIT_RESOLVED_OR_FORMATTED_PATHS>
-git add -- "gamesymbols/$GAMEVER.yaml" "gamedata/$GAMEVER"
 git diff --cached --check
 git diff --name-only --diff-filter=U
 git diff --cached --name-status <REMOTE>/<BASE_BRANCH>
@@ -263,8 +176,8 @@ git diff --cached <REMOTE>/<BASE_BRANCH> -- "configs/$GAMEVER.yaml" "gamesymbols
 ```
 
 Require no unstaged tracked changes. Review the final diff relative to the base: it must contain the original PR intent
-plus validated current-version publication changes only. In particular, confirm the final snapshot includes both the
-base branch artifacts and the PR artifacts with a newly generated digest/count/time.
+and conflict resolutions only. Any selected base snapshot is a CI-owned publication placeholder, not local validation
+evidence.
 
 Create one merge commit without amending existing PR commits:
 
@@ -277,7 +190,7 @@ git commit \
 Verify the commit has exactly two parents in this order: `PR_HEAD_SHA BASE_HEAD_SHA`. Require a clean worktree after
 commit.
 
-## Step 11 — Push Without Force and Stop Before PR Merge
+## Step 7 — Push Without Force and Stop Before PR Merge
 
 Immediately before push, confirm the remote PR head is still `PR_HEAD_SHA`. If it changed, stop; never overwrite the
 other update.
@@ -315,10 +228,9 @@ git switch main
 Report:
 
 - PR URL, base branch, head branch, original PR SHA, base SHA, and pushed merge-commit SHA;
-- resolved conflict paths and generated artifact paths;
+- resolved conflict paths;
 - non-latest gamever paths reverted to base in Step 4 and the verified latest gamever;
-- game version, official candidate SHA-256, runnable-test count, and zero failure counters;
-- published snapshot SHA-256 equality and any versioned gamedata changes;
+- game version when resolved and a statement that CI owns candidate/C++/publication gates;
 - pushed remote branch and latest known PR/check state;
 - the `/review-pr-for-preprocessor-script` audit result (Step 5): findings (or "no actionable findings") and the consent
   question if defects were found;

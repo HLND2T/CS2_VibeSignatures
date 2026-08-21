@@ -5,10 +5,11 @@ project_doc_fallback_filenames = [".claude/CLAUDE.md"]
 approval_policy = "never"
 sandbox_mode    = "workspace-write"
 
-[mcp.servers.basic-memory]
-command = "basic-memory"
-args = ["mcp", "--project", "cs2-vibesignatures"]
+[mcp_servers.basic-memory]
+command = "uvx"
+args = ["basic-memory", "mcp", "--project", "cs2-vibesignatures"]
+startup_timeout_sec = 120
+tool_timeout_sec = 300
 
-[mcp.servers.ida-pro-mcp]
-type = "http"
+[mcp_servers.ida-pro-mcp]
 url = "http://127.0.0.1:13337/mcp"
