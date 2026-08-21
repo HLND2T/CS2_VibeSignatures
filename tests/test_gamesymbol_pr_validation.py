@@ -2,10 +2,11 @@ import unittest
 from dataclasses import replace
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 from gamesymbol_snapshot_lib.config import load_contract
 from gamesymbol_snapshot_lib.model import ChangedPath
-from gamesymbol_snapshot_lib.pr_validation import build_invalidation_plan
+from gamesymbol_snapshot_lib.pr_validation import build_invalidation_plan, required_source_index_sides
 from tests.gamesymbol_snapshot_test_support import module, skill, write_config
 
 
@@ -23,6 +24,44 @@ class TestInvalidationPlan(unittest.TestCase):
             load_contract(base_config, "1", root / "bin"),
             load_contract(head_config, "1", root / "bin"),
         )
+
+    def test_source_index_sides_follow_git_change_semantics(self) -> None:
+        reference = "ida_preprocessor_scripts/references/server/Input.windows.yaml"
+        preprocessor = "ida_preprocessor_scripts/find-target.py"
+        cases = (
+            (ChangedPath("M", reference, reference), (True, True)),
+            (ChangedPath("D", preprocessor, None), (True, False)),
+            (ChangedPath("A", None, reference), (False, True)),
+            (ChangedPath("R", preprocessor, "ida_preprocessor_scripts/find-renamed.py"), (True, True)),
+            (
+                ChangedPath("C", reference, "ida_preprocessor_scripts/references/server/Copy.windows.yaml"),
+                (False, True),
+            ),
+            (ChangedPath("M", "README.md", "README.md"), (False, False)),
+        )
+
+        for change, expected in cases:
+            with self.subTest(status=change.status, old_path=change.old_path, new_path=change.new_path):
+                self.assertEqual(expected, required_source_index_sides([change]))
+
+    def test_unrelated_change_does_not_scan_workspace_sources(self) -> None:
+        modules = [module("server", [skill("find-target", ["Target.{platform}.yaml"])], linux=False)]
+        with TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            base, head = self._contracts(root, modules)
+            unchanged = snapshot({"server/Target.windows.yaml": {"value": 1}})
+            with patch("gamesymbol_snapshot_lib.pr_validation.workspace_python_sources") as workspace_sources:
+                plan = build_invalidation_plan(
+                    base,
+                    head,
+                    unchanged,
+                    unchanged,
+                    [ChangedPath("M", "README.md", "README.md")],
+                    root,
+                )
+
+        self.assertEqual(frozenset(), plan.paths)
+        workspace_sources.assert_not_called()
 
     def test_snapshot_change_invalidates_whole_owner_and_downstream_closure(self) -> None:
         modules = [

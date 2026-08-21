@@ -109,6 +109,13 @@ def _is_preprocessor(path: str | None) -> bool:
     return bool(path and path.startswith(PREPROCESSOR_PREFIX) and path.endswith(".py"))
 
 
+def required_source_index_sides(changed_files: list[str | ChangedPath]) -> tuple[bool, bool]:
+    changes = _normalize_changes(changed_files)
+    needs_base = any(_is_reference(_base_path(change)) or _is_preprocessor(_base_path(change)) for change in changes)
+    needs_head = any(_is_reference(_head_path(change)) or _is_preprocessor(_head_path(change)) for change in changes)
+    return needs_base, needs_head
+
+
 def _format_consumers(consumers: set[ReferenceConsumer]) -> str:
     return ",".join(sorted(consumer.label for consumer in consumers)) or "none"
 
@@ -202,16 +209,10 @@ def _source_changed_nodes(
     reasons = []
     base_by_skill = _skill_nodes(base_contract)
     head_by_skill = _skill_nodes(head_contract)
-    needs_source_index = any(
-        _is_reference(change.old_path)
-        or _is_reference(change.new_path)
-        or _is_preprocessor(change.old_path)
-        or _is_preprocessor(change.new_path)
-        for change in changes
-    )
+    needs_base_index, needs_head_index = required_source_index_sides(changes)
     empty_index = AnalysisSourceIndex((), {})
-    base_index = AnalysisSourceIndex.build(base_sources, "base") if needs_source_index else empty_index
-    head_index = AnalysisSourceIndex.build(head_sources, "HEAD") if needs_source_index else empty_index
+    base_index = AnalysisSourceIndex.build(base_sources, "base") if needs_base_index else empty_index
+    head_index = AnalysisSourceIndex.build(head_sources, "HEAD") if needs_head_index else empty_index
     for change in changes:
         broad_paths = {path for path in (change.old_path, change.new_path) if path in BROAD_ANALYSIS_FILES}
         if broad_paths:
@@ -298,10 +299,15 @@ def build_invalidation_plan(
 ) -> InvalidationPlan:
     repo_root = Path(repo_root)
     changes = _normalize_changes(changed_files)
-    if base_sources is None or head_sources is None:
+    needs_base_sources, needs_head_sources = required_source_index_sides(changes)
+    missing_base_sources = needs_base_sources and base_sources is None
+    missing_head_sources = needs_head_sources and head_sources is None
+    if missing_base_sources or missing_head_sources:
         workspace_sources = workspace_python_sources(repo_root)
-        base_sources = workspace_sources if base_sources is None else base_sources
-        head_sources = workspace_sources if head_sources is None else head_sources
+        base_sources = workspace_sources if missing_base_sources else base_sources
+        head_sources = workspace_sources if missing_head_sources else head_sources
+    base_sources = {} if base_sources is None else base_sources
+    head_sources = {} if head_sources is None else head_sources
     delta_paths = _snapshot_delta(base_snapshot, head_snapshot)
     seed_nodes = _owners_for_paths(base_contract, delta_paths)
     seed_nodes.update(_owners_for_paths(head_contract, delta_paths))

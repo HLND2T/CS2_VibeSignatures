@@ -1,12 +1,14 @@
 import subprocess
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 from gamesymbol_snapshot_lib.errors import SnapshotMismatchError
 from gamesymbol_snapshot_lib.model import SnapshotContext
-from gamesymbol_snapshot_lib.pr_cli import _load_head_context, _parse_changed_paths, _revision_sources
+from gamesymbol_snapshot_lib.model import ChangedPath
+from gamesymbol_snapshot_lib.pr_cli import _load_head_context, _parse_changed_paths, _revision_sources, _run
 
 
 class TestGitChangeCollection(unittest.TestCase):
@@ -80,8 +82,11 @@ class TestGitChangeCollection(unittest.TestCase):
                 ["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True
             ).stdout.strip()
 
-            base_sources = _revision_sources(base_ref, root)
-            head_sources = _revision_sources(head_ref, root)
+            native_run = subprocess.run
+            with patch("gamesymbol_snapshot_lib.pr_cli.subprocess.run", wraps=native_run) as run:
+                base_sources = _revision_sources(base_ref, root)
+                head_sources = _revision_sources(head_ref, root)
+            archive_commands = [item.args[0] for item in run.call_args_list]
             current_ref = subprocess.run(
                 ["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True
             ).stdout.strip()
@@ -90,6 +95,59 @@ class TestGitChangeCollection(unittest.TestCase):
         self.assertEqual("VALUE = 1\n", base_sources[path])
         self.assertEqual("VALUE = 2\n", head_sources[path])
         self.assertEqual(head_ref, current_ref)
+        self.assertEqual(
+            [
+                ["git", "archive", "--format=tar", base_ref, "--", "ida_preprocessor_scripts/*.py"],
+                ["git", "archive", "--format=tar", head_ref, "--", "ida_preprocessor_scripts/*.py"],
+            ],
+            archive_commands,
+        )
+
+    def test_run_loads_only_required_revision_source_sides(self) -> None:
+        reference = "ida_preprocessor_scripts/references/server/Input.windows.yaml"
+        preprocessor = "ida_preprocessor_scripts/find-target.py"
+        cases = (
+            ([ChangedPath("M", "README.md", "README.md")], []),
+            ([ChangedPath("D", reference, None)], ["BASE"]),
+            ([ChangedPath("A", None, preprocessor)], ["HEAD"]),
+            ([ChangedPath("C", reference, "ida_preprocessor_scripts/references/server/Copy.windows.yaml")], ["HEAD"]),
+            ([ChangedPath("R", preprocessor, "ida_preprocessor_scripts/find-renamed.py")], ["BASE", "HEAD"]),
+        )
+        base = SnapshotContext({"files": {}}, b"base", "base-contract")
+        head = SnapshotContext({"files": {}}, b"head", "head-contract")
+        plan = SimpleNamespace(paths=frozenset(), reasons=())
+
+        for changes, expected_refs in cases:
+            args = SimpleNamespace(
+                gamever="14175",
+                bindir="bin",
+                baseconfigyaml="base-config.yaml",
+                basesnapshot="base-snapshot.yaml",
+                headconfigyaml="head-config.yaml",
+                headsnapshot="head-snapshot.yaml",
+                baseref="BASE",
+                headref="HEAD",
+            )
+            with (
+                patch("gamesymbol_snapshot_lib.pr_cli.resolve_analysis_config", return_value="head-config.yaml"),
+                patch("gamesymbol_snapshot_lib.pr_cli.load_snapshot_context", side_effect=[base, head]),
+                patch("gamesymbol_snapshot_lib.pr_cli._changed_paths", return_value=changes),
+                patch(
+                    "gamesymbol_snapshot_lib.pr_cli._revision_sources",
+                    side_effect=lambda ref, _root: {ref: ref},
+                ) as revision_sources,
+                patch("gamesymbol_snapshot_lib.pr_cli.build_invalidation_plan", return_value=plan) as build_plan,
+                patch("gamesymbol_snapshot_lib.pr_cli._delete_paths", return_value=0),
+            ):
+                _run(args)
+
+            self.assertEqual(expected_refs, [item.args[0] for item in revision_sources.call_args_list])
+            self.assertEqual(
+                {ref: ref for ref in expected_refs if ref == "BASE"}, build_plan.call_args.kwargs["base_sources"]
+            )
+            self.assertEqual(
+                {ref: ref for ref in expected_refs if ref == "HEAD"}, build_plan.call_args.kwargs["head_sources"]
+            )
 
 
 if __name__ == "__main__":
