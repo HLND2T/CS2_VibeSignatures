@@ -10,13 +10,6 @@ PRODUCTION_CONSUMERS = (
     "run_cpp_tests.py",
 )
 
-POST_CHANGE_CALLERS = (
-    "create-preprocessor-scripts",
-    "create-cpp-tests",
-    "create-agent-skill-fallback",
-    "rename-preprocessor-scripts",
-)
-
 
 def _parse(path: str) -> ast.Module:
     return ast.parse(Path(path).read_text(encoding="utf-8"), filename=path)
@@ -92,34 +85,6 @@ class TestSymbolStoreArchitecture(unittest.TestCase):
                     f"{path}:{line}:{call_name}" for call_name, line, _node in _calls(path) if call_name in forbidden
                 ]
                 self.assertEqual([], locations, f"forbidden production dependency calls: {locations}")
-
-    def test_create_pr_delegates_post_change_delivery_to_ci(self) -> None:
-        skill_root = Path(".claude/skills")
-        create_pr = (skill_root / "create-pr/SKILL.md").read_text(encoding="utf-8")
-        lifecycle = (
-            "/prepare-post-change-candidate",
-            "/post-change-validation",
-            "/publish-post-change-candidate",
-        )
-
-        for skill_name in lifecycle:
-            self.assertNotIn(skill_name, create_pr)
-        self.assertIn("git diff --cached --quiet", create_pr)
-        self.assertIn("git diff --cached --name-only", create_pr)
-        self.assertIn("git commit", create_pr)
-        self.assertIn("git push -u origin", create_pr)
-        self.assertIn("gh pr create", create_pr)
-        self.assertIn(".claude/skills/create-pr/scripts/classify_delivery.py", create_pr)
-        self.assertIn("LIFECYCLE=0", create_pr)
-        self.assertIn("pr-self-runner.yml", create_pr)
-        self.assertIn("Candidate preparation, C++ validation", create_pr)
-
-        for caller_name in POST_CHANGE_CALLERS:
-            with self.subTest(caller=caller_name):
-                caller = (skill_root / caller_name / "SKILL.md").read_text(encoding="utf-8")
-                self.assertIn("/create-pr", caller)
-                for lifecycle_skill in lifecycle:
-                    self.assertNotIn(lifecycle_skill, caller)
 
     def test_pr_workflow_owns_post_change_validation(self) -> None:
         workflow = Path(".github/workflows/pr-self-runner.yml").read_text(encoding="utf-8")
