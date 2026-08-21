@@ -199,13 +199,9 @@ def dispatch(
     gamever: str,
     source_sha: str,
     mode: str,
-    *,
-    allow_legacy_bootstrap: bool = False,
 ) -> None:
     if mode not in RELEASE_MODES:
         raise TriggerError(f"invalid release mode: {mode}")
-    if allow_legacy_bootstrap and mode != "republish":
-        raise TriggerError("legacy bootstrap is only valid for republish mode")
     run_command(
         [
             "gh",
@@ -220,8 +216,6 @@ def dispatch(
             f"source_sha={source_sha}",
             "-f",
             f"mode={mode}",
-            "-f",
-            f"allow_legacy_bootstrap={str(allow_legacy_bootstrap).lower()}",
         ],
         root,
     )
@@ -242,18 +236,16 @@ def discover_run(root: Path, known_ids: set[int], *, gamever: str, source_sha: s
     raise TriggerError("workflow was dispatched but its Actions run URL could not be discovered")
 
 
-def execute(requested: str, *, allow_legacy_bootstrap: bool = False) -> dict:
+def execute(requested: str) -> dict:
     root = repository_root()
     repository = require_repository(root)
     require_github_access(root, repository)
     source_sha, subject = resolve_source(root)
     gamever = select_version(requested, available_versions(root, source_sha))
     mode = resolve_mode(root, repository, gamever)
-    if allow_legacy_bootstrap and mode != "republish":
-        raise TriggerError("legacy bootstrap is only valid for republish mode")
     known_ids = require_no_duplicate(root, gamever)
     require_main_unchanged(root, source_sha)
-    dispatch(root, gamever, source_sha, mode, allow_legacy_bootstrap=allow_legacy_bootstrap)
+    dispatch(root, gamever, source_sha, mode)
     run_url = discover_run(root, known_ids, gamever=gamever, source_sha=source_sha)
     return {
         "gamever": gamever,
@@ -261,21 +253,15 @@ def execute(requested: str, *, allow_legacy_bootstrap: bool = False) -> dict:
         "source_sha": source_sha,
         "subject": subject,
         "run_url": run_url,
-        "allow_legacy_bootstrap": allow_legacy_bootstrap,
     }
 
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("gamever", help="A version in download.yaml, or latest")
-    parser.add_argument(
-        "--allow-legacy-bootstrap",
-        action="store_true",
-        help="Explicitly allow a trusted tracked snapshot when the accepted release manifest is absent",
-    )
     args = parser.parse_args(argv)
     try:
-        result = execute(args.gamever, allow_legacy_bootstrap=args.allow_legacy_bootstrap)
+        result = execute(args.gamever)
     except (TriggerError, OSError) as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 1
@@ -283,7 +269,6 @@ def main(argv=None) -> int:
     print(f"Mode: {result['mode']}")
     print(f"SOURCE_SHA: {result['source_sha']}")
     print(f"Commit: {result['subject']}")
-    print(f"Legacy bootstrap: {'enabled' if result['allow_legacy_bootstrap'] else 'disabled'}")
     print(f"Actions run: {result['run_url']}")
     return 0
 

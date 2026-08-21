@@ -9,7 +9,7 @@ permalink: cs2-vibesignatures/build-on-self-runner
 ## Overview
 `.github/workflows/build-on-self-runner.yml` validates an exact release source, requires a published warm IDB cache generation, builds immutable symbol/gamedata candidates, stages the private bin tree without IDA databases, and creates the generated-output PR. The PR merge remains the promotion gate for accepted release state, but warm-cache publication is available earlier and independently.
 ## Responsibilities
-- Resolve exact `GAMEVER`, `SOURCE_SHA`, mode, and legacy-bootstrap policy.
+- Resolve exact `GAMEVER`, `SOURCE_SHA`, and mode.
 - Call [[warmup_idb]] as a required reusable job and receive an immutable generation/cache key.
 - Copy accepted persisted analysis state without IDA database files, verify the consumer IDA kernel version, then restore binaries and `.i64` only from the returned generation.
 - Run `ida_analyze_bin.py -require_warm_idb`; cache absence, damage, or identity failure blocks release analysis.

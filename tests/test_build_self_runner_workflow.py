@@ -17,7 +17,7 @@ class TestBuildSelfRunnerWorkflow(unittest.TestCase):
         self.assertEqual("string", dispatch_inputs["gamever"]["type"])
         self.assertEqual("string", dispatch_inputs["source_sha"]["type"])
         self.assertEqual(["new", "republish"], dispatch_inputs["mode"]["options"])
-        self.assertEqual(False, dispatch_inputs["allow_legacy_bootstrap"]["default"])
+        self.assertNotIn("allow_legacy_bootstrap", dispatch_inputs)
         self.assertEqual(
             {"actions": "read", "contents": "write", "pull-requests": "write"},
             self.build_workflow["permissions"],

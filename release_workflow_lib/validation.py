@@ -186,59 +186,6 @@ def _latest_path_commit(repo_root: Path, source_sha: str, repository_path: str, 
     return require_sha(commit, f"{label} SHA")
 
 
-def _legacy_snapshot_commit(repo_root: Path, source_sha: str, snapshot_repo_path: str) -> str:
-    return _latest_path_commit(repo_root, source_sha, snapshot_repo_path, "legacy bootstrap snapshot")
-
-
-def _invalidate_from_legacy_snapshot(repo_root: Path, gamever: str, source_sha: str, bindir: Path) -> int:
-    snapshot_repo_path = f"gamesymbols/{gamever}.yaml"
-    base_sha = _legacy_snapshot_commit(repo_root, source_sha, snapshot_repo_path)
-    _require_ancestor(repo_root, base_sha, source_sha, "legacy snapshot publication SHA")
-    with tempfile.TemporaryDirectory(prefix="release-legacy-base-") as temp_dir:
-        base_config = Path(temp_dir) / "base.yaml"
-        head_config = Path(temp_dir) / "head.yaml"
-        snapshot = Path(temp_dir) / f"{gamever}.yaml"
-        try:
-            base_history = read_analysis_config_at_revision(
-                base_sha,
-                gamever,
-                allow_legacy_root=True,
-                repo_root=repo_root,
-            )
-            head_history = read_analysis_config_at_revision(
-                source_sha,
-                gamever,
-                allow_legacy_root=False,
-                repo_root=repo_root,
-            )
-        except AnalysisConfigError as exc:
-            raise ReleaseWorkflowError(str(exc)) from exc
-        base_config.write_bytes(base_history.data)
-        head_config.write_bytes(head_history.data)
-        snapshot.write_bytes(_git_blob(repo_root, source_sha, snapshot_repo_path))
-        try:
-            base_context = load_snapshot_context(snapshot, base_config, gamever, bindir)
-            restore_snapshot(gamever, bindir, base_config, snapshot, replace=True)
-        except SnapshotMismatchError as exc:
-            if exc.reason == ANALYSIS_OUTPUT_CONTRACT_MISMATCH_REASON:
-                print("Analysis output contract changed; discarding the legacy snapshot baseline")
-                return _invalidate_yaml_baseline(bindir, gamever)
-            raise ReleaseWorkflowError(f"trusted legacy bootstrap snapshot was rejected: {exc}") from exc
-        except (SnapshotError, OSError, UnicodeError) as exc:
-            raise ReleaseWorkflowError(f"trusted legacy bootstrap snapshot was rejected: {exc}") from exc
-        head_contract = load_contract(head_config, gamever, bindir)
-        plan = build_invalidation_plan(
-            base_context.contract,
-            head_contract,
-            base_context.document,
-            base_context.document,
-            _changed_files(repo_root, base_sha, source_sha),
-            repo_root,
-        )
-    print(f"WARNING: explicitly authorized legacy bootstrap from {snapshot_repo_path} at {base_sha}")
-    return _delete_planned_outputs(plan, head_contract.game_root)
-
-
 def _invalidate_from_accepted_manifest(
     repo_root: Path,
     gamever: str,
@@ -336,7 +283,6 @@ def invalidate_republish(
     gamever: str,
     source_sha: str,
     bindir: Path,
-    allow_legacy_bootstrap: bool = False,
 ) -> int:
     repo_root = Path(repo_root).resolve()
     gamever = require_gamever(gamever)
@@ -347,6 +293,4 @@ def invalidate_republish(
     manifest_path = repo_root / "release-manifests" / f"{gamever}.json"
     if manifest_path.is_file():
         return _invalidate_from_accepted_manifest(repo_root, gamever, source_sha, bindir, manifest_path)
-    if allow_legacy_bootstrap:
-        return _invalidate_from_legacy_snapshot(repo_root, gamever, source_sha, bindir)
     return _invalidate_yaml_baseline(bindir, gamever)

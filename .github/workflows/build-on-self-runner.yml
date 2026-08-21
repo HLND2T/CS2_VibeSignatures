@@ -16,11 +16,6 @@ on:
         required: true
         type: choice
         options: [new, republish]
-      allow_legacy_bootstrap:
-        description: Explicitly allow trusted tracked-snapshot bootstrap without an accepted manifest
-        required: false
-        default: false
-        type: boolean
   repository_dispatch:
     types: [build-on-self-runner]
 permissions:
@@ -38,7 +33,6 @@ jobs:
       gamever: ${{ steps.resolve.outputs.gamever }}
       source_sha: ${{ steps.resolve.outputs.source_sha }}
       mode: ${{ steps.resolve.outputs.mode }}
-      allow_legacy_bootstrap: ${{ steps.resolve.outputs.allow_legacy_bootstrap }}
     steps:
       - name: Checkout default branch for trust validation
         id: checkout-trust
@@ -58,16 +52,6 @@ jobs:
           $sourceSha = "${{ inputs.source_sha || github.event.client_payload.source_sha }}"
           $mode = "${{ inputs.mode || github.event.client_payload.mode }}"
           $sourcePullRequest = "${{ github.event.client_payload.source_pull_request }}"
-          $allowLegacyBootstrap = "${{ inputs.allow_legacy_bootstrap || github.event.client_payload.allow_legacy_bootstrap || 'false' }}".ToLowerInvariant()
-          if ($allowLegacyBootstrap -notin @("true", "false")) {
-            throw "allow_legacy_bootstrap must be true or false."
-          }
-          if ($allowLegacyBootstrap -eq "true" -and "${{ github.event_name }}" -ne "workflow_dispatch") {
-            throw "Legacy bootstrap is only allowed for workflow_dispatch."
-          }
-          if ($allowLegacyBootstrap -eq "true" -and $mode -ne "republish") {
-            throw "Legacy bootstrap is only allowed for republish mode."
-          }
           git fetch origin --tags --force "+refs/heads/*:refs/remotes/origin/*"
           uv run release_workflow.py validate-build `
             --repository "${{ github.repository }}" `
@@ -117,7 +101,6 @@ jobs:
           "gamever=$gamever" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "source_sha=$sourceSha" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "mode=$mode" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "allow_legacy_bootstrap=$allowLegacyBootstrap" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
   warmup-idb:
     needs: preflight
     uses: ./.github/workflows/warmup-idb.yml
@@ -133,7 +116,6 @@ jobs:
       GAMEVER: ${{ needs.preflight.outputs.gamever }}
       SOURCE_SHA: ${{ needs.preflight.outputs.source_sha }}
       MODE: ${{ needs.preflight.outputs.mode }}
-      ALLOW_LEGACY_BOOTSTRAP: ${{ needs.preflight.outputs.allow_legacy_bootstrap }}
       IDB_CACHE_GENERATION: ${{ needs.warmup-idb.outputs.generation }}
       IDB_CACHE_KEY: ${{ needs.warmup-idb.outputs.cache_key }}
       BUILD_ID: ${{ github.run_id }}-${{ github.run_attempt }}
@@ -290,16 +272,8 @@ jobs:
         if: env.MODE == 'republish'
         shell: pwsh
         run: |
-          $args = @(
-            'invalidate-republish',
-            '--gamever', $env:GAMEVER,
-            '--source-sha', $env:SOURCE_SHA,
-            '--bindir', 'bin'
-          )
-          if ($env:ALLOW_LEGACY_BOOTSTRAP -eq "true") {
-            $args += '--allow-legacy-bootstrap'
-          }
-          uv run release_workflow.py @args
+          uv run release_workflow.py invalidate-republish `
+            --gamever "$env:GAMEVER" --source-sha "$env:SOURCE_SHA" --bindir bin
       - name: Prepare trusted old-version signature baseline
         id: oldgamever
         shell: pwsh

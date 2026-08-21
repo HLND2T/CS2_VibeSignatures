@@ -42,7 +42,6 @@ def _add_build_parsers(commands) -> None:
     invalidate.add_argument("--gamever", required=True)
     invalidate.add_argument("--source-sha", required=True)
     invalidate.add_argument("--bindir", default="bin")
-    invalidate.add_argument("--allow-legacy-bootstrap", action="store_true")
 
     oldgamever = commands.add_parser("prepare-oldgamever")
     oldgamever.add_argument("--repo-root", default=".")
@@ -212,7 +211,6 @@ def _run_build(args) -> object:
             gamever=args.gamever,
             source_sha=args.source_sha,
             bindir=args.bindir,
-            allow_legacy_bootstrap=args.allow_legacy_bootstrap,
         )
     if args.command == "prepare-oldgamever":
         result = prepare_oldgamever_baseline(
