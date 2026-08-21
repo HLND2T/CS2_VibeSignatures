@@ -68,6 +68,10 @@ class TestPrSelfRunnerWorkflow(unittest.TestCase):
         self.assertIn("published-recheck", actor_gate)
         self.assertIn("pr_published_recheck.py verify-dispatch", preflight_steps["dispatch"]["run"])
         self.assertIn("refs/pull/${PR_NUMBER}/merge", preflight_steps["dispatch-merge"]["run"])
+        classify = preflight_steps["classify-published"]
+        self.assertEqual("github.event_name == 'pull_request'", classify["if"])
+        self.assertIn("classify-pull-request", classify["run"])
+        self.assertIn("steps.classify-published.outputs.validation-path", self.preflight["outputs"]["validation_path"])
 
     def test_warmup_and_full_validation_only_run_on_full_path(self) -> None:
         self.assertEqual("pr-preflight", self.warmup["needs"])
@@ -174,6 +178,8 @@ class TestPrSelfRunnerWorkflow(unittest.TestCase):
         ):
             self.assertNotIn(forbidden, commands)
         self.assertIn("published-recheck", self.recheck_steps["require-recheck-path"]["run"])
+        self.assertEqual("github.event_name == 'pull_request'", self.recheck_steps["verify-pull-request"]["if"])
+        self.assertIn("verify-pull-request", self.recheck_steps["verify-pull-request"]["run"])
 
     def test_submodule_cache_and_bump_partition_are_preserved(self) -> None:
         self.assertEqual("actions/cache@v5", self.steps["restore-submodule-cache"]["uses"])

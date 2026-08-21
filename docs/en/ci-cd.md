@@ -7,7 +7,8 @@ The following Windows batch fragments show the guarded workflow stages.
 For pull requests these candidate, C++, and publication stages are internal to
 `.github/workflows/pr-self-runner.yml`; `create-pr` submits source changes only. After full validation, the workflow
 publishes the exact guarded snapshot/gamedata bytes, pushes a bot commit to the PR head, and explicitly dispatches an
-Ubuntu-only provenance/digest recheck for that new head.
+Ubuntu-only provenance/digest recheck for that new head. If the bot push emits a `pull_request.synchronize` event, PR
+preflight verifies the publication trailers and routes that event to the same lightweight recheck instead of rebuilding.
 
 ## Download binaries
 

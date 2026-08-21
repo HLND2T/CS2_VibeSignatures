@@ -1,9 +1,11 @@
+import json
 import os
 import subprocess
 import tempfile
 import unittest
 from pathlib import Path
 
+import gamedata_contract
 from pr_published_recheck import (
     BOT_EMAIL,
     BOT_NAME,
@@ -11,11 +13,13 @@ from pr_published_recheck import (
     PublishedRecheckError,
     PublicationProvenance,
     canonical_commit_message,
+    classify_pull_request_publication,
     validate_dispatch_inputs,
     verify_dispatch,
     verify_dispatch_stable,
     verify_existing_publication,
     verify_published_commit,
+    verify_worktree_publication,
 )
 
 
@@ -184,6 +188,28 @@ class TestPrPublishedRecheck(unittest.TestCase):
         self.assertEqual("published-recheck", first.validation_path)
         self.assertEqual(first, second)
 
+    def test_valid_bot_commit_classifies_pull_request_as_published_recheck(self) -> None:
+        self.fixture.publish()
+
+        provenance = classify_pull_request_publication(
+            repo_root=self.repo,
+            expected_head_sha=self.fixture.expected_head_sha,
+            validated_base_sha=self.fixture.validated_base_sha,
+        )
+
+        self.assertEqual(self.fixture.provenance, provenance)
+
+    def test_publication_classification_rejects_base_drift(self) -> None:
+        self.fixture.publish()
+
+        provenance = classify_pull_request_publication(
+            repo_root=self.repo,
+            expected_head_sha=self.fixture.expected_head_sha,
+            validated_base_sha="d" * 40,
+        )
+
+        self.assertIsNone(provenance)
+
     def test_existing_bot_commit_reuses_its_original_validated_digests(self) -> None:
         self.fixture.publish()
         rebuilt = PublicationProvenance(
@@ -227,6 +253,108 @@ class TestPrPublishedRecheck(unittest.TestCase):
         self.fixture.publish(extra_path=True)
         with self.assertRaisesRegex(PublishedRecheckError, "disallowed paths"):
             verify_published_commit(self.repo, self.fixture.provenance)
+
+    def test_worktree_gamedata_manifest_matches_candidate_for_case_mixed_tree(self) -> None:
+        # Regression: the worktree inventory must be sorted by the canonical
+        # POSIX string path (case-sensitive), matching
+        # gamedata_contract.prefixed_output_inventory. Sorting raw Path objects
+        # is case-insensitive on Windows and reorders case-mixed trees such as
+        # gamedata/14176, producing a different manifest digest.
+        root = self.repo
+        gamedata_root = root / "gamedata" / "14176"
+        files = {
+            "CS2FOW/gamedata/cs2fow.games.txt": "fow\n",
+            "CounterStrikeSharp/config/data.json": "css\n",
+            "modsharp-public/.asset/core.games.jsonc": "core\n",
+            "modsharp-public/.asset/EntityEnhancement.games.jsonc": "entity\n",
+        }
+        for relative, content in files.items():
+            target = gamedata_root / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(content, encoding="utf-8")
+
+        candidate = root / "gamesymbols" / "14176.yaml"
+        candidate.write_text("snapshot: published\n", encoding="utf-8")
+        inventory = gamedata_contract.prefixed_output_inventory(gamedata_root, "14176")
+        manifest = gamedata_contract.gamedata_manifest_sha256(inventory)
+        # The session file must live outside the repo so it is not flagged as
+        # a disallowed changed path by verify_worktree_publication.
+        with tempfile.TemporaryDirectory() as session_dir:
+            session = Path(session_dir) / "gamedata.session.json"
+            session.write_text(
+                json.dumps(
+                    {
+                        "gamever": "14176",
+                        "candidate_sha256": self._sha256(candidate),
+                        "gamedata_manifest_sha256": manifest,
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            result = verify_worktree_publication(
+                repo_root=root,
+                gamever="14176",
+                candidate=candidate,
+                gamedata_session=session,
+            )
+            self.assertEqual(manifest, result["gamedata_manifest_sha256"])
+
+    def test_worktree_gamedata_rejects_path_sorted_manifest(self) -> None:
+        # Locking the regression: a manifest computed from the case-insensitive
+        # Path sort order must be rejected by verify_worktree_publication.
+        root = self.repo
+        gamedata_root = root / "gamedata" / "14176"
+        files = {
+            "CS2FOW/gamedata/cs2fow.games.txt": "fow\n",
+            "CounterStrikeSharp/config/data.json": "css\n",
+        }
+        for relative, content in files.items():
+            target = gamedata_root / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(content, encoding="utf-8")
+
+        candidate = root / "gamesymbols" / "14176.yaml"
+        candidate.write_text("snapshot: published\n", encoding="utf-8")
+        wrong_inventory = []
+        for path in sorted(gamedata_root.rglob("*")):
+            if path.is_file():
+                relative = path.relative_to(root).as_posix()
+                wrong_inventory.append(
+                    {
+                        "path": relative,
+                        "size": path.stat().st_size,
+                        "sha256": self._sha256(path),
+                    }
+                )
+        wrong_manifest = gamedata_contract.gamedata_manifest_sha256(wrong_inventory)
+        # The session file must live outside the repo so it is not flagged as
+        # a disallowed changed path by verify_worktree_publication.
+        with tempfile.TemporaryDirectory() as session_dir:
+            session = Path(session_dir) / "gamedata.session.json"
+            session.write_text(
+                json.dumps(
+                    {
+                        "gamever": "14176",
+                        "candidate_sha256": self._sha256(candidate),
+                        "gamedata_manifest_sha256": wrong_manifest,
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(PublishedRecheckError, "published gamedata differs"):
+                verify_worktree_publication(
+                    repo_root=root,
+                    gamever="14176",
+                    candidate=candidate,
+                    gamedata_session=session,
+                )
+
+    def _sha256(self, path: Path) -> str:
+        import hashlib
+
+        return hashlib.sha256(path.read_bytes()).hexdigest()
 
     def test_snapshot_digest_mismatch_is_rejected(self) -> None:
         self.fixture.publish(declared_snapshot_sha256="0" * 64)

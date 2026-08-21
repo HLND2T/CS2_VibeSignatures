@@ -185,6 +185,27 @@ def build_actual_document(
     )
 
 
+def _reuse_stable_publish_time(document: dict, source_path: Path, contract) -> dict:
+    if document.get("schema_version") not in {SCHEMA_4_VERSION, SCHEMA_VERSION}:
+        return document
+    try:
+        previous, _raw = load_snapshot_for_contract(source_path, contract, require_canonical=True)
+    except (OSError, SnapshotMismatchError, SnapshotSchemaError):
+        return document
+    previous_time = previous.get("last_publish_time")
+    if not previous_time:
+        return document
+    current_without_time = dict(document)
+    previous_without_time = dict(previous)
+    current_without_time.pop("last_publish_time", None)
+    previous_without_time.pop("last_publish_time", None)
+    if current_without_time != previous_without_time:
+        return document
+    stable = dict(document)
+    stable["last_publish_time"] = previous_time
+    return stable
+
+
 def _validate_snapshot_paths(document: dict, contract) -> None:
     paths = set(document["files"])
     undeclared = sorted(paths - contract.formal_paths)
@@ -302,6 +323,8 @@ def pack_snapshot(
     metadata_source_path = Path(binary_metadata_source_path or snapshot_path)
     binaries = reusable_binary_metadata(metadata_source_path, contract)
     document = build_actual_document(contract, last_publish_time=last_publish_time, binaries=binaries)
+    if last_publish_time is None:
+        document = _reuse_stable_publish_time(document, metadata_source_path, contract)
     data = canonical_snapshot_bytes(document)
     reparsed = parse_snapshot_bytes(data, str(game_version))
     validate_snapshot_contract(reparsed, contract)

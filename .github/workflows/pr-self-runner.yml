@@ -58,10 +58,10 @@ jobs:
       pull-requests: read
     runs-on: ubuntu-latest
     outputs:
-      validation_path: ${{ steps.pull-request.outputs.validation-path || steps.dispatch.outputs.validation_path }}
-      requires_warmup: ${{ steps.pull-request.outputs.requires-warmup || steps.dispatch.outputs.requires_warmup }}
+      validation_path: ${{ steps.classify-published.outputs.validation-path || steps.pull-request.outputs.validation-path || steps.dispatch.outputs.validation_path }}
+      requires_warmup: ${{ steps.classify-published.outputs.requires-warmup || steps.pull-request.outputs.requires-warmup || steps.dispatch.outputs.requires_warmup }}
       pr_number: ${{ steps.pull-request.outputs.pr-number || steps.dispatch.outputs.pr_number }}
-      gamever: ${{ steps.resolve-version.outputs.gamever }}
+      gamever: ${{ steps.classify-published.outputs.gamever || steps.resolve-version.outputs.gamever || steps.dispatch.outputs.gamever }}
       pr_gamever: ${{ steps.resolve-version.outputs.pr_gamever }}
       base_snapshot_path: ${{ steps.resolve-version.outputs.base_snapshot_path }}
       base_snapshot_commit: ${{ steps.resolve-version.outputs.base_snapshot_commit }}
@@ -71,8 +71,9 @@ jobs:
       base_sha: ${{ steps.pull-request.outputs.base-sha || steps.dispatch.outputs.base_sha }}
       pr_title: ${{ steps.pull-request.outputs.pr-title || steps.dispatch.outputs.title }}
       pr_user_login: ${{ steps.pull-request.outputs.pr-user-login || steps.dispatch.outputs.user_login }}
-      snapshot_sha256: ${{ steps.dispatch.outputs.snapshot_sha256 }}
-      gamedata_manifest_sha256: ${{ steps.dispatch.outputs.gamedata_manifest_sha256 }}
+      validated_head_sha: ${{ steps.classify-published.outputs.validated-head-sha || steps.dispatch.outputs.validated_head_sha }}
+      snapshot_sha256: ${{ steps.classify-published.outputs.snapshot-sha256 || steps.dispatch.outputs.snapshot_sha256 }}
+      gamedata_manifest_sha256: ${{ steps.classify-published.outputs.gamedata-manifest-sha256 || steps.dispatch.outputs.gamedata_manifest_sha256 }}
     steps:
       - name: Validate published recheck inputs and actor
         id: validate-dispatch-inputs
@@ -149,6 +150,18 @@ jobs:
           "base-sha=$($baseSha.ToLowerInvariant())" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "pr-title=$title" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "pr-user-login=$env:PR_USER_LOGIN" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+      - name: Classify published PR head
+        id: classify-published
+        if: github.event_name == 'pull_request'
+        shell: pwsh
+        run: |
+          Set-Location "${{ github.workspace }}"
+          python pr_published_recheck.py classify-pull-request `
+            --repo-root "${{ github.workspace }}" `
+            --head-sha "${{ steps.pull-request.outputs.head-sha }}" `
+            --base-sha "${{ steps.pull-request.outputs.base-sha }}" `
+            --github-output "$env:GITHUB_OUTPUT"
+          if ($LASTEXITCODE -ne 0) { throw "Failed to classify the PR publication head." }
       - name: Checkout published PR head
         id: checkout-dispatch-head
         if: github.event_name == 'workflow_dispatch'
@@ -1000,20 +1013,37 @@ jobs:
       pull-requests: read
     runs-on: ubuntu-latest
     outputs:
-      verified_head_sha: ${{ steps.verify.outputs.head_sha }}
-      verified_base_sha: ${{ steps.verify.outputs.base_sha }}
-      snapshot_sha256: ${{ steps.verify.outputs.snapshot_sha256 }}
-      gamedata_manifest_sha256: ${{ steps.verify.outputs.gamedata_manifest_sha256 }}
+      verified_head_sha: ${{ steps.verify-pull-request.outputs.head_sha || steps.verify-dispatch.outputs.head_sha }}
+      verified_base_sha: ${{ steps.verify-pull-request.outputs.base_sha || steps.verify-dispatch.outputs.base_sha }}
+      snapshot_sha256: ${{ steps.verify-pull-request.outputs.snapshot_sha256 || steps.verify-dispatch.outputs.snapshot_sha256 }}
+      gamedata_manifest_sha256: ${{ steps.verify-pull-request.outputs.gamedata_manifest_sha256 || steps.verify-dispatch.outputs.gamedata_manifest_sha256 }}
     steps:
       - name: Checkout exact published head
         id: checkout-published-head
         uses: actions/checkout@v5
         with:
-          ref: ${{ inputs.expected_head_sha }}
+          ref: ${{ github.event_name == 'pull_request' && needs.pr-preflight.outputs.head_sha || inputs.expected_head_sha }}
           fetch-depth: 0
           submodules: false
+      - name: Recheck publication from pull request event
+        id: verify-pull-request
+        if: github.event_name == 'pull_request'
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          VALIDATION_MODE: published-recheck
+          PR_NUMBER: ${{ needs.pr-preflight.outputs.pr_number }}
+          EXPECTED_HEAD_SHA: ${{ needs.pr-preflight.outputs.head_sha }}
+          VALIDATED_HEAD_SHA: ${{ needs.pr-preflight.outputs.validated_head_sha }}
+          VALIDATED_BASE_SHA: ${{ needs.pr-preflight.outputs.base_sha }}
+          GAMEVER: ${{ needs.pr-preflight.outputs.gamever }}
+          SNAPSHOT_SHA256: ${{ needs.pr-preflight.outputs.snapshot_sha256 }}
+          GAMEDATA_MANIFEST_SHA256: ${{ needs.pr-preflight.outputs.gamedata_manifest_sha256 }}
+          PR_HEAD_REF: ${{ needs.pr-preflight.outputs.head_ref }}
+        run: python pr_published_recheck.py verify-pull-request --repo-root . --github-output "$GITHUB_OUTPUT"
       - name: Recheck actor, PR, commit, paths, and output digests
-        id: verify
+        id: verify-dispatch
+        if: github.event_name == 'workflow_dispatch'
         shell: bash
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -1030,7 +1060,7 @@ jobs:
         id: require-recheck-path
         shell: bash
         env:
-          VALIDATION_PATH: ${{ steps.verify.outputs.validation_path }}
+          VALIDATION_PATH: ${{ steps.verify-pull-request.outputs.validation_path || steps.verify-dispatch.outputs.validation_path }}
         run: |
           if [[ "$VALIDATION_PATH" != "published-recheck" ]]; then
             echo "PR base advanced after preflight; this run cannot reuse the old full validation." >&2
@@ -1064,10 +1094,10 @@ jobs:
           VERIFIED_BASE_SHA: ${{ needs.pr-published-recheck.outputs.verified_base_sha }}
           VERIFIED_SNAPSHOT_SHA256: ${{ needs.pr-published-recheck.outputs.snapshot_sha256 }}
           VERIFIED_GAMEDATA_MANIFEST_SHA256: ${{ needs.pr-published-recheck.outputs.gamedata_manifest_sha256 }}
-          EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
-          EXPECTED_BASE_SHA: ${{ inputs.validated_base_sha }}
-          EXPECTED_SNAPSHOT_SHA256: ${{ inputs.snapshot_sha256 }}
-          EXPECTED_GAMEDATA_MANIFEST_SHA256: ${{ inputs.gamedata_manifest_sha256 }}
+          EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha || needs.pr-preflight.outputs.head_sha }}
+          EXPECTED_BASE_SHA: ${{ inputs.validated_base_sha || needs.pr-preflight.outputs.base_sha }}
+          EXPECTED_SNAPSHOT_SHA256: ${{ inputs.snapshot_sha256 || needs.pr-preflight.outputs.snapshot_sha256 }}
+          EXPECTED_GAMEDATA_MANIFEST_SHA256: ${{ inputs.gamedata_manifest_sha256 || needs.pr-preflight.outputs.gamedata_manifest_sha256 }}
         run: |
           set -euo pipefail
           [[ "$PREFLIGHT_RESULT" == "success" ]]

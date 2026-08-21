@@ -367,6 +367,11 @@ modules:
       - name: find-CNetworkSystem_vtable
         expected_output:
           - CNetworkSystem_vtable.{platform}.yaml
+      - name: find-CNetworkSystem_InitGameServer
+        expected_output:
+          - CNetworkSystem_InitGameServer.{platform}.yaml
+        expected_input:
+          - CNetworkSystem_vtable.{platform}.yaml
       - name: find-CNetworkSystem_SendNetworkStats
         expected_output:
           - CNetworkSystem_SendNetworkStats.{platform}.yaml
@@ -514,6 +519,10 @@ modules:
         shared: true
       - name: CNetworkSystem_vtable
         category: vtable
+      - name: CNetworkSystem_InitGameServer
+        category: vfunc
+        alias:
+          - CNetworkSystem::InitGameServer
       - name: CNetworkSystem_SendNetworkStats
         category: func
         alias:
