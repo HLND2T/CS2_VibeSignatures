@@ -60,11 +60,17 @@ candidate `build` 与 low-level/bootstrap `pack` 会拒绝缺失 required output
 
 ## Pull request 输出合约
 
-可能影响分析或 gamedata generator 输出的 PR，必须在实际 bytes 变化时同时提交匹配的 `gamesymbols/<GAMEVER>.yaml` 和 `gamedata/<GAMEVER>/` 输出。
+可能影响分析或 gamedata generator 输出的 PR，初始只提交 source change。匹配的
+`gamesymbols/<GAMEVER>.yaml` 与 `gamedata/<GAMEVER>/` 输出归 PR CI 所有。
 
 PR CI 使用可信的 base snapshot 执行 restore 和 targeted invalidation。base snapshot 缺失时从干净 YAML bootstrap；base snapshot 不可信时输出 warning，并在不恢复 baseline payload 的情况下走同一个 clean full-rebuild 路径。
 
-随后，工作流会 strict-pack actual symbol candidate，将其与 PR head snapshot 比较，再由 actual candidate 构建 guarded gamedata，并与显式 PR head Git revision 中的 raw gamedata blob inventory 比较。head output 只代表 expected result；downstream validation 使用 actual candidate transaction。普通 PR workflow 不会自动修复、stage、commit、publish 或改写缺失的 tracked output。
+随后，workflow strict-pack 一份 actual symbol candidate，由它构建 guarded gamedata，并使用同一 candidate
+transaction 运行 C++ 验证。成功后，workflow checkout immutable PR head，发布这批精确 bytes，把 diff 限制在
+对应版本的 snapshot/gamedata 路径，以 `github-actions[bot]` 创建带 provenance 的 commit，并在确认远端 head
+未漂移后执行普通 push。由于 `GITHUB_TOKEN` push 不会递归触发 PR workflow，CI 会为 published head 显式
+dispatch 轻量 recheck；该 recheck 会核对 actor、实时 PR 状态、parent/base SHA、commit message、允许路径以及
+两个 output digest，全部通过后稳定的 `pr-validate` check 才会成功。
 
 ## 支持的 gamedata
 

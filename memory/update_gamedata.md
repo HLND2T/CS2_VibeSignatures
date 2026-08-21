@@ -40,6 +40,6 @@ symbol candidate + config -> trusted generator contract
 
 ## Callers
 - Build and PR self-runner workflows.
-- `create-pr` orchestrates candidate build and validated publication for staged local changes.
-- `prepare-post-change-candidate` builds isolated candidate gamedata.
-- `publish-post-change-candidate` publishes validated candidate gamedata.
+- `pr-self-runner.yml` builds an isolated gamedata candidate from the validated symbol candidate for C++ ABI and
+  contract checks; it does not publish it. Versioned `gamedata/<GAMEVER>` publication is release-pipeline only.
+- `create-pr` delivers source changes only and delegates PR gamedata generation/validation to CI.

@@ -6,102 +6,171 @@ from tests.workflow_contract_test_support import load_workflow, step_order, step
 class TestPrSelfRunnerWorkflow(unittest.TestCase):
     def setUp(self) -> None:
         self.workflow = load_workflow("pr-self-runner.yml")
-        self.validate = workflow_job(self.workflow, "validate")
-        self.steps = steps_by_id(self.validate)
+        self.preflight = workflow_job(self.workflow, "pr-preflight")
+        self.warmup = workflow_job(self.workflow, "pr-warmup-idb")
+        self.full = workflow_job(self.workflow, "pr-validate-full")
+        self.terminal = workflow_job(self.workflow, "pr-validate")
+        self.steps = steps_by_id(self.full)
 
-    def test_trigger_permissions_and_event_job_partition(self) -> None:
+    def test_triggers_permissions_and_stable_terminal_check(self) -> None:
         self.assertEqual(
             ["opened", "synchronize", "reopened", "ready_for_review", "closed"],
             self.workflow["on"]["pull_request"]["types"],
         )
+        self.assertNotIn("workflow_dispatch", self.workflow["on"])
         self.assertEqual({"contents": "read"}, self.workflow["permissions"])
-        self.assertIn("github.event.action != 'closed'", self.validate["if"])
-        self.assertIn("startsWith(github.event.pull_request.head.ref, 'bump-download/')", self.validate["if"])
-        self.assertIn("startsWith(github.event.pull_request.head.ref, 'gamesymbols/build/')", self.validate["if"])
-        finalize = workflow_job(self.workflow, "finalize-pr-workspace")
-        self.assertIn("github.event.action == 'closed'", finalize["if"])
-        steps_by_id(finalize)
+        self.assertEqual({"pull-requests": "read"}, self.full["permissions"])
+        self.assertEqual("pr-validate", self.terminal["name"])
+        self.assertEqual(["pr-preflight", "pr-validate-full"], self.terminal["needs"])
+        self.assertNotIn("pr-published-recheck", self.workflow["jobs"])
+        terminal_run = steps_by_id(self.terminal)["terminal"]["run"]
+        self.assertIn('PREFLIGHT_RESULT" == "success', terminal_run)
+        self.assertIn('FULL_RESULT" == "success', terminal_run)
+        self.assertNotIn("published-recheck", terminal_run)
+        self.assertNotIn("RECHECK_RESULT", terminal_run)
 
-    def test_unit_and_contract_suites_precede_analysis_and_validation(self) -> None:
-        run = self.steps["test-suites"]["run"]
+    def test_event_normalization_and_phase_separated_concurrency(self) -> None:
+        group = self.workflow["concurrency"]["group"]
+        self.assertIn("github.event.pull_request.number", group)
+        self.assertNotIn("inputs.pr_number", group)
+        self.assertNotIn("recheck-{0}", group)
+        self.assertNotIn("inputs.expected_head_sha", group)
+        self.assertTrue(self.workflow["concurrency"]["cancel-in-progress"])
+        self.assertNotIn("github.event_name == 'workflow_dispatch'", self.preflight["if"])
+        self.assertIn("github.event.pull_request.head.repo.full_name == github.repository", self.preflight["if"])
+        preflight_steps = steps_by_id(self.preflight)
+        self.assertNotIn("validate-dispatch-inputs", preflight_steps)
+        self.assertNotIn("classify-published", preflight_steps)
+        self.assertNotIn("dispatch", preflight_steps)
+        self.assertNotIn("dispatch-merge", preflight_steps)
+
+    def test_warmup_and_full_validation_only_run_on_full_path(self) -> None:
+        self.assertEqual("pr-preflight", self.warmup["needs"])
+        self.assertEqual("./.github/workflows/warmup-idb.yml", self.warmup["uses"])
+        self.assertIn("validation_path == 'full'", self.warmup["if"])
+        self.assertEqual("${{ needs.pr-preflight.outputs.gamever }}", self.warmup["with"]["gamever"])
+        self.assertEqual("${{ needs.pr-preflight.outputs.source_sha }}", self.warmup["with"]["source_sha"])
+        self.assertEqual(["pr-preflight", "pr-warmup-idb"], self.full["needs"])
+        self.assertIn("needs.pr-preflight.outputs.validation_path == 'full'", self.full["if"])
+        self.assertIn("needs.pr-warmup-idb.result == 'success'", self.full["if"])
+
+    def test_full_validation_build_test_stage_order(self) -> None:
+        test_run = self.steps["test-suites"]["run"]
         for suite_name in ("unit", "repository-contract", "redis-integration", "release-integration", "all"):
-            self.assertIn(suite_name, run)
+            self.assertIn(suite_name, test_run)
         order = step_order(
-            self.validate,
+            self.full,
             "format",
             "restore-base",
             "test-suites",
             "analyze",
             "build-snapshot",
-            "compare-snapshot",
             "build-gamedata",
             "select-sdk",
             "cpp-tests",
             "restore-sdk",
             "mark-success",
+            "stage-yaml",
             "cleanup",
         )
         self.assertEqual(sorted(order), order)
+        self.assertNotIn("compare-snapshot", self.steps)
+        self.assertNotIn("publication", self.steps)
+        self.assertNotIn("push-publication", self.steps)
+        self.assertNotIn("dispatch-published-recheck", self.steps)
 
-    def test_pr_validation_uses_one_candidate_and_never_publishes(self) -> None:
-        self.assertIn("ACTUAL_CANDIDATE_SNAPSHOT=$candidate", self.steps["build-snapshot"]["run"])
-        self.assertIn('-expected "$env:HEAD_SNAPSHOT"', self.steps["compare-snapshot"]["run"])
+    def test_candidate_and_gamedata_are_built_and_validated(self) -> None:
+        build = self.steps["build-snapshot"]["run"]
+        self.assertIn("ACTUAL_CANDIDATE_SNAPSHOT=$candidate", build)
+        self.assertIn("SNAPSHOT_SHA256=$snapshotSha256", build)
+        self.assertIn("gamedata-generators", build)
         gamedata = self.steps["build-gamedata"]["run"]
         self.assertIn('-snapshot "$env:ACTUAL_CANDIDATE_SNAPSHOT"', gamedata)
-        self.assertIn("gamedata_candidate.py verify-tracked", gamedata)
-        self.assertIn('-session "$env:GAMEDATA_SESSION"', gamedata)
-        self.assertIn('-gamever "$env:GAMEVER"', gamedata)
-        self.assertIn('-candidate "$env:ACTUAL_CANDIDATE_SNAPSHOT"', gamedata)
-        self.assertIn('-configyaml "$env:HEAD_CONFIG"', gamedata)
-        self.assertIn('-repo-root "$env:WORKSPACE"', gamedata)
-        self.assertIn("-revision HEAD", gamedata)
-        self.assertIn("tracked gamedata verification failed", gamedata)
-        self.assertLess(
-            gamedata.index("gamedata_candidate.py guard"), gamedata.index("gamedata_candidate.py verify-tracked")
-        )
-        self.assertLess(
-            gamedata.index("gamedata_candidate.py verify-tracked"),
-            gamedata.index("gamesymbol_candidate.py mark"),
-        )
+        self.assertIn('-modulesdir "$env:GAMEDATA_MODULES_DIR"', gamedata)
+        self.assertIn("GAMEDATA_MANIFEST_SHA256=$gamedataManifestSha256", gamedata)
+        self.assertNotIn("gamedata_candidate.py verify-tracked", gamedata)
         self.assertIn('-snapshot "$env:ACTUAL_CANDIDATE_SNAPSHOT"', self.steps["cpp-tests"]["run"])
-        commands = "\n".join(str(step.get("run", "")) for step in self.validate["steps"])
-        self.assertNotIn("gamesymbol_candidate.py publish", commands)
-        self.assertNotIn("gamedata_candidate.py publish", commands)
-        self.assertNotIn("gh release", commands)
-        self.assertNotIn("git commit", commands)
-        self.assertNotIn("git push", commands)
-        self.assertNotIn("gh pr", commands)
+        self.assertNotIn("gamesymbol_candidate.py publish", build)
+        self.assertNotIn("gamedata_candidate.py publish", gamedata)
 
-    def test_baseline_bootstrap_has_explicit_contract_and_path_safety_gates(self) -> None:
-        run = self.steps["restore-base"]["run"]
+    def test_submodule_cache_and_bump_partition_are_preserved(self) -> None:
+        self.assertEqual("actions/cache@v5", self.steps["restore-submodule-cache"]["uses"])
+        self.assertIn(
+            "git submodule update --init --recursive --depth 1 --jobs 8",
+            self.steps["sync-submodules"]["run"],
+        )
+        self.assertIn("git ls-tree HEAD", self.steps["submodule-cache-key"]["run"])
+        self.assertNotIn("submodule status --recursive", self.steps["submodule-cache-key"]["run"])
+        condition = "steps.detect-bump.outputs.is-bump != 'true'"
+        for step_id in ("submodule-cache-key", "restore-submodule-cache", "sync-submodules"):
+            self.assertEqual(condition, self.steps[step_id]["if"])
+        order = step_order(
+            self.full,
+            "checkout-merge",
+            "verify-source",
+            "detect-bump",
+            "submodule-cache-key",
+            "restore-submodule-cache",
+            "sync-submodules",
+            "format",
+            "bump-light",
+        )
+        self.assertEqual(sorted(order), order)
 
-        self.assertIn("gamesymbol_snapshot.py check-contract", run)
-        self.assertIn("gamesymbol_snapshot.py restore", run)
-        self.assertIn("gamesymbol_pr_validation.py invalidate", run)
-        self.assertIn("if ($probeExitCode -eq 0)", run)
-        self.assertIn("elseif ($probeExitCode -eq 3)", run)
-        self.assertIn("Bootstrap cleanup path must not traverse a reparse point", run)
-        self.assertIn('Get-ChildItem -LiteralPath $gameRoot -Recurse -File -Filter "*.yaml"', run)
-        self.assertNotIn("Remove-Item -LiteralPath $gameRoot -Recurse", run)
-
-    def test_version_config_and_sdk_identity_are_consistent(self) -> None:
+    def test_baseline_cache_version_and_sdk_contracts_are_preserved(self) -> None:
+        restore = self.steps["restore-base"]["run"]
+        self.assertIn("gamesymbol_snapshot.py check-contract", restore)
+        self.assertIn("gamesymbol_snapshot.py restore", restore)
+        self.assertIn("gamesymbol_pr_validation.py invalidate", restore)
+        self.assertIn("Bootstrap cleanup path must not traverse a reparse point", restore)
+        self.assertNotIn("Remove-Item -LiteralPath $gameRoot -Recurse", restore)
+        self.assertIn("idb_cache.py restore", self.steps["restore-idb-cache"]["run"])
+        self.assertIn("IDB_CACHE_GENERATION", self.steps["restore-idb-cache"]["run"])
+        self.assertIn("--cache-key", self.steps["restore-idb-cache"]["run"])
         self.assertIn("PR_GAMEVER=$gamever", self.steps["select-version"]["run"])
-        self.assertIn("BASE_GAMEVER=$baseGamever", self.steps["base-snapshot"]["run"])
         self.assertIn("HEAD_CONFIG=$headConfig", self.steps["base-snapshot"]["run"])
-        self.assertIn('-configyaml "$env:HEAD_CONFIG"', self.steps["analyze"]["run"])
-        self.assertIn('-configyaml "$env:HEAD_CONFIG"', self.steps["cpp-tests"]["run"])
+        self.assertIn('Export-GitBlob "HEAD" "configs/$validationGamever.yaml"', self.steps["base-snapshot"]["run"])
+        self.assertIn("-require_warm_idb", self.steps["analyze"]["run"])
         self.assertEqual("always()", self.steps["restore-sdk"]["if"])
         self.assertIn('git -C $sdkPath checkout --detach "$env:SDK_PINNED_SHA"', self.steps["restore-sdk"]["run"])
 
-    def test_closed_event_cleanup_leaves_workspace_before_safe_deletion(self) -> None:
-        finalize = workflow_job(self.workflow, "finalize-pr-workspace")
-        step = steps_by_id(finalize)["finalize-workspace"]
-        run = step["run"]
+    def test_analyzed_yaml_staging_is_final_validation_output(self) -> None:
+        run = self.steps["stage-yaml"]["run"]
+        self.assertIn('Join-Path $env:PERSISTED_WORKSPACE "pr-yaml-staging"', run)
+        self.assertIn('robocopy $gameRoot $runStaging "*.yaml" /S', run)
+        self.assertIn("gamever.txt", run)
+        order = step_order(self.full, "mark-success", "stage-yaml", "cleanup")
+        self.assertEqual(sorted(order), order)
+        self.assertNotIn("select-publication-head", self.steps)
 
-        self.assertIn("Set-Location $workspaceRoot", run)
-        self.assertIn("Remove-Item -LiteralPath $prWorkspace -Recurse -Force", run)
-        self.assertLess(run.index("Set-Location $workspaceRoot"), run.index("Remove-Item -LiteralPath $prWorkspace"))
-        self.assertIn("Refusing to remove PR workspace because it is a reparse point", run)
+    def test_full_checkout_uses_normalized_preflight_values(self) -> None:
+        checkout = self.steps["checkout-merge"]
+        self.assertEqual("actions/checkout@v5", checkout["uses"])
+        self.assertEqual("${{ needs.pr-preflight.outputs.source_sha }}", checkout["with"]["ref"])
+        self.assertEqual(0, checkout["with"]["fetch-depth"])
+        self.assertIn("PR_SOURCE_SHA", self.steps["verify-source"]["run"])
+        self.assertNotIn("PR_HEAD_SHA", self.full["env"])
+        self.assertEqual("${{ needs.pr-preflight.outputs.head_ref }}", self.full["env"]["PR_HEAD_REF"])
+
+    def test_untrusted_pr_fields_are_passed_via_environment(self) -> None:
+        identify = steps_by_id(self.preflight)["pull-request"]
+        detect = self.steps["detect-bump"]
+        for step in (identify, detect):
+            run = step["run"]
+            self.assertIn("$env:PR_TITLE", run)
+            self.assertIn("$env:PR_HEAD_REF", run)
+            self.assertIn("$env:PR_USER_LOGIN", run)
+            self.assertNotIn("${{ github.event.pull_request.title }}", run)
+
+    def test_closed_event_still_promotes_staged_yaml_on_merge(self) -> None:
+        finalize = workflow_job(self.workflow, "finalize-pr-workspace")
+        self.assertIn("github.event.action == 'closed'", finalize["if"])
+        run = steps_by_id(finalize)["finalize-workspace"]["run"]
+        self.assertIn("pr-yaml-staging", run)
+        self.assertIn("gamever.txt", run)
+        self.assertIn('robocopy $latestRun.FullName $targetGamever "*.yaml" /S', run)
+        self.assertNotIn("*.i64", run)
+        self.assertNotIn("$RUNNER_WORKSPACE", run)
 
 
 if __name__ == "__main__":

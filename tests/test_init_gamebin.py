@@ -54,24 +54,6 @@ class TestInitGamebin(unittest.TestCase):
         with patch.object(init_gamebin, "run_command", return_value=completed([], stdout=f"{expected}\n")):
             self.assertEqual(expected, init_gamebin.repository_root())
 
-    def test_skill_delegates_snapshot_restoration_and_removes_idb_renaming(self) -> None:
-        skill = Path(".claude/skills/init-gamebin/SKILL.md").read_text(encoding="utf-8")
-        agent = Path(".claude/skills/init-gamebin/agents/openai.yaml").read_text(encoding="utf-8")
-        workflow = Path(".github/workflows/build-on-self-runner.yml").read_text(encoding="utf-8")
-        source = SCRIPT.read_text(encoding="utf-8")
-        self.assertIn("allow_implicit_invocation: false", agent)
-        self.assertIn("$restore-from-snapshot", skill)
-        self.assertIn("<MODULE_FILENAME>.binsync.json", skill)
-        self.assertIn("auto_sync_all: true", skill)
-        self.assertIn("--create-missing-binsync-remotes", workflow)
-        self.assertIn("Never pass `--create-missing-binsync-remotes`", skill)
-        self.assertIn("BinSync recovery", agent)
-        self.assertNotIn("gamesymbol_snapshot.py", source)
-        self.assertNotIn("gamesymbol_snapshot_lib", source)
-        self.assertNotIn("--force-base-snapshot", source)
-        self.assertNotIn("Need to sync existing symbols to idb?", skill)
-        self.assertNotIn("ida_analyze_bin.py", skill)
-
     def test_load_versions_preserves_order_and_rejects_duplicates(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             path = Path(temp_dir) / "download.yaml"

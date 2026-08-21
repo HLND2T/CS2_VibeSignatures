@@ -10,6 +10,7 @@ from gamesymbol_snapshot_lib.config import load_contract
 from gamesymbol_snapshot_lib.errors import SnapshotMismatchError, SnapshotSchemaError
 from gamesymbol_snapshot_lib.operations import (
     build_actual_document,
+    check_snapshot_contract,
     load_snapshot_for_contract,
     pack_snapshot,
     restore_snapshot,
@@ -182,6 +183,37 @@ class TestRestoreAndVerify(unittest.TestCase):
         self.assertEqual("14168", document["game_version"])
         self.assertTrue(raw)
         canonical_snapshot_bytes.assert_not_called()
+
+    def test_contract_check_uses_non_durable_temporary_writes(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            workspace = SnapshotWorkspace(Path(temp_dir))
+            workspace.write_required()
+            expected = workspace.pack()
+
+            with patch("gamesymbol_snapshot_lib.operations.os.fsync") as fsync:
+                context = check_snapshot_contract(
+                    "14168",
+                    workspace.bindir,
+                    workspace.config,
+                    workspace.snapshot,
+                )
+
+        self.assertEqual(expected, context.raw_bytes)
+        fsync.assert_not_called()
+
+    def test_restore_keeps_durable_output_writes(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            workspace = SnapshotWorkspace(Path(temp_dir))
+            workspace.write_required()
+            workspace.pack()
+            game_root = workspace.bindir / "14168"
+            for symbol in (game_root / "server/A.windows.yaml", game_root / "server/A.linux.yaml"):
+                symbol.unlink()
+
+            with patch("gamesymbol_snapshot_lib.operations.os.fsync") as fsync:
+                restore_snapshot("14168", workspace.bindir, workspace.config, workspace.snapshot, replace=True)
+
+        self.assertEqual(2, fsync.call_count)
 
     def test_replace_restores_round_trip_and_preserves_non_yaml_files(self) -> None:
         with TemporaryDirectory() as temp_dir:

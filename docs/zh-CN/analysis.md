@@ -24,7 +24,7 @@ Analyzer 为 `configs/<GAMEVER>.yaml` 声明的符号查找并生成 signatures�
 命令概要：
 
 ```bash
-uv run ida_analyze_bin.py -gamever 14156 [-oldgamever=14155] [-configyaml=path/to/custom.yaml] [-modules=server] [-skill=find-CBaseEntity_vtable] [-platform=windows] [-agent=claude/codex/opencode/"claude.cmd"/"codex.cmd"/"opencode.cmd"] [-maxretry=3] [-vcall_finder=g_pNetworkMessages] [-llm_model=gpt-4o] [-llm_apikey=your-key] [-llm_baseurl=https://api.example.com/v1] [-llm_temperature=0.2] [-llm_effort=medium] [-llm_fake_as=codex] [-rename] [-debug]
+uv run ida_analyze_bin.py -gamever 14156 [-oldgamever=14155] [-configyaml=path/to/custom.yaml] [-modules=server] [-skill=find-CBaseEntity_vtable] [-platform=windows] [-agent=claude/codex/opencode/"claude.cmd"/"codex.cmd"/"opencode.cmd"] [-maxretry=3] [-vcall_finder=g_pNetworkMessages] [-llm_model=gpt-4o] [-llm_apikey=your-key] [-llm_baseurl=https://api.example.com/v1] [-llm_temperature=0.2] [-llm_effort=medium] [-llm_fake_as=codex] [-require_warm_idb] [-rename] [-debug]
 ```
 
 可选 LLM 参数：
@@ -46,6 +46,7 @@ Analyzer 行为：
 - 推荐顺序为：纯程序化 preprocessor、`LLM_DECOMPILE` preprocessor、Agent skill。
 - `-skill=<exact-name>` 只在当前 `-modules` 过滤范围内运行名称完全匹配的 skill。它不会自动运行前置 skill；必需的 `expected_input` artifact 必须已存在。
 - `-rename` 对已有 expected-output YAML 执行 rename/comment 后处理。
+- `-require_warm_idb` 要求预先存在 `.i64`/`.idb`。数据库缺失或 binary identity 校验失败时，当前 binary 会直接失败，不会删除数据库并通过 inline auto-analysis 重建。PR 与 release CI 在恢复已发布 cache generation 后始终启用该模式。
 
 进度上报、Redis Scheduler 和进度看板见[进度上报、调度与看板](process-monitoring.md)。
 

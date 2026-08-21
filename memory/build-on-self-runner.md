@@ -7,38 +7,33 @@ permalink: cs2-vibesignatures/build-on-self-runner
 # Build On Self Runner
 
 ## Overview
-`.github/workflows/build-on-self-runner.yml` builds one immutable symbol candidate and one isolated versioned gamedata candidate, validates both before review, and stops after creating the generated-output PR. PR merge remains the only promotion gate.
-
+`.github/workflows/build-on-self-runner.yml` validates an exact release source, requires a published warm IDB cache generation, builds immutable symbol/gamedata candidates, stages the private bin tree without IDA databases, and creates the generated-output PR. The PR merge remains the promotion gate for accepted release state, but warm-cache publication is available earlier and independently.
 ## Responsibilities
-- Resolve exact `GAMEVER`, `SOURCE_SHA`, mode, and legacy-bootstrap policy before using the self-hosted runner.
-- Restore/invalidate analyzer state, run normal producer scheduling, and build one immutable symbol candidate.
-- Generate strict gamedata below `RUNNER_TEMP`, guard it, then run C++ tests against the unchanged symbol candidate.
-- Publish only `gamesymbols/<GAMEVER>.yaml` and `gamedata/<GAMEVER>/`.
-- Stage private bin plus transaction metadata, write release manifest schema 4, and create an immutable output PR.
-
+- Resolve exact `GAMEVER`, `SOURCE_SHA`, and mode.
+- Call [[warmup_idb]] as a required reusable job and receive an immutable generation/cache key.
+- Copy accepted persisted analysis state without IDA database files, verify the consumer IDA kernel version, then restore binaries and `.i64` only from the returned generation.
+- Run `ida_analyze_bin.py -require_warm_idb`; cache absence, damage, or identity failure blocks release analysis.
+- Build and validate immutable symbol/gamedata candidates.
+- Stage the analyzed private bin tree without IDA database artifacts, then create an immutable generated-output PR.
 ## Involved Files & Symbols
-- `.github/workflows/build-on-self-runner.yml` - release build and output-PR creation.
-- `gamesymbol_candidate.py` - symbol candidate lifecycle.
-- `gamedata_candidate.py` - versioned gamedata candidate lifecycle.
-- `release_workflow_lib/staging.py` - `stage_build`, `finalize_stage`, `write_pr_index`.
-- `release_workflow_lib/manifests.py` - schema and tracked-output verification.
-
+- `.github/workflows/build-on-self-runner.yml` - release caller, strict cache restore, analysis, staging, and output-PR creation.
+- `.github/workflows/warmup-idb.yml` - required reusable producer.
+- `idb_cache.py` - explicit generation restore.
+- `ida_analyze_bin.py` - strict `-require_warm_idb` analysis.
+- `release_workflow_lib/staging.py` - `stage_build`, `finalize_stage`, and full private-bin inventory.
+- `release_workflow_lib/promotion.py` - later transactional accepted-bin promotion.
+- `tests/test_build_self_runner_workflow.py` - caller/restore/strict-analysis contracts.
 ## Architecture
-```text
-SOURCE_SHA -> analyze bin -> symbol candidate -> isolated gamedata candidate
-           -> gamedata + C++ validation -> publish tracked outputs
-           -> private bin staging -> generated-output PR
-```
-
+Preflight -> required reusable warm-cache producer -> consumer IDA identity check -> exact generation restore -> strict analysis -> immutable symbol and gamedata validation -> IDB-free private-bin staging -> generated-output PR. After that PR merges, [[promote-release-after-output-merge]] verifies the staged inventory and transactionally replaces accepted `PERSISTED_WORKSPACE/bin/<GAMEVER>`.
 ## Dependencies
-- `configs/<GAMEVER>.yaml`, `gamedata-generators/`, persisted depot/bin, protected Windows runner.
+- [[warmup_idb]] and its published `PERSISTED_WORKSPACE/idb-cache/<GAMEVER>` generation.
+- `configs/<GAMEVER>.yaml`, `gamedata-generators/`, accepted persisted YAML state, and protected Windows runner.
 - [[promote-release-after-output-merge]].
-
 ## Notes
-- Output PR paths are exactly the requested snapshot, `gamedata/<GAMEVER>/**`, and release manifest.
-- Historical republish never changes another version directory.
-- Private staging contains no gamedata.
-
+- The build no longer runs best-effort warmup inline and never consumes `.i64` from accepted `PERSISTED_WORKSPACE/bin/<GAMEVER>`.
+- `stage-build` excludes `.i64`, legacy `.idb`, and all known IDA side files before building the private inventory. Promotion therefore removes any historical accepted IDB copies instead of duplicating the warm-cache payload.
+- Output PR paths remain exactly the requested snapshot, `gamedata/<GAMEVER>/**`, and release manifest.
 ## Callers
-- `repository_dispatch.types: [build-on-self-runner]`.
-- Machine-oriented `workflow_dispatch`.
+- `repository_dispatch.types: [build-on-self-runner]` only for a provenance-verified merged `bump-download/<GAMEVER>` PR.
+- Machine-oriented `workflow_dispatch` for explicit human-authorized retries and republishes.
+- Scheduled bump discovery never retries an accepted version whose release build failed; a failed automatic attempt requires explicit human dispatch.

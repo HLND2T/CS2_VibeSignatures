@@ -6172,11 +6172,6 @@ modules:
       - name: find-CGameRules_vtable
         expected_output:
           - CGameRules_vtable.{platform}.yaml
-      - name: find-CGameRules_GetChatPrefix
-        expected_output:
-          - CGameRules_GetChatPrefix.{platform}.yaml
-        expected_input:
-          - CGameRules_vtable.{platform}.yaml
       - name: find-CGameRulesGameSystem_vtable
         expected_output:
           - CGameRulesGameSystem_vtable.{platform}.yaml
@@ -6380,6 +6375,11 @@ modules:
       - name: find-CBasePlayerPawn_PrePhysicsSimulate
         expected_output:
           - CBasePlayerPawn_PrePhysicsSimulate.{platform}.yaml
+        expected_input:
+          - CBasePlayerPawn_vtable.{platform}.yaml
+      - name: find-CBasePlayerPawn_PhysicsSimulate
+        expected_output:
+          - CBasePlayerPawn_PhysicsSimulate.{platform}.yaml
         expected_input:
           - CBasePlayerPawn_vtable.{platform}.yaml
       - name: find-CBasePlayerPawn_OnTakeDamage-decompiles
@@ -7093,6 +7093,11 @@ modules:
       - name: find-CGameRules_ClientSettingsChanged
         expected_output:
           - CGameRules_ClientSettingsChanged.{platform}.yaml
+        expected_input:
+          - CGameRules_vtable.{platform}.yaml
+      - name: find-CGameRules_SetGamePaused
+        expected_output:
+          - CGameRules_SetGamePaused.{platform}.yaml
         expected_input:
           - CGameRules_vtable.{platform}.yaml
       - name: find-CGameRulesGameSystem_OnGameInit
@@ -7951,6 +7956,15 @@ modules:
       - name: find-CPhysicsGameSystem_ProcessContactEvents
         expected_output:
           - CPhysicsGameSystem_ProcessContactEvents.{platform}.yaml
+      - name: find-PhysCollisionDust
+        expected_output:
+          - PhysCollisionDust.{platform}.yaml
+      - name: find-CBaseEntity_VPhysicsCollision
+        expected_output:
+          - CBaseEntity_VPhysicsCollision.{platform}.yaml
+        expected_input:
+          - PhysCollisionDust.{platform}.yaml
+          - CBaseEntity_vtable.{platform}.yaml
       - name: find-CPhysicsGameSystem_ProcessContactEvents-decompiles
         expected_output:
           - IVPhys2World_GetTouchingList.{platform}.yaml
@@ -8705,6 +8719,9 @@ modules:
       - name: find-CLoopModeGame_RegisterEventMapInternal-server
         expected_output:
           - CLoopModeGame_RegisterEventMapInternal.{platform}.yaml
+      - name: find-CLoopModeGame_dtor
+        expected_output:
+          - CLoopModeGame_dtor.{platform}.yaml
       - name: find-CLoopModeGame_OnEventMapCallbacks-server
         expected_output:
           - RegisterEventListener_Abstract.{platform}.yaml
@@ -8717,6 +8734,12 @@ modules:
           - CLoopModeGame_OnFrameBoundary.{platform}.yaml
         expected_input:
           - CLoopModeGame_RegisterEventMapInternal.{platform}.yaml
+      - name: find-CLoopModeGame_RegisterEventMap
+        expected_output:
+          - CLoopModeGame_RegisterEventMap.{platform}.yaml
+        expected_input:
+          - CLoopModeGame_RegisterEventMapInternal.{platform}.yaml
+          - CLoopModeGame_vtable.{platform}.yaml
       - name: find-IGameSystem_OnServerAdvanceTick
         expected_output:
           - IGameSystem_OnServerAdvanceTick.{platform}.yaml
@@ -9275,10 +9298,6 @@ modules:
           - IGameSystem::GameInit
       - name: CGameRules_vtable
         category: vtable
-      - name: CGameRules_GetChatPrefix
-        category: vfunc
-        alias:
-          - CGameRules::GetChatPrefix
       - name: CGameRulesGameSystem_vtable
         category: vtable
       - name: CMultiplayRules_vtable
@@ -9626,6 +9645,10 @@ modules:
         category: vfunc
         alias:
           - CBasePlayerPawn::PrePhysicsSimulate
+      - name: CBasePlayerPawn_PhysicsSimulate
+        category: vfunc
+        alias:
+          - CBasePlayerPawn::PhysicsSimulate
       - name: CCSPlayerPawn_vtable
         category: vtable
       - name: CCSPlayerPawnBase_vtable
@@ -10207,6 +10230,10 @@ modules:
         category: vfunc
         alias:
           - CGameRules::ClientSettingsChanged
+      - name: CGameRules_SetGamePaused
+        category: vfunc
+        alias:
+          - CGameRules::SetGamePaused
       - name: CGameRulesGameSystem_OnGameInit
         category: vfunc
         alias:
@@ -11385,6 +11412,12 @@ modules:
         category: func
         alias:
           - CPhysicsGameSystem::ProcessContactEvents
+      - name: PhysCollisionDust
+        category: func
+      - name: CBaseEntity_VPhysicsCollision
+        category: vfunc
+        alias:
+          - CBaseEntity::VPhysicsCollision
       - name: CBaseEntity_VPhysicsStartTouch
         category: func
         alias:
@@ -12126,6 +12159,14 @@ modules:
         category: func
         alias:
           - CLoopModeGame::RegisterEventMapInternal
+      - name: CLoopModeGame_RegisterEventMap
+        category: vfunc
+        alias:
+          - CLoopModeGame::RegisterEventMap
+      - name: CLoopModeGame_dtor
+        category: func
+        alias:
+          - CLoopModeGame::~CLoopModeGame
       - name: RegisterEventListener_Abstract
         category: func
       - name: CLoopModeGame_OnServerAdvanceTick
@@ -13402,3 +13443,26 @@ cpp_tests:
     reference_modules:
       - engine  # bin/{gamever}/engine/CNetworkServerService_*.{platform}.yaml
       - server  # bin/{gamever}/server/CNetworkServerService_*.{platform}.yaml
+  - name: ICommandLine_MSVC
+    symbol: ICommandLine
+    cpp: cpp_tests/icommandline.cpp
+    headers:
+      - hl2sdk_cs2/public/tier0/icommandline.h  # Used by the fix-cppheaders SKILL
+    target: x86_64-pc-windows-msvc
+    include_directories:
+      - hl2sdk_cs2/game/shared
+      - hl2sdk_cs2/public
+      - hl2sdk_cs2/public/tier0
+      - hl2sdk_cs2/public/tier1
+      - hl2sdk_cs2/public/mathlib
+    defines:
+      - COMPILER_MSVC=1
+      - COMPILER_MSVC64=1
+      - _MSVC_STL_USE_ABORT_AS_DOOM_FUNCTION
+    additional_compiler_options:
+      - fms-extensions
+      - fms-compatibility
+      - Xclang
+      - fdump-vtable-layouts
+    # No reference_modules yet: ICommandLine has no binary reference YAMLs
+    # (tier0/vstdlib is not an analyzed module). Compile-only validation.

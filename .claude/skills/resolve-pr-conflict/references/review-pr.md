@@ -1,15 +1,23 @@
 ---
-name: review-pr-for-preprocessor-script
-description: Review an open or local CS2_VibeSignatures pull request for correctness, but ONLY when the PR changes or adds IDA preprocessor scripts. With special scrutiny of IDA preprocessor design, duplicated LLM_DECOMPILE work, interface-versus-concrete virtual-function ownership, INHERIT_VFUNCS chains, requested YAML fields, config dependencies, generated snapshots, and regression coverage. Do not use for PRs that do not touch ida_preprocessor_scripts/; refuse those instead. Use when the user asks to review, inspect, audit, or fix a PR that changes/adds preprocessor scripts. Report evidence-backed findings first and never modify, commit, push, comment on, close, or merge the PR until the user explicitly approves the proposed fixes; after approval, fix the existing PR branch directly without creating or merging another PR.
+title: Review PR for Preprocessor Scripts
+type: internal-reference
+usage: |
+  Internal capability referenced only by `.claude/skills/resolve-pr-conflict/SKILL.md` (Step 5).
+  Not a registered skill: there is no SKILL.md here, so it is not user-invocable and is not auto-loaded
+  by the model. Do not rename this file to SKILL.md.
 ---
 
 # Review Pull Request
 
 Review one PR against its base branch. Treat review and repair as separate phases.
 
+> **Invocation.** `.claude/skills/resolve-pr-conflict/SKILL.md` Step 5 reads this file and executes the
+> read-only audit. When referenced there, run Steps 1-4 and report findings; do **not** proceed to
+> Step 5 repair — repairing the existing PR is a separate explicitly authorized task.
+
 ## Scope Gate
 
-This skill applies ONLY to PRs that change or add IDA preprocessor scripts under `ida_preprocessor_scripts/`. Before
+This audit applies ONLY to PRs that change or add IDA preprocessor scripts under `ida_preprocessor_scripts/`. Before
 reviewing, inspect the PR's changed files (e.g. `gh pr view <PR> --json files`). If the PR does not touch
 `ida_preprocessor_scripts/` — for example it only changes C++ code, configs, or generated snapshots — refuse with a
 short explanation and do not proceed with any review steps. Do not fall back to a general review.
@@ -20,7 +28,7 @@ short explanation and do not proceed with any review steps. Do not fall back to 
 - Do not edit files, post review comments, commit, push, close, merge, or create another PR during review.
 - If no actionable finding exists, report that result and the remaining validation limits.
 - If any actionable finding exists, stop after presenting the findings and a concrete repair plan. Ask the user for explicit approval to fix the existing PR.
-- Accept approval only from a later user message that clearly authorizes the proposed repair. The original request to review or use this skill is not repair approval.
+- Accept approval only from a later user message that clearly authorizes the proposed repair. The original request to review is not repair approval.
 - After approval, check out the PR's existing head branch, make only the approved fixes, run the repository-required validation, commit, and push to that same branch without force. Never merge the PR.
 - Stop before repair when the PR comes from a fork or the head branch cannot be pushed safely; report the limitation.
 
@@ -65,7 +73,7 @@ Use `git show <BASE_OID>:<path>` or a temporary worktree for base-tree content. 
 
 ## Step 3: Apply Repository-Specific Review Gates
 
-Read [preprocessor-review-patterns.md](references/preprocessor-review-patterns.md) whenever the PR changes preprocessor scripts, analysis configs, reference YAML, or generated symbol snapshots. Apply every applicable gate in that reference, not only the examples shown here.
+Read [preprocessor-review-patterns.md](preprocessor-review-patterns.md) whenever the PR changes preprocessor scripts, analysis configs, reference YAML, or generated symbol snapshots. Apply every applicable gate in that reference, not only the examples shown here.
 
 Apply gate 5 (Reject Stale-Gamever Config Changes) whenever the PR touches `configs/<GAMEVER>.yaml`, `gamesymbols/<GAMEVER>.yaml`, `gamedata/<GAMEVER>/`, or `release-manifests/<GAMEVER>.json`. The latest gamever is the last `tag:` entry in `download.yaml` (matching `init_gamebin.py`'s `LATEST_GAMEVER=versions[-1]`). A PR may modify analysis configs or generated outputs only for the latest gamever; a change to any older gamever is a defect unless the PR explicitly documents a justified historical backport. Flag the stale-gamever paths even when the same change also appears in the latest config.
 
@@ -116,12 +124,12 @@ Require:
 
 Check out the existing PR head branch without creating a replacement PR. Implement only approved findings. For preprocessor changes, keep config producers/consumers, scripts, tests, reference YAML, and desired output fields coherent.
 
-Run focused tests first. When analysis outputs, configs, generators, or C++ tests change, follow the exact immutable lifecycle:
+Run focused tests first. When analysis outputs, configs, generators, or C++ tests change, commit only the approved source
+repair and push it normally to the existing head branch. Candidate preparation and C++ validation are then performed
+by `.github/workflows/pr-self-runner.yml`; snapshot/gamedata publication is release-pipeline only. Do not generate or
+publish those tracked outputs locally.
 
-1. use `/prepare-post-change-candidate` for the affected game version;
-2. use `/post-change-validation` on that exact candidate;
-3. use `/publish-post-change-candidate` only after validation succeeds.
-
-Stop on any failed, skipped, or non-runnable gate. Commit using the repository Conventional Commit format plus `Co-Authored-By: Codex <codex@openai.com>`, then push normally to the same head branch. Never force-push, merge, enable auto-merge, close the PR, or create a second PR.
+Commit using the repository Conventional Commit format plus `Co-Authored-By: Codex <codex@openai.com>`. Never
+force-push, merge, enable auto-merge, close the PR, or create a second PR.
 
 Report the repaired findings, commands and results, commit SHA, pushed branch, and PR URL.

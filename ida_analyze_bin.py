@@ -1530,6 +1530,11 @@ def parse_args():
         help="Skip preprocessing scripts and run Agent Skills directly",
     )
     parser.add_argument(
+        "-require_warm_idb",
+        action="store_true",
+        help="Require a pre-existing warm IDA database and never rebuild it from the binary",
+    )
+    parser.add_argument(
         "-rename",
         action="store_true",
         help="Run post_process rename/comment pass for existing expected output YAML files",
@@ -3030,6 +3035,7 @@ def process_binary(
     category_map=None,
     symbol_aliases=None,
     found_vcall_objects=None,
+    require_warm_idb=False,
 ):
     """
     Process a single binary file.
@@ -3210,6 +3216,22 @@ def process_binary(
             )
         return success_count, fail_count, skip_count
 
+    if require_warm_idb and not _has_ida_database(binary_path):
+        pending_count = _pending_binary_work_count(
+            skills_to_process=skills_to_process,
+            vcall_targets=vcall_targets,
+            post_process_yaml_items=startup_post_process_yaml_items,
+        )
+        fail_count += pending_count
+        print(f"  Failed: required warm IDB is missing for {binary_path}")
+        _abort_binary_reporting(
+            reporting,
+            job_id,
+            ProcessReason.MISSING_INPUT,
+            "Required warm IDB is missing",
+        )
+        return success_count, fail_count, skip_count
+
     # Refuse to start IDA if an `.id0` lock file exists next to the binary —
     # that means another IDA instance currently has this IDB open, and starting
     # idalib-mcp on top of it would corrupt the database.
@@ -3264,7 +3286,7 @@ def process_binary(
             recovery_budget=recovery_budget,
         )
         if not verified:
-            if _has_ida_database(binary_path):
+            if _has_ida_database(binary_path) and not require_warm_idb:
                 print(
                     "  Existing IDA database failed binary identity verification; rebuilding from the original binary"
                 )
@@ -4190,6 +4212,7 @@ def _invoke_process_binary(
         category_map=args.artifact_category_map,
         symbol_aliases=args.symbol_aliases,
         found_vcall_objects=found_vcall_objects,
+        require_warm_idb=getattr(args, "require_warm_idb", False),
     )
 
 

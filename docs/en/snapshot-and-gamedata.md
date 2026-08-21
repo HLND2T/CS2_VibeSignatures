@@ -60,11 +60,17 @@ Candidate `build` and low-level/bootstrap `pack` reject missing required outputs
 
 ## Pull-request output contract
 
-Pull requests that can affect analysis or gamedata generator output must commit matching `gamesymbols/<GAMEVER>.yaml` and `gamedata/<GAMEVER>/` outputs when their bytes change.
+Pull requests that can affect analysis or gamedata generator output initially commit source changes only. Matching
+`gamesymbols/<GAMEVER>.yaml` and `gamedata/<GAMEVER>/` outputs are owned by PR CI.
 
 PR CI uses a trusted base snapshot for restore and targeted invalidation. A missing base snapshot bootstraps from clean YAML; an untrusted base snapshot emits a warning and takes the same clean full-rebuild path without restoring any baseline payload.
 
-The workflow then strict-packs an actual symbol candidate, compares it with the PR head snapshot, builds guarded gamedata from that actual candidate, and compares its inventory with raw gamedata blobs from the explicit PR head Git revision. Head outputs are expected-only; downstream validation uses the actual candidate transaction. The ordinary PR workflow never repairs, stages, commits, publishes, or rewrites missing tracked outputs.
+The workflow strict-packs one actual symbol candidate, builds guarded gamedata from it, and runs C++ validation against
+the same candidate transaction. After success it checks out the immutable PR head, publishes those exact bytes,
+restricts the diff to the versioned snapshot/gamedata paths, creates a provenance-bearing `github-actions[bot]` commit,
+and pushes without force. Because a `GITHUB_TOKEN` push does not recursively trigger a PR workflow, CI explicitly
+dispatches a lightweight recheck bound to the published head; that recheck verifies the actor, live PR state, parent
+and base SHAs, commit message, allowed paths, and both output digests before the stable `pr-validate` check succeeds.
 
 ## Supported gamedata
 

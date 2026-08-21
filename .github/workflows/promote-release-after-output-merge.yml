@@ -1,14 +1,11 @@
 name: Promote Release After Output Merge
-run-name: Promote output PR #${{ github.event.pull_request.number }}
-
+run-name: 'Promote output PR #${{ github.event.pull_request.number }}'
 on:
   pull_request:
     types: [closed]
-
 permissions:
   contents: write
   pull-requests: read
-
 jobs:
   resolve:
     if: >
@@ -30,7 +27,6 @@ jobs:
             throw "Invalid generated-output branch."
           }
           "gamever=$($Matches.gamever)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-
   cleanup-unmerged:
     needs: resolve
     if: >
@@ -42,7 +38,7 @@ jobs:
     environment: win64
     runs-on: [self-hosted, windows, x64]
     concurrency:
-      group: release-promotion-${{ github.repository }}-${{ needs.resolve.outputs.gamever }}
+      group: gamever-state-${{ github.repository }}-${{ needs.resolve.outputs.gamever }}
       cancel-in-progress: false
     env:
       PERSISTED_WORKSPACE: ${{ secrets.PERSISTED_WORKSPACE }}
@@ -51,7 +47,6 @@ jobs:
         id: checkout-cleanup
         with:
           ref: ${{ github.event.repository.default_branch }}
-
       - name: Remove only indexed pending state
         id: cleanup-pending
         shell: pwsh
@@ -65,7 +60,6 @@ jobs:
           } else {
             Write-Host "No indexed pending state exists for this unmerged PR."
           }
-
   promote:
     needs: resolve
     if: >
@@ -78,7 +72,7 @@ jobs:
     environment: win64
     runs-on: [self-hosted, windows, x64]
     concurrency:
-      group: release-promotion-${{ github.repository }}-${{ needs.resolve.outputs.gamever }}
+      group: gamever-state-${{ github.repository }}-${{ needs.resolve.outputs.gamever }}
       cancel-in-progress: false
     env:
       PERSISTED_WORKSPACE: ${{ secrets.PERSISTED_WORKSPACE }}
@@ -91,7 +85,6 @@ jobs:
           ref: ${{ github.event.pull_request.merge_commit_sha }}
           fetch-depth: 0
           submodules: true
-
       - name: Checkout trusted promotion tooling from merge base
         id: checkout-tooling
         uses: actions/checkout@v5
@@ -99,7 +92,6 @@ jobs:
           ref: ${{ github.event.pull_request.base.sha }}
           path: .release-tools
           fetch-depth: 1
-
       - name: Verify merge, PR index, manifests, staged bin, and output hashes
         id: verify
         shell: pwsh
@@ -121,7 +113,6 @@ jobs:
             --pr-number "${{ github.event.pull_request.number }}" `
             --event-head-sha "$env:PR_HEAD_SHA" `
             --merge-sha "$env:OUTPUT_MERGE_SHA" --github-output "$env:GITHUB_OUTPUT"
-
       - name: Reconstruct release workspace from accepted commit and staged bin
         id: reconstruct
         shell: pwsh
@@ -130,7 +121,6 @@ jobs:
             --repo-root "${{ github.workspace }}" `
             --stage-dir "${{ steps.verify.outputs.stage_dir }}" `
             --gamever "${{ steps.verify.outputs.gamever }}"
-
       - name: Create release archives
         id: create-archives
         shell: pwsh
@@ -157,7 +147,7 @@ jobs:
             }
             $gamedataArgs = @(
               "a", "gamedata-$gamever.7z", "configs\$gamever.yaml", "bin\$gamever", "gamesymbols/$gamever.yaml", "gamedata\$gamever", "hl2sdk_cs2", "-r",
-              "-x!*.dll", "-x!*.so", "-x!*.i64", "-x!*.id0", "-x!*.id1", "-x!*.id2", "-x!*.nam", "-x!*.til",
+              "-x!*.dll", "-x!*.so", "-x!*.i64", "-x!*.idb", "-x!*.id0", "-x!*.id1", "-x!*.id2", "-x!*.nam", "-x!*.til",
               "-x!.git", "-x!.git-blame-ignore-revs", "-x!.gitmodules", "-xr!__pycache__"
             )
             & 7z @gamedataArgs
@@ -169,7 +159,6 @@ jobs:
           $gamebinArgs = @("a", "gamebin-$gamever.7z", "bin\$gamever", "-r", "-i!*.dll", "-i!*.so", "-x!*.yaml", "-xr!.venv")
           & 7z @gamebinArgs
           if ($LASTEXITCODE -ne 0) { throw "Failed to create gamebin archive." }
-
       - name: Promote verified bin transactionally
         id: promote-bin
         shell: pwsh
@@ -179,7 +168,6 @@ jobs:
             --stage-dir "${{ steps.verify.outputs.stage_dir }}" `
             --gamever "${{ steps.verify.outputs.gamever }}" `
             --build-id "${{ steps.verify.outputs.build_id }}"
-
       - name: Apply immutable tag rules
         id: tag
         shell: pwsh
@@ -204,7 +192,6 @@ jobs:
             $tagSha = ($remote -split "\s+")[0]
           }
           "tag_sha=$tagSha" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-
       - name: Write release metadata and notes
         id: release-metadata
         shell: pwsh
@@ -215,7 +202,6 @@ jobs:
             --output-merge-sha "$env:OUTPUT_MERGE_SHA" --tag-sha "${{ steps.tag.outputs.tag_sha }}" `
             --repository "${{ github.repository }}" `
             --asset "gamedata-$gamever.7z" --asset "gamebin-$gamever.7z"
-
       - name: Publish or replace Release assets and verify hashes
         id: publish-release
         env:
@@ -250,7 +236,6 @@ jobs:
           gh release edit "$gamever" --title "gamedata-$gamever" `
             --notes-file "release-notes-$gamever.md" --draft=false
           if ($LASTEXITCODE -ne 0) { throw "Failed to finalize Release publication." }
-
       - name: Mark promotion complete and remove recovery backup
         id: finalize-promotion
         shell: pwsh
@@ -261,11 +246,10 @@ jobs:
             --event-head-sha "${{ github.event.pull_request.head.sha }}" `
             --output-merge-sha "$env:OUTPUT_MERGE_SHA" `
             --release-provenance "release-provenance-${{ steps.verify.outputs.gamever }}.json"
-
       - name: Attempt completed staging cleanup
         id: cleanup-completed
         shell: pwsh
-        run: |
+        run: |-
           uv run .release-tools/release_workflow.py cleanup-completed `
             --staging-root "$env:PERSISTED_WORKSPACE\release-staging" `
             --persisted-root "$env:PERSISTED_WORKSPACE" `
