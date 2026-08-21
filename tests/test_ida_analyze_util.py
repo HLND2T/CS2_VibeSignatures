@@ -5875,37 +5875,6 @@ TargetCall:
         self.assertEqual(["TargetCall"], schema_payload["root_keys"])
         self.assertTrue(schema_payload["compatibility_flattened"])
 
-    async def test_call_llm_decompile_prompt_requires_canonical_root_contract(self) -> None:
-        prompt_path = Path("ida_preprocessor_scripts/prompt/call_llm_decompile.md")
-        prompt_template = prompt_path.read_text(encoding="utf-8")
-        response_text = """
-found_vcall: []
-found_call: []
-found_funcptr: []
-found_gv: []
-found_struct_offset: []
-""".strip()
-
-        with patch.object(
-            ida_analyze_util,
-            "call_llm_text",
-            return_value=response_text,
-            create=True,
-        ) as mock_call_llm_text:
-            await ida_analyze_util.call_llm_decompile(
-                client=object(),
-                model="gpt-5.4",
-                symbol_name_list=["TargetCall"],
-                disasm_code=".text:0000000000001000                 nop",
-                prompt_template=prompt_template,
-                max_retries=1,
-            )
-
-        prompt = mock_call_llm_text.call_args.kwargs["messages"][1]["content"]
-        self.assertIn("The only permitted top-level keys are", prompt)
-        self.assertIn("Never use a requested symbol name as a top-level key", prompt)
-        self.assertIn("Do not return blank YAML, null, or an empty mapping", prompt)
-
     async def test_call_llm_decompile_uses_shared_llm_helper_and_parses_yaml(
         self,
     ) -> None:

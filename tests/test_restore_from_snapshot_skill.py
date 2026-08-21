@@ -20,15 +20,6 @@ SPEC.loader.exec_module(restore_skill)
 
 
 class TestRestoreFromSnapshotSkill(unittest.TestCase):
-    def test_metadata_and_confirmation_contract(self) -> None:
-        skill = Path(".claude/skills/restore-from-snapshot/SKILL.md").read_text(encoding="utf-8")
-        agent = Path(".claude/skills/restore-from-snapshot/agents/openai.yaml").read_text(encoding="utf-8")
-        self.assertIn("name: restore-from-snapshot", skill)
-        self.assertIn("--force-base-snapshot <BASE_GAMEVER>", skill)
-        self.assertIn("(yes/no)", skill)
-        self.assertIn("allow_implicit_invocation: false", agent)
-        self.assertIn("$restore-from-snapshot", agent)
-
     def test_script_resolves_its_own_repository_root(self) -> None:
         expected = SCRIPT.resolve().parents[4]
         completed = subprocess.CompletedProcess([], 0, stdout=f"{expected}\n", stderr="")

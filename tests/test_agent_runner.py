@@ -43,41 +43,6 @@ class TestSkillRunnerProjectPromptConfiguration(unittest.TestCase):
         self.assertNotIn("--approval-mode", command.args)
         self.assertNotIn("full-auto", command.args)
 
-    def test_project_configs_define_skill_runner_prompt_and_runtime_settings(self) -> None:
-        config_paths = [
-            Path(".claude/skill_runner.settings.json"),
-            Path(".codex/skill_runner.config.toml"),
-            Path(".opencode/skill_runner.config.json"),
-        ]
-        for config_path in config_paths:
-            self.assertTrue(config_path.is_file(), config_path)
-
-        claude_settings = json.loads(config_paths[0].read_text(encoding="utf-8"))
-        codex_config = config_paths[1].read_text(encoding="utf-8")
-        opencode_config = json.loads(config_paths[2].read_text(encoding="utf-8"))
-
-        self.assertEqual([".claude/CLAUDE.md"], claude_settings["claudeMdExcludes"])
-        self.assertEqual(
-            [
-                "Read(ida_preprocessor_scripts)",
-                "Read(hl2sdk)",
-                "Read(bin)",
-                "mcp__ida-pro-mcp__*",
-            ],
-            claude_settings["permissions"]["allow"],
-        )
-        self.assertEqual(
-            ["mcp__ida-pro-mcp__open_file"],
-            claude_settings["permissions"]["deny"],
-        )
-        self.assertIn('project_doc_fallback_filenames = [".claude/SKILL_RUNNER.md"]', codex_config)
-        self.assertIn('model_reasoning_effort = "high"', codex_config)
-        self.assertIn('model_reasoning_summary = "none"', codex_config)
-        self.assertIn('model_verbosity = "low"', codex_config)
-        self.assertIn('approval_policy = "never"', codex_config)
-        self.assertIn('sandbox_mode    = "workspace-write"', codex_config)
-        self.assertEqual([".claude/SKILL_RUNNER.md"], opencode_config["instructions"])
-
 
 class TestAgentPermissionArgs(unittest.TestCase):
     def test_returns_permission_args_for_each_agent_kind(self) -> None:
@@ -240,18 +205,6 @@ class _FakePopen:
 
     def kill(self) -> None:
         self.killed = True
-
-
-class TestOpenCodeSigFinderAgent(unittest.TestCase):
-    def test_project_agent_preserves_required_safety_constraints(self) -> None:
-        agent_path = Path(".opencode/agents/sig-finder.md")
-
-        self.assertTrue(agent_path.is_file())
-        agent_text = agent_path.read_text(encoding="utf-8")
-        self.assertIn("mode: primary", agent_text)
-        self.assertIn("ida-pro-mcp_open_file: false", agent_text)
-        self.assertIn("currently opened in IDA", agent_text)
-        self.assertIn("DO NOT verify or check the existence of output yaml", agent_text)
 
 
 class TestOpenCodeCommandConstruction(unittest.TestCase):

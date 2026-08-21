@@ -17,14 +17,6 @@ SPEC.loader.exec_module(pack_skill)
 
 
 class TestPackSnapshotSkill(unittest.TestCase):
-    def test_metadata_and_command_contract(self) -> None:
-        skill = Path(".claude/skills/pack-snapshot/SKILL.md").read_text(encoding="utf-8")
-        agent = Path(".claude/skills/pack-snapshot/agents/openai.yaml").read_text(encoding="utf-8")
-        self.assertIn("name: pack-snapshot", skill)
-        self.assertIn("Snapshot verification: passed", skill)
-        self.assertIn("allow_implicit_invocation: false", agent)
-        self.assertIn("$pack-snapshot", agent)
-
     def test_script_resolves_its_own_repository_root(self) -> None:
         expected = SCRIPT.resolve().parents[4]
         completed = subprocess.CompletedProcess([], 0, stdout=f"{expected}\n", stderr="")

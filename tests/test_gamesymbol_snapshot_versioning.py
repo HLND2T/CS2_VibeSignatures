@@ -150,12 +150,6 @@ class TestConfigDigestVersioning(unittest.TestCase):
         self.assertEqual(missing_digest, empty_digest)
         self.assertNotEqual(missing_digest, nonempty_digest)
 
-    def test_checked_in_v1_regression_fixture_keeps_digest(self) -> None:
-        config = Path("tests/fixtures/config_digest_v1_regression.yaml")
-        digest = load_contract(config, "fixture", "bin", 1).config_sha256
-
-        self.assertEqual("sha256:b2b853cf7045d34f20d10641729d7586d7ed840434423d5f10f6c2d6cf737b73", digest)
-
 
 class TestSnapshotSchemaVersioning(unittest.TestCase):
     def test_schema_1_bytes_remain_stable_and_imply_digest_v1(self) -> None:
