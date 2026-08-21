@@ -195,3 +195,12 @@ jobs:
           }
           "generation=$generation" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "cache-key=$cacheKey" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+      - name: Sync consumed gamebin into accepted bin
+        id: sync-accepted-bin
+        shell: pwsh
+        run: |
+          uv run release_workflow.py sync-accepted-bin `
+            --repo-root "${{ github.workspace }}" `
+            --persisted-root "$env:PERSISTED_WORKSPACE" `
+            --gamever "$env:GAMEVER"
+          if ($LASTEXITCODE -ne 0) { throw "Accepted bin sync failed for $env:GAMEVER." }

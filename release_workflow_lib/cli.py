@@ -25,6 +25,7 @@ from release_workflow_lib.staging import (
     stage_build,
     write_pr_index,
 )
+from release_workflow_lib.sync_accepted_bin import sync_accepted_bin
 from release_workflow_lib.validation import invalidate_republish, prepare_oldgamever_baseline, validate_build_input
 
 
@@ -176,6 +177,11 @@ def _add_promotion_parsers(commands) -> None:
     incomplete.add_argument("--staging-root", required=True)
     incomplete.add_argument("--gamever", required=True)
     incomplete.add_argument("--build-id", required=True)
+
+    sync_bin = commands.add_parser("sync-accepted-bin")
+    sync_bin.add_argument("--repo-root", default=".")
+    sync_bin.add_argument("--persisted-root", required=True)
+    sync_bin.add_argument("--gamever", required=True)
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -361,6 +367,12 @@ def _run_promotion(args) -> object:
         return cleanup_unmerged(args.staging_root, args.pr_number, args.event_head_sha)
     if args.command == "cleanup-incomplete":
         return cleanup_incomplete(args.staging_root, args.gamever, args.build_id)
+    if args.command == "sync-accepted-bin":
+        return sync_accepted_bin(
+            repo_root=args.repo_root,
+            persisted_root=args.persisted_root,
+            gamever=args.gamever,
+        )
     return _UNHANDLED
 
 

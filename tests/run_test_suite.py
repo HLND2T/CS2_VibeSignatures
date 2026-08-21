@@ -113,6 +113,7 @@ UNIT_MODULES = frozenset(
         "test_registerconcommand_preprocessor",
         "test_run_cpp_tests",
         "test_script_desc_internal_preprocessor",
+        "test_sync_accepted_bin",
         "test_test_suite_runner",
         "test_trusted_yaml",
         "test_update_gamedata",
