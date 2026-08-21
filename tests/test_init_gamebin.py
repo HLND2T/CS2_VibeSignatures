@@ -54,7 +54,6 @@ class TestInitGamebin(unittest.TestCase):
         with patch.object(init_gamebin, "run_command", return_value=completed([], stdout=f"{expected}\n")):
             self.assertEqual(expected, init_gamebin.repository_root())
 
-
     def test_load_versions_preserves_order_and_rejects_duplicates(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             path = Path(temp_dir) / "download.yaml"
