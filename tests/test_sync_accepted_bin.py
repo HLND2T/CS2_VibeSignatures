@@ -4,6 +4,7 @@ from pathlib import Path
 
 from release_workflow_lib.errors import ReleaseWorkflowError
 from release_workflow_lib.promotion import _version_lock
+from release_workflow_lib.staging import IDA_DATABASE_SUFFIXES
 from release_workflow_lib.sync_accepted_bin import _filtered_inventory, sync_accepted_bin
 
 
@@ -93,15 +94,20 @@ class TestSyncAcceptedBin(unittest.TestCase):
             repo = root / "repo"
             persisted = root / "persisted"
             self._write_source(repo)
+            first = sync_accepted_bin(repo_root=repo, persisted_root=persisted, gamever=self.gamever)
             accepted = persisted / "bin" / self.gamever
-            (accepted / "server").mkdir(parents=True)
-            (accepted / "server" / "server.dll").write_bytes(b"server-v1")
-            (accepted / "server" / "server.dll.i64").write_bytes(b"stale-idb")
+            binary = accepted / "server" / "server.dll"
+            stale_paths = [Path(f"{binary}{suffix}") for suffix in IDA_DATABASE_SUFFIXES]
+            for stale_path in stale_paths:
+                stale_path.write_bytes(b"stale-idb")
 
             result = sync_accepted_bin(repo_root=repo, persisted_root=persisted, gamever=self.gamever)
 
+            self.assertTrue(first["synced"])
             self.assertTrue(result["synced"])
-            self.assertFalse((accepted / "server" / "server.dll.i64").exists())
+            self.assertTrue(result["replaced"])
+            for stale_path in stale_paths:
+                self.assertFalse(stale_path.exists())
 
     def test_sync_requires_existing_source(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -114,8 +120,8 @@ class TestSyncAcceptedBin(unittest.TestCase):
                 )
 
     def test_sync_shares_promotion_lock(self) -> None:
-        # sync_accepted_bin and promote_bin serialize on the same per-GAMEVER lock,
-        # so a concurrent promote must make warmup sync fail fast (non-blocking).
+        # Workflow concurrency serializes normal calls; the shared file lock remains
+        # a defensive backstop for direct or otherwise uncoordinated invocations.
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             repo = root / "repo"

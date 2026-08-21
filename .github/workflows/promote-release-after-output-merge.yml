@@ -38,7 +38,7 @@ jobs:
     environment: win64
     runs-on: [self-hosted, windows, x64]
     concurrency:
-      group: release-promotion-${{ github.repository }}-${{ needs.resolve.outputs.gamever }}
+      group: gamever-state-${{ github.repository }}-${{ needs.resolve.outputs.gamever }}
       cancel-in-progress: false
     env:
       PERSISTED_WORKSPACE: ${{ secrets.PERSISTED_WORKSPACE }}
@@ -72,7 +72,7 @@ jobs:
     environment: win64
     runs-on: [self-hosted, windows, x64]
     concurrency:
-      group: release-promotion-${{ github.repository }}-${{ needs.resolve.outputs.gamever }}
+      group: gamever-state-${{ github.repository }}-${{ needs.resolve.outputs.gamever }}
       cancel-in-progress: false
     env:
       PERSISTED_WORKSPACE: ${{ secrets.PERSISTED_WORKSPACE }}

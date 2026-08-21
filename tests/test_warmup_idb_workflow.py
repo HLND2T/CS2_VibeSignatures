@@ -15,7 +15,10 @@ class TestWarmupIdbWorkflow(unittest.TestCase):
             inputs = triggers[trigger]["inputs"]
             self.assertTrue(inputs["gamever"]["required"])
             self.assertTrue(inputs["source_sha"]["required"])
-        self.assertIn("inputs.gamever", self.workflow["concurrency"]["group"])
+        self.assertEqual(
+            "gamever-state-${{ github.repository }}-${{ inputs.gamever }}",
+            self.workflow["concurrency"]["group"],
+        )
         self.assertFalse(self.workflow["concurrency"]["cancel-in-progress"])
         self.assertEqual(
             "${{ jobs.warmup.outputs.generation }}", triggers["workflow_call"]["outputs"]["generation"]["value"]

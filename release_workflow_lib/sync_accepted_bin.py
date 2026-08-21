@@ -58,6 +58,11 @@ def _filtered_inventory(root: Path) -> tuple[list[dict], str]:
     return filtered, inventory_sha256(filtered)
 
 
+def _contains_ida_state(root: Path) -> bool:
+    """Return whether a verified tree contains any excluded IDA side file."""
+    return any(str(path).lower().endswith(IDA_DATABASE_SUFFIXES) for path in root.rglob("*") if path.is_file())
+
+
 def _swap_verified_bin(
     *,
     source: Path,
@@ -130,11 +135,10 @@ def sync_accepted_bin(*, repo_root: Path, persisted_root: Path, gamever: str) ->
     expected_files, expected_hash = _filtered_inventory(source_root)
 
     with _version_lock(lock_path):
-        # Idempotence and swap verification both compare the filtered inventory, so
-        # a target tree that ever gained IDA side files is treated as different and
-        # rewritten (and the side files are dropped by the filtered copy).
-        if target.is_dir() and _filtered_inventory(target) == (expected_files, expected_hash):
-            return {"synced": False, "gamever": gamever, "hash": expected_hash}
+        if target.is_dir():
+            target_inventory = _filtered_inventory(target)
+            if target_inventory == (expected_files, expected_hash) and not _contains_ida_state(target):
+                return {"synced": False, "gamever": gamever, "hash": expected_hash}
         moved_old = _swap_verified_bin(
             source=source_root,
             target=target,

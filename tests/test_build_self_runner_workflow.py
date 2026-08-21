@@ -125,6 +125,7 @@ class TestBuildSelfRunnerWorkflow(unittest.TestCase):
 
     def test_promotion_is_bound_to_accepted_merge_and_validation_order(self) -> None:
         workflow = load_workflow("promote-release-after-output-merge.yml")
+        cleanup_unmerged = workflow_job(workflow, "cleanup-unmerged")
         promote = workflow_job(workflow, "promote")
         steps = steps_by_id(promote)
 
@@ -132,6 +133,11 @@ class TestBuildSelfRunnerWorkflow(unittest.TestCase):
         self.assertEqual({"contents": "write", "pull-requests": "read"}, workflow["permissions"])
         self.assertEqual(["closed"], workflow["on"]["pull_request"]["types"])
         self.assertEqual("resolve", promote["needs"])
+        self.assertEqual(
+            "gamever-state-${{ github.repository }}-${{ needs.resolve.outputs.gamever }}",
+            promote["concurrency"]["group"],
+        )
+        self.assertEqual(promote["concurrency"], cleanup_unmerged["concurrency"])
         self.assertIn("github.event.pull_request.merged == true", promote["if"])
         self.assertIn("github.event.pull_request.base.ref == github.event.repository.default_branch", promote["if"])
         promotion_order = step_order(
