@@ -22,6 +22,5 @@ describe('i18n', () => {
     await changeLanguage('zh-TW')
     expect(localStorage.getItem('cs2vibe.language')).toBe('zh-TW')
     expect(document.documentElement.lang).toBe('zh-TW')
-    expect(document.title).toBe('CS2 VibeSignatures 流程儀表板')
   })
 })

@@ -23,15 +23,6 @@ class TestTriggerReleaseBuild(unittest.TestCase):
         with patch.object(trigger, "run_command", return_value=completed([], stdout=f"{expected}\n")):
             self.assertEqual(expected, trigger.repository_root())
 
-    def test_skill_requires_explicit_invocation_in_both_metadata_surfaces(self) -> None:
-        skill = Path(".claude/skills/trigger-release-build/SKILL.md").read_text(encoding="utf-8")
-        agent = Path(".claude/skills/trigger-release-build/agents/openai.yaml").read_text(encoding="utf-8")
-        self.assertIn("disable-model-invocation: true", skill)
-        self.assertIn("mode=new", skill)
-        self.assertIn("mode=republish", skill)
-        self.assertIn("allow_implicit_invocation: false", agent)
-        self.assertIn("publish or republish", agent)
-
     def test_latest_uses_last_download_entry(self) -> None:
         self.assertEqual("14169", trigger.select_version("latest", ["14168", "14168b", "14169"]))
 

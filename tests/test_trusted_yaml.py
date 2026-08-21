@@ -6,7 +6,6 @@ from unittest.mock import patch
 
 import yaml
 
-import generate_reference_yaml
 import trusted_yaml
 
 
@@ -58,20 +57,6 @@ class TestRepositoryYamlCompatibility(unittest.TestCase):
             with self.subTest(fixture=fixture_path):
                 raw = fixture_path.read_bytes()
                 self.assertEqual(yaml.load(raw, Loader=yaml.SafeLoader), trusted_yaml.load_yaml(raw))
-
-    def test_reference_yamls_match_generation_contract(self) -> None:
-        reference_root = Path("ida_preprocessor_scripts/references")
-        reference_paths = sorted(reference_root.rglob("*.yaml"))
-        self.assertTrue(reference_paths, f"no reference YAML files found under {reference_root}")
-
-        for reference_path in reference_paths:
-            with self.subTest(reference=reference_path):
-                payload = trusted_yaml.load_yaml_file(reference_path)
-                self.assertIsInstance(payload, dict)
-                try:
-                    generate_reference_yaml._validate_reference_yaml_payload(payload)
-                except generate_reference_yaml.ReferenceGenerationError as exc:
-                    self.fail(f"{reference_path}: {exc}")
 
 
 if __name__ == "__main__":

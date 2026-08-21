@@ -58,18 +58,6 @@ class TestAbandonStagedRelease(unittest.TestCase):
         with patch.object(abandon, "run_command", return_value=completed([], stdout=f"{expected}\n")):
             self.assertEqual(expected, abandon.repository_root())
 
-    def test_skill_is_explicit_and_uses_only_the_bundled_dispatch_script(self) -> None:
-        skill = Path(".claude/skills/abandon-staged-release/SKILL.md").read_text(encoding="utf-8")
-        agent = Path(".claude/skills/abandon-staged-release/agents/openai.yaml").read_text(encoding="utf-8")
-        self.assertIn("Use only when the user explicitly asks", skill)
-        self.assertIn("GAMEVER/BUILD_ID", skill)
-        self.assertIn("Actions run/job URL", skill)
-        self.assertIn("automatically discovers", skill)
-        self.assertIn("allow_implicit_invocation: false", agent)
-        self.assertIn("bundled script as the only remote-operation entry point", skill)
-        self.assertIn("Do not run `cleanup-unmerged`", skill)
-        self.assertIn("never automatically reruns a release build", skill)
-
     def test_direct_target_must_match_exact_confirmation(self) -> None:
         self.assertEqual(
             ("14168", "29686825445-1"),

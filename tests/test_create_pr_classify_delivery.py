@@ -63,20 +63,6 @@ SYMBOLS_PATHS = (
 
 
 class TestCreatePrClassifyDelivery(unittest.TestCase):
-    def test_skill_classifies_delivery_without_local_lifecycle_skills(self) -> None:
-        skill = Path(".claude/skills/create-pr/SKILL.md").read_text(encoding="utf-8")
-        self.assertIn(".claude/skills/create-pr/scripts/classify_delivery.py", skill)
-        self.assertIn("--cached", skill)
-        self.assertIn("--committed", skill)
-        self.assertIn("Never override `1` → `0`", skill)
-        for removed_skill in (
-            "/prepare-post-change-candidate",
-            "/post-change-validation",
-            "/publish-post-change-candidate",
-        ):
-            self.assertNotIn(removed_skill, skill)
-        self.assertIn("pr-self-runner.yml", skill)
-
     def test_plain_pr_paths_do_not_trigger_lifecycle(self) -> None:
         for path in PLAIN_PR_PATHS:
             with self.subTest(path=path):

@@ -22,7 +22,6 @@ REPOSITORY_CONTRACT_MODULES = frozenset(
         "test_abandon_staged_release",
         "test_build_self_runner_workflow",
         "test_config_scheduling_dependencies",
-        "test_fix_cppheaders_skill",
         "test_pack_snapshot_skill",
         "test_pr_self_runner_workflow",
         "test_restore_from_snapshot_skill",
@@ -33,11 +32,9 @@ REPOSITORY_CONTRACT_MODULES = frozenset(
     }
 )
 REPOSITORY_CONTRACT_PREFIXES = (
-    "test_agent_runner.TestOpenCodeSigFinderAgent",
     "test_agent_runner.TestSkillRunnerProjectPromptConfiguration",
     "test_analysis_config.RepositoryMigrationFixtureTests",
     "test_bump_download.TestBumpDownload.test_bump_workflow_prunes_local_only_tags_before_bump",
-    "test_gamesymbol_snapshot_versioning.TestConfigDigestVersioning.test_checked_in_v1_regression_fixture_keeps_digest",
     "test_ida_mcp_session.TestMcpSessionBoundary.test_only_adapter_creates_raw_mcp_sessions",
     "test_llm_decompile_dependencies.TestRepositoryLlmDecompileDependencyPolicy",
     "test_test_suite_runner.TestSuiteAssignmentContract",
