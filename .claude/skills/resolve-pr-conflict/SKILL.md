@@ -5,7 +5,7 @@ description: |
   dev branch, resolving config and generated gamesymbol snapshot conflicts, cleaning up stale non-latest gamever
   config, snapshot, gamedata, and release-manifest changes, running a read-only /review-pr-for-preprocessor-script
   audit right after conflict resolution to catch design defects early, creating a source-only merge commit, and pushing
-  without force so pr-self-runner CI can validate and publish the resulting snapshot/gamedata. Use when a PR is
+  without force so pr-self-runner CI can validate the resulting snapshot/gamedata candidates. Use when a PR is
   CONFLICTING/DIRTY or needs its base
   branch synchronized, especially when configs/GAMEVER.yaml or gamesymbols/GAMEVER.yaml changed. Stop after push and
   check-status reporting; never merge or auto-merge the PR.
@@ -34,8 +34,9 @@ multiple snapshot publications in one invocation.
 - Never hand-edit generated snapshot digest, file count, publish time, or candidate bytes.
 - Never use a tracked snapshot as downstream validation input and never publish directly from `bin`.
 - Stop on an ambiguous non-generated conflict and ask the user; do not choose a side without semantic evidence.
-- Never run candidate preparation, C++ validation, or snapshot/gamedata publication locally; those gates belong to
-  `.github/workflows/pr-self-runner.yml` after push.
+- Never run candidate preparation, C++ validation, or snapshot/gamedata publication locally. Candidate/C++ validation
+  runs in `.github/workflows/pr-self-runner.yml` after push; snapshot/gamedata publication happens only in the release
+  pipeline, never on a skill PR's head.
 - After push, report PR checks once. Do not invoke `gh pr merge`, enable auto-merge, call a merge API, switch to `main`,
   or clean up branches. PR merge is a separate explicitly authorized task.
 
@@ -89,16 +90,16 @@ Resolve each path as follows:
 - `configs/<GAMEVER>.yaml`: preserve the semantically required entries from both parents, including skill ordering,
   prerequisites, expected inputs/outputs, symbols, and aliases. Avoid duplicate entries. If `<GAMEVER>` is not the latest
   gamever in `download.yaml`, do not resolve forward — revert the whole path to base in Step 4 instead.
-- `gamesymbols/<GAMEVER>.yaml`: because the enforced direction is PR head <- base, select the base snapshot only as a
-  temporary valid placeholder:
+- `gamesymbols/<GAMEVER>.yaml`: because the enforced direction is PR head <- base, select the base snapshot:
 
   ```bash
   git checkout --theirs -- "gamesymbols/<GAMEVER>.yaml"
   git add -- "gamesymbols/<GAMEVER>.yaml"
   ```
 
-  Commit this base snapshot only as a conflict-resolution placeholder. `pr-self-runner.yml` replaces it with the
-  freshly validated snapshot after the merge commit is pushed.
+  The base snapshot is the final value, not a placeholder. Snapshot/gamedata publication is release-pipeline only
+  (in-band skill PRs never advance the tracked snapshot), so `pr-self-runner.yml` validates candidates but does not
+  commit or replace this file after push.
 - Source, tests, or documentation: read the exact conflicting code and resolve semantically. Stop and ask when intent is
   ambiguous.
 
@@ -176,8 +177,8 @@ git diff --cached <REMOTE>/<BASE_BRANCH> -- "configs/$GAMEVER.yaml" "gamesymbols
 ```
 
 Require no unstaged tracked changes. Review the final diff relative to the base: it must contain the original PR intent
-and conflict resolutions only. Any selected base snapshot is a CI-owned publication placeholder, not local validation
-evidence.
+and conflict resolutions only. Any selected base snapshot is the final value; pr-self-runner validates candidates but
+never commits or publishes snapshot/gamedata back to the PR head.
 
 Create one merge commit without amending existing PR commits:
 
@@ -230,7 +231,8 @@ Report:
 - PR URL, base branch, head branch, original PR SHA, base SHA, and pushed merge-commit SHA;
 - resolved conflict paths;
 - non-latest gamever paths reverted to base in Step 4 and the verified latest gamever;
-- game version when resolved and a statement that CI owns candidate/C++/publication gates;
+- game version when resolved and a statement that PR CI owns candidate/C++ validation while snapshot/gamedata
+  publication happens only in the release pipeline;
 - pushed remote branch and latest known PR/check state;
 - the `/review-pr-for-preprocessor-script` audit result (Step 5): findings (or "no actionable findings") and the consent
   question if defects were found;

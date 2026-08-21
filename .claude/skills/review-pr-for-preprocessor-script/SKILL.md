@@ -117,9 +117,9 @@ Require:
 Check out the existing PR head branch without creating a replacement PR. Implement only approved findings. For preprocessor changes, keep config producers/consumers, scripts, tests, reference YAML, and desired output fields coherent.
 
 Run focused tests first. When analysis outputs, configs, generators, or C++ tests change, commit only the approved source
-repair and push it normally to the existing head branch. Candidate preparation, C++ validation, and matching
-snapshot/gamedata publication are then performed by `.github/workflows/pr-self-runner.yml`; do not generate or publish
-those tracked outputs locally.
+repair and push it normally to the existing head branch. Candidate preparation and C++ validation are then performed
+by `.github/workflows/pr-self-runner.yml`; snapshot/gamedata publication is release-pipeline only. Do not generate or
+publish those tracked outputs locally.
 
 Commit using the repository Conventional Commit format plus `Co-Authored-By: Codex <codex@openai.com>`. Never
 force-push, merge, enable auto-merge, close the PR, or create a second PR.

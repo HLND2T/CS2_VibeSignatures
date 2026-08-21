@@ -4,7 +4,8 @@
 
 After creating and locally testing a symbol-analysis skill, use `SKILL: create-pr` (invoked as `/create-pr`) to share it
 with the project. The skill classifies and commits only the staged source change. For CS2 Symbols-related paths,
-candidate preparation, C++ validation, and snapshot/gamedata publication run later in `pr-self-runner.yml` CI.
+candidate preparation and C++ validation run later in `pr-self-runner.yml` CI; snapshot/gamedata publication is
+release-pipeline only.
 
 ## Invoke the skill
 
@@ -35,9 +36,8 @@ root analysis/snapshot/C++ modules), delivery proceeds as follows:
 3. Pushes the `dev*` branch and opens one PR against `main`.
 4. `pr-self-runner.yml` checks out an immutable merge ref, analyzes binaries, builds one snapshot candidate and matching
    gamedata candidate, and runs C++ validation against those exact bytes.
-5. After all gates pass, CI publishes `gamesymbols/<GAMEVER>.yaml` and `gamedata/<GAMEVER>/`, creates a
-   `github-actions[bot]` commit on the PR head branch, and explicitly dispatches a lightweight provenance/digest
-   recheck for the new head.
+5. `gamesymbols/<GAMEVER>.yaml` and `gamedata/<GAMEVER>/` advance only at release time; the PR workflow never publishes
+   them back to the PR head.
 
 If no staged path is CS2 Symbols-related (for example the change is only a documentation, workflow, skill, or
 process-monitoring update), `create-pr` opens the PR from the captured change without claiming the symbols lifecycle.
@@ -48,5 +48,5 @@ authentication, or an unexpected path change. Do not add generated snapshot/game
 ## After the skill finishes
 
 Record the reported branch, source commit SHA, PR URL, and final committed path list. For a symbols-related delivery,
-wait for the stable `pr-validate` check on the latest PR head. Confirm that the bot commit changes only the matching
-snapshot/gamedata outputs and that the published recheck succeeds.
+wait for the stable `pr-validate` check on the latest PR head. Snapshot/gamedata outputs are published later by the
+release pipeline, not by this PR.

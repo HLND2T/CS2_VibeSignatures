@@ -2,7 +2,7 @@
 
 # 通过 Pull Request 贡献符号分析 skill
 
-完成符号分析 skill 并运行本地定向测试后，可使用 `SKILL: create-pr`（调用方式为 `/create-pr`）将其共享到项目中。该 skill 只分类并提交 staged source change；涉及 CS2 Symbols 的 candidate 准备、C++ 验证以及 snapshot/gamedata 发布由 PR 创建后的 `pr-self-runner.yml` CI 完成。
+完成符号分析 skill 并运行本地定向测试后，可使用 `SKILL: create-pr`（调用方式为 `/create-pr`）将其共享到项目中。该 skill 只分类并提交 staged source change；涉及 CS2 Symbols 的 candidate 准备与 C++ 验证由 PR 创建后的 `pr-self-runner.yml` CI 完成；snapshot/gamedata 发布只在 release 流水线进行。
 
 ## 调用 skill
 
@@ -27,7 +27,7 @@ commit_title: feat(skills): add find-example symbol-analysis skill
 2. 只提交这些 source paths，使用仓库 Conventional Commit 格式并附带 `Co-Authored-By: Codex`。
 3. 推送 `dev*` 分支，并针对 `main` 创建一个 PR。
 4. `pr-self-runner.yml` 从 immutable merge ref 分析二进制，构建 snapshot/gamedata candidate，并用同一份 candidate bytes 运行 C++ 验证。
-5. 全部门禁通过后，CI 发布 `gamesymbols/<GAMEVER>.yaml` 与 `gamedata/<GAMEVER>/`，以 `github-actions[bot]` 在 PR head branch 创建 commit，再显式 dispatch 针对新 head 的轻量 provenance/digest 复核。
+5. `gamesymbols/<GAMEVER>.yaml` 与 `gamedata/<GAMEVER>/` 只在 release 时推进；PR workflow 不会把它们发布回 PR head。
 
 如果没有 staged path 涉及 CS2 symbols（例如变更只包含文档、workflow、skill 或进程监控），`create-pr` 会直接从捕获的变更创建 PR，并且不会在 PR 正文中声称执行 symbols lifecycle。
 
@@ -35,4 +35,4 @@ commit_title: feat(skills): add find-example symbol-analysis skill
 
 ## 完成后
 
-记录 skill 返回的分支、source commit SHA、PR URL 和最终提交路径列表。若本次涉及 symbols 管线，等待最新 PR head 上稳定的 `pr-validate` check；确认 bot commit 只改动对应 snapshot/gamedata，且 published recheck 成功。
+记录 skill 返回的分支、source commit SHA、PR URL 和最终提交路径列表。若本次涉及 symbols 管线，等待最新 PR head 上稳定的 `pr-validate` check；snapshot/gamedata 输出稍后由 release 流水线发布，而非由本 PR 发布。

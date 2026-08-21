@@ -40,6 +40,6 @@ symbol candidate + config -> trusted generator contract
 
 ## Callers
 - Build and PR self-runner workflows.
-- `pr-self-runner.yml` builds isolated candidate gamedata from the validated symbol candidate and publishes the
-  guarded versioned tree after C++ validation.
-- `create-pr` delivers source changes only and delegates PR gamedata generation/publication to CI.
+- `pr-self-runner.yml` builds an isolated gamedata candidate from the validated symbol candidate for C++ ABI and
+  contract checks; it does not publish it. Versioned `gamedata/<GAMEVER>` publication is release-pipeline only.
+- `create-pr` delivers source changes only and delegates PR gamedata generation/validation to CI.

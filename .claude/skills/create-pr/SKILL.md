@@ -3,8 +3,8 @@ name: create-pr
 description: |
   Create a GitHub pull request from staged task changes or an already-committed current branch. Classify the delivered
   paths with `.claude/skills/create-pr/scripts/classify_delivery.py`; symbol-pipeline changes are committed as source
-  changes only, while candidate preparation, C++ validation, and snapshot/gamedata publication are owned by
-  `.github/workflows/pr-self-runner.yml`.
+  changes only, while candidate preparation and C++ validation are owned by
+  `.github/workflows/pr-self-runner.yml`; snapshot/gamedata publication is release-pipeline only.
 disable-model-invocation: true
 ---
 
@@ -41,8 +41,8 @@ lifecycle; it does not authorize local generation or publication. `LIFECYCLE=0` 
   `origin/main`, and a non-empty `origin/main...HEAD` diff. Never create a supplemental publication commit.
 - Run the bundled classifier and obey `LIFECYCLE=`. You may override only `0` → `1` when a captured path clearly feeds
   the symbols pipeline and the classifier missed it. Never override `1` → `0`.
-- Candidate preparation, C++ validation, snapshot publication, and gamedata publication run only in
-  `.github/workflows/pr-self-runner.yml` after the PR exists. Never claim those CI gates passed locally.
+- Candidate preparation and C++ validation run only in `.github/workflows/pr-self-runner.yml` after the PR exists;
+  snapshot/gamedata publication runs only in the release pipeline. Never claim those CI gates passed locally.
 - Commit and push commands may take longer than an interactive timeout. Wait for their real exit status; do not infer
   success from elapsed time.
 
@@ -126,8 +126,8 @@ uv run python .claude/skills/create-pr/scripts/classify_delivery.py --committed
 
 If it exits non-zero, stop. Read `LIFECYCLE=` from the first line and retain the matched paths as delivery evidence.
 
-- `LIFECYCLE=1` — submit only the captured source change. State that `pr-self-runner.yml` will prepare the candidate,
-  run C++ validation, and publish the matching snapshot/gamedata after the PR is opened.
+- `LIFECYCLE=1` — submit only the captured source change. State that `pr-self-runner.yml` will prepare the candidate
+  and run C++ validation after the PR is opened; snapshot/gamedata publication happens only at release time.
 - `LIFECYCLE=0` — submit the captured change as a plain PR without lifecycle claims.
 
 Never override `1` → `0`.
@@ -187,7 +187,8 @@ Build a truthful body. For `LIFECYCLE=1`, use this shape and do not claim the CI
 
 ## Validation
 - implementation-specific tests: <commands/results supplied by the caller>
-- candidate preparation, C++ validation, and snapshot/gamedata publication: delegated to `pr-self-runner.yml` CI
+- candidate preparation and C++ validation: delegated to `pr-self-runner.yml` CI; snapshot/gamedata publication is
+  release-pipeline only
 
 Closes #<issue>
 ```
@@ -210,5 +211,5 @@ remote branch and exact failure; do not delete the branch or create another comm
 - [ ] Exactly one delivery mode was selected and no unstaged tracked changes existed.
 - [ ] `.claude/skills/create-pr/scripts/classify_delivery.py` ran with `--cached` or `--committed`.
 - [ ] The local commit contains source changes only; generated snapshot/gamedata outputs were not added.
-- [ ] `LIFECYCLE=1` delegates validation/publication to `pr-self-runner.yml`; `LIFECYCLE=0` makes no lifecycle claim.
+- [ ] `LIFECYCLE=1` delegates candidate/C++ validation to `pr-self-runner.yml`; `LIFECYCLE=0` makes no lifecycle claim.
 - [ ] No duplicate PR existed; the branch was pushed without force; exactly one PR was opened against `main`.
