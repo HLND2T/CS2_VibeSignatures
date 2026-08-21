@@ -85,12 +85,13 @@ class TestPrSelfRunnerWorkflow(unittest.TestCase):
         self.assertEqual("ubuntu-latest", self.light["runs-on"])
         self.assertIn("needs.pr-preflight.outputs.validation_path == 'light'", self.light["if"])
         light_steps = steps_by_id(self.light)
-        self.assertIn("install-formatters", light_steps)
         self.assertIn("format", light_steps)
         self.assertIn("verify-download-config", light_steps)
+        format_run = light_steps["format"]["run"]
+        self.assertIn("uv run --locked --only-group dev python format_repo_files.py --check", format_run)
         verify = light_steps["verify-download-config"]["run"]
         self.assertIn("latest_gamever", verify)
-        self.assertIn("configs\\$gamever.yaml", verify)
+        self.assertIn('Join-Path (Join-Path $env:WORKSPACE "configs") "${gamever}.yaml"', verify)
         self.assertNotIn("test-suites", light_steps)
         self.assertNotIn("analyze", light_steps)
         self.assertNotIn("build-snapshot", light_steps)

@@ -690,17 +690,11 @@ jobs:
       - name: Set up uv
         id: setup-uv
         uses: astral-sh/setup-uv@v9.0.0
-      - name: Install formatters
-        id: install-formatters
-        shell: bash
-        run: |
-          uv tool install ruff yamlfix
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: Check formatting
         id: format
         shell: bash
         run: |
-          python3 format_repo_files.py --check
+          uv run --locked --only-group dev python format_repo_files.py --check
       - name: Verify download config exists
         id: verify-download-config
         shell: pwsh
@@ -709,7 +703,7 @@ jobs:
           if ([string]::IsNullOrWhiteSpace($gamever)) {
             throw "Missing latest game version from preflight."
           }
-          $configPath = Join-Path $env:WORKSPACE "configs\$gamever.yaml"
+          $configPath = Join-Path (Join-Path $env:WORKSPACE "configs") "${gamever}.yaml"
           if (-not (Test-Path -LiteralPath $configPath -PathType Leaf)) {
             throw "Missing analysis config for ${gamever}: $configPath"
           }

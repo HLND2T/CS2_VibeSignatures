@@ -17,9 +17,14 @@ from trusted_yaml import load_yaml, load_yaml_file
 CONFIG_REPO_PATH = "pr_validation_mode.yaml"
 SHA_PATTERN = re.compile(r"^[0-9a-fA-F]{40}$")
 _RULE_KEYS = frozenset({"paths", "regexes", "reason"})
+TRUSTED_CONFIG_MISSING_REASON = "Trusted validation config missing; fail-closed to full validation"
 
 
 class PrValidationModeError(RuntimeError):
+    pass
+
+
+class TrustedConfigMissingError(PrValidationModeError):
     pass
 
 
@@ -64,6 +69,13 @@ def _read_tracked_file(repo_root: Path, ref: str, path: str) -> bytes:
         check=False,
     )
     if result.returncode != 0:
+        commit_check = subprocess.run(
+            ["git", "-C", str(repo_root), "cat-file", "-e", f"{ref}^{{commit}}"],
+            capture_output=True,
+            check=False,
+        )
+        if commit_check.returncode == 0:
+            raise TrustedConfigMissingError(f"trusted config {path!r} is missing from base commit {ref}")
         raise PrValidationModeError(
             result.stderr.decode("utf-8", errors="replace").strip() or f"git show {ref}:{path} failed"
         )
@@ -235,10 +247,21 @@ def resolve_validation_mode(
     base_ref = str(base_ref).strip()
     if not SHA_PATTERN.fullmatch(base_ref):
         raise PrValidationModeError(f"base ref must be a full commit SHA: {base_ref}")
-    rules = load_rules_from_file(config_path) if config_path else load_rules_from_ref(repo_root, base_ref)
+    trusted_config_missing = False
+    if config_path:
+        rules = load_rules_from_file(config_path)
+    else:
+        try:
+            rules = load_rules_from_ref(repo_root, base_ref)
+        except TrustedConfigMissingError:
+            rules = ()
+            trusted_config_missing = True
     changed = changed_paths(repo_root, base_ref, head_ref)
     paths = tuple(sorted({path for change in changed for path in (change.old_path, change.new_path) if path}))
-    classification = classify_paths(list(paths), rules, force_light=force_light)
+    if trusted_config_missing:
+        classification = Classification("full", (TRUSTED_CONFIG_MISSING_REASON,), False)
+    else:
+        classification = classify_paths(list(paths), rules, force_light=force_light)
     return ValidationResult(
         mode=classification.mode,
         latest_gamever=latest_gamever(repo_root),

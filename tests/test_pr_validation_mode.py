@@ -193,6 +193,35 @@ class TestCli(unittest.TestCase):
         self.assertEqual(0, exit_code)
         self.assertIn("validation-mode=light", text)
 
+    def test_main_fails_closed_to_full_when_trusted_config_is_missing(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp) / "github-output.txt"
+            with (
+                mock.patch(
+                    "pr_validation_mode.load_rules_from_ref",
+                    side_effect=pvm.TrustedConfigMissingError("missing trusted config"),
+                ),
+                mock.patch(
+                    "pr_validation_mode.changed_paths",
+                    return_value=[ChangedPath("M", "docs/x.md", "docs/x.md")],
+                ),
+                mock.patch("pr_validation_mode.latest_gamever", return_value="14176"),
+            ):
+                exit_code = pvm.main(
+                    [
+                        "--repo-root",
+                        ".",
+                        "--base-ref",
+                        self.FAKE_SHA,
+                        "--force-light",
+                        "--github-output",
+                        str(output),
+                    ]
+                )
+            self.assertEqual(0, exit_code)
+            text = output.read_text(encoding="utf-8")
+            self.assertIn("validation-mode=full", text)
+
     def test_main_fails_closed_on_bad_base_ref(self) -> None:
         exit_code, _ = self._run_with_bad_base()
         self.assertEqual(1, exit_code)
