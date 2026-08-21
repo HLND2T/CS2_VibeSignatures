@@ -145,7 +145,9 @@ class TestCandidateLifecycle(unittest.TestCase):
                     return_value="2026-01-02T03:04:05Z",
                 ):
                     pack_snapshot(workspace.gamever, workspace.bindir, workspace.config, tracked_snapshot)
-                write_yaml(workspace.bindir / workspace.gamever / "server" / "Foo.windows.yaml", {"func_name": "Changed"})
+                write_yaml(
+                    workspace.bindir / workspace.gamever / "server" / "Foo.windows.yaml", {"func_name": "Changed"}
+                )
                 with patch(
                     "gamesymbol_snapshot_lib.operations._utc_publish_time",
                     return_value="2026-01-02T04:05:06Z",
