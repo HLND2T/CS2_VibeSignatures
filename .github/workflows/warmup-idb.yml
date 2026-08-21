@@ -31,7 +31,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: idb-warmup-${{ github.repository }}-${{ inputs.gamever }}
+  group: gamever-state-${{ github.repository }}-${{ inputs.gamever }}
   cancel-in-progress: false
 jobs:
   warmup:
@@ -76,7 +76,7 @@ jobs:
       - name: Set up uv
         id: setup-uv
         uses: astral-sh/setup-uv@v9.0.0
-      - name: Prepare persisted depot link and clean cache workspace
+      - name: Prepare persisted depot link and restore accepted bin
         id: prepare-workspace
         shell: pwsh
         run: |
@@ -100,6 +100,18 @@ jobs:
           New-Item -ItemType Directory -Path $workspaceBin -Force | Out-Null
           if ((Get-Item $workspaceBin -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) {
             throw "Warmup workspace bin must be a real directory."
+          }
+          $workspaceGamever = Join-Path $workspaceBin $env:GAMEVER
+          New-Item -ItemType Directory -Path $workspaceGamever -Force | Out-Null
+          $persistedGamever = Join-Path $env:PERSISTED_WORKSPACE "bin\$env:GAMEVER"
+          if (Test-Path -LiteralPath $persistedGamever -PathType Container) {
+            robocopy $persistedGamever $workspaceGamever /E /COPY:DAT /DCOPY:DAT /R:2 /W:5 `
+              /XF *.i64 *.idb *.id0 *.id1 *.id2 *.nam *.til
+            if ($LASTEXITCODE -ge 8) {
+              throw "Failed to restore persisted accepted bin/$env:GAMEVER into the warmup workspace."
+            }
+            $global:LASTEXITCODE = 0
+            Write-Host "Restored persisted accepted bin/$env:GAMEVER into the warmup workspace"
           }
       - name: Prune stale warm-cache state
         id: prune-cache
@@ -183,3 +195,12 @@ jobs:
           }
           "generation=$generation" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "cache-key=$cacheKey" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+      - name: Sync consumed gamebin into accepted bin
+        id: sync-accepted-bin
+        shell: pwsh
+        run: |
+          uv run release_workflow.py sync-accepted-bin `
+            --repo-root "${{ github.workspace }}" `
+            --persisted-root "$env:PERSISTED_WORKSPACE" `
+            --gamever "$env:GAMEVER"
+          if ($LASTEXITCODE -ne 0) { throw "Accepted bin sync failed for $env:GAMEVER." }

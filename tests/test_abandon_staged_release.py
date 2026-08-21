@@ -343,7 +343,7 @@ class TestAbandonStagedRelease(unittest.TestCase):
         self.assertEqual("https://github.com/example/run", result["run_url"])
         self.assertEqual("a" * 40, result["source_sha"])
 
-    def test_recovery_workflow_still_derives_identity_and_uses_promotion_concurrency(self) -> None:
+    def test_recovery_workflow_still_derives_identity_and_uses_gamever_state_concurrency(self) -> None:
         workflow = load_workflow("abandon-staged-release.yml")
         inputs = workflow["on"]["workflow_dispatch"]["inputs"]
         resolve = workflow_job(workflow, "resolve")
@@ -359,7 +359,7 @@ class TestAbandonStagedRelease(unittest.TestCase):
         self.assertEqual("win64", abandon_job["environment"])
         self.assertEqual(["self-hosted", "windows", "x64"], abandon_job["runs-on"])
         self.assertEqual(
-            "release-promotion-${{ github.repository }}-${{ needs.resolve.outputs.gamever }}",
+            "gamever-state-${{ github.repository }}-${{ needs.resolve.outputs.gamever }}",
             abandon_job["concurrency"]["group"],
         )
         self.assertEqual(

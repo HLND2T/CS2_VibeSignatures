@@ -15,7 +15,10 @@ class TestWarmupIdbWorkflow(unittest.TestCase):
             inputs = triggers[trigger]["inputs"]
             self.assertTrue(inputs["gamever"]["required"])
             self.assertTrue(inputs["source_sha"]["required"])
-        self.assertIn("inputs.gamever", self.workflow["concurrency"]["group"])
+        self.assertEqual(
+            "gamever-state-${{ github.repository }}-${{ inputs.gamever }}",
+            self.workflow["concurrency"]["group"],
+        )
         self.assertFalse(self.workflow["concurrency"]["cancel-in-progress"])
         self.assertEqual(
             "${{ jobs.warmup.outputs.generation }}", triggers["workflow_call"]["outputs"]["generation"]["value"]
@@ -41,6 +44,7 @@ class TestWarmupIdbWorkflow(unittest.TestCase):
             "warmup-idb",
             "publish-cache",
             "resolve-output",
+            "sync-accepted-bin",
         )
         self.assertEqual(sorted(order), order)
         self.assertIn("source_sha must be a full commit SHA", self.steps["validate-source"]["run"])
@@ -52,6 +56,13 @@ class TestWarmupIdbWorkflow(unittest.TestCase):
         self.assertIn("--force", self.steps["warmup-idb"]["run"])
         self.assertIn("idb_cache.py publish", self.steps["publish-cache"]["run"])
         self.assertEqual("steps.probe-cache.outputs.cache-hit != 'true'", self.steps["publish-cache"]["if"])
+        # The accepted-bin sync runs on every warmup path (cache hit or miss) so
+        # accepted bin always reflects the binaries the warmup consumed.
+        self.assertNotIn("if", self.steps["sync-accepted-bin"])
+        self.assertIn("release_workflow.py sync-accepted-bin", self.steps["sync-accepted-bin"]["run"])
+        self.assertIn("--persisted-root", self.steps["sync-accepted-bin"]["run"])
+        self.assertIn("--repo-root", self.steps["sync-accepted-bin"]["run"])
+        self.assertIn("--gamever", self.steps["sync-accepted-bin"]["run"])
 
 
 if __name__ == "__main__":
