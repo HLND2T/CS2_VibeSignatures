@@ -52,4 +52,3 @@ or gamedata back to the PR head. A stable terminal job named `pr-validate` requi
 - Concurrency group is `pr-self-runner-...-full`.
 - Candidate/config/generator inputs needed after checkout are copied below runner temp.
 - Bump-download PRs retain lightweight full-path validation (config existence check only).
-- `pr_published_recheck.py` and `tests/test_pr_published_recheck.py` are orphaned (no caller after #803).

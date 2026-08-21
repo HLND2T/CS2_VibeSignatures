@@ -51,4 +51,3 @@ source changes -> create-pr -> classifier -> source commit -> PR head H1
 - Snapshot/gamedata publication was removed from the PR workflow (#803); `gamesymbols/<GAMEVER>.yaml` on main now
   advances only at release time.
 - `LIFECYCLE=0` remains a plain PR path and never claims candidate/C++ work.
-- `pr_published_recheck.py` is orphaned (no caller after #803).
