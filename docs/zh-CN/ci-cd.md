@@ -4,6 +4,10 @@
 
 以下 Windows batch 片段展示带 guard 的工作流阶段。
 
+对于 Pull Request，这些 candidate、C++ 与发布阶段由 `.github/workflows/pr-self-runner.yml` 在内部执行；
+`create-pr` 只提交 source change。完整验证成功后，workflow 发布同一份 guarded snapshot/gamedata bytes，将 bot
+commit push 到 PR head，并为新 head 显式 dispatch 一个仅在 Ubuntu 上运行的 provenance/digest 轻量复核。
+
 ## 下载二进制
 
 ```batch
