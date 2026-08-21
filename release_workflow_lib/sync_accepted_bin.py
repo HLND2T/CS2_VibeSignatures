@@ -12,6 +12,10 @@ The merge-time ``promote_bin`` path remains the verification gate for accepted
 bin. ``sync_accepted_bin`` shares its per-version lock and the same-hash fast path,
 so the two writers cannot race and a later merge-time promote becomes a no-op when
 the warmup already wrote identical bytes.
+
+When the source and accepted trees already agree by path and size - the common
+cache-hit case - the comparison takes a no-hash skeleton fast path and the
+returned ``hash`` is ``None`` because no content hash was computed.
 """
 
 from __future__ import annotations
@@ -46,16 +50,37 @@ def _ignore_ida_state(directory: str, names: list[str]) -> set[str]:
     return {name for name in names if name.lower().endswith(IDA_DATABASE_SUFFIXES)}
 
 
+def _filtered_files(root: Path) -> list[Path]:
+    """Sorted non-IDA files under ``root``, rejecting reparse points."""
+    reject_reparse_points(root)
+    return [
+        path
+        for path in sorted(item for item in root.rglob("*") if item.is_file())
+        if not str(path).lower().endswith(IDA_DATABASE_SUFFIXES)
+    ]
+
+
 def _filtered_inventory(root: Path) -> tuple[list[dict], str]:
     """Inventory one gamebin tree excluding IDA side files, and its hash."""
-    reject_reparse_points(root)
     filtered = []
-    for path in sorted(item for item in root.rglob("*") if item.is_file()):
-        if str(path).lower().endswith(IDA_DATABASE_SUFFIXES):
-            continue
+    for path in _filtered_files(root):
         relative = normalized_relative_path(path.relative_to(root).as_posix())
         filtered.append({"path": relative, "size": path.stat().st_size, "sha256": sha256_file(path)})
     return filtered, inventory_sha256(filtered)
+
+
+def _filtered_skeleton(root: Path) -> list[tuple[str, int]]:
+    """Sorted ``(relative path, size)`` pairs excluding IDA side files.
+
+    A no-hash identity used for the fast path: equal skeletons imply equal bytes
+    because the source tree is a robocopy restore of the same persisted tree and
+    nothing rewrites files in place between restore and sync (prepare only adds
+    missing binaries; IDA warmup writes only excluded side files).
+    """
+    return [
+        (normalized_relative_path(path.relative_to(root).as_posix()), path.stat().st_size)
+        for path in _filtered_files(root)
+    ]
 
 
 def _contains_ida_state(root: Path) -> bool:
@@ -113,7 +138,9 @@ def sync_accepted_bin(*, repo_root: Path, persisted_root: Path, gamever: str) ->
 
     The source is the gamever directory the caller actually consumed. IDA database
     side files are excluded so warm analysis state never leaks into the accepted
-    tree. Returns a summary with ``synced`` true when the accepted tree changed.
+    tree. Returns a summary with ``synced`` true when the accepted tree changed;
+    ``hash`` is the source content hash, or ``None`` when the no-hash skeleton
+    fast path proved the trees already identical.
     """
     gamever = require_gamever(gamever)
     repo_root = Path(repo_root).resolve()
@@ -132,13 +159,16 @@ def sync_accepted_bin(*, repo_root: Path, persisted_root: Path, gamever: str) ->
     backup = contained_path(accepted_root, f".{gamever}.{uuid.uuid4().hex}.backup")
     lock_path = contained_path(persisted_root, *_LOCK_RELATIVE, f"{gamever}.lock")
 
-    expected_files, expected_hash = _filtered_inventory(source_root)
+    source_skeleton = _filtered_skeleton(source_root)
 
     with _version_lock(lock_path):
-        if target.is_dir():
-            target_inventory = _filtered_inventory(target)
-            if target_inventory == (expected_files, expected_hash) and not _contains_ida_state(target):
-                return {"synced": False, "gamever": gamever, "hash": expected_hash}
+        if (
+            target.is_dir()
+            and _filtered_skeleton(target) == source_skeleton
+            and not _contains_ida_state(target)
+        ):
+            return {"synced": False, "gamever": gamever, "hash": None}
+        expected_files, expected_hash = _filtered_inventory(source_root)
         moved_old = _swap_verified_bin(
             source=source_root,
             target=target,
