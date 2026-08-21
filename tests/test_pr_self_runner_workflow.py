@@ -9,6 +9,7 @@ class TestPrSelfRunnerWorkflow(unittest.TestCase):
         self.preflight = workflow_job(self.workflow, "pr-preflight")
         self.warmup = workflow_job(self.workflow, "pr-warmup-idb")
         self.full = workflow_job(self.workflow, "pr-validate-full")
+        self.light = workflow_job(self.workflow, "pr-validate-light")
         self.terminal = workflow_job(self.workflow, "pr-validate")
         self.steps = steps_by_id(self.full)
 
@@ -21,11 +22,16 @@ class TestPrSelfRunnerWorkflow(unittest.TestCase):
         self.assertEqual({"contents": "read"}, self.workflow["permissions"])
         self.assertEqual({"pull-requests": "read"}, self.full["permissions"])
         self.assertEqual("pr-validate", self.terminal["name"])
-        self.assertEqual(["pr-preflight", "pr-validate-full"], self.terminal["needs"])
+        self.assertEqual(
+            ["pr-preflight", "pr-validate-full", "pr-validate-light"],
+            self.terminal["needs"],
+        )
         self.assertNotIn("pr-published-recheck", self.workflow["jobs"])
         terminal_run = steps_by_id(self.terminal)["terminal"]["run"]
         self.assertIn('PREFLIGHT_RESULT" == "success', terminal_run)
         self.assertIn('FULL_RESULT" == "success', terminal_run)
+        self.assertIn('LIGHT_RESULT" == "success', terminal_run)
+        self.assertIn("VALIDATION_PATH", terminal_run)
         self.assertNotIn("published-recheck", terminal_run)
         self.assertNotIn("RECHECK_RESULT", terminal_run)
 
@@ -53,6 +59,48 @@ class TestPrSelfRunnerWorkflow(unittest.TestCase):
         self.assertEqual(["pr-preflight", "pr-warmup-idb"], self.full["needs"])
         self.assertIn("needs.pr-preflight.outputs.validation_path == 'full'", self.full["if"])
         self.assertIn("needs.pr-warmup-idb.result == 'success'", self.full["if"])
+
+    def test_preflight_classifies_validation_mode_from_trusted_base_config(self) -> None:
+        classify = steps_by_id(self.preflight)["classify-validation-mode"]
+        run = classify["run"]
+        self.assertIn("pr_validation_mode.py", run)
+        self.assertIn("--base-ref", run)
+        self.assertIn("$env:PR_BASE_SHA", run)
+        self.assertEqual("${{ steps.pull-request.outputs.base-sha }}", classify["env"]["PR_BASE_SHA"])
+        self.assertEqual("${{ steps.pull-request.outputs.is-bump }}", classify["env"]["PR_IS_BUMP"])
+        outputs = self.preflight["outputs"]
+        self.assertEqual(
+            "${{ steps.classify-validation-mode.outputs.validation-mode || 'light' }}",
+            outputs["validation_path"],
+        )
+        self.assertEqual(
+            "${{ steps.classify-validation-mode.outputs.validation-mode == 'full' && 'true' || 'false' }}",
+            outputs["requires_warmup"],
+        )
+        self.assertEqual("${{ steps.classify-validation-mode.outputs.latest-gamever }}", outputs["latest_gamever"])
+        self.assertEqual("${{ steps.pull-request.outputs.is-bump }}", outputs["is_bump"])
+
+    def test_light_job_runs_only_for_light_path_on_ubuntu(self) -> None:
+        self.assertEqual("pr-preflight", self.light["needs"])
+        self.assertEqual("ubuntu-latest", self.light["runs-on"])
+        self.assertIn("needs.pr-preflight.outputs.validation_path == 'light'", self.light["if"])
+        light_steps = steps_by_id(self.light)
+        self.assertIn("format", light_steps)
+        self.assertIn("verify-download-config", light_steps)
+        format_run = light_steps["format"]["run"]
+        self.assertIn("uv run --locked --only-group dev python format_repo_files.py --check", format_run)
+        verify = light_steps["verify-download-config"]["run"]
+        self.assertIn("latest_gamever", verify)
+        self.assertIn('Join-Path (Join-Path $env:WORKSPACE "configs") "${gamever}.yaml"', verify)
+        self.assertNotIn("test-suites", light_steps)
+        self.assertNotIn("analyze", light_steps)
+        self.assertNotIn("build-snapshot", light_steps)
+
+    def test_full_job_dropped_bump_partition_machinery(self) -> None:
+        self.assertNotIn("detect-bump", self.steps)
+        self.assertNotIn("bump-light", self.steps)
+        for step_id in ("submodule-cache-key", "restore-submodule-cache", "sync-submodules"):
+            self.assertNotIn("is-bump", self.steps[step_id].get("if", ""))
 
     def test_full_validation_build_test_stage_order(self) -> None:
         test_run = self.steps["test-suites"]["run"]
@@ -93,7 +141,7 @@ class TestPrSelfRunnerWorkflow(unittest.TestCase):
         self.assertNotIn("gamesymbol_candidate.py publish", build)
         self.assertNotIn("gamedata_candidate.py publish", gamedata)
 
-    def test_submodule_cache_and_bump_partition_are_preserved(self) -> None:
+    def test_submodule_cache_is_preserved_without_bump_partition(self) -> None:
         self.assertEqual("actions/cache@v5", self.steps["restore-submodule-cache"]["uses"])
         self.assertIn(
             "git submodule update --init --recursive --depth 1 --jobs 8",
@@ -101,19 +149,14 @@ class TestPrSelfRunnerWorkflow(unittest.TestCase):
         )
         self.assertIn("git ls-tree HEAD", self.steps["submodule-cache-key"]["run"])
         self.assertNotIn("submodule status --recursive", self.steps["submodule-cache-key"]["run"])
-        condition = "steps.detect-bump.outputs.is-bump != 'true'"
-        for step_id in ("submodule-cache-key", "restore-submodule-cache", "sync-submodules"):
-            self.assertEqual(condition, self.steps[step_id]["if"])
         order = step_order(
             self.full,
             "checkout-merge",
             "verify-source",
-            "detect-bump",
             "submodule-cache-key",
             "restore-submodule-cache",
             "sync-submodules",
             "format",
-            "bump-light",
         )
         self.assertEqual(sorted(order), order)
 
@@ -154,13 +197,14 @@ class TestPrSelfRunnerWorkflow(unittest.TestCase):
 
     def test_untrusted_pr_fields_are_passed_via_environment(self) -> None:
         identify = steps_by_id(self.preflight)["pull-request"]
-        detect = self.steps["detect-bump"]
-        for step in (identify, detect):
-            run = step["run"]
-            self.assertIn("$env:PR_TITLE", run)
-            self.assertIn("$env:PR_HEAD_REF", run)
-            self.assertIn("$env:PR_USER_LOGIN", run)
-            self.assertNotIn("${{ github.event.pull_request.title }}", run)
+        run = identify["run"]
+        self.assertIn("$env:PR_TITLE", run)
+        self.assertIn("$env:PR_HEAD_REF", run)
+        self.assertIn("$env:PR_USER_LOGIN", run)
+        self.assertNotIn("${{ github.event.pull_request.title }}", run)
+        classify = steps_by_id(self.preflight)["classify-validation-mode"]
+        self.assertEqual("${{ steps.pull-request.outputs.base-sha }}", classify["env"]["PR_BASE_SHA"])
+        self.assertEqual("${{ steps.pull-request.outputs.is-bump }}", classify["env"]["PR_IS_BUMP"])
 
     def test_closed_event_still_promotes_staged_yaml_on_merge(self) -> None:
         finalize = workflow_job(self.workflow, "finalize-pr-workspace")

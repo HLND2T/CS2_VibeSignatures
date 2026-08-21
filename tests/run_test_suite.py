@@ -37,6 +37,7 @@ REPOSITORY_CONTRACT_PREFIXES = (
     "test_bump_download.TestBumpDownload.test_bump_workflow_prunes_local_only_tags_before_bump",
     "test_ida_mcp_session.TestMcpSessionBoundary.test_only_adapter_creates_raw_mcp_sessions",
     "test_llm_decompile_dependencies.TestRepositoryLlmDecompileDependencyPolicy",
+    "test_pr_validation_mode.PrValidationModeRepositoryContractTests",
     "test_test_suite_runner.TestSuiteAssignmentContract",
     "test_trusted_yaml.TestRepositoryYamlCompatibility",
 )
@@ -101,6 +102,7 @@ UNIT_MODULES = frozenset(
         "test_process_scheduler_redis",
         "test_process_status_reader_redis",
         "test_prune_pr_expected_output_bin",
+        "test_pr_validation_mode",
         "test_pr_validation_version",
         "test_push_binsync_symbols",
         "test_ordinal_vtable_common",

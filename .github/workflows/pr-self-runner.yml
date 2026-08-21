@@ -23,8 +23,10 @@ jobs:
       pull-requests: read
     runs-on: ubuntu-latest
     outputs:
-      validation_path: ${{ steps.pull-request.outputs.validation-path }}
-      requires_warmup: ${{ steps.pull-request.outputs.requires-warmup }}
+      validation_path: ${{ steps.classify-validation-mode.outputs.validation-mode || 'light' }}
+      requires_warmup: ${{ steps.classify-validation-mode.outputs.validation-mode == 'full' && 'true' || 'false' }}
+      latest_gamever: ${{ steps.classify-validation-mode.outputs.latest-gamever }}
+      is_bump: ${{ steps.pull-request.outputs.is-bump }}
       pr_number: ${{ steps.pull-request.outputs.pr-number }}
       gamever: ${{ steps.resolve-version.outputs.gamever }}
       pr_gamever: ${{ steps.resolve-version.outputs.pr_gamever }}
@@ -59,7 +61,7 @@ jobs:
           $headRef = $env:PR_HEAD_REF
           $title = $env:PR_TITLE
           $isBump = $isBot -and $headRef.StartsWith("bump-download/") -and $title.StartsWith("chore(download): Update manifest for ")
-          $requiresWarmup = if ($isBump) { "false" } else { "true" }
+          $isBumpLower = if ($isBump) { "true" } else { "false" }
           $sourceSha = (git rev-parse HEAD).Trim()
           if ($LASTEXITCODE -ne 0 -or $sourceSha -notmatch '^[0-9a-fA-F]{40}$') {
             throw "Unable to resolve the PR merge commit SHA."
@@ -76,22 +78,34 @@ jobs:
           if ($LASTEXITCODE -ne 0 -or $mergeHeadSha -ne $headSha) {
             throw "PR merge ref second parent does not match the immutable PR head SHA."
           }
-          "validation-path=full" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "is-bump=$isBumpLower" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "pr-number=$env:PR_NUMBER" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "requires-warmup=$requiresWarmup" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "source-sha=$($sourceSha.ToLowerInvariant())" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "head-sha=$headSha" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "head-ref=$headRef" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "base-sha=$($baseSha.ToLowerInvariant())" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "pr-title=$title" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "pr-user-login=$env:PR_USER_LOGIN" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-      - name: Set up uv for validation version resolution
+      - name: Set up uv for validation classification
         id: setup-preflight-uv
-        if: github.event_name == 'pull_request' && steps.pull-request.outputs.requires-warmup == 'true'
         uses: astral-sh/setup-uv@v9.0.0
+      - name: Classify PR validation mode from changed paths
+        id: classify-validation-mode
+        shell: pwsh
+        env:
+          PR_BASE_SHA: ${{ steps.pull-request.outputs.base-sha }}
+          PR_IS_BUMP: ${{ steps.pull-request.outputs.is-bump }}
+        run: |
+          $forceArgs = @()
+          if ($env:PR_IS_BUMP -eq "true") { $forceArgs += "--force-light" }
+          uv run python pr_validation_mode.py `
+            --repo-root "${{ github.workspace }}" `
+            --base-ref "$env:PR_BASE_SHA" `
+            --github-output "$env:GITHUB_OUTPUT" @forceArgs
+          if ($LASTEXITCODE -ne 0) { throw "Failed to classify PR validation mode." }
       - name: Resolve exact PR validation GAMEVER
         id: resolve-version
-        if: github.event_name == 'pull_request' && steps.pull-request.outputs.requires-warmup == 'true'
+        if: github.event_name == 'pull_request' && steps.classify-validation-mode.outputs.validation-mode == 'full'
         shell: pwsh
         env:
           PR_BASE_SHA: ${{ steps.pull-request.outputs.base-sha }}
@@ -117,8 +131,7 @@ jobs:
       always() &&
       needs.pr-preflight.result == 'success' &&
       needs.pr-preflight.outputs.validation_path == 'full' &&
-      (needs.pr-preflight.outputs.requires_warmup != 'true' ||
-       needs.pr-warmup-idb.result == 'success')
+      needs.pr-warmup-idb.result == 'success'
     permissions:
       pull-requests: read
     environment: win64
@@ -167,22 +180,8 @@ jobs:
           if ($LASTEXITCODE -ne 0 -or $actualSourceSha -ne $env:PR_SOURCE_SHA) {
             throw "PR source checkout drifted: expected=$env:PR_SOURCE_SHA actual=$actualSourceSha"
           }
-      - name: Detect bump-download PR
-        id: detect-bump
-        shell: pwsh
-        run: |
-          $isBot = $env:PR_USER_LOGIN -eq "github-actions[bot]"
-          $headRef = $env:PR_HEAD_REF
-          $title = $env:PR_TITLE
-          $isBump = $isBot -and $headRef.StartsWith("bump-download/") -and $title.StartsWith("chore(download): Update manifest for ")
-          # PowerShell bool ToString() yields capitalized True/False; emit lowercase
-          # so the downstream string comparisons against 'true' are case-exact.
-          $isBumpLower = if ($isBump) { "true" } else { "false" }
-          "is-bump=$isBumpLower" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          Write-Host "Detected bump-download PR: $isBumpLower"
       - name: Compute submodule cache key
         id: submodule-cache-key
-        if: steps.detect-bump.outputs.is-bump != 'true'
         shell: pwsh
         run: |
           Set-Location $env:WORKSPACE
@@ -200,7 +199,6 @@ jobs:
           "hash=$hash" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
       - name: Restore submodule cache
         id: restore-submodule-cache
-        if: steps.detect-bump.outputs.is-bump != 'true'
         uses: actions/cache@v5
         with:
           path: |
@@ -211,7 +209,6 @@ jobs:
             ${{ runner.os }}-submodules-${{ env.SUBMODULE_CACHE_VERSION }}-
       - name: Sync and update submodules
         id: sync-submodules
-        if: steps.detect-bump.outputs.is-bump != 'true'
         shell: pwsh
         run: |
           Set-Location $env:WORKSPACE
@@ -225,24 +222,8 @@ jobs:
         run: |
           Set-Location $env:WORKSPACE
           uv run python format_repo_files.py --check
-      - name: Bump-download lightweight validation
-        id: bump-light
-        if: steps.detect-bump.outputs.is-bump == 'true'
-        shell: pwsh
-        run: |
-          Set-Location $env:WORKSPACE
-          $gamever = (uv run python -c "import yaml; d=yaml.safe_load(open('download.yaml', encoding='utf-8')); print(d['downloads'][-1]['tag'])").Trim()
-          if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($gamever)) {
-            throw "Failed to read latest game version from download.yaml."
-          }
-          $configPath = Join-Path $env:WORKSPACE "configs\$gamever.yaml"
-          if (-not (Test-Path -LiteralPath $configPath -PathType Leaf)) {
-            throw "Missing analysis config for bump tag ${gamever}: $configPath"
-          }
-          Write-Host "Bump-download validation OK: GAMEVER=$gamever config=$configPath"
       - name: Determine release version from PR download config
         id: select-version
-        if: steps.detect-bump.outputs.is-bump != 'true'
         shell: pwsh
         run: |
           Set-Location $env:WORKSPACE
@@ -261,7 +242,6 @@ jobs:
           Write-Host "PR release GAMEVER=$gamever"
       - name: Extract deterministic base snapshot
         id: base-snapshot
-        if: steps.detect-bump.outputs.is-bump != 'true'
         shell: pwsh
         run: |
           Set-Location $env:WORKSPACE
@@ -344,7 +324,6 @@ jobs:
           Write-Host "PR validation GAMEVER=$validationGamever (release GAMEVER=$env:PR_GAMEVER)"
       - name: Resolve consumer IDA identity
         id: resolve-consumer-ida
-        if: steps.detect-bump.outputs.is-bump != 'true'
         shell: pwsh
         run: |
           $pythonExe = (Get-Command python -ErrorAction SilentlyContinue).Source
@@ -368,7 +347,6 @@ jobs:
           "IDA_VERSION=$idaVersion" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Restore required published warm IDB cache
         id: restore-idb-cache
-        if: steps.detect-bump.outputs.is-bump != 'true'
         shell: pwsh
         run: |
           Set-Location $env:WORKSPACE
@@ -382,7 +360,6 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Required published IDB cache restore failed." }
       - name: Restore deterministic base and invalidate affected outputs
         id: restore-base
-        if: steps.detect-bump.outputs.is-bump != 'true'
         shell: pwsh
         run: |
           Set-Location $env:WORKSPACE
@@ -488,7 +465,6 @@ jobs:
           ) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
       - name: Run Python test suites
         id: test-suites
-        if: steps.detect-bump.outputs.is-bump != 'true'
         shell: pwsh
         run: |
           Set-Location $env:WORKSPACE
@@ -498,7 +474,6 @@ jobs:
           }
       - name: Analyze binaries
         id: analyze
-        if: steps.detect-bump.outputs.is-bump != 'true'
         shell: pwsh
         run: |
           Set-Location $env:WORKSPACE
@@ -508,7 +483,6 @@ jobs:
           }
       - name: Build actual candidate snapshot
         id: build-snapshot
-        if: steps.detect-bump.outputs.is-bump != 'true'
         shell: pwsh
         run: |
           Set-Location $env:WORKSPACE
@@ -536,7 +510,6 @@ jobs:
           "SNAPSHOT_SHA256=$snapshotSha256" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Build isolated versioned gamedata candidate
         id: build-gamedata
-        if: steps.detect-bump.outputs.is-bump != 'true'
         shell: pwsh
         run: |
           Set-Location $env:WORKSPACE
@@ -566,7 +539,6 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "failed to mark gamedata validation" }
       - name: Select versioned SDK for C++ ABI validation
         id: select-sdk
-        if: steps.detect-bump.outputs.is-bump != 'true'
         shell: pwsh
         run: |
           $sdkPath = Join-Path $env:WORKSPACE "hl2sdk_cs2"
@@ -610,7 +582,6 @@ jobs:
           }
       - name: Run C++ tests
         id: cpp-tests
-        if: steps.detect-bump.outputs.is-bump != 'true'
         shell: pwsh
         run: |
           Set-Location $env:WORKSPACE
@@ -646,14 +617,12 @@ jobs:
           Write-Host "C++ ABI SDK restore: restored pinned SHA=$restoredSha"
       - name: Mark snapshot validation success
         id: mark-success
-        if: steps.detect-bump.outputs.is-bump != 'true'
         shell: pwsh
         run: |
           Set-Location $env:WORKSPACE
           "validated" | Out-File -LiteralPath (Join-Path $env:RUNNER_TEMP "snapshot-validation-success") -Encoding ascii
       - name: Stage analyzed YAML for merge promotion
         id: stage-yaml
-        if: steps.detect-bump.outputs.is-bump != 'true'
         shell: pwsh
         run: |
           Set-Location $env:WORKSPACE
@@ -692,9 +661,56 @@ jobs:
           if (-not [string]::IsNullOrWhiteSpace($env:CANDIDATE_ROOT) -and (Test-Path -LiteralPath $env:CANDIDATE_ROOT)) {
             Remove-Item -LiteralPath $env:CANDIDATE_ROOT -Recurse -Force
           }
+  pr-validate-light:
+    name: pr-validate-light
+    needs: pr-preflight
+    if: >-
+      always() &&
+      github.event_name == 'pull_request' &&
+      github.event.action != 'closed' &&
+      (github.repository == 'HLND2T/CS2_VibeSignatures' ||
+       github.repository == 'hzqst/CS2_VibeSignatures') &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      !(github.event.pull_request.user.login == 'github-actions[bot]' &&
+         startsWith(github.event.pull_request.head.ref, 'gamesymbols/build/') &&
+         startsWith(github.event.pull_request.title, 'chore(gamesymbols): publish ')) &&
+      needs.pr-preflight.result == 'success' &&
+      needs.pr-preflight.outputs.validation_path == 'light'
+    runs-on: ubuntu-latest
+    env:
+      WORKSPACE: ${{ github.workspace }}
+    steps:
+      - name: Checkout PR merge ref
+        id: checkout-merge
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.pr-preflight.outputs.source_sha }}
+          fetch-depth: 0
+          submodules: false
+      - name: Set up uv
+        id: setup-uv
+        uses: astral-sh/setup-uv@v9.0.0
+      - name: Check formatting
+        id: format
+        shell: bash
+        run: |
+          uv run --locked --only-group dev python format_repo_files.py --check
+      - name: Verify download config exists
+        id: verify-download-config
+        shell: pwsh
+        run: |
+          $gamever = "${{ needs.pr-preflight.outputs.latest_gamever }}".Trim()
+          if ([string]::IsNullOrWhiteSpace($gamever)) {
+            throw "Missing latest game version from preflight."
+          }
+          $configPath = Join-Path (Join-Path $env:WORKSPACE "configs") "${gamever}.yaml"
+          if (-not (Test-Path -LiteralPath $configPath -PathType Leaf)) {
+            throw "Missing analysis config for ${gamever}: $configPath"
+          }
+          Write-Host "Download config validation OK: GAMEVER=$gamever config=$configPath"
   pr-validate:
     name: pr-validate
-    needs: [pr-preflight, pr-validate-full]
+    needs: [pr-preflight, pr-validate-full, pr-validate-light]
     if: >-
       always() &&
       github.event_name == 'pull_request' &&
@@ -707,16 +723,22 @@ jobs:
          startsWith(github.event.pull_request.title, 'chore(gamesymbols): publish '))
     runs-on: ubuntu-latest
     steps:
-      - name: Require successful full validation
+      - name: Require successful validation
         id: terminal
         shell: bash
         env:
           PREFLIGHT_RESULT: ${{ needs.pr-preflight.result }}
           FULL_RESULT: ${{ needs.pr-validate-full.result }}
+          LIGHT_RESULT: ${{ needs.pr-validate-light.result }}
+          VALIDATION_PATH: ${{ needs.pr-preflight.outputs.validation_path }}
         run: |
           set -euo pipefail
           [[ "$PREFLIGHT_RESULT" == "success" ]]
-          [[ "$FULL_RESULT" == "success" ]]
+          if [[ "$VALIDATION_PATH" == "full" ]]; then
+            [[ "$FULL_RESULT" == "success" ]]
+          else
+            [[ "$LIGHT_RESULT" == "success" ]]
+          fi
   finalize-pr-workspace:
     if: >-
       github.event.action == 'closed' &&
