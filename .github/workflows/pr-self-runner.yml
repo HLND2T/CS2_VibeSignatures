@@ -2,105 +2,40 @@ name: PR Self Runner Validation
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review, closed]
-  workflow_dispatch:
-    inputs:
-      validation_mode:
-        description: Published validation mode
-        required: true
-        type: string
-      pr_number:
-        description: Pull request number
-        required: true
-        type: string
-      expected_head_sha:
-        description: Published bot commit SHA
-        required: true
-        type: string
-      validated_head_sha:
-        description: Fully validated parent SHA
-        required: true
-        type: string
-      validated_base_sha:
-        description: Base SHA used by full validation
-        required: true
-        type: string
-      gamever:
-        description: Validated game version
-        required: true
-        type: string
-      snapshot_sha256:
-        description: Validated snapshot SHA-256
-        required: true
-        type: string
-      gamedata_manifest_sha256:
-        description: Validated gamedata manifest SHA-256
-        required: true
-        type: string
 permissions:
   contents: read
 concurrency:
-  group: pr-self-runner-${{ github.repository }}-${{ github.event.pull_request.number || inputs.pr_number }}-${{ github.event_name == 'workflow_dispatch' && format('recheck-{0}', inputs.expected_head_sha) || 'full' }}
+  group: pr-self-runner-${{ github.repository }}-${{ github.event.pull_request.number }}-full
   cancel-in-progress: true
 jobs:
   pr-preflight:
     if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'pull_request' &&
-       github.event.action != 'closed' &&
-       (github.repository == 'HLND2T/CS2_VibeSignatures' ||
-        github.repository == 'hzqst/CS2_VibeSignatures') &&
-       github.event.pull_request.head.repo.full_name == github.repository &&
-       !(github.event.pull_request.user.login == 'github-actions[bot]' &&
-          startsWith(github.event.pull_request.head.ref, 'gamesymbols/build/') &&
-          startsWith(github.event.pull_request.title, 'chore(gamesymbols): publish ')))
+      github.event_name == 'pull_request' &&
+      github.event.action != 'closed' &&
+      (github.repository == 'HLND2T/CS2_VibeSignatures' ||
+       github.repository == 'hzqst/CS2_VibeSignatures') &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      !(github.event.pull_request.user.login == 'github-actions[bot]' &&
+         startsWith(github.event.pull_request.head.ref, 'gamesymbols/build/') &&
+         startsWith(github.event.pull_request.title, 'chore(gamesymbols): publish '))
     permissions:
       contents: read
       pull-requests: read
     runs-on: ubuntu-latest
     outputs:
-      validation_path: ${{ steps.classify-published.outputs.validation-path || steps.pull-request.outputs.validation-path || steps.dispatch.outputs.validation_path }}
-      requires_warmup: ${{ steps.classify-published.outputs.requires-warmup || steps.pull-request.outputs.requires-warmup || steps.dispatch.outputs.requires_warmup }}
-      pr_number: ${{ steps.pull-request.outputs.pr-number || steps.dispatch.outputs.pr_number }}
-      gamever: ${{ steps.classify-published.outputs.gamever || steps.resolve-version.outputs.gamever || steps.dispatch.outputs.gamever }}
+      validation_path: ${{ steps.pull-request.outputs.validation-path }}
+      requires_warmup: ${{ steps.pull-request.outputs.requires-warmup }}
+      pr_number: ${{ steps.pull-request.outputs.pr-number }}
+      gamever: ${{ steps.resolve-version.outputs.gamever }}
       pr_gamever: ${{ steps.resolve-version.outputs.pr_gamever }}
       base_snapshot_path: ${{ steps.resolve-version.outputs.base_snapshot_path }}
       base_snapshot_commit: ${{ steps.resolve-version.outputs.base_snapshot_commit }}
-      source_sha: ${{ steps.pull-request.outputs.source-sha || steps.dispatch-merge.outputs.source-sha || steps.dispatch.outputs.head_sha }}
-      head_sha: ${{ steps.pull-request.outputs.head-sha || steps.dispatch.outputs.head_sha }}
-      head_ref: ${{ steps.pull-request.outputs.head-ref || steps.dispatch.outputs.head_ref }}
-      base_sha: ${{ steps.pull-request.outputs.base-sha || steps.dispatch.outputs.base_sha }}
-      pr_title: ${{ steps.pull-request.outputs.pr-title || steps.dispatch.outputs.title }}
-      pr_user_login: ${{ steps.pull-request.outputs.pr-user-login || steps.dispatch.outputs.user_login }}
-      validated_head_sha: ${{ steps.classify-published.outputs.validated-head-sha || steps.dispatch.outputs.validated_head_sha }}
-      snapshot_sha256: ${{ steps.classify-published.outputs.snapshot-sha256 || steps.dispatch.outputs.snapshot_sha256 }}
-      gamedata_manifest_sha256: ${{ steps.classify-published.outputs.gamedata-manifest-sha256 || steps.dispatch.outputs.gamedata_manifest_sha256 }}
+      source_sha: ${{ steps.pull-request.outputs.source-sha }}
+      head_ref: ${{ steps.pull-request.outputs.head-ref }}
+      base_sha: ${{ steps.pull-request.outputs.base-sha }}
+      pr_title: ${{ steps.pull-request.outputs.pr-title }}
+      pr_user_login: ${{ steps.pull-request.outputs.pr-user-login }}
     steps:
-      - name: Validate published recheck inputs and actor
-        id: validate-dispatch-inputs
-        if: github.event_name == 'workflow_dispatch'
-        shell: bash
-        env:
-          VALIDATION_MODE: ${{ inputs.validation_mode }}
-          PR_NUMBER: ${{ inputs.pr_number }}
-          EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
-          VALIDATED_HEAD_SHA: ${{ inputs.validated_head_sha }}
-          VALIDATED_BASE_SHA: ${{ inputs.validated_base_sha }}
-          GAMEVER: ${{ inputs.gamever }}
-          SNAPSHOT_SHA256: ${{ inputs.snapshot_sha256 }}
-          GAMEDATA_MANIFEST_SHA256: ${{ inputs.gamedata_manifest_sha256 }}
-        run: |
-          set -euo pipefail
-          [[ "$GITHUB_ACTOR" == "github-actions[bot]" ]]
-          [[ "$(jq -r '.sender.login // empty' "$GITHUB_EVENT_PATH")" == "github-actions[bot]" ]]
-          [[ "$GITHUB_REPOSITORY" == "HLND2T/CS2_VibeSignatures" || "$GITHUB_REPOSITORY" == "hzqst/CS2_VibeSignatures" ]]
-          [[ "$VALIDATION_MODE" == "published-recheck" ]]
-          [[ "$PR_NUMBER" =~ ^[1-9][0-9]*$ ]]
-          [[ "$EXPECTED_HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]
-          [[ "$VALIDATED_HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]
-          [[ "$VALIDATED_BASE_SHA" =~ ^[0-9a-f]{40}$ ]]
-          [[ "$GAMEVER" =~ ^[0-9]{4,10}[a-z]?$ ]]
-          [[ "$SNAPSHOT_SHA256" =~ ^[0-9a-f]{64}$ ]]
-          [[ "$GAMEDATA_MANIFEST_SHA256" =~ ^[0-9a-f]{64}$ ]]
       - name: Checkout PR merge ref for cache identity
         id: checkout-preflight
         if: github.event_name == 'pull_request'
@@ -150,79 +85,16 @@ jobs:
           "base-sha=$($baseSha.ToLowerInvariant())" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "pr-title=$title" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "pr-user-login=$env:PR_USER_LOGIN" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-      - name: Classify published PR head
-        id: classify-published
-        if: github.event_name == 'pull_request'
-        shell: pwsh
-        run: |
-          Set-Location "${{ github.workspace }}"
-          python pr_published_recheck.py classify-pull-request `
-            --repo-root "${{ github.workspace }}" `
-            --head-sha "${{ steps.pull-request.outputs.head-sha }}" `
-            --base-sha "${{ steps.pull-request.outputs.base-sha }}" `
-            --github-output "$env:GITHUB_OUTPUT"
-          if ($LASTEXITCODE -ne 0) { throw "Failed to classify the PR publication head." }
-      - name: Checkout published PR head
-        id: checkout-dispatch-head
-        if: github.event_name == 'workflow_dispatch'
-        uses: actions/checkout@v5
-        with:
-          ref: ${{ inputs.expected_head_sha }}
-          fetch-depth: 0
-          submodules: false
-      - name: Verify published commit provenance and current PR state
-        id: dispatch
-        if: github.event_name == 'workflow_dispatch'
-        shell: bash
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          VALIDATION_MODE: ${{ inputs.validation_mode }}
-          PR_NUMBER: ${{ inputs.pr_number }}
-          EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
-          VALIDATED_HEAD_SHA: ${{ inputs.validated_head_sha }}
-          VALIDATED_BASE_SHA: ${{ inputs.validated_base_sha }}
-          GAMEVER: ${{ inputs.gamever }}
-          SNAPSHOT_SHA256: ${{ inputs.snapshot_sha256 }}
-          GAMEDATA_MANIFEST_SHA256: ${{ inputs.gamedata_manifest_sha256 }}
-        run: python pr_published_recheck.py verify-dispatch --repo-root . --github-output "$GITHUB_OUTPUT"
-      - name: Fetch current PR merge ref after base drift
-        id: dispatch-merge
-        if: github.event_name == 'workflow_dispatch' && steps.dispatch.outputs.validation_path == 'full'
-        shell: bash
-        env:
-          PR_NUMBER: ${{ inputs.pr_number }}
-        run: |
-          git fetch --no-tags origin "refs/pull/${PR_NUMBER}/merge"
-          source_sha="$(git rev-parse FETCH_HEAD)"
-          if [[ ! "$source_sha" =~ ^[0-9a-f]{40}$ ]]; then
-            echo "Unable to resolve current PR merge ref" >&2
-            exit 1
-          fi
-          echo "source-sha=$source_sha" >> "$GITHUB_OUTPUT"
-      - name: Checkout current merge ref for full validation
-        id: checkout-dispatch-merge
-        if: github.event_name == 'workflow_dispatch' && steps.dispatch.outputs.validation_path == 'full'
-        uses: actions/checkout@v5
-        with:
-          ref: ${{ steps.dispatch-merge.outputs.source-sha }}
-          fetch-depth: 0
-          submodules: false
       - name: Set up uv for validation version resolution
         id: setup-preflight-uv
-        if: >-
-          (github.event_name == 'pull_request' && steps.pull-request.outputs.requires-warmup == 'true') ||
-          (github.event_name == 'workflow_dispatch' && steps.dispatch.outputs.validation_path == 'full' &&
-           steps.dispatch.outputs.requires_warmup == 'true')
+        if: github.event_name == 'pull_request' && steps.pull-request.outputs.requires-warmup == 'true'
         uses: astral-sh/setup-uv@v9.0.0
       - name: Resolve exact PR validation GAMEVER
         id: resolve-version
-        if: >-
-          (github.event_name == 'pull_request' && steps.pull-request.outputs.requires-warmup == 'true') ||
-          (github.event_name == 'workflow_dispatch' && steps.dispatch.outputs.validation_path == 'full' &&
-           steps.dispatch.outputs.requires_warmup == 'true')
+        if: github.event_name == 'pull_request' && steps.pull-request.outputs.requires-warmup == 'true'
         shell: pwsh
         env:
-          PR_BASE_SHA: ${{ steps.pull-request.outputs.base-sha || steps.dispatch.outputs.base_sha }}
+          PR_BASE_SHA: ${{ steps.pull-request.outputs.base-sha }}
         run: |
           uv run python pr_validation_version.py `
             --repo-root "${{ github.workspace }}" `
@@ -248,8 +120,6 @@ jobs:
       (needs.pr-preflight.outputs.requires_warmup != 'true' ||
        needs.pr-warmup-idb.result == 'success')
     permissions:
-      actions: write
-      contents: write
       pull-requests: read
     environment: win64
     runs-on: [self-hosted, windows, x64]
@@ -265,7 +135,6 @@ jobs:
       CS2VIBE_LLM_MODEL: ${{ secrets.CS2VIBE_LLM_MODEL }}
       PERSISTED_WORKSPACE: ${{ secrets.PERSISTED_WORKSPACE }}
       PR_SOURCE_SHA: ${{ needs.pr-preflight.outputs.source_sha }}
-      PR_HEAD_SHA: ${{ needs.pr-preflight.outputs.head_sha }}
       PR_BASE_SHA: ${{ needs.pr-preflight.outputs.base_sha }}
       PREFLIGHT_PR_GAMEVER: ${{ needs.pr-preflight.outputs.pr_gamever }}
       PREFLIGHT_GAMEVER: ${{ needs.pr-preflight.outputs.gamever }}
@@ -815,186 +684,6 @@ jobs:
           }
           $global:LASTEXITCODE = 0
           Write-Host "Staged analyzed YAML for GAMEVER=$env:GAMEVER into $runStaging"
-      - name: Confirm tracked validation checkout is clean
-        id: verify-tracked-clean
-        if: steps.detect-bump.outputs.is-bump != 'true'
-        shell: pwsh
-        run: |
-          Set-Location $env:WORKSPACE
-          $dirty = @(git status --porcelain=v1 --untracked-files=no --ignore-submodules=none)
-          if ($LASTEXITCODE -ne 0) { throw "Unable to inspect the validation checkout." }
-          if ($dirty.Count -ne 0) {
-            throw "Full validation left tracked changes before publication checkout: $($dirty -join '; ')"
-          }
-      - name: Select exact PR head for publication or idempotent redispatch
-        id: select-publication-head
-        if: steps.detect-bump.outputs.is-bump != 'true'
-        shell: pwsh
-        run: |
-          Set-Location $env:WORKSPACE
-          if ($env:PR_HEAD_SHA -notmatch '^[0-9a-f]{40}$') { throw "PR_HEAD_SHA is invalid." }
-          git check-ref-format --branch "$env:PR_HEAD_REF"
-          if ($LASTEXITCODE -ne 0) { throw "PR head ref is invalid." }
-          git fetch --no-tags origin "refs/heads/$env:PR_HEAD_REF"
-          if ($LASTEXITCODE -ne 0) { throw "Unable to fetch the current PR head." }
-          $remoteHeadSha = (git rev-parse FETCH_HEAD).Trim().ToLowerInvariant()
-          if ($LASTEXITCODE -ne 0 -or $remoteHeadSha -notmatch '^[0-9a-f]{40}$') {
-            throw "Unable to resolve the current remote PR head."
-          }
-          git checkout --detach --force "$remoteHeadSha"
-          if ($LASTEXITCODE -ne 0) { throw "Unable to checkout the exact remote PR head." }
-          $actualHeadSha = (git rev-parse HEAD).Trim().ToLowerInvariant()
-          if ($actualHeadSha -ne $remoteHeadSha) { throw "Publication checkout drifted from the remote PR head." }
-          if ($remoteHeadSha -eq $env:PR_HEAD_SHA) {
-            "reuse-published=false" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-            exit 0
-          }
-          $env:VALIDATION_MODE = "published-recheck"
-          $env:EXPECTED_HEAD_SHA = $remoteHeadSha
-          $env:VALIDATED_HEAD_SHA = $env:PR_HEAD_SHA
-          $env:VALIDATED_BASE_SHA = $env:PR_BASE_SHA
-          uv run python pr_published_recheck.py verify-existing-commit `
-            --repo-root "$env:WORKSPACE" `
-            --github-output "$env:GITHUB_OUTPUT" `
-            --github-env "$env:GITHUB_ENV"
-          if ($LASTEXITCODE -ne 0) {
-            throw "Remote PR head moved to an unverified commit; refusing to publish or force-push."
-          }
-          "reuse-published=true" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "published-head-sha=$remoteHeadSha" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "PUBLISHED_HEAD_SHA=$remoteHeadSha" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-      - name: Publish the validated snapshot and gamedata candidate
-        id: publication
-        if: >-
-          steps.detect-bump.outputs.is-bump != 'true' &&
-          steps.select-publication-head.outputs.reuse-published != 'true'
-        shell: pwsh
-        run: |
-          Set-Location $env:WORKSPACE
-          uv run gamesymbol_candidate.py guard `
-            -candidate "$env:ACTUAL_CANDIDATE_SNAPSHOT" `
-            -session "$env:CANDIDATE_SESSION"
-          if ($LASTEXITCODE -ne 0) { throw "Candidate guard failed immediately before publication." }
-          uv run gamedata_candidate.py guard -session "$env:GAMEDATA_SESSION"
-          if ($LASTEXITCODE -ne 0) { throw "Gamedata candidate guard failed immediately before publication." }
-          uv run gamesymbol_candidate.py publish `
-            -candidate "$env:ACTUAL_CANDIDATE_SNAPSHOT" `
-            -session "$env:CANDIDATE_SESSION" `
-            -snapshot "gamesymbols/$env:GAMEVER.yaml"
-          if ($LASTEXITCODE -ne 0) { throw "Validated snapshot publication failed." }
-          uv run gamedata_candidate.py publish `
-            -session "$env:GAMEDATA_SESSION" `
-            -outputdir "gamedata/$env:GAMEVER"
-          if ($LASTEXITCODE -ne 0) { throw "Validated gamedata publication failed." }
-          uv run python pr_published_recheck.py verify-publication `
-            --repo-root "$env:WORKSPACE" `
-            --gamever "$env:GAMEVER" `
-            --candidate "$env:ACTUAL_CANDIDATE_SNAPSHOT" `
-            --gamedata-session "$env:GAMEDATA_SESSION" `
-            --github-output "$env:GITHUB_OUTPUT"
-          if ($LASTEXITCODE -ne 0) { throw "Published output path or digest guard failed." }
-      - name: Commit verified publication outputs as github-actions bot
-        id: commit-publication
-        if: >-
-          steps.detect-bump.outputs.is-bump != 'true' &&
-          steps.select-publication-head.outputs.reuse-published != 'true' &&
-          steps.publication.outputs.no_op != 'true'
-        shell: pwsh
-        run: |
-          Set-Location $env:WORKSPACE
-          git add -- "gamesymbols/$env:GAMEVER.yaml" "gamedata/$env:GAMEVER"
-          if ($LASTEXITCODE -ne 0) { throw "Unable to stage publication outputs." }
-          $unstaged = @(git diff --name-only)
-          if ($LASTEXITCODE -ne 0 -or $unstaged.Count -ne 0) {
-            throw "Publication left unstaged tracked changes: $($unstaged -join ', ')"
-          }
-          git diff --cached --quiet
-          if ($LASTEXITCODE -ne 1) { throw "Publication index is unexpectedly empty or unreadable." }
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          $messagePath = Join-Path $env:RUNNER_TEMP "snapshot-publication-message-$env:PR_NUMBER.txt"
-          $message = @(
-            "chore(gamesymbols): publish $env:GAMEVER snapshot"
-            ""
-            "Validated-Head-SHA: $env:PR_HEAD_SHA"
-            "Validated-Base-SHA: $env:PR_BASE_SHA"
-            "Snapshot-SHA256: $env:SNAPSHOT_SHA256"
-            "Gamedata-Manifest-SHA256: $env:GAMEDATA_MANIFEST_SHA256"
-            "Co-Authored-By: Codex <codex@openai.com>"
-            ""
-          ) -join "`n"
-          [IO.File]::WriteAllText($messagePath, $message, [Text.UTF8Encoding]::new($false))
-          git commit -F "$messagePath"
-          if ($LASTEXITCODE -ne 0) { throw "Unable to create the verified publication commit." }
-          $publishedHeadSha = (git rev-parse HEAD).Trim().ToLowerInvariant()
-          if ($publishedHeadSha -notmatch '^[0-9a-f]{40}$') { throw "Published head SHA is invalid." }
-          $env:VALIDATION_MODE = "published-recheck"
-          $env:EXPECTED_HEAD_SHA = $publishedHeadSha
-          $env:VALIDATED_HEAD_SHA = $env:PR_HEAD_SHA
-          $env:VALIDATED_BASE_SHA = $env:PR_BASE_SHA
-          uv run python pr_published_recheck.py verify-commit --repo-root "$env:WORKSPACE"
-          if ($LASTEXITCODE -ne 0) { throw "Local publication commit failed provenance verification." }
-          "published-head-sha=$publishedHeadSha" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "PUBLISHED_HEAD_SHA=$publishedHeadSha" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-      - name: Clean candidate state before any remote write
-        id: cleanup-before-push
-        if: steps.detect-bump.outputs.is-bump != 'true'
-        shell: pwsh
-        run: |
-          if (-not [string]::IsNullOrWhiteSpace($env:CANDIDATE_ROOT) -and (Test-Path -LiteralPath $env:CANDIDATE_ROOT)) {
-            Remove-Item -LiteralPath $env:CANDIDATE_ROOT -Recurse -Force
-          }
-      - name: Recheck remote PR head before push
-        id: remote-head-recheck
-        if: >-
-          steps.detect-bump.outputs.is-bump != 'true' &&
-          steps.select-publication-head.outputs.reuse-published != 'true' &&
-          steps.publication.outputs.no_op != 'true'
-        shell: pwsh
-        run: |
-          $remoteLine = @(git ls-remote --heads origin "refs/heads/$env:PR_HEAD_REF")
-          if ($LASTEXITCODE -ne 0 -or $remoteLine.Count -ne 1) { throw "Unable to recheck the remote PR head." }
-          $remoteHeadSha = (($remoteLine[0] -split '\s+')[0]).ToLowerInvariant()
-          if ($remoteHeadSha -ne $env:PR_HEAD_SHA) {
-            throw "Remote PR head advanced during full validation; refusing to push."
-          }
-      - name: Push verified publication commit
-        id: push-publication
-        if: >-
-          steps.detect-bump.outputs.is-bump != 'true' &&
-          steps.select-publication-head.outputs.reuse-published != 'true' &&
-          steps.publication.outputs.no_op != 'true'
-        shell: pwsh
-        run: |
-          git push origin "HEAD:refs/heads/$env:PR_HEAD_REF"
-          if ($LASTEXITCODE -ne 0) { throw "Verified publication commit push was rejected." }
-      - name: Dispatch published head recheck
-        id: dispatch-published-recheck
-        if: >-
-          steps.detect-bump.outputs.is-bump != 'true' &&
-          (steps.select-publication-head.outputs.reuse-published == 'true' ||
-           steps.publication.outputs.no_op != 'true')
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          if ($env:PUBLISHED_HEAD_SHA -notmatch '^[0-9a-f]{40}$') {
-            throw "Published head SHA is unavailable for explicit recheck dispatch."
-          }
-          gh workflow run pr-self-runner.yml `
-            --repo "$env:GITHUB_REPOSITORY" `
-            --ref "$env:PR_HEAD_REF" `
-            -f validation_mode=published-recheck `
-            -f pr_number="$env:PR_NUMBER" `
-            -f expected_head_sha="$env:PUBLISHED_HEAD_SHA" `
-            -f validated_head_sha="$env:PR_HEAD_SHA" `
-            -f validated_base_sha="$env:PR_BASE_SHA" `
-            -f gamever="$env:GAMEVER" `
-            -f snapshot_sha256="$env:SNAPSHOT_SHA256" `
-            -f gamedata_manifest_sha256="$env:GAMEDATA_MANIFEST_SHA256"
-          if ($LASTEXITCODE -ne 0) {
-            throw "Bot commit was published, but the published recheck workflow could not be dispatched. Rerun this full validation to retry the idempotent dispatch."
-          }
       - name: Ensure candidate state is removed
         id: cleanup
         if: always()
@@ -1003,116 +692,31 @@ jobs:
           if (-not [string]::IsNullOrWhiteSpace($env:CANDIDATE_ROOT) -and (Test-Path -LiteralPath $env:CANDIDATE_ROOT)) {
             Remove-Item -LiteralPath $env:CANDIDATE_ROOT -Recurse -Force
           }
-  pr-published-recheck:
-    needs: pr-preflight
-    if: >-
-      needs.pr-preflight.result == 'success' &&
-      needs.pr-preflight.outputs.validation_path == 'published-recheck'
-    permissions:
-      contents: read
-      pull-requests: read
-    runs-on: ubuntu-latest
-    outputs:
-      verified_head_sha: ${{ steps.verify-pull-request.outputs.head_sha || steps.verify-dispatch.outputs.head_sha }}
-      verified_base_sha: ${{ steps.verify-pull-request.outputs.base_sha || steps.verify-dispatch.outputs.base_sha }}
-      snapshot_sha256: ${{ steps.verify-pull-request.outputs.snapshot_sha256 || steps.verify-dispatch.outputs.snapshot_sha256 }}
-      gamedata_manifest_sha256: ${{ steps.verify-pull-request.outputs.gamedata_manifest_sha256 || steps.verify-dispatch.outputs.gamedata_manifest_sha256 }}
-    steps:
-      - name: Checkout exact published head
-        id: checkout-published-head
-        uses: actions/checkout@v5
-        with:
-          ref: ${{ github.event_name == 'pull_request' && needs.pr-preflight.outputs.head_sha || inputs.expected_head_sha }}
-          fetch-depth: 0
-          submodules: false
-      - name: Recheck publication from pull request event
-        id: verify-pull-request
-        if: github.event_name == 'pull_request'
-        shell: bash
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          VALIDATION_MODE: published-recheck
-          PR_NUMBER: ${{ needs.pr-preflight.outputs.pr_number }}
-          EXPECTED_HEAD_SHA: ${{ needs.pr-preflight.outputs.head_sha }}
-          VALIDATED_HEAD_SHA: ${{ needs.pr-preflight.outputs.validated_head_sha }}
-          VALIDATED_BASE_SHA: ${{ needs.pr-preflight.outputs.base_sha }}
-          GAMEVER: ${{ needs.pr-preflight.outputs.gamever }}
-          SNAPSHOT_SHA256: ${{ needs.pr-preflight.outputs.snapshot_sha256 }}
-          GAMEDATA_MANIFEST_SHA256: ${{ needs.pr-preflight.outputs.gamedata_manifest_sha256 }}
-          PR_HEAD_REF: ${{ needs.pr-preflight.outputs.head_ref }}
-        run: python pr_published_recheck.py verify-pull-request --repo-root . --github-output "$GITHUB_OUTPUT"
-      - name: Recheck actor, PR, commit, paths, and output digests
-        id: verify-dispatch
-        if: github.event_name == 'workflow_dispatch'
-        shell: bash
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          VALIDATION_MODE: ${{ inputs.validation_mode }}
-          PR_NUMBER: ${{ inputs.pr_number }}
-          EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
-          VALIDATED_HEAD_SHA: ${{ inputs.validated_head_sha }}
-          VALIDATED_BASE_SHA: ${{ inputs.validated_base_sha }}
-          GAMEVER: ${{ inputs.gamever }}
-          SNAPSHOT_SHA256: ${{ inputs.snapshot_sha256 }}
-          GAMEDATA_MANIFEST_SHA256: ${{ inputs.gamedata_manifest_sha256 }}
-        run: python pr_published_recheck.py verify-dispatch --repo-root . --github-output "$GITHUB_OUTPUT"
-      - name: Require provenance to remain reusable
-        id: require-recheck-path
-        shell: bash
-        env:
-          VALIDATION_PATH: ${{ steps.verify-pull-request.outputs.validation_path || steps.verify-dispatch.outputs.validation_path }}
-        run: |
-          if [[ "$VALIDATION_PATH" != "published-recheck" ]]; then
-            echo "PR base advanced after preflight; this run cannot reuse the old full validation." >&2
-            exit 1
-          fi
   pr-validate:
     name: pr-validate
-    needs: [pr-preflight, pr-validate-full, pr-published-recheck]
+    needs: [pr-preflight, pr-validate-full]
     if: >-
       always() &&
-      (github.event_name == 'workflow_dispatch' ||
-       (github.event_name == 'pull_request' &&
-        github.event.action != 'closed' &&
-        (github.repository == 'HLND2T/CS2_VibeSignatures' ||
-         github.repository == 'hzqst/CS2_VibeSignatures') &&
-        github.event.pull_request.head.repo.full_name == github.repository &&
-        !(github.event.pull_request.user.login == 'github-actions[bot]' &&
-          startsWith(github.event.pull_request.head.ref, 'gamesymbols/build/') &&
-          startsWith(github.event.pull_request.title, 'chore(gamesymbols): publish '))))
+      github.event_name == 'pull_request' &&
+      github.event.action != 'closed' &&
+      (github.repository == 'HLND2T/CS2_VibeSignatures' ||
+       github.repository == 'hzqst/CS2_VibeSignatures') &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      !(github.event.pull_request.user.login == 'github-actions[bot]' &&
+         startsWith(github.event.pull_request.head.ref, 'gamesymbols/build/') &&
+         startsWith(github.event.pull_request.title, 'chore(gamesymbols): publish '))
     runs-on: ubuntu-latest
     steps:
-      - name: Require exactly one successful validation path
+      - name: Require successful full validation
         id: terminal
         shell: bash
         env:
           PREFLIGHT_RESULT: ${{ needs.pr-preflight.result }}
-          VALIDATION_PATH: ${{ needs.pr-preflight.outputs.validation_path }}
           FULL_RESULT: ${{ needs.pr-validate-full.result }}
-          RECHECK_RESULT: ${{ needs.pr-published-recheck.result }}
-          VERIFIED_HEAD_SHA: ${{ needs.pr-published-recheck.outputs.verified_head_sha }}
-          VERIFIED_BASE_SHA: ${{ needs.pr-published-recheck.outputs.verified_base_sha }}
-          VERIFIED_SNAPSHOT_SHA256: ${{ needs.pr-published-recheck.outputs.snapshot_sha256 }}
-          VERIFIED_GAMEDATA_MANIFEST_SHA256: ${{ needs.pr-published-recheck.outputs.gamedata_manifest_sha256 }}
-          EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha || needs.pr-preflight.outputs.head_sha }}
-          EXPECTED_BASE_SHA: ${{ inputs.validated_base_sha || needs.pr-preflight.outputs.base_sha }}
-          EXPECTED_SNAPSHOT_SHA256: ${{ inputs.snapshot_sha256 || needs.pr-preflight.outputs.snapshot_sha256 }}
-          EXPECTED_GAMEDATA_MANIFEST_SHA256: ${{ inputs.gamedata_manifest_sha256 || needs.pr-preflight.outputs.gamedata_manifest_sha256 }}
         run: |
           set -euo pipefail
           [[ "$PREFLIGHT_RESULT" == "success" ]]
-          if [[ "$VALIDATION_PATH" == "full" ]]; then
-            [[ "$FULL_RESULT" == "success" && "$RECHECK_RESULT" == "skipped" ]]
-          elif [[ "$VALIDATION_PATH" == "published-recheck" ]]; then
-            [[ "$FULL_RESULT" == "skipped" && "$RECHECK_RESULT" == "success" ]]
-            [[ "$VERIFIED_HEAD_SHA" == "$EXPECTED_HEAD_SHA" ]]
-            [[ "$VERIFIED_BASE_SHA" == "$EXPECTED_BASE_SHA" ]]
-            [[ "$VERIFIED_SNAPSHOT_SHA256" == "$EXPECTED_SNAPSHOT_SHA256" ]]
-            [[ "$VERIFIED_GAMEDATA_MANIFEST_SHA256" == "$EXPECTED_GAMEDATA_MANIFEST_SHA256" ]]
-          else
-            echo "Unexpected validation path: $VALIDATION_PATH" >&2
-            exit 1
-          fi
+          [[ "$FULL_RESULT" == "success" ]]
   finalize-pr-workspace:
     if: >-
       github.event.action == 'closed' &&
