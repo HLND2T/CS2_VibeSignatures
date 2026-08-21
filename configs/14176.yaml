@@ -6181,6 +6181,11 @@ modules:
       - name: find-CGameRules_vtable
         expected_output:
           - CGameRules_vtable.{platform}.yaml
+      - name: find-CGameRules_GetChatPrefix
+        expected_output:
+          - CGameRules_GetChatPrefix.{platform}.yaml
+        expected_input:
+          - CGameRules_vtable.{platform}.yaml
       - name: find-CGameRulesGameSystem_vtable
         expected_output:
           - CGameRulesGameSystem_vtable.{platform}.yaml
@@ -9307,6 +9312,10 @@ modules:
           - IGameSystem::GameInit
       - name: CGameRules_vtable
         category: vtable
+      - name: CGameRules_GetChatPrefix
+        category: vfunc
+        alias:
+          - CGameRules::GetChatPrefix
       - name: CGameRulesGameSystem_vtable
         category: vtable
       - name: CMultiplayRules_vtable

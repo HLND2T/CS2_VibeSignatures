@@ -1,6 +1,7 @@
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from release_workflow_lib.errors import ReleaseWorkflowError
 from release_workflow_lib.promotion import _version_lock
@@ -63,7 +64,28 @@ class TestSyncAcceptedBin(unittest.TestCase):
 
             self.assertTrue(first["synced"])
             self.assertFalse(second["synced"])
-            self.assertEqual(first["hash"], second["hash"])
+            # The idempotent second call is proven by the no-hash skeleton fast
+            # path, so it never computes a content hash.
+            self.assertRegex(first["hash"], r"^[0-9a-f]{64}$")
+            self.assertIsNone(second["hash"])
+
+    def test_sync_fast_path_skips_full_inventory(self) -> None:
+        # An already-in-sync accepted tree must be detected from path+size alone;
+        # the full-tree SHA-256 inventory (the expensive part) is never computed.
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            repo = root / "repo"
+            persisted = root / "persisted"
+            self._write_source(repo)
+            first = sync_accepted_bin(repo_root=repo, persisted_root=persisted, gamever=self.gamever)
+            self.assertTrue(first["synced"])
+
+            with patch("release_workflow_lib.sync_accepted_bin._filtered_inventory") as inventory:
+                second = sync_accepted_bin(repo_root=repo, persisted_root=persisted, gamever=self.gamever)
+
+            self.assertFalse(second["synced"])
+            self.assertIsNone(second["hash"])
+            inventory.assert_not_called()
 
     def test_sync_replaces_changed_accepted_tree(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
