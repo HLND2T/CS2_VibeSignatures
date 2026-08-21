@@ -76,7 +76,7 @@ jobs:
       - name: Set up uv
         id: setup-uv
         uses: astral-sh/setup-uv@v9.0.0
-      - name: Prepare persisted depot link and clean cache workspace
+      - name: Prepare persisted depot link and restore accepted bin
         id: prepare-workspace
         shell: pwsh
         run: |
@@ -100,6 +100,18 @@ jobs:
           New-Item -ItemType Directory -Path $workspaceBin -Force | Out-Null
           if ((Get-Item $workspaceBin -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) {
             throw "Warmup workspace bin must be a real directory."
+          }
+          $workspaceGamever = Join-Path $workspaceBin $env:GAMEVER
+          New-Item -ItemType Directory -Path $workspaceGamever -Force | Out-Null
+          $persistedGamever = Join-Path $env:PERSISTED_WORKSPACE "bin\$env:GAMEVER"
+          if (Test-Path -LiteralPath $persistedGamever -PathType Container) {
+            robocopy $persistedGamever $workspaceGamever /E /COPY:DAT /DCOPY:DAT /R:2 /W:5 `
+              /XF *.i64 *.idb *.id0 *.id1 *.id2 *.nam *.til
+            if ($LASTEXITCODE -ge 8) {
+              throw "Failed to restore persisted accepted bin/$env:GAMEVER into the warmup workspace."
+            }
+            $global:LASTEXITCODE = 0
+            Write-Host "Restored persisted accepted bin/$env:GAMEVER into the warmup workspace"
           }
       - name: Prune stale warm-cache state
         id: prune-cache
