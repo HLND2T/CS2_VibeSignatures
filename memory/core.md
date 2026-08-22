@@ -13,3 +13,6 @@ permalink: cs2-vibesignatures/core
 - LLM_DECOMPILE reference YAML 的生成入口、MCP/identity 门禁与四字段 schema：见 [[generate_reference_yaml]]。
 - config YAML 结构、module/skill 声明与 platform 约定：见 [[config_yaml]]。
 - 符号输出 YAML（func/vfunc/gv/struct）schema 与唯一性约束：见 [[symbol_yaml]]。
+
+- 不可变 snapshot、gamedata generator 合约与 candidate 发布：见 [[update_gamedata]]、[[post_change_candidate_lifecycle]]。
+- 下游 gamedata 名字对照（`alias` vs `source_alias`，不在 snapshot 里）：见 [[gamedata_aliases]]。

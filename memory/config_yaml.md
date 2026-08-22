@@ -33,8 +33,10 @@ modules:
     symbols:
       - name: <symbol_name>
         category: <vtable|vfunc|func|gv|struct|structmember|patch>
-        alias:                     # optional; string or list
+        alias:                     # optional; string or list; downstream gamedata keys
           - <alternate_name>
+        source_alias:              # optional; snapshot YAML filename fallbacks only
+          - <artifact_basename>
         struct: <struct_name>      # required for category=structmember
         member: <member_name>      # required for category=structmember
 
@@ -91,19 +93,20 @@ cpp_tests:
   - `struct`
   - `structmember`
   - `patch`
-- `alias` (string | list[string], optional): Alternate names.
-  - Used for alias-to-canonical mapping.
-  - For `patch`, aliases may also be used as fallback candidate YAML filenames.
+- `alias` (string | list[string], optional): Downstream gamedata key(s) for this canonical symbol. Not a snapshot filename.
+- `source_alias` (string | list[string], optional): Extra snapshot YAML basenames tried after `{name}.{platform}.yaml`. Never becomes a downstream key. Forbidden on `category=struct`.
 - `struct` (string, required when `category=structmember`): Parent struct name.
 - `member` (string, required when `category=structmember`): Target member name inside the struct.
 
+Downstream vs artifact aliases, overlays, and patch compat: see [[gamedata_aliases]].
+
 ## Category-specific behavior notes
 - `structmember`:
-  - Loader resolves `member` offset from `{name}.{platform}.yaml` first.
+  - Loader resolves `member` offset from `{name}.{platform}.yaml` first (then `source_alias` candidates).
   - Falls back to legacy `{struct}.{platform}.yaml` if needed.
 - `patch`:
   - Loaded YAML must include `patch_bytes`.
-  - If canonical file is unavailable/invalid, alias-based candidate files are attempted.
+  - Filename candidates: canonical name, `source_alias`, then `PATCH_COMPAT_ALIASES`. Config `alias` is not a filename candidate.
 
 ## `cpp_tests[]`
 - `name` (string, optional): Human-readable test label; defaults to `unnamed_test` if omitted.

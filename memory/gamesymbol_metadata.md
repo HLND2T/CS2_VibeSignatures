@@ -64,3 +64,6 @@ Config fields NOT consumed by pages (thus excluded from metadata): `skills`,
 `gamesymbols/<GAMEVER>.yaml` is generated only on release build and overwritten
 per release; `configs/<GAMEVER>.yaml` iterates freely between releases.
 Metadata follows the snapshot's release/freeze cadence, not the config's.
+
+## Relations
+- contrasts_with [[gamedata_aliases]] — gamedata publish remaps from live config + generator overlays; this metadata file is pages-only and is not read by generators.
