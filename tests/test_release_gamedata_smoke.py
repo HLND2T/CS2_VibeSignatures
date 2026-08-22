@@ -32,7 +32,10 @@ class TestReleaseGamedataSmoke(unittest.TestCase):
             with zipfile.ZipFile(archive) as output:
                 names = output.namelist()
             self.assertEqual(
-                [f"gamedata/{fixture.gamever}/fixture/nested/gamedata.txt"],
+                [
+                    f"gamedata/{fixture.gamever}/fixture/nested/gamedata.txt",
+                    f"gamedata/{fixture.gamever}/fixture/nested/gamedata.txt.metadata.json",
+                ],
                 names,
             )
             self.assertFalse(any(name.startswith("dist/") for name in names))

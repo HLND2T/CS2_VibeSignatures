@@ -6,6 +6,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from binary_hashing import hash_file
+from gamedata_contract import discover_generator_modules, generator_contract_sha256
 from gamedata_candidate import build_candidate, publish_candidate
 from gamesymbol_snapshot_lib.codec import build_snapshot_document, canonical_snapshot_bytes, parse_snapshot_bytes
 from gamesymbol_snapshot_lib.config import load_contract
@@ -17,13 +18,18 @@ from release_workflow_lib.hashing import (
     inventory_sha256,
     reject_reparse_points,
     validate_output_paths,
+    tracked_output_inventory,
+    write_canonical_json,
 )
 from release_workflow_lib.manifests import (
+    PRE_METADATA_SCHEMA_VERSION,
+    SCHEMA_VERSION,
     build_tracked_manifest,
     format_output_branch,
     load_tracked_manifest,
     manifest_config_digest_version,
     parse_output_branch,
+    verify_tracked_outputs,
     write_release_metadata,
 )
 from release_workflow_lib.promotion import finalize_promotion, promote_bin
@@ -316,7 +322,7 @@ class TestReleaseWorkflow(unittest.TestCase):
                 hashlib.sha256(fixture.analysis_config.read_bytes()).hexdigest(),
                 tracked["analysis_config_sha256"],
             )
-            self.assertEqual(4, tracked["schema_version"])
+            self.assertEqual(SCHEMA_VERSION, tracked["schema_version"])
             self.assertEqual(2, tracked["analysis_config_contract_digest_version"])
             self.assertEqual(
                 load_contract(fixture.analysis_config, fixture.gamever, fixture.repo / "bin").config_sha256,
@@ -328,6 +334,44 @@ class TestReleaseWorkflow(unittest.TestCase):
             self.assertEqual(canonical_json_bytes(tracked), tracked_path.read_bytes())
             self.assertNotIn("timestamp", tracked)
             self.assertNotIn(str(fixture.root), tracked_path.read_text(encoding="utf-8"))
+
+    def test_schema_4_tracked_outputs_remain_valid_without_metadata_companions(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            fixture = ReleaseFixture(Path(tmp))
+            companion = (
+                fixture.repo / "gamedata" / fixture.gamever / "fixture" / "nested" / "gamedata.txt.metadata.json"
+            )
+            companion.unlink()
+            fixture.git("add", "-u", "--", "gamedata")
+            tracked_files = tracked_output_inventory(fixture.repo, fixture.gamever)
+            gamedata_prefix = f"gamedata/{fixture.gamever}/"
+            gamedata_files = [item for item in tracked_files if item["path"].startswith(gamedata_prefix)]
+            modules = discover_generator_modules(fixture.repo / "gamedata-generators")
+            manifest = build_tracked_manifest(
+                gamever=fixture.gamever,
+                mode="new",
+                build_id=fixture.build_id,
+                source_sha=fixture.source_sha,
+                candidate_sha256=hashlib.sha256(fixture.candidate.read_bytes()).hexdigest(),
+                bin_manifest_sha256="b" * 64,
+                tracked_output_manifest_sha256=inventory_sha256(tracked_files),
+                workflow_run_url="https://github.com/HLND2T/CS2_VibeSignatures/actions/runs/123456789",
+                analysis_config_path=f"configs/{fixture.gamever}.yaml",
+                analysis_config_sha256=hashlib.sha256(fixture.analysis_config.read_bytes()).hexdigest(),
+                analysis_config_contract_digest_version=2,
+                analysis_config_contract_sha256=load_contract(
+                    fixture.analysis_config, fixture.gamever, fixture.repo / "bin"
+                ).config_sha256,
+                gamedata_path=f"gamedata/{fixture.gamever}",
+                gamedata_manifest_sha256=inventory_sha256(gamedata_files),
+                generator_contract_sha256=generator_contract_sha256(modules),
+                target_schema_version=PRE_METADATA_SCHEMA_VERSION,
+            )
+            manifest_path = fixture.repo / "release-manifests" / f"{fixture.gamever}.json"
+            write_canonical_json(manifest_path, manifest)
+
+            self.assertEqual(PRE_METADATA_SCHEMA_VERSION, load_tracked_manifest(manifest_path)["schema_version"])
+            self.assertEqual(tracked_files, verify_tracked_outputs(fixture.repo, manifest))
 
     def test_stage_excludes_binsync_git_metadata(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

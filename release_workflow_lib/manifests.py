@@ -19,7 +19,8 @@ BUILD_ID_RE = re.compile(r"^[0-9]+-[0-9]+$")
 BRANCH_RE = re.compile(r"^gamesymbols/build/(?P<gamever>[0-9]{4,10}[a-z]?)/(?P<build_id>[0-9]+-[0-9]+)$")
 LEGACY_BRANCH_RE = re.compile(r"^gamesymbols/(?P<gamever>[0-9]{4,10}[a-z]?)/build-(?P<build_id>[0-9]+-[0-9]+)$")
 ALLOWED_REPOSITORIES = {"HLND2T/CS2_VibeSignatures", "hzqst/CS2_VibeSignatures"}
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
+PRE_METADATA_SCHEMA_VERSION = 4
 PRE_GAMEDATA_SCHEMA_VERSION = 3
 CONTRACT_SCHEMA_VERSION = 2
 LEGACY_SCHEMA_VERSION = 1
@@ -117,6 +118,7 @@ def build_tracked_manifest(
     gamedata_path: str | None = None,
     gamedata_manifest_sha256: str | None = None,
     generator_contract_sha256: str | None = None,
+    target_schema_version: int | None = None,
 ) -> dict:
     require_gamever(gamever)
     require_mode(mode)
@@ -180,7 +182,11 @@ def build_tracked_manifest(
     if has_gamedata:
         if analysis_config_contract_digest_version is None:
             raise ReleaseWorkflowError("versioned gamedata requires an analysis config digest version")
-        schema_version = SCHEMA_VERSION
+        if target_schema_version not in {None, PRE_METADATA_SCHEMA_VERSION, SCHEMA_VERSION}:
+            raise ReleaseWorkflowError("invalid versioned gamedata release schema")
+        schema_version = target_schema_version or SCHEMA_VERSION
+    elif target_schema_version is not None and target_schema_version != schema_version:
+        raise ReleaseWorkflowError("explicit release schema does not match manifest fields")
     manifest = {
         "schema_version": schema_version,
         "gamever": gamever,
@@ -221,6 +227,7 @@ def tracked_fields_for_schema(schema_version: object) -> set[str]:
         LEGACY_SCHEMA_VERSION: LEGACY_TRACKED_FIELDS,
         CONTRACT_SCHEMA_VERSION: CONTRACT_TRACKED_FIELDS,
         PRE_GAMEDATA_SCHEMA_VERSION: PRE_GAMEDATA_TRACKED_FIELDS,
+        PRE_METADATA_SCHEMA_VERSION: TRACKED_FIELDS,
         SCHEMA_VERSION: TRACKED_FIELDS,
     }
     fields = fields_by_schema.get(schema_version)
@@ -249,6 +256,7 @@ def validate_tracked_manifest(manifest: dict) -> dict:
         gamedata_path=manifest.get("gamedata_path"),
         gamedata_manifest_sha256=manifest.get("gamedata_manifest_sha256"),
         generator_contract_sha256=manifest.get("generator_contract_sha256"),
+        target_schema_version=manifest["schema_version"],
     )
     if manifest != expected:
         raise ReleaseWorkflowError("tracked release manifest is not canonical")
@@ -284,7 +292,7 @@ def verify_tracked_outputs(repo_root: Path, manifest: dict) -> list[dict]:
     snapshot = next(item for item in inventory if item["path"] == snapshot_path)
     if snapshot["sha256"] != manifest["candidate_sha256"]:
         raise ReleaseWorkflowError("published snapshot does not match candidate hash")
-    if manifest["schema_version"] == SCHEMA_VERSION:
+    if manifest["schema_version"] in {PRE_METADATA_SCHEMA_VERSION, SCHEMA_VERSION}:
         gamever = manifest["gamever"]
         gamedata_prefix = f"gamedata/{gamever}/"
         gamedata_inventory = [item for item in inventory if item["path"].startswith(gamedata_prefix)]
@@ -296,7 +304,12 @@ def verify_tracked_outputs(repo_root: Path, manifest: dict) -> list[dict]:
             raise ReleaseWorkflowError(f"trusted generator contract is invalid: {exc}") from exc
         if generator_contract_sha256(modules) != manifest["generator_contract_sha256"]:
             raise ReleaseWorkflowError("generator contract hash mismatch")
-        if [item["path"] for item in gamedata_inventory] != expected_inventory_paths(modules, gamever):
+        expected_paths = expected_inventory_paths(
+            modules,
+            gamever,
+            include_metadata=manifest["schema_version"] == SCHEMA_VERSION,
+        )
+        if [item["path"] for item in gamedata_inventory] != expected_paths:
             raise ReleaseWorkflowError("tracked versioned gamedata paths do not match generator OUTPUT_PATHS")
     return inventory
 

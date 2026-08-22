@@ -45,6 +45,7 @@ from gamedata_diagnostics import (
     print_overlay_diagnostics,
     print_resolved_diagnostics,
 )
+from gamedata_metadata import write_file_metadata
 
 from gamedata_symbol_data import (
     build_alias_to_name_map,
@@ -201,6 +202,16 @@ def _seed_output_root(modules, output_root):
             print(f"  Seeded static template: {contract.directory}/{target}")
 
 
+def _read_text(path):
+    """Read a file as UTF-8 text (stripping a BOM), or None if missing."""
+    try:
+        with open(path, "rb") as file:
+            data = file.read()
+    except OSError:
+        return None
+    return data.decode("utf-8-sig")
+
+
 def generate_gamedata(
     *,
     gamever,
@@ -251,6 +262,7 @@ def generate_gamedata(
     all_skipped_symbols = {}
     diagnostics = DiagnosticAggregator()
     diagnostics.add("base", base_diagnostics)
+    module_metadata_sources = []
     for contract in modules:
         print(f"\n{'=' * 50}\nUpdating {contract.name}...")
         yaml_data, func_lib_map, alias_map, merged_diagnostics, merged_findings = _module_data(
@@ -275,6 +287,9 @@ def generate_gamedata(
                 debug=debug,
             )
         module_output_root = os.path.join(output_root, contract.directory)
+        before_map = {
+            path: _read_text(os.path.join(module_output_root, *path.split("/"))) for path in contract.output_paths
+        }
         try:
             update_args = (yaml_data, func_lib_map, platforms, module_output_root, alias_map, debug)
             if getattr(contract, "api_version", 1) == 2:
@@ -294,8 +309,32 @@ def generate_gamedata(
         total_skipped += skipped
         all_updated_symbols[contract.name] = updated_symbols
         all_skipped_symbols[contract.name] = skipped_symbols
+        module_metadata_sources.append((contract, yaml_data, alias_map, before_map))
 
     canonicalize_output_text(output_root)
+    for contract, yaml_data, alias_map, before_map in module_metadata_sources:
+        module_output_root = os.path.join(output_root, contract.directory)
+        for path in contract.output_paths:
+            output_path = os.path.join(module_output_root, *path.split("/"))
+            after_text = _read_text(output_path)
+            if after_text is None:
+                continue
+            rel_path = f"{contract.directory}/{path}"
+            metadata_path = os.path.join(module_output_root, *(path + ".metadata.json").split("/"))
+            try:
+                write_file_metadata(
+                    before_text=before_map.get(path),
+                    after_text=after_text,
+                    rel_path=rel_path,
+                    gamever=gamever,
+                    yaml_data=yaml_data,
+                    alias_to_name_map=alias_map,
+                    metadata_path=metadata_path,
+                )
+            except Exception as exc:
+                if strict:
+                    raise GamedataContractError(f"metadata generation failed for {rel_path}: {exc}") from exc
+                print(f"  Warning: metadata generation failed for {rel_path}: {exc}")
     files = validate_output_tree(output_root, gamever, modules) if strict else []
     print_diagnostic_summary(diagnostics, debug=debug)
     if debug:

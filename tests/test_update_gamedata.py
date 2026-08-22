@@ -439,6 +439,7 @@ class TestGenerateGamedataDiagnostics(unittest.TestCase):
                 source_dir=source_dir,
                 static_sources=(),
                 download_sources=(),
+                output_paths=(),
                 module=module,
             )
             output = io.StringIO()
@@ -485,6 +486,7 @@ class TestGenerateGamedataDiagnostics(unittest.TestCase):
                 source_dir=source_dir,
                 static_sources=(),
                 download_sources=(),
+                output_paths=(),
                 module=SimpleNamespace(update=update),
             )
             with (
