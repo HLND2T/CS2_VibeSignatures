@@ -373,7 +373,7 @@ class TestReleaseWorkflow(unittest.TestCase):
             self.assertEqual(PRE_METADATA_SCHEMA_VERSION, load_tracked_manifest(manifest_path)["schema_version"])
             self.assertEqual(tracked_files, verify_tracked_outputs(fixture.repo, manifest))
 
-    def test_stage_excludes_binsync_git_metadata(self) -> None:
+    def test_promotion_excludes_recoverable_binsync_state(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             fixture = ReleaseFixture(Path(tmp))
             binsync = fixture.bin_source / "client" / "client.dll.bsproj"
@@ -381,15 +381,51 @@ class TestReleaseWorkflow(unittest.TestCase):
             git_object.parent.mkdir(parents=True)
             git_object.write_bytes(b"git object")
             (binsync / "symbols.toml").write_text("symbols = []\n", encoding="utf-8")
+            sidecar = fixture.bin_source / "client" / "client.dll.binsync.json"
+            sidecar.write_text("{}\n", encoding="utf-8")
 
             pending = fixture.stage()
-
-            staged_binsync = (
-                fixture.staging / fixture.gamever / fixture.build_id / "bin" / fixture.gamever / "client" / binsync.name
+            stage_dir = fixture.finalize_and_index()
+            promote_bin(
+                persisted_root=fixture.root / "persisted",
+                stage_dir=stage_dir,
+                gamever=fixture.gamever,
+                build_id=fixture.build_id,
             )
-            self.assertTrue((staged_binsync / "symbols.toml").is_file())
-            self.assertFalse((staged_binsync / ".git").exists())
-            self.assertFalse(any("/.git/" in f"/{entry['path']}/" for entry in pending["bin_files"]))
+
+            staged_client = stage_dir / "bin" / fixture.gamever / "client"
+            accepted_client = fixture.root / "persisted" / "bin" / fixture.gamever / "client"
+            for root in (staged_client, accepted_client):
+                self.assertTrue((root / "client.dll").is_file())
+                self.assertFalse((root / binsync.name).exists())
+                self.assertFalse((root / sidecar.name).exists())
+            paths = {entry["path"] for entry in pending["bin_files"]}
+            self.assertFalse(any(".bsproj/" in f"{path}/" for path in paths))
+            self.assertFalse(any(path.lower().endswith(".binsync.json") for path in paths))
+
+    def test_promote_bin_rejects_legacy_recoverable_binsync_inventory(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            fixture = ReleaseFixture(Path(tmp))
+            pending = fixture.stage()
+            stage_dir = fixture.staging / fixture.gamever / fixture.build_id
+            stage_bin = stage_dir / "bin" / fixture.gamever
+            binsync = stage_bin / "client" / "client.dll.bsproj"
+            binsync.mkdir()
+            (binsync / "symbols.toml").write_text("symbols = []\n", encoding="utf-8")
+            (stage_bin / "client" / "client.dll.binsync.json").write_text("{}\n", encoding="utf-8")
+            pending["bin_files"] = file_inventory(stage_bin)
+            pending["bin_manifest_sha256"] = inventory_sha256(pending["bin_files"])
+            write_canonical_json(stage_dir / "manifest.json", pending)
+
+            with self.assertRaisesRegex(ReleaseWorkflowError, "recoverable analysis state"):
+                promote_bin(
+                    persisted_root=fixture.root / "persisted",
+                    stage_dir=stage_dir,
+                    gamever=fixture.gamever,
+                    build_id=fixture.build_id,
+                )
+
+            self.assertFalse((fixture.root / "persisted" / "bin" / fixture.gamever).exists())
 
     def test_stage_excludes_all_ida_database_artifacts(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

@@ -37,7 +37,9 @@ merged output PR -> verify accepted Git + staged bin -> archive gamedata/<GAMEVE
 - Archives never recreate `dist/...`.
 - Delayed cleanup does not require current accepted bin to retain the old build.
 - Interrupted deletion resumes from the exact completion-record-bound trash path.
-- Staging excludes `.git` metadata inside BinSync `.bsproj` directories while retaining the remaining project files.
+- Staging excludes entire BinSync `.bsproj` directories and regenerable `.binsync.json` sidecars. Promotion therefore
+  accepts only durable bin state; a later republish recreates sidecars from validated remotes and lets BinSync recover
+  local repositories through `auto_clone`.
 - Release-workflow tree removal clears a Windows read-only attribute and retries only after `PermissionError`.
 
 ## Callers

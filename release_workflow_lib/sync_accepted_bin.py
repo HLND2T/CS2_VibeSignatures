@@ -37,31 +37,25 @@ from release_workflow_lib.hashing import (
 )
 from release_workflow_lib.manifests import require_gamever
 from release_workflow_lib.promotion import _version_lock
-from release_workflow_lib.staging import IDA_DATABASE_SUFFIXES
+from release_workflow_lib.staging import ignore_recoverable_analysis_state, is_recoverable_analysis_path
 
 # Same lock space as promote_bin so warmup mirroring and merge-time promotion of
 # one GAMEVER are mutually excluded, even though they write different sources.
 _LOCK_RELATIVE = ("release-staging", "locks")
 
 
-def _ignore_ida_state(directory: str, names: list[str]) -> set[str]:
-    """Exclude every IDA database side file so warm state never reaches accepted bin."""
-    del directory
-    return {name for name in names if name.lower().endswith(IDA_DATABASE_SUFFIXES)}
-
-
 def _filtered_files(root: Path) -> list[Path]:
-    """Sorted non-IDA files under ``root``, rejecting reparse points."""
+    """Sorted durable files under ``root``, rejecting reparse points."""
     reject_reparse_points(root)
     return [
         path
         for path in sorted(item for item in root.rglob("*") if item.is_file())
-        if not str(path).lower().endswith(IDA_DATABASE_SUFFIXES)
+        if not is_recoverable_analysis_path(path.relative_to(root))
     ]
 
 
 def _filtered_inventory(root: Path) -> tuple[list[dict], str]:
-    """Inventory one gamebin tree excluding IDA side files, and its hash."""
+    """Inventory one gamebin tree excluding recoverable analysis state."""
     filtered = []
     for path in _filtered_files(root):
         relative = normalized_relative_path(path.relative_to(root).as_posix())
@@ -70,7 +64,7 @@ def _filtered_inventory(root: Path) -> tuple[list[dict], str]:
 
 
 def _filtered_skeleton(root: Path) -> list[tuple[str, int]]:
-    """Sorted ``(relative path, size)`` pairs excluding IDA side files.
+    """Sorted ``(relative path, size)`` pairs excluding recoverable state.
 
     A no-hash identity used for the fast path: equal skeletons imply equal bytes
     because the source tree is a robocopy restore of the same persisted tree and
@@ -83,9 +77,9 @@ def _filtered_skeleton(root: Path) -> list[tuple[str, int]]:
     ]
 
 
-def _contains_ida_state(root: Path) -> bool:
-    """Return whether a verified tree contains any excluded IDA side file."""
-    return any(str(path).lower().endswith(IDA_DATABASE_SUFFIXES) for path in root.rglob("*") if path.is_file())
+def _contains_recoverable_analysis_state(root: Path) -> bool:
+    """Return whether a verified tree contains any excluded analysis state."""
+    return any(is_recoverable_analysis_path(path.relative_to(root)) for path in root.rglob("*"))
 
 
 def _swap_verified_bin(
@@ -103,9 +97,9 @@ def _swap_verified_bin(
     inventory, then atomically move the old target to ``backup`` and ``incoming``
     to target. Returns whether an existing target was moved aside.
 
-    Unlike promote_bin (whose staged source already excludes IDA side files), the
-    warmup source tree contains ``.i64``/``.idb`` side files, so verification here
-    must be against the filtered inventory, not the full tree.
+    Unlike promote_bin (whose staged source is already clean), the warmup source
+    tree can contain IDA and BinSync recovery state, so verification here must be
+    against the filtered inventory, not the full tree.
     """
     if backup.exists():
         raise ReleaseWorkflowError(f"sync backup already exists while accepted bin differs: {backup}")
@@ -114,7 +108,7 @@ def _swap_verified_bin(
         remove_tree(incoming)
     incoming.parent.mkdir(parents=True, exist_ok=True)
     try:
-        shutil.copytree(source, incoming, copy_function=shutil.copy2, ignore=_ignore_ida_state)
+        shutil.copytree(source, incoming, copy_function=shutil.copy2, ignore=ignore_recoverable_analysis_state)
     except OSError as exc:
         raise ReleaseWorkflowError(f"unable to copy source tree {source}: {exc}") from exc
     if _filtered_inventory(incoming) != (expected_files, expected_hash):
@@ -136,11 +130,11 @@ def _swap_verified_bin(
 def sync_accepted_bin(*, repo_root: Path, persisted_root: Path, gamever: str) -> dict:
     """Mirror ``repo_root/bin/<GAMEVER>`` into accepted bin for ``gamever``.
 
-    The source is the gamever directory the caller actually consumed. IDA database
-    side files are excluded so warm analysis state never leaks into the accepted
-    tree. Returns a summary with ``synced`` true when the accepted tree changed;
-    ``hash`` is the source content hash, or ``None`` when the no-hash skeleton
-    fast path proved the trees already identical.
+    The source is the gamever directory the caller actually consumed. Recoverable
+    IDA and BinSync state is excluded so mutable analysis state never leaks into
+    the accepted tree. Returns a summary with ``synced`` true when the accepted
+    tree changed; ``hash`` is the source content hash, or ``None`` when the no-hash
+    skeleton fast path proved the trees already identical.
     """
     gamever = require_gamever(gamever)
     repo_root = Path(repo_root).resolve()
@@ -162,7 +156,11 @@ def sync_accepted_bin(*, repo_root: Path, persisted_root: Path, gamever: str) ->
     source_skeleton = _filtered_skeleton(source_root)
 
     with _version_lock(lock_path):
-        if target.is_dir() and _filtered_skeleton(target) == source_skeleton and not _contains_ida_state(target):
+        if (
+            target.is_dir()
+            and _filtered_skeleton(target) == source_skeleton
+            and not _contains_recoverable_analysis_state(target)
+        ):
             return {"synced": False, "gamever": gamever, "hash": None}
         expected_files, expected_hash = _filtered_inventory(source_root)
         moved_old = _swap_verified_bin(

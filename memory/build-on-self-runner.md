@@ -11,7 +11,9 @@ permalink: cs2-vibesignatures/build-on-self-runner
 ## Responsibilities
 - Resolve exact `GAMEVER`, `SOURCE_SHA`, and mode.
 - Call [[warmup_idb]] as a required reusable job and receive an immutable generation/cache key.
-- Copy accepted persisted analysis state without IDA database files, verify the consumer IDA kernel version, then restore binaries and `.i64` only from the returned generation.
+- Copy accepted durable bin state without IDA database files, BinSync `.bsproj` directories, or regenerable
+  `.binsync.json` sidecars; verify the consumer IDA kernel version, then restore binaries and `.i64` only from the
+  returned generation.
 - Run `ida_analyze_bin.py -require_warm_idb`; cache absence, damage, or identity failure blocks release analysis.
 - Build and validate immutable symbol/gamedata candidates.
 - Stage the analyzed private bin tree without IDA database artifacts, then create an immutable generated-output PR.
@@ -31,7 +33,9 @@ Preflight -> required reusable warm-cache producer -> consumer IDA identity chec
 - [[promote-release-after-output-merge]].
 ## Notes
 - The build no longer runs best-effort warmup inline and never consumes `.i64` from accepted `PERSISTED_WORKSPACE/bin/<GAMEVER>`.
-- `stage-build` excludes `.i64`, legacy `.idb`, and all known IDA side files before building the private inventory. Promotion therefore removes any historical accepted IDB copies instead of duplicating the warm-cache payload.
+- `stage-build` excludes `.i64`, legacy `.idb`, all known IDA side files, entire BinSync `.bsproj` directories, and
+  regenerable `.binsync.json` sidecars before building the private inventory. Promotion therefore removes historical
+  mutable analysis state instead of copying partial BinSync repositories into accepted bin.
 - Output PR paths remain exactly the requested snapshot, `gamedata/<GAMEVER>/**`, and release manifest.
 ## Callers
 - `repository_dispatch.types: [build-on-self-runner]` only for a provenance-verified merged `bump-download/<GAMEVER>` PR.

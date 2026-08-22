@@ -390,6 +390,40 @@ class TestInitGamebin(unittest.TestCase):
         self.assertEqual(1, summary["remote_initialized"])
         self.assertEqual(1, summary["sidecar_created"])
 
+    def test_execute_plans_recreates_sidecar_for_valid_remote_without_local_repo(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            binary = root / "bin" / "14175" / "engine" / "engine2.dll"
+            binary.parent.mkdir(parents=True)
+            binary.write_bytes(b"binary")
+            binary_md5 = init_gamebin.file_md5(binary)
+            repo_name, remote_url, repo_path, sidecar_data = init_gamebin.expected_sidecar(
+                binary, binary_md5, "14175", "HZDEV"
+            )
+            sidecar_path = Path(f"{binary}.binsync.json")
+            plan = init_gamebin.BinSyncPlan(
+                binary_path=binary,
+                binary_md5=binary_md5,
+                repo_name=repo_name,
+                remote_url=remote_url,
+                repo_path=repo_path,
+                sidecar_path=sidecar_path,
+                sidecar_data=sidecar_data,
+                sidecar_exists=False,
+                local_repo_exists=False,
+                local_repo_locked=False,
+                remote_state=init_gamebin.RemoteState("valid"),
+            )
+
+            with patch.object(init_gamebin, "inspect_remote", return_value=init_gamebin.RemoteState("valid")):
+                summary = init_gamebin.execute_binsync_plans(root, [plan], "HZDEV")
+
+            self.assertEqual(1, summary["remote_verified"])
+            self.assertEqual(1, summary["sidecar_created"])
+            self.assertFalse(repo_path.exists())
+            self.assertEqual(sidecar_data, json.loads(sidecar_path.read_text(encoding="utf-8")))
+            self.assertTrue(sidecar_data["auto_clone"])
+
     def test_execute_plans_restores_local_history_only_for_empty_remote(self) -> None:
         binary = Path("bin/14175/engine/engine2.dll")
         _, _, repo_path, sidecar_data = init_gamebin.expected_sidecar(binary, "a" * 32, "14175", "HZDEV")

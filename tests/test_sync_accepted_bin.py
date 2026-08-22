@@ -22,9 +22,14 @@ class TestSyncAcceptedBin(unittest.TestCase):
             binary.write_bytes(prefix + marker)
             # Warm IDA side files must never reach the accepted tree.
             Path(f"{binary}.i64").write_bytes(b"idb-" + prefix + marker)
+            binsync = binary.parent / f"{binary.name}.bsproj"
+            (binsync / ".git").mkdir(parents=True)
+            (binsync / ".git" / "HEAD").write_bytes(b"ref: refs/heads/binsync/__root__\n")
+            (binsync / "symbols.toml").write_bytes(b"symbols = []\n")
+            Path(f"{binary}.binsync.json").write_bytes(b"{}\n")
         (root / "bin" / self.gamever / "server" / "server.yaml").write_bytes(b"yaml-" + marker)
 
-    def test_sync_creates_accepted_tree_without_ida_side_files(self) -> None:
+    def test_sync_creates_accepted_tree_without_recoverable_analysis_state(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             repo = root / "repo"
@@ -43,9 +48,13 @@ class TestSyncAcceptedBin(unittest.TestCase):
             self.assertTrue((accepted / "server" / "server.dll").is_file())
             self.assertTrue((accepted / "engine" / "libengine2.so").is_file())
             self.assertTrue((accepted / "server" / "server.yaml").is_file())
-            # No warm IDA side files leaked into the accepted tree.
+            # No recoverable IDA or BinSync state leaked into the accepted tree.
             self.assertFalse((accepted / "server" / "server.dll.i64").exists())
             self.assertFalse((accepted / "engine" / "libengine2.so.i64").exists())
+            self.assertFalse((accepted / "server" / "server.dll.bsproj").exists())
+            self.assertFalse((accepted / "engine" / "libengine2.so.bsproj").exists())
+            self.assertFalse((accepted / "server" / "server.dll.binsync.json").exists())
+            self.assertFalse((accepted / "engine" / "libengine2.so.binsync.json").exists())
             # Accepted tree equals the filtered source inventory.
             self.assertEqual(
                 _filtered_inventory(source_root),
@@ -108,9 +117,9 @@ class TestSyncAcceptedBin(unittest.TestCase):
             # Old accepted tree was transactionally moved to a backup.
             self.assertTrue(Path(result["backup"]).is_dir())
 
-    def test_sync_rewrites_when_accepted_tree_has_stale_ida_side_files(self) -> None:
-        # A target tree that gained IDA side files must be treated as different and
-        # rewritten, dropping the side files from the filtered copy.
+    def test_sync_rewrites_when_accepted_tree_has_stale_recoverable_state(self) -> None:
+        # A target tree that gained recoverable analysis state must be treated as
+        # different and rewritten, dropping that state from the filtered copy.
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             repo = root / "repo"
@@ -122,6 +131,11 @@ class TestSyncAcceptedBin(unittest.TestCase):
             stale_paths = [Path(f"{binary}{suffix}") for suffix in IDA_DATABASE_SUFFIXES]
             for stale_path in stale_paths:
                 stale_path.write_bytes(b"stale-idb")
+            stale_repo = binary.parent / f"{binary.name}.bsproj"
+            stale_repo.mkdir(exist_ok=True)
+            (stale_repo / "symbols.toml").write_bytes(b"stale-binsync")
+            stale_sidecar = Path(f"{binary}.binsync.json")
+            stale_sidecar.write_bytes(b"{}\n")
 
             result = sync_accepted_bin(repo_root=repo, persisted_root=persisted, gamever=self.gamever)
 
@@ -130,6 +144,8 @@ class TestSyncAcceptedBin(unittest.TestCase):
             self.assertTrue(result["replaced"])
             for stale_path in stale_paths:
                 self.assertFalse(stale_path.exists())
+            self.assertFalse(stale_repo.exists())
+            self.assertFalse(stale_sidecar.exists())
 
     def test_sync_requires_existing_source(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

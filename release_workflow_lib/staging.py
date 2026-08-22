@@ -38,13 +38,19 @@ from release_workflow_lib.manifests import (
 ABANDON_REASON_MAX_LENGTH = 500
 PROMOTION_STATE_MARKERS = ("PROMOTION_STARTED", "PROMOTED.json", "PROMOTION_COMPLETE")
 IDA_DATABASE_SUFFIXES = (".i64", ".idb", ".id0", ".id1", ".id2", ".nam", ".til")
+BINSYNC_REPO_SUFFIX = ".bsproj"
+BINSYNC_SIDECAR_SUFFIX = ".binsync.json"
+RECOVERABLE_ANALYSIS_SUFFIXES = (*IDA_DATABASE_SUFFIXES, BINSYNC_REPO_SUFFIX, BINSYNC_SIDECAR_SUFFIX)
 
 
-def _ignore_private_analysis_state(directory: str, names: list[str]) -> set[str]:
-    ignored = {name for name in names if name.lower().endswith(IDA_DATABASE_SUFFIXES)}
-    if Path(directory).suffix.lower() == ".bsproj" and ".git" in names:
-        ignored.add(".git")
-    return ignored
+def is_recoverable_analysis_path(path: Path) -> bool:
+    """Return whether any path component is disposable IDA or BinSync state."""
+    return any(part.lower().endswith(RECOVERABLE_ANALYSIS_SUFFIXES) for part in Path(path).parts)
+
+
+def ignore_recoverable_analysis_state(_directory: str, names: list[str]) -> set[str]:
+    """Exclude disposable analysis state from persistent bin-tree copies."""
+    return {name for name in names if is_recoverable_analysis_path(Path(name))}
 
 
 def verify_snapshot_binaries(document: dict, stage_bin: Path) -> int:
@@ -217,7 +223,7 @@ def stage_build(
     stage_bin = stage_dir / "bin" / gamever
     stage_bin.parent.mkdir(parents=True, exist_ok=True)
     try:
-        shutil.copytree(bin_source, stage_bin, copy_function=shutil.copy2, ignore=_ignore_private_analysis_state)
+        shutil.copytree(bin_source, stage_bin, copy_function=shutil.copy2, ignore=ignore_recoverable_analysis_state)
         return _write_stage_manifests(
             repo_root=repo_root,
             stage_dir=stage_dir,

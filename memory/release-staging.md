@@ -11,7 +11,7 @@ tags:
 # Release Staging
 
 ## Overview
-The release build (`build-on-self-runner.yml`) stages fully validated output into a private staging area on the self-hosted Windows runner **before** creating the generated-output PR. Staging holds the analyzed game binary tree (without IDA databases), a pending manifest binding build identity and file inventories, and a READY marker. After the generated-output PR merges, promotion consumes the staged bin as its transaction source. The PR merge is the visibility/promotion gate.
+The release build (`build-on-self-runner.yml`) stages fully validated output into a private staging area on the self-hosted Windows runner **before** creating the generated-output PR. Staging holds the durable analyzed game binary tree without recoverable IDA or BinSync state, a pending manifest binding build identity and file inventories, and a READY marker. After the generated-output PR merges, promotion consumes the staged bin as its transaction source. The PR merge is the visibility/promotion gate.
 
 ## On-disk location
 - Root: `$PERSISTED_WORKSPACE\release-staging` (`PERSISTED_WORKSPACE` is a GitHub secret configured on the win64 self-hosted runner, not a repo path).
@@ -22,7 +22,9 @@ The release build (`build-on-self-runner.yml`) stages fully validated output int
 - Cleanup trash: `release-staging\cleanup-trash\<gamever>\<build_id>`.
 
 ## Contents of a build dir
-- `bin\<gamever>\` — full copy of the analyzed bin tree (copied with `shutil.copy2`), **excluding all IDA database suffixes** (`.i64 .idb .id0 .id1 .id2 .nam .til`).
+- `bin\<gamever>\` — durable copy of the analyzed bin tree (copied with `shutil.copy2`), **excluding all IDA
+  database suffixes** (`.i64 .idb .id0 .id1 .id2 .nam .til`), entire BinSync `.bsproj` directories, and regenerable
+  `.binsync.json` sidecars.
 - `manifest.json` — pending private manifest (schema v4):
   - tracked fields: `schema_version/gamever/release_tag/mode/build_id/source_sha/candidate_sha256/bin_manifest_sha256/tracked_output_manifest_sha256/workflow_run_url/analysis_config_path/analysis_config_sha256/analysis_config_contract_digest_version/analysis_config_contract_sha256/gamedata_path/gamedata_manifest_sha256/generator_contract_sha256`
   - pending-only fields: `repository` / `output_branch` (`gamesymbols/build/<gamever>/<build_id>`) / `pr_head_sha` (null until `finalize_stage`) / `bin_files` (per-file `path+size+sha256` inventory) / `tracked_files` (git-index inventory of `gamesymbols/<gamever>.yaml` + `gamedata/<gamever>/**`).
@@ -36,7 +38,7 @@ The binaries are **not** redundant storage; three roles depend on them:
 3. **Snapshot<->binary hash anchor** — `verify_promotion` cross-checks the snapshot binary metadata (`gamesymbols/<gamever>.yaml`) against the staged bin files, proving symbols match the exact analyzed bytes.
 
 ## Relationship with warmup `sync-accepted-bin` (write path overlaps, roles differ — not redundant)
-- Both write `PERSISTED_WORKSPACE/bin/<gamever>`, share the per-GAMEVER lock, and exclude IDA db files.
+- Both write `PERSISTED_WORKSPACE/bin/<gamever>`, share the per-GAMEVER lock, and exclude recoverable IDA/BinSync state.
 - `sync-accepted-bin` (last step of `warmup-idb.yml`): idempotent **freshness mirror** of the consumed workspace `bin/<gamever>` after every warmup run; no build identity, no gate markers. Keeps accepted bin usable as the next warmup restore source / oldgamever baseline before the release PR merges.
 - `promote-bin` (on output-PR merge): the **verification gate** that binds accepted bin to the immutable release identity (build_id / candidate_sha256 / bin_manifest_sha256) and writes durable audit records.
 - Same-hash fast path: `promote_bin` becomes a no-op when warmup already wrote identical bytes (`promotion.py` `if inventory_sha256(...) == expected_hash: return`).
