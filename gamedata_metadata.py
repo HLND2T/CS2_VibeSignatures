@@ -41,8 +41,20 @@ SCHEMA_VERSION = 1
 # fields). Case-sensitive on purpose: CounterStrikeSharp nests entry fields
 # under lowercase "signatures"/"offsets", which must NOT be treated as sections.
 _SECTION_KEYS = frozenset(
-    {"Signatures", "Offsets", "Patches", "Signature", "Offset", "Addresses", "VFuncs", "Games", "csgo"}
+    {
+        "Signatures",
+        "Offsets",
+        "Patches",
+        "Signature",
+        "Offset",
+        "Addresses",
+        "VFuncs",
+        "VTables",
+        "Games",
+        "csgo",
+    }
 )
+_DOCUMENT_KEYS = frozenset({"$schema"})
 
 _VDF_TOKEN_RE = re.compile(r'"[^"]*"|\{|\}')
 _FLAT_ASSIGN_RE = re.compile(r"^(?P<key>[a-z0-9_]+)[ \t]*=[ \t]*(?P<value>[+-]?\d+)")
@@ -81,6 +93,8 @@ def _entry_and_covered(segments, yaml_data, alias_map):
     Uncovered entries fall back to the key immediately after the deepest
     section key so they still group under a readable name.
     """
+    if segments and segments[0] in _DOCUMENT_KEYS:
+        return None, False
     for segment in segments:
         if isinstance(segment, str):
             normalized = normalize_func_name_colons_to_underscore(segment, alias_map)
@@ -102,6 +116,8 @@ def _group_leaves(old_leaves, new_leaves, yaml_data, alias_map, line_of):
     entries = {}
     for path in set(old_leaves) | set(new_leaves):
         name, covered = _entry_and_covered(path, yaml_data, alias_map)
+        if name is None:
+            continue
         record = entries.setdefault(name, {"covered": covered, "changes": []})
         in_old = path in old_leaves
         in_new = path in new_leaves

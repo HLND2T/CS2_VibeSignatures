@@ -29,8 +29,40 @@ class TestMetadataCompanionPath(unittest.TestCase):
             paths,
         )
 
+    def test_legacy_expected_inventory_paths_excludes_metadata(self) -> None:
+        module = SimpleNamespace(directory="fixture", output_paths=("payload/final.json",))
+        paths = expected_inventory_paths([module], "14170", include_metadata=False)
+        self.assertEqual(["gamedata/14170/fixture/payload/final.json"], paths)
+
 
 class TestJsoncMetadata(unittest.TestCase):
+    def test_document_fields_and_vtable_sections_are_not_entries(self) -> None:
+        payload = """{
+  "$schema": "https://example.invalid/gamedata.schema.json",
+  "csgo": {
+    "VTables": {
+      "CServerSideClient": {"library": "engine2", "windows": "OLD"}
+    }
+  },
+  "citadel": {
+    "VTables": {
+      "CLuaVM": {"library": "vscript", "linux": "OLD"}
+    }
+  }
+}
+"""
+        meta = compute_file_metadata(
+            before_text=payload,
+            after_text=payload,
+            rel_path="plugify-plugin-s2sdk/assets/gamedata.jsonc",
+            gamever="1",
+            yaml_data={},
+            alias_to_name_map={},
+        )
+
+        self.assertEqual({"CServerSideClient", "CLuaVM"}, set(_by_name(meta)))
+        self.assertEqual({"total": 2, "covered": 0, "updated": 0}, meta["summary"])
+
     def test_three_way_classification(self) -> None:
         before = '{\n  "Changed": {"lib": "server", "windows": "AA", "linux": "BB"},\n  "Same": {"lib": "server", "windows": "CC"},\n  "UpstreamOnly": {"lib": "server", "windows": "DD"}\n}\n'
         after = '{\n  "Changed": {"lib": "server", "windows": "AA2", "linux": "BB"},\n  "Same": {"lib": "server", "windows": "CC"},\n  "UpstreamOnly": {"lib": "server", "windows": "DD"}\n}\n'

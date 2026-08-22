@@ -67,6 +67,7 @@ UNIT_MODULES = frozenset(
         "test_download_depot",
         "test_format_repo_files",
         "test_gamedata_candidate",
+        "test_gamedata_metadata",
         "test_gamedata_utils",
         "test_gamesymbol_candidate",
         "test_gamesymbol_metadata",

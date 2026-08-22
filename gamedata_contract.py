@@ -241,12 +241,15 @@ def metadata_companion_path(output_path: str) -> str:
     return output_path + METADATA_SUFFIX
 
 
-def expected_inventory_paths(modules: list[GeneratorModule], gamever: str) -> list[str]:
+def expected_inventory_paths(
+    modules: list[GeneratorModule], gamever: str, *, include_metadata: bool = True
+) -> list[str]:
     paths: list[str] = []
     for module in modules:
         for path in module.output_paths:
             paths.append(f"gamedata/{gamever}/{module.directory}/{path}")
-            paths.append(f"gamedata/{gamever}/{module.directory}/{metadata_companion_path(path)}")
+            if include_metadata:
+                paths.append(f"gamedata/{gamever}/{module.directory}/{metadata_companion_path(path)}")
     return sorted(paths)
 
 
