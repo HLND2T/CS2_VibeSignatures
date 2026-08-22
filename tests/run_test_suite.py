@@ -69,6 +69,7 @@ UNIT_MODULES = frozenset(
         "test_gamedata_candidate",
         "test_gamedata_utils",
         "test_gamesymbol_candidate",
+        "test_gamesymbol_metadata",
         "test_gamesymbol_pr_cli",
         "test_gamesymbol_pr_reference_validation",
         "test_gamesymbol_pr_validation",

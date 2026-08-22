@@ -166,11 +166,14 @@ def _git_index_inventory(repo_root: Path, pathspecs: list[str]) -> list[dict]:
 def tracked_output_inventory(repo_root: Path, gamever: str) -> list[dict]:
     repo_root = Path(repo_root)
     snapshot = f"gamesymbols/{gamever}.yaml"
+    metadata = f"gamesymbols/{gamever}.metadata.yaml"
     gamedata = f"gamedata/{gamever}"
-    inventory = _git_index_inventory(repo_root, [snapshot, gamedata])
+    inventory = _git_index_inventory(repo_root, [snapshot, metadata, gamedata])
     paths = {item["path"] for item in inventory}
     if snapshot not in paths:
         raise ReleaseWorkflowError(f"required tracked output is missing from the Git index: {snapshot}")
+    if metadata not in paths:
+        raise ReleaseWorkflowError(f"required tracked output is missing from the Git index: {metadata}")
     if not any(path.startswith(gamedata + "/") for path in paths):
         raise ReleaseWorkflowError(f"required tracked output is missing from the Git index: {gamedata}")
     return inventory
@@ -180,6 +183,7 @@ def allowed_output_path(path: str, gamever: str) -> bool:
     path = normalized_relative_path(path)
     return path in {
         f"gamesymbols/{gamever}.yaml",
+        f"gamesymbols/{gamever}.metadata.yaml",
         f"release-manifests/{gamever}.json",
     } or path.startswith(f"gamedata/{gamever}/")
 

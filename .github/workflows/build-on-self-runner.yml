@@ -446,14 +446,17 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "gamedata candidate guard failed before publication" }
           uv run gamedata_candidate.py publish -session "$env:GAMEDATA_SESSION" -outputdir "gamedata/$env:GAMEVER"
           if ($LASTEXITCODE -ne 0) { throw "gamedata publication failed with exit code $LASTEXITCODE" }
+          uv run gamesymbol_metadata.py generate -gamever "$env:GAMEVER" -configyaml "$env:ANALYSIS_CONFIG" -output "gamesymbols/$env:GAMEVER.metadata.yaml"
+          if ($LASTEXITCODE -ne 0) { throw "metadata generation failed with exit code $LASTEXITCODE" }
           $allowedSnapshot = "gamesymbols/$env:GAMEVER.yaml"
+          $allowedMetadata = "gamesymbols/$env:GAMEVER.metadata.yaml"
           $allowedGamedataPrefix = "gamedata/$env:GAMEVER/"
           $changedPaths = git status --porcelain=v1 --untracked-files=all | ForEach-Object {
             if ($_.Length -lt 4) { throw "Unexpected git status entry: $_" }
             $_.Substring(3).Replace('\', '/')
           }
           $rejected = @($changedPaths | Where-Object {
-            $_ -ne $allowedSnapshot -and -not $_.StartsWith($allowedGamedataPrefix, [StringComparison]::Ordinal)
+            $_ -ne $allowedSnapshot -and $_ -ne $allowedMetadata -and -not $_.StartsWith($allowedGamedataPrefix, [StringComparison]::Ordinal)
           })
           if ($rejected.Count -gt 0) {
             throw "Candidate publication changed paths outside the exact release outputs: $($rejected -join ', ')"
@@ -466,7 +469,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -b "$env:OUTPUT_BRANCH"
           if ($LASTEXITCODE -ne 0) { throw "Failed to create immutable output branch." }
-          git add -- "gamesymbols/$env:GAMEVER.yaml" "gamedata/$env:GAMEVER"
+          git add -- "gamesymbols/$env:GAMEVER.yaml" "gamesymbols/$env:GAMEVER.metadata.yaml" "gamedata/$env:GAMEVER"
           if ($LASTEXITCODE -ne 0) { throw "Failed to stage generated release output." }
           uv run release_workflow.py stage-build `
             --staging-root "$env:PERSISTED_WORKSPACE\release-staging" `

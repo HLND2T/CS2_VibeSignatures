@@ -7,6 +7,10 @@ from pr_validation_version import PrValidationVersionError, select_validation_ga
 
 
 class TestPrValidationVersion(unittest.TestCase):
+    def test_snapshot_pattern_excludes_metadata_companion(self) -> None:
+        self.assertIsNotNone(pr_validation_version.SNAPSHOT_PATTERN.fullmatch("gamesymbols/14176.yaml"))
+        self.assertIsNone(pr_validation_version.SNAPSHOT_PATTERN.fullmatch("gamesymbols/14176.metadata.yaml"))
+
     def test_bootstrap_uses_pr_gamever(self) -> None:
         self.assertEqual("14180", select_validation_gamever("14180", [], []))
 
@@ -66,7 +70,17 @@ class TestPrValidationVersion(unittest.TestCase):
         self.assertEqual("gamesymbols/14179.yaml", selection.base_snapshot_path)
         self.assertEqual("2" * 40, selection.base_snapshot_commit)
         self.assertEqual(
-            ["log", "-1", "--format=%H", "--name-only", "--first-parent", "3" * 40, "--", "gamesymbols"],
+            [
+                "log",
+                "-1",
+                "--format=%H",
+                "--name-only",
+                "--first-parent",
+                "3" * 40,
+                "--",
+                "gamesymbols/14178.yaml",
+                "gamesymbols/14179.yaml",
+            ],
             git_lines.call_args_list[1].args[1],
         )
         self.assertEqual(

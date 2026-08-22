@@ -13,7 +13,7 @@ from pathlib import Path, PurePosixPath
 from trusted_yaml import load_yaml_file
 
 
-SNAPSHOT_PATTERN = re.compile(r"^gamesymbols/[^/]+\.yaml$")
+SNAPSHOT_PATTERN = re.compile(r"^gamesymbols/\d{4,10}[a-z]?\.yaml$")
 SHA_PATTERN = re.compile(r"^[0-9a-fA-F]{40}$")
 
 
@@ -99,7 +99,7 @@ def resolve_validation_selection(repo_root: Path, base_ref: str) -> ValidationSe
     if len(tracked) > 1 and f"gamesymbols/{pr_gamever}.yaml" not in tracked:
         latest_change = _git_lines(
             repo_root,
-            ["log", "-1", "--format=%H", "--name-only", "--first-parent", base_ref, "--", "gamesymbols"],
+            ["log", "-1", "--format=%H", "--name-only", "--first-parent", base_ref, "--", *tracked],
         )
         if len(latest_change) < 2 or not SHA_PATTERN.fullmatch(latest_change[0]):
             raise PrValidationVersionError("failed to locate the latest base snapshot publication")
