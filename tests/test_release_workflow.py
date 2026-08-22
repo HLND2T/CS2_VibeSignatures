@@ -490,6 +490,7 @@ class TestReleaseWorkflow(unittest.TestCase):
         validate_output_paths(
             [
                 "gamesymbols/14170.yaml",
+                "gamesymbols/14170.metadata.yaml",
                 "gamedata/14170/module/output.json",
                 "release-manifests/14170.json",
             ],

@@ -13,7 +13,7 @@ from pathlib import Path, PurePosixPath
 from trusted_yaml import load_yaml_file
 
 
-SNAPSHOT_PATTERN = re.compile(r"^gamesymbols/[^/]+\.yaml$")
+SNAPSHOT_PATTERN = re.compile(r"^gamesymbols/\d{4,10}[a-z]?\.yaml$")
 SHA_PATTERN = re.compile(r"^[0-9a-fA-F]{40}$")
 
 

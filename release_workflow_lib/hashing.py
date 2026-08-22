@@ -180,6 +180,7 @@ def allowed_output_path(path: str, gamever: str) -> bool:
     path = normalized_relative_path(path)
     return path in {
         f"gamesymbols/{gamever}.yaml",
+        f"gamesymbols/{gamever}.metadata.yaml",
         f"release-manifests/{gamever}.json",
     } or path.startswith(f"gamedata/{gamever}/")
 

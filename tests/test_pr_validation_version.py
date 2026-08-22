@@ -7,6 +7,10 @@ from pr_validation_version import PrValidationVersionError, select_validation_ga
 
 
 class TestPrValidationVersion(unittest.TestCase):
+    def test_snapshot_pattern_excludes_metadata_companion(self) -> None:
+        self.assertIsNotNone(pr_validation_version.SNAPSHOT_PATTERN.fullmatch("gamesymbols/14176.yaml"))
+        self.assertIsNone(pr_validation_version.SNAPSHOT_PATTERN.fullmatch("gamesymbols/14176.metadata.yaml"))
+
     def test_bootstrap_uses_pr_gamever(self) -> None:
         self.assertEqual("14180", select_validation_gamever("14180", [], []))
 
