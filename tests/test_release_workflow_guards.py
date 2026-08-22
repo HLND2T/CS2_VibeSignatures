@@ -196,7 +196,7 @@ class TestReleaseWorkflowGuards(unittest.TestCase):
                         head_sha=fixture.head_sha,
                     )
 
-    def test_promotion_requires_exact_source_as_merge_first_parent(self) -> None:
+    def test_promotion_accepts_source_as_merge_first_parent(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             fixture = ReleaseFixture(Path(tmp))
             fixture.stage()
@@ -210,13 +210,16 @@ class TestReleaseWorkflowGuards(unittest.TestCase):
                     f"release-manifests/{fixture.gamever}.json",
                 ]
             )
-            with patch(
-                "release_workflow_lib.promotion._git_output",
-                side_effect=[
-                    f"{merge_sha} {base_parent_sha} {fixture.head_sha}",
-                    f"{fixture.head_sha} {fixture.source_sha}",
-                    changed_paths,
-                ],
+            with (
+                patch(
+                    "release_workflow_lib.promotion._git_output",
+                    side_effect=[
+                        f"{merge_sha} {base_parent_sha} {fixture.head_sha}",
+                        f"{fixture.head_sha} {fixture.source_sha}",
+                        changed_paths,
+                    ],
+                ),
+                patch("release_workflow_lib.promotion._is_ancestor", return_value=True),
             ):
                 result = verify_promotion(
                     repo_root=fixture.repo,
@@ -234,21 +237,65 @@ class TestReleaseWorkflowGuards(unittest.TestCase):
 
             self.assertEqual(merge_sha, result["output_merge_sha"])
 
-    def test_promotion_rejects_default_branch_advancement_after_output_build(self) -> None:
+    def test_promotion_allows_default_branch_advancement_descending_from_source(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             fixture = ReleaseFixture(Path(tmp))
             fixture.stage()
             fixture.finalize_and_index()
             merge_sha = "4" * 40
             base_parent_sha = "9" * 40
-            with patch(
-                "release_workflow_lib.promotion._git_output",
-                side_effect=[
-                    f"{merge_sha} {base_parent_sha} {fixture.head_sha}",
-                    f"{fixture.head_sha} {fixture.source_sha}",
-                ],
+            changed_paths = "\n".join(
+                [
+                    f"gamesymbols/{fixture.gamever}.yaml",
+                    f"gamedata/{fixture.gamever}/fixture/nested/gamedata.txt",
+                    f"release-manifests/{fixture.gamever}.json",
+                ]
+            )
+            with (
+                patch(
+                    "release_workflow_lib.promotion._git_output",
+                    side_effect=[
+                        f"{merge_sha} {base_parent_sha} {fixture.head_sha}",
+                        f"{fixture.head_sha} {fixture.source_sha}",
+                        changed_paths,
+                    ],
+                ),
+                patch("release_workflow_lib.promotion._is_ancestor", return_value=True),
             ):
-                with self.assertRaisesRegex(ReleaseWorkflowError, "exactly match SOURCE_SHA"):
+                result = verify_promotion(
+                    repo_root=fixture.repo,
+                    staging_root=fixture.staging,
+                    repository="HLND2T/CS2_VibeSignatures",
+                    head_repository="HLND2T/CS2_VibeSignatures",
+                    author="github-actions[bot]",
+                    branch=f"gamesymbols/build/{fixture.gamever}/{fixture.build_id}",
+                    base_branch="main",
+                    default_branch="main",
+                    pr_number=42,
+                    event_head_sha=fixture.head_sha,
+                    merge_sha=merge_sha,
+                )
+
+            self.assertEqual(merge_sha, result["output_merge_sha"])
+
+    def test_promotion_rejects_non_descendant_merge_first_parent(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            fixture = ReleaseFixture(Path(tmp))
+            fixture.stage()
+            fixture.finalize_and_index()
+            merge_sha = "4" * 40
+            base_parent_sha = "9" * 40
+            with (
+                patch(
+                    "release_workflow_lib.promotion._git_output",
+                    side_effect=[
+                        f"{merge_sha} {base_parent_sha} {fixture.head_sha}",
+                        f"{fixture.head_sha} {fixture.source_sha}",
+                    ],
+                ),
+                patch("release_workflow_lib.promotion._is_ancestor", return_value=False),
+            ):
+                with self.assertRaisesRegex(ReleaseWorkflowError, "descend from SOURCE_SHA"):
                     verify_promotion(
                         repo_root=fixture.repo,
                         staging_root=fixture.staging,

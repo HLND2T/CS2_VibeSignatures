@@ -64,6 +64,15 @@ def _git_output(arguments: list[str]) -> str:
     return result.stdout.strip()
 
 
+def _is_ancestor(ancestor: str, descendant: str) -> bool:
+    result = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", ancestor, descendant],
+        capture_output=True,
+        check=False,
+    )
+    return result.returncode == 0
+
+
 def verify_output_pr(
     *,
     repo_root: Path,
@@ -130,8 +139,8 @@ def verify_promotion(
     head_parents = _git_output(["rev-list", "--parents", "-n", "1", event_head_sha]).split()
     if len(head_parents) != 2 or head_parents[1] != pending["source_sha"]:
         raise ReleaseWorkflowError("generated-output commit is not directly based on SOURCE_SHA")
-    if base_parent_sha != pending["source_sha"]:
-        raise ReleaseWorkflowError("merge first parent must exactly match SOURCE_SHA")
+    if not _is_ancestor(pending["source_sha"], base_parent_sha):
+        raise ReleaseWorkflowError("merge first parent must descend from SOURCE_SHA")
     paths = [
         line for line in _git_output(["diff", "--name-only", base_parent_sha, merge_sha, "--"]).splitlines() if line
     ]
