@@ -521,8 +521,7 @@ def main():
     target_support: Dict[str, bool] = {}
     with ThreadPoolExecutor(max_workers=worker_count) as executor:
         probe_futures = [
-            executor.submit(probe_target_support, args.clang, target, args.std)
-            for target in configured_targets
+            executor.submit(probe_target_support, args.clang, target, args.std) for target in configured_targets
         ]
         probes = [future.result() for future in probe_futures]
     for target, probe in zip(configured_targets, probes):
