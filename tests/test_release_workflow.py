@@ -53,6 +53,7 @@ class ReleaseFixture:
         self.bin_source = self.repo / "bin" / self.gamever
         self.candidate = root / "candidate.yaml"
         self.analysis_config = self.repo / "configs" / f"{self.gamever}.yaml"
+        self.metadata = self.repo / "gamesymbols" / f"{self.gamever}.metadata.yaml"
         self.gamedata_candidate_root = root / "gamedata-candidate"
         self.gamedata_session = self.gamedata_candidate_root / "session.json"
         (self.repo / "gamesymbols").mkdir(parents=True)
@@ -87,6 +88,7 @@ class ReleaseFixture:
             )
         )
         (self.repo / "gamesymbols" / f"{self.gamever}.yaml").write_bytes(snapshot)
+        self.metadata.write_text("modules: []\n", encoding="utf-8")
         self.candidate.write_bytes(snapshot)
         (generator / "gamedata.py").write_text(
             "from pathlib import Path\n"
@@ -454,6 +456,36 @@ class TestReleaseWorkflow(unittest.TestCase):
                     build_id=fixture.build_id,
                     pr_head_sha=fixture.head_sha,
                 )
+
+    def test_tampered_metadata_is_rejected_when_finalizing(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            fixture = ReleaseFixture(Path(tmp))
+            pending = fixture.stage()
+            metadata_path = fixture.metadata.relative_to(fixture.repo).as_posix()
+            self.assertIn(metadata_path, {item["path"] for item in pending["tracked_files"]})
+            fixture.metadata.write_text(
+                "modules:\n  - name: server\n    symbols:\n      - name: Test\n        alias: [Server::Test]\n",
+                encoding="utf-8",
+            )
+            fixture.git("add", "--", metadata_path)
+
+            with self.assertRaisesRegex(ReleaseWorkflowError, "tracked output manifest hash mismatch"):
+                finalize_stage(
+                    repo_root=fixture.repo,
+                    staging_root=fixture.staging,
+                    gamever=fixture.gamever,
+                    build_id=fixture.build_id,
+                    pr_head_sha=fixture.head_sha,
+                )
+
+    def test_stage_requires_metadata_in_git_index(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            fixture = ReleaseFixture(Path(tmp))
+            metadata_path = fixture.metadata.relative_to(fixture.repo).as_posix()
+            fixture.git("rm", "--cached", "--", metadata_path)
+
+            with self.assertRaisesRegex(ReleaseWorkflowError, f"required tracked output is missing.*{fixture.gamever}"):
+                fixture.stage()
 
     def test_untracked_other_version_is_excluded_from_tracked_manifest(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

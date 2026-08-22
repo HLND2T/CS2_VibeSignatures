@@ -55,6 +55,9 @@ Config fields NOT consumed by pages (thus excluded from metadata): `skills`,
 - The release allow-list (`build-on-self-runner.yml`, `$allowedSnapshot`
   check) must be extended to admit the metadata path, otherwise publication is
   rejected.
+- The release tracked-output inventory includes and requires the metadata path,
+  so staging, output-PR validation, and promotion bind its exact bytes together
+  with the snapshot and versioned gamedata.
 
 ## Publishing model reminder
 

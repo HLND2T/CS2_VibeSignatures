@@ -99,7 +99,7 @@ def resolve_validation_selection(repo_root: Path, base_ref: str) -> ValidationSe
     if len(tracked) > 1 and f"gamesymbols/{pr_gamever}.yaml" not in tracked:
         latest_change = _git_lines(
             repo_root,
-            ["log", "-1", "--format=%H", "--name-only", "--first-parent", base_ref, "--", "gamesymbols"],
+            ["log", "-1", "--format=%H", "--name-only", "--first-parent", base_ref, "--", *tracked],
         )
         if len(latest_change) < 2 or not SHA_PATTERN.fullmatch(latest_change[0]):
             raise PrValidationVersionError("failed to locate the latest base snapshot publication")

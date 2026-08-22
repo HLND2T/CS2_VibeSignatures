@@ -70,7 +70,17 @@ class TestPrValidationVersion(unittest.TestCase):
         self.assertEqual("gamesymbols/14179.yaml", selection.base_snapshot_path)
         self.assertEqual("2" * 40, selection.base_snapshot_commit)
         self.assertEqual(
-            ["log", "-1", "--format=%H", "--name-only", "--first-parent", "3" * 40, "--", "gamesymbols"],
+            [
+                "log",
+                "-1",
+                "--format=%H",
+                "--name-only",
+                "--first-parent",
+                "3" * 40,
+                "--",
+                "gamesymbols/14178.yaml",
+                "gamesymbols/14179.yaml",
+            ],
             git_lines.call_args_list[1].args[1],
         )
         self.assertEqual(
