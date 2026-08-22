@@ -524,6 +524,7 @@ class TestMainExitStatus(unittest.TestCase):
             clang="clang++",
             std="c++20",
             debug=False,
+            jobs=None,
         )
         mock_parse_config.return_value = [
             {
@@ -565,6 +566,7 @@ class TestMainExitStatus(unittest.TestCase):
             clang="clang++",
             std="c++20",
             debug=False,
+            jobs=None,
         )
         mock_parse_config.return_value = [
             {

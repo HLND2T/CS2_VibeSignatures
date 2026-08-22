@@ -4,9 +4,11 @@ Run C++ tests declared in the selected analysis config and compare clang layouts
 """
 
 import argparse
+import os
 import subprocess
 import sys
 import tempfile
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any, Dict, List, Sequence
 
@@ -62,6 +64,13 @@ def parse_args():
         "-std",
         default=DEFAULT_CPP_STD,
         help=f"C++ standard for compilation (default: {DEFAULT_CPP_STD})",
+    )
+    parser.add_argument(
+        "-j",
+        "--jobs",
+        type=int,
+        default=None,
+        help="Maximum number of tests/probes to run in parallel (default: auto)",
     )
     parser.add_argument(
         "-debug",
@@ -154,6 +163,16 @@ def _collect_process_output(result: subprocess.CompletedProcess) -> str:
     if stdout_text:
         return stdout_text
     return stderr_text
+
+
+def resolve_worker_count(jobs: int | None) -> int:
+    """Resolve the concurrency level for parallel clang++ invocations."""
+    if jobs is not None:
+        if jobs < 1:
+            raise ValueError(f"Invalid --jobs value: {jobs!r} (must be >= 1)")
+        return jobs
+    cpu = os.cpu_count() or 1
+    return max(1, min(32, cpu + 4))
 
 
 def parse_config(config_path: Path) -> List[Dict[str, Any]]:
@@ -455,6 +474,11 @@ def run_one_test(
 def main():
     args = parse_args()
     try:
+        worker_count = resolve_worker_count(args.jobs)
+    except ValueError as exc:
+        print(f"Error: {exc}")
+        return 2
+    try:
         config_path = resolve_analysis_config(args.gamever, args.configyaml)
     except AnalysisConfigError as exc:
         print(f"Error: {exc}")
@@ -495,8 +519,13 @@ def main():
 
     print("=== target support probe (from configured targets) ===")
     target_support: Dict[str, bool] = {}
-    for target in configured_targets:
-        probe = probe_target_support(args.clang, target, args.std)
+    with ThreadPoolExecutor(max_workers=worker_count) as executor:
+        probe_futures = [
+            executor.submit(probe_target_support, args.clang, target, args.std)
+            for target in configured_targets
+        ]
+        probes = [future.result() for future in probe_futures]
+    for target, probe in zip(configured_targets, probes):
         target_support[target] = bool(probe["supported"])
         status_text = "SUPPORTED" if probe["supported"] else "UNSUPPORTED"
         print(f"[{status_text}] {target}")
@@ -524,6 +553,7 @@ def main():
         return 1
 
     print("=== running cpp_tests ===")
+    print(f"Parallel jobs: {worker_count}")
     compile_failed_count = 0
     invalid_count = 0
     compare_diff_count = 0
@@ -533,16 +563,22 @@ def main():
     record_compare_run_count = 0
     record_compare_diff_count = 0
 
-    for test_item in runnable_tests:
+    with ThreadPoolExecutor(max_workers=worker_count) as executor:
+        futures = [
+            executor.submit(
+                run_one_test,
+                test_item=test_item,
+                args=args,
+                config_dir=source_root,
+                symbol_store=symbol_store,
+            )
+            for test_item in runnable_tests
+        ]
+        ordered_results = [future.result() for future in futures]
+
+    for test_item, result in zip(runnable_tests, ordered_results):
         test_name = str(test_item.get("name", "unnamed_test"))
         print(f"[RUN ] {test_name}")
-
-        result = run_one_test(
-            test_item=test_item,
-            args=args,
-            config_dir=source_root,
-            symbol_store=symbol_store,
-        )
 
         if result["status"] == "invalid":
             invalid_count += 1
