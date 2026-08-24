@@ -739,8 +739,65 @@ jobs:
           else
             [[ "$LIGHT_RESULT" == "success" ]]
           fi
-  finalize-pr-workspace:
+  classify-closed-pr:
     if: >-
+      github.event.action == 'closed' &&
+      (github.repository == 'HLND2T/CS2_VibeSignatures' ||
+       github.repository == 'hzqst/CS2_VibeSignatures') &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      !(github.event.pull_request.user.login == 'github-actions[bot]' &&
+        startsWith(github.event.pull_request.head.ref, 'bump-download/') &&
+        startsWith(github.event.pull_request.title, 'chore(download): Update manifest for ')) &&
+      !(github.event.pull_request.user.login == 'github-actions[bot]' &&
+        startsWith(github.event.pull_request.head.ref, 'gamesymbols/build/') &&
+        startsWith(github.event.pull_request.title, 'chore(gamesymbols): publish '))
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    outputs:
+      validation_path: ${{ steps.classify-validation-mode.outputs.validation-mode || 'full' }}
+    steps:
+      - name: Checkout trusted PR base
+        id: checkout-base
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 0
+          submodules: false
+      - name: Fetch immutable PR head
+        id: fetch-head
+        shell: pwsh
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          git fetch --no-tags origin "+refs/pull/$env:PR_NUMBER/head:refs/remotes/pull/$env:PR_NUMBER/head"
+          if ($LASTEXITCODE -ne 0) { throw "Unable to fetch immutable PR head ref." }
+          $fetchedHead = (git rev-parse "refs/remotes/pull/$env:PR_NUMBER/head").Trim().ToLowerInvariant()
+          if ($LASTEXITCODE -ne 0 -or $fetchedHead -ne $env:PR_HEAD_SHA.ToLowerInvariant()) {
+            throw "Fetched PR head ref does not match the closed PR head SHA."
+          }
+      - name: Set up uv for closed PR classification
+        id: setup-uv
+        uses: astral-sh/setup-uv@v9.0.0
+      - name: Classify closed PR validation mode
+        id: classify-validation-mode
+        shell: pwsh
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          uv run python pr_validation_mode.py `
+            --repo-root "${{ github.workspace }}" `
+            --base-ref "$env:PR_BASE_SHA" `
+            --head-ref "$env:PR_HEAD_SHA" `
+            --github-output "$env:GITHUB_OUTPUT"
+          if ($LASTEXITCODE -ne 0) { throw "Failed to classify closed PR validation mode." }
+  finalize-pr-workspace:
+    needs: classify-closed-pr
+    if: >-
+      always() &&
+      needs.classify-closed-pr.result == 'success' &&
       github.event.action == 'closed' &&
       (github.repository == 'HLND2T/CS2_VibeSignatures' ||
        github.repository == 'hzqst/CS2_VibeSignatures') &&
@@ -755,6 +812,7 @@ jobs:
     runs-on: [self-hosted, windows, x64]
     env:
       PERSISTED_WORKSPACE: ${{ secrets.PERSISTED_WORKSPACE }}
+      VALIDATION_PATH: ${{ needs.classify-closed-pr.outputs.validation_path }}
     steps:
       - name: Promote staged YAML on merge
         id: finalize-workspace
@@ -765,7 +823,19 @@ jobs:
           if ([string]::IsNullOrWhiteSpace($prNumber)) {
             throw "Unable to determine pull request number."
           }
+          $validationPath = $env:VALIDATION_PATH.Trim().ToLowerInvariant()
+          if ($validationPath -notin @("light", "full")) {
+            throw "Closed PR validation path is invalid: $validationPath"
+          }
           $prStaging = [IO.Path]::GetFullPath((Join-Path $env:PERSISTED_WORKSPACE "pr-yaml-staging\$prNumber"))
+          if ($validationPath -eq "light") {
+            if (Test-Path -LiteralPath $prStaging -PathType Container) {
+              Remove-Item -LiteralPath $prStaging -Recurse -Force
+              Write-Host "Removed stale staged YAML directory for light PR: $prStaging"
+            }
+            Write-Host "PR $prNumber used light validation; no YAML promotion is required."
+            exit 0
+          }
           if (-not (Test-Path -LiteralPath $prStaging -PathType Container)) {
             if ($prWasMerged -eq "true") {
               throw "Merged PR has no staged YAML directory: $prStaging"
