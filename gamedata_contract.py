@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import inspect
+import json
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -290,6 +291,20 @@ def validate_output_tree(output_root: str | Path, gamever: str, modules: list[Ge
         if extra:
             details.append("undeclared=" + ",".join(extra))
         raise GamedataContractError("versioned gamedata tree violates OUTPUT_PATHS: " + "; ".join(details))
+
+    from gamedata_metadata import validate_file_metadata
+
+    for module in modules:
+        for output_path in module.output_paths:
+            payload_path = root / module.directory / PurePosixPath(output_path)
+            metadata_path = root / module.directory / PurePosixPath(metadata_companion_path(output_path))
+            rel_path = f"{module.directory}/{output_path}"
+            try:
+                payload_text = payload_path.read_text(encoding="utf-8")
+                metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+                validate_file_metadata(metadata, after_text=payload_text, rel_path=rel_path, gamever=gamever)
+            except (OSError, UnicodeError, json.JSONDecodeError, ValueError) as exc:
+                raise GamedataContractError(f"invalid gamedata metadata companion {rel_path}: {exc}") from exc
     return prefixed_output_inventory(root, gamever)
 
 

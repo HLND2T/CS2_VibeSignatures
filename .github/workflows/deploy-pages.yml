@@ -6,6 +6,7 @@ on:
     paths:
       - 'pages/**'
       - 'gamesymbols/**'
+      - 'gamedata/**'
       - '.github/workflows/deploy-pages.yml'
   workflow_dispatch:
 
@@ -42,6 +43,8 @@ jobs:
         run: npm run build
       - name: Verify current game-symbol bytes
         run: npm run verify:gamesymbols
+      - name: Verify current gamedata bytes
+        run: npm run verify:gamedata
       - name: Upload current Pages build
         uses: actions/upload-artifact@v5
         with:
@@ -122,10 +125,19 @@ jobs:
             --directory dist/gamesymbols \
             --write-manifest "$verification_root/manifest.json"
           cp verifyGameSymbolAssets.mjs "$verification_root/verifyGameSymbolAssets.mjs"
-      - name: Upload game-symbol verification manifest
+      - name: Write final gamedata verification manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          verification_root="$RUNNER_TEMP/pages-verification"
+          node verifyGameDataAssets.mjs \
+            --directory dist/gamedata \
+            --write-manifest "$verification_root/gamedata-manifest.json"
+          cp verifyGameDataAssets.mjs "$verification_root/verifyGameDataAssets.mjs"
+      - name: Upload static asset verification manifests
         uses: actions/upload-artifact@v5
         with:
-          name: pages-gamesymbol-verification
+          name: pages-static-asset-verification
           path: ${{ runner.temp }}/pages-verification
           retention-days: 1
       - uses: actions/configure-pages@v5
@@ -147,10 +159,10 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: '24'
-      - name: Download game-symbol verification manifest
+      - name: Download static asset verification manifests
         uses: actions/download-artifact@v5
         with:
-          name: pages-gamesymbol-verification
+          name: pages-static-asset-verification
           path: ${{ runner.temp }}/pages-verification
       - id: deployment
         uses: actions/deploy-pages@v5
@@ -161,3 +173,10 @@ jobs:
           node "$RUNNER_TEMP/pages-verification/verifyGameSymbolAssets.mjs"
           --base-url "${PAGE_URL%/}/gamesymbols/"
           --manifest "$RUNNER_TEMP/pages-verification/manifest.json"
+      - name: Verify deployed CDN gamedata bytes
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: >-
+          node "$RUNNER_TEMP/pages-verification/verifyGameDataAssets.mjs"
+          --base-url "${PAGE_URL%/}/gamedata/"
+          --manifest "$RUNNER_TEMP/pages-verification/gamedata-manifest.json"

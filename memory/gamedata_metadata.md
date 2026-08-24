@@ -20,20 +20,24 @@ permalink: cs2-vibesignatures/gamedata-metadata
 
 ## Schema
 
+当前 companion 使用 schema v2：
+
 ```json
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "gamever": "14176",
   "file": "swiftlys2/plugin_files/gamedata/cs2/core/signatures.jsonc",
   "summary": {"total": 63, "covered": 24, "updated": 16},
   "entries": [
-    {"name": "CBaseEntity::DispatchSpawn", "covered": true, "updated": true,
+    {"name": "CBaseEntity::DispatchSpawn", "covered": true, "covered_lines": [43, 44], "updated": true,
      "changes": [{"path": ["CBaseEntity::DispatchSpawn", "windows"], "before": "...", "after": "...", "line": 44}]},
-    {"name": "SomeCoveredUnchanged", "covered": true, "updated": false},
-    {"name": "UpstreamOnly", "covered": false, "updated": false}
+    {"name": "SomeCoveredUnchanged", "covered": true, "covered_lines": [50], "updated": false},
+    {"name": "UpstreamOnly", "covered": false, "covered_lines": [], "updated": false}
   ]
 }
 ```
+
+`covered_lines` 是最终文件内该 entry 所有标量叶子值的 1-based、升序、去重行号；uncovered 或最终文件中没有存活叶子的 entry 使用空数组。updated 行仍由 `changes[].line` 给出，前端以 updated 样式覆盖 covered 样式；删除叶子的 `line=null` 保持无行锚点。
 
 ## 实现
 
@@ -51,10 +55,10 @@ permalink: cs2-vibesignatures/gamedata-metadata
 
 ## Release schema 与历史回填
 
-- schema 4：metadata 引入前的历史 release；验证原始 `OUTPUT_PATHS`，不要求 companion。
-- schema 5：metadata release；每个原始输出必须有一个 companion，两个文件都纳入 gamedata/tracked inventory hash。
-- 历史版本只在能取得可靠 upstream baseline 时迁移到 schema 5；禁止用 `before=after` 或当前无关 upstream 生成形式合法但语义失真的 metadata。
-- `14176` 已用当前 upstream 与对应 snapshot 隔离重建，14 个最终 payload 与已跟踪文件逐字节一致后，真实回填 14 个 companion 并迁移 manifest 到 schema 5。更早版本保持 schema 4，作为可选迁移。
+- release manifest schema 4：metadata 引入前的历史 release；验证原始 `OUTPUT_PATHS`，不要求 companion。
+- release manifest schema 5：每个原始输出必须有 companion，并将 payload 与 metadata 一起纳入 gamedata/tracked inventory hash。metadata 文档自身当前是 schema v2；release manifest 仍保持 schema 5。
+- 历史版本只在能取得可靠 upstream baseline 时新增 companion，禁止伪造 diff。14175 及更早版本继续保持无 metadata 状态，网页允许浏览正文但禁用 Diff。
+- `14176` 的 14 个可信 v1 companion 已通过只读取现有 companion + 最终 payload 的确定性 upgrader 升级到 v2；原有 `summary/changes/before/after/line` 与 payload 字节不变，只增加 `covered_lines` 并重算 release inventory hashes。
 
 ## 已知权衡
 

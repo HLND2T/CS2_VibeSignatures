@@ -35,7 +35,7 @@ try:
 except ImportError:  # pragma: no cover - only required for the cs2kz VDF generator
     vdf = None
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 # Section keys whose values are symbol-entry records (as opposed to scalar
 # fields). Case-sensitive on purpose: CounterStrikeSharp nests entry fields
@@ -118,9 +118,14 @@ def _group_leaves(old_leaves, new_leaves, yaml_data, alias_map, line_of):
         name, covered = _entry_and_covered(path, yaml_data, alias_map)
         if name is None:
             continue
-        record = entries.setdefault(name, {"covered": covered, "changes": []})
+        record = entries.setdefault(name, {"covered": False, "changes": [], "final_lines": set()})
+        record["covered"] = record["covered"] or covered
         in_old = path in old_leaves
         in_new = path in new_leaves
+        if in_new:
+            line = line_of(path)
+            if line is not None:
+                record["final_lines"].add(line)
         if in_old and in_new:
             old_value = old_leaves[path]
             new_value = new_leaves[path]
@@ -150,7 +155,12 @@ def _finalize_entries(entries):
                 json.dumps(change["path"], sort_keys=True),
             ),
         )
-        entry = {"name": name, "covered": record["covered"], "updated": bool(changes)}
+        entry = {
+            "name": name,
+            "covered": record["covered"],
+            "covered_lines": sorted(record.get("final_lines", ())) if record["covered"] else [],
+            "updated": bool(changes),
+        }
         if changes:
             entry["changes"] = changes
         result.append(entry)
@@ -241,9 +251,11 @@ def _diff_flat(before_text, after_text, yaml_data, alias_map):
     new_entries = _parse_flat_assignments(after_text)
     entries = {}
     for key in set(old_entries) | set(new_entries):
-        record = entries.setdefault(key, {"covered": True, "changes": []})
+        record = entries.setdefault(key, {"covered": True, "changes": [], "final_lines": set()})
         in_old = key in old_entries
         in_new = key in new_entries
+        if in_new:
+            record["final_lines"].add(new_entries[key][1])
         if in_old and in_new:
             old_value = old_entries[key][0]
             new_value = new_entries[key][0]
@@ -279,13 +291,155 @@ def compute_file_metadata(*, before_text, after_text, rel_path, gamever, yaml_da
     finalized = _finalize_entries(entries)
     covered = sum(1 for entry in finalized if entry["covered"])
     updated = sum(1 for entry in finalized if entry.get("updated"))
-    return {
+    metadata = {
         "schema_version": SCHEMA_VERSION,
         "gamever": str(gamever),
         "file": rel_path,
         "summary": {"total": len(finalized), "covered": covered, "updated": updated},
         "entries": finalized,
     }
+    validate_file_metadata(metadata, after_text=after, rel_path=rel_path, gamever=gamever)
+    return metadata
+
+
+def _covered_line_map(after_text, suffix, covered_names):
+    """Map covered entry names to scalar leaf lines in a final payload."""
+    lines = {name: set() for name in covered_names}
+    if suffix in {".json", ".jsonc"}:
+        data = json.loads(strip_jsonc_comments(after_text))
+        line_of = _jsonc_line_of(after_text)
+        leaves = _leaves(data)
+    elif suffix == ".txt" and vdf is not None and after_text.lstrip().startswith(('"', "{")):
+        data = vdf.loads(after_text)
+        leaf_lines = _vdf_leaf_lines(after_text)
+        line_of = leaf_lines.get
+        leaves = _leaves(data)
+    elif suffix == ".txt":
+        for key, (_value, line) in _parse_flat_assignments(after_text).items():
+            if key in lines:
+                lines[key].add(line)
+        return lines
+    else:
+        raise ValueError(f"unsupported gamedata output suffix: {suffix}")
+
+    for path, _value in leaves:
+        name = next((segment for segment in path if isinstance(segment, str) and segment in lines), None)
+        if name is None:
+            continue
+        line = line_of(path)
+        if line is not None:
+            lines[name].add(line)
+    return lines
+
+
+def validate_file_metadata(metadata, *, after_text, rel_path, gamever):
+    """Validate one schema-v2 companion against its final payload."""
+    if not isinstance(metadata, dict) or metadata.get("schema_version") != SCHEMA_VERSION:
+        raise ValueError(f"{rel_path}: metadata schema_version must be {SCHEMA_VERSION}")
+    if metadata.get("gamever") != str(gamever):
+        raise ValueError(f"{rel_path}: metadata gamever does not match output version")
+    if metadata.get("file") != rel_path:
+        raise ValueError(f"{rel_path}: metadata file does not match output path")
+
+    entries = metadata.get("entries")
+    summary = metadata.get("summary")
+    if not isinstance(entries, list) or not isinstance(summary, dict):
+        raise ValueError(f"{rel_path}: metadata entries/summary are invalid")
+    max_line = (after_text or "").count("\n") + 1
+    covered_count = 0
+    updated_count = 0
+    seen_names = set()
+    for index, entry in enumerate(entries):
+        source = f"{rel_path}: entries[{index}]"
+        if not isinstance(entry, dict) or not isinstance(entry.get("name"), str) or not entry["name"]:
+            raise ValueError(f"{source} has an invalid name")
+        if entry["name"] in seen_names:
+            raise ValueError(f"{source} duplicates entry name {entry['name']}")
+        seen_names.add(entry["name"])
+        if not isinstance(entry.get("covered"), bool) or not isinstance(entry.get("updated"), bool):
+            raise ValueError(f"{source} has invalid covered/updated flags")
+        lines = entry.get("covered_lines")
+        if (
+            not isinstance(lines, list)
+            or any(isinstance(line, bool) or not isinstance(line, int) or line < 1 or line > max_line for line in lines)
+            or lines != sorted(set(lines))
+        ):
+            raise ValueError(f"{source}.covered_lines are invalid")
+        if not entry["covered"] and lines:
+            raise ValueError(f"{source} cannot have covered_lines when uncovered")
+        changes = entry.get("changes", [])
+        if not isinstance(changes, list) or entry["updated"] != bool(changes):
+            raise ValueError(f"{source} has inconsistent updated/changes state")
+        for change_index, change in enumerate(changes):
+            change_source = f"{source}.changes[{change_index}]"
+            if (
+                not isinstance(change, dict)
+                or not isinstance(change.get("path"), list)
+                or "before" not in change
+                or "after" not in change
+            ):
+                raise ValueError(f"{change_source} is invalid")
+            line = change.get("line")
+            if line is not None:
+                if isinstance(line, bool) or not isinstance(line, int) or line < 1 or line > max_line:
+                    raise ValueError(f"{change_source}.line is invalid")
+                if entry["covered"] and line not in lines:
+                    raise ValueError(f"{change_source}.line is not covered")
+        covered_count += int(entry["covered"])
+        updated_count += int(entry["updated"])
+
+    expected_summary = {"total": len(entries), "covered": covered_count, "updated": updated_count}
+    if summary != expected_summary:
+        raise ValueError(f"{rel_path}: metadata summary does not match entries")
+    return metadata
+
+
+def upgrade_file_metadata_v1(metadata, *, after_text):
+    """Upgrade a trusted v1 companion using only its unchanged final payload."""
+    if not isinstance(metadata, dict) or metadata.get("schema_version") != 1:
+        raise ValueError("metadata upgrade requires a schema-v1 document")
+    rel_path = metadata.get("file")
+    gamever = metadata.get("gamever")
+    entries = metadata.get("entries")
+    if not isinstance(rel_path, str) or not isinstance(gamever, str) or not isinstance(entries, list):
+        raise ValueError("metadata upgrade source is invalid")
+    covered_names = {
+        entry["name"]
+        for entry in entries
+        if isinstance(entry, dict) and entry.get("covered") is True and isinstance(entry.get("name"), str)
+    }
+    line_map = _covered_line_map(_normalize_text(after_text), Path(rel_path).suffix.lower(), covered_names)
+    upgraded_entries = []
+    for entry in entries:
+        if not isinstance(entry, dict):
+            raise ValueError("metadata upgrade source has an invalid entry")
+        upgraded_entries.append(
+            {
+                **entry,
+                "covered_lines": sorted(line_map.get(entry.get("name"), ())) if entry.get("covered") else [],
+            }
+        )
+    upgraded = {**metadata, "schema_version": SCHEMA_VERSION, "entries": upgraded_entries}
+    validate_file_metadata(upgraded, after_text=_normalize_text(after_text), rel_path=rel_path, gamever=gamever)
+    return upgraded
+
+
+def upgrade_metadata_tree_v1(root, *, gamever):
+    """Upgrade every v1 companion below one versioned gamedata directory."""
+    root = Path(root)
+    pending = []
+    for metadata_path in sorted(root.rglob("*.metadata.json")):
+        payload_path = Path(str(metadata_path)[: -len(".metadata.json")])
+        rel_path = payload_path.relative_to(root).as_posix()
+        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+        if metadata.get("gamever") != str(gamever) or metadata.get("file") != rel_path:
+            raise ValueError(f"{metadata_path}: companion identity does not match payload")
+        after_text = payload_path.read_text(encoding="utf-8")
+        pending.append((metadata_path, upgrade_file_metadata_v1(metadata, after_text=after_text)))
+
+    for metadata_path, upgraded_metadata in pending:
+        _atomic_write_json(metadata_path, upgraded_metadata)
+    return [metadata_path for metadata_path, _metadata in pending]
 
 
 def _atomic_write_json(path, data):

@@ -1,10 +1,9 @@
-import { createHash } from 'node:crypto'
 import { readFile, readdir, stat } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 import type { Plugin } from 'vite'
 import { parse } from 'yaml'
+import { compareGameVersions, GAME_VERSION_PATTERN, isObject, sendBytes, sendJson, sha256Bytes } from './staticAssetPluginUtils'
 
-const GAME_VERSION_PATTERN = /^\d{4,10}[a-z]?$/
 const SNAPSHOT_FILE_PATTERN = /^(\d{4,10}[a-z]?)\.yaml$/
 const SYMBOL_PATH_PATTERN = /^([^/]+)\/([^/]+)\.(windows|linux)\.yaml$/
 
@@ -135,10 +134,6 @@ export function attachAliasesToDataset(dataset: GameSymbolDataset, aliasIndex: C
     return { ...record, aliases }
   })
   return changed ? { ...dataset, records } : dataset
-}
-
-function isObject(value: unknown): value is JsonObject {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 function requiredString(value: unknown, field: string, source: string): string {
@@ -283,18 +278,9 @@ export function normalizeGameSymbolSnapshot(raw: unknown, expectedGameVersion: s
   }
 }
 
-function compareGameVersions(left: string, right: string): number {
-  const leftMatch = /^(\d+)([a-z]?)$/.exec(left)
-  const rightMatch = /^(\d+)([a-z]?)$/.exec(right)
-  if (!leftMatch || !rightMatch) return right.localeCompare(left)
-  const numberDifference = Number(rightMatch[1]) - Number(leftMatch[1])
-  if (numberDifference !== 0) return numberDifference
-  return rightMatch[2].localeCompare(leftMatch[2])
-}
-
 export function encodeGameSymbolAsset(dataset: GameSymbolDataset): EncodedGameSymbolAsset {
   const bytes = Buffer.from(JSON.stringify(dataset), 'utf8')
-  const sha256 = createHash('sha256').update(bytes).digest('hex')
+  const sha256 = sha256Bytes(bytes)
   return {
     dataset,
     bytes,
@@ -380,18 +366,6 @@ export function gameSymbolsPlugin(symbolsDirectory: string): Plugin {
 
   async function loadAllAssets(): Promise<EncodedGameSymbolAsset[]> {
     return (await loadAll()).map(encodeGameSymbolAsset)
-  }
-
-  function sendBytes(response: import('node:http').ServerResponse, bytes: Uint8Array): void {
-    response.statusCode = 200
-    response.setHeader('Content-Type', 'application/json; charset=utf-8')
-    response.setHeader('Cache-Control', 'no-cache')
-    response.setHeader('Content-Length', bytes.byteLength)
-    response.end(bytes)
-  }
-
-  function sendJson(response: import('node:http').ServerResponse, value: unknown): void {
-    sendBytes(response, Buffer.from(JSON.stringify(value), 'utf8'))
   }
 
   return {
