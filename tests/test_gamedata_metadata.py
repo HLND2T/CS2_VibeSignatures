@@ -262,17 +262,19 @@ class TestMetadataV2Upgrade(unittest.TestCase):
             "gamever": "1",
             "file": "fixture/out.json",
             "summary": {"total": 1, "covered": 1, "updated": 1},
-            "entries": [{
-                "name": "Sym",
-                "covered": True,
-                "covered_lines": [1],
-                "updated": True,
-                "changes": [{"path": ["Sym"], "before": 1, "after": 2, "line": 2}],
-            }],
+            "entries": [
+                {
+                    "name": "Sym",
+                    "covered": True,
+                    "covered_lines": [1],
+                    "updated": True,
+                    "changes": [{"path": ["Sym"], "before": 1, "after": 2, "line": 2}],
+                }
+            ],
         }
 
         with self.assertRaisesRegex(ValueError, "line is not covered"):
-            validate_file_metadata(metadata, after_text="{\n  \"Sym\": 2\n}\n", rel_path="fixture/out.json", gamever="1")
+            validate_file_metadata(metadata, after_text='{\n  "Sym": 2\n}\n', rel_path="fixture/out.json", gamever="1")
 
 
 class TestWriteFileMetadata(unittest.TestCase):
