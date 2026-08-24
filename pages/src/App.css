@@ -1,6 +1,7 @@
 .app-layout { min-height: 100vh; background: transparent; }
-.app-header { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; justify-content: space-between; gap: 24px; padding-inline: clamp(16px, 4vw, 48px); border-bottom: 1px solid var(--panel-border); background: rgba(8, 13, 24, 0.88); backdrop-filter: blur(16px); }
-.app-brand { display: flex; align-items: center; gap: 10px; color: #f8fafc; font-size: 17px; }
+.app-header { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; justify-content: space-between; gap: 24px; padding-inline: clamp(16px, 4vw, 48px); border-bottom: 1px solid var(--panel-border); background: var(--header-bg); backdrop-filter: blur(16px); }
+.app-brand { display: flex; align-items: center; gap: 10px; color: var(--brand-color); font-size: 17px; }
+.app-brand .ant-typography { color: inherit; }
 .app-nav { align-self: stretch; margin-right: auto; }
 .app-nav .ant-tabs-nav { height: 100%; margin: 0; }
 .app-nav .ant-tabs-content-holder { display: none; }
@@ -19,7 +20,7 @@
 .table-card .ant-card-body { padding: 0; }
 .load-more { padding: 18px; text-align: center; border-top: 1px solid var(--panel-border); }
 .connection-wrap { min-height: calc(100vh - 160px); display: grid; place-items: center; }
-.connection-card { width: min(680px, 100%); border-color: rgba(59, 130, 246, 0.3); background: linear-gradient(145deg, rgba(17, 24, 39, 0.96), rgba(11, 18, 32, 0.96)); box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35); }
+.connection-card { width: min(680px, 100%); border-color: var(--connection-card-border); background: var(--connection-card-bg); box-shadow: var(--connection-card-shadow); }
 .settings-help { margin-top: 20px; }
 .page-spinner { min-height: 60vh; display: grid; place-items: center; }
 .run-header-grid { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 32px; align-items: center; }
@@ -27,18 +28,18 @@
 .run-progress { display: flex; align-items: center; gap: 18px; max-width: 620px; }
 .run-error { margin-top: 18px; }
 .view-card .ant-card-body { padding-top: 8px; }
-.graph-canvas { position: relative; width: 100%; height: min(68vh, 760px); min-height: 520px; overflow: hidden; border: 1px solid var(--panel-border); border-radius: 10px; background: #0b1220; }
+.graph-canvas { position: relative; width: 100%; height: min(68vh, 760px); min-height: 520px; overflow: hidden; border: 1px solid var(--panel-border); border-radius: 10px; background: var(--graph-canvas-bg); }
 .graph-loading { position: absolute; top: 16px; right: 16px; z-index: 8; }
 .flow-node-label { display: flex; flex-direction: column; gap: 4px; text-align: left; overflow: hidden; }
-.flow-node-label strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #f8fafc; }
-.flow-node-label span { color: #a8b4c7; font-size: 12px; }
-.flow-node-description { display: -webkit-box; margin: 0; overflow: hidden; color: #dbeafe; font-size: 11px; line-height: 1.35; white-space: pre-wrap; overflow-wrap: anywhere; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
-.flow-node-label small { color: #60a5fa; font-size: 11px; }
+.flow-node-label strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--graph-node-fg); }
+.flow-node-label span { color: var(--graph-node-muted); font-size: 12px; }
+.flow-node-description { display: -webkit-box; margin: 0; overflow: hidden; color: var(--graph-node-description); font-size: 11px; line-height: 1.35; white-space: pre-wrap; overflow-wrap: anywhere; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.flow-node-label small { color: var(--graph-node-accent); font-size: 11px; }
 .react-flow__node { border-radius: 9px; }
 .flow-node-running { animation: flow-running 2.2s ease-in-out infinite; }
-.react-flow__controls, .react-flow__minimap { overflow: hidden; border: 1px solid var(--panel-border); border-radius: 8px; background: #111827; }
-.react-flow__controls-button { color: #dbeafe; background: #111827; border-bottom-color: var(--panel-border); }
-.json-block, .warning-block { max-height: 260px; margin: 0; padding: 12px; overflow: auto; border: 1px solid var(--panel-border); border-radius: 8px; color: #cbd5e1; background: #080d18; font: 12px/1.55 "Cascadia Code", Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+.react-flow__controls, .react-flow__minimap { overflow: hidden; border: 1px solid var(--panel-border); border-radius: 8px; background: var(--graph-controls-bg); }
+.react-flow__controls-button { color: var(--graph-controls-fg); background: var(--graph-controls-bg); border-bottom-color: var(--panel-border); }
+.json-block, .warning-block { max-height: 260px; margin: 0; padding: 12px; overflow: auto; border: 1px solid var(--panel-border); border-radius: 8px; color: var(--code-fg); background: var(--code-bg); font: 12px/1.55 "Cascadia Code", Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
 .task-description { margin-bottom: 0 !important; white-space: pre-wrap; overflow-wrap: anywhere; }
 .status-running { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.55); animation: status-pulse 2s infinite; }
 .symbol-browser-grid, .gamedata-browser-grid { display: grid; grid-template-columns: minmax(320px, 2fr) minmax(0, 3fr); gap: 20px; align-items: start; }
@@ -55,16 +56,16 @@
 .gamedata-viewer-card .ant-card-body { padding: 0; }
 .gamedata-viewer { height: 680px; min-width: 0; overflow: hidden; }
 .gamedata-inline-alert { margin: 12px; }
-.gamedata-diff-legend { display: flex; gap: 18px; align-items: center; padding: 9px 14px; border-bottom: 1px solid var(--panel-border); color: #94a3b8; font-size: 12px; }
+.gamedata-diff-legend { display: flex; gap: 18px; align-items: center; padding: 9px 14px; border-bottom: 1px solid var(--panel-border); color: var(--legend-fg); font-size: 12px; }
 .gamedata-diff-legend span { display: inline-flex; gap: 7px; align-items: center; }
 .gamedata-diff-legend i { width: 12px; height: 12px; border-radius: 3px; }
 .gamedata-covered-swatch { background: rgba(37, 99, 235, 0.55); }
 .gamedata-updated-swatch { background: rgba(245, 158, 11, 0.65); }
 .cm-line.gamedata-line-covered { background: rgba(37, 99, 235, 0.16); box-shadow: inset 3px 0 #3b82f6; }
 .cm-line.gamedata-line-updated { background: rgba(245, 158, 11, 0.2); box-shadow: inset 3px 0 #f59e0b; }
-.cm-tooltip .gamedata-diff-tooltip { width: min(560px, 80vw); max-height: 320px; padding: 10px 12px; overflow: auto; color: #dbeafe; background: #111827; border: 1px solid rgba(148, 163, 184, 0.3); border-radius: 8px; box-shadow: 0 14px 32px rgba(0, 0, 0, 0.38); font: 12px/1.5 "Cascadia Code", Consolas, monospace; }
+.cm-tooltip .gamedata-diff-tooltip { width: min(560px, 80vw); max-height: 320px; padding: 10px 12px; overflow: auto; color: var(--tooltip-fg); background: var(--tooltip-bg); border: 1px solid var(--tooltip-border); border-radius: 8px; box-shadow: var(--tooltip-shadow); font: 12px/1.5 "Cascadia Code", Consolas, monospace; }
 .gamedata-diff-change + .gamedata-diff-change { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--panel-border); }
-.gamedata-diff-change strong { display: block; margin-bottom: 4px; color: #f8fafc; overflow-wrap: anywhere; }
+.gamedata-diff-change strong { display: block; margin-bottom: 4px; color: var(--heading-fg); overflow-wrap: anywhere; }
 .gamedata-diff-before, .gamedata-diff-after { white-space: pre-wrap; overflow-wrap: anywhere; }
 .gamedata-diff-before { color: #fca5a5; }
 .gamedata-diff-after { color: #86efac; }
@@ -98,7 +99,7 @@
 
 @media (max-width: 600px) {
   .app-brand .ant-typography { display: none; }
-  .api-summary .ant-btn { font-size: 0; }
+  .api-summary .ant-btn:not(.theme-toggle) { font-size: 0; }
   .api-summary .ant-btn .anticon { margin-inline-end: 0; font-size: 14px; }
   .page-title-row { align-items: stretch; flex-direction: column; }
   .symbol-version-controls { width: 100%; align-items: stretch; justify-content: flex-start; flex-direction: column; }

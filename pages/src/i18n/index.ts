@@ -10,6 +10,7 @@ const resources = {
   en: {
     translation: {
       language: { selector: 'Language', english: 'English', simplifiedChinese: 'Simplified Chinese', traditionalChinese: 'Traditional Chinese' },
+      theme: { toggle: 'Toggle color theme', switchToLight: 'Switch to light mode', switchToDark: 'Switch to dark mode' },
       common: { notAvailable: '—' },
       errors: { connectionFailed: 'Connection failed', invalidApiAddress: 'Invalid API address', apiHttpOnly: 'The API address only supports HTTP or HTTPS', apiAddressParts: 'The API address cannot include credentials, query parameters, or a fragment', requestFailed: 'Request failed', cannotConnectApi: 'Unable to connect to the API' },
       app: { pageTitle: 'CS2 VibeSignatures Process Dashboard', apiSettings: 'API settings', loadingPage: 'Loading page…' },
@@ -48,6 +49,7 @@ const resources = {
   'zh-CN': {
     translation: {
       language: { selector: '语言', english: 'English', simplifiedChinese: '简体中文', traditionalChinese: '繁體中文' },
+      theme: { toggle: '切换颜色主题', switchToLight: '切换到浅色模式', switchToDark: '切换到深色模式' },
       common: { notAvailable: '—' },
       errors: { connectionFailed: '连接失败', invalidApiAddress: 'API 地址无效', apiHttpOnly: 'API 地址只支持 HTTP 或 HTTPS', apiAddressParts: 'API 地址不能包含账号、密码、查询参数或锚点', requestFailed: '请求失败', cannotConnectApi: '无法连接 API' },
       app: { pageTitle: 'CS2 VibeSignatures 流程面板', apiSettings: 'API 设置', loadingPage: '正在加载页面…' },
@@ -86,6 +88,7 @@ const resources = {
   'zh-TW': {
     translation: {
       language: { selector: '語言', english: 'English', simplifiedChinese: '簡體中文', traditionalChinese: '繁體中文' },
+      theme: { toggle: '切換顏色主題', switchToLight: '切換到淺色模式', switchToDark: '切換到深色模式' },
       common: { notAvailable: '—' },
       errors: { connectionFailed: '連線失敗', invalidApiAddress: 'API 位址無效', apiHttpOnly: 'API 位址僅支援 HTTP 或 HTTPS', apiAddressParts: 'API 位址不能包含帳號、密碼、查詢參數或錨點', requestFailed: '請求失敗', cannotConnectApi: '無法連線至 API' },
       app: { pageTitle: 'CS2 VibeSignatures 流程儀表板', apiSettings: 'API 設定', loadingPage: '正在載入頁面…' },
