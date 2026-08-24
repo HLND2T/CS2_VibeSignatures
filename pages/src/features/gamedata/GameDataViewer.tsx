@@ -2,6 +2,7 @@ import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language'
 import { EditorState, type Extension } from '@codemirror/state'
 import { Decoration, EditorView, hoverTooltip, lineNumbers, type DecorationSet } from '@codemirror/view'
 import { useEffect, useMemo, useRef } from 'react'
+import { useTheme } from '../../theme/themeContext'
 import { buildGameDataDiffLineModel, formatChangePath, formatChangeValue } from './diffModel'
 import { gameDataLanguageExtension } from './languages'
 import type { GameDataLanguage, GameDataMetadata } from './types'
@@ -61,6 +62,7 @@ function tooltipExtension(model: ReturnType<typeof buildGameDataDiffLineModel>):
 
 export function GameDataViewer({ content, language, metadata, diffEnabled, ariaLabel }: Props) {
   const host = useRef<HTMLDivElement>(null)
+  const { theme } = useTheme()
   const model = useMemo(
     () => buildGameDataDiffLineModel(diffEnabled ? metadata : undefined),
     [diffEnabled, metadata],
@@ -75,14 +77,14 @@ export function GameDataViewer({ content, language, metadata, diffEnabled, ariaL
       gameDataLanguageExtension(language),
       syntaxHighlighting(defaultHighlightStyle),
       EditorView.theme({
-        '&': { height: '100%', backgroundColor: '#080d18', color: '#dbeafe' },
+        '&': { height: '100%', backgroundColor: 'var(--editor-bg)', color: 'var(--editor-fg)' },
         '.cm-scroller': { overflow: 'auto', fontFamily: '"Cascadia Code", Consolas, monospace', fontSize: '12px' },
         '.cm-content': { minWidth: 'max-content', padding: '12px 0' },
         '.cm-line': { padding: '0 14px' },
-        '.cm-gutters': { backgroundColor: '#0b1220', color: '#64748b', borderRight: '1px solid rgba(148, 163, 184, 0.16)' },
+        '.cm-gutters': { backgroundColor: 'var(--editor-gutter-bg)', color: 'var(--editor-gutter-fg)', borderRight: '1px solid var(--panel-border)' },
         '.cm-activeLineGutter': { backgroundColor: 'transparent' },
         '&.cm-focused': { outline: 'none' },
-      }, { dark: true }),
+      }, { dark: theme === 'dark' }),
     ]
     const state = EditorState.create({ doc: content, extensions: baseExtensions })
     const extensions: Extension[] = [
@@ -95,7 +97,7 @@ export function GameDataViewer({ content, language, metadata, diffEnabled, ariaL
       parent: host.current,
     })
     return () => view.destroy()
-  }, [content, language, model])
+  }, [content, language, model, theme])
 
   return <div ref={host} className="gamedata-viewer" role="region" aria-label={ariaLabel} />
 }

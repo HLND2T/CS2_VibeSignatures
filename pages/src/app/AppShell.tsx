@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { ApiSettingsDrawer } from '../components/ApiSettingsDrawer'
 import { ConnectionGate } from '../components/ConnectionGate'
 import { APP_LANGUAGES, changeLanguage, resolveLanguage, type AppLanguage } from '../i18n'
+import { ThemeToggle } from '../theme/ThemeToggle'
 import { useApiConfig } from './apiContext'
 
 const { Header, Content } = Layout
@@ -69,6 +70,7 @@ export function AppShell() {
             }))}
             style={{ width: 158 }}
           />
+          <ThemeToggle />
         </Space>
       </Header>
       <Content className="app-content">

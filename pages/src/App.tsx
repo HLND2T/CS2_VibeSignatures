@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next'
 import { ApiProvider } from './app/ApiProvider'
 import { AppShell } from './app/AppShell'
 import { resolveLanguage } from './i18n'
+import { useTheme } from './theme/themeContext'
 import './App.css'
 
 const queryClient = new QueryClient({
@@ -20,12 +21,17 @@ const ANT_DESIGN_LOCALES = { en: enUS, 'zh-CN': zhCN, 'zh-TW': zhTW }
 
 export default function App() {
   const { i18n } = useTranslation()
+  const { theme: colorTheme } = useTheme()
   return (
     <ConfigProvider
       locale={ANT_DESIGN_LOCALES[resolveLanguage(i18n.resolvedLanguage)]}
       theme={{
-        algorithm: theme.darkAlgorithm,
-        token: { colorPrimary: '#3b82f6', borderRadius: 8, colorBgBase: '#080d18' },
+        algorithm: colorTheme === 'dark' ? theme.darkAlgorithm : theme.defaultAlgorithm,
+        token: {
+          colorPrimary: '#3b82f6',
+          borderRadius: 8,
+          colorBgBase: colorTheme === 'dark' ? '#080d18' : '#f3f6fb',
+        },
       }}
     >
       <AntApp>

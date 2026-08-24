@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Background, Controls, MarkerType, MiniMap, ReactFlow, type Edge, type Node } from '@xyflow/react'
 import { useTranslation } from 'react-i18next'
 import { statusLabel } from '../components/status'
+import { useTheme } from '../theme/themeContext'
 import { layoutGraph, type NodePosition } from './layout'
 import type { VisualEdge, VisualGraph, VisualNode } from './model'
 
@@ -46,7 +47,7 @@ function flowNode(node: VisualNode, position: NodePosition | undefined, selected
     data: { label: nodeLabel(node, t) },
     selected: node.id === selectedId,
     className: node.status === 'running' ? 'flow-node-running' : undefined,
-    style: { border: `2px solid ${color}`, borderColor: color, background: '#111827', color: '#f8fafc', width: 220, minHeight: node.description ? 112 : 76, opacity: selectedId && !related.has(node.id) ? 0.3 : 1, boxShadow: node.id === selectedId ? `0 0 0 3px ${color}66` : undefined },
+    style: { border: `2px solid ${color}`, borderColor: color, background: 'var(--graph-node-bg)', color: 'var(--graph-node-fg)', width: 220, minHeight: node.description ? 112 : 76, opacity: selectedId && !related.has(node.id) ? 0.3 : 1, boxShadow: node.id === selectedId ? `0 0 0 3px ${color}66` : undefined },
   }
 }
 
@@ -74,6 +75,7 @@ export function GraphCanvas({ graph, selectedId, onSelect, onToggleExpand }: Pro
   const [positions, setPositions] = useState<Record<string, NodePosition>>({})
   const [loading, setLoading] = useState(false)
   const { t } = useTranslation()
+  const { theme } = useTheme()
   const topologyKey = useMemo(() => JSON.stringify({ n: graph.nodes.map((node) => node.id), e: graph.edges.filter((edge) => edge.layout).map((edge) => [edge.source, edge.target]) }), [graph])
 
   useEffect(() => {
@@ -101,6 +103,7 @@ export function GraphCanvas({ graph, selectedId, onSelect, onToggleExpand }: Pro
       <ReactFlow
         nodes={nodes}
         edges={edges}
+        colorMode={theme}
         fitView
         minZoom={0.1}
         maxZoom={1.8}
@@ -109,7 +112,7 @@ export function GraphCanvas({ graph, selectedId, onSelect, onToggleExpand }: Pro
       >
         <MiniMap pannable zoomable nodeColor={(node) => String(node.style?.borderColor || '#64748b')} />
         <Controls />
-        <Background gap={20} color="#273449" />
+        <Background gap={20} color="var(--graph-grid)" />
       </ReactFlow>
     </div>
   )

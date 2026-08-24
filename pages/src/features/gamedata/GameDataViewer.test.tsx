@@ -1,5 +1,6 @@
 import { render, waitFor } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
+import { ThemeProvider } from '../../theme/ThemeProvider'
 import { GameDataViewer } from './GameDataViewer'
 import type { GameDataMetadata } from './types'
 
@@ -23,13 +24,15 @@ const metadata: GameDataMetadata = {
 describe('GameDataViewer', () => {
   it('renders a non-editable CodeMirror view with covered and updated line decorations', async () => {
     const { container, getByRole } = render(
-      <GameDataViewer
-        content={'{\n  "Covered": 1,\n  "Updated": 2\n}\n'}
-        language="jsonc"
-        metadata={metadata}
-        diffEnabled
-        ariaLabel="viewer"
-      />,
+      <ThemeProvider>
+        <GameDataViewer
+          content={'{\n  "Covered": 1,\n  "Updated": 2\n}\n'}
+          language="jsonc"
+          metadata={metadata}
+          diffEnabled
+          ariaLabel="viewer"
+        />
+      </ThemeProvider>,
     )
 
     expect(getByRole('region', { name: 'viewer' })).toBeInTheDocument()
