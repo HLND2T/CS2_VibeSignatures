@@ -38,7 +38,7 @@ const resources = {
       },
       gamedata: {
         title: 'Game Data', subtitle: 'Browse generated plugin gamedata by game version and inspect our upstream changes.', gameVersion: 'Game version', versionMetadata: '{{count}} files · {{metadata}} with diff metadata',
-        treeTitle: 'Plugin files', viewerTitle: 'Gamedata viewer', viewDiff: 'View diff', coveredCount: '{{covered}} / {{total}} covered', updatedCount: '{{updated}} updated',
+        treeTitle: 'Plugin files', viewerTitle: 'Gamedata viewer', viewDiff: 'View diff', download: 'Download', coveredCount: '{{covered}} / {{total}} covered', updatedCount: '{{updated}} updated',
         coveredLegend: 'Covered by our snapshot', updatedLegend: 'Updated from upstream', noMetadata: 'This version or file has no schema-v2 diff metadata.', noFiles: 'No gamedata files in this version.',
         loading: 'Loading gamedata…', indexError: 'Unable to load the gamedata version index', fileError: 'Unable to load this gamedata file', metadataError: 'Unable to load diff metadata',
         unanchoredChanges: '{{count}} deleted changes have no line in the final file.', viewerAria: 'Read-only gamedata viewer for {{file}}',
@@ -76,7 +76,7 @@ const resources = {
       },
       gamedata: {
         title: '游戏数据', subtitle: '按游戏版本浏览各插件的 gamedata，并查看我们相对上游所做的修改。', gameVersion: '游戏版本', versionMetadata: '{{count}} 个文件 · {{metadata}} 个带 Diff 元数据',
-        treeTitle: '插件文件', viewerTitle: 'Gamedata 查看器', viewDiff: '查看 Diff', coveredCount: '覆盖 {{covered}} / {{total}}', updatedCount: '更新 {{updated}}',
+        treeTitle: '插件文件', viewerTitle: 'Gamedata 查看器', viewDiff: '查看 Diff', download: '下载', coveredCount: '覆盖 {{covered}} / {{total}}', updatedCount: '更新 {{updated}}',
         coveredLegend: '由我们的快照覆盖', updatedLegend: '相对上游已更新', noMetadata: '当前版本或文件没有 schema v2 Diff 元数据。', noFiles: '当前版本没有 gamedata 文件。',
         loading: '正在加载游戏数据…', indexError: '无法加载游戏数据版本索引', fileError: '无法加载当前 gamedata 文件', metadataError: '无法加载 Diff 元数据',
         unanchoredChanges: '{{count}} 个删除项在最终文件中没有可高亮行。', viewerAria: '{{file}} 的只读 gamedata 查看器',
@@ -114,7 +114,7 @@ const resources = {
       },
       gamedata: {
         title: '遊戲資料', subtitle: '依遊戲版本瀏覽各外掛的 gamedata，並查看我們相對上游所做的修改。', gameVersion: '遊戲版本', versionMetadata: '{{count}} 個檔案 · {{metadata}} 個含 Diff 中繼資料',
-        treeTitle: '外掛檔案', viewerTitle: 'Gamedata 檢視器', viewDiff: '查看 Diff', coveredCount: '覆蓋 {{covered}} / {{total}}', updatedCount: '更新 {{updated}}',
+        treeTitle: '外掛檔案', viewerTitle: 'Gamedata 檢視器', viewDiff: '查看 Diff', download: '下載', coveredCount: '覆蓋 {{covered}} / {{total}}', updatedCount: '更新 {{updated}}',
         coveredLegend: '由我們的快照覆蓋', updatedLegend: '相對上游已更新', noMetadata: '目前版本或檔案沒有 schema v2 Diff 中繼資料。', noFiles: '目前版本沒有 gamedata 檔案。',
         loading: '正在載入遊戲資料…', indexError: '無法載入遊戲資料版本索引', fileError: '無法載入目前 gamedata 檔案', metadataError: '無法載入 Diff 中繼資料',
         unanchoredChanges: '{{count}} 個刪除項目在最終檔案中沒有可標示行。', viewerAria: '{{file}} 的唯讀 gamedata 檢視器',

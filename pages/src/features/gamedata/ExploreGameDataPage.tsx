@@ -1,5 +1,6 @@
+import { DownloadOutlined } from '@ant-design/icons'
 import { useQuery } from '@tanstack/react-query'
-import { Alert, Card, Checkbox, Select, Space, Spin, Tag, Tooltip, Typography } from 'antd'
+import { Alert, Button, Card, Checkbox, Select, Space, Spin, Tag, Tooltip, Typography } from 'antd'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { getGameDataFile, getGameDataIndex, getGameDataMetadata } from './data'
@@ -52,6 +53,20 @@ export function ExploreGameDataPage() {
     if (file.metadata?.schemaVersion !== 2) setDiffEnabled(false)
   }
 
+  function downloadSelectedFile() {
+    if (!selectedFile || !fileQuery.data) return
+    const type = selectedFile.language === 'json' || selectedFile.language === 'jsonc' ? 'application/json' : 'text/plain'
+    const blob = new Blob([fileQuery.data], { type })
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = selectedFile.fileName
+    document.body.appendChild(anchor)
+    anchor.click()
+    anchor.remove()
+    URL.revokeObjectURL(url)
+  }
+
   const diffControl = (
     <Checkbox
       checked={Boolean(diffEnabled && canDiff)}
@@ -101,6 +116,14 @@ export function ExploreGameDataPage() {
             className="gamedata-viewer-card"
             extra={selectedFile && (
               <Space wrap size="small">
+                <Button
+                  size="small"
+                  icon={<DownloadOutlined />}
+                  disabled={!fileQuery.data}
+                  onClick={downloadSelectedFile}
+                >
+                  {t('gamedata.download')}
+                </Button>
                 {selectedFile.metadata && (
                   <>
                     <Tag color="blue">{t('gamedata.coveredCount', {
