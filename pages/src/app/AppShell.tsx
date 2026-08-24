@@ -12,6 +12,7 @@ const { Header, Content } = Layout
 const RunListPage = lazy(() => import('../features/runs/RunListPage').then((module) => ({ default: module.RunListPage })))
 const RunDetailPage = lazy(() => import('../features/run-detail/RunDetailPage').then((module) => ({ default: module.RunDetailPage })))
 const ExploreSymbolsPage = lazy(() => import('../features/symbols/ExploreSymbolsPage').then((module) => ({ default: module.ExploreSymbolsPage })))
+const ExploreGameDataPage = lazy(() => import('../features/gamedata/ExploreGameDataPage').then((module) => ({ default: module.ExploreGameDataPage })))
 
 function ApiGate({ connected, onSettings, children }: { connected: boolean; onSettings(): void; children: ReactNode }) {
   const { t } = useTranslation()
@@ -19,7 +20,7 @@ function ApiGate({ connected, onSettings, children }: { connected: boolean; onSe
   return <Suspense fallback={<div className="page-spinner">{t('app.loadingPage')}</div>}>{children}</Suspense>
 }
 
-type AppTab = 'symbols' | 'runs'
+type AppTab = 'symbols' | 'gamedata' | 'runs'
 
 export function AppShell() {
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -30,7 +31,7 @@ export function AppShell() {
   const selectedLanguage = resolveLanguage(i18n.resolvedLanguage)
 
   function selectTab(key: string) {
-    setActiveTab(key === 'symbols' ? 'symbols' : 'runs')
+    setActiveTab(key === 'symbols' || key === 'gamedata' ? key : 'runs')
   }
 
   return (
@@ -46,6 +47,7 @@ export function AppShell() {
           onChange={selectTab}
           items={[
             { key: 'symbols', label: t('navigation.symbols') },
+            { key: 'gamedata', label: t('navigation.gamedata') },
             { key: 'runs', label: t('navigation.runs') },
           ]}
         />
@@ -73,6 +75,10 @@ export function AppShell() {
         {activeTab === 'symbols' ? (
           <Suspense fallback={<div className="page-spinner">{t('app.loadingPage')}</div>}>
             <ExploreSymbolsPage />
+          </Suspense>
+        ) : activeTab === 'gamedata' ? (
+          <Suspense fallback={<div className="page-spinner">{t('app.loadingPage')}</div>}>
+            <ExploreGameDataPage />
           </Suspense>
         ) : (
           <Routes>

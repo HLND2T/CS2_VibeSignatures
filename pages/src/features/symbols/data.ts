@@ -1,4 +1,5 @@
 import type { GameSymbolDataset, GameSymbolIndex, GameSymbolIndexVersion } from './types'
+import { decodeUtf8, fetchVerifiedBytes, requestJson } from '../../assets/integrity'
 
 const SYMBOL_ASSET_ROOT = `${import.meta.env.BASE_URL}gamesymbols/`
 const SHA256_PATTERN = /^[0-9a-f]{64}$/
@@ -8,12 +9,6 @@ const CRC64_PATTERN = /^[0-9a-f]{16}$/
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-async function requestJson<T>(url: string, signal?: AbortSignal): Promise<T> {
-  const response = await fetch(url, { signal, cache: 'no-cache' })
-  if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-  return response.json() as Promise<T>
 }
 
 function validateIndexVersion(value: unknown, index: number): asserts value is GameSymbolIndexVersion {
@@ -29,7 +24,7 @@ function validateIndexVersion(value: unknown, index: number): asserts value is G
 }
 
 export async function getGameSymbolIndex(signal?: AbortSignal): Promise<GameSymbolIndex> {
-  const value = await requestJson<unknown>(`${SYMBOL_ASSET_ROOT}index.json`, signal)
+  const value = await requestJson(`${SYMBOL_ASSET_ROOT}index.json`, signal)
   if (!isObject(value) || value.schemaVersion !== 4 || !Array.isArray(value.versions)) {
     throw new Error('Invalid game-symbol index schema; expected v4')
   }
@@ -58,26 +53,10 @@ function validateDatasetBinaries(value: unknown): void {
   }
 }
 
-async function sha256Hex(bytes: ArrayBuffer): Promise<string> {
-  const digest = await globalThis.crypto.subtle.digest('SHA-256', new Uint8Array(bytes))
-  return Array.from(new Uint8Array(digest), (value) => value.toString(16).padStart(2, '0')).join('')
-}
-
 export async function getGameSymbolDataset(version: GameSymbolIndexVersion, signal?: AbortSignal): Promise<GameSymbolDataset> {
   validateIndexVersion(version, 0)
-  const response = await fetch(`${SYMBOL_ASSET_ROOT}${version.url}`, { signal })
-  if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-
-  const bytes = await response.arrayBuffer()
-  if (bytes.byteLength !== version.size) {
-    throw new Error(`Game-symbol snapshot size mismatch: expected ${version.size}, received ${bytes.byteLength}`)
-  }
-  const actualSha256 = await sha256Hex(bytes)
-  if (actualSha256 !== version.sha256) {
-    throw new Error(`Game-symbol snapshot SHA-256 mismatch: expected ${version.sha256}, received ${actualSha256}`)
-  }
-
-  const value = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)) as unknown
+  const bytes = await fetchVerifiedBytes(`${SYMBOL_ASSET_ROOT}${version.url}`, version, signal)
+  const value = JSON.parse(decodeUtf8(bytes)) as unknown
   if (!isObject(value) || value.schemaVersion !== 3 || !isObject(value.source) || value.source.gameVersion !== version.gameVersion) {
     throw new Error(`Invalid game-symbol snapshot for ${version.gameVersion}`)
   }

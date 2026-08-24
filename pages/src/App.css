@@ -41,16 +41,33 @@
 .json-block, .warning-block { max-height: 260px; margin: 0; padding: 12px; overflow: auto; border: 1px solid var(--panel-border); border-radius: 8px; color: #cbd5e1; background: #080d18; font: 12px/1.55 "Cascadia Code", Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
 .task-description { margin-bottom: 0 !important; white-space: pre-wrap; overflow-wrap: anywhere; }
 .status-running { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.55); animation: status-pulse 2s infinite; }
-.symbol-browser-grid { display: grid; grid-template-columns: minmax(320px, 2fr) minmax(0, 3fr); gap: 20px; align-items: start; }
-.symbol-tree-card, .symbol-search-card { min-width: 0; overflow: hidden; }
-.symbol-tree-card .ant-card-body { height: 680px; overflow: auto; }
-.symbol-tree-card .ant-tree-title { overflow-wrap: anywhere; }
+.symbol-browser-grid, .gamedata-browser-grid { display: grid; grid-template-columns: minmax(320px, 2fr) minmax(0, 3fr); gap: 20px; align-items: start; }
+.symbol-tree-card, .symbol-search-card, .gamedata-tree-card, .gamedata-viewer-card { min-width: 0; overflow: hidden; }
+.symbol-tree-card .ant-card-body, .gamedata-tree-card .ant-card-body { height: 680px; overflow: auto; }
+.symbol-tree-card .ant-tree-title, .gamedata-tree-card .ant-tree-title { overflow-wrap: anywhere; }
 .symbol-search-card .ant-card-body { padding: 0; }
 .symbol-filter-row { padding: 20px 20px 12px; }
 .symbol-result-count { display: block; padding: 0 20px 14px; }
 .symbol-search-card .ant-table-wrapper { border-top: 1px solid var(--panel-border); }
 .symbol-payload-title { margin-top: 24px !important; }
 .symbol-payload { max-height: calc(100vh - 360px); }
+.gamedata-viewer-card .ant-card-head-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gamedata-viewer-card .ant-card-body { padding: 0; }
+.gamedata-viewer { height: 680px; min-width: 0; overflow: hidden; }
+.gamedata-inline-alert { margin: 12px; }
+.gamedata-diff-legend { display: flex; gap: 18px; align-items: center; padding: 9px 14px; border-bottom: 1px solid var(--panel-border); color: #94a3b8; font-size: 12px; }
+.gamedata-diff-legend span { display: inline-flex; gap: 7px; align-items: center; }
+.gamedata-diff-legend i { width: 12px; height: 12px; border-radius: 3px; }
+.gamedata-covered-swatch { background: rgba(37, 99, 235, 0.55); }
+.gamedata-updated-swatch { background: rgba(245, 158, 11, 0.65); }
+.cm-line.gamedata-line-covered { background: rgba(37, 99, 235, 0.16); box-shadow: inset 3px 0 #3b82f6; }
+.cm-line.gamedata-line-updated { background: rgba(245, 158, 11, 0.2); box-shadow: inset 3px 0 #f59e0b; }
+.cm-tooltip .gamedata-diff-tooltip { width: min(560px, 80vw); max-height: 320px; padding: 10px 12px; overflow: auto; color: #dbeafe; background: #111827; border: 1px solid rgba(148, 163, 184, 0.3); border-radius: 8px; box-shadow: 0 14px 32px rgba(0, 0, 0, 0.38); font: 12px/1.5 "Cascadia Code", Consolas, monospace; }
+.gamedata-diff-change + .gamedata-diff-change { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--panel-border); }
+.gamedata-diff-change strong { display: block; margin-bottom: 4px; color: #f8fafc; overflow-wrap: anywhere; }
+.gamedata-diff-before, .gamedata-diff-after { white-space: pre-wrap; overflow-wrap: anywhere; }
+.gamedata-diff-before { color: #fca5a5; }
+.gamedata-diff-after { color: #86efac; }
 
 @keyframes status-pulse {
   0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.45); }
@@ -74,8 +91,9 @@
   .run-header-grid { grid-template-columns: 1fr; }
   .run-progress { flex-wrap: wrap; }
   .graph-canvas { min-height: 460px; }
-  .symbol-browser-grid { grid-template-columns: 1fr; }
-  .symbol-tree-card .ant-card-body { height: 520px; }
+  .symbol-browser-grid, .gamedata-browser-grid { grid-template-columns: 1fr; }
+  .symbol-tree-card .ant-card-body, .gamedata-tree-card .ant-card-body { height: 520px; }
+  .gamedata-viewer { height: 580px; }
 }
 
 @media (max-width: 600px) {

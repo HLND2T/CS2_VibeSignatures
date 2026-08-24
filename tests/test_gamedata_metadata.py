@@ -7,7 +7,13 @@ from types import SimpleNamespace
 import vdf
 
 from gamedata_contract import expected_inventory_paths, metadata_companion_path
-from gamedata_metadata import compute_file_metadata, write_file_metadata
+from gamedata_metadata import (
+    compute_file_metadata,
+    upgrade_file_metadata_v1,
+    upgrade_metadata_tree_v1,
+    validate_file_metadata,
+    write_file_metadata,
+)
 
 
 def _by_name(meta):
@@ -80,6 +86,7 @@ class TestJsoncMetadata(unittest.TestCase):
 
         self.assertTrue(by_name["Changed"]["covered"])
         self.assertTrue(by_name["Changed"]["updated"])
+        self.assertEqual([2], by_name["Changed"]["covered_lines"])
         change = by_name["Changed"]["changes"][0]
         self.assertEqual(["Changed", "windows"], change["path"])
         self.assertEqual("AA", change["before"])
@@ -88,10 +95,12 @@ class TestJsoncMetadata(unittest.TestCase):
 
         self.assertTrue(by_name["Same"]["covered"])
         self.assertFalse(by_name["Same"]["updated"])
+        self.assertEqual([3], by_name["Same"]["covered_lines"])
         self.assertNotIn("changes", by_name["Same"])
 
         self.assertFalse(by_name["UpstreamOnly"]["covered"])
         self.assertFalse(by_name["UpstreamOnly"]["updated"])
+        self.assertEqual([], by_name["UpstreamOnly"]["covered_lines"])
 
     def test_line_number_matches_value_line(self) -> None:
         before = '{\n  "Sym": {\n    "windows": "OLD"\n  }\n}\n'
@@ -120,6 +129,7 @@ class TestJsoncMetadata(unittest.TestCase):
         )
         self.assertEqual({"total": 1, "covered": 1, "updated": 0}, meta["summary"])
         self.assertNotIn("changes", _by_name(meta)["Sym"])
+        self.assertEqual([1], _by_name(meta)["Sym"]["covered_lines"])
 
 
 class TestFlatTxtMetadata(unittest.TestCase):
@@ -138,6 +148,7 @@ class TestFlatTxtMetadata(unittest.TestCase):
         by_name = _by_name(meta)
         self.assertTrue(by_name["b"]["covered"])
         self.assertTrue(by_name["b"]["updated"])
+        self.assertEqual([2], by_name["b"]["covered_lines"])
         change = by_name["b"]["changes"][0]
         self.assertEqual(["b"], change["path"])
         self.assertEqual("2", change["before"])
@@ -172,6 +183,98 @@ class TestVdfMetadata(unittest.TestCase):
         self.assertEqual("NEW", change["after"])
         expected_line = next(i for i, line in enumerate(after.splitlines(), 1) if '"windows"' in line)
         self.assertEqual(expected_line, change["line"])
+        self.assertIn(expected_line, entry["covered_lines"])
+
+    def test_vdf_covered_lines_include_every_scalar_leaf(self) -> None:
+        payload = vdf.dumps(
+            {"Games": {"csgo": {"Signatures": {"Sym": {"library": "server", "windows": "AA", "linux": "BB"}}}}},
+            pretty=True,
+        )
+        meta = compute_file_metadata(
+            before_text=payload,
+            after_text=payload,
+            rel_path="fixture/gamedata.txt",
+            gamever="1",
+            yaml_data={"Sym": {"library": "server"}},
+            alias_to_name_map={},
+        )
+
+        expected = [
+            index
+            for index, line in enumerate(payload.splitlines(), 1)
+            if any(field in line for field in ('"library"', '"windows"', '"linux"'))
+        ]
+        self.assertEqual(expected, _by_name(meta)["Sym"]["covered_lines"])
+
+
+class TestMetadataV2Upgrade(unittest.TestCase):
+    def test_upgrade_preserves_v1_diff_and_adds_covered_lines(self) -> None:
+        after = '{\n  "Changed": {"windows": "NEW"},\n  "Same": {"windows": "KEEP"}\n}\n'
+        source = {
+            "schema_version": 1,
+            "gamever": "14176",
+            "file": "fixture/gamedata.jsonc",
+            "summary": {"total": 2, "covered": 2, "updated": 1},
+            "entries": [
+                {
+                    "name": "Changed",
+                    "covered": True,
+                    "updated": True,
+                    "changes": [{"path": ["Changed", "windows"], "before": "OLD", "after": "NEW", "line": 2}],
+                },
+                {"name": "Same", "covered": True, "updated": False},
+            ],
+        }
+
+        upgraded = upgrade_file_metadata_v1(source, after_text=after)
+
+        self.assertEqual(2, upgraded["schema_version"])
+        self.assertEqual([2], _by_name(upgraded)["Changed"]["covered_lines"])
+        self.assertEqual([3], _by_name(upgraded)["Same"]["covered_lines"])
+        self.assertEqual(source["entries"][0]["changes"], _by_name(upgraded)["Changed"]["changes"])
+
+    def test_tree_upgrade_validates_every_file_before_writing(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            valid_payload = root / "fixture" / "valid.json"
+            valid_payload.parent.mkdir(parents=True)
+            valid_payload.write_text('{"Sym": 1}\n', encoding="utf-8")
+            valid_metadata = {
+                "schema_version": 1,
+                "gamever": "14176",
+                "file": "fixture/valid.json",
+                "summary": {"total": 1, "covered": 1, "updated": 0},
+                "entries": [{"name": "Sym", "covered": True, "updated": False}],
+            }
+            valid_path = Path(str(valid_payload) + ".metadata.json")
+            valid_path.write_text(json.dumps(valid_metadata), encoding="utf-8")
+            invalid_path = root / "fixture" / "missing.json.metadata.json"
+            invalid_path.write_text(json.dumps({**valid_metadata, "file": "fixture/missing.json"}), encoding="utf-8")
+
+            with self.assertRaises(FileNotFoundError):
+                upgrade_metadata_tree_v1(root, gamever="14176")
+
+            self.assertEqual(1, json.loads(valid_path.read_text(encoding="utf-8"))["schema_version"])
+
+    def test_validator_rejects_updated_line_outside_coverage(self) -> None:
+        metadata = {
+            "schema_version": 2,
+            "gamever": "1",
+            "file": "fixture/out.json",
+            "summary": {"total": 1, "covered": 1, "updated": 1},
+            "entries": [
+                {
+                    "name": "Sym",
+                    "covered": True,
+                    "covered_lines": [1],
+                    "updated": True,
+                    "changes": [{"path": ["Sym"], "before": 1, "after": 2, "line": 2}],
+                }
+            ],
+        }
+
+        with self.assertRaisesRegex(ValueError, "line is not covered"):
+            validate_file_metadata(metadata, after_text='{\n  "Sym": 2\n}\n', rel_path="fixture/out.json", gamever="1")
 
 
 class TestWriteFileMetadata(unittest.TestCase):
@@ -189,7 +292,7 @@ class TestWriteFileMetadata(unittest.TestCase):
             )
             self.assertEqual("14170", result["gamever"])
             document = json.loads(metadata_path.read_text(encoding="utf-8"))
-            self.assertEqual(1, document["schema_version"])
+            self.assertEqual(2, document["schema_version"])
             self.assertEqual("fixture/out.json", document["file"])
             self.assertEqual(1, document["summary"]["updated"])
 
