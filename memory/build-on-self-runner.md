@@ -37,6 +37,9 @@ Preflight -> required reusable warm-cache producer -> consumer IDA identity chec
   regenerable `.binsync.json` sidecars before building the private inventory. Promotion therefore removes historical
   mutable analysis state instead of copying partial BinSync repositories into accepted bin.
 - Output PR paths remain exactly the requested snapshot, `gamedata/<GAMEVER>/**`, and release manifest.
+- The output-branch push and `gh pr create` use the protected `win64` environment's `HLND2T_GH_TOKEN`, so generated-output
+  `pull_request` runs are not parked at `action_required` by the `GITHUB_TOKEN` recursion guard. The token must be set on
+  the `checkout-source` step because `actions/checkout` writes a local `extraheader` that outranks `gh auth setup-git`.
 ## Callers
 - `repository_dispatch.types: [build-on-self-runner]` only for a provenance-verified merged `bump-download/<GAMEVER>` PR.
 - Machine-oriented `workflow_dispatch` for explicit human-authorized retries and republishes.

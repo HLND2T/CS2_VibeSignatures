@@ -12,6 +12,8 @@ from urllib.parse import urlparse
 
 
 ALLOWED_REPOSITORIES = {"HLND2T/CS2_VibeSignatures", "hzqst/CS2_VibeSignatures"}
+LEGACY_ACTIONS_BOT_LOGIN = "github-actions[bot]"
+TRUSTED_PR_AUTHOR_ASSOCIATIONS = {"OWNER", "MEMBER", "COLLABORATOR"}
 OUTPUT_BRANCH_RES = (
     re.compile(r"^gamesymbols/build/(?P<gamever>[0-9]{4,10}[a-z]?)/(?P<build_id>[0-9]+-[0-9]+)$"),
     re.compile(r"^gamesymbols/(?P<gamever>[0-9]{4,10}[a-z]?)/build-(?P<build_id>[0-9]+-[0-9]+)$"),
@@ -208,7 +210,8 @@ def _trusted_pr_identity(pull: dict, repository: str, gamever: str, build_id: st
     author = pull.get("user") or {}
     if pull.get("state") != "closed" or not pull.get("merged_at"):
         return None
-    if author.get("login") != "github-actions[bot]":
+    association = str(pull.get("author_association") or "").strip().upper()
+    if author.get("login") != LEGACY_ACTIONS_BOT_LOGIN and association not in TRUSTED_PR_AUTHOR_ASSOCIATIONS:
         return None
     if head_repo.get("full_name") != repository or base.get("ref") != "main":
         return None

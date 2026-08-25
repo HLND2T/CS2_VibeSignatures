@@ -41,6 +41,10 @@ merged output PR -> verify accepted Git + staged bin -> archive gamedata/<GAMEVE
   accepts only durable bin state; a later republish recreates sidecars from validated remotes and lets BinSync recover
   local repositories through `auto_clone`.
 - Release-workflow tree removal clears a Windows read-only attribute and retries only after `PermissionError`.
+- Generated-output PR author trust accepts the legacy `github-actions[bot]` login for already-open PRs and trusted
+  same-repository `OWNER` / `MEMBER` / `COLLABORATOR` associations for PAT-created PRs. `verify_output_pr` and
+  `verify_promotion` both take `author_association` and share `_require_trusted_pr_author`; the branch protocol,
+  manifest provenance, tracked-hash, and indexed-pending checks remain the substantive gates.
 
 ## Callers
 - Generated-output `pull_request.closed`.

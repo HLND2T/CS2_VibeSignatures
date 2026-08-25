@@ -57,3 +57,6 @@ or gamedata back to the PR head. A stable terminal job named `pr-validate` requi
 - Bump classification accepts the legacy `github-actions[bot]` author for already-open PRs and trusted same-repository
   `OWNER` / `MEMBER` / `COLLABORATOR` authors for PAT-created PRs, while still requiring the canonical branch and title
   prefixes.
+- Generated-output `gamesymbols/build/` PRs are excluded from every job here by the same author rule, because
+  [[build-on-self-runner]] now creates them with the `win64` environment's `HLND2T_GH_TOKEN`. Their required
+  `pr-validate` check comes from `validate-generated-output-pr.yml` instead.

@@ -191,8 +191,26 @@ class TestAbandonStagedRelease(unittest.TestCase):
         legacy_discovery = command.call_args_list[1].args[0]
         self.assertIn("head=HLND2T:gamesymbols/14168b/build-29568028525-1", legacy_discovery)
 
+    def test_pat_authored_merged_pr_is_discovered_through_its_trusted_association(self) -> None:
+        pat_authored = pull_request_payload(
+            user={"login": "release-pat-account"},
+            author_association="OWNER",
+        )
+        with patch.object(
+            abandon,
+            "run_command",
+            side_effect=[completed([], stdout=json.dumps([pat_authored])), completed([], stdout="[]")],
+        ):
+            identity = abandon.discover_pr_identity(Path("."), "HLND2T/CS2_VibeSignatures", "14168", "29686825445-1")
+        self.assertEqual(582, identity["pr_number"])
+        self.assertEqual("gamesymbols/build/14168/29686825445-1", identity["output_branch"])
+
     def test_pr_discovery_rejects_missing_untrusted_or_ambiguous_matches(self) -> None:
         untrusted = pull_request_payload(user={"login": "someone"})
+        untrusted_association = pull_request_payload(
+            user={"login": "someone"},
+            author_association="CONTRIBUTOR",
+        )
         malformed_legacy = pull_request_payload(
             head={
                 "ref": "gamesymbols/14168/build-29686825445-1/extra",
@@ -211,6 +229,7 @@ class TestAbandonStagedRelease(unittest.TestCase):
         cases = (
             (([], []), "no trusted merged"),
             (([untrusted], []), "no trusted merged"),
+            (([untrusted_association], []), "no trusted merged"),
             (([], [malformed_legacy]), "no trusted merged"),
             (([pull_request_payload()], [duplicate]), "multiple trusted merged"),
         )

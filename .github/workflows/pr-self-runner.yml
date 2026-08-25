@@ -15,7 +15,10 @@ jobs:
       (github.repository == 'HLND2T/CS2_VibeSignatures' ||
        github.repository == 'hzqst/CS2_VibeSignatures') &&
       github.event.pull_request.head.repo.full_name == github.repository &&
-      !(github.event.pull_request.user.login == 'github-actions[bot]' &&
+      !((github.event.pull_request.user.login == 'github-actions[bot]' ||
+         github.event.pull_request.author_association == 'OWNER' ||
+         github.event.pull_request.author_association == 'MEMBER' ||
+         github.event.pull_request.author_association == 'COLLABORATOR') &&
          startsWith(github.event.pull_request.head.ref, 'gamesymbols/build/') &&
          startsWith(github.event.pull_request.title, 'chore(gamesymbols): publish '))
     permissions:
@@ -675,7 +678,10 @@ jobs:
       (github.repository == 'HLND2T/CS2_VibeSignatures' ||
        github.repository == 'hzqst/CS2_VibeSignatures') &&
       github.event.pull_request.head.repo.full_name == github.repository &&
-      !(github.event.pull_request.user.login == 'github-actions[bot]' &&
+      !((github.event.pull_request.user.login == 'github-actions[bot]' ||
+         github.event.pull_request.author_association == 'OWNER' ||
+         github.event.pull_request.author_association == 'MEMBER' ||
+         github.event.pull_request.author_association == 'COLLABORATOR') &&
          startsWith(github.event.pull_request.head.ref, 'gamesymbols/build/') &&
          startsWith(github.event.pull_request.title, 'chore(gamesymbols): publish ')) &&
       needs.pr-preflight.result == 'success' &&
@@ -722,7 +728,10 @@ jobs:
       (github.repository == 'HLND2T/CS2_VibeSignatures' ||
        github.repository == 'hzqst/CS2_VibeSignatures') &&
       github.event.pull_request.head.repo.full_name == github.repository &&
-      !(github.event.pull_request.user.login == 'github-actions[bot]' &&
+      !((github.event.pull_request.user.login == 'github-actions[bot]' ||
+         github.event.pull_request.author_association == 'OWNER' ||
+         github.event.pull_request.author_association == 'MEMBER' ||
+         github.event.pull_request.author_association == 'COLLABORATOR') &&
          startsWith(github.event.pull_request.head.ref, 'gamesymbols/build/') &&
          startsWith(github.event.pull_request.title, 'chore(gamesymbols): publish '))
     runs-on: ubuntu-latest
@@ -755,7 +764,10 @@ jobs:
          github.event.pull_request.author_association == 'COLLABORATOR') &&
         startsWith(github.event.pull_request.head.ref, 'bump-download/') &&
         startsWith(github.event.pull_request.title, 'chore(download): Update manifest for ')) &&
-      !(github.event.pull_request.user.login == 'github-actions[bot]' &&
+      !((github.event.pull_request.user.login == 'github-actions[bot]' ||
+         github.event.pull_request.author_association == 'OWNER' ||
+         github.event.pull_request.author_association == 'MEMBER' ||
+         github.event.pull_request.author_association == 'COLLABORATOR') &&
         startsWith(github.event.pull_request.head.ref, 'gamesymbols/build/') &&
         startsWith(github.event.pull_request.title, 'chore(gamesymbols): publish '))
     permissions:
@@ -815,7 +827,10 @@ jobs:
          github.event.pull_request.author_association == 'COLLABORATOR') &&
         startsWith(github.event.pull_request.head.ref, 'bump-download/') &&
         startsWith(github.event.pull_request.title, 'chore(download): Update manifest for ')) &&
-      !(github.event.pull_request.user.login == 'github-actions[bot]' &&
+      !((github.event.pull_request.user.login == 'github-actions[bot]' ||
+         github.event.pull_request.author_association == 'OWNER' ||
+         github.event.pull_request.author_association == 'MEMBER' ||
+         github.event.pull_request.author_association == 'COLLABORATOR') &&
         startsWith(github.event.pull_request.head.ref, 'gamesymbols/build/') &&
         startsWith(github.event.pull_request.title, 'chore(gamesymbols): publish '))
     environment: win64-cleanup

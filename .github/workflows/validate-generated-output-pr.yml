@@ -11,7 +11,10 @@ jobs:
   validate:
     name: pr-validate
     if: >
-      github.event.pull_request.user.login == 'github-actions[bot]' &&
+      (github.event.pull_request.user.login == 'github-actions[bot]' ||
+       github.event.pull_request.author_association == 'OWNER' ||
+       github.event.pull_request.author_association == 'MEMBER' ||
+       github.event.pull_request.author_association == 'COLLABORATOR') &&
       github.event.pull_request.head.repo.full_name == github.repository &&
       startsWith(github.event.pull_request.head.ref, 'gamesymbols/build/')
     runs-on: ubuntu-latest
@@ -38,6 +41,7 @@ jobs:
         id: verify-output
         env:
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_AUTHOR_ASSOCIATION: ${{ github.event.pull_request.author_association }}
           PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
           PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
           PR_HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
@@ -48,5 +52,6 @@ jobs:
             --repo-root "$GITHUB_WORKSPACE" \
             --repository "${{ github.repository }}" \
             --head-repository "$PR_HEAD_REPOSITORY" \
-            --author "$PR_AUTHOR" --branch "$PR_HEAD_REF" \
+            --author "$PR_AUTHOR" --author-association "$PR_AUTHOR_ASSOCIATION" \
+            --branch "$PR_HEAD_REF" \
             --base-sha "$PR_BASE_SHA" --head-sha "$PR_HEAD_SHA"
