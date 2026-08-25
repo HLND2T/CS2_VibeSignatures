@@ -42,10 +42,12 @@ def _freeze_context_value(value):
 class GeneratorContext:
     game_version: str
     binaries: Mapping[str, Any]
+    game_version_name: str = ""
 
     def __post_init__(self):
         object.__setattr__(self, "game_version", str(self.game_version))
         object.__setattr__(self, "binaries", _freeze_context_value(self.binaries))
+        object.__setattr__(self, "game_version_name", str(self.game_version_name))
 
 
 @dataclass(frozen=True)

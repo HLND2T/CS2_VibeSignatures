@@ -95,12 +95,16 @@ class TestCS2FOWGamedata(unittest.TestCase):
                     "linux": {"size": 2001, "crc32": "0000000a"},
                 }
             },
+            game_version_name="1.41.7.4",
         )
 
     def _write_fixture(self, root, *, omitted=None, duplicate=None):
         path = Path(root) / self.module.GAMEDATA_PATH
         path.parent.mkdir(parents=True)
-        lines = ["// fixture\r\n"]
+        lines = [
+            "// fixture\r\n",
+            "// Verified against the public CS2 app build 24537688 (1.41.7.4).\r\n",
+        ]
         for key in EXPECTED_VALUES:
             if key != omitted:
                 lines.append(f"{key}=999  // {key}\r\n")
@@ -149,6 +153,8 @@ class TestCS2FOWGamedata(unittest.TestCase):
         content = raw.decode("utf-8-sig")
         self.assertIn("\r\n", content)
         self.assertIn("recipient_slot_offset_windows=10  // recipient_slot_offset_windows", content)
+        self.assertIn("// Verified against the public CS2 game version (1.41.7.4).", content)
+        self.assertNotIn("app build", content)
         self.assertEqual(EXPECTED_VALUES, self._assignments(content))
         self.assertEqual(34, updated)
         self.assertEqual(0, skipped)
@@ -189,6 +195,22 @@ class TestCS2FOWGamedata(unittest.TestCase):
                         {},
                         context=self._context(),
                     )
+
+    def test_rejects_missing_version_comment(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            path = self._write_fixture(temp_dir)
+            raw = path.read_bytes().decode("utf-8-sig")
+            filtered = "".join(line for line in raw.splitlines(keepends=True) if "Verified against" not in line)
+            path.write_bytes(b"\xef\xbb\xbf" + filtered.encode("utf-8"))
+            with self.assertRaisesRegex(ValueError, "missing the game version comment"):
+                self.module.update(
+                    self._yaml_data(),
+                    {},
+                    ["windows", "linux"],
+                    temp_dir,
+                    {},
+                    context=self._context(),
+                )
 
     def test_rejects_missing_snapshot_values(self) -> None:
         with TemporaryDirectory() as temp_dir:

@@ -26,6 +26,7 @@ Requirements:
 import argparse
 import os
 import shutil
+from pathlib import Path
 
 from analysis_config import AnalysisConfigError, resolve_analysis_config
 from gamedata_config_validation import finding_delta, print_config_findings, validate_gamedata_config
@@ -55,6 +56,7 @@ from gamedata_symbol_data import (
     merge_configs,
 )
 from gamesymbol_store import SymbolStoreError, open_snapshot_store
+from trusted_yaml import load_yaml_file
 
 try:
     import httpx
@@ -212,6 +214,27 @@ def _read_text(path):
     return data.decode("utf-8-sig")
 
 
+def _resolve_version_name(gamever):
+    """Resolve the human-readable version name from download.yaml's tag->name map."""
+    target = str(gamever).strip()
+    try:
+        data = load_yaml_file(Path(__file__).resolve().parent / "download.yaml") or {}
+    except Exception:
+        return target
+    downloads = data.get("downloads")
+    if not isinstance(downloads, list):
+        return target
+    for entry in downloads:
+        if not isinstance(entry, dict):
+            continue
+        if str(entry.get("tag", "")).strip() == target:
+            name = entry.get("name")
+            if name is not None:
+                return str(name)
+            break
+    return target
+
+
 def generate_gamedata(
     *,
     gamever,
@@ -238,6 +261,7 @@ def generate_gamedata(
     generator_context = GeneratorContext(
         game_version=symbol_store.game_version,
         binaries=symbol_store.binaries,
+        game_version_name=_resolve_version_name(gamever),
     )
     print(f"Generator directory: {modules_dir}")
     print(f"Versioned output directory: {output_root}")

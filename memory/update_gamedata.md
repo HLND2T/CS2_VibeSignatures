@@ -39,7 +39,7 @@ Downstream key matching: see [[gamedata_aliases]]. Snapshot has no alias fields.
 
 Per-module overlay `gamedata-generators/<module>/config.yaml` merges into the analysis config for that generator only (extra symbols / alias overrides).
 
-Generator API: v1 `update(yaml_data, func_lib_map, platforms, output_dir, alias_map, debug)`; v2 also takes `context=GeneratorContext(game_version, binaries)`.
+Generator API: v1 `update(yaml_data, func_lib_map, platforms, output_dir, alias_map, debug)`; v2 also takes `context=GeneratorContext(game_version, binaries, game_version_name)`, where `game_version_name` is the human-readable version name resolved from `download.yaml`'s tag->name mapping.
 
 ## Dependencies
 - Snapshot store, PyYAML, httpx, vdf, JSONC helpers, trusted generator source/templates.

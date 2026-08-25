@@ -25,6 +25,14 @@ ASSIGNMENT_RE = re.compile(
     r"(?P<value>[+-]?\d+)(?P<suffix>[ \t]*(?://.*)?)$"
 )
 
+# The header comment records which CS2 game version the fingerprint was
+# verified against. It previously read "CS2 app build <build> (<version>)"
+# and is now normalized to "CS2 game version (<name>)" where <name> is
+# resolved from download.yaml's tag->name mapping.
+VERSION_LINE_RE = re.compile(
+    r"^// Verified against the public CS2 (?:app build \d+ |game version )\([^)]*\)\.$"
+)
+
 BINARY_FIELDS = {
     "server_binary_size": "size",
     "server_binary_crc32": "crc32",
@@ -161,6 +169,28 @@ def _replace_assignments(content, replacements):
     return "".join(updated_lines)
 
 
+def _version_name(context):
+    name = (context.game_version_name or "").strip()
+    return name or str(context.game_version)
+
+
+def _replace_version_line(content, version_name):
+    replaced = False
+    updated_lines = []
+    for line in content.splitlines(keepends=True):
+        body, ending = _line_ending(line)
+        if VERSION_LINE_RE.fullmatch(body):
+            if replaced:
+                raise ValueError("CS2FOW gamedata contains duplicate game version comments")
+            replaced = True
+            body = f"// Verified against the public CS2 game version ({version_name})."
+            line = body + ending
+        updated_lines.append(line)
+    if not replaced:
+        raise ValueError("CS2FOW gamedata is missing the game version comment")
+    return "".join(updated_lines)
+
+
 def update(
     yaml_data,
     func_lib_map,
@@ -179,6 +209,7 @@ def update(
     content = raw.decode("utf-8-sig" if has_bom else "utf-8")
     replacements, metadata = _replacement_values(yaml_data, platforms, context)
     updated_content = _replace_assignments(content, replacements)
+    updated_content = _replace_version_line(updated_content, _version_name(context))
     encoded = updated_content.encode("utf-8")
     gamedata_path.write_bytes((b"\xef\xbb\xbf" if has_bom else b"") + encoded)
 
