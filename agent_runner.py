@@ -20,8 +20,8 @@ CYBERSECURITY_BLOCK_MARKERS = (
     "flagged this message for a cybersecurity topic",
 )
 ANSI_ESCAPE_RE = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
-_MCP_PREFLIGHT_DONE = False
-_MCP_PREFLIGHT_FAILED = False
+_MCP_PREFLIGHT_DONE: set[tuple[str, str | None]] = set()
+_MCP_PREFLIGHT_FAILED: set[tuple[str, str | None]] = set()
 CLAUDE_SKILL_RUNNER_SETTINGS = ".claude/skill_runner.settings.json"
 SKILL_RUNNER_SYSTEM_PROMPT = ".claude/SKILL_RUNNER.md"
 OPENCODE_SKILL_RUNNER_CONFIG = ".opencode/skill_runner.config.json"
@@ -94,7 +94,30 @@ def _format_mcp_list_output(output, limit=1200):
     return "\n".join(f"      {line}" for line in text.splitlines())
 
 
-def _agent_process_env(agent_kind: str) -> dict[str, str] | None:
+def _agent_mcp_override_args(agent_kind: str, mcp_url: str | None) -> list[str]:
+    if not mcp_url:
+        return []
+    if agent_kind == "claude":
+        config = {
+            "mcpServers": {
+                "ida-pro-mcp": {
+                    "type": "http",
+                    "url": mcp_url,
+                }
+            }
+        }
+        return ["--mcp-config", json.dumps(config, separators=(",", ":")), "--strict-mcp-config"]
+    if agent_kind == "codex":
+        return [
+            "-c",
+            f"mcp_servers.ida-pro-mcp.url={json.dumps(mcp_url)}",
+            "-c",
+            "mcp_servers.ida-pro-mcp.required=true",
+        ]
+    return []
+
+
+def _agent_process_env(agent_kind: str, mcp_url: str | None = None) -> dict[str, str] | None:
     if agent_kind != "opencode":
         return None
     env = os.environ.copy()
@@ -104,46 +127,59 @@ def _agent_process_env(agent_kind: str) -> dict[str, str] | None:
             "OPENCODE_CONFIG": OPENCODE_SKILL_RUNNER_CONFIG,
         }
     )
+    if mcp_url:
+        env["OPENCODE_CONFIG_CONTENT"] = json.dumps(
+            {
+                "mcp": {
+                    "ida-pro-mcp": {
+                        "type": "remote",
+                        "url": mcp_url,
+                        "enabled": True,
+                    }
+                }
+            },
+            separators=(",", ":"),
+        )
     return env
 
 
-def _ensure_agent_mcp_preflight(agent, debug=False, server_name="ida-pro-mcp"):
-    global _MCP_PREFLIGHT_DONE, _MCP_PREFLIGHT_FAILED
-
-    if _MCP_PREFLIGHT_DONE:
+def _ensure_agent_mcp_preflight(agent, debug=False, server_name="ida-pro-mcp", mcp_url=None):
+    preflight_key = (agent, mcp_url)
+    if preflight_key in _MCP_PREFLIGHT_DONE:
         return True
-    if _MCP_PREFLIGHT_FAILED:
+    if preflight_key in _MCP_PREFLIGHT_FAILED:
         print("    Error: MCP preflight previously failed; refusing to start agent.")
         return False
 
-    cmd = [agent, "mcp", "list"]
+    agent_kind = _detect_agent_kind(agent) or ""
+    cmd = [agent, *_agent_mcp_override_args(agent_kind, mcp_url), "mcp", "list"]
     print(f"    Checking MCP server list: {' '.join(cmd)}")
     try:
         result = _run_process_with_stream_capture(
             cmd,
             debug=debug,
             timeout=MCP_LIST_TIMEOUT,
-            env=_agent_process_env(_detect_agent_kind(agent) or ""),
+            env=_agent_process_env(agent_kind, mcp_url),
         )
     except subprocess.TimeoutExpired:
-        _MCP_PREFLIGHT_FAILED = True
+        _MCP_PREFLIGHT_FAILED.add(preflight_key)
         print(f"    Error: MCP list preflight timeout ({MCP_LIST_TIMEOUT} seconds): {' '.join(cmd)}")
         return False
     except FileNotFoundError:
-        _MCP_PREFLIGHT_FAILED = True
+        _MCP_PREFLIGHT_FAILED.add(preflight_key)
         print(f"    Error: Agent '{agent}' not found while running MCP list preflight.")
         return False
     except Exception as error:
-        _MCP_PREFLIGHT_FAILED = True
+        _MCP_PREFLIGHT_FAILED.add(preflight_key)
         print(f"    Error executing MCP list preflight: {error}")
         return False
 
     output = "\n".join(text for text in (result.stdout, result.stderr) if text)
     if _mcp_list_contains_server(output, server_name):
-        _MCP_PREFLIGHT_DONE = True
+        _MCP_PREFLIGHT_DONE.add(preflight_key)
         return True
 
-    _MCP_PREFLIGHT_FAILED = True
+    _MCP_PREFLIGHT_FAILED.add(preflight_key)
     print(f"    Error: Required MCP server '{server_name}' is not listed by '{agent} mcp list'.")
     if result.returncode != 0:
         print(f"    mcp list return code: {result.returncode}")
@@ -273,8 +309,10 @@ def _build_claude_base_args(
     permission_mode: str = "",
     extra_args: str = "",
     agent_model: str = DEFAULT_AGENT_MODEL,
+    mcp_url: str | None = None,
 ) -> list[str]:
     args = [agent, "-p", prompt_arg, "--agent", agent_profile]
+    args.extend(_agent_mcp_override_args("claude", mcp_url))
     args.extend(_agent_model_args("claude", agent_model))
     args.extend(["--settings", CLAUDE_SKILL_RUNNER_SETTINGS])
     args.extend(["--append-system-prompt-file", SKILL_RUNNER_SYSTEM_PROMPT])
@@ -289,6 +327,7 @@ def _build_codex_base_args(
     developer_instructions: str,
     is_retry: bool,
     agent_model: str = DEFAULT_AGENT_MODEL,
+    mcp_url: str | None = None,
 ) -> list[str]:
     args = [
         agent,
@@ -297,6 +336,7 @@ def _build_codex_base_args(
         "-c",
         developer_instructions,
     ]
+    args.extend(_agent_mcp_override_args("codex", mcp_url))
     args.extend(_agent_model_args("codex", agent_model))
     args.extend(_agent_permission_args("codex"))
     args.append("exec")
@@ -329,6 +369,7 @@ def _build_claude_command(
     session_id: str,
     is_retry: bool,
     agent_model: str = DEFAULT_AGENT_MODEL,
+    mcp_url: str | None = None,
 ) -> AgentCommand:
     args = _build_claude_base_args(
         agent=agent,
@@ -337,6 +378,7 @@ def _build_claude_command(
         session_id=session_id,
         is_retry=is_retry,
         agent_model=agent_model,
+        mcp_url=mcp_url,
     )
     return AgentCommand(args, None, f"session {session_id}")
 
@@ -347,8 +389,9 @@ def _build_codex_command(
     developer_instructions: str,
     is_retry: bool,
     agent_model: str = DEFAULT_AGENT_MODEL,
+    mcp_url: str | None = None,
 ) -> AgentCommand:
-    args = _build_codex_base_args(agent, developer_instructions, is_retry, agent_model)
+    args = _build_codex_base_args(agent, developer_instructions, is_retry, agent_model, mcp_url)
     args.append("-")
     return AgentCommand(args, f"Run SKILL: .claude/skills/{skill_name}/SKILL.md", "the latest codex session (--last)")
 
@@ -392,14 +435,15 @@ def _build_agent_command(
     developer_instructions: str | None,
     is_retry: bool,
     agent_model: str = DEFAULT_AGENT_MODEL,
+    mcp_url: str | None = None,
 ) -> AgentCommand:
     if agent_kind == "claude":
-        return _build_claude_command(agent, skill_name, session_id, is_retry, agent_model)
+        return _build_claude_command(agent, skill_name, session_id, is_retry, agent_model, mcp_url)
     if agent_kind == "opencode":
         return _build_opencode_command(agent, skill_name, is_retry, opencode_session_id, agent_model)
     if developer_instructions is None:
         raise ValueError("Codex developer instructions are required")
-    return _build_codex_command(agent, skill_name, developer_instructions, is_retry, agent_model)
+    return _build_codex_command(agent, skill_name, developer_instructions, is_retry, agent_model, mcp_url)
 
 
 def _print_command(command: AgentCommand, attempt: int, max_retries: int) -> None:
@@ -470,10 +514,11 @@ def _run_skill_attempts(
     expected_yaml_paths,
     max_retries: int,
     agent_model: str,
+    mcp_url: str | None,
     progress_callback=None,
 ) -> bool:
     opencode_session_id = None
-    process_env = _agent_process_env(agent_kind)
+    process_env = _agent_process_env(agent_kind, mcp_url)
     for attempt in range(max_retries):
         attempt_number = attempt + 1
         _notify_progress(
@@ -491,6 +536,7 @@ def _run_skill_attempts(
             developer_instructions=developer_instructions,
             is_retry=attempt > 0,
             agent_model=agent_model,
+            mcp_url=mcp_url,
         )
         _print_command(command, attempt, max_retries)
         try:
@@ -586,6 +632,7 @@ def run_skill(
     max_retries=3,
     agent_model=DEFAULT_AGENT_MODEL,
     progress_callback=None,
+    mcp_url=None,
 ) -> bool:
     """Execute a skill with its configured agent and retry support."""
     agent_kind = _detect_agent_kind(agent)
@@ -606,7 +653,7 @@ def run_skill(
         print(f"    Error: Skill file not found: {skill_md_path}")
         _notify_progress(progress_callback, "failed", reason="skill_file_missing", path=skill_md_path)
         return False
-    if not _ensure_agent_mcp_preflight(agent, debug=debug):
+    if not _ensure_agent_mcp_preflight(agent, debug=debug, mcp_url=mcp_url):
         _notify_progress(progress_callback, "failed", reason="mcp_unavailable")
         return False
 
@@ -624,5 +671,6 @@ def run_skill(
         expected_yaml_paths=expected_yaml_paths,
         max_retries=max_retries,
         agent_model=agent_model,
+        mcp_url=mcp_url,
         progress_callback=progress_callback,
     )
