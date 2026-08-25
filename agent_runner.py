@@ -21,7 +21,6 @@ CYBERSECURITY_BLOCK_MARKERS = (
 )
 ANSI_ESCAPE_RE = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
 _MCP_PREFLIGHT_DONE: set[tuple[str, str | None]] = set()
-_MCP_PREFLIGHT_FAILED: set[tuple[str, str | None]] = set()
 CLAUDE_SKILL_RUNNER_SETTINGS = ".claude/skill_runner.settings.json"
 SKILL_RUNNER_SYSTEM_PROMPT = ".claude/SKILL_RUNNER.md"
 OPENCODE_SKILL_RUNNER_CONFIG = ".opencode/skill_runner.config.json"
@@ -147,9 +146,6 @@ def _ensure_agent_mcp_preflight(agent, debug=False, server_name="ida-pro-mcp", m
     preflight_key = (agent, mcp_url)
     if preflight_key in _MCP_PREFLIGHT_DONE:
         return True
-    if preflight_key in _MCP_PREFLIGHT_FAILED:
-        print("    Error: MCP preflight previously failed; refusing to start agent.")
-        return False
 
     agent_kind = _detect_agent_kind(agent) or ""
     cmd = [agent, *_agent_mcp_override_args(agent_kind, mcp_url), "mcp", "list"]
@@ -162,15 +158,12 @@ def _ensure_agent_mcp_preflight(agent, debug=False, server_name="ida-pro-mcp", m
             env=_agent_process_env(agent_kind, mcp_url),
         )
     except subprocess.TimeoutExpired:
-        _MCP_PREFLIGHT_FAILED.add(preflight_key)
         print(f"    Error: MCP list preflight timeout ({MCP_LIST_TIMEOUT} seconds): {' '.join(cmd)}")
         return False
     except FileNotFoundError:
-        _MCP_PREFLIGHT_FAILED.add(preflight_key)
         print(f"    Error: Agent '{agent}' not found while running MCP list preflight.")
         return False
     except Exception as error:
-        _MCP_PREFLIGHT_FAILED.add(preflight_key)
         print(f"    Error executing MCP list preflight: {error}")
         return False
 
@@ -179,7 +172,6 @@ def _ensure_agent_mcp_preflight(agent, debug=False, server_name="ida-pro-mcp", m
         _MCP_PREFLIGHT_DONE.add(preflight_key)
         return True
 
-    _MCP_PREFLIGHT_FAILED.add(preflight_key)
     print(f"    Error: Required MCP server '{server_name}' is not listed by '{agent} mcp list'.")
     if result.returncode != 0:
         print(f"    mcp list return code: {result.returncode}")

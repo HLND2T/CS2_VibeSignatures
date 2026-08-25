@@ -269,7 +269,6 @@ class _FakePopen:
 class TestOpenCodeCommandConstruction(unittest.TestCase):
     def setUp(self) -> None:
         agent_runner._MCP_PREFLIGHT_DONE.clear()
-        agent_runner._MCP_PREFLIGHT_FAILED.clear()
 
     def test_detect_agent_kind_accepts_opencode_executable_names(self) -> None:
         self.assertEqual("opencode", agent_runner._detect_agent_kind("opencode"))
@@ -454,7 +453,6 @@ class TestOpenCodeCommandConstruction(unittest.TestCase):
 class TestRunSkillOutputDetection(unittest.TestCase):
     def setUp(self) -> None:
         agent_runner._MCP_PREFLIGHT_DONE.clear()
-        agent_runner._MCP_PREFLIGHT_FAILED.clear()
 
     def test_extract_skill_error_returns_tag_contents(self) -> None:
         self.assertEqual(
@@ -475,7 +473,6 @@ class TestRunSkillOutputDetection(unittest.TestCase):
 class TestRunSkillCodexPromptTransport(unittest.TestCase):
     def setUp(self) -> None:
         agent_runner._MCP_PREFLIGHT_DONE.clear()
-        agent_runner._MCP_PREFLIGHT_FAILED.clear()
 
     @patch.object(Path, "read_text", return_value="sig finder prompt")
     @patch("agent_runner.os.path.exists", return_value=True)
@@ -792,7 +789,6 @@ class TestRunSkillCodexPromptTransport(unittest.TestCase):
         for block_message in block_messages:
             with self.subTest(block_message=block_message):
                 agent_runner._MCP_PREFLIGHT_DONE.clear()
-                agent_runner._MCP_PREFLIGHT_FAILED.clear()
                 preflight_process = _FakePopen(
                     stdout_chunks=["ida-pro-mcp  http://127.0.0.1:13337/mcp  enabled\n"],
                     stderr_chunks=[],
@@ -820,7 +816,6 @@ class TestRunSkillCodexPromptTransport(unittest.TestCase):
 class TestRunSkillMcpListPreflight(unittest.TestCase):
     def setUp(self) -> None:
         agent_runner._MCP_PREFLIGHT_DONE.clear()
-        agent_runner._MCP_PREFLIGHT_FAILED.clear()
 
     @patch("agent_runner.os.path.exists", return_value=True)
     @patch("agent_runner.subprocess.Popen")
@@ -1022,16 +1017,23 @@ class TestRunSkillMcpListPreflight(unittest.TestCase):
 
     @patch("agent_runner.os.path.exists", return_value=True)
     @patch("agent_runner.subprocess.Popen")
-    def test_failed_preflight_is_not_retried_for_later_skills(
+    def test_failed_preflight_is_retried_for_later_skills(
         self,
         mock_popen,
         _mock_exists,
     ) -> None:
-        mock_popen.return_value = _FakePopen(
+        first_preflight = _FakePopen(
             stdout_chunks=["basic-memory: http://127.0.0.1:9131/mcp (HTTP) - Connected\n"],
             stderr_chunks=[],
             returncode=0,
         )
+        second_preflight = _FakePopen(
+            stdout_chunks=["ida-pro-mcp: http://127.0.0.1:13337/mcp (HTTP) - Connected\n"],
+            stderr_chunks=[],
+            returncode=0,
+        )
+        agent_process = _FakePopen(stdout_chunks=["done\n"], stderr_chunks=[], returncode=0)
+        mock_popen.side_effect = [first_preflight, second_preflight, agent_process]
 
         with patch("sys.stdout", new_callable=io.StringIO) as fake_stdout:
             first_result = agent_runner.run_skill(
@@ -1048,9 +1050,9 @@ class TestRunSkillMcpListPreflight(unittest.TestCase):
             )
 
         self.assertFalse(first_result)
-        self.assertFalse(second_result)
-        self.assertEqual(1, mock_popen.call_count)
-        self.assertIn("MCP preflight previously failed", fake_stdout.getvalue())
+        self.assertTrue(second_result)
+        self.assertEqual(3, mock_popen.call_count)
+        self.assertNotIn("MCP preflight previously failed", fake_stdout.getvalue())
 
     @patch("agent_runner._run_process_with_stream_capture")
     def test_preflight_cache_is_partitioned_by_dynamic_endpoint(self, mock_run_process) -> None:

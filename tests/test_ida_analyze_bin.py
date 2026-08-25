@@ -2900,6 +2900,10 @@ class TestProcessBinary(unittest.TestCase):
             mock_preprocess.call_args.kwargs["skill_name"],
         )
         mock_run_skill.assert_called_once()
+        self.assertEqual(
+            "http://127.0.0.1:39091/mcp",
+            mock_run_skill.call_args.kwargs["mcp_url"],
+        )
 
     def test_process_binary_reports_unexpected_preprocess_exception_before_fallback(self) -> None:
         with TemporaryDirectory() as temp_dir:
