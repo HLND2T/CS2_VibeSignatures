@@ -29,9 +29,7 @@ ASSIGNMENT_RE = re.compile(
 # verified against. It previously read "CS2 app build <build> (<version>)"
 # and is now normalized to "CS2 game version (<name>)" where <name> is
 # resolved from download.yaml's tag->name mapping.
-VERSION_LINE_RE = re.compile(
-    r"^// Verified against the public CS2 (?:app build \d+ |game version )\([^)]*\)\.$"
-)
+VERSION_LINE_RE = re.compile(r"^// Verified against the public CS2 (?:app build \d+ |game version )\([^)]*\)\.$")
 
 BINARY_FIELDS = {
     "server_binary_size": "size",
