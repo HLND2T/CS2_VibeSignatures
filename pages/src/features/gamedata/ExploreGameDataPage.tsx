@@ -13,7 +13,7 @@ export function ExploreGameDataPage() {
   const { t } = useTranslation()
   const [selectedVersion, setSelectedVersion] = useState<string>()
   const [selectedFileId, setSelectedFileId] = useState<string>()
-  const [diffEnabled, setDiffEnabled] = useState(false)
+  const [diffEnabled, setDiffEnabled] = useState(true)
   const indexQuery = useQuery({
     queryKey: ['gamedata', 'index'],
     queryFn: ({ signal }) => getGameDataIndex(signal),

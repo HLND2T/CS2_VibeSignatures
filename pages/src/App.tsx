@@ -22,15 +22,22 @@ const ANT_DESIGN_LOCALES = { en: enUS, 'zh-CN': zhCN, 'zh-TW': zhTW }
 export default function App() {
   const { i18n } = useTranslation()
   const { theme: colorTheme } = useTheme()
+  const isDark = colorTheme === 'dark'
   return (
     <ConfigProvider
       locale={ANT_DESIGN_LOCALES[resolveLanguage(i18n.resolvedLanguage)]}
       theme={{
-        algorithm: colorTheme === 'dark' ? theme.darkAlgorithm : theme.defaultAlgorithm,
+        algorithm: isDark ? theme.darkAlgorithm : theme.defaultAlgorithm,
         token: {
           colorPrimary: '#3b82f6',
           borderRadius: 8,
-          colorBgBase: colorTheme === 'dark' ? '#080d18' : '#f3f6fb',
+          colorBgBase: isDark ? '#080d18' : '#e5eaf1',
+          ...(!isDark && {
+            colorBgLayout: '#e5eaf1',
+            colorBgContainer: '#edf1f5',
+            colorBgElevated: '#f1f4f7',
+            colorFillAlter: 'rgba(100, 116, 139, 0.08)',
+          }),
         },
       }}
     >
