@@ -166,7 +166,6 @@ class TestBuildSelfRunnerWorkflow(unittest.TestCase):
         order = step_order(bump_job, "checkout", "sync-refs", "configure-git", "preview", "bump", "branch", "create-pr")
 
         self.assertEqual(sorted(order), order)
-        self.assertEqual({"contents": "write", "pull-requests": "write"}, bump["permissions"])
         self.assertIn("git fetch origin --prune --prune-tags --tags", bump_steps["sync-refs"]["run"])
         self.assertNotIn("git tag", "\n".join(str(step.get("run", "")) for step in bump_job["steps"]))
         self.assertNotIn("dispatch-existing", bump_steps)

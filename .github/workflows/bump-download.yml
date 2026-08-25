@@ -6,8 +6,8 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
+  pull-requests: read
 
 concurrency:
   group: bump-download-${{ github.repository }}
@@ -29,6 +29,7 @@ jobs:
         with:
           ref: main
           fetch-depth: 1
+          token: ${{ secrets.HLND2T_GH_TOKEN }}
 
       - name: Synchronize git refs
         id: sync-refs
@@ -57,6 +58,7 @@ jobs:
         env:
           BUMP_TAG: ${{ steps.preview.outputs.tag }}
         with:
+          github-token: ${{ secrets.HLND2T_GH_TOKEN }}
           script: |
             const tag = process.env.BUMP_TAG;
             if (!tag || !tag.trim()) {
@@ -134,6 +136,7 @@ jobs:
           CONFIG_SOURCE_GAMEVER: ${{ steps.bump.outputs.analysis_config_source_gamever }}
           CONFIG_PATH: ${{ steps.bump.outputs.analysis_config_path }}
         with:
+          github-token: ${{ secrets.HLND2T_GH_TOKEN }}
           script: |
             const tag = process.env.BUMP_TAG;
             const branch = process.env.BUMP_BRANCH;

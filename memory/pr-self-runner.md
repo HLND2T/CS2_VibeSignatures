@@ -51,4 +51,9 @@ or gamedata back to the PR head. A stable terminal job named `pr-validate` requi
   at release time via [[build-on-self-runner]].
 - Concurrency group is `pr-self-runner-...-full`.
 - Candidate/config/generator inputs needed after checkout are copied below runner temp.
-- Bump-download PRs retain lightweight full-path validation (config existence check only).
+- Bump-download PRs retain lightweight validation (format plus config existence checks only). The scheduled bump workflow
+  uses the protected `win64` environment's `HLND2T_GH_TOKEN` for branch pushes and PR API calls so `pull_request` runs
+  are not parked at `action_required` by the `GITHUB_TOKEN` recursion guard.
+- Bump classification accepts the legacy `github-actions[bot]` author for already-open PRs and trusted same-repository
+  `OWNER` / `MEMBER` / `COLLABORATOR` authors for PAT-created PRs, while still requiring the canonical branch and title
+  prefixes.
