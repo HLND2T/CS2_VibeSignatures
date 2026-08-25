@@ -52,8 +52,11 @@ jobs:
           if ($pr.state -ne "closed" -or -not $pr.merged_at) {
             throw "PR #$env:PR_NUMBER must be merged."
           }
-          if ([string]$pr.user.login -ne "github-actions[bot]") {
-            throw "PR #$env:PR_NUMBER was not created by github-actions[bot]."
+          $trustedAssociations = @("OWNER", "MEMBER", "COLLABORATOR")
+          $association = ([string]$pr.author_association).Trim().ToUpperInvariant()
+          $isLegacyActionsBot = [string]$pr.user.login -eq "github-actions[bot]"
+          if (-not $isLegacyActionsBot -and $trustedAssociations -notcontains $association) {
+            throw "PR #$env:PR_NUMBER was not created by github-actions[bot] or a trusted repository author."
           }
           if ([string]$pr.head.repo.full_name -ne "${{ github.repository }}") {
             throw "PR #$env:PR_NUMBER must originate from this repository."

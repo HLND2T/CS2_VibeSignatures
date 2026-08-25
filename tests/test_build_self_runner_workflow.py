@@ -19,7 +19,7 @@ class TestBuildSelfRunnerWorkflow(unittest.TestCase):
         self.assertEqual(["new", "republish"], dispatch_inputs["mode"]["options"])
         self.assertNotIn("allow_legacy_bootstrap", dispatch_inputs)
         self.assertEqual(
-            {"actions": "read", "contents": "write", "pull-requests": "write"},
+            {"actions": "read", "contents": "read", "pull-requests": "read"},
             self.build_workflow["permissions"],
         )
         self.assertEqual(["preflight", "warmup-idb"], self.build_job["needs"])
@@ -88,6 +88,14 @@ class TestBuildSelfRunnerWorkflow(unittest.TestCase):
         self.assertIn("gamesymbol_candidate.py publish", self.build_steps["publish-candidate"]["run"])
         self.assertIn("release_workflow.py stage-build", self.build_steps["stage-pending"]["run"])
         self.assertIn("gh pr create", self.build_steps["create-output-pr"]["run"])
+        self.assertEqual(
+            "${{ secrets.HLND2T_GH_TOKEN }}",
+            self.build_steps["create-output-pr"]["env"]["GH_TOKEN"],
+        )
+        self.assertEqual(
+            "${{ secrets.HLND2T_GH_TOKEN }}",
+            self.build_steps["checkout-source"]["with"]["token"],
+        )
         self.assertEqual("always()", self.build_steps["restore-sdk"]["if"])
         build_commands = "\n".join(str(step.get("run", "")) for step in self.build_job["steps"])
         self.assertNotIn("gh release", build_commands)

@@ -191,9 +191,92 @@ class TestReleaseWorkflowGuards(unittest.TestCase):
                         repository="HLND2T/CS2_VibeSignatures",
                         head_repository="HLND2T/CS2_VibeSignatures",
                         author="github-actions[bot]",
+                        author_association="NONE",
                         branch=f"gamesymbols/build/{fixture.gamever}/{fixture.build_id}",
                         base_sha="9" * 40,
                         head_sha=fixture.head_sha,
+                    )
+
+    def test_output_pr_check_accepts_a_trusted_repository_author(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            fixture = ReleaseFixture(Path(tmp))
+            fixture.stage()
+            with patch(
+                "release_workflow_lib.promotion._git_output",
+                return_value="gamesymbols/14170.yaml\nrelease-manifests/14170.json",
+            ):
+                with self.assertRaisesRegex(ReleaseWorkflowError, "stale"):
+                    verify_output_pr(
+                        repo_root=fixture.repo,
+                        repository="HLND2T/CS2_VibeSignatures",
+                        head_repository="HLND2T/CS2_VibeSignatures",
+                        author="release-pat-account",
+                        author_association="OWNER",
+                        branch=f"gamesymbols/build/{fixture.gamever}/{fixture.build_id}",
+                        base_sha="9" * 40,
+                        head_sha=fixture.head_sha,
+                    )
+
+    def test_output_pr_check_rejects_an_untrusted_author(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            fixture = ReleaseFixture(Path(tmp))
+            fixture.stage()
+            with self.assertRaisesRegex(ReleaseWorkflowError, "generated-output PR author"):
+                verify_output_pr(
+                    repo_root=fixture.repo,
+                    repository="HLND2T/CS2_VibeSignatures",
+                    head_repository="HLND2T/CS2_VibeSignatures",
+                    author="outside-contributor",
+                    author_association="CONTRIBUTOR",
+                    branch=f"gamesymbols/build/{fixture.gamever}/{fixture.build_id}",
+                    base_sha=fixture.source_sha,
+                    head_sha=fixture.head_sha,
+                )
+
+    def test_promotion_rejects_an_untrusted_author(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            fixture = ReleaseFixture(Path(tmp))
+            fixture.stage()
+            fixture.finalize_and_index()
+            with self.assertRaisesRegex(ReleaseWorkflowError, "promotion requires"):
+                verify_promotion(
+                    repo_root=fixture.repo,
+                    staging_root=fixture.staging,
+                    repository="HLND2T/CS2_VibeSignatures",
+                    head_repository="HLND2T/CS2_VibeSignatures",
+                    author="outside-contributor",
+                    author_association="CONTRIBUTOR",
+                    branch=f"gamesymbols/build/{fixture.gamever}/{fixture.build_id}",
+                    base_branch="main",
+                    default_branch="main",
+                    pr_number=42,
+                    event_head_sha=fixture.head_sha,
+                    merge_sha="4" * 40,
+                )
+
+    def test_promotion_accepts_a_trusted_repository_author(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            fixture = ReleaseFixture(Path(tmp))
+            fixture.stage()
+            fixture.finalize_and_index()
+            with patch(
+                "release_workflow_lib.promotion._git_output",
+                return_value=f"{'4' * 40} {'9' * 40} {'8' * 40}",
+            ):
+                with self.assertRaisesRegex(ReleaseWorkflowError, "second parent"):
+                    verify_promotion(
+                        repo_root=fixture.repo,
+                        staging_root=fixture.staging,
+                        repository="HLND2T/CS2_VibeSignatures",
+                        head_repository="HLND2T/CS2_VibeSignatures",
+                        author="release-pat-account",
+                        author_association="OWNER",
+                        branch=f"gamesymbols/build/{fixture.gamever}/{fixture.build_id}",
+                        base_branch="main",
+                        default_branch="main",
+                        pr_number=42,
+                        event_head_sha=fixture.head_sha,
+                        merge_sha="4" * 40,
                     )
 
     def test_promotion_accepts_source_as_merge_first_parent(self) -> None:
@@ -227,6 +310,7 @@ class TestReleaseWorkflowGuards(unittest.TestCase):
                     repository="HLND2T/CS2_VibeSignatures",
                     head_repository="HLND2T/CS2_VibeSignatures",
                     author="github-actions[bot]",
+                    author_association="NONE",
                     branch=f"gamesymbols/build/{fixture.gamever}/{fixture.build_id}",
                     base_branch="main",
                     default_branch="main",
@@ -268,6 +352,7 @@ class TestReleaseWorkflowGuards(unittest.TestCase):
                     repository="HLND2T/CS2_VibeSignatures",
                     head_repository="HLND2T/CS2_VibeSignatures",
                     author="github-actions[bot]",
+                    author_association="NONE",
                     branch=f"gamesymbols/build/{fixture.gamever}/{fixture.build_id}",
                     base_branch="main",
                     default_branch="main",
@@ -302,6 +387,7 @@ class TestReleaseWorkflowGuards(unittest.TestCase):
                         repository="HLND2T/CS2_VibeSignatures",
                         head_repository="HLND2T/CS2_VibeSignatures",
                         author="github-actions[bot]",
+                        author_association="NONE",
                         branch=f"gamesymbols/build/{fixture.gamever}/{fixture.build_id}",
                         base_branch="main",
                         default_branch="main",
@@ -326,6 +412,7 @@ class TestReleaseWorkflowGuards(unittest.TestCase):
                         repository="HLND2T/CS2_VibeSignatures",
                         head_repository="HLND2T/CS2_VibeSignatures",
                         author="github-actions[bot]",
+                        author_association="NONE",
                         branch=f"gamesymbols/build/{fixture.gamever}/{fixture.build_id}",
                         base_branch="main",
                         default_branch="main",
@@ -354,6 +441,7 @@ class TestReleaseWorkflowGuards(unittest.TestCase):
                         repository="HLND2T/CS2_VibeSignatures",
                         head_repository="HLND2T/CS2_VibeSignatures",
                         author="github-actions[bot]",
+                        author_association="NONE",
                         branch=f"gamesymbols/build/{fixture.gamever}/{fixture.build_id}",
                         base_branch="main",
                         default_branch="main",
