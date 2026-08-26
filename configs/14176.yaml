@@ -6665,6 +6665,20 @@ modules:
           - UTIL_PlayerSlotToPlayerController.{platform}.yaml
           - CBasePlayerController_GetPawn.{platform}.yaml
           - g_pEntitySystem.{platform}.yaml
+      - name: find-CUserMessageVoiceMask_t_vtable
+        expected_output:
+          - CUserMessageVoiceMask_t_vtable.{platform}.yaml
+      - name: find-CVoiceGameMgr_UpdateMasks
+        expected_output:
+          - CVoiceGameMgr_UpdateMasks.{platform}.yaml
+        expected_input:
+          - CUserMessageVoiceMask_t_vtable.{platform}.yaml
+      - name: find-CVoiceGameMgr_UpdateMasks-decompiles
+        expected_output:
+          - CEngineServer_SetClientListening.{platform}.yaml
+          - CEngineServer_SetClientProximity.{platform}.yaml
+        expected_input:
+          - CVoiceGameMgr_UpdateMasks.{platform}.yaml
       - name: find-CSource2GameClients_ClientDisconnect
         expected_output:
           - CSource2GameClients_ClientDisconnect.{platform}.yaml
@@ -11619,6 +11633,20 @@ modules:
         category: vfunc
         alias:
           - CEngineServer::UnloadSpawnGroup
+      - name: CUserMessageVoiceMask_t_vtable
+        category: vtable
+      - name: CVoiceGameMgr_UpdateMasks
+        category: func
+        alias:
+          - CVoiceGameMgr::UpdateMasks
+      - name: CEngineServer_SetClientListening
+        category: vfunc
+        alias:
+          - CEngineServer::SetClientListening
+      - name: CEngineServer_SetClientProximity
+        category: vfunc
+        alias:
+          - CEngineServer::SetClientProximity
       - name: INetworkServerService_SetGameSpawnGroupMgr
         category: vfunc
         alias:
