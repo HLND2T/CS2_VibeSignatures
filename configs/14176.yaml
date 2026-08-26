@@ -1464,6 +1464,11 @@ modules:
       - name: find-CNetworkGameClient_vtable
         expected_output:
           - CNetworkGameClient_vtable.{platform}.yaml
+      - name: find-CNetworkGameClient_ProcessServerInfo
+        expected_output:
+          - CNetworkGameClient_ProcessServerInfo.{platform}.yaml
+        expected_input:
+          - CNetworkGameClient_vtable.{platform}.yaml
       - name: find-CNetworkClientService_OnSimpleLoopFrameUpdate-decompiles
         platform: windows
         expected_output:
@@ -2716,6 +2721,10 @@ modules:
           - CMsgSource2NetworkFlowQuality::PrintStats
       - name: CNetworkGameClient_vtable
         category: vtable
+      - name: CNetworkGameClient_ProcessServerInfo
+        category: vfunc
+        alias:
+          - CNetworkGameClient::ProcessServerInfo
       - name: CNetworkGameClientBase__ProcessNetworking
         category: vfunc
         alias:
