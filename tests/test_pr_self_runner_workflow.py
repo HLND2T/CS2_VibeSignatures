@@ -122,8 +122,10 @@ class TestPrSelfRunnerWorkflow(unittest.TestCase):
         self.assertIn("github.event.action == 'closed'", finalize["if"])
         run = steps_by_id(finalize)["finalize-workspace"]["run"]
         self.assertIn("pr-yaml-staging", run)
-        self.assertIn("gamever.txt", run)
-        self.assertIn('robocopy $latestRun.FullName $targetGamever "*.yaml" /S', run)
+        self.assertIn("release_workflow.py promote-staged-yaml", run)
+        self.assertIn("--persisted-root", run)
+        self.assertIn("--pr-number", run)
+        self.assertNotIn("robocopy", run)
         self.assertNotIn("*.i64", run)
         self.assertNotIn("$RUNNER_WORKSPACE", run)
 

@@ -47,7 +47,7 @@ Caller GAMEVER/source SHA -> reusable warmup workflow -> isolated binary prepara
   the same filter, which also cleans legacy accepted trees containing partial BinSync working trees. `promote_bin`
   remains the verification gate and becomes a same-hash no-op when warmup already wrote identical bytes. Promotion and
   abandonment serialize on the shared `gamever-state-<repo>-<gamever>` group; the warmup job serializes same-GAMEVER
-  producers on its own `warmup-idb-<repo>-<gamever>` group. Both writers also retain the same per-GAMEVER file lock as a
+  producers on its own `warmup-idb-<repo>-<gamever>` group. All three accepted-bin writers also retain the same per-GAMEVER file lock as a
   defensive backstop. See
   `release_workflow_lib/sync_accepted_bin.py`.
 - The only supported cache source is an explicit immutable generation returned by this workflow; PR/release baseline copies also exclude the complete tracked IDA suffix set.

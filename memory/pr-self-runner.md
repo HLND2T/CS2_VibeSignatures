@@ -50,6 +50,7 @@ or gamedata back to the PR head. A stable terminal job named `pr-validate` requi
 - Snapshot/gamedata publication was removed from this workflow (#803); `gamesymbols/<GAMEVER>.yaml` now advances only
   at release time via [[build-on-self-runner]].
 - No workflow-level `concurrency` of its own; same-GAMEVER warmup exclusion is inherited from [[warmup_idb]]'s job-level `warmup-idb-<repo>-<gamever>` group (`queue: max`).
+- Merge-time YAML promotion runs via `release_workflow.py promote-staged-yaml`, which takes the shared per-GAMEVER lock (`release-staging/locks/<gamever>.lock`) so it cannot race `sync_accepted_bin` or `promote_bin`.
 - Candidate/config/generator inputs needed after checkout are copied below runner temp.
 - Bump-download PRs retain lightweight validation (format plus config existence checks only). The scheduled bump workflow
   uses the protected `win64` environment's `HLND2T_GH_TOKEN` for branch pushes and PR API calls so `pull_request` runs

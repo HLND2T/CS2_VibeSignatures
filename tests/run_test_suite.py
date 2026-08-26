@@ -106,6 +106,7 @@ UNIT_MODULES = frozenset(
         "test_prune_pr_expected_output_bin",
         "test_pr_validation_mode",
         "test_pr_validation_version",
+        "test_promote_staged_yaml",
         "test_push_binsync_symbols",
         "test_ordinal_vtable_common",
         "test_register_api_callbacks_preprocessor",
