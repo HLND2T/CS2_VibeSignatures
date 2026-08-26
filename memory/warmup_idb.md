@@ -18,7 +18,7 @@ permalink: cs2-vibesignatures/warmup-idb
 - Require each consumer to match the producer IDA kernel version before restoration.
 - Fail the caller when preparation, warmup, publication, restoration, or strict IDB validation fails; CI has no inline auto-analysis fallback.
 ## Involved Files & Symbols
-- `.github/workflows/warmup-idb.yml` - reusable/manual cache producer and per-GAMEVER concurrency boundary.
+- `.github/workflows/warmup-idb.yml` - reusable/manual cache producer with a job-level per-GAMEVER concurrency boundary (`queue: max`).
 - `warmup_idb.py` - bounded worker orchestration, forced invalidation, timeout, and memory controls.
 - `warmup_idb_worker.py` - one-binary warm worker and IDA kernel-version probe.
 - `idb_cache.py` - cache identity, immutable generation publication, inventory verification, retention pruning, READY pointer, and explicit-generation restore.
@@ -45,9 +45,10 @@ Caller GAMEVER/source SHA -> reusable warmup workflow -> isolated binary prepara
   `bin/<GAMEVER>` into `PERSISTED_WORKSPACE/bin/<GAMEVER>` idempotently and transactionally while excluding IDA database
   side files, entire BinSync `.bsproj` directories, and regenerable `.binsync.json` sidecars. The restore step applies
   the same filter, which also cleans legacy accepted trees containing partial BinSync working trees. `promote_bin`
-  remains the verification gate and becomes a same-hash no-op when warmup already wrote identical bytes; the warmup,
-  promotion, unmerged cleanup, and abandonment workflows share one per-GAMEVER concurrency group, while both writers
-  also retain the same per-GAMEVER file lock as a defensive backstop. See
+  remains the verification gate and becomes a same-hash no-op when warmup already wrote identical bytes. Promotion and
+  abandonment serialize on the shared `gamever-state-<repo>-<gamever>` group; the warmup job serializes same-GAMEVER
+  producers on its own `warmup-idb-<repo>-<gamever>` group. Both writers also retain the same per-GAMEVER file lock as a
+  defensive backstop. See
   `release_workflow_lib/sync_accepted_bin.py`.
 - The only supported cache source is an explicit immutable generation returned by this workflow; PR/release baseline copies also exclude the complete tracked IDA suffix set.
 - Generation directories are immutable. READY is an atomic convenience pointer; callers restore the returned generation ID and cache key, so a later READY update cannot create a cross-workflow race.
@@ -58,7 +59,7 @@ Caller GAMEVER/source SHA -> reusable warmup workflow -> isolated binary prepara
 - Warmup is no longer best-effort in CI. Any worker failure, missing `.i64`, residual lock, inventory mismatch, or restore mismatch fails the caller before analysis.
 - `ida_analyze_bin.py -require_warm_idb` rejects a missing database and does not delete/rebuild a database that fails binary identity verification.
 - Worker concurrency remains process-level: each bare-idalib worker owns one database and uses no MCP port.
-- GitHub concurrency serializes a GAMEVER producer and the manifest probe makes repeated calls idempotent; a superseded pending GitHub run can still be canceled by Actions scheduling and must be rerun by its caller.
+- Same-GAMEVER producers are strictly serialized by the `warmup` job's `concurrency` group `warmup-idb-<repo>-<gamever>` (`cancel-in-progress: false`, `queue: max`): concurrent release, PR, and manual-dispatch runs queue in FIFO order (up to 100 pending) instead of canceling or superseding one another. The manifest probe keeps repeated calls idempotent.
 ## Callers
 - `.github/workflows/build-on-self-runner.yml` - `warmup-idb` reusable job before `build`.
 - `.github/workflows/pr-self-runner.yml` - `pr-warmup-idb` reusable job before `pr-validate` for non-bump PRs.

@@ -46,6 +46,14 @@ class TestWarmupIdbWorkflow(unittest.TestCase):
         self.assertIn("--repo-root", self.steps["sync-accepted-bin"]["run"])
         self.assertIn("--gamever", self.steps["sync-accepted-bin"]["run"])
 
+    def test_warmup_is_serialized_per_gamever(self) -> None:
+        concurrency = self.job["concurrency"]
+        self.assertEqual(
+            "warmup-idb-${{ github.repository }}-${{ inputs.gamever }}", concurrency["group"]
+        )
+        self.assertEqual(False, concurrency["cancel-in-progress"])
+        self.assertEqual("max", concurrency["queue"])
+
 
 if __name__ == "__main__":
     unittest.main()
