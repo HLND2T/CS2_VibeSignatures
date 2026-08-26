@@ -875,6 +875,21 @@ modules:
       - name: find-CNetworkGameServerBase_SpawnGroupThink
         expected_output:
           - CNetworkGameServerBase_SpawnGroupThink.{platform}.yaml
+      - name: find-CNetworkGameServerBase_ServiceQueue
+        expected_output:
+          - CNetworkGameServerBase_ServiceQueue.{platform}.yaml
+        expected_input:
+          - CNetworkGameServerBase_SpawnGroupThink.{platform}.yaml
+      - name: find-CNetworkGameServerBase_SynchronizeAndBlockUntilLoaded
+        expected_output:
+          - CNetworkGameServerBase_SynchronizeAndBlockUntilLoaded.{platform}.yaml
+        expected_input:
+          - CNetworkGameServerBase_ServiceQueue.{platform}.yaml
+      - name: find-CEngineServer_SynchronizeAndBlockUntilLoaded
+        expected_output:
+          - CEngineServer_SynchronizeAndBlockUntilLoaded.{platform}.yaml
+        expected_input:
+          - CNetworkGameServerBase_ServiceQueue.{platform}.yaml
       - name: find-CNetworkGameServerBase_PrintSpawnGroupStatus
         expected_output:
           - CNetworkGameServerBase_PrintSpawnGroupStatus.{platform}.yaml
@@ -2460,6 +2475,18 @@ modules:
         category: func
         alias:
           - CNetworkGameServerBase::SpawnGroupThink
+      - name: CNetworkGameServerBase_ServiceQueue
+        category: func
+        alias:
+          - CNetworkGameServerBase::ServiceQueue
+      - name: CNetworkGameServerBase_SynchronizeAndBlockUntilLoaded
+        category: func
+        alias:
+          - CNetworkGameServerBase::SynchronizeAndBlockUntilLoaded
+      - name: CEngineServer_SynchronizeAndBlockUntilLoaded
+        category: vfunc
+        alias:
+          - CEngineServer::SynchronizeAndBlockUntilLoaded
       - name: CNetworkGameServerBase_PrintSpawnGroupStatus
         category: vfunc
         alias:
