@@ -83,6 +83,7 @@ UNIT_MODULES = frozenset(
         "test_idb_cache",
         "test_ida_analyze_util",
         "test_ida_llm_utils",
+        "test_ida_mcp_keepalive",
         "test_ida_mcp_session",
         "test_ida_preprocessor_contracts_commands",
         "test_ida_preprocessor_contracts_gamesystems",
