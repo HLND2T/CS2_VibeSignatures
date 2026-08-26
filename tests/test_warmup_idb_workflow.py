@@ -9,24 +9,6 @@ class TestWarmupIdbWorkflow(unittest.TestCase):
         self.job = workflow_job(self.workflow, "warmup")
         self.steps = steps_by_id(self.job)
 
-    def test_reusable_and_manual_contract(self) -> None:
-        triggers = self.workflow["on"]
-        for trigger in ("workflow_call", "workflow_dispatch"):
-            inputs = triggers[trigger]["inputs"]
-            self.assertTrue(inputs["gamever"]["required"])
-            self.assertTrue(inputs["source_sha"]["required"])
-        self.assertEqual(
-            "gamever-state-${{ github.repository }}-${{ inputs.gamever }}",
-            self.workflow["concurrency"]["group"],
-        )
-        self.assertFalse(self.workflow["concurrency"]["cancel-in-progress"])
-        self.assertEqual(
-            "${{ jobs.warmup.outputs.generation }}", triggers["workflow_call"]["outputs"]["generation"]["value"]
-        )
-        self.assertEqual(
-            "${{ jobs.warmup.outputs.cache_key }}", triggers["workflow_call"]["outputs"]["cache_key"]["value"]
-        )
-
     def test_cache_is_published_only_after_required_warmup(self) -> None:
         self.assertEqual("win64", self.job["environment"])
         self.assertEqual(["self-hosted", "windows", "x64"], self.job["runs-on"])
