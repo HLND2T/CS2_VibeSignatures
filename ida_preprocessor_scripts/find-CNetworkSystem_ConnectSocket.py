@@ -63,5 +63,6 @@ async def preprocess_skill(
         func_names=TARGET_FUNCTION_NAMES,
         func_xrefs=FUNC_XREFS,
         func_vtable_relations=FUNC_VTABLE_RELATIONS,
-        generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS, debug=debug,
+        generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
+        debug=debug,
     )
