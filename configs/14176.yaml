@@ -2215,6 +2215,11 @@ modules:
       - name: find-CNetworkGameClientBase_vtable
         expected_output:
           - CNetworkGameClientBase_vtable.{platform}.yaml
+      - name: find-CNetworkGameClientBase_ProcessSpawnGroup_Load
+        expected_output:
+          - CNetworkGameClientBase_ProcessSpawnGroup_Load.{platform}.yaml
+        expected_input:
+          - CNetworkGameClientBase_vtable.{platform}.yaml
       - name: find-CNetworkGameClientBase_ServerCmd
         platform: windows
         expected_output:
@@ -3690,6 +3695,10 @@ modules:
           - CEngineServer::GetPlayerNetworkIDString
       - name: CNetworkGameClientBase_vtable
         category: vtable
+      - name: CNetworkGameClientBase_ProcessSpawnGroup_Load
+        category: vfunc
+        alias:
+          - CNetworkGameClientBase::ProcessSpawnGroup_Load
       - name: CNetworkGameClientBase_ServerCmd
         category: vfunc
         platform: windows
