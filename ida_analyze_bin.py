@@ -3782,6 +3782,7 @@ def process_binary(
             _report_skill_status(reporting, job_id, skill_name, TaskStatus.RUNNING, ProcessPhase.AGENT_FALLBACK)
             progress_callback = _build_agent_progress_callback(reporting, job_id, skill_name)
 
+            mcp_url = f"http://{host}:{port}/mcp"
             if run_skill(
                 skill_name,
                 agent,
@@ -3790,6 +3791,7 @@ def process_binary(
                 max_retries=skill_max_retries,
                 agent_model=agent_model,
                 progress_callback=progress_callback,
+                mcp_url=mcp_url,
             ):
                 optional_output_generated = any(os.path.exists(path) for path in optional_outputs)
                 if not required_outputs and optional_outputs and not optional_output_generated:
