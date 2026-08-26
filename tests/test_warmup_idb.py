@@ -4,7 +4,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -51,6 +51,48 @@ class FakeWindowsJobApi:
 
 
 class TestWarmupIdbHelpers(unittest.TestCase):
+    def test_gamever_lock_rejects_second_active_instance(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = Path(temp_dir)
+            first = warmup_idb.GameverWarmupLock("14177b", repo_root=repo_root)
+            second = warmup_idb.GameverWarmupLock("14177b", repo_root=repo_root)
+            different_gamever = warmup_idb.GameverWarmupLock("14176", repo_root=repo_root)
+
+            self.assertTrue(first.acquire())
+            try:
+                self.assertFalse(second.acquire())
+                self.assertTrue(different_gamever.acquire())
+            finally:
+                second.release()
+                different_gamever.release()
+                first.release()
+
+    def test_main_exits_when_gamever_lock_is_active(self) -> None:
+        gamever = "14177b"
+        active_lock = warmup_idb.GameverWarmupLock(gamever, repo_root=warmup_idb.REPOSITORY_ROOT)
+        self.assertTrue(active_lock.acquire())
+        try:
+            output = StringIO()
+            with (
+                patch.object(warmup_idb.shutil, "which", return_value=sys.executable),
+                patch.object(warmup_idb, "resolve_analysis_config", return_value=Path("config.yaml")),
+                redirect_stderr(output),
+            ):
+                result = warmup_idb.main(
+                    [
+                        gamever,
+                        "--python",
+                        sys.executable,
+                        "--worker-script",
+                        str(Path("warmup_idb_worker.py").resolve()),
+                    ]
+                )
+
+            self.assertEqual(1, result)
+            self.assertIn("another warmup instance is already running", output.getvalue())
+        finally:
+            active_lock.release()
+
     def test_main_enables_memory_controller_and_passes_gate_to_workers(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             binary = Path(temp_dir) / "engine2.dll"
