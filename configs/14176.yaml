@@ -6665,6 +6665,20 @@ modules:
           - UTIL_PlayerSlotToPlayerController.{platform}.yaml
           - CBasePlayerController_GetPawn.{platform}.yaml
           - g_pEntitySystem.{platform}.yaml
+      - name: find-CPVSManager_vtable
+        expected_output:
+          - CPVSManager_vtable.{platform}.yaml
+      - name: find-CPVSManager_ResetPVS
+        expected_output:
+          - CPVSManager_ResetPVS.{platform}.yaml
+        expected_input:
+          - CSource2GameClients_ClientSetupVisibility.{platform}.yaml
+          - CPVSManager_vtable.{platform}.yaml
+      - name: find-CEngineServer_GetPVSForSpawnGroup
+        expected_output:
+          - CEngineServer_GetPVSForSpawnGroup.{platform}.yaml
+        expected_input:
+          - CPVSManager_ResetPVS.{platform}.yaml
       - name: find-CSource2GameClients_ClientDisconnect
         expected_output:
           - CSource2GameClients_ClientDisconnect.{platform}.yaml
@@ -11619,6 +11633,16 @@ modules:
         category: vfunc
         alias:
           - CEngineServer::UnloadSpawnGroup
+      - name: CPVSManager_vtable
+        category: vtable
+      - name: CPVSManager_ResetPVS
+        category: vfunc
+        alias:
+          - CPVSManager::ResetPVS
+      - name: CEngineServer_GetPVSForSpawnGroup
+        category: vfunc
+        alias:
+          - CEngineServer::GetPVSForSpawnGroup
       - name: INetworkServerService_SetGameSpawnGroupMgr
         category: vfunc
         alias:
