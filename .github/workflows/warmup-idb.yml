@@ -85,9 +85,10 @@ jobs:
             throw "PERSISTED_WORKSPACE is not configured."
           }
           $workspace = [IO.Path]::GetFullPath("${{ github.workspace }}")
-          $depotTarget = [IO.Path]::GetFullPath((Join-Path $env:PERSISTED_WORKSPACE "cs2_depot"))
+          # Isolate the depot per GAMEVER so concurrent runs never share a download tree.
+          $depotTarget = [IO.Path]::GetFullPath((Join-Path $env:PERSISTED_WORKSPACE "cs2_depot\$env:GAMEVER"))
           $depotLink = Join-Path $workspace "cs2_depot"
-          New-Item -ItemType Directory -Path $depotTarget -Force | Out-Null
+          [System.IO.Directory]::CreateDirectory($depotTarget) | Out-Null
           if (Test-Path -LiteralPath $depotLink) {
             $item = Get-Item -LiteralPath $depotLink -Force
             if (-not ($item.Attributes -band [IO.FileAttributes]::ReparsePoint)) {

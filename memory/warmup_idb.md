@@ -32,7 +32,7 @@ permalink: cs2-vibesignatures/warmup-idb
 Caller GAMEVER/source SHA -> reusable warmup workflow -> isolated binary preparation -> binary/IDA cache identity -> verified generation hit or forced full warmup -> immutable inventory-verified generation publication -> exact-generation restore by PR/release -> strict `require_warm_idb` analysis.
 ## Dependencies
 - Protected `win64` environment and `[self-hosted, windows, x64]` runner with IDA/idalib on `python` PATH.
-- `PERSISTED_WORKSPACE`, persisted `cs2_depot`, and Steam credentials for new versions without a Release archive.
+- `PERSISTED_WORKSPACE`, persisted `cs2_depot/<gamever>`, and Steam credentials for new versions without a Release archive.
 - `IDB_WARMUP_MAX_CONCURRENCY` and optional `IDB_WARMUP_MAX_MEMORY_MIB` environment variables.
 - [[build-on-self-runner]] and [[pr-self-runner]] callers.
 ## Notes
