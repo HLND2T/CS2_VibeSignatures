@@ -7,6 +7,7 @@ Finds three INetworkServerService virtual functions that are invoked on the
   * INetworkServerService_SetGameSpawnGroupMgr
   * INetworkServerService_AddServerPrerequisites
   * INetworkServerService_SetFinalSimulationTickThisFrame
+  * CEngineServer_UnloadSpawnGroup
 
 They are discovered via LLM_DECOMPILE of the CLoopModeGame::LoopInit predecessor.
 The vcall to each lives in a different predecessor per platform: on Windows
@@ -30,6 +31,7 @@ TARGET_FUNCTION_NAMES = [
     "INetworkServerService_SetGameSpawnGroupMgr",
     "INetworkServerService_AddServerPrerequisites",
     "INetworkServerService_SetFinalSimulationTickThisFrame",
+    "CEngineServer_UnloadSpawnGroup",
 ]
 
 LLM_DECOMPILE_WINDOWS = [
@@ -57,6 +59,17 @@ LLM_DECOMPILE_WINDOWS = [
     },
     {
         "symbol_name": "INetworkServerService_SetFinalSimulationTickThisFrame",
+        "prompt_path": "prompt/call_llm_decompile.md",
+        "reference_yaml_paths": [
+            "references/server/CLoopModeGame_LoopInit.{platform}.yaml",
+        ],
+        "expected_result_sections": ["found_vcall"],
+        "dependency_policy": {
+            "CLoopModeGame_LoopInit.{platform}.yaml": "required",
+        },
+    },
+    {
+        "symbol_name": "CEngineServer_UnloadSpawnGroup",
         "prompt_path": "prompt/call_llm_decompile.md",
         "reference_yaml_paths": [
             "references/server/CLoopModeGame_LoopInit.{platform}.yaml",
@@ -102,6 +115,17 @@ LLM_DECOMPILE_LINUX = [
             "CLoopModeGame_LoopInitInternal.{platform}.yaml": "required",
         },
     },
+    {
+        "symbol_name": "CEngineServer_UnloadSpawnGroup",
+        "prompt_path": "prompt/call_llm_decompile.md",
+        "reference_yaml_paths": [
+            "references/server/CLoopModeGame_LoopInitInternal.{platform}.yaml",
+        ],
+        "expected_result_sections": ["found_vcall"],
+        "dependency_policy": {
+            "CLoopModeGame_LoopInitInternal.{platform}.yaml": "required",
+        },
+    },
 ]
 
 FUNC_VTABLE_RELATIONS = [
@@ -111,6 +135,7 @@ FUNC_VTABLE_RELATIONS = [
     ("INetworkServerService_SetGameSpawnGroupMgr", "CNetworkServerService_vtable"),
     ("INetworkServerService_AddServerPrerequisites", "CNetworkServerService_vtable"),
     ("INetworkServerService_SetFinalSimulationTickThisFrame", "CNetworkServerService_vtable"),
+    ("CEngineServer_UnloadSpawnGroup", "CEngineServer"),
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
@@ -144,6 +169,17 @@ GENERATE_YAML_DESIRED_FIELDS = [
         [
             "func_name",
             "vfunc_sig",
+            "vfunc_offset",
+            "vfunc_index",
+            "vtable_name",
+        ],
+    ),
+    (
+        "CEngineServer_UnloadSpawnGroup",
+        [
+            "func_name",
+            "vfunc_sig",
+            "vfunc_sig_max_match:2",
             "vfunc_offset",
             "vfunc_index",
             "vtable_name",
