@@ -239,6 +239,30 @@ class TestIsPortInUse(unittest.TestCase):
         create_connection.assert_called_once_with(("127.0.0.1", 13337), timeout=1)
 
 
+class TestAllocateLocalPort(unittest.TestCase):
+    def test_binds_ephemeral_socket_and_returns_port(self) -> None:
+        sock = MagicMock()
+        sock.getsockname.return_value = ("127.0.0.1", 39000)
+        sock.__enter__.return_value = sock
+        with patch.object(ida_analyze_bin.socket, "socket", return_value=sock) as socket_cls:
+            port = ida_analyze_bin._allocate_local_port("127.0.0.1")
+
+        self.assertEqual(39000, port)
+        socket_cls.assert_called_once_with(
+            ida_analyze_bin.socket.AF_INET,
+            ida_analyze_bin.socket.SOCK_STREAM,
+        )
+        sock.bind.assert_called_once_with(("127.0.0.1", 0))
+
+    def test_allocated_port_is_actually_free(self) -> None:
+        port = ida_analyze_bin._allocate_local_port("127.0.0.1")
+
+        self.assertIsInstance(port, int)
+        self.assertGreaterEqual(port, 1)
+        self.assertLessEqual(port, 65535)
+        self.assertFalse(ida_analyze_bin.is_port_in_use("127.0.0.1", port))
+
+
 class TestWaitForPortRelease(unittest.TestCase):
     def test_waits_until_the_supervisor_port_is_released(self) -> None:
         with (
@@ -2500,6 +2524,56 @@ class TestProcessBinary(unittest.TestCase):
         self.assertEqual((1, 0, 0), (success, fail, skip))
         mock_preprocess.assert_not_called()
         mock_run_skill.assert_called_once()
+
+    def test_process_binary_allocates_dynamic_port_when_port_is_none(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            binary_dir = Path(temp_dir) / "bin" / "14141" / "engine"
+            binary_dir.mkdir(parents=True, exist_ok=True)
+            binary_path = str(binary_dir / "libengine2.so")
+            fake_process = object()
+
+            with (
+                patch.object(ida_analyze_bin, "_allocate_local_port", return_value=39000),
+                patch.object(ida_analyze_bin, "start_idalib_mcp", return_value=fake_process) as mock_start_ida,
+                patch.object(ida_analyze_bin, "ensure_mcp_available", return_value=(fake_process, True)),
+                patch.object(
+                    ida_analyze_bin,
+                    "_run_validate_expected_input_artifacts_via_mcp",
+                    return_value=[],
+                ),
+                patch.object(ida_analyze_bin, "_run_preprocess_single_skill_via_mcp"),
+                patch.object(ida_analyze_bin, "run_skill", return_value=True) as mock_run_skill,
+                patch.object(ida_analyze_bin, "quit_ida_gracefully", return_value=None) as mock_quit_ida,
+            ):
+                success, fail, skip = ida_analyze_bin.process_binary(
+                    binary_path=binary_path,
+                    skills=[
+                        {
+                            "name": "find-direct-agent-skill",
+                            "expected_output": ["DirectAgentSkill.{platform}.yaml"],
+                            "expected_input": [],
+                        }
+                    ],
+                    agent="codex",
+                    host="127.0.0.1",
+                    port=None,
+                    ida_args="",
+                    platform="windows",
+                    max_retries=1,
+                    skip_pp=True,
+                )
+
+        self.assertEqual((1, 0, 0), (success, fail, skip))
+        mock_start_ida.assert_called_once_with(binary_path, "127.0.0.1", 39000, "", False)
+        mock_run_skill.assert_called_once()
+        self.assertEqual("http://127.0.0.1:39000/mcp", mock_run_skill.call_args.kwargs["mcp_url"])
+        mock_quit_ida.assert_called_once_with(
+            fake_process,
+            "127.0.0.1",
+            39000,
+            expected_binary=binary_path,
+            debug=False,
+        )
 
     def test_process_binary_skip_pp_skips_optional_only_skill_when_agent_writes_no_output(self) -> None:
         with TemporaryDirectory() as temp_dir:
