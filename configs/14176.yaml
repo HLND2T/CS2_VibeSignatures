@@ -372,6 +372,17 @@ modules:
           - CNetworkSystem_InitGameServer.{platform}.yaml
         expected_input:
           - CNetworkSystem_vtable.{platform}.yaml
+      - name: find-CNetworkSystem_RemoveNetChannel
+        expected_output:
+          - CNetworkSystem_RemoveNetChannel.{platform}.yaml
+        expected_input:
+          - CNetworkSystem_vtable.{platform}.yaml
+      - name: find-CNetworkSystem_RemoveNetChannelByAddress
+        expected_output:
+          - CNetworkSystem_RemoveNetChannelByAddress.{platform}.yaml
+        expected_input:
+          - CNetworkSystem_RemoveNetChannel.{platform}.yaml
+          - CNetworkSystem_vtable.{platform}.yaml
       - name: find-CNetworkSystem_SendNetworkStats
         expected_output:
           - CNetworkSystem_SendNetworkStats.{platform}.yaml
@@ -523,6 +534,14 @@ modules:
         category: vfunc
         alias:
           - CNetworkSystem::InitGameServer
+      - name: CNetworkSystem_RemoveNetChannel
+        category: vfunc
+        alias:
+          - CNetworkSystem::RemoveNetChannel
+      - name: CNetworkSystem_RemoveNetChannelByAddress
+        category: vfunc
+        alias:
+          - CNetworkSystem::RemoveNetChannelByAddress
       - name: CNetworkSystem_SendNetworkStats
         category: func
         alias:
