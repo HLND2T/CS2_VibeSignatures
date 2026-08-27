@@ -1588,6 +1588,11 @@ modules:
       - name: find-CEngineServer_vtable
         expected_output:
           - CEngineServer_vtable.{platform}.yaml
+      - name: find-CEngineServer_SetClientUpdateRate
+        expected_output:
+          - CEngineServer_SetClientUpdateRate.{platform}.yaml
+        expected_input:
+          - CEngineServer_vtable.{platform}.yaml
       - name: find-CMapListService_vtable
         expected_output:
           - CMapListService_vtable.{platform}.yaml
@@ -3265,6 +3270,10 @@ modules:
           - INetworkGameClient::SendStringCmd
       - name: CEngineServer_vtable
         category: vtable
+      - name: CEngineServer_SetClientUpdateRate
+        category: vfunc
+        alias:
+          - CEngineServer::SetClientUpdateRate
       - name: CMapListService_vtable
         category: vtable
       - name: CEngineServer_DumpNetStats
@@ -6326,6 +6335,11 @@ modules:
           - CGameSceneNode_vtable.{platform}.yaml
       - name: find-CBasePlayerController_vtable
         expected_output:
+          - CBasePlayerController_vtable.{platform}.yaml
+      - name: find-CBasePlayerController_ClientSettingsChanged
+        expected_output:
+          - CBasePlayerController_ClientSettingsChanged.{platform}.yaml
+        expected_input:
           - CBasePlayerController_vtable.{platform}.yaml
       - name: find-CCSPlayerController_vtable
         expected_output:
@@ -9655,6 +9669,10 @@ modules:
         category: vtable
       - name: CBasePlayerController_vtable
         category: vtable
+      - name: CBasePlayerController_ClientSettingsChanged
+        category: vfunc
+        alias:
+          - CBasePlayerController::ClientSettingsChanged
       - name: CCSPlayerController_vtable
         category: vtable
       - name: CBasePlayerPawn_vtable
