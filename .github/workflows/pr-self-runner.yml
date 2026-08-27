@@ -839,6 +839,16 @@ jobs:
       PERSISTED_WORKSPACE: ${{ secrets.PERSISTED_WORKSPACE }}
       VALIDATION_PATH: ${{ needs.classify-closed-pr.outputs.validation_path }}
     steps:
+      - name: Checkout trusted PR base
+        id: checkout-base
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 1
+          submodules: false
+      - name: Set up uv for locked YAML promotion
+        id: setup-uv
+        uses: astral-sh/setup-uv@v9.0.0
       - name: Promote staged YAML on merge
         id: finalize-workspace
         shell: pwsh
@@ -869,33 +879,13 @@ jobs:
             exit 0
           }
           if ($prWasMerged -eq "true") {
-            # Prefer the latest successful validate run. Directory names are
-            # "<run_id>-<run_attempt>"; sort numerically (a lexicographic sort
-            # would mis-order 1000 vs 999).
-            $latestRun = Get-ChildItem -LiteralPath $prStaging -Directory |
-              Sort-Object @{ Expression = { [long](($_.Name -split '-')[0]) }; Descending = $true },
-                          @{ Expression = { [int](($_.Name -split '-')[1]) }; Descending = $true } |
-              Select-Object -First 1
-            if (-not $latestRun) {
-              throw "Merged PR has staged YAML directory but no run subdirectories: $prStaging"
+            uv run release_workflow.py promote-staged-yaml `
+              --persisted-root "$env:PERSISTED_WORKSPACE" `
+              --pr-number "$prNumber"
+            if ($LASTEXITCODE -ne 0) {
+              throw "Failed to promote staged YAML for PR $prNumber."
             }
-            $gameverMarker = Join-Path $latestRun.FullName "gamever.txt"
-            if (-not (Test-Path -LiteralPath $gameverMarker -PathType Leaf)) {
-              throw "Staged run is missing gamever.txt: $latestRun.FullName"
-            }
-            $gamever = (Get-Content -LiteralPath $gameverMarker -Raw).Trim()
-            if ([string]::IsNullOrWhiteSpace($gamever)) {
-              throw "Staged run has an empty gamever marker: $latestRun.FullName"
-            }
-            $targetGamever = Join-Path $env:PERSISTED_WORKSPACE "bin\$gamever"
-            New-Item -ItemType Directory -Path $targetGamever -Force | Out-Null
-            robocopy $latestRun.FullName $targetGamever "*.yaml" /S /COPY:DAT /DCOPY:DAT /R:2 /W:5 /XF gamever.txt
-            $rc = $LASTEXITCODE
-            if ($rc -ge 8) {
-              throw "Failed to promote staged YAML for GAMEVER=$gamever; robocopy exit code $rc"
-            }
-            $global:LASTEXITCODE = 0
-            Write-Host "Promoted validated YAML for GAMEVER=$gamever into $targetGamever"
+            Write-Host "Promoted staged YAML for PR $prNumber into persisted accepted bin."
           } else {
             Write-Host "PR $prNumber was closed without merging; skipping YAML promotion."
           }
