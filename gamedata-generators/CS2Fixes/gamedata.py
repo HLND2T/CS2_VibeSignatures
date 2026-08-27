@@ -27,7 +27,7 @@ OUTPUT_PATHS = (GAMEDATA_PATH,)
 
 # Upstream download sources: (raw_url, relative_dest_path)
 DOWNLOAD_SOURCES = [
-    ("https://raw.githubusercontent.com/Source2ZE/CS2Fixes/refs/heads/dev/gamedata/cs2fixes.jsonc", GAMEDATA_PATH),
+    ("https://raw.githubusercontent.com/Source2ZE/CS2Fixes/refs/heads/main/gamedata/cs2fixes.jsonc", GAMEDATA_PATH),
 ]
 
 
