@@ -16,6 +16,8 @@ or gamedata back to the PR head. A stable terminal job named `pr-validate` requi
 - Normalize `pull_request` events into PR number, immutable head/base/source SHAs, ref, user, title, validation path,
   and GAMEVER selection.
 - Reject forks/generated-output PRs on the full path.
+- Reject PRs that add, modify, copy, or rename a versioned analysis config to any GAMEVER other than the latest tag in
+  `download.yaml`, before warm-cache dispatch.
 - Run `pr-warmup-idb` only for non-bump `validation_path=full` runs.
 - Restore the explicit warm-cache generation, validate reparse/cache/IDA identity, and analyze with
   `ida_analyze_bin.py -require_warm_idb`.
