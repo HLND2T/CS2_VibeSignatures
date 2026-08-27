@@ -3,7 +3,7 @@ import threading
 import unittest
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from types import SimpleNamespace
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import ida_llm_utils
 
@@ -25,7 +25,7 @@ class TestCreateOpenAiClient(unittest.TestCase):
                 api_key_required_message="LLM API key required",
             )
 
-    @patch("ida_llm_utils.OpenAI")
+    @patch("ida_llm_utils.AsyncOpenAI")
     def test_create_openai_client_uses_trimmed_api_key_and_base_url(self, mock_openai) -> None:
         mock_client = object()
         mock_openai.return_value = mock_client
@@ -89,8 +89,8 @@ class TestExtractFirstMessageText(unittest.TestCase):
             ida_llm_utils.extract_first_message_text(response)
 
 
-class TestCallLlmText(unittest.TestCase):
-    def test_call_llm_text_invokes_chat_completions_and_returns_first_message_text(self) -> None:
+class TestCallLlmText(unittest.IsolatedAsyncioTestCase):
+    async def test_call_llm_text_invokes_chat_completions_and_returns_first_message_text(self) -> None:
         response = SimpleNamespace(
             choices=[
                 SimpleNamespace(
@@ -98,7 +98,7 @@ class TestCallLlmText(unittest.TestCase):
                 )
             ]
         )
-        create = MagicMock(return_value=response)
+        create = AsyncMock(return_value=response)
         client = SimpleNamespace(
             chat=SimpleNamespace(
                 completions=SimpleNamespace(create=create),
@@ -106,7 +106,7 @@ class TestCallLlmText(unittest.TestCase):
         )
         messages = [{"role": "user", "content": "hello"}]
 
-        text = ida_llm_utils.call_llm_text(
+        text = await ida_llm_utils.call_llm_text(
             client,
             model="  gpt-4o-mini  ",
             messages=messages,
@@ -114,14 +114,14 @@ class TestCallLlmText(unittest.TestCase):
         )
 
         self.assertEqual("found_vcall:\n  []", text)
-        create.assert_called_once_with(
+        create.assert_awaited_once_with(
             model="gpt-4o-mini",
             messages=messages,
             reasoning_effort="medium",
             temperature=0.25,
         )
 
-    def test_call_llm_text_omits_temperature_when_not_configured(self) -> None:
+    async def test_call_llm_text_omits_temperature_when_not_configured(self) -> None:
         response = SimpleNamespace(
             choices=[
                 SimpleNamespace(
@@ -129,7 +129,7 @@ class TestCallLlmText(unittest.TestCase):
                 )
             ]
         )
-        create = MagicMock(return_value=response)
+        create = AsyncMock(return_value=response)
         client = SimpleNamespace(
             chat=SimpleNamespace(
                 completions=SimpleNamespace(create=create),
@@ -137,22 +137,22 @@ class TestCallLlmText(unittest.TestCase):
         )
         messages = [{"role": "user", "content": "hello"}]
 
-        text = ida_llm_utils.call_llm_text(
+        text = await ida_llm_utils.call_llm_text(
             client,
             model="gpt-4o-mini",
             messages=messages,
         )
 
         self.assertEqual("found_vcall:\n  []", text)
-        create.assert_called_once_with(
+        create.assert_awaited_once_with(
             model="gpt-4o-mini",
             messages=messages,
             reasoning_effort="medium",
         )
 
-    def test_call_llm_text_forwards_reasoning_effort_to_sdk(self) -> None:
+    async def test_call_llm_text_forwards_reasoning_effort_to_sdk(self) -> None:
         response = SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content="done"))])
-        create = MagicMock(return_value=response)
+        create = AsyncMock(return_value=response)
         client = SimpleNamespace(
             chat=SimpleNamespace(
                 completions=SimpleNamespace(create=create),
@@ -160,25 +160,25 @@ class TestCallLlmText(unittest.TestCase):
         )
         messages = [{"role": "user", "content": "hello"}]
 
-        text = ida_llm_utils.call_llm_text(
+        text = await ida_llm_utils.call_llm_text(
             client,
             model="gpt-5.4",
             messages=messages,
         )
 
         self.assertEqual("done", text)
-        create.assert_called_once_with(
+        create.assert_awaited_once_with(
             model="gpt-5.4",
             messages=messages,
             reasoning_effort="medium",
         )
 
-    def test_call_llm_text_strips_internal_message_ids_for_chat_completions(self) -> None:
+    async def test_call_llm_text_strips_internal_message_ids_for_chat_completions(self) -> None:
         response = SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content="done"))])
-        create = MagicMock(return_value=response)
+        create = AsyncMock(return_value=response)
         client = SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=create)))
 
-        ida_llm_utils.call_llm_text(
+        await ida_llm_utils.call_llm_text(
             client,
             model="gpt-5.4",
             messages=[{"id": "msg_stable", "role": "user", "content": "hello"}],
@@ -190,21 +190,23 @@ class TestCallLlmText(unittest.TestCase):
         )
 
     @patch("ida_llm_utils.create_openai_client")
-    def test_call_llm_text_creates_request_client_when_missing(
+    async def test_call_llm_text_creates_request_client_when_missing(
         self,
         mock_create_openai_client,
     ) -> None:
         response = SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content="done"))])
-        create = MagicMock(return_value=response)
+        create = AsyncMock(return_value=response)
+        close = AsyncMock()
         client = SimpleNamespace(
             chat=SimpleNamespace(
                 completions=SimpleNamespace(create=create),
             )
         )
+        client.close = close
         mock_create_openai_client.return_value = client
         messages = [{"role": "user", "content": "hello"}]
 
-        text = ida_llm_utils.call_llm_text(
+        text = await ida_llm_utils.call_llm_text(
             model="gpt-5.4",
             messages=messages,
             api_key="test-api-key",
@@ -217,11 +219,26 @@ class TestCallLlmText(unittest.TestCase):
             "https://example.invalid/v1",
             api_key_required_message=("api_key is required for OpenAI-compatible LLM requests"),
         )
-        create.assert_called_once_with(
+        create.assert_awaited_once_with(
             model="gpt-5.4",
             messages=messages,
             reasoning_effort="medium",
         )
+        close.assert_awaited_once_with()
+
+
+class TestCallLlmTextSync(unittest.TestCase):
+    @patch("ida_llm_utils.call_llm_text", new_callable=AsyncMock)
+    def test_call_llm_text_sync_runs_async_transport(self, mock_call_llm_text) -> None:
+        mock_call_llm_text.return_value = "done"
+
+        result = ida_llm_utils.call_llm_text_sync(
+            model="gpt-5.4",
+            messages=[{"role": "user", "content": "hello"}],
+        )
+
+        self.assertEqual("done", result)
+        mock_call_llm_text.assert_awaited_once()
 
 
 class _CodexHandler(BaseHTTPRequestHandler):
@@ -265,7 +282,7 @@ def _serve_http(server: HTTPServer) -> None:
     server.serve_forever(poll_interval=0.01)
 
 
-class TestCallLlmTextCodexHttp(unittest.TestCase):
+class TestCallLlmTextCodexHttp(unittest.IsolatedAsyncioTestCase):
     def setUp(self) -> None:
         _CodexHandler.content_type = "text/event-stream"
         _CodexHandler.sse_events = [
@@ -288,8 +305,8 @@ class TestCallLlmTextCodexHttp(unittest.TestCase):
         self._server.server_close()
         self._thread.join(timeout=1.0)
 
-    def test_call_llm_text_posts_responses_sse_with_codex_headers(self) -> None:
-        result = ida_llm_utils.call_llm_text(
+    async def test_call_llm_text_posts_responses_sse_with_codex_headers(self) -> None:
+        result = await ida_llm_utils.call_llm_text(
             None,
             model="gpt-5.4",
             messages=[
@@ -321,8 +338,8 @@ class TestCallLlmTextCodexHttp(unittest.TestCase):
             input_items[-1]["content"],
         )
 
-    def test_call_llm_text_codex_uses_top_level_text_attribute(self) -> None:
-        result = ida_llm_utils.call_llm_text(
+    async def test_call_llm_text_codex_uses_top_level_text_attribute(self) -> None:
+        result = await ida_llm_utils.call_llm_text(
             None,
             model="gpt-5.4",
             messages=[{"role": "user", "content": SimpleNamespace(text="  Hello  ")}],
@@ -339,7 +356,7 @@ class TestCallLlmTextCodexHttp(unittest.TestCase):
             user_input["content"],
         )
 
-    def test_call_llm_text_codex_preserves_message_ids_across_retries(self) -> None:
+    async def test_call_llm_text_codex_preserves_message_ids_across_retries(self) -> None:
         messages = [
             {"id": "msg_initial", "role": "user", "content": "Initial prompt"},
             {"id": "msg_bad_output", "role": "assistant", "content": "bad YAML"},
@@ -347,7 +364,7 @@ class TestCallLlmTextCodexHttp(unittest.TestCase):
         ]
 
         for _ in range(2):
-            ida_llm_utils.call_llm_text(
+            await ida_llm_utils.call_llm_text(
                 None,
                 model="gpt-5.4",
                 messages=messages,
@@ -369,11 +386,11 @@ class TestCallLlmTextCodexHttp(unittest.TestCase):
             [body["prompt_cache_key"] for body in _CodexHandler.json_bodies],
         )
 
-    def test_call_llm_text_rejects_non_sse_content_type(self) -> None:
+    async def test_call_llm_text_rejects_non_sse_content_type(self) -> None:
         _CodexHandler.content_type = "application/json"
 
         with self.assertRaisesRegex(RuntimeError, "expected text/event-stream"):
-            ida_llm_utils.call_llm_text(
+            await ida_llm_utils.call_llm_text(
                 None,
                 model="gpt-5.4",
                 messages=[{"role": "user", "content": "Who are you?"}],
@@ -382,7 +399,7 @@ class TestCallLlmTextCodexHttp(unittest.TestCase):
                 fake_as="codex",
             )
 
-    def test_call_llm_text_codex_avoids_completed_text_dup_after_deltas(self) -> None:
+    async def test_call_llm_text_codex_avoids_completed_text_dup_after_deltas(self) -> None:
         _CodexHandler.sse_events = [
             'data: {"type":"response.output_text.delta","delta":"answer"}\n\n',
             (
@@ -392,7 +409,7 @@ class TestCallLlmTextCodexHttp(unittest.TestCase):
             "data: [DONE]\n\n",
         ]
 
-        result = ida_llm_utils.call_llm_text(
+        result = await ida_llm_utils.call_llm_text(
             None,
             model="gpt-5.4",
             messages=[{"role": "user", "content": "Who are you?"}],
@@ -403,7 +420,7 @@ class TestCallLlmTextCodexHttp(unittest.TestCase):
 
         self.assertEqual("answer", result)
 
-    def test_call_llm_text_codex_raises_on_failed_event_after_delta(self) -> None:
+    async def test_call_llm_text_codex_raises_on_failed_event_after_delta(self) -> None:
         _CodexHandler.sse_events = [
             'data: {"type":"response.output_text.delta","delta":"partial"}\n\n',
             'data: {"type":"response.failed","reason":"model_error"}\n\n',
@@ -411,7 +428,7 @@ class TestCallLlmTextCodexHttp(unittest.TestCase):
         ]
 
         with self.assertRaisesRegex(RuntimeError, r"codex transport.*response\.failed"):
-            ida_llm_utils.call_llm_text(
+            await ida_llm_utils.call_llm_text(
                 None,
                 model="gpt-5.4",
                 messages=[{"role": "user", "content": "Who are you?"}],
@@ -420,7 +437,7 @@ class TestCallLlmTextCodexHttp(unittest.TestCase):
                 fake_as="codex",
             )
 
-    def test_call_llm_text_codex_uses_completed_as_fallback_without_deltas(self) -> None:
+    async def test_call_llm_text_codex_uses_completed_as_fallback_without_deltas(self) -> None:
         _CodexHandler.sse_events = [
             (
                 'data: {"type":"response.completed","response":{"output":[{"content":'
@@ -429,7 +446,7 @@ class TestCallLlmTextCodexHttp(unittest.TestCase):
             "data: [DONE]\n\n",
         ]
 
-        result = ida_llm_utils.call_llm_text(
+        result = await ida_llm_utils.call_llm_text(
             None,
             model="gpt-5.4",
             messages=[{"role": "user", "content": "Who are you?"}],
