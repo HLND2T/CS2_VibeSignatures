@@ -10,7 +10,7 @@ TARGET_FUNCTION_NAMES = [
 FUNC_XREFS = [
     {
         "func_name": "CNetworkSystem_ShutdownGameServer",
-        "xref_strings": ["CNetworkSystem::ShutdownGameServer\\n"],
+        "xref_strings": ["CNetworkSystem::ShutdownGameServer"],
         "xref_gvs": [],
         "xref_signatures": [],
         "xref_funcs": [],
