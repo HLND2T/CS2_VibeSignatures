@@ -58,6 +58,7 @@ UNIT_MODULES = frozenset(
     {
         "test_agent_runner",
         "test_analysis_config",
+        "test_atomic_json_write",
         "test_binary_hashing",
         "test_bump_download",
         "test_copy_depot_bin",
