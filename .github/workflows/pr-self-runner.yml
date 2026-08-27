@@ -4,6 +4,9 @@ on:
     types: [opened, synchronize, reopened, ready_for_review, closed]
 permissions:
   contents: read
+concurrency:
+  group: pr-self-runner-${{ github.repository }}-${{ github.event.pull_request.number }}-full
+  cancel-in-progress: true
 jobs:
   pr-preflight:
     if: >-

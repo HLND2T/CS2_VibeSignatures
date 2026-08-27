@@ -30,6 +30,9 @@ on:
         type: string
 permissions:
   contents: read
+concurrency:
+  group: gamever-state-${{ github.repository }}-${{ inputs.gamever }}
+  cancel-in-progress: false
 jobs:
   warmup:
     if: github.repository == 'HLND2T/CS2_VibeSignatures' || github.repository == 'hzqst/CS2_VibeSignatures'
