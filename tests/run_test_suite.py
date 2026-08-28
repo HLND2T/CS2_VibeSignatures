@@ -58,6 +58,7 @@ UNIT_MODULES = frozenset(
     {
         "test_agent_runner",
         "test_analysis_config",
+        "test_atomic_json_write",
         "test_binary_hashing",
         "test_bump_download",
         "test_copy_depot_bin",
@@ -83,6 +84,7 @@ UNIT_MODULES = frozenset(
         "test_idb_cache",
         "test_ida_analyze_util",
         "test_ida_llm_utils",
+        "test_ida_mcp_keepalive",
         "test_ida_mcp_session",
         "test_ida_preprocessor_contracts_commands",
         "test_ida_preprocessor_contracts_gamesystems",
@@ -106,6 +108,7 @@ UNIT_MODULES = frozenset(
         "test_prune_pr_expected_output_bin",
         "test_pr_validation_mode",
         "test_pr_validation_version",
+        "test_promote_staged_yaml",
         "test_push_binsync_symbols",
         "test_ordinal_vtable_common",
         "test_register_api_callbacks_preprocessor",
