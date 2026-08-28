@@ -7,7 +7,7 @@ TARGET_FUNCTION_NAMES = ["CBasePlayerController_ClientSettingsChanged"]
 FUNC_XREFS = [
     {
         "func_name": "CBasePlayerController_ClientSettingsChanged",
-        "xref_strings": ["SV: %d(%s) changed min command queue size to %d\\n"],
+        "xref_strings": ["SV: %d(%s) changed min command queue size to %d"],
         "xref_gvs": [],
         "xref_signatures": [],
         "xref_funcs": [],
