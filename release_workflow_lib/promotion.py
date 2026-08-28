@@ -100,16 +100,22 @@ def verify_output_pr(
     if repository not in ALLOWED_REPOSITORIES:
         raise ReleaseWorkflowError(f"repository is not allowlisted: {repository}")
     base_sha = require_sha(base_sha, "PR base SHA")
-    require_sha(head_sha, "PR head SHA")
+    head_sha = require_sha(head_sha, "PR head SHA")
     if repository != head_repository:
         raise ReleaseWorkflowError("generated-output PR must originate from the base repository")
     _require_trusted_pr_author(author, author_association, "generated-output PR author")
     gamever, build_id = parse_output_branch(branch)
-    paths = [line for line in _git_output(["diff", "--name-only", base_sha, head_sha, "--"]).splitlines() if line]
-    validate_output_paths(paths, gamever)
     manifest = load_tracked_manifest(Path(repo_root) / "release-manifests" / f"{gamever}.json")
-    if manifest["source_sha"] != base_sha or manifest["build_id"] != build_id:
-        raise ReleaseWorkflowError("output PR is stale or its manifest identity does not match the branch")
+    if manifest["build_id"] != build_id:
+        raise ReleaseWorkflowError("output PR manifest identity does not match the branch")
+    source_sha = manifest["source_sha"]
+    head_parents = _git_output(["rev-list", "--parents", "-n", "1", head_sha]).split()
+    if len(head_parents) != 2 or head_parents[1] != source_sha:
+        raise ReleaseWorkflowError("generated-output commit is not directly based on SOURCE_SHA")
+    if not _is_ancestor(source_sha, base_sha):
+        raise ReleaseWorkflowError("generated-output PR base must descend from SOURCE_SHA")
+    paths = [line for line in _git_output(["diff", "--name-only", source_sha, head_sha, "--"]).splitlines() if line]
+    validate_output_paths(paths, gamever)
     verify_tracked_outputs(repo_root, manifest)
     return manifest
 
