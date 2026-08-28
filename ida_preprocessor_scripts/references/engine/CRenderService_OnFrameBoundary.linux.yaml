@@ -1,0 +1,77 @@
+func_name: CRenderService_OnFrameBoundary
+func_va: '0x433bd0'
+disasm_code: |-
+  .text:0000000000433BD0                 push    rbp
+  .text:0000000000433BD1                 lea     rdx, sub_432560
+  .text:0000000000433BD8                 mov     rbp, rsp
+  .text:0000000000433BDB                 push    r12
+  .text:0000000000433BDD                 push    rbx
+  .text:0000000000433BDE                 mov     rbx, rdi
+  .text:0000000000433BE1                 sub     rsp, 10h
+  .text:0000000000433BE5                 mov     rax, [rdi]
+  .text:0000000000433BE8                 mov     [rbp+var_11], 0
+  .text:0000000000433BEC                 mov     rax, [rax+110h]
+  .text:0000000000433BF3                 cmp     rax, rdx
+  .text:0000000000433BF6                 jnz     short loc_433C60
+  .text:0000000000433BF8                 cmp     qword ptr [rdi+1C0h], 0
+  .text:0000000000433C00                 jz      short loc_433C0B
+  .text:0000000000433C02                 lea     rsi, [rbp+var_11]
+  .text:0000000000433C06                 call    sub_431F00
+  .text:0000000000433C0B                 lea     rax, g_pEngineServiceMgr
+  .text:0000000000433C12                 mov     rdi, [rax]
+  .text:0000000000433C15                 mov     rax, [rdi]
+  .text:0000000000433C18                 ; 0x130 = 304LL = IEngineServiceMgr_GetVideoModeChange
+  .text:0000000000433C18                 call    qword ptr [rax+130h]; 0x130 = 304LL = IEngineServiceMgr_GetVideoModeChange
+  .text:0000000000433C1E                 mov     r12, rax
+  .text:0000000000433C21                 test    rax, rax
+  .text:0000000000433C24                 jz      short loc_433C3B
+  .text:0000000000433C26                 mov     rax, [rbx]
+  .text:0000000000433C29                 mov     rsi, r12
+  .text:0000000000433C2C                 mov     rdi, rbx
+  .text:0000000000433C2F                 call    qword ptr [rax+0D0h]
+  .text:0000000000433C35                 mov     byte ptr [r12+28h], 0
+  .text:0000000000433C3B                 mov     rdi, rbx
+  .text:0000000000433C3E                 call    sub_433B50
+  .text:0000000000433C43                 movzx   eax, byte ptr [rbx+1AEh]
+  .text:0000000000433C4A                 mov     byte ptr [rbx+1AEh], 0
+  .text:0000000000433C51                 mov     [rbx+1ADh], al
+  .text:0000000000433C57                 add     rsp, 10h
+  .text:0000000000433C5B                 pop     rbx
+  .text:0000000000433C5C                 pop     r12
+  .text:0000000000433C5E                 pop     rbp
+  .text:0000000000433C5F                 retn
+  .text:0000000000433C60                 lea     rsi, [rbp+var_11]
+  .text:0000000000433C64                 call    rax
+  .text:0000000000433C66                 jmp     short loc_433C0B
+procedure: |-
+  __int64 __fastcall sub_433BD0(__int64 *a1)
+  {
+    __int64 v1; // rax
+    __int64 (__fastcall *v2)(); // rax
+    __int64 v3; // r12
+    __int64 result; // rax
+    _BYTE v5[17]; // [rsp+Fh] [rbp-11h] BYREF
+
+    v1 = *a1;
+    v5[0] = 0;
+    v2 = *(__int64 (__fastcall **)())(v1 + 272);
+    if ( v2 == sub_432560 )
+    {
+      if ( a1[56] )
+        sub_431F00(a1, v5);
+    }
+    else
+    {
+      ((void (__fastcall *)(__int64 *, _BYTE *))v2)(a1, v5);
+    }
+    v3 = (*(__int64 (__fastcall **)(_QWORD *))(*g_pEngineServiceMgr + 304LL))(g_pEngineServiceMgr);// 0x130 = 304LL = IEngineServiceMgr_GetVideoModeChange
+    if ( v3 )
+    {
+      (*(void (__fastcall **)(__int64 *, __int64))(*a1 + 208))(a1, v3);
+      *(_BYTE *)(v3 + 40) = 0;
+    }
+    sub_433B50(a1);
+    result = *((unsigned __int8 *)a1 + 430);
+    *(_WORD *)((char *)a1 + 429) = (unsigned __int8)result;
+    return result;
+  }
