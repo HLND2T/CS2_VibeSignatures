@@ -11,19 +11,27 @@ Windows Job limit, and each worker has a bounded timeout.
 
 Worker failures invalidate partial IDA side files and make the command fail.
 CI consumers require the resulting published database and never fall back to
-inline auto-analysis.
+inline auto-analysis. Only one producer instance may run for a repository and
+GAMEVER at a time.
 """
 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import os
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
+
+if os.name == "nt":
+    import msvcrt
+else:
+    import fcntl
 
 REPOSITORY_ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(REPOSITORY_ROOT))
@@ -38,6 +46,7 @@ CONCURRENCY_ENV = "IDB_WARMUP_MAX_CONCURRENCY"
 MEMORY_BUDGET_ENV = "IDB_WARMUP_MAX_MEMORY_MIB"
 INVALIDATION_MAX_ATTEMPTS = 3
 INVALIDATION_RETRY_DELAY_SECONDS = 1.0
+WARMUP_LOCK_PREFIX = "cs2_vibesignatures_warmup"
 
 # IDA database and side files, mirroring ida_analyze_bin._ida_database_paths.
 _IDB_SUFFIXES = (".i64", ".idb", ".id0", ".id1", ".id2", ".nam", ".til")
@@ -56,6 +65,65 @@ def _is_warm(binary_path: Path) -> bool:
     packed = [Path(f"{binary_path}{suffix}") for suffix in (".i64", ".idb")]
     lock = Path(f"{binary_path}.id0")
     return any(path.is_file() for path in packed) and not lock.exists()
+
+
+def _warmup_lock_path(gamever: str, repo_root: Path) -> Path:
+    repository_key = hashlib.sha256(str(repo_root.resolve()).encode("utf-8")).hexdigest()[:16]
+    return Path(tempfile.gettempdir()) / f"{WARMUP_LOCK_PREFIX}_{repository_key}_{gamever}.lock"
+
+
+def _lock_file(handle) -> None:
+    handle.seek(0)
+    if os.name == "nt":
+        msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+    else:
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+
+
+def _unlock_file(handle) -> None:
+    handle.seek(0)
+    if os.name == "nt":
+        msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+    else:
+        fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+
+
+class GameverWarmupLock:
+    """Hold an OS-level lock for one repository and GAMEVER."""
+
+    def __init__(self, gamever: str, *, repo_root: Path) -> None:
+        self.path = _warmup_lock_path(gamever, repo_root)
+        self._handle = None
+
+    def acquire(self) -> bool:
+        if self._handle is not None:
+            return True
+        try:
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+            handle = self.path.open("a+b")
+            handle.seek(0, os.SEEK_END)
+            if handle.tell() == 0:
+                handle.write(b"0")
+                handle.flush()
+            try:
+                _lock_file(handle)
+            except OSError:
+                handle.close()
+                return False
+        except OSError as exc:
+            raise RuntimeError(f"unable to create lock file {self.path}: {exc}") from exc
+        self._handle = handle
+        return True
+
+    def release(self) -> None:
+        if self._handle is None:
+            return
+        handle = self._handle
+        self._handle = None
+        try:
+            _unlock_file(handle)
+        finally:
+            handle.close()
 
 
 def _invalidate_ida_database(binary_path: Path) -> tuple[list[str], list[str]]:
@@ -205,19 +273,7 @@ def parse_args(argv=None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def main(argv=None) -> int:
-    args = parse_args(argv)
-    python_exe = shutil.which(args.python)
-    if not python_exe:
-        print(f"warmup: python not found: {args.python}", file=sys.stderr)
-        return 1
-
-    worker_script = Path(args.worker_script)
-    if not worker_script.is_file():
-        print(f"warmup: worker script not found: {worker_script}", file=sys.stderr)
-        return 1
-
-    config_path = resolve_analysis_config(args.gamever, repo_root=REPOSITORY_ROOT)
+def _run_warmup(args, python_exe: str, worker_script: Path, config_path: Path) -> int:
     binaries = [
         binary_path
         for _module, _platform, binary_path in iter_configured_binaries(REPOSITORY_ROOT, args.gamever, config_path)
@@ -304,6 +360,37 @@ def main(argv=None) -> int:
 
     print(f"warmup: done; {warmed} warmed, {failed} failed, {skipped} already warm")
     return 1 if failed else 0
+
+
+def main(argv=None) -> int:
+    args = parse_args(argv)
+    python_exe = shutil.which(args.python)
+    if not python_exe:
+        print(f"warmup: python not found: {args.python}", file=sys.stderr)
+        return 1
+
+    worker_script = Path(args.worker_script)
+    if not worker_script.is_file():
+        print(f"warmup: worker script not found: {worker_script}", file=sys.stderr)
+        return 1
+
+    config_path = resolve_analysis_config(args.gamever, repo_root=REPOSITORY_ROOT)
+    gamever_lock = GameverWarmupLock(args.gamever, repo_root=REPOSITORY_ROOT)
+    try:
+        acquired = gamever_lock.acquire()
+    except RuntimeError as exc:
+        print(f"warmup: failed to acquire GAMEVER lock: {exc}", file=sys.stderr)
+        return 1
+    try:
+        if not acquired:
+            print(
+                f"warmup: another warmup instance is already running for GAMEVER {args.gamever}",
+                file=sys.stderr,
+            )
+            return 1
+        return _run_warmup(args, python_exe, worker_script, config_path)
+    finally:
+        gamever_lock.release()
 
 
 if __name__ == "__main__":

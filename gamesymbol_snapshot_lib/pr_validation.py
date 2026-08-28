@@ -10,13 +10,14 @@ from gamesymbol_snapshot_lib.analysis_sources import (
     workspace_python_sources,
 )
 from gamesymbol_snapshot_lib.codec import snapshot_analysis_output_contract_version
-from gamesymbol_snapshot_lib.errors import SnapshotConfigError
 from gamesymbol_snapshot_lib.model import ChangedPath, InvalidationPlan
 
 BROAD_ANALYSIS_FILES = {
     ".claude/agents/sig-finder.md",
     ".opencode/agents/sig-finder.md",
 }
+
+REFERENCE_ACTIONS = {"A": "added", "C": "copied", "M": "modified", "R": "renamed", "D": "deleted"}
 
 
 def _snapshot_delta(base_snapshot: dict, head_snapshot: dict) -> set[str]:
@@ -135,22 +136,26 @@ def _reference_change_nodes(
         return set(), []
     base_consumers = base_index.reference_consumers(base_reference, base_contract) if base_reference else set()
     head_consumers = head_index.reference_consumers(head_reference, head_contract) if head_reference else set()
-    if head_reference and not head_consumers:
-        raise SnapshotConfigError(f"error[orphan_active_reference]: {head_reference} has no HEAD consumer")
     nodes = _nodes_for_reference_consumers(base_contract, base_consumers)
     nodes.update(_nodes_for_reference_consumers(head_contract, head_consumers))
+    action = REFERENCE_ACTIONS.get(change.status, "changed")
     reasons = []
-    if base_reference and head_reference and change.status == "R":
+    if head_reference and not head_consumers:
+        # A reference nothing consumes cannot influence any producer, so it invalidates nothing.
+        # Warn instead of failing: a finder may legitimately ship reference YAML that no
+        # LLM_DECOMPILE spec reads (documentation for its Agent fallback SKILL.md), and a
+        # consumer declared only in a newer configs/<GAMEVER>.yaml is absent from the contract
+        # of the older GAMEVER this validation runs against.
+        reasons.append(f"warning: {action} orphan reference had no HEAD consumer: {head_reference}")
+    elif base_reference and head_reference and change.status == "R":
         reasons.append(f"reference rename: base {base_reference} -> HEAD {head_reference}")
     elif base_reference and head_reference:
         reasons.append(f"reference modify: {head_reference}")
     elif head_reference:
-        action = "copy" if change.status == "C" else "add"
-        reasons.append(f"reference {action}: HEAD {head_reference}")
+        reasons.append(f"reference {'copy' if change.status == 'C' else 'add'}: HEAD {head_reference}")
     elif base_consumers:
         reasons.append(f"reference delete: base {base_reference}")
     else:
-        action = "renamed" if change.status == "R" else "deleted"
         reasons.append(f"warning: {action} orphan reference had no base consumer: {base_reference}")
     if base_consumers or head_consumers:
         reasons.append(

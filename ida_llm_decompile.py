@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import asyncio
+import inspect
 import json
 import os
 import re
@@ -1259,7 +1260,10 @@ async def _call_llm_transport_attempt(
 ):
     max_attempts, retry_delay, retry_backoff_factor, retry_max_delay = retry_settings
     try:
-        return True, transport(**attempt_kwargs), retry_delay
+        content = transport(**attempt_kwargs)
+        if inspect.isawaitable(content):
+            content = await content
+        return True, content, retry_delay
     except Exception as exc:
         retry_delay = await _handle_llm_transport_error(
             exc,
