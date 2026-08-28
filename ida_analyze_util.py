@@ -28,6 +28,7 @@ except Exception:
     normalize_optional_temperature = None
 
 import ida_llm_decompile as _ida_llm_decompile
+from ida_mcp_keepalive import keepalive_worker_during
 from ida_llm_decompile import (
     _build_llm_decompile_request_cache_key,
     _debug_print_json,  # noqa: F401
@@ -8450,32 +8451,33 @@ async def preprocess_common_skill(
                 llm_symbol_name_list,
                 llm_decompile_specs_map,
             )
-            return await call_llm_decompile(
-                model=llm_request["model"],
-                symbol_name_list=llm_symbol_name_list,
-                expected_result_sections=expected_result_sections,
-                instruction_validations=instruction_validations,
-                disasm_code=primary_target_detail.get("disasm_code", ""),
-                target_disasm_codes=[target_detail.get("disasm_code", "") for target_detail in llm_target_details],
-                procedure=primary_target_detail.get("procedure", ""),
-                disasm_for_reference=llm_request["disasm_for_reference"],
-                procedure_for_reference=llm_request["procedure_for_reference"],
-                reference_blocks=reference_blocks,
-                target_blocks=target_blocks,
-                prompt_template=llm_request["prompt_template"],
-                platform=platform,
-                new_binary_dir=new_binary_dir,
-                temperature=llm_request.get("temperature"),
-                effort=llm_request.get("effort"),
-                api_key=llm_request.get("api_key"),
-                base_url=llm_request.get("base_url"),
-                fake_as=llm_request.get("fake_as"),
-                max_retries=llm_request.get("max_retries"),
-                retry_initial_delay=llm_request.get("retry_initial_delay"),
-                retry_backoff_factor=llm_request.get("retry_backoff_factor"),
-                retry_max_delay=llm_request.get("retry_max_delay"),
-                debug=debug,
-            )
+            async with keepalive_worker_during(session, debug=debug, activity="llm_decompile"):
+                return await call_llm_decompile(
+                    model=llm_request["model"],
+                    symbol_name_list=llm_symbol_name_list,
+                    expected_result_sections=expected_result_sections,
+                    instruction_validations=instruction_validations,
+                    disasm_code=primary_target_detail.get("disasm_code", ""),
+                    target_disasm_codes=[target_detail.get("disasm_code", "") for target_detail in llm_target_details],
+                    procedure=primary_target_detail.get("procedure", ""),
+                    disasm_for_reference=llm_request["disasm_for_reference"],
+                    procedure_for_reference=llm_request["procedure_for_reference"],
+                    reference_blocks=reference_blocks,
+                    target_blocks=target_blocks,
+                    prompt_template=llm_request["prompt_template"],
+                    platform=platform,
+                    new_binary_dir=new_binary_dir,
+                    temperature=llm_request.get("temperature"),
+                    effort=llm_request.get("effort"),
+                    api_key=llm_request.get("api_key"),
+                    base_url=llm_request.get("base_url"),
+                    fake_as=llm_request.get("fake_as"),
+                    max_retries=llm_request.get("max_retries"),
+                    retry_initial_delay=llm_request.get("retry_initial_delay"),
+                    retry_backoff_factor=llm_request.get("retry_backoff_factor"),
+                    retry_max_delay=llm_request.get("retry_max_delay"),
+                    debug=debug,
+                )
         except Exception:
             return _empty_llm_decompile_result()
 

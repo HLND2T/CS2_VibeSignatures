@@ -12,7 +12,7 @@ from typing import Any
 import yaml
 from ida_analyze_util import build_remote_text_export_py_eval, parse_mcp_result
 from ida_llm_utils import (
-    call_llm_text,
+    call_llm_text_sync as call_llm_text,
     normalize_optional_temperature,
     require_nonempty_text,
 )
