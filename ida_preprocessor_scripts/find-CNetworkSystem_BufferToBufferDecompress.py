@@ -8,7 +8,7 @@ FUNC_XREFS = [
     {
         "func_name": "CNetworkSystem_BufferToBufferDecompress",
         "xref_strings": [
-            "CNetworkSystem::BufferToBufferDecompress with improperly sized dest buffer (%u in, %llu needed)\\n"
+            "CNetworkSystem::BufferToBufferDecompress with improperly sized dest buffer (%u in, %llu needed)"
         ],
         "xref_gvs": [],
         "xref_signatures": [],
