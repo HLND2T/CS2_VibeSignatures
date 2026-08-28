@@ -7,12 +7,12 @@ TARGET_FUNCTION_NAMES = ["CNetworkSystem_CloseAllSockets"]
 FUNC_XREFS = [
     {
         "func_name": "CNetworkSystem_CloseAllSockets",
-        "xref_strings": ["CNetworkSystem::CloseAllSockets()\\n"],
+        "xref_strings": ["CNetworkSystem::CloseAllSockets()"],
         "xref_gvs": [],
         "xref_signatures": [],
         "xref_funcs": [],
         "exclude_funcs": [],
-        "exclude_strings": ["CNetworkSystem::Shutdown()\\n"],
+        "exclude_strings": ["CNetworkSystem::Shutdown()"],
         "exclude_gvs": [],
         "exclude_signatures": [],
     }
