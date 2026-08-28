@@ -7,7 +7,7 @@ TARGET_FUNCTION_NAMES = ["CNetworkSystem_InitNetworkSystem"]
 FUNC_XREFS = [
     {
         "func_name": "CNetworkSystem_InitNetworkSystem",
-        "xref_strings": ["CNetworkSystem::Init() failed - no SteamNetworking()\\n"],
+        "xref_strings": ["CNetworkSystem::Init() failed - no SteamNetworking()"],
         "xref_gvs": [],
         "xref_signatures": [],
         "xref_funcs": [],
