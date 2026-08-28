@@ -1,0 +1,111 @@
+func_name: CLoopTypeClientServer_UpdateClientServerStatus
+func_va: '0x37c900'
+disasm_code: |-
+  .text:000000000037C900                 push    rbp
+  .text:000000000037C901                 mov     rbp, rsp
+  .text:000000000037C904                 push    rbx
+  .text:000000000037C905                 mov     rbx, rdi
+  .text:000000000037C908                 sub     rsp, 8
+  .text:000000000037C90C                 mov     rdi, [rdi+130h]
+  .text:000000000037C913                 test    rdi, rdi
+  .text:000000000037C916                 jz      short loc_37C929
+  .text:000000000037C918                 mov     rax, [rdi]
+  .text:000000000037C91B                 call    qword ptr [rax+18h]
+  .text:000000000037C91E                 mov     qword ptr [rbx+130h], 0
+  .text:000000000037C929                 mov     rdi, [rbx+138h]
+  .text:000000000037C930                 test    rdi, rdi
+  .text:000000000037C933                 jz      short loc_37C946
+  .text:000000000037C935                 mov     rax, [rdi]
+  .text:000000000037C938                 ; 0x30 = 48LL = INetworkGameServer_Release
+  .text:000000000037C938                 call    qword ptr [rax+30h]; 0x30 = 48LL = INetworkGameServer_Release
+  .text:000000000037C93B                 mov     qword ptr [rbx+138h], 0
+  .text:000000000037C946                 mov     rdi, rbx
+  .text:000000000037C949                 call    sub_37C890
+  .text:000000000037C94E                 cmp     qword ptr [rbx+138h], 0
+  .text:000000000037C956                 mov     rdi, [rbx+130h]
+  .text:000000000037C95D                 setnz   al
+  .text:000000000037C960                 test    rdi, rdi
+  .text:000000000037C963                 setnz   dl
+  .text:000000000037C966                 movzx   ecx, dl
+  .text:000000000037C969                 mov     ch, al
+  .text:000000000037C96B                 and     al, dl
+  .text:000000000037C96D                 mov     [rbx+128h], cx
+  .text:000000000037C974                 jnz     short loc_37C998
+  .text:000000000037C976                 mov     byte ptr [rbx+12Ah], 0
+  .text:000000000037C97D                 test    rdi, rdi
+  .text:000000000037C980                 jz      short loc_37C98F
+  .text:000000000037C982                 movzx   eax, byte ptr [rbx+12Ah]
+  .text:000000000037C989                 mov     [rdi+2AEh], al
+  .text:000000000037C98F                 mov     rbx, [rbp+var_8]
+  .text:000000000037C993                 leave
+  .text:000000000037C994                 retn
+  .text:000000000037C998                 mov     byte ptr [rbx+12Ah], 1
+  .text:000000000037C99F                 cmp     byte ptr [rdi+29Ch], 0
+  .text:000000000037C9A6                 jz      short loc_37C989
+  .text:000000000037C9A8                 mov     rax, [rdi]
+  .text:000000000037C9AB                 xor     esi, esi
+  .text:000000000037C9AD                 call    qword ptr [rax+148h]
+  .text:000000000037C9B3                 mov     rdi, rax
+  .text:000000000037C9B6                 test    rax, rax
+  .text:000000000037C9B9                 jz      short loc_37C9D0
+  .text:000000000037C9BB                 mov     rax, [rax]
+  .text:000000000037C9BE                 call    qword ptr [rax+10h]
+  .text:000000000037C9C1                 mov     rdi, [rbx+130h]
+  .text:000000000037C9C8                 cmp     dword ptr [rax+1Ch], 4
+  .text:000000000037C9CC                 jnz     short loc_37C976
+  .text:000000000037C9CE                 jmp     short loc_37C97D
+  .text:000000000037C9D0                 mov     rdi, [rbx+130h]
+  .text:000000000037C9D7                 jmp     short loc_37C97D
+procedure: |-
+  char __fastcall sub_37C900(__int64 a1)
+  {
+    __int64 v2; // rdi
+    __int64 v3; // rdi
+    _BYTE *v4; // rdi
+    __int16 v5; // cx
+    _DWORD *v6; // rax
+
+    v2 = *(_QWORD *)(a1 + 304);
+    if ( v2 )
+    {
+      (*(void (__fastcall **)(__int64))(*(_QWORD *)v2 + 24LL))(v2);
+      *(_QWORD *)(a1 + 304) = 0;
+    }
+    v3 = *(_QWORD *)(a1 + 312);
+    if ( v3 )
+    {
+      (*(void (__fastcall **)(__int64))(*(_QWORD *)v3 + 48LL))(v3);// 0x30 = 48LL = INetworkGameServer_Release
+      *(_QWORD *)(a1 + 312) = 0;
+    }
+    sub_37C890(a1);
+    v4 = *(_BYTE **)(a1 + 304);
+    LOBYTE(v5) = v4 != nullptr;
+    HIBYTE(v5) = *(_QWORD *)(a1 + 312) != 0;
+    LOBYTE(v6) = (v4 != nullptr) & HIBYTE(v5);
+    *(_WORD *)(a1 + 296) = v5;
+    if ( !(_BYTE)v6 )
+      goto LABEL_6;
+    *(_BYTE *)(a1 + 298) = 1;
+    if ( !v4[668] )
+      goto LABEL_9;
+    v6 = (_DWORD *)(*(__int64 (__fastcall **)(_BYTE *, _QWORD))(*(_QWORD *)v4 + 328LL))(v4, 0);
+    if ( v6 )
+    {
+      v6 = (_DWORD *)(*(__int64 (__fastcall **)(_DWORD *))(*(_QWORD *)v6 + 16LL))(v6);
+      v4 = *(_BYTE **)(a1 + 304);
+      if ( v6[7] != 4 )
+  LABEL_6:
+        *(_BYTE *)(a1 + 298) = 0;
+    }
+    else
+    {
+      v4 = *(_BYTE **)(a1 + 304);
+    }
+    if ( v4 )
+    {
+      LOBYTE(v6) = *(_BYTE *)(a1 + 298);
+  LABEL_9:
+      v4[686] = (_BYTE)v6;
+    }
+    return (char)v6;
+  }

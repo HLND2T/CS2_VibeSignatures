@@ -1875,6 +1875,18 @@ modules:
           - CLoopTypeClientServer_Update.{platform}.yaml
         expected_input:
           - CLoopTypeClientServer_vtable.{platform}.yaml
+      - name: find-CLoopTypeClientServer_UpdateClientServerStatus
+        expected_output:
+          - CLoopTypeClientServer_UpdateClientServerStatus.{platform}.yaml
+        expected_input:
+          - CLoopTypeClientServer_Update.{platform}.yaml
+      - name: find-CLoopTypeClientServer_UpdateClientServerStatus-decompiles
+        expected_output:
+          - CNetworkGameServerBase_AddRef.{platform}.yaml
+          - CNetworkGameServerBase_Release.{platform}.yaml
+        expected_input:
+          - CLoopTypeClientServer_UpdateClientServerStatus.{platform}.yaml
+          - CNetworkGameServerBase_vtable.{platform}.yaml
       - name: find-CLoopTypeClientServer_ActivateLoop
         expected_output:
           - CLoopTypeClientServer_ActivateLoop.{platform}.yaml
@@ -3160,6 +3172,14 @@ modules:
         category: vfunc
         alias:
           - CNetworkGameServerBase::ServerAdvanceTick
+      - name: CNetworkGameServerBase_AddRef
+        category: vfunc
+        alias:
+          - CNetworkGameServerBase::AddRef
+      - name: CNetworkGameServerBase_Release
+        category: vfunc
+        alias:
+          - CNetworkGameServerBase::Release
       - name: INetworkGameServer_GetTime
         category: vfunc
         alias:
@@ -3414,6 +3434,10 @@ modules:
         category: vfunc
         alias:
           - CLoopTypeClientServer::Update
+      - name: CLoopTypeClientServer_UpdateClientServerStatus
+        category: func
+        alias:
+          - CLoopTypeClientServer::UpdateClientServerStatus
       - name: CLoopTypeClientServer_ActivateLoop
         category: vfunc
         alias:
