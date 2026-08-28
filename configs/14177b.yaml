@@ -2022,6 +2022,12 @@ modules:
       - name: find-CEngineServiceMgr_vtable
         expected_output:
           - CEngineServiceMgr_vtable.{platform}.yaml
+      - name: find-CEngineServiceMgr_GetDebugVisualizerMgr
+        expected_output:
+          - CEngineServiceMgr_GetDebugVisualizerMgr.{platform}.yaml
+        expected_input:
+          - CLoopTypeClientServer_Update.{platform}.yaml
+          - CEngineServiceMgr_vtable.{platform}.yaml
       - name: find-CEngineServiceMgr_RegisterEngineService
         expected_output:
           - CEngineServiceMgr_RegisterEngineService.{platform}.yaml
@@ -3542,6 +3548,10 @@ modules:
           - ILoopModeFactory::Shutdown
       - name: CEngineServiceMgr_vtable
         category: vtable
+      - name: CEngineServiceMgr_GetDebugVisualizerMgr
+        category: vfunc
+        alias:
+          - CEngineServiceMgr::GetDebugVisualizerMgr
       - name: CEngineServiceMgr_RegisterEngineService
         category: vfunc
         alias:
