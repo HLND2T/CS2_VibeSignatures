@@ -2022,6 +2022,15 @@ modules:
       - name: find-CEngineServiceMgr_vtable
         expected_output:
           - CEngineServiceMgr_vtable.{platform}.yaml
+      - name: find-MainLoop
+        expected_output:
+          - MainLoop.{platform}.yaml
+      - name: find-CEngineServiceMgr_GetActiveLoop
+        expected_output:
+          - CEngineServiceMgr_GetActiveLoop.{platform}.yaml
+        expected_input:
+          - MainLoop.{platform}.yaml
+          - CEngineServiceMgr_vtable.{platform}.yaml
       - name: find-CEngineServiceMgr_RegisterEngineService
         expected_output:
           - CEngineServiceMgr_RegisterEngineService.{platform}.yaml
@@ -3542,6 +3551,14 @@ modules:
           - ILoopModeFactory::Shutdown
       - name: CEngineServiceMgr_vtable
         category: vtable
+      - name: MainLoop
+        category: func
+        alias:
+          - MainLoop
+      - name: CEngineServiceMgr_GetActiveLoop
+        category: vfunc
+        alias:
+          - CEngineServiceMgr::GetActiveLoop
       - name: CEngineServiceMgr_RegisterEngineService
         category: vfunc
         alias:
