@@ -1,0 +1,129 @@
+func_name: CLoopModeLevelLoad_LoopInit
+func_va: '0x4547e0'
+disasm_code: |-
+  .text:00000000004547E0                 push    rbp
+  .text:00000000004547E1                 mov     rbp, rsp
+  .text:00000000004547E4                 push    r13
+  .text:00000000004547E6                 mov     r13, rdx
+  .text:00000000004547E9                 push    r12
+  .text:00000000004547EB                 mov     r12, rsi
+  .text:00000000004547EE                 push    rbx
+  .text:00000000004547EF                 mov     rbx, rdi
+  .text:00000000004547F2                 mov     edi, 28h ; '('
+  .text:00000000004547F7                 sub     rsp, 8
+  .text:00000000004547FB                 call    sub_2BBE00
+  .text:0000000000454800                 mov     rdi, r13
+  .text:0000000000454803                 mov     rsi, rax
+  .text:0000000000454806                 lea     rax, off_99F7D0
+  .text:000000000045480D                 mov     [rbx+8], rsi
+  .text:0000000000454811                 mov     [rsi], rax
+  .text:0000000000454814                 mov     rax, [r13+0]
+  .text:0000000000454818                 mov     qword ptr [rsi+10h], 0
+  .text:0000000000454820                 mov     qword ptr [rsi+18h], 0
+  .text:0000000000454828                 mov     qword ptr [rsi+20h], 0
+  .text:0000000000454830                 mov     dword ptr [rsi+8], 1
+  .text:0000000000454837                 ; CEngineServiceMgr_RegisterPrerequisite
+  .text:0000000000454837                 call    qword ptr [rax]; CEngineServiceMgr_RegisterPrerequisite
+  .text:0000000000454839                 lea     rsi, aLevelname; "levelname"
+  .text:0000000000454840                 mov     dword ptr [rbx+30h], 0
+  .text:0000000000454847                 mov     rdi, r12
+  .text:000000000045484A                 call    sub_2C8F40
+  .text:000000000045484F                 lea     rsi, unk_27CD8A
+  .text:0000000000454856                 test    rax, rax
+  .text:0000000000454859                 jz      short loc_45486A
+  .text:000000000045485B                 xor     ecx, ecx
+  .text:000000000045485D                 xor     edx, edx
+  .text:000000000045485F                 mov     rdi, rax
+  .text:0000000000454862                 call    sub_2C7E00
+  .text:0000000000454867                 mov     rsi, rax
+  .text:000000000045486A                 lea     rdi, [rbx+28h]
+  .text:000000000045486E                 call    sub_2C7D90
+  .text:0000000000454873                 xor     edx, edx
+  .text:0000000000454875                 mov     rdi, r12
+  .text:0000000000454878                 lea     rsi, aUsepreconnectl; "usepreconnectlogic"
+  .text:000000000045487F                 call    sub_2C8D60
+  .text:0000000000454884                 mov     r12, [rbx+8]
+  .text:0000000000454888                 mov     r8d, 0FFFFFFFFh
+  .text:000000000045488E                 mov     edx, 1
+  .text:0000000000454893                 lea     rcx, aCloopmodelevel; "CLoopModeLevelLoad::LoopInit"
+  .text:000000000045489A                 test    eax, eax
+  .text:000000000045489C                 lea     rax, g_pResourceSystem
+  .text:00000000004548A3                 setnz   byte ptr [rbx+7Ch]
+  .text:00000000004548A7                 lea     rsi, aLoopmodelevell; "LoopModeLevelLoad"
+  .text:00000000004548AE                 mov     rdi, [rax]
+  .text:00000000004548B1                 mov     rax, [rdi]
+  .text:00000000004548B4                 call    qword ptr [rax+0A8h]
+  .text:00000000004548BA                 mov     rbx, rax
+  .text:00000000004548BD                 test    rax, rax
+  .text:00000000004548C0                 jz      short loc_4548E2
+  .text:00000000004548C2                 movsxd  r13, dword ptr [r12+10h]
+  .text:00000000004548C7                 mov     eax, r13d
+  .text:00000000004548CA                 cmp     r13d, [r12+20h]
+  .text:00000000004548CF                 jz      short loc_4548F8
+  .text:00000000004548D1                 add     eax, 1
+  .text:00000000004548D4                 mov     [r12+10h], eax
+  .text:00000000004548D9                 mov     rax, [r12+18h]
+  .text:00000000004548DE                 mov     [rax+r13*8], rbx
+  .text:00000000004548E2                 add     rsp, 8
+  .text:00000000004548E6                 mov     eax, 1
+  .text:00000000004548EB                 pop     rbx
+  .text:00000000004548EC                 pop     r12
+  .text:00000000004548EE                 pop     r13
+  .text:00000000004548F0                 pop     rbp
+  .text:00000000004548F1                 retn
+  .text:00000000004548F8                 lea     rdi, [r12+18h]
+  .text:00000000004548FD                 mov     esi, 1
+  .text:0000000000454902                 call    sub_4546C0
+  .text:0000000000454907                 mov     eax, [r12+10h]
+  .text:000000000045490C                 jmp     short loc_4548D1
+procedure: |-
+  __int64 __fastcall sub_4547E0(__int64 a1, __int64 a2, void (__fastcall ***a3)(_QWORD))
+  {
+    __int64 v5; // rsi
+    void (__fastcall **v6)(_QWORD); // rax
+    __int64 v7; // rax
+    void *v8; // rsi
+    int v9; // eax
+    __int64 v10; // r12
+    __int64 v11; // rbx
+    __int64 v12; // r13
+    int v13; // eax
+
+    v5 = sub_2BBE00(40);
+    *(_QWORD *)(a1 + 8) = v5;
+    *(_QWORD *)v5 = off_99F7D0;
+    v6 = *a3;
+    *(_QWORD *)(v5 + 16) = 0;
+    *(_QWORD *)(v5 + 24) = 0;
+    *(_QWORD *)(v5 + 32) = 0;
+    *(_DWORD *)(v5 + 8) = 1;
+    (*v6)(a3);                                    // CEngineServiceMgr_RegisterPrerequisite
+    *(_DWORD *)(a1 + 48) = 0;
+    v7 = sub_2C8F40(a2, "levelname");
+    v8 = &unk_27CD8A;
+    if ( v7 )
+      v8 = (void *)sub_2C7E00(v7, &unk_27CD8A, 0, 0);
+    sub_2C7D90(a1 + 40, v8);
+    v9 = sub_2C8D60(a2, "usepreconnectlogic", 0);
+    v10 = *(_QWORD *)(a1 + 8);
+    *(_BYTE *)(a1 + 124) = v9 != 0;
+    v11 = (*(__int64 (__fastcall **)(_QWORD *, const char *, __int64, const char *, __int64))(*g_pResourceSystem + 168LL))(
+            g_pResourceSystem,
+            "LoopModeLevelLoad",
+            1,
+            "CLoopModeLevelLoad::LoopInit",
+            0xFFFFFFFFLL);
+    if ( v11 )
+    {
+      v12 = *(int *)(v10 + 16);
+      v13 = v12;
+      if ( (_DWORD)v12 == *(_DWORD *)(v10 + 32) )
+      {
+        sub_4546C0(v10 + 24, 1);
+        v13 = *(_DWORD *)(v10 + 16);
+      }
+      *(_DWORD *)(v10 + 16) = v13 + 1;
+      *(_QWORD *)(*(_QWORD *)(v10 + 24) + 8 * v12) = v11;
+    }
+    return 1;
+  }

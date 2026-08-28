@@ -2022,6 +2022,20 @@ modules:
       - name: find-CEngineServiceMgr_vtable
         expected_output:
           - CEngineServiceMgr_vtable.{platform}.yaml
+      - name: find-CLoopModeLevelLoad_vtable
+        expected_output:
+          - CLoopModeLevelLoad_vtable.{platform}.yaml
+      - name: find-CLoopModeLevelLoad_LoopInit
+        expected_output:
+          - CLoopModeLevelLoad_LoopInit.{platform}.yaml
+        expected_input:
+          - CLoopModeLevelLoad_vtable.{platform}.yaml
+      - name: find-CEngineServiceMgr_RegisterPrerequisite
+        expected_output:
+          - CEngineServiceMgr_RegisterPrerequisite.{platform}.yaml
+        expected_input:
+          - CLoopModeLevelLoad_LoopInit.{platform}.yaml
+          - CEngineServiceMgr_vtable.{platform}.yaml
       - name: find-CEngineServiceMgr_RegisterEngineService
         expected_output:
           - CEngineServiceMgr_RegisterEngineService.{platform}.yaml
@@ -3542,6 +3556,16 @@ modules:
           - ILoopModeFactory::Shutdown
       - name: CEngineServiceMgr_vtable
         category: vtable
+      - name: CLoopModeLevelLoad_vtable
+        category: vtable
+      - name: CLoopModeLevelLoad_LoopInit
+        category: vfunc
+        alias:
+          - CLoopModeLevelLoad::LoopInit
+      - name: CEngineServiceMgr_RegisterPrerequisite
+        category: vfunc
+        alias:
+          - CEngineServiceMgr::RegisterPrerequisite
       - name: CEngineServiceMgr_RegisterEngineService
         category: vfunc
         alias:
