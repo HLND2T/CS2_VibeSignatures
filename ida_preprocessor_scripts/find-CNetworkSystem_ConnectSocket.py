@@ -10,7 +10,7 @@ TARGET_FUNCTION_NAMES = [
 FUNC_XREFS = [
     {
         "func_name": "CNetworkSystem_ConnectSocket",
-        "xref_strings": ["Reusing cacheable shared Steam Net Connection to '%s'\\n"],
+        "xref_strings": ["Reusing cacheable shared Steam Net Connection to '%s'"],
         "xref_gvs": [],
         "xref_signatures": [],
         "xref_funcs": [],

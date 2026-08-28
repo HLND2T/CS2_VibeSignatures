@@ -8,7 +8,7 @@ TARGET_FUNCTION_NAMES = ["CNetworkSystem_EnableLoopbackBetweenSockets"]
 FUNC_XREFS = [
     {
         "func_name": "CNetworkSystem_EnableLoopbackBetweenSockets",
-        "xref_strings": ["Can't ConnectLoopback between socket %d and %d, not enough slots\\n"],
+        "xref_strings": ["Can't ConnectLoopback between socket %d and %d, not enough slots"],
         "xref_gvs": [],
         "xref_signatures": [],
         "xref_funcs": [],

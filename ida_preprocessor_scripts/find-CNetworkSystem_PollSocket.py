@@ -8,7 +8,7 @@ TARGET_FUNCTION_NAMES = ["CNetworkSystem_PollSocket"]
 FUNC_XREFS = [
     {
         "func_name": "CNetworkSystem_PollSocket",
-        "xref_strings": ["%8.3f: PollSocket(%d)\\n"],
+        "xref_strings": ["%8.3f: PollSocket(%d)"],
         "xref_gvs": [],
         "xref_signatures": [],
         "xref_funcs": [],

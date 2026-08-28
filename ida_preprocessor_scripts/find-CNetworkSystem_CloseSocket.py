@@ -8,12 +8,12 @@ TARGET_FUNCTION_NAMES = ["CNetworkSystem_CloseSocket"]
 FUNC_XREFS = [
     {
         "func_name": "CNetworkSystem_CloseSocket",
-        "xref_strings": ["Closing '%s' UDP listen socket\\n"],
+        "xref_strings": ["Closing '%s' UDP listen socket"],
         "xref_gvs": [],
         "xref_signatures": [],
         "xref_funcs": [],
         "exclude_funcs": [],
-        "exclude_strings": ["CNetworkSystem::CloseAllSockets()\\n"],
+        "exclude_strings": ["CNetworkSystem::CloseAllSockets()"],
         "exclude_gvs": [],
         "exclude_signatures": [],
     },
