@@ -392,11 +392,33 @@ modules:
           - CNetworkSystem_ConnectSocket.{platform}.yaml
         expected_input:
           - CNetworkSystem_vtable.{platform}.yaml
-      - name: find-CNetworkSystem_CloseSocket
+      # CNetworkSystem::CloseSocket: the string-owning teardown body (CloseSocketInternal,
+      # which holds "Closing '%s' UDP/P2P/SDR listen socket" + "Closing '%s' poll group") is
+      # fused into the vfunc on networksystem.dll, but de-inlined into a standalone function
+      # on libnetworksystem.so, leaving the vfunc as a thin bounds-check forwarder with no
+      # strings of its own. Inverted-topology inline/de-inline fallback chain:
+      - name: find-CNetworkSystem_CloseSocketInternal
+        platform: linux
+        optional_output:
+          - CNetworkSystem_CloseSocketInternal.{platform}.yaml
+        skip_if_exists:
+          - CNetworkSystem_CloseSocket.{platform}.yaml
+      - name: find-CNetworkSystem_CloseSocket-deinlined
+        optional_output:
+          - CNetworkSystem_CloseSocket.{platform}.yaml
+        expected_input:
+          - CNetworkSystem_vtable.{platform}.yaml
+        prerequisite:
+          - find-CNetworkSystem_CloseSocketInternal
+      - name: find-CNetworkSystem_CloseSocket-inlined
         expected_output:
           - CNetworkSystem_CloseSocket.{platform}.yaml
         expected_input:
           - CNetworkSystem_vtable.{platform}.yaml
+        skip_if_exists:
+          - CNetworkSystem_CloseSocket.{platform}.yaml
+        prerequisite:
+          - find-CNetworkSystem_CloseSocket-deinlined
       - name: find-CNetworkSystem_ShutdownGameServer
         expected_output:
           - CNetworkSystem_ShutdownGameServer.{platform}.yaml
