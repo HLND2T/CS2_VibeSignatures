@@ -1473,6 +1473,21 @@ modules:
       - name: find-CNetworkGameClient_vtable
         expected_output:
           - CNetworkGameClient_vtable.{platform}.yaml
+      - name: find-CNetworkGameClientBase_ctor
+        expected_output:
+          - CNetworkGameClientBase_ctor.{platform}.yaml
+      - name: find-CNetworkGameClient_ctor
+        expected_output:
+          - CNetworkGameClient_ctor.{platform}.yaml
+        expected_input:
+          - CNetworkGameClientBase_ctor.{platform}.yaml
+          - CNetworkGameClient_vtable.{platform}.yaml
+      - name: find-CEngineServiceMgr_InstallSwitchLoopModeStatusNotify
+        expected_output:
+          - CEngineServiceMgr_InstallSwitchLoopModeStatusNotify.{platform}.yaml
+        expected_input:
+          - CNetworkGameClient_ctor.{platform}.yaml
+          - CEngineServiceMgr_vtable.{platform}.yaml
       - name: find-CNetworkClientService_OnSimpleLoopFrameUpdate-decompiles
         platform: windows
         expected_output:
@@ -2725,6 +2740,18 @@ modules:
           - CMsgSource2NetworkFlowQuality::PrintStats
       - name: CNetworkGameClient_vtable
         category: vtable
+      - name: CNetworkGameClientBase_ctor
+        category: func
+        alias:
+          - CNetworkGameClientBase::CNetworkGameClientBase
+      - name: CNetworkGameClient_ctor
+        category: func
+        alias:
+          - CNetworkGameClient::CNetworkGameClient
+      - name: CEngineServiceMgr_InstallSwitchLoopModeStatusNotify
+        category: vfunc
+        alias:
+          - CEngineServiceMgr::InstallSwitchLoopModeStatusNotify
       - name: CNetworkGameClientBase__ProcessNetworking
         category: vfunc
         alias:
