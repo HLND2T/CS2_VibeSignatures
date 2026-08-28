@@ -1,0 +1,31 @@
+func_name: CSoundService_IsActive
+func_va: '0x1801eee90'
+disasm_code: |-
+  .text:00000001801EEE90                 push    rbx
+  .text:00000001801EEE92                 sub     rsp, 20h
+  .text:00000001801EEE96                 mov     rbx, rcx
+  .text:00000001801EEE99                 mov     rcx, cs:g_pEngineServiceMgr
+  .text:00000001801EEEA0                 mov     rax, [rcx]
+  .text:00000001801EEEA3                 ; 0x80 = 128LL = IEngineServiceMgr_GetActiveLoopName
+  .text:00000001801EEEA3                 call    qword ptr [rax+80h]; 0x80 = 128LL = IEngineServiceMgr_GetActiveLoopName
+  .text:00000001801EEEA9                 mov     rcx, rax
+  .text:00000001801EEEAC                 lea     rdx, aGame; "game"
+  .text:00000001801EEEB3                 call    cs:V_stricmp_fast
+  .text:00000001801EEEB9                 test    eax, eax
+  .text:00000001801EEEBB                 jnz     short loc_1801EEEC4
+  .text:00000001801EEEBD                 mov     byte ptr [rbx+2A7h], 1
+  .text:00000001801EEEC4                 add     rsp, 20h
+  .text:00000001801EEEC8                 pop     rbx
+  .text:00000001801EEEC9                 retn
+procedure: |-
+  __int64 __fastcall sub_1801EEE90(__int64 a1)
+  {
+    __int64 v2; // rax
+    __int64 result; // rax
+
+    v2 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)g_pEngineServiceMgr + 128LL))(g_pEngineServiceMgr);// 0x80 = 128LL = IEngineServiceMgr_GetActiveLoopName
+    result = V_stricmp_fast(v2, "game");
+    if ( !(_DWORD)result )
+      *(_BYTE *)(a1 + 679) = 1;
+    return result;
+  }

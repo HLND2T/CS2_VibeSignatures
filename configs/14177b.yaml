@@ -3533,6 +3533,16 @@ modules:
           - ILoopModeFactory::Shutdown
       - name: CEngineServiceMgr_vtable
         category: vtable
+      - name: CSoundService_vtable
+        category: vtable
+      - name: CSoundService_IsActive
+        category: vfunc
+        alias:
+          - CSoundService::IsActive
+      - name: CEngineServiceMgr_GetActiveLoopName
+        category: vfunc
+        alias:
+          - CEngineServiceMgr::GetActiveLoopName
       - name: CEngineServiceMgr_RegisterEngineService
         category: vfunc
         alias:
@@ -13023,6 +13033,21 @@ modules:
         expected_input:
           - CEngineServiceMgr_vtable.{platform}.yaml
           - ../client/IEngineServiceMgr_GetEventDispatcher.{platform}.yaml
+      - name: find-CSoundService_vtable
+        expected_output:
+          - CSoundService_vtable.{platform}.yaml
+      - name: find-CSoundService_IsActive
+        expected_output:
+          - CSoundService_IsActive.{platform}.yaml
+        expected_input:
+          - CSoundService_vtable.{platform}.yaml
+          - ../client/g_pEngineServiceMgr.{platform}.yaml
+      - name: find-CEngineServiceMgr_GetActiveLoopName
+        expected_output:
+          - CEngineServiceMgr_GetActiveLoopName.{platform}.yaml
+        expected_input:
+          - CSoundService_IsActive.{platform}.yaml
+          - CEngineServiceMgr_vtable.{platform}.yaml
   - name: networksystem  # Execute skills for networksystem.dll again after server.dll
     path_windows: game/bin/win64/networksystem.dll
     path_linux: game/bin/linuxsteamrt64/libnetworksystem.so

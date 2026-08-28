@@ -1,0 +1,34 @@
+func_name: CSoundService_IsActive
+func_va: '0x43aba0'
+disasm_code: |-
+  .text:000000000043ABA0                 push    rbp
+  .text:000000000043ABA1                 mov     rbp, rsp
+  .text:000000000043ABA4                 push    rbx
+  .text:000000000043ABA5                 mov     rbx, rdi
+  .text:000000000043ABA8                 sub     rsp, 8
+  .text:000000000043ABAC                 lea     rax, g_pEngineServiceMgr
+  .text:000000000043ABB3                 mov     rdi, [rax]
+  .text:000000000043ABB6                 mov     rax, [rdi]
+  .text:000000000043ABB9                 ; 0x80 = 128LL = IEngineServiceMgr_GetActiveLoopName
+  .text:000000000043ABB9                 call    qword ptr [rax+80h]; 0x80 = 128LL = IEngineServiceMgr_GetActiveLoopName
+  .text:000000000043ABBF                 lea     rsi, aGame_0; "game"
+  .text:000000000043ABC6                 mov     rdi, rax
+  .text:000000000043ABC9                 call    sub_2C9A80
+  .text:000000000043ABCE                 test    eax, eax
+  .text:000000000043ABD0                 jnz     short loc_43ABD9
+  .text:000000000043ABD2                 mov     byte ptr [rbx+2AFh], 1
+  .text:000000000043ABD9                 mov     rbx, [rbp+var_8]
+  .text:000000000043ABDD                 leave
+  .text:000000000043ABDE                 retn
+procedure: |-
+  __int64 __fastcall sub_43ABA0(__int64 a1)
+  {
+    __int64 v1; // rax
+    __int64 result; // rax
+
+    v1 = (*(__int64 (__fastcall **)(_QWORD *))(*g_pEngineServiceMgr + 128LL))(g_pEngineServiceMgr);// 0x80 = 128LL = IEngineServiceMgr_GetActiveLoopName
+    result = sub_2C9A80(v1, "game");
+    if ( !(_DWORD)result )
+      *(_BYTE *)(a1 + 687) = 1;
+    return result;
+  }
