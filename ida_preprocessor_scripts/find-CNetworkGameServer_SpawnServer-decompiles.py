@@ -5,11 +5,35 @@ from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = [
     "INetworkGameServer_GetMaxClients",
+    "CNetworkGameServerBase_GetMaxClients",
+    "CEngineServiceMgr_GetAddonsString",
 ]
 
 LLM_DECOMPILE = [
     {
         "symbol_name": "INetworkGameServer_GetMaxClients",
+        "prompt_path": "prompt/call_llm_decompile.md",
+        "reference_yaml_paths": [
+            "references/engine/CNetworkGameServer_SpawnServer.{platform}.yaml",
+        ],
+        "expected_result_sections": ["found_vcall"],
+        "dependency_policy": {
+            "CNetworkGameServer_SpawnServer.{platform}.yaml": "required",
+        },
+    },
+    {
+        "symbol_name": "CNetworkGameServerBase_GetMaxClients",
+        "prompt_path": "prompt/call_llm_decompile.md",
+        "reference_yaml_paths": [
+            "references/engine/CNetworkGameServer_SpawnServer.{platform}.yaml",
+        ],
+        "expected_result_sections": ["found_vcall"],
+        "dependency_policy": {
+            "CNetworkGameServer_SpawnServer.{platform}.yaml": "required",
+        },
+    },
+    {
+        "symbol_name": "CEngineServiceMgr_GetAddonsString",
         "prompt_path": "prompt/call_llm_decompile.md",
         "reference_yaml_paths": [
             "references/engine/CNetworkGameServer_SpawnServer.{platform}.yaml",
@@ -25,12 +49,34 @@ LLM_DECOMPILE = [
 FUNC_VTABLE_RELATIONS = [
     # (func_name, vtable_class)
     ("INetworkGameServer_GetMaxClients", "INetworkGameServer"),
+    ("CNetworkGameServerBase_GetMaxClients", "CNetworkGameServerBase"),
+    ("CEngineServiceMgr_GetAddonsString", "CEngineServiceMgr"),
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
     (
         "INetworkGameServer_GetMaxClients",
+        [
+            "func_name",
+            "vfunc_sig",
+            "vfunc_offset",
+            "vfunc_index",
+            "vtable_name",
+        ],
+    ),
+    (
+        "CNetworkGameServerBase_GetMaxClients",
+        [
+            "func_name",
+            "vfunc_sig",
+            "vfunc_offset",
+            "vfunc_index",
+            "vtable_name",
+        ],
+    ),
+    (
+        "CEngineServiceMgr_GetAddonsString",
         [
             "func_name",
             "vfunc_sig",

@@ -640,14 +640,12 @@ modules:
       - name: find-CNetworkGameServer_SpawnServer-decompiles
         expected_output:
           - INetworkGameServer_GetMaxClients.{platform}.yaml
+          - CNetworkGameServerBase_GetMaxClients.{platform}.yaml
+          - CEngineServiceMgr_GetAddonsString.{platform}.yaml
         expected_input:
           - CNetworkGameServer_SpawnServer.{platform}.yaml
-      - name: find-CNetworkGameServerBase_GetMaxClients
-        expected_output:
-          - CNetworkGameServerBase_GetMaxClients.{platform}.yaml
-        expected_input:
           - CNetworkGameServerBase_vtable.{platform}.yaml
-          - INetworkGameServer_GetMaxClients.{platform}.yaml
+          - CEngineServiceMgr_vtable.{platform}.yaml
       - name: find-CNetworkGameServerBase_GetClassBaseline
         expected_output:
           - CNetworkGameServerBase_GetClassBaseline.{platform}.yaml
@@ -3542,6 +3540,10 @@ modules:
           - ILoopModeFactory::Shutdown
       - name: CEngineServiceMgr_vtable
         category: vtable
+      - name: CEngineServiceMgr_GetAddonsString
+        category: vfunc
+        alias:
+          - CEngineServiceMgr::GetAddonsString
       - name: CEngineServiceMgr_RegisterEngineService
         category: vfunc
         alias:
