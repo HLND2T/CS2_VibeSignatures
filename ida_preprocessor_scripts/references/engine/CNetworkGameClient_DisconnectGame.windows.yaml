@@ -1,0 +1,395 @@
+func_name: CNetworkGameClient_DisconnectGame
+func_va: '0x180068f60'
+disasm_code: |-
+  .text:0000000180068F60                 push    rbx
+  .text:0000000180068F62                 push    rbp
+  .text:0000000180068F63                 push    rsi
+  .text:0000000180068F64                 push    rdi
+  .text:0000000180068F65                 push    r14
+  .text:0000000180068F67                 sub     rsp, 80h
+  .text:0000000180068F6E                 movaps  [rsp+0A8h+var_38], xmm6
+  .text:0000000180068F73                 mov     rdi, r8
+  .text:0000000180068F76                 movaps  [rsp+0A8h+var_48], xmm7
+  .text:0000000180068F7B                 mov     ebp, edx
+  .text:0000000180068F7D                 movaps  [rsp+0A8h+var_58], xmm8
+  .text:0000000180068F83                 mov     rsi, rcx
+  .text:0000000180068F86                 cmp     edx, 1Bh
+  .text:0000000180068F89                 jnz     loc_180069144
+  .text:0000000180068F8F                 mov     ecx, cs:dword_1808CDB6C
+  .text:0000000180068F95                 mov     edx, 2
+  .text:0000000180068F9A                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:0000000180068FA0                 test    al, al
+  .text:0000000180068FA2                 jz      short loc_180068FBC
+  .text:0000000180068FA4                 mov     ecx, cs:dword_1808CDB6C
+  .text:0000000180068FAA                 lea     r8, aClDisconnected; "CL:  Disconnected - Client delta ticks "...
+  .text:0000000180068FB1                 mov     edx, 2
+  .text:0000000180068FB6                 call    cs:LoggingSystem_Log
+  .text:0000000180068FBC                 call    cs:Plat_MSTime
+  .text:0000000180068FC2                 movsxd  rcx, cs:dword_18068E0E0
+  .text:0000000180068FC9                 mov     ebx, eax
+  .text:0000000180068FCB                 cmp     rcx, 8
+  .text:0000000180068FCF                 jb      loc_180069117
+  .text:0000000180068FD5                 nop     word ptr [rax+rax+00000000h]
+  .text:0000000180068FE0                 mov     r8d, 4
+  .text:0000000180068FE6                 lea     rdx, [rsp+0A8h+arg_8]
+  .text:0000000180068FEE                 lea     rcx, dword_18068E0E0
+  .text:0000000180068FF5                 call    cs:?Read@CCircularBuffer@@QEAAHPEAXH@Z; CCircularBuffer::Read(void *,int)
+  .text:0000000180068FFB                 test    eax, eax
+  .text:0000000180068FFD                 jz      loc_180069106
+  .text:0000000180069003                 mov     r8d, 4
+  .text:0000000180069009                 lea     rdx, [rsp+0A8h+arg_0]
+  .text:0000000180069011                 lea     rcx, dword_18068E0E0
+  .text:0000000180069018                 call    cs:?Read@CCircularBuffer@@QEAAHPEAXH@Z; CCircularBuffer::Read(void *,int)
+  .text:000000018006901E                 test    eax, eax
+  .text:0000000180069020                 jz      loc_180069106
+  .text:0000000180069026                 mov     r8d, 4
+  .text:000000018006902C                 lea     rdx, aPrep; "PREP"
+  .text:0000000180069033                 lea     rcx, [rsp+0A8h+arg_8]
+  .text:000000018006903B                 call    cs:_V_strncmp
+  .text:0000000180069041                 test    eax, eax
+  .text:0000000180069043                 jnz     short loc_180069072
+  .text:0000000180069045                 mov     ecx, cs:dword_1808CDB6C
+  .text:000000018006904B                 mov     edx, 2
+  .text:0000000180069050                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:0000000180069056                 test    al, al
+  .text:0000000180069058                 jz      loc_180069106
+  .text:000000018006905E                 mov     r9d, [rsp+0A8h+arg_0]
+  .text:0000000180069066                 lea     r8, aPreparedTickD; "     Prepared tick #%d\n"
+  .text:000000018006906D                 jmp     loc_1800690F5
+  .text:0000000180069072                 mov     r8d, 4
+  .text:0000000180069078                 lea     rdx, aSent; "SENT"
+  .text:000000018006907F                 lea     rcx, [rsp+0A8h+arg_8]
+  .text:0000000180069087                 call    cs:_V_strncmp
+  .text:000000018006908D                 test    eax, eax
+  .text:000000018006908F                 jnz     short loc_1800690AF
+  .text:0000000180069091                 mov     ecx, cs:dword_1808CDB6C
+  .text:0000000180069097                 mov     edx, 2
+  .text:000000018006909C                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:00000001800690A2                 test    al, al
+  .text:00000001800690A4                 jz      short loc_180069106
+  .text:00000001800690A6                 lea     r8, aSentDMsecAgo; "     ^ sent %d msec ago\n"
+  .text:00000001800690AD                 jmp     short loc_1800690EA
+  .text:00000001800690AF                 mov     r8d, 4
+  .text:00000001800690B5                 lea     rdx, aFail; "FAIL"
+  .text:00000001800690BC                 lea     rcx, [rsp+0A8h+arg_8]
+  .text:00000001800690C4                 call    cs:_V_strncmp
+  .text:00000001800690CA                 test    eax, eax
+  .text:00000001800690CC                 jnz     short loc_180069106
+  .text:00000001800690CE                 mov     ecx, cs:dword_1808CDB6C
+  .text:00000001800690D4                 mov     edx, 2
+  .text:00000001800690D9                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:00000001800690DF                 test    al, al
+  .text:00000001800690E1                 jz      short loc_180069106
+  .text:00000001800690E3                 lea     r8, aDroppedDMsecAg; "     ^ dropped %d msec ago\n"
+  .text:00000001800690EA                 mov     r9d, ebx
+  .text:00000001800690ED                 sub     r9d, [rsp+0A8h+arg_0]
+  .text:00000001800690F5                 mov     ecx, cs:dword_1808CDB6C
+  .text:00000001800690FB                 mov     edx, 2
+  .text:0000000180069100                 call    cs:LoggingSystem_Log
+  .text:0000000180069106                 movsxd  rax, cs:dword_18068E0E0
+  .text:000000018006910D                 cmp     rax, 8
+  .text:0000000180069111                 jnb     loc_180068FE0
+  .text:0000000180069117                 mov     ecx, cs:dword_1808CDB6C
+  .text:000000018006911D                 mov     edx, 2
+  .text:0000000180069122                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:0000000180069128                 test    al, al
+  .text:000000018006912A                 jz      short loc_180069144
+  .text:000000018006912C                 mov     ecx, cs:dword_1808CDB6C
+  .text:0000000180069132                 lea     r8, aClFinishedLogg; "CL:  Finished logging most recent clien"...
+  .text:0000000180069139                 mov     edx, 2
+  .text:000000018006913E                 call    cs:LoggingSystem_Log
+  .text:0000000180069144                 mov     rcx, rsi
+  .text:0000000180069147                 call    sub_180065770
+  .text:000000018006914C                 mov     r8, rdi
+  .text:000000018006914F                 mov     edx, ebp
+  .text:0000000180069151                 mov     rcx, rsi
+  .text:0000000180069154                 call    CNetworkGameClientBase_DisconnectGame
+  .text:0000000180069159                 mov     rcx, cs:off_180611750
+  .text:0000000180069160                 mov     rax, [rcx]
+  .text:0000000180069163                 call    qword ptr [rax+0A8h]
+  .text:0000000180069169                 mov     rcx, cs:off_180611748
+  .text:0000000180069170                 xor     edx, edx
+  .text:0000000180069172                 mov     rax, [rcx]
+  .text:0000000180069175                 call    qword ptr [rax+50h]
+  .text:0000000180069178                 mov     edi, cs:dword_180611A90
+  .text:000000018006917E                 xor     r14d, r14d
+  .text:0000000180069181                 sub     edi, 1
+  .text:0000000180069184                 mov     cs:byte_180611B18, 0
+  .text:000000018006918B                 mov     cs:qword_180611A60, 0FFFFFFFFFFFFFFFFh
+  .text:0000000180069196                 xorps   xmm8, xmm8
+  .text:000000018006919A                 mov     cs:qword_180611A68, 0FFFFFFFFFFFFFFFFh
+  .text:00000001800691A5                 mov     cs:byte_180611A84, 0
+  .text:00000001800691AC                 mov     cs:qword_180611A7C, 0FFFFFFFFFFFFFFFFh
+  .text:00000001800691B7                 mov     cs:qword_180611A70, 0FFFFFFFFFFFFFFFFh
+  .text:00000001800691C2                 mov     cs:dword_180611A88, 3F800000h
+  .text:00000001800691CC                 mov     cs:dword_180611A58, 0FFFFFFFEh
+  .text:00000001800691D6                 mov     cs:dword_180611A5C, r14d
+  .text:00000001800691DD                 mov     cs:qword_180611AE0, r14
+  .text:00000001800691E4                 mov     cs:dword_180611A78, r14d
+  .text:00000001800691EB                 js      short loc_180069218
+  .text:00000001800691ED                 movsxd  rax, edi
+  .text:00000001800691F0                 lea     rbx, [rax+rax*4]
+  .text:00000001800691F4                 shl     rbx, 3
+  .text:00000001800691F8                 nop     dword ptr [rax+rax+00000000h]
+  .text:0000000180069200                 mov     rcx, cs:qword_180611A98
+  .text:0000000180069207                 add     rcx, rbx
+  .text:000000018006920A                 call    sub_18004C7C0
+  .text:000000018006920F                 add     rbx, 0FFFFFFFFFFFFFFD8h
+  .text:0000000180069213                 sub     edi, 1
+  .text:0000000180069216                 jns     short loc_180069200
+  .text:0000000180069218                 test    cs:dword_180611AA4, 0C0000000h
+  .text:0000000180069222                 mov     cs:dword_180611A90, r14d
+  .text:0000000180069229                 jnz     short loc_180069255
+  .text:000000018006922B                 mov     rdx, cs:qword_180611A98
+  .text:0000000180069232                 test    rdx, rdx
+  .text:0000000180069235                 jz      short loc_18006924E
+  .text:0000000180069237                 mov     rax, cs:g_pMemAlloc
+  .text:000000018006923E                 mov     rcx, [rax]
+  .text:0000000180069241                 mov     rax, [rcx]
+  .text:0000000180069244                 call    qword ptr [rax+18h]
+  .text:0000000180069247                 mov     cs:qword_180611A98, r14
+  .text:000000018006924E                 mov     cs:dword_180611AA0, r14d
+  .text:0000000180069255                 mov     edx, 0FFFFFFFFh
+  .text:000000018006925A                 lea     rcx, unk_18068DEA0
+  .text:0000000180069261                 call    sub_18003C670
+  .text:0000000180069266                 mov     rcx, cs:g_pEngineServiceMgr
+  .text:000000018006926D                 movaps  xmm7, xmm0
+  .text:0000000180069270                 mov     rax, [rcx]
+  .text:0000000180069273                 ; 0x138 = 312LL = IEngineServiceMgr_GetAddonCount
+  .text:0000000180069273                 call    qword ptr [rax+138h]; 0x138 = 312LL = IEngineServiceMgr_GetAddonCount
+  .text:0000000180069279                 test    eax, eax
+  .text:000000018006927B                 jle     short loc_180069287
+  .text:000000018006927D                 movss   xmm6, cs:dword_180585078
+  .text:0000000180069285                 jmp     short loc_18006928A
+  .text:0000000180069287                 movaps  xmm6, xmm7
+  .text:000000018006928A                 comiss  xmm7, xmm8
+  .text:000000018006928E                 jb      short loc_1800692A9
+  .text:0000000180069290                 mov     rcx, cs:g_pSoundSystem
+  .text:0000000180069297                 mov     r9b, 1
+  .text:000000018006929A                 xor     r8d, r8d
+  .text:000000018006929D                 movaps  xmm1, xmm6
+  .text:00000001800692A0                 mov     rax, [rcx]
+  .text:00000001800692A3                 call    qword ptr [rax+2A0h]
+  .text:00000001800692A9                 mov     rax, cs:g_pSoundOpSystem
+  .text:00000001800692B0                 mov     edx, 0FFFFFFFFh
+  .text:00000001800692B5                 mov     rcx, [rax]
+  .text:00000001800692B8                 mov     rbx, [rcx+68h]
+  .text:00000001800692BC                 lea     rcx, unk_18068DE90
+  .text:00000001800692C3                 call    sub_1803FF140
+  .text:00000001800692C8                 test    rax, rax
+  .text:00000001800692CB                 jnz     short loc_1800692D8
+  .text:00000001800692CD                 mov     rax, cs:qword_18068DE98
+  .text:00000001800692D4                 mov     rax, [rax+8]
+  .text:00000001800692D8                 mov     rax, [rax]
+  .text:00000001800692DB                 lea     r8, unk_180528B3F
+  .text:00000001800692E2                 mov     rcx, cs:g_pSoundOpSystem
+  .text:00000001800692E9                 lea     rdx, [rsp+0A8h+arg_18]
+  .text:00000001800692F1                 test    rax, rax
+  .text:00000001800692F4                 mov     byte ptr [rsp+0A8h+var_88], r14b
+  .text:00000001800692F9                 mov     r9d, r14d
+  .text:00000001800692FC                 cmovnz  r8, rax
+  .text:0000000180069300                 call    rbx
+  .text:0000000180069302                 mov     rcx, cs:g_pSoundOpSystem
+  .text:0000000180069309                 lea     r9, [rsp+0A8h+var_78]
+  .text:000000018006930E                 mov     edx, [rsp+0A8h+arg_18]
+  .text:0000000180069315                 lea     r8, aWaitTime; "wait_time"
+  .text:000000018006931C                 mov     [rsp+0A8h+var_68], r14
+  .text:0000000180069321                 movss   dword ptr [rsp+0A8h+var_68], xmm6
+  .text:0000000180069327                 mov     rax, [rcx]
+  .text:000000018006932A                 mov     [rsp+0A8h+var_70], 4
+  .text:0000000180069332                 mov     [rsp+0A8h+var_74], 8
+  .text:0000000180069337                 mov     [rsp+0A8h+var_78], 1
+  .text:000000018006933F                 mov     [rsp+0A8h+var_6C], 4
+  .text:0000000180069347                 mov     word ptr [rsp+0A8h+var_88], r14w
+  .text:000000018006934D                 call    qword ptr [rax+110h]
+  .text:0000000180069353                 cmp     [rsp+0A8h+var_6C], 8
+  .text:0000000180069358                 jbe     short loc_18006936F
+  .text:000000018006935A                 mov     rax, cs:g_pMemAlloc
+  .text:0000000180069361                 mov     rdx, [rsp+0A8h+var_68]
+  .text:0000000180069366                 mov     rcx, [rax]
+  .text:0000000180069369                 mov     rax, [rcx]
+  .text:000000018006936C                 call    qword ptr [rax+18h]
+  .text:000000018006936F                 cmp     dword ptr [rsi+240h], 1
+  .text:0000000180069376                 jle     short loc_180069392
+  .text:0000000180069378                 xor     edx, edx
+  .text:000000018006937A                 lea     rcx, aEngine2Disable; "Engine2/DisableLoadingPlaque"
+  .text:0000000180069381                 call    cs:?GetGameInfoBool@@YA_NPEBD_N@Z; GetGameInfoBool(char const *,bool)
+  .text:0000000180069387                 test    al, al
+  .text:0000000180069389                 jnz     short loc_180069392
+  .text:000000018006938B                 mov     cs:byte_180612CA0, 1
+  .text:0000000180069392                 mov     dl, 1
+  .text:0000000180069394                 mov     rcx, rsi
+  .text:0000000180069397                 call    CNetworkGameClient_Clear
+  .text:000000018006939C                 mov     rcx, cs:qword_180612C98
+  .text:00000001800693A3                 test    rcx, rcx
+  .text:00000001800693A6                 jz      short loc_1800693B3
+  .text:00000001800693A8                 mov     rax, [rcx]
+  .text:00000001800693AB                 mov     edx, ebp
+  .text:00000001800693AD                 call    qword ptr [rax+0B8h]
+  .text:00000001800693B3                 mov     rax, cs:off_180611758
+  .text:00000001800693BA                 lea     rcx, off_180611758
+  .text:00000001800693C1                 call    qword ptr [rax+10h]
+  .text:00000001800693C4                 movaps  xmm6, [rsp+0A8h+var_38]
+  .text:00000001800693C9                 movaps  xmm7, [rsp+0A8h+var_48]
+  .text:00000001800693CE                 movaps  xmm8, [rsp+0A8h+var_58]
+  .text:00000001800693D4                 add     rsp, 80h
+  .text:00000001800693DB                 pop     r14
+  .text:00000001800693DD                 pop     rdi
+  .text:00000001800693DE                 pop     rsi
+  .text:00000001800693DF                 pop     rbp
+  .text:00000001800693E0                 pop     rbx
+  .text:00000001800693E1                 retn
+procedure: |-
+  __int64 __fastcall CNetworkGameClient_DisconnectGame(__int64 a1, unsigned int a2, __int64 a3)
+  {
+    int v6; // ebx
+    const char *v7; // r8
+    int v8; // edi
+    __int64 v9; // rbx
+    float v10; // xmm0_4
+    __int64 v11; // rdx
+    __int64 v12; // r9
+    unsigned int v13; // xmm6_4
+    void (__fastcall *v14)(__int64, unsigned int *, void *, _QWORD, _BYTE); // rbx
+    void **v15; // rax
+    void *v16; // rax
+    void *v17; // r8
+    __int64 v18; // rax
+    __int64 v19; // rdx
+    int v21; // [rsp+20h] [rbp-88h]
+    int v22; // [rsp+30h] [rbp-78h] BYREF
+    char v23; // [rsp+34h] [rbp-74h]
+    int v24; // [rsp+38h] [rbp-70h]
+    unsigned int v25; // [rsp+3Ch] [rbp-6Ch]
+    __int64 v26; // [rsp+40h] [rbp-68h]
+    unsigned int v27; // [rsp+B0h] [rbp+8h] BYREF
+    char v28; // [rsp+B8h] [rbp+10h] BYREF
+    unsigned int v29; // [rsp+C8h] [rbp+20h] BYREF
+
+    if ( a2 == 27 )
+    {
+      if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_1808CDB6C, 2) )
+        LoggingSystem_Log((unsigned int)dword_1808CDB6C, 2, "CL:  Disconnected - Client delta ticks out of order!\n");
+      v6 = Plat_MSTime();
+      if ( (unsigned __int64)dword_18068E0E0[0] >= 8 )
+      {
+        while ( 1 )
+        {
+          if ( !CCircularBuffer::Read((CCircularBuffer *)dword_18068E0E0, &v28, 4)
+            || !CCircularBuffer::Read((CCircularBuffer *)dword_18068E0E0, &v27, 4) )
+          {
+            goto LABEL_17;
+          }
+          if ( !(unsigned int)V_strncmp(&v28, "PREP", 4) )
+          {
+            if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_1808CDB6C, 2) )
+              LoggingSystem_Log((unsigned int)dword_1808CDB6C, 2, "     Prepared tick #%d\n", v27);
+            goto LABEL_17;
+          }
+          if ( (unsigned int)V_strncmp(&v28, "SENT", 4) )
+            break;
+          if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_1808CDB6C, 2) )
+          {
+            v7 = "     ^ sent %d msec ago\n";
+  LABEL_16:
+            LoggingSystem_Log((unsigned int)dword_1808CDB6C, 2, v7, v6 - v27);
+          }
+  LABEL_17:
+          if ( (unsigned __int64)dword_18068E0E0[0] < 8 )
+            goto LABEL_18;
+        }
+        if ( (unsigned int)V_strncmp(&v28, "FAIL", 4)
+          || !(unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_1808CDB6C, 2) )
+        {
+          goto LABEL_17;
+        }
+        v7 = "     ^ dropped %d msec ago\n";
+        goto LABEL_16;
+      }
+  LABEL_18:
+      if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_1808CDB6C, 2) )
+        LoggingSystem_Log((unsigned int)dword_1808CDB6C, 2, "CL:  Finished logging most recent client ticks.\n");
+    }
+    sub_180065770(a1);
+    CNetworkGameClientBase_DisconnectGame(a1, a2, a3);
+    (*(void (__fastcall **)(__int64 *))(*off_180611750 + 168))(off_180611750);
+    ((void (__fastcall *)(__int64 (__fastcall ***)(), _QWORD))(*off_180611748)[10])(off_180611748, 0);
+    v8 = dword_180611A90 - 1;
+    byte_180611B18 = 0;
+    qword_180611A60 = -1;
+    qword_180611A68 = -1;
+    byte_180611A84 = 0;
+    qword_180611A7C = -1;
+    qword_180611A70 = -1;
+    dword_180611A88 = 1065353216;
+    dword_180611A58 = -2;
+    dword_180611A5C = 0;
+    qword_180611AE0 = 0;
+    dword_180611A78 = 0;
+    if ( dword_180611A90 - 1 >= 0 )
+    {
+      v9 = 40LL * v8;
+      do
+      {
+        sub_18004C7C0(v9 + qword_180611A98);
+        v9 -= 40;
+        --v8;
+      }
+      while ( v8 >= 0 );
+    }
+    dword_180611A90 = 0;
+    if ( (dword_180611AA4 & 0xC0000000) == 0 )
+    {
+      if ( qword_180611A98 )
+      {
+        (*(void (__fastcall **)(_QWORD))(*g_pMemAlloc + 24LL))(g_pMemAlloc);
+        qword_180611A98 = 0;
+      }
+      dword_180611AA0 = 0;
+    }
+    v10 = sub_18003C670(&unk_18068DEA0, 0xFFFFFFFFLL);
+    if ( (*(int (__fastcall **)(__int64))(*(_QWORD *)g_pEngineServiceMgr + 312LL))(g_pEngineServiceMgr) <= 0 )// 0x138 = 312LL = IEngineServiceMgr_GetAddonCount
+      v13 = LODWORD(v10);
+    else
+      v13 = 1008981770;
+    if ( v10 >= 0.0 )
+    {
+      LOBYTE(v12) = 1;
+      (*(void (__fastcall **)(__int64, __int64, _QWORD, __int64))(*(_QWORD *)g_pSoundSystem + 672LL))(
+        g_pSoundSystem,
+        v11,
+        0,
+        v12);
+    }
+    v14 = *(void (__fastcall **)(__int64, unsigned int *, void *, _QWORD, _BYTE))(*(_QWORD *)g_pSoundOpSystem + 104LL);
+    v15 = (void **)sub_1803FF140(&unk_18068DE90, 0xFFFFFFFFLL);
+    if ( !v15 )
+      v15 = *(void ***)(qword_18068DE98 + 8);
+    v16 = *v15;
+    v17 = &unk_180528B3F;
+    if ( v16 )
+      v17 = v16;
+    v14(g_pSoundOpSystem, &v29, v17, 0, 0);
+    v26 = v13;
+    v18 = *(_QWORD *)g_pSoundOpSystem;
+    v24 = 4;
+    v23 = 8;
+    v22 = 1;
+    v25 = 4;
+    LOWORD(v21) = 0;
+    (*(void (__fastcall **)(__int64, _QWORD, const char *, int *, int))(v18 + 272))(
+      g_pSoundOpSystem,
+      v29,
+      "wait_time",
+      &v22,
+      v21);
+    if ( v25 > 8 )
+      (*(void (__fastcall **)(_QWORD, __int64))(*g_pMemAlloc + 24LL))(g_pMemAlloc, v26);
+    if ( *(int *)(a1 + 576) > 1 && !GetGameInfoBool("Engine2/DisableLoadingPlaque", 0) )
+      byte_180612CA0 = 1;
+    LOBYTE(v19) = 1;
+    CNetworkGameClient_Clear(a1, v19);
+    if ( qword_180612C98 )
+      (*(void (__fastcall **)(__int64, _QWORD))(*(_QWORD *)qword_180612C98 + 184LL))(qword_180612C98, a2);
+    return ((__int64 (__fastcall *)(__int64 (__fastcall ***)()))off_180611758[2])(&off_180611758);
+  }
