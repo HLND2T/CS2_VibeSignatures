@@ -62,7 +62,6 @@ UNIT_MODULES = frozenset(
         "test_binary_hashing",
         "test_bump_download",
         "test_copy_depot_bin",
-        "test_create_pr_classify_delivery",
         "test_cs2fow_gamedata",
         "test_define_inputfunc_preprocessor",
         "test_download_depot",
