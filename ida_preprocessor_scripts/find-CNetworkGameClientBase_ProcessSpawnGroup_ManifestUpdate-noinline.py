@@ -1,35 +1,28 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CNetworkGameClientBase_ProcessSpawnGroup_ManifestUpdate skill."""
+"""Preprocess script for the ManifestUpdate deinline-chain caller."""
 
 from ida_analyze_util import preprocess_common_skill
 
-TARGET_FUNCTION_NAMES = [
-    "CNetworkGameClientBase_ProcessSpawnGroup_ManifestUpdate",
-]
-
+TARGET_FUNCTION_NAMES = ["CNetworkGameClientBase_ProcessSpawnGroup_ManifestUpdate"]
 FUNC_XREFS = [
     {
         "func_name": "CNetworkGameClientBase_ProcessSpawnGroup_ManifestUpdate",
-        "xref_strings": [
-            "CL:  ProcessSpawnGroup_ManifestUpdate( %s ) -- spawn group manifest update received for an unknown manifest!\n",
-        ],
+        "xref_strings": [],
         "xref_gvs": [],
         "xref_signatures": [],
-        "xref_funcs": [],
+        "xref_funcs": ["CNetworkGameClientBase_ProcessSpawnGroup_ManifestUpdateImpl"],
         "exclude_funcs": [],
         "exclude_strings": [],
         "exclude_gvs": [],
         "exclude_signatures": [],
-    },
+    }
 ]
-
 FUNC_VTABLE_RELATIONS = [
     (
         "CNetworkGameClientBase_ProcessSpawnGroup_ManifestUpdate",
         "CNetworkGameClientBase_vtable",
-    ),
+    )
 ]
-
 GENERATE_YAML_DESIRED_FIELDS = [
     (
         "CNetworkGameClientBase_ProcessSpawnGroup_ManifestUpdate",
@@ -43,22 +36,14 @@ GENERATE_YAML_DESIRED_FIELDS = [
             "vfunc_offset",
             "vfunc_index",
         ],
-    ),
+    )
 ]
 
 
 async def preprocess_skill(
-    session,
-    skill_name,
-    expected_outputs,
-    old_yaml_map,
-    new_binary_dir,
-    platform,
-    image_base,
-    debug=False,
+    session, skill_name, expected_outputs, old_yaml_map, new_binary_dir, platform, image_base, debug=False
 ):
-    """Locate the manifest-update vfunc from its diagnostic string and vtable."""
-    _ = skill_name
+    """Find the vfunc as the standalone implementation's vtable-filtered caller."""
     return await preprocess_common_skill(
         session=session,
         expected_outputs=expected_outputs,
