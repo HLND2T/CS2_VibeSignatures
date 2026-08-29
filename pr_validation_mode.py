@@ -16,6 +16,7 @@ from trusted_yaml import load_yaml, load_yaml_file
 
 CONFIG_REPO_PATH = "pr_validation_mode.yaml"
 SHA_PATTERN = re.compile(r"^[0-9a-fA-F]{40}$")
+CONFIG_PATH_PATTERN = re.compile(r"^configs/(?P<gamever>\d{4,10}[a-z]?)\.yaml$")
 _RULE_KEYS = frozenset({"paths", "regexes", "reason"})
 TRUSTED_CONFIG_MISSING_REASON = "Trusted validation config missing; fail-closed to full validation"
 
@@ -235,6 +236,28 @@ def latest_gamever(repo_root: Path) -> str:
     return tag
 
 
+def validate_changed_config_gamever(changes: list[ChangedPath], current_gamever: str) -> None:
+    current_gamever = str(current_gamever).strip()
+    if not current_gamever:
+        raise PrValidationModeError("latest GAMEVER must not be empty")
+    outdated_paths = []
+    for change in changes:
+        if change.new_path is None:
+            continue
+        path = normalize_path(change.new_path)
+        match = CONFIG_PATH_PATTERN.fullmatch(path)
+        if match and match.group("gamever") != current_gamever:
+            outdated_paths.append(path)
+    if outdated_paths:
+        changed = ", ".join(sorted(set(outdated_paths)))
+        expected = f"configs/{current_gamever}.yaml"
+        raise PrValidationModeError(
+            f"PR changes an analysis config for a non-current GAMEVER: {changed}. "
+            f"Move the PR's config changes to {expected} instead; "
+            f"the latest GAMEVER from download.yaml is {current_gamever}."
+        )
+
+
 def resolve_validation_mode(
     repo_root: Path,
     base_ref: str,
@@ -257,6 +280,8 @@ def resolve_validation_mode(
             rules = ()
             trusted_config_missing = True
     changed = changed_paths(repo_root, base_ref, head_ref)
+    current_gamever = latest_gamever(repo_root)
+    validate_changed_config_gamever(changed, current_gamever)
     paths = tuple(sorted({path for change in changed for path in (change.old_path, change.new_path) if path}))
     if trusted_config_missing:
         classification = Classification("full", (TRUSTED_CONFIG_MISSING_REASON,), False)
@@ -264,7 +289,7 @@ def resolve_validation_mode(
         classification = classify_paths(list(paths), rules, force_light=force_light)
     return ValidationResult(
         mode=classification.mode,
-        latest_gamever=latest_gamever(repo_root),
+        latest_gamever=current_gamever,
         matched_rules=classification.matched_rules,
         changed_paths=paths,
     )
