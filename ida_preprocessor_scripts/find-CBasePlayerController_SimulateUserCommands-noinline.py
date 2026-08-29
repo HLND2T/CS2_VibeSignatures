@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CBasePlayerController_SimulateUserCommands skill."""
+"""Preprocess script for find-CBasePlayerController_SimulateUserCommands-noinline skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
@@ -7,10 +7,10 @@ TARGET_FUNCTION_NAMES = ["CBasePlayerController_SimulateUserCommands"]
 FUNC_XREFS = [
     {
         "func_name": "CBasePlayerController_SimulateUserCommands",
-        "xref_strings": ["FULLMATCH:SimulateUserCommands"],
+        "xref_strings": [],
         "xref_gvs": [],
         "xref_signatures": [],
-        "xref_funcs": [],
+        "xref_funcs": ["CBasePlayerController_SimulateUserCommandsInternal"],
         "exclude_funcs": [],
         "exclude_strings": [],
         "exclude_gvs": [],
@@ -29,7 +29,7 @@ GENERATE_YAML_DESIRED_FIELDS = [
 async def preprocess_skill(
     session, skill_name, expected_outputs, old_yaml_map, new_binary_dir, platform, image_base, debug=False
 ):
-    """Find the CBasePlayerController::SimulateUserCommands virtual function."""
+    """Find the vfunc as the standalone helper's vtable-filtered caller."""
     return await preprocess_common_skill(
         session=session,
         expected_outputs=expected_outputs,

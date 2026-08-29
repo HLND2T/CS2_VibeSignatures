@@ -6872,11 +6872,27 @@ modules:
           - CBasePlayerController_ClientSettingsChanged.{platform}.yaml
         expected_input:
           - CBasePlayerController_vtable.{platform}.yaml
-      - name: find-CBasePlayerController_SimulateUserCommands
+      - name: find-CBasePlayerController_SimulateUserCommandsInternal
+        optional_output:
+          - CBasePlayerController_SimulateUserCommandsInternal.{platform}.yaml
+        skip_if_exists:
+          - CBasePlayerController_SimulateUserCommands.{platform}.yaml
+      - name: find-CBasePlayerController_SimulateUserCommands-noinline
+        optional_output:
+          - CBasePlayerController_SimulateUserCommands.{platform}.yaml
+        expected_input:
+          - CBasePlayerController_vtable.{platform}.yaml
+        prerequisite:
+          - find-CBasePlayerController_SimulateUserCommandsInternal
+      - name: find-CBasePlayerController_SimulateUserCommands-inlined
         expected_output:
           - CBasePlayerController_SimulateUserCommands.{platform}.yaml
         expected_input:
           - CBasePlayerController_vtable.{platform}.yaml
+        skip_if_exists:
+          - CBasePlayerController_SimulateUserCommands.{platform}.yaml
+        prerequisite:
+          - find-CBasePlayerController_SimulateUserCommands-noinline
       - name: find-CBasePlayerController_SetConnectedState
         expected_output:
           - CBasePlayerController_SetConnectedState.{platform}.yaml
