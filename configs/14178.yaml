@@ -2379,6 +2379,30 @@ modules:
       - name: find-CNetworkGameClientBase_vtable
         expected_output:
           - CNetworkGameClientBase_vtable.{platform}.yaml
+      # The manifest-update diagnostic is in the vfunc on Windows, but in the
+      # standalone Impl helper on Linux. Resolve the helper/caller chain first,
+      # then fall back to the direct inlined finder.
+      - name: find-CNetworkGameClientBase_ProcessSpawnGroup_ManifestUpdateImpl
+        optional_output:
+          - CNetworkGameClientBase_ProcessSpawnGroup_ManifestUpdateImpl.{platform}.yaml
+        skip_if_exists:
+          - CNetworkGameClientBase_ProcessSpawnGroup_ManifestUpdate.{platform}.yaml
+      - name: find-CNetworkGameClientBase_ProcessSpawnGroup_ManifestUpdate-noinline
+        optional_output:
+          - CNetworkGameClientBase_ProcessSpawnGroup_ManifestUpdate.{platform}.yaml
+        expected_input:
+          - CNetworkGameClientBase_vtable.{platform}.yaml
+        prerequisite:
+          - find-CNetworkGameClientBase_ProcessSpawnGroup_ManifestUpdateImpl
+      - name: find-CNetworkGameClientBase_ProcessSpawnGroup_ManifestUpdate-inlined
+        expected_output:
+          - CNetworkGameClientBase_ProcessSpawnGroup_ManifestUpdate.{platform}.yaml
+        expected_input:
+          - CNetworkGameClientBase_vtable.{platform}.yaml
+        skip_if_exists:
+          - CNetworkGameClientBase_ProcessSpawnGroup_ManifestUpdate.{platform}.yaml
+        prerequisite:
+          - find-CNetworkGameClientBase_ProcessSpawnGroup_ManifestUpdate-noinline
       - name: find-CNetworkGameClientBase_ProcessCmdKeyValues
         expected_output:
           - CNetworkGameClientBase_ProcessCmdKeyValues.{platform}.yaml
@@ -3910,6 +3934,10 @@ modules:
           - CEngineServer::GetPlayerNetworkIDString
       - name: CNetworkGameClientBase_vtable
         category: vtable
+      - name: CNetworkGameClientBase_ProcessSpawnGroup_ManifestUpdate
+        category: vfunc
+        alias:
+          - CNetworkGameClientBase::ProcessSpawnGroup_ManifestUpdate
       - name: CNetworkGameClientBase_ProcessCmdKeyValues
         category: vfunc
         alias:
