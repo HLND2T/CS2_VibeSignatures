@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import uuid
 from collections.abc import Mapping, Sequence
@@ -10,7 +11,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 import httpx
-from openai import OpenAI
+from openai import AsyncOpenAI
 
 CODEX_CLI_USER_AGENT = "codex-tui/0.144.1 (Windows 10.0.26200; x86_64) WindowsTerminal (codex-tui; 0.144.1)"
 CODEX_CLI_ORIGINATOR = "codex-tui"
@@ -65,7 +66,7 @@ def create_openai_client(api_key, base_url=None, *, api_key_required_message):
     if base_url is not None:
         client_kwargs["base_url"] = require_nonempty_text(base_url, "base_url")
 
-    return OpenAI(**client_kwargs)
+    return AsyncOpenAI(**client_kwargs)
 
 
 def extract_first_message_text(response) -> str:
@@ -254,7 +255,45 @@ def _fill_codex_template(node, *, model, user_prompt, cache_key) -> Any:
     return node
 
 
-def _call_llm_text_via_codex_http(
+async def _read_codex_sse_response(response: httpx.Response) -> str:
+    content_type = response.headers.get("content-type", "")
+    if "text/event-stream" not in content_type.lower():
+        raise RuntimeError(f"codex transport expected text/event-stream, got {content_type!r}")
+
+    text_parts: list[str] = []
+    saw_output_text_delta = False
+    failure_event_types = {"error", "response.error", "response.failed", "response.incomplete"}
+    async for line in response.aiter_lines():
+        if line is None:
+            continue
+        stripped_line = line.strip()
+        if not stripped_line.startswith("data:"):
+            continue
+        payload_text = stripped_line[5:].strip()
+        if not payload_text:
+            continue
+        if payload_text == "[DONE]":
+            break
+        payload = json.loads(payload_text)
+        event_type = payload.get("type") if isinstance(payload, Mapping) else None
+        if event_type in failure_event_types:
+            message = _extract_error_message_from_payload(payload)
+            raise RuntimeError(f"codex transport received {event_type}: {message}")
+        if event_type == "response.completed" and saw_output_text_delta:
+            continue
+        extracted_text = _extract_text_from_response_payload(payload)
+        if extracted_text:
+            if event_type == "response.output_text.delta":
+                saw_output_text_delta = True
+            text_parts.append(extracted_text)
+
+    final_text = "".join(text_parts).strip()
+    if not final_text:
+        raise RuntimeError("codex transport returned empty response text")
+    return final_text
+
+
+async def _call_llm_text_via_codex_http(
     *,
     model,
     messages,
@@ -325,50 +364,16 @@ def _call_llm_text_via_codex_http(
         "Host": host,
     }
     endpoint = normalized_base_url.rstrip("/") + "/responses"
-    text_parts: list[str] = []
-    saw_output_text_delta = False
-    failure_event_types = {"error", "response.error", "response.failed", "response.incomplete"}
-
-    with httpx.Client(
+    async with httpx.AsyncClient(
         timeout=httpx.Timeout(30.0, read=300.0),
         trust_env=False,
     ) as http_client:
-        with http_client.stream("POST", endpoint, headers=headers, json=body) as response:
+        async with http_client.stream("POST", endpoint, headers=headers, json=body) as response:
             response.raise_for_status()
-            content_type = response.headers.get("content-type", "")
-            if "text/event-stream" not in content_type.lower():
-                raise RuntimeError(f"codex transport expected text/event-stream, got {content_type!r}")
-            for line in response.iter_lines():
-                if line is None:
-                    continue
-                stripped_line = line.strip()
-                if not stripped_line.startswith("data:"):
-                    continue
-                payload_text = stripped_line[5:].strip()
-                if not payload_text:
-                    continue
-                if payload_text == "[DONE]":
-                    break
-                payload = json.loads(payload_text)
-                event_type = payload.get("type") if isinstance(payload, Mapping) else None
-                if event_type in failure_event_types:
-                    message = _extract_error_message_from_payload(payload)
-                    raise RuntimeError(f"codex transport received {event_type}: {message}")
-                if event_type == "response.completed" and saw_output_text_delta:
-                    continue
-                extracted_text = _extract_text_from_response_payload(payload)
-                if extracted_text:
-                    if event_type == "response.output_text.delta":
-                        saw_output_text_delta = True
-                    text_parts.append(extracted_text)
-
-    final_text = "".join(text_parts).strip()
-    if not final_text:
-        raise RuntimeError("codex transport returned empty response text")
-    return final_text
+            return await _read_codex_sse_response(response)
 
 
-def call_llm_text(
+async def call_llm_text(
     client=None,
     *,
     model,
@@ -383,7 +388,7 @@ def call_llm_text(
 ) -> str:
     normalized_effort = normalize_optional_effort(effort)
     if fake_as == "codex":
-        return _call_llm_text_via_codex_http(
+        return await _call_llm_text_via_codex_http(
             model=model,
             messages=messages,
             api_key=api_key,
@@ -393,12 +398,14 @@ def call_llm_text(
             prompt_cache_key=prompt_cache_key,
         )
 
+    owned_client = None
     if client is None:
-        client = create_openai_client(
+        owned_client = create_openai_client(
             api_key,
             base_url,
             api_key_required_message=("api_key is required for OpenAI-compatible LLM requests"),
         )
+        client = owned_client
 
     request_kwargs = {
         "model": require_nonempty_text(model, "model"),
@@ -408,5 +415,13 @@ def call_llm_text(
     normalized_temperature = normalize_optional_temperature(temperature)
     if normalized_temperature is not None:
         request_kwargs["temperature"] = normalized_temperature
-    response = client.chat.completions.create(**request_kwargs)
-    return extract_first_message_text(response)
+    try:
+        response = await client.chat.completions.create(**request_kwargs)
+        return extract_first_message_text(response)
+    finally:
+        if owned_client is not None:
+            await owned_client.close()
+
+
+def call_llm_text_sync(*args, **kwargs) -> str:
+    return asyncio.run(call_llm_text(*args, **kwargs))
