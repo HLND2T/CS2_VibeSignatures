@@ -28,6 +28,7 @@ permalink: cs2-vibesignatures/llm-decompile
 - `ida_analyze_util.py` - `parse_llm_decompile_response`
 - `ida_analyze_util.py` - `preprocess_common_skill`
 - `ida_llm_utils.py` - `call_llm_text`, `create_openai_client`, `normalize_optional_temperature`, `normalize_optional_effort`
+- `ida_mcp_keepalive.py` - `keepalive_worker_during`
 - `ida_preprocessor_scripts/prompt/call_llm_decompile.md` - shared prompt template consumed by `_prepare_llm_decompile_request`
 - `tests/test_ida_analyze_util.py` - `TestLlmDecompileSupport`
 
@@ -41,7 +42,9 @@ Target detail resolution is MCP-driven. `_load_llm_decompile_target_detail_via_m
 - Hex-Rays pseudocode when available
 - `func_name` and `func_va`
 
-`call_llm_decompile(...)` renders `reference_blocks` and `target_blocks`, injects them into `call_llm_decompile.md`, calls the shared `ida_llm_utils.call_llm_text(...)` transport, retries transient 429/5xx-style failures with exponential backoff, and parses the YAML response with `parse_llm_decompile_response(...)`.
+`call_llm_decompile(...)` renders `reference_blocks` and `target_blocks`, injects them into `call_llm_decompile.md`, awaits the shared `ida_llm_utils.call_llm_text(...)` transport, retries transient 429/5xx-style failures with exponential backoff, and parses the YAML response with `parse_llm_decompile_response(...)`. The OpenAI-compatible path uses `AsyncOpenAI`, while Codex-compatible SSE uses `httpx.AsyncClient`.
+
+The actual remote LLM await runs inside `ida_mcp_keepalive.keepalive_worker_during(...)`. It sends `py_eval("1")` through the already bound database session every 240 seconds so ida-pro-mcp forwards real JSON-RPC traffic to the IDALIB worker before its 600-second idle TTL expires. The task is cancelled and awaited after success or failure; heartbeat failures are debug-only and do not replace the foreground LLM result.
 
 The normalized result is consumed back inside `preprocess_common_skill(...)`:
 - `found_call` -> `_resolve_direct_call_target_via_mcp(...)` -> `_preprocess_direct_func_sig_via_mcp(...)`
@@ -67,6 +70,7 @@ flowchart TD
 
 ## Dependencies
 - `ida_llm_utils.py` for OpenAI-compatible client creation, transport, temperature normalization, and effort normalization.
+- `ida_mcp_keepalive.py` for bound-worker TTL refresh during remote LLM waits.
 - `ida_preprocessor_scripts/prompt/call_llm_decompile.md` for the user prompt template.
 - `ida_preprocessor_scripts/references/**/*.yaml` for reference disassembly/pseudocode payloads and target function names.
 - `configs/<GAMEVER>.yaml` for symbol aliases when current-version YAML cannot supply `func_va`.
