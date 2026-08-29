@@ -1,0 +1,28 @@
+func_name: CNetworkSystem_CloseSocket
+func_va: '0x2d9db0'
+disasm_code: |-
+  .text:00000000002D9DB0                 xor     eax, eax
+  .text:00000000002D9DB2                 test    esi, esi
+  .text:00000000002D9DB4                 js      short locret_2D9DD0
+  .text:00000000002D9DB6                 cmp     esi, [rdi+0A8h]
+  .text:00000000002D9DBC                 jge     short locret_2D9DD0
+  .text:00000000002D9DBE                 push    rbp
+  .text:00000000002D9DBF                 mov     rbp, rsp
+  .text:00000000002D9DC2                 call    CNetworkSystem_CloseSocketInternal
+  .text:00000000002D9DC7                 mov     eax, 1
+  .text:00000000002D9DCC                 pop     rbp
+  .text:00000000002D9DCD                 retn
+  .text:00000000002D9DD0                 retn
+procedure: |-
+  __int64 __fastcall CNetworkSystem_CloseSocket(__int64 a1, int a2)
+  {
+    __int64 result; // rax
+
+    result = 0;
+    if ( a2 >= 0 && a2 < *(_DWORD *)(a1 + 168) )
+    {
+      CNetworkSystem_CloseSocketInternal(a1, a2);
+      return 1;
+    }
+    return result;
+  }
