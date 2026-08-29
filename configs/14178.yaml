@@ -13806,3 +13806,28 @@ cpp_tests:
       - fdump-vtable-layouts
     # No reference_modules yet: ICommandLine has no binary reference YAMLs
     # (tier0/vstdlib is not an analyzed module). Compile-only validation.
+  - name: IEngineServiceMgr_MSVC
+    symbol: IEngineServiceMgr
+    alias_symbols:
+      - CEngineServiceMgr
+    cpp: cpp_tests/iengineservicemgr.cpp
+    headers:
+      - hl2sdk_cs2/public/engine/IEngineService.h  # Used by the fix-cppheaders SKILL
+    target: x86_64-pc-windows-msvc
+    include_directories:
+      - hl2sdk_cs2/game/shared
+      - hl2sdk_cs2/public
+      - hl2sdk_cs2/public/tier0
+      - hl2sdk_cs2/public/tier1
+      - hl2sdk_cs2/public/mathlib
+    defines:
+      - COMPILER_MSVC=1
+      - COMPILER_MSVC64=1
+      - _MSVC_STL_USE_ABORT_AS_DOOM_FUNCTION
+    additional_compiler_options:
+      - fms-extensions
+      - fms-compatibility
+      - Xclang
+      - fdump-vtable-layouts
+    reference_modules:
+      - engine  # bin/{gamever}/engine/CEngineServiceMgr_*.{platform}.yaml
