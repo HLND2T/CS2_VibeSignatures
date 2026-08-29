@@ -7,23 +7,26 @@ permalink: cs2-vibesignatures/post-change-candidate-lifecycle
 # Workflow-Owned Post-Change Candidate Lifecycle
 
 ## Overview
-`/create-pr` classifies staged or committed changes and delivers source changes only. When
-`.claude/skills/create-pr/scripts/classify_delivery.py` returns `LIFECYCLE=1`, the PR workflow owns candidate
-preparation, gamedata generation, and C++ validation. Local delivery never adds `gamesymbols/<GAMEVER>.yaml` or
-`gamedata/<GAMEVER>/`; those tracked outputs advance only at release time.
+`/create-pr` delivers staged or committed source changes without classifying their validation path. The PR workflow is
+the sole validation router: `pr_validation_mode.py` loads trusted rules from `pr_validation_mode.yaml` and selects the
+light or full path. Full validation owns candidate preparation, gamedata generation, and C++ validation. Local delivery
+never adds `gamesymbols/<GAMEVER>.yaml` or `gamedata/<GAMEVER>/`; those tracked outputs advance only at release time.
 
 ## Responsibilities
-- `/create-pr`: preserve the authorized source change set, run the classifier, commit/push the source branch, and
-  truthfully state that lifecycle gates are delegated to CI.
+- `/create-pr`: preserve the authorized source change set, commit/push the source branch, and avoid predicting or
+  claiming workflow-owned validation results.
+- `pr_validation_mode.py` with trusted `pr_validation_mode.yaml`: classify PR changed paths and select light or full
+  validation independently of local delivery.
 - `.github/workflows/pr-self-runner.yml` full path: normalize immutable PR metadata, restore the warm IDB generation,
   analyze the merge ref, build one symbol candidate and matching gamedata candidate, run C++ validation, and stage
   analyzed YAML for merge promotion.
 - `.github/workflows/build-on-self-runner.yml` release pipeline: the sole publisher of validated snapshot and gamedata.
-- Stable `pr-validate` terminal job: require the full path to succeed so branch protection keeps one check name.
+- Stable `pr-validate` terminal job: require the workflow-selected path to succeed so branch protection keeps one check
+  name.
 
 ## Involved Files & Symbols
 - `.claude/skills/create-pr/SKILL.md` - source-only PR delivery contract.
-- `.claude/skills/create-pr/scripts/classify_delivery.py` - mechanical lifecycle classification.
+- `pr_validation_mode.py` and `pr_validation_mode.yaml` - authoritative PR validation routing.
 - `.github/workflows/pr-self-runner.yml` - full validation, staging, and terminal jobs.
 - `.github/workflows/build-on-self-runner.yml` - release-time snapshot/gamedata publication.
 - `gamesymbol_candidate.py` - immutable snapshot build, guard, and mark commands.
@@ -32,11 +35,13 @@ preparation, gamedata generation, and C++ validation. Local delivery never adds 
 
 ## Architecture
 ```text
-source changes -> create-pr -> classifier -> source commit -> PR head H1
-  -> full pr-self-runner on immutable merge ref (H1 + B1)
-    -> analysis -> symbol candidate -> gamedata candidate -> C++ gate
-    -> stage analyzed YAML
-    -> stable pr-validate success
+source changes -> create-pr -> source commit -> PR head H1
+  -> pr-self-runner classifies changed paths from trusted base rules
+    -> light validation, or
+    -> full validation on immutable merge ref (H1 + B1)
+      -> analysis -> symbol candidate -> gamedata candidate -> C++ gate
+      -> stage analyzed YAML
+  -> stable pr-validate success
   -> (merge) -> finalize-pr-workspace promotes staged YAML into persisted bin
   -> (release) -> build-on-self-runner publishes snapshot + gamedata
 ```
@@ -50,4 +55,4 @@ source changes -> create-pr -> classifier -> source commit -> PR head H1
 ## Notes
 - Snapshot/gamedata publication was removed from the PR workflow (#803); `gamesymbols/<GAMEVER>.yaml` on main now
   advances only at release time.
-- `LIFECYCLE=0` remains a plain PR path and never claims candidate/C++ work.
+- Local PR delivery does not classify validation mode; only `pr-self-runner.yml` selects the light or full path.

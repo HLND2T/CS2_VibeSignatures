@@ -1,8 +1,11 @@
 import hashlib
 import json
 import os
+import random
 import stat
 import subprocess
+import time
+import uuid
 from pathlib import Path, PurePosixPath
 
 from release_workflow_lib.errors import ReleaseWorkflowError
@@ -10,6 +13,11 @@ from release_workflow_lib.errors import ReleaseWorkflowError
 HEX_SHA256_LENGTH = 64
 READ_CHUNK_SIZE = 1024 * 1024
 REGULAR_GIT_MODES = {"100644", "100755"}
+WINDOWS_ERROR_ACCESS_DENIED = 5
+WINDOWS_ERROR_SHARING_VIOLATION = 32
+WINDOWS_REPLACE_RETRY_ERRORS = {WINDOWS_ERROR_ACCESS_DENIED, WINDOWS_ERROR_SHARING_VIOLATION}
+WINDOWS_REPLACE_RETRY_DELAYS = (0.05, 0.1, 0.2, 0.4, 0.8, 1.6)
+WINDOWS_REPLACE_RETRY_JITTER_RATIO = 0.25
 
 
 def canonical_json_bytes(value: object) -> bytes:
@@ -28,12 +36,53 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _path_matches_payload(path: Path, payload: bytes) -> bool:
+    try:
+        return path.read_bytes() == payload
+    except OSError:
+        return False
+
+
+def _replace_with_windows_retry(source: Path, target: Path, payload: bytes) -> None:
+    attempts = 0
+    while True:
+        attempts += 1
+        try:
+            os.replace(source, target)
+            return
+        except OSError as exc:
+            if _path_matches_payload(target, payload):
+                return
+            winerror = getattr(exc, "winerror", None)
+            retry_index = attempts - 1
+            if winerror not in WINDOWS_REPLACE_RETRY_ERRORS:
+                raise
+            if retry_index >= len(WINDOWS_REPLACE_RETRY_DELAYS):
+                raise OSError(
+                    f"atomic replace failed after {attempts} attempts with WinError {winerror}: "
+                    f"{source} -> {target}: {exc}"
+                ) from exc
+            delay = WINDOWS_REPLACE_RETRY_DELAYS[retry_index]
+            jitter = random.uniform(0.0, delay * WINDOWS_REPLACE_RETRY_JITTER_RATIO)
+            time.sleep(delay + jitter)
+
+
 def write_canonical_json(path: Path, value: object) -> None:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
-    temporary.write_bytes(canonical_json_bytes(value))
-    os.replace(temporary, path)
+    payload = canonical_json_bytes(value)
+    temporary = path.with_name(f".{path.name}.{uuid.uuid4().hex}.tmp")
+    try:
+        temporary.write_bytes(payload)
+        _replace_with_windows_retry(temporary, path, payload)
+    except BaseException:
+        try:
+            temporary.unlink(missing_ok=True)
+        except OSError:
+            pass
+        raise
+    else:
+        temporary.unlink(missing_ok=True)
 
 
 def load_json_object(path: Path) -> dict:
