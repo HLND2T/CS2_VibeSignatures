@@ -74,6 +74,13 @@ flowchart TD
 - Float filters only inspect scalar SSE/AVX instructions that read readonly `.rdata` / `.rodata` constants, and non-finite float values are rejected during normalization.
 - The xref pipeline is fail-closed: invalid normalization, missing required dependency artifacts, helper probe failures, or non-unique final candidates all return `None`.
 
+## Agent Skill fallback pointer: CNetworkSystem_CloseSocket
+- Trigger signal: `find-CNetworkSystem_CloseSocket-inlined` (the only `expected_output` link of the CloseSocket chain, hence the only one that reaches the Agent) fails because the `"Closing '%s' UDP listen socket"` owner is neither a `CNetworkSystem_vtable` member (fused state) nor resolvable through the `-deinlined` caller intersection.
+- Root cause / constraint: inverted de-inline topology -- the public vfunc is a ~0x21-byte string-less bounds-check forwarder while `CNetworkSystem_CloseSocketInternal` keeps all four teardown strings; the state is platform-decided (`networksystem.dll` fused, `libnetworksystem.so` de-inlined) and can flip per build, so a platform assumption is not safe.
+- Correct practice: use `.claude/skills/find-CNetworkSystem_CloseSocket-inlined/SKILL.md`; classify the inline state from whether the string owner is in the vtable, then follow the *callers* of the body (inverse of follow-the-callee) and keep the only close-related `CNetworkSystem` vfunc that references no string at all.
+- Validation: `uv run ida_analyze_bin.py -gamever <gamever> -oldgamever none -modules=networksystem -debug -skip_pp -skill=find-CNetworkSystem_CloseSocket-inlined` must report `Failed: 0` and write `CNetworkSystem_CloseSocket.{platform}.yaml` carrying `vtable_name` / `vfunc_offset` / `vfunc_index` and **no** `func_sig`.
+- Scope: vtable-member recovery across an inverted inline boundary; the follow-the-caller plus string-less-discriminator pattern generalizes to other thin guard wrappers whose de-inlined body owns the strings.
+
 ## Callers
 - `_try_preprocess_func_without_llm` in `ida_analyze_util.py`
 - `preprocess_common_skill` in `ida_analyze_util.py`
