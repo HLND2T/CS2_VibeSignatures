@@ -33,6 +33,34 @@ class TestIdbCache(unittest.TestCase):
             iter_configured_binaries=self._configured_binaries,
         )
 
+    def test_write_ready_skips_unchanged_pointer(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            persisted_root = Path(temp_dir)
+            gamever = "14180"
+            payload = {"schema_version": 1, "gamever": gamever, "generation": "generation"}
+            ready_path = persisted_root / "idb-cache" / gamever / "READY.json"
+            ready_path.parent.mkdir(parents=True)
+            ready_path.write_bytes(idb_cache.canonical_json_bytes(payload))
+
+            with patch.object(idb_cache, "write_canonical_json") as write:
+                idb_cache._write_ready(persisted_root, gamever, payload)
+
+            write.assert_not_called()
+
+    def test_write_ready_replaces_changed_pointer(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            persisted_root = Path(temp_dir)
+            gamever = "14180"
+            payload = {"schema_version": 1, "gamever": gamever, "generation": "new-generation"}
+            ready_path = persisted_root / "idb-cache" / gamever / "READY.json"
+            ready_path.parent.mkdir(parents=True)
+            ready_path.write_bytes(idb_cache.canonical_json_bytes({"generation": "old-generation"}))
+
+            with patch.object(idb_cache, "write_canonical_json") as write:
+                idb_cache._write_ready(persisted_root, gamever, payload)
+
+            write.assert_called_once_with(ready_path, payload)
+
     def test_publish_probe_and_restore_verified_generation(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
