@@ -2369,6 +2369,11 @@ modules:
       - name: find-CNetworkGameClientBase_vtable
         expected_output:
           - CNetworkGameClientBase_vtable.{platform}.yaml
+      - name: find-CNetworkGameClientBase_ProcessCmdKeyValues
+        expected_output:
+          - CNetworkGameClientBase_ProcessCmdKeyValues.{platform}.yaml
+        expected_input:
+          - CNetworkGameClientBase_vtable.{platform}.yaml
       - name: find-CNetworkGameClientBase_ProcessSplitScreen
         expected_output:
           - CNetworkGameClientBase_ProcessSplitScreen.{platform}.yaml
@@ -3867,6 +3872,10 @@ modules:
           - CEngineServer::GetPlayerNetworkIDString
       - name: CNetworkGameClientBase_vtable
         category: vtable
+      - name: CNetworkGameClientBase_ProcessCmdKeyValues
+        category: vfunc
+        alias:
+          - CNetworkGameClientBase::ProcessCmdKeyValues
       - name: CNetworkGameClientBase_ProcessSplitScreen
         category: vfunc
         alias:
