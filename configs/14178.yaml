@@ -1596,6 +1596,11 @@ modules:
       - name: find-CNetworkGameClient_vtable
         expected_output:
           - CNetworkGameClient_vtable.{platform}.yaml
+      - name: find-CNetworkGameClient_FullConnect
+        expected_output:
+          - CNetworkGameClient_FullConnect.{platform}.yaml
+        expected_input:
+          - CNetworkGameClient_vtable.{platform}.yaml
       - name: find-CNetworkGameClient_ProcessServerInfo
         expected_output:
           - CNetworkGameClient_ProcessServerInfo.{platform}.yaml
@@ -2890,6 +2895,10 @@ modules:
           - CMsgSource2NetworkFlowQuality::PrintStats
       - name: CNetworkGameClient_vtable
         category: vtable
+      - name: CNetworkGameClient_FullConnect
+        category: vfunc
+        alias:
+          - CNetworkGameClient::FullConnect
       - name: CNetworkGameClient_ProcessServerInfo
         category: vfunc
         alias:
