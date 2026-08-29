@@ -453,6 +453,12 @@ modules:
       - name: find-CNetworkSystem_SendNetworkStats
         expected_output:
           - CNetworkSystem_SendNetworkStats.{platform}.yaml
+      - name: find-CNetworkSystem_PrintNetworkStats
+        expected_output:
+          - CNetworkSystem_PrintNetworkStats.{platform}.yaml
+        expected_input:
+          - CNetworkSystem_SendNetworkStats.{platform}.yaml
+          - CNetworkSystem_vtable.{platform}.yaml
       - name: find-CNetworkSystem_SendNetworkStats-decompiles
         expected_output:
           - INetworkMessages_GetNetworkGroupCount.{platform}.yaml
@@ -649,6 +655,10 @@ modules:
         category: func
         alias:
           - CNetworkSystem::SendNetworkStats
+      - name: CNetworkSystem_PrintNetworkStats
+        category: vfunc
+        alias:
+          - CNetworkSystem::PrintNetworkStats
       - name: CNetworkMessages_GetNetworkGroupCount
         category: vfunc
         source_alias:
