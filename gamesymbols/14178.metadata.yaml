@@ -114,6 +114,9 @@ modules:
   - name: CNetworkSystem_InitGameServer
     alias:
     - CNetworkSystem::InitGameServer
+  - name: CNetworkSystem_InitNetworkSystem
+    alias:
+    - CNetworkSystem::InitNetworkSystem
   - name: CNetworkSystem_PollSocket
     alias:
     - CNetworkSystem::PollSocket
@@ -138,9 +141,18 @@ modules:
   - name: CNetworkSystem_RemoveNetChannelByAddress
     alias:
     - CNetworkSystem::RemoveNetChannelByAddress
+  - name: CNetworkSystem_BufferToBufferDecompress
+    alias:
+    - CNetworkSystem::BufferToBufferDecompress
+  - name: CNetworkSystem_CloseAllSockets
+    alias:
+    - CNetworkSystem::CloseAllSockets
   - name: CNetworkSystem_SendNetworkStats
     alias:
     - CNetworkSystem::SendNetworkStats
+  - name: CNetworkSystem_PrintNetworkStats
+    alias:
+    - CNetworkSystem::PrintNetworkStats
   - name: CNetworkMessages_GetNetworkGroupCount
     alias:
     - CNetworkMessages::GetNetworkGroupCount
@@ -462,6 +474,21 @@ modules:
   - name: CMsgSource2NetworkFlowQuality_PrintStats
     alias:
     - CMsgSource2NetworkFlowQuality::PrintStats
+  - name: CNetworkGameClient_FullConnect
+    alias:
+    - CNetworkGameClient::FullConnect
+  - name: CNetworkGameClient_ProcessServerInfo
+    alias:
+    - CNetworkGameClient::ProcessServerInfo
+  - name: CNetworkGameClient_InstallStringTableCallback
+    alias:
+    - CNetworkGameClient::InstallStringTableCallback
+  - name: CNetworkGameClient_HookClientStringTable
+    alias:
+    - CNetworkGameClient::HookClientStringTable
+  - name: CNetworkGameClient_ProcessClassInfo
+    alias:
+    - CNetworkGameClient::ProcessClassInfo
   - name: CNetworkGameClientBase__ProcessNetworking
     alias:
     - CNetworkGameClientBase::ProcessNetworking
@@ -819,6 +846,9 @@ modules:
   - name: INetworkGameClient_SendStringCmd
     alias:
     - INetworkGameClient::SendStringCmd
+  - name: CMapListService_ParseMapOptions
+    alias:
+    - CMapListService::ParseMapOptions
   - name: CEngineServer_DumpNetStats
     alias:
     - CEngineServer::DumpNetStats
@@ -904,6 +934,9 @@ modules:
   - name: CLoopTypeClientServer_Update
     alias:
     - CLoopTypeClientServer::Update
+  - name: CLoopModeLevelLoad_MaybeSwitchToGameLoop
+    alias:
+    - CLoopModeLevelLoad::MaybeSwitchToGameLoop
   - name: CLoopTypeClientServer_ActivateLoop
     alias:
     - CLoopTypeClientServer::ActivateLoop
@@ -1099,6 +1132,27 @@ modules:
   - name: CEngineServer_GetPlayerNetworkIDString
     alias:
     - CEngineServer::GetPlayerNetworkIDString
+  - name: CNetworkGameClientBase_ProcessSpawnGroup_ManifestUpdate
+    alias:
+    - CNetworkGameClientBase::ProcessSpawnGroup_ManifestUpdate
+  - name: CNetworkGameClientBase_ProcessCmdKeyValues
+    alias:
+    - CNetworkGameClientBase::ProcessCmdKeyValues
+  - name: CNetworkGameClientBase_ProcessSplitScreen
+    alias:
+    - CNetworkGameClientBase::ProcessSplitScreen
+  - name: CNetworkGameClientBase_ProcessSpawnGroup_SetCreationTick
+    alias:
+    - CNetworkGameClientBase::ProcessSpawnGroup_SetCreationTick
+  - name: CNetworkGameClientBase_ProcessSpawnGroup_Load
+    alias:
+    - CNetworkGameClientBase::ProcessSpawnGroup_Load
+  - name: CNetworkGameClientBase_ProcessCreateStringTable
+    alias:
+    - CNetworkGameClientBase::ProcessCreateStringTable
+  - name: CNetworkGameClientBase_ProcessUpdateStringTable
+    alias:
+    - CNetworkGameClientBase::ProcessUpdateStringTable
   - name: CNetworkGameClientBase_ServerCmd
     alias:
     - CNetworkGameClientBase::ServerCmd
@@ -2076,6 +2130,12 @@ modules:
   - name: CBaseEntity_GetChangeAccessorPathInfo_1
     alias:
     - CBaseEntity::GetChangeAccessorPathInfo_1
+  - name: CBasePlayerController_ClientSettingsChanged
+    alias:
+    - CBasePlayerController::ClientSettingsChanged
+  - name: CBasePlayerController_SimulateUserCommands
+    alias:
+    - CBasePlayerController::SimulateUserCommands
   - name: CBasePlayerPawn_PrePhysicsSimulate
     alias:
     - CBasePlayerPawn::PrePhysicsSimulate
