@@ -1,4 +1,5 @@
 import ast
+from contextlib import asynccontextmanager
 import json
 import os
 import sys
@@ -9052,6 +9053,16 @@ found_struct_offset: []
     async def test_preprocess_common_skill_uses_llm_decompile_vcall_fallback_for_func_yaml(
         self,
     ) -> None:
+        keepalive_calls = []
+
+        @asynccontextmanager
+        async def record_keepalive(session, *, debug, activity):
+            keepalive_calls.append(("enter", session, debug, activity))
+            try:
+                yield
+            finally:
+                keepalive_calls.append(("exit", session, debug, activity))
+
         func_name = "CLoopModeGame_OnLoopActivate"
         output_path = f"/tmp/{func_name}.windows.yaml"
         target_detail_payload = {
@@ -9156,6 +9167,11 @@ found_struct_offset: []
                 ) as mock_call_llm_decompile,
                 patch.object(
                     ida_analyze_util,
+                    "keepalive_worker_during",
+                    record_keepalive,
+                ),
+                patch.object(
+                    ida_analyze_util,
                     "preprocess_vtable_via_mcp",
                     AsyncMock(
                         return_value={
@@ -9220,6 +9236,13 @@ found_struct_offset: []
 
         self.assertTrue(result)
         mock_call_llm_decompile.assert_awaited_once()
+        self.assertEqual(
+            [
+                ("enter", session, True, "llm_decompile"),
+                ("exit", session, True, "llm_decompile"),
+            ],
+            keepalive_calls,
+        )
         self.assertNotIn("client", mock_call_llm_decompile.call_args.kwargs)
         self.assertEqual(
             "gpt-4.1-mini",
