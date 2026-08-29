@@ -1,38 +1,35 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CNetworkSystem_CloseSocket skill."""
+"""Preprocess script for find-CNetworkSystem_PrintNetworkStats skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
-TARGET_FUNCTION_NAMES = ["CNetworkSystem_CloseSocket"]
-
+TARGET_FUNCTION_NAMES = ["CNetworkSystem_PrintNetworkStats"]
 FUNC_XREFS = [
     {
-        "func_name": "CNetworkSystem_CloseSocket",
-        "xref_strings": ["Closing '%s' UDP listen socket\\n"],
+        "func_name": "CNetworkSystem_PrintNetworkStats",
+        "xref_strings": [],
         "xref_gvs": [],
         "xref_signatures": [],
-        "xref_funcs": [],
+        "xref_funcs": ["CNetworkSystem_SendNetworkStats"],
         "exclude_funcs": [],
-        "exclude_strings": ["CNetworkSystem::CloseAllSockets()\\n"],
+        "exclude_strings": [],
         "exclude_gvs": [],
         "exclude_signatures": [],
-    },
+    }
 ]
-
-FUNC_VTABLE_RELATIONS = [("CNetworkSystem_CloseSocket", "CNetworkSystem_vtable")]
-
+FUNC_VTABLE_RELATIONS = [("CNetworkSystem_PrintNetworkStats", "CNetworkSystem_vtable")]
 GENERATE_YAML_DESIRED_FIELDS = [
     (
-        "CNetworkSystem_CloseSocket",
+        "CNetworkSystem_PrintNetworkStats",
         ["func_name", "func_va", "func_rva", "func_size", "func_sig", "vtable_name", "vfunc_offset", "vfunc_index"],
-    ),
+    )
 ]
 
 
 async def preprocess_skill(
     session, skill_name, expected_outputs, old_yaml_map, new_binary_dir, platform, image_base, debug=False
 ):
-    """Find the CNetworkSystem::CloseSocket virtual function."""
+    """Find the CNetworkSystem::PrintNetworkStats virtual function."""
     return await preprocess_common_skill(
         session=session,
         expected_outputs=expected_outputs,
