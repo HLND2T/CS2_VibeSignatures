@@ -1601,6 +1601,15 @@ modules:
           - CNetworkGameClient_ProcessServerInfo.{platform}.yaml
         expected_input:
           - CNetworkGameClient_vtable.{platform}.yaml
+      - name: find-Callback_GenericChanged
+        expected_output:
+          - Callback_GenericChanged.{platform}.yaml
+      - name: find-CNetworkGameClient_InstallStringTableCallback
+        expected_output:
+          - CNetworkGameClient_InstallStringTableCallback.{platform}.yaml
+        expected_input:
+          - Callback_GenericChanged.{platform}.yaml
+          - CNetworkGameClient_vtable.{platform}.yaml
       - name: find-CNetworkGameClient_HookClientStringTable
         expected_output:
           - CNetworkGameClient_HookClientStringTable.{platform}.yaml
@@ -2865,6 +2874,12 @@ modules:
         category: vfunc
         alias:
           - CNetworkGameClient::ProcessServerInfo
+      - name: Callback_GenericChanged
+        category: func
+      - name: CNetworkGameClient_InstallStringTableCallback
+        category: vfunc
+        alias:
+          - CNetworkGameClient::InstallStringTableCallback
       - name: CNetworkGameClient_HookClientStringTable
         category: vfunc
         alias:
