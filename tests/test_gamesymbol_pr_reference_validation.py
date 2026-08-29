@@ -3,7 +3,6 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from gamesymbol_snapshot_lib.config import load_contract
-from gamesymbol_snapshot_lib.errors import SnapshotConfigError
 from gamesymbol_snapshot_lib.model import ChangedPath
 from gamesymbol_snapshot_lib.pr_validation import build_invalidation_plan
 from tests.gamesymbol_snapshot_test_support import module, skill, write_config
@@ -119,15 +118,37 @@ class TestReferenceInvalidation(unittest.TestCase):
         self.assertEqual({"server/Old.windows.yaml", "server/New.windows.yaml"}, plan.paths)
         self.assertIn(f"reference rename: base {old} -> HEAD {new}", plan.reasons)
 
-    def test_added_or_modified_active_orphan_reference_fails(self) -> None:
+    def test_added_or_modified_orphan_reference_warns_without_invalidating(self) -> None:
         with TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             base, head = self._contracts(root, [skill("find-target", ["Target.{platform}.yaml"])])
             reference = "ida_preprocessor_scripts/references/server/Orphan.windows.yaml"
+            expected = {
+                "A": f"warning: added orphan reference had no HEAD consumer: {reference}",
+                "M": f"warning: modified orphan reference had no HEAD consumer: {reference}",
+            }
             for change in (ChangedPath("A", None, reference), ChangedPath("M", reference, reference)):
                 with self.subTest(status=change.status):
-                    with self.assertRaisesRegex(SnapshotConfigError, "orphan_active_reference"):
-                        self._plan(base, head, [change], root, {}, {})
+                    plan = self._plan(base, head, [change], root, {}, {})
+                    self.assertEqual(frozenset(), plan.paths)
+                    self.assertIn(expected[change.status], plan.reasons)
+
+    def test_modified_reference_without_head_consumer_still_uses_base_consumer(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            base, head = self._contracts(root, [skill("find-old", ["Old.{platform}.yaml"])])
+            reference = "ida_preprocessor_scripts/references/server/Input.windows.yaml"
+            plan = self._plan(
+                base,
+                head,
+                [ChangedPath("M", reference, reference)],
+                root,
+                source_map(**{"find-old": find_source("references/server/Input.{platform}.yaml")}),
+                source_map(**{"find-old": "TARGET_FUNCTION_NAMES = []\n"}),
+            )
+
+        self.assertEqual({"server/Old.windows.yaml"}, plan.paths)
+        self.assertIn(f"warning: modified orphan reference had no HEAD consumer: {reference}", plan.reasons)
 
     def test_deleted_orphan_reference_warns_without_invalidating(self) -> None:
         with TemporaryDirectory() as temp_dir:
