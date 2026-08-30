@@ -32,13 +32,13 @@ GENERATE_YAML_DESIRED_FIELDS = [
 _SENDSTRINGCMD_STEM = "CNetworkGameClientBase_SendStringCmd"
 
 # Windows tail wrapper: mov r9d,-1; cmova edx,r9d; jmp qword ptr [rax+OFFSET]
-_WINDOWS_CMP = "83 FA 03"                # cmp edx, 3
-_WINDOWS_MOV = "41 B9 FF FF FF FF"       # mov r9d, 0FFFFFFFFh
+_WINDOWS_CMP = "83 FA 03"  # cmp edx, 3
+_WINDOWS_MOV = "41 B9 FF FF FF FF"  # mov r9d, 0FFFFFFFFh
 _WINDOWS_JUMP_TEMPLATE = "48 FF A0 {OFFSET}"  # jmp qword ptr [rax+OFFSET]
 
 # Linux member body: ... mov rax,[rax+OFFSET] ...
-_LINUX_CMP = "83 FE 03"                  # cmp esi, 3
-_LINUX_MOV = "BE FF FF FF FF"            # mov esi, 0FFFFFFFFh
+_LINUX_CMP = "83 FE 03"  # cmp esi, 3
+_LINUX_MOV = "BE FF FF FF FF"  # mov esi, 0FFFFFFFFh
 _LINUX_LOAD_TEMPLATE = "48 8B 80 {OFFSET}"  # mov rax, [rax+OFFSET]
 
 # The free global-accessor wrapper (g_pNetworkGameClientBase->SendStringCmd) shares the
@@ -130,9 +130,7 @@ async def preprocess_skill(
         return False
 
     if debug:
-        print(
-            f"    Preprocess: SendStringCmd2 xref_signatures (vfunc_offset 0x{vfunc_offset:X}, le {offset_le})"
-        )
+        print(f"    Preprocess: SendStringCmd2 xref_signatures (vfunc_offset 0x{vfunc_offset:X}, le {offset_le})")
 
     return await preprocess_common_skill(
         session=session,
