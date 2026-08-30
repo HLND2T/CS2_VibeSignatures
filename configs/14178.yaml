@@ -372,6 +372,21 @@ modules:
           - CNetworkSystem_InitGameServer.{platform}.yaml
         expected_input:
           - CNetworkSystem_vtable.{platform}.yaml
+      - name: find-CNetworkSystem_InitNetworkSystem
+        expected_output:
+          - CNetworkSystem_InitNetworkSystem.{platform}.yaml
+        expected_input:
+          - CNetworkSystem_vtable.{platform}.yaml
+      - name: find-CNetworkSystem_PollSocket
+        expected_output:
+          - CNetworkSystem_PollSocket.{platform}.yaml
+        expected_input:
+          - CNetworkSystem_vtable.{platform}.yaml
+      - name: find-CNetworkSystem_EnableLoopbackBetweenSockets
+        expected_output:
+          - CNetworkSystem_EnableLoopbackBetweenSockets.{platform}.yaml
+        expected_input:
+          - CNetworkSystem_vtable.{platform}.yaml
       - name: find-CNetworkSystem_OpenSocket
         expected_output:
           - CNetworkSystem_OpenSocket.{platform}.yaml
@@ -382,19 +397,68 @@ modules:
           - CNetworkSystem_ConnectSocket.{platform}.yaml
         expected_input:
           - CNetworkSystem_vtable.{platform}.yaml
-      - name: find-CNetworkSystem_CloseSocket
+      # CNetworkSystem::CloseSocket: the string-owning teardown body (CloseSocketInternal,
+      # which holds "Closing '%s' UDP/P2P/SDR listen socket" + "Closing '%s' poll group") is
+      # fused into the vfunc on networksystem.dll, but de-inlined into a standalone function
+      # on libnetworksystem.so, leaving the vfunc as a thin bounds-check forwarder with no
+      # strings of its own. Inverted-topology inline/de-inline fallback chain:
+      - name: find-CNetworkSystem_CloseSocketInternal
+        platform: linux
+        optional_output:
+          - CNetworkSystem_CloseSocketInternal.{platform}.yaml
+        skip_if_exists:
+          - CNetworkSystem_CloseSocket.{platform}.yaml
+      - name: find-CNetworkSystem_CloseSocket-deinlined
+        optional_output:
+          - CNetworkSystem_CloseSocket.{platform}.yaml
+        expected_input:
+          - CNetworkSystem_vtable.{platform}.yaml
+        prerequisite:
+          - find-CNetworkSystem_CloseSocketInternal
+      - name: find-CNetworkSystem_CloseSocket-inlined
         expected_output:
           - CNetworkSystem_CloseSocket.{platform}.yaml
         expected_input:
           - CNetworkSystem_vtable.{platform}.yaml
+        skip_if_exists:
+          - CNetworkSystem_CloseSocket.{platform}.yaml
+        prerequisite:
+          - find-CNetworkSystem_CloseSocket-deinlined
       - name: find-CNetworkSystem_ShutdownGameServer
         expected_output:
           - CNetworkSystem_ShutdownGameServer.{platform}.yaml
         expected_input:
           - CNetworkSystem_vtable.{platform}.yaml
+      - name: find-CNetworkSystem_RemoveNetChannel
+        expected_output:
+          - CNetworkSystem_RemoveNetChannel.{platform}.yaml
+        expected_input:
+          - CNetworkSystem_vtable.{platform}.yaml
+      - name: find-CNetworkSystem_RemoveNetChannelByAddress
+        expected_output:
+          - CNetworkSystem_RemoveNetChannelByAddress.{platform}.yaml
+        expected_input:
+          - CNetworkSystem_RemoveNetChannel.{platform}.yaml
+          - CNetworkSystem_vtable.{platform}.yaml
+      - name: find-CNetworkSystem_BufferToBufferDecompress
+        expected_output:
+          - CNetworkSystem_BufferToBufferDecompress.{platform}.yaml
+        expected_input:
+          - CNetworkSystem_vtable.{platform}.yaml
+      - name: find-CNetworkSystem_CloseAllSockets
+        expected_output:
+          - CNetworkSystem_CloseAllSockets.{platform}.yaml
+        expected_input:
+          - CNetworkSystem_vtable.{platform}.yaml
       - name: find-CNetworkSystem_SendNetworkStats
         expected_output:
           - CNetworkSystem_SendNetworkStats.{platform}.yaml
+      - name: find-CNetworkSystem_PrintNetworkStats
+        expected_output:
+          - CNetworkSystem_PrintNetworkStats.{platform}.yaml
+        expected_input:
+          - CNetworkSystem_SendNetworkStats.{platform}.yaml
+          - CNetworkSystem_vtable.{platform}.yaml
       - name: find-CNetworkSystem_SendNetworkStats-decompiles
         expected_output:
           - INetworkMessages_GetNetworkGroupCount.{platform}.yaml
@@ -543,6 +607,18 @@ modules:
         category: vfunc
         alias:
           - CNetworkSystem::InitGameServer
+      - name: CNetworkSystem_InitNetworkSystem
+        category: vfunc
+        alias:
+          - CNetworkSystem::InitNetworkSystem
+      - name: CNetworkSystem_PollSocket
+        category: vfunc
+        alias:
+          - CNetworkSystem::PollSocket
+      - name: CNetworkSystem_EnableLoopbackBetweenSockets
+        category: vfunc
+        alias:
+          - CNetworkSystem::EnableLoopbackBetweenSockets
       - name: CNetworkSystem_OpenSocket
         category: vfunc
         alias:
@@ -559,10 +635,30 @@ modules:
         category: vfunc
         alias:
           - CNetworkSystem::ShutdownGameServer
+      - name: CNetworkSystem_RemoveNetChannel
+        category: vfunc
+        alias:
+          - CNetworkSystem::RemoveNetChannel
+      - name: CNetworkSystem_RemoveNetChannelByAddress
+        category: vfunc
+        alias:
+          - CNetworkSystem::RemoveNetChannelByAddress
+      - name: CNetworkSystem_BufferToBufferDecompress
+        category: vfunc
+        alias:
+          - CNetworkSystem::BufferToBufferDecompress
+      - name: CNetworkSystem_CloseAllSockets
+        category: vfunc
+        alias:
+          - CNetworkSystem::CloseAllSockets
       - name: CNetworkSystem_SendNetworkStats
         category: func
         alias:
           - CNetworkSystem::SendNetworkStats
+      - name: CNetworkSystem_PrintNetworkStats
+        category: vfunc
+        alias:
+          - CNetworkSystem::PrintNetworkStats
       - name: CNetworkMessages_GetNetworkGroupCount
         category: vfunc
         source_alias:
@@ -1500,6 +1596,33 @@ modules:
       - name: find-CNetworkGameClient_vtable
         expected_output:
           - CNetworkGameClient_vtable.{platform}.yaml
+      - name: find-CNetworkGameClient_FullConnect
+        expected_output:
+          - CNetworkGameClient_FullConnect.{platform}.yaml
+        expected_input:
+          - CNetworkGameClient_vtable.{platform}.yaml
+      - name: find-CNetworkGameClient_ProcessServerInfo
+        expected_output:
+          - CNetworkGameClient_ProcessServerInfo.{platform}.yaml
+        expected_input:
+          - CNetworkGameClient_vtable.{platform}.yaml
+      - name: find-Callback_GenericChanged
+        expected_output:
+          - Callback_GenericChanged.{platform}.yaml
+      - name: find-CNetworkGameClient_InstallStringTableCallback
+        expected_output:
+          - CNetworkGameClient_InstallStringTableCallback.{platform}.yaml
+        expected_input:
+          - Callback_GenericChanged.{platform}.yaml
+          - CNetworkGameClient_vtable.{platform}.yaml
+      - name: find-CNetworkGameClient_HookClientStringTable
+        expected_output:
+          - CNetworkGameClient_HookClientStringTable.{platform}.yaml
+      - name: find-CNetworkGameClient_ProcessClassInfo
+        expected_output:
+          - CNetworkGameClient_ProcessClassInfo.{platform}.yaml
+        expected_input:
+          - CNetworkGameClient_vtable.{platform}.yaml
       - name: find-CNetworkClientService_OnSimpleLoopFrameUpdate-decompiles
         platform: windows
         expected_output:
@@ -1626,6 +1749,11 @@ modules:
           - CEngineServer_vtable.{platform}.yaml
       - name: find-CMapListService_vtable
         expected_output:
+          - CMapListService_vtable.{platform}.yaml
+      - name: find-CMapListService_ParseMapOptions
+        expected_output:
+          - CMapListService_ParseMapOptions.{platform}.yaml
+        expected_input:
           - CMapListService_vtable.{platform}.yaml
       - name: find-CEngineServer_DumpNetStats
         expected_output:
@@ -1902,6 +2030,9 @@ modules:
           - CLoopTypeClientServer_Update.{platform}.yaml
         expected_input:
           - CLoopTypeClientServer_vtable.{platform}.yaml
+      - name: find-CLoopModeLevelLoad_MaybeSwitchToGameLoop
+        expected_output:
+          - CLoopModeLevelLoad_MaybeSwitchToGameLoop.{platform}.yaml
       - name: find-CLoopTypeClientServer_ActivateLoop
         expected_output:
           - CLoopTypeClientServer_ActivateLoop.{platform}.yaml
@@ -2048,6 +2179,15 @@ modules:
           - CLoopTypeClientServerService_HandleInputEvent.{platform}.yaml
       - name: find-CEngineServiceMgr_vtable
         expected_output:
+          - CEngineServiceMgr_vtable.{platform}.yaml
+      - name: find-CRenderService_OnClientOutput
+        expected_output:
+          - CRenderService_OnClientOutput.{platform}.yaml
+      - name: find-CEngineServiceMgr_OnFrameRenderingFinished
+        expected_output:
+          - CEngineServiceMgr_OnFrameRenderingFinished.{platform}.yaml
+        expected_input:
+          - CRenderService_OnClientOutput.{platform}.yaml
           - CEngineServiceMgr_vtable.{platform}.yaml
       - name: find-CEngineServiceMgr_RegisterEngineService
         expected_output:
@@ -2250,6 +2390,60 @@ modules:
       # is only produced in the late engine pass (it depends on g_pSource2GameClients).
       - name: find-CNetworkGameClientBase_vtable
         expected_output:
+          - CNetworkGameClientBase_vtable.{platform}.yaml
+      # The manifest-update diagnostic is in the vfunc on Windows, but in the
+      # standalone Impl helper on Linux. Resolve the helper/caller chain first,
+      # then fall back to the direct inlined finder.
+      - name: find-CNetworkGameClientBase_ProcessSpawnGroup_ManifestUpdateImpl
+        optional_output:
+          - CNetworkGameClientBase_ProcessSpawnGroup_ManifestUpdateImpl.{platform}.yaml
+        skip_if_exists:
+          - CNetworkGameClientBase_ProcessSpawnGroup_ManifestUpdate.{platform}.yaml
+      - name: find-CNetworkGameClientBase_ProcessSpawnGroup_ManifestUpdate-noinline
+        optional_output:
+          - CNetworkGameClientBase_ProcessSpawnGroup_ManifestUpdate.{platform}.yaml
+        expected_input:
+          - CNetworkGameClientBase_vtable.{platform}.yaml
+        prerequisite:
+          - find-CNetworkGameClientBase_ProcessSpawnGroup_ManifestUpdateImpl
+      - name: find-CNetworkGameClientBase_ProcessSpawnGroup_ManifestUpdate-inlined
+        expected_output:
+          - CNetworkGameClientBase_ProcessSpawnGroup_ManifestUpdate.{platform}.yaml
+        expected_input:
+          - CNetworkGameClientBase_vtable.{platform}.yaml
+        skip_if_exists:
+          - CNetworkGameClientBase_ProcessSpawnGroup_ManifestUpdate.{platform}.yaml
+        prerequisite:
+          - find-CNetworkGameClientBase_ProcessSpawnGroup_ManifestUpdate-noinline
+      - name: find-CNetworkGameClientBase_ProcessCmdKeyValues
+        expected_output:
+          - CNetworkGameClientBase_ProcessCmdKeyValues.{platform}.yaml
+        expected_input:
+          - CNetworkGameClientBase_vtable.{platform}.yaml
+      - name: find-CNetworkGameClientBase_ProcessSplitScreen
+        expected_output:
+          - CNetworkGameClientBase_ProcessSplitScreen.{platform}.yaml
+        expected_input:
+          - CNetworkGameClientBase_vtable.{platform}.yaml
+      - name: find-CNetworkGameClientBase_ProcessSpawnGroup_SetCreationTick
+        expected_output:
+          - CNetworkGameClientBase_ProcessSpawnGroup_SetCreationTick.{platform}.yaml
+        expected_input:
+          - CNetworkGameClientBase_vtable.{platform}.yaml
+      - name: find-CNetworkGameClientBase_ProcessSpawnGroup_Load
+        expected_output:
+          - CNetworkGameClientBase_ProcessSpawnGroup_Load.{platform}.yaml
+        expected_input:
+          - CNetworkGameClientBase_vtable.{platform}.yaml
+      - name: find-CNetworkGameClientBase_ProcessCreateStringTable
+        expected_output:
+          - CNetworkGameClientBase_ProcessCreateStringTable.{platform}.yaml
+        expected_input:
+          - CNetworkGameClientBase_vtable.{platform}.yaml
+      - name: find-CNetworkGameClientBase_ProcessUpdateStringTable
+        expected_output:
+          - CNetworkGameClientBase_ProcessUpdateStringTable.{platform}.yaml
+        expected_input:
           - CNetworkGameClientBase_vtable.{platform}.yaml
       - name: find-CNetworkGameClientBase_ServerCmd
         platform: windows
@@ -2752,6 +2946,28 @@ modules:
           - CMsgSource2NetworkFlowQuality::PrintStats
       - name: CNetworkGameClient_vtable
         category: vtable
+      - name: CNetworkGameClient_FullConnect
+        category: vfunc
+        alias:
+          - CNetworkGameClient::FullConnect
+      - name: CNetworkGameClient_ProcessServerInfo
+        category: vfunc
+        alias:
+          - CNetworkGameClient::ProcessServerInfo
+      - name: Callback_GenericChanged
+        category: func
+      - name: CNetworkGameClient_InstallStringTableCallback
+        category: vfunc
+        alias:
+          - CNetworkGameClient::InstallStringTableCallback
+      - name: CNetworkGameClient_HookClientStringTable
+        category: vfunc
+        alias:
+          - CNetworkGameClient::HookClientStringTable
+      - name: CNetworkGameClient_ProcessClassInfo
+        category: vfunc
+        alias:
+          - CNetworkGameClient::ProcessClassInfo
       - name: CNetworkGameClientBase__ProcessNetworking
         category: vfunc
         alias:
@@ -3303,6 +3519,10 @@ modules:
         category: vtable
       - name: CMapListService_vtable
         category: vtable
+      - name: CMapListService_ParseMapOptions
+        category: vfunc
+        alias:
+          - CMapListService::ParseMapOptions
       - name: CEngineServer_DumpNetStats
         category: vfunc
         alias:
@@ -3441,6 +3661,10 @@ modules:
         category: vfunc
         alias:
           - CLoopTypeClientServer::Update
+      - name: CLoopModeLevelLoad_MaybeSwitchToGameLoop
+        category: func
+        alias:
+          - CLoopModeLevelLoad::MaybeSwitchToGameLoop
       - name: CLoopTypeClientServer_ActivateLoop
         category: vfunc
         alias:
@@ -3569,6 +3793,14 @@ modules:
           - ILoopModeFactory::Shutdown
       - name: CEngineServiceMgr_vtable
         category: vtable
+      - name: CRenderService_OnClientOutput
+        category: func
+        alias:
+          - CRenderService::OnClientOutput
+      - name: CEngineServiceMgr_OnFrameRenderingFinished
+        category: vfunc
+        alias:
+          - CEngineServiceMgr::OnFrameRenderingFinished
       - name: CEngineServiceMgr_RegisterEngineService
         category: vfunc
         alias:
@@ -3726,6 +3958,34 @@ modules:
           - CEngineServer::GetPlayerNetworkIDString
       - name: CNetworkGameClientBase_vtable
         category: vtable
+      - name: CNetworkGameClientBase_ProcessSpawnGroup_ManifestUpdate
+        category: vfunc
+        alias:
+          - CNetworkGameClientBase::ProcessSpawnGroup_ManifestUpdate
+      - name: CNetworkGameClientBase_ProcessCmdKeyValues
+        category: vfunc
+        alias:
+          - CNetworkGameClientBase::ProcessCmdKeyValues
+      - name: CNetworkGameClientBase_ProcessSplitScreen
+        category: vfunc
+        alias:
+          - CNetworkGameClientBase::ProcessSplitScreen
+      - name: CNetworkGameClientBase_ProcessSpawnGroup_SetCreationTick
+        category: vfunc
+        alias:
+          - CNetworkGameClientBase::ProcessSpawnGroup_SetCreationTick
+      - name: CNetworkGameClientBase_ProcessSpawnGroup_Load
+        category: vfunc
+        alias:
+          - CNetworkGameClientBase::ProcessSpawnGroup_Load
+      - name: CNetworkGameClientBase_ProcessCreateStringTable
+        category: vfunc
+        alias:
+          - CNetworkGameClientBase::ProcessCreateStringTable
+      - name: CNetworkGameClientBase_ProcessUpdateStringTable
+        category: vfunc
+        alias:
+          - CNetworkGameClientBase::ProcessUpdateStringTable
       - name: CNetworkGameClientBase_ServerCmd
         category: vfunc
         platform: windows
@@ -6781,6 +7041,32 @@ modules:
         expected_input:
           - CPlayerCommandQueue_ctor.{platform}.yaml
           - CBasePlayerController_vtable.{platform}.yaml
+      - name: find-CBasePlayerController_ClientSettingsChanged
+        expected_output:
+          - CBasePlayerController_ClientSettingsChanged.{platform}.yaml
+        expected_input:
+          - CBasePlayerController_vtable.{platform}.yaml
+      - name: find-CBasePlayerController_SimulateUserCommandsInternal
+        optional_output:
+          - CBasePlayerController_SimulateUserCommandsInternal.{platform}.yaml
+        skip_if_exists:
+          - CBasePlayerController_SimulateUserCommands.{platform}.yaml
+      - name: find-CBasePlayerController_SimulateUserCommands-noinline
+        optional_output:
+          - CBasePlayerController_SimulateUserCommands.{platform}.yaml
+        expected_input:
+          - CBasePlayerController_vtable.{platform}.yaml
+        prerequisite:
+          - find-CBasePlayerController_SimulateUserCommandsInternal
+      - name: find-CBasePlayerController_SimulateUserCommands-inlined
+        expected_output:
+          - CBasePlayerController_SimulateUserCommands.{platform}.yaml
+        expected_input:
+          - CBasePlayerController_vtable.{platform}.yaml
+        skip_if_exists:
+          - CBasePlayerController_SimulateUserCommands.{platform}.yaml
+        prerequisite:
+          - find-CBasePlayerController_SimulateUserCommands-noinline
       - name: find-CBasePlayerController_SetConnectedState
         expected_output:
           - CBasePlayerController_SetConnectedState.{platform}.yaml
@@ -8936,6 +9222,21 @@ modules:
           - CPlayerCommandQueue_ctor.{platform}.yaml
         expected_input:
           - CPlayerCommandQueue_vtable.{platform}.yaml
+      - name: find-CPlayerCommandQueue_OnSimulateUserCommands
+        expected_output:
+          - CPlayerCommandQueue_OnSimulateUserCommands.{platform}.yaml
+        expected_input:
+          - CPlayerCommandQueue_vtable.{platform}.yaml
+      - name: find-CPlayerCommandQueue_UpdateStats
+        expected_output:
+          - CPlayerCommandQueue_UpdateStats.{platform}.yaml
+        expected_input:
+          - CPlayerCommandQueue_OnSimulateUserCommands.{platform}.yaml
+      - name: find-CEngineServer_GetPlayerNetInfo
+        expected_output:
+          - CEngineServer_GetPlayerNetInfo.{platform}.yaml
+        expected_input:
+          - CPlayerCommandQueue_UpdateStats.{platform}.yaml
       - name: find-CBasePlayerController_IsFakeClient
         expected_output:
           - CBasePlayerController_IsFakeClient.{platform}.yaml
@@ -9696,6 +9997,14 @@ modules:
         category: vtable
       - name: CBasePlayerController_vtable
         category: vtable
+      - name: CBasePlayerController_ClientSettingsChanged
+        category: vfunc
+        alias:
+          - CBasePlayerController::ClientSettingsChanged
+      - name: CBasePlayerController_SimulateUserCommands
+        category: vfunc
+        alias:
+          - CBasePlayerController::SimulateUserCommands
       - name: CCSPlayerController_vtable
         category: vtable
       - name: CBasePlayerPawn_vtable
@@ -12315,6 +12624,18 @@ modules:
         category: func
         alias:
           - CPlayerCommandQueue::CPlayerCommandQueue
+      - name: CPlayerCommandQueue_OnSimulateUserCommands
+        category: vfunc
+        alias:
+          - CPlayerCommandQueue::OnSimulateUserCommands
+      - name: CPlayerCommandQueue_UpdateStats
+        category: func
+        alias:
+          - CPlayerCommandQueue::UpdateStats
+      - name: CEngineServer_GetPlayerNetInfo
+        category: vfunc
+        alias:
+          - CEngineServer::GetPlayerNetInfo
       - name: CBasePlayerController_IsFakeClient
         category: func
         alias:
@@ -13529,3 +13850,28 @@ cpp_tests:
       - fdump-vtable-layouts
     # No reference_modules yet: ICommandLine has no binary reference YAMLs
     # (tier0/vstdlib is not an analyzed module). Compile-only validation.
+  - name: IEngineServiceMgr_MSVC
+    symbol: IEngineServiceMgr
+    alias_symbols:
+      - CEngineServiceMgr
+    cpp: cpp_tests/iengineservicemgr.cpp
+    headers:
+      - hl2sdk_cs2/public/engine/IEngineService.h  # Used by the fix-cppheaders SKILL
+    target: x86_64-pc-windows-msvc
+    include_directories:
+      - hl2sdk_cs2/game/shared
+      - hl2sdk_cs2/public
+      - hl2sdk_cs2/public/tier0
+      - hl2sdk_cs2/public/tier1
+      - hl2sdk_cs2/public/mathlib
+    defines:
+      - COMPILER_MSVC=1
+      - COMPILER_MSVC64=1
+      - _MSVC_STL_USE_ABORT_AS_DOOM_FUNCTION
+    additional_compiler_options:
+      - fms-extensions
+      - fms-compatibility
+      - Xclang
+      - fdump-vtable-layouts
+    reference_modules:
+      - engine  # bin/{gamever}/engine/CEngineServiceMgr_*.{platform}.yaml

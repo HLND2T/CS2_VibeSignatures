@@ -10,7 +10,7 @@ TARGET_FUNCTION_NAMES = [
 FUNC_XREFS = [
     {
         "func_name": "CNetworkSystem_OpenSocket",
-        "xref_strings": ["Not listening for direct UDP on socket '%s' port %d as per %s.\\n"],
+        "xref_strings": ["Not listening for direct UDP on socket '%s' port %d as per %s."],
         "xref_gvs": [],
         "xref_signatures": [],
         "xref_funcs": [],
