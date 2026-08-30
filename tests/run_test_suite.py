@@ -24,6 +24,7 @@ REPOSITORY_CONTRACT_MODULES = frozenset(
         "test_config_scheduling_dependencies",
         "test_pack_snapshot_skill",
         "test_pr_self_runner_workflow",
+        "test_reference_yaml_contract",
         "test_restore_from_snapshot_skill",
         "test_smoke_ida_mcp_2",
         "test_symbol_store_architecture",
