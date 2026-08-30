@@ -3542,14 +3542,6 @@ modules:
           - ILoopModeFactory::Shutdown
       - name: CEngineServiceMgr_vtable
         category: vtable
-      - name: CPanoramaEngineHandler_OnClientPreOutput
-        category: func
-        alias:
-          - CPanoramaEngineHandler::OnClientPreOutput
-      - name: CEngineServiceMgr_GetEngineWindow
-        category: vfunc
-        alias:
-          - CEngineServiceMgr::GetEngineWindow
       - name: CEngineServiceMgr_RegisterEngineService
         category: vfunc
         alias:
@@ -13049,18 +13041,6 @@ modules:
         expected_input:
           - CEngineServiceMgr_vtable.{platform}.yaml
           - ../client/IEngineServiceMgr_GetEventDispatcher.{platform}.yaml
-      - name: find-CPanoramaEngineHandler_OnClientPreOutput
-        expected_output:
-          - CPanoramaEngineHandler_OnClientPreOutput.{platform}.yaml
-        expected_input:
-          - ../client/g_pEngineServiceMgr.{platform}.yaml
-          - ../client/g_pPanoramaUIEngine.{platform}.yaml
-      - name: find-CEngineServiceMgr_GetEngineWindow
-        expected_output:
-          - CEngineServiceMgr_GetEngineWindow.{platform}.yaml
-        expected_input:
-          - CPanoramaEngineHandler_OnClientPreOutput.{platform}.yaml
-          - CEngineServiceMgr_vtable.{platform}.yaml
   - name: networksystem  # Execute skills for networksystem.dll again after server.dll
     path_windows: game/bin/win64/networksystem.dll
     path_linux: game/bin/linuxsteamrt64/libnetworksystem.so
