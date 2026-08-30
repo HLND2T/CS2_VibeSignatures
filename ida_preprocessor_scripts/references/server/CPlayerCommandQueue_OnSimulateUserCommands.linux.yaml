@@ -1107,7 +1107,7 @@ disasm_code: |-
   .text:00000000019D33CB                 mov     ecx, [rbp+var_158]
   .text:00000000019D33D1                 mov     esi, 2
   .text:00000000019D33D6                 mov     rdi, r15
-  .text:00000000019D33D9                 lea     rdx, aRunningCommand; "Running command %d.\n{ %s }\n"
+  .text:00000000019D33D9                 lea     rdx, aRunningCommand; "Running command %d.{ %s }"
   .text:00000000019D33E0                 mov     r8, rax
   .text:00000000019D33E3                 xor     eax, eax
   .text:00000000019D33E5                 call    sub_198B010
@@ -1938,7 +1938,7 @@ procedure: |-
         sub_9F1030(
           (unsigned int)dword_288B088,
           2,
-          "cq_fake_starve [%d] discarding newest command from queue of %d\n",
+          "cq_fake_starve [%d] discarding newest command from queue of %d",
           v214,
           v213);
       }
@@ -1972,7 +1972,7 @@ procedure: |-
     {
       v167 = *(unsigned __int8 *)(a1 + 364) + 1;
       if ( (unsigned __int8)sub_9EFDC0((unsigned int)dword_288B088, v167) )
-        sub_198B010(a1, v167, (unsigned int)"OnBufferNotStarved(), resolved starve queue\n", v168, v169, v170);
+        sub_198B010(a1, v167, (unsigned int)"OnBufferNotStarved(), resolved starve queue", v168, v169, v170);
     }
     if ( *(_QWORD *)(a1 + 608) && *(_DWORD *)(a1 + 348) )
       sub_19AC070();
@@ -2059,7 +2059,7 @@ procedure: |-
     if ( v172 < v182 )
     {
       if ( (unsigned __int8)sub_9EFDC0((unsigned int)dword_288B088, 3) )
-        sub_9F1030((unsigned int)dword_288B088, 3, "CQ limits set to conflicting conflicting values\n");
+        sub_9F1030((unsigned int)dword_288B088, 3, "CQ limits set to conflicting conflicting values");
       v182 = v172;
     }
     v183 = v220.m128i_i32[3];
@@ -2129,7 +2129,7 @@ procedure: |-
       sub_198B010(
         v1,
         (_DWORD)v226,
-        (unsigned int)"CQ %s: removed %d, max: %d, %d ticks this frame\n",
+        (unsigned int)"CQ %s: removed %d, max: %d, %d ticks this frame",
         (_DWORD)v193,
         v188,
         v192);
@@ -2280,7 +2280,7 @@ procedure: |-
         if ( (unsigned __int8)sub_9EFDC0((unsigned int)dword_288B088, 2) )
         {
           v155 = sub_17B1BB0(v226, v223);
-          sub_198B010(v1, 2, (unsigned int)"Running command %d.\n{ %s }\n", v249, v155, v156);
+          sub_198B010(v1, 2, (unsigned int)"Running command %d.{ %s }", v249, v155, v156);
         }
         if ( v260 )
           sub_9F08A0(v223, 2, v121, v122);
@@ -2592,7 +2592,7 @@ procedure: |-
             sub_9F1030(
               (unsigned int)dword_288B088,
               0,
-              "HLTV UserCmd Server Tick %d: cmd_num: %d, client_tick: %d\n",
+              "HLTV UserCmd Server Tick %d: cmd_num: %d, client_tick: %d",
               *((_DWORD *)*v225 + 17),
               v249,
               *((_DWORD *)v37 + 21));

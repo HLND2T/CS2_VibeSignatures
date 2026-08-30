@@ -550,7 +550,7 @@ disasm_code: |-
   .text:0000000180DC256B                 lea     rcx, [rbp+190h+var_190]
   .text:0000000180DC256F                 call    sub_180C407B0
   .text:0000000180DC2574                 mov     r9d, dword ptr [rbp+190h+var_188]
-  .text:0000000180DC2578                 lea     r8, aRunningCommand; "Running command %d.\n{ %s }\n"
+  .text:0000000180DC2578                 lea     r8, aRunningCommand; "Running command %d.{ %s }"
   .text:0000000180DC257F                 mov     edx, 2
   .text:0000000180DC2584                 mov     [rsp+290h+var_270], rax
   .text:0000000180DC2589                 mov     rcx, rdi
@@ -1154,7 +1154,7 @@ procedure: |-
         LoggingSystem_Log(
           (unsigned int)dword_1820008E0,
           2,
-          "cq_fake_starve [%d] discarding newest command from queue of %d\n",
+          "cq_fake_starve [%d] discarding newest command from queue of %d",
           *v6,
           v5);
       }
@@ -1177,7 +1177,7 @@ procedure: |-
       {
         v12 = *(_BYTE *)(a1 + 364) != 0;
         if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_1820008E0, (unsigned int)(v12 + 1)) )
-          sub_180DC57E0(a1, (unsigned int)(v12 + 1), "OnBufferNotStarved(), resolved starve queue\n");
+          sub_180DC57E0(a1, (unsigned int)(v12 + 1), "OnBufferNotStarved(), resolved starve queue");
       }
       v13 = *(_QWORD **)(a1 + 616);
       if ( v13 )
@@ -1280,7 +1280,7 @@ procedure: |-
           if ( v29 > v20 )
           {
             if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_1820008E0, 3) )
-              LoggingSystem_Log((unsigned int)dword_1820008E0, 3, "CQ limits set to conflicting conflicting values\n");
+              LoggingSystem_Log((unsigned int)dword_1820008E0, 3, "CQ limits set to conflicting conflicting values");
             v29 = v20;
           }
           v34 = v29 + v19 + v150 - 1;
@@ -1357,7 +1357,7 @@ procedure: |-
                 v51 = "bloat";
                 if ( v48 )
                   v51 = "catchup";
-                sub_180DC57E0(a1, v50, "CQ %s: removed %d, max: %d, %d ticks this frame\n", v51, v26, v46, v47);
+                sub_180DC57E0(a1, v50, "CQ %s: removed %d, max: %d, %d ticks this frame", v51, v26, v46, v47);
               }
               v52 = *(_QWORD **)(a1 + 616);
               if ( v52 )
@@ -1462,7 +1462,7 @@ procedure: |-
         if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_1820008E0, 2) )
         {
           v67 = (const char *)sub_180C407B0(&v134, &v148);
-          sub_180DC57E0(a1, 2, "Running command %d.\n{ %s }\n", (_DWORD)v135, v67);
+          sub_180DC57E0(a1, 2, "Running command %d.{ %s }", (_DWORD)v135, v67);
         }
         if ( v148 )
           CUtlString::FreeMemoryBlock((CUtlString *)&v148);
