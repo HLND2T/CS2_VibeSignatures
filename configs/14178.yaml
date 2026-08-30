@@ -9222,6 +9222,21 @@ modules:
           - CPlayerCommandQueue_ctor.{platform}.yaml
         expected_input:
           - CPlayerCommandQueue_vtable.{platform}.yaml
+      - name: find-CPlayerCommandQueue_OnSimulateUserCommands
+        expected_output:
+          - CPlayerCommandQueue_OnSimulateUserCommands.{platform}.yaml
+        expected_input:
+          - CPlayerCommandQueue_vtable.{platform}.yaml
+      - name: find-CPlayerCommandQueue_UpdateStats
+        expected_output:
+          - CPlayerCommandQueue_UpdateStats.{platform}.yaml
+        expected_input:
+          - CPlayerCommandQueue_OnSimulateUserCommands.{platform}.yaml
+      - name: find-CEngineServer_GetPlayerNetInfo
+        expected_output:
+          - CEngineServer_GetPlayerNetInfo.{platform}.yaml
+        expected_input:
+          - CPlayerCommandQueue_UpdateStats.{platform}.yaml
       - name: find-CBasePlayerController_IsFakeClient
         expected_output:
           - CBasePlayerController_IsFakeClient.{platform}.yaml
@@ -12609,6 +12624,18 @@ modules:
         category: func
         alias:
           - CPlayerCommandQueue::CPlayerCommandQueue
+      - name: CPlayerCommandQueue_OnSimulateUserCommands
+        category: vfunc
+        alias:
+          - CPlayerCommandQueue::OnSimulateUserCommands
+      - name: CPlayerCommandQueue_UpdateStats
+        category: func
+        alias:
+          - CPlayerCommandQueue::UpdateStats
+      - name: CEngineServer_GetPlayerNetInfo
+        category: vfunc
+        alias:
+          - CEngineServer::GetPlayerNetInfo
       - name: CBasePlayerController_IsFakeClient
         category: func
         alias:
