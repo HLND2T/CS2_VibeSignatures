@@ -54,7 +54,7 @@ disasm_code: |-
   .text:0000000180069056                 test    al, al
   .text:0000000180069058                 jz      loc_180069106
   .text:000000018006905E                 mov     r9d, [rsp+0A8h+arg_0]
-  .text:0000000180069066                 lea     r8, aPreparedTickD; "     Prepared tick #%d\n"
+  .text:0000000180069066                 lea     r8, aPreparedTickD; "     Prepared tick #%d"
   .text:000000018006906D                 jmp     loc_1800690F5
   .text:0000000180069072                 mov     r8d, 4
   .text:0000000180069078                 lea     rdx, aSent; "SENT"
@@ -67,7 +67,7 @@ disasm_code: |-
   .text:000000018006909C                 call    cs:LoggingSystem_IsChannelEnabled
   .text:00000001800690A2                 test    al, al
   .text:00000001800690A4                 jz      short loc_180069106
-  .text:00000001800690A6                 lea     r8, aSentDMsecAgo; "     ^ sent %d msec ago\n"
+  .text:00000001800690A6                 lea     r8, aSentDMsecAgo; "     ^ sent %d msec ago"
   .text:00000001800690AD                 jmp     short loc_1800690EA
   .text:00000001800690AF                 mov     r8d, 4
   .text:00000001800690B5                 lea     rdx, aFail; "FAIL"
@@ -80,7 +80,7 @@ disasm_code: |-
   .text:00000001800690D9                 call    cs:LoggingSystem_IsChannelEnabled
   .text:00000001800690DF                 test    al, al
   .text:00000001800690E1                 jz      short loc_180069106
-  .text:00000001800690E3                 lea     r8, aDroppedDMsecAg; "     ^ dropped %d msec ago\n"
+  .text:00000001800690E3                 lea     r8, aDroppedDMsecAg; "     ^ dropped %d msec ago"
   .text:00000001800690EA                 mov     r9d, ebx
   .text:00000001800690ED                 sub     r9d, [rsp+0A8h+arg_0]
   .text:00000001800690F5                 mov     ecx, cs:dword_1808CDB6C
@@ -269,7 +269,7 @@ procedure: |-
     if ( a2 == 27 )
     {
       if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_1808CDB6C, 2) )
-        LoggingSystem_Log((unsigned int)dword_1808CDB6C, 2, "CL:  Disconnected - Client delta ticks out of order!\n");
+        LoggingSystem_Log((unsigned int)dword_1808CDB6C, 2, "CL:  Disconnected - Client delta ticks out of order!");
       v6 = Plat_MSTime();
       if ( (unsigned __int64)dword_18068E0E0[0] >= 8 )
       {
@@ -283,14 +283,14 @@ procedure: |-
           if ( !(unsigned int)V_strncmp(&v28, "PREP", 4) )
           {
             if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_1808CDB6C, 2) )
-              LoggingSystem_Log((unsigned int)dword_1808CDB6C, 2, "     Prepared tick #%d\n", v27);
+              LoggingSystem_Log((unsigned int)dword_1808CDB6C, 2, "     Prepared tick #%d", v27);
             goto LABEL_17;
           }
           if ( (unsigned int)V_strncmp(&v28, "SENT", 4) )
             break;
           if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_1808CDB6C, 2) )
           {
-            v7 = "     ^ sent %d msec ago\n";
+            v7 = "     ^ sent %d msec ago";
   LABEL_16:
             LoggingSystem_Log((unsigned int)dword_1808CDB6C, 2, v7, v6 - v27);
           }
@@ -303,12 +303,12 @@ procedure: |-
         {
           goto LABEL_17;
         }
-        v7 = "     ^ dropped %d msec ago\n";
+        v7 = "     ^ dropped %d msec ago";
         goto LABEL_16;
       }
   LABEL_18:
       if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_1808CDB6C, 2) )
-        LoggingSystem_Log((unsigned int)dword_1808CDB6C, 2, "CL:  Finished logging most recent client ticks.\n");
+        LoggingSystem_Log((unsigned int)dword_1808CDB6C, 2, "CL:  Finished logging most recent client ticks.");
     }
     sub_180065770(a1);
     CNetworkGameClientBase_DisconnectGame(a1, a2, a3);
