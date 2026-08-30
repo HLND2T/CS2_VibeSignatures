@@ -177,15 +177,72 @@ class TestReleaseWorkflowGuards(unittest.TestCase):
             self.assertTrue((game_root / "server" / "Stable.windows.yaml").is_file())
             self.assertTrue((game_root / "server" / "Added.windows.yaml").is_file())
 
-    def test_lightweight_output_pr_check_rejects_stale_source(self) -> None:
+    def test_output_pr_check_allows_default_branch_advancement_descending_from_source(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            fixture = ReleaseFixture(Path(tmp))
+            fixture.stage()
+            base_sha = "9" * 40
+            changed_paths = "\n".join(
+                [
+                    f"gamesymbols/{fixture.gamever}.yaml",
+                    f"gamedata/{fixture.gamever}/fixture/nested/gamedata.txt",
+                    f"release-manifests/{fixture.gamever}.json",
+                ]
+            )
+            with (
+                patch(
+                    "release_workflow_lib.promotion._git_output",
+                    side_effect=[f"{fixture.head_sha} {fixture.source_sha}", changed_paths],
+                ) as git_output,
+                patch("release_workflow_lib.promotion._is_ancestor", return_value=True) as is_ancestor,
+            ):
+                result = verify_output_pr(
+                    repo_root=fixture.repo,
+                    repository="HLND2T/CS2_VibeSignatures",
+                    head_repository="HLND2T/CS2_VibeSignatures",
+                    author="github-actions[bot]",
+                    author_association="NONE",
+                    branch=f"gamesymbols/build/{fixture.gamever}/{fixture.build_id}",
+                    base_sha=base_sha,
+                    head_sha=fixture.head_sha,
+                )
+
+            self.assertEqual(fixture.source_sha, result["source_sha"])
+            is_ancestor.assert_called_once_with(fixture.source_sha, base_sha)
+            git_output.assert_any_call(["diff", "--name-only", fixture.source_sha, fixture.head_sha, "--"])
+
+    def test_output_pr_check_rejects_base_not_descending_from_source(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            fixture = ReleaseFixture(Path(tmp))
+            fixture.stage()
+            with (
+                patch(
+                    "release_workflow_lib.promotion._git_output",
+                    return_value=f"{fixture.head_sha} {fixture.source_sha}",
+                ),
+                patch("release_workflow_lib.promotion._is_ancestor", return_value=False),
+            ):
+                with self.assertRaisesRegex(ReleaseWorkflowError, "base must descend from SOURCE_SHA"):
+                    verify_output_pr(
+                        repo_root=fixture.repo,
+                        repository="HLND2T/CS2_VibeSignatures",
+                        head_repository="HLND2T/CS2_VibeSignatures",
+                        author="github-actions[bot]",
+                        author_association="NONE",
+                        branch=f"gamesymbols/build/{fixture.gamever}/{fixture.build_id}",
+                        base_sha="9" * 40,
+                        head_sha=fixture.head_sha,
+                    )
+
+    def test_output_pr_check_rejects_commit_not_directly_based_on_source(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             fixture = ReleaseFixture(Path(tmp))
             fixture.stage()
             with patch(
                 "release_workflow_lib.promotion._git_output",
-                return_value="gamesymbols/14170.yaml\nrelease-manifests/14170.json",
+                return_value=f"{fixture.head_sha} {'8' * 40}",
             ):
-                with self.assertRaisesRegex(ReleaseWorkflowError, "stale"):
+                with self.assertRaisesRegex(ReleaseWorkflowError, "not directly based on SOURCE_SHA"):
                     verify_output_pr(
                         repo_root=fixture.repo,
                         repository="HLND2T/CS2_VibeSignatures",
@@ -201,21 +258,32 @@ class TestReleaseWorkflowGuards(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             fixture = ReleaseFixture(Path(tmp))
             fixture.stage()
-            with patch(
-                "release_workflow_lib.promotion._git_output",
-                return_value="gamesymbols/14170.yaml\nrelease-manifests/14170.json",
+            changed_paths = "\n".join(
+                [
+                    f"gamesymbols/{fixture.gamever}.yaml",
+                    f"gamedata/{fixture.gamever}/fixture/nested/gamedata.txt",
+                    f"release-manifests/{fixture.gamever}.json",
+                ]
+            )
+            with (
+                patch(
+                    "release_workflow_lib.promotion._git_output",
+                    side_effect=[f"{fixture.head_sha} {fixture.source_sha}", changed_paths],
+                ),
+                patch("release_workflow_lib.promotion._is_ancestor", return_value=True),
             ):
-                with self.assertRaisesRegex(ReleaseWorkflowError, "stale"):
-                    verify_output_pr(
-                        repo_root=fixture.repo,
-                        repository="HLND2T/CS2_VibeSignatures",
-                        head_repository="HLND2T/CS2_VibeSignatures",
-                        author="release-pat-account",
-                        author_association="OWNER",
-                        branch=f"gamesymbols/build/{fixture.gamever}/{fixture.build_id}",
-                        base_sha="9" * 40,
-                        head_sha=fixture.head_sha,
-                    )
+                result = verify_output_pr(
+                    repo_root=fixture.repo,
+                    repository="HLND2T/CS2_VibeSignatures",
+                    head_repository="HLND2T/CS2_VibeSignatures",
+                    author="release-pat-account",
+                    author_association="OWNER",
+                    branch=f"gamesymbols/build/{fixture.gamever}/{fixture.build_id}",
+                    base_sha="9" * 40,
+                    head_sha=fixture.head_sha,
+                )
+
+            self.assertEqual(fixture.build_id, result["build_id"])
 
     def test_output_pr_check_rejects_an_untrusted_author(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

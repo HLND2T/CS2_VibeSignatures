@@ -153,8 +153,15 @@ def _ready_payload(*, gamever: str, generation: str, cache_key: str, manifest_sh
 
 def _write_ready(persisted_root: Path, gamever: str, payload: dict) -> None:
     cache_root = _cache_root(persisted_root, gamever)
-    reject_reparse_components(Path(persisted_root), cache_root)
-    write_canonical_json(cache_root / "READY.json", payload)
+    ready_path = cache_root / "READY.json"
+    reject_reparse_components(Path(persisted_root), ready_path)
+    expected = canonical_json_bytes(payload)
+    try:
+        if ready_path.read_bytes() == expected:
+            return
+    except OSError:
+        pass
+    write_canonical_json(ready_path, payload)
 
 
 def _load_generation(
