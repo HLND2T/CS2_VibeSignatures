@@ -16,6 +16,8 @@ or gamedata back to the PR head. A stable terminal job named `pr-validate` requi
 - Normalize `pull_request` events into PR number, immutable head/base/source SHAs, ref, user, title, validation path,
   and GAMEVER selection.
 - Reject forks/generated-output PRs on the full path.
+- Reject PRs that add, modify, copy, or rename a versioned analysis config to any GAMEVER other than the latest tag in
+  `download.yaml`, before warm-cache dispatch.
 - Run `pr-warmup-idb` only for non-bump `validation_path=full` runs.
 - Restore the explicit warm-cache generation, validate reparse/cache/IDA identity, and analyze with
   `ida_analyze_bin.py -require_warm_idb`.
@@ -49,7 +51,8 @@ or gamedata back to the PR head. A stable terminal job named `pr-validate` requi
 ## Notes
 - Snapshot/gamedata publication was removed from this workflow (#803); `gamesymbols/<GAMEVER>.yaml` now advances only
   at release time via [[build-on-self-runner]].
-- Concurrency group is `pr-self-runner-...-full`.
+- No workflow-level `concurrency` of its own; same-GAMEVER warmup exclusion is inherited from [[warmup_idb]]'s job-level `warmup-idb-<repo>-<gamever>` group (`queue: max`).
+- Merge-time YAML promotion runs via `release_workflow.py promote-staged-yaml`, which takes the shared per-GAMEVER lock (`release-staging/locks/<gamever>.lock`) so it cannot race `sync_accepted_bin` or `promote_bin`.
 - Candidate/config/generator inputs needed after checkout are copied below runner temp.
 - Bump-download PRs retain lightweight validation (format plus config existence checks only). The scheduled bump workflow
   uses the protected `win64` environment's `HLND2T_GH_TOKEN` for branch pushes and PR API calls so `pull_request` runs
@@ -60,3 +63,12 @@ or gamedata back to the PR head. A stable terminal job named `pr-validate` requi
 - Generated-output `gamesymbols/build/` PRs are excluded from every job here by the same author rule, because
   [[build-on-self-runner]] now creates them with the `win64` environment's `HLND2T_GH_TOKEN`. Their required
   `pr-validate` check comes from `validate-generated-output-pr.yml` instead.
+- Reference-YAML orphans are a **warning, not an error** (`gamesymbol_snapshot_lib/pr_validation.py`
+  `_reference_change_nodes`). An added/modified `ida_preprocessor_scripts/references/**.yaml` with no HEAD consumer
+  emits `warning: <action> orphan reference had no HEAD consumer: <path>` and invalidates nothing, mirroring the
+  pre-existing deleted-orphan warning. Consumers come only from literal `"reference_yaml_paths"` entries inside
+  `LLM_DECOMPILE` specs of an *active* contract node, so the former hard `error[orphan_active_reference]` failed two
+  legitimate cases: an xref-based finder shipping reference YAML purely as documentation for its Agent fallback
+  SKILL.md, and a consumer declared only in a newer `configs/<GAMEVER>.yaml` while validation runs against the older
+  base GAMEVER's contract (e.g. PR #884: finder in `configs/14178.yaml`, `GAMEVER=14177b`). Base-side consumers still
+  contribute invalidation nodes when a modified reference loses its HEAD consumer.
