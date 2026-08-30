@@ -6644,6 +6644,11 @@ modules:
       - name: find-CCSPlayerController_vtable
         expected_output:
           - CCSPlayerController_vtable.{platform}.yaml
+      - name: find-CCSPlayerController_InitialSpawn
+        expected_output:
+          - CCSPlayerController_InitialSpawn.{platform}.yaml
+        expected_input:
+          - CCSPlayerController_vtable.{platform}.yaml
       - name: find-CBasePlayerPawn_vtable
         expected_output:
           - CBasePlayerPawn_vtable.{platform}.yaml
@@ -10025,6 +10030,10 @@ modules:
           - CBasePlayerController::SimulateUserCommands
       - name: CCSPlayerController_vtable
         category: vtable
+      - name: CCSPlayerController_InitialSpawn
+        category: vfunc
+        alias:
+          - CCSPlayerController::InitialSpawn
       - name: CBasePlayerPawn_vtable
         category: vtable
       - name: CBasePlayerPawn_PrePhysicsSimulate
