@@ -121,8 +121,8 @@ binaries:
       sha256: 'e39313a48f591f3a141c121a59e499715502e6bdb6bd7e830dd983338131a0d6'
       size: 4592280
 config_digest_version: 2
-config_sha256: sha256:41771c0fae005bc0ae256d0432c76663217cd134a2e9280491abc8d44871daa0
-file_count: 3490
+config_sha256: sha256:ec7a53d405a1d0180a442775adb545f68a7f7bacd7177938b9d3f350db75dd23
+file_count: 3510
 files:
   SDL3/SDL_GetMouse.windows.yaml:
     func_name: SDL_GetMouse
@@ -7093,6 +7093,30 @@ files:
     vfunc_index: 31
     vfunc_offset: '0xf8'
     vtable_name: CEngineServiceMgr
+  engine/CEngineServiceMgr_GetAddonCount.linux.yaml:
+    func_name: CEngineServiceMgr_GetAddonCount
+    vfunc_index: 39
+    vfunc_offset: '0x138'
+    vfunc_sig: FF 90 38 01 00 00 F3 0F 10 45 ??
+    vtable_name: CEngineServiceMgr
+  engine/CEngineServiceMgr_GetAddonCount.windows.yaml:
+    func_name: CEngineServiceMgr_GetAddonCount
+    vfunc_index: 39
+    vfunc_offset: '0x138'
+    vfunc_sig: FF 90 38 01 00 00 85 C0
+    vtable_name: CEngineServiceMgr
+  engine/CEngineServiceMgr_GetEngineWindow.linux.yaml:
+    func_name: CEngineServiceMgr_GetEngineWindow
+    vfunc_index: 18
+    vfunc_offset: '0x90'
+    vfunc_sig: FF 90 90 00 00 00 48 89 DF 48 89 C6
+    vtable_name: CEngineServiceMgr_vtable
+  engine/CEngineServiceMgr_GetEngineWindow.windows.yaml:
+    func_name: CEngineServiceMgr_GetEngineWindow
+    vfunc_index: 18
+    vfunc_offset: '0x90'
+    vfunc_sig: FF 90 90 00 00 00 48 8B D0 49 8B CF
+    vtable_name: CEngineServiceMgr_vtable
   engine/CEngineServiceMgr_GetEventDispatcher.linux.yaml:
     func_name: CEngineServiceMgr_GetEventDispatcher
     func_rva: '0x364540'
@@ -7110,6 +7134,24 @@ files:
     func_va: '0x18020fbd0'
     vfunc_index: 29
     vfunc_offset: '0xe8'
+    vtable_name: CEngineServiceMgr
+  engine/CEngineServiceMgr_OnFrameRenderingFinished.linux.yaml:
+    func_name: CEngineServiceMgr_OnFrameRenderingFinished
+    func_rva: '0x3651d0'
+    func_size: '0xa6'
+    func_va: '0x3651d0'
+    vfunc_index: 36
+    vfunc_offset: '0x120'
+    vfunc_sig: FF 90 20 01 00 00 48 8D 05 ?? ?? ?? ?? 4C 89 EE
+    vtable_name: CEngineServiceMgr
+  engine/CEngineServiceMgr_OnFrameRenderingFinished.windows.yaml:
+    func_name: CEngineServiceMgr_OnFrameRenderingFinished
+    func_rva: '0x212c10'
+    func_size: '0x67'
+    func_va: '0x180212c10'
+    vfunc_index: 36
+    vfunc_offset: '0x120'
+    vfunc_sig: FF 90 20 01 00 00 E9 ?? ?? ?? ?? 8B 86 ?? ?? ?? ??
     vtable_name: CEngineServiceMgr
   engine/CEngineServiceMgr_PrintStatus.linux.yaml:
     func_name: CEngineServiceMgr_PrintStatus
@@ -9871,6 +9913,16 @@ files:
     vfunc_index: 38
     vfunc_offset: '0x130'
     vtable_name: CNetworkGameClientBase
+  engine/CNetworkGameClientBase_SendStringCmd2.linux.yaml:
+    func_name: CNetworkGameClientBase_SendStringCmd2
+    func_rva: '0x4b4d20'
+    func_size: '0x359'
+    func_va: '0x4b4d20'
+  engine/CNetworkGameClientBase_SendStringCmd2.windows.yaml:
+    func_name: CNetworkGameClientBase_SendStringCmd2
+    func_rva: '0x89c30'
+    func_size: '0x17'
+    func_va: '0x180089c30'
   engine/CNetworkGameClientBase_ServerCmd.windows.yaml:
     func_name: CNetworkGameClientBase_ServerCmd
     func_rva: '0x89a60'
@@ -12634,6 +12686,30 @@ files:
     func_sig: 48 8B C4 41 56 41 57
     func_size: '0x132'
     func_va: '0x18009ef10'
+  engine/CPanoramaEngineHandler_OnClientPreOutput.linux.yaml:
+    func_name: CPanoramaEngineHandler_OnClientPreOutput
+    func_rva: '0x5da710'
+    func_sig: 55 66 0F 6E C6 48 89 E5 41 57 66 0F 3A 22 C2 ??
+    func_size: '0x15e'
+    func_va: '0x5da710'
+  engine/CPanoramaEngineHandler_OnClientPreOutput.windows.yaml:
+    func_name: CPanoramaEngineHandler_OnClientPreOutput
+    func_rva: '0x142ba0'
+    func_sig: 40 56 48 83 EC ?? 48 89 5C 24 ?? 48 8B F1 48 89 7C 24 ??
+    func_size: '0x143'
+    func_va: '0x180142ba0'
+  engine/CRenderService_OnClientOutput.linux.yaml:
+    func_name: CRenderService_OnClientOutput
+    func_rva: '0x433780'
+    func_sig: 55 48 8D 05 ?? ?? ?? ?? 48 89 E5 41 57 41 56 41 55 49 89 F5 41 54 4C 8D 65 ??
+    func_size: '0x3cd'
+    func_va: '0x433780'
+  engine/CRenderService_OnClientOutput.windows.yaml:
+    func_name: CRenderService_OnClientOutput
+    func_rva: '0x1e5780'
+    func_sig: 4C 8B DC 49 89 5B ?? 49 89 6B ?? 49 89 73 ?? 57 41 56 41 57 48 83 EC ??
+    func_size: '0x370'
+    func_va: '0x1801e5780'
   engine/CRenderingWorldSession_FindOrCreateWorldSession.windows.yaml:
     func_name: CRenderingWorldSession_FindOrCreateWorldSession
     func_rva: '0x23c140'
@@ -23412,6 +23488,24 @@ files:
     func_sig: 48 89 5C 24 ?? 57 48 83 EC ?? 48 8B FA E8 ?? ?? ?? ?? 48 8B D8
     func_size: '0x40'
     func_va: '0x180a5a0a0'
+  server/CCSPlayerController_InitialSpawn.linux.yaml:
+    func_name: CCSPlayerController_InitialSpawn
+    func_rva: '0x1555f10'
+    func_sig: 55 40 0F B6 F6 48 89 E5 41 57
+    func_size: '0x137'
+    func_va: '0x1555f10'
+    vfunc_index: 246
+    vfunc_offset: '0x7b0'
+    vtable_name: CCSPlayerController_vtable
+  server/CCSPlayerController_InitialSpawn.windows.yaml:
+    func_name: CCSPlayerController_InitialSpawn
+    func_rva: '0xa55420'
+    func_sig: 40 57 48 83 EC ?? 48 8B F9 E8 ?? ?? ?? ?? 8B 87 ?? ?? ?? ??
+    func_size: '0x14a'
+    func_va: '0x180a55420'
+    vfunc_index: 245
+    vfunc_offset: '0x7a8'
+    vtable_name: CCSPlayerController_vtable
   server/CCSPlayerController_InventoryUpdateThink.linux.yaml:
     func_name: CCSPlayerController_InventoryUpdateThink
     func_rva: '0x1504b20'
@@ -27445,6 +27539,18 @@ files:
     func_sig: 48 8B C4 55 53 48 8D A8 ?? ?? ?? ?? 48 81 EC ?? ?? ?? ?? 83 B9 ?? ?? ?? ?? ??
     func_size: '0x688'
     func_va: '0x1801f16c0'
+  server/CEngineServer_GetPlayerNetInfo.linux.yaml:
+    func_name: CEngineServer_GetPlayerNetInfo
+    vfunc_index: 41
+    vfunc_offset: '0x148'
+    vfunc_sig: 4C 8B A8 48 01 00 00
+    vtable_name: CEngineServer
+  server/CEngineServer_GetPlayerNetInfo.windows.yaml:
+    func_name: CEngineServer_GetPlayerNetInfo
+    vfunc_index: 41
+    vfunc_offset: '0x148'
+    vfunc_sig: 48 8B B1 48 01 00 00 48 8B 4F ??
+    vtable_name: CEngineServer
   server/CEngineServer_UnloadSpawnGroup.linux.yaml:
     func_name: CEngineServer_UnloadSpawnGroup
     vfunc_index: 60
@@ -36543,6 +36649,36 @@ files:
     func_sig: 48 8B C4 48 89 48 ?? 55 48 8D A8 ?? ?? ?? ?? 48 81 EC ?? ?? ?? ?? 48 89 58 ?? 4C 8B CA
     func_size: '0x847'
     func_va: '0x18055e8a0'
+  server/CPlayerCommandQueue_OnSimulateUserCommands.linux.yaml:
+    func_name: CPlayerCommandQueue_OnSimulateUserCommands
+    func_rva: '0x19fddc0'
+    func_sig: 55 48 8D 15 ?? ?? ?? ?? 48 89 E5 41 57 49 89 FF 41 56 41 55 41 54 53 48 81 EC ?? ?? ?? ??
+    func_size: '0x2022'
+    func_va: '0x19fddc0'
+    vfunc_index: 2
+    vfunc_offset: '0x10'
+    vtable_name: CPlayerCommandQueue_vtable
+  server/CPlayerCommandQueue_OnSimulateUserCommands.windows.yaml:
+    func_name: CPlayerCommandQueue_OnSimulateUserCommands
+    func_rva: '0xde29b0'
+    func_sig: 40 55 57 48 8D AC 24 ?? ?? ?? ?? 48 81 EC ?? ?? ?? ?? 48 8B F9 48 8B 0D ?? ?? ?? ??
+    func_size: '0x10c8'
+    func_va: '0x180de29b0'
+    vfunc_index: 2
+    vfunc_offset: '0x10'
+    vtable_name: CPlayerCommandQueue_vtable
+  server/CPlayerCommandQueue_UpdateStats.linux.yaml:
+    func_name: CPlayerCommandQueue_UpdateStats
+    func_rva: '0x19cc070'
+    func_sig: 48 B8 ?? ?? ?? ?? ?? ?? ?? ?? 55 48 89 E5 41 55 41 54 53 48 83 EC ??
+    func_size: '0x104'
+    func_va: '0x19cc070'
+  server/CPlayerCommandQueue_UpdateStats.windows.yaml:
+    func_name: CPlayerCommandQueue_UpdateStats
+    func_rva: '0xdee660'
+    func_sig: 40 57 48 83 EC ?? 48 8B F9 48 8B 0D ?? ?? ?? ?? 8B 41 ??
+    func_size: '0x25a'
+    func_va: '0x180dee660'
   server/CPlayerCommandQueue_ctor.linux.yaml:
     func_name: CPlayerCommandQueue_ctor
     func_rva: '0x19cc180'
@@ -45128,5 +45264,5 @@ files:
     vtable_symbol: ??_7CVPhys2World@@6B@
     vtable_va: '0x1803c57d0'
 game_version: '14178'
-last_publish_time: '2026-08-29T14:46:47Z'
+last_publish_time: '2026-08-31T02:44:34Z'
 schema_version: 5
