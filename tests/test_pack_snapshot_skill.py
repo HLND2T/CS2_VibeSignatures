@@ -33,8 +33,20 @@ class TestPackSnapshotSkill(unittest.TestCase):
             patch.object(pack_skill, "verify_snapshot") as verify,
         ):
             result = pack_skill.pack(root, "14168")
-        pack.assert_called_once_with("14168", root / "bin", config, snapshot)
-        verify.assert_called_once_with("14168", root / "bin", config, snapshot)
+        pack.assert_called_once_with(
+            "14168",
+            root / "bin",
+            config,
+            snapshot,
+            artifactdir=root / "bin_artifacts",
+        )
+        verify.assert_called_once_with(
+            "14168",
+            root / "bin",
+            config,
+            snapshot,
+            artifactdir=root / "bin_artifacts",
+        )
         self.assertEqual(8, result["size"])
 
     def test_pack_runs_against_a_real_temporary_snapshot_workspace(self) -> None:
@@ -42,8 +54,8 @@ class TestPackSnapshotSkill(unittest.TestCase):
             root = Path(temp_dir)
             config = root / "configs" / "14168.yaml"
             write_config(config, [module("server", [skill("find-a", ["A.{platform}.yaml"])])])
-            write_yaml(root / "bin/14168/server/A.windows.yaml", {"func_name": "A", "func_size": 1})
-            write_yaml(root / "bin/14168/server/A.linux.yaml", {"func_name": "A", "func_size": 2})
+            write_yaml(root / "bin_artifacts/14168/server/A.windows.yaml", {"func_name": "A", "func_size": 1})
+            write_yaml(root / "bin_artifacts/14168/server/A.linux.yaml", {"func_name": "A", "func_size": 2})
             write_binary(root / "bin/14168/server/server.dll")
             write_binary(root / "bin/14168/server/server.so")
 

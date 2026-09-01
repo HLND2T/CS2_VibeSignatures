@@ -92,10 +92,8 @@ class TestBuildSelfRunnerWorkflow(unittest.TestCase):
             "${{ secrets.HLND2T_GH_TOKEN }}",
             self.build_steps["create-output-pr"]["env"]["GH_TOKEN"],
         )
-        self.assertEqual(
-            "${{ secrets.HLND2T_GH_TOKEN }}",
-            self.build_steps["checkout-source"]["with"]["token"],
-        )
+        self.assertFalse(self.build_steps["checkout-source"]["with"]["persist-credentials"])
+        self.assertNotIn("token", self.build_steps["checkout-source"]["with"])
         self.assertEqual("always()", self.build_steps["restore-sdk"]["if"])
         build_commands = "\n".join(str(step.get("run", "")) for step in self.build_job["steps"])
         self.assertNotIn("gh release", build_commands)
