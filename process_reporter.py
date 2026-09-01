@@ -55,6 +55,7 @@ class ProcessReason(str, Enum):
     MISSING_BINARY = "missing_binary"
     MISSING_INPUT = "missing_input"
     INVALID_INPUT = "invalid_input"
+    INVALID_OUTPUT = "invalid_output"
     PREPROCESS_ABSENT = "preprocess_absent"
     OPTIONAL_OUTPUT_ABSENT = "optional_output_absent"
     PREPROCESS_FAILED = "preprocess_failed"

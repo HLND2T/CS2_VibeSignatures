@@ -78,6 +78,7 @@ from ida_mcp_session import (
     normalize_binary_identity_path,
     open_ida_mcp_session,
 )
+from ida_analyze_util import SymbolArtifactError, canonicalize_symbol_yaml_file
 from ida_vcall_finder import (
     aggregate_vcall_results_for_object,
     export_object_xref_details_via_mcp,
@@ -372,6 +373,57 @@ def _lookup_expected_input_artifact_category(
     if category_map is None:
         category_map = _load_artifact_symbol_category_map(config_path) if config_path else {}
     return category_map.get(symbol_name)
+
+
+def _finalize_produced_symbol_outputs(
+    *,
+    required_outputs,
+    optional_outputs,
+    platform,
+    binary_dir,
+    expected_binary,
+    host,
+    port,
+    debug,
+    config_path,
+    category_map,
+):
+    """Validate and atomically canonicalize outputs from any producer path."""
+    if category_map is None:
+        # Compatibility bridge for direct process_binary callers. The normal
+        # analyzer entrypoint always provides the trusted config category map.
+        return []
+    missing = [path for path in required_outputs if not os.path.isfile(path)]
+    if missing:
+        return [f"{path}: missing required produced artifact" for path in missing]
+    produced = list(required_outputs)
+    produced.extend(path for path in optional_outputs if os.path.isfile(path))
+    runtime_issues = _run_validate_expected_input_artifacts_via_mcp(
+        host=host,
+        port=port,
+        expected_inputs=produced,
+        platform=platform,
+        binary_dir=binary_dir,
+        expected_binary=expected_binary,
+        debug=debug,
+        config_path=config_path,
+        category_map=category_map,
+    )
+    if runtime_issues:
+        return list(runtime_issues)
+    issues = []
+    for artifact_path in produced:
+        category = _lookup_expected_input_artifact_category(
+            artifact_path,
+            platform,
+            config_path=config_path,
+            category_map=category_map,
+        )
+        try:
+            canonicalize_symbol_yaml_file(artifact_path, category=category)
+        except (OSError, UnicodeError, TypeError, SymbolArtifactError, yaml.YAMLError) as exc:
+            issues.append(f"{artifact_path}: unable to canonicalize symbol artifact ({exc})")
+    return issues
 
 
 def _is_current_module_artifact_path(artifact_path, binary_dir):
@@ -3709,15 +3761,43 @@ def process_binary(
                         reason=ProcessReason.OPTIONAL_OUTPUT_ABSENT,
                     )
                 else:
-                    success_count += 1
-                    print(f"  Pre-processed: {skill_name} OK")
-                    _report_skill_status(
-                        reporting,
-                        job_id,
-                        skill_name,
-                        TaskStatus.SUCCEEDED,
-                        ProcessPhase.FINISHED,
+                    finalization_issues = _finalize_produced_symbol_outputs(
+                        required_outputs=required_outputs,
+                        optional_outputs=optional_outputs,
+                        platform=platform,
+                        binary_dir=binary_dir,
+                        expected_binary=binary_path,
+                        host=host,
+                        port=port,
+                        debug=debug,
+                        config_path=config_path,
+                        category_map=category_map,
                     )
+                    if finalization_issues:
+                        fail_count += 1
+                        print(f"  Failed to finalize {skill_name}: {' | '.join(finalization_issues)}")
+                        _report_skill_status(
+                            reporting,
+                            job_id,
+                            skill_name,
+                            TaskStatus.FAILED,
+                            ProcessPhase.FINISHED,
+                            reason=ProcessReason.INVALID_OUTPUT,
+                            payload={"invalid_outputs": finalization_issues},
+                        )
+                        if not skip_error:
+                            abort_binary_processing = True
+                            break
+                    else:
+                        success_count += 1
+                        print(f"  Pre-processed: {skill_name} OK")
+                        _report_skill_status(
+                            reporting,
+                            job_id,
+                            skill_name,
+                            TaskStatus.SUCCEEDED,
+                            ProcessPhase.FINISHED,
+                        )
                 continue
             if preprocess_status == PREPROCESS_STATUS_ABSENT_OK:
                 skip_count += 1
@@ -3820,15 +3900,44 @@ def process_binary(
                         reason=ProcessReason.OPTIONAL_OUTPUT_ABSENT,
                     )
                 else:
-                    success_count += 1
-                    print("    Success")
-                    _report_skill_status(
-                        reporting,
-                        job_id,
-                        skill_name,
-                        TaskStatus.SUCCEEDED,
-                        ProcessPhase.FINISHED,
+                    finalization_issues = _finalize_produced_symbol_outputs(
+                        required_outputs=required_outputs,
+                        optional_outputs=optional_outputs,
+                        platform=platform,
+                        binary_dir=binary_dir,
+                        expected_binary=binary_path,
+                        host=host,
+                        port=port,
+                        debug=debug,
+                        config_path=config_path,
+                        category_map=category_map,
                     )
+                    if finalization_issues:
+                        fail_count += 1
+                        print(f"    Failed output finalization: {' | '.join(finalization_issues)}")
+                        _report_skill_status(
+                            reporting,
+                            job_id,
+                            skill_name,
+                            TaskStatus.FAILED,
+                            ProcessPhase.FINISHED,
+                            reason=ProcessReason.INVALID_OUTPUT,
+                            payload={"invalid_outputs": finalization_issues},
+                        )
+                        if not skip_error:
+                            print("  Aborting remaining skills after Agent output validation failure")
+                            abort_binary_processing = True
+                            break
+                    else:
+                        success_count += 1
+                        print("    Success")
+                        _report_skill_status(
+                            reporting,
+                            job_id,
+                            skill_name,
+                            TaskStatus.SUCCEEDED,
+                            ProcessPhase.FINISHED,
+                        )
             else:
                 fail_count += 1
                 print("    Failed")

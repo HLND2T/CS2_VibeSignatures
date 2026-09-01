@@ -158,6 +158,10 @@ The skill automatically detects the platform based on file extension:
 - `.dll` → Windows (uses `idaapi.get_imagebase()` for image base)
 - `.so` → Linux (uses `0x0` as image base)
 
+## Trusted finalization
+
+This writer produces a semantic YAML payload at the caller-provided expected artifact path. It does not own final field ordering, scalar spelling, encoding, or line endings. After runtime validation, the trusted analyzer rewrites every successful preprocessor or Agent output through the Source2 central canonicalizer; that canonical rewrite is the only byte-level trust boundary.
+
 ## Notes
 
 - All values marked "changes with game updates" should be regenerated when analyzing new binary versions

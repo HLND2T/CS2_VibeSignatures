@@ -9,6 +9,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, call, patch
 
 import ida_analyze_bin
+from ida_analyze_util import canonical_symbol_yaml_bytes
 from ida_mcp_session import (
     McpDatabaseBinding,
     McpDatabaseSelectionError,
@@ -2314,6 +2315,60 @@ class TestProcessBinary(unittest.TestCase):
         )
         self.mock_verify_opened_binary = verify_patcher.start()
         self.addCleanup(verify_patcher.stop)
+
+    def test_trusted_pipeline_finalizes_preprocessor_and_agent_outputs_identically(self) -> None:
+        noncanonical = "gv_sig: aa ? cc\ngv_name: SyntheticGlobal\n"
+        expected = canonical_symbol_yaml_bytes(
+            {"gv_name": "SyntheticGlobal", "gv_sig": "AA ?? CC"},
+            category="gv",
+        )
+        for producer in ("preprocessor", "agent"):
+            with self.subTest(producer=producer), TemporaryDirectory() as temp_dir:
+                binary_dir = Path(temp_dir) / "engine"
+                binary_dir.mkdir(parents=True)
+                binary_path = str(binary_dir / "engine2.dll")
+                output = binary_dir / "SyntheticGlobal.windows.yaml"
+                fake_process = object()
+
+                def write_output(*_args, **_kwargs):
+                    output.write_text(noncanonical, encoding="utf-8")
+                    return True if producer == "agent" else "success"
+
+                with (
+                    patch.object(ida_analyze_bin, "start_idalib_mcp", return_value=fake_process),
+                    patch.object(ida_analyze_bin, "ensure_mcp_available", return_value=(fake_process, True)),
+                    patch.object(
+                        ida_analyze_bin,
+                        "_run_validate_expected_input_artifacts_via_mcp",
+                        return_value=[],
+                    ),
+                    patch.object(
+                        ida_analyze_bin,
+                        "_run_preprocess_single_skill_via_mcp",
+                        side_effect=write_output,
+                    ),
+                    patch.object(ida_analyze_bin, "run_skill", side_effect=write_output),
+                    patch.object(ida_analyze_bin, "quit_ida_gracefully", return_value=None),
+                ):
+                    result = ida_analyze_bin.process_binary(
+                        binary_path=binary_path,
+                        skills=[
+                            {
+                                "name": "find-global",
+                                "expected_output": ["SyntheticGlobal.{platform}.yaml"],
+                            }
+                        ],
+                        agent="codex",
+                        host="127.0.0.1",
+                        port=13337,
+                        ida_args="",
+                        platform="windows",
+                        skip_pp=producer == "agent",
+                        category_map={"SyntheticGlobal": "gv"},
+                    )
+
+                self.assertEqual((1, 0, 0), result)
+                self.assertEqual(expected, output.read_bytes())
 
     def test_process_binary_treats_absent_ok_as_skip_and_continues(self) -> None:
         with TemporaryDirectory() as temp_dir:

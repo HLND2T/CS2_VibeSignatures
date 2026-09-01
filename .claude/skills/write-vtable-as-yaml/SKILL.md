@@ -161,6 +161,10 @@ For Linux binaries, vtables with `_ZTV` prefix (mangled vtable names) have RTTI 
 
 The skill automatically skips this metadata when counting virtual functions.
 
+## Trusted finalization
+
+This writer produces a semantic YAML payload at the caller-provided expected artifact path. It does not own final field ordering, scalar spelling, encoding, or line endings. After runtime validation, the trusted analyzer rewrites every successful preprocessor or Agent output through the Source2 central canonicalizer; that canonical rewrite is the only byte-level trust boundary.
+
 ## Notes
 
 - All values marked "changes with game updates" should be regenerated when analyzing new binary versions

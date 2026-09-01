@@ -188,6 +188,10 @@ size = None
 offset_sig = "8B 93 E0 04 00 00"
 ```
 
+## Trusted finalization
+
+This writer produces a semantic YAML payload at the caller-provided expected artifact path. It does not own final field ordering, scalar spelling, encoding, or line endings. After runtime validation, the trusted analyzer rewrites every successful preprocessor or Agent output through the Source2 central canonicalizer; that canonical rewrite is the only byte-level trust boundary.
+
 ## Notes
 
 - All offsets are written in hexadecimal format with lowercase `0x` prefix
