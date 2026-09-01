@@ -17,6 +17,11 @@ def _add_common_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("-gamever", required=True, help="Game version to snapshot")
     parser.add_argument("-bindir", default="bin", help="Binary workspace root")
     parser.add_argument(
+        "-artifactdir",
+        default=None,
+        help="Per-symbol artifact workspace root; defaults to -bindir during compatibility migration",
+    )
+    parser.add_argument(
         "-configyaml",
         default=None,
         help="Analysis config path; defaults to configs/<GAMEVER>.yaml",
@@ -54,16 +59,16 @@ def _run(args) -> None:
         print(f"Analysis config: {args.configyaml}")
     common = (args.gamever, args.bindir, args.configyaml, args.snapshot)
     if args.command == "pack":
-        data = pack_snapshot(*common)
+        data = pack_snapshot(*common, artifactdir=args.artifactdir)
         print(f"Packed {args.snapshot or f'gamesymbols/{args.gamever}.yaml'} ({len(data)} bytes)")
     elif args.command == "restore":
-        restore_snapshot(*common, replace=args.replace)
+        restore_snapshot(*common, replace=args.replace, artifactdir=args.artifactdir)
         print(f"Restored game-symbol snapshot for {args.gamever}")
     elif args.command == "verify":
-        verify_snapshot(*common)
+        verify_snapshot(*common, artifactdir=args.artifactdir)
         print(f"Verified game-symbol snapshot for {args.gamever}")
     elif args.command == "check-contract":
-        context = check_snapshot_contract(*common)
+        context = check_snapshot_contract(*common, artifactdir=args.artifactdir)
         result = {
             "trusted": True,
             "reason": "trusted",
@@ -78,6 +83,7 @@ def _run(args) -> None:
             output_path=args.output,
             source_config_path=args.sourceconfigyaml,
             last_publish_time=args.last_publish_time,
+            artifactdir=args.artifactdir,
         )
         print(f"Migrated {args.output or args.snapshot or f'gamesymbols/{args.gamever}.yaml'} ({len(data)} bytes)")
 

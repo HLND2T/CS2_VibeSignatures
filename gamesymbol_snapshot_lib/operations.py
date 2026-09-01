@@ -59,12 +59,16 @@ def _load_yaml_mapping(path: Path) -> dict:
 
 
 def _actual_yaml_keys(contract) -> set[str]:
-    return {canonical_key(contract.game_root, str(path)) for path in iter_yaml_paths(contract.game_root)}
+    return {
+        canonical_key(contract.artifact_game_root, str(path)) for path in iter_yaml_paths(contract.artifact_game_root)
+    }
 
 
 def collect_actual_files(contract, strict=True) -> dict[str, dict]:
     missing = [
-        path for path in sorted(contract.required_paths) if not path_from_key(contract.game_root, path).is_file()
+        path
+        for path in sorted(contract.required_paths)
+        if not path_from_key(contract.artifact_game_root, path).is_file()
     ]
     if missing:
         lines = "\n".join(f"  {path}" for path in missing)
@@ -77,7 +81,7 @@ def collect_actual_files(contract, strict=True) -> dict[str, dict]:
             raise SnapshotMismatchError(f"Undeclared symbol YAML:\n{lines}")
         LOGGER.warning("WARNING: Ignoring undeclared symbol YAML:\n%s", lines)
     selected = sorted(contract.required_paths | (contract.optional_paths & actual_keys))
-    return {path: _load_yaml_mapping(path_from_key(contract.game_root, path)) for path in selected}
+    return {path: _load_yaml_mapping(path_from_key(contract.artifact_game_root, path)) for path in selected}
 
 
 def _schema_for_digest(config_digest_version: int) -> int:
@@ -89,7 +93,7 @@ def _utc_publish_time() -> str:
 
 
 def _binary_file_path(contract, target) -> Path:
-    return contract.game_root / target.module_name / PurePosixPath(target.source_path).name
+    return contract.binary_game_root / target.module_name / PurePosixPath(target.source_path).name
 
 
 def _ensure_plain_binary(path: Path, game_root: Path) -> None:
@@ -114,7 +118,7 @@ def collect_binary_metadata(contract, schema_version: int = SCHEMA_VERSION) -> d
     for key in sorted(contract.binary_targets):
         target = contract.binary_targets[key]
         binary_path = _binary_file_path(contract, target)
-        _ensure_plain_binary(binary_path, contract.game_root)
+        _ensure_plain_binary(binary_path, contract.binary_game_root)
         try:
             hashes = hash_file(binary_path)
         except OSError as exc:
@@ -149,7 +153,7 @@ def reusable_binary_metadata(snapshot_path, contract) -> dict | None:
 
     for target in contract.binary_targets.values():
         binary_path = _binary_file_path(contract, target)
-        _ensure_plain_binary(binary_path, contract.game_root)
+        _ensure_plain_binary(binary_path, contract.binary_game_root)
         try:
             actual_size = binary_path.stat().st_size
         except OSError as exc:
@@ -277,12 +281,20 @@ def load_snapshot_for_contract(snapshot_path, contract, require_canonical=True):
     return document, raw
 
 
-def load_snapshot_context(snapshot_path, config_path, game_version, bindir, require_canonical=True) -> SnapshotContext:
+def load_snapshot_context(
+    snapshot_path,
+    config_path,
+    game_version,
+    bindir,
+    require_canonical=True,
+    *,
+    artifactdir=None,
+) -> SnapshotContext:
     snapshot_path = Path(snapshot_path)
     raw = _read_snapshot(snapshot_path)
     document = parse_snapshot_bytes(raw, str(game_version))
     digest_version = snapshot_config_digest_version(document)
-    contract = load_contract(config_path, game_version, bindir, digest_version)
+    contract = load_contract(config_path, game_version, bindir, digest_version, artifactdir=artifactdir)
     validate_snapshot_contract(document, contract)
     if require_canonical and raw != canonical_snapshot_bytes(document):
         raise SnapshotMismatchError(
@@ -315,11 +327,19 @@ def pack_snapshot(
     snapshot_path=None,
     last_publish_time: str | None = None,
     binary_metadata_source_path=None,
+    artifactdir=None,
 ) -> bytes:
     snapshot_path = Path(snapshot_path or f"gamesymbols/{game_version}.yaml")
     config_path = resolve_analysis_config(game_version, config_path)
-    contract = load_contract(config_path, game_version, bindir, LATEST_CONFIG_DIGEST_VERSION)
-    ensure_real_tree(Path(bindir), contract.game_root)
+    artifactdir = Path(bindir if artifactdir is None else artifactdir)
+    contract = load_contract(
+        config_path,
+        game_version,
+        bindir,
+        LATEST_CONFIG_DIGEST_VERSION,
+        artifactdir=artifactdir,
+    )
+    ensure_real_tree(artifactdir, contract.artifact_game_root)
     metadata_source_path = Path(binary_metadata_source_path or snapshot_path)
     binaries = reusable_binary_metadata(metadata_source_path, contract)
     document = build_actual_document(contract, last_publish_time=last_publish_time, binaries=binaries)
@@ -337,7 +357,7 @@ def pack_snapshot(
 def _preflight_default_restore(contract, document: dict) -> None:
     conflicts = []
     for key, expected in document["files"].items():
-        target = path_from_key(contract.game_root, key)
+        target = path_from_key(contract.artifact_game_root, key)
         if target.exists() and _load_yaml_mapping(target) != expected:
             conflicts.append(key)
     if conflicts:
@@ -352,7 +372,7 @@ def _delete_yaml_tree(game_root: Path) -> None:
 
 def _write_document_files(contract, document: dict, overwrite: bool, *, durable: bool = True) -> None:
     for key, payload in document["files"].items():
-        target = path_from_key(contract.game_root, key)
+        target = path_from_key(contract.artifact_game_root, key)
         if target.exists() and not overwrite:
             continue
         _atomic_write(target, canonical_yaml_bytes(payload), durable=durable)
@@ -362,8 +382,15 @@ def _round_trip_document(document: dict, game_version: str, config_path) -> byte
     digest_version = snapshot_config_digest_version(document)
     with tempfile.TemporaryDirectory(prefix="gamesymbol-snapshot-") as temp_dir:
         bindir = Path(temp_dir) / "bin"
-        contract = load_contract(config_path, game_version, bindir, digest_version)
-        ensure_real_tree(bindir, contract.game_root)
+        artifactdir = Path(temp_dir) / "bin_artifacts"
+        contract = load_contract(
+            config_path,
+            game_version,
+            bindir,
+            digest_version,
+            artifactdir=artifactdir,
+        )
+        ensure_real_tree(artifactdir, contract.artifact_game_root)
         _write_document_files(contract, document, overwrite=True, durable=False)
         actual = build_actual_document(
             contract,
@@ -374,11 +401,25 @@ def _round_trip_document(document: dict, game_version: str, config_path) -> byte
         return canonical_snapshot_bytes(actual)
 
 
-def check_snapshot_contract(game_version, bindir="bin", config_path=None, snapshot_path=None) -> SnapshotContext:
+def check_snapshot_contract(
+    game_version,
+    bindir="bin",
+    config_path=None,
+    snapshot_path=None,
+    *,
+    artifactdir=None,
+) -> SnapshotContext:
     snapshot_path = Path(snapshot_path or f"gamesymbols/{game_version}.yaml")
     config_path = resolve_analysis_config(game_version, config_path)
     try:
-        context = load_snapshot_context(snapshot_path, config_path, game_version, bindir, require_canonical=True)
+        context = load_snapshot_context(
+            snapshot_path,
+            config_path,
+            game_version,
+            bindir,
+            require_canonical=True,
+            artifactdir=artifactdir,
+        )
     except SnapshotSchemaError as exc:
         raise SnapshotUntrustedError(exc.reason, str(exc)) from exc
     except SnapshotMismatchError as exc:
@@ -394,15 +435,31 @@ def check_snapshot_contract(game_version, bindir="bin", config_path=None, snapsh
     return context
 
 
-def restore_snapshot(game_version, bindir="bin", config_path=None, snapshot_path=None, replace=False) -> bytes:
+def restore_snapshot(
+    game_version,
+    bindir="bin",
+    config_path=None,
+    snapshot_path=None,
+    replace=False,
+    *,
+    artifactdir=None,
+) -> bytes:
     snapshot_path = Path(snapshot_path or f"gamesymbols/{game_version}.yaml")
     config_path = resolve_analysis_config(game_version, config_path)
-    context = load_snapshot_context(snapshot_path, config_path, game_version, bindir, require_canonical=True)
-    ensure_real_tree(Path(bindir), context.contract.game_root)
+    artifactdir = Path(bindir if artifactdir is None else artifactdir)
+    context = load_snapshot_context(
+        snapshot_path,
+        config_path,
+        game_version,
+        bindir,
+        require_canonical=True,
+        artifactdir=artifactdir,
+    )
+    ensure_real_tree(artifactdir, context.contract.artifact_game_root)
     if not replace:
         _preflight_default_restore(context.contract, context.document)
     else:
-        _delete_yaml_tree(context.contract.game_root)
+        _delete_yaml_tree(context.contract.artifact_game_root)
     _write_document_files(context.contract, context.document, overwrite=replace)
     restored = canonical_snapshot_bytes(
         build_actual_document(
@@ -417,10 +474,24 @@ def restore_snapshot(game_version, bindir="bin", config_path=None, snapshot_path
     return context.raw_bytes
 
 
-def verify_snapshot(game_version, bindir="bin", config_path=None, snapshot_path=None) -> bytes:
+def verify_snapshot(
+    game_version,
+    bindir="bin",
+    config_path=None,
+    snapshot_path=None,
+    *,
+    artifactdir=None,
+) -> bytes:
     snapshot_path = Path(snapshot_path or f"gamesymbols/{game_version}.yaml")
     config_path = resolve_analysis_config(game_version, config_path)
-    context = load_snapshot_context(snapshot_path, config_path, game_version, bindir, require_canonical=True)
+    context = load_snapshot_context(
+        snapshot_path,
+        config_path,
+        game_version,
+        bindir,
+        require_canonical=True,
+        artifactdir=artifactdir,
+    )
     actual_document = build_actual_document(
         context.contract,
         schema_version=context.document["schema_version"],
@@ -446,13 +517,21 @@ def migrate_snapshot(
     output_path=None,
     source_config_path=None,
     last_publish_time: str | None = None,
+    artifactdir=None,
 ) -> bytes:
     snapshot_path = Path(snapshot_path or f"gamesymbols/{game_version}.yaml")
     output_path = Path(output_path or snapshot_path)
     config_path = resolve_analysis_config(game_version, config_path)
     source_config_path = resolve_analysis_config(game_version, source_config_path or config_path)
     try:
-        source = load_snapshot_context(snapshot_path, source_config_path, game_version, bindir, require_canonical=True)
+        source = load_snapshot_context(
+            snapshot_path,
+            source_config_path,
+            game_version,
+            bindir,
+            require_canonical=True,
+            artifactdir=artifactdir,
+        )
     except SnapshotMismatchError as exc:
         if exc.reason != "config_digest_mismatch":
             raise
@@ -460,7 +539,12 @@ def migrate_snapshot(
         document = parse_snapshot_bytes(raw, str(game_version))
         if document["schema_version"] != LEGACY_SCHEMA_VERSION:
             raise
-        transitional_contract = load_unversioned_schema1_contract(source_config_path, game_version, bindir)
+        transitional_contract = load_unversioned_schema1_contract(
+            source_config_path,
+            game_version,
+            bindir,
+            artifactdir=artifactdir,
+        )
         validate_snapshot_contract(document, transitional_contract)
         if raw != canonical_snapshot_bytes(document):
             raise SnapshotMismatchError(
@@ -475,7 +559,13 @@ def migrate_snapshot(
         SCHEMA_4_VERSION,
     }:
         raise SnapshotMismatchError("snapshot migration requires a schema 1, 2, 3, or 4 source")
-    target_contract = load_contract(config_path, game_version, bindir, LATEST_CONFIG_DIGEST_VERSION)
+    target_contract = load_contract(
+        config_path,
+        game_version,
+        bindir,
+        LATEST_CONFIG_DIGEST_VERSION,
+        artifactdir=artifactdir,
+    )
     _validate_snapshot_paths(source.document, target_contract)
     migrated = build_snapshot_document(
         game_version,

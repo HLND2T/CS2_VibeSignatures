@@ -80,7 +80,8 @@ class BinaryTarget:
 @dataclass(frozen=True)
 class SnapshotContract:
     game_version: str
-    game_root: Path
+    binary_game_root: Path
+    artifact_game_root: Path
     config_digest_version: int
     config_sha256: str
     analysis_output_contract_version: int
@@ -91,6 +92,11 @@ class SnapshotContract:
     binary_targets: dict[tuple[str, str], BinaryTarget]
     producer_groups: dict[str, ProducerGroup]
     producer_group_ids_by_path: dict[str, str]
+
+    @property
+    def game_root(self) -> Path:
+        """Compatibility alias for artifact readers during the dual-root migration."""
+        return self.artifact_game_root
 
     @property
     def formal_paths(self) -> frozenset[str]:

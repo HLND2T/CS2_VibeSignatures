@@ -43,9 +43,12 @@ class VersioningFixture:
         self.bindir = root / "bin"
         self.snapshot = root / "snapshot.yaml"
         extra = {} if optional_input is None else {"optional_input": optional_input}
+        skills = [skill("find-a", ["A.{platform}.yaml"], **extra)]
+        if optional_input:
+            skills.insert(0, skill("find-optional", ["Optional.{platform}.yaml"]))
         write_config(
             self.config,
-            [module("server", [skill("find-a", ["A.{platform}.yaml"], **extra)], linux=False)],
+            [module("server", skills, linux=False)],
         )
 
     def write_snapshot(
