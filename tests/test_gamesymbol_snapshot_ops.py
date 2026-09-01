@@ -47,6 +47,36 @@ class SnapshotWorkspace:
 
 
 class TestPack(unittest.TestCase):
+    def test_binary_metadata_and_symbol_inventory_use_separate_roots(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            workspace = SnapshotWorkspace(Path(temp_dir))
+            artifactdir = workspace.root / "bin_artifacts"
+            workspace.write_required()
+            for name in ("A.windows.yaml", "A.linux.yaml"):
+                source = workspace.bindir / "14168/server" / name
+                target = artifactdir / "14168/server" / name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                source.replace(target)
+            write_yaml(workspace.bindir / "14168/server/Stale.windows.yaml", {"ignored": True})
+            write_binary(artifactdir / "14168/server/server.dll", b"wrong-root-binary")
+
+            raw = pack_snapshot(
+                "14168",
+                workspace.bindir,
+                workspace.config,
+                workspace.snapshot,
+                artifactdir=artifactdir,
+            )
+            document = yaml.safe_load(raw)
+
+        self.assertEqual(
+            ["server/A.linux.yaml", "server/A.windows.yaml"],
+            list(document["files"]),
+        )
+        self.assertEqual(
+            hashlib.sha256(b"windows-binary").hexdigest(), document["binaries"]["server"]["windows"]["sha256"]
+        )
+
     def test_pack_is_deterministic_and_uses_full_paths(self) -> None:
         with TemporaryDirectory() as temp_dir:
             workspace = SnapshotWorkspace(Path(temp_dir))
@@ -166,6 +196,38 @@ class TestPack(unittest.TestCase):
 
 
 class TestRestoreAndVerify(unittest.TestCase):
+    def test_restore_writes_only_to_explicit_artifact_root(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            workspace = SnapshotWorkspace(Path(temp_dir))
+            artifactdir = workspace.root / "bin_artifacts"
+            workspace.write_required()
+            for name in ("A.windows.yaml", "A.linux.yaml"):
+                source = workspace.bindir / "14168/server" / name
+                target = artifactdir / "14168/server" / name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                source.replace(target)
+            pack_snapshot(
+                "14168",
+                workspace.bindir,
+                workspace.config,
+                workspace.snapshot,
+                artifactdir=artifactdir,
+            )
+            for path in (artifactdir / "14168/server").glob("*.yaml"):
+                path.unlink()
+
+            restore_snapshot(
+                "14168",
+                workspace.bindir,
+                workspace.config,
+                workspace.snapshot,
+                replace=True,
+                artifactdir=artifactdir,
+            )
+
+            self.assertTrue((artifactdir / "14168/server/A.windows.yaml").is_file())
+            self.assertFalse((workspace.bindir / "14168/server/A.windows.yaml").exists())
+
     def test_noncanonical_check_can_skip_canonical_serialization(self) -> None:
         with TemporaryDirectory() as temp_dir:
             workspace = SnapshotWorkspace(Path(temp_dir))

@@ -352,17 +352,19 @@ def _build_contract(
     config_document,
     game_version,
     bindir,
+    artifactdir,
     config_digest_version: int,
     config_sha256: str,
     *,
     require_explicit_producer_groups: bool,
 ) -> SnapshotContract:
     bindir = Path(bindir)
+    artifactdir = Path(artifactdir)
     game_version = str(game_version)
     try:
         modules = ida_analyze_bin.parse_config_document(config_document)
         ida_analyze_bin.validate_module_skill_dependencies(modules)
-        nodes = _collect_nodes(modules, bindir / game_version)
+        nodes = _collect_nodes(modules, artifactdir / game_version)
         binary_targets = _collect_binary_targets(modules)
     except (OSError, ValueError, TypeError) as exc:
         raise SnapshotConfigError(f"invalid analysis contract: {exc}") from exc
@@ -373,6 +375,7 @@ def _build_contract(
     return SnapshotContract(
         game_version,
         bindir / game_version,
+        artifactdir / game_version,
         config_digest_version,
         config_sha256,
         analysis_output_contract.ANALYSIS_OUTPUT_CONTRACT_VERSION,
@@ -392,6 +395,7 @@ def load_contract(
     bindir,
     config_digest_version: int = LATEST_CONFIG_DIGEST_VERSION,
     *,
+    artifactdir=None,
     require_explicit_producer_groups: bool = False,
 ) -> SnapshotContract:
     config_path = Path(config_path)
@@ -401,13 +405,14 @@ def load_contract(
         raw,
         game_version,
         bindir,
+        bindir if artifactdir is None else artifactdir,
         config_digest_version,
         _digest(normalized, config_digest_version),
         require_explicit_producer_groups=require_explicit_producer_groups,
     )
 
 
-def load_unversioned_schema1_contract(config_path, game_version, bindir) -> SnapshotContract:
+def load_unversioned_schema1_contract(config_path, game_version, bindir, *, artifactdir=None) -> SnapshotContract:
     """Load the short-lived schema-1 digest representation used before digest versioning."""
     config_path = Path(config_path)
     raw = _load_raw_config(config_path)
@@ -416,6 +421,7 @@ def load_unversioned_schema1_contract(config_path, game_version, bindir) -> Snap
         raw,
         game_version,
         bindir,
+        bindir if artifactdir is None else artifactdir,
         1,
         _unversioned_digest(normalized),
         require_explicit_producer_groups=False,
