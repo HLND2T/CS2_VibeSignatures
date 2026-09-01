@@ -110,6 +110,29 @@ class TestBuildSelfRunnerWorkflow(unittest.TestCase):
             self.build_steps["restore-sdk"]["run"],
         )
 
+    def test_binsync_prepare_verify_and_protected_publish_are_separated(self) -> None:
+        order = step_order(
+            self.build_job,
+            "verify-artifact-rebuild",
+            "binsync-prepare",
+            "build-candidates",
+            "cpp-tests",
+            "upload-binsync-candidate",
+            "publish-candidate",
+        )
+        self.assertEqual(sorted(order), order)
+        prepare = self.build_steps["binsync-prepare"]["run"]
+        self.assertIn("--prepare-only", prepare)
+        self.assertIn("--artifactdir", prepare)
+        self.assertIn("--preparation", prepare)
+        self.assertIn("--python", prepare)
+
+        verify = workflow_job(self.build_workflow, "verify-binsync")
+        publish = workflow_job(self.build_workflow, "publish-binsync")
+        self.assertEqual("./.github/workflows/verify-binsync-candidate.yml", verify["uses"])
+        self.assertEqual("./.github/workflows/publish-binsync-candidate.yml", publish["uses"])
+        self.assertIn("verify-binsync", publish["needs"])
+
     def test_build_restores_required_published_cache_before_analysis(self) -> None:
         order = step_order(
             self.build_job,

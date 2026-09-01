@@ -1,0 +1,123 @@
+name: Publish BinSync Candidate
+on:
+  workflow_call:
+    inputs:
+      source_sha:
+        required: true
+        type: string
+      gamever:
+        required: true
+        type: string
+      release_version:
+        required: true
+        type: string
+      build_id:
+        required: true
+        type: string
+      ida_runtime_identity:
+        required: true
+        type: string
+      artifact_name:
+        required: true
+        type: string
+      artifact_digest:
+        required: true
+        type: string
+    outputs:
+      receipt_digest:
+        description: Canonical remote BinSync publication receipt digest
+        value: ${{ jobs.publish.outputs.receipt_digest }}
+permissions:
+  actions: read
+  contents: read
+jobs:
+  publish:
+    environment: binsync-release
+    runs-on: ubuntu-latest
+    concurrency:
+      group: binsync-release-${{ github.repository }}-${{ inputs.gamever }}-${{ inputs.release_version }}
+      cancel-in-progress: false
+    outputs:
+      receipt_digest: ${{ steps.publish.outputs.receipt_digest }}
+    steps:
+      - name: Checkout exact immutable source tooling
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.source_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: false
+      - uses: astral-sh/setup-uv@v9.0.0
+      - name: Confirm source remains reachable from the default branch
+        shell: pwsh
+        run: |
+          $sourceSha = "${{ inputs.source_sha }}".ToLowerInvariant()
+          if ($sourceSha -notmatch '^[0-9a-f]{40}$') { throw "Invalid immutable source SHA." }
+          if ((git rev-parse HEAD).Trim().ToLowerInvariant() -ne $sourceSha) {
+            throw "Publisher checkout does not match the immutable source SHA."
+          }
+          git fetch --no-tags origin "+refs/heads/${{ github.event.repository.default_branch }}:refs/remotes/origin/${{ github.event.repository.default_branch }}"
+          if ($LASTEXITCODE -ne 0) { throw "Unable to fetch the default branch." }
+          git merge-base --is-ancestor $sourceSha "origin/${{ github.event.repository.default_branch }}"
+          if ($LASTEXITCODE -ne 0) { throw "Release source is no longer reachable from the default branch." }
+      - name: Rebind exact verified Actions Artifact
+        id: bind-artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $name = "${{ inputs.artifact_name }}"
+          $expectedDigest = "${{ inputs.artifact_digest }}".ToLowerInvariant()
+          if ($expectedDigest -match '^[0-9a-f]{64}$') { $expectedDigest = "sha256:$expectedDigest" }
+          if ($expectedDigest -notmatch '^sha256:[0-9a-f]{64}$') {
+            throw "Invalid expected Actions Artifact digest."
+          }
+          $response = gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts?per_page=100" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { throw "Unable to query Actions Artifacts for the current run." }
+          if ($response.total_count -gt 100) { throw "Current run has too many artifacts for exact identity binding." }
+          $matches = @($response.artifacts | Where-Object { $_.name -ceq $name })
+          if ($matches.Count -ne 1) { throw "Expected exactly one Actions Artifact named '$name'." }
+          $artifact = $matches[0]
+          if ($artifact.expired -or $artifact.workflow_run.id -ne ${{ github.run_id }}) {
+            throw "Actions Artifact is expired or belongs to another workflow run."
+          }
+          if (-not ($artifact.digest -is [string]) -or $artifact.digest.ToLowerInvariant() -ne $expectedDigest) {
+            throw "Actions Artifact digest does not match the verified producer output."
+          }
+          "artifact_id=$($artifact.id)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+      - name: Download exact verified candidate
+        uses: actions/download-artifact@v5
+        with:
+          artifact-ids: ${{ steps.bind-artifact.outputs.artifact_id }}
+          path: ${{ runner.temp }}/binsync-candidate
+      - name: Fast-forward allowlisted BinSync refs and verify receipts
+        id: publish
+        env:
+          BINSYNC_PUBLISH_TOKEN: ${{ secrets.BINSYNC_PUBLISH_TOKEN }}
+        shell: pwsh
+        run: |
+          $receipt = Join-Path "${{ runner.temp }}" "binsync-publication-receipt.json"
+          uv run python binsync_publish.py `
+            --repo-root "${{ github.workspace }}" `
+            --candidate-root "${{ runner.temp }}/binsync-candidate" `
+            --receipt "$receipt" `
+            --source-sha "${{ inputs.source_sha }}" `
+            --gamever "${{ inputs.gamever }}" `
+            --release-version "${{ inputs.release_version }}" `
+            --build-id "${{ inputs.build_id }}" `
+            --ida-runtime-identity "${{ inputs.ida_runtime_identity }}" `
+            --actions-artifact-name "${{ inputs.artifact_name }}"
+          if ($LASTEXITCODE -ne 0) { throw "Protected BinSync publication failed." }
+          $document = Get-Content -LiteralPath $receipt -Raw | ConvertFrom-Json
+          if ($document.remote_publication_digest -notmatch '^sha256:[0-9a-f]{64}$') {
+            throw "Protected BinSync publisher did not produce a canonical receipt digest."
+          }
+          "receipt_digest=$($document.remote_publication_digest)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "receipt_path=$receipt" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+      - name: Preserve credential-free publication receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: binsync-receipt-${{ inputs.build_id }}-${{ inputs.source_sha }}-${{ inputs.gamever }}
+          path: ${{ steps.publish.outputs.receipt_path }}
+          if-no-files-found: error
+          retention-days: 30

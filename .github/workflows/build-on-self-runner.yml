@@ -112,6 +112,10 @@ jobs:
     needs: [preflight, warmup-idb]
     environment: win64
     runs-on: [self-hosted, windows, x64]
+    outputs:
+      binsync_artifact_name: ${{ steps.binsync-prepare.outputs.artifact_name }}
+      binsync_artifact_digest: ${{ steps.upload-binsync-candidate.outputs.artifact-digest }}
+      ida_runtime_identity: ${{ steps.resolve-consumer-ida.outputs.ida_runtime_identity }}
     env:
       GAMEVER: ${{ needs.preflight.outputs.gamever }}
       SOURCE_SHA: ${{ needs.preflight.outputs.source_sha }}
@@ -237,6 +241,8 @@ jobs:
             throw "Failed to resolve the consumer IDA kernel version."
           }
           "IDA_VERSION=$idaVersion" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "IDA_PYTHON=$pythonExe" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "ida_runtime_identity=$idaVersion" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
       - name: Restore required published warm IDB cache
         id: restore-idb-cache
         shell: pwsh
@@ -339,9 +345,21 @@ jobs:
         shell: pwsh
         run: |
           $candidate = Join-Path $env:RUNNER_TEMP "release-binsync-candidate\$env:BUILD_ID"
-          uv run python push_binsync_symbols.py "$env:GAMEVER" --prepare-only --candidate-dir "$candidate"
+          $artifactName = "binsync-candidate-${{ github.run_id }}-${{ github.run_attempt }}-$env:SOURCE_SHA-$env:GAMEVER"
+          uv run python push_binsync_symbols.py "$env:GAMEVER" `
+            --prepare-only `
+            --candidate-dir "$candidate" `
+            --artifactdir "$env:ACTUAL_ARTIFACT_ROOT" `
+            --preparation "$env:RELEASE_REBUILD_PREPARATION" `
+            --release-version "$env:GAMEVER" `
+            --build-id "$env:BUILD_ID" `
+            --ida-runtime-identity "$env:IDA_VERSION" `
+            --actions-artifact-name "$artifactName" `
+            --binsync-user release-automation `
+            --python "$env:IDA_PYTHON"
           if ($LASTEXITCODE -ne 0) { throw "Local-only BinSync candidate preparation failed." }
           "BINSYNC_CANDIDATE_ROOT=$candidate" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "artifact_name=$artifactName" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
       - name: Build immutable symbol and gamedata candidates
         id: build-candidates
         shell: pwsh
@@ -448,6 +466,15 @@ jobs:
             throw "Restored SDK commit does not match SDK_PINNED_SHA."
           }
           Write-Host "C++ ABI SDK restore: restored pinned SHA=$restoredSha"
+      - name: Upload credential-free internal BinSync candidate
+        id: upload-binsync-candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.binsync-prepare.outputs.artifact_name }}
+          path: ${{ env.BINSYNC_CANDIDATE_ROOT }}
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
       - name: Publish fully validated immutable candidate
         id: publish-candidate
         shell: pwsh
@@ -534,3 +561,28 @@ jobs:
           if ($env:CANDIDATE_ROOT -and (Test-Path -LiteralPath $env:CANDIDATE_ROOT)) {
             Remove-Item -LiteralPath $env:CANDIDATE_ROOT -Recurse -Force
           }
+          if ($env:BINSYNC_CANDIDATE_ROOT -and (Test-Path -LiteralPath $env:BINSYNC_CANDIDATE_ROOT)) {
+            Remove-Item -LiteralPath $env:BINSYNC_CANDIDATE_ROOT -Recurse -Force
+          }
+  verify-binsync:
+    needs: [preflight, build]
+    uses: ./.github/workflows/verify-binsync-candidate.yml
+    with:
+      source_sha: ${{ needs.preflight.outputs.source_sha }}
+      gamever: ${{ needs.preflight.outputs.gamever }}
+      release_version: ${{ needs.preflight.outputs.gamever }}
+      build_id: ${{ github.run_id }}-${{ github.run_attempt }}
+      ida_runtime_identity: ${{ needs.build.outputs.ida_runtime_identity }}
+      artifact_name: ${{ needs.build.outputs.binsync_artifact_name }}
+      artifact_digest: ${{ needs.build.outputs.binsync_artifact_digest }}
+  publish-binsync:
+    needs: [preflight, build, verify-binsync]
+    uses: ./.github/workflows/publish-binsync-candidate.yml
+    with:
+      source_sha: ${{ needs.preflight.outputs.source_sha }}
+      gamever: ${{ needs.preflight.outputs.gamever }}
+      release_version: ${{ needs.preflight.outputs.gamever }}
+      build_id: ${{ github.run_id }}-${{ github.run_attempt }}
+      ida_runtime_identity: ${{ needs.build.outputs.ida_runtime_identity }}
+      artifact_name: ${{ needs.build.outputs.binsync_artifact_name }}
+      artifact_digest: ${{ needs.build.outputs.binsync_artifact_digest }}

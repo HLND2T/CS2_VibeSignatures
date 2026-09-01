@@ -4,6 +4,7 @@ import struct
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 SCRIPT = Path("push_binsync_symbols.py")
 SPEC = importlib.util.spec_from_file_location("push_binsync_symbols", SCRIPT)
@@ -49,22 +50,24 @@ class TestCollectManifestSymbols(unittest.TestCase):
     def _make_config(self, root: Path, gamever: str = "14174") -> Path:
         module = root / "bin" / gamever / "engine"
         module.mkdir(parents=True)
+        artifact_module = root / "bin_artifacts" / gamever / "engine"
+        artifact_module.mkdir(parents=True)
         (module / "engine2.dll").write_bytes(_build_min_pe(first_section_rva=0x1000))
         (module / "libengine2.so").write_bytes(_build_min_elf())
 
-        (module / "Ctor.windows.yaml").write_text(
+        (artifact_module / "Ctor.windows.yaml").write_text(
             "func_name: Ctor\nfunc_va: '0x1800bab40'\nfunc_rva: '0xbab40'\nfunc_size: '0x1bd'\n",
             encoding="utf-8",
         )
-        (module / "Ctor.linux.yaml").write_text(
+        (artifact_module / "Ctor.linux.yaml").write_text(
             "func_name: Ctor\nfunc_va: '0x533b70'\nfunc_rva: '0x533b70'\nfunc_size: '0x21d'\n",
             encoding="utf-8",
         )
-        (module / "g_pCvar.windows.yaml").write_text(
+        (artifact_module / "g_pCvar.windows.yaml").write_text(
             "gv_name: g_pCvar\ngv_rva: '0x688b08'\ngv_va: '0x180688b08'\n",
             encoding="utf-8",
         )
-        (module / "g_pCvar.linux.yaml").write_text(
+        (artifact_module / "g_pCvar.linux.yaml").write_text(
             "gv_name: g_pCvar\ngv_rva: '0xc72230'\ngv_va: '0xc72230'\n",
             encoding="utf-8",
         )
@@ -89,8 +92,8 @@ class TestCollectManifestSymbols(unittest.TestCase):
             encoding="utf-8",
         )
         # NullRva.yaml carries no func_rva -> must be skipped, not crash.
-        (module / "NullRva.windows.yaml").write_text("func_name: NullRva\n", encoding="utf-8")
-        (module / "NullRva.linux.yaml").write_text("func_name: NullRva\n", encoding="utf-8")
+        (artifact_module / "NullRva.windows.yaml").write_text("func_name: NullRva\n", encoding="utf-8")
+        (artifact_module / "NullRva.linux.yaml").write_text("func_name: NullRva\n", encoding="utf-8")
 
         return config
 
@@ -144,6 +147,24 @@ class TestCollectManifestSymbols(unittest.TestCase):
                 self.assertEqual(json.load(handle), entries)
         finally:
             path.unlink(missing_ok=True)
+
+    def test_binary_export_is_always_redirected_to_local_only_sink(self) -> None:
+        completed = type("Completed", (), {"returncode": 0})()
+        with patch.object(push_binsync_symbols.subprocess, "run", return_value=completed) as run:
+            code = push_binsync_symbols.push_binary(
+                "python",
+                "headless_force_push.py",
+                Path("server.dll"),
+                Path("manifest.json"),
+            )
+
+        self.assertEqual(0, code)
+        command = run.call_args.args[0]
+        self.assertIn("--local-only", command)
+        self.assertIn("--push", command)
+
+    def test_direct_remote_publication_mode_is_disabled(self) -> None:
+        self.assertEqual(2, push_binsync_symbols.main(["14174"]))
 
 
 if __name__ == "__main__":

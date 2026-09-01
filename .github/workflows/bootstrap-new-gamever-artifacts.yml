@@ -99,8 +99,11 @@ jobs:
       - name: Restore exact warm IDB generation
         shell: pwsh
         run: |
-          $idaVersion = (& python warmup_idb_worker.py --print-ida-version).Trim()
+          $pythonExe = (Get-Command python -ErrorAction Stop).Source
+          $idaVersion = (& $pythonExe warmup_idb_worker.py --print-ida-version).Trim()
           if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($idaVersion)) { throw "Unable to resolve IDA version." }
+          "IDA_PYTHON=$pythonExe" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "IDA_VERSION=$idaVersion" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
           uv run python idb_cache.py restore `
             --repo-root "${{ github.workspace }}" `
             --persisted-root "$env:PERSISTED_WORKSPACE" `
@@ -109,25 +112,12 @@ jobs:
             --cache-key "$env:IDB_CACHE_KEY" `
             --ida-version "$idaVersion"
           if ($LASTEXITCODE -ne 0) { throw "Warm IDB restore failed." }
-      - name: Snapshot local BinSync refs before bootstrap
-        id: refs-before
-        shell: pwsh
-        run: |
-          $lines = @()
-          Get-ChildItem -LiteralPath "bin\$env:GAMEVER" -Recurse -Force -Filter ".git" | ForEach-Object {
-            $repo = if ($_.PSIsContainer) { $_.Parent.FullName } else { $_.Directory.FullName }
-            $lines += git -C $repo for-each-ref --format='%(refname) %(objectname)'
-          }
-          $text = (($lines | Sort-Object) -join "`n") + "`n"
-          $path = Join-Path $env:RUNNER_TEMP "binsync-refs-before.txt"
-          [IO.File]::WriteAllText($path, $text, [Text.UTF8Encoding]::new($false))
-          $digest = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
-          "digest=sha256:$digest" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
       - name: Full empty-root bootstrap with rename and local-only BinSync prepare
+        id: binsync-local
         shell: pwsh
         run: |
           $actualRoot = Join-Path $env:RUNNER_TEMP "new-gamever-bin-artifacts\${{ github.run_id }}-${{ github.run_attempt }}"
-          $binsyncCandidate = Join-Path $env:RUNNER_TEMP "bootstrap-binsync-local-only"
+          $binsyncCandidate = Join-Path $env:RUNNER_TEMP "bootstrap-binsync-local-only\${{ github.run_id }}-${{ github.run_attempt }}"
           $executionReport = Join-Path $env:RUNNER_TEMP "new-gamever-force-all-execution.json"
           New-Item -ItemType Directory -Path $actualRoot -Force | Out-Null
           "ACTUAL_ARTIFACT_ROOT=$actualRoot" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
@@ -143,8 +133,17 @@ jobs:
             -rename `
             -debug
           if ($LASTEXITCODE -ne 0) { throw "New-GAMEVER full bootstrap analysis failed." }
-          uv run python push_binsync_symbols.py "$env:GAMEVER" --prepare-only --candidate-dir "$binsyncCandidate"
+          uv run python push_binsync_symbols.py "$env:GAMEVER" `
+            --prepare-only `
+            --no-publication-candidate `
+            --candidate-dir "$binsyncCandidate" `
+            --artifactdir "$actualRoot" `
+            --binsync-user bootstrap-validation `
+            --python "$env:IDA_PYTHON"
           if ($LASTEXITCODE -ne 0) { throw "Local-only BinSync prepare failed." }
+          $evidence = Get-Content -LiteralPath (Join-Path $binsyncCandidate "local-evidence.json") -Raw | ConvertFrom-Json
+          "remote_refs_before=$($evidence.remote_refs_before_sha256)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "remote_refs_after=$($evidence.remote_refs_after_sha256)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
       - name: Build snapshot, gamedata, and C++ gate evidence
         id: gates
         shell: pwsh
@@ -174,23 +173,6 @@ jobs:
           "snapshot=sha256:$snapshotDigest" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "gamedata=sha256:$gamedataDigest" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "cpp=sha256:$cppDigest" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-      - name: Prove bootstrap did not change local remote-tracking refs
-        id: refs-after
-        shell: pwsh
-        run: |
-          $lines = @()
-          Get-ChildItem -LiteralPath "bin\$env:GAMEVER" -Recurse -Force -Filter ".git" | ForEach-Object {
-            $repo = if ($_.PSIsContainer) { $_.Parent.FullName } else { $_.Directory.FullName }
-            $lines += git -C $repo for-each-ref --format='%(refname) %(objectname)'
-          }
-          $text = (($lines | Sort-Object) -join "`n") + "`n"
-          $path = Join-Path $env:RUNNER_TEMP "binsync-refs-after.txt"
-          [IO.File]::WriteAllText($path, $text, [Text.UTF8Encoding]::new($false))
-          $digest = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
-          "digest=sha256:$digest" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          if ("sha256:$digest" -ne "${{ steps.refs-before.outputs.digest }}") {
-            throw "Bootstrap changed local BinSync ref state."
-          }
       - name: Package canonical bootstrap candidate
         id: package
         shell: pwsh
@@ -205,8 +187,8 @@ jobs:
             force_all = $true
             rename = $true
             binsync_mode = "local-only"
-            remote_refs_before_sha256 = "${{ steps.refs-before.outputs.digest }}"
-            remote_refs_after_sha256 = "${{ steps.refs-after.outputs.digest }}"
+            remote_refs_before_sha256 = "${{ steps.binsync-local.outputs.remote_refs_before }}"
+            remote_refs_after_sha256 = "${{ steps.binsync-local.outputs.remote_refs_after }}"
             snapshot_sha256 = "${{ steps.gates.outputs.snapshot }}"
             gamedata_sha256 = "${{ steps.gates.outputs.gamedata }}"
             cpp_validation_sha256 = "${{ steps.gates.outputs.cpp }}"
