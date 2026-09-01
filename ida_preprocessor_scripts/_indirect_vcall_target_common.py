@@ -28,6 +28,12 @@ path clobbers the register -- e.g. ``mov rax,[rax+128h]; cmp rax,rdx; jnz L;
 mov eax,-1; retn; L: jmp rax`` -- which a linear scan would mis-resolve. It is
 opt-in and off by default, leaving the strict memory-indirect-only scan
 unchanged for existing callers.
+
+``preprocess_vcall_on_global_skill`` covers the other shape: a large function
+that dispatches on a *global singleton* rather than a thin thunk. There the
+"exactly one indirect branch in the body" rule cannot select the right slot, so
+that resolver anchors on a reference to the global instead of on the branch and
+walks the dereference chain forward. See its docstring for details.
 """
 
 import json
@@ -447,6 +453,285 @@ async def preprocess_indirect_vcall_target_skill(
         print(
             f"    Preprocess: written {os.path.basename(output_path)} from indirect vcall target "
             f"{target['source_mnemonic']} @ {target['source_ea']} -> vfunc_offset {target['vfunc_offset']}"
+        )
+
+    return True
+
+
+_VCALL_ON_GLOBAL_PY_EVAL = """import idaapi, idautils, idc, json
+func_addr = __FUNC_ADDR__
+global_va = __GLOBAL_VA__
+max_levels = __MAX_LEVELS__
+
+# Mnemonics that read (or only partially touch) their first operand, so they do
+# not end a dereference chain that is currently held in that register.
+BREAK_EXEMPT = {"cmp", "test", "push", "nop"}
+
+
+def _decode(ea):
+    insn = idaapi.insn_t()
+    if idaapi.decode_insn(insn, ea):
+        return insn
+    return None
+
+
+def _mem_base_disp(op):
+    # Return (base_reg, displacement) for a plain [base] / [base+disp] operand.
+    # SIB forms are rejected: an indexed access is an array read, not the
+    # single-pointer dereference this walk models.
+    if op.type not in (idaapi.o_displ, idaapi.o_phrase):
+        return None
+    if op.specflag1:
+        return None
+    disp = int(op.addr) if op.type == idaapi.o_displ else 0
+    return (op.phrase, disp & 0xFFFFFFFFFFFFFFFF)
+
+
+globals().update(locals())
+
+func = idaapi.get_func(func_addr)
+result_obj = None
+if func:
+    heads = list(idautils.Heads(func.start_ea, func.end_ea))
+    order = {ea: i for i, ea in enumerate(heads)}
+
+    # Index every indirect branch through a bare register by that register, so a
+    # resolved slot can be confirmed as actually dispatched rather than merely
+    # loaded. Compilers freely spill and reload the slot between the load and
+    # the call, so this deliberately does not require the definition to reach
+    # the branch -- only that the register is branched through later.
+    reg_branches = {}
+    for ea in heads:
+        insn = _decode(ea)
+        if insn is None:
+            continue
+        if (idc.print_insn_mnem(ea) or "").lower() not in ("call", "jmp"):
+            continue
+        op = insn.ops[0]
+        if op.type == idaapi.o_reg:
+            reg_branches.setdefault(op.reg, []).append(ea)
+
+    chains = []
+    for ref in idautils.DataRefsTo(global_va):
+        if not (func.start_ea <= ref < func.end_ea) or ref not in order:
+            continue
+        ref_insn = _decode(ref)
+        if ref_insn is None or ref_insn.ops[0].type != idaapi.o_reg:
+            continue
+
+        # `mov reg, cs:g` loads the global's value; `lea reg, g` loads its
+        # address. The extra indirection the PIC/`lea` form introduces is just
+        # one more zero-displacement dereference, so both are walked uniformly.
+        cur = ref_insn.ops[0].reg
+        levels = 0
+        found = None
+        trace = [hex(ref) + " " + (idc.GetDisasm(ref) or "")]
+
+        for j in range(order[ref] + 1, len(heads)):
+            ea = heads[j]
+            insn = _decode(ea)
+            if insn is None:
+                break
+            mnem = (idc.print_insn_mnem(ea) or "").lower()
+            op0 = insn.ops[0]
+
+            # A vtable dispatch that never materializes the slot in a register:
+            # `call qword ptr [vptr+disp]`.
+            if mnem in ("call", "jmp"):
+                branch = _mem_base_disp(op0)
+                if branch is not None and branch[0] == cur and branch[1]:
+                    trace.append(hex(ea) + " " + (idc.GetDisasm(ea) or ""))
+                    found = {"offset": branch[1], "load_ea": ea, "branch_ea": ea}
+                    break
+
+            if mnem == "mov" and op0.type == idaapi.o_reg:
+                src = _mem_base_disp(insn.ops[1])
+                if src is not None and src[0] == cur:
+                    trace.append(hex(ea) + " " + (idc.GetDisasm(ea) or ""))
+                    if src[1] == 0:
+                        # Another level of pointer chasing (global -> object ->
+                        # vtable pointer); keep walking.
+                        cur = op0.reg
+                        levels += 1
+                        if levels > max_levels:
+                            break
+                        continue
+                    # First non-zero displacement off the dereference chain is
+                    # the vtable slot.
+                    found = {"offset": src[1], "load_ea": ea, "slot_reg": op0.reg}
+                    break
+
+            # An unconditional branch or a call ends the linear walk: the former
+            # leaves this instruction stream, the latter clobbers the volatile
+            # registers the chain may live in.
+            if mnem in ("call", "jmp"):
+                break
+            if op0.type == idaapi.o_reg and op0.reg == cur and mnem not in BREAK_EXEMPT:
+                break
+
+        if found is None:
+            chains.append({"ref": hex(ref), "status": "unresolved", "trace": trace})
+            continue
+
+        offset = found["offset"]
+        branch_ea = found.get("branch_ea")
+        if branch_ea is None:
+            for candidate in reg_branches.get(found.get("slot_reg"), []):
+                if candidate > found["load_ea"]:
+                    branch_ea = candidate
+                    break
+        if branch_ea is None:
+            chains.append({"ref": hex(ref), "status": "not-dispatched", "trace": trace})
+            continue
+        if offset <= 0 or offset % 8 or offset > 0x4000:
+            chains.append({"ref": hex(ref), "status": "bad-offset", "offset": hex(offset), "trace": trace})
+            continue
+
+        chains.append({
+            "ref": hex(ref),
+            "status": "resolved",
+            "vfunc_offset": hex(offset),
+            "vfunc_index": offset // 8,
+            "load_ea": hex(found["load_ea"]),
+            "branch_ea": hex(branch_ea),
+            "trace": trace,
+        })
+
+    result_obj = {"source_func_va": hex(func.start_ea), "chains": chains}
+
+result = json.dumps(result_obj)
+"""
+
+
+def _build_vcall_on_global_py_eval(func_va, global_va, max_deref_levels):
+    return (
+        _VCALL_ON_GLOBAL_PY_EVAL.replace("__FUNC_ADDR__", str(func_va))
+        .replace("__GLOBAL_VA__", str(global_va))
+        .replace("__MAX_LEVELS__", str(int(max_deref_levels)))
+    )
+
+
+async def preprocess_vcall_on_global_skill(
+    session,
+    expected_outputs,
+    new_binary_dir,
+    platform,
+    source_yaml_stem,
+    global_yaml_stem,
+    target_name,
+    vtable_name,
+    generate_yaml_desired_fields,
+    max_deref_levels=4,
+    debug=False,
+):
+    """Resolve the vtable slot dispatched on a *global object* and write a slot-only YAML.
+
+    ``preprocess_indirect_vcall_target_skill`` fits a thin thunk whose whole body
+    is one indirect branch. It does not fit a large function that dispatches on a
+    global singleton: such a body holds several unrelated vtable calls (so the
+    "exactly one slot" rule cannot select the right one), and its backward walk
+    from the branch mis-resolves a slot the compiler spilled to the stack and
+    reloaded across an intervening call.
+
+    This resolver anchors on the *data* instead of the branch. Starting at each
+    reference to ``global_yaml_stem``'s address inside ``source_yaml_stem``, it
+    walks forward through zero-displacement dereferences (global -> object ->
+    vtable pointer) and takes the first non-zero displacement off that chain as
+    the vtable slot. Anchoring this way makes the two platforms' dispatch forms
+    converge without a per-platform branch: MSVC's ``mov reg, cs:g`` loads the
+    global's value while GCC/PIC's ``lea reg, g`` loads its address, and the
+    extra indirection that costs is simply one more zero-displacement step.
+
+    Unrelated vtable calls in the same function are excluded because they are not
+    reachable from a ``global_va`` reference, and the spill/reload problem does
+    not arise because the walk moves forward from the load rather than backward
+    from the branch. Every candidate must still be confirmed as dispatched (its
+    register is branched through later, or the slot load *is* the branch), and
+    all resolved chains must agree on a single offset.
+    """
+    if yaml is None:
+        _debug(debug, "PyYAML is required")
+        return False
+
+    requested_fields = _normalize_requested_fields(
+        generate_yaml_desired_fields,
+        target_name,
+        debug=debug,
+    )
+    if requested_fields is None:
+        return False
+
+    output_path = _resolve_output_path(expected_outputs, target_name, platform, debug=debug)
+    if output_path is None:
+        return False
+
+    source_path = os.path.join(new_binary_dir, f"{source_yaml_stem}.{platform}.yaml")
+    source_yaml = _read_yaml(source_path)
+    if not isinstance(source_yaml, dict) or not source_yaml.get("func_va"):
+        _debug(debug, f"failed to read source function YAML: {source_path}")
+        return False
+
+    global_path = os.path.join(new_binary_dir, f"{global_yaml_stem}.{platform}.yaml")
+    global_yaml = _read_yaml(global_path)
+    if not isinstance(global_yaml, dict) or not global_yaml.get("gv_va"):
+        _debug(debug, f"failed to read global variable YAML: {global_path}")
+        return False
+
+    try:
+        source_func_va = _parse_int(source_yaml["func_va"])
+        global_va = _parse_int(global_yaml["gv_va"])
+    except Exception:
+        _debug(debug, "invalid func_va/gv_va in input YAML")
+        return False
+
+    parsed = await _call_py_eval_json(
+        session=session,
+        code=_build_vcall_on_global_py_eval(source_func_va, global_va, max_deref_levels),
+        debug=debug,
+        error_label="py_eval resolving vcall on global",
+    )
+    if not isinstance(parsed, dict) or not isinstance(parsed.get("chains"), list):
+        _debug(debug, f"failed to resolve vcall on global for {target_name}")
+        return False
+
+    chains = parsed["chains"]
+    if debug:
+        for chain in chains:
+            print(f"    Preprocess: chain {chain.get('ref')} -> {chain.get('status')}")
+            for line in chain.get("trace", []):
+                print(f"      {line}")
+
+    resolved = [chain for chain in chains if chain.get("status") == "resolved"]
+    if not resolved:
+        _debug(debug, f"no dispatched vtable slot reachable from {global_yaml_stem} in {source_yaml_stem}")
+        return False
+
+    offsets = {str(chain.get("vfunc_offset")) for chain in resolved}
+    if len(offsets) != 1:
+        _debug(debug, f"ambiguous vtable slot for {target_name}: {sorted(offsets)}")
+        return False
+
+    target = resolved[0]
+    available = {
+        "func_name": target_name,
+        "vtable_name": vtable_name,
+        "vfunc_offset": target["vfunc_offset"],
+        "vfunc_index": target["vfunc_index"],
+    }
+
+    payload = {}
+    for field in requested_fields:
+        if field not in available:
+            _debug(debug, f"requested field is not available for {target_name}: {field}")
+            return False
+        payload[field] = available[field]
+
+    write_func_yaml(output_path, payload)
+
+    if debug:
+        print(
+            f"    Preprocess: written {os.path.basename(output_path)} from vcall on "
+            f"{global_yaml_stem} @ {target['branch_ea']} -> vfunc_offset {target['vfunc_offset']}"
         )
 
     return True

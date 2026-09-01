@@ -3636,6 +3636,10 @@ modules:
         category: vfunc
         alias:
           - CEngineServer::IsDedicatedServer
+      - name: CEngineServer_IsUserIDInUse
+        category: vfunc
+        alias:
+          - CEngineServer::IsUserIDInUse
       - name: CEngineServer_GetServerGlobals
         category: vfunc
         alias:
@@ -6434,11 +6438,6 @@ modules:
           - CLagCompensationManager_StartLagCompensation.{platform}.yaml
         expected_input:
           - CLagCompensationManager_vtable2.{platform}.yaml
-      - name: find-CEngineServer_IsUserIDInUse
-        expected_output:
-          - CEngineServer_IsUserIDInUse.{platform}.yaml
-        expected_input:
-          - CLagCompensationManager_StartLagCompensation.{platform}.yaml
       - name: find-CSource2Server_vtable
         expected_output:
           - CSource2Server_vtable.{platform}.yaml
@@ -7385,6 +7384,12 @@ modules:
           - g_pGameTypes.{platform}.yaml
         expected_input:
           - CSource2Server_Connect.{platform}.yaml
+      - name: find-IVEngineServer2_IsUserIDInUse
+        expected_output:
+          - IVEngineServer2_IsUserIDInUse.{platform}.yaml
+        expected_input:
+          - CLagCompensationManager_StartLagCompensation.{platform}.yaml
+          - g_engine.{platform}.yaml
       - name: find-GlobalVarsWarningFunc
         expected_output:
           - GlobalVarsWarningFunc.{platform}.yaml
@@ -12037,10 +12042,10 @@ modules:
         category: vfunc
         alias:
           - CLagCompensationManager::StartLagCompensation
-      - name: CEngineServer_IsUserIDInUse
+      - name: IVEngineServer2_IsUserIDInUse
         category: vfunc
         alias:
-          - CEngineServer::IsUserIDInUse
+          - IVEngineServer2::IsUserIDInUse
       - name: INetworkServerService_SetGameSpawnGroupMgr
         category: vfunc
         alias:
@@ -13124,6 +13129,12 @@ modules:
         expected_input:
           - CEngineServer_vtable.{platform}.yaml
           - ../server/IVEngineServer2_IsDedicatedServer.{platform}.yaml
+      - name: find-CEngineServer_IsUserIDInUse
+        expected_output:
+          - CEngineServer_IsUserIDInUse.{platform}.yaml
+        expected_input:
+          - CEngineServer_vtable.{platform}.yaml
+          - ../server/IVEngineServer2_IsUserIDInUse.{platform}.yaml
       - name: find-CEngineServer_GetServerGlobals
         expected_output:
           - CEngineServer_GetServerGlobals.{platform}.yaml
