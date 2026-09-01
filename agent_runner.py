@@ -148,6 +148,15 @@ def _ensure_agent_mcp_preflight(agent, debug=False, server_name="ida-pro-mcp", m
         return True
 
     agent_kind = _detect_agent_kind(agent) or ""
+    if agent_kind == "claude" and mcp_url:
+        # Dynamic endpoints are owned and verified by the caller before the
+        # fallback agent starts. Claude's `mcp list` management command ignores
+        # invocation-scoped MCP overrides and would check the project endpoint
+        # instead, so reuse the completed health check here.
+        print(f"    Reusing verified dynamic MCP endpoint for Claude: {mcp_url}")
+        _MCP_PREFLIGHT_DONE.add(preflight_key)
+        return True
+
     cmd = [agent, *_agent_mcp_override_args(agent_kind, mcp_url), "mcp", "list"]
     print(f"    Checking MCP server list: {' '.join(cmd)}")
     try:
