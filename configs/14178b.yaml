@@ -3644,6 +3644,10 @@ modules:
         category: vfunc
         alias:
           - CEngineServer::GetAchievementMgr
+      - name: CEngineServer_GetClientSteamID
+        category: vfunc
+        alias:
+          - CEngineServer::GetClientSteamID
       - name: CEngineServer_IsLogEnabled
         category: vfunc
         alias:
@@ -6981,9 +6985,9 @@ modules:
       - name: find-CBasePlayerController_HandleCommand_JoinTeam
         expected_output:
           - CBasePlayerController_HandleCommand_JoinTeam.{platform}.yaml
-      - name: find-CEngineServer_GetClientSteamID
+      - name: find-IVEngineServer2_GetClientSteamID
         expected_output:
-          - CEngineServer_GetClientSteamID.{platform}.yaml
+          - IVEngineServer2_GetClientSteamID.{platform}.yaml
         expected_input:
           - CBasePlayerController_HandleCommand_JoinTeam.{platform}.yaml
       - name: find-CSource2GameClients_ClientSettingsChanged
@@ -10757,6 +10761,10 @@ modules:
         category: vfunc
         alias:
           - IVEngineServer2::GetAchievementMgr
+      - name: IVEngineServer2_GetClientSteamID
+        category: vfunc
+        alias:
+          - IVEngineServer2::GetClientSteamID
       - name: IVEngineServer2_IsLogEnabled
         category: vfunc
         alias:
@@ -12016,10 +12024,6 @@ modules:
         category: vfunc
         alias:
           - CEngineServer::UnloadSpawnGroup
-      - name: CEngineServer_GetClientSteamID
-        category: vfunc
-        alias:
-          - CEngineServer::GetClientSteamID
       - name: INetworkServerService_SetGameSpawnGroupMgr
         category: vfunc
         alias:
@@ -13115,6 +13119,12 @@ modules:
         expected_input:
           - CEngineServer_vtable.{platform}.yaml
           - ../server/IVEngineServer2_GetAchievementMgr.{platform}.yaml
+      - name: find-CEngineServer_GetClientSteamID
+        expected_output:
+          - CEngineServer_GetClientSteamID.{platform}.yaml
+        expected_input:
+          - CEngineServer_vtable.{platform}.yaml
+          - ../server/IVEngineServer2_GetClientSteamID.{platform}.yaml
       - name: find-CEngineServer_IsLogEnabled
         expected_output:
           - CEngineServer_IsLogEnabled.{platform}.yaml

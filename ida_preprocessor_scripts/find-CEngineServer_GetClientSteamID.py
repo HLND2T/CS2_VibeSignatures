@@ -3,24 +3,16 @@
 
 from ida_analyze_util import preprocess_common_skill
 
-TARGET_FUNCTION_NAMES = ["CEngineServer_GetClientSteamID"]
-
-LLM_DECOMPILE = [
-    {
-        "symbol_name": "CEngineServer_GetClientSteamID",
-        "prompt_path": "prompt/call_llm_decompile.md",
-        "reference_yaml_paths": [
-            "references/server/CBasePlayerController_HandleCommand_JoinTeam.{platform}.yaml",
-        ],
-        "expected_result_sections": ["found_vcall", "found_funcptr"],
-        "dependency_policy": {
-            "CBasePlayerController_HandleCommand_JoinTeam.{platform}.yaml": "required",
-        },
-    },
-]
-
-FUNC_VTABLE_RELATIONS = [
-    ("CEngineServer_GetClientSteamID", "CEngineServer"),
+INHERIT_VFUNCS = [
+    # (target_func_name, inherit_vtable_class, base_vfunc_name, generate_func_sig)
+    # GetClientSteamID is a small slot-indexed getter, so a func_sig is not
+    # stable enough to retain.
+    (
+        "CEngineServer_GetClientSteamID",
+        "CEngineServer",
+        "../server/IVEngineServer2_GetClientSteamID",
+        False,
+    ),
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
@@ -28,10 +20,12 @@ GENERATE_YAML_DESIRED_FIELDS = [
         "CEngineServer_GetClientSteamID",
         [
             "func_name",
-            "vfunc_sig",
+            "func_va",
+            "func_rva",
+            "func_size",
+            "vtable_name",
             "vfunc_offset",
             "vfunc_index",
-            "vtable_name",
         ],
     ),
 ]
@@ -45,10 +39,9 @@ async def preprocess_skill(
     new_binary_dir,
     platform,
     image_base,
-    llm_config=None,
     debug=False,
 ):
-    """Find the engine vfunc from JoinTeam's inline/de-inlined call chain."""
+    """Inherit the GetClientSteamID slot from IVEngineServer2."""
     _ = skill_name
     return await preprocess_common_skill(
         session=session,
@@ -57,10 +50,7 @@ async def preprocess_skill(
         new_binary_dir=new_binary_dir,
         platform=platform,
         image_base=image_base,
-        func_names=TARGET_FUNCTION_NAMES,
-        func_vtable_relations=FUNC_VTABLE_RELATIONS,
-        llm_decompile_specs=LLM_DECOMPILE,
-        llm_config=llm_config,
+        inherit_vfuncs=INHERIT_VFUNCS,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
     )
