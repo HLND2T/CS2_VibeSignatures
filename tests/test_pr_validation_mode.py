@@ -106,6 +106,15 @@ class TestClassifyPaths(unittest.TestCase):
         self.assertEqual("light", result.mode)
         self.assertTrue(result.force_light)
 
+    def test_future_artifact_root_can_be_recognized(self) -> None:
+        rules = pvm.parse_rules(
+            {"schema_version": 1, "rules": [{"paths": ["bin_artifacts/**"], "reason": "artifact truth"}]}
+        )
+
+        result = pvm.classify_paths(["bin_artifacts/14178/server/Foo.windows.yaml"], rules)
+
+        self.assertEqual("full", result.mode)
+
 
 class TestParseChangedPaths(unittest.TestCase):
     def test_rename_keeps_both_sides(self) -> None:
