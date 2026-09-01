@@ -2,6 +2,7 @@ name: Source Artifact Required
 on:
   pull_request_target:
     types: [opened, synchronize, reopened, ready_for_review]
+    branches: [main]
   merge_group:
     types: [checks_requested]
 permissions:
@@ -22,6 +23,7 @@ jobs:
       bootstrap-gamever: ${{ steps.binding.outputs.bootstrap-gamever }}
       plan-artifact-name: ${{ steps.binding.outputs.plan-artifact-name }}
       affected-versions: ${{ steps.binding.outputs.affected-versions }}
+      same-repository: ${{ steps.identity.outputs.same-repository }}
     steps:
       - name: Checkout exact prospective tree as data
         uses: actions/checkout@v5
@@ -37,19 +39,42 @@ jobs:
           EVENT_KIND: ${{ github.event_name }}
           PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_BASE_REPOSITORY: ${{ github.event.pull_request.base.repo.full_name }}
+          PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+          PR_HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
           MERGE_GROUP_BASE_SHA: ${{ github.event.merge_group.base_sha }}
           MERGE_GROUP_HEAD_SHA: ${{ github.event.merge_group.head_sha }}
+          REPOSITORY: ${{ github.repository }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           if ($env:EVENT_KIND -eq "merge_group") {
             $baseSha = $env:MERGE_GROUP_BASE_SHA
             $headSha = $env:MERGE_GROUP_HEAD_SHA
             $mergeSha = $env:MERGE_GROUP_HEAD_SHA
             $contextKind = "merge_group"
+            $pulls = @(gh api -H "Accept: application/vnd.github+json" `
+              "repos/$env:REPOSITORY/commits/$mergeSha/pulls" | ConvertFrom-Json)
+            if ($LASTEXITCODE -ne 0 -or $pulls.Count -lt 1) {
+              throw "Unable to prove the merge-group PR membership."
+            }
+            foreach ($pull in $pulls) {
+              if ($pull.head.repo.full_name -ne $env:REPOSITORY -or `
+                  $pull.base.repo.full_name -ne $env:REPOSITORY -or `
+                  $pull.base.ref -ne $env:DEFAULT_BRANCH) {
+                throw "Merge Queue validation only accepts same-repository PRs targeting the default branch."
+              }
+            }
+            $sameRepository = "true"
           } else {
             $baseSha = $env:PR_BASE_SHA
             $headSha = $env:PR_HEAD_SHA
             $mergeSha = (git rev-parse HEAD).Trim().ToLowerInvariant()
             $contextKind = "pull_request"
+            if ($env:PR_BASE_REPOSITORY -ne $env:REPOSITORY -or $env:PR_BASE_REF -ne $env:DEFAULT_BRANCH) {
+              throw "Pull request base is not the repository default branch."
+            }
+            $sameRepository = ($env:PR_HEAD_REPOSITORY -eq $env:REPOSITORY).ToString().ToLowerInvariant()
           }
           foreach ($value in @($baseSha, $headSha, $mergeSha)) {
             if ($value -notmatch '^[0-9a-f]{40}$') { throw "Invalid immutable event SHA: $value" }
@@ -62,6 +87,7 @@ jobs:
           "base-sha=$baseSha" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "head-sha=$headSha" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "merge-sha=$mergeSha" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "same-repository=$sameRepository" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
       - name: Checkout trusted default-branch planner
         uses: actions/checkout@v5
         with:
@@ -95,14 +121,7 @@ jobs:
           BRIDGE_AVAILABLE: ${{ steps.bridge.outputs.available }}
         run: |
           if ($env:BRIDGE_AVAILABLE -ne "true") {
-            "validation-mode=legacy" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-            "plan-sha256=legacy" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-            "merge-tree-sha=$((git rev-parse 'HEAD^{tree}').Trim().ToLowerInvariant())" |
-              Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-            "bootstrap-gamever=" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-            "plan-artifact-name=" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-            "affected-versions=[]" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-            exit 0
+            throw "Trusted source-artifact bridge is unavailable after source-owned cutover."
           }
           Set-Location -LiteralPath ".trusted-planner"
           $contextPath = Join-Path $env:RUNNER_TEMP "trusted-source-artifact-context.json"
@@ -121,15 +140,6 @@ jobs:
           uv run --project . python @contextArgs
           if ($LASTEXITCODE -ne 0) { throw "Trusted event context binding failed." }
           $context = Get-Content -LiteralPath $contextPath -Raw | ConvertFrom-Json
-          if ($context.artifact_policy.mode -eq "legacy") {
-            "validation-mode=legacy" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-            "plan-sha256=$($context.context_sha256)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-            "merge-tree-sha=$($context.merge_tree_sha)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-            "bootstrap-gamever=" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-            "plan-artifact-name=" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-            "affected-versions=[]" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-            exit 0
-          }
           uv run --project . python trusted_artifact_pr.py plan `
             --repo-root "${{ github.workspace }}" `
             --trusted-context $contextPath `
@@ -148,7 +158,7 @@ jobs:
           "affected-versions=$affectedVersions" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           Copy-Item -LiteralPath $planPath -Destination "${{ github.workspace }}/trusted-source-artifact-plan.json"
       - name: Upload immutable trusted plan evidence
-        if: steps.binding.outputs.validation-mode != 'legacy'
+        if: steps.binding.outputs.plan-artifact-name != ''
         uses: actions/upload-artifact@v4
         with:
           name: trusted-source-artifact-plan-${{ github.run_id }}-${{ github.run_attempt }}
@@ -200,8 +210,7 @@ jobs:
       needs.bind-source-artifact-plan.result == 'success' &&
       needs.test-prospective-tree.result == 'success' &&
       needs.bind-source-artifact-plan.outputs.validation-mode == 'full' &&
-      (github.event_name == 'merge_group' ||
-       github.event.pull_request.head.repo.full_name == github.repository)
+      needs.bind-source-artifact-plan.outputs.same-repository == 'true'
     strategy:
       fail-fast: false
       max-parallel: 1
@@ -231,7 +240,7 @@ jobs:
           VALIDATION_MODE: ${{ needs.bind-source-artifact-plan.outputs.validation-mode }}
           PLAN_SHA256: ${{ needs.bind-source-artifact-plan.outputs.plan-sha256 }}
           MERGE_TREE_SHA: ${{ needs.bind-source-artifact-plan.outputs.merge-tree-sha }}
-          IS_FORK: ${{ github.event_name != 'merge_group' && github.event.pull_request.head.repo.full_name != github.repository }}
+          IS_FORK: ${{ needs.bind-source-artifact-plan.outputs.same-repository != 'true' }}
         run: |-
           set -euo pipefail
           [[ "$BINDING_RESULT" == "success" ]]
@@ -248,7 +257,7 @@ jobs:
             echo "Fork changes requiring isolated IDA analysis must be mirrored to a same-repository branch." >&2
             exit 1
           fi
-          [[ "$VALIDATION_MODE" == "legacy" || "$VALIDATION_MODE" == "light" || "$VALIDATION_MODE" == "full" ]]
+          [[ "$VALIDATION_MODE" == "light" || "$VALIDATION_MODE" == "full" ]]
           [[ -n "$PLAN_SHA256" ]]
           if [[ "$VALIDATION_MODE" == "light" || "$VALIDATION_MODE" == "full" ]]; then
             [[ "$TEST_RESULT" == "success" ]]

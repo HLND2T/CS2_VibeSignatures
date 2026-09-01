@@ -56,6 +56,20 @@ SHARED_ANALYSIS_PATHS = frozenset(
         "gamesymbol_snapshot_lib/pr_validation.py",
     }
 )
+TRUST_ROOT_PATHS = frozenset(
+    {
+        "source_artifact_policy.yaml",
+        "trusted_pr_context.py",
+        "trusted_artifact_pr.py",
+        "new_gamever_artifact.py",
+        "trusted_yaml.py",
+        ".github/workflows/pr-self-runner.yml",
+        ".github/workflows/source-artifact-required.yml",
+        ".github/workflows/bootstrap-new-gamever-artifacts.yml",
+        "pyproject.toml",
+        "uv.lock",
+    }
+)
 
 
 class TrustedArtifactPrError(RuntimeError):
@@ -329,6 +343,24 @@ def _source_inventory(repo: GitTreeRepository, revision: str) -> dict:
     return {"file_count": len(items), "sha256": _digest("analysis-source-inventory", items)}
 
 
+def _download_identities(repo: GitTreeRepository, revision: str) -> dict[str, dict]:
+    try:
+        document = yaml.safe_load(repo.read(revision, "download.yaml"))
+    except yaml.YAMLError as exc:
+        raise TrustedArtifactPrError(f"invalid download.yaml at {revision}: {exc}") from exc
+    if not isinstance(document, dict) or set(document) != {"downloads"} or not isinstance(document["downloads"], list):
+        raise TrustedArtifactPrError(f"download.yaml at {revision} must contain only a downloads list")
+    identities = {}
+    for item in document["downloads"]:
+        if not isinstance(item, dict) or not isinstance(item.get("tag"), str) or not item["tag"]:
+            raise TrustedArtifactPrError(f"download.yaml at {revision} has an invalid download entry")
+        tag = item["tag"]
+        if tag in identities:
+            raise TrustedArtifactPrError(f"download.yaml at {revision} has duplicate tag {tag!r}")
+        identities[tag] = item
+    return identities
+
+
 def _revision_python_sources(repo: GitTreeRepository, revision: str) -> dict[str, str]:
     sources = {}
     for entry in repo.entries(revision, "ida_preprocessor_scripts"):
@@ -423,6 +455,16 @@ def build_trusted_artifact_plan(*, repo_root: str | Path, trusted_context: dict 
     _validate_repository_tree_namespaces(repo, context["base_sha"], base_versions)
     _validate_repository_tree_namespaces(repo, context["merge_sha"], merge_versions)
     changes = repo.changes(context["base_sha"], context["merge_sha"])
+    changed_trust_roots = sorted(
+        {path for change in changes for path in (change.old_path, change.new_path) if path in TRUST_ROOT_PATHS}
+    )
+    if changed_trust_roots:
+        raise TrustedArtifactPrError(
+            "trusted validation roots require an independently merged bridge update:\n"
+            + "\n".join(f"  {path}" for path in changed_trust_roots)
+        )
+    base_downloads = _download_identities(repo, context["base_sha"])
+    merge_downloads = _download_identities(repo, context["merge_sha"])
     needs_base_sources, needs_merge_sources = required_source_index_sides(list(changes))
     base_sources = _revision_python_sources(repo, context["base_sha"]) if needs_base_sources else {}
     merge_sources = _revision_python_sources(repo, context["merge_sha"]) if needs_merge_sources else {}
@@ -512,6 +554,16 @@ def build_trusted_artifact_plan(*, repo_root: str | Path, trusted_context: dict 
                 }
                 invalidated_paths.update(merge_contract.formal_paths)
                 reasons.append("shared analyzer/serializer contract changed")
+
+            if merge_contract is not None and base_downloads.get(gamever) != merge_downloads.get(gamever):
+                selected_group_ids = set(merge_contract.producer_groups)
+                selected_node_ids = {
+                    node_id
+                    for group in merge_contract.producer_groups.values()
+                    for node_id in group.alternative_node_ids
+                }
+                invalidated_paths.update(merge_contract.formal_paths)
+                reasons.append("download/binary identity changed")
 
             artifact_changes = [
                 change

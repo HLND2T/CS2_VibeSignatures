@@ -25,7 +25,10 @@ class TrustedPrContextTests(unittest.TestCase):
         self._git(root, "init", "-b", "main")
         self._git(root, "config", "user.email", "test@example.com")
         self._git(root, "config", "user.name", "Test")
-        policy = b"schema_version: 1\nmode: legacy\nartifact_root: bin_artifacts\nartifact_contract_schema_version: 1\n"
+        policy = (
+            b"schema_version: 1\nmode: source-owned\nartifact_root: bin_artifacts\n"
+            b"artifact_contract_schema_version: 1\n"
+        )
         required = {path: f"trusted base {path}\n".encode() for path in tpc.TRUSTED_FILE_PATHS}
         required[tpc.POLICY_REPO_PATH] = policy
         for relative, payload in required.items():
@@ -38,10 +41,7 @@ class TrustedPrContextTests(unittest.TestCase):
 
         self._git(root, "switch", "-c", "feature")
         (root / tpc.POLICY_REPO_PATH).write_text(
-            "schema_version: 1\n"
-            "mode: source-owned\n"
-            "artifact_root: bin_artifacts\n"
-            "artifact_contract_schema_version: 99\n",
+            "schema_version: 1\nmode: legacy\nartifact_root: bin_artifacts\nartifact_contract_schema_version: 99\n",
             encoding="utf-8",
         )
         (root / "feature.txt").write_text("head\n", encoding="utf-8")
@@ -70,7 +70,7 @@ class TrustedPrContextTests(unittest.TestCase):
             self.assertEqual(merge_sha, context["merge_sha"])
             self.assertEqual("pull_request", context["event_kind"])
             self.assertEqual(self._git(root, "rev-parse", f"{merge_sha}^{{tree}}"), context["merge_tree_sha"])
-            self.assertEqual("legacy", context["artifact_policy"]["mode"])
+            self.assertEqual("source-owned", context["artifact_policy"]["mode"])
             self.assertEqual(tpc._sha256(base_policy), context["artifact_policy"]["sha256"])
             self.assertEqual(context, tpc.validate_trusted_pr_context(context))
 
@@ -141,6 +141,10 @@ class TrustedPrContextTests(unittest.TestCase):
             tpc.parse_source_artifact_policy(
                 b"schema_version: 1\nmode: legacy\nartifact_root: bin_artifacts\n"
                 b"artifact_contract_schema_version: 1\nextra: true\n"
+            )
+        with self.assertRaisesRegex(tpc.TrustedPrContextError, "must be source-owned"):
+            tpc.parse_source_artifact_policy(
+                b"schema_version: 1\nmode: legacy\nartifact_root: bin_artifacts\nartifact_contract_schema_version: 1\n"
             )
 
 

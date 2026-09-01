@@ -83,6 +83,7 @@ class TrustedArtifactPrTests(unittest.TestCase):
         change_artifact: bool = True,
         add_extra: bool = False,
         add_unconfigured: bool = False,
+        changed_path: str | None = None,
     ):
         self._git(root, "init", "-b", "main")
         self._git(root, "config", "user.email", "test@example.com")
@@ -134,6 +135,12 @@ class TrustedArtifactPrTests(unittest.TestCase):
             self._write_artifact(root, "A", "0x30")
         else:
             (root / "ida_analyze_util.py").write_text("SERIALIZER = 2\n", encoding="utf-8")
+        if changed_path == "download.yaml":
+            (root / "download.yaml").write_text(
+                "downloads:\n  - tag: '1'\n    manifests: {'1': '2'}\n", encoding="utf-8"
+            )
+        elif changed_path:
+            (root / changed_path).write_text("prospective trust-root change\n", encoding="utf-8")
         if add_extra:
             self._write_artifact(root, "Extra", "0x40")
         if add_unconfigured:
@@ -252,6 +259,32 @@ class TrustedArtifactPrTests(unittest.TestCase):
             version = plan["game_versions"][0]
             self.assertEqual(2, len(version["affected_producer_groups"]))
             self.assertIn("shared analyzer/serializer contract changed", version["reasons"])
+
+    def test_download_identity_change_broadly_selects_all_groups(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            root.mkdir()
+            _base, _head, _merge, context = self._repository(root, changed_path="download.yaml")
+
+            plan = tap.build_trusted_artifact_plan(repo_root=root, trusted_context=context)
+
+            self.assertEqual("full", plan["mode"])
+            version = plan["game_versions"][0]
+            self.assertEqual(2, len(version["affected_producer_groups"]))
+            self.assertIn("download/binary identity changed", version["reasons"])
+
+    def test_trust_root_change_requires_independent_bridge_update(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            root.mkdir()
+            _base, _head, _merge, context = self._repository(
+                root,
+                change_artifact=False,
+                changed_path="source_artifact_policy.yaml",
+            )
+
+            with self.assertRaisesRegex(tap.TrustedArtifactPrError, "independently merged bridge update"):
+                tap.build_trusted_artifact_plan(repo_root=root, trusted_context=context)
 
     def test_unknown_artifact_and_plan_tamper_fail_closed(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

@@ -279,6 +279,8 @@ jobs:
             --manifest "${{ github.workspace }}/evidence/candidate/candidate-manifest.json" `
             --repository "${{ github.repository }}" `
             --default-branch "${{ github.event.repository.default_branch }}" `
+            --base-repository "$($pull.base.repo.full_name)" --base-ref "$($pull.base.ref)" `
+            --base-sha "$($pull.base.sha)" `
             --head-repository "$($pull.head.repo.full_name)" --head-ref "$($pull.head.ref)" `
             --head-sha "${{ inputs.head_sha }}" --current-remote-head "$remoteHead" `
             --pr-number "${{ inputs.pull_request_number }}" `
@@ -314,8 +316,11 @@ jobs:
         run: |-
           if ([string]::IsNullOrWhiteSpace($env:GIT_PASSWORD)) { throw "SOURCE_ARTIFACT_BOOTSTRAP_PAT is unavailable." }
           $pull = gh api "repos/${{ github.repository }}/pulls/${{ inputs.pull_request_number }}" | ConvertFrom-Json
-          if ($LASTEXITCODE -ne 0 -or $pull.head.sha -ne "${{ inputs.head_sha }}") {
-            throw "PR head drifted immediately before protected push."
+          if ($LASTEXITCODE -ne 0 -or $pull.head.sha -ne "${{ inputs.head_sha }}" -or `
+              $pull.base.repo.full_name -ne "${{ github.repository }}" -or `
+              $pull.base.ref -ne "${{ github.event.repository.default_branch }}" -or `
+              $pull.base.sha -ne "${{ inputs.base_sha }}") {
+            throw "PR base or head drifted immediately before protected push."
           }
           $askpass = Join-Path $env:RUNNER_TEMP "source-artifact-askpass.sh"
           @'

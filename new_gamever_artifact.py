@@ -226,6 +226,9 @@ def verify_bootstrap_candidate(
     manifest: dict | str | Path,
     repository: str,
     default_branch: str,
+    base_repository: str,
+    base_ref: str,
+    base_sha: str,
     head_repository: str,
     head_ref: str,
     head_sha: str,
@@ -247,6 +250,13 @@ def verify_bootstrap_candidate(
         raise NewGameverArtifactError("bootstrap publisher only accepts a same-repository PR")
     if default_branch not in {"main", "master"}:
         raise NewGameverArtifactError(f"unexpected default branch: {default_branch!r}")
+    if (
+        base_repository != repository
+        or base_ref != default_branch
+        or base_sha != plan["base_sha"]
+        or not SHA_RE.fullmatch(base_sha)
+    ):
+        raise NewGameverArtifactError("bootstrap publisher base is not the bound default branch SHA")
     if head_ref != expected_ref:
         raise NewGameverArtifactError(f"bootstrap publisher head ref must be {expected_ref}")
     if (
@@ -304,6 +314,8 @@ def verify_bootstrap_candidate(
         "repository": repository,
         "pull_request_number": pr_number,
         "game_version": gamever,
+        "base_ref": base_ref,
+        "base_sha": base_sha,
         "head_ref": head_ref,
         "head_sha": head_sha,
         "candidate_sha256": manifest["candidate_sha256"],
@@ -422,6 +434,9 @@ def parse_args(argv=None) -> argparse.Namespace:
     verify.add_argument("--manifest", required=True)
     verify.add_argument("--repository", required=True)
     verify.add_argument("--default-branch", required=True)
+    verify.add_argument("--base-repository", required=True)
+    verify.add_argument("--base-ref", required=True)
+    verify.add_argument("--base-sha", required=True)
     verify.add_argument("--head-repository", required=True)
     verify.add_argument("--head-ref", required=True)
     verify.add_argument("--head-sha", required=True)
@@ -471,6 +486,9 @@ def main(argv=None) -> int:
                 manifest=args.manifest,
                 repository=args.repository,
                 default_branch=args.default_branch,
+                base_repository=args.base_repository,
+                base_ref=args.base_ref,
+                base_sha=args.base_sha,
                 head_repository=args.head_repository,
                 head_ref=args.head_ref,
                 head_sha=args.head_sha,

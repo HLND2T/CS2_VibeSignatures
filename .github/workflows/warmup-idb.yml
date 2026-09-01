@@ -64,6 +64,7 @@ jobs:
           ref: ${{ inputs.source_sha }}
           fetch-depth: 1
           submodules: false
+          persist-credentials: false
       - name: Verify immutable source checkout
         id: verify-source
         shell: pwsh
@@ -110,7 +111,7 @@ jobs:
             # is either restored from the immutable IDB cache or regenerated later.
             robocopy $persistedGamever $workspaceGamever /E /COPY:DAT /DCOPY:DAT /R:2 /W:5 `
               /XD *.bsproj `
-              /XF *.i64 *.idb *.id0 *.id1 *.id2 *.nam *.til *.binsync.json
+              /XF *.yaml *.yml *.i64 *.idb *.id0 *.id1 *.id2 *.nam *.til *.binsync.json
             if ($LASTEXITCODE -ge 8) {
               throw "Failed to restore persisted accepted bin/$env:GAMEVER into the warmup workspace."
             }

@@ -35,9 +35,11 @@ TRUSTED_FILE_PATHS = (
     "gamesymbol_snapshot_lib/model.py",
     "gamesymbol_snapshot_lib/paths.py",
     "gamesymbol_snapshot_lib/pr_validation.py",
+    "trusted_yaml.py",
     ".github/workflows/pr-self-runner.yml",
     ".github/workflows/source-artifact-required.yml",
     ".github/workflows/bootstrap-new-gamever-artifacts.yml",
+    "pyproject.toml",
     "uv.lock",
 )
 
@@ -130,8 +132,8 @@ def parse_source_artifact_policy(payload: bytes) -> SourceArtifactPolicy:
     if document["schema_version"] != 1:
         raise TrustedPrContextError("trusted source artifact policy schema_version must be 1")
     mode = document["mode"]
-    if mode not in {"legacy", "source-owned"}:
-        raise TrustedPrContextError("trusted source artifact policy mode must be legacy or source-owned")
+    if mode != "source-owned":
+        raise TrustedPrContextError("trusted source artifact policy mode must be source-owned after cutover")
     artifact_root = document["artifact_root"]
     if artifact_root != "bin_artifacts":
         raise TrustedPrContextError("trusted source artifact policy artifact_root must be bin_artifacts")
@@ -230,7 +232,7 @@ def validate_trusted_pr_context(document: object) -> dict:
     if (
         not isinstance(policy, dict)
         or set(policy) != {"mode", "artifact_root", "artifact_contract_schema_version", "sha256"}
-        or policy.get("mode") not in {"legacy", "source-owned"}
+        or policy.get("mode") != "source-owned"
         or policy.get("artifact_root") != "bin_artifacts"
         or not isinstance(policy.get("artifact_contract_schema_version"), int)
         or isinstance(policy.get("artifact_contract_schema_version"), bool)

@@ -117,6 +117,9 @@ class NewGameverArtifactTests(unittest.TestCase):
             manifest=manifest_path,
             repository=nga.ALLOWED_REPOSITORY,
             default_branch="main",
+            base_repository=nga.ALLOWED_REPOSITORY,
+            base_ref="main",
+            base_sha=plan["base_sha"],
             head_repository=nga.ALLOWED_REPOSITORY,
             head_ref=f"bump-download/{self.gamever}",
             head_sha=head_sha,
@@ -180,10 +183,43 @@ class NewGameverArtifactTests(unittest.TestCase):
                     manifest=clean_manifest,
                     repository=nga.ALLOWED_REPOSITORY,
                     default_branch="main",
+                    base_repository=nga.ALLOWED_REPOSITORY,
+                    base_ref="main",
+                    base_sha=plan["base_sha"],
                     head_repository=nga.ALLOWED_REPOSITORY,
                     head_ref=f"bump-download/{self.gamever}",
                     head_sha=head_sha,
                     current_remote_head="f" * 40,
+                    pr_number=17,
+                    actions_artifact_name=manifest["actions_artifact_name"],
+                    actions_artifact_digest="sha256:" + "a" * 64,
+                    workflow_run_id="123",
+                    workflow_run_attempt="1",
+                )
+
+    def test_hosted_verifier_rejects_non_default_base(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            root.mkdir()
+            head_sha, _merge_sha, plan = self._repository(root)
+            artifact_root = self._candidate(root)
+            manifest_path, manifest, _verification = self._build_and_verify(root, plan, head_sha, artifact_root)
+
+            with self.assertRaisesRegex(nga.NewGameverArtifactError, "bound default branch"):
+                nga.verify_bootstrap_candidate(
+                    repo_root=root,
+                    plan=plan,
+                    artifact_root=artifact_root,
+                    manifest=manifest_path,
+                    repository=nga.ALLOWED_REPOSITORY,
+                    default_branch="main",
+                    base_repository=nga.ALLOWED_REPOSITORY,
+                    base_ref="staging",
+                    base_sha=plan["base_sha"],
+                    head_repository=nga.ALLOWED_REPOSITORY,
+                    head_ref=f"bump-download/{self.gamever}",
+                    head_sha=head_sha,
+                    current_remote_head=head_sha,
                     pr_number=17,
                     actions_artifact_name=manifest["actions_artifact_name"],
                     actions_artifact_digest="sha256:" + "a" * 64,
