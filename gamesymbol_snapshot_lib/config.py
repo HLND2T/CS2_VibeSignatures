@@ -7,7 +7,7 @@ import yaml
 import analysis_output_contract
 import ida_analyze_bin
 from gamesymbol_snapshot_lib.errors import SnapshotConfigError
-from gamesymbol_snapshot_lib.model import BinaryTarget, SkillNode, SnapshotContract
+from gamesymbol_snapshot_lib.model import BinaryTarget, ProducerGroup, SkillNode, SnapshotContract
 from gamesymbol_snapshot_lib.paths import canonical_key
 from trusted_yaml import load_yaml_file
 
@@ -164,7 +164,20 @@ def _make_node(module: dict, skill: dict, skill_index: int, platform: str, game_
     optional_input_paths += list(skill.get(f"optional_input_{platform}", []) or [])
     required_inputs = _resolved_keys(binary_dir, required_input_paths, platform, game_root)
     optional_inputs = _resolved_keys(binary_dir, optional_input_paths, platform, game_root)
-    inputs = required_inputs | optional_inputs
+    alternative_output_paths = _string_list(
+        skill.get("alternative_output"),
+        f"modules[{module['stage_index']}].skills[{skill_index}].alternative_output",
+    )
+    alternative_output_paths += _string_list(
+        skill.get(f"alternative_output_{platform}"),
+        f"modules[{module['stage_index']}].skills[{skill_index}].alternative_output_{platform}",
+    )
+    alternative_outputs = _resolved_keys(binary_dir, alternative_output_paths, platform, game_root)
+    undeclared_alternatives = alternative_outputs - (required_keys | optional_keys)
+    if undeclared_alternatives:
+        raise SnapshotConfigError(
+            f"alternative outputs must also be declared outputs: {', '.join(sorted(undeclared_alternatives))}"
+        )
     node_id = f"{module['stage_index']}:{skill_index}:{module['name']}:{platform}:{skill['name']}"
     fingerprint_data = {
         "stage_index": module["stage_index"],
@@ -176,6 +189,7 @@ def _make_node(module: dict, skill: dict, skill_index: int, platform: str, game_
         "optional_outputs": sorted(optional_keys),
         "required_inputs": sorted(required_inputs),
         "optional_inputs": sorted(optional_inputs),
+        "alternative_outputs": sorted(alternative_outputs),
         "prerequisites": list(skill.get("prerequisite", []) or []),
         "skip_if_exists": list(skill.get("skip_if_exists", []) or []),
     }
@@ -191,7 +205,9 @@ def _make_node(module: dict, skill: dict, skill_index: int, platform: str, game_
         platform,
         required_keys,
         optional_keys,
-        inputs,
+        required_inputs,
+        optional_inputs,
+        alternative_outputs,
         tuple(skill.get("prerequisite", []) or []),
         fingerprint,
     )
@@ -211,22 +227,85 @@ def _collect_nodes(modules: list[dict], game_root: Path) -> dict[str, SkillNode]
     return nodes
 
 
-def _collect_paths(nodes: dict[str, SkillNode]):
+def _group_fingerprint(
+    *, artifact_path: str, required: bool, alternative_node_ids: tuple[str, ...], nodes: dict[str, SkillNode]
+) -> str:
+    payload = {
+        "artifact_path": artifact_path,
+        "required": required,
+        "alternatives": [
+            {"node_id": node_id, "fingerprint": nodes[node_id].fingerprint} for node_id in alternative_node_ids
+        ],
+    }
+    encoded = b"source2-producer-group:v1\n" + json.dumps(payload, sort_keys=True, separators=(",", ":")).encode(
+        "utf-8"
+    )
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _collect_paths(nodes: dict[str, SkillNode], *, require_explicit_producer_groups: bool):
     required = set()
     optional = set()
-    owners = {}
+    ordered_owners: dict[str, list[str]] = {}
     case_spellings = {}
     for node in nodes.values():
         for path in node.outputs:
             prior = case_spellings.setdefault(path.casefold(), path)
             if prior != path:
                 raise SnapshotConfigError(f"case-insensitive artifact collision: {prior} and {path}")
-            owners.setdefault(path, set()).add(node.node_id)
+            ordered_owners.setdefault(path, []).append(node.node_id)
         required.update(node.required_outputs)
         optional.update(node.optional_outputs)
     optional.difference_update(required)
-    frozen_owners = {path: frozenset(node_ids) for path, node_ids in owners.items()}
-    return frozenset(required), frozenset(optional), frozen_owners
+    formal_paths = required | optional
+    for node in nodes.values():
+        undeclared_inputs = node.inputs - formal_paths
+        if undeclared_inputs:
+            raise SnapshotConfigError(
+                f"artifact inputs must resolve to a formal output: {', '.join(sorted(undeclared_inputs))}"
+            )
+
+    groups = {}
+    group_ids_by_path = {}
+    for path in sorted(formal_paths):
+        alternatives = tuple(ordered_owners[path])
+        marked = tuple(node_id for node_id in alternatives if path in nodes[node_id].alternative_outputs)
+        if len(alternatives) == 1 and marked:
+            raise SnapshotConfigError(f"alternative output has only one producer: {path}")
+        if len(alternatives) > 1 and marked and marked != alternatives:
+            raise SnapshotConfigError(f"all producers must mark the shared alternative output: {path}")
+        if len(alternatives) > 1 and require_explicit_producer_groups and not marked:
+            raise SnapshotConfigError(f"duplicate producers require an explicit alternative output group: {path}")
+        group_id = f"producer-group:{path}"
+        group_ids_by_path[path] = group_id
+        input_paths = frozenset().union(*(nodes[node_id].inputs for node_id in alternatives))
+        groups[group_id] = ProducerGroup(
+            group_id=group_id,
+            artifact_path=path,
+            required=path in required,
+            alternative_node_ids=alternatives,
+            input_paths=input_paths,
+            upstream_group_ids=(),
+            fingerprint=_group_fingerprint(
+                artifact_path=path,
+                required=path in required,
+                alternative_node_ids=alternatives,
+                nodes=nodes,
+            ),
+        )
+
+    for group_id, group in tuple(groups.items()):
+        groups[group_id] = ProducerGroup(
+            group_id=group.group_id,
+            artifact_path=group.artifact_path,
+            required=group.required,
+            alternative_node_ids=group.alternative_node_ids,
+            input_paths=group.input_paths,
+            upstream_group_ids=tuple(sorted({group_ids_by_path[path] for path in group.input_paths})),
+            fingerprint=group.fingerprint,
+        )
+    frozen_owners = {path: frozenset(node_ids) for path, node_ids in ordered_owners.items()}
+    return frozenset(required), frozenset(optional), frozen_owners, groups, group_ids_by_path
 
 
 def _validate_binary_source_path(value: object, context: str) -> str:
@@ -270,7 +349,13 @@ def _collect_binary_targets(modules: list[dict]) -> dict[tuple[str, str], Binary
 
 
 def _build_contract(
-    config_document, game_version, bindir, config_digest_version: int, config_sha256: str
+    config_document,
+    game_version,
+    bindir,
+    config_digest_version: int,
+    config_sha256: str,
+    *,
+    require_explicit_producer_groups: bool,
 ) -> SnapshotContract:
     bindir = Path(bindir)
     game_version = str(game_version)
@@ -281,7 +366,10 @@ def _build_contract(
         binary_targets = _collect_binary_targets(modules)
     except (OSError, ValueError, TypeError) as exc:
         raise SnapshotConfigError(f"invalid analysis contract: {exc}") from exc
-    required, optional, owners = _collect_paths(nodes)
+    required, optional, owners, producer_groups, group_ids_by_path = _collect_paths(
+        nodes,
+        require_explicit_producer_groups=require_explicit_producer_groups,
+    )
     return SnapshotContract(
         game_version,
         bindir / game_version,
@@ -293,6 +381,8 @@ def _build_contract(
         owners,
         nodes,
         binary_targets,
+        producer_groups,
+        group_ids_by_path,
     )
 
 
@@ -301,6 +391,8 @@ def load_contract(
     game_version,
     bindir,
     config_digest_version: int = LATEST_CONFIG_DIGEST_VERSION,
+    *,
+    require_explicit_producer_groups: bool = False,
 ) -> SnapshotContract:
     config_path = Path(config_path)
     raw = _load_raw_config(config_path)
@@ -311,6 +403,7 @@ def load_contract(
         bindir,
         config_digest_version,
         _digest(normalized, config_digest_version),
+        require_explicit_producer_groups=require_explicit_producer_groups,
     )
 
 
@@ -319,4 +412,11 @@ def load_unversioned_schema1_contract(config_path, game_version, bindir) -> Snap
     config_path = Path(config_path)
     raw = _load_raw_config(config_path)
     normalized = _normalized_contract(raw, 2)
-    return _build_contract(raw, game_version, bindir, 1, _unversioned_digest(normalized))
+    return _build_contract(
+        raw,
+        game_version,
+        bindir,
+        1,
+        _unversioned_digest(normalized),
+        require_explicit_producer_groups=False,
+    )
