@@ -1,23 +1,78 @@
 name: Deploy Pages
-
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'pages/**'
-      - 'gamesymbols/**'
-      - 'gamedata/**'
-      - '.github/workflows/deploy-pages.yml'
+  repository_dispatch:
+    types: [pages-release-published]
   workflow_dispatch:
-
+    inputs:
+      release_id:
+        description: Published immutable GitHub Release ID
+        required: true
+        type: string
+      release_tag:
+        description: Published GAMEVER tag
+        required: true
+        type: string
+      source_sha:
+        description: Direct immutable source commit
+        required: true
+        type: string
+      manifest_sha256:
+        description: Verified Release manifest SHA-256
+        required: true
+        type: string
 permissions: {}
-
 concurrency:
   group: deploy-pages
-  cancel-in-progress: false
-
+  cancel-in-progress: true
 jobs:
+  resolve-release:
+    runs-on: ubuntu-latest
+    outputs:
+      release_id: ${{ steps.identity.outputs.release_id }}
+      release_tag: ${{ steps.identity.outputs.release_tag }}
+      source_sha: ${{ steps.identity.outputs.source_sha }}
+      manifest_sha256: ${{ steps.identity.outputs.manifest_sha256 }}
+    steps:
+      - name: Resolve immutable published Release identity
+        id: identity
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          DISPATCH_RELEASE_ID: ${{ github.event.client_payload.release_id }}
+          DISPATCH_RELEASE_TAG: ${{ github.event.client_payload.release_tag }}
+          DISPATCH_SOURCE_SHA: ${{ github.event.client_payload.source_sha }}
+          DISPATCH_MANIFEST_SHA256: ${{ github.event.client_payload.manifest_sha256 }}
+          MANUAL_RELEASE_ID: ${{ inputs.release_id }}
+          MANUAL_RELEASE_TAG: ${{ inputs.release_tag }}
+          MANUAL_SOURCE_SHA: ${{ inputs.source_sha }}
+          MANUAL_MANIFEST_SHA256: ${{ inputs.manifest_sha256 }}
+        shell: pwsh
+        run: |-
+          if ("${{ github.repository }}" -cne 'HLND2T/CS2_VibeSignatures') {
+            throw "Pages Release deployment repository is not allowlisted."
+          }
+          if ($env:EVENT_NAME -eq 'repository_dispatch') {
+            $releaseId = $env:DISPATCH_RELEASE_ID
+            $releaseTag = $env:DISPATCH_RELEASE_TAG
+            $sourceSha = $env:DISPATCH_SOURCE_SHA
+            $manifestDigest = $env:DISPATCH_MANIFEST_SHA256
+          } else {
+            $releaseId = $env:MANUAL_RELEASE_ID
+            $releaseTag = $env:MANUAL_RELEASE_TAG
+            $sourceSha = $env:MANUAL_SOURCE_SHA
+            $manifestDigest = $env:MANUAL_MANIFEST_SHA256
+          }
+          $sourceSha = $sourceSha.ToLowerInvariant()
+          $manifestDigest = $manifestDigest.ToLowerInvariant() -replace '^sha256:', ''
+          if ($releaseId -notmatch '^[1-9][0-9]*$') { throw "Pages Release ID is invalid." }
+          if ($releaseTag -notmatch '^[0-9]{4,10}[a-z]?$') { throw "Pages Release tag is invalid." }
+          if ($sourceSha -notmatch '^[0-9a-f]{40}$') { throw "Pages source SHA is invalid." }
+          if ($manifestDigest -notmatch '^[0-9a-f]{64}$') { throw "Pages manifest SHA-256 is invalid." }
+          "release_id=$releaseId" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "release_tag=$releaseTag" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "source_sha=$sourceSha" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "manifest_sha256=$manifestDigest" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
   build:
+    needs: resolve-release
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -27,7 +82,9 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
+          ref: ${{ needs.resolve-release.outputs.source_sha }}
           persist-credentials: false
+      - uses: astral-sh/setup-uv@v9.0.0
       - uses: actions/setup-node@v5
         with:
           node-version: '24'
@@ -35,6 +92,23 @@ jobs:
           cache-dependency-path: pages/package-lock.json
       - name: Install Pages dependencies
         run: npm ci
+      - name: Hydrate verified published Release inputs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |-
+          $inputRoot = Join-Path $env:RUNNER_TEMP 'pages-release-input'
+          $receipt = Join-Path $env:RUNNER_TEMP 'pages-release-input-receipt.json'
+          uv run --project .. python ../pages_release_input.py `
+            --repository "${{ github.repository }}" `
+            --release-id "${{ needs.resolve-release.outputs.release_id }}" `
+            --release-tag "${{ needs.resolve-release.outputs.release_tag }}" `
+            --source-sha "${{ needs.resolve-release.outputs.source_sha }}" `
+            --manifest-sha256 "${{ needs.resolve-release.outputs.manifest_sha256 }}" `
+            --output-root "$inputRoot" `
+            --receipt "$receipt"
+          if ($LASTEXITCODE -ne 0) { throw "Published Release hydration failed." }
+          "PAGES_RELEASE_INPUT_ROOT=$inputRoot" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Test Pages application
         run: npm test
       - name: Lint Pages application
@@ -51,13 +125,19 @@ jobs:
           name: pages-current-build
           path: pages/dist
           retention-days: 1
-
+      - name: Upload verified Release input receipt
+        uses: actions/upload-artifact@v5
+        with:
+          name: pages-release-input-verification
+          path: ${{ runner.temp }}/pages-release-input-receipt.json
+          if-no-files-found: error
+          retention-days: 1
   archive:
-    needs: build
+    needs: [resolve-release, build]
     runs-on: ubuntu-latest
     permissions:
       actions: read
-      contents: write
+      contents: read
       pages: write
       id-token: write
     defaults:
@@ -66,7 +146,8 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          fetch-depth: 0
+          ref: ${{ needs.resolve-release.outputs.source_sha }}
+          persist-credentials: false
       - uses: actions/setup-node@v5
         with:
           node-version: '24'
@@ -75,46 +156,11 @@ jobs:
         with:
           name: pages-current-build
           path: pages/dist
-      - name: Prepare append-only snapshot archive
-        id: snapshot-archive
-        shell: bash
-        run: |
-          set -euo pipefail
-          archive_root="$RUNNER_TEMP/pages-snapshots"
-          git worktree add --detach --no-checkout "$archive_root" HEAD
-          if git ls-remote --exit-code --heads origin refs/heads/pages-snapshots >/dev/null 2>&1; then
-            git fetch --no-tags origin refs/heads/pages-snapshots:refs/remotes/origin/pages-snapshots
-            git -C "$archive_root" checkout -B pages-snapshots refs/remotes/origin/pages-snapshots
-            invalid_history="$(git -C "$archive_root" log --format= --name-status --no-renames | awk 'NF && ($1 != "A" || $2 !~ /^gamesymbols\/[0-9]+[a-z]?\.[0-9a-f]{64}\.json$/) { print }')"
-            if [[ -n "$invalid_history" ]]; then
-              echo "pages-snapshots history is not append-only:" >&2
-              echo "$invalid_history" >&2
-              exit 1
-            fi
-          else
-            git -C "$archive_root" switch --orphan pages-snapshots
-          fi
-          echo "root=$archive_root" >> "$GITHUB_OUTPUT"
-      - name: Merge immutable game-symbol snapshot archive
-        run: >-
-          node verifyGameSymbolAssets.mjs
-          --directory dist/gamesymbols
-          --archive "${{ steps.snapshot-archive.outputs.root }}/gamesymbols"
-      - name: Persist immutable game-symbol snapshot archive
-        shell: bash
-        env:
-          ARCHIVE_ROOT: ${{ steps.snapshot-archive.outputs.root }}
-        run: |
-          set -euo pipefail
-          git -C "$ARCHIVE_ROOT" add -- gamesymbols
-          if git -C "$ARCHIVE_ROOT" diff --cached --quiet; then
-            echo "Immutable snapshot archive already contains every current digest."
-            exit 0
-          fi
-          git -C "$ARCHIVE_ROOT" config user.name "github-actions[bot]"
-          git -C "$ARCHIVE_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git -C "$ARCHIVE_ROOT" commit -m "chore(pages): archive immutable game-symbol snapshots"
-          git -C "$ARCHIVE_ROOT" push origin HEAD:refs/heads/pages-snapshots
+      - name: Download verified Release input receipt
+        uses: actions/download-artifact@v5
+        with:
+          name: pages-release-input-verification
+          path: ${{ runner.temp }}/pages-verification
       - name: Write final game-symbol verification manifest
         shell: bash
         run: |
@@ -144,7 +190,6 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: pages/dist
-
   deploy:
     needs: archive
     runs-on: ubuntu-latest

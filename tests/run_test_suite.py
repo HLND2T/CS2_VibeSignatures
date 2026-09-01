@@ -53,6 +53,7 @@ REDIS_INTEGRATION_PREFIXES = (
 RELEASE_INTEGRATION_MODULES = frozenset(
     {
         "test_completed_release_cleanup",
+        "test_pages_release_input",
         "test_release_bundle",
         "test_release_gamedata_smoke",
         "test_release_publish",

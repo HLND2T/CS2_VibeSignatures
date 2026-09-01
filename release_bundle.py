@@ -510,7 +510,8 @@ def _verify_archive(archive: Path, expected: dict) -> None:
         raise ReleaseBundleError(f"Release archive content mismatch: {archive.name}")
 
 
-def _require_manifest_shape(manifest: dict) -> None:
+def validate_release_manifest(manifest: dict) -> None:
+    """Validate the canonical public Release manifest schema and identities."""
     required = {
         "schema_version",
         "repository",
@@ -717,7 +718,7 @@ def verify_release_bundle(
         raise ReleaseBundleError(str(exc)) from exc
     if manifest_path.read_bytes() != canonical_json_bytes(manifest):
         raise ReleaseBundleError("Release manifest is not canonical JSON")
-    _require_manifest_shape(manifest)
+    validate_release_manifest(manifest)
     expected_values = {
         "source SHA": (expected_source_sha.lower() if expected_source_sha else None, manifest["source_sha"]),
         "GAMEVER": (

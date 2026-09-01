@@ -137,11 +137,12 @@ jobs:
             throw "Protected Release input differs from hosted verifier outputs."
           }
       - name: Publish tag, exact assets, and immutable Release
+        id: publish-release
         env:
           GH_TOKEN: ${{ github.token }}
         shell: pwsh
         run: |-
-          uv run python release_publish.py `
+          $json = & uv run python release_publish.py `
             --repo-root "${{ github.workspace }}" `
             --bundle-root "${{ runner.temp }}/release-bundle" `
             --source-sha "${{ inputs.source_sha }}" `
@@ -151,3 +152,25 @@ jobs:
             --actions-artifact-name "${{ inputs.artifact_name }}" `
             --binsync-candidate-digest "${{ inputs.binsync_candidate_digest }}"
           if ($LASTEXITCODE -ne 0) { throw "Immutable protected Release publication failed." }
+          $document = ($json -join "`n") | ConvertFrom-Json
+          if ($document.status -notin @('published', 'already-published') -or $document.release_id -notmatch '^[1-9][0-9]*$') {
+            throw "Immutable protected Release publication returned an invalid receipt."
+          }
+          "release_id=$($document.release_id)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "status=$($document.status)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+      - name: Dispatch Pages from the published immutable Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |-
+          $payload = @{
+            event_type = 'pages-release-published'
+            client_payload = @{
+              release_id = [long]"${{ steps.publish-release.outputs.release_id }}"
+              release_tag = "${{ inputs.release_version }}"
+              source_sha = "${{ inputs.source_sha }}"
+              manifest_sha256 = "${{ inputs.verified_manifest_digest }}"
+            }
+          } | ConvertTo-Json -Depth 4 -Compress
+          $payload | gh api --method POST "repos/${{ github.repository }}/dispatches" --input -
+          if ($LASTEXITCODE -ne 0) { throw "Unable to dispatch Pages from the published Release." }

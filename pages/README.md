@@ -22,9 +22,9 @@ uv run uvicorn process_api:app --host 127.0.0.1 --port 8000
 
 `esa.jsonc` publishes `dist/` and uses SPA fallback routing. A public Pages application still calls the localhost of the computer running the browser; the CDN cannot reach a different computer's localhost.
 
-The Vite build validates schema-5 `../gamesymbols/*.yaml` snapshots and emits index schema v4. Each binary entry in a version JSON carries raw-byte MD5, SHA-256, CRC-32/ISO-HDLC, CRC-64/XZ, and byte size. Every version entry carries the SHA-256 and byte size of the exact UTF-8 JSON response body, and its URL is strictly `<gameVersion>.<sha256>.json`. The browser verifies those bytes before decoding or parsing the snapshot.
+The deployment workflow builds only from `PAGES_RELEASE_INPUT_ROOT`, a fresh staging tree hydrated from every compatible published immutable GitHub Release. It revalidates each direct tag/source binding, canonical Release manifest, exact SHA256SUMS and public asset allowlist, then safely extracts only the manifest-bound gamedata subtree. Local development may still use the repository-root `gamesymbols/` and `gamedata/` compatibility inputs; CI fails closed when the Release staging root is absent.
 
-The Pages workflow keeps finalized snapshot bytes in the append-only `pages-snapshots` branch. Its history is required to contain additions only, pushes are non-forced, and an existing digest file must remain byte-identical. A same-version content change therefore adds a new digest file, while every previously archived digest is copied into later Pages artifacts. After deployment, the workflow fetches the public Pages responses and recomputes their size and SHA-256 so CDN delivery is checked against index v4 as well.
+The Vite build validates each staged schema-5 snapshot and emits index schema v4. Every symbol and gamedata response remains content-addressed. The published Release set replaces the old `pages-snapshots` branch as the historical input, while the browser and deployment workflow continue to verify exact response sizes and SHA-256 digests. After deployment, the workflow fetches the public Pages responses and recomputes their bytes so CDN delivery is checked against the exact build.
 
 For an exact Pages origin:
 
