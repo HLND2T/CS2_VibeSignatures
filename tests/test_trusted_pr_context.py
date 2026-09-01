@@ -26,14 +26,8 @@ class TrustedPrContextTests(unittest.TestCase):
         self._git(root, "config", "user.email", "test@example.com")
         self._git(root, "config", "user.name", "Test")
         policy = b"schema_version: 1\nmode: legacy\nartifact_root: bin_artifacts\nartifact_contract_schema_version: 1\n"
-        required = {
-            tpc.POLICY_REPO_PATH: policy,
-            "pr_validation_mode.py": b"base router\n",
-            "pr_validation_mode.yaml": b"base rules\n",
-            "pr_validation_version.py": b"base version resolver\n",
-            ".github/workflows/pr-self-runner.yml": b"base workflow\n",
-            "uv.lock": b"base lock\n",
-        }
+        required = {path: f"trusted base {path}\n".encode() for path in tpc.TRUSTED_FILE_PATHS}
+        required[tpc.POLICY_REPO_PATH] = policy
         for relative, payload in required.items():
             path = root / relative
             path.parent.mkdir(parents=True, exist_ok=True)
