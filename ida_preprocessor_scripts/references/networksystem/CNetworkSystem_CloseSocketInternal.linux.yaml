@@ -1,0 +1,320 @@
+func_name: CNetworkSystem_CloseSocketInternal
+func_va: '0x2d9a80'
+disasm_code: |-
+  .text:00000000002D9A80                 push    rbp
+  .text:00000000002D9A81                 mov     rbp, rsp
+  .text:00000000002D9A84                 push    r14
+  .text:00000000002D9A86                 push    r13
+  .text:00000000002D9A88                 push    r12
+  .text:00000000002D9A8A                 mov     r12, rdi
+  .text:00000000002D9A8D                 push    rbx
+  .text:00000000002D9A8E                 movsxd  rbx, esi
+  .text:00000000002D9A91                 imul    rbx, 70h ; 'p'
+  .text:00000000002D9A95                 add     rbx, [rdi+0B0h]
+  .text:00000000002D9A9C                 cmp     dword ptr [rbx+5Ch], 1
+  .text:00000000002D9AA0                 jz      loc_2D9C18
+  .text:00000000002D9AA6                 mov     esi, [rbx+38h]
+  .text:00000000002D9AA9                 test    esi, esi
+  .text:00000000002D9AAB                 jz      short loc_2D9AC7
+  .text:00000000002D9AAD                 mov     r8d, 1
+  .text:00000000002D9AB3                 mov     edx, 3E8h
+  .text:00000000002D9AB8                 mov     rdi, r12
+  .text:00000000002D9ABB                 lea     rcx, aClosesocket; "CloseSocket"
+  .text:00000000002D9AC2                 call    sub_2D91C0
+  .text:00000000002D9AC7                 mov     dword ptr [rbx+5Ch], 0
+  .text:00000000002D9ACE                 ; this
+  .text:00000000002D9ACE                 lea     rdi, [rbx+40h]; this
+  .text:00000000002D9AD2                 call    __ZN8netadr_t5ClearEv; netadr_t::Clear(void)
+  .text:00000000002D9AD7                 mov     esi, [rbx+60h]
+  .text:00000000002D9ADA                 mov     qword ptr [rbx+4Ch], 0
+  .text:00000000002D9AE2                 mov     qword ptr [rbx+54h], 0
+  .text:00000000002D9AEA                 test    esi, esi
+  .text:00000000002D9AEC                 jnz     short loc_2D9B20
+  .text:00000000002D9AEE                 mov     ecx, [rbx+64h]
+  .text:00000000002D9AF1                 test    ecx, ecx
+  .text:00000000002D9AF3                 jnz     short loc_2D9B5B
+  .text:00000000002D9AF5                 mov     edx, [rbx+68h]
+  .text:00000000002D9AF8                 test    edx, edx
+  .text:00000000002D9AFA                 jnz     loc_2D9B9A
+  .text:00000000002D9B00                 mov     eax, [rbx+3Ch]
+  .text:00000000002D9B03                 test    eax, eax
+  .text:00000000002D9B05                 jnz     loc_2D9BD9
+  .text:00000000002D9B0B                 mov     dword ptr [rbx+0Ch], 0
+  .text:00000000002D9B12                 mov     eax, 1
+  .text:00000000002D9B17                 pop     rbx
+  .text:00000000002D9B18                 pop     r12
+  .text:00000000002D9B1A                 pop     r13
+  .text:00000000002D9B1C                 pop     r14
+  .text:00000000002D9B1E                 pop     rbp
+  .text:00000000002D9B1F                 retn
+  .text:00000000002D9B20                 ; _QWORD
+  .text:00000000002D9B20                 mov     edi, cs:dword_4E2ABC; _QWORD
+  .text:00000000002D9B26                 ; _QWORD
+  .text:00000000002D9B26                 mov     esi, 2; _QWORD
+  .text:00000000002D9B2B                 call    _LoggingSystem_IsChannelEnabled
+  .text:00000000002D9B30                 test    al, al
+  .text:00000000002D9B32                 jnz     loc_2D9D60
+  .text:00000000002D9B38                 mov     rdi, cs:qword_4E28B8
+  .text:00000000002D9B3F                 test    rdi, rdi
+  .text:00000000002D9B42                 jz      short loc_2D9B4D
+  .text:00000000002D9B44                 mov     rax, [rdi]
+  .text:00000000002D9B47                 mov     esi, [rbx+60h]
+  .text:00000000002D9B4A                 call    qword ptr [rax+30h]
+  .text:00000000002D9B4D                 mov     ecx, [rbx+64h]
+  .text:00000000002D9B50                 mov     dword ptr [rbx+60h], 0
+  .text:00000000002D9B57                 test    ecx, ecx
+  .text:00000000002D9B59                 jz      short loc_2D9AF5
+  .text:00000000002D9B5B                 ; _QWORD
+  .text:00000000002D9B5B                 mov     edi, cs:dword_4E2ABC; _QWORD
+  .text:00000000002D9B61                 ; _QWORD
+  .text:00000000002D9B61                 mov     esi, 2; _QWORD
+  .text:00000000002D9B66                 call    _LoggingSystem_IsChannelEnabled
+  .text:00000000002D9B6B                 test    al, al
+  .text:00000000002D9B6D                 jnz     loc_2D9CD0
+  .text:00000000002D9B73                 mov     rdi, cs:qword_4E28B8
+  .text:00000000002D9B7A                 test    rdi, rdi
+  .text:00000000002D9B7D                 jz      short loc_2D9B88
+  .text:00000000002D9B7F                 mov     rax, [rdi]
+  .text:00000000002D9B82                 mov     esi, [rbx+64h]
+  .text:00000000002D9B85                 call    qword ptr [rax+30h]
+  .text:00000000002D9B88                 mov     edx, [rbx+68h]
+  .text:00000000002D9B8B                 mov     dword ptr [rbx+64h], 0
+  .text:00000000002D9B92                 test    edx, edx
+  .text:00000000002D9B94                 jz      loc_2D9B00
+  .text:00000000002D9B9A                 ; _QWORD
+  .text:00000000002D9B9A                 mov     edi, cs:dword_4E2ABC; _QWORD
+  .text:00000000002D9BA0                 ; _QWORD
+  .text:00000000002D9BA0                 mov     esi, 2; _QWORD
+  .text:00000000002D9BA5                 call    _LoggingSystem_IsChannelEnabled
+  .text:00000000002D9BAA                 test    al, al
+  .text:00000000002D9BAC                 jnz     loc_2D9D00
+  .text:00000000002D9BB2                 mov     rdi, cs:qword_4E28B8
+  .text:00000000002D9BB9                 test    rdi, rdi
+  .text:00000000002D9BBC                 jz      short loc_2D9BC7
+  .text:00000000002D9BBE                 mov     rax, [rdi]
+  .text:00000000002D9BC1                 mov     esi, [rbx+68h]
+  .text:00000000002D9BC4                 call    qword ptr [rax+30h]
+  .text:00000000002D9BC7                 mov     eax, [rbx+3Ch]
+  .text:00000000002D9BCA                 mov     dword ptr [rbx+68h], 0
+  .text:00000000002D9BD1                 test    eax, eax
+  .text:00000000002D9BD3                 jz      loc_2D9B0B
+  .text:00000000002D9BD9                 ; _QWORD
+  .text:00000000002D9BD9                 mov     edi, cs:dword_4E2ABC; _QWORD
+  .text:00000000002D9BDF                 ; _QWORD
+  .text:00000000002D9BDF                 mov     esi, 2; _QWORD
+  .text:00000000002D9BE4                 call    _LoggingSystem_IsChannelEnabled
+  .text:00000000002D9BE9                 test    al, al
+  .text:00000000002D9BEB                 jnz     loc_2D9D30
+  .text:00000000002D9BF1                 mov     rdi, cs:qword_4E28B8
+  .text:00000000002D9BF8                 test    rdi, rdi
+  .text:00000000002D9BFB                 jz      short loc_2D9C09
+  .text:00000000002D9BFD                 mov     rax, [rdi]
+  .text:00000000002D9C00                 mov     esi, [rbx+3Ch]
+  .text:00000000002D9C03                 call    qword ptr [rax+0C8h]
+  .text:00000000002D9C09                 mov     dword ptr [rbx+3Ch], 0
+  .text:00000000002D9C10                 jmp     loc_2D9B0B
+  .text:00000000002D9C18                 mov     r14d, dword ptr cs:qword_4E2778
+  .text:00000000002D9C1F                 mov     rsi, [rbx+4Ch]
+  .text:00000000002D9C23                 cmp     r14d, 0FFFFFFFFh
+  .text:00000000002D9C27                 jz      loc_2D9AA6
+  .text:00000000002D9C2D                 xor     ecx, ecx
+  .text:00000000002D9C2F                 test    dword ptr cs:qword_4E2768+4, 7FFFFFFFh
+  .text:00000000002D9C39                 cmovnz  rcx, cs:qword_4E2770
+  .text:00000000002D9C41                 movsxd  r13, r14d
+  .text:00000000002D9C44                 imul    r13, 1Ch
+  .text:00000000002D9C48                 lea     rdx, [rcx+r13]
+  .text:00000000002D9C4C                 mov     rax, [rdx+10h]
+  .text:00000000002D9C50                 cmp     rsi, rax
+  .text:00000000002D9C53                 jb      loc_2D9D90
+  .text:00000000002D9C59                 cmp     rax, rsi
+  .text:00000000002D9C5C                 jb      loc_2D9DA8
+  .text:00000000002D9C62                 lea     rdi, qword_4E2768
+  .text:00000000002D9C69                 mov     esi, r14d
+  .text:00000000002D9C6C                 call    sub_2D84C0
+  .text:00000000002D9C71                 xor     eax, eax
+  .text:00000000002D9C73                 test    dword ptr cs:qword_4E2768+4, 7FFFFFFFh
+  .text:00000000002D9C7D                 mov     rdx, rax
+  .text:00000000002D9C80                 cmovnz  rdx, cs:qword_4E2770
+  .text:00000000002D9C88                 mov     [rdx+r13], r14d
+  .text:00000000002D9C8C                 mov     edx, dword ptr cs:qword_4E2780
+  .text:00000000002D9C92                 test    dword ptr cs:qword_4E2768+4, 7FFFFFFFh
+  .text:00000000002D9C9C                 cmovnz  rax, cs:qword_4E2770
+  .text:00000000002D9CA4                 mov     [rax+r13+4], edx
+  .text:00000000002D9CA9                 mov     eax, dword ptr cs:qword_4E2778+4
+  .text:00000000002D9CAF                 sub     eax, 1
+  .text:00000000002D9CB2                 movd    xmm0, eax
+  .text:00000000002D9CB6                 pinsrd  xmm0, r14d, 1
+  .text:00000000002D9CBD                 movq    cs:qword_4E2778+4, xmm0
+  .text:00000000002D9CC5                 jmp     loc_2D9AA6
+  .text:00000000002D9CD0                 mov     rcx, [rbx+18h]
+  .text:00000000002D9CD4                 lea     rax, s1
+  .text:00000000002D9CDB                 ; _QWORD
+  .text:00000000002D9CDB                 mov     esi, 2; _QWORD
+  .text:00000000002D9CE0                 ; _QWORD
+  .text:00000000002D9CE0                 mov     edi, cs:dword_4E2ABC; _QWORD
+  .text:00000000002D9CE6                 lea     rdx, aClosingSP2pLis; "Closing '%s' P2P listen socket\n"
+  .text:00000000002D9CED                 test    rcx, rcx
+  .text:00000000002D9CF0                 cmovz   rcx, rax
+  .text:00000000002D9CF4                 xor     eax, eax
+  .text:00000000002D9CF6                 call    _LoggingSystem_Log
+  .text:00000000002D9CFB                 jmp     loc_2D9B73
+  .text:00000000002D9D00                 mov     rcx, [rbx+18h]
+  .text:00000000002D9D04                 lea     rax, s1
+  .text:00000000002D9D0B                 ; _QWORD
+  .text:00000000002D9D0B                 mov     esi, 2; _QWORD
+  .text:00000000002D9D10                 ; _QWORD
+  .text:00000000002D9D10                 mov     edi, cs:dword_4E2ABC; _QWORD
+  .text:00000000002D9D16                 lea     rdx, aClosingSSdrLis; "Closing '%s' SDR listen socket\n"
+  .text:00000000002D9D1D                 test    rcx, rcx
+  .text:00000000002D9D20                 cmovz   rcx, rax
+  .text:00000000002D9D24                 xor     eax, eax
+  .text:00000000002D9D26                 call    _LoggingSystem_Log
+  .text:00000000002D9D2B                 jmp     loc_2D9BB2
+  .text:00000000002D9D30                 mov     rcx, [rbx+18h]
+  .text:00000000002D9D34                 lea     rax, s1
+  .text:00000000002D9D3B                 ; _QWORD
+  .text:00000000002D9D3B                 mov     esi, 2; _QWORD
+  .text:00000000002D9D40                 ; _QWORD
+  .text:00000000002D9D40                 mov     edi, cs:dword_4E2ABC; _QWORD
+  .text:00000000002D9D46                 lea     rdx, aClosingSPollGr; "Closing '%s' poll group\n"
+  .text:00000000002D9D4D                 test    rcx, rcx
+  .text:00000000002D9D50                 cmovz   rcx, rax
+  .text:00000000002D9D54                 xor     eax, eax
+  .text:00000000002D9D56                 call    _LoggingSystem_Log
+  .text:00000000002D9D5B                 jmp     loc_2D9BF1
+  .text:00000000002D9D60                 mov     rcx, [rbx+18h]
+  .text:00000000002D9D64                 lea     rax, s1
+  .text:00000000002D9D6B                 ; _QWORD
+  .text:00000000002D9D6B                 mov     esi, 2; _QWORD
+  .text:00000000002D9D70                 ; _QWORD
+  .text:00000000002D9D70                 mov     edi, cs:dword_4E2ABC; _QWORD
+  .text:00000000002D9D76                 lea     rdx, aClosingSUdpLis; "Closing '%s' UDP listen socket\n"
+  .text:00000000002D9D7D                 test    rcx, rcx
+  .text:00000000002D9D80                 cmovz   rcx, rax
+  .text:00000000002D9D84                 xor     eax, eax
+  .text:00000000002D9D86                 call    _LoggingSystem_Log
+  .text:00000000002D9D8B                 jmp     loc_2D9B38
+  .text:00000000002D9D90                 mov     r14d, [rdx]
+  .text:00000000002D9D93                 cmp     r14d, 0FFFFFFFFh
+  .text:00000000002D9D97                 jnz     loc_2D9C41
+  .text:00000000002D9D9D                 jmp     loc_2D9AA6
+  .text:00000000002D9DA8                 mov     r14d, [rdx+4]
+  .text:00000000002D9DAC                 jmp     short loc_2D9D93
+procedure: |-
+  __int64 __fastcall sub_2D9A80(__int64 a1, int a2)
+  {
+    __int64 v2; // rbx
+    __int64 v3; // rsi
+    int v4; // esi
+    int v6; // ecx
+    int v7; // edx
+    int v8; // eax
+    int v9; // r14d
+    unsigned __int64 v10; // rsi
+    __int64 v11; // rcx
+    __int64 v12; // r13
+    int *v13; // rdx
+    unsigned __int64 v14; // rax
+    __int64 v15; // rax
+    __int64 v16; // rdx
+
+    v2 = *(_QWORD *)(a1 + 176) + 112LL * a2;
+    if ( *(_DWORD *)(v2 + 92) != 1 )
+      goto LABEL_2;
+    v9 = qword_4E2778;
+    v10 = *(_QWORD *)(v2 + 76);
+    if ( (_DWORD)qword_4E2778 == -1 )
+      goto LABEL_2;
+    v11 = 0;
+    if ( (qword_4E2768 & 0x7FFFFFFF00000000LL) != 0 )
+      v11 = qword_4E2770;
+    while ( 1 )
+    {
+      v12 = 28LL * v9;
+      v13 = (int *)(v11 + v12);
+      v14 = *(_QWORD *)(v11 + v12 + 16);
+      if ( v10 >= v14 )
+        break;
+      v9 = *v13;
+  LABEL_40:
+      if ( v9 == -1 )
+        goto LABEL_2;
+    }
+    if ( v14 < v10 )
+    {
+      v9 = v13[1];
+      goto LABEL_40;
+    }
+    sub_2D84C0(&qword_4E2768, (unsigned int)v9);
+    v15 = 0;
+    v16 = 0;
+    if ( (qword_4E2768 & 0x7FFFFFFF00000000LL) != 0 )
+      v16 = qword_4E2770;
+    *(_DWORD *)(v16 + 28LL * v9) = v9;
+    if ( (qword_4E2768 & 0x7FFFFFFF00000000LL) != 0 )
+      v15 = qword_4E2770;
+    *(_DWORD *)(v15 + v12 + 4) = qword_4E2780;
+    *(__int64 *)((char *)&qword_4E2778 + 4) = _mm_insert_epi32(_mm_cvtsi32_si128(HIDWORD(qword_4E2778) - 1), v9, 1).m128i_u64[0];
+  LABEL_2:
+    v3 = *(unsigned int *)(v2 + 56);
+    if ( (_DWORD)v3 )
+      sub_2D91C0(a1, v3, 1000, "CloseSocket", 1);
+    *(_DWORD *)(v2 + 92) = 0;
+    netadr_t::Clear((netadr_t *)(v2 + 64));
+    v4 = *(_DWORD *)(v2 + 96);
+    *(_QWORD *)(v2 + 76) = 0;
+    *(_QWORD *)(v2 + 84) = 0;
+    if ( !v4 )
+    {
+      if ( !*(_DWORD *)(v2 + 100) )
+        goto LABEL_6;
+  LABEL_14:
+      if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_4E2ABC, 2) )
+        LoggingSystem_Log((unsigned int)dword_4E2ABC, 2, "Closing '%s' P2P listen socket\n");
+      if ( qword_4E28B8 )
+        (*(void (__fastcall **)(__int64, _QWORD))(*(_QWORD *)qword_4E28B8 + 48LL))(
+          qword_4E28B8,
+          *(unsigned int *)(v2 + 100));
+      v7 = *(_DWORD *)(v2 + 104);
+      *(_DWORD *)(v2 + 100) = 0;
+      if ( v7 )
+        goto LABEL_19;
+  LABEL_7:
+      if ( !*(_DWORD *)(v2 + 60) )
+        goto LABEL_8;
+  LABEL_24:
+      if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_4E2ABC, 2) )
+        LoggingSystem_Log((unsigned int)dword_4E2ABC, 2, "Closing '%s' poll group\n");
+      if ( qword_4E28B8 )
+        (*(void (__fastcall **)(__int64, _QWORD))(*(_QWORD *)qword_4E28B8 + 200LL))(
+          qword_4E28B8,
+          *(unsigned int *)(v2 + 60));
+      *(_DWORD *)(v2 + 60) = 0;
+      goto LABEL_8;
+    }
+    if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_4E2ABC, 2) )
+      LoggingSystem_Log((unsigned int)dword_4E2ABC, 2, "Closing '%s' UDP listen socket\n");
+    if ( qword_4E28B8 )
+      (*(void (__fastcall **)(__int64, _QWORD))(*(_QWORD *)qword_4E28B8 + 48LL))(qword_4E28B8, *(unsigned int *)(v2 + 96));
+    v6 = *(_DWORD *)(v2 + 100);
+    *(_DWORD *)(v2 + 96) = 0;
+    if ( v6 )
+      goto LABEL_14;
+  LABEL_6:
+    if ( !*(_DWORD *)(v2 + 104) )
+      goto LABEL_7;
+  LABEL_19:
+    if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_4E2ABC, 2) )
+      LoggingSystem_Log((unsigned int)dword_4E2ABC, 2, "Closing '%s' SDR listen socket\n");
+    if ( qword_4E28B8 )
+      (*(void (__fastcall **)(__int64, _QWORD))(*(_QWORD *)qword_4E28B8 + 48LL))(
+        qword_4E28B8,
+        *(unsigned int *)(v2 + 104));
+    v8 = *(_DWORD *)(v2 + 60);
+    *(_DWORD *)(v2 + 104) = 0;
+    if ( v8 )
+      goto LABEL_24;
+  LABEL_8:
+    *(_DWORD *)(v2 + 12) = 0;
+    return 1;
+  }

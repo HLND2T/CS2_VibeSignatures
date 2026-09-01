@@ -817,6 +817,23 @@ class TestRunSkillMcpListPreflight(unittest.TestCase):
     def setUp(self) -> None:
         agent_runner._MCP_PREFLIGHT_DONE.clear()
 
+    @patch("agent_runner._run_process_with_stream_capture")
+    def test_claude_dynamic_endpoint_reuses_prior_health_check_without_mcp_list(
+        self,
+        mock_run_process,
+    ) -> None:
+        mcp_url = "http://127.0.0.1:54321/mcp"
+        mock_run_process.return_value = subprocess.CompletedProcess(
+            ["claude", "mcp", "list"],
+            0,
+            "ida-pro-mcp connected\n",
+            "",
+        )
+
+        self.assertTrue(agent_runner._ensure_agent_mcp_preflight("claude", mcp_url=mcp_url))
+
+        mock_run_process.assert_not_called()
+
     @patch("agent_runner.os.path.exists", return_value=True)
     @patch("agent_runner.subprocess.Popen")
     def test_claude_mcp_list_accepts_failed_connection_when_server_is_listed(
