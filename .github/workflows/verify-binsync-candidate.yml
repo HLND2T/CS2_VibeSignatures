@@ -23,12 +23,18 @@ on:
       artifact_digest:
         required: true
         type: string
+    outputs:
+      publication_digest:
+        description: Verified canonical BinSync candidate publication digest
+        value: ${{ jobs.verify.outputs.publication_digest }}
 permissions:
   actions: read
   contents: read
 jobs:
   verify:
     runs-on: ubuntu-latest
+    outputs:
+      publication_digest: ${{ steps.verify-candidate.outputs.publication_digest }}
     steps:
       - name: Checkout exact immutable source
         uses: actions/checkout@v5
@@ -82,9 +88,10 @@ jobs:
           artifact-ids: ${{ steps.bind-artifact.outputs.artifact_id }}
           path: ${{ runner.temp }}/binsync-candidate
       - name: Verify candidate bundles and current remote heads read-only
+        id: verify-candidate
         shell: pwsh
         run: |-
-          uv run python binsync_candidate.py verify `
+          $json = & uv run python binsync_candidate.py verify `
             --repo-root "${{ github.workspace }}" `
             --candidate-root "${{ runner.temp }}/binsync-candidate" `
             --source-sha "${{ inputs.source_sha }}" `
@@ -95,3 +102,8 @@ jobs:
             --actions-artifact-name "${{ inputs.artifact_name }}" `
             --check-remotes
           if ($LASTEXITCODE -ne 0) { throw "Hosted BinSync candidate verification failed." }
+          $document = ($json -join "`n") | ConvertFrom-Json
+          if ($document.publication_digest -notmatch '^sha256:[0-9a-f]{64}$') {
+            throw "Hosted BinSync verifier did not produce a canonical publication digest."
+          }
+          "publication_digest=$($document.publication_digest)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append

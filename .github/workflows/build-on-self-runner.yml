@@ -116,6 +116,8 @@ jobs:
       binsync_artifact_name: ${{ steps.binsync-prepare.outputs.artifact_name }}
       binsync_artifact_digest: ${{ steps.upload-binsync-candidate.outputs.artifact-digest }}
       ida_runtime_identity: ${{ steps.resolve-consumer-ida.outputs.ida_runtime_identity }}
+      release_artifact_name: ${{ steps.build-release-bundle.outputs.artifact_name }}
+      release_artifact_digest: ${{ steps.upload-release-bundle.outputs.artifact-digest }}
     env:
       GAMEVER: ${{ needs.preflight.outputs.gamever }}
       SOURCE_SHA: ${{ needs.preflight.outputs.source_sha }}
@@ -308,8 +310,10 @@ jobs:
             --gamever "$env:GAMEVER" --binary-root bin --staging-root "$staging"
           if ($LASTEXITCODE -ne 0) { throw "Release artifact rebuild preflight failed." }
           $preparation = Join-Path $staging "release-rebuild-preparation.json"
+          $verification = Join-Path $staging "release-rebuild-verification.json"
           $document = Get-Content -LiteralPath $preparation -Raw | ConvertFrom-Json
           "RELEASE_REBUILD_PREPARATION=$preparation" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "RELEASE_REBUILD_VERIFICATION=$verification" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
           "ACTUAL_ARTIFACT_ROOT=$($document.actual_artifact_root)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
           "FORCE_ALL_EXECUTION_REPORT=$($document.execution_report)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Analyze every producer group with force-all and rename
@@ -338,7 +342,9 @@ jobs:
         shell: pwsh
         run: |
           uv run python release_artifact_rebuild.py verify `
-            --repo-root "${{ github.workspace }}" --preparation "$env:RELEASE_REBUILD_PREPARATION"
+            --repo-root "${{ github.workspace }}" `
+            --preparation "$env:RELEASE_REBUILD_PREPARATION" `
+            --output "$env:RELEASE_REBUILD_VERIFICATION"
           if ($LASTEXITCODE -ne 0) { throw "Fresh release artifacts differ from Git truth." }
       - name: Prepare local-only BinSync candidate without remote writes
         id: binsync-prepare
@@ -370,11 +376,15 @@ jobs:
           $session = Join-Path $root "$env:GAMEVER.session.json"
           $gamedataRoot = Join-Path $root "gamedata-candidate"
           $gamedataSession = Join-Path $root "$env:GAMEVER.gamedata.session.json"
+          $metadata = Join-Path $root "$env:GAMEVER.metadata.yaml"
+          $cppLog = Join-Path $root "$env:GAMEVER.cpp-validation.log"
           "CANDIDATE_ROOT=$root" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
           "ACTUAL_CANDIDATE_SNAPSHOT=$candidate" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
           "CANDIDATE_SESSION=$session" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
           "GAMEDATA_CANDIDATE_ROOT=$gamedataRoot" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
           "GAMEDATA_SESSION=$gamedataSession" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "CANDIDATE_METADATA=$metadata" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "CPP_VALIDATION_LOG=$cppLog" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
           uv run gamesymbol_candidate.py build -gamever "$env:GAMEVER" -bindir bin `
             -artifactdir "$env:ACTUAL_ARTIFACT_ROOT" -configyaml "$env:ANALYSIS_CONFIG" `
             -output "$candidate" -session "$session"
@@ -387,6 +397,9 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "gamedata candidate build failed with exit code $LASTEXITCODE" }
           uv run gamedata_candidate.py guard -session "$gamedataSession"
           if ($LASTEXITCODE -ne 0) { throw "gamedata candidate guard failed" }
+          uv run gamesymbol_metadata.py generate -gamever "$env:GAMEVER" `
+            -configyaml "$env:ANALYSIS_CONFIG" -output "$metadata"
+          if ($LASTEXITCODE -ne 0) { throw "metadata candidate generation failed" }
           uv run gamesymbol_candidate.py guard -candidate "$candidate" -session "$session"
           if ($LASTEXITCODE -ne 0) { throw "candidate guard failed after gamedata" }
           uv run gamesymbol_candidate.py mark -candidate "$candidate" -session "$session" -step gamedata
@@ -440,7 +453,9 @@ jobs:
         run: |
           uv run gamesymbol_candidate.py guard -candidate "$env:ACTUAL_CANDIDATE_SNAPSHOT" -session "$env:CANDIDATE_SESSION"
           if ($LASTEXITCODE -ne 0) { throw "candidate guard failed before C++ tests" }
-          uv run run_cpp_tests.py -gamever "$env:GAMEVER" -snapshot "$env:ACTUAL_CANDIDATE_SNAPSHOT" -configyaml "$env:ANALYSIS_CONFIG" -debug
+          & uv run run_cpp_tests.py -gamever "$env:GAMEVER" `
+            -snapshot "$env:ACTUAL_CANDIDATE_SNAPSHOT" `
+            -configyaml "$env:ANALYSIS_CONFIG" -debug 2>&1 | Tee-Object -LiteralPath "$env:CPP_VALIDATION_LOG"
           if ($LASTEXITCODE -ne 0) { throw "run_cpp_tests.py failed with exit code $LASTEXITCODE" }
           uv run gamesymbol_candidate.py guard -candidate "$env:ACTUAL_CANDIDATE_SNAPSHOT" -session "$env:CANDIDATE_SESSION"
           if ($LASTEXITCODE -ne 0) { throw "candidate guard failed after C++ tests" }
@@ -466,12 +481,50 @@ jobs:
             throw "Restored SDK commit does not match SDK_PINNED_SHA."
           }
           Write-Host "C++ ABI SDK restore: restored pinned SHA=$restoredSha"
+      - name: Build immutable Release bundle and source-bound manifest
+        id: build-release-bundle
+        shell: pwsh
+        run: |
+          $bundle = Join-Path $env:RUNNER_TEMP "release-bundle\$env:BUILD_ID"
+          $artifactName = "release-bundle-${{ github.run_id }}-${{ github.run_attempt }}-$env:SOURCE_SHA-$env:GAMEVER"
+          uv run python release_bundle.py build `
+            --repo-root "${{ github.workspace }}" `
+            --bundle-root "$bundle" `
+            --repository "${{ github.repository }}" `
+            --release-version "$env:GAMEVER" `
+            --build-id "$env:BUILD_ID" `
+            --preparation "$env:RELEASE_REBUILD_PREPARATION" `
+            --rebuild-verification "$env:RELEASE_REBUILD_VERIFICATION" `
+            --snapshot "$env:ACTUAL_CANDIDATE_SNAPSHOT" `
+            --metadata "$env:CANDIDATE_METADATA" `
+            --gamedata-candidate-root "$env:GAMEDATA_CANDIDATE_ROOT" `
+            --gamedata-session "$env:GAMEDATA_SESSION" `
+            --cpp-validation-log "$env:CPP_VALIDATION_LOG" `
+            --binsync-candidate-root "$env:BINSYNC_CANDIDATE_ROOT" `
+            --ida-runtime-identity "$env:IDA_VERSION" `
+            --warm-idb-generation "$env:IDB_CACHE_GENERATION" `
+            --warm-idb-cache-key "$env:IDB_CACHE_KEY" `
+            --actions-artifact-name "$artifactName" `
+            --cpp-sdk-ref "$env:SDK_ABI_REF" `
+            --cpp-sdk-sha "$env:SDK_ABI_SHA"
+          if ($LASTEXITCODE -ne 0) { throw "Immutable Release bundle construction failed." }
+          "RELEASE_BUNDLE_ROOT=$bundle" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "artifact_name=$artifactName" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
       - name: Upload credential-free internal BinSync candidate
         id: upload-binsync-candidate
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.binsync-prepare.outputs.artifact_name }}
           path: ${{ env.BINSYNC_CANDIDATE_ROOT }}
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+      - name: Upload immutable Release bundle candidate
+        id: upload-release-bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.build-release-bundle.outputs.artifact_name }}
+          path: ${{ env.RELEASE_BUNDLE_ROOT }}
           if-no-files-found: error
           compression-level: 0
           retention-days: 30
@@ -564,6 +617,9 @@ jobs:
           if ($env:BINSYNC_CANDIDATE_ROOT -and (Test-Path -LiteralPath $env:BINSYNC_CANDIDATE_ROOT)) {
             Remove-Item -LiteralPath $env:BINSYNC_CANDIDATE_ROOT -Recurse -Force
           }
+          if ($env:RELEASE_BUNDLE_ROOT -and (Test-Path -LiteralPath $env:RELEASE_BUNDLE_ROOT)) {
+            Remove-Item -LiteralPath $env:RELEASE_BUNDLE_ROOT -Recurse -Force
+          }
   verify-binsync:
     needs: [preflight, build]
     uses: ./.github/workflows/verify-binsync-candidate.yml
@@ -575,8 +631,19 @@ jobs:
       ida_runtime_identity: ${{ needs.build.outputs.ida_runtime_identity }}
       artifact_name: ${{ needs.build.outputs.binsync_artifact_name }}
       artifact_digest: ${{ needs.build.outputs.binsync_artifact_digest }}
-  publish-binsync:
+  verify-release:
     needs: [preflight, build, verify-binsync]
+    uses: ./.github/workflows/verify-release-bundle.yml
+    with:
+      source_sha: ${{ needs.preflight.outputs.source_sha }}
+      gamever: ${{ needs.preflight.outputs.gamever }}
+      release_version: ${{ needs.preflight.outputs.gamever }}
+      build_id: ${{ github.run_id }}-${{ github.run_attempt }}
+      artifact_name: ${{ needs.build.outputs.release_artifact_name }}
+      artifact_digest: ${{ needs.build.outputs.release_artifact_digest }}
+      binsync_candidate_digest: ${{ needs.verify-binsync.outputs.publication_digest }}
+  publish-binsync:
+    needs: [preflight, build, verify-binsync, verify-release]
     uses: ./.github/workflows/publish-binsync-candidate.yml
     with:
       source_sha: ${{ needs.preflight.outputs.source_sha }}
@@ -586,3 +653,20 @@ jobs:
       ida_runtime_identity: ${{ needs.build.outputs.ida_runtime_identity }}
       artifact_name: ${{ needs.build.outputs.binsync_artifact_name }}
       artifact_digest: ${{ needs.build.outputs.binsync_artifact_digest }}
+  publish-release:
+    needs: [preflight, build, verify-binsync, verify-release, publish-binsync]
+    permissions:
+      actions: read
+      contents: write
+    uses: ./.github/workflows/publish-release-bundle.yml
+    with:
+      source_sha: ${{ needs.preflight.outputs.source_sha }}
+      gamever: ${{ needs.preflight.outputs.gamever }}
+      release_version: ${{ needs.preflight.outputs.gamever }}
+      build_id: ${{ github.run_id }}-${{ github.run_attempt }}
+      artifact_name: ${{ needs.build.outputs.release_artifact_name }}
+      artifact_digest: ${{ needs.build.outputs.release_artifact_digest }}
+      binsync_candidate_digest: ${{ needs.verify-binsync.outputs.publication_digest }}
+      verified_manifest_digest: ${{ needs.verify-release.outputs.manifest_digest }}
+      verified_bundle_digest: ${{ needs.verify-release.outputs.bundle_digest }}
+      verified_binsync_target_state_digest: ${{ needs.verify-release.outputs.binsync_target_state_digest }}

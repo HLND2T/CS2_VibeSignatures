@@ -117,7 +117,9 @@ class TestBuildSelfRunnerWorkflow(unittest.TestCase):
             "binsync-prepare",
             "build-candidates",
             "cpp-tests",
+            "build-release-bundle",
             "upload-binsync-candidate",
+            "upload-release-bundle",
             "publish-candidate",
         )
         self.assertEqual(sorted(order), order)
@@ -129,9 +131,16 @@ class TestBuildSelfRunnerWorkflow(unittest.TestCase):
 
         verify = workflow_job(self.build_workflow, "verify-binsync")
         publish = workflow_job(self.build_workflow, "publish-binsync")
+        verify_release = workflow_job(self.build_workflow, "verify-release")
+        publish_release = workflow_job(self.build_workflow, "publish-release")
         self.assertEqual("./.github/workflows/verify-binsync-candidate.yml", verify["uses"])
         self.assertEqual("./.github/workflows/publish-binsync-candidate.yml", publish["uses"])
+        self.assertEqual("./.github/workflows/verify-release-bundle.yml", verify_release["uses"])
+        self.assertEqual("./.github/workflows/publish-release-bundle.yml", publish_release["uses"])
         self.assertIn("verify-binsync", publish["needs"])
+        self.assertIn("verify-release", publish_release["needs"])
+        self.assertIn("publish-binsync", publish_release["needs"])
+        self.assertEqual({"actions": "read", "contents": "write"}, publish_release["permissions"])
 
     def test_build_restores_required_published_cache_before_analysis(self) -> None:
         order = step_order(

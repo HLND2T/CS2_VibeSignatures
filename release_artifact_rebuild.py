@@ -265,6 +265,25 @@ def verify_release_rebuild(*, repo_root: str | Path, preparation: dict | str | P
     return result
 
 
+def load_release_rebuild_verification(path: str | Path) -> dict:
+    path = Path(path)
+    try:
+        raw = path.read_bytes()
+        document = json.loads(raw.decode("utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise ReleaseArtifactRebuildError(f"unable to load release rebuild verification: {exc}") from exc
+    if raw != _canonical_json_bytes(document):
+        raise ReleaseArtifactRebuildError("release rebuild verification is not canonical JSON")
+    if not isinstance(document, dict) or document.get("schema_version") != 1:
+        raise ReleaseArtifactRebuildError("release rebuild verification schema is invalid")
+    digest = document.get("verification_sha256")
+    unsigned = dict(document)
+    unsigned.pop("verification_sha256", None)
+    if digest != _digest("rebuild-verification", unsigned):
+        raise ReleaseArtifactRebuildError("release rebuild verification digest mismatch")
+    return document
+
+
 def parse_args(argv=None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -277,6 +296,7 @@ def parse_args(argv=None) -> argparse.Namespace:
     verify = subparsers.add_parser("verify")
     verify.add_argument("--repo-root", default=".")
     verify.add_argument("--preparation", required=True)
+    verify.add_argument("--output")
     return parser.parse_args(argv)
 
 
@@ -293,6 +313,8 @@ def main(argv=None) -> int:
             )
         else:
             result = verify_release_rebuild(repo_root=args.repo_root, preparation=args.preparation)
+            if args.output:
+                _atomic_write(Path(args.output), _canonical_json_bytes(result))
     except (OSError, UnicodeError, ReleaseArtifactRebuildError) as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 1

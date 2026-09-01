@@ -93,9 +93,12 @@ class ReleaseArtifactRebuildTests(unittest.TestCase):
             self._write_execution_report(preparation)
 
             result = rar.verify_release_rebuild(repo_root=root, preparation=preparation)
+            verification_path = temporary_root / "release-rebuild-verification.json"
+            verification_path.write_bytes(rar._canonical_json_bytes(result))
 
             self.assertEqual(source_sha, result["source_sha"])
             self.assertEqual(1, result["file_count"])
+            self.assertEqual(result, rar.load_release_rebuild_verification(verification_path))
 
     def test_verify_rejects_one_byte_drift_and_execution_tamper(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
