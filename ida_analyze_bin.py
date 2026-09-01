@@ -35,6 +35,7 @@ Output:
 """
 
 import argparse
+import hashlib
 import inspect
 import json
 import os
@@ -42,6 +43,7 @@ import posixpath
 import socket
 import subprocess
 import sys
+import tempfile
 import time
 
 from binary_hashing import hash_file
@@ -155,12 +157,15 @@ class AnalysisReporting:
             reporter if isinstance(reporter, BestEffortProcessReporter) else BestEffortProcessReporter(reporter)
         )
         self.run_id = run_id
+        self.plan = plan
         self._node_ids = {node.id for node in plan.nodes}
         self._nodes_by_job = {job.id: [] for job in plan.jobs}
         for node in plan.nodes:
             self._nodes_by_job[node.job_id].append(node.id)
         self._states = {task_id: TaskStatus.PENDING for task_id in self._node_ids}
         self._states.update({job.id: TaskStatus.PENDING for job in plan.jobs})
+        self._attempted = set()
+        self._terminal_details = {}
 
     def emit_run_status(self, status: RunStatus, *, message: str | None = None) -> None:
         self.reporter.emit(
@@ -194,6 +199,8 @@ class AnalysisReporting:
             return
         if not is_valid_task_transition(current, status):
             return
+        if task_id in self._node_ids and status == TaskStatus.RUNNING and phase == ProcessPhase.WAITING_FOR_MCP:
+            self._attempted.add(task_id)
         self.reporter.emit(
             ProcessEvent(
                 run_id=self.run_id,
@@ -208,6 +215,12 @@ class AnalysisReporting:
             )
         )
         self._states[task_id] = status
+        if status in terminal_statuses and task_id in self._node_ids:
+            self._terminal_details[task_id] = {
+                "reason": reason.value if isinstance(reason, ProcessReason) else reason,
+                "error": error,
+                "payload": payload or {},
+            }
 
     def emit_agent_progress(self, task_id: str, **progress) -> None:
         self.reporter.emit(
@@ -247,6 +260,17 @@ class AnalysisReporting:
             counts[self._states[task_id].value] += 1
         counts["total"] = len(self._node_ids)
         return counts
+
+    def task_record(self, task_id: str) -> dict:
+        details = self._terminal_details.get(task_id, {})
+        return {
+            "task_id": task_id,
+            "status": self._states.get(task_id, TaskStatus.PENDING).value,
+            "attempted": task_id in self._attempted,
+            "reason": details.get("reason"),
+            "error": details.get("error"),
+            "payload": details.get("payload", {}),
+        }
 
 
 def _absolute_path_preserve_spelling(path):
@@ -1604,6 +1628,16 @@ def parse_args():
         help="Run post_process rename/comment pass for existing expected output YAML files",
     )
     parser.add_argument(
+        "-force_all",
+        action="store_true",
+        help="Require an empty checkout-external artifact root and execute every formal producer group",
+    )
+    parser.add_argument(
+        "-execution_report",
+        default=None,
+        help="Canonical force-all execution evidence JSON path (required with -force_all)",
+    )
+    parser.add_argument(
         "-process_reporter",
         choices=("none", "redis"),
         default=os.environ.get("CS2VIBE_PROCESS_REPORTER", "none"),
@@ -1665,6 +1699,16 @@ def parse_args():
 
     if args.oldartifactdir is None:
         args.oldartifactdir = args.artifactdir
+
+    if getattr(args, "force_all", False):
+        if not args.execution_report:
+            parser.error("-force_all requires -execution_report")
+        if args.skip_error:
+            parser.error("-force_all cannot be combined with -skip_error")
+        if args.skill is not None or args.module_filter is not None or args.vcall_finder_filter is not None:
+            parser.error("-force_all requires the complete config without skill/module/vcall filters")
+        if set(args.platforms) != {"windows", "linux"}:
+            parser.error("-force_all requires both windows and linux platforms")
 
     # Resolve oldgamever from the trusted artifact root, never from private binaries.
     if args.oldgamever is None:
@@ -3123,6 +3167,7 @@ def process_binary(
     symbol_aliases=None,
     found_vcall_objects=None,
     require_warm_idb=False,
+    force_all=False,
 ):
     """
     Process a single binary file.
@@ -3206,7 +3251,7 @@ def process_binary(
             )
             continue
         # Check if configured output files already make the skill unnecessary.
-        if should_skip_skill_for_existing_outputs(required_outputs, optional_outputs):
+        if not force_all and should_skip_skill_for_existing_outputs(required_outputs, optional_outputs):
             print(f"  Skipping skill: {skill_name} (all outputs exist)")
             skip_count += 1
             _report_skill_status(
@@ -3238,7 +3283,7 @@ def process_binary(
                     error=str(e),
                 )
                 continue
-            if skip_for_existing_artifacts:
+            if skip_for_existing_artifacts and not force_all:
                 print(f"  Skipping skill: {skill_name} (all skip_if_exists artifacts exist)")
                 skip_count += 1
                 _report_skill_status(
@@ -3829,6 +3874,11 @@ def process_binary(
                             skill_name,
                             TaskStatus.SUCCEEDED,
                             ProcessPhase.FINISHED,
+                            payload={
+                                "produced_outputs": [
+                                    path for path in required_outputs + optional_outputs if os.path.isfile(path)
+                                ]
+                            },
                         )
                 continue
             if preprocess_status == PREPROCESS_STATUS_ABSENT_OK:
@@ -3969,6 +4019,11 @@ def process_binary(
                             skill_name,
                             TaskStatus.SUCCEEDED,
                             ProcessPhase.FINISHED,
+                            payload={
+                                "produced_outputs": [
+                                    path for path in required_outputs + optional_outputs if os.path.isfile(path)
+                                ]
+                            },
                         )
             else:
                 fail_count += 1
@@ -4296,6 +4351,225 @@ def _print_main_configuration(args):
         print("Skip error mode: enabled")
     if getattr(args, "skip_pp", False):
         print("Agent Skill only mode: enabled (-skip_pp)")
+    if getattr(args, "force_all", False):
+        print(f"Force-all mode: enabled (evidence: {args.execution_report})")
+
+
+def _git_worktree_root(path: Path) -> Path | None:
+    result = subprocess.run(
+        ["git", "-C", str(path), "rev-parse", "--show-toplevel"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        check=False,
+    )
+    return Path(result.stdout.strip()).resolve() if result.returncode == 0 and result.stdout.strip() else None
+
+
+def validate_force_all_artifact_root(args) -> Path:
+    """Require force-all output and evidence paths to be fresh and checkout-external."""
+    from gamesymbol_snapshot_lib.paths import is_reparse_point
+
+    artifact_root = Path(os.path.abspath(args.artifactdir))
+    game_root = artifact_root / str(args.gamever)
+    checkout_root = _git_worktree_root(Path.cwd())
+    if checkout_root is not None:
+        for label, path in (
+            ("artifact root", artifact_root),
+            ("execution report", Path(args.execution_report).resolve()),
+        ):
+            if path == checkout_root or checkout_root in path.parents:
+                raise ValueError(f"force-all {label} must be outside the source checkout: {path}")
+    current = artifact_root
+    while not current.exists() and current != current.parent:
+        current = current.parent
+    while True:
+        if current.exists() and is_reparse_point(current):
+            raise ValueError(f"force-all artifact root must not traverse a link/reparse point: {current}")
+        if current == current.parent:
+            break
+        current = current.parent
+    if game_root.exists():
+        if is_reparse_point(game_root) or not game_root.is_dir():
+            raise ValueError(f"force-all GAMEVER artifact root must be a real directory: {game_root}")
+        if any(game_root.iterdir()):
+            raise ValueError(f"force-all GAMEVER artifact root must be empty: {game_root}")
+    artifact_root.mkdir(parents=True, exist_ok=True)
+    return artifact_root
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return f"sha256:{digest.hexdigest()}"
+
+
+def _canonical_json_bytes(value) -> bytes:
+    return (json.dumps(value, ensure_ascii=False, separators=(",", ":"), sort_keys=True) + "\n").encode("utf-8")
+
+
+def _force_all_digest(value) -> str:
+    raw = b"source2-force-all-execution:v1\n" + _canonical_json_bytes(value)
+    return f"sha256:{hashlib.sha256(raw).hexdigest()}"
+
+
+def _atomic_write_bytes(path: Path, raw: bytes) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary_name = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.")
+    try:
+        with os.fdopen(descriptor, "wb") as handle:
+            handle.write(raw)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary_name, path)
+    finally:
+        try:
+            os.unlink(temporary_name)
+        except FileNotFoundError:
+            pass
+
+
+def build_force_all_execution_report(args, reporting: AnalysisReporting) -> dict:
+    """Build fail-closed producer-group evidence for one full fresh analyzer run."""
+    from bin_artifact_contract import ArtifactContractError, build_game_artifact_inventory
+    from gamesymbol_snapshot_lib.config import load_contract
+    from gamesymbol_snapshot_lib.errors import SnapshotConfigError
+    from gamesymbol_snapshot_lib.paths import path_from_key
+
+    artifact_root = Path(args.artifactdir).resolve()
+    contract = load_contract(
+        args.configyaml,
+        args.gamever,
+        args.bindir,
+        artifactdir=artifact_root,
+    )
+    jobs = {job.id: job for job in reporting.plan.jobs}
+    tasks_by_key = {}
+    for node in reporting.plan.nodes:
+        if node.node_type != PlanNodeType.SKILL:
+            continue
+        job = jobs[node.job_id]
+        tasks_by_key[(job.stage_index, job.module_name, job.platform, node.name)] = node.id
+
+    issues = []
+    node_records = {}
+    for formal_node in contract.nodes.values():
+        key = (
+            formal_node.stage_index,
+            formal_node.module_name,
+            formal_node.platform,
+            formal_node.skill_name,
+        )
+        task_id = tasks_by_key.get(key)
+        if task_id is None:
+            issues.append(f"formal producer was not scheduled: {formal_node.node_id}")
+            continue
+        record = reporting.task_record(task_id)
+        produced_paths = []
+        for raw_path in record["payload"].get("produced_outputs", []):
+            try:
+                produced_paths.append(
+                    Path(raw_path).resolve().relative_to(contract.artifact_game_root.resolve()).as_posix()
+                )
+            except ValueError:
+                issues.append(f"producer reported an output outside the artifact GAMEVER root: {raw_path}")
+        record.update(
+            {
+                "node_id": formal_node.node_id,
+                "module": formal_node.module_name,
+                "platform": formal_node.platform,
+                "skill": formal_node.skill_name,
+                "fingerprint": formal_node.fingerprint,
+                "produced_paths": sorted(set(produced_paths)),
+            }
+        )
+        node_records[formal_node.node_id] = record
+
+    group_records = []
+    for group_id in sorted(contract.producer_groups):
+        group = contract.producer_groups[group_id]
+        output_path = path_from_key(contract.artifact_game_root, group.artifact_path)
+        output_exists = output_path.is_file()
+        alternatives = [node_records.get(node_id) for node_id in group.alternative_node_ids]
+        successful = [
+            record
+            for record in alternatives
+            if record is not None
+            and record["status"] == TaskStatus.SUCCEEDED.value
+            and group.artifact_path in record["produced_paths"]
+        ]
+        winner = successful[0]["node_id"] if len(successful) == 1 else None
+        if group.required and not output_exists:
+            issues.append(f"required producer group did not materialize output: {group.artifact_path}")
+        if output_exists and len(successful) != 1:
+            issues.append(
+                f"materialized producer group must have exactly one successful winner: "
+                f"{group.artifact_path} winners={[record['node_id'] for record in successful]!r}"
+            )
+        if winner is not None:
+            winner_index = group.alternative_node_ids.index(winner)
+            later_attempts = [
+                record["node_id"]
+                for record in alternatives[winner_index + 1 :]
+                if record is not None and record["attempted"]
+            ]
+            if later_attempts:
+                issues.append(
+                    f"producer alternatives executed after winner for {group.artifact_path}: {later_attempts!r}"
+                )
+        group_records.append(
+            {
+                "group_id": group_id,
+                "artifact_path": group.artifact_path,
+                "required": group.required,
+                "fingerprint": group.fingerprint,
+                "alternative_node_ids": list(group.alternative_node_ids),
+                "attempted_node_ids": [
+                    record["node_id"] for record in alternatives if record is not None and record["attempted"]
+                ],
+                "winner_node_id": winner,
+                "output_sha256": _sha256_file(output_path) if output_exists else None,
+            }
+        )
+
+    inventory = None
+    try:
+        inventory_report = build_game_artifact_inventory(
+            repo_root=Path.cwd(),
+            config_path=args.configyaml,
+            game_version=args.gamever,
+            artifact_root=artifact_root,
+            require_tracked=False,
+        )
+        inventory = {
+            "file_count": inventory_report.file_count,
+            "inventory_sha256": inventory_report.inventory_sha256,
+        }
+    except (ArtifactContractError, SnapshotConfigError, OSError, ValueError) as exc:
+        issues.append(f"fresh artifact repository contract failed: {exc}")
+
+    document = {
+        "schema_version": 1,
+        "game_version": str(args.gamever),
+        "config_path": str(Path(args.configyaml).resolve()),
+        "binary_root": str(Path(args.bindir).resolve()),
+        "artifact_root": str(artifact_root),
+        "old_artifact_root": str(Path(args.oldartifactdir).resolve()),
+        "force_all": True,
+        "rename": bool(args.rename),
+        "required_warm_idb": bool(args.require_warm_idb),
+        "run_id": reporting.run_id,
+        "summary": reporting.summary(),
+        "inventory": inventory,
+        "nodes": [node_records[node_id] for node_id in sorted(node_records)],
+        "producer_groups": group_records,
+        "issues": issues,
+        "valid": not issues,
+    }
+    document["execution_sha256"] = _force_all_digest(document)
+    return document
 
 
 def _select_execution_modules(modules, args):
@@ -4377,6 +4651,7 @@ def _invoke_process_binary(
         symbol_aliases=args.symbol_aliases,
         found_vcall_objects=found_vcall_objects,
         require_warm_idb=getattr(args, "require_warm_idb", False),
+        force_all=getattr(args, "force_all", False),
     )
 
 
@@ -4528,6 +4803,12 @@ def main():
     except AnalysisConfigError as exc:
         print(f"Error: {exc}")
         sys.exit(1)
+    if getattr(args, "force_all", False):
+        try:
+            validate_force_all_artifact_root(args)
+        except (OSError, ValueError) as exc:
+            print(f"Error: {exc}")
+            sys.exit(1)
     config_document = _load_config_document(args.configyaml)
     args.artifact_category_map = _artifact_symbol_category_map_from_document(config_document)
     args.symbol_aliases = _symbol_alias_map_from_document(config_document)
@@ -4573,6 +4854,14 @@ def main():
         totals, aborted = _execute_analysis(args, modules, reporting)
         abort_message = "Run aborted after an upstream failure" if aborted else "Task was not executed before run end"
         reporting.abort_pending(ProcessReason.UPSTREAM_ABORTED, abort_message)
+        if getattr(args, "force_all", False):
+            execution_report = build_force_all_execution_report(args, reporting)
+            _atomic_write_bytes(Path(args.execution_report), _canonical_json_bytes(execution_report))
+            if not execution_report["valid"]:
+                totals[1] += 1
+                print("  Force-all execution contract failed:")
+                for issue in execution_report["issues"]:
+                    print(f"    {issue}")
         final_status = RunStatus.FAILED if totals[1] else RunStatus.SUCCEEDED
         reporting.emit_run_status(final_status)
         reporter.finalize_run(run_id, final_status, reporting.summary())

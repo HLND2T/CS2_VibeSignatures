@@ -25,6 +25,7 @@ from process_reporter import (
     RunStatus,
     TaskStatus,
 )
+from tests.gamesymbol_snapshot_test_support import write_config
 
 
 def _tool_result(payload):
@@ -5935,6 +5936,126 @@ class TestMainSkillFilterWiring(unittest.TestCase):
         mock_process_binary.assert_called_once()
         selected_skills = mock_process_binary.call_args.args[1]
         self.assertEqual(["find-target"], [skill["name"] for skill in selected_skills])
+
+
+class TestForceAllExecutionContract(unittest.TestCase):
+    def test_parse_args_requires_execution_report_and_complete_selection(self) -> None:
+        with (
+            patch("sys.argv", ["ida_analyze_bin.py", "-gamever", "1", "-force_all"]),
+            patch.object(ida_analyze_bin, "resolve_oldgamever", return_value=None),
+            self.assertRaises(SystemExit),
+        ):
+            ida_analyze_bin.parse_args()
+
+        with (
+            TemporaryDirectory() as temporary,
+            patch(
+                "sys.argv",
+                [
+                    "ida_analyze_bin.py",
+                    "-gamever",
+                    "1",
+                    "-force_all",
+                    "-execution_report",
+                    str(Path(temporary) / "execution.json"),
+                ],
+            ),
+            patch.object(ida_analyze_bin, "resolve_oldgamever", return_value=None),
+        ):
+            args = ida_analyze_bin.parse_args()
+        self.assertTrue(args.force_all)
+        self.assertEqual(str(Path(temporary) / "execution.json"), args.execution_report)
+
+    def test_force_all_root_must_be_checkout_external_and_empty(self) -> None:
+        with TemporaryDirectory() as temporary:
+            root = Path(temporary) / "artifacts"
+            args = SimpleNamespace(
+                artifactdir=str(root),
+                gamever="1",
+                execution_report=str(Path(temporary) / "execution.json"),
+            )
+            self.assertEqual(root.resolve(), ida_analyze_bin.validate_force_all_artifact_root(args).resolve())
+            game_root = root / "1"
+            game_root.mkdir()
+            (game_root / "existing.yaml").write_text("value: 1\n", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "must be empty"):
+                ida_analyze_bin.validate_force_all_artifact_root(args)
+
+        inside = SimpleNamespace(
+            artifactdir=str(Path.cwd() / "force-all-artifacts"),
+            gamever="1",
+            execution_report=str(Path.cwd() / "force-all-execution.json"),
+        )
+        with self.assertRaisesRegex(ValueError, "outside the source checkout"):
+            ida_analyze_bin.validate_force_all_artifact_root(inside)
+
+    def _execution_fixture(self, root: Path, *, alternatives: bool):
+        skills = [{"name": "find-a", "expected_output": ["A.{platform}.yaml"]}]
+        if alternatives:
+            skills.append({"name": "find-a-fallback", "expected_output": ["A.{platform}.yaml"]})
+        module = {
+            "name": "server",
+            "stage_index": 0,
+            "path_windows": "game/bin/win64/server.dll",
+            "skills": skills,
+        }
+        config = root / "configs" / "1.yaml"
+        write_config(
+            config,
+            [
+                {
+                    **module,
+                    "symbols": [{"name": "A", "category": "func", "platform": "windows"}],
+                }
+            ],
+        )
+        artifact_root = root / "actual"
+        artifact = artifact_root / "1" / "server" / "A.windows.yaml"
+        artifact.parent.mkdir(parents=True)
+        artifact.write_bytes(canonical_symbol_yaml_bytes({"func_name": "A", "func_rva": "0x10"}, category="func"))
+        plan = ida_analyze_bin.build_execution_plan(
+            [module],
+            platforms=["windows"],
+            bin_dir=str(root / "bin"),
+            gamever="1",
+            artifact_dir=str(artifact_root),
+        )
+        reporting = ida_analyze_bin.AnalysisReporting(MagicMock(), "run-1", plan)
+        for node in plan.nodes:
+            if node.node_type != PlanNodeType.SKILL:
+                continue
+            reporting.emit_task_status(node.id, TaskStatus.RUNNING, ProcessPhase.WAITING_FOR_MCP)
+            reporting.emit_task_status(
+                node.id,
+                TaskStatus.SUCCEEDED,
+                ProcessPhase.FINISHED,
+                payload={"produced_outputs": [str(artifact)]},
+            )
+        args = SimpleNamespace(
+            configyaml=str(config),
+            gamever="1",
+            bindir=str(root / "bin"),
+            artifactdir=str(artifact_root),
+            oldartifactdir=str(root / "old"),
+            rename=True,
+            require_warm_idb=True,
+        )
+        return args, reporting
+
+    def test_force_all_report_binds_single_group_winner_and_rejects_multiple_successes(self) -> None:
+        with TemporaryDirectory() as temporary:
+            args, reporting = self._execution_fixture(Path(temporary), alternatives=False)
+            report = ida_analyze_bin.build_force_all_execution_report(args, reporting)
+            self.assertTrue(report["valid"])
+            self.assertEqual(1, len(report["producer_groups"]))
+            self.assertIsNotNone(report["producer_groups"][0]["winner_node_id"])
+            self.assertTrue(report["execution_sha256"].startswith("sha256:"))
+
+        with TemporaryDirectory() as temporary:
+            args, reporting = self._execution_fixture(Path(temporary), alternatives=True)
+            report = ida_analyze_bin.build_force_all_execution_report(args, reporting)
+            self.assertFalse(report["valid"])
+            self.assertTrue(any("exactly one successful winner" in issue for issue in report["issues"]))
 
 
 if __name__ == "__main__":
