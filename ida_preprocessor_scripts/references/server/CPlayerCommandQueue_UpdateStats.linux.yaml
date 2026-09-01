@@ -1,0 +1,108 @@
+func_name: CPlayerCommandQueue_UpdateStats
+func_va: '0x19a0130'
+disasm_code: |-
+  .text:00000000019A0130                 mov     rax, 0CCCCCCCCCCCCCCCDh
+  .text:00000000019A013A                 push    rbp
+  .text:00000000019A013B                 mov     rbp, rsp
+  .text:00000000019A013E                 push    r13
+  .text:00000000019A0140                 push    r12
+  .text:00000000019A0142                 push    rbx
+  .text:00000000019A0143                 sub     rsp, 28h
+  .text:00000000019A0147                 movsxd  rbx, dword ptr [rdi+150h]
+  .text:00000000019A014E                 lea     esi, [rbx+1]
+  .text:00000000019A0151                 shl     rbx, 4
+  .text:00000000019A0155                 movsxd  rsi, esi
+  .text:00000000019A0158                 add     rbx, rdi
+  .text:00000000019A015B                 mul     rsi
+  .text:00000000019A015E                 shr     rdx, 4
+  .text:00000000019A0162                 lea     rax, [rdx+rdx*4]
+  .text:00000000019A0166                 shl     rax, 2
+  .text:00000000019A016A                 sub     rsi, rax
+  .text:00000000019A016D                 lea     rax, off_2626148
+  .text:00000000019A0174                 mov     [rdi+150h], esi
+  .text:00000000019A017A                 mov     rax, [rax]
+  .text:00000000019A017D                 movss   xmm0, dword ptr [rax+0Ch]
+  .text:00000000019A0182                 lea     rax, g_engine
+  .text:00000000019A0189                 movss   dword ptr [rbx+10h], xmm0
+  .text:00000000019A018E                 mov     rdi, [rdi+8]
+  .text:00000000019A0192                 mov     r12, [rax]
+  .text:00000000019A0195                 mov     rax, [r12]
+  .text:00000000019A0199                 mov     r13, [rax+148h]
+  .text:00000000019A01A0                 call    sub_210C030
+  .text:00000000019A01A5                 mov     rdi, r12
+  .text:00000000019A01A8                 cmp     eax, 0FFFFFFFFh
+  .text:00000000019A01AB                 mov     esi, eax
+  .text:00000000019A01AD                 setnz   al
+  .text:00000000019A01B0                 movzx   eax, al
+  .text:00000000019A01B3                 sub     esi, eax
+  .text:00000000019A01B5                 call    r13; CEngineServer_GetPlayerNetInfo
+  .text:00000000019A01B8                 test    rax, rax
+  .text:00000000019A01BB                 jz      short loc_19A0229
+  .text:00000000019A01BD                 mov     r12, rax
+  .text:00000000019A01C0                 mov     rax, [rax]
+  .text:00000000019A01C3                 xor     ecx, ecx
+  .text:00000000019A01C5                 xor     edx, edx
+  .text:00000000019A01C7                 lea     rsi, [rbp+var_24]
+  .text:00000000019A01CB                 mov     rdi, r12
+  .text:00000000019A01CE                 mov     [rbp+var_24], 0
+  .text:00000000019A01D5                 call    qword ptr [rax+0A8h]
+  .text:00000000019A01DB                 movss   xmm0, [rbp+var_24]
+  .text:00000000019A01E0                 mov     rdi, r12
+  .text:00000000019A01E3                 movss   dword ptr [rbx+14h], xmm0
+  .text:00000000019A01E8                 mov     rax, [r12]
+  .text:00000000019A01EC                 call    qword ptr [rax+50h]
+  .text:00000000019A01EF                 mov     esi, 1
+  .text:00000000019A01F4                 mov     rdi, r12
+  .text:00000000019A01F7                 movss   dword ptr [rbx+18h], xmm0
+  .text:00000000019A01FC                 mov     rax, [r12]
+  .text:00000000019A0200                 call    qword ptr [rax+60h]
+  .text:00000000019A0203                 mov     rax, [r12]
+  .text:00000000019A0207                 mov     esi, 1
+  .text:00000000019A020C                 mov     rdi, r12
+  .text:00000000019A020F                 movss   [rbp+var_34], xmm0
+  .text:00000000019A0214                 call    qword ptr [rax+68h]
+  .text:00000000019A0217                 addss   xmm0, [rbp+var_34]
+  .text:00000000019A021C                 mulss   xmm0, dword ptr cs:xmmword_8CD7E0
+  .text:00000000019A0224                 movss   dword ptr [rbx+1Ch], xmm0
+  .text:00000000019A0229                 add     rsp, 28h
+  .text:00000000019A022D                 pop     rbx
+  .text:00000000019A022E                 pop     r12
+  .text:00000000019A0230                 pop     r13
+  .text:00000000019A0232                 pop     rbp
+  .text:00000000019A0233                 retn
+procedure: |-
+  void __fastcall sub_19A0130(__int64 a1)
+  {
+    __int64 v1; // rbx
+    int v2; // esi
+    __int64 v3; // rbx
+    __int64 v4; // r12
+    __int64 (__fastcall *v5)(__int64, _QWORD); // r13
+    int v6; // eax
+    _QWORD *v7; // rax
+    _QWORD *v8; // r12
+    __int64 v9; // rax
+    float v10; // [rsp+Ch] [rbp-34h]
+    _DWORD v11[9]; // [rsp+1Ch] [rbp-24h] BYREF
+
+    v1 = *(int *)(a1 + 336);
+    v2 = v1 + 1;
+    v3 = a1 + 16 * v1;
+    *(_DWORD *)(a1 + 336) = v2 % 0x14uLL;
+    *(_DWORD *)(v3 + 16) = *((_DWORD *)off_2626148 + 3);
+    v4 = g_engine;
+    v5 = *(__int64 (__fastcall **)(__int64, _QWORD))(*(_QWORD *)g_engine + 328LL);
+    v6 = sub_210C030(*(_QWORD *)(a1 + 8));
+    v7 = (_QWORD *)v5(v4, v6 - (unsigned int)(v6 != -1)); // CEngineServer_GetPlayerNetInfo
+    if ( v7 )
+    {
+      v8 = v7;
+      v9 = *v7;
+      v11[0] = 0;
+      (*(void (__fastcall **)(_QWORD *, _DWORD *, _QWORD, _QWORD))(v9 + 168))(v8, v11, 0, 0);
+      *(_DWORD *)(v3 + 20) = v11[0];
+      *(float *)(v3 + 24) = (*(float (__fastcall **)(_QWORD *))(*v8 + 80LL))(v8);
+      v10 = (*(float (__fastcall **)(_QWORD *, __int64))(*v8 + 96LL))(v8, 1);
+      *(float *)(v3 + 28) = (float)((*(float (__fastcall **)(_QWORD *, __int64))(*v8 + 104LL))(v8, 1) + v10) * 100.0;
+    }
+  }

@@ -25,6 +25,7 @@ from release_workflow_lib.staging import (
     stage_build,
     write_pr_index,
 )
+from release_workflow_lib.promote_staged_yaml import promote_staged_yaml
 from release_workflow_lib.sync_accepted_bin import sync_accepted_bin
 from release_workflow_lib.validation import invalidate_republish, prepare_oldgamever_baseline, validate_build_input
 
@@ -183,6 +184,10 @@ def _add_promotion_parsers(commands) -> None:
     sync_bin.add_argument("--repo-root", default=".")
     sync_bin.add_argument("--persisted-root", required=True)
     sync_bin.add_argument("--gamever", required=True)
+
+    promote_yaml = commands.add_parser("promote-staged-yaml")
+    promote_yaml.add_argument("--persisted-root", required=True)
+    promote_yaml.add_argument("--pr-number", required=True, type=int)
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -374,6 +379,11 @@ def _run_promotion(args) -> object:
             repo_root=args.repo_root,
             persisted_root=args.persisted_root,
             gamever=args.gamever,
+        )
+    if args.command == "promote-staged-yaml":
+        return promote_staged_yaml(
+            persisted_root=args.persisted_root,
+            pr_number=args.pr_number,
         )
     return _UNHANDLED
 

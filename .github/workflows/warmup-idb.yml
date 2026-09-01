@@ -30,14 +30,15 @@ on:
         type: string
 permissions:
   contents: read
-concurrency:
-  group: gamever-state-${{ github.repository }}-${{ inputs.gamever }}
-  cancel-in-progress: false
 jobs:
   warmup:
-    if: github.repository == 'HLND2T/CS2_VibeSignatures' || github.repository == 'hzqst/CS2_VibeSignatures'
+    if: github.repository == 'HLND2T/CS2_VibeSignatures'
     environment: win64
     runs-on: [self-hosted, windows, x64]
+    concurrency:
+      group: warmup-idb-${{ github.repository }}-${{ inputs.gamever }}
+      cancel-in-progress: false
+      queue: max
     outputs:
       generation: ${{ steps.resolve-output.outputs.generation }}
       cache_key: ${{ steps.resolve-output.outputs.cache-key }}
@@ -84,9 +85,10 @@ jobs:
             throw "PERSISTED_WORKSPACE is not configured."
           }
           $workspace = [IO.Path]::GetFullPath("${{ github.workspace }}")
-          $depotTarget = [IO.Path]::GetFullPath((Join-Path $env:PERSISTED_WORKSPACE "cs2_depot"))
+          # Isolate the depot per GAMEVER so concurrent runs never share a download tree.
+          $depotTarget = [IO.Path]::GetFullPath((Join-Path $env:PERSISTED_WORKSPACE "cs2_depot\$env:GAMEVER"))
           $depotLink = Join-Path $workspace "cs2_depot"
-          New-Item -ItemType Directory -Path $depotTarget -Force | Out-Null
+          [System.IO.Directory]::CreateDirectory($depotTarget) | Out-Null
           if (Test-Path -LiteralPath $depotLink) {
             $item = Get-Item -LiteralPath $depotLink -Force
             if (-not ($item.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
@@ -201,7 +203,7 @@ jobs:
       - name: Sync consumed gamebin into accepted bin
         id: sync-accepted-bin
         shell: pwsh
-        run: |
+        run: |-
           uv run release_workflow.py sync-accepted-bin `
             --repo-root "${{ github.workspace }}" `
             --persisted-root "$env:PERSISTED_WORKSPACE" `

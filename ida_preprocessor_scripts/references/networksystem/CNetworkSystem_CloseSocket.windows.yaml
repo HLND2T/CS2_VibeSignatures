@@ -1,0 +1,206 @@
+func_name: CNetworkSystem_CloseSocket
+func_va: '0x1800f15b0'
+disasm_code: |-
+  .text:00000001800F15B0                 push    rbx
+  .text:00000001800F15B2                 sub     rsp, 40h
+  .text:00000001800F15B6                 mov     rbx, rcx
+  .text:00000001800F15B9                 test    edx, edx
+  .text:00000001800F15BB                 js      loc_1800F17C6
+  .text:00000001800F15C1                 cmp     edx, [rcx+0A8h]
+  .text:00000001800F15C7                 jge     loc_1800F17C6
+  .text:00000001800F15CD                 mov     [rsp+48h+arg_0], rsi
+  .text:00000001800F15D2                 xor     esi, esi
+  .text:00000001800F15D4                 mov     [rsp+48h+arg_8], rdi
+  .text:00000001800F15D9                 movsxd  rax, edx
+  .text:00000001800F15DC                 imul    rdi, rax, 70h ; 'p'
+  .text:00000001800F15E0                 add     rdi, [rcx+0B0h]
+  .text:00000001800F15E7                 cmp     dword ptr [rdi+5Ch], 1
+  .text:00000001800F15EB                 jnz     short loc_1800F1604
+  .text:00000001800F15ED                 mov     rax, [rdi+4Ch]
+  .text:00000001800F15F1                 lea     rdx, [rsp+48h+var_18]
+  .text:00000001800F15F6                 mov     [rsp+48h+var_18], rax
+  .text:00000001800F15FB                 mov     [rsp+48h+var_10], esi
+  .text:00000001800F15FF                 call    sub_1800F7D70
+  .text:00000001800F1604                 mov     edx, [rdi+38h]
+  .text:00000001800F1607                 lea     r9, aClosesocket; "CloseSocket"
+  .text:00000001800F160E                 mov     r8d, 3E8h
+  .text:00000001800F1614                 mov     [rsp+48h+var_28], 1
+  .text:00000001800F1619                 mov     rcx, rbx
+  .text:00000001800F161C                 call    sub_1800EE090
+  .text:00000001800F1621                 lea     rcx, [rdi+40h]
+  .text:00000001800F1625                 mov     [rdi+5Ch], esi
+  .text:00000001800F1628                 call    cs:?Clear@netadr_t@@QEAAXXZ; netadr_t::Clear(void)
+  .text:00000001800F162E                 and     dword ptr [rdi+50h], 0FF0FFFFFh
+  .text:00000001800F1635                 lea     rbx, unk_180224CF6
+  .text:00000001800F163C                 mov     [rdi+53h], sil
+  .text:00000001800F1640                 and     dword ptr [rdi+50h], 0FFF00000h
+  .text:00000001800F1647                 mov     [rdi+54h], rsi
+  .text:00000001800F164B                 mov     [rdi+4Ch], esi
+  .text:00000001800F164E                 cmp     [rdi+60h], esi
+  .text:00000001800F1651                 jz      short loc_1800F16A6
+  .text:00000001800F1653                 mov     ecx, cs:dword_180296028
+  .text:00000001800F1659                 mov     edx, 2
+  .text:00000001800F165E                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:00000001800F1664                 test    al, al
+  .text:00000001800F1666                 jz      short loc_1800F168E
+  .text:00000001800F1668                 mov     rax, [rdi+18h]
+  .text:00000001800F166C                 lea     r8, aClosingSUdpLis; "Closing '%s' UDP listen socket\n"
+  .text:00000001800F1673                 mov     ecx, cs:dword_180296028
+  .text:00000001800F1679                 test    rax, rax
+  .text:00000001800F167C                 mov     r9, rbx
+  .text:00000001800F167F                 mov     edx, 2
+  .text:00000001800F1684                 cmovnz  r9, rax
+  .text:00000001800F1688                 call    cs:LoggingSystem_Log
+  .text:00000001800F168E                 mov     rcx, cs:qword_180296490
+  .text:00000001800F1695                 test    rcx, rcx
+  .text:00000001800F1698                 jz      short loc_1800F16A3
+  .text:00000001800F169A                 mov     rax, [rcx]
+  .text:00000001800F169D                 mov     edx, [rdi+60h]
+  .text:00000001800F16A0                 call    qword ptr [rax+30h]
+  .text:00000001800F16A3                 mov     [rdi+60h], esi
+  .text:00000001800F16A6                 cmp     [rdi+64h], esi
+  .text:00000001800F16A9                 jz      short loc_1800F16FE
+  .text:00000001800F16AB                 mov     ecx, cs:dword_180296028
+  .text:00000001800F16B1                 mov     edx, 2
+  .text:00000001800F16B6                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:00000001800F16BC                 test    al, al
+  .text:00000001800F16BE                 jz      short loc_1800F16E6
+  .text:00000001800F16C0                 mov     rax, [rdi+18h]
+  .text:00000001800F16C4                 lea     r8, aClosingSP2pLis; "Closing '%s' P2P listen socket\n"
+  .text:00000001800F16CB                 mov     ecx, cs:dword_180296028
+  .text:00000001800F16D1                 test    rax, rax
+  .text:00000001800F16D4                 mov     r9, rbx
+  .text:00000001800F16D7                 mov     edx, 2
+  .text:00000001800F16DC                 cmovnz  r9, rax
+  .text:00000001800F16E0                 call    cs:LoggingSystem_Log
+  .text:00000001800F16E6                 mov     rcx, cs:qword_180296490
+  .text:00000001800F16ED                 test    rcx, rcx
+  .text:00000001800F16F0                 jz      short loc_1800F16FB
+  .text:00000001800F16F2                 mov     rax, [rcx]
+  .text:00000001800F16F5                 mov     edx, [rdi+64h]
+  .text:00000001800F16F8                 call    qword ptr [rax+30h]
+  .text:00000001800F16FB                 mov     [rdi+64h], esi
+  .text:00000001800F16FE                 cmp     [rdi+68h], esi
+  .text:00000001800F1701                 jz      short loc_1800F1756
+  .text:00000001800F1703                 mov     ecx, cs:dword_180296028
+  .text:00000001800F1709                 mov     edx, 2
+  .text:00000001800F170E                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:00000001800F1714                 test    al, al
+  .text:00000001800F1716                 jz      short loc_1800F173E
+  .text:00000001800F1718                 mov     rax, [rdi+18h]
+  .text:00000001800F171C                 lea     r8, aClosingSSdrLis; "Closing '%s' SDR listen socket\n"
+  .text:00000001800F1723                 mov     ecx, cs:dword_180296028
+  .text:00000001800F1729                 test    rax, rax
+  .text:00000001800F172C                 mov     r9, rbx
+  .text:00000001800F172F                 mov     edx, 2
+  .text:00000001800F1734                 cmovnz  r9, rax
+  .text:00000001800F1738                 call    cs:LoggingSystem_Log
+  .text:00000001800F173E                 mov     rcx, cs:qword_180296490
+  .text:00000001800F1745                 test    rcx, rcx
+  .text:00000001800F1748                 jz      short loc_1800F1753
+  .text:00000001800F174A                 mov     rax, [rcx]
+  .text:00000001800F174D                 mov     edx, [rdi+68h]
+  .text:00000001800F1750                 call    qword ptr [rax+30h]
+  .text:00000001800F1753                 mov     [rdi+68h], esi
+  .text:00000001800F1756                 cmp     [rdi+3Ch], esi
+  .text:00000001800F1759                 jz      short loc_1800F17B1
+  .text:00000001800F175B                 mov     ecx, cs:dword_180296028
+  .text:00000001800F1761                 mov     edx, 2
+  .text:00000001800F1766                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:00000001800F176C                 test    al, al
+  .text:00000001800F176E                 jz      short loc_1800F1796
+  .text:00000001800F1770                 mov     rax, [rdi+18h]
+  .text:00000001800F1774                 lea     r8, aClosingSPollGr; "Closing '%s' poll group\n"
+  .text:00000001800F177B                 mov     ecx, cs:dword_180296028
+  .text:00000001800F1781                 test    rax, rax
+  .text:00000001800F1784                 mov     edx, 2
+  .text:00000001800F1789                 cmovnz  rbx, rax
+  .text:00000001800F178D                 mov     r9, rbx
+  .text:00000001800F1790                 call    cs:LoggingSystem_Log
+  .text:00000001800F1796                 mov     rcx, cs:qword_180296490
+  .text:00000001800F179D                 test    rcx, rcx
+  .text:00000001800F17A0                 jz      short loc_1800F17AE
+  .text:00000001800F17A2                 mov     rax, [rcx]
+  .text:00000001800F17A5                 mov     edx, [rdi+3Ch]
+  .text:00000001800F17A8                 call    qword ptr [rax+0C8h]
+  .text:00000001800F17AE                 mov     [rdi+3Ch], esi
+  .text:00000001800F17B1                 mov     [rdi+0Ch], esi
+  .text:00000001800F17B4                 mov     al, 1
+  .text:00000001800F17B6                 mov     rdi, [rsp+48h+arg_8]
+  .text:00000001800F17BB                 mov     rsi, [rsp+48h+arg_0]
+  .text:00000001800F17C0                 add     rsp, 40h
+  .text:00000001800F17C4                 pop     rbx
+  .text:00000001800F17C5                 retn
+  .text:00000001800F17C6                 xor     al, al
+  .text:00000001800F17C8                 add     rsp, 40h
+  .text:00000001800F17CC                 pop     rbx
+  .text:00000001800F17CD                 retn
+procedure: |-
+  char __fastcall sub_1800F15B0(__int64 a1, int a2)
+  {
+    int v2; // ebx
+    __int64 v3; // rdi
+    __int64 v5; // [rsp+30h] [rbp-18h] BYREF
+    int v6; // [rsp+38h] [rbp-10h]
+
+    v2 = a1;
+    if ( a2 < 0 || a2 >= *(_DWORD *)(a1 + 168) )
+      return 0;
+    v3 = *(_QWORD *)(a1 + 176) + 112LL * a2;
+    if ( *(_DWORD *)(v3 + 92) == 1 )
+    {
+      v5 = *(_QWORD *)(v3 + 76);
+      v6 = 0;
+      sub_1800F7D70(a1, &v5);
+    }
+    sub_1800EE090(v2, *(_DWORD *)(v3 + 56), 1000, (unsigned int)"CloseSocket", 1);
+    *(_DWORD *)(v3 + 92) = 0;
+    netadr_t::Clear((netadr_t *)(v3 + 64));
+    *(_DWORD *)(v3 + 80) &= 0xFF0FFFFF;
+    *(_BYTE *)(v3 + 83) = 0;
+    *(_DWORD *)(v3 + 80) &= 0xFFF00000;
+    *(_QWORD *)(v3 + 84) = 0;
+    *(_DWORD *)(v3 + 76) = 0;
+    if ( *(_DWORD *)(v3 + 96) )
+    {
+      if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_180296028, 2) )
+        LoggingSystem_Log((unsigned int)dword_180296028, 2, "Closing '%s' UDP listen socket\n");
+      if ( qword_180296490 )
+        (*(void (__fastcall **)(__int64, _QWORD))(*(_QWORD *)qword_180296490 + 48LL))(
+          qword_180296490,
+          *(unsigned int *)(v3 + 96));
+      *(_DWORD *)(v3 + 96) = 0;
+    }
+    if ( *(_DWORD *)(v3 + 100) )
+    {
+      if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_180296028, 2) )
+        LoggingSystem_Log((unsigned int)dword_180296028, 2, "Closing '%s' P2P listen socket\n");
+      if ( qword_180296490 )
+        (*(void (__fastcall **)(__int64, _QWORD))(*(_QWORD *)qword_180296490 + 48LL))(
+          qword_180296490,
+          *(unsigned int *)(v3 + 100));
+      *(_DWORD *)(v3 + 100) = 0;
+    }
+    if ( *(_DWORD *)(v3 + 104) )
+    {
+      if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_180296028, 2) )
+        LoggingSystem_Log((unsigned int)dword_180296028, 2, "Closing '%s' SDR listen socket\n");
+      if ( qword_180296490 )
+        (*(void (__fastcall **)(__int64, _QWORD))(*(_QWORD *)qword_180296490 + 48LL))(
+          qword_180296490,
+          *(unsigned int *)(v3 + 104));
+      *(_DWORD *)(v3 + 104) = 0;
+    }
+    if ( *(_DWORD *)(v3 + 60) )
+    {
+      if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_180296028, 2) )
+        LoggingSystem_Log((unsigned int)dword_180296028, 2, "Closing '%s' poll group\n");
+      if ( qword_180296490 )
+        (*(void (__fastcall **)(__int64, _QWORD))(*(_QWORD *)qword_180296490 + 200LL))(
+          qword_180296490,
+          *(unsigned int *)(v3 + 60));
+      *(_DWORD *)(v3 + 60) = 0;
+    }
+    *(_DWORD *)(v3 + 12) = 0;
+    return 1;
+  }

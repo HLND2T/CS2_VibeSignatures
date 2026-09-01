@@ -11,7 +11,7 @@ from pathlib import Path
 
 import yaml
 
-ALLOWED_REPOSITORIES = {"HLND2T/CS2_VibeSignatures", "hzqst/CS2_VibeSignatures"}
+ALLOWED_REPOSITORIES = {"HLND2T/CS2_VibeSignatures"}
 GAMEVER_RE = re.compile(r"^[0-9]{4,10}[a-z]?$")
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 WORKFLOW = "build-on-self-runner.yml"
