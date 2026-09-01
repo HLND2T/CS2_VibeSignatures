@@ -11,11 +11,6 @@ on:
         description: Full immutable commit SHA reachable from the default branch
         required: true
         type: string
-      mode:
-        description: Release lifecycle mode
-        required: true
-        type: choice
-        options: [new, republish]
   repository_dispatch:
     types: [build-on-self-runner]
 permissions:
@@ -32,7 +27,6 @@ jobs:
     outputs:
       gamever: ${{ steps.resolve.outputs.gamever }}
       source_sha: ${{ steps.resolve.outputs.source_sha }}
-      mode: ${{ steps.resolve.outputs.mode }}
     steps:
       - name: Checkout default branch for trust validation
         id: checkout-trust
@@ -50,15 +44,14 @@ jobs:
         run: |
           $gamever = "${{ inputs.gamever || github.event.client_payload.gamever }}"
           $sourceSha = "${{ inputs.source_sha || github.event.client_payload.source_sha }}"
-          $mode = "${{ inputs.mode || github.event.client_payload.mode }}"
           $sourcePullRequest = "${{ github.event.client_payload.source_pull_request }}"
           git fetch origin --tags --force "+refs/heads/*:refs/remotes/origin/*"
-          uv run release_workflow.py validate-build `
-            --repository "${{ github.repository }}" `
-            --gamever "$gamever" `
-            --source-sha "$sourceSha" `
-            --mode "$mode" `
-            --default-ref "origin/${{ github.event.repository.default_branch }}"
+          git checkout --detach "$sourceSha"
+          if ($LASTEXITCODE -ne 0) { throw "Unable to checkout immutable release source." }
+          uv run python release_source_preflight.py --repo-root "${{ github.workspace }}" `
+            --repository "${{ github.repository }}" --gamever "$gamever" `
+            --source-sha "$sourceSha" --default-ref "origin/${{ github.event.repository.default_branch }}"
+          if ($LASTEXITCODE -ne 0) { throw "Immutable release source preflight failed." }
           if ("${{ github.event_name }}" -eq "repository_dispatch") {
             if ($sourcePullRequest -notmatch '^[1-9][0-9]*$') {
               throw "repository_dispatch requires a numeric source_pull_request."
@@ -80,27 +73,8 @@ jobs:
               throw "Source pull request #$sourcePullRequest merge SHA does not match source_sha."
             }
           }
-          if ($mode -eq "republish") {
-            gh release view "$gamever" --repo "${{ github.repository }}" > $null
-            if ($LASTEXITCODE -ne 0) { throw "mode=republish requires Release $gamever to exist." }
-          } else {
-            gh release view "$gamever" --repo "${{ github.repository }}" *> $null
-            if ($LASTEXITCODE -eq 0) { throw "mode=new requires Release $gamever to be absent." }
-          }
-          $canonicalPrefix = "gamesymbols/build/$gamever/"
-          $legacyPrefix = "gamesymbols/$gamever/build-"
-          $openJson = gh pr list --state open --limit 100 --json headRefName,url
-          if ($LASTEXITCODE -ne 0) { throw "Failed to query open generated-output PRs." }
-          $open = $openJson | ConvertFrom-Json
-          $duplicate = $open | Where-Object { $_.headRefName.StartsWith($canonicalPrefix) } | Select-Object -First 1
-          if ($duplicate) { throw "An output PR already exists for $gamever`: $($duplicate.url)" }
-          $legacy = $open | Where-Object { $_.headRefName.StartsWith($legacyPrefix) } | Select-Object -First 1
-          if ($legacy) {
-            throw "A legacy-format output PR must be resolved before dispatch for $gamever`: $($legacy.url)"
-          }
           "gamever=$gamever" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "source_sha=$sourceSha" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "mode=$mode" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
   warmup-idb:
     needs: preflight
     uses: ./.github/workflows/warmup-idb.yml
@@ -121,7 +95,6 @@ jobs:
     env:
       GAMEVER: ${{ needs.preflight.outputs.gamever }}
       SOURCE_SHA: ${{ needs.preflight.outputs.source_sha }}
-      MODE: ${{ needs.preflight.outputs.mode }}
       IDB_CACHE_GENERATION: ${{ needs.warmup-idb.outputs.generation }}
       IDB_CACHE_KEY: ${{ needs.warmup-idb.outputs.cache_key }}
       BUILD_ID: ${{ github.run_id }}-${{ github.run_attempt }}
@@ -207,19 +180,13 @@ jobs:
           New-Item -ItemType Directory -Path $workspaceGamever -Force | Out-Null
           $persistedGamever = Join-Path $env:PERSISTED_WORKSPACE "bin\$env:GAMEVER"
           if (Test-Path -LiteralPath $persistedGamever -PathType Container) {
-            # Legacy accepted trees may contain partial BinSync working trees.
-            # Recovery metadata is regenerated only after init_gamebin validates the remote.
             robocopy $persistedGamever $workspaceGamever /E /COPY:DAT /DCOPY:DAT /R:2 /W:5 `
               /XD *.bsproj `
-              /XF *.i64 *.idb *.id0 *.id1 *.id2 *.nam *.til *.binsync.json
+              /XF *.yaml *.i64 *.idb *.id0 *.id1 *.id2 *.nam *.til *.binsync.json
             if ($LASTEXITCODE -ge 8) { throw "Failed to copy persisted bin/$env:GAMEVER." }
             $global:LASTEXITCODE = 0
             Write-Host "Copied persisted bin/$env:GAMEVER into build workspace"
           }
-          "OUTPUT_BRANCH=gamesymbols/build/$env:GAMEVER/$env:BUILD_ID" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-          uv run release_workflow.py check-pending `
-            --staging-root "$env:PERSISTED_WORKSPACE\release-staging" `
-            --gamever "$env:GAMEVER" --build-id "$env:BUILD_ID"
       - name: Resolve consumer IDA identity
         id: resolve-consumer-ida
         shell: pwsh
@@ -280,20 +247,6 @@ jobs:
             uv run python tests/run_test_suite.py $suite -b --durations 30
             if ($LASTEXITCODE -ne 0) { throw "Repository test suite failed: $suite" }
           }
-      - name: Restore accepted same-version state and invalidate affected outputs
-        id: restore-state
-        if: env.MODE == 'republish'
-        shell: pwsh
-        run: |
-          uv run release_workflow.py invalidate-republish `
-            --gamever "$env:GAMEVER" --source-sha "$env:SOURCE_SHA" --bindir bin
-      - name: Prepare trusted old-version signature baseline
-        id: oldgamever
-        shell: pwsh
-        run: |
-          uv run release_workflow.py prepare-oldgamever `
-            --gamever "$env:GAMEVER" --bindir bin --github-output "$env:GITHUB_OUTPUT"
-          if ($LASTEXITCODE -ne 0) { throw "Failed to prepare old-version signature baseline." }
       - name: Initialize binaries without remote BinSync access
         id: init-binaries
         shell: pwsh
@@ -319,19 +272,13 @@ jobs:
       - name: Analyze every producer group with force-all and rename
         id: analyze
         shell: pwsh
-        env:
-          OLDGAMEVER: ${{ steps.oldgamever.outputs.oldgamever }}
         run: |
-          if ([string]::IsNullOrWhiteSpace($env:OLDGAMEVER)) {
-            throw "Old-version signature policy was not resolved."
-          }
           $args = @(
             '-gamever', $env:GAMEVER,
             '-configyaml', $env:ANALYSIS_CONFIG,
             '-bindir', 'bin',
             '-artifactdir', $env:ACTUAL_ARTIFACT_ROOT,
             '-oldartifactdir', 'bin_artifacts',
-            '-oldgamever', $env:OLDGAMEVER,
             '-execution_report', $env:FORCE_ALL_EXECUTION_REPORT,
             '-require_warm_idb', '-force_all', '-rename', '-debug'
           )
@@ -528,89 +475,11 @@ jobs:
           if-no-files-found: error
           compression-level: 0
           retention-days: 30
-      - name: Publish fully validated immutable candidate
-        id: publish-candidate
-        shell: pwsh
-        run: |
-          uv run gamesymbol_candidate.py publish -candidate "$env:ACTUAL_CANDIDATE_SNAPSHOT" -session "$env:CANDIDATE_SESSION" `
-            -snapshot "gamesymbols/$env:GAMEVER.yaml"
-          if ($LASTEXITCODE -ne 0) { throw "candidate publication failed with exit code $LASTEXITCODE" }
-          uv run gamedata_candidate.py guard -session "$env:GAMEDATA_SESSION"
-          if ($LASTEXITCODE -ne 0) { throw "gamedata candidate guard failed before publication" }
-          uv run gamedata_candidate.py publish -session "$env:GAMEDATA_SESSION" -outputdir "gamedata/$env:GAMEVER"
-          if ($LASTEXITCODE -ne 0) { throw "gamedata publication failed with exit code $LASTEXITCODE" }
-          uv run gamesymbol_metadata.py generate -gamever "$env:GAMEVER" -configyaml "$env:ANALYSIS_CONFIG" -output "gamesymbols/$env:GAMEVER.metadata.yaml"
-          if ($LASTEXITCODE -ne 0) { throw "metadata generation failed with exit code $LASTEXITCODE" }
-          $allowedSnapshot = "gamesymbols/$env:GAMEVER.yaml"
-          $allowedMetadata = "gamesymbols/$env:GAMEVER.metadata.yaml"
-          $allowedGamedataPrefix = "gamedata/$env:GAMEVER/"
-          $changedPaths = git status --porcelain=v1 --untracked-files=all | ForEach-Object {
-            if ($_.Length -lt 4) { throw "Unexpected git status entry: $_" }
-            $_.Substring(3).Replace('\', '/')
-          }
-          $rejected = @($changedPaths | Where-Object {
-            $_ -ne $allowedSnapshot -and $_ -ne $allowedMetadata -and -not $_.StartsWith($allowedGamedataPrefix, [StringComparison]::Ordinal)
-          })
-          if ($rejected.Count -gt 0) {
-            throw "Candidate publication changed paths outside the exact release outputs: $($rejected -join ', ')"
-          }
-      - name: Stage validated pending state and tracked manifest
-        id: stage-pending
-        shell: pwsh
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git checkout -b "$env:OUTPUT_BRANCH"
-          if ($LASTEXITCODE -ne 0) { throw "Failed to create immutable output branch." }
-          git add -- "gamesymbols/$env:GAMEVER.yaml" "gamesymbols/$env:GAMEVER.metadata.yaml" "gamedata/$env:GAMEVER"
-          if ($LASTEXITCODE -ne 0) { throw "Failed to stage generated release output." }
-          uv run release_workflow.py stage-build `
-            --staging-root "$env:PERSISTED_WORKSPACE\release-staging" `
-            --bin-source "bin\$env:GAMEVER" --candidate "$env:ACTUAL_CANDIDATE_SNAPSHOT" `
-            --repository "${{ github.repository }}" --output-branch "$env:OUTPUT_BRANCH" `
-            --gamever "$env:GAMEVER" --mode "$env:MODE" --build-id "$env:BUILD_ID" `
-            --source-sha "$env:SOURCE_SHA" `
-            --analysis-config "$env:ANALYSIS_CONFIG" `
-            --gamedata-session "$env:GAMEDATA_SESSION" `
-            --workflow-run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-      - name: Create immutable generated-output branch and PR
-        id: create-output-pr
-        env:
-          GH_TOKEN: ${{ secrets.HLND2T_GH_TOKEN }}
-        shell: pwsh
-        run: |
-          git add -- "release-manifests/$env:GAMEVER.json"
-          if ($LASTEXITCODE -ne 0) { throw "Failed to stage tracked release manifest." }
-          git commit -m "chore(gamesymbols): publish $env:GAMEVER build $env:BUILD_ID" `
-            -m "Co-Authored-By: Codex (GPT-5.x)"
-          if ($LASTEXITCODE -ne 0) { throw "Failed to commit generated release output." }
-          $headSha = (git rev-parse HEAD).Trim()
-          uv run release_workflow.py finalize-stage `
-            --staging-root "$env:PERSISTED_WORKSPACE\release-staging" --gamever "$env:GAMEVER" `
-            --build-id "$env:BUILD_ID" --pr-head-sha "$headSha"
-          if ($LASTEXITCODE -ne 0) { throw "Failed to bind staged state to output commit." }
-          git push origin "HEAD:refs/heads/$env:OUTPUT_BRANCH"
-          if ($LASTEXITCODE -ne 0) { throw "Failed to push immutable output branch." }
-          $prUrl = gh pr create --base "${{ github.event.repository.default_branch }}" --head "$env:OUTPUT_BRANCH" `
-            --title "chore(gamesymbols): publish $env:GAMEVER build $env:BUILD_ID" `
-            --body "Validated release output from immutable source $env:SOURCE_SHA. Merge is the promotion gate."
-          if ($LASTEXITCODE -ne 0) { throw "Failed to create generated-output PR." }
-          $prNumber = gh pr view $prUrl --json number --jq .number
-          if ($LASTEXITCODE -ne 0) { throw "Failed to resolve generated-output PR number." }
-          uv run release_workflow.py write-pr-index `
-            --staging-root "$env:PERSISTED_WORKSPACE\release-staging" --pr-number $prNumber `
-            --gamever "$env:GAMEVER" --build-id "$env:BUILD_ID" --pr-head-sha "$headSha"
-          Write-Host "Generated-output PR: $prUrl"
-      - name: Clean incomplete staging and candidate session
+      - name: Clean ephemeral candidate state
         id: cleanup
         if: always()
         shell: pwsh
         run: |-
-          if ($env:PERSISTED_WORKSPACE -and $env:GAMEVER -and $env:BUILD_ID) {
-            uv run release_workflow.py cleanup-incomplete `
-              --staging-root "$env:PERSISTED_WORKSPACE\release-staging" `
-              --gamever "$env:GAMEVER" --build-id "$env:BUILD_ID"
-          }
           if ($env:CANDIDATE_ROOT -and (Test-Path -LiteralPath $env:CANDIDATE_ROOT)) {
             Remove-Item -LiteralPath $env:CANDIDATE_ROOT -Recurse -Force
           }

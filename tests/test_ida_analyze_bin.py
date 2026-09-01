@@ -4899,6 +4899,17 @@ class TestInspectFuncVaPyEvalSelfHeal(unittest.IsolatedAsyncioTestCase):
     clear=False,
 )
 class TestParseArgsLlmOptions(unittest.TestCase):
+    def test_oldgamever_uses_latest_valid_source_owned_root_across_version_gaps(self) -> None:
+        with TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for gamever in ("14168", "14170", "14170b", "14172"):
+                (root / gamever).mkdir()
+            (root / "invalid").mkdir()
+
+            self.assertEqual("14170b", ida_analyze_bin.resolve_oldgamever("14172", root))
+            self.assertEqual("14170", ida_analyze_bin.resolve_oldgamever("14170b", root))
+            self.assertIsNone(ida_analyze_bin.resolve_oldgamever("14168", root))
+
     @patch.object(ida_analyze_bin, "resolve_oldgamever", return_value="14140")
     def test_parse_args_separates_binary_current_and_old_artifact_roots(self, mock_resolve_oldgamever) -> None:
         with patch(

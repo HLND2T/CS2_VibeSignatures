@@ -40,6 +40,7 @@ import inspect
 import json
 import os
 import posixpath
+import re
 import socket
 import subprocess
 import sys
@@ -1367,33 +1368,27 @@ def resolve_oldgamever(gamever, artifact_dir):
     except ValueError:
         return None
 
-    # Generate candidates in descending version order
+    current_key = (base, 0 if suffix is None else ord(suffix) - ord("a") + 1)
+    root = Path(artifact_dir)
+    try:
+        entries = list(root.iterdir())
+    except OSError:
+        return None
+
+    from gamesymbol_snapshot_lib.paths import is_reparse_point
+
     candidates = []
-
-    if suffix:
-        # E.g., gamever="14141c" -> try 14141b, 14141a, 14141, 14140z..14140a, 14140
-        for c in range(ord(suffix) - 1, ord("a") - 1, -1):
-            candidates.append(f"{base}{chr(c)}")
-        candidates.append(str(base))
-        prev_base = base - 1
-        for c in range(ord("z"), ord("a") - 1, -1):
-            candidates.append(f"{prev_base}{chr(c)}")
-        candidates.append(str(prev_base))
-    else:
-        # E.g., gamever="14142" -> try 14141z..14141a, 14141, 14140
-        prev_base = base - 1
-        for c in range(ord("z"), ord("a") - 1, -1):
-            candidates.append(f"{prev_base}{chr(c)}")
-        candidates.append(str(prev_base))
-        candidates.append(str(prev_base - 1))
-
-    # Return the first candidate whose directory exists
-    for candidate in candidates:
-        candidate_dir = os.path.join(artifact_dir, candidate)
-        if os.path.isdir(candidate_dir):
-            return candidate
-
-    return None
+    for entry in entries:
+        match = re.fullmatch(r"([0-9]{4,10})([a-z]?)", entry.name)
+        if not match or not entry.is_dir() or is_reparse_point(entry):
+            continue
+        candidate_key = (
+            int(match.group(1)),
+            0 if not match.group(2) else ord(match.group(2)) - ord("a") + 1,
+        )
+        if candidate_key < current_key:
+            candidates.append((candidate_key, entry.name))
+    return max(candidates)[1] if candidates else None
 
 
 def _is_major_update_gamever(gamever, download_path=DEFAULT_DOWNLOAD_FILE):

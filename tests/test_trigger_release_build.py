@@ -3,7 +3,7 @@ import json
 import subprocess
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 
 SCRIPT = Path(".claude/skills/trigger-release-build/scripts/trigger_release_build.py")
@@ -46,125 +46,59 @@ class TestTriggerReleaseBuild(unittest.TestCase):
                 trigger.require_github_access(Path("."), "HLND2T/CS2_VibeSignatures")
         run.assert_called_once_with(["gh", "auth", "status", "--hostname", "github.com"], Path("."))
 
-    def test_release_state_selects_new_or_republish(self) -> None:
-        new_responses = [
-            completed([], returncode=2),
-            completed([], returncode=1, stderr="gh: Not Found (HTTP 404)"),
-        ]
-        with patch.object(trigger, "run_command", side_effect=new_responses):
-            self.assertEqual(
-                "new",
-                trigger.resolve_mode(Path("."), "HLND2T/CS2_VibeSignatures", "14170"),
-            )
-
-        republish_responses = [
-            completed([], stdout="sha\trefs/tags/14170\n"),
-            completed([]),
-        ]
-        with patch.object(trigger, "run_command", side_effect=republish_responses):
-            self.assertEqual(
-                "republish",
-                trigger.resolve_mode(Path("."), "HLND2T/CS2_VibeSignatures", "14170"),
-            )
-
-    def test_inconsistent_release_states_are_rejected(self) -> None:
-        tag_only = [
-            completed([], stdout="sha\trefs/tags/14170\n"),
-            completed([], returncode=1, stderr="gh: Not Found (HTTP 404)"),
-        ]
-        with patch.object(trigger, "run_command", side_effect=tag_only):
-            with self.assertRaisesRegex(trigger.TriggerError, "tag exists but Release is absent"):
-                trigger.resolve_mode(Path("."), "HLND2T/CS2_VibeSignatures", "14170")
-
-        release_only = [completed([], returncode=2), completed([])]
-        with patch.object(trigger, "run_command", side_effect=release_only):
-            with self.assertRaisesRegex(trigger.TriggerError, "Release exists but tag is absent"):
-                trigger.resolve_mode(Path("."), "HLND2T/CS2_VibeSignatures", "14170")
-
-    def test_release_lookup_failure_is_not_treated_as_absent(self) -> None:
-        responses = [
-            completed([], returncode=2),
-            completed([], returncode=1, stderr="gh: API rate limit exceeded (HTTP 403)"),
-        ]
-        with patch.object(trigger, "run_command", side_effect=responses):
-            with self.assertRaisesRegex(trigger.TriggerError, "failed to query Release"):
-                trigger.resolve_mode(Path("."), "HLND2T/CS2_VibeSignatures", "14170")
-
-    def test_open_output_pr_blocks_dispatch(self) -> None:
-        pulls = json.dumps([{"headRefName": "gamesymbols/build/14170/1-1", "url": "https://pr"}])
-        with patch.object(trigger, "run_command", return_value=completed([], stdout=pulls)):
-            with self.assertRaisesRegex(trigger.TriggerError, "already open"):
-                trigger.require_no_duplicate(Path("."), "14170")
-
-    def test_legacy_output_pr_blocks_dispatch_with_migration_error(self) -> None:
-        pulls = json.dumps([{"headRefName": "gamesymbols/14170/build-1-1", "url": "https://legacy-pr"}])
-        with patch.object(trigger, "run_command", return_value=completed([], stdout=pulls)):
-            with self.assertRaisesRegex(trigger.TriggerError, "legacy-format.*must be resolved"):
-                trigger.require_no_duplicate(Path("."), "14170")
-
-    def test_unrelated_version_leaf_branch_does_not_block_dispatch(self) -> None:
-        pulls = json.dumps([{"headRefName": "gamesymbols/14170", "url": "https://historical-pr"}])
-        with patch.object(
-            trigger,
-            "run_command",
-            side_effect=[completed([], stdout=pulls), completed([], stdout="[]")],
-        ):
-            self.assertEqual(set(), trigger.require_no_duplicate(Path("."), "14170"))
-
     def test_active_workflow_run_blocks_dispatch(self) -> None:
-        responses = [
-            completed([], stdout="[]"),
-            completed(
-                [],
-                stdout=json.dumps(
-                    [
-                        {
-                            "databaseId": 10,
-                            "displayTitle": "Release build 14170",
-                            "status": "in_progress",
-                            "url": "https://run/10",
-                        }
-                    ]
-                ),
+        response = completed(
+            [],
+            stdout=json.dumps(
+                [
+                    {
+                        "databaseId": 10,
+                        "displayTitle": "Release build 14170",
+                        "status": "in_progress",
+                        "url": "https://run/10",
+                    }
+                ]
             ),
-        ]
-        with patch.object(trigger, "run_command", side_effect=responses):
+        )
+        with patch.object(trigger, "run_command", return_value=response):
             with self.assertRaisesRegex(trigger.TriggerError, "already active"):
                 trigger.require_no_duplicate(Path("."), "14170")
 
-    def test_dispatch_uses_selected_workflow_mode(self) -> None:
+    def test_dispatch_uses_only_immutable_source_identity(self) -> None:
         root = Path("repo")
-        for mode in ("new", "republish"):
-            with (
-                self.subTest(mode=mode),
-                patch.object(
-                    trigger,
-                    "run_command",
-                    return_value=completed([]),
-                ) as run,
-            ):
-                trigger.dispatch(root, "14170", "1" * 40, mode)
+        with patch.object(trigger, "run_command", return_value=completed([])) as run:
+            trigger.dispatch(root, "14170", "1" * 40)
 
-            run.assert_called_once_with(
-                [
-                    "gh",
-                    "workflow",
-                    "run",
-                    "build-on-self-runner.yml",
-                    "--ref",
-                    "main",
-                    "-f",
-                    "gamever=14170",
-                    "-f",
-                    f"source_sha={'1' * 40}",
-                    "-f",
-                    f"mode={mode}",
-                ],
-                root,
-            )
+        run.assert_called_once_with(
+            [
+                "gh",
+                "workflow",
+                "run",
+                "build-on-self-runner.yml",
+                "--ref",
+                "main",
+                "-f",
+                "gamever=14170",
+                "-f",
+                f"source_sha={'1' * 40}",
+            ],
+            root,
+        )
 
-        with self.assertRaisesRegex(trigger.TriggerError, "invalid release mode"):
-            trigger.dispatch(root, "14170", "1" * 40, "unsafe")
+    def test_source_artifact_preflight_runs_in_detached_temporary_worktree(self) -> None:
+        manager = MagicMock()
+        manager.__enter__.return_value = "temporary"
+        with (
+            patch.object(trigger.tempfile, "TemporaryDirectory", return_value=manager),
+            patch.object(trigger, "run_command", return_value=completed([])) as run,
+        ):
+            trigger.require_source_artifacts(Path("repo"), "HLND2T/CS2_VibeSignatures", "14170", "1" * 40)
+
+        commands = [call.args[0] for call in run.call_args_list]
+        source_root = str(Path("temporary") / "source")
+        self.assertEqual(["git", "worktree", "add", "--detach", source_root, "1" * 40], commands[0])
+        self.assertIn("release_source_preflight.py", commands[1])
+        self.assertEqual(["git", "worktree", "remove", "--force", source_root], commands[2])
 
     def test_dispatch_stops_if_origin_main_advanced(self) -> None:
         with patch.object(trigger, "run_command", return_value=completed([], stdout=f"{'2' * 40}\trefs/heads/main\n")):
@@ -194,26 +128,25 @@ class TestTriggerReleaseBuild(unittest.TestCase):
             patch.object(trigger, "require_github_access") as access,
             patch.object(trigger, "resolve_source", return_value=("1" * 40, "subject")),
             patch.object(trigger, "available_versions", return_value=["14169", "14170"]),
-            patch.object(trigger, "resolve_mode", return_value="new") as resolve_mode,
             patch.object(trigger, "require_no_duplicate", return_value={10}),
             patch.object(trigger, "require_main_unchanged") as unchanged,
+            patch.object(trigger, "require_source_artifacts") as source_artifacts,
             patch.object(trigger, "dispatch") as dispatch,
             patch.object(trigger, "discover_run", return_value="https://run/11"),
         ):
             result = trigger.execute("latest")
 
         self.assertEqual("14170", result["gamever"])
-        self.assertEqual("new", result["mode"])
+        self.assertNotIn("mode", result)
         self.assertEqual("https://run/11", result["run_url"])
         access.assert_called_once()
-        resolve_mode.assert_called_once_with(root, "HLND2T/CS2_VibeSignatures", "14170")
-        unchanged.assert_called_once_with(root, "1" * 40)
-        dispatch.assert_called_once_with(root, "14170", "1" * 40, "new")
+        self.assertEqual(2, unchanged.call_count)
+        source_artifacts.assert_called_once_with(root, "HLND2T/CS2_VibeSignatures", "14170", "1" * 40)
+        dispatch.assert_called_once_with(root, "14170", "1" * 40)
 
-    def test_main_reports_selected_mode(self) -> None:
+    def test_main_reports_immutable_source(self) -> None:
         result = {
             "gamever": "14170",
-            "mode": "new",
             "source_sha": "1" * 40,
             "subject": "subject",
             "run_url": "https://run/11",
@@ -222,7 +155,7 @@ class TestTriggerReleaseBuild(unittest.TestCase):
             self.assertEqual(0, trigger.main(["14170"]))
 
         execute.assert_called_once_with("14170")
-        output.assert_any_call("Mode: new")
+        output.assert_any_call(f"SOURCE_SHA: {'1' * 40}")
 
 
 if __name__ == "__main__":

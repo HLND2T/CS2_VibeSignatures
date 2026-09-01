@@ -1,192 +1,41 @@
-name: PR Self Runner Validation
+name: Trusted Source Artifact GAMEVER Validation
 on:
-  pull_request:
-    types: [opened, synchronize, reopened, ready_for_review, closed]
+  workflow_call:
+    inputs:
+      gamever:
+        required: true
+        type: string
+      source_sha:
+        required: true
+        type: string
+      base_sha:
+        required: true
+        type: string
+      plan_sha256:
+        required: true
+        type: string
+      plan_artifact_name:
+        required: true
+        type: string
 permissions:
+  actions: read
   contents: read
 jobs:
-  pr-preflight:
-    if: >-
-      github.event_name == 'pull_request' &&
-      github.event.action != 'closed' &&
-      (github.repository == 'HLND2T/CS2_VibeSignatures') &&
-      github.event.pull_request.head.repo.full_name == github.repository &&
-      !((github.event.pull_request.user.login == 'github-actions[bot]' ||
-         github.event.pull_request.author_association == 'OWNER' ||
-         github.event.pull_request.author_association == 'MEMBER' ||
-         github.event.pull_request.author_association == 'COLLABORATOR') &&
-         startsWith(github.event.pull_request.head.ref, 'gamesymbols/build/') &&
-         startsWith(github.event.pull_request.title, 'chore(gamesymbols): publish '))
-    permissions:
-      contents: read
-      pull-requests: read
-    runs-on: ubuntu-latest
-    outputs:
-      validation_path: ${{ steps.classify-validation-mode.outputs.validation-mode || 'light' }}
-      requires_warmup: ${{ steps.classify-validation-mode.outputs.validation-mode == 'full' && 'true' || 'false' }}
-      latest_gamever: ${{ steps.classify-validation-mode.outputs.latest-gamever }}
-      is_bump: ${{ steps.pull-request.outputs.is-bump }}
-      pr_number: ${{ steps.pull-request.outputs.pr-number }}
-      gamever: ${{ steps.resolve-version.outputs.gamever }}
-      pr_gamever: ${{ steps.resolve-version.outputs.pr_gamever }}
-      base_snapshot_path: ${{ steps.resolve-version.outputs.base_snapshot_path }}
-      base_snapshot_commit: ${{ steps.resolve-version.outputs.base_snapshot_commit }}
-      source_sha: ${{ steps.pull-request.outputs.source-sha }}
-      trust_context_sha256: ${{ steps.trust-context.outputs.trust-context-sha256 }}
-      merge_tree_sha: ${{ steps.trust-context.outputs.merge-tree-sha }}
-      head_ref: ${{ steps.pull-request.outputs.head-ref }}
-      base_sha: ${{ steps.pull-request.outputs.base-sha }}
-      pr_title: ${{ steps.pull-request.outputs.pr-title }}
-      pr_user_login: ${{ steps.pull-request.outputs.pr-user-login }}
-    steps:
-      - name: Checkout PR merge ref for cache identity
-        id: checkout-preflight
-        if: github.event_name == 'pull_request'
-        uses: actions/checkout@v5
-        with:
-          ref: refs/pull/${{ github.event.pull_request.number }}/merge
-          fetch-depth: 0
-          submodules: false
-          persist-credentials: false
-      - name: Resolve PR cache eligibility and immutable source
-        id: pull-request
-        if: github.event_name == 'pull_request'
-        shell: pwsh
-        env:
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
-          PR_TITLE: ${{ github.event.pull_request.title }}
-          PR_USER_LOGIN: ${{ github.event.pull_request.user.login }}
-          PR_AUTHOR_ASSOCIATION: ${{ github.event.pull_request.author_association }}
-        run: |
-          $association = $env:PR_AUTHOR_ASSOCIATION.Trim().ToUpperInvariant()
-          $trustedBumpAssociations = @("OWNER", "MEMBER", "COLLABORATOR")
-          $isLegacyActionsBot = $env:PR_USER_LOGIN -eq "github-actions[bot]"
-          $isTrustedBumpAuthor = $isLegacyActionsBot -or $trustedBumpAssociations -contains $association
-          $headRef = $env:PR_HEAD_REF
-          $title = $env:PR_TITLE
-          $isBump = $isTrustedBumpAuthor -and $headRef.StartsWith("bump-download/") -and $title.StartsWith("chore(download): Update manifest for ")
-          $isBumpLower = if ($isBump) { "true" } else { "false" }
-          $sourceSha = (git rev-parse HEAD).Trim()
-          if ($LASTEXITCODE -ne 0 -or $sourceSha -notmatch '^[0-9a-fA-F]{40}$') {
-            throw "Unable to resolve the PR merge commit SHA."
-          }
-          $baseSha = (git rev-parse HEAD^1).Trim()
-          if ($LASTEXITCODE -ne 0 -or $baseSha -notmatch '^[0-9a-fA-F]{40}$') {
-            throw "Unable to resolve the PR merge base SHA."
-          }
-          $headSha = $env:PR_HEAD_SHA.ToLowerInvariant()
-          if ($headSha -notmatch '^[0-9a-f]{40}$') {
-            throw "Pull request head SHA is invalid."
-          }
-          $mergeHeadSha = (git rev-parse HEAD^2).Trim().ToLowerInvariant()
-          if ($LASTEXITCODE -ne 0 -or $mergeHeadSha -ne $headSha) {
-            throw "PR merge ref second parent does not match the immutable PR head SHA."
-          }
-          "is-bump=$isBumpLower" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "pr-number=$env:PR_NUMBER" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "source-sha=$($sourceSha.ToLowerInvariant())" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "head-sha=$headSha" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "head-ref=$headRef" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "base-sha=$($baseSha.ToLowerInvariant())" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "pr-title=$title" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "pr-user-login=$env:PR_USER_LOGIN" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-      - name: Set up uv for validation classification
-        id: setup-preflight-uv
-        uses: astral-sh/setup-uv@v9.0.0
-      - name: Checkout trusted base planner
-        id: checkout-trusted-planner
-        uses: actions/checkout@v5
-        with:
-          ref: ${{ steps.pull-request.outputs.base-sha }}
-          fetch-depth: 1
-          submodules: false
-          persist-credentials: false
-          path: .trusted-planner
-      - name: Sync trusted base planner environment
-        id: sync-trusted-planner-environment
-        shell: pwsh
-        run: uv sync --project .trusted-planner --locked
-      - name: Bind trusted prospective merge context
-        id: trust-context
-        shell: pwsh
-        env:
-          PR_BASE_SHA: ${{ steps.pull-request.outputs.base-sha }}
-          PR_HEAD_SHA: ${{ steps.pull-request.outputs.head-sha }}
-          PR_MERGE_SHA: ${{ steps.pull-request.outputs.source-sha }}
-        run: |
-          $bridge = ".trusted-planner/trusted_pr_context.py"
-          if (-not (Test-Path -LiteralPath $bridge -PathType Leaf)) {
-            # The bridge-introduction PR necessarily targets a base that predates
-            # the trusted context builder. Keep the legacy path for this one
-            # bootstrap transition; every later base must execute trusted code.
-            $treeSha = (git rev-parse "$env:PR_MERGE_SHA^{tree}").Trim().ToLowerInvariant()
-            if ($LASTEXITCODE -ne 0 -or $treeSha -notmatch '^[0-9a-f]{40}$') {
-              throw "Unable to resolve the bootstrap prospective merge tree."
-            }
-            "trust-context-sha256=bootstrap" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-            "merge-tree-sha=$treeSha" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-            exit 0
-          }
-          uv run --project .trusted-planner python .trusted-planner/trusted_pr_context.py build `
-            --repo-root "${{ github.workspace }}" `
-            --base-ref "$env:PR_BASE_SHA" `
-            --head-ref "$env:PR_HEAD_SHA" `
-            --merge-ref "$env:PR_MERGE_SHA" `
-            --output "$env:RUNNER_TEMP/trusted-pr-context.json" `
-            --github-output "$env:GITHUB_OUTPUT"
-          if ($LASTEXITCODE -ne 0) { throw "Failed to bind trusted prospective merge context." }
-      - name: Classify PR validation mode from changed paths
-        id: classify-validation-mode
-        shell: pwsh
-        env:
-          PR_BASE_SHA: ${{ steps.pull-request.outputs.base-sha }}
-          PR_IS_BUMP: ${{ steps.pull-request.outputs.is-bump }}
-        run: |
-          $forceArgs = @()
-          if ($env:PR_IS_BUMP -eq "true") { $forceArgs += "--force-light" }
-          uv run --project .trusted-planner python .trusted-planner/pr_validation_mode.py `
-            --repo-root "${{ github.workspace }}" `
-            --base-ref "$env:PR_BASE_SHA" `
-            --github-output "$env:GITHUB_OUTPUT" @forceArgs
-          if ($LASTEXITCODE -ne 0) { throw "Failed to classify PR validation mode." }
-      - name: Resolve exact PR validation GAMEVER
-        id: resolve-version
-        if: github.event_name == 'pull_request' && steps.classify-validation-mode.outputs.validation-mode == 'full'
-        shell: pwsh
-        env:
-          PR_BASE_SHA: ${{ steps.pull-request.outputs.base-sha }}
-        run: |
-          uv run --project .trusted-planner python .trusted-planner/pr_validation_version.py `
-            --repo-root "${{ github.workspace }}" `
-            --base-ref "$env:PR_BASE_SHA" `
-            --github-output "$env:GITHUB_OUTPUT"
-          if ($LASTEXITCODE -ne 0) { throw "Failed to resolve PR validation GAMEVER." }
-  pr-warmup-idb:
-    needs: pr-preflight
-    if: >-
-      needs.pr-preflight.outputs.validation_path == 'full' &&
-      needs.pr-preflight.outputs.requires_warmup == 'true'
+  warmup-idb:
     uses: ./.github/workflows/warmup-idb.yml
     with:
-      gamever: ${{ needs.pr-preflight.outputs.gamever }}
-      source_sha: ${{ needs.pr-preflight.outputs.source_sha }}
+      gamever: ${{ inputs.gamever }}
+      source_sha: ${{ inputs.source_sha }}
     secrets: inherit
-  pr-validate-full:
-    needs: [pr-preflight, pr-warmup-idb]
-    if: >-
-      always() &&
-      needs.pr-preflight.result == 'success' &&
-      needs.pr-preflight.outputs.validation_path == 'full' &&
-      needs.pr-warmup-idb.result == 'success'
-    permissions:
-      pull-requests: read
+  validate:
+    needs: warmup-idb
     environment: win64
     runs-on: [self-hosted, windows, x64]
     env:
-      WORKSPACE: ${{ github.workspace }}
-      PR_NUMBER: ${{ needs.pr-preflight.outputs.pr_number }}
+      GAMEVER: ${{ inputs.gamever }}
+      SOURCE_SHA: ${{ inputs.source_sha }}
+      PLAN_SHA256: ${{ inputs.plan_sha256 }}
+      PERSISTED_WORKSPACE: ${{ secrets.PERSISTED_WORKSPACE }}
       CS2VIBE_AGENT: ${{ secrets.CS2VIBE_AGENT }}
       CS2VIBE_AGENT_MODEL: ${{ secrets.CS2VIBE_AGENT_MODEL }}
       CS2VIBE_LLM_APIKEY: ${{ secrets.CS2VIBE_LLM_APIKEY }}
@@ -194,737 +43,154 @@ jobs:
       CS2VIBE_LLM_EFFORT: ${{ secrets.CS2VIBE_LLM_EFFORT }}
       CS2VIBE_LLM_FAKE_AS: ${{ secrets.CS2VIBE_LLM_FAKE_AS }}
       CS2VIBE_LLM_MODEL: ${{ secrets.CS2VIBE_LLM_MODEL }}
-      PERSISTED_WORKSPACE: ${{ secrets.PERSISTED_WORKSPACE }}
-      PR_SOURCE_SHA: ${{ needs.pr-preflight.outputs.source_sha }}
-      PR_BASE_SHA: ${{ needs.pr-preflight.outputs.base_sha }}
-      PREFLIGHT_PR_GAMEVER: ${{ needs.pr-preflight.outputs.pr_gamever }}
-      PREFLIGHT_GAMEVER: ${{ needs.pr-preflight.outputs.gamever }}
-      PREFLIGHT_BASE_SNAPSHOT_PATH: ${{ needs.pr-preflight.outputs.base_snapshot_path }}
-      PREFLIGHT_BASE_SNAPSHOT_COMMIT: ${{ needs.pr-preflight.outputs.base_snapshot_commit }}
-      PR_HEAD_REF: ${{ needs.pr-preflight.outputs.head_ref }}
-      PR_TITLE: ${{ needs.pr-preflight.outputs.pr_title }}
-      PR_USER_LOGIN: ${{ needs.pr-preflight.outputs.pr_user_login }}
-      IDB_CACHE_GENERATION: ${{ needs.pr-warmup-idb.outputs.generation }}
-      IDB_CACHE_KEY: ${{ needs.pr-warmup-idb.outputs.cache_key }}
-      SUBMODULE_CACHE_VERSION: v1
+      DEPOTDOWNLOADER_STEAM_USERNAME: ${{ secrets.DEPOTDOWNLOADER_STEAM_USERNAME }}
+      DEPOTDOWNLOADER_STEAM_PASSWORD: ${{ secrets.DEPOTDOWNLOADER_STEAM_PASSWORD }}
     steps:
-      - name: Checkout PR merge ref
-        id: checkout-merge
+      - name: Checkout exact prospective merge tree as data
         uses: actions/checkout@v5
         with:
-          ref: ${{ needs.pr-preflight.outputs.source_sha }}
-          # Full history keeps the pinned merge commit, its pinned base parent,
-          # and historical snapshot publication commits available locally.
-          fetch-depth: 0
-          submodules: false
-      - name: Verify immutable PR source checkout
-        id: verify-source
-        shell: pwsh
-        run: |
-          if ($env:PR_SOURCE_SHA -notmatch '^[0-9a-f]{40}$') {
-            throw "Preflight source SHA is invalid."
-          }
-          $actualSourceSha = (git rev-parse HEAD).Trim().ToLowerInvariant()
-          if ($LASTEXITCODE -ne 0 -or $actualSourceSha -ne $env:PR_SOURCE_SHA) {
-            throw "PR source checkout drifted: expected=$env:PR_SOURCE_SHA actual=$actualSourceSha"
-          }
-      - name: Compute submodule cache key
-        id: submodule-cache-key
-        shell: pwsh
-        run: |
-          Set-Location $env:WORKSPACE
-          $content = @()
-          $content += Get-Content -Raw .gitmodules
-          $content += ""
-          # The submodule state prefix (- for uninitialized, ' ' for initialized)
-          # differs by working-tree state, so a key derived from that output drifts
-          # between the miss and save phases and the cache never hits. Read the
-          # committed gitlink SHAs from HEAD instead; they are deterministic.
-          $content += git ls-tree HEAD
-          $sha = [System.Security.Cryptography.SHA256]::Create()
-          $bytes = [System.Text.Encoding]::UTF8.GetBytes(($content -join "`n"))
-          $hash = [System.BitConverter]::ToString($sha.ComputeHash($bytes)).Replace("-", "").ToLowerInvariant()
-          "hash=$hash" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-      - name: Restore submodule cache
-        id: restore-submodule-cache
-        uses: actions/cache@v5
+          ref: ${{ inputs.source_sha }}
+          fetch-depth: 1
+          submodules: recursive
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v9.0.0
+      - name: Checkout trusted base verification tools
+        uses: actions/checkout@v5
         with:
-          path: |
-            .git/modules
-            hl2sdk_cs2
-          key: ${{ runner.os }}-submodules-${{ env.SUBMODULE_CACHE_VERSION }}-${{ steps.submodule-cache-key.outputs.hash }}
-          restore-keys: |
-            ${{ runner.os }}-submodules-${{ env.SUBMODULE_CACHE_VERSION }}-
-      - name: Sync and update submodules
-        id: sync-submodules
+          ref: ${{ inputs.base_sha }}
+          fetch-depth: 1
+          submodules: false
+          persist-credentials: false
+          path: .trusted-tools
+      - name: Sync trusted verification environment
+        shell: pwsh
+        run: uv sync --project .trusted-tools --locked
+      - name: Download bound trusted plan
+        uses: actions/download-artifact@v5
+        with:
+          name: ${{ inputs.plan_artifact_name }}
+          path: ${{ runner.temp }}/trusted-pr-plan
+      - name: Validate source, plan, and binary-only workspace
         shell: pwsh
         run: |
-          Set-Location $env:WORKSPACE
-          git submodule sync --recursive
-          if ($LASTEXITCODE -ne 0) { throw "git submodule sync failed." }
-          git submodule update --init --recursive --depth 1 --jobs 8
-          if ($LASTEXITCODE -ne 0) { throw "git submodule update failed." }
-      - name: Check formatting
-        id: format
-        shell: pwsh
-        run: |
-          Set-Location $env:WORKSPACE
-          uv run python format_repo_files.py --check
-      - name: Determine release version from PR download config
-        id: select-version
-        shell: pwsh
-        run: |
-          Set-Location $env:WORKSPACE
-          $gamever = uv run python -c "import yaml; d=yaml.safe_load(open('download.yaml', encoding='utf-8')); print(d['downloads'][-1]['tag'])"
-          if ($LASTEXITCODE -ne 0) {
-            throw "Failed to read latest game version from download.yaml."
+          $actualSource = (git rev-parse HEAD).Trim().ToLowerInvariant()
+          if ($actualSource -ne $env:SOURCE_SHA -or $env:PLAN_SHA256 -notmatch '^sha256:[0-9a-f]{64}$') {
+            throw "PR source or trusted plan identity drifted."
           }
-          $gamever = $gamever.Trim()
-          if ([string]::IsNullOrWhiteSpace($gamever)) {
-            throw "Latest game version from download.yaml is empty."
+          if ([string]::IsNullOrWhiteSpace($env:PERSISTED_WORKSPACE)) { throw "PERSISTED_WORKSPACE is not configured." }
+          $workspaceBin = Join-Path "${{ github.workspace }}" "bin"
+          $workspaceGamever = Join-Path $workspaceBin $env:GAMEVER
+          New-Item -ItemType Directory -Path $workspaceGamever -Force | Out-Null
+          if ((Get-Item -LiteralPath $workspaceBin -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) {
+            throw "PR workspace bin must be a real directory."
           }
-          if ($gamever -ne $env:PREFLIGHT_PR_GAMEVER) {
-            throw "PR release GAMEVER drifted after preflight: preflight=$env:PREFLIGHT_PR_GAMEVER validate=$gamever"
+          $persistedGamever = Join-Path $env:PERSISTED_WORKSPACE "bin\$env:GAMEVER"
+          if (Test-Path -LiteralPath $persistedGamever -PathType Container) {
+            robocopy $persistedGamever $workspaceGamever /E /COPY:DAT /DCOPY:DAT /R:2 /W:5 `
+              /XD *.bsproj /XF *.yaml *.i64 *.idb *.id0 *.id1 *.id2 *.nam *.til *.binsync.json
+            if ($LASTEXITCODE -ge 8) { throw "Failed to copy binary-only accepted bin/$env:GAMEVER." }
+            $global:LASTEXITCODE = 0
           }
-          "PR_GAMEVER=$gamever" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          Write-Host "PR release GAMEVER=$gamever"
-      - name: Extract deterministic base snapshot
-        id: base-snapshot
-        shell: pwsh
-        run: |
-          Set-Location $env:WORKSPACE
-          $baseDir = Join-Path $env:RUNNER_TEMP "snapshot-base\pr-$env:PR_NUMBER-${{ github.run_id }}-${{ github.run_attempt }}"
-          if (Test-Path -LiteralPath $baseDir) {
-            Remove-Item -LiteralPath $baseDir -Recurse -Force
-          }
-          New-Item -ItemType Directory -Path $baseDir -Force | Out-Null
-          function Export-GitBlob {
-            param(
-              [Parameter(Mandatory=$true)][string]$Revision,
-              [Parameter(Mandatory=$true)][string]$RepoPath,
-              [Parameter(Mandatory=$true)][string]$OutputPath
-            )
-            uv run python -c `
-              "import pathlib, subprocess, sys; pathlib.Path(sys.argv[3]).write_bytes(subprocess.check_output(['git', 'show', f'{sys.argv[1]}:{sys.argv[2]}']))" `
-              "$Revision" "$RepoPath" "$OutputPath"
-            if ($LASTEXITCODE -ne 0) {
-              throw "Failed to extract $Revision`:$RepoPath"
-            }
-          }
-          $baseRef = $env:PR_BASE_SHA
-          if ($baseRef -notmatch '^[0-9a-fA-F]{40}$') {
-            throw "Invalid pull request base SHA: $baseRef"
-          }
-          git cat-file -e "$baseRef^{commit}"
-          if ($LASTEXITCODE -ne 0) {
-            throw "Pull request base commit is unavailable: $baseRef"
-          }
-          $baseConfig = Join-Path $baseDir "base-config.yaml"
-          $baseSnapshotRepoPath = $env:PREFLIGHT_BASE_SNAPSHOT_PATH
-          $baseSnapshotCommit = $env:PREFLIGHT_BASE_SNAPSHOT_COMMIT
-          if ([string]::IsNullOrWhiteSpace($baseSnapshotRepoPath)) {
-            if (-not [string]::IsNullOrWhiteSpace($baseSnapshotCommit)) {
-              throw "Preflight returned a snapshot commit without a snapshot path."
-            }
-            $baseGamever = ""
-            $baseSnapshot = ""
-            $hasBaseSnapshot = "false"
-            $validationGamever = $env:PR_GAMEVER
-            Write-Host "Base commit $baseRef has no snapshot; bootstrap PR validation will rebuild $validationGamever."
-          } else {
-            if ($baseSnapshotRepoPath -notmatch '^gamesymbols/[^/]+\.yaml$') {
-              throw "Invalid preflight snapshot path: $baseSnapshotRepoPath"
-            }
-            if ($baseSnapshotCommit -notmatch '^[0-9a-f]{40}$') {
-              throw "Invalid preflight snapshot commit: $baseSnapshotCommit"
-            }
-            $baseGamever = [IO.Path]::GetFileNameWithoutExtension($baseSnapshotRepoPath)
-            git cat-file -e "$baseSnapshotCommit^{commit}"
-            if ($LASTEXITCODE -ne 0) { throw "Preflight snapshot commit is unavailable: $baseSnapshotCommit" }
-            $baseSnapshot = Join-Path $baseDir "$baseGamever.yaml"
-            $versionedBaseConfig = "configs/$baseGamever.yaml"
-            git cat-file -e "$baseSnapshotCommit`:$versionedBaseConfig"
-            if ($LASTEXITCODE -eq 0) {
-              Export-GitBlob $baseSnapshotCommit $versionedBaseConfig $baseConfig
-            } else {
-              Export-GitBlob $baseSnapshotCommit "config.yaml" $baseConfig
-            }
-            Export-GitBlob $baseRef $baseSnapshotRepoPath $baseSnapshot
-            $hasBaseSnapshot = "true"
-            $validationGamever = $baseGamever
-          }
-          $headSnapshotRepoPath = "gamesymbols/$validationGamever.yaml"
-          $headSnapshot = Join-Path $baseDir "head-$validationGamever.yaml"
-          Export-GitBlob "HEAD" $headSnapshotRepoPath $headSnapshot
-          $headConfig = Join-Path $baseDir "head-config.yaml"
-          Export-GitBlob "HEAD" "configs/$validationGamever.yaml" $headConfig
-          if ($validationGamever -ne $env:PREFLIGHT_GAMEVER) {
-            throw "PR validation GAMEVER drifted after warmup: preflight=$env:PREFLIGHT_GAMEVER validate=$validationGamever"
-          }
-          "BASE_REF=$baseRef" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "BASE_CONFIG=$baseConfig" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "BASE_SNAPSHOT=$baseSnapshot" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "BASE_GAMEVER=$baseGamever" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "HEAD_SNAPSHOT=$headSnapshot" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "HEAD_CONFIG=$headConfig" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "HAS_BASE_SNAPSHOT=$hasBaseSnapshot" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "GAMEVER=$validationGamever" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          Write-Host "PR validation GAMEVER=$validationGamever (release GAMEVER=$env:PR_GAMEVER)"
-      - name: Resolve consumer IDA identity
-        id: resolve-consumer-ida
+          uv run init_gamebin.py prepare "$env:GAMEVER" --binsync skip
+          if ($LASTEXITCODE -ne 0) { throw "Binary initialization failed for $env:GAMEVER." }
+      - name: Resolve and restore exact warm IDB generation
         shell: pwsh
         run: |
           $pythonExe = (Get-Command python -ErrorAction SilentlyContinue).Source
-          $idalibMcpExe = (Get-Command idalib-mcp -ErrorAction SilentlyContinue).Source
-          if ([string]::IsNullOrWhiteSpace($pythonExe) -or [string]::IsNullOrWhiteSpace($idalibMcpExe)) {
-            throw "python with idalib and idalib-mcp must both be available on PATH."
-          }
-          $pythonExe = [IO.Path]::GetFullPath($pythonExe)
-          $idalibMcpExe = [IO.Path]::GetFullPath($idalibMcpExe)
-          $pythonDir = Split-Path -Parent $pythonExe
-          $mcpDir = Split-Path -Parent $idalibMcpExe
-          $pythonScriptsDir = Join-Path $pythonDir "Scripts"
-          if (-not [StringComparer]::OrdinalIgnoreCase.Equals($mcpDir, $pythonDir) -and `
-              -not [StringComparer]::OrdinalIgnoreCase.Equals($mcpDir, $pythonScriptsDir)) {
-            throw "python and idalib-mcp resolve to different installations: python=$pythonExe idalib-mcp=$idalibMcpExe"
-          }
           $idaVersion = (& $pythonExe warmup_idb_worker.py --print-ida-version).Trim()
           if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($idaVersion)) {
-            throw "Failed to resolve the consumer IDA kernel version."
+            throw "Unable to resolve the IDA runtime identity."
           }
-          "IDA_VERSION=$idaVersion" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-      - name: Restore required published warm IDB cache
-        id: restore-idb-cache
+          $probe = Join-Path $env:RUNNER_TEMP "idb-probe-$env:GAMEVER.txt"
+          uv run python idb_cache.py probe --repo-root "${{ github.workspace }}" `
+            --persisted-root "$env:PERSISTED_WORKSPACE" --gamever "$env:GAMEVER" `
+            --ida-version "$idaVersion" --github-output "$probe"
+          if ($LASTEXITCODE -ne 0) { throw "Warm IDB probe failed." }
+          $values = @{}
+          Get-Content -LiteralPath $probe | ForEach-Object {
+            $key, $value = $_ -split '=', 2
+            $values[$key] = $value
+          }
+          if ($values['cache-hit'] -ne 'true') { throw "Warmup did not publish the required IDB generation." }
+          uv run python idb_cache.py restore --repo-root "${{ github.workspace }}" `
+            --persisted-root "$env:PERSISTED_WORKSPACE" --gamever "$env:GAMEVER" `
+            --generation $values['generation'] --cache-key $values['cache-key'] --ida-version "$idaVersion"
+          if ($LASTEXITCODE -ne 0) { throw "Warm IDB restore failed." }
+      - name: Prepare checkout-external full rebuild
+        id: prepare-rebuild
         shell: pwsh
         run: |
-          Set-Location $env:WORKSPACE
-          uv run python idb_cache.py restore `
-            --repo-root "$env:WORKSPACE" `
-            --persisted-root "$env:PERSISTED_WORKSPACE" `
-            --gamever "$env:GAMEVER" `
-            --generation "$env:IDB_CACHE_GENERATION" `
-            --cache-key "$env:IDB_CACHE_KEY" `
-            --ida-version "$env:IDA_VERSION"
-          if ($LASTEXITCODE -ne 0) { throw "Required published IDB cache restore failed." }
-      - name: Restore deterministic base and invalidate affected outputs
-        id: restore-base
-        shell: pwsh
-        run: |
-          Set-Location $env:WORKSPACE
-          function Clear-BootstrapYaml {
-            $gameRoot = [IO.Path]::GetFullPath((Join-Path $env:WORKSPACE "bin\$env:GAMEVER"))
-            $workspaceRoot = [IO.Path]::GetFullPath($env:WORKSPACE)
-            $workspacePrefix = $workspaceRoot.TrimEnd('\') + '\'
-            if (-not $gameRoot.StartsWith($workspacePrefix, [StringComparison]::OrdinalIgnoreCase)) {
-              throw "Resolved game root is outside PR workspace: $gameRoot"
-            }
-            if (-not (Test-Path -LiteralPath $gameRoot -PathType Container)) {
-              throw "Current game root does not exist: $gameRoot"
-            }
-            $current = $gameRoot
-            while ($current.StartsWith($workspacePrefix, [StringComparison]::OrdinalIgnoreCase)) {
-              $item = Get-Item -LiteralPath $current -Force
-              if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) {
-                throw "Bootstrap cleanup path must not traverse a reparse point: $current"
-              }
-              if ($current -eq $workspaceRoot) {
-                break
-              }
-              $current = Split-Path -Parent $current
-            }
-            Get-ChildItem -LiteralPath $gameRoot -Recurse -File -Filter "*.yaml" |
-              ForEach-Object { Remove-Item -LiteralPath $_.FullName -Force }
-            Write-Host "Bootstrap validation: cleared persisted YAML for $env:GAMEVER."
-          }
-          $baselineMode = "absent-bootstrap"
-          $baselineReason = "base_snapshot_absent"
-          if ($env:HAS_BASE_SNAPSHOT -eq "true") {
-            $probeLines = @(
-              & uv run gamesymbol_snapshot.py check-contract `
-                -gamever "$env:GAMEVER" `
-                -bindir bin `
-                -configyaml "$env:BASE_CONFIG" `
-                -snapshot "$env:BASE_SNAPSHOT" `
-                -json
-            )
-            $probeExitCode = $LASTEXITCODE
-            $probeText = ($probeLines -join "`n").Trim()
-            if ($probeExitCode -eq 0) {
-              try {
-                $probe = $probeText | ConvertFrom-Json
-              } catch {
-                throw "Baseline contract probe returned invalid JSON: $probeText"
-              }
-              if ($probe.trusted -ne $true -or $probe.reason -ne "trusted") {
-                throw "Baseline contract probe returned an invalid trusted result: $probeText"
-              }
-              $baselineMode = "trusted-incremental"
-              $baselineReason = "trusted"
-            } elseif ($probeExitCode -eq 3) {
-              try {
-                $probe = $probeText | ConvertFrom-Json
-              } catch {
-                throw "Baseline contract probe returned invalid JSON: $probeText"
-              }
-              if ($probe.trusted -ne $false -or [string]::IsNullOrWhiteSpace([string]$probe.reason)) {
-                throw "Baseline contract probe returned an invalid untrusted result: $probeText"
-              }
-              $baselineMode = "untrusted-bootstrap"
-              $baselineReason = [string]$probe.reason
-              Write-Output "::warning title=Baseline snapshot rejected::reason=$baselineReason; incremental validation disabled; falling back to clean full rebuild"
-              Clear-BootstrapYaml
-              $env:HAS_BASE_SNAPSHOT = "false"
-              "HAS_BASE_SNAPSHOT=false" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-            } else {
-              throw "Baseline contract probe failed with exit code $probeExitCode`: $probeText"
-            }
-          }
-          if ($baselineMode -eq "trusted-incremental") {
-            uv run gamesymbol_snapshot.py restore `
-              -gamever "$env:GAMEVER" `
-              -bindir bin `
-              -configyaml "$env:BASE_CONFIG" `
-              -snapshot "$env:BASE_SNAPSHOT" `
-              -replace
-            if ($LASTEXITCODE -ne 0) {
-              throw "Base snapshot restore failed with exit code $LASTEXITCODE"
-            }
-            uv run gamesymbol_pr_validation.py invalidate `
-              -gamever "$env:GAMEVER" `
-              -bindir bin `
-              -baseconfigyaml "$env:BASE_CONFIG" `
-              -basesnapshot "$env:BASE_SNAPSHOT" `
-               -headconfigyaml "$env:HEAD_CONFIG" `
-              -headsnapshot "$env:HEAD_SNAPSHOT" `
-              -baseref "$env:BASE_REF" `
-              -headref "HEAD"
-            if ($LASTEXITCODE -ne 0) {
-              throw "gamesymbol_pr_validation.py failed with exit code $LASTEXITCODE"
-            }
-          } elseif ($baselineMode -eq "absent-bootstrap") {
-            Clear-BootstrapYaml
-          }
-          "BASELINE_MODE=$baselineMode" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          @(
-            "Baseline mode: $baselineMode"
-            "Validation game version: $env:GAMEVER"
-            "Reason: $baselineReason"
-            "Incremental invalidation: $(if ($baselineMode -eq 'trusted-incremental') { 'enabled' } else { 'disabled' })"
-          ) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
-      - name: Run Python test suites
-        id: test-suites
-        shell: pwsh
-        run: |
-          Set-Location $env:WORKSPACE
-          foreach ($suite in @('unit', 'repository-contract', 'redis-integration', 'release-integration', 'all')) {
-            uv run python tests/run_test_suite.py $suite -b --durations 30
-            if ($LASTEXITCODE -ne 0) { throw "Repository test suite failed: $suite" }
-          }
-      - name: Analyze binaries
-        id: analyze
-        shell: pwsh
-        run: |
-          Set-Location $env:WORKSPACE
-           uv run ida_analyze_bin.py -gamever "$env:GAMEVER" -configyaml "$env:HEAD_CONFIG" -require_warm_idb -debug
-          if ($LASTEXITCODE -ne 0) {
-            throw "ida_analyze_bin.py failed with exit code $LASTEXITCODE"
-          }
-      - name: Build actual candidate snapshot
-        id: build-snapshot
-        shell: pwsh
-        run: |
-          Set-Location $env:WORKSPACE
-          $candidateRoot = Join-Path $env:RUNNER_TEMP "gamesymbol-candidates\pr-$env:PR_NUMBER-${{ github.run_id }}-${{ github.run_attempt }}"
-          New-Item -ItemType Directory -Path $candidateRoot -Force | Out-Null
-          $candidate = Join-Path $candidateRoot "$env:GAMEVER.yaml"
-          $session = Join-Path $candidateRoot "$env:GAMEVER.session.json"
-          $gamedataModules = Join-Path $candidateRoot "gamedata-generators"
-          Copy-Item -LiteralPath (Join-Path $env:WORKSPACE "gamedata-generators") -Destination $gamedataModules -Recurse
-          "CANDIDATE_ROOT=$candidateRoot" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "ACTUAL_CANDIDATE_SNAPSHOT=$candidate" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "CANDIDATE_SESSION=$session" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "GAMEDATA_MODULES_DIR=$gamedataModules" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          uv run gamesymbol_candidate.py build `
-            -gamever "$env:GAMEVER" `
-            -bindir bin `
-             -configyaml "$env:HEAD_CONFIG" `
-            -output "$candidate" `
-            -session "$session"
-          if ($LASTEXITCODE -ne 0) {
-            throw "candidate build failed with exit code $LASTEXITCODE"
-          }
-          $snapshotSha256 = (Get-FileHash -LiteralPath $candidate -Algorithm SHA256).Hash.ToLowerInvariant()
-          if ($snapshotSha256 -notmatch '^[0-9a-f]{64}$') { throw "Candidate SHA-256 is invalid." }
-          "SNAPSHOT_SHA256=$snapshotSha256" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-      - name: Build isolated versioned gamedata candidate
-        id: build-gamedata
-        shell: pwsh
-        run: |
-          Set-Location $env:WORKSPACE
-          uv run gamesymbol_candidate.py guard -candidate "$env:ACTUAL_CANDIDATE_SNAPSHOT" -session "$env:CANDIDATE_SESSION"
-          if ($LASTEXITCODE -ne 0) { throw "candidate guard failed before gamedata" }
-          $gamedataRoot = Join-Path $env:CANDIDATE_ROOT "gamedata-candidate"
-          $gamedataSession = Join-Path $env:CANDIDATE_ROOT "$env:GAMEVER.gamedata.session.json"
-          $env:GAMEDATA_SESSION = $gamedataSession
-          "GAMEDATA_SESSION=$gamedataSession" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          uv run gamedata_candidate.py build -gamever "$env:GAMEVER" `
-            -build-id "${{ github.run_id }}-${{ github.run_attempt }}" `
-            -snapshot "$env:ACTUAL_CANDIDATE_SNAPSHOT" -configyaml "$env:HEAD_CONFIG" `
-            -modulesdir "$env:GAMEDATA_MODULES_DIR" `
-            -candidate-root "$gamedataRoot" -session "$gamedataSession" -debug
-          if ($LASTEXITCODE -ne 0) { throw "gamedata candidate build failed with exit code $LASTEXITCODE" }
-          uv run gamedata_candidate.py guard -session "$gamedataSession"
-          if ($LASTEXITCODE -ne 0) { throw "gamedata candidate guard failed" }
-          $gamedataSessionData = Get-Content -LiteralPath $gamedataSession -Raw | ConvertFrom-Json
-          $gamedataManifestSha256 = [string]$gamedataSessionData.gamedata_manifest_sha256
-          if ($gamedataManifestSha256 -notmatch '^[0-9a-f]{64}$') {
-            throw "Gamedata candidate session has an invalid manifest SHA-256."
-          }
-          "GAMEDATA_MANIFEST_SHA256=$gamedataManifestSha256" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          uv run gamesymbol_candidate.py guard -candidate "$env:ACTUAL_CANDIDATE_SNAPSHOT" -session "$env:CANDIDATE_SESSION"
-          if ($LASTEXITCODE -ne 0) { throw "candidate guard failed after gamedata" }
-          uv run gamesymbol_candidate.py mark -candidate "$env:ACTUAL_CANDIDATE_SNAPSHOT" -session "$env:CANDIDATE_SESSION" -step gamedata
-          if ($LASTEXITCODE -ne 0) { throw "failed to mark gamedata validation" }
-      - name: Select versioned SDK for C++ ABI validation
-        id: select-sdk
-        shell: pwsh
-        run: |
-          $sdkPath = Join-Path $env:WORKSPACE "hl2sdk_cs2"
-          $safeSdkPath = ([IO.Path]::GetFullPath($sdkPath) -replace '\\', '/')
-          git config --global --add safe.directory "$safeSdkPath"
-          if ($LASTEXITCODE -ne 0) { throw "Failed to trust hl2sdk_cs2 Git directory." }
-          $sdkRef = "cs2-$env:GAMEVER"
-          $sdkRemote = "https://github.com/HLND2T/hl2sdk.git"
-          $pinnedSha = (git -C $sdkPath rev-parse HEAD).Trim()
-          if ($LASTEXITCODE -ne 0 -or $pinnedSha -notmatch '^[0-9a-fA-F]{40}$') {
-            throw "Unable to resolve the pinned hl2sdk_cs2 commit."
-          }
-          "SDK_PINNED_SHA=$pinnedSha" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-          $remoteBranch = git -C $sdkPath ls-remote --heads $sdkRemote "refs/heads/$sdkRef"
-          if ($LASTEXITCODE -ne 0) { throw "Unable to query $sdkRef from hl2sdk." }
-          if ([string]::IsNullOrWhiteSpace($remoteBranch)) {
-            "SDK_ABI_REF=pinned-submodule" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-            "SDK_ABI_SHA=$pinnedSha" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-            "SDK_ABI_SWITCHED=false" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-            Write-Host "No versioned SDK branch exists for $sdkRef; retaining the pinned submodule revision."
-            Write-Host "C++ ABI SDK selection: GAMEVER=$env:GAMEVER; ref=pinned-submodule; selected SHA=$pinnedSha; pinned SHA=$pinnedSha"
-          } else {
-            $remoteSha = ($remoteBranch -split '\s+')[0]
-            if ($remoteSha -notmatch '^[0-9a-fA-F]{40}$') { throw "Invalid commit returned for $sdkRef." }
-            git -C $sdkPath fetch --no-tags --depth 1 $sdkRemote "refs/heads/$sdkRef"
-            if ($LASTEXITCODE -ne 0) { throw "Unable to fetch $sdkRef from hl2sdk." }
-            $fetchedSha = (git -C $sdkPath rev-parse FETCH_HEAD).Trim()
-            if ($LASTEXITCODE -ne 0 -or $fetchedSha -ne $remoteSha) {
-              throw "Fetched commit for $sdkRef does not match the queried remote commit."
-            }
-            "SDK_ABI_SWITCHED=true" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-            git -C $sdkPath checkout --detach $remoteSha
-            if ($LASTEXITCODE -ne 0) { throw "Unable to checkout $sdkRef." }
-            $selectedSha = (git -C $sdkPath rev-parse HEAD).Trim()
-            if ($LASTEXITCODE -ne 0 -or $selectedSha -ne $remoteSha) {
-              throw "Selected SDK commit does not match $sdkRef."
-            }
-            "SDK_ABI_REF=$sdkRef" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-            "SDK_ABI_SHA=$selectedSha" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-            Write-Host "C++ ABI SDK selection: GAMEVER=$env:GAMEVER; ref=$sdkRef; selected SHA=$selectedSha; pinned SHA=$pinnedSha"
-          }
-      - name: Run C++ tests
-        id: cpp-tests
-        shell: pwsh
-        run: |
-          Set-Location $env:WORKSPACE
-          uv run gamesymbol_candidate.py guard -candidate "$env:ACTUAL_CANDIDATE_SNAPSHOT" -session "$env:CANDIDATE_SESSION"
-          if ($LASTEXITCODE -ne 0) { throw "candidate guard failed before C++ tests" }
-           uv run run_cpp_tests.py -gamever "$env:GAMEVER" -snapshot "$env:ACTUAL_CANDIDATE_SNAPSHOT" -configyaml "$env:HEAD_CONFIG" -debug
-          if ($LASTEXITCODE -ne 0) {
-            throw "run_cpp_tests.py failed with exit code $LASTEXITCODE"
-          }
-          uv run gamesymbol_candidate.py guard -candidate "$env:ACTUAL_CANDIDATE_SNAPSHOT" -session "$env:CANDIDATE_SESSION"
-          if ($LASTEXITCODE -ne 0) { throw "candidate guard failed after C++ tests" }
-          uv run gamesymbol_candidate.py mark -candidate "$env:ACTUAL_CANDIDATE_SNAPSHOT" -session "$env:CANDIDATE_SESSION" -step cpp_tests
-          if ($LASTEXITCODE -ne 0) { throw "failed to mark C++ validation" }
-      - name: Restore pinned SDK revision
-        id: restore-sdk
-        if: always()
-        shell: pwsh
-        run: |
-          if ($env:SDK_ABI_SWITCHED -ne "true") {
-            Write-Host "C++ ABI SDK restore: pinned submodule revision remained selected."
-            exit 0
-          }
-          if ($env:SDK_PINNED_SHA -notmatch '^[0-9a-fA-F]{40}$') {
-            throw "SDK_PINNED_SHA is unavailable or invalid."
-          }
-          $sdkPath = Join-Path $env:WORKSPACE "hl2sdk_cs2"
-          git -C $sdkPath checkout --detach "$env:SDK_PINNED_SHA"
-          if ($LASTEXITCODE -ne 0) { throw "Unable to restore pinned hl2sdk_cs2 commit." }
-          $restoredSha = (git -C $sdkPath rev-parse HEAD).Trim()
-          if ($LASTEXITCODE -ne 0 -or $restoredSha -ne $env:SDK_PINNED_SHA) {
-            throw "Restored SDK commit does not match SDK_PINNED_SHA."
-          }
-          Write-Host "C++ ABI SDK restore: restored pinned SHA=$restoredSha"
-      - name: Mark snapshot validation success
-        id: mark-success
-        shell: pwsh
-        run: |
-          Set-Location $env:WORKSPACE
-          "validated" | Out-File -LiteralPath (Join-Path $env:RUNNER_TEMP "snapshot-validation-success") -Encoding ascii
-      - name: Stage analyzed YAML for merge promotion
-        id: stage-yaml
-        shell: pwsh
-        run: |
-          Set-Location $env:WORKSPACE
-          $gameRoot = [IO.Path]::GetFullPath((Join-Path $env:WORKSPACE "bin\$env:GAMEVER"))
-          $workspaceRoot = [IO.Path]::GetFullPath($env:WORKSPACE)
-          $workspacePrefix = $workspaceRoot.TrimEnd('\') + '\'
-          if (-not $gameRoot.StartsWith($workspacePrefix, [StringComparison]::OrdinalIgnoreCase)) {
-            throw "Resolved game root is outside the validation workspace: $gameRoot"
-          }
-          if (-not (Test-Path -LiteralPath $gameRoot -PathType Container)) {
-            throw "Current game root does not exist: $gameRoot"
-          }
-          $stagingRoot = Join-Path $env:PERSISTED_WORKSPACE "pr-yaml-staging"
-          $prStaging = Join-Path $stagingRoot $env:PR_NUMBER
-          $runStaging = Join-Path $prStaging "${{ github.run_id }}-${{ github.run_attempt }}"
-          New-Item -ItemType Directory -Path $runStaging -Force | Out-Null
-
-          # Record the GAMEVER so the merge finalizer can route this run's
-          # analyzed YAML back to the correct persisted bin directory.
-          $env:GAMEVER | Out-File -LiteralPath (Join-Path $runStaging "gamever.txt") -Encoding ascii
-
-          # Only the analyzed *.yaml artifacts are staged; *.i64 databases are
-          # not persisted by the PR pipeline anymore.
-          robocopy $gameRoot $runStaging "*.yaml" /S /COPY:DAT /DCOPY:DAT /R:2 /W:5
-          $rc = $LASTEXITCODE
-          if ($rc -ge 8) {
-            throw "Failed to stage analyzed YAML for GAMEVER=$env:GAMEVER; robocopy exit code $rc"
-          }
-          $global:LASTEXITCODE = 0
-          Write-Host "Staged analyzed YAML for GAMEVER=$env:GAMEVER into $runStaging"
-      - name: Ensure candidate state is removed
-        id: cleanup
-        if: always()
-        shell: pwsh
-        run: |
-          if (-not [string]::IsNullOrWhiteSpace($env:CANDIDATE_ROOT) -and (Test-Path -LiteralPath $env:CANDIDATE_ROOT)) {
-            Remove-Item -LiteralPath $env:CANDIDATE_ROOT -Recurse -Force
-          }
-  pr-validate-light:
-    name: pr-validate-light
-    needs: pr-preflight
-    if: >-
-      always() &&
-      github.event_name == 'pull_request' &&
-      github.event.action != 'closed' &&
-      (github.repository == 'HLND2T/CS2_VibeSignatures') &&
-      github.event.pull_request.head.repo.full_name == github.repository &&
-      !((github.event.pull_request.user.login == 'github-actions[bot]' ||
-         github.event.pull_request.author_association == 'OWNER' ||
-         github.event.pull_request.author_association == 'MEMBER' ||
-         github.event.pull_request.author_association == 'COLLABORATOR') &&
-         startsWith(github.event.pull_request.head.ref, 'gamesymbols/build/') &&
-         startsWith(github.event.pull_request.title, 'chore(gamesymbols): publish ')) &&
-      needs.pr-preflight.result == 'success' &&
-      needs.pr-preflight.outputs.validation_path == 'light'
-    runs-on: ubuntu-latest
-    env:
-      WORKSPACE: ${{ github.workspace }}
-    steps:
-      - name: Checkout PR merge ref
-        id: checkout-merge
-        uses: actions/checkout@v5
-        with:
-          ref: ${{ needs.pr-preflight.outputs.source_sha }}
-          fetch-depth: 0
-          submodules: false
-      - name: Set up uv
-        id: setup-uv
-        uses: astral-sh/setup-uv@v9.0.0
-      - name: Check formatting
-        id: format
-        shell: bash
-        run: |
-          uv run --locked --only-group dev python format_repo_files.py --check
-      - name: Verify download config exists
-        id: verify-download-config
-        shell: pwsh
-        run: |
-          $gamever = "${{ needs.pr-preflight.outputs.latest_gamever }}".Trim()
-          if ([string]::IsNullOrWhiteSpace($gamever)) {
-            throw "Missing latest game version from preflight."
-          }
-          $configPath = Join-Path (Join-Path $env:WORKSPACE "configs") "${gamever}.yaml"
-          if (-not (Test-Path -LiteralPath $configPath -PathType Leaf)) {
-            throw "Missing analysis config for ${gamever}: $configPath"
-          }
-          Write-Host "Download config validation OK: GAMEVER=$gamever config=$configPath"
-  pr-validate:
-    name: pr-validate
-    needs: [pr-preflight, pr-validate-full, pr-validate-light]
-    if: >-
-      always() &&
-      github.event_name == 'pull_request' &&
-      github.event.action != 'closed' &&
-      (github.repository == 'HLND2T/CS2_VibeSignatures') &&
-      github.event.pull_request.head.repo.full_name == github.repository &&
-      !((github.event.pull_request.user.login == 'github-actions[bot]' ||
-         github.event.pull_request.author_association == 'OWNER' ||
-         github.event.pull_request.author_association == 'MEMBER' ||
-         github.event.pull_request.author_association == 'COLLABORATOR') &&
-         startsWith(github.event.pull_request.head.ref, 'gamesymbols/build/') &&
-         startsWith(github.event.pull_request.title, 'chore(gamesymbols): publish '))
-    runs-on: ubuntu-latest
-    steps:
-      - name: Require successful validation
-        id: terminal
-        shell: bash
-        env:
-          PREFLIGHT_RESULT: ${{ needs.pr-preflight.result }}
-          FULL_RESULT: ${{ needs.pr-validate-full.result }}
-          LIGHT_RESULT: ${{ needs.pr-validate-light.result }}
-          VALIDATION_PATH: ${{ needs.pr-preflight.outputs.validation_path }}
-        run: |
-          set -euo pipefail
-          [[ "$PREFLIGHT_RESULT" == "success" ]]
-          if [[ "$VALIDATION_PATH" == "full" ]]; then
-            [[ "$FULL_RESULT" == "success" ]]
-          else
-            [[ "$LIGHT_RESULT" == "success" ]]
-          fi
-  classify-closed-pr:
-    if: >-
-      github.event.action == 'closed' &&
-      (github.repository == 'HLND2T/CS2_VibeSignatures') &&
-      github.event.pull_request.head.repo.full_name == github.repository &&
-      !((github.event.pull_request.user.login == 'github-actions[bot]' ||
-         github.event.pull_request.author_association == 'OWNER' ||
-         github.event.pull_request.author_association == 'MEMBER' ||
-         github.event.pull_request.author_association == 'COLLABORATOR') &&
-        startsWith(github.event.pull_request.head.ref, 'bump-download/') &&
-        startsWith(github.event.pull_request.title, 'chore(download): Update manifest for ')) &&
-      !((github.event.pull_request.user.login == 'github-actions[bot]' ||
-         github.event.pull_request.author_association == 'OWNER' ||
-         github.event.pull_request.author_association == 'MEMBER' ||
-         github.event.pull_request.author_association == 'COLLABORATOR') &&
-        startsWith(github.event.pull_request.head.ref, 'gamesymbols/build/') &&
-        startsWith(github.event.pull_request.title, 'chore(gamesymbols): publish '))
-    permissions:
-      contents: read
-    runs-on: ubuntu-latest
-    outputs:
-      validation_path: ${{ steps.classify-validation-mode.outputs.validation-mode || 'full' }}
-    steps:
-      - name: Checkout trusted PR base
-        id: checkout-base
-        uses: actions/checkout@v5
-        with:
-          ref: ${{ github.event.pull_request.base.sha }}
-          fetch-depth: 0
-          submodules: false
-      - name: Fetch immutable PR head
-        id: fetch-head
-        shell: pwsh
-        env:
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: |
-          git fetch --no-tags origin "+refs/pull/$env:PR_NUMBER/head:refs/remotes/pull/$env:PR_NUMBER/head"
-          if ($LASTEXITCODE -ne 0) { throw "Unable to fetch immutable PR head ref." }
-          $fetchedHead = (git rev-parse "refs/remotes/pull/$env:PR_NUMBER/head").Trim().ToLowerInvariant()
-          if ($LASTEXITCODE -ne 0 -or $fetchedHead -ne $env:PR_HEAD_SHA.ToLowerInvariant()) {
-            throw "Fetched PR head ref does not match the closed PR head SHA."
-          }
-      - name: Set up uv for closed PR classification
-        id: setup-uv
-        uses: astral-sh/setup-uv@v9.0.0
-      - name: Classify closed PR validation mode
-        id: classify-validation-mode
-        shell: pwsh
-        env:
-          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: |
-          uv run python pr_validation_mode.py `
+          $plan = Join-Path "${{ runner.temp }}" "trusted-pr-plan\trusted-source-artifact-plan.json"
+          $staging = Join-Path "${{ runner.temp }}" "trusted-pr-rebuild\${{ github.run_id }}-${{ github.run_attempt }}-$env:GAMEVER"
+          uv run --project .trusted-tools python .trusted-tools/trusted_artifact_pr.py prepare `
             --repo-root "${{ github.workspace }}" `
-            --base-ref "$env:PR_BASE_SHA" `
-            --head-ref "$env:PR_HEAD_SHA" `
-            --github-output "$env:GITHUB_OUTPUT"
-          if ($LASTEXITCODE -ne 0) { throw "Failed to classify closed PR validation mode." }
-  finalize-pr-workspace:
-    needs: classify-closed-pr
-    if: >-
-      always() &&
-      needs.classify-closed-pr.result == 'success' &&
-      github.event.action == 'closed' &&
-      (github.repository == 'HLND2T/CS2_VibeSignatures') &&
-      github.event.pull_request.head.repo.full_name == github.repository &&
-      !((github.event.pull_request.user.login == 'github-actions[bot]' ||
-         github.event.pull_request.author_association == 'OWNER' ||
-         github.event.pull_request.author_association == 'MEMBER' ||
-         github.event.pull_request.author_association == 'COLLABORATOR') &&
-        startsWith(github.event.pull_request.head.ref, 'bump-download/') &&
-        startsWith(github.event.pull_request.title, 'chore(download): Update manifest for ')) &&
-      !((github.event.pull_request.user.login == 'github-actions[bot]' ||
-         github.event.pull_request.author_association == 'OWNER' ||
-         github.event.pull_request.author_association == 'MEMBER' ||
-         github.event.pull_request.author_association == 'COLLABORATOR') &&
-        startsWith(github.event.pull_request.head.ref, 'gamesymbols/build/') &&
-        startsWith(github.event.pull_request.title, 'chore(gamesymbols): publish '))
-    environment: win64-cleanup
-    runs-on: [self-hosted, windows, x64]
-    env:
-      PERSISTED_WORKSPACE: ${{ secrets.PERSISTED_WORKSPACE }}
-      VALIDATION_PATH: ${{ needs.classify-closed-pr.outputs.validation_path }}
-    steps:
-      - name: Checkout trusted PR base
-        id: checkout-base
-        uses: actions/checkout@v5
-        with:
-          ref: ${{ github.event.pull_request.base.sha }}
-          fetch-depth: 1
-          submodules: false
-      - name: Set up uv for locked YAML promotion
-        id: setup-uv
-        uses: astral-sh/setup-uv@v9.0.0
-      - name: Promote staged YAML on merge
-        id: finalize-workspace
+            --plan "$plan" --gamever "$env:GAMEVER" --staging-root "$staging"
+          if ($LASTEXITCODE -ne 0) { throw "Trusted isolated rebuild preparation failed." }
+          $preparation = Join-Path $staging "preparation.json"
+          $document = Get-Content -LiteralPath $preparation -Raw | ConvertFrom-Json
+          if ($document.plan_sha256 -ne $env:PLAN_SHA256) { throw "Preparation is not bound to the trusted plan." }
+          $executionReport = $document.execution_reports.PSObject.Properties[$env:GAMEVER].Value
+          if ([string]::IsNullOrWhiteSpace($executionReport)) { throw "Preparation omitted GAMEVER execution evidence." }
+          "plan=$plan" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "preparation=$preparation" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "actual-root=$($document.actual_artifact_root)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "config=$($document.config_root)\$env:GAMEVER.yaml" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "execution-report=$executionReport" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "verification=$(Join-Path $staging 'validation.json')" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+      - name: Execute every producer group from an empty artifact root
         shell: pwsh
-        run: |-
-          $prNumber = "${{ github.event.pull_request.number }}"
-          $prWasMerged = "${{ github.event.pull_request.merged }}"
-          if ([string]::IsNullOrWhiteSpace($prNumber)) {
-            throw "Unable to determine pull request number."
-          }
-          $validationPath = $env:VALIDATION_PATH.Trim().ToLowerInvariant()
-          if ($validationPath -notin @("light", "full")) {
-            throw "Closed PR validation path is invalid: $validationPath"
-          }
-          $prStaging = [IO.Path]::GetFullPath((Join-Path $env:PERSISTED_WORKSPACE "pr-yaml-staging\$prNumber"))
-          if ($validationPath -eq "light") {
-            if (Test-Path -LiteralPath $prStaging -PathType Container) {
-              Remove-Item -LiteralPath $prStaging -Recurse -Force
-              Write-Host "Removed stale staged YAML directory for light PR: $prStaging"
-            }
-            Write-Host "PR $prNumber used light validation; no YAML promotion is required."
-            exit 0
-          }
-          if (-not (Test-Path -LiteralPath $prStaging -PathType Container)) {
-            if ($prWasMerged -eq "true") {
-              throw "Merged PR has no staged YAML directory: $prStaging"
-            }
-            Write-Host "No staged YAML for PR $prNumber; nothing to promote."
-            exit 0
-          }
-          if ($prWasMerged -eq "true") {
-            uv run release_workflow.py promote-staged-yaml `
-              --persisted-root "$env:PERSISTED_WORKSPACE" `
-              --pr-number "$prNumber"
-            if ($LASTEXITCODE -ne 0) {
-              throw "Failed to promote staged YAML for PR $prNumber."
-            }
-            Write-Host "Promoted staged YAML for PR $prNumber into persisted accepted bin."
-          } else {
-            Write-Host "PR $prNumber was closed without merging; skipping YAML promotion."
-          }
-          Remove-Item -LiteralPath $prStaging -Recurse -Force
-          Write-Host "Removed staged YAML directory: $prStaging"
+        run: |
+          uv run ida_analyze_bin.py -gamever "$env:GAMEVER" `
+            -configyaml "${{ steps.prepare-rebuild.outputs.config }}" -bindir bin `
+            -artifactdir "${{ steps.prepare-rebuild.outputs.actual-root }}" -oldartifactdir bin_artifacts `
+            -execution_report "${{ steps.prepare-rebuild.outputs.execution-report }}" `
+            -require_warm_idb -force_all -debug
+          if ($LASTEXITCODE -ne 0) { throw "Force-all PR artifact rebuild failed." }
+      - name: Verify execution evidence and exact Git bytes
+        shell: pwsh
+        run: |
+          uv run --project .trusted-tools python .trusted-tools/trusted_artifact_pr.py verify `
+            --repo-root "${{ github.workspace }}" `
+            --plan "${{ steps.prepare-rebuild.outputs.plan }}" `
+            --preparation "${{ steps.prepare-rebuild.outputs.preparation }}" `
+            --output "${{ steps.prepare-rebuild.outputs.verification }}"
+          if ($LASTEXITCODE -ne 0) { throw "Isolated rebuild differs from trusted Git artifacts." }
+      - name: Build and validate downstream candidates
+        id: downstream
+        shell: pwsh
+        run: |
+          $root = Join-Path "${{ runner.temp }}" "trusted-pr-downstream\${{ github.run_id }}-${{ github.run_attempt }}-$env:GAMEVER"
+          New-Item -ItemType Directory -Path $root -Force | Out-Null
+          $snapshot = Join-Path $root "$env:GAMEVER.yaml"
+          $session = Join-Path $root "$env:GAMEVER.session.json"
+          $gamedataRoot = Join-Path $root "gamedata"
+          $gamedataSession = Join-Path $root "$env:GAMEVER.gamedata.session.json"
+          uv run gamesymbol_candidate.py build -gamever "$env:GAMEVER" -bindir bin `
+            -artifactdir "${{ steps.prepare-rebuild.outputs.actual-root }}" `
+            -configyaml "${{ steps.prepare-rebuild.outputs.config }}" -output "$snapshot" -session "$session"
+          if ($LASTEXITCODE -ne 0) { throw "Snapshot candidate build failed." }
+          uv run gamedata_candidate.py build -gamever "$env:GAMEVER" `
+            -build-id "${{ github.run_id }}-${{ github.run_attempt }}" -snapshot "$snapshot" `
+            -configyaml "${{ steps.prepare-rebuild.outputs.config }}" `
+            -candidate-root "$gamedataRoot" -session "$gamedataSession" -debug
+          if ($LASTEXITCODE -ne 0) { throw "Gamedata candidate validation failed." }
+          uv run gamedata_candidate.py guard -session "$gamedataSession"
+          if ($LASTEXITCODE -ne 0) { throw "Gamedata candidate guard failed." }
+          "snapshot=$snapshot" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+      - name: Run C++ ABI validation
+        shell: pwsh
+        run: |
+          uv run run_cpp_tests.py -gamever "$env:GAMEVER" `
+            -snapshot "${{ steps.downstream.outputs.snapshot }}" `
+            -configyaml "${{ steps.prepare-rebuild.outputs.config }}" -debug
+          if ($LASTEXITCODE -ne 0) { throw "C++ ABI validation failed." }
+      - name: Upload bound rebuild evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: trusted-pr-rebuild-${{ github.run_id }}-${{ github.run_attempt }}-${{ inputs.gamever }}
+          path: |
+            ${{ steps.prepare-rebuild.outputs.preparation }}
+            ${{ steps.prepare-rebuild.outputs.execution-report }}
+            ${{ steps.prepare-rebuild.outputs.verification }}
+          if-no-files-found: error
+          retention-days: 7

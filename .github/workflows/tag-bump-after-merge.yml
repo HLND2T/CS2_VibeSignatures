@@ -17,6 +17,14 @@ jobs:
       startsWith(github.event.pull_request.head.ref, 'bump-download/')
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout immutable bump merge
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          fetch-depth: 0
+          submodules: false
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v9.0.0
       - name: Dispatch immutable new-version build
         id: dispatch-build
         shell: pwsh
@@ -30,6 +38,12 @@ jobs:
           $sourceSha = $env:SOURCE_SHA
           if ($gamever -notmatch '^[0-9]{4,10}[a-z]?$') { throw "Unexpected GAMEVER in branch: $headRef" }
           if ($sourceSha -notmatch '^[0-9a-fA-F]{40}$') { throw "Missing full bump merge SHA." }
+          git fetch origin "+refs/heads/${{ github.event.repository.default_branch }}:refs/remotes/origin/${{ github.event.repository.default_branch }}"
+          if ($LASTEXITCODE -ne 0) { throw "Unable to fetch the immutable default branch." }
+          uv run python release_source_preflight.py --repo-root "${{ github.workspace }}" `
+            --repository "${{ github.repository }}" --gamever "$gamever" --source-sha "$sourceSha" `
+            --default-ref "origin/${{ github.event.repository.default_branch }}"
+          if ($LASTEXITCODE -ne 0) { throw "Source-owned repository preflight refused Release dispatch." }
           $headers = @{
             Authorization = "Bearer $env:GITHUB_TOKEN"
             Accept = "application/vnd.github+json"
@@ -46,11 +60,10 @@ jobs:
             client_payload = @{
               gamever = $gamever
               source_sha = $sourceSha
-              mode = "new"
               source_pull_request = ${{ github.event.pull_request.number }}
             }
           } | ConvertTo-Json -Depth 5
           Invoke-RestMethod -Method Post `
             -Uri "https://api.github.com/repos/${{ github.repository }}/dispatches" `
             -Headers $headers -ContentType "application/json" -Body $payload
-          Write-Host "Dispatched mode=new build for $gamever from $sourceSha."
+          Write-Host "Dispatched immutable build for $gamever from $sourceSha."

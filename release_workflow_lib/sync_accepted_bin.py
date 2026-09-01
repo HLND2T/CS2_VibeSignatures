@@ -8,10 +8,8 @@ warmed), the actual binaries the run consumed are transactionally, idempotently
 mirrored into ``PERSISTED_WORKSPACE/bin/<GAMEVER>`` so the accepted tree always
 reflects the warmup input.
 
-The merge-time ``promote_bin`` path remains the verification gate for accepted
-bin. ``sync_accepted_bin`` shares its per-version lock and the same-hash fast path,
-so the two writers cannot race and a later merge-time promote becomes a no-op when
-the warmup already wrote identical bytes.
+The accepted tree is binary-only: YAML, IDA databases, and BinSync state are
+excluded. A dedicated per-version binary-cache lock makes direct invocations safe.
 
 When the source and accepted trees already agree by path and size - the common
 cache-hit case - the comparison takes a no-hash skeleton fast path and the
@@ -26,6 +24,13 @@ import uuid
 from pathlib import Path
 
 from release_workflow_lib.errors import ReleaseWorkflowError
+from release_workflow_lib.binary_cache import (
+    BINARY_CACHE_LOCK_ROOT,
+    ignore_binary_cache_state,
+    is_binary_cache_excluded_path,
+    require_gamever,
+    version_lock,
+)
 from release_workflow_lib.filesystem import remove_tree
 from release_workflow_lib.hashing import (
     contained_path,
@@ -35,13 +40,6 @@ from release_workflow_lib.hashing import (
     reject_reparse_points,
     sha256_file,
 )
-from release_workflow_lib.manifests import require_gamever
-from release_workflow_lib.promotion import _version_lock
-from release_workflow_lib.staging import ignore_recoverable_analysis_state, is_recoverable_analysis_path
-
-# Same lock space as promote_bin so warmup mirroring and merge-time promotion of
-# one GAMEVER are mutually excluded, even though they write different sources.
-_LOCK_RELATIVE = ("release-staging", "locks")
 
 
 def _filtered_files(root: Path) -> list[Path]:
@@ -50,7 +48,7 @@ def _filtered_files(root: Path) -> list[Path]:
     return [
         path
         for path in sorted(item for item in root.rglob("*") if item.is_file())
-        if not is_recoverable_analysis_path(path.relative_to(root))
+        if not is_binary_cache_excluded_path(path.relative_to(root))
     ]
 
 
@@ -79,7 +77,7 @@ def _filtered_skeleton(root: Path) -> list[tuple[str, int]]:
 
 def _contains_recoverable_analysis_state(root: Path) -> bool:
     """Return whether a verified tree contains any excluded analysis state."""
-    return any(is_recoverable_analysis_path(path.relative_to(root)) for path in root.rglob("*"))
+    return any(is_binary_cache_excluded_path(path.relative_to(root)) for path in root.rglob("*"))
 
 
 def _swap_verified_bin(
@@ -108,7 +106,7 @@ def _swap_verified_bin(
         remove_tree(incoming)
     incoming.parent.mkdir(parents=True, exist_ok=True)
     try:
-        shutil.copytree(source, incoming, copy_function=shutil.copy2, ignore=ignore_recoverable_analysis_state)
+        shutil.copytree(source, incoming, copy_function=shutil.copy2, ignore=ignore_binary_cache_state)
     except OSError as exc:
         raise ReleaseWorkflowError(f"unable to copy source tree {source}: {exc}") from exc
     if _filtered_inventory(incoming) != (expected_files, expected_hash):
@@ -151,11 +149,11 @@ def sync_accepted_bin(*, repo_root: Path, persisted_root: Path, gamever: str) ->
     target = contained_path(accepted_root, gamever)
     incoming = contained_path(accepted_root, f".{gamever}.{uuid.uuid4().hex}.incoming")
     backup = contained_path(accepted_root, f".{gamever}.{uuid.uuid4().hex}.backup")
-    lock_path = contained_path(persisted_root, *_LOCK_RELATIVE, f"{gamever}.lock")
+    lock_path = contained_path(persisted_root, *BINARY_CACHE_LOCK_ROOT, f"{gamever}.lock")
 
     source_skeleton = _filtered_skeleton(source_root)
 
-    with _version_lock(lock_path):
+    with version_lock(lock_path):
         if (
             target.is_dir()
             and _filtered_skeleton(target) == source_skeleton

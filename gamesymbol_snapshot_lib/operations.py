@@ -1,5 +1,6 @@
 import logging
 import os
+import subprocess
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -447,6 +448,19 @@ def restore_snapshot(
     snapshot_path = Path(snapshot_path or f"gamesymbols/{game_version}.yaml")
     config_path = resolve_analysis_config(game_version, config_path)
     artifactdir = Path(bindir).parent / "bin_artifacts" if artifactdir is None else Path(artifactdir)
+    artifactdir = Path(os.path.abspath(artifactdir))
+    worktree = subprocess.run(
+        ["git", "rev-parse", "--show-toplevel"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if worktree.returncode == 0 and worktree.stdout.strip():
+        checkout_root = Path(worktree.stdout.strip()).resolve()
+        if artifactdir == checkout_root or checkout_root in artifactdir.parents:
+            raise SnapshotMismatchError(
+                f"snapshot compatibility restore requires a checkout-external artifact root: {artifactdir}"
+            )
     context = load_snapshot_context(
         snapshot_path,
         config_path,

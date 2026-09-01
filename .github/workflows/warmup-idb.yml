@@ -38,7 +38,6 @@ jobs:
     concurrency:
       group: warmup-idb-${{ github.repository }}-${{ inputs.gamever }}
       cancel-in-progress: false
-      queue: max
     outputs:
       generation: ${{ steps.resolve-output.outputs.generation }}
       cache_key: ${{ steps.resolve-output.outputs.cache-key }}
@@ -204,7 +203,7 @@ jobs:
         id: sync-accepted-bin
         shell: pwsh
         run: |-
-          uv run release_workflow.py sync-accepted-bin `
+          uv run python accepted_bin.py `
             --repo-root "${{ github.workspace }}" `
             --persisted-root "$env:PERSISTED_WORKSPACE" `
             --gamever "$env:GAMEVER"

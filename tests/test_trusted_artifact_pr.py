@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import shutil
 import subprocess
 import tempfile
@@ -28,6 +29,52 @@ class TrustedArtifactPrTests(unittest.TestCase):
         path = root / "bin_artifacts" / "1" / "server" / f"{name}.windows.yaml"
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(canonical_symbol_yaml_bytes({"func_name": name, "func_rva": rva}, category="func"))
+
+    def _write_execution_report(self, root: Path, plan: dict, preparation: dict) -> None:
+        version = plan["game_versions"][0]
+        gamever = version["game_version"]
+        inventory = tap.build_game_artifact_inventory(
+            repo_root=root,
+            config_path=Path(preparation["config_root"]) / f"{gamever}.yaml",
+            game_version=gamever,
+            artifact_root=preparation["actual_artifact_root"],
+            require_tracked=False,
+        )
+        files = {
+            item["path"].removeprefix(f"bin_artifacts/{gamever}/"): item for item in version["merge_artifacts"]["files"]
+        }
+        report = {
+            "schema_version": 1,
+            "game_version": gamever,
+            "config_path": str(Path(preparation["config_root"]) / f"{gamever}.yaml"),
+            "binary_root": preparation["binary_root"],
+            "artifact_root": preparation["actual_artifact_root"],
+            "old_artifact_root": str(root / "bin_artifacts"),
+            "force_all": True,
+            "rename": False,
+            "required_warm_idb": True,
+            "run_id": "test",
+            "summary": {},
+            "inventory": {
+                "file_count": inventory.file_count,
+                "inventory_sha256": inventory.inventory_sha256,
+            },
+            "nodes": [],
+            "producer_groups": [
+                {
+                    **group,
+                    "attempted_node_ids": [group["alternative_node_ids"][0]],
+                    "winner_node_id": group["alternative_node_ids"][0],
+                    "output_sha256": files[group["artifact_path"]]["sha256"],
+                }
+                for group in version["affected_producer_groups"]
+            ],
+            "issues": [],
+            "valid": True,
+        }
+        raw = tap._canonical_json_bytes(report)
+        report["execution_sha256"] = "sha256:" + hashlib.sha256(b"source2-force-all-execution:v1\n" + raw).hexdigest()
+        Path(preparation["execution_reports"][gamever]).write_bytes(tap._canonical_json_bytes(report))
 
     def _repository(
         self,
@@ -126,7 +173,7 @@ class TrustedArtifactPrTests(unittest.TestCase):
             )
             self.assertEqual(plan, tap.validate_trusted_artifact_plan(plan))
 
-    def test_isolated_preparation_omits_invalidated_paths_and_exact_verify_passes(self) -> None:
+    def test_isolated_preparation_uses_empty_root_and_exact_force_all_verify_passes(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary) / "repo"
             staging = Path(temporary) / "isolated"
@@ -138,11 +185,12 @@ class TrustedArtifactPrTests(unittest.TestCase):
 
             actual = Path(preparation["actual_artifact_root"])
             expected = Path(preparation["expected_artifact_root"])
-            self.assertFalse((actual / "1" / "server" / "A.windows.yaml").exists())
-            self.assertFalse((actual / "1" / "server" / "B.windows.yaml").exists())
+            self.assertEqual([], list(actual.iterdir()))
             shutil.copytree(expected, actual, dirs_exist_ok=True)
+            self._write_execution_report(root, plan, preparation)
             result = tap.validate_isolated_rebuild(repo_root=root, plan=plan, preparation=preparation)
             self.assertEqual("1", result["game_versions"][0]["game_version"])
+            self.assertRegex(result["game_versions"][0]["execution_sha256"], r"^sha256:[0-9a-f]{64}$")
 
     def test_isolated_verify_rejects_one_byte_drift(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -154,11 +202,44 @@ class TrustedArtifactPrTests(unittest.TestCase):
             preparation = tap.prepare_isolated_rebuild(repo_root=root, plan=plan, staging_root=staging)
             actual = Path(preparation["actual_artifact_root"])
             shutil.copytree(Path(preparation["expected_artifact_root"]), actual, dirs_exist_ok=True)
+            self._write_execution_report(root, plan, preparation)
             target = actual / "1" / "server" / "A.windows.yaml"
             target.write_bytes(target.read_bytes() + b" ")
 
             with self.assertRaisesRegex(tap.TrustedArtifactPrError, "contract failed|byte mismatch"):
                 tap.validate_isolated_rebuild(repo_root=root, plan=plan, preparation=preparation)
+
+    def test_isolated_verify_rejects_missing_execution_evidence(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            staging = Path(temporary) / "isolated"
+            root.mkdir()
+            _base, _head, _merge, context = self._repository(root)
+            plan = tap.build_trusted_artifact_plan(repo_root=root, trusted_context=context)
+            preparation = tap.prepare_isolated_rebuild(repo_root=root, plan=plan, staging_root=staging)
+            shutil.copytree(
+                Path(preparation["expected_artifact_root"]),
+                Path(preparation["actual_artifact_root"]),
+                dirs_exist_ok=True,
+            )
+
+            with self.assertRaisesRegex(tap.TrustedArtifactPrError, "unable to load force-all execution report"):
+                tap.validate_isolated_rebuild(repo_root=root, plan=plan, preparation=preparation)
+
+    def test_isolated_preparation_rejects_gamever_outside_affected_plan(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            root.mkdir()
+            _base, _head, _merge, context = self._repository(root)
+            plan = tap.build_trusted_artifact_plan(repo_root=root, trusted_context=context)
+
+            with self.assertRaisesRegex(tap.TrustedArtifactPrError, "not an affected full-plan target"):
+                tap.prepare_isolated_rebuild(
+                    repo_root=root,
+                    plan=plan,
+                    staging_root=Path(temporary) / "isolated",
+                    game_version="2",
+                )
 
     def test_shared_serializer_change_broadly_selects_all_groups(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

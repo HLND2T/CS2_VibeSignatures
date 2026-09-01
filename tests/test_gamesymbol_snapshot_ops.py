@@ -2,6 +2,7 @@ import hashlib
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import yaml
@@ -192,6 +193,27 @@ class TestPack(unittest.TestCase):
 
 
 class TestRestoreAndVerify(unittest.TestCase):
+    def test_restore_rejects_artifact_root_inside_source_checkout(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            workspace = SnapshotWorkspace(Path(temp_dir))
+            workspace.write_required()
+            workspace.pack()
+            with (
+                patch(
+                    "gamesymbol_snapshot_lib.operations.subprocess.run",
+                    return_value=SimpleNamespace(returncode=0, stdout=str(workspace.root)),
+                ),
+                self.assertRaisesRegex(SnapshotMismatchError, "checkout-external"),
+            ):
+                restore_snapshot(
+                    "14168",
+                    workspace.bindir,
+                    workspace.config,
+                    workspace.snapshot,
+                    replace=True,
+                    artifactdir=workspace.artifactdir,
+                )
+
     def test_restore_writes_only_to_explicit_artifact_root(self) -> None:
         with TemporaryDirectory() as temp_dir:
             workspace = SnapshotWorkspace(Path(temp_dir))

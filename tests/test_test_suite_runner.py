@@ -14,7 +14,7 @@ class TestSuiteClassifier(unittest.TestCase):
             "tests.test_process_reporter_redis.TestRedisProcessReporterIntegration.test_example": (
                 "redis-integration",
             ),
-            "tests.test_release_workflow.TestReleaseWorkflow.test_example": ("release-integration",),
+            "tests.test_release_source_preflight.ReleaseSourcePreflightTests.test_example": ("release-integration",),
             "tests.test_unknown.TestUnknown.test_example": (),
         }
         for test_id, expected in cases.items():

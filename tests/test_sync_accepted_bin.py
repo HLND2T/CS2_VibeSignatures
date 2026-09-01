@@ -3,9 +3,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from release_workflow_lib.binary_cache import IDA_DATABASE_SUFFIXES, version_lock
 from release_workflow_lib.errors import ReleaseWorkflowError
-from release_workflow_lib.promotion import _version_lock
-from release_workflow_lib.staging import IDA_DATABASE_SUFFIXES
 from release_workflow_lib.sync_accepted_bin import _filtered_inventory, sync_accepted_bin
 
 
@@ -47,7 +46,7 @@ class TestSyncAcceptedBin(unittest.TestCase):
             accepted = persisted / "bin" / self.gamever
             self.assertTrue((accepted / "server" / "server.dll").is_file())
             self.assertTrue((accepted / "engine" / "libengine2.so").is_file())
-            self.assertTrue((accepted / "server" / "server.yaml").is_file())
+            self.assertFalse((accepted / "server" / "server.yaml").exists())
             # No recoverable IDA or BinSync state leaked into the accepted tree.
             self.assertFalse((accepted / "server" / "server.dll.i64").exists())
             self.assertFalse((accepted / "engine" / "libengine2.so.i64").exists())
@@ -157,17 +156,15 @@ class TestSyncAcceptedBin(unittest.TestCase):
                     gamever=self.gamever,
                 )
 
-    def test_sync_shares_promotion_lock(self) -> None:
-        # Workflow concurrency serializes normal calls; the shared file lock remains
-        # a defensive backstop for direct or otherwise uncoordinated invocations.
+    def test_sync_uses_dedicated_binary_cache_lock(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             repo = root / "repo"
             persisted = root / "persisted"
             self._write_source(repo)
-            lock_path = persisted / "release-staging" / "locks" / f"{self.gamever}.lock"
-            with _version_lock(lock_path):
-                with self.assertRaisesRegex(ReleaseWorkflowError, "unable to acquire per-version promotion lock"):
+            lock_path = persisted / "binary-cache" / "locks" / f"{self.gamever}.lock"
+            with version_lock(lock_path):
+                with self.assertRaisesRegex(ReleaseWorkflowError, "unable to acquire per-version binary cache lock"):
                     sync_accepted_bin(repo_root=repo, persisted_root=persisted, gamever=self.gamever)
             # Lock released: sync succeeds.
             result = sync_accepted_bin(repo_root=repo, persisted_root=persisted, gamever=self.gamever)

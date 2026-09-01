@@ -50,7 +50,7 @@ class TestRepositoryYamlCompatibility(unittest.TestCase):
     def test_selected_loader_matches_safe_loader_for_repository_fixtures(self) -> None:
         fixture_paths = (
             Path("configs/14172.yaml"),
-            Path("gamesymbols/14172.yaml"),
+            Path("bin_artifacts/14172/client/CAM_Command_CommandHandler.windows.yaml"),
             Path("ida_preprocessor_scripts/references/client/CAM_Command_CommandHandler.windows.yaml"),
         )
         for fixture_path in fixture_paths:

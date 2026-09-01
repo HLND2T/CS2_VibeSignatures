@@ -8,7 +8,6 @@ import hashlib
 import json
 import os
 import re
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -33,7 +32,7 @@ from trusted_pr_context import load_trusted_pr_context, validate_trusted_pr_cont
 
 
 PLAN_SCHEMA_VERSION = 1
-PREPARATION_SCHEMA_VERSION = 1
+PREPARATION_SCHEMA_VERSION = 2
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 CONFIG_RE = re.compile(r"^configs/([^/]+)\.yaml$")
 ARTIFACT_RE = re.compile(r"^bin_artifacts/([^/]+)/(.+)$")
@@ -676,7 +675,13 @@ def _filesystem_artifact_digest(root: Path) -> str:
     return _digest("checkout-artifact-inventory", sorted(items, key=lambda item: item["path"]))
 
 
-def prepare_isolated_rebuild(*, repo_root: str | Path, plan: dict | str | Path, staging_root: str | Path) -> dict:
+def prepare_isolated_rebuild(
+    *,
+    repo_root: str | Path,
+    plan: dict | str | Path,
+    staging_root: str | Path,
+    game_version: str | None = None,
+) -> dict:
     plan = load_trusted_artifact_plan(plan) if isinstance(plan, (str, Path)) else validate_trusted_artifact_plan(plan)
     if plan["mode"] != "full":
         raise TrustedArtifactPrError(f"isolated rebuild requires a full plan, got {plan['mode']}")
@@ -696,17 +701,20 @@ def prepare_isolated_rebuild(*, repo_root: str | Path, plan: dict | str | Path, 
     expected_root = staging_root / "expected-bin-artifacts"
     actual_root = staging_root / "actual-bin-artifacts"
     config_root = staging_root / "configs"
+    execution_root = staging_root / "execution-reports"
     expected_root.mkdir()
     actual_root.mkdir()
     config_root.mkdir()
+    execution_root.mkdir()
 
     prepared_versions = []
     for version in plan["game_versions"]:
         if not version["invalidated_paths"] or version["merge_artifacts"] is None:
             continue
         gamever = version["game_version"]
+        if game_version is not None and gamever != str(game_version):
+            continue
         _atomic_write(config_root / f"{gamever}.yaml", repo.read(plan["merge_sha"], f"configs/{gamever}.yaml"))
-        invalidated = set(version["invalidated_paths"])
         for item in version["merge_artifacts"]["files"]:
             prefix = f"bin_artifacts/{gamever}/"
             key = item["path"].removeprefix(prefix)
@@ -717,11 +725,9 @@ def prepare_isolated_rebuild(*, repo_root: str | Path, plan: dict | str | Path, 
                 raise TrustedArtifactPrError(f"prospective merge artifact drifted: {item['path']}")
             expected_path = expected_root / gamever / key
             _atomic_write(expected_path, raw)
-            if key not in invalidated:
-                actual_path = actual_root / gamever / key
-                actual_path.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copyfile(expected_path, actual_path)
         prepared_versions.append(gamever)
+    if game_version is not None and prepared_versions != [str(game_version)]:
+        raise TrustedArtifactPrError(f"GAMEVER is not an affected full-plan target: {game_version}")
 
     report = {
         "schema_version": PREPARATION_SCHEMA_VERSION,
@@ -732,11 +738,85 @@ def prepare_isolated_rebuild(*, repo_root: str | Path, plan: dict | str | Path, 
         "expected_artifact_root": str(expected_root),
         "actual_artifact_root": str(actual_root),
         "config_root": str(config_root),
+        "binary_root": str(repo.root / "bin"),
+        "execution_reports": {
+            gamever: str(execution_root / f"{gamever}.force-all.json") for gamever in prepared_versions
+        },
         "prepared_game_versions": prepared_versions,
         "source_checkout_artifact_sha256": _filesystem_artifact_digest(repo.root / "bin_artifacts"),
     }
     report["preparation_sha256"] = _digest("isolated-preparation", report)
     _atomic_write(staging_root / "preparation.json", _canonical_json_bytes(report))
+    return report
+
+
+def _load_force_all_execution_report(path: Path, *, preparation: dict, version: dict) -> dict:
+    try:
+        raw = path.read_bytes()
+        report = json.loads(raw.decode("utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise TrustedArtifactPrError(
+            f"unable to load force-all execution report for {version['game_version']}: {exc}"
+        ) from exc
+    if raw != _canonical_json_bytes(report):
+        raise TrustedArtifactPrError("force-all execution report is not canonical JSON")
+    digest = report.get("execution_sha256")
+    unsigned = dict(report)
+    unsigned.pop("execution_sha256", None)
+    raw_digest = b"source2-force-all-execution:v1\n" + _canonical_json_bytes(unsigned)
+    if digest != f"sha256:{hashlib.sha256(raw_digest).hexdigest()}":
+        raise TrustedArtifactPrError("force-all execution report digest mismatch")
+
+    gamever = version["game_version"]
+    if (
+        report.get("schema_version") != 1
+        or report.get("valid") is not True
+        or report.get("force_all") is not True
+        or report.get("required_warm_idb") is not True
+        or report.get("game_version") != gamever
+        or Path(report.get("artifact_root", "")).resolve() != Path(preparation["actual_artifact_root"]).resolve()
+        or Path(report.get("binary_root", "")).resolve() != Path(preparation["binary_root"]).resolve()
+        or Path(report.get("config_path", "")).resolve()
+        != (Path(preparation["config_root"]) / f"{gamever}.yaml").resolve()
+    ):
+        raise TrustedArtifactPrError(f"force-all execution report does not prove the required PR run for {gamever}")
+
+    expected_files = {
+        item["path"].removeprefix(f"bin_artifacts/{gamever}/"): item for item in version["merge_artifacts"]["files"]
+    }
+    group_records = report.get("producer_groups")
+    if not isinstance(group_records, list):
+        raise TrustedArtifactPrError("force-all execution report has no producer-group evidence")
+    groups_by_id = {
+        record.get("group_id"): record
+        for record in group_records
+        if isinstance(record, dict) and record.get("group_id")
+    }
+    if len(groups_by_id) != len(group_records):
+        raise TrustedArtifactPrError("force-all execution report has duplicate or invalid producer groups")
+    for planned in version["affected_producer_groups"]:
+        record = groups_by_id.get(planned["group_id"])
+        if record is None:
+            raise TrustedArtifactPrError(f"selected producer group was not executed: {planned['group_id']}")
+        expected = expected_files.get(planned["artifact_path"])
+        expected_sha256 = expected["sha256"] if expected is not None else None
+        if (
+            record.get("artifact_path") != planned["artifact_path"]
+            or record.get("required") != planned["required"]
+            or record.get("fingerprint") != planned["fingerprint"]
+            or record.get("alternative_node_ids") != planned["alternative_node_ids"]
+            or record.get("output_sha256") != expected_sha256
+        ):
+            raise TrustedArtifactPrError(
+                f"producer-group execution drifted from the trusted plan: {planned['group_id']}"
+            )
+        winner = record.get("winner_node_id")
+        if expected_sha256 is not None and winner not in planned["alternative_node_ids"]:
+            raise TrustedArtifactPrError(f"producer group has no valid winning alternative: {planned['group_id']}")
+        if expected_sha256 is None and winner is not None:
+            raise TrustedArtifactPrError(
+                f"absent optional producer group unexpectedly selected a winner: {planned['group_id']}"
+            )
     return report
 
 
@@ -768,6 +848,9 @@ def validate_isolated_rebuild(
         gamever = version["game_version"]
         if gamever not in preparation["prepared_game_versions"]:
             continue
+        execution = _load_force_all_execution_report(
+            Path(preparation["execution_reports"][gamever]), preparation=preparation, version=version
+        )
         try:
             actual = build_game_artifact_inventory(
                 repo_root=repo_root,
@@ -793,11 +876,17 @@ def validate_isolated_rebuild(
             raw = (expected_root / gamever / relative).read_bytes()
             if len(raw) != expected["size"] or _sha256(raw) != expected["sha256"]:
                 raise TrustedArtifactPrError(f"materialized expected Git blob drifted: {path}")
+        if execution.get("inventory") != {
+            "file_count": actual.file_count,
+            "inventory_sha256": actual.inventory_sha256,
+        }:
+            raise TrustedArtifactPrError(f"force-all inventory evidence drifted for {gamever}")
         reports.append(
             {
                 "game_version": gamever,
                 "file_count": actual.file_count,
                 "inventory_sha256": version["merge_artifacts"]["inventory_sha256"],
+                "execution_sha256": execution["execution_sha256"],
             }
         )
     result = {
@@ -821,10 +910,12 @@ def parse_args(argv=None) -> argparse.Namespace:
     prepare.add_argument("--repo-root", default=".")
     prepare.add_argument("--plan", required=True)
     prepare.add_argument("--staging-root", required=True)
+    prepare.add_argument("--gamever")
     verify = subparsers.add_parser("verify")
     verify.add_argument("--repo-root", default=".")
     verify.add_argument("--plan", required=True)
     verify.add_argument("--preparation", required=True)
+    verify.add_argument("--output")
     return parser.parse_args(argv)
 
 
@@ -839,6 +930,7 @@ def main(argv=None) -> int:
                 repo_root=args.repo_root,
                 plan=args.plan,
                 staging_root=args.staging_root,
+                game_version=args.gamever,
             )
         else:
             result = validate_isolated_rebuild(
@@ -846,6 +938,8 @@ def main(argv=None) -> int:
                 plan=args.plan,
                 preparation=args.preparation,
             )
+            if args.output:
+                _atomic_write(Path(args.output), _canonical_json_bytes(result))
     except (OSError, UnicodeError, yaml.YAMLError, TrustedArtifactPrError) as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 1
