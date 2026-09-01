@@ -19,7 +19,7 @@ from yaml import YAMLError
 from trusted_yaml import load_yaml
 
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 POLICY_REPO_PATH = "source_artifact_policy.yaml"
 SHA_PATTERN = re.compile(r"^[0-9a-f]{40}$")
 TRUSTED_FILE_PATHS = (
@@ -37,6 +37,7 @@ TRUSTED_FILE_PATHS = (
     "gamesymbol_snapshot_lib/paths.py",
     "gamesymbol_snapshot_lib/pr_validation.py",
     ".github/workflows/pr-self-runner.yml",
+    ".github/workflows/source-artifact-required.yml",
     "uv.lock",
 )
 
@@ -82,6 +83,18 @@ class GitRepository:
 
     def read(self, ref: str, path: str) -> bytes:
         return self._run("show", f"{ref}:{path}")
+
+    def is_ancestor(self, ancestor: str, descendant: str) -> bool:
+        result = subprocess.run(
+            ["git", "-C", str(self.path), "merge-base", "--is-ancestor", ancestor, descendant],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+        if result.returncode not in {0, 1}:
+            message = result.stderr.decode("utf-8", errors="replace").strip()
+            raise TrustedPrContextError(f"git merge-base --is-ancestor failed: {message}")
+        return result.returncode == 0
 
 
 def _validated_sha(value: str, context: str) -> str:
@@ -132,22 +145,12 @@ def _canonical_document_bytes(document: dict) -> bytes:
     return json.dumps(document, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8") + b"\n"
 
 
-def build_trusted_pr_context(*, repo_root: str | Path, base_ref: str, head_ref: str, merge_ref: str) -> dict:
-    repo = GitRepository(repo_root)
-    base_sha = repo.resolve_commit(base_ref)
-    head_sha = repo.resolve_commit(head_ref)
-    merge_sha = repo.resolve_commit(merge_ref)
-    parents = repo.parents(merge_sha)
-    if parents != (base_sha, head_sha):
-        raise TrustedPrContextError(
-            "prospective merge parents do not match the bound base/head commits: "
-            f"expected={(base_sha, head_sha)!r}; actual={parents!r}"
-        )
-
+def _build_context_document(repo, *, event_kind: str, base_sha: str, head_sha: str, merge_sha: str) -> dict:
     trusted_payloads = {path: repo.read(base_sha, path) for path in TRUSTED_FILE_PATHS}
     policy = parse_source_artifact_policy(trusted_payloads[POLICY_REPO_PATH])
     document = {
         "schema_version": SCHEMA_VERSION,
+        "event_kind": event_kind,
         "base_sha": base_sha,
         "head_sha": head_sha,
         "merge_sha": merge_sha,
@@ -169,6 +172,41 @@ def build_trusted_pr_context(*, repo_root: str | Path, base_ref: str, head_ref: 
     return document
 
 
+def build_trusted_pr_context(*, repo_root: str | Path, base_ref: str, head_ref: str, merge_ref: str) -> dict:
+    repo = GitRepository(repo_root)
+    base_sha = repo.resolve_commit(base_ref)
+    head_sha = repo.resolve_commit(head_ref)
+    merge_sha = repo.resolve_commit(merge_ref)
+    parents = repo.parents(merge_sha)
+    if parents != (base_sha, head_sha):
+        raise TrustedPrContextError(
+            "prospective merge parents do not match the bound base/head commits: "
+            f"expected={(base_sha, head_sha)!r}; actual={parents!r}"
+        )
+    return _build_context_document(
+        repo,
+        event_kind="pull_request",
+        base_sha=base_sha,
+        head_sha=head_sha,
+        merge_sha=merge_sha,
+    )
+
+
+def build_trusted_merge_group_context(*, repo_root: str | Path, base_ref: str, merge_ref: str) -> dict:
+    repo = GitRepository(repo_root)
+    base_sha = repo.resolve_commit(base_ref)
+    merge_sha = repo.resolve_commit(merge_ref)
+    if base_sha == merge_sha or not repo.is_ancestor(base_sha, merge_sha):
+        raise TrustedPrContextError("merge-group head must descend from the exact bound base commit")
+    return _build_context_document(
+        repo,
+        event_kind="merge_group",
+        base_sha=base_sha,
+        head_sha=merge_sha,
+        merge_sha=merge_sha,
+    )
+
+
 def validate_trusted_pr_context(document: object) -> dict:
     if not isinstance(document, dict) or document.get("schema_version") != SCHEMA_VERSION:
         raise TrustedPrContextError("trusted PR context schema is invalid")
@@ -177,6 +215,8 @@ def validate_trusted_pr_context(document: object) -> dict:
     unsigned.pop("context_sha256", None)
     if digest != _sha256(_canonical_document_bytes(unsigned)):
         raise TrustedPrContextError("trusted PR context digest mismatch")
+    if document.get("event_kind") not in {"pull_request", "merge_group"}:
+        raise TrustedPrContextError("trusted PR context event_kind is invalid")
     for field in (
         "base_sha",
         "head_sha",
@@ -241,12 +281,21 @@ def _atomic_write(path: Path, payload: bytes) -> None:
 
 
 def _build_command(args: argparse.Namespace) -> int:
-    context = build_trusted_pr_context(
-        repo_root=args.repo_root,
-        base_ref=args.base_ref,
-        head_ref=args.head_ref,
-        merge_ref=args.merge_ref,
-    )
+    if args.event_kind == "merge_group":
+        context = build_trusted_merge_group_context(
+            repo_root=args.repo_root,
+            base_ref=args.base_ref,
+            merge_ref=args.merge_ref,
+        )
+    else:
+        if not args.head_ref:
+            raise TrustedPrContextError("--head-ref is required for pull_request context")
+        context = build_trusted_pr_context(
+            repo_root=args.repo_root,
+            base_ref=args.base_ref,
+            head_ref=args.head_ref,
+            merge_ref=args.merge_ref,
+        )
     _atomic_write(Path(args.output), _canonical_document_bytes(context))
     if args.github_output:
         with Path(args.github_output).open("a", encoding="utf-8", newline="\n") as handle:
@@ -276,8 +325,9 @@ def parse_args(argv=None) -> argparse.Namespace:
     subparsers = parser.add_subparsers(dest="command", required=True)
     build = subparsers.add_parser("build")
     build.add_argument("--repo-root", default=".")
+    build.add_argument("--event-kind", choices=("pull_request", "merge_group"), default="pull_request")
     build.add_argument("--base-ref", required=True)
-    build.add_argument("--head-ref", required=True)
+    build.add_argument("--head-ref")
     build.add_argument("--merge-ref", required=True)
     build.add_argument("--output", required=True)
     build.add_argument("--github-output")

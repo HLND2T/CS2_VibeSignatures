@@ -68,6 +68,7 @@ class TrustedPrContextTests(unittest.TestCase):
             self.assertEqual(base_sha, context["base_sha"])
             self.assertEqual(head_sha, context["head_sha"])
             self.assertEqual(merge_sha, context["merge_sha"])
+            self.assertEqual("pull_request", context["event_kind"])
             self.assertEqual(self._git(root, "rev-parse", f"{merge_sha}^{{tree}}"), context["merge_tree_sha"])
             self.assertEqual("legacy", context["artifact_policy"]["mode"])
             self.assertEqual(tpc._sha256(base_policy), context["artifact_policy"]["sha256"])
@@ -103,6 +104,33 @@ class TrustedPrContextTests(unittest.TestCase):
 
             with self.assertRaisesRegex(tpc.TrustedPrContextError, "digest mismatch"):
                 tpc.load_trusted_pr_context(path)
+
+    def test_merge_group_context_binds_exact_queue_tree_and_rejects_non_descendant_base(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            base_sha, _head_sha, merge_sha, _policy = self._repository(root)
+
+            context = tpc.build_trusted_merge_group_context(
+                repo_root=root,
+                base_ref=base_sha,
+                merge_ref=merge_sha,
+            )
+
+            self.assertEqual("merge_group", context["event_kind"])
+            self.assertEqual(merge_sha, context["head_sha"])
+            self.assertEqual(merge_sha, context["merge_sha"])
+            self.assertEqual(self._git(root, "rev-parse", f"{merge_sha}^{{tree}}"), context["merge_tree_sha"])
+
+            (root / "after.txt").write_text("after\n", encoding="utf-8")
+            self._git(root, "add", "after.txt")
+            self._git(root, "commit", "-m", "after queue head")
+            later_sha = self._git(root, "rev-parse", "HEAD")
+            with self.assertRaisesRegex(tpc.TrustedPrContextError, "must descend"):
+                tpc.build_trusted_merge_group_context(
+                    repo_root=root,
+                    base_ref=later_sha,
+                    merge_ref=merge_sha,
+                )
 
     def test_policy_rejects_unknown_keys_and_noncanonical_root(self) -> None:
         with self.assertRaises(tpc.TrustedPrContextError):
