@@ -3644,6 +3644,10 @@ modules:
         category: vfunc
         alias:
           - CEngineServer::GetAchievementMgr
+      - name: CEngineServer_GetClientSteamID
+        category: vfunc
+        alias:
+          - CEngineServer::GetClientSteamID
       - name: CEngineServer_IsLogEnabled
         category: vfunc
         alias:
@@ -6980,6 +6984,11 @@ modules:
           - CTriggerGravity_GetTouchFunction.{platform}.yaml
       - name: find-CBasePlayerController_HandleCommand_JoinTeam
         expected_output:
+          - CBasePlayerController_HandleCommand_JoinTeam.{platform}.yaml
+      - name: find-IVEngineServer2_GetClientSteamID
+        expected_output:
+          - IVEngineServer2_GetClientSteamID.{platform}.yaml
+        expected_input:
           - CBasePlayerController_HandleCommand_JoinTeam.{platform}.yaml
       - name: find-CSource2GameClients_ClientSettingsChanged
         expected_output:
@@ -10752,6 +10761,10 @@ modules:
         category: vfunc
         alias:
           - IVEngineServer2::GetAchievementMgr
+      - name: IVEngineServer2_GetClientSteamID
+        category: vfunc
+        alias:
+          - IVEngineServer2::GetClientSteamID
       - name: IVEngineServer2_IsLogEnabled
         category: vfunc
         alias:
@@ -13106,6 +13119,12 @@ modules:
         expected_input:
           - CEngineServer_vtable.{platform}.yaml
           - ../server/IVEngineServer2_GetAchievementMgr.{platform}.yaml
+      - name: find-CEngineServer_GetClientSteamID
+        expected_output:
+          - CEngineServer_GetClientSteamID.{platform}.yaml
+        expected_input:
+          - CEngineServer_vtable.{platform}.yaml
+          - ../server/IVEngineServer2_GetClientSteamID.{platform}.yaml
       - name: find-CEngineServer_IsLogEnabled
         expected_output:
           - CEngineServer_IsLogEnabled.{platform}.yaml
