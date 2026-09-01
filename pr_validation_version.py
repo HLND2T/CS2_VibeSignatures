@@ -14,7 +14,6 @@ from trusted_yaml import load_yaml_file
 
 
 SNAPSHOT_PATTERN = re.compile(r"^gamesymbols/\d{4,10}[a-z]?\.yaml$")
-CONFIG_PATTERN = re.compile(r"^configs/(\d{4,10}[a-z]?)\.yaml$")
 SHA_PATTERN = re.compile(r"^[0-9a-fA-F]{40}$")
 
 
@@ -81,16 +80,6 @@ def _git_lines(repo_root: Path, arguments: list[str]) -> list[str]:
     return [line.strip() for line in result.stdout.splitlines() if line.strip()]
 
 
-def changed_head_config_gamevers(repo_root: Path, base_ref: str, head_ref: str = "HEAD") -> list[str]:
-    """Return the distinct versioned configs changed by the PR and still present at HEAD."""
-    gamevers = set()
-    for path in _git_lines(repo_root, ["diff", "--name-only", base_ref, head_ref, "--", "configs"]):
-        match = CONFIG_PATTERN.fullmatch(path)
-        if match and (repo_root / path).is_file():
-            gamevers.add(match.group(1))
-    return sorted(gamevers)
-
-
 def resolve_validation_selection(repo_root: Path, base_ref: str) -> ValidationSelection:
     repo_root = Path(repo_root).resolve()
     base_ref = str(base_ref).strip()
@@ -101,24 +90,13 @@ def resolve_validation_selection(repo_root: Path, base_ref: str) -> ValidationSe
     if not isinstance(downloads, list) or not downloads or not isinstance(downloads[-1], dict):
         raise PrValidationVersionError("download.yaml has no latest download entry")
     pr_gamever = str(downloads[-1].get("tag", "")).strip()
-    changed_config_gamevers = changed_head_config_gamevers(repo_root, base_ref)
-    if len(changed_config_gamevers) > 1:
-        raise PrValidationVersionError(
-            "PR changes multiple versioned configs; unable to select one validation GAMEVER: "
-            + ", ".join(changed_config_gamevers)
-        )
-    validation_target_gamever = changed_config_gamevers[0] if changed_config_gamevers else pr_gamever
     tracked = [
         path
         for path in _git_lines(repo_root, ["ls-tree", "-r", "--name-only", base_ref, "--", "gamesymbols"])
         if SNAPSHOT_PATTERN.fullmatch(path)
     ]
-    if changed_config_gamevers and f"gamesymbols/{validation_target_gamever}.yaml" not in tracked:
-        raise PrValidationVersionError(
-            f"PR changes configs/{validation_target_gamever}.yaml but base has no matching snapshot"
-        )
     latest_paths = []
-    if len(tracked) > 1 and f"gamesymbols/{validation_target_gamever}.yaml" not in tracked:
+    if len(tracked) > 1 and f"gamesymbols/{pr_gamever}.yaml" not in tracked:
         latest_change = _git_lines(
             repo_root,
             ["log", "-1", "--format=%H", "--name-only", "--first-parent", base_ref, "--", *tracked],
@@ -126,9 +104,9 @@ def resolve_validation_selection(repo_root: Path, base_ref: str) -> ValidationSe
         if len(latest_change) < 2 or not SHA_PATTERN.fullmatch(latest_change[0]):
             raise PrValidationVersionError("failed to locate the latest base snapshot publication")
         latest_paths = latest_change[1:]
-    snapshot_path = select_validation_snapshot(validation_target_gamever, tracked, latest_paths)
+    snapshot_path = select_validation_snapshot(pr_gamever, tracked, latest_paths)
     if snapshot_path is None:
-        return ValidationSelection(pr_gamever, validation_target_gamever, None, None)
+        return ValidationSelection(pr_gamever, pr_gamever, None, None)
     commit_lines = _git_lines(
         repo_root,
         ["log", "-1", "--format=%H", base_ref, "--", snapshot_path],
