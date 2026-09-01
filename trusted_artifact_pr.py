@@ -591,6 +591,7 @@ def build_trusted_artifact_plan(*, repo_root: str | Path, trusted_context: dict 
     download_raw = repo.read(context["merge_sha"], "download.yaml")
     document = {
         "schema_version": PLAN_SCHEMA_VERSION,
+        "event_kind": context["event_kind"],
         "mode": mode,
         "base_sha": context["base_sha"],
         "head_sha": context["head_sha"],

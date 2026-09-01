@@ -24,8 +24,10 @@ POLICY_REPO_PATH = "source_artifact_policy.yaml"
 SHA_PATTERN = re.compile(r"^[0-9a-f]{40}$")
 TRUSTED_FILE_PATHS = (
     POLICY_REPO_PATH,
+    ".gitmodules",
     "trusted_pr_context.py",
     "trusted_artifact_pr.py",
+    "new_gamever_artifact.py",
     "bin_artifact_contract.py",
     "pr_validation_mode.py",
     "pr_validation_mode.yaml",
@@ -38,6 +40,7 @@ TRUSTED_FILE_PATHS = (
     "gamesymbol_snapshot_lib/pr_validation.py",
     ".github/workflows/pr-self-runner.yml",
     ".github/workflows/source-artifact-required.yml",
+    ".github/workflows/bootstrap-new-gamever-artifacts.yml",
     "uv.lock",
 )
 

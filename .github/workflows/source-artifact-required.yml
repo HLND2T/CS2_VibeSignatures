@@ -1,14 +1,13 @@
 name: Source Artifact Required
-
 on:
   pull_request_target:
     types: [opened, synchronize, reopened, ready_for_review]
   merge_group:
     types: [checks_requested]
-
 permissions:
+  actions: read
   contents: read
-
+  pull-requests: read
 jobs:
   bind-source-artifact-plan:
     if: github.repository == 'HLND2T/CS2_VibeSignatures'
@@ -17,6 +16,11 @@ jobs:
       validation-mode: ${{ steps.binding.outputs.validation-mode }}
       plan-sha256: ${{ steps.binding.outputs.plan-sha256 }}
       merge-tree-sha: ${{ steps.binding.outputs.merge-tree-sha }}
+      base-sha: ${{ steps.identity.outputs.base-sha }}
+      head-sha: ${{ steps.identity.outputs.head-sha }}
+      merge-sha: ${{ steps.identity.outputs.merge-sha }}
+      bootstrap-gamever: ${{ steps.binding.outputs.bootstrap-gamever }}
+      plan-artifact-name: ${{ steps.binding.outputs.plan-artifact-name }}
     steps:
       - name: Checkout exact prospective tree as data
         uses: actions/checkout@v5
@@ -25,7 +29,6 @@ jobs:
           fetch-depth: 0
           submodules: false
           persist-credentials: false
-
       - name: Resolve immutable event identity
         id: identity
         shell: pwsh
@@ -58,7 +61,6 @@ jobs:
           "base-sha=$baseSha" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "head-sha=$headSha" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "merge-sha=$mergeSha" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-
       - name: Checkout trusted default-branch planner
         uses: actions/checkout@v5
         with:
@@ -67,7 +69,6 @@ jobs:
           submodules: false
           persist-credentials: false
           path: .trusted-planner
-
       - name: Detect trusted planner bridge
         id: bridge
         shell: pwsh
@@ -75,16 +76,13 @@ jobs:
           $available = (Test-Path -LiteralPath ".trusted-planner/trusted_pr_context.py" -PathType Leaf) -and `
             (Test-Path -LiteralPath ".trusted-planner/trusted_artifact_pr.py" -PathType Leaf)
           "available=$($available.ToString().ToLowerInvariant())" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-
       - name: Set up uv for trusted planning
         if: steps.bridge.outputs.available == 'true'
         uses: astral-sh/setup-uv@v9.0.0
-
       - name: Sync trusted planner environment
         if: steps.bridge.outputs.available == 'true'
         shell: pwsh
         run: uv sync --project .trusted-planner --locked
-
       - name: Bind and build trusted source-artifact plan
         id: binding
         shell: pwsh
@@ -100,9 +98,10 @@ jobs:
             "plan-sha256=legacy" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
             "merge-tree-sha=$((git rev-parse 'HEAD^{tree}').Trim().ToLowerInvariant())" |
               Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            "bootstrap-gamever=" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            "plan-artifact-name=" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
             exit 0
           }
-
           Set-Location -LiteralPath ".trusted-planner"
           $contextPath = Join-Path $env:RUNNER_TEMP "trusted-source-artifact-context.json"
           $planPath = Join-Path $env:RUNNER_TEMP "trusted-source-artifact-plan.json"
@@ -119,15 +118,15 @@ jobs:
           }
           uv run --project . python @contextArgs
           if ($LASTEXITCODE -ne 0) { throw "Trusted event context binding failed." }
-
           $context = Get-Content -LiteralPath $contextPath -Raw | ConvertFrom-Json
           if ($context.artifact_policy.mode -eq "legacy") {
             "validation-mode=legacy" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
             "plan-sha256=$($context.context_sha256)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
             "merge-tree-sha=$($context.merge_tree_sha)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            "bootstrap-gamever=" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            "plan-artifact-name=" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
             exit 0
           }
-
           uv run --project . python trusted_artifact_pr.py plan `
             --repo-root "${{ github.workspace }}" `
             --trusted-context $contextPath `
@@ -137,8 +136,12 @@ jobs:
           "validation-mode=$($plan.mode)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "plan-sha256=$($plan.plan_sha256)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "merge-tree-sha=$($plan.merge_tree_sha)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          $bootstrap = @($plan.game_versions | Where-Object { $_.bootstrap_required -eq $true })
+          $bootstrapGamever = if ($bootstrap.Count -eq 1) { [string]$bootstrap[0].game_version } else { "" }
+          $planArtifactName = "trusted-source-artifact-plan-${{ github.run_id }}-${{ github.run_attempt }}"
+          "bootstrap-gamever=$bootstrapGamever" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "plan-artifact-name=$planArtifactName" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           Copy-Item -LiteralPath $planPath -Destination "${{ github.workspace }}/trusted-source-artifact-plan.json"
-
       - name: Upload immutable trusted plan evidence
         if: steps.binding.outputs.validation-mode != 'legacy'
         uses: actions/upload-artifact@v4
@@ -147,10 +150,24 @@ jobs:
           path: trusted-source-artifact-plan.json
           if-no-files-found: error
           retention-days: 7
-
+  bootstrap-new-gamever:
+    needs: bind-source-artifact-plan
+    if: >-
+      needs.bind-source-artifact-plan.outputs.validation-mode == 'bootstrap_required' &&
+      github.event_name == 'pull_request_target' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    uses: ./.github/workflows/bootstrap-new-gamever-artifacts.yml
+    with:
+      pull_request_number: ${{ github.event.pull_request.number }}
+      gamever: ${{ needs.bind-source-artifact-plan.outputs.bootstrap-gamever }}
+      base_sha: ${{ needs.bind-source-artifact-plan.outputs.base-sha }}
+      head_sha: ${{ needs.bind-source-artifact-plan.outputs.head-sha }}
+      merge_sha: ${{ needs.bind-source-artifact-plan.outputs.merge-sha }}
+      plan_artifact_name: ${{ needs.bind-source-artifact-plan.outputs.plan-artifact-name }}
+    secrets: inherit
   source-artifact-required:
     name: source-artifact-required
-    needs: bind-source-artifact-plan
+    needs: [bind-source-artifact-plan, bootstrap-new-gamever]
     if: always() && github.repository == 'HLND2T/CS2_VibeSignatures'
     runs-on: ubuntu-latest
     steps:
@@ -158,16 +175,21 @@ jobs:
         shell: bash
         env:
           BINDING_RESULT: ${{ needs.bind-source-artifact-plan.result }}
+          BOOTSTRAP_RESULT: ${{ needs.bootstrap-new-gamever.result }}
           VALIDATION_MODE: ${{ needs.bind-source-artifact-plan.outputs.validation-mode }}
           PLAN_SHA256: ${{ needs.bind-source-artifact-plan.outputs.plan-sha256 }}
           MERGE_TREE_SHA: ${{ needs.bind-source-artifact-plan.outputs.merge-tree-sha }}
           IS_FORK: ${{ github.event_name != 'merge_group' && github.event.pull_request.head.repo.full_name != github.repository }}
-        run: |
+        run: |-
           set -euo pipefail
           [[ "$BINDING_RESULT" == "success" ]]
           [[ "$MERGE_TREE_SHA" =~ ^[0-9a-f]{40}$ ]]
           if [[ "$VALIDATION_MODE" == "bootstrap_required" ]]; then
-            echo "New GAMEVER source artifact bootstrap is required before this tree can pass." >&2
+            if [[ "$BOOTSTRAP_RESULT" == "success" ]]; then
+              echo "Bootstrap artifacts were published to a new PR head; this obsolete head must not pass. Waiting for pull_request.synchronize revalidation." >&2
+            else
+              echo "New GAMEVER source artifact bootstrap publication did not complete successfully." >&2
+            fi
             exit 1
           fi
           if [[ "$IS_FORK" == "true" && "$VALIDATION_MODE" == "full" ]]; then
