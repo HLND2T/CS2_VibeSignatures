@@ -1,20 +1,20 @@
 ---
 name: pack-snapshot
-description: Pack configured symbol YAML from a versioned bin directory into the canonical tracked game-symbol snapshot and verify it against the same analysis config. Use when explicitly asked to pack, rebuild, refresh, or verify a repository game-symbol snapshot for one GAMEVER.
+description: Pack configured symbol YAML from a versioned artifact directory into the canonical tracked game-symbol snapshot and verify it against the same analysis config. Use when explicitly asked to pack, rebuild, refresh, or verify a repository game-symbol snapshot for one GAMEVER.
 disable-model-invocation: true
 ---
 
 # Pack Snapshot
 
 Use the bundled script as the only entry point. It resolves `configs/<GAMEVER>.yaml`, atomically writes
-`gamesymbols/<GAMEVER>.yaml`, and immediately verifies the snapshot against `bin/<GAMEVER>`.
+`gamesymbols/<GAMEVER>.yaml`, and immediately verifies the snapshot against `bin_artifacts/<GAMEVER>` while binary metadata comes from `bin/<GAMEVER>`.
 
 ## Resolve GAMEVER
 
 Use an exact GAMEVER from the user's request. If omitted, read `CS2VIBE_GAMEVER` from `.env`; if it is absent or empty,
 ask the user and wait. Do not infer `latest` or substitute another version.
 
-Require both `configs/<GAMEVER>.yaml` and the configured symbol YAML inputs under `bin/<GAMEVER>`. Preserve unrelated
+Require both `configs/<GAMEVER>.yaml` and the configured symbol YAML inputs under `bin_artifacts/<GAMEVER>`. Preserve unrelated
 worktree changes and never stage or commit files.
 
 ## Pack And Verify

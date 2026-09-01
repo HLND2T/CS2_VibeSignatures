@@ -49,7 +49,14 @@ class TestRestoreFromSnapshotSkill(unittest.TestCase):
                 patch.object(restore_skill, "restore_snapshot") as restore,
             ):
                 result = restore_skill.restore(root, "14168")
-        restore.assert_called_once_with("14168", root / "bin", config, snapshot, replace=False)
+        restore.assert_called_once_with(
+            "14168",
+            root / "bin",
+            config,
+            snapshot,
+            replace=False,
+            artifactdir=root / "bin_artifacts",
+        )
         self.assertEqual("trusted", result["mode"])
 
     def test_trusted_restore_runs_against_a_real_temporary_snapshot_workspace(self) -> None:
@@ -58,14 +65,20 @@ class TestRestoreFromSnapshotSkill(unittest.TestCase):
             (root / "download.yaml").write_text('downloads:\n  - tag: "14168"\n', encoding="utf-8")
             config = root / "configs" / "14168.yaml"
             write_config(config, [module("server", [skill("find-a", ["A.{platform}.yaml"])])])
-            windows = root / "bin/14168/server/A.windows.yaml"
-            linux = root / "bin/14168/server/A.linux.yaml"
+            windows = root / "bin_artifacts/14168/server/A.windows.yaml"
+            linux = root / "bin_artifacts/14168/server/A.linux.yaml"
             write_yaml(windows, {"func_name": "A", "func_size": 1})
             write_yaml(linux, {"func_name": "A", "func_size": 2})
             write_binary(root / "bin/14168/server/server.dll")
             write_binary(root / "bin/14168/server/server.so")
             snapshot = root / "gamesymbols" / "14168.yaml"
-            pack_snapshot("14168", root / "bin", config, snapshot)
+            pack_snapshot(
+                "14168",
+                root / "bin",
+                config,
+                snapshot,
+                artifactdir=root / "bin_artifacts",
+            )
             (root / "bin/14168/server/server.dll").unlink()
             (root / "bin/14168/server/server.so").unlink()
             windows.unlink()
@@ -111,16 +124,17 @@ class TestRestoreFromSnapshotSkill(unittest.TestCase):
                 ),
                 encoding="utf-8",
             )
-            game_root = root / "bin" / "14169" / "server"
+            game_root = root / "bin_artifacts" / "14169" / "server"
             game_root.mkdir(parents=True)
             (game_root / "stale.yaml").write_text("stale: true\n", encoding="utf-8")
-            (game_root / "server.dll").write_bytes(b"binary")
+            binary = root / "bin" / "14169" / "server" / "server.dll"
+            write_binary(binary, b"binary")
 
             restore_skill.force_restore_base_snapshot(root, "14169", "14168", snapshot)
 
             self.assertFalse((game_root / "stale.yaml").exists())
             self.assertEqual({"func_name": "Example"}, yaml.safe_load((game_root / "example.windows.yaml").read_text()))
-            self.assertEqual(b"binary", (game_root / "server.dll").read_bytes())
+            self.assertEqual(b"binary", binary.read_bytes())
 
     def test_explicit_force_option_routes_through_forced_restore(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

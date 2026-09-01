@@ -19,6 +19,7 @@ def parse_args(argv=None):
     parser.add_argument("invalidate", nargs="?", default="invalidate")
     parser.add_argument("-gamever", required=True)
     parser.add_argument("-bindir", default="bin")
+    parser.add_argument("-artifactdir", default="bin_artifacts")
     parser.add_argument("-baseconfigyaml", required=True)
     parser.add_argument("-basesnapshot", required=True)
     parser.add_argument(
@@ -110,24 +111,43 @@ def _revision_sources(ref: str, repo_root: Path) -> dict[str, str]:
 
 
 def _delete_paths(contract, paths: frozenset[str]) -> int:
-    ensure_real_tree(contract.game_root.parent, contract.game_root)
+    ensure_real_tree(contract.artifact_game_root.parent, contract.artifact_game_root)
     deleted = 0
     for key in sorted(paths):
-        target = path_from_key(contract.game_root, key)
+        target = path_from_key(contract.artifact_game_root, key)
         if target.is_file():
             target.unlink()
             deleted += 1
     return deleted
 
 
-def _load_head_context(snapshot_path, config_path, game_version, bindir, base: SnapshotContext) -> SnapshotContext:
+def _load_head_context(
+    snapshot_path,
+    config_path,
+    game_version,
+    bindir,
+    artifactdir,
+    base: SnapshotContext,
+) -> SnapshotContext:
     try:
-        return load_snapshot_context(snapshot_path, config_path, game_version, bindir)
+        return load_snapshot_context(
+            snapshot_path,
+            config_path,
+            game_version,
+            bindir,
+            artifactdir=artifactdir,
+        )
     except SnapshotMismatchError as exc:
         if exc.reason != "config_digest_mismatch":
             raise
         print("Head snapshot config is stale; using the trusted base snapshot payload for invalidation")
-        contract = load_contract(config_path, game_version, bindir, LATEST_CONFIG_DIGEST_VERSION)
+        contract = load_contract(
+            config_path,
+            game_version,
+            bindir,
+            LATEST_CONFIG_DIGEST_VERSION,
+            artifactdir=artifactdir,
+        )
         return SnapshotContext(base.document, base.raw_bytes, contract)
 
 
@@ -136,8 +156,21 @@ def _run(args) -> None:
     head_snapshot = args.headsnapshot or f"gamesymbols/{args.gamever}.yaml"
     args.headconfigyaml = str(resolve_analysis_config(args.gamever, args.headconfigyaml))
     print(f"Head analysis config: {args.headconfigyaml}")
-    base = load_snapshot_context(args.basesnapshot, args.baseconfigyaml, args.gamever, args.bindir)
-    head = _load_head_context(head_snapshot, args.headconfigyaml, args.gamever, args.bindir, base)
+    base = load_snapshot_context(
+        args.basesnapshot,
+        args.baseconfigyaml,
+        args.gamever,
+        args.bindir,
+        artifactdir=args.artifactdir,
+    )
+    head = _load_head_context(
+        head_snapshot,
+        args.headconfigyaml,
+        args.gamever,
+        args.bindir,
+        args.artifactdir,
+        base,
+    )
     changes = _changed_paths(args.baseref, args.headref, repo_root)
     needs_base_sources, needs_head_sources = required_source_index_sides(changes)
     base_sources = _revision_sources(args.baseref, repo_root) if needs_base_sources else {}

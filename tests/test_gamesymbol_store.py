@@ -22,6 +22,7 @@ class StoreWorkspace:
         self.root = root
         self.config = root / "config.yaml"
         self.bindir = root / "bin"
+        self.artifactdir = root / "bin_artifacts"
         self.gamever = "14199"
         outputs = [
             "ITest_vtable.{platform}.yaml",
@@ -32,10 +33,16 @@ class StoreWorkspace:
         self._write_symbols()
         write_binary(self.bindir / self.gamever / "server/server.dll")
         self.snapshot = root / "candidate" / f"{self.gamever}.yaml"
-        pack_snapshot(self.gamever, self.bindir, self.config, self.snapshot)
+        pack_snapshot(
+            self.gamever,
+            self.bindir,
+            self.config,
+            self.snapshot,
+            artifactdir=self.artifactdir,
+        )
 
     def _write_symbols(self) -> None:
-        root = self.bindir / self.gamever / "server"
+        root = self.artifactdir / self.gamever / "server"
         write_yaml(root / "ITest_vtable.windows.yaml", {"vtable_size": "0x18", "vtable_numvfunc": 2})
         write_yaml(root / "ITest_First.windows.yaml", {"func_name": "ITest_First", "vfunc_index": 0})
         write_yaml(root / "ITest_Second.windows.yaml", {"func_name": "ITest_Second", "vfunc_index": 1})
@@ -118,7 +125,7 @@ class TestSnapshotSymbolStore(unittest.TestCase):
     def test_directory_and_snapshot_backends_have_query_parity(self) -> None:
         with TemporaryDirectory() as temp_dir:
             workspace = StoreWorkspace(Path(temp_dir))
-            directory = DirectorySymbolStore(workspace.bindir, workspace.gamever)
+            directory = DirectorySymbolStore(workspace.artifactdir, workspace.gamever)
             snapshot = workspace.open()
 
             self.assertEqual(
@@ -127,6 +134,18 @@ class TestSnapshotSymbolStore(unittest.TestCase):
             )
             shutil.rmtree(workspace.bindir / workspace.gamever)
             self.assertEqual(1, snapshot.require("server", "ITest_Second.windows.yaml")["vfunc_index"])
+
+    def test_directory_store_ignores_binary_adjacent_yaml(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            workspace = StoreWorkspace(Path(temp_dir))
+            write_yaml(
+                workspace.bindir / workspace.gamever / "server" / "Private.windows.yaml",
+                {"func_name": "Private"},
+            )
+
+            store = DirectorySymbolStore(workspace.artifactdir, workspace.gamever)
+
+            self.assertFalse(store.contains("server", "Private.windows.yaml"))
 
 
 if __name__ == "__main__":

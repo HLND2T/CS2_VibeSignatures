@@ -1666,12 +1666,15 @@ class TestExecutionPlan(unittest.TestCase):
             platforms=["windows"],
             bin_dir="bin",
             gamever="14141",
+            artifact_dir="source-artifacts",
         )
 
         edge = next(edge for edge in plan.edges if edge.edge_type == EdgeType.CROSS_STAGE_ARTIFACT)
         self.assertEqual("stage-0001-client-windows/producer", edge.source)
         self.assertEqual("stage-0002-server-windows/consumer", edge.target)
         self.assertTrue(edge.artifact.endswith("client\\Shared.windows.yaml"))
+        self.assertIn("source-artifacts", edge.artifact)
+        self.assertNotIn("bin\\14141", edge.artifact)
 
     def test_execution_plan_contains_skill_vcall_and_post_process_nodes(self) -> None:
         modules = [
@@ -2327,7 +2330,8 @@ class TestProcessBinary(unittest.TestCase):
                 binary_dir = Path(temp_dir) / "engine"
                 binary_dir.mkdir(parents=True)
                 binary_path = str(binary_dir / "engine2.dll")
-                output = binary_dir / "SyntheticGlobal.windows.yaml"
+                artifact_dir = Path(temp_dir) / "bin_artifacts" / "14168" / "engine"
+                output = artifact_dir / "SyntheticGlobal.windows.yaml"
                 fake_process = object()
 
                 def write_output(*_args, **_kwargs):
@@ -2365,10 +2369,12 @@ class TestProcessBinary(unittest.TestCase):
                         platform="windows",
                         skip_pp=producer == "agent",
                         category_map={"SyntheticGlobal": "gv"},
+                        artifact_dir=artifact_dir,
                     )
 
                 self.assertEqual((1, 0, 0), result)
                 self.assertEqual(expected, output.read_bytes())
+                self.assertFalse((binary_dir / output.name).exists())
 
     def test_process_binary_treats_absent_ok_as_skip_and_continues(self) -> None:
         with TemporaryDirectory() as temp_dir:
@@ -4892,6 +4898,29 @@ class TestInspectFuncVaPyEvalSelfHeal(unittest.IsolatedAsyncioTestCase):
     clear=False,
 )
 class TestParseArgsLlmOptions(unittest.TestCase):
+    @patch.object(ida_analyze_bin, "resolve_oldgamever", return_value="14140")
+    def test_parse_args_separates_binary_current_and_old_artifact_roots(self, mock_resolve_oldgamever) -> None:
+        with patch(
+            "sys.argv",
+            [
+                "ida_analyze_bin.py",
+                "-gamever",
+                "14141",
+                "-bindir",
+                "private-bin",
+                "-artifactdir",
+                "source-artifacts",
+                "-oldartifactdir",
+                "trusted-old-artifacts",
+            ],
+        ):
+            args = ida_analyze_bin.parse_args()
+
+        self.assertEqual("private-bin", args.bindir)
+        self.assertEqual("source-artifacts", args.artifactdir)
+        self.assertEqual("trusted-old-artifacts", args.oldartifactdir)
+        mock_resolve_oldgamever.assert_called_once_with("14141", "trusted-old-artifacts")
+
     @patch.object(ida_analyze_bin, "resolve_oldgamever", return_value="14140")
     def test_parse_args_accepts_require_warm_idb(self, _mock_resolve_oldgamever) -> None:
         with patch(

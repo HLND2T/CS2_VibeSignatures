@@ -23,12 +23,25 @@ class TestGitChangeCollection(unittest.TestCase):
             ),
             patch("gamesymbol_snapshot_lib.pr_cli.load_contract", return_value=head_contract) as load_contract,
         ):
-            head = _load_head_context("head.yaml", "head-config.yaml", "14172", "bin", base)
+            head = _load_head_context(
+                "head.yaml",
+                "head-config.yaml",
+                "14172",
+                "bin",
+                "bin_artifacts",
+                base,
+            )
 
         self.assertEqual(base.document, head.document)
         self.assertEqual(base.raw_bytes, head.raw_bytes)
         self.assertIs(head_contract, head.contract)
-        load_contract.assert_called_once_with("head-config.yaml", "14172", "bin", 2)
+        load_contract.assert_called_once_with(
+            "head-config.yaml",
+            "14172",
+            "bin",
+            2,
+            artifactdir="bin_artifacts",
+        )
 
     def test_head_snapshot_failures_other_than_config_digest_mismatch_propagate(self) -> None:
         base = SnapshotContext({}, b"base", "base-contract")
@@ -36,7 +49,14 @@ class TestGitChangeCollection(unittest.TestCase):
 
         with patch("gamesymbol_snapshot_lib.pr_cli.load_snapshot_context", side_effect=failure):
             with self.assertRaisesRegex(SnapshotMismatchError, "not canonical"):
-                _load_head_context("head.yaml", "head-config.yaml", "14172", "bin", base)
+                _load_head_context(
+                    "head.yaml",
+                    "head-config.yaml",
+                    "14172",
+                    "bin",
+                    "bin_artifacts",
+                    base,
+                )
 
     def test_parse_name_status_preserves_status_rename_sides_and_spaces(self) -> None:
 
@@ -121,6 +141,7 @@ class TestGitChangeCollection(unittest.TestCase):
             args = SimpleNamespace(
                 gamever="14175",
                 bindir="bin",
+                artifactdir="bin_artifacts",
                 baseconfigyaml="base-config.yaml",
                 basesnapshot="base-snapshot.yaml",
                 headconfigyaml="head-config.yaml",

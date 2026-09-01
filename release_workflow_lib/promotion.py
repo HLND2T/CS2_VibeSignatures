@@ -178,6 +178,7 @@ def verify_promotion(
         Path(repo_root) / "configs" / f"{gamever}.yaml",
         gamever,
         Path(repo_root) / "bin",
+        artifactdir=Path(repo_root) / "bin_artifacts",
     )
     verify_snapshot_binaries(snapshot_context.document, stage_dir / "bin" / gamever)
     return {**tracked, "stage_dir": str(stage_dir), "output_merge_sha": merge_sha}

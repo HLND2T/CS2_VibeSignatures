@@ -251,7 +251,7 @@ class TestReleaseWorkflow(unittest.TestCase):
             result = prepare_oldgamever_baseline(repo_root=repo, gamever="14168b", bindir="bin")
 
             self.assertEqual("14168", result["oldgamever"])
-            restored = repo / "bin" / "14168" / "server" / "Test.windows.yaml"
+            restored = repo / "bin_artifacts" / "14168" / "server" / "Test.windows.yaml"
             self.assertEqual("func_name: Test\nfunc_rva: '0x10'\n", restored.read_text(encoding="utf-8"))
 
     def test_major_update_explicitly_disables_oldgamever(self) -> None:
@@ -261,7 +261,7 @@ class TestReleaseWorkflow(unittest.TestCase):
             result = prepare_oldgamever_baseline(repo_root=repo, gamever="14168b", bindir="bin")
 
             self.assertEqual("none", result["oldgamever"])
-            self.assertFalse((repo / "bin" / "14168").exists())
+            self.assertFalse((repo / "bin_artifacts" / "14168").exists())
 
     def test_release_metadata_separates_human_notes_from_machine_provenance(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

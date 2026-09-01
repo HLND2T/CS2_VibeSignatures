@@ -18,7 +18,6 @@ from gamesymbol_snapshot_lib.candidate_session import (
 from gamesymbol_snapshot_lib.codec import (
     canonical_snapshot_bytes,
     parse_snapshot_bytes,
-    snapshot_analysis_output_contract_version,
     snapshot_config_digest_version,
 )
 from gamesymbol_snapshot_lib.diff import format_snapshot_mismatch
@@ -100,7 +99,14 @@ def _candidate_info(path: Path) -> CandidateInfo:
 
 
 def build_candidate_snapshot(
-    *, game_version, bin_root, config_path, output_path, session_path, last_publish_time: str | None = None
+    *,
+    game_version,
+    bin_root,
+    artifact_root,
+    config_path,
+    output_path,
+    session_path,
+    last_publish_time: str | None = None,
 ) -> CandidateInfo:
     output, session = _validate_staging_paths(output_path, session_path)
     try:
@@ -111,6 +117,7 @@ def build_candidate_snapshot(
             output,
             last_publish_time=last_publish_time,
             binary_metadata_source_path=Path("gamesymbols") / f"{game_version}.yaml",
+            artifactdir=artifact_root,
         )
         store = SnapshotSymbolStore.open(
             output,

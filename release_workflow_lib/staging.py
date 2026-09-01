@@ -150,7 +150,13 @@ def _write_stage_manifests(
         raise ReleaseWorkflowError(f"analysis config must be {expected_config}")
     analysis_config_sha256 = sha256_file(analysis_config)
     try:
-        candidate_context = load_snapshot_context(candidate, analysis_config, gamever, repo_root / "bin")
+        candidate_context = load_snapshot_context(
+            candidate,
+            analysis_config,
+            gamever,
+            repo_root / "bin",
+            artifactdir=repo_root / "bin_artifacts",
+        )
     except Exception as exc:
         raise ReleaseWorkflowError(f"candidate snapshot provenance is invalid: {exc}") from exc
     candidate_document = candidate_context.document
@@ -269,6 +275,7 @@ def finalize_stage(*, repo_root: Path, staging_root: Path, gamever: str, build_i
         Path(repo_root) / "configs" / f"{gamever}.yaml",
         gamever,
         Path(repo_root) / "bin",
+        artifactdir=Path(repo_root) / "bin_artifacts",
     )
     verify_snapshot_binaries(snapshot_context.document, stage_dir / "bin" / gamever)
     pending["pr_head_sha"] = pr_head_sha

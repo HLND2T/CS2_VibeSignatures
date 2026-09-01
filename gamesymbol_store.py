@@ -245,7 +245,13 @@ class SnapshotSymbolStore(_MemorySymbolStore):
         try:
             config_path = resolve_analysis_config(expected_game_version, config_path)
             digest_version = snapshot_config_digest_version(document)
-            contract = load_contract(config_path, expected_game_version, "bin", digest_version)
+            contract = load_contract(
+                config_path,
+                expected_game_version,
+                "bin",
+                digest_version,
+                artifactdir="bin_artifacts",
+            )
             validate_snapshot_contract(document, contract)
         except (AnalysisConfigError, SnapshotConfigError, SnapshotMismatchError) as exc:
             raise SnapshotConfigMismatchError(str(exc)) from exc
@@ -264,18 +270,18 @@ class SnapshotSymbolStore(_MemorySymbolStore):
 
 
 class DirectorySymbolStore(_MemorySymbolStore):
-    """Eager migration/test backend; production workflows must use snapshots."""
+    """Eager artifact-root migration/test backend; production workflows must use snapshots."""
 
     def __init__(
         self,
-        bin_root,
+        artifact_root,
         game_version: str,
         *,
         config_sha256: str | None = None,
         config_digest_version: int = LATEST_CONFIG_DIGEST_VERSION,
     ):
-        game_root = Path(bin_root) / str(game_version)
-        files = self._load_files(game_root)
+        artifact_game_root = Path(artifact_root) / str(game_version)
+        files = self._load_files(artifact_game_root)
         digest = f"sha256:{hashlib.sha256(canonical_yaml_bytes(files)).hexdigest()}"
         super().__init__(
             str(game_version),

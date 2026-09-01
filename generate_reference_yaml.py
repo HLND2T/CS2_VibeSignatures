@@ -115,6 +115,11 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         help="Analysis config path; defaults to configs/<GAMEVER>.yaml",
     )
     parser.add_argument(
+        "-artifactdir",
+        default="bin_artifacts",
+        help="Per-symbol artifact root (default: bin_artifacts)",
+    )
+    parser.add_argument(
         "-module",
         help="Module name; when omitted, infer it from the current IDA binary path",
     )
@@ -237,8 +242,12 @@ def build_existing_yaml_path(
     module: str,
     func_name: str,
     platform: str,
+    artifactdir: str | Path = "bin_artifacts",
 ) -> Path:
-    return Path(repo_root) / "bin" / gamever / module / f"{func_name}.{platform}.yaml"
+    artifact_root = Path(artifactdir)
+    if not artifact_root.is_absolute():
+        artifact_root = Path(repo_root) / artifact_root
+    return artifact_root / gamever / module / f"{func_name}.{platform}.yaml"
 
 
 def load_existing_func_va(
@@ -247,8 +256,16 @@ def load_existing_func_va(
     module: str,
     func_name: str,
     platform: str,
+    artifactdir: str | Path = "bin_artifacts",
 ) -> str | None:
-    existing_yaml_path = build_existing_yaml_path(repo_root, gamever, module, func_name, platform)
+    existing_yaml_path = build_existing_yaml_path(
+        repo_root,
+        gamever,
+        module,
+        func_name,
+        platform,
+        artifactdir,
+    )
     existing_yaml_map = load_yaml_mapping(existing_yaml_path)
     if not existing_yaml_map:
         return None
@@ -416,6 +433,7 @@ async def resolve_func_va(
     func_name: str,
     config_path: str | Path,
     debug: bool,
+    artifactdir: str | Path = "bin_artifacts",
 ) -> str:
     existing_func_va = load_existing_func_va(
         repo_root=repo_root,
@@ -423,6 +441,7 @@ async def resolve_func_va(
         module=module,
         func_name=func_name,
         platform=platform,
+        artifactdir=artifactdir,
     )
     if existing_func_va:
         return existing_func_va
@@ -824,6 +843,7 @@ async def run_reference_generation(
             func_name=args.func_name,
             config_path=config_path,
             debug=args.debug,
+            artifactdir=getattr(args, "artifactdir", "bin_artifacts"),
         )
         output_path = build_reference_output_path(
             resolved_repo_root,

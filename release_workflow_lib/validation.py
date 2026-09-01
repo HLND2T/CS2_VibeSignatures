@@ -100,12 +100,21 @@ def _gamever_key(gamever: str) -> tuple[int, int]:
     return int(base), ord(suffix) - ord("a") + 1 if suffix else 0
 
 
-def prepare_oldgamever_baseline(*, repo_root: str | Path, gamever: str, bindir: str | Path) -> dict:
+def prepare_oldgamever_baseline(
+    *,
+    repo_root: str | Path,
+    gamever: str,
+    bindir: str | Path,
+    artifactdir: str | Path = "bin_artifacts",
+) -> dict:
     repo_root = Path(repo_root).resolve()
     gamever = require_gamever(gamever)
     bindir = Path(bindir)
     if not bindir.is_absolute():
         bindir = repo_root / bindir
+    artifactdir = Path(artifactdir)
+    if not artifactdir.is_absolute():
+        artifactdir = repo_root / artifactdir
 
     download_path = repo_root / "download.yaml"
     try:
@@ -142,7 +151,14 @@ def prepare_oldgamever_baseline(*, repo_root: str | Path, gamever: str, bindir: 
     if not config.is_file():
         raise ReleaseWorkflowError(f"old-version analysis config is missing: {config}")
     try:
-        restore_snapshot(oldgamever, str(bindir), str(config), str(snapshot), replace=True)
+        restore_snapshot(
+            oldgamever,
+            str(bindir),
+            str(config),
+            str(snapshot),
+            replace=True,
+            artifactdir=artifactdir,
+        )
     except (SnapshotError, OSError, UnicodeError) as exc:
         raise ReleaseWorkflowError(f"unable to restore trusted snapshot for {oldgamever}: {exc}") from exc
     return {
@@ -152,9 +168,9 @@ def prepare_oldgamever_baseline(*, repo_root: str | Path, gamever: str, bindir: 
     }
 
 
-def _invalidate_yaml_baseline(bindir: Path, gamever: str) -> int:
-    game_root = bindir / gamever
-    ensure_real_tree(bindir, game_root)
+def _invalidate_yaml_baseline(artifactdir: Path, gamever: str) -> int:
+    game_root = artifactdir / gamever
+    ensure_real_tree(artifactdir, game_root)
     paths = list(iter_yaml_paths(game_root))
     for path in paths:
         path.unlink()
@@ -191,6 +207,7 @@ def _invalidate_from_accepted_manifest(
     gamever: str,
     source_sha: str,
     bindir: Path,
+    artifactdir: Path,
     manifest_path: Path,
 ) -> int:
     manifest = load_tracked_manifest(manifest_path)
@@ -235,11 +252,17 @@ def _invalidate_from_accepted_manifest(
         accepted_snapshot.write_bytes(_git_blob(repo_root, accepted_manifest_sha, snapshot_repo_path))
         snapshot.write_bytes(_git_blob(repo_root, snapshot_sha, snapshot_repo_path))
         try:
-            accepted_context = load_snapshot_context(accepted_snapshot, accepted_config, gamever, bindir)
+            accepted_context = load_snapshot_context(
+                accepted_snapshot,
+                accepted_config,
+                gamever,
+                bindir,
+                artifactdir=artifactdir,
+            )
         except SnapshotMismatchError as exc:
             if exc.reason == ANALYSIS_OUTPUT_CONTRACT_MISMATCH_REASON:
                 print("Analysis output contract changed; discarding the accepted snapshot baseline")
-                return _invalidate_yaml_baseline(bindir, gamever)
+                return _invalidate_yaml_baseline(artifactdir, gamever)
             raise
         accepted_contract = accepted_context.contract
         if (
@@ -258,14 +281,27 @@ def _invalidate_from_accepted_manifest(
         if manifest_digest_version != accepted_contract.config_digest_version:
             raise ReleaseWorkflowError("accepted manifest analysis config digest version does not match snapshot")
         try:
-            snapshot_context = load_snapshot_context(snapshot, snapshot_config, gamever, bindir)
+            snapshot_context = load_snapshot_context(
+                snapshot,
+                snapshot_config,
+                gamever,
+                bindir,
+                artifactdir=artifactdir,
+            )
         except SnapshotMismatchError as exc:
             if exc.reason == ANALYSIS_OUTPUT_CONTRACT_MISMATCH_REASON:
                 print("Analysis output contract changed; discarding the tracked snapshot baseline")
-                return _invalidate_yaml_baseline(bindir, gamever)
+                return _invalidate_yaml_baseline(artifactdir, gamever)
             raise
-        head_contract = load_contract(head_config, gamever, bindir)
-        restore_snapshot(gamever, bindir, snapshot_config, snapshot, replace=True)
+        head_contract = load_contract(head_config, gamever, bindir, artifactdir=artifactdir)
+        restore_snapshot(
+            gamever,
+            bindir,
+            snapshot_config,
+            snapshot,
+            replace=True,
+            artifactdir=artifactdir,
+        )
         plan = build_invalidation_plan(
             snapshot_context.contract,
             head_contract,
@@ -274,7 +310,7 @@ def _invalidate_from_accepted_manifest(
             _changed_files(repo_root, snapshot_sha, source_sha),
             repo_root,
         )
-    return _delete_planned_outputs(plan, head_contract.game_root)
+    return _delete_planned_outputs(plan, head_contract.artifact_game_root)
 
 
 def invalidate_republish(
@@ -283,6 +319,7 @@ def invalidate_republish(
     gamever: str,
     source_sha: str,
     bindir: Path,
+    artifactdir: Path = Path("bin_artifacts"),
 ) -> int:
     repo_root = Path(repo_root).resolve()
     gamever = require_gamever(gamever)
@@ -290,7 +327,17 @@ def invalidate_republish(
     bindir = Path(bindir)
     if not bindir.is_absolute():
         bindir = repo_root / bindir
+    artifactdir = Path(artifactdir)
+    if not artifactdir.is_absolute():
+        artifactdir = repo_root / artifactdir
     manifest_path = repo_root / "release-manifests" / f"{gamever}.json"
     if manifest_path.is_file():
-        return _invalidate_from_accepted_manifest(repo_root, gamever, source_sha, bindir, manifest_path)
-    return _invalidate_yaml_baseline(bindir, gamever)
+        return _invalidate_from_accepted_manifest(
+            repo_root,
+            gamever,
+            source_sha,
+            bindir,
+            artifactdir,
+            manifest_path,
+        )
+    return _invalidate_yaml_baseline(artifactdir, gamever)

@@ -113,6 +113,7 @@ def _base_args(**overrides: object) -> Namespace:
     payload = {
         "gamever": "14141",
         "configyaml": str(Path(__file__).resolve()),
+        "artifactdir": "bin_artifacts",
         "module": "engine",
         "platform": "windows",
         "func_name": "CNetworkMessages_FindNetworkGroup",
@@ -183,7 +184,7 @@ class TestReferenceYamlPureHelpers(unittest.TestCase):
                         output_filename=output_filename,
                     )
 
-    def test_build_existing_yaml_path_uses_bin_gamever_module_func_platform(self) -> None:
+    def test_build_existing_yaml_path_uses_artifact_gamever_module_func_platform(self) -> None:
         repo_root = Path("/repo")
 
         existing_yaml_path = generate_reference_yaml.build_existing_yaml_path(
@@ -195,7 +196,7 @@ class TestReferenceYamlPureHelpers(unittest.TestCase):
         )
 
         self.assertEqual(
-            Path("/repo/bin/14141/engine/CNetworkMessages_FindNetworkGroup.windows.yaml"),
+            Path("/repo/bin_artifacts/14141/engine/CNetworkMessages_FindNetworkGroup.windows.yaml"),
             existing_yaml_path,
         )
 
@@ -225,11 +226,17 @@ class TestReferenceYamlPureHelpers(unittest.TestCase):
             with self.assertRaises(generate_reference_yaml.ReferenceGenerationError):
                 generate_reference_yaml.load_yaml_mapping(yaml_path)
 
-    def test_load_existing_func_va_reads_from_bin_path(self) -> None:
+    def test_load_existing_func_va_reads_from_artifact_path(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             repo_root = Path(temp_dir)
-            yaml_path = repo_root / "bin" / "14141" / "engine" / "CNetworkMessages_FindNetworkGroup.windows.yaml"
+            yaml_path = (
+                repo_root / "bin_artifacts" / "14141" / "engine" / "CNetworkMessages_FindNetworkGroup.windows.yaml"
+            )
             _write_yaml(yaml_path, {"func_va": "0x180123456"})
+            _write_yaml(
+                repo_root / "bin" / "14141" / "engine" / "CNetworkMessages_FindNetworkGroup.windows.yaml",
+                {"func_va": "0x180999999"},
+            )
 
             func_va = generate_reference_yaml.load_existing_func_va(
                 repo_root=repo_root,
@@ -244,7 +251,9 @@ class TestReferenceYamlPureHelpers(unittest.TestCase):
     def test_load_existing_func_va_accepts_unquoted_yaml_integer_value(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             repo_root = Path(temp_dir)
-            yaml_path = repo_root / "bin" / "14141" / "engine" / "CNetworkMessages_FindNetworkGroup.windows.yaml"
+            yaml_path = (
+                repo_root / "bin_artifacts" / "14141" / "engine" / "CNetworkMessages_FindNetworkGroup.windows.yaml"
+            )
             _write_yaml(yaml_path, {"func_va": 0x180123450})
 
             func_va = generate_reference_yaml.load_existing_func_va(
@@ -272,7 +281,9 @@ class TestReferenceYamlPureHelpers(unittest.TestCase):
     def test_load_existing_func_va_returns_none_for_unparseable_value(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             repo_root = Path(temp_dir)
-            yaml_path = repo_root / "bin" / "14141" / "engine" / "CNetworkMessages_FindNetworkGroup.windows.yaml"
+            yaml_path = (
+                repo_root / "bin_artifacts" / "14141" / "engine" / "CNetworkMessages_FindNetworkGroup.windows.yaml"
+            )
             _write_yaml(yaml_path, {"func_va": "not-an-address"})
 
             func_va = generate_reference_yaml.load_existing_func_va(
@@ -496,7 +507,7 @@ class TestResolveFuncVa(unittest.IsolatedAsyncioTestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             repo_root = Path(temp_dir)
             _write_yaml(
-                repo_root / "bin" / "14141" / "engine" / "CNetworkMessages_FindNetworkGroup.windows.yaml",
+                repo_root / "bin_artifacts" / "14141" / "engine" / "CNetworkMessages_FindNetworkGroup.windows.yaml",
                 {"func_va": "0x180123450"},
             )
             session = AsyncMock()
@@ -1563,6 +1574,7 @@ class TestRunReferenceGeneration(unittest.IsolatedAsyncioTestCase):
             func_name="CNetworkMessages_FindNetworkGroup",
             config_path=Path(__file__).resolve(),
             debug=False,
+            artifactdir="bin_artifacts",
         )
         export_reference_yaml_via_mcp.assert_awaited_once_with(
             fake_session,
@@ -1737,6 +1749,7 @@ class TestRunReferenceGeneration(unittest.IsolatedAsyncioTestCase):
             func_name="CNetworkMessages_FindNetworkGroup",
             config_path=Path(__file__).resolve(),
             debug=False,
+            artifactdir="bin_artifacts",
         )
         build_reference_output_path.assert_called_once_with(
             Path("/repo"),

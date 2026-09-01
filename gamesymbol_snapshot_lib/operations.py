@@ -331,7 +331,7 @@ def pack_snapshot(
 ) -> bytes:
     snapshot_path = Path(snapshot_path or f"gamesymbols/{game_version}.yaml")
     config_path = resolve_analysis_config(game_version, config_path)
-    artifactdir = Path(bindir if artifactdir is None else artifactdir)
+    artifactdir = Path(bindir).parent / "bin_artifacts" if artifactdir is None else Path(artifactdir)
     contract = load_contract(
         config_path,
         game_version,
@@ -446,7 +446,7 @@ def restore_snapshot(
 ) -> bytes:
     snapshot_path = Path(snapshot_path or f"gamesymbols/{game_version}.yaml")
     config_path = resolve_analysis_config(game_version, config_path)
-    artifactdir = Path(bindir if artifactdir is None else artifactdir)
+    artifactdir = Path(bindir).parent / "bin_artifacts" if artifactdir is None else Path(artifactdir)
     context = load_snapshot_context(
         snapshot_path,
         config_path,

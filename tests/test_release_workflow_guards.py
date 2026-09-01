@@ -57,10 +57,12 @@ class TestReleaseWorkflowGuards(unittest.TestCase):
     def test_first_republish_without_manifest_uses_conservative_baseline(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp)
-            game_root = repo / "bin" / "14170"
-            game_root.mkdir(parents=True)
-            (game_root / "client.yaml").write_text("value: 1\n", encoding="utf-8")
-            (game_root / "client.dll").write_bytes(b"dll")
+            artifact_game_root = repo / "bin_artifacts" / "14170"
+            binary_game_root = repo / "bin" / "14170"
+            artifact_game_root.mkdir(parents=True)
+            binary_game_root.mkdir(parents=True)
+            (artifact_game_root / "client.yaml").write_text("value: 1\n", encoding="utf-8")
+            (binary_game_root / "client.dll").write_bytes(b"dll")
 
             deleted = invalidate_republish(
                 repo_root=repo,
@@ -70,8 +72,8 @@ class TestReleaseWorkflowGuards(unittest.TestCase):
             )
 
             self.assertEqual(1, deleted)
-            self.assertFalse((game_root / "client.yaml").exists())
-            self.assertTrue((game_root / "client.dll").exists())
+            self.assertFalse((artifact_game_root / "client.yaml").exists())
+            self.assertTrue((binary_game_root / "client.dll").exists())
 
     def test_republish_reuses_validated_tracked_snapshot_newer_than_accepted_manifest(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -79,7 +81,7 @@ class TestReleaseWorkflowGuards(unittest.TestCase):
             config = repo / "configs" / "14170.yaml"
             snapshot = repo / "gamesymbols" / "14170.yaml"
             manifest_path = repo / "release-manifests" / "14170.json"
-            game_root = repo / "bin" / "14170"
+            game_root = repo / "bin_artifacts" / "14170"
             config.parent.mkdir(parents=True)
             snapshot.parent.mkdir(parents=True)
             game_root.mkdir(parents=True)

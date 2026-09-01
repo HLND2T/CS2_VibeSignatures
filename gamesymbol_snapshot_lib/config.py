@@ -405,14 +405,20 @@ def load_contract(
         raw,
         game_version,
         bindir,
-        bindir if artifactdir is None else artifactdir,
+        Path(bindir).parent / "bin_artifacts" if artifactdir is None else artifactdir,
         config_digest_version,
         _digest(normalized, config_digest_version),
         require_explicit_producer_groups=require_explicit_producer_groups,
     )
 
 
-def load_unversioned_schema1_contract(config_path, game_version, bindir, *, artifactdir=None) -> SnapshotContract:
+def load_unversioned_schema1_contract(
+    config_path,
+    game_version,
+    bindir,
+    *,
+    artifactdir=None,
+) -> SnapshotContract:
     """Load the short-lived schema-1 digest representation used before digest versioning."""
     config_path = Path(config_path)
     raw = _load_raw_config(config_path)
@@ -421,7 +427,7 @@ def load_unversioned_schema1_contract(config_path, game_version, bindir, *, arti
         raw,
         game_version,
         bindir,
-        bindir if artifactdir is None else artifactdir,
+        Path(bindir).parent / "bin_artifacts" if artifactdir is None else artifactdir,
         1,
         _unversioned_digest(normalized),
         require_explicit_producer_groups=False,

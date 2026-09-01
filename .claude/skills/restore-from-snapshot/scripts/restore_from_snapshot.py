@@ -114,12 +114,11 @@ def force_restore_base_snapshot(root: Path, gamever: str, base_gamever: str, sna
             f"base snapshot filename GAMEVER {base_gamever} does not match payload {document['game_version']}"
         )
 
-    bindir = root / "bin"
-    game_root = bindir / gamever
-    if not game_root.is_dir():
-        raise RestoreSnapshotError(f"target game directory does not exist: bin/{gamever}")
+    artifactdir = root / "bin_artifacts"
+    game_root = artifactdir / gamever
+    game_root.mkdir(parents=True, exist_ok=True)
     try:
-        ensure_real_tree(bindir, game_root)
+        ensure_real_tree(artifactdir, game_root)
         targets = [
             (path_from_key(game_root, key), canonical_yaml_bytes(payload)) for key, payload in document["files"].items()
         ]
@@ -160,7 +159,14 @@ def restore(root: Path, gamever: str, force_base_gamever: str | None = None, *, 
         }
     try:
         config = resolve_analysis_config(gamever, repo_root=root)
-        restore_snapshot(gamever, root / "bin", config, snapshot, replace=replace)
+        restore_snapshot(
+            gamever,
+            root / "bin",
+            config,
+            snapshot,
+            replace=replace,
+            artifactdir=root / "bin_artifacts",
+        )
     except (AnalysisConfigError, SnapshotConfigError, SnapshotMismatchError, OSError) as exc:
         raise RestoreSnapshotError(str(exc)) from exc
     return {"mode": "trusted", "gamever": gamever, "replaced": replace}

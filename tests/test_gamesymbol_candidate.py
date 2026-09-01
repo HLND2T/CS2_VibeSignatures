@@ -28,17 +28,19 @@ class CandidateWorkspace:
         self.gamever = "14199"
         self.config = root / "config.yaml"
         self.bindir = root / "bin"
+        self.artifactdir = root / "bin_artifacts"
         self.stage = root / "stage"
         self.candidate = self.stage / f"{self.gamever}.yaml"
         self.session = self.stage / f"{self.gamever}.session.json"
         write_config(self.config, [module("server", [skill("find", ["Foo.{platform}.yaml"])], linux=False)])
-        write_yaml(self.bindir / self.gamever / "server" / "Foo.windows.yaml", {"func_name": "Foo"})
+        write_yaml(self.artifactdir / self.gamever / "server" / "Foo.windows.yaml", {"func_name": "Foo"})
         write_binary(self.bindir / self.gamever / "server" / "server.dll")
 
     def build(self):
         return build_candidate_snapshot(
             game_version=self.gamever,
             bin_root=self.bindir,
+            artifact_root=self.artifactdir,
             config_path=self.config,
             output_path=self.candidate,
             session_path=self.session,
@@ -102,7 +104,13 @@ class TestCandidateLifecycle(unittest.TestCase):
                     "gamesymbol_snapshot_lib.operations._utc_publish_time",
                     return_value="2026-01-02T03:04:05Z",
                 ):
-                    pack_snapshot(workspace.gamever, workspace.bindir, workspace.config, tracked_snapshot)
+                    pack_snapshot(
+                        workspace.gamever,
+                        workspace.bindir,
+                        workspace.config,
+                        tracked_snapshot,
+                        artifactdir=workspace.artifactdir,
+                    )
                     with patch("gamesymbol_snapshot_lib.operations.hash_file") as hash_file:
                         workspace.build()
 
@@ -122,7 +130,13 @@ class TestCandidateLifecycle(unittest.TestCase):
                     "gamesymbol_snapshot_lib.operations._utc_publish_time",
                     return_value="2026-01-02T03:04:05Z",
                 ):
-                    pack_snapshot(workspace.gamever, workspace.bindir, workspace.config, tracked_snapshot)
+                    pack_snapshot(
+                        workspace.gamever,
+                        workspace.bindir,
+                        workspace.config,
+                        tracked_snapshot,
+                        artifactdir=workspace.artifactdir,
+                    )
                 with patch(
                     "gamesymbol_snapshot_lib.operations._utc_publish_time",
                     return_value="2026-01-02T04:05:06Z",
@@ -144,9 +158,16 @@ class TestCandidateLifecycle(unittest.TestCase):
                     "gamesymbol_snapshot_lib.operations._utc_publish_time",
                     return_value="2026-01-02T03:04:05Z",
                 ):
-                    pack_snapshot(workspace.gamever, workspace.bindir, workspace.config, tracked_snapshot)
+                    pack_snapshot(
+                        workspace.gamever,
+                        workspace.bindir,
+                        workspace.config,
+                        tracked_snapshot,
+                        artifactdir=workspace.artifactdir,
+                    )
                 write_yaml(
-                    workspace.bindir / workspace.gamever / "server" / "Foo.windows.yaml", {"func_name": "Changed"}
+                    workspace.artifactdir / workspace.gamever / "server" / "Foo.windows.yaml",
+                    {"func_name": "Changed"},
                 )
                 with patch(
                     "gamesymbol_snapshot_lib.operations._utc_publish_time",
@@ -182,7 +203,10 @@ class TestCandidateLifecycle(unittest.TestCase):
             first = CandidateWorkspace(Path(temp_dir) / "first")
             second = CandidateWorkspace(Path(temp_dir) / "second")
             first.build()
-            write_yaml(second.bindir / second.gamever / "server" / "Foo.windows.yaml", {"func_name": "Changed"})
+            write_yaml(
+                second.artifactdir / second.gamever / "server" / "Foo.windows.yaml",
+                {"func_name": "Changed"},
+            )
             second.build()
             with self.assertRaisesRegex(SnapshotMismatchError, "Modified"):
                 compare_snapshots(
@@ -197,7 +221,13 @@ class TestCandidateLifecycle(unittest.TestCase):
             workspace = CandidateWorkspace(Path(temp_dir))
             workspace.build()
             actual = parse_snapshot_bytes(workspace.candidate.read_bytes())
-            legacy_contract = load_contract(workspace.config, workspace.gamever, workspace.bindir, 1)
+            legacy_contract = load_contract(
+                workspace.config,
+                workspace.gamever,
+                workspace.bindir,
+                1,
+                artifactdir=workspace.artifactdir,
+            )
             expected = workspace.root / "expected-v1.yaml"
             expected.write_bytes(
                 canonical_snapshot_bytes(
@@ -300,11 +330,12 @@ class TestCandidateLifecycle(unittest.TestCase):
                     build_candidate_snapshot(
                         game_version=workspace.gamever,
                         bin_root=workspace.bindir,
+                        artifact_root=workspace.artifactdir,
                         config_path=workspace.config,
                         output_path=Path(temp_dir) / "gamesymbols" / f"{workspace.gamever}.yaml",
                         session_path=Path(temp_dir) / "gamesymbols" / "session.json",
                     )
-                (workspace.bindir / workspace.gamever / "server" / "Foo.windows.yaml").unlink()
+                (workspace.artifactdir / workspace.gamever / "server" / "Foo.windows.yaml").unlink()
                 with self.assertRaises(Exception):
                     workspace.build()
                 self.assertFalse(workspace.candidate.exists())

@@ -25,6 +25,7 @@ def parse_args(argv=None):
     build = commands.add_parser("build")
     build.add_argument("-gamever", required=True)
     build.add_argument("-bindir", default="bin")
+    build.add_argument("-artifactdir", default="bin_artifacts")
     build.add_argument("-configyaml", default=None, help="Analysis config path; defaults to configs/<GAMEVER>.yaml")
     build.add_argument("-output", required=True)
     build.add_argument("-session", required=True)
@@ -68,6 +69,7 @@ def _run(args) -> None:
         info = build_candidate_snapshot(
             game_version=args.gamever,
             bin_root=args.bindir,
+            artifact_root=args.artifactdir,
             config_path=args.configyaml,
             output_path=args.output,
             session_path=args.session,

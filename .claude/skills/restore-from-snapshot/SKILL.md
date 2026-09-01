@@ -1,6 +1,6 @@
 ---
 name: restore-from-snapshot
-description: Restore versioned symbol YAML from a canonical same-version snapshot, optionally replace trusted YAML. Use when asked to restore, unpack, hydrate, or seed game-symbol YAML from tracked snapshots, including when delegated by init-gamebin. Never restore symbols from a different, older GAMEVER snapshot into a newer target.
+description: Restore versioned symbol YAML from a canonical same-version snapshot into the artifact root, optionally replacing YAML there. Use when asked to restore, unpack, hydrate, or seed game-symbol YAML from tracked snapshots. Never restore symbols into the binary root or from a different GAMEVER.
 ---
 
 # Restore From Snapshot
@@ -33,7 +33,7 @@ uv run python .claude/skills/restore-from-snapshot/scripts/restore_from_snapshot
 
 When the trusted command reports `Symbol snapshot: unavailable; no YAML restored`, do not offer or perform a forced restore
 from a previous or base snapshot. A snapshot for one GAMEVER is never a valid source for a different version, so restoring
-an older `gamesymbols/<BASE_GAMEVER>.yaml` into a newer `bin/<GAMEVER>` is never allowed.
+an older `gamesymbols/<BASE_GAMEVER>.yaml` into a newer `bin_artifacts/<GAMEVER>` is never allowed.
 
 Report that no YAML was restored and finish successfully. Do not use `--force-base-snapshot` under any circumstances.
 

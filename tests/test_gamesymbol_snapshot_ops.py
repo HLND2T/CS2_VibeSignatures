@@ -24,6 +24,7 @@ class SnapshotWorkspace:
     def __init__(self, root: Path):
         self.root = root
         self.bindir = root / "bin"
+        self.artifactdir = root / "bin_artifacts"
         self.config = root / "config.yaml"
         self.snapshot = root / "gamesymbols" / "14168.yaml"
         write_config(
@@ -37,8 +38,8 @@ class SnapshotWorkspace:
         )
 
     def write_required(self) -> None:
-        write_yaml(self.bindir / "14168/server/A.windows.yaml", {"z": 2, "a": {"y": 1, "x": 0}})
-        write_yaml(self.bindir / "14168/server/A.linux.yaml", {"func_name": "A", "func_size": 1})
+        write_yaml(self.artifactdir / "14168/server/A.windows.yaml", {"z": 2, "a": {"y": 1, "x": 0}})
+        write_yaml(self.artifactdir / "14168/server/A.linux.yaml", {"func_name": "A", "func_size": 1})
         write_binary(self.bindir / "14168/server/server.dll", b"windows-binary")
         write_binary(self.bindir / "14168/server/server.so", b"linux-binary")
 
@@ -50,13 +51,8 @@ class TestPack(unittest.TestCase):
     def test_binary_metadata_and_symbol_inventory_use_separate_roots(self) -> None:
         with TemporaryDirectory() as temp_dir:
             workspace = SnapshotWorkspace(Path(temp_dir))
-            artifactdir = workspace.root / "bin_artifacts"
+            artifactdir = workspace.artifactdir
             workspace.write_required()
-            for name in ("A.windows.yaml", "A.linux.yaml"):
-                source = workspace.bindir / "14168/server" / name
-                target = artifactdir / "14168/server" / name
-                target.parent.mkdir(parents=True, exist_ok=True)
-                source.replace(target)
             write_yaml(workspace.bindir / "14168/server/Stale.windows.yaml", {"ignored": True})
             write_binary(artifactdir / "14168/server/server.dll", b"wrong-root-binary")
 
@@ -135,7 +131,7 @@ class TestPack(unittest.TestCase):
         with TemporaryDirectory() as temp_dir:
             workspace = SnapshotWorkspace(Path(temp_dir))
             workspace.write_required()
-            write_yaml(workspace.bindir / "14168/server/Optional.windows.yaml", {"optional": True})
+            write_yaml(workspace.artifactdir / "14168/server/Optional.windows.yaml", {"optional": True})
 
             data = yaml.safe_load(workspace.pack())
 
@@ -154,7 +150,7 @@ class TestPack(unittest.TestCase):
         with TemporaryDirectory() as temp_dir:
             workspace = SnapshotWorkspace(Path(temp_dir))
             workspace.write_required()
-            write_yaml(workspace.bindir / "14168/server/Stale.windows.yaml", {"stale": True})
+            write_yaml(workspace.artifactdir / "14168/server/Stale.windows.yaml", {"stale": True})
             with self.assertLogs("gamesymbol_snapshot_lib.operations", "WARNING") as logs:
                 data = yaml.safe_load(workspace.pack())
 
@@ -166,7 +162,7 @@ class TestPack(unittest.TestCase):
         with TemporaryDirectory() as temp_dir:
             workspace = SnapshotWorkspace(Path(temp_dir))
             workspace.write_required()
-            write_yaml(workspace.bindir / "14168/server/Stale.windows.yaml", {"stale": True})
+            write_yaml(workspace.artifactdir / "14168/server/Stale.windows.yaml", {"stale": True})
             contract = load_contract(workspace.config, "14168", workspace.bindir)
 
             with self.assertRaisesRegex(SnapshotMismatchError, "Undeclared symbol YAML"):
@@ -176,7 +172,7 @@ class TestPack(unittest.TestCase):
         with TemporaryDirectory() as temp_dir:
             workspace = SnapshotWorkspace(Path(temp_dir))
             workspace.write_required()
-            (workspace.bindir / "14168/server/A.windows.yaml").write_text("- invalid\n", encoding="utf-8")
+            (workspace.artifactdir / "14168/server/A.windows.yaml").write_text("- invalid\n", encoding="utf-8")
 
             with self.assertRaisesRegex(SnapshotMismatchError, "top level must be a mapping"):
                 workspace.pack()
@@ -199,13 +195,8 @@ class TestRestoreAndVerify(unittest.TestCase):
     def test_restore_writes_only_to_explicit_artifact_root(self) -> None:
         with TemporaryDirectory() as temp_dir:
             workspace = SnapshotWorkspace(Path(temp_dir))
-            artifactdir = workspace.root / "bin_artifacts"
+            artifactdir = workspace.artifactdir
             workspace.write_required()
-            for name in ("A.windows.yaml", "A.linux.yaml"):
-                source = workspace.bindir / "14168/server" / name
-                target = artifactdir / "14168/server" / name
-                target.parent.mkdir(parents=True, exist_ok=True)
-                source.replace(target)
             pack_snapshot(
                 "14168",
                 workspace.bindir,
@@ -268,7 +259,7 @@ class TestRestoreAndVerify(unittest.TestCase):
             workspace = SnapshotWorkspace(Path(temp_dir))
             workspace.write_required()
             workspace.pack()
-            game_root = workspace.bindir / "14168"
+            game_root = workspace.artifactdir / "14168"
             for symbol in (game_root / "server/A.windows.yaml", game_root / "server/A.linux.yaml"):
                 symbol.unlink()
 
@@ -283,43 +274,48 @@ class TestRestoreAndVerify(unittest.TestCase):
             workspace = SnapshotWorkspace(root)
             workspace.write_required()
             expected = workspace.pack()
-            game_root = workspace.bindir / "14168"
-            extra_binary = game_root / "server/extra.dll"
+            artifact_game_root = workspace.artifactdir / "14168"
+            binary_game_root = workspace.bindir / "14168"
+            extra_binary = binary_game_root / "server/extra.dll"
             extra_binary.write_bytes(b"dll")
-            (game_root / "server/server.i64").write_bytes(b"ida")
-            write_yaml(game_root / "server/Stale.yaml", {"stale": True})
+            (binary_game_root / "server/server.i64").write_bytes(b"ida")
+            write_yaml(artifact_game_root / "server/Stale.yaml", {"stale": True})
 
             restore_snapshot("14168", workspace.bindir, workspace.config, workspace.snapshot, replace=True)
             verified = verify_snapshot("14168", workspace.bindir, workspace.config, workspace.snapshot)
 
             self.assertEqual(expected, verified)
-            self.assertFalse((game_root / "server/Stale.yaml").exists())
-            self.assertEqual(b"windows-binary", (game_root / "server/server.dll").read_bytes())
+            self.assertFalse((artifact_game_root / "server/Stale.yaml").exists())
+            self.assertEqual(b"windows-binary", (binary_game_root / "server/server.dll").read_bytes())
             self.assertEqual(b"dll", extra_binary.read_bytes())
-            self.assertEqual(b"ida", (game_root / "server/server.i64").read_bytes())
+            self.assertEqual(b"ida", (binary_game_root / "server/server.i64").read_bytes())
 
     def test_restore_and_contract_check_do_not_require_binary_files(self) -> None:
         with TemporaryDirectory() as temp_dir:
             workspace = SnapshotWorkspace(Path(temp_dir))
             workspace.write_required()
             workspace.pack()
-            game_root = workspace.bindir / "14168"
-            for binary in (game_root / "server/server.dll", game_root / "server/server.so"):
+            binary_game_root = workspace.bindir / "14168"
+            artifact_game_root = workspace.artifactdir / "14168"
+            for binary in (binary_game_root / "server/server.dll", binary_game_root / "server/server.so"):
                 binary.unlink()
-            for symbol in (game_root / "server/A.windows.yaml", game_root / "server/A.linux.yaml"):
+            for symbol in (
+                artifact_game_root / "server/A.windows.yaml",
+                artifact_game_root / "server/A.linux.yaml",
+            ):
                 symbol.unlink()
 
             restore_snapshot("14168", workspace.bindir, workspace.config, workspace.snapshot, replace=True)
 
-            self.assertTrue((game_root / "server/A.windows.yaml").is_file())
-            self.assertTrue((game_root / "server/A.linux.yaml").is_file())
+            self.assertTrue((artifact_game_root / "server/A.windows.yaml").is_file())
+            self.assertTrue((artifact_game_root / "server/A.linux.yaml").is_file())
 
     def test_default_restore_rejects_semantically_different_file(self) -> None:
         with TemporaryDirectory() as temp_dir:
             workspace = SnapshotWorkspace(Path(temp_dir))
             workspace.write_required()
             workspace.pack()
-            write_yaml(workspace.bindir / "14168/server/A.windows.yaml", {"different": True})
+            write_yaml(workspace.artifactdir / "14168/server/A.windows.yaml", {"different": True})
 
             with self.assertRaises(SnapshotMismatchError):
                 restore_snapshot("14168", workspace.bindir, workspace.config, workspace.snapshot)
@@ -329,7 +325,7 @@ class TestRestoreAndVerify(unittest.TestCase):
             workspace = SnapshotWorkspace(Path(temp_dir))
             workspace.write_required()
             canonical = workspace.pack()
-            write_yaml(workspace.bindir / "14168/server/A.windows.yaml", {"func_name": "changed"})
+            write_yaml(workspace.artifactdir / "14168/server/A.windows.yaml", {"func_name": "changed"})
             with self.assertRaisesRegex(SnapshotMismatchError, "Modified"):
                 verify_snapshot("14168", workspace.bindir, workspace.config, workspace.snapshot)
 

@@ -13,6 +13,7 @@ Usage:
     -oldgamever: Old game version for signature reuse (default: gamever - 1)
     -configyaml: Analysis config path (default: configs/<GAMEVER>.yaml)
     -bindir: Directory containing downloaded binaries (default: bin)
+    -artifactdir: Directory containing source-owned per-symbol YAML (default: bin_artifacts)
     -platform: Platforms to analyze, comma-separated (default: windows,linux)
     -skill: Exact skill name to run; all other skills are skipped
     -agent: Agent to use for analysis: claude, codex, or opencode (default: claude)
@@ -28,8 +29,8 @@ Requirements:
     claude CLI, codex CLI, or opencode CLI
 
 Output:
-    bin/14134/engine/CServerSideClient_IsHearingClient.linux.yaml
-    bin/14134/engine/CServerSideClient_IsHearingClient.windows.yaml
+    bin_artifacts/14134/engine/CServerSideClient_IsHearingClient.linux.yaml
+    bin_artifacts/14134/engine/CServerSideClient_IsHearingClient.windows.yaml
     ...and more
 """
 
@@ -116,6 +117,7 @@ load_dotenv()
 
 DEFAULT_DOWNLOAD_FILE = "download.yaml"
 DEFAULT_BIN_DIR = "bin"
+DEFAULT_ARTIFACTS_DIR = "bin_artifacts"
 DEFAULT_PLATFORM = "windows,linux"
 DEFAULT_MODULES = "*"
 DEFAULT_AGENT = "claude"
@@ -1310,17 +1312,17 @@ def _has_ida_database(binary_path):
     return any(os.path.isfile(path) for path in _ida_database_paths(binary_path)[:2])
 
 
-def resolve_oldgamever(gamever, bin_dir):
+def resolve_oldgamever(gamever, artifact_dir):
     """
     Resolve the best oldgamever by searching for the most recent existing version
-    directory under bin_dir.
+    directory under the trusted artifact root.
 
     Version ordering (descending):
         14141z > 14141y > ... > 14141b > 14141a > 14141 > 14140
 
     Args:
         gamever: Current game version string (e.g., "14142", "14141a")
-        bin_dir: Base binary directory to check for existing version subdirectories
+        artifact_dir: Source-owned artifact root to check for existing version subdirectories
 
     Returns:
         Best matching oldgamever string, or None if no candidate directory exists
@@ -1363,7 +1365,7 @@ def resolve_oldgamever(gamever, bin_dir):
 
     # Return the first candidate whose directory exists
     for candidate in candidates:
-        candidate_dir = os.path.join(bin_dir, candidate)
+        candidate_dir = os.path.join(artifact_dir, candidate)
         if os.path.isdir(candidate_dir):
             return candidate
 
@@ -1503,6 +1505,16 @@ def parse_args():
         "-bindir",
         default=DEFAULT_BIN_DIR,
         help=f"Directory containing downloaded binaries (default: {DEFAULT_BIN_DIR})",
+    )
+    parser.add_argument(
+        "-artifactdir",
+        default=DEFAULT_ARTIFACTS_DIR,
+        help=f"Directory containing source-owned per-symbol YAML (default: {DEFAULT_ARTIFACTS_DIR})",
+    )
+    parser.add_argument(
+        "-oldartifactdir",
+        default=None,
+        help="Old-version per-symbol YAML root; defaults to -artifactdir",
     )
     parser.add_argument(
         "-gamever",
@@ -1651,7 +1663,10 @@ def parse_args():
         if args.module_filter is None or not args.module_filter or "*" in args.module_filter:
             parser.error("-vcall_finder requires explicit -modules without '*'")
 
-    # Resolve oldgamever
+    if args.oldartifactdir is None:
+        args.oldartifactdir = args.artifactdir
+
+    # Resolve oldgamever from the trusted artifact root, never from private binaries.
     if args.oldgamever is None:
         # Auto-resolve only when this gamever is NOT a major update. Major
         # updates break cross-version signature reuse, so leave oldgamever
@@ -1659,7 +1674,7 @@ def parse_args():
         if _is_major_update_gamever(args.gamever):
             args.oldgamever = None
         else:
-            args.oldgamever = resolve_oldgamever(args.gamever, args.bindir)
+            args.oldgamever = resolve_oldgamever(args.gamever, args.oldartifactdir)
     elif args.oldgamever.lower() == "none":
         args.oldgamever = None
 
@@ -2209,12 +2224,11 @@ def _build_execution_job_nodes(
     return nodes, edges, warnings, active_skills
 
 
-def _resolve_execution_artifacts(job, active_skills, platform):
-    binary_dir = os.path.dirname(job.binary_path) if job.binary_path else None
+def _resolve_execution_artifacts(job, active_skills, platform, artifact_module_dir):
     producers = []
     consumers = []
     warnings = []
-    if binary_dir is None:
+    if job.binary_path is None or artifact_module_dir is None:
         return producers, consumers, warnings
 
     for skill in active_skills:
@@ -2228,7 +2242,7 @@ def _resolve_execution_artifacts(job, active_skills, platform):
         for base_key, records, edge_type in path_groups:
             for artifact_path in _skill_artifact_paths(skill, base_key, platform):
                 try:
-                    resolved_path = resolve_artifact_path(binary_dir, artifact_path, platform)
+                    resolved_path = resolve_artifact_path(artifact_module_dir, artifact_path, platform)
                 except ValueError as exc:
                     warnings.append(f"{node_id}: {exc}")
                     continue
@@ -2284,6 +2298,7 @@ def _build_execution_job_plan(
     stage,
     platform,
     bin_dir,
+    artifact_dir,
     gamever,
     vcall_finder_selector,
     include_post_process,
@@ -2306,7 +2321,13 @@ def _build_execution_job_plan(
         vcall_finder_selector=vcall_finder_selector,
         include_post_process=include_post_process,
     )
-    producers, consumers, artifact_warnings = _resolve_execution_artifacts(job, active_skills, platform)
+    artifact_module_dir = os.path.join(artifact_dir, str(gamever), module["name"])
+    producers, consumers, artifact_warnings = _resolve_execution_artifacts(
+        job,
+        active_skills,
+        platform,
+        artifact_module_dir,
+    )
     warnings.extend(artifact_warnings)
     return job, nodes, edges, warnings, producers, consumers
 
@@ -2339,6 +2360,7 @@ def build_execution_plan(
     platforms,
     bin_dir,
     gamever,
+    artifact_dir=DEFAULT_ARTIFACTS_DIR,
     vcall_finder_selector=None,
     include_post_process=False,
 ):
@@ -2360,6 +2382,7 @@ def build_execution_plan(
                 stage=stage,
                 platform=platform,
                 bin_dir=bin_dir,
+                artifact_dir=artifact_dir,
                 gamever=gamever,
                 vcall_finder_selector=vcall_finder_selector,
                 include_post_process=include_post_process,
@@ -2405,15 +2428,15 @@ def _pending_binary_work_count(
     return remaining_skills + remaining_vcalls + post_process_count
 
 
-def resolve_artifact_path(binary_dir, artifact_path, platform):
+def resolve_artifact_path(artifact_module_dir, artifact_path, platform):
     """Resolve one artifact path under the current gamever root."""
     if not artifact_path:
         raise ValueError("artifact path is empty")
 
     expanded = artifact_path.replace("{platform}", platform)
-    module_dir = _absolute_path_preserve_spelling(binary_dir)
+    module_dir = _absolute_path_preserve_spelling(artifact_module_dir)
     candidate = _absolute_path_preserve_spelling(os.path.join(module_dir, expanded))
-    real_module_dir = Path(binary_dir).resolve()
+    real_module_dir = Path(artifact_module_dir).resolve()
     real_gamever_dir = real_module_dir.parent.resolve()
     real_candidate = (real_module_dir / expanded).resolve()
 
@@ -2423,9 +2446,9 @@ def resolve_artifact_path(binary_dir, artifact_path, platform):
     return candidate
 
 
-def expand_expected_paths(binary_dir, paths, platform):
-    """Expand {platform} placeholders and resolve artifact paths under a binary directory."""
-    return [resolve_artifact_path(binary_dir, path, platform) for path in paths]
+def expand_expected_paths(artifact_module_dir, paths, platform):
+    """Expand {platform} placeholders and resolve paths under an artifact module directory."""
+    return [resolve_artifact_path(artifact_module_dir, path, platform) for path in paths]
 
 
 def all_expected_outputs_exist(expected_outputs):
@@ -3077,6 +3100,8 @@ def process_binary(
     debug=False,
     max_retries=3,
     old_binary_dir=None,
+    artifact_dir=None,
+    old_artifact_dir=None,
     gamever=None,
     module_name=None,
     vcall_targets=None,
@@ -3113,7 +3138,10 @@ def process_binary(
         platform: Platform name (e.g., "windows", "linux")
         debug: Enable debug output
         max_retries: Default maximum number of retry attempts for skill execution
-        old_binary_dir: Directory containing old version YAML files for signature reuse
+        artifact_dir: Directory containing current-version per-symbol YAML. Direct callers that omit it retain
+            compatibility with the historical binary-adjacent layout; the analyzer entrypoint always passes it.
+        old_artifact_dir: Directory containing old-version YAML files for signature reuse
+        old_binary_dir: Deprecated compatibility alias for old_artifact_dir
         rename: Run module/platform post_process over valid expected output YAML mappings
         skip_error: Continue processing later skills after skill or preprocessor failures
         skip_pp: Skip preprocessing scripts and run Agent Skills directly
@@ -3126,8 +3154,12 @@ def process_binary(
     fail_count = 0
     skip_count = 0
 
-    # Get the directory containing the binary for yaml output check
+    # The binary directory is private analysis state. Normal analyzer execution
+    # always supplies a separate source-owned artifact directory.
     binary_dir = os.path.dirname(binary_path)
+    artifact_dir = os.fspath(artifact_dir or binary_dir)
+    old_artifact_dir = old_artifact_dir or old_binary_dir
+    os.makedirs(artifact_dir, exist_ok=True)
 
     # Build skill_map for lookup
     skill_map = {skill["name"]: skill for skill in skills}
@@ -3155,7 +3187,7 @@ def process_binary(
             continue
         try:
             required_outputs, optional_outputs, preprocess_outputs = expand_skill_output_paths(
-                binary_dir,
+                artifact_dir,
                 skill,
                 platform,
             )
@@ -3188,7 +3220,7 @@ def process_binary(
         else:
             try:
                 skip_for_existing_artifacts, _skip_paths = should_skip_skill_for_existing_artifacts(
-                    binary_dir,
+                    artifact_dir,
                     skill,
                     platform,
                 )
@@ -3237,7 +3269,7 @@ def process_binary(
         _report_post_process_status(reporting, job_id, TaskStatus.RUNNING, ProcessPhase.PREFLIGHT)
         try:
             startup_post_process_yaml_items = _collect_post_process_yaml_mappings(
-                binary_dir,
+                artifact_dir,
                 sorted_skill_names,
                 skill_map,
                 platform,
@@ -3420,7 +3452,7 @@ def process_binary(
             skill = skill_map[skill_name]
             try:
                 skip_for_existing_artifacts, _skip_paths = should_skip_skill_for_existing_artifacts(
-                    binary_dir,
+                    artifact_dir,
                     skill,
                     platform,
                 )
@@ -3522,8 +3554,8 @@ def process_binary(
             combined_optional_input = list(skill.get("optional_input", []) or [])
             combined_optional_input += list(skill.get(platform_optional_input_key, []) or [])
             try:
-                expected_inputs = expand_expected_paths(binary_dir, combined_input, platform)
-                optional_inputs = expand_expected_paths(binary_dir, combined_optional_input, platform)
+                expected_inputs = expand_expected_paths(artifact_dir, combined_input, platform)
+                optional_inputs = expand_expected_paths(artifact_dir, combined_optional_input, platform)
             except ValueError as e:
                 fail_count += 1
                 print(f"  Failed: {skill_name} ({e})")
@@ -3585,7 +3617,7 @@ def process_binary(
                 port=port,
                 expected_inputs=expected_inputs,
                 platform=platform,
-                binary_dir=binary_dir,
+                binary_dir=artifact_dir,
                 expected_binary=binary_path,
                 debug=debug,
                 config_path=config_path,
@@ -3616,7 +3648,7 @@ def process_binary(
                     port=port,
                     expected_inputs=existing_optional_inputs,
                     platform=platform,
-                    binary_dir=binary_dir,
+                    binary_dir=artifact_dir,
                     expected_binary=binary_path,
                     debug=debug,
                     config_path=config_path,
@@ -3678,11 +3710,11 @@ def process_binary(
             else:
                 # Try preprocessing first. Some preprocessors can run without old YAMLs.
                 old_yaml_map = None
-                if old_binary_dir:
+                if old_artifact_dir:
                     old_yaml_map = {}
                     for new_path in preprocess_outputs:
                         filename = os.path.basename(new_path)
-                        old_path = os.path.join(old_binary_dir, filename)
+                        old_path = os.path.join(old_artifact_dir, filename)
                         old_yaml_map[new_path] = old_path
 
                 try:
@@ -3694,7 +3726,7 @@ def process_binary(
                         expected_inputs=expected_inputs,
                         optional_inputs=optional_inputs,
                         old_yaml_map=old_yaml_map,
-                        new_binary_dir=binary_dir,
+                        new_binary_dir=artifact_dir,
                         platform=platform,
                         expected_binary=binary_path,
                         debug=debug,
@@ -3765,7 +3797,7 @@ def process_binary(
                         required_outputs=required_outputs,
                         optional_outputs=optional_outputs,
                         platform=platform,
-                        binary_dir=binary_dir,
+                        binary_dir=artifact_dir,
                         expected_binary=binary_path,
                         host=host,
                         port=port,
@@ -3904,7 +3936,7 @@ def process_binary(
                         required_outputs=required_outputs,
                         optional_outputs=optional_outputs,
                         platform=platform,
-                        binary_dir=binary_dir,
+                        binary_dir=artifact_dir,
                         expected_binary=binary_path,
                         host=host,
                         port=port,
@@ -4122,7 +4154,7 @@ def process_binary(
         if rename and not startup_post_process_failed:
             try:
                 post_process_yaml_items = _collect_post_process_yaml_mappings(
-                    binary_dir,
+                    artifact_dir,
                     sorted_skill_names,
                     skill_map,
                     platform,
@@ -4248,6 +4280,7 @@ def process_binary(
 def _print_main_configuration(args):
     print(f"Config file: {args.configyaml}")
     print(f"Binary directory: {args.bindir}")
+    print(f"Artifact directory: {getattr(args, 'artifactdir', DEFAULT_ARTIFACTS_DIR)}")
     print(f"Game version: {args.gamever}")
     print(f"Old game version: {args.oldgamever or '(disabled)'}")
     print(f"Platforms: {', '.join(args.platforms)}")
@@ -4284,15 +4317,19 @@ def _select_execution_modules(modules, args):
     return selected
 
 
-def _resolve_old_binary_dir(args, module_name, module_path):
+def _resolve_old_artifact_dir(args, module_name):
     if not args.oldgamever:
         return None
-    old_binary_path = get_binary_path(args.bindir, args.oldgamever, module_name, module_path)
-    candidate_dir = os.path.dirname(old_binary_path)
+    old_artifact_root = getattr(args, "oldartifactdir", None) or getattr(
+        args,
+        "artifactdir",
+        DEFAULT_ARTIFACTS_DIR,
+    )
+    candidate_dir = os.path.join(old_artifact_root, str(args.oldgamever), module_name)
     if os.path.isdir(candidate_dir):
         return candidate_dir
     if args.debug:
-        print(f"  Old version directory not found: {candidate_dir}")
+        print(f"  Old artifact directory not found: {candidate_dir}")
     return None
 
 
@@ -4301,7 +4338,8 @@ def _invoke_process_binary(
     module,
     platform,
     binary_path,
-    old_binary_dir,
+    artifact_dir,
+    old_artifact_dir,
     vcall_targets,
     reporting,
     job_id,
@@ -4317,7 +4355,8 @@ def _invoke_process_binary(
         platform,
         args.debug,
         max_retries=args.maxretry,
-        old_binary_dir=old_binary_dir,
+        artifact_dir=artifact_dir,
+        old_artifact_dir=old_artifact_dir,
         gamever=args.gamever,
         module_name=module["name"],
         vcall_targets=vcall_targets,
@@ -4372,13 +4411,16 @@ def _process_platform(args, module, platform, vcall_targets, reporting, found_vc
         return 0, 0, work_count
 
     reporting.emit_task_status(job_id, TaskStatus.RUNNING, ProcessPhase.WAITING_FOR_MCP)
-    old_binary_dir = _resolve_old_binary_dir(args, module["name"], module_path)
+    artifact_root = getattr(args, "artifactdir", DEFAULT_ARTIFACTS_DIR)
+    artifact_dir = os.path.join(artifact_root, str(args.gamever), module["name"])
+    old_artifact_dir = _resolve_old_artifact_dir(args, module["name"])
     counts = _invoke_process_binary(
         args,
         module,
         platform,
         binary_path,
-        old_binary_dir,
+        artifact_dir,
+        old_artifact_dir,
         vcall_targets,
         reporting,
         job_id,
@@ -4510,6 +4552,7 @@ def main():
             platforms=args.platforms,
             bin_dir=args.bindir,
             gamever=args.gamever,
+            artifact_dir=getattr(args, "artifactdir", DEFAULT_ARTIFACTS_DIR),
             vcall_finder_selector=args.vcall_finder_filter,
             include_post_process=args.rename,
         )

@@ -50,9 +50,10 @@ def pack(root: Path, gamever: str) -> dict:
     try:
         config = resolve_analysis_config(gamever, repo_root=root)
         bindir = root / "bin"
+        artifactdir = root / "bin_artifacts"
         snapshot = root / "gamesymbols" / f"{gamever}.yaml"
-        data = pack_snapshot(gamever, bindir, config, snapshot)
-        verify_snapshot(gamever, bindir, config, snapshot)
+        data = pack_snapshot(gamever, bindir, config, snapshot, artifactdir=artifactdir)
+        verify_snapshot(gamever, bindir, config, snapshot, artifactdir=artifactdir)
     except (AnalysisConfigError, SnapshotConfigError, SnapshotMismatchError, OSError) as exc:
         raise PackSnapshotError(str(exc)) from exc
     return {"gamever": gamever, "snapshot": snapshot, "size": len(data)}

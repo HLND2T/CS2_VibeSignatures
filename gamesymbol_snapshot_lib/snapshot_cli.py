@@ -18,8 +18,8 @@ def _add_common_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("-bindir", default="bin", help="Binary workspace root")
     parser.add_argument(
         "-artifactdir",
-        default=None,
-        help="Per-symbol artifact workspace root; defaults to -bindir during compatibility migration",
+        default="bin_artifacts",
+        help="Per-symbol artifact workspace root (default: bin_artifacts)",
     )
     parser.add_argument(
         "-configyaml",
