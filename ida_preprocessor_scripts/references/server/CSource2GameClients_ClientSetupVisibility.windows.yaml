@@ -1,1 +1,147 @@
 func_name: CSource2GameClients_ClientSetupVisibility
+func_va: '0x180d47990'
+disasm_code: |-
+  .text:0000000180D47990                 push    rbx
+  .text:0000000180D47992                 push    r14
+  .text:0000000180D47994                 sub     rsp, 38h
+  .text:0000000180D47998                 mov     rcx, cs:g_pEntitySystem
+  .text:0000000180D4799F                 mov     r14, r8
+  .text:0000000180D479A2                 mov     ebx, edx
+  .text:0000000180D479A4                 call    sub_18124A010
+  .text:0000000180D479A9                 test    eax, eax
+  .text:0000000180D479AB                 jz      loc_180D47AD0
+  .text:0000000180D479B1                 mov     rax, cs:qword_182036888
+  .text:0000000180D479B8                 mov     [rsp+48h+arg_0], rbp
+  .text:0000000180D479BD                 mov     [rsp+48h+arg_10], rdi
+  .text:0000000180D479C2                 mov     [rsp+48h+var_18], r15
+  .text:0000000180D479C7                 mov     rcx, [rax]
+  .text:0000000180D479CA                 mov     [rsp+48h+arg_8], rsi
+  .text:0000000180D479CF                 mov     rdi, [rcx+38h]
+  .text:0000000180D479D3                 mov     rcx, cs:g_pEntitySystem
+  .text:0000000180D479DA                 call    sub_18124A010
+  .text:0000000180D479DF                 mov     rcx, cs:qword_182036888
+  .text:0000000180D479E6                 mov     r8, r14
+  .text:0000000180D479E9                 mov     edx, eax
+  .text:0000000180D479EB                 call    rdi
+  .text:0000000180D479ED                 mov     ecx, ebx
+  .text:0000000180D479EF                 call    UTIL_PlayerSlotToPlayerController
+  .text:0000000180D479F4                 xor     r15d, r15d
+  .text:0000000180D479F7                 mov     rbp, rax
+  .text:0000000180D479FA                 test    rax, rax
+  .text:0000000180D479FD                 jz      short loc_180D47A71
+  .text:0000000180D479FF                 mov     rcx, rax
+  .text:0000000180D47A02                 call    CBasePlayerController_GetPawn
+  .text:0000000180D47A07                 mov     rsi, rax
+  .text:0000000180D47A0A                 test    rax, rax
+  .text:0000000180D47A0D                 jz      short loc_180D47A74
+  .text:0000000180D47A0F                 mov     rcx, [rax+0A68h]
+  .text:0000000180D47A16                 test    rcx, rcx
+  .text:0000000180D47A19                 jz      short loc_180D47A74
+  .text:0000000180D47A1B                 mov     rdx, [rcx]
+  .text:0000000180D47A1E                 call    qword ptr [rdx+0B8h]
+  .text:0000000180D47A24                 mov     r15, rax
+  .text:0000000180D47A27                 test    rax, rax
+  .text:0000000180D47A2A                 jz      short loc_180D47A79
+  .text:0000000180D47A2C                 mov     rcx, cs:qword_182036888
+  .text:0000000180D47A33                 mov     rdx, [rcx]
+  .text:0000000180D47A36                 mov     rcx, [rax]
+  .text:0000000180D47A39                 mov     rdi, [rdx+40h]
+  .text:0000000180D47A3D                 lea     rdx, [rsp+48h+var_28]
+  .text:0000000180D47A42                 mov     r8, [rcx+5D8h]
+  .text:0000000180D47A49                 mov     rcx, rax
+  .text:0000000180D47A4C                 call    r8
+  .text:0000000180D47A4F                 mov     rcx, cs:g_pEntitySystem
+  .text:0000000180D47A56                 mov     rbx, rax
+  .text:0000000180D47A59                 call    sub_18124A010
+  .text:0000000180D47A5E                 mov     rcx, cs:qword_182036888
+  .text:0000000180D47A65                 mov     r9, r14
+  .text:0000000180D47A68                 mov     r8, rbx
+  .text:0000000180D47A6B                 mov     edx, eax
+  .text:0000000180D47A6D                 call    rdi
+  .text:0000000180D47A6F                 jmp     short loc_180D47A79
+  .text:0000000180D47A71                 mov     rsi, r15
+  .text:0000000180D47A74                 test    rbp, rbp
+  .text:0000000180D47A77                 jz      short loc_180D47ABC
+  .text:0000000180D47A79                 cmp     dword ptr [r14], 0
+  .text:0000000180D47A7D                 jnz     short loc_180D47A9A
+  .text:0000000180D47A7F                 lea     rcx, [r14+8]
+  .text:0000000180D47A83                 mov     dword ptr [r14], 1000h
+  .text:0000000180D47A8A                 mov     edx, 0FFh
+  .text:0000000180D47A8F                 mov     r8d, 200h
+  .text:0000000180D47A95                 call    sub_1815AB840
+  .text:0000000180D47A9A                 test    rsi, rsi
+  .text:0000000180D47A9D                 jz      short loc_180D47AB1
+  .text:0000000180D47A9F                 mov     rax, [rsi]
+  .text:0000000180D47AA2                 mov     r8, r14
+  .text:0000000180D47AA5                 mov     rdx, r15
+  .text:0000000180D47AA8                 mov     rcx, rsi
+  .text:0000000180D47AAB                 call    qword ptr [rax+0AD0h]
+  .text:0000000180D47AB1                 mov     rdx, r14
+  .text:0000000180D47AB4                 mov     rcx, rbp
+  .text:0000000180D47AB7                 call    sub_180EC7A60
+  .text:0000000180D47ABC                 mov     rsi, [rsp+48h+arg_8]
+  .text:0000000180D47AC1                 mov     rdi, [rsp+48h+arg_10]
+  .text:0000000180D47AC6                 mov     rbp, [rsp+48h+arg_0]
+  .text:0000000180D47ACB                 mov     r15, [rsp+48h+var_18]
+  .text:0000000180D47AD0                 add     rsp, 38h
+  .text:0000000180D47AD4                 pop     r14
+  .text:0000000180D47AD6                 pop     rbx
+  .text:0000000180D47AD7                 retn
+procedure: |-
+  __int64 __fastcall CSource2GameClients_ClientSetupVisibility(__int64 a1, int a2, _DWORD *a3)
+  {
+    __int64 result; // rax
+    void (__fastcall *v6)(__int64, _QWORD, _DWORD *); // rdi
+    unsigned int v7; // eax
+    __int64 v8; // r15
+    __int64 v9; // rbp
+    __int64 v10; // rsi
+    __int64 v11; // rcx
+    __int64 v12; // rax
+    void (__fastcall *v13)(__int64, _QWORD, __int64, _DWORD *); // rdi
+    __int64 v14; // rbx
+    unsigned int v15; // eax
+    _BYTE v16[16]; // [rsp+20h] [rbp-28h] BYREF
+
+    result = sub_18124A010(g_pEntitySystem);
+    if ( !(_DWORD)result )
+      return result;
+    v6 = *(void (__fastcall **)(__int64, _QWORD, _DWORD *))(*(_QWORD *)qword_182036888 + 56LL);
+    v7 = sub_18124A010(g_pEntitySystem);
+    v6(qword_182036888, v7, a3);
+    result = UTIL_PlayerSlotToPlayerController(a2);
+    v8 = 0;
+    v9 = result;
+    if ( !result )
+    {
+      v10 = 0;
+      goto LABEL_8;
+    }
+    result = CBasePlayerController_GetPawn(result);
+    v10 = result;
+    if ( !result || (v11 = *(_QWORD *)(result + 2664)) == 0 )
+    {
+  LABEL_8:
+      if ( !v9 )
+        return result;
+      goto LABEL_9;
+    }
+    v12 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)v11 + 184LL))(v11);
+    v8 = v12;
+    if ( v12 )
+    {
+      v13 = *(void (__fastcall **)(__int64, _QWORD, __int64, _DWORD *))(*(_QWORD *)qword_182036888 + 64LL);
+      v14 = (*(__int64 (__fastcall **)(__int64, _BYTE *))(*(_QWORD *)v12 + 1496LL))(v12, v16);
+      v15 = sub_18124A010(g_pEntitySystem);
+      v13(qword_182036888, v15, v14, a3);
+    }
+  LABEL_9:
+    if ( !*a3 )
+    {
+      *a3 = 4096;
+      sub_1815AB840(a3 + 2, 255, 512);
+    }
+    if ( v10 )
+      (*(void (__fastcall **)(__int64, __int64, _DWORD *))(*(_QWORD *)v10 + 2768LL))(v10, v8, a3);
+    return sub_180EC7A60(v9, a3);
+  }
