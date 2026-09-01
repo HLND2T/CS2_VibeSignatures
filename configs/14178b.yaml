@@ -6421,6 +6421,19 @@ modules:
     path_windows: game/csgo/bin/win64/server.dll
     path_linux: game/csgo/bin/linuxsteamrt64/libserver.so
     skills:
+      - name: find-CLagCompensationManager_vtable
+        expected_output:
+          - CLagCompensationManager_vtable.{platform}.yaml
+      - name: find-CLagCompensationManager_StartLagCompensation
+        expected_output:
+          - CLagCompensationManager_StartLagCompensation.{platform}.yaml
+        expected_input:
+          - CLagCompensationManager_vtable.{platform}.yaml
+      - name: find-CEngineServer_IsUserIDInUse
+        expected_output:
+          - CEngineServer_IsUserIDInUse.{platform}.yaml
+        expected_input:
+          - CLagCompensationManager_StartLagCompensation.{platform}.yaml
       - name: find-CSource2Server_vtable
         expected_output:
           - CSource2Server_vtable.{platform}.yaml
@@ -12011,6 +12024,16 @@ modules:
         category: vfunc
         alias:
           - CEngineServer::UnloadSpawnGroup
+      - name: CLagCompensationManager_vtable
+        category: vtable
+      - name: CLagCompensationManager_StartLagCompensation
+        category: vfunc
+        alias:
+          - CLagCompensationManager::StartLagCompensation
+      - name: CEngineServer_IsUserIDInUse
+        category: vfunc
+        alias:
+          - CEngineServer::IsUserIDInUse
       - name: INetworkServerService_SetGameSpawnGroupMgr
         category: vfunc
         alias:
