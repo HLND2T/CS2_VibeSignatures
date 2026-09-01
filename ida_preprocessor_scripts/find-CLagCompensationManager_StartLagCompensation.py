@@ -20,7 +20,7 @@ FUNC_XREFS = [
 ]
 
 FUNC_VTABLE_RELATIONS = [
-    ("CLagCompensationManager_StartLagCompensation", "CLagCompensationManager_vtable"),
+    ("CLagCompensationManager_StartLagCompensation", "CLagCompensationManager_vtable2"),
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [

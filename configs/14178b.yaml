@@ -6424,11 +6424,16 @@ modules:
       - name: find-CLagCompensationManager_vtable
         expected_output:
           - CLagCompensationManager_vtable.{platform}.yaml
+      - name: find-CLagCompensationManager_vtable2
+        expected_output:
+          - CLagCompensationManager_vtable2.{platform}.yaml
+        expected_input:
+          - CLagCompensationManager_vtable.{platform}.yaml
       - name: find-CLagCompensationManager_StartLagCompensation
         expected_output:
           - CLagCompensationManager_StartLagCompensation.{platform}.yaml
         expected_input:
-          - CLagCompensationManager_vtable.{platform}.yaml
+          - CLagCompensationManager_vtable2.{platform}.yaml
       - name: find-CEngineServer_IsUserIDInUse
         expected_output:
           - CEngineServer_IsUserIDInUse.{platform}.yaml
@@ -12025,6 +12030,8 @@ modules:
         alias:
           - CEngineServer::UnloadSpawnGroup
       - name: CLagCompensationManager_vtable
+        category: vtable
+      - name: CLagCompensationManager_vtable2
         category: vtable
       - name: CLagCompensationManager_StartLagCompensation
         category: vfunc
