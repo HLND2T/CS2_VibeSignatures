@@ -1071,6 +1071,49 @@ class TestBumpDownloadCandidate(unittest.TestCase):
                     workflow_run_url="https://github.example/run/123",
                 )
 
+    def test_hosted_prepare_rejects_forged_self_hosted_identity(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            root.mkdir()
+            base_sha = self._producer(root)
+            candidate_root = Path(temporary) / "candidate"
+            manifest = bdc.build_bump_candidate(
+                repo_root=root,
+                base_sha=base_sha,
+                gamever=self.gamever,
+                source_gamever=self.source_gamever,
+                repository=self.repository,
+                workflow_run_id="123",
+                workflow_run_attempt="1",
+                output_root=candidate_root,
+            )
+            self._git(root, "checkout", "--detach", base_sha)
+            valid = {
+                "repo_root": root,
+                "candidate_root": candidate_root,
+                "manifest": candidate_root / "candidate-manifest.json",
+                "repository": self.repository,
+                "base_sha": base_sha,
+                "gamever": self.gamever,
+                "source_gamever": self.source_gamever,
+                "actions_artifact_name": manifest["actions_artifact_name"],
+                "actions_artifact_digest": "sha256:" + "a" * 64,
+                "workflow_run_id": "123",
+                "workflow_run_attempt": "1",
+                "workflow_run_url": "https://github.example/run/123",
+            }
+
+            cases = (
+                ({"gamever": "14161;Write-Host owned"}, "GAMEVER identity"),
+                ({"actions_artifact_name": "forged-candidate"}, "publication identity"),
+                ({"actions_artifact_digest": "sha256:not-a-digest"}, "Artifact digest"),
+            )
+            for overrides, message in cases:
+                with self.subTest(overrides=overrides):
+                    arguments = {**valid, **overrides}
+                    with self.assertRaisesRegex(bdc.BumpDownloadCandidateError, message):
+                        bdc.prepare_bump_commit(**arguments)
+
 
 if __name__ == "__main__":
     unittest.main()

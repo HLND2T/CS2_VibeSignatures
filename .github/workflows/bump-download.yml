@@ -24,7 +24,6 @@ jobs:
       gamever: ${{ steps.bump.outputs.tag }}
       source_gamever: ${{ steps.bump.outputs.analysis_config_source_gamever }}
       config_path: ${{ steps.bump.outputs.analysis_config_path }}
-      base_sha: ${{ steps.sync-refs.outputs.base_sha }}
       candidate_artifact_name: ${{ steps.package.outputs.artifact_name }}
       candidate_artifact_digest: ${{ steps.upload.outputs.artifact-digest }}
     env:
@@ -36,7 +35,7 @@ jobs:
         id: checkout
         uses: actions/checkout@v5
         with:
-          ref: ${{ github.event.repository.default_branch }}
+          ref: ${{ github.sha }}
           fetch-depth: 0
           persist-credentials: false
 
@@ -48,8 +47,9 @@ jobs:
           git config --global --add safe.directory "$workspace"
           git fetch origin --prune --prune-tags --tags "+refs/heads/*:refs/remotes/origin/*"
           $baseSha = (git rev-parse HEAD).Trim().ToLowerInvariant()
-          if ($LASTEXITCODE -ne 0 -or $baseSha -notmatch '^[0-9a-f]{40}$') { throw "Unable to bind bump base SHA." }
-          "base_sha=$baseSha" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          if ($LASTEXITCODE -ne 0 -or $baseSha -ne $env:GITHUB_SHA.ToLowerInvariant()) {
+            throw "Bump checkout drifted from the immutable workflow SHA."
+          }
 
       - name: Configure git
         id: configure-git
@@ -124,23 +124,26 @@ jobs:
         if: steps.bump.outputs.updated == 'true' && steps.duplicate.outputs.skip_pr != 'true'
         id: package
         shell: pwsh
+        env:
+          CANDIDATE_GAMEVER: ${{ steps.bump.outputs.tag }}
+          CANDIDATE_SOURCE_GAMEVER: ${{ steps.bump.outputs.analysis_config_source_gamever }}
         run: |
-          $tag = "${{ steps.bump.outputs.tag }}"
+          $tag = $env:CANDIDATE_GAMEVER
           if ([string]::IsNullOrWhiteSpace($tag)) {
             throw "steps.bump.outputs.tag is empty."
           }
-          $candidate = Join-Path $env:RUNNER_TEMP "bump-download-candidate\${{ github.run_id }}-${{ github.run_attempt }}"
+          $candidate = Join-Path $env:RUNNER_TEMP "bump-download-candidate\$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
           uv run python bump_download_candidate.py build `
-            --repo-root "${{ github.workspace }}" `
-            --base-sha "${{ steps.sync-refs.outputs.base_sha }}" `
+            --repo-root "$env:GITHUB_WORKSPACE" `
+            --base-sha "$env:GITHUB_SHA" `
             --gamever "$tag" `
-            --source-gamever "${{ steps.bump.outputs.analysis_config_source_gamever }}" `
-            --repository "${{ github.repository }}" `
-            --workflow-run-id "${{ github.run_id }}" `
-            --workflow-run-attempt "${{ github.run_attempt }}" `
+            --source-gamever "$env:CANDIDATE_SOURCE_GAMEVER" `
+            --repository "$env:GITHUB_REPOSITORY" `
+            --workflow-run-id "$env:GITHUB_RUN_ID" `
+            --workflow-run-attempt "$env:GITHUB_RUN_ATTEMPT" `
             --output-root "$candidate"
           if ($LASTEXITCODE -ne 0) { throw "Download bump candidate validation failed." }
-          $artifactName = "bump-download-candidate-$tag-${{ github.run_id }}-${{ github.run_attempt }}"
+          $artifactName = "bump-download-candidate-$tag-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
           "artifact_name=$artifactName" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "CANDIDATE_ROOT=$candidate" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Upload exact download bump candidate
@@ -162,10 +165,48 @@ jobs:
       contents: read
       pull-requests: write
     steps:
+      - name: Validate untrusted bump job outputs
+        id: validate-inputs
+        shell: pwsh
+        env:
+          UNTRUSTED_GAMEVER: ${{ needs.bump.outputs.gamever }}
+          UNTRUSTED_SOURCE_GAMEVER: ${{ needs.bump.outputs.source_gamever }}
+          UNTRUSTED_CONFIG_PATH: ${{ needs.bump.outputs.config_path }}
+          UNTRUSTED_ARTIFACT_NAME: ${{ needs.bump.outputs.candidate_artifact_name }}
+          UNTRUSTED_ARTIFACT_DIGEST: ${{ needs.bump.outputs.candidate_artifact_digest }}
+        run: |
+          $gameverPattern = '\A(?:[0-9]{4,10}[a-z]?|[1-9][0-9]*)\z'
+          $gamever = $env:UNTRUSTED_GAMEVER
+          $sourceGamever = $env:UNTRUSTED_SOURCE_GAMEVER
+          if (-not [regex]::IsMatch($gamever, $gameverPattern) -or
+              -not [regex]::IsMatch($sourceGamever, $gameverPattern) -or
+              $gamever -eq $sourceGamever) {
+            throw "Self-hosted bump job returned an invalid GAMEVER identity."
+          }
+          $expectedConfigPath = "configs/$gamever.yaml"
+          if ($env:UNTRUSTED_CONFIG_PATH -cne $expectedConfigPath) {
+            throw "Self-hosted bump job returned an invalid config path."
+          }
+          $expectedArtifactName = "bump-download-candidate-$gamever-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
+          if ($env:UNTRUSTED_ARTIFACT_NAME -cne $expectedArtifactName) {
+            throw "Self-hosted bump job returned an invalid artifact name."
+          }
+          $artifactDigest = $env:UNTRUSTED_ARTIFACT_DIGEST.ToLowerInvariant()
+          if ([regex]::IsMatch($artifactDigest, '\A[0-9a-f]{64}\z')) {
+            $artifactDigest = "sha256:$artifactDigest"
+          }
+          if (-not [regex]::IsMatch($artifactDigest, '\Asha256:[0-9a-f]{64}\z')) {
+            throw "Self-hosted bump job returned an invalid artifact digest."
+          }
+          "gamever=$gamever" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "source_gamever=$sourceGamever" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "config_path=$expectedConfigPath" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "artifact_name=$expectedArtifactName" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "artifact_digest=$artifactDigest" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
       - name: Checkout exact bound default-branch base without credentials
         uses: actions/checkout@v5
         with:
-          ref: ${{ needs.bump.outputs.base_sha }}
+          ref: ${{ github.sha }}
           fetch-depth: 0
           persist-credentials: false
           path: publication
@@ -176,33 +217,34 @@ jobs:
       - name: Download exact credential-free bump candidate
         uses: actions/download-artifact@v5
         with:
-          name: ${{ needs.bump.outputs.candidate_artifact_name }}
+          name: ${{ steps.validate-inputs.outputs.artifact_name }}
           path: candidate
       - name: Revalidate candidate and create direct-child bump commit
         id: prepare
         shell: pwsh
         env:
-          CANDIDATE_ARTIFACT_DIGEST: ${{ needs.bump.outputs.candidate_artifact_digest }}
+          CANDIDATE_GAMEVER: ${{ steps.validate-inputs.outputs.gamever }}
+          CANDIDATE_SOURCE_GAMEVER: ${{ steps.validate-inputs.outputs.source_gamever }}
+          CANDIDATE_ARTIFACT_NAME: ${{ steps.validate-inputs.outputs.artifact_name }}
+          CANDIDATE_ARTIFACT_DIGEST: ${{ steps.validate-inputs.outputs.artifact_digest }}
         run: |
           git -C publication config user.name "source-artifact-automation"
           git -C publication config user.email "source-artifact-automation@users.noreply.github.com"
-          $artifactDigest = $env:CANDIDATE_ARTIFACT_DIGEST.ToLowerInvariant()
-          if ($artifactDigest -match '^[0-9a-f]{64}$') { $artifactDigest = "sha256:$artifactDigest" }
-          $receipt = Join-Path "${{ github.workspace }}" "bump-publication-receipt.json"
-          Set-Location -LiteralPath "${{ github.workspace }}/publication"
+          $receipt = Join-Path $env:GITHUB_WORKSPACE "bump-publication-receipt.json"
+          Set-Location -LiteralPath (Join-Path $env:GITHUB_WORKSPACE "publication")
           uv run python bump_download_candidate.py prepare `
             --repo-root . `
-            --candidate-root "${{ github.workspace }}/candidate" `
-            --manifest "${{ github.workspace }}/candidate/candidate-manifest.json" `
-            --repository "${{ github.repository }}" `
-            --base-sha "${{ needs.bump.outputs.base_sha }}" `
-            --gamever "${{ needs.bump.outputs.gamever }}" `
-            --source-gamever "${{ needs.bump.outputs.source_gamever }}" `
-            --actions-artifact-name "${{ needs.bump.outputs.candidate_artifact_name }}" `
-            --actions-artifact-digest "$artifactDigest" `
-            --workflow-run-id "${{ github.run_id }}" `
-            --workflow-run-attempt "${{ github.run_attempt }}" `
-            --workflow-run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" `
+            --candidate-root (Join-Path $env:GITHUB_WORKSPACE "candidate") `
+            --manifest (Join-Path $env:GITHUB_WORKSPACE "candidate/candidate-manifest.json") `
+            --repository "$env:GITHUB_REPOSITORY" `
+            --base-sha "$env:GITHUB_SHA" `
+            --gamever "$env:CANDIDATE_GAMEVER" `
+            --source-gamever "$env:CANDIDATE_SOURCE_GAMEVER" `
+            --actions-artifact-name "$env:CANDIDATE_ARTIFACT_NAME" `
+            --actions-artifact-digest "$env:CANDIDATE_ARTIFACT_DIGEST" `
+            --workflow-run-id "$env:GITHUB_RUN_ID" `
+            --workflow-run-attempt "$env:GITHUB_RUN_ATTEMPT" `
+            --workflow-run-url "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID" `
             --output "$receipt"
           if ($LASTEXITCODE -ne 0) { throw "Hosted download bump candidate verification failed." }
           $document = Get-Content -LiteralPath $receipt -Raw | ConvertFrom-Json
@@ -210,9 +252,10 @@ jobs:
       - name: Confirm target branch, tag, and pull request are still absent
         shell: pwsh
         env:
+          BUMP_GAMEVER: ${{ steps.validate-inputs.outputs.gamever }}
           GH_TOKEN: ${{ github.token }}
         run: |
-          $tag = "${{ needs.bump.outputs.gamever }}"
+          $tag = $env:BUMP_GAMEVER
           $branch = "bump-download/$tag"
           git -C publication ls-remote --exit-code --heads origin "refs/heads/$branch" | Out-Null
           if ($LASTEXITCODE -eq 0) { throw "Target bump branch already exists: $branch" }
@@ -220,13 +263,14 @@ jobs:
           git -C publication ls-remote --exit-code --tags origin "refs/tags/$tag" | Out-Null
           if ($LASTEXITCODE -eq 0) { throw "Target release tag already exists: $tag" }
           if ($LASTEXITCODE -ne 2) { throw "Unable to prove the target release tag is absent." }
-          $pulls = gh api --method GET "repos/${{ github.repository }}/pulls" `
-            -f state=open -f "head=${{ github.repository_owner }}:$branch" -f per_page=100 | ConvertFrom-Json
+          $pulls = gh api --method GET "repos/$env:GITHUB_REPOSITORY/pulls" `
+            -f state=open -f "head=$env:GITHUB_REPOSITORY_OWNER`:$branch" -f per_page=100 | ConvertFrom-Json
           if ($LASTEXITCODE -ne 0) { throw "Unable to query existing bump pull requests." }
           if (@($pulls).Count -ne 0) { throw "Target bump pull request already exists: $branch" }
       - name: Fast-forward create the bound bump branch with protected PAT
         shell: pwsh
         env:
+          BUMP_BRANCH: bump-download/${{ steps.validate-inputs.outputs.gamever }}
           GIT_USERNAME: source-artifact-automation
           GIT_PASSWORD: ${{ secrets.SOURCE_ARTIFACT_BOOTSTRAP_PAT }}
         run: |
@@ -244,8 +288,8 @@ jobs:
           try {
             $env:GIT_ASKPASS = $askpass
             $env:GIT_TERMINAL_PROMPT = "0"
-            git -C publication -c credential.helper= push origin `
-              "HEAD:refs/heads/bump-download/${{ needs.bump.outputs.gamever }}"
+            git -C publication -c credential.helper= -c core.hooksPath=/dev/null push origin `
+              "HEAD:refs/heads/$env:BUMP_BRANCH"
             if ($LASTEXITCODE -ne 0) { throw "Protected bump branch creation failed." }
           } finally {
             Remove-Item -LiteralPath $askpass -Force -ErrorAction SilentlyContinue
@@ -255,11 +299,11 @@ jobs:
       - name: Create bump pull request with read/write PR token
         uses: actions/github-script@v7
         env:
-          BUMP_TAG: ${{ needs.bump.outputs.gamever }}
-          BUMP_BRANCH: bump-download/${{ needs.bump.outputs.gamever }}
+          BUMP_TAG: ${{ steps.validate-inputs.outputs.gamever }}
+          BUMP_BRANCH: bump-download/${{ steps.validate-inputs.outputs.gamever }}
           COMMIT_SHA: ${{ steps.prepare.outputs.commit_sha }}
-          CONFIG_SOURCE_GAMEVER: ${{ needs.bump.outputs.source_gamever }}
-          CONFIG_PATH: ${{ needs.bump.outputs.config_path }}
+          CONFIG_SOURCE_GAMEVER: ${{ steps.validate-inputs.outputs.source_gamever }}
+          CONFIG_PATH: ${{ steps.validate-inputs.outputs.config_path }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         with:
           github-token: ${{ github.token }}
@@ -326,12 +370,14 @@ jobs:
         id: synchronize
         shell: pwsh
         env:
+          BUMP_GAMEVER: ${{ steps.validate-inputs.outputs.gamever }}
+          SOURCE_BUMP_COMMIT: ${{ steps.prepare.outputs.commit_sha }}
           GIT_USERNAME: source-artifact-automation
           GIT_PASSWORD: ${{ secrets.SOURCE_ARTIFACT_BOOTSTRAP_PAT }}
         run: |
-          git -C publication commit --allow-empty `
-            -m "chore(ci): trigger validation for ${{ needs.bump.outputs.gamever }}" `
-            -m "Source-Bump-Commit: ${{ steps.prepare.outputs.commit_sha }}`nWorkflow-Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`nCo-Authored-By: Codex <codex@openai.com>"
+          git -C publication -c core.hooksPath=/dev/null commit --allow-empty `
+            -m "chore(ci): trigger validation for $env:BUMP_GAMEVER" `
+            -m "Source-Bump-Commit: $env:SOURCE_BUMP_COMMIT`nWorkflow-Run: $env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID`nCo-Authored-By: Codex <codex@openai.com>"
           if ($LASTEXITCODE -ne 0) { throw "Unable to create the PR validation-trigger commit." }
           $triggerSha = (git -C publication rev-parse HEAD).Trim().ToLowerInvariant()
           if ($triggerSha -notmatch '^[0-9a-f]{40}$') { throw "Validation-trigger commit SHA is invalid." }
@@ -349,8 +395,8 @@ jobs:
           try {
             $env:GIT_ASKPASS = $askpass
             $env:GIT_TERMINAL_PROMPT = "0"
-            git -C publication -c credential.helper= push origin `
-              "HEAD:refs/heads/bump-download/${{ needs.bump.outputs.gamever }}"
+            git -C publication -c credential.helper= -c core.hooksPath=/dev/null push origin `
+              "HEAD:refs/heads/bump-download/$env:BUMP_GAMEVER"
             if ($LASTEXITCODE -ne 0) { throw "Protected PR synchronization push failed." }
           } finally {
             Remove-Item -LiteralPath $askpass -Force -ErrorAction SilentlyContinue
@@ -361,7 +407,7 @@ jobs:
       - name: Verify synchronized PR head
         uses: actions/github-script@v7
         env:
-          BUMP_BRANCH: bump-download/${{ needs.bump.outputs.gamever }}
+          BUMP_BRANCH: bump-download/${{ steps.validate-inputs.outputs.gamever }}
           TRIGGER_SHA: ${{ steps.synchronize.outputs.trigger_sha }}
         with:
           github-token: ${{ github.token }}
