@@ -12,7 +12,7 @@ import trusted_artifact_pr as tap
 import trusted_pr_context as tpc
 from bin_artifact_contract import build_game_artifact_inventory
 from ida_analyze_util import canonical_symbol_yaml_bytes
-from tests.gamesymbol_snapshot_test_support import write_config
+from tests.gamesymbol_snapshot_test_support import write_binary, write_config, write_source_binary_lock
 
 
 class NewGameverArtifactTests(unittest.TestCase):
@@ -40,7 +40,8 @@ class NewGameverArtifactTests(unittest.TestCase):
                     b"schema_version: 1\nmode: source-owned\nartifact_root: bin_artifacts\n"
                     b"artifact_contract_schema_version: 1\n"
                 ),
-                "download.yaml": b"downloads:\n  - tag: '14178'\n",
+                ".gitignore": b"bin/\n",
+                "download.yaml": b"downloads:\n  - tag: '14178'\n    manifests: {'1': '1'}\n",
             }
         )
         for relative, payload in required.items():
@@ -64,6 +65,8 @@ class NewGameverArtifactTests(unittest.TestCase):
             prior_artifact.write_bytes(
                 canonical_symbol_yaml_bytes({"func_name": "A", "func_rva": "0x8"}, category="func")
             )
+            write_binary(root / "bin" / "14178" / "server" / "server.dll")
+            write_source_binary_lock(root, "14178")
         self._git(root, "add", ".")
         self._git(root, "commit", "-m", "base")
         base_sha = self._git(root, "rev-parse", "HEAD")
@@ -71,7 +74,12 @@ class NewGameverArtifactTests(unittest.TestCase):
         self._git(root, "switch", "-c", f"bump-download/{self.gamever}")
         major_update_line = "\n    major_update: true" if major_update else ""
         (root / "download.yaml").write_text(
-            f"downloads:\n  - tag: '14178'\n  - tag: '{self.gamever}'{major_update_line}\n",
+            "downloads:\n"
+            "  - tag: '14178'\n"
+            "    manifests: {'1': '1'}\n"
+            f"  - tag: '{self.gamever}'\n"
+            "    manifests: {'1': '2'}"
+            f"{major_update_line}\n",
             encoding="utf-8",
         )
         write_config(
@@ -85,6 +93,8 @@ class NewGameverArtifactTests(unittest.TestCase):
                 }
             ],
         )
+        write_binary(root / "bin" / self.gamever / "server" / "server.dll", b"new GAMEVER binary")
+        write_source_binary_lock(root, self.gamever)
         self._git(root, "add", ".")
         self._git(root, "commit", "-m", "head")
         head_sha = self._git(root, "rev-parse", "HEAD")
@@ -228,6 +238,8 @@ class NewGameverArtifactTests(unittest.TestCase):
             root.mkdir()
             head_sha, _merge_sha, plan = self._repository(root)
             self.assertEqual("bootstrap_required", plan["mode"])
+            version = next(version for version in plan["game_versions"] if version.get("bootstrap_required"))
+            self.assertRegex(version["merge_binary_lock_sha256"], r"^sha256:[0-9a-f]{64}$")
             artifact_root = self._candidate(root)
 
             _manifest_path, manifest, verification = self._build_and_verify(root, plan, head_sha, artifact_root)

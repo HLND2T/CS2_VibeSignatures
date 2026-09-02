@@ -10,13 +10,22 @@ from bin_artifact_contract import (
     validate_repository_artifact_contract,
 )
 from ida_analyze_util import canonical_symbol_yaml_bytes
-from tests.gamesymbol_snapshot_test_support import write_binary, write_config, write_yaml
+from tests.gamesymbol_snapshot_test_support import (
+    write_binary,
+    write_config,
+    write_source_binary_lock,
+    write_yaml,
+)
 
 
 class BinArtifactContractTests(unittest.TestCase):
     def _workspace(self, root: Path) -> tuple[Path, Path, Path]:
         config = root / "configs" / "1.yaml"
         artifact = root / "bin_artifacts" / "1" / "server" / "Example.windows.yaml"
+        (root / "download.yaml").write_text(
+            "downloads:\n  - tag: '1'\n    manifests: {'1': '1'}\n",
+            encoding="utf-8",
+        )
         write_config(
             config,
             [
@@ -31,6 +40,7 @@ class BinArtifactContractTests(unittest.TestCase):
         artifact.parent.mkdir(parents=True, exist_ok=True)
         artifact.write_bytes(canonical_symbol_yaml_bytes({"func_name": "Example", "func_rva": "0x10"}, category="func"))
         write_binary(root / "bin" / "1" / "server" / "server.dll")
+        write_source_binary_lock(root, "1")
         return config, artifact, root / "bin_artifacts"
 
     def test_accepts_canonical_required_artifact_and_reports_inventory(self) -> None:
@@ -201,6 +211,36 @@ class BinArtifactContractTests(unittest.TestCase):
             subprocess.run(["git", "add", "."], cwd=root, check=True)
             subprocess.run(["git", "commit", "-qm", "legacy"], cwd=root, check=True)
             with self.assertRaisesRegex(ArtifactContractError, "legacy generated outputs"):
+                validate_repository_artifact_contract(repo_root=root, game_versions=["1"])
+
+    def test_repository_contract_requires_exact_source_binary_lock_set(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self._workspace(root)
+            (root / "binary_locks" / "1.json").unlink()
+            self._git_init_and_commit(root)
+            with self.assertRaisesRegex(ArtifactContractError, "missing binary lock"):
+                validate_repository_artifact_contract(repo_root=root, game_versions=["1"])
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self._workspace(root)
+            (root / "binary_locks" / "2.json").write_text("{}\n", encoding="utf-8")
+            self._git_init_and_commit(root)
+            with self.assertRaisesRegex(ArtifactContractError, "unconfigured GAMEVER"):
+                validate_repository_artifact_contract(repo_root=root, game_versions=["1"])
+
+    def test_repository_contract_rejects_binary_lock_source_drift(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self._workspace(root)
+            (root / "download.yaml").write_text(
+                "downloads:\n  - tag: '1'\n    manifests: {'1': '2'}\n",
+                encoding="utf-8",
+            )
+            self._git_init_and_commit(root)
+
+            with self.assertRaisesRegex(ArtifactContractError, "binary lock.*mismatch"):
                 validate_repository_artifact_contract(repo_root=root, game_versions=["1"])
 
     @staticmethod

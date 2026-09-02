@@ -16,6 +16,7 @@ from pathlib import Path
 
 import yaml
 
+from binary_lock import BinaryLockError, load_binary_lock_from_revision
 from bin_artifact_contract import (
     ArtifactContractError,
     _category_for,
@@ -32,11 +33,13 @@ from ida_analyze_util import SymbolArtifactError, canonical_symbol_yaml_bytes
 from trusted_pr_context import load_trusted_pr_context, validate_trusted_pr_context
 
 
-PLAN_SCHEMA_VERSION = 2
+PLAN_SCHEMA_VERSION = 3
 PREPARATION_SCHEMA_VERSION = 2
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 CONFIG_RE = re.compile(r"^configs/([^/]+)\.yaml$")
 ARTIFACT_RE = re.compile(r"^bin_artifacts/([^/]+)/(.+)$")
+BINARY_LOCK_RE = re.compile(r"^binary_locks/([^/]+)\.json$")
+BINARY_LOCK_METADATA_PATHS = frozenset({"binary_locks/README.md"})
 SOURCE_PREFIXES = (
     ".claude/agents/",
     ".claude/skills/",
@@ -48,6 +51,7 @@ SHARED_ANALYSIS_PATHS = frozenset(
     {
         "analysis_output_contract.py",
         "bin_artifact_contract.py",
+        "binary_lock.py",
         "ida_analyze_bin.py",
         "ida_analyze_util.py",
         "gamever_baseline.py",
@@ -226,6 +230,8 @@ def _validate_repository_tree_namespaces(
 ) -> None:
     configured = set(configured_versions)
     unconfigured_artifacts = []
+    binary_lock_versions = set()
+    invalid_binary_locks = []
     legacy_outputs = []
     for entry in repo.entries(revision):
         path = entry.path
@@ -233,6 +239,18 @@ def _validate_repository_tree_namespaces(
             match = ARTIFACT_RE.fullmatch(path)
             if not match or match.group(1) not in configured:
                 unconfigured_artifacts.append(path)
+        if path.startswith("binary_locks/"):
+            if path in BINARY_LOCK_METADATA_PATHS:
+                if entry.mode != "100644" or entry.object_type != "blob":
+                    raise TrustedArtifactPrError(f"binary lock metadata must be a regular Git blob: {path}")
+                continue
+            match = BINARY_LOCK_RE.fullmatch(path)
+            if not match or match.group(1) not in configured:
+                invalid_binary_locks.append(path)
+            elif entry.mode != "100644" or entry.object_type != "blob":
+                raise TrustedArtifactPrError(f"binary lock must be a non-executable regular Git blob: {path}")
+            else:
+                binary_lock_versions.add(match.group(1))
         if (path.startswith("bin/") and path.lower().endswith(".yaml")) or path.startswith(
             ("gamesymbols/", "gamedata/", "release-manifests/")
         ):
@@ -241,6 +259,17 @@ def _validate_repository_tree_namespaces(
         raise TrustedArtifactPrError(
             "Git artifacts belong to an unconfigured GAMEVER:\n"
             + "\n".join(f"  {path}" for path in sorted(unconfigured_artifacts))
+        )
+    if invalid_binary_locks:
+        raise TrustedArtifactPrError(
+            "binary locks belong to an unconfigured GAMEVER or invalid path:\n"
+            + "\n".join(f"  {path}" for path in sorted(invalid_binary_locks))
+        )
+    missing_binary_locks = sorted(configured - binary_lock_versions)
+    if missing_binary_locks:
+        raise TrustedArtifactPrError(
+            "configured GAMEVER is missing a binary lock:\n"
+            + "\n".join(f"  binary_locks/{gamever}.json" for gamever in missing_binary_locks)
         )
     if legacy_outputs:
         raise TrustedArtifactPrError(
@@ -267,6 +296,19 @@ def _load_revision_contract(repo: GitTreeRepository, revision: str, gamever: str
     except yaml.YAMLError as exc:
         raise TrustedArtifactPrError(f"invalid config YAML at {revision}:configs/{gamever}.yaml: {exc}") from exc
     return contract, config_path, config_document
+
+
+def _load_revision_binary_lock(repo: GitTreeRepository, revision: str, gamever: str, contract):
+    try:
+        return load_binary_lock_from_revision(
+            repo_root=repo.root,
+            revision=revision,
+            game_version=gamever,
+            download_payload=repo.read(revision, "download.yaml"),
+            binary_targets=contract.binary_targets,
+        )
+    except BinaryLockError as exc:
+        raise TrustedArtifactPrError(f"invalid binary lock at {revision}:binary_locks/{gamever}.json: {exc}") from exc
 
 
 def _reject_casefold_collisions(paths: list[str], *, label: str) -> None:
@@ -495,10 +537,12 @@ def build_trusted_artifact_plan(*, repo_root: str | Path, trusted_context: dict 
             base_contract = base_config = None
             base_files = {}
             base_inventory = None
+            base_binary_lock = None
             if gamever in base_versions:
                 base_contract, base_config, _base_document = _load_revision_contract(
                     repo, context["base_sha"], gamever, temporary_root
                 )
+                base_binary_lock = _load_revision_binary_lock(repo, context["base_sha"], gamever, base_contract)
                 base_files, base_inventory = _tree_artifact_inventory(
                     repo,
                     context["base_sha"],
@@ -511,11 +555,13 @@ def build_trusted_artifact_plan(*, repo_root: str | Path, trusted_context: dict 
             merge_contract = merge_config = None
             merge_files = {}
             merge_inventory = None
+            merge_binary_lock = None
             bootstrap_required = False
             if gamever in merge_versions:
                 merge_contract, merge_config, _merge_document = _load_revision_contract(
                     repo, context["merge_sha"], gamever, temporary_root
                 )
+                merge_binary_lock = _load_revision_binary_lock(repo, context["merge_sha"], gamever, merge_contract)
                 is_new = gamever not in base_versions
                 merge_files, merge_inventory = _tree_artifact_inventory(
                     repo,
@@ -571,7 +617,10 @@ def build_trusted_artifact_plan(*, repo_root: str | Path, trusted_context: dict 
                 invalidated_paths.update(merge_contract.formal_paths)
                 reasons.append("shared analyzer/serializer contract changed")
 
-            if merge_contract is not None and base_downloads.get(gamever) != merge_downloads.get(gamever):
+            binary_identity_changed = base_downloads.get(gamever) != merge_downloads.get(gamever) or (
+                base_binary_lock.sha256 if base_binary_lock else None
+            ) != (merge_binary_lock.sha256 if merge_binary_lock else None)
+            if merge_contract is not None and binary_identity_changed:
                 selected_group_ids = set(merge_contract.producer_groups)
                 selected_node_ids = {
                     node_id
@@ -633,6 +682,8 @@ def build_trusted_artifact_plan(*, repo_root: str | Path, trusted_context: dict 
                     "game_version": gamever,
                     "base_config_sha256": base_contract.config_sha256 if base_contract else None,
                     "merge_config_sha256": merge_contract.config_sha256 if merge_contract else None,
+                    "base_binary_lock_sha256": base_binary_lock.sha256 if base_binary_lock else None,
+                    "merge_binary_lock_sha256": merge_binary_lock.sha256 if merge_binary_lock else None,
                     "base_artifacts": base_inventory,
                     "merge_artifacts": merge_inventory,
                     "binary_inventory": binary_inventory,
@@ -688,17 +739,20 @@ def build_trusted_artifact_plan(*, repo_root: str | Path, trusted_context: dict 
         "changed_paths": [_change_document(change) for change in changes],
         "impact": {
             "release": any(
-                path and path.startswith(("configs/", "download.yaml", "bin_artifacts/", "gamedata-generators/"))
+                path
+                and path.startswith(
+                    ("configs/", "download.yaml", "binary_locks/", "bin_artifacts/", "gamedata-generators/")
+                )
                 for change in changes
                 for path in (change.old_path, change.new_path)
             ),
             "gamedata": any(
-                path and path.startswith(("configs/", "bin_artifacts/", "gamedata-generators/"))
+                path and path.startswith(("configs/", "binary_locks/", "bin_artifacts/", "gamedata-generators/"))
                 for change in changes
                 for path in (change.old_path, change.new_path)
             ),
             "cpp": any(
-                path and path.startswith(("configs/", "bin_artifacts/", "cpp_tests/", "hl2sdk_cs2"))
+                path and path.startswith(("configs/", "binary_locks/", "bin_artifacts/", "cpp_tests/", "hl2sdk_cs2"))
                 for change in changes
                 for path in (change.old_path, change.new_path)
             ),
@@ -736,6 +790,16 @@ def validate_trusted_artifact_plan(document: object) -> dict:
     if len(versions_by_gamever) != len(versions):
         raise TrustedArtifactPrError("trusted artifact plan GAMEVER identities are duplicate or invalid")
     for gamever, version in versions_by_gamever.items():
+        for config_field, lock_field in (
+            ("base_config_sha256", "base_binary_lock_sha256"),
+            ("merge_config_sha256", "merge_binary_lock_sha256"),
+        ):
+            config_digest = version.get(config_field)
+            lock_digest = version.get(lock_field)
+            if (config_digest is None) != (lock_digest is None) or (
+                lock_digest is not None and not re.fullmatch(r"sha256:[0-9a-f]{64}", str(lock_digest))
+            ):
+                raise TrustedArtifactPrError(f"trusted artifact plan has an invalid {lock_field} for {gamever}")
         if "prior_gamever" not in version:
             raise TrustedArtifactPrError(f"trusted artifact plan omits prior_gamever for {gamever}")
         prior_gamever = version["prior_gamever"]

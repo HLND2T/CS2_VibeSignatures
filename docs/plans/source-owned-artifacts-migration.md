@@ -25,7 +25,9 @@
   确定性回填 256 个 configured binary locks，并以当前本地 bytes 完成 256/256 交叉复验。14167–14172 明确记为
   historical snapshot backfill，不冒充 Steam depot 的外部密码学 provenance。Release preparation 在分析前后
   exact 比较 local bytes；BinSync schema v5 与 Release bundle schema v2 绑定 lock digest 和完整 inventory，两个
-  hosted verifier 都从 immutable source SHA 重读 lock 并拒绝 self-hosted 自报 identity。
+  hosted verifier 都从 immutable source SHA 重读 lock 并拒绝 self-hosted 自报 identity。Repository contract 现在
+  要求 configured GAMEVER 与 canonical lock 一一对应；trusted PR plan schema v3 从 base/merge immutable Git blobs
+  校验 config/download/lock 语义，记录两侧 lock digest，并把 binary identity 漂移扩大到全量 producer groups。
 - 独立审查仍确认两类未闭环边界：BinSync TOML 尚不能仅从 Git blobs 独立证明 Windows lift bias 及完整
   IDA name/comment TOML 语义，prospective payload 与
   secrets/persisted workspace 的执行隔离需要外部 disposable runner/broker/supervisor 基础设施。

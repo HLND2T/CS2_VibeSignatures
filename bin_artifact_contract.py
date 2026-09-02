@@ -14,6 +14,7 @@ from pathlib import Path
 
 import yaml
 
+from binary_lock import BinaryLockError, load_binary_lock
 from gamesymbol_snapshot_lib.config import load_contract
 from gamesymbol_snapshot_lib.errors import SnapshotConfigError
 from gamesymbol_snapshot_lib.paths import ensure_real_tree, is_reparse_point, path_from_key
@@ -29,6 +30,7 @@ class ArtifactContractError(ValueError):
 
 
 _GIT_OBJECT_RE = re.compile(r"^[0-9a-fA-F]{40}(?:[0-9a-fA-F]{24})?$")
+_BINARY_LOCK_METADATA_PATHS = frozenset({"binary_locks/README.md"})
 
 
 @dataclass(frozen=True)
@@ -397,6 +399,61 @@ def validate_repository_artifact_contract(
         raise ArtifactContractError(
             "tracked artifacts for unconfigured GAMEVER:\n" + "\n".join(f"  {path}" for path in unconfigured)
         )
+    expected_lock_paths = {f"binary_locks/{game_version}.json" for game_version in configured_versions}
+    if require_tracked:
+        lock_blobs = _git_blob_entries(repo_root, "binary_locks/", None)
+    else:
+        lock_root = repo_root / "binary_locks"
+        lock_blobs = {}
+        if lock_root.exists():
+            _reject_reparse_components(lock_root)
+            for path in lock_root.rglob("*"):
+                if is_reparse_point(path):
+                    raise ArtifactContractError(f"binary lock must not be a link/reparse point: {path}")
+                if path.is_file():
+                    lock_blobs[path.relative_to(repo_root).as_posix()] = path.read_bytes()
+    actual_lock_paths = set(lock_blobs) - _BINARY_LOCK_METADATA_PATHS
+    missing_locks = sorted(expected_lock_paths - actual_lock_paths)
+    if missing_locks:
+        raise ArtifactContractError("missing binary lock:\n" + "\n".join(f"  {path}" for path in missing_locks))
+    unexpected_locks = sorted(actual_lock_paths - expected_lock_paths)
+    if unexpected_locks:
+        raise ArtifactContractError(
+            "binary locks for unconfigured GAMEVER or invalid paths:\n"
+            + "\n".join(f"  {path}" for path in unexpected_locks)
+        )
+
+    download_payload = (repo_root / "download.yaml").read_bytes()
+    lock_reports = []
+    for game_version in game_versions:
+        config_path = repo_root / "configs" / f"{game_version}.yaml"
+        try:
+            contract = load_contract(
+                config_path,
+                str(game_version),
+                repo_root / "bin",
+                artifactdir=repo_root / artifact_root,
+            )
+            lock = load_binary_lock(
+                repo_root / "binary_locks" / f"{game_version}.json",
+                game_version=str(game_version),
+                download_payload=download_payload,
+                binary_targets=contract.binary_targets,
+            )
+        except (BinaryLockError, SnapshotConfigError, OSError) as exc:
+            raise ArtifactContractError(f"binary lock contract failed for {game_version}: {exc}") from exc
+        lock_path = f"binary_locks/{game_version}.json"
+        if lock.raw_bytes != lock_blobs[lock_path]:
+            source = "Git index" if require_tracked else "repository inventory"
+            raise ArtifactContractError(f"binary lock differs from {source}: {lock_path}")
+        lock_reports.append(
+            {
+                "game_version": str(game_version),
+                "path": lock_path,
+                "size": len(lock.raw_bytes),
+                "sha256": lock.sha256,
+            }
+        )
     reports = []
     for game_version in game_versions:
         config_path = repo_root / "configs" / f"{game_version}.yaml"
@@ -411,11 +468,13 @@ def validate_repository_artifact_contract(
         )
     files = [item for report in reports for item in report["files"]]
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "artifact_root": Path(artifact_root).as_posix(),
         "game_version_count": len(reports),
         "file_count": len(files),
         "inventory_sha256": _digest(files),
+        "binary_lock_inventory_sha256": _digest(lock_reports),
+        "binary_locks": lock_reports,
         "game_versions": reports,
     }
 

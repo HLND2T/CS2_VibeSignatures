@@ -10,7 +10,7 @@ from pathlib import Path
 import trusted_artifact_pr as tap
 import trusted_pr_context as tpc
 from ida_analyze_util import canonical_symbol_yaml_bytes
-from tests.gamesymbol_snapshot_test_support import write_config
+from tests.gamesymbol_snapshot_test_support import write_binary, write_config, write_source_binary_lock
 
 
 class TrustedArtifactPrTests(unittest.TestCase):
@@ -96,7 +96,8 @@ class TrustedArtifactPrTests(unittest.TestCase):
                     b"schema_version: 1\nmode: source-owned\nartifact_root: bin_artifacts\n"
                     b"artifact_contract_schema_version: 1\n"
                 ),
-                "download.yaml": b"downloads:\n  - tag: '1'\n",
+                ".gitignore": b"bin/\n",
+                "download.yaml": b"downloads:\n  - tag: '1'\n    manifests: {'1': '1'}\n",
                 "ida_analyze_util.py": b"SERIALIZER = 1\n",
             }
         )
@@ -125,6 +126,8 @@ class TrustedArtifactPrTests(unittest.TestCase):
                 }
             ],
         )
+        write_binary(root / "bin" / "1" / "server" / "server.dll")
+        write_source_binary_lock(root, "1")
         self._write_artifact(root, "A", "0x10")
         self._write_artifact(root, "B", "0x20")
         self._git(root, "add", ".")
@@ -134,12 +137,21 @@ class TrustedArtifactPrTests(unittest.TestCase):
         self._git(root, "switch", "-c", "feature")
         if change_artifact:
             self._write_artifact(root, "A", "0x30")
-        else:
+        elif changed_path is None:
             (root / "ida_analyze_util.py").write_text("SERIALIZER = 2\n", encoding="utf-8")
         if changed_path == "download.yaml":
             (root / "download.yaml").write_text(
                 "downloads:\n  - tag: '1'\n    manifests: {'1': '2'}\n", encoding="utf-8"
             )
+            write_source_binary_lock(root, "1")
+        elif changed_path == "binary_locks/1.json":
+            write_binary(root / "bin" / "1" / "server" / "server.dll", b"replacement binary")
+            write_source_binary_lock(root, "1")
+        elif changed_path == "delete-binary-lock":
+            (root / "binary_locks" / "1.json").unlink()
+        elif changed_path == "add-unconfigured-binary-lock":
+            path = root / "binary_locks" / "2.json"
+            path.write_text("{}\n", encoding="utf-8")
         elif changed_path:
             (root / changed_path).write_text("prospective trust-root change\n", encoding="utf-8")
         if add_extra:
@@ -174,6 +186,8 @@ class TrustedArtifactPrTests(unittest.TestCase):
             self.assertEqual(merge, plan["merge_sha"])
             self.assertEqual(["1"], plan["affected_game_versions"])
             version = plan["game_versions"][0]
+            self.assertEqual(version["base_binary_lock_sha256"], version["merge_binary_lock_sha256"])
+            self.assertRegex(version["merge_binary_lock_sha256"], r"^sha256:[0-9a-f]{64}$")
             self.assertEqual(["server/A.windows.yaml", "server/B.windows.yaml"], version["invalidated_paths"])
             self.assertEqual(
                 {"find-a", "find-b"},
@@ -286,7 +300,11 @@ class TrustedArtifactPrTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary) / "repo"
             root.mkdir()
-            _base, _head, _merge, context = self._repository(root, changed_path="download.yaml")
+            _base, _head, _merge, context = self._repository(
+                root,
+                change_artifact=False,
+                changed_path="download.yaml",
+            )
 
             plan = tap.build_trusted_artifact_plan(repo_root=root, trusted_context=context)
 
@@ -294,6 +312,39 @@ class TrustedArtifactPrTests(unittest.TestCase):
             version = plan["game_versions"][0]
             self.assertEqual(2, len(version["affected_producer_groups"]))
             self.assertIn("download/binary identity changed", version["reasons"])
+
+    def test_binary_lock_change_broadly_selects_all_groups(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            root.mkdir()
+            _base, _head, _merge, context = self._repository(
+                root,
+                change_artifact=False,
+                changed_path="binary_locks/1.json",
+            )
+
+            plan = tap.build_trusted_artifact_plan(repo_root=root, trusted_context=context)
+
+            self.assertEqual("full", plan["mode"])
+            version = plan["game_versions"][0]
+            self.assertNotEqual(version["base_binary_lock_sha256"], version["merge_binary_lock_sha256"])
+            self.assertEqual(2, len(version["affected_producer_groups"]))
+            self.assertIn("download/binary identity changed", version["reasons"])
+
+    def test_missing_or_unconfigured_binary_lock_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            root.mkdir()
+            _base, _head, _merge, context = self._repository(root, changed_path="delete-binary-lock")
+            with self.assertRaisesRegex(tap.TrustedArtifactPrError, "binary lock"):
+                tap.build_trusted_artifact_plan(repo_root=root, trusted_context=context)
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            root.mkdir()
+            _base, _head, _merge, context = self._repository(root, changed_path="add-unconfigured-binary-lock")
+            with self.assertRaisesRegex(tap.TrustedArtifactPrError, "unconfigured GAMEVER"):
+                tap.build_trusted_artifact_plan(repo_root=root, trusted_context=context)
 
     def test_trust_root_change_requires_independent_bridge_update(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
