@@ -7,9 +7,10 @@
 实施记录（2026-09-02）：
 
 - 仓库内实施顺序 1–17 已在 `dev-source-owned-artifacts` 上按步骤提交；步骤 20 的文档、Skill、Memory、
-  独立审查 finding 与本地 completion verification 已收口。最终 `all -b --durations 30` 实际执行 1,228 个测试：
-  1,225 passed、0 failures、0 errors、3 个 Redis integration 类因本机无 Redis 服务整体 skipped；formatter、
-  YAML、Ruff、Git diff check 均通过。
+  独立审查 finding 与本地 completion verification 已收口。同步最新 main 后补齐 4 个
+  `SetGameSpawnGroupMgr` artifacts，并整合 PR A 的 `git cat-file --batch` 优化；最新
+  `all -b --durations 30` 实际执行 1,230 个测试：1,227 passed、0 failures、0 errors、3 个 Redis integration 类
+  因本机无 Redis 服务整体 skipped；repository-contract 57/57 通过。
 - 步骤 18 的 drain/freeze、先合并 PR A trust bridge、启用外部 required workflow/ruleset、再基于
   default-branch-owned planner 验证 PR B 尚未执行。当前 `origin/main` 不具备该 trust bridge，不能用本分支
   自带 workflow 代替。
@@ -20,8 +21,10 @@
   `main` 只要求非 strict 的 `pr-validate`，尚未启用 Merge Queue/strict up-to-date。因此 PR A 合并及外部策略配置
   仍是创建、验证 PR B 前的真实阻塞。
 - 两个历史 `gamesymbols/build/14174/*` 远端分支仅完成识别，未获删除授权，保持不变。
-- 最终仓库不变量复核：Git tracked canonical artifacts 为 51,303 个，source-owned binary locks 为 16 份，
-  tracked legacy output 为 0；历史 snapshot lock 重算与本地 binary 复验为 16/16 GAMEVER、256/256 binaries。
+- 最终仓库不变量复核：Git tracked canonical artifacts 为 51,307 个，aggregate inventory digest 为
+  `sha256:eab29700e1c4714b950efb396b18866b9df37a1361dbd3421ce73c0ab9d34df6`，source-owned binary locks 为
+  16 份，tracked legacy output 为 0；历史 snapshot lock 重算与本地 binary 复验为 16/16 GAMEVER、
+  256/256 binaries。
 - Release gamedata 已移除 12 个可变 `main`/`master` 下载输入：公开上游基线按不可变 commit 和
   SHA-256 vendor 到 generator `templates/`，candidate 路径拒绝任何非空 `DOWNLOAD_SOURCES`，hosted
   Release verifier 使用 verified snapshot + source templates 在 fresh root 重建并逐文件比较。
