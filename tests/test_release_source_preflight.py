@@ -60,7 +60,7 @@ class ReleaseSourcePreflightTests(unittest.TestCase):
                 ),
                 patch("release_source_preflight.build_game_artifact_inventory") as build,
             ):
-                with self.assertRaisesRegex(ReleaseSourcePreflightError, "legacy artifact policy"):
+                with self.assertRaisesRegex(ReleaseSourcePreflightError, "must be source-owned"):
                     validate_release_source(
                         repo_root=root,
                         repository="HLND2T/CS2_VibeSignatures",

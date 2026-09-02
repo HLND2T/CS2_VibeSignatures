@@ -97,7 +97,7 @@ jobs:
       SOURCE_SHA: ${{ needs.preflight.outputs.source_sha }}
       IDB_CACHE_GENERATION: ${{ needs.warmup-idb.outputs.generation }}
       IDB_CACHE_KEY: ${{ needs.warmup-idb.outputs.cache_key }}
-      BUILD_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+      BUILD_ID: ${{ github.run_id }}
       CS2VIBE_AGENT: ${{ secrets.CS2VIBE_AGENT }}
       CS2VIBE_AGENT_MODEL: ${{ secrets.CS2VIBE_AGENT_MODEL }}
       CS2VIBE_LLM_APIKEY: ${{ secrets.CS2VIBE_LLM_APIKEY }}
@@ -298,7 +298,7 @@ jobs:
         shell: pwsh
         run: |
           $candidate = Join-Path $env:RUNNER_TEMP "release-binsync-candidate\$env:BUILD_ID"
-          $artifactName = "binsync-candidate-${{ github.run_id }}-${{ github.run_attempt }}-$env:SOURCE_SHA-$env:GAMEVER"
+          $artifactName = "binsync-candidate-${{ github.run_id }}-$env:SOURCE_SHA-$env:GAMEVER"
           uv run python push_binsync_symbols.py "$env:GAMEVER" `
             --prepare-only `
             --candidate-dir "$candidate" `
@@ -433,7 +433,7 @@ jobs:
         shell: pwsh
         run: |
           $bundle = Join-Path $env:RUNNER_TEMP "release-bundle\$env:BUILD_ID"
-          $artifactName = "release-bundle-${{ github.run_id }}-${{ github.run_attempt }}-$env:SOURCE_SHA-$env:GAMEVER"
+          $artifactName = "release-bundle-${{ github.run_id }}-$env:SOURCE_SHA-$env:GAMEVER"
           uv run python release_bundle.py build `
             --repo-root "${{ github.workspace }}" `
             --bundle-root "$bundle" `
@@ -466,6 +466,7 @@ jobs:
           if-no-files-found: error
           compression-level: 0
           retention-days: 30
+          overwrite: true
       - name: Upload immutable Release bundle candidate
         id: upload-release-bundle
         uses: actions/upload-artifact@v4
@@ -475,6 +476,7 @@ jobs:
           if-no-files-found: error
           compression-level: 0
           retention-days: 30
+          overwrite: true
       - name: Clean ephemeral candidate state
         id: cleanup
         if: always()
@@ -496,7 +498,7 @@ jobs:
       source_sha: ${{ needs.preflight.outputs.source_sha }}
       gamever: ${{ needs.preflight.outputs.gamever }}
       release_version: ${{ needs.preflight.outputs.gamever }}
-      build_id: ${{ github.run_id }}-${{ github.run_attempt }}
+      build_id: ${{ github.run_id }}
       ida_runtime_identity: ${{ needs.build.outputs.ida_runtime_identity }}
       artifact_name: ${{ needs.build.outputs.binsync_artifact_name }}
       artifact_digest: ${{ needs.build.outputs.binsync_artifact_digest }}
@@ -507,10 +509,11 @@ jobs:
       source_sha: ${{ needs.preflight.outputs.source_sha }}
       gamever: ${{ needs.preflight.outputs.gamever }}
       release_version: ${{ needs.preflight.outputs.gamever }}
-      build_id: ${{ github.run_id }}-${{ github.run_attempt }}
+      build_id: ${{ github.run_id }}
       artifact_name: ${{ needs.build.outputs.release_artifact_name }}
       artifact_digest: ${{ needs.build.outputs.release_artifact_digest }}
       binsync_candidate_digest: ${{ needs.verify-binsync.outputs.publication_digest }}
+      binsync_target_state_digest: ${{ needs.verify-binsync.outputs.target_state_digest }}
   publish-binsync:
     needs: [preflight, build, verify-binsync, verify-release]
     uses: ./.github/workflows/publish-binsync-candidate.yml
@@ -518,7 +521,7 @@ jobs:
       source_sha: ${{ needs.preflight.outputs.source_sha }}
       gamever: ${{ needs.preflight.outputs.gamever }}
       release_version: ${{ needs.preflight.outputs.gamever }}
-      build_id: ${{ github.run_id }}-${{ github.run_attempt }}
+      build_id: ${{ github.run_id }}
       ida_runtime_identity: ${{ needs.build.outputs.ida_runtime_identity }}
       artifact_name: ${{ needs.build.outputs.binsync_artifact_name }}
       artifact_digest: ${{ needs.build.outputs.binsync_artifact_digest }}
@@ -532,10 +535,11 @@ jobs:
       source_sha: ${{ needs.preflight.outputs.source_sha }}
       gamever: ${{ needs.preflight.outputs.gamever }}
       release_version: ${{ needs.preflight.outputs.gamever }}
-      build_id: ${{ github.run_id }}-${{ github.run_attempt }}
+      build_id: ${{ github.run_id }}
       artifact_name: ${{ needs.build.outputs.release_artifact_name }}
       artifact_digest: ${{ needs.build.outputs.release_artifact_digest }}
       binsync_candidate_digest: ${{ needs.verify-binsync.outputs.publication_digest }}
+      binsync_target_state_digest: ${{ needs.verify-binsync.outputs.target_state_digest }}
       verified_manifest_digest: ${{ needs.verify-release.outputs.manifest_digest }}
       verified_bundle_digest: ${{ needs.verify-release.outputs.bundle_digest }}
       verified_binsync_target_state_digest: ${{ needs.verify-release.outputs.binsync_target_state_digest }}

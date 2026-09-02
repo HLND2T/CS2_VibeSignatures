@@ -119,6 +119,10 @@ class BinSyncCandidateTests(unittest.TestCase):
 
             self.assertEqual(candidate.CANDIDATE_SCHEMA_VERSION, manifest["schema_version"])
             self.assertEqual(manifest["publication_digest"], verified["publication_digest"])
+            self.assertEqual(
+                candidate.publication_target_state(manifest)["target_state_digest"],
+                verified["target_state_digest"],
+            )
             self.assertEqual(1, verified["repository_count"])
             self.assertEqual(
                 manifest,
@@ -151,6 +155,28 @@ class BinSyncCandidateTests(unittest.TestCase):
                     temporary_root / "candidate",
                     {"refs/heads/binsync/TestUser": unrelated},
                 )
+
+    def test_build_rejects_unallowlisted_file_in_publication_commit(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            temporary_root = Path(temporary)
+            root = temporary_root / "repo"
+            root.mkdir()
+            _source_sha, preparation, binsync_repo = self._repository(root)
+            (binsync_repo / "arbitrary-payload.txt").write_text("secret\n", encoding="utf-8")
+            self._git(binsync_repo, "add", "arbitrary-payload.txt")
+            self._git(
+                binsync_repo,
+                "-c",
+                "user.name=TestUser",
+                "-c",
+                "user.email=TestUser@binsync.local",
+                "commit",
+                "-m",
+                "Add arbitrary payload",
+            )
+
+            with self.assertRaisesRegex(candidate.BinSyncCandidateError, "publication allowlist"):
+                self._build(root, preparation, temporary_root / "candidate")
 
     def test_verify_rejects_bundle_tamper_and_unexpected_files(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

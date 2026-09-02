@@ -8,8 +8,9 @@ from pathlib import Path
 
 from release_workflow_lib.binary_cache import (
     BINARY_CACHE_LOCK_ROOT,
-    is_binary_cache_excluded_path,
+    configured_binary_paths,
     require_gamever,
+    validate_binary_cache_tree,
     version_lock,
 )
 from release_workflow_lib.errors import ReleaseWorkflowError
@@ -118,7 +119,7 @@ def _delete_yaml_path(path: Path) -> None:
     path.unlink()
 
 
-def _resume_deletion(*, accepted: Path, files: list[dict]) -> None:
+def _resume_deletion(*, accepted: Path, files: list[dict], allowed_paths: frozenset[str]) -> None:
     reject_reparse_points(accepted)
     for item in files:
         path = contained_path(accepted, *Path(item["path"]).parts)
@@ -128,14 +129,14 @@ def _resume_deletion(*, accepted: Path, files: list[dict]) -> None:
         if not path.is_file() or path.stat().st_size != item["size"] or sha256_file(path) != item["sha256"]:
             raise ReleaseWorkflowError(f"legacy accepted-bin YAML drifted during cleanup: {item['path']}")
         _delete_yaml_path(path)
-    for path in accepted.rglob("*"):
-        if is_binary_cache_excluded_path(path.relative_to(accepted)):
-            raise ReleaseWorkflowError(f"excluded analysis state remains in accepted bin: {path}")
+    validate_binary_cache_tree(accepted, allowed_paths, allow_excluded=False)
 
 
-def cleanup_legacy_accepted_yaml(*, persisted_root: str | Path, gamever: str) -> dict:
+def cleanup_legacy_accepted_yaml(*, repo_root: str | Path, persisted_root: str | Path, gamever: str) -> dict:
     gamever = require_gamever(gamever)
+    repo_root = Path(repo_root).resolve()
     persisted_root = Path(persisted_root).resolve()
+    allowed_paths = configured_binary_paths(repo_root, gamever)
     reject_reparse_components(persisted_root, persisted_root)
     accepted = contained_path(persisted_root, "bin", gamever)
     reject_reparse_components(persisted_root, accepted)
@@ -174,7 +175,7 @@ def cleanup_legacy_accepted_yaml(*, persisted_root: str | Path, gamever: str) ->
                 raise ReleaseWorkflowError("legacy YAML cleanup receipt identity is invalid")
             if _yaml_inventory(accepted):
                 raise ReleaseWorkflowError("legacy YAML reappeared after completed cleanup")
-            _resume_deletion(accepted=accepted, files=[])
+            _resume_deletion(accepted=accepted, files=[], allowed_paths=allowed_paths)
             return {**receipt, "status": "already-clean"}
 
         if state_path.is_file():
@@ -214,7 +215,7 @@ def cleanup_legacy_accepted_yaml(*, persisted_root: str | Path, gamever: str) ->
             }
             write_canonical_json(state_path, state)
 
-        _resume_deletion(accepted=accepted, files=files)
+        _resume_deletion(accepted=accepted, files=files, allowed_paths=allowed_paths)
         receipt = {
             "schema_version": SCHEMA_VERSION,
             "gamever": gamever,

@@ -21,6 +21,7 @@ def parse_args(argv=None) -> argparse.Namespace:
     sync.add_argument("--persisted-root", required=True)
     sync.add_argument("--gamever", required=True)
     cleanup = commands.add_parser("cleanup-legacy-yaml")
+    cleanup.add_argument("--repo-root", default=".")
     cleanup.add_argument("--persisted-root", required=True)
     cleanup.add_argument("--gamever", required=True)
     return parser.parse_args(argv)
@@ -37,6 +38,7 @@ def main(argv=None) -> int:
             )
         else:
             result = cleanup_legacy_accepted_yaml(
+                repo_root=Path(args.repo_root),
                 persisted_root=Path(args.persisted_root),
                 gamever=args.gamever,
             )

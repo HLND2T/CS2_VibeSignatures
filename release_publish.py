@@ -231,6 +231,7 @@ def publish_release(
     expected_build_id: str | None = None,
     expected_actions_artifact_name: str | None = None,
     expected_binsync_candidate_digest: str | None = None,
+    expected_binsync_target_state_digest: str | None = None,
 ) -> dict:
     """Create/recover one draft and publish only exact immutable Release bytes."""
     token = os.environ.get(TOKEN_ENVIRONMENT_VARIABLE, "")
@@ -247,6 +248,7 @@ def publish_release(
             expected_build_id=expected_build_id,
             expected_actions_artifact_name=expected_actions_artifact_name,
             expected_binsync_candidate_digest=expected_binsync_candidate_digest,
+            expected_binsync_target_state_digest=expected_binsync_target_state_digest,
         )
         manifest_path = next(bundle_root.glob("release-manifest-*.json"))
         manifest = load_json_object(manifest_path)
@@ -314,6 +316,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--build-id")
     parser.add_argument("--actions-artifact-name")
     parser.add_argument("--binsync-candidate-digest")
+    parser.add_argument("--binsync-target-state-digest")
     return parser
 
 
@@ -329,6 +332,7 @@ def main(argv=None) -> int:
             expected_build_id=args.build_id,
             expected_actions_artifact_name=args.actions_artifact_name,
             expected_binsync_candidate_digest=args.binsync_candidate_digest,
+            expected_binsync_target_state_digest=args.binsync_target_state_digest,
         )
     except (ReleasePublishError, OSError) as exc:
         print(f"Release publish error: {exc}", file=sys.stderr)

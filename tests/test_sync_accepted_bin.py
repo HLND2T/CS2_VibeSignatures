@@ -7,12 +7,20 @@ from release_workflow_lib.binary_cache import IDA_DATABASE_SUFFIXES, version_loc
 from release_workflow_lib.errors import ReleaseWorkflowError
 from release_workflow_lib.legacy_yaml_cleanup import cleanup_legacy_accepted_yaml
 from release_workflow_lib.sync_accepted_bin import _filtered_inventory, sync_accepted_bin
+from tests.gamesymbol_snapshot_test_support import write_config
 
 
 class TestSyncAcceptedBin(unittest.TestCase):
     gamever = "14180"
 
     def _write_source(self, root: Path, *, marker: bytes = b"v1") -> None:
+        write_config(
+            root / "configs" / f"{self.gamever}.yaml",
+            [
+                {"name": "server", "path_windows": "game/bin/win64/server.dll", "skills": []},
+                {"name": "engine", "path_linux": "game/bin/linuxsteamrt64/libengine2.so", "skills": []},
+            ],
+        )
         for relative, prefix in (
             ("server/server.dll", b"server-"),
             ("engine/libengine2.so", b"engine-"),
@@ -73,14 +81,10 @@ class TestSyncAcceptedBin(unittest.TestCase):
 
             self.assertTrue(first["synced"])
             self.assertFalse(second["synced"])
-            # The idempotent second call is proven by the no-hash skeleton fast
-            # path, so it never computes a content hash.
             self.assertRegex(first["hash"], r"^[0-9a-f]{64}$")
-            self.assertIsNone(second["hash"])
+            self.assertEqual(first["hash"], second["hash"])
 
-    def test_sync_fast_path_skips_full_inventory(self) -> None:
-        # An already-in-sync accepted tree must be detected from path+size alone;
-        # the full-tree SHA-256 inventory (the expensive part) is never computed.
+    def test_sync_repairs_same_size_content_drift(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             repo = root / "repo"
@@ -88,13 +92,27 @@ class TestSyncAcceptedBin(unittest.TestCase):
             self._write_source(repo)
             first = sync_accepted_bin(repo_root=repo, persisted_root=persisted, gamever=self.gamever)
             self.assertTrue(first["synced"])
+            accepted_binary = persisted / "bin" / self.gamever / "server" / "server.dll"
+            accepted_binary.write_bytes(b"X" * accepted_binary.stat().st_size)
 
-            with patch("release_workflow_lib.sync_accepted_bin._filtered_inventory") as inventory:
-                second = sync_accepted_bin(repo_root=repo, persisted_root=persisted, gamever=self.gamever)
+            second = sync_accepted_bin(repo_root=repo, persisted_root=persisted, gamever=self.gamever)
 
-            self.assertFalse(second["synced"])
-            self.assertIsNone(second["hash"])
-            inventory.assert_not_called()
+            self.assertTrue(second["synced"])
+            self.assertEqual(
+                (repo / "bin" / self.gamever / "server" / "server.dll").read_bytes(),
+                accepted_binary.read_bytes(),
+            )
+
+    def test_sync_rejects_unconfigured_durable_side_file(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            repo = root / "repo"
+            persisted = root / "persisted"
+            self._write_source(repo)
+            (repo / "bin" / self.gamever / "analysis.log").write_bytes(b"unexpected")
+
+            with self.assertRaisesRegex(ReleaseWorkflowError, "binary cache allowlist mismatch"):
+                sync_accepted_bin(repo_root=repo, persisted_root=persisted, gamever=self.gamever)
 
     def test_sync_replaces_changed_accepted_tree(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -184,13 +202,21 @@ class TestLegacyAcceptedYamlCleanup(unittest.TestCase):
         (accepted / "engine" / "B.linux.yml").write_bytes(b"name: B\n")
         return accepted
 
+    def _cleanup(self, persisted: Path) -> dict:
+        repo = persisted.parent / "repo"
+        write_config(
+            repo / "configs" / f"{self.gamever}.yaml",
+            [{"name": "server", "path_windows": "game/bin/win64/server.dll", "skills": []}],
+        )
+        return cleanup_legacy_accepted_yaml(repo_root=repo, persisted_root=persisted, gamever=self.gamever)
+
     def test_cleanup_backs_up_exact_yaml_and_is_idempotent(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             persisted = Path(temporary) / "persisted"
             accepted = self._accepted_tree(persisted)
 
-            first = cleanup_legacy_accepted_yaml(persisted_root=persisted, gamever=self.gamever)
-            second = cleanup_legacy_accepted_yaml(persisted_root=persisted, gamever=self.gamever)
+            first = self._cleanup(persisted)
+            second = self._cleanup(persisted)
 
             self.assertEqual("cleaned", first["status"])
             self.assertEqual("already-clean", second["status"])
@@ -220,11 +246,11 @@ class TestLegacyAcceptedYamlCleanup(unittest.TestCase):
                 side_effect=interrupt_once,
             ):
                 with self.assertRaisesRegex(OSError, "simulated interruption"):
-                    cleanup_legacy_accepted_yaml(persisted_root=persisted, gamever=self.gamever)
+                    self._cleanup(persisted)
 
             state = persisted / "binary-cache" / "legacy-yaml-cleanup" / f"{self.gamever}.json"
             self.assertTrue(state.is_file())
-            result = cleanup_legacy_accepted_yaml(persisted_root=persisted, gamever=self.gamever)
+            result = self._cleanup(persisted)
             self.assertEqual("cleaned", result["status"])
             self.assertFalse(state.exists())
             self.assertFalse(any(path.suffix.lower() in {".yaml", ".yml"} for path in accepted.rglob("*")))
@@ -236,11 +262,11 @@ class TestLegacyAcceptedYamlCleanup(unittest.TestCase):
 
             with patch("release_workflow_lib.legacy_yaml_cleanup.os.replace", side_effect=KeyboardInterrupt):
                 with self.assertRaises(KeyboardInterrupt):
-                    cleanup_legacy_accepted_yaml(persisted_root=persisted, gamever=self.gamever)
+                    self._cleanup(persisted)
 
             backup_parent = persisted / "accepted-bin-legacy-yaml" / self.gamever
             self.assertEqual(1, len(list(backup_parent.glob(".*.incoming"))))
-            result = cleanup_legacy_accepted_yaml(persisted_root=persisted, gamever=self.gamever)
+            result = self._cleanup(persisted)
             self.assertEqual("cleaned", result["status"])
             self.assertFalse(list(backup_parent.glob(".*.incoming")))
 
@@ -248,22 +274,22 @@ class TestLegacyAcceptedYamlCleanup(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             persisted = Path(temporary) / "persisted"
             self._accepted_tree(persisted)
-            first = cleanup_legacy_accepted_yaml(persisted_root=persisted, gamever=self.gamever)
+            first = self._cleanup(persisted)
             backup_yaml = Path(first["backup_root"]) / "payload" / "server" / "A.windows.yaml"
             backup_yaml.write_bytes(b"tampered\n")
 
             with self.assertRaisesRegex(ReleaseWorkflowError, "backup payload"):
-                cleanup_legacy_accepted_yaml(persisted_root=persisted, gamever=self.gamever)
+                self._cleanup(persisted)
 
     def test_cleanup_rejects_yaml_that_reappears_after_receipt(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             persisted = Path(temporary) / "persisted"
             accepted = self._accepted_tree(persisted)
-            cleanup_legacy_accepted_yaml(persisted_root=persisted, gamever=self.gamever)
+            self._cleanup(persisted)
             (accepted / "server" / "unexpected.yaml").write_bytes(b"reappeared\n")
 
             with self.assertRaisesRegex(ReleaseWorkflowError, "reappeared"):
-                cleanup_legacy_accepted_yaml(persisted_root=persisted, gamever=self.gamever)
+                self._cleanup(persisted)
 
     def test_cleanup_requires_binary_only_allowlist_before_receipt(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -273,10 +299,10 @@ class TestLegacyAcceptedYamlCleanup(unittest.TestCase):
             stale_idb.write_bytes(b"stale")
 
             with self.assertRaisesRegex(ReleaseWorkflowError, "excluded analysis state"):
-                cleanup_legacy_accepted_yaml(persisted_root=persisted, gamever=self.gamever)
+                self._cleanup(persisted)
 
             stale_idb.unlink()
-            result = cleanup_legacy_accepted_yaml(persisted_root=persisted, gamever=self.gamever)
+            result = self._cleanup(persisted)
             self.assertEqual("cleaned", result["status"])
 
 

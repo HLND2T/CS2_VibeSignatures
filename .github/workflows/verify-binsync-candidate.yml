@@ -27,6 +27,9 @@ on:
       publication_digest:
         description: Verified canonical BinSync candidate publication digest
         value: ${{ jobs.verify.outputs.publication_digest }}
+      target_state_digest:
+        description: Verified canonical BinSync repository/ref target-state digest
+        value: ${{ jobs.verify.outputs.target_state_digest }}
 permissions:
   actions: read
   contents: read
@@ -35,6 +38,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       publication_digest: ${{ steps.verify-candidate.outputs.publication_digest }}
+      target_state_digest: ${{ steps.verify-candidate.outputs.target_state_digest }}
     steps:
       - name: Checkout exact immutable source
         uses: actions/checkout@v5
@@ -106,4 +110,8 @@ jobs:
           if ($document.publication_digest -notmatch '^sha256:[0-9a-f]{64}$') {
             throw "Hosted BinSync verifier did not produce a canonical publication digest."
           }
+          if ($document.target_state_digest -notmatch '^sha256:[0-9a-f]{64}$') {
+            throw "Hosted BinSync verifier did not produce a canonical target-state digest."
+          }
           "publication_digest=$($document.publication_digest)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "target_state_digest=$($document.target_state_digest)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append

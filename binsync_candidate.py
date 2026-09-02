@@ -49,6 +49,8 @@ DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 MD5_RE = re.compile(r"^[0-9a-f]{32}$")
 REPOSITORY_COMPONENT_RE = re.compile(r"^[A-Za-z0-9_.-]+$")
 ARTIFACT_NAME_RE = re.compile(r"^[A-Za-z0-9_.-]{1,240}$")
+ROOT_TREE_PATHS = frozenset({".gitignore", "binary_hash"})
+USER_TREE_PATHS = frozenset({".gitignore", "binary_hash", "symbols.toml"})
 
 
 class BinSyncCandidateError(Exception):
@@ -97,6 +99,22 @@ def _plain_sha256(data: bytes) -> str:
 def _release_rebuild_digest(label: str, value: object) -> str:
     payload = f"source-artifact-release-{label}:v1\n".encode("ascii") + canonical_json_bytes(value)
     return f"sha256:{hashlib.sha256(payload).hexdigest()}"
+
+
+def publication_target_state(document: dict) -> dict:
+    repositories = [
+        {
+            "repository_id": repository["repository_id"],
+            "owner": repository["owner"],
+            "name": repository["name"],
+            "refs": [{"ref": item["ref"], "commit": item["candidate_commit"]} for item in repository["refs"]],
+        }
+        for repository in document["repositories"]
+    ]
+    return {
+        "repositories": repositories,
+        "target_state_digest": _digest("binsync-intended-remote-state:v1", repositories),
+    }
 
 
 def _require_exact_keys(value: dict, expected: set[str], label: str) -> None:
@@ -208,6 +226,34 @@ def _bundle_heads(bundle: Path) -> dict[str, str]:
     return heads
 
 
+def _commit_tree_inventory(repo: Path, commit: str, ref: str) -> tuple[str, list[dict], str]:
+    tree_sha = _git_text(repo, "rev-parse", f"{commit}^{{tree}}").lower()
+    if not SHA_RE.fullmatch(tree_sha):
+        raise BinSyncCandidateError(f"invalid BinSync tree SHA for {ref}")
+    records = []
+    for raw_record in _git_bytes(repo, "ls-tree", "-r", "-z", "--full-tree", commit).split(b"\0"):
+        if not raw_record:
+            continue
+        try:
+            metadata, raw_path = raw_record.split(b"\t", 1)
+            mode, object_type, object_sha = metadata.decode("ascii").split(" ")
+            path = normalized_relative_path(raw_path.decode("utf-8"))
+        except (UnicodeError, ValueError, ReleaseWorkflowError) as exc:
+            raise BinSyncCandidateError(f"malformed BinSync tree entry for {ref}") from exc
+        if mode != "100644" or object_type != "blob" or not SHA_RE.fullmatch(object_sha):
+            raise BinSyncCandidateError(f"BinSync tree contains a non-regular blob: {ref}:{path}")
+        payload = _git_bytes(repo, "cat-file", "blob", object_sha)
+        records.append({"path": path, "size": len(payload), "sha256": _plain_sha256(payload)})
+    allowed = ROOT_TREE_PATHS if ref == ROOT_REF else USER_TREE_PATHS
+    actual = {item["path"] for item in records}
+    if actual != allowed:
+        raise BinSyncCandidateError(
+            f"BinSync commit tree violates the publication allowlist for {ref}: "
+            f"missing={sorted(allowed - actual)!r}; unexpected={sorted(actual - allowed)!r}"
+        )
+    return tree_sha, records, _digest("binsync-commit-tree-inventory:v1", records)
+
+
 def _verify_bundle(bundle: Path, repository: dict) -> None:
     expected_heads = {item["ref"]: item["candidate_commit"] for item in repository["refs"]}
     if _bundle_heads(bundle) != expected_heads:
@@ -236,6 +282,15 @@ def _verify_bundle(bundle: Path, repository: dict) -> None:
         for item in refs:
             candidate_commit = item["candidate_commit"]
             expected = item["expected_remote_head"]
+            tree_sha, tree_files, tree_inventory_sha256 = _commit_tree_inventory(
+                verification_repo, candidate_commit, item["ref"]
+            )
+            if (
+                tree_sha != item["tree_sha"]
+                or tree_files != item["tree_files"]
+                or tree_inventory_sha256 != item["tree_inventory_sha256"]
+            ):
+                raise BinSyncCandidateError(f"BinSync commit tree evidence mismatch for {item['ref']}")
             if not _is_ancestor(verification_repo, root_commit, candidate_commit):
                 raise BinSyncCandidateError(f"BinSync ref does not descend from the immutable root: {item['ref']}")
             actual_relationship = _relationship(verification_repo, expected, candidate_commit, item["ref"])
@@ -338,6 +393,7 @@ def _repository_for_binary(
         if not SHA_RE.fullmatch(candidate_commit):
             raise BinSyncCandidateError(f"invalid local candidate commit for {ref}")
         expected = remote_heads.get(ref)
+        tree_sha, tree_files, tree_inventory_sha256 = _commit_tree_inventory(local_repo, candidate_commit, ref)
         ref_records.append(
             {
                 "ref": ref,
@@ -345,6 +401,9 @@ def _repository_for_binary(
                 "candidate_commit": candidate_commit,
                 "fast_forward": True,
                 "relationship": _relationship(local_repo, expected, candidate_commit, ref),
+                "tree_sha": tree_sha,
+                "tree_files": tree_files,
+                "tree_inventory_sha256": tree_inventory_sha256,
             }
         )
 
@@ -533,7 +592,16 @@ def _validate_repository(repository: dict) -> None:
             raise BinSyncCandidateError(f"BinSync ref entry is invalid: {repository_id}")
         _require_exact_keys(
             item,
-            {"ref", "expected_remote_head", "candidate_commit", "fast_forward", "relationship"},
+            {
+                "ref",
+                "expected_remote_head",
+                "candidate_commit",
+                "fast_forward",
+                "relationship",
+                "tree_sha",
+                "tree_files",
+                "tree_inventory_sha256",
+            },
             "repository ref",
         )
         ref = _validate_ref(item["ref"])
@@ -541,6 +609,13 @@ def _validate_repository(repository: dict) -> None:
             raise BinSyncCandidateError(f"duplicate BinSync ref: {ref}")
         seen_refs.add(ref)
         expected_head = item["expected_remote_head"]
+        if (
+            not SHA_RE.fullmatch(str(item["tree_sha"]))
+            or not isinstance(item["tree_files"], list)
+            or not DIGEST_RE.fullmatch(str(item["tree_inventory_sha256"]))
+            or item["tree_inventory_sha256"] != _digest("binsync-commit-tree-inventory:v1", item["tree_files"])
+        ):
+            raise BinSyncCandidateError(f"BinSync ref tree evidence is invalid: {ref}")
         if expected_head is not None and (not isinstance(expected_head, str) or not SHA_RE.fullmatch(expected_head)):
             raise BinSyncCandidateError(f"expected remote head is invalid for {ref}")
         if not isinstance(item["candidate_commit"], str) or not SHA_RE.fullmatch(item["candidate_commit"]):
@@ -754,6 +829,7 @@ def verify_candidate(
         raise BinSyncCandidateError("BinSync SHA256SUMS contract mismatch")
     if repo_root is not None:
         _verify_source_identity(Path(repo_root).resolve(), document)
+    target_state = publication_target_state(document)
     return {
         "schema_version": CANDIDATE_SCHEMA_VERSION,
         "source_sha": document["source_sha"],
@@ -761,6 +837,7 @@ def verify_candidate(
         "build_id": document["build_id"],
         "repository_count": len(document["repositories"]),
         "publication_digest": document["publication_digest"],
+        **target_state,
     }
 
 

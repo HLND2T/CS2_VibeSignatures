@@ -23,6 +23,9 @@ on:
       binsync_candidate_digest:
         required: true
         type: string
+      binsync_target_state_digest:
+        required: true
+        type: string
       verified_manifest_digest:
         required: true
         type: string
@@ -128,12 +131,14 @@ jobs:
             --release-version "${{ inputs.release_version }}" `
             --build-id "${{ inputs.build_id }}" `
             --actions-artifact-name "${{ inputs.artifact_name }}" `
-            --binsync-candidate-digest "${{ inputs.binsync_candidate_digest }}"
+            --binsync-candidate-digest "${{ inputs.binsync_candidate_digest }}" `
+            --binsync-target-state-digest "${{ inputs.binsync_target_state_digest }}"
           if ($LASTEXITCODE -ne 0) { throw "Protected Release bundle re-verification failed." }
           $document = ($json -join "`n") | ConvertFrom-Json
           if ($document.manifest_sha256 -ne "${{ inputs.verified_manifest_digest }}" -or `
               $document.bundle_inventory_sha256 -ne "${{ inputs.verified_bundle_digest }}" -or `
-              $document.binsync_target_state_digest -ne "${{ inputs.verified_binsync_target_state_digest }}") {
+              $document.binsync_target_state_digest -ne "${{ inputs.verified_binsync_target_state_digest }}" -or `
+              $document.binsync_target_state_digest -ne "${{ inputs.binsync_target_state_digest }}") {
             throw "Protected Release input differs from hosted verifier outputs."
           }
       - name: Publish tag, exact assets, and immutable Release
@@ -150,7 +155,8 @@ jobs:
             --release-version "${{ inputs.release_version }}" `
             --build-id "${{ inputs.build_id }}" `
             --actions-artifact-name "${{ inputs.artifact_name }}" `
-            --binsync-candidate-digest "${{ inputs.binsync_candidate_digest }}"
+            --binsync-candidate-digest "${{ inputs.binsync_candidate_digest }}" `
+            --binsync-target-state-digest "${{ inputs.binsync_target_state_digest }}"
           if ($LASTEXITCODE -ne 0) { throw "Immutable protected Release publication failed." }
           $document = ($json -join "`n") | ConvertFrom-Json
           if ($document.status -notin @('published', 'already-published') -or $document.release_id -notmatch '^[1-9][0-9]*$') {

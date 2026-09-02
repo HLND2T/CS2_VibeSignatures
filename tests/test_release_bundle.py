@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import shutil
 import tempfile
 import unittest
@@ -149,7 +150,17 @@ class ReleaseBundleTests(unittest.TestCase):
                     expected_release_version="1",
                     expected_build_id="123-1",
                     expected_actions_artifact_name=f"release-bundle-123-1-{preparation['source_sha']}-1",
+                    expected_binsync_candidate_digest=inputs["binsync_manifest"]["publication_digest"],
+                    expected_binsync_target_state_digest=binsync_candidate.publication_target_state(
+                        inputs["binsync_manifest"]
+                    )["target_state_digest"],
                 )
+                tampered = copy.deepcopy(manifest)
+                gamedata_archive = tampered["archives"]["archives/gamedata-1.7z"]
+                gamedata_archive["files"].append({"path": "unbound-secret.txt", "size": 6, "sha256": "0" * 64})
+                gamedata_archive["files"].sort(key=lambda item: item["path"])
+                with self.assertRaisesRegex(release_bundle.ReleaseBundleError, "exact source-derived inventory"):
+                    release_bundle._verify_source(root, tampered)
 
             self.assertEqual(manifest["source_sha"], verified["source_sha"])
             self.assertEqual(manifest["binsync"]["target_state_digest"], verified["binsync_target_state_digest"])
@@ -214,6 +225,16 @@ class ReleaseBundleTests(unittest.TestCase):
                 )
                 with self.assertRaisesRegex(release_bundle.ReleaseBundleError, "public asset mismatch"):
                     release_bundle.verify_release_bundle(bundle_root=bundle_root, repo_root=root)
+
+    def test_archive_preflight_rejects_traversal_links_and_duplicates(self) -> None:
+        with self.assertRaisesRegex(release_bundle.ReleaseBundleError, "unsafe entry"):
+            release_bundle._listed_archive_files("Path = ../secret\nSize = 1\n")
+        with self.assertRaisesRegex(release_bundle.ReleaseBundleError, "unsafe entry"):
+            release_bundle._listed_archive_files("Path = C:\\secret\nSize = 1\n")
+        with self.assertRaisesRegex(release_bundle.ReleaseBundleError, "link or unsupported"):
+            release_bundle._listed_archive_files("Path = safe\nSize = 1\nSymbolic Link = target\n")
+        with self.assertRaisesRegex(release_bundle.ReleaseBundleError, "duplicate paths"):
+            release_bundle._listed_archive_files("Path = safe\nSize = 1\n\nPath = safe\nSize = 1\n")
 
 
 if __name__ == "__main__":

@@ -11,9 +11,9 @@ reflects the warmup input.
 The accepted tree is binary-only: YAML, IDA databases, and BinSync state are
 excluded. A dedicated per-version binary-cache lock makes direct invocations safe.
 
-When the source and accepted trees already agree by path and size - the common
-cache-hit case - the comparison takes a no-hash skeleton fast path and the
-returned ``hash`` is ``None`` because no content hash was computed.
+Source and accepted trees must contain exactly the configured binaries. Their
+full SHA-256 inventories are compared even when paths and sizes agree, so cache
+corruption cannot survive an idempotent sync.
 """
 
 from __future__ import annotations
@@ -26,9 +26,11 @@ from pathlib import Path
 from release_workflow_lib.errors import ReleaseWorkflowError
 from release_workflow_lib.binary_cache import (
     BINARY_CACHE_LOCK_ROOT,
+    configured_binary_paths,
     ignore_binary_cache_state,
     is_binary_cache_excluded_path,
     require_gamever,
+    validate_binary_cache_tree,
     version_lock,
 )
 from release_workflow_lib.filesystem import remove_tree
@@ -59,20 +61,6 @@ def _filtered_inventory(root: Path) -> tuple[list[dict], str]:
         relative = normalized_relative_path(path.relative_to(root).as_posix())
         filtered.append({"path": relative, "size": path.stat().st_size, "sha256": sha256_file(path)})
     return filtered, inventory_sha256(filtered)
-
-
-def _filtered_skeleton(root: Path) -> list[tuple[str, int]]:
-    """Sorted ``(relative path, size)`` pairs excluding recoverable state.
-
-    A no-hash identity used for the fast path: equal skeletons imply equal bytes
-    because the source tree is a robocopy restore of the same persisted tree and
-    nothing rewrites files in place between restore and sync (prepare only adds
-    missing binaries; IDA warmup writes only excluded side files).
-    """
-    return [
-        (normalized_relative_path(path.relative_to(root).as_posix()), path.stat().st_size)
-        for path in _filtered_files(root)
-    ]
 
 
 def _contains_recoverable_analysis_state(root: Path) -> bool:
@@ -131,8 +119,7 @@ def sync_accepted_bin(*, repo_root: Path, persisted_root: Path, gamever: str) ->
     The source is the gamever directory the caller actually consumed. Recoverable
     IDA and BinSync state is excluded so mutable analysis state never leaks into
     the accepted tree. Returns a summary with ``synced`` true when the accepted
-    tree changed; ``hash`` is the source content hash, or ``None`` when the no-hash
-    skeleton fast path proved the trees already identical.
+    tree changed; ``hash`` is the exact configured source inventory digest.
     """
     gamever = require_gamever(gamever)
     repo_root = Path(repo_root).resolve()
@@ -142,6 +129,8 @@ def sync_accepted_bin(*, repo_root: Path, persisted_root: Path, gamever: str) ->
     if not source_root.is_dir():
         raise ReleaseWorkflowError(f"sync source tree does not exist: {source_root}")
     reject_reparse_points(source_root)
+    allowed_paths = configured_binary_paths(repo_root, gamever)
+    validate_binary_cache_tree(source_root, allowed_paths, allow_excluded=True)
 
     accepted_root = contained_path(persisted_root, "bin")
     reject_reparse_components(persisted_root, accepted_root)
@@ -151,16 +140,20 @@ def sync_accepted_bin(*, repo_root: Path, persisted_root: Path, gamever: str) ->
     backup = contained_path(accepted_root, f".{gamever}.{uuid.uuid4().hex}.backup")
     lock_path = contained_path(persisted_root, *BINARY_CACHE_LOCK_ROOT, f"{gamever}.lock")
 
-    source_skeleton = _filtered_skeleton(source_root)
+    expected_files, expected_hash = _filtered_inventory(source_root)
 
     with version_lock(lock_path):
-        if (
-            target.is_dir()
-            and _filtered_skeleton(target) == source_skeleton
-            and not _contains_recoverable_analysis_state(target)
-        ):
-            return {"synced": False, "gamever": gamever, "hash": None}
-        expected_files, expected_hash = _filtered_inventory(source_root)
+        if target.is_dir():
+            reject_reparse_points(target)
+            if not _contains_recoverable_analysis_state(target):
+                try:
+                    validate_binary_cache_tree(target, allowed_paths, allow_excluded=False)
+                except ReleaseWorkflowError as exc:
+                    if not str(exc).startswith("binary cache allowlist mismatch:"):
+                        raise
+                else:
+                    if _filtered_inventory(target) == (expected_files, expected_hash):
+                        return {"synced": False, "gamever": gamever, "hash": expected_hash}
         moved_old = _swap_verified_bin(
             source=source_root,
             target=target,

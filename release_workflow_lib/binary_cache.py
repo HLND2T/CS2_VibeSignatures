@@ -5,9 +5,12 @@ from __future__ import annotations
 import os
 import re
 from contextlib import contextmanager
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
+from gamesymbol_snapshot_lib.config import load_contract
+from gamesymbol_snapshot_lib.errors import SnapshotConfigError
 from release_workflow_lib.errors import ReleaseWorkflowError
+from release_workflow_lib.hashing import normalized_relative_path, reject_reparse_points
 
 
 GAMEVER_RE = re.compile(r"^[0-9]{4,10}[a-z]?$")
@@ -35,6 +38,48 @@ def is_binary_cache_excluded_path(path: Path) -> bool:
 
 def ignore_binary_cache_state(_directory: str, names: list[str]) -> set[str]:
     return {name for name in names if is_binary_cache_excluded_path(Path(name))}
+
+
+def configured_binary_paths(repo_root: str | Path, gamever: str) -> frozenset[str]:
+    """Return the exact accepted-cache paths declared by one analysis config."""
+    repo_root = Path(repo_root).resolve()
+    gamever = require_gamever(gamever)
+    try:
+        contract = load_contract(
+            repo_root / "configs" / f"{gamever}.yaml",
+            gamever,
+            repo_root / "bin",
+            artifactdir=repo_root / "bin_artifacts",
+        )
+    except SnapshotConfigError as exc:
+        raise ReleaseWorkflowError(f"unable to load configured binary allowlist for {gamever}: {exc}") from exc
+    paths = {
+        normalized_relative_path(f"{target.module_name}/{PurePosixPath(target.source_path).name}")
+        for target in contract.binary_targets.values()
+    }
+    if not paths:
+        raise ReleaseWorkflowError(f"configured binary allowlist is empty for {gamever}")
+    return frozenset(paths)
+
+
+def validate_binary_cache_tree(root: str | Path, allowed_paths: frozenset[str], *, allow_excluded: bool) -> None:
+    """Require an exact configured binary file set and optionally tolerated cache state."""
+    root = Path(root)
+    reject_reparse_points(root)
+    durable = set()
+    excluded = []
+    for path in root.rglob("*"):
+        relative = path.relative_to(root)
+        if is_binary_cache_excluded_path(relative):
+            excluded.append(relative.as_posix())
+        elif path.is_file():
+            durable.add(normalized_relative_path(relative.as_posix()))
+    if excluded and not allow_excluded:
+        raise ReleaseWorkflowError("excluded analysis state remains in accepted bin: " + ", ".join(sorted(excluded)))
+    if durable != set(allowed_paths):
+        missing = sorted(set(allowed_paths) - durable)
+        unexpected = sorted(durable - set(allowed_paths))
+        raise ReleaseWorkflowError(f"binary cache allowlist mismatch: missing={missing!r}; unexpected={unexpected!r}")
 
 
 @contextmanager

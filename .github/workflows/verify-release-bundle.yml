@@ -23,6 +23,9 @@ on:
       binsync_candidate_digest:
         required: true
         type: string
+      binsync_target_state_digest:
+        required: true
+        type: string
     outputs:
       manifest_digest:
         value: ${{ jobs.verify.outputs.manifest_digest }}
@@ -127,7 +130,8 @@ jobs:
             --release-version "${{ inputs.release_version }}" `
             --build-id "${{ inputs.build_id }}" `
             --actions-artifact-name "${{ inputs.artifact_name }}" `
-            --binsync-candidate-digest "${{ inputs.binsync_candidate_digest }}"
+            --binsync-candidate-digest "${{ inputs.binsync_candidate_digest }}" `
+            --binsync-target-state-digest "${{ inputs.binsync_target_state_digest }}"
           if ($LASTEXITCODE -ne 0) { throw "Hosted Release bundle verification failed." }
           $document = ($json -join "`n") | ConvertFrom-Json
           foreach ($field in @('manifest_sha256', 'bundle_inventory_sha256', 'binsync_target_state_digest')) {

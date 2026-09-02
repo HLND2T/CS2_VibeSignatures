@@ -210,7 +210,52 @@ def _create_archive(source_root: Path, archive_path: Path) -> None:
         raise ReleaseBundleError((result.stderr or result.stdout).strip() or "7z archive creation failed")
 
 
-def _extract_archive(archive_path: Path, destination: Path) -> None:
+def _listed_archive_files(output: str) -> list[dict]:
+    records = []
+    for block in re.split(r"\n\s*\n", output.replace("\r\n", "\n")):
+        fields = {}
+        for line in block.splitlines():
+            key, separator, value = line.partition(" = ")
+            if separator:
+                fields[key] = value
+        if "Path" not in fields or "Size" not in fields or fields.get("Folder") == "+":
+            continue
+        if fields.get("Folder") not in (None, "-") or "Symbolic Link" in fields or "Hard Link" in fields:
+            raise ReleaseBundleError(f"7z archive contains a link or unsupported entry: {fields['Path']}")
+        try:
+            candidate_path = fields["Path"].replace("\\", "/")
+            if ":" in candidate_path:
+                raise ReleaseWorkflowError("archive paths must not contain drive or stream separators")
+            path = normalized_relative_path(candidate_path)
+            size = int(fields["Size"])
+        except (ReleaseWorkflowError, TypeError, ValueError) as exc:
+            raise ReleaseBundleError(f"7z archive contains an unsafe entry: {fields['Path']}") from exc
+        if size < 0:
+            raise ReleaseBundleError(f"7z archive entry has a negative size: {path}")
+        records.append({"path": path, "size": size})
+    if not records or len({item["path"].casefold() for item in records}) != len(records):
+        raise ReleaseBundleError("7z archive file inventory is empty or contains duplicate paths")
+    return sorted(records, key=lambda item: item["path"])
+
+
+def _extract_archive(archive_path: Path, destination: Path, expected: list[dict]) -> None:
+    try:
+        listing = subprocess.run(
+            ["7z", "l", "-slt", "-ba", str(archive_path.resolve())],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError as exc:
+        raise ReleaseBundleError(f"unable to inspect 7z archive: {exc}") from exc
+    if listing.returncode:
+        raise ReleaseBundleError((listing.stderr or listing.stdout).strip() or "7z archive listing failed")
+    expected_listing = sorted(
+        ({"path": item["path"], "size": item["size"]} for item in expected),
+        key=lambda item: item["path"],
+    )
+    if _listed_archive_files(listing.stdout) != expected_listing:
+        raise ReleaseBundleError(f"Release archive listed inventory mismatch: {archive_path.name}")
     destination.mkdir()
     try:
         result = subprocess.run(
@@ -504,7 +549,7 @@ def build_release_bundle(
 def _verify_archive(archive: Path, expected: dict) -> None:
     with tempfile.TemporaryDirectory(prefix="verify-release-archive-") as temporary:
         extracted = Path(temporary) / "extracted"
-        _extract_archive(archive, extracted)
+        _extract_archive(archive, extracted, expected["files"])
         actual = file_inventory(extracted)
     if actual != expected["files"] or inventory_sha256(actual) != expected["inventory_sha256"]:
         raise ReleaseBundleError(f"Release archive content mismatch: {archive.name}")
@@ -661,7 +706,6 @@ def _verify_source(repo_root: Path, manifest: dict) -> None:
     if _release_rebuild_digest("binary-inventory", manifest["binary_inventory"]) != manifest["binary_inventory_sha256"]:
         raise ReleaseBundleError("hosted Release verifier binary inventory digest mismatch")
     gamedata_archive = manifest["archives"].get(f"archives/gamedata-{game_version}.7z", {})
-    archive_by_path = {item["path"]: item for item in gamedata_archive.get("files", [])}
     expected_source_files = [
         {
             "path": item.path,
@@ -672,6 +716,7 @@ def _verify_source(repo_root: Path, manifest: dict) -> None:
     ]
     expected_source_files.extend({**item, "path": f"hl2sdk_cs2/{item['path']}"} for item in manifest["sdk_files"])
     expected_source_files.extend(manifest["gamedata"]["files"])
+    expected_source_files.extend(_binary_archive_inventory(game_version, manifest["binary_inventory"]))
     config_raw = _source_blob(repo_root, source_sha, f"configs/{game_version}.yaml")
     expected_source_files.append(
         {
@@ -686,9 +731,9 @@ def _verify_source(repo_root: Path, manifest: dict) -> None:
         expected_source_files.append(
             {"path": public_path, "size": public_record["size"], "sha256": public_record["sha256"]}
         )
-    mismatches = [item["path"] for item in expected_source_files if archive_by_path.get(item["path"]) != item]
-    if mismatches:
-        raise ReleaseBundleError("gamedata archive source identity mismatch: " + ", ".join(mismatches))
+    expected_source_files.sort(key=lambda item: item["path"])
+    if gamedata_archive.get("files") != expected_source_files:
+        raise ReleaseBundleError("gamedata archive source identity must match the exact source-derived inventory")
 
 
 def verify_release_bundle(
@@ -701,6 +746,7 @@ def verify_release_bundle(
     expected_build_id: str | None = None,
     expected_actions_artifact_name: str | None = None,
     expected_binsync_candidate_digest: str | None = None,
+    expected_binsync_target_state_digest: str | None = None,
 ) -> dict:
     bundle_root = Path(bundle_root).resolve()
     repo_root = Path(repo_root).resolve()
@@ -737,6 +783,11 @@ def verify_release_bundle(
         and manifest["binsync"]["candidate_publication_digest"] != expected_binsync_candidate_digest
     ):
         raise ReleaseBundleError("Release bundle BinSync candidate digest mismatch")
+    if (
+        expected_binsync_target_state_digest is not None
+        and manifest["binsync"]["target_state_digest"] != expected_binsync_target_state_digest
+    ):
+        raise ReleaseBundleError("Release bundle BinSync target-state digest mismatch")
 
     game_version = manifest["game_version"]
     public_assets = manifest["public_assets"]
@@ -862,6 +913,7 @@ def _parser() -> argparse.ArgumentParser:
     verify.add_argument("--build-id")
     verify.add_argument("--actions-artifact-name")
     verify.add_argument("--binsync-candidate-digest")
+    verify.add_argument("--binsync-target-state-digest")
     return parser
 
 
@@ -900,6 +952,7 @@ def main(argv=None) -> int:
                 expected_build_id=args.build_id,
                 expected_actions_artifact_name=args.actions_artifact_name,
                 expected_binsync_candidate_digest=args.binsync_candidate_digest,
+                expected_binsync_target_state_digest=args.binsync_target_state_digest,
             )
     except (ReleaseBundleError, OSError, ValueError) as exc:
         print(f"Release bundle error: {exc}", file=sys.stderr)
