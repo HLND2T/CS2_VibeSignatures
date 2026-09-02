@@ -1,0 +1,387 @@
+func_name: CRenderService_OnClientOutput
+func_va: '0x433780'
+disasm_code: |-
+  .text:0000000000433780                 push    rbp
+  .text:0000000000433781                 lea     rax, aRenderserviceC; "renderservice.cpp"
+  .text:0000000000433788                 mov     rbp, rsp
+  .text:000000000043378B                 push    r15
+  .text:000000000043378D                 push    r14
+  .text:000000000043378F                 push    r13
+  .text:0000000000433791                 mov     r13, rsi
+  .text:0000000000433794                 push    r12
+  .text:0000000000433796                 lea     r12, [rbp+var_50]
+  .text:000000000043379A                 push    rbx
+  .text:000000000043379B                 lea     rsi, off_9D9D50; "Client Rendering"
+  .text:00000000004337A2                 mov     rbx, rdi
+  .text:00000000004337A5                 mov     rdx, r12
+  .text:00000000004337A8                 lea     rdi, aRenderserviceO_0; "RenderService::OnClientOutput"
+  .text:00000000004337AF                 sub     rsp, 38h
+  .text:00000000004337B3                 mov     [rbp+var_50], rax
+  .text:00000000004337B7                 lea     rax, aOnclientoutput; "OnClientOutput"
+  .text:00000000004337BE                 mov     [rbp+var_48], 1B5h
+  .text:00000000004337C5                 mov     [rbp+var_40], rax
+  .text:00000000004337C9                 call    sub_2C9680
+  .text:00000000004337CE                 mov     byte ptr [rbp+var_50], 0
+  .text:00000000004337D2                 lea     rcx, sub_432560
+  .text:00000000004337D9                 mov     r14, rax
+  .text:00000000004337DC                 mov     rax, [rbx]
+  .text:00000000004337DF                 mov     rdx, [rax+110h]
+  .text:00000000004337E6                 cmp     rdx, rcx
+  .text:00000000004337E9                 jnz     loc_433930
+  .text:00000000004337EF                 cmp     qword ptr [rbx+1C0h], 0
+  .text:00000000004337F7                 jnz     short loc_433840
+  .text:00000000004337F9                 mov     rdi, rbx
+  .text:00000000004337FC                 call    qword ptr [rax+130h]
+  .text:0000000000433802                 test    al, al
+  .text:0000000000433804                 jz      loc_433A20
+  .text:000000000043380A                 mov     eax, [rbx+1A4h]
+  .text:0000000000433810                 test    eax, eax
+  .text:0000000000433812                 jle     loc_433AF0
+  .text:0000000000433818                 sub     eax, 1
+  .text:000000000043381B                 xor     r12d, r12d
+  .text:000000000043381E                 mov     [rbx+1A4h], eax
+  .text:0000000000433824                 mov     r10d, [r13+18h]
+  .text:0000000000433828                 test    r10d, r10d
+  .text:000000000043382B                 jnz     short loc_433886
+  .text:000000000043382D                 call    r14
+  .text:0000000000433830                 add     rsp, 38h
+  .text:0000000000433834                 pop     rbx
+  .text:0000000000433835                 pop     r12
+  .text:0000000000433837                 pop     r13
+  .text:0000000000433839                 pop     r14
+  .text:000000000043383B                 pop     r15
+  .text:000000000043383D                 pop     rbp
+  .text:000000000043383E                 retn
+  .text:0000000000433840                 mov     rsi, r12
+  .text:0000000000433843                 mov     rdi, rbx
+  .text:0000000000433846                 call    sub_431F00
+  .text:000000000043384B                 mov     rax, [rbx]
+  .text:000000000043384E                 mov     rdi, rbx
+  .text:0000000000433851                 call    qword ptr [rax+130h]
+  .text:0000000000433857                 mov     r12d, eax
+  .text:000000000043385A                 test    al, al
+  .text:000000000043385C                 jz      loc_433B18
+  .text:0000000000433862                 mov     eax, [rbx+1A4h]
+  .text:0000000000433868                 test    eax, eax
+  .text:000000000043386A                 jle     loc_433B30
+  .text:0000000000433870                 sub     eax, 1
+  .text:0000000000433873                 mov     [rbx+1A4h], eax
+  .text:0000000000433879                 mov     r8d, [r13+18h]
+  .text:000000000043387D                 test    r8d, r8d
+  .text:0000000000433880                 jz      loc_433977
+  .text:0000000000433886                 mov     ecx, [r13+1Ch]
+  .text:000000000043388A                 test    ecx, ecx
+  .text:000000000043388C                 jz      loc_43396E
+  .text:0000000000433892                 lea     r15, qword_9E78F8
+  .text:0000000000433899                 mov     rdi, [r15]
+  .text:000000000043389C                 test    rdi, rdi
+  .text:000000000043389F                 jz      short loc_4338BD
+  .text:00000000004338A1                 call    sub_3AFFC0
+  .text:00000000004338A6                 test    al, al
+  .text:00000000004338A8                 jz      short loc_4338B1
+  .text:00000000004338AA                 mov     byte ptr [rbx+1C9h], 1
+  .text:00000000004338B1                 mov     rdi, [r15]
+  .text:00000000004338B4                 mov     rax, [rdi]
+  .text:00000000004338B7                 call    qword ptr [rax+0B8h]
+  .text:00000000004338BD                 movzx   ecx, byte ptr [rbp+var_50]
+  .text:00000000004338C1                 mov     rdi, rbx
+  .text:00000000004338C4                 movzx   edx, r12b
+  .text:00000000004338C8                 mov     rsi, r13
+  .text:00000000004338CB                 movss   xmm0, dword ptr [r13+28h]
+  .text:00000000004338D1                 movss   xmm1, dword ptr [r13+2Ch]
+  .text:00000000004338D7                 add     ecx, ecx
+  .text:00000000004338D9                 call    sub_433340
+  .text:00000000004338DE                 mov     rdi, [r15]
+  .text:00000000004338E1                 test    rdi, rdi
+  .text:00000000004338E4                 jz      short loc_4338EB
+  .text:00000000004338E6                 call    sub_3B0050
+  .text:00000000004338EB                 lea     rax, g_pEngineServiceMgr
+  .text:00000000004338F2                 mov     rsi, r13
+  .text:00000000004338F5                 mov     rdi, [rax]
+  .text:00000000004338F8                 mov     rax, [rdi]
+  .text:00000000004338FB                 call    qword ptr [rax+120h]
+  .text:0000000000433901                 lea     rax, off_9DA578
+  .text:0000000000433908                 mov     rsi, r13
+  .text:000000000043390B                 mov     rdi, [rax]
+  .text:000000000043390E                 mov     rax, [rdi]
+  .text:0000000000433911                 call    qword ptr [rax+38h]
+  .text:0000000000433914                 call    r14
+  .text:0000000000433917                 add     rsp, 38h
+  .text:000000000043391B                 pop     rbx
+  .text:000000000043391C                 pop     r12
+  .text:000000000043391E                 pop     r13
+  .text:0000000000433920                 pop     r14
+  .text:0000000000433922                 pop     r15
+  .text:0000000000433924                 pop     rbp
+  .text:0000000000433925                 retn
+  .text:0000000000433930                 mov     rsi, r12
+  .text:0000000000433933                 mov     rdi, rbx
+  .text:0000000000433936                 call    rdx
+  .text:0000000000433938                 mov     rdi, rbx
+  .text:000000000043393B                 mov     r12d, eax
+  .text:000000000043393E                 mov     rax, [rbx]
+  .text:0000000000433941                 call    qword ptr [rax+130h]
+  .text:0000000000433947                 test    al, al
+  .text:0000000000433949                 jz      loc_433A10
+  .text:000000000043394F                 mov     eax, [rbx+1A4h]
+  .text:0000000000433955                 test    eax, eax
+  .text:0000000000433957                 jle     short loc_433962
+  .text:0000000000433959                 sub     eax, 1
+  .text:000000000043395C                 mov     [rbx+1A4h], eax
+  .text:0000000000433962                 mov     esi, [r13+18h]
+  .text:0000000000433966                 test    esi, esi
+  .text:0000000000433968                 jnz     loc_433886
+  .text:000000000043396E                 test    r12b, r12b
+  .text:0000000000433971                 jz      loc_43382D
+  .text:0000000000433977                 movsxd  rax, dword ptr [rbx+188h]
+  .text:000000000043397E                 test    eax, eax
+  .text:0000000000433980                 jle     short loc_4339F0
+  .text:0000000000433982                 lea     r13, [rax+rax*2]
+  .text:0000000000433986                 xor     r12d, r12d
+  .text:0000000000433989                 lea     r15, nullsub_47
+  .text:0000000000433990                 shl     r13, 3
+  .text:0000000000433994                 jmp     short loc_4339C9
+  .text:00000000004339C0                 add     r12, 18h
+  .text:00000000004339C4                 cmp     r13, r12
+  .text:00000000004339C7                 jz      short loc_4339F0
+  .text:00000000004339C9                 mov     rax, [rbx+190h]
+  .text:00000000004339D0                 mov     rdi, [rax+r12+10h]
+  .text:00000000004339D5                 mov     rax, [rdi]
+  .text:00000000004339D8                 mov     rax, [rax+10h]
+  .text:00000000004339DC                 cmp     rax, r15
+  .text:00000000004339DF                 jz      short loc_4339C0
+  .text:00000000004339E1                 call    rax
+  .text:00000000004339E3                 add     r12, 18h
+  .text:00000000004339E7                 cmp     r13, r12
+  .text:00000000004339EA                 jnz     short loc_4339C9
+  .text:00000000004339EC                 nop     dword ptr [rax+00h]
+  .text:00000000004339F0                 lea     rax, g_pSceneSystem
+  .text:00000000004339F7                 movss   xmm0, cs:dword_269EB8
+  .text:00000000004339FF                 mov     rdi, [rax]
+  .text:0000000000433A02                 mov     rax, [rdi]
+  .text:0000000000433A05                 call    qword ptr [rax+0C8h]
+  .text:0000000000433A0B                 jmp     loc_43382D
+  .text:0000000000433A10                 test    r12b, r12b
+  .text:0000000000433A13                 jnz     loc_433B18
+  .text:0000000000433A19                 nop     dword ptr [rax+00000000h]
+  .text:0000000000433A20                 lea     rax, g_pSceneSystem
+  .text:0000000000433A27                 mov     edx, 1
+  .text:0000000000433A2C                 mov     rdi, [rax]
+  .text:0000000000433A2F                 mov     [rbp+var_60], rax
+  .text:0000000000433A33                 lea     rax, g_pRenderDevice
+  .text:0000000000433A3A                 mov     rsi, [rax]
+  .text:0000000000433A3D                 mov     rax, [rdi]
+  .text:0000000000433A40                 call    qword ptr [rax+0A0h]
+  .text:0000000000433A46                 movsxd  rax, dword ptr [rbx+188h]
+  .text:0000000000433A4D                 test    eax, eax
+  .text:0000000000433A4F                 jle     short loc_433AB8
+  .text:0000000000433A51                 lea     rcx, [rax+rax*2]
+  .text:0000000000433A55                 xor     r12d, r12d
+  .text:0000000000433A58                 lea     r15, nullsub_47
+  .text:0000000000433A5F                 shl     rcx, 3
+  .text:0000000000433A63                 jmp     short loc_433A89
+  .text:0000000000433A80                 add     r12, 18h
+  .text:0000000000433A84                 cmp     r12, rcx
+  .text:0000000000433A87                 jz      short loc_433AB8
+  .text:0000000000433A89                 mov     rax, [rbx+190h]
+  .text:0000000000433A90                 mov     rdi, [rax+r12+10h]
+  .text:0000000000433A95                 mov     rax, [rdi]
+  .text:0000000000433A98                 mov     rax, [rax+10h]
+  .text:0000000000433A9C                 cmp     rax, r15
+  .text:0000000000433A9F                 jz      short loc_433A80
+  .text:0000000000433AA1                 mov     [rbp+var_58], rcx
+  .text:0000000000433AA5                 add     r12, 18h
+  .text:0000000000433AA9                 call    rax
+  .text:0000000000433AAB                 mov     rcx, [rbp+var_58]
+  .text:0000000000433AAF                 cmp     r12, rcx
+  .text:0000000000433AB2                 jnz     short loc_433A89
+  .text:0000000000433AB4                 nop     dword ptr [rax+00h]
+  .text:0000000000433AB8                 mov     rax, [rbp+var_60]
+  .text:0000000000433ABC                 movss   xmm0, cs:dword_269EB8
+  .text:0000000000433AC4                 mov     rdi, [rax]
+  .text:0000000000433AC7                 mov     rax, [rdi]
+  .text:0000000000433ACA                 call    qword ptr [rax+0C8h]
+  .text:0000000000433AD0                 lea     rax, g_pEngineServiceMgr
+  .text:0000000000433AD7                 mov     rsi, r13
+  .text:0000000000433ADA                 mov     rdi, [rax]
+  .text:0000000000433ADD                 mov     rax, [rdi]
+  .text:0000000000433AE0                 ; 0x120 = 288LL = CEngineServiceMgr_OnFrameRenderingFinished
+  .text:0000000000433AE0                 call    qword ptr [rax+120h]; 0x120 = 288LL = CEngineServiceMgr_OnFrameRenderingFinished
+  .text:0000000000433AE6                 jmp     loc_43382D
+  .text:0000000000433AF0                 mov     r9d, [r13+18h]
+  .text:0000000000433AF4                 test    r9d, r9d
+  .text:0000000000433AF7                 jz      loc_43382D
+  .text:0000000000433AFD                 mov     edx, [r13+1Ch]
+  .text:0000000000433B01                 xor     r12d, r12d
+  .text:0000000000433B04                 test    edx, edx
+  .text:0000000000433B06                 jnz     loc_433892
+  .text:0000000000433B0C                 jmp     loc_43382D
+  .text:0000000000433B18                 lea     rax, g_pSceneSystem
+  .text:0000000000433B1F                 mov     [rbp+var_60], rax
+  .text:0000000000433B23                 jmp     loc_433A46
+  .text:0000000000433B30                 mov     edi, [r13+18h]
+  .text:0000000000433B34                 test    edi, edi
+  .text:0000000000433B36                 jz      loc_433977
+  .text:0000000000433B3C                 mov     eax, [r13+1Ch]
+  .text:0000000000433B40                 test    eax, eax
+  .text:0000000000433B42                 jnz     loc_433892
+  .text:0000000000433B48                 jmp     loc_433977
+procedure: |-
+  __int64 __fastcall sub_433780(__int64 a1, __int64 a2)
+  {
+    __int64 v2; // rax
+    __int64 (*v3)(void); // r14
+    __int64 (__fastcall *v4)(); // rdx
+    int v5; // eax
+    unsigned __int8 v6; // r12
+    int v8; // eax
+    int v9; // eax
+    __int64 v10; // rax
+    __int64 v11; // r12
+    __int64 v12; // r13
+    __int64 (__fastcall *v13)(); // rax
+    __int64 v14; // rax
+    __int64 v15; // r12
+    __int64 v16; // rcx
+    __int64 (__fastcall *v17)(); // rax
+    __int64 v18; // [rsp+8h] [rbp-58h]
+    const char *v19; // [rsp+10h] [rbp-50h] BYREF
+    int v20; // [rsp+18h] [rbp-48h]
+    const char *v21; // [rsp+20h] [rbp-40h]
+
+    v19 = "renderservice.cpp";
+    v20 = 437;
+    v21 = "OnClientOutput";
+    v2 = sub_2C9680("RenderService::OnClientOutput", &off_9D9D50, &v19);
+    LOBYTE(v19) = 0;
+    v3 = (__int64 (*)(void))v2;
+    v4 = *(__int64 (__fastcall **)())(*(_QWORD *)a1 + 272LL);
+    if ( v4 != sub_432560 )
+    {
+      v6 = ((__int64 (__fastcall *)(__int64, const char **))v4)(a1, &v19);
+      if ( (*(unsigned __int8 (__fastcall **)(__int64))(*(_QWORD *)a1 + 304LL))(a1) )
+      {
+        v9 = *(_DWORD *)(a1 + 420);
+        if ( v9 > 0 )
+          *(_DWORD *)(a1 + 420) = v9 - 1;
+        if ( !*(_DWORD *)(a2 + 24) )
+        {
+  LABEL_22:
+          if ( !v6 )
+            return v3();
+          goto LABEL_23;
+        }
+  LABEL_10:
+        if ( *(_DWORD *)(a2 + 28) )
+          goto LABEL_11;
+        goto LABEL_22;
+      }
+      if ( !v6 )
+        goto LABEL_30;
+  LABEL_31:
+      v14 = *(int *)(a1 + 392);
+      if ( (int)v14 > 0 )
+      {
+        v15 = 0;
+        v16 = 24 * v14;
+        do
+        {
+          while ( 1 )
+          {
+            v17 = *(__int64 (__fastcall **)())(**(_QWORD **)(*(_QWORD *)(a1 + 400) + v15 + 16) + 16LL);
+            if ( v17 != nullsub_47 )
+              break;
+            v15 += 24;
+            if ( v15 == v16 )
+              goto LABEL_36;
+          }
+          v18 = v16;
+          v15 += 24;
+          v17();
+          v16 = v18;
+        }
+        while ( v15 != v18 );
+      }
+  LABEL_36:
+      (*(void (__fastcall **)(_QWORD *, float))(*g_pSceneSystem + 200LL))(g_pSceneSystem, 3.4028235e38);
+      (*(void (__fastcall **)(_QWORD *, __int64))(*g_pEngineServiceMgr + 288LL))(g_pEngineServiceMgr, a2);// 0x120 = 288LL = CEngineServiceMgr_OnFrameRenderingFinished
+      return v3();
+    }
+    if ( *(_QWORD *)(a1 + 448) )
+    {
+      sub_431F00(a1, &v19);
+      v6 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)a1 + 304LL))(a1);
+      if ( v6 )
+      {
+        v8 = *(_DWORD *)(a1 + 420);
+        if ( v8 <= 0 )
+        {
+          if ( *(_DWORD *)(a2 + 24) && *(_DWORD *)(a2 + 28) )
+            goto LABEL_11;
+  LABEL_23:
+          v10 = *(int *)(a1 + 392);
+          if ( (int)v10 > 0 )
+          {
+            v11 = 0;
+            v12 = 24 * v10;
+            do
+            {
+              while ( 1 )
+              {
+                v13 = *(__int64 (__fastcall **)())(**(_QWORD **)(*(_QWORD *)(a1 + 400) + v11 + 16) + 16LL);
+                if ( v13 != nullsub_47 )
+                  break;
+                v11 += 24;
+                if ( v12 == v11 )
+                  goto LABEL_28;
+              }
+              v13();
+              v11 += 24;
+            }
+            while ( v12 != v11 );
+          }
+  LABEL_28:
+          (*(void (__fastcall **)(_QWORD *, float))(*g_pSceneSystem + 200LL))(g_pSceneSystem, 3.4028235e38);
+          return v3();
+        }
+        *(_DWORD *)(a1 + 420) = v8 - 1;
+        if ( !*(_DWORD *)(a2 + 24) )
+          goto LABEL_23;
+        goto LABEL_10;
+      }
+      goto LABEL_31;
+    }
+    if ( !(*(unsigned __int8 (__fastcall **)(__int64))(*(_QWORD *)a1 + 304LL))(a1) )
+    {
+  LABEL_30:
+      (*(void (__fastcall **)(_QWORD *, _QWORD *, __int64))(*g_pSceneSystem + 160LL))(g_pSceneSystem, g_pRenderDevice, 1);
+      goto LABEL_31;
+    }
+    v5 = *(_DWORD *)(a1 + 420);
+    if ( v5 > 0 )
+    {
+      v6 = 0;
+      *(_DWORD *)(a1 + 420) = v5 - 1;
+      if ( !*(_DWORD *)(a2 + 24) )
+        return v3();
+      goto LABEL_10;
+    }
+    if ( !*(_DWORD *)(a2 + 24) )
+      return v3();
+    v6 = 0;
+    if ( !*(_DWORD *)(a2 + 28) )
+      return v3();
+  LABEL_11:
+    if ( qword_9E78F8 )
+    {
+      if ( (unsigned __int8)sub_3AFFC0() )
+        *(_BYTE *)(a1 + 457) = 1;
+      (*(void (__fastcall **)(__int64))(*(_QWORD *)qword_9E78F8 + 184LL))(qword_9E78F8);
+    }
+    sub_433340(a1, a2, v6, 2 * (unsigned int)(unsigned __int8)v19, *(float *)(a2 + 40), *(float *)(a2 + 44));
+    if ( qword_9E78F8 )
+      sub_3B0050();
+    (*(void (__fastcall **)(_QWORD *, __int64))(*g_pEngineServiceMgr + 288LL))(g_pEngineServiceMgr, a2);
+    (*(void (__fastcall **)(void *, __int64))(*(_QWORD *)off_9DA578 + 56LL))(off_9DA578, a2);
+    return v3();
+  }

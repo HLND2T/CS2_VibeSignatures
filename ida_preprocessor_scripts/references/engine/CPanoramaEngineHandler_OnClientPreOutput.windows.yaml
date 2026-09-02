@@ -1,0 +1,156 @@
+func_name: CPanoramaEngineHandler_OnClientPreOutput
+func_va: '0x180142ba0'
+disasm_code: |-
+  .text:0000000180142BA0                 push    rsi
+  .text:0000000180142BA2                 sub     rsp, 40h
+  .text:0000000180142BA6                 mov     [rsp+48h+arg_0], rbx
+  .text:0000000180142BAB                 mov     rsi, rcx
+  .text:0000000180142BAE                 mov     [rsp+48h+arg_10], rdi
+  .text:0000000180142BB3                 mov     [rsp+48h+var_10], r12
+  .text:0000000180142BB8                 mov     r12d, r8d
+  .text:0000000180142BBB                 mov     [rsp+48h+var_18], r13
+  .text:0000000180142BC0                 mov     r13d, edx
+  .text:0000000180142BC3                 mov     [rsp+48h+var_20], r14
+  .text:0000000180142BC8                 xor     r14d, r14d
+  .text:0000000180142BCB                 mov     [rsp+48h+var_28], r15
+  .text:0000000180142BD0                 cmp     [rcx+58h], edx
+  .text:0000000180142BD3                 jnz     short loc_180142BDB
+  .text:0000000180142BD5                 cmp     [rcx+5Ch], r8d
+  .text:0000000180142BD9                 jz      short loc_180142C4D
+  .text:0000000180142BDB                 mov     r15d, r14d
+  .text:0000000180142BDE                 mov     [rcx+58h], r13d
+  .text:0000000180142BE2                 mov     [rcx+5Ch], r12d
+  .text:0000000180142BE6                 cmp     [rcx+10h], r14d
+  .text:0000000180142BEA                 jle     short loc_180142C4D
+  .text:0000000180142BEC                 mov     [rsp+48h+arg_8], rbp
+  .text:0000000180142BF1                 mov     rbp, r14
+  .text:0000000180142BF4                 nop     dword ptr [rax+00h]
+  .text:0000000180142BF8                 nop     dword ptr [rax+rax+00000000h]
+  .text:0000000180142C00                 mov     rbx, [rsi+18h]
+  .text:0000000180142C04                 mov     rcx, [rbx+rbp+20h]
+  .text:0000000180142C09                 test    rcx, rcx
+  .text:0000000180142C0C                 jz      short loc_180142C3B
+  .text:0000000180142C0E                 cmp     [rbx+rbp+31h], r14b
+  .text:0000000180142C13                 jz      short loc_180142C21
+  .text:0000000180142C15                 mov     rax, [rcx]
+  .text:0000000180142C18                 mov     r8d, r12d
+  .text:0000000180142C1B                 mov     edx, r13d
+  .text:0000000180142C1E                 call    qword ptr [rax+78h]
+  .text:0000000180142C21                 mov     rbx, [rbx+rbp+20h]
+  .text:0000000180142C26                 mov     rcx, rbx
+  .text:0000000180142C29                 mov     rdi, [rbx]
+  .text:0000000180142C2C                 call    qword ptr [rdi+1A0h]
+  .text:0000000180142C32                 movaps  xmm1, xmm0
+  .text:0000000180142C35                 mov     rcx, rbx
+  .text:0000000180142C38                 call    qword ptr [rdi+38h]
+  .text:0000000180142C3B                 inc     r15d
+  .text:0000000180142C3E                 add     rbp, 38h ; '8'
+  .text:0000000180142C42                 cmp     r15d, [rsi+10h]
+  .text:0000000180142C46                 jl      short loc_180142C00
+  .text:0000000180142C48                 mov     rbp, [rsp+48h+arg_8]
+  .text:0000000180142C4D                 mov     rcx, cs:g_pEngineServiceMgr
+  .text:0000000180142C54                 mov     r13, [rsp+48h+var_18]
+  .text:0000000180142C59                 mov     r12, [rsp+48h+var_10]
+  .text:0000000180142C5E                 test    rcx, rcx
+  .text:0000000180142C61                 jz      short loc_180142CAD
+  .text:0000000180142C63                 cmp     [rsi+10h], r14d
+  .text:0000000180142C67                 jle     short loc_180142CAD
+  .text:0000000180142C69                 mov     rdi, r14
+  .text:0000000180142C6C                 nop     dword ptr [rax+00h]
+  .text:0000000180142C70                 mov     rax, [rsi+18h]
+  .text:0000000180142C74                 mov     r15, [rdi+rax+20h]
+  .text:0000000180142C79                 test    r15, r15
+  .text:0000000180142C7C                 jz      short loc_180142CA0
+  .text:0000000180142C7E                 mov     rax, [r15]
+  .text:0000000180142C81                 mov     rbx, [rax+1B0h]
+  .text:0000000180142C88                 mov     rax, [rcx]
+  .text:0000000180142C8B                 ; 0x90 = 144LL = IEngineServiceMgr_GetEngineWindow
+  .text:0000000180142C8B                 call    qword ptr [rax+90h]; 0x90 = 144LL = IEngineServiceMgr_GetEngineWindow
+  .text:0000000180142C91                 mov     rdx, rax
+  .text:0000000180142C94                 mov     rcx, r15
+  .text:0000000180142C97                 call    rbx
+  .text:0000000180142C99                 mov     rcx, cs:g_pEngineServiceMgr
+  .text:0000000180142CA0                 inc     r14d
+  .text:0000000180142CA3                 add     rdi, 38h ; '8'
+  .text:0000000180142CA7                 cmp     r14d, [rsi+10h]
+  .text:0000000180142CAB                 jl      short loc_180142C70
+  .text:0000000180142CAD                 mov     rcx, cs:g_pPanoramaUIEngine
+  .text:0000000180142CB4                 mov     r15, [rsp+48h+var_28]
+  .text:0000000180142CB9                 mov     r14, [rsp+48h+var_20]
+  .text:0000000180142CBE                 mov     rdi, [rsp+48h+arg_10]
+  .text:0000000180142CC3                 mov     rbx, [rsp+48h+arg_0]
+  .text:0000000180142CC8                 test    rcx, rcx
+  .text:0000000180142CCB                 jz      short loc_180142CD6
+  .text:0000000180142CCD                 mov     rax, [rcx]
+  .text:0000000180142CD0                 call    qword ptr [rax+80h]
+  .text:0000000180142CD6                 mov     rcx, rsi
+  .text:0000000180142CD9                 add     rsp, 40h
+  .text:0000000180142CDD                 pop     rsi
+  .text:0000000180142CDE                 jmp     sub_180142090
+procedure: |-
+  __int64 __fastcall sub_180142BA0(__int64 a1, unsigned int a2, unsigned int a3)
+  {
+    int v6; // r14d
+    int v7; // r15d
+    __int64 v8; // rbp
+    __int64 v9; // rbx
+    __int64 v10; // rcx
+    __int64 *v11; // rbx
+    __int64 v12; // rdi
+    __int64 v13; // rcx
+    __int64 v14; // rdi
+    __int64 v15; // r15
+    void (__fastcall *v16)(__int64, __int64); // rbx
+    __int64 v17; // rax
+
+    v6 = 0;
+    if ( *(_DWORD *)(a1 + 88) != a2 || *(_DWORD *)(a1 + 92) != a3 )
+    {
+      v7 = 0;
+      *(_DWORD *)(a1 + 88) = a2;
+      *(_DWORD *)(a1 + 92) = a3;
+      if ( *(int *)(a1 + 16) > 0 )
+      {
+        v8 = 0;
+        do
+        {
+          v9 = *(_QWORD *)(a1 + 24);
+          v10 = *(_QWORD *)(v9 + v8 + 32);
+          if ( v10 )
+          {
+            if ( *(_BYTE *)(v9 + v8 + 49) )
+              (*(void (__fastcall **)(__int64, _QWORD, _QWORD))(*(_QWORD *)v10 + 120LL))(v10, a2, a3);
+            v11 = *(__int64 **)(v9 + v8 + 32);
+            v12 = *v11;
+            (*(void (__fastcall **)(__int64 *))(*v11 + 416))(v11);
+            (*(void (__fastcall **)(__int64 *))(v12 + 56))(v11);
+          }
+          ++v7;
+          v8 += 56;
+        }
+        while ( v7 < *(_DWORD *)(a1 + 16) );
+      }
+    }
+    v13 = g_pEngineServiceMgr;
+    if ( g_pEngineServiceMgr && *(int *)(a1 + 16) > 0 )
+    {
+      v14 = 0;
+      do
+      {
+        v15 = *(_QWORD *)(v14 + *(_QWORD *)(a1 + 24) + 32);
+        if ( v15 )
+        {
+          v16 = *(void (__fastcall **)(__int64, __int64))(*(_QWORD *)v15 + 432LL);
+          v17 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)v13 + 144LL))(v13);// 0x90 = 144LL = IEngineServiceMgr_GetEngineWindow
+          v16(v15, v17);
+          v13 = g_pEngineServiceMgr;
+        }
+        ++v6;
+        v14 += 56;
+      }
+      while ( v6 < *(_DWORD *)(a1 + 16) );
+    }
+    if ( g_pPanoramaUIEngine )
+      (*(void (__fastcall **)(__int64))(*(_QWORD *)g_pPanoramaUIEngine + 128LL))(g_pPanoramaUIEngine);
+    return sub_180142090(a1);
+  }
