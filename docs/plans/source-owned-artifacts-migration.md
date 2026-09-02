@@ -17,13 +17,15 @@
 - Release gamedata 已移除 12 个可变 `main`/`master` 下载输入：公开上游基线按不可变 commit 和
   SHA-256 vendor 到 generator `templates/`，candidate 路径拒绝任何非空 `DOWNLOAD_SOURCES`，hosted
   Release verifier 使用 verified snapshot + source templates 在 fresh root 重建并逐文件比较。
-- BinSync candidate schema v4 已绑定两层证据：source selection projection 记录
+- BinSync candidate schema v5 已绑定两层证据：source selection projection 记录
   repository/module/platform/category/symbol、artifact Git blob digest 与 raw RVA，local exporter 与 hosted
   verifier 复用同一 builder；per-repository lowering evidence 另记录 binary-derived lift bias、lifted address 与
   candidate TOML path，bundle verifier 要求每个 projected function/global 实际存在于 user-tip tree。
 - `binary_locks/<GAMEVER>.json` 已建立 source-owned binary/depot identity schema；16 份历史 snapshot Git blobs
   确定性回填 256 个 configured binary locks，并以当前本地 bytes 完成 256/256 交叉复验。14167–14172 明确记为
-  historical snapshot backfill，不冒充 Steam depot 的外部密码学 provenance；runtime/hosted 强制消费仍在接入。
+  historical snapshot backfill，不冒充 Steam depot 的外部密码学 provenance。Release preparation 在分析前后
+  exact 比较 local bytes；BinSync schema v5 与 Release bundle schema v2 绑定 lock digest 和完整 inventory，两个
+  hosted verifier 都从 immutable source SHA 重读 lock 并拒绝 self-hosted 自报 identity。
 - 独立审查仍确认两类未闭环边界：BinSync TOML 尚不能仅从 Git blobs 独立证明 Windows lift bias 及完整
   IDA name/comment TOML 语义，prospective payload 与
   secrets/persisted workspace 的执行隔离需要外部 disposable runner/broker/supervisor 基础设施。

@@ -11,7 +11,7 @@ import ida_analyze_bin
 import release_artifact_rebuild as rar
 from bin_artifact_contract import build_game_artifact_inventory
 from ida_analyze_util import canonical_symbol_yaml_bytes
-from tests.gamesymbol_snapshot_test_support import write_binary, write_config
+from tests.gamesymbol_snapshot_test_support import write_binary, write_config, write_source_binary_lock
 
 
 class ReleaseArtifactRebuildTests(unittest.TestCase):
@@ -42,10 +42,15 @@ class ReleaseArtifactRebuildTests(unittest.TestCase):
                 }
             ],
         )
+        (root / "download.yaml").write_text(
+            "downloads:\n  - tag: '1'\n    manifests:\n      '100': '200'\n",
+            encoding="utf-8",
+        )
         artifact = root / "bin_artifacts" / "1" / "server" / "A.windows.yaml"
         artifact.parent.mkdir(parents=True)
         artifact.write_bytes(canonical_symbol_yaml_bytes({"func_name": "A", "func_rva": "0x10"}, category="func"))
         write_binary(root / "bin" / "1" / "server" / "server.dll")
+        write_source_binary_lock(root, "1")
         empty_tree = self._git(root, "mktree", input_text="")
         sdk_commit = self._git(root, "commit-tree", empty_tree, "-m", "sdk")
         self._git(root, "add", ".")
@@ -90,6 +95,7 @@ class ReleaseArtifactRebuildTests(unittest.TestCase):
             )
             self.assertIn("-force_all", preparation["analysis_command"])
             self.assertIn("-rename", preparation["analysis_command"])
+            self.assertRegex(preparation["binary_lock_sha256"], r"^sha256:[0-9a-f]{64}$")
             shutil.copytree(root / "bin_artifacts", preparation["actual_artifact_root"], dirs_exist_ok=True)
             self._write_execution_report(preparation)
 
@@ -139,6 +145,23 @@ class ReleaseArtifactRebuildTests(unittest.TestCase):
             artifact.write_bytes(canonical_symbol_yaml_bytes({"func_name": "A", "func_rva": "0x20"}, category="func"))
 
             with self.assertRaisesRegex(rar.ReleaseArtifactRebuildError, "differs from Git revision blob"):
+                rar.prepare_release_rebuild(
+                    repo_root=root,
+                    source_sha=source_sha,
+                    game_version="1",
+                    binary_root=root / "bin",
+                    staging_root=temporary_root / "release-rebuild",
+                )
+
+    def test_prepare_rejects_binary_drift_from_source_lock(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            temporary_root = Path(temporary)
+            root = temporary_root / "repo"
+            root.mkdir()
+            source_sha = self._repository(root)
+            (root / "bin" / "1" / "server" / "server.dll").write_bytes(b"forged-binary")
+
+            with self.assertRaisesRegex(rar.ReleaseArtifactRebuildError, "binary identity mismatch"):
                 rar.prepare_release_rebuild(
                     repo_root=root,
                     source_sha=source_sha,

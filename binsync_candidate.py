@@ -13,6 +13,7 @@ import tempfile
 import tomllib
 from pathlib import Path, PurePosixPath
 
+from binary_lock import BinaryLockError, load_binary_lock_from_revision
 from binary_hashing import hash_file
 from bin_artifact_contract import (
     ArtifactContractError,
@@ -51,7 +52,7 @@ from release_workflow_lib.hashing import (
     write_canonical_json,
 )
 
-CANDIDATE_SCHEMA_VERSION = 4
+CANDIDATE_SCHEMA_VERSION = 5
 MANIFEST_NAME = "manifest.json"
 CHECKSUMS_NAME = "SHA256SUMS.txt"
 ROOT_REF = f"refs/heads/{BINSYNC_ROOT_BRANCH}"
@@ -948,6 +949,21 @@ def build_candidate(
         raise BinSyncCandidateError("release preparation artifact inventory identity drifted")
     if _sdk_gitlink(repo_root, source_sha) != preparation.get("sdk_gitlink_sha"):
         raise BinSyncCandidateError("release preparation SDK identity drifted")
+    try:
+        binary_lock = load_binary_lock_from_revision(
+            repo_root=repo_root,
+            revision=source_sha,
+            game_version=game_version,
+            download_payload=_source_blob(repo_root, source_sha, "download.yaml"),
+            binary_targets=contract.binary_targets,
+        )
+    except BinaryLockError as exc:
+        raise BinSyncCandidateError(f"unable to bind source binary lock: {exc}") from exc
+    locked_binaries = binary_lock.document["binaries"]
+    if binary_lock.sha256 != preparation.get("binary_lock_sha256") or locked_binaries != preparation.get(
+        "binary_inventory"
+    ):
+        raise BinSyncCandidateError("release preparation does not match the source binary lock")
 
     binary_entries = _binary_entries(preparation.get("binary_inventory"))
     repositories = [
@@ -996,6 +1012,7 @@ def build_candidate(
         "download_sha256": _plain_sha256(_source_blob(repo_root, source_sha, "download.yaml")),
         "sdk_gitlink_sha": preparation["sdk_gitlink_sha"],
         "artifact_inventory_sha256": artifact_inventory.inventory_sha256,
+        "binary_lock_sha256": binary_lock.sha256,
         "binary_inventory_sha256": preparation["binary_inventory_sha256"],
         "ida_runtime_identity": ida_runtime_identity,
         "source_projection": source_projection,
@@ -1006,7 +1023,7 @@ def build_candidate(
             "sha256": sha256_bytes(checksums_payload),
         },
     }
-    document["publication_digest"] = _digest("binsync-publication-candidate:v3", document)
+    document["publication_digest"] = _digest("binsync-publication-candidate:v4", document)
     write_canonical_json(candidate_root / MANIFEST_NAME, document)
     verify_candidate(
         candidate_root=candidate_root,
@@ -1148,6 +1165,7 @@ def _validate_manifest(document: dict) -> None:
         "download_sha256",
         "sdk_gitlink_sha",
         "artifact_inventory_sha256",
+        "binary_lock_sha256",
         "binary_inventory_sha256",
         "ida_runtime_identity",
         "source_projection",
@@ -1166,7 +1184,13 @@ def _validate_manifest(document: dict) -> None:
         document["actions_artifact_name"]
     ):
         raise BinSyncCandidateError("BinSync candidate Actions Artifact name is invalid")
-    for field in ("config_sha256", "download_sha256", "artifact_inventory_sha256", "binary_inventory_sha256"):
+    for field in (
+        "config_sha256",
+        "download_sha256",
+        "artifact_inventory_sha256",
+        "binary_lock_sha256",
+        "binary_inventory_sha256",
+    ):
         if not isinstance(document[field], str) or not DIGEST_RE.fullmatch(document[field]):
             raise BinSyncCandidateError(f"BinSync candidate {field} is invalid")
     if not isinstance(document["sdk_gitlink_sha"], str) or not SHA_RE.fullmatch(document["sdk_gitlink_sha"]):
@@ -1221,7 +1245,7 @@ def _validate_manifest(document: dict) -> None:
         raise BinSyncCandidateError("BinSync candidate checksum SHA-256 is invalid")
     unsigned = dict(document)
     publication_digest = unsigned.pop("publication_digest", None)
-    if publication_digest != _digest("binsync-publication-candidate:v3", unsigned):
+    if publication_digest != _digest("binsync-publication-candidate:v4", unsigned):
         raise BinSyncCandidateError("BinSync candidate publication digest mismatch")
 
 
@@ -1247,7 +1271,8 @@ def _verify_source_identity(repo_root: Path, document: dict) -> None:
         raise BinSyncCandidateError("hosted verifier config identity mismatch")
     if artifact_inventory.inventory_sha256 != document["artifact_inventory_sha256"]:
         raise BinSyncCandidateError("hosted verifier artifact inventory mismatch")
-    if _plain_sha256(_source_blob(repo_root, source_sha, "download.yaml")) != document["download_sha256"]:
+    download_payload = _source_blob(repo_root, source_sha, "download.yaml")
+    if _plain_sha256(download_payload) != document["download_sha256"]:
         raise BinSyncCandidateError("hosted verifier download identity mismatch")
     if _sdk_gitlink(repo_root, source_sha) != document["sdk_gitlink_sha"]:
         raise BinSyncCandidateError("hosted verifier SDK identity mismatch")
@@ -1266,6 +1291,21 @@ def _verify_source_identity(repo_root: Path, document: dict) -> None:
         != document["binary_inventory_sha256"]
     ):
         raise BinSyncCandidateError("hosted verifier binary inventory digest mismatch")
+    try:
+        binary_lock = load_binary_lock_from_revision(
+            repo_root=repo_root,
+            revision=source_sha,
+            game_version=game_version,
+            download_payload=download_payload,
+            binary_targets=contract.binary_targets,
+        )
+    except BinaryLockError as exc:
+        raise BinSyncCandidateError(f"hosted source binary lock verification failed: {exc}") from exc
+    locked_binaries = binary_lock.document["binaries"]
+    if binary_lock.sha256 != document["binary_lock_sha256"] or locked_binaries != _nested_binary_inventory(
+        repositories
+    ):
+        raise BinSyncCandidateError("hosted verifier source binary lock mismatch")
     for repository in repositories:
         expected_name = f"CS2_VibeSignatures_binsync_{game_version}_{PurePosixPath(repository['binary']['path']).name}"
         if repository["name"] != expected_name:

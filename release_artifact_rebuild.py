@@ -13,6 +13,7 @@ import sys
 import tempfile
 from pathlib import Path
 
+from binary_lock import BinaryLockError, load_binary_lock_from_revision
 from bin_artifact_contract import ArtifactContractError, build_game_artifact_inventory
 from gamesymbol_snapshot_lib.config import load_contract
 from gamesymbol_snapshot_lib.errors import SnapshotConfigError, SnapshotMismatchError
@@ -20,7 +21,7 @@ from gamesymbol_snapshot_lib.operations import collect_binary_metadata
 from gamesymbol_snapshot_lib.paths import is_reparse_point
 
 
-PREPARATION_SCHEMA_VERSION = 1
+PREPARATION_SCHEMA_VERSION = 2
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 
 
@@ -68,6 +69,19 @@ def _git(repo_root: Path, *arguments: str) -> str:
     if result.returncode:
         raise ReleaseArtifactRebuildError(result.stderr.strip() or f"git {' '.join(arguments)} failed")
     return result.stdout.strip()
+
+
+def _git_blob(repo_root: Path, revision: str, path: str) -> bytes:
+    result = subprocess.run(
+        ["git", "-C", str(repo_root), "cat-file", "blob", f"{revision}:{path}"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    if result.returncode:
+        detail = result.stderr.decode("utf-8", errors="replace").strip()
+        raise ReleaseArtifactRebuildError(detail or f"unable to read source Git blob: {path}")
+    return result.stdout
 
 
 def _checkout_artifact_digest(root: Path) -> str:
@@ -129,8 +143,17 @@ def prepare_release_rebuild(
             git_revision=source_sha,
         )
         contract = load_contract(config_path, game_version, binary_root, artifactdir=artifact_root)
+        binary_lock = load_binary_lock_from_revision(
+            repo_root=repo_root,
+            revision=source_sha,
+            game_version=str(game_version),
+            download_payload=_git_blob(repo_root, source_sha, "download.yaml"),
+            binary_targets=contract.binary_targets,
+        )
         binaries = collect_binary_metadata(contract)
-    except (ArtifactContractError, SnapshotConfigError, SnapshotMismatchError, OSError) as exc:
+        if binaries != binary_lock.document["binaries"]:
+            raise ReleaseArtifactRebuildError("release binary identity mismatch with source-owned lock")
+    except (ArtifactContractError, BinaryLockError, SnapshotConfigError, SnapshotMismatchError, OSError) as exc:
         raise ReleaseArtifactRebuildError(f"release source artifact preflight failed: {exc}") from exc
     expected_files = [item.to_dict() for item in expected.files]
     command = [
@@ -161,6 +184,7 @@ def prepare_release_rebuild(
         "game_version": str(game_version),
         "config_sha256": contract.config_sha256,
         "sdk_gitlink_sha": _sdk_gitlink(repo_root, source_sha),
+        "binary_lock_sha256": binary_lock.sha256,
         "binary_inventory": binaries,
         "binary_inventory_sha256": _digest("binary-inventory", binaries),
         "expected_artifact_root": str(artifact_root),
@@ -230,16 +254,38 @@ def verify_release_rebuild(*, repo_root: str | Path, preparation: dict | str | P
     if _git(repo_root, "rev-parse", "HEAD").lower() != preparation["source_sha"]:
         raise ReleaseArtifactRebuildError("release source checkout drifted before rebuild verification")
     try:
+        game_version = preparation["game_version"]
+        config_path = repo_root / "configs" / f"{game_version}.yaml"
         expected = build_game_artifact_inventory(
             repo_root=repo_root,
-            config_path=repo_root / "configs" / f"{preparation['game_version']}.yaml",
-            game_version=preparation["game_version"],
+            config_path=config_path,
+            game_version=game_version,
             artifact_root=repo_root / "bin_artifacts",
             require_tracked=True,
             git_revision=preparation["source_sha"],
         )
-    except ArtifactContractError as exc:
+        contract = load_contract(
+            config_path,
+            game_version,
+            repo_root / "bin",
+            artifactdir=repo_root / "bin_artifacts",
+        )
+        binary_lock = load_binary_lock_from_revision(
+            repo_root=repo_root,
+            revision=preparation["source_sha"],
+            game_version=game_version,
+            download_payload=_git_blob(repo_root, preparation["source_sha"], "download.yaml"),
+            binary_targets=contract.binary_targets,
+        )
+        binaries = collect_binary_metadata(contract)
+    except (ArtifactContractError, BinaryLockError, SnapshotConfigError, SnapshotMismatchError, OSError) as exc:
         raise ReleaseArtifactRebuildError(f"release source artifact verification failed: {exc}") from exc
+    if (
+        binary_lock.sha256 != preparation.get("binary_lock_sha256")
+        or binary_lock.document["binaries"] != preparation.get("binary_inventory")
+        or binaries != binary_lock.document["binaries"]
+    ):
+        raise ReleaseArtifactRebuildError("release binary identity mismatch with source-owned lock")
     expected_files_now = [item.to_dict() for item in expected.files]
     if (
         expected.inventory_sha256 != preparation["expected_artifact_inventory_sha256"]
@@ -278,6 +324,7 @@ def verify_release_rebuild(*, repo_root: str | Path, preparation: dict | str | P
         "source_sha": preparation["source_sha"],
         "game_version": preparation["game_version"],
         "preparation_sha256": preparation["preparation_sha256"],
+        "binary_lock_sha256": preparation["binary_lock_sha256"],
         "execution_sha256": execution["execution_sha256"],
         "artifact_inventory_sha256": actual.inventory_sha256,
         "file_count": actual.file_count,

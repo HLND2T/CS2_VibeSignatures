@@ -98,11 +98,12 @@ def _release_fixture(
         "schema_version": 1,
         "source_sha": source_sha,
         "game_version": game_version,
+        "binary_lock_sha256": DIGEST,
         "artifact_inventory_sha256": DIGEST,
     }
     full_rebuild["verification_sha256"] = _release_rebuild_digest("rebuild-verification", full_rebuild)
     manifest = {
-        "schema_version": 1,
+        "schema_version": 2,
         "repository": pri.ALLOWED_REPOSITORY,
         "release_version": game_version,
         "game_version": game_version,
@@ -116,6 +117,7 @@ def _release_fixture(
         "cpp_sdk": {"ref": "source-gitlink", "sha": "5" * 40},
         "sdk_files": [{"path": "README.md", "size": 1, "sha256": "6" * 64}],
         "sdk_inventory_sha256": "7" * 64,
+        "binary_lock_sha256": DIGEST,
         "binary_inventory": {},
         "binary_inventory_sha256": DIGEST,
         "artifact_inventory_sha256": DIGEST,

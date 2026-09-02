@@ -15,7 +15,7 @@ import tempfile
 from pathlib import Path
 from urllib.parse import quote
 
-from release_bundle import ALLOWED_REPOSITORY, ReleaseBundleError, validate_release_manifest
+from release_bundle import ALLOWED_REPOSITORY, BUNDLE_SCHEMA_VERSION, ReleaseBundleError, validate_release_manifest
 from release_workflow_lib.errors import ReleaseWorkflowError
 from release_workflow_lib.hashing import (
     canonical_json_bytes,
@@ -295,7 +295,7 @@ def _stage_release(
     manifest_path = release_root / manifest_name
     manifest_bytes = _download(client, manifest_asset, manifest_path)
     manifest = _strict_json_bytes(manifest_bytes, manifest_name)
-    if manifest.get("schema_version") != 1 or "artifact_inventory_sha256" not in manifest:
+    if manifest.get("schema_version") != BUNDLE_SCHEMA_VERSION or "artifact_inventory_sha256" not in manifest:
         return None
     if manifest_bytes != canonical_json_bytes(manifest):
         raise PagesReleaseInputError(f"{manifest_name}: Release manifest is not canonical JSON")

@@ -13,7 +13,7 @@ import binsync_candidate as candidate
 import init_gamebin
 import release_artifact_rebuild as rebuild
 from ida_analyze_util import canonical_symbol_yaml_bytes
-from tests.gamesymbol_snapshot_test_support import write_binary, write_config
+from tests.gamesymbol_snapshot_test_support import write_binary, write_config, write_source_binary_lock
 
 
 def _build_min_pe(first_section_rva: int = 0x1000) -> bytes:
@@ -62,7 +62,10 @@ class BinSyncCandidateTests(unittest.TestCase):
                 }
             ],
         )
-        (root / "download.yaml").write_text("downloads:\n  - gamever: '1'\n", encoding="utf-8")
+        (root / "download.yaml").write_text(
+            "downloads:\n  - tag: '1'\n    manifests:\n      '100': '200'\n",
+            encoding="utf-8",
+        )
         artifact = root / "bin_artifacts" / "1" / "server" / "A.windows.yaml"
         artifact.parent.mkdir(parents=True)
         artifact.write_bytes(canonical_symbol_yaml_bytes({"func_name": "A", "func_rva": "0x1010"}, category="func"))
@@ -71,6 +74,7 @@ class BinSyncCandidateTests(unittest.TestCase):
         )
         binary = root / "bin" / "1" / "server" / "server.dll"
         write_binary(binary, _build_min_pe())
+        write_source_binary_lock(root, "1")
         empty_tree = self._git(root, "mktree", input_text="")
         sdk_commit = self._git(root, "commit-tree", empty_tree, "-m", "sdk")
         self._git(root, "add", ".")
@@ -265,12 +269,36 @@ class BinSyncCandidateTests(unittest.TestCase):
             manifest_unsigned = dict(forged)
             manifest_unsigned.pop("publication_digest")
             forged["publication_digest"] = candidate._digest(
-                "binsync-publication-candidate:v3",
+                "binsync-publication-candidate:v4",
                 manifest_unsigned,
             )
             candidate.write_canonical_json(destination / "manifest.json", forged)
 
             with self.assertRaisesRegex(candidate.BinSyncCandidateError, "source projection mismatch"):
+                candidate.verify_candidate(candidate_root=destination, repo_root=root)
+
+    def test_hosted_verifier_rejects_self_consistent_binary_inventory_forgery(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            temporary_root = Path(temporary)
+            root = temporary_root / "repo"
+            root.mkdir()
+            _source_sha, preparation, _binsync_repo = self._repository(root)
+            destination = temporary_root / "candidate"
+            forged = copy.deepcopy(self._build(root, preparation, destination))
+            forged["repositories"][0]["binary"]["sha256"] = "f" * 64
+            forged["binary_inventory_sha256"] = candidate._release_rebuild_digest(
+                "binary-inventory",
+                candidate._nested_binary_inventory(forged["repositories"]),
+            )
+            manifest_unsigned = dict(forged)
+            manifest_unsigned.pop("publication_digest")
+            forged["publication_digest"] = candidate._digest(
+                "binsync-publication-candidate:v4",
+                manifest_unsigned,
+            )
+            candidate.write_canonical_json(destination / "manifest.json", forged)
+
+            with self.assertRaisesRegex(candidate.BinSyncCandidateError, "source binary lock mismatch"):
                 candidate.verify_candidate(candidate_root=destination, repo_root=root)
 
     def test_build_rejects_projected_address_missing_from_candidate_tree(self) -> None:
@@ -321,7 +349,7 @@ class BinSyncCandidateTests(unittest.TestCase):
             manifest_unsigned = dict(forged)
             manifest_unsigned.pop("publication_digest")
             forged["publication_digest"] = candidate._digest(
-                "binsync-publication-candidate:v3",
+                "binsync-publication-candidate:v4",
                 manifest_unsigned,
             )
             candidate.write_canonical_json(destination / "manifest.json", forged)

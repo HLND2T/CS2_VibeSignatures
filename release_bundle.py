@@ -13,6 +13,7 @@ import sys
 import tempfile
 from pathlib import Path, PurePosixPath
 
+from binary_lock import BinaryLockError, load_binary_lock_from_revision
 from bin_artifact_contract import ArtifactContractError, build_game_artifact_inventory
 from binsync_candidate import BinSyncCandidateError, verify_candidate as verify_binsync_candidate
 from gamedata_candidate import (
@@ -51,7 +52,7 @@ from release_workflow_lib.hashing import (
 )
 from release_workflow_lib.sevenzip import listed_archive_files
 
-BUNDLE_SCHEMA_VERSION = 1
+BUNDLE_SCHEMA_VERSION = 2
 CPP_SDK_REF = "source-gitlink"
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
@@ -476,6 +477,7 @@ def build_release_bundle(
         "cpp_sdk": {"ref": cpp_sdk_ref, "sha": cpp_sdk_sha},
         "sdk_files": sdk_files,
         "sdk_inventory_sha256": inventory_sha256(sdk_files),
+        "binary_lock_sha256": preparation_document["binary_lock_sha256"],
         "binary_inventory": preparation_document["binary_inventory"],
         "binary_inventory_sha256": preparation_document["binary_inventory_sha256"],
         "artifact_inventory_sha256": artifact_inventory.inventory_sha256,
@@ -596,6 +598,7 @@ def validate_release_manifest(manifest: dict) -> None:
         "cpp_sdk",
         "sdk_files",
         "sdk_inventory_sha256",
+        "binary_lock_sha256",
         "binary_inventory",
         "binary_inventory_sha256",
         "artifact_inventory_sha256",
@@ -639,7 +642,13 @@ def validate_release_manifest(manifest: dict) -> None:
         or cpp_sdk["sha"] != manifest["sdk_gitlink_sha"]
     ):
         raise ReleaseBundleError("Release C++ SDK must equal the immutable source gitlink")
-    for field in ("download_sha256", "config_sha256", "binary_inventory_sha256", "artifact_inventory_sha256"):
+    for field in (
+        "download_sha256",
+        "config_sha256",
+        "binary_lock_sha256",
+        "binary_inventory_sha256",
+        "artifact_inventory_sha256",
+    ):
         if not DIGEST_RE.fullmatch(str(manifest.get(field, ""))):
             raise ReleaseBundleError(f"Release manifest {field} is invalid")
     if not re.fullmatch(r"[0-9a-f]{64}", str(manifest.get("cpp_validation_sha256", ""))):
@@ -655,6 +664,7 @@ def validate_release_manifest(manifest: dict) -> None:
         full_rebuild.get("source_sha") != manifest.get("source_sha")
         or full_rebuild.get("game_version") != manifest.get("game_version")
         or full_rebuild.get("artifact_inventory_sha256") != manifest.get("artifact_inventory_sha256")
+        or full_rebuild.get("binary_lock_sha256") != manifest.get("binary_lock_sha256")
     ):
         raise ReleaseBundleError("Release full-rebuild evidence identity mismatch")
     binsync = manifest.get("binsync")
@@ -702,7 +712,8 @@ def _verify_source(repo_root: Path, manifest: dict) -> None:
         raise ReleaseBundleError("hosted Release verifier checkout does not match source SHA")
     if str(_git(repo_root, "show", "-s", "--format=%s", source_sha)) != manifest["source_subject"]:
         raise ReleaseBundleError("hosted Release verifier source subject mismatch")
-    if f"sha256:{sha256_bytes(_source_blob(repo_root, source_sha, 'download.yaml'))}" != manifest["download_sha256"]:
+    download_payload = _source_blob(repo_root, source_sha, "download.yaml")
+    if f"sha256:{sha256_bytes(download_payload)}" != manifest["download_sha256"]:
         raise ReleaseBundleError("hosted Release verifier download identity mismatch")
     if _producer_contract(repo_root, source_sha) != manifest["producer_contract"]:
         raise ReleaseBundleError("hosted Release verifier producer contract mismatch")
@@ -733,6 +744,21 @@ def _verify_source(repo_root: Path, manifest: dict) -> None:
         raise ReleaseBundleError("hosted Release verifier SDK content mismatch")
     if _release_rebuild_digest("binary-inventory", manifest["binary_inventory"]) != manifest["binary_inventory_sha256"]:
         raise ReleaseBundleError("hosted Release verifier binary inventory digest mismatch")
+    try:
+        binary_lock = load_binary_lock_from_revision(
+            repo_root=repo_root,
+            revision=source_sha,
+            game_version=game_version,
+            download_payload=download_payload,
+            binary_targets=contract.binary_targets,
+        )
+    except BinaryLockError as exc:
+        raise ReleaseBundleError(f"hosted Release source binary lock verification failed: {exc}") from exc
+    if (
+        binary_lock.sha256 != manifest["binary_lock_sha256"]
+        or binary_lock.document["binaries"] != manifest["binary_inventory"]
+    ):
+        raise ReleaseBundleError("hosted Release verifier source binary lock mismatch")
     gamedata_archive = manifest["archives"].get(f"archives/gamedata-{game_version}.7z", {})
     expected_source_files = [
         {

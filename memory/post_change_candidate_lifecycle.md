@@ -33,7 +33,7 @@ source + computed artifact closure -> PR head
 ```
 ## Dependencies
 - Same-repository PR or hosted-only fork policy; forks needing full analysis fail closed.
-- Exact Git trees/blobs, configured binary identity, warm IDB generation, and self-hosted analysis runner.
+- Exact Git trees/blobs, source-owned [[binary_lock]], warm IDB generation, and self-hosted analysis runner.
 - External required-workflow/ruleset trust root so prospective workflow edits cannot self-report success.
 ## Notes
 - No analyzed-YAML staging, merge-time bin promotion, generated-output PR, or tracked snapshot/gamedata publication remains.
@@ -44,10 +44,10 @@ source + computed artifact closure -> PR head
 - Neither source publisher can satisfy the required check; the artifact-bearing head must pass normal validation.
 - The trusted plan selects one complete prior source-owned GAMEVER, or explicit `null` for no baseline; bootstrap passes
   that identity explicitly and binds it into the force-all report, candidate manifest, and hosted verification.
-- Release gamedata generation is offline and source-owned: generator baselines live under each module's `templates/`,
+- Release/BinSync candidates bind `binary_lock_sha256`; hosted verification reloads the lock from the immutable source SHA and rejects self-hosted binary inventory forgery.\n- Release gamedata generation is offline and source-owned: generator baselines live under each module's `templates/`,
   mutable `DOWNLOAD_SOURCES` are rejected by candidate builds, and the hosted Release verifier fresh-rebuilds from the
   verified snapshot before comparing every output hash.
-- BinSync candidate schema v4 separates hosted-recomputed source selection from per-repository lowering evidence. The
+- BinSync candidate schema v5 binds the source-owned binary lock and separates hosted-recomputed source selection from per-repository lowering evidence. The
   local exporter consumes the same raw-RVA projection builder; bundle verification checks every selected function/global
   against the user-tip TOML tree. Windows lift bias and complete IDA name/comment semantics remain binary/runtime evidence,
   not Git source truth.

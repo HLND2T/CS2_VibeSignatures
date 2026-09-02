@@ -164,6 +164,15 @@ class ReleaseBundleTests(unittest.TestCase):
                 with self.assertRaisesRegex(release_bundle.ReleaseBundleError, "exact source-derived inventory"):
                     release_bundle._verify_source(root, tampered)
 
+                forged_binary = copy.deepcopy(manifest)
+                forged_binary["binary_inventory"]["server"]["windows"]["sha256"] = "f" * 64
+                forged_binary["binary_inventory_sha256"] = release_bundle._release_rebuild_digest(
+                    "binary-inventory",
+                    forged_binary["binary_inventory"],
+                )
+                with self.assertRaisesRegex(release_bundle.ReleaseBundleError, "source binary lock mismatch"):
+                    release_bundle._verify_source(root, forged_binary)
+
             self.assertEqual(manifest["source_sha"], verified["source_sha"])
             self.assertEqual(manifest["source_sha"], manifest["build_id"])
             self.assertEqual(manifest["binsync"]["target_state_digest"], verified["binsync_target_state_digest"])
