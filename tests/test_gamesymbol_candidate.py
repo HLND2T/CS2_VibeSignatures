@@ -8,12 +8,10 @@ from unittest.mock import patch
 from gamesymbol_snapshot_lib.codec import build_snapshot_document, canonical_snapshot_bytes, parse_snapshot_bytes
 from gamesymbol_snapshot_lib.candidate import (
     CandidateContractError,
-    CandidatePublicationError,
     build_candidate_snapshot,
     compare_snapshots,
     complete_candidate_step,
     guard_candidate,
-    publish_candidate,
 )
 from gamesymbol_snapshot_lib.config import load_contract
 from gamesymbol_snapshot_lib.errors import SnapshotMismatchError
@@ -48,13 +46,13 @@ class CandidateWorkspace:
 
 
 class TestCandidateLifecycle(unittest.TestCase):
-    def test_build_compare_validate_and_publish_preserve_bytes(self) -> None:
+    def test_build_compare_and_validate_preserve_bytes(self) -> None:
         with TemporaryDirectory() as temp_dir:
             previous = Path.cwd()
             os.chdir(temp_dir)
             try:
                 workspace = CandidateWorkspace(Path(temp_dir))
-                info = workspace.build()
+                workspace.build()
                 expected = Path(temp_dir) / "expected.yaml"
                 expected.write_bytes(workspace.candidate.read_bytes())
 
@@ -76,99 +74,35 @@ class TestCandidateLifecycle(unittest.TestCase):
                     session_path=workspace.session,
                     step="cpp_tests",
                 )
-                destination = Path(temp_dir) / "gamesymbols" / f"{workspace.gamever}.yaml"
-                published = publish_candidate(
-                    candidate_path=workspace.candidate,
-                    session_path=workspace.session,
-                    destination=destination,
-                )
-
-                self.assertEqual(workspace.candidate.read_bytes(), destination.read_bytes())
-                self.assertEqual(info.candidate_sha256, published.candidate_sha256)
                 manifest = json.loads(workspace.session.read_text())
                 self.assertEqual(2, manifest["schema_version"])
                 self.assertEqual(5, manifest["snapshot_schema_version"])
                 self.assertEqual(2, manifest["config_digest_version"])
-                self.assertEqual("published", manifest["state"])
+                self.assertEqual("validated", manifest["state"])
             finally:
                 os.chdir(previous)
 
-    def test_build_reuses_binary_metadata_from_tracked_snapshot(self) -> None:
+    def test_build_hashes_binary_metadata_without_tracked_snapshot(self) -> None:
         with TemporaryDirectory() as temp_dir:
             previous = Path.cwd()
             os.chdir(temp_dir)
             try:
                 workspace = CandidateWorkspace(Path(temp_dir))
-                tracked_snapshot = Path(temp_dir) / "gamesymbols" / f"{workspace.gamever}.yaml"
                 with patch(
-                    "gamesymbol_snapshot_lib.operations._utc_publish_time",
-                    return_value="2026-01-02T03:04:05Z",
-                ):
-                    pack_snapshot(
-                        workspace.gamever,
-                        workspace.bindir,
-                        workspace.config,
-                        tracked_snapshot,
-                        artifactdir=workspace.artifactdir,
-                    )
-                    with patch("gamesymbol_snapshot_lib.operations.hash_file") as hash_file:
-                        workspace.build()
-
-                hash_file.assert_not_called()
-                self.assertEqual(tracked_snapshot.read_bytes(), workspace.candidate.read_bytes())
-            finally:
-                os.chdir(previous)
-
-    def test_build_reuses_publish_time_when_snapshot_payload_is_unchanged(self) -> None:
-        with TemporaryDirectory() as temp_dir:
-            previous = Path.cwd()
-            os.chdir(temp_dir)
-            try:
-                workspace = CandidateWorkspace(Path(temp_dir))
-                tracked_snapshot = Path(temp_dir) / "gamesymbols" / f"{workspace.gamever}.yaml"
-                with patch(
-                    "gamesymbol_snapshot_lib.operations._utc_publish_time",
-                    return_value="2026-01-02T03:04:05Z",
-                ):
-                    pack_snapshot(
-                        workspace.gamever,
-                        workspace.bindir,
-                        workspace.config,
-                        tracked_snapshot,
-                        artifactdir=workspace.artifactdir,
-                    )
-                with patch(
-                    "gamesymbol_snapshot_lib.operations._utc_publish_time",
-                    return_value="2026-01-02T04:05:06Z",
-                ):
+                    "gamesymbol_snapshot_lib.operations.hash_file", wraps=pack_snapshot.__globals__["hash_file"]
+                ) as hash_file:
                     workspace.build()
 
-                self.assertEqual(tracked_snapshot.read_bytes(), workspace.candidate.read_bytes())
+                hash_file.assert_called_once()
             finally:
                 os.chdir(previous)
 
-    def test_build_updates_publish_time_when_snapshot_payload_changes(self) -> None:
+    def test_build_uses_release_local_publish_time(self) -> None:
         with TemporaryDirectory() as temp_dir:
             previous = Path.cwd()
             os.chdir(temp_dir)
             try:
                 workspace = CandidateWorkspace(Path(temp_dir))
-                tracked_snapshot = Path(temp_dir) / "gamesymbols" / f"{workspace.gamever}.yaml"
-                with patch(
-                    "gamesymbol_snapshot_lib.operations._utc_publish_time",
-                    return_value="2026-01-02T03:04:05Z",
-                ):
-                    pack_snapshot(
-                        workspace.gamever,
-                        workspace.bindir,
-                        workspace.config,
-                        tracked_snapshot,
-                        artifactdir=workspace.artifactdir,
-                    )
-                write_yaml(
-                    workspace.artifactdir / workspace.gamever / "server" / "Foo.windows.yaml",
-                    {"func_name": "Changed"},
-                )
                 with patch(
                     "gamesymbol_snapshot_lib.operations._utc_publish_time",
                     return_value="2026-01-02T04:05:06Z",
@@ -285,40 +219,6 @@ class TestCandidateLifecycle(unittest.TestCase):
                     config_path=workspace.config,
                     expected_game_version=workspace.gamever,
                 )
-
-    def test_publish_failure_leaves_existing_snapshot_unchanged(self) -> None:
-        with TemporaryDirectory() as temp_dir:
-            previous = Path.cwd()
-            os.chdir(temp_dir)
-            try:
-                workspace = CandidateWorkspace(Path(temp_dir))
-                workspace.build()
-                complete_candidate_step(
-                    candidate_path=workspace.candidate, session_path=workspace.session, step="gamedata"
-                )
-                complete_candidate_step(
-                    candidate_path=workspace.candidate, session_path=workspace.session, step="cpp_tests"
-                )
-                destination = Path(temp_dir) / "gamesymbols" / f"{workspace.gamever}.yaml"
-                destination.parent.mkdir()
-                destination.write_bytes(b"original\n")
-                real_replace = os.replace
-
-                def fail_destination(source, target):
-                    if Path(target) == destination:
-                        raise OSError("injected publication failure")
-                    return real_replace(source, target)
-
-                with patch("gamesymbol_snapshot_lib.candidate.os.replace", side_effect=fail_destination):
-                    with self.assertRaises(CandidatePublicationError):
-                        publish_candidate(
-                            candidate_path=workspace.candidate,
-                            session_path=workspace.session,
-                            destination=destination,
-                        )
-                self.assertEqual(b"original\n", destination.read_bytes())
-            finally:
-                os.chdir(previous)
 
     def test_build_rejects_tracked_destination_and_incomplete_formal_set(self) -> None:
         with TemporaryDirectory() as temp_dir:

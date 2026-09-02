@@ -6,19 +6,17 @@ import traceback
 from analysis_config import AnalysisConfigError, resolve_analysis_config
 from gamesymbol_snapshot_lib.candidate import (
     CandidateContractError,
-    CandidatePublicationError,
     build_candidate_snapshot,
     compare_snapshots,
     complete_candidate_step,
     guard_candidate,
-    publish_candidate,
 )
 from gamesymbol_snapshot_lib.errors import SnapshotConfigError, SnapshotMismatchError
 from gamesymbol_store import CandidateChangedError, SymbolStoreError
 
 
 def parse_args(argv=None):
-    parser = argparse.ArgumentParser(description="Build, compare, guard, and publish game-symbol candidates")
+    parser = argparse.ArgumentParser(description="Build, compare, and guard release-local game-symbol candidates")
     parser.add_argument("-debug", action="store_true", help="Print tracebacks on errors")
     commands = parser.add_subparsers(dest="command", required=True)
 
@@ -41,14 +39,12 @@ def parse_args(argv=None):
     compare.add_argument("-configyaml", default=None, help="Analysis config path; defaults to configs/<GAMEVER>.yaml")
     compare.add_argument("-session")
 
-    for command in ("guard", "mark", "publish"):
+    for command in ("guard", "mark"):
         subparser = commands.add_parser(command)
         subparser.add_argument("-candidate", required=True)
         subparser.add_argument("-session", required=True)
         if command == "mark":
             subparser.add_argument("-step", choices=("gamedata", "cpp_tests"), required=True)
-        if command == "publish":
-            subparser.add_argument("-snapshot", required=True)
     return parser.parse_args(argv)
 
 
@@ -97,24 +93,12 @@ def _run(args) -> None:
             step=args.step,
         )
         print(f"Candidate validation step completed: {args.step} ({info.candidate_sha256})")
-    else:
-        info = publish_candidate(
-            candidate_path=args.candidate,
-            session_path=args.session,
-            destination=args.snapshot,
-        )
-        print(f"Published candidate bytes: {info.path} ({info.candidate_sha256})")
 
 
 def main(argv=None) -> int:
     args = parse_args(argv)
     try:
         _run(args)
-    except CandidatePublicationError as exc:
-        print(f"Error: {exc}")
-        if args.debug:
-            traceback.print_exc()
-        return 3
     except (CandidateChangedError, SnapshotMismatchError) as exc:
         print(f"Error: {exc}")
         if args.debug:

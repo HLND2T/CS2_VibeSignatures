@@ -26,7 +26,7 @@ def _add_common_arguments(parser: argparse.ArgumentParser) -> None:
         default=None,
         help="Analysis config path; defaults to configs/<GAMEVER>.yaml",
     )
-    parser.add_argument("-snapshot", help="Snapshot path; defaults to gamesymbols/<GAMEVER>.yaml")
+    parser.add_argument("-snapshot", required=True, help="Explicit release-local or historical snapshot path")
     parser.add_argument("-debug", action="store_true", help="Print tracebacks on errors")
 
 
@@ -60,7 +60,7 @@ def _run(args) -> None:
     common = (args.gamever, args.bindir, args.configyaml, args.snapshot)
     if args.command == "pack":
         data = pack_snapshot(*common, artifactdir=args.artifactdir)
-        print(f"Packed {args.snapshot or f'gamesymbols/{args.gamever}.yaml'} ({len(data)} bytes)")
+        print(f"Packed {args.snapshot} ({len(data)} bytes)")
     elif args.command == "restore":
         restore_snapshot(*common, replace=args.replace, artifactdir=args.artifactdir)
         print(f"Restored game-symbol snapshot for {args.gamever}")
@@ -85,7 +85,7 @@ def _run(args) -> None:
             last_publish_time=args.last_publish_time,
             artifactdir=args.artifactdir,
         )
-        print(f"Migrated {args.output or args.snapshot or f'gamesymbols/{args.gamever}.yaml'} ({len(data)} bytes)")
+        print(f"Migrated {args.output or args.snapshot} ({len(data)} bytes)")
 
 
 def main(argv=None) -> int:
