@@ -215,6 +215,23 @@ class TestSnapshotContract(unittest.TestCase):
         self.assertEqual(root / "bin/1", contract.binary_game_root)
         self.assertEqual(root / "bin_artifacts/1", contract.artifact_game_root)
 
+    def test_contract_separates_binary_and_artifact_roots(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config = root / "config.yaml"
+            write_config(config, [module("server", [skill("find-a", ["A.{platform}.yaml"])])])
+
+            contract = load_contract(
+                config,
+                "1",
+                root / "bin",
+                artifactdir=root / "bin_artifacts",
+            )
+
+        self.assertEqual(root / "bin/1", contract.binary_game_root)
+        self.assertEqual(root / "bin_artifacts/1", contract.artifact_game_root)
+        self.assertEqual(contract.artifact_game_root, contract.game_root)
+
     def test_binary_targets_include_skillless_modules_and_deduplicate_stages(self) -> None:
         with TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)

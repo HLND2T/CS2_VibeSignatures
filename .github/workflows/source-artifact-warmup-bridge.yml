@@ -1,0 +1,227 @@
+name: Source Artifact Bridge Warm IDB Cache
+on:
+  workflow_call:
+    inputs:
+      gamever:
+        description: Exact GAMEVER from download.yaml
+        required: true
+        type: string
+      source_sha:
+        description: Exact source commit containing the analysis config
+        required: true
+        type: string
+      base_sha:
+        description: Exact trusted default-branch bridge commit
+        required: true
+        type: string
+    outputs:
+      generation:
+        description: Immutable published IDB cache generation
+        value: ${{ jobs.warmup.outputs.generation }}
+      cache_key:
+        description: Content-derived IDB cache identity
+        value: ${{ jobs.warmup.outputs.cache_key }}
+      binary_lock_sha256:
+        description: Canonical source-owned binary lock digest
+        value: ${{ jobs.warmup.outputs.binary_lock_sha256 }}
+permissions:
+  contents: read
+jobs:
+  warmup:
+    if: github.repository == 'HLND2T/CS2_VibeSignatures'
+    environment: win64
+    runs-on: [self-hosted, windows, x64]
+    concurrency:
+      group: warmup-idb-${{ github.repository }}-${{ inputs.gamever }}
+      cancel-in-progress: false
+    outputs:
+      generation: ${{ steps.resolve-output.outputs.generation }}
+      cache_key: ${{ steps.resolve-output.outputs.cache-key }}
+      binary_lock_sha256: ${{ steps.sync-accepted-bin.outputs.binary-lock-sha256 }}
+    env:
+      GAMEVER: ${{ inputs.gamever }}
+      SOURCE_SHA: ${{ inputs.source_sha }}
+      BASE_SHA: ${{ inputs.base_sha }}
+      PERSISTED_WORKSPACE: ${{ secrets.PERSISTED_WORKSPACE }}
+      DEPOTDOWNLOADER_STEAM_USERNAME: ${{ secrets.DEPOTDOWNLOADER_STEAM_USERNAME }}
+      DEPOTDOWNLOADER_STEAM_PASSWORD: ${{ secrets.DEPOTDOWNLOADER_STEAM_PASSWORD }}
+      IDB_WARMUP_MAX_CONCURRENCY: ${{ vars.IDB_WARMUP_MAX_CONCURRENCY }}
+      IDB_WARMUP_MAX_MEMORY_MIB: ${{ vars.IDB_WARMUP_MAX_MEMORY_MIB }}
+    steps:
+      - name: Validate immutable source input
+        id: validate-source
+        shell: pwsh
+        run: |
+          if ($env:SOURCE_SHA -notmatch '^[0-9a-fA-F]{40}$') {
+            throw "source_sha must be a full commit SHA."
+          }
+          if ($env:BASE_SHA -notmatch '^[0-9a-fA-F]{40}$') {
+            throw "base_sha must be a full commit SHA."
+          }
+      - name: Checkout exact cache producer source
+        id: checkout-source
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.source_sha }}
+          fetch-depth: 1
+          submodules: false
+          persist-credentials: false
+      - name: Verify immutable source checkout
+        id: verify-source
+        shell: pwsh
+        run: |
+          $expectedSourceSha = $env:SOURCE_SHA.ToLowerInvariant()
+          $actualSourceSha = (git rev-parse HEAD).Trim().ToLowerInvariant()
+          if ($LASTEXITCODE -ne 0 -or $actualSourceSha -ne $expectedSourceSha) {
+            throw "Warmup source checkout drifted: expected=$expectedSourceSha actual=$actualSourceSha"
+          }
+      - name: Set up uv
+        id: setup-uv
+        uses: astral-sh/setup-uv@v9.0.0
+      - name: Checkout trusted binary cache tools
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.base_sha }}
+          fetch-depth: 1
+          submodules: false
+          persist-credentials: false
+          path: .trusted-tools
+      - name: Sync trusted binary cache environment
+        shell: pwsh
+        run: uv sync --project .trusted-tools --locked
+      - name: Prepare persisted depot link and restore accepted bin
+        id: prepare-workspace
+        shell: pwsh
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:PERSISTED_WORKSPACE)) {
+            throw "PERSISTED_WORKSPACE is not configured."
+          }
+          $workspace = [IO.Path]::GetFullPath("${{ github.workspace }}")
+          # Isolate the depot per GAMEVER so concurrent runs never share a download tree.
+          $depotTarget = [IO.Path]::GetFullPath((Join-Path $env:PERSISTED_WORKSPACE "cs2_depot\$env:GAMEVER"))
+          $depotLink = Join-Path $workspace "cs2_depot"
+          [System.IO.Directory]::CreateDirectory($depotTarget) | Out-Null
+          if (Test-Path -LiteralPath $depotLink) {
+            $item = Get-Item -LiteralPath $depotLink -Force
+            if (-not ($item.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+              throw "cs2_depot must be a link."
+            }
+          } else {
+            cmd /c mklink /d "$depotLink" "$depotTarget"
+            if ($LASTEXITCODE -ne 0) { throw "Failed to create cs2_depot link." }
+          }
+          $workspaceBin = Join-Path $workspace "bin"
+          New-Item -ItemType Directory -Path $workspaceBin -Force | Out-Null
+          if ((Get-Item $workspaceBin -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) {
+            throw "Warmup workspace bin must be a real directory."
+          }
+          $restoreJson = uv run --project .trusted-tools python .trusted-tools/source_artifact_accepted_bin.py restore `
+            --repo-root "$workspace" `
+            --persisted-root "$env:PERSISTED_WORKSPACE" --gamever "$env:GAMEVER"
+          if ($LASTEXITCODE -ne 0) { throw "Failed to restore the exact accepted binary allowlist." }
+          $restore = $restoreJson | ConvertFrom-Json
+          if ($restore.binary_lock_sha256 -notmatch '^sha256:[0-9a-f]{64}$') {
+            throw "Accepted-bin restore omitted the source binary lock identity."
+          }
+          "BINARY_LOCK_SHA256=$($restore.binary_lock_sha256)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Prune stale warm-cache state
+        id: prune-cache
+        shell: pwsh
+        run: |
+          uv run python idb_cache.py prune `
+            --persisted-root "$env:PERSISTED_WORKSPACE" `
+            --gamever "$env:GAMEVER"
+          if ($LASTEXITCODE -ne 0) { throw "IDB cache pruning failed." }
+      - name: Initialize configured binaries without mutable analysis state
+        id: init-binaries
+        shell: pwsh
+        run: |
+          uv run init_gamebin.py prepare "$env:GAMEVER" --binsync skip
+          if ($LASTEXITCODE -ne 0) {
+            throw "init_gamebin.py prepare failed with exit code $LASTEXITCODE"
+          }
+      - name: Resolve IDA interpreter identity
+        id: resolve-ida
+        shell: pwsh
+        run: |
+          $pythonExe = (Get-Command python -ErrorAction SilentlyContinue).Source
+          if ([string]::IsNullOrWhiteSpace($pythonExe)) {
+            throw "python with idalib is not available on PATH."
+          }
+          $idaVersion = (& $pythonExe warmup_idb_worker.py --print-ida-version).Trim()
+          if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($idaVersion)) {
+            throw "Failed to resolve the IDA kernel version."
+          }
+          "python=$pythonExe" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "ida-version=$idaVersion" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+      - name: Verify initialized binaries against source lock
+        id: verify-binaries
+        shell: pwsh
+        run: |
+          $verifyJson = uv run --project .trusted-tools python .trusted-tools/source_artifact_accepted_bin.py verify `
+            --repo-root "${{ github.workspace }}" --gamever "$env:GAMEVER"
+          if ($LASTEXITCODE -ne 0) { throw "Configured binaries do not match the source lock." }
+          $verification = $verifyJson | ConvertFrom-Json
+          if ($verification.binary_lock_sha256 -ne $env:BINARY_LOCK_SHA256) {
+            throw "Binary lock identity drifted during initialization."
+          }
+      - name: Probe immutable published cache
+        id: probe-cache
+        shell: pwsh
+        run: |
+          uv run python idb_cache.py probe `
+            --repo-root "${{ github.workspace }}" `
+            --persisted-root "$env:PERSISTED_WORKSPACE" `
+            --gamever "$env:GAMEVER" `
+            --ida-version "${{ steps.resolve-ida.outputs.ida-version }}" `
+            --github-output "$env:GITHUB_OUTPUT"
+          if ($LASTEXITCODE -ne 0) { throw "IDB cache probe failed." }
+      - name: Warm every configured IDA database
+        id: warmup-idb
+        if: steps.probe-cache.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          $maxConcurrency = $env:IDB_WARMUP_MAX_CONCURRENCY
+          if ([string]::IsNullOrWhiteSpace($maxConcurrency)) { $maxConcurrency = "2" }
+          uv run python warmup_idb.py "$env:GAMEVER" `
+            --python "${{ steps.resolve-ida.outputs.python }}" `
+            --max-concurrency "$maxConcurrency" `
+            --force
+          if ($LASTEXITCODE -ne 0) { throw "Required IDB warmup failed." }
+      - name: Publish immutable warm cache generation
+        id: publish-cache
+        if: steps.probe-cache.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          uv run python idb_cache.py publish `
+            --repo-root "${{ github.workspace }}" `
+            --persisted-root "$env:PERSISTED_WORKSPACE" `
+            --gamever "$env:GAMEVER" `
+            --ida-version "${{ steps.resolve-ida.outputs.ida-version }}" `
+            --generation-suffix "${{ github.run_id }}-${{ github.run_attempt }}" `
+            --github-output "$env:GITHUB_OUTPUT"
+          if ($LASTEXITCODE -ne 0) { throw "IDB cache publication failed." }
+      - name: Resolve immutable cache outputs
+        id: resolve-output
+        shell: pwsh
+        run: |-
+          if ("${{ steps.probe-cache.outputs.cache-hit }}" -eq "true") {
+            $generation = "${{ steps.probe-cache.outputs.generation }}"
+            $cacheKey = "${{ steps.probe-cache.outputs.cache-key }}"
+          } else {
+            $generation = "${{ steps.publish-cache.outputs.generation }}"
+            $cacheKey = "${{ steps.publish-cache.outputs.cache-key }}"
+          }
+          if ([string]::IsNullOrWhiteSpace($generation) -or [string]::IsNullOrWhiteSpace($cacheKey)) {
+            throw "Warm IDB cache outputs are incomplete."
+          }
+          "generation=$generation" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "cache-key=$cacheKey" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+      - name: Expose verified source binary lock
+        id: sync-accepted-bin
+        shell: pwsh
+        run: |-
+          if ($env:BINARY_LOCK_SHA256 -notmatch '^sha256:[0-9a-f]{64}$') {
+            throw "Verified source binary lock identity is missing."
+          }
+          "binary-lock-sha256=$env:BINARY_LOCK_SHA256" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
