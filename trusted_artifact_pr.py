@@ -160,6 +160,48 @@ class GitTreeRepository:
     def read(self, revision: str, path: str) -> bytes:
         return self.run("show", f"{revision}:{path}")
 
+    def read_blobs(self, entries: tuple[GitTreeEntry, ...] | list[GitTreeEntry]) -> dict[str, bytes]:
+        """Read an exact Git blob inventory through one fail-closed batch process."""
+        if not entries:
+            return {}
+        for entry in entries:
+            if entry.object_type != "blob" or not SHA_RE.fullmatch(entry.object_sha):
+                raise TrustedArtifactPrError(f"cannot batch-read non-blob Git entry: {entry.path}")
+        request = b"".join(f"{entry.object_sha}\n".encode("ascii") for entry in entries)
+        result = subprocess.run(
+            ["git", "-C", str(self.root), "cat-file", "--batch"],
+            input=request,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+        if result.returncode:
+            message = result.stderr.decode("utf-8", errors="replace").strip()
+            raise TrustedArtifactPrError(f"git cat-file --batch failed: {message}")
+        output = result.stdout
+        offset = 0
+        payloads = {}
+        for entry in entries:
+            header_end = output.find(b"\n", offset)
+            if header_end < 0:
+                raise TrustedArtifactPrError("git cat-file --batch returned a truncated header")
+            try:
+                object_sha, object_type, raw_size = output[offset:header_end].decode("ascii").split(" ")
+                size = int(raw_size)
+            except (UnicodeDecodeError, ValueError) as exc:
+                raise TrustedArtifactPrError("git cat-file --batch returned a malformed header") from exc
+            if object_sha != entry.object_sha or object_type != "blob" or size < 0:
+                raise TrustedArtifactPrError(f"git cat-file --batch identity drifted for {entry.path}")
+            payload_start = header_end + 1
+            payload_end = payload_start + size
+            if payload_end >= len(output) or output[payload_end : payload_end + 1] != b"\n":
+                raise TrustedArtifactPrError(f"git cat-file --batch returned a truncated blob for {entry.path}")
+            payloads[entry.path] = output[payload_start:payload_end]
+            offset = payload_end + 1
+        if offset != len(output):
+            raise TrustedArtifactPrError("git cat-file --batch returned unexpected trailing data")
+        return payloads
+
     def changes(self, base_revision: str, merge_revision: str) -> tuple[ChangedPath, ...]:
         fields = self.run("diff", "--name-status", "-M", "-z", base_revision, merge_revision, "--").split(b"\0")
         if fields and fields[-1] == b"":
@@ -403,8 +445,9 @@ def _tree_artifact_inventory(
     categories = _category_map(config_path)
     files = {}
     inventory = []
+    raw_by_path = repo.read_blobs(list(relative_entries.values()))
     for key in sorted(relative_entries):
-        raw = repo.read(revision, f"bin_artifacts/{gamever}/{key}")
+        raw = raw_by_path[f"bin_artifacts/{gamever}/{key}"]
         try:
             payload = yaml.safe_load(raw)
             canonical = canonical_symbol_yaml_bytes(payload, category=_category_for(key, payload, categories))
@@ -433,13 +476,17 @@ def _tree_artifact_inventory(
 
 
 def _source_inventory(repo: GitTreeRepository, revision: str) -> dict:
-    items = []
-    for entry in repo.entries(revision):
-        if entry.object_type != "blob":
-            continue
-        if _is_shared_analysis_runtime_path(entry.path) or entry.path.startswith(SOURCE_PREFIXES):
-            raw = repo.read(revision, entry.path)
-            items.append({"path": entry.path, "size": len(raw), "sha256": _sha256(raw)})
+    entries = [
+        entry
+        for entry in repo.entries(revision)
+        if entry.object_type == "blob"
+        and (_is_shared_analysis_runtime_path(entry.path) or entry.path.startswith(SOURCE_PREFIXES))
+    ]
+    raw_by_path = repo.read_blobs(entries)
+    items = [
+        {"path": entry.path, "size": len(raw_by_path[entry.path]), "sha256": _sha256(raw_by_path[entry.path])}
+        for entry in entries
+    ]
     return {"file_count": len(items), "sha256": _digest("analysis-source-inventory", items)}
 
 
@@ -972,12 +1019,17 @@ def prepare_isolated_rebuild(
         if game_version is not None and gamever != str(game_version):
             continue
         _atomic_write(config_root / f"{gamever}.yaml", repo.read(plan["merge_sha"], f"configs/{gamever}.yaml"))
+        artifact_entries = [
+            GitTreeEntry("100644", "blob", item["blob_sha"], item["path"])
+            for item in version["merge_artifacts"]["files"]
+        ]
+        raw_by_path = repo.read_blobs(artifact_entries)
         for item in version["merge_artifacts"]["files"]:
             prefix = f"bin_artifacts/{gamever}/"
             key = item["path"].removeprefix(prefix)
             if key == item["path"]:
                 raise TrustedArtifactPrError(f"plan contains an artifact outside GAMEVER {gamever}: {item['path']}")
-            raw = repo.read(plan["merge_sha"], item["path"])
+            raw = raw_by_path[item["path"]]
             if len(raw) != item["size"] or _sha256(raw) != item["sha256"]:
                 raise TrustedArtifactPrError(f"prospective merge artifact drifted: {item['path']}")
             expected_path = expected_root / gamever / key
