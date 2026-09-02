@@ -43,7 +43,8 @@ cherry-pick GoldSrc 实现。
 7. Release build 同时生成本地 BinSync changes，但不得在验证完成前推送；
 8. hosted verifier 复验 release bundle 与内部 BinSync publication candidate；
 9. 受保护的 `publish-binsync` job 使用仅限 BinSync repositories 的凭证幂等推送；
-10. `publish-new-gamever-artifacts` 是唯一允许写 source branch 的自动化特例；受保护的
+10. source branch write 仅允许两个受控自动化特例：`publish-bump-branch` 创建/同步新的
+    `bump-download/<GAMEVER>`，`publish-new-gamever-artifacts` 只追加该版本的 artifacts；受保护的
     `publish-release` 是唯一允许创建或修改 tag、Release 和 Release assets 的 job；
 11. `gamesymbols`、metadata、gamedata、archives、checksums 和 release manifest 全部成为
     Release 派生产物，不再作为 Git versioned outputs。
@@ -490,9 +491,25 @@ plan 至少绑定：
 
 - 绑定调用时的 exact branch head SHA；
 - 在 self-hosted runner 生成可下载的 artifact patch/inventory，不直接合并、不改 main；
-- 默认不持有 branch push credential；新 GAMEVER 的 `bump-download/<GAMEVER>` PAT publication 是
-  `9.8` 定义的唯一自动 push 特例；
+- 默认不持有 branch push credential；自动 Bump Download seed/synchronize 与 `9.8` 的 new-GAMEVER artifact
+  publication 是仅有的两个 source-branch push 特例；
 - fork 只能由 maintainer 镜像为 same-repository branch 后使用。
+
+#### Automated Bump Download source publisher
+
+`publish-bump-branch` 是第一个受控 source writer，契约为：
+
+1. self-hosted bump job 不持有 source write PAT，只上传 credential-free candidate；
+2. hosted publisher 只信任 workflow 的 immutable `github.sha`，并从 Git blobs 重建 append/copy 结果；
+3. candidate changed-path allowlist 精确为 `download.yaml` 与 `configs/<GAMEVER>.yaml`，新 config 必须是 prior
+   accepted config 的 exact copy；
+4. `bump-download/<GAMEVER>` branch、同名 tag 和目标 PR 必须都不存在；seed commit 必须是 bound default-base
+   SHA 的 direct child；
+5. protected PAT 只执行普通 branch creation push，Git hooks 禁用，禁止 force/delete/refspec 扩张；
+6. PR 由最小 `pull-requests: write` token 创建；随后同一 PAT 只追加一个绑定 seed commit/run identity 的空
+   synchronize commit，以触发 required workflow；
+7. synchronize 后 PR head 必须精确等于 hosted 生成的 trigger commit；后续 source write 只允许 `9.8` 的
+   artifact-only publisher，并继续受相同 environment、actor 与 rulesets 约束。
 
 ### 9.8 新 GAMEVER bootstrap
 
@@ -559,7 +576,7 @@ trusted planner 在以下条件下输出 `bootstrap_required`，不能输出 lig
 
 #### 使用 PAT 将 artifacts 带回 Bump Download PR
 
-branch policy 不接受 `GITHUB_TOKEN` bot push。新 GAMEVER 的标准 publication 路径是独立的
+branch policy 不接受 `GITHUB_TOKEN` bot push。作为第二个受控 source writer，新 GAMEVER 的标准 publication 路径是独立的
 GitHub-hosted `publish-new-gamever-artifacts` job，使用专用 fine-grained PAT 将 candidate commit
 fast-forward push 到同一个 `bump-download/<GAMEVER>` branch。
 
@@ -765,8 +782,8 @@ GitHub-hosted verifier 使用 `contents: read, actions: read`：
 
 - 依赖 hosted verifier 与 `publish-binsync` 成功；
 - 使用独立受保护的 `release` environment；
-- 是主仓库唯一允许创建或修改 tag、Release 和 Release assets 的 job；除 `9.8` 中只能写
-  `bump-download/<GAMEVER>` 的 artifact publisher 外，不允许其他主仓库 contents writer；
+- 是主仓库唯一允许创建或修改 tag、Release 和 Release assets 的 job；除 `9.7`/`9.8` 中分别约束
+  branch seed/synchronize 与 artifact-only append 的两个 source publishers 外，不允许其他主仓库 contents writer；
 - 下载 exact verified release bundle；
 - 从 release manifest 读取 intended BinSync target-state digest，并重新查询 remote refs，要求已与
   verified candidate 完全一致；
@@ -1198,8 +1215,9 @@ rollback 不是只 revert workflow。
 - protected BinSync job 只写 allowlisted repos/refs；
 - BinSync partial push 后 exact rerun可恢复；
 - remote divergence 与 non-fast-forward 拒绝；
-- PAT artifact publisher 是唯一 source-branch contents-write 特例，且只能更新对应
-  `bump-download/<GAMEVER>`；protected Release job 是唯一 tag/Release/assets publisher；
+- 两个 PAT source publishers 是仅有的 source-branch contents-write 特例：branch publisher 只能创建/同步对应
+  `bump-download/<GAMEVER>`，artifact publisher 只能向其追加 `bin_artifacts/<GAMEVER>/**`；protected Release
+  job 是唯一 tag/Release/assets publisher；
 - release dry run 完成 build → upload → hosted verify，不创建 remote refs/tag/Release；
 - sandbox version 完成 BinSync push、draft assets、publish 和幂等重跑；
 - tag 指向 source SHA；
@@ -1276,8 +1294,9 @@ git diff --check
   `bin_artifacts` 重建；
 - self-hosted build 没有主仓库 contents write/Release 权限；
 - hosted verifier 无写权限并完整复验两个 candidates；
-- PAT artifact publisher 是唯一 source-branch contents-write 特例；`publish-release` 是唯一
-  tag/Release/assets publisher；
+- `publish-bump-branch` 与 `publish-new-gamever-artifacts` 是仅有的两个 source-branch contents-write 特例，且
+  分别满足 `9.7` 的 branch/direct-child/path/state 契约与 `9.8` 的 artifact-only/head-CAS 契约；
+  `publish-release` 是唯一 tag/Release/assets publisher；
 - tag 直接指向 source SHA；
 - published Release 不允许覆盖；
 - accepted-bin/IDB 明确为 binary/cache 层且不含 artifact truth；

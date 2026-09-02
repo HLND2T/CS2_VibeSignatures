@@ -18,6 +18,7 @@ permalink: cs2-vibesignatures/post-change-candidate-lifecycle
 - `.claude/skills/create-pr/SKILL.md` - source-owned PR delivery contract.
 - `trusted_pr_context.py`, `trusted_artifact_pr.py`, `source_artifact_policy.yaml` - trusted planning and isolation contract.
 - `.github/workflows/source-artifact-required.yml`, `.github/workflows/pr-self-runner.yml` - PR and Merge Queue gates.
+- `.github/workflows/bump-download.yml`, `bump_download_candidate.py` - protected branch seed/synchronize publisher.
 - `.github/workflows/bootstrap-new-gamever-artifacts.yml`, `new_gamever_artifact.py` - two-pass new-version bootstrap.
 - `gamesymbol_candidate.py`, `gamedata_candidate.py`, `run_cpp_tests.py` - release-local downstream evidence.
 ## Architecture
@@ -37,6 +38,9 @@ source + computed artifact closure -> PR head
 ## Notes
 - No analyzed-YAML staging, merge-time bin promotion, generated-output PR, or tracked snapshot/gamedata publication remains.
 - `bin_artifacts` A/M/D/R and downstream closure are author deliverables; CI independently recomputes them.
-- New GAMEVER bootstrap publication is the only source-branch write exception and cannot itself satisfy the required check.
+- Source writes have exactly two hosted exceptions under the protected `artifact-bootstrap` environment: the bump
+  publisher creates/synchronizes one new `bump-download/<GAMEVER>` using only `download.yaml` plus the seeded config; the
+  bootstrap publisher appends only `bin_artifacts/<GAMEVER>/**` to the still-bound PR head.
+- Neither source publisher can satisfy the required check; the artifact-bearing head must pass normal validation.
 - The trusted plan selects one complete prior source-owned GAMEVER, or explicit `null` for no baseline; bootstrap passes
   that identity explicitly and binds it into the force-all report, candidate manifest, and hosted verification.
