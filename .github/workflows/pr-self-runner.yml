@@ -35,6 +35,7 @@ jobs:
       GAMEVER: ${{ inputs.gamever }}
       SOURCE_SHA: ${{ inputs.source_sha }}
       PLAN_SHA256: ${{ inputs.plan_sha256 }}
+      BINARY_LOCK_SHA256: ${{ needs.warmup-idb.outputs.binary_lock_sha256 }}
       PERSISTED_WORKSPACE: ${{ secrets.PERSISTED_WORKSPACE }}
       CS2VIBE_AGENT: ${{ secrets.CS2VIBE_AGENT }}
       CS2VIBE_AGENT_MODEL: ${{ secrets.CS2VIBE_AGENT_MODEL }}
@@ -78,17 +79,37 @@ jobs:
             throw "PR source or trusted plan identity drifted."
           }
           if ([string]::IsNullOrWhiteSpace($env:PERSISTED_WORKSPACE)) { throw "PERSISTED_WORKSPACE is not configured." }
+          if ($env:BINARY_LOCK_SHA256 -notmatch '^sha256:[0-9a-f]{64}$') {
+            throw "Warmup omitted the source binary lock identity."
+          }
+          $planPath = Join-Path "${{ runner.temp }}" "trusted-pr-plan\trusted-source-artifact-plan.json"
+          $plan = Get-Content -LiteralPath $planPath -Raw | ConvertFrom-Json
+          $version = @($plan.game_versions | Where-Object { $_.game_version -eq $env:GAMEVER })
+          if ($version.Count -ne 1 -or $version[0].merge_binary_lock_sha256 -ne $env:BINARY_LOCK_SHA256) {
+            throw "Warmup binary lock identity differs from the trusted plan."
+          }
           $workspaceBin = Join-Path "${{ github.workspace }}" "bin"
           New-Item -ItemType Directory -Path $workspaceBin -Force | Out-Null
           if ((Get-Item -LiteralPath $workspaceBin -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) {
             throw "PR workspace bin must be a real directory."
           }
-          uv run --project .trusted-tools python .trusted-tools/accepted_bin.py restore `
+          $restoreJson = uv run --project .trusted-tools python .trusted-tools/accepted_bin.py restore `
             --repo-root "${{ github.workspace }}" --persisted-root "$env:PERSISTED_WORKSPACE" `
-            --gamever "$env:GAMEVER"
+            --gamever "$env:GAMEVER" --required
           if ($LASTEXITCODE -ne 0) { throw "Failed to restore the exact accepted binary allowlist." }
+          $restore = $restoreJson | ConvertFrom-Json
+          if ($restore.binary_lock_sha256 -ne $env:BINARY_LOCK_SHA256) {
+            throw "Restored accepted binaries differ from the trusted plan lock."
+          }
           uv run init_gamebin.py prepare "$env:GAMEVER" --binsync skip
           if ($LASTEXITCODE -ne 0) { throw "Binary initialization failed for $env:GAMEVER." }
+          $verifyJson = uv run --project .trusted-tools python .trusted-tools/accepted_bin.py verify `
+            --repo-root "${{ github.workspace }}" --gamever "$env:GAMEVER"
+          if ($LASTEXITCODE -ne 0) { throw "PR binaries do not match the source lock." }
+          $verification = $verifyJson | ConvertFrom-Json
+          if ($verification.binary_lock_sha256 -ne $env:BINARY_LOCK_SHA256) {
+            throw "PR binary lock identity drifted after initialization."
+          }
       - name: Resolve and restore exact warm IDB generation
         shell: pwsh
         run: |

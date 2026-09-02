@@ -5,9 +5,11 @@ from __future__ import annotations
 import shutil
 from pathlib import Path, PurePosixPath
 
+from binary_lock import BinaryLockError, verify_binary_root
 from release_workflow_lib.binary_cache import (
     BINARY_CACHE_LOCK_ROOT,
     configured_binary_paths,
+    load_source_binary_lock,
     require_gamever,
     validate_binary_cache_tree,
     version_lock,
@@ -68,13 +70,36 @@ def restore_accepted_bin(
     lock_path = contained_path(persisted_root, *BINARY_CACHE_LOCK_ROOT, f"{gamever}.lock")
     target_root = contained_path(repo_root / "bin", gamever)
     reject_reparse_components(repo_root, target_root)
+    binary_lock = load_source_binary_lock(repo_root, gamever)
 
     with version_lock(lock_path):
         if not source_root.is_dir():
             if required:
                 raise ReleaseWorkflowError(f"accepted binary cache is missing: {source_root}")
-            return {"restored": False, "gamever": gamever, "hash": None, "file_count": 0}
+            return {
+                "restored": False,
+                "reason": "cache-missing",
+                "gamever": gamever,
+                "hash": None,
+                "file_count": 0,
+                "binary_lock_sha256": binary_lock.sha256,
+            }
         validate_binary_cache_tree(source_root, allowed_paths, allow_excluded=False)
+        try:
+            verify_binary_root(binary_lock.document, source_root)
+        except BinaryLockError as exc:
+            if required:
+                raise ReleaseWorkflowError(
+                    f"accepted binary cache does not match source lock for {gamever}: {exc}"
+                ) from exc
+            return {
+                "restored": False,
+                "reason": "binary-lock-mismatch",
+                "gamever": gamever,
+                "hash": None,
+                "file_count": 0,
+                "binary_lock_sha256": binary_lock.sha256,
+            }
         target_root.mkdir(parents=True, exist_ok=True)
         _validate_target_subset(target_root, allowed_paths)
         for relative in sorted(allowed_paths):
@@ -84,5 +109,16 @@ def restore_accepted_bin(
             reject_reparse_components(target_root, target.parent)
             shutil.copy2(source, target)
         validate_binary_cache_tree(target_root, allowed_paths, allow_excluded=False)
+        try:
+            verify_binary_root(binary_lock.document, target_root)
+        except BinaryLockError as exc:
+            raise ReleaseWorkflowError(f"restored workspace does not match source lock for {gamever}: {exc}") from exc
         files, digest = _inventory(target_root, allowed_paths)
-        return {"restored": True, "gamever": gamever, "hash": digest, "file_count": len(files)}
+        return {
+            "restored": True,
+            "reason": None,
+            "gamever": gamever,
+            "hash": digest,
+            "file_count": len(files),
+            "binary_lock_sha256": binary_lock.sha256,
+        }

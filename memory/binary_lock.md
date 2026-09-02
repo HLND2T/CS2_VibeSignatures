@@ -17,6 +17,7 @@ tags:
 - Validate canonical JSON, exact schema, safe paths, target coverage, hash shapes, and download identity.
 - Load locks from immutable Git blobs at a bound source SHA.
 - Measure configured local binaries and reject any size/hash drift from the source lock.
+- Gate accepted-bin sync/restore and warm-IDB publication; propagate the digest to PR and Release consumers.
 - Supply the complete nested binary inventory and lock digest to Release and BinSync candidates.
 - Support the one-shot historical snapshot migration and deterministic audit check.
 
@@ -51,5 +52,6 @@ source SHA: config + download.yaml + binary lock
 
 ## Callers
 - Release rebuild preparation and verification.
+- Accepted-bin restore/sync, warm-IDB production, trusted PR workers, and Release source preflight.
 - BinSync candidate build and hosted verification.
 - Release bundle build, hosted verification, and Pages schema consumers.

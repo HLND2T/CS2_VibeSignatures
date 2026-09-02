@@ -21,7 +21,8 @@ PR and Release workers need exact binaries while warm IDB generations remain pru
 ## Analysis (useful conclusions)
 - Warm generations atomically bind configured binary bytes, IDA runtime, and neutral `.i64` payload; they are immutable and prunable.
 - Accepted-bin keeps reusable binary bytes across runs/versions and reduces depot/Release downloads, but it is fully recoverable.
-- `sync_accepted_bin` compares SHA-256 inventories and enforces the configured positive allowlist; same path/size is not identity.
+- `sync_accepted_bin` and `restore_accepted_bin` both validate the configured positive allowlist and the canonical source-owned
+  binary lock; a complete but hash-drifted accepted cache is a cache miss (or a hard failure for required consumers).
 - Release full rebuild reads expected per-symbol artifacts from Git, not accepted-bin. Release-local rename state is never written back to warm generations.
 - The removed `release-staging`, generated-output PR, and `promote_bin` mechanisms are historical only.
 ### Where the current-version binaries live (4 copies)
@@ -35,7 +36,7 @@ Superseded: hosted verifier and protected publishers now consume exact candidate
 ### Why state lives on the local runner (for future reference)
 Current persisted state is limited to recoverable binary/IDB caches and cleanup receipts. Durable publication state lives in Git source truth, remote BinSync refs, and immutable GitHub Releases.
 ## Constraints
-- Binaries are immutable per GAMEVER and all cache reuse is exact-hash verified.
+- Binaries are immutable per GAMEVER and all cache reuse is exact-hash verified against `binary_locks/<GAMEVER>.json`.
 - accepted-bin cleanup is recoverable and receipt-backed; legacy YAML is ignored before cleanup and rejected afterward.
 - The self-hosted worker does not gain publication authority merely because it can access persisted caches.
 ## Revisit triggers

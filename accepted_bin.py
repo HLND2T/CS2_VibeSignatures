@@ -8,6 +8,7 @@ import json
 import sys
 from pathlib import Path
 
+from release_workflow_lib.binary_cache import verify_source_binary_root
 from release_workflow_lib.errors import ReleaseWorkflowError
 from release_workflow_lib.legacy_yaml_cleanup import cleanup_legacy_accepted_yaml
 from release_workflow_lib.restore_accepted_bin import restore_accepted_bin
@@ -26,6 +27,9 @@ def parse_args(argv=None) -> argparse.Namespace:
     restore.add_argument("--persisted-root", required=True)
     restore.add_argument("--gamever", required=True)
     restore.add_argument("--required", action="store_true")
+    verify = commands.add_parser("verify")
+    verify.add_argument("--repo-root", default=".")
+    verify.add_argument("--gamever", required=True)
     cleanup = commands.add_parser("cleanup-legacy-yaml")
     cleanup.add_argument("--repo-root", default=".")
     cleanup.add_argument("--persisted-root", required=True)
@@ -49,6 +53,19 @@ def main(argv=None) -> int:
                 gamever=args.gamever,
                 required=args.required,
             )
+        elif args.command == "verify":
+            repo_root = Path(args.repo_root).resolve()
+            lock = verify_source_binary_root(
+                repo_root=repo_root,
+                gamever=args.gamever,
+                binary_root=repo_root / "bin" / args.gamever,
+                label="workspace binary tree",
+            )
+            result = {
+                "verified": True,
+                "gamever": args.gamever,
+                "binary_lock_sha256": lock.sha256,
+            }
         else:
             result = cleanup_legacy_accepted_yaml(
                 repo_root=Path(args.repo_root),

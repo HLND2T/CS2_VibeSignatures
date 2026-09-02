@@ -42,7 +42,10 @@ immutable main SHA preflight
 ## Notes
 - No generated-output branch/PR, release-staging correctness source, or accepted-bin YAML promotion remains.
 - Stable transaction identity is `run_id`; rerun attempt is transport metadata and must not change candidate identity.
-- Self-hosted build has read-only source access and no publication credentials. BinSync and Release publishers are isolated.\n- Release preparation checks local binary bytes against [[binary_lock]] before analysis and again afterward; hosted Release/BinSync verifiers reload the lock from the immutable source SHA.
+- Self-hosted build has read-only source access and no publication credentials. BinSync and Release publishers are isolated.
+- Release preflight, warmup, and required accepted-bin restore must agree on the same [[binary_lock]] digest. Release preparation
+  checks local binary bytes before analysis and again afterward; hosted Release/BinSync verifiers reload the lock from the
+  immutable source SHA.
 - C++ validation and the gamedata archive always use the source commit's SDK gitlink; mutable `cs2-<GAMEVER>` branches are
   never runtime Release inputs.
 - Same-version published assets are exact-idempotent only; different content must use a new version.

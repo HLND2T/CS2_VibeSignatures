@@ -31,6 +31,7 @@ from release_workflow_lib.binary_cache import (
     is_binary_cache_excluded_path,
     require_gamever,
     validate_binary_cache_tree,
+    verify_source_binary_root,
     version_lock,
 )
 from release_workflow_lib.filesystem import remove_tree
@@ -131,6 +132,12 @@ def sync_accepted_bin(*, repo_root: Path, persisted_root: Path, gamever: str) ->
     reject_reparse_points(source_root)
     allowed_paths = configured_binary_paths(repo_root, gamever)
     validate_binary_cache_tree(source_root, allowed_paths, allow_excluded=True)
+    binary_lock = verify_source_binary_root(
+        repo_root=repo_root,
+        gamever=gamever,
+        binary_root=source_root,
+        label="accepted-bin sync source",
+    )
 
     accepted_root = contained_path(persisted_root, "bin")
     reject_reparse_components(persisted_root, accepted_root)
@@ -153,7 +160,12 @@ def sync_accepted_bin(*, repo_root: Path, persisted_root: Path, gamever: str) ->
                         raise
                 else:
                     if _filtered_inventory(target) == (expected_files, expected_hash):
-                        return {"synced": False, "gamever": gamever, "hash": expected_hash}
+                        return {
+                            "synced": False,
+                            "gamever": gamever,
+                            "hash": expected_hash,
+                            "binary_lock_sha256": binary_lock.sha256,
+                        }
         moved_old = _swap_verified_bin(
             source=source_root,
             target=target,
@@ -166,6 +178,7 @@ def sync_accepted_bin(*, repo_root: Path, persisted_root: Path, gamever: str) ->
             "synced": True,
             "gamever": gamever,
             "hash": expected_hash,
+            "binary_lock_sha256": binary_lock.sha256,
             "replaced": moved_old,
             "backup": str(backup) if moved_old else None,
         }

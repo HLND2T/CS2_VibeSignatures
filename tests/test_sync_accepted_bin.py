@@ -9,13 +9,18 @@ from release_workflow_lib.errors import ReleaseWorkflowError
 from release_workflow_lib.legacy_yaml_cleanup import cleanup_legacy_accepted_yaml
 from release_workflow_lib.restore_accepted_bin import restore_accepted_bin
 from release_workflow_lib.sync_accepted_bin import _filtered_inventory, sync_accepted_bin
-from tests.gamesymbol_snapshot_test_support import write_config
+from tests.gamesymbol_snapshot_test_support import write_config, write_source_binary_lock
 
 
 class TestSyncAcceptedBin(unittest.TestCase):
     gamever = "14180"
 
     def _write_source(self, root: Path, *, marker: bytes = b"v1") -> None:
+        (root / "download.yaml").parent.mkdir(parents=True, exist_ok=True)
+        (root / "download.yaml").write_text(
+            f"downloads:\n  - tag: '{self.gamever}'\n    manifests: {{'1': '1'}}\n",
+            encoding="utf-8",
+        )
         write_config(
             root / "configs" / f"{self.gamever}.yaml",
             [
@@ -38,6 +43,7 @@ class TestSyncAcceptedBin(unittest.TestCase):
             (binsync / "symbols.toml").write_bytes(b"symbols = []\n")
             Path(f"{binary}.binsync.json").write_bytes(b"{}\n")
         (root / "bin" / self.gamever / "server" / "server.yaml").write_bytes(b"yaml-" + marker)
+        write_source_binary_lock(root, self.gamever)
 
     def test_sync_creates_accepted_tree_without_recoverable_analysis_state(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -54,6 +60,7 @@ class TestSyncAcceptedBin(unittest.TestCase):
             )
 
             self.assertTrue(result["synced"])
+            self.assertRegex(result["binary_lock_sha256"], r"^sha256:[0-9a-f]{64}$")
             accepted = persisted / "bin" / self.gamever
             self.assertTrue((accepted / "server" / "server.dll").is_file())
             self.assertTrue((accepted / "engine" / "libengine2.so").is_file())
@@ -85,6 +92,18 @@ class TestSyncAcceptedBin(unittest.TestCase):
             self.assertFalse(second["synced"])
             self.assertRegex(first["hash"], r"^[0-9a-f]{64}$")
             self.assertEqual(first["hash"], second["hash"])
+            self.assertEqual(first["binary_lock_sha256"], second["binary_lock_sha256"])
+
+    def test_sync_rejects_source_binary_drift_from_lock(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            repo = root / "repo"
+            persisted = root / "persisted"
+            self._write_source(repo)
+            (repo / "bin" / self.gamever / "server" / "server.dll").write_bytes(b"poisoned source")
+
+            with self.assertRaisesRegex(ReleaseWorkflowError, "source binary lock"):
+                sync_accepted_bin(repo_root=repo, persisted_root=persisted, gamever=self.gamever)
 
     def test_sync_repairs_same_size_content_drift(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -205,10 +224,36 @@ class TestSyncAcceptedBin(unittest.TestCase):
             self.assertTrue(result["restored"])
             self.assertEqual(2, result["file_count"])
             self.assertRegex(result["hash"], r"^[0-9a-f]{64}$")
+            self.assertRegex(result["binary_lock_sha256"], r"^sha256:[0-9a-f]{64}$")
             restored = repo / "bin" / self.gamever
             self.assertTrue((restored / "server" / "server.dll").is_file())
             self.assertTrue((restored / "engine" / "libengine2.so").is_file())
             self.assertEqual(2, len([path for path in restored.rglob("*") if path.is_file()]))
+
+    def test_restore_rejects_complete_but_poisoned_cache_before_copy(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            repo = root / "repo"
+            persisted = root / "persisted"
+            self._write_source(repo)
+            sync_accepted_bin(repo_root=repo, persisted_root=persisted, gamever=self.gamever)
+            shutil.rmtree(repo / "bin" / self.gamever)
+            poisoned = persisted / "bin" / self.gamever / "server" / "server.dll"
+            poisoned.write_bytes(b"X" * poisoned.stat().st_size)
+
+            result = restore_accepted_bin(repo_root=repo, persisted_root=persisted, gamever=self.gamever)
+
+            self.assertFalse(result["restored"])
+            self.assertEqual("binary-lock-mismatch", result["reason"])
+            self.assertRegex(result["binary_lock_sha256"], r"^sha256:[0-9a-f]{64}$")
+            self.assertFalse((repo / "bin" / self.gamever / "server" / "server.dll").exists())
+            with self.assertRaisesRegex(ReleaseWorkflowError, "accepted binary cache.*source lock"):
+                restore_accepted_bin(
+                    repo_root=repo,
+                    persisted_root=persisted,
+                    gamever=self.gamever,
+                    required=True,
+                )
 
     def test_restore_rejects_extra_files_and_empty_directories(self) -> None:
         for relative, message in (("unexpected.txt", "allowlist mismatch"), ("empty", "unexpected directories")):
@@ -239,6 +284,8 @@ class TestSyncAcceptedBin(unittest.TestCase):
 
             self.assertFalse(result["restored"])
             self.assertIsNone(result["hash"])
+            self.assertEqual("cache-missing", result["reason"])
+            self.assertRegex(result["binary_lock_sha256"], r"^sha256:[0-9a-f]{64}$")
 
 
 class TestLegacyAcceptedYamlCleanup(unittest.TestCase):

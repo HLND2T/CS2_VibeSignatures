@@ -28,6 +28,8 @@
   hosted verifier 都从 immutable source SHA 重读 lock 并拒绝 self-hosted 自报 identity。Repository contract 现在
   要求 configured GAMEVER 与 canonical lock 一一对应；trusted PR plan schema v3 从 base/merge immutable Git blobs
   校验 config/download/lock 语义，记录两侧 lock digest，并把 binary identity 漂移扩大到全量 producer groups。
+  accepted-bin sync/restore 在复制前后验证 source lock，污染 cache 不再因文件齐全而命中；warmup 在 IDB probe/
+  publish 前复验下载结果，并把 lock digest 传给 PR plan 与 Release source preflight 消费端对账。
 - 独立审查仍确认两类未闭环边界：BinSync TOML 尚不能仅从 Git blobs 独立证明 Windows lift bias 及完整
   IDA name/comment TOML 语义，prospective payload 与
   secrets/persisted workspace 的执行隔离需要外部 disposable runner/broker/supervisor 基础设施。

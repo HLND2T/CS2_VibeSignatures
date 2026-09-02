@@ -28,6 +28,7 @@ class ReleaseSourcePreflightTests(unittest.TestCase):
             root = Path(temporary)
             self._source_tree(root)
             inventory = SimpleNamespace(file_count=42, inventory_sha256="sha256:" + "b" * 64)
+            binary_lock = SimpleNamespace(sha256="sha256:" + "d" * 64)
             with (
                 patch(
                     "release_source_preflight._git",
@@ -38,6 +39,7 @@ class ReleaseSourcePreflightTests(unittest.TestCase):
                     return_value=subprocess.CompletedProcess([], 0, b"", b""),
                 ),
                 patch("release_source_preflight.build_game_artifact_inventory", return_value=inventory) as build,
+                patch("release_source_preflight.load_source_binary_lock", return_value=binary_lock),
             ):
                 result = validate_release_source(
                     repo_root=root,
@@ -49,6 +51,7 @@ class ReleaseSourcePreflightTests(unittest.TestCase):
 
             self.assertEqual(42, result["artifact_file_count"])
             self.assertEqual(inventory.inventory_sha256, result["artifact_inventory_sha256"])
+            self.assertEqual(binary_lock.sha256, result["binary_lock_sha256"])
             self.assertEqual("2026-09-01T04:34:56Z", result["source_publish_time"])
             self.assertTrue(build.call_args.kwargs["require_tracked"])
 

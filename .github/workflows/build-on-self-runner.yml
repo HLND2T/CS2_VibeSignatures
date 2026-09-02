@@ -51,6 +51,7 @@ jobs:
       source_sha: ${{ steps.resolve.outputs.source_sha }}
       source_publish_time: ${{ steps.resolve.outputs.source_publish_time }}
       publication_mode: ${{ steps.resolve.outputs.publication_mode }}
+      binary_lock_sha256: ${{ steps.resolve.outputs.binary_lock_sha256 }}
     steps:
       - name: Checkout default branch for trust validation
         id: checkout-trust
@@ -114,6 +115,7 @@ jobs:
           "source_sha=$sourceSha" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "source_publish_time=$($preflight.source_publish_time)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "publication_mode=$publicationMode" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "binary_lock_sha256=$($preflight.binary_lock_sha256)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
   warmup-idb:
     needs: preflight
     uses: ./.github/workflows/warmup-idb.yml
@@ -136,6 +138,8 @@ jobs:
       SOURCE_SHA: ${{ needs.preflight.outputs.source_sha }}
       IDB_CACHE_GENERATION: ${{ needs.warmup-idb.outputs.generation }}
       IDB_CACHE_KEY: ${{ needs.warmup-idb.outputs.cache_key }}
+      SOURCE_BINARY_LOCK_SHA256: ${{ needs.preflight.outputs.binary_lock_sha256 }}
+      WARMUP_BINARY_LOCK_SHA256: ${{ needs.warmup-idb.outputs.binary_lock_sha256 }}
       BUILD_ID: ${{ needs.preflight.outputs.source_sha }}
       RELEASE_PUBLISH_TIME: ${{ needs.preflight.outputs.source_publish_time }}
       CS2VIBE_AGENT: ${{ secrets.CS2VIBE_AGENT }}
@@ -199,6 +203,10 @@ jobs:
         shell: pwsh
         run: |
           if ([string]::IsNullOrWhiteSpace($env:PERSISTED_WORKSPACE)) { throw "PERSISTED_WORKSPACE is not configured." }
+          if ($env:SOURCE_BINARY_LOCK_SHA256 -notmatch '^sha256:[0-9a-f]{64}$' -or `
+              $env:WARMUP_BINARY_LOCK_SHA256 -ne $env:SOURCE_BINARY_LOCK_SHA256) {
+            throw "Release warmup binary lock identity differs from immutable source preflight."
+          }
           $workspace = [IO.Path]::GetFullPath("${{ github.workspace }}")
           # Isolate the depot per GAMEVER so concurrent runs never share a download tree.
           $depotTarget = [IO.Path]::GetFullPath((Join-Path $env:PERSISTED_WORKSPACE "cs2_depot\$env:GAMEVER"))
@@ -216,9 +224,13 @@ jobs:
           if ((Get-Item $workspaceBin -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) {
             throw "Workspace bin must be a real directory"
           }
-          uv run python accepted_bin.py restore --repo-root "$workspace" `
-            --persisted-root "$env:PERSISTED_WORKSPACE" --gamever "$env:GAMEVER"
+          $restoreJson = uv run python accepted_bin.py restore --repo-root "$workspace" `
+            --persisted-root "$env:PERSISTED_WORKSPACE" --gamever "$env:GAMEVER" --required
           if ($LASTEXITCODE -ne 0) { throw "Failed to restore the exact accepted binary allowlist." }
+          $restore = $restoreJson | ConvertFrom-Json
+          if ($restore.binary_lock_sha256 -ne $env:SOURCE_BINARY_LOCK_SHA256) {
+            throw "Release accepted-bin restore differs from immutable source preflight."
+          }
       - name: Resolve consumer IDA identity
         id: resolve-consumer-ida
         shell: pwsh

@@ -7,6 +7,7 @@ import re
 from contextlib import contextmanager
 from pathlib import Path, PurePosixPath
 
+from binary_lock import BinaryLockError, load_binary_lock, verify_binary_root
 from gamesymbol_snapshot_lib.config import load_contract
 from gamesymbol_snapshot_lib.errors import SnapshotConfigError
 from release_workflow_lib.errors import ReleaseWorkflowError
@@ -60,6 +61,37 @@ def configured_binary_paths(repo_root: str | Path, gamever: str) -> frozenset[st
     if not paths:
         raise ReleaseWorkflowError(f"configured binary allowlist is empty for {gamever}")
     return frozenset(paths)
+
+
+def load_source_binary_lock(repo_root: str | Path, gamever: str):
+    """Load the canonical lock bound to this checkout's config and download selection."""
+    repo_root = Path(repo_root).resolve()
+    gamever = require_gamever(gamever)
+    try:
+        contract = load_contract(
+            repo_root / "configs" / f"{gamever}.yaml",
+            gamever,
+            repo_root / "bin",
+            artifactdir=repo_root / "bin_artifacts",
+        )
+        return load_binary_lock(
+            repo_root / "binary_locks" / f"{gamever}.json",
+            game_version=gamever,
+            download_payload=(repo_root / "download.yaml").read_bytes(),
+            binary_targets=contract.binary_targets,
+        )
+    except (BinaryLockError, OSError, SnapshotConfigError) as exc:
+        raise ReleaseWorkflowError(f"unable to load source binary lock for {gamever}: {exc}") from exc
+
+
+def verify_source_binary_root(*, repo_root: str | Path, gamever: str, binary_root: str | Path, label: str):
+    """Require one local binary tree to match the checkout-owned lock exactly."""
+    lock = load_source_binary_lock(repo_root, gamever)
+    try:
+        verify_binary_root(lock.document, Path(binary_root))
+    except BinaryLockError as exc:
+        raise ReleaseWorkflowError(f"{label} does not match source binary lock for {gamever}: {exc}") from exc
+    return lock
 
 
 def validate_binary_cache_tree(root: str | Path, allowed_paths: frozenset[str], *, allow_excluded: bool) -> None:

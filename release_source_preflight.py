@@ -14,6 +14,8 @@ from pathlib import Path
 import yaml
 
 from bin_artifact_contract import ArtifactContractError, build_game_artifact_inventory
+from release_workflow_lib.binary_cache import load_source_binary_lock
+from release_workflow_lib.errors import ReleaseWorkflowError
 from trusted_pr_context import TrustedPrContextError, parse_source_artifact_policy
 
 
@@ -112,12 +114,13 @@ def validate_release_source(
             artifact_root=repo_root / "bin_artifacts",
             require_tracked=True,
         )
-    except (ArtifactContractError, OSError, ValueError) as exc:
+        binary_lock = load_source_binary_lock(repo_root, game_version)
+    except (ArtifactContractError, OSError, ReleaseWorkflowError, ValueError) as exc:
         raise ReleaseSourcePreflightError(f"new GAMEVER source artifact bootstrap required: {exc}") from exc
     source_tree_sha = _git(repo_root, "rev-parse", f"{source_sha}^{{tree}}")
     source_publish_time = _source_publish_time(repo_root, source_sha)
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "repository": repository,
         "game_version": game_version,
         "source_sha": source_sha,
@@ -125,6 +128,7 @@ def validate_release_source(
         "source_publish_time": source_publish_time,
         "artifact_file_count": inventory.file_count,
         "artifact_inventory_sha256": inventory.inventory_sha256,
+        "binary_lock_sha256": binary_lock.sha256,
     }
 
 
