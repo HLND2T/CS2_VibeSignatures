@@ -53,10 +53,24 @@ jobs:
             $headSha = $env:MERGE_GROUP_HEAD_SHA
             $mergeSha = $env:MERGE_GROUP_HEAD_SHA
             $contextKind = "merge_group"
-            $pulls = @(gh api -H "Accept: application/vnd.github+json" `
-              "repos/$env:REPOSITORY/commits/$mergeSha/pulls" | ConvertFrom-Json)
-            if ($LASTEXITCODE -ne 0 -or $pulls.Count -lt 1) {
+            $pageDocuments = @(gh api --paginate --slurp `
+              -H "Accept: application/vnd.github+json" `
+              "repos/$env:REPOSITORY/commits/$mergeSha/pulls" | ConvertFrom-Json -Depth 100)
+            if ($LASTEXITCODE -ne 0) {
               throw "Unable to prove the merge-group PR membership."
+            }
+            $pulls = @(
+              foreach ($page in $pageDocuments) {
+                foreach ($pull in @($page)) { $pull }
+              }
+            )
+            if ($pulls.Count -lt 1) {
+              throw "Unable to prove the merge-group PR membership."
+            }
+            $pullNumbers = @($pulls | ForEach-Object { [string]$_.number })
+            if (@($pullNumbers | Sort-Object -Unique).Count -ne $pullNumbers.Count -or `
+                @($pullNumbers | Where-Object { $_ -notmatch '^[1-9][0-9]*$' }).Count -ne 0) {
+              throw "Merge-group PR membership is duplicate or malformed."
             }
             foreach ($pull in $pulls) {
               if ($pull.head.repo.full_name -ne $env:REPOSITORY -or `

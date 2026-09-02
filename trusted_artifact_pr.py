@@ -56,6 +56,7 @@ SHARED_ANALYSIS_PATHS = frozenset(
         "gamesymbol_snapshot_lib/pr_validation.py",
     }
 )
+SHARED_ANALYSIS_PREFIXES = ("gamesymbol_snapshot_lib/",)
 TRUST_ROOT_PATHS = frozenset(
     {
         "source_artifact_policy.yaml",
@@ -74,6 +75,15 @@ TRUST_ROOT_PATHS = frozenset(
 
 class TrustedArtifactPrError(RuntimeError):
     """Trusted source-artifact planning or isolated verification failed closed."""
+
+
+def _is_shared_analysis_runtime_path(path: str) -> bool:
+    """Return whether a Git path can change analyzer-wide artifact semantics."""
+    return (
+        path in SHARED_ANALYSIS_PATHS
+        or ("/" not in path and path.endswith(".py"))
+        or (path.startswith(SHARED_ANALYSIS_PREFIXES) and path.endswith(".py"))
+    )
 
 
 @dataclass(frozen=True)
@@ -337,7 +347,7 @@ def _source_inventory(repo: GitTreeRepository, revision: str) -> dict:
     for entry in repo.entries(revision):
         if entry.object_type != "blob":
             continue
-        if entry.path in SHARED_ANALYSIS_PATHS or entry.path.startswith(SOURCE_PREFIXES):
+        if _is_shared_analysis_runtime_path(entry.path) or entry.path.startswith(SOURCE_PREFIXES):
             raw = repo.read(revision, entry.path)
             items.append({"path": entry.path, "size": len(raw), "sha256": _sha256(raw)})
     return {"file_count": len(items), "sha256": _digest("analysis-source-inventory", items)}
@@ -469,7 +479,10 @@ def build_trusted_artifact_plan(*, repo_root: str | Path, trusted_context: dict 
     base_sources = _revision_python_sources(repo, context["base_sha"]) if needs_base_sources else {}
     merge_sources = _revision_python_sources(repo, context["merge_sha"]) if needs_merge_sources else {}
     shared_analysis_changed = any(
-        path in SHARED_ANALYSIS_PATHS for change in changes for path in (change.old_path, change.new_path) if path
+        _is_shared_analysis_runtime_path(path)
+        for change in changes
+        for path in (change.old_path, change.new_path)
+        if path
     )
 
     version_reports = []

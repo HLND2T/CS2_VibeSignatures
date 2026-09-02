@@ -260,6 +260,27 @@ class TrustedArtifactPrTests(unittest.TestCase):
             self.assertEqual(2, len(version["affected_producer_groups"]))
             self.assertIn("shared analyzer/serializer contract changed", version["reasons"])
 
+    def test_root_analysis_runtime_change_broadly_selects_all_groups(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            root.mkdir()
+            _base, _head, _merge, context = self._repository(
+                root,
+                change_artifact=False,
+                changed_path="agent_runner.py",
+            )
+
+            plan = tap.build_trusted_artifact_plan(repo_root=root, trusted_context=context)
+
+            self.assertEqual("full", plan["mode"])
+            version = plan["game_versions"][0]
+            self.assertEqual(2, len(version["affected_producer_groups"]))
+            self.assertIn("shared analyzer/serializer contract changed", version["reasons"])
+            self.assertNotEqual(
+                plan["base_analysis_sources"]["sha256"],
+                plan["merge_analysis_sources"]["sha256"],
+            )
+
     def test_download_identity_change_broadly_selects_all_groups(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary) / "repo"
