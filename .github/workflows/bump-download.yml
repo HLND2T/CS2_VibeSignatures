@@ -29,7 +29,6 @@ jobs:
     env:
       DEPOTDOWNLOADER_STEAM_USERNAME: ${{ secrets.DEPOTDOWNLOADER_STEAM_USERNAME }}
       DEPOTDOWNLOADER_STEAM_PASSWORD: ${{ secrets.DEPOTDOWNLOADER_STEAM_PASSWORD }}
-      PERSISTED_WORKSPACE: ${{ secrets.PERSISTED_WORKSPACE }}
     steps:
       - name: Checkout main
         id: checkout
@@ -119,6 +118,42 @@ jobs:
         if: steps.preview.outputs.updated != 'true' || steps.duplicate.outputs.skip_pr != 'true'
         shell: pwsh
         run: uv run bump_download.py -config download.yaml -configs-dir configs -depotdir cs2_depot -username "$env:DEPOTDOWNLOADER_STEAM_USERNAME" -password "$env:DEPOTDOWNLOADER_STEAM_PASSWORD" -remember-password -github-output "$env:GITHUB_OUTPUT"
+
+      - name: Enroll source lock from a fresh checkout-external depot
+        id: enroll-lock
+        if: steps.bump.outputs.updated == 'true' && steps.duplicate.outputs.skip_pr != 'true'
+        shell: pwsh
+        env:
+          CANDIDATE_GAMEVER: ${{ steps.bump.outputs.tag }}
+          CANDIDATE_SOURCE_GAMEVER: ${{ steps.bump.outputs.analysis_config_source_gamever }}
+        run: |
+          $tag = $env:CANDIDATE_GAMEVER
+          $freshRoot = Join-Path $env:RUNNER_TEMP "bump-binary-enrollment\$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT-$tag"
+          if (Test-Path -LiteralPath $freshRoot) {
+            throw "Fresh binary enrollment root already exists: $freshRoot"
+          }
+          $depotRoot = Join-Path $freshRoot "depot"
+          $binRoot = Join-Path $freshRoot "bin"
+          New-Item -ItemType Directory -Path $depotRoot -Force | Out-Null
+          New-Item -ItemType Directory -Path $binRoot -Force | Out-Null
+          uv run python download_depot.py -tag "$tag" -config download.yaml `
+            -configyaml "configs/$tag.yaml" -depotdir "$depotRoot" `
+            -username "$env:DEPOTDOWNLOADER_STEAM_USERNAME" `
+            -password "$env:DEPOTDOWNLOADER_STEAM_PASSWORD" -remember-password
+          if ($LASTEXITCODE -ne 0) { throw "Fresh depot download failed for $tag." }
+          uv run python copy_depot_bin.py -gamever "$tag" -platform all-platform `
+            -config "configs/$tag.yaml" -depotdir "$depotRoot" -bindir "$binRoot"
+          if ($LASTEXITCODE -ne 0) { throw "Fresh configured binary copy failed for $tag." }
+          $enrollmentJson = uv run python bump_download_candidate.py enroll-lock `
+            --repo-root "$env:GITHUB_WORKSPACE" --base-sha "$env:GITHUB_SHA" `
+            --gamever "$tag" --source-gamever "$env:CANDIDATE_SOURCE_GAMEVER" `
+            --repository "$env:GITHUB_REPOSITORY" --binary-root (Join-Path $binRoot $tag)
+          if ($LASTEXITCODE -ne 0) { throw "Source-owned binary lock enrollment failed for $tag." }
+          $enrollment = $enrollmentJson | ConvertFrom-Json
+          if ($enrollment.binary_lock_sha256 -notmatch '^sha256:[0-9a-f]{64}$') {
+            throw "Binary lock enrollment omitted its canonical digest."
+          }
+          "binary_lock_sha256=$($enrollment.binary_lock_sha256)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
       - name: Package credential-free download bump candidate
         if: steps.bump.outputs.updated == 'true' && steps.duplicate.outputs.skip_pr != 'true'

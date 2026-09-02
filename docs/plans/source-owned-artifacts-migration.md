@@ -30,6 +30,9 @@
   校验 config/download/lock 语义，记录两侧 lock digest，并把 binary identity 漂移扩大到全量 producer groups。
   accepted-bin sync/restore 在复制前后验证 source lock，污染 cache 不再因文件齐全而命中；warmup 在 IDB probe/
   publish 前复验下载结果，并把 lock digest 传给 PR plan 与 Release source preflight 消费端对账。
+- new-GAMEVER bump producer 不再接触 accepted-bin：它把 declared manifests 下载到 checkout 外 fresh root，按新
+  config 构建 binary allowlist 后生成 canonical lock；credential-free candidate 与 hosted publisher 以三文件
+  allowlist 原子提交 `download.yaml`、`configs/<GAMEVER>.yaml`、`binary_locks/<GAMEVER>.json`。
 - 独立审查仍确认两类未闭环边界：BinSync TOML 尚不能仅从 Git blobs 独立证明 Windows lift bias 及完整
   IDA name/comment TOML 语义，prospective payload 与
   secrets/persisted workspace 的执行隔离需要外部 disposable runner/broker/supervisor 基础设施。
@@ -520,8 +523,9 @@ plan 至少绑定：
 
 1. self-hosted bump job 不持有 source write PAT，只上传 credential-free candidate；
 2. hosted publisher 只信任 workflow 的 immutable `github.sha`，并从 Git blobs 重建 append/copy 结果；
-3. candidate changed-path allowlist 精确为 `download.yaml` 与 `configs/<GAMEVER>.yaml`，新 config 必须是 prior
-   accepted config 的 exact copy；
+3. producer 先从 checkout 外 fresh depot/bin root 生成 `binary_locks/<GAMEVER>.json`，不得从 accepted-bin 首次
+   登记；candidate changed-path allowlist 精确为 `download.yaml`、`configs/<GAMEVER>.yaml` 与该 lock，新 config
+   必须是 prior accepted config 的 exact copy；
 4. `bump-download/<GAMEVER>` branch、同名 tag 和目标 PR 必须都不存在；seed commit 必须是 bound default-base
    SHA 的 direct child；
 5. protected PAT 只执行普通 branch creation push，Git hooks 禁用，禁止 force/delete/refspec 扩张；

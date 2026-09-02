@@ -7,6 +7,7 @@ from unittest.mock import ANY, call, patch
 
 import bump_download
 import bump_download_candidate as bdc
+from tests.gamesymbol_snapshot_test_support import write_binary, write_config
 
 
 class TestBumpDownload(unittest.TestCase):
@@ -938,12 +939,20 @@ class TestBumpDownloadCandidate(unittest.TestCase):
             self.fail(result.stderr or f"git {' '.join(arguments)} failed")
         return result.stdout.strip()
 
-    def _producer(self, root: Path) -> str:
+    def _producer(self, root: Path, *, enroll_lock: bool = True) -> str:
         self._git(root, "init", "-b", "main")
         self._git(root, "config", "user.email", "test@example.com")
         self._git(root, "config", "user.name", "Test")
-        (root / "configs").mkdir()
-        (root / "configs" / f"{self.source_gamever}.yaml").write_bytes(b"modules: []\n")
+        write_config(
+            root / "configs" / f"{self.source_gamever}.yaml",
+            [
+                {
+                    "name": "server",
+                    "path_windows": "game/bin/win64/server.dll",
+                    "skills": [],
+                }
+            ],
+        )
         (root / "download.yaml").write_text(
             'downloads:\n  - tag: "14160"\n    name: 1.41.6.0\n    manifests:\n'
             '      "2347771": "1"\n      "2347773": "2"\n',
@@ -968,6 +977,17 @@ class TestBumpDownloadCandidate(unittest.TestCase):
         )
         self._git(root, "add", ".")
         self._git(root, "commit", "-m", "bump")
+        if enroll_lock:
+            binary_root = root.parent / "fresh-binary-root" / self.gamever
+            write_binary(binary_root / "server" / "server.dll", b"fresh depot binary")
+            bdc.enroll_bump_binary_lock(
+                repo_root=root,
+                base_sha=base_sha,
+                gamever=self.gamever,
+                source_gamever=self.source_gamever,
+                repository=self.repository,
+                binary_root=binary_root,
+            )
         return base_sha
 
     def test_candidate_is_verified_and_recommitted_by_hosted_publisher(self) -> None:
@@ -1005,10 +1025,41 @@ class TestBumpDownloadCandidate(unittest.TestCase):
 
             self.assertEqual(base_sha, result["parent_sha"])
             self.assertEqual(
-                ["configs/14161.yaml", "download.yaml"],
+                ["binary_locks/14161.json", "configs/14161.yaml", "download.yaml"],
                 result["changed_paths"],
             )
+            self.assertRegex(manifest["binary_lock_sha256"], r"^sha256:[0-9a-f]{64}$")
             self.assertEqual(result["commit_sha"], self._git(root, "rev-parse", "HEAD"))
+
+    def test_enrollment_requires_checkout_external_fresh_binary_root(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            root.mkdir()
+            base_sha = self._producer(root, enroll_lock=False)
+            binary_root = root / "bin" / self.gamever
+
+            with self.assertRaisesRegex(bdc.BumpDownloadCandidateError, "outside the repository"):
+                bdc.enroll_bump_binary_lock(
+                    repo_root=root,
+                    base_sha=base_sha,
+                    gamever=self.gamever,
+                    source_gamever=self.source_gamever,
+                    repository=self.repository,
+                    binary_root=binary_root,
+                )
+
+            external_root = root.parent / "fresh-with-extra" / self.gamever
+            write_binary(external_root / "server" / "server.dll")
+            write_binary(external_root / "unexpected.bin")
+            with self.assertRaisesRegex(bdc.BumpDownloadCandidateError, "allowlist mismatch"):
+                bdc.enroll_bump_binary_lock(
+                    repo_root=root,
+                    base_sha=base_sha,
+                    gamever=self.gamever,
+                    source_gamever=self.source_gamever,
+                    repository=self.repository,
+                    binary_root=external_root,
+                )
 
     def test_candidate_rejects_extra_producer_changes_and_package_tamper(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

@@ -39,12 +39,15 @@ source + computed artifact closure -> PR head
 - No analyzed-YAML staging, merge-time bin promotion, generated-output PR, or tracked snapshot/gamedata publication remains.
 - `bin_artifacts` A/M/D/R and downstream closure are author deliverables; CI independently recomputes them.
 - Source writes have exactly two hosted exceptions under the protected `artifact-bootstrap` environment: the bump
-  publisher creates/synchronizes one new `bump-download/<GAMEVER>` using only `download.yaml` plus the seeded config; the
-  bootstrap publisher appends only `bin_artifacts/<GAMEVER>/**` to the still-bound PR head.
+  publisher creates/synchronizes one new `bump-download/<GAMEVER>` using the atomic `download.yaml`, seeded config, and
+  source-owned binary lock candidate; the bootstrap publisher appends only `bin_artifacts/<GAMEVER>/**` to the still-bound
+  PR head. The lock is measured from a checkout-external fresh depot/bin root, never accepted-bin.
 - Neither source publisher can satisfy the required check; the artifact-bearing head must pass normal validation.
 - The trusted plan selects one complete prior source-owned GAMEVER, or explicit `null` for no baseline; bootstrap passes
   that identity explicitly and binds it into the force-all report, candidate manifest, and hosted verification.
-- Release/BinSync candidates bind `binary_lock_sha256`; hosted verification reloads the lock from the immutable source SHA and rejects self-hosted binary inventory forgery.\n- Release gamedata generation is offline and source-owned: generator baselines live under each module's `templates/`,
+- Release/BinSync candidates bind `binary_lock_sha256`; hosted verification reloads the lock from the immutable source SHA
+  and rejects self-hosted binary inventory forgery.
+- Release gamedata generation is offline and source-owned: generator baselines live under each module's `templates/`,
   mutable `DOWNLOAD_SOURCES` are rejected by candidate builds, and the hosted Release verifier fresh-rebuilds from the
   verified snapshot before comparing every output hash.
 - BinSync candidate schema v5 binds the source-owned binary lock and separates hosted-recomputed source selection from per-repository lowering evidence. The

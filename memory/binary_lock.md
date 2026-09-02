@@ -47,7 +47,8 @@ source SHA: config + download.yaml + binary lock
 ## Notes
 - The initial 16 locks came from historical snapshot blobs at `1e69d6b963ce6e2e4b9277910de4071343901486`; 256/256 current configured binaries matched.
 - GAMEVERs 14167-14172 are historical snapshot backfills, not external cryptographic proof of Steam provenance.
-- New GAMEVER enrollment must use a fresh checkout-external depot download before accepted-bin or warm-IDB cache reuse.
+- New GAMEVER enrollment uses the bump producer's fresh checkout-external depot/bin root and atomically publishes the lock
+  with `download.yaml` plus the seeded config before accepted-bin or warm-IDB cache reuse.
 - `bin/`, accepted-bin, and warm IDB remain disposable caches and never define expected binary identity.
 
 ## Callers
