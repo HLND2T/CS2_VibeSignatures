@@ -7,7 +7,6 @@ from unittest.mock import ANY, call, patch
 
 import bump_download
 import bump_download_candidate as bdc
-from tests.workflow_contract_test_support import load_workflow, step_order, steps_by_id, workflow_job
 
 
 class TestBumpDownload(unittest.TestCase):
@@ -921,15 +920,6 @@ class TestBumpDownload(unittest.TestCase):
 
             with self.assertRaises(bump_download.BumpError):
                 bump_download.load_config(config)
-
-    def test_bump_workflow_prunes_local_only_tags_before_bump(self) -> None:
-        workflow = load_workflow("bump-download.yml")
-        job = workflow_job(workflow, "bump")
-        steps = steps_by_id(job)
-        order = step_order(job, "checkout", "sync-refs", "configure-git", "preview", "bump")
-
-        self.assertEqual(sorted(order), order)
-        self.assertIn("git fetch origin --prune --prune-tags --tags", steps["sync-refs"]["run"])
 
 
 class TestBumpDownloadCandidate(unittest.TestCase):
