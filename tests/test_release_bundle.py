@@ -16,6 +16,7 @@ from gamesymbol_snapshot_lib.config import load_contract
 from gamesymbol_snapshot_lib.operations import build_actual_document
 from release_workflow_lib.hashing import sha256_file
 from tests import test_binsync_candidate as candidate_tests
+from tests.test_gamedata_candidate import GamedataCandidateFixture
 from tests import test_release_artifact_rebuild as rebuild_tests
 
 
@@ -120,6 +121,7 @@ class ReleaseBundleTests(unittest.TestCase):
                     return_value=inputs["gamedata_evidence"]["files"],
                 ),
                 patch.object(release_bundle, "gamedata_manifest_sha256", return_value="b" * 64),
+                patch.object(release_bundle, "_verify_gamedata_reproducibility"),
             ):
                 manifest = release_bundle.build_release_bundle(
                     repo_root=root,
@@ -193,6 +195,7 @@ class ReleaseBundleTests(unittest.TestCase):
                     return_value=inputs["gamedata_evidence"]["files"],
                 ),
                 patch.object(release_bundle, "gamedata_manifest_sha256", return_value="b" * 64),
+                patch.object(release_bundle, "_verify_gamedata_reproducibility"),
             )
             with (
                 patches[0],
@@ -203,6 +206,7 @@ class ReleaseBundleTests(unittest.TestCase):
                 patches[5],
                 patches[6],
                 patches[7],
+                patches[8],
             ):
                 release_bundle.build_release_bundle(
                     repo_root=root,
@@ -230,6 +234,48 @@ class ReleaseBundleTests(unittest.TestCase):
                 )
                 with self.assertRaisesRegex(release_bundle.ReleaseBundleError, "public asset mismatch"):
                     release_bundle.verify_release_bundle(bundle_root=bundle_root, repo_root=root)
+
+    def test_hosted_verifier_fresh_rebuilds_gamedata_from_source_inputs(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            fixture = GamedataCandidateFixture(root)
+            session = fixture.build()
+            bundle_root = root / "release-bundle"
+            shutil.copytree(
+                fixture.candidate_root / "gamedata" / fixture.gamever,
+                bundle_root / "gamedata" / fixture.gamever,
+            )
+            snapshot_target = bundle_root / "gamesymbols" / f"{fixture.gamever}.yaml"
+            snapshot_target.parent.mkdir(parents=True)
+            shutil.copyfile(fixture.snapshot, snapshot_target)
+            manifest = {
+                "build_id": "build-1",
+                "game_version": fixture.gamever,
+                "snapshot": {"path": f"gamesymbols/{fixture.gamever}.yaml"},
+                "gamedata": {
+                    "files": copy.deepcopy(session["files"]),
+                    "generator_contract_sha256": session["generator_contract_sha256"],
+                    "manifest_sha256": session["gamedata_manifest_sha256"],
+                },
+            }
+
+            release_bundle._verify_gamedata_reproducibility(
+                repo_root=root,
+                bundle_root=bundle_root,
+                manifest=manifest,
+            )
+
+            payload = bundle_root / "gamedata" / fixture.gamever / "fixture" / "payload" / "final.json"
+            payload.write_text("forged\n", encoding="utf-8")
+            record = next(item for item in manifest["gamedata"]["files"] if item["path"].endswith("final.json"))
+            record["size"] = payload.stat().st_size
+            record["sha256"] = sha256_file(payload)
+            with self.assertRaisesRegex(release_bundle.ReleaseBundleError, "not reproducible"):
+                release_bundle._verify_gamedata_reproducibility(
+                    repo_root=root,
+                    bundle_root=bundle_root,
+                    manifest=manifest,
+                )
 
     def test_archive_preflight_rejects_traversal_links_and_duplicates(self) -> None:
         with self.assertRaisesRegex(release_bundle.ReleaseBundleError, "unsafe entry"):

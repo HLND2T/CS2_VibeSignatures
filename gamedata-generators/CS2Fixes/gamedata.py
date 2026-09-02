@@ -25,10 +25,9 @@ MODULE_ENABLED = True
 GAMEDATA_PATH = "gamedata/cs2fixes.jsonc"
 OUTPUT_PATHS = (GAMEDATA_PATH,)
 
-# Upstream download sources: (raw_url, relative_dest_path)
-DOWNLOAD_SOURCES = [
-    ("https://raw.githubusercontent.com/Source2ZE/CS2Fixes/refs/heads/main/gamedata/cs2fixes.jsonc", GAMEDATA_PATH),
-]
+# Source-owned upstream baseline; provenance is recorded in templates/upstream.json.
+DOWNLOAD_SOURCES = ()
+STATIC_SOURCES = (("templates/cs2fixes.jsonc", GAMEDATA_PATH),)
 
 
 # Struct member offsets that need to be divided by a factor before writing.

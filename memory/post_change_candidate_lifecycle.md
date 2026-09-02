@@ -44,3 +44,6 @@ source + computed artifact closure -> PR head
 - Neither source publisher can satisfy the required check; the artifact-bearing head must pass normal validation.
 - The trusted plan selects one complete prior source-owned GAMEVER, or explicit `null` for no baseline; bootstrap passes
   that identity explicitly and binds it into the force-all report, candidate manifest, and hosted verification.
+- Release gamedata generation is offline and source-owned: generator baselines live under each module's `templates/`,
+  mutable `DOWNLOAD_SOURCES` are rejected by candidate builds, and the hosted Release verifier fresh-rebuilds from the
+  verified snapshot before comparing every output hash.

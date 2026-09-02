@@ -27,13 +27,9 @@ MODULE_ENABLED = True
 GAMEDATA_PATH = "gamedata/cs2kz-core.games.txt"
 OUTPUT_PATHS = (GAMEDATA_PATH,)
 
-# Upstream download sources: (raw_url, relative_dest_path)
-DOWNLOAD_SOURCES = [
-    (
-        "https://raw.githubusercontent.com/KZGlobalTeam/cs2kz-metamod/master/gamedata/cs2kz-core.games.txt",
-        GAMEDATA_PATH,
-    ),
-]
+# Source-owned upstream baseline; provenance is recorded in templates/upstream.json.
+DOWNLOAD_SOURCES = ()
+STATIC_SOURCES = (("templates/cs2kz-core.games.txt", GAMEDATA_PATH),)
 
 
 def update(yaml_data, func_lib_map, platforms, output_dir, alias_to_name_map, debug=False):

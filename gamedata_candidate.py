@@ -11,6 +11,7 @@ from gamedata_contract import (
     discover_generator_modules,
     gamedata_manifest_sha256,
     generator_contract_sha256,
+    require_source_owned_generator_inputs,
     validate_output_tree,
 )
 from gamesymbol_store import SymbolStoreError
@@ -121,6 +122,8 @@ def build_candidate(
     if version_root.exists():
         raise GamedataCandidateError(f"gamedata candidate output already exists: {version_root}")
     version_root.parent.mkdir(parents=True, exist_ok=True)
+    modules = discover_generator_modules(modules_dir)
+    require_source_owned_generator_inputs(modules)
     result = generate_gamedata(
         gamever=gamever,
         snapshot_path=snapshot,
@@ -129,7 +132,7 @@ def build_candidate(
         output_root=version_root,
         platforms=platforms or ["windows", "linux"],
         debug=debug,
-        download_latest=True,
+        download_latest=False,
         strict=True,
     )
     session = {

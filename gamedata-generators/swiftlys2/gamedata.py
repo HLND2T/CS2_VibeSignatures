@@ -21,17 +21,12 @@ SIGNATURES_PATH = "plugin_files/gamedata/cs2/core/signatures.jsonc"
 OFFSETS_PATH = "plugin_files/gamedata/cs2/core/offsets.jsonc"
 OUTPUT_PATHS = (SIGNATURES_PATH, OFFSETS_PATH)
 
-# Upstream download sources: (raw_url, relative_dest_path)
-DOWNLOAD_SOURCES = [
-    (
-        "https://raw.githubusercontent.com/swiftly-solution/swiftlys2/master/plugin_files/gamedata/cs2/core/offsets.jsonc",
-        OFFSETS_PATH,
-    ),
-    (
-        "https://raw.githubusercontent.com/swiftly-solution/swiftlys2/master/plugin_files/gamedata/cs2/core/signatures.jsonc",
-        SIGNATURES_PATH,
-    ),
-]
+# Source-owned upstream baselines; provenance is recorded in templates/upstream.json.
+DOWNLOAD_SOURCES = ()
+STATIC_SOURCES = (
+    ("templates/offsets.jsonc", OFFSETS_PATH),
+    ("templates/signatures.jsonc", SIGNATURES_PATH),
+)
 
 
 def update(yaml_data, func_lib_map, platforms, output_dir, alias_to_name_map, debug=False):

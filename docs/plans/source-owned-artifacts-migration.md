@@ -14,6 +14,12 @@
 - 步骤 19 的 new-GAMEVER bootstrap drill、non-publishing Release dry run、sandbox BinSync/Release publish、
   Pages CDN byte verification、accepted-bin cleanup receipt 与两次真实 fresh full rebuild 尚无外部验收证据。
 - 两个历史 `gamesymbols/build/14174/*` 远端分支仅完成识别，未获删除授权，保持不变。
+- Release gamedata 已移除 12 个可变 `main`/`master` 下载输入：公开上游基线按不可变 commit 和
+  SHA-256 vendor 到 generator `templates/`，candidate 路径拒绝任何非空 `DOWNLOAD_SOURCES`，hosted
+  Release verifier 使用 verified snapshot + source templates 在 fresh root 重建并逐文件比较。
+- 独立审查仍确认三类未闭环边界：binary identity 尚缺 source-owned per-file lock，BinSync TOML 尚不能仅从
+  Git blobs 重算 Windows lift bias/IDA 语义投影，prospective payload 与 secrets/persisted workspace 的执行隔离
+  需要外部 disposable runner/broker/supervisor 基础设施。
 - 因此本文仍是进行中的迁移记录；在步骤 18–20 的全部门禁与真实外部验收完成前，不得声明迁移完成或可合并。
 
 优先级：P1

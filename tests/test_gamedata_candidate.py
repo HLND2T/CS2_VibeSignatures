@@ -1,6 +1,7 @@
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from gamedata_candidate import (
     GamedataCandidateError,
@@ -129,6 +130,23 @@ class TestGamedataCandidate(unittest.TestCase):
 
             with self.assertRaisesRegex(GamedataCandidateError, "bytes changed"):
                 guard_candidate(fixture.session)
+
+    def test_release_candidate_rejects_mutable_download_sources(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            fixture = GamedataCandidateFixture(Path(tmp))
+            generator = fixture.modules / "fixture" / "gamedata.py"
+            generator.write_text(
+                GENERATOR_SOURCE.replace(
+                    "DOWNLOAD_SOURCES = ()",
+                    'DOWNLOAD_SOURCES = (("https://example.invalid/payload.json", OUTPUT_PATHS[0]),)',
+                ),
+                encoding="utf-8",
+            )
+
+            with patch("gamedata_candidate.generate_gamedata") as generate:
+                with self.assertRaisesRegex(GamedataContractError, "source-owned static inputs"):
+                    fixture.build()
+                generate.assert_not_called()
 
     def test_contract_rejects_forbidden_and_undeclared_outputs(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

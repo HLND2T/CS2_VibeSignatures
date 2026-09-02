@@ -15,8 +15,14 @@ from pathlib import Path, PurePosixPath
 
 from bin_artifact_contract import ArtifactContractError, build_game_artifact_inventory
 from binsync_candidate import BinSyncCandidateError, verify_candidate as verify_binsync_candidate
-from gamedata_candidate import GamedataCandidateError, guard_candidate
+from gamedata_candidate import (
+    GamedataCandidateError,
+    build_candidate as build_gamedata_candidate,
+    compare_gamedata_inventory,
+    guard_candidate,
+)
 from gamedata_contract import (
+    GamedataContractError,
     discover_generator_modules,
     gamedata_manifest_sha256,
     generator_contract_sha256,
@@ -540,6 +546,39 @@ def _verify_archive(archive: Path, expected: dict) -> None:
         raise ReleaseBundleError(f"Release archive content mismatch: {archive.name}")
 
 
+def _verify_gamedata_reproducibility(*, repo_root: Path, bundle_root: Path, manifest: dict) -> None:
+    game_version = manifest["game_version"]
+    snapshot = bundle_root / PurePosixPath(manifest["snapshot"]["path"])
+    with tempfile.TemporaryDirectory(prefix="verify-release-gamedata-") as temporary:
+        temporary_root = Path(temporary)
+        candidate_root = temporary_root / "candidate"
+        session_path = temporary_root / "session.json"
+        try:
+            evidence = build_gamedata_candidate(
+                gamever=game_version,
+                build_id=manifest["build_id"],
+                snapshot=snapshot,
+                analysis_config=repo_root / "configs" / f"{game_version}.yaml",
+                modules_dir=repo_root / "gamedata-generators",
+                candidate_root=candidate_root,
+                session_path=session_path,
+            )
+            difference = compare_gamedata_inventory(
+                session=evidence,
+                expected_files=manifest["gamedata"]["files"],
+            )
+        except (GamedataCandidateError, GamedataContractError, OSError, ValueError) as exc:
+            raise ReleaseBundleError(f"Release gamedata fresh rebuild failed: {exc}") from exc
+    if (
+        not difference.matches
+        or evidence["generator_contract_sha256"] != manifest["gamedata"]["generator_contract_sha256"]
+        or evidence["gamedata_manifest_sha256"] != manifest["gamedata"]["manifest_sha256"]
+    ):
+        changed = [*difference.added, *difference.missing, *(item.path for item in difference.modified)]
+        detail = ", ".join(changed[:10]) or "generator contract or manifest digest"
+        raise ReleaseBundleError(f"Release gamedata is not reproducible from source-owned inputs: {detail}")
+
+
 def validate_release_manifest(manifest: dict) -> None:
     """Validate the canonical public Release manifest schema and identities."""
     required = {
@@ -826,6 +865,7 @@ def verify_release_bundle(
         artifactdir=repo_root / "bin_artifacts",
     )
     _validate_snapshot(bundle_root / PurePosixPath(manifest["snapshot"]["path"]), contract)
+    _verify_gamedata_reproducibility(repo_root=repo_root, bundle_root=bundle_root, manifest=manifest)
     for path, expected in manifest["archives"].items():
         _verify_archive(bundle_root / PurePosixPath(path), expected)
     expected_binaries = _binary_archive_inventory(game_version, manifest["binary_inventory"])
