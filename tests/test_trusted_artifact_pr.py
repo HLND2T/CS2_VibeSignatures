@@ -86,6 +86,7 @@ class TrustedArtifactPrTests(unittest.TestCase):
         add_unconfigured: bool = False,
         changed_path: str | None = None,
         cutover_transition: bool = False,
+        approve_cutover: bool = True,
     ):
         self._git(root, "init", "-b", "main")
         self._git(root, "config", "user.email", "test@example.com")
@@ -98,6 +99,13 @@ class TrustedArtifactPrTests(unittest.TestCase):
                     + (b"bridge" if cutover_transition else b"source-owned")
                     + b"\nartifact_root: bin_artifacts\n"
                     b"artifact_contract_schema_version: 1\n"
+                ),
+                tpc.CUTOVER_MANIFEST_REPO_PATH: tap._canonical_json_bytes(
+                    {
+                        "schema_version": 1,
+                        "excluded_paths": list(tap.CUTOVER_DIGEST_EXCLUDED_PATHS),
+                        "prospective_tree_sha256": "sha256:" + "0" * 64,
+                    }
                 ),
                 ".gitignore": b"bin/\n",
                 "download.yaml": b"downloads:\n  - tag: '1'\n    manifests: {'1': '1'}\n",
@@ -183,6 +191,20 @@ class TrustedArtifactPrTests(unittest.TestCase):
         self._git(root, "commit", "-m", "head")
         head_sha = self._git(root, "rev-parse", "HEAD")
         self._git(root, "switch", "main")
+        if cutover_transition and approve_cutover:
+            approved_digest = tap._repository_tree_digest(tap.GitTreeRepository(root), head_sha)
+            (root / tpc.CUTOVER_MANIFEST_REPO_PATH).write_bytes(
+                tap._canonical_json_bytes(
+                    {
+                        "schema_version": 1,
+                        "excluded_paths": list(tap.CUTOVER_DIGEST_EXCLUDED_PATHS),
+                        "prospective_tree_sha256": approved_digest,
+                    }
+                )
+            )
+            self._git(root, "add", tpc.CUTOVER_MANIFEST_REPO_PATH)
+            self._git(root, "commit", "-m", "approve cutover tree")
+            base_sha = self._git(root, "rev-parse", "HEAD")
         self._git(root, "merge", "--no-ff", "feature", "-m", "prospective merge")
         merge_sha = self._git(root, "rev-parse", "HEAD")
         context = tpc.build_trusted_pr_context(
@@ -224,12 +246,28 @@ class TrustedArtifactPrTests(unittest.TestCase):
 
             self.assertTrue(context["cutover_transition"])
             self.assertTrue(plan["cutover_transition"])
+            self.assertEqual(
+                tap._repository_tree_digest(tap.GitTreeRepository(root), plan["merge_sha"]), plan["cutover_tree_sha256"]
+            )
             self.assertEqual("full", plan["mode"])
             self.assertEqual(["1"], plan["affected_game_versions"])
             version = plan["game_versions"][0]
             self.assertIsNone(version["base_artifacts"])
             self.assertEqual(2, len(version["affected_producer_groups"]))
             self.assertIn("atomic legacy-to-source-owned cutover", version["reasons"])
+
+    def test_bridge_transition_rejects_any_tree_not_preapproved_by_base(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            root.mkdir()
+            _base, _head, _merge, context = self._repository(
+                root,
+                cutover_transition=True,
+                approve_cutover=False,
+            )
+
+            with self.assertRaisesRegex(tap.TrustedArtifactPrError, "not the exact base-approved"):
+                tap.build_trusted_artifact_plan(repo_root=root, trusted_context=context)
 
     def test_isolated_preparation_uses_empty_root_and_exact_force_all_verify_passes(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -414,7 +452,8 @@ class TrustedArtifactPrTests(unittest.TestCase):
                 tap.build_trusted_artifact_plan(repo_root=root, trusted_context=context)
 
     def test_trust_root_change_requires_independent_bridge_update(self) -> None:
-        for changed_path in ("source_artifact_policy.yaml", "binary_lock.py"):
+        self.assertTrue(set(tpc.TRUSTED_FILE_PATHS) <= tap.TRUST_ROOT_PATHS)
+        for changed_path in ("source_artifact_policy.yaml", "binary_lock.py", "source_artifact_schema.py"):
             with self.subTest(changed_path=changed_path), tempfile.TemporaryDirectory() as temporary:
                 root = Path(temporary) / "repo"
                 root.mkdir()

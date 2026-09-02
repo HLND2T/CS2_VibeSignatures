@@ -21,9 +21,11 @@ from trusted_yaml import load_yaml
 
 SCHEMA_VERSION = 2
 POLICY_REPO_PATH = "source_artifact_policy.yaml"
+CUTOVER_MANIFEST_REPO_PATH = "source_artifact_cutover.json"
 SHA_PATTERN = re.compile(r"^[0-9a-f]{40}$")
 TRUSTED_FILE_PATHS = (
     POLICY_REPO_PATH,
+    CUTOVER_MANIFEST_REPO_PATH,
     ".gitmodules",
     "trusted_pr_context.py",
     "trusted_artifact_pr.py",

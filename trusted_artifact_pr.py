@@ -31,7 +31,12 @@ from gamesymbol_snapshot_lib.paths import is_reparse_point, validate_snapshot_ke
 from gamesymbol_snapshot_lib.pr_validation import build_invalidation_plan, required_source_index_sides
 from gamever_baseline import gamever_order_key, select_prior_gamever
 from source_artifact_schema import SymbolArtifactError, canonical_symbol_yaml_bytes
-from trusted_pr_context import load_trusted_pr_context, validate_trusted_pr_context
+from trusted_pr_context import (
+    CUTOVER_MANIFEST_REPO_PATH,
+    TRUSTED_FILE_PATHS,
+    load_trusted_pr_context,
+    validate_trusted_pr_context,
+)
 
 
 PLAN_SCHEMA_VERSION = 3
@@ -64,7 +69,7 @@ SHARED_ANALYSIS_PATHS = frozenset(
     }
 )
 SHARED_ANALYSIS_PREFIXES = ("gamesymbol_snapshot_lib/",)
-TRUST_ROOT_PATHS = frozenset(
+TRUST_ROOT_PATHS = frozenset(TRUSTED_FILE_PATHS) | frozenset(
     {
         "source_artifact_policy.yaml",
         "trusted_pr_context.py",
@@ -83,6 +88,7 @@ TRUST_ROOT_PATHS = frozenset(
         "uv.lock",
     }
 )
+CUTOVER_DIGEST_EXCLUDED_PATHS = (CUTOVER_MANIFEST_REPO_PATH, "source_artifact_policy.yaml")
 
 
 class TrustedArtifactPrError(RuntimeError):
@@ -228,6 +234,40 @@ def _configured_versions(repo: GitTreeRepository, revision: str) -> tuple[str, .
             raise TrustedArtifactPrError(f"configured GAMEVER casefold collision: {previous!r} and {gamever!r}")
         versions.append(gamever)
     return tuple(sorted(versions))
+
+
+def _repository_tree_digest(repo: GitTreeRepository, revision: str) -> str:
+    excluded = set(CUTOVER_DIGEST_EXCLUDED_PATHS)
+    inventory = [
+        {
+            "mode": entry.mode,
+            "object_type": entry.object_type,
+            "object_sha": entry.object_sha,
+            "path": entry.path,
+        }
+        for entry in repo.entries(revision)
+        if entry.path not in excluded
+    ]
+    return _digest("approved-source-owned-cutover-tree", inventory)
+
+
+def _approved_cutover_tree_digest(repo: GitTreeRepository, base_revision: str) -> str:
+    try:
+        raw = repo.read(base_revision, CUTOVER_MANIFEST_REPO_PATH)
+        document = json.loads(raw.decode("utf-8"))
+    except (UnicodeError, json.JSONDecodeError, TrustedArtifactPrError) as exc:
+        raise TrustedArtifactPrError(f"trusted source-owned cutover manifest is invalid: {exc}") from exc
+    if raw != _canonical_json_bytes(document):
+        raise TrustedArtifactPrError("trusted source-owned cutover manifest is not canonical JSON")
+    if (
+        not isinstance(document, dict)
+        or set(document) != {"schema_version", "excluded_paths", "prospective_tree_sha256"}
+        or document.get("schema_version") != 1
+        or document.get("excluded_paths") != list(CUTOVER_DIGEST_EXCLUDED_PATHS)
+        or not re.fullmatch(r"sha256:[0-9a-f]{64}", str(document.get("prospective_tree_sha256", "")))
+    ):
+        raise TrustedArtifactPrError("trusted source-owned cutover manifest fields are invalid")
+    return document["prospective_tree_sha256"]
 
 
 def _validate_repository_tree_namespaces(
@@ -517,6 +557,14 @@ def build_trusted_artifact_plan(*, repo_root: str | Path, trusted_context: dict 
 
     base_versions = _configured_versions(repo, context["base_sha"])
     merge_versions = _configured_versions(repo, context["merge_sha"])
+    cutover_tree_sha256 = None
+    if cutover_transition:
+        approved_cutover_tree_sha256 = _approved_cutover_tree_digest(repo, context["base_sha"])
+        cutover_tree_sha256 = _repository_tree_digest(repo, context["merge_sha"])
+        if cutover_tree_sha256 != approved_cutover_tree_sha256:
+            raise TrustedArtifactPrError(
+                "prospective source-owned cutover tree is not the exact base-approved repository inventory"
+            )
     if cutover_transition and base_versions != merge_versions:
         raise TrustedArtifactPrError("source-owned cutover must preserve the configured GAMEVER set")
     if not cutover_transition:
@@ -751,6 +799,7 @@ def build_trusted_artifact_plan(*, repo_root: str | Path, trusted_context: dict 
         "schema_version": PLAN_SCHEMA_VERSION,
         "event_kind": context["event_kind"],
         "cutover_transition": cutover_transition,
+        "cutover_tree_sha256": cutover_tree_sha256,
         "mode": mode,
         "base_sha": context["base_sha"],
         "head_sha": context["head_sha"],
@@ -808,6 +857,14 @@ def validate_trusted_artifact_plan(document: object) -> dict:
             raise TrustedArtifactPrError(f"trusted artifact plan has an invalid {field}")
     if document.get("mode") not in {"light", "full", "bootstrap_required"}:
         raise TrustedArtifactPrError("trusted artifact plan mode is invalid")
+    cutover_transition = document.get("cutover_transition")
+    cutover_tree_sha256 = document.get("cutover_tree_sha256")
+    if not isinstance(cutover_transition, bool) or (
+        cutover_transition and not re.fullmatch(r"sha256:[0-9a-f]{64}", str(cutover_tree_sha256 or ""))
+    ):
+        raise TrustedArtifactPrError("trusted artifact plan cutover identity is invalid")
+    if not cutover_transition and cutover_tree_sha256 is not None:
+        raise TrustedArtifactPrError("non-cutover trusted artifact plan carries a cutover tree identity")
     versions = document.get("game_versions")
     if not isinstance(versions, list) or any(
         not isinstance(version, dict) or not isinstance(version.get("game_version"), str) for version in versions
