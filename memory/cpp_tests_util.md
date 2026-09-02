@@ -7,12 +7,12 @@ permalink: cs2-vibesignatures/cpp-tests-util
 # cpp_tests_util
 
 ## Overview
-`cpp_tests_util.py` provides reusable helpers for parsing clang vtable dumps and comparing them against YAML-based reference metadata. It is the core comparison engine used by the C++ test runner.
+`cpp_tests_util.py` provides reusable helpers for parsing clang vtable dumps and comparing them against reference metadata from an explicit snapshot `SymbolStore`. It is the core comparison engine used by the C++ test runner.
 
 ## Responsibilities
 - Map target triples to YAML platform names (`windows` / `linux`).
 - Parse `-fdump-vtable-layouts` compiler output into structured per-class entries.
-- Load reference vtable metadata from module-prioritized YAML files.
+- Load reference vtable metadata from module-prioritized entries in the explicit snapshot `SymbolStore`.
 - Compare compiler-derived vtable structure against YAML expectations.
 - Produce human-readable report lines from structured comparison output.
 
@@ -20,7 +20,7 @@ permalink: cs2-vibesignatures/cpp-tests-util
 - cpp_tests_util.py
 - run_cpp_tests.py
 - configs/<GAMEVER>.yaml
-- bin/<gamever>/<module>/<ClassName>_*.{platform}.yaml
+- gamesymbol_store.py / explicit Release-local snapshot candidate derived from `bin_artifacts`
 
 ## Architecture
 High-level flow:
@@ -29,7 +29,7 @@ High-level flow:
 flowchart TD
     A[compiler_output text] --> B[parse_vftable_layouts]
     B --> C[compiler section for class]
-    D[bindir/gamever/modules] --> E[load_reference_vtable_data]
+    D["explicit snapshot SymbolStore"] --> E["load_reference_vtable_data"]
     E --> F[reference metadata]
     C --> G[compare_compiler_vtable_with_yaml]
     F --> G
@@ -41,12 +41,12 @@ flowchart TD
 Key function interactions:
 - `compare_compiler_vtable_with_yaml` orchestrates parsing + reference loading + diff generation.
 - `parse_vftable_layouts` relies on `VFTABLE_HEADER_RE` / `VFTABLE_ENTRY_RE` and `_extract_member_name`.
-- `load_reference_vtable_data` uses `_parse_int_maybe` and `_normalize_reference_member_name`.
+- `load_reference_vtable_data` queries the provided `SymbolStore` and uses `_parse_int_maybe` plus `_normalize_reference_member_name`.
 - `format_vtable_compare_report` renders report dicts for CLI output.
 
 ## Dependencies
 - Python stdlib: `re`, `pathlib.Path`, `typing`.
-- Third-party: `PyYAML` (import is optional at module load; required at runtime for YAML loading).
+- Internal store contract: `gamesymbol_store.SymbolStore`; the CLI opens an explicit canonical snapshot candidate derived from tracked `bin_artifacts`.
 - Input contracts:
   - clang output produced with `-fdump-vtable-layouts`.
   - YAML fields such as `vtable_size`, `vtable_numvfunc`, `vfunc_index`, `func_name`.

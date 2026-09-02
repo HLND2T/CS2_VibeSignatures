@@ -35,7 +35,7 @@ modules:
         category: <vtable|vfunc|func|gv|struct|structmember|patch>
         alias:                     # optional; string or list; downstream gamedata keys
           - <alternate_name>
-        source_alias:              # optional; snapshot YAML filename fallbacks only
+        source_alias:              # optional; source artifact YAML filename fallbacks only
           - <artifact_basename>
         struct: <struct_name>      # required for category=structmember
         member: <member_name>      # required for category=structmember
@@ -64,12 +64,12 @@ cpp_tests:
 - `cpp_tests` (list): Optional compile-based verification tasks consumed by `run_cpp_tests.py`.
 
 ### `modules[]`
-- `name` (string): Canonical module key (also output subdirectory name under `bin/{gamever}/`).
+- `name` (string): Canonical module key (also source artifact subdirectory name under `bin_artifacts/{gamever}/`).
 - `description` (string, optional): Human-readable module annotation sent through the ProcessReporter execution plan and shown in the Web UI. It does not affect analysis behavior.
 - `path_windows` (string): Windows binary path (source-style path). Used to derive file name and download URL; local binary path resolves to `bin/{gamever}/{module}/{filename}`.
 - `path_linux` (string): Linux binary path with the same semantics as `path_windows`.
 - `skills` (list): Ordered-by-dependency skill definitions for `ida_analyze_bin.py`.
-- `symbols` (list): Symbol declarations used by `update_gamedata.py` to load/merge generated YAML and write final gamedata.
+- `symbols` (list): Symbol declarations used by `update_gamedata.py` to load/merge source-owned `bin_artifacts` through an explicit snapshot candidate and write Release-local gamedata.
 
 ### `modules[].skills[]`
 - `name` (string): Skill identifier (e.g. `find-...`). Used as the executable skill key (mapped to `/.<skill>` style invocation and project skill assets).
@@ -94,7 +94,7 @@ cpp_tests:
   - `structmember`
   - `patch`
 - `alias` (string | list[string], optional): Downstream gamedata key(s) for this canonical symbol. Not a snapshot filename.
-- `source_alias` (string | list[string], optional): Extra snapshot YAML basenames tried after `{name}.{platform}.yaml`. Never becomes a downstream key. Forbidden on `category=struct`.
+- `source_alias` (string | list[string], optional): Extra source artifact YAML basenames tried after `{name}.{platform}.yaml`. Never becomes a downstream key. Forbidden on `category=struct`.
 - `struct` (string, required when `category=structmember`): Parent struct name.
 - `member` (string, required when `category=structmember`): Target member name inside the struct.
 
@@ -123,6 +123,6 @@ Downstream vs artifact aliases, overlays, and patch compat: see [[gamedata_alias
   - If omitted/empty, comparison still runs but reference YAML is typically not found.
 
 ## Practical notes
-- Skill artifact paths are generally treated as filenames under the active module binary folder (`bin/{gamever}/{module}/...`), with `{platform}` expanded at runtime.
+- Skill artifact paths are filenames under the active source artifact folder (`bin_artifacts/{gamever}/{module}/...`), with `{platform}` expanded at runtime. Binary inputs remain under `bin/{gamever}/{module}/`.
 - `expected_output` is strongly recommended for reliable skip/success behavior.
 - `run_cpp_tests.py` also accepts `additional_compile_options` as a compatibility alias, but this config uses `additional_compiler_options`.

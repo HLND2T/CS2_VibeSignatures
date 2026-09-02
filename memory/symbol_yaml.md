@@ -7,7 +7,7 @@ permalink: cs2-vibesignatures/symbol-yaml
 # symbol_yaml
 
 ## Overview
-`{symbol}.{platform}.yaml` files under `bin/<gamever>/<module>/` store per-symbol binary metadata for function signatures, virtual-table data, global-variable signatures, patch metadata, and struct-member offsets.
+`{symbol}.{platform}.yaml` files under tracked `bin_artifacts/<gamever>/<module>/` store source-owned per-symbol binary metadata for function signatures, virtual-table data, global-variable signatures, patch metadata, and struct-member offsets.
 
 ## Scope
 - Naming pattern: `{symbol}.{platform}.yaml`
@@ -74,7 +74,7 @@ permalink: cs2-vibesignatures/symbol-yaml
 - Downstream consumers: `gamedata-generators/*/gamedata.py` (notably consumes `func_sig`, `vfunc_index`, `struct_member_offset`, `patch_bytes`).
 
 ## Notes
-- `offset_sig_disp` exists in writer/preprocess schema but was not observed in current `bin/` files.
+- `offset_sig_disp` exists in writer/preprocess schema but was not observed in the tracked `bin_artifacts/` inventory.
 - `vtable_symbol` is optional in practice (present in older subsets, absent in some newer vtable files).
 
 

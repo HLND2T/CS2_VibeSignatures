@@ -11,7 +11,7 @@ permalink: cs2-vibesignatures/generate-reference-yaml
 
 ## Responsibilities
 - Parse CLI arguments, enforce `-binary` / `-auto_start_mcp` pairing, and infer missing `gamever` / `module` / `platform` from the current IDA binary when possible.
-- Resolve function VA by preferring existing `bin/<gamever>/<module>/<func_name>.<platform>.yaml` metadata, otherwise loading symbol aliases from `configs/<GAMEVER>.yaml` and querying IDA names.
+- Resolve function VA by preferring existing `bin_artifacts/<gamever>/<module>/<func_name>.<platform>.yaml` metadata, otherwise loading symbol aliases from `configs/<GAMEVER>.yaml` and querying IDA names.
 - Manage MCP connection modes (attach existing MCP or auto-start `idalib-mcp`), export `func_name` / `func_va` / `disasm_code` / `procedure`, validate payload shape, and persist the output YAML.
 
 ## Involved Files & Symbols
@@ -25,7 +25,7 @@ permalink: cs2-vibesignatures/generate-reference-yaml
 The module is structured as a thin CLI orchestrator plus small helper layers:
 - Input normalization / validation: `_normalize_non_empty_text`, `_normalize_address_text`, `_validate_reference_yaml_payload`
 - Target inference: `resolve_generation_target` fills missing CLI fields from IDA survey metadata and `infer_target_from_binary_path`
-- Function address resolution: `resolve_func_va` first reads current-version YAML, then falls back to `configs/<GAMEVER>.yaml` aliases + IDA name lookup
+- Function address resolution: `resolve_func_va` first reads the current source-owned artifact YAML, then falls back to `configs/<GAMEVER>.yaml` aliases + IDA name lookup
 - MCP export: `export_reference_payload_via_mcp` runs `py_eval` inside IDA to gather disassembly and optional decompiled pseudocode
 - Session lifecycle: `_open_mcp_session` handles HTTP MCP setup; attach and auto-start modes wrap it with health check / process lifecycle management
 - Output: `write_reference_yaml` writes a minimal ordered YAML mapping using `LiteralDumper`
@@ -43,7 +43,7 @@ G --> H["infer_target_from_binary_path()"]
 F -->|yes| I["use explicit CLI target"]
 H --> J["resolve_func_va()"]
 I --> J
-J --> K{"existing bin YAML has func_va?"}
+J --> K{"existing tracked artifact has func_va?"}
 K -->|yes| L["load_existing_func_va()"]
 K -->|no| M["load_symbol_aliases() + find_function_addr_by_names()"]
 L --> N["export_reference_payload_via_mcp()"]
@@ -55,7 +55,7 @@ O --> P["ida_preprocessor_scripts/references/<module>/<func_name>.<platform>.yam
 ## Dependencies
 - Python libraries: `yaml`, optional `httpx`, `mcp.ClientSession`, `mcp.client.streamable_http.streamable_http_client`
 - Internal helpers: `ida_analyze_util.parse_mcp_result`, `ida_analyze_bin` wrappers for MCP health checks, binary survey, and `idalib-mcp` lifecycle
-- Repository data: `configs/<GAMEVER>.yaml`, `bin/<gamever>/<module>/<func_name>.<platform>.yaml`, output directory `ida_preprocessor_scripts/references/`
+- Repository data: `configs/<GAMEVER>.yaml`, `bin_artifacts/<gamever>/<module>/<func_name>.<platform>.yaml`, output directory `ida_preprocessor_scripts/references/`
 - IDA-side APIs invoked through `py_eval`: `ida_funcs`, `ida_name`, `idaapi`, `ida_lines`, `ida_segment`, `idautils`, `idc`, optional `ida_hexrays`
 
 ## Notes
