@@ -6,6 +6,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from binsync_projection import build_source_projection
+
 SCRIPT = Path("push_binsync_symbols.py")
 SPEC = importlib.util.spec_from_file_location("push_binsync_symbols", SCRIPT)
 push_binsync_symbols = importlib.util.module_from_spec(SPEC)
@@ -138,6 +140,30 @@ class TestCollectManifestSymbols(unittest.TestCase):
             self.assertEqual(push_binsync_symbols._first_segment_lift_bias(pe_0x1000), 0x1000)
             self.assertEqual(push_binsync_symbols._first_segment_lift_bias(pe_0x2000), 0x2000)
             self.assertEqual(push_binsync_symbols._first_segment_lift_bias(elf), 0)
+
+    def test_source_projection_aggregates_split_module_declarations(self) -> None:
+        config = (
+            "modules:\n"
+            "  - name: server\n"
+            "    symbols:\n"
+            "      - {name: A, category: func}\n"
+            "  - name: server\n"
+            "    symbols:\n"
+            "      - {name: B, category: gv}\n"
+        ).encode()
+        artifacts = {
+            "bin_artifacts/1/server/A.windows.yaml": b"func_name: A\nfunc_rva: '0x10'\n",
+            "bin_artifacts/1/server/B.windows.yaml": b"gv_name: B\ngv_rva: '0x20'\n",
+        }
+
+        projection = build_source_projection(
+            game_version="1",
+            config_payload=config,
+            targets=[{"module": "server", "platform": "windows", "repository_id": "owner__repo"}],
+            read_artifact=artifacts.get,
+        )
+
+        self.assertEqual(["A", "B"], [entry["symbol"] for entry in projection["entries"]])
 
     def test_build_manifest_writes_json(self) -> None:
         entries = {"functions": [1, 2, 3], "globals": [4]}

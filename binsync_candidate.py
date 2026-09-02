@@ -14,7 +14,16 @@ import tomllib
 from pathlib import Path, PurePosixPath
 
 from binary_hashing import hash_file
-from bin_artifact_contract import ArtifactContractError, build_game_artifact_inventory
+from bin_artifact_contract import (
+    ArtifactContractError,
+    build_game_artifact_inventory,
+    load_game_artifact_git_blobs,
+)
+from binsync_projection import (
+    BinSyncProjectionError,
+    build_source_projection,
+    validate_source_projection,
+)
 from gamesymbol_snapshot_lib.config import SnapshotConfigError, load_contract
 from init_gamebin import (
     BINSYNC_ROOT_BRANCH,
@@ -39,7 +48,7 @@ from release_workflow_lib.hashing import (
     write_canonical_json,
 )
 
-CANDIDATE_SCHEMA_VERSION = 2
+CANDIDATE_SCHEMA_VERSION = 3
 MANIFEST_NAME = "manifest.json"
 CHECKSUMS_NAME = "SHA256SUMS.txt"
 ROOT_REF = f"refs/heads/{BINSYNC_ROOT_BRANCH}"
@@ -466,6 +475,48 @@ def _source_blob(repo_root: Path, source_sha: str, path: str) -> bytes:
     return _git_bytes(repo_root, "cat-file", "blob", f"{source_sha}:{path}")
 
 
+def _build_source_projection(
+    *,
+    repo_root: Path,
+    source_sha: str,
+    game_version: str,
+    repositories: list[dict],
+    artifact_inventory,
+) -> dict:
+    artifact_paths = {item.path for item in artifact_inventory.files}
+    try:
+        artifact_blobs = load_game_artifact_git_blobs(
+            repo_root=repo_root,
+            game_version=game_version,
+            git_revision=source_sha,
+        )
+    except ArtifactContractError as exc:
+        raise BinSyncCandidateError(f"unable to load BinSync source projection blobs: {exc}") from exc
+    if set(artifact_blobs) != artifact_paths:
+        raise BinSyncCandidateError("BinSync source projection blob inventory mismatch")
+
+    def read_artifact(path: str) -> bytes | None:
+        return artifact_blobs.get(path)
+
+    targets = [
+        {
+            "module": repository["binary"]["module"],
+            "platform": repository["binary"]["platform"],
+            "repository_id": repository["repository_id"],
+        }
+        for repository in repositories
+    ]
+    try:
+        return build_source_projection(
+            game_version=game_version,
+            config_payload=_source_blob(repo_root, source_sha, f"configs/{game_version}.yaml"),
+            targets=targets,
+            read_artifact=read_artifact,
+        )
+    except (BinSyncProjectionError, ReleaseWorkflowError) as exc:
+        raise BinSyncCandidateError(f"unable to build BinSync source projection: {exc}") from exc
+
+
 def _binary_entries(binary_inventory: dict) -> list[dict]:
     entries = []
     if not isinstance(binary_inventory, dict) or not binary_inventory:
@@ -656,6 +707,7 @@ def build_candidate(
             game_version=game_version,
             artifact_root=repo_root / "bin_artifacts",
             require_tracked=True,
+            git_revision=source_sha,
         )
     except (SnapshotConfigError, ArtifactContractError) as exc:
         raise BinSyncCandidateError(f"unable to bind source-owned artifact identity: {exc}") from exc
@@ -685,6 +737,13 @@ def build_candidate(
         "binary_inventory_sha256"
     ):
         raise BinSyncCandidateError("release preparation binary inventory digest mismatch")
+    source_projection = _build_source_projection(
+        repo_root=repo_root,
+        source_sha=source_sha,
+        game_version=game_version,
+        repositories=repositories,
+        artifact_inventory=artifact_inventory,
+    )
 
     checksums_payload = _write_checksums(candidate_root / CHECKSUMS_NAME, repositories)
     document = {
@@ -700,6 +759,7 @@ def build_candidate(
         "artifact_inventory_sha256": artifact_inventory.inventory_sha256,
         "binary_inventory_sha256": preparation["binary_inventory_sha256"],
         "ida_runtime_identity": ida_runtime_identity,
+        "source_projection": source_projection,
         "repositories": repositories,
         "checksum_file": {
             "path": CHECKSUMS_NAME,
@@ -707,7 +767,7 @@ def build_candidate(
             "sha256": sha256_bytes(checksums_payload),
         },
     }
-    document["publication_digest"] = _digest("binsync-publication-candidate:v1", document)
+    document["publication_digest"] = _digest("binsync-publication-candidate:v2", document)
     write_canonical_json(candidate_root / MANIFEST_NAME, document)
     verify_candidate(
         candidate_root=candidate_root,
@@ -841,6 +901,7 @@ def _validate_manifest(document: dict) -> None:
         "artifact_inventory_sha256",
         "binary_inventory_sha256",
         "ida_runtime_identity",
+        "source_projection",
         "repositories",
         "checksum_file",
         "publication_digest",
@@ -861,6 +922,10 @@ def _validate_manifest(document: dict) -> None:
             raise BinSyncCandidateError(f"BinSync candidate {field} is invalid")
     if not isinstance(document["sdk_gitlink_sha"], str) or not SHA_RE.fullmatch(document["sdk_gitlink_sha"]):
         raise BinSyncCandidateError("BinSync candidate SDK gitlink is invalid")
+    try:
+        projection = validate_source_projection(document["source_projection"])
+    except BinSyncProjectionError as exc:
+        raise BinSyncCandidateError(str(exc)) from exc
 
     repositories = document["repositories"]
     if not isinstance(repositories, list) or not repositories:
@@ -874,6 +939,15 @@ def _validate_manifest(document: dict) -> None:
     ids = [item["repository_id"].casefold() for item in repositories]
     if len(ids) != len(set(ids)):
         raise BinSyncCandidateError("BinSync candidate repository IDs collide")
+    projection_targets = {
+        item["repository_id"]: (item["binary"]["module"], item["binary"]["platform"]) for item in repositories
+    }
+    projection_prefix = f"bin_artifacts/{document['game_version']}/"
+    for entry in projection["entries"]:
+        if projection_targets.get(entry["repository_id"]) != (entry["module"], entry["platform"]):
+            raise BinSyncCandidateError("BinSync source projection repository target mismatch")
+        if not entry["artifact_path"].startswith(projection_prefix):
+            raise BinSyncCandidateError("BinSync source projection GAMEVER mismatch")
 
     checksum = document["checksum_file"]
     if not isinstance(checksum, dict):
@@ -887,7 +961,7 @@ def _validate_manifest(document: dict) -> None:
         raise BinSyncCandidateError("BinSync candidate checksum SHA-256 is invalid")
     unsigned = dict(document)
     publication_digest = unsigned.pop("publication_digest", None)
-    if publication_digest != _digest("binsync-publication-candidate:v1", unsigned):
+    if publication_digest != _digest("binsync-publication-candidate:v2", unsigned):
         raise BinSyncCandidateError("BinSync candidate publication digest mismatch")
 
 
@@ -905,6 +979,7 @@ def _verify_source_identity(repo_root: Path, document: dict) -> None:
             game_version=game_version,
             artifact_root=repo_root / "bin_artifacts",
             require_tracked=True,
+            git_revision=source_sha,
         )
     except (SnapshotConfigError, ArtifactContractError) as exc:
         raise BinSyncCandidateError(f"hosted source artifact verification failed: {exc}") from exc
@@ -935,6 +1010,15 @@ def _verify_source_identity(repo_root: Path, document: dict) -> None:
         expected_name = f"CS2_VibeSignatures_binsync_{game_version}_{PurePosixPath(repository['binary']['path']).name}"
         if repository["name"] != expected_name:
             raise BinSyncCandidateError(f"hosted verifier repository allowlist mismatch: {repository['name']}")
+    expected_projection = _build_source_projection(
+        repo_root=repo_root,
+        source_sha=source_sha,
+        game_version=game_version,
+        repositories=repositories,
+        artifact_inventory=artifact_inventory,
+    )
+    if expected_projection != document["source_projection"]:
+        raise BinSyncCandidateError("hosted verifier source projection mismatch")
 
 
 def verify_candidate(

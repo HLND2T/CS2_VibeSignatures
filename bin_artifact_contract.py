@@ -225,6 +225,12 @@ def _git_blob_entries(repo_root: Path, prefix: str, revision: str | None) -> dic
     return blobs
 
 
+def load_game_artifact_git_blobs(*, repo_root: str | Path, game_version: str, git_revision: str) -> dict[str, bytes]:
+    """Load one GAMEVER's exact artifact blobs from an immutable Git revision."""
+    root = Path(os.path.abspath(repo_root))
+    return _git_blob_entries(root, f"bin_artifacts/{game_version}/", git_revision)
+
+
 def _reject_reparse_components(path: Path) -> None:
     for component in (path, *path.parents):
         if is_reparse_point(component):

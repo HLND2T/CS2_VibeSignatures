@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import json
 import subprocess
 import tempfile
@@ -154,6 +155,53 @@ class BinSyncCandidateTests(unittest.TestCase):
             self.assertTrue(all(item["relationship"] == "create" for item in manifest["repositories"][0]["refs"]))
             user_ref = next(item for item in manifest["repositories"][0]["refs"] if item["ref"] != candidate.ROOT_REF)
             self.assertEqual(1, len(user_ref["new_commits"]))
+            projection = manifest["source_projection"]
+            self.assertEqual(1, projection["schema_version"])
+            self.assertEqual(
+                [
+                    {
+                        "artifact_path": "bin_artifacts/1/server/A.windows.yaml",
+                        "artifact_sha256": "sha256:"
+                        + candidate.sha256_file(root / "bin_artifacts" / "1" / "server" / "A.windows.yaml"),
+                        "category": "func",
+                        "module": "server",
+                        "platform": "windows",
+                        "repository_id": "HLND2T__CS2_VibeSignatures_binsync_1_server.dll",
+                        "source_rva": 0x10,
+                        "symbol": "A",
+                    }
+                ],
+                projection["entries"],
+            )
+
+    def test_hosted_verifier_recomputes_source_projection_from_git_blobs(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            temporary_root = Path(temporary)
+            root = temporary_root / "repo"
+            root.mkdir()
+            _source_sha, preparation, _binsync_repo = self._repository(root)
+            destination = temporary_root / "candidate"
+            manifest = self._build(root, preparation, destination)
+            forged = copy.deepcopy(manifest)
+            forged["source_projection"]["entries"][0]["source_rva"] += 1
+            projection_unsigned = {
+                "schema_version": forged["source_projection"]["schema_version"],
+                "entries": forged["source_projection"]["entries"],
+            }
+            forged["source_projection"]["digest"] = candidate._digest(
+                "binsync-source-projection:v1",
+                projection_unsigned,
+            )
+            manifest_unsigned = dict(forged)
+            manifest_unsigned.pop("publication_digest")
+            forged["publication_digest"] = candidate._digest(
+                "binsync-publication-candidate:v2",
+                manifest_unsigned,
+            )
+            candidate.write_canonical_json(destination / "manifest.json", forged)
+
+            with self.assertRaisesRegex(candidate.BinSyncCandidateError, "source projection mismatch"):
+                candidate.verify_candidate(candidate_root=destination, repo_root=root)
 
     def test_build_rejects_non_fast_forward_remote_head(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

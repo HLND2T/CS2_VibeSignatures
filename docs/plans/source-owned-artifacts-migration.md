@@ -17,9 +17,12 @@
 - Release gamedata 已移除 12 个可变 `main`/`master` 下载输入：公开上游基线按不可变 commit 和
   SHA-256 vendor 到 generator `templates/`，candidate 路径拒绝任何非空 `DOWNLOAD_SOURCES`，hosted
   Release verifier 使用 verified snapshot + source templates 在 fresh root 重建并逐文件比较。
+- BinSync candidate schema v3 已绑定 source selection projection：记录 repository/module/platform/category/symbol、
+  artifact Git blob digest 与 raw RVA；local exporter 与 hosted verifier 复用同一 projection builder，hosted 从
+  immutable source SHA 的 Git blobs 批量重算并拒绝篡改。
 - 独立审查仍确认三类未闭环边界：binary identity 尚缺 source-owned per-file lock，BinSync TOML 尚不能仅从
-  Git blobs 重算 Windows lift bias/IDA 语义投影，prospective payload 与 secrets/persisted workspace 的执行隔离
-  需要外部 disposable runner/broker/supervisor 基础设施。
+  Git blobs 证明 Windows lift bias 及 IDA-lowered TOML 语义，prospective payload 与 secrets/persisted workspace
+  的执行隔离需要外部 disposable runner/broker/supervisor 基础设施。
 - 因此本文仍是进行中的迁移记录；在步骤 18–20 的全部门禁与真实外部验收完成前，不得声明迁移完成或可合并。
 
 优先级：P1

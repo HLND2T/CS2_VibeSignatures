@@ -17,11 +17,10 @@ import sys
 import tempfile
 from pathlib import Path
 
-import yaml
-
 REPOSITORY_ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(REPOSITORY_ROOT))
 
+from binsync_projection import build_source_projection  # noqa: E402
 from init_gamebin import (  # noqa: E402
     BINSYNC_ROOT_BRANCH,
     GITHUB_OWNER,
@@ -38,10 +37,6 @@ from init_gamebin import (  # noqa: E402
 )
 from binsync_candidate import BinSyncCandidateError, _digest, _remote_heads, build_candidate  # noqa: E402
 from release_workflow_lib.hashing import write_canonical_json  # noqa: E402
-
-# Symbol categories that map to a BinSync function vs. global-variable artifact.
-FUNCTION_CATEGORIES = frozenset({"func", "vfunc"})
-GLOBAL_CATEGORIES = frozenset({"gv"})
 
 # Mirror the exact imports headless_force_push.py performs, so a passing probe
 # guarantees the push script can actually start in the same interpreter.
@@ -169,13 +164,10 @@ def collect_manifest_symbols(
     section's RVA on Windows (0x1000 here) before the manifest is built.
     Types, segments, and undeclared functions/globals are deliberately excluded.
     """
-    document = load_yaml_document(config_path, "analysis config")
-    modules = document.get("modules") or []
-    manifest: dict[str, dict[str, list[int]]] = {}
-    artifact_game_root = (artifact_root or (root / "bin_artifacts")) / gamever
-
+    load_yaml_document(config_path, "analysis config")
+    targets = []
+    lift_biases: dict[tuple[str, str], int] = {}
     for module_name, platform, binary_path in iter_configured_binaries(root, gamever, config_path):
-        module_dir = artifact_game_root / module_name
         try:
             lift_bias = _first_segment_lift_bias(binary_path)
         except ValueError as exc:
@@ -184,44 +176,45 @@ def collect_manifest_symbols(
                 file=sys.stderr,
             )
             continue
-        functions: list[int] = []
-        globals: list[int] = []
+        binary_name = binary_path.name
+        targets.append(
+            {
+                "module": module_name,
+                "platform": platform,
+                "repository_id": f"{GITHUB_OWNER}__CS2_VibeSignatures_binsync_{gamever}_{binary_name}",
+            }
+        )
+        lift_biases[(module_name, platform)] = lift_bias
 
-        for module in modules:
-            if module.get("name") != module_name:
-                continue
-            for symbol in module.get("symbols") or []:
-                category = symbol.get("category")
-                symbol_name = symbol.get("name")
-                if not isinstance(symbol_name, str) or category not in FUNCTION_CATEGORIES | GLOBAL_CATEGORIES:
-                    continue
-                symbol_platform = symbol.get("platform")
-                if symbol_platform and symbol_platform != platform:
-                    continue
+    artifact_root = artifact_root or (root / "bin_artifacts")
+    artifact_prefix = f"bin_artifacts/{gamever}/"
 
-                yaml_path = module_dir / f"{symbol_name}.{platform}.yaml"
-                try:
-                    data = yaml.safe_load(yaml_path.read_text(encoding="utf-8")) or {}
-                except (OSError, yaml.YAMLError):
-                    continue
+    def read_artifact(path: str) -> bytes | None:
+        if not path.startswith(artifact_prefix):
+            raise ValueError(f"projected artifact is outside GAMEVER {gamever}: {path}")
+        target = artifact_root / gamever / Path(*path.removeprefix(artifact_prefix).split("/"))
+        try:
+            return target.read_bytes()
+        except FileNotFoundError:
+            return None
 
-                key = "func_rva" if category in FUNCTION_CATEGORIES else "gv_rva"
-                raw = data.get(key)
-                try:
-                    addr = int(str(raw), 0)
-                except (TypeError, ValueError):
-                    continue
-                # Convert the YAML rva (relative to image base / vaddr 0) to the
-                # declib lifted key (relative to the first IDA segment) so BinSync
-                # finds the artifact by address. No-op on Linux (bias 0).
-                addr -= lift_bias
-                (functions if category in FUNCTION_CATEGORIES else globals).append(addr)
-
-        manifest[f"{module_name}/{platform}"] = {
-            "functions": sorted(set(functions)),
-            "globals": sorted(set(globals)),
-        }
-
+    projection = build_source_projection(
+        game_version=gamever,
+        config_payload=config_path.read_bytes(),
+        targets=targets,
+        read_artifact=read_artifact,
+    )
+    manifest = {f"{target['module']}/{target['platform']}": {"functions": [], "globals": []} for target in targets}
+    for entry in projection["entries"]:
+        key = (entry["module"], entry["platform"])
+        address = entry["source_rva"] - lift_biases[key]
+        if address < 0:
+            raise ValueError(f"projected source RVA is below the first segment: {entry['artifact_path']}")
+        bucket = "globals" if entry["category"] == "gv" else "functions"
+        manifest[f"{entry['module']}/{entry['platform']}"][bucket].append(address)
+    for entries in manifest.values():
+        entries["functions"] = sorted(set(entries["functions"]))
+        entries["globals"] = sorted(set(entries["globals"]))
     return manifest
 
 
