@@ -69,8 +69,23 @@ class BinSyncCandidateTests(unittest.TestCase):
         init_gamebin.initialize_minimal_binsync_repo(binsync_repo, binary_md5, repo_name, "TestUser")
         self._git(binsync_repo, "remote", "add", "origin", f"https://github.com/HLND2T/{repo_name}")
         self._git(binsync_repo, "switch", "binsync/TestUser")
-        (binsync_repo / "symbols.toml").write_text("symbols = []\n", encoding="utf-8")
-        self._git(binsync_repo, "add", "symbols.toml")
+        (binsync_repo / "metadata.toml").write_text('user = "TestUser"\nversion = "5.15.3"\n', encoding="utf-8")
+        for name in (
+            "comments.toml",
+            "enums.toml",
+            "global_vars.toml",
+            "patches.toml",
+            "segments.toml",
+            "typedefs.toml",
+        ):
+            (binsync_repo / name).write_text("", encoding="utf-8")
+        function = binsync_repo / "functions" / "00000010.toml"
+        function.parent.mkdir()
+        function.write_text(
+            'addr = 0x10\nsize = 0x1\nname = "A"\n\n[header]\nname = "A"\naddr = 0x10\n\n[header.args]\n',
+            encoding="utf-8",
+        )
+        self._git(binsync_repo, "add", ".")
         self._git(
             binsync_repo,
             "-c",
@@ -137,6 +152,8 @@ class BinSyncCandidateTests(unittest.TestCase):
                 sorted(item["ref"] for item in manifest["repositories"][0]["refs"]),
             )
             self.assertTrue(all(item["relationship"] == "create" for item in manifest["repositories"][0]["refs"]))
+            user_ref = next(item for item in manifest["repositories"][0]["refs"] if item["ref"] != candidate.ROOT_REF)
+            self.assertEqual(1, len(user_ref["new_commits"]))
 
     def test_build_rejects_non_fast_forward_remote_head(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -176,6 +193,66 @@ class BinSyncCandidateTests(unittest.TestCase):
             )
 
             with self.assertRaisesRegex(candidate.BinSyncCandidateError, "publication allowlist"):
+                self._build(root, preparation, temporary_root / "candidate")
+
+    def test_build_rejects_payload_hidden_in_intermediate_commit(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            temporary_root = Path(temporary)
+            root = temporary_root / "repo"
+            root.mkdir()
+            _source_sha, preparation, binsync_repo = self._repository(root)
+            payload = binsync_repo / "arbitrary-payload.txt"
+            payload.write_text("secret\n", encoding="utf-8")
+            self._git(binsync_repo, "add", "arbitrary-payload.txt")
+            self._git(
+                binsync_repo,
+                "-c",
+                "user.name=TestUser",
+                "-c",
+                "user.email=TestUser@binsync.local",
+                "commit",
+                "-m",
+                "Add hidden payload",
+            )
+            payload.unlink()
+            self._git(binsync_repo, "add", "-u")
+            self._git(
+                binsync_repo,
+                "-c",
+                "user.name=TestUser",
+                "-c",
+                "user.email=TestUser@binsync.local",
+                "commit",
+                "-m",
+                "Remove hidden payload",
+            )
+
+            with self.assertRaisesRegex(candidate.BinSyncCandidateError, "publication allowlist"):
+                self._build(root, preparation, temporary_root / "candidate")
+
+    def test_build_rejects_invalid_binsync_toml_semantics(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            temporary_root = Path(temporary)
+            root = temporary_root / "repo"
+            root.mkdir()
+            _source_sha, preparation, binsync_repo = self._repository(root)
+            (binsync_repo / "metadata.toml").write_text(
+                'user = "WrongUser"\nversion = "5.15.3"\nsecret = "payload"\n',
+                encoding="utf-8",
+            )
+            self._git(binsync_repo, "add", "metadata.toml")
+            self._git(
+                binsync_repo,
+                "-c",
+                "user.name=TestUser",
+                "-c",
+                "user.email=TestUser@binsync.local",
+                "commit",
+                "-m",
+                "Forge metadata",
+            )
+
+            with self.assertRaisesRegex(candidate.BinSyncCandidateError, "metadata TOML"):
                 self._build(root, preparation, temporary_root / "candidate")
 
     def test_verify_rejects_bundle_tamper_and_unexpected_files(self) -> None:

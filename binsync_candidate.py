@@ -10,6 +10,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import tomllib
 from pathlib import Path, PurePosixPath
 
 from binary_hashing import hash_file
@@ -38,7 +39,7 @@ from release_workflow_lib.hashing import (
     write_canonical_json,
 )
 
-CANDIDATE_SCHEMA_VERSION = 1
+CANDIDATE_SCHEMA_VERSION = 2
 MANIFEST_NAME = "manifest.json"
 CHECKSUMS_NAME = "SHA256SUMS.txt"
 ROOT_REF = f"refs/heads/{BINSYNC_ROOT_BRANCH}"
@@ -50,7 +51,21 @@ MD5_RE = re.compile(r"^[0-9a-f]{32}$")
 REPOSITORY_COMPONENT_RE = re.compile(r"^[A-Za-z0-9_.-]+$")
 ARTIFACT_NAME_RE = re.compile(r"^[A-Za-z0-9_.-]{1,240}$")
 ROOT_TREE_PATHS = frozenset({".gitignore", "binary_hash"})
-USER_TREE_PATHS = frozenset({".gitignore", "binary_hash", "symbols.toml"})
+USER_REQUIRED_TREE_PATHS = frozenset(
+    {
+        ".gitignore",
+        "binary_hash",
+        "comments.toml",
+        "enums.toml",
+        "global_vars.toml",
+        "metadata.toml",
+        "patches.toml",
+        "segments.toml",
+        "typedefs.toml",
+    }
+)
+FUNCTION_TOML_RE = re.compile(r"^functions/([0-9a-f]{8,16})\.toml$")
+STRUCT_TOML_RE = re.compile(r"^structs/[^/]+\.toml$")
 
 
 class BinSyncCandidateError(Exception):
@@ -226,6 +241,93 @@ def _bundle_heads(bundle: Path) -> dict[str, str]:
     return heads
 
 
+def _load_binsync_toml(payload: bytes, path: str) -> dict:
+    try:
+        document = tomllib.loads(payload.decode("utf-8"))
+    except (UnicodeError, tomllib.TOMLDecodeError) as exc:
+        raise BinSyncCandidateError(f"BinSync tree contains invalid TOML: {path}") from exc
+    if not isinstance(document, dict):
+        raise BinSyncCandidateError(f"BinSync TOML top level is not a mapping: {path}")
+    return document
+
+
+def _toml_address(value: object, *, path: str, field: str) -> int:
+    if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+        raise BinSyncCandidateError(f"BinSync TOML {path} has invalid {field}")
+    return value
+
+
+def _validate_address_table(document: dict, *, path: str, kind: str) -> None:
+    for key, value in document.items():
+        try:
+            address = int(key, 0)
+        except (TypeError, ValueError) as exc:
+            raise BinSyncCandidateError(f"BinSync {kind} table has an invalid address key: {path}:{key}") from exc
+        if address < 0 or not isinstance(value, dict):
+            raise BinSyncCandidateError(f"BinSync {kind} table has an invalid entry: {path}:{key}")
+        if _toml_address(value.get("addr"), path=path, field="addr") != address:
+            raise BinSyncCandidateError(f"BinSync {kind} address does not match its table key: {path}:{key}")
+        if kind == "comment":
+            allowed = {"last_change", "addr", "func_addr", "comment", "decompiled"}
+            if set(value) - allowed:
+                raise BinSyncCandidateError(f"BinSync comment entry has unexpected fields: {path}:{key}")
+            _toml_address(value.get("func_addr"), path=path, field="func_addr")
+            if not isinstance(value.get("comment"), str) or not isinstance(value.get("decompiled"), bool):
+                raise BinSyncCandidateError(f"BinSync comment entry has invalid content: {path}:{key}")
+        elif kind == "global":
+            allowed = {"last_change", "addr", "name", "type", "size"}
+            if set(value) - allowed or not isinstance(value.get("name"), str):
+                raise BinSyncCandidateError(f"BinSync global entry has unexpected fields: {path}:{key}")
+            _toml_address(value.get("size"), path=path, field="size")
+
+
+def _validate_binsync_tree_blob(ref: str, path: str, payload: bytes) -> None:
+    if path == ".gitignore":
+        if payload != b".git/*\n":
+            raise BinSyncCandidateError(f"BinSync tree has a noncanonical .gitignore on {ref}")
+        return
+    if path == "binary_hash":
+        if not MD5_RE.fullmatch(payload.decode("ascii", errors="ignore")):
+            raise BinSyncCandidateError(f"BinSync tree has an invalid binary_hash on {ref}")
+        return
+    if ref == ROOT_REF:
+        raise BinSyncCandidateError(f"BinSync root tree contains an unexpected file: {path}")
+
+    function_match = FUNCTION_TOML_RE.fullmatch(path)
+    if path not in USER_REQUIRED_TREE_PATHS and not function_match and not STRUCT_TOML_RE.fullmatch(path):
+        raise BinSyncCandidateError(f"BinSync commit tree violates the publication allowlist for {ref}: {path}")
+
+    document = _load_binsync_toml(payload, path)
+    if path == "metadata.toml":
+        if set(document) != {"user", "version"} or not all(isinstance(document[key], str) for key in document):
+            raise BinSyncCandidateError("BinSync metadata TOML is invalid")
+        if document["user"] != ref.removeprefix(REF_PREFIX) or not document["version"]:
+            raise BinSyncCandidateError("BinSync metadata does not match its publication ref")
+        return
+    if function_match:
+        allowed = {"last_change", "addr", "size", "name", "type", "header", "stack_vars"}
+        address = int(function_match.group(1), 16)
+        if set(document) - allowed or _toml_address(document.get("addr"), path=path, field="addr") != address:
+            raise BinSyncCandidateError(f"BinSync function TOML does not match its path: {path}")
+        _toml_address(document.get("size"), path=path, field="size")
+        if not isinstance(document.get("name"), str):
+            raise BinSyncCandidateError(f"BinSync function TOML has no canonical name: {path}")
+        for field in ("header", "stack_vars"):
+            if field in document and document[field] is not None and not isinstance(document[field], dict):
+                raise BinSyncCandidateError(f"BinSync function TOML has invalid {field}: {path}")
+        return
+    if STRUCT_TOML_RE.fullmatch(path):
+        if not document:
+            raise BinSyncCandidateError(f"BinSync struct TOML is empty: {path}")
+        return
+    if path == "comments.toml":
+        _validate_address_table(document, path=path, kind="comment")
+    elif path == "global_vars.toml":
+        _validate_address_table(document, path=path, kind="global")
+    elif path not in USER_REQUIRED_TREE_PATHS:
+        raise BinSyncCandidateError(f"BinSync tree contains an unexpected TOML file: {path}")
+
+
 def _commit_tree_inventory(repo: Path, commit: str, ref: str) -> tuple[str, list[dict], str]:
     tree_sha = _git_text(repo, "rev-parse", f"{commit}^{{tree}}").lower()
     if not SHA_RE.fullmatch(tree_sha):
@@ -243,15 +345,54 @@ def _commit_tree_inventory(repo: Path, commit: str, ref: str) -> tuple[str, list
         if mode != "100644" or object_type != "blob" or not SHA_RE.fullmatch(object_sha):
             raise BinSyncCandidateError(f"BinSync tree contains a non-regular blob: {ref}:{path}")
         payload = _git_bytes(repo, "cat-file", "blob", object_sha)
+        _validate_binsync_tree_blob(ref, path, payload)
         records.append({"path": path, "size": len(payload), "sha256": _plain_sha256(payload)})
-    allowed = ROOT_TREE_PATHS if ref == ROOT_REF else USER_TREE_PATHS
     actual = {item["path"] for item in records}
-    if actual != allowed:
+    if ref == ROOT_REF and actual != ROOT_TREE_PATHS:
         raise BinSyncCandidateError(
             f"BinSync commit tree violates the publication allowlist for {ref}: "
-            f"missing={sorted(allowed - actual)!r}; unexpected={sorted(actual - allowed)!r}"
+            f"missing={sorted(ROOT_TREE_PATHS - actual)!r}; unexpected={sorted(actual - ROOT_TREE_PATHS)!r}"
         )
+    if ref != ROOT_REF:
+        missing = USER_REQUIRED_TREE_PATHS - actual
+        unexpected = {
+            path
+            for path in actual - USER_REQUIRED_TREE_PATHS
+            if not FUNCTION_TOML_RE.fullmatch(path) and not STRUCT_TOML_RE.fullmatch(path)
+        }
+        if missing or unexpected:
+            raise BinSyncCandidateError(
+                f"BinSync commit tree violates the publication allowlist for {ref}: "
+                f"missing={sorted(missing)!r}; unexpected={sorted(unexpected)!r}"
+            )
     return tree_sha, records, _digest("binsync-commit-tree-inventory:v1", records)
+
+
+def _commit_closure_evidence(repo: Path, *, base: str, candidate: str, ref: str) -> list[dict]:
+    if base == candidate:
+        return []
+    commits = [value for value in _git_text(repo, "rev-list", "--reverse", candidate, f"^{base}").splitlines() if value]
+    previous = base
+    evidence = []
+    for commit in commits:
+        if not SHA_RE.fullmatch(commit):
+            raise BinSyncCandidateError(f"BinSync commit closure contains an invalid commit on {ref}")
+        parent_line = _git_text(repo, "rev-list", "--parents", "-n", "1", commit).split()
+        if parent_line != [commit, previous]:
+            raise BinSyncCandidateError(f"BinSync commit closure is not a linear exact transition on {ref}")
+        tree_sha, tree_files, tree_inventory_sha256 = _commit_tree_inventory(repo, commit, ref)
+        evidence.append(
+            {
+                "commit": commit,
+                "tree_sha": tree_sha,
+                "tree_files": tree_files,
+                "tree_inventory_sha256": tree_inventory_sha256,
+            }
+        )
+        previous = commit
+    if previous != candidate:
+        raise BinSyncCandidateError(f"BinSync commit closure does not reach the candidate tip on {ref}")
+    return evidence
 
 
 def _verify_bundle(bundle: Path, repository: dict) -> None:
@@ -274,6 +415,8 @@ def _verify_bundle(bundle: Path, repository: dict) -> None:
         if root_item is None:
             raise BinSyncCandidateError(f"Git bundle is missing required root ref {ROOT_REF}")
         root_commit = root_item["candidate_commit"]
+        if len(_git_text(verification_repo, "rev-list", "--parents", "-n", "1", root_commit).split()) != 1:
+            raise BinSyncCandidateError("BinSync root ref must point to a parentless immutable commit")
         if root_item["expected_remote_head"] is not None and root_item["relationship"] != "unchanged":
             raise BinSyncCandidateError("existing BinSync root ref must remain immutable")
         binary_hash = _git_text(verification_repo, "show", f"{root_commit}:binary_hash").lower()
@@ -296,6 +439,19 @@ def _verify_bundle(bundle: Path, repository: dict) -> None:
             actual_relationship = _relationship(verification_repo, expected, candidate_commit, item["ref"])
             if actual_relationship != item["relationship"]:
                 raise BinSyncCandidateError(f"fast-forward proof mismatch for {item['ref']}")
+            closure_base = (
+                candidate_commit if item["ref"] == ROOT_REF and expected is None else (expected or root_commit)
+            )
+            if (
+                _commit_closure_evidence(
+                    verification_repo,
+                    base=closure_base,
+                    candidate=candidate_commit,
+                    ref=item["ref"],
+                )
+                != item["new_commits"]
+            ):
+                raise BinSyncCandidateError(f"BinSync commit closure evidence mismatch for {item['ref']}")
 
 
 def _sdk_gitlink(repo_root: Path, source_sha: str) -> str:
@@ -386,6 +542,9 @@ def _repository_for_binary(
         raise BinSyncCandidateError(f"local BinSync repository is not on its publication user ref: {local_repo}")
     refs = [ROOT_REF, current_ref]
     remote_heads = _remote_heads(remote_url)
+    root_commit = _git_text(local_repo, "rev-parse", ROOT_REF).lower()
+    if len(_git_text(local_repo, "rev-list", "--parents", "-n", "1", root_commit).split()) != 1:
+        raise BinSyncCandidateError("BinSync root ref must point to a parentless immutable commit")
     ref_records = []
     for ref in refs:
         _validate_ref(ref)
@@ -394,6 +553,7 @@ def _repository_for_binary(
             raise BinSyncCandidateError(f"invalid local candidate commit for {ref}")
         expected = remote_heads.get(ref)
         tree_sha, tree_files, tree_inventory_sha256 = _commit_tree_inventory(local_repo, candidate_commit, ref)
+        closure_base = candidate_commit if ref == ROOT_REF and expected is None else (expected or root_commit)
         ref_records.append(
             {
                 "ref": ref,
@@ -404,6 +564,12 @@ def _repository_for_binary(
                 "tree_sha": tree_sha,
                 "tree_files": tree_files,
                 "tree_inventory_sha256": tree_inventory_sha256,
+                "new_commits": _commit_closure_evidence(
+                    local_repo,
+                    base=closure_base,
+                    candidate=candidate_commit,
+                    ref=ref,
+                ),
             }
         )
 
@@ -601,6 +767,7 @@ def _validate_repository(repository: dict) -> None:
                 "tree_sha",
                 "tree_files",
                 "tree_inventory_sha256",
+                "new_commits",
             },
             "repository ref",
         )
@@ -616,12 +783,32 @@ def _validate_repository(repository: dict) -> None:
             or item["tree_inventory_sha256"] != _digest("binsync-commit-tree-inventory:v1", item["tree_files"])
         ):
             raise BinSyncCandidateError(f"BinSync ref tree evidence is invalid: {ref}")
+        if not isinstance(item["new_commits"], list):
+            raise BinSyncCandidateError(f"BinSync ref commit closure evidence is invalid: {ref}")
+        for commit in item["new_commits"]:
+            _require_exact_keys(
+                commit,
+                {"commit", "tree_sha", "tree_files", "tree_inventory_sha256"},
+                "repository ref commit closure",
+            )
+            if (
+                not SHA_RE.fullmatch(str(commit["commit"]))
+                or not SHA_RE.fullmatch(str(commit["tree_sha"]))
+                or not isinstance(commit["tree_files"], list)
+                or not DIGEST_RE.fullmatch(str(commit["tree_inventory_sha256"]))
+                or commit["tree_inventory_sha256"] != _digest("binsync-commit-tree-inventory:v1", commit["tree_files"])
+            ):
+                raise BinSyncCandidateError(f"BinSync ref commit closure evidence is invalid: {ref}")
         if expected_head is not None and (not isinstance(expected_head, str) or not SHA_RE.fullmatch(expected_head)):
             raise BinSyncCandidateError(f"expected remote head is invalid for {ref}")
         if not isinstance(item["candidate_commit"], str) or not SHA_RE.fullmatch(item["candidate_commit"]):
             raise BinSyncCandidateError(f"candidate commit is invalid for {ref}")
         if item["fast_forward"] is not True or item["relationship"] not in {"create", "unchanged", "fast-forward"}:
             raise BinSyncCandidateError(f"fast-forward declaration is invalid for {ref}")
+        if item["relationship"] == "unchanged" and item["new_commits"]:
+            raise BinSyncCandidateError(f"unchanged BinSync ref declares new commits: {ref}")
+        if item["new_commits"] and item["new_commits"][-1]["commit"] != item["candidate_commit"]:
+            raise BinSyncCandidateError(f"BinSync ref commit closure does not end at the candidate: {ref}")
     if ROOT_REF not in seen_refs:
         raise BinSyncCandidateError(f"BinSync repository is missing {ROOT_REF}")
     if sum(ref != ROOT_REF for ref in seen_refs) != 1:
