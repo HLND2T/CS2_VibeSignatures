@@ -22,7 +22,7 @@ uv run uvicorn process_api:app --host 127.0.0.1 --port 8000
 
 `esa.jsonc` publishes `dist/` and uses SPA fallback routing. A public Pages application still calls the localhost of the computer running the browser; the CDN cannot reach a different computer's localhost.
 
-The deployment workflow builds only from `PAGES_RELEASE_INPUT_ROOT`, a fresh staging tree hydrated from every compatible published immutable GitHub Release. It revalidates each direct tag/source binding, canonical Release manifest, exact SHA256SUMS and public asset allowlist, then safely extracts only the manifest-bound gamedata subtree. Local development may still use the repository-root `gamesymbols/` and `gamedata/` compatibility inputs; CI fails closed when the Release staging root is absent.
+Pages development and deployment build only from `PAGES_RELEASE_INPUT_ROOT`, a fresh staging tree hydrated from compatible published immutable GitHub Releases. The hydration step revalidates each direct tag/source binding, canonical Release manifest, exact SHA256SUMS and public asset allowlist, then safely extracts only the manifest-bound gamedata subtree. Repository-root `gamesymbols/` and `gamedata/` are not compatibility inputs; development/build fails closed when the explicit Release staging root is absent.
 
 The Vite build validates each staged schema-5 snapshot and emits index schema v4. Every symbol and gamedata response remains content-addressed. The published Release set replaces the old `pages-snapshots` branch as the historical input, while the browser and deployment workflow continue to verify exact response sizes and SHA-256 digests. After deployment, the workflow fetches the public Pages responses and recomputes their bytes so CDN delivery is checked against the exact build.
 

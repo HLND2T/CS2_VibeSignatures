@@ -13,6 +13,7 @@ from gamesymbol_snapshot_lib.operations import (
     build_actual_document,
     check_snapshot_contract,
     load_snapshot_for_contract,
+    migrate_snapshot,
     pack_snapshot,
     restore_snapshot,
     verify_snapshot,
@@ -49,6 +50,21 @@ class SnapshotWorkspace:
 
 
 class TestPack(unittest.TestCase):
+    def test_snapshot_operations_require_explicit_snapshot_path(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            workspace = SnapshotWorkspace(Path(temp_dir))
+            operations = (
+                pack_snapshot,
+                check_snapshot_contract,
+                restore_snapshot,
+                verify_snapshot,
+                migrate_snapshot,
+            )
+            for operation in operations:
+                with self.subTest(operation=operation.__name__):
+                    with self.assertRaisesRegex(SnapshotMismatchError, "explicit snapshot path"):
+                        operation("14168", workspace.bindir, workspace.config)
+
     def test_binary_metadata_and_symbol_inventory_use_separate_roots(self) -> None:
         with TemporaryDirectory() as temp_dir:
             workspace = SnapshotWorkspace(Path(temp_dir))

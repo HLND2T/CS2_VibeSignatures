@@ -6,8 +6,8 @@ import { gameDataPlugin } from './gameDataPlugin'
 import { gameSymbolsPlugin } from './gameSymbolsPlugin'
 
 const configuredInputRoot = process.env.PAGES_RELEASE_INPUT_ROOT
-if (process.env.CI && !configuredInputRoot) {
-  throw new Error('PAGES_RELEASE_INPUT_ROOT is required for CI Pages builds')
+if (!process.env.VITEST && !configuredInputRoot) {
+  throw new Error('PAGES_RELEASE_INPUT_ROOT is required for Pages development and builds')
 }
 const inputRoot = configuredInputRoot
   ? resolve(configuredInputRoot)

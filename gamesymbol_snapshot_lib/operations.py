@@ -321,6 +321,12 @@ def _atomic_write(path: Path, data: bytes, *, durable: bool = True) -> None:
             temporary.unlink()
 
 
+def _explicit_snapshot_path(snapshot_path) -> Path:
+    if snapshot_path is None:
+        raise SnapshotMismatchError("an explicit snapshot path is required")
+    return Path(snapshot_path)
+
+
 def pack_snapshot(
     game_version,
     bindir="bin",
@@ -330,7 +336,7 @@ def pack_snapshot(
     binary_metadata_source_path=None,
     artifactdir=None,
 ) -> bytes:
-    snapshot_path = Path(snapshot_path or f"gamesymbols/{game_version}.yaml")
+    snapshot_path = _explicit_snapshot_path(snapshot_path)
     config_path = resolve_analysis_config(game_version, config_path)
     artifactdir = Path(bindir).parent / "bin_artifacts" if artifactdir is None else Path(artifactdir)
     contract = load_contract(
@@ -410,7 +416,7 @@ def check_snapshot_contract(
     *,
     artifactdir=None,
 ) -> SnapshotContext:
-    snapshot_path = Path(snapshot_path or f"gamesymbols/{game_version}.yaml")
+    snapshot_path = _explicit_snapshot_path(snapshot_path)
     config_path = resolve_analysis_config(game_version, config_path)
     try:
         context = load_snapshot_context(
@@ -445,7 +451,7 @@ def restore_snapshot(
     *,
     artifactdir=None,
 ) -> bytes:
-    snapshot_path = Path(snapshot_path or f"gamesymbols/{game_version}.yaml")
+    snapshot_path = _explicit_snapshot_path(snapshot_path)
     config_path = resolve_analysis_config(game_version, config_path)
     artifactdir = Path(bindir).parent / "bin_artifacts" if artifactdir is None else Path(artifactdir)
     artifactdir = Path(os.path.abspath(artifactdir))
@@ -496,7 +502,7 @@ def verify_snapshot(
     *,
     artifactdir=None,
 ) -> bytes:
-    snapshot_path = Path(snapshot_path or f"gamesymbols/{game_version}.yaml")
+    snapshot_path = _explicit_snapshot_path(snapshot_path)
     config_path = resolve_analysis_config(game_version, config_path)
     context = load_snapshot_context(
         snapshot_path,
@@ -533,7 +539,7 @@ def migrate_snapshot(
     last_publish_time: str | None = None,
     artifactdir=None,
 ) -> bytes:
-    snapshot_path = Path(snapshot_path or f"gamesymbols/{game_version}.yaml")
+    snapshot_path = _explicit_snapshot_path(snapshot_path)
     output_path = Path(output_path or snapshot_path)
     config_path = resolve_analysis_config(game_version, config_path)
     source_config_path = resolve_analysis_config(game_version, source_config_path or config_path)
