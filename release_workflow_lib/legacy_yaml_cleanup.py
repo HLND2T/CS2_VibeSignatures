@@ -9,6 +9,7 @@ from pathlib import Path
 from release_workflow_lib.binary_cache import (
     BINARY_CACHE_LOCK_ROOT,
     configured_binary_paths,
+    is_binary_cache_excluded_path,
     require_gamever,
     validate_binary_cache_tree,
     version_lock,
@@ -119,8 +120,49 @@ def _delete_yaml_path(path: Path) -> None:
     path.unlink()
 
 
-def _resume_deletion(*, accepted: Path, files: list[dict], allowed_paths: frozenset[str]) -> None:
+def _allowed_directories(paths: set[str]) -> set[str]:
+    return {parent.as_posix() for value in paths for parent in Path(value).parents if parent != Path(".")}
+
+
+def _validate_pre_cleanup_tree(*, accepted: Path, files: list[dict], allowed_paths: frozenset[str]) -> None:
     reject_reparse_points(accepted)
+    yaml_paths = {item["path"] for item in files}
+    directories = _allowed_directories(set(allowed_paths) | yaml_paths)
+    durable = set()
+    for path in accepted.rglob("*"):
+        relative = normalized_relative_path(path.relative_to(accepted).as_posix())
+        if path.is_dir():
+            if relative not in directories:
+                raise ReleaseWorkflowError(f"binary cache contains unexpected directories: {relative}")
+            continue
+        if relative in yaml_paths:
+            continue
+        if is_binary_cache_excluded_path(Path(relative)):
+            raise ReleaseWorkflowError(f"excluded analysis state remains in accepted bin: {relative}")
+        durable.add(relative)
+    if durable != set(allowed_paths):
+        missing = sorted(set(allowed_paths) - durable)
+        unexpected = sorted(durable - set(allowed_paths))
+        raise ReleaseWorkflowError(f"binary cache allowlist mismatch: missing={missing!r}; unexpected={unexpected!r}")
+
+
+def _prune_empty_directories(root: Path) -> None:
+    for path in sorted(
+        (item for item in root.rglob("*") if item.is_dir()), key=lambda item: len(item.parts), reverse=True
+    ):
+        try:
+            path.rmdir()
+        except OSError:
+            pass
+
+
+def _resume_deletion(*, accepted: Path, files: list[dict], allowed_paths: frozenset[str]) -> None:
+    current_files = _yaml_inventory(accepted)
+    current_paths = {item["path"] for item in current_files}
+    expected_paths = {item["path"] for item in files}
+    if not current_paths.issubset(expected_paths):
+        raise ReleaseWorkflowError("unrecorded legacy YAML appeared before cleanup completed")
+    _validate_pre_cleanup_tree(accepted=accepted, files=files, allowed_paths=allowed_paths)
     for item in files:
         path = contained_path(accepted, *Path(item["path"]).parts)
         reject_reparse_components(accepted, path)
@@ -129,6 +171,7 @@ def _resume_deletion(*, accepted: Path, files: list[dict], allowed_paths: frozen
         if not path.is_file() or path.stat().st_size != item["size"] or sha256_file(path) != item["sha256"]:
             raise ReleaseWorkflowError(f"legacy accepted-bin YAML drifted during cleanup: {item['path']}")
         _delete_yaml_path(path)
+    _prune_empty_directories(accepted)
     validate_binary_cache_tree(accepted, allowed_paths, allow_excluded=False)
 
 

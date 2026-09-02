@@ -79,18 +79,14 @@ jobs:
           }
           if ([string]::IsNullOrWhiteSpace($env:PERSISTED_WORKSPACE)) { throw "PERSISTED_WORKSPACE is not configured." }
           $workspaceBin = Join-Path "${{ github.workspace }}" "bin"
-          $workspaceGamever = Join-Path $workspaceBin $env:GAMEVER
-          New-Item -ItemType Directory -Path $workspaceGamever -Force | Out-Null
+          New-Item -ItemType Directory -Path $workspaceBin -Force | Out-Null
           if ((Get-Item -LiteralPath $workspaceBin -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) {
             throw "PR workspace bin must be a real directory."
           }
-          $persistedGamever = Join-Path $env:PERSISTED_WORKSPACE "bin\$env:GAMEVER"
-          if (Test-Path -LiteralPath $persistedGamever -PathType Container) {
-            robocopy $persistedGamever $workspaceGamever /E /COPY:DAT /DCOPY:DAT /R:2 /W:5 `
-              /XD *.bsproj /XF *.yaml *.i64 *.idb *.id0 *.id1 *.id2 *.nam *.til *.binsync.json
-            if ($LASTEXITCODE -ge 8) { throw "Failed to copy binary-only accepted bin/$env:GAMEVER." }
-            $global:LASTEXITCODE = 0
-          }
+          uv run --project .trusted-tools python .trusted-tools/accepted_bin.py restore `
+            --repo-root "${{ github.workspace }}" --persisted-root "$env:PERSISTED_WORKSPACE" `
+            --gamever "$env:GAMEVER"
+          if ($LASTEXITCODE -ne 0) { throw "Failed to restore the exact accepted binary allowlist." }
           uv run init_gamebin.py prepare "$env:GAMEVER" --binsync skip
           if ($LASTEXITCODE -ne 0) { throw "Binary initialization failed for $env:GAMEVER." }
       - name: Resolve and restore exact warm IDB generation

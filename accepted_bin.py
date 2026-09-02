@@ -10,6 +10,7 @@ from pathlib import Path
 
 from release_workflow_lib.errors import ReleaseWorkflowError
 from release_workflow_lib.legacy_yaml_cleanup import cleanup_legacy_accepted_yaml
+from release_workflow_lib.restore_accepted_bin import restore_accepted_bin
 from release_workflow_lib.sync_accepted_bin import sync_accepted_bin
 
 
@@ -20,6 +21,11 @@ def parse_args(argv=None) -> argparse.Namespace:
     sync.add_argument("--repo-root", default=".")
     sync.add_argument("--persisted-root", required=True)
     sync.add_argument("--gamever", required=True)
+    restore = commands.add_parser("restore")
+    restore.add_argument("--repo-root", default=".")
+    restore.add_argument("--persisted-root", required=True)
+    restore.add_argument("--gamever", required=True)
+    restore.add_argument("--required", action="store_true")
     cleanup = commands.add_parser("cleanup-legacy-yaml")
     cleanup.add_argument("--repo-root", default=".")
     cleanup.add_argument("--persisted-root", required=True)
@@ -35,6 +41,13 @@ def main(argv=None) -> int:
                 repo_root=Path(args.repo_root),
                 persisted_root=Path(args.persisted_root),
                 gamever=args.gamever,
+            )
+        elif args.command == "restore":
+            result = restore_accepted_bin(
+                repo_root=Path(args.repo_root),
+                persisted_root=Path(args.persisted_root),
+                gamever=args.gamever,
+                required=args.required,
             )
         else:
             result = cleanup_legacy_accepted_yaml(

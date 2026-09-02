@@ -68,14 +68,27 @@ def validate_binary_cache_tree(root: str | Path, allowed_paths: frozenset[str], 
     reject_reparse_points(root)
     durable = set()
     excluded = []
+    allowed_directories = {
+        parent.as_posix()
+        for path in allowed_paths
+        for parent in PurePosixPath(path).parents
+        if parent != PurePosixPath(".")
+    }
+    unexpected_directories = []
     for path in root.rglob("*"):
         relative = path.relative_to(root)
         if is_binary_cache_excluded_path(relative):
             excluded.append(relative.as_posix())
         elif path.is_file():
             durable.add(normalized_relative_path(relative.as_posix()))
+        elif path.is_dir() and normalized_relative_path(relative.as_posix()) not in allowed_directories:
+            unexpected_directories.append(relative.as_posix())
     if excluded and not allow_excluded:
         raise ReleaseWorkflowError("excluded analysis state remains in accepted bin: " + ", ".join(sorted(excluded)))
+    if unexpected_directories:
+        raise ReleaseWorkflowError(
+            "binary cache contains unexpected directories: " + ", ".join(sorted(unexpected_directories))
+        )
     if durable != set(allowed_paths):
         missing = sorted(set(allowed_paths) - durable)
         unexpected = sorted(durable - set(allowed_paths))

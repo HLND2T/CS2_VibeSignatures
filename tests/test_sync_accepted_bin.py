@@ -1,3 +1,4 @@
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
@@ -6,6 +7,7 @@ from unittest.mock import patch
 from release_workflow_lib.binary_cache import IDA_DATABASE_SUFFIXES, version_lock
 from release_workflow_lib.errors import ReleaseWorkflowError
 from release_workflow_lib.legacy_yaml_cleanup import cleanup_legacy_accepted_yaml
+from release_workflow_lib.restore_accepted_bin import restore_accepted_bin
 from release_workflow_lib.sync_accepted_bin import _filtered_inventory, sync_accepted_bin
 from tests.gamesymbol_snapshot_test_support import write_config
 
@@ -188,6 +190,55 @@ class TestSyncAcceptedBin(unittest.TestCase):
             # Lock released: sync succeeds.
             result = sync_accepted_bin(repo_root=repo, persisted_root=persisted, gamever=self.gamever)
             self.assertTrue(result["synced"])
+
+    def test_restore_copies_only_the_exact_configured_binary_set(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            repo = root / "repo"
+            persisted = root / "persisted"
+            self._write_source(repo)
+            sync_accepted_bin(repo_root=repo, persisted_root=persisted, gamever=self.gamever)
+            shutil.rmtree(repo / "bin" / self.gamever)
+
+            result = restore_accepted_bin(repo_root=repo, persisted_root=persisted, gamever=self.gamever)
+
+            self.assertTrue(result["restored"])
+            self.assertEqual(2, result["file_count"])
+            self.assertRegex(result["hash"], r"^[0-9a-f]{64}$")
+            restored = repo / "bin" / self.gamever
+            self.assertTrue((restored / "server" / "server.dll").is_file())
+            self.assertTrue((restored / "engine" / "libengine2.so").is_file())
+            self.assertEqual(2, len([path for path in restored.rglob("*") if path.is_file()]))
+
+    def test_restore_rejects_extra_files_and_empty_directories(self) -> None:
+        for relative, message in (("unexpected.txt", "allowlist mismatch"), ("empty", "unexpected directories")):
+            with self.subTest(relative=relative), tempfile.TemporaryDirectory() as temp_dir:
+                root = Path(temp_dir)
+                repo = root / "repo"
+                persisted = root / "persisted"
+                self._write_source(repo)
+                sync_accepted_bin(repo_root=repo, persisted_root=persisted, gamever=self.gamever)
+                shutil.rmtree(repo / "bin" / self.gamever)
+                unexpected = persisted / "bin" / self.gamever / relative
+                if "." in relative:
+                    unexpected.write_bytes(b"unexpected")
+                else:
+                    unexpected.mkdir()
+
+                with self.assertRaisesRegex(ReleaseWorkflowError, message):
+                    restore_accepted_bin(repo_root=repo, persisted_root=persisted, gamever=self.gamever)
+
+    def test_restore_can_report_an_optional_cache_miss(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            repo = root / "repo"
+            persisted = root / "persisted"
+            self._write_source(repo)
+
+            result = restore_accepted_bin(repo_root=repo, persisted_root=persisted, gamever=self.gamever)
+
+            self.assertFalse(result["restored"])
+            self.assertIsNone(result["hash"])
 
 
 class TestLegacyAcceptedYamlCleanup(unittest.TestCase):

@@ -88,14 +88,9 @@ jobs:
         shell: pwsh
         run: |
           if ([string]::IsNullOrWhiteSpace($env:PERSISTED_WORKSPACE)) { throw "PERSISTED_WORKSPACE is not configured." }
-          $source = Join-Path $env:PERSISTED_WORKSPACE "bin\$env:GAMEVER"
-          $target = Join-Path "${{ github.workspace }}" "bin\$env:GAMEVER"
-          New-Item -ItemType Directory -Path $target -Force | Out-Null
-          if (-not (Test-Path -LiteralPath $source -PathType Container)) { throw "Accepted binary state is missing: $source" }
-          robocopy $source $target /E /COPY:DAT /DCOPY:DAT /R:2 /W:5 `
-            /XF *.yaml *.i64 *.idb *.id0 *.id1 *.id2 *.nam *.til *.binsync.json
-          if ($LASTEXITCODE -ge 8) { throw "Failed to restore accepted binaries." }
-          $global:LASTEXITCODE = 0
+          uv run python accepted_bin.py restore --repo-root "${{ github.workspace }}" `
+            --persisted-root "$env:PERSISTED_WORKSPACE" --gamever "$env:GAMEVER" --required
+          if ($LASTEXITCODE -ne 0) { throw "Failed to restore the exact accepted binary allowlist." }
       - name: Restore exact warm IDB generation
         shell: pwsh
         run: |

@@ -184,17 +184,9 @@ jobs:
           if ((Get-Item $workspaceBin -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) {
             throw "Workspace bin must be a real directory"
           }
-          $workspaceGamever = Join-Path $workspaceBin $env:GAMEVER
-          New-Item -ItemType Directory -Path $workspaceGamever -Force | Out-Null
-          $persistedGamever = Join-Path $env:PERSISTED_WORKSPACE "bin\$env:GAMEVER"
-          if (Test-Path -LiteralPath $persistedGamever -PathType Container) {
-            robocopy $persistedGamever $workspaceGamever /E /COPY:DAT /DCOPY:DAT /R:2 /W:5 `
-              /XD *.bsproj `
-              /XF *.yaml *.i64 *.idb *.id0 *.id1 *.id2 *.nam *.til *.binsync.json
-            if ($LASTEXITCODE -ge 8) { throw "Failed to copy persisted bin/$env:GAMEVER." }
-            $global:LASTEXITCODE = 0
-            Write-Host "Copied persisted bin/$env:GAMEVER into build workspace"
-          }
+          uv run python accepted_bin.py restore --repo-root "$workspace" `
+            --persisted-root "$env:PERSISTED_WORKSPACE" --gamever "$env:GAMEVER"
+          if ($LASTEXITCODE -ne 0) { throw "Failed to restore the exact accepted binary allowlist." }
       - name: Resolve consumer IDA identity
         id: resolve-consumer-ida
         shell: pwsh
