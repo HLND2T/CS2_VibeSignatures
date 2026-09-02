@@ -11,7 +11,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 
-ALLOWED_REPOSITORIES = {"HLND2T/CS2_VibeSignatures", "hzqst/CS2_VibeSignatures"}
+ALLOWED_REPOSITORIES = {"HLND2T/CS2_VibeSignatures"}
 LEGACY_ACTIONS_BOT_LOGIN = "github-actions[bot]"
 TRUSTED_PR_AUTHOR_ASSOCIATIONS = {"OWNER", "MEMBER", "COLLABORATOR"}
 OUTPUT_BRANCH_RES = (

@@ -63,3 +63,12 @@ or gamedata back to the PR head. A stable terminal job named `pr-validate` requi
 - Generated-output `gamesymbols/build/` PRs are excluded from every job here by the same author rule, because
   [[build-on-self-runner]] now creates them with the `win64` environment's `HLND2T_GH_TOKEN`. Their required
   `pr-validate` check comes from `validate-generated-output-pr.yml` instead.
+- Reference-YAML orphans are a **warning, not an error** (`gamesymbol_snapshot_lib/pr_validation.py`
+  `_reference_change_nodes`). An added/modified `ida_preprocessor_scripts/references/**.yaml` with no HEAD consumer
+  emits `warning: <action> orphan reference had no HEAD consumer: <path>` and invalidates nothing, mirroring the
+  pre-existing deleted-orphan warning. Consumers come only from literal `"reference_yaml_paths"` entries inside
+  `LLM_DECOMPILE` specs of an *active* contract node, so the former hard `error[orphan_active_reference]` failed two
+  legitimate cases: an xref-based finder shipping reference YAML purely as documentation for its Agent fallback
+  SKILL.md, and a consumer declared only in a newer `configs/<GAMEVER>.yaml` while validation runs against the older
+  base GAMEVER's contract (e.g. PR #884: finder in `configs/14178.yaml`, `GAMEVER=14177b`). Base-side consumers still
+  contribute invalidation nodes when a modified reference loses its HEAD consumer.
