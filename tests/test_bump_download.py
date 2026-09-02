@@ -1,10 +1,12 @@
 import argparse
 from pathlib import Path
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import ANY, call, patch
 
 import bump_download
+import bump_download_candidate as bdc
 from tests.workflow_contract_test_support import load_workflow, step_order, steps_by_id, workflow_job
 
 
@@ -928,6 +930,146 @@ class TestBumpDownload(unittest.TestCase):
 
         self.assertEqual(sorted(order), order)
         self.assertIn("git fetch origin --prune --prune-tags --tags", steps["sync-refs"]["run"])
+
+
+class TestBumpDownloadCandidate(unittest.TestCase):
+    repository = "HLND2T/CS2_VibeSignatures"
+    gamever = "14161"
+    source_gamever = "14160"
+
+    def _git(self, root: Path, *arguments: str) -> str:
+        result = subprocess.run(
+            ["git", "-C", str(root), *arguments],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode:
+            self.fail(result.stderr or f"git {' '.join(arguments)} failed")
+        return result.stdout.strip()
+
+    def _producer(self, root: Path) -> str:
+        self._git(root, "init", "-b", "main")
+        self._git(root, "config", "user.email", "test@example.com")
+        self._git(root, "config", "user.name", "Test")
+        (root / "configs").mkdir()
+        (root / "configs" / f"{self.source_gamever}.yaml").write_bytes(b"modules: []\n")
+        (root / "download.yaml").write_text(
+            'downloads:\n  - tag: "14160"\n    name: 1.41.6.0\n    manifests:\n'
+            '      "2347771": "1"\n      "2347773": "2"\n',
+            encoding="utf-8",
+        )
+        self._git(root, "add", ".")
+        self._git(root, "commit", "-m", "base")
+        base_sha = self._git(root, "rev-parse", "HEAD")
+        document, downloads = bump_download.load_config(root / "download.yaml")
+        bump_download.append_download_entry(
+            downloads,
+            bump_download.BumpPlan(
+                updated=True,
+                tag=self.gamever,
+                patch_version="1.41.6.1",
+                manifests={"2347771": "11", "2347773": "22"},
+            ),
+        )
+        bump_download.save_config(root / "download.yaml", document)
+        (root / "configs" / f"{self.gamever}.yaml").write_bytes(
+            (root / "configs" / f"{self.source_gamever}.yaml").read_bytes()
+        )
+        self._git(root, "add", ".")
+        self._git(root, "commit", "-m", "bump")
+        return base_sha
+
+    def test_candidate_is_verified_and_recommitted_by_hosted_publisher(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            root.mkdir()
+            base_sha = self._producer(root)
+            candidate_root = Path(temporary) / "candidate"
+            manifest = bdc.build_bump_candidate(
+                repo_root=root,
+                base_sha=base_sha,
+                gamever=self.gamever,
+                source_gamever=self.source_gamever,
+                repository=self.repository,
+                workflow_run_id="123",
+                workflow_run_attempt="1",
+                output_root=candidate_root,
+            )
+            self._git(root, "checkout", "--detach", base_sha)
+
+            result = bdc.prepare_bump_commit(
+                repo_root=root,
+                candidate_root=candidate_root,
+                manifest=candidate_root / "candidate-manifest.json",
+                repository=self.repository,
+                base_sha=base_sha,
+                gamever=self.gamever,
+                source_gamever=self.source_gamever,
+                actions_artifact_name=manifest["actions_artifact_name"],
+                actions_artifact_digest="sha256:" + "a" * 64,
+                workflow_run_id="123",
+                workflow_run_attempt="1",
+                workflow_run_url="https://github.example/run/123",
+            )
+
+            self.assertEqual(base_sha, result["parent_sha"])
+            self.assertEqual(
+                ["configs/14161.yaml", "download.yaml"],
+                result["changed_paths"],
+            )
+            self.assertEqual(result["commit_sha"], self._git(root, "rev-parse", "HEAD"))
+
+    def test_candidate_rejects_extra_producer_changes_and_package_tamper(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            root.mkdir()
+            base_sha = self._producer(root)
+            (root / "README.md").write_text("unexpected\n", encoding="utf-8")
+            self._git(root, "add", "README.md")
+            self._git(root, "commit", "--amend", "--no-edit")
+            with self.assertRaisesRegex(bdc.BumpDownloadCandidateError, "changed-path allowlist"):
+                bdc.build_bump_candidate(
+                    repo_root=root,
+                    base_sha=base_sha,
+                    gamever=self.gamever,
+                    source_gamever=self.source_gamever,
+                    repository=self.repository,
+                    workflow_run_id="123",
+                    workflow_run_attempt="1",
+                    output_root=Path(temporary) / "rejected",
+                )
+
+            self._git(root, "rm", "README.md")
+            self._git(root, "commit", "--amend", "--no-edit")
+            candidate_root = Path(temporary) / "candidate"
+            manifest = bdc.build_bump_candidate(
+                repo_root=root,
+                base_sha=base_sha,
+                gamever=self.gamever,
+                source_gamever=self.source_gamever,
+                repository=self.repository,
+                workflow_run_id="123",
+                workflow_run_attempt="1",
+                output_root=candidate_root,
+            )
+            (candidate_root / "files" / "download.yaml").write_bytes(b"downloads: []\n")
+            self._git(root, "checkout", "--detach", base_sha)
+            with self.assertRaisesRegex(bdc.BumpDownloadCandidateError, "inventory"):
+                bdc.prepare_bump_commit(
+                    repo_root=root,
+                    candidate_root=candidate_root,
+                    manifest=candidate_root / "candidate-manifest.json",
+                    repository=self.repository,
+                    base_sha=base_sha,
+                    gamever=self.gamever,
+                    source_gamever=self.source_gamever,
+                    actions_artifact_name=manifest["actions_artifact_name"],
+                    actions_artifact_digest="sha256:" + "a" * 64,
+                    workflow_run_id="123",
+                    workflow_run_attempt="1",
+                    workflow_run_url="https://github.example/run/123",
+                )
 
 
 if __name__ == "__main__":

@@ -18,6 +18,15 @@ jobs:
     if: github.repository == 'HLND2T/CS2_VibeSignatures'
     environment: win64
     runs-on: [self-hosted, windows, x64]
+    outputs:
+      updated: ${{ steps.bump.outputs.updated }}
+      skip_pr: ${{ steps.duplicate.outputs.skip_pr }}
+      gamever: ${{ steps.bump.outputs.tag }}
+      source_gamever: ${{ steps.bump.outputs.analysis_config_source_gamever }}
+      config_path: ${{ steps.bump.outputs.analysis_config_path }}
+      base_sha: ${{ steps.sync-refs.outputs.base_sha }}
+      candidate_artifact_name: ${{ steps.package.outputs.artifact_name }}
+      candidate_artifact_digest: ${{ steps.upload.outputs.artifact-digest }}
     env:
       DEPOTDOWNLOADER_STEAM_USERNAME: ${{ secrets.DEPOTDOWNLOADER_STEAM_USERNAME }}
       DEPOTDOWNLOADER_STEAM_PASSWORD: ${{ secrets.DEPOTDOWNLOADER_STEAM_PASSWORD }}
@@ -27,9 +36,9 @@ jobs:
         id: checkout
         uses: actions/checkout@v5
         with:
-          ref: main
-          fetch-depth: 1
-          token: ${{ secrets.HLND2T_GH_TOKEN }}
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+          persist-credentials: false
 
       - name: Synchronize git refs
         id: sync-refs
@@ -38,6 +47,9 @@ jobs:
           $workspace = (Resolve-Path -LiteralPath $env:GITHUB_WORKSPACE).Path -replace '\\', '/'
           git config --global --add safe.directory "$workspace"
           git fetch origin --prune --prune-tags --tags "+refs/heads/*:refs/remotes/origin/*"
+          $baseSha = (git rev-parse HEAD).Trim().ToLowerInvariant()
+          if ($LASTEXITCODE -ne 0 -or $baseSha -notmatch '^[0-9a-f]{40}$') { throw "Unable to bind bump base SHA." }
+          "base_sha=$baseSha" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
       - name: Configure git
         id: configure-git
@@ -58,7 +70,7 @@ jobs:
         env:
           BUMP_TAG: ${{ steps.preview.outputs.tag }}
         with:
-          github-token: ${{ secrets.HLND2T_GH_TOKEN }}
+          github-token: ${{ github.token }}
           script: |
             const tag = process.env.BUMP_TAG;
             if (!tag || !tag.trim()) {
@@ -108,35 +120,149 @@ jobs:
         shell: pwsh
         run: uv run bump_download.py -config download.yaml -configs-dir configs -depotdir cs2_depot -username "$env:DEPOTDOWNLOADER_STEAM_USERNAME" -password "$env:DEPOTDOWNLOADER_STEAM_PASSWORD" -remember-password -github-output "$env:GITHUB_OUTPUT"
 
-      - name: Push bump branch
+      - name: Package credential-free download bump candidate
         if: steps.bump.outputs.updated == 'true' && steps.duplicate.outputs.skip_pr != 'true'
-        id: branch
+        id: package
         shell: pwsh
         run: |
           $tag = "${{ steps.bump.outputs.tag }}"
           if ([string]::IsNullOrWhiteSpace($tag)) {
             throw "steps.bump.outputs.tag is empty."
           }
-
-          $branch = "bump-download/$tag"
-          git push --force-with-lease origin "HEAD:refs/heads/$branch"
-          if ($LASTEXITCODE -ne 0) {
-            throw "Failed to push bump branch $branch."
-          }
-
-          "branch=$branch" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-
-      - name: Create or update bump pull request
-        id: create-pr
+          $candidate = Join-Path $env:RUNNER_TEMP "bump-download-candidate\${{ github.run_id }}-${{ github.run_attempt }}"
+          uv run python bump_download_candidate.py build `
+            --repo-root "${{ github.workspace }}" `
+            --base-sha "${{ steps.sync-refs.outputs.base_sha }}" `
+            --gamever "$tag" `
+            --source-gamever "${{ steps.bump.outputs.analysis_config_source_gamever }}" `
+            --repository "${{ github.repository }}" `
+            --workflow-run-id "${{ github.run_id }}" `
+            --workflow-run-attempt "${{ github.run_attempt }}" `
+            --output-root "$candidate"
+          if ($LASTEXITCODE -ne 0) { throw "Download bump candidate validation failed." }
+          $artifactName = "bump-download-candidate-$tag-${{ github.run_id }}-${{ github.run_attempt }}"
+          "artifact_name=$artifactName" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "CANDIDATE_ROOT=$candidate" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Upload exact download bump candidate
+        id: upload
         if: steps.bump.outputs.updated == 'true' && steps.duplicate.outputs.skip_pr != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.package.outputs.artifact_name }}
+          path: ${{ env.CANDIDATE_ROOT }}
+          if-no-files-found: error
+          retention-days: 7
+  publish-bump-branch:
+    needs: bump
+    if: needs.bump.outputs.updated == 'true' && needs.bump.outputs.skip_pr != 'true'
+    environment: artifact-bootstrap
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout exact bound default-branch base without credentials
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.bump.outputs.base_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          path: publication
+      - name: Set up trusted publisher environment
+        uses: astral-sh/setup-uv@v9.0.0
+      - name: Sync trusted publisher dependencies
+        run: uv sync --project publication --locked
+      - name: Download exact credential-free bump candidate
+        uses: actions/download-artifact@v5
+        with:
+          name: ${{ needs.bump.outputs.candidate_artifact_name }}
+          path: candidate
+      - name: Revalidate candidate and create direct-child bump commit
+        id: prepare
+        shell: pwsh
+        env:
+          CANDIDATE_ARTIFACT_DIGEST: ${{ needs.bump.outputs.candidate_artifact_digest }}
+        run: |
+          git -C publication config user.name "source-artifact-automation"
+          git -C publication config user.email "source-artifact-automation@users.noreply.github.com"
+          $artifactDigest = $env:CANDIDATE_ARTIFACT_DIGEST.ToLowerInvariant()
+          if ($artifactDigest -match '^[0-9a-f]{64}$') { $artifactDigest = "sha256:$artifactDigest" }
+          $receipt = Join-Path "${{ github.workspace }}" "bump-publication-receipt.json"
+          Set-Location -LiteralPath "${{ github.workspace }}/publication"
+          uv run python bump_download_candidate.py prepare `
+            --repo-root . `
+            --candidate-root "${{ github.workspace }}/candidate" `
+            --manifest "${{ github.workspace }}/candidate/candidate-manifest.json" `
+            --repository "${{ github.repository }}" `
+            --base-sha "${{ needs.bump.outputs.base_sha }}" `
+            --gamever "${{ needs.bump.outputs.gamever }}" `
+            --source-gamever "${{ needs.bump.outputs.source_gamever }}" `
+            --actions-artifact-name "${{ needs.bump.outputs.candidate_artifact_name }}" `
+            --actions-artifact-digest "$artifactDigest" `
+            --workflow-run-id "${{ github.run_id }}" `
+            --workflow-run-attempt "${{ github.run_attempt }}" `
+            --workflow-run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" `
+            --output "$receipt"
+          if ($LASTEXITCODE -ne 0) { throw "Hosted download bump candidate verification failed." }
+          $document = Get-Content -LiteralPath $receipt -Raw | ConvertFrom-Json
+          "commit_sha=$($document.commit_sha)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+      - name: Confirm target branch, tag, and pull request are still absent
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "${{ needs.bump.outputs.gamever }}"
+          $branch = "bump-download/$tag"
+          git -C publication ls-remote --exit-code --heads origin "refs/heads/$branch" | Out-Null
+          if ($LASTEXITCODE -eq 0) { throw "Target bump branch already exists: $branch" }
+          if ($LASTEXITCODE -ne 2) { throw "Unable to prove the target bump branch is absent." }
+          git -C publication ls-remote --exit-code --tags origin "refs/tags/$tag" | Out-Null
+          if ($LASTEXITCODE -eq 0) { throw "Target release tag already exists: $tag" }
+          if ($LASTEXITCODE -ne 2) { throw "Unable to prove the target release tag is absent." }
+          $pulls = gh api --method GET "repos/${{ github.repository }}/pulls" `
+            -f state=open -f "head=${{ github.repository_owner }}:$branch" -f per_page=100 | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { throw "Unable to query existing bump pull requests." }
+          if (@($pulls).Count -ne 0) { throw "Target bump pull request already exists: $branch" }
+      - name: Fast-forward create the bound bump branch with protected PAT
+        shell: pwsh
+        env:
+          GIT_USERNAME: source-artifact-automation
+          GIT_PASSWORD: ${{ secrets.SOURCE_ARTIFACT_BOOTSTRAP_PAT }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:GIT_PASSWORD)) { throw "SOURCE_ARTIFACT_BOOTSTRAP_PAT is unavailable." }
+          $askpass = Join-Path $env:RUNNER_TEMP "source-artifact-bump-askpass.sh"
+          @'
+          #!/usr/bin/env bash
+          case "$1" in
+            *Username*) printf '%s\n' "$GIT_USERNAME" ;;
+            *Password*) printf '%s\n' "$GIT_PASSWORD" ;;
+            *) exit 1 ;;
+          esac
+          '@ | Set-Content -LiteralPath $askpass -Encoding utf8NoBOM
+          chmod 700 $askpass
+          try {
+            $env:GIT_ASKPASS = $askpass
+            $env:GIT_TERMINAL_PROMPT = "0"
+            git -C publication -c credential.helper= push origin `
+              "HEAD:refs/heads/bump-download/${{ needs.bump.outputs.gamever }}"
+            if ($LASTEXITCODE -ne 0) { throw "Protected bump branch creation failed." }
+          } finally {
+            Remove-Item -LiteralPath $askpass -Force -ErrorAction SilentlyContinue
+            Remove-Item Env:GIT_ASKPASS -ErrorAction SilentlyContinue
+            Remove-Item Env:GIT_PASSWORD -ErrorAction SilentlyContinue
+          }
+      - name: Create bump pull request with read/write PR token
         uses: actions/github-script@v7
         env:
-          BUMP_TAG: ${{ steps.bump.outputs.tag }}
-          BUMP_BRANCH: ${{ steps.branch.outputs.branch }}
-          CONFIG_SOURCE_GAMEVER: ${{ steps.bump.outputs.analysis_config_source_gamever }}
-          CONFIG_PATH: ${{ steps.bump.outputs.analysis_config_path }}
+          BUMP_TAG: ${{ needs.bump.outputs.gamever }}
+          BUMP_BRANCH: bump-download/${{ needs.bump.outputs.gamever }}
+          COMMIT_SHA: ${{ steps.prepare.outputs.commit_sha }}
+          CONFIG_SOURCE_GAMEVER: ${{ needs.bump.outputs.source_gamever }}
+          CONFIG_PATH: ${{ needs.bump.outputs.config_path }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         with:
-          github-token: ${{ secrets.HLND2T_GH_TOKEN }}
+          github-token: ${{ github.token }}
           script: |
             const tag = process.env.BUMP_TAG;
             const branch = process.env.BUMP_BRANCH;
@@ -151,20 +277,14 @@ jobs:
             const repo = context.repo.repo;
             const title = `chore(download): Update manifest for ${tag}`;
 
-            try {
-              await github.rest.git.getRef({
-                owner,
-                repo,
-                ref: `tags/${tag}`,
-              });
-              core.notice(`Tag ${tag} already exists. Skipping bump pull request.`);
-              return;
-            } catch (error) {
-              if (error.status !== 404) {
-                throw error;
-              }
+            const publishedRef = await github.rest.git.getRef({
+              owner,
+              repo,
+              ref: `heads/${branch}`,
+            });
+            if (publishedRef.data.object.sha !== process.env.COMMIT_SHA) {
+              throw new Error('Published bump branch does not point to the verified hosted commit.');
             }
-
             const pulls = await github.paginate(github.rest.pulls.list, {
               owner,
               repo,
@@ -175,30 +295,85 @@ jobs:
               if (pull.title === title) {
                 return true;
               }
-              return pull.base.ref === 'main' &&
+              return pull.base.ref === process.env.DEFAULT_BRANCH &&
                 pull.head.ref === branch &&
                 pull.head.repo?.full_name === `${owner}/${repo}`;
             });
 
             if (existingPull) {
-              core.notice(`Bump pull request already exists: ${existingPull.html_url}`);
-              return;
+              throw new Error(`Bump pull request appeared concurrently: ${existingPull.html_url}`);
             }
 
             const { data: pull } = await github.rest.pulls.create({
               owner,
               repo,
-              base: 'main',
+              base: process.env.DEFAULT_BRANCH,
               head: branch,
               title,
               body: [
                 `Automated download bump for tag \`${tag}\`.`,
                 `Seeded analysis config: \`${process.env.CONFIG_SOURCE_GAMEVER}\` -> \`${process.env.CONFIG_PATH}\` (exact initial copy; review before merge).`,
                 '',
-                'After this PR is merged, the post-merge workflow will dispatch `build-on-self-runner` from the merge SHA.',
+                'A protected Contents-only PAT push will synchronize this PR after creation so required validation is triggered.',
+                'After this PR is merged, the post-merge workflow will invoke the protected Release workflow from the merge SHA.',
                 '',
                 `<!-- bump-download-tag: ${tag} -->`,
               ].join('\n'),
             });
 
             core.notice(`Created bump pull request: ${pull.html_url}`);
+      - name: Synchronize the new PR head with a protected PAT validation trigger
+        id: synchronize
+        shell: pwsh
+        env:
+          GIT_USERNAME: source-artifact-automation
+          GIT_PASSWORD: ${{ secrets.SOURCE_ARTIFACT_BOOTSTRAP_PAT }}
+        run: |
+          git -C publication commit --allow-empty `
+            -m "chore(ci): trigger validation for ${{ needs.bump.outputs.gamever }}" `
+            -m "Source-Bump-Commit: ${{ steps.prepare.outputs.commit_sha }}`nWorkflow-Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`nCo-Authored-By: Codex <codex@openai.com>"
+          if ($LASTEXITCODE -ne 0) { throw "Unable to create the PR validation-trigger commit." }
+          $triggerSha = (git -C publication rev-parse HEAD).Trim().ToLowerInvariant()
+          if ($triggerSha -notmatch '^[0-9a-f]{40}$') { throw "Validation-trigger commit SHA is invalid." }
+          if ([string]::IsNullOrWhiteSpace($env:GIT_PASSWORD)) { throw "SOURCE_ARTIFACT_BOOTSTRAP_PAT is unavailable." }
+          $askpass = Join-Path $env:RUNNER_TEMP "source-artifact-sync-askpass.sh"
+          @'
+          #!/usr/bin/env bash
+          case "$1" in
+            *Username*) printf '%s\n' "$GIT_USERNAME" ;;
+            *Password*) printf '%s\n' "$GIT_PASSWORD" ;;
+            *) exit 1 ;;
+          esac
+          '@ | Set-Content -LiteralPath $askpass -Encoding utf8NoBOM
+          chmod 700 $askpass
+          try {
+            $env:GIT_ASKPASS = $askpass
+            $env:GIT_TERMINAL_PROMPT = "0"
+            git -C publication -c credential.helper= push origin `
+              "HEAD:refs/heads/bump-download/${{ needs.bump.outputs.gamever }}"
+            if ($LASTEXITCODE -ne 0) { throw "Protected PR synchronization push failed." }
+          } finally {
+            Remove-Item -LiteralPath $askpass -Force -ErrorAction SilentlyContinue
+            Remove-Item Env:GIT_ASKPASS -ErrorAction SilentlyContinue
+            Remove-Item Env:GIT_PASSWORD -ErrorAction SilentlyContinue
+          }
+          "trigger_sha=$triggerSha" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+      - name: Verify synchronized PR head
+        uses: actions/github-script@v7
+        env:
+          BUMP_BRANCH: bump-download/${{ needs.bump.outputs.gamever }}
+          TRIGGER_SHA: ${{ steps.synchronize.outputs.trigger_sha }}
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const pulls = await github.paginate(github.rest.pulls.list, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              head: `${context.repo.owner}:${process.env.BUMP_BRANCH}`,
+              per_page: 100,
+            });
+            if (pulls.length !== 1 || pulls[0].head.sha !== process.env.TRIGGER_SHA) {
+              throw new Error('Synchronized bump pull request head does not match the protected PAT push.');
+            }
+            core.notice(`Synchronized bump pull request: ${pulls[0].html_url}`);
