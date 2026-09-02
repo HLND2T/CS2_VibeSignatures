@@ -88,6 +88,82 @@ class TestInitGamebin(unittest.TestCase):
                 with self.assertRaisesRegex(init_gamebin.InitGamebinError, "HTTP 503"):
                     init_gamebin.download_release_asset("https://example/archive", archive)
 
+    def test_downloaded_gamebin_binds_manifest_checksums_and_tag(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            gamever = "14180"
+            source_sha = "a" * 40
+            archive_name = f"gamebin-{gamever}.7z"
+            archive_key = f"archives/{archive_name}"
+            archive = root / archive_name
+            archive.write_bytes(b"verified archive")
+            archive_record = {
+                "path": archive_key,
+                "name": archive_name,
+                "size": archive.stat().st_size,
+                "sha256": init_gamebin.sha256_file(archive),
+            }
+            expected_files = [{"path": f"bin/{gamever}/server/server.dll", "size": 3, "sha256": "b" * 64}]
+            manifest = {
+                "repository": "HLND2T/CS2_VibeSignatures",
+                "release_version": gamever,
+                "game_version": gamever,
+                "source_sha": source_sha,
+                "public_assets": [archive_record],
+                "archives": {archive_key: {"files": expected_files}},
+            }
+            manifest_path = root / f"release-manifest-{gamever}.json"
+            manifest_path.write_bytes(init_gamebin.canonical_json_bytes(manifest))
+            checksums = root / f"SHA256SUMS-{gamever}.txt"
+            checksums.write_text(
+                f"{archive_record['sha256']}  {archive_key}\n"
+                f"{init_gamebin.sha256_file(manifest_path)}  {manifest_path.name}\n",
+                encoding="utf-8",
+                newline="\n",
+            )
+
+            with (
+                patch("release_bundle.validate_release_manifest"),
+                patch.object(init_gamebin, "release_tag_target", return_value=source_sha),
+            ):
+                actual = init_gamebin.verify_downloaded_release_assets(
+                    gamever=gamever,
+                    manifest_path=manifest_path,
+                    checksums_path=checksums,
+                    archive_path=archive,
+                )
+
+            self.assertEqual(expected_files, actual)
+            archive.write_bytes(b"tampered archive")
+            with (
+                patch("release_bundle.validate_release_manifest"),
+                patch.object(init_gamebin, "release_tag_target", return_value=source_sha),
+                self.assertRaisesRegex(init_gamebin.InitGamebinError, "differs from the Release manifest"),
+            ):
+                init_gamebin.verify_downloaded_release_assets(
+                    gamever=gamever,
+                    manifest_path=manifest_path,
+                    checksums_path=checksums,
+                    archive_path=archive,
+                )
+
+    def test_extract_archive_rejects_directory_link_before_extraction(self) -> None:
+        listing = (
+            "Path = linked\nSize = 0\nFolder = +\nSymbolic Link = ../outside\n\n"
+            "Path = linked/payload\nSize = 1\nFolder = -\n"
+        )
+        with (
+            patch.object(init_gamebin, "run_command", return_value=completed([], stdout=listing)) as run,
+            self.assertRaisesRegex(init_gamebin.InitGamebinError, "link or unsupported"),
+        ):
+            init_gamebin.extract_archive(
+                Path("repo"),
+                Path("gamebin.7z"),
+                Path("destination"),
+                [{"path": "linked/payload", "size": 1, "sha256": "a" * 64}],
+            )
+        run.assert_called_once()
+
     def test_merge_archive_bin_copies_missing_and_preserves_existing_files(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
