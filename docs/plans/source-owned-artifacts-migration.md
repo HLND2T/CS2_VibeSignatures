@@ -21,8 +21,11 @@
   repository/module/platform/category/symbol、artifact Git blob digest 与 raw RVA，local exporter 与 hosted
   verifier 复用同一 builder；per-repository lowering evidence 另记录 binary-derived lift bias、lifted address 与
   candidate TOML path，bundle verifier 要求每个 projected function/global 实际存在于 user-tip tree。
-- 独立审查仍确认三类未闭环边界：binary identity 尚缺 source-owned per-file lock，BinSync TOML 尚不能仅从
-  Git blobs 独立证明 Windows lift bias 及完整 IDA name/comment TOML 语义，prospective payload 与
+- `binary_locks/<GAMEVER>.json` 已建立 source-owned binary/depot identity schema；16 份历史 snapshot Git blobs
+  确定性回填 256 个 configured binary locks，并以当前本地 bytes 完成 256/256 交叉复验。14167–14172 明确记为
+  historical snapshot backfill，不冒充 Steam depot 的外部密码学 provenance；runtime/hosted 强制消费仍在接入。
+- 独立审查仍确认两类未闭环边界：BinSync TOML 尚不能仅从 Git blobs 独立证明 Windows lift bias 及完整
+  IDA name/comment TOML 语义，prospective payload 与
   secrets/persisted workspace 的执行隔离需要外部 disposable runner/broker/supervisor 基础设施。
 - 因此本文仍是进行中的迁移记录；在步骤 18–20 的全部门禁与真实外部验收完成前，不得声明迁移完成或可合并。
 

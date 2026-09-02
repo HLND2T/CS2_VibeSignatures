@@ -31,7 +31,10 @@ These commands populate the binary workspace under `bin/<GAMEVER>/` and run the 
 - [Contributing symbol-analysis skills via a pull request](docs/en/conributing-via-pr.md)
 - [CI/CD and Jenkins workflow reference](docs/en/ci-cd.md)
 
-The only Git-tracked symbol truth is `bin_artifacts/<GAMEVER>/<module>/*.yaml`. `bin/` is a disposable binary/IDA workspace. Snapshots, metadata, gamedata, archives, and manifests are Release-derived assets and are not tracked on `main`.
+The only Git-tracked symbol truth is `bin_artifacts/<GAMEVER>/<module>/*.yaml`. Source-owned
+`binary_locks/<GAMEVER>.json` binds the exact configured binary bytes to the corresponding immutable depot manifests;
+`bin/` remains a disposable binary/IDA workspace. Snapshots, metadata, gamedata, archives, and manifests are
+Release-derived assets and are not tracked on `main`.
 
 ## Supported gamedata
 
