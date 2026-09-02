@@ -26,6 +26,7 @@ from release_workflow_lib.hashing import (
     sha256_file,
     write_canonical_json,
 )
+from release_workflow_lib.sevenzip import listed_archive_files
 
 RELEASE_INPUT_SCHEMA_VERSION = 1
 GAME_VERSION_RE = re.compile(r"^[0-9]{4,10}[a-z]?$")
@@ -223,29 +224,10 @@ class SevenZipGamedataExtractor:
 
     @staticmethod
     def _listed_files(output: str) -> list[dict]:
-        normalized = output.replace("\r\n", "\n")
-        records = []
-        for block in re.split(r"\n\s*\n", normalized):
-            fields = {}
-            for line in block.splitlines():
-                key, separator, value = line.partition(" = ")
-                if separator:
-                    fields[key] = value
-            if "Path" not in fields or "Size" not in fields or fields.get("Folder") == "+":
-                continue
-            if fields.get("Folder") not in (None, "-") or "Symbolic Link" in fields or "Hard Link" in fields:
-                raise PagesReleaseInputError(f"7z archive contains a link or unsupported entry: {fields['Path']}")
-            try:
-                path = normalized_relative_path(fields["Path"].replace("\\", "/"))
-                size = int(fields["Size"])
-            except (ReleaseWorkflowError, TypeError, ValueError) as exc:
-                raise PagesReleaseInputError(f"7z archive contains an unsafe entry: {fields['Path']}") from exc
-            if size < 0:
-                raise PagesReleaseInputError(f"7z archive entry has a negative size: {path}")
-            records.append({"path": path, "size": size})
-        if not records or len({item["path"] for item in records}) != len(records):
-            raise PagesReleaseInputError("7z archive file inventory is empty or contains duplicate paths")
-        return sorted(records, key=lambda item: item["path"])
+        try:
+            return listed_archive_files(output)
+        except ReleaseWorkflowError as exc:
+            raise PagesReleaseInputError(str(exc)) from exc
 
     def extract_gamedata(self, archive: Path, destination: Path, game_version: str, expected: list[dict]) -> None:
         listed = self._listed_files(self._run(["l", "-slt", "-ba", str(archive)]).stdout)

@@ -43,6 +43,7 @@ from release_workflow_lib.hashing import (
     sha256_file,
     write_canonical_json,
 )
+from release_workflow_lib.sevenzip import listed_archive_files
 
 BUNDLE_SCHEMA_VERSION = 1
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
@@ -211,31 +212,10 @@ def _create_archive(source_root: Path, archive_path: Path) -> None:
 
 
 def _listed_archive_files(output: str) -> list[dict]:
-    records = []
-    for block in re.split(r"\n\s*\n", output.replace("\r\n", "\n")):
-        fields = {}
-        for line in block.splitlines():
-            key, separator, value = line.partition(" = ")
-            if separator:
-                fields[key] = value
-        if "Path" not in fields or "Size" not in fields or fields.get("Folder") == "+":
-            continue
-        if fields.get("Folder") not in (None, "-") or "Symbolic Link" in fields or "Hard Link" in fields:
-            raise ReleaseBundleError(f"7z archive contains a link or unsupported entry: {fields['Path']}")
-        try:
-            candidate_path = fields["Path"].replace("\\", "/")
-            if ":" in candidate_path:
-                raise ReleaseWorkflowError("archive paths must not contain drive or stream separators")
-            path = normalized_relative_path(candidate_path)
-            size = int(fields["Size"])
-        except (ReleaseWorkflowError, TypeError, ValueError) as exc:
-            raise ReleaseBundleError(f"7z archive contains an unsafe entry: {fields['Path']}") from exc
-        if size < 0:
-            raise ReleaseBundleError(f"7z archive entry has a negative size: {path}")
-        records.append({"path": path, "size": size})
-    if not records or len({item["path"].casefold() for item in records}) != len(records):
-        raise ReleaseBundleError("7z archive file inventory is empty or contains duplicate paths")
-    return sorted(records, key=lambda item: item["path"])
+    try:
+        return listed_archive_files(output)
+    except ReleaseWorkflowError as exc:
+        raise ReleaseBundleError(str(exc)) from exc
 
 
 def _extract_archive(archive_path: Path, destination: Path, expected: list[dict]) -> None:

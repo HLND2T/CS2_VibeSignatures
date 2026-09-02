@@ -106,7 +106,7 @@ def _release_fixture(
         "repository": pri.ALLOWED_REPOSITORY,
         "release_version": game_version,
         "game_version": game_version,
-        "build_id": f"{release_id}-1",
+        "build_id": source_sha,
         "actions_artifact_name": f"release-{game_version}",
         "source_sha": source_sha,
         "source_subject": f"Release {game_version}",

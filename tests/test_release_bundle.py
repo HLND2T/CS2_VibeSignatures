@@ -236,6 +236,21 @@ class ReleaseBundleTests(unittest.TestCase):
             release_bundle._listed_archive_files("Path = safe\nSize = 1\nSymbolic Link = target\n")
         with self.assertRaisesRegex(release_bundle.ReleaseBundleError, "duplicate paths"):
             release_bundle._listed_archive_files("Path = safe\nSize = 1\n\nPath = safe\nSize = 1\n")
+        with self.assertRaisesRegex(release_bundle.ReleaseBundleError, "link or unsupported"):
+            release_bundle._listed_archive_files(
+                "Path = linked\nSize = 0\nFolder = +\nSymbolic Link = ../outside\n\n"
+                "Path = linked/payload\nSize = 1\nFolder = -\n"
+            )
+        with self.assertRaisesRegex(release_bundle.ReleaseBundleError, "unsafe entry"):
+            release_bundle._listed_archive_files("Path = unsupported\nFolder = -\n")
+        with self.assertRaisesRegex(release_bundle.ReleaseBundleError, "unexpected empty"):
+            release_bundle._listed_archive_files(
+                "Path = empty\nSize = 0\nFolder = +\n\nPath = safe/file\nSize = 1\nFolder = -\n"
+            )
+        with self.assertRaisesRegex(release_bundle.ReleaseBundleError, "duplicate paths"):
+            release_bundle._listed_archive_files(
+                "Path = Safe\nSize = 0\nFolder = +\n\nPath = safe\nSize = 1\nFolder = -\n"
+            )
 
 
 if __name__ == "__main__":
