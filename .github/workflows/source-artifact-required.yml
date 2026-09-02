@@ -21,6 +21,7 @@ jobs:
       head-sha: ${{ steps.identity.outputs.head-sha }}
       merge-sha: ${{ steps.identity.outputs.merge-sha }}
       bootstrap-gamever: ${{ steps.binding.outputs.bootstrap-gamever }}
+      bootstrap-prior-gamever: ${{ steps.binding.outputs.bootstrap-prior-gamever }}
       plan-artifact-name: ${{ steps.binding.outputs.plan-artifact-name }}
       affected-versions: ${{ steps.binding.outputs.affected-versions }}
       same-repository: ${{ steps.identity.outputs.same-repository }}
@@ -165,9 +166,17 @@ jobs:
           "merge-tree-sha=$($plan.merge_tree_sha)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           $bootstrap = @($plan.game_versions | Where-Object { $_.bootstrap_required -eq $true })
           $bootstrapGamever = if ($bootstrap.Count -eq 1) { [string]$bootstrap[0].game_version } else { "" }
+          $bootstrapPriorGamever = if ($bootstrap.Count -eq 1 -and $null -ne $bootstrap[0].prior_gamever) {
+            [string]$bootstrap[0].prior_gamever
+          } elseif ($bootstrap.Count -eq 1) {
+            "none"
+          } else {
+            ""
+          }
           $planArtifactName = "trusted-source-artifact-plan-${{ github.run_id }}-${{ github.run_attempt }}"
           $affectedVersions = ConvertTo-Json -InputObject @($plan.affected_game_versions) -Compress
           "bootstrap-gamever=$bootstrapGamever" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "bootstrap-prior-gamever=$bootstrapPriorGamever" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "plan-artifact-name=$planArtifactName" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "affected-versions=$affectedVersions" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           Copy-Item -LiteralPath $planPath -Destination "${{ github.workspace }}/trusted-source-artifact-plan.json"
@@ -189,6 +198,7 @@ jobs:
     with:
       pull_request_number: ${{ github.event.pull_request.number }}
       gamever: ${{ needs.bind-source-artifact-plan.outputs.bootstrap-gamever }}
+      prior_gamever: ${{ needs.bind-source-artifact-plan.outputs.bootstrap-prior-gamever }}
       base_sha: ${{ needs.bind-source-artifact-plan.outputs.base-sha }}
       head_sha: ${{ needs.bind-source-artifact-plan.outputs.head-sha }}
       merge_sha: ${{ needs.bind-source-artifact-plan.outputs.merge-sha }}

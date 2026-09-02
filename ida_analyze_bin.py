@@ -40,7 +40,6 @@ import inspect
 import json
 import os
 import posixpath
-import re
 import socket
 import subprocess
 import sys
@@ -54,6 +53,8 @@ from dotenv import load_dotenv
 
 from agent_runner import DEFAULT_AGENT_MODEL, run_skill
 from analysis_config import AnalysisConfigError, resolve_analysis_config
+from gamever_baseline import GAMEVER_RE as BASELINE_GAMEVER_RE
+from gamever_baseline import select_prior_gamever
 
 try:
     import yaml
@@ -1355,20 +1356,6 @@ def resolve_oldgamever(gamever, artifact_dir):
     if not gamever:
         return None
 
-    # Parse gamever into (base_number, optional_suffix)
-    if gamever[-1].islower() and gamever[-1].isalpha():
-        suffix = gamever[-1]
-        base_str = gamever[:-1]
-    else:
-        suffix = None
-        base_str = gamever
-
-    try:
-        base = int(base_str)
-    except ValueError:
-        return None
-
-    current_key = (base, 0 if suffix is None else ord(suffix) - ord("a") + 1)
     root = Path(artifact_dir)
     try:
         entries = list(root.iterdir())
@@ -1379,16 +1366,10 @@ def resolve_oldgamever(gamever, artifact_dir):
 
     candidates = []
     for entry in entries:
-        match = re.fullmatch(r"([0-9]{4,10})([a-z]?)", entry.name)
-        if not match or not entry.is_dir() or is_reparse_point(entry):
+        if not BASELINE_GAMEVER_RE.fullmatch(entry.name) or not entry.is_dir() or is_reparse_point(entry):
             continue
-        candidate_key = (
-            int(match.group(1)),
-            0 if not match.group(2) else ord(match.group(2)) - ord("a") + 1,
-        )
-        if candidate_key < current_key:
-            candidates.append((candidate_key, entry.name))
-    return max(candidates)[1] if candidates else None
+        candidates.append(entry.name)
+    return select_prior_gamever(str(gamever), candidates)
 
 
 def _is_major_update_gamever(gamever, download_path=DEFAULT_DOWNLOAD_FILE):
@@ -1716,6 +1697,8 @@ def parse_args():
             args.oldgamever = resolve_oldgamever(args.gamever, args.oldartifactdir)
     elif args.oldgamever.lower() == "none":
         args.oldgamever = None
+    elif not BASELINE_GAMEVER_RE.fullmatch(args.oldgamever):
+        parser.error("-oldgamever must be a valid GAMEVER or 'none'")
 
     args.llm_temperature = _parse_optional_llm_temperature(
         args.llm_temperature,
@@ -4406,7 +4389,7 @@ def _canonical_json_bytes(value) -> bytes:
 
 
 def _force_all_digest(value) -> str:
-    raw = b"source2-force-all-execution:v1\n" + _canonical_json_bytes(value)
+    raw = b"source2-force-all-execution:v2\n" + _canonical_json_bytes(value)
     return f"sha256:{hashlib.sha256(raw).hexdigest()}"
 
 
@@ -4546,12 +4529,13 @@ def build_force_all_execution_report(args, reporting: AnalysisReporting) -> dict
         issues.append(f"fresh artifact repository contract failed: {exc}")
 
     document = {
-        "schema_version": 1,
+        "schema_version": 2,
         "game_version": str(args.gamever),
         "config_path": str(Path(args.configyaml).resolve()),
         "binary_root": str(Path(args.bindir).resolve()),
         "artifact_root": str(artifact_root),
         "old_artifact_root": str(Path(args.oldartifactdir).resolve()),
+        "prior_gamever": str(args.oldgamever) if getattr(args, "oldgamever", None) else None,
         "force_all": True,
         "rename": bool(args.rename),
         "required_warm_idb": bool(args.require_warm_idb),

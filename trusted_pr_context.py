@@ -28,6 +28,7 @@ TRUSTED_FILE_PATHS = (
     "trusted_pr_context.py",
     "trusted_artifact_pr.py",
     "new_gamever_artifact.py",
+    "gamever_baseline.py",
     "bin_artifact_contract.py",
     "analysis_output_contract.py",
     "gamesymbol_snapshot_lib/analysis_sources.py",

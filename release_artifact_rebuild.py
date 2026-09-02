@@ -206,16 +206,18 @@ def _load_execution_report(path: Path, preparation: dict) -> dict:
     digest = report.get("execution_sha256")
     unsigned = dict(report)
     unsigned.pop("execution_sha256", None)
-    digest_payload = b"source2-force-all-execution:v1\n" + _canonical_json_bytes(unsigned)
+    digest_payload = b"source2-force-all-execution:v2\n" + _canonical_json_bytes(unsigned)
     expected_digest = f"sha256:{hashlib.sha256(digest_payload).hexdigest()}"
     if digest != expected_digest:
         raise ReleaseArtifactRebuildError("force-all execution report digest mismatch")
     if (
-        report.get("valid") is not True
+        report.get("schema_version") != 2
+        or report.get("valid") is not True
         or report.get("force_all") is not True
         or report.get("rename") is not True
         or report.get("required_warm_idb") is not True
         or report.get("game_version") != preparation["game_version"]
+        or "prior_gamever" not in report
         or Path(report.get("artifact_root", "")).resolve() != Path(preparation["actual_artifact_root"]).resolve()
     ):
         raise ReleaseArtifactRebuildError("force-all execution report does not prove the required release run")

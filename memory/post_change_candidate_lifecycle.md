@@ -38,3 +38,5 @@ source + computed artifact closure -> PR head
 - No analyzed-YAML staging, merge-time bin promotion, generated-output PR, or tracked snapshot/gamedata publication remains.
 - `bin_artifacts` A/M/D/R and downstream closure are author deliverables; CI independently recomputes them.
 - New GAMEVER bootstrap publication is the only source-branch write exception and cannot itself satisfy the required check.
+- The trusted plan selects one complete prior source-owned GAMEVER, or explicit `null` for no baseline; bootstrap passes
+  that identity explicitly and binds it into the force-all report, candidate manifest, and hosted verification.

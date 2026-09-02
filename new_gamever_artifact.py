@@ -21,7 +21,7 @@ from gamesymbol_snapshot_lib.paths import is_reparse_point
 from trusted_artifact_pr import load_trusted_artifact_plan, validate_trusted_artifact_plan
 
 
-BOOTSTRAP_CANDIDATE_SCHEMA_VERSION = 2
+BOOTSTRAP_CANDIDATE_SCHEMA_VERSION = 3
 ALLOWED_REPOSITORY = "HLND2T/CS2_VibeSignatures"
 GAMEVER_RE = re.compile(r"^[0-9]{4,10}[a-z]?$|^[1-9][0-9]*$")
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
@@ -80,6 +80,10 @@ def _bootstrap_version(plan: dict) -> dict:
     gamever = str(version["game_version"])
     if not GAMEVER_RE.fullmatch(gamever):
         raise NewGameverArtifactError(f"invalid bootstrap GAMEVER: {gamever!r}")
+    if "prior_gamever" not in version or (
+        version["prior_gamever"] is not None and not GAMEVER_RE.fullmatch(str(version["prior_gamever"]))
+    ):
+        raise NewGameverArtifactError("trusted bootstrap plan has an invalid prior GAMEVER binding")
     return version
 
 
@@ -146,7 +150,7 @@ def _load_force_all_execution_report(value: dict | str | Path) -> dict:
     digest = value.get("execution_sha256")
     unsigned = dict(value)
     unsigned.pop("execution_sha256", None)
-    digest_input = b"source2-force-all-execution:v1\n" + _canonical_json_bytes(unsigned)
+    digest_input = b"source2-force-all-execution:v2\n" + _canonical_json_bytes(unsigned)
     if digest != f"sha256:{hashlib.sha256(digest_input).hexdigest()}":
         raise NewGameverArtifactError("bootstrap force-all execution report digest mismatch")
     return value
@@ -155,8 +159,10 @@ def _load_force_all_execution_report(value: dict | str | Path) -> dict:
 def _validate_force_all_execution_report(*, value: dict | str | Path, version: dict, artifact_report) -> dict:
     report = _load_force_all_execution_report(value)
     gamever = str(version["game_version"])
+    if "prior_gamever" not in report or report.get("prior_gamever") != version["prior_gamever"]:
+        raise NewGameverArtifactError("bootstrap force-all execution prior GAMEVER differs from the trusted plan")
     if (
-        report.get("schema_version") != 1
+        report.get("schema_version") != 2
         or report.get("valid") is not True
         or report.get("force_all") is not True
         or report.get("rename") is not True
@@ -301,6 +307,7 @@ def build_bootstrap_candidate(
         "repository": repository,
         "pull_request_number": pr_number,
         "game_version": gamever,
+        "prior_gamever": version["prior_gamever"],
         "head_sha": plan["head_sha"],
         "prospective_merge_sha": plan["merge_sha"],
         "prospective_merge_tree_sha": plan["merge_tree_sha"],
@@ -390,7 +397,12 @@ def verify_bootstrap_candidate(
         raise NewGameverArtifactError("bootstrap publisher remote head drifted from the bound head SHA")
     if pr_number != manifest.get("pull_request_number") or not isinstance(pr_number, int) or pr_number < 1:
         raise NewGameverArtifactError("bootstrap publisher PR identity mismatch")
-    if manifest.get("plan_sha256") != plan["plan_sha256"] or manifest.get("game_version") != gamever:
+    if (
+        manifest.get("plan_sha256") != plan["plan_sha256"]
+        or manifest.get("game_version") != gamever
+        or "prior_gamever" not in manifest
+        or manifest.get("prior_gamever") != version["prior_gamever"]
+    ):
         raise NewGameverArtifactError("bootstrap candidate plan or GAMEVER binding mismatch")
     if (
         manifest.get("prospective_merge_sha") != plan["merge_sha"]
@@ -443,6 +455,7 @@ def verify_bootstrap_candidate(
         "repository": repository,
         "pull_request_number": pr_number,
         "game_version": gamever,
+        "prior_gamever": version["prior_gamever"],
         "base_ref": base_ref,
         "base_sha": base_sha,
         "head_ref": head_ref,
@@ -523,6 +536,7 @@ def prepare_bootstrap_commit(
         (
             f"Source-Head-SHA: {head_sha}",
             f"Game-Version: {gamever}",
+            f"Prior-Game-Version: {verification.get('prior_gamever') or 'none'}",
             f"Artifact-Inventory-SHA256: {verification['artifact_inventory_sha256']}",
             f"Force-All-Execution-SHA256: {verification['execution_sha256']}",
             f"Actions-Artifact-Digest: {verification['actions_artifact_digest']}",
@@ -539,6 +553,7 @@ def prepare_bootstrap_commit(
         "schema_version": 1,
         "repository": ALLOWED_REPOSITORY,
         "game_version": gamever,
+        "prior_gamever": verification.get("prior_gamever"),
         "head_ref": verification["head_ref"],
         "parent_sha": parent_sha,
         "commit_sha": commit_sha,

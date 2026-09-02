@@ -4933,6 +4933,17 @@ class TestParseArgsLlmOptions(unittest.TestCase):
         self.assertEqual("trusted-old-artifacts", args.oldartifactdir)
         mock_resolve_oldgamever.assert_called_once_with("14141", "trusted-old-artifacts")
 
+    @patch.object(ida_analyze_bin, "resolve_oldgamever")
+    def test_parse_args_preserves_explicit_prior_or_no_baseline(self, mock_resolve_oldgamever) -> None:
+        for raw, expected in (("14140", "14140"), ("none", None)):
+            with (
+                self.subTest(raw=raw),
+                patch("sys.argv", ["ida_analyze_bin.py", "-gamever", "14141", "-oldgamever", raw]),
+            ):
+                args = ida_analyze_bin.parse_args()
+                self.assertEqual(expected, args.oldgamever)
+        mock_resolve_oldgamever.assert_not_called()
+
     @patch.object(ida_analyze_bin, "resolve_oldgamever", return_value="14140")
     def test_parse_args_accepts_require_warm_idb(self, _mock_resolve_oldgamever) -> None:
         with patch(
@@ -6010,7 +6021,7 @@ class TestForceAllExecutionContract(unittest.TestCase):
             "path_windows": "game/bin/win64/server.dll",
             "skills": skills,
         }
-        config = root / "configs" / "1.yaml"
+        config = root / "configs" / "14179.yaml"
         write_config(
             config,
             [
@@ -6021,14 +6032,14 @@ class TestForceAllExecutionContract(unittest.TestCase):
             ],
         )
         artifact_root = root / "actual"
-        artifact = artifact_root / "1" / "server" / "A.windows.yaml"
+        artifact = artifact_root / "14179" / "server" / "A.windows.yaml"
         artifact.parent.mkdir(parents=True)
         artifact.write_bytes(canonical_symbol_yaml_bytes({"func_name": "A", "func_rva": "0x10"}, category="func"))
         plan = ida_analyze_bin.build_execution_plan(
             [module],
             platforms=["windows"],
             bin_dir=str(root / "bin"),
-            gamever="1",
+            gamever="14179",
             artifact_dir=str(artifact_root),
         )
         reporting = ida_analyze_bin.AnalysisReporting(MagicMock(), "run-1", plan)
@@ -6044,10 +6055,11 @@ class TestForceAllExecutionContract(unittest.TestCase):
             )
         args = SimpleNamespace(
             configyaml=str(config),
-            gamever="1",
+            gamever="14179",
             bindir=str(root / "bin"),
             artifactdir=str(artifact_root),
             oldartifactdir=str(root / "old"),
+            oldgamever="14178",
             rename=True,
             require_warm_idb=True,
         )
@@ -6058,6 +6070,8 @@ class TestForceAllExecutionContract(unittest.TestCase):
             args, reporting = self._execution_fixture(Path(temporary), alternatives=False)
             report = ida_analyze_bin.build_force_all_execution_report(args, reporting)
             self.assertTrue(report["valid"])
+            self.assertEqual(2, report["schema_version"])
+            self.assertEqual("14178", report["prior_gamever"])
             self.assertEqual(1, len(report["producer_groups"]))
             self.assertIsNotNone(report["producer_groups"][0]["winner_node_id"])
             self.assertTrue(report["execution_sha256"].startswith("sha256:"))

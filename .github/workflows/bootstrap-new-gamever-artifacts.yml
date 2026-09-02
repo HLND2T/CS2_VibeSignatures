@@ -8,6 +8,9 @@ on:
       gamever:
         required: true
         type: string
+      prior_gamever:
+        required: true
+        type: string
       base_sha:
         required: true
         type: string
@@ -43,6 +46,7 @@ jobs:
       candidate-artifact-digest: ${{ steps.upload.outputs.artifact-digest }}
     env:
       GAMEVER: ${{ inputs.gamever }}
+      PRIOR_GAMEVER: ${{ inputs.prior_gamever }}
       MERGE_SHA: ${{ inputs.merge_sha }}
       PR_NUMBER: ${{ inputs.pull_request_number }}
       IDB_CACHE_GENERATION: ${{ needs.warmup-idb.outputs.generation }}
@@ -68,6 +72,9 @@ jobs:
         run: |
           if ($env:MERGE_SHA -notmatch '^[0-9a-f]{40}$' -or (git rev-parse HEAD).Trim() -ne $env:MERGE_SHA) {
             throw "Bootstrap checkout does not match merge_sha."
+          }
+          if ($env:PRIOR_GAMEVER -ne "none" -and $env:PRIOR_GAMEVER -notmatch '^[0-9]{4,10}[a-z]?$') {
+            throw "Bootstrap prior_gamever input is invalid."
           }
           if (-not [string]::IsNullOrWhiteSpace($env:SOURCE_ARTIFACT_BOOTSTRAP_PAT)) {
             throw "Artifact publication PAT must never enter the self-hosted bootstrap job."
@@ -123,6 +130,7 @@ jobs:
             -bindir bin `
             -artifactdir "$actualRoot" `
             -oldartifactdir bin_artifacts `
+            -oldgamever "$env:PRIOR_GAMEVER" `
             -require_warm_idb `
             -force_all `
             -execution_report "$executionReport" `

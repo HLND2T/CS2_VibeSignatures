@@ -44,12 +44,13 @@ class TrustedArtifactPrTests(unittest.TestCase):
             item["path"].removeprefix(f"bin_artifacts/{gamever}/"): item for item in version["merge_artifacts"]["files"]
         }
         report = {
-            "schema_version": 1,
+            "schema_version": 2,
             "game_version": gamever,
             "config_path": str(Path(preparation["config_root"]) / f"{gamever}.yaml"),
             "binary_root": preparation["binary_root"],
             "artifact_root": preparation["actual_artifact_root"],
             "old_artifact_root": str(root / "bin_artifacts"),
+            "prior_gamever": version["prior_gamever"],
             "force_all": True,
             "rename": False,
             "required_warm_idb": True,
@@ -73,7 +74,7 @@ class TrustedArtifactPrTests(unittest.TestCase):
             "valid": True,
         }
         raw = tap._canonical_json_bytes(report)
-        report["execution_sha256"] = "sha256:" + hashlib.sha256(b"source2-force-all-execution:v1\n" + raw).hexdigest()
+        report["execution_sha256"] = "sha256:" + hashlib.sha256(b"source2-force-all-execution:v2\n" + raw).hexdigest()
         Path(preparation["execution_reports"][gamever]).write_bytes(tap._canonical_json_bytes(report))
 
     def _repository(

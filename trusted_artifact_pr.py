@@ -27,11 +27,12 @@ from gamesymbol_snapshot_lib.errors import SnapshotConfigError
 from gamesymbol_snapshot_lib.model import ChangedPath
 from gamesymbol_snapshot_lib.paths import is_reparse_point, validate_snapshot_key
 from gamesymbol_snapshot_lib.pr_validation import build_invalidation_plan, required_source_index_sides
+from gamever_baseline import gamever_order_key, select_prior_gamever
 from ida_analyze_util import SymbolArtifactError, canonical_symbol_yaml_bytes
 from trusted_pr_context import load_trusted_pr_context, validate_trusted_pr_context
 
 
-PLAN_SCHEMA_VERSION = 1
+PLAN_SCHEMA_VERSION = 2
 PREPARATION_SCHEMA_VERSION = 2
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 CONFIG_RE = re.compile(r"^configs/([^/]+)\.yaml$")
@@ -49,6 +50,7 @@ SHARED_ANALYSIS_PATHS = frozenset(
         "bin_artifact_contract.py",
         "ida_analyze_bin.py",
         "ida_analyze_util.py",
+        "gamever_baseline.py",
         "trusted_artifact_pr.py",
         "gamesymbol_snapshot_lib/config.py",
         "gamesymbol_snapshot_lib/model.py",
@@ -63,6 +65,7 @@ TRUST_ROOT_PATHS = frozenset(
         "trusted_pr_context.py",
         "trusted_artifact_pr.py",
         "new_gamever_artifact.py",
+        "gamever_baseline.py",
         "trusted_yaml.py",
         ".github/workflows/pr-self-runner.yml",
         ".github/workflows/source-artifact-required.yml",
@@ -635,12 +638,26 @@ def build_trusted_artifact_plan(*, repo_root: str | Path, trusted_context: dict 
                     "binary_inventory": binary_inventory,
                     "binary_inventory_sha256": _digest("configured-binary-inventory", binary_inventory),
                     "bootstrap_required": bootstrap_required,
+                    "prior_gamever": None,
                     "invalidated_paths": sorted(invalidated_paths),
                     "affected_producer_groups": groups,
                     "selected_alternative_nodes": nodes,
                     "reasons": list(dict.fromkeys(reasons)),
                 }
             )
+
+    complete_merge_versions = [
+        report["game_version"]
+        for report in version_reports
+        if report["merge_artifacts"] is not None
+        and not report["merge_artifacts"]["missing_required"]
+        and report["game_version"] in merge_downloads
+    ]
+    for report in version_reports:
+        gamever = report["game_version"]
+        if report["merge_artifacts"] is None or bool(merge_downloads.get(gamever, {}).get("major_update")):
+            continue
+        report["prior_gamever"] = select_prior_gamever(gamever, complete_merge_versions)
 
     affected_versions = [
         report["game_version"]
@@ -710,6 +727,33 @@ def validate_trusted_artifact_plan(document: object) -> dict:
             raise TrustedArtifactPrError(f"trusted artifact plan has an invalid {field}")
     if document.get("mode") not in {"light", "full", "bootstrap_required"}:
         raise TrustedArtifactPrError("trusted artifact plan mode is invalid")
+    versions = document.get("game_versions")
+    if not isinstance(versions, list) or any(
+        not isinstance(version, dict) or not isinstance(version.get("game_version"), str) for version in versions
+    ):
+        raise TrustedArtifactPrError("trusted artifact plan game_versions are invalid")
+    versions_by_gamever = {version.get("game_version"): version for version in versions}
+    if len(versions_by_gamever) != len(versions):
+        raise TrustedArtifactPrError("trusted artifact plan GAMEVER identities are duplicate or invalid")
+    for gamever, version in versions_by_gamever.items():
+        if "prior_gamever" not in version:
+            raise TrustedArtifactPrError(f"trusted artifact plan omits prior_gamever for {gamever}")
+        prior_gamever = version["prior_gamever"]
+        if prior_gamever is None:
+            continue
+        prior_version = versions_by_gamever.get(prior_gamever)
+        current_key = gamever_order_key(str(gamever))
+        prior_key = gamever_order_key(str(prior_gamever))
+        if (
+            not isinstance(prior_gamever, str)
+            or current_key is None
+            or prior_key is None
+            or prior_key >= current_key
+            or prior_version is None
+            or not isinstance(prior_version.get("merge_artifacts"), dict)
+            or prior_version["merge_artifacts"].get("missing_required") != []
+        ):
+            raise TrustedArtifactPrError(f"trusted artifact plan has an invalid prior_gamever for {gamever}")
     return document
 
 
@@ -828,17 +872,19 @@ def _load_force_all_execution_report(path: Path, *, preparation: dict, version: 
     digest = report.get("execution_sha256")
     unsigned = dict(report)
     unsigned.pop("execution_sha256", None)
-    raw_digest = b"source2-force-all-execution:v1\n" + _canonical_json_bytes(unsigned)
+    raw_digest = b"source2-force-all-execution:v2\n" + _canonical_json_bytes(unsigned)
     if digest != f"sha256:{hashlib.sha256(raw_digest).hexdigest()}":
         raise TrustedArtifactPrError("force-all execution report digest mismatch")
 
     gamever = version["game_version"]
     if (
-        report.get("schema_version") != 1
+        report.get("schema_version") != 2
         or report.get("valid") is not True
         or report.get("force_all") is not True
         or report.get("required_warm_idb") is not True
         or report.get("game_version") != gamever
+        or "prior_gamever" not in report
+        or report.get("prior_gamever") != version["prior_gamever"]
         or Path(report.get("artifact_root", "")).resolve() != Path(preparation["actual_artifact_root"]).resolve()
         or Path(report.get("binary_root", "")).resolve() != Path(preparation["binary_root"]).resolve()
         or Path(report.get("config_path", "")).resolve()

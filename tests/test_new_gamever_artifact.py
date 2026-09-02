@@ -29,7 +29,7 @@ class NewGameverArtifactTests(unittest.TestCase):
             self.fail(result.stderr or f"git {' '.join(arguments)} failed")
         return result.stdout.strip()
 
-    def _repository(self, root: Path):
+    def _repository(self, root: Path, *, include_prior: bool = False, major_update: bool = False):
         self._git(root, "init", "-b", "main")
         self._git(root, "config", "user.email", "test@example.com")
         self._git(root, "config", "user.name", "Test")
@@ -47,13 +47,31 @@ class NewGameverArtifactTests(unittest.TestCase):
             path = root / relative
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(payload)
+        if include_prior:
+            write_config(
+                root / "configs" / "14178.yaml",
+                [
+                    {
+                        "name": "server",
+                        "path_windows": "game/bin/win64/server.dll",
+                        "skills": [{"name": "find-a", "expected_output": ["A.{platform}.yaml"]}],
+                        "symbols": [{"name": "A", "category": "func", "platform": "windows"}],
+                    }
+                ],
+            )
+            prior_artifact = root / "bin_artifacts" / "14178" / "server" / "A.windows.yaml"
+            prior_artifact.parent.mkdir(parents=True)
+            prior_artifact.write_bytes(
+                canonical_symbol_yaml_bytes({"func_name": "A", "func_rva": "0x8"}, category="func")
+            )
         self._git(root, "add", ".")
         self._git(root, "commit", "-m", "base")
         base_sha = self._git(root, "rev-parse", "HEAD")
 
         self._git(root, "switch", "-c", f"bump-download/{self.gamever}")
+        major_update_line = "\n    major_update: true" if major_update else ""
         (root / "download.yaml").write_text(
-            f"downloads:\n  - tag: '14178'\n  - tag: '{self.gamever}'\n",
+            f"downloads:\n  - tag: '14178'\n  - tag: '{self.gamever}'{major_update_line}\n",
             encoding="utf-8",
         )
         write_config(
@@ -130,8 +148,9 @@ class NewGameverArtifactTests(unittest.TestCase):
             for planned in version["selected_alternative_nodes"]
         ]
         document = {
-            "schema_version": 1,
+            "schema_version": 2,
             "game_version": self.gamever,
+            "prior_gamever": version["prior_gamever"],
             "config_path": str((root / "configs" / f"{self.gamever}.yaml").resolve()),
             "binary_root": str((root / "bin").resolve()),
             "artifact_root": str(artifact_root.resolve()),
@@ -150,7 +169,7 @@ class NewGameverArtifactTests(unittest.TestCase):
             "issues": [],
             "valid": True,
         }
-        digest_input = b"source2-force-all-execution:v1\n" + nga._canonical_json_bytes(document)
+        digest_input = b"source2-force-all-execution:v2\n" + nga._canonical_json_bytes(document)
         document["execution_sha256"] = f"sha256:{hashlib.sha256(digest_input).hexdigest()}"
         path = root.parent / "force-all-execution.json"
         path.write_bytes(nga._canonical_json_bytes(document))
@@ -214,8 +233,10 @@ class NewGameverArtifactTests(unittest.TestCase):
             _manifest_path, manifest, verification = self._build_and_verify(root, plan, head_sha, artifact_root)
 
             self.assertEqual(1, manifest["file_count"])
+            self.assertIsNone(manifest["prior_gamever"])
             self.assertTrue(manifest["execution_sha256"].startswith("sha256:"))
             self.assertEqual(self.gamever, verification["game_version"])
+            self.assertIsNone(verification["prior_gamever"])
             self.assertEqual(head_sha, verification["head_sha"])
 
     def test_hosted_verifier_rejects_remote_head_drift_and_manifest_tamper(self) -> None:
@@ -312,7 +333,7 @@ class NewGameverArtifactTests(unittest.TestCase):
             execution = json.loads(execution_path.read_text(encoding="utf-8"))
             execution["rename"] = False
             execution.pop("execution_sha256")
-            digest_input = b"source2-force-all-execution:v1\n" + nga._canonical_json_bytes(execution)
+            digest_input = b"source2-force-all-execution:v2\n" + nga._canonical_json_bytes(execution)
             execution["execution_sha256"] = f"sha256:{hashlib.sha256(digest_input).hexdigest()}"
             execution_path.write_bytes(nga._canonical_json_bytes(execution))
             gates = {
@@ -343,7 +364,7 @@ class NewGameverArtifactTests(unittest.TestCase):
             execution = json.loads(execution_path.read_text(encoding="utf-8"))
             execution["producer_groups"] = []
             execution.pop("execution_sha256")
-            digest_input = b"source2-force-all-execution:v1\n" + nga._canonical_json_bytes(execution)
+            digest_input = b"source2-force-all-execution:v2\n" + nga._canonical_json_bytes(execution)
             execution["execution_sha256"] = f"sha256:{hashlib.sha256(digest_input).hexdigest()}"
             execution_path.write_bytes(nga._canonical_json_bytes(execution))
             with self.assertRaisesRegex(nga.NewGameverArtifactError, "cover every planned group"):
@@ -359,6 +380,77 @@ class NewGameverArtifactTests(unittest.TestCase):
                     gate_evidence=gates,
                     execution_report=execution_path,
                 )
+
+            execution_path = self._execution_report(root, plan, artifact_root)
+            execution = json.loads(execution_path.read_text(encoding="utf-8"))
+            execution["prior_gamever"] = "14178"
+            execution.pop("execution_sha256")
+            digest_input = b"source2-force-all-execution:v2\n" + nga._canonical_json_bytes(execution)
+            execution["execution_sha256"] = f"sha256:{hashlib.sha256(digest_input).hexdigest()}"
+            execution_path.write_bytes(nga._canonical_json_bytes(execution))
+            with self.assertRaisesRegex(nga.NewGameverArtifactError, "prior GAMEVER"):
+                nga.build_bootstrap_candidate(
+                    repo_root=root,
+                    plan=plan,
+                    artifact_root=artifact_root,
+                    output_manifest=root.parent / "candidate-manifest.json",
+                    repository=nga.ALLOWED_REPOSITORY,
+                    pr_number=17,
+                    workflow_run_id="123",
+                    workflow_run_attempt="1",
+                    gate_evidence=gates,
+                    execution_report=execution_path,
+                )
+
+    def test_prior_gamever_is_bound_from_plan_through_hosted_verification(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            root.mkdir()
+            head_sha, _merge_sha, plan = self._repository(root, include_prior=True)
+            version = next(version for version in plan["game_versions"] if version.get("bootstrap_required"))
+            self.assertEqual("14178", version["prior_gamever"])
+            artifact_root = self._candidate(root)
+
+            manifest_path, manifest, verification = self._build_and_verify(root, plan, head_sha, artifact_root)
+
+            self.assertEqual("14178", manifest["prior_gamever"])
+            self.assertEqual("14178", verification["prior_gamever"])
+            tampered = dict(manifest)
+            tampered["prior_gamever"] = None
+            tampered.pop("candidate_sha256")
+            tampered["candidate_sha256"] = nga._digest("candidate-manifest", tampered)
+            manifest_path.write_bytes(nga._canonical_json_bytes(tampered))
+            with self.assertRaisesRegex(nga.NewGameverArtifactError, "plan or GAMEVER binding"):
+                nga.verify_bootstrap_candidate(
+                    repo_root=root,
+                    plan=plan,
+                    artifact_root=artifact_root,
+                    manifest=manifest_path,
+                    repository=nga.ALLOWED_REPOSITORY,
+                    default_branch="main",
+                    base_repository=nga.ALLOWED_REPOSITORY,
+                    base_ref="main",
+                    base_sha=plan["base_sha"],
+                    head_repository=nga.ALLOWED_REPOSITORY,
+                    head_ref=f"bump-download/{self.gamever}",
+                    head_sha=head_sha,
+                    current_remote_head=head_sha,
+                    pr_number=17,
+                    actions_artifact_name=manifest["actions_artifact_name"],
+                    actions_artifact_digest="sha256:" + "a" * 64,
+                    workflow_run_id="123",
+                    workflow_run_attempt="1",
+                    execution_report=root.parent / "force-all-execution.json",
+                )
+
+    def test_major_update_explicitly_disables_available_prior_gamever(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            root.mkdir()
+            _head_sha, _merge_sha, plan = self._repository(root, include_prior=True, major_update=True)
+            version = next(version for version in plan["game_versions"] if version.get("bootstrap_required"))
+
+            self.assertIsNone(version["prior_gamever"])
 
     def test_prepare_commit_only_stages_new_gamever_artifacts_with_bound_parent(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

@@ -62,8 +62,9 @@ class ReleaseArtifactRebuildTests(unittest.TestCase):
             require_tracked=False,
         )
         document = {
-            "schema_version": 1,
+            "schema_version": 2,
             "game_version": preparation["game_version"],
+            "prior_gamever": None,
             "artifact_root": preparation["actual_artifact_root"],
             "force_all": True,
             "rename": True,
