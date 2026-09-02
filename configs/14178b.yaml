@@ -2032,6 +2032,37 @@ modules:
           - CLoopTypeClientServer_Update.{platform}.yaml
         expected_input:
           - CLoopTypeClientServer_vtable.{platform}.yaml
+      - name: find-CLoopTypeClientServer_UpdateClientServerStatus
+        expected_output:
+          - CLoopTypeClientServer_UpdateClientServerStatus.{platform}.yaml
+        expected_input:
+          - CLoopTypeClientServer_Update.{platform}.yaml
+      - name: find-CLoopTypeClientServer_AcquireClientServer
+        platform: linux
+        expected_output:
+          - CLoopTypeClientServer_AcquireClientServer.{platform}.yaml
+        expected_input:
+          - CLoopTypeClientServer_UpdateClientServerStatus.{platform}.yaml
+      - name: find-CLoopTypeClientServer_UpdateClientServerStatus-decompiles
+        expected_output:
+          - INetworkGameServer_AddRef.{platform}.yaml
+          - INetworkGameServer_Release.{platform}.yaml
+        expected_input:
+          - CLoopTypeClientServer_UpdateClientServerStatus.{platform}.yaml
+        expected_input_linux:
+          - CLoopTypeClientServer_AcquireClientServer.{platform}.yaml
+      - name: find-CNetworkGameServerBase_AddRef
+        expected_output:
+          - CNetworkGameServerBase_AddRef.{platform}.yaml
+        expected_input:
+          - CNetworkGameServerBase_vtable.{platform}.yaml
+          - INetworkGameServer_AddRef.{platform}.yaml
+      - name: find-CNetworkGameServerBase_Release
+        expected_output:
+          - CNetworkGameServerBase_Release.{platform}.yaml
+        expected_input:
+          - CNetworkGameServerBase_vtable.{platform}.yaml
+          - INetworkGameServer_Release.{platform}.yaml
       - name: find-CLoopModeLevelLoad_MaybeSwitchToGameLoop
         expected_output:
           - CLoopModeLevelLoad_MaybeSwitchToGameLoop.{platform}.yaml
@@ -3416,6 +3447,22 @@ modules:
         category: vfunc
         alias:
           - CNetworkGameServerBase::ServerAdvanceTick
+      - name: INetworkGameServer_AddRef
+        category: vfunc
+        alias:
+          - INetworkGameServer::AddRef
+      - name: INetworkGameServer_Release
+        category: vfunc
+        alias:
+          - INetworkGameServer::Release
+      - name: CNetworkGameServerBase_AddRef
+        category: vfunc
+        alias:
+          - CNetworkGameServerBase::AddRef
+      - name: CNetworkGameServerBase_Release
+        category: vfunc
+        alias:
+          - CNetworkGameServerBase::Release
       - name: INetworkGameServer_GetTime
         category: vfunc
         alias:
@@ -3678,6 +3725,15 @@ modules:
         category: vfunc
         alias:
           - CLoopTypeClientServer::Update
+      - name: CLoopTypeClientServer_UpdateClientServerStatus
+        category: func
+        alias:
+          - CLoopTypeClientServer::UpdateClientServerStatus
+      - name: CLoopTypeClientServer_AcquireClientServer
+        category: func
+        platform: linux
+        alias:
+          - CLoopTypeClientServer::AcquireClientServer
       - name: CLoopModeLevelLoad_MaybeSwitchToGameLoop
         category: func
         alias:

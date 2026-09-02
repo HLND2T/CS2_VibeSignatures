@@ -1,0 +1,52 @@
+func_name: CLoopTypeClientServer_AcquireClientServer
+func_va: '0x37c890'
+disasm_code: |-
+  .text:000000000037C890                 push    rbp
+  .text:000000000037C891                 mov     rbp, rsp
+  .text:000000000037C894                 push    rbx
+  .text:000000000037C895                 mov     rbx, rdi
+  .text:000000000037C898                 sub     rsp, 8
+  .text:000000000037C89C                 lea     rax, g_pAnimationSystem
+  .text:000000000037C8A3                 mov     rdi, [rax]
+  .text:000000000037C8A6                 mov     rax, [rdi]
+  .text:000000000037C8A9                 call    qword ptr [rax+0C0h]
+  .text:000000000037C8AF                 mov     [rbx+130h], rax
+  .text:000000000037C8B6                 test    rax, rax
+  .text:000000000037C8B9                 jz      short loc_37C8C4
+  .text:000000000037C8BB                 mov     rdi, rax
+  .text:000000000037C8BE                 mov     rax, [rax]
+  .text:000000000037C8C1                 call    qword ptr [rax+10h]
+  .text:000000000037C8C4                 lea     rax, g_pMaterialUtils
+  .text:000000000037C8CB                 mov     rdi, [rax]
+  .text:000000000037C8CE                 mov     rax, [rdi]
+  .text:000000000037C8D1                 call    qword ptr [rax+0C0h]
+  .text:000000000037C8D7                 mov     rdi, rax
+  .text:000000000037C8DA                 mov     [rbx+138h], rax
+  .text:000000000037C8E1                 test    rax, rax
+  .text:000000000037C8E4                 jz      short loc_37C8F8
+  .text:000000000037C8E6                 mov     rax, [rax]
+  .text:000000000037C8E9                 mov     rbx, [rbp+var_8]
+  .text:000000000037C8ED                 ; 0x28 = 40LL = INetworkGameServer_AddRef
+  .text:000000000037C8ED                 mov     rax, [rax+28h]; 0x28 = 40LL = INetworkGameServer_AddRef
+  .text:000000000037C8F1                 leave
+  .text:000000000037C8F2                 jmp     rax
+  .text:000000000037C8F4                 align 8
+  .text:000000000037C8F8                 mov     rbx, [rbp+var_8]
+  .text:000000000037C8FC                 leave
+  .text:000000000037C8FD                 retn
+procedure: |-
+  __int64 __fastcall sub_37C890(__int64 a1)
+  {
+    __int64 v1; // rax
+    __int64 result; // rax
+
+    v1 = (*(__int64 (__fastcall **)(_QWORD *))(*g_pAnimationSystem + 192LL))(g_pAnimationSystem);
+    *(_QWORD *)(a1 + 304) = v1;
+    if ( v1 )
+      (*(void (__fastcall **)(__int64))(*(_QWORD *)v1 + 16LL))(v1);
+    result = (*(__int64 (__fastcall **)(_QWORD *))(*g_pMaterialUtils + 192LL))(g_pMaterialUtils);
+    *(_QWORD *)(a1 + 312) = result;
+    if ( result )
+      return (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)result + 40LL))(result);// 0x28 = 40LL = INetworkGameServer_AddRef
+    return result;
+  }
