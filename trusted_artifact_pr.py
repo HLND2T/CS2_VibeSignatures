@@ -8,6 +8,7 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -1100,6 +1101,56 @@ def validate_isolated_rebuild(
     return result
 
 
+def validate_exported_isolated_rebuild(
+    *,
+    repo_root: str | Path,
+    plan: dict | str | Path,
+    staging_root: str | Path,
+    game_version: str,
+    actual_artifact_root: str | Path,
+    execution_report: str | Path,
+) -> dict:
+    """Re-home untrusted builder evidence and verify it with fresh base-owned tools."""
+    plan = load_trusted_artifact_plan(plan) if isinstance(plan, (str, Path)) else validate_trusted_artifact_plan(plan)
+    preparation = prepare_isolated_rebuild(
+        repo_root=repo_root,
+        plan=plan,
+        staging_root=staging_root,
+        game_version=game_version,
+    )
+    exported_root = Path(actual_artifact_root).resolve()
+    if not exported_root.is_dir():
+        raise TrustedArtifactPrError(f"exported actual artifact root is missing: {exported_root}")
+    shutil.copytree(exported_root, preparation["actual_artifact_root"], dirs_exist_ok=True)
+
+    exported_report = Path(execution_report)
+    try:
+        raw = exported_report.read_bytes()
+        document = json.loads(raw.decode("utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise TrustedArtifactPrError(f"unable to load exported execution report: {exc}") from exc
+    if raw != _canonical_json_bytes(document):
+        raise TrustedArtifactPrError("exported execution report is not canonical JSON")
+    digest = document.get("execution_sha256")
+    unsigned = dict(document)
+    unsigned.pop("execution_sha256", None)
+    digest_payload = b"source2-force-all-execution:v2\n" + _canonical_json_bytes(unsigned)
+    if digest != f"sha256:{hashlib.sha256(digest_payload).hexdigest()}":
+        raise TrustedArtifactPrError("exported execution report digest mismatch")
+
+    document["artifact_root"] = preparation["actual_artifact_root"]
+    document["binary_root"] = preparation["binary_root"]
+    document["config_path"] = str(Path(preparation["config_root"]) / f"{game_version}.yaml")
+    unsigned = dict(document)
+    unsigned.pop("execution_sha256", None)
+    document["execution_sha256"] = (
+        "sha256:" + hashlib.sha256(b"source2-force-all-execution:v2\n" + _canonical_json_bytes(unsigned)).hexdigest()
+    )
+    normalized_report = Path(preparation["execution_reports"][str(game_version)])
+    _atomic_write(normalized_report, _canonical_json_bytes(document))
+    return validate_isolated_rebuild(repo_root=repo_root, plan=plan, preparation=preparation)
+
+
 def parse_args(argv=None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -1117,6 +1168,14 @@ def parse_args(argv=None) -> argparse.Namespace:
     verify.add_argument("--plan", required=True)
     verify.add_argument("--preparation", required=True)
     verify.add_argument("--output")
+    exported = subparsers.add_parser("verify-exported")
+    exported.add_argument("--repo-root", default=".")
+    exported.add_argument("--plan", required=True)
+    exported.add_argument("--staging-root", required=True)
+    exported.add_argument("--gamever", required=True)
+    exported.add_argument("--actual-root", required=True)
+    exported.add_argument("--execution-report", required=True)
+    exported.add_argument("--output")
     return parser.parse_args(argv)
 
 
@@ -1133,11 +1192,22 @@ def main(argv=None) -> int:
                 staging_root=args.staging_root,
                 game_version=args.gamever,
             )
-        else:
+        elif args.command == "verify":
             result = validate_isolated_rebuild(
                 repo_root=args.repo_root,
                 plan=args.plan,
                 preparation=args.preparation,
+            )
+            if args.output:
+                _atomic_write(Path(args.output), _canonical_json_bytes(result))
+        else:
+            result = validate_exported_isolated_rebuild(
+                repo_root=args.repo_root,
+                plan=args.plan,
+                staging_root=args.staging_root,
+                game_version=args.gamever,
+                actual_artifact_root=args.actual_root,
+                execution_report=args.execution_report,
             )
             if args.output:
                 _atomic_write(Path(args.output), _canonical_json_bytes(result))

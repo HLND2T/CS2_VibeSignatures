@@ -38,7 +38,9 @@ class SourceArtifactAcceptedBinTests(unittest.TestCase):
 
             self.assertTrue(result["cache_hit"])
             self.assertRegex(result["binary_lock_sha256"], r"^sha256:[0-9a-f]{64}$")
-            self.assertEqual(result["binary_lock_sha256"], verify_workspace(repo_root=root, gamever="1")["binary_lock_sha256"])
+            self.assertEqual(
+                result["binary_lock_sha256"], verify_workspace(repo_root=root, gamever="1")["binary_lock_sha256"]
+            )
 
     def test_invalid_cache_is_a_miss_or_required_failure_without_copy(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

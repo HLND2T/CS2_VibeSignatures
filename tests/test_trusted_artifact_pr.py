@@ -267,6 +267,37 @@ class TrustedArtifactPrTests(unittest.TestCase):
             with self.assertRaisesRegex(tap.TrustedArtifactPrError, "contract failed|byte mismatch"):
                 tap.validate_isolated_rebuild(repo_root=root, plan=plan, preparation=preparation)
 
+    def test_hosted_verifier_rehomes_exported_builder_evidence(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            builder_staging = Path(temporary) / "builder"
+            hosted_staging = Path(temporary) / "hosted"
+            exported_root = Path(temporary) / "exported-actual"
+            exported_report = Path(temporary) / "exported-execution.json"
+            root.mkdir()
+            _base, _head, _merge, context = self._repository(root)
+            plan = tap.build_trusted_artifact_plan(repo_root=root, trusted_context=context)
+            preparation = tap.prepare_isolated_rebuild(repo_root=root, plan=plan, staging_root=builder_staging)
+            shutil.copytree(
+                Path(preparation["expected_artifact_root"]),
+                Path(preparation["actual_artifact_root"]),
+                dirs_exist_ok=True,
+            )
+            self._write_execution_report(root, plan, preparation)
+            shutil.copytree(Path(preparation["actual_artifact_root"]), exported_root)
+            shutil.copy2(preparation["execution_reports"]["1"], exported_report)
+
+            result = tap.validate_exported_isolated_rebuild(
+                repo_root=root,
+                plan=plan,
+                staging_root=hosted_staging,
+                game_version="1",
+                actual_artifact_root=exported_root,
+                execution_report=exported_report,
+            )
+
+            self.assertEqual(["1"], [item["game_version"] for item in result["game_versions"]])
+
     def test_isolated_verify_rejects_missing_execution_evidence(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary) / "repo"
