@@ -19,15 +19,31 @@ from yaml import YAMLError
 from trusted_yaml import load_yaml
 
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 POLICY_REPO_PATH = "source_artifact_policy.yaml"
 SHA_PATTERN = re.compile(r"^[0-9a-f]{40}$")
 TRUSTED_FILE_PATHS = (
     POLICY_REPO_PATH,
-    "pr_validation_mode.py",
-    "pr_validation_mode.yaml",
-    "pr_validation_version.py",
-    ".github/workflows/pr-self-runner.yml",
+    ".gitmodules",
+    "trusted_pr_context.py",
+    "trusted_artifact_pr.py",
+    "gamever_baseline.py",
+    "bin_artifact_contract.py",
+    "binary_lock.py",
+    "binary_hashing.py",
+    "source_artifact_schema.py",
+    "analysis_output_contract.py",
+    "gamesymbol_snapshot_lib/analysis_sources.py",
+    "gamesymbol_snapshot_lib/config.py",
+    "gamesymbol_snapshot_lib/model.py",
+    "gamesymbol_snapshot_lib/paths.py",
+    "gamesymbol_snapshot_lib/pr_validation.py",
+    "trusted_yaml.py",
+    "release_workflow_lib/errors.py",
+    "release_workflow_lib/hashing.py",
+    ".github/workflows/source-artifact-required.yml",
+    ".github/workflows/source-artifact-full-bridge.yml",
+    "pyproject.toml",
     "uv.lock",
 )
 
@@ -74,6 +90,18 @@ class GitRepository:
     def read(self, ref: str, path: str) -> bytes:
         return self._run("show", f"{ref}:{path}")
 
+    def is_ancestor(self, ancestor: str, descendant: str) -> bool:
+        result = subprocess.run(
+            ["git", "-C", str(self.path), "merge-base", "--is-ancestor", ancestor, descendant],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+        if result.returncode not in {0, 1}:
+            message = result.stderr.decode("utf-8", errors="replace").strip()
+            raise TrustedPrContextError(f"git merge-base --is-ancestor failed: {message}")
+        return result.returncode == 0
+
 
 def _validated_sha(value: str, context: str) -> str:
     value = str(value).strip().lower()
@@ -108,8 +136,8 @@ def parse_source_artifact_policy(payload: bytes) -> SourceArtifactPolicy:
     if document["schema_version"] != 1:
         raise TrustedPrContextError("trusted source artifact policy schema_version must be 1")
     mode = document["mode"]
-    if mode not in {"legacy", "source-owned"}:
-        raise TrustedPrContextError("trusted source artifact policy mode must be legacy or source-owned")
+    if mode not in {"legacy", "bridge", "source-owned"}:
+        raise TrustedPrContextError("trusted source artifact policy mode must be legacy, bridge, or source-owned")
     artifact_root = document["artifact_root"]
     if artifact_root != "bin_artifacts":
         raise TrustedPrContextError("trusted source artifact policy artifact_root must be bin_artifacts")
@@ -123,22 +151,14 @@ def _canonical_document_bytes(document: dict) -> bytes:
     return json.dumps(document, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8") + b"\n"
 
 
-def build_trusted_pr_context(*, repo_root: str | Path, base_ref: str, head_ref: str, merge_ref: str) -> dict:
-    repo = GitRepository(repo_root)
-    base_sha = repo.resolve_commit(base_ref)
-    head_sha = repo.resolve_commit(head_ref)
-    merge_sha = repo.resolve_commit(merge_ref)
-    parents = repo.parents(merge_sha)
-    if parents != (base_sha, head_sha):
-        raise TrustedPrContextError(
-            "prospective merge parents do not match the bound base/head commits: "
-            f"expected={(base_sha, head_sha)!r}; actual={parents!r}"
-        )
-
+def _build_context_document(repo, *, event_kind: str, base_sha: str, head_sha: str, merge_sha: str) -> dict:
     trusted_payloads = {path: repo.read(base_sha, path) for path in TRUSTED_FILE_PATHS}
     policy = parse_source_artifact_policy(trusted_payloads[POLICY_REPO_PATH])
+    merge_policy_payload = repo.read(merge_sha, POLICY_REPO_PATH)
+    merge_policy = parse_source_artifact_policy(merge_policy_payload)
     document = {
         "schema_version": SCHEMA_VERSION,
+        "event_kind": event_kind,
         "base_sha": base_sha,
         "head_sha": head_sha,
         "merge_sha": merge_sha,
@@ -151,6 +171,13 @@ def build_trusted_pr_context(*, repo_root: str | Path, base_ref: str, head_ref: 
             "artifact_contract_schema_version": policy.artifact_contract_schema_version,
             "sha256": _sha256(trusted_payloads[POLICY_REPO_PATH]),
         },
+        "merge_artifact_policy": {
+            "mode": merge_policy.mode,
+            "artifact_root": merge_policy.artifact_root,
+            "artifact_contract_schema_version": merge_policy.artifact_contract_schema_version,
+            "sha256": _sha256(merge_policy_payload),
+        },
+        "cutover_transition": policy.mode == "bridge" and merge_policy.mode == "source-owned",
         "trusted_files": [
             {"path": path, "size": len(trusted_payloads[path]), "sha256": _sha256(trusted_payloads[path])}
             for path in TRUSTED_FILE_PATHS
@@ -158,6 +185,41 @@ def build_trusted_pr_context(*, repo_root: str | Path, base_ref: str, head_ref: 
     }
     document["context_sha256"] = _sha256(_canonical_document_bytes(document))
     return document
+
+
+def build_trusted_pr_context(*, repo_root: str | Path, base_ref: str, head_ref: str, merge_ref: str) -> dict:
+    repo = GitRepository(repo_root)
+    base_sha = repo.resolve_commit(base_ref)
+    head_sha = repo.resolve_commit(head_ref)
+    merge_sha = repo.resolve_commit(merge_ref)
+    parents = repo.parents(merge_sha)
+    if parents != (base_sha, head_sha):
+        raise TrustedPrContextError(
+            "prospective merge parents do not match the bound base/head commits: "
+            f"expected={(base_sha, head_sha)!r}; actual={parents!r}"
+        )
+    return _build_context_document(
+        repo,
+        event_kind="pull_request",
+        base_sha=base_sha,
+        head_sha=head_sha,
+        merge_sha=merge_sha,
+    )
+
+
+def build_trusted_merge_group_context(*, repo_root: str | Path, base_ref: str, merge_ref: str) -> dict:
+    repo = GitRepository(repo_root)
+    base_sha = repo.resolve_commit(base_ref)
+    merge_sha = repo.resolve_commit(merge_ref)
+    if base_sha == merge_sha or not repo.is_ancestor(base_sha, merge_sha):
+        raise TrustedPrContextError("merge-group head must descend from the exact bound base commit")
+    return _build_context_document(
+        repo,
+        event_kind="merge_group",
+        base_sha=base_sha,
+        head_sha=merge_sha,
+        merge_sha=merge_sha,
+    )
 
 
 def validate_trusted_pr_context(document: object) -> dict:
@@ -168,6 +230,8 @@ def validate_trusted_pr_context(document: object) -> dict:
     unsigned.pop("context_sha256", None)
     if digest != _sha256(_canonical_document_bytes(unsigned)):
         raise TrustedPrContextError("trusted PR context digest mismatch")
+    if document.get("event_kind") not in {"pull_request", "merge_group"}:
+        raise TrustedPrContextError("trusted PR context event_kind is invalid")
     for field in (
         "base_sha",
         "head_sha",
@@ -177,18 +241,22 @@ def validate_trusted_pr_context(document: object) -> dict:
         "merge_tree_sha",
     ):
         _validated_sha(document.get(field, ""), field)
-    policy = document.get("artifact_policy")
-    if (
-        not isinstance(policy, dict)
-        or set(policy) != {"mode", "artifact_root", "artifact_contract_schema_version", "sha256"}
-        or policy.get("mode") not in {"legacy", "source-owned"}
-        or policy.get("artifact_root") != "bin_artifacts"
-        or not isinstance(policy.get("artifact_contract_schema_version"), int)
-        or isinstance(policy.get("artifact_contract_schema_version"), bool)
-        or policy["artifact_contract_schema_version"] < 1
-        or not re.fullmatch(r"[0-9a-f]{64}", str(policy.get("sha256", "")))
-    ):
-        raise TrustedPrContextError("trusted PR context artifact policy is invalid")
+    policies = (document.get("artifact_policy"), document.get("merge_artifact_policy"))
+    for policy in policies:
+        if (
+            not isinstance(policy, dict)
+            or set(policy) != {"mode", "artifact_root", "artifact_contract_schema_version", "sha256"}
+            or policy.get("mode") not in {"legacy", "bridge", "source-owned"}
+            or policy.get("artifact_root") != "bin_artifacts"
+            or not isinstance(policy.get("artifact_contract_schema_version"), int)
+            or isinstance(policy.get("artifact_contract_schema_version"), bool)
+            or policy["artifact_contract_schema_version"] < 1
+            or not re.fullmatch(r"[0-9a-f]{64}", str(policy.get("sha256", "")))
+        ):
+            raise TrustedPrContextError("trusted PR context artifact policy is invalid")
+    expected_transition = policies[0]["mode"] == "bridge" and policies[1]["mode"] == "source-owned"
+    if document.get("cutover_transition") is not expected_transition:
+        raise TrustedPrContextError("trusted PR context cutover transition is invalid")
     trusted_files = document.get("trusted_files")
     if not isinstance(trusted_files, list) or len(trusted_files) != len(TRUSTED_FILE_PATHS):
         raise TrustedPrContextError("trusted PR context file inventory is invalid")
@@ -232,12 +300,21 @@ def _atomic_write(path: Path, payload: bytes) -> None:
 
 
 def _build_command(args: argparse.Namespace) -> int:
-    context = build_trusted_pr_context(
-        repo_root=args.repo_root,
-        base_ref=args.base_ref,
-        head_ref=args.head_ref,
-        merge_ref=args.merge_ref,
-    )
+    if args.event_kind == "merge_group":
+        context = build_trusted_merge_group_context(
+            repo_root=args.repo_root,
+            base_ref=args.base_ref,
+            merge_ref=args.merge_ref,
+        )
+    else:
+        if not args.head_ref:
+            raise TrustedPrContextError("--head-ref is required for pull_request context")
+        context = build_trusted_pr_context(
+            repo_root=args.repo_root,
+            base_ref=args.base_ref,
+            head_ref=args.head_ref,
+            merge_ref=args.merge_ref,
+        )
     _atomic_write(Path(args.output), _canonical_document_bytes(context))
     if args.github_output:
         with Path(args.github_output).open("a", encoding="utf-8", newline="\n") as handle:
@@ -267,8 +344,9 @@ def parse_args(argv=None) -> argparse.Namespace:
     subparsers = parser.add_subparsers(dest="command", required=True)
     build = subparsers.add_parser("build")
     build.add_argument("--repo-root", default=".")
+    build.add_argument("--event-kind", choices=("pull_request", "merge_group"), default="pull_request")
     build.add_argument("--base-ref", required=True)
-    build.add_argument("--head-ref", required=True)
+    build.add_argument("--head-ref")
     build.add_argument("--merge-ref", required=True)
     build.add_argument("--output", required=True)
     build.add_argument("--github-output")
