@@ -126,6 +126,7 @@ def prepare_release_rebuild(
             game_version=game_version,
             artifact_root=artifact_root,
             require_tracked=True,
+            git_revision=source_sha,
         )
         contract = load_contract(config_path, game_version, binary_root, artifactdir=artifact_root)
         binaries = collect_binary_metadata(contract)
@@ -165,7 +166,7 @@ def prepare_release_rebuild(
         "expected_artifact_root": str(artifact_root),
         "expected_artifact_inventory_sha256": expected.inventory_sha256,
         "expected_files": expected_files,
-        "source_checkout_artifact_sha256": _checkout_artifact_digest(artifact_root),
+        "source_checkout_artifact_sha256": _checkout_artifact_digest(artifact_root / str(game_version)),
         "actual_artifact_root": str(actual_root),
         "execution_report": str(execution_report),
         "analysis_command": command,
@@ -226,7 +227,25 @@ def verify_release_rebuild(*, repo_root: str | Path, preparation: dict | str | P
     repo_root = Path(repo_root).resolve()
     if _git(repo_root, "rev-parse", "HEAD").lower() != preparation["source_sha"]:
         raise ReleaseArtifactRebuildError("release source checkout drifted before rebuild verification")
-    if _checkout_artifact_digest(repo_root / "bin_artifacts") != preparation["source_checkout_artifact_sha256"]:
+    try:
+        expected = build_game_artifact_inventory(
+            repo_root=repo_root,
+            config_path=repo_root / "configs" / f"{preparation['game_version']}.yaml",
+            game_version=preparation["game_version"],
+            artifact_root=repo_root / "bin_artifacts",
+            require_tracked=True,
+            git_revision=preparation["source_sha"],
+        )
+    except ArtifactContractError as exc:
+        raise ReleaseArtifactRebuildError(f"release source artifact verification failed: {exc}") from exc
+    expected_files_now = [item.to_dict() for item in expected.files]
+    if (
+        expected.inventory_sha256 != preparation["expected_artifact_inventory_sha256"]
+        or expected_files_now != preparation["expected_files"]
+    ):
+        raise ReleaseArtifactRebuildError("immutable Git artifact inventory differs from rebuild preparation")
+    checkout_game_root = repo_root / "bin_artifacts" / str(preparation["game_version"])
+    if _checkout_artifact_digest(checkout_game_root) != preparation["source_checkout_artifact_sha256"]:
         raise ReleaseArtifactRebuildError("source-owned artifacts changed during release rebuild")
     execution = _load_execution_report(Path(preparation["execution_report"]), preparation)
     try:

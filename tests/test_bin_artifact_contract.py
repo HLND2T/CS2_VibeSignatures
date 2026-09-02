@@ -1,3 +1,4 @@
+import os
 import subprocess
 import tempfile
 import unittest
@@ -85,6 +86,100 @@ class BinArtifactContractTests(unittest.TestCase):
                 require_tracked=True,
             )
             self.assertEqual(1, report.file_count)
+
+    def test_require_tracked_rejects_canonical_bytes_that_differ_from_git(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            config, artifact, artifact_root = self._workspace(root)
+            self._git_init_and_commit(root)
+            source_sha = subprocess.run(
+                ["git", "rev-parse", "HEAD"],
+                cwd=root,
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout.strip()
+            artifact.write_bytes(
+                canonical_symbol_yaml_bytes({"func_name": "Example", "func_rva": "0x20"}, category="func")
+            )
+
+            with self.assertRaisesRegex(ArtifactContractError, "differs from Git index blob"):
+                build_game_artifact_inventory(
+                    repo_root=root,
+                    config_path=config,
+                    game_version="1",
+                    artifact_root=artifact_root,
+                    require_tracked=True,
+                )
+
+            subprocess.run(["git", "add", str(artifact.relative_to(root))], cwd=root, check=True)
+            report = build_game_artifact_inventory(
+                repo_root=root,
+                config_path=config,
+                game_version="1",
+                artifact_root=artifact_root,
+                require_tracked=True,
+            )
+            self.assertEqual(1, report.file_count)
+            with self.assertRaisesRegex(ArtifactContractError, "differs from Git revision blob"):
+                build_game_artifact_inventory(
+                    repo_root=root,
+                    config_path=config,
+                    game_version="1",
+                    artifact_root=artifact_root,
+                    require_tracked=True,
+                    git_revision=source_sha,
+                )
+
+    def test_require_tracked_rejects_non_regular_git_mode(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            config, artifact, artifact_root = self._workspace(root)
+            self._git_init_and_commit(root)
+            subprocess.run(
+                ["git", "update-index", "--chmod=+x", str(artifact.relative_to(root))],
+                cwd=root,
+                check=True,
+            )
+
+            with self.assertRaisesRegex(ArtifactContractError, "mode must be 100644"):
+                build_game_artifact_inventory(
+                    repo_root=root,
+                    config_path=config,
+                    game_version="1",
+                    artifact_root=artifact_root,
+                    require_tracked=True,
+                )
+
+    def test_rejects_artifact_root_link_before_resolving_it(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            config, _artifact, artifact_root = self._workspace(root)
+            target = root / "real-bin-artifacts"
+            artifact_root.rename(target)
+            try:
+                if os.name == "nt":
+                    result = subprocess.run(
+                        ["cmd", "/c", "mklink", "/J", str(artifact_root), str(target)],
+                        capture_output=True,
+                        text=True,
+                        check=False,
+                    )
+                    if result.returncode:
+                        self.skipTest(f"unable to create a junction on this host: {result.stderr}")
+                else:
+                    artifact_root.symlink_to(target, target_is_directory=True)
+            except OSError as exc:
+                self.skipTest(f"unable to create an artifact-root link on this host: {exc}")
+
+            with self.assertRaisesRegex(ArtifactContractError, "link/reparse"):
+                build_game_artifact_inventory(
+                    repo_root=root,
+                    config_path=config,
+                    game_version="1",
+                    artifact_root=artifact_root,
+                    require_tracked=False,
+                )
 
     def test_repository_contract_rejects_unconfigured_and_legacy_tracked_outputs(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

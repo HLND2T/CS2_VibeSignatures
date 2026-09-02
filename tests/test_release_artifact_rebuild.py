@@ -128,6 +128,24 @@ class ReleaseArtifactRebuildTests(unittest.TestCase):
             with self.assertRaisesRegex(rar.ReleaseArtifactRebuildError, "digest mismatch"):
                 rar.verify_release_rebuild(repo_root=root, preparation=preparation)
 
+    def test_prepare_rejects_canonical_checkout_artifact_drift_from_source_sha(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            temporary_root = Path(temporary)
+            root = temporary_root / "repo"
+            root.mkdir()
+            source_sha = self._repository(root)
+            artifact = root / "bin_artifacts" / "1" / "server" / "A.windows.yaml"
+            artifact.write_bytes(canonical_symbol_yaml_bytes({"func_name": "A", "func_rva": "0x20"}, category="func"))
+
+            with self.assertRaisesRegex(rar.ReleaseArtifactRebuildError, "differs from Git revision blob"):
+                rar.prepare_release_rebuild(
+                    repo_root=root,
+                    source_sha=source_sha,
+                    game_version="1",
+                    binary_root=root / "bin",
+                    staging_root=temporary_root / "release-rebuild",
+                )
+
 
 if __name__ == "__main__":
     unittest.main()
