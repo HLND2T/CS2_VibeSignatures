@@ -119,6 +119,31 @@ class BinSyncPublishTests(unittest.TestCase):
             push.assert_called_once()
             self.assertEqual("published", result["repositories"][0]["status"])
 
+    def test_push_uses_exact_expected_head_leases(self) -> None:
+        refs = [
+            {
+                "ref": "refs/heads/binsync/__root__",
+                "expected_remote_head": None,
+                "candidate_commit": "a" * 40,
+            },
+            {
+                "ref": "refs/heads/binsync/release",
+                "expected_remote_head": "b" * 40,
+                "candidate_commit": "c" * 40,
+            },
+        ]
+        with patch.object(binsync_publish, "_run_git", return_value="") as run_git:
+            binsync_publish._push_refs(
+                {"remote_url": "https://github.com/HLND2T/example"},
+                Path("candidate.bundle"),
+                refs,
+                {},
+            )
+
+        push_arguments = run_git.call_args_list[-1].args[1]
+        self.assertIn("--force-with-lease=refs/heads/binsync/__root__:", push_arguments)
+        self.assertIn(f"--force-with-lease=refs/heads/binsync/release:{'b' * 40}", push_arguments)
+
 
 if __name__ == "__main__":
     unittest.main()

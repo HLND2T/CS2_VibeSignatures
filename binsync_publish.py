@@ -73,9 +73,18 @@ def _push_refs(repository: dict, bundle: Path, refs: list[dict], environment: di
                 ["fetch", "--no-tags", str(bundle.resolve()), f"{item['ref']}:{item['ref']}"],
             )
         refspecs = [f"{item['candidate_commit']}:{item['ref']}" for item in refs]
+        leases = [f"--force-with-lease={item['ref']}:{item['expected_remote_head'] or ''}" for item in refs]
         _run_git(
             local_repo,
-            ["push", "--atomic", "--porcelain", "--no-verify", repository["remote_url"], *refspecs],
+            [
+                "push",
+                "--atomic",
+                "--porcelain",
+                "--no-verify",
+                *leases,
+                repository["remote_url"],
+                *refspecs,
+            ],
             environment=environment,
         )
 
