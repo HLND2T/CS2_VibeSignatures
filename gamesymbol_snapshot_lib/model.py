@@ -44,13 +44,30 @@ class SkillNode:
     platform: str
     required_outputs: frozenset[str]
     optional_outputs: frozenset[str]
-    inputs: frozenset[str]
+    required_inputs: frozenset[str]
+    optional_inputs: frozenset[str]
+    alternative_outputs: frozenset[str]
     prerequisites: tuple[str, ...]
     fingerprint: str
 
     @property
     def outputs(self) -> frozenset[str]:
         return self.required_outputs | self.optional_outputs
+
+    @property
+    def inputs(self) -> frozenset[str]:
+        return self.required_inputs | self.optional_inputs
+
+
+@dataclass(frozen=True)
+class ProducerGroup:
+    group_id: str
+    artifact_path: str
+    required: bool
+    alternative_node_ids: tuple[str, ...]
+    input_paths: frozenset[str]
+    upstream_group_ids: tuple[str, ...]
+    fingerprint: str
 
 
 @dataclass(frozen=True)
@@ -63,7 +80,8 @@ class BinaryTarget:
 @dataclass(frozen=True)
 class SnapshotContract:
     game_version: str
-    game_root: Path
+    binary_game_root: Path
+    artifact_game_root: Path
     config_digest_version: int
     config_sha256: str
     analysis_output_contract_version: int
@@ -72,10 +90,35 @@ class SnapshotContract:
     owners_by_path: dict[str, frozenset[str]]
     nodes: dict[str, SkillNode]
     binary_targets: dict[tuple[str, str], BinaryTarget]
+    producer_groups: dict[str, ProducerGroup]
+    producer_group_ids_by_path: dict[str, str]
+
+    @property
+    def game_root(self) -> Path:
+        """Compatibility alias for artifact readers during the dual-root migration."""
+        return self.artifact_game_root
 
     @property
     def formal_paths(self) -> frozenset[str]:
         return self.required_paths | self.optional_paths
+
+    def producer_group_for_path(self, artifact_path: str) -> ProducerGroup:
+        group_id = self.producer_group_ids_by_path[artifact_path]
+        return self.producer_groups[group_id]
+
+    def downstream_group_ids(self, seed_group_ids: set[str] | frozenset[str]) -> frozenset[str]:
+        selected = set(seed_group_ids)
+        unknown = selected - set(self.producer_groups)
+        if unknown:
+            raise KeyError(f"unknown producer groups: {', '.join(sorted(unknown))}")
+        changed = True
+        while changed:
+            changed = False
+            for group_id, group in self.producer_groups.items():
+                if group_id not in selected and selected.intersection(group.upstream_group_ids):
+                    selected.add(group_id)
+                    changed = True
+        return frozenset(selected)
 
 
 @dataclass(frozen=True)

@@ -32,6 +32,8 @@ jobs:
       base_snapshot_path: ${{ steps.resolve-version.outputs.base_snapshot_path }}
       base_snapshot_commit: ${{ steps.resolve-version.outputs.base_snapshot_commit }}
       source_sha: ${{ steps.pull-request.outputs.source-sha }}
+      trust_context_sha256: ${{ steps.trust-context.outputs.trust-context-sha256 }}
+      merge_tree_sha: ${{ steps.trust-context.outputs.merge-tree-sha }}
       head_ref: ${{ steps.pull-request.outputs.head-ref }}
       base_sha: ${{ steps.pull-request.outputs.base-sha }}
       pr_title: ${{ steps.pull-request.outputs.pr-title }}
@@ -45,6 +47,7 @@ jobs:
           ref: refs/pull/${{ github.event.pull_request.number }}/merge
           fetch-depth: 0
           submodules: false
+          persist-credentials: false
       - name: Resolve PR cache eligibility and immutable source
         id: pull-request
         if: github.event_name == 'pull_request'
@@ -92,6 +95,48 @@ jobs:
       - name: Set up uv for validation classification
         id: setup-preflight-uv
         uses: astral-sh/setup-uv@v9.0.0
+      - name: Checkout trusted base planner
+        id: checkout-trusted-planner
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ steps.pull-request.outputs.base-sha }}
+          fetch-depth: 1
+          submodules: false
+          persist-credentials: false
+          path: .trusted-planner
+      - name: Sync trusted base planner environment
+        id: sync-trusted-planner-environment
+        shell: pwsh
+        run: uv sync --project .trusted-planner --locked
+      - name: Bind trusted prospective merge context
+        id: trust-context
+        shell: pwsh
+        env:
+          PR_BASE_SHA: ${{ steps.pull-request.outputs.base-sha }}
+          PR_HEAD_SHA: ${{ steps.pull-request.outputs.head-sha }}
+          PR_MERGE_SHA: ${{ steps.pull-request.outputs.source-sha }}
+        run: |
+          $bridge = ".trusted-planner/trusted_pr_context.py"
+          if (-not (Test-Path -LiteralPath $bridge -PathType Leaf)) {
+            # The bridge-introduction PR necessarily targets a base that predates
+            # the trusted context builder. Keep the legacy path for this one
+            # bootstrap transition; every later base must execute trusted code.
+            $treeSha = (git rev-parse "$env:PR_MERGE_SHA^{tree}").Trim().ToLowerInvariant()
+            if ($LASTEXITCODE -ne 0 -or $treeSha -notmatch '^[0-9a-f]{40}$') {
+              throw "Unable to resolve the bootstrap prospective merge tree."
+            }
+            "trust-context-sha256=bootstrap" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            "merge-tree-sha=$treeSha" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            exit 0
+          }
+          uv run --project .trusted-planner python .trusted-planner/trusted_pr_context.py build `
+            --repo-root "${{ github.workspace }}" `
+            --base-ref "$env:PR_BASE_SHA" `
+            --head-ref "$env:PR_HEAD_SHA" `
+            --merge-ref "$env:PR_MERGE_SHA" `
+            --output "$env:RUNNER_TEMP/trusted-pr-context.json" `
+            --github-output "$env:GITHUB_OUTPUT"
+          if ($LASTEXITCODE -ne 0) { throw "Failed to bind trusted prospective merge context." }
       - name: Classify PR validation mode from changed paths
         id: classify-validation-mode
         shell: pwsh
@@ -101,7 +146,7 @@ jobs:
         run: |
           $forceArgs = @()
           if ($env:PR_IS_BUMP -eq "true") { $forceArgs += "--force-light" }
-          uv run python pr_validation_mode.py `
+          uv run --project .trusted-planner python .trusted-planner/pr_validation_mode.py `
             --repo-root "${{ github.workspace }}" `
             --base-ref "$env:PR_BASE_SHA" `
             --github-output "$env:GITHUB_OUTPUT" @forceArgs
@@ -113,7 +158,7 @@ jobs:
         env:
           PR_BASE_SHA: ${{ steps.pull-request.outputs.base-sha }}
         run: |
-          uv run python pr_validation_version.py `
+          uv run --project .trusted-planner python .trusted-planner/pr_validation_version.py `
             --repo-root "${{ github.workspace }}" `
             --base-ref "$env:PR_BASE_SHA" `
             --github-output "$env:GITHUB_OUTPUT"

@@ -20,6 +20,7 @@ SUITE_NAMES = (*PRIMARY_SUITES, "all")
 REPOSITORY_CONTRACT_MODULES = frozenset(
     {
         "test_abandon_staged_release",
+        "test_bin_artifact_contract",
         "test_build_self_runner_workflow",
         "test_config_scheduling_dependencies",
         "test_pack_snapshot_skill",
@@ -28,6 +29,8 @@ REPOSITORY_CONTRACT_MODULES = frozenset(
         "test_restore_from_snapshot_skill",
         "test_smoke_ida_mcp_2",
         "test_symbol_store_architecture",
+        "test_trusted_artifact_pr",
+        "test_trusted_pr_context",
         "test_trigger_release_build",
         "test_warmup_idb_workflow",
     }
@@ -60,6 +63,7 @@ UNIT_MODULES = frozenset(
         "test_agent_runner",
         "test_analysis_config",
         "test_atomic_json_write",
+        "test_binary_lock",
         "test_binary_hashing",
         "test_bump_download",
         "test_copy_depot_bin",
@@ -116,6 +120,7 @@ UNIT_MODULES = frozenset(
         "test_registerconcommand_preprocessor",
         "test_run_cpp_tests",
         "test_script_desc_internal_preprocessor",
+        "test_source_artifact_accepted_bin",
         "test_sync_accepted_bin",
         "test_test_suite_runner",
         "test_trusted_yaml",
