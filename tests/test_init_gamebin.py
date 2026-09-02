@@ -725,10 +725,17 @@ class TestInitGamebin(unittest.TestCase):
             patch.object(init_gamebin, "resolve_analysis_config", return_value=config),
             patch.object(init_gamebin, "probe_binsync", return_value=(True, "")),
             patch.object(init_gamebin, "prepare_binsync_projects", return_value=binsync_summary()) as binsync,
+            patch.object(init_gamebin, "verify_source_binary_root") as verify,
         ):
             result = init_gamebin.prepare(root, "14168", binsync_mode="enable")
         self.assertEqual("existing local binaries", result["source"])
         download.assert_not_called()
+        verify.assert_called_once_with(
+            repo_root=root,
+            gamever="14168",
+            binary_root=root / "bin" / "14168",
+            label="initialized binary tree",
+        )
         binsync.assert_called_once_with(root, "14168", config, allow_remote_creation=False)
 
     def test_prepare_threads_remote_creation_permission_to_binsync(self) -> None:
@@ -740,6 +747,7 @@ class TestInitGamebin(unittest.TestCase):
             patch.object(init_gamebin, "resolve_analysis_config", return_value=config),
             patch.object(init_gamebin, "probe_binsync", return_value=(True, "")),
             patch.object(init_gamebin, "prepare_binsync_projects", return_value=binsync_summary()) as binsync,
+            patch.object(init_gamebin, "verify_source_binary_root"),
         ):
             init_gamebin.prepare(
                 root,
@@ -764,6 +772,7 @@ class TestInitGamebin(unittest.TestCase):
             patch.object(init_gamebin, "resolve_analysis_config", return_value=config),
             patch.object(init_gamebin, "probe_binsync", return_value=(True, "")),
             patch.object(init_gamebin, "prepare_binsync_projects", return_value=binsync_summary()),
+            patch.object(init_gamebin, "verify_source_binary_root"),
         ):
             result = init_gamebin.prepare(root, "14168", binsync_mode="enable")
         self.assertEqual("Steam depot fallback", result["source"])
@@ -778,6 +787,7 @@ class TestInitGamebin(unittest.TestCase):
             patch.object(init_gamebin, "resolve_analysis_config", return_value=config),
             patch.object(init_gamebin, "probe_binsync") as probe,
             patch.object(init_gamebin, "prepare_binsync_projects") as binsync,
+            patch.object(init_gamebin, "verify_source_binary_root"),
         ):
             result = init_gamebin.prepare(root, "14168")
         self.assertEqual("existing local binaries", result["source"])
@@ -794,10 +804,29 @@ class TestInitGamebin(unittest.TestCase):
             patch.object(init_gamebin, "resolve_analysis_config", return_value=config),
             patch.object(init_gamebin, "probe_binsync", return_value=(False, "gh is not installed")),
             patch.object(init_gamebin, "prepare_binsync_projects") as binsync,
+            patch.object(init_gamebin, "verify_source_binary_root"),
         ):
             with self.assertRaisesRegex(init_gamebin.InitGamebinError, "unavailable"):
                 init_gamebin.prepare(root, "14168", binsync_mode="enable")
         binsync.assert_not_called()
+
+    def test_prepare_rejects_complete_binary_tree_that_differs_from_source_lock(self) -> None:
+        root = Path("repo")
+        config = root / "configs" / "14168.yaml"
+        with (
+            patch.object(init_gamebin, "load_versions", return_value=["14168"]),
+            patch.object(init_gamebin, "check_binaries", side_effect=[True, True]),
+            patch.object(init_gamebin, "resolve_analysis_config", return_value=config),
+            patch.object(
+                init_gamebin,
+                "verify_source_binary_root",
+                side_effect=init_gamebin.ReleaseWorkflowError("binary identity mismatch"),
+            ),
+            patch.object(init_gamebin, "download_verified_release_gamebin") as download,
+        ):
+            with self.assertRaisesRegex(init_gamebin.InitGamebinError, "source binary lock"):
+                init_gamebin.prepare(root, "14168")
+        download.assert_not_called()
 
     def test_probe_binsync_reports_missing_gh(self) -> None:
         with patch.object(init_gamebin.shutil, "which", return_value=None):

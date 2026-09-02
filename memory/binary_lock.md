@@ -50,6 +50,8 @@ source SHA: config + download.yaml + binary lock
 - New GAMEVER enrollment uses the bump producer's fresh checkout-external depot/bin root and atomically publishes the lock
   with `download.yaml` plus the seeded config before accepted-bin or warm-IDB cache reuse.
 - `bin/`, accepted-bin, and warm IDB remain disposable caches and never define expected binary identity.
+- `init_gamebin.py prepare` performs a final lock comparison after local, Release-archive, or depot initialization; direct
+  callers therefore cannot treat a complete but wrong binary tree as ready.
 
 ## Callers
 - Release rebuild preparation and verification.

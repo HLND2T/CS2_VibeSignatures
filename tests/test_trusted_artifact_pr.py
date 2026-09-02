@@ -347,17 +347,18 @@ class TrustedArtifactPrTests(unittest.TestCase):
                 tap.build_trusted_artifact_plan(repo_root=root, trusted_context=context)
 
     def test_trust_root_change_requires_independent_bridge_update(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary) / "repo"
-            root.mkdir()
-            _base, _head, _merge, context = self._repository(
-                root,
-                change_artifact=False,
-                changed_path="source_artifact_policy.yaml",
-            )
+        for changed_path in ("source_artifact_policy.yaml", "binary_lock.py"):
+            with self.subTest(changed_path=changed_path), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary) / "repo"
+                root.mkdir()
+                _base, _head, _merge, context = self._repository(
+                    root,
+                    change_artifact=False,
+                    changed_path=changed_path,
+                )
 
-            with self.assertRaisesRegex(tap.TrustedArtifactPrError, "independently merged bridge update"):
-                tap.build_trusted_artifact_plan(repo_root=root, trusted_context=context)
+                with self.assertRaisesRegex(tap.TrustedArtifactPrError, "independently merged bridge update"):
+                    tap.build_trusted_artifact_plan(repo_root=root, trusted_context=context)
 
     def test_unknown_artifact_and_plan_tamper_fail_closed(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

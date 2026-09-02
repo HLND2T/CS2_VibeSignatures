@@ -33,6 +33,8 @@
 - new-GAMEVER bump producer 不再接触 accepted-bin：它把 declared manifests 下载到 checkout 外 fresh root，按新
   config 构建 binary allowlist 后生成 canonical lock；credential-free candidate 与 hosted publisher 以三文件
   allowlist 原子提交 `download.yaml`、`configs/<GAMEVER>.yaml`、`binary_locks/<GAMEVER>.json`。
+- `init_gamebin.py prepare` 在所有来源汇合后统一执行 source-lock 终态校验；binary lock parser/hash helpers 已纳入
+  default-branch trust inventory，修改这些门禁必须先走独立 bridge update。
 - 独立审查仍确认两类未闭环边界：BinSync TOML 尚不能仅从 Git blobs 独立证明 Windows lift bias 及完整
   IDA name/comment TOML 语义，prospective payload 与
   secrets/persisted workspace 的执行隔离需要外部 disposable runner/broker/supervisor 基础设施。

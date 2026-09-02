@@ -23,6 +23,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(REPOSITORY_ROOT))
 
 from analysis_config import AnalysisConfigError, resolve_analysis_config  # noqa: E402
+from release_workflow_lib.binary_cache import verify_source_binary_root  # noqa: E402
 from release_workflow_lib.errors import ReleaseWorkflowError  # noqa: E402
 from release_workflow_lib.hashing import (  # noqa: E402
     canonical_json_bytes,
@@ -1056,6 +1057,15 @@ def prepare(
                 source = "Steam depot fallback"
     if not check_binaries(root, gamever, config_path):
         raise InitGamebinError(f"configured binaries are still incomplete for GAMEVER {gamever}")
+    try:
+        binary_lock = verify_source_binary_root(
+            repo_root=root,
+            gamever=gamever,
+            binary_root=root / "bin" / gamever,
+            label="initialized binary tree",
+        )
+    except ReleaseWorkflowError as exc:
+        raise InitGamebinError(f"configured binaries do not match the source binary lock: {exc}") from exc
     binsync = None
     if binsync_mode == "enable":
         available, reason = probe_binsync(root)
@@ -1072,6 +1082,7 @@ def prepare(
         "source": source,
         "copied": copied,
         "skipped": skipped,
+        "binary_lock_sha256": binary_lock.sha256,
         "binsync": binsync,
     }
 

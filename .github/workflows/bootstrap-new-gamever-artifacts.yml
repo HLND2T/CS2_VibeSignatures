@@ -51,6 +51,7 @@ jobs:
       PR_NUMBER: ${{ inputs.pull_request_number }}
       IDB_CACHE_GENERATION: ${{ needs.warmup-idb.outputs.generation }}
       IDB_CACHE_KEY: ${{ needs.warmup-idb.outputs.cache_key }}
+      BINARY_LOCK_SHA256: ${{ needs.warmup-idb.outputs.binary_lock_sha256 }}
       PERSISTED_WORKSPACE: ${{ secrets.PERSISTED_WORKSPACE }}
       CS2VIBE_AGENT: ${{ secrets.CS2VIBE_AGENT }}
       CS2VIBE_AGENT_MODEL: ${{ secrets.CS2VIBE_AGENT_MODEL }}
@@ -95,9 +96,22 @@ jobs:
         shell: pwsh
         run: |
           if ([string]::IsNullOrWhiteSpace($env:PERSISTED_WORKSPACE)) { throw "PERSISTED_WORKSPACE is not configured." }
-          uv run python accepted_bin.py restore --repo-root "${{ github.workspace }}" `
+          if ($env:BINARY_LOCK_SHA256 -notmatch '^sha256:[0-9a-f]{64}$') {
+            throw "Warmup omitted the source binary lock identity."
+          }
+          $planPath = Join-Path "${{ runner.temp }}" "source-artifact-plan\trusted-source-artifact-plan.json"
+          $plan = Get-Content -LiteralPath $planPath -Raw | ConvertFrom-Json
+          $version = @($plan.game_versions | Where-Object { $_.game_version -eq $env:GAMEVER })
+          if ($version.Count -ne 1 -or $version[0].merge_binary_lock_sha256 -ne $env:BINARY_LOCK_SHA256) {
+            throw "Bootstrap warmup binary lock identity differs from the trusted plan."
+          }
+          $restoreJson = uv run python accepted_bin.py restore --repo-root "${{ github.workspace }}" `
             --persisted-root "$env:PERSISTED_WORKSPACE" --gamever "$env:GAMEVER" --required
           if ($LASTEXITCODE -ne 0) { throw "Failed to restore the exact accepted binary allowlist." }
+          $restore = $restoreJson | ConvertFrom-Json
+          if ($restore.binary_lock_sha256 -ne $env:BINARY_LOCK_SHA256) {
+            throw "Bootstrap accepted-bin restore differs from the trusted plan lock."
+          }
       - name: Restore exact warm IDB generation
         shell: pwsh
         run: |
