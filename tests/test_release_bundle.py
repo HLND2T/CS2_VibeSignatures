@@ -139,7 +139,7 @@ class ReleaseBundleTests(unittest.TestCase):
                     warm_idb_generation="generation-1",
                     warm_idb_cache_key="cache-key-1",
                     actions_artifact_name=f"release-bundle-{preparation['source_sha']}-1",
-                    cpp_sdk_ref="pinned-submodule",
+                    cpp_sdk_ref=release_bundle.CPP_SDK_REF,
                     cpp_sdk_sha=preparation["sdk_gitlink_sha"],
                 )
                 verified = release_bundle.verify_release_bundle(
@@ -166,6 +166,10 @@ class ReleaseBundleTests(unittest.TestCase):
             self.assertEqual(manifest["source_sha"], manifest["build_id"])
             self.assertEqual(manifest["binsync"]["target_state_digest"], verified["binsync_target_state_digest"])
             self.assertEqual(4, len(manifest["public_assets"]))
+            mutable_sdk = copy.deepcopy(manifest)
+            mutable_sdk["cpp_sdk"] = {"ref": "cs2-1", "sha": manifest["cpp_sdk"]["sha"]}
+            with self.assertRaisesRegex(release_bundle.ReleaseBundleError, "immutable source gitlink"):
+                release_bundle.validate_release_manifest(mutable_sdk)
 
     def test_verify_rejects_public_asset_tamper(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -218,7 +222,7 @@ class ReleaseBundleTests(unittest.TestCase):
                     warm_idb_generation="generation-1",
                     warm_idb_cache_key="cache-key-1",
                     actions_artifact_name=f"release-bundle-{preparation['source_sha']}-1",
-                    cpp_sdk_ref="pinned-submodule",
+                    cpp_sdk_ref=release_bundle.CPP_SDK_REF,
                     cpp_sdk_sha=preparation["sdk_gitlink_sha"],
                 )
                 (bundle_root / "gamesymbols" / "1.yaml").write_bytes(

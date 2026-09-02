@@ -383,7 +383,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "candidate guard failed after gamedata" }
           uv run gamesymbol_candidate.py mark -candidate "$candidate" -session "$session" -step gamedata
           if ($LASTEXITCODE -ne 0) { throw "failed to mark gamedata validation" }
-      - name: Select versioned SDK for C++ ABI validation
+      - name: Bind source-owned SDK for C++ ABI validation
         id: select-sdk
         shell: pwsh
         run: |
@@ -391,41 +391,14 @@ jobs:
           $safeSdkPath = ([IO.Path]::GetFullPath($sdkPath) -replace '\\', '/')
           git config --global --add safe.directory "$safeSdkPath"
           if ($LASTEXITCODE -ne 0) { throw "Failed to trust hl2sdk_cs2 Git directory." }
-          $sdkRef = "cs2-$env:GAMEVER"
-          $sdkRemote = "https://github.com/HLND2T/hl2sdk.git"
-          $pinnedSha = (git -C $sdkPath rev-parse HEAD).Trim()
-          if ($LASTEXITCODE -ne 0 -or $pinnedSha -notmatch '^[0-9a-fA-F]{40}$') {
-            throw "Unable to resolve the pinned hl2sdk_cs2 commit."
+          $sourceGitlink = (git rev-parse "$($env:SOURCE_SHA):hl2sdk_cs2").Trim().ToLowerInvariant()
+          $checkedOutSha = (git -C $sdkPath rev-parse HEAD).Trim().ToLowerInvariant()
+          if ($LASTEXITCODE -ne 0 -or $sourceGitlink -notmatch '^[0-9a-f]{40}$' -or $checkedOutSha -ne $sourceGitlink) {
+            throw "Checked-out hl2sdk_cs2 does not match the immutable source gitlink."
           }
-          "SDK_PINNED_SHA=$pinnedSha" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-          $remoteBranch = git -C $sdkPath ls-remote --heads $sdkRemote "refs/heads/$sdkRef"
-          if ($LASTEXITCODE -ne 0) { throw "Unable to query $sdkRef from hl2sdk." }
-          if ([string]::IsNullOrWhiteSpace($remoteBranch)) {
-            "SDK_ABI_REF=pinned-submodule" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-            "SDK_ABI_SHA=$pinnedSha" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-            "SDK_ABI_SWITCHED=false" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-            Write-Host "No versioned SDK branch exists for $sdkRef; retaining the pinned submodule revision."
-            Write-Host "C++ ABI SDK selection: GAMEVER=$env:GAMEVER; ref=pinned-submodule; selected SHA=$pinnedSha; pinned SHA=$pinnedSha"
-          } else {
-            $remoteSha = ($remoteBranch -split '\s+')[0]
-            if ($remoteSha -notmatch '^[0-9a-fA-F]{40}$') { throw "Invalid commit returned for $sdkRef." }
-            git -C $sdkPath fetch --no-tags --depth 1 $sdkRemote "refs/heads/$sdkRef"
-            if ($LASTEXITCODE -ne 0) { throw "Unable to fetch $sdkRef from hl2sdk." }
-            $fetchedSha = (git -C $sdkPath rev-parse FETCH_HEAD).Trim()
-            if ($LASTEXITCODE -ne 0 -or $fetchedSha -ne $remoteSha) {
-              throw "Fetched commit for $sdkRef does not match the queried remote commit."
-            }
-            "SDK_ABI_SWITCHED=true" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-            git -C $sdkPath checkout --detach $remoteSha
-            if ($LASTEXITCODE -ne 0) { throw "Unable to checkout $sdkRef." }
-            $selectedSha = (git -C $sdkPath rev-parse HEAD).Trim()
-            if ($LASTEXITCODE -ne 0 -or $selectedSha -ne $remoteSha) {
-              throw "Selected SDK commit does not match $sdkRef."
-            }
-            "SDK_ABI_REF=$sdkRef" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-            "SDK_ABI_SHA=$selectedSha" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-            Write-Host "C++ ABI SDK selection: GAMEVER=$env:GAMEVER; ref=$sdkRef; selected SHA=$selectedSha; pinned SHA=$pinnedSha"
-          }
+          "SDK_ABI_REF=source-gitlink" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "SDK_ABI_SHA=$sourceGitlink" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "C++ ABI SDK identity: source gitlink SHA=$sourceGitlink"
       - name: Run C++ tests
         id: cpp-tests
         shell: pwsh
@@ -440,26 +413,6 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "candidate guard failed after C++ tests" }
           uv run gamesymbol_candidate.py mark -candidate "$env:ACTUAL_CANDIDATE_SNAPSHOT" -session "$env:CANDIDATE_SESSION" -step cpp_tests
           if ($LASTEXITCODE -ne 0) { throw "failed to mark C++ validation" }
-      - name: Restore pinned SDK revision
-        id: restore-sdk
-        if: always()
-        shell: pwsh
-        run: |
-          if ($env:SDK_ABI_SWITCHED -ne "true") {
-            Write-Host "C++ ABI SDK restore: pinned submodule revision remained selected."
-            exit 0
-          }
-          if ($env:SDK_PINNED_SHA -notmatch '^[0-9a-fA-F]{40}$') {
-            throw "SDK_PINNED_SHA is unavailable or invalid."
-          }
-          $sdkPath = Join-Path $env:GITHUB_WORKSPACE "hl2sdk_cs2"
-          git -C $sdkPath checkout --detach "$env:SDK_PINNED_SHA"
-          if ($LASTEXITCODE -ne 0) { throw "Unable to restore pinned hl2sdk_cs2 commit." }
-          $restoredSha = (git -C $sdkPath rev-parse HEAD).Trim()
-          if ($LASTEXITCODE -ne 0 -or $restoredSha -ne $env:SDK_PINNED_SHA) {
-            throw "Restored SDK commit does not match SDK_PINNED_SHA."
-          }
-          Write-Host "C++ ABI SDK restore: restored pinned SHA=$restoredSha"
       - name: Build immutable Release bundle and source-bound manifest
         id: build-release-bundle
         shell: pwsh

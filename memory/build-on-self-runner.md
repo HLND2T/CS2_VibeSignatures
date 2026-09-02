@@ -9,7 +9,8 @@ permalink: cs2-vibesignatures/build-on-self-runner
 ## Overview
 `.github/workflows/build-on-self-runner.yml` is the credential-minimized Release producer for an immutable default-branch source SHA. It performs a fresh full `-force_all -rename` rebuild against tracked `bin_artifacts`, derives release-local assets and a credential-free BinSync candidate, then hands exact bytes to hosted verification and protected publishers.
 ## Responsibilities
-- Preflight an allowlisted repository/source SHA, complete GAMEVER artifact inventory, binary/download/SDK identity, and immutable version transaction.
+- Preflight an allowlisted repository/source SHA, complete GAMEVER artifact inventory, binary/download identity, and the
+  exact `hl2sdk_cs2` gitlink stored in that source commit.
 - Restore binary-only accepted state and the exact warm IDB generation.
 - Rebuild the complete GAMEVER in an empty checkout-external artifact root and compare every byte with Git truth.
 - Apply rename/comment side effects only to release-local IDB/BinSync state; prove no remote ref changed during build.
@@ -42,6 +43,8 @@ immutable main SHA preflight
 - No generated-output branch/PR, release-staging correctness source, or accepted-bin YAML promotion remains.
 - Stable transaction identity is `run_id`; rerun attempt is transport metadata and must not change candidate identity.
 - Self-hosted build has read-only source access and no publication credentials. BinSync and Release publishers are isolated.
+- C++ validation and the gamedata archive always use the source commit's SDK gitlink; mutable `cs2-<GAMEVER>` branches are
+  never runtime Release inputs.
 - Same-version published assets are exact-idempotent only; different content must use a new version.
 ## Callers
 - Provenance-verified release dispatch for an immutable default-branch source SHA.

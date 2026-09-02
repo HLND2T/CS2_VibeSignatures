@@ -46,6 +46,7 @@ from release_workflow_lib.hashing import (
 from release_workflow_lib.sevenzip import listed_archive_files
 
 BUNDLE_SCHEMA_VERSION = 1
+CPP_SDK_REF = "source-gitlink"
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 ARTIFACT_NAME_RE = re.compile(r"^[A-Za-z0-9_.-]{1,240}$")
@@ -399,8 +400,12 @@ def build_release_bundle(
     if binsync_verified["publication_digest"] != binsync_manifest["publication_digest"]:
         raise ReleaseBundleError("BinSync candidate verification digest mismatch")
 
-    if not cpp_sdk_ref or not SHA_RE.fullmatch(cpp_sdk_sha):
-        raise ReleaseBundleError("selected C++ SDK identity is invalid")
+    if (
+        cpp_sdk_ref != CPP_SDK_REF
+        or not SHA_RE.fullmatch(cpp_sdk_sha)
+        or cpp_sdk_sha != preparation_document["sdk_gitlink_sha"]
+    ):
+        raise ReleaseBundleError("selected C++ SDK must equal the immutable source gitlink")
     sdk_root = repo_root / "hl2sdk_cs2"
     sdk_files = _sdk_inventory(sdk_root, cpp_sdk_sha)
     binary_records = _binary_records(preparation_document["binary_inventory"])
@@ -589,9 +594,12 @@ def validate_release_manifest(manifest: dict) -> None:
         or not SHA_RE.fullmatch(str(cpp_sdk["sha"]))
     ):
         raise ReleaseBundleError("Release C++ SDK identity is invalid")
-    expected_cpp_refs = {"pinned-submodule", f"cs2-{manifest.get('game_version')}"}
-    if cpp_sdk["ref"] not in expected_cpp_refs:
-        raise ReleaseBundleError("Release C++ SDK ref is not allowlisted")
+    if (
+        not SHA_RE.fullmatch(str(manifest.get("sdk_gitlink_sha", "")))
+        or cpp_sdk["ref"] != CPP_SDK_REF
+        or cpp_sdk["sha"] != manifest["sdk_gitlink_sha"]
+    ):
+        raise ReleaseBundleError("Release C++ SDK must equal the immutable source gitlink")
     for field in ("download_sha256", "config_sha256", "binary_inventory_sha256", "artifact_inventory_sha256"):
         if not DIGEST_RE.fullmatch(str(manifest.get(field, ""))):
             raise ReleaseBundleError(f"Release manifest {field} is invalid")
@@ -676,10 +684,11 @@ def _verify_source(repo_root: Path, manifest: dict) -> None:
         raise ReleaseBundleError("hosted Release verifier config identity mismatch")
     if artifacts.inventory_sha256 != manifest["artifact_inventory_sha256"]:
         raise ReleaseBundleError("hosted Release verifier artifact inventory mismatch")
-    if str(_git(repo_root, "rev-parse", "HEAD:hl2sdk_cs2")).lower() != manifest["sdk_gitlink_sha"]:
+    source_gitlink = str(_git(repo_root, "rev-parse", f"{source_sha}:hl2sdk_cs2")).lower()
+    if source_gitlink != manifest["sdk_gitlink_sha"]:
         raise ReleaseBundleError("hosted Release verifier SDK gitlink mismatch")
-    if manifest["cpp_sdk"]["ref"] == "pinned-submodule" and manifest["cpp_sdk"]["sha"] != manifest["sdk_gitlink_sha"]:
-        raise ReleaseBundleError("pinned C++ SDK identity differs from the source gitlink")
+    if manifest["cpp_sdk"] != {"ref": CPP_SDK_REF, "sha": source_gitlink}:
+        raise ReleaseBundleError("hosted Release verifier C++ SDK differs from the source gitlink")
     sdk_files = _sdk_inventory(repo_root / "hl2sdk_cs2", manifest["cpp_sdk"]["sha"])
     if sdk_files != manifest["sdk_files"] or inventory_sha256(sdk_files) != manifest["sdk_inventory_sha256"]:
         raise ReleaseBundleError("hosted Release verifier SDK content mismatch")

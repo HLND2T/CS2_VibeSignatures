@@ -90,7 +90,7 @@ jobs:
         with:
           artifact-ids: ${{ steps.bind-artifact.outputs.artifact_id }}
           path: ${{ runner.temp }}/release-bundle
-      - name: Select exact C++ SDK identity bound by the Release manifest
+      - name: Verify exact source-owned C++ SDK identity
         shell: pwsh
         run: |
           $manifestPath = Get-ChildItem -LiteralPath "${{ runner.temp }}/release-bundle" -Filter "release-manifest-*.json"
@@ -100,23 +100,12 @@ jobs:
           $sdkSha = ([string]$manifest.cpp_sdk.sha).ToLowerInvariant()
           if ($sdkSha -notmatch '^[0-9a-f]{40}$') { throw "Release manifest C++ SDK SHA is invalid." }
           $sdkPath = Join-Path "${{ github.workspace }}" "hl2sdk_cs2"
-          if ($sdkRef -eq 'pinned-submodule') {
-            if ((git -C $sdkPath rev-parse HEAD).Trim().ToLowerInvariant() -ne $sdkSha) {
-              throw "Pinned C++ SDK does not match the Release manifest."
-            }
-          } elseif ($sdkRef -ceq "cs2-${{ inputs.gamever }}") {
-            $remote = git -C $sdkPath ls-remote --heads origin "refs/heads/$sdkRef"
-            if ($LASTEXITCODE -ne 0 -or ($remote -split '\s+')[0].ToLowerInvariant() -ne $sdkSha) {
-              throw "Versioned C++ SDK remote identity differs from the Release manifest."
-            }
-            git -C $sdkPath fetch --no-tags --depth 1 origin "refs/heads/$sdkRef"
-            if ($LASTEXITCODE -ne 0 -or (git -C $sdkPath rev-parse FETCH_HEAD).Trim().ToLowerInvariant() -ne $sdkSha) {
-              throw "Unable to fetch exact versioned C++ SDK."
-            }
-            git -C $sdkPath checkout --detach $sdkSha
-            if ($LASTEXITCODE -ne 0) { throw "Unable to select exact versioned C++ SDK." }
-          } else {
-            throw "Release manifest C++ SDK ref is not allowlisted."
+          $sourceGitlink = (git rev-parse "${{ inputs.source_sha }}:hl2sdk_cs2").Trim().ToLowerInvariant()
+          $checkedOutSha = (git -C $sdkPath rev-parse HEAD).Trim().ToLowerInvariant()
+          if ($LASTEXITCODE -ne 0 -or $sdkRef -cne 'source-gitlink' -or `
+              $sourceGitlink -notmatch '^[0-9a-f]{40}$' -or $sdkSha -ne $sourceGitlink -or `
+              $checkedOutSha -ne $sourceGitlink) {
+            throw "Release C++ SDK does not match the immutable source gitlink."
           }
       - name: Verify Release bundle, archives, and source identities
         id: verify-bundle

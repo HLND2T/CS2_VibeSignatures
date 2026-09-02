@@ -113,7 +113,7 @@ def _release_fixture(
         "download_sha256": DIGEST,
         "config_sha256": DIGEST,
         "sdk_gitlink_sha": "5" * 40,
-        "cpp_sdk": {"ref": "pinned-submodule", "sha": "5" * 40},
+        "cpp_sdk": {"ref": "source-gitlink", "sha": "5" * 40},
         "sdk_files": [{"path": "README.md", "size": 1, "sha256": "6" * 64}],
         "sdk_inventory_sha256": "7" * 64,
         "binary_inventory": {},
