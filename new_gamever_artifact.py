@@ -21,7 +21,7 @@ from gamesymbol_snapshot_lib.paths import is_reparse_point
 from trusted_artifact_pr import load_trusted_artifact_plan, validate_trusted_artifact_plan
 
 
-BOOTSTRAP_CANDIDATE_SCHEMA_VERSION = 1
+BOOTSTRAP_CANDIDATE_SCHEMA_VERSION = 2
 ALLOWED_REPOSITORY = "HLND2T/CS2_VibeSignatures"
 GAMEVER_RE = re.compile(r"^[0-9]{4,10}[a-z]?$|^[1-9][0-9]*$")
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
@@ -107,8 +107,6 @@ def _load_gate_evidence(value: dict | str | Path) -> dict:
             raise NewGameverArtifactError(f"unable to load bootstrap gate evidence: {exc}") from exc
     expected_keys = {
         "schema_version",
-        "force_all",
-        "rename",
         "binsync_mode",
         "remote_refs_before_sha256",
         "remote_refs_after_sha256",
@@ -116,10 +114,8 @@ def _load_gate_evidence(value: dict | str | Path) -> dict:
         "gamedata_sha256",
         "cpp_validation_sha256",
     }
-    if not isinstance(value, dict) or set(value) != expected_keys or value.get("schema_version") != 1:
+    if not isinstance(value, dict) or set(value) != expected_keys or value.get("schema_version") != 2:
         raise NewGameverArtifactError("bootstrap gate evidence schema is invalid")
-    if value.get("force_all") is not True or value.get("rename") is not True:
-        raise NewGameverArtifactError("bootstrap analysis must prove -force_all and -rename")
     if value.get("binsync_mode") != "local-only":
         raise NewGameverArtifactError("bootstrap BinSync evidence must be local-only")
     digest_fields = (
@@ -136,6 +132,124 @@ def _load_gate_evidence(value: dict | str | Path) -> dict:
     return value
 
 
+def _load_force_all_execution_report(value: dict | str | Path) -> dict:
+    if isinstance(value, (str, Path)):
+        try:
+            raw = Path(value).read_bytes()
+            value = json.loads(raw.decode("utf-8"))
+        except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+            raise NewGameverArtifactError(f"unable to load bootstrap force-all execution report: {exc}") from exc
+        if raw != _canonical_json_bytes(value):
+            raise NewGameverArtifactError("bootstrap force-all execution report is not canonical JSON")
+    if not isinstance(value, dict):
+        raise NewGameverArtifactError("bootstrap force-all execution report schema is invalid")
+    digest = value.get("execution_sha256")
+    unsigned = dict(value)
+    unsigned.pop("execution_sha256", None)
+    digest_input = b"source2-force-all-execution:v1\n" + _canonical_json_bytes(unsigned)
+    if digest != f"sha256:{hashlib.sha256(digest_input).hexdigest()}":
+        raise NewGameverArtifactError("bootstrap force-all execution report digest mismatch")
+    return value
+
+
+def _validate_force_all_execution_report(*, value: dict | str | Path, version: dict, artifact_report) -> dict:
+    report = _load_force_all_execution_report(value)
+    gamever = str(version["game_version"])
+    if (
+        report.get("schema_version") != 1
+        or report.get("valid") is not True
+        or report.get("force_all") is not True
+        or report.get("rename") is not True
+        or report.get("required_warm_idb") is not True
+        or report.get("game_version") != gamever
+        or report.get("issues") != []
+    ):
+        raise NewGameverArtifactError("bootstrap force-all execution must prove a valid full warm-IDB run with rename")
+    expected_inventory = {
+        "file_count": artifact_report.file_count,
+        "inventory_sha256": artifact_report.inventory_sha256,
+    }
+    if report.get("inventory") != expected_inventory:
+        raise NewGameverArtifactError("bootstrap force-all execution inventory differs from candidate artifacts")
+
+    planned_groups = version.get("affected_producer_groups")
+    planned_nodes = version.get("selected_alternative_nodes")
+    if not isinstance(planned_groups, list) or not isinstance(planned_nodes, list):
+        raise NewGameverArtifactError("trusted bootstrap plan has no complete producer execution contract")
+    group_records = report.get("producer_groups")
+    node_records = report.get("nodes")
+    if not isinstance(group_records, list) or not isinstance(node_records, list):
+        raise NewGameverArtifactError("bootstrap force-all execution has no group/node evidence")
+    groups_by_id = {
+        record.get("group_id"): record
+        for record in group_records
+        if isinstance(record, dict) and isinstance(record.get("group_id"), str)
+    }
+    nodes_by_id = {
+        record.get("node_id"): record
+        for record in node_records
+        if isinstance(record, dict) and isinstance(record.get("node_id"), str)
+    }
+    planned_groups_by_id = {group["group_id"]: group for group in planned_groups}
+    planned_nodes_by_id = {node["node_id"]: node for node in planned_nodes}
+    if (
+        len(groups_by_id) != len(group_records)
+        or set(groups_by_id) != set(planned_groups_by_id)
+        or len(nodes_by_id) != len(node_records)
+        or set(nodes_by_id) != set(planned_nodes_by_id)
+    ):
+        raise NewGameverArtifactError("bootstrap force-all execution does not cover every planned group and node")
+
+    expected_files = {item.path.removeprefix(f"bin_artifacts/{gamever}/"): item for item in artifact_report.files}
+    attempted_node_ids: set[str] = set()
+    winning_paths_by_node: dict[str, list[str]] = {node_id: [] for node_id in planned_nodes_by_id}
+    for group_id, planned in planned_groups_by_id.items():
+        record = groups_by_id[group_id]
+        alternatives = planned["alternative_node_ids"]
+        attempted = record.get("attempted_node_ids")
+        winner = record.get("winner_node_id")
+        expected_file = expected_files.get(planned["artifact_path"])
+        expected_sha256 = expected_file.sha256 if expected_file is not None else None
+        if (
+            record.get("artifact_path") != planned["artifact_path"]
+            or record.get("required") != planned["required"]
+            or record.get("fingerprint") != planned["fingerprint"]
+            or record.get("alternative_node_ids") != alternatives
+            or record.get("output_sha256") != expected_sha256
+            or not isinstance(attempted, list)
+            or len(attempted) != len(set(attempted))
+            or any(node_id not in alternatives for node_id in attempted)
+        ):
+            raise NewGameverArtifactError(f"bootstrap producer-group execution drifted from plan: {group_id}")
+        if expected_file is not None:
+            if winner not in alternatives or winner not in attempted:
+                raise NewGameverArtifactError(f"bootstrap producer group has no executed winner: {group_id}")
+            winner_index = alternatives.index(winner)
+            if attempted != alternatives[: winner_index + 1]:
+                raise NewGameverArtifactError(f"bootstrap producer-group attempt order is invalid: {group_id}")
+            winning_paths_by_node[winner].append(planned["artifact_path"])
+        elif winner is not None or attempted != alternatives:
+            raise NewGameverArtifactError(f"bootstrap absent optional producer-group evidence is invalid: {group_id}")
+        attempted_node_ids.update(attempted)
+
+    for node_id, planned in planned_nodes_by_id.items():
+        record = nodes_by_id[node_id]
+        produced_paths = sorted(winning_paths_by_node[node_id])
+        attempted = node_id in attempted_node_ids
+        if (
+            record.get("module") != planned["module"]
+            or record.get("platform") != planned["platform"]
+            or record.get("skill") != planned["skill"]
+            or record.get("fingerprint") != planned["fingerprint"]
+            or record.get("attempted") is not attempted
+            or record.get("produced_paths") != produced_paths
+            or (produced_paths and record.get("status") != "succeeded")
+            or (not attempted and record.get("status") != "skipped")
+        ):
+            raise NewGameverArtifactError(f"bootstrap producer-node execution drifted from plan: {node_id}")
+    return report
+
+
 def build_bootstrap_candidate(
     *,
     repo_root: str | Path,
@@ -147,6 +261,7 @@ def build_bootstrap_candidate(
     workflow_run_id: str,
     workflow_run_attempt: str,
     gate_evidence: dict | str | Path,
+    execution_report: dict | str | Path,
 ) -> dict:
     plan = load_trusted_artifact_plan(plan) if isinstance(plan, (str, Path)) else validate_trusted_artifact_plan(plan)
     version = _bootstrap_version(plan)
@@ -171,6 +286,11 @@ def build_bootstrap_candidate(
         raise NewGameverArtifactError(f"bootstrap candidate contract failed: {exc}") from exc
     files, inventory_sha256 = _inventory_document(report)
     gates = _load_gate_evidence(gate_evidence)
+    execution = _validate_force_all_execution_report(
+        value=execution_report,
+        version=version,
+        artifact_report=report,
+    )
     if report.required_count != version["merge_artifacts"]["required_count"]:
         raise NewGameverArtifactError("bootstrap candidate formal required count drifted from the trusted plan")
     if report.file_count < report.required_count:
@@ -191,6 +311,7 @@ def build_bootstrap_candidate(
         "actions_artifact_name": artifact_name,
         "file_count": len(files),
         "artifact_inventory_sha256": inventory_sha256,
+        "execution_sha256": execution["execution_sha256"],
         "files": files,
         "gates": gates,
     }
@@ -238,6 +359,7 @@ def verify_bootstrap_candidate(
     actions_artifact_digest: str,
     workflow_run_id: str,
     workflow_run_attempt: str,
+    execution_report: dict | str | Path,
 ) -> dict:
     plan = load_trusted_artifact_plan(plan) if isinstance(plan, (str, Path)) else validate_trusted_artifact_plan(plan)
     manifest = load_bootstrap_candidate(manifest) if isinstance(manifest, (str, Path)) else manifest
@@ -309,6 +431,13 @@ def verify_bootstrap_candidate(
         or report.required_count != version["merge_artifacts"]["required_count"]
     ):
         raise NewGameverArtifactError("bootstrap candidate inventory differs from its bound manifest or plan")
+    execution = _validate_force_all_execution_report(
+        value=execution_report,
+        version=version,
+        artifact_report=report,
+    )
+    if manifest.get("execution_sha256") != execution["execution_sha256"]:
+        raise NewGameverArtifactError("bootstrap execution report differs from its bound candidate manifest")
     return {
         "schema_version": 1,
         "repository": repository,
@@ -320,6 +449,7 @@ def verify_bootstrap_candidate(
         "head_sha": head_sha,
         "candidate_sha256": manifest["candidate_sha256"],
         "artifact_inventory_sha256": inventory_sha256,
+        "execution_sha256": execution["execution_sha256"],
         "actions_artifact_name": actions_artifact_name,
         "actions_artifact_digest": actions_artifact_digest,
     }
@@ -346,6 +476,8 @@ def prepare_bootstrap_commit(
         raise NewGameverArtifactError("publication verification identity is invalid")
     if verification.get("repository") != ALLOWED_REPOSITORY:
         raise NewGameverArtifactError("publication verification repository is not allowlisted")
+    if not DIGEST_RE.fullmatch(str(verification.get("execution_sha256", ""))):
+        raise NewGameverArtifactError("publication verification execution digest is invalid")
     _ensure_clean_checkout(repo_root, head_sha)
     candidate_root = Path(artifact_root).resolve() / gamever
     if not candidate_root.is_dir() or is_reparse_point(candidate_root):
@@ -392,6 +524,7 @@ def prepare_bootstrap_commit(
             f"Source-Head-SHA: {head_sha}",
             f"Game-Version: {gamever}",
             f"Artifact-Inventory-SHA256: {verification['artifact_inventory_sha256']}",
+            f"Force-All-Execution-SHA256: {verification['execution_sha256']}",
             f"Actions-Artifact-Digest: {verification['actions_artifact_digest']}",
             f"Workflow-Run: {workflow_run_url}",
             "Co-Authored-By: Codex <codex@openai.com>",
@@ -411,6 +544,7 @@ def prepare_bootstrap_commit(
         "commit_sha": commit_sha,
         "changed_paths": sorted(staged),
         "artifact_inventory_sha256": verification["artifact_inventory_sha256"],
+        "execution_sha256": verification["execution_sha256"],
     }
 
 
@@ -427,6 +561,7 @@ def parse_args(argv=None) -> argparse.Namespace:
     build.add_argument("--workflow-run-id", required=True)
     build.add_argument("--workflow-run-attempt", required=True)
     build.add_argument("--gate-evidence", required=True)
+    build.add_argument("--execution-report", required=True)
     verify = subparsers.add_parser("verify")
     verify.add_argument("--repo-root", default=".")
     verify.add_argument("--plan", required=True)
@@ -446,6 +581,7 @@ def parse_args(argv=None) -> argparse.Namespace:
     verify.add_argument("--actions-artifact-digest", required=True)
     verify.add_argument("--workflow-run-id", required=True)
     verify.add_argument("--workflow-run-attempt", required=True)
+    verify.add_argument("--execution-report", required=True)
     verify.add_argument("--output", required=True)
     commit = subparsers.add_parser("commit")
     commit.add_argument("--repo-root", default=".")
@@ -477,6 +613,7 @@ def main(argv=None) -> int:
                 workflow_run_id=args.workflow_run_id,
                 workflow_run_attempt=args.workflow_run_attempt,
                 gate_evidence=args.gate_evidence,
+                execution_report=args.execution_report,
             )
         elif args.command == "verify":
             result = verify_bootstrap_candidate(
@@ -498,6 +635,7 @@ def main(argv=None) -> int:
                 actions_artifact_digest=args.actions_artifact_digest,
                 workflow_run_id=args.workflow_run_id,
                 workflow_run_attempt=args.workflow_run_attempt,
+                execution_report=args.execution_report,
             )
             _atomic_write(Path(args.output), _canonical_json_bytes(result))
         else:

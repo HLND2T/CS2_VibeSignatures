@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 import subprocess
 import tempfile
 import unittest
@@ -8,6 +10,7 @@ from pathlib import Path
 import new_gamever_artifact as nga
 import trusted_artifact_pr as tap
 import trusted_pr_context as tpc
+from bin_artifact_contract import build_game_artifact_inventory
 from ida_analyze_util import canonical_symbol_yaml_bytes
 from tests.gamesymbol_snapshot_test_support import write_config
 
@@ -86,12 +89,78 @@ class NewGameverArtifactTests(unittest.TestCase):
         artifact.write_bytes(canonical_symbol_yaml_bytes({"func_name": "A", "func_rva": "0x10"}, category="func"))
         return artifact_root
 
-    def _build_and_verify(self, root: Path, plan: dict, head_sha: str, artifact_root: Path):
-        manifest_path = root.parent / "candidate-manifest.json"
-        gates = {
+    def _execution_report(self, root: Path, plan: dict, artifact_root: Path) -> Path:
+        version = next(version for version in plan["game_versions"] if version.get("bootstrap_required"))
+        inventory = build_game_artifact_inventory(
+            repo_root=root,
+            config_path=root / "configs" / f"{self.gamever}.yaml",
+            game_version=self.gamever,
+            artifact_root=artifact_root,
+            require_tracked=False,
+        )
+        files = {item.path.removeprefix(f"bin_artifacts/{self.gamever}/"): item for item in inventory.files}
+        groups = []
+        winning_node_ids = set()
+        for planned in version["affected_producer_groups"]:
+            item = files.get(planned["artifact_path"])
+            winner = planned["alternative_node_ids"][0] if item is not None else None
+            if winner is not None:
+                winning_node_ids.add(winner)
+            groups.append(
+                {
+                    **planned,
+                    "attempted_node_ids": [winner] if winner is not None else list(planned["alternative_node_ids"]),
+                    "winner_node_id": winner,
+                    "output_sha256": item.sha256 if item is not None else None,
+                }
+            )
+        nodes = [
+            {
+                "node_id": planned["node_id"],
+                "module": planned["module"],
+                "platform": planned["platform"],
+                "skill": planned["skill"],
+                "fingerprint": planned["fingerprint"],
+                "attempted": planned["node_id"] in winning_node_ids,
+                "status": "succeeded" if planned["node_id"] in winning_node_ids else "skipped",
+                "produced_paths": [
+                    group["artifact_path"] for group in groups if group["winner_node_id"] == planned["node_id"]
+                ],
+            }
+            for planned in version["selected_alternative_nodes"]
+        ]
+        document = {
             "schema_version": 1,
+            "game_version": self.gamever,
+            "config_path": str((root / "configs" / f"{self.gamever}.yaml").resolve()),
+            "binary_root": str((root / "bin").resolve()),
+            "artifact_root": str(artifact_root.resolve()),
+            "old_artifact_root": str((root / "bin_artifacts").resolve()),
             "force_all": True,
             "rename": True,
+            "required_warm_idb": True,
+            "run_id": "bootstrap-test",
+            "summary": {},
+            "inventory": {
+                "file_count": inventory.file_count,
+                "inventory_sha256": inventory.inventory_sha256,
+            },
+            "nodes": nodes,
+            "producer_groups": groups,
+            "issues": [],
+            "valid": True,
+        }
+        digest_input = b"source2-force-all-execution:v1\n" + nga._canonical_json_bytes(document)
+        document["execution_sha256"] = f"sha256:{hashlib.sha256(digest_input).hexdigest()}"
+        path = root.parent / "force-all-execution.json"
+        path.write_bytes(nga._canonical_json_bytes(document))
+        return path
+
+    def _build_and_verify(self, root: Path, plan: dict, head_sha: str, artifact_root: Path):
+        manifest_path = root.parent / "candidate-manifest.json"
+        execution_report = self._execution_report(root, plan, artifact_root)
+        gates = {
+            "schema_version": 2,
             "binsync_mode": "local-only",
             "remote_refs_before_sha256": "sha256:" + "1" * 64,
             "remote_refs_after_sha256": "sha256:" + "1" * 64,
@@ -109,6 +178,7 @@ class NewGameverArtifactTests(unittest.TestCase):
             workflow_run_id="123",
             workflow_run_attempt="1",
             gate_evidence=gates,
+            execution_report=execution_report,
         )
         verification = nga.verify_bootstrap_candidate(
             repo_root=root,
@@ -129,6 +199,7 @@ class NewGameverArtifactTests(unittest.TestCase):
             actions_artifact_digest="sha256:" + "a" * 64,
             workflow_run_id="123",
             workflow_run_attempt="1",
+            execution_report=execution_report,
         )
         return manifest_path, manifest, verification
 
@@ -143,6 +214,7 @@ class NewGameverArtifactTests(unittest.TestCase):
             _manifest_path, manifest, verification = self._build_and_verify(root, plan, head_sha, artifact_root)
 
             self.assertEqual(1, manifest["file_count"])
+            self.assertTrue(manifest["execution_sha256"].startswith("sha256:"))
             self.assertEqual(self.gamever, verification["game_version"])
             self.assertEqual(head_sha, verification["head_sha"])
 
@@ -174,6 +246,7 @@ class NewGameverArtifactTests(unittest.TestCase):
                 workflow_run_id="123",
                 workflow_run_attempt="1",
                 gate_evidence=manifest["gates"],
+                execution_report=self._execution_report(root, plan, artifact_root),
             )
             with self.assertRaisesRegex(nga.NewGameverArtifactError, "remote head drifted"):
                 nga.verify_bootstrap_candidate(
@@ -195,6 +268,7 @@ class NewGameverArtifactTests(unittest.TestCase):
                     actions_artifact_digest="sha256:" + "a" * 64,
                     workflow_run_id="123",
                     workflow_run_attempt="1",
+                    execution_report=root.parent / "force-all-execution.json",
                 )
 
     def test_hosted_verifier_rejects_non_default_base(self) -> None:
@@ -225,6 +299,65 @@ class NewGameverArtifactTests(unittest.TestCase):
                     actions_artifact_digest="sha256:" + "a" * 64,
                     workflow_run_id="123",
                     workflow_run_attempt="1",
+                    execution_report=root.parent / "force-all-execution.json",
+                )
+
+    def test_candidate_rejects_forged_force_all_execution_semantics(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            root.mkdir()
+            _head_sha, _merge_sha, plan = self._repository(root)
+            artifact_root = self._candidate(root)
+            execution_path = self._execution_report(root, plan, artifact_root)
+            execution = json.loads(execution_path.read_text(encoding="utf-8"))
+            execution["rename"] = False
+            execution.pop("execution_sha256")
+            digest_input = b"source2-force-all-execution:v1\n" + nga._canonical_json_bytes(execution)
+            execution["execution_sha256"] = f"sha256:{hashlib.sha256(digest_input).hexdigest()}"
+            execution_path.write_bytes(nga._canonical_json_bytes(execution))
+            gates = {
+                "schema_version": 2,
+                "binsync_mode": "local-only",
+                "remote_refs_before_sha256": "sha256:" + "1" * 64,
+                "remote_refs_after_sha256": "sha256:" + "1" * 64,
+                "snapshot_sha256": "sha256:" + "2" * 64,
+                "gamedata_sha256": "sha256:" + "3" * 64,
+                "cpp_validation_sha256": "sha256:" + "4" * 64,
+            }
+
+            with self.assertRaisesRegex(nga.NewGameverArtifactError, "force-all.*rename"):
+                nga.build_bootstrap_candidate(
+                    repo_root=root,
+                    plan=plan,
+                    artifact_root=artifact_root,
+                    output_manifest=root.parent / "candidate-manifest.json",
+                    repository=nga.ALLOWED_REPOSITORY,
+                    pr_number=17,
+                    workflow_run_id="123",
+                    workflow_run_attempt="1",
+                    gate_evidence=gates,
+                    execution_report=execution_path,
+                )
+
+            execution_path = self._execution_report(root, plan, artifact_root)
+            execution = json.loads(execution_path.read_text(encoding="utf-8"))
+            execution["producer_groups"] = []
+            execution.pop("execution_sha256")
+            digest_input = b"source2-force-all-execution:v1\n" + nga._canonical_json_bytes(execution)
+            execution["execution_sha256"] = f"sha256:{hashlib.sha256(digest_input).hexdigest()}"
+            execution_path.write_bytes(nga._canonical_json_bytes(execution))
+            with self.assertRaisesRegex(nga.NewGameverArtifactError, "cover every planned group"):
+                nga.build_bootstrap_candidate(
+                    repo_root=root,
+                    plan=plan,
+                    artifact_root=artifact_root,
+                    output_manifest=root.parent / "candidate-manifest.json",
+                    repository=nga.ALLOWED_REPOSITORY,
+                    pr_number=17,
+                    workflow_run_id="123",
+                    workflow_run_attempt="1",
+                    gate_evidence=gates,
+                    execution_report=execution_path,
                 )
 
     def test_prepare_commit_only_stages_new_gamever_artifacts_with_bound_parent(self) -> None:
@@ -254,6 +387,7 @@ class NewGameverArtifactTests(unittest.TestCase):
                 result["changed_paths"],
             )
             self.assertEqual(result["commit_sha"], self._git(publisher, "rev-parse", "HEAD"))
+            self.assertEqual(verification["execution_sha256"], result["execution_sha256"])
 
 
 if __name__ == "__main__":

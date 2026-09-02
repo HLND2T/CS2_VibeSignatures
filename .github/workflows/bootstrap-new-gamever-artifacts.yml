@@ -116,6 +116,7 @@ jobs:
           $executionReport = Join-Path $env:RUNNER_TEMP "new-gamever-force-all-execution.json"
           New-Item -ItemType Directory -Path $actualRoot -Force | Out-Null
           "ACTUAL_ARTIFACT_ROOT=$actualRoot" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "EXECUTION_REPORT=$executionReport" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
           uv run ida_analyze_bin.py `
             -gamever "$env:GAMEVER" `
             -configyaml "configs/$env:GAMEVER.yaml" `
@@ -177,10 +178,10 @@ jobs:
           New-Item -ItemType Directory -Path $packageArtifacts -Force | Out-Null
           Copy-Item -LiteralPath (Join-Path $env:ACTUAL_ARTIFACT_ROOT $env:GAMEVER) `
             -Destination (Join-Path $packageArtifacts $env:GAMEVER) -Recurse
+          $packagedExecutionReport = Join-Path $package "force-all-execution.json"
+          Copy-Item -LiteralPath $env:EXECUTION_REPORT -Destination $packagedExecutionReport
           $gates = [ordered]@{
-            schema_version = 1
-            force_all = $true
-            rename = $true
+            schema_version = 2
             binsync_mode = "local-only"
             remote_refs_before_sha256 = "${{ steps.binsync-local.outputs.remote_refs_before }}"
             remote_refs_after_sha256 = "${{ steps.binsync-local.outputs.remote_refs_after }}"
@@ -197,7 +198,7 @@ jobs:
             --artifact-root "$packageArtifacts" --output-manifest "$manifest" `
             --repository "${{ github.repository }}" --pr-number "$env:PR_NUMBER" `
             --workflow-run-id "${{ github.run_id }}" --workflow-run-attempt "${{ github.run_attempt }}" `
-            --gate-evidence "$gatePath"
+            --gate-evidence "$gatePath" --execution-report "$packagedExecutionReport"
           if ($LASTEXITCODE -ne 0) { throw "Bootstrap candidate packaging failed." }
           $artifactName = "new-gamever-artifacts-$env:PR_NUMBER-$env:GAMEVER-${{ github.run_id }}-${{ github.run_attempt }}"
           "candidate-artifact-name=$artifactName" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
@@ -282,6 +283,7 @@ jobs:
             --actions-artifact-name "${{ needs.build-bootstrap-candidate.outputs.candidate-artifact-name }}" `
             --actions-artifact-digest "$artifactDigest" `
             --workflow-run-id "${{ github.run_id }}" --workflow-run-attempt "${{ github.run_attempt }}" `
+            --execution-report "${{ github.workspace }}/evidence/candidate/force-all-execution.json" `
             --output "$verification"
           if ($LASTEXITCODE -ne 0) { throw "Hosted bootstrap candidate verification failed." }
           "verification=$verification" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
