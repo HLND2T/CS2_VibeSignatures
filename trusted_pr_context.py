@@ -31,6 +31,7 @@ TRUSTED_FILE_PATHS = (
     "bin_artifact_contract.py",
     "binary_lock.py",
     "binary_hashing.py",
+    "source_artifact_accepted_bin.py",
     "source_artifact_schema.py",
     "analysis_output_contract.py",
     "gamesymbol_snapshot_lib/analysis_sources.py",

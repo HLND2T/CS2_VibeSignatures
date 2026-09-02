@@ -168,8 +168,7 @@ class TrustedArtifactPrTests(unittest.TestCase):
             path.write_text("{}\n", encoding="utf-8")
         elif changed_path == "source_artifact_policy.yaml":
             (root / changed_path).write_text(
-                "schema_version: 1\nmode: bridge\nartifact_root: bin_artifacts\n"
-                "artifact_contract_schema_version: 1\n",
+                "schema_version: 1\nmode: bridge\nartifact_root: bin_artifacts\nartifact_contract_schema_version: 1\n",
                 encoding="utf-8",
             )
         elif changed_path:

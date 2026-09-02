@@ -501,8 +501,7 @@ def build_trusted_artifact_plan(*, repo_root: str | Path, trusted_context: dict 
     if context["artifact_policy"]["mode"] != "source-owned" and not cutover_transition:
         raise TrustedArtifactPrError("trusted source-artifact planner is not enabled by the base policy")
     if cutover_transition and (
-        context["artifact_policy"]["mode"] != "bridge"
-        or context["merge_artifact_policy"]["mode"] != "source-owned"
+        context["artifact_policy"]["mode"] != "bridge" or context["merge_artifact_policy"]["mode"] != "source-owned"
     ):
         raise TrustedArtifactPrError("trusted source-artifact cutover transition is invalid")
     repo = GitTreeRepository(repo_root)
