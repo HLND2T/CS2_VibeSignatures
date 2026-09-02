@@ -27,6 +27,7 @@ jobs:
     outputs:
       gamever: ${{ steps.resolve.outputs.gamever }}
       source_sha: ${{ steps.resolve.outputs.source_sha }}
+      source_publish_time: ${{ steps.resolve.outputs.source_publish_time }}
     steps:
       - name: Checkout default branch for trust validation
         id: checkout-trust
@@ -48,10 +49,15 @@ jobs:
           git fetch origin --tags --force "+refs/heads/*:refs/remotes/origin/*"
           git checkout --detach "$sourceSha"
           if ($LASTEXITCODE -ne 0) { throw "Unable to checkout immutable release source." }
-          uv run python release_source_preflight.py --repo-root "${{ github.workspace }}" `
+          $preflightJson = uv run python release_source_preflight.py --repo-root "${{ github.workspace }}" `
             --repository "${{ github.repository }}" --gamever "$gamever" `
             --source-sha "$sourceSha" --default-ref "origin/${{ github.event.repository.default_branch }}"
           if ($LASTEXITCODE -ne 0) { throw "Immutable release source preflight failed." }
+          $preflight = $preflightJson | ConvertFrom-Json
+          if ($preflight.source_sha -ne $sourceSha -or `
+              $preflight.source_publish_time -notmatch '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$') {
+            throw "Immutable release source preflight output is invalid."
+          }
           if ("${{ github.event_name }}" -eq "repository_dispatch") {
             if ($sourcePullRequest -notmatch '^[1-9][0-9]*$') {
               throw "repository_dispatch requires a numeric source_pull_request."
@@ -75,6 +81,7 @@ jobs:
           }
           "gamever=$gamever" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "source_sha=$sourceSha" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "source_publish_time=$($preflight.source_publish_time)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
   warmup-idb:
     needs: preflight
     uses: ./.github/workflows/warmup-idb.yml
@@ -97,7 +104,8 @@ jobs:
       SOURCE_SHA: ${{ needs.preflight.outputs.source_sha }}
       IDB_CACHE_GENERATION: ${{ needs.warmup-idb.outputs.generation }}
       IDB_CACHE_KEY: ${{ needs.warmup-idb.outputs.cache_key }}
-      BUILD_ID: ${{ github.run_id }}
+      BUILD_ID: ${{ needs.preflight.outputs.source_sha }}
+      RELEASE_PUBLISH_TIME: ${{ needs.preflight.outputs.source_publish_time }}
       CS2VIBE_AGENT: ${{ secrets.CS2VIBE_AGENT }}
       CS2VIBE_AGENT_MODEL: ${{ secrets.CS2VIBE_AGENT_MODEL }}
       CS2VIBE_LLM_APIKEY: ${{ secrets.CS2VIBE_LLM_APIKEY }}
@@ -298,7 +306,7 @@ jobs:
         shell: pwsh
         run: |
           $candidate = Join-Path $env:RUNNER_TEMP "release-binsync-candidate\$env:BUILD_ID"
-          $artifactName = "binsync-candidate-${{ github.run_id }}-$env:SOURCE_SHA-$env:GAMEVER"
+          $artifactName = "binsync-candidate-$env:SOURCE_SHA-$env:GAMEVER"
           uv run python push_binsync_symbols.py "$env:GAMEVER" `
             --prepare-only `
             --candidate-dir "$candidate" `
@@ -334,7 +342,7 @@ jobs:
           "CPP_VALIDATION_LOG=$cppLog" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
           uv run gamesymbol_candidate.py build -gamever "$env:GAMEVER" -bindir bin `
             -artifactdir "$env:ACTUAL_ARTIFACT_ROOT" -configyaml "$env:ANALYSIS_CONFIG" `
-            -output "$candidate" -session "$session"
+            -output "$candidate" -session "$session" -last-publish-time "$env:RELEASE_PUBLISH_TIME"
           if ($LASTEXITCODE -ne 0) { throw "candidate build failed with exit code $LASTEXITCODE" }
           uv run gamesymbol_candidate.py guard -candidate "$candidate" -session "$session"
           if ($LASTEXITCODE -ne 0) { throw "candidate guard failed before gamedata" }
@@ -433,7 +441,7 @@ jobs:
         shell: pwsh
         run: |
           $bundle = Join-Path $env:RUNNER_TEMP "release-bundle\$env:BUILD_ID"
-          $artifactName = "release-bundle-${{ github.run_id }}-$env:SOURCE_SHA-$env:GAMEVER"
+          $artifactName = "release-bundle-$env:SOURCE_SHA-$env:GAMEVER"
           uv run python release_bundle.py build `
             --repo-root "${{ github.workspace }}" `
             --bundle-root "$bundle" `
@@ -498,7 +506,7 @@ jobs:
       source_sha: ${{ needs.preflight.outputs.source_sha }}
       gamever: ${{ needs.preflight.outputs.gamever }}
       release_version: ${{ needs.preflight.outputs.gamever }}
-      build_id: ${{ github.run_id }}
+      build_id: ${{ needs.preflight.outputs.source_sha }}
       ida_runtime_identity: ${{ needs.build.outputs.ida_runtime_identity }}
       artifact_name: ${{ needs.build.outputs.binsync_artifact_name }}
       artifact_digest: ${{ needs.build.outputs.binsync_artifact_digest }}
@@ -509,7 +517,7 @@ jobs:
       source_sha: ${{ needs.preflight.outputs.source_sha }}
       gamever: ${{ needs.preflight.outputs.gamever }}
       release_version: ${{ needs.preflight.outputs.gamever }}
-      build_id: ${{ github.run_id }}
+      build_id: ${{ needs.preflight.outputs.source_sha }}
       artifact_name: ${{ needs.build.outputs.release_artifact_name }}
       artifact_digest: ${{ needs.build.outputs.release_artifact_digest }}
       binsync_candidate_digest: ${{ needs.verify-binsync.outputs.publication_digest }}
@@ -521,7 +529,7 @@ jobs:
       source_sha: ${{ needs.preflight.outputs.source_sha }}
       gamever: ${{ needs.preflight.outputs.gamever }}
       release_version: ${{ needs.preflight.outputs.gamever }}
-      build_id: ${{ github.run_id }}
+      build_id: ${{ needs.preflight.outputs.source_sha }}
       ida_runtime_identity: ${{ needs.build.outputs.ida_runtime_identity }}
       artifact_name: ${{ needs.build.outputs.binsync_artifact_name }}
       artifact_digest: ${{ needs.build.outputs.binsync_artifact_digest }}
@@ -535,7 +543,7 @@ jobs:
       source_sha: ${{ needs.preflight.outputs.source_sha }}
       gamever: ${{ needs.preflight.outputs.gamever }}
       release_version: ${{ needs.preflight.outputs.gamever }}
-      build_id: ${{ github.run_id }}
+      build_id: ${{ needs.preflight.outputs.source_sha }}
       artifact_name: ${{ needs.build.outputs.release_artifact_name }}
       artifact_digest: ${{ needs.build.outputs.release_artifact_digest }}
       binsync_candidate_digest: ${{ needs.verify-binsync.outputs.publication_digest }}

@@ -49,7 +49,7 @@ SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 ARTIFACT_NAME_RE = re.compile(r"^[A-Za-z0-9_.-]{1,240}$")
 VERSION_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
-BUILD_ID_RE = re.compile(r"^[0-9]+-[0-9]+$")
+BUILD_ID_RE = re.compile(r"^[0-9a-f]{40}$")
 ALLOWED_REPOSITORY = "HLND2T/CS2_VibeSignatures"
 PRODUCER_CONTRACT_PATHS = (
     "analysis_output_contract.py",

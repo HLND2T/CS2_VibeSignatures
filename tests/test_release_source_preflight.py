@@ -29,7 +29,10 @@ class ReleaseSourcePreflightTests(unittest.TestCase):
             self._source_tree(root)
             inventory = SimpleNamespace(file_count=42, inventory_sha256="sha256:" + "b" * 64)
             with (
-                patch("release_source_preflight._git", side_effect=[self.source_sha, "c" * 40]),
+                patch(
+                    "release_source_preflight._git",
+                    side_effect=[self.source_sha, "c" * 40, "2026-09-01T12:34:56+08:00"],
+                ),
                 patch(
                     "release_source_preflight.subprocess.run",
                     return_value=subprocess.CompletedProcess([], 0, b"", b""),
@@ -46,6 +49,7 @@ class ReleaseSourcePreflightTests(unittest.TestCase):
 
             self.assertEqual(42, result["artifact_file_count"])
             self.assertEqual(inventory.inventory_sha256, result["artifact_inventory_sha256"])
+            self.assertEqual("2026-09-01T04:34:56Z", result["source_publish_time"])
             self.assertTrue(build.call_args.kwargs["require_tracked"])
 
     def test_rejects_legacy_policy_before_artifact_build(self) -> None:

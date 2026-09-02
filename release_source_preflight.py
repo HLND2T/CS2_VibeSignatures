@@ -8,6 +8,7 @@ import json
 import re
 import subprocess
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 import yaml
@@ -23,6 +24,17 @@ SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 
 class ReleaseSourcePreflightError(RuntimeError):
     """The immutable source is not eligible for a Release build."""
+
+
+def _source_publish_time(repo_root: Path, source_sha: str) -> str:
+    raw = _git(repo_root, "show", "-s", "--format=%cI", source_sha)
+    try:
+        value = datetime.fromisoformat(raw)
+    except ValueError as exc:
+        raise ReleaseSourcePreflightError("source commit timestamp is invalid") from exc
+    if value.tzinfo is None:
+        raise ReleaseSourcePreflightError("source commit timestamp has no timezone")
+    return value.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _git(repo_root: Path, *arguments: str, allowed: tuple[int, ...] = (0,)) -> str:
@@ -102,12 +114,15 @@ def validate_release_source(
         )
     except (ArtifactContractError, OSError, ValueError) as exc:
         raise ReleaseSourcePreflightError(f"new GAMEVER source artifact bootstrap required: {exc}") from exc
+    source_tree_sha = _git(repo_root, "rev-parse", f"{source_sha}^{{tree}}")
+    source_publish_time = _source_publish_time(repo_root, source_sha)
     return {
         "schema_version": 1,
         "repository": repository,
         "game_version": game_version,
         "source_sha": source_sha,
-        "source_tree_sha": _git(repo_root, "rev-parse", f"{source_sha}^{{tree}}"),
+        "source_tree_sha": source_tree_sha,
+        "source_publish_time": source_publish_time,
         "artifact_file_count": inventory.file_count,
         "artifact_inventory_sha256": inventory.inventory_sha256,
     }

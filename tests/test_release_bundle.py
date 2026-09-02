@@ -84,9 +84,9 @@ class ReleaseBundleTests(unittest.TestCase):
                 preparation=preparation,
                 candidate_root=binsync_root,
                 release_version="1",
-                build_id="123-1",
+                build_id=source_sha,
                 ida_runtime_identity="IDA 9.2",
-                actions_artifact_name=f"binsync-candidate-123-1-{source_sha}-1",
+                actions_artifact_name=f"binsync-candidate-{source_sha}-1",
             )
         inputs = {
             "verification_path": verification_path,
@@ -126,7 +126,7 @@ class ReleaseBundleTests(unittest.TestCase):
                     bundle_root=bundle_root,
                     repository="HLND2T/CS2_VibeSignatures",
                     release_version="1",
-                    build_id="123-1",
+                    build_id=preparation["source_sha"],
                     preparation=Path(preparation["actual_artifact_root"]).parent / "release-rebuild-preparation.json",
                     rebuild_verification=inputs["verification_path"],
                     snapshot=inputs["snapshot"],
@@ -138,7 +138,7 @@ class ReleaseBundleTests(unittest.TestCase):
                     ida_runtime_identity="IDA 9.2",
                     warm_idb_generation="generation-1",
                     warm_idb_cache_key="cache-key-1",
-                    actions_artifact_name=f"release-bundle-123-1-{preparation['source_sha']}-1",
+                    actions_artifact_name=f"release-bundle-{preparation['source_sha']}-1",
                     cpp_sdk_ref="pinned-submodule",
                     cpp_sdk_sha=preparation["sdk_gitlink_sha"],
                 )
@@ -148,8 +148,8 @@ class ReleaseBundleTests(unittest.TestCase):
                     expected_source_sha=preparation["source_sha"],
                     expected_game_version="1",
                     expected_release_version="1",
-                    expected_build_id="123-1",
-                    expected_actions_artifact_name=f"release-bundle-123-1-{preparation['source_sha']}-1",
+                    expected_build_id=preparation["source_sha"],
+                    expected_actions_artifact_name=f"release-bundle-{preparation['source_sha']}-1",
                     expected_binsync_candidate_digest=inputs["binsync_manifest"]["publication_digest"],
                     expected_binsync_target_state_digest=binsync_candidate.publication_target_state(
                         inputs["binsync_manifest"]
@@ -163,6 +163,7 @@ class ReleaseBundleTests(unittest.TestCase):
                     release_bundle._verify_source(root, tampered)
 
             self.assertEqual(manifest["source_sha"], verified["source_sha"])
+            self.assertEqual(manifest["source_sha"], manifest["build_id"])
             self.assertEqual(manifest["binsync"]["target_state_digest"], verified["binsync_target_state_digest"])
             self.assertEqual(4, len(manifest["public_assets"]))
 
@@ -204,7 +205,7 @@ class ReleaseBundleTests(unittest.TestCase):
                     bundle_root=bundle_root,
                     repository="HLND2T/CS2_VibeSignatures",
                     release_version="1",
-                    build_id="123-1",
+                    build_id=preparation["source_sha"],
                     preparation=Path(preparation["actual_artifact_root"]).parent / "release-rebuild-preparation.json",
                     rebuild_verification=inputs["verification_path"],
                     snapshot=inputs["snapshot"],
@@ -216,7 +217,7 @@ class ReleaseBundleTests(unittest.TestCase):
                     ida_runtime_identity="IDA 9.2",
                     warm_idb_generation="generation-1",
                     warm_idb_cache_key="cache-key-1",
-                    actions_artifact_name=f"release-bundle-123-1-{preparation['source_sha']}-1",
+                    actions_artifact_name=f"release-bundle-{preparation['source_sha']}-1",
                     cpp_sdk_ref="pinned-submodule",
                     cpp_sdk_sha=preparation["sdk_gitlink_sha"],
                 )
