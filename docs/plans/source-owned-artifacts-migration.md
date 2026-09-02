@@ -751,11 +751,13 @@ GitHub-hosted verifier 使用 `contents: read, actions: read`：
 - 逐 repository 获取当前 remote refs；
 - remote head 等于 expected head：只允许 fast-forward push candidate；
 - remote 已等于 candidate：幂等成功；
-- remote 为其他值、需要 force push、ref deletion 或 non-fast-forward：失败；
+- remote 为其他值、需要无条件 force push、ref deletion 或 non-fast-forward：失败；
 - 每次 push 后重新读取 remote ref 并验证 exact commit；
 - 所有 targets 成功后输出 canonical remote publication receipt digest。
 
-不使用 `--force`，不移动未知 refs，不修改 default branch，不创建未在 plan 声明的 repository。
+禁止无条件 `--force` 和任何 non-fast-forward rewrite。允许在已证明 candidate 为 fast-forward 后使用
+`--force-with-lease=<ref>:<expected-head>` 作为 exact expected-head CAS；lease 不匹配必须失败。不得移动未知 refs、
+修改 default branch 或创建未在 plan 声明的 repository。
 
 ### 10.7 Protected `publish-release`
 
