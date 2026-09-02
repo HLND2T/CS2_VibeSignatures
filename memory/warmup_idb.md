@@ -16,7 +16,7 @@ permalink: cs2-vibesignatures/warmup-idb
 - Synchronize accepted-bin as an exact configured-binary positive allowlist while excluding YAML, IDA/BinSync mutable state, and undeclared side files.
 - Serialize same-GAMEVER producers and prune stale incoming/aged generation directories conservatively.
 ## Involved Files & Symbols
-- `.github/workflows/warmup-idb.yml` - reusable/manual producer with same-GAMEVER concurrency.
+- `.github/workflows/warmup-idb.yml` - caller-only reusable producer with same-GAMEVER concurrency.
 - `warmup_idb.py`, `warmup_idb_worker.py` - bounded full auto-analysis workers.
 - `idb_cache.py` - identity, immutable generation publication, READY pointer, restore, and pruning.
 - `release_workflow_lib/sync_accepted_bin.py`, `release_workflow_lib/binary_cache.py` - exact binary-only accepted cache.
@@ -45,4 +45,4 @@ Source-owned artifact content is deliberately absent from cache identity and pay
 ## Callers
 - `.github/workflows/pr-self-runner.yml` before isolated affected-group rebuild.
 - `.github/workflows/build-on-self-runner.yml` before fresh full Release rebuild.
-- Manual `workflow_dispatch` for an exact GAMEVER/source identity.
+- No manual dispatch surface: only repository-owned caller workflows may select a source identity.
