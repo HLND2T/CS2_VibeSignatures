@@ -1,295 +1,190 @@
 ---
 name: resolve-pr-conflict
 description: |
-  Resolve an open same-repository GitHub PR conflict in CS2_VibeSignatures by merging the PR base branch into its
-  dev branch, resolving config and generated gamesymbol snapshot conflicts, migrating non-latest gamever config
-  changes into the latest gamever and reverting stale snapshot, gamedata, and release-manifest changes, running a
-  read-only review audit (defined in .claude/skills/resolve-pr-conflict/references/review-pr.md)
-  right after conflict resolution to catch design defects early, running the repository formatter so the pushed merge
-  commit passes CI formatting, creating a source-only merge commit, and pushing
-  without force so pr-self-runner CI can validate the resulting snapshot/gamedata candidates. Use when a PR is
-  CONFLICTING/DIRTY or needs its base
-  branch synchronized, especially when configs/GAMEVER.yaml or gamesymbols/GAMEVER.yaml changed. Stop after push and
-  check-status reporting; never merge or auto-merge the PR.
+  Resolve an open same-repository GitHub PR conflict by merging its base into the writable dev head, resolving source
+  and config intent semantically, rebuilding conflicted source-owned `bin_artifacts` plus downstream closure, running
+  the repository review/format/test gates, creating one merge commit, and pushing without force. Stop after reporting
+  PR checks; never merge or auto-merge the PR.
 disable-model-invocation: true
 ---
 
 # Resolve PR Conflict
 
-Resolve one PR through a validated, pushed merge commit. Preserve both histories and stop before PR merge.
+Resolve one PR through a validated, pushed merge commit. `bin_artifacts/<GAMEVER>/` is the only tracked per-symbol
+truth; snapshots, gamedata, metadata, and release manifests are Release-derived and must not appear in the result.
 
-## Inputs and Scope
+## Inputs and scope
 
-- `pr` — PR number or URL. If omitted, resolve the open PR associated with the current branch.
-- `gamever` — optional. Otherwise infer exactly one version from the PR/config/snapshot conflict paths.
+- `pr` — PR number or URL. If omitted, resolve the single open PR associated with the current branch.
+- `gamever` — optional expected GAMEVER. Infer only when the changed ownership is unambiguous.
 - `remote` — default `origin`.
 
-Support only a same-repository PR whose head is a non-`main` dev branch writable through `remote`. Stop for a fork PR,
-detached head, closed PR, missing remote, or multiple affected game versions. Do not guess a push destination or combine
-multiple snapshot publications in one invocation.
+Support only an open same-repository PR whose non-default head branch is writable through `remote`. Stop for a fork,
+detached head, missing remote, moving head, or ambiguous affected GAMEVER/producer ownership.
 
-## Hard Safety Rules
+## Hard safety rules
 
-- Run from the repository root and require a clean tracked worktree and index before starting.
-- Never rebase, amend, force-push, reset, discard unrelated changes, delete branches, or commit directly to `main`.
-- Merge in exactly this direction: check out the PR head branch, then merge `remote/<base>` into it with `--no-ff`.
-- Never hand-edit generated snapshot digest, file count, publish time, or candidate bytes.
-- Never use a tracked snapshot as downstream validation input and never publish directly from `bin`.
-- Stop on an ambiguous non-generated conflict and ask the user; do not choose a side without semantic evidence.
-- Never run candidate preparation, C++ validation, or snapshot/gamedata publication locally. Candidate/C++ validation
-  runs in `.github/workflows/pr-self-runner.yml` after push; snapshot/gamedata publication happens only in the release
-  pipeline, never on a skill PR's head.
-- After push, report PR checks once. Do not invoke `gh pr merge`, enable auto-merge, call a merge API, switch to `main`,
-  or clean up branches. PR merge is a separate explicitly authorized task.
+- Start with a clean tracked worktree and index. Preserve unrelated untracked files.
+- Never rebase, amend, reset, force-push, delete branches, commit to the default branch, or use `git add .`/`git add -A`.
+- Merge only in this direction: PR head branch <- `remote/<base>` using `--no-ff`.
+- Never resolve source-owned artifact bytes by blindly choosing ours/theirs or hand-editing YAML formatting. Base bytes
+  may seed an isolated rebuild, but final conflict bytes must come from the merged producer/config contract and central
+  finalizer.
+- Reject tracked `gamesymbols/**`, `gamedata/**`, `release-manifests/**`, and `bin/**/*.yaml` in the final PR diff.
+- Stop on a conflict in trusted planner/policy/required-workflow/publisher code unless the intended trust-root change is
+  independently specified and reviewable; do not let the PR choose its own validation boundary.
+- Do not run a publisher, create Release outputs, push BinSync, or use publication credentials.
+- After push, report checks once and stop. Never merge or enable auto-merge.
 
-## Step 1 — Inspect and Capture the PR
+## Step 1 — Capture the immutable PR state
 
-Require successful authentication and capture the immutable starting state:
-
-```bash
+```powershell
 git status --short --branch
 git remote
 gh auth status
-gh pr view <PR> --json number,url,state,isDraft,baseRefName,headRefName,headRefOid,headRepositoryOwner,mergeable,mergeStateStatus,statusCheckRollup
+gh pr view <PR> --json number,url,state,isDraft,baseRefName,baseRefOid,headRefName,headRefOid,headRepository,headRepositoryOwner,mergeable,mergeStateStatus,statusCheckRollup
 git fetch <REMOTE> <BASE_BRANCH> <HEAD_BRANCH> --prune
 git rev-parse <REMOTE>/<BASE_BRANCH>
 git rev-parse <REMOTE>/<HEAD_BRANCH>
 git diff --name-status <REMOTE>/<BASE_BRANCH>...<REMOTE>/<HEAD_BRANCH>
 ```
 
-Save `PR_URL`, `BASE_BRANCH`, `HEAD_BRANCH`, `PR_HEAD_SHA`, `BASE_HEAD_SHA`, and `ORIGINAL_PR_PATHS`. After fetch, require
-the PR API head SHA to equal `<REMOTE>/<HEAD_BRANCH>`. Stop if the PR changed during inspection.
+Save `PR_URL`, `BASE_BRANCH`, `HEAD_BRANCH`, `PR_HEAD_SHA`, `BASE_HEAD_SHA`, and `ORIGINAL_PR_PATHS`. Require the PR API
+head SHA to equal `<REMOTE>/<HEAD_BRANCH>` after fetch. If the PR is already mergeable and the user did not request a
+base synchronization, report that no resolution is needed and stop.
 
-Allow draft PRs, but require `state=OPEN`. If the PR is already mergeable and the user did not explicitly request a
-base sync, report that no conflict resolution is needed and stop without mutation.
+## Step 2 — Check out the exact PR head
 
-## Step 2 — Check Out the PR Branch
+Create a local tracking branch only when absent; otherwise fast-forward the existing clean branch:
 
-If no local head branch exists, create it tracking the remote branch. If it exists, require it to be clean and update it
-only by fast-forward:
-
-```bash
+```powershell
 git switch --track -c <HEAD_BRANCH> <REMOTE>/<HEAD_BRANCH>
-# or, for an existing local branch:
+# or
 git switch <HEAD_BRANCH>
 git pull --ff-only <REMOTE> <HEAD_BRANCH>
+git rev-parse HEAD
 ```
 
 Require `HEAD == PR_HEAD_SHA` before merging.
 
-## Step 3 — Merge the Base and Resolve Conflicts
+## Step 3 — Merge base and inventory conflicts
 
-```bash
+```powershell
 git merge --no-ff <REMOTE>/<BASE_BRANCH>
 git status --short
 git diff --name-only --diff-filter=U
 ```
 
-An exit code `1` is expected only when Git reports merge conflicts. Any other merge failure is a hard stop.
+Exit code 1 is expected only for reported conflicts. Classify every unmerged path:
 
-Resolve each path as follows:
+- `configs/<GAMEVER>.yaml`: merge producer ordering, alternatives, expected/optional inputs/outputs, prerequisites,
+  symbols, aliases, cpp tests, and platform gates semantically. Do not duplicate an owner or silently drop either
+  parent's intent.
+- `ida_preprocessor_scripts/**`, references, Agent skills, source, tests, or docs: read both parents and resolve behavior
+  semantically. Stop when intent is ambiguous.
+- `bin_artifacts/<GAMEVER>/<module>/*.yaml`: record A/M/D/R paths and base/merge ownership. Do not accept either side as
+  final; resolution is deferred to the isolated rebuild in Step 4.
+- forbidden legacy/Release-derived namespaces: remove them from the prospective PR result and investigate why they were
+  introduced; they are not conflict-resolution inputs.
+- trust-root paths named in the safety rules: stop and report the exact conflict for independent handling.
 
-- `configs/<GAMEVER>.yaml`: preserve the semantically required entries from both parents, including skill ordering,
-  prerequisites, expected inputs/outputs, symbols, and aliases. Avoid duplicate entries. If `<GAMEVER>` is not the latest
-  gamever in `download.yaml`, do not resolve forward — migrate its intent into the latest config and revert the whole
-  path to base in Step 4 instead.
-- `gamesymbols/<GAMEVER>.yaml`: because the enforced direction is PR head <- base, select the base snapshot:
+Require one explicit GAMEVER per invocation when artifact/config ownership is involved. A historical GAMEVER change is
+allowed only when the PR explicitly intends a backport and carries the matching source-owned artifact closure; never
+auto-migrate its intent to latest or silently revert it.
 
-  ```bash
-  git checkout --theirs -- "gamesymbols/<GAMEVER>.yaml"
-  git add -- "gamesymbols/<GAMEVER>.yaml"
-  ```
+## Step 4 — Rebuild artifact conflicts and downstream closure
 
-  The base snapshot is the final value, not a placeholder. Snapshot/gamedata publication is release-pipeline only
-  (in-band skill PRs never advance the tracked snapshot), so `pr-self-runner.yml` validates candidates but does not
-  commit or replace this file after push.
-- Source, tests, or documentation: read the exact conflicting code and resolve semantically. Stop and ask when intent is
-  ambiguous.
+From the merged source/config/reference intent, compute affected producer groups using both direct changed paths and
+recorded artifact A/M/D/R ownership. Include the complete downstream closure and cross-module paths.
 
-Stage resolved conflict paths explicitly. Require no unmerged entries and no conflict markers:
+Create a checkout-external scratch artifact root. Seed unaffected paths from the prospective merged tree; for conflicted
+paths, use base only as a temporary seed or omit the path when the merged formal contract deleted it. Force all selected
+groups with the exact merged source and binary identity:
 
-```bash
+```powershell
+uv run ida_analyze_bin.py -gamever <GAMEVER> -artifactdir <CHECKOUT_EXTERNAL_ROOT> -oldartifactdir bin_artifacts -force_all -debug
+```
+
+Narrow `-modules`/`-skill` only when the computed plan proves the complete closure remains covered. Require:
+
+- every selected producer group actually executed and has one valid winner;
+- required/optional/formal inventory, ownership, paths, and canonical bytes pass;
+- no extra/stale YAML remains;
+- the source checkout's tracked artifact digest did not change during isolated execution.
+
+Copy the validated A/M/D/R closure from the isolated root into tracked `bin_artifacts/<GAMEVER>/`. Remove obsolete paths
+only when the merged formal contract proves their deletion/rename, then stage each path explicitly. Run the repository
+artifact contract. If IDA/LLM/Agent execution is unavailable, stop without committing: a guessed conflict result is not
+deliverable.
+
+## Step 5 — Resolve remaining paths and review
+
+Stage only explicitly resolved source/config/reference/test/artifact paths. Require no unmerged entries or conflict
+markers:
+
+```powershell
 git diff --name-only --diff-filter=U
 git diff --check
 git status --short
 ```
 
-Require exactly one `GAMEVER` when config, analysis output, or gamesymbol paths are involved. Confirm
-`configs/$GAMEVER.yaml` exists.
+Read `references/review-pr.md` and run its read-only Steps 1–4 against the resolved prospective PR. Its review must treat
+`bin_artifacts` as source-owned proof and reject forbidden tracked Release outputs. If actionable findings exist, report
+them and stop; repairing findings beyond conflict resolution requires the user's explicit follow-up direction.
 
-## Step 4 — Migrate Non-Latest Config Changes, Revert Stale Gamever Artifacts
+## Step 6 — Format and validate
 
-The analysis model is single-versioned: producers, expected inputs, symbol definitions, aliases, and generated outputs
-belong only in the latest gamever config. The latest gamever is the last `tag:` entry in `download.yaml` (chronological,
-matching `init_gamebin.py`'s `LATEST_GAMEVER = versions[-1]`). A change that edits a non-latest gamever config is
-misplaced work, not throwaway work: migrate its intent into the latest gamever config, then discard the old path's
-change. Generated artifacts for a non-latest gamever (`gamesymbols`, `gamedata`, `release-manifests`) are never
-hand-edited or forward-ported; revert them to base unconditionally.
-
-Determine `LATEST_GAMEVER` once and collect every `<GAMEVER>` in the original PR and merged conflict paths that matches
-`configs/<GAMEVER>.yaml`, `gamesymbols/<GAMEVER>.yaml`, `gamedata/<GAMEVER>/`, or `release-manifests/<GAMEVER>.json`:
-
-```bash
-LATEST_GAMEVER="$(grep -oE 'tag: *"[0-9]+[ab]*"' download.yaml | tail -1 | grep -oE '[0-9]+[ab]*')"
-```
-
-For each `<GAMEVER>` that is **not** the latest, handle its paths as follows:
-
-1. `configs/<GAMEVER>.yaml` — **migrate first, then discard.** Read the exact diff against base
-   (`git diff <REMOTE>/<BASE_BRANCH> -- "configs/$GV.yaml"`) and port every semantically meaningful change — skill
-   ordering, prerequisites, expected inputs/outputs, symbols, aliases, producer entries — into
-   `configs/$LATEST_GAMEVER.yaml`. Merge against what already exists there using the same rules as Step 3 config
-   resolution (preserve both parents' intent, avoid duplicates). Then revert the old path to base and stage both the
-   migrated latest config and the reverted path:
-
-   ```bash
-   git checkout <REMOTE>/<BASE_BRANCH> -- "configs/$GV.yaml"
-   git add -- "configs/$GV.yaml" "configs/$LATEST_GAMEVER.yaml"
-   ```
-
-   Never drop a non-latest config change without first checking whether its intent belongs in the latest config. If the
-   diff is version-specific noise with no latest-gamever equivalent, document why before leaving it unmigrated.
-
-2. `gamesymbols/<GAMEVER>.yaml`, `gamedata/<GAMEVER>/`, `release-manifests/<GAMEVER>.json` — **revert only.** Generated
-   artifacts; do not forward-port them.
-
-   ```bash
-   git checkout <REMOTE>/<BASE_BRANCH> -- \
-     "gamesymbols/$GV.yaml" \
-     "gamedata/$GV" \
-     "release-manifests/$GV.json"
-   git add -- "gamesymbols/$GV.yaml" "gamedata/$GV" "release-manifests/$GV.json"
-   ```
-
-Treat every migrated and reverted path exactly like a resolved conflict: require no unmerged entries, no conflict
-markers, and a clean diff for that path. A non-latest gamever path left in the merged result — a reverted config whose
-intent should have been migrated, or a generated artifact that was not reverted — is a defect. If a legitimately
-justified historical backport exists, it must be explicitly documented in the PR before it can be preserved.
-
-If the PR itself is about the latest gamever and introduces no non-latest gamever paths, this step is a no-op.
-
-## Step 5 — Review the Resolved PR
-
-Run the read-only review audit of the resolved PR before creating the merge commit. Catch preprocessor design defects
-early rather than after push.
-
-Read `.claude/skills/resolve-pr-conflict/references/review-pr.md` and execute its read-only review steps
-(Steps 1-4) against the same `<PR>` now that the merge is resolved and stale-gamever cleanup is staged. The audit checks
-the PR's config/script/snapshot changes against the base tree, including the stale-gamever gate for
-`configs/<GAMEVER>.yaml`.
-
-Treat the audit's findings as part of this skill's outcome, but do **not** begin repair in this invocation: repair of the
-existing PR is a separate explicitly authorized task. If the audit finds actionable defects, report them and stop to ask
-the user how to deal with each issue — for example whether to fix the existing PR now or abandon this invocation — and do
-not continue to the later steps. If it finds none, state that the resolved PR passed review and continue to Step 6.
-
-The review audit is read-only for this step and never modifies, commits, pushes, or merges. If it reports the PR head has
-moved since the captured `PR_HEAD_SHA`, present the updated diff and stop without further mutation.
-
-## Step 6 — Format the Resolved Tree
-
-Before staging, run the repository formatter so the pushed merge commit passes the CI `Check formatting` step
-(`uv run python format_repo_files.py --check` in `.github/workflows/pr-self-runner.yml`):
-
-```bash
+```powershell
 uv run python format_repo_files.py
-git status --short
-```
-
-The formatter covers all tracked `*.py` and `*.yaml` files and always skips generated reference YAML
-(`ida_preprocessor_scripts/references/`), gamesymbol snapshots (`gamesymbols/`), and `.claude/`/`.codex/` YAML files,
-so agent skill/config files keep their own formatting.
-
-Keep formatting changes on paths that belong to the resolved PR. Formatting-only changes to any path outside the PR's
-scope must be reverted before staging so the merge commit contains the original PR intent and conflict resolutions
-only:
-
-```bash
-git checkout -- <OUT_OF_SCOPE_FORMATTED_PATH>
-```
-
-Require the formatting check to pass before continuing to Step 7:
-
-```bash
 uv run python format_repo_files.py --check
+uv run python bin_artifact_contract.py
+git diff --check
 ```
 
-## Step 7 — Review and Create the Merge Commit
+The formatter intentionally skips canonical `bin_artifacts`; never reformat them outside the central finalizer. Run
+focused tests for every changed behavior plus the repository-contract suite. Revert formatting-only changes outside the
+authorized PR scope before staging. Do not claim CI-only self-hosted or external gates passed locally.
 
-Stage only explicit resolved/authorized source paths. Never use `git add .` or `git add -A`, and do not stage locally
-generated snapshot/gamedata outputs.
+## Step 7 — Create one merge commit
 
-```bash
-git add -- <EXPLICIT_RESOLVED_OR_FORMATTED_PATHS>
+Recheck and explicitly stage the authorized set:
+
+```powershell
+git add -- <EXPLICIT_RESOLVED_SOURCE_CONFIG_REFERENCE_TEST_PATHS>
+git add -- <EXPLICIT_BIN_ARTIFACT_CLOSURE_PATHS>
 git diff --cached --check
 git diff --name-only --diff-filter=U
 git diff --cached --name-status <REMOTE>/<BASE_BRANCH>
 git diff --cached --stat <REMOTE>/<BASE_BRANCH>
-git diff --cached <REMOTE>/<BASE_BRANCH> -- "configs/$GAMEVER.yaml" "gamesymbols/$GAMEVER.yaml"
 ```
 
-Require no unstaged tracked changes. Review the final diff relative to the base: it must contain the original PR intent
-and conflict resolutions only. Any selected base snapshot is the final value; pr-self-runner validates candidates but
-never commits or publishes snapshot/gamedata back to the PR head.
+Require no unstaged tracked changes. Confirm the final diff preserves the PR intent, includes the complete artifact
+closure, and contains no forbidden tracked output namespace. Commit without amending:
 
-Create one merge commit without amending existing PR commits:
-
-```bash
-git commit \
-  -m "chore(merge): sync <BASE_BRANCH> into <TOPIC> branch" \
-  -m "Co-Authored-By: Codex <codex@openai.com>"
+```powershell
+git commit -m "chore(merge): sync <BASE_BRANCH> into <TOPIC> branch" -m "Co-Authored-By: Codex <codex@openai.com>"
 ```
 
-Verify the commit has exactly two parents in this order: `PR_HEAD_SHA BASE_HEAD_SHA`. Require a clean worktree after
-commit.
+Verify the merge commit has exactly two parents in order: `PR_HEAD_SHA BASE_HEAD_SHA`.
 
-## Step 8 — Push Without Force and Stop Before PR Merge
+## Step 8 — Push without force and stop
 
-Immediately before push, confirm the remote PR head is still `PR_HEAD_SHA`. If it changed, stop; never overwrite the
-other update.
+Immediately before push, query the PR again and require the remote head is still `PR_HEAD_SHA`. Then:
 
-Push using a normal fast-forward update:
-
-```bash
+```powershell
 git push <REMOTE> "HEAD:refs/heads/<HEAD_BRANCH>"
-```
-
-If push is rejected, fetch and report the divergence. Never retry with force.
-
-After push, query once and report the new PR state:
-
-```bash
 gh pr view <PR> --json url,headRefOid,mergeable,mergeStateStatus,statusCheckRollup
 gh pr checks <PR>
 ```
 
-Pending checks are an acceptable endpoint for this skill. If GitHub becomes unreachable after a successful push,
-report the pushed branch and commit plus the last known check state; do not infer success and do not attempt PR merge.
+If push is rejected, fetch and report divergence; never retry with force. Pending checks are an acceptable endpoint.
+Never invoke `gh pr merge`, auto-merge, a merge API, branch deletion, or a switch to the default branch.
 
-Then **STOP**. Never run any of the following in this skill:
+## Final report
+
+Report the PR/base/head identities, pushed merge SHA, resolved paths, affected GAMEVER/groups, staged artifact closure,
+format/test/contract evidence, review findings, and latest check state. State explicitly:
 
 ```text
-gh pr merge
-gh pr merge --auto
-GitHub REST/GraphQL merge mutation
-git push origin --delete <HEAD_BRANCH>
-git switch main
+PR was not merged by resolve-pr-conflict.
 ```
-
-## Final Report
-
-Report:
-
-- PR URL, base branch, head branch, original PR SHA, base SHA, and pushed merge-commit SHA;
-- resolved conflict paths;
-- formatting result: the resolved tree passed `format_repo_files.py --check`, with out-of-scope formatting-only
-  changes reverted in Step 6;
-- non-latest gamever config changes migrated into the latest gamever config and their source paths reverted to base in
-  Step 4, non-latest snapshot/gamedata/release-manifest paths reverted to base, and the verified latest gamever;
-- game version when resolved and a statement that PR CI owns candidate/C++ validation while snapshot/gamedata
-  publication happens only in the release pipeline;
-- pushed remote branch and latest known PR/check state;
-- the review audit result (Step 5, read-only per
-  `.claude/skills/resolve-pr-conflict/references/review-pr.md`): findings (or "no actionable findings")
-  and the consent question if defects were found;
-- explicit statement: `PR was not merged by resolve-pr-conflict`.

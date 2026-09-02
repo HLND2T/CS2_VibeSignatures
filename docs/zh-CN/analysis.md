@@ -13,7 +13,7 @@ binaries。
 Use SKILL: init-gamebin
 ```
 
-该 SKILL 会从仓库版本列表解析最新的游戏版本号，下载或合并对应的 binaries 且不会覆盖已有文件，然后从打包的snapshot中恢复 symbol YAMLs。
+该 SKILL 会从仓库版本列表解析最新的游戏版本号，下载或合并对应的 binaries 且不会覆盖已有文件。它不会向 `bin/` 恢复 symbol YAML；source-owned symbol truth 直接读取 `bin_artifacts/`。
 
 如果没有指定游戏版本，skill 会先列出可用版本并向你询问。
 
@@ -40,7 +40,7 @@ uv run ida_analyze_bin.py -gamever 14156 [-oldgamever=14155] [-configyaml=path/t
 
 Analyzer 行为：
 
-- 在运行 Agent skills 前，先通过 MCP 尝试复用 `bin/{previous_gamever}/{module}/{symbol}.{platform}.yaml` 中的旧 signature。成功复用时不会消耗 Agent token。
+- 在运行 Agent skills 前，先通过 MCP 尝试复用 `bin_artifacts/{previous_gamever}/{module}/{symbol}.{platform}.yaml` 中的旧 signature。成功复用时不会消耗 Agent token。
 - `-agent="claude.cmd"` 选择 Windows 上通过 npm 安装的 Claude CLI。
 - `-agent="opencode.cmd"` 选择 Windows 上通过 npm 安装的 OpenCode CLI。OpenCode 会加载 `.opencode/agents/sig-finder.md` 并以非交互模式运行 skills。
 - 推荐顺序为：纯程序化 preprocessor、`LLM_DECOMPILE` preprocessor、Agent skill。

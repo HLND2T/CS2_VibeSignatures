@@ -2,45 +2,46 @@
 
 # Contributing symbol-analysis skills via a pull request
 
-After creating and locally testing a symbol-analysis skill, use `SKILL: create-pr` (invoked as `/create-pr`) to share it
-with the project. The skill commits only the staged source change. `pr-self-runner.yml` independently selects the PR's
-validation path from its changed paths; snapshot/gamedata publication is release-pipeline only.
+After creating and locally testing a symbol-analysis skill, rebuild its affected producer groups and complete downstream closure in `bin_artifacts/`. Stage the source/config/reference change and the resulting canonical per-symbol artifacts together, then use `SKILL: create-pr` (invoked as `/create-pr`) to share them with the project.
+
+Do not stage Release-derived `gamesymbols/`, `gamedata/`, metadata, archives, checksums, or `release-manifests/`. The binary/IDA workspace under `bin/` is also not source truth.
 
 ## Invoke the skill
 
 Ask the agent to run the skill, for example:
 
 ```text
-Use SKILL: create-pr to share the staged symbol-analysis skill.
+Use SKILL: create-pr to share the staged symbol-analysis change and artifact closure.
 gamever: 14156
 branch: dev-find-example
 commit_title: feat(skills): add find-example symbol-analysis skill
 ```
 
-`branch`, `commit_title`, PR title/body, and an issue number are optional.
+`branch`, `commit_title`, PR title/body, and an issue number are optional. If omitted, `create-pr` derives suitable values from the staged diff. It creates the PR from a `dev*` branch against `main`; it never commits directly to `main`.
 
-If omitted, `create-pr` derives suitable values from the staged diff.
+## What must be staged
 
-It creates the PR from a `dev*` branch against `main`; it never commits directly to `main`.
+The staged set is one atomic source-owned change:
+
+1. The producer, config, reference, or source files that changed.
+2. Every affected artifact A/M/D/R under `bin_artifacts/<GAMEVER>/`.
+3. Every artifact in the computed downstream closure, including cross-module outputs.
+4. Any directly related tests or durable documentation.
+
+Use the local planner and repository artifact contract to compute and verify the closure. Do not trust a hand-written affected list: CI recomputes ownership and invalidation from the default-branch planner.
 
 ## What `create-pr` does
 
-The skill delivers the captured source change without trying to predict or influence the workflow's validation route:
+1. Captures and checks the exact staged path set, including the `bin_artifacts` closure.
+2. Rejects tracked `gamesymbols/`, `gamedata/`, `release-manifests/`, and `bin/**/*.yaml`.
+3. Commits only the captured paths using the repository Conventional Commit format and `Co-Authored-By: Codex`.
+4. Pushes the `dev*` branch and opens one PR against `main`.
+5. Waits for the stable `source-artifact-required` and `pr-validate` checks on the latest head.
 
-1. Captures and checks the exact staged paths.
-2. Commits only those source paths with the repository's Conventional Commit format and `Co-Authored-By: Codex`.
-3. Pushes the `dev*` branch and opens one PR against `main`.
-4. `pr-self-runner.yml` classifies the changed paths with `pr_validation_mode.py` and its trusted
-   `pr_validation_mode.yaml`, then runs the selected light or full validation path.
-5. On the full path, CI checks out an immutable merge ref, analyzes binaries, builds one snapshot candidate and matching
-   gamedata candidate, and runs C++ validation against those exact bytes.
-6. `gamesymbols/<GAMEVER>.yaml` and `gamedata/<GAMEVER>/` advance only at release time; the PR workflow never publishes
-   them back to the PR head.
+Full validation binds the exact prospective merge tree, rebuilds affected producer groups into a checkout-external root, and compares the complete actual inventory with Git blobs byte-for-byte. Merge Queue repeats that proof for the final queued tree.
 
-The skill stops before commit or PR creation when there are no staged changes, unstaged tracked changes, missing
-authentication, or an unexpected path change. Do not add generated snapshot/gamedata outputs locally; CI owns them.
+For a new GAMEVER, the initial PR may enter `bootstrap_required`. The protected bootstrap publisher may append only a fast-forward artifact commit to the matching `bump-download/<GAMEVER>` branch. That artifact-bearing head must then pass normal exact-byte validation; the bootstrap run cannot satisfy the required check by itself.
 
 ## After the skill finishes
 
-Record the reported branch, source commit SHA, PR URL, and final committed path list. Wait for the stable `pr-validate`
-check on the latest PR head. Snapshot/gamedata outputs are published later by the release pipeline, not by this PR.
+Record the branch, source commit SHA, PR URL, final committed paths, and verification results. Snapshot, metadata, gamedata, archives, manifests, BinSync changes, and Pages inputs are reconstructed later by the immutable Release pipeline; they are never published back to the source PR.

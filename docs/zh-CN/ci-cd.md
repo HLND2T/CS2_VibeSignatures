@@ -2,84 +2,29 @@
 
 # CI/CD 与 Jenkins 工作流参考
 
-以下 Windows batch 片段展示带 guard 的工作流阶段。
+## Pull Request 与 Merge Queue
 
-对于 Pull Request，这些 candidate、C++ 与发布阶段由 `.github/workflows/pr-self-runner.yml` 在内部执行；
-`create-pr` 只提交 source change。完整验证成功后，workflow 发布同一份 guarded snapshot/gamedata bytes，将 bot
-commit push 到 PR head，并为新 head 显式 dispatch 一个仅在 Ubuntu 上运行的 provenance/digest 轻量复核。
-如果 bot push 产生 `pull_request.synchronize` 事件，PR preflight 会先校验 publication trailers，并将该事件路由到
-同一个轻量复核，不再重复完整构建。
+`source-artifact-required.yml` 使用 default-branch planner 绑定 exact prospective merge tree。light change 运行 hosted tests；full change 计算 affected producer groups 与 downstream closure，再由 `pr-self-runner.yml` 对每个 affected GAMEVER 执行 empty-root rebuild，并与 `bin_artifacts` Git blobs 逐字节比较。
 
-## 下载二进制
+因此 source/config/reference PR 必须同时包含计算出的 `bin_artifacts` change。PR CI 绝不把 `gamesymbols/`、`gamedata/` 或 release manifest 写回分支。新 GAMEVER bootstrap 是唯一 source-branch writer：受 environment 保护的 hosted publisher 只能 fast-forward `bump-download/<GAMEVER>`，artifact-bearing head 必须再次通过 validation。
 
-```batch
-@echo Download latest game binaries
+稳定 required checks 为 `source-artifact-required` 与 `pr-validate`。Merge Queue 还必须通过 GitHub ruleset Required Workflow（或独立 trust root）安装验证，防止 prospective workflow change 自行伪造同名 check。
 
-uv run download_depot.py -tag %CS2_GAMEVER%
-uv run copy_depot_bin.py -gamever %CS2_GAMEVER% -platform %CS2_PLATFORM%
-```
+## Warm IDB 与 accepted binaries
 
-## 分析二进制
+PR 与 Release analysis 都调用 `warmup-idb.yml`，将 configured binary hashes 和 IDA runtime 绑定到 immutable cache generation。accepted-bin 是 exact configured-binary cache：YAML、IDA databases、BinSync state 与未声明 side files 均被拒绝。这些 cache 只用于性能，不是 symbol truth。
 
-GitHub Actions 中的 PR 与 release 分析不允许临时创建 IDB。两个流程都会先调用 reusable
-`.github/workflows/warmup-idb.yml` producer。它在隔离 workspace 中准备配置声明的 binaries，根据 binary
-inventory 与 IDA 版本生成 cache identity，并且只有在所有 `.i64` 与完整 payload inventory 都通过校验后，
-才会把 immutable generation 发布到 `PERSISTED_WORKSPACE/idb-cache/<GAMEVER>/generations/`。
+## Immutable Release pipeline
 
-producer 会把精确的 generation 与 cache key 返回调用方。PR/release job 会先校验本机 IDA kernel version
-与 producer 一致，再恢复该 generation；它们不再从
-`PERSISTED_WORKSPACE/bin/<GAMEVER>` 复制 `.i64`，而是恢复该 generation，并使用 `-require_warm_idb` 运行
-`ida_analyze_bin.py`。warm cache 缺失、损坏、identity 不匹配或生产失败都会阻止分析；CI 不允许回退到 inline
-IDA auto-analysis。因此即使 generated-output PR 尚未合并，普通 PR 也能消费已经发布的 warm cache。
+version source commit 进入 default branch 后：
 
-producer 会清理超过 24 小时的中断 `.incoming-*` 目录，并至少保留最新三个 generation 与 READY 指向的
-generation；其他 generation 满七天后才允许清理。release staging 会排除全部 IDA database artifacts，因此
-promotion 不再在 accepted `PERSISTED_WORKSPACE/bin/<GAMEVER>` 中制造第二份 IDB。
+1. source preflight 证明目标 GAMEVER 有完整 tracked artifact tree；
+2. self-hosted builder 执行 fresh `-force_all -rename`，验证 exact artifact bytes，并生成无凭证的 BinSync/Release candidates；
+3. hosted jobs 独立验证 candidate bundles、archive allowlists、manifest、checksums、C++ evidence 与 BinSync target-state identity；
+4. protected BinSync publisher 只执行 fast-forward ref updates；
+5. protected Release publisher 创建/复用 source tag，上传 exact immutable assets，发布一次并 dispatch Pages；
+6. Pages 只 hydrate published Release assets，验证 manifest/SHA256SUMS/archive inventories，构建全部已发布版本并验证 CDN bytes。
 
-清理范围有意限制在当前 producer 处理的 GAMEVER。已退役 GAMEVER 的 cache root 不会被自动删除；runner
-维护者需要定期人工删除不再使用的 `idb-cache/<GAMEVER>`，并在删除前确认没有进行中的 PR 或 release run
-仍引用其中的 explicit generation。
+workflow transaction identity 在 GitHub rerun 之间保持稳定（`run_id`）；`run_attempt` 只属于 transport metadata。published tag/assets 禁止 clobber 或内容不同的 republish。
 
-```batch
-@echo Analyze game binaries
-
-uv run ida_analyze_bin.py -gamever %CS2_GAMEVER% -agent=claude.cmd -platform %CS2_PLATFORM% -debug
-```
-
-## 构建 immutable symbol candidate
-
-```batch
-@echo Build the immutable candidate immediately after analysis
-
-set "CANDIDATE_ID=%RANDOM%"
-set "CANDIDATE_ROOT=%TEMP%\cs2vibe-%CS2_GAMEVER%-%CANDIDATE_ID%"
-set "CANDIDATE_SNAPSHOT=%CANDIDATE_ROOT%\%CS2_GAMEVER%.yaml"
-set "CANDIDATE_SESSION=%CANDIDATE_ROOT%\%CS2_GAMEVER%.session.json"
-set "GAMEDATA_ROOT=%CANDIDATE_ROOT%\gamedata-candidate"
-set "GAMEDATA_SESSION=%CANDIDATE_ROOT%\%CS2_GAMEVER%.gamedata.session.json"
-if not exist "%CANDIDATE_ROOT%" mkdir "%CANDIDATE_ROOT%"
-uv run gamesymbol_candidate.py build -gamever %CS2_GAMEVER% -bindir bin -configyaml configs/%CS2_GAMEVER%.yaml -output "%CANDIDATE_SNAPSHOT%" -session "%CANDIDATE_SESSION%"
-```
-
-## 构建并 guard gamedata candidate
-
-```batch
-@echo Build gamedata from the immutable symbol candidate
-
-uv run gamedata_candidate.py build -gamever %CS2_GAMEVER% -build-id %CANDIDATE_ID% -snapshot "%CANDIDATE_SNAPSHOT%" -configyaml configs/%CS2_GAMEVER%.yaml -candidate-root "%GAMEDATA_ROOT%" -session "%GAMEDATA_SESSION%"
-uv run gamedata_candidate.py guard -session "%GAMEDATA_SESSION%"
-uv run gamesymbol_candidate.py mark -candidate "%CANDIDATE_SNAPSHOT%" -session "%CANDIDATE_SESSION%" -step gamedata
-```
-
-## 验证 C++ headers 并发布 candidates
-
-```batch
-@echo Validate and publish the guarded candidates
-
-uv run run_cpp_tests.py -gamever %CS2_GAMEVER% -configyaml configs/%CS2_GAMEVER%.yaml -snapshot "%CANDIDATE_SNAPSHOT%" -debug
-uv run gamesymbol_candidate.py mark -candidate "%CANDIDATE_SNAPSHOT%" -session "%CANDIDATE_SESSION%" -step cpp_tests
-uv run gamesymbol_candidate.py publish -candidate "%CANDIDATE_SNAPSHOT%" -session "%CANDIDATE_SESSION%" -snapshot gamesymbols/%CS2_GAMEVER%.yaml
-uv run gamedata_candidate.py publish -session "%GAMEDATA_SESSION%" -outputdir gamedata/%CS2_GAMEVER%
-```
-
-candidate 状态保证、restore 行为与 pull request 输出规则见 [Snapshot、gamedata 与 C++ 验证](snapshot-and-gamedata.md)。
+本地 candidate 命令与 artifact ownership 见 [Snapshot、gamedata 与 C++ 验证](snapshot-and-gamedata.md)。

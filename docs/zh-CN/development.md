@@ -18,7 +18,7 @@ uv run python format_repo_files.py
 uv run python format_repo_files.py --check
 ```
 
-格式化脚本只处理 `git ls-files --cached -- '*.py' '*.yaml'` 返回的文件，因此会跳过被 ignore 的文件与未跟踪的临时文件。`ida_preprocessor_scripts/references/` 下的生成 YAML 和 `gamesymbols/` 下的 canonical lockfile 也会被跳过，由各自生成器保证 byte-stable 格式。
+格式化脚本只处理 `git ls-files --cached -- '*.py' '*.yaml'` 返回的文件，因此会跳过被 ignore 的文件与未跟踪的临时文件。`ida_preprocessor_scripts/references/` 下的生成 YAML 和 `bin_artifacts/` 下的 canonical symbol artifacts 也会被跳过，由 producer/canonicalizer 保证 exact bytes。
 
 ## 测试
 

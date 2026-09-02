@@ -1,8 +1,20 @@
 # Source-owned per-symbol artifacts 迁移计划
 
-状态：草案
+状态：实施中（仓库内步骤 1–17 已完成；外部 cutover 与发布验收未完成）
 
 日期：2026-09-01
+
+实施记录（2026-09-02）：
+
+- 仓库内实施顺序 1–17 已在 `dev-source-owned-artifacts` 上按步骤提交；步骤 20 的文档、Skill、Memory、
+  独立审查 finding 与 completion verification 正在收口。
+- 步骤 18 的 drain/freeze、先合并 PR A trust bridge、启用外部 required workflow/ruleset、再基于
+  default-branch-owned planner 验证 PR B 尚未执行。当前 `origin/main` 不具备该 trust bridge，不能用本分支
+  自带 workflow 代替。
+- 步骤 19 的 new-GAMEVER bootstrap drill、non-publishing Release dry run、sandbox BinSync/Release publish、
+  Pages CDN byte verification、accepted-bin cleanup receipt 与两次真实 fresh full rebuild 尚无外部验收证据。
+- 两个历史 `gamesymbols/build/14174/*` 远端分支仅完成识别，未获删除授权，保持不变。
+- 因此本文仍是进行中的迁移记录；在步骤 18–20 的全部门禁与真实外部验收完成前，不得声明迁移完成或可合并。
 
 优先级：P1
 

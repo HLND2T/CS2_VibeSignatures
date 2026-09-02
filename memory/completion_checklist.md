@@ -5,9 +5,11 @@ permalink: cs2-vibesignatures/completion-checklist
 ---
 
 # Completion checklist
-
-- If changing scripts/config, ensure CLI usage in README and docstrings stays accurate.
-- Before completion, run `uv run python format_repo_files.py --check` to verify formatting for tracked Python/YAML files. Use `uv run python format_repo_files.py` to apply formatting when needed.
-- Before completion, run `uv run python -m unittest discover -s tests -b` to verify the regression tests. We should keep 0 unittest failure before committing.
-- Formatting uses Ruff for `*.py` and yamlfix for tracked `*.yaml`; generated YAML under `ida_preprocessor_scripts/references/` is intentionally skipped.
-- If outputs are expected, verify YAML in bin/<gamever>/... and versioned gamedata outputs in gamedata/<gamever>/...
+- Confirm `bin_artifacts/<GAMEVER>/` is the only tracked per-symbol truth and the source/config/reference change includes its complete affected/downstream closure.
+- Reject tracked `gamesymbols/**`, `gamedata/**`, `release-manifests/**`, and `bin/**/*.yaml`.
+- Run `uv run python format_repo_files.py --check`; the formatter skips canonical `bin_artifacts` and reference YAML controlled by their producers.
+- Run focused tests, then the primary unit, repository-contract, Redis, release-integration, and aggregate suites required by the change.
+- Run repository artifact validation and verify required/optional/extra/stale/path/canonical/ownership contracts.
+- For PR/release behavior, require isolated rebuild evidence and assert checkout expected artifacts stay unchanged.
+- Run Pages tests/lint/build, action/workflow validation, C++ gates, and `git diff --check` when in scope.
+- Do not claim completion or merge readiness without real new-GAMEVER bootstrap, Merge Queue trust-root, release dry-run, sandbox publish, and external byte-verification evidence when the migration plan requires them.

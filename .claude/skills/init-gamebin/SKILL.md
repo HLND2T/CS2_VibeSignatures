@@ -1,15 +1,15 @@
 ---
 name: init-gamebin
-description: Initialize this repository's local game binaries and per-binary BinSync auto-recovery sidecars for an exact GAMEVER from download.yaml or its latest entry, then delegate symbol YAML restoration to restore-from-snapshot. Use only when explicitly asked to initialize or restore gamebin/bin state for a CS2 game version.
+description: Initialize this repository's disposable local game binaries and per-binary BinSync auto-recovery sidecars for an exact GAMEVER from download.yaml or its latest entry. Use only when explicitly asked to initialize gamebin/bin state for a CS2 game version.
 disable-model-invocation: true
 ---
 
 # Initialize Game Binaries
 
 Use the repository-root script as the only entry point for downloading, merging, depot fallback, and BinSync recovery setup.
-Never overwrite an existing binary, substitute an unlisted version, or continue after a failed step. Delegate all symbol
-snapshot behavior to the project-level `$restore-from-snapshot` skill; do not call `gamesymbol_snapshot.py` or restore
-YAML locally in this skill.
+Never overwrite an existing binary, substitute an unlisted version, or continue after a failed step. This skill handles
+only disposable binary/IDA state: never restore snapshot YAML into `bin/` or hydrate tracked `bin_artifacts`. Source-owned
+symbol truth is already versioned under `bin_artifacts/<GAMEVER>/`.
 
 ## Select GAMEVER
 
@@ -88,7 +88,7 @@ If the command fails, stop immediately and report its exact error as:
 <skill_error>ERROR REASON</skill_error>
 ```
 
-Do not attempt an alternate download, edit `.env`, or proceed to symbol restoration.
+Do not attempt an alternate download, edit `.env`, or proceed to analysis.
 
 ## Warm Up IDB (optional)
 
@@ -105,7 +105,7 @@ opt-in.
    ```
 
    If the probe fails or prints no version, tell the user IDB warmup is skipped and why (no Python
-   with idalib available), then proceed to symbol restoration without warming.
+   with idalib available), then finish without warming.
 2. If the interpreter is available, **ask** the user whether to warm the IDB databases for `<GAMEVER>`
    and wait for an explicit yes/no. Never warm without explicit consent.
    - Yes → run the warmup producer from the owning repository root:
@@ -118,14 +118,8 @@ opt-in.
      only if the user wants every configured database invalidated and re-warmed. If the command fails,
      stop and report its exact error to user.
 
-     Do not silently continue to symbol restoration after a failed warmup.
-   - No → skip warmup and proceed to symbol restoration.
+     Do not silently continue after a failed warmup.
+   - No → skip warmup and finish.
 
-## Restore Symbol YAML
-
-After binary preparation succeeds, invoke the project-level `$restore-from-snapshot` skill with the selected GAMEVER.
-Follow that skill's trusted restore, base-snapshot suggestion, explicit yes/no confirmation, and result handling exactly.
-Do not duplicate its commands or safety rules here.
-
-After restoration finishes, report its result together with the selected GAMEVER and the script's BinSync summary. Finish
-without offering or running IDB renaming.
+Report the selected GAMEVER, binary preparation result, BinSync summary, and optional warmup result. State that symbol
+truth remains under tracked `bin_artifacts/`; do not offer snapshot restoration or IDB renaming.

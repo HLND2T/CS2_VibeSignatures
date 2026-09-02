@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Materialize source-owned per-symbol artifacts from canonical tracked snapshots."""
+"""One-shot historical migration from canonical snapshots to source artifacts.
+
+This tool exists only to reproduce the initial cutover commit from repository
+history. Normal PR, Release, bootstrap, and recovery paths must use tracked
+``bin_artifacts`` directly and must not restore snapshots as correctness input.
+"""
 
 from __future__ import annotations
 

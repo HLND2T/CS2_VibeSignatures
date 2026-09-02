@@ -1,9 +1,9 @@
 ---
 name: create-pr
 description: |
-  Create a GitHub pull request from staged task changes or an already-committed current branch. Deliver source changes
-  only; PR validation routing is owned by `.github/workflows/pr-self-runner.yml`, while snapshot/gamedata publication
-  is release-pipeline only.
+  Create a GitHub pull request from staged task changes or an already-committed current branch. Deliver source/config/
+  reference changes together with their computed source-owned `bin_artifacts` closure. PR validation routing is owned
+  by the default-branch trusted workflow; snapshots, gamedata, and manifests are Release-derived only.
 disable-model-invocation: true
 ---
 
@@ -11,11 +11,12 @@ disable-model-invocation: true
 
 Create one pull request using exactly one delivery mode:
 
-- `staged-delivery` — commit the caller's explicitly staged source changes, push a `dev*` branch, and create the PR.
+- `staged-delivery` — commit the caller's explicitly staged source-owned change set, push a `dev*` branch, and create
+  the PR.
 - `committed-branch` — push an existing clean non-`main` branch that is ahead of `origin/main`, without rewriting or
   supplementing its commits.
 
-Both modes preserve the captured source change set. The PR workflow independently selects its validation path after the
+Both modes preserve the captured source-owned change set. The PR workflow independently selects its validation path after the
 PR exists; this skill neither predicts nor influences that routing.
 
 ## Inputs
@@ -34,12 +35,14 @@ PR exists; this skill neither predicts nor influences that routing.
 - Never commit directly to `main`, force-push, amend existing commits, or use `git add -A` / `git add .`.
 - Preserve unrelated untracked files and never stage them.
 - Require zero unstaged tracked changes at invocation. This forbids partially staged paths and unrelated work.
-- In `staged-delivery`, the initial staged path list is the immutable authorized change set. Do not add generated
-  `gamesymbols/<GAMEVER>.yaml` or `gamedata/<GAMEVER>/` outputs locally.
+- In `staged-delivery`, the initial staged path list is the immutable authorized change set. It must include every
+  affected/downstream canonical artifact under `bin_artifacts/` that belongs to the source/config/reference change.
+- Reject tracked `gamesymbols/**`, `gamedata/**`, `release-manifests/**`, and `bin/**/*.yaml`; these are forbidden legacy
+  or Release-derived namespaces, not PR deliverables.
 - In `committed-branch`, require an empty index, a non-`main` attached branch, at least one commit ahead of
   `origin/main`, and a non-empty `origin/main...HEAD` diff. Never create a supplemental publication commit.
-- PR validation routing, including whether candidate preparation and C++ validation run, belongs only to
-  `.github/workflows/pr-self-runner.yml` after the PR exists. Do not classify or predict its validation path locally.
+- PR validation routing, including whether isolated rebuild and C++ validation run, belongs only to the trusted
+  default-branch workflow after the PR exists. Do not classify or predict its validation path locally.
 - Snapshot/gamedata publication runs only in the release pipeline. Never claim workflow-owned CI gates passed locally.
 - Commit and push commands may take longer than an interactive timeout. Wait for their real exit status; do not infer
   success from elapsed time.
@@ -123,7 +126,8 @@ git diff --cached --stat
 git diff --cached --check
 ```
 
-Require a non-empty staged diff, review it again, and stage nothing else. In `committed-branch`, require both index and
+Require a non-empty staged diff, review it again, and stage nothing else. Explicitly reject any forbidden legacy/output
+namespace listed in the Safety Rules. In `committed-branch`, apply the same path rejection to `origin/main...HEAD`, then require both index and
 tracked worktree to remain clean and `HEAD == INITIAL_HEAD`.
 
 ## Step 3: Create the Source Commit
@@ -166,7 +170,7 @@ validation path or claim its gates have already passed. A suitable shape is:
 
 ## Validation
 - implementation-specific tests: <commands/results supplied by the caller>
-- repository PR validation: delegated to `pr-self-runner.yml` CI
+- repository PR validation: delegated to trusted `source-artifact-required` / `pr-validate` CI
 
 Closes #<issue>
 ```
@@ -187,6 +191,7 @@ failure; do not delete the branch or create another commit.
 ## Checklist
 
 - [ ] Exactly one delivery mode was selected and no unstaged tracked changes existed.
-- [ ] The local commit contains source changes only; generated snapshot/gamedata outputs were not added.
+- [ ] The local commit contains the source/config/reference change and complete `bin_artifacts` closure.
+- [ ] No tracked snapshot, gamedata, release-manifest, or `bin/**/*.yaml` path was added.
 - [ ] The PR body does not predict the workflow-owned validation path or claim unrun CI results.
 - [ ] No duplicate PR existed; the branch was pushed without force; exactly one PR was opened against `main`.

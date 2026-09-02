@@ -7,52 +7,40 @@ permalink: cs2-vibesignatures/update-gamedata
 # Update Gamedata
 
 ## Overview
-The gamedata subsystem converts an immutable symbol snapshot into exact downstream payloads. Generator source lives in `gamedata-generators/`; release output is versioned below `gamedata/<GAMEVER>/`.
-
+The gamedata subsystem converts one guarded release-local symbol snapshot into exact downstream payloads below an explicit candidate root. Generator source lives in `gamedata-generators/`; gamedata is Release-derived and never tracked on the source branch.
 ## Responsibilities
-- Load snapshot symbols and merged analysis/module config.
-- Enforce exact `OUTPUT_PATHS`, download/static sources, path containment, and allowed final formats.
-- Fail strict generation on download, module, missing, extra, or reparse errors.
-- Build, guard, and atomically publish versioned gamedata candidate sessions.
-- Preserve target-specific JSON/JSONC/VDF conversions.
-
+- Load symbols from the exact snapshot candidate and merge analysis/module config.
+- Enforce declared `OUTPUT_PATHS`, static/download sources, path containment, canonical text, and allowed final formats.
+- Fail strict generation on download, module, missing, extra, link/reparse, or identity errors.
+- Build and guard immutable release-local gamedata candidate sessions.
+- Preserve target-specific JSON/JSONC/VDF conversions for Release packaging.
 ## Involved Files & Symbols
-- `update_gamedata.py` - `generate_gamedata`.
-- `gamedata_symbol_data.py` - config and symbol loading.
+- `update_gamedata.py` - `generate_gamedata`, requiring explicit snapshot and output root.
+- `gamedata_symbol_data.py` - snapshot-backed symbol/config loading.
 - `gamedata_contract.py` - generator discovery, contract digest, output validation.
-- `gamedata_candidate.py` - build/guard/publish.
+- `gamedata_candidate.py` - release-local build/guard lifecycle; no publish/verify-tracked API.
 - `gamedata-generators/<MODULE>/gamedata.py` - converters and declarations.
-
 ## Architecture
 ```text
-symbol candidate + configs/<GAMEVER>.yaml
- -> discover gamedata-generators/*/gamedata.py (MODULE_ENABLED, OUTPUT_PATHS, update())
- -> seed STATIC_SOURCES; optional DOWNLOAD_SOURCES into gamedata/<GAMEVER>/<module>/
- -> per generator: merge overlay config.yaml, load yaml_data from snapshot, module.update()
- -> canonicalize LF; strict validate_output_tree == declared OUTPUT_PATHS
- -> gamedata_candidate session (snapshot/config/contract/manifest SHA) -> guard -> atomic publish
+validated bin_artifacts -> release-local symbol snapshot + exact config
+  -> discover generator contracts
+  -> explicit candidate root
+  -> strict per-generator update and canonicalization
+  -> exact OUTPUT_PATHS inventory
+  -> guarded gamedata candidate
+  -> C++/archive/manifest evidence
+  -> hosted verification and immutable Release
 ```
 
-`generate_gamedata()` is the engine. `gamedata_candidate.py build` calls it with `download_latest=True, strict=True`. Publish copies guarded candidate bytes; it does not regenerate.
-
-Downstream key matching: see [[gamedata_aliases]]. Snapshot has no alias fields.
-
-Per-module overlay `gamedata-generators/<module>/config.yaml` merges into the analysis config for that generator only (extra symbols / alias overrides).
-
-Generator API: v1 `update(yaml_data, func_lib_map, platforms, output_dir, alias_map, debug)`; v2 also takes `context=GeneratorContext(game_version, binaries, game_version_name)`, where `game_version_name` is the human-readable version name resolved from `download.yaml`'s tag->name mapping.
-
+`generate_gamedata()` is the engine. `gamedata_candidate.py build` calls it in strict mode and binds snapshot/config/generator/output digests in the session. No command copies it into a tracked `gamedata/` namespace.
 ## Dependencies
-- Snapshot store, PyYAML, httpx, vdf, JSONC helpers, trusted generator source/templates.
-
+- Guarded snapshot store, exact analysis config, trusted generator source/templates, PyYAML, httpx, vdf, JSONC helpers.
+- Release-local output/session paths and immutable source/binary identity.
 ## Notes
-- `OUTPUT_PATHS`, not extension globs, authorizes outputs. Allowed suffixes: `.json`, `.jsonc`, `.txt`.
-- Version roots reject Python, YAML, caches, links, metadata, and undeclared files.
-- ModSharp EntityEnhancement is a reviewed static template because its former upstream URL is unavailable.
-- Enabled generators: CounterStrikeSharp, CS2Fixes, CS2FOW, swiftlys2, plugify-plugin-s2sdk, cs2kz-metamod, modsharp-public, cs2surf.
-- Local engine-only path: `uv run update_gamedata.py -gamever <v> -snapshot gamesymbols/<v>.yaml -download_latest -strict`. Release/CI must use the candidate transaction in [[post_change_candidate_lifecycle]].
-
+- `OUTPUT_PATHS`, not extension globs, authorizes files; version roots reject Python/YAML/cache/link/undeclared content.
+- `update_gamedata.py` requires explicit `-outputdir` and `-snapshot`.
+- Enabled generators include CounterStrikeSharp, CS2Fixes, CS2FOW, swiftlys2, plugify, cs2kz, modsharp, and cs2surf.
+- Build locally only from a candidate created from `bin_artifacts`; never fall back to tracked `gamesymbols/` or per-symbol YAML in `bin/`.
 ## Callers
-- Build and PR self-runner workflows.
-- `pr-self-runner.yml` builds an isolated gamedata candidate from the validated symbol candidate for C++ ABI and
-  contract checks; it does not publish it. Versioned `gamedata/<GAMEVER>` publication is release-pipeline only.
-- `create-pr` delivers source changes only and delegates PR gamedata generation/validation to CI.
+- `pr-self-runner.yml` for release-local downstream evidence after exact artifact validation.
+- `build-on-self-runner.yml` for the hosted-verified immutable Release bundle.

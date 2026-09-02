@@ -7,40 +7,42 @@ permalink: cs2-vibesignatures/build-on-self-runner
 # Build On Self Runner
 
 ## Overview
-`.github/workflows/build-on-self-runner.yml` validates an exact release source, requires a published warm IDB cache generation, builds immutable symbol/gamedata candidates, stages the private bin tree without IDA databases, and creates the generated-output PR. The PR merge remains the promotion gate for accepted release state, but warm-cache publication is available earlier and independently.
+`.github/workflows/build-on-self-runner.yml` is the credential-minimized Release producer for an immutable default-branch source SHA. It performs a fresh full `-force_all -rename` rebuild against tracked `bin_artifacts`, derives release-local assets and a credential-free BinSync candidate, then hands exact bytes to hosted verification and protected publishers.
 ## Responsibilities
-- Resolve exact `GAMEVER`, `SOURCE_SHA`, and mode.
-- Call [[warmup_idb]] as a required reusable job and receive an immutable generation/cache key.
-- Copy accepted durable bin state without IDA database files, BinSync `.bsproj` directories, or regenerable
-  `.binsync.json` sidecars; verify the consumer IDA kernel version, then restore binaries and `.i64` only from the
-  returned generation.
-- Run `ida_analyze_bin.py -require_warm_idb`; cache absence, damage, or identity failure blocks release analysis.
-- Build and validate immutable symbol/gamedata candidates.
-- Stage the analyzed private bin tree without IDA database artifacts, then create an immutable generated-output PR.
+- Preflight an allowlisted repository/source SHA, complete GAMEVER artifact inventory, binary/download/SDK identity, and immutable version transaction.
+- Restore binary-only accepted state and the exact warm IDB generation.
+- Rebuild the complete GAMEVER in an empty checkout-external artifact root and compare every byte with Git truth.
+- Apply rename/comment side effects only to release-local IDB/BinSync state; prove no remote ref changed during build.
+- Generate snapshot, metadata, gamedata, C++ evidence, archives, checksums, Release manifest, and canonical BinSync bundles.
+- Upload stable run-id candidate artifacts for hosted verification; hold no source/BinSync/Release write credential.
 ## Involved Files & Symbols
-- `.github/workflows/build-on-self-runner.yml` - release caller, strict cache restore, analysis, staging, and output-PR creation.
-- `.github/workflows/warmup-idb.yml` - required reusable producer.
-- `idb_cache.py` - explicit generation restore.
-- `ida_analyze_bin.py` - strict `-require_warm_idb` analysis.
-- `release_workflow_lib/staging.py` - `stage_build`, `finalize_stage`, and full private-bin inventory.
-- `release_workflow_lib/promotion.py` - later transactional accepted-bin promotion.
-- `tests/test_build_self_runner_workflow.py` - caller/restore/strict-analysis contracts.
+- `.github/workflows/build-on-self-runner.yml` - preflight, warmup, build, verify, and publisher DAG.
+- `release_source_preflight.py`, `release_artifact_rebuild.py` - immutable source and fresh rebuild contracts.
+- `release_bundle.py` - exact archive/manifest construction and hosted verification.
+- `binsync_candidate.py`, `binsync_verify.py`, `binsync_publish.py` - credential-free candidate, hosted proof, protected fast-forward publication.
+- `release_publish.py`, `.github/workflows/publish-release-bundle.yml` - immutable tag/assets publisher.
+- `pages_release_input.py` - published Release to Pages handoff.
 ## Architecture
-Preflight -> required reusable warm-cache producer -> consumer IDA identity check -> exact generation restore -> strict analysis -> immutable symbol and gamedata validation -> IDB-free private-bin staging -> generated-output PR. After that PR merges, [[promote-release-after-output-merge]] verifies the staged inventory and transactionally replaces accepted `PERSISTED_WORKSPACE/bin/<GAMEVER>`.
+```text
+immutable main SHA preflight
+  -> exact warm IDB restore
+  -> empty-root full -force_all -rename rebuild
+  -> actual artifacts == Git blobs
+  -> release-local snapshot/gamedata/C++/archives + BinSync bundles
+  -> hosted verification
+  -> protected fast-forward BinSync publish
+  -> protected immutable Release publish
+  -> Pages from published assets
+```
 ## Dependencies
-- [[warmup_idb]] and its published `PERSISTED_WORKSPACE/idb-cache/<GAMEVER>` generation.
-- `configs/<GAMEVER>.yaml`, `gamedata-generators/`, accepted persisted YAML state, and protected Windows runner.
-- [[promote-release-after-output-merge]].
+- Complete tracked `bin_artifacts/<GAMEVER>` and configured binary/download/SDK identity.
+- Binary-only accepted cache and immutable warm IDB generation.
+- Separate hosted verifier, `binsync-release` environment, `release` environment, and external repository rulesets.
 ## Notes
-- The build no longer runs best-effort warmup inline and never consumes `.i64` from accepted `PERSISTED_WORKSPACE/bin/<GAMEVER>`.
-- `stage-build` excludes `.i64`, legacy `.idb`, all known IDA side files, entire BinSync `.bsproj` directories, and
-  regenerable `.binsync.json` sidecars before building the private inventory. Promotion therefore removes historical
-  mutable analysis state instead of copying partial BinSync repositories into accepted bin.
-- Output PR paths remain exactly the requested snapshot, `gamedata/<GAMEVER>/**`, and release manifest.
-- The output-branch push and `gh pr create` use the protected `win64` environment's `HLND2T_GH_TOKEN`, so generated-output
-  `pull_request` runs are not parked at `action_required` by the `GITHUB_TOKEN` recursion guard. The token must be set on
-  the `checkout-source` step because `actions/checkout` writes a local `extraheader` that outranks `gh auth setup-git`.
+- No generated-output branch/PR, release-staging correctness source, or accepted-bin YAML promotion remains.
+- Stable transaction identity is `run_id`; rerun attempt is transport metadata and must not change candidate identity.
+- Self-hosted build has read-only source access and no publication credentials. BinSync and Release publishers are isolated.
+- Same-version published assets are exact-idempotent only; different content must use a new version.
 ## Callers
-- `repository_dispatch.types: [build-on-self-runner]` only for a provenance-verified merged `bump-download/<GAMEVER>` PR.
-- Machine-oriented `workflow_dispatch` for explicit human-authorized retries and republishes.
-- Scheduled bump discovery never retries an accepted version whose release build failed; a failed automatic attempt requires explicit human dispatch.
+- Provenance-verified release dispatch for an immutable default-branch source SHA.
+- Explicit authorized recovery reruns using the same stable transaction identity.

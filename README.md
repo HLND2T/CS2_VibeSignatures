@@ -17,7 +17,7 @@ uv run copy_depot_bin.py -gamever 14156 -platform all-platform
 uv run ida_analyze_bin.py -gamever 14156 -oldgamever 14155
 ```
 
-These commands populate `bin/<GAMEVER>/` and run the configured deterministic, LLM-assisted, and Agent-assisted analysis. Continue with the immutable candidate, gamedata, and C++ validation flow before publishing tracked outputs.
+These commands populate the binary workspace under `bin/<GAMEVER>/` and run the configured deterministic, LLM-assisted, and Agent-assisted analysis. Canonical per-symbol results belong in `bin_artifacts/<GAMEVER>/` and must be committed with the source/config changes that produce them.
 
 ## Documentation
 
@@ -31,7 +31,7 @@ These commands populate `bin/<GAMEVER>/` and run the configured deterministic, L
 - [Contributing symbol-analysis skills via a pull request](docs/en/conributing-via-pr.md)
 - [CI/CD and Jenkins workflow reference](docs/en/ci-cd.md)
 
-Canonical tracked outputs are `gamesymbols/<GAMEVER>.yaml` and `gamedata/<GAMEVER>/`. Per-symbol analysis YAML remains private mutable state under `bin/<GAMEVER>/`.
+The only Git-tracked symbol truth is `bin_artifacts/<GAMEVER>/<module>/*.yaml`. `bin/` is a disposable binary/IDA workspace. Snapshots, metadata, gamedata, archives, and manifests are Release-derived assets and are not tracked on `main`.
 
 ## Supported gamedata
 

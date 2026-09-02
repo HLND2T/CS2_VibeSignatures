@@ -27,7 +27,7 @@ Resolve `GAMEVER` from the user's explicit request or `CS2VIBE_GAMEVER`; use onl
 - Name unknown virtual slots consistently with nearby declarations, such as `unk_001`; when only a known function name is
   available, use `virtual void FunctionName() = 0;` until a reliable prototype is known.
 - Interpret `Class_dtor` and `Class_vdtor` reference entries as virtual destructors for `Class`.
-- Do not edit reference YAMLs, generated files under `bin/`, cpp test sources, or comparison code to hide a difference.
+- Do not edit reference YAMLs, tracked `bin_artifacts`, cpp test sources, or comparison code to hide a difference.
 - Do not invoke an external agent runner. This SKILL owns the repair loop directly.
 - Stop and report a blocker when the diff is ambiguous, the configured header is missing, or a required edit is outside
   `hl2sdk_cs2/`.
@@ -35,8 +35,9 @@ Resolve `GAMEVER` from the user's explicit request or `CS2VIBE_GAMEVER`; use onl
 ## Workflow
 
 1. Determine the game version from the user's request. If omitted, read `CS2VIBE_GAMEVER` from `.env`.
-2. Resolve the immutable symbol snapshot. Use a caller-provided actual candidate when available; otherwise use the
-   published historical snapshot at `gamesymbols/<gamever>.yaml`. Never read reference YAML directly from `bin`.
+2. Resolve a release-local immutable symbol candidate. Use a caller-provided actual candidate when available; otherwise
+   build one from tracked `bin_artifacts/<gamever>/` with `gamesymbol_candidate.py build` and explicit temporary output/
+   session paths. Never use a tracked `gamesymbols/` fallback or read per-symbol truth from `bin/`.
 3. Run the complete comparison with debug details:
 
    ```powershell

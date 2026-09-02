@@ -40,15 +40,11 @@ permalink: cs2-vibesignatures/gamedata-metadata
 `covered_lines` 是最终文件内该 entry 所有标量叶子值的 1-based、升序、去重行号；uncovered 或最终文件中没有存活叶子的 entry 使用空数组。updated 行仍由 `changes[].line` 给出，前端以 updated 样式覆盖 covered 样式；删除叶子的 `line=null` 保持无行锚点。
 
 ## 实现
-
-- `gamedata_metadata.py` - `write_file_metadata` / `compute_file_metadata`。按扩展名分派：
-  - `.json` / `.jsonc`：结构叶子 diff + `gamedata_utils._build_jsonc_value_spans` 行号映射。
-  - `.txt` VDF（cs2kz）：`vdf.loads` 结构 diff + `_vdf_leaf_lines`（tokenizer 行号索引）。
-  - `.txt` 扁平 key=value（CS2FOW）：逐行正则对齐，所有条目 `covered=true`（静态模板整文件从快照重写）。
-- `update_gamedata.py:generate_gamedata`：模块循环内 `update()` 前捕获 `before` 文本，`canonicalize_output_text` 后、`validate_output_tree` 前统一生成 metadata；strict 下失败即抛错，非 strict 仅告警。
-- `gamedata_contract.py`：`metadata_companion_path`、`expected_inventory_paths`、`validate_output_tree` 均把 `<output>.metadata.json` 同伴纳入新输出预期，故 `gamedata_manifest_sha256` 自动覆盖 metadata，candidate build/guard/publish 与 release manifest 校验端到端一致。
-- `release_workflow_lib/manifests.py`：release manifest schema 5 强制 metadata inventory；schema 4 保持 metadata 引入前的 OUTPUT_PATHS 契约，继续验证未回填的历史输出。
-
+- `gamedata_metadata.py` - `write_file_metadata` / `compute_file_metadata`；按 JSON/JSONC/VDF/flat text 格式计算叶子 diff 与行号。
+- `update_gamedata.py:generate_gamedata` - 在显式 release-local output root 中捕获 upstream baseline、更新 payload、canonicalize 后生成 companion。
+- `gamedata_contract.py` - 将 `<output>.metadata.json` 纳入严格 `OUTPUT_PATHS` inventory 与 `gamedata_manifest_sha256`。
+- `gamedata_candidate.py` - build/guard 绑定 snapshot/config/generator/payload/metadata bytes；不再提供 tracked publish/verify API。
+- `release_bundle.py` - 将 payload/metadata 放入 exact archive allowlist 与 manifest，hosted verifier 独立复验。
 ## 覆盖分类规则（集中、复用现有谓词）
 
 对每个叶子 `path`，取**第一个**经 `normalize_func_name_colons_to_underscore(seg, alias_to_name_map)` 后命中 `yaml_data` 的段作为条目名；命中即 `covered=true`。这与各 generator 做 name→symbol 匹配同源（`yaml_data` 以 `_` 形式为 key，`alias_to_name_map` 把 `::` 别名映射到 `_`）。未覆盖条目的名字用「最深 section 键之后的那一段」兜底；section 键集（**大小写敏感**）`{Signatures, Offsets, Patches, Signature, Offset, Addresses, VFuncs, VTables, Games, csgo}`——CounterStrikeSharp 的小写 `signatures`/`offsets` 是条目内字段组，刻意排除。文档级 `$schema` 字段不生成 entry。
@@ -67,7 +63,6 @@ permalink: cs2-vibesignatures/gamedata-metadata
 - 覆盖判定是只读启发式，不侵入 8 个 generator 的 `update()`。
 
 ## 验证
-
-- `tests/test_gamedata_metadata.py`：三态分类、行号、flat/VDF diff、Plugify `VTables`/`$schema` 边界、写入、legacy inventory。
-- 契约回归：`tests/test_gamedata_candidate.py` / `test_update_gamedata.py` / `test_release_workflow.py` / `test_release_gamedata_smoke.py`。
-- 端到端：`uv run update_gamedata.py -gamever 14176 -snapshot gamesymbols/14176.yaml -download_latest -strict -outputdir <tmp>`（14 个输出各生成 1 个 `.metadata.json`）。
+- `tests/test_gamedata_metadata.py`：三态分类、行号、flat/VDF diff、Plugify `VTables`/`$schema` 边界与写入。
+- 契约回归：`tests/test_gamedata_candidate.py`、`tests/test_update_gamedata.py`、`tests/test_release_bundle.py`、release integration suite。
+- 端到端使用由 `bin_artifacts` 构建的显式 candidate：`uv run update_gamedata.py -gamever <v> -snapshot <temp/candidate.yaml> -outputdir <temp/gamedata/v> -download_latest -strict`。

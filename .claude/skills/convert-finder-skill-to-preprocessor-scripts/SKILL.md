@@ -897,15 +897,15 @@ but also in `disassembly`:
 1. Connect IDA Pro MCP and rename the function first, or
 2. Manually rename it in IDA before running the script
 
-**IMPORTANT — `generate_reference_yaml.py` address resolution:** The script resolves the predecessor function's address by reading `func_va` from the existing output YAML at `bin/{gamever}/{module}/{PREDECESSOR_FUNC}.{platform}.yaml`. If the predecessor is one of the target functions being converted (e.g., splitting a combined skill where Script 1 finds FuncA and Script 2 decompiles FuncA), you **MUST generate the reference YAMLs BEFORE deleting existing output YAMLs** in Step 7. Otherwise, the address data needed by `generate_reference_yaml.py` will be destroyed and you'll need to recreate temporary YAMLs or ask the user for the function address.
+**IMPORTANT — `generate_reference_yaml.py` address resolution:** The script resolves the predecessor function's address by reading `func_va` from tracked `bin_artifacts/{gamever}/{module}/{PREDECESSOR_FUNC}.{platform}.yaml`. If the predecessor is one of the target functions being converted, preserve that Git-owned input while generating references. Never delete or rewrite tracked expected artifacts merely to force a test.
 
 **IMPORTANT — When the predecessor is a NEW function (no existing output YAMLs):** If the predecessor function is brand new (discovered by another new script you're creating in the same conversion), its output YAMLs don't exist yet and `generate_reference_yaml.py` cannot resolve its address. You must use a **multi-phase workflow**:
 
 1. **Phase 1:** Create ALL scripts (vtable, xref_string, LLM_DECOMPILE) and update configs/<GAMEVER>.yaml
-2. **Phase 2:** Run `uv run ida_analyze_bin.py -debug` — the vtable and xref_string scripts will succeed and populate the NEW predecessor's output YAMLs. The LLM_DECOMPILE script's target may be skipped if old output YAMLs with valid `func_sig` still exist.
+2. **Phase 2:** Seed a checkout-external artifact root from `bin_artifacts/<GAMEVER>/`, remove only the new predecessor/target outputs there, then run `ida_analyze_bin.py` with explicit `-artifactdir` and `-oldartifactdir bin_artifacts`. The vtable and xref-string scripts populate the new predecessor in the isolated root.
 3. **Phase 3:** Now that the predecessor has output YAMLs, run `generate_reference_yaml.py` to create reference YAMLs, then annotate them.
-4. **Phase 4:** Delete the old target output YAMLs (so the LLM_DECOMPILE path is actually exercised)
-5. **Phase 5:** Run `uv run ida_analyze_bin.py -debug` again — this time the LLM_DECOMPILE path runs and the full pipeline is validated.
+4. **Phase 4:** Remove the target output only from the isolated root so the LLM_DECOMPILE path is exercised.
+5. **Phase 5:** Run the isolated analysis again, validate the complete actual inventory, then copy the canonical computed closure into tracked `bin_artifacts` for the source PR.
 
 **IMPORTANT — Run `generate_reference_yaml.py` sequentially, NOT in parallel.** All invocations share the same IDA MCP connection. Running them in parallel will cause connection conflicts and failures. Run one command at a time, waiting for each to complete before starting the next.
 
@@ -926,26 +926,16 @@ If a combined SKILL.md was split into multiple preprocessor scripts, delete the 
 
 ---
 
-## Step 7: Delete Existing Output YAMLs
+## Step 7: Rebuild Source-Owned Outputs in an Isolated Root
 
-**IMPORTANT:** This step MUST happen AFTER Step 5 (reference YAML generation). The `generate_reference_yaml.py` script reads `func_va` from these output YAMLs to locate functions in IDA. Deleting them first will break reference generation.
+Tracked `bin_artifacts` are expected Git bytes, not disposable test output. Create a checkout-external scratch artifact
+root, seed it with the selected GAMEVER's unaffected artifacts, and delete target outputs only in the scratch copy. Run
+the converted producers with `-force_all`, explicit `-artifactdir <scratch-root>`, and
+`-oldartifactdir bin_artifacts`. Never remove artifacts across unrelated game versions.
 
-After the preprocessor script is created, the old SKILL.md is deleted, and any needed reference YAMLs are generated, remove all previously generated output YAMLs so the user can validate the new preprocessor script from scratch by running `uv run ida_analyze_bin.py`.
-
-For each target function, delete all matching YAMLs across all game versions:
-
-```
-bin/*/{module}/{FUNC_NAME}.windows.yaml
-bin/*/{module}/{FUNC_NAME}.linux.yaml
-```
-
-For example, if the skill targets `CBasePlayerController_HandleCommand_JoinTeam` in the `server` module:
-
-```bash
-find bin -name "CBasePlayerController_HandleCommand_JoinTeam.*.yaml" -delete
-```
-
-If the skill was split into multiple scripts with multiple target functions, delete YAMLs for ALL target functions.
+After the isolated run succeeds, validate its formal inventory and canonical bytes, then copy only the computed affected
+producer-group and downstream closure back to `bin_artifacts/<GAMEVER>/`. The source PR must stage those A/M/D/R paths
+with the script/config/reference change. Run the repository artifact contract before continuing.
 
 ---
 
@@ -972,10 +962,11 @@ If the original SKILL.md covered multiple symbols, delete ALL corresponding entr
 
 After all conversion steps are complete, run the full preprocessor test to validate the new script works.
 
-Because the output is very long, redirect it to a temp file and then read just the summary:
+Use the isolated artifact root prepared in Step 7. Because the output is very long, redirect it to a temp file and then
+read just the summary:
 
 ```bash
-uv run ida_analyze_bin.py -debug > /tmp/ida_test_output.txt 2>&1; tail -10 /tmp/ida_test_output.txt
+uv run ida_analyze_bin.py -debug -force_all -artifactdir <checkout-external-scratch-root> -oldartifactdir bin_artifacts > /tmp/ida_test_output.txt 2>&1; tail -10 /tmp/ida_test_output.txt
 ```
 
 Check the **Summary** at the end of the output:
@@ -1006,14 +997,15 @@ git checkout dev 2>/dev/null || git checkout -b dev
 Then commit:
 
 ```bash
-git add <preprocessor_script> <deleted_skill_md> <configs/<GAMEVER>.yaml if changed> docs/claude_skills_stats.yaml
-git commit -m "Convert find-{SKILL_NAME} SKILL.md to preprocessor script"
+git add <preprocessor_script> <deleted_skill_md> <configs/<GAMEVER>.yaml if changed> <bin_artifacts-closure> docs/claude_skills_stats.yaml
+git commit -m "refactor(preprocessor): convert find-{SKILL_NAME}" -m "Co-Authored-By: Codex <codex@openai.com>"
 ```
 
 Include all files changed during the conversion:
 - The new/updated preprocessor script
 - The deleted SKILL.md
 - Any configs/<GAMEVER>.yaml changes
+- The computed source-owned `bin_artifacts/<GAMEVER>/` closure
 - The updated `docs/claude_skills_stats.yaml`
 
 Do NOT include unrelated changes (e.g. `.claude/settings.json` permission changes).
@@ -1037,12 +1029,12 @@ Before finishing, verify:
 - [ ] configs/<GAMEVER>.yaml `expected_output` has one entry per target function
 - [ ] configs/<GAMEVER>.yaml `expected_input` correctly chains dependencies
 - [ ] configs/<GAMEVER>.yaml `symbols` section has entries for all target functions (no duplicates)
-- [ ] Reference YAMLs exist or generated via `uv run generate_reference_yaml.py` (Patterns C/D) — **must be done BEFORE deleting output YAMLs**
+- [ ] Reference YAMLs exist or were generated from preserved source-owned predecessor artifacts (Patterns C/D)
 - [ ] Old SKILL.md and its directory are deleted
-- [ ] Existing output YAMLs under `bin/*/` are deleted for all target functions (AFTER reference YAML generation)
+- [ ] Target outputs were removed only in an isolated root, rebuilt, and the canonical closure copied into `bin_artifacts`
 - [ ] Entry removed from `docs/claude_skills_stats.yaml` for all converted symbols
 - [ ] `uv run ida_analyze_bin.py -debug` passes with 0 failures
-- [ ] All conversion changes committed to git (on `dev` branch, NOT `main`)
+- [ ] All source/config/reference changes and the tracked artifact closure are committed on `dev`, not `main`
 
 ## Real-World Examples
 
@@ -1214,11 +1206,11 @@ Before finishing, verify:
 
 **Key insight — multi-phase workflow:** The predecessor `CSource2GameClients_StartHLTVServer` was a brand-new function with no existing output YAMLs. So `generate_reference_yaml.py` couldn't run until the xref_string script populated its output. The workflow was:
 1. Create all 3 scripts + config entries
-2. Run `ida_analyze_bin.py -debug` → vtable + xref_string scripts succeed, LegacyGameEventListener skipped (old output YAMLs with valid `func_sig` still exist)
-3. Run `generate_reference_yaml.py` for both platforms using the newly created StartHLTVServer output YAMLs
+2. Run isolated `ida_analyze_bin.py -debug -force_all` → vtable + xref-string scripts create StartHLTVServer in the scratch artifact root
+3. Run `generate_reference_yaml.py` for both platforms using that isolated predecessor artifact
 4. Annotate reference YAMLs (rename `sub_180B1AC80` → `LegacyGameEventListener` in both disasm and procedure)
-5. Delete old LegacyGameEventListener output YAMLs
-6. Run `ida_analyze_bin.py -debug` again → LLM_DECOMPILE path runs and succeeds
+5. Remove LegacyGameEventListener only from the scratch artifact root
+6. Run isolated `ida_analyze_bin.py -debug -force_all` again, then copy the verified closure into `bin_artifacts`
 
 ### Example: Split ConCommand handler + LLM_DECOMPILE virtual function (Patterns G + C, multi-phase)
 
@@ -1255,11 +1247,11 @@ Before finishing, verify:
 
 **Key insight — multi-phase workflow:** `BotKill_CommandHandler` was a brand-new function with no existing output YAMLs. The workflow was:
 1. Create both scripts + config entries, delete old SKILL.md
-2. Run `ida_analyze_bin.py -debug` → Pattern G script succeeds and creates BotKill_CommandHandler YAMLs; CommitSuicide skipped (old output YAMLs with valid `func_sig` still exist)
+2. Run isolated `ida_analyze_bin.py -debug -force_all` → Pattern G creates BotKill_CommandHandler in the scratch artifact root
 3. Run `generate_reference_yaml.py` for both platforms using the newly created BotKill_CommandHandler output YAMLs
 4. Annotate reference YAMLs (add `; 0xC80 = CBasePlayerPawn_CommitSuicide` comments for the vfunc call in the kill loop)
-5. Delete old CBasePlayerPawn_CommitSuicide output YAMLs
-6. Run `ida_analyze_bin.py -debug` again → LLM_DECOMPILE path runs and succeeds
+5. Remove CBasePlayerPawn_CommitSuicide only from the scratch artifact root
+6. Run isolated `ida_analyze_bin.py -debug -force_all` again, then copy the verified closure into `bin_artifacts`
 
 ### Example: Split xref-string function + LLM_DECOMPILE global variable & vfunc offset (Patterns A + LLM_DECOMPILE with gv + vfunc, multi-phase)
 

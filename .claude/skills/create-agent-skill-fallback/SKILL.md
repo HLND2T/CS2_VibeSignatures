@@ -67,11 +67,10 @@ For target finder `find-XXXX` in module `<module>` (`server`, `engine`, `network
    `; 0xNN = Class::vfunc` / `// NNNN = 0xNN = …` at each access/call site. **These annotations are the semantic
    fingerprints** you translate into the fallback's anchors. Also collect any real-world helper or alternate
    inline/de-inline reference YAML that materially helps locate the targets.
-4. **Ground-truth output YAMLs** `bin/<gamever>/<module>/<target>.{platform}.yaml` — the **authoritative**
-   offsets, vfunc indices, and signature styles the finder currently produces. Mine these for the reference
-   values in the inventory table. `<gamever>` comes from `.env` (`CS2VIBE_GAMEVER`); `bin/` is gitignored, so
-   read whatever versions exist. Document these as *reference values that change per update and per platform* —
-   never as fixed answers.
+4. **Source-owned output YAMLs** `bin_artifacts/<gamever>/<module>/<target>.{platform}.yaml` — the
+   **authoritative** offsets, vfunc indices, and signature styles the finder currently produces. Mine these for
+   the reference values in the inventory table. Resolve an exact configured `<gamever>`; these files are tracked
+   Git truth. Document their values as update- and platform-specific references, never as fixed answers.
 
 Cross-check every value across the reference annotation AND the ground-truth YAML; where they disagree, trust
 the ground-truth YAML and note the discrepancy (references occasionally mis-annotate — see the decoy caution).
@@ -108,7 +107,7 @@ For each target, read its access/call site in the reference `disasm_code` + `pro
 - the **semantic anchor**: the nearest stable landmark — a string literal, a magic constant, a named
   global/interface call, a distinctive helper — that identifies the site independent of address;
 - the **`this`-relative offset** (members) or **call displacement** (indirect vcalls) or **vtable index**;
-- the **reference value** from the ground-truth `bin/` YAML (both platforms where they differ).
+- the **reference value** from the source-owned `bin_artifacts/` YAML (both platforms where they differ).
 
 ### Step 4 — Write the fallback SKILL.md
 
@@ -134,11 +133,11 @@ binary.
   uv run ida_analyze_bin.py -gamever <gamever> -oldgamever none -modules=<module> -debug -skip_pp -skill=<skill_name>
   ```
 
-  The selected game version must contain the module binary and every configured `expected_input`. Ensure at
-  least one expected output for each tested platform is absent; if all outputs already exist, use a disposable
-  game-version copy or temporarily back up the target outputs outside the binary directory and restore them
-  afterward. A run that says all outputs already exist and skips the skill is **not** a valid Agent-Skill-only
-  test.
+  The selected game version must contain the module binary and every configured `expected_input`. Seed a
+  checkout-external scratch artifact root from `bin_artifacts/<gamever>/`, remove the target outputs only in that
+  scratch copy, and pass it with `-artifactdir` (plus tracked `bin_artifacts` as `-oldartifactdir`). Never delete or
+  rewrite tracked expected artifacts merely to force the test. A run that says all outputs already exist and skips
+  the skill is **not** a valid Agent-Skill-only test.
 - Require the log to show `Agent Skill only mode: enabled (-skip_pp)`, `Skipping preprocess: <skill_name>
   (-skip_pp)`, and `Starting agent skill: <skill_name>`, followed by `Success` and summary `Failed: 0`. Verify
   that every expected YAML for the tested platform was produced and parses as a non-empty mapping.
@@ -149,7 +148,9 @@ ground-truth-only review.
 
 ### Step 6 — Commit Changes to `dev`
 
-After the end-to-end fallback test has produced and verified its YAMLs, record the required one-line memory pointer
+After the end-to-end fallback test has produced and verified its YAMLs, copy the validated canonical target outputs
+from the isolated root into `bin_artifacts/<gamever>/<module>/`, include their computed downstream closure, and run the
+repository artifact contract. Record the required one-line memory pointer
 per the repo workflow. Ensure the delivery branch is `dev`; never commit directly to `main`. If the local `dev`
 branch exists, switch to it. Otherwise, switch to `main` first and create `dev` from `main`:
 
@@ -163,10 +164,10 @@ fi
 ```
 
 If any branch switch fails, stop and report the error. Review `git status --short`, then explicitly stage the new
-fallback skill and that memory update; never use `git add -A`:
+fallback skill, source-owned artifact closure, and that memory update; never use `git add -A`:
 
 ```bash
-git add -- .claude/skills/find-XXXX/SKILL.md <memory-pointer-path>
+git add -- .claude/skills/find-XXXX/SKILL.md bin_artifacts/<gamever>/<module>/<target-yamls> <memory-pointer-path>
 git diff --cached --name-only
 ```
 
@@ -174,7 +175,7 @@ Stop if the staged-path list contains anything unrelated to this task. Commit on
 the repository commit format:
 
 ```bash
-git commit -m "feat(skills): add find-XXXX fallback" -m "Co-Authored-By: Codex"
+git commit -m "feat(skills): add find-XXXX fallback" -m "Co-Authored-By: Codex <codex@openai.com>"
 ```
 
 Do not call `/create-pr`, push the branch, or open a pull request unless the user separately requests it. Finish by
@@ -245,12 +246,9 @@ Platform gating: <list cross-platform vs windows-only / linux-only outputs>.
 
 ## Step 0. Skip targets already produced
 
-For each output, if `<name>.<platform>.yaml` already exists beside the binary and parses to a non-empty mapping,
-skip it — the preprocessor or an earlier fallback wrote it. List the directory with:
-
-```
-mcp__ida-pro-mcp__py_eval code="import idaapi, os; d=os.path.dirname(idaapi.get_input_file_path()); print('\n'.join(sorted(f for f in os.listdir(d) if f.endswith('.yaml'))))"
-```
+For each output, if `<name>.<platform>.yaml` already exists in the active artifact module directory and parses to a
+non-empty mapping, skip it — the preprocessor or an earlier fallback wrote it. Use the analyzer-reported artifact
+module directory; never derive the artifact path from the binary directory.
 
 `/get-func-from-yaml` also reports existence for functions/vfuncs.
 
@@ -287,7 +285,7 @@ func_addr=None, func_sig=None, vfunc_sig, vtable_name, vfunc_offset, vfunc_index
 
 ## Output YAML filenames
 
-Written beside the binary, one per symbol: `<symbol>.windows.yaml` / `<symbol>.linux.yaml`.
+Written under the active artifact module directory, one per symbol: `<symbol>.windows.yaml` / `<symbol>.linux.yaml`.
 ````
 
 ---
@@ -307,7 +305,7 @@ Written beside the binary, one per symbol: `<symbol>.windows.yaml` / `<symbol>.l
    `vtable_name` + `vfunc_offset = disp` + `vfunc_index = disp/8` + a `vfunc_sig` pinning the call instruction;
    there is **no `func_va`**. Resolve the interface from the receiver global's type.
 5. **Watch for decoys.** References sometimes annotate two nearby offsets with the same member name. Trust the
-   ground-truth `bin/` YAML. (Real example: `CEntitySystem::m_eNetworkSerializationMode` is the DWORD at
+   source-owned `bin_artifacts/` YAML. (Real example: `CEntitySystem::m_eNetworkSerializationMode` is the DWORD at
    `0xBBC`, set from the mode param and re-read at the SetNetworkSerializationContextData call — **not** the byte
    flag at `0xBDA`, even though the reference labels both.)
 6. **The offset is the must-have; the signature is best-effort.** For struct members, `offset` is the required
@@ -316,7 +314,7 @@ Written beside the binary, one per symbol: `<symbol>.windows.yaml` / `<symbol>.l
 
 ## Checklist
 
-- [ ] Read the target preprocessor `.py`, its config entry, its reference YAMLs, and its `bin/` ground-truth
+- [ ] Read the target preprocessor `.py`, its config entry, its reference YAMLs, and its `bin_artifacts/` source-owned
       output YAMLs.
 - [ ] Output inventory lists **every** symbol with kind + platform + predecessor + reference value.
 - [ ] Fallback SKILL.md filename equals the finder's skill name.
@@ -328,12 +326,12 @@ Written beside the binary, one per symbol: `<symbol>.windows.yaml` / `<symbol>.l
       `func_addr=None`/`func_sig=None` + `vfunc_sig`).
 - [ ] Failure handling + output-filename sections present.
 - [ ] `unittest discover -s tests -b` passes.
-- [ ] Values cross-checked against `bin/` ground truth.
+- [ ] Values cross-checked against `bin_artifacts/` Git truth.
 - [ ] Real Agent-Skill-only test passed with `uv run ida_analyze_bin.py -gamever <gamever> -oldgamever none
       -modules=<module> -debug -skip_pp -skill=<skill_name>`; the log proves preprocessing was skipped, the
       Agent Skill actually started, all expected YAMLs were produced, and the summary reports `Failed: 0`.
 - [ ] The current branch is `dev` (created from `main` when it did not already exist).
-- [ ] New SKILL.md and memory pointer are explicitly staged and committed.
+- [ ] New SKILL.md, computed `bin_artifacts` closure, and memory pointer are explicitly staged and committed.
 - [ ] `/create-pr` was not called; no push or PR was performed without a separate user request.
 
 ## Worked example — `find-CEntitySystem_Init-decompiles`

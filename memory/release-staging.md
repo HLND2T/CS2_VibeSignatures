@@ -10,9 +10,11 @@ tags:
 
 # Release Staging
 
-## Overview
-The release build (`build-on-self-runner.yml`) stages fully validated output into a private staging area on the self-hosted Windows runner **before** creating the generated-output PR. Staging holds the durable analyzed game binary tree without recoverable IDA or BinSync state, a pending manifest binding build identity and file inventories, and a READY marker. After the generated-output PR merges, promotion consumes the staged bin as its transaction source. The PR merge is the visibility/promotion gate.
+## Status
+Historical / superseded after the source-owned artifacts cutover. This note records the removed generated-output/release-staging design for archaeology and rollback only; do not use it as an operating procedure.
 
+## Overview
+Before the source-owned cutover, the release build staged analyzed private-bin state and waited for a generated-output PR merge before promotion. The active pipeline no longer creates this staging transaction, output branch, READY/PROMOTION markers, or accepted-bin YAML correctness source.
 ## On-disk location
 - Root: `$PERSISTED_WORKSPACE\release-staging` (`PERSISTED_WORKSPACE` is a GitHub secret configured on the win64 self-hosted runner, not a repo path).
 - Build dir per candidate: `release-staging\<gamever>\<build_id>\` where `build_id = <run_id>-<run_attempt>`.
@@ -54,5 +56,6 @@ The binaries are **not** redundant storage; three roles depend on them:
 - `.github/workflows/promote-release-after-output-merge.yml` — `verify` / `reconstruct` / `create-archives` / `promote-bin` steps.
 
 ## Notes
-- symbols/gamedata outputs are **not** copied into staging; they are referenced by hash via `tracked_files` and committed on the output branch (`gamesymbols/<gamever>.yaml` + `gamedata/<gamever>/**` + `release-manifests/<gamever>.json`).
-- See also [[build-on-self-runner]], [[promote-release-after-output-merge]], [[warmup_idb]].
+- Historical details below describe the removed v4 staging protocol and may help interpret old runs or Git history.
+- Active releases use tracked `bin_artifacts`, fresh isolated rebuilds, hosted candidate verification, protected BinSync publication, and immutable Release publication; see [[build-on-self-runner]].
+- Do not recreate `release-staging`, generated-output branches, tracked snapshot/gamedata promotion, or promote-bin commands in normal workflows.

@@ -17,7 +17,7 @@ uv run copy_depot_bin.py -gamever 14156 -platform all-platform
 uv run ida_analyze_bin.py -gamever 14156 -oldgamever 14155
 ```
 
-这些命令会填充 `bin/<GAMEVER>/`，并运行已配置的确定性、LLM-assisted 与 Agent-assisted 分析。发布 tracked output 前，还需继续执行 immutable candidate、gamedata 与 C++ 验证流程。
+这些命令会填充 `bin/<GAMEVER>/` binary workspace，并运行已配置的确定性、LLM-assisted 与 Agent-assisted 分析。canonical per-symbol 结果位于 `bin_artifacts/<GAMEVER>/`，必须与产生它们的 source/config change 一起提交。
 
 ## 文档
 
@@ -31,7 +31,7 @@ uv run ida_analyze_bin.py -gamever 14156 -oldgamever 14155
 - [通过 Pull Request 贡献符号分析 skill](docs/zh-CN/conributing-via-pr.md)
 - [CI/CD 与 Jenkins 工作流参考](docs/zh-CN/ci-cd.md)
 
-canonical tracked output 是 `gamesymbols/<GAMEVER>.yaml` 与 `gamedata/<GAMEVER>/`。单个 symbol 的分析 YAML 仍作为私有可变状态保存在 `bin/<GAMEVER>/`。
+Git 跟踪的唯一 symbol truth 是 `bin_artifacts/<GAMEVER>/<module>/*.yaml`。`bin/` 只是可删除的 binary/IDA workspace；snapshot、metadata、gamedata、archive 与 manifest 均为 Release 派生产物，不进入 `main`。
 
 ## 支持的 gamedata
 
