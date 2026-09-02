@@ -44,6 +44,7 @@ TRUSTED_FILE_PATHS = (
     "release_workflow_lib/hashing.py",
     ".github/workflows/source-artifact-required.yml",
     ".github/workflows/source-artifact-full-bridge.yml",
+    ".github/workflows/source-artifact-warmup-bridge.yml",
     "pyproject.toml",
     "uv.lock",
 )

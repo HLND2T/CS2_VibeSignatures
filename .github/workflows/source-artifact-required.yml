@@ -1,0 +1,263 @@
+name: Source Artifact Required
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: [main]
+  merge_group:
+    types: [checks_requested]
+permissions:
+  actions: read
+  contents: read
+  pull-requests: read
+jobs:
+  bind-source-artifact-plan:
+    if: github.repository == 'HLND2T/CS2_VibeSignatures'
+    runs-on: ubuntu-latest
+    outputs:
+      validation-mode: ${{ steps.binding.outputs.validation-mode }}
+      plan-sha256: ${{ steps.binding.outputs.plan-sha256 }}
+      merge-tree-sha: ${{ steps.binding.outputs.merge-tree-sha }}
+      base-sha: ${{ steps.identity.outputs.base-sha }}
+      head-sha: ${{ steps.identity.outputs.head-sha }}
+      merge-sha: ${{ steps.identity.outputs.merge-sha }}
+      plan-artifact-name: ${{ steps.binding.outputs.plan-artifact-name }}
+      affected-versions: ${{ steps.binding.outputs.affected-versions }}
+      same-repository: ${{ steps.identity.outputs.same-repository }}
+    steps:
+      - name: Checkout exact prospective tree as data
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event_name == 'merge_group' && github.event.merge_group.head_sha || format('refs/pull/{0}/merge', github.event.pull_request.number) }}
+          fetch-depth: 0
+          submodules: false
+          persist-credentials: false
+      - name: Resolve immutable event identity
+        id: identity
+        shell: pwsh
+        env:
+          EVENT_KIND: ${{ github.event_name }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_BASE_REPOSITORY: ${{ github.event.pull_request.base.repo.full_name }}
+          PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+          PR_HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+          MERGE_GROUP_BASE_SHA: ${{ github.event.merge_group.base_sha }}
+          MERGE_GROUP_HEAD_SHA: ${{ github.event.merge_group.head_sha }}
+          REPOSITORY: ${{ github.repository }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ($env:EVENT_KIND -eq "merge_group") {
+            $baseSha = $env:MERGE_GROUP_BASE_SHA
+            $headSha = $env:MERGE_GROUP_HEAD_SHA
+            $mergeSha = $env:MERGE_GROUP_HEAD_SHA
+            $contextKind = "merge_group"
+            $pageDocuments = @(gh api --paginate --slurp `
+              -H "Accept: application/vnd.github+json" `
+              "repos/$env:REPOSITORY/commits/$mergeSha/pulls" | ConvertFrom-Json -Depth 100)
+            if ($LASTEXITCODE -ne 0) {
+              throw "Unable to prove the merge-group PR membership."
+            }
+            $pulls = @(
+              foreach ($page in $pageDocuments) {
+                foreach ($pull in @($page)) { $pull }
+              }
+            )
+            if ($pulls.Count -lt 1) {
+              throw "Unable to prove the merge-group PR membership."
+            }
+            $pullNumbers = @($pulls | ForEach-Object { [string]$_.number })
+            if (@($pullNumbers | Sort-Object -Unique).Count -ne $pullNumbers.Count -or `
+                @($pullNumbers | Where-Object { $_ -notmatch '^[1-9][0-9]*$' }).Count -ne 0) {
+              throw "Merge-group PR membership is duplicate or malformed."
+            }
+            foreach ($pull in $pulls) {
+              if ($pull.head.repo.full_name -ne $env:REPOSITORY -or `
+                  $pull.base.repo.full_name -ne $env:REPOSITORY -or `
+                  $pull.base.ref -ne $env:DEFAULT_BRANCH) {
+                throw "Merge Queue validation only accepts same-repository PRs targeting the default branch."
+              }
+            }
+            $sameRepository = "true"
+          } else {
+            $baseSha = $env:PR_BASE_SHA
+            $headSha = $env:PR_HEAD_SHA
+            $mergeSha = (git rev-parse HEAD).Trim().ToLowerInvariant()
+            $contextKind = "pull_request"
+            if ($env:PR_BASE_REPOSITORY -ne $env:REPOSITORY -or $env:PR_BASE_REF -ne $env:DEFAULT_BRANCH) {
+              throw "Pull request base is not the repository default branch."
+            }
+            $sameRepository = ($env:PR_HEAD_REPOSITORY -eq $env:REPOSITORY).ToString().ToLowerInvariant()
+          }
+          foreach ($value in @($baseSha, $headSha, $mergeSha)) {
+            if ($value -notmatch '^[0-9a-f]{40}$') { throw "Invalid immutable event SHA: $value" }
+          }
+          $actualHead = (git rev-parse HEAD).Trim().ToLowerInvariant()
+          if ($LASTEXITCODE -ne 0 -or $actualHead -ne $mergeSha) {
+            throw "Prospective checkout does not match the event merge tree commit."
+          }
+          "event-kind=$contextKind" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "base-sha=$baseSha" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "head-sha=$headSha" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "merge-sha=$mergeSha" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "same-repository=$sameRepository" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+      - name: Checkout trusted default-branch planner
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ steps.identity.outputs.base-sha }}
+          fetch-depth: 1
+          submodules: false
+          persist-credentials: false
+          path: .trusted-planner
+      - name: Detect trusted planner bridge
+        id: bridge
+        shell: pwsh
+        run: |
+          $available = (Test-Path -LiteralPath ".trusted-planner/trusted_pr_context.py" -PathType Leaf) -and `
+            (Test-Path -LiteralPath ".trusted-planner/trusted_artifact_pr.py" -PathType Leaf)
+          "available=$($available.ToString().ToLowerInvariant())" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+      - name: Set up uv for trusted planning
+        if: steps.bridge.outputs.available == 'true'
+        uses: astral-sh/setup-uv@v9.0.0
+      - name: Sync trusted planner environment
+        if: steps.bridge.outputs.available == 'true'
+        shell: pwsh
+        run: uv sync --project .trusted-planner --locked
+      - name: Bind and build trusted source-artifact plan
+        id: binding
+        shell: pwsh
+        env:
+          EVENT_KIND: ${{ steps.identity.outputs.event-kind }}
+          BASE_SHA: ${{ steps.identity.outputs.base-sha }}
+          HEAD_SHA: ${{ steps.identity.outputs.head-sha }}
+          MERGE_SHA: ${{ steps.identity.outputs.merge-sha }}
+          BRIDGE_AVAILABLE: ${{ steps.bridge.outputs.available }}
+        run: |
+          if ($env:BRIDGE_AVAILABLE -ne "true") {
+            throw "Trusted source-artifact bridge is unavailable after source-owned cutover."
+          }
+          Set-Location -LiteralPath ".trusted-planner"
+          $contextPath = Join-Path $env:RUNNER_TEMP "trusted-source-artifact-context.json"
+          $planPath = Join-Path $env:RUNNER_TEMP "trusted-source-artifact-plan.json"
+          $contextArgs = @(
+            "trusted_pr_context.py", "build",
+            "--repo-root", "${{ github.workspace }}",
+            "--event-kind", $env:EVENT_KIND,
+            "--base-ref", $env:BASE_SHA,
+            "--merge-ref", $env:MERGE_SHA,
+            "--output", $contextPath
+          )
+          if ($env:EVENT_KIND -eq "pull_request") {
+            $contextArgs += @("--head-ref", $env:HEAD_SHA)
+          }
+          uv run --project . python @contextArgs
+          if ($LASTEXITCODE -ne 0) { throw "Trusted event context binding failed." }
+          $context = Get-Content -LiteralPath $contextPath -Raw | ConvertFrom-Json
+          if ($context.artifact_policy.mode -eq "bridge" -and $context.merge_artifact_policy.mode -eq "bridge") {
+            "validation-mode=legacy" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            "plan-sha256=$($context.context_sha256)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            "merge-tree-sha=$($context.merge_tree_sha)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            "plan-artifact-name=" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            "affected-versions=[]" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            exit 0
+          }
+          if ($context.artifact_policy.mode -ne "source-owned" -and $context.cutover_transition -ne $true) {
+            throw "Prospective policy is not an allowed trusted source-artifact transition."
+          }
+          uv run --project . python trusted_artifact_pr.py plan `
+            --repo-root "${{ github.workspace }}" `
+            --trusted-context $contextPath `
+            --output $planPath
+          if ($LASTEXITCODE -ne 0) { throw "Trusted source-artifact planning failed." }
+          $plan = Get-Content -LiteralPath $planPath -Raw | ConvertFrom-Json
+          "validation-mode=$($plan.mode)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "plan-sha256=$($plan.plan_sha256)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "merge-tree-sha=$($plan.merge_tree_sha)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          $planArtifactName = "trusted-source-artifact-plan-${{ github.run_id }}-${{ github.run_attempt }}"
+          $affectedVersions = ConvertTo-Json -InputObject @($plan.affected_game_versions) -Compress
+          "plan-artifact-name=$planArtifactName" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "affected-versions=$affectedVersions" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          Copy-Item -LiteralPath $planPath -Destination "${{ github.workspace }}/trusted-source-artifact-plan.json"
+      - name: Upload immutable trusted plan evidence
+        if: steps.binding.outputs.plan-artifact-name != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: trusted-source-artifact-plan-${{ github.run_id }}-${{ github.run_attempt }}
+          path: trusted-source-artifact-plan.json
+          if-no-files-found: error
+          retention-days: 7
+  test-prospective-tree:
+    needs: bind-source-artifact-plan
+    if: >-
+      needs.bind-source-artifact-plan.result == 'success' &&
+      (needs.bind-source-artifact-plan.outputs.validation-mode == 'light' ||
+       needs.bind-source-artifact-plan.outputs.validation-mode == 'full')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact prospective tree as data
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.bind-source-artifact-plan.outputs.merge-sha }}
+          fetch-depth: 1
+          submodules: recursive
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v9.0.0
+      - name: Check formatting and run repository tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          uv run python format_repo_files.py --check
+          uv run python tests/run_test_suite.py all -b --durations 30
+  validate-full:
+    needs: [bind-source-artifact-plan, test-prospective-tree]
+    if: >-
+      needs.bind-source-artifact-plan.result == 'success' &&
+      needs.test-prospective-tree.result == 'success' &&
+      needs.bind-source-artifact-plan.outputs.validation-mode == 'full' &&
+      needs.bind-source-artifact-plan.outputs.same-repository == 'true'
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        gamever: ${{ fromJSON(needs.bind-source-artifact-plan.outputs.affected-versions) }}
+    uses: ./.github/workflows/source-artifact-full-bridge.yml
+    with:
+      gamever: ${{ matrix.gamever }}
+      source_sha: ${{ needs.bind-source-artifact-plan.outputs.merge-sha }}
+      base_sha: ${{ needs.bind-source-artifact-plan.outputs.base-sha }}
+      plan_sha256: ${{ needs.bind-source-artifact-plan.outputs.plan-sha256 }}
+      plan_artifact_name: ${{ needs.bind-source-artifact-plan.outputs.plan-artifact-name }}
+    secrets: inherit
+  source-artifact-required:
+    name: source-artifact-required
+    needs: [bind-source-artifact-plan, test-prospective-tree, validate-full]
+    if: always() && github.repository == 'HLND2T/CS2_VibeSignatures'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require exact prospective-tree artifact binding
+        shell: bash
+        env:
+          BINDING_RESULT: ${{ needs.bind-source-artifact-plan.result }}
+          TEST_RESULT: ${{ needs.test-prospective-tree.result }}
+          FULL_RESULT: ${{ needs.validate-full.result }}
+          VALIDATION_MODE: ${{ needs.bind-source-artifact-plan.outputs.validation-mode }}
+          PLAN_SHA256: ${{ needs.bind-source-artifact-plan.outputs.plan-sha256 }}
+          MERGE_TREE_SHA: ${{ needs.bind-source-artifact-plan.outputs.merge-tree-sha }}
+          IS_FORK: ${{ needs.bind-source-artifact-plan.outputs.same-repository != 'true' }}
+        run: |-
+          set -euo pipefail
+          [[ "$BINDING_RESULT" == "success" ]]
+          [[ "$MERGE_TREE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          if [[ "$IS_FORK" == "true" && "$VALIDATION_MODE" == "full" ]]; then
+            echo "Fork changes requiring isolated IDA analysis must be mirrored to a same-repository branch." >&2
+            exit 1
+          fi
+          [[ "$VALIDATION_MODE" == "legacy" || "$VALIDATION_MODE" == "light" || "$VALIDATION_MODE" == "full" ]]
+          [[ -n "$PLAN_SHA256" ]]
+          if [[ "$VALIDATION_MODE" == "light" || "$VALIDATION_MODE" == "full" ]]; then
+            [[ "$TEST_RESULT" == "success" ]]
+          fi
+          if [[ "$VALIDATION_MODE" == "full" ]]; then
+            [[ "$FULL_RESULT" == "success" ]]
+          fi
+          printf 'validation_mode=%s\nplan=%s\nmerge_tree=%s\n' "$VALIDATION_MODE" "$PLAN_SHA256" "$MERGE_TREE_SHA"
