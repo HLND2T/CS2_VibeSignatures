@@ -1,19 +1,27 @@
 # Source-owned per-symbol artifacts 迁移计划
 
-状态：实施中（仓库内步骤 1–17 已完成；外部 cutover 与发布验收未完成）
+状态：实施中（仓库内步骤 1–17 与步骤 20 的本地收口已完成；外部 cutover 与发布验收未完成）
 
 日期：2026-09-01
 
 实施记录（2026-09-02）：
 
 - 仓库内实施顺序 1–17 已在 `dev-source-owned-artifacts` 上按步骤提交；步骤 20 的文档、Skill、Memory、
-  独立审查 finding 与 completion verification 正在收口。
+  独立审查 finding 与本地 completion verification 已收口。最终 `all -b --durations 30` 实际执行 1,228 个测试：
+  1,225 passed、0 failures、0 errors、3 个 Redis integration 类因本机无 Redis 服务整体 skipped；formatter、
+  YAML、Ruff、Git diff check 均通过。
 - 步骤 18 的 drain/freeze、先合并 PR A trust bridge、启用外部 required workflow/ruleset、再基于
   default-branch-owned planner 验证 PR B 尚未执行。当前 `origin/main` 不具备该 trust bridge，不能用本分支
   自带 workflow 代替。
 - 步骤 19 的 new-GAMEVER bootstrap drill、non-publishing Release dry run、sandbox BinSync/Release publish、
   Pages CDN byte verification、accepted-bin cleanup receipt 与两次真实 fresh full rebuild 尚无外部验收证据。
+- 2026-09-02 对 GitHub 的只读复核显示：`origin/main@472515eab086615c0eaf2a4025c766d06271ebfe` 尚无
+  trust bridge；repository ruleset 列表为空；仅存在 `github-pages`、`win64`、`win64-cleanup` environments；
+  `main` 只要求非 strict 的 `pr-validate`，尚未启用 Merge Queue/strict up-to-date。因此 PR A 合并及外部策略配置
+  仍是创建、验证 PR B 前的真实阻塞。
 - 两个历史 `gamesymbols/build/14174/*` 远端分支仅完成识别，未获删除授权，保持不变。
+- 最终仓库不变量复核：Git tracked canonical artifacts 为 51,303 个，source-owned binary locks 为 16 份，
+  tracked legacy output 为 0；历史 snapshot lock 重算与本地 binary 复验为 16/16 GAMEVER、256/256 binaries。
 - Release gamedata 已移除 12 个可变 `main`/`master` 下载输入：公开上游基线按不可变 commit 和
   SHA-256 vendor 到 generator `templates/`，candidate 路径拒绝任何非空 `DOWNLOAD_SOURCES`，hosted
   Release verifier 使用 verified snapshot + source templates 在 fresh root 重建并逐文件比较。
