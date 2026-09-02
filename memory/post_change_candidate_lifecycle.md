@@ -47,6 +47,7 @@ source + computed artifact closure -> PR head
 - Release gamedata generation is offline and source-owned: generator baselines live under each module's `templates/`,
   mutable `DOWNLOAD_SOURCES` are rejected by candidate builds, and the hosted Release verifier fresh-rebuilds from the
   verified snapshot before comparing every output hash.
-- BinSync candidate schema v3 binds a hosted-recomputed source selection projection
-  (repository/module/platform/category/symbol, artifact Git-blob digest, and raw RVA). The local exporter consumes the same
-  builder. Windows lift bias and IDA-lowered TOML remain binary/runtime evidence, not Git source truth.
+- BinSync candidate schema v4 separates hosted-recomputed source selection from per-repository lowering evidence. The
+  local exporter consumes the same raw-RVA projection builder; bundle verification checks every selected function/global
+  against the user-tip TOML tree. Windows lift bias and complete IDA name/comment semantics remain binary/runtime evidence,
+  not Git source truth.

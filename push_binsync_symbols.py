@@ -11,7 +11,6 @@ hosted publisher consumes the resulting verified Git bundles.
 import argparse
 import json
 import shutil
-import struct
 import subprocess
 import sys
 import tempfile
@@ -20,7 +19,11 @@ from pathlib import Path
 REPOSITORY_ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(REPOSITORY_ROOT))
 
-from binsync_projection import build_source_projection  # noqa: E402
+from binsync_projection import (  # noqa: E402
+    BinSyncProjectionError,
+    build_source_projection,
+    first_segment_lift_bias as _first_segment_lift_bias,
+)
 from init_gamebin import (  # noqa: E402
     BINSYNC_ROOT_BRANCH,
     GITHUB_OWNER,
@@ -87,66 +90,6 @@ def push_binary(python_exe: str, headless_script: str, binary_path: Path, manife
     return subprocess.run(cmd, check=False).returncode
 
 
-def _pe_first_section_rva(data: bytes) -> int:
-    """Return the RVA (offset from the image base) of the first PE section.
-
-    declib's ``binary_base_addr`` is ``get_first_segment_base()`` -- the VA of
-    IDA's first segment, which for a PE is the first (lowest-address) section,
-    i.e. ``image_base + <section RVA>`` (0x1000 for ``.text`` in these game
-    binaries). This is the address-space offset declib subtracts when lifting.
-    """
-    if data[:2] != b"MZ":
-        raise ValueError("not a PE (missing MZ signature)")
-    if len(data) < 0x40:
-        raise ValueError("truncated DOS header")
-    pe = struct.unpack_from("<I", data, 0x3C)[0]
-    if pe + 24 > len(data) or data[pe : pe + 4] != b"PE\x00\x00":
-        raise ValueError("invalid PE signature")
-    num_sections = struct.unpack_from("<H", data, pe + 6)[0]
-    size_opt = struct.unpack_from("<H", data, pe + 20)[0]
-    sec_tbl = pe + 24 + size_opt
-    if num_sections == 0:
-        raise ValueError("PE has no sections")
-    first_rva = None
-    for index in range(num_sections):
-        off = sec_tbl + index * 40
-        if off + 40 > len(data):
-            raise ValueError("truncated PE section table")
-        rva = struct.unpack_from("<I", data, off + 12)[0]
-        if first_rva is None or rva < first_rva:
-            first_rva = rva
-    if first_rva is None:
-        raise ValueError("PE has no sections")
-    return first_rva
-
-
-def _first_segment_lift_bias(binary_path: Path) -> int:
-    """Address delta between a YAML ``*_rva`` and BinSync's lifted key.
-
-    ``{symbol}.{platform}.yaml`` stores ``func_rva = func_va - image_base`` (the
-    PE image base, 0x180000000 for these; 0 for ELF). BinSync's declib interface
-    keys functions/globals by ``func_va - get_first_segment_base()``, where the
-    "first segment" is the *lowest-address* IDA segment -- ``.text`` for a PE,
-    which starts at ``image_base + first_section_rva``. The two conventions
-    differ by the first section's RVA on Windows and coincide on Linux (these
-    ELF shared objects load at vaddr 0, so the first segment base is 0):
-
-        windows:  declib key == func_rva - 0x1000   (.text at RVA 0x1000)
-        linux:    declib key == func_rva
-
-    Return the amount to subtract from a YAML ``*_rva`` so the manifest matches
-    declib's lifted keys, i.e. BinSync can find the function/global by address.
-    """
-    data = binary_path.read_bytes()
-    if data[:4] == b"\x7fELF":
-        # ELF shared objects in this repo load at vaddr 0; YAML rva == func_va
-        # == declib's lifted key already.
-        return 0
-    if data[:2] == b"MZ":
-        return _pe_first_section_rva(data)
-    raise ValueError(f"unsupported binary format for lift bias: {binary_path}")
-
-
 def collect_manifest_symbols(
     root: Path,
     gamever: str,
@@ -170,7 +113,7 @@ def collect_manifest_symbols(
     for module_name, platform, binary_path in iter_configured_binaries(root, gamever, config_path):
         try:
             lift_bias = _first_segment_lift_bias(binary_path)
-        except ValueError as exc:
+        except BinSyncProjectionError as exc:
             print(
                 f"BinSync push skipped (unsupported binary): {binary_path.name}: {exc}",
                 file=sys.stderr,

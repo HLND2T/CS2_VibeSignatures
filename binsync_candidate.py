@@ -21,7 +21,10 @@ from bin_artifact_contract import (
 )
 from binsync_projection import (
     BinSyncProjectionError,
+    FUNCTION_CATEGORIES,
+    GLOBAL_CATEGORIES,
     build_source_projection,
+    first_segment_lift_bias,
     validate_source_projection,
 )
 from gamesymbol_snapshot_lib.config import SnapshotConfigError, load_contract
@@ -48,7 +51,7 @@ from release_workflow_lib.hashing import (
     write_canonical_json,
 )
 
-CANDIDATE_SCHEMA_VERSION = 3
+CANDIDATE_SCHEMA_VERSION = 4
 MANIFEST_NAME = "manifest.json"
 CHECKSUMS_NAME = "SHA256SUMS.txt"
 ROOT_REF = f"refs/heads/{BINSYNC_ROOT_BRANCH}"
@@ -75,6 +78,16 @@ USER_REQUIRED_TREE_PATHS = frozenset(
 )
 FUNCTION_TOML_RE = re.compile(r"^functions/([0-9a-f]{8,16})\.toml$")
 STRUCT_TOML_RE = re.compile(r"^structs/[^/]+\.toml$")
+LOWERING_SCHEMA_VERSION = 1
+LOWERING_ENTRY_FIELDS = {
+    "artifact_path",
+    "artifact_sha256",
+    "category",
+    "lifted_address",
+    "source_rva",
+    "symbol",
+    "tree_path",
+}
 
 
 class BinSyncCandidateError(Exception):
@@ -337,11 +350,8 @@ def _validate_binsync_tree_blob(ref: str, path: str, payload: bytes) -> None:
         raise BinSyncCandidateError(f"BinSync tree contains an unexpected TOML file: {path}")
 
 
-def _commit_tree_inventory(repo: Path, commit: str, ref: str) -> tuple[str, list[dict], str]:
-    tree_sha = _git_text(repo, "rev-parse", f"{commit}^{{tree}}").lower()
-    if not SHA_RE.fullmatch(tree_sha):
-        raise BinSyncCandidateError(f"invalid BinSync tree SHA for {ref}")
-    records = []
+def _commit_tree_blobs(repo: Path, commit: str) -> dict[str, bytes]:
+    object_records: list[tuple[str, str]] = []
     for raw_record in _git_bytes(repo, "ls-tree", "-r", "-z", "--full-tree", commit).split(b"\0"):
         if not raw_record:
             continue
@@ -350,10 +360,60 @@ def _commit_tree_inventory(repo: Path, commit: str, ref: str) -> tuple[str, list
             mode, object_type, object_sha = metadata.decode("ascii").split(" ")
             path = normalized_relative_path(raw_path.decode("utf-8"))
         except (UnicodeError, ValueError, ReleaseWorkflowError) as exc:
-            raise BinSyncCandidateError(f"malformed BinSync tree entry for {ref}") from exc
+            raise BinSyncCandidateError(f"malformed BinSync tree entry for {commit}") from exc
         if mode != "100644" or object_type != "blob" or not SHA_RE.fullmatch(object_sha):
-            raise BinSyncCandidateError(f"BinSync tree contains a non-regular blob: {ref}:{path}")
-        payload = _git_bytes(repo, "cat-file", "blob", object_sha)
+            raise BinSyncCandidateError(f"BinSync tree contains a non-regular blob: {path}")
+        object_records.append((path, object_sha.lower()))
+
+    requests = b"".join(f"{object_sha}\n".encode("ascii") for _path, object_sha in object_records)
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(repo), "cat-file", "--batch"],
+            input=requests,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+    except OSError as exc:
+        raise BinSyncCandidateError(f"unable to read BinSync tree blobs: {exc}") from exc
+    if result.returncode:
+        detail = result.stderr.decode("utf-8", errors="replace").strip()
+        raise BinSyncCandidateError(detail or "unable to read BinSync tree blobs")
+    cursor = 0
+    blobs: dict[str, bytes] = {}
+    for path, expected_object_sha in object_records:
+        header_end = result.stdout.find(b"\n", cursor)
+        if header_end < 0:
+            raise BinSyncCandidateError(f"BinSync tree blob response is truncated: {path}")
+        try:
+            header = result.stdout[cursor:header_end].decode("ascii").split()
+        except UnicodeError as exc:
+            raise BinSyncCandidateError(f"BinSync tree blob response is invalid: {path}") from exc
+        if len(header) != 3 or header[0].lower() != expected_object_sha or header[1] != "blob":
+            raise BinSyncCandidateError(f"BinSync tree blob response does not match: {path}")
+        try:
+            size = int(header[2])
+        except ValueError as exc:
+            raise BinSyncCandidateError(f"BinSync tree blob size is invalid: {path}") from exc
+        start = header_end + 1
+        end = start + size
+        if end >= len(result.stdout) or result.stdout[end : end + 1] != b"\n":
+            raise BinSyncCandidateError(f"BinSync tree blob response is truncated: {path}")
+        if path in blobs:
+            raise BinSyncCandidateError(f"BinSync tree contains a duplicate path: {path}")
+        blobs[path] = result.stdout[start:end]
+        cursor = end + 1
+    if cursor != len(result.stdout):
+        raise BinSyncCandidateError("BinSync tree blob response contains trailing data")
+    return blobs
+
+
+def _commit_tree_inventory(repo: Path, commit: str, ref: str) -> tuple[str, list[dict], str]:
+    tree_sha = _git_text(repo, "rev-parse", f"{commit}^{{tree}}").lower()
+    if not SHA_RE.fullmatch(tree_sha):
+        raise BinSyncCandidateError(f"invalid BinSync tree SHA for {ref}")
+    records = []
+    for path, payload in _commit_tree_blobs(repo, commit).items():
         _validate_binsync_tree_blob(ref, path, payload)
         records.append({"path": path, "size": len(payload), "sha256": _plain_sha256(payload)})
     actual = {item["path"] for item in records}
@@ -402,6 +462,148 @@ def _commit_closure_evidence(repo: Path, *, base: str, candidate: str, ref: str)
     if previous != candidate:
         raise BinSyncCandidateError(f"BinSync commit closure does not reach the candidate tip on {ref}")
     return evidence
+
+
+def _lowering_entry_sort_key(entry: dict) -> tuple:
+    return (
+        entry["artifact_path"],
+        entry["category"],
+        entry["symbol"],
+        entry["source_rva"],
+        entry["lifted_address"],
+        entry["tree_path"],
+    )
+
+
+def _lowering_tree_indexes(blobs: dict[str, bytes]) -> tuple[dict[int, str], set[int]]:
+    function_paths: dict[int, str] = {}
+    for path in blobs:
+        match = FUNCTION_TOML_RE.fullmatch(path)
+        if not match:
+            continue
+        address = int(match.group(1), 16)
+        if address in function_paths:
+            raise BinSyncCandidateError(f"BinSync tree has duplicate function address paths: {address:#x}")
+        function_paths[address] = path
+    global_document = _load_binsync_toml(blobs.get("global_vars.toml", b""), "global_vars.toml")
+    global_addresses = set()
+    for key in global_document:
+        try:
+            global_addresses.add(int(key, 0))
+        except (TypeError, ValueError) as exc:
+            raise BinSyncCandidateError(f"BinSync global table has an invalid address key: {key}") from exc
+    return function_paths, global_addresses
+
+
+def _build_lowering_evidence(
+    *,
+    repo: Path,
+    commit: str,
+    binary_path: Path,
+    projection_entries: list[dict],
+) -> dict:
+    try:
+        lift_bias = first_segment_lift_bias(binary_path)
+    except (BinSyncProjectionError, OSError) as exc:
+        raise BinSyncCandidateError(f"unable to derive BinSync lift bias: {exc}") from exc
+    blobs = _commit_tree_blobs(repo, commit)
+    function_paths, global_addresses = _lowering_tree_indexes(blobs)
+    entries = []
+    for source in projection_entries:
+        lifted_address = source["source_rva"] - lift_bias
+        if lifted_address < 0:
+            raise BinSyncCandidateError(f"projected source RVA is below the first segment: {source['artifact_path']}")
+        if source["category"] in FUNCTION_CATEGORIES:
+            tree_path = function_paths.get(lifted_address)
+            if tree_path is None:
+                raise BinSyncCandidateError(
+                    f"projected function address is missing from BinSync tree: {source['artifact_path']}"
+                )
+        else:
+            if lifted_address not in global_addresses:
+                raise BinSyncCandidateError(
+                    f"projected global address is missing from BinSync tree: {source['artifact_path']}"
+                )
+            tree_path = "global_vars.toml"
+        entries.append(
+            {
+                "artifact_path": source["artifact_path"],
+                "artifact_sha256": source["artifact_sha256"],
+                "category": source["category"],
+                "lifted_address": lifted_address,
+                "source_rva": source["source_rva"],
+                "symbol": source["symbol"],
+                "tree_path": tree_path,
+            }
+        )
+    entries.sort(key=_lowering_entry_sort_key)
+    unsigned = {
+        "schema_version": LOWERING_SCHEMA_VERSION,
+        "lift_bias": lift_bias,
+        "entries": entries,
+    }
+    return {**unsigned, "digest": _digest("binsync-lowering-evidence:v1", unsigned)}
+
+
+def _validate_lowering_evidence(evidence: object) -> dict:
+    if not isinstance(evidence, dict):
+        raise BinSyncCandidateError("BinSync lowering evidence is invalid")
+    _require_exact_keys(evidence, {"schema_version", "lift_bias", "entries", "digest"}, "lowering evidence")
+    if evidence["schema_version"] != LOWERING_SCHEMA_VERSION:
+        raise BinSyncCandidateError("BinSync lowering evidence schema is invalid")
+    lift_bias = evidence["lift_bias"]
+    if not isinstance(lift_bias, int) or isinstance(lift_bias, bool) or lift_bias < 0:
+        raise BinSyncCandidateError("BinSync lowering evidence lift bias is invalid")
+    entries = evidence["entries"]
+    if not isinstance(entries, list):
+        raise BinSyncCandidateError("BinSync lowering evidence entries must be a list")
+    seen = set()
+    for entry in entries:
+        if not isinstance(entry, dict):
+            raise BinSyncCandidateError("BinSync lowering evidence entry is invalid")
+        _require_exact_keys(entry, LOWERING_ENTRY_FIELDS, "lowering evidence entry")
+        for field in ("artifact_path", "artifact_sha256", "category", "symbol", "tree_path"):
+            _require_string(entry[field], f"lowering evidence {field}")
+        try:
+            normalized_relative_path(entry["artifact_path"])
+        except ReleaseWorkflowError as exc:
+            raise BinSyncCandidateError(f"BinSync lowering evidence artifact path is invalid: {exc}") from exc
+        if not DIGEST_RE.fullmatch(entry["artifact_sha256"]):
+            raise BinSyncCandidateError("BinSync lowering evidence artifact digest is invalid")
+        if entry["category"] not in FUNCTION_CATEGORIES | GLOBAL_CATEGORIES:
+            raise BinSyncCandidateError("BinSync lowering evidence category is invalid")
+        for field in ("source_rva", "lifted_address"):
+            if not isinstance(entry[field], int) or isinstance(entry[field], bool) or entry[field] < 0:
+                raise BinSyncCandidateError(f"BinSync lowering evidence {field} is invalid")
+        if entry["source_rva"] - entry["lifted_address"] != lift_bias:
+            raise BinSyncCandidateError("BinSync lowering evidence address relation is invalid")
+        if entry["category"] in FUNCTION_CATEGORIES:
+            match = FUNCTION_TOML_RE.fullmatch(entry["tree_path"])
+            if not match or int(match.group(1), 16) != entry["lifted_address"]:
+                raise BinSyncCandidateError("BinSync lowering evidence function path is invalid")
+        elif entry["tree_path"] != "global_vars.toml":
+            raise BinSyncCandidateError("BinSync lowering evidence global path is invalid")
+        key = _lowering_entry_sort_key(entry)
+        if key in seen:
+            raise BinSyncCandidateError("BinSync lowering evidence contains a duplicate entry")
+        seen.add(key)
+    if entries != sorted(entries, key=_lowering_entry_sort_key):
+        raise BinSyncCandidateError("BinSync lowering evidence entries are not canonical")
+    unsigned = {"schema_version": evidence["schema_version"], "lift_bias": lift_bias, "entries": entries}
+    if evidence["digest"] != _digest("binsync-lowering-evidence:v1", unsigned):
+        raise BinSyncCandidateError("BinSync lowering evidence digest mismatch")
+    return evidence
+
+
+def _verify_lowering_tree(repo: Path, commit: str, evidence: dict) -> None:
+    blobs = _commit_tree_blobs(repo, commit)
+    function_paths, global_addresses = _lowering_tree_indexes(blobs)
+    for entry in evidence["entries"]:
+        if entry["category"] in FUNCTION_CATEGORIES:
+            if function_paths.get(entry["lifted_address"]) != entry["tree_path"]:
+                raise BinSyncCandidateError("BinSync lowering evidence function tree mismatch")
+        elif entry["lifted_address"] not in global_addresses:
+            raise BinSyncCandidateError("BinSync lowering evidence global tree mismatch")
 
 
 def _verify_bundle(bundle: Path, repository: dict) -> None:
@@ -461,6 +663,12 @@ def _verify_bundle(bundle: Path, repository: dict) -> None:
                 != item["new_commits"]
             ):
                 raise BinSyncCandidateError(f"BinSync commit closure evidence mismatch for {item['ref']}")
+        user_item = next(item for item in refs if item["ref"] != ROOT_REF)
+        _verify_lowering_tree(
+            verification_repo,
+            user_item["candidate_commit"],
+            repository["lowering_evidence"],
+        )
 
 
 def _sdk_gitlink(repo_root: Path, source_sha: str) -> str:
@@ -650,8 +858,31 @@ def _repository_for_binary(
         "refs": ref_records,
         "bundle": bundle,
     }
-    _verify_bundle(bundle_path, repository)
     return repository
+
+
+def _bind_repository_lowering(
+    *,
+    repo_root: Path,
+    game_version: str,
+    repository: dict,
+    source_projection: dict,
+    candidate_root: Path,
+) -> None:
+    binary_name = PurePosixPath(repository["binary"]["path"]).name
+    binary_path = repo_root / "bin" / game_version / repository["binary"]["module"] / binary_name
+    local_repo = binary_path.parent / f"{binary_name}.bsproj"
+    user_item = next(item for item in repository["refs"] if item["ref"] != ROOT_REF)
+    projection_entries = [
+        entry for entry in source_projection["entries"] if entry["repository_id"] == repository["repository_id"]
+    ]
+    repository["lowering_evidence"] = _build_lowering_evidence(
+        repo=local_repo,
+        commit=user_item["candidate_commit"],
+        binary_path=binary_path,
+        projection_entries=projection_entries,
+    )
+    _verify_bundle(candidate_root / PurePosixPath(repository["bundle"]["path"]), repository)
 
 
 def _write_checksums(path: Path, repositories: list[dict]) -> bytes:
@@ -744,6 +975,14 @@ def build_candidate(
         repositories=repositories,
         artifact_inventory=artifact_inventory,
     )
+    for repository in repositories:
+        _bind_repository_lowering(
+            repo_root=repo_root,
+            game_version=game_version,
+            repository=repository,
+            source_projection=source_projection,
+            candidate_root=candidate_root,
+        )
 
     checksums_payload = _write_checksums(candidate_root / CHECKSUMS_NAME, repositories)
     document = {
@@ -767,7 +1006,7 @@ def build_candidate(
             "sha256": sha256_bytes(checksums_payload),
         },
     }
-    document["publication_digest"] = _digest("binsync-publication-candidate:v2", document)
+    document["publication_digest"] = _digest("binsync-publication-candidate:v3", document)
     write_canonical_json(candidate_root / MANIFEST_NAME, document)
     verify_candidate(
         candidate_root=candidate_root,
@@ -796,7 +1035,16 @@ def _validate_binary(binary: dict) -> None:
 
 
 def _validate_repository(repository: dict) -> None:
-    expected = {"repository_id", "owner", "name", "remote_url", "binary", "refs", "bundle"}
+    expected = {
+        "repository_id",
+        "owner",
+        "name",
+        "remote_url",
+        "binary",
+        "lowering_evidence",
+        "refs",
+        "bundle",
+    }
     _require_exact_keys(repository, expected, "repository")
     owner = _require_string(repository["owner"], "repository owner")
     name = _require_string(repository["name"], "repository name")
@@ -806,6 +1054,7 @@ def _validate_repository(repository: dict) -> None:
     if repository["remote_url"] != _canonical_remote_url(owner, name):
         raise BinSyncCandidateError(f"BinSync repository remote is not canonical: {repository_id}")
     _validate_binary(repository["binary"])
+    _validate_lowering_evidence(repository["lowering_evidence"])
 
     refs = repository["refs"]
     if not isinstance(refs, list) or len(refs) != 2:
@@ -948,6 +1197,17 @@ def _validate_manifest(document: dict) -> None:
             raise BinSyncCandidateError("BinSync source projection repository target mismatch")
         if not entry["artifact_path"].startswith(projection_prefix):
             raise BinSyncCandidateError("BinSync source projection GAMEVER mismatch")
+    projection_fields = ("artifact_path", "artifact_sha256", "category", "source_rva", "symbol")
+    for repository in repositories:
+        source_entries = [
+            entry for entry in projection["entries"] if entry["repository_id"] == repository["repository_id"]
+        ]
+        lowering_entries = repository["lowering_evidence"]["entries"]
+        if len(source_entries) != len(lowering_entries):
+            raise BinSyncCandidateError("BinSync lowering evidence does not cover the source projection")
+        for source, lowering in zip(source_entries, lowering_entries, strict=True):
+            if any(source[field] != lowering[field] for field in projection_fields):
+                raise BinSyncCandidateError("BinSync lowering evidence does not match the source projection")
 
     checksum = document["checksum_file"]
     if not isinstance(checksum, dict):
@@ -961,7 +1221,7 @@ def _validate_manifest(document: dict) -> None:
         raise BinSyncCandidateError("BinSync candidate checksum SHA-256 is invalid")
     unsigned = dict(document)
     publication_digest = unsigned.pop("publication_digest", None)
-    if publication_digest != _digest("binsync-publication-candidate:v2", unsigned):
+    if publication_digest != _digest("binsync-publication-candidate:v3", unsigned):
         raise BinSyncCandidateError("BinSync candidate publication digest mismatch")
 
 

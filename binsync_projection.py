@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import hashlib
 import re
+import struct
 from collections.abc import Callable, Iterable, Mapping
+from pathlib import Path
 
 import yaml
 
@@ -30,6 +32,43 @@ ENTRY_FIELDS = {
 
 class BinSyncProjectionError(ValueError):
     """Raised when a source selection projection is malformed or ambiguous."""
+
+
+def pe_first_section_rva(data: bytes) -> int:
+    """Return the lowest PE section RVA used as declib's first-segment bias."""
+    if data[:2] != b"MZ":
+        raise BinSyncProjectionError("not a PE (missing MZ signature)")
+    if len(data) < 0x40:
+        raise BinSyncProjectionError("truncated DOS header")
+    pe = struct.unpack_from("<I", data, 0x3C)[0]
+    if pe + 24 > len(data) or data[pe : pe + 4] != b"PE\x00\x00":
+        raise BinSyncProjectionError("invalid PE signature")
+    section_count = struct.unpack_from("<H", data, pe + 6)[0]
+    optional_size = struct.unpack_from("<H", data, pe + 20)[0]
+    section_table = pe + 24 + optional_size
+    if section_count == 0:
+        raise BinSyncProjectionError("PE has no sections")
+    first_rva = None
+    for index in range(section_count):
+        offset = section_table + index * 40
+        if offset + 40 > len(data):
+            raise BinSyncProjectionError("truncated PE section table")
+        rva = struct.unpack_from("<I", data, offset + 12)[0]
+        if first_rva is None or rva < first_rva:
+            first_rva = rva
+    if first_rva is None:
+        raise BinSyncProjectionError("PE has no sections")
+    return first_rva
+
+
+def first_segment_lift_bias(binary_path: Path) -> int:
+    """Return the raw-RVA delta to declib's first-segment-relative key."""
+    data = binary_path.read_bytes()
+    if data[:4] == b"\x7fELF":
+        return 0
+    if data[:2] == b"MZ":
+        return pe_first_section_rva(data)
+    raise BinSyncProjectionError(f"unsupported binary format for lift bias: {binary_path}")
 
 
 def _projection_digest(unsigned: Mapping[str, object]) -> str:
@@ -184,21 +223,17 @@ def validate_source_projection(document: object) -> dict:
                 raise BinSyncProjectionError(f"BinSync source projection {field} is invalid")
         if entry["platform"] not in {"windows", "linux"} or entry["category"] not in PROJECTED_CATEGORIES:
             raise BinSyncProjectionError("BinSync source projection platform or category is invalid")
-        if (
-            not isinstance(entry["source_rva"], int)
-            or isinstance(entry["source_rva"], bool)
-            or entry["source_rva"] < 0
-        ):
+        if not isinstance(entry["source_rva"], int) or isinstance(entry["source_rva"], bool) or entry["source_rva"] < 0:
             raise BinSyncProjectionError("BinSync source projection RVA is invalid")
         if not isinstance(entry["artifact_sha256"], str) or not DIGEST_RE.fullmatch(entry["artifact_sha256"]):
             raise BinSyncProjectionError("BinSync source projection artifact digest is invalid")
-        expected_path = (
-            f"bin_artifacts/{{game_version}}/{entry['module']}/{entry['symbol']}.{entry['platform']}.yaml"
-        )
+        expected_path = f"bin_artifacts/{{game_version}}/{entry['module']}/{entry['symbol']}.{entry['platform']}.yaml"
         path = _normalized_path(entry["artifact_path"])
         path_parts = path.split("/")
-        if len(path_parts) != 4 or path_parts[0] != "bin_artifacts" or path != expected_path.format(
-            game_version=path_parts[1]
+        if (
+            len(path_parts) != 4
+            or path_parts[0] != "bin_artifacts"
+            or path != expected_path.format(game_version=path_parts[1])
         ):
             raise BinSyncProjectionError("BinSync source projection artifact path is invalid")
         key = _entry_sort_key(entry)

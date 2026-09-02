@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import json
+import struct
 import subprocess
 import tempfile
 import unittest
@@ -13,6 +14,21 @@ import init_gamebin
 import release_artifact_rebuild as rebuild
 from ida_analyze_util import canonical_symbol_yaml_bytes
 from tests.gamesymbol_snapshot_test_support import write_binary, write_config
+
+
+def _build_min_pe(first_section_rva: int = 0x1000) -> bytes:
+    dos = bytearray(0x40)
+    dos[0:2] = b"MZ"
+    struct.pack_into("<I", dos, 0x3C, 0x40)
+    optional_size = 0xF0
+    pe = bytearray(4 + 20 + optional_size)
+    pe[0:4] = b"PE\0\0"
+    struct.pack_into("<HHIIIHH", pe, 4, 0x8664, 1, 0, 0, 0, optional_size, 0x2022)
+    struct.pack_into("<H", pe, 24, 0x20B)
+    section = bytearray(40)
+    section[0:8] = b".text\0\0\0"
+    struct.pack_into("<I", section, 12, first_section_rva)
+    return bytes(dos) + bytes(pe) + bytes(section)
 
 
 class BinSyncCandidateTests(unittest.TestCase):
@@ -38,17 +54,23 @@ class BinSyncCandidateTests(unittest.TestCase):
                 {
                     "name": "server",
                     "path_windows": "game/bin/win64/server.dll",
-                    "skills": [{"name": "find-a", "expected_output": ["A.{platform}.yaml"]}],
-                    "symbols": [{"name": "A", "category": "func", "platform": "windows"}],
+                    "skills": [{"name": "find-a", "expected_output": ["A.{platform}.yaml", "B.{platform}.yaml"]}],
+                    "symbols": [
+                        {"name": "A", "category": "func", "platform": "windows"},
+                        {"name": "B", "category": "gv", "platform": "windows"},
+                    ],
                 }
             ],
         )
         (root / "download.yaml").write_text("downloads:\n  - gamever: '1'\n", encoding="utf-8")
         artifact = root / "bin_artifacts" / "1" / "server" / "A.windows.yaml"
         artifact.parent.mkdir(parents=True)
-        artifact.write_bytes(canonical_symbol_yaml_bytes({"func_name": "A", "func_rva": "0x10"}, category="func"))
+        artifact.write_bytes(canonical_symbol_yaml_bytes({"func_name": "A", "func_rva": "0x1010"}, category="func"))
+        (artifact.parent / "B.windows.yaml").write_bytes(
+            canonical_symbol_yaml_bytes({"gv_name": "B", "gv_rva": "0x1020"}, category="gv")
+        )
         binary = root / "bin" / "1" / "server" / "server.dll"
-        write_binary(binary)
+        write_binary(binary, _build_min_pe())
         empty_tree = self._git(root, "mktree", input_text="")
         sdk_commit = self._git(root, "commit-tree", empty_tree, "-m", "sdk")
         self._git(root, "add", ".")
@@ -74,12 +96,15 @@ class BinSyncCandidateTests(unittest.TestCase):
         for name in (
             "comments.toml",
             "enums.toml",
-            "global_vars.toml",
             "patches.toml",
             "segments.toml",
             "typedefs.toml",
         ):
             (binsync_repo / name).write_text("", encoding="utf-8")
+        (binsync_repo / "global_vars.toml").write_text(
+            '["0x20"]\naddr = 0x20\nname = "B"\ntype = "int"\nsize = 0x8\n',
+            encoding="utf-8",
+        )
         function = binsync_repo / "functions" / "00000010.toml"
         function.parent.mkdir()
         function.write_text(
@@ -167,11 +192,47 @@ class BinSyncCandidateTests(unittest.TestCase):
                         "module": "server",
                         "platform": "windows",
                         "repository_id": "HLND2T__CS2_VibeSignatures_binsync_1_server.dll",
-                        "source_rva": 0x10,
+                        "source_rva": 0x1010,
                         "symbol": "A",
-                    }
+                    },
+                    {
+                        "artifact_path": "bin_artifacts/1/server/B.windows.yaml",
+                        "artifact_sha256": "sha256:"
+                        + candidate.sha256_file(root / "bin_artifacts" / "1" / "server" / "B.windows.yaml"),
+                        "category": "gv",
+                        "module": "server",
+                        "platform": "windows",
+                        "repository_id": "HLND2T__CS2_VibeSignatures_binsync_1_server.dll",
+                        "source_rva": 0x1020,
+                        "symbol": "B",
+                    },
                 ],
                 projection["entries"],
+            )
+            lowering = manifest["repositories"][0]["lowering_evidence"]
+            self.assertEqual(0x1000, lowering["lift_bias"])
+            self.assertEqual(
+                [
+                    {
+                        "artifact_path": "bin_artifacts/1/server/A.windows.yaml",
+                        "artifact_sha256": projection["entries"][0]["artifact_sha256"],
+                        "category": "func",
+                        "lifted_address": 0x10,
+                        "source_rva": 0x1010,
+                        "symbol": "A",
+                        "tree_path": "functions/00000010.toml",
+                    },
+                    {
+                        "artifact_path": "bin_artifacts/1/server/B.windows.yaml",
+                        "artifact_sha256": projection["entries"][1]["artifact_sha256"],
+                        "category": "gv",
+                        "lifted_address": 0x20,
+                        "source_rva": 0x1020,
+                        "symbol": "B",
+                        "tree_path": "global_vars.toml",
+                    },
+                ],
+                lowering["entries"],
             )
 
     def test_hosted_verifier_recomputes_source_projection_from_git_blobs(self) -> None:
@@ -183,7 +244,9 @@ class BinSyncCandidateTests(unittest.TestCase):
             destination = temporary_root / "candidate"
             manifest = self._build(root, preparation, destination)
             forged = copy.deepcopy(manifest)
-            forged["source_projection"]["entries"][0]["source_rva"] += 1
+            forged_digest = "sha256:" + "f" * 64
+            forged["source_projection"]["entries"][0]["artifact_sha256"] = forged_digest
+            forged["repositories"][0]["lowering_evidence"]["entries"][0]["artifact_sha256"] = forged_digest
             projection_unsigned = {
                 "schema_version": forged["source_projection"]["schema_version"],
                 "entries": forged["source_projection"]["entries"],
@@ -192,15 +255,78 @@ class BinSyncCandidateTests(unittest.TestCase):
                 "binsync-source-projection:v1",
                 projection_unsigned,
             )
+            lowering = forged["repositories"][0]["lowering_evidence"]
+            lowering_unsigned = {
+                "schema_version": lowering["schema_version"],
+                "lift_bias": lowering["lift_bias"],
+                "entries": lowering["entries"],
+            }
+            lowering["digest"] = candidate._digest("binsync-lowering-evidence:v1", lowering_unsigned)
             manifest_unsigned = dict(forged)
             manifest_unsigned.pop("publication_digest")
             forged["publication_digest"] = candidate._digest(
-                "binsync-publication-candidate:v2",
+                "binsync-publication-candidate:v3",
                 manifest_unsigned,
             )
             candidate.write_canonical_json(destination / "manifest.json", forged)
 
             with self.assertRaisesRegex(candidate.BinSyncCandidateError, "source projection mismatch"):
+                candidate.verify_candidate(candidate_root=destination, repo_root=root)
+
+    def test_build_rejects_projected_address_missing_from_candidate_tree(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            temporary_root = Path(temporary)
+            root = temporary_root / "repo"
+            root.mkdir()
+            _source_sha, preparation, binsync_repo = self._repository(root)
+            original = binsync_repo / "functions" / "00000010.toml"
+            original.unlink()
+            replacement = binsync_repo / "functions" / "00000011.toml"
+            replacement.write_text('addr = 0x11\nsize = 0x1\nname = "A"\n', encoding="utf-8")
+            self._git(binsync_repo, "add", "-A")
+            self._git(
+                binsync_repo,
+                "-c",
+                "user.name=TestUser",
+                "-c",
+                "user.email=TestUser@binsync.local",
+                "commit",
+                "-m",
+                "Move projected address",
+            )
+
+            with self.assertRaisesRegex(candidate.BinSyncCandidateError, "projected function address is missing"):
+                self._build(root, preparation, temporary_root / "candidate")
+
+    def test_hosted_verifier_rejects_forged_lowering_evidence(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            temporary_root = Path(temporary)
+            root = temporary_root / "repo"
+            root.mkdir()
+            _source_sha, preparation, _binsync_repo = self._repository(root)
+            destination = temporary_root / "candidate"
+            forged = copy.deepcopy(self._build(root, preparation, destination))
+            lowering = forged["repositories"][0]["lowering_evidence"]
+            lowering["lift_bias"] -= 1
+            for entry in lowering["entries"]:
+                entry["lifted_address"] += 1
+                if entry["category"] != "gv":
+                    entry["tree_path"] = f"functions/{entry['lifted_address']:08x}.toml"
+            lowering_unsigned = {
+                "schema_version": lowering["schema_version"],
+                "lift_bias": lowering["lift_bias"],
+                "entries": lowering["entries"],
+            }
+            lowering["digest"] = candidate._digest("binsync-lowering-evidence:v1", lowering_unsigned)
+            manifest_unsigned = dict(forged)
+            manifest_unsigned.pop("publication_digest")
+            forged["publication_digest"] = candidate._digest(
+                "binsync-publication-candidate:v3",
+                manifest_unsigned,
+            )
+            candidate.write_canonical_json(destination / "manifest.json", forged)
+
+            with self.assertRaisesRegex(candidate.BinSyncCandidateError, "lowering evidence .* tree mismatch"):
                 candidate.verify_candidate(candidate_root=destination, repo_root=root)
 
     def test_build_rejects_non_fast_forward_remote_head(self) -> None:
