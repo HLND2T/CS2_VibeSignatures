@@ -1,5 +1,5 @@
 name: Build On Self Runner
-run-name: Release build ${{ inputs.gamever || github.event.client_payload.gamever }}
+run-name: Release ${{ inputs.publication_mode || 'publish' }} ${{ inputs.gamever || github.event.client_payload.gamever }}
 on:
   workflow_dispatch:
     inputs:
@@ -11,6 +11,14 @@ on:
         description: Full immutable commit SHA reachable from the default branch
         required: true
         type: string
+      publication_mode:
+        description: Verify candidates without publishing, or run the protected publishers
+        required: true
+        type: choice
+        options:
+          - verify-only
+          - publish
+        default: verify-only
   repository_dispatch:
     types: [build-on-self-runner]
 permissions:
@@ -28,6 +36,7 @@ jobs:
       gamever: ${{ steps.resolve.outputs.gamever }}
       source_sha: ${{ steps.resolve.outputs.source_sha }}
       source_publish_time: ${{ steps.resolve.outputs.source_publish_time }}
+      publication_mode: ${{ steps.resolve.outputs.publication_mode }}
     steps:
       - name: Checkout default branch for trust validation
         id: checkout-trust
@@ -46,6 +55,14 @@ jobs:
           $gamever = "${{ inputs.gamever || github.event.client_payload.gamever }}"
           $sourceSha = "${{ inputs.source_sha || github.event.client_payload.source_sha }}"
           $sourcePullRequest = "${{ github.event.client_payload.source_pull_request }}"
+          $publicationMode = if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+            "${{ inputs.publication_mode }}"
+          } else {
+            "publish"
+          }
+          if ($publicationMode -notin @('verify-only', 'publish')) {
+            throw "Unsupported release publication mode: $publicationMode"
+          }
           git fetch origin --tags --force "+refs/heads/*:refs/remotes/origin/*"
           git checkout --detach "$sourceSha"
           if ($LASTEXITCODE -ne 0) { throw "Unable to checkout immutable release source." }
@@ -82,6 +99,7 @@ jobs:
           "gamever=$gamever" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "source_sha=$sourceSha" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "source_publish_time=$($preflight.source_publish_time)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "publication_mode=$publicationMode" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
   warmup-idb:
     needs: preflight
     uses: ./.github/workflows/warmup-idb.yml
@@ -516,6 +534,7 @@ jobs:
       binsync_target_state_digest: ${{ needs.verify-binsync.outputs.target_state_digest }}
   publish-binsync:
     needs: [preflight, build, verify-binsync, verify-release]
+    if: needs.preflight.outputs.publication_mode == 'publish'
     uses: ./.github/workflows/publish-binsync-candidate.yml
     with:
       source_sha: ${{ needs.preflight.outputs.source_sha }}
@@ -527,6 +546,7 @@ jobs:
       artifact_digest: ${{ needs.build.outputs.binsync_artifact_digest }}
   publish-release:
     needs: [preflight, build, verify-binsync, verify-release, publish-binsync]
+    if: needs.preflight.outputs.publication_mode == 'publish'
     permissions:
       actions: read
       contents: write
@@ -543,3 +563,23 @@ jobs:
       verified_manifest_digest: ${{ needs.verify-release.outputs.manifest_digest }}
       verified_bundle_digest: ${{ needs.verify-release.outputs.bundle_digest }}
       verified_binsync_target_state_digest: ${{ needs.verify-release.outputs.binsync_target_state_digest }}
+  verify-only-complete:
+    needs: [preflight, build, verify-binsync, verify-release]
+    if: needs.preflight.outputs.publication_mode == 'verify-only'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Record non-publishing verification result
+        shell: bash
+        run: |
+          {
+            echo '## Release verify-only completed'
+            echo
+            echo '- Source SHA: `${{ needs.preflight.outputs.source_sha }}`'
+            echo '- GAMEVER: `${{ needs.preflight.outputs.gamever }}`'
+            echo '- Release bundle digest: `${{ needs.verify-release.outputs.bundle_digest }}`'
+            echo '- Release manifest digest: `${{ needs.verify-release.outputs.manifest_digest }}`'
+            echo '- BinSync candidate digest: `${{ needs.verify-binsync.outputs.publication_digest }}`'
+            echo '- No BinSync refs, tags, Releases, or Release assets were published.'
+          } >> "$GITHUB_STEP_SUMMARY"
