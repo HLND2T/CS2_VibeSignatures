@@ -930,8 +930,8 @@ If a combined SKILL.md was split into multiple preprocessor scripts, delete the 
 
 Tracked `bin_artifacts` are expected Git bytes, not disposable test output. Create a checkout-external scratch artifact
 root, seed it with the selected GAMEVER's unaffected artifacts, and delete target outputs only in the scratch copy. Run
-the converted producers with `-force_all`, explicit `-artifactdir <scratch-root>`, and
-`-oldartifactdir bin_artifacts`. Never remove artifacts across unrelated game versions.
+the converted producers with the needed module/skill filters, explicit `-artifactdir <scratch-root>`, and
+`-oldartifactdir bin_artifacts`, but without `-force_all`. Never remove artifacts across unrelated game versions.
 
 After the isolated run succeeds, validate its formal inventory and canonical bytes, then copy only the computed affected
 producer-group and downstream closure back to `bin_artifacts/<GAMEVER>/`. The source PR must stage those A/M/D/R paths
@@ -960,13 +960,17 @@ If the original SKILL.md covered multiple symbols, delete ALL corresponding entr
 
 ## Step 9: Run Tests
 
-After all conversion steps are complete, run the full preprocessor test to validate the new script works.
+After all conversion steps are complete, run the complete config from a different checkout-external fresh empty root.
+The final `-force_all` contract requires both platforms, no module/skill/vcall filters, and an explicit execution report.
 
-Use the isolated artifact root prepared in Step 7. Because the output is very long, redirect it to a temp file and then
-read just the summary:
+Because the output is very long, redirect it to a temp file and then read just the summary:
 
 ```bash
-uv run ida_analyze_bin.py -debug -force_all -artifactdir <checkout-external-scratch-root> -oldartifactdir bin_artifacts > /tmp/ida_test_output.txt 2>&1; tail -10 /tmp/ida_test_output.txt
+uv run ida_analyze_bin.py -gamever <GAMEVER> -configyaml configs/<GAMEVER>.yaml \
+  -artifactdir <checkout-external-empty-root> -oldartifactdir bin_artifacts \
+  -oldgamever <PRIOR_GAMEVER-or-none> -execution_report <checkout-external-execution-report.json> \
+  -debug -force_all > /tmp/ida_test_output.txt 2>&1
+tail -10 /tmp/ida_test_output.txt
 ```
 
 Check the **Summary** at the end of the output:
@@ -1206,11 +1210,11 @@ Before finishing, verify:
 
 **Key insight — multi-phase workflow:** The predecessor `CSource2GameClients_StartHLTVServer` was a brand-new function with no existing output YAMLs. So `generate_reference_yaml.py` couldn't run until the xref_string script populated its output. The workflow was:
 1. Create all 3 scripts + config entries
-2. Run isolated `ida_analyze_bin.py -debug -force_all` → vtable + xref-string scripts create StartHLTVServer in the scratch artifact root
+2. Run a targeted isolated analyzer pass without `-force_all` → vtable + xref-string scripts create StartHLTVServer in the seeded scratch artifact root
 3. Run `generate_reference_yaml.py` for both platforms using that isolated predecessor artifact
 4. Annotate reference YAMLs (rename `sub_180B1AC80` → `LegacyGameEventListener` in both disasm and procedure)
 5. Remove LegacyGameEventListener only from the scratch artifact root
-6. Run isolated `ida_analyze_bin.py -debug -force_all` again, then copy the verified closure into `bin_artifacts`
+6. Run the complete config from a fresh empty root with `-force_all` and `-execution_report`, then copy the verified closure into `bin_artifacts`
 
 ### Example: Split ConCommand handler + LLM_DECOMPILE virtual function (Patterns G + C, multi-phase)
 
@@ -1247,11 +1251,11 @@ Before finishing, verify:
 
 **Key insight — multi-phase workflow:** `BotKill_CommandHandler` was a brand-new function with no existing output YAMLs. The workflow was:
 1. Create both scripts + config entries, delete old SKILL.md
-2. Run isolated `ida_analyze_bin.py -debug -force_all` → Pattern G creates BotKill_CommandHandler in the scratch artifact root
+2. Run a targeted isolated analyzer pass without `-force_all` → Pattern G creates BotKill_CommandHandler in the seeded scratch artifact root
 3. Run `generate_reference_yaml.py` for both platforms using the newly created BotKill_CommandHandler output YAMLs
 4. Annotate reference YAMLs (add `; 0xC80 = CBasePlayerPawn_CommitSuicide` comments for the vfunc call in the kill loop)
 5. Remove CBasePlayerPawn_CommitSuicide only from the scratch artifact root
-6. Run isolated `ida_analyze_bin.py -debug -force_all` again, then copy the verified closure into `bin_artifacts`
+6. Run the complete config from a fresh empty root with `-force_all` and `-execution_report`, then copy the verified closure into `bin_artifacts`
 
 ### Example: Split xref-string function + LLM_DECOMPILE global variable & vfunc offset (Patterns A + LLM_DECOMPILE with gv + vfunc, multi-phase)
 

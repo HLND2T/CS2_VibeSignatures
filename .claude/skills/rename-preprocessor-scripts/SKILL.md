@@ -167,15 +167,26 @@ If any skill has `skip_if_exists: - OldName.{platform}.yaml`, update to `NewName
 ## Step 5: Rebuild the Source-Owned Artifact Closure
 
 Artifacts under `bin_artifacts/` are tracked Git truth. Do not use plain `mv`, hand-edit scalar formatting, or modify
-unrelated game versions. For the selected GAMEVER and module, preserve history for the direct rename with `git mv`, then
-force the affected producer group and downstream closure through the trusted analyzer/finalizer:
+unrelated game versions. For the selected GAMEVER and module, preserve history for the direct rename with `git mv`.
+Use a checkout-external seeded root for targeted iteration without `-force_all`; module/skill filters are intentionally
+incompatible with the full execution contract:
 
 ```bash
 git mv "bin_artifacts/<GAMEVER>/<module>/OldName.windows.yaml" \
        "bin_artifacts/<GAMEVER>/<module>/NewName.windows.yaml"
 git mv "bin_artifacts/<GAMEVER>/<module>/OldName.linux.yaml" \
        "bin_artifacts/<GAMEVER>/<module>/NewName.linux.yaml"
-uv run ida_analyze_bin.py -gamever <GAMEVER> -modules <module> -skill find-NewName -force_all -debug
+uv run ida_analyze_bin.py -gamever <GAMEVER> -modules <module> -skill find-NewName \
+  -artifactdir <CHECKOUT_EXTERNAL_SEEDED_ROOT> -oldartifactdir bin_artifacts -debug
+```
+
+Before copying the closure back, run the complete config from a different, fresh empty root and emit execution evidence:
+
+```bash
+uv run ida_analyze_bin.py -gamever <GAMEVER> -configyaml configs/<GAMEVER>.yaml \
+  -artifactdir <CHECKOUT_EXTERNAL_EMPTY_ROOT> -oldartifactdir bin_artifacts \
+  -oldgamever <PRIOR_GAMEVER-or-none> -execution_report <CHECKOUT_EXTERNAL_EXECUTION_REPORT.json> \
+  -force_all -debug
 ```
 
 Apply only paths that exist and include platform-specific variants. The central finalizer must update identity fields and

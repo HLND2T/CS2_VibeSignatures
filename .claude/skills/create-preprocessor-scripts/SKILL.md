@@ -461,9 +461,9 @@ The `(structmember, struct=StructName, member=member_name)` tag is **required** 
 **IMPORTANT -- When the predecessor is a NEW function (no existing output YAMLs):** If the predecessor function is brand new (discovered by another new script you're creating at the same time), its output YAMLs don't exist yet and `generate_reference_yaml.py` cannot resolve its address. You must use a **multi-phase workflow**:
 
 1. **Phase 1:** Create ALL scripts (vtable, xref_string, LLM_DECOMPILE) and update configs/<GAMEVER>.yaml
-2. **Phase 2:** Seed a checkout-external artifact root from tracked `bin_artifacts`, remove the new outputs only there, and run `ida_analyze_bin.py -debug -force_all -oldgamever none` with explicit `-artifactdir`/`-oldartifactdir`. The vtable and xref-string scripts populate the new predecessor in the isolated root.
+2. **Phase 2:** Seed a checkout-external artifact root from tracked `bin_artifacts`, remove the new outputs only there, and run the required module/skills without `-force_all`, with `-oldgamever none` and explicit `-artifactdir`/`-oldartifactdir`. The vtable and xref-string scripts populate the new predecessor in the isolated root.
 3. **Phase 3:** Now that the predecessor has output YAMLs, run `generate_reference_yaml.py` to create reference YAMLs, then annotate them.
-4. **Phase 4:** Run the isolated analysis again; validate the full inventory, copy the canonical closure to tracked `bin_artifacts`, and run the repository artifact contract.
+4. **Phase 4:** Run the complete config with `-force_all` from a different fresh empty root and an explicit `-execution_report`; validate the full inventory, copy the canonical closure to tracked `bin_artifacts`, and run the repository artifact contract.
 
 **IMPORTANT -- When the reference YAML already existed:** `generate_reference_yaml.py` regenerates the file from scratch and silently overwrites any hand-written annotation comments. After running it, check the diff for each regenerated file:
 
@@ -477,14 +477,18 @@ Look for removed lines (prefixed with `-` in the diff) that are annotation comme
 
 ## Step 5: Run Tests
 
-After all creation steps are complete, validate in a checkout-external artifact root. Seed the selected GAMEVER's
-unaffected artifacts from tracked `bin_artifacts`, remove only the new target outputs in the scratch copy, and force the
-new producer groups. Never delete or rewrite tracked expected artifacts merely to make a test run.
+After all creation steps are complete, validate the complete config in a checkout-external fresh empty artifact root.
+Targeted seeded-root iteration may use module/skill filters only without `-force_all`; the final force-all run must not use
+filters. Never delete or rewrite tracked expected artifacts merely to make a test run.
 
 Because the output is very long, redirect it to a temp file and then read just the summary:
 
 ```bash
-uv run ida_analyze_bin.py -debug -force_all -artifactdir <checkout-external-scratch-root> -oldartifactdir bin_artifacts > /tmp/ida_test_output.txt 2>&1; tail -10 /tmp/ida_test_output.txt
+uv run ida_analyze_bin.py -gamever <GAMEVER> -configyaml configs/<GAMEVER>.yaml \
+  -artifactdir <checkout-external-empty-root> -oldartifactdir bin_artifacts \
+  -oldgamever <PRIOR_GAMEVER-or-none> -execution_report <checkout-external-execution-report.json> \
+  -debug -force_all > /tmp/ida_test_output.txt 2>&1
+tail -10 /tmp/ida_test_output.txt
 ```
 
 Check the **Summary** at the end of the output:

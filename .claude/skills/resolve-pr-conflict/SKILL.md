@@ -97,15 +97,18 @@ auto-migrate its intent to latest or silently revert it.
 From the merged source/config/reference intent, compute affected producer groups using both direct changed paths and
 recorded artifact A/M/D/R ownership. Include the complete downstream closure and cross-module paths.
 
-Create a checkout-external scratch artifact root. Seed unaffected paths from the prospective merged tree; for conflicted
-paths, use base only as a temporary seed or omit the path when the merged formal contract deleted it. Force all selected
-groups with the exact merged source and binary identity:
+For targeted iteration, use a checkout-external seeded root and omit `-force_all`; `-modules`/`-skill` filters are allowed
+only in that non-final iteration. Final validation must use the complete merged config, a different fresh empty root, the
+explicit prior GAMEVER (or `none`), and a force-all execution report:
 
 ```powershell
-uv run ida_analyze_bin.py -gamever <GAMEVER> -artifactdir <CHECKOUT_EXTERNAL_ROOT> -oldartifactdir bin_artifacts -force_all -debug
+uv run ida_analyze_bin.py -gamever <GAMEVER> -configyaml configs/<GAMEVER>.yaml `
+  -artifactdir <CHECKOUT_EXTERNAL_EMPTY_ROOT> -oldartifactdir bin_artifacts `
+  -oldgamever <PRIOR_GAMEVER-or-none> -execution_report <CHECKOUT_EXTERNAL_EXECUTION_REPORT.json> `
+  -force_all -debug
 ```
 
-Narrow `-modules`/`-skill` only when the computed plan proves the complete closure remains covered. Require:
+Do not combine this final command with `-modules`, `-skill`, or vcall filters. Require:
 
 - every selected producer group actually executed and has one valid winner;
 - required/optional/formal inventory, ownership, paths, and canonical bytes pass;
