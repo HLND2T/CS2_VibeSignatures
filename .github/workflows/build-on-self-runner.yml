@@ -1,6 +1,20 @@
 name: Build On Self Runner
 run-name: Release ${{ inputs.publication_mode || 'publish' }} ${{ inputs.gamever || github.event.client_payload.gamever }}
 on:
+  workflow_call:
+    inputs:
+      gamever:
+        required: true
+        type: string
+      source_sha:
+        required: true
+        type: string
+      source_pull_request:
+        required: true
+        type: number
+      publication_mode:
+        required: true
+        type: string
   workflow_dispatch:
     inputs:
       gamever:
@@ -54,8 +68,8 @@ jobs:
         run: |
           $gamever = "${{ inputs.gamever || github.event.client_payload.gamever }}"
           $sourceSha = "${{ inputs.source_sha || github.event.client_payload.source_sha }}"
-          $sourcePullRequest = "${{ github.event.client_payload.source_pull_request }}"
-          $publicationMode = if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+          $sourcePullRequest = "${{ inputs.source_pull_request || github.event.client_payload.source_pull_request }}"
+          $publicationMode = if ("${{ github.event_name }}" -in @('workflow_dispatch', 'workflow_call')) {
             "${{ inputs.publication_mode }}"
           } else {
             "publish"
@@ -75,7 +89,7 @@ jobs:
               $preflight.source_publish_time -notmatch '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$') {
             throw "Immutable release source preflight output is invalid."
           }
-          if ("${{ github.event_name }}" -eq "repository_dispatch") {
+          if ("${{ github.event_name }}" -in @('repository_dispatch', 'workflow_call')) {
             if ($sourcePullRequest -notmatch '^[1-9][0-9]*$') {
               throw "repository_dispatch requires a numeric source_pull_request."
             }
