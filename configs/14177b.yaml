@@ -2022,6 +2022,20 @@ modules:
       - name: find-CEngineServiceMgr_vtable
         expected_output:
           - CEngineServiceMgr_vtable.{platform}.yaml
+      - name: find-CRenderService_EventMapRegister
+        expected_output:
+          - CRenderService_EventMapRegister.{platform}.yaml
+      - name: find-CRenderService_OnFrameBoundary
+        expected_output:
+          - CRenderService_OnFrameBoundary.{platform}.yaml
+        expected_input:
+          - CRenderService_EventMapRegister.{platform}.yaml
+      - name: find-CEngineServiceMgr_GetVideoModeChange
+        expected_output:
+          - CEngineServiceMgr_GetVideoModeChange.{platform}.yaml
+        expected_input:
+          - CRenderService_OnFrameBoundary.{platform}.yaml
+          - CEngineServiceMgr_vtable.{platform}.yaml
       - name: find-CEngineServiceMgr_RegisterEngineService
         expected_output:
           - CEngineServiceMgr_RegisterEngineService.{platform}.yaml
@@ -3542,6 +3556,18 @@ modules:
           - ILoopModeFactory::Shutdown
       - name: CEngineServiceMgr_vtable
         category: vtable
+      - name: CRenderService_EventMapRegister
+        category: func
+        alias:
+          - CRenderService::EventMapRegister
+      - name: CRenderService_OnFrameBoundary
+        category: func
+        alias:
+          - CRenderService::OnFrameBoundary
+      - name: CEngineServiceMgr_GetVideoModeChange
+        category: vfunc
+        alias:
+          - CEngineServiceMgr::GetVideoModeChange
       - name: CEngineServiceMgr_RegisterEngineService
         category: vfunc
         alias:

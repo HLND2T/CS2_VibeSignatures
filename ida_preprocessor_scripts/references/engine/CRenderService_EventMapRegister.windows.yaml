@@ -1,0 +1,422 @@
+func_name: CRenderService_EventMapRegister
+func_va: '0x1801e3d00'
+disasm_code: |-
+  .text:00000001801E3D00                 mov     rax, rsp
+  .text:00000001801E3D03                 push    rbp
+  .text:00000001801E3D04                 push    rbx
+  .text:00000001801E3D05                 push    r14
+  .text:00000001801E3D07                 push    r15
+  .text:00000001801E3D09                 mov     rbp, rsp
+  .text:00000001801E3D0C                 sub     rsp, 58h
+  .text:00000001801E3D10                 mov     r14, rdx
+  .text:00000001801E3D13                 mov     r15, rcx
+  .text:00000001801E3D16                 test    r8d, r8d
+  .text:00000001801E3D19                 jnz     loc_1801E40B6
+  .text:00000001801E3D1F                 mov     r8d, cs:TlsIndex
+  .text:00000001801E3D26                 mov     [rax+8], rsi
+  .text:00000001801E3D2A                 mov     [rax+18h], rdi
+  .text:00000001801E3D2E                 mov     [rax+20h], r12
+  .text:00000001801E3D32                 mov     [rax-28h], r13
+  .text:00000001801E3D36                 mov     rax, gs:58h
+  .text:00000001801E3D3F                 mov     ecx, 68h ; 'h'
+  .text:00000001801E3D44                 mov     r12, [rax+r8*8]
+  .text:00000001801E3D48                 add     r12, rcx
+  .text:00000001801E3D4B                 mov     eax, [r12]
+  .text:00000001801E3D4F                 cmp     cs:dword_180915898, eax
+  .text:00000001801E3D55                 jle     short loc_1801E3DA5
+  .text:00000001801E3D57                 lea     rcx, dword_180915898
+  .text:00000001801E3D5E                 call    sub_180427738
+  .text:00000001801E3D63                 cmp     cs:dword_180915898, 0FFFFFFFFh
+  .text:00000001801E3D6A                 jnz     short loc_1801E3DA5
+  .text:00000001801E3D6C                 lea     r9, aOnframeboundar; "OnFrameBoundary"
+  .text:00000001801E3D73                 lea     r8, aCrenderservice; "CRenderService"
+  .text:00000001801E3D7A                 lea     rdx, aSS_5; "%s::%s"
+  .text:00000001801E3D81                 lea     rcx, unk_1809158A0
+  .text:00000001801E3D88                 call    sub_1800241C0
+  .text:00000001801E3D8D                 ; void (__cdecl *)()
+  .text:00000001801E3D8D                 lea     rcx, sub_18047E350; void (__cdecl *)()
+  .text:00000001801E3D94                 call    atexit
+  .text:00000001801E3D99                 lea     rcx, dword_180915898
+  .text:00000001801E3DA0                 call    sub_1804276CC
+  .text:00000001801E3DA5                 lea     rdx, unk_180610250
+  .text:00000001801E3DAC                 lea     rcx, [rbp+arg_8]
+  .text:00000001801E3DB0                 call    unknown_libname_12; Microsoft VisualC v7/14 64bit runtime
+  .text:00000001801E3DB5                 mov     rax, cs:qword_1809158A4
+  .text:00000001801E3DBC                 lea     rdi, unk_180528B3F
+  .text:00000001801E3DC3                 mov     rbx, [rbp+arg_8]
+  .text:00000001801E3DC7                 bt      eax, 1Eh
+  .text:00000001801E3DCB                 jnb     short loc_1801E3DD6
+  .text:00000001801E3DCD                 lea     rsi, qword_1809158A4+4
+  .text:00000001801E3DD4                 jmp     short loc_1801E3DE6
+  .text:00000001801E3DD6                 test    eax, 3FFFFFFFh
+  .text:00000001801E3DDB                 mov     rsi, rdi
+  .text:00000001801E3DDE                 cmova   rsi, cs:qword_1809158A4+4
+  .text:00000001801E3DE6                 lea     rax, sub_1801E5B80
+  .text:00000001801E3DED                 mov     rcx, r14
+  .text:00000001801E3DF0                 mov     [rbp+var_10], rax
+  .text:00000001801E3DF4                 call    sub_180043900
+  .text:00000001801E3DF9                 mov     [rsp+58h+var_28], rsi
+  .text:00000001801E3DFE                 lea     rdx, [rbp+var_18]
+  .text:00000001801E3E02                 xor     r13d, r13d
+  .text:00000001801E3E05                 mov     [rbp+var_18], rax
+  .text:00000001801E3E09                 mov     [rsp+58h+var_30], r13d
+  .text:00000001801E3E0E                 mov     r9b, 1
+  .text:00000001801E3E11                 mov     r8d, 1
+  .text:00000001801E3E17                 mov     [rsp+58h+var_38], rbx
+  .text:00000001801E3E1C                 mov     rcx, r15
+  .text:00000001801E3E1F                 call    RegisterEventListener_Abstract
+  .text:00000001801E3E24                 mov     eax, [r12]
+  .text:00000001801E3E28                 cmp     cs:dword_1809159A8, eax
+  .text:00000001801E3E2E                 jle     short loc_1801E3E7E
+  .text:00000001801E3E30                 lea     rcx, dword_1809159A8
+  .text:00000001801E3E37                 call    sub_180427738
+  .text:00000001801E3E3C                 cmp     cs:dword_1809159A8, 0FFFFFFFFh
+  .text:00000001801E3E43                 jnz     short loc_1801E3E7E
+  .text:00000001801E3E45                 lea     r9, aOnclientoutput; "OnClientOutput"
+  .text:00000001801E3E4C                 lea     r8, aCrenderservice; "CRenderService"
+  .text:00000001801E3E53                 lea     rdx, aSS_5; "%s::%s"
+  .text:00000001801E3E5A                 lea     rcx, unk_1809159B0
+  .text:00000001801E3E61                 call    sub_1800241C0
+  .text:00000001801E3E66                 ; void (__cdecl *)()
+  .text:00000001801E3E66                 lea     rcx, sub_18047E340; void (__cdecl *)()
+  .text:00000001801E3E6D                 call    atexit
+  .text:00000001801E3E72                 lea     rcx, dword_1809159A8
+  .text:00000001801E3E79                 call    sub_1804276CC
+  .text:00000001801E3E7E                 lea     rdx, unk_1806106B0
+  .text:00000001801E3E85                 lea     rcx, [rbp+arg_8]
+  .text:00000001801E3E89                 call    unknown_libname_12; Microsoft VisualC v7/14 64bit runtime
+  .text:00000001801E3E8E                 mov     rax, cs:qword_1809159B4
+  .text:00000001801E3E95                 mov     rbx, [rbp+arg_8]
+  .text:00000001801E3E99                 bt      eax, 1Eh
+  .text:00000001801E3E9D                 jnb     short loc_1801E3EA8
+  .text:00000001801E3E9F                 lea     rsi, qword_1809159B4+4
+  .text:00000001801E3EA6                 jmp     short loc_1801E3EB8
+  .text:00000001801E3EA8                 test    eax, 3FFFFFFFh
+  .text:00000001801E3EAD                 mov     rsi, rdi
+  .text:00000001801E3EB0                 cmova   rsi, cs:qword_1809159B4+4
+  .text:00000001801E3EB8                 lea     rax, CRenderService_OnClientOutput
+  .text:00000001801E3EBF                 mov     rcx, r14
+  .text:00000001801E3EC2                 mov     [rbp+var_10], rax
+  .text:00000001801E3EC6                 call    sub_180043900
+  .text:00000001801E3ECB                 mov     [rsp+58h+var_28], rsi
+  .text:00000001801E3ED0                 lea     rdx, [rbp+var_18]
+  .text:00000001801E3ED4                 mov     [rsp+58h+var_30], r13d
+  .text:00000001801E3ED9                 mov     r9b, 1
+  .text:00000001801E3EDC                 mov     r8d, 1
+  .text:00000001801E3EE2                 mov     [rsp+58h+var_38], rbx
+  .text:00000001801E3EE7                 mov     rcx, r15
+  .text:00000001801E3EEA                 mov     [rbp+var_18], rax
+  .text:00000001801E3EEE                 call    RegisterEventListener_Abstract
+  .text:00000001801E3EF3                 mov     eax, [r12]
+  .text:00000001801E3EF7                 cmp     cs:dword_180915AB8, eax
+  .text:00000001801E3EFD                 jle     short loc_1801E3F4D
+  .text:00000001801E3EFF                 lea     rcx, dword_180915AB8
+  .text:00000001801E3F06                 call    sub_180427738
+  .text:00000001801E3F0B                 cmp     cs:dword_180915AB8, 0FFFFFFFFh
+  .text:00000001801E3F12                 jnz     short loc_1801E3F4D
+  .text:00000001801E3F14                 lea     r9, aOnclientpostad; "OnClientPostAdvanceTick"
+  .text:00000001801E3F1B                 lea     r8, aCrenderservice; "CRenderService"
+  .text:00000001801E3F22                 lea     rdx, aSS_5; "%s::%s"
+  .text:00000001801E3F29                 lea     rcx, unk_180915AC0
+  .text:00000001801E3F30                 call    sub_1800241C0
+  .text:00000001801E3F35                 ; void (__cdecl *)()
+  .text:00000001801E3F35                 lea     rcx, sub_18047E330; void (__cdecl *)()
+  .text:00000001801E3F3C                 call    atexit
+  .text:00000001801E3F41                 lea     rcx, dword_180915AB8
+  .text:00000001801E3F48                 call    sub_1804276CC
+  .text:00000001801E3F4D                 lea     rdx, unk_18060FED0
+  .text:00000001801E3F54                 lea     rcx, [rbp+arg_8]
+  .text:00000001801E3F58                 call    unknown_libname_12; Microsoft VisualC v7/14 64bit runtime
+  .text:00000001801E3F5D                 mov     rax, cs:qword_180915AC4
+  .text:00000001801E3F64                 mov     rbx, [rbp+arg_8]
+  .text:00000001801E3F68                 bt      eax, 1Eh
+  .text:00000001801E3F6C                 jnb     short loc_1801E3F77
+  .text:00000001801E3F6E                 lea     rsi, qword_180915AC4+4
+  .text:00000001801E3F75                 jmp     short loc_1801E3F87
+  .text:00000001801E3F77                 test    eax, 3FFFFFFFh
+  .text:00000001801E3F7C                 mov     rsi, rdi
+  .text:00000001801E3F7F                 cmova   rsi, cs:qword_180915AC4+4
+  .text:00000001801E3F87                 lea     rax, sub_1801E5AF0
+  .text:00000001801E3F8E                 mov     rcx, r14
+  .text:00000001801E3F91                 mov     [rbp+var_10], rax
+  .text:00000001801E3F95                 call    sub_180043900
+  .text:00000001801E3F9A                 mov     [rsp+58h+var_28], rsi
+  .text:00000001801E3F9F                 lea     rdx, [rbp+var_18]
+  .text:00000001801E3FA3                 mov     [rsp+58h+var_30], r13d
+  .text:00000001801E3FA8                 mov     r9b, 1
+  .text:00000001801E3FAB                 mov     r8d, 1
+  .text:00000001801E3FB1                 mov     [rsp+58h+var_38], rbx
+  .text:00000001801E3FB6                 mov     rcx, r15
+  .text:00000001801E3FB9                 mov     [rbp+var_18], rax
+  .text:00000001801E3FBD                 call    RegisterEventListener_Abstract
+  .text:00000001801E3FC2                 mov     eax, [r12]
+  .text:00000001801E3FC6                 cmp     cs:dword_180915BC8, eax
+  .text:00000001801E3FCC                 mov     r12, [rsp+58h+arg_18]
+  .text:00000001801E3FD4                 mov     rsi, [rsp+58h+arg_0]
+  .text:00000001801E3FDC                 jle     short loc_1801E402C
+  .text:00000001801E3FDE                 lea     rcx, dword_180915BC8
+  .text:00000001801E3FE5                 call    sub_180427738
+  .text:00000001801E3FEA                 cmp     cs:dword_180915BC8, 0FFFFFFFFh
+  .text:00000001801E3FF1                 jnz     short loc_1801E402C
+  .text:00000001801E3FF3                 lea     r9, aOnclientpreout_0; "OnClientPreOutputParallelWithServer"
+  .text:00000001801E3FFA                 lea     r8, aCrenderservice; "CRenderService"
+  .text:00000001801E4001                 lea     rdx, aSS_5; "%s::%s"
+  .text:00000001801E4008                 lea     rcx, unk_180915BD0
+  .text:00000001801E400F                 call    sub_1800241C0
+  .text:00000001801E4014                 ; void (__cdecl *)()
+  .text:00000001801E4014                 lea     rcx, sub_18047E320; void (__cdecl *)()
+  .text:00000001801E401B                 call    atexit
+  .text:00000001801E4020                 lea     rcx, dword_180915BC8
+  .text:00000001801E4027                 call    sub_1804276CC
+  .text:00000001801E402C                 lea     rdx, unk_1806105D0
+  .text:00000001801E4033                 lea     rcx, [rbp+arg_8]
+  .text:00000001801E4037                 call    unknown_libname_12; Microsoft VisualC v7/14 64bit runtime
+  .text:00000001801E403C                 mov     rax, cs:qword_180915BD4
+  .text:00000001801E4043                 mov     rbx, [rbp+arg_8]
+  .text:00000001801E4047                 bt      eax, 1Eh
+  .text:00000001801E404B                 jnb     short loc_1801E4056
+  .text:00000001801E404D                 lea     rdi, qword_180915BD4+4
+  .text:00000001801E4054                 jmp     short loc_1801E4063
+  .text:00000001801E4056                 test    eax, 3FFFFFFFh
+  .text:00000001801E405B                 cmova   rdi, cs:qword_180915BD4+4
+  .text:00000001801E4063                 lea     rax, sub_1801E5C50
+  .text:00000001801E406A                 mov     rcx, r14
+  .text:00000001801E406D                 mov     [rbp+var_10], rax
+  .text:00000001801E4071                 call    sub_180043900
+  .text:00000001801E4076                 mov     [rsp+58h+var_28], rdi
+  .text:00000001801E407B                 lea     rdx, [rbp+var_18]
+  .text:00000001801E407F                 mov     [rsp+58h+var_30], r13d
+  .text:00000001801E4084                 mov     r9b, 1
+  .text:00000001801E4087                 mov     r8d, 1
+  .text:00000001801E408D                 mov     [rsp+58h+var_38], rbx
+  .text:00000001801E4092                 mov     rcx, r15
+  .text:00000001801E4095                 mov     [rbp+var_18], rax
+  .text:00000001801E4099                 call    RegisterEventListener_Abstract
+  .text:00000001801E409E                 mov     r13, [rsp+58h+var_8]
+  .text:00000001801E40A3                 mov     rdi, [rsp+58h+arg_10]
+  .text:00000001801E40AB                 add     rsp, 58h
+  .text:00000001801E40AF                 pop     r15
+  .text:00000001801E40B1                 pop     r14
+  .text:00000001801E40B3                 pop     rbx
+  .text:00000001801E40B4                 pop     rbp
+  .text:00000001801E40B5                 retn
+  .text:00000001801E40B6                 lea     rdx, unk_180610250
+  .text:00000001801E40BD                 lea     rcx, [rbp+arg_8]
+  .text:00000001801E40C1                 call    unknown_libname_12; Microsoft VisualC v7/14 64bit runtime
+  .text:00000001801E40C6                 mov     rbx, [rbp+arg_8]
+  .text:00000001801E40CA                 ; CRenderService_OnFrameBoundary
+  .text:00000001801E40CA                 lea     rax, sub_1801E5B80; CRenderService_OnFrameBoundary
+  .text:00000001801E40D1                 mov     rcx, r14
+  .text:00000001801E40D4                 mov     [rbp+var_10], rax
+  .text:00000001801E40D8                 call    sub_180043900
+  .text:00000001801E40DD                 mov     r8, rbx
+  .text:00000001801E40E0                 mov     [rbp+var_18], rax
+  .text:00000001801E40E4                 lea     rdx, [rbp+var_18]
+  .text:00000001801E40E8                 mov     rcx, r15
+  .text:00000001801E40EB                 call    sub_18013C960
+  .text:00000001801E40F0                 lea     rdx, unk_1806106B0
+  .text:00000001801E40F7                 lea     rcx, [rbp+arg_8]
+  .text:00000001801E40FB                 call    unknown_libname_12; Microsoft VisualC v7/14 64bit runtime
+  .text:00000001801E4100                 mov     rbx, [rbp+arg_8]
+  .text:00000001801E4104                 lea     rax, CRenderService_OnClientOutput
+  .text:00000001801E410B                 mov     rcx, r14
+  .text:00000001801E410E                 mov     [rbp+var_10], rax
+  .text:00000001801E4112                 call    sub_180043900
+  .text:00000001801E4117                 mov     r8, rbx
+  .text:00000001801E411A                 mov     [rbp+var_18], rax
+  .text:00000001801E411E                 lea     rdx, [rbp+var_18]
+  .text:00000001801E4122                 mov     rcx, r15
+  .text:00000001801E4125                 call    sub_18013C960
+  .text:00000001801E412A                 lea     rdx, unk_18060FED0
+  .text:00000001801E4131                 lea     rcx, [rbp+arg_8]
+  .text:00000001801E4135                 call    unknown_libname_12; Microsoft VisualC v7/14 64bit runtime
+  .text:00000001801E413A                 mov     rbx, [rbp+arg_8]
+  .text:00000001801E413E                 lea     rax, sub_1801E5AF0
+  .text:00000001801E4145                 mov     rcx, r14
+  .text:00000001801E4148                 mov     [rbp+var_10], rax
+  .text:00000001801E414C                 call    sub_180043900
+  .text:00000001801E4151                 mov     r8, rbx
+  .text:00000001801E4154                 mov     [rbp+var_18], rax
+  .text:00000001801E4158                 lea     rdx, [rbp+var_18]
+  .text:00000001801E415C                 mov     rcx, r15
+  .text:00000001801E415F                 call    sub_18013C960
+  .text:00000001801E4164                 lea     rdx, unk_1806105D0
+  .text:00000001801E416B                 lea     rcx, [rbp+arg_8]
+  .text:00000001801E416F                 call    unknown_libname_12; Microsoft VisualC v7/14 64bit runtime
+  .text:00000001801E4174                 mov     rbx, [rbp+arg_8]
+  .text:00000001801E4178                 lea     rax, sub_1801E5C50
+  .text:00000001801E417F                 mov     rcx, r14
+  .text:00000001801E4182                 mov     [rbp+var_10], rax
+  .text:00000001801E4186                 call    sub_180043900
+  .text:00000001801E418B                 mov     r8, rbx
+  .text:00000001801E418E                 mov     [rbp+var_18], rax
+  .text:00000001801E4192                 lea     rdx, [rbp+var_18]
+  .text:00000001801E4196                 mov     rcx, r15
+  .text:00000001801E4199                 call    sub_18013C960
+  .text:00000001801E419E                 add     rsp, 58h
+  .text:00000001801E41A2                 pop     r15
+  .text:00000001801E41A4                 pop     r14
+  .text:00000001801E41A6                 pop     rbx
+  .text:00000001801E41A7                 pop     rbp
+  .text:00000001801E41A8                 retn
+procedure: |-
+  __int64 __fastcall sub_1801E3D00(__int64 a1, __int64 a2, int a3)
+  {
+    _DWORD *v5; // r12
+    char *v6; // rdi
+    __int64 v7; // rbx
+    char *v8; // rsi
+    int v9; // r9d
+    __int64 v10; // rbx
+    char *v11; // rsi
+    __int64 v12; // rax
+    int v13; // r9d
+    __int64 v14; // rbx
+    char *v15; // rsi
+    __int64 v16; // rax
+    int v17; // r9d
+    __int64 v18; // rbx
+    __int64 v19; // rax
+    int v20; // r9d
+    __int64 v22; // rbx
+    __int64 v23; // rbx
+    __int64 v24; // rbx
+    __int64 v25; // rbx
+    __int64 v26; // [rsp+40h] [rbp-18h] BYREF
+    __int64 (__fastcall *v27)(); // [rsp+48h] [rbp-10h]
+    __int64 v28; // [rsp+88h] [rbp+30h] BYREF
+
+    if ( a3 )
+    {
+      unknown_libname_12(&v28, &unk_180610250);
+      v22 = v28;
+      v27 = (__int64 (__fastcall *)())sub_1801E5B80;// CRenderService_OnFrameBoundary
+      v26 = sub_180043900(a2);
+      sub_18013C960(a1, &v26, v22);
+      unknown_libname_12(&v28, &unk_1806106B0);
+      v23 = v28;
+      v27 = (__int64 (__fastcall *)())CRenderService_OnClientOutput;
+      v26 = sub_180043900(a2);
+      sub_18013C960(a1, &v26, v23);
+      unknown_libname_12(&v28, &unk_18060FED0);
+      v24 = v28;
+      v27 = sub_1801E5AF0;
+      v26 = sub_180043900(a2);
+      sub_18013C960(a1, &v26, v24);
+      unknown_libname_12(&v28, &unk_1806105D0);
+      v25 = v28;
+      v27 = sub_1801E5C50;
+      v26 = sub_180043900(a2);
+      return sub_18013C960(a1, &v26, v25);
+    }
+    else
+    {
+      v5 = (_DWORD *)(*((_QWORD *)NtCurrentTeb()->ThreadLocalStoragePointer + (unsigned int)TlsIndex) + 104LL);
+      if ( dword_180915898 > *v5 )
+      {
+        sub_180427738(&dword_180915898);
+        if ( dword_180915898 == -1 )
+        {
+          sub_1800241C0(&unk_1809158A0, "%s::%s", "CRenderService", "OnFrameBoundary");
+          atexit(sub_18047E350);
+          sub_1804276CC(&dword_180915898);
+        }
+      }
+      unknown_libname_12(&v28, &unk_180610250);
+      v6 = (char *)&unk_180528B3F;
+      v7 = v28;
+      if ( (qword_1809158A4 & 0x40000000) != 0 )
+      {
+        v8 = (char *)&qword_1809158A4 + 4;
+      }
+      else
+      {
+        v8 = (char *)&unk_180528B3F;
+        if ( (qword_1809158A4 & 0x3FFFFFFF) != 0 )
+          v8 = *(char **)((char *)&qword_1809158A4 + 4);
+      }
+      v27 = (__int64 (__fastcall *)())sub_1801E5B80;
+      v26 = sub_180043900(a2);
+      LOBYTE(v9) = 1;
+      RegisterEventListener_Abstract(a1, (unsigned int)&v26, 1, v9, v7, 0, (__int64)v8);
+      if ( dword_1809159A8 > *v5 )
+      {
+        sub_180427738(&dword_1809159A8);
+        if ( dword_1809159A8 == -1 )
+        {
+          sub_1800241C0(&unk_1809159B0, "%s::%s", "CRenderService", "OnClientOutput");
+          atexit(sub_18047E340);
+          sub_1804276CC(&dword_1809159A8);
+        }
+      }
+      unknown_libname_12(&v28, &unk_1806106B0);
+      v10 = v28;
+      if ( (qword_1809159B4 & 0x40000000) != 0 )
+      {
+        v11 = (char *)&qword_1809159B4 + 4;
+      }
+      else
+      {
+        v11 = (char *)&unk_180528B3F;
+        if ( (qword_1809159B4 & 0x3FFFFFFF) != 0 )
+          v11 = *(char **)((char *)&qword_1809159B4 + 4);
+      }
+      v27 = (__int64 (__fastcall *)())CRenderService_OnClientOutput;
+      v12 = sub_180043900(a2);
+      LOBYTE(v13) = 1;
+      v26 = v12;
+      RegisterEventListener_Abstract(a1, (unsigned int)&v26, 1, v13, v10, 0, (__int64)v11);
+      if ( dword_180915AB8 > *v5 )
+      {
+        sub_180427738(&dword_180915AB8);
+        if ( dword_180915AB8 == -1 )
+        {
+          sub_1800241C0(&unk_180915AC0, "%s::%s", "CRenderService", "OnClientPostAdvanceTick");
+          atexit(sub_18047E330);
+          sub_1804276CC(&dword_180915AB8);
+        }
+      }
+      unknown_libname_12(&v28, &unk_18060FED0);
+      v14 = v28;
+      if ( (qword_180915AC4 & 0x40000000) != 0 )
+      {
+        v15 = (char *)&qword_180915AC4 + 4;
+      }
+      else
+      {
+        v15 = (char *)&unk_180528B3F;
+        if ( (qword_180915AC4 & 0x3FFFFFFF) != 0 )
+          v15 = *(char **)((char *)&qword_180915AC4 + 4);
+      }
+      v27 = sub_1801E5AF0;
+      v16 = sub_180043900(a2);
+      LOBYTE(v17) = 1;
+      v26 = v16;
+      RegisterEventListener_Abstract(a1, (unsigned int)&v26, 1, v17, v14, 0, (__int64)v15);
+      if ( dword_180915BC8 > *v5 )
+      {
+        sub_180427738(&dword_180915BC8);
+        if ( dword_180915BC8 == -1 )
+        {
+          sub_1800241C0(&unk_180915BD0, "%s::%s", "CRenderService", "OnClientPreOutputParallelWithServer");
+          atexit(sub_18047E320);
+          sub_1804276CC(&dword_180915BC8);
+        }
+      }
+      unknown_libname_12(&v28, &unk_1806105D0);
+      v18 = v28;
+      if ( (qword_180915BD4 & 0x40000000) != 0 )
+      {
+        v6 = (char *)&qword_180915BD4 + 4;
+      }
+      else if ( (qword_180915BD4 & 0x3FFFFFFF) != 0 )
+      {
+        v6 = *(char **)((char *)&qword_180915BD4 + 4);
+      }
+      v27 = sub_1801E5C50;
+      v19 = sub_180043900(a2);
+      LOBYTE(v20) = 1;
+      v26 = v19;
+      return RegisterEventListener_Abstract(a1, (unsigned int)&v26, 1, v20, v18, 0, (__int64)v6);
+    }
+  }
