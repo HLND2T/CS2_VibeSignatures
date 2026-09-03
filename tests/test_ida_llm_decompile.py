@@ -23,4 +23,3 @@ class TestLlmTransportTimeout(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(succeeded)
         self.assertIsNone(content)
         self.assertIsNone(retry_delay)
-
