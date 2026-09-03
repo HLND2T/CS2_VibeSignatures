@@ -122,6 +122,7 @@ load_dotenv()
 DEFAULT_DOWNLOAD_FILE = "download.yaml"
 DEFAULT_BIN_DIR = "bin"
 DEFAULT_ARTIFACTS_DIR = "bin_artifacts"
+ARTIFACT_OUTPUT_ENV = "CS2VIBE_ARTIFACT_DIR"
 DEFAULT_PLATFORM = "windows,linux"
 DEFAULT_MODULES = "*"
 DEFAULT_AGENT = "claude"
@@ -3376,8 +3377,14 @@ def process_binary(
         port = _allocate_local_port(host)
         if debug:
             print(f"  Allocated dynamic MCP port {host}:{port}")
+    previous_artifact_output_dir = os.environ.get(ARTIFACT_OUTPUT_ENV)
+    os.environ[ARTIFACT_OUTPUT_ENV] = os.path.abspath(artifact_dir)
     process = start_idalib_mcp(binary_path, host, port, ida_args, debug)
     if process is None:
+        if previous_artifact_output_dir is None:
+            os.environ.pop(ARTIFACT_OUTPUT_ENV, None)
+        else:
+            os.environ[ARTIFACT_OUTPUT_ENV] = previous_artifact_output_dir
         post_process_failure = 1 if startup_post_process_yaml_items else 0
         _abort_binary_reporting(
             reporting,
@@ -4306,6 +4313,10 @@ def process_binary(
                 print(f"  MCP port {host}:{port} remained in use after shutdown")
         else:
             quit_ida_gracefully(process, host, port, expected_binary=binary_path, debug=debug)
+        if previous_artifact_output_dir is None:
+            os.environ.pop(ARTIFACT_OUTPUT_ENV, None)
+        else:
+            os.environ[ARTIFACT_OUTPUT_ENV] = previous_artifact_output_dir
 
     return success_count, fail_count, skip_count
 

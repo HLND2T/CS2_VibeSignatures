@@ -52,7 +52,7 @@ offset_sig_disp = <offset_sig_disp>    # e.g., 8 or None (0 also omitted)
 
 # Get binary path and determine platform
 input_file = idaapi.get_input_file_path()
-dir_path = os.path.dirname(input_file)
+dir_path = os.environ.get('CS2VIBE_ARTIFACT_DIR') or os.path.dirname(input_file)
 
 if input_file.endswith('.dll'):
     platform = 'windows'

@@ -64,7 +64,7 @@ image_base = idaapi.get_imagebase()
 ptr_size = 8 if idaapi.inf_is_64bit() else 4
 
 input_file = idaapi.get_input_file_path()
-dir_path = os.path.dirname(input_file)
+dir_path = os.environ.get('CS2VIBE_ARTIFACT_DIR') or os.path.dirname(input_file)
 platform = 'windows' if input_file.endswith('.dll') else 'linux'
 
 all_vtables = []

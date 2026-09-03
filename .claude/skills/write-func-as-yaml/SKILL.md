@@ -41,7 +41,7 @@ func_size = func.size() if func else 0
 
 # Get binary path and determine platform
 input_file = idaapi.get_input_file_path()
-dir_path = os.path.dirname(input_file)
+dir_path = os.environ.get('CS2VIBE_ARTIFACT_DIR') or os.path.dirname(input_file)
 
 if input_file.endswith('.dll'):
     platform = 'windows'

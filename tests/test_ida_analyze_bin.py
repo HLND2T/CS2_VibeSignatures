@@ -2378,6 +2378,51 @@ class TestProcessBinary(unittest.TestCase):
                 self.assertEqual(expected, output.read_bytes())
                 self.assertFalse((binary_dir / output.name).exists())
 
+    def test_process_binary_exports_artifact_directory_to_ida_and_agent(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            binary_dir = Path(temp_dir) / "bin" / "14168" / "engine"
+            binary_dir.mkdir(parents=True, exist_ok=True)
+            binary_path = str(binary_dir / "engine2.dll")
+            artifact_dir = Path(temp_dir) / "bin_artifacts" / "14168" / "engine"
+            fake_process = object()
+            observed = []
+
+            def observe_artifact_dir(*_args, **_kwargs):
+                observed.append(os.environ.get(ida_analyze_bin.ARTIFACT_OUTPUT_ENV))
+                return True
+
+            with (
+                patch.object(ida_analyze_bin, "start_idalib_mcp", return_value=fake_process),
+                patch.object(ida_analyze_bin, "ensure_mcp_available", return_value=(fake_process, True)),
+                patch.object(
+                    ida_analyze_bin,
+                    "_run_validate_expected_input_artifacts_via_mcp",
+                    return_value=[],
+                ),
+                patch.object(
+                    ida_analyze_bin,
+                    "_run_preprocess_single_skill_via_mcp",
+                    return_value="failed",
+                ),
+                patch.object(ida_analyze_bin, "run_skill", side_effect=observe_artifact_dir),
+                patch.object(ida_analyze_bin, "quit_ida_gracefully", return_value=None),
+            ):
+                result = ida_analyze_bin.process_binary(
+                    binary_path=binary_path,
+                    skills=[{"name": "find-global", "expected_output": ["Global.{platform}.yaml"]}],
+                    platform="windows",
+                    agent="codex",
+                    max_retries=1,
+                    host="127.0.0.1",
+                    port=39091,
+                    ida_args=None,
+                    artifact_dir=artifact_dir,
+                )
+
+        self.assertEqual((1, 0, 0), result)
+        self.assertEqual([str(artifact_dir.resolve())], observed)
+        self.assertNotIn(ida_analyze_bin.ARTIFACT_OUTPUT_ENV, os.environ)
+
     def test_process_binary_treats_absent_ok_as_skip_and_continues(self) -> None:
         with TemporaryDirectory() as temp_dir:
             binary_dir = Path(temp_dir) / "engine"
