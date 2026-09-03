@@ -998,6 +998,12 @@ modules:
       - name: find-CNetworkServerSpawnGroupCreatePrerequisites_Init
         expected_output:
           - CNetworkServerSpawnGroupCreatePrerequisites_Init.{platform}.yaml
+      - name: find-CGameResourceService_AllocGameResourceManifest
+        expected_output:
+          - CGameResourceService_AllocGameResourceManifest.{platform}.yaml
+        expected_input:
+          - CNetworkServerSpawnGroupCreatePrerequisites_Init.{platform}.yaml
+          - CGameResourceService_vtable.{platform}.yaml
       - name: find-CNetworkGameServerBase_LoadSpawnGroup
         expected_output:
           - CNetworkGameServerBase_LoadSpawnGroup.{platform}.yaml
@@ -2703,6 +2709,10 @@ modules:
         category: func
         alias:
           - CNetworkServerSpawnGroupCreatePrerequisites::Init
+      - name: CGameResourceService_AllocGameResourceManifest
+        category: vfunc
+        alias:
+          - CGameResourceService::AllocGameResourceManifest
       - name: CNetworkGameServerBase_LoadSpawnGroup
         category: vfunc
         alias:
