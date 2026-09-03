@@ -67,7 +67,7 @@ jobs:
               }
             )
             if ($pulls.Count -lt 1) {
-              $match = [regex]::Match($env:MERGE_GROUP_HEAD_REF, '^gh-readonly-queue/[^/]+/pr-([1-9][0-9]*)-[0-9a-f]{40}$')
+              $match = [regex]::Match($env:MERGE_GROUP_HEAD_REF, '^(?:refs/heads/)?gh-readonly-queue/[^/]+/pr-([1-9][0-9]*)-[0-9a-f]{40}$')
               if (-not $match.Success) {
                 throw "Unable to prove the merge-group PR membership."
               }
