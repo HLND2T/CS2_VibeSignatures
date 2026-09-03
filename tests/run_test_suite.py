@@ -80,6 +80,7 @@ UNIT_MODULES = frozenset(
         "test_generate_reference_yaml",
         "test_headless_force_push",
         "test_ida_analyze_bin",
+        "test_ida_llm_decompile",
         "test_idb_cache",
         "test_ida_analyze_util",
         "test_ida_llm_utils",
