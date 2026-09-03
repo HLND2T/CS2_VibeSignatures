@@ -374,7 +374,15 @@ class BinSyncCandidateTests(unittest.TestCase):
             root.mkdir()
             _source_sha, preparation, binsync_repo = self._repository(root)
             unrelated = self._git(
-                binsync_repo, "commit-tree", self._git(binsync_repo, "mktree", input_text=""), "-m", "x"
+                binsync_repo,
+                "-c",
+                "user.name=TestUser",
+                "-c",
+                "user.email=TestUser@binsync.local",
+                "commit-tree",
+                self._git(binsync_repo, "mktree", input_text=""),
+                "-m",
+                "x",
             )
 
             with self.assertRaisesRegex(candidate.BinSyncCandidateError, "not a fast-forward"):
