@@ -31,6 +31,7 @@ except Exception:
 
 
 _UNSET = object()
+LLM_DECOMPILE_TIMEOUT_SECONDS = 900
 LLM_DECOMPILE_RESULT_SECTIONS = (
     "found_vcall",
     "found_call",
@@ -1262,7 +1263,10 @@ async def _call_llm_transport_attempt(
     try:
         content = transport(**attempt_kwargs)
         if inspect.isawaitable(content):
-            content = await content
+            try:
+                content = await asyncio.wait_for(content, timeout=LLM_DECOMPILE_TIMEOUT_SECONDS)
+            except asyncio.TimeoutError as exc:
+                raise TimeoutError("LLM decompile transport timed out") from exc
         return True, content, retry_delay
     except Exception as exc:
         retry_delay = await _handle_llm_transport_error(
