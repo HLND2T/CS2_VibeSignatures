@@ -558,6 +558,7 @@ def build_trusted_artifact_plan(*, repo_root: str | Path, trusted_context: dict 
 
     base_versions = _configured_versions(repo, context["base_sha"])
     merge_versions = _configured_versions(repo, context["merge_sha"])
+    maintained_versions = {max(merge_versions, key=gamever_order_key)} if merge_versions else set()
     _validate_repository_tree_namespaces(repo, context["base_sha"], base_versions)
     _validate_repository_tree_namespaces(repo, context["merge_sha"], merge_versions)
     changes = repo.changes(context["base_sha"], context["merge_sha"])
@@ -628,7 +629,8 @@ def build_trusted_artifact_plan(*, repo_root: str | Path, trusted_context: dict 
             selected_group_ids: set[str] = set()
             selected_node_ids: set[str] = set()
             invalidated_paths: set[str] = set()
-            if merge_contract is not None and base_contract is not None:
+            maintained = gamever in maintained_versions
+            if merge_contract is not None and base_contract is not None and maintained:
                 invalidation = build_invalidation_plan(
                     base_contract,
                     merge_contract,
@@ -645,7 +647,7 @@ def build_trusted_artifact_plan(*, repo_root: str | Path, trusted_context: dict 
                 )
                 invalidated_paths.update(path for path in invalidation.paths if path not in merge_contract.formal_paths)
                 reasons.extend(invalidation.reasons)
-            elif merge_contract is not None:
+            elif merge_contract is not None and maintained:
                 selected_group_ids = set(merge_contract.producer_groups)
                 selected_node_ids = {
                     node_id
@@ -654,11 +656,11 @@ def build_trusted_artifact_plan(*, repo_root: str | Path, trusted_context: dict 
                 }
                 invalidated_paths.update(merge_contract.formal_paths)
                 reasons.append("new configured GAMEVER")
-            elif base_contract is not None:
+            elif base_contract is not None and maintained:
                 invalidated_paths.update(base_contract.formal_paths)
                 reasons.append("configured GAMEVER removed")
 
-            if shared_analysis_changed and merge_contract is not None:
+            if shared_analysis_changed and merge_contract is not None and maintained:
                 selected_group_ids = set(merge_contract.producer_groups)
                 selected_node_ids = {
                     node_id
@@ -671,7 +673,7 @@ def build_trusted_artifact_plan(*, repo_root: str | Path, trusted_context: dict 
             binary_identity_changed = base_downloads.get(gamever) != merge_downloads.get(gamever) or (
                 base_binary_lock.sha256 if base_binary_lock else None
             ) != (merge_binary_lock.sha256 if merge_binary_lock else None)
-            if merge_contract is not None and binary_identity_changed:
+            if merge_contract is not None and binary_identity_changed and maintained:
                 selected_group_ids = set(merge_contract.producer_groups)
                 selected_node_ids = {
                     node_id
@@ -688,7 +690,7 @@ def build_trusted_artifact_plan(*, repo_root: str | Path, trusted_context: dict 
                     path and path.startswith(f"bin_artifacts/{gamever}/") for path in (change.old_path, change.new_path)
                 )
             ]
-            if artifact_changes and not invalidated_paths:
+            if artifact_changes and maintained and not invalidated_paths:
                 raise TrustedArtifactPrError(f"artifact-only changes produced an empty plan for GAMEVER {gamever}")
 
             groups = []

@@ -2,6 +2,11 @@
 
 状态：实施中（仓库内步骤 1–17 与步骤 20 的本地收口已完成；外部 cutover 与发布验收未完成）
 
+维护范围决策（2026-09-03）：历史 GAMEVER 的 source-owned artifacts 保留为只读快照，
+required producer validation 与后续维护仅针对配置中排序最高的当前版本（现为 `14178b`）。
+trusted planner 仍检查历史目录命名空间与 contract 完整性，但不会把历史版本加入 affected
+validation matrix；不以历史版本的 producer 重建结果作为本迁移的验收门槛。
+
 日期：2026-09-01
 
 实施记录（2026-09-02）：
