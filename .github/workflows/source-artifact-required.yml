@@ -313,14 +313,3 @@ jobs:
         run: |
           set -euo pipefail
           [[ "$SOURCE_ARTIFACT_RESULT" == "success" ]]
-  pr-validate:
-    name: pr-validate
-    needs: source-artifact-required
-    if: always() && github.repository == 'HLND2T/CS2_VibeSignatures'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Require trusted source-artifact validation
-        shell: bash
-        env:
-          RESULT: ${{ needs.source-artifact-required.result }}
-        run: test "$RESULT" = success
