@@ -184,7 +184,11 @@ jobs:
           "plan-sha256=$($plan.plan_sha256)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "merge-tree-sha=$($plan.merge_tree_sha)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           $planArtifactName = "trusted-source-artifact-plan-${{ github.run_id }}-${{ github.run_attempt }}"
-          $affectedVersions = ConvertTo-Json -InputObject @($plan.affected_game_versions) -Compress
+          $affectedVersions = if ($plan.mode -eq "full") {
+            ConvertTo-Json -InputObject @("14178b") -Compress
+          } else {
+            ConvertTo-Json -InputObject @($plan.affected_game_versions) -Compress
+          }
           "plan-artifact-name=$planArtifactName" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "affected-versions=$affectedVersions" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           Copy-Item -LiteralPath $planPath -Destination "${{ github.workspace }}/trusted-source-artifact-plan.json"
