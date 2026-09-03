@@ -1277,6 +1277,11 @@ modules:
       - name: find-CNetworkServerService_vtable
         expected_output:
           - CNetworkServerService_vtable.{platform}.yaml
+      - name: find-CNetworkServerService_OnLoopActivate
+        expected_output:
+          - CNetworkServerService_OnLoopActivate.{platform}.yaml
+        expected_input:
+          - CNetworkServerService_vtable.{platform}.yaml
       - name: find-CNetworkServerService_Init
         expected_output:
           - CNetworkServerService_Init.{platform}.yaml
@@ -2021,6 +2026,12 @@ modules:
           - CLoopTypeClientServerService_HandleInputEvent.{platform}.yaml
       - name: find-CEngineServiceMgr_vtable
         expected_output:
+          - CEngineServiceMgr_vtable.{platform}.yaml
+      - name: find-CEngineServiceMgr_IsInGameLoop
+        expected_output:
+          - CEngineServiceMgr_IsInGameLoop.{platform}.yaml
+        expected_input:
+          - CNetworkServerService_OnLoopActivate.{platform}.yaml
           - CEngineServiceMgr_vtable.{platform}.yaml
       - name: find-CEngineServiceMgr_RegisterEngineService
         expected_output:
@@ -3020,6 +3031,10 @@ modules:
           - CNetworkClientService::AllocateRemoteConnectionClient
       - name: CNetworkServerService_vtable
         category: vtable
+      - name: CNetworkServerService_OnLoopActivate
+        category: vfunc
+        alias:
+          - CNetworkServerService::OnLoopActivate
       - name: CNetworkGameServer_WriteClassInfosAndSerializesToBuffer
         category: func
         alias:
@@ -3542,6 +3557,10 @@ modules:
           - ILoopModeFactory::Shutdown
       - name: CEngineServiceMgr_vtable
         category: vtable
+      - name: CEngineServiceMgr_IsInGameLoop
+        category: vfunc
+        alias:
+          - CEngineServiceMgr::IsInGameLoop
       - name: CEngineServiceMgr_RegisterEngineService
         category: vfunc
         alias:
