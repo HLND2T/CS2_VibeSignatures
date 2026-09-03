@@ -271,3 +271,16 @@ jobs:
             [[ "$FULL_RESULT" == "success" ]]
           fi
           printf 'validation_mode=%s\nplan=%s\nmerge_tree=%s\n' "$VALIDATION_MODE" "$PLAN_SHA256" "$MERGE_TREE_SHA"
+  pr-validate-merge-group:
+    name: pr-validate
+    needs: source-artifact-required
+    if: always() && github.event_name == 'merge_group' && github.repository == 'HLND2T/CS2_VibeSignatures'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require source-artifact validation
+        shell: bash
+        env:
+          SOURCE_ARTIFACT_RESULT: ${{ needs.source-artifact-required.result }}
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_ARTIFACT_RESULT" == "success" ]]
