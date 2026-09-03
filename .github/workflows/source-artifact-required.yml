@@ -43,6 +43,7 @@ jobs:
           PR_HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
           MERGE_GROUP_BASE_SHA: ${{ github.event.merge_group.base_sha }}
           MERGE_GROUP_HEAD_SHA: ${{ github.event.merge_group.head_sha }}
+          MERGE_GROUP_HEAD_REF: ${{ github.event.merge_group.head_ref }}
           REPOSITORY: ${{ github.repository }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
           GH_TOKEN: ${{ github.token }}
@@ -64,7 +65,16 @@ jobs:
               }
             )
             if ($pulls.Count -lt 1) {
-              throw "Unable to prove the merge-group PR membership."
+              $match = [regex]::Match($env:MERGE_GROUP_HEAD_REF, '^(?:refs/heads/)?gh-readonly-queue/[^/]+/pr-([1-9][0-9]*)-[0-9a-f]{40}$')
+              if (-not $match.Success) {
+                throw "Unable to prove the merge-group PR membership."
+              }
+              $pull = gh api -H "Accept: application/vnd.github+json" `
+                "repos/$env:REPOSITORY/pulls/$($match.Groups[1].Value)" | ConvertFrom-Json -Depth 100
+              if ($LASTEXITCODE -ne 0) {
+                throw "Unable to resolve the merge-group PR membership."
+              }
+              $pulls = @($pull)
             }
             $pullNumbers = @($pulls | ForEach-Object { [string]$_.number })
             if (@($pullNumbers | Sort-Object -Unique).Count -ne $pullNumbers.Count -or `
@@ -261,3 +271,16 @@ jobs:
             [[ "$FULL_RESULT" == "success" ]]
           fi
           printf 'validation_mode=%s\nplan=%s\nmerge_tree=%s\n' "$VALIDATION_MODE" "$PLAN_SHA256" "$MERGE_TREE_SHA"
+  pr-validate-merge-group:
+    name: pr-validate
+    needs: source-artifact-required
+    if: always() && github.event_name == 'merge_group' && github.repository == 'HLND2T/CS2_VibeSignatures'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require source-artifact validation
+        shell: bash
+        env:
+          SOURCE_ARTIFACT_RESULT: ${{ needs.source-artifact-required.result }}
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_ARTIFACT_RESULT" == "success" ]]
