@@ -1,0 +1,271 @@
+func_name: CLagCompensationManager_StartLagCompensation
+func_va: '0x180dedb60'
+disasm_code: |-
+  .text:0000000180DEDB60                 test    rdx, rdx
+  .text:0000000180DEDB63                 jz      locret_180DEDDBE
+  .text:0000000180DEDB69                 push    rdi
+  .text:0000000180DEDB6A                 push    r12
+  .text:0000000180DEDB6C                 push    r14
+  .text:0000000180DEDB6E                 push    r15
+  .text:0000000180DEDB70                 sub     rsp, 78h
+  .text:0000000180DEDB74                 mov     r10d, [rdx+0BB0h]
+  .text:0000000180DEDB7B                 mov     r15, r9
+  .text:0000000180DEDB7E                 mov     [rsp+98h+var_28], rsi
+  .text:0000000180DEDB83                 mov     r12d, r8d
+  .text:0000000180DEDB86                 mov     esi, 0FFFFFFFFh
+  .text:0000000180DEDB8B                 mov     rdi, rdx
+  .text:0000000180DEDB8E                 mov     r14, rcx
+  .text:0000000180DEDB91                 cmp     r10d, esi
+  .text:0000000180DEDB94                 jz      loc_180DEDDAE
+  .text:0000000180DEDB9A                 mov     r9, cs:g_pEntityList
+  .text:0000000180DEDBA1                 test    r9, r9
+  .text:0000000180DEDBA4                 jz      loc_180DEDDAE
+  .text:0000000180DEDBAA                 cmp     r10d, 0FFFFFFFEh
+  .text:0000000180DEDBAE                 jz      short loc_180DEDBE2
+  .text:0000000180DEDBB0                 mov     eax, r10d
+  .text:0000000180DEDBB3                 and     eax, 7FFFh
+  .text:0000000180DEDBB8                 mov     ecx, eax
+  .text:0000000180DEDBBA                 shr     rax, 9
+  .text:0000000180DEDBBE                 mov     rdx, [r9+rax*8]
+  .text:0000000180DEDBC2                 test    rdx, rdx
+  .text:0000000180DEDBC5                 jz      short loc_180DEDBE2
+  .text:0000000180DEDBC7                 and     ecx, 1FFh
+  .text:0000000180DEDBCD                 imul    rax, rcx, 70h ; 'p'
+  .text:0000000180DEDBD1                 add     rax, rdx
+  .text:0000000180DEDBD4                 jz      short loc_180DEDBE2
+  .text:0000000180DEDBD6                 xor     ecx, ecx
+  .text:0000000180DEDBD8                 cmp     [rax+10h], r10d
+  .text:0000000180DEDBDC                 cmovnz  rax, rcx
+  .text:0000000180DEDBE0                 jmp     short loc_180DEDBE6
+  .text:0000000180DEDBE2                 xor     ecx, ecx
+  .text:0000000180DEDBE4                 mov     eax, ecx
+  .text:0000000180DEDBE6                 test    rax, rax
+  .text:0000000180DEDBE9                 jz      loc_180DEDDAE
+  .text:0000000180DEDBEF                 cmp     qword ptr [rax], 0
+  .text:0000000180DEDBF3                 jz      loc_180DEDDAE
+  .text:0000000180DEDBF9                 movsd   xmm0, qword ptr [r15]
+  .text:0000000180DEDBFE                 movsd   qword ptr [r14+0D0h], xmm0
+  .text:0000000180DEDC07                 mov     eax, [r15+8]
+  .text:0000000180DEDC0B                 mov     [r14+0D8h], eax
+  .text:0000000180DEDC12                 mov     [rsp+98h+arg_10], rbp
+  .text:0000000180DEDC1A                 mov     rbp, [rsp+98h+arg_20]
+  .text:0000000180DEDC22                 mov     [rsp+98h+arg_0], rbx
+  .text:0000000180DEDC2A                 mov     [rsp+98h+var_44], 0
+  .text:0000000180DEDC33                 movsd   xmm0, qword ptr [rbp+0]
+  .text:0000000180DEDC38                 movsd   qword ptr [r14+0DCh], xmm0
+  .text:0000000180DEDC41                 mov     eax, [rbp+8]
+  .text:0000000180DEDC44                 mov     [r14+0E4h], eax
+  .text:0000000180DEDC4B                 lea     rax, ??_7CDefaultLagCompensation@@6B@; const CDefaultLagCompensation::`vftable'
+  .text:0000000180DEDC52                 mov     r8d, [rdi+0BB0h]
+  .text:0000000180DEDC59                 mov     [rsp+98h+var_78], rax
+  .text:0000000180DEDC5E                 cmp     r8d, esi
+  .text:0000000180DEDC61                 jz      loc_180DEDDBF
+  .text:0000000180DEDC67                 mov     r9, cs:g_pEntityList
+  .text:0000000180DEDC6E                 test    r9, r9
+  .text:0000000180DEDC71                 jz      loc_180DEDDBF
+  .text:0000000180DEDC77                 cmp     r8d, 0FFFFFFFEh
+  .text:0000000180DEDC7B                 jz      short loc_180DEDCAD
+  .text:0000000180DEDC7D                 mov     eax, r8d
+  .text:0000000180DEDC80                 and     eax, 7FFFh
+  .text:0000000180DEDC85                 mov     edx, eax
+  .text:0000000180DEDC87                 shr     rax, 9
+  .text:0000000180DEDC8B                 mov     r10, [r9+rax*8]
+  .text:0000000180DEDC8F                 test    r10, r10
+  .text:0000000180DEDC92                 jz      short loc_180DEDCAD
+  .text:0000000180DEDC94                 and     edx, 1FFh
+  .text:0000000180DEDC9A                 imul    rax, rdx, 70h ; 'p'
+  .text:0000000180DEDC9E                 add     rax, r10
+  .text:0000000180DEDCA1                 jz      short loc_180DEDCAD
+  .text:0000000180DEDCA3                 cmp     [rax+10h], r8d
+  .text:0000000180DEDCA7                 cmovnz  rax, rcx
+  .text:0000000180DEDCAB                 jmp     short loc_180DEDCB0
+  .text:0000000180DEDCAD                 mov     rax, rcx
+  .text:0000000180DEDCB0                 test    rax, rax
+  .text:0000000180DEDCB3                 jz      loc_180DEDDBF
+  .text:0000000180DEDCB9                 mov     rbx, [rax]
+  .text:0000000180DEDCBC                 test    rbx, rbx
+  .text:0000000180DEDCBF                 jz      loc_180DEDDBF
+  .text:0000000180DEDCC5                 mov     rcx, rbx
+  .text:0000000180DEDCC8                 call    sub_180B133B0
+  .text:0000000180DEDCCD                 mov     [rsp+98h+var_70], rax
+  .text:0000000180DEDCD2                 test    rax, rax
+  .text:0000000180DEDCD5                 jz      loc_180DEDDC4
+  .text:0000000180DEDCDB                 mov     eax, [r15+8]
+  .text:0000000180DEDCDF                 mov     rcx, rbx
+  .text:0000000180DEDCE2                 movsd   xmm0, qword ptr [r15]
+  .text:0000000180DEDCE7                 mov     [rsp+98h+var_58], eax
+  .text:0000000180DEDCEB                 mov     eax, [rbp+8]
+  .text:0000000180DEDCEE                 movsd   [rsp+98h+var_60], xmm0
+  .text:0000000180DEDCF4                 movsd   xmm0, qword ptr [rbp+0]
+  .text:0000000180DEDCF9                 mov     [rsp+98h+var_4C], eax
+  .text:0000000180DEDCFD                 mov     rax, cs:g_engine
+  .text:0000000180DEDD04                 movsd   [rsp+98h+var_54], xmm0
+  .text:0000000180DEDD0A                 movss   xmm0, [rsp+98h+arg_28]
+  .text:0000000180DEDD13                 movss   [rsp+98h+var_48], xmm0
+  .text:0000000180DEDD19                 mov     [rsp+98h+var_68], rdi
+  .text:0000000180DEDD1E                 mov     rdx, [rax]
+  .text:0000000180DEDD21                 mov     rbp, [rdx+150h]
+  .text:0000000180DEDD28                 lea     rdx, [rsp+98h+arg_8]
+  .text:0000000180DEDD30                 call    sub_181265470
+  .text:0000000180DEDD35                 mov     eax, [rsp+98h+arg_8]
+  .text:0000000180DEDD3C                 cmp     eax, 0FFFFFFFFh
+  .text:0000000180DEDD3F                 jz      short loc_180DEDD44
+  .text:0000000180DEDD41                 lea     esi, [rax-1]
+  .text:0000000180DEDD44                 mov     rcx, cs:g_engine
+  .text:0000000180DEDD4B                 mov     edx, esi
+  .text:0000000180DEDD4D                 call    rbp
+  .text:0000000180DEDD4F                 mov     rcx, cs:off_181CBC750
+  .text:0000000180DEDD56                 lea     rdx, [rsp+98h+arg_8]
+  .text:0000000180DEDD5E                 mov     r9, [rsp+98h+arg_30]
+  .text:0000000180DEDD66                 mov     r8, [rsp+98h+var_68]
+  .text:0000000180DEDD6B                 mov     [rsp+98h+var_38], rax
+  .text:0000000180DEDD70                 mov     rax, [rcx]
+  .text:0000000180DEDD73                 call    qword ptr [rax+28h]
+  .text:0000000180DEDD76                 lea     r9, [rsp+98h+var_78]
+  .text:0000000180DEDD7B                 mov     r8d, r12d
+  .text:0000000180DEDD7E                 mov     rdx, rdi
+  .text:0000000180DEDD81                 mov     rcx, [rax]
+  .text:0000000180DEDD84                 movzx   eax, [rsp+98h+arg_38]
+  .text:0000000180DEDD8C                 mov     [rsp+98h+var_3C], al
+  .text:0000000180DEDD90                 mov     rax, [r14]
+  .text:0000000180DEDD93                 mov     [rsp+98h+var_44], rcx
+  .text:0000000180DEDD98                 mov     rcx, r14
+  .text:0000000180DEDD9B                 call    qword ptr [rax+8]
+  .text:0000000180DEDD9E                 mov     rbx, [rsp+98h+arg_0]
+  .text:0000000180DEDDA6                 mov     rbp, [rsp+98h+arg_10]
+  .text:0000000180DEDDAE                 mov     rsi, [rsp+98h+var_28]
+  .text:0000000180DEDDB3                 add     rsp, 78h
+  .text:0000000180DEDDB7                 pop     r15
+  .text:0000000180DEDDB9                 pop     r14
+  .text:0000000180DEDDBB                 pop     r12
+  .text:0000000180DEDDBD                 pop     rdi
+  .text:0000000180DEDDBE                 retn
+  .text:0000000180DEDDBF                 mov     [rsp+98h+var_70], rcx
+  .text:0000000180DEDDC4                 lea     rcx, aClagcompensati_1; "CLagCompensationManager::StartLagCompen"...
+  .text:0000000180DEDDCB                 call    cs:Plat_FatalError
+procedure: |-
+  void __fastcall CLagCompensationManager_StartLagCompensation(
+          __int64 *a1,
+          __int64 a2,
+          unsigned int a3,
+          __int64 *a4,
+          _QWORD *a5,
+          int a6,
+          __int64 a7,
+          char a8)
+  {
+    int v8; // r10d
+    unsigned int v11; // esi
+    __int64 v14; // rdx
+    __int64 v15; // rax
+    _QWORD *v16; // rbp
+    int v17; // r8d
+    __int64 v18; // r10
+    __int64 *v19; // rax
+    __int64 v20; // rbx
+    __int64 v21; // xmm0_8
+    int v22; // eax
+    __int64 v23; // xmm0_8
+    __int64 (__fastcall *v24)(__int64, _QWORD); // rbp
+    __int64 v25; // rcx
+    __int64 v26; // rax
+    void **v27; // [rsp+20h] [rbp-78h] BYREF
+    __int64 v28; // [rsp+28h] [rbp-70h]
+    __int64 v29; // [rsp+30h] [rbp-68h]
+    __int64 v30; // [rsp+38h] [rbp-60h]
+    int v31; // [rsp+40h] [rbp-58h]
+    __int64 v32; // [rsp+44h] [rbp-54h]
+    int v33; // [rsp+4Ch] [rbp-4Ch]
+    int v34; // [rsp+50h] [rbp-48h]
+    __int64 v35; // [rsp+54h] [rbp-44h]
+    char v36; // [rsp+5Ch] [rbp-3Ch]
+    __int64 v37; // [rsp+60h] [rbp-38h]
+    int v38; // [rsp+A8h] [rbp+10h] BYREF
+
+    if ( a2 )
+    {
+      v8 = *(_DWORD *)(a2 + 2992);
+      v11 = -1;
+      if ( v8 != -1 )
+      {
+        if ( g_pEntityList )
+        {
+          if ( v8 != -2
+            && (v14 = *(_QWORD *)(g_pEntityList + 8 * ((unsigned __int64)(v8 & 0x7FFF) >> 9))) != 0
+            && (v15 = v14 + 112LL * (v8 & 0x1FF)) != 0 )
+          {
+            if ( *(_DWORD *)(v15 + 16) != v8 )
+              v15 = 0;
+          }
+          else
+          {
+            v15 = 0;
+          }
+          if ( v15 && *(_QWORD *)v15 )
+          {
+            a1[26] = *a4;
+            *((_DWORD *)a1 + 54) = *((_DWORD *)a4 + 2);
+            v16 = a5;
+            v35 = 0;
+            *(__int64 *)((char *)a1 + 220) = *a5;
+            *((_DWORD *)a1 + 57) = *((_DWORD *)v16 + 2);
+            v17 = *(_DWORD *)(a2 + 2992);
+            v27 = &CDefaultLagCompensation::`vftable';
+            if ( v17 == -1 || !g_pEntityList )
+              goto LABEL_29;
+            if ( v17 != -2
+              && (v18 = *(_QWORD *)(g_pEntityList + 8 * ((unsigned __int64)(v17 & 0x7FFF) >> 9))) != 0
+              && (v19 = (__int64 *)(v18 + 112LL * (v17 & 0x1FF))) != nullptr )
+            {
+              if ( *((_DWORD *)v19 + 4) != v17 )
+                v19 = nullptr;
+            }
+            else
+            {
+              v19 = nullptr;
+            }
+            if ( v19 && (v20 = *v19) != 0 )
+            {
+              v28 = sub_180B133B0(*v19);
+              if ( v28 )
+              {
+                v21 = *a4;
+                v31 = *((_DWORD *)a4 + 2);
+                v22 = *((_DWORD *)v16 + 2);
+                v30 = v21;
+                v23 = *v16;
+                v33 = v22;
+                v32 = v23;
+                v34 = a6;
+                v29 = a2;
+                v24 = *(__int64 (__fastcall **)(__int64, _QWORD))(*(_QWORD *)g_engine + 336LL);
+                sub_181265470(v20, &v38);
+                if ( v38 != -1 )
+                  v11 = v38 - 1;
+                v37 = v24(g_engine, v11);
+                v25 = *(_QWORD *)((__int64 (__fastcall *)(__int64 (__fastcall ***)(), int *, __int64, __int64, void **, __int64))(*off_181CBC750)[5])(
+                                   off_181CBC750,
+                                   &v38,
+                                   v29,
+                                   a7,
+                                   v27,
+                                   v28);
+                v36 = a8;
+                v26 = *a1;
+                v35 = v25;
+                (*(void (__fastcall **)(__int64 *, __int64, _QWORD, void ***))(v26 + 8))(a1, a2, a3, &v27);
+                return;
+              }
+            }
+            else
+            {
+  LABEL_29:
+              v28 = 0;
+            }
+            Plat_FatalError("CLagCompensationManager::StartLagCompensation with NULL CUserCmd!!!\n");
+            JUMPOUT(0x180DEDDD1LL);
+          }
+        }
+      }
+    }
+  }

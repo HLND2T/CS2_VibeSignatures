@@ -57,6 +57,7 @@ class TestPrValidationVersion(unittest.TestCase):
                 pr_validation_version,
                 "_git_lines",
                 side_effect=[
+                    [],
                     ["gamesymbols/14178.yaml", "gamesymbols/14179.yaml"],
                     ["1" * 40, "gamesymbols/14179.yaml"],
                     ["2" * 40],
@@ -71,6 +72,17 @@ class TestPrValidationVersion(unittest.TestCase):
         self.assertEqual("2" * 40, selection.base_snapshot_commit)
         self.assertEqual(
             [
+                "diff",
+                "--name-only",
+                "3" * 40,
+                "HEAD",
+                "--",
+                "configs",
+            ],
+            git_lines.call_args_list[0].args[1],
+        )
+        self.assertEqual(
+            [
                 "log",
                 "-1",
                 "--format=%H",
@@ -81,12 +93,55 @@ class TestPrValidationVersion(unittest.TestCase):
                 "gamesymbols/14178.yaml",
                 "gamesymbols/14179.yaml",
             ],
-            git_lines.call_args_list[1].args[1],
+            git_lines.call_args_list[2].args[1],
         )
         self.assertEqual(
             ["log", "-1", "--format=%H", "3" * 40, "--", "gamesymbols/14179.yaml"],
-            git_lines.call_args_list[2].args[1],
+            git_lines.call_args_list[3].args[1],
         )
+
+    def test_resolver_prefers_single_changed_historical_config(self) -> None:
+        with (
+            patch.object(
+                pr_validation_version,
+                "load_yaml_file",
+                return_value={"downloads": [{"tag": "14180"}]},
+            ),
+            patch.object(
+                pr_validation_version,
+                "changed_head_config_gamevers",
+                return_value=["14176"],
+            ),
+            patch.object(
+                pr_validation_version,
+                "_git_lines",
+                side_effect=[
+                    ["gamesymbols/14176.yaml", "gamesymbols/14180.yaml"],
+                    ["2" * 40],
+                ],
+            ),
+        ):
+            selection = pr_validation_version.resolve_validation_selection(Path("."), "3" * 40)
+
+        self.assertEqual("14180", selection.pr_gamever)
+        self.assertEqual("14176", selection.gamever)
+        self.assertEqual("gamesymbols/14176.yaml", selection.base_snapshot_path)
+
+    def test_resolver_rejects_multiple_changed_versioned_configs(self) -> None:
+        with (
+            patch.object(
+                pr_validation_version,
+                "load_yaml_file",
+                return_value={"downloads": [{"tag": "14180"}]},
+            ),
+            patch.object(
+                pr_validation_version,
+                "changed_head_config_gamevers",
+                return_value=["14176", "14177"],
+            ),
+            self.assertRaisesRegex(PrValidationVersionError, "multiple versioned configs"),
+        ):
+            pr_validation_version.resolve_validation_selection(Path("."), "3" * 40)
 
 
 if __name__ == "__main__":

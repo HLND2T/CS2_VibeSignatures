@@ -1,0 +1,301 @@
+func_name: CLagCompensationManager_StartLagCompensation
+func_va: '0x19c9b70'
+disasm_code: |-
+  .text:00000000019C9B70                 push    rbp
+  .text:00000000019C9B71                 mov     rbp, rsp
+  .text:00000000019C9B74                 push    r15
+  .text:00000000019C9B76                 push    r14
+  .text:00000000019C9B78                 push    r13
+  .text:00000000019C9B7A                 push    r12
+  .text:00000000019C9B7C                 push    rbx
+  .text:00000000019C9B7D                 sub     rsp, 98h
+  .text:00000000019C9B84                 mov     r15d, [rbp+arg_0]
+  .text:00000000019C9B88                 test    rsi, rsi
+  .text:00000000019C9B8B                 jz      loc_19C9DCD
+  .text:00000000019C9B91                 mov     rbx, rsi
+  .text:00000000019C9B94                 mov     esi, [rsi+0E90h]
+  .text:00000000019C9B9A                 cmp     esi, 0FFFFFFFFh
+  .text:00000000019C9B9D                 jz      loc_19C9DCD
+  .text:00000000019C9BA3                 mov     r12, rdi
+  .text:00000000019C9BA6                 mov     rdi, cs:g_pEntityList
+  .text:00000000019C9BAD                 test    rdi, rdi
+  .text:00000000019C9BB0                 jz      loc_19C9DCD
+  .text:00000000019C9BB6                 cmp     esi, 0FFFFFFFEh
+  .text:00000000019C9BB9                 jz      loc_19C9DCD
+  .text:00000000019C9BBF                 movzx   eax, word ptr [rbx+0E90h]
+  .text:00000000019C9BC6                 mov     r13d, edx
+  .text:00000000019C9BC9                 mov     rdx, rcx
+  .text:00000000019C9BCC                 mov     rcx, rax
+  .text:00000000019C9BCF                 shr     rcx, 9
+  .text:00000000019C9BD3                 and     ecx, 3Fh
+  .text:00000000019C9BD6                 mov     rcx, [rdi+rcx*8]
+  .text:00000000019C9BDA                 test    rcx, rcx
+  .text:00000000019C9BDD                 jz      loc_19C9DCD
+  .text:00000000019C9BE3                 and     eax, 1FFh
+  .text:00000000019C9BE8                 imul    rax, 70h ; 'p'
+  .text:00000000019C9BEC                 add     rax, rcx
+  .text:00000000019C9BEF                 cmp     esi, [rax+10h]
+  .text:00000000019C9BF2                 jnz     loc_19C9DCD
+  .text:00000000019C9BF8                 cmp     qword ptr [rax], 0
+  .text:00000000019C9BFC                 jz      loc_19C9DCD
+  .text:00000000019C9C02                 mov     rax, [rdx]
+  .text:00000000019C9C05                 mov     [rbp+var_4C], 0
+  .text:00000000019C9C0D                 mov     [r12+0D0h], rax
+  .text:00000000019C9C15                 mov     eax, [rdx+8]
+  .text:00000000019C9C18                 mov     [r12+0D8h], eax
+  .text:00000000019C9C20                 mov     rax, [r8]
+  .text:00000000019C9C23                 mov     [r12+0DCh], rax
+  .text:00000000019C9C2B                 mov     eax, [r8+8]
+  .text:00000000019C9C2F                 mov     [r12+0E4h], eax
+  .text:00000000019C9C37                 mov     esi, [rbx+0E90h]
+  .text:00000000019C9C3D                 lea     rax, off_2523EB8
+  .text:00000000019C9C44                 mov     [rbp+var_80], rax
+  .text:00000000019C9C48                 cmp     esi, 0FFFFFFFDh
+  .text:00000000019C9C4B                 ja      loc_19C9DE0
+  .text:00000000019C9C51                 movzx   eax, word ptr [rbx+0E90h]
+  .text:00000000019C9C58                 mov     rcx, rax
+  .text:00000000019C9C5B                 shr     rcx, 9
+  .text:00000000019C9C5F                 and     ecx, 3Fh
+  .text:00000000019C9C62                 mov     rcx, [rdi+rcx*8]
+  .text:00000000019C9C66                 test    rcx, rcx
+  .text:00000000019C9C69                 jz      loc_19C9DE0
+  .text:00000000019C9C6F                 and     eax, 1FFh
+  .text:00000000019C9C74                 imul    rax, 70h ; 'p'
+  .text:00000000019C9C78                 add     rcx, rax
+  .text:00000000019C9C7B                 cmp     esi, [rcx+10h]
+  .text:00000000019C9C7E                 jnz     loc_19C9DE0
+  .text:00000000019C9C84                 mov     rdi, [rcx]
+  .text:00000000019C9C87                 test    rdi, rdi
+  .text:00000000019C9C8A                 jz      loc_19C9DE0
+  .text:00000000019C9C90                 movss   [rbp+var_BC], xmm0
+  .text:00000000019C9C98                 mov     r14, r9
+  .text:00000000019C9C9B                 mov     [rbp+var_B8], r8
+  .text:00000000019C9CA2                 mov     [rbp+var_B0], rdx
+  .text:00000000019C9CA9                 mov     [rbp+var_A8], rdi
+  .text:00000000019C9CB0                 call    sub_160FCF0
+  .text:00000000019C9CB5                 mov     rdi, [rbp+var_A8]
+  .text:00000000019C9CBC                 test    rax, rax
+  .text:00000000019C9CBF                 mov     rdx, [rbp+var_B0]
+  .text:00000000019C9CC6                 mov     [rbp+var_78], rax
+  .text:00000000019C9CCA                 mov     r8, [rbp+var_B8]
+  .text:00000000019C9CD1                 movss   xmm0, [rbp+var_BC]
+  .text:00000000019C9CD9                 jz      loc_19C9DE8
+  .text:00000000019C9CDF                 mov     rax, [rdx]
+  .text:00000000019C9CE2                 movss   [rbp+var_50], xmm0
+  .text:00000000019C9CE7                 mov     [rbp+var_70], rbx
+  .text:00000000019C9CEB                 mov     [rbp+var_68], rax
+  .text:00000000019C9CEF                 mov     eax, [rdx+8]
+  .text:00000000019C9CF2                 mov     [rbp+var_60], eax
+  .text:00000000019C9CF5                 mov     rax, [r8]
+  .text:00000000019C9CF8                 mov     [rbp+var_5C], rax
+  .text:00000000019C9CFC                 mov     eax, [r8+8]
+  .text:00000000019C9D00                 mov     [rbp+var_54], eax
+  .text:00000000019C9D03                 lea     rax, g_engine
+  .text:00000000019C9D0A                 mov     rdx, [rax]
+  .text:00000000019C9D0D                 mov     rax, [rdx]
+  .text:00000000019C9D10                 mov     [rbp+var_B0], rdx
+  .text:00000000019C9D17                 mov     rcx, [rax+150h]
+  .text:00000000019C9D1E                 mov     [rbp+var_A8], rcx
+  .text:00000000019C9D25                 call    sub_2137A70
+  .text:00000000019C9D2A                 mov     rdi, [rbp+var_B0]
+  .text:00000000019C9D31                 mov     esi, eax
+  .text:00000000019C9D33                 xor     eax, eax
+  .text:00000000019C9D35                 mov     rcx, [rbp+var_A8]
+  .text:00000000019C9D3C                 cmp     esi, 0FFFFFFFFh
+  .text:00000000019C9D3F                 setnz   al
+  .text:00000000019C9D42                 sub     esi, eax
+  .text:00000000019C9D44                 call    rcx
+  .text:00000000019C9D46                 mov     rdi, cs:off_26762F0
+  .text:00000000019C9D4D                 lea     rdx, sub_19C9690
+  .text:00000000019C9D54                 mov     [rbp+var_40], rax
+  .text:00000000019C9D58                 mov     rsi, [rbp+var_70]
+  .text:00000000019C9D5C                 mov     rax, [rdi]
+  .text:00000000019C9D5F                 mov     rax, [rax+30h]
+  .text:00000000019C9D63                 cmp     rax, rdx
+  .text:00000000019C9D66                 jnz     loc_19C9E10
+  .text:00000000019C9D6C                 sub     rdi, 10h
+  .text:00000000019C9D70                 mov     rdx, r14
+  .text:00000000019C9D73                 call    sub_19C9480
+  .text:00000000019C9D78                 mov     [rbp+var_4C], rax
+  .text:00000000019C9D7C                 mov     rcx, [r12-10h]
+  .text:00000000019C9D81                 lea     rdx, sub_19B4AB0
+  .text:00000000019C9D88                 mov     [rbp+var_44], r15b
+  .text:00000000019C9D8C                 lea     rdi, [r12-10h]
+  .text:00000000019C9D91                 mov     rax, [rcx+220h]
+  .text:00000000019C9D98                 cmp     rax, rdx
+  .text:00000000019C9D9B                 jnz     short loc_19C9E00
+  .text:00000000019C9D9D                 mov     rax, cs:qword_8D55E0
+  .text:00000000019C9DA4                 mov     [rbp+var_98], r13d
+  .text:00000000019C9DAB                 lea     rdx, [rbp+var_A0]
+  .text:00000000019C9DB2                 mov     rsi, rbx
+  .text:00000000019C9DB5                 mov     [rbp+var_94], rax
+  .text:00000000019C9DBC                 lea     rax, [rbp+var_80]
+  .text:00000000019C9DC0                 mov     [rbp+var_A0], rax
+  .text:00000000019C9DC7                 call    qword ptr [rcx+228h]
+  .text:00000000019C9DCD                 add     rsp, 98h
+  .text:00000000019C9DD4                 pop     rbx
+  .text:00000000019C9DD5                 pop     r12
+  .text:00000000019C9DD7                 pop     r13
+  .text:00000000019C9DD9                 pop     r14
+  .text:00000000019C9DDB                 pop     r15
+  .text:00000000019C9DDD                 pop     rbp
+  .text:00000000019C9DDE                 retn
+  .text:00000000019C9DE0                 mov     [rbp+var_78], 0
+  .text:00000000019C9DE8                 lea     rdi, aClagcompensati; "CLagCompensationManager::StartLagCompen"...
+  .text:00000000019C9DEF                 xor     eax, eax
+  .text:00000000019C9DF1                 call    sub_9F88C0
+  .text:00000000019C9DF6                 nop     word ptr [rax+rax+00000000h]
+  .text:00000000019C9E00                 lea     rcx, [rbp+var_80]
+  .text:00000000019C9E04                 mov     edx, r13d
+  .text:00000000019C9E07                 mov     rsi, rbx
+  .text:00000000019C9E0A                 call    rax
+  .text:00000000019C9E0C                 jmp     short loc_19C9DCD
+  .text:00000000019C9E10                 mov     rdx, r14
+  .text:00000000019C9E13                 call    rax
+  .text:00000000019C9E15                 mov     [rbp+var_4C], rax
+  .text:00000000019C9E19                 jmp     loc_19C9D7C
+procedure: |-
+  void __fastcall CLagCompensationManager_StartLagCompensation(
+          __int64 a1,
+          __int64 a2,
+          unsigned int a3,
+          __int64 *a4,
+          __int64 a5,
+          __int64 a6,
+          double a7,
+          char a8)
+  {
+    int v9; // esi
+    __int64 v11; // rdi
+    __int64 *v14; // rcx
+    __int64 *v15; // rax
+    __int64 v16; // rax
+    __int64 v17; // rsi
+    __int64 v18; // rdi
+    __int64 v20; // rax
+    __int64 v21; // rax
+    int v22; // eax
+    __int64 (__fastcall *v23)(); // rax
+    __int64 v24; // rcx
+    const char *v25; // rdi
+    __int64 (__fastcall *v26)(); // rax
+    __int64 *v27; // [rsp+8h] [rbp-B8h]
+    __int64 *v28; // [rsp+10h] [rbp-B0h]
+    __int64 v29; // [rsp+10h] [rbp-B0h]
+    __int64 (__fastcall *v30)(__int64, _QWORD, float); // [rsp+18h] [rbp-A8h]
+    __int64 (__fastcall ***v31)(); // [rsp+20h] [rbp-A0h] BYREF
+    unsigned int v32; // [rsp+28h] [rbp-98h]
+    unsigned __int64 v33; // [rsp+2Ch] [rbp-94h]
+    __int64 (__fastcall **v34)(); // [rsp+40h] [rbp-80h] BYREF
+    __int64 v35; // [rsp+48h] [rbp-78h]
+    __int64 v36; // [rsp+50h] [rbp-70h]
+    __int64 v37; // [rsp+58h] [rbp-68h]
+    int v38; // [rsp+60h] [rbp-60h]
+    __int64 v39; // [rsp+64h] [rbp-5Ch]
+    int v40; // [rsp+6Ch] [rbp-54h]
+    int v41; // [rsp+70h] [rbp-50h]
+    __int64 v42; // [rsp+74h] [rbp-4Ch]
+    char v43; // [rsp+7Ch] [rbp-44h]
+    __int64 v44; // [rsp+80h] [rbp-40h]
+
+    if ( a2 )
+    {
+      v9 = *(_DWORD *)(a2 + 3728);
+      if ( v9 != -1 )
+      {
+        v11 = g_pEntityList;
+        if ( g_pEntityList )
+        {
+          if ( v9 != -2 )
+          {
+            v14 = *(__int64 **)(g_pEntityList + 8 * (((unsigned __int64)*(unsigned __int16 *)(a2 + 3728) >> 9) & 0x3F));
+            if ( v14 )
+            {
+              v15 = &v14[14 * (*(_WORD *)(a2 + 3728) & 0x1FF)];
+              if ( v9 == *((_DWORD *)v15 + 4) )
+              {
+                if ( *v15 )
+                {
+                  v16 = *a4;
+                  v42 = 0;
+                  *(_QWORD *)(a1 + 208) = v16;
+                  *(_DWORD *)(a1 + 216) = *((_DWORD *)a4 + 2);
+                  *(_QWORD *)(a1 + 220) = *(_QWORD *)a5;
+                  *(_DWORD *)(a1 + 228) = *(_DWORD *)(a5 + 8);
+                  v17 = *(unsigned int *)(a2 + 3728);
+                  v34 = off_2523EB8;
+                  if ( (unsigned int)v17 <= 0xFFFFFFFD
+                    && (v14 = *(__int64 **)(v11 + 8 * (((unsigned __int64)*(unsigned __int16 *)(a2 + 3728) >> 9) & 0x3F))) != nullptr
+                    && (v14 += 14 * (*(_WORD *)(a2 + 3728) & 0x1FF), (_DWORD)v17 == *((_DWORD *)v14 + 4))
+                    && (v18 = *v14) != 0 )
+                  {
+                    v27 = (__int64 *)a5;
+                    v28 = a4;
+                    v20 = sub_160FCF0();
+                    a4 = v28;
+                    v35 = v20;
+                    a5 = (__int64)v27;
+                    *(_QWORD *)&a7 = LODWORD(a7);
+                    if ( v20 )
+                    {
+                      v21 = *v28;
+                      v41 = LODWORD(a7);
+                      v36 = a2;
+                      v37 = v21;
+                      v38 = *((_DWORD *)v28 + 2);
+                      v39 = *v27;
+                      v40 = *((_DWORD *)v27 + 2);
+                      v29 = g_engine;
+                      v30 = *(__int64 (__fastcall **)(__int64, _QWORD, float))(*(_QWORD *)g_engine + 336LL);
+                      v22 = sub_2137A70(v18);
+                      v44 = v30(v29, v22 - (unsigned int)(v22 != -1), *(float *)&a7);
+                      v23 = *(__int64 (__fastcall **)())(*(_QWORD *)off_26762F0 + 48LL);
+                      if ( v23 == sub_19C9690 )
+                        v42 = sub_19C9480((char *)off_26762F0 - 16, a2, a6);
+                      else
+                        v42 = ((__int64 (__fastcall *)(void *, __int64, __int64))v23)(off_26762F0, a2, a6);
+                      v24 = *(_QWORD *)(a1 - 16);
+                      v43 = a8;
+                      v25 = (const char *)(a1 - 16);
+                      v26 = *(__int64 (__fastcall **)())(v24 + 544);
+                      if ( v26 == sub_19B4AB0 )
+                      {
+                        v32 = a3;
+                        v33 = 0xBF800000BF800000LL;
+                        v31 = &v34;
+                        (*(void (__fastcall **)(const char *, __int64, __int64 (__fastcall ****)()))(v24 + 552))(
+                          v25,
+                          a2,
+                          &v31);
+                        return;
+                      }
+  LABEL_20:
+                      ((void (__fastcall *)(const char *, __int64, _QWORD, __int64 (__fastcall ***)()))v26)(
+                        v25,
+                        a2,
+                        a3,
+                        &v34);
+                      return;
+                    }
+                  }
+                  else
+                  {
+                    v35 = 0;
+                  }
+                  v25 = "CLagCompensationManager::StartLagCompensation with NULL CUserCmd!!!\n";
+                  v26 = (__int64 (__fastcall *)())sub_9F88C0(
+                                                    "CLagCompensationManager::StartLagCompensation with NULL CUserCmd!!!\n",
+                                                    v17,
+                                                    a4,
+                                                    v14,
+                                                    a5,
+                                                    a7);
+                  goto LABEL_20;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }

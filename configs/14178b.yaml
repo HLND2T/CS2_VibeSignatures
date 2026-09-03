@@ -3644,6 +3644,10 @@ modules:
         category: vfunc
         alias:
           - CEngineServer::IsDedicatedServer
+      - name: CEngineServer_IsUserIDInUse
+        category: vfunc
+        alias:
+          - CEngineServer::IsUserIDInUse
       - name: CEngineServer_GetServerGlobals
         category: vfunc
         alias:
@@ -6433,6 +6437,19 @@ modules:
     path_windows: game/csgo/bin/win64/server.dll
     path_linux: game/csgo/bin/linuxsteamrt64/libserver.so
     skills:
+      - name: find-CLagCompensationManager_vtable
+        expected_output:
+          - CLagCompensationManager_vtable.{platform}.yaml
+      - name: find-CLagCompensationManager_vtable2
+        expected_output:
+          - CLagCompensationManager_vtable2.{platform}.yaml
+        expected_input:
+          - CLagCompensationManager_vtable.{platform}.yaml
+      - name: find-CLagCompensationManager_StartLagCompensation
+        expected_output:
+          - CLagCompensationManager_StartLagCompensation.{platform}.yaml
+        expected_input:
+          - CLagCompensationManager_vtable2.{platform}.yaml
       - name: find-CSource2Server_vtable
         expected_output:
           - CSource2Server_vtable.{platform}.yaml
@@ -7384,6 +7401,12 @@ modules:
           - g_pGameTypes.{platform}.yaml
         expected_input:
           - CSource2Server_Connect.{platform}.yaml
+      - name: find-IVEngineServer2_IsUserIDInUse
+        expected_output:
+          - IVEngineServer2_IsUserIDInUse.{platform}.yaml
+        expected_input:
+          - CLagCompensationManager_StartLagCompensation.{platform}.yaml
+          - g_engine.{platform}.yaml
       - name: find-GlobalVarsWarningFunc
         expected_output:
           - GlobalVarsWarningFunc.{platform}.yaml
@@ -12032,6 +12055,18 @@ modules:
         category: vfunc
         alias:
           - CEngineServer::UnloadSpawnGroup
+      - name: CLagCompensationManager_vtable
+        category: vtable
+      - name: CLagCompensationManager_vtable2
+        category: vtable
+      - name: CLagCompensationManager_StartLagCompensation
+        category: vfunc
+        alias:
+          - CLagCompensationManager::StartLagCompensation
+      - name: IVEngineServer2_IsUserIDInUse
+        category: vfunc
+        alias:
+          - IVEngineServer2::IsUserIDInUse
       - name: INetworkServerService_SetGameSpawnGroupMgr
         category: vfunc
         alias:
@@ -13126,6 +13161,12 @@ modules:
         expected_input:
           - CEngineServer_vtable.{platform}.yaml
           - ../server/IVEngineServer2_IsDedicatedServer.{platform}.yaml
+      - name: find-CEngineServer_IsUserIDInUse
+        expected_output:
+          - CEngineServer_IsUserIDInUse.{platform}.yaml
+        expected_input:
+          - CEngineServer_vtable.{platform}.yaml
+          - ../server/IVEngineServer2_IsUserIDInUse.{platform}.yaml
       - name: find-CEngineServer_GetServerGlobals
         expected_output:
           - CEngineServer_GetServerGlobals.{platform}.yaml
