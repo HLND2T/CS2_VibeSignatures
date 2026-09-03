@@ -76,7 +76,17 @@ class BinSyncCandidateTests(unittest.TestCase):
         write_binary(binary, _build_min_pe())
         write_source_binary_lock(root, "1")
         empty_tree = self._git(root, "mktree", input_text="")
-        sdk_commit = self._git(root, "commit-tree", empty_tree, "-m", "sdk")
+        sdk_commit = self._git(
+            root,
+            "-c",
+            "user.name=TestUser",
+            "-c",
+            "user.email=TestUser@binsync.local",
+            "commit-tree",
+            empty_tree,
+            "-m",
+            "sdk",
+        )
         self._git(root, "add", ".")
         self._git(root, "update-index", "--add", "--cacheinfo", f"160000,{sdk_commit},hl2sdk_cs2")
         self._git(root, "commit", "-m", "source")

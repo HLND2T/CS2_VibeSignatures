@@ -1,5 +1,6 @@
 import io
 import json
+import os
 import subprocess
 import unittest
 from contextlib import asynccontextmanager
@@ -1673,7 +1674,7 @@ class TestExecutionPlan(unittest.TestCase):
         edge = next(edge for edge in plan.edges if edge.edge_type == EdgeType.CROSS_STAGE_ARTIFACT)
         self.assertEqual("stage-0001-client-windows/producer", edge.source)
         self.assertEqual("stage-0002-server-windows/consumer", edge.target)
-        self.assertTrue(edge.artifact.endswith("client\\Shared.windows.yaml"))
+        self.assertTrue(edge.artifact.endswith(os.path.join("client", "Shared.windows.yaml")))
         self.assertIn("source-artifacts", edge.artifact)
         self.assertNotIn("bin\\14141", edge.artifact)
 

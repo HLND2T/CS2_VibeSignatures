@@ -86,6 +86,8 @@ class BinArtifactContractTests(unittest.TestCase):
             root = Path(temporary)
             config, _artifact, artifact_root = self._workspace(root)
             subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+            subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=root, check=True)
+            subprocess.run(["git", "config", "user.name", "Test"], cwd=root, check=True)
             subprocess.run(["git", "add", "."], cwd=root, check=True)
             subprocess.run(["git", "commit", "-qm", "fixture"], cwd=root, check=True)
             report = build_game_artifact_inventory(
