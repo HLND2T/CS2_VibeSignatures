@@ -20,6 +20,9 @@ ONSERVER_VOICE_IS_PLAYING_DEMO_CALLEE_SCRIPT_PATH = Path(
 NETWORK_MESSAGES_GET_IS_FOR_SERVER_SCRIPT_PATH = Path(
     "ida_preprocessor_scripts/find-CNetworkMessages_GetIsForServer.py"
 )
+NETWORK_MESSAGES_GET_SERIALIZATION_CONTEXT_SCRIPT_PATH = Path(
+    "ida_preprocessor_scripts/find-CNetworkMessages_GetNetworkSerializationContextData.py"
+)
 
 
 def _write_is_playing_demo_source_yaml(path: Path, **overrides) -> None:
@@ -141,6 +144,64 @@ class TestFindCNetworkMessagesGetIsForServer(unittest.IsolatedAsyncioTestCase):
             generate_yaml_desired_fields=[
                 (
                     "CNetworkMessages_GetIsForServer",
+                    [
+                        "func_name",
+                        "func_va",
+                        "func_rva",
+                        "func_size",
+                        "func_sig",
+                        "vtable_name",
+                        "vfunc_offset",
+                        "vfunc_index",
+                    ],
+                ),
+            ],
+            debug=True,
+        )
+
+
+class TestFindCNetworkMessagesGetNetworkSerializationContextData(unittest.IsolatedAsyncioTestCase):
+    async def test_preprocess_skill_forwards_vfunc_metadata_contract(self) -> None:
+        module = _load_module(
+            NETWORK_MESSAGES_GET_SERIALIZATION_CONTEXT_SCRIPT_PATH,
+            "find_CNetworkMessages_GetNetworkSerializationContextData",
+        )
+        mock_preprocess_common_skill = AsyncMock(return_value=True)
+
+        with patch.object(
+            module,
+            "preprocess_common_skill",
+            mock_preprocess_common_skill,
+        ):
+            result = await module.preprocess_skill(
+                session="session",
+                skill_name="skill",
+                expected_outputs=["out.yaml"],
+                old_yaml_map={"k": "v"},
+                new_binary_dir="bin_dir",
+                platform="windows",
+                image_base=0x180000000,
+                debug=True,
+            )
+
+        self.assertTrue(result)
+        mock_preprocess_common_skill.assert_awaited_once_with(
+            session="session",
+            expected_outputs=["out.yaml"],
+            old_yaml_map={"k": "v"},
+            new_binary_dir="bin_dir",
+            platform="windows",
+            image_base=0x180000000,
+            func_names=["CNetworkMessages_GetNetworkSerializationContextData"],
+            func_vtable_relations=[
+                (
+                    "CNetworkMessages_GetNetworkSerializationContextData",
+                    "CNetworkMessages",
+                ),
+            ],
+            generate_yaml_desired_fields=[
+                (
+                    "CNetworkMessages_GetNetworkSerializationContextData",
                     [
                         "func_name",
                         "func_va",
