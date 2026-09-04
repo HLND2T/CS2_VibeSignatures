@@ -3323,7 +3323,8 @@ async def preprocess_func_sig_via_mcp(
                     print(f"    Preprocess: vtable artifact YAML not found: {os.path.basename(vtable_yaml_path)}")
                 return None
 
-            # Generate vtable YAML on-the-fly via py_eval
+            # Resolve undeclared vtables in memory. Materializing this lookup as
+            # YAML would create an unowned artifact outside the formal contract.
             vtable_gen_data = await preprocess_vtable_via_mcp(
                 session,
                 vtable_name,
@@ -3342,9 +3343,9 @@ async def preprocess_func_sig_via_mcp(
                         f"{os.path.basename(vtable_yaml_path)}"
                     )
                 return None
-            write_vtable_yaml(vtable_yaml_path, vtable_gen_data)
             if debug:
-                print(f"    Preprocess: generated vtable YAML: {os.path.basename(vtable_yaml_path)}")
+                print(f"    Preprocess: resolved vtable in memory: {vtable_name}")
+            return vtable_gen_data
 
         try:
             with open(vtable_yaml_path, "r", encoding="utf-8") as vf:

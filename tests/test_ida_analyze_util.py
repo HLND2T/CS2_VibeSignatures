@@ -768,7 +768,7 @@ class TestVtableAliasSupport(unittest.IsolatedAsyncioTestCase):
             written_payload["vtable_symbol"],
         )
 
-    async def test_preprocess_func_sig_uses_aliases_when_generating_missing_vtable_yaml(self) -> None:
+    async def test_preprocess_func_sig_uses_aliases_for_in_memory_missing_vtable_lookup(self) -> None:
         alias_map = {
             "CGameSystemReallocatingFactory_CSpawnGroupMgrGameSystem": [
                 "??_7?$CGameSystemReallocatingFactory@VCSpawnGroupMgrGameSystem@@V1@@@6B@",
@@ -837,6 +837,10 @@ class TestVtableAliasSupport(unittest.IsolatedAsyncioTestCase):
                     debug=True,
                     mangled_class_names=alias_map,
                 )
+                generated_vtable_path = (
+                    module_dir / "CGameSystemReallocatingFactory_CSpawnGroupMgrGameSystem_vtable.windows.yaml"
+                )
+                self.assertFalse(generated_vtable_path.exists())
 
         self.assertIsNotNone(result)
         mock_preprocess_vtable.assert_awaited_once_with(
