@@ -4,10 +4,12 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import inspect
 import json
 import os
 import re
+import threading
 import uuid
 from pathlib import Path
 
@@ -32,6 +34,7 @@ except Exception:
 
 _UNSET = object()
 LLM_DECOMPILE_TIMEOUT_SECONDS = 900
+LLM_DECOMPILE_DEBUG_TEXT_LIMIT = 8_192
 LLM_DECOMPILE_RESULT_SECTIONS = (
     "found_vcall",
     "found_call",
@@ -182,8 +185,13 @@ def _resolve_llm_decompile_template_value(value, platform, module_name=None):
 def _debug_print_multiline(label, text, debug=False):
     if not debug:
         return
+    rendered = str(text or "<empty>")
+    if len(rendered) > LLM_DECOMPILE_DEBUG_TEXT_LIMIT:
+        digest = hashlib.sha256(rendered.encode("utf-8", errors="backslashreplace")).hexdigest()
+        omitted = len(rendered) - LLM_DECOMPILE_DEBUG_TEXT_LIMIT
+        rendered = rendered[:LLM_DECOMPILE_DEBUG_TEXT_LIMIT] + f"\n... [truncated {omitted} chars; sha256:{digest}]"
     print(f"    Preprocess: {label} BEGIN")
-    print(str(text or "<empty>"))
+    print(rendered)
     print(f"    Preprocess: {label} END")
 
 
@@ -1261,12 +1269,13 @@ async def _call_llm_transport_attempt(
 ):
     max_attempts, retry_delay, retry_backoff_factor, retry_max_delay = retry_settings
     try:
-        content = transport(**attempt_kwargs)
-        if inspect.isawaitable(content):
-            try:
-                content = await asyncio.wait_for(content, timeout=LLM_DECOMPILE_TIMEOUT_SECONDS)
-            except asyncio.TimeoutError as exc:
-                raise TimeoutError("LLM decompile transport timed out") from exc
+        try:
+            content = await asyncio.wait_for(
+                _invoke_llm_transport(transport, attempt_kwargs),
+                timeout=LLM_DECOMPILE_TIMEOUT_SECONDS,
+            )
+        except asyncio.TimeoutError as exc:
+            raise TimeoutError("LLM decompile transport timed out") from exc
         return True, content, retry_delay
     except Exception as exc:
         retry_delay = await _handle_llm_transport_error(
@@ -1280,6 +1289,41 @@ async def _call_llm_transport_attempt(
             debug=debug,
         )
         return False, None, retry_delay
+
+
+def _complete_llm_transport_future(future, content, error):
+    if future.done():
+        return
+    if error is not None:
+        future.set_exception(error)
+    else:
+        future.set_result(content)
+
+
+async def _invoke_llm_transport(transport, attempt_kwargs):
+    if inspect.iscoroutinefunction(transport):
+        return await transport(**attempt_kwargs)
+
+    loop = asyncio.get_running_loop()
+    future = loop.create_future()
+
+    def invoke():
+        try:
+            content = transport(**attempt_kwargs)
+        except BaseException as exc:
+            completion = (_UNSET, exc)
+        else:
+            completion = (content, None)
+        try:
+            loop.call_soon_threadsafe(_complete_llm_transport_future, future, *completion)
+        except RuntimeError:
+            pass
+
+    threading.Thread(target=invoke, name="llm-decompile-transport", daemon=True).start()
+    content = await future
+    if inspect.isawaitable(content):
+        return await content
+    return content
 
 
 def _llm_validation_retry_exhausted(
