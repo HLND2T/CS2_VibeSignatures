@@ -556,3 +556,44 @@ class TestCBaseModelEntityRegisteredScriptFuncs(unittest.IsolatedAsyncioTestCase
             mock_helper.await_args.kwargs["source_yaml_stem"],
         )
         self.assertEqual(22, mock_helper.await_args.kwargs["expected_script_func_count"])
+
+
+class TestCBaseEntityRegisteredScriptFuncs(unittest.IsolatedAsyncioTestCase):
+    async def test_preprocess_skill_keeps_script_gravity_symbol_distinct(self) -> None:
+        module = importlib.import_module("ida_preprocessor_scripts.find-CBaseEntity_RegisteredScriptFuncs")
+        session = AsyncMock()
+
+        with patch.object(
+            module,
+            "preprocess_script_desc_internal_skill",
+            AsyncMock(return_value=True),
+        ) as mock_helper:
+            result = await module.preprocess_skill(
+                session=session,
+                skill_name="find-CBaseEntity_RegisteredScriptFuncs",
+                expected_outputs=["/tmp/CBaseEntity_ScriptSetGravityScale.windows.yaml"],
+                old_yaml_map={},
+                new_binary_dir="/tmp/bin/server",
+                platform="windows",
+                image_base=0x180000000,
+                debug=True,
+            )
+
+        self.assertTrue(result)
+        target_specs = mock_helper.await_args.kwargs["target_specs"]
+        self.assertEqual(65, len(target_specs))
+        self.assertIn(
+            {
+                "script_name": "SetGravityScale",
+                "target_name": "CBaseEntity_ScriptSetGravityScale",
+            },
+            target_specs,
+        )
+        self.assertNotIn(
+            {
+                "script_name": "SetGravityScale",
+                "target_name": "CBaseEntity_SetGravityScale",
+            },
+            target_specs,
+        )
+        self.assertEqual(65, mock_helper.await_args.kwargs["expected_script_func_count"])
