@@ -71,6 +71,7 @@ class EdgeType(str, Enum):
     ARTIFACT = "artifact"
     OPTIONAL_INPUT = "optional_input"
     PREREQUISITE = "prerequisite"
+    ALTERNATIVE_ORDER = "alternative_order"
     CROSS_STAGE_ARTIFACT = "cross_stage_artifact"
     STAGE_ORDER = "stage_order"
 

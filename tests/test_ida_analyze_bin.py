@@ -1461,6 +1461,20 @@ class TestSkillOrdering(unittest.TestCase):
             {(edge.source, edge.target, edge.edge_type) for edge in graph.edges},
         )
 
+    def test_shared_output_alternatives_follow_config_order(self) -> None:
+        skills = [
+            {"name": "z-primary", "expected_output": ["Shared.{platform}.yaml"]},
+            {"name": "a-fallback", "expected_output": ["Shared.{platform}.yaml"]},
+        ]
+
+        graph = ida_analyze_bin.build_skill_graph(skills)
+
+        self.assertEqual(["z-primary", "a-fallback"], graph.order)
+        self.assertIn(
+            ("z-primary", "a-fallback", EdgeType.ALTERNATIVE_ORDER),
+            {(edge.source, edge.target, edge.edge_type) for edge in graph.edges},
+        )
+
     def test_build_skill_graph_records_cycles_and_fallback_order(self) -> None:
         skills = [
             {"name": "second", "prerequisite": ["first"]},
@@ -2377,6 +2391,128 @@ class TestProcessBinary(unittest.TestCase):
                 self.assertEqual((1, 0, 0), result)
                 self.assertEqual(expected, output.read_bytes())
                 self.assertFalse((binary_dir / output.name).exists())
+
+    def test_force_all_multi_output_fallback_only_produces_missing_outputs(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            binary_dir = Path(temp_dir) / "server"
+            binary_dir.mkdir(parents=True)
+            binary_path = str(binary_dir / "server.dll")
+            artifact_dir = Path(temp_dir) / "artifacts" / "14179" / "server"
+            shared = artifact_dir / "Shared.windows.yaml"
+            unique = artifact_dir / "Unique.windows.yaml"
+            calls = []
+
+            def fake_preprocess(*, skill_name, **_kwargs):
+                calls.append(skill_name)
+                if skill_name == "z-primary":
+                    shared.write_text("primary\n", encoding="utf-8")
+                else:
+                    unique.write_text("fallback\n", encoding="utf-8")
+                return "success"
+
+            fake_process = object()
+            with (
+                patch.object(ida_analyze_bin, "start_idalib_mcp", return_value=fake_process),
+                patch.object(ida_analyze_bin, "ensure_mcp_available", return_value=(fake_process, True)),
+                patch.object(
+                    ida_analyze_bin,
+                    "_run_validate_expected_input_artifacts_via_mcp",
+                    return_value=[],
+                ),
+                patch.object(
+                    ida_analyze_bin,
+                    "_run_preprocess_single_skill_via_mcp",
+                    side_effect=fake_preprocess,
+                ),
+                patch.object(ida_analyze_bin, "_finalize_produced_symbol_outputs", return_value=[]),
+                patch.object(ida_analyze_bin, "run_skill", return_value=False),
+                patch.object(ida_analyze_bin, "quit_ida_gracefully", return_value=None),
+            ):
+                counts = ida_analyze_bin.process_binary(
+                    binary_path=binary_path,
+                    skills=[
+                        {"name": "z-primary", "expected_output": ["Shared.{platform}.yaml"]},
+                        {
+                            "name": "a-fallback",
+                            "expected_output": [
+                                "Shared.{platform}.yaml",
+                                "Unique.{platform}.yaml",
+                            ],
+                        },
+                    ],
+                    agent="codex",
+                    host="127.0.0.1",
+                    port=13337,
+                    ida_args="",
+                    platform="windows",
+                    artifact_dir=artifact_dir,
+                    force_all=True,
+                )
+                shared_text = shared.read_text(encoding="utf-8")
+                unique_text = unique.read_text(encoding="utf-8")
+
+        self.assertEqual((2, 0, 0), counts)
+        self.assertEqual(["z-primary", "a-fallback"], calls)
+        self.assertEqual("primary\n", shared_text)
+        self.assertEqual("fallback\n", unique_text)
+
+    def test_force_all_rejects_later_alternative_rewriting_winner_output(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            binary_dir = Path(temp_dir) / "server"
+            binary_dir.mkdir(parents=True)
+            binary_path = str(binary_dir / "server.dll")
+            artifact_dir = Path(temp_dir) / "artifacts" / "14179" / "server"
+            shared = artifact_dir / "Shared.windows.yaml"
+            unique = artifact_dir / "Unique.windows.yaml"
+
+            def fake_preprocess(*, skill_name, **_kwargs):
+                if skill_name == "z-primary":
+                    shared.write_text("primary\n", encoding="utf-8")
+                else:
+                    shared.write_text("rewritten\n", encoding="utf-8")
+                    unique.write_text("fallback\n", encoding="utf-8")
+                return "success"
+
+            fake_process = object()
+            with (
+                patch.object(ida_analyze_bin, "start_idalib_mcp", return_value=fake_process),
+                patch.object(ida_analyze_bin, "ensure_mcp_available", return_value=(fake_process, True)),
+                patch.object(
+                    ida_analyze_bin,
+                    "_run_validate_expected_input_artifacts_via_mcp",
+                    return_value=[],
+                ),
+                patch.object(
+                    ida_analyze_bin,
+                    "_run_preprocess_single_skill_via_mcp",
+                    side_effect=fake_preprocess,
+                ),
+                patch.object(ida_analyze_bin, "_finalize_produced_symbol_outputs", return_value=[]),
+                patch.object(ida_analyze_bin, "run_skill", return_value=False),
+                patch.object(ida_analyze_bin, "quit_ida_gracefully", return_value=None),
+            ):
+                counts = ida_analyze_bin.process_binary(
+                    binary_path=binary_path,
+                    skills=[
+                        {"name": "z-primary", "expected_output": ["Shared.{platform}.yaml"]},
+                        {
+                            "name": "a-fallback",
+                            "expected_output": [
+                                "Shared.{platform}.yaml",
+                                "Unique.{platform}.yaml",
+                            ],
+                        },
+                    ],
+                    agent="codex",
+                    host="127.0.0.1",
+                    port=13337,
+                    ida_args="",
+                    platform="windows",
+                    artifact_dir=artifact_dir,
+                    force_all=True,
+                )
+
+        self.assertEqual((1, 1, 0), counts)
 
     def test_process_binary_exports_artifact_directory_to_ida_and_agent(self) -> None:
         with TemporaryDirectory() as temp_dir:
@@ -6127,6 +6263,94 @@ class TestForceAllExecutionContract(unittest.TestCase):
             report = ida_analyze_bin.build_force_all_execution_report(args, reporting)
             self.assertFalse(report["valid"])
             self.assertTrue(any("exactly one successful winner" in issue for issue in report["issues"]))
+
+    def test_force_all_report_uses_per_output_attempts_for_multi_output_fallback(self) -> None:
+        with TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            skills = [
+                {"name": "z-primary", "expected_output": ["Shared.{platform}.yaml"]},
+                {
+                    "name": "a-fallback",
+                    "expected_output": ["Shared.{platform}.yaml", "Unique.{platform}.yaml"],
+                },
+            ]
+            module = {
+                "name": "server",
+                "stage_index": 0,
+                "path_windows": "game/bin/win64/server.dll",
+                "skills": skills,
+            }
+            config = root / "configs" / "14179.yaml"
+            write_config(
+                config,
+                [
+                    {
+                        **module,
+                        "symbols": [
+                            {"name": "Shared", "category": "func", "platform": "windows"},
+                            {"name": "Unique", "category": "func", "platform": "windows"},
+                        ],
+                    }
+                ],
+            )
+            artifact_root = root / "actual"
+            module_root = artifact_root / "14179" / "server"
+            module_root.mkdir(parents=True)
+            shared = module_root / "Shared.windows.yaml"
+            unique = module_root / "Unique.windows.yaml"
+            shared.write_bytes(
+                canonical_symbol_yaml_bytes({"func_name": "Shared", "func_rva": "0x10"}, category="func")
+            )
+            unique.write_bytes(
+                canonical_symbol_yaml_bytes({"func_name": "Unique", "func_rva": "0x20"}, category="func")
+            )
+            plan = ida_analyze_bin.build_execution_plan(
+                [module],
+                platforms=["windows"],
+                bin_dir=str(root / "bin"),
+                gamever="14179",
+                artifact_dir=str(artifact_root),
+            )
+            reporting = ida_analyze_bin.AnalysisReporting(MagicMock(), "run-1", plan)
+            nodes = {node.name: node for node in plan.nodes if node.node_type == PlanNodeType.SKILL}
+
+            primary = nodes["z-primary"]
+            reporting.emit_task_status(primary.id, TaskStatus.RUNNING, ProcessPhase.WAITING_FOR_MCP)
+            reporting.record_output_attempts(primary.id, [str(shared)])
+            reporting.record_output_produced(primary.id, [str(shared)])
+            reporting.emit_task_status(primary.id, TaskStatus.SUCCEEDED, ProcessPhase.FINISHED)
+
+            fallback = nodes["a-fallback"]
+            reporting.emit_task_status(fallback.id, TaskStatus.RUNNING, ProcessPhase.WAITING_FOR_MCP)
+            reporting.record_output_attempts(fallback.id, [str(unique)])
+            reporting.record_output_produced(fallback.id, [str(unique)])
+            reporting.emit_task_status(fallback.id, TaskStatus.SUCCEEDED, ProcessPhase.FINISHED)
+
+            args = SimpleNamespace(
+                configyaml=str(config),
+                gamever="14179",
+                bindir=str(root / "bin"),
+                artifactdir=str(artifact_root),
+                oldartifactdir=str(root / "old"),
+                oldgamever="14178",
+                rename=True,
+                require_warm_idb=True,
+            )
+            report = ida_analyze_bin.build_force_all_execution_report(args, reporting)
+
+        self.assertTrue(report["valid"], report["issues"])
+        groups = {group["artifact_path"]: group for group in report["producer_groups"]}
+        shared_group = groups["server/Shared.windows.yaml"]
+        self.assertEqual(
+            [shared_group["alternative_node_ids"][0]],
+            shared_group["attempted_node_ids"],
+        )
+        self.assertEqual(shared_group["alternative_node_ids"][0], shared_group["winner_node_id"])
+        unique_group = groups["server/Unique.windows.yaml"]
+        self.assertEqual(
+            [unique_group["alternative_node_ids"][0]],
+            unique_group["attempted_node_ids"],
+        )
 
 
 if __name__ == "__main__":

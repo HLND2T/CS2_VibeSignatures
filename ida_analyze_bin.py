@@ -168,6 +168,8 @@ class AnalysisReporting:
         self._states = {task_id: TaskStatus.PENDING for task_id in self._node_ids}
         self._states.update({job.id: TaskStatus.PENDING for job in plan.jobs})
         self._attempted = set()
+        self._output_attempts = {task_id: set() for task_id in self._node_ids}
+        self._output_produced = {task_id: set() for task_id in self._node_ids}
         self._terminal_details = {}
 
     def emit_run_status(self, status: RunStatus, *, message: str | None = None) -> None:
@@ -264,6 +266,14 @@ class AnalysisReporting:
         counts["total"] = len(self._node_ids)
         return counts
 
+    def record_output_attempts(self, task_id: str, paths) -> None:
+        if task_id in self._output_attempts:
+            self._output_attempts[task_id].update(os.fspath(path) for path in paths)
+
+    def record_output_produced(self, task_id: str, paths) -> None:
+        if task_id in self._output_produced:
+            self._output_produced[task_id].update(os.fspath(path) for path in paths)
+
     def task_record(self, task_id: str) -> dict:
         details = self._terminal_details.get(task_id, {})
         return {
@@ -273,6 +283,8 @@ class AnalysisReporting:
             "reason": details.get("reason"),
             "error": details.get("error"),
             "payload": details.get("payload", {}),
+            "attempted_outputs": sorted(self._output_attempts.get(task_id, set())),
+            "produced_outputs": sorted(self._output_produced.get(task_id, set())),
         }
 
 
@@ -1954,7 +1966,22 @@ def _build_artifact_producers(skills, platform=None):
         for output_key in ("expected_output", "optional_output"):
             for output_path in _skill_artifact_paths(skill, output_key, platform):
                 for key in _normalized_artifact_keys(output_path):
-                    producers.setdefault(key, set()).add(producer_name)
+                    ordered_producers = producers.setdefault(key, [])
+                    if producer_name not in ordered_producers:
+                        ordered_producers.append(producer_name)
+    return producers
+
+
+def _build_ordered_artifact_producers(skills, platform=None):
+    producers = {}
+    for skill in skills:
+        producer_name = skill["name"]
+        for output_key in ("expected_output", "optional_output"):
+            for output_path in _skill_artifact_paths(skill, output_key, platform):
+                path_key = _normalized_artifact_keys(output_path)[0]
+                ordered_producers = producers.setdefault(path_key, [])
+                if producer_name not in ordered_producers:
+                    ordered_producers.append(producer_name)
     return producers
 
 
@@ -1988,6 +2015,15 @@ def _build_skill_dependencies(skills, platform=None):
                 if edge_key not in edge_keys:
                     edges.append(SkillEdge(prerequisite, consumer, EdgeType.PREREQUISITE))
                     edge_keys.add(edge_key)
+    for artifact_path, ordered_producers in _build_ordered_artifact_producers(skills, platform).items():
+        for earlier, later in zip(ordered_producers, ordered_producers[1:]):
+            if earlier == later:
+                continue
+            dependencies[later].add(earlier)
+            edge_key = (earlier, later, EdgeType.ALTERNATIVE_ORDER, artifact_path)
+            if edge_key not in edge_keys:
+                edges.append(SkillEdge(earlier, later, EdgeType.ALTERNATIVE_ORDER, artifact_path))
+                edge_keys.add(edge_key)
     return dependencies, edges
 
 
@@ -2100,10 +2136,13 @@ def build_skill_graph(skills):
 
 
 def _raise_for_artifact_dependency_cycles(graph):
+    artifact_edge_types = {
+        EdgeType.ARTIFACT,
+        EdgeType.OPTIONAL_INPUT,
+        EdgeType.ALTERNATIVE_ORDER,
+    }
     self_dependencies = sorted(
-        edge.source
-        for edge in graph.edges
-        if edge.source == edge.target and edge.edge_type in {EdgeType.ARTIFACT, EdgeType.OPTIONAL_INPUT}
+        edge.source for edge in graph.edges if edge.source == edge.target and edge.edge_type in artifact_edge_types
     )
     if self_dependencies:
         raise ValueError(f"Artifact dependency cycle detected: self-dependencies={self_dependencies}")
@@ -2112,9 +2151,7 @@ def _raise_for_artifact_dependency_cycles(graph):
     for cycle in graph.cycles:
         members = set(cycle)
         if any(
-            edge.edge_type in {EdgeType.ARTIFACT, EdgeType.OPTIONAL_INPUT}
-            and edge.source in members
-            and edge.target in members
+            edge.edge_type in artifact_edge_types and edge.source in members and edge.target in members
             for edge in graph.edges
         ):
             invalid_cycles.append(cycle)
@@ -3077,6 +3114,35 @@ def _report_skill_status(reporting, job_id, skill_name, status, phase, **details
     reporting.emit_task_status(build_task_id(job_id, skill_name), status, phase, **details)
 
 
+def _record_skill_output_attempts(reporting, job_id, skill_name, paths):
+    if reporting is None or job_id is None:
+        return
+    reporting.record_output_attempts(build_task_id(job_id, skill_name), paths)
+
+
+def _record_skill_output_produced(reporting, job_id, skill_name, paths):
+    if reporting is None or job_id is None:
+        return
+    reporting.record_output_produced(build_task_id(job_id, skill_name), paths)
+
+
+def _capture_existing_output_digests(paths):
+    return {path: _sha256_file(Path(path)) for path in paths if os.path.isfile(path)}
+
+
+def _changed_existing_outputs(existing_digests):
+    changed = []
+    for path, expected_digest in existing_digests.items():
+        candidate = Path(path)
+        if not candidate.is_file() or _sha256_file(candidate) != expected_digest:
+            changed.append(path)
+    return changed
+
+
+def _newly_materialized_outputs(paths, existing_digests):
+    return [path for path in paths if path not in existing_digests and os.path.isfile(path)]
+
+
 def _report_vcall_status(reporting, job_id, object_name, status, phase, **details):
     if reporting is None or job_id is None:
         return
@@ -3513,6 +3579,16 @@ def process_binary(
                 )
                 continue
 
+            output_paths = required_outputs + optional_outputs
+            existing_output_digests = _capture_existing_output_digests(output_paths) if force_all else {}
+            if force_all:
+                _record_skill_output_attempts(
+                    reporting,
+                    job_id,
+                    skill_name,
+                    [path for path in output_paths if path not in existing_output_digests],
+                )
+
             print(f"  Start skill: {skill_name}")
             _report_skill_status(reporting, job_id, skill_name, TaskStatus.RUNNING, ProcessPhase.WAITING_FOR_MCP)
 
@@ -3782,6 +3858,28 @@ def process_binary(
             else:
                 preprocess_status = PREPROCESS_STATUS_FAILED
 
+            changed_existing_outputs = _changed_existing_outputs(existing_output_digests) if force_all else []
+            if changed_existing_outputs:
+                fail_count += 1
+                changed_names = [os.path.basename(path) for path in changed_existing_outputs]
+                print(
+                    f"  Failed: {skill_name} (modified output already produced by an earlier alternative: "
+                    f"{', '.join(changed_names)})"
+                )
+                _report_skill_status(
+                    reporting,
+                    job_id,
+                    skill_name,
+                    TaskStatus.FAILED,
+                    ProcessPhase.FINISHED,
+                    reason=ProcessReason.INVALID_OUTPUT,
+                    payload={"modified_existing_outputs": changed_existing_outputs},
+                )
+                if skip_error:
+                    continue
+                abort_binary_processing = True
+                break
+
             if preprocess_status == PREPROCESS_STATUS_SUCCESS:
                 _report_skill_status(
                     reporting,
@@ -3835,6 +3933,11 @@ def process_binary(
                         config_path=config_path,
                         category_map=category_map,
                     )
+                    if force_all:
+                        finalization_issues.extend(
+                            f"modified output already produced by an earlier alternative: {path}"
+                            for path in _changed_existing_outputs(existing_output_digests)
+                        )
                     if finalization_issues:
                         fail_count += 1
                         print(f"  Failed to finalize {skill_name}: {' | '.join(finalization_issues)}")
@@ -3851,6 +3954,18 @@ def process_binary(
                             abort_binary_processing = True
                             break
                     else:
+                        produced_outputs = (
+                            _newly_materialized_outputs(output_paths, existing_output_digests)
+                            if force_all
+                            else [path for path in output_paths if os.path.isfile(path)]
+                        )
+                        if force_all:
+                            _record_skill_output_produced(
+                                reporting,
+                                job_id,
+                                skill_name,
+                                produced_outputs,
+                            )
                         success_count += 1
                         print(f"  Pre-processed: {skill_name} OK")
                         _report_skill_status(
@@ -3859,11 +3974,7 @@ def process_binary(
                             skill_name,
                             TaskStatus.SUCCEEDED,
                             ProcessPhase.FINISHED,
-                            payload={
-                                "produced_outputs": [
-                                    path for path in required_outputs + optional_outputs if os.path.isfile(path)
-                                ]
-                            },
+                            payload={"produced_outputs": produced_outputs},
                         )
                 continue
             if preprocess_status == PREPROCESS_STATUS_ABSENT_OK:
@@ -3944,7 +4055,7 @@ def process_binary(
             progress_callback = _build_agent_progress_callback(reporting, job_id, skill_name)
 
             mcp_url = f"http://{host}:{port}/mcp"
-            if run_skill(
+            agent_succeeded = run_skill(
                 skill_name,
                 agent,
                 debug,
@@ -3953,7 +4064,30 @@ def process_binary(
                 agent_model=agent_model,
                 progress_callback=progress_callback,
                 mcp_url=mcp_url,
-            ):
+            )
+            changed_existing_outputs = _changed_existing_outputs(existing_output_digests) if force_all else []
+            if changed_existing_outputs:
+                fail_count += 1
+                changed_names = [os.path.basename(path) for path in changed_existing_outputs]
+                print(
+                    f"    Failed: modified output already produced by an earlier alternative: "
+                    f"{', '.join(changed_names)}"
+                )
+                _report_skill_status(
+                    reporting,
+                    job_id,
+                    skill_name,
+                    TaskStatus.FAILED,
+                    ProcessPhase.FINISHED,
+                    reason=ProcessReason.INVALID_OUTPUT,
+                    payload={"modified_existing_outputs": changed_existing_outputs},
+                )
+                if skip_error:
+                    continue
+                print("  Aborting remaining skills after protected output modification")
+                abort_binary_processing = True
+                break
+            if agent_succeeded:
                 optional_output_generated = any(os.path.exists(path) for path in optional_outputs)
                 if not required_outputs and optional_outputs and not optional_output_generated:
                     skip_count += 1
@@ -3979,6 +4113,11 @@ def process_binary(
                         config_path=config_path,
                         category_map=category_map,
                     )
+                    if force_all:
+                        finalization_issues.extend(
+                            f"modified output already produced by an earlier alternative: {path}"
+                            for path in _changed_existing_outputs(existing_output_digests)
+                        )
                     if finalization_issues:
                         fail_count += 1
                         print(f"    Failed output finalization: {' | '.join(finalization_issues)}")
@@ -3996,6 +4135,18 @@ def process_binary(
                             abort_binary_processing = True
                             break
                     else:
+                        produced_outputs = (
+                            _newly_materialized_outputs(output_paths, existing_output_digests)
+                            if force_all
+                            else [path for path in output_paths if os.path.isfile(path)]
+                        )
+                        if force_all:
+                            _record_skill_output_produced(
+                                reporting,
+                                job_id,
+                                skill_name,
+                                produced_outputs,
+                            )
                         success_count += 1
                         print("    Success")
                         _report_skill_status(
@@ -4004,11 +4155,7 @@ def process_binary(
                             skill_name,
                             TaskStatus.SUCCEEDED,
                             ProcessPhase.FINISHED,
-                            payload={
-                                "produced_outputs": [
-                                    path for path in required_outputs + optional_outputs if os.path.isfile(path)
-                                ]
-                            },
+                            payload={"produced_outputs": produced_outputs},
                         )
             else:
                 fail_count += 1
@@ -4444,6 +4591,18 @@ def build_force_all_execution_report(args, reporting: AnalysisReporting) -> dict
 
     issues = []
     node_records = {}
+
+    def relative_output_paths(raw_paths, *, label):
+        relative_paths = []
+        for raw_path in raw_paths:
+            try:
+                relative_paths.append(
+                    Path(raw_path).resolve().relative_to(contract.artifact_game_root.resolve()).as_posix()
+                )
+            except ValueError:
+                issues.append(f"producer reported {label} outside the artifact GAMEVER root: {raw_path}")
+        return sorted(set(relative_paths))
+
     for formal_node in contract.nodes.values():
         key = (
             formal_node.stage_index,
@@ -4456,14 +4615,10 @@ def build_force_all_execution_report(args, reporting: AnalysisReporting) -> dict
             issues.append(f"formal producer was not scheduled: {formal_node.node_id}")
             continue
         record = reporting.task_record(task_id)
-        produced_paths = []
-        for raw_path in record["payload"].get("produced_outputs", []):
-            try:
-                produced_paths.append(
-                    Path(raw_path).resolve().relative_to(contract.artifact_game_root.resolve()).as_posix()
-                )
-            except ValueError:
-                issues.append(f"producer reported an output outside the artifact GAMEVER root: {raw_path}")
+        raw_produced_outputs = record["produced_outputs"] or record["payload"].get("produced_outputs", [])
+        raw_attempted_outputs = record["attempted_outputs"]
+        if not raw_attempted_outputs and record["attempted"]:
+            raw_attempted_outputs = raw_produced_outputs
         record.update(
             {
                 "node_id": formal_node.node_id,
@@ -4471,7 +4626,8 @@ def build_force_all_execution_report(args, reporting: AnalysisReporting) -> dict
                 "platform": formal_node.platform,
                 "skill": formal_node.skill_name,
                 "fingerprint": formal_node.fingerprint,
-                "produced_paths": sorted(set(produced_paths)),
+                "attempted_paths": relative_output_paths(raw_attempted_outputs, label="an attempted output"),
+                "produced_paths": relative_output_paths(raw_produced_outputs, label="an output"),
             }
         )
         node_records[formal_node.node_id] = record
@@ -4482,6 +4638,11 @@ def build_force_all_execution_report(args, reporting: AnalysisReporting) -> dict
         output_path = path_from_key(contract.artifact_game_root, group.artifact_path)
         output_exists = output_path.is_file()
         alternatives = [node_records.get(node_id) for node_id in group.alternative_node_ids]
+        attempted_node_ids = [
+            record["node_id"]
+            for record in alternatives
+            if record is not None and group.artifact_path in record["attempted_paths"]
+        ]
         successful = [
             record
             for record in alternatives
@@ -4499,15 +4660,23 @@ def build_force_all_execution_report(args, reporting: AnalysisReporting) -> dict
             )
         if winner is not None:
             winner_index = group.alternative_node_ids.index(winner)
+            expected_attempts = list(group.alternative_node_ids[: winner_index + 1])
             later_attempts = [
                 record["node_id"]
                 for record in alternatives[winner_index + 1 :]
-                if record is not None and record["attempted"]
+                if record is not None and group.artifact_path in record["attempted_paths"]
             ]
             if later_attempts:
                 issues.append(
                     f"producer alternatives executed after winner for {group.artifact_path}: {later_attempts!r}"
                 )
+        else:
+            expected_attempts = list(group.alternative_node_ids)
+        if attempted_node_ids != expected_attempts:
+            issues.append(
+                f"producer alternatives were not attempted as an ordered prefix for {group.artifact_path}: "
+                f"expected={expected_attempts!r} actual={attempted_node_ids!r}"
+            )
         group_records.append(
             {
                 "group_id": group_id,
@@ -4515,9 +4684,7 @@ def build_force_all_execution_report(args, reporting: AnalysisReporting) -> dict
                 "required": group.required,
                 "fingerprint": group.fingerprint,
                 "alternative_node_ids": list(group.alternative_node_ids),
-                "attempted_node_ids": [
-                    record["node_id"] for record in alternatives if record is not None and record["attempted"]
-                ],
+                "attempted_node_ids": attempted_node_ids,
                 "winner_node_id": winner,
                 "output_sha256": _sha256_file(output_path) if output_exists else None,
             }
