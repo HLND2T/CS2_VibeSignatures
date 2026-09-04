@@ -347,7 +347,13 @@ class TrustedArtifactPrTests(unittest.TestCase):
                 tap.build_trusted_artifact_plan(repo_root=root, trusted_context=context)
 
     def test_trust_root_change_requires_independent_bridge_update(self) -> None:
-        for changed_path in ("source_artifact_policy.yaml", "binary_lock.py"):
+        for changed_path in (
+            "source_artifact_policy.yaml",
+            "binary_lock.py",
+            "analysis_output_contract.py",
+            ".github/workflows/warmup-idb.yml",
+            ".github/workflows/future-privileged.yml",
+        ):
             with self.subTest(changed_path=changed_path), tempfile.TemporaryDirectory() as temporary:
                 root = Path(temporary) / "repo"
                 root.mkdir()

@@ -30,7 +30,7 @@ from gamesymbol_snapshot_lib.paths import is_reparse_point, validate_snapshot_ke
 from gamesymbol_snapshot_lib.pr_validation import build_invalidation_plan, required_source_index_sides
 from gamever_baseline import gamever_order_key, select_prior_gamever
 from ida_analyze_util import SymbolArtifactError, canonical_symbol_yaml_bytes
-from trusted_pr_context import load_trusted_pr_context, validate_trusted_pr_context
+from trusted_pr_context import TRUSTED_FILE_PATHS, load_trusted_pr_context, validate_trusted_pr_context
 
 
 PLAN_SCHEMA_VERSION = 3
@@ -63,25 +63,8 @@ SHARED_ANALYSIS_PATHS = frozenset(
     }
 )
 SHARED_ANALYSIS_PREFIXES = ("gamesymbol_snapshot_lib/",)
-TRUST_ROOT_PATHS = frozenset(
-    {
-        "source_artifact_policy.yaml",
-        "trusted_pr_context.py",
-        "trusted_artifact_pr.py",
-        "new_gamever_artifact.py",
-        "gamever_baseline.py",
-        "trusted_yaml.py",
-        "binary_lock.py",
-        "binary_hashing.py",
-        "release_workflow_lib/errors.py",
-        "release_workflow_lib/hashing.py",
-        ".github/workflows/pr-self-runner.yml",
-        ".github/workflows/source-artifact-required.yml",
-        ".github/workflows/bootstrap-new-gamever-artifacts.yml",
-        "pyproject.toml",
-        "uv.lock",
-    }
-)
+TRUST_ROOT_PATHS = frozenset(TRUSTED_FILE_PATHS)
+TRUST_ROOT_PREFIXES = (".github/workflows/",)
 
 
 class TrustedArtifactPrError(RuntimeError):
@@ -95,6 +78,11 @@ def _is_shared_analysis_runtime_path(path: str) -> bool:
         or ("/" not in path and path.endswith(".py"))
         or (path.startswith(SHARED_ANALYSIS_PREFIXES) and path.endswith(".py"))
     )
+
+
+def _is_trust_root_path(path: str | None) -> bool:
+    """Return whether a path can alter privileged validation or publication behavior."""
+    return bool(path) and (path in TRUST_ROOT_PATHS or path.startswith(TRUST_ROOT_PREFIXES))
 
 
 @dataclass(frozen=True)
@@ -563,7 +551,7 @@ def build_trusted_artifact_plan(*, repo_root: str | Path, trusted_context: dict 
     _validate_repository_tree_namespaces(repo, context["merge_sha"], merge_versions)
     changes = repo.changes(context["base_sha"], context["merge_sha"])
     changed_trust_roots = sorted(
-        {path for change in changes for path in (change.old_path, change.new_path) if path in TRUST_ROOT_PATHS}
+        {path for change in changes for path in (change.old_path, change.new_path) if _is_trust_root_path(path)}
     )
     if changed_trust_roots:
         raise TrustedArtifactPrError(
