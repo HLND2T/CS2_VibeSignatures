@@ -12,6 +12,13 @@ disable-model-invocation: true
 
 Locate `CNetworkMessages_dtor` vfunc in CS2 `networksystem.dll` or `libnetworksystem.so` using IDA Pro MCP tools.
 
+## Deterministic Preprocessor
+
+Normal analyzer runs use `ida_preprocessor_scripts/find-CNetworkMessages_dtor.py`. It selects the ABI-defined
+destructor slot from `CNetworkMessages_vtable.{platform}.yaml` and regenerates `func_sig` with the shared
+deterministic signature generator. This Agent skill is only the fallback when that preprocessor fails; the trusted
+finalizer replaces any Agent-provided `func_sig` from `func_va` before accepting the output.
+
 ## Method
 
 ### 1. Load CNetworkMessages VTable from YAML
