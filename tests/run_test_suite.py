@@ -19,20 +19,14 @@ SUITE_NAMES = (*PRIMARY_SUITES, "all")
 
 REPOSITORY_CONTRACT_MODULES = frozenset(
     {
-        "test_abandon_staged_release",
         "test_bin_artifact_contract",
-        "test_build_self_runner_workflow",
         "test_config_scheduling_dependencies",
-        "test_pack_snapshot_skill",
-        "test_pr_self_runner_workflow",
         "test_reference_yaml_contract",
-        "test_restore_from_snapshot_skill",
         "test_smoke_ida_mcp_2",
         "test_symbol_store_architecture",
         "test_trusted_artifact_pr",
         "test_trusted_pr_context",
         "test_trigger_release_build",
-        "test_warmup_idb_workflow",
     }
 )
 REPOSITORY_CONTRACT_PREFIXES = (
@@ -41,7 +35,6 @@ REPOSITORY_CONTRACT_PREFIXES = (
     "test_bump_download.TestBumpDownload.test_bump_workflow_prunes_local_only_tags_before_bump",
     "test_ida_mcp_session.TestMcpSessionBoundary.test_only_adapter_creates_raw_mcp_sessions",
     "test_llm_decompile_dependencies.TestRepositoryLlmDecompileDependencyPolicy",
-    "test_pr_validation_mode.PrValidationModeRepositoryContractTests",
     "test_test_suite_runner.TestSuiteAssignmentContract",
     "test_trusted_yaml.TestRepositoryYamlCompatibility",
 )
@@ -52,10 +45,10 @@ REDIS_INTEGRATION_PREFIXES = (
 )
 RELEASE_INTEGRATION_MODULES = frozenset(
     {
-        "test_completed_release_cleanup",
-        "test_release_gamedata_smoke",
-        "test_release_workflow",
-        "test_release_workflow_guards",
+        "test_pages_release_input",
+        "test_release_bundle",
+        "test_release_publish",
+        "test_release_source_preflight",
     }
 )
 UNIT_MODULES = frozenset(
@@ -65,7 +58,10 @@ UNIT_MODULES = frozenset(
         "test_atomic_json_write",
         "test_binary_lock",
         "test_binary_hashing",
+        "test_binsync_candidate",
+        "test_binsync_publish",
         "test_bump_download",
+        "test_cnetworkmessages_dtor_preprocessor",
         "test_copy_depot_bin",
         "test_cs2fow_gamedata",
         "test_define_inputfunc_preprocessor",
@@ -76,7 +72,6 @@ UNIT_MODULES = frozenset(
         "test_gamedata_utils",
         "test_gamesymbol_candidate",
         "test_gamesymbol_metadata",
-        "test_gamesymbol_pr_cli",
         "test_gamesymbol_pr_reference_validation",
         "test_gamesymbol_pr_validation",
         "test_gamesymbol_snapshot_config",
@@ -84,7 +79,9 @@ UNIT_MODULES = frozenset(
         "test_gamesymbol_snapshot_versioning",
         "test_gamesymbol_store",
         "test_generate_reference_yaml",
+        "test_headless_force_push",
         "test_ida_analyze_bin",
+        "test_ida_llm_decompile",
         "test_idb_cache",
         "test_ida_analyze_util",
         "test_ida_llm_utils",
@@ -103,6 +100,7 @@ UNIT_MODULES = frozenset(
         "test_indirect_vcall_target_common",
         "test_init_gamebin",
         "test_llm_decompile_dependencies",
+        "test_new_gamever_artifact",
         "test_process_api",
         "test_process_reporter",
         "test_process_reporter_factory",
@@ -110,10 +108,8 @@ UNIT_MODULES = frozenset(
         "test_process_scheduler_redis",
         "test_process_status_reader_redis",
         "test_prune_pr_expected_output_bin",
-        "test_pr_validation_mode",
-        "test_pr_validation_version",
-        "test_promote_staged_yaml",
         "test_push_binsync_symbols",
+        "test_release_artifact_rebuild",
         "test_ordinal_vtable_common",
         "test_register_api_callbacks_preprocessor",
         "test_register_event_listener_abstract_preprocessor",
@@ -121,6 +117,9 @@ UNIT_MODULES = frozenset(
         "test_run_cpp_tests",
         "test_script_desc_internal_preprocessor",
         "test_source_artifact_accepted_bin",
+        "test_source_artifact_bootstrap",
+        "test_source_binary_lock_bootstrap",
+        "test_symbol_artifact_canonicalization",
         "test_sync_accepted_bin",
         "test_test_suite_runner",
         "test_trusted_yaml",

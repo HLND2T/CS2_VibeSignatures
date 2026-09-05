@@ -18,7 +18,7 @@ Run the same formatting gate used by GitHub Actions:
 uv run python format_repo_files.py --check
 ```
 
-The formatter only uses files returned by `git ls-files --cached -- '*.py' '*.yaml'`, so ignored files and untracked scratch files are skipped. YAML files under `ida_preprocessor_scripts/references/` and canonical lockfiles under `gamesymbols/` are also skipped because their generators control byte-stable formatting.
+The formatter only uses files returned by `git ls-files --cached -- '*.py' '*.yaml'`, so ignored files and untracked scratch files are skipped. YAML under `ida_preprocessor_scripts/references/` and canonical symbol artifacts under `bin_artifacts/` are also skipped because their producers/canonicalizer control exact bytes.
 
 ## Tests
 

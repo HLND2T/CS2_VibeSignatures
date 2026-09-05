@@ -1,3 +1,4 @@
+import os
 import subprocess
 import tempfile
 import unittest
@@ -8,14 +9,23 @@ from bin_artifact_contract import (
     build_game_artifact_inventory,
     validate_repository_artifact_contract,
 )
-from source_artifact_schema import canonical_symbol_yaml_bytes
-from tests.gamesymbol_snapshot_test_support import write_binary, write_config, write_yaml
+from ida_analyze_util import canonical_symbol_yaml_bytes
+from tests.gamesymbol_snapshot_test_support import (
+    write_binary,
+    write_config,
+    write_source_binary_lock,
+    write_yaml,
+)
 
 
 class BinArtifactContractTests(unittest.TestCase):
     def _workspace(self, root: Path) -> tuple[Path, Path, Path]:
         config = root / "configs" / "1.yaml"
         artifact = root / "bin_artifacts" / "1" / "server" / "Example.windows.yaml"
+        (root / "download.yaml").write_text(
+            "downloads:\n  - tag: '1'\n    manifests: {'1': '1'}\n",
+            encoding="utf-8",
+        )
         write_config(
             config,
             [
@@ -30,6 +40,7 @@ class BinArtifactContractTests(unittest.TestCase):
         artifact.parent.mkdir(parents=True, exist_ok=True)
         artifact.write_bytes(canonical_symbol_yaml_bytes({"func_name": "Example", "func_rva": "0x10"}, category="func"))
         write_binary(root / "bin" / "1" / "server" / "server.dll")
+        write_source_binary_lock(root, "1")
         return config, artifact, root / "bin_artifacts"
 
     def test_accepts_canonical_required_artifact_and_reports_inventory(self) -> None:
@@ -75,6 +86,8 @@ class BinArtifactContractTests(unittest.TestCase):
             root = Path(temporary)
             config, _artifact, artifact_root = self._workspace(root)
             subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+            subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=root, check=True)
+            subprocess.run(["git", "config", "user.name", "Test"], cwd=root, check=True)
             subprocess.run(["git", "add", "."], cwd=root, check=True)
             subprocess.run(["git", "commit", "-qm", "fixture"], cwd=root, check=True)
             report = build_game_artifact_inventory(
@@ -85,6 +98,100 @@ class BinArtifactContractTests(unittest.TestCase):
                 require_tracked=True,
             )
             self.assertEqual(1, report.file_count)
+
+    def test_require_tracked_rejects_canonical_bytes_that_differ_from_git(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            config, artifact, artifact_root = self._workspace(root)
+            self._git_init_and_commit(root)
+            source_sha = subprocess.run(
+                ["git", "rev-parse", "HEAD"],
+                cwd=root,
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout.strip()
+            artifact.write_bytes(
+                canonical_symbol_yaml_bytes({"func_name": "Example", "func_rva": "0x20"}, category="func")
+            )
+
+            with self.assertRaisesRegex(ArtifactContractError, "differs from Git index blob"):
+                build_game_artifact_inventory(
+                    repo_root=root,
+                    config_path=config,
+                    game_version="1",
+                    artifact_root=artifact_root,
+                    require_tracked=True,
+                )
+
+            subprocess.run(["git", "add", str(artifact.relative_to(root))], cwd=root, check=True)
+            report = build_game_artifact_inventory(
+                repo_root=root,
+                config_path=config,
+                game_version="1",
+                artifact_root=artifact_root,
+                require_tracked=True,
+            )
+            self.assertEqual(1, report.file_count)
+            with self.assertRaisesRegex(ArtifactContractError, "differs from Git revision blob"):
+                build_game_artifact_inventory(
+                    repo_root=root,
+                    config_path=config,
+                    game_version="1",
+                    artifact_root=artifact_root,
+                    require_tracked=True,
+                    git_revision=source_sha,
+                )
+
+    def test_require_tracked_rejects_non_regular_git_mode(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            config, artifact, artifact_root = self._workspace(root)
+            self._git_init_and_commit(root)
+            subprocess.run(
+                ["git", "update-index", "--chmod=+x", str(artifact.relative_to(root))],
+                cwd=root,
+                check=True,
+            )
+
+            with self.assertRaisesRegex(ArtifactContractError, "mode must be 100644"):
+                build_game_artifact_inventory(
+                    repo_root=root,
+                    config_path=config,
+                    game_version="1",
+                    artifact_root=artifact_root,
+                    require_tracked=True,
+                )
+
+    def test_rejects_artifact_root_link_before_resolving_it(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            config, _artifact, artifact_root = self._workspace(root)
+            target = root / "real-bin-artifacts"
+            artifact_root.rename(target)
+            try:
+                if os.name == "nt":
+                    result = subprocess.run(
+                        ["cmd", "/c", "mklink", "/J", str(artifact_root), str(target)],
+                        capture_output=True,
+                        text=True,
+                        check=False,
+                    )
+                    if result.returncode:
+                        self.skipTest(f"unable to create a junction on this host: {result.stderr}")
+                else:
+                    artifact_root.symlink_to(target, target_is_directory=True)
+            except OSError as exc:
+                self.skipTest(f"unable to create an artifact-root link on this host: {exc}")
+
+            with self.assertRaisesRegex(ArtifactContractError, "link/reparse"):
+                build_game_artifact_inventory(
+                    repo_root=root,
+                    config_path=config,
+                    game_version="1",
+                    artifact_root=artifact_root,
+                    require_tracked=False,
+                )
 
     def test_repository_contract_rejects_unconfigured_and_legacy_tracked_outputs(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -106,6 +213,36 @@ class BinArtifactContractTests(unittest.TestCase):
             subprocess.run(["git", "add", "."], cwd=root, check=True)
             subprocess.run(["git", "commit", "-qm", "legacy"], cwd=root, check=True)
             with self.assertRaisesRegex(ArtifactContractError, "legacy generated outputs"):
+                validate_repository_artifact_contract(repo_root=root, game_versions=["1"])
+
+    def test_repository_contract_requires_exact_source_binary_lock_set(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self._workspace(root)
+            (root / "binary_locks" / "1.json").unlink()
+            self._git_init_and_commit(root)
+            with self.assertRaisesRegex(ArtifactContractError, "missing binary lock"):
+                validate_repository_artifact_contract(repo_root=root, game_versions=["1"])
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self._workspace(root)
+            (root / "binary_locks" / "2.json").write_text("{}\n", encoding="utf-8")
+            self._git_init_and_commit(root)
+            with self.assertRaisesRegex(ArtifactContractError, "unconfigured GAMEVER"):
+                validate_repository_artifact_contract(repo_root=root, game_versions=["1"])
+
+    def test_repository_contract_rejects_binary_lock_source_drift(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self._workspace(root)
+            (root / "download.yaml").write_text(
+                "downloads:\n  - tag: '1'\n    manifests: {'1': '2'}\n",
+                encoding="utf-8",
+            )
+            self._git_init_and_commit(root)
+
+            with self.assertRaisesRegex(ArtifactContractError, "binary lock.*mismatch"):
                 validate_repository_artifact_contract(repo_root=root, game_versions=["1"])
 
     @staticmethod

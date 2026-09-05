@@ -1,6 +1,4 @@
 import hashlib
-import os
-import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -18,18 +16,12 @@ from gamesymbol_snapshot_lib.candidate_session import (
 from gamesymbol_snapshot_lib.codec import (
     canonical_snapshot_bytes,
     parse_snapshot_bytes,
-    snapshot_analysis_output_contract_version,
     snapshot_config_digest_version,
 )
 from gamesymbol_snapshot_lib.diff import format_snapshot_mismatch
 from gamesymbol_snapshot_lib.errors import SnapshotMismatchError, SnapshotSchemaError
 from gamesymbol_snapshot_lib.operations import pack_snapshot
-from gamesymbol_snapshot_lib.paths import is_reparse_point
 from gamesymbol_store import CandidateChangedError, SnapshotSymbolStore
-
-
-class CandidatePublicationError(Exception):
-    """Candidate publication failed without replacing the destination."""
 
 
 @dataclass(frozen=True)
@@ -48,13 +40,6 @@ class SnapshotDiff:
     actual_sha256: str
     expected_sha256: str
     equal: bool
-
-
-@dataclass(frozen=True)
-class PublishedInfo:
-    path: str
-    candidate_sha256: str
-    byte_count: int
 
 
 def _validate_staging_paths(output_path, session_path) -> tuple[Path, Path]:
@@ -100,7 +85,14 @@ def _candidate_info(path: Path) -> CandidateInfo:
 
 
 def build_candidate_snapshot(
-    *, game_version, bin_root, config_path, output_path, session_path, last_publish_time: str | None = None
+    *,
+    game_version,
+    bin_root,
+    artifact_root,
+    config_path,
+    output_path,
+    session_path,
+    last_publish_time: str | None = None,
 ) -> CandidateInfo:
     output, session = _validate_staging_paths(output_path, session_path)
     try:
@@ -110,7 +102,7 @@ def build_candidate_snapshot(
             config_path,
             output,
             last_publish_time=last_publish_time,
-            binary_metadata_source_path=Path("gamesymbols") / f"{game_version}.yaml",
+            artifactdir=artifact_root,
         )
         store = SnapshotSymbolStore.open(
             output,
@@ -207,57 +199,3 @@ def complete_candidate_step(*, candidate_path, session_path, step: str) -> Candi
     state = "validated" if all(completed.get(item) for item in VALIDATION_STEPS) else "gamedata_passed"
     update_session(session, manifest, state=state)
     return info
-
-
-def _validate_destination(destination: Path, game_version: str) -> None:
-    tracked_root = absolute_path(Path.cwd() / "gamesymbols")
-    if destination.parent != tracked_root or destination.name != f"{game_version}.yaml":
-        raise CandidateContractError(f"published snapshot must be gamesymbols/{game_version}.yaml")
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    ensure_real_path(destination)
-    if destination.exists() and is_reparse_point(destination):
-        raise CandidateContractError(f"published snapshot destination must not be a link: {destination}")
-    if destination.exists() and not destination.is_file():
-        raise CandidateContractError(f"published snapshot destination is not a regular file: {destination}")
-
-
-def _atomic_publish(destination: Path, raw: bytes, digest: str) -> None:
-    temporary = None
-    try:
-        with tempfile.NamedTemporaryFile(
-            dir=destination.parent, prefix=f".{destination.name}.", delete=False
-        ) as handle:
-            temporary = Path(handle.name)
-            handle.write(raw)
-            handle.flush()
-            os.fsync(handle.fileno())
-        if _sha256(temporary.read_bytes()) != digest:
-            raise CandidatePublicationError("destination temporary copy hash mismatch")
-        os.replace(temporary, destination)
-    except OSError as exc:
-        raise CandidatePublicationError(f"unable to publish candidate: {exc}") from exc
-    finally:
-        if temporary and temporary.exists():
-            temporary.unlink()
-
-
-def publish_candidate(*, candidate_path, session_path, destination) -> PublishedInfo:
-    info = guard_candidate(candidate_path=candidate_path, session_path=session_path)
-    session, manifest = load_manifest(session_path)
-    if manifest.get("state") != "validated":
-        raise CandidateContractError("candidate session must be validated before publication")
-    target = absolute_path(destination)
-    _validate_destination(target, info.game_version)
-    try:
-        raw = Path(info.path).read_bytes()
-    except OSError as exc:
-        raise CandidatePublicationError(f"unable to read candidate for publication: {exc}") from exc
-    _atomic_publish(target, raw, info.candidate_sha256)
-    try:
-        published_digest = _sha256(target.read_bytes())
-    except OSError as exc:
-        raise CandidatePublicationError(f"unable to verify published snapshot: {exc}") from exc
-    if published_digest != info.candidate_sha256:
-        raise CandidatePublicationError("published snapshot hash does not match candidate")
-    update_session(session, manifest, state="published")
-    return PublishedInfo(str(target), info.candidate_sha256, len(raw))

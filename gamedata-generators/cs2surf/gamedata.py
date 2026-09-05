@@ -26,13 +26,9 @@ MODULE_ENABLED = True
 GAMEDATA_PATH = "gamedata/cs2surf-core.games.jsonc"
 OUTPUT_PATHS = (GAMEDATA_PATH,)
 
-# Upstream download sources: (raw_url, relative_dest_path)
-DOWNLOAD_SOURCES = [
-    (
-        "https://raw.githubusercontent.com/CS2Surf-CN/Timer/main/game/csgo/addons/cs2surf/gamedata/cs2surf-core.games.jsonc",
-        GAMEDATA_PATH,
-    ),
-]
+# Source-owned upstream baseline; provenance is recorded in templates/upstream.json.
+DOWNLOAD_SOURCES = ()
+STATIC_SOURCES = (("templates/cs2surf-core.games.jsonc", GAMEDATA_PATH),)
 
 
 def update(yaml_data, func_lib_map, platforms, output_dir, alias_to_name_map, debug=False):

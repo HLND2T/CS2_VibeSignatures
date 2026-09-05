@@ -77,7 +77,7 @@ TARGET_SCRIPT_FUNCTIONS = [
     {"script_name": "GetContextForScript", "target_name": "CBaseEntity_GetContextForScript"},
     {"script_name": "ScriptGatherCriteria", "target_name": "CBaseEntity_ScriptGatherCriteria"},
     {"script_name": "Script_TakeDamage", "target_name": "CBaseEntity_Script_TakeDamage"},
-    {"script_name": "SetGravityScale", "target_name": "CBaseEntity_SetGravityScale"},
+    {"script_name": "SetGravityScale", "target_name": "CBaseEntity_ScriptSetGravityScale"},
     {"script_name": "SetAbsVelocity", "target_name": "CBaseEntity_SetAbsVelocity"},
     {"script_name": "GetAbsVelocity", "target_name": "CBaseEntity_GetAbsVelocity"},
     {

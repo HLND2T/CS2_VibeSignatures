@@ -94,11 +94,6 @@ class SnapshotContract:
     producer_group_ids_by_path: dict[str, str]
 
     @property
-    def game_root(self) -> Path:
-        """Compatibility alias for artifact readers during the dual-root migration."""
-        return self.artifact_game_root
-
-    @property
     def formal_paths(self) -> frozenset[str]:
         return self.required_paths | self.optional_paths
 

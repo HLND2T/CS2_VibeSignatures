@@ -23,8 +23,18 @@ REPOSITORY_ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(REPOSITORY_ROOT))
 
 from analysis_config import AnalysisConfigError, resolve_analysis_config  # noqa: E402
+from release_workflow_lib.binary_cache import verify_source_binary_root  # noqa: E402
+from release_workflow_lib.errors import ReleaseWorkflowError  # noqa: E402
+from release_workflow_lib.hashing import (  # noqa: E402
+    canonical_json_bytes,
+    file_inventory,
+    load_json_object,
+    sha256_file,
+)
+from release_workflow_lib.sevenzip import listed_archive_files  # noqa: E402
 
-RELEASE_URL = "https://github.com/HLND2T/CS2_VibeSignatures/releases/download/{0}/gamebin-{0}.7z"
+RELEASE_ASSET_URL = "https://github.com/HLND2T/CS2_VibeSignatures/releases/download/{0}/{1}"
+RELEASE_TAG_API_URL = "https://api.github.com/repos/HLND2T/CS2_VibeSignatures/git/ref/tags/{0}"
 GAMEVER_RE = re.compile(r"^[0-9]{4,10}[a-z]?$")
 DOWNLOAD_TIMEOUT = (30, 300)
 COPY_BUFFER_SIZE = 1024 * 1024
@@ -805,14 +815,119 @@ def download_release_asset(url: str, destination: Path) -> bool:
     return True
 
 
-def extract_archive(root: Path, archive: Path, destination: Path) -> None:
-    """Extract a trusted release archive into an isolated temporary directory."""
-    destination.mkdir(parents=True, exist_ok=True)
+def release_tag_target(gamever: str) -> str:
+    try:
+        response = requests.get(RELEASE_TAG_API_URL.format(gamever), timeout=DOWNLOAD_TIMEOUT)
+        if not 200 <= response.status_code < 300:
+            raise InitGamebinError(f"Release tag lookup failed with HTTP {response.status_code} {response.reason}")
+        document = response.json()
+    except (requests.RequestException, ValueError) as exc:
+        raise InitGamebinError(f"unable to resolve immutable Release tag: {exc}") from exc
+    target = document.get("object") if isinstance(document, dict) else None
+    if (
+        not isinstance(target, dict)
+        or target.get("type") != "commit"
+        or not isinstance(target.get("sha"), str)
+        or not re.fullmatch(r"[0-9a-f]{40}", target["sha"])
+    ):
+        raise InitGamebinError("Release tag is not a direct immutable commit ref")
+    return target["sha"]
+
+
+def verify_downloaded_release_assets(
+    *, gamever: str, manifest_path: Path, checksums_path: Path, archive_path: Path
+) -> list[dict]:
+    from release_bundle import ReleaseBundleError, validate_release_manifest
+
+    try:
+        manifest = load_json_object(manifest_path)
+        if manifest_path.read_bytes() != canonical_json_bytes(manifest):
+            raise InitGamebinError("Release manifest is not canonical JSON")
+        validate_release_manifest(manifest)
+    except (OSError, ReleaseWorkflowError, ReleaseBundleError) as exc:
+        raise InitGamebinError(f"Release manifest validation failed: {exc}") from exc
+    if (
+        manifest.get("repository") != "HLND2T/CS2_VibeSignatures"
+        or manifest.get("release_version") != gamever
+        or manifest.get("game_version") != gamever
+        or release_tag_target(gamever) != manifest.get("source_sha")
+    ):
+        raise InitGamebinError("Release manifest, tag, and GAMEVER identity differ")
+
+    manifest_name = f"release-manifest-{gamever}.json"
+    archive_name = f"gamebin-{gamever}.7z"
+    archive_key = f"archives/{archive_name}"
+    public_assets = manifest["public_assets"]
+    archive_record = next((item for item in public_assets if item.get("path") == archive_key), None)
+    if archive_record is None or archive_record.get("name") != archive_name:
+        raise InitGamebinError("Release manifest does not declare the gamebin asset")
+    if archive_path.stat().st_size != archive_record["size"] or sha256_file(archive_path) != archive_record["sha256"]:
+        raise InitGamebinError("downloaded gamebin asset differs from the Release manifest")
+    checksum_records = [
+        *public_assets,
+        {
+            "path": manifest_name,
+            "name": manifest_name,
+            "size": manifest_path.stat().st_size,
+            "sha256": sha256_file(manifest_path),
+        },
+    ]
+    expected_checksums = "".join(
+        f"{item['sha256']}  {item['path']}\n" for item in sorted(checksum_records, key=lambda item: item["path"])
+    ).encode("utf-8")
+    if checksums_path.read_bytes() != expected_checksums:
+        raise InitGamebinError("downloaded SHA256SUMS differs from the Release manifest")
+    return manifest["archives"][archive_key]["files"]
+
+
+def download_verified_release_gamebin(gamever: str, temporary: Path) -> tuple[Path, list[dict]] | None:
+    manifest_name = f"release-manifest-{gamever}.json"
+    checksums_name = f"SHA256SUMS-{gamever}.txt"
+    archive_name = f"gamebin-{gamever}.7z"
+    manifest = temporary / manifest_name
+    checksums = temporary / checksums_name
+    archive = temporary / archive_name
+    if not download_release_asset(RELEASE_ASSET_URL.format(gamever, manifest_name), manifest):
+        return None
+    if not download_release_asset(RELEASE_ASSET_URL.format(gamever, checksums_name), checksums):
+        raise InitGamebinError("published Release is missing SHA256SUMS")
+    if not download_release_asset(RELEASE_ASSET_URL.format(gamever, archive_name), archive):
+        raise InitGamebinError("published Release is missing its declared gamebin asset")
+    expected = verify_downloaded_release_assets(
+        gamever=gamever,
+        manifest_path=manifest,
+        checksums_path=checksums,
+        archive_path=archive,
+    )
+    return archive, expected
+
+
+def extract_archive(root: Path, archive: Path, destination: Path, expected: list[dict]) -> None:
+    """Preflight and extract a verified Release archive into an isolated directory."""
+    listing = run_command(
+        ["7z", "l", "-slt", "-ba", str(archive)],
+        root,
+        capture=True,
+        label=f"listing {archive.name}",
+    )
+    try:
+        listed = listed_archive_files(listing.stdout)
+    except ReleaseWorkflowError as exc:
+        raise InitGamebinError(str(exc)) from exc
+    expected_listing = sorted(
+        ({"path": item["path"], "size": item["size"]} for item in expected),
+        key=lambda item: item["path"],
+    )
+    if listed != expected_listing:
+        raise InitGamebinError("gamebin archive listing differs from the Release manifest")
+    destination.mkdir(parents=True, exist_ok=False)
     run_command(
         ["7z", "x", str(archive), f"-o{destination}", "-y"],
         root,
         label=f"extracting {archive.name}",
     )
+    if file_inventory(destination) != expected:
+        raise InitGamebinError("extracted gamebin bytes differ from the Release manifest")
 
 
 def copy_new_file(source: Path, target: Path) -> bool:
@@ -930,10 +1045,11 @@ def prepare(
     if not check_binaries(root, gamever, config_path):
         with tempfile.TemporaryDirectory(prefix=f"init-gamebin-{gamever}-") as temp_dir:
             temporary = Path(temp_dir)
-            archive = temporary / f"gamebin-{gamever}.7z"
-            if download_release_asset(RELEASE_URL.format(gamever), archive):
+            release_gamebin = download_verified_release_gamebin(gamever, temporary)
+            if release_gamebin is not None:
+                archive, expected_files = release_gamebin
                 extracted = temporary / "extracted"
-                extract_archive(root, archive, extracted)
+                extract_archive(root, archive, extracted, expected_files)
                 copied, skipped = merge_archive_bin(extracted, root / "bin", gamever)
                 source = "release archive"
             else:
@@ -941,6 +1057,15 @@ def prepare(
                 source = "Steam depot fallback"
     if not check_binaries(root, gamever, config_path):
         raise InitGamebinError(f"configured binaries are still incomplete for GAMEVER {gamever}")
+    try:
+        binary_lock = verify_source_binary_root(
+            repo_root=root,
+            gamever=gamever,
+            binary_root=root / "bin" / gamever,
+            label="initialized binary tree",
+        )
+    except ReleaseWorkflowError as exc:
+        raise InitGamebinError(f"configured binaries do not match the source binary lock: {exc}") from exc
     binsync = None
     if binsync_mode == "enable":
         available, reason = probe_binsync(root)
@@ -957,6 +1082,7 @@ def prepare(
         "source": source,
         "copied": copied,
         "skipped": skipped,
+        "binary_lock_sha256": binary_lock.sha256,
         "binsync": binsync,
     }
 

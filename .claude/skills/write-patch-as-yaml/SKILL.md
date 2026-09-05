@@ -91,7 +91,7 @@ patch_rva = patch_va - idaapi.get_imagebase()
 
 # Get binary path and determine platform
 input_file = idaapi.get_input_file_path()
-dir_path = os.path.dirname(input_file)
+dir_path = os.environ.get('CS2VIBE_ARTIFACT_DIR') or os.path.dirname(input_file)
 
 if input_file.endswith('.dll'):
     platform = 'windows'
@@ -191,6 +191,10 @@ patch_sig = "E8 AA BB CC DD 48 8B 5C 24 30"
 patch_bytes = "90 90 90 90 90"
 patch_sig_disp = None
 ```
+
+## Trusted finalization
+
+This writer produces a semantic YAML payload at the caller-provided expected artifact path. It does not own final field ordering, scalar spelling, encoding, or line endings. After runtime validation, the trusted analyzer rewrites every successful preprocessor or Agent output through the Source2 central canonicalizer; that canonical rewrite is the only byte-level trust boundary.
 
 ## Notes
 

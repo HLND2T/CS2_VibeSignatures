@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Dispatch a new release or same-version rebuild from immutable origin/main."""
+"""Dispatch an immutable source-owned Release build from origin/main."""
 
 import argparse
 import json
 import re
+import tempfile
 import subprocess
 import sys
 import time
@@ -15,10 +16,10 @@ ALLOWED_REPOSITORIES = {"HLND2T/CS2_VibeSignatures"}
 GAMEVER_RE = re.compile(r"^[0-9]{4,10}[a-z]?$")
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 WORKFLOW = "build-on-self-runner.yml"
+PUBLICATION_MODES = frozenset({"verify-only", "publish"})
 RUN_LIST_LIMIT = "100"
 RUN_DISCOVERY_ATTEMPTS = 10
 RUN_DISCOVERY_DELAY_SECONDS = 2
-RELEASE_MODES = frozenset({"new", "republish"})
 
 
 class TriggerError(Exception):
@@ -102,39 +103,14 @@ def select_version(requested: str, versions: list[str]) -> str:
     return requested
 
 
-def remote_tag_exists(root: Path, gamever: str) -> bool:
-    tag = run_command(
-        ["git", "ls-remote", "--exit-code", "--tags", "origin", f"refs/tags/{gamever}"],
-        root,
-        allowed=(0, 2),
-    )
-    return tag.returncode == 0 and bool(tag.stdout.strip())
+def require_publication_mode(publication_mode: str) -> str:
+    if publication_mode not in PUBLICATION_MODES:
+        raise TriggerError(f"unsupported publication mode: {publication_mode}")
+    return publication_mode
 
 
-def github_release_exists(root: Path, repository: str, gamever: str) -> bool:
-    release = run_command(
-        ["gh", "api", f"repos/{repository}/releases/tags/{gamever}", "--silent"],
-        root,
-        allowed=(0, 1),
-    )
-    if release.returncode == 0:
-        return True
-    detail = (release.stderr or release.stdout).strip()
-    if "(HTTP 404)" in detail:
-        return False
-    raise TriggerError(f"failed to query Release {gamever}: {detail or 'exit code 1'}")
-
-
-def resolve_mode(root: Path, repository: str, gamever: str) -> str:
-    tag_exists = remote_tag_exists(root, gamever)
-    release_exists = github_release_exists(root, repository, gamever)
-    if not tag_exists and not release_exists:
-        return "new"
-    if tag_exists and release_exists:
-        return "republish"
-    if tag_exists:
-        raise TriggerError(f"inconsistent release state for {gamever}: tag exists but Release is absent")
-    raise TriggerError(f"inconsistent release state for {gamever}: Release exists but tag is absent")
+def release_run_title(gamever: str, publication_mode: str) -> str:
+    return f"Release {require_publication_mode(publication_mode)} {gamever}"
 
 
 def parse_json_list(raw: str, label: str) -> list[dict]:
@@ -165,25 +141,12 @@ def list_runs(root: Path) -> list[dict]:
     return parse_json_list(result.stdout, "gh run list")
 
 
-def require_no_duplicate(root: Path, gamever: str) -> set[int]:
-    pulls = run_command(
-        ["gh", "pr", "list", "--state", "open", "--limit", RUN_LIST_LIMIT, "--json", "headRefName,url"], root
-    )
-    canonical_prefix = f"gamesymbols/build/{gamever}/"
-    legacy_prefix = f"gamesymbols/{gamever}/build-"
-    for pull in parse_json_list(pulls.stdout, "gh pr list"):
-        head_ref = str(pull.get("headRefName", ""))
-        if head_ref.startswith(canonical_prefix):
-            raise TriggerError(f"an output PR is already open for {gamever}: {pull.get('url')}")
-        if head_ref.startswith(legacy_prefix):
-            raise TriggerError(
-                f"a legacy-format output PR must be resolved before dispatch for {gamever}: {pull.get('url')}"
-            )
+def require_no_duplicate(root: Path, gamever: str, publication_mode: str) -> set[int]:
     runs = list_runs(root)
-    title = f"Release build {gamever}"
+    title = release_run_title(gamever, publication_mode)
     for run in runs:
         if run.get("status") in {"queued", "in_progress"} and run.get("displayTitle") == title:
-            raise TriggerError(f"a release build is already active for {gamever}: {run.get('url')}")
+            raise TriggerError(f"a {publication_mode} release is already active for {gamever}: {run.get('url')}")
     return {int(run["databaseId"]) for run in runs if "databaseId" in run}
 
 
@@ -194,14 +157,42 @@ def require_main_unchanged(root: Path, source_sha: str) -> None:
         raise TriggerError("origin/main advanced while validating the rebuild request; run the skill again")
 
 
+def require_source_artifacts(root: Path, repository: str, gamever: str, source_sha: str) -> None:
+    """Run repository artifact preflight in a detached temporary source worktree."""
+    with tempfile.TemporaryDirectory(prefix="cs2-release-preflight-") as temporary:
+        source_root = Path(temporary) / "source"
+        run_command(["git", "worktree", "add", "--detach", str(source_root), source_sha], root)
+        try:
+            run_command(
+                [
+                    "uv",
+                    "run",
+                    "python",
+                    "release_source_preflight.py",
+                    "--repo-root",
+                    str(source_root),
+                    "--repository",
+                    repository,
+                    "--gamever",
+                    gamever,
+                    "--source-sha",
+                    source_sha,
+                    "--default-ref",
+                    source_sha,
+                ],
+                source_root,
+            )
+        finally:
+            run_command(["git", "worktree", "remove", "--force", str(source_root)], root)
+
+
 def dispatch(
     root: Path,
     gamever: str,
     source_sha: str,
-    mode: str,
+    publication_mode: str,
 ) -> None:
-    if mode not in RELEASE_MODES:
-        raise TriggerError(f"invalid release mode: {mode}")
+    publication_mode = require_publication_mode(publication_mode)
     run_command(
         [
             "gh",
@@ -215,19 +206,27 @@ def dispatch(
             "-f",
             f"source_sha={source_sha}",
             "-f",
-            f"mode={mode}",
+            f"publication_mode={publication_mode}",
         ],
         root,
     )
 
 
-def discover_run(root: Path, known_ids: set[int], *, gamever: str, source_sha: str) -> str:
+def discover_run(
+    root: Path,
+    known_ids: set[int],
+    *,
+    gamever: str,
+    source_sha: str,
+    publication_mode: str,
+) -> str:
+    title = release_run_title(gamever, publication_mode)
     for _attempt in range(RUN_DISCOVERY_ATTEMPTS):
         for run in list_runs(root):
             run_id = int(run.get("databaseId", 0))
             if (
                 run_id not in known_ids
-                and run.get("displayTitle") == f"Release build {gamever}"
+                and run.get("displayTitle") == title
                 and run.get("event") == "workflow_dispatch"
                 and run.get("headSha") == source_sha
             ):
@@ -236,20 +235,28 @@ def discover_run(root: Path, known_ids: set[int], *, gamever: str, source_sha: s
     raise TriggerError("workflow was dispatched but its Actions run URL could not be discovered")
 
 
-def execute(requested: str) -> dict:
+def execute(requested: str, publication_mode: str) -> dict:
     root = repository_root()
+    publication_mode = require_publication_mode(publication_mode)
     repository = require_repository(root)
     require_github_access(root, repository)
     source_sha, subject = resolve_source(root)
     gamever = select_version(requested, available_versions(root, source_sha))
-    mode = resolve_mode(root, repository, gamever)
-    known_ids = require_no_duplicate(root, gamever)
+    known_ids = require_no_duplicate(root, gamever, publication_mode)
     require_main_unchanged(root, source_sha)
-    dispatch(root, gamever, source_sha, mode)
-    run_url = discover_run(root, known_ids, gamever=gamever, source_sha=source_sha)
+    require_source_artifacts(root, repository, gamever, source_sha)
+    require_main_unchanged(root, source_sha)
+    dispatch(root, gamever, source_sha, publication_mode)
+    run_url = discover_run(
+        root,
+        known_ids,
+        gamever=gamever,
+        source_sha=source_sha,
+        publication_mode=publication_mode,
+    )
     return {
         "gamever": gamever,
-        "mode": mode,
+        "publication_mode": publication_mode,
         "source_sha": source_sha,
         "subject": subject,
         "run_url": run_url,
@@ -259,14 +266,20 @@ def execute(requested: str) -> dict:
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("gamever", help="A version in download.yaml, or latest")
+    parser.add_argument(
+        "--mode",
+        choices=sorted(PUBLICATION_MODES),
+        required=True,
+        help="verify-only performs all verification without publication; publish enables protected publishers",
+    )
     args = parser.parse_args(argv)
     try:
-        result = execute(args.gamever)
+        result = execute(args.gamever, args.mode)
     except (TriggerError, OSError) as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 1
     print(f"Selected GAMEVER: {result['gamever']}")
-    print(f"Mode: {result['mode']}")
+    print(f"Publication mode: {result['publication_mode']}")
     print(f"SOURCE_SHA: {result['source_sha']}")
     print(f"Commit: {result['subject']}")
     print(f"Actions run: {result['run_url']}")

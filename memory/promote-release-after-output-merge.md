@@ -6,9 +6,11 @@ permalink: cs2-vibesignatures/promote-release-after-output-merge
 
 # Promote Release After Output Merge
 
-## Overview
-The promotion workflow accepts only a trusted merged generated-output PR, archives accepted versioned gamedata directly, promotes private bin transactionally, verifies Release assets, and authorizes completed-stage cleanup.
+## Status
+Historical / superseded after the source-owned artifacts cutover. Retained only to interpret old generated-output PR and promotion receipts.
 
+## Overview
+The removed promotion workflow accepted a merged generated-output PR, reconstructed private staging, promoted accepted bin, and published Release assets. The active pipeline has no output PR or merge-triggered promotion; protected publishers consume hosted-verified candidates from a fresh rebuild of immutable source truth.
 ## Responsibilities
 - Verify repository/Bot/branch/merge-parent/PR-index identities and allowed paths.
 - Verify schema-4 manifests, accepted `gamedata/<GAMEVER>/`, generator contract, and staged bin.
@@ -34,18 +36,10 @@ merged output PR -> verify accepted Git + staged bin -> archive gamedata/<GAMEVE
 - Protected `win64` environment.
 
 ## Notes
-- Archives never recreate `dist/...`.
-- Delayed cleanup does not require current accepted bin to retain the old build.
-- Interrupted deletion resumes from the exact completion-record-bound trash path.
-- Staging excludes entire BinSync `.bsproj` directories and regenerable `.binsync.json` sidecars. Promotion therefore
-  accepts only durable bin state; a later republish recreates sidecars from validated remotes and lets BinSync recover
-  local repositories through `auto_clone`.
-- Release-workflow tree removal clears a Windows read-only attribute and retries only after `PermissionError`.
-- Generated-output PR author trust accepts the legacy `github-actions[bot]` login for already-open PRs and trusted
-  same-repository `OWNER` / `MEMBER` / `COLLABORATOR` associations for PAT-created PRs. `verify_output_pr` and
-  `verify_promotion` both take `author_association` and share `_require_trusted_pr_author`; the branch protocol,
-  manifest provenance, tracked-hash, and indexed-pending checks remain the substantive gates.
-
+- Historical responsibilities, paths, and recovery markers below are not active operating instructions.
+- Current BinSync publication is fast-forward-only and isolated from the main-repository Release publisher.
+- Current Release assets are immutable and derived from `source SHA + binary identity + bin_artifacts`; same-version clobber is forbidden.
+- See [[build-on-self-runner]] and [[project_overview]].
 ## Callers
 - Generated-output `pull_request.closed`.
 - Scheduled/manual completed-staging cleanup.

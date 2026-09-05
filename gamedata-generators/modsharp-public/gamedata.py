@@ -28,15 +28,9 @@ OUTPUT_PATHS = (
     f"{GAMEDATA_DIR}/tier0.games.jsonc",
 )
 
-# Upstream download sources: (raw_url, relative_dest_path)
-_MODSHARP_BASE_URL = "https://raw.githubusercontent.com/Kxnrl/modsharp-public/master/.asset/gamedata"
-
-DOWNLOAD_SOURCES = [
-    (f"{_MODSHARP_BASE_URL}/{path.rsplit('/', 1)[1]}", path)
-    for path in OUTPUT_PATHS
-    if not path.endswith("EntityEnhancement.games.jsonc")
-]
-STATIC_SOURCES = (("templates/EntityEnhancement.games.jsonc", f"{GAMEDATA_DIR}/EntityEnhancement.games.jsonc"),)
+# Source-owned upstream baselines; provenance is recorded in templates/upstream.json.
+DOWNLOAD_SOURCES = ()
+STATIC_SOURCES = tuple((f"templates/{path.rsplit('/', 1)[1]}", path) for path in OUTPUT_PATHS)
 
 
 def update(yaml_data, func_lib_map, platforms, output_dir, alias_to_name_map, debug=False):

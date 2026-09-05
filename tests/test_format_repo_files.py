@@ -57,8 +57,8 @@ class TestFormatRepoFiles(unittest.TestCase):
             "configs/14168.yaml",
             "ida_preprocessor_scripts/references/server/generated.yaml",
             "ida_preprocessor_scripts\\references\\client\\generated.yaml",
-            "gamesymbols/14168.yaml",
-            "gamesymbols\\14168b.yaml",
+            "bin_artifacts/14168/server/A.windows.yaml",
+            "bin_artifacts\\14168\\server\\A.linux.yaml",
         ]
 
         with (

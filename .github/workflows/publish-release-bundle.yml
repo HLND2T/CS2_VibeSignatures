@@ -1,0 +1,171 @@
+name: Publish Immutable Release Bundle
+on:
+  workflow_call:
+    inputs:
+      source_sha:
+        required: true
+        type: string
+      gamever:
+        required: true
+        type: string
+      release_version:
+        required: true
+        type: string
+      build_id:
+        required: true
+        type: string
+      artifact_name:
+        required: true
+        type: string
+      artifact_digest:
+        required: true
+        type: string
+      binsync_candidate_digest:
+        required: true
+        type: string
+      binsync_target_state_digest:
+        required: true
+        type: string
+      verified_manifest_digest:
+        required: true
+        type: string
+      verified_bundle_digest:
+        required: true
+        type: string
+      verified_binsync_target_state_digest:
+        required: true
+        type: string
+permissions:
+  actions: read
+  contents: write
+jobs:
+  publish:
+    environment: release
+    runs-on: ubuntu-latest
+    concurrency:
+      group: immutable-release-${{ github.repository }}-${{ inputs.release_version }}
+      cancel-in-progress: false
+    steps:
+      - name: Checkout exact immutable source and SDK without persisted credentials
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.source_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: recursive
+      - uses: astral-sh/setup-uv@v9.0.0
+      - name: Confirm immutable source remains reachable from the default branch
+        shell: pwsh
+        run: |
+          $sourceSha = "${{ inputs.source_sha }}".ToLowerInvariant()
+          if ($sourceSha -notmatch '^[0-9a-f]{40}$' -or (git rev-parse HEAD).Trim().ToLowerInvariant() -ne $sourceSha) {
+            throw "Protected Release checkout does not match the immutable source SHA."
+          }
+          git fetch --no-tags origin "+refs/heads/${{ github.event.repository.default_branch }}:refs/remotes/origin/${{ github.event.repository.default_branch }}"
+          if ($LASTEXITCODE -ne 0) { throw "Unable to fetch the default branch." }
+          git merge-base --is-ancestor $sourceSha "origin/${{ github.event.repository.default_branch }}"
+          if ($LASTEXITCODE -ne 0) { throw "Release source is no longer reachable from the default branch." }
+      - name: Bind exact verified Release Artifact
+        id: bind-artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $name = "${{ inputs.artifact_name }}"
+          $expectedDigest = "${{ inputs.artifact_digest }}".ToLowerInvariant()
+          if ($expectedDigest -match '^[0-9a-f]{64}$') { $expectedDigest = "sha256:$expectedDigest" }
+          if ($expectedDigest -notmatch '^sha256:[0-9a-f]{64}$') { throw "Invalid Release Artifact digest." }
+          $response = gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts?per_page=100" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or $response.total_count -gt 100) { throw "Unable to bind current-run Artifacts." }
+          $matches = @($response.artifacts | Where-Object { $_.name -ceq $name })
+          if ($matches.Count -ne 1) { throw "Expected exactly one Release Artifact named '$name'." }
+          $artifact = $matches[0]
+          if ($artifact.expired -or $artifact.workflow_run.id -ne ${{ github.run_id }}) {
+            throw "Release Artifact is expired or belongs to another run."
+          }
+          if (-not ($artifact.digest -is [string]) -or $artifact.digest.ToLowerInvariant() -ne $expectedDigest) {
+            throw "Release Artifact digest mismatch."
+          }
+          "artifact_id=$($artifact.id)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+      - name: Download exact verified Release bundle
+        uses: actions/download-artifact@v5
+        with:
+          artifact-ids: ${{ steps.bind-artifact.outputs.artifact_id }}
+          path: ${{ runner.temp }}/release-bundle
+      - name: Verify exact source-owned C++ SDK identity
+        shell: pwsh
+        run: |
+          $manifestPath = Get-ChildItem -LiteralPath "${{ runner.temp }}/release-bundle" -Filter "release-manifest-*.json"
+          if (@($manifestPath).Count -ne 1) { throw "Release bundle must contain exactly one manifest." }
+          $manifest = Get-Content -LiteralPath $manifestPath.FullName -Raw | ConvertFrom-Json
+          $sdkRef = [string]$manifest.cpp_sdk.ref
+          $sdkSha = ([string]$manifest.cpp_sdk.sha).ToLowerInvariant()
+          if ($sdkSha -notmatch '^[0-9a-f]{40}$') { throw "Release manifest C++ SDK SHA is invalid." }
+          $sdkPath = Join-Path "${{ github.workspace }}" "hl2sdk_cs2"
+          $sourceGitlink = (git rev-parse "${{ inputs.source_sha }}:hl2sdk_cs2").Trim().ToLowerInvariant()
+          $checkedOutSha = (git -C $sdkPath rev-parse HEAD).Trim().ToLowerInvariant()
+          if ($LASTEXITCODE -ne 0 -or $sdkRef -cne 'source-gitlink' -or `
+              $sourceGitlink -notmatch '^[0-9a-f]{40}$' -or $sdkSha -ne $sourceGitlink -or `
+              $checkedOutSha -ne $sourceGitlink) {
+            throw "Release C++ SDK does not match the immutable source gitlink."
+          }
+      - name: Reverify hosted digest outputs before publication
+        shell: pwsh
+        run: |
+          $json = & uv run python release_bundle.py verify `
+            --repo-root "${{ github.workspace }}" `
+            --bundle-root "${{ runner.temp }}/release-bundle" `
+            --source-sha "${{ inputs.source_sha }}" `
+            --gamever "${{ inputs.gamever }}" `
+            --release-version "${{ inputs.release_version }}" `
+            --build-id "${{ inputs.build_id }}" `
+            --actions-artifact-name "${{ inputs.artifact_name }}" `
+            --binsync-candidate-digest "${{ inputs.binsync_candidate_digest }}" `
+            --binsync-target-state-digest "${{ inputs.binsync_target_state_digest }}"
+          if ($LASTEXITCODE -ne 0) { throw "Protected Release bundle re-verification failed." }
+          $document = ($json -join "`n") | ConvertFrom-Json
+          if ($document.manifest_sha256 -ne "${{ inputs.verified_manifest_digest }}" -or `
+              $document.bundle_inventory_sha256 -ne "${{ inputs.verified_bundle_digest }}" -or `
+              $document.binsync_target_state_digest -ne "${{ inputs.verified_binsync_target_state_digest }}" -or `
+              $document.binsync_target_state_digest -ne "${{ inputs.binsync_target_state_digest }}") {
+            throw "Protected Release input differs from hosted verifier outputs."
+          }
+      - name: Publish tag, exact assets, and immutable Release
+        id: publish-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |-
+          $json = & uv run python release_publish.py `
+            --repo-root "${{ github.workspace }}" `
+            --bundle-root "${{ runner.temp }}/release-bundle" `
+            --source-sha "${{ inputs.source_sha }}" `
+            --gamever "${{ inputs.gamever }}" `
+            --release-version "${{ inputs.release_version }}" `
+            --build-id "${{ inputs.build_id }}" `
+            --actions-artifact-name "${{ inputs.artifact_name }}" `
+            --binsync-candidate-digest "${{ inputs.binsync_candidate_digest }}" `
+            --binsync-target-state-digest "${{ inputs.binsync_target_state_digest }}"
+          if ($LASTEXITCODE -ne 0) { throw "Immutable protected Release publication failed." }
+          $document = ($json -join "`n") | ConvertFrom-Json
+          if ($document.status -notin @('published', 'already-published') -or $document.release_id -notmatch '^[1-9][0-9]*$') {
+            throw "Immutable protected Release publication returned an invalid receipt."
+          }
+          "release_id=$($document.release_id)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "status=$($document.status)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+      - name: Dispatch Pages from the published immutable Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |-
+          $payload = @{
+            event_type = 'pages-release-published'
+            client_payload = @{
+              release_id = [long]"${{ steps.publish-release.outputs.release_id }}"
+              release_tag = "${{ inputs.release_version }}"
+              source_sha = "${{ inputs.source_sha }}"
+              manifest_sha256 = "${{ inputs.verified_manifest_digest }}"
+            }
+          } | ConvertTo-Json -Depth 4 -Compress
+          $payload | gh api --method POST "repos/${{ github.repository }}/dispatches" --input -
+          if ($LASTEXITCODE -ne 0) { throw "Unable to dispatch Pages from the published Release." }

@@ -1,5 +1,5 @@
 """
-Headless BinSync force push — a standalone, GUI-free way to push *every* Reverse
+Headless BinSync state export — a standalone, GUI-free way to commit Reverse
 Engineering Artifact currently present in an IDA database into a BinSync Git
 project.
 
@@ -53,15 +53,16 @@ Examples
     # dry run: connect and print what would be pushed (no commit / push)
     python headless_force_push.py D:/bins/client.dll
 
-    # actually commit + push everything
-    python headless_force_push.py D:/bins/client.dll --push
+    # commit locally while redirecting BinSync's mandatory push to an isolated sink
+    python headless_force_push.py D:/bins/client.dll --push --local-only
 
     # also push full function headers (args + stack vars) — needs Hex-Rays
-    python headless_force_push.py D:/bins/client.dll --push --use-decompilation
+    python headless_force_push.py D:/bins/client.dll --push --local-only --use-decompilation
 
     # no sidecar: specify everything inline
-    python headless_force_push.py D:/bins/client.dll --push \\
-        --user HZDEV --repo D:/bins/client.dll.bsproj --remote https://github.com/me/proj.git
+    python headless_force_push.py D:/bins/client.dll --push --local-only \\
+        --user HZDEV --repo D:/bins/client.dll.bsproj \\
+        --remote https://github.com/HLND2T/CS2_VibeSignatures_binsync_14174_client.dll
 
 Notes
 --------------------------------------------------------------------------------
@@ -70,36 +71,53 @@ Notes
   push, but no arguments or stack variables).
 * Keep everything on the main thread: ``connect(..., single_thread=True)`` skips
   BinSync's background worker threads so nothing else touches idalib off-thread.
+* Direct canonical-remote push is disabled. Publication uses verified Git bundles
+  in the protected hosted publisher.
 * Git must be installed and reachable (BinSync uses GitPython).
 """
 
 from __future__ import annotations
 
 import argparse
+import contextlib
 import getpass
 import json
 import logging
 import pathlib
+import re
+import subprocess
+import tempfile
 
 _log = logging.getLogger("binsync.headless_force_push")
+IDAInterface = None
+BSController = None
+ConnectionWarnings = None
 
-try:
-    # declib's IDA interface is Qt-free when IDA_IS_INTERACTIVE is unset — which
-    # is exactly the headless idalib case. Do NOT use binsync's IDABSInterface
-    # here: that is the GUI plugin wrapper and imports Qt.
-    from declib.decompilers.ida.interface import IDAInterface
-    from binsync.controller import BSController
-    from binsync.core.client import ConnectionWarnings
-except ImportError as exc:  # pragma: no cover - only meaningful outside idalib
-    raise SystemExit(
-        "headless_force_push.py must run in an idalib (IDA 9+) environment with "
-        "binsync + declib installed.\n"
-        f"Import error: {exc}"
-    ) from exc
+
+def _load_runtime_dependencies() -> None:
+    global IDAInterface, BSController, ConnectionWarnings
+    if IDAInterface is not None:
+        return
+    try:
+        # declib's IDA interface is Qt-free when IDA_IS_INTERACTIVE is unset —
+        # unlike binsync's GUI IDABSInterface wrapper, it does not import Qt.
+        from declib.decompilers.ida.interface import IDAInterface as RuntimeIDAInterface
+        from binsync.controller import BSController as RuntimeBSController
+        from binsync.core.client import ConnectionWarnings as RuntimeConnectionWarnings
+    except ImportError as exc:  # pragma: no cover - only meaningful outside idalib
+        raise SystemExit(
+            "headless_force_push.py must run in an idalib (IDA 9+) environment with "
+            "binsync + declib installed.\n"
+            f"Import error: {exc}"
+        ) from exc
+    IDAInterface = RuntimeIDAInterface
+    BSController = RuntimeBSController
+    ConnectionWarnings = RuntimeConnectionWarnings
 
 
 BINSYNC_SIDECAR_SUFFIX = ".binsync.json"
 DEFAULT_REPO_SUFFIX = ".bsproj"
+TRUSTED_REMOTE_RE = re.compile(r"^https://github\.com/HLND2T/CS2_VibeSignatures_binsync_[A-Za-z0-9_.-]+$")
 
 
 def find_sidecar(binary_path: pathlib.Path) -> pathlib.Path:
@@ -153,6 +171,7 @@ def build_controller(binary_path: pathlib.Path) -> BSController:
     ``IDAInterface(headless=True, ...)`` calls ``idapro.open_database`` itself,
     reopening the existing ``<binary>.i64`` when one is present.
     """
+    _load_runtime_dependencies()
     deci = IDAInterface(headless=True, binary_path=str(binary_path))
     return BSController(decompiler_interface=deci, headless=True)
 
@@ -228,13 +247,69 @@ def print_summary(arts: dict[str, list]) -> None:
     print(f"  segments  : {len(arts['segments'])}")
 
 
+def _git(arguments: list[str], cwd: pathlib.Path | None = None) -> str:
+    result = subprocess.run(
+        ["git", *arguments],
+        cwd=cwd,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode:
+        detail = (result.stderr or result.stdout).strip()
+        raise SystemExit(detail or f"git {' '.join(arguments)} failed with exit {result.returncode}")
+    return result.stdout.strip()
+
+
+def _remote_heads(remote: str) -> dict[str, str]:
+    output = _git(["ls-remote", "--heads", "--refs", remote])
+    heads = {}
+    for line in output.splitlines():
+        commit, ref = line.split("\t", 1)
+        if ref in heads or not re.fullmatch(r"[0-9a-f]{40}", commit):
+            raise SystemExit(f"invalid remote ref response from {remote}: {line!r}")
+        heads[ref] = commit
+    return heads
+
+
+@contextlib.contextmanager
+def local_only_remote(repo: pathlib.Path, remote: str):
+    """Redirect BinSync's mandatory push to a temporary bare sink and prove no remote drift."""
+    if not TRUSTED_REMOTE_RE.fullmatch(remote):
+        raise SystemExit(f"local-only BinSync export requires a canonical public remote: {remote!r}")
+    original = _git(["remote", "get-url", "origin"], cwd=repo)
+    if original != remote:
+        raise SystemExit(f"local BinSync origin differs from the canonical remote: {repo}")
+    before = _remote_heads(remote)
+    with tempfile.TemporaryDirectory(prefix="binsync-local-sink-") as temporary:
+        sink = pathlib.Path(temporary) / "sink.git"
+        _git(["clone", "--bare", "--no-tags", remote, str(sink)])
+        _git(["remote", "set-url", "origin", str(sink)], cwd=repo)
+        try:
+            yield
+        finally:
+            _git(["remote", "set-url", "origin", remote], cwd=repo)
+            after = _remote_heads(remote)
+            if after != before:
+                raise SystemExit(f"local-only BinSync export changed remote refs for {remote}")
+
+
 def parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="headless_force_push.py",
         description="Force push all IDA artifacts into a BinSync project (headless idalib).",
     )
     parser.add_argument("binary", help="Path to the original binary (used to open the DB and locate the sidecar).")
-    parser.add_argument("--push", action="store_true", help="Commit + push. Without this flag it is a dry run.")
+    parser.add_argument(
+        "--push",
+        action="store_true",
+        help="Commit through --local-only. Without this flag the command is a dry run.",
+    )
+    parser.add_argument(
+        "--local-only",
+        action="store_true",
+        help="Commit through an isolated local bare sink and prove the canonical remote did not change.",
+    )
     parser.add_argument("--user", help="Override the BinSync user identity.")
     parser.add_argument("--repo", help="Override the local BinSync repo path (default <binary>.bsproj).")
     parser.add_argument("--remote", help="Override the remote URL to clone when the repo is missing.")
@@ -288,40 +363,51 @@ def main(argv: list[str] | None = None) -> int:
         repo = binary_path.with_suffix(DEFAULT_REPO_SUFFIX)
 
     remote = args.remote or (cfg.remote if cfg else None)
+    if args.push and not args.local_only:
+        raise SystemExit("direct BinSync remote publication is disabled; use the protected bundle publisher")
+    if args.local_only and (not args.push or remote is None or not repo.is_dir()):
+        raise SystemExit("--local-only requires --push, an existing local repo, and a canonical remote")
 
-    controller = build_controller(binary_path)
+    def export() -> None:
+        controller = build_controller(binary_path)
+        try:
+            # optional md5 sanity check (mirrors binsync/auto_recover.py)
+            if cfg is not None and cfg.expected_md5 and not args.ignore_md5:
+                current_md5 = controller.deci.binary_hash
+                if current_md5 != cfg.expected_md5:
+                    raise SystemExit(
+                        f"md5 mismatch for {binary_path.name}: expected {cfg.expected_md5}, got {current_md5}"
+                    )
 
-    # optional md5 sanity check (mirrors binsync/auto_recover.py)
-    if cfg is not None and cfg.expected_md5 and not args.ignore_md5:
-        current_md5 = controller.deci.binary_hash
-        if current_md5 != cfg.expected_md5:
-            raise SystemExit(f"md5 mismatch for {binary_path.name}: expected {cfg.expected_md5}, got {current_md5}")
+            connect_controller(controller, user, repo, remote)
+            if args.artifacts_file:
+                manifest = load_manifest(args.artifacts_file)
+                func_addrs = manifest["functions"]
+                global_addrs = manifest["globals"]
+                print("BinSync force push — selected artifacts (from manifest):")
+                print(f"  functions : {len(func_addrs)}")
+                print(f"  globals   : {len(global_addrs)}")
+                if not args.push:
+                    _log.info("Dry run: nothing committed/pushed. Re-run with --push to apply.")
+                else:
+                    force_push_selected(controller, func_addrs, global_addrs, use_decompilation=args.use_decompilation)
+                    _log.info("Local BinSync commit complete." if args.local_only else "Force push complete.")
+            else:
+                arts = collect_artifacts(controller)
+                print_summary(arts)
+                if not args.push:
+                    _log.info("Dry run: nothing committed/pushed. Re-run with --push to apply.")
+                else:
+                    force_push_all(controller, arts, use_decompilation=args.use_decompilation)
+                    _log.info("Local BinSync commit complete." if args.local_only else "Force push complete.")
+        finally:
+            controller.shutdown()
 
-    connect_controller(controller, user, repo, remote)
-
-    if args.artifacts_file:
-        manifest = load_manifest(args.artifacts_file)
-        func_addrs = manifest["functions"]
-        global_addrs = manifest["globals"]
-        print("BinSync force push — selected artifacts (from manifest):")
-        print(f"  functions : {len(func_addrs)}")
-        print(f"  globals   : {len(global_addrs)}")
-        if not args.push:
-            _log.info("Dry run: nothing committed/pushed. Re-run with --push to apply.")
-        else:
-            force_push_selected(controller, func_addrs, global_addrs, use_decompilation=args.use_decompilation)
-            _log.info("Force push complete.")
+    if args.local_only:
+        with local_only_remote(repo, remote):
+            export()
     else:
-        arts = collect_artifacts(controller)
-        print_summary(arts)
-
-        if not args.push:
-            _log.info("Dry run: nothing committed/pushed. Re-run with --push to apply.")
-        else:
-            force_push_all(controller, arts, use_decompilation=args.use_decompilation)
-            _log.info("Force push complete.")
-
-    controller.shutdown()
+        export()
     return 0
 
 

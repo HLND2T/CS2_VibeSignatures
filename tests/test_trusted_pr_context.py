@@ -142,18 +142,10 @@ class TrustedPrContextTests(unittest.TestCase):
                 b"schema_version: 1\nmode: legacy\nartifact_root: bin_artifacts\n"
                 b"artifact_contract_schema_version: 1\nextra: true\n"
             )
-        self.assertEqual(
-            "legacy",
+        with self.assertRaisesRegex(tpc.TrustedPrContextError, "must be source-owned"):
             tpc.parse_source_artifact_policy(
                 b"schema_version: 1\nmode: legacy\nartifact_root: bin_artifacts\nartifact_contract_schema_version: 1\n"
-            ).mode,
-        )
-        self.assertEqual(
-            "bridge",
-            tpc.parse_source_artifact_policy(
-                b"schema_version: 1\nmode: bridge\nartifact_root: bin_artifacts\nartifact_contract_schema_version: 1\n"
-            ).mode,
-        )
+            )
 
 
 if __name__ == "__main__":

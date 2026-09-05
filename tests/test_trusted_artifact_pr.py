@@ -9,7 +9,7 @@ from pathlib import Path
 
 import trusted_artifact_pr as tap
 import trusted_pr_context as tpc
-from source_artifact_schema import canonical_symbol_yaml_bytes
+from ida_analyze_util import canonical_symbol_yaml_bytes
 from tests.gamesymbol_snapshot_test_support import write_binary, write_config, write_source_binary_lock
 
 
@@ -85,8 +85,6 @@ class TrustedArtifactPrTests(unittest.TestCase):
         add_extra: bool = False,
         add_unconfigured: bool = False,
         changed_path: str | None = None,
-        cutover_transition: bool = False,
-        approve_cutover: bool = True,
     ):
         self._git(root, "init", "-b", "main")
         self._git(root, "config", "user.email", "test@example.com")
@@ -95,17 +93,8 @@ class TrustedArtifactPrTests(unittest.TestCase):
         required.update(
             {
                 tpc.POLICY_REPO_PATH: (
-                    b"schema_version: 1\nmode: "
-                    + (b"bridge" if cutover_transition else b"source-owned")
-                    + b"\nartifact_root: bin_artifacts\n"
+                    b"schema_version: 1\nmode: source-owned\nartifact_root: bin_artifacts\n"
                     b"artifact_contract_schema_version: 1\n"
-                ),
-                tpc.CUTOVER_MANIFEST_REPO_PATH: tap._canonical_json_bytes(
-                    {
-                        "schema_version": 1,
-                        "excluded_paths": list(tap.CUTOVER_DIGEST_EXCLUDED_PATHS),
-                        "prospective_tree_sha256": "sha256:" + "0" * 64,
-                    }
                 ),
                 ".gitignore": b"bin/\n",
                 "download.yaml": b"downloads:\n  - tag: '1'\n    manifests: {'1': '1'}\n",
@@ -141,22 +130,11 @@ class TrustedArtifactPrTests(unittest.TestCase):
         write_source_binary_lock(root, "1")
         self._write_artifact(root, "A", "0x10")
         self._write_artifact(root, "B", "0x20")
-        if cutover_transition:
-            legacy = root / "gamesymbols" / "1.yaml"
-            legacy.parent.mkdir(parents=True, exist_ok=True)
-            legacy.write_text("legacy: true\n", encoding="utf-8")
         self._git(root, "add", ".")
         self._git(root, "commit", "-m", "base")
         base_sha = self._git(root, "rev-parse", "HEAD")
 
         self._git(root, "switch", "-c", "feature")
-        if cutover_transition:
-            (root / tpc.POLICY_REPO_PATH).write_text(
-                "schema_version: 1\nmode: source-owned\nartifact_root: bin_artifacts\n"
-                "artifact_contract_schema_version: 1\n",
-                encoding="utf-8",
-            )
-            (root / "gamesymbols" / "1.yaml").unlink()
         if change_artifact:
             self._write_artifact(root, "A", "0x30")
         elif changed_path is None:
@@ -174,11 +152,6 @@ class TrustedArtifactPrTests(unittest.TestCase):
         elif changed_path == "add-unconfigured-binary-lock":
             path = root / "binary_locks" / "2.json"
             path.write_text("{}\n", encoding="utf-8")
-        elif changed_path == "source_artifact_policy.yaml":
-            (root / changed_path).write_text(
-                "schema_version: 1\nmode: bridge\nartifact_root: bin_artifacts\nartifact_contract_schema_version: 1\n",
-                encoding="utf-8",
-            )
         elif changed_path:
             (root / changed_path).write_text("prospective trust-root change\n", encoding="utf-8")
         if add_extra:
@@ -191,20 +164,6 @@ class TrustedArtifactPrTests(unittest.TestCase):
         self._git(root, "commit", "-m", "head")
         head_sha = self._git(root, "rev-parse", "HEAD")
         self._git(root, "switch", "main")
-        if cutover_transition and approve_cutover:
-            approved_digest = tap._repository_tree_digest(tap.GitTreeRepository(root), head_sha)
-            (root / tpc.CUTOVER_MANIFEST_REPO_PATH).write_bytes(
-                tap._canonical_json_bytes(
-                    {
-                        "schema_version": 1,
-                        "excluded_paths": list(tap.CUTOVER_DIGEST_EXCLUDED_PATHS),
-                        "prospective_tree_sha256": approved_digest,
-                    }
-                )
-            )
-            self._git(root, "add", tpc.CUTOVER_MANIFEST_REPO_PATH)
-            self._git(root, "commit", "-m", "approve cutover tree")
-            base_sha = self._git(root, "rev-parse", "HEAD")
         self._git(root, "merge", "--no-ff", "feature", "-m", "prospective merge")
         merge_sha = self._git(root, "rev-parse", "HEAD")
         context = tpc.build_trusted_pr_context(
@@ -235,39 +194,6 @@ class TrustedArtifactPrTests(unittest.TestCase):
                 {node["skill"] for node in version["selected_alternative_nodes"]},
             )
             self.assertEqual(plan, tap.validate_trusted_artifact_plan(plan))
-
-    def test_bridge_to_source_owned_transition_validates_only_merge_truth_and_forces_full(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary) / "repo"
-            root.mkdir()
-            _base, _head, _merge, context = self._repository(root, cutover_transition=True)
-
-            plan = tap.build_trusted_artifact_plan(repo_root=root, trusted_context=context)
-
-            self.assertTrue(context["cutover_transition"])
-            self.assertTrue(plan["cutover_transition"])
-            self.assertEqual(
-                tap._repository_tree_digest(tap.GitTreeRepository(root), plan["merge_sha"]), plan["cutover_tree_sha256"]
-            )
-            self.assertEqual("full", plan["mode"])
-            self.assertEqual(["1"], plan["affected_game_versions"])
-            version = plan["game_versions"][0]
-            self.assertIsNone(version["base_artifacts"])
-            self.assertEqual(2, len(version["affected_producer_groups"]))
-            self.assertIn("atomic legacy-to-source-owned cutover", version["reasons"])
-
-    def test_bridge_transition_rejects_any_tree_not_preapproved_by_base(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary) / "repo"
-            root.mkdir()
-            _base, _head, _merge, context = self._repository(
-                root,
-                cutover_transition=True,
-                approve_cutover=False,
-            )
-
-            with self.assertRaisesRegex(tap.TrustedArtifactPrError, "not the exact base-approved"):
-                tap.build_trusted_artifact_plan(repo_root=root, trusted_context=context)
 
     def test_isolated_preparation_uses_empty_root_and_exact_force_all_verify_passes(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -304,37 +230,6 @@ class TrustedArtifactPrTests(unittest.TestCase):
 
             with self.assertRaisesRegex(tap.TrustedArtifactPrError, "contract failed|byte mismatch"):
                 tap.validate_isolated_rebuild(repo_root=root, plan=plan, preparation=preparation)
-
-    def test_hosted_verifier_rehomes_exported_builder_evidence(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary) / "repo"
-            builder_staging = Path(temporary) / "builder"
-            hosted_staging = Path(temporary) / "hosted"
-            exported_root = Path(temporary) / "exported-actual"
-            exported_report = Path(temporary) / "exported-execution.json"
-            root.mkdir()
-            _base, _head, _merge, context = self._repository(root)
-            plan = tap.build_trusted_artifact_plan(repo_root=root, trusted_context=context)
-            preparation = tap.prepare_isolated_rebuild(repo_root=root, plan=plan, staging_root=builder_staging)
-            shutil.copytree(
-                Path(preparation["expected_artifact_root"]),
-                Path(preparation["actual_artifact_root"]),
-                dirs_exist_ok=True,
-            )
-            self._write_execution_report(root, plan, preparation)
-            shutil.copytree(Path(preparation["actual_artifact_root"]), exported_root)
-            shutil.copy2(preparation["execution_reports"]["1"], exported_report)
-
-            result = tap.validate_exported_isolated_rebuild(
-                repo_root=root,
-                plan=plan,
-                staging_root=hosted_staging,
-                game_version="1",
-                actual_artifact_root=exported_root,
-                execution_report=exported_report,
-            )
-
-            self.assertEqual(["1"], [item["game_version"] for item in result["game_versions"]])
 
     def test_isolated_verify_rejects_missing_execution_evidence(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -452,8 +347,13 @@ class TrustedArtifactPrTests(unittest.TestCase):
                 tap.build_trusted_artifact_plan(repo_root=root, trusted_context=context)
 
     def test_trust_root_change_requires_independent_bridge_update(self) -> None:
-        self.assertTrue(set(tpc.TRUSTED_FILE_PATHS) <= tap.TRUST_ROOT_PATHS)
-        for changed_path in ("source_artifact_policy.yaml", "binary_lock.py", "source_artifact_schema.py"):
+        for changed_path in (
+            "source_artifact_policy.yaml",
+            "binary_lock.py",
+            "analysis_output_contract.py",
+            ".github/workflows/warmup-idb.yml",
+            ".github/workflows/future-privileged.yml",
+        ):
             with self.subTest(changed_path=changed_path), tempfile.TemporaryDirectory() as temporary:
                 root = Path(temporary) / "repo"
                 root.mkdir()

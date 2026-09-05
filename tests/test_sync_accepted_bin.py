@@ -1,18 +1,33 @@
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from release_workflow_lib.binary_cache import IDA_DATABASE_SUFFIXES, version_lock
 from release_workflow_lib.errors import ReleaseWorkflowError
-from release_workflow_lib.promotion import _version_lock
-from release_workflow_lib.staging import IDA_DATABASE_SUFFIXES
+from release_workflow_lib.legacy_yaml_cleanup import cleanup_legacy_accepted_yaml
+from release_workflow_lib.restore_accepted_bin import restore_accepted_bin
 from release_workflow_lib.sync_accepted_bin import _filtered_inventory, sync_accepted_bin
+from tests.gamesymbol_snapshot_test_support import write_config, write_source_binary_lock
 
 
 class TestSyncAcceptedBin(unittest.TestCase):
     gamever = "14180"
 
     def _write_source(self, root: Path, *, marker: bytes = b"v1") -> None:
+        (root / "download.yaml").parent.mkdir(parents=True, exist_ok=True)
+        (root / "download.yaml").write_text(
+            f"downloads:\n  - tag: '{self.gamever}'\n    manifests: {{'1': '1'}}\n",
+            encoding="utf-8",
+        )
+        write_config(
+            root / "configs" / f"{self.gamever}.yaml",
+            [
+                {"name": "server", "path_windows": "game/bin/win64/server.dll", "skills": []},
+                {"name": "engine", "path_linux": "game/bin/linuxsteamrt64/libengine2.so", "skills": []},
+            ],
+        )
         for relative, prefix in (
             ("server/server.dll", b"server-"),
             ("engine/libengine2.so", b"engine-"),
@@ -28,6 +43,7 @@ class TestSyncAcceptedBin(unittest.TestCase):
             (binsync / "symbols.toml").write_bytes(b"symbols = []\n")
             Path(f"{binary}.binsync.json").write_bytes(b"{}\n")
         (root / "bin" / self.gamever / "server" / "server.yaml").write_bytes(b"yaml-" + marker)
+        write_source_binary_lock(root, self.gamever)
 
     def test_sync_creates_accepted_tree_without_recoverable_analysis_state(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -44,10 +60,11 @@ class TestSyncAcceptedBin(unittest.TestCase):
             )
 
             self.assertTrue(result["synced"])
+            self.assertRegex(result["binary_lock_sha256"], r"^sha256:[0-9a-f]{64}$")
             accepted = persisted / "bin" / self.gamever
             self.assertTrue((accepted / "server" / "server.dll").is_file())
             self.assertTrue((accepted / "engine" / "libengine2.so").is_file())
-            self.assertTrue((accepted / "server" / "server.yaml").is_file())
+            self.assertFalse((accepted / "server" / "server.yaml").exists())
             # No recoverable IDA or BinSync state leaked into the accepted tree.
             self.assertFalse((accepted / "server" / "server.dll.i64").exists())
             self.assertFalse((accepted / "engine" / "libengine2.so.i64").exists())
@@ -73,14 +90,22 @@ class TestSyncAcceptedBin(unittest.TestCase):
 
             self.assertTrue(first["synced"])
             self.assertFalse(second["synced"])
-            # The idempotent second call is proven by the no-hash skeleton fast
-            # path, so it never computes a content hash.
             self.assertRegex(first["hash"], r"^[0-9a-f]{64}$")
-            self.assertIsNone(second["hash"])
+            self.assertEqual(first["hash"], second["hash"])
+            self.assertEqual(first["binary_lock_sha256"], second["binary_lock_sha256"])
 
-    def test_sync_fast_path_skips_full_inventory(self) -> None:
-        # An already-in-sync accepted tree must be detected from path+size alone;
-        # the full-tree SHA-256 inventory (the expensive part) is never computed.
+    def test_sync_rejects_source_binary_drift_from_lock(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            repo = root / "repo"
+            persisted = root / "persisted"
+            self._write_source(repo)
+            (repo / "bin" / self.gamever / "server" / "server.dll").write_bytes(b"poisoned source")
+
+            with self.assertRaisesRegex(ReleaseWorkflowError, "source binary lock"):
+                sync_accepted_bin(repo_root=repo, persisted_root=persisted, gamever=self.gamever)
+
+    def test_sync_repairs_same_size_content_drift(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             repo = root / "repo"
@@ -88,13 +113,27 @@ class TestSyncAcceptedBin(unittest.TestCase):
             self._write_source(repo)
             first = sync_accepted_bin(repo_root=repo, persisted_root=persisted, gamever=self.gamever)
             self.assertTrue(first["synced"])
+            accepted_binary = persisted / "bin" / self.gamever / "server" / "server.dll"
+            accepted_binary.write_bytes(b"X" * accepted_binary.stat().st_size)
 
-            with patch("release_workflow_lib.sync_accepted_bin._filtered_inventory") as inventory:
-                second = sync_accepted_bin(repo_root=repo, persisted_root=persisted, gamever=self.gamever)
+            second = sync_accepted_bin(repo_root=repo, persisted_root=persisted, gamever=self.gamever)
 
-            self.assertFalse(second["synced"])
-            self.assertIsNone(second["hash"])
-            inventory.assert_not_called()
+            self.assertTrue(second["synced"])
+            self.assertEqual(
+                (repo / "bin" / self.gamever / "server" / "server.dll").read_bytes(),
+                accepted_binary.read_bytes(),
+            )
+
+    def test_sync_rejects_unconfigured_durable_side_file(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            repo = root / "repo"
+            persisted = root / "persisted"
+            self._write_source(repo)
+            (repo / "bin" / self.gamever / "analysis.log").write_bytes(b"unexpected")
+
+            with self.assertRaisesRegex(ReleaseWorkflowError, "binary cache allowlist mismatch"):
+                sync_accepted_bin(repo_root=repo, persisted_root=persisted, gamever=self.gamever)
 
     def test_sync_replaces_changed_accepted_tree(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -157,21 +196,212 @@ class TestSyncAcceptedBin(unittest.TestCase):
                     gamever=self.gamever,
                 )
 
-    def test_sync_shares_promotion_lock(self) -> None:
-        # Workflow concurrency serializes normal calls; the shared file lock remains
-        # a defensive backstop for direct or otherwise uncoordinated invocations.
+    def test_sync_uses_dedicated_binary_cache_lock(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             repo = root / "repo"
             persisted = root / "persisted"
             self._write_source(repo)
-            lock_path = persisted / "release-staging" / "locks" / f"{self.gamever}.lock"
-            with _version_lock(lock_path):
-                with self.assertRaisesRegex(ReleaseWorkflowError, "unable to acquire per-version promotion lock"):
+            lock_path = persisted / "binary-cache" / "locks" / f"{self.gamever}.lock"
+            with version_lock(lock_path):
+                with self.assertRaisesRegex(ReleaseWorkflowError, "unable to acquire per-version binary cache lock"):
                     sync_accepted_bin(repo_root=repo, persisted_root=persisted, gamever=self.gamever)
             # Lock released: sync succeeds.
             result = sync_accepted_bin(repo_root=repo, persisted_root=persisted, gamever=self.gamever)
             self.assertTrue(result["synced"])
+
+    def test_restore_copies_only_the_exact_configured_binary_set(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            repo = root / "repo"
+            persisted = root / "persisted"
+            self._write_source(repo)
+            sync_accepted_bin(repo_root=repo, persisted_root=persisted, gamever=self.gamever)
+            shutil.rmtree(repo / "bin" / self.gamever)
+
+            result = restore_accepted_bin(repo_root=repo, persisted_root=persisted, gamever=self.gamever)
+
+            self.assertTrue(result["restored"])
+            self.assertEqual(2, result["file_count"])
+            self.assertRegex(result["hash"], r"^[0-9a-f]{64}$")
+            self.assertRegex(result["binary_lock_sha256"], r"^sha256:[0-9a-f]{64}$")
+            restored = repo / "bin" / self.gamever
+            self.assertTrue((restored / "server" / "server.dll").is_file())
+            self.assertTrue((restored / "engine" / "libengine2.so").is_file())
+            self.assertEqual(2, len([path for path in restored.rglob("*") if path.is_file()]))
+
+    def test_restore_rejects_complete_but_poisoned_cache_before_copy(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            repo = root / "repo"
+            persisted = root / "persisted"
+            self._write_source(repo)
+            sync_accepted_bin(repo_root=repo, persisted_root=persisted, gamever=self.gamever)
+            shutil.rmtree(repo / "bin" / self.gamever)
+            poisoned = persisted / "bin" / self.gamever / "server" / "server.dll"
+            poisoned.write_bytes(b"X" * poisoned.stat().st_size)
+
+            result = restore_accepted_bin(repo_root=repo, persisted_root=persisted, gamever=self.gamever)
+
+            self.assertFalse(result["restored"])
+            self.assertEqual("binary-lock-mismatch", result["reason"])
+            self.assertRegex(result["binary_lock_sha256"], r"^sha256:[0-9a-f]{64}$")
+            self.assertFalse((repo / "bin" / self.gamever / "server" / "server.dll").exists())
+            with self.assertRaisesRegex(ReleaseWorkflowError, "accepted binary cache.*source lock"):
+                restore_accepted_bin(
+                    repo_root=repo,
+                    persisted_root=persisted,
+                    gamever=self.gamever,
+                    required=True,
+                )
+
+    def test_restore_rejects_extra_files_and_empty_directories(self) -> None:
+        for relative, message in (("unexpected.txt", "allowlist mismatch"), ("empty", "unexpected directories")):
+            with self.subTest(relative=relative), tempfile.TemporaryDirectory() as temp_dir:
+                root = Path(temp_dir)
+                repo = root / "repo"
+                persisted = root / "persisted"
+                self._write_source(repo)
+                sync_accepted_bin(repo_root=repo, persisted_root=persisted, gamever=self.gamever)
+                shutil.rmtree(repo / "bin" / self.gamever)
+                unexpected = persisted / "bin" / self.gamever / relative
+                if "." in relative:
+                    unexpected.write_bytes(b"unexpected")
+                else:
+                    unexpected.mkdir()
+
+                with self.assertRaisesRegex(ReleaseWorkflowError, message):
+                    restore_accepted_bin(repo_root=repo, persisted_root=persisted, gamever=self.gamever)
+
+    def test_restore_can_report_an_optional_cache_miss(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            repo = root / "repo"
+            persisted = root / "persisted"
+            self._write_source(repo)
+
+            result = restore_accepted_bin(repo_root=repo, persisted_root=persisted, gamever=self.gamever)
+
+            self.assertFalse(result["restored"])
+            self.assertIsNone(result["hash"])
+            self.assertEqual("cache-missing", result["reason"])
+            self.assertRegex(result["binary_lock_sha256"], r"^sha256:[0-9a-f]{64}$")
+
+
+class TestLegacyAcceptedYamlCleanup(unittest.TestCase):
+    gamever = "14180"
+
+    def _accepted_tree(self, persisted: Path) -> Path:
+        accepted = persisted / "bin" / self.gamever
+        (accepted / "server").mkdir(parents=True)
+        (accepted / "server" / "server.dll").write_bytes(b"binary")
+        (accepted / "server" / "A.windows.yaml").write_bytes(b"name: A\n")
+        (accepted / "engine").mkdir()
+        (accepted / "engine" / "B.linux.yml").write_bytes(b"name: B\n")
+        return accepted
+
+    def _cleanup(self, persisted: Path) -> dict:
+        repo = persisted.parent / "repo"
+        write_config(
+            repo / "configs" / f"{self.gamever}.yaml",
+            [{"name": "server", "path_windows": "game/bin/win64/server.dll", "skills": []}],
+        )
+        return cleanup_legacy_accepted_yaml(repo_root=repo, persisted_root=persisted, gamever=self.gamever)
+
+    def test_cleanup_backs_up_exact_yaml_and_is_idempotent(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            persisted = Path(temporary) / "persisted"
+            accepted = self._accepted_tree(persisted)
+
+            first = self._cleanup(persisted)
+            second = self._cleanup(persisted)
+
+            self.assertEqual("cleaned", first["status"])
+            self.assertEqual("already-clean", second["status"])
+            self.assertEqual(2, first["file_count"])
+            self.assertTrue((accepted / "server" / "server.dll").is_file())
+            self.assertFalse(any(path.suffix.lower() in {".yaml", ".yml"} for path in accepted.rglob("*")))
+            backup = Path(first["backup_root"]) / "payload"
+            self.assertEqual(b"name: A\n", (backup / "server" / "A.windows.yaml").read_bytes())
+            self.assertEqual(b"name: B\n", (backup / "engine" / "B.linux.yml").read_bytes())
+
+    def test_cleanup_resumes_after_partial_deletion(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            persisted = Path(temporary) / "persisted"
+            accepted = self._accepted_tree(persisted)
+            original_unlink = Path.unlink
+            calls = 0
+
+            def interrupt_once(path: Path) -> None:
+                nonlocal calls
+                calls += 1
+                if calls == 2:
+                    raise OSError("simulated interruption")
+                original_unlink(path)
+
+            with patch(
+                "release_workflow_lib.legacy_yaml_cleanup._delete_yaml_path",
+                side_effect=interrupt_once,
+            ):
+                with self.assertRaisesRegex(OSError, "simulated interruption"):
+                    self._cleanup(persisted)
+
+            state = persisted / "binary-cache" / "legacy-yaml-cleanup" / f"{self.gamever}.json"
+            self.assertTrue(state.is_file())
+            result = self._cleanup(persisted)
+            self.assertEqual("cleaned", result["status"])
+            self.assertFalse(state.exists())
+            self.assertFalse(any(path.suffix.lower() in {".yaml", ".yml"} for path in accepted.rglob("*")))
+
+    def test_cleanup_recovers_abandoned_incoming_backup(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            persisted = Path(temporary) / "persisted"
+            self._accepted_tree(persisted)
+
+            with patch("release_workflow_lib.legacy_yaml_cleanup.os.replace", side_effect=KeyboardInterrupt):
+                with self.assertRaises(KeyboardInterrupt):
+                    self._cleanup(persisted)
+
+            backup_parent = persisted / "accepted-bin-legacy-yaml" / self.gamever
+            self.assertEqual(1, len(list(backup_parent.glob(".*.incoming"))))
+            result = self._cleanup(persisted)
+            self.assertEqual("cleaned", result["status"])
+            self.assertFalse(list(backup_parent.glob(".*.incoming")))
+
+    def test_cleanup_rejects_damaged_backup_on_idempotent_rerun(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            persisted = Path(temporary) / "persisted"
+            self._accepted_tree(persisted)
+            first = self._cleanup(persisted)
+            backup_yaml = Path(first["backup_root"]) / "payload" / "server" / "A.windows.yaml"
+            backup_yaml.write_bytes(b"tampered\n")
+
+            with self.assertRaisesRegex(ReleaseWorkflowError, "backup payload"):
+                self._cleanup(persisted)
+
+    def test_cleanup_rejects_yaml_that_reappears_after_receipt(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            persisted = Path(temporary) / "persisted"
+            accepted = self._accepted_tree(persisted)
+            self._cleanup(persisted)
+            (accepted / "server" / "unexpected.yaml").write_bytes(b"reappeared\n")
+
+            with self.assertRaisesRegex(ReleaseWorkflowError, "reappeared"):
+                self._cleanup(persisted)
+
+    def test_cleanup_requires_binary_only_allowlist_before_receipt(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            persisted = Path(temporary) / "persisted"
+            accepted = self._accepted_tree(persisted)
+            stale_idb = accepted / "server" / "server.dll.i64"
+            stale_idb.write_bytes(b"stale")
+
+            with self.assertRaisesRegex(ReleaseWorkflowError, "excluded analysis state"):
+                self._cleanup(persisted)
+
+            stale_idb.unlink()
+            result = self._cleanup(persisted)
+            self.assertEqual("cleaned", result["status"])
 
 
 if __name__ == "__main__":

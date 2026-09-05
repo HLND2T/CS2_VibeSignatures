@@ -1,5 +1,6 @@
 import io
 import json
+import os
 import subprocess
 import unittest
 from contextlib import asynccontextmanager
@@ -9,6 +10,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, call, patch
 
 import ida_analyze_bin
+from ida_analyze_util import canonical_symbol_yaml_bytes
 from ida_mcp_session import (
     McpDatabaseBinding,
     McpDatabaseSelectionError,
@@ -24,6 +26,7 @@ from process_reporter import (
     RunStatus,
     TaskStatus,
 )
+from tests.gamesymbol_snapshot_test_support import write_config
 
 
 def _tool_result(payload):
@@ -1458,6 +1461,20 @@ class TestSkillOrdering(unittest.TestCase):
             {(edge.source, edge.target, edge.edge_type) for edge in graph.edges},
         )
 
+    def test_shared_output_alternatives_follow_config_order(self) -> None:
+        skills = [
+            {"name": "z-primary", "expected_output": ["Shared.{platform}.yaml"]},
+            {"name": "a-fallback", "expected_output": ["Shared.{platform}.yaml"]},
+        ]
+
+        graph = ida_analyze_bin.build_skill_graph(skills)
+
+        self.assertEqual(["z-primary", "a-fallback"], graph.order)
+        self.assertIn(
+            ("z-primary", "a-fallback", EdgeType.ALTERNATIVE_ORDER),
+            {(edge.source, edge.target, edge.edge_type) for edge in graph.edges},
+        )
+
     def test_build_skill_graph_records_cycles_and_fallback_order(self) -> None:
         skills = [
             {"name": "second", "prerequisite": ["first"]},
@@ -1665,12 +1682,15 @@ class TestExecutionPlan(unittest.TestCase):
             platforms=["windows"],
             bin_dir="bin",
             gamever="14141",
+            artifact_dir="source-artifacts",
         )
 
         edge = next(edge for edge in plan.edges if edge.edge_type == EdgeType.CROSS_STAGE_ARTIFACT)
         self.assertEqual("stage-0001-client-windows/producer", edge.source)
         self.assertEqual("stage-0002-server-windows/consumer", edge.target)
-        self.assertTrue(edge.artifact.endswith("client\\Shared.windows.yaml"))
+        self.assertTrue(edge.artifact.endswith(os.path.join("client", "Shared.windows.yaml")))
+        self.assertIn("source-artifacts", edge.artifact)
+        self.assertNotIn("bin\\14141", edge.artifact)
 
     def test_execution_plan_contains_skill_vcall_and_post_process_nodes(self) -> None:
         modules = [
@@ -2305,6 +2325,110 @@ class TestStartIdalibMcp(unittest.TestCase):
         mock_popen.assert_not_called()
 
 
+class TestAgentFuncSignatureFinalization(unittest.IsolatedAsyncioTestCase):
+    async def test_regenerates_agent_func_sig_from_func_va(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            artifact_dir = Path(temp_dir) / "networksystem"
+            artifact_dir.mkdir(parents=True)
+            output = artifact_dir / "CNetworkMessages_dtor.windows.yaml"
+            output.write_text(
+                "\n".join(
+                    [
+                        "func_name: CNetworkMessages_dtor",
+                        "func_va: '0x1800d5680'",
+                        "func_rva: '0xd5680'",
+                        "func_size: '0x3a'",
+                        "func_sig: 48 83 EC 20",
+                        "vtable_name: CNetworkMessages",
+                        "vfunc_offset: '0x120'",
+                        "vfunc_index: 36",
+                        "",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            generated = {
+                "func_va": "0x1800d5680",
+                "func_rva": "0x1800d5680",
+                "func_size": "0x3a",
+                "func_sig": "48 83 EC ??",
+            }
+
+            with patch.object(
+                ida_analyze_bin,
+                "preprocess_gen_func_sig_via_mcp",
+                AsyncMock(return_value=generated),
+            ) as generate_signature:
+                issues = await ida_analyze_bin.regenerate_agent_func_signatures_via_session(
+                    session="session",
+                    artifact_paths=[str(output)],
+                    platform="windows",
+                    binary_dir=str(artifact_dir),
+                    debug=False,
+                    category_map={"CNetworkMessages_dtor": "vfunc"},
+                )
+
+            self.assertEqual([], issues)
+            self.assertEqual(
+                canonical_symbol_yaml_bytes(
+                    {
+                        "func_name": "CNetworkMessages_dtor",
+                        "func_va": "0x1800d5680",
+                        "func_rva": "0xd5680",
+                        "func_size": "0x3a",
+                        "func_sig": "48 83 EC ??",
+                        "vtable_name": "CNetworkMessages",
+                        "vfunc_offset": "0x120",
+                        "vfunc_index": 36,
+                    },
+                    category="vfunc",
+                ),
+                output.read_bytes(),
+            )
+            generate_signature.assert_awaited_once_with(
+                session="session",
+                func_va="0x1800d5680",
+                image_base=0,
+                allow_across_function_boundary=False,
+                debug=False,
+            )
+
+    async def test_fails_closed_when_agent_func_sig_cannot_be_regenerated(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            artifact_dir = Path(temp_dir) / "networksystem"
+            artifact_dir.mkdir(parents=True)
+            output = artifact_dir / "CNetworkMessages_dtor.windows.yaml"
+            original = (
+                "func_name: CNetworkMessages_dtor\n"
+                "func_va: '0x1800d5680'\n"
+                "func_sig: 48 83 EC 20\n"
+                "vtable_name: CNetworkMessages\n"
+                "vfunc_offset: '0x120'\n"
+                "vfunc_index: 36\n"
+            )
+            output.write_text(original, encoding="utf-8")
+
+            with patch.object(
+                ida_analyze_bin,
+                "preprocess_gen_func_sig_via_mcp",
+                AsyncMock(return_value=None),
+            ):
+                issues = await ida_analyze_bin.regenerate_agent_func_signatures_via_session(
+                    session="session",
+                    artifact_paths=[str(output)],
+                    platform="windows",
+                    binary_dir=str(artifact_dir),
+                    debug=False,
+                    category_map={"CNetworkMessages_dtor": "vfunc"},
+                )
+
+            self.assertEqual(
+                [f"{output}: unable to deterministically regenerate func_sig from func_va=0x1800d5680"],
+                issues,
+            )
+            self.assertEqual(original, output.read_text(encoding="utf-8"))
+
+
 class TestProcessBinary(unittest.TestCase):
     def setUp(self) -> None:
         verify_patcher = patch.object(
@@ -2314,6 +2438,287 @@ class TestProcessBinary(unittest.TestCase):
         )
         self.mock_verify_opened_binary = verify_patcher.start()
         self.addCleanup(verify_patcher.stop)
+
+    def test_trusted_pipeline_finalizes_preprocessor_and_agent_outputs_identically(self) -> None:
+        noncanonical = "gv_sig: aa ? cc\ngv_name: SyntheticGlobal\n"
+        expected = canonical_symbol_yaml_bytes(
+            {"gv_name": "SyntheticGlobal", "gv_sig": "AA ?? CC"},
+            category="gv",
+        )
+        for producer in ("preprocessor", "agent"):
+            with self.subTest(producer=producer), TemporaryDirectory() as temp_dir:
+                binary_dir = Path(temp_dir) / "engine"
+                binary_dir.mkdir(parents=True)
+                binary_path = str(binary_dir / "engine2.dll")
+                artifact_dir = Path(temp_dir) / "bin_artifacts" / "14168" / "engine"
+                output = artifact_dir / "SyntheticGlobal.windows.yaml"
+                fake_process = object()
+
+                def write_output(*_args, **_kwargs):
+                    output.write_text(noncanonical, encoding="utf-8")
+                    return True if producer == "agent" else "success"
+
+                with (
+                    patch.object(ida_analyze_bin, "start_idalib_mcp", return_value=fake_process),
+                    patch.object(ida_analyze_bin, "ensure_mcp_available", return_value=(fake_process, True)),
+                    patch.object(
+                        ida_analyze_bin,
+                        "_run_validate_expected_input_artifacts_via_mcp",
+                        return_value=[],
+                    ),
+                    patch.object(
+                        ida_analyze_bin,
+                        "_run_preprocess_single_skill_via_mcp",
+                        side_effect=write_output,
+                    ),
+                    patch.object(ida_analyze_bin, "run_skill", side_effect=write_output),
+                    patch.object(ida_analyze_bin, "quit_ida_gracefully", return_value=None),
+                ):
+                    result = ida_analyze_bin.process_binary(
+                        binary_path=binary_path,
+                        skills=[
+                            {
+                                "name": "find-global",
+                                "expected_output": ["SyntheticGlobal.{platform}.yaml"],
+                            }
+                        ],
+                        agent="codex",
+                        host="127.0.0.1",
+                        port=13337,
+                        ida_args="",
+                        platform="windows",
+                        skip_pp=producer == "agent",
+                        category_map={"SyntheticGlobal": "gv"},
+                        artifact_dir=artifact_dir,
+                    )
+
+                self.assertEqual((1, 0, 0), result)
+                self.assertEqual(expected, output.read_bytes())
+                self.assertFalse((binary_dir / output.name).exists())
+
+    def test_only_agent_outputs_request_deterministic_func_sig_regeneration(self) -> None:
+        for producer in ("preprocessor", "agent"):
+            with self.subTest(producer=producer), TemporaryDirectory() as temp_dir:
+                binary_dir = Path(temp_dir) / "networksystem"
+                binary_dir.mkdir(parents=True)
+                binary_path = str(binary_dir / "networksystem.dll")
+                artifact_dir = Path(temp_dir) / "bin_artifacts" / "14178b" / "networksystem"
+                output = artifact_dir / "CNetworkMessages_dtor.windows.yaml"
+                fake_process = object()
+
+                def write_output(*_args, **_kwargs):
+                    output.parent.mkdir(parents=True, exist_ok=True)
+                    output.write_text("func_name: CNetworkMessages_dtor\n", encoding="utf-8")
+                    return True if producer == "agent" else "success"
+
+                with (
+                    patch.object(ida_analyze_bin, "start_idalib_mcp", return_value=fake_process),
+                    patch.object(ida_analyze_bin, "ensure_mcp_available", return_value=(fake_process, True)),
+                    patch.object(
+                        ida_analyze_bin,
+                        "_run_validate_expected_input_artifacts_via_mcp",
+                        return_value=[],
+                    ),
+                    patch.object(
+                        ida_analyze_bin,
+                        "_run_preprocess_single_skill_via_mcp",
+                        side_effect=write_output,
+                    ),
+                    patch.object(ida_analyze_bin, "run_skill", side_effect=write_output),
+                    patch.object(
+                        ida_analyze_bin,
+                        "_finalize_produced_symbol_outputs",
+                        return_value=[],
+                    ) as finalize_outputs,
+                    patch.object(ida_analyze_bin, "quit_ida_gracefully", return_value=None),
+                ):
+                    result = ida_analyze_bin.process_binary(
+                        binary_path=binary_path,
+                        skills=[
+                            {
+                                "name": "find-CNetworkMessages_dtor",
+                                "expected_output": ["CNetworkMessages_dtor.{platform}.yaml"],
+                            }
+                        ],
+                        agent="codex",
+                        host="127.0.0.1",
+                        port=13337,
+                        ida_args="",
+                        platform="windows",
+                        skip_pp=producer == "agent",
+                        category_map={"CNetworkMessages_dtor": "vfunc"},
+                        artifact_dir=artifact_dir,
+                    )
+
+                self.assertEqual((1, 0, 0), result)
+                self.assertEqual(producer == "agent", finalize_outputs.call_args.kwargs["regenerate_func_signatures"])
+
+    def test_force_all_multi_output_fallback_only_produces_missing_outputs(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            binary_dir = Path(temp_dir) / "server"
+            binary_dir.mkdir(parents=True)
+            binary_path = str(binary_dir / "server.dll")
+            artifact_dir = Path(temp_dir) / "artifacts" / "14179" / "server"
+            shared = artifact_dir / "Shared.windows.yaml"
+            unique = artifact_dir / "Unique.windows.yaml"
+            calls = []
+
+            def fake_preprocess(*, skill_name, **_kwargs):
+                calls.append(skill_name)
+                if skill_name == "z-primary":
+                    shared.write_text("primary\n", encoding="utf-8")
+                else:
+                    unique.write_text("fallback\n", encoding="utf-8")
+                return "success"
+
+            fake_process = object()
+            with (
+                patch.object(ida_analyze_bin, "start_idalib_mcp", return_value=fake_process),
+                patch.object(ida_analyze_bin, "ensure_mcp_available", return_value=(fake_process, True)),
+                patch.object(
+                    ida_analyze_bin,
+                    "_run_validate_expected_input_artifacts_via_mcp",
+                    return_value=[],
+                ),
+                patch.object(
+                    ida_analyze_bin,
+                    "_run_preprocess_single_skill_via_mcp",
+                    side_effect=fake_preprocess,
+                ),
+                patch.object(ida_analyze_bin, "_finalize_produced_symbol_outputs", return_value=[]),
+                patch.object(ida_analyze_bin, "run_skill", return_value=False),
+                patch.object(ida_analyze_bin, "quit_ida_gracefully", return_value=None),
+            ):
+                counts = ida_analyze_bin.process_binary(
+                    binary_path=binary_path,
+                    skills=[
+                        {"name": "z-primary", "expected_output": ["Shared.{platform}.yaml"]},
+                        {
+                            "name": "a-fallback",
+                            "expected_output": [
+                                "Shared.{platform}.yaml",
+                                "Unique.{platform}.yaml",
+                            ],
+                        },
+                    ],
+                    agent="codex",
+                    host="127.0.0.1",
+                    port=13337,
+                    ida_args="",
+                    platform="windows",
+                    artifact_dir=artifact_dir,
+                    force_all=True,
+                )
+                shared_text = shared.read_text(encoding="utf-8")
+                unique_text = unique.read_text(encoding="utf-8")
+
+        self.assertEqual((2, 0, 0), counts)
+        self.assertEqual(["z-primary", "a-fallback"], calls)
+        self.assertEqual("primary\n", shared_text)
+        self.assertEqual("fallback\n", unique_text)
+
+    def test_force_all_rejects_later_alternative_rewriting_winner_output(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            binary_dir = Path(temp_dir) / "server"
+            binary_dir.mkdir(parents=True)
+            binary_path = str(binary_dir / "server.dll")
+            artifact_dir = Path(temp_dir) / "artifacts" / "14179" / "server"
+            shared = artifact_dir / "Shared.windows.yaml"
+            unique = artifact_dir / "Unique.windows.yaml"
+
+            def fake_preprocess(*, skill_name, **_kwargs):
+                if skill_name == "z-primary":
+                    shared.write_text("primary\n", encoding="utf-8")
+                else:
+                    shared.write_text("rewritten\n", encoding="utf-8")
+                    unique.write_text("fallback\n", encoding="utf-8")
+                return "success"
+
+            fake_process = object()
+            with (
+                patch.object(ida_analyze_bin, "start_idalib_mcp", return_value=fake_process),
+                patch.object(ida_analyze_bin, "ensure_mcp_available", return_value=(fake_process, True)),
+                patch.object(
+                    ida_analyze_bin,
+                    "_run_validate_expected_input_artifacts_via_mcp",
+                    return_value=[],
+                ),
+                patch.object(
+                    ida_analyze_bin,
+                    "_run_preprocess_single_skill_via_mcp",
+                    side_effect=fake_preprocess,
+                ),
+                patch.object(ida_analyze_bin, "_finalize_produced_symbol_outputs", return_value=[]),
+                patch.object(ida_analyze_bin, "run_skill", return_value=False),
+                patch.object(ida_analyze_bin, "quit_ida_gracefully", return_value=None),
+            ):
+                counts = ida_analyze_bin.process_binary(
+                    binary_path=binary_path,
+                    skills=[
+                        {"name": "z-primary", "expected_output": ["Shared.{platform}.yaml"]},
+                        {
+                            "name": "a-fallback",
+                            "expected_output": [
+                                "Shared.{platform}.yaml",
+                                "Unique.{platform}.yaml",
+                            ],
+                        },
+                    ],
+                    agent="codex",
+                    host="127.0.0.1",
+                    port=13337,
+                    ida_args="",
+                    platform="windows",
+                    artifact_dir=artifact_dir,
+                    force_all=True,
+                )
+
+        self.assertEqual((1, 1, 0), counts)
+
+    def test_process_binary_exports_artifact_directory_to_ida_and_agent(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            binary_dir = Path(temp_dir) / "bin" / "14168" / "engine"
+            binary_dir.mkdir(parents=True, exist_ok=True)
+            binary_path = str(binary_dir / "engine2.dll")
+            artifact_dir = Path(temp_dir) / "bin_artifacts" / "14168" / "engine"
+            fake_process = object()
+            observed = []
+
+            def observe_artifact_dir(*_args, **_kwargs):
+                observed.append(os.environ.get(ida_analyze_bin.ARTIFACT_OUTPUT_ENV))
+                return True
+
+            with (
+                patch.object(ida_analyze_bin, "start_idalib_mcp", return_value=fake_process),
+                patch.object(ida_analyze_bin, "ensure_mcp_available", return_value=(fake_process, True)),
+                patch.object(
+                    ida_analyze_bin,
+                    "_run_validate_expected_input_artifacts_via_mcp",
+                    return_value=[],
+                ),
+                patch.object(
+                    ida_analyze_bin,
+                    "_run_preprocess_single_skill_via_mcp",
+                    return_value="failed",
+                ),
+                patch.object(ida_analyze_bin, "run_skill", side_effect=observe_artifact_dir),
+                patch.object(ida_analyze_bin, "quit_ida_gracefully", return_value=None),
+            ):
+                result = ida_analyze_bin.process_binary(
+                    binary_path=binary_path,
+                    skills=[{"name": "find-global", "expected_output": ["Global.{platform}.yaml"]}],
+                    platform="windows",
+                    agent="codex",
+                    max_retries=1,
+                    host="127.0.0.1",
+                    port=39091,
+                    ida_args=None,
+                    artifact_dir=artifact_dir,
+                )
+
+        self.assertEqual((1, 0, 0), result)
+        self.assertEqual([str(artifact_dir.resolve())], observed)
+        self.assertNotIn(ida_analyze_bin.ARTIFACT_OUTPUT_ENV, os.environ)
 
     def test_process_binary_treats_absent_ok_as_skip_and_continues(self) -> None:
         with TemporaryDirectory() as temp_dir:
@@ -4837,6 +5242,51 @@ class TestInspectFuncVaPyEvalSelfHeal(unittest.IsolatedAsyncioTestCase):
     clear=False,
 )
 class TestParseArgsLlmOptions(unittest.TestCase):
+    def test_oldgamever_uses_latest_valid_source_owned_root_across_version_gaps(self) -> None:
+        with TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for gamever in ("14168", "14170", "14170b", "14172"):
+                (root / gamever).mkdir()
+            (root / "invalid").mkdir()
+
+            self.assertEqual("14170b", ida_analyze_bin.resolve_oldgamever("14172", root))
+            self.assertEqual("14170", ida_analyze_bin.resolve_oldgamever("14170b", root))
+            self.assertIsNone(ida_analyze_bin.resolve_oldgamever("14168", root))
+
+    @patch.object(ida_analyze_bin, "resolve_oldgamever", return_value="14140")
+    def test_parse_args_separates_binary_current_and_old_artifact_roots(self, mock_resolve_oldgamever) -> None:
+        with patch(
+            "sys.argv",
+            [
+                "ida_analyze_bin.py",
+                "-gamever",
+                "14141",
+                "-bindir",
+                "private-bin",
+                "-artifactdir",
+                "source-artifacts",
+                "-oldartifactdir",
+                "trusted-old-artifacts",
+            ],
+        ):
+            args = ida_analyze_bin.parse_args()
+
+        self.assertEqual("private-bin", args.bindir)
+        self.assertEqual("source-artifacts", args.artifactdir)
+        self.assertEqual("trusted-old-artifacts", args.oldartifactdir)
+        mock_resolve_oldgamever.assert_called_once_with("14141", "trusted-old-artifacts")
+
+    @patch.object(ida_analyze_bin, "resolve_oldgamever")
+    def test_parse_args_preserves_explicit_prior_or_no_baseline(self, mock_resolve_oldgamever) -> None:
+        for raw, expected in (("14140", "14140"), ("none", None)):
+            with (
+                self.subTest(raw=raw),
+                patch("sys.argv", ["ida_analyze_bin.py", "-gamever", "14141", "-oldgamever", raw]),
+            ):
+                args = ida_analyze_bin.parse_args()
+                self.assertEqual(expected, args.oldgamever)
+        mock_resolve_oldgamever.assert_not_called()
+
     @patch.object(ida_analyze_bin, "resolve_oldgamever", return_value="14140")
     def test_parse_args_accepts_require_warm_idb(self, _mock_resolve_oldgamever) -> None:
         with patch(
@@ -5851,6 +6301,217 @@ class TestMainSkillFilterWiring(unittest.TestCase):
         mock_process_binary.assert_called_once()
         selected_skills = mock_process_binary.call_args.args[1]
         self.assertEqual(["find-target"], [skill["name"] for skill in selected_skills])
+
+
+class TestForceAllExecutionContract(unittest.TestCase):
+    def test_parse_args_requires_execution_report_and_complete_selection(self) -> None:
+        with (
+            patch("sys.argv", ["ida_analyze_bin.py", "-gamever", "1", "-force_all"]),
+            patch.object(ida_analyze_bin, "resolve_oldgamever", return_value=None),
+            self.assertRaises(SystemExit),
+        ):
+            ida_analyze_bin.parse_args()
+
+        with (
+            TemporaryDirectory() as temporary,
+            patch(
+                "sys.argv",
+                [
+                    "ida_analyze_bin.py",
+                    "-gamever",
+                    "1",
+                    "-force_all",
+                    "-execution_report",
+                    str(Path(temporary) / "execution.json"),
+                ],
+            ),
+            patch.object(ida_analyze_bin, "resolve_oldgamever", return_value=None),
+        ):
+            args = ida_analyze_bin.parse_args()
+        self.assertTrue(args.force_all)
+        self.assertEqual(str(Path(temporary) / "execution.json"), args.execution_report)
+
+    def test_force_all_root_must_be_checkout_external_and_empty(self) -> None:
+        with TemporaryDirectory() as temporary:
+            root = Path(temporary) / "artifacts"
+            args = SimpleNamespace(
+                artifactdir=str(root),
+                gamever="1",
+                execution_report=str(Path(temporary) / "execution.json"),
+            )
+            self.assertEqual(root.resolve(), ida_analyze_bin.validate_force_all_artifact_root(args).resolve())
+            game_root = root / "1"
+            game_root.mkdir()
+            (game_root / "existing.yaml").write_text("value: 1\n", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "must be empty"):
+                ida_analyze_bin.validate_force_all_artifact_root(args)
+
+        inside = SimpleNamespace(
+            artifactdir=str(Path.cwd() / "force-all-artifacts"),
+            gamever="1",
+            execution_report=str(Path.cwd() / "force-all-execution.json"),
+        )
+        with self.assertRaisesRegex(ValueError, "outside the source checkout"):
+            ida_analyze_bin.validate_force_all_artifact_root(inside)
+
+    def _execution_fixture(self, root: Path, *, alternatives: bool):
+        skills = [{"name": "find-a", "expected_output": ["A.{platform}.yaml"]}]
+        if alternatives:
+            skills.append({"name": "find-a-fallback", "expected_output": ["A.{platform}.yaml"]})
+        module = {
+            "name": "server",
+            "stage_index": 0,
+            "path_windows": "game/bin/win64/server.dll",
+            "skills": skills,
+        }
+        config = root / "configs" / "14179.yaml"
+        write_config(
+            config,
+            [
+                {
+                    **module,
+                    "symbols": [{"name": "A", "category": "func", "platform": "windows"}],
+                }
+            ],
+        )
+        artifact_root = root / "actual"
+        artifact = artifact_root / "14179" / "server" / "A.windows.yaml"
+        artifact.parent.mkdir(parents=True)
+        artifact.write_bytes(canonical_symbol_yaml_bytes({"func_name": "A", "func_rva": "0x10"}, category="func"))
+        plan = ida_analyze_bin.build_execution_plan(
+            [module],
+            platforms=["windows"],
+            bin_dir=str(root / "bin"),
+            gamever="14179",
+            artifact_dir=str(artifact_root),
+        )
+        reporting = ida_analyze_bin.AnalysisReporting(MagicMock(), "run-1", plan)
+        for node in plan.nodes:
+            if node.node_type != PlanNodeType.SKILL:
+                continue
+            reporting.emit_task_status(node.id, TaskStatus.RUNNING, ProcessPhase.WAITING_FOR_MCP)
+            reporting.emit_task_status(
+                node.id,
+                TaskStatus.SUCCEEDED,
+                ProcessPhase.FINISHED,
+                payload={"produced_outputs": [str(artifact)]},
+            )
+        args = SimpleNamespace(
+            configyaml=str(config),
+            gamever="14179",
+            bindir=str(root / "bin"),
+            artifactdir=str(artifact_root),
+            oldartifactdir=str(root / "old"),
+            oldgamever="14178",
+            rename=True,
+            require_warm_idb=True,
+        )
+        return args, reporting
+
+    def test_force_all_report_binds_single_group_winner_and_rejects_multiple_successes(self) -> None:
+        with TemporaryDirectory() as temporary:
+            args, reporting = self._execution_fixture(Path(temporary), alternatives=False)
+            report = ida_analyze_bin.build_force_all_execution_report(args, reporting)
+            self.assertTrue(report["valid"])
+            self.assertEqual(2, report["schema_version"])
+            self.assertEqual("14178", report["prior_gamever"])
+            self.assertEqual(1, len(report["producer_groups"]))
+            self.assertIsNotNone(report["producer_groups"][0]["winner_node_id"])
+            self.assertTrue(report["execution_sha256"].startswith("sha256:"))
+
+        with TemporaryDirectory() as temporary:
+            args, reporting = self._execution_fixture(Path(temporary), alternatives=True)
+            report = ida_analyze_bin.build_force_all_execution_report(args, reporting)
+            self.assertFalse(report["valid"])
+            self.assertTrue(any("exactly one successful winner" in issue for issue in report["issues"]))
+
+    def test_force_all_report_uses_per_output_attempts_for_multi_output_fallback(self) -> None:
+        with TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            skills = [
+                {"name": "z-primary", "expected_output": ["Shared.{platform}.yaml"]},
+                {
+                    "name": "a-fallback",
+                    "expected_output": ["Shared.{platform}.yaml", "Unique.{platform}.yaml"],
+                },
+            ]
+            module = {
+                "name": "server",
+                "stage_index": 0,
+                "path_windows": "game/bin/win64/server.dll",
+                "skills": skills,
+            }
+            config = root / "configs" / "14179.yaml"
+            write_config(
+                config,
+                [
+                    {
+                        **module,
+                        "symbols": [
+                            {"name": "Shared", "category": "func", "platform": "windows"},
+                            {"name": "Unique", "category": "func", "platform": "windows"},
+                        ],
+                    }
+                ],
+            )
+            artifact_root = root / "actual"
+            module_root = artifact_root / "14179" / "server"
+            module_root.mkdir(parents=True)
+            shared = module_root / "Shared.windows.yaml"
+            unique = module_root / "Unique.windows.yaml"
+            shared.write_bytes(
+                canonical_symbol_yaml_bytes({"func_name": "Shared", "func_rva": "0x10"}, category="func")
+            )
+            unique.write_bytes(
+                canonical_symbol_yaml_bytes({"func_name": "Unique", "func_rva": "0x20"}, category="func")
+            )
+            plan = ida_analyze_bin.build_execution_plan(
+                [module],
+                platforms=["windows"],
+                bin_dir=str(root / "bin"),
+                gamever="14179",
+                artifact_dir=str(artifact_root),
+            )
+            reporting = ida_analyze_bin.AnalysisReporting(MagicMock(), "run-1", plan)
+            nodes = {node.name: node for node in plan.nodes if node.node_type == PlanNodeType.SKILL}
+
+            primary = nodes["z-primary"]
+            reporting.emit_task_status(primary.id, TaskStatus.RUNNING, ProcessPhase.WAITING_FOR_MCP)
+            reporting.record_output_attempts(primary.id, [str(shared)])
+            reporting.record_output_produced(primary.id, [str(shared)])
+            reporting.emit_task_status(primary.id, TaskStatus.SUCCEEDED, ProcessPhase.FINISHED)
+
+            fallback = nodes["a-fallback"]
+            reporting.emit_task_status(fallback.id, TaskStatus.RUNNING, ProcessPhase.WAITING_FOR_MCP)
+            reporting.record_output_attempts(fallback.id, [str(unique)])
+            reporting.record_output_produced(fallback.id, [str(unique)])
+            reporting.emit_task_status(fallback.id, TaskStatus.SUCCEEDED, ProcessPhase.FINISHED)
+
+            args = SimpleNamespace(
+                configyaml=str(config),
+                gamever="14179",
+                bindir=str(root / "bin"),
+                artifactdir=str(artifact_root),
+                oldartifactdir=str(root / "old"),
+                oldgamever="14178",
+                rename=True,
+                require_warm_idb=True,
+            )
+            report = ida_analyze_bin.build_force_all_execution_report(args, reporting)
+
+        self.assertTrue(report["valid"], report["issues"])
+        groups = {group["artifact_path"]: group for group in report["producer_groups"]}
+        shared_group = groups["server/Shared.windows.yaml"]
+        self.assertEqual(
+            [shared_group["alternative_node_ids"][0]],
+            shared_group["attempted_node_ids"],
+        )
+        self.assertEqual(shared_group["alternative_node_ids"][0], shared_group["winner_node_id"])
+        unique_group = groups["server/Unique.windows.yaml"]
+        self.assertEqual(
+            [unique_group["alternative_node_ids"][0]],
+            unique_group["attempted_node_ids"],
+        )
 
 
 if __name__ == "__main__":

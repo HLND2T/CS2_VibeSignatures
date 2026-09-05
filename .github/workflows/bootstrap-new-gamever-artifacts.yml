@@ -1,0 +1,368 @@
+name: Bootstrap New GAMEVER Artifacts
+on:
+  workflow_call:
+    inputs:
+      pull_request_number:
+        required: true
+        type: number
+      gamever:
+        required: true
+        type: string
+      prior_gamever:
+        required: true
+        type: string
+      base_sha:
+        required: true
+        type: string
+      head_sha:
+        required: true
+        type: string
+      merge_sha:
+        required: true
+        type: string
+      plan_artifact_name:
+        required: true
+        type: string
+permissions:
+  actions: read
+  contents: read
+  pull-requests: read
+concurrency:
+  group: source-artifact-bootstrap-${{ github.repository }}-${{ inputs.pull_request_number }}-${{ inputs.gamever }}
+  cancel-in-progress: false
+jobs:
+  warmup-idb:
+    uses: ./.github/workflows/warmup-idb.yml
+    with:
+      gamever: ${{ inputs.gamever }}
+      source_sha: ${{ inputs.merge_sha }}
+    secrets: inherit
+  build-bootstrap-candidate:
+    needs: warmup-idb
+    environment: win64
+    runs-on: [self-hosted, windows, x64]
+    outputs:
+      candidate-artifact-name: ${{ steps.package.outputs.candidate-artifact-name }}
+      candidate-artifact-digest: ${{ steps.upload.outputs.artifact-digest }}
+    env:
+      GAMEVER: ${{ inputs.gamever }}
+      PRIOR_GAMEVER: ${{ inputs.prior_gamever }}
+      MERGE_SHA: ${{ inputs.merge_sha }}
+      PR_NUMBER: ${{ inputs.pull_request_number }}
+      IDB_CACHE_GENERATION: ${{ needs.warmup-idb.outputs.generation }}
+      IDB_CACHE_KEY: ${{ needs.warmup-idb.outputs.cache_key }}
+      BINARY_LOCK_SHA256: ${{ needs.warmup-idb.outputs.binary_lock_sha256 }}
+      PERSISTED_WORKSPACE: ${{ secrets.PERSISTED_WORKSPACE }}
+      CS2VIBE_AGENT: ${{ secrets.CS2VIBE_AGENT }}
+      CS2VIBE_AGENT_MODEL: ${{ secrets.CS2VIBE_AGENT_MODEL }}
+      CS2VIBE_LLM_APIKEY: ${{ secrets.CS2VIBE_LLM_APIKEY }}
+      CS2VIBE_LLM_BASEURL: ${{ secrets.CS2VIBE_LLM_BASEURL }}
+      CS2VIBE_LLM_EFFORT: ${{ secrets.CS2VIBE_LLM_EFFORT }}
+      CS2VIBE_LLM_FAKE_AS: ${{ secrets.CS2VIBE_LLM_FAKE_AS }}
+      CS2VIBE_LLM_MODEL: ${{ secrets.CS2VIBE_LLM_MODEL }}
+    steps:
+      - name: Checkout exact prospective merge source without publisher credentials
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.merge_sha }}
+          fetch-depth: 0
+          submodules: false
+          persist-credentials: false
+      - name: Verify immutable bootstrap source and no publication PAT
+        shell: pwsh
+        run: |
+          if ($env:MERGE_SHA -notmatch '^[0-9a-f]{40}$' -or (git rev-parse HEAD).Trim() -ne $env:MERGE_SHA) {
+            throw "Bootstrap checkout does not match merge_sha."
+          }
+          if ($env:PRIOR_GAMEVER -ne "none" -and $env:PRIOR_GAMEVER -notmatch '^[0-9]{4,10}[a-z]?$') {
+            throw "Bootstrap prior_gamever input is invalid."
+          }
+          if (-not [string]::IsNullOrWhiteSpace($env:SOURCE_ARTIFACT_BOOTSTRAP_PAT)) {
+            throw "Artifact publication PAT must never enter the self-hosted bootstrap job."
+          }
+          git diff --exit-code "${{ inputs.base_sha }}" "$env:MERGE_SHA" -- .gitmodules
+          if ($LASTEXITCODE -ne 0) { throw "Bootstrap PR must not change trusted submodule routing." }
+          git submodule sync --recursive
+          git submodule update --init --recursive --depth 1 --jobs 8
+          if ($LASTEXITCODE -ne 0) { throw "Trusted SDK submodule initialization failed." }
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v9.0.0
+      - name: Download bound trusted plan
+        uses: actions/download-artifact@v5
+        with:
+          name: ${{ inputs.plan_artifact_name }}
+          path: ${{ runner.temp }}/source-artifact-plan
+      - name: Restore binary-only accepted state
+        shell: pwsh
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:PERSISTED_WORKSPACE)) { throw "PERSISTED_WORKSPACE is not configured." }
+          if ($env:BINARY_LOCK_SHA256 -notmatch '^sha256:[0-9a-f]{64}$') {
+            throw "Warmup omitted the source binary lock identity."
+          }
+          $planPath = Join-Path "${{ runner.temp }}" "source-artifact-plan\trusted-source-artifact-plan.json"
+          $plan = Get-Content -LiteralPath $planPath -Raw | ConvertFrom-Json
+          $version = @($plan.game_versions | Where-Object { $_.game_version -eq $env:GAMEVER })
+          if ($version.Count -ne 1 -or $version[0].merge_binary_lock_sha256 -ne $env:BINARY_LOCK_SHA256) {
+            throw "Bootstrap warmup binary lock identity differs from the trusted plan."
+          }
+          $restoreJson = uv run python accepted_bin.py restore --repo-root "${{ github.workspace }}" `
+            --persisted-root "$env:PERSISTED_WORKSPACE" --gamever "$env:GAMEVER" --required
+          if ($LASTEXITCODE -ne 0) { throw "Failed to restore the exact accepted binary allowlist." }
+          $restore = $restoreJson | ConvertFrom-Json
+          if ($restore.binary_lock_sha256 -ne $env:BINARY_LOCK_SHA256) {
+            throw "Bootstrap accepted-bin restore differs from the trusted plan lock."
+          }
+      - name: Restore exact warm IDB generation
+        shell: pwsh
+        run: |
+          $pythonExe = (Get-Command python -ErrorAction Stop).Source
+          $idaVersion = (& $pythonExe warmup_idb_worker.py --print-ida-version).Trim()
+          if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($idaVersion)) { throw "Unable to resolve IDA version." }
+          "IDA_PYTHON=$pythonExe" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "IDA_VERSION=$idaVersion" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          uv run python idb_cache.py restore `
+            --repo-root "${{ github.workspace }}" `
+            --persisted-root "$env:PERSISTED_WORKSPACE" `
+            --gamever "$env:GAMEVER" `
+            --generation "$env:IDB_CACHE_GENERATION" `
+            --cache-key "$env:IDB_CACHE_KEY" `
+            --ida-version "$idaVersion"
+          if ($LASTEXITCODE -ne 0) { throw "Warm IDB restore failed." }
+      - name: Full empty-root bootstrap with rename and local-only BinSync prepare
+        id: binsync-local
+        shell: pwsh
+        run: |
+          $actualRoot = Join-Path $env:RUNNER_TEMP "new-gamever-bin-artifacts\${{ github.run_id }}-${{ github.run_attempt }}"
+          $binsyncCandidate = Join-Path $env:RUNNER_TEMP "bootstrap-binsync-local-only\${{ github.run_id }}-${{ github.run_attempt }}"
+          $executionReport = Join-Path $env:RUNNER_TEMP "new-gamever-force-all-execution.json"
+          New-Item -ItemType Directory -Path $actualRoot -Force | Out-Null
+          "ACTUAL_ARTIFACT_ROOT=$actualRoot" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "EXECUTION_REPORT=$executionReport" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          uv run ida_analyze_bin.py `
+            -gamever "$env:GAMEVER" `
+            -configyaml "configs/$env:GAMEVER.yaml" `
+            -bindir bin `
+            -artifactdir "$actualRoot" `
+            -oldartifactdir bin_artifacts `
+            -oldgamever "$env:PRIOR_GAMEVER" `
+            -require_warm_idb `
+            -force_all `
+            -execution_report "$executionReport" `
+            -rename `
+            -debug
+          if ($LASTEXITCODE -ne 0) { throw "New-GAMEVER full bootstrap analysis failed." }
+          uv run python push_binsync_symbols.py "$env:GAMEVER" `
+            --prepare-only `
+            --no-publication-candidate `
+            --candidate-dir "$binsyncCandidate" `
+            --artifactdir "$actualRoot" `
+            --binsync-user bootstrap-validation `
+            --python "$env:IDA_PYTHON"
+          if ($LASTEXITCODE -ne 0) { throw "Local-only BinSync prepare failed." }
+          $evidence = Get-Content -LiteralPath (Join-Path $binsyncCandidate "local-evidence.json") -Raw | ConvertFrom-Json
+          "remote_refs_before=$($evidence.remote_refs_before_sha256)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "remote_refs_after=$($evidence.remote_refs_after_sha256)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+      - name: Build snapshot, gamedata, and C++ gate evidence
+        id: gates
+        shell: pwsh
+        run: |
+          $gateRoot = Join-Path $env:RUNNER_TEMP "new-gamever-gates"
+          New-Item -ItemType Directory -Path $gateRoot -Force | Out-Null
+          $snapshot = Join-Path $gateRoot "$env:GAMEVER.yaml"
+          $session = Join-Path $gateRoot "$env:GAMEVER.session.json"
+          uv run gamesymbol_candidate.py build `
+            -gamever "$env:GAMEVER" -bindir bin -artifactdir "$env:ACTUAL_ARTIFACT_ROOT" `
+            -configyaml "configs/$env:GAMEVER.yaml" -output "$snapshot" -session "$session"
+          if ($LASTEXITCODE -ne 0) { throw "Bootstrap snapshot gate failed." }
+          $gamedataRoot = Join-Path $gateRoot "gamedata"
+          $gamedataSession = Join-Path $gateRoot "gamedata.session.json"
+          uv run gamedata_candidate.py build -gamever "$env:GAMEVER" `
+            -build-id "${{ github.run_id }}-${{ github.run_attempt }}" `
+            -snapshot "$snapshot" -configyaml "configs/$env:GAMEVER.yaml" `
+            -modulesdir gamedata-generators -candidate-root "$gamedataRoot" -session "$gamedataSession"
+          if ($LASTEXITCODE -ne 0) { throw "Bootstrap gamedata gate failed." }
+          $cppLog = Join-Path $gateRoot "cpp-validation.log"
+          & uv run run_cpp_tests.py -gamever "$env:GAMEVER" -snapshot "$snapshot" `
+            -configyaml "configs/$env:GAMEVER.yaml" -debug 2>&1 | Tee-Object -LiteralPath $cppLog
+          if ($LASTEXITCODE -ne 0) { throw "Bootstrap C++ gate failed." }
+          $snapshotDigest = (Get-FileHash $snapshot -Algorithm SHA256).Hash.ToLowerInvariant()
+          $gamedataDigest = (Get-FileHash $gamedataSession -Algorithm SHA256).Hash.ToLowerInvariant()
+          $cppDigest = (Get-FileHash $cppLog -Algorithm SHA256).Hash.ToLowerInvariant()
+          "snapshot=sha256:$snapshotDigest" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "gamedata=sha256:$gamedataDigest" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "cpp=sha256:$cppDigest" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+      - name: Package canonical bootstrap candidate
+        id: package
+        shell: pwsh
+        run: |
+          $package = Join-Path $env:RUNNER_TEMP "new-gamever-package"
+          $packageArtifacts = Join-Path $package "bin_artifacts"
+          New-Item -ItemType Directory -Path $packageArtifacts -Force | Out-Null
+          Copy-Item -LiteralPath (Join-Path $env:ACTUAL_ARTIFACT_ROOT $env:GAMEVER) `
+            -Destination (Join-Path $packageArtifacts $env:GAMEVER) -Recurse
+          $packagedExecutionReport = Join-Path $package "force-all-execution.json"
+          Copy-Item -LiteralPath $env:EXECUTION_REPORT -Destination $packagedExecutionReport
+          $gates = [ordered]@{
+            schema_version = 2
+            binsync_mode = "local-only"
+            remote_refs_before_sha256 = "${{ steps.binsync-local.outputs.remote_refs_before }}"
+            remote_refs_after_sha256 = "${{ steps.binsync-local.outputs.remote_refs_after }}"
+            snapshot_sha256 = "${{ steps.gates.outputs.snapshot }}"
+            gamedata_sha256 = "${{ steps.gates.outputs.gamedata }}"
+            cpp_validation_sha256 = "${{ steps.gates.outputs.cpp }}"
+          }
+          $gatePath = Join-Path $package "gate-evidence.json"
+          [IO.File]::WriteAllText($gatePath, ($gates | ConvertTo-Json -Compress) + "`n", [Text.UTF8Encoding]::new($false))
+          $planPath = Join-Path $env:RUNNER_TEMP "source-artifact-plan\trusted-source-artifact-plan.json"
+          $manifest = Join-Path $package "candidate-manifest.json"
+          uv run python new_gamever_artifact.py build `
+            --repo-root "${{ github.workspace }}" --plan "$planPath" `
+            --artifact-root "$packageArtifacts" --output-manifest "$manifest" `
+            --repository "${{ github.repository }}" --pr-number "$env:PR_NUMBER" `
+            --workflow-run-id "${{ github.run_id }}" --workflow-run-attempt "${{ github.run_attempt }}" `
+            --gate-evidence "$gatePath" --execution-report "$packagedExecutionReport"
+          if ($LASTEXITCODE -ne 0) { throw "Bootstrap candidate packaging failed." }
+          $artifactName = "new-gamever-artifacts-$env:PR_NUMBER-$env:GAMEVER-${{ github.run_id }}-${{ github.run_attempt }}"
+          "candidate-artifact-name=$artifactName" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "CANDIDATE_PACKAGE=$package" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Upload exact bootstrap candidate
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.package.outputs.candidate-artifact-name }}
+          path: ${{ env.CANDIDATE_PACKAGE }}
+          if-no-files-found: error
+          retention-days: 7
+  publish-new-gamever-artifacts:
+    needs: build-bootstrap-candidate
+    environment: artifact-bootstrap
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout prospective merge tree as non-executable data
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.merge_sha }}
+          fetch-depth: 0
+          submodules: false
+          persist-credentials: false
+          path: prospective
+      - name: Checkout trusted base publisher tooling
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.base_sha }}
+          fetch-depth: 1
+          submodules: false
+          persist-credentials: false
+          path: trusted-publisher
+      - name: Checkout exact bound PR head for artifact-only commit
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.head_sha }}
+          fetch-depth: 0
+          submodules: false
+          persist-credentials: false
+          path: publication
+      - name: Set up trusted publisher environment
+        uses: astral-sh/setup-uv@v9.0.0
+      - name: Sync trusted publisher dependencies
+        run: uv sync --project trusted-publisher --locked
+      - name: Download bound plan and exact bootstrap candidate
+        uses: actions/download-artifact@v5
+        with:
+          name: ${{ inputs.plan_artifact_name }}
+          path: evidence/plan
+      - name: Download exact bootstrap candidate package
+        uses: actions/download-artifact@v5
+        with:
+          name: ${{ needs.build-bootstrap-candidate.outputs.candidate-artifact-name }}
+          path: evidence/candidate
+      - name: Revalidate PR, remote head, candidate, and allowed branch
+        id: verify
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CANDIDATE_ARTIFACT_DIGEST: ${{ needs.build-bootstrap-candidate.outputs.candidate-artifact-digest }}
+        run: |
+          $pull = gh api "repos/${{ github.repository }}/pulls/${{ inputs.pull_request_number }}" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or $pull.state -ne "open") { throw "Bootstrap PR is no longer open." }
+          $remoteHead = [string]$pull.head.sha
+          $artifactDigest = $env:CANDIDATE_ARTIFACT_DIGEST.ToLowerInvariant()
+          if ($artifactDigest -match '^[0-9a-f]{64}$') { $artifactDigest = "sha256:$artifactDigest" }
+          $verification = Join-Path "${{ github.workspace }}" "evidence\publication-verification.json"
+          Set-Location -LiteralPath "${{ github.workspace }}/trusted-publisher"
+          uv run --project . python new_gamever_artifact.py verify `
+            --repo-root "${{ github.workspace }}/prospective" `
+            --plan "${{ github.workspace }}/evidence/plan/trusted-source-artifact-plan.json" `
+            --artifact-root "${{ github.workspace }}/evidence/candidate/bin_artifacts" `
+            --manifest "${{ github.workspace }}/evidence/candidate/candidate-manifest.json" `
+            --repository "${{ github.repository }}" `
+            --default-branch "${{ github.event.repository.default_branch }}" `
+            --base-repository "$($pull.base.repo.full_name)" --base-ref "$($pull.base.ref)" `
+            --base-sha "$($pull.base.sha)" `
+            --head-repository "$($pull.head.repo.full_name)" --head-ref "$($pull.head.ref)" `
+            --head-sha "${{ inputs.head_sha }}" --current-remote-head "$remoteHead" `
+            --pr-number "${{ inputs.pull_request_number }}" `
+            --actions-artifact-name "${{ needs.build-bootstrap-candidate.outputs.candidate-artifact-name }}" `
+            --actions-artifact-digest "$artifactDigest" `
+            --workflow-run-id "${{ github.run_id }}" --workflow-run-attempt "${{ github.run_attempt }}" `
+            --execution-report "${{ github.workspace }}/evidence/candidate/force-all-execution.json" `
+            --output "$verification"
+          if ($LASTEXITCODE -ne 0) { throw "Hosted bootstrap candidate verification failed." }
+          "verification=$verification" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+      - name: Create direct-child artifact-only commit
+        id: commit
+        shell: pwsh
+        run: |
+          git -C publication config user.name "source-artifact-automation"
+          git -C publication config user.email "source-artifact-automation@users.noreply.github.com"
+          $receipt = Join-Path "${{ github.workspace }}" "evidence\publication-commit.json"
+          Set-Location -LiteralPath "${{ github.workspace }}/trusted-publisher"
+          uv run --project . python new_gamever_artifact.py commit `
+            --repo-root "${{ github.workspace }}/publication" `
+            --artifact-root "${{ github.workspace }}/evidence/candidate/bin_artifacts" `
+            --verification "${{ steps.verify.outputs.verification }}" `
+            --workflow-run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" `
+            --output "$receipt"
+          if ($LASTEXITCODE -ne 0) { throw "Artifact-only bootstrap commit preparation failed." }
+          $commit = Get-Content -LiteralPath $receipt -Raw | ConvertFrom-Json
+          "commit-sha=$($commit.commit_sha)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+      - name: Fast-forward push only the bound bump branch with protected PAT
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GIT_USERNAME: source-artifact-automation
+          GIT_PASSWORD: ${{ secrets.SOURCE_ARTIFACT_BOOTSTRAP_PAT }}
+        run: |-
+          if ([string]::IsNullOrWhiteSpace($env:GIT_PASSWORD)) { throw "SOURCE_ARTIFACT_BOOTSTRAP_PAT is unavailable." }
+          $pull = gh api "repos/${{ github.repository }}/pulls/${{ inputs.pull_request_number }}" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or $pull.head.sha -ne "${{ inputs.head_sha }}" -or `
+              $pull.base.repo.full_name -ne "${{ github.repository }}" -or `
+              $pull.base.ref -ne "${{ github.event.repository.default_branch }}" -or `
+              $pull.base.sha -ne "${{ inputs.base_sha }}") {
+            throw "PR base or head drifted immediately before protected push."
+          }
+          $askpass = Join-Path $env:RUNNER_TEMP "source-artifact-askpass.sh"
+          @'
+          #!/usr/bin/env bash
+          case "$1" in
+            *Username*) printf '%s\n' "$GIT_USERNAME" ;;
+            *Password*) printf '%s\n' "$GIT_PASSWORD" ;;
+            *) exit 1 ;;
+          esac
+          '@ | Set-Content -LiteralPath $askpass -Encoding utf8NoBOM
+          chmod 700 $askpass
+          try {
+            $env:GIT_ASKPASS = $askpass
+            $env:GIT_TERMINAL_PROMPT = "0"
+            git -C publication -c credential.helper= push origin `
+              "HEAD:refs/heads/bump-download/${{ inputs.gamever }}"
+            if ($LASTEXITCODE -ne 0) { throw "Protected artifact fast-forward push failed." }
+          } finally {
+            Remove-Item -LiteralPath $askpass -Force -ErrorAction SilentlyContinue
+            Remove-Item Env:GIT_ASKPASS -ErrorAction SilentlyContinue
+            Remove-Item Env:GIT_PASSWORD -ErrorAction SilentlyContinue
+          }
+          $after = gh api "repos/${{ github.repository }}/pulls/${{ inputs.pull_request_number }}" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or $after.head.sha -ne "${{ steps.commit.outputs.commit-sha }}") {
+            throw "Remote PR head does not match the published artifact commit."
+          }

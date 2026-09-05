@@ -52,7 +52,7 @@ offset_sig_disp = <offset_sig_disp>    # e.g., 8 or None (0 also omitted)
 
 # Get binary path and determine platform
 input_file = idaapi.get_input_file_path()
-dir_path = os.path.dirname(input_file)
+dir_path = os.environ.get('CS2VIBE_ARTIFACT_DIR') or os.path.dirname(input_file)
 
 if input_file.endswith('.dll'):
     platform = 'windows'
@@ -187,6 +187,10 @@ offset = 0x4E0
 size = None
 offset_sig = "8B 93 E0 04 00 00"
 ```
+
+## Trusted finalization
+
+This writer produces a semantic YAML payload at the caller-provided expected artifact path. It does not own final field ordering, scalar spelling, encoding, or line endings. After runtime validation, the trusted analyzer rewrites every successful preprocessor or Agent output through the Source2 central canonicalizer; that canonical rewrite is the only byte-level trust boundary.
 
 ## Notes
 

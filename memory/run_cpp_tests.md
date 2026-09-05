@@ -7,11 +7,7 @@ permalink: cs2-vibesignatures/run-cpp-tests
 # run_cpp_tests
 
 ## Overview
-
-`run_cpp_tests.py` is a deterministic C++ compile and layout-validation driver based on `configs/<GAMEVER>.yaml` and an immutable
-game-symbol snapshot. It probes clang target support, runs compatible tests, compares compiler vtable or record layouts
-with snapshot references, prints detailed differences, and returns non-zero when validation fails.
-
+`run_cpp_tests.py` deterministically compiles and validates C++ layouts against an explicit immutable snapshot candidate derived from validated `bin_artifacts`. It probes clang targets, compares vtable/record layouts, reports exact differences, and returns non-zero on validation failure.
 ## Responsibilities
 
 - Parse config path, mandatory snapshot path, game version, clang path, C++ standard, and debug options.
@@ -23,21 +19,17 @@ with snapshot references, prints detailed differences, and returns non-zero when
 - Return failure for compile errors, invalid test entries, or layout differences.
 
 ## Header Repair Boundary
-
-- Use the project-level `.claude/skills/fix-cppheaders/SKILL.md` for header repair.
-- The SKILL runs `uv run run_cpp_tests.py -gamever <gamever> -snapshot <snapshot> -debug`.
-- `cpp_tests[].headers` maps a failing test to the allowed `hl2sdk_cs2` edit targets.
-- `run_cpp_tests.py` does not invoke Claude, Codex, OpenCode, or `agent_runner.py`.
-
+- Use `.claude/skills/fix-cppheaders/SKILL.md` for header repair.
+- Build or receive one release-local candidate from the validated artifact tree, then run `uv run run_cpp_tests.py -gamever <gamever> -configyaml configs/<gamever>.yaml -snapshot <candidate> -debug`.
+- `cpp_tests[].headers` maps a failing test to allowed `hl2sdk_cs2` edit targets.
+- Never fall back to tracked `gamesymbols/` or per-symbol YAML in `bin/`; never edit `bin_artifacts` to hide a header mismatch.
 ## Involved Files
-
 - `run_cpp_tests.py`
 - `cpp_tests_util.py`
 - `configs/<GAMEVER>.yaml`
 - `.claude/skills/fix-cppheaders/SKILL.md`
-- `gamesymbols/<gamever>.yaml` or an untracked actual candidate snapshot
-- `gamesymbol_store.py`
-
+- explicit release-local candidate snapshot
+- `gamesymbol_store.py` / `SnapshotSymbolStore`
 ## Notes
 
 - `additional_compiler_options` and `additional_compile_options` are both accepted.

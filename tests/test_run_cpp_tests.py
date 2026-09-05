@@ -153,6 +153,7 @@ class TestCompareVtableWithYaml(unittest.TestCase):
             root = Path(temp_dir)
             config = root / "config.yaml"
             bindir = root / "bin"
+            artifactdir = root / "bin_artifacts"
             gamever = "14167"
             write_config(
                 config,
@@ -164,7 +165,7 @@ class TestCompareVtableWithYaml(unittest.TestCase):
                     )
                 ],
             )
-            module_dir = bindir / gamever / "server"
+            module_dir = artifactdir / gamever / "server"
             module_dir.mkdir(parents=True)
             (module_dir / "ITest_vtable.windows.yaml").write_text(
                 "vtable_size: '0x8'\nvtable_numvfunc: 1\n",
@@ -174,9 +175,9 @@ class TestCompareVtableWithYaml(unittest.TestCase):
                 "func_name: ITest_First\nvfunc_index: 0\n",
                 encoding="utf-8",
             )
-            write_binary(module_dir / "server.dll")
+            write_binary(bindir / gamever / "server/server.dll")
             snapshot = root / "candidate.yaml"
-            pack_snapshot(gamever, bindir, config, snapshot)
+            pack_snapshot(gamever, bindir, config, snapshot, artifactdir=artifactdir)
             store = SnapshotSymbolStore.open(snapshot, expected_game_version=gamever, config_path=config)
             shutil.rmtree(bindir / gamever)
 
@@ -197,6 +198,7 @@ class TestCompareVtableWithYaml(unittest.TestCase):
             root = Path(temp_dir)
             config = root / "config.yaml"
             bindir = root / "bin"
+            artifactdir = root / "bin_artifacts"
             gamever = "14167"
             write_config(
                 config,
@@ -213,22 +215,22 @@ class TestCompareVtableWithYaml(unittest.TestCase):
                     ),
                 ],
             )
-            engine_dir = bindir / gamever / "engine"
+            engine_dir = artifactdir / gamever / "engine"
             engine_dir.mkdir(parents=True)
             (engine_dir / "ITest_First.windows.yaml").write_text(
                 "func_name: ITest_First\nvtable_name: ITest\nvfunc_index: 0\n",
                 encoding="utf-8",
             )
-            write_binary(engine_dir / "engine.dll")
-            server_dir = bindir / gamever / "server"
+            write_binary(bindir / gamever / "engine/engine.dll")
+            server_dir = artifactdir / gamever / "server"
             server_dir.mkdir(parents=True)
             (server_dir / "ITest_WrongOwner.windows.yaml").write_text(
                 "func_name: ITest_WrongOwner\nvtable_name: ITest\nvfunc_index: 64\n",
                 encoding="utf-8",
             )
-            write_binary(server_dir / "server.dll")
+            write_binary(bindir / gamever / "server/server.dll")
             snapshot = root / "candidate.yaml"
-            pack_snapshot(gamever, bindir, config, snapshot)
+            pack_snapshot(gamever, bindir, config, snapshot, artifactdir=artifactdir)
             store = SnapshotSymbolStore.open(snapshot, expected_game_version=gamever, config_path=config)
 
             report = cpp_tests_util.compare_compiler_vtable_with_yaml(

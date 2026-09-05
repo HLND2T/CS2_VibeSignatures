@@ -13,6 +13,7 @@ Usage:
     -oldgamever: Old game version for signature reuse (default: gamever - 1)
     -configyaml: Analysis config path (default: configs/<GAMEVER>.yaml)
     -bindir: Directory containing downloaded binaries (default: bin)
+    -artifactdir: Directory containing source-owned per-symbol YAML (default: bin_artifacts)
     -platform: Platforms to analyze, comma-separated (default: windows,linux)
     -skill: Exact skill name to run; all other skills are skipped
     -agent: Agent to use for analysis: claude, codex, or opencode (default: claude)
@@ -28,12 +29,13 @@ Requirements:
     claude CLI, codex CLI, or opencode CLI
 
 Output:
-    bin/14134/engine/CServerSideClient_IsHearingClient.linux.yaml
-    bin/14134/engine/CServerSideClient_IsHearingClient.windows.yaml
+    bin_artifacts/14134/engine/CServerSideClient_IsHearingClient.linux.yaml
+    bin_artifacts/14134/engine/CServerSideClient_IsHearingClient.windows.yaml
     ...and more
 """
 
 import argparse
+import hashlib
 import inspect
 import json
 import os
@@ -41,6 +43,7 @@ import posixpath
 import socket
 import subprocess
 import sys
+import tempfile
 import time
 
 from binary_hashing import hash_file
@@ -50,6 +53,8 @@ from dotenv import load_dotenv
 
 from agent_runner import DEFAULT_AGENT_MODEL, run_skill
 from analysis_config import AnalysisConfigError, resolve_analysis_config
+from gamever_baseline import GAMEVER_RE as BASELINE_GAMEVER_RE
+from gamever_baseline import select_prior_gamever
 
 try:
     import yaml
@@ -77,6 +82,12 @@ from ida_mcp_session import (
     check_ida_mcp_supervisor_health,
     normalize_binary_identity_path,
     open_ida_mcp_session,
+)
+from ida_analyze_util import (
+    SymbolArtifactError,
+    canonicalize_symbol_yaml_file,
+    preprocess_gen_func_sig_via_mcp,
+    write_func_yaml,
 )
 from ida_vcall_finder import (
     aggregate_vcall_results_for_object,
@@ -115,6 +126,8 @@ load_dotenv()
 
 DEFAULT_DOWNLOAD_FILE = "download.yaml"
 DEFAULT_BIN_DIR = "bin"
+DEFAULT_ARTIFACTS_DIR = "bin_artifacts"
+ARTIFACT_OUTPUT_ENV = "CS2VIBE_ARTIFACT_DIR"
 DEFAULT_PLATFORM = "windows,linux"
 DEFAULT_MODULES = "*"
 DEFAULT_AGENT = "claude"
@@ -152,12 +165,17 @@ class AnalysisReporting:
             reporter if isinstance(reporter, BestEffortProcessReporter) else BestEffortProcessReporter(reporter)
         )
         self.run_id = run_id
+        self.plan = plan
         self._node_ids = {node.id for node in plan.nodes}
         self._nodes_by_job = {job.id: [] for job in plan.jobs}
         for node in plan.nodes:
             self._nodes_by_job[node.job_id].append(node.id)
         self._states = {task_id: TaskStatus.PENDING for task_id in self._node_ids}
         self._states.update({job.id: TaskStatus.PENDING for job in plan.jobs})
+        self._attempted = set()
+        self._output_attempts = {task_id: set() for task_id in self._node_ids}
+        self._output_produced = {task_id: set() for task_id in self._node_ids}
+        self._terminal_details = {}
 
     def emit_run_status(self, status: RunStatus, *, message: str | None = None) -> None:
         self.reporter.emit(
@@ -191,6 +209,8 @@ class AnalysisReporting:
             return
         if not is_valid_task_transition(current, status):
             return
+        if task_id in self._node_ids and status == TaskStatus.RUNNING and phase == ProcessPhase.WAITING_FOR_MCP:
+            self._attempted.add(task_id)
         self.reporter.emit(
             ProcessEvent(
                 run_id=self.run_id,
@@ -205,6 +225,12 @@ class AnalysisReporting:
             )
         )
         self._states[task_id] = status
+        if status in terminal_statuses and task_id in self._node_ids:
+            self._terminal_details[task_id] = {
+                "reason": reason.value if isinstance(reason, ProcessReason) else reason,
+                "error": error,
+                "payload": payload or {},
+            }
 
     def emit_agent_progress(self, task_id: str, **progress) -> None:
         self.reporter.emit(
@@ -244,6 +270,27 @@ class AnalysisReporting:
             counts[self._states[task_id].value] += 1
         counts["total"] = len(self._node_ids)
         return counts
+
+    def record_output_attempts(self, task_id: str, paths) -> None:
+        if task_id in self._output_attempts:
+            self._output_attempts[task_id].update(os.fspath(path) for path in paths)
+
+    def record_output_produced(self, task_id: str, paths) -> None:
+        if task_id in self._output_produced:
+            self._output_produced[task_id].update(os.fspath(path) for path in paths)
+
+    def task_record(self, task_id: str) -> dict:
+        details = self._terminal_details.get(task_id, {})
+        return {
+            "task_id": task_id,
+            "status": self._states.get(task_id, TaskStatus.PENDING).value,
+            "attempted": task_id in self._attempted,
+            "reason": details.get("reason"),
+            "error": details.get("error"),
+            "payload": details.get("payload", {}),
+            "attempted_outputs": sorted(self._output_attempts.get(task_id, set())),
+            "produced_outputs": sorted(self._output_produced.get(task_id, set())),
+        }
 
 
 def _absolute_path_preserve_spelling(path):
@@ -372,6 +419,199 @@ def _lookup_expected_input_artifact_category(
     if category_map is None:
         category_map = _load_artifact_symbol_category_map(config_path) if config_path else {}
     return category_map.get(symbol_name)
+
+
+def _agent_func_signature_artifact_paths(
+    artifact_paths,
+    *,
+    platform,
+    config_path=None,
+    category_map=None,
+):
+    selected = []
+    for artifact_path in artifact_paths:
+        category = _lookup_expected_input_artifact_category(
+            artifact_path,
+            platform,
+            config_path=config_path,
+            category_map=category_map,
+        )
+        if category not in {"func", "vfunc"}:
+            continue
+        try:
+            payload = load_yaml_file(artifact_path)
+        except Exception:
+            continue
+        if isinstance(payload, dict) and payload.get("func_sig") is not None:
+            selected.append(artifact_path)
+    return selected
+
+
+async def regenerate_agent_func_signatures_via_session(
+    session,
+    artifact_paths,
+    platform,
+    binary_dir=None,
+    debug=False,
+    config_path=None,
+    category_map=None,
+):
+    """Replace Agent-provided func_sig values with the trusted deterministic generator output."""
+    issues = []
+    for artifact_path in artifact_paths:
+        category = _lookup_expected_input_artifact_category(
+            artifact_path,
+            platform,
+            config_path=config_path,
+            category_map=category_map,
+        )
+        if category not in {"func", "vfunc"}:
+            continue
+        if not _is_current_module_artifact_path(artifact_path, binary_dir):
+            continue
+
+        try:
+            payload = load_yaml_file(artifact_path)
+        except Exception as exc:
+            issues.append(f"{artifact_path}: failed to read Agent YAML for func_sig regeneration ({exc})")
+            continue
+        if not isinstance(payload, dict) or payload.get("func_sig") is None:
+            continue
+
+        func_va = str(payload.get("func_va") or "").strip()
+        if not func_va:
+            issues.append(f"{artifact_path}: Agent func_sig requires func_va for trusted regeneration")
+            continue
+
+        try:
+            generated = await preprocess_gen_func_sig_via_mcp(
+                session=session,
+                func_va=func_va,
+                image_base=0,
+                allow_across_function_boundary=payload.get("func_sig_allow_across_function_boundary") is True,
+                debug=debug,
+            )
+        except Exception as exc:
+            issues.append(f"{artifact_path}: deterministic func_sig regeneration failed for func_va={func_va} ({exc})")
+            continue
+        if not isinstance(generated, dict) or not generated.get("func_sig"):
+            issues.append(f"{artifact_path}: unable to deterministically regenerate func_sig from func_va={func_va}")
+            continue
+
+        payload["func_sig"] = generated["func_sig"]
+        try:
+            write_func_yaml(artifact_path, payload)
+        except (OSError, UnicodeError, TypeError, SymbolArtifactError, yaml.YAMLError) as exc:
+            issues.append(f"{artifact_path}: unable to write trusted regenerated func_sig ({exc})")
+
+    return issues
+
+
+async def regenerate_agent_func_signatures_via_mcp(
+    *,
+    host,
+    port,
+    artifact_paths,
+    platform,
+    binary_dir=None,
+    expected_binary=None,
+    debug=False,
+    config_path=None,
+    category_map=None,
+):
+    session_kwargs = {}
+    if expected_binary is not None:
+        session_kwargs["expected_binary"] = expected_binary
+    async with open_ida_mcp_session(host, port, **session_kwargs) as session:
+        return await regenerate_agent_func_signatures_via_session(
+            session,
+            artifact_paths=artifact_paths,
+            platform=platform,
+            binary_dir=binary_dir,
+            debug=debug,
+            config_path=config_path,
+            category_map=category_map,
+        )
+
+
+def _run_regenerate_agent_func_signatures_via_mcp(**kwargs):
+    try:
+        return asyncio.run(regenerate_agent_func_signatures_via_mcp(**kwargs))
+    except Exception as exc:
+        return [f"trusted Agent func_sig regeneration via MCP failed ({exc})"]
+
+
+def _finalize_produced_symbol_outputs(
+    *,
+    required_outputs,
+    optional_outputs,
+    platform,
+    binary_dir,
+    expected_binary,
+    host,
+    port,
+    debug,
+    config_path,
+    category_map,
+    regenerate_func_signatures=False,
+):
+    """Validate and atomically canonicalize outputs from any producer path."""
+    if category_map is None:
+        # Compatibility bridge for direct process_binary callers. The normal
+        # analyzer entrypoint always provides the trusted config category map.
+        return []
+    missing = [path for path in required_outputs if not os.path.isfile(path)]
+    if missing:
+        return [f"{path}: missing required produced artifact" for path in missing]
+    produced = list(required_outputs)
+    produced.extend(path for path in optional_outputs if os.path.isfile(path))
+    runtime_issues = _run_validate_expected_input_artifacts_via_mcp(
+        host=host,
+        port=port,
+        expected_inputs=produced,
+        platform=platform,
+        binary_dir=binary_dir,
+        expected_binary=expected_binary,
+        debug=debug,
+        config_path=config_path,
+        category_map=category_map,
+    )
+    if runtime_issues:
+        return list(runtime_issues)
+    if regenerate_func_signatures:
+        signature_artifacts = _agent_func_signature_artifact_paths(
+            produced,
+            platform=platform,
+            config_path=config_path,
+            category_map=category_map,
+        )
+        if signature_artifacts:
+            regeneration_issues = _run_regenerate_agent_func_signatures_via_mcp(
+                host=host,
+                port=port,
+                artifact_paths=signature_artifacts,
+                platform=platform,
+                binary_dir=binary_dir,
+                expected_binary=expected_binary,
+                debug=debug,
+                config_path=config_path,
+                category_map=category_map,
+            )
+            if regeneration_issues:
+                return list(regeneration_issues)
+    issues = []
+    for artifact_path in produced:
+        category = _lookup_expected_input_artifact_category(
+            artifact_path,
+            platform,
+            config_path=config_path,
+            category_map=category_map,
+        )
+        try:
+            canonicalize_symbol_yaml_file(artifact_path, category=category)
+        except (OSError, UnicodeError, TypeError, SymbolArtifactError, yaml.YAMLError) as exc:
+            issues.append(f"{artifact_path}: unable to canonicalize symbol artifact ({exc})")
+    return issues
 
 
 def _is_current_module_artifact_path(artifact_path, binary_dir):
@@ -1258,17 +1498,17 @@ def _has_ida_database(binary_path):
     return any(os.path.isfile(path) for path in _ida_database_paths(binary_path)[:2])
 
 
-def resolve_oldgamever(gamever, bin_dir):
+def resolve_oldgamever(gamever, artifact_dir):
     """
     Resolve the best oldgamever by searching for the most recent existing version
-    directory under bin_dir.
+    directory under the trusted artifact root.
 
     Version ordering (descending):
         14141z > 14141y > ... > 14141b > 14141a > 14141 > 14140
 
     Args:
         gamever: Current game version string (e.g., "14142", "14141a")
-        bin_dir: Base binary directory to check for existing version subdirectories
+        artifact_dir: Source-owned artifact root to check for existing version subdirectories
 
     Returns:
         Best matching oldgamever string, or None if no candidate directory exists
@@ -1276,46 +1516,20 @@ def resolve_oldgamever(gamever, bin_dir):
     if not gamever:
         return None
 
-    # Parse gamever into (base_number, optional_suffix)
-    if gamever[-1].islower() and gamever[-1].isalpha():
-        suffix = gamever[-1]
-        base_str = gamever[:-1]
-    else:
-        suffix = None
-        base_str = gamever
-
+    root = Path(artifact_dir)
     try:
-        base = int(base_str)
-    except ValueError:
+        entries = list(root.iterdir())
+    except OSError:
         return None
 
-    # Generate candidates in descending version order
+    from gamesymbol_snapshot_lib.paths import is_reparse_point
+
     candidates = []
-
-    if suffix:
-        # E.g., gamever="14141c" -> try 14141b, 14141a, 14141, 14140z..14140a, 14140
-        for c in range(ord(suffix) - 1, ord("a") - 1, -1):
-            candidates.append(f"{base}{chr(c)}")
-        candidates.append(str(base))
-        prev_base = base - 1
-        for c in range(ord("z"), ord("a") - 1, -1):
-            candidates.append(f"{prev_base}{chr(c)}")
-        candidates.append(str(prev_base))
-    else:
-        # E.g., gamever="14142" -> try 14141z..14141a, 14141, 14140
-        prev_base = base - 1
-        for c in range(ord("z"), ord("a") - 1, -1):
-            candidates.append(f"{prev_base}{chr(c)}")
-        candidates.append(str(prev_base))
-        candidates.append(str(prev_base - 1))
-
-    # Return the first candidate whose directory exists
-    for candidate in candidates:
-        candidate_dir = os.path.join(bin_dir, candidate)
-        if os.path.isdir(candidate_dir):
-            return candidate
-
-    return None
+    for entry in entries:
+        if not BASELINE_GAMEVER_RE.fullmatch(entry.name) or not entry.is_dir() or is_reparse_point(entry):
+            continue
+        candidates.append(entry.name)
+    return select_prior_gamever(str(gamever), candidates)
 
 
 def _is_major_update_gamever(gamever, download_path=DEFAULT_DOWNLOAD_FILE):
@@ -1453,6 +1667,16 @@ def parse_args():
         help=f"Directory containing downloaded binaries (default: {DEFAULT_BIN_DIR})",
     )
     parser.add_argument(
+        "-artifactdir",
+        default=DEFAULT_ARTIFACTS_DIR,
+        help=f"Directory containing source-owned per-symbol YAML (default: {DEFAULT_ARTIFACTS_DIR})",
+    )
+    parser.add_argument(
+        "-oldartifactdir",
+        default=None,
+        help="Old-version per-symbol YAML root; defaults to -artifactdir",
+    )
+    parser.add_argument(
         "-gamever",
         default=os.environ.get("CS2VIBE_GAMEVER"),
         required="CS2VIBE_GAMEVER" not in os.environ,
@@ -1540,6 +1764,16 @@ def parse_args():
         help="Run post_process rename/comment pass for existing expected output YAML files",
     )
     parser.add_argument(
+        "-force_all",
+        action="store_true",
+        help="Require an empty checkout-external artifact root and execute every formal producer group",
+    )
+    parser.add_argument(
+        "-execution_report",
+        default=None,
+        help="Canonical force-all execution evidence JSON path (required with -force_all)",
+    )
+    parser.add_argument(
         "-process_reporter",
         choices=("none", "redis"),
         default=os.environ.get("CS2VIBE_PROCESS_REPORTER", "none"),
@@ -1599,7 +1833,20 @@ def parse_args():
         if args.module_filter is None or not args.module_filter or "*" in args.module_filter:
             parser.error("-vcall_finder requires explicit -modules without '*'")
 
-    # Resolve oldgamever
+    if args.oldartifactdir is None:
+        args.oldartifactdir = args.artifactdir
+
+    if getattr(args, "force_all", False):
+        if not args.execution_report:
+            parser.error("-force_all requires -execution_report")
+        if args.skip_error:
+            parser.error("-force_all cannot be combined with -skip_error")
+        if args.skill is not None or args.module_filter is not None or args.vcall_finder_filter is not None:
+            parser.error("-force_all requires the complete config without skill/module/vcall filters")
+        if set(args.platforms) != {"windows", "linux"}:
+            parser.error("-force_all requires both windows and linux platforms")
+
+    # Resolve oldgamever from the trusted artifact root, never from private binaries.
     if args.oldgamever is None:
         # Auto-resolve only when this gamever is NOT a major update. Major
         # updates break cross-version signature reuse, so leave oldgamever
@@ -1607,9 +1854,11 @@ def parse_args():
         if _is_major_update_gamever(args.gamever):
             args.oldgamever = None
         else:
-            args.oldgamever = resolve_oldgamever(args.gamever, args.bindir)
+            args.oldgamever = resolve_oldgamever(args.gamever, args.oldartifactdir)
     elif args.oldgamever.lower() == "none":
         args.oldgamever = None
+    elif not BASELINE_GAMEVER_RE.fullmatch(args.oldgamever):
+        parser.error("-oldgamever must be a valid GAMEVER or 'none'")
 
     args.llm_temperature = _parse_optional_llm_temperature(
         args.llm_temperature,
@@ -1864,7 +2113,22 @@ def _build_artifact_producers(skills, platform=None):
         for output_key in ("expected_output", "optional_output"):
             for output_path in _skill_artifact_paths(skill, output_key, platform):
                 for key in _normalized_artifact_keys(output_path):
-                    producers.setdefault(key, set()).add(producer_name)
+                    ordered_producers = producers.setdefault(key, [])
+                    if producer_name not in ordered_producers:
+                        ordered_producers.append(producer_name)
+    return producers
+
+
+def _build_ordered_artifact_producers(skills, platform=None):
+    producers = {}
+    for skill in skills:
+        producer_name = skill["name"]
+        for output_key in ("expected_output", "optional_output"):
+            for output_path in _skill_artifact_paths(skill, output_key, platform):
+                path_key = _normalized_artifact_keys(output_path)[0]
+                ordered_producers = producers.setdefault(path_key, [])
+                if producer_name not in ordered_producers:
+                    ordered_producers.append(producer_name)
     return producers
 
 
@@ -1898,6 +2162,15 @@ def _build_skill_dependencies(skills, platform=None):
                 if edge_key not in edge_keys:
                     edges.append(SkillEdge(prerequisite, consumer, EdgeType.PREREQUISITE))
                     edge_keys.add(edge_key)
+    for artifact_path, ordered_producers in _build_ordered_artifact_producers(skills, platform).items():
+        for earlier, later in zip(ordered_producers, ordered_producers[1:]):
+            if earlier == later:
+                continue
+            dependencies[later].add(earlier)
+            edge_key = (earlier, later, EdgeType.ALTERNATIVE_ORDER, artifact_path)
+            if edge_key not in edge_keys:
+                edges.append(SkillEdge(earlier, later, EdgeType.ALTERNATIVE_ORDER, artifact_path))
+                edge_keys.add(edge_key)
     return dependencies, edges
 
 
@@ -2010,10 +2283,13 @@ def build_skill_graph(skills):
 
 
 def _raise_for_artifact_dependency_cycles(graph):
+    artifact_edge_types = {
+        EdgeType.ARTIFACT,
+        EdgeType.OPTIONAL_INPUT,
+        EdgeType.ALTERNATIVE_ORDER,
+    }
     self_dependencies = sorted(
-        edge.source
-        for edge in graph.edges
-        if edge.source == edge.target and edge.edge_type in {EdgeType.ARTIFACT, EdgeType.OPTIONAL_INPUT}
+        edge.source for edge in graph.edges if edge.source == edge.target and edge.edge_type in artifact_edge_types
     )
     if self_dependencies:
         raise ValueError(f"Artifact dependency cycle detected: self-dependencies={self_dependencies}")
@@ -2022,9 +2298,7 @@ def _raise_for_artifact_dependency_cycles(graph):
     for cycle in graph.cycles:
         members = set(cycle)
         if any(
-            edge.edge_type in {EdgeType.ARTIFACT, EdgeType.OPTIONAL_INPUT}
-            and edge.source in members
-            and edge.target in members
+            edge.edge_type in artifact_edge_types and edge.source in members and edge.target in members
             for edge in graph.edges
         ):
             invalid_cycles.append(cycle)
@@ -2157,12 +2431,11 @@ def _build_execution_job_nodes(
     return nodes, edges, warnings, active_skills
 
 
-def _resolve_execution_artifacts(job, active_skills, platform):
-    binary_dir = os.path.dirname(job.binary_path) if job.binary_path else None
+def _resolve_execution_artifacts(job, active_skills, platform, artifact_module_dir):
     producers = []
     consumers = []
     warnings = []
-    if binary_dir is None:
+    if job.binary_path is None or artifact_module_dir is None:
         return producers, consumers, warnings
 
     for skill in active_skills:
@@ -2176,7 +2449,7 @@ def _resolve_execution_artifacts(job, active_skills, platform):
         for base_key, records, edge_type in path_groups:
             for artifact_path in _skill_artifact_paths(skill, base_key, platform):
                 try:
-                    resolved_path = resolve_artifact_path(binary_dir, artifact_path, platform)
+                    resolved_path = resolve_artifact_path(artifact_module_dir, artifact_path, platform)
                 except ValueError as exc:
                     warnings.append(f"{node_id}: {exc}")
                     continue
@@ -2232,6 +2505,7 @@ def _build_execution_job_plan(
     stage,
     platform,
     bin_dir,
+    artifact_dir,
     gamever,
     vcall_finder_selector,
     include_post_process,
@@ -2254,7 +2528,13 @@ def _build_execution_job_plan(
         vcall_finder_selector=vcall_finder_selector,
         include_post_process=include_post_process,
     )
-    producers, consumers, artifact_warnings = _resolve_execution_artifacts(job, active_skills, platform)
+    artifact_module_dir = os.path.join(artifact_dir, str(gamever), module["name"])
+    producers, consumers, artifact_warnings = _resolve_execution_artifacts(
+        job,
+        active_skills,
+        platform,
+        artifact_module_dir,
+    )
     warnings.extend(artifact_warnings)
     return job, nodes, edges, warnings, producers, consumers
 
@@ -2287,6 +2567,7 @@ def build_execution_plan(
     platforms,
     bin_dir,
     gamever,
+    artifact_dir=DEFAULT_ARTIFACTS_DIR,
     vcall_finder_selector=None,
     include_post_process=False,
 ):
@@ -2308,6 +2589,7 @@ def build_execution_plan(
                 stage=stage,
                 platform=platform,
                 bin_dir=bin_dir,
+                artifact_dir=artifact_dir,
                 gamever=gamever,
                 vcall_finder_selector=vcall_finder_selector,
                 include_post_process=include_post_process,
@@ -2353,15 +2635,15 @@ def _pending_binary_work_count(
     return remaining_skills + remaining_vcalls + post_process_count
 
 
-def resolve_artifact_path(binary_dir, artifact_path, platform):
+def resolve_artifact_path(artifact_module_dir, artifact_path, platform):
     """Resolve one artifact path under the current gamever root."""
     if not artifact_path:
         raise ValueError("artifact path is empty")
 
     expanded = artifact_path.replace("{platform}", platform)
-    module_dir = _absolute_path_preserve_spelling(binary_dir)
+    module_dir = _absolute_path_preserve_spelling(artifact_module_dir)
     candidate = _absolute_path_preserve_spelling(os.path.join(module_dir, expanded))
-    real_module_dir = Path(binary_dir).resolve()
+    real_module_dir = Path(artifact_module_dir).resolve()
     real_gamever_dir = real_module_dir.parent.resolve()
     real_candidate = (real_module_dir / expanded).resolve()
 
@@ -2371,9 +2653,9 @@ def resolve_artifact_path(binary_dir, artifact_path, platform):
     return candidate
 
 
-def expand_expected_paths(binary_dir, paths, platform):
-    """Expand {platform} placeholders and resolve artifact paths under a binary directory."""
-    return [resolve_artifact_path(binary_dir, path, platform) for path in paths]
+def expand_expected_paths(artifact_module_dir, paths, platform):
+    """Expand {platform} placeholders and resolve paths under an artifact module directory."""
+    return [resolve_artifact_path(artifact_module_dir, path, platform) for path in paths]
 
 
 def all_expected_outputs_exist(expected_outputs):
@@ -2979,6 +3261,35 @@ def _report_skill_status(reporting, job_id, skill_name, status, phase, **details
     reporting.emit_task_status(build_task_id(job_id, skill_name), status, phase, **details)
 
 
+def _record_skill_output_attempts(reporting, job_id, skill_name, paths):
+    if reporting is None or job_id is None:
+        return
+    reporting.record_output_attempts(build_task_id(job_id, skill_name), paths)
+
+
+def _record_skill_output_produced(reporting, job_id, skill_name, paths):
+    if reporting is None or job_id is None:
+        return
+    reporting.record_output_produced(build_task_id(job_id, skill_name), paths)
+
+
+def _capture_existing_output_digests(paths):
+    return {path: _sha256_file(Path(path)) for path in paths if os.path.isfile(path)}
+
+
+def _changed_existing_outputs(existing_digests):
+    changed = []
+    for path, expected_digest in existing_digests.items():
+        candidate = Path(path)
+        if not candidate.is_file() or _sha256_file(candidate) != expected_digest:
+            changed.append(path)
+    return changed
+
+
+def _newly_materialized_outputs(paths, existing_digests):
+    return [path for path in paths if path not in existing_digests and os.path.isfile(path)]
+
+
 def _report_vcall_status(reporting, job_id, object_name, status, phase, **details):
     if reporting is None or job_id is None:
         return
@@ -3025,6 +3336,8 @@ def process_binary(
     debug=False,
     max_retries=3,
     old_binary_dir=None,
+    artifact_dir=None,
+    old_artifact_dir=None,
     gamever=None,
     module_name=None,
     vcall_targets=None,
@@ -3046,6 +3359,7 @@ def process_binary(
     symbol_aliases=None,
     found_vcall_objects=None,
     require_warm_idb=False,
+    force_all=False,
 ):
     """
     Process a single binary file.
@@ -3061,7 +3375,10 @@ def process_binary(
         platform: Platform name (e.g., "windows", "linux")
         debug: Enable debug output
         max_retries: Default maximum number of retry attempts for skill execution
-        old_binary_dir: Directory containing old version YAML files for signature reuse
+        artifact_dir: Directory containing current-version per-symbol YAML. Direct callers that omit it retain
+            compatibility with the historical binary-adjacent layout; the analyzer entrypoint always passes it.
+        old_artifact_dir: Directory containing old-version YAML files for signature reuse
+        old_binary_dir: Deprecated compatibility alias for old_artifact_dir
         rename: Run module/platform post_process over valid expected output YAML mappings
         skip_error: Continue processing later skills after skill or preprocessor failures
         skip_pp: Skip preprocessing scripts and run Agent Skills directly
@@ -3074,8 +3391,12 @@ def process_binary(
     fail_count = 0
     skip_count = 0
 
-    # Get the directory containing the binary for yaml output check
+    # The binary directory is private analysis state. Normal analyzer execution
+    # always supplies a separate source-owned artifact directory.
     binary_dir = os.path.dirname(binary_path)
+    artifact_dir = os.fspath(artifact_dir or binary_dir)
+    old_artifact_dir = old_artifact_dir or old_binary_dir
+    os.makedirs(artifact_dir, exist_ok=True)
 
     # Build skill_map for lookup
     skill_map = {skill["name"]: skill for skill in skills}
@@ -3103,7 +3424,7 @@ def process_binary(
             continue
         try:
             required_outputs, optional_outputs, preprocess_outputs = expand_skill_output_paths(
-                binary_dir,
+                artifact_dir,
                 skill,
                 platform,
             )
@@ -3122,7 +3443,7 @@ def process_binary(
             )
             continue
         # Check if configured output files already make the skill unnecessary.
-        if should_skip_skill_for_existing_outputs(required_outputs, optional_outputs):
+        if not force_all and should_skip_skill_for_existing_outputs(required_outputs, optional_outputs):
             print(f"  Skipping skill: {skill_name} (all outputs exist)")
             skip_count += 1
             _report_skill_status(
@@ -3136,7 +3457,7 @@ def process_binary(
         else:
             try:
                 skip_for_existing_artifacts, _skip_paths = should_skip_skill_for_existing_artifacts(
-                    binary_dir,
+                    artifact_dir,
                     skill,
                     platform,
                 )
@@ -3154,7 +3475,7 @@ def process_binary(
                     error=str(e),
                 )
                 continue
-            if skip_for_existing_artifacts:
+            if skip_for_existing_artifacts and not force_all:
                 print(f"  Skipping skill: {skill_name} (all skip_if_exists artifacts exist)")
                 skip_count += 1
                 _report_skill_status(
@@ -3185,7 +3506,7 @@ def process_binary(
         _report_post_process_status(reporting, job_id, TaskStatus.RUNNING, ProcessPhase.PREFLIGHT)
         try:
             startup_post_process_yaml_items = _collect_post_process_yaml_mappings(
-                binary_dir,
+                artifact_dir,
                 sorted_skill_names,
                 skill_map,
                 platform,
@@ -3269,8 +3590,14 @@ def process_binary(
         port = _allocate_local_port(host)
         if debug:
             print(f"  Allocated dynamic MCP port {host}:{port}")
+    previous_artifact_output_dir = os.environ.get(ARTIFACT_OUTPUT_ENV)
+    os.environ[ARTIFACT_OUTPUT_ENV] = os.path.abspath(artifact_dir)
     process = start_idalib_mcp(binary_path, host, port, ida_args, debug)
     if process is None:
+        if previous_artifact_output_dir is None:
+            os.environ.pop(ARTIFACT_OUTPUT_ENV, None)
+        else:
+            os.environ[ARTIFACT_OUTPUT_ENV] = previous_artifact_output_dir
         post_process_failure = 1 if startup_post_process_yaml_items else 0
         _abort_binary_reporting(
             reporting,
@@ -3368,7 +3695,7 @@ def process_binary(
             skill = skill_map[skill_name]
             try:
                 skip_for_existing_artifacts, _skip_paths = should_skip_skill_for_existing_artifacts(
-                    binary_dir,
+                    artifact_dir,
                     skill,
                     platform,
                 )
@@ -3398,6 +3725,16 @@ def process_binary(
                     reason=ProcessReason.SKIP_IF_EXISTS,
                 )
                 continue
+
+            output_paths = required_outputs + optional_outputs
+            existing_output_digests = _capture_existing_output_digests(output_paths) if force_all else {}
+            if force_all:
+                _record_skill_output_attempts(
+                    reporting,
+                    job_id,
+                    skill_name,
+                    [path for path in output_paths if path not in existing_output_digests],
+                )
 
             print(f"  Start skill: {skill_name}")
             _report_skill_status(reporting, job_id, skill_name, TaskStatus.RUNNING, ProcessPhase.WAITING_FOR_MCP)
@@ -3470,8 +3807,8 @@ def process_binary(
             combined_optional_input = list(skill.get("optional_input", []) or [])
             combined_optional_input += list(skill.get(platform_optional_input_key, []) or [])
             try:
-                expected_inputs = expand_expected_paths(binary_dir, combined_input, platform)
-                optional_inputs = expand_expected_paths(binary_dir, combined_optional_input, platform)
+                expected_inputs = expand_expected_paths(artifact_dir, combined_input, platform)
+                optional_inputs = expand_expected_paths(artifact_dir, combined_optional_input, platform)
             except ValueError as e:
                 fail_count += 1
                 print(f"  Failed: {skill_name} ({e})")
@@ -3533,7 +3870,7 @@ def process_binary(
                 port=port,
                 expected_inputs=expected_inputs,
                 platform=platform,
-                binary_dir=binary_dir,
+                binary_dir=artifact_dir,
                 expected_binary=binary_path,
                 debug=debug,
                 config_path=config_path,
@@ -3564,7 +3901,7 @@ def process_binary(
                     port=port,
                     expected_inputs=existing_optional_inputs,
                     platform=platform,
-                    binary_dir=binary_dir,
+                    binary_dir=artifact_dir,
                     expected_binary=binary_path,
                     debug=debug,
                     config_path=config_path,
@@ -3626,11 +3963,11 @@ def process_binary(
             else:
                 # Try preprocessing first. Some preprocessors can run without old YAMLs.
                 old_yaml_map = None
-                if old_binary_dir:
+                if old_artifact_dir:
                     old_yaml_map = {}
                     for new_path in preprocess_outputs:
                         filename = os.path.basename(new_path)
-                        old_path = os.path.join(old_binary_dir, filename)
+                        old_path = os.path.join(old_artifact_dir, filename)
                         old_yaml_map[new_path] = old_path
 
                 try:
@@ -3642,7 +3979,7 @@ def process_binary(
                         expected_inputs=expected_inputs,
                         optional_inputs=optional_inputs,
                         old_yaml_map=old_yaml_map,
-                        new_binary_dir=binary_dir,
+                        new_binary_dir=artifact_dir,
                         platform=platform,
                         expected_binary=binary_path,
                         debug=debug,
@@ -3667,6 +4004,28 @@ def process_binary(
                 preprocess_status = PREPROCESS_STATUS_NO_SCRIPT
             else:
                 preprocess_status = PREPROCESS_STATUS_FAILED
+
+            changed_existing_outputs = _changed_existing_outputs(existing_output_digests) if force_all else []
+            if changed_existing_outputs:
+                fail_count += 1
+                changed_names = [os.path.basename(path) for path in changed_existing_outputs]
+                print(
+                    f"  Failed: {skill_name} (modified output already produced by an earlier alternative: "
+                    f"{', '.join(changed_names)})"
+                )
+                _report_skill_status(
+                    reporting,
+                    job_id,
+                    skill_name,
+                    TaskStatus.FAILED,
+                    ProcessPhase.FINISHED,
+                    reason=ProcessReason.INVALID_OUTPUT,
+                    payload={"modified_existing_outputs": changed_existing_outputs},
+                )
+                if skip_error:
+                    continue
+                abort_binary_processing = True
+                break
 
             if preprocess_status == PREPROCESS_STATUS_SUCCESS:
                 _report_skill_status(
@@ -3709,15 +4068,62 @@ def process_binary(
                         reason=ProcessReason.OPTIONAL_OUTPUT_ABSENT,
                     )
                 else:
-                    success_count += 1
-                    print(f"  Pre-processed: {skill_name} OK")
-                    _report_skill_status(
-                        reporting,
-                        job_id,
-                        skill_name,
-                        TaskStatus.SUCCEEDED,
-                        ProcessPhase.FINISHED,
+                    finalization_issues = _finalize_produced_symbol_outputs(
+                        required_outputs=required_outputs,
+                        optional_outputs=optional_outputs,
+                        platform=platform,
+                        binary_dir=artifact_dir,
+                        expected_binary=binary_path,
+                        host=host,
+                        port=port,
+                        debug=debug,
+                        config_path=config_path,
+                        category_map=category_map,
+                        regenerate_func_signatures=False,
                     )
+                    if force_all:
+                        finalization_issues.extend(
+                            f"modified output already produced by an earlier alternative: {path}"
+                            for path in _changed_existing_outputs(existing_output_digests)
+                        )
+                    if finalization_issues:
+                        fail_count += 1
+                        print(f"  Failed to finalize {skill_name}: {' | '.join(finalization_issues)}")
+                        _report_skill_status(
+                            reporting,
+                            job_id,
+                            skill_name,
+                            TaskStatus.FAILED,
+                            ProcessPhase.FINISHED,
+                            reason=ProcessReason.INVALID_OUTPUT,
+                            payload={"invalid_outputs": finalization_issues},
+                        )
+                        if not skip_error:
+                            abort_binary_processing = True
+                            break
+                    else:
+                        produced_outputs = (
+                            _newly_materialized_outputs(output_paths, existing_output_digests)
+                            if force_all
+                            else [path for path in output_paths if os.path.isfile(path)]
+                        )
+                        if force_all:
+                            _record_skill_output_produced(
+                                reporting,
+                                job_id,
+                                skill_name,
+                                produced_outputs,
+                            )
+                        success_count += 1
+                        print(f"  Pre-processed: {skill_name} OK")
+                        _report_skill_status(
+                            reporting,
+                            job_id,
+                            skill_name,
+                            TaskStatus.SUCCEEDED,
+                            ProcessPhase.FINISHED,
+                            payload={"produced_outputs": produced_outputs},
+                        )
                 continue
             if preprocess_status == PREPROCESS_STATUS_ABSENT_OK:
                 skip_count += 1
@@ -3797,7 +4203,7 @@ def process_binary(
             progress_callback = _build_agent_progress_callback(reporting, job_id, skill_name)
 
             mcp_url = f"http://{host}:{port}/mcp"
-            if run_skill(
+            agent_succeeded = run_skill(
                 skill_name,
                 agent,
                 debug,
@@ -3806,7 +4212,30 @@ def process_binary(
                 agent_model=agent_model,
                 progress_callback=progress_callback,
                 mcp_url=mcp_url,
-            ):
+            )
+            changed_existing_outputs = _changed_existing_outputs(existing_output_digests) if force_all else []
+            if changed_existing_outputs:
+                fail_count += 1
+                changed_names = [os.path.basename(path) for path in changed_existing_outputs]
+                print(
+                    f"    Failed: modified output already produced by an earlier alternative: "
+                    f"{', '.join(changed_names)}"
+                )
+                _report_skill_status(
+                    reporting,
+                    job_id,
+                    skill_name,
+                    TaskStatus.FAILED,
+                    ProcessPhase.FINISHED,
+                    reason=ProcessReason.INVALID_OUTPUT,
+                    payload={"modified_existing_outputs": changed_existing_outputs},
+                )
+                if skip_error:
+                    continue
+                print("  Aborting remaining skills after protected output modification")
+                abort_binary_processing = True
+                break
+            if agent_succeeded:
                 optional_output_generated = any(os.path.exists(path) for path in optional_outputs)
                 if not required_outputs and optional_outputs and not optional_output_generated:
                     skip_count += 1
@@ -3820,15 +4249,63 @@ def process_binary(
                         reason=ProcessReason.OPTIONAL_OUTPUT_ABSENT,
                     )
                 else:
-                    success_count += 1
-                    print("    Success")
-                    _report_skill_status(
-                        reporting,
-                        job_id,
-                        skill_name,
-                        TaskStatus.SUCCEEDED,
-                        ProcessPhase.FINISHED,
+                    finalization_issues = _finalize_produced_symbol_outputs(
+                        required_outputs=required_outputs,
+                        optional_outputs=optional_outputs,
+                        platform=platform,
+                        binary_dir=artifact_dir,
+                        expected_binary=binary_path,
+                        host=host,
+                        port=port,
+                        debug=debug,
+                        config_path=config_path,
+                        category_map=category_map,
+                        regenerate_func_signatures=True,
                     )
+                    if force_all:
+                        finalization_issues.extend(
+                            f"modified output already produced by an earlier alternative: {path}"
+                            for path in _changed_existing_outputs(existing_output_digests)
+                        )
+                    if finalization_issues:
+                        fail_count += 1
+                        print(f"    Failed output finalization: {' | '.join(finalization_issues)}")
+                        _report_skill_status(
+                            reporting,
+                            job_id,
+                            skill_name,
+                            TaskStatus.FAILED,
+                            ProcessPhase.FINISHED,
+                            reason=ProcessReason.INVALID_OUTPUT,
+                            payload={"invalid_outputs": finalization_issues},
+                        )
+                        if not skip_error:
+                            print("  Aborting remaining skills after Agent output validation failure")
+                            abort_binary_processing = True
+                            break
+                    else:
+                        produced_outputs = (
+                            _newly_materialized_outputs(output_paths, existing_output_digests)
+                            if force_all
+                            else [path for path in output_paths if os.path.isfile(path)]
+                        )
+                        if force_all:
+                            _record_skill_output_produced(
+                                reporting,
+                                job_id,
+                                skill_name,
+                                produced_outputs,
+                            )
+                        success_count += 1
+                        print("    Success")
+                        _report_skill_status(
+                            reporting,
+                            job_id,
+                            skill_name,
+                            TaskStatus.SUCCEEDED,
+                            ProcessPhase.FINISHED,
+                            payload={"produced_outputs": produced_outputs},
+                        )
             else:
                 fail_count += 1
                 print("    Failed")
@@ -4013,7 +4490,7 @@ def process_binary(
         if rename and not startup_post_process_failed:
             try:
                 post_process_yaml_items = _collect_post_process_yaml_mappings(
-                    binary_dir,
+                    artifact_dir,
                     sorted_skill_names,
                     skill_map,
                     platform,
@@ -4132,6 +4609,10 @@ def process_binary(
                 print(f"  MCP port {host}:{port} remained in use after shutdown")
         else:
             quit_ida_gracefully(process, host, port, expected_binary=binary_path, debug=debug)
+        if previous_artifact_output_dir is None:
+            os.environ.pop(ARTIFACT_OUTPUT_ENV, None)
+        else:
+            os.environ[ARTIFACT_OUTPUT_ENV] = previous_artifact_output_dir
 
     return success_count, fail_count, skip_count
 
@@ -4139,6 +4620,7 @@ def process_binary(
 def _print_main_configuration(args):
     print(f"Config file: {args.configyaml}")
     print(f"Binary directory: {args.bindir}")
+    print(f"Artifact directory: {getattr(args, 'artifactdir', DEFAULT_ARTIFACTS_DIR)}")
     print(f"Game version: {args.gamever}")
     print(f"Old game version: {args.oldgamever or '(disabled)'}")
     print(f"Platforms: {', '.join(args.platforms)}")
@@ -4154,6 +4636,246 @@ def _print_main_configuration(args):
         print("Skip error mode: enabled")
     if getattr(args, "skip_pp", False):
         print("Agent Skill only mode: enabled (-skip_pp)")
+    if getattr(args, "force_all", False):
+        print(f"Force-all mode: enabled (evidence: {args.execution_report})")
+
+
+def _git_worktree_root(path: Path) -> Path | None:
+    result = subprocess.run(
+        ["git", "-C", str(path), "rev-parse", "--show-toplevel"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        check=False,
+    )
+    return Path(result.stdout.strip()).resolve() if result.returncode == 0 and result.stdout.strip() else None
+
+
+def validate_force_all_artifact_root(args) -> Path:
+    """Require force-all output and evidence paths to be fresh and checkout-external."""
+    from gamesymbol_snapshot_lib.paths import is_reparse_point
+
+    artifact_root = Path(os.path.abspath(args.artifactdir))
+    game_root = artifact_root / str(args.gamever)
+    checkout_root = _git_worktree_root(Path.cwd())
+    if checkout_root is not None:
+        for label, path in (
+            ("artifact root", artifact_root),
+            ("execution report", Path(args.execution_report).resolve()),
+        ):
+            if path == checkout_root or checkout_root in path.parents:
+                raise ValueError(f"force-all {label} must be outside the source checkout: {path}")
+    current = artifact_root
+    while not current.exists() and current != current.parent:
+        current = current.parent
+    while True:
+        if current.exists() and is_reparse_point(current):
+            raise ValueError(f"force-all artifact root must not traverse a link/reparse point: {current}")
+        if current == current.parent:
+            break
+        current = current.parent
+    if game_root.exists():
+        if is_reparse_point(game_root) or not game_root.is_dir():
+            raise ValueError(f"force-all GAMEVER artifact root must be a real directory: {game_root}")
+        if any(game_root.iterdir()):
+            raise ValueError(f"force-all GAMEVER artifact root must be empty: {game_root}")
+    artifact_root.mkdir(parents=True, exist_ok=True)
+    return artifact_root
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return f"sha256:{digest.hexdigest()}"
+
+
+def _canonical_json_bytes(value) -> bytes:
+    return (json.dumps(value, ensure_ascii=False, separators=(",", ":"), sort_keys=True) + "\n").encode("utf-8")
+
+
+def _force_all_digest(value) -> str:
+    raw = b"source2-force-all-execution:v2\n" + _canonical_json_bytes(value)
+    return f"sha256:{hashlib.sha256(raw).hexdigest()}"
+
+
+def _atomic_write_bytes(path: Path, raw: bytes) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary_name = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.")
+    try:
+        with os.fdopen(descriptor, "wb") as handle:
+            handle.write(raw)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary_name, path)
+    finally:
+        try:
+            os.unlink(temporary_name)
+        except FileNotFoundError:
+            pass
+
+
+def build_force_all_execution_report(args, reporting: AnalysisReporting) -> dict:
+    """Build fail-closed producer-group evidence for one full fresh analyzer run."""
+    from bin_artifact_contract import ArtifactContractError, build_game_artifact_inventory
+    from gamesymbol_snapshot_lib.config import load_contract
+    from gamesymbol_snapshot_lib.errors import SnapshotConfigError
+    from gamesymbol_snapshot_lib.paths import path_from_key
+
+    artifact_root = Path(args.artifactdir).resolve()
+    contract = load_contract(
+        args.configyaml,
+        args.gamever,
+        args.bindir,
+        artifactdir=artifact_root,
+    )
+    jobs = {job.id: job for job in reporting.plan.jobs}
+    tasks_by_key = {}
+    for node in reporting.plan.nodes:
+        if node.node_type != PlanNodeType.SKILL:
+            continue
+        job = jobs[node.job_id]
+        tasks_by_key[(job.stage_index, job.module_name, job.platform, node.name)] = node.id
+
+    issues = []
+    node_records = {}
+
+    def relative_output_paths(raw_paths, *, label):
+        relative_paths = []
+        for raw_path in raw_paths:
+            try:
+                relative_paths.append(
+                    Path(raw_path).resolve().relative_to(contract.artifact_game_root.resolve()).as_posix()
+                )
+            except ValueError:
+                issues.append(f"producer reported {label} outside the artifact GAMEVER root: {raw_path}")
+        return sorted(set(relative_paths))
+
+    for formal_node in contract.nodes.values():
+        key = (
+            formal_node.stage_index,
+            formal_node.module_name,
+            formal_node.platform,
+            formal_node.skill_name,
+        )
+        task_id = tasks_by_key.get(key)
+        if task_id is None:
+            issues.append(f"formal producer was not scheduled: {formal_node.node_id}")
+            continue
+        record = reporting.task_record(task_id)
+        raw_produced_outputs = record["produced_outputs"] or record["payload"].get("produced_outputs", [])
+        raw_attempted_outputs = record["attempted_outputs"]
+        if not raw_attempted_outputs and record["attempted"]:
+            raw_attempted_outputs = raw_produced_outputs
+        record.update(
+            {
+                "node_id": formal_node.node_id,
+                "module": formal_node.module_name,
+                "platform": formal_node.platform,
+                "skill": formal_node.skill_name,
+                "fingerprint": formal_node.fingerprint,
+                "attempted_paths": relative_output_paths(raw_attempted_outputs, label="an attempted output"),
+                "produced_paths": relative_output_paths(raw_produced_outputs, label="an output"),
+            }
+        )
+        node_records[formal_node.node_id] = record
+
+    group_records = []
+    for group_id in sorted(contract.producer_groups):
+        group = contract.producer_groups[group_id]
+        output_path = path_from_key(contract.artifact_game_root, group.artifact_path)
+        output_exists = output_path.is_file()
+        alternatives = [node_records.get(node_id) for node_id in group.alternative_node_ids]
+        attempted_node_ids = [
+            record["node_id"]
+            for record in alternatives
+            if record is not None and group.artifact_path in record["attempted_paths"]
+        ]
+        successful = [
+            record
+            for record in alternatives
+            if record is not None
+            and record["status"] == TaskStatus.SUCCEEDED.value
+            and group.artifact_path in record["produced_paths"]
+        ]
+        winner = successful[0]["node_id"] if len(successful) == 1 else None
+        if group.required and not output_exists:
+            issues.append(f"required producer group did not materialize output: {group.artifact_path}")
+        if output_exists and len(successful) != 1:
+            issues.append(
+                f"materialized producer group must have exactly one successful winner: "
+                f"{group.artifact_path} winners={[record['node_id'] for record in successful]!r}"
+            )
+        if winner is not None:
+            winner_index = group.alternative_node_ids.index(winner)
+            expected_attempts = list(group.alternative_node_ids[: winner_index + 1])
+            later_attempts = [
+                record["node_id"]
+                for record in alternatives[winner_index + 1 :]
+                if record is not None and group.artifact_path in record["attempted_paths"]
+            ]
+            if later_attempts:
+                issues.append(
+                    f"producer alternatives executed after winner for {group.artifact_path}: {later_attempts!r}"
+                )
+        else:
+            expected_attempts = list(group.alternative_node_ids)
+        if attempted_node_ids != expected_attempts:
+            issues.append(
+                f"producer alternatives were not attempted as an ordered prefix for {group.artifact_path}: "
+                f"expected={expected_attempts!r} actual={attempted_node_ids!r}"
+            )
+        group_records.append(
+            {
+                "group_id": group_id,
+                "artifact_path": group.artifact_path,
+                "required": group.required,
+                "fingerprint": group.fingerprint,
+                "alternative_node_ids": list(group.alternative_node_ids),
+                "attempted_node_ids": attempted_node_ids,
+                "winner_node_id": winner,
+                "output_sha256": _sha256_file(output_path) if output_exists else None,
+            }
+        )
+
+    inventory = None
+    try:
+        inventory_report = build_game_artifact_inventory(
+            repo_root=Path.cwd(),
+            config_path=args.configyaml,
+            game_version=args.gamever,
+            artifact_root=artifact_root,
+            require_tracked=False,
+        )
+        inventory = {
+            "file_count": inventory_report.file_count,
+            "inventory_sha256": inventory_report.inventory_sha256,
+        }
+    except (ArtifactContractError, SnapshotConfigError, OSError, ValueError) as exc:
+        issues.append(f"fresh artifact repository contract failed: {exc}")
+
+    document = {
+        "schema_version": 2,
+        "game_version": str(args.gamever),
+        "config_path": str(Path(args.configyaml).resolve()),
+        "binary_root": str(Path(args.bindir).resolve()),
+        "artifact_root": str(artifact_root),
+        "old_artifact_root": str(Path(args.oldartifactdir).resolve()),
+        "prior_gamever": str(args.oldgamever) if getattr(args, "oldgamever", None) else None,
+        "force_all": True,
+        "rename": bool(args.rename),
+        "required_warm_idb": bool(args.require_warm_idb),
+        "run_id": reporting.run_id,
+        "summary": reporting.summary(),
+        "inventory": inventory,
+        "nodes": [node_records[node_id] for node_id in sorted(node_records)],
+        "producer_groups": group_records,
+        "issues": issues,
+        "valid": not issues,
+    }
+    document["execution_sha256"] = _force_all_digest(document)
+    return document
 
 
 def _select_execution_modules(modules, args):
@@ -4175,15 +4897,19 @@ def _select_execution_modules(modules, args):
     return selected
 
 
-def _resolve_old_binary_dir(args, module_name, module_path):
+def _resolve_old_artifact_dir(args, module_name):
     if not args.oldgamever:
         return None
-    old_binary_path = get_binary_path(args.bindir, args.oldgamever, module_name, module_path)
-    candidate_dir = os.path.dirname(old_binary_path)
+    old_artifact_root = getattr(args, "oldartifactdir", None) or getattr(
+        args,
+        "artifactdir",
+        DEFAULT_ARTIFACTS_DIR,
+    )
+    candidate_dir = os.path.join(old_artifact_root, str(args.oldgamever), module_name)
     if os.path.isdir(candidate_dir):
         return candidate_dir
     if args.debug:
-        print(f"  Old version directory not found: {candidate_dir}")
+        print(f"  Old artifact directory not found: {candidate_dir}")
     return None
 
 
@@ -4192,7 +4918,8 @@ def _invoke_process_binary(
     module,
     platform,
     binary_path,
-    old_binary_dir,
+    artifact_dir,
+    old_artifact_dir,
     vcall_targets,
     reporting,
     job_id,
@@ -4208,7 +4935,8 @@ def _invoke_process_binary(
         platform,
         args.debug,
         max_retries=args.maxretry,
-        old_binary_dir=old_binary_dir,
+        artifact_dir=artifact_dir,
+        old_artifact_dir=old_artifact_dir,
         gamever=args.gamever,
         module_name=module["name"],
         vcall_targets=vcall_targets,
@@ -4229,6 +4957,7 @@ def _invoke_process_binary(
         symbol_aliases=args.symbol_aliases,
         found_vcall_objects=found_vcall_objects,
         require_warm_idb=getattr(args, "require_warm_idb", False),
+        force_all=getattr(args, "force_all", False),
     )
 
 
@@ -4263,13 +4992,16 @@ def _process_platform(args, module, platform, vcall_targets, reporting, found_vc
         return 0, 0, work_count
 
     reporting.emit_task_status(job_id, TaskStatus.RUNNING, ProcessPhase.WAITING_FOR_MCP)
-    old_binary_dir = _resolve_old_binary_dir(args, module["name"], module_path)
+    artifact_root = getattr(args, "artifactdir", DEFAULT_ARTIFACTS_DIR)
+    artifact_dir = os.path.join(artifact_root, str(args.gamever), module["name"])
+    old_artifact_dir = _resolve_old_artifact_dir(args, module["name"])
     counts = _invoke_process_binary(
         args,
         module,
         platform,
         binary_path,
-        old_binary_dir,
+        artifact_dir,
+        old_artifact_dir,
         vcall_targets,
         reporting,
         job_id,
@@ -4377,6 +5109,12 @@ def main():
     except AnalysisConfigError as exc:
         print(f"Error: {exc}")
         sys.exit(1)
+    if getattr(args, "force_all", False):
+        try:
+            validate_force_all_artifact_root(args)
+        except (OSError, ValueError) as exc:
+            print(f"Error: {exc}")
+            sys.exit(1)
     config_document = _load_config_document(args.configyaml)
     args.artifact_category_map = _artifact_symbol_category_map_from_document(config_document)
     args.symbol_aliases = _symbol_alias_map_from_document(config_document)
@@ -4401,6 +5139,7 @@ def main():
             platforms=args.platforms,
             bin_dir=args.bindir,
             gamever=args.gamever,
+            artifact_dir=getattr(args, "artifactdir", DEFAULT_ARTIFACTS_DIR),
             vcall_finder_selector=args.vcall_finder_filter,
             include_post_process=args.rename,
         )
@@ -4421,6 +5160,14 @@ def main():
         totals, aborted = _execute_analysis(args, modules, reporting)
         abort_message = "Run aborted after an upstream failure" if aborted else "Task was not executed before run end"
         reporting.abort_pending(ProcessReason.UPSTREAM_ABORTED, abort_message)
+        if getattr(args, "force_all", False):
+            execution_report = build_force_all_execution_report(args, reporting)
+            _atomic_write_bytes(Path(args.execution_report), _canonical_json_bytes(execution_report))
+            if not execution_report["valid"]:
+                totals[1] += 1
+                print("  Force-all execution contract failed:")
+                for issue in execution_report["issues"]:
+                    print(f"    {issue}")
         final_status = RunStatus.FAILED if totals[1] else RunStatus.SUCCEEDED
         reporting.emit_run_status(final_status)
         reporter.finalize_run(run_id, final_status, reporting.summary())

@@ -234,6 +234,15 @@ def discover_generator_modules(modules_dir: str | Path) -> list[GeneratorModule]
     return modules
 
 
+def require_source_owned_generator_inputs(modules: list[GeneratorModule]) -> None:
+    """Reject mutable network inputs from reproducible candidate paths."""
+    mutable = [f"{module.directory}/{target} ({url})" for module in modules for url, target in module.download_sources]
+    if mutable:
+        raise GamedataContractError(
+            "release gamedata requires source-owned static inputs; mutable downloads declared by: " + ", ".join(mutable)
+        )
+
+
 def generator_contract_sha256(modules: list[GeneratorModule]) -> str:
     records = [module.record() for module in modules]
     return sha256_bytes(canonical_json_bytes({"schema_version": 1, "modules": records}))

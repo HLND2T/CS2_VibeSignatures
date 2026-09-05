@@ -8,7 +8,6 @@ import hashlib
 import json
 import os
 import re
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -30,13 +29,8 @@ from gamesymbol_snapshot_lib.model import ChangedPath
 from gamesymbol_snapshot_lib.paths import is_reparse_point, validate_snapshot_key
 from gamesymbol_snapshot_lib.pr_validation import build_invalidation_plan, required_source_index_sides
 from gamever_baseline import gamever_order_key, select_prior_gamever
-from source_artifact_schema import SymbolArtifactError, canonical_symbol_yaml_bytes
-from trusted_pr_context import (
-    CUTOVER_MANIFEST_REPO_PATH,
-    TRUSTED_FILE_PATHS,
-    load_trusted_pr_context,
-    validate_trusted_pr_context,
-)
+from ida_analyze_util import SymbolArtifactError, canonical_symbol_yaml_bytes
+from trusted_pr_context import TRUSTED_FILE_PATHS, load_trusted_pr_context, validate_trusted_pr_context
 
 
 PLAN_SCHEMA_VERSION = 3
@@ -69,26 +63,8 @@ SHARED_ANALYSIS_PATHS = frozenset(
     }
 )
 SHARED_ANALYSIS_PREFIXES = ("gamesymbol_snapshot_lib/",)
-TRUST_ROOT_PATHS = frozenset(TRUSTED_FILE_PATHS) | frozenset(
-    {
-        "source_artifact_policy.yaml",
-        "trusted_pr_context.py",
-        "trusted_artifact_pr.py",
-        "new_gamever_artifact.py",
-        "gamever_baseline.py",
-        "trusted_yaml.py",
-        "binary_lock.py",
-        "binary_hashing.py",
-        "release_workflow_lib/errors.py",
-        "release_workflow_lib/hashing.py",
-        ".github/workflows/pr-self-runner.yml",
-        ".github/workflows/source-artifact-required.yml",
-        ".github/workflows/bootstrap-new-gamever-artifacts.yml",
-        "pyproject.toml",
-        "uv.lock",
-    }
-)
-CUTOVER_DIGEST_EXCLUDED_PATHS = (CUTOVER_MANIFEST_REPO_PATH, "source_artifact_policy.yaml")
+TRUST_ROOT_PATHS = frozenset(TRUSTED_FILE_PATHS)
+TRUST_ROOT_PREFIXES = (".github/workflows/",)
 
 
 class TrustedArtifactPrError(RuntimeError):
@@ -102,6 +78,11 @@ def _is_shared_analysis_runtime_path(path: str) -> bool:
         or ("/" not in path and path.endswith(".py"))
         or (path.startswith(SHARED_ANALYSIS_PREFIXES) and path.endswith(".py"))
     )
+
+
+def _is_trust_root_path(path: str | None) -> bool:
+    """Return whether a path can alter privileged validation or publication behavior."""
+    return bool(path) and (path in TRUST_ROOT_PATHS or path.startswith(TRUST_ROOT_PREFIXES))
 
 
 @dataclass(frozen=True)
@@ -276,40 +257,6 @@ def _configured_versions(repo: GitTreeRepository, revision: str) -> tuple[str, .
             raise TrustedArtifactPrError(f"configured GAMEVER casefold collision: {previous!r} and {gamever!r}")
         versions.append(gamever)
     return tuple(sorted(versions))
-
-
-def _repository_tree_digest(repo: GitTreeRepository, revision: str) -> str:
-    excluded = set(CUTOVER_DIGEST_EXCLUDED_PATHS)
-    inventory = [
-        {
-            "mode": entry.mode,
-            "object_type": entry.object_type,
-            "object_sha": entry.object_sha,
-            "path": entry.path,
-        }
-        for entry in repo.entries(revision)
-        if entry.path not in excluded
-    ]
-    return _digest("approved-source-owned-cutover-tree", inventory)
-
-
-def _approved_cutover_tree_digest(repo: GitTreeRepository, base_revision: str) -> str:
-    try:
-        raw = repo.read(base_revision, CUTOVER_MANIFEST_REPO_PATH)
-        document = json.loads(raw.decode("utf-8"))
-    except (UnicodeError, json.JSONDecodeError, TrustedArtifactPrError) as exc:
-        raise TrustedArtifactPrError(f"trusted source-owned cutover manifest is invalid: {exc}") from exc
-    if raw != _canonical_json_bytes(document):
-        raise TrustedArtifactPrError("trusted source-owned cutover manifest is not canonical JSON")
-    if (
-        not isinstance(document, dict)
-        or set(document) != {"schema_version", "excluded_paths", "prospective_tree_sha256"}
-        or document.get("schema_version") != 1
-        or document.get("excluded_paths") != list(CUTOVER_DIGEST_EXCLUDED_PATHS)
-        or not re.fullmatch(r"sha256:[0-9a-f]{64}", str(document.get("prospective_tree_sha256", "")))
-    ):
-        raise TrustedArtifactPrError("trusted source-owned cutover manifest fields are invalid")
-    return document["prospective_tree_sha256"]
 
 
 def _validate_repository_tree_namespaces(
@@ -585,13 +532,8 @@ def build_trusted_artifact_plan(*, repo_root: str | Path, trusted_context: dict 
         if isinstance(trusted_context, (str, Path))
         else validate_trusted_pr_context(trusted_context)
     )
-    cutover_transition = context.get("cutover_transition") is True
-    if context["artifact_policy"]["mode"] != "source-owned" and not cutover_transition:
+    if context["artifact_policy"]["mode"] != "source-owned":
         raise TrustedArtifactPrError("trusted source-artifact planner is not enabled by the base policy")
-    if cutover_transition and (
-        context["artifact_policy"]["mode"] != "bridge" or context["merge_artifact_policy"]["mode"] != "source-owned"
-    ):
-        raise TrustedArtifactPrError("trusted source-artifact cutover transition is invalid")
     repo = GitTreeRepository(repo_root)
     for commit_field, tree_field in (
         ("base_sha", "base_tree_sha"),
@@ -604,24 +546,14 @@ def build_trusted_artifact_plan(*, repo_root: str | Path, trusted_context: dict 
 
     base_versions = _configured_versions(repo, context["base_sha"])
     merge_versions = _configured_versions(repo, context["merge_sha"])
-    cutover_tree_sha256 = None
-    if cutover_transition:
-        approved_cutover_tree_sha256 = _approved_cutover_tree_digest(repo, context["base_sha"])
-        cutover_tree_sha256 = _repository_tree_digest(repo, context["merge_sha"])
-        if cutover_tree_sha256 != approved_cutover_tree_sha256:
-            raise TrustedArtifactPrError(
-                "prospective source-owned cutover tree is not the exact base-approved repository inventory"
-            )
-    if cutover_transition and base_versions != merge_versions:
-        raise TrustedArtifactPrError("source-owned cutover must preserve the configured GAMEVER set")
-    if not cutover_transition:
-        _validate_repository_tree_namespaces(repo, context["base_sha"], base_versions)
+    maintained_versions = {max(merge_versions, key=gamever_order_key)} if merge_versions else set()
+    _validate_repository_tree_namespaces(repo, context["base_sha"], base_versions)
     _validate_repository_tree_namespaces(repo, context["merge_sha"], merge_versions)
     changes = repo.changes(context["base_sha"], context["merge_sha"])
     changed_trust_roots = sorted(
-        {path for change in changes for path in (change.old_path, change.new_path) if path in TRUST_ROOT_PATHS}
+        {path for change in changes for path in (change.old_path, change.new_path) if _is_trust_root_path(path)}
     )
-    if changed_trust_roots and not cutover_transition:
+    if changed_trust_roots:
         raise TrustedArtifactPrError(
             "trusted validation roots require an independently merged bridge update:\n"
             + "\n".join(f"  {path}" for path in changed_trust_roots)
@@ -646,7 +578,7 @@ def build_trusted_artifact_plan(*, repo_root: str | Path, trusted_context: dict 
             base_files = {}
             base_inventory = None
             base_binary_lock = None
-            if gamever in base_versions and not cutover_transition:
+            if gamever in base_versions:
                 base_contract, base_config, _base_document = _load_revision_contract(
                     repo, context["base_sha"], gamever, temporary_root
                 )
@@ -685,16 +617,8 @@ def build_trusted_artifact_plan(*, repo_root: str | Path, trusted_context: dict 
             selected_group_ids: set[str] = set()
             selected_node_ids: set[str] = set()
             invalidated_paths: set[str] = set()
-            if cutover_transition and merge_contract is not None:
-                selected_group_ids = set(merge_contract.producer_groups)
-                selected_node_ids = {
-                    node_id
-                    for group in merge_contract.producer_groups.values()
-                    for node_id in group.alternative_node_ids
-                }
-                invalidated_paths.update(merge_contract.formal_paths)
-                reasons.append("atomic legacy-to-source-owned cutover")
-            elif merge_contract is not None and base_contract is not None:
+            maintained = gamever in maintained_versions
+            if merge_contract is not None and base_contract is not None and maintained:
                 invalidation = build_invalidation_plan(
                     base_contract,
                     merge_contract,
@@ -711,7 +635,7 @@ def build_trusted_artifact_plan(*, repo_root: str | Path, trusted_context: dict 
                 )
                 invalidated_paths.update(path for path in invalidation.paths if path not in merge_contract.formal_paths)
                 reasons.extend(invalidation.reasons)
-            elif merge_contract is not None:
+            elif merge_contract is not None and maintained:
                 selected_group_ids = set(merge_contract.producer_groups)
                 selected_node_ids = {
                     node_id
@@ -720,11 +644,11 @@ def build_trusted_artifact_plan(*, repo_root: str | Path, trusted_context: dict 
                 }
                 invalidated_paths.update(merge_contract.formal_paths)
                 reasons.append("new configured GAMEVER")
-            elif base_contract is not None:
+            elif base_contract is not None and maintained:
                 invalidated_paths.update(base_contract.formal_paths)
                 reasons.append("configured GAMEVER removed")
 
-            if shared_analysis_changed and merge_contract is not None and not cutover_transition:
+            if shared_analysis_changed and merge_contract is not None and maintained:
                 selected_group_ids = set(merge_contract.producer_groups)
                 selected_node_ids = {
                     node_id
@@ -737,7 +661,7 @@ def build_trusted_artifact_plan(*, repo_root: str | Path, trusted_context: dict 
             binary_identity_changed = base_downloads.get(gamever) != merge_downloads.get(gamever) or (
                 base_binary_lock.sha256 if base_binary_lock else None
             ) != (merge_binary_lock.sha256 if merge_binary_lock else None)
-            if merge_contract is not None and binary_identity_changed and not cutover_transition:
+            if merge_contract is not None and binary_identity_changed and maintained:
                 selected_group_ids = set(merge_contract.producer_groups)
                 selected_node_ids = {
                     node_id
@@ -754,7 +678,7 @@ def build_trusted_artifact_plan(*, repo_root: str | Path, trusted_context: dict 
                     path and path.startswith(f"bin_artifacts/{gamever}/") for path in (change.old_path, change.new_path)
                 )
             ]
-            if artifact_changes and not invalidated_paths:
+            if artifact_changes and maintained and not invalidated_paths:
                 raise TrustedArtifactPrError(f"artifact-only changes produced an empty plan for GAMEVER {gamever}")
 
             groups = []
@@ -833,20 +757,14 @@ def build_trusted_artifact_plan(*, repo_root: str | Path, trusted_context: dict 
         if report["invalidated_paths"] or report["bootstrap_required"]
     ]
     mode = (
-        "full"
-        if cutover_transition
-        else (
-            "bootstrap_required"
-            if any(report["bootstrap_required"] for report in version_reports)
-            else ("full" if affected_versions else "light")
-        )
+        "bootstrap_required"
+        if any(report["bootstrap_required"] for report in version_reports)
+        else ("full" if affected_versions else "light")
     )
     download_raw = repo.read(context["merge_sha"], "download.yaml")
     document = {
         "schema_version": PLAN_SCHEMA_VERSION,
         "event_kind": context["event_kind"],
-        "cutover_transition": cutover_transition,
-        "cutover_tree_sha256": cutover_tree_sha256,
         "mode": mode,
         "base_sha": context["base_sha"],
         "head_sha": context["head_sha"],
@@ -904,14 +822,6 @@ def validate_trusted_artifact_plan(document: object) -> dict:
             raise TrustedArtifactPrError(f"trusted artifact plan has an invalid {field}")
     if document.get("mode") not in {"light", "full", "bootstrap_required"}:
         raise TrustedArtifactPrError("trusted artifact plan mode is invalid")
-    cutover_transition = document.get("cutover_transition")
-    cutover_tree_sha256 = document.get("cutover_tree_sha256")
-    if not isinstance(cutover_transition, bool) or (
-        cutover_transition and not re.fullmatch(r"sha256:[0-9a-f]{64}", str(cutover_tree_sha256 or ""))
-    ):
-        raise TrustedArtifactPrError("trusted artifact plan cutover identity is invalid")
-    if not cutover_transition and cutover_tree_sha256 is not None:
-        raise TrustedArtifactPrError("non-cutover trusted artifact plan carries a cutover tree identity")
     versions = document.get("game_versions")
     if not isinstance(versions, list) or any(
         not isinstance(version, dict) or not isinstance(version.get("game_version"), str) for version in versions
@@ -1210,56 +1120,6 @@ def validate_isolated_rebuild(
     return result
 
 
-def validate_exported_isolated_rebuild(
-    *,
-    repo_root: str | Path,
-    plan: dict | str | Path,
-    staging_root: str | Path,
-    game_version: str,
-    actual_artifact_root: str | Path,
-    execution_report: str | Path,
-) -> dict:
-    """Re-home untrusted builder evidence and verify it with fresh base-owned tools."""
-    plan = load_trusted_artifact_plan(plan) if isinstance(plan, (str, Path)) else validate_trusted_artifact_plan(plan)
-    preparation = prepare_isolated_rebuild(
-        repo_root=repo_root,
-        plan=plan,
-        staging_root=staging_root,
-        game_version=game_version,
-    )
-    exported_root = Path(actual_artifact_root).resolve()
-    if not exported_root.is_dir():
-        raise TrustedArtifactPrError(f"exported actual artifact root is missing: {exported_root}")
-    shutil.copytree(exported_root, preparation["actual_artifact_root"], dirs_exist_ok=True)
-
-    exported_report = Path(execution_report)
-    try:
-        raw = exported_report.read_bytes()
-        document = json.loads(raw.decode("utf-8"))
-    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
-        raise TrustedArtifactPrError(f"unable to load exported execution report: {exc}") from exc
-    if raw != _canonical_json_bytes(document):
-        raise TrustedArtifactPrError("exported execution report is not canonical JSON")
-    digest = document.get("execution_sha256")
-    unsigned = dict(document)
-    unsigned.pop("execution_sha256", None)
-    digest_payload = b"source2-force-all-execution:v2\n" + _canonical_json_bytes(unsigned)
-    if digest != f"sha256:{hashlib.sha256(digest_payload).hexdigest()}":
-        raise TrustedArtifactPrError("exported execution report digest mismatch")
-
-    document["artifact_root"] = preparation["actual_artifact_root"]
-    document["binary_root"] = preparation["binary_root"]
-    document["config_path"] = str(Path(preparation["config_root"]) / f"{game_version}.yaml")
-    unsigned = dict(document)
-    unsigned.pop("execution_sha256", None)
-    document["execution_sha256"] = (
-        "sha256:" + hashlib.sha256(b"source2-force-all-execution:v2\n" + _canonical_json_bytes(unsigned)).hexdigest()
-    )
-    normalized_report = Path(preparation["execution_reports"][str(game_version)])
-    _atomic_write(normalized_report, _canonical_json_bytes(document))
-    return validate_isolated_rebuild(repo_root=repo_root, plan=plan, preparation=preparation)
-
-
 def parse_args(argv=None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -1277,14 +1137,6 @@ def parse_args(argv=None) -> argparse.Namespace:
     verify.add_argument("--plan", required=True)
     verify.add_argument("--preparation", required=True)
     verify.add_argument("--output")
-    exported = subparsers.add_parser("verify-exported")
-    exported.add_argument("--repo-root", default=".")
-    exported.add_argument("--plan", required=True)
-    exported.add_argument("--staging-root", required=True)
-    exported.add_argument("--gamever", required=True)
-    exported.add_argument("--actual-root", required=True)
-    exported.add_argument("--execution-report", required=True)
-    exported.add_argument("--output")
     return parser.parse_args(argv)
 
 
@@ -1301,22 +1153,11 @@ def main(argv=None) -> int:
                 staging_root=args.staging_root,
                 game_version=args.gamever,
             )
-        elif args.command == "verify":
+        else:
             result = validate_isolated_rebuild(
                 repo_root=args.repo_root,
                 plan=args.plan,
                 preparation=args.preparation,
-            )
-            if args.output:
-                _atomic_write(Path(args.output), _canonical_json_bytes(result))
-        else:
-            result = validate_exported_isolated_rebuild(
-                repo_root=args.repo_root,
-                plan=args.plan,
-                staging_root=args.staging_root,
-                game_version=args.gamever,
-                actual_artifact_root=args.actual_root,
-                execution_report=args.execution_report,
             )
             if args.output:
                 _atomic_write(Path(args.output), _canonical_json_bytes(result))

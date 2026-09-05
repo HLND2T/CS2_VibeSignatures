@@ -8,19 +8,29 @@ import json
 import argparse
 import subprocess
 import os
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
 import yaml
 
+from binary_lock import BinaryLockError, load_binary_lock
 from gamesymbol_snapshot_lib.config import load_contract
 from gamesymbol_snapshot_lib.errors import SnapshotConfigError
 from gamesymbol_snapshot_lib.paths import ensure_real_tree, is_reparse_point, path_from_key
-from source_artifact_schema import SymbolArtifactError, canonical_symbol_yaml_bytes, infer_symbol_artifact_category
+from ida_analyze_util import (
+    SymbolArtifactError,
+    canonical_symbol_yaml_bytes,
+    infer_symbol_artifact_category,
+)
 
 
 class ArtifactContractError(ValueError):
     """A source-owned artifact tree violates its repository contract."""
+
+
+_GIT_OBJECT_RE = re.compile(r"^[0-9a-fA-F]{40}(?:[0-9a-fA-F]{24})?$")
+_BINARY_LOCK_METADATA_PATHS = frozenset({"binary_locks/README.md"})
 
 
 @dataclass(frozen=True)
@@ -136,6 +146,99 @@ def _git_tracked_paths(repo_root: Path, prefix: str) -> set[str]:
     return {line.replace("\\", "/") for line in result.stdout.splitlines() if line}
 
 
+def _git_bytes(repo_root: Path, *arguments: str, input_bytes: bytes | None = None) -> bytes:
+    result = subprocess.run(
+        ["git", "-C", str(repo_root), *arguments],
+        input=input_bytes,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    if result.returncode != 0:
+        message = result.stderr.decode("utf-8", errors="replace").strip()
+        raise ArtifactContractError(message or f"git {' '.join(arguments)} failed")
+    return result.stdout
+
+
+def _git_blob_entries(repo_root: Path, prefix: str, revision: str | None) -> dict[str, bytes]:
+    if revision is None:
+        listing = _git_bytes(repo_root, "ls-files", "-s", "-z", "--", prefix)
+        source = "index"
+    else:
+        if not _GIT_OBJECT_RE.fullmatch(revision):
+            raise ArtifactContractError("Git artifact revision must be an immutable object ID")
+        listing = _git_bytes(repo_root, "ls-tree", "-r", "-z", revision, "--", prefix)
+        source = "revision"
+
+    records: list[tuple[str, str]] = []
+    for raw_record in listing.split(b"\0"):
+        if not raw_record:
+            continue
+        metadata, separator, raw_path = raw_record.partition(b"\t")
+        if not separator:
+            raise ArtifactContractError(f"invalid Git {source} artifact entry")
+        try:
+            fields = metadata.decode("ascii").split()
+            path = raw_path.decode("utf-8")
+        except UnicodeDecodeError as exc:
+            raise ArtifactContractError(f"invalid Git {source} artifact entry encoding") from exc
+        if revision is None:
+            if len(fields) != 3 or fields[2] != "0":
+                raise ArtifactContractError(f"Git index artifact must have one stage-0 entry: {path}")
+            mode, object_id = fields[:2]
+        else:
+            if len(fields) != 3 or fields[1] != "blob":
+                raise ArtifactContractError(f"Git revision artifact must be a blob: {path}")
+            mode, _object_type, object_id = fields
+        if mode != "100644":
+            raise ArtifactContractError(f"Git {source} artifact mode must be 100644: {path} ({mode})")
+        if not _GIT_OBJECT_RE.fullmatch(object_id):
+            raise ArtifactContractError(f"Git {source} artifact has an invalid object ID: {path}")
+        records.append((path.replace("\\", "/"), object_id.lower()))
+
+    object_requests = b"".join(f"{object_id}\n".encode("ascii") for _path, object_id in records)
+    batch = _git_bytes(repo_root, "cat-file", "--batch", input_bytes=object_requests) if records else b""
+    cursor = 0
+    blobs: dict[str, bytes] = {}
+    for path, expected_object_id in records:
+        header_end = batch.find(b"\n", cursor)
+        if header_end < 0:
+            raise ArtifactContractError(f"Git {source} blob response is truncated: {path}")
+        try:
+            header = batch[cursor:header_end].decode("ascii").split()
+        except UnicodeDecodeError as exc:
+            raise ArtifactContractError(f"Git {source} blob response is invalid: {path}") from exc
+        if len(header) != 3 or header[0].lower() != expected_object_id or header[1] != "blob":
+            raise ArtifactContractError(f"Git {source} blob response does not match: {path}")
+        try:
+            size = int(header[2])
+        except ValueError as exc:
+            raise ArtifactContractError(f"Git {source} blob size is invalid: {path}") from exc
+        start = header_end + 1
+        end = start + size
+        if end >= len(batch) or batch[end : end + 1] != b"\n":
+            raise ArtifactContractError(f"Git {source} blob response is truncated: {path}")
+        if path in blobs:
+            raise ArtifactContractError(f"duplicate Git {source} artifact entry: {path}")
+        blobs[path] = batch[start:end]
+        cursor = end + 1
+    if cursor != len(batch):
+        raise ArtifactContractError(f"Git {source} blob response contains trailing data")
+    return blobs
+
+
+def load_game_artifact_git_blobs(*, repo_root: str | Path, game_version: str, git_revision: str) -> dict[str, bytes]:
+    """Load one GAMEVER's exact artifact blobs from an immutable Git revision."""
+    root = Path(os.path.abspath(repo_root))
+    return _git_blob_entries(root, f"bin_artifacts/{game_version}/", git_revision)
+
+
+def _reject_reparse_components(path: Path) -> None:
+    for component in (path, *path.parents):
+        if is_reparse_point(component):
+            raise ArtifactContractError(f"artifact root or ancestor must not be a link/reparse point: {component}")
+
+
 def _reject_legacy_tracked_outputs(repo_root: Path) -> None:
     tracked = _git_tracked_paths(repo_root, "")
     legacy = sorted(
@@ -176,15 +279,21 @@ def build_game_artifact_inventory(
     game_version: str,
     artifact_root: str | Path = "bin_artifacts",
     require_tracked: bool = False,
+    git_revision: str | None = None,
 ) -> ArtifactContractReport:
-    repo_root = Path(repo_root).resolve()
+    repo_root = Path(os.path.abspath(repo_root))
     config_path = Path(config_path)
     if not config_path.is_absolute():
         config_path = repo_root / config_path
     artifact_root = Path(artifact_root)
     if not artifact_root.is_absolute():
         artifact_root = repo_root / artifact_root
-    artifact_root = artifact_root.resolve()
+    artifact_root = Path(os.path.abspath(artifact_root))
+    _reject_reparse_components(artifact_root)
+    if git_revision is not None and not require_tracked:
+        raise ArtifactContractError("Git revision comparison requires tracked artifact validation")
+    if require_tracked and artifact_root != Path(os.path.abspath(repo_root / "bin_artifacts")):
+        raise ArtifactContractError("tracked artifact validation requires the repository bin_artifacts root")
     game_root = artifact_root / str(game_version)
     try:
         ensure_real_tree(artifact_root, game_root)
@@ -216,34 +325,42 @@ def build_game_artifact_inventory(
     if missing:
         raise ArtifactContractError("missing required artifacts:\n" + "\n".join(f"  {path}" for path in missing))
 
+    expected_blobs: dict[str, bytes] | None = None
+    if require_tracked:
+        prefix = f"bin_artifacts/{game_version}/"
+        expected_blobs = _git_blob_entries(repo_root, prefix, git_revision)
+        actual_tracked = {f"bin_artifacts/{game_version}/{key}" for key in actual_paths}
+        if set(expected_blobs) != actual_tracked:
+            raise ArtifactContractError(
+                "tracked artifact inventory mismatch: "
+                f"tracked={sorted(expected_blobs)!r} actual={sorted(actual_tracked)!r}"
+            )
+
     categories = _category_map(config_path)
     items: list[ArtifactInventoryItem] = []
     for key in sorted(actual_paths):
         target = path_from_key(game_root, key)
+        repository_path = f"bin_artifacts/{game_version}/{key}"
         try:
             raw = target.read_bytes()
+            if expected_blobs is not None and raw != expected_blobs[repository_path]:
+                source = "revision" if git_revision is not None else "index"
+                raise ArtifactContractError(f"artifact differs from Git {source} blob: {repository_path}")
             payload = yaml.safe_load(raw)
             canonical = canonical_symbol_yaml_bytes(payload, category=_category_for(key, payload, categories))
+        except ArtifactContractError:
+            raise
         except (OSError, UnicodeError, yaml.YAMLError, SymbolArtifactError) as exc:
             raise ArtifactContractError(f"invalid canonical artifact {key}: {exc}") from exc
         if raw != canonical:
             raise ArtifactContractError(f"artifact is not canonical: {key}")
         items.append(
             ArtifactInventoryItem(
-                f"bin_artifacts/{game_version}/{key}",
+                repository_path,
                 len(raw),
                 f"sha256:{hashlib.sha256(raw).hexdigest()}",
             )
         )
-
-    if require_tracked:
-        prefix = f"bin_artifacts/{game_version}/"
-        tracked = _git_tracked_paths(repo_root, prefix)
-        actual_tracked = {item.path for item in items}
-        if tracked != actual_tracked:
-            raise ArtifactContractError(
-                f"tracked artifact inventory mismatch: tracked={sorted(tracked)!r} actual={sorted(actual_tracked)!r}"
-            )
 
     return ArtifactContractReport(
         str(game_version),
@@ -282,6 +399,61 @@ def validate_repository_artifact_contract(
         raise ArtifactContractError(
             "tracked artifacts for unconfigured GAMEVER:\n" + "\n".join(f"  {path}" for path in unconfigured)
         )
+    expected_lock_paths = {f"binary_locks/{game_version}.json" for game_version in configured_versions}
+    if require_tracked:
+        lock_blobs = _git_blob_entries(repo_root, "binary_locks/", None)
+    else:
+        lock_root = repo_root / "binary_locks"
+        lock_blobs = {}
+        if lock_root.exists():
+            _reject_reparse_components(lock_root)
+            for path in lock_root.rglob("*"):
+                if is_reparse_point(path):
+                    raise ArtifactContractError(f"binary lock must not be a link/reparse point: {path}")
+                if path.is_file():
+                    lock_blobs[path.relative_to(repo_root).as_posix()] = path.read_bytes()
+    actual_lock_paths = set(lock_blobs) - _BINARY_LOCK_METADATA_PATHS
+    missing_locks = sorted(expected_lock_paths - actual_lock_paths)
+    if missing_locks:
+        raise ArtifactContractError("missing binary lock:\n" + "\n".join(f"  {path}" for path in missing_locks))
+    unexpected_locks = sorted(actual_lock_paths - expected_lock_paths)
+    if unexpected_locks:
+        raise ArtifactContractError(
+            "binary locks for unconfigured GAMEVER or invalid paths:\n"
+            + "\n".join(f"  {path}" for path in unexpected_locks)
+        )
+
+    download_payload = (repo_root / "download.yaml").read_bytes()
+    lock_reports = []
+    for game_version in game_versions:
+        config_path = repo_root / "configs" / f"{game_version}.yaml"
+        try:
+            contract = load_contract(
+                config_path,
+                str(game_version),
+                repo_root / "bin",
+                artifactdir=repo_root / artifact_root,
+            )
+            lock = load_binary_lock(
+                repo_root / "binary_locks" / f"{game_version}.json",
+                game_version=str(game_version),
+                download_payload=download_payload,
+                binary_targets=contract.binary_targets,
+            )
+        except (BinaryLockError, SnapshotConfigError, OSError) as exc:
+            raise ArtifactContractError(f"binary lock contract failed for {game_version}: {exc}") from exc
+        lock_path = f"binary_locks/{game_version}.json"
+        if lock.raw_bytes != lock_blobs[lock_path]:
+            source = "Git index" if require_tracked else "repository inventory"
+            raise ArtifactContractError(f"binary lock differs from {source}: {lock_path}")
+        lock_reports.append(
+            {
+                "game_version": str(game_version),
+                "path": lock_path,
+                "size": len(lock.raw_bytes),
+                "sha256": lock.sha256,
+            }
+        )
     reports = []
     for game_version in game_versions:
         config_path = repo_root / "configs" / f"{game_version}.yaml"
@@ -296,11 +468,13 @@ def validate_repository_artifact_contract(
         )
     files = [item for report in reports for item in report["files"]]
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "artifact_root": Path(artifact_root).as_posix(),
         "game_version_count": len(reports),
         "file_count": len(files),
         "inventory_sha256": _digest(files),
+        "binary_lock_inventory_sha256": _digest(lock_reports),
+        "binary_locks": lock_reports,
         "game_versions": reports,
     }
 

@@ -19,7 +19,7 @@ Review one PR against its base branch. Treat review and repair as separate phase
 
 This audit applies ONLY to PRs that change or add IDA preprocessor scripts under `ida_preprocessor_scripts/`. Before
 reviewing, inspect the PR's changed files (e.g. `gh pr view <PR> --json files`). If the PR does not touch
-`ida_preprocessor_scripts/` — for example it only changes C++ code, configs, or generated snapshots — refuse with a
+`ida_preprocessor_scripts/` — for example it only changes C++ code, configs, or source-owned artifacts — refuse with a
 short explanation and do not proceed with any review steps. Do not fall back to a general review.
 
 ## Safety Boundary
@@ -59,7 +59,8 @@ git log --format=fuller <BASE_OID>..<HEAD_OID>
 gh pr checks <PR>
 ```
 
-Read every changed source/config/test file relevant to behavior. Treat generated `gamesymbols/` and `gamedata/` diffs as outputs to cross-check, not as proof that the analysis model is correct.
+Read every changed source/config/test file relevant to behavior. Treat `bin_artifacts/` as tracked source-owned output
+that must match the producer/config closure exactly; reject tracked `gamesymbols/`, `gamedata/`, and release manifests.
 
 For changes under `ida_preprocessor_scripts/` or `configs/`, also search the base tree and history for:
 
@@ -73,9 +74,13 @@ Use `git show <BASE_OID>:<path>` or a temporary worktree for base-tree content. 
 
 ## Step 3: Apply Repository-Specific Review Gates
 
-Read [preprocessor-review-patterns.md](preprocessor-review-patterns.md) whenever the PR changes preprocessor scripts, analysis configs, reference YAML, or generated symbol snapshots. Apply every applicable gate in that reference, not only the examples shown here.
+Read [preprocessor-review-patterns.md](preprocessor-review-patterns.md) whenever the PR changes preprocessor scripts,
+analysis configs, reference YAML, or source-owned symbol artifacts. Apply every applicable gate in that reference.
 
-Apply gate 5 (Reject Stale-Gamever Config Changes) whenever the PR touches `configs/<GAMEVER>.yaml`, `gamesymbols/<GAMEVER>.yaml`, `gamedata/<GAMEVER>/`, or `release-manifests/<GAMEVER>.json`. The latest gamever is the last `tag:` entry in `download.yaml` (matching `init_gamebin.py`'s `LATEST_GAMEVER=versions[-1]`). A PR may modify analysis configs or generated outputs only for the latest gamever; a change to any older gamever is a defect unless the PR explicitly documents a justified historical backport. Flag the stale-gamever paths even when the same change also appears in the latest config.
+Apply gate 5 whenever the PR touches `configs/<GAMEVER>.yaml` or `bin_artifacts/<GAMEVER>/`. The latest gamever is the
+last `tag:` entry in `download.yaml`. A historical version change requires an explicitly justified backport and its
+matching source-owned closure. Any tracked `gamesymbols/`, `gamedata/`, or `release-manifests/` path is a separate
+source-truth contract violation regardless of GAMEVER.
 
 Additionally check general correctness:
 
@@ -85,7 +90,7 @@ Additionally check general correctness:
 - requested YAML fields are necessary and generatable for the target;
 - deterministic logic is preferred over an added LLM call when repository primitives already express the relationship;
 - tests cover new reusable behavior or high-risk branches;
-- generated snapshots correspond to config/script changes and do not conceal stale or hand-edited output;
+- source-owned artifact A/M/D/R equals the affected/downstream producer closure and is not hand-edited;
 - config and analysis-output changes target only the latest gamever (last `tag:` in `download.yaml`), not a stale historical gamever.
 
 Run focused read-only tests or linters when practical. Do not run publication workflows or commands that rewrite tracked files during review.
@@ -124,10 +129,10 @@ Require:
 
 Check out the existing PR head branch without creating a replacement PR. Implement only approved findings. For preprocessor changes, keep config producers/consumers, scripts, tests, reference YAML, and desired output fields coherent.
 
-Run focused tests first. When analysis outputs, configs, generators, or C++ tests change, commit only the approved source
-repair and push it normally to the existing head branch. Candidate preparation and C++ validation are then performed
-by `.github/workflows/pr-self-runner.yml`; snapshot/gamedata publication is release-pipeline only. Do not generate or
-publish those tracked outputs locally.
+Run focused tests first. When analysis outputs, configs, generators, or C++ tests change, commit the approved source
+repair together with its computed canonical `bin_artifacts` closure and push normally to the existing head branch.
+Trusted CI independently rebuilds the exact prospective tree. Snapshot/gamedata/manifest publication is Release-only;
+never add those namespaces to the PR.
 
 Commit using the repository Conventional Commit format plus `Co-Authored-By: Codex <codex@openai.com>`. Never
 force-push, merge, enable auto-merge, close the PR, or create a second PR.

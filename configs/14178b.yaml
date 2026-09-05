@@ -6929,7 +6929,7 @@ modules:
           - CBaseEntity_GetContextForScript.{platform}.yaml
           - CBaseEntity_ScriptGatherCriteria.{platform}.yaml
           - CBaseEntity_Script_TakeDamage.{platform}.yaml
-          - CBaseEntity_SetGravityScale.{platform}.yaml
+          - CBaseEntity_ScriptSetGravityScale.{platform}.yaml
           - CBaseEntity_SetAbsVelocity.{platform}.yaml
           - CBaseEntity_GetAbsVelocity.{platform}.yaml
           - CBaseEntity_Script_ApplyLocalAngularVelocityImpulse.{platform}.yaml
@@ -9432,9 +9432,6 @@ modules:
         expected_input:
           - CEntitySaveRestoreBlockHandler_vtable.{platform}.yaml
           - CSaveRestoreBlockSet_PostRestore.{platform}.yaml
-      - name: find-PolymorphicHelper_t__SetPolymorphicPointer
-        expected_output:
-          - PolymorphicHelper_t__SetPolymorphicPointer.{platform}.yaml
       - name: find-PolymorphicHelper_t__SetPolymorphicPointer-decompiles
         expected_output:
           - CEntityInstance_AddChangeAccessorPathPolymorphic.{platform}.yaml
@@ -11429,6 +11426,10 @@ modules:
         category: func
         alias:
           - CBaseEntity::Script_TakeDamage
+      - name: CBaseEntity_ScriptSetGravityScale
+        category: func
+        alias:
+          - CBaseEntity::ScriptSetGravityScale
       - name: CBaseEntity_SetAbsVelocity
         category: func
         alias:
@@ -13558,8 +13559,8 @@ cpp_tests:
       - Xclang
       - fdump-vtable-layouts
     reference_modules:
-      - server  # bin/{gamever}/server/CEntityInstance_*.{platform}.yaml
-      - client  # bin/{gamever}/client/CEntityInstance_*.{platform}.yaml
+      - server  # bin_artifacts/{gamever}/server/CEntityInstance_*.{platform}.yaml
+      - client  # bin_artifacts/{gamever}/client/CEntityInstance_*.{platform}.yaml
   - name: IGameSystem_MSVC
     symbol: IGameSystem
     cpp: cpp_tests/igamesystem.cpp
@@ -13583,8 +13584,8 @@ cpp_tests:
       - Xclang
       - fdump-vtable-layouts
     reference_modules:
-      - server  # bin/{gamever}/server/IGameSystem_*.{platform}.yaml
-      - client  # bin/{gamever}/client/IGameSystem_*.{platform}.yaml
+      - server  # bin_artifacts/{gamever}/server/IGameSystem_*.{platform}.yaml
+      - client  # bin_artifacts/{gamever}/client/IGameSystem_*.{platform}.yaml
 
   # - name: INetworkSystem_MSVC
   #   symbol: INetworkSystem
@@ -13607,7 +13608,7 @@ cpp_tests:
   #     - Xclang
   #     - fdump-vtable-layouts
   #   reference_modules:
-  #     - networksystem  # bin/{gamever}/networksystem/CNetworkSystem_*.{platform}.yaml
+  #     - networksystem  # bin_artifacts/{gamever}/networksystem/CNetworkSystem_*.{platform}.yaml
   - name: INetworkMessages_MSVC
     symbol: INetworkMessages
     alias_symbols:
@@ -13632,10 +13633,10 @@ cpp_tests:
       - Xclang
       - fdump-vtable-layouts
     reference_modules:
-      - networksystem  # bin/{gamever}/networksystem/CNetworkMessages_*.{platform}.yaml
-      - engine  # bin/{gamever}/engine/CNetworkMessages_*.{platform}.yaml
-      - server  # bin/{gamever}/server/CNetworkMessages_*.{platform}.yaml
-      - client  # bin/{gamever}/client/CNetworkMessages_*.{platform}.yaml
+      - networksystem  # bin_artifacts/{gamever}/networksystem/CNetworkMessages_*.{platform}.yaml
+      - engine  # bin_artifacts/{gamever}/engine/CNetworkMessages_*.{platform}.yaml
+      - server  # bin_artifacts/{gamever}/server/CNetworkMessages_*.{platform}.yaml
+      - client  # bin_artifacts/{gamever}/client/CNetworkMessages_*.{platform}.yaml
   - name: ILoopMode_MSVC
     symbol: ILoopMode
     cpp: cpp_tests/iloopmode.cpp
@@ -13658,9 +13659,9 @@ cpp_tests:
       - Xclang
       - fdump-vtable-layouts
     reference_modules:
-      - client  # bin/{gamever}/client/ILoopModeGame_*.{platform}.yaml
-      - server  # bin/{gamever}/server/ILoopModeGame_*.{platform}.yaml
-      - engine  # bin/{gamever}/engine/ILoopModeGame_*.{platform}.yaml
+      - client  # bin_artifacts/{gamever}/client/ILoopModeGame_*.{platform}.yaml
+      - server  # bin_artifacts/{gamever}/server/ILoopModeGame_*.{platform}.yaml
+      - engine  # bin_artifacts/{gamever}/engine/ILoopModeGame_*.{platform}.yaml
   - name: ILoopType_MSVC
     symbol: ILoopType
     cpp: cpp_tests/ilooptype.cpp
@@ -13683,7 +13684,7 @@ cpp_tests:
       - Xclang
       - fdump-vtable-layouts
     reference_modules:
-      - engine  # bin/{gamever}/engine/CLoopTypeClientServer_*.{platform}.yaml
+      - engine  # bin_artifacts/{gamever}/engine/CLoopTypeClientServer_*.{platform}.yaml
   - name: IVEngineServer2_MSVC
     symbol: IVEngineServer2
     alias_symbols:
@@ -13709,9 +13710,9 @@ cpp_tests:
       - Xclang
       - fdump-vtable-layouts
     reference_modules:
-      - engine  # bin/{gamever}/engine/CEngineServer_*.{platform}.yaml
-      - client  # bin/{gamever}/client/IVEngineServer2_*.{platform}.yaml
-      - server  # bin/{gamever}/server/IVEngineServer2_*.{platform}.yaml
+      - engine  # bin_artifacts/{gamever}/engine/CEngineServer_*.{platform}.yaml
+      - client  # bin_artifacts/{gamever}/client/IVEngineServer2_*.{platform}.yaml
+      - server  # bin_artifacts/{gamever}/server/IVEngineServer2_*.{platform}.yaml
   - name: IGameSystemFactory_MSVC
     symbol: IGameSystemFactory
     cpp: cpp_tests/igamesystemfactory.cpp
@@ -13735,8 +13736,8 @@ cpp_tests:
       - Xclang
       - fdump-vtable-layouts
     reference_modules:
-      - server  # bin/{gamever}/server/IGameSystemFactory_*.{platform}.yaml
-      - client  # bin/{gamever}/client/IGameSystemFactory_*.{platform}.yaml
+      - server  # bin_artifacts/{gamever}/server/IGameSystemFactory_*.{platform}.yaml
+      - client  # bin_artifacts/{gamever}/client/IGameSystemFactory_*.{platform}.yaml
   - name: CEntitySystem_MSVC
     symbol: CEntitySystem
     alias_symbols:
@@ -13764,8 +13765,8 @@ cpp_tests:
       - Xclang
       - fdump-record-layouts
     reference_modules:
-      - server  # bin/{gamever}/server/{CEntitySystem,CGameEntitySystem}_*.{platform}.yaml
-      - client  # bin/{gamever}/client/{CEntitySystem,CGameEntitySystem}_*.{platform}.yaml
+      - server  # bin_artifacts/{gamever}/server/{CEntitySystem,CGameEntitySystem}_*.{platform}.yaml
+      - client  # bin_artifacts/{gamever}/client/{CEntitySystem,CGameEntitySystem}_*.{platform}.yaml
   - name: SDL_Mouse_MSVC
     symbol: SDL_Mouse
     cpp: cpp_tests/SDL_Mouse.cpp
@@ -13784,7 +13785,7 @@ cpp_tests:
       - Xclang
       - fdump-record-layouts
     reference_modules:
-      - SDL3  # bin/{gamever}/SDL3/SDL_Mouse_*.{platform}.yaml
+      - SDL3  # bin_artifacts/{gamever}/SDL3/SDL_Mouse_*.{platform}.yaml
   - name: INetworkGameServer_MSVC
     symbol: INetworkGameServer
     cpp: cpp_tests/inetworkgameserver.cpp
@@ -13807,7 +13808,7 @@ cpp_tests:
       - Xclang
       - fdump-vtable-layouts
     reference_modules:
-      - engine  # bin/{gamever}/engine/INetworkGameServer_*.{platform}.yaml
+      - engine  # bin_artifacts/{gamever}/engine/INetworkGameServer_*.{platform}.yaml
     merge_reference_modules: false  # Avoid stale duplicate INetworkGameServer_ClientUpdate at index 58
   - name: CNetworkGameServerBase_MSVC
     symbol: CNetworkGameServerBase
@@ -13833,7 +13834,7 @@ cpp_tests:
       - Xclang
       - fdump-vtable-layouts
     reference_modules:
-      - engine  # bin/{gamever}/engine/CNetworkGameServerBase_*.{platform}.yaml
+      - engine  # bin_artifacts/{gamever}/engine/CNetworkGameServerBase_*.{platform}.yaml
   - name: IGameEventManager2_MSVC
     symbol: IGameEventManager2
     alias_symbols:
@@ -13859,7 +13860,7 @@ cpp_tests:
       - Xclang
       - fdump-vtable-layouts
     reference_modules:
-      - client  # bin/{gamever}/client/CGameEventManager_*.{platform}.yaml
+      - client  # bin_artifacts/{gamever}/client/CGameEventManager_*.{platform}.yaml
   - name: ISource2Server_MSVC
     symbol: ISource2Server
     alias_symbols:
@@ -13887,8 +13888,8 @@ cpp_tests:
       - Xclang
       - fdump-vtable-layouts
     reference_modules:
-      - engine  # bin/{gamever}/engine/ISource2Server_*.{platform}.yaml
-      - server  # bin/{gamever}/server/CSource2Server_*.{platform}.yaml
+      - engine  # bin_artifacts/{gamever}/engine/ISource2Server_*.{platform}.yaml
+      - server  # bin_artifacts/{gamever}/server/CSource2Server_*.{platform}.yaml
   - name: INetworkServerService_MSVC
     symbol: INetworkServerService
     alias_symbols:
@@ -13913,8 +13914,8 @@ cpp_tests:
       - Xclang
       - fdump-vtable-layouts
     reference_modules:
-      - engine  # bin/{gamever}/engine/CNetworkServerService_*.{platform}.yaml
-      - server  # bin/{gamever}/server/CNetworkServerService_*.{platform}.yaml
+      - engine  # bin_artifacts/{gamever}/engine/CNetworkServerService_*.{platform}.yaml
+      - server  # bin_artifacts/{gamever}/server/CNetworkServerService_*.{platform}.yaml
   - name: ICommandLine_MSVC
     symbol: ICommandLine
     cpp: cpp_tests/icommandline.cpp
@@ -13962,4 +13963,4 @@ cpp_tests:
       - Xclang
       - fdump-vtable-layouts
     reference_modules:
-      - engine  # bin/{gamever}/engine/CEngineServiceMgr_*.{platform}.yaml
+      - engine  # bin_artifacts/{gamever}/engine/CEngineServiceMgr_*.{platform}.yaml

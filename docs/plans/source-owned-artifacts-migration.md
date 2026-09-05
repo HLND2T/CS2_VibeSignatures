@@ -1,8 +1,60 @@
 # Source-owned per-symbol artifacts 迁移计划
 
-状态：草案
+状态：实施中（仓库内步骤 1–17 与步骤 20 的本地收口已完成；外部 cutover 与发布验收未完成）
+
+维护范围决策（2026-09-03）：历史 GAMEVER 的 source-owned artifacts 保留为只读快照，
+required producer validation 与后续维护仅针对配置中排序最高的当前版本（现为 `14178b`）。
+trusted planner 仍检查历史目录命名空间与 contract 完整性，但不会把历史版本加入 affected
+validation matrix；不以历史版本的 producer 重建结果作为本迁移的验收门槛。
 
 日期：2026-09-01
+
+实施记录（2026-09-02）：
+
+- 仓库内实施顺序 1–17 已在 `dev-source-owned-artifacts` 上按步骤提交；步骤 20 的文档、Skill、Memory、
+  独立审查 finding 与本地 completion verification 已收口。同步最新 main 后补齐 4 个
+  `SetGameSpawnGroupMgr` artifacts，并整合 PR A 的 `git cat-file --batch` 优化；最新
+  `all -b --durations 30` 实际执行 1,230 个测试：1,227 passed、0 failures、0 errors、3 个 Redis integration 类
+  因本机无 Redis 服务整体 skipped；repository-contract 57/57 通过。
+- 步骤 18 的 drain/freeze、先合并 PR A trust bridge、启用外部 required workflow/ruleset、再基于
+  default-branch-owned planner 验证 PR B 尚未执行。当前 `origin/main` 不具备该 trust bridge，不能用本分支
+  自带 workflow 代替。
+- 步骤 19 的 new-GAMEVER bootstrap drill、non-publishing Release dry run、sandbox BinSync/Release publish、
+  Pages CDN byte verification、accepted-bin cleanup receipt 与两次真实 fresh full rebuild 尚无外部验收证据。
+- 2026-09-02 对 GitHub 的只读复核显示：`origin/main@472515eab086615c0eaf2a4025c766d06271ebfe` 尚无
+  trust bridge；repository ruleset 列表为空；仅存在 `github-pages`、`win64`、`win64-cleanup` environments；
+  `main` 只要求非 strict 的 `pr-validate`，尚未启用 Merge Queue/strict up-to-date。因此 PR A 合并及外部策略配置
+  仍是创建、验证 PR B 前的真实阻塞。
+- 两个历史 `gamesymbols/build/14174/*` 远端分支仅完成识别，未获删除授权，保持不变。
+- 最终仓库不变量复核：Git tracked canonical artifacts 为 51,307 个，aggregate inventory digest 为
+  `sha256:eab29700e1c4714b950efb396b18866b9df37a1361dbd3421ce73c0ab9d34df6`，source-owned binary locks 为
+  16 份，tracked legacy output 为 0；历史 snapshot lock 重算与本地 binary 复验为 16/16 GAMEVER、
+  256/256 binaries。
+- Release gamedata 已移除 12 个可变 `main`/`master` 下载输入：公开上游基线按不可变 commit 和
+  SHA-256 vendor 到 generator `templates/`，candidate 路径拒绝任何非空 `DOWNLOAD_SOURCES`，hosted
+  Release verifier 使用 verified snapshot + source templates 在 fresh root 重建并逐文件比较。
+- BinSync candidate schema v5 已绑定两层证据：source selection projection 记录
+  repository/module/platform/category/symbol、artifact Git blob digest 与 raw RVA，local exporter 与 hosted
+  verifier 复用同一 builder；per-repository lowering evidence 另记录 binary-derived lift bias、lifted address 与
+  candidate TOML path，bundle verifier 要求每个 projected function/global 实际存在于 user-tip tree。
+- `binary_locks/<GAMEVER>.json` 已建立 source-owned binary/depot identity schema；16 份历史 snapshot Git blobs
+  确定性回填 256 个 configured binary locks，并以当前本地 bytes 完成 256/256 交叉复验。14167–14172 明确记为
+  historical snapshot backfill，不冒充 Steam depot 的外部密码学 provenance。Release preparation 在分析前后
+  exact 比较 local bytes；BinSync schema v5 与 Release bundle schema v2 绑定 lock digest 和完整 inventory，两个
+  hosted verifier 都从 immutable source SHA 重读 lock 并拒绝 self-hosted 自报 identity。Repository contract 现在
+  要求 configured GAMEVER 与 canonical lock 一一对应；trusted PR plan schema v3 从 base/merge immutable Git blobs
+  校验 config/download/lock 语义，记录两侧 lock digest，并把 binary identity 漂移扩大到全量 producer groups。
+  accepted-bin sync/restore 在复制前后验证 source lock，污染 cache 不再因文件齐全而命中；warmup 在 IDB probe/
+  publish 前复验下载结果，并把 lock digest 传给 PR plan 与 Release source preflight 消费端对账。
+- new-GAMEVER bump producer 不再接触 accepted-bin：它把 declared manifests 下载到 checkout 外 fresh root，按新
+  config 构建 binary allowlist 后生成 canonical lock；credential-free candidate 与 hosted publisher 以三文件
+  allowlist 原子提交 `download.yaml`、`configs/<GAMEVER>.yaml`、`binary_locks/<GAMEVER>.json`。
+- `init_gamebin.py prepare` 在所有来源汇合后统一执行 source-lock 终态校验；binary lock parser/hash helpers 已纳入
+  default-branch trust inventory，修改这些门禁必须先走独立 bridge update。
+- 独立审查仍确认两类未闭环边界：BinSync TOML 尚不能仅从 Git blobs 独立证明 Windows lift bias 及完整
+  IDA name/comment TOML 语义，prospective payload 与
+  secrets/persisted workspace 的执行隔离需要外部 disposable runner/broker/supervisor 基础设施。
+- 因此本文仍是进行中的迁移记录；在步骤 18–20 的全部门禁与真实外部验收完成前，不得声明迁移完成或可合并。
 
 优先级：P1
 
@@ -31,7 +83,8 @@ cherry-pick GoldSrc 实现。
 7. Release build 同时生成本地 BinSync changes，但不得在验证完成前推送；
 8. hosted verifier 复验 release bundle 与内部 BinSync publication candidate；
 9. 受保护的 `publish-binsync` job 使用仅限 BinSync repositories 的凭证幂等推送；
-10. `publish-new-gamever-artifacts` 是唯一允许写 source branch 的自动化特例；受保护的
+10. source branch write 仅允许两个受控自动化特例：`publish-bump-branch` 创建/同步新的
+    `bump-download/<GAMEVER>`，`publish-new-gamever-artifacts` 只追加该版本的 artifacts；受保护的
     `publish-release` 是唯一允许创建或修改 tag、Release 和 Release assets 的 job；
 11. `gamesymbols`、metadata、gamedata、archives、checksums 和 release manifest 全部成为
     Release 派生产物，不再作为 Git versioned outputs。
@@ -478,9 +531,26 @@ plan 至少绑定：
 
 - 绑定调用时的 exact branch head SHA；
 - 在 self-hosted runner 生成可下载的 artifact patch/inventory，不直接合并、不改 main；
-- 默认不持有 branch push credential；新 GAMEVER 的 `bump-download/<GAMEVER>` PAT publication 是
-  `9.8` 定义的唯一自动 push 特例；
+- 默认不持有 branch push credential；自动 Bump Download seed/synchronize 与 `9.8` 的 new-GAMEVER artifact
+  publication 是仅有的两个 source-branch push 特例；
 - fork 只能由 maintainer 镜像为 same-repository branch 后使用。
+
+#### Automated Bump Download source publisher
+
+`publish-bump-branch` 是第一个受控 source writer，契约为：
+
+1. self-hosted bump job 不持有 source write PAT，只上传 credential-free candidate；
+2. hosted publisher 只信任 workflow 的 immutable `github.sha`，并从 Git blobs 重建 append/copy 结果；
+3. producer 先从 checkout 外 fresh depot/bin root 生成 `binary_locks/<GAMEVER>.json`，不得从 accepted-bin 首次
+   登记；candidate changed-path allowlist 精确为 `download.yaml`、`configs/<GAMEVER>.yaml` 与该 lock，新 config
+   必须是 prior accepted config 的 exact copy；
+4. `bump-download/<GAMEVER>` branch、同名 tag 和目标 PR 必须都不存在；seed commit 必须是 bound default-base
+   SHA 的 direct child；
+5. protected PAT 只执行普通 branch creation push，Git hooks 禁用，禁止 force/delete/refspec 扩张；
+6. PR 由最小 `pull-requests: write` token 创建；随后同一 PAT 只追加一个绑定 seed commit/run identity 的空
+   synchronize commit，以触发 required workflow；
+7. synchronize 后 PR head 必须精确等于 hosted 生成的 trigger commit；后续 source write 只允许 `9.8` 的
+   artifact-only publisher，并继续受相同 environment、actor 与 rulesets 约束。
 
 ### 9.8 新 GAMEVER bootstrap
 
@@ -547,7 +617,7 @@ trusted planner 在以下条件下输出 `bootstrap_required`，不能输出 lig
 
 #### 使用 PAT 将 artifacts 带回 Bump Download PR
 
-branch policy 不接受 `GITHUB_TOKEN` bot push。新 GAMEVER 的标准 publication 路径是独立的
+branch policy 不接受 `GITHUB_TOKEN` bot push。作为第二个受控 source writer，新 GAMEVER 的标准 publication 路径是独立的
 GitHub-hosted `publish-new-gamever-artifacts` job，使用专用 fine-grained PAT 将 candidate commit
 fast-forward push 到同一个 `bump-download/<GAMEVER>` branch。
 
@@ -739,11 +809,13 @@ GitHub-hosted verifier 使用 `contents: read, actions: read`：
 - 逐 repository 获取当前 remote refs；
 - remote head 等于 expected head：只允许 fast-forward push candidate；
 - remote 已等于 candidate：幂等成功；
-- remote 为其他值、需要 force push、ref deletion 或 non-fast-forward：失败；
+- remote 为其他值、需要无条件 force push、ref deletion 或 non-fast-forward：失败；
 - 每次 push 后重新读取 remote ref 并验证 exact commit；
 - 所有 targets 成功后输出 canonical remote publication receipt digest。
 
-不使用 `--force`，不移动未知 refs，不修改 default branch，不创建未在 plan 声明的 repository。
+禁止无条件 `--force` 和任何 non-fast-forward rewrite。允许在已证明 candidate 为 fast-forward 后使用
+`--force-with-lease=<ref>:<expected-head>` 作为 exact expected-head CAS；lease 不匹配必须失败。不得移动未知 refs、
+修改 default branch 或创建未在 plan 声明的 repository。
 
 ### 10.7 Protected `publish-release`
 
@@ -751,8 +823,8 @@ GitHub-hosted verifier 使用 `contents: read, actions: read`：
 
 - 依赖 hosted verifier 与 `publish-binsync` 成功；
 - 使用独立受保护的 `release` environment；
-- 是主仓库唯一允许创建或修改 tag、Release 和 Release assets 的 job；除 `9.8` 中只能写
-  `bump-download/<GAMEVER>` 的 artifact publisher 外，不允许其他主仓库 contents writer；
+- 是主仓库唯一允许创建或修改 tag、Release 和 Release assets 的 job；除 `9.7`/`9.8` 中分别约束
+  branch seed/synchronize 与 artifact-only append 的两个 source publishers 外，不允许其他主仓库 contents writer；
 - 下载 exact verified release bundle；
 - 从 release manifest 读取 intended BinSync target-state digest，并重新查询 remote refs，要求已与
   verified candidate 完全一致；
@@ -1184,8 +1256,9 @@ rollback 不是只 revert workflow。
 - protected BinSync job 只写 allowlisted repos/refs；
 - BinSync partial push 后 exact rerun可恢复；
 - remote divergence 与 non-fast-forward 拒绝；
-- PAT artifact publisher 是唯一 source-branch contents-write 特例，且只能更新对应
-  `bump-download/<GAMEVER>`；protected Release job 是唯一 tag/Release/assets publisher；
+- 两个 PAT source publishers 是仅有的 source-branch contents-write 特例：branch publisher 只能创建/同步对应
+  `bump-download/<GAMEVER>`，artifact publisher 只能向其追加 `bin_artifacts/<GAMEVER>/**`；protected Release
+  job 是唯一 tag/Release/assets publisher；
 - release dry run 完成 build → upload → hosted verify，不创建 remote refs/tag/Release；
 - sandbox version 完成 BinSync push、draft assets、publish 和幂等重跑；
 - tag 指向 source SHA；
@@ -1262,8 +1335,9 @@ git diff --check
   `bin_artifacts` 重建；
 - self-hosted build 没有主仓库 contents write/Release 权限；
 - hosted verifier 无写权限并完整复验两个 candidates；
-- PAT artifact publisher 是唯一 source-branch contents-write 特例；`publish-release` 是唯一
-  tag/Release/assets publisher；
+- `publish-bump-branch` 与 `publish-new-gamever-artifacts` 是仅有的两个 source-branch contents-write 特例，且
+  分别满足 `9.7` 的 branch/direct-child/path/state 契约与 `9.8` 的 artifact-only/head-CAS 契约；
+  `publish-release` 是唯一 tag/Release/assets publisher；
 - tag 直接指向 source SHA；
 - published Release 不允许覆盖；
 - accepted-bin/IDB 明确为 binary/cache 层且不含 artifact truth；

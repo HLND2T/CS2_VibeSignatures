@@ -9,7 +9,7 @@ For a new checkout, use `SKILL: init-gamebin` to initialize the binaries for the
 Use SKILL: init-gamebin
 ```
 
-The skill resolves `latest` from the repository's version list, downloads or merges the matching binaries without overwriting existing files, and then restore symbol YAMLs. If no game version is specified, the skill lists the available entries and asks you to choose one.
+The skill resolves `latest` from the repository's version list and downloads or merges the matching binaries without overwriting existing files. It does not restore symbol YAML into `bin/`; source-owned symbol truth is read from `bin_artifacts/`. If no game version is specified, the skill lists the available entries and asks you to choose one.
 
 ## Analyze configured symbols
 
@@ -34,7 +34,7 @@ Optional LLM parameters:
 
 Analyzer behavior:
 
-- Old signatures from `bin/{previous_gamever}/{module}/{symbol}.{platform}.yaml` are tried through MCP before Agent skills run. Successful reuse does not consume Agent tokens.
+- Old signatures from `bin_artifacts/{previous_gamever}/{module}/{symbol}.{platform}.yaml` are tried through MCP before Agent skills run. Successful reuse does not consume Agent tokens.
 - `-agent="claude.cmd"` selects the Claude CLI installed through npm on Windows.
 - `-agent="opencode.cmd"` selects the npm-installed OpenCode CLI on Windows. OpenCode loads `.opencode/agents/sig-finder.md` and runs skills non-interactively.
 - Prefer programmatic preprocessors, then `LLM_DECOMPILE` preprocessors, then Agent skills.

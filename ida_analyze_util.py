@@ -9,6 +9,7 @@ import posixpath
 import re
 import tempfile
 import textwrap
+from collections.abc import Iterable, Mapping
 from pathlib import Path
 
 try:
@@ -801,7 +802,9 @@ FUNC_YAML_ORDER = [
     "vtable_name",
     "vfunc_offset",
     "vfunc_index",
+    "vfunc_slot_size",
     "vfunc_sig",
+    "vfunc_sig_disp",
     "vfunc_sig_max_match",
     "vfunc_sig_allow_across_function_boundary",
 ]
@@ -823,6 +826,7 @@ VTABLE_YAML_ORDER = [
     "vtable_rva",
     "vtable_size",
     "vtable_numvfunc",
+    "pointer_size",
     "vtable_entries",
 ]
 PATCH_YAML_ORDER = [
@@ -851,6 +855,293 @@ TARGET_KIND_TO_FIELD_ORDER = {
     "struct_member": STRUCT_MEMBER_YAML_ORDER,
 }
 TARGET_KIND_TO_FIELD_SET = {kind: set(field_order) for kind, field_order in TARGET_KIND_TO_FIELD_ORDER.items()}
+
+SYMBOL_ARTIFACT_CATEGORIES = frozenset({"func", "gv", "vfunc", "vtable", "patch", "structmember"})
+SYMBOL_ARTIFACT_CATEGORY_ALIASES = {"struct": "structmember", "struct_member": "structmember"}
+SYMBOL_ARTIFACT_IDENTITY_FIELDS = {
+    "func": ("func_name",),
+    "vfunc": ("func_name", "vtable_name"),
+    "gv": ("gv_name",),
+    "patch": ("patch_name",),
+    "vtable": ("vtable_class",),
+    "structmember": ("struct_name", "member_name"),
+}
+SYMBOL_ARTIFACT_FIELD_ORDER = {
+    "func": tuple(FUNC_YAML_ORDER[:7]),
+    "vfunc": tuple(FUNC_YAML_ORDER),
+    "gv": tuple(GV_YAML_ORDER),
+    "vtable": tuple(VTABLE_YAML_ORDER),
+    "patch": tuple(PATCH_YAML_ORDER),
+    "structmember": tuple(STRUCT_MEMBER_YAML_ORDER),
+}
+SYMBOL_ARTIFACT_HEX_FIELDS = frozenset(
+    {
+        "func_va",
+        "func_rva",
+        "func_size",
+        "gv_va",
+        "gv_rva",
+        "gv_sig_va",
+        "vtable_va",
+        "vtable_rva",
+        "vtable_size",
+        "patch_va",
+        "patch_rva",
+        "vfunc_offset",
+        "offset",
+    }
+)
+SYMBOL_ARTIFACT_INTEGER_FIELDS = frozenset(
+    {
+        "gv_inst_offset",
+        "gv_inst_length",
+        "gv_inst_disp",
+        "vfunc_index",
+        "vfunc_slot_size",
+        "vfunc_sig_disp",
+        "vfunc_sig_max_match",
+        "vtable_numvfunc",
+        "pointer_size",
+        "patch_sig_disp",
+        "size",
+        "offset_sig_disp",
+        "offset_sig_max_match",
+    }
+)
+SYMBOL_ARTIFACT_BOOLEAN_FIELDS = frozenset(
+    {
+        "func_sig_allow_across_function_boundary",
+        "func_sig_resolve_jmp_thunk",
+        "vfunc_sig_allow_across_function_boundary",
+        "gv_sig_allow_across_function_boundary",
+        "offset_sig_allow_across_function_boundary",
+    }
+)
+SYMBOL_SIGNATURE_RE = re.compile(r"^(?:[0-9A-F]{2}|\?\?)(?: (?:[0-9A-F]{2}|\?\?))*$")
+
+
+class SymbolArtifactError(ValueError):
+    pass
+
+
+class _SymbolArtifactDumper(yaml.SafeDumper if yaml is not None else object):
+    if yaml is not None:
+
+        def ignore_aliases(self, data):
+            return True
+
+
+def _artifact_int(value, field, *, nonnegative=False):
+    if isinstance(value, bool):
+        raise SymbolArtifactError(f"{field} must be an integer")
+    if isinstance(value, int):
+        parsed = value
+    elif isinstance(value, str):
+        try:
+            parsed = int(value.strip(), 0)
+        except ValueError as exc:
+            raise SymbolArtifactError(f"{field} must be an integer") from exc
+    else:
+        raise SymbolArtifactError(f"{field} must be an integer")
+    if nonnegative and parsed < 0:
+        raise SymbolArtifactError(f"{field} must be non-negative")
+    return parsed
+
+
+def _artifact_hex(value, field):
+    return f"0x{_artifact_int(value, field, nonnegative=True):x}"
+
+
+def normalize_symbol_signature(value):
+    if isinstance(value, bytes):
+        tokens = [f"{byte:02X}" for byte in value]
+    elif isinstance(value, str):
+        raw = value.strip().replace("\\x", " ").replace(",", " ").replace("*", "?")
+        tokens = []
+        for token in raw.split():
+            token = token.upper()
+            if token in {"?", "??"} or "?" in token:
+                tokens.append("??")
+            elif re.fullmatch(r"[0-9A-F]{2}", token):
+                tokens.append(token)
+            else:
+                raise SymbolArtifactError(f"invalid signature token: {token!r}")
+    elif isinstance(value, Iterable):
+        tokens = []
+        for byte in value:
+            if byte is None:
+                tokens.append("??")
+            elif isinstance(byte, bool) or not isinstance(byte, int) or not 0 <= byte <= 0xFF:
+                raise SymbolArtifactError(f"invalid signature byte: {byte!r}")
+            else:
+                tokens.append(f"{byte:02X}")
+    else:
+        raise SymbolArtifactError("signature must be text, bytes, or an iterable of bytes")
+    signature = " ".join(tokens)
+    if not signature or not SYMBOL_SIGNATURE_RE.fullmatch(signature):
+        raise SymbolArtifactError(f"invalid signature: {value!r}")
+    return signature
+
+
+def _normalize_symbol_category(category):
+    normalized = str(category or "").strip().lower()
+    normalized = SYMBOL_ARTIFACT_CATEGORY_ALIASES.get(normalized, normalized)
+    if normalized not in SYMBOL_ARTIFACT_CATEGORIES:
+        raise SymbolArtifactError(f"unsupported symbol artifact category: {category!r}")
+    return normalized
+
+
+def infer_symbol_artifact_category(payload):
+    if not isinstance(payload, Mapping):
+        raise SymbolArtifactError("symbol artifact must be a mapping")
+    candidates = set()
+    if "func_name" in payload:
+        candidates.add(
+            "vfunc" if "vtable_name" in payload or any(key.startswith("vfunc_") for key in payload) else "func"
+        )
+    if "gv_name" in payload:
+        candidates.add("gv")
+    if "patch_name" in payload:
+        candidates.add("patch")
+    if "vtable_class" in payload:
+        candidates.add("vtable")
+    if "struct_name" in payload or "member_name" in payload:
+        candidates.add("structmember")
+    if len(candidates) != 1:
+        raise SymbolArtifactError(f"unable to infer one symbol artifact category: {sorted(candidates)!r}")
+    return candidates.pop()
+
+
+def _normalize_vtable_entries(value):
+    if not isinstance(value, Mapping):
+        raise SymbolArtifactError("vtable_entries must be a mapping")
+    entries = {}
+    for raw_index, raw_address in value.items():
+        index = _artifact_int(raw_index, "vtable entry index", nonnegative=True)
+        if index in entries:
+            raise SymbolArtifactError(f"duplicate vtable entry index: {index}")
+        entries[index] = _artifact_hex(raw_address, f"vtable_entries[{index}]")
+    return dict(sorted(entries.items()))
+
+
+def normalize_symbol_artifact(payload, *, category=None):
+    if not isinstance(payload, Mapping):
+        raise SymbolArtifactError("symbol artifact must be a mapping")
+    category = _normalize_symbol_category(category or infer_symbol_artifact_category(payload))
+    allowed_fields = set(SYMBOL_ARTIFACT_FIELD_ORDER[category])
+    unknown_fields = set(payload) - allowed_fields
+    if unknown_fields:
+        raise SymbolArtifactError(
+            f"{category} artifact has unknown fields: {', '.join(sorted(map(str, unknown_fields)))}"
+        )
+    normalized = {}
+    for field in SYMBOL_ARTIFACT_FIELD_ORDER[category]:
+        if field not in payload:
+            continue
+        value = payload[field]
+        if field in SYMBOL_ARTIFACT_IDENTITY_FIELDS[category] or field == "vtable_symbol":
+            if not isinstance(value, str) or not value.strip():
+                raise SymbolArtifactError(f"{category} artifact requires non-empty {field}")
+            value = value.strip()
+        elif field.endswith("_sig") or field == "patch_bytes":
+            value = normalize_symbol_signature(value)
+            if field == "patch_bytes" and "??" in value.split():
+                raise SymbolArtifactError("patch_bytes must not contain wildcard bytes")
+        elif field in SYMBOL_ARTIFACT_HEX_FIELDS:
+            value = _artifact_hex(value, field)
+        elif field in SYMBOL_ARTIFACT_INTEGER_FIELDS:
+            value = _artifact_int(
+                value,
+                field,
+                nonnegative=field not in {"gv_inst_disp", "patch_sig_disp", "offset_sig_disp", "vfunc_sig_disp"},
+            )
+        elif field in SYMBOL_ARTIFACT_BOOLEAN_FIELDS:
+            if not isinstance(value, bool):
+                raise SymbolArtifactError(f"{field} must be a boolean")
+        elif field == "vtable_entries":
+            value = _normalize_vtable_entries(value)
+        normalized[field] = value
+
+    for identity_field in SYMBOL_ARTIFACT_IDENTITY_FIELDS[category]:
+        if identity_field not in normalized:
+            raise SymbolArtifactError(f"{category} artifact requires non-empty {identity_field}")
+    if category == "vfunc":
+        slot_size = normalized.get("vfunc_slot_size", 8)
+        if slot_size != 8:
+            raise SymbolArtifactError("Source2 x64 vfunc slots are exactly 8 bytes")
+        if "vfunc_offset" in normalized:
+            offset = int(normalized["vfunc_offset"], 0)
+            if offset % slot_size:
+                raise SymbolArtifactError("Source2 x64 vfunc_offset must be 8-byte aligned")
+            if "vfunc_index" in normalized and normalized["vfunc_index"] != offset // slot_size:
+                raise SymbolArtifactError("vfunc_index does not match vfunc_offset / 8")
+    if category == "vtable":
+        pointer_size = normalized.get("pointer_size", 8)
+        if pointer_size != 8:
+            raise SymbolArtifactError("Source2 x64 vtable pointers are exactly 8 bytes")
+        entries = normalized.get("vtable_entries")
+        count = normalized.get("vtable_numvfunc")
+        if entries is not None and count is not None:
+            if tuple(entries) != tuple(range(count)):
+                raise SymbolArtifactError("vtable_entries must contain every index from 0 to vtable_numvfunc - 1")
+            if "vtable_size" in normalized and int(normalized["vtable_size"], 0) != count * pointer_size:
+                raise SymbolArtifactError("vtable_size does not match vtable_numvfunc * 8")
+    return normalized
+
+
+def canonical_symbol_yaml_bytes(payload, *, category=None):
+    if yaml is None:
+        raise RuntimeError("PyYAML is required to canonicalize symbol YAML")
+    normalized = normalize_symbol_artifact(payload, category=category)
+    text = yaml.dump(
+        normalized,
+        Dumper=_SymbolArtifactDumper,
+        allow_unicode=True,
+        default_flow_style=False,
+        explicit_end=False,
+        explicit_start=False,
+        indent=2,
+        line_break="\n",
+        sort_keys=False,
+        width=120,
+    )
+    return text.rstrip("\r\n").encode("utf-8") + b"\n"
+
+
+def _atomic_write_symbol_bytes(path, data):
+    target = Path(path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(dir=target.parent, prefix=f".{target.name}.", delete=False) as handle:
+            temporary = Path(handle.name)
+            handle.write(data)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, target)
+    finally:
+        if temporary is not None and temporary.exists():
+            temporary.unlink()
+
+
+def canonicalize_symbol_yaml_file(path, *, category=None):
+    if yaml is None:
+        raise RuntimeError("PyYAML is required to canonicalize symbol YAML")
+    target = Path(path)
+    raw = target.read_bytes()
+    try:
+        payload = yaml.safe_load(raw)
+    except yaml.YAMLError as exc:
+        raise SymbolArtifactError(f"invalid symbol YAML: {exc}") from exc
+    canonical = canonical_symbol_yaml_bytes(payload, category=category)
+    if raw == canonical:
+        return False
+    _atomic_write_symbol_bytes(target, canonical)
+    return True
+
+
+def write_symbol_yaml(path, payload, *, category=None):
+    _atomic_write_symbol_bytes(path, canonical_symbol_yaml_bytes(payload, category=category))
 
 
 def _build_ordered_yaml_payload(data, ordered_keys):
@@ -926,16 +1217,7 @@ def write_vtable_yaml(path, data):
     if yaml is None:
         raise RuntimeError("PyYAML is required to write vtable YAML")
 
-    payload = _build_ordered_yaml_payload(data, VTABLE_YAML_ORDER)
-
-    with open(path, "w", encoding="utf-8") as f:
-        yaml.safe_dump(
-            payload,
-            f,
-            sort_keys=False,
-            default_flow_style=False,
-            allow_unicode=False,
-        )
+    write_symbol_yaml(path, data, category="vtable")
 
 
 def write_func_yaml(path, data):
@@ -943,16 +1225,8 @@ def write_func_yaml(path, data):
     if yaml is None:
         raise RuntimeError("PyYAML is required to write function YAML")
 
-    payload = _build_ordered_yaml_payload(data, FUNC_YAML_ORDER)
-
-    with open(path, "w", encoding="utf-8") as f:
-        yaml.safe_dump(
-            payload,
-            f,
-            sort_keys=False,
-            default_flow_style=False,
-            allow_unicode=False,
-        )
+    category = "vfunc" if "vtable_name" in data or any(key.startswith("vfunc_") for key in data) else "func"
+    write_symbol_yaml(path, data, category=category)
 
 
 def write_gv_yaml(path, data):
@@ -960,16 +1234,7 @@ def write_gv_yaml(path, data):
     if yaml is None:
         raise RuntimeError("PyYAML is required to write global-variable YAML")
 
-    payload = _build_ordered_yaml_payload(data, GV_YAML_ORDER)
-
-    with open(path, "w", encoding="utf-8") as f:
-        yaml.safe_dump(
-            payload,
-            f,
-            sort_keys=False,
-            default_flow_style=False,
-            allow_unicode=False,
-        )
+    write_symbol_yaml(path, data, category="gv")
 
 
 def write_patch_yaml(path, data):
@@ -977,16 +1242,7 @@ def write_patch_yaml(path, data):
     if yaml is None:
         raise RuntimeError("PyYAML is required to write patch YAML")
 
-    payload = _build_ordered_yaml_payload(data, PATCH_YAML_ORDER)
-
-    with open(path, "w", encoding="utf-8") as f:
-        yaml.safe_dump(
-            payload,
-            f,
-            sort_keys=False,
-            default_flow_style=False,
-            allow_unicode=False,
-        )
+    write_symbol_yaml(path, data, category="patch")
 
 
 def write_struct_offset_yaml(path, data):
@@ -994,16 +1250,7 @@ def write_struct_offset_yaml(path, data):
     if yaml is None:
         raise RuntimeError("PyYAML is required to write struct offset YAML")
 
-    payload = _build_ordered_yaml_payload(data, STRUCT_MEMBER_YAML_ORDER)
-
-    with open(path, "w", encoding="utf-8") as f:
-        yaml.safe_dump(
-            payload,
-            f,
-            sort_keys=False,
-            default_flow_style=False,
-            allow_unicode=False,
-        )
+    write_symbol_yaml(path, data, category="structmember")
 
 
 def _get_preprocessor_scripts_dir():
@@ -3076,7 +3323,8 @@ async def preprocess_func_sig_via_mcp(
                     print(f"    Preprocess: vtable artifact YAML not found: {os.path.basename(vtable_yaml_path)}")
                 return None
 
-            # Generate vtable YAML on-the-fly via py_eval
+            # Resolve undeclared vtables in memory. Materializing this lookup as
+            # YAML would create an unowned artifact outside the formal contract.
             vtable_gen_data = await preprocess_vtable_via_mcp(
                 session,
                 vtable_name,
@@ -3095,9 +3343,9 @@ async def preprocess_func_sig_via_mcp(
                         f"{os.path.basename(vtable_yaml_path)}"
                     )
                 return None
-            write_vtable_yaml(vtable_yaml_path, vtable_gen_data)
             if debug:
-                print(f"    Preprocess: generated vtable YAML: {os.path.basename(vtable_yaml_path)}")
+                print(f"    Preprocess: resolved vtable in memory: {vtable_name}")
+            return vtable_gen_data
 
         try:
             with open(vtable_yaml_path, "r", encoding="utf-8") as vf:

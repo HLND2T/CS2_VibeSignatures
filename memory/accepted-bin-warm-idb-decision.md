@@ -11,56 +11,37 @@ tags:
 
 # Keep Accepted Bin: warm IDB cache vs accepted bin (2026-08-22)
 
+## Status
+Updated for the source-owned artifacts cutover. Historical release-staging/promote-bin conclusions are superseded; the retained decision is only that a binary-only accepted cache remains useful.
+
 ## Decision
-
-Keep `PERSISTED_WORKSPACE/bin/<GAMEVER>` (accepted bin) as-is. Do NOT de-duplicate it against the warm IDB cache, and do NOT move gamebin to GitHub artifacts. Removing accepted bin would force every warmup/analysis run to re-download the current-version binaries (from Release asset or depot) and re-fetch the oldgamever baseline from the previous version's Release — extra download bandwidth we are not willing to pay.
-
+Keep `PERSISTED_WORKSPACE/bin/<GAMEVER>` as a disposable, exact configured-binary cache distinct from warm IDB generations. It may contain only configured binaries and explicitly allowlisted side files; per-symbol YAML, snapshots, gamedata, manifests, IDA databases, and BinSync working state are forbidden. The cache is never source or Release truth.
 ## Context / trigger
-
-`build-on-self-runner` now runs the required reusable `warmup-idb` job before `build`: it restores an immutable idb-cache generation and analyzes with `-require_warm_idb`. This re-opened the question of storage redundancy in the release lifecycle.
-
+PR and Release workers need exact binaries while warm IDB generations remain prunable performance state. Source-owned per-symbol history now lives in Git under `bin_artifacts`, so accepted-bin no longer serves an oldgamever YAML baseline or promotion target.
 ## Analysis (useful conclusions)
-
+- Warm generations atomically bind configured binary bytes, IDA runtime, and neutral `.i64` payload; they are immutable and prunable.
+- Accepted-bin keeps reusable binary bytes across runs/versions and reduces depot/Release downloads, but it is fully recoverable.
+- `sync_accepted_bin` and `restore_accepted_bin` both validate the configured positive allowlist and the canonical source-owned
+  binary lock; a complete but hash-drifted accepted cache is a cache miss (or a hard failure for required consumers).
+- Release full rebuild reads expected per-symbol artifacts from Git, not accepted-bin. Release-local rename state is never written back to warm generations.
+- The removed `release-staging`, generated-output PR, and `promote_bin` mechanisms are historical only.
 ### Where the current-version binaries live (4 copies)
-warm generation, accepted bin, staged bin, GitHub Release `gamebin-<gamever>.7z`. The payload duplication is real, but the stores' *functions* are not redundant.
-
+Historical: the pre-cutover design counted warm generation, accepted bin, staged bin, and Release gamebin copies. Active releases have no durable release-staging copy.
 ### warm IDB cache vs accepted bin
-| dimension | warm IDB cache | accepted bin |
-|---|---|---|
-| scope | current version only | all released versions |
-| lifecycle | prunable (3 newest + READY, others after 7d) | not auto-pruned |
-| payload | binary + `.i64` atomically (key = binary hash) | binaries only, no `.i64` |
-| function | saves IDA warmup (expensive, recomputable) | cross-version oldgamever baseline + identity anchor |
-
-- Warm cache MUST carry binaries with `.i64`: an `.i64` is only valid for the exact bytes it was built against; restore does byte-identity verification. Atomic identity contract, not accidental duplication.
-- oldgamever baseline needs previous-version binaries under `bin/<oldgamever>`; warm cache structurally cannot serve this (pruned, per-version, few generations).
-
+Current distinction: warm IDB is an immutable binary+neutral-IDB generation; accepted-bin is an exact configured-binary-only cache. Both are recoverable and neither contains source-owned YAML.
 ### Stripping staged gamebin (feasible but low value)
-- Staged bin has three consumers: promote-bin transaction source, release-asset source (`reconstruct_workspace`), and snapshot↔binary hash anchor.
-- warmup's `sync-accepted-bin` already mirrors identical bytes into accepted bin, so staged bin is a third copy — technically removable (staging keeps only the hash manifest).
-- Low value: the disk hog is idb-cache `.i64`, not staged bin. If ever done: `stage_build` stops copytree; `promote_bin` verifies accepted bin; `reconstruct_workspace` restores from accepted bin.
-
+Superseded: active Release candidates are transient Actions Artifacts after fresh rebuild/hosted verification; there is no staged-bin promotion transaction.
 ### Moving `promote` to GitHub-hosted runners (boundary)
-- Movable (byte-consumption + GitHub API): verify / reconstruct / create-archives / publish-release.
-- NOT movable (must write PERSISTED_WORKSPACE): promote-bin / finalize-promotion / cleanup-completed. Reason: `os.replace` directory swaps and msvcrt/fcntl file locks are same-machine OS semantics.
-- Resulting shape: Job A (hosted, bytes+API) + Job B (self-hosted thin, persisted-state transactions).
-- Full migration requires accepted bin + release audit state to stop being local-load-bearing (Release assets + git-backed state) — rejected here due to the download-bandwidth cost.
-
+Superseded: hosted verifier and protected publishers now consume exact candidates. The self-hosted builder has no publication credential; accepted-bin maintenance remains local cache work, not a release promotion gate.
 ### Why state lives on the local runner (for future reference)
-- Hard OS constraints: atomic tree swaps + file locks are same-filesystem only.
-- accepted bin consumers: build `prepare-workspace` robocopy, oldgamever baseline, warmup `sync-accepted-bin` restore source, `invalidate-republish`, promote-bin verification target.
-- release-staging ledger: pr-index (PR→build identity), PROMOTION_* markers (crash recovery), completed/ (idempotent cleanup + audit), locks.
-- Convention-only parts that could move later: audit records (git-backed), accepted bin as warmup restore source.
-
+Current persisted state is limited to recoverable binary/IDB caches and cleanup receipts. Durable publication state lives in Git source truth, remote BinSync refs, and immutable GitHub Releases.
 ## Constraints
-
-- Binaries are immutable per GAMEVER; warm cache key is binary-content based, so warm hits do not depend on a local accepted bin copy.
-- Cross-version baseline genuinely needs previous binaries locally; that is accepted bin's load-bearing role.
-
+- Binaries are immutable per GAMEVER and all cache reuse is exact-hash verified against `binary_locks/<GAMEVER>.json`.
+- accepted-bin cleanup is recoverable and receipt-backed; legacy YAML is ignored before cleanup and rejected afterward.
+- The self-hosted worker does not gain publication authority merely because it can access persisted caches.
 ## Revisit triggers
 
 Disk pressure from idb-cache, or changed bandwidth/storage costs, may reopen the de-dup decision.
 
 ## See also
-
-[[build-on-self-runner]], [[warmup_idb]], [[release-staging]], [[promote-release-after-output-merge]]
+[[build-on-self-runner]], [[warmup_idb]], [[project_overview]], [[release-staging]] (historical).

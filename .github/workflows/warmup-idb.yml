@@ -18,16 +18,9 @@ on:
       cache_key:
         description: Content-derived IDB cache identity
         value: ${{ jobs.warmup.outputs.cache_key }}
-  workflow_dispatch:
-    inputs:
-      gamever:
-        description: Exact GAMEVER from download.yaml
-        required: true
-        type: string
-      source_sha:
-        description: Exact source commit containing the analysis config
-        required: true
-        type: string
+      binary_lock_sha256:
+        description: Canonical source-owned binary lock digest
+        value: ${{ jobs.warmup.outputs.binary_lock_sha256 }}
 permissions:
   contents: read
 jobs:
@@ -38,10 +31,10 @@ jobs:
     concurrency:
       group: warmup-idb-${{ github.repository }}-${{ inputs.gamever }}
       cancel-in-progress: false
-      queue: max
     outputs:
       generation: ${{ steps.resolve-output.outputs.generation }}
       cache_key: ${{ steps.resolve-output.outputs.cache-key }}
+      binary_lock_sha256: ${{ steps.sync-accepted-bin.outputs.binary-lock-sha256 }}
     env:
       GAMEVER: ${{ inputs.gamever }}
       SOURCE_SHA: ${{ inputs.source_sha }}
@@ -65,6 +58,7 @@ jobs:
           ref: ${{ inputs.source_sha }}
           fetch-depth: 1
           submodules: false
+          persist-credentials: false
       - name: Verify immutable source checkout
         id: verify-source
         shell: pwsh
@@ -103,21 +97,14 @@ jobs:
           if ((Get-Item $workspaceBin -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) {
             throw "Warmup workspace bin must be a real directory."
           }
-          $workspaceGamever = Join-Path $workspaceBin $env:GAMEVER
-          New-Item -ItemType Directory -Path $workspaceGamever -Force | Out-Null
-          $persistedGamever = Join-Path $env:PERSISTED_WORKSPACE "bin\$env:GAMEVER"
-          if (Test-Path -LiteralPath $persistedGamever -PathType Container) {
-            # Warmup consumes durable binaries only; IDA and BinSync recovery state
-            # is either restored from the immutable IDB cache or regenerated later.
-            robocopy $persistedGamever $workspaceGamever /E /COPY:DAT /DCOPY:DAT /R:2 /W:5 `
-              /XD *.bsproj `
-              /XF *.i64 *.idb *.id0 *.id1 *.id2 *.nam *.til *.binsync.json
-            if ($LASTEXITCODE -ge 8) {
-              throw "Failed to restore persisted accepted bin/$env:GAMEVER into the warmup workspace."
-            }
-            $global:LASTEXITCODE = 0
-            Write-Host "Restored persisted accepted bin/$env:GAMEVER into the warmup workspace"
+          $restoreJson = uv run python accepted_bin.py restore --repo-root "$workspace" `
+            --persisted-root "$env:PERSISTED_WORKSPACE" --gamever "$env:GAMEVER"
+          if ($LASTEXITCODE -ne 0) { throw "Failed to restore the exact accepted binary allowlist." }
+          $restore = $restoreJson | ConvertFrom-Json
+          if ($restore.binary_lock_sha256 -notmatch '^sha256:[0-9a-f]{64}$') {
+            throw "Accepted-bin restore omitted the source binary lock identity."
           }
+          "BINARY_LOCK_SHA256=$($restore.binary_lock_sha256)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Prune stale warm-cache state
         id: prune-cache
         shell: pwsh
@@ -148,6 +135,17 @@ jobs:
           }
           "python=$pythonExe" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "ida-version=$idaVersion" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+      - name: Verify initialized binaries against source lock
+        id: verify-binaries
+        shell: pwsh
+        run: |
+          $verifyJson = uv run python accepted_bin.py verify `
+            --repo-root "${{ github.workspace }}" --gamever "$env:GAMEVER"
+          if ($LASTEXITCODE -ne 0) { throw "Configured binaries do not match the source lock." }
+          $verification = $verifyJson | ConvertFrom-Json
+          if ($verification.binary_lock_sha256 -ne $env:BINARY_LOCK_SHA256) {
+            throw "Binary lock identity drifted during initialization."
+          }
       - name: Probe immutable published cache
         id: probe-cache
         shell: pwsh
@@ -204,8 +202,13 @@ jobs:
         id: sync-accepted-bin
         shell: pwsh
         run: |-
-          uv run release_workflow.py sync-accepted-bin `
+          $syncJson = uv run python accepted_bin.py sync `
             --repo-root "${{ github.workspace }}" `
             --persisted-root "$env:PERSISTED_WORKSPACE" `
             --gamever "$env:GAMEVER"
           if ($LASTEXITCODE -ne 0) { throw "Accepted bin sync failed for $env:GAMEVER." }
+          $sync = $syncJson | ConvertFrom-Json
+          if ($sync.binary_lock_sha256 -ne $env:BINARY_LOCK_SHA256) {
+            throw "Accepted bin sync drifted from the source binary lock."
+          }
+          "binary-lock-sha256=$($sync.binary_lock_sha256)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append

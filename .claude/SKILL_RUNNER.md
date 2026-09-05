@@ -4,6 +4,8 @@
 
 - You **MUST** complete all tasks in SKILL specified by the initial prompt, **NEVER** stop at half unless there is an unrecoverable error.
 
+- When `CS2VIBE_ARTIFACT_DIR` is set, use it as the source-owned YAML module output directory for every read and write. Never write per-symbol YAML beside the private binary in that mode.
+
 - When there is an unrecoverable error (for example: bad configuration, missing requirements), Report to user with `<skill_error>ERROR REASON</skill_error>`.
 
 For example:

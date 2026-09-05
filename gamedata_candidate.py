@@ -1,11 +1,7 @@
 from __future__ import annotations
 
 import argparse
-import os
 import re
-import shutil
-import subprocess
-import uuid
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -15,16 +11,14 @@ from gamedata_contract import (
     discover_generator_modules,
     gamedata_manifest_sha256,
     generator_contract_sha256,
-    prefixed_output_inventory,
+    require_source_owned_generator_inputs,
     validate_output_tree,
 )
 from gamesymbol_store import SymbolStoreError
 from release_workflow_lib.errors import ReleaseWorkflowError
 from release_workflow_lib.hashing import (
-    REGULAR_GIT_MODES,
     load_json_object,
     normalized_relative_path,
-    sha256_bytes,
     sha256_file,
     write_canonical_json,
 )
@@ -47,7 +41,6 @@ SESSION_FIELDS = {
 }
 GAMEVER_RE = re.compile(r"^[0-9]{4,10}[a-z]?$", re.ASCII)
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$", re.ASCII)
-MAX_DIAGNOSTIC_PATHS = 20
 
 
 class GamedataCandidateError(ValueError):
@@ -129,6 +122,8 @@ def build_candidate(
     if version_root.exists():
         raise GamedataCandidateError(f"gamedata candidate output already exists: {version_root}")
     version_root.parent.mkdir(parents=True, exist_ok=True)
+    modules = discover_generator_modules(modules_dir)
+    require_source_owned_generator_inputs(modules)
     result = generate_gamedata(
         gamever=gamever,
         snapshot_path=snapshot,
@@ -137,7 +132,7 @@ def build_candidate(
         output_root=version_root,
         platforms=platforms or ["windows", "linux"],
         debug=debug,
-        download_latest=True,
+        download_latest=False,
         strict=True,
     )
     session = {
@@ -246,212 +241,8 @@ def compare_gamedata_inventory(
     )
 
 
-def _git_bytes(repo_root: Path, arguments: list[str]) -> bytes:
-    try:
-        result = subprocess.run(
-            ["git", "-C", str(repo_root), *arguments],
-            capture_output=True,
-            check=False,
-        )
-    except OSError as exc:
-        raise GamedataCandidateError(f"unable to run git: {exc}") from exc
-    if result.returncode != 0:
-        detail = result.stderr.decode(errors="replace").strip()
-        raise GamedataCandidateError(detail or f"git {' '.join(arguments)} failed")
-    return result.stdout
-
-
-def _resolved_checkout_revision(repo_root: Path, revision: str) -> str:
-    if not isinstance(revision, str) or not revision or "\0" in revision:
-        raise GamedataCandidateError("an explicit Git revision is required")
-    if revision != "HEAD" and not re.fullmatch(r"[0-9a-fA-F]{40}", revision):
-        raise GamedataCandidateError("Git revision must be explicit HEAD or a full commit SHA")
-    resolved = (
-        _git_bytes(repo_root, ["rev-parse", "--verify", "--end-of-options", f"{revision}^{{commit}}"])
-        .decode("ascii", errors="strict")
-        .strip()
-    )
-    checkout = (
-        _git_bytes(repo_root, ["rev-parse", "--verify", "HEAD^{commit}"]).decode("ascii", errors="strict").strip()
-    )
-    if not re.fullmatch(r"[0-9a-fA-F]{40}", resolved) or not re.fullmatch(r"[0-9a-fA-F]{40}", checkout):
-        raise GamedataCandidateError("Git revision did not resolve to a full commit SHA")
-    if resolved.lower() != checkout.lower():
-        raise GamedataCandidateError("explicit Git revision does not match the current checkout commit")
-    return resolved.lower()
-
-
-def git_revision_gamedata_inventory(repo_root: str | Path, revision: str, gamever: str) -> list[dict]:
-    repo_root = Path(repo_root).resolve()
-    if not repo_root.is_dir():
-        raise GamedataCandidateError(f"repository root is missing: {repo_root}")
-    gamever = _validated_gamever(gamever)
-    resolved = _resolved_checkout_revision(repo_root, revision)
-    root = f"gamedata/{gamever}"
-    prefix = root + "/"
-    raw_entries = _git_bytes(repo_root, ["ls-tree", "-r", "-z", "--full-tree", resolved, "--", root])
-    objects: list[tuple[str, str]] = []
-    seen_paths: set[str] = set()
-    casefolded_paths: dict[str, str] = {}
-    for record in raw_entries.split(b"\0"):
-        if not record:
-            continue
-        try:
-            metadata, raw_path = record.split(b"\t", 1)
-            mode, object_type, object_id = metadata.decode("ascii").split()
-            path_text = raw_path.decode("utf-8")
-        except (UnicodeError, ValueError) as exc:
-            raise GamedataCandidateError("tracked gamedata has a malformed Git tree entry") from exc
-        if object_type != "blob":
-            raise GamedataCandidateError(f"tracked gamedata has a non-blob Git tree entry: {path_text}")
-        if mode not in REGULAR_GIT_MODES:
-            raise GamedataCandidateError(f"tracked gamedata has an unsupported Git tree entry: {path_text}")
-        if not re.fullmatch(r"[0-9a-fA-F]{40}|[0-9a-fA-F]{64}", object_id):
-            raise GamedataCandidateError(f"tracked gamedata has an invalid Git object ID: {path_text}")
-        if not path_text.startswith(prefix):
-            raise GamedataCandidateError(f"tracked gamedata path is outside exact root {root}: {path_text}")
-        path = _canonical_inventory_path(path_text)
-        if path in seen_paths:
-            raise GamedataCandidateError(f"tracked gamedata has a duplicate path: {path}")
-        folded = path.casefold()
-        if folded in casefolded_paths:
-            raise GamedataCandidateError(
-                f"tracked gamedata has a case-insensitive path collision: {casefolded_paths[folded]} and {path}"
-            )
-        seen_paths.add(path)
-        casefolded_paths[folded] = path
-        objects.append((path, object_id))
-    if not objects:
-        raise GamedataCandidateError(f"tracked gamedata root is missing or empty at revision {resolved}: {root}")
-    inventory = []
-    for path, object_id in objects:
-        blob = _git_bytes(repo_root, ["cat-file", "blob", object_id])
-        inventory.append({"path": path, "size": len(blob), "sha256": sha256_bytes(blob)})
-    return sorted(inventory, key=lambda item: item["path"])
-
-
-def _guard_session_identity(
-    *, session_path: str | Path, gamever: str, candidate: str | Path, analysis_config: str | Path
-) -> dict:
-    gamever = _validated_gamever(gamever)
-    session = guard_candidate(session_path)
-    candidate = _absolute_file(candidate, "release candidate")
-    analysis_config = _absolute_file(analysis_config, "analysis config")
-    if session["gamever"] != gamever or session["candidate_sha256"] != sha256_file(candidate):
-        raise GamedataCandidateError("gamedata session does not match the release candidate")
-    if session["analysis_config_sha256"] != sha256_file(analysis_config):
-        raise GamedataCandidateError("gamedata session does not match the analysis config")
-    return session
-
-
-def _bounded_inventory_diagnostics(gamever: str, diff: GamedataInventoryDiff) -> str:
-    lines = [f"Tracked gamedata mismatch for {gamever}:"]
-
-    def add_paths(title: str, paths: tuple[str, ...]) -> None:
-        if not paths:
-            return
-        lines.append(f"  {title}:")
-        lines.extend(f"    {path}" for path in paths[:MAX_DIAGNOSTIC_PATHS])
-        if len(paths) > MAX_DIAGNOSTIC_PATHS:
-            lines.append(f"    ... {len(paths) - MAX_DIAGNOSTIC_PATHS} more")
-
-    add_paths("Added in PR head", diff.added)
-    add_paths("Missing from PR head", diff.missing)
-    if diff.modified:
-        lines.append("  Modified:")
-        for item in diff.modified[:MAX_DIAGNOSTIC_PATHS]:
-            lines.extend(
-                (
-                    f"    {item.path}",
-                    f"      expected size/sha256: {item.expected_size} / {item.expected_sha256}",
-                    f"      candidate size/sha256: {item.candidate_size} / {item.candidate_sha256}",
-                )
-            )
-        if len(diff.modified) > MAX_DIAGNOSTIC_PATHS:
-            lines.append(f"    ... {len(diff.modified) - MAX_DIAGNOSTIC_PATHS} more")
-    return "\n".join(lines)
-
-
-def verify_published_gamedata(
-    *, session_path: str | Path, repo_root: str | Path, gamever: str, candidate: str | Path, analysis_config: str | Path
-) -> dict:
-    session = _guard_session_identity(
-        session_path=session_path,
-        gamever=gamever,
-        candidate=candidate,
-        analysis_config=analysis_config,
-    )
-    target = Path(repo_root) / "gamedata" / gamever
-    files = prefixed_output_inventory(target, gamever)
-    if not compare_gamedata_inventory(session=session, expected_files=files).matches:
-        raise GamedataCandidateError("published gamedata differs from the guarded candidate")
-    return {
-        "gamedata_path": session["gamedata_path"],
-        "gamedata_manifest_sha256": session["gamedata_manifest_sha256"],
-        "generator_contract_sha256": session["generator_contract_sha256"],
-    }
-
-
-def verify_tracked_gamedata(
-    *,
-    session_path: str | Path,
-    repo_root: str | Path,
-    revision: str,
-    gamever: str,
-    candidate: str | Path,
-    analysis_config: str | Path,
-) -> dict:
-    session = _guard_session_identity(
-        session_path=session_path,
-        gamever=gamever,
-        candidate=candidate,
-        analysis_config=analysis_config,
-    )
-    expected_files = git_revision_gamedata_inventory(repo_root, revision, gamever)
-    diff = compare_gamedata_inventory(session=session, expected_files=expected_files)
-    if not diff.matches:
-        raise GamedataCandidateError(_bounded_inventory_diagnostics(gamever, diff))
-    return {
-        "gamedata_path": session["gamedata_path"],
-        "gamedata_manifest_sha256": session["gamedata_manifest_sha256"],
-        "generator_contract_sha256": session["generator_contract_sha256"],
-    }
-
-
-def publish_candidate(*, session_path: str | Path, output_dir: str | Path) -> dict:
-    session = guard_candidate(session_path)
-    gamever = session["gamever"]
-    source = Path(session["candidate_root"]) / session["gamedata_path"]
-    target = Path(output_dir).resolve()
-    if target.name != gamever:
-        raise GamedataCandidateError(f"publish target must end with the exact GAMEVER: {target}")
-    target.parent.mkdir(parents=True, exist_ok=True)
-    incoming = target.parent / f".{gamever}.incoming-{uuid.uuid4().hex}"
-    backup = target.parent / f".{gamever}.backup-{uuid.uuid4().hex}"
-    shutil.copytree(source, incoming, copy_function=shutil.copy2)
-    incoming_files = prefixed_output_inventory(incoming, gamever)
-    if incoming_files != session["files"]:
-        shutil.rmtree(incoming)
-        raise GamedataCandidateError("copied gamedata candidate failed verification")
-    moved_old = False
-    try:
-        if target.exists():
-            os.replace(target, backup)
-            moved_old = True
-        os.replace(incoming, target)
-    except OSError as exc:
-        if moved_old and not target.exists() and backup.exists():
-            os.replace(backup, target)
-        raise GamedataCandidateError(f"atomic gamedata publication failed: {exc}") from exc
-    if backup.exists():
-        shutil.rmtree(backup)
-    if prefixed_output_inventory(target, gamever) != session["files"]:
-        raise GamedataCandidateError("published gamedata failed final verification")
-    return session
-
-
 def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Build, verify, and publish immutable versioned gamedata candidates")
+    parser = argparse.ArgumentParser(description="Build and guard release-local immutable gamedata candidates")
     commands = parser.add_subparsers(dest="command", required=True)
     build = commands.add_parser("build")
     build.add_argument("-gamever", required=True)
@@ -465,16 +256,6 @@ def _parser() -> argparse.ArgumentParser:
     build.add_argument("-debug", action="store_true")
     guard = commands.add_parser("guard")
     guard.add_argument("-session", required=True)
-    verify_tracked = commands.add_parser("verify-tracked")
-    verify_tracked.add_argument("-session", required=True)
-    verify_tracked.add_argument("-gamever", required=True)
-    verify_tracked.add_argument("-candidate", required=True)
-    verify_tracked.add_argument("-configyaml", required=True)
-    verify_tracked.add_argument("-repo-root", required=True)
-    verify_tracked.add_argument("-revision", required=True)
-    publish = commands.add_parser("publish")
-    publish.add_argument("-session", required=True)
-    publish.add_argument("-outputdir", required=True)
     return parser
 
 
@@ -495,17 +276,6 @@ def main(argv=None) -> int:
             )
         elif args.command == "guard":
             guard_candidate(args.session)
-        elif args.command == "verify-tracked":
-            verify_tracked_gamedata(
-                session_path=args.session,
-                repo_root=args.repo_root,
-                revision=args.revision,
-                gamever=args.gamever,
-                candidate=args.candidate,
-                analysis_config=args.configyaml,
-            )
-        else:
-            publish_candidate(session_path=args.session, output_dir=args.outputdir)
     except (
         GamedataCandidateError,
         GamedataContractError,

@@ -2,27 +2,11 @@
 
 # Snapshots, gamedata, and C++ validation
 
-Per-symbol YAML remains ignored under `bin/<GAMEVER>/<module>/`. The Git-tracked canonical analysis lockfile is `gamesymbols/<GAMEVER>.yaml`, whose file set is derived from the required and optional YAML outputs declared by `configs/<GAMEVER>.yaml`.
+Per-symbol YAML under `bin_artifacts/<GAMEVER>/<module>/` is the only normal Git truth. The formal required/optional file set, producer groups, and downstream closure come from `configs/<GAMEVER>.yaml`. `bin/<GAMEVER>/` contains only disposable binaries and analysis cache state.
 
-## Generate gamedata
+## Local candidate validation
 
-Convert a canonical symbol snapshot into versioned gamedata:
-
-```bash
-uv run update_gamedata.py -gamever 14168 -snapshot gamesymbols/14168.yaml -modulesdir gamedata-generators -outputdir gamedata/14168 -download_latest -strict [-debug]
-```
-
-## Run C++ layout validation
-
-```bash
-uv run run_cpp_tests.py -gamever 14168 -snapshot gamesymbols/14168.yaml [-debug]
-```
-
-Use the project-level `fix-cppheaders` skill to repair reported `hl2sdk_cs2` header differences. The skill runs `run_cpp_tests.py` to collect fresh layout differences and verify the edits.
-
-## Immutable candidate transaction
-
-After a successful top-level analysis transaction, build one candidate immediately. Both downstream consumers read that same immutable candidate; publication copies its original bytes only after both validations succeed:
+After analysis has finalized canonical bytes in `bin_artifacts`, build one release-local snapshot candidate. Gamedata and C++ validation consume those same immutable candidate bytes:
 
 ```bash
 CANDIDATE_DIR="$(mktemp -d)"
@@ -30,47 +14,32 @@ CANDIDATE_SNAPSHOT="$CANDIDATE_DIR/14168.yaml"
 CANDIDATE_SESSION="$CANDIDATE_DIR/14168.session.json"
 GAMEDATA_ROOT="$CANDIDATE_DIR/gamedata-candidate"
 GAMEDATA_SESSION="$CANDIDATE_DIR/14168.gamedata.session.json"
-uv run gamesymbol_candidate.py build -gamever 14168 -bindir bin -configyaml configs/14168.yaml -output "$CANDIDATE_SNAPSHOT" -session "$CANDIDATE_SESSION"
+uv run gamesymbol_candidate.py build -gamever 14168 -bindir bin -artifactdir bin_artifacts -configyaml configs/14168.yaml -output "$CANDIDATE_SNAPSHOT" -session "$CANDIDATE_SESSION"
 uv run gamedata_candidate.py build -gamever 14168 -build-id local-1 -snapshot "$CANDIDATE_SNAPSHOT" -configyaml configs/14168.yaml -candidate-root "$GAMEDATA_ROOT" -session "$GAMEDATA_SESSION"
 uv run gamedata_candidate.py guard -session "$GAMEDATA_SESSION"
 uv run gamesymbol_candidate.py mark -candidate "$CANDIDATE_SNAPSHOT" -session "$CANDIDATE_SESSION" -step gamedata
 uv run run_cpp_tests.py -gamever 14168 -configyaml configs/14168.yaml -snapshot "$CANDIDATE_SNAPSHOT"
 uv run gamesymbol_candidate.py mark -candidate "$CANDIDATE_SNAPSHOT" -session "$CANDIDATE_SESSION" -step cpp_tests
-uv run gamesymbol_candidate.py publish -candidate "$CANDIDATE_SNAPSHOT" -session "$CANDIDATE_SESSION" -snapshot gamesymbols/14168.yaml
-uv run gamedata_candidate.py publish -session "$GAMEDATA_SESSION" -outputdir gamedata/14168
 ```
 
-## Restore and verify snapshots
+These commands do not publish tracked snapshot/gamedata directories. Release builds reconstruct the same candidate from an immutable source SHA, verify a fresh `-force_all -rename` rebuild against Git blobs, and package snapshot, metadata, gamedata, archives, and checksums as immutable Release assets.
 
-Restore a clean analysis baseline or verify the current workspace without modifying the tracked snapshot:
+Use the project-level `fix-cppheaders` skill to repair reported `hl2sdk_cs2` header differences.
+
+## Historical snapshot compatibility
+
+Snapshot restore is rollback/migration compatibility only. It requires an explicit historical snapshot and a checkout-external artifact root; it must never hydrate `bin/` or overwrite tracked `bin_artifacts`:
 
 ```bash
-uv run gamesymbol_snapshot.py restore -gamever 14168
-uv run gamesymbol_snapshot.py restore -gamever 14168 -replace
-uv run gamesymbol_snapshot.py verify -gamever 14168
-uv run gamesymbol_snapshot.py check-contract -gamever 14168 -json
-uv run gamesymbol_snapshot.py migrate -gamever 14168
+uv run gamesymbol_snapshot.py check-contract -gamever 14168 -snapshot path/to/14168.yaml -json
+uv run gamesymbol_snapshot.py restore -gamever 14168 -snapshot path/to/14168.yaml -artifactdir D:/isolated/bin_artifacts
 ```
 
-Default restore creates missing YAML and refuses to overwrite semantically different files. `-replace` removes only YAML under `bin/<GAMEVER>/`, preserves binaries and IDA databases, then rebuilds the snapshot contents.
+## Pull-request artifact contract
 
-Candidate `build` and low-level/bootstrap `pack` reject missing required outputs and undeclared YAML. `verify` enforces canonical bytes and both required round trips. Schema 1 snapshots imply frozen config digest v1 and remain byte-stable; new writers emit schema 2 with explicit, domain-separated config digest v2.
+A source/config/reference change must include the computed affected producer-group and downstream artifact closure under `bin_artifacts/`. A new GAMEVER includes config/download identity and its complete artifacts atomically; the bootstrap publisher may add an artifact-only direct child commit, after which the new PR head must pass validation again.
 
-`check-contract` is a read-only trust probe: exit `0` means trusted, exit `3` reports a machine-readable untrusted reason, and invocation, configuration, or operational errors remain hard failures. `migrate` explicitly upgrades a validated schema-1 snapshot without changing its `files` payload; it never runs implicitly during restore or verify.
-
-## Pull-request output contract
-
-Pull requests that can affect analysis or gamedata generator output initially commit source changes only. Matching
-`gamesymbols/<GAMEVER>.yaml` and `gamedata/<GAMEVER>/` outputs are owned by PR CI.
-
-PR CI uses a trusted base snapshot for restore and targeted invalidation. A missing base snapshot bootstraps from clean YAML; an untrusted base snapshot emits a warning and takes the same clean full-rebuild path without restoring any baseline payload.
-
-The workflow strict-packs one actual symbol candidate, builds guarded gamedata from it, and runs C++ validation against
-the same candidate transaction. After success it checks out the immutable PR head, publishes those exact bytes,
-restricts the diff to the versioned snapshot/gamedata paths, creates a provenance-bearing `github-actions[bot]` commit,
-and pushes without force. Because a `GITHUB_TOKEN` push does not recursively trigger a PR workflow, CI explicitly
-dispatches a lightweight recheck bound to the published head; that recheck verifies the actor, live PR state, parent
-and base SHAs, commit message, allowed paths, and both output digests before the stable `pr-validate` check succeeds.
+The default-branch planner binds the exact prospective merge tree. Full validation rebuilds each affected GAMEVER into a checkout-external empty root, verifies producer-group execution evidence and exact Git bytes, then derives snapshot/gamedata/C++ evidence without writing Release outputs to the PR branch. `gamesymbols/`, `gamedata/`, and `release-manifests/` are forbidden tracked namespaces.
 
 ## Supported gamedata
 

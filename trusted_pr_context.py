@@ -21,20 +21,17 @@ from trusted_yaml import load_yaml
 
 SCHEMA_VERSION = 2
 POLICY_REPO_PATH = "source_artifact_policy.yaml"
-CUTOVER_MANIFEST_REPO_PATH = "source_artifact_cutover.json"
 SHA_PATTERN = re.compile(r"^[0-9a-f]{40}$")
 TRUSTED_FILE_PATHS = (
     POLICY_REPO_PATH,
-    CUTOVER_MANIFEST_REPO_PATH,
     ".gitmodules",
     "trusted_pr_context.py",
     "trusted_artifact_pr.py",
+    "new_gamever_artifact.py",
     "gamever_baseline.py",
     "bin_artifact_contract.py",
     "binary_lock.py",
     "binary_hashing.py",
-    "source_artifact_accepted_bin.py",
-    "source_artifact_schema.py",
     "analysis_output_contract.py",
     "gamesymbol_snapshot_lib/analysis_sources.py",
     "gamesymbol_snapshot_lib/config.py",
@@ -44,9 +41,9 @@ TRUSTED_FILE_PATHS = (
     "trusted_yaml.py",
     "release_workflow_lib/errors.py",
     "release_workflow_lib/hashing.py",
+    ".github/workflows/pr-self-runner.yml",
     ".github/workflows/source-artifact-required.yml",
-    ".github/workflows/source-artifact-full-bridge.yml",
-    ".github/workflows/source-artifact-warmup-bridge.yml",
+    ".github/workflows/bootstrap-new-gamever-artifacts.yml",
     "pyproject.toml",
     "uv.lock",
 )
@@ -140,8 +137,8 @@ def parse_source_artifact_policy(payload: bytes) -> SourceArtifactPolicy:
     if document["schema_version"] != 1:
         raise TrustedPrContextError("trusted source artifact policy schema_version must be 1")
     mode = document["mode"]
-    if mode not in {"legacy", "bridge", "source-owned"}:
-        raise TrustedPrContextError("trusted source artifact policy mode must be legacy, bridge, or source-owned")
+    if mode != "source-owned":
+        raise TrustedPrContextError("trusted source artifact policy mode must be source-owned after cutover")
     artifact_root = document["artifact_root"]
     if artifact_root != "bin_artifacts":
         raise TrustedPrContextError("trusted source artifact policy artifact_root must be bin_artifacts")
@@ -158,8 +155,6 @@ def _canonical_document_bytes(document: dict) -> bytes:
 def _build_context_document(repo, *, event_kind: str, base_sha: str, head_sha: str, merge_sha: str) -> dict:
     trusted_payloads = {path: repo.read(base_sha, path) for path in TRUSTED_FILE_PATHS}
     policy = parse_source_artifact_policy(trusted_payloads[POLICY_REPO_PATH])
-    merge_policy_payload = repo.read(merge_sha, POLICY_REPO_PATH)
-    merge_policy = parse_source_artifact_policy(merge_policy_payload)
     document = {
         "schema_version": SCHEMA_VERSION,
         "event_kind": event_kind,
@@ -175,13 +170,6 @@ def _build_context_document(repo, *, event_kind: str, base_sha: str, head_sha: s
             "artifact_contract_schema_version": policy.artifact_contract_schema_version,
             "sha256": _sha256(trusted_payloads[POLICY_REPO_PATH]),
         },
-        "merge_artifact_policy": {
-            "mode": merge_policy.mode,
-            "artifact_root": merge_policy.artifact_root,
-            "artifact_contract_schema_version": merge_policy.artifact_contract_schema_version,
-            "sha256": _sha256(merge_policy_payload),
-        },
-        "cutover_transition": policy.mode == "bridge" and merge_policy.mode == "source-owned",
         "trusted_files": [
             {"path": path, "size": len(trusted_payloads[path]), "sha256": _sha256(trusted_payloads[path])}
             for path in TRUSTED_FILE_PATHS
@@ -245,22 +233,18 @@ def validate_trusted_pr_context(document: object) -> dict:
         "merge_tree_sha",
     ):
         _validated_sha(document.get(field, ""), field)
-    policies = (document.get("artifact_policy"), document.get("merge_artifact_policy"))
-    for policy in policies:
-        if (
-            not isinstance(policy, dict)
-            or set(policy) != {"mode", "artifact_root", "artifact_contract_schema_version", "sha256"}
-            or policy.get("mode") not in {"legacy", "bridge", "source-owned"}
-            or policy.get("artifact_root") != "bin_artifacts"
-            or not isinstance(policy.get("artifact_contract_schema_version"), int)
-            or isinstance(policy.get("artifact_contract_schema_version"), bool)
-            or policy["artifact_contract_schema_version"] < 1
-            or not re.fullmatch(r"[0-9a-f]{64}", str(policy.get("sha256", "")))
-        ):
-            raise TrustedPrContextError("trusted PR context artifact policy is invalid")
-    expected_transition = policies[0]["mode"] == "bridge" and policies[1]["mode"] == "source-owned"
-    if document.get("cutover_transition") is not expected_transition:
-        raise TrustedPrContextError("trusted PR context cutover transition is invalid")
+    policy = document.get("artifact_policy")
+    if (
+        not isinstance(policy, dict)
+        or set(policy) != {"mode", "artifact_root", "artifact_contract_schema_version", "sha256"}
+        or policy.get("mode") != "source-owned"
+        or policy.get("artifact_root") != "bin_artifacts"
+        or not isinstance(policy.get("artifact_contract_schema_version"), int)
+        or isinstance(policy.get("artifact_contract_schema_version"), bool)
+        or policy["artifact_contract_schema_version"] < 1
+        or not re.fullmatch(r"[0-9a-f]{64}", str(policy.get("sha256", "")))
+    ):
+        raise TrustedPrContextError("trusted PR context artifact policy is invalid")
     trusted_files = document.get("trusted_files")
     if not isinstance(trusted_files, list) or len(trusted_files) != len(TRUSTED_FILE_PATHS):
         raise TrustedPrContextError("trusted PR context file inventory is invalid")

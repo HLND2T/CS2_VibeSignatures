@@ -3,7 +3,6 @@ import json
 import os
 import random
 import stat
-import subprocess
 import time
 import uuid
 from pathlib import Path, PurePosixPath
@@ -180,67 +179,3 @@ def verify_inventory(root: Path, expected: list[dict]) -> str:
     if actual != expected:
         raise ReleaseWorkflowError(f"file inventory mismatch under {root}")
     return inventory_sha256(actual)
-
-
-def _git_bytes(repo_root: Path, arguments: list[str]) -> bytes:
-    result = subprocess.run(
-        ["git", "-C", str(repo_root), *arguments],
-        capture_output=True,
-        check=False,
-    )
-    if result.returncode != 0:
-        detail = result.stderr.decode(errors="replace").strip()
-        raise ReleaseWorkflowError(detail or f"git {' '.join(arguments)} failed")
-    return result.stdout
-
-
-def _git_index_inventory(repo_root: Path, pathspecs: list[str]) -> list[dict]:
-    raw_entries = _git_bytes(repo_root, ["ls-files", "--stage", "-z", "--", *pathspecs])
-    inventory = []
-    seen = set()
-    for record in raw_entries.split(b"\0"):
-        if not record:
-            continue
-        metadata, raw_path = record.split(b"\t", 1)
-        mode, object_id, stage = metadata.decode("ascii").split()
-        relative = normalized_relative_path(os.fsdecode(raw_path).replace("\\", "/"))
-        if stage != "0" or mode not in REGULAR_GIT_MODES or relative in seen:
-            raise ReleaseWorkflowError(f"tracked output has an unsupported Git index entry: {relative}")
-        blob = _git_bytes(repo_root, ["cat-file", "blob", object_id])
-        inventory.append({"path": relative, "size": len(blob), "sha256": sha256_bytes(blob)})
-        seen.add(relative)
-    return sorted(inventory, key=lambda item: item["path"])
-
-
-def tracked_output_inventory(repo_root: Path, gamever: str) -> list[dict]:
-    repo_root = Path(repo_root)
-    snapshot = f"gamesymbols/{gamever}.yaml"
-    metadata = f"gamesymbols/{gamever}.metadata.yaml"
-    gamedata = f"gamedata/{gamever}"
-    inventory = _git_index_inventory(repo_root, [snapshot, metadata, gamedata])
-    paths = {item["path"] for item in inventory}
-    if snapshot not in paths:
-        raise ReleaseWorkflowError(f"required tracked output is missing from the Git index: {snapshot}")
-    if metadata not in paths:
-        raise ReleaseWorkflowError(f"required tracked output is missing from the Git index: {metadata}")
-    if not any(path.startswith(gamedata + "/") for path in paths):
-        raise ReleaseWorkflowError(f"required tracked output is missing from the Git index: {gamedata}")
-    return inventory
-
-
-def allowed_output_path(path: str, gamever: str) -> bool:
-    path = normalized_relative_path(path)
-    return path in {
-        f"gamesymbols/{gamever}.yaml",
-        f"gamesymbols/{gamever}.metadata.yaml",
-        f"release-manifests/{gamever}.json",
-    } or path.startswith(f"gamedata/{gamever}/")
-
-
-def validate_output_paths(paths: list[str], gamever: str) -> None:
-    rejected = [path for path in paths if not allowed_output_path(path, gamever)]
-    if rejected:
-        raise ReleaseWorkflowError("generated-output PR contains disallowed paths: " + ", ".join(sorted(rejected)))
-    required = {f"release-manifests/{gamever}.json"}
-    if not required.issubset(paths):
-        raise ReleaseWorkflowError(f"generated-output PR must change release-manifests/{gamever}.json")

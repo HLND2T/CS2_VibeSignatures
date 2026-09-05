@@ -86,22 +86,6 @@ class TestSymbolStoreArchitecture(unittest.TestCase):
                 ]
                 self.assertEqual([], locations, f"forbidden production dependency calls: {locations}")
 
-    def test_pr_workflow_owns_post_change_validation(self) -> None:
-        workflow = Path(".github/workflows/pr-self-runner.yml").read_text(encoding="utf-8")
-        for command in (
-            "gamesymbol_candidate.py build",
-            "gamedata_candidate.py build",
-            "run_cpp_tests.py",
-            'Join-Path $env:PERSISTED_WORKSPACE "pr-yaml-staging"',
-        ):
-            self.assertIn(command, workflow)
-
-        for command in (
-            "gamesymbol_candidate.py publish",
-            "gamedata_candidate.py publish",
-        ):
-            self.assertNotIn(command, workflow)
-
 
 if __name__ == "__main__":
     unittest.main()

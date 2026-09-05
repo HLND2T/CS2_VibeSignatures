@@ -2,7 +2,7 @@
 name: rename-preprocessor-scripts
 description: |
   Rename a symbol (function, vfunc, vtable, struct member, global variable) across all
-  preprocessor scripts, configs/<GAMEVER>.yaml entries, and existing YAML output files.
+  preprocessor scripts, configs/<GAMEVER>.yaml entries, and tracked source-owned YAML artifacts.
   Use when a symbol's name changes (class rename, naming-convention fix, etc.), or when
   splitting a single finder into an inline/noinline fallback chain because a helper
   de-inlined and the target's YAML stopped being produced on some gamever/platform.
@@ -12,7 +12,8 @@ disable-model-invocation: true
 # Rename Preprocessor Scripts
 
 Rename a symbol from `OldName` to `NewName` across all files in the preprocessor pipeline:
-the Python script, `configs/<GAMEVER>.yaml`, and every per-gamever YAML output file under `bin/`.
+the Python script, `configs/<GAMEVER>.yaml`, and the matching tracked YAML artifacts under
+`bin_artifacts/<GAMEVER>/`.
 
 Resolve `GAMEVER` from the user's explicit request or `CS2VIBE_GAMEVER`; edit only
 `configs/$GAMEVER.yaml` and stop if it is missing.
@@ -58,7 +59,7 @@ Expected hits fall into these categories:
 |-----------|-------------|--------------|
 | Preprocessor script | `ida_preprocessor_scripts/find-OldName.py` | File renamed + content updated |
 | configs/<GAMEVER>.yaml | `configs/<GAMEVER>.yaml` | Skill name, `expected_output`, `skip_if_exists`, symbol `name` + `alias` |
-| Output YAMLs | `bin/*/client\|engine/OldName.{platform}.yaml` | File renamed + `func_name` / `vtable_name` fields |
+| Source-owned YAMLs | `bin_artifacts/<GAMEVER>/client\|engine/OldName.{platform}.yaml` | Tracked rename + canonical payload update |
 | Reference YAMLs | `ida_preprocessor_scripts/references/**/*.yaml` | File renamed (if named after symbol) or comment strings updated |
 | Test files | `tests/*.py` | Fixture data, assertions, class/method names updated |
 
@@ -163,26 +164,35 @@ If any skill has `skip_if_exists: - OldName.{platform}.yaml`, update to `NewName
 
 ---
 
-## Step 5: Rename and Update Output YAML Files
+## Step 5: Rebuild the Source-Owned Artifact Closure
 
-The output YAMLs under `bin/` are **not tracked by git**, so use regular `mv`.
-Adjust the subdirectory (`client` or `engine`) to match the module:
+Artifacts under `bin_artifacts/` are tracked Git truth. Do not use plain `mv`, hand-edit scalar formatting, or modify
+unrelated game versions. For the selected GAMEVER and module, preserve history for the direct rename with `git mv`.
+Use a checkout-external seeded root for targeted iteration without `-force_all`; module/skill filters are intentionally
+incompatible with the full execution contract:
 
 ```bash
-for dir in bin/*/client; do          # or bin/*/engine — check Step 1 grep output
-  for platform in windows linux; do
-    old="${dir}/OldName.${platform}.yaml"
-    new="${dir}/NewName.${platform}.yaml"
-    [ -f "$old" ] || continue
-    mv "$old" "$new"
-    sed -i "s/func_name: OldName/func_name: NewName/" "$new"
-    sed -i "s/vtable_name: OldClass/vtable_name: NewClass/" "$new"
-  done
-done
+git mv "bin_artifacts/<GAMEVER>/<module>/OldName.windows.yaml" \
+       "bin_artifacts/<GAMEVER>/<module>/NewName.windows.yaml"
+git mv "bin_artifacts/<GAMEVER>/<module>/OldName.linux.yaml" \
+       "bin_artifacts/<GAMEVER>/<module>/NewName.linux.yaml"
+uv run ida_analyze_bin.py -gamever <GAMEVER> -modules <module> -skill find-NewName \
+  -artifactdir <CHECKOUT_EXTERNAL_SEEDED_ROOT> -oldartifactdir bin_artifacts -debug
 ```
 
-> Other YAML fields (`vfunc_offset`, `vfunc_index`, `func_sig`, `func_va`, etc.) are
-> binary-derived values and must **not** be changed.
+Before copying the closure back, run the complete config from a different, fresh empty root and emit execution evidence:
+
+```bash
+uv run ida_analyze_bin.py -gamever <GAMEVER> -configyaml configs/<GAMEVER>.yaml \
+  -artifactdir <CHECKOUT_EXTERNAL_EMPTY_ROOT> -oldartifactdir bin_artifacts \
+  -oldgamever <PRIOR_GAMEVER-or-none> -execution_report <CHECKOUT_EXTERNAL_EXECUTION_REPORT.json> \
+  -force_all -debug
+```
+
+Apply only paths that exist and include platform-specific variants. The central finalizer must update identity fields and
+canonical bytes; binary-derived values change only when the rebuild proves they changed. Run the repository artifact
+contract and confirm the old path is absent, the new path has exactly one producer group, and every downstream artifact
+required by the config is included.
 
 ---
 
@@ -294,11 +304,10 @@ fi
 ```
 
 If any branch switch fails, stop and report the error. Review `git status --short`, then explicitly stage every
-task-related renamed or modified tracked file. Never use `git add -A`, and do not stage the gitignored `bin/`
-output YAMLs:
+task-related renamed or modified source path and the computed `bin_artifacts` closure. Never use `git add -A`:
 
 ```bash
-git add -- <each-modified-or-renamed-tracked-path>
+git add -- <source-config-reference-paths> <bin_artifacts-closure-paths>
 git diff --cached --name-only
 ```
 
@@ -306,10 +315,11 @@ Stop if the staged-path list contains anything unrelated to this task. Commit on
 the repository commit format:
 
 ```bash
-git commit -m "refactor(preprocessor): rename OldName to NewName" -m "Co-Authored-By: Codex"
+git commit -m "refactor(preprocessor): rename OldName to NewName" -m "Co-Authored-By: Codex <codex@openai.com>"
 ```
 
-The `bin/` output YAMLs remain untracked, which is expected. Do not call `/create-pr`, push the branch, or open a
+The staged diff must contain the tracked artifact A/M/D/R required by the rename and no Release-derived outputs. Do not
+call `/create-pr`, push the branch, or open a
 pull request unless the user separately requests it. Finish by reporting the commit hash and the non-MCP unittest
 result.
 
@@ -323,15 +333,15 @@ result.
 - [ ] `configs/<GAMEVER>.yaml` symbol `name` and `alias` updated (alias uses `::` — needs separate sed expression)
 - [ ] `configs/<GAMEVER>.yaml` downstream `expected_input` entries updated (if any)
 - [ ] `configs/<GAMEVER>.yaml` `skip_if_exists` entries updated (if any)
-- [ ] All `bin/*/OldName.*.yaml` files renamed to `NewName.*.yaml`
-- [ ] `func_name` (and `vtable_name`) fields inside output YAMLs updated
+- [ ] Selected `bin_artifacts/<GAMEVER>/*/OldName.*.yaml` paths renamed to `NewName.*.yaml`
+- [ ] Central finalizer rebuilt canonical payloads and the complete downstream closure
 - [ ] Reference YAMLs in `ida_preprocessor_scripts/references/` renamed and/or updated (if any)
 - [ ] Test files in `tests/` bulk-replaced; vtable class in assertions corrected (if any)
 - [ ] Downstream preprocessor script `.py` and `configs/<GAMEVER>.yaml` entries updated (if any)
 - [ ] Final grep shows zero stale references
 - [ ] Non-MCP unittest command above passes with 0 failures
 - [ ] The current branch is `dev` (created from `main` when it did not already exist)
-- [ ] Every task-related tracked path is explicitly staged and committed; `bin/` outputs remain untracked
+- [ ] Every task-related source path and tracked `bin_artifacts` closure path is explicitly staged and committed
 - [ ] `/create-pr` was not called; no push or PR was performed without a separate user request
 
 ---
@@ -345,10 +355,7 @@ result.
 **Affected files found:**
 - `ida_preprocessor_scripts/find-ILoopType_EngineLoop.py`
 - `configs/<GAMEVER>.yaml` (skill entry, symbol entry)
-- `bin/14141c/engine/ILoopType_EngineLoop.{windows,linux}.yaml`
-- `bin/14150d/engine/ILoopType_EngineLoop.{windows,linux}.yaml`
-- `bin/14151/engine/ILoopType_EngineLoop.{windows,linux}.yaml`
-- `bin/14152/engine/ILoopType_EngineLoop.{windows,linux}.yaml`
+- `bin_artifacts/<GAMEVER>/engine/ILoopType_EngineLoop.{windows,linux}.yaml`
 
 No downstream dependents, no reference YAMLs, no test files hit.
 
@@ -361,7 +368,7 @@ No downstream dependents, no reference YAMLs, no test files hit.
    - `GENERATE_YAML_DESIRED_FIELDS` key: `"ILoopType_EngineLoop"` → `"CLoopTypeBase_EngineLoop"`
 3. `configs/<GAMEVER>.yaml` skill: `find-ILoopType_EngineLoop` / `ILoopType_EngineLoop.{platform}.yaml` → new names
 4. `configs/<GAMEVER>.yaml` symbol: `name: ILoopType_EngineLoop`, `alias: ILoopType::EngineLoop` → new names
-5. `mv` all 8 YAML files; `sed -i` updated `func_name` and `vtable_name` in each
+5. `git mv` the selected GAMEVER artifacts; the analyzer/finalizer rebuilt identity fields and canonical bytes
 
 ---
 
@@ -372,7 +379,7 @@ No downstream dependents, no reference YAMLs, no test files hit.
 **Affected files found:**
 - `ida_preprocessor_scripts/find-ILoopType_DeallocateLoopMode.py`
 - `configs/<GAMEVER>.yaml` (`skip_if_exists` in `find-CEngineServiceMgr_DeactivateLoop`, skill entry, symbol entry)
-- `bin/14141c/engine/ILoopType_DeallocateLoopMode.{windows,linux}.yaml` (and 3 more gamevers)
+- `bin_artifacts/<GAMEVER>/engine/ILoopType_DeallocateLoopMode.{windows,linux}.yaml`
 - `ida_preprocessor_scripts/references/engine/CEngineServiceMgr_DeactivateLoop.{windows,linux}.yaml`
 - `tests/test_ida_analyze_bin.py`
 - `tests/test_ida_preprocessor_scripts.py`
@@ -384,7 +391,7 @@ No downstream dependents, no reference YAMLs, no test files hit.
    - All `ILoopType_DeallocateLoopMode` → `CLoopTypeBase_DeallocateLoopMode`
    - `FUNC_VTABLE_RELATIONS`: `("CLoopTypeBase_DeallocateLoopMode", "ILoopType")` → `(..., "CLoopTypeBase")`
 3. `configs/<GAMEVER>.yaml`: `skip_if_exists` entry + skill entry + symbol entry all updated
-4. `mv` all 8 YAML files; `sed -i` updated `func_name` and `vtable_name` in each
+4. `git mv` the tracked artifacts; the analyzer/finalizer regenerated the selected GAMEVER closure
 5. `sed -i` on both reference YAML files (comments in IDA disassembly snippets)
 6. `sed -i` bulk replace across both test files; then manually fixed `func_vtable_relations`
    assertion: `("CLoopTypeBase_DeallocateLoopMode", "ILoopType")` → `(..., "CLoopTypeBase")`
@@ -400,8 +407,8 @@ and `IGameSystemFactory_Deallocate` → `IGameSystemFactory_DestroyGameSystem`.
 - `ida_preprocessor_scripts/find-IGameSystemFactory_Allocate-AND-IGameSystemFactory_DoesGameSystemReallocate-AND-IGameSystem_SetName.py`
 - `ida_preprocessor_scripts/find-IGameSystem_GetName-AND-IGameSystemFactory_Deallocate.py`
 - `configs/<GAMEVER>.yaml` (2 skill entries, 2 symbol entries, 1 downstream `expected_input`)
-- `bin/*/client/IGameSystemFactory_Allocate.{platform}.yaml` (34 files)
-- `bin/*/client/IGameSystemFactory_Deallocate.{platform}.yaml` (34 files)
+- `bin_artifacts/<GAMEVER>/client/IGameSystemFactory_Allocate.{platform}.yaml`
+- `bin_artifacts/<GAMEVER>/client/IGameSystemFactory_Deallocate.{platform}.yaml`
 - `ida_preprocessor_scripts/references/client/IGameSystem_AddByName.{windows,linux}.yaml` (content only)
 - `ida_preprocessor_scripts/references/client/IGameSystem_DestroyAllGameSystems.{windows,linux}.yaml` (content only)
 - `ida_preprocessor_scripts/find-CGameSystemReallocatingFactory_CSpawnGroupMgrGameSystem_DestroyGameSystem-impl.py`

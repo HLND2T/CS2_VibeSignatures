@@ -55,6 +55,7 @@ class ProcessReason(str, Enum):
     MISSING_BINARY = "missing_binary"
     MISSING_INPUT = "missing_input"
     INVALID_INPUT = "invalid_input"
+    INVALID_OUTPUT = "invalid_output"
     PREPROCESS_ABSENT = "preprocess_absent"
     OPTIONAL_OUTPUT_ABSENT = "optional_output_absent"
     PREPROCESS_FAILED = "preprocess_failed"
@@ -70,6 +71,7 @@ class EdgeType(str, Enum):
     ARTIFACT = "artifact"
     OPTIONAL_INPUT = "optional_input"
     PREREQUISITE = "prerequisite"
+    ALTERNATIVE_ORDER = "alternative_order"
     CROSS_STAGE_ARTIFACT = "cross_stage_artifact"
     STAGE_ORDER = "stage_order"
 

@@ -99,6 +99,9 @@ Script location: `ida_preprocessor_scripts/find-{skill_name}.py`
 
 The filename MUST match the `name` field in `configs/<GAMEVER>.yaml` skill entry.
 
+The legacy `new_binary_dir` parameter name in preprocessor ABIs now receives the active artifact module directory.
+Per-symbol YAML reads/writes must stay under the explicit artifact root; only binary/IDA operations use `bin/`.
+
 Read the reference for your chosen pattern:
 
 - [Pattern A -- Regular function via xref strings](references/pattern-A.md)
@@ -458,9 +461,9 @@ The `(structmember, struct=StructName, member=member_name)` tag is **required** 
 **IMPORTANT -- When the predecessor is a NEW function (no existing output YAMLs):** If the predecessor function is brand new (discovered by another new script you're creating at the same time), its output YAMLs don't exist yet and `generate_reference_yaml.py` cannot resolve its address. You must use a **multi-phase workflow**:
 
 1. **Phase 1:** Create ALL scripts (vtable, xref_string, LLM_DECOMPILE) and update configs/<GAMEVER>.yaml
-2. **Phase 2:** Run `uv run ida_analyze_bin.py -debug -oldgamever none` -- the vtable and xref_string scripts will succeed and populate the NEW predecessor's output YAMLs. The LLM_DECOMPILE script will fail (no reference YAML yet) or be skipped.
+2. **Phase 2:** Seed a checkout-external artifact root from tracked `bin_artifacts`, remove the new outputs only there, and run the required module/skills without `-force_all`, with `-oldgamever none` and explicit `-artifactdir`/`-oldartifactdir`. The vtable and xref-string scripts populate the new predecessor in the isolated root.
 3. **Phase 3:** Now that the predecessor has output YAMLs, run `generate_reference_yaml.py` to create reference YAMLs, then annotate them.
-4. **Phase 4:** Run `uv run ida_analyze_bin.py -debug -oldgamever none` again -- this time the LLM_DECOMPILE path runs and the full pipeline is validated.
+4. **Phase 4:** Run the complete config with `-force_all` from a different fresh empty root and an explicit `-execution_report`; validate the full inventory, copy the canonical closure to tracked `bin_artifacts`, and run the repository artifact contract.
 
 **IMPORTANT -- When the reference YAML already existed:** `generate_reference_yaml.py` regenerates the file from scratch and silently overwrites any hand-written annotation comments. After running it, check the diff for each regenerated file:
 
@@ -474,12 +477,18 @@ Look for removed lines (prefixed with `-` in the diff) that are annotation comme
 
 ## Step 5: Run Tests
 
-After all creation steps are complete, run the full preprocessor test to validate the new script works.
+After all creation steps are complete, validate the complete config in a checkout-external fresh empty artifact root.
+Targeted seeded-root iteration may use module/skill filters only without `-force_all`; the final force-all run must not use
+filters. Never delete or rewrite tracked expected artifacts merely to make a test run.
 
 Because the output is very long, redirect it to a temp file and then read just the summary:
 
 ```bash
-uv run ida_analyze_bin.py -debug > /tmp/ida_test_output.txt 2>&1; tail -10 /tmp/ida_test_output.txt
+uv run ida_analyze_bin.py -gamever <GAMEVER> -configyaml configs/<GAMEVER>.yaml \
+  -artifactdir <checkout-external-empty-root> -oldartifactdir bin_artifacts \
+  -oldgamever <PRIOR_GAMEVER-or-none> -execution_report <checkout-external-execution-report.json> \
+  -debug -force_all > /tmp/ida_test_output.txt 2>&1
+tail -10 /tmp/ida_test_output.txt
 ```
 
 Check the **Summary** at the end of the output:
@@ -489,7 +498,9 @@ Check the **Summary** at the end of the output:
   grep -A 5 "Failed\|Error" /tmp/ida_test_output.txt
   ```
 
-This step is mandatory -- do not report completion without running and passing this validation.
+This step is mandatory -- do not report completion without running and passing this validation. Validate the complete
+scratch inventory and canonical bytes, then copy the computed affected/downstream closure into
+`bin_artifacts/<GAMEVER>/` and run the repository artifact contract.
 
 ---
 
@@ -524,12 +535,13 @@ else
 fi
 ```
 
-If any branch switch fails, stop and report the error. Review `git status --short`, then explicitly stage only the
-task-related source/config/reference files. Never use `git add -A` or stage `bin/` output YAMLs:
+If any branch switch fails, stop and report the error. Review `git status --short`, then explicitly stage the
+task-related source/config/reference files and complete `bin_artifacts` closure. Never use `git add -A`:
 
 ```bash
 git add -- ida_preprocessor_scripts/find-{SKILL_NAME}.py configs/<GAMEVER>.yaml
 git add -- <generated-reference-yamls>
+git add -- <bin_artifacts-affected-and-downstream-closure>
 git diff --cached --name-only
 ```
 
@@ -537,12 +549,13 @@ Include every task-related implementation file changed:
 - The new preprocessor script
 - configs/<GAMEVER>.yaml changes
 - Any reference YAMLs generated (for Patterns C/D/E)
+- Every canonical `bin_artifacts/<GAMEVER>/` A/M/D/R in the computed closure
 
 Stop if the staged-path list contains anything unrelated to this task. Commit only the staged task changes using
 the repository commit format:
 
 ```bash
-git commit -m "feat(preprocessor): add find-{SKILL_NAME}" -m "Co-Authored-By: Codex"
+git commit -m "feat(preprocessor): add find-{SKILL_NAME}" -m "Co-Authored-By: Codex <codex@openai.com>"
 ```
 
 Do not call `/create-pr`, push the branch, or open a pull request unless the user separately requests it. Finish by
@@ -562,10 +575,11 @@ Before finishing, verify:
 - [ ] configs/<GAMEVER>.yaml `symbols` section has entries for all targets (no duplicates)
 - [ ] Every `structmember` parent has one metadata-only `category: struct` declaration in the same module with compatible platform coverage
 - [ ] Pattern-specific checks pass (see the Checklist section in the chosen pattern reference file)
-- [ ] `uv run ida_analyze_bin.py -debug` passes with 0 failures
+- [ ] Isolated `ida_analyze_bin.py -force_all` passes with 0 failures and does not modify checkout expected artifacts
+- [ ] Complete canonical `bin_artifacts` closure is staged; no snapshot/gamedata/release-manifest output is staged
 - [ ] Non-MCP unittest command above passes with 0 failures
 - [ ] The current branch is `dev` (created from `main` when it did not already exist)
-- [ ] Only task-related source/config/reference files are explicitly staged and committed
+- [ ] Only task-related source/config/reference files and their computed artifact closure are explicitly staged and committed
 - [ ] `/create-pr` was not called; no push or PR was performed without a separate user request
 
 ## Real-World Examples

@@ -31,7 +31,7 @@ from release_workflow_lib.hashing import (
     verify_inventory,
     write_canonical_json,
 )
-from release_workflow_lib.manifests import require_gamever
+from release_workflow_lib.binary_cache import require_gamever
 
 
 SCHEMA_VERSION = 1

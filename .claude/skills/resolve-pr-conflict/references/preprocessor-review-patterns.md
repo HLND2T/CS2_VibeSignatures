@@ -1,6 +1,6 @@
 # Preprocessor PR Review Patterns
 
-Use this reference for changes to `ida_preprocessor_scripts/`, `configs/`, analysis reference YAML, or generated symbol snapshots.
+Use this reference for changes to `ida_preprocessor_scripts/`, `configs/`, analysis reference YAML, or tracked source-owned symbol artifacts.
 
 ## 1. Coalesce LLM Decompilation by Predecessor
 
@@ -84,27 +84,29 @@ For every changed finder, verify:
 - every required reference appears in `expected_input` with the correct relative module path;
 - producer entries precede consumers;
 - removed scripts have no remaining config entries or tests;
-- renamed interface/concrete symbols are reflected in symbol declarations, aliases, reference annotations, snapshots, and gamedata consumers;
-- generated output changes are a consequence of the design change, not the only evidence supporting it.
+- renamed interface/concrete symbols are reflected in symbol declarations, aliases, reference annotations, source-owned artifacts, and Release-derived consumers;
+- artifact changes cover the affected/downstream closure and are a consequence of the design change, not the only evidence supporting it.
 
-Treat a green snapshot comparison as necessary but insufficient: it validates reproducibility of the current config, not semantic symbol ownership or efficient analysis design.
+Treat an exact-byte artifact rebuild as necessary but insufficient: it validates reproducibility of the current config, not semantic symbol ownership or efficient analysis design.
 
 ## 5. Reject Stale-Gamever Config Changes
 
 ### Trigger signals
 
-- The PR modifies `configs/<GAMEVER>.yaml`, `gamesymbols/<GAMEVER>.yaml`, or other `<GAMEVER>`-scoped tracked paths.
+- The PR modifies `configs/<GAMEVER>.yaml`, `bin_artifacts/<GAMEVER>/`, or a forbidden legacy output namespace.
 - `<GAMEVER>` is not the latest version in `download.yaml`.
 - The same symbol/finder change also exists (or belongs) in the latest gamever's config.
 
 ### Review method
 
 1. Read the last `tag:` entry in `download.yaml`; that is the canonical latest gamever. The list is chronological, so the newest version is always last (matching `init_gamebin.py`'s `LATEST_GAMEVER=versions[-1]`).
-2. Collect every `<GAMEVER>` that appears in PR-changed paths matching `configs/<GAMEVER>.yaml`, `gamesymbols/<GAMEVER>.yaml`, `gamedata/<GAMEVER>/`, or `release-manifests/<GAMEVER>.json`.
+2. Collect every `<GAMEVER>` that appears in `configs/<GAMEVER>.yaml` or `bin_artifacts/<GAMEVER>/`; independently reject tracked `gamesymbols/`, `gamedata/`, and `release-manifests/`.
 3. Flag each one that is not the latest gamever.
 4. Distinguish "stale config change" from "historical backport": a stale change adds/removes symbols or finders in an old config as if it were the current analysis model; a legitimate historical fix would be scoped and justified. Treat the stale change as a defect unless the PR explicitly documents a backport intent.
-5. When the latest gamever config already has (or should have) the same finders/symbols, require the PR to carry the change only in the latest config and verify the generated snapshot reflects it.
+5. When the latest gamever config already has (or should have) the same finders/symbols, require the PR to carry the change only in the latest config and verify the computed `bin_artifacts` closure reflects it.
 
 ### Finding rule
 
-Raise a finding when the PR changes a config or analysis output for a gamever that is not the latest. The analysis model is single-versioned: producers, expected inputs, symbol definitions, and aliases belong in the latest gamever config, not replayed into stale ones. Adding finders to an old config that reference symbols undefined in that config is a concrete defect, not merely redundant. The latest gamever is authoritative; anything else is a hard stop for the review.
+Raise a finding when the PR changes a config or source-owned artifact for a non-latest GAMEVER without an explicit,
+coherent historical-backport intent. Producers, expected inputs, symbol definitions, aliases, and artifact closure must
+belong to the same version contract. Tracked Release-derived namespaces are always a hard-stop finding.

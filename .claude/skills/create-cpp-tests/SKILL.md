@@ -96,13 +96,13 @@ Key rules:
 
 If the user didn't provide these, discover them:
 
-1. **alias_symbols**: Search for existing vtable YAML files:
+1. **alias_symbols**: Search the tracked source-owned vtable artifacts:
    ```
-   bin/**/*<ClassName>*vtable*
+   bin_artifacts/<GAMEVER>/**/*<ClassName>*vtable*
    ```
    The `vtable_class` field in those YAMLs gives the alias symbol (typically the concrete class name like `CLoopModeGame` for `ILoopMode`).
 
-2. **reference_modules**: The subdirectories under `bin/{gamever}/` where vtable YAMLs exist (e.g., `client`, `server`, `engine`, `networksystem`).
+2. **reference_modules**: The subdirectories under `bin_artifacts/<GAMEVER>/` where vtable YAMLs exist (e.g., `client`, `server`, `engine`, `networksystem`).
 
 ### Step 5: Append configs/<GAMEVER>.yaml entry
 
@@ -132,7 +132,7 @@ Append a new entry at the end of the `cpp_tests:` section in `configs/<GAMEVER>.
       - Xclang
       - fdump-vtable-layouts
     reference_modules:
-      - {module1} # bin/{gamever}/{module1}/{AliasOrSymbol}_*.{platform}.yaml
+      - {module1} # bin_artifacts/{gamever}/{module1}/{AliasOrSymbol}_*.{platform}.yaml
       - {module2}
 ```
 
@@ -167,7 +167,7 @@ Never use `git add -A`. Stop if the staged-path list contains anything unrelated
 staged task changes using the repository commit format:
 
 ```bash
-git commit -m "test(cpp-tests): add {InterfaceName} vtable validation" -m "Co-Authored-By: Codex"
+git commit -m "test(cpp-tests): add {InterfaceName} vtable validation" -m "Co-Authored-By: Codex <codex@openai.com>"
 ```
 
 Do not call `/create-pr`, push the branch, or open a pull request unless the user separately requests it. Finish by

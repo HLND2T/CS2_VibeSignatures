@@ -172,20 +172,20 @@ Register only `{TARGET}` under `symbols:` -- **not** `{HELPER}` (see rules).
 
 ## Validate on BOTH inline states
 
-`bin/*.yaml` are gitignored, so regenerating is free. Validate in isolation with a scratch
-config and `-oldgamever none` (forces the xref paths; version reuse would short-circuit
--noinline):
+`bin_artifacts/*.yaml` are tracked source truth. Validate with a scratch config and a checkout-external artifact root;
+seed each tested GAMEVER from tracked artifacts, then remove TARGET only in those scratch copies. Use
+`-oldgamever none` to force the xref paths; version reuse would short-circuit `-noinline`:
 
 ```bash
-# _scratch.yaml = just this module (real path_windows/path_linux) + the 3 new skills + TARGET's symbol entry
-rm -f bin/<inlined_ver>/<mod>/{TARGET}.*.yaml bin/<deinlined_ver>/<mod>/{TARGET}.*.yaml   # force the chain to run
-uv run ida_analyze_bin.py -configyaml=_scratch.yaml -gamever <deinlined_ver>  -oldgamever none -modules=<mod> -debug
-uv run ida_analyze_bin.py -configyaml=_scratch.yaml -gamever <inlined_ver>  -oldgamever none  -modules=<mod> -debug
+# _scratch.yaml = just this module (real paths) + the 3 new skills + TARGET's symbol entry
+# <scratch-artifacts> is checkout-external and contains the unaffected artifacts for each tested version.
+uv run ida_analyze_bin.py -configyaml=_scratch.yaml -gamever <deinlined_ver> -artifactdir <scratch-artifacts> -oldartifactdir bin_artifacts -oldgamever none -modules=<mod> -force_all -debug
+uv run ida_analyze_bin.py -configyaml=_scratch.yaml -gamever <inlined_ver> -artifactdir <scratch-artifacts> -oldartifactdir bin_artifacts -oldgamever none -modules=<mod> -force_all -debug
 ```
 
 Confirm **both** gamevers x **both** platforms resolve TARGET to the same vtable slot (or
-`func_sig`) with `Failed 0`. Delete `_scratch.yaml` before committing. (The fail-fast run and a
-scratch config are covered by the isolation-validation note in the main SKILL.md.)
+`func_sig`) with `Failed 0`. Copy only the selected PR GAMEVER's validated affected/downstream closure into tracked
+`bin_artifacts`, run the repository artifact contract, and delete `_scratch.yaml` before committing.
 
 ## Worked example: `CNetworkGameServer_DirectUpdate` (engine, 14168)
 
@@ -229,4 +229,4 @@ against the `PrintStats` chain before writing it.
 - [ ] `{HELPER}` NOT added as a gamedata `symbol`
 - [ ] configs/<GAMEVER>.yaml entries ordered HELPER -> -noinline -> -inlined
 - [ ] Validated on an inlined AND a de-inlined gamever, both platforms, `-oldgamever none`, `Failed 0`
-- [ ] Scratch config deleted; only the 3 skill files + `configs/<GAMEVER>.yaml` committed
+- [ ] Scratch config/root deleted; the 3 skill files, `configs/<GAMEVER>.yaml`, and computed `bin_artifacts` closure committed

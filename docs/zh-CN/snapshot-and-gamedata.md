@@ -2,27 +2,11 @@
 
 # Snapshot、gamedata 与 C++ 验证
 
-单个 symbol YAML 继续作为 ignored 文件保存在 `bin/<GAMEVER>/<module>/`。Git 跟踪的 canonical analysis lockfile 是 `gamesymbols/<GAMEVER>.yaml`，其文件集合由 `configs/<GAMEVER>.yaml` 声明的 required 和 optional YAML 输出推导。
+`bin_artifacts/<GAMEVER>/<module>/` 下的 per-symbol YAML 是唯一正常 Git truth。formal required/optional file set、producer groups 与 downstream closure 均由 `configs/<GAMEVER>.yaml` 定义。`bin/<GAMEVER>/` 只保存可删除的 binaries 与 analysis cache state。
 
-## 生成 gamedata
+## 本地 candidate 验证
 
-将 canonical symbol snapshot 转换为按版本保存的 gamedata：
-
-```bash
-uv run update_gamedata.py -gamever 14168 -snapshot gamesymbols/14168.yaml -modulesdir gamedata-generators -outputdir gamedata/14168 -download_latest -strict [-debug]
-```
-
-## 运行 C++ layout 验证
-
-```bash
-uv run run_cpp_tests.py -gamever 14168 -snapshot gamesymbols/14168.yaml [-debug]
-```
-
-需要修复报告的 `hl2sdk_cs2` header 差异时，使用项目级 `fix-cppheaders` skill。该 skill 会调用 `run_cpp_tests.py` 获取最新 layout diff，并在修改后验证结果。
-
-## Immutable candidate transaction
-
-top-level analysis transaction 成功后应立即 build 一个 candidate。两个 downstream consumer 只读取同一个 immutable candidate；全部验证成功后，publication 只复制 candidate 的原始字节：
+analysis 将 canonical bytes finalize 到 `bin_artifacts` 后，构建一份 release-local snapshot candidate；gamedata 与 C++ validation 消费完全相同的 immutable candidate bytes：
 
 ```bash
 CANDIDATE_DIR="$(mktemp -d)"
@@ -30,47 +14,32 @@ CANDIDATE_SNAPSHOT="$CANDIDATE_DIR/14168.yaml"
 CANDIDATE_SESSION="$CANDIDATE_DIR/14168.session.json"
 GAMEDATA_ROOT="$CANDIDATE_DIR/gamedata-candidate"
 GAMEDATA_SESSION="$CANDIDATE_DIR/14168.gamedata.session.json"
-uv run gamesymbol_candidate.py build -gamever 14168 -bindir bin -configyaml configs/14168.yaml -output "$CANDIDATE_SNAPSHOT" -session "$CANDIDATE_SESSION"
+uv run gamesymbol_candidate.py build -gamever 14168 -bindir bin -artifactdir bin_artifacts -configyaml configs/14168.yaml -output "$CANDIDATE_SNAPSHOT" -session "$CANDIDATE_SESSION"
 uv run gamedata_candidate.py build -gamever 14168 -build-id local-1 -snapshot "$CANDIDATE_SNAPSHOT" -configyaml configs/14168.yaml -candidate-root "$GAMEDATA_ROOT" -session "$GAMEDATA_SESSION"
 uv run gamedata_candidate.py guard -session "$GAMEDATA_SESSION"
 uv run gamesymbol_candidate.py mark -candidate "$CANDIDATE_SNAPSHOT" -session "$CANDIDATE_SESSION" -step gamedata
 uv run run_cpp_tests.py -gamever 14168 -configyaml configs/14168.yaml -snapshot "$CANDIDATE_SNAPSHOT"
 uv run gamesymbol_candidate.py mark -candidate "$CANDIDATE_SNAPSHOT" -session "$CANDIDATE_SESSION" -step cpp_tests
-uv run gamesymbol_candidate.py publish -candidate "$CANDIDATE_SNAPSHOT" -session "$CANDIDATE_SESSION" -snapshot gamesymbols/14168.yaml
-uv run gamedata_candidate.py publish -session "$GAMEDATA_SESSION" -outputdir gamedata/14168
 ```
 
-## 恢复与验证 snapshot
+这些命令不会发布 tracked snapshot/gamedata 目录。Release build 会从 immutable source SHA 重建同一 candidate，使用 fresh `-force_all -rename` 与 Git blobs 做 exact-byte 验证，再将 snapshot、metadata、gamedata、archives 与 checksums 打包为 immutable Release assets。
 
-恢复干净的分析基线，或在不修改 tracked snapshot 的情况下验证当前工作区：
+需要修复 `hl2sdk_cs2` header 差异时，使用项目级 `fix-cppheaders` skill。
+
+## Historical snapshot compatibility
+
+snapshot restore 仅用于 rollback/migration compatibility。必须显式提供 historical snapshot 与 checkout-external artifact root；禁止 hydrate `bin/` 或覆盖 tracked `bin_artifacts`：
 
 ```bash
-uv run gamesymbol_snapshot.py restore -gamever 14168
-uv run gamesymbol_snapshot.py restore -gamever 14168 -replace
-uv run gamesymbol_snapshot.py verify -gamever 14168
-uv run gamesymbol_snapshot.py check-contract -gamever 14168 -json
-uv run gamesymbol_snapshot.py migrate -gamever 14168
+uv run gamesymbol_snapshot.py check-contract -gamever 14168 -snapshot path/to/14168.yaml -json
+uv run gamesymbol_snapshot.py restore -gamever 14168 -snapshot path/to/14168.yaml -artifactdir D:/isolated/bin_artifacts
 ```
 
-默认 restore 只创建缺失的 YAML，并拒绝覆盖语义不同的文件。`-replace` 只删除 `bin/<GAMEVER>/` 下的 YAML，保留二进制和 IDA database，再重建 snapshot 内容。
+## Pull request artifact contract
 
-candidate `build` 与 low-level/bootstrap `pack` 会拒绝缺失 required output 和 undeclared YAML。`verify` 还会强制检查 canonical bytes 与两类 round trip。schema 1 snapshot 隐含冻结的 config digest v1 并保持 byte-stable；新 writer 输出 schema 2，并显式记录带 domain separator 的 config digest v2。
+source/config/reference change 必须同时提交 `bin_artifacts/` 下计算出的 affected producer-group 与 downstream artifact closure。新 GAMEVER 的 config/download identity 和完整 artifacts 必须原子进入同一 PR；bootstrap publisher 可以追加 artifact-only direct-child commit，但新的 PR head 必须重新完成 validation。
 
-`check-contract` 是只读 trust probe：exit `0` 表示可信，exit `3` 报告 machine-readable untrusted reason；调用、配置和运行错误仍会硬失败。`migrate` 只显式升级已验证的 schema-1 snapshot，且不改变其 `files` payload；restore 和 verify 不会隐式执行迁移。
-
-## Pull request 输出合约
-
-可能影响分析或 gamedata generator 输出的 PR，初始只提交 source change。匹配的
-`gamesymbols/<GAMEVER>.yaml` 与 `gamedata/<GAMEVER>/` 输出归 PR CI 所有。
-
-PR CI 使用可信的 base snapshot 执行 restore 和 targeted invalidation。base snapshot 缺失时从干净 YAML bootstrap；base snapshot 不可信时输出 warning，并在不恢复 baseline payload 的情况下走同一个 clean full-rebuild 路径。
-
-随后，workflow strict-pack 一份 actual symbol candidate，由它构建 guarded gamedata，并使用同一 candidate
-transaction 运行 C++ 验证。成功后，workflow checkout immutable PR head，发布这批精确 bytes，把 diff 限制在
-对应版本的 snapshot/gamedata 路径，以 `github-actions[bot]` 创建带 provenance 的 commit，并在确认远端 head
-未漂移后执行普通 push。由于 `GITHUB_TOKEN` push 不会递归触发 PR workflow，CI 会为 published head 显式
-dispatch 轻量 recheck；该 recheck 会核对 actor、实时 PR 状态、parent/base SHA、commit message、允许路径以及
-两个 output digest，全部通过后稳定的 `pr-validate` check 才会成功。
+default-branch planner 绑定 exact prospective merge tree。full validation 在 checkout-external empty root 中重建每个 affected GAMEVER，验证 producer-group execution evidence 与 exact Git bytes，再派生 snapshot/gamedata/C++ evidence，绝不向 PR branch 写入 Release outputs。Git 禁止跟踪 `gamesymbols/`、`gamedata/` 与 `release-manifests/`。
 
 ## 支持的 gamedata
 

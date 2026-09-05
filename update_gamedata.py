@@ -8,7 +8,7 @@ gamedata-generators/, while final payloads are written to a separate
 versioned output root.
 
 Usage:
-    python update_gamedata.py -gamever=<version> -snapshot=<candidate.yaml> [-configyaml=<path>] [-modulesdir=gamedata-generators] [-outputdir=gamedata/<version>] [-platform=windows,linux] [-debug] [-download_latest] [-strict]
+    python update_gamedata.py -gamever=<version> -snapshot=<candidate.yaml> -outputdir=<release-local/version> [-configyaml=<path>] [-modulesdir=gamedata-generators] [-platform=windows,linux] [-debug] [-download_latest] [-strict]
 
     -gamever: Game version for YAML path (required)
     -configyaml: Analysis config path (default: configs/<GAMEVER>.yaml)
@@ -80,7 +80,7 @@ def parse_args():
     )
     parser.add_argument("-snapshot", required=True, help="Canonical candidate or published game-symbol snapshot")
     parser.add_argument("-modulesdir", default=DEFAULT_MODULES_DIR, help="Directory containing generator modules")
-    parser.add_argument("-outputdir", default=None, help="Versioned output root; defaults to gamedata/<GAMEVER>")
+    parser.add_argument("-outputdir", required=True, help="Explicit release-local versioned output root")
     parser.add_argument(
         "-platform", default=DEFAULT_PLATFORMS, help=f"Comma-separated platforms (default: {DEFAULT_PLATFORMS})"
     )

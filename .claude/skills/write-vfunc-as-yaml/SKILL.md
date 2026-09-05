@@ -64,7 +64,7 @@ vfunc_index = <vfunc_index>         # e.g., 102
 
 # Get binary path and determine platform
 input_file = idaapi.get_input_file_path()
-dir_path = os.path.dirname(input_file)
+dir_path = os.environ.get('CS2VIBE_ARTIFACT_DIR') or os.path.dirname(input_file)
 
 if input_file.endswith('.dll'):
     platform = 'windows'
@@ -157,6 +157,10 @@ vfunc_index: 102          # vtable[102] - changes with game updates
 The skill automatically detects the platform based on file extension:
 - `.dll` → Windows (uses `idaapi.get_imagebase()` for image base)
 - `.so` → Linux (uses `0x0` as image base)
+
+## Trusted finalization
+
+This writer produces a semantic YAML payload at the caller-provided expected artifact path. It does not own final field ordering, scalar spelling, encoding, or line endings. After runtime validation, the trusted analyzer rewrites every successful preprocessor or Agent output through the Source2 central canonicalizer; that canonical rewrite is the only byte-level trust boundary.
 
 ## Notes
 

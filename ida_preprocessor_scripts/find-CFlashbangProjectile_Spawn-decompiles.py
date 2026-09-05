@@ -53,6 +53,7 @@ GENERATE_YAML_DESIRED_FIELDS = [
             "func_va",
             "func_rva",
             "func_size",
+            "func_sig_allow_across_function_boundary:true",
         ],
     ),
 ]

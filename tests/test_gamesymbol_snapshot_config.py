@@ -196,6 +196,8 @@ class TestSnapshotContract(unittest.TestCase):
 
         self.assertEqual({"server/A.windows.yaml"}, contract.required_paths)
         self.assertEqual({("server", "windows")}, set(contract.binary_targets))
+        self.assertEqual(root / "bin/1", contract.binary_game_root)
+        self.assertEqual(root / "bin_artifacts/1", contract.artifact_game_root)
 
     def test_contract_separates_binary_and_artifact_roots(self) -> None:
         with TemporaryDirectory() as temp_dir:
@@ -212,7 +214,6 @@ class TestSnapshotContract(unittest.TestCase):
 
         self.assertEqual(root / "bin/1", contract.binary_game_root)
         self.assertEqual(root / "bin_artifacts/1", contract.artifact_game_root)
-        self.assertEqual(contract.artifact_game_root, contract.game_root)
 
     def test_binary_targets_include_skillless_modules_and_deduplicate_stages(self) -> None:
         with TemporaryDirectory() as temp_dir:

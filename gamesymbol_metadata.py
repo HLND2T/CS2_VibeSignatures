@@ -24,8 +24,6 @@ import yaml
 from analysis_config import AnalysisConfigError, resolve_analysis_config
 from trusted_yaml import load_yaml_file
 
-REPO_ROOT = Path(__file__).resolve().parent
-
 
 class MetadataGenerationError(RuntimeError):
     """Metadata could not be generated safely."""
@@ -104,11 +102,6 @@ def generate_metadata(gamever: str, config_path, output_path: Path) -> Path:
     return destination
 
 
-def default_metadata_path(gamever: str, *, repo_root: Path | None = None) -> Path:
-    root = Path(repo_root or REPO_ROOT)
-    return root / "gamesymbols" / f"{gamever}.metadata.yaml"
-
-
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description="Generate game-symbol snapshot alias metadata")
     parser.add_argument("-debug", action="store_true", help="Print tracebacks on errors")
@@ -122,8 +115,8 @@ def parse_args(argv=None):
     )
     generate.add_argument(
         "-output",
-        default=None,
-        help="Output metadata path; defaults to gamesymbols/<GAMEVER>.metadata.yaml",
+        required=True,
+        help="Explicit release-local metadata output path",
     )
     return parser.parse_args(argv)
 
@@ -132,8 +125,7 @@ def _run(args) -> None:
     if args.command != "generate":
         raise MetadataGenerationError(f"unknown command: {args.command}")
     config_path = resolve_analysis_config(args.gamever, args.configyaml)
-    output = Path(args.output) if args.output else default_metadata_path(args.gamever)
-    destination = generate_metadata(args.gamever, config_path, output)
+    destination = generate_metadata(args.gamever, config_path, Path(args.output))
     print(f"Metadata written: {destination}")
 
 
