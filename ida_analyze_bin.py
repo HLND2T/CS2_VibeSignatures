@@ -83,7 +83,12 @@ from ida_mcp_session import (
     normalize_binary_identity_path,
     open_ida_mcp_session,
 )
-from ida_analyze_util import SymbolArtifactError, canonicalize_symbol_yaml_file
+from ida_analyze_util import (
+    SymbolArtifactError,
+    canonicalize_symbol_yaml_file,
+    preprocess_gen_func_sig_via_mcp,
+    write_func_yaml,
+)
 from ida_vcall_finder import (
     aggregate_vcall_results_for_object,
     export_object_xref_details_via_mcp,
@@ -416,6 +421,126 @@ def _lookup_expected_input_artifact_category(
     return category_map.get(symbol_name)
 
 
+def _agent_func_signature_artifact_paths(
+    artifact_paths,
+    *,
+    platform,
+    config_path=None,
+    category_map=None,
+):
+    selected = []
+    for artifact_path in artifact_paths:
+        category = _lookup_expected_input_artifact_category(
+            artifact_path,
+            platform,
+            config_path=config_path,
+            category_map=category_map,
+        )
+        if category not in {"func", "vfunc"}:
+            continue
+        try:
+            payload = load_yaml_file(artifact_path)
+        except Exception:
+            continue
+        if isinstance(payload, dict) and payload.get("func_sig") is not None:
+            selected.append(artifact_path)
+    return selected
+
+
+async def regenerate_agent_func_signatures_via_session(
+    session,
+    artifact_paths,
+    platform,
+    binary_dir=None,
+    debug=False,
+    config_path=None,
+    category_map=None,
+):
+    """Replace Agent-provided func_sig values with the trusted deterministic generator output."""
+    issues = []
+    for artifact_path in artifact_paths:
+        category = _lookup_expected_input_artifact_category(
+            artifact_path,
+            platform,
+            config_path=config_path,
+            category_map=category_map,
+        )
+        if category not in {"func", "vfunc"}:
+            continue
+        if not _is_current_module_artifact_path(artifact_path, binary_dir):
+            continue
+
+        try:
+            payload = load_yaml_file(artifact_path)
+        except Exception as exc:
+            issues.append(f"{artifact_path}: failed to read Agent YAML for func_sig regeneration ({exc})")
+            continue
+        if not isinstance(payload, dict) or payload.get("func_sig") is None:
+            continue
+
+        func_va = str(payload.get("func_va") or "").strip()
+        if not func_va:
+            issues.append(f"{artifact_path}: Agent func_sig requires func_va for trusted regeneration")
+            continue
+
+        try:
+            generated = await preprocess_gen_func_sig_via_mcp(
+                session=session,
+                func_va=func_va,
+                image_base=0,
+                allow_across_function_boundary=payload.get("func_sig_allow_across_function_boundary") is True,
+                debug=debug,
+            )
+        except Exception as exc:
+            issues.append(f"{artifact_path}: deterministic func_sig regeneration failed for func_va={func_va} ({exc})")
+            continue
+        if not isinstance(generated, dict) or not generated.get("func_sig"):
+            issues.append(f"{artifact_path}: unable to deterministically regenerate func_sig from func_va={func_va}")
+            continue
+
+        payload["func_sig"] = generated["func_sig"]
+        try:
+            write_func_yaml(artifact_path, payload)
+        except (OSError, UnicodeError, TypeError, SymbolArtifactError, yaml.YAMLError) as exc:
+            issues.append(f"{artifact_path}: unable to write trusted regenerated func_sig ({exc})")
+
+    return issues
+
+
+async def regenerate_agent_func_signatures_via_mcp(
+    *,
+    host,
+    port,
+    artifact_paths,
+    platform,
+    binary_dir=None,
+    expected_binary=None,
+    debug=False,
+    config_path=None,
+    category_map=None,
+):
+    session_kwargs = {}
+    if expected_binary is not None:
+        session_kwargs["expected_binary"] = expected_binary
+    async with open_ida_mcp_session(host, port, **session_kwargs) as session:
+        return await regenerate_agent_func_signatures_via_session(
+            session,
+            artifact_paths=artifact_paths,
+            platform=platform,
+            binary_dir=binary_dir,
+            debug=debug,
+            config_path=config_path,
+            category_map=category_map,
+        )
+
+
+def _run_regenerate_agent_func_signatures_via_mcp(**kwargs):
+    try:
+        return asyncio.run(regenerate_agent_func_signatures_via_mcp(**kwargs))
+    except Exception as exc:
+        return [f"trusted Agent func_sig regeneration via MCP failed ({exc})"]
+
+
 def _finalize_produced_symbol_outputs(
     *,
     required_outputs,
@@ -428,6 +553,7 @@ def _finalize_produced_symbol_outputs(
     debug,
     config_path,
     category_map,
+    regenerate_func_signatures=False,
 ):
     """Validate and atomically canonicalize outputs from any producer path."""
     if category_map is None:
@@ -452,6 +578,27 @@ def _finalize_produced_symbol_outputs(
     )
     if runtime_issues:
         return list(runtime_issues)
+    if regenerate_func_signatures:
+        signature_artifacts = _agent_func_signature_artifact_paths(
+            produced,
+            platform=platform,
+            config_path=config_path,
+            category_map=category_map,
+        )
+        if signature_artifacts:
+            regeneration_issues = _run_regenerate_agent_func_signatures_via_mcp(
+                host=host,
+                port=port,
+                artifact_paths=signature_artifacts,
+                platform=platform,
+                binary_dir=binary_dir,
+                expected_binary=expected_binary,
+                debug=debug,
+                config_path=config_path,
+                category_map=category_map,
+            )
+            if regeneration_issues:
+                return list(regeneration_issues)
     issues = []
     for artifact_path in produced:
         category = _lookup_expected_input_artifact_category(
@@ -3932,6 +4079,7 @@ def process_binary(
                         debug=debug,
                         config_path=config_path,
                         category_map=category_map,
+                        regenerate_func_signatures=False,
                     )
                     if force_all:
                         finalization_issues.extend(
@@ -4112,6 +4260,7 @@ def process_binary(
                         debug=debug,
                         config_path=config_path,
                         category_map=category_map,
+                        regenerate_func_signatures=True,
                     )
                     if force_all:
                         finalization_issues.extend(

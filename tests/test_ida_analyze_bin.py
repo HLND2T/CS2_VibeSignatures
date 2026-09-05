@@ -2325,6 +2325,110 @@ class TestStartIdalibMcp(unittest.TestCase):
         mock_popen.assert_not_called()
 
 
+class TestAgentFuncSignatureFinalization(unittest.IsolatedAsyncioTestCase):
+    async def test_regenerates_agent_func_sig_from_func_va(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            artifact_dir = Path(temp_dir) / "networksystem"
+            artifact_dir.mkdir(parents=True)
+            output = artifact_dir / "CNetworkMessages_dtor.windows.yaml"
+            output.write_text(
+                "\n".join(
+                    [
+                        "func_name: CNetworkMessages_dtor",
+                        "func_va: '0x1800d5680'",
+                        "func_rva: '0xd5680'",
+                        "func_size: '0x3a'",
+                        "func_sig: 48 83 EC 20",
+                        "vtable_name: CNetworkMessages",
+                        "vfunc_offset: '0x120'",
+                        "vfunc_index: 36",
+                        "",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            generated = {
+                "func_va": "0x1800d5680",
+                "func_rva": "0x1800d5680",
+                "func_size": "0x3a",
+                "func_sig": "48 83 EC ??",
+            }
+
+            with patch.object(
+                ida_analyze_bin,
+                "preprocess_gen_func_sig_via_mcp",
+                AsyncMock(return_value=generated),
+            ) as generate_signature:
+                issues = await ida_analyze_bin.regenerate_agent_func_signatures_via_session(
+                    session="session",
+                    artifact_paths=[str(output)],
+                    platform="windows",
+                    binary_dir=str(artifact_dir),
+                    debug=False,
+                    category_map={"CNetworkMessages_dtor": "vfunc"},
+                )
+
+            self.assertEqual([], issues)
+            self.assertEqual(
+                canonical_symbol_yaml_bytes(
+                    {
+                        "func_name": "CNetworkMessages_dtor",
+                        "func_va": "0x1800d5680",
+                        "func_rva": "0xd5680",
+                        "func_size": "0x3a",
+                        "func_sig": "48 83 EC ??",
+                        "vtable_name": "CNetworkMessages",
+                        "vfunc_offset": "0x120",
+                        "vfunc_index": 36,
+                    },
+                    category="vfunc",
+                ),
+                output.read_bytes(),
+            )
+            generate_signature.assert_awaited_once_with(
+                session="session",
+                func_va="0x1800d5680",
+                image_base=0,
+                allow_across_function_boundary=False,
+                debug=False,
+            )
+
+    async def test_fails_closed_when_agent_func_sig_cannot_be_regenerated(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            artifact_dir = Path(temp_dir) / "networksystem"
+            artifact_dir.mkdir(parents=True)
+            output = artifact_dir / "CNetworkMessages_dtor.windows.yaml"
+            original = (
+                "func_name: CNetworkMessages_dtor\n"
+                "func_va: '0x1800d5680'\n"
+                "func_sig: 48 83 EC 20\n"
+                "vtable_name: CNetworkMessages\n"
+                "vfunc_offset: '0x120'\n"
+                "vfunc_index: 36\n"
+            )
+            output.write_text(original, encoding="utf-8")
+
+            with patch.object(
+                ida_analyze_bin,
+                "preprocess_gen_func_sig_via_mcp",
+                AsyncMock(return_value=None),
+            ):
+                issues = await ida_analyze_bin.regenerate_agent_func_signatures_via_session(
+                    session="session",
+                    artifact_paths=[str(output)],
+                    platform="windows",
+                    binary_dir=str(artifact_dir),
+                    debug=False,
+                    category_map={"CNetworkMessages_dtor": "vfunc"},
+                )
+
+            self.assertEqual(
+                [f"{output}: unable to deterministically regenerate func_sig from func_va=0x1800d5680"],
+                issues,
+            )
+            self.assertEqual(original, output.read_text(encoding="utf-8"))
+
+
 class TestProcessBinary(unittest.TestCase):
     def setUp(self) -> None:
         verify_patcher = patch.object(
@@ -2391,6 +2495,63 @@ class TestProcessBinary(unittest.TestCase):
                 self.assertEqual((1, 0, 0), result)
                 self.assertEqual(expected, output.read_bytes())
                 self.assertFalse((binary_dir / output.name).exists())
+
+    def test_only_agent_outputs_request_deterministic_func_sig_regeneration(self) -> None:
+        for producer in ("preprocessor", "agent"):
+            with self.subTest(producer=producer), TemporaryDirectory() as temp_dir:
+                binary_dir = Path(temp_dir) / "networksystem"
+                binary_dir.mkdir(parents=True)
+                binary_path = str(binary_dir / "networksystem.dll")
+                artifact_dir = Path(temp_dir) / "bin_artifacts" / "14178b" / "networksystem"
+                output = artifact_dir / "CNetworkMessages_dtor.windows.yaml"
+                fake_process = object()
+
+                def write_output(*_args, **_kwargs):
+                    output.parent.mkdir(parents=True, exist_ok=True)
+                    output.write_text("func_name: CNetworkMessages_dtor\n", encoding="utf-8")
+                    return True if producer == "agent" else "success"
+
+                with (
+                    patch.object(ida_analyze_bin, "start_idalib_mcp", return_value=fake_process),
+                    patch.object(ida_analyze_bin, "ensure_mcp_available", return_value=(fake_process, True)),
+                    patch.object(
+                        ida_analyze_bin,
+                        "_run_validate_expected_input_artifacts_via_mcp",
+                        return_value=[],
+                    ),
+                    patch.object(
+                        ida_analyze_bin,
+                        "_run_preprocess_single_skill_via_mcp",
+                        side_effect=write_output,
+                    ),
+                    patch.object(ida_analyze_bin, "run_skill", side_effect=write_output),
+                    patch.object(
+                        ida_analyze_bin,
+                        "_finalize_produced_symbol_outputs",
+                        return_value=[],
+                    ) as finalize_outputs,
+                    patch.object(ida_analyze_bin, "quit_ida_gracefully", return_value=None),
+                ):
+                    result = ida_analyze_bin.process_binary(
+                        binary_path=binary_path,
+                        skills=[
+                            {
+                                "name": "find-CNetworkMessages_dtor",
+                                "expected_output": ["CNetworkMessages_dtor.{platform}.yaml"],
+                            }
+                        ],
+                        agent="codex",
+                        host="127.0.0.1",
+                        port=13337,
+                        ida_args="",
+                        platform="windows",
+                        skip_pp=producer == "agent",
+                        category_map={"CNetworkMessages_dtor": "vfunc"},
+                        artifact_dir=artifact_dir,
+                    )
+
+                self.assertEqual((1, 0, 0), result)
+                self.assertEqual(producer == "agent", finalize_outputs.call_args.kwargs["regenerate_func_signatures"])
 
     def test_force_all_multi_output_fallback_only_produces_missing_outputs(self) -> None:
         with TemporaryDirectory() as temp_dir:
