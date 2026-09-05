@@ -23,6 +23,9 @@ NETWORK_MESSAGES_GET_IS_FOR_SERVER_SCRIPT_PATH = Path(
 NETWORK_MESSAGES_GET_SERIALIZATION_CONTEXT_SCRIPT_PATH = Path(
     "ida_preprocessor_scripts/find-CNetworkMessages_GetNetworkSerializationContextData.py"
 )
+FLASHBANG_PROJECTILE_SPAWN_DECOMPILES_SCRIPT_PATH = Path(
+    "ida_preprocessor_scripts/find-CFlashbangProjectile_Spawn-decompiles.py"
+)
 
 
 def _write_is_playing_demo_source_yaml(path: Path, **overrides) -> None:
@@ -102,6 +105,45 @@ class TestFindCBaseEntityCollisionRulesChanged(unittest.IsolatedAsyncioTestCase)
             llm_config=None,
             generate_yaml_desired_fields=expected_generate_yaml_desired_fields,
             debug=True,
+        )
+
+
+class TestFindCFlashbangProjectileSpawnDecompiles(unittest.IsolatedAsyncioTestCase):
+    async def test_preserves_cross_boundary_gravity_signature_contract(self) -> None:
+        module = _load_module(
+            FLASHBANG_PROJECTILE_SPAWN_DECOMPILES_SCRIPT_PATH,
+            "find_CFlashbangProjectile_Spawn_decompiles",
+        )
+        mock_preprocess_common_skill = AsyncMock(return_value=True)
+
+        with patch.object(
+            module,
+            "preprocess_common_skill",
+            mock_preprocess_common_skill,
+        ):
+            result = await module.preprocess_skill(
+                session="session",
+                skill_name="skill",
+                expected_outputs=["out.yaml"],
+                old_yaml_map={"k": "v"},
+                new_binary_dir="bin_dir",
+                platform="windows",
+                image_base=0x180000000,
+                debug=True,
+            )
+
+        self.assertTrue(result)
+        generation_contracts = dict(mock_preprocess_common_skill.await_args.kwargs["generate_yaml_desired_fields"])
+        self.assertEqual(
+            [
+                "func_name",
+                "func_sig",
+                "func_va",
+                "func_rva",
+                "func_size",
+                "func_sig_allow_across_function_boundary:true",
+            ],
+            generation_contracts["CBaseEntity_SetGravityScale"],
         )
 
 
