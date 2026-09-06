@@ -303,6 +303,7 @@ PR 改为 trusted prepare → base 白名单物料化 → selected execute → �
 用户已授权新增独立手动 workflow，完成 Phase-D 后独立启用 selected 策略、rebase PR #926；临时入口在 #926 合并后清理。
 
 - `.github/workflows/phase-d-validation.yml` 仅允许从 main 手动运行，绑定调用时的 main、准确 PR head 和双亲匹配的 prospective merge SHA；只接收同仓库的开放 PR。
+- GitHub 可保留 PR 原来的 base/merge 快照，即使 main 已前进。维护工具固定为 dispatch 的 main SHA，样本固定为 PR 报告的 base/head/merge；另核验样本 base 是维护 main 的祖先，不要求两者相等，也不提前改写业务分支。
 - `phase_d_validation.py` 使用生产 planner/prepare/executor/verifier，不改变生产策略解析或 required-check 路由。实验计划仅切换 strategy 并重新计算 digest，原计划与实验计划分别留档，报告明确标为迁移实验而非 PR attestation。
 - PR #926 覆盖新增符号与 finder 修改；artifact-only、跨 stage、共享运行时样本通过隔离 Git index 构造临时 base/merge commits，不改工作树或分支。所有样本的 merge tree 完全相同。
 - 每次分析前恢复同一个不可变 warm generation 并核验 source binary lock。三个小闭包 selected 样本、一次 fresh-full 基线及共享运行时全量 selected 样本分别执行生产完整字节 verifier、snapshot/gamedata 和 C++ gates。相同 tree/binary/generation 允许所有 selected 样本与同一次 fresh-full 基线作完整 inventory 比较。

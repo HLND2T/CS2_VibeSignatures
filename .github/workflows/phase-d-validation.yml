@@ -40,8 +40,14 @@ jobs:
             const pull_number = Number(process.env.PR_NUMBER);
             const { data: pr } = await github.rest.pulls.get({ ...context.repo, pull_number });
             if (pr.state !== 'open' || pr.head.repo.full_name !== process.env.GITHUB_REPOSITORY ||
-                pr.base.ref !== 'main' || pr.base.sha !== context.sha || pr.head.sha !== process.env.EXPECTED_HEAD) {
-              throw new Error('PR identity or trusted main SHA drifted');
+                pr.base.ref !== 'main' || pr.head.sha !== process.env.EXPECTED_HEAD) {
+              throw new Error('Reviewed PR identity drifted');
+            }
+            const { data: ancestry } = await github.rest.repos.compareCommitsWithBasehead({
+              ...context.repo, basehead: `${pr.base.sha}...${context.sha}`
+            });
+            if (!['ahead', 'identical'].includes(ancestry.status)) {
+              throw new Error('Reviewed PR base is not an ancestor of the trusted maintenance revision');
             }
             const { data: ref } = await github.rest.git.getRef({ ...context.repo, ref: `pull/${pull_number}/merge` });
             const { data: commit } = await github.rest.git.getCommit({ ...context.repo, commit_sha: ref.object.sha });
@@ -51,7 +57,7 @@ jobs:
             core.setOutput('base', pr.base.sha);
             core.setOutput('head', pr.head.sha);
             core.setOutput('source', ref.object.sha);
-            await core.summary.addRaw(`Phase-D experiment only; base ${pr.base.sha}, head ${pr.head.sha}, source ${ref.object.sha}`).write();
+            await core.summary.addRaw(`Phase-D experiment only; tools ${context.sha}, base ${pr.base.sha}, head ${pr.head.sha}, source ${ref.object.sha}`).write();
   warmup:
     needs: bind
     uses: ./.github/workflows/warmup-idb.yml
@@ -92,7 +98,7 @@ jobs:
           persist-credentials: false
       - uses: actions/checkout@v5
         with:
-          ref: ${{ needs.bind.outputs.base }}
+          ref: ${{ github.sha }}
           path: .phase-d-tools
           persist-credentials: false
       - uses: astral-sh/setup-uv@v9.0.0
