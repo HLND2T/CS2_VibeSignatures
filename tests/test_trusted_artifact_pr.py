@@ -423,7 +423,7 @@ class SelectedExecutionTests(unittest.TestCase):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(self._artifact(name, rva))
 
-    def _skills(self, *, with_find_c: bool = True) -> list[dict]:
+    def _skills(self, *, with_find_c: bool = True, alternatives: bool = False) -> list[dict]:
         skills = [
             {"name": "find-a", "expected_output": ["A.{platform}.yaml"]},
             {
@@ -434,6 +434,15 @@ class SelectedExecutionTests(unittest.TestCase):
         ]
         if with_find_c:
             skills.append({"name": "find-c", "expected_output": ["C.{platform}.yaml"]})
+        if alternatives:
+            # Two alternatives competing for one shared optional output: the first may
+            # legitimately concede (optional absent) and the second may materialize it.
+            skills.extend(
+                [
+                    {"name": "find-p", "optional_output": ["Shared.{platform}.yaml"]},
+                    {"name": "find-f", "optional_output": ["Shared.{platform}.yaml"]},
+                ]
+            )
         skills.extend(
             [
                 {"name": "find-pre", "expected_output": ["Pre.{platform}.yaml"]},
@@ -451,10 +460,12 @@ class SelectedExecutionTests(unittest.TestCase):
         )
         return skills
 
-    def _symbols(self, *, with_c: bool = True) -> list[dict]:
+    def _symbols(self, *, with_c: bool = True, alternatives: bool = False) -> list[dict]:
         symbols = [{"name": name, "category": "func", "platform": "windows"} for name in ("A", "B")]
         if with_c:
             symbols.append({"name": "C", "category": "func", "platform": "windows"})
+        if alternatives:
+            symbols.append({"name": "Shared", "category": "func", "platform": "windows"})
         symbols.extend({"name": name, "category": "func", "platform": "windows"} for name in ("Pre", "Dep", "Opt"))
         return symbols
 
@@ -486,14 +497,15 @@ class SelectedExecutionTests(unittest.TestCase):
             path = root / relative
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(payload)
+        alternatives = change == "alt-shared"
         write_config(
             root / "configs" / "1.yaml",
             [
                 {
                     "name": "server",
                     "path_windows": "game/bin/win64/server.dll",
-                    "skills": self._skills(),
-                    "symbols": self._symbols(),
+                    "skills": self._skills(alternatives=alternatives),
+                    "symbols": self._symbols(alternatives=alternatives),
                 }
             ],
         )
@@ -516,6 +528,10 @@ class SelectedExecutionTests(unittest.TestCase):
             (root / "ida_analyze_util.py").write_text("SERIALIZER = 2\n", encoding="utf-8")
         elif change == "drop-opt":
             (root / "bin_artifacts" / "1" / "server" / "Opt.windows.yaml").unlink()
+        elif change == "alt-shared":
+            # A brand-new shared optional output: the planner executes both competing
+            # alternatives, and the merge tree carries the fallback's materialized bytes.
+            self._write_artifact(root, "Shared", "0x80")
         elif change == "remove-c":
             write_config(
                 root / "configs" / "1.yaml",
@@ -1007,7 +1023,113 @@ class SelectedExecutionTests(unittest.TestCase):
 
             self._retamper_selected_report(preparation, "1", abort_session_prerequisite)
 
-            with self.assertRaisesRegex(tap.TrustedArtifactPrError, "prerequisite node lacks execution evidence"):
+            with self.assertRaisesRegex(
+                tap.TrustedArtifactPrError, "prerequisite node lacks successful execution evidence"
+            ):
+                tap.validate_isolated_rebuild(repo_root=root, plan=plan, preparation=preparation)
+
+    def test_selected_verify_rejects_failed_outputless_prerequisite(self) -> None:
+        """A failed prerequisite proves the session side effects were never established."""
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            staging = Path(temporary) / "isolated"
+            root.mkdir()
+            plan, preparation = self._plan_and_preparation(root, staging, change="artifact-dep")
+            self._simulate_selected_execution(root, plan, preparation)
+            self._write_selected_report(root, plan, preparation)
+
+            def fail_session_prerequisite(report):
+                session = next(record for record in report["nodes"] if record["skill"] == "find-session")
+                session.update({"status": "failed", "attempted": True})
+
+            self._retamper_selected_report(preparation, "1", fail_session_prerequisite)
+
+            with self.assertRaisesRegex(
+                tap.TrustedArtifactPrError, "prerequisite node lacks successful execution evidence"
+            ):
+                tap.validate_isolated_rebuild(repo_root=root, plan=plan, preparation=preparation)
+
+    def test_selected_verify_accepts_legal_alternative_fallback(self) -> None:
+        """A skipped first alternative conceding to a later winning alternative is valid."""
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            staging = Path(temporary) / "isolated"
+            root.mkdir()
+            plan, preparation = self._plan_and_preparation(root, staging, change="alt-shared")
+
+            version = plan["game_versions"][0]
+            shared_group = next(
+                group for group in version["execute_groups"] if group["artifact_path"] == "server/Shared.windows.yaml"
+            )
+            self.assertEqual(2, len(shared_group["alternative_node_ids"]))
+
+            self._simulate_selected_execution(root, plan, preparation)
+            self._write_selected_report(root, plan, preparation)
+            primary, fallback = shared_group["alternative_node_ids"]
+
+            def record_fallback(report):
+                primary_record = next(record for record in report["nodes"] if record["node_id"] == primary)
+                primary_record.update(
+                    {
+                        "status": "skipped",
+                        "reason": "optional_output_absent",
+                        "attempted_paths": ["server/Shared.windows.yaml"],
+                        "produced_paths": [],
+                    }
+                )
+                fallback_record = next(record for record in report["nodes"] if record["node_id"] == fallback)
+                fallback_record.update(
+                    {
+                        "status": "succeeded",
+                        "reason": None,
+                        "attempted_paths": ["server/Shared.windows.yaml"],
+                        "produced_paths": ["server/Shared.windows.yaml"],
+                    }
+                )
+                group_record = next(
+                    record for record in report["producer_groups"] if record["group_id"] == shared_group["group_id"]
+                )
+                group_record.update({"attempted_node_ids": [primary, fallback], "winner_node_id": fallback})
+
+            self._retamper_selected_report(preparation, "1", record_fallback)
+            result = tap.validate_isolated_rebuild(repo_root=root, plan=plan, preparation=preparation)
+
+            self.assertEqual(1, result["game_versions"][0]["executed_group_count"])
+
+    def test_selected_verify_rejects_fallback_claim_before_earlier_winner(self) -> None:
+        """A node claimed absent cannot also be positioned after the group winner."""
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            staging = Path(temporary) / "isolated"
+            root.mkdir()
+            plan, preparation = self._plan_and_preparation(root, staging, change="alt-shared")
+            self._simulate_selected_execution(root, plan, preparation)
+            self._write_selected_report(root, plan, preparation)
+            shared_group = next(
+                group for group in plan["game_versions"][0]["execute_groups"] if "Shared" in group["artifact_path"]
+            )
+            primary, fallback = shared_group["alternative_node_ids"]
+
+            def forge_post_winner_attempt(report):
+                # Winner stays the first alternative, but the later one claims it also
+                # attempted (and skipped on) the same materialized path.
+                later_record = next(record for record in report["nodes"] if record["node_id"] == fallback)
+                later_record.update(
+                    {
+                        "status": "skipped",
+                        "reason": "optional_output_absent",
+                        "attempted_paths": ["server/Shared.windows.yaml"],
+                        "produced_paths": [],
+                    }
+                )
+                group_record = next(
+                    record for record in report["producer_groups"] if record["group_id"] == shared_group["group_id"]
+                )
+                group_record.update({"attempted_node_ids": [primary, fallback], "winner_node_id": primary})
+
+            self._retamper_selected_report(preparation, "1", forge_post_winner_attempt)
+
+            with self.assertRaisesRegex(tap.TrustedArtifactPrError, "attempts drifted|terminal execution status"):
                 tap.validate_isolated_rebuild(repo_root=root, plan=plan, preparation=preparation)
 
     def test_selected_verify_accepts_legal_optional_absent_skip(self) -> None:

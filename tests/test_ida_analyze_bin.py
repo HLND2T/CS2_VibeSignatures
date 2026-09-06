@@ -6763,6 +6763,120 @@ class TestSelectedExecution(unittest.TestCase):
             self.assertEqual("0:0:server:windows:find-a", report["producer_groups"][0]["winner_node_id"])
             self.assertTrue(report["execution_sha256"].startswith("sha256:"))
 
+    def test_selected_execution_report_accepts_alternative_fallback_skip(self) -> None:
+        """The first alternative conceding an optional output stays valid with a later winner."""
+        with TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            config = root / "configs" / "1.yaml"
+            write_config(
+                config,
+                [
+                    {
+                        "name": "server",
+                        "stage_index": 0,
+                        "path_windows": "game/bin/win64/server.dll",
+                        "skills": [
+                            {"name": "z-primary", "optional_output": ["Shared.{platform}.yaml"]},
+                            {"name": "a-fallback", "optional_output": ["Shared.{platform}.yaml"]},
+                        ],
+                        "symbols": [{"name": "Shared", "category": "func", "platform": "windows"}],
+                    }
+                ],
+            )
+            artifact_root = root / "actual"
+            module_dir = artifact_root / "1" / "server"
+            module_dir.mkdir(parents=True)
+            shared = module_dir / "Shared.windows.yaml"
+            shared.write_bytes(
+                canonical_symbol_yaml_bytes({"func_name": "Shared", "func_rva": "0x10"}, category="func")
+            )
+            module = {
+                "name": "server",
+                "stage_index": 0,
+                "path_windows": "game/bin/win64/server.dll",
+                "skills": [
+                    {"name": "z-primary", "optional_output": ["Shared.{platform}.yaml"]},
+                    {"name": "a-fallback", "optional_output": ["Shared.{platform}.yaml"]},
+                ],
+            }
+            plan = ida_analyze_bin.build_execution_plan(
+                [module],
+                platforms=["windows"],
+                bin_dir=str(root / "bin"),
+                gamever="1",
+                artifact_dir=str(artifact_root),
+                selected_node_ids=frozenset({"0:0:server:windows:z-primary", "0:1:server:windows:a-fallback"}),
+            )
+            reporting = ida_analyze_bin.AnalysisReporting(MagicMock(), "run-1", plan)
+            from gamesymbol_snapshot_lib.config import load_contract
+
+            contract = load_contract(str(config), "1", str(root / "bin"), artifactdir=artifact_root)
+            group = contract.producer_groups["producer-group:server/Shared.windows.yaml"]
+            manifest = self._manifest_document()
+            manifest.pop("manifest_sha256", None)
+            manifest["execute_groups"] = [
+                {
+                    "group_id": group.group_id,
+                    "artifact_path": group.artifact_path,
+                    "required": group.required,
+                    "fingerprint": group.fingerprint,
+                    "alternative_node_ids": list(group.alternative_node_ids),
+                }
+            ]
+            manifest["execute_nodes"] = [
+                {
+                    "node_id": node.node_id,
+                    "stage_index": node.stage_index,
+                    "module": node.module_name,
+                    "platform": node.platform,
+                    "skill": node.skill_name,
+                    "fingerprint": node.fingerprint,
+                    "outputs": sorted(node.outputs),
+                }
+                for node in (
+                    contract.nodes["0:0:server:windows:z-primary"],
+                    contract.nodes["0:1:server:windows:a-fallback"],
+                )
+            ]
+            manifest["inherit_paths"] = []
+            manifest["manifest_sha256"] = ida_analyze_bin._selected_manifest_digest(manifest)
+
+            nodes = {node.name: node for node in plan.nodes if node.node_type == PlanNodeType.SKILL}
+            primary = nodes["z-primary"]
+            reporting.emit_task_status(primary.id, TaskStatus.RUNNING, ProcessPhase.WAITING_FOR_MCP)
+            reporting.record_output_attempts(primary.id, [str(shared)])
+            reporting.emit_task_status(
+                primary.id,
+                TaskStatus.SKIPPED,
+                ProcessPhase.FINISHED,
+                reason=ProcessReason.OPTIONAL_OUTPUT_ABSENT,
+            )
+            fallback = nodes["a-fallback"]
+            reporting.emit_task_status(fallback.id, TaskStatus.RUNNING, ProcessPhase.WAITING_FOR_MCP)
+            reporting.record_output_attempts(fallback.id, [str(shared)])
+            reporting.record_output_produced(fallback.id, [str(shared)])
+            reporting.emit_task_status(fallback.id, TaskStatus.SUCCEEDED, ProcessPhase.FINISHED)
+            args = SimpleNamespace(
+                configyaml=str(config),
+                gamever="1",
+                bindir=str(root / "bin"),
+                artifactdir=str(artifact_root),
+                oldartifactdir=str(root / "old"),
+                oldgamever=None,
+                rename=False,
+                require_warm_idb=True,
+            )
+
+            report = ida_analyze_bin.build_selected_execution_report(args, manifest, reporting)
+
+            self.assertTrue(report["valid"], report["issues"])
+            group_record = report["producer_groups"][0]
+            self.assertEqual("0:1:server:windows:a-fallback", group_record["winner_node_id"])
+            self.assertEqual(
+                ["0:0:server:windows:z-primary", "0:1:server:windows:a-fallback"],
+                group_record["attempted_node_ids"],
+            )
+
     def test_parse_args_rejects_selected_execution_with_force_all(self) -> None:
         with (
             patch(

@@ -1327,13 +1327,16 @@ def _selected_execution_digest(value: object) -> str:
 LEGAL_ABSENT_SKIP_REASONS = frozenset({"optional_output_absent", "preprocess_absent"})
 
 
-def _is_verified_attempt_status(node_record: dict, expected_files: dict) -> bool:
-    """Accept a terminal status, or a skip that provably encodes a legal optional absence.
+def _is_verified_attempt_status(
+    node_record: dict, expected_files: dict, allowed_materialized_paths: frozenset[str] | set[str]
+) -> bool:
+    """Accept a terminal status, or a skip that provably encodes a legal absence/fallback.
 
     A skipped node is only accepted when the recorded skip reason is the executor's
-    optional/preprocess-absent outcome, the node produced nothing, and every path it
-    attempted is genuinely absent from the prospective merge tree — any other skip
-    (existing outputs, skip_if_exists, platform mismatch, ...) is rejected.
+    optional/preprocess-absent outcome and the node produced nothing. Every path it
+    attempted must then either be genuinely absent from the prospective merge tree, or
+    be a path this node was allowed to concede to a later winning alternative within its
+    producer group (a legal fallback attempt, not an unexecuted skip).
     """
     status = node_record.get("status")
     if status in {"succeeded", "failed"}:
@@ -1342,7 +1345,10 @@ def _is_verified_attempt_status(node_record: dict, expected_files: dict) -> bool
         return False
     if node_record.get("produced_paths"):
         return False
-    return all(path not in expected_files for path in node_record["attempted_paths"])
+    for path in node_record["attempted_paths"]:
+        if path in expected_files and path not in allowed_materialized_paths:
+            return False
+    return True
 
 
 def _load_selected_execution_report(path: Path, *, preparation: dict, version: dict, plan: dict) -> dict:
@@ -1456,6 +1462,8 @@ def _load_selected_execution_report(path: Path, *, preparation: dict, version: d
         if not set(record["produced_paths"]) <= set(record["attempted_paths"]):
             raise TrustedArtifactPrError(f"selected execution node produced outputs it never attempted: {node_id}")
 
+    attempted_group_nodes: set[str] = set()
+    fallback_materialized_paths: dict[str, set[str]] = {}
     for group_id, planned in planned_groups.items():
         record = groups_by_id[group_id]
         alternatives = list(planned["alternative_node_ids"])
@@ -1468,6 +1476,7 @@ def _load_selected_execution_report(path: Path, *, preparation: dict, version: d
             winner_index = alternatives.index(winner)
             expected_attempts = alternatives[: winner_index + 1]
         else:
+            winner_index = None
             expected_attempts = alternatives
         if list(attempted) != expected_attempts:
             raise TrustedArtifactPrError(
@@ -1482,8 +1491,8 @@ def _load_selected_execution_report(path: Path, *, preparation: dict, version: d
                 raise TrustedArtifactPrError(
                     f"selected execution node evidence contradicts the group attempts: {group_id}/{node_id}"
                 )
-            if node_id in attempted and not _is_verified_attempt_status(node_record, expected_files):
-                raise TrustedArtifactPrError(f"attempted node lacks a terminal execution status: {node_id}")
+            if node_id in attempted:
+                attempted_group_nodes.add(node_id)
             if node_record.get("status") == "succeeded" and planned["artifact_path"] in node_record["produced_paths"]:
                 successful.append(node_id)
         if materialized and successful != [winner]:
@@ -1495,17 +1504,32 @@ def _load_selected_execution_report(path: Path, *, preparation: dict, version: d
             raise TrustedArtifactPrError(
                 f"absent optional output was produced by executed nodes: {group_id} {successful!r}"
             )
+        if winner_index is not None:
+            # A materialized path may be conceded by the failed/skipped alternatives that
+            # ran before the winner: that is a legal fallback attempt, not an absent output.
+            for node_id in alternatives[:winner_index]:
+                fallback_materialized_paths.setdefault(node_id, set()).add(planned["artifact_path"])
+
+    # Status verification runs after the group pass so every skipped node can be judged
+    # against the exact set of paths it was allowed to concede to a later winner.
+    for node_id, record in nodes_by_id.items():
+        if node_id in attempted_group_nodes and not _is_verified_attempt_status(
+            record, expected_files, fallback_materialized_paths.get(node_id, frozenset())
+        ):
+            raise TrustedArtifactPrError(f"attempted node lacks a terminal execution status: {node_id}")
 
     # Output-less session prerequisites belong to no producer group, so group-level
-    # verification never covers them: require their own proof of real execution.
+    # verification never covers them: unlike competing alternatives, a failed or skipped
+    # prerequisite proves the session side effects its dependents rely on were never
+    # established, so only a successful execution counts as evidence.
     group_alternative_node_ids = {
         node_id for planned_group in planned_groups.values() for node_id in planned_group["alternative_node_ids"]
     }
     for node_id, record in nodes_by_id.items():
         if node_id in group_alternative_node_ids:
             continue
-        if record.get("attempted") is not True or record.get("status") not in {"succeeded", "failed"}:
-            raise TrustedArtifactPrError(f"planned prerequisite node lacks execution evidence: {node_id}")
+        if record.get("attempted") is not True or record.get("status") != "succeeded":
+            raise TrustedArtifactPrError(f"planned prerequisite node lacks successful execution evidence: {node_id}")
     if report.get("inherited_initial_inventory_sha256") != preparation["initial_actual_inventory_sha256"].get(gamever):
         raise TrustedArtifactPrError(f"selected execution report lost the seeded-root binding for {gamever}")
     return report
