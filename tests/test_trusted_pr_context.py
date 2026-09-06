@@ -147,6 +147,40 @@ class TrustedPrContextTests(unittest.TestCase):
                 b"schema_version: 1\nmode: legacy\nartifact_root: bin_artifacts\nartifact_contract_schema_version: 1\n"
             )
 
+    def test_policy_execution_strategy_defaults_to_fresh_full_and_validates(self) -> None:
+        policy = tpc.parse_source_artifact_policy(
+            b"schema_version: 1\nmode: source-owned\nartifact_root: bin_artifacts\n"
+            b"artifact_contract_schema_version: 1\n"
+        )
+        self.assertEqual(tpc.FRESH_FULL_STRATEGY, policy.execution_strategy)
+
+        policy = tpc.parse_source_artifact_policy(
+            b"schema_version: 1\nmode: source-owned\nartifact_root: bin_artifacts\n"
+            b"artifact_contract_schema_version: 1\nexecution_strategy: base-inherited-selected-v1\n"
+        )
+        self.assertEqual(tpc.BASE_INHERITED_SELECTED_STRATEGY, policy.execution_strategy)
+
+        with self.assertRaisesRegex(tpc.TrustedPrContextError, "execution_strategy"):
+            tpc.parse_source_artifact_policy(
+                b"schema_version: 1\nmode: source-owned\nartifact_root: bin_artifacts\n"
+                b"artifact_contract_schema_version: 1\nexecution_strategy: mystery-v1\n"
+            )
+
+    def test_context_carries_base_owned_execution_strategy(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            base_sha, head_sha, merge_sha, _policy = self._repository(root)
+
+            context = tpc.build_trusted_pr_context(
+                repo_root=root,
+                base_ref=base_sha,
+                head_ref=head_sha,
+                merge_ref=merge_sha,
+            )
+
+            self.assertEqual(tpc.FRESH_FULL_STRATEGY, context["artifact_policy"]["execution_strategy"])
+            self.assertEqual(context, tpc.validate_trusted_pr_context(context))
+
 
 if __name__ == "__main__":
     unittest.main()

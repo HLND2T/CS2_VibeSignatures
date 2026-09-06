@@ -30,11 +30,21 @@ from gamesymbol_snapshot_lib.paths import is_reparse_point, validate_snapshot_ke
 from gamesymbol_snapshot_lib.pr_validation import build_invalidation_plan, required_source_index_sides
 from gamever_baseline import gamever_order_key, select_prior_gamever
 from ida_analyze_util import SymbolArtifactError, canonical_symbol_yaml_bytes
-from trusted_pr_context import TRUSTED_FILE_PATHS, load_trusted_pr_context, validate_trusted_pr_context
+from trusted_pr_context import (
+    BASE_INHERITED_SELECTED_STRATEGY,
+    EXECUTION_STRATEGIES,
+    FRESH_FULL_STRATEGY,
+    TRUSTED_FILE_PATHS,
+    load_trusted_pr_context,
+    validate_trusted_pr_context,
+)
 
 
-PLAN_SCHEMA_VERSION = 3
-PREPARATION_SCHEMA_VERSION = 2
+PLAN_SCHEMA_VERSION = 4
+PREPARATION_SCHEMA_VERSION = 3
+SELECTED_EXECUTION_SCHEMA_VERSION = 1
+SELECTED_EXECUTION_DIGEST_DOMAIN = "source2-selected-execution:v1"
+SELECTED_MANIFEST_DIGEST_LABEL = "selected-execution-manifest"
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 CONFIG_RE = re.compile(r"^configs/([^/]+)\.yaml$")
 ARTIFACT_RE = re.compile(r"^bin_artifacts/([^/]+)/(.+)$")
@@ -475,11 +485,36 @@ def _pseudo_snapshot(contract, files: dict) -> dict:
     }
 
 
-def _selected_groups(contract, plan) -> tuple[set[str], set[str]]:
+def _prerequisite_producer_nodes(contract, node) -> set[str]:
+    """Return same-session prerequisite nodes whose side effects a node depends on."""
+    result = set()
+    for prerequisite in node.prerequisites:
+        for other in contract.nodes.values():
+            if (
+                other.stage_index == node.stage_index
+                and other.module_name == node.module_name
+                and other.platform == node.platform
+                and other.skill_name == prerequisite
+            ):
+                result.add(other.node_id)
+    return result
+
+
+def _execution_closure(contract, invalidation) -> tuple[set[str], set[str]]:
+    """Expand an invalidation into the exact execution closure (fixed point).
+
+    The closure iterates until stable over three expansions:
+    - a selected node invalidates every producer group owning any of its outputs;
+    - a selected group pulls in all of its alternative nodes and every downstream group;
+    - an executed node must actually run its same-session prerequisites, because it
+      depends on their in-session side effects even when their artifacts are unchanged.
+    """
     selected_groups = {
-        contract.producer_group_ids_by_path[path] for path in plan.paths if path in contract.producer_group_ids_by_path
+        contract.producer_group_ids_by_path[path]
+        for path in invalidation.paths
+        if path in contract.producer_group_ids_by_path
     }
-    for node_id in plan.node_ids:
+    for node_id in invalidation.node_ids:
         for group_id, group in contract.producer_groups.items():
             if node_id in group.alternative_node_ids:
                 selected_groups.add(group_id)
@@ -488,15 +523,104 @@ def _selected_groups(contract, plan) -> tuple[set[str], set[str]]:
         selected_nodes = {
             node_id for group_id in expanded for node_id in contract.producer_groups[group_id].alternative_node_ids
         }
-        expanded.update(
-            contract.producer_group_ids_by_path[path]
-            for node_id in selected_nodes
-            for path in contract.nodes[node_id].outputs
-            if path in contract.producer_group_ids_by_path
-        )
+        while True:
+            changed = False
+            prerequisite_nodes = set()
+            for node_id in selected_nodes:
+                prerequisite_nodes.update(_prerequisite_producer_nodes(contract, contract.nodes[node_id]))
+            if not prerequisite_nodes <= selected_nodes:
+                selected_nodes |= prerequisite_nodes
+                changed = True
+            for node_id in selected_nodes:
+                for path in contract.nodes[node_id].outputs:
+                    group_id = contract.producer_group_ids_by_path.get(path)
+                    if group_id is None:
+                        continue
+                    if group_id not in expanded:
+                        expanded.add(group_id)
+                        changed = True
+                    alternatives = set(contract.producer_groups[group_id].alternative_node_ids)
+                    if not alternatives <= selected_nodes:
+                        selected_nodes |= alternatives
+                        changed = True
+            if not changed:
+                break
         if expanded == selected_groups:
             return expanded, selected_nodes
         selected_groups = expanded
+
+
+def _partition_version_execution(
+    contract,
+    base_files: dict,
+    merge_files: dict,
+    selected_group_ids: set[str],
+    selected_node_ids: set[str],
+) -> dict:
+    """Partition merge-contract outputs into execution, inheritance, and legal absence.
+
+    Fail closed whenever a byte-level change, a new output, or an optional presence
+    change is not covered by a selected producer group: such outputs can neither be
+    executed nor honestly inherited from the base tree.
+    """
+    executed_paths = {path for node_id in selected_node_ids for path in contract.nodes[node_id].outputs}
+    inherit_paths = []
+    inherited_absent_groups = []
+    for group_id in sorted(contract.producer_groups):
+        if group_id in selected_group_ids:
+            continue
+        group = contract.producer_groups[group_id]
+        path = group.artifact_path
+        if path in executed_paths:
+            raise TrustedArtifactPrError(f"execution/inheritance partition collision on a writable output: {path}")
+        merge_item = merge_files.get(path)
+        if merge_item is not None:
+            base_item = base_files.get(path)
+            if base_item is None:
+                raise TrustedArtifactPrError(f"new formal output was not scheduled for execution: {path}")
+            if (
+                base_item["blob_sha"] != merge_item["blob_sha"]
+                or base_item["size"] != merge_item["size"]
+                or base_item["sha256"] != merge_item["sha256"]
+            ):
+                raise TrustedArtifactPrError(f"changed artifact bytes without a selected producer: {path}")
+            inherit_paths.append(
+                {
+                    "path": path,
+                    "blob_sha": base_item["blob_sha"],
+                    "size": base_item["size"],
+                    "sha256": base_item["sha256"],
+                }
+            )
+        elif path in base_files:
+            raise TrustedArtifactPrError(f"optional output presence change was not scheduled for execution: {path}")
+        else:
+            inherited_absent_groups.append(
+                {
+                    "group_id": group_id,
+                    "artifact_path": path,
+                    "required": group.required,
+                    "fingerprint": group.fingerprint,
+                    "alternative_node_ids": list(group.alternative_node_ids),
+                }
+            )
+    removed_paths = sorted(path for path in base_files if path not in contract.formal_paths)
+    covered = {contract.producer_groups[group_id].artifact_path for group_id in selected_group_ids}
+    covered.update(item["path"] for item in inherit_paths)
+    covered.update(group["artifact_path"] for group in inherited_absent_groups)
+    if covered != contract.formal_paths:
+        raise TrustedArtifactPrError("execution/inheritance partition does not exactly cover the merge contract")
+    return {
+        "inherit_paths": inherit_paths,
+        "inherited_absent_groups": inherited_absent_groups,
+        "removed_paths": removed_paths,
+    }
+
+
+def _select_all_groups(merge_contract) -> tuple[set[str], set[str]]:
+    group_ids = set(merge_contract.producer_groups)
+    node_ids = {node_id for group in merge_contract.producer_groups.values() for node_id in group.alternative_node_ids}
+    return group_ids, node_ids
 
 
 def _node_document(contract, node_id: str) -> dict:
@@ -617,6 +741,7 @@ def build_trusted_artifact_plan(*, repo_root: str | Path, trusted_context: dict 
             selected_group_ids: set[str] = set()
             selected_node_ids: set[str] = set()
             invalidated_paths: set[str] = set()
+            partition = {"inherit_paths": [], "inherited_absent_groups": [], "removed_paths": []}
             maintained = gamever in maintained_versions
             if merge_contract is not None and base_contract is not None and maintained:
                 invalidation = build_invalidation_plan(
@@ -629,19 +754,14 @@ def build_trusted_artifact_plan(*, repo_root: str | Path, trusted_context: dict 
                     base_sources=base_sources,
                     head_sources=merge_sources,
                 )
-                selected_group_ids, selected_node_ids = _selected_groups(merge_contract, invalidation)
+                selected_group_ids, selected_node_ids = _execution_closure(merge_contract, invalidation)
                 invalidated_paths.update(
                     merge_contract.producer_groups[group_id].artifact_path for group_id in selected_group_ids
                 )
                 invalidated_paths.update(path for path in invalidation.paths if path not in merge_contract.formal_paths)
                 reasons.extend(invalidation.reasons)
             elif merge_contract is not None and maintained:
-                selected_group_ids = set(merge_contract.producer_groups)
-                selected_node_ids = {
-                    node_id
-                    for group in merge_contract.producer_groups.values()
-                    for node_id in group.alternative_node_ids
-                }
+                selected_group_ids, selected_node_ids = _select_all_groups(merge_contract)
                 invalidated_paths.update(merge_contract.formal_paths)
                 reasons.append("new configured GAMEVER")
             elif base_contract is not None and maintained:
@@ -649,12 +769,7 @@ def build_trusted_artifact_plan(*, repo_root: str | Path, trusted_context: dict 
                 reasons.append("configured GAMEVER removed")
 
             if shared_analysis_changed and merge_contract is not None and maintained:
-                selected_group_ids = set(merge_contract.producer_groups)
-                selected_node_ids = {
-                    node_id
-                    for group in merge_contract.producer_groups.values()
-                    for node_id in group.alternative_node_ids
-                }
+                selected_group_ids, selected_node_ids = _select_all_groups(merge_contract)
                 invalidated_paths.update(merge_contract.formal_paths)
                 reasons.append("shared analyzer/serializer contract changed")
 
@@ -662,14 +777,21 @@ def build_trusted_artifact_plan(*, repo_root: str | Path, trusted_context: dict 
                 base_binary_lock.sha256 if base_binary_lock else None
             ) != (merge_binary_lock.sha256 if merge_binary_lock else None)
             if merge_contract is not None and binary_identity_changed and maintained:
-                selected_group_ids = set(merge_contract.producer_groups)
-                selected_node_ids = {
-                    node_id
-                    for group in merge_contract.producer_groups.values()
-                    for node_id in group.alternative_node_ids
-                }
+                selected_group_ids, selected_node_ids = _select_all_groups(merge_contract)
                 invalidated_paths.update(merge_contract.formal_paths)
                 reasons.append("download/binary identity changed")
+
+            if merge_contract is not None and maintained:
+                identity_prefix = f"bin_artifacts/{gamever}/"
+                base_identity = (
+                    {item["path"].removeprefix(identity_prefix): item for item in base_inventory["files"]}
+                    if base_inventory
+                    else {}
+                )
+                merge_identity = {item["path"].removeprefix(identity_prefix): item for item in merge_inventory["files"]}
+                partition = _partition_version_execution(
+                    merge_contract, base_identity, merge_identity, selected_group_ids, selected_node_ids
+                )
 
             artifact_changes = [
                 change
@@ -721,6 +843,7 @@ def build_trusted_artifact_plan(*, repo_root: str | Path, trusted_context: dict 
             version_reports.append(
                 {
                     "game_version": gamever,
+                    "maintained": maintained,
                     "base_config_sha256": base_contract.config_sha256 if base_contract else None,
                     "merge_config_sha256": merge_contract.config_sha256 if merge_contract else None,
                     "base_binary_lock_sha256": base_binary_lock.sha256 if base_binary_lock else None,
@@ -732,8 +855,11 @@ def build_trusted_artifact_plan(*, repo_root: str | Path, trusted_context: dict 
                     "bootstrap_required": bootstrap_required,
                     "prior_gamever": None,
                     "invalidated_paths": sorted(invalidated_paths),
-                    "affected_producer_groups": groups,
-                    "selected_alternative_nodes": nodes,
+                    "execute_groups": groups,
+                    "execute_nodes": nodes,
+                    "inherit_paths": partition["inherit_paths"],
+                    "inherited_absent_groups": partition["inherited_absent_groups"],
+                    "removed_paths": partition["removed_paths"],
                     "reasons": list(dict.fromkeys(reasons)),
                 }
             )
@@ -762,10 +888,12 @@ def build_trusted_artifact_plan(*, repo_root: str | Path, trusted_context: dict 
         else ("full" if affected_versions else "light")
     )
     download_raw = repo.read(context["merge_sha"], "download.yaml")
+    policy_strategy = context["artifact_policy"]["execution_strategy"]
     document = {
         "schema_version": PLAN_SCHEMA_VERSION,
         "event_kind": context["event_kind"],
         "mode": mode,
+        "execution_strategy": policy_strategy,
         "base_sha": context["base_sha"],
         "head_sha": context["head_sha"],
         "merge_sha": context["merge_sha"],
@@ -809,6 +937,22 @@ def build_trusted_artifact_plan(*, repo_root: str | Path, trusted_context: dict 
     return document
 
 
+def _validated_partition_item(item: object, gamever: str) -> dict:
+    if (
+        not isinstance(item, dict)
+        or set(item) != {"path", "blob_sha", "size", "sha256"}
+        or not isinstance(item.get("path"), str)
+        or not item["path"]
+        or not SHA_RE.fullmatch(str(item.get("blob_sha", "")))
+        or not isinstance(item.get("size"), int)
+        or isinstance(item.get("size"), bool)
+        or item["size"] < 0
+        or not re.fullmatch(r"sha256:[0-9a-f]{64}", str(item.get("sha256", "")))
+    ):
+        raise TrustedArtifactPrError(f"trusted artifact plan inherit entry is invalid for {gamever}")
+    return item
+
+
 def validate_trusted_artifact_plan(document: object) -> dict:
     if not isinstance(document, dict) or document.get("schema_version") != PLAN_SCHEMA_VERSION:
         raise TrustedArtifactPrError("trusted artifact plan schema is invalid")
@@ -822,6 +966,8 @@ def validate_trusted_artifact_plan(document: object) -> dict:
             raise TrustedArtifactPrError(f"trusted artifact plan has an invalid {field}")
     if document.get("mode") not in {"light", "full", "bootstrap_required"}:
         raise TrustedArtifactPrError("trusted artifact plan mode is invalid")
+    if document.get("execution_strategy") not in EXECUTION_STRATEGIES:
+        raise TrustedArtifactPrError("trusted artifact plan execution strategy is invalid")
     versions = document.get("game_versions")
     if not isinstance(versions, list) or any(
         not isinstance(version, dict) or not isinstance(version.get("game_version"), str) for version in versions
@@ -841,6 +987,37 @@ def validate_trusted_artifact_plan(document: object) -> dict:
                 lock_digest is not None and not re.fullmatch(r"sha256:[0-9a-f]{64}", str(lock_digest))
             ):
                 raise TrustedArtifactPrError(f"trusted artifact plan has an invalid {lock_field} for {gamever}")
+        if not isinstance(version.get("maintained"), bool):
+            raise TrustedArtifactPrError(f"trusted artifact plan maintained flag is invalid for {gamever}")
+        for field in ("execute_groups", "execute_nodes"):
+            if not isinstance(version.get(field), list):
+                raise TrustedArtifactPrError(f"trusted artifact plan {field} is invalid for {gamever}")
+        for field in ("inherit_paths",):
+            if not isinstance(version.get(field), list):
+                raise TrustedArtifactPrError(f"trusted artifact plan {field} is invalid for {gamever}")
+            for item in version[field]:
+                _validated_partition_item(item, gamever)
+        if not isinstance(version.get("inherited_absent_groups"), list) or any(
+            not isinstance(group, dict)
+            or not isinstance(group.get("group_id"), str)
+            or not isinstance(group.get("artifact_path"), str)
+            or group.get("required") is not False
+            for group in version["inherited_absent_groups"]
+        ):
+            raise TrustedArtifactPrError(f"trusted artifact plan inherited_absent_groups is invalid for {gamever}")
+        if not isinstance(version.get("removed_paths"), list) or any(
+            not isinstance(item, str) for item in version["removed_paths"]
+        ):
+            raise TrustedArtifactPrError(f"trusted artifact plan removed_paths is invalid for {gamever}")
+        inherit_paths = [item["path"] for item in version["inherit_paths"]]
+        if len(set(inherit_paths)) != len(inherit_paths):
+            raise TrustedArtifactPrError(f"trusted artifact plan inherit paths are duplicate for {gamever}")
+        absent_paths = [group["artifact_path"] for group in version["inherited_absent_groups"]]
+        executed = [group.get("artifact_path") for group in version["execute_groups"]]
+        overlap = (set(inherit_paths) | set(absent_paths)) & (set(executed) | set(version["removed_paths"]))
+        overlap |= (set(absent_paths) & set(inherit_paths)) | (set(absent_paths) & set(version["removed_paths"]))
+        if overlap:
+            raise TrustedArtifactPrError(f"trusted artifact plan partitions overlap for {gamever}: {sorted(overlap)}")
         if "prior_gamever" not in version:
             raise TrustedArtifactPrError(f"trusted artifact plan omits prior_gamever for {gamever}")
         prior_gamever = version["prior_gamever"]
@@ -889,6 +1066,77 @@ def _filesystem_artifact_digest(root: Path) -> str:
     return _digest("checkout-artifact-inventory", sorted(items, key=lambda item: item["path"]))
 
 
+def _validate_checkout_external_staging(repo: GitTreeRepository, staging_root: Path) -> None:
+    try:
+        staging_root.relative_to(repo.root)
+    except ValueError:
+        pass
+    else:
+        raise TrustedArtifactPrError("isolated rebuild staging root must be outside the source checkout")
+
+
+def _materialize_inherited_whitelist(
+    repo: GitTreeRepository,
+    plan: dict,
+    version: dict,
+    gamever: str,
+    actual_root: Path,
+    expected_root: Path,
+) -> list[dict]:
+    """Write only the planned inherit paths from exact base Git blobs into the actual root.
+
+    The base bytes are cross-checked against the materialized merge-side expected blob
+    before and after the write, so a seeded actual root can only ever hold base-owned
+    bytes that the prospective merge tree also carries unchanged.
+    """
+    prefix = f"bin_artifacts/{gamever}/"
+    inherited = []
+    base_entries = [
+        GitTreeEntry("100644", "blob", item["blob_sha"], f"{prefix}{item['path']}") for item in version["inherit_paths"]
+    ]
+    raw_by_path = repo.read_blobs(base_entries)
+    for item in version["inherit_paths"]:
+        raw = raw_by_path[f"{prefix}{item['path']}"]
+        if len(raw) != item["size"] or _sha256(raw) != item["sha256"]:
+            raise TrustedArtifactPrError(f"inherited base artifact drifted: {prefix}{item['path']}")
+        expected_path = expected_root / gamever / item["path"]
+        if not expected_path.is_file() or expected_path.read_bytes() != raw:
+            raise TrustedArtifactPrError(
+                f"inherited artifact differs between the base and merge trees: {prefix}{item['path']}"
+            )
+        actual_path = actual_root / gamever / item["path"]
+        _atomic_write(actual_path, raw)
+        materialized = actual_path.read_bytes()
+        if materialized != raw:
+            raise TrustedArtifactPrError(f"inherited artifact materialization drifted: {prefix}{item['path']}")
+        inherited.append({**item})
+    return inherited
+
+
+def _build_selected_execution_manifest(plan: dict, version: dict, config_root: Path, initial_inventory: str) -> dict:
+    gamever = version["game_version"]
+    config_raw = (config_root / f"{gamever}.yaml").read_bytes()
+    manifest = {
+        "schema_version": SELECTED_EXECUTION_SCHEMA_VERSION,
+        "execution_strategy": BASE_INHERITED_SELECTED_STRATEGY,
+        "plan_sha256": plan["plan_sha256"],
+        "base_sha": plan["base_sha"],
+        "merge_sha": plan["merge_sha"],
+        "merge_tree_sha": plan["merge_tree_sha"],
+        "game_version": gamever,
+        "prior_gamever": version["prior_gamever"],
+        "config_sha256": _sha256(config_raw),
+        "initial_actual_inventory_sha256": initial_inventory,
+        "execute_nodes": version["execute_nodes"],
+        "execute_groups": version["execute_groups"],
+        "inherit_paths": version["inherit_paths"],
+        "inherited_absent_groups": version["inherited_absent_groups"],
+        "removed_paths": version["removed_paths"],
+    }
+    manifest["manifest_sha256"] = _digest(SELECTED_MANIFEST_DIGEST_LABEL, manifest)
+    return manifest
+
+
 def prepare_isolated_rebuild(
     *,
     repo_root: str | Path,
@@ -899,16 +1147,14 @@ def prepare_isolated_rebuild(
     plan = load_trusted_artifact_plan(plan) if isinstance(plan, (str, Path)) else validate_trusted_artifact_plan(plan)
     if plan["mode"] != "full":
         raise TrustedArtifactPrError(f"isolated rebuild requires a full plan, got {plan['mode']}")
+    strategy = plan["execution_strategy"]
+    if strategy not in EXECUTION_STRATEGIES:
+        raise TrustedArtifactPrError(f"isolated rebuild strategy is unknown: {strategy!r}")
     repo = GitTreeRepository(repo_root)
     if repo.tree_sha(plan["merge_sha"]) != plan["merge_tree_sha"]:
         raise TrustedArtifactPrError("prospective merge tree drifted before isolated rebuild preparation")
     staging_root = Path(os.path.abspath(staging_root))
-    try:
-        staging_root.relative_to(repo.root)
-    except ValueError:
-        pass
-    else:
-        raise TrustedArtifactPrError("isolated rebuild staging root must be outside the source checkout")
+    _validate_checkout_external_staging(repo, staging_root)
     if staging_root.exists():
         raise TrustedArtifactPrError(f"isolated rebuild staging root already exists: {staging_root}")
     staging_root.mkdir(parents=True)
@@ -922,6 +1168,9 @@ def prepare_isolated_rebuild(
     execution_root.mkdir()
 
     prepared_versions = []
+    inherited_files: dict[str, list[dict]] = {}
+    initial_inventories: dict[str, str] = {}
+    selected_manifests: dict[str, str] = {}
     for version in plan["game_versions"]:
         if not version["invalidated_paths"] or version["merge_artifacts"] is None:
             continue
@@ -944,6 +1193,23 @@ def prepare_isolated_rebuild(
                 raise TrustedArtifactPrError(f"prospective merge artifact drifted: {item['path']}")
             expected_path = expected_root / gamever / key
             _atomic_write(expected_path, raw)
+        inherited = []
+        if strategy == BASE_INHERITED_SELECTED_STRATEGY:
+            inherited = _materialize_inherited_whitelist(repo, plan, version, gamever, actual_root, expected_root)
+            forbidden = [group["artifact_path"] for group in version["execute_groups"]]
+            forbidden.extend(group["artifact_path"] for group in version["inherited_absent_groups"])
+            forbidden.extend(version["removed_paths"])
+            for path in forbidden:
+                if (actual_root / gamever / path).exists():
+                    raise TrustedArtifactPrError(
+                        f"seeded actual root must not contain a planned execution output: {gamever}/{path}"
+                    )
+            initial_inventories[gamever] = _filesystem_artifact_digest(actual_root / gamever)
+            manifest = _build_selected_execution_manifest(plan, version, config_root, initial_inventories[gamever])
+            manifest_path = staging_root / f"selected-execution-{gamever}.json"
+            _atomic_write(manifest_path, _canonical_json_bytes(manifest))
+            selected_manifests[gamever] = str(manifest_path)
+        inherited_files[gamever] = inherited
         prepared_versions.append(gamever)
     if game_version is not None and prepared_versions != [str(game_version)]:
         raise TrustedArtifactPrError(f"GAMEVER is not an affected full-plan target: {game_version}")
@@ -951,6 +1217,7 @@ def prepare_isolated_rebuild(
     report = {
         "schema_version": PREPARATION_SCHEMA_VERSION,
         "plan_sha256": plan["plan_sha256"],
+        "execution_strategy": strategy,
         "merge_sha": plan["merge_sha"],
         "merge_tree_sha": plan["merge_tree_sha"],
         "staging_root": str(staging_root),
@@ -959,8 +1226,19 @@ def prepare_isolated_rebuild(
         "config_root": str(config_root),
         "binary_root": str(repo.root / "bin"),
         "execution_reports": {
-            gamever: str(execution_root / f"{gamever}.force-all.json") for gamever in prepared_versions
+            gamever: str(
+                execution_root
+                / (
+                    f"{gamever}.selected.json"
+                    if strategy == BASE_INHERITED_SELECTED_STRATEGY
+                    else f"{gamever}.force-all.json"
+                )
+            )
+            for gamever in prepared_versions
         },
+        "selected_execution_manifests": selected_manifests,
+        "inherited_files": inherited_files,
+        "initial_actual_inventory_sha256": initial_inventories,
         "prepared_game_versions": prepared_versions,
         "source_checkout_artifact_sha256": _filesystem_artifact_digest(repo.root / "bin_artifacts"),
     }
@@ -1015,7 +1293,7 @@ def _load_force_all_execution_report(path: Path, *, preparation: dict, version: 
     }
     if len(groups_by_id) != len(group_records):
         raise TrustedArtifactPrError("force-all execution report has duplicate or invalid producer groups")
-    for planned in version["affected_producer_groups"]:
+    for planned in version["execute_groups"]:
         record = groups_by_id.get(planned["group_id"])
         if record is None:
             raise TrustedArtifactPrError(f"selected producer group was not executed: {planned['group_id']}")
@@ -1041,6 +1319,282 @@ def _load_force_all_execution_report(path: Path, *, preparation: dict, version: 
     return report
 
 
+def _selected_execution_digest(value: object) -> str:
+    raw = SELECTED_EXECUTION_DIGEST_DOMAIN.encode("utf-8") + b"\n" + _canonical_json_bytes(value)
+    return f"sha256:{hashlib.sha256(raw).hexdigest()}"
+
+
+LEGAL_ABSENT_SKIP_REASONS = frozenset({"optional_output_absent", "preprocess_absent"})
+
+
+def _is_verified_attempt_status(
+    node_record: dict, expected_files: dict, allowed_materialized_paths: frozenset[str] | set[str]
+) -> bool:
+    """Accept a terminal status, or a skip that provably encodes a legal absence/fallback.
+
+    A skipped node is only accepted when the recorded skip reason is the executor's
+    optional/preprocess-absent outcome and the node produced nothing. Every path it
+    attempted must then either be genuinely absent from the prospective merge tree, or
+    be a path this node was allowed to concede to a later winning alternative within its
+    producer group (a legal fallback attempt, not an unexecuted skip).
+    """
+    status = node_record.get("status")
+    if status in {"succeeded", "failed"}:
+        return True
+    if status != "skipped" or node_record.get("reason") not in LEGAL_ABSENT_SKIP_REASONS:
+        return False
+    if node_record.get("produced_paths"):
+        return False
+    for path in node_record["attempted_paths"]:
+        if path in expected_files and path not in allowed_materialized_paths:
+            return False
+    return True
+
+
+def _load_selected_execution_report(path: Path, *, preparation: dict, version: dict, plan: dict) -> dict:
+    try:
+        raw = path.read_bytes()
+        report = json.loads(raw.decode("utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise TrustedArtifactPrError(
+            f"unable to load selected execution report for {version['game_version']}: {exc}"
+        ) from exc
+    if raw != _canonical_json_bytes(report):
+        raise TrustedArtifactPrError("selected execution report is not canonical JSON")
+    digest = report.get("execution_sha256")
+    unsigned = dict(report)
+    unsigned.pop("execution_sha256", None)
+    if digest != _selected_execution_digest(unsigned):
+        raise TrustedArtifactPrError("selected execution report digest mismatch")
+
+    gamever = version["game_version"]
+    manifest = preparation["selected_execution_manifests"].get(gamever)
+    if not manifest:
+        raise TrustedArtifactPrError(f"preparation omitted the selected manifest for {gamever}")
+    manifest_document = _load_selected_execution_manifest(Path(manifest))
+    if (
+        report.get("schema_version") != SELECTED_EXECUTION_SCHEMA_VERSION
+        or report.get("valid") is not True
+        or report.get("execution_strategy") != BASE_INHERITED_SELECTED_STRATEGY
+        or report.get("game_version") != gamever
+        or "prior_gamever" not in report
+        or report.get("prior_gamever") != version["prior_gamever"]
+        or report.get("plan_sha256") != plan["plan_sha256"]
+        or report.get("manifest_sha256") != manifest_document["manifest_sha256"]
+        or Path(report.get("artifact_root", "")).resolve() != Path(preparation["actual_artifact_root"]).resolve()
+        or Path(report.get("binary_root", "")).resolve() != Path(preparation["binary_root"]).resolve()
+        or Path(report.get("config_path", "")).resolve()
+        != (Path(preparation["config_root"]) / f"{gamever}.yaml").resolve()
+    ):
+        raise TrustedArtifactPrError(f"selected execution report does not prove the required PR run for {gamever}")
+
+    expected_files = {
+        item["path"].removeprefix(f"bin_artifacts/{gamever}/"): item for item in version["merge_artifacts"]["files"]
+    }
+    group_records = report.get("producer_groups")
+    if not isinstance(group_records, list):
+        raise TrustedArtifactPrError("selected execution report has no producer-group evidence")
+    groups_by_id = {
+        record.get("group_id"): record
+        for record in group_records
+        if isinstance(record, dict) and record.get("group_id")
+    }
+    if len(groups_by_id) != len(group_records):
+        raise TrustedArtifactPrError("selected execution report has duplicate or invalid producer groups")
+    planned_groups = {planned["group_id"]: planned for planned in version["execute_groups"]}
+    if set(groups_by_id) != set(planned_groups):
+        missing = sorted(set(planned_groups) - set(groups_by_id))
+        extra = sorted(set(groups_by_id) - set(planned_groups))
+        raise TrustedArtifactPrError(
+            f"selected execution report does not match the planned execution set for {gamever}: "
+            f"missing={missing!r} extra={extra!r}"
+        )
+    for group_id, planned in planned_groups.items():
+        record = groups_by_id[group_id]
+        expected = expected_files.get(planned["artifact_path"])
+        expected_sha256 = expected["sha256"] if expected is not None else None
+        if (
+            record.get("artifact_path") != planned["artifact_path"]
+            or record.get("required") != planned["required"]
+            or record.get("fingerprint") != planned["fingerprint"]
+            or record.get("alternative_node_ids") != planned["alternative_node_ids"]
+            or record.get("output_sha256") != expected_sha256
+        ):
+            raise TrustedArtifactPrError(f"selected execution drifted from the trusted plan: {group_id}")
+        winner = record.get("winner_node_id")
+        if expected_sha256 is not None and winner not in planned["alternative_node_ids"]:
+            raise TrustedArtifactPrError(f"selected producer group has no valid winning alternative: {group_id}")
+        if expected_sha256 is None and winner is not None:
+            raise TrustedArtifactPrError(f"absent optional producer group unexpectedly selected a winner: {group_id}")
+    reported_nodes = {node.get("node_id") for node in report.get("nodes", []) if isinstance(node, dict)}
+    planned_nodes = {node["node_id"]: node for node in version["execute_nodes"]}
+    if reported_nodes != set(planned_nodes):
+        raise TrustedArtifactPrError(
+            f"selected execution node evidence does not match the plan for {gamever}: "
+            f"missing={sorted(set(planned_nodes) - reported_nodes)!r} "
+            f"extra={sorted(reported_nodes - set(planned_nodes))!r}"
+        )
+
+    # Independently verify the node evidence instead of trusting the self-reported valid flag:
+    # no duplicates, terminal statuses for attempted nodes, writes only to authorized outputs,
+    # and per-node attempt/production claims that agree with every group's attempt prefix.
+    node_records_list = report.get("nodes")
+    nodes_by_id: dict[str, dict] = {}
+    for record in node_records_list:
+        if not isinstance(record, dict) or not isinstance(record.get("node_id"), str) or not record["node_id"]:
+            raise TrustedArtifactPrError("selected execution report has an invalid node record")
+        if record["node_id"] in nodes_by_id:
+            raise TrustedArtifactPrError(f"selected execution report has duplicate node evidence: {record['node_id']}")
+        for field in ("attempted_paths", "produced_paths"):
+            if not isinstance(record.get(field), list) or any(not isinstance(path, str) for path in record[field]):
+                raise TrustedArtifactPrError(
+                    f"selected execution report node has an invalid {field}: {record['node_id']}"
+                )
+        nodes_by_id[record["node_id"]] = record
+    for node_id, record in nodes_by_id.items():
+        authorized = set(planned_nodes[node_id]["outputs"])
+        for field in ("attempted_paths", "produced_paths"):
+            unauthorized = sorted(set(record[field]) - authorized)
+            if unauthorized:
+                raise TrustedArtifactPrError(
+                    f"selected execution node recorded writes beyond its authorized outputs: {node_id} {unauthorized!r}"
+                )
+        if not set(record["produced_paths"]) <= set(record["attempted_paths"]):
+            raise TrustedArtifactPrError(f"selected execution node produced outputs it never attempted: {node_id}")
+
+    attempted_group_nodes: set[str] = set()
+    fallback_materialized_paths: dict[str, set[str]] = {}
+    for group_id, planned in planned_groups.items():
+        record = groups_by_id[group_id]
+        alternatives = list(planned["alternative_node_ids"])
+        attempted = record.get("attempted_node_ids")
+        if not isinstance(attempted, list) or any(not isinstance(node_id, str) for node_id in attempted):
+            raise TrustedArtifactPrError(f"selected execution group has invalid attempt evidence: {group_id}")
+        winner = record.get("winner_node_id")
+        materialized = planned["artifact_path"] in expected_files
+        if materialized:
+            winner_index = alternatives.index(winner)
+            expected_attempts = alternatives[: winner_index + 1]
+        else:
+            winner_index = None
+            expected_attempts = alternatives
+        if list(attempted) != expected_attempts:
+            raise TrustedArtifactPrError(
+                f"selected execution attempts drifted for {group_id}: "
+                f"expected={expected_attempts!r} actual={attempted!r}"
+            )
+        successful = []
+        for node_id in alternatives:
+            node_record = nodes_by_id[node_id]
+            claims_attempt = planned["artifact_path"] in node_record["attempted_paths"]
+            if claims_attempt != (node_id in attempted):
+                raise TrustedArtifactPrError(
+                    f"selected execution node evidence contradicts the group attempts: {group_id}/{node_id}"
+                )
+            if node_id in attempted:
+                attempted_group_nodes.add(node_id)
+            if node_record.get("status") == "succeeded" and planned["artifact_path"] in node_record["produced_paths"]:
+                successful.append(node_id)
+        if materialized and successful != [winner]:
+            raise TrustedArtifactPrError(
+                f"materialized producer group must have exactly one producing winner: "
+                f"{group_id} producers={successful!r}"
+            )
+        if not materialized and successful:
+            raise TrustedArtifactPrError(
+                f"absent optional output was produced by executed nodes: {group_id} {successful!r}"
+            )
+        if winner_index is not None:
+            # A materialized path may be conceded by the failed/skipped alternatives that
+            # ran before the winner: that is a legal fallback attempt, not an absent output.
+            for node_id in alternatives[:winner_index]:
+                fallback_materialized_paths.setdefault(node_id, set()).add(planned["artifact_path"])
+
+    # Status verification runs after the group pass so every skipped node can be judged
+    # against the exact set of paths it was allowed to concede to a later winner.
+    for node_id, record in nodes_by_id.items():
+        if node_id in attempted_group_nodes and not _is_verified_attempt_status(
+            record, expected_files, fallback_materialized_paths.get(node_id, frozenset())
+        ):
+            raise TrustedArtifactPrError(f"attempted node lacks a terminal execution status: {node_id}")
+
+    # Output-less session prerequisites belong to no producer group, so group-level
+    # verification never covers them: unlike competing alternatives, a failed or skipped
+    # prerequisite proves the session side effects its dependents rely on were never
+    # established, so only a successful execution counts as evidence.
+    group_alternative_node_ids = {
+        node_id for planned_group in planned_groups.values() for node_id in planned_group["alternative_node_ids"]
+    }
+    for node_id, record in nodes_by_id.items():
+        if node_id in group_alternative_node_ids:
+            continue
+        if record.get("attempted") is not True or record.get("status") != "succeeded":
+            raise TrustedArtifactPrError(f"planned prerequisite node lacks successful execution evidence: {node_id}")
+    if report.get("inherited_initial_inventory_sha256") != preparation["initial_actual_inventory_sha256"].get(gamever):
+        raise TrustedArtifactPrError(f"selected execution report lost the seeded-root binding for {gamever}")
+    return report
+
+
+def _load_selected_execution_manifest(path: Path) -> dict:
+    try:
+        raw = path.read_bytes()
+        document = json.loads(raw.decode("utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise TrustedArtifactPrError(f"unable to load selected execution manifest: {exc}") from exc
+    if not isinstance(document, dict) or document.get("schema_version") != SELECTED_EXECUTION_SCHEMA_VERSION:
+        raise TrustedArtifactPrError("selected execution manifest schema is invalid")
+    digest = document.get("manifest_sha256")
+    unsigned = dict(document)
+    unsigned.pop("manifest_sha256", None)
+    if digest != _digest(SELECTED_MANIFEST_DIGEST_LABEL, unsigned):
+        raise TrustedArtifactPrError("selected execution manifest digest mismatch")
+    for field in ("execution_strategy", "plan_sha256", "game_version"):
+        if not isinstance(document.get(field), str) or not document[field]:
+            raise TrustedArtifactPrError(f"selected execution manifest has an invalid {field}")
+    if document["execution_strategy"] != BASE_INHERITED_SELECTED_STRATEGY:
+        raise TrustedArtifactPrError("selected execution manifest strategy is invalid")
+    if not isinstance(document.get("initial_actual_inventory_sha256"), str) or not re.fullmatch(
+        r"sha256:[0-9a-f]{64}", document["initial_actual_inventory_sha256"]
+    ):
+        raise TrustedArtifactPrError("selected execution manifest lacks a valid seeded-root inventory digest")
+    for field in ("execute_nodes", "execute_groups", "inherit_paths", "inherited_absent_groups", "removed_paths"):
+        if not isinstance(document.get(field), list):
+            raise TrustedArtifactPrError(f"selected execution manifest has an invalid {field}")
+    return document
+
+
+def _verify_inherited_paths_against_base(repo: GitTreeRepository, plan: dict, version: dict, actual_root: Path) -> None:
+    """Re-derive inherited bytes from the bound base tree and compare the final files.
+
+    The final-state equality proves the composed inventory carried the base-owned bytes
+    through execution; it does not by itself prove the executor never wrote them in
+    between, and must not be presented as full write isolation.
+    """
+    gamever = version["game_version"]
+    prefix = f"bin_artifacts/{gamever}/"
+    entries = [
+        GitTreeEntry("100644", "blob", item["blob_sha"], f"{prefix}{item['path']}") for item in version["inherit_paths"]
+    ]
+    raw_by_path = repo.read_blobs(entries)
+    for item in version["inherit_paths"]:
+        raw = raw_by_path[f"{prefix}{item['path']}"]
+        if len(raw) != item["size"] or _sha256(raw) != item["sha256"]:
+            raise TrustedArtifactPrError(f"inherited base artifact drifted from the plan: {prefix}{item['path']}")
+        final_path = actual_root / gamever / item["path"]
+        if not final_path.is_file() or final_path.read_bytes() != raw:
+            raise TrustedArtifactPrError(
+                f"inherited artifact was modified or removed during execution: {prefix}{item['path']}"
+            )
+    for path in version["removed_paths"]:
+        if (actual_root / gamever / path).exists():
+            raise TrustedArtifactPrError(f"contract-removed output was materialized: {gamever}/{path}")
+    for group in version["inherited_absent_groups"]:
+        if (actual_root / gamever / group["artifact_path"]).exists():
+            raise TrustedArtifactPrError(
+                f"legally absent optional output was created: {gamever}/{group['artifact_path']}"
+            )
+
+
 def validate_isolated_rebuild(
     *, repo_root: str | Path, plan: dict | str | Path, preparation: dict | str | Path
 ) -> dict:
@@ -1057,8 +1611,14 @@ def validate_isolated_rebuild(
     unsigned.pop("preparation_sha256", None)
     if digest != _digest("isolated-preparation", unsigned) or preparation.get("plan_sha256") != plan["plan_sha256"]:
         raise TrustedArtifactPrError("isolated preparation digest or plan binding mismatch")
+    strategy = plan["execution_strategy"]
+    if strategy not in EXECUTION_STRATEGIES:
+        raise TrustedArtifactPrError(f"isolated rebuild strategy is unknown: {strategy!r}")
+    if strategy == BASE_INHERITED_SELECTED_STRATEGY and not preparation.get("selected_execution_manifests"):
+        raise TrustedArtifactPrError("selected-strategy preparation omitted every selected manifest")
 
     repo_root = Path(repo_root).resolve()
+    repo = GitTreeRepository(repo_root)
     if _filesystem_artifact_digest(repo_root / "bin_artifacts") != preparation["source_checkout_artifact_sha256"]:
         raise TrustedArtifactPrError("source checkout artifacts changed during isolated rebuild")
     actual_root = Path(preparation["actual_artifact_root"])
@@ -1069,9 +1629,17 @@ def validate_isolated_rebuild(
         gamever = version["game_version"]
         if gamever not in preparation["prepared_game_versions"]:
             continue
-        execution = _load_force_all_execution_report(
-            Path(preparation["execution_reports"][gamever]), preparation=preparation, version=version
-        )
+        if strategy == BASE_INHERITED_SELECTED_STRATEGY:
+            execution = _load_selected_execution_report(
+                Path(preparation["execution_reports"][gamever]),
+                preparation=preparation,
+                version=version,
+                plan=plan,
+            )
+        else:
+            execution = _load_force_all_execution_report(
+                Path(preparation["execution_reports"][gamever]), preparation=preparation, version=version
+            )
         try:
             actual = build_game_artifact_inventory(
                 repo_root=repo_root,
@@ -1101,18 +1669,28 @@ def validate_isolated_rebuild(
             "file_count": actual.file_count,
             "inventory_sha256": actual.inventory_sha256,
         }:
-            raise TrustedArtifactPrError(f"force-all inventory evidence drifted for {gamever}")
+            raise TrustedArtifactPrError(f"execution inventory evidence drifted for {gamever}")
+        inherited_count = 0
+        removed_count = 0
+        if strategy == BASE_INHERITED_SELECTED_STRATEGY:
+            _verify_inherited_paths_against_base(repo, plan, version, actual_root)
+            inherited_count = len(version["inherit_paths"])
+            removed_count = len(version["removed_paths"])
         reports.append(
             {
                 "game_version": gamever,
                 "file_count": actual.file_count,
                 "inventory_sha256": version["merge_artifacts"]["inventory_sha256"],
                 "execution_sha256": execution["execution_sha256"],
+                "executed_group_count": len(version["execute_groups"]),
+                "inherited_count": inherited_count,
+                "removed_count": removed_count,
             }
         )
     result = {
         "schema_version": 1,
         "plan_sha256": plan["plan_sha256"],
+        "execution_strategy": strategy,
         "preparation_sha256": preparation["preparation_sha256"],
         "game_versions": reports,
     }

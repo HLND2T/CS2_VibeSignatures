@@ -129,7 +129,7 @@ class NewGameverArtifactTests(unittest.TestCase):
         files = {item.path.removeprefix(f"bin_artifacts/{self.gamever}/"): item for item in inventory.files}
         groups = []
         winning_node_ids = set()
-        for planned in version["affected_producer_groups"]:
+        for planned in version["execute_groups"]:
             item = files.get(planned["artifact_path"])
             winner = planned["alternative_node_ids"][0] if item is not None else None
             if winner is not None:
@@ -155,7 +155,7 @@ class NewGameverArtifactTests(unittest.TestCase):
                     group["artifact_path"] for group in groups if group["winner_node_id"] == planned["node_id"]
                 ],
             }
-            for planned in version["selected_alternative_nodes"]
+            for planned in version["execute_nodes"]
         ]
         document = {
             "schema_version": 2,

@@ -75,3 +75,5 @@ Normal local authoring writes tracked `bin_artifacts`; trusted PR/Release valida
 ## Callers
 - Direct CLI invocation: `uv run ida_analyze_bin.py -gamever 14141 ...`
 - Batch/script wrappers: the Windows workflow examples in `README.md` invoke this script
+
+- [fact] Since the base-inherited-selected bridge (2026-09-06) `ida_analyze_bin.py` supports `-selected_execution <manifest>` (mutually exclusive with `-force_all` / `-skill` / `-vcall_finder` / `-rename` / `-skip_error`, requires both platforms): fail-closed manifest loading (digest domain `source-artifact-selected-execution-manifest:v1`, config_sha256 binding), seeded-root validation requiring the GAMEVER subtree to hold exactly the inherited whitelist (checkout-external, no reparse points), stable-node-id skill filtering with same-session prerequisite completeness enforcement, and a dedicated execution report type `source2-selected-execution:v1` (schema 1) that binds plan/manifest/paths/initial seeded inventory and never claims inherited bytes as executed evidence. In selected mode planned nodes skip the existing-output/skip_if_exists early-exits exactly like force_all.

@@ -135,6 +135,34 @@ class ReleaseArtifactRebuildTests(unittest.TestCase):
             with self.assertRaisesRegex(rar.ReleaseArtifactRebuildError, "digest mismatch"):
                 rar.verify_release_rebuild(repo_root=root, preparation=preparation)
 
+    def test_release_verify_rejects_selected_execution_evidence(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            temporary_root = Path(temporary)
+            root = temporary_root / "repo"
+            root.mkdir()
+            source_sha = self._repository(root)
+            preparation = rar.prepare_release_rebuild(
+                repo_root=root,
+                source_sha=source_sha,
+                game_version="1",
+                binary_root=root / "bin",
+                staging_root=temporary_root / "release-rebuild",
+            )
+            shutil.copytree(root / "bin_artifacts", preparation["actual_artifact_root"], dirs_exist_ok=True)
+            self._write_execution_report(preparation)
+
+            report_path = Path(preparation["execution_report"])
+            report = json.loads(report_path.read_text(encoding="utf-8"))
+            del report["force_all"]
+            report["execution_strategy"] = "base-inherited-selected-v1"
+            report["execution_sha256"] = ida_analyze_bin._selected_execution_digest(report)
+            report_path.write_bytes(rar._canonical_json_bytes(report))
+
+            with self.assertRaisesRegex(
+                rar.ReleaseArtifactRebuildError, "digest mismatch|does not prove the required release run"
+            ):
+                rar.verify_release_rebuild(repo_root=root, preparation=preparation)
+
     def test_prepare_rejects_canonical_checkout_artifact_drift_from_source_sha(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             temporary_root = Path(temporary)

@@ -178,8 +178,8 @@ def _validate_force_all_execution_report(*, value: dict | str | Path, version: d
     if report.get("inventory") != expected_inventory:
         raise NewGameverArtifactError("bootstrap force-all execution inventory differs from candidate artifacts")
 
-    planned_groups = version.get("affected_producer_groups")
-    planned_nodes = version.get("selected_alternative_nodes")
+    planned_groups = version.get("execute_groups")
+    planned_nodes = version.get("execute_nodes")
     if not isinstance(planned_groups, list) or not isinstance(planned_nodes, list):
         raise NewGameverArtifactError("trusted bootstrap plan has no complete producer execution contract")
     group_records = report.get("producer_groups")
