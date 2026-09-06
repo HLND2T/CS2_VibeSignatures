@@ -311,3 +311,21 @@ PR 改为 trusted prepare → base 白名单物料化 → selected execute → �
 - 保存原计划、实验计划、preparation、warm restore、执行证据、完整验证、命令日志与各阶段耗时；失败也上传诊断，`comparison.json.valid` 仅在全部比较完成后为 true。此处尚不声明真实 runner 已验证。
 - 发布流程仍由 empty-root `-force_all -rename`、`release_artifact_rebuild.py verify` 与 hosted verification 保护；publish jobs 依赖这些成功结果。当前工作流无独立外部告警发送步骤，失败通过 Actions job/check 呈现；个人通知订阅未核验。
 - **清理门槛：PR #926 已合并。**届时删除临时 workflow、`phase_d_validation.py`、`tests/test_phase_d_validation.py`，移除 `tests/run_test_suite.py` 中对应归属；保留本交接文档、运行链接和汇总证据。不得在 #926 合并前清理入口。
+
+### 启用前运行记录
+
+- 临时维护入口通过 PR #928（`26ea0b2f`）合入；身份绑定修正通过 PR #929（`99bca9a3`）合入。
+- 首次 run `34031579577` 在身份预检失败，未执行分析；GitHub 仍报告 #926 原 base/merge，修正为维护工具与样本身份分别绑定。
+- 正式实验：[run 34031704261](https://github.com/HLND2T/CS2_VibeSignatures/actions/runs/34031704261)，绑定 #926 head `df457afa71313cd45d27ccaa9d1bd8f5187f0d61`、base `db8e615b01cd0e600b7288de96f4e6e359157774`、merge `b46ae7aae6e388ce3854ec02a82bbf4e57932e33`。已结束：前三个 selected 样本及 fresh-full 成功，共享运行时 selected 样本在最终证据检查失败。
+- 本地真实树规划预演通过：PR 样本 6 组 / 6 节点 / 3520 继承；artifact-only 3 / 3 / 3523；跨 stage 14 / 10 / 3512；共享运行时 3529 / 2235 / 0。跨 stage 源为 `find-CLoopModeFactory_CLoopModeGame_Shutdown-decompiles.py`。
+- 临时脚本固定执行五轮：三个小闭包 selected、一个 fresh-full、一个共享运行时全量 selected。**其中两轮为全量，按历史单轮约两小时估算，整个迁移实验为数小时规模。**每轮后的 downstream 检查也被重复执行；当前入口把全部轮次放在一个 Actions step，未结束时 REST 日志不可读，进度可见性有限。
+- 本地回归：unit 1192、repository-contract 83、release-integration 15 通过；unit 以进程内空值隔离本机字符串最小长度覆盖，真实分析保持用户要求的 4。actionlint、仓库格式检查及新增行为测试通过。
+
+### 单节点续验（2026-09-07）
+
+- 失败根因：`process_binary` 在 IDA 会话中的第二次 `skip_if_exists` 检查遗漏 `not force_all` 条件，导致 selected 模式已经授权的 `7:241:server:linux:find-CFlashbangProjectile_Spawn_NetworkStateChangedNotify` 未执行。报告为 2195 succeeded、40 skipped，其中仅该节点为 `skip_if_exists`；完整文件比较也仅缺少对应 Linux YAML。
+- 原 fresh-full 报告为 valid=true、2196 succeeded，且没有 `skip_if_exists` 节点。三个小闭包的 3526 个文件与 full 基线完全相同。PR 样本 producer 109.578 秒、总计 466.687 秒；full producer 7204.719 秒、总计 7604.359 秒（总计均包含 prepare/restore/verify/downstream，不包含前面的统一规划）。
+- 修复严格限于第二次 skip 检查补 `and not force_all`；普通增量跳过、已有输出的 alternatives winner 行为保持原语义。回归覆盖标记在会话前存在及会话中生成的两种情况。
+- 用户要求跳过已成功的 2195 条 skill；临时 `phase_d_resume.py` 仅用于该固定 run 和准确 source SHA。它重新核验已上传的四个成功报告、旧失败报告的摘要/绑定、保留节点的证据及除缺失文件之外的完整字节；只允许准确的一行 executor 修复。恢复同一 warm generation，从准确 source Git blobs 继承其它输出，仅运行没有 prerequisite、额外输出或下游的这一个节点。
+- 续验使用 records-only 验证入口核对跨 run 的组/节点覆盖，原失败报告和原 comparison.json 均不修改，也不生成冒充原单次 run 的成功报告。新报告标为 `phase-d-cross-run-continuation-not-pr-attestation`，记录原报告、补跑报告、executor 修复摘要与完整 inventory 比较；它是一次性迁移续验证据，不引入生产 PR/release 的通用 resume 契约。
+- 全量下游证据仅在源码/config 和补齐后的完整 inventory 与已验证 full 基线完全一致后复用。#926 合并后的临时入口清理范围同时包含 `phase_d_resume.py`；永久保留执行器修复及其回归测试。
