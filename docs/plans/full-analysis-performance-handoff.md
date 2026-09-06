@@ -252,3 +252,40 @@ PR 改为 trusted prepare → base 白名单物料化 → selected execute → �
 - 本次仅整理文档；实际 schema/shared types/CI/配置与可信 bridge 改动按后续用户授权和仓库门禁推进。
 - 不顺带实现方案一/二，不削弱发布 fresh-full。
 - 核心审查点：组/多输出固定点、session prerequisites、独立继承资格检查、selected 证据不能冒充 full。
+
+---
+
+## 17. 实施状态（2026-09-06，分支 dev-base-inherited-selected）
+
+状态：**阶段 A/B/C 代码与测试已实施；阶段 D 真实 runner 对比未执行；selected 路由未启用（policy 默认仍 fresh-full-v1）**。
+
+### 已实施
+
+- 策略契约：`source_artifact_policy.yaml` 新增可选键 `execution_strategy`（缺省 `fresh-full-v1`，合法值 `fresh-full-v1` / `base-inherited-selected-v1`）；`trusted_pr_context.py` 解析并写入 context；planner 从 base-owned policy 决定 plan 顶层 `execution_strategy`。
+- plan schema 3 → 4：每 maintained GAMEVER 版本新增分区 `execute_groups` / `execute_nodes` / `inherit_paths` / `inherited_absent_groups` / `removed_paths` 与 `maintained` 标志；旧字段 `affected_producer_groups` / `selected_alternative_nodes` 移除（消费方同步：verifier、bootstrap 验证器、测试）。
+- 执行闭包固定点（`_execution_closure`）：失效节点扩展其全部输出组、组扩展全部 alternatives 与下游组、执行节点反向扩展同会话 session prerequisites；分区函数对新输出、字节变化未选 owner、optional 存在性变化 fail-closed，并校验 execute ∪ inherit ∪ absent == merge 契约 formal_paths。
+- preparation schema 2 → 3：selected 策略下按白名单从 base Git blobs 物料化继承文件到 actual root（写前 base blob 校验 + 与 merge 期望 blob 对照 + 写后复核），确认执行输出 / removed / 合法缺席路径不存在，记录初始 inventory digest，签发 `selected-execution-<gamever>.json` manifest（绑定 plan / config / 初始 inventory）；fresh-full 策略行为与旧版一致（actual root 为空）。
+- executor（`ida_analyze_bin.py`）新增 `-selected_execution`：manifest fail-closed 加载（digest 域 `source-artifact-selected-execution-manifest:v1`）、seeded-root 校验（白名单精确、checkout 外、无 reparse）、按稳定 node_id 过滤技能、prerequisite 缺失 / 未知节点拒绝、与 `-force_all` / `-skill` / `-vcall_finder` / `-rename` / `-skip_error` 互斥；selected 模式下计划节点不因输出 / skip_if_exists 存在而跳过；执行后产出独立报告类型 `source2-selected-execution:v1`（schema 1，绑定 plan / manifest / 路径 / 初始 inventory，组级 attempted 前缀与 winner 证据）。
+- 组合验证（`validate_isolated_rebuild`）：按策略分支加载报告；selected 要求报告组 / 节点集合与计划**精确相等**、每组与 merge 期望字节一致、报告回显 preparation 初始 inventory；额外从 base SHA 独立重推导继承 blob 并与最终 actual 字节比较，校验 removed / 合法缺席路径不被创建；最终仍做完整 merge 契约 inventory 精确集合 + 逐文件 size/SHA-256 + expected Git blob 物料化复核 + checkout 未改写检查。结果新增 `execution_strategy` 与 executed/inherited/removed 计数。
+- workflow `pr-self-runner.yml`：prepare 输出 `strategy` / `selected-manifest`，execute 步骤按策略路由（selected：`-selected_execution ... -require_warm_idb`；full：原 `-force_all`）；step 名不再宣称 every producer / empty-root；去掉 `-debug`。
+- release 侧不放宽：`release_artifact_rebuild.py` 维持 force-all v2 报告要求，selected 证据在 digest 域即被拒绝（已补测试）。
+
+### 测试
+
+全部通过：unit 1184/1184、repository-contract 71/71、release-integration 15/15；redis-integration 本地无 Redis 跳过（CI 会跑）。覆盖：未变更继承 / artifact-only 选 owner / prerequisite 反向闭包 / 共享运行时与二进制身份全量回退（继承为空）/ 契约移除输出 / 白名单物料化精确性 / selected verify 往返 / 继承字节漂移 / 漏执行组 / 报告组集合漂移 / 报告篡改 digest / full 策略空根 / staging 复用拒绝 / policy 策略解析与缺省 / manifest 篡改与结构拒绝 / root 白名单精确 / config 漂移拒绝 / 技能过滤 / 报告 winner 证据 / CLI 互斥 / release 拒绝 selected 证据。
+
+### 启用步骤（阶段 C 剩余 + 阶段 D，未执行）
+
+1. 本 bridge 合入 main 后，维护者通过受信流程把 `source_artifact_policy.yaml` 的 `execution_strategy` 设为 `base-inherited-selected-v1`（仅需 policy 单文件 bridge）。
+2. 启用前完成阶段 D：在相同 tree/binary lock/warm generation 下对典型 PR（新增符号、finder 修改、跨 stage 依赖、artifact-only）双跑 selected 与 fresh-full，对比完整 inventory、执行证据与时延。
+3. 回滚：policy 改回 `fresh-full-v1` 即回到全量路由（新空 staging、原 full verifier）。
+
+### 真实审计覆盖核实（第 13 节要求）
+
+`build-on-self-runner.yml` 入口为 `workflow_call` / `workflow_dispatch` / `repository_dispatch`，唯一仓库内调用方为 `tag-bump-after-merge.yml`，其仅在 `bump-download/*` 分支的 PR 合并（closed+merged）时触发 release 全量重建（publication_mode=publish）。**普通 main 合并不触发 fresh-full 审计**；全局可再现性兜底为：发布前 fresh-full（`release_artifact_rebuild`，硬门禁，不变）+ bump 合并审计 + 手动/事件触发。启用 selected 后，planner 漏判造成的漂移最迟在下一个 bump 合并审计或发布前 fresh-full 暴露；两次 bump 之间的普通合并仅有连续继承风险（用户已接受，第 8 节）。
+
+### 未验证项（明确交付）
+
+- 阶段 D 真实 selected/full 对比与性能测量未执行（需要自托管 Windows runner、IDA、warm IDB 与真实 14178b 二进制；本地环境不可用）。不宣称分钟级收益。
+- merge queue 对 selected 策略的真实运行未演练（逻辑上 merge_group 重新绑定 base/merge tree，复用同一 planner/verifier 路径）。
+- 本 bridge PR 自身因修改 trusted roots 会被现有 base planner 拒绝（`independently merged bridge update`），需维护者按受信流程合并——这是预期行为，未绕过。

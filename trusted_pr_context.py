@@ -22,6 +22,9 @@ from trusted_yaml import load_yaml
 SCHEMA_VERSION = 2
 POLICY_REPO_PATH = "source_artifact_policy.yaml"
 SHA_PATTERN = re.compile(r"^[0-9a-f]{40}$")
+FRESH_FULL_STRATEGY = "fresh-full-v1"
+BASE_INHERITED_SELECTED_STRATEGY = "base-inherited-selected-v1"
+EXECUTION_STRATEGIES = (FRESH_FULL_STRATEGY, BASE_INHERITED_SELECTED_STRATEGY)
 TRUSTED_FILE_PATHS = (
     POLICY_REPO_PATH,
     ".gitmodules",
@@ -58,6 +61,7 @@ class SourceArtifactPolicy:
     mode: str
     artifact_root: str
     artifact_contract_schema_version: int
+    execution_strategy: str
 
 
 class GitRepository:
@@ -127,9 +131,11 @@ def parse_source_artifact_policy(payload: bytes) -> SourceArtifactPolicy:
         "mode",
         "artifact_root",
         "artifact_contract_schema_version",
+        "execution_strategy",
     }
     unknown = set(document) - expected_keys
     missing = expected_keys - set(document)
+    missing.discard("execution_strategy")
     if unknown or missing:
         raise TrustedPrContextError(
             f"trusted source artifact policy keys mismatch: missing={sorted(missing)!r}; unknown={sorted(unknown)!r}"
@@ -145,7 +151,12 @@ def parse_source_artifact_policy(payload: bytes) -> SourceArtifactPolicy:
     contract_version = document["artifact_contract_schema_version"]
     if not isinstance(contract_version, int) or isinstance(contract_version, bool) or contract_version < 1:
         raise TrustedPrContextError("artifact_contract_schema_version must be a positive integer")
-    return SourceArtifactPolicy(mode, artifact_root, contract_version)
+    execution_strategy = document.get("execution_strategy", FRESH_FULL_STRATEGY)
+    if execution_strategy not in EXECUTION_STRATEGIES:
+        raise TrustedPrContextError(
+            f"execution_strategy must be one of {list(EXECUTION_STRATEGIES)}: {execution_strategy!r}"
+        )
+    return SourceArtifactPolicy(mode, artifact_root, contract_version, execution_strategy)
 
 
 def _canonical_document_bytes(document: dict) -> bytes:
@@ -168,6 +179,7 @@ def _build_context_document(repo, *, event_kind: str, base_sha: str, head_sha: s
             "mode": policy.mode,
             "artifact_root": policy.artifact_root,
             "artifact_contract_schema_version": policy.artifact_contract_schema_version,
+            "execution_strategy": policy.execution_strategy,
             "sha256": _sha256(trusted_payloads[POLICY_REPO_PATH]),
         },
         "trusted_files": [
@@ -236,12 +248,13 @@ def validate_trusted_pr_context(document: object) -> dict:
     policy = document.get("artifact_policy")
     if (
         not isinstance(policy, dict)
-        or set(policy) != {"mode", "artifact_root", "artifact_contract_schema_version", "sha256"}
+        or set(policy) != {"mode", "artifact_root", "artifact_contract_schema_version", "execution_strategy", "sha256"}
         or policy.get("mode") != "source-owned"
         or policy.get("artifact_root") != "bin_artifacts"
         or not isinstance(policy.get("artifact_contract_schema_version"), int)
         or isinstance(policy.get("artifact_contract_schema_version"), bool)
         or policy["artifact_contract_schema_version"] < 1
+        or policy.get("execution_strategy") not in EXECUTION_STRATEGIES
         or not re.fullmatch(r"[0-9a-f]{64}", str(policy.get("sha256", "")))
     ):
         raise TrustedPrContextError("trusted PR context artifact policy is invalid")

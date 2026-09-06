@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import shutil
 import subprocess
 import tempfile
@@ -68,7 +69,7 @@ class TrustedArtifactPrTests(unittest.TestCase):
                     "winner_node_id": group["alternative_node_ids"][0],
                     "output_sha256": files[group["artifact_path"]]["sha256"],
                 }
-                for group in version["affected_producer_groups"]
+                for group in version["execute_groups"]
             ],
             "issues": [],
             "valid": True,
@@ -191,8 +192,11 @@ class TrustedArtifactPrTests(unittest.TestCase):
             self.assertEqual(["server/A.windows.yaml", "server/B.windows.yaml"], version["invalidated_paths"])
             self.assertEqual(
                 {"find-a", "find-b"},
-                {node["skill"] for node in version["selected_alternative_nodes"]},
+                {node["skill"] for node in version["execute_nodes"]},
             )
+            self.assertEqual(tap.FRESH_FULL_STRATEGY, plan["execution_strategy"])
+            self.assertTrue(version["maintained"])
+            self.assertEqual([], version["removed_paths"])
             self.assertEqual(plan, tap.validate_trusted_artifact_plan(plan))
 
     def test_isolated_preparation_uses_empty_root_and_exact_force_all_verify_passes(self) -> None:
@@ -272,7 +276,7 @@ class TrustedArtifactPrTests(unittest.TestCase):
             plan = tap.build_trusted_artifact_plan(repo_root=root, trusted_context=context)
 
             version = plan["game_versions"][0]
-            self.assertEqual(2, len(version["affected_producer_groups"]))
+            self.assertEqual(2, len(version["execute_groups"]))
             self.assertIn("shared analyzer/serializer contract changed", version["reasons"])
 
     def test_root_analysis_runtime_change_broadly_selects_all_groups(self) -> None:
@@ -289,7 +293,7 @@ class TrustedArtifactPrTests(unittest.TestCase):
 
             self.assertEqual("full", plan["mode"])
             version = plan["game_versions"][0]
-            self.assertEqual(2, len(version["affected_producer_groups"]))
+            self.assertEqual(2, len(version["execute_groups"]))
             self.assertIn("shared analyzer/serializer contract changed", version["reasons"])
             self.assertNotEqual(
                 plan["base_analysis_sources"]["sha256"],
@@ -310,7 +314,7 @@ class TrustedArtifactPrTests(unittest.TestCase):
 
             self.assertEqual("full", plan["mode"])
             version = plan["game_versions"][0]
-            self.assertEqual(2, len(version["affected_producer_groups"]))
+            self.assertEqual(2, len(version["execute_groups"]))
             self.assertIn("download/binary identity changed", version["reasons"])
 
     def test_binary_lock_change_broadly_selects_all_groups(self) -> None:
@@ -328,7 +332,7 @@ class TrustedArtifactPrTests(unittest.TestCase):
             self.assertEqual("full", plan["mode"])
             version = plan["game_versions"][0]
             self.assertNotEqual(version["base_binary_lock_sha256"], version["merge_binary_lock_sha256"])
-            self.assertEqual(2, len(version["affected_producer_groups"]))
+            self.assertEqual(2, len(version["execute_groups"]))
             self.assertIn("download/binary identity changed", version["reasons"])
 
     def test_missing_or_unconfigured_binary_lock_fails_closed(self) -> None:
@@ -389,6 +393,459 @@ class TrustedArtifactPrTests(unittest.TestCase):
             plan["merge_tree_sha"] = "0" * 40
             with self.assertRaisesRegex(tap.TrustedArtifactPrError, "digest mismatch"):
                 tap.validate_trusted_artifact_plan(plan)
+
+
+SELECTED_POLICY = (
+    b"schema_version: 1\nmode: source-owned\nartifact_root: bin_artifacts\n"
+    b"artifact_contract_schema_version: 1\nexecution_strategy: base-inherited-selected-v1\n"
+)
+
+
+class SelectedExecutionTests(unittest.TestCase):
+    """Behavior tests for the base-inherited selected execution strategy."""
+
+    def _git(self, root: Path, *arguments: str) -> str:
+        result = subprocess.run(
+            ["git", "-C", str(root), *arguments],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode:
+            self.fail(result.stderr or f"git {' '.join(arguments)} failed")
+        return result.stdout.strip()
+
+    def _artifact(self, name: str, rva: str):
+        return canonical_symbol_yaml_bytes({"func_name": name, "func_rva": rva}, category="func")
+
+    def _write_artifact(self, root: Path, name: str, rva: str) -> None:
+        path = root / "bin_artifacts" / "1" / "server" / f"{name}.windows.yaml"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(self._artifact(name, rva))
+
+    def _skills(self, *, with_find_c: bool = True) -> list[dict]:
+        skills = [
+            {"name": "find-a", "expected_output": ["A.{platform}.yaml"]},
+            {
+                "name": "find-b",
+                "expected_input": ["A.{platform}.yaml"],
+                "expected_output": ["B.{platform}.yaml"],
+            },
+        ]
+        if with_find_c:
+            skills.append({"name": "find-c", "expected_output": ["C.{platform}.yaml"]})
+        skills.extend(
+            [
+                {"name": "find-pre", "expected_output": ["Pre.{platform}.yaml"]},
+                {
+                    "name": "find-dep",
+                    "prerequisite": ["find-pre"],
+                    "expected_input": ["Pre.{platform}.yaml"],
+                    "expected_output": ["Dep.{platform}.yaml"],
+                },
+                {"name": "find-opt", "optional_output": ["Opt.{platform}.yaml"]},
+            ]
+        )
+        return skills
+
+    def _symbols(self, *, with_c: bool = True) -> list[dict]:
+        symbols = [{"name": name, "category": "func", "platform": "windows"} for name in ("A", "B")]
+        if with_c:
+            symbols.append({"name": "C", "category": "func", "platform": "windows"})
+        symbols.extend({"name": name, "category": "func", "platform": "windows"} for name in ("Pre", "Dep", "Opt"))
+        return symbols
+
+    def _repository(
+        self,
+        root: Path,
+        *,
+        selected_policy: bool,
+        change: str = "artifact-a",
+    ):
+        self._git(root, "init", "-b", "main")
+        self._git(root, "config", "user.email", "test@example.com")
+        self._git(root, "config", "user.name", "Test")
+        required = {path: f"trusted base {path}\n".encode() for path in tpc.TRUSTED_FILE_PATHS}
+        required.update(
+            {
+                tpc.POLICY_REPO_PATH: SELECTED_POLICY
+                if selected_policy
+                else (
+                    b"schema_version: 1\nmode: source-owned\nartifact_root: bin_artifacts\n"
+                    b"artifact_contract_schema_version: 1\n"
+                ),
+                ".gitignore": b"bin/\n",
+                "download.yaml": b"downloads:\n  - tag: '1'\n    manifests: {'1': '1'}\n",
+                "ida_analyze_util.py": b"SERIALIZER = 1\n",
+            }
+        )
+        for relative, payload in required.items():
+            path = root / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(payload)
+        write_config(
+            root / "configs" / "1.yaml",
+            [
+                {
+                    "name": "server",
+                    "path_windows": "game/bin/win64/server.dll",
+                    "skills": self._skills(),
+                    "symbols": self._symbols(),
+                }
+            ],
+        )
+        write_binary(root / "bin" / "1" / "server" / "server.dll")
+        write_source_binary_lock(root, "1")
+        for name, rva in (("A", "0x10"), ("B", "0x20"), ("C", "0x30"), ("Pre", "0x40"), ("Dep", "0x50")):
+            self._write_artifact(root, name, rva)
+        self._git(root, "add", ".")
+        self._git(root, "commit", "-m", "base")
+        base_sha = self._git(root, "rev-parse", "HEAD")
+
+        self._git(root, "switch", "-c", "feature")
+        if change == "artifact-a":
+            self._write_artifact(root, "A", "0x11")
+        elif change == "artifact-dep":
+            self._write_artifact(root, "Dep", "0x51")
+        elif change == "shared-runtime":
+            (root / "ida_analyze_util.py").write_text("SERIALIZER = 2\n", encoding="utf-8")
+        elif change == "remove-c":
+            write_config(
+                root / "configs" / "1.yaml",
+                [
+                    {
+                        "name": "server",
+                        "path_windows": "game/bin/win64/server.dll",
+                        "skills": self._skills(with_find_c=False),
+                        "symbols": self._symbols(with_c=False),
+                    }
+                ],
+            )
+            (root / "bin_artifacts" / "1" / "server" / "C.windows.yaml").unlink()
+        else:
+            raise AssertionError(f"unsupported change: {change}")
+        self._git(root, "add", ".")
+        self._git(root, "commit", "-m", "head")
+        head_sha = self._git(root, "rev-parse", "HEAD")
+        self._git(root, "switch", "main")
+        self._git(root, "merge", "--no-ff", "feature", "-m", "prospective merge")
+        merge_sha = self._git(root, "rev-parse", "HEAD")
+        context = tpc.build_trusted_pr_context(
+            repo_root=root,
+            base_ref=base_sha,
+            head_ref=head_sha,
+            merge_ref=merge_sha,
+        )
+        return base_sha, head_sha, merge_sha, context
+
+    def _plan_and_preparation(self, root: Path, staging: Path, *, change: str = "artifact-a"):
+        _base, _head, _merge, context = self._repository(root, selected_policy=True, change=change)
+        plan = tap.build_trusted_artifact_plan(repo_root=root, trusted_context=context)
+        preparation = tap.prepare_isolated_rebuild(repo_root=root, plan=plan, staging_root=staging)
+        return plan, preparation
+
+    def _simulate_selected_execution(self, root: Path, plan: dict, preparation: dict, *, skip_group: str | None = None):
+        """Materialize the executed outputs exactly as the prospective merge tree carries them."""
+        version = plan["game_versions"][0]
+        gamever = version["game_version"]
+        expected = Path(preparation["expected_artifact_root"]) / gamever
+        actual = Path(preparation["actual_artifact_root"]) / gamever
+        for group in version["execute_groups"]:
+            if skip_group is not None and group["group_id"] == skip_group:
+                continue
+            source = expected / group["artifact_path"]
+            if source.is_file():
+                target = actual / group["artifact_path"]
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(source, target)
+
+    def _write_selected_report(
+        self,
+        root: Path,
+        plan: dict,
+        preparation: dict,
+        *,
+        extra_group: dict | None = None,
+    ) -> None:
+        version = plan["game_versions"][0]
+        gamever = version["game_version"]
+        manifest_path = Path(preparation["selected_execution_manifests"][gamever])
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        try:
+            inventory = tap.build_game_artifact_inventory(
+                repo_root=root,
+                config_path=Path(preparation["config_root"]) / f"{gamever}.yaml",
+                game_version=gamever,
+                artifact_root=preparation["actual_artifact_root"],
+                require_tracked=False,
+            )
+            inventory_summary = {
+                "file_count": inventory.file_count,
+                "inventory_sha256": inventory.inventory_sha256,
+            }
+        except Exception:
+            inventory_summary = None
+        files = {
+            item["path"].removeprefix(f"bin_artifacts/{gamever}/"): item for item in version["merge_artifacts"]["files"]
+        }
+        groups = []
+        for group in version["execute_groups"]:
+            produced = group["artifact_path"] in files
+            groups.append(
+                {
+                    **group,
+                    "attempted_node_ids": [group["alternative_node_ids"][0]],
+                    "winner_node_id": group["alternative_node_ids"][0] if produced else None,
+                    "output_sha256": files[group["artifact_path"]]["sha256"] if produced else None,
+                }
+            )
+        if extra_group is not None:
+            groups.append(extra_group)
+        report = {
+            "schema_version": 1,
+            "execution_strategy": tap.BASE_INHERITED_SELECTED_STRATEGY,
+            "game_version": gamever,
+            "config_path": str(Path(preparation["config_root"]) / f"{gamever}.yaml"),
+            "binary_root": preparation["binary_root"],
+            "artifact_root": preparation["actual_artifact_root"],
+            "old_artifact_root": str(root / "bin_artifacts"),
+            "prior_gamever": version["prior_gamever"],
+            "plan_sha256": plan["plan_sha256"],
+            "manifest_sha256": manifest["manifest_sha256"],
+            "inherited_initial_inventory_sha256": preparation["initial_actual_inventory_sha256"][gamever],
+            "required_warm_idb": True,
+            "run_id": "test",
+            "summary": {},
+            "inventory": inventory_summary,
+            "nodes": [
+                {key: node[key] for key in ("node_id", "stage_index", "module", "platform", "skill", "fingerprint")}
+                for node in version["execute_nodes"]
+            ],
+            "producer_groups": groups,
+            "issues": [],
+            "valid": True,
+        }
+        raw = tap._canonical_json_bytes(report)
+        report["execution_sha256"] = "sha256:" + hashlib.sha256(b"source2-selected-execution:v1\n" + raw).hexdigest()
+        Path(preparation["execution_reports"][gamever]).write_bytes(tap._canonical_json_bytes(report))
+
+    def test_selected_plan_partitions_unchanged_outputs_for_inheritance(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            root.mkdir()
+            _base, _head, _merge, context = self._repository(root, selected_policy=True)
+
+            plan = tap.build_trusted_artifact_plan(repo_root=root, trusted_context=context)
+
+            version = plan["game_versions"][0]
+            self.assertEqual(tap.BASE_INHERITED_SELECTED_STRATEGY, plan["execution_strategy"])
+            self.assertEqual("full", plan["mode"])
+            executed = {group["artifact_path"] for group in version["execute_groups"]}
+            self.assertEqual({"server/A.windows.yaml", "server/B.windows.yaml"}, executed)
+            self.assertEqual(
+                {"find-a", "find-b"},
+                {node["skill"] for node in version["execute_nodes"]},
+            )
+            inherited = {item["path"] for item in version["inherit_paths"]}
+            self.assertEqual(
+                {"server/C.windows.yaml", "server/Pre.windows.yaml", "server/Dep.windows.yaml"},
+                inherited,
+            )
+            absent = {group["artifact_path"] for group in version["inherited_absent_groups"]}
+            self.assertEqual({"server/Opt.windows.yaml"}, absent)
+            self.assertEqual([], version["removed_paths"])
+            self.assertEqual(plan, tap.validate_trusted_artifact_plan(plan))
+
+    def test_selected_plan_executes_session_prerequisites_of_executed_nodes(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            root.mkdir()
+            _base, _head, _merge, context = self._repository(root, selected_policy=True, change="artifact-dep")
+
+            plan = tap.build_trusted_artifact_plan(repo_root=root, trusted_context=context)
+
+            version = plan["game_versions"][0]
+            executed = {group["artifact_path"] for group in version["execute_groups"]}
+            self.assertIn("server/Dep.windows.yaml", executed)
+            self.assertIn("server/Pre.windows.yaml", executed)
+            self.assertEqual(
+                {"find-pre", "find-dep"},
+                {node["skill"] for node in version["execute_nodes"]},
+            )
+            inherited = {item["path"] for item in version["inherit_paths"]}
+            self.assertEqual(
+                {"server/A.windows.yaml", "server/B.windows.yaml", "server/C.windows.yaml"},
+                inherited,
+            )
+
+    def test_selected_plan_full_fallback_keeps_inheritance_empty(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            root.mkdir()
+            _base, _head, _merge, context = self._repository(root, selected_policy=True, change="shared-runtime")
+
+            plan = tap.build_trusted_artifact_plan(repo_root=root, trusted_context=context)
+
+            version = plan["game_versions"][0]
+            self.assertEqual(tap.BASE_INHERITED_SELECTED_STRATEGY, plan["execution_strategy"])
+            self.assertEqual(6, len(version["execute_groups"]))
+            self.assertEqual([], version["inherit_paths"])
+            self.assertEqual([], version["inherited_absent_groups"])
+            self.assertIn("shared analyzer/serializer contract changed", version["reasons"])
+
+    def test_selected_plan_records_contract_removed_outputs(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            root.mkdir()
+            _base, _head, _merge, context = self._repository(root, selected_policy=True, change="remove-c")
+
+            plan = tap.build_trusted_artifact_plan(repo_root=root, trusted_context=context)
+
+            version = plan["game_versions"][0]
+            self.assertEqual(["server/C.windows.yaml"], version["removed_paths"])
+            inherited = {item["path"] for item in version["inherit_paths"]}
+            self.assertEqual(
+                {
+                    "server/A.windows.yaml",
+                    "server/B.windows.yaml",
+                    "server/Pre.windows.yaml",
+                    "server/Dep.windows.yaml",
+                },
+                inherited,
+            )
+
+    def test_prepare_materializes_only_the_inherited_whitelist(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            staging = Path(temporary) / "isolated"
+            root.mkdir()
+            plan, preparation = self._plan_and_preparation(root, staging)
+
+            self.assertEqual(tap.BASE_INHERITED_SELECTED_STRATEGY, preparation["execution_strategy"])
+            actual = Path(preparation["actual_artifact_root"]) / "1"
+            materialized = {path.relative_to(actual).as_posix() for path in actual.rglob("*") if path.is_file()}
+            self.assertEqual(
+                {"server/C.windows.yaml", "server/Pre.windows.yaml", "server/Dep.windows.yaml"},
+                materialized,
+            )
+            for group in plan["game_versions"][0]["execute_groups"]:
+                self.assertFalse((actual / group["artifact_path"]).exists())
+            manifest_path = Path(preparation["selected_execution_manifests"]["1"])
+            self.assertTrue(manifest_path.is_file())
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            self.assertEqual(plan["plan_sha256"], manifest["plan_sha256"])
+            self.assertIn("sha256:", manifest["initial_actual_inventory_sha256"])
+
+    def test_selected_verify_roundtrip_passes(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            staging = Path(temporary) / "isolated"
+            root.mkdir()
+            plan, preparation = self._plan_and_preparation(root, staging)
+
+            self._simulate_selected_execution(root, plan, preparation)
+            self._write_selected_report(root, plan, preparation)
+            result = tap.validate_isolated_rebuild(repo_root=root, plan=plan, preparation=preparation)
+
+            report = result["game_versions"][0]
+            self.assertEqual("1", report["game_version"])
+            self.assertEqual(2, report["executed_group_count"])
+            self.assertEqual(3, report["inherited_count"])
+            self.assertEqual(0, report["removed_count"])
+            self.assertEqual(tap.BASE_INHERITED_SELECTED_STRATEGY, result["execution_strategy"])
+
+    def test_selected_verify_rejects_inherited_byte_drift(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            staging = Path(temporary) / "isolated"
+            root.mkdir()
+            plan, preparation = self._plan_and_preparation(root, staging)
+            self._simulate_selected_execution(root, plan, preparation)
+            self._write_selected_report(root, plan, preparation)
+            inherited = Path(preparation["actual_artifact_root"]) / "1" / "server" / "C.windows.yaml"
+            inherited.write_bytes(self._artifact("C", "0x99"))
+
+            with self.assertRaisesRegex(tap.TrustedArtifactPrError, "contract failed|byte mismatch"):
+                tap.validate_isolated_rebuild(repo_root=root, plan=plan, preparation=preparation)
+
+    def test_selected_verify_rejects_missing_planned_group(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            staging = Path(temporary) / "isolated"
+            root.mkdir()
+            plan, preparation = self._plan_and_preparation(root, staging)
+            skip = "producer-group:server/B.windows.yaml"
+            self._simulate_selected_execution(root, plan, preparation, skip_group=skip)
+            self._write_selected_report(root, plan, preparation)
+
+            with self.assertRaisesRegex(tap.TrustedArtifactPrError, "inventory mismatch|contract failed"):
+                tap.validate_isolated_rebuild(repo_root=root, plan=plan, preparation=preparation)
+
+    def test_selected_verify_rejects_report_group_set_drift(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            staging = Path(temporary) / "isolated"
+            root.mkdir()
+            plan, preparation = self._plan_and_preparation(root, staging)
+            self._simulate_selected_execution(root, plan, preparation)
+            extra_group = {
+                "group_id": "producer-group:server/C.windows.yaml",
+                "artifact_path": "server/C.windows.yaml",
+                "required": True,
+                "fingerprint": "0" * 64,
+                "alternative_node_ids": ["0:2:server:windows:find-c"],
+                "attempted_node_ids": ["0:2:server:windows:find-c"],
+                "winner_node_id": "0:2:server:windows:find-c",
+                "output_sha256": None,
+            }
+            self._write_selected_report(root, plan, preparation, extra_group=extra_group)
+
+            with self.assertRaisesRegex(tap.TrustedArtifactPrError, "does not match the planned execution set"):
+                tap.validate_isolated_rebuild(repo_root=root, plan=plan, preparation=preparation)
+
+    def test_selected_verify_rejects_tampered_report_digest(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            staging = Path(temporary) / "isolated"
+            root.mkdir()
+            plan, preparation = self._plan_and_preparation(root, staging)
+            self._simulate_selected_execution(root, plan, preparation)
+            self._write_selected_report(root, plan, preparation)
+            report_path = Path(preparation["execution_reports"]["1"])
+            document = json.loads(report_path.read_text(encoding="utf-8"))
+            document["producer_groups"][0]["winner_node_id"] = "forged"
+            report_path.write_bytes(tap._canonical_json_bytes(document))
+
+            with self.assertRaisesRegex(tap.TrustedArtifactPrError, "digest mismatch"):
+                tap.validate_isolated_rebuild(repo_root=root, plan=plan, preparation=preparation)
+
+    def test_full_strategy_preparation_leaves_actual_root_empty(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            staging = Path(temporary) / "isolated"
+            root.mkdir()
+            _base, _head, _merge, context = self._repository(root, selected_policy=False)
+
+            plan = tap.build_trusted_artifact_plan(repo_root=root, trusted_context=context)
+            self.assertEqual(tap.FRESH_FULL_STRATEGY, plan["execution_strategy"])
+            preparation = tap.prepare_isolated_rebuild(repo_root=root, plan=plan, staging_root=staging)
+
+            actual = Path(preparation["actual_artifact_root"])
+            self.assertEqual([], list(actual.rglob("*")))
+            self.assertEqual({}, preparation["selected_execution_manifests"])
+            self.assertEqual({}, preparation["initial_actual_inventory_sha256"])
+
+    def test_prepare_rejects_reused_staging_root(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            staging = Path(temporary) / "isolated"
+            root.mkdir()
+            _base, _head, _merge, context = self._repository(root, selected_policy=True)
+            plan = tap.build_trusted_artifact_plan(repo_root=root, trusted_context=context)
+            staging.mkdir()
+
+            with self.assertRaisesRegex(tap.TrustedArtifactPrError, "already exists"):
+                tap.prepare_isolated_rebuild(repo_root=root, plan=plan, staging_root=staging)
 
 
 if __name__ == "__main__":

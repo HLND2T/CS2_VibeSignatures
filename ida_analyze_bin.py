@@ -1769,6 +1769,14 @@ def parse_args():
         help="Require an empty checkout-external artifact root and execute every formal producer group",
     )
     parser.add_argument(
+        "-selected_execution",
+        default=None,
+        help=(
+            "Selected execution manifest JSON path (required for base-inherited selected runs; "
+            "mutually exclusive with -force_all, -skill, -vcall_finder, and -rename)"
+        ),
+    )
+    parser.add_argument(
         "-execution_report",
         default=None,
         help="Canonical force-all execution evidence JSON path (required with -force_all)",
@@ -1845,6 +1853,25 @@ def parse_args():
             parser.error("-force_all requires the complete config without skill/module/vcall filters")
         if set(args.platforms) != {"windows", "linux"}:
             parser.error("-force_all requires both windows and linux platforms")
+
+    if getattr(args, "selected_execution", None):
+        if not args.execution_report:
+            parser.error("-selected_execution requires -execution_report")
+        conflicting = [
+            label
+            for label, present in (
+                ("-force_all", getattr(args, "force_all", False)),
+                ("-skill", args.skill is not None),
+                ("-vcall_finder", args.vcall_finder_filter is not None),
+                ("-rename", bool(getattr(args, "rename", False))),
+                ("-skip_error", bool(getattr(args, "skip_error", False))),
+            )
+            if present
+        ]
+        if conflicting:
+            parser.error(f"-selected_execution cannot be combined with {', '.join(conflicting)}")
+        if set(args.platforms) != {"windows", "linux"}:
+            parser.error("-selected_execution requires both windows and linux platforms")
 
     # Resolve oldgamever from the trusted artifact root, never from private binaries.
     if args.oldgamever is None:
@@ -2570,6 +2597,7 @@ def build_execution_plan(
     artifact_dir=DEFAULT_ARTIFACTS_DIR,
     vcall_finder_selector=None,
     include_post_process=False,
+    selected_node_ids=None,
 ):
     """Build the immutable task hierarchy and dependency graph before execution."""
     stages = []
@@ -2584,8 +2612,12 @@ def build_execution_plan(
         stage = _build_execution_stage(module, fallback_index)
         stages.append(stage)
         for platform in platforms:
+            platform_module = module
+            if selected_node_ids is not None:
+                selected_skills = selected_platform_skills(module, platform, selected_node_ids)
+                platform_module = {**module, "skills": selected_skills}
             job, job_nodes, job_edges, job_warnings, producers, consumers = _build_execution_job_plan(
-                module,
+                platform_module,
                 stage=stage,
                 platform=platform,
                 bin_dir=bin_dir,
@@ -4683,6 +4715,137 @@ def validate_force_all_artifact_root(args) -> Path:
     return artifact_root
 
 
+SELECTED_EXECUTION_STRATEGY = "base-inherited-selected-v1"
+
+
+def _selected_manifest_digest(value) -> str:
+    raw = f"source-artifact-selected-execution-manifest:v1\n".encode() + _canonical_json_bytes(value)
+    return f"sha256:{hashlib.sha256(raw).hexdigest()}"
+
+
+def load_selected_execution_manifest(path):
+    """Load and fail-closed validate the planner-authored selected execution manifest."""
+    try:
+        raw = Path(path).read_bytes()
+        document = json.loads(raw.decode("utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise ValueError(f"unable to load selected execution manifest: {exc}") from exc
+    if not isinstance(document, dict) or document.get("schema_version") != 1:
+        raise ValueError("selected execution manifest schema is invalid")
+    digest = document.get("manifest_sha256")
+    unsigned = dict(document)
+    unsigned.pop("manifest_sha256", None)
+    if digest != _selected_manifest_digest(unsigned):
+        raise ValueError("selected execution manifest digest mismatch")
+    if document.get("execution_strategy") != SELECTED_EXECUTION_STRATEGY:
+        raise ValueError("selected execution manifest strategy is invalid")
+    for field in ("plan_sha256", "game_version"):
+        if not isinstance(document.get(field), str) or not document[field]:
+            raise ValueError(f"selected execution manifest has an invalid {field}")
+    for field in ("execute_nodes", "execute_groups", "inherit_paths", "inherited_absent_groups", "removed_paths"):
+        if not isinstance(document.get(field), list):
+            raise ValueError(f"selected execution manifest has an invalid {field}")
+    if not document["execute_nodes"]:
+        raise ValueError("selected execution manifest schedules no execution nodes")
+    for node in document["execute_nodes"]:
+        if not isinstance(node, dict) or not isinstance(node.get("node_id"), str) or not node["node_id"]:
+            raise ValueError("selected execution manifest has an invalid execution node")
+    return document
+
+
+def validate_selected_artifact_root(args, manifest) -> Path:
+    """Require the seeded selected-mode root to hold exactly the inherited whitelist."""
+    from gamesymbol_snapshot_lib.paths import is_reparse_point
+
+    artifact_root = Path(os.path.abspath(args.artifactdir))
+    game_root = artifact_root / str(args.gamever)
+    checkout_root = _git_worktree_root(Path.cwd())
+    if checkout_root is not None:
+        for label, path in (
+            ("artifact root", artifact_root),
+            ("execution report", Path(args.execution_report).resolve()),
+            ("selected manifest", Path(args.selected_execution).resolve()),
+        ):
+            if path == checkout_root or checkout_root in path.parents:
+                raise ValueError(f"selected {label} must be outside the source checkout: {path}")
+    current = artifact_root
+    while not current.exists() and current != current.parent:
+        current = current.parent
+    while True:
+        if current.exists() and is_reparse_point(current):
+            raise ValueError(f"selected artifact root must not traverse a link/reparse point: {current}")
+        if current == current.parent:
+            break
+        current = current.parent
+    inherited = {item["path"] for item in manifest["inherit_paths"]}
+    actual_files = set()
+    if game_root.exists():
+        if is_reparse_point(game_root) or not game_root.is_dir():
+            raise ValueError(f"selected GAMEVER artifact root must be a real directory: {game_root}")
+        for directory, subdirectories, files in os.walk(game_root, followlinks=False):
+            walked = Path(directory)
+            for subdirectory in subdirectories:
+                if is_reparse_point(walked / subdirectory):
+                    raise ValueError(f"selected artifact root traverses a link/reparse point: {walked / subdirectory}")
+            for filename in files:
+                path = walked / filename
+                if is_reparse_point(path):
+                    raise ValueError(f"selected artifact root contains a link/reparse point: {path}")
+                actual_files.add(path.relative_to(game_root).as_posix())
+    if actual_files != inherited:
+        raise ValueError(
+            "seeded selected artifact root must contain exactly the inherited whitelist: "
+            f"missing={sorted(inherited - actual_files)!r} unexpected={sorted(actual_files - inherited)!r}"
+        )
+    artifact_root.mkdir(parents=True, exist_ok=True)
+    return artifact_root
+
+
+def selected_platform_skills(module, platform: str, selected_node_ids) -> list:
+    """Return only the skills the selected plan schedules for this module/platform."""
+    return [
+        skill
+        for skill_index, skill in enumerate(module["skills"])
+        if f"{module.get('stage_index', 0)}:{skill_index}:{module['name']}:{platform}:{skill['name']}"
+        in selected_node_ids
+    ]
+
+
+def validate_selected_execution_manifest(modules, platforms, manifest) -> frozenset:
+    """Fail closed on manifest drift against the loaded config or dropped prerequisites."""
+    manifest_node_ids = {node["node_id"] for node in manifest["execute_nodes"]}
+    by_scope: dict[tuple, dict[str, str]] = {}
+    available = set()
+    for module in modules:
+        for platform in platforms:
+            for skill_index, skill in enumerate(module["skills"]):
+                if not _skill_runs_on_platform(skill, platform):
+                    continue
+                node_id = f"{module.get('stage_index', 0)}:{skill_index}:{module['name']}:{platform}:{skill['name']}"
+                available.add(node_id)
+                scope = (module.get("stage_index", 0), module["name"], platform)
+                by_scope.setdefault(scope, {})[skill["name"]] = node_id
+    unknown = manifest_node_ids - available
+    if unknown:
+        raise ValueError(f"selected execution manifest references nodes unknown to this config: {sorted(unknown)!r}")
+    for module in modules:
+        for platform in platforms:
+            for skill_index, skill in enumerate(module["skills"]):
+                node_id = f"{module.get('stage_index', 0)}:{skill_index}:{module['name']}:{platform}:{skill['name']}"
+                if node_id not in manifest_node_ids:
+                    continue
+                for prerequisite in skill.get("prerequisite", []) or []:
+                    prerequisite_id = by_scope.get((module.get("stage_index", 0), module["name"], platform), {}).get(
+                        prerequisite
+                    )
+                    if prerequisite_id is not None and prerequisite_id not in manifest_node_ids:
+                        raise ValueError(
+                            f"selected node {node_id} depends on prerequisite {prerequisite!r} "
+                            "that the manifest does not execute"
+                        )
+    return frozenset(manifest_node_ids)
+
+
 def _sha256_file(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as handle:
@@ -4878,6 +5041,190 @@ def build_force_all_execution_report(args, reporting: AnalysisReporting) -> dict
     return document
 
 
+def _selected_execution_digest(value) -> str:
+    raw = b"source2-selected-execution:v1\n" + _canonical_json_bytes(value)
+    return f"sha256:{hashlib.sha256(raw).hexdigest()}"
+
+
+def build_selected_execution_report(args, manifest, reporting: AnalysisReporting) -> dict:
+    """Build fail-closed execution evidence for one base-inherited selected run.
+
+    The report only covers the groups and nodes the trusted manifest scheduled. The
+    inherited bytes are not claimed as executed evidence: their integrity is verified
+    against the bound base/merge blobs by the trusted verifier, which reads the final
+    composed root directly.
+    """
+    from bin_artifact_contract import ArtifactContractError, build_game_artifact_inventory
+    from gamesymbol_snapshot_lib.config import load_contract
+    from gamesymbol_snapshot_lib.errors import SnapshotConfigError
+    from gamesymbol_snapshot_lib.paths import path_from_key
+
+    artifact_root = Path(args.artifactdir).resolve()
+    contract = load_contract(
+        args.configyaml,
+        args.gamever,
+        args.bindir,
+        artifactdir=artifact_root,
+    )
+    jobs = {job.id: job for job in reporting.plan.jobs}
+    tasks_by_key = {}
+    for node in reporting.plan.nodes:
+        if node.node_type != PlanNodeType.SKILL:
+            continue
+        job = jobs[node.job_id]
+        tasks_by_key[(job.stage_index, job.module_name, job.platform, node.name)] = node.id
+
+    issues = []
+    node_records = {}
+
+    def relative_output_paths(raw_paths, *, label):
+        relative_paths = []
+        for raw_path in raw_paths:
+            try:
+                relative_paths.append(
+                    Path(raw_path).resolve().relative_to(contract.artifact_game_root.resolve()).as_posix()
+                )
+            except ValueError:
+                issues.append(f"producer reported {label} outside the artifact GAMEVER root: {raw_path}")
+        return sorted(set(relative_paths))
+
+    for manifest_node in manifest["execute_nodes"]:
+        key = (
+            manifest_node["stage_index"],
+            manifest_node["module"],
+            manifest_node["platform"],
+            manifest_node["skill"],
+        )
+        task_id = tasks_by_key.get(key)
+        if task_id is None:
+            issues.append(f"selected execution node was not scheduled: {manifest_node['node_id']}")
+            continue
+        record = reporting.task_record(task_id)
+        raw_produced_outputs = record["produced_outputs"] or record["payload"].get("produced_outputs", [])
+        raw_attempted_outputs = record["attempted_outputs"]
+        if not raw_attempted_outputs and record["attempted"]:
+            raw_attempted_outputs = raw_produced_outputs
+        record.update(
+            {
+                "node_id": manifest_node["node_id"],
+                "module": manifest_node["module"],
+                "platform": manifest_node["platform"],
+                "skill": manifest_node["skill"],
+                "fingerprint": manifest_node["fingerprint"],
+                "attempted_paths": relative_output_paths(raw_attempted_outputs, label="an attempted output"),
+                "produced_paths": relative_output_paths(raw_produced_outputs, label="an output"),
+            }
+        )
+        node_records[manifest_node["node_id"]] = record
+
+    group_records = []
+    for planned in manifest["execute_groups"]:
+        group_id = planned["group_id"]
+        group = contract.producer_groups.get(group_id)
+        if group is None or (
+            group.artifact_path != planned["artifact_path"]
+            or group.required != planned["required"]
+            or group.fingerprint != planned["fingerprint"]
+            or list(group.alternative_node_ids) != list(planned["alternative_node_ids"])
+        ):
+            issues.append(f"selected producer group drifted from the manifest: {group_id}")
+            continue
+        output_path = path_from_key(contract.artifact_game_root, group.artifact_path)
+        output_exists = output_path.is_file()
+        alternatives = [node_records.get(node_id) for node_id in group.alternative_node_ids]
+        attempted_node_ids = [
+            record["node_id"]
+            for record in alternatives
+            if record is not None and group.artifact_path in record["attempted_paths"]
+        ]
+        successful = [
+            record
+            for record in alternatives
+            if record is not None
+            and record["status"] == TaskStatus.SUCCEEDED.value
+            and group.artifact_path in record["produced_paths"]
+        ]
+        winner = successful[0]["node_id"] if len(successful) == 1 else None
+        if group.required and not output_exists:
+            issues.append(f"required producer group did not materialize output: {group.artifact_path}")
+        if output_exists and len(successful) != 1:
+            issues.append(
+                f"materialized producer group must have exactly one successful winner: "
+                f"{group.artifact_path} winners={[record['node_id'] for record in successful]!r}"
+            )
+        if winner is not None:
+            winner_index = group.alternative_node_ids.index(winner)
+            expected_attempts = list(group.alternative_node_ids[: winner_index + 1])
+            later_attempts = [
+                record["node_id"]
+                for record in alternatives[winner_index + 1 :]
+                if record is not None and group.artifact_path in record["attempted_paths"]
+            ]
+            if later_attempts:
+                issues.append(
+                    f"producer alternatives executed after winner for {group.artifact_path}: {later_attempts!r}"
+                )
+        else:
+            expected_attempts = list(group.alternative_node_ids)
+        if attempted_node_ids != expected_attempts:
+            issues.append(
+                f"producer alternatives were not attempted as an ordered prefix for {group.artifact_path}: "
+                f"expected={expected_attempts!r} actual={attempted_node_ids!r}"
+            )
+        group_records.append(
+            {
+                "group_id": group_id,
+                "artifact_path": group.artifact_path,
+                "required": group.required,
+                "fingerprint": group.fingerprint,
+                "alternative_node_ids": list(group.alternative_node_ids),
+                "attempted_node_ids": attempted_node_ids,
+                "winner_node_id": winner,
+                "output_sha256": _sha256_file(output_path) if output_exists else None,
+            }
+        )
+
+    inventory = None
+    try:
+        inventory_report = build_game_artifact_inventory(
+            repo_root=Path.cwd(),
+            config_path=args.configyaml,
+            game_version=args.gamever,
+            artifact_root=artifact_root,
+            require_tracked=False,
+        )
+        inventory = {
+            "file_count": inventory_report.file_count,
+            "inventory_sha256": inventory_report.inventory_sha256,
+        }
+    except (ArtifactContractError, SnapshotConfigError, OSError, ValueError) as exc:
+        issues.append(f"composed artifact repository contract failed: {exc}")
+
+    document = {
+        "schema_version": 1,
+        "execution_strategy": SELECTED_EXECUTION_STRATEGY,
+        "game_version": str(args.gamever),
+        "config_path": str(Path(args.configyaml).resolve()),
+        "binary_root": str(Path(args.bindir).resolve()),
+        "artifact_root": str(artifact_root),
+        "old_artifact_root": str(Path(args.oldartifactdir).resolve()),
+        "prior_gamever": str(args.oldgamever) if getattr(args, "oldgamever", None) else None,
+        "plan_sha256": manifest["plan_sha256"],
+        "manifest_sha256": manifest["manifest_sha256"],
+        "inherited_initial_inventory_sha256": manifest.get("initial_actual_inventory_sha256"),
+        "required_warm_idb": bool(args.require_warm_idb),
+        "run_id": reporting.run_id,
+        "summary": reporting.summary(),
+        "inventory": inventory,
+        "nodes": [node_records[node_id] for node_id in sorted(node_records)],
+        "producer_groups": group_records,
+        "issues": issues,
+        "valid": not issues,
+    }
+    document["execution_sha256"] = _selected_execution_digest(document)
+    return document
+
+
 def _select_execution_modules(modules, args):
     if args.module_filter is not None:
         available_module_names = {module["name"] for module in modules}
@@ -4957,7 +5304,7 @@ def _invoke_process_binary(
         symbol_aliases=args.symbol_aliases,
         found_vcall_objects=found_vcall_objects,
         require_warm_idb=getattr(args, "require_warm_idb", False),
-        force_all=getattr(args, "force_all", False),
+        force_all=getattr(args, "force_all", False) or getattr(args, "selected_node_ids", None) is not None,
     )
 
 
@@ -4969,10 +5316,18 @@ def _skip_platform_job(reporting, job_id, status, reason, message, task_status=T
 def _process_platform(args, module, platform, vcall_targets, reporting, found_vcall_objects):
     job_id = build_job_id(build_stage_id(module.get("stage_index", 0), module["name"]), platform)
     module_path = module.get(f"path_{platform}")
-    work_count = len(module["skills"]) + len(vcall_targets)
+    selected_node_ids = getattr(args, "selected_node_ids", None)
+    skills = module["skills"]
+    if selected_node_ids is not None:
+        skills = selected_platform_skills(module, platform, selected_node_ids)
+    work_count = len(skills) + len(vcall_targets)
     if not module_path:
         print(f"\n  Platform {platform}: No path defined, skipping")
         _skip_platform_job(reporting, job_id, TaskStatus.SKIPPED, ProcessReason.PLATFORM_MISMATCH, "No binary path")
+        return 0, 0, work_count
+    if selected_node_ids is not None and not skills and not vcall_targets:
+        print(f"\n  Platform {platform}: No selected skills, skipping")
+        _skip_platform_job(reporting, job_id, TaskStatus.SKIPPED, ProcessReason.PLATFORM_MISMATCH, "No selected skill")
         return 0, 0, work_count
 
     binary_path = get_binary_path(args.bindir, args.gamever, module["name"], module_path)
@@ -4997,7 +5352,7 @@ def _process_platform(args, module, platform, vcall_targets, reporting, found_vc
     old_artifact_dir = _resolve_old_artifact_dir(args, module["name"])
     counts = _invoke_process_binary(
         args,
-        module,
+        {**module, "skills": skills},
         platform,
         binary_path,
         artifact_dir,
@@ -5104,12 +5459,25 @@ def _print_summary(totals):
 def main():
     """Main entry point."""
     args = parse_args()
+    selected_manifest = None
+    if getattr(args, "selected_execution", None):
+        try:
+            selected_manifest = load_selected_execution_manifest(args.selected_execution)
+        except (OSError, ValueError) as exc:
+            print(f"Error: {exc}")
+            sys.exit(1)
     try:
         args.configyaml = str(resolve_analysis_config(args.gamever, args.configyaml))
     except AnalysisConfigError as exc:
         print(f"Error: {exc}")
         sys.exit(1)
-    if getattr(args, "force_all", False):
+    if selected_manifest is not None:
+        try:
+            validate_selected_artifact_root(args, selected_manifest)
+        except (OSError, ValueError) as exc:
+            print(f"Error: {exc}")
+            sys.exit(1)
+    elif getattr(args, "force_all", False):
         try:
             validate_force_all_artifact_root(args)
         except (OSError, ValueError) as exc:
@@ -5133,6 +5501,17 @@ def main():
         print(f"Error: {exc}")
         sys.exit(1)
 
+    args.selected_node_ids = None
+    if selected_manifest is not None:
+        if _sha256_file(Path(args.configyaml)) != selected_manifest["config_sha256"]:
+            print("Error: selected execution manifest does not bind this analysis config")
+            sys.exit(1)
+        try:
+            args.selected_node_ids = validate_selected_execution_manifest(modules, args.platforms, selected_manifest)
+        except ValueError as exc:
+            print(f"Error: {exc}")
+            sys.exit(1)
+
     try:
         plan = build_execution_plan(
             modules,
@@ -5142,6 +5521,7 @@ def main():
             artifact_dir=getattr(args, "artifactdir", DEFAULT_ARTIFACTS_DIR),
             vcall_finder_selector=args.vcall_finder_filter,
             include_post_process=args.rename,
+            selected_node_ids=getattr(args, "selected_node_ids", None),
         )
     except ValueError as exc:
         print(f"Error: {exc}")
@@ -5166,6 +5546,14 @@ def main():
             if not execution_report["valid"]:
                 totals[1] += 1
                 print("  Force-all execution contract failed:")
+                for issue in execution_report["issues"]:
+                    print(f"    {issue}")
+        if selected_manifest is not None:
+            execution_report = build_selected_execution_report(args, selected_manifest, reporting)
+            _atomic_write_bytes(Path(args.execution_report), _canonical_json_bytes(execution_report))
+            if not execution_report["valid"]:
+                totals[1] += 1
+                print("  Selected execution contract failed:")
                 for issue in execution_report["issues"]:
                     print(f"    {issue}")
         final_status = RunStatus.FAILED if totals[1] else RunStatus.SUCCEEDED

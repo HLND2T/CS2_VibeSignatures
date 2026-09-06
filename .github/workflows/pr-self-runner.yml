@@ -133,7 +133,7 @@ jobs:
             --persisted-root "$env:PERSISTED_WORKSPACE" --gamever "$env:GAMEVER" `
             --generation $values['generation'] --cache-key $values['cache-key'] --ida-version "$idaVersion"
           if ($LASTEXITCODE -ne 0) { throw "Warm IDB restore failed." }
-      - name: Prepare checkout-external full rebuild
+      - name: Prepare checkout-external trusted rebuild
         id: prepare-rebuild
         shell: pwsh
         run: |
@@ -148,21 +148,37 @@ jobs:
           if ($document.plan_sha256 -ne $env:PLAN_SHA256) { throw "Preparation is not bound to the trusted plan." }
           $executionReport = $document.execution_reports.PSObject.Properties[$env:GAMEVER].Value
           if ([string]::IsNullOrWhiteSpace($executionReport)) { throw "Preparation omitted GAMEVER execution evidence." }
+          $selectedManifest = $document.selected_execution_manifests.PSObject.Properties[$env:GAMEVER].Value
           "plan=$plan" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "preparation=$preparation" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "strategy=$($document.execution_strategy)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "actual-root=$($document.actual_artifact_root)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "config=$($document.config_root)\$env:GAMEVER.yaml" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "execution-report=$executionReport" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "selected-manifest=$(if ($null -ne $selectedManifest) { $selectedManifest } else { '' })" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "verification=$(Join-Path $staging 'validation.json')" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-      - name: Execute every producer group from an empty artifact root
+      - name: Execute the trusted plan closure from the prepared artifact root
         shell: pwsh
         run: |
-          uv run ida_analyze_bin.py -gamever "$env:GAMEVER" `
-            -configyaml "${{ steps.prepare-rebuild.outputs.config }}" -bindir bin `
-            -artifactdir "${{ steps.prepare-rebuild.outputs.actual-root }}" -oldartifactdir bin_artifacts `
-            -execution_report "${{ steps.prepare-rebuild.outputs.execution-report }}" `
-            -require_warm_idb -force_all -debug
-          if ($LASTEXITCODE -ne 0) { throw "Force-all PR artifact rebuild failed." }
+          if ("${{ steps.prepare-rebuild.outputs.strategy }}" -eq "base-inherited-selected-v1") {
+            if ([string]::IsNullOrWhiteSpace("${{ steps.prepare-rebuild.outputs.selected-manifest }}")) {
+              throw "Selected strategy preparation did not publish an execution manifest."
+            }
+            uv run ida_analyze_bin.py -gamever "$env:GAMEVER" `
+              -configyaml "${{ steps.prepare-rebuild.outputs.config }}" -bindir bin `
+              -artifactdir "${{ steps.prepare-rebuild.outputs.actual-root }}" -oldartifactdir bin_artifacts `
+              -execution_report "${{ steps.prepare-rebuild.outputs.execution-report }}" `
+              -selected_execution "${{ steps.prepare-rebuild.outputs.selected-manifest }}" `
+              -require_warm_idb
+            if ($LASTEXITCODE -ne 0) { throw "Selected PR artifact rebuild failed." }
+          } else {
+            uv run ida_analyze_bin.py -gamever "$env:GAMEVER" `
+              -configyaml "${{ steps.prepare-rebuild.outputs.config }}" -bindir bin `
+              -artifactdir "${{ steps.prepare-rebuild.outputs.actual-root }}" -oldartifactdir bin_artifacts `
+              -execution_report "${{ steps.prepare-rebuild.outputs.execution-report }}" `
+              -require_warm_idb -force_all
+            if ($LASTEXITCODE -ne 0) { throw "Force-all PR artifact rebuild failed." }
+          }
       - name: Verify execution evidence and exact Git bytes
         shell: pwsh
         run: |
