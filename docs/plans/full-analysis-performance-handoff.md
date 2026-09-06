@@ -1,0 +1,254 @@
+# CS2_VibeSignatures:full validation 耗时过长问题交接文档
+
+- 日期:2026-09-06
+- 仓库:`HLND2T/CS2_VibeSignatures`(本地 `D:\CS2_VibeSignatures`,本讨论时分支 `dev-CGameResourceService_AllocGameResourceManifest`,HEAD `d2cb49c5`)
+- 状态:**问题已定性与定量,方案已列出,尚未实施**。需要继续讨论方案取舍或直接实施。
+
+---
+
+## 1. 问题陈述
+
+PR / Merge Queue 的 full validation 中,`pr-self-runner.yml` 的步骤
+**"Execute every producer group from an empty artifact root"** 耗时 ~2 小时,严重拖慢所有 full 模式 PR 与 merge queue 复验。
+
+实测数据(GitHub Actions job step 元数据):
+
+| Run | 事件 | 该步骤耗时 | 备注 |
+|---|---|---|---|
+| 33973053680(2026-09-05,成功) | merge_group | **15:05:57 → 17:04:19 ≈ 1h58m** | 占整个 validate job(2h07m)的 93% |
+| 34006334075(PR #900,进行中) | pull_request_target | >1h(观察时仍在跑) | 日志已过期,仅 step 元数据可取 |
+
+放大因素:
+- merge queue 会对**同一棵树再跑一遍**(pr-validate merge_group 复验);
+- `validate-full` 矩阵 `max-parallel: 1`;
+- 每个 full PR 实际占用约 **4 小时串行自托管 runner 时间**。
+
+## 2. 背景:this step 在做什么(不要轻易推翻的设计前提)
+
+信任模型(已与维护者确认接受,优化**不应**破坏):
+
+- PR 里 staged 的 `bin_artifacts/**` 是作者交付物;CI 的职责是从**空根**重新推导**全部**产物,与 merge 树的**完整** inventory 逐字节比较(`trusted_artifact_pr.py` 的 `validate_isolated_rebuild`,约 :1076-1099:set 相等 + size/sha 逐文件 + expected blob 物料化复验)。
+- 强制空根:`ida_analyze_bin.py:4654` `validate_force_all_artifact_root`(必须为空、checkout 外、不穿 reparse point);`-force_all` 禁用"输出已存在即跳过"(:3478)。
+- planner 的细粒度失效选择(`gamesymbol_snapshot_lib/pr_validation.py:294` `build_invalidation_plan`)只作为**验证期望**(执行覆盖、winner alternatives、输出哈希,`trusted_artifact_pr.py:1015-1043`),**不缩小执行范围**。
+- 为什么不从 main 的可信 `bin_artifacts` 起跑(增量种子):会产生"作者工具链与 CI 同源漏判 → 静默通过"的相关性盲区;空根全量重放使"main 上每个字节当前可再现"成为每次运行自证的不变量。
+- `main` 的 artifacts 已被用于**加速而非证据**:`-oldartifactdir bin_artifacts` 仅做 signature reuse;`-require_warm_idb` + 不可变 warm IDB 缓存掉 IDA 自动分析(恢复仅 ~50s)。
+- 合并后另有 `build-on-self-runner.yml` **独立全量重建** + Release 前 fresh rebuild——这是重要的兜底,方案二/三的安全性依赖它。
+
+## 3. 根因(代码定位)
+
+规模与执行模型:
+
+- `ida_preprocessor_scripts/find-*.py` 共 **1134** 个;`configs/14178b.yaml` 13 modules / **1174 skills**;windows+linux 双平台 ≈ **2348 次技能执行**;26 个 module×platform 的 IDA/MCP 会话。
+- 执行驱动 `_execute_analysis`(`ida_analyze_bin.py:5070`)是**纯串行双重循环**:`for module in modules: for platform in args.platforms: _process_platform(...)`。每个 job 内技能也串行(同一 MCP 会话,断线恢复,:3742-3765)。
+- 平均每技能 ~3s(含摊销的会话加载)→ 2348 × 3s ≈ 2h。
+- **关键发现**:`_build_execution_plan`(`ida_analyze_bin.py:2570-2620`)已经构建了 stage/job/依赖边(stages、jobs、nodes、edges、跨 stage artifact 边),但执行器完全没用它——依赖图建了没用上。
+
+## 4. 已讨论的方案(按推荐顺序)
+
+### 方案一:stage 内并行执行(推荐先做;零信任模型变化)
+- 把 `_execute_analysis` 改为依赖感知调度:同 stage 的 module-platform job 并行(受 `-max_parallel` 与 runner 内存约束),stage 间保持串行(跨 stage artifact 依赖边已存在),job 内技能仍串行(alternatives 竞争语义不变,见 :4008-4015 "modified output already produced by an earlier alternative" 判失败逻辑)。
+- 预期:4-8 个并行 IDA 实例 → 2h → **~20-35min**(下界受最大单 job 制约,engine 模块可能是长尾)。
+- 风险:自托管 runner 内存(N × IDB 大小);force-all 报告确定性(记录按 key 索引、报告构建时排序,需验证无顺序依赖)。
+- 最简子集:先并行同 module 的 windows/linux → 立刻 2×。
+- 实施建议:先补调度正确性测试(stage 依赖不被违反)再改实现。
+
+### 方案二:内容寻址 producer 缓存(结构性修复)
+- 每组缓存键 = binary lock sha + warm IDB generation + module/skill 配置片段哈希 + 预处理脚本 + reference 输入 + 共享运行时哈希 + 输入产物哈希;值 = 规范输出字节 + 执行证据记录。
+- 命中→物料化字节 + 回放证据;未命中→推导。**完整 inventory 逐字节比较保持不变**;merge queue 对同一棵树复验变全命中(分钟级)。
+- 信任代价:键完备性成为新信任面。兜底:(a) 共享运行时变更已被 plan 强制全量失效→强制 miss;(b) 合并后 `build-on-self-runner` 全量重建 + Release fresh rebuild 最迟在发布前抓住漂移。
+- 效果:PR #900 这类"新增符号"PR 从 2h → **分钟级**;全量成本转移给本来就存在的合并后重建。
+- 工作量:大(缓存存储、执行证据 schema 增加 cache-hit 类型、`trusted_artifact_pr.py` 验证端接受搬运证据、`validate_isolated_rebuild` 的 "selected producer group was not executed" 检查需为缓存命中定义合法路径)。
+
+### 方案三:PR 时只跑 plan 选中组,其余从 base Git blob 物料化(方案二的无缓存简化版)
+- 最便宜,但重新引入第 2 节所述相关性盲区,漂移要等合并后重建才暴露。仅在一、二都不可行时考虑。
+
+### 顺手项
+- workflow 里 `ida_analyze_bin.py ... -debug` 可去掉(2348 次技能的日志开销),预计小头。
+
+## 5. 相关近期变更(避免接手模型困惑)
+
+- 本分支已有提交 `445e7312`:"ci(source-artifact): derive full-mode matrix from trusted plan affected versions"——full 矩阵已从硬编码 `["14178b"]` 改为 plan 派生(planner 侧 `maintained_versions` 单例保证 full 模式恒等于最新 GAMEVER,`trusted_artifact_pr.py:549`)。与本性能问题正交。
+
+## 6. 关键文件/符号索引
+
+| 位置 | 内容 |
+|---|---|
+| `.github/workflows/pr-self-runner.yml:157-165` | "Execute every producer group" 步骤与命令行(`-force_all -require_warm_idb -debug`) |
+| `ida_analyze_bin.py:5070` `_execute_analysis` | 串行执行驱动(改造目标) |
+| `ida_analyze_bin.py:2570-2620` `_build_execution_plan` | 已有 stage/job/edges 依赖图 |
+| `ida_analyze_bin.py:4654` `validate_force_all_artifact_root` | 空根强制 |
+| `ida_analyze_bin.py:4719` `build_force_all_execution_report` | 执行证据报告 |
+| `trusted_artifact_pr.py:892` `prepare_isolated_rebuild` | staging 准备与 gamever 绑定 |
+| `trusted_artifact_pr.py:~1050-1105` | force-all 报告校验 + `validate_isolated_rebuild` 完整比较 |
+| `gamesymbol_snapshot_lib/pr_validation.py:294` | 细粒度失效计划(验证期望来源) |
+| `.github/workflows/source-artifact-required.yml` | 门禁 workflow(bind-source-artifact-plan 路由) |
+
+## 7. 待决问题
+
+1. 方案一先行是否可接受?自托管 runner 的核数/内存上限是多少(决定并行度上界)?
+2. engine 模块单 job 耗时占比(并行后的长尾)——需要一次分模块耗时统计(本地跑一次或给执行报告加 per-job 统计)。
+3. 方案二的缓存键粒度:config 是单文件,per-group 键需要"逻辑配置片段"(即失效计划的映射),是否复用 `build_invalidation_plan` 的内部结构?
+4. 是否接受方案二的"PR 时盲点由合并后全量重建兜底"这一策略放宽?
+
+---
+
+## 8. 已确认决策与迁移范围
+
+- 日期：2026-09-06。状态：设计，代码/schema/workflow 尚未实施。
+- 用户接受最简方案三：信任绑定的 base Git tree，不等待其全量验证，允许连续继承尚未发现的问题。
+- 以下设计替代第 2 节中“PR 每次空根执行全部 producer”的前提，发布前全量要求不变。
+- 不实现 producer 缓存、并行调度、自动修改 artifacts，不改变维护 GAMEVER 范围或减少下游验证。
+
+正式保证：PR 强制重建可信计划的执行闭包，其余合法产物仅从准确 base Git blobs 继承；组合后的完整 inventory 必须与 prospective merge tree 完全一致。PR 不再证明所有继承产物当前可重新生成。
+
+executed 是本次执行证据；inherited 只是来源及未改写证明，不得冒充 executed/cache-hit。planner 漏判源码影响且作者保留旧输出时，错误可能进入 main 并连续继承。完整字节比较不能补偿此盲区。不要求 base attestation，不因 base 未审计而等待或自动全量。
+
+## 9. 契约与计划
+
+保留 `mode=full` 的自托管路由含义，新增独立 execution_strategy，拟议为 base-inherited-selected-v1 / fresh-full-v1。未知策略/schema 或缺少身份字段必须失败，不能静默采用增量。
+
+plan 绑定 base SHA/tree、head SHA（适用时）、merge SHA/tree、GAMEVER、策略、配置、binary lock、执行和继承清单摘要。warm IDB generation 在运行时解析后绑定 preparation/execution，并验证 binary/runtime 匹配。摘要不是签名，可信来源仍依赖 base-owned bridge 和现有计划重算边界。
+
+每个版本的计划保留 base_artifacts/merge_artifacts，并明确划分：
+
+1. execute_groups：完整执行组。
+2. execute_nodes：稳定 ID 的 alternatives/prerequisites 与顺序。
+3. inherit_paths：base 现存输出及 blob SHA、size、SHA-256。
+4. inherited_absent_groups：base/merge 均合法缺席的未执行 optional 输出。
+5. removed_paths：base 存在但 merge 契约已移除的输出。
+6. selection_reasons：失效、闭包扩展、全量回退原因。
+
+可信工具推导，verifier 检查精确覆盖、互斥和完整性。继承必须满足：属于 merge 契约；不属于实际执行节点可能写的输出；base 是合法普通 blob；base/merge 的 blob、size、hash 相同；producer 及已声明依赖未失效；没有全量条件。
+
+- 字节不同却未选 owner：计划失败，不能从 merge 补 actual。
+- 新 required 输出必须执行；新 GAMEVER 全量且保持 bootstrap 规则。
+- optional 存在/缺席变化必须执行对应组。
+- 已删除契约输出不运行旧 producer、不物料化旧 blob，最终验证缺席。
+- 未知依赖可保守 full；非法路径/产物/身份漂移必须失败。
+
+## 10. 闭包与执行语义
+
+先审查 build_invalidation_plan 与 _selected_groups，不能假定现有 affected_producer_groups 已是完整执行范围。
+
+正确性闭包迭代到固定点：失效节点扩展整个 group；执行节点写多个输出时扩展全部对应组；新增输出传播下游；新增节点再次扩展 group/多输出。任何实际执行节点可写的输出都不能继承。
+
+依赖区分：纯 artifact-byte 上游未失效时可继承；session prerequisite 依赖同一 IDA 会话的初始化/命名等副作用，必须实际执行；不明依赖保守扩大乃至 full。prerequisite 若写正式输出，将其移出继承集合并重算下游；无输出 prerequisite 也要执行证据。
+
+保留 stage、module/platform 会话边界和 alternatives 顺序/winner 规则。加载完整配置，以稳定 ID 选择任务，避免裁剪配置造成编号或 fingerprint 变化。
+
+保留共享 analyzer/serializer、binary/download identity、新 GAMEVER、output contract version 全量失效。审查环境/依赖变更覆盖，不能精确映射时保守 full。不改变 fork、可信根、维护范围、bootstrap、未知路径的 fail-closed 行为。
+
+## 11. 隔离物料化与执行器
+
+保留 `-force_all` 原义：checkout 外空根、全部 producer、full 报告。新增独立 selected 模式和 seeded-root validator，不能放宽 validate_force_all_artifact_root。
+
+Preparation 顺序：
+
+1. 验证可信 plan 和准确 Git 身份，创建唯一全新 checkout 外 staging。
+2. expected-root 从 merge blobs 物料化，仅用于比较；actual-root 从空目录开始。
+3. actual 仅按 inherit_paths 白名单从准确 base blobs 原样写入，不重新序列化，写入前后核验 blob/size/hash。
+4. 确认执行输出、removed_paths 和合法继承缺席路径均不存在。
+5. 记录初始 inventory、继承清单、策略、plan 及运行身份。
+
+不要复制整个 base 再删除，不从工作树、accepted-bin、持久化 workspace 或 expected-root 补实际输出。保留路径规范化、祖先/子路径 reparse point、越界、证据路径和 checkout 未改写检查，安全要求不得弱于 full。
+
+selected 强制执行计划节点，不因输入/输出存在或历史状态跳过。只为有任务的 module/platform 启动 IDA。保留 alternatives 的真实尝试、winner 和禁止后续 alternative 改写已获胜输出的规则。
+
+允许读继承输入，只允许写授权输出。利用 attempted/produced 记录或适当写入检测发现未授权写入，并校验继承项前后状态；hash 前后相等不能单独证明从未写入，不得宣称它提供完整写隔离。继承项改写/删除、继承缺席被创建、额外文件均失败。
+
+`-oldartifactdir` 如保留，仅保持现有 signature reuse，不增加复制旧输出兜底。失败/中断不得生成 valid=true；重试使用新 staging，不复用残留输出。
+
+## 12. Schema、证据与可信验证
+
+当前定位时 plan schema=3、preparation schema=2、force-all execution schema=2；实施时重新确认。升级 plan/preparation，selected 使用独立报告类型或显式 schema；旧 full 语义保持用于 release，不能原地重解释。
+
+- executed：group/fingerprint/alternatives、真实 attempted 节点、winner、输出 hash 或合法缺席，以及 prerequisite 结果。
+- inherited：可信 preparation/verifier 从 base 独立推导 base SHA/tree、path/blob/size/hash、物料化前后状态和 optional 缺席，不能仅信执行器声明。
+
+最终验证：
+
+1. schema、策略、摘要、plan/preparation/report/tree/binary/warm generation 绑定正确。
+2. 精确执行集合与节点证据正确，拒绝缺组、重复、未授权额外组和错误 attempt/winner。
+3. 继承资格、base 字节身份、缺席状态和 removed_paths 均正确。
+4. 使用完整 merge 契约构建 actual inventory，保持完整路径集合相等、逐文件 size/SHA-256 比较。
+5. 保留 expected Git blob 物料化复核、execution inventory 对照、checkout 未改写检查。
+6. 结果明确策略、执行/继承/删除数量和证据摘要；每个合法输出状态恰好得到一种解释。
+
+snapshot/gamedata candidate 与 C++ ABI 验证继续消费完整 actual-root，不只验证选中符号。full/release verifier 必须拒绝 selected 证明。
+
+## 13. 工作流与发布兜底
+
+PR 改为 trusted prepare → base 白名单物料化 → selected execute → 完整 verify → 原 downstream gates → 上传证据。保持无发布权限及可信路由，step/日志不再宣称 every producer / empty-root full rebuild。
+
+无执行节点但仍需下游验证时不启动 IDA；无需分析的变更保持现有路由。merge queue 重新绑定自己的 base/merge tree，不复用 PR 计划，也不等待 base 审计。
+
+发布目标准确 source SHA 必须通过 fresh-full 和不可变 Git truth 比较，不能用 selected 报告、其他 SHA 或旧 inventory 替代。失败时禁止 BinSync/Release 发布并告警，保留诊断，不自动修改 Git artifacts 掩盖漂移。
+
+最简策略下，审计失败不追溯改变已结束的 PR 检查，也不自动要求后续 PR 等待；全局可再现性不再是 PR 保证。
+
+必须核实 post-merge 触发链：build-on-self-runner.yml 自身入口为 workflow_call/workflow_dispatch/repository_dispatch，不是直接 on:push。追踪真实调用方、过滤条件、告警和准确 source SHA 绑定，不能仅凭该文件断言每次 main 合并都有审计。覆盖缺口应补齐调度或明确记录真实范围；发布前 fresh-full 是不可放宽的硬门禁。
+
+## 14. 文件落点与分阶段迁移
+
+以下为本次定位，实施时按符号重新定位，不依赖旧行号：
+
+- gamesymbol_snapshot_lib/pr_validation.py:294：失效与闭包；config.py/model.py：检查 group、多输出及 prerequisite 表达，仅必要时调整。
+- trusted_artifact_pr.py:550：可信根门禁；:721：版本计划；:892：准备/继承；:972：报告策略；:1044：完整组合验证。
+- ida_analyze_bin.py:4654：保留 full root validator；:4719：保留 full 报告；_build_execution_plan/_execute_analysis/skill 路径新增 selected 调度与证据。
+- .github/workflows/pr-self-runner.yml:136：prepare/execute/verify/上传。
+- .github/workflows/source-artifact-required.yml、trusted_pr_context.py：可信计划传递、策略和迁移桥。
+- .github/workflows/build-on-self-runner.yml:300、:331、:514：fresh rebuild、Git truth 比较和发布依赖。
+
+### 阶段 A：基线与契约
+
+读取当前项目规则、相关 memory、可信调用链和待改代码；记录相关测试基线及真实审计覆盖；确认 prerequisite/多输出语义；先补行为测试，落地 plan/verifier 能力，默认仍 fresh-full。
+
+### 阶段 B：执行器与组合证明
+
+实现固定点闭包、继承资格、白名单物料化、selected 执行和独立报告。验证 full/release 无回归，release 拒绝 selected 报告。实现期间保持应用层参数与可信验证策略显式分离。
+
+### 阶段 C：可信桥迁移
+
+现有 planner 拒绝普通 PR 修改 trusted roots，要求 independently merged bridge update。不能假定同一个业务 PR 能修改 planner/workflow 并用自己的新规则验证自身。
+
+先沿现有受信维护流程独立合入 bridge/schema 支持，保持 full 默认；analyzer/verifier 均就绪后再启用 selected 路由。核对旧 base 的可信工具、复用 workflow 和新 schema 兼容性，保证每次合入都可运行。未知 schema 明确失败。若没有可用维护流程，向维护者确认，不删除 trusted-root 门禁绕过。
+
+### 阶段 D：真实验证与启用
+
+选新增符号、finder 修改、跨 stage 依赖、artifact-only、共享运行时变更样本；在相同 tree/binary lock/warm generation 下运行 selected 与 fresh-full，对比完整 inventory、执行证据和时延。此为迁移验证，不要求后续每个 PR 永久双跑，也不能证明 planner 永远完备。
+
+确认发布 gate 与告警后切换。记录执行组数、IDA 会话数、producer/恢复/下游/总耗时。不预先承诺分钟级，固定成本和闭包范围会限制收益。
+
+### 回滚
+
+通过可信路由切回 fresh-full，使用新空 staging 和原 full verifier。不要把 seeded root 交给 force-all，不改作者 artifacts，不删除历史证据，不接受旧 schema 绕过失败。
+
+## 15. 测试与完成门禁
+
+本次涉及共享正确性边界和显式行为变更，采用 Level 2 TDD，加代码审查与 completion verification。测试运行行为，不对 workflow、配置、文档或 memory 文本做字符串约束。
+
+### 行为测试矩阵
+
+- 计划：未变更继承；artifact-only 选 owner；finder/reference/config 变化和删除/重命名传播；alternatives/多输出新增下游达到固定点。
+- 依赖：字节上游可继承，会话 prerequisite 实际执行；有输出 prerequisite 重新分类传播；未知依赖保守 full。
+- 回退：shared runtime、binary lock、output contract version、新 GAMEVER 全量；bootstrap、维护范围和 fork 规则保留。
+- 分区：不同字节未选 owner、未知 owner、集合重叠/遗漏拒绝；optional 存在/缺席变化及契约删除正确。
+- 物料化：仅绑定 base 来源；执行输出起始缺席；残留 staging、错误 blob/size/hash、reparse point、越界、checkout 内输出和非法类型拒绝。
+- 执行：已有输入不跳过节点；attempt/winner 正确；继承项改写/删除、继承缺席被创建、额外输出与未授权写入拒绝。
+- 证据：缺组/重复/额外组、伪造 executed、未知策略/schema、plan/tree/binary/warm generation 漂移拒绝。
+- 最终：完整 inventory 缺失/多余/字节不符、expected-root 改写拒绝；中断重试不误用旧报告；下游消费完整组合根；release 不接受 selected。
+
+### 完成判据
+
+1. 关键行为测试及 full/release 回归通过，报告实际命令和结果。
+2. 真实 selected/full 对比及性能测量完成；环境无法执行则明确未验证，不宣称完整交付。
+3. PR/merge queue 身份绑定、发布 hard gate、告警得到验证；真实审计覆盖缺口显式记录。
+4. 文档和相关 Basic Memory 更新为新保证，纠正“PR 每次证明全局可再现”的旧表述，保留连续继承风险。
+5. 所有关键未验证项和剩余风险显式交付。
+
+## 16. 后续执行边界
+
+- 用户已确认最简 base 信任，不再询问是否等待 base 全量验证。
+- 本次仅整理文档；实际 schema/shared types/CI/配置与可信 bridge 改动按后续用户授权和仓库门禁推进。
+- 不顺带实现方案一/二，不削弱发布 fresh-full。
+- 核心审查点：组/多输出固定点、session prerequisites、独立继承资格检查、selected 证据不能冒充 full。
