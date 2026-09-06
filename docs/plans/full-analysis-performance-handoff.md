@@ -297,3 +297,16 @@ PR 改为 trusted prepare → base 白名单物料化 → selected execute → �
 3. 纯删除计划可执行：空 `execute_nodes`（契约删除 + 其余继承）为合法 manifest；executor 允许空模块集合继续组合验证（不启动 IDA），verifier/prepare 原本已支持零执行组。`-modules` 与 `-selected_execution` 显式互斥。
 4. 无输出 session prerequisite 的独立执行证据:不属于任何 producer group 的计划节点(纯会话副作用前置)必须 `attempted=true` 且 **成功**(succeeded)——执行失败不能证明依赖者所需的会话副作用已建立,不沿用 alternatives 允许失败尝试的规则;组级校验不覆盖它们,缺失该检查时报告标 aborted/failed 仍可通过。
 5. 合法 optional 缺席的 skip 被接受:executor 对"计划内 optional 生产者实际运行但未产出"记录 `status=skipped` 且 reason 为 `optional_output_absent` / `preprocess_absent`(报告本身 valid=true)。verifier 仅在该 skip reason 合法、节点零产出、且其 attempted 的每条输出路径**要么确实缺席于 merge tree,要么是它位于组内 winner 之前的合法回退让渡**(后一个 alternative 成功产出同一路径)时接受;其它 skip reason(existing_outputs、skip_if_exists、platform_mismatch 等)、已物化输出上的 skipped、以及 winner 之后的缺席声明一律拒绝。
+
+## 18. Phase-D 临时维护入口（2026-09-06）
+
+用户已授权新增独立手动 workflow，完成 Phase-D 后独立启用 selected 策略、rebase PR #926；临时入口在 #926 合并后清理。
+
+- `.github/workflows/phase-d-validation.yml` 仅允许从 main 手动运行，绑定调用时的 main、准确 PR head 和双亲匹配的 prospective merge SHA；只接收同仓库的开放 PR。
+- `phase_d_validation.py` 使用生产 planner/prepare/executor/verifier，不改变生产策略解析或 required-check 路由。实验计划仅切换 strategy 并重新计算 digest，原计划与实验计划分别留档，报告明确标为迁移实验而非 PR attestation。
+- PR #926 覆盖新增符号与 finder 修改；artifact-only、跨 stage、共享运行时样本通过隔离 Git index 构造临时 base/merge commits，不改工作树或分支。所有样本的 merge tree 完全相同。
+- 每次分析前恢复同一个不可变 warm generation 并核验 source binary lock。三个小闭包 selected 样本、一次 fresh-full 基线及共享运行时全量 selected 样本分别执行生产完整字节 verifier、snapshot/gamedata 和 C++ gates。相同 tree/binary/generation 允许所有 selected 样本与同一次 fresh-full 基线作完整 inventory 比较。
+- 真实分析显式设置 `CS2VIBE_STRING_MIN_LENGTH=4`（用户期望，避免 minlen=5 丢失短字符串锚点），并写入实验报告；不修改本机 `.env`。现有 unit suite 中两项测试依赖该变量未启用，基线测试以进程内空值隔离该本机覆盖，不能把这解释为分析应使用 5。
+- 保存原计划、实验计划、preparation、warm restore、执行证据、完整验证、命令日志与各阶段耗时；失败也上传诊断，`comparison.json.valid` 仅在全部比较完成后为 true。此处尚不声明真实 runner 已验证。
+- 发布流程仍由 empty-root `-force_all -rename`、`release_artifact_rebuild.py verify` 与 hosted verification 保护；publish jobs 依赖这些成功结果。当前工作流无独立外部告警发送步骤，失败通过 Actions job/check 呈现；个人通知订阅未核验。
+- **清理门槛：PR #926 已合并。**届时删除临时 workflow、`phase_d_validation.py`、`tests/test_phase_d_validation.py`，移除 `tests/run_test_suite.py` 中对应归属；保留本交接文档、运行链接和汇总证据。不得在 #926 合并前清理入口。
