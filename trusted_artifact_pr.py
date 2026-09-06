@@ -1324,6 +1324,27 @@ def _selected_execution_digest(value: object) -> str:
     return f"sha256:{hashlib.sha256(raw).hexdigest()}"
 
 
+LEGAL_ABSENT_SKIP_REASONS = frozenset({"optional_output_absent", "preprocess_absent"})
+
+
+def _is_verified_attempt_status(node_record: dict, expected_files: dict) -> bool:
+    """Accept a terminal status, or a skip that provably encodes a legal optional absence.
+
+    A skipped node is only accepted when the recorded skip reason is the executor's
+    optional/preprocess-absent outcome, the node produced nothing, and every path it
+    attempted is genuinely absent from the prospective merge tree — any other skip
+    (existing outputs, skip_if_exists, platform mismatch, ...) is rejected.
+    """
+    status = node_record.get("status")
+    if status in {"succeeded", "failed"}:
+        return True
+    if status != "skipped" or node_record.get("reason") not in LEGAL_ABSENT_SKIP_REASONS:
+        return False
+    if node_record.get("produced_paths"):
+        return False
+    return all(path not in expected_files for path in node_record["attempted_paths"])
+
+
 def _load_selected_execution_report(path: Path, *, preparation: dict, version: dict, plan: dict) -> dict:
     try:
         raw = path.read_bytes()
@@ -1461,7 +1482,7 @@ def _load_selected_execution_report(path: Path, *, preparation: dict, version: d
                 raise TrustedArtifactPrError(
                     f"selected execution node evidence contradicts the group attempts: {group_id}/{node_id}"
                 )
-            if node_id in attempted and node_record.get("status") not in {"succeeded", "failed"}:
+            if node_id in attempted and not _is_verified_attempt_status(node_record, expected_files):
                 raise TrustedArtifactPrError(f"attempted node lacks a terminal execution status: {node_id}")
             if node_record.get("status") == "succeeded" and planned["artifact_path"] in node_record["produced_paths"]:
                 successful.append(node_id)
@@ -1474,6 +1495,17 @@ def _load_selected_execution_report(path: Path, *, preparation: dict, version: d
             raise TrustedArtifactPrError(
                 f"absent optional output was produced by executed nodes: {group_id} {successful!r}"
             )
+
+    # Output-less session prerequisites belong to no producer group, so group-level
+    # verification never covers them: require their own proof of real execution.
+    group_alternative_node_ids = {
+        node_id for planned_group in planned_groups.values() for node_id in planned_group["alternative_node_ids"]
+    }
+    for node_id, record in nodes_by_id.items():
+        if node_id in group_alternative_node_ids:
+            continue
+        if record.get("attempted") is not True or record.get("status") not in {"succeeded", "failed"}:
+            raise TrustedArtifactPrError(f"planned prerequisite node lacks execution evidence: {node_id}")
     if report.get("inherited_initial_inventory_sha256") != preparation["initial_actual_inventory_sha256"].get(gamever):
         raise TrustedArtifactPrError(f"selected execution report lost the seeded-root binding for {gamever}")
     return report

@@ -6796,6 +6796,106 @@ class TestSelectedExecution(unittest.TestCase):
 
             self.assertEqual([], manifest["execute_nodes"])
 
+    def test_selected_execution_report_marks_legal_optional_absent_skip(self) -> None:
+        """A planned optional producer that runs and produces nothing stays valid."""
+        with TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            config = root / "configs" / "1.yaml"
+            write_config(
+                config,
+                [
+                    {
+                        "name": "server",
+                        "stage_index": 0,
+                        "path_windows": "game/bin/win64/server.dll",
+                        "skills": [{"name": "find-opt", "optional_output": ["Opt.{platform}.yaml"]}],
+                        "symbols": [{"name": "Opt", "category": "func", "platform": "windows"}],
+                    }
+                ],
+            )
+            artifact_root = root / "actual"
+            module_dir = artifact_root / "1" / "server"
+            module_dir.mkdir(parents=True)
+            module = {
+                "name": "server",
+                "stage_index": 0,
+                "path_windows": "game/bin/win64/server.dll",
+                "skills": [{"name": "find-opt", "optional_output": ["Opt.{platform}.yaml"]}],
+            }
+            plan = ida_analyze_bin.build_execution_plan(
+                [module],
+                platforms=["windows"],
+                bin_dir=str(root / "bin"),
+                gamever="1",
+                artifact_dir=str(artifact_root),
+                selected_node_ids=frozenset({"0:0:server:windows:find-opt"}),
+            )
+            reporting = ida_analyze_bin.AnalysisReporting(MagicMock(), "run-1", plan)
+            from gamesymbol_snapshot_lib.config import load_contract
+
+            contract = load_contract(str(config), "1", str(root / "bin"), artifactdir=artifact_root)
+            group = contract.producer_groups["producer-group:server/Opt.windows.yaml"]
+            node = contract.nodes["0:0:server:windows:find-opt"]
+            manifest = self._manifest_document()
+            manifest.pop("manifest_sha256", None)
+            manifest["execute_groups"] = [
+                {
+                    "group_id": group.group_id,
+                    "artifact_path": group.artifact_path,
+                    "required": group.required,
+                    "fingerprint": group.fingerprint,
+                    "alternative_node_ids": list(group.alternative_node_ids),
+                }
+            ]
+            manifest["execute_nodes"] = [
+                {
+                    "node_id": node.node_id,
+                    "stage_index": node.stage_index,
+                    "module": node.module_name,
+                    "platform": node.platform,
+                    "skill": node.skill_name,
+                    "fingerprint": node.fingerprint,
+                    "outputs": sorted(node.outputs),
+                }
+            ]
+            manifest["inherit_paths"] = []
+            manifest["manifest_sha256"] = ida_analyze_bin._selected_manifest_digest(manifest)
+
+            absent_output = module_dir / "Opt.windows.yaml"
+            for execution_node in plan.nodes:
+                if execution_node.node_type != PlanNodeType.SKILL:
+                    continue
+                reporting.emit_task_status(execution_node.id, TaskStatus.RUNNING, ProcessPhase.WAITING_FOR_MCP)
+                reporting.record_output_attempts(execution_node.id, [str(absent_output)])
+                reporting.emit_task_status(
+                    execution_node.id,
+                    TaskStatus.SKIPPED,
+                    ProcessPhase.FINISHED,
+                    reason=ProcessReason.OPTIONAL_OUTPUT_ABSENT,
+                )
+            args = SimpleNamespace(
+                configyaml=str(config),
+                gamever="1",
+                bindir=str(root / "bin"),
+                artifactdir=str(artifact_root),
+                oldartifactdir=str(root / "old"),
+                oldgamever=None,
+                rename=False,
+                require_warm_idb=True,
+            )
+
+            report = ida_analyze_bin.build_selected_execution_report(args, manifest, reporting)
+
+            self.assertTrue(report["valid"], report["issues"])
+            self.assertEqual(1, len(report["producer_groups"]))
+            self.assertIsNone(report["producer_groups"][0]["winner_node_id"])
+            self.assertEqual(
+                ["0:0:server:windows:find-opt"],
+                report["producer_groups"][0]["attempted_node_ids"],
+            )
+            self.assertEqual("skipped", report["nodes"][0]["status"])
+            self.assertEqual("optional_output_absent", report["nodes"][0]["reason"])
+
     def test_selected_execution_report_rejects_recorded_inherited_rewrite(self) -> None:
         with TemporaryDirectory() as temporary:
             root = Path(temporary)

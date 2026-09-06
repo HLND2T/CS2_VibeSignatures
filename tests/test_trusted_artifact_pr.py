@@ -439,10 +439,13 @@ class SelectedExecutionTests(unittest.TestCase):
                 {"name": "find-pre", "expected_output": ["Pre.{platform}.yaml"]},
                 {
                     "name": "find-dep",
-                    "prerequisite": ["find-pre"],
+                    "prerequisite": ["find-pre", "find-session"],
                     "expected_input": ["Pre.{platform}.yaml"],
                     "expected_output": ["Dep.{platform}.yaml"],
                 },
+                # A pure session-side-effect prerequisite: no outputs, so it belongs to no
+                # producer group and must still be proven executed when find-dep executes.
+                {"name": "find-session"},
                 {"name": "find-opt", "optional_output": ["Opt.{platform}.yaml"]},
             ]
         )
@@ -498,6 +501,8 @@ class SelectedExecutionTests(unittest.TestCase):
         write_source_binary_lock(root, "1")
         for name, rva in (("A", "0x10"), ("B", "0x20"), ("C", "0x30"), ("Pre", "0x40"), ("Dep", "0x50")):
             self._write_artifact(root, name, rva)
+        if change == "drop-opt":
+            self._write_artifact(root, "Opt", "0x70")
         self._git(root, "add", ".")
         self._git(root, "commit", "-m", "base")
         base_sha = self._git(root, "rev-parse", "HEAD")
@@ -509,6 +514,8 @@ class SelectedExecutionTests(unittest.TestCase):
             self._write_artifact(root, "Dep", "0x51")
         elif change == "shared-runtime":
             (root / "ida_analyze_util.py").write_text("SERIALIZER = 2\n", encoding="utf-8")
+        elif change == "drop-opt":
+            (root / "bin_artifacts" / "1" / "server" / "Opt.windows.yaml").unlink()
         elif change == "remove-c":
             write_config(
                 root / "configs" / "1.yaml",
@@ -604,12 +611,20 @@ class SelectedExecutionTests(unittest.TestCase):
         nodes = []
         for node in version["execute_nodes"]:
             produced = sorted(path for path in node["outputs"] if path in files)
+            # The executor records every declared output that does not pre-exist as attempted;
+            # a declared output that never materializes legally ends skipped (optional absent).
+            attempted_paths = sorted(node["outputs"])
+            if produced or not node["outputs"]:
+                status, reason = "succeeded", None
+            else:
+                status, reason = "skipped", "optional_output_absent"
             nodes.append(
                 {key: node[key] for key in ("node_id", "stage_index", "module", "platform", "skill", "fingerprint")}
                 | {
-                    "status": "succeeded",
-                    "attempted": bool(produced),
-                    "attempted_paths": produced,
+                    "status": status,
+                    "reason": reason,
+                    "attempted": True,
+                    "attempted_paths": attempted_paths,
                     "produced_paths": produced,
                 }
             )
@@ -690,9 +705,11 @@ class SelectedExecutionTests(unittest.TestCase):
             self.assertIn("server/Dep.windows.yaml", executed)
             self.assertIn("server/Pre.windows.yaml", executed)
             self.assertEqual(
-                {"find-pre", "find-dep"},
+                {"find-pre", "find-dep", "find-session"},
                 {node["skill"] for node in version["execute_nodes"]},
             )
+            session_node = next(node for node in version["execute_nodes"] if node["skill"] == "find-session")
+            self.assertEqual([], session_node["outputs"])
             inherited = {item["path"] for item in version["inherit_paths"]}
             self.assertEqual(
                 {"server/A.windows.yaml", "server/B.windows.yaml", "server/C.windows.yaml"},
@@ -973,6 +990,88 @@ class SelectedExecutionTests(unittest.TestCase):
             self.assertEqual(0, report["executed_group_count"])
             self.assertEqual(4, report["inherited_count"])
             self.assertEqual(1, report["removed_count"])
+
+    def test_selected_verify_rejects_unexecuted_outputless_prerequisite(self) -> None:
+        """A no-output prerequisite belongs to no group and still needs its own proof."""
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            staging = Path(temporary) / "isolated"
+            root.mkdir()
+            plan, preparation = self._plan_and_preparation(root, staging, change="artifact-dep")
+            self._simulate_selected_execution(root, plan, preparation)
+            self._write_selected_report(root, plan, preparation)
+
+            def abort_session_prerequisite(report):
+                session = next(record for record in report["nodes"] if record["skill"] == "find-session")
+                session.update({"status": "aborted", "attempted": False})
+
+            self._retamper_selected_report(preparation, "1", abort_session_prerequisite)
+
+            with self.assertRaisesRegex(tap.TrustedArtifactPrError, "prerequisite node lacks execution evidence"):
+                tap.validate_isolated_rebuild(repo_root=root, plan=plan, preparation=preparation)
+
+    def test_selected_verify_accepts_legal_optional_absent_skip(self) -> None:
+        """A planned optional producer that ran and legally produced nothing ends skipped."""
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            staging = Path(temporary) / "isolated"
+            root.mkdir()
+            plan, preparation = self._plan_and_preparation(root, staging, change="drop-opt")
+
+            version = plan["game_versions"][0]
+            self.assertIn("server/Opt.windows.yaml", {group["artifact_path"] for group in version["execute_groups"]})
+
+            self._simulate_selected_execution(root, plan, preparation)
+            self._write_selected_report(root, plan, preparation)
+            result = tap.validate_isolated_rebuild(repo_root=root, plan=plan, preparation=preparation)
+
+            report = result["game_versions"][0]
+            self.assertEqual(1, report["executed_group_count"])
+
+    def test_selected_verify_rejects_arbitrary_skip_reasons(self) -> None:
+        """Only optional/preprocess-absent skips with a truly absent output may pass."""
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            staging = Path(temporary) / "isolated"
+            root.mkdir()
+            plan, preparation = self._plan_and_preparation(root, staging, change="drop-opt")
+            self._simulate_selected_execution(root, plan, preparation)
+            self._write_selected_report(root, plan, preparation)
+
+            def relabel_skip(report):
+                skipped = next(record for record in report["nodes"] if record["skill"] == "find-opt")
+                skipped["reason"] = "existing_outputs"
+
+            self._retamper_selected_report(preparation, "1", relabel_skip)
+
+            with self.assertRaisesRegex(tap.TrustedArtifactPrError, "terminal execution status"):
+                tap.validate_isolated_rebuild(repo_root=root, plan=plan, preparation=preparation)
+
+    def test_selected_verify_rejects_absent_skip_on_materialized_output(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            staging = Path(temporary) / "isolated"
+            root.mkdir()
+            plan, preparation = self._plan_and_preparation(root, staging)
+            self._simulate_selected_execution(root, plan, preparation)
+            self._write_selected_report(root, plan, preparation)
+
+            def skip_winner(report):
+                winner = report["nodes"][0]
+                winner.update(
+                    {
+                        "status": "skipped",
+                        "reason": "optional_output_absent",
+                        "produced_paths": [],
+                    }
+                )
+
+            self._retamper_selected_report(preparation, "1", skip_winner)
+
+            with self.assertRaisesRegex(
+                tap.TrustedArtifactPrError, "terminal execution status|exactly one producing winner"
+            ):
+                tap.validate_isolated_rebuild(repo_root=root, plan=plan, preparation=preparation)
 
 
 if __name__ == "__main__":

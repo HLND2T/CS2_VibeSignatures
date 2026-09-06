@@ -295,3 +295,5 @@ PR 改为 trusted prepare → base 白名单物料化 → selected execute → �
 1. Verifier 不再信任报告自报 `valid=true`：独立核验节点记录无重复、attempted 节点具有终态（succeeded/failed）、组 attempt 恰为基于 winner 的有序前缀、winner 必须成功产出该输出、节点 attempt/production 声明与组证据交叉一致、produced ⊆ attempted。
 2. 超授权写入记录双层拒绝：executor 报告对 attempted/produced 超出节点授权输出的路径记 issue（valid=false）；verifier 独立以计划节点 outputs 校验报告记录——即使继承文件被原样重写且最终字节相同，凡记录了写入即拒绝（§11 的未改写要求；最终字节相等仍不宣称完整写隔离）。
 3. 纯删除计划可执行：空 `execute_nodes`（契约删除 + 其余继承）为合法 manifest；executor 允许空模块集合继续组合验证（不启动 IDA），verifier/prepare 原本已支持零执行组。`-modules` 与 `-selected_execution` 显式互斥。
+4. 无输出 session prerequisite 的独立执行证据：不属于任何 producer group 的计划节点（纯会话副作用前置）必须 `attempted=true` 且终态（succeeded/failed）——组级校验不覆盖它们，缺失该检查时报告标 aborted 仍可通过。
+5. 合法 optional 缺席的 skip 被接受：executor 对"计划内 optional 生产者实际运行但未产出"记录 `status=skipped` 且 reason 为 `optional_output_absent` / `preprocess_absent`（报告本身 valid=true）。verifier 仅在该 skip reason 合法、节点零产出、且其 attempted 的全部输出确实缺席于 merge tree 时接受；其它 skip reason（existing_outputs、skip_if_exists、platform_mismatch 等）与已物化输出上的 skipped 一律拒绝。
