@@ -10,7 +10,7 @@ permalink: cs2-vibesignatures/post-change-candidate-lifecycle
 `/create-pr` delivers source/config/reference changes together with their computed canonical `bin_artifacts` closure. A default-branch trusted planner binds the exact base/head/prospective tree; full validation rebuilds affected producer groups outside the checkout and compares the complete actual inventory with Git blobs. Snapshot/gamedata candidates exist only as release-local validation inputs and Release assets.
 ## Responsibilities
 - `/create-pr`: preserve the explicitly staged source-owned change set and reject tracked legacy/Release output namespaces.
-- `source-artifact-required.yml`: load base-owned planner/policy, bind the prospective tree, route light/full/bootstrap-required outcomes, and provide stable required checks.
+ Binding-job internals are recorded in [[source-artifact-required]].
 - `pr-self-runner.yml`: restore exact warm IDB state, force selected producer groups in an isolated artifact root, verify execution evidence/exact bytes, and derive candidate/gamedata/C++ evidence.
 - `bootstrap-new-gamever-artifacts.yml`: produce an empty-root full artifact candidate and let the protected hosted publisher fast-forward only the matching bump branch.
 - `build-on-self-runner.yml`: after merge, independently rebuild the complete GAMEVER and produce credential-free Release/BinSync candidates.

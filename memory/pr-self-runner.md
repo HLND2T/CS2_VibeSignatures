@@ -11,7 +11,7 @@ permalink: cs2-vibesignatures/pr-self-runner
 ## Responsibilities
 - Consume the trusted bound plan and exact source/tree identity rather than PR-supplied routing.
 - Restore binary-only accepted state and the exact immutable warm IDB generation with credentials disabled.
-- Prepare a fresh artifact root, copy only unaffected prospective artifacts, and run selected producer groups with `-force_all -require_warm_idb`.
+- Prepare an enforced-empty checkout-external artifact root (`validate_force_all_artifact_root`) and execute **every** producer group with `-force_all -require_warm_idb`; `-oldartifactdir bin_artifacts` feeds signature reuse only, never seeds outputs. The plan's selected groups are verification expectations (execution coverage, winner alternatives, output hashes), not an execution scope.
 - Verify attempted/winning alternatives, full formal inventory, canonical bytes, exact Git blob identity, and unchanged checkout artifacts.
 - Build release-local snapshot/gamedata candidates and run C++ evidence gates without tracking or publishing them.
 - Fail closed for forks, plan drift, unknown paths, missing cache identity, incomplete closure, or artifact byte drift.
@@ -41,4 +41,4 @@ trusted prospective-tree plan
 - `bin_artifacts` is expected Git truth; `bin/` and persisted workspaces must not supply YAML correctness input.
 - Checkout uses `persist-credentials: false`; the worker has no source-branch, BinSync, tag, or Release publication credential.
 - Merge Queue membership must be resolved through trusted GitHub metadata before any self-hosted invocation.
-- A Required Workflow/ruleset or independent trust root is still needed to prevent a prospective workflow edit from forging the required check.
+- [fact] Cost structure (measured 2026-09-05, run 33973053680): the force-all producer step takes ~1h58m of the ~2h07m validate job. The driver `_execute_analysis` (`ida_analyze_bin.py:5070`) is fully serial — 13 modules x 2 platforms = 26 sequential IDA/MCP sessions, ~2348 skill executions at ~3s average each — even though `ExecutionPlan` already builds stage/job dependency edges that a parallel scheduler could honor. The same cost repeats at PR time and again at merge-queue revalidation (`max-parallel: 1`).
