@@ -919,12 +919,6 @@ modules:
           - CGameResourceService_AppendToGameResourceManifest.{platform}.yaml
         expected_input:
           - CGameResourceService_vtable.{platform}.yaml
-      - name: find-CGameResourceService_AllocGameResourceManifest
-        expected_output:
-          - CGameResourceService_AllocGameResourceManifest.{platform}.yaml
-        expected_input:
-          - CNetworkServerSpawnGroupCreatePrerequisites_Init.{platform}.yaml
-          - CGameResourceService_vtable.{platform}.yaml
       - name: find-CGameResourceService_RegisterEventMapInternal
         optional_output:
           - CGameResourceService_RegisterEventMapInternal.{platform}.yaml
@@ -2580,6 +2574,10 @@ modules:
         category: vfunc
         alias:
           - CGameResourceService::AppendToGameResourceManifest
+      - name: IGameResourceService_AllocGameResourceManifest
+        category: vfunc
+        alias:
+          - IGameResourceService::AllocGameResourceManifest
       - name: CGameResourceService_AllocGameResourceManifest
         category: vfunc
         alias:
@@ -3274,6 +3272,10 @@ modules:
         category: vfunc
         alias:
           - CNetworkClientSpawnGroupCreatePrerequisites::GetStatus
+      - name: CNetworkClientSpawnGroupCreatePrerequisites_Init
+        category: func
+        alias:
+          - CNetworkClientSpawnGroupCreatePrerequisites::Init
       - name: CWaitForInitialSpawnGroupsPrerequisite_vtable
         category: vtable
       - name: CWaitForInitialSpawnGroupsPrerequisite_GetStatus
@@ -13299,6 +13301,22 @@ modules:
       # INetworkClientService::IsPutInServer vcall only exists there on Linux.
       # Keep this in the late engine pass because its global-variable anchors are
       # produced by find-g_pInterfaceGlobals_ppGlobal immediately above.
+      - name: find-CNetworkClientSpawnGroupCreatePrerequisites_Init
+        expected_output:
+          - CNetworkClientSpawnGroupCreatePrerequisites_Init.{platform}.yaml
+        expected_input:
+          - g_pGameResourceServiceClient.{platform}.yaml
+      - name: find-IGameResourceService_AllocGameResourceManifest
+        expected_output:
+          - IGameResourceService_AllocGameResourceManifest.{platform}.yaml
+        expected_input:
+          - CNetworkClientSpawnGroupCreatePrerequisites_Init.{platform}.yaml
+      - name: find-CGameResourceService_AllocGameResourceManifest
+        expected_output:
+          - CGameResourceService_AllocGameResourceManifest.{platform}.yaml
+        expected_input:
+          - CGameResourceService_vtable.{platform}.yaml
+          - IGameResourceService_AllocGameResourceManifest.{platform}.yaml
       - name: find-CInputService_IsClientOnlyCommandAllowed-linux
         platform: linux
         expected_output:
