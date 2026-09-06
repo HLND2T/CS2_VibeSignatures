@@ -2553,6 +2553,58 @@ class TestProcessBinary(unittest.TestCase):
                 self.assertEqual((1, 0, 0), result)
                 self.assertEqual(producer == "agent", finalize_outputs.call_args.kwargs["regenerate_func_signatures"])
 
+    def test_forced_execution_ignores_skip_if_exists_before_and_during_session(self) -> None:
+        for initially_present in (False, True):
+            with self.subTest(initially_present=initially_present), TemporaryDirectory() as temp_dir:
+                artifact_dir = Path(temp_dir) / "artifacts"
+                artifact_dir.mkdir()
+                marker = artifact_dir / "Marker.linux.yaml"
+                target = artifact_dir / "Target.linux.yaml"
+                if initially_present:
+                    marker.write_text("marker\n", encoding="utf-8")
+                skills = (
+                    []
+                    if initially_present
+                    else [{"name": "produce-marker", "expected_output": ["Marker.{platform}.yaml"]}]
+                )
+                skills.append(
+                    {
+                        "name": "produce-target",
+                        "optional_output": ["Target.{platform}.yaml"],
+                        "skip_if_exists": ["Marker.{platform}.yaml"],
+                    }
+                )
+                calls = []
+
+                def preprocess(*, skill_name, **_kwargs):
+                    calls.append(skill_name)
+                    (marker if skill_name == "produce-marker" else target).write_text("output\n", encoding="utf-8")
+                    return "success"
+
+                process = object()
+                with (
+                    patch.object(ida_analyze_bin, "start_idalib_mcp", return_value=process),
+                    patch.object(ida_analyze_bin, "ensure_mcp_available", return_value=(process, True)),
+                    patch.object(ida_analyze_bin, "_run_validate_expected_input_artifacts_via_mcp", return_value=[]),
+                    patch.object(ida_analyze_bin, "_run_preprocess_single_skill_via_mcp", side_effect=preprocess),
+                    patch.object(ida_analyze_bin, "_finalize_produced_symbol_outputs", return_value=[]),
+                    patch.object(ida_analyze_bin, "quit_ida_gracefully", return_value=None),
+                ):
+                    counts = ida_analyze_bin.process_binary(
+                        binary_path=str(Path(temp_dir) / "libserver.so"),
+                        skills=skills,
+                        agent="codex",
+                        host="127.0.0.1",
+                        port=13337,
+                        ida_args="",
+                        platform="linux",
+                        artifact_dir=artifact_dir,
+                        force_all=True,
+                    )
+                self.assertEqual((len(skills), 0, 0), counts)
+                self.assertEqual([skill["name"] for skill in skills], calls)
+                self.assertTrue(target.is_file())
+
     def test_force_all_multi_output_fallback_only_produces_missing_outputs(self) -> None:
         with TemporaryDirectory() as temp_dir:
             binary_dir = Path(temp_dir) / "server"

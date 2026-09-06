@@ -3746,7 +3746,7 @@ def process_binary(
                     error=str(e),
                 )
                 continue
-            if skip_for_existing_artifacts:
+            if skip_for_existing_artifacts and not force_all:
                 print(f"  Skipping skill: {skill_name} (all skip_if_exists artifacts exist)")
                 skip_count += 1
                 _report_skill_status(

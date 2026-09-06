@@ -1388,6 +1388,15 @@ def _load_selected_execution_report(path: Path, *, preparation: dict, version: d
     ):
         raise TrustedArtifactPrError(f"selected execution report does not prove the required PR run for {gamever}")
 
+    validate_selected_execution_records(report, version)
+    if report.get("inherited_initial_inventory_sha256") != preparation["initial_actual_inventory_sha256"].get(gamever):
+        raise TrustedArtifactPrError(f"selected execution report lost the seeded-root binding for {gamever}")
+    return report
+
+
+def validate_selected_execution_records(report: dict, version: dict) -> None:
+    """Validate group/node coverage and writes; callers must separately bind provenance and roots."""
+    gamever = version["game_version"]
     expected_files = {
         item["path"].removeprefix(f"bin_artifacts/{gamever}/"): item for item in version["merge_artifacts"]["files"]
     }
@@ -1530,9 +1539,6 @@ def _load_selected_execution_report(path: Path, *, preparation: dict, version: d
             continue
         if record.get("attempted") is not True or record.get("status") != "succeeded":
             raise TrustedArtifactPrError(f"planned prerequisite node lacks successful execution evidence: {node_id}")
-    if report.get("inherited_initial_inventory_sha256") != preparation["initial_actual_inventory_sha256"].get(gamever):
-        raise TrustedArtifactPrError(f"selected execution report lost the seeded-root binding for {gamever}")
-    return report
 
 
 def _load_selected_execution_manifest(path: Path) -> dict:

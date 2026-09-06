@@ -12,7 +12,13 @@ on:
         description: Exact reviewed PR head SHA; execution fails if the PR moved
         required: true
         type: string
+      resume_failed_shared_runtime:
+        description: Reuse run 34031704261 evidence and retry its one unattempted node
+        required: true
+        default: false
+        type: boolean
 permissions:
+  actions: read
   contents: read
   pull-requests: read
 concurrency:
@@ -89,6 +95,7 @@ jobs:
       CS2VIBE_LLM_FAKE_AS: ${{ secrets.CS2VIBE_LLM_FAKE_AS }}
       CS2VIBE_LLM_MODEL: ${{ secrets.CS2VIBE_LLM_MODEL }}
       CS2VIBE_STRING_MIN_LENGTH: '4'
+      PHASE_D_RESUME: ${{ inputs.resume_failed_shared_runtime }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -102,6 +109,19 @@ jobs:
           path: .phase-d-tools
           persist-credentials: false
       - uses: astral-sh/setup-uv@v9.0.0
+      - name: Require a fresh archived-evidence location
+        if: inputs.resume_failed_shared_runtime
+        shell: pwsh
+        run: |
+          if (Test-Path -LiteralPath "$env:RUNNER_TEMP\phase-d-34031704261-1") { throw 'Archived evidence location already exists.' }
+      - name: Download immutable evidence from the failed migration run
+        if: inputs.resume_failed_shared_runtime
+        uses: actions/download-artifact@v5
+        with:
+          github-token: ${{ github.token }}
+          run-id: 34031704261
+          name: phase-d-34031704261-1
+          path: ${{ runner.temp }}/phase-d-34031704261-1
       - name: Prepare the trusted environment and exact binaries
         shell: pwsh
         run: |
@@ -118,6 +138,7 @@ jobs:
           uv run --project .phase-d-tools python init_gamebin.py prepare 14178b --binsync skip
           if ($LASTEXITCODE -ne 0) { throw 'Binary initialization failed.' }
       - name: Compare selected samples and fresh-full from one immutable warm generation
+        if: ${{ !inputs.resume_failed_shared_runtime }}
         shell: pwsh
         run: |
           $pythonExe = (Get-Command python -ErrorAction Stop).Source
@@ -129,6 +150,14 @@ jobs:
             --warm-generation "$env:WARM_GENERATION" --cache-key "$env:WARM_CACHE_KEY" --ida-version "$idaVersion" `
             --persisted-root "$env:PERSISTED_WORKSPACE" --output-root "$env:PHASE_D_ROOT"
           if ($LASTEXITCODE -ne 0) { throw 'Phase-D comparison failed; inspect the diagnostic artifact.' }
+      - name: Verify archived evidence and retry only the unattempted node
+        if: inputs.resume_failed_shared_runtime
+        shell: pwsh
+        run: |
+          uv run --project .phase-d-tools python .phase-d-tools/phase_d_resume.py `
+            --repo-root "${{ github.workspace }}" --evidence-root "$env:RUNNER_TEMP\phase-d-34031704261-1" `
+            --persisted-root "$env:PERSISTED_WORKSPACE" --output-root "$env:PHASE_D_ROOT"
+          if ($LASTEXITCODE -ne 0) { throw 'Phase-D continuation failed; inspect its diagnostics.' }
       - name: Upload experiment evidence including failures
         if: always()
         uses: actions/upload-artifact@v4

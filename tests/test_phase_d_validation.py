@@ -4,10 +4,68 @@ import unittest
 from pathlib import Path
 
 from phase_d_validation import compare_inventories, experimental_plan, synthetic_base
+from phase_d_resume import NODE, TARGET, check_failed_records
 from trusted_artifact_pr import GitTreeRepository, _digest
 
 
 class PhaseDValidationTests(unittest.TestCase):
+    def test_partial_continuation_validates_retained_evidence_without_marking_original_valid(self):
+        groups = [
+            {
+                "group_id": name,
+                "artifact_path": path,
+                "required": True,
+                "fingerprint": name,
+                "alternative_node_ids": [name],
+            }
+            for name, path in (("kept", "kept.yaml"), (NODE, TARGET))
+        ]
+        planned = {
+            "game_version": "14178b",
+            "execute_groups": groups,
+            "execute_nodes": [
+                {"node_id": name, "outputs": [path]} for name, path in (("kept", "kept.yaml"), (NODE, TARGET))
+            ],
+            "merge_artifacts": {"files": [{"path": "bin_artifacts/14178b/kept.yaml", "sha256": "kept-hash"}]},
+        }
+        report = {
+            "valid": False,
+            "issues": ["missing attempt"],
+            "nodes": [
+                {
+                    "node_id": "kept",
+                    "status": "succeeded",
+                    "attempted": True,
+                    "attempted_paths": ["kept.yaml"],
+                    "produced_paths": ["kept.yaml"],
+                },
+                {
+                    "node_id": NODE,
+                    "status": "skipped",
+                    "reason": "skip_if_exists",
+                    "attempted": False,
+                    "attempted_paths": [],
+                    "produced_paths": [],
+                },
+            ],
+            "producer_groups": [
+                dict(groups[0], attempted_node_ids=["kept"], winner_node_id="kept", output_sha256="kept-hash"),
+                dict(groups[1], attempted_node_ids=[], winner_node_id=None, output_sha256=None),
+            ],
+        }
+        before = copy.deepcopy(report)
+        check_failed_records(report, planned)
+        self.assertEqual(before, report)
+        for path in ("foreign.yaml", TARGET):
+            tampered = copy.deepcopy(report)
+            tampered["nodes"][0]["produced_paths"].append(path)
+            with self.assertRaises(RuntimeError):
+                check_failed_records(tampered, planned)
+        tampered = copy.deepcopy(report)
+        tampered["nodes"][1]["produced_paths"] = [TARGET]
+        with self.assertRaises(ValueError):
+            check_failed_records(tampered, planned)
+
     def test_strategy_trial_preserves_the_original_plan_and_closure(self):
         original = {"execution_strategy": "fresh-full-v1", "execute_nodes": ["a"]}
         original["plan_sha256"] = _digest("trusted-pr-plan", original)
