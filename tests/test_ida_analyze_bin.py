@@ -6584,8 +6584,8 @@ class TestSelectedExecution(unittest.TestCase):
                 "strategy is invalid",
             ),
             (
-                lambda document: recompute(document.update({"execute_nodes": []}) or document),
-                "schedules no execution nodes",
+                lambda document: recompute(document["execute_nodes"][0].update({"node_id": ""}) or document),
+                "invalid execution node",
             ),
             (lambda document: document["execute_nodes"][0].update({"node_id": "forged"}), "digest mismatch"),
         ):
@@ -6781,6 +6781,99 @@ class TestSelectedExecution(unittest.TestCase):
             self.assertRaises(SystemExit),
         ):
             ida_analyze_bin.parse_args()
+
+    def test_load_selected_execution_manifest_allows_pure_deletion(self) -> None:
+        document = self._manifest_document()
+        document.pop("manifest_sha256", None)
+        document["execute_nodes"] = []
+        document["execute_groups"] = []
+        document["removed_paths"] = ["server/B.windows.yaml"]
+        document["manifest_sha256"] = ida_analyze_bin._selected_manifest_digest(document)
+        with TemporaryDirectory() as temporary:
+            path = self._write_manifest(Path(temporary), document)
+
+            manifest = ida_analyze_bin.load_selected_execution_manifest(path)
+
+            self.assertEqual([], manifest["execute_nodes"])
+
+    def test_selected_execution_report_rejects_recorded_inherited_rewrite(self) -> None:
+        with TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            config = root / "configs" / "1.yaml"
+            write_config(
+                config,
+                [
+                    {
+                        "name": "server",
+                        "stage_index": 0,
+                        "path_windows": "game/bin/win64/server.dll",
+                        "skills": [
+                            {"name": "find-a", "expected_output": ["A.{platform}.yaml"]},
+                        ],
+                        "symbols": [
+                            {"name": "A", "category": "func", "platform": "windows"},
+                            {"name": "B", "category": "func", "platform": "windows"},
+                        ],
+                    }
+                ],
+            )
+            artifact_root = root / "actual"
+            artifact = artifact_root / "1" / "server" / "A.windows.yaml"
+            inherited = artifact_root / "1" / "server" / "B.windows.yaml"
+            artifact.parent.mkdir(parents=True)
+            artifact.write_bytes(canonical_symbol_yaml_bytes({"func_name": "A", "func_rva": "0x10"}, category="func"))
+            inherited.write_bytes(canonical_symbol_yaml_bytes({"func_name": "B", "func_rva": "0x20"}, category="func"))
+            module = {
+                "name": "server",
+                "stage_index": 0,
+                "path_windows": "game/bin/win64/server.dll",
+                "skills": [{"name": "find-a", "expected_output": ["A.{platform}.yaml"]}],
+            }
+            plan = ida_analyze_bin.build_execution_plan(
+                [module],
+                platforms=["windows"],
+                bin_dir=str(root / "bin"),
+                gamever="1",
+                artifact_dir=str(artifact_root),
+                selected_node_ids=frozenset({"0:0:server:windows:find-a"}),
+            )
+            reporting = ida_analyze_bin.AnalysisReporting(MagicMock(), "run-1", plan)
+            from gamesymbol_snapshot_lib.config import load_contract
+
+            contract = load_contract(str(config), "1", str(root / "bin"), artifactdir=artifact_root)
+            group = contract.producer_groups["producer-group:server/A.windows.yaml"]
+            node = contract.nodes["0:0:server:windows:find-a"]
+            manifest = self._manifest_document()
+            manifest["execute_groups"][0]["fingerprint"] = group.fingerprint
+            manifest["execute_nodes"][0]["fingerprint"] = node.fingerprint
+            manifest["manifest_sha256"] = ida_analyze_bin._selected_manifest_digest(manifest)
+
+            for execution_node in plan.nodes:
+                if execution_node.node_type != PlanNodeType.SKILL:
+                    continue
+                reporting.emit_task_status(execution_node.id, TaskStatus.RUNNING, ProcessPhase.WAITING_FOR_MCP)
+                # The producer honestly records rewriting the inherited B artifact byte-for-byte.
+                reporting.record_output_attempts(execution_node.id, [str(artifact), str(inherited)])
+                reporting.record_output_produced(execution_node.id, [str(artifact), str(inherited)])
+                reporting.emit_task_status(execution_node.id, TaskStatus.SUCCEEDED, ProcessPhase.FINISHED)
+            args = SimpleNamespace(
+                configyaml=str(config),
+                gamever="1",
+                bindir=str(root / "bin"),
+                artifactdir=str(artifact_root),
+                oldartifactdir=str(root / "old"),
+                oldgamever=None,
+                rename=False,
+                require_warm_idb=True,
+            )
+
+            report = ida_analyze_bin.build_selected_execution_report(args, manifest, reporting)
+
+            self.assertFalse(report["valid"])
+            self.assertTrue(
+                any("beyond its authorized outputs" in issue for issue in report["issues"]),
+                report["issues"],
+            )
 
 
 if __name__ == "__main__":

@@ -1400,12 +1400,80 @@ def _load_selected_execution_report(path: Path, *, preparation: dict, version: d
         if expected_sha256 is None and winner is not None:
             raise TrustedArtifactPrError(f"absent optional producer group unexpectedly selected a winner: {group_id}")
     reported_nodes = {node.get("node_id") for node in report.get("nodes", []) if isinstance(node, dict)}
-    planned_nodes = {node["node_id"] for node in version["execute_nodes"]}
-    if reported_nodes != planned_nodes:
+    planned_nodes = {node["node_id"]: node for node in version["execute_nodes"]}
+    if reported_nodes != set(planned_nodes):
         raise TrustedArtifactPrError(
             f"selected execution node evidence does not match the plan for {gamever}: "
-            f"missing={sorted(planned_nodes - reported_nodes)!r} extra={sorted(reported_nodes - planned_nodes)!r}"
+            f"missing={sorted(set(planned_nodes) - reported_nodes)!r} "
+            f"extra={sorted(reported_nodes - set(planned_nodes))!r}"
         )
+
+    # Independently verify the node evidence instead of trusting the self-reported valid flag:
+    # no duplicates, terminal statuses for attempted nodes, writes only to authorized outputs,
+    # and per-node attempt/production claims that agree with every group's attempt prefix.
+    node_records_list = report.get("nodes")
+    nodes_by_id: dict[str, dict] = {}
+    for record in node_records_list:
+        if not isinstance(record, dict) or not isinstance(record.get("node_id"), str) or not record["node_id"]:
+            raise TrustedArtifactPrError("selected execution report has an invalid node record")
+        if record["node_id"] in nodes_by_id:
+            raise TrustedArtifactPrError(f"selected execution report has duplicate node evidence: {record['node_id']}")
+        for field in ("attempted_paths", "produced_paths"):
+            if not isinstance(record.get(field), list) or any(not isinstance(path, str) for path in record[field]):
+                raise TrustedArtifactPrError(
+                    f"selected execution report node has an invalid {field}: {record['node_id']}"
+                )
+        nodes_by_id[record["node_id"]] = record
+    for node_id, record in nodes_by_id.items():
+        authorized = set(planned_nodes[node_id]["outputs"])
+        for field in ("attempted_paths", "produced_paths"):
+            unauthorized = sorted(set(record[field]) - authorized)
+            if unauthorized:
+                raise TrustedArtifactPrError(
+                    f"selected execution node recorded writes beyond its authorized outputs: {node_id} {unauthorized!r}"
+                )
+        if not set(record["produced_paths"]) <= set(record["attempted_paths"]):
+            raise TrustedArtifactPrError(f"selected execution node produced outputs it never attempted: {node_id}")
+
+    for group_id, planned in planned_groups.items():
+        record = groups_by_id[group_id]
+        alternatives = list(planned["alternative_node_ids"])
+        attempted = record.get("attempted_node_ids")
+        if not isinstance(attempted, list) or any(not isinstance(node_id, str) for node_id in attempted):
+            raise TrustedArtifactPrError(f"selected execution group has invalid attempt evidence: {group_id}")
+        winner = record.get("winner_node_id")
+        materialized = planned["artifact_path"] in expected_files
+        if materialized:
+            winner_index = alternatives.index(winner)
+            expected_attempts = alternatives[: winner_index + 1]
+        else:
+            expected_attempts = alternatives
+        if list(attempted) != expected_attempts:
+            raise TrustedArtifactPrError(
+                f"selected execution attempts drifted for {group_id}: "
+                f"expected={expected_attempts!r} actual={attempted!r}"
+            )
+        successful = []
+        for node_id in alternatives:
+            node_record = nodes_by_id[node_id]
+            claims_attempt = planned["artifact_path"] in node_record["attempted_paths"]
+            if claims_attempt != (node_id in attempted):
+                raise TrustedArtifactPrError(
+                    f"selected execution node evidence contradicts the group attempts: {group_id}/{node_id}"
+                )
+            if node_id in attempted and node_record.get("status") not in {"succeeded", "failed"}:
+                raise TrustedArtifactPrError(f"attempted node lacks a terminal execution status: {node_id}")
+            if node_record.get("status") == "succeeded" and planned["artifact_path"] in node_record["produced_paths"]:
+                successful.append(node_id)
+        if materialized and successful != [winner]:
+            raise TrustedArtifactPrError(
+                f"materialized producer group must have exactly one producing winner: "
+                f"{group_id} producers={successful!r}"
+            )
+        if not materialized and successful:
+            raise TrustedArtifactPrError(
+                f"absent optional output was produced by executed nodes: {group_id} {successful!r}"
+            )
     if report.get("inherited_initial_inventory_sha256") != preparation["initial_actual_inventory_sha256"].get(gamever):
         raise TrustedArtifactPrError(f"selected execution report lost the seeded-root binding for {gamever}")
     return report

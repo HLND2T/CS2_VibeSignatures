@@ -1862,6 +1862,7 @@ def parse_args():
             for label, present in (
                 ("-force_all", getattr(args, "force_all", False)),
                 ("-skill", args.skill is not None),
+                ("-modules", args.module_filter is not None),
                 ("-vcall_finder", args.vcall_finder_filter is not None),
                 ("-rename", bool(getattr(args, "rename", False))),
                 ("-skip_error", bool(getattr(args, "skip_error", False))),
@@ -4745,8 +4746,9 @@ def load_selected_execution_manifest(path):
     for field in ("execute_nodes", "execute_groups", "inherit_paths", "inherited_absent_groups", "removed_paths"):
         if not isinstance(document.get(field), list):
             raise ValueError(f"selected execution manifest has an invalid {field}")
-    if not document["execute_nodes"]:
-        raise ValueError("selected execution manifest schedules no execution nodes")
+    # An empty execute_nodes list is legitimate: a pure contract deletion plans zero producers
+    # and must still run to compose the inherited inventory (the trusted planner's partition
+    # invariant guarantees such a manifest is not meaningless).
     for node in document["execute_nodes"]:
         if not isinstance(node, dict) or not isinstance(node.get("node_id"), str) or not node["node_id"]:
             raise ValueError("selected execution manifest has an invalid execution node")
@@ -5104,6 +5106,19 @@ def build_selected_execution_report(args, manifest, reporting: AnalysisReporting
         raw_attempted_outputs = record["attempted_outputs"]
         if not raw_attempted_outputs and record["attempted"]:
             raw_attempted_outputs = raw_produced_outputs
+        attempted_paths = relative_output_paths(raw_attempted_outputs, label="an attempted output")
+        produced_paths = relative_output_paths(raw_produced_outputs, label="an output")
+        # A selected node may only write its own authorized outputs; a recorded write to an
+        # inherited or otherwise unassigned artifact invalidates the run even if the final
+        # bytes happen to match.
+        authorized_outputs = set(contract.nodes[manifest_node["node_id"]].outputs)
+        for label, paths in (("an attempted output", attempted_paths), ("an output", produced_paths)):
+            unauthorized = sorted(set(paths) - authorized_outputs)
+            if unauthorized:
+                issues.append(
+                    f"selected node recorded {label} beyond its authorized outputs: "
+                    f"{manifest_node['node_id']} {unauthorized!r}"
+                )
         record.update(
             {
                 "node_id": manifest_node["node_id"],
@@ -5111,8 +5126,8 @@ def build_selected_execution_report(args, manifest, reporting: AnalysisReporting
                 "platform": manifest_node["platform"],
                 "skill": manifest_node["skill"],
                 "fingerprint": manifest_node["fingerprint"],
-                "attempted_paths": relative_output_paths(raw_attempted_outputs, label="an attempted output"),
-                "produced_paths": relative_output_paths(raw_produced_outputs, label="an output"),
+                "attempted_paths": attempted_paths,
+                "produced_paths": produced_paths,
             }
         )
         node_records[manifest_node["node_id"]] = record
@@ -5492,9 +5507,11 @@ def main():
     modules = parse_config(args.configyaml, config_document=config_document)
     validate_module_skill_dependencies(modules)
     print(f"Found {len(modules)} modules")
-    if not modules:
+    if not modules and selected_manifest is None:
         print("No modules found in config.")
         sys.exit(0)
+    if not modules:
+        print("No executable modules remain; selected execution composes the inherited inventory only")
     try:
         modules = _select_execution_modules(modules, args)
     except ValueError as exc:

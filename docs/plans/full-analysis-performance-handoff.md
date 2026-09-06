@@ -289,3 +289,9 @@ PR 改为 trusted prepare → base 白名单物料化 → selected execute → �
 - 阶段 D 真实 selected/full 对比与性能测量未执行（需要自托管 Windows runner、IDA、warm IDB 与真实 14178b 二进制；本地环境不可用）。不宣称分钟级收益。
 - merge queue 对 selected 策略的真实运行未演练（逻辑上 merge_group 重新绑定 base/merge tree，复用同一 planner/verifier 路径）。
 - 本 bridge PR 自身因修改 trusted roots 会被现有 base planner 拒绝（`independently merged bridge update`），需维护者按受信流程合并——这是预期行为，未绕过。
+
+### 评审修复（2026-09-06，PR #924 review 反馈）
+
+1. Verifier 不再信任报告自报 `valid=true`：独立核验节点记录无重复、attempted 节点具有终态（succeeded/failed）、组 attempt 恰为基于 winner 的有序前缀、winner 必须成功产出该输出、节点 attempt/production 声明与组证据交叉一致、produced ⊆ attempted。
+2. 超授权写入记录双层拒绝：executor 报告对 attempted/produced 超出节点授权输出的路径记 issue（valid=false）；verifier 独立以计划节点 outputs 校验报告记录——即使继承文件被原样重写且最终字节相同，凡记录了写入即拒绝（§11 的未改写要求；最终字节相等仍不宣称完整写隔离）。
+3. 纯删除计划可执行：空 `execute_nodes`（契约删除 + 其余继承）为合法 manifest；executor 允许空模块集合继续组合验证（不启动 IDA），verifier/prepare 原本已支持零执行组。`-modules` 与 `-selected_execution` 显式互斥。

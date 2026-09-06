@@ -601,6 +601,18 @@ class SelectedExecutionTests(unittest.TestCase):
             )
         if extra_group is not None:
             groups.append(extra_group)
+        nodes = []
+        for node in version["execute_nodes"]:
+            produced = sorted(path for path in node["outputs"] if path in files)
+            nodes.append(
+                {key: node[key] for key in ("node_id", "stage_index", "module", "platform", "skill", "fingerprint")}
+                | {
+                    "status": "succeeded",
+                    "attempted": bool(produced),
+                    "attempted_paths": produced,
+                    "produced_paths": produced,
+                }
+            )
         report = {
             "schema_version": 1,
             "execution_strategy": tap.BASE_INHERITED_SELECTED_STRATEGY,
@@ -617,10 +629,7 @@ class SelectedExecutionTests(unittest.TestCase):
             "run_id": "test",
             "summary": {},
             "inventory": inventory_summary,
-            "nodes": [
-                {key: node[key] for key in ("node_id", "stage_index", "module", "platform", "skill", "fingerprint")}
-                for node in version["execute_nodes"]
-            ],
+            "nodes": nodes,
             "producer_groups": groups,
             "issues": [],
             "valid": True,
@@ -628,6 +637,18 @@ class SelectedExecutionTests(unittest.TestCase):
         raw = tap._canonical_json_bytes(report)
         report["execution_sha256"] = "sha256:" + hashlib.sha256(b"source2-selected-execution:v1\n" + raw).hexdigest()
         Path(preparation["execution_reports"][gamever]).write_bytes(tap._canonical_json_bytes(report))
+
+    def _retamper_selected_report(self, preparation: dict, gamever: str, mutate) -> None:
+        """Apply a mutation and honestly re-sign the digest, like a valid-signature forger."""
+        path = Path(preparation["execution_reports"][gamever])
+        report = json.loads(path.read_text(encoding="utf-8"))
+        mutate(report)
+        report.pop("execution_sha256", None)
+        report["execution_sha256"] = (
+            "sha256:"
+            + hashlib.sha256(b"source2-selected-execution:v1\n" + tap._canonical_json_bytes(report)).hexdigest()
+        )
+        path.write_bytes(tap._canonical_json_bytes(report))
 
     def test_selected_plan_partitions_unchanged_outputs_for_inheritance(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -846,6 +867,112 @@ class SelectedExecutionTests(unittest.TestCase):
 
             with self.assertRaisesRegex(tap.TrustedArtifactPrError, "already exists"):
                 tap.prepare_isolated_rebuild(repo_root=root, plan=plan, staging_root=staging)
+
+    def test_selected_verify_independently_rejects_unexecuted_node_evidence(self) -> None:
+        """A valid-signature report claiming aborted nodes and empty attempts must fail."""
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            staging = Path(temporary) / "isolated"
+            root.mkdir()
+            plan, preparation = self._plan_and_preparation(root, staging)
+            self._simulate_selected_execution(root, plan, preparation)
+            self._write_selected_report(root, plan, preparation)
+            self._retamper_selected_report(
+                preparation,
+                "1",
+                lambda report: (
+                    [
+                        record.update(
+                            {"status": "aborted", "attempted": False, "attempted_paths": [], "produced_paths": []}
+                        )
+                        for record in report["nodes"]
+                    ],
+                    [group.update({"attempted_node_ids": []}) for group in report["producer_groups"]],
+                ),
+            )
+
+            with self.assertRaisesRegex(tap.TrustedArtifactPrError, "attempts drifted|terminal execution status"):
+                tap.validate_isolated_rebuild(repo_root=root, plan=plan, preparation=preparation)
+
+    def test_selected_verify_rejects_duplicate_node_evidence(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            staging = Path(temporary) / "isolated"
+            root.mkdir()
+            plan, preparation = self._plan_and_preparation(root, staging)
+            self._simulate_selected_execution(root, plan, preparation)
+            self._write_selected_report(root, plan, preparation)
+            self._retamper_selected_report(
+                preparation,
+                "1",
+                lambda report: report["nodes"].append(dict(report["nodes"][0])),
+            )
+
+            with self.assertRaisesRegex(tap.TrustedArtifactPrError, "duplicate node evidence"):
+                tap.validate_isolated_rebuild(repo_root=root, plan=plan, preparation=preparation)
+
+    def test_selected_verify_rejects_winner_without_success_evidence(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            staging = Path(temporary) / "isolated"
+            root.mkdir()
+            plan, preparation = self._plan_and_preparation(root, staging)
+            self._simulate_selected_execution(root, plan, preparation)
+            self._write_selected_report(root, plan, preparation)
+            self._retamper_selected_report(
+                preparation,
+                "1",
+                lambda report: report["nodes"][0].update({"status": "failed", "produced_paths": []}),
+            )
+
+            with self.assertRaisesRegex(
+                tap.TrustedArtifactPrError, "exactly one producing winner|contradicts the group attempts"
+            ):
+                tap.validate_isolated_rebuild(repo_root=root, plan=plan, preparation=preparation)
+
+    def test_selected_verify_rejects_recorded_write_to_inherited_artifact(self) -> None:
+        """Even a byte-identical rewrite of an inherited artifact must fail once recorded."""
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            staging = Path(temporary) / "isolated"
+            root.mkdir()
+            plan, preparation = self._plan_and_preparation(root, staging)
+            self._simulate_selected_execution(root, plan, preparation)
+            self._write_selected_report(root, plan, preparation)
+
+            def record_rewrite(report):
+                winner = report["nodes"][0]
+                winner["attempted_paths"] = sorted(set(winner["attempted_paths"]) | {"server/C.windows.yaml"})
+                winner["produced_paths"] = sorted(set(winner["produced_paths"]) | {"server/C.windows.yaml"})
+
+            self._retamper_selected_report(preparation, "1", record_rewrite)
+
+            with self.assertRaisesRegex(tap.TrustedArtifactPrError, "beyond its authorized outputs"):
+                tap.validate_isolated_rebuild(repo_root=root, plan=plan, preparation=preparation)
+
+    def test_selected_verify_supports_pure_deletion_without_execution(self) -> None:
+        """A contract deletion plans zero producers and must compose the inherited inventory."""
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            staging = Path(temporary) / "isolated"
+            root.mkdir()
+            plan, preparation = self._plan_and_preparation(root, staging, change="remove-c")
+
+            version = plan["game_versions"][0]
+            self.assertEqual("full", plan["mode"])
+            self.assertEqual([], version["execute_groups"])
+            self.assertEqual([], version["execute_nodes"])
+            manifest = json.loads(Path(preparation["selected_execution_manifests"]["1"]).read_text(encoding="utf-8"))
+            self.assertEqual([], manifest["execute_nodes"])
+
+            self._simulate_selected_execution(root, plan, preparation)
+            self._write_selected_report(root, plan, preparation)
+            result = tap.validate_isolated_rebuild(repo_root=root, plan=plan, preparation=preparation)
+
+            report = result["game_versions"][0]
+            self.assertEqual(0, report["executed_group_count"])
+            self.assertEqual(4, report["inherited_count"])
+            self.assertEqual(1, report["removed_count"])
 
 
 if __name__ == "__main__":
