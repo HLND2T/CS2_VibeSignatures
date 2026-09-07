@@ -339,4 +339,4 @@ PR 改为 trusted prepare → base 白名单物料化 → selected execute → �
 - 保持 IDA 9.3、warm generation `19101f3cc9642dc952428d880331ce0f4cf92f8873a3f4479998b8c0ed54cac2-33321771474-1`、binary lock `sha256:f731bb7d9648092272eb749fbd8c1892bf8e7b94b3221a92633c0a7297836e89` 和字符串最小长度 4。
 - 独立策略更新将 `source_artifact_policy.yaml` 设为 `base-inherited-selected-v1`，并在正式 `pr-self-runner.yml` 显式设置 `CS2VIBE_STRING_MIN_LENGTH=4`，使 PR 分析条件与已验证条件一致。release fresh-full 及发布前精确字节门禁不变；回滚只需将 policy 恢复为 `fresh-full-v1`。
 - 限制：共享运行时样本使用保留旧成功证据 + 准确一行 executor 修复下的单节点续验，不宣称修复后又执行过一次完整 fresh-full。补跑输出、声明依赖及未触发该分支的旧成功记录分别验证；这不是生产通用断点续跑契约。merge queue 的 selected 真机复验仍由 #926 后续队列运行验证。
-- 临时 workflow/helper 清理仍等待 **#926 合并完成**，不得提前删除。
+- #926 于 2026-09-07 01:41:12 UTC 合并（`e80b418a4689abdf3de1b569217ffb9511a8053c`），满足临时入口清理门槛。后续清理补丁删除 `phase-d-validation.yml`、`phase_d_validation.py`、`phase_d_resume.py`、临时 helper 测试及 suite 注册；保留永久执行器修复、回归测试、selected 策略和上述证据。第 18 节的临时入口说明作为历史记录保留。
