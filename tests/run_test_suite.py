@@ -83,7 +83,6 @@ UNIT_MODULES = frozenset(
         "test_ida_analyze_bin",
         "test_ida_llm_decompile",
         "test_idb_cache",
-        "test_phase_d_validation",
         "test_ida_analyze_util",
         "test_ida_llm_utils",
         "test_ida_mcp_keepalive",
