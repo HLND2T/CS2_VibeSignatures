@@ -1,0 +1,120 @@
+func_name: CNetworkClientSpawnGroupCreatePrerequisites_Init
+func_va: '0x18005c420'
+disasm_code: |-
+  .text:000000018005C420                 mov     r11, rsp
+  .text:000000018005C423                 push    rbx
+  .text:000000018005C424                 sub     rsp, 140h
+  .text:000000018005C42B                 mov     rax, [rcx+10h]
+  .text:000000018005C42F                 mov     rbx, rcx
+  .text:000000018005C432                 mov     rcx, [rax+58h]
+  .text:000000018005C436                 test    rcx, rcx
+  .text:000000018005C439                 jz      loc_18005C51D
+  .text:000000018005C43F                 mov     rax, cs:g_pGameResourceServiceClient
+  .text:000000018005C446                 mov     [r11+10h], rbp
+  .text:000000018005C44A                 mov     [r11+18h], rsi
+  .text:000000018005C44E                 movzx   esi, byte ptr [rcx+269h]
+  .text:000000018005C455                 mov     rdx, [rax]
+  .text:000000018005C458                 and     sil, 1
+  .text:000000018005C45C                 mov     rax, [rcx]
+  .text:000000018005C45F                 mov     [r11-10h], rdi
+  .text:000000018005C463                 mov     [r11-18h], r14
+  .text:000000018005C467                 mov     rbp, [rdx+130h] ; 0x130 = IGameResourceService_AllocGameResourceManifest
+  .text:000000018005C46E                 lea     rdx, [r11+8]
+  .text:000000018005C472                 movzx   r14d, byte ptr [rcx+0C0h]
+  .text:000000018005C47A                 call    qword ptr [rax+60h]
+  .text:000000018005C47D                 lea     rdi, unk_180528B3F
+  .text:000000018005C484                 mov     r8, rdi
+  .text:000000018005C487                 lea     rdx, aSSpawnGroupPre; "%s spawn group prerequisites"
+  .text:000000018005C48E                 mov     rcx, [rax]
+  .text:000000018005C491                 test    rcx, rcx
+  .text:000000018005C494                 cmovnz  r8, rcx
+  .text:000000018005C498                 lea     rcx, [rsp+148h+var_128]
+  .text:000000018005C49D                 call    sub_1800241C0
+  .text:000000018005C4A2                 mov     ecx, [rax+4]
+  .text:000000018005C4A5                 bt      ecx, 1Eh
+  .text:000000018005C4A9                 jnb     short loc_18005C4B1
+  .text:000000018005C4AB                 lea     rdi, [rax+8]
+  .text:000000018005C4AF                 jmp     short loc_18005C4BD
+  .text:000000018005C4B1                 test    ecx, 3FFFFFFFh
+  .text:000000018005C4B7                 jbe     short loc_18005C4BD
+  .text:000000018005C4B9                 mov     rdi, [rax+8]
+  .text:000000018005C4BD                 mov     rcx, cs:g_pGameResourceServiceClient
+  .text:000000018005C4C4                 movzx   r9d, r14b
+  .text:000000018005C4C8                 mov     r8, rdi
+  .text:000000018005C4CB                 movzx   edx, sil
+  .text:000000018005C4CF                 call    rbp; IGameResourceService_AllocGameResourceManifest
+  .text:000000018005C4D1                 xor     edx, edx
+  .text:000000018005C4D3                 mov     [rbx+38h], rax
+  .text:000000018005C4D7                 lea     rcx, [rsp+148h+var_128]
+  .text:000000018005C4DC                 call    cs:?Purge@CBufferString@@QEAAXH@Z; CBufferString::Purge(int)
+  .text:000000018005C4E2                 cmp     [rsp+148h+arg_0], 0
+  .text:000000018005C4EB                 mov     r14, [rsp+148h+var_18]
+  .text:000000018005C4F3                 mov     rdi, [rsp+148h+var_10]
+  .text:000000018005C4FB                 mov     rsi, [rsp+148h+arg_10]
+  .text:000000018005C503                 mov     rbp, [rsp+148h+arg_8]
+  .text:000000018005C50B                 jz      short loc_18005C525
+  .text:000000018005C50D                 lea     rcx, [rsp+148h+arg_0]
+  .text:000000018005C515                 call    cs:?FreeMemoryBlock@CUtlString@@AEAAXXZ; CUtlString::FreeMemoryBlock(void)
+  .text:000000018005C51B                 jmp     short loc_18005C525
+  .text:000000018005C51D                 mov     qword ptr [rbx+38h], 0
+  .text:000000018005C525                 mov     byte ptr [rbx+50h], 0
+  .text:000000018005C529                 mov     dword ptr [rbx+48h], 0
+  .text:000000018005C530                 rdtsc
+  .text:000000018005C532                 shl     rdx, 20h
+  .text:000000018005C536                 or      rax, rdx
+  .text:000000018005C539                 mov     [rbx+40h], rax
+  .text:000000018005C53D                 add     rsp, 140h
+  .text:000000018005C544                 pop     rbx
+  .text:000000018005C545                 retn
+procedure: |-
+  unsigned __int64 __fastcall CNetworkClientSpawnGroupCreatePrerequisites_Init(__int64 a1)
+  {
+    _BYTE *v2; // rcx
+    unsigned __int8 v3; // si
+    __int64 (__fastcall *v4)(__int64, _QWORD, void *, _QWORD); // rbp
+    unsigned __int8 v5; // r14
+    void **v6; // rax
+    void *v7; // rdi
+    void *v8; // r8
+    __int64 v9; // rax
+    int v10; // ecx
+    unsigned __int64 result; // rax
+    _BYTE v12[272]; // [rsp+20h] [rbp-128h] BYREF
+    __int64 v13; // [rsp+150h] [rbp+8h] BYREF
+
+    v2 = *(_BYTE **)(*(_QWORD *)(a1 + 16) + 88LL);
+    if ( v2 )
+    {
+      v3 = v2[617] & 1;
+      v4 = *(__int64 (__fastcall **)(__int64, _QWORD, void *, _QWORD))(*(_QWORD *)g_pGameResourceServiceClient + 304LL); // 304LL = 0x130 = IGameResourceService_AllocGameResourceManifest
+      v5 = v2[192];
+      v6 = (void **)(*(__int64 (__fastcall **)(_BYTE *, __int64 *))(*(_QWORD *)v2 + 96LL))(v2, &v13);
+      v7 = &unk_180528B3F;
+      v8 = &unk_180528B3F;
+      if ( *v6 )
+        v8 = *v6;
+      v9 = sub_1800241C0(v12, "%s spawn group prerequisites", v8);
+      v10 = *(_DWORD *)(v9 + 4);
+      if ( (v10 & 0x40000000) != 0 )
+      {
+        v7 = (void *)(v9 + 8);
+      }
+      else if ( (v10 & 0x3FFFFFFF) != 0 )
+      {
+        v7 = *(void **)(v9 + 8);
+      }
+      *(_QWORD *)(a1 + 56) = v4(g_pGameResourceServiceClient, v3, v7, v5);// IGameResourceService_AllocGameResourceManifest
+      CBufferString::Purge((CBufferString *)v12, 0);
+      if ( v13 )
+        CUtlString::FreeMemoryBlock((CUtlString *)&v13);
+    }
+    else
+    {
+      *(_QWORD *)(a1 + 56) = 0;
+    }
+    *(_BYTE *)(a1 + 80) = 0;
+    *(_DWORD *)(a1 + 72) = 0;
+    result = __rdtsc();
+    *(_QWORD *)(a1 + 64) = result;
+    return result;
+  }
