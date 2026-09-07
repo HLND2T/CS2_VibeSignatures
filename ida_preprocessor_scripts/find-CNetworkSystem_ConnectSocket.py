@@ -28,7 +28,6 @@ GENERATE_YAML_DESIRED_FIELDS = [
             "func_rva",
             "func_size",
             "func_sig",
-
             "vtable_name",
             "vfunc_offset",
             "vfunc_index",
