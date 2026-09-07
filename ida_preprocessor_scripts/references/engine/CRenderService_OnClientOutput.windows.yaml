@@ -168,8 +168,8 @@ disasm_code: |-
   .text:00000001801E5A61                 mov     rcx, cs:g_pEngineServiceMgr
   .text:00000001801E5A68                 mov     rdx, r14
   .text:00000001801E5A6B                 mov     rax, [rcx]
-  .text:00000001801E5A6E                 ; 0x120 = 288LL = CEngineServiceMgr_OnFrameRenderingFinished
-  .text:00000001801E5A6E                 call    qword ptr [rax+120h]; 0x120 = 288LL = CEngineServiceMgr_OnFrameRenderingFinished
+  .text:00000001801E5A6E                 ; 0x120 = 288LL = IEngineServiceMgr_OnFrameRenderingFinished
+  .text:00000001801E5A6E                 call    qword ptr [rax+120h]; 0x120 = 288LL = IEngineServiceMgr_OnFrameRenderingFinished
   .text:00000001801E5A74                 mov     rax, cs:off_180612A40
   .text:00000001801E5A7B                 lea     rcx, off_180612A40
   .text:00000001801E5A82                 mov     rdx, r14
@@ -287,7 +287,7 @@ procedure: |-
         sub_1801E5420(a1, a2, v8, v9, v7, v24 != 0 ? 2 : 0);
         if ( qword_180911968 )
           (*(void (__fastcall **)(__int64))(*(_QWORD *)g_pWorldRendererMgr + 432LL))(g_pWorldRendererMgr);
-        (*(void (__fastcall **)(__int64, __int64))(*(_QWORD *)g_pEngineServiceMgr + 288LL))(g_pEngineServiceMgr, a2);// 0x120 = 288LL = CEngineServiceMgr_OnFrameRenderingFinished
+        (*(void (__fastcall **)(__int64, __int64))(*(_QWORD *)g_pEngineServiceMgr + 288LL))(g_pEngineServiceMgr, a2);// 0x120 = 288LL = IEngineServiceMgr_OnFrameRenderingFinished
         ((void (__fastcall *)(__int64 (__fastcall ***)(int, int, int, int, int, int, int, int, char, __int64, int, char), __int64))off_180612A40[7])(
           &off_180612A40,
           a2);

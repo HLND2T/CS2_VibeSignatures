@@ -51,7 +51,7 @@ disasm_code: |-
   .text:0000000000554ED2                 mov     rdi, cs:qword_9768B0
   .text:0000000000554ED9                 movsd   xmm0, [rbp+var_198]
   .text:0000000000554EE1                 mov     rax, [rdi]
-  .text:0000000000554EE4                 call    qword ptr [rax+0C8h]
+  .text:0000000000554EE4                 call    qword ptr [rax+0C8h]; 0xC8 = 200LL = INetworkSystem_PrintNetworkStats
   .text:0000000000554EEA                 mov     rdi, cs:qword_977A08
   .text:0000000000554EF1                 mov     rax, [rdi]
   .text:0000000000554EF4                 call    qword ptr [rax+200h]
@@ -1688,7 +1688,7 @@ procedure: |-
     else
       v12 = v11();
     (*(void (__fastcall **)(__int64, _QWORD, _QWORD, float))(*(_QWORD *)v12 + 32LL))(v12, 0, 0, v199);
-    (*(void (__fastcall **)(__int64, double))(*(_QWORD *)qword_9768B0 + 200LL))(qword_9768B0, v197);
+    (*(void (__fastcall **)(__int64, double))(*(_QWORD *)qword_9768B0 + 200LL))(qword_9768B0, v197)  // 200LL = 0xC8 = INetworkSystem_PrintNetworkStats;
     (*(void (__fastcall **)(__int64))(*(_QWORD *)qword_977A08 + 512LL))(qword_977A08);
     v13 = *(__int64 (**)(void))(*(_QWORD *)qword_9768C8 + 232LL);
     if ( v13 == sub_514D60 )

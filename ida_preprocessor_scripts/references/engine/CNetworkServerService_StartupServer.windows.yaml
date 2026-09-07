@@ -1,0 +1,362 @@
+func_name: CNetworkServerService_StartupServer
+func_va: '0x1801deab0'
+disasm_code: |-
+  .text:00000001801DEAB0                 mov     rax, rsp
+  .text:00000001801DEAB3                 push    rbp
+  .text:00000001801DEAB4                 push    rdi
+  .text:00000001801DEAB5                 push    r15
+  .text:00000001801DEAB7                 sub     rsp, 60h
+  .text:00000001801DEABB                 mov     [rax+10h], rsi
+  .text:00000001801DEABF                 mov     rdi, rcx
+  .text:00000001801DEAC2                 mov     rcx, cs:g_pNetworkService
+  .text:00000001801DEAC9                 mov     rsi, r8
+  .text:00000001801DEACC                 mov     [rax+18h], r14
+  .text:00000001801DEAD0                 mov     rbp, rdx
+  .text:00000001801DEAD3                 mov     r14, r9
+  .text:00000001801DEAD6                 mov     rax, [rcx]
+  .text:00000001801DEAD9                 call    qword ptr [rax+0B8h]
+  .text:00000001801DEADF                 xor     r15d, r15d
+  .text:00000001801DEAE2                 cmp     [rdi+150h], r15
+  .text:00000001801DEAE9                 jz      short loc_1801DEB21
+  .text:00000001801DEAEB                 mov     ecx, cs:dword_1808CC6B8
+  .text:00000001801DEAF1                 mov     edx, 3
+  .text:00000001801DEAF6                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:00000001801DEAFC                 test    al, al
+  .text:00000001801DEAFE                 jz      loc_1801DED58
+  .text:00000001801DEB04                 mov     ecx, cs:dword_1808CC6B8
+  .text:00000001801DEB0A                 lea     r8, aCnetworkserver_0; "CNetworkServerService::StartupServer ca"...
+  .text:00000001801DEB11                 mov     edx, 3
+  .text:00000001801DEB16                 call    cs:LoggingSystem_Log
+  .text:00000001801DEB1C                 jmp     loc_1801DED58
+  .text:00000001801DEB21                 mov     rax, cs:g_pMemAlloc
+  .text:00000001801DEB28                 mov     edx, 2748h
+  .text:00000001801DEB2D                 mov     [rsp+78h+arg_0], rbx
+  .text:00000001801DEB35                 mov     rcx, [rax]
+  .text:00000001801DEB38                 mov     rax, [rcx]
+  .text:00000001801DEB3B                 call    qword ptr [rax+8]
+  .text:00000001801DEB3E                 mov     rbx, rax
+  .text:00000001801DEB41                 test    rax, rax
+  .text:00000001801DEB44                 jz      loc_1801DED49
+  .text:00000001801DEB4A                 mov     edx, [rdi+148h]
+  .text:00000001801DEB50                 lea     r9, qword_18060E638
+  .text:00000001801DEB57                 mov     r8, rsi
+  .text:00000001801DEB5A                 mov     rcx, rax
+  .text:00000001801DEB5D                 call    sub_1800A25E0
+  .text:00000001801DEB62                 lea     rax, ??_7CNetworkGameServer@@6B@; const CNetworkGameServer::`vftable'
+  .text:00000001801DEB69                 mov     [rbx], rax
+  .text:00000001801DEB6C                 lea     rcx, [rbx+6F8h]
+  .text:00000001801DEB73                 lea     rax, ??_7CNetworkGameServer@@6B@_0; const CNetworkGameServer::`vftable'
+  .text:00000001801DEB7A                 mov     [rbx+6F0h], r15
+  .text:00000001801DEB81                 mov     [rbx+8], rax
+  .text:00000001801DEB85                 lea     rax, ??_7CNetworkGameServer@@6B@_1; const CNetworkGameServer::`vftable'
+  .text:00000001801DEB8C                 mov     [rbx+10h], rax
+  .text:00000001801DEB90                 call    sub_1803FCA40
+  .text:00000001801DEB95                 lea     rsi, [rbx+730h]
+  .text:00000001801DEB9C                 mov     [rbx+720h], r15
+  .text:00000001801DEBA3                 mov     [rbx+728h], r15
+  .text:00000001801DEBAA                 test    sil, 7
+  .text:00000001801DEBAE                 jz      short loc_1801DEBB7
+  .text:00000001801DEBB0                 call    sub_180400E40
+  .text:00000001801DEBB5                 jmp     short loc_1801DEBBA
+  .text:00000001801DEBB7                 mov     [rsi], r15d
+  .text:00000001801DEBBA                 mov     ecx, 200h
+  .text:00000001801DEBBF                 mov     [rbx+2740h], r15b
+  .text:00000001801DEBC6                 mov     eax, ecx
+  .text:00000001801DEBC8                 mov     [rbx+2738h], r15
+  .text:00000001801DEBCF                 lea     rax, [rbx+738h]
+  .text:00000001801DEBD6                 mov     [rsi], ecx
+  .text:00000001801DEBD8                 nop     dword ptr [rax+rax+00000000h]
+  .text:00000001801DEBE0                 mov     [rax], r15
+  .text:00000001801DEBE3                 mov     [rax+8], r15d
+  .text:00000001801DEBE7                 lea     rax, [rax+10h]
+  .text:00000001801DEBEB                 sub     rcx, 1
+  .text:00000001801DEBEF                 jnz     short loc_1801DEBE0
+  .text:00000001801DEBF1                 lea     rcx, [rbx+6F8h]
+  .text:00000001801DEBF8                 mov     [rdi+150h], rbx
+  .text:00000001801DEBFF                 lea     rdx, aMFullsendtable; "m_FullSendTables"
+  .text:00000001801DEC06                 call    sub_1803FD720
+  .text:00000001801DEC0B                 cmp     [rbp+58h], r15b
+  .text:00000001801DEC0F                 jz      short loc_1801DEC8E
+  .text:00000001801DEC11                 cmp     [rbp+6Ch], r15b
+  .text:00000001801DEC15                 jnz     short loc_1801DEC8E
+  .text:00000001801DEC17                 cmp     [rbp+6Dh], r15b
+  .text:00000001801DEC1B                 jnz     short loc_1801DEC8E
+  .text:00000001801DEC1D                 mov     rcx, rbp
+  .text:00000001801DEC20                 call    sub_18009F450
+  .text:00000001801DEC25                 test    rax, rax
+  .text:00000001801DEC28                 jz      short loc_1801DEC80
+  .text:00000001801DEC2A                 mov     rcx, rbp
+  .text:00000001801DEC2D                 call    sub_18009F450
+  .text:00000001801DEC32                 lea     rdx, aMode; "mode"
+  .text:00000001801DEC39                 mov     rcx, rax
+  .text:00000001801DEC3C                 call    cs:?FindKey@KeyValues@@QEBAPEBV1@PEBD@Z; KeyValues::FindKey(char const *)
+  .text:00000001801DEC42                 mov     rcx, rax
+  .text:00000001801DEC45                 test    rax, rax
+  .text:00000001801DEC48                 jz      short loc_1801DEC5F
+  .text:00000001801DEC4A                 xor     r9d, r9d
+  .text:00000001801DEC4D                 lea     rdx, unk_180528B3F
+  .text:00000001801DEC54                 xor     r8d, r8d
+  .text:00000001801DEC57                 call    cs:?Internal_GetString@CKeyValues_Data@@IEAAPEBDPEBDPEAD_K@Z; CKeyValues_Data::Internal_GetString(char const *,char *,unsigned __int64)
+  .text:00000001801DEC5D                 jmp     short loc_1801DEC66
+  .text:00000001801DEC5F                 lea     rax, unk_180528B3F
+  .text:00000001801DEC66                 lea     rdx, aListenserver; "listenserver"
+  .text:00000001801DEC6D                 mov     rcx, rax
+  .text:00000001801DEC70                 call    sub_180445830
+  .text:00000001801DEC75                 test    eax, eax
+  .text:00000001801DEC77                 jnz     short loc_1801DEC80
+  .text:00000001801DEC79                 mov     byte ptr cs:word_1806129B4, 1
+  .text:00000001801DEC80                 xor     edx, edx
+  .text:00000001801DEC82                 lea     rcx, off_180612910
+  .text:00000001801DEC89                 call    CSteam3ServerS1_InitGameServer
+  .text:00000001801DEC8E                 mov     r8, r14
+  .text:00000001801DEC91                 mov     rdx, rbp
+  .text:00000001801DEC94                 mov     rcx, rbx
+  .text:00000001801DEC97                 call    CNetworkGameServerBase_Init
+  .text:00000001801DEC9C                 call    sub_180415CB0
+  .text:00000001801DECA1                 test    al, al
+  .text:00000001801DECA3                 jz      short loc_1801DECAD
+  .text:00000001801DECA5                 mov     rcx, rbx
+  .text:00000001801DECA8                 call    sub_1800AFEA0
+  .text:00000001801DECAD                 mov     dword ptr [rbx+0D0h], 4000h
+  .text:00000001801DECB7                 mov     rcx, [rdi+150h]
+  .text:00000001801DECBE                 call    CNetworkGameServer_PrepareForAssetLoad
+  .text:00000001801DECC3                 test    al, al
+  .text:00000001801DECC5                 jnz     short loc_1801DED03
+  .text:00000001801DECC7                 mov     ecx, cs:dword_1808CC6B8
+  .text:00000001801DECCD                 mov     edx, 3
+  .text:00000001801DECD2                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:00000001801DECD8                 test    al, al
+  .text:00000001801DECDA                 jz      short loc_1801DECF4
+  .text:00000001801DECDC                 mov     ecx, cs:dword_1808CC6B8
+  .text:00000001801DECE2                 lea     r8, aSvPrepareforas; "SV:  PrepareForAssetLoad failed, aborti"...
+  .text:00000001801DECE9                 mov     edx, 3
+  .text:00000001801DECEE                 call    cs:LoggingSystem_Log
+  .text:00000001801DECF4                 mov     rcx, cs:g_pHostStateMgr
+  .text:00000001801DECFB                 xor     edx, edx
+  .text:00000001801DECFD                 mov     rax, [rcx]
+  .text:00000001801DED00                 call    qword ptr [rax+60h]
+  .text:00000001801DED03                 mov     rax, [rdi+160h]
+  .text:00000001801DED0A                 test    rax, rax
+  .text:00000001801DED0D                 jz      short loc_1801DED50
+  .text:00000001801DED0F                 mov     ebx, r15d
+  .text:00000001801DED12                 cmp     [rax+8], r15d
+  .text:00000001801DED16                 jle     short loc_1801DED50
+  .text:00000001801DED18                 mov     rsi, r15
+  .text:00000001801DED1B                 nop     dword ptr [rax+rax+00h]
+  .text:00000001801DED20                 mov     rax, [rax+10h]
+  .text:00000001801DED24                 mov     rdx, [rdi+150h]
+  .text:00000001801DED2B                 mov     rcx, [rsi+rax]
+  .text:00000001801DED2F                 mov     rax, [rcx]
+  .text:00000001801DED32                 call    qword ptr [rax+28h]
+  .text:00000001801DED35                 mov     rax, [rdi+160h]
+  .text:00000001801DED3C                 lea     rsi, [rsi+8]
+  .text:00000001801DED40                 inc     ebx
+  .text:00000001801DED42                 cmp     ebx, [rax+8]
+  .text:00000001801DED45                 jl      short loc_1801DED20
+  .text:00000001801DED47                 jmp     short loc_1801DED50
+  .text:00000001801DED49                 mov     [rdi+150h], r15
+  .text:00000001801DED50                 mov     rbx, [rsp+78h+arg_0]
+  .text:00000001801DED58                 mov     r14, [rsp+78h+arg_10]
+  .text:00000001801DED60                 mov     rsi, [rsp+78h+arg_8]
+  .text:00000001801DED68                 cmp     [rbp+58h], r15b
+  .text:00000001801DED6C                 jz      loc_1801DEE47
+  .text:00000001801DED72                 cmp     [rbp+5Ah], r15b
+  .text:00000001801DED76                 jnz     loc_1801DEE47
+  .text:00000001801DED7C                 cmp     [rbp+6Ch], r15b
+  .text:00000001801DED80                 jnz     loc_1801DEE47
+  .text:00000001801DED86                 mov     rcx, cs:g_pNetworkSystem
+  .text:00000001801DED8D                 mov     edx, [rdi+148h]
+  .text:00000001801DED93                 mov     rax, [rcx]
+  .text:00000001801DED96                 call    qword ptr [rax+70h]; 0x70 = 112LL = INetworkSystem_OpenSocket
+  .text:00000001801DED99                 test    al, al
+  .text:00000001801DED9B                 jnz     loc_1801DEE47
+  .text:00000001801DEDA1                 call    sub_180415CB0
+  .text:00000001801DEDA6                 mov     ecx, cs:dword_1808CC6B8
+  .text:00000001801DEDAC                 test    al, al
+  .text:00000001801DEDAE                 jz      short loc_1801DEE20
+  .text:00000001801DEDB0                 mov     edx, 5
+  .text:00000001801DEDB5                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:00000001801DEDBB                 test    al, al
+  .text:00000001801DEDBD                 jz      loc_1801DEE47
+  .text:00000001801DEDC3                 mov     ecx, cs:dword_1808CC6B8
+  .text:00000001801DEDC9                 lea     rax, aCBuildworkerCs_45; "C:\\buildworker\\csgo_rel_win64\\build"...
+  .text:00000001801DEDD0                 mov     [rsp+78h+var_58], rax
+  .text:00000001801DEDD5                 lea     r9, aFailedToOpenBi; "Failed to open/bind server socket"
+  .text:00000001801DEDDC                 lea     rax, aCnetworkserver_1; "CNetworkServerService::StartupServer"
+  .text:00000001801DEDE3                 mov     [rsp+78h+var_50], 1ABh
+  .text:00000001801DEDEB                 xorps   xmm0, xmm0
+  .text:00000001801DEDEE                 mov     [rsp+78h+var_48], rax
+  .text:00000001801DEDF3                 xorps   xmm1, xmm1
+  .text:00000001801DEDF6                 mov     [rsp+78h+var_20], r15d
+  .text:00000001801DEDFB                 lea     r8, [rsp+78h+var_58]
+  .text:00000001801DEE00                 mov     edx, 5
+  .text:00000001801DEE05                 movdqu  [rsp+78h+var_40], xmm0
+  .text:00000001801DEE0B                 movdqu  [rsp+78h+var_30], xmm1
+  .text:00000001801DEE11                 call    cs:?LoggingSystem_Log@@YA?AW4LoggingResponse_t@@HW4LoggingSeverity_t@@AEBULoggingRareOptions_t@@PEBDZZ; LoggingSystem_Log(int,LoggingSeverity_t,LoggingRareOptions_t const &,char const *,...)
+  .text:00000001801DEE17                 add     rsp, 60h
+  .text:00000001801DEE1B                 pop     r15
+  .text:00000001801DEE1D                 pop     rdi
+  .text:00000001801DEE1E                 pop     rbp
+  .text:00000001801DEE1F                 retn
+  .text:00000001801DEE20                 mov     edx, 3
+  .text:00000001801DEE25                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:00000001801DEE2B                 test    al, al
+  .text:00000001801DEE2D                 jz      short loc_1801DEE47
+  .text:00000001801DEE2F                 mov     ecx, cs:dword_1808CC6B8
+  .text:00000001801DEE35                 lea     r8, aFailedToOpenBi_0; "Failed to open/bind server socket\n"
+  .text:00000001801DEE3C                 mov     edx, 3
+  .text:00000001801DEE41                 call    cs:LoggingSystem_Log
+  .text:00000001801DEE47                 add     rsp, 60h
+  .text:00000001801DEE4B                 pop     r15
+  .text:00000001801DEE4D                 pop     rdi
+  .text:00000001801DEE4E                 pop     rbp
+  .text:00000001801DEE4F                 retn
+procedure: |-
+  double __fastcall CNetworkServerService_StartupServer(__int64 a1, _BYTE *a2, __int64 a3, const char *a4)
+  {
+    double result; // xmm0_8
+    __int64 v9; // rax
+    __int64 v10; // rbx
+    _DWORD *v11; // rsi
+    __int64 v12; // rcx
+    __int64 v13; // rax
+    KeyValues *v14; // rax
+    CKeyValues_Data *Key; // rcx
+    const char *v16; // rax
+    __int64 v17; // rdx
+    __int64 v18; // rcx
+    __int64 v19; // rax
+    int v20; // ebx
+    __int64 v21; // rsi
+    __int64 v22; // rdx
+    __int64 v23; // rcx
+    const char *v24; // [rsp+20h] [rbp-58h] BYREF
+    int v25; // [rsp+28h] [rbp-50h]
+    const char *v26; // [rsp+30h] [rbp-48h]
+    __int128 v27; // [rsp+38h] [rbp-40h]
+    __int128 v28; // [rsp+48h] [rbp-30h]
+    int v29; // [rsp+58h] [rbp-20h]
+
+    (*(void (__fastcall **)(__int64))(*(_QWORD *)g_pNetworkService + 184LL))(g_pNetworkService);
+    if ( *(_QWORD *)(a1 + 336) )
+    {
+      if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_1808CC6B8, 3) )
+        result = LoggingSystem_Log(
+                   (unsigned int)dword_1808CC6B8,
+                   3,
+                   "CNetworkServerService::StartupServer called but we still have extant instance!\n");
+    }
+    else
+    {
+      v9 = (*(__int64 (__fastcall **)(_QWORD, __int64))(*g_pMemAlloc + 8LL))(g_pMemAlloc, 10056);
+      v10 = v9;
+      if ( v9 )
+      {
+        sub_1800A25E0(v9, *(unsigned int *)(a1 + 328), a3, &qword_18060E638);
+        *(_QWORD *)v10 = &CNetworkGameServer::`vftable';
+        *(_QWORD *)(v10 + 1776) = 0;
+        *(_QWORD *)(v10 + 8) = &CNetworkGameServer::`vftable';
+        *(_QWORD *)(v10 + 16) = &CNetworkGameServer::`vftable';
+        sub_1803FCA40(v10 + 1784);
+        v11 = (_DWORD *)(v10 + 1840);
+        *(_QWORD *)(v10 + 1824) = 0;
+        *(_QWORD *)(v10 + 1832) = 0;
+        if ( (((_BYTE)v10 + 48) & 7) != 0 )
+          sub_180400E40();
+        else
+          *v11 = 0;
+        v12 = 512;
+        *(_BYTE *)(v10 + 10048) = 0;
+        *(_QWORD *)(v10 + 10040) = 0;
+        v13 = v10 + 1848;
+        *v11 = 512;
+        do
+        {
+          *(_QWORD *)v13 = 0;
+          *(_DWORD *)(v13 + 8) = 0;
+          v13 += 16;
+          --v12;
+        }
+        while ( v12 );
+        *(_QWORD *)(a1 + 336) = v10;
+        sub_1803FD720(v10 + 1784, "m_FullSendTables");
+        if ( a2[88] && !a2[108] && !a2[109] )
+        {
+          if ( sub_18009F450(a2) )
+          {
+            v14 = (KeyValues *)sub_18009F450(a2);
+            Key = KeyValues::FindKey(v14, "mode");
+            v16 = Key
+                ? CKeyValues_Data::Internal_GetString(Key, (const char *)&unk_180528B3F, nullptr, 0)
+                : (const char *)&unk_180528B3F;
+            if ( !(unsigned int)sub_180445830(v16, "listenserver") )
+              LOBYTE(word_1806129B4) = 1;
+          }
+          CSteam3ServerS1_InitGameServer(&off_180612910, 0);
+        }
+        CNetworkGameServerBase_Init(v10, (__int64)a2, a4);
+        if ( (unsigned __int8)sub_180415CB0(v18, v17) )
+          sub_1800AFEA0(v10);
+        *(_DWORD *)(v10 + 208) = 0x4000;
+        if ( !CNetworkGameServer_PrepareForAssetLoad(*(_QWORD *)(a1 + 336)) )
+        {
+          if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_1808CC6B8, 3) )
+            result = LoggingSystem_Log(
+                       (unsigned int)dword_1808CC6B8,
+                       3,
+                       "SV:  PrepareForAssetLoad failed, aborting map load\n");
+          (*(void (__fastcall **)(__int64, _QWORD))(*(_QWORD *)g_pHostStateMgr + 96LL))(g_pHostStateMgr, 0);
+        }
+        v19 = *(_QWORD *)(a1 + 352);
+        if ( v19 )
+        {
+          v20 = 0;
+          if ( *(int *)(v19 + 8) > 0 )
+          {
+            v21 = 0;
+            do
+            {
+              (*(void (__fastcall **)(_QWORD, _QWORD))(**(_QWORD **)(v21 + *(_QWORD *)(v19 + 16)) + 40LL))(
+                *(_QWORD *)(v21 + *(_QWORD *)(v19 + 16)),
+                *(_QWORD *)(a1 + 336));
+              v19 = *(_QWORD *)(a1 + 352);
+              v21 += 8;
+              ++v20;
+            }
+            while ( v20 < *(_DWORD *)(v19 + 8) );
+          }
+        }
+      }
+      else
+      {
+        *(_QWORD *)(a1 + 336) = 0;
+      }
+    }
+    if ( a2[88]
+      && !a2[90]
+      && !a2[108]
+      && !(*(unsigned __int8 (__fastcall **)(__int64, _QWORD))(*(_QWORD *)g_pNetworkSystem + 112LL))(  // 112LL = 0x70 = INetworkSystem_OpenSocket
+            g_pNetworkSystem,
+            *(unsigned int *)(a1 + 328)) )
+    {
+      if ( (unsigned __int8)sub_180415CB0(v23, v22) )
+      {
+        if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_1808CC6B8, 5) )
+        {
+          v24 = "C:\\buildworker\\csgo_rel_win64\\build\\src\\engine2\\networkserverservice.cpp";
+          v25 = 427;
+          v26 = "CNetworkServerService::StartupServer";
+          v29 = 0;
+          v27 = 0;
+          v28 = 0;
+          LoggingSystem_Log((unsigned int)dword_1808CC6B8, 5, &v24, "Failed to open/bind server socket");
+          return 0.0;
+        }
+      }
+      else if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_1808CC6B8, 3) )
+      {
+        return LoggingSystem_Log((unsigned int)dword_1808CC6B8, 3, "Failed to open/bind server socket\n");
+      }
+    }
+    return result;
+  }

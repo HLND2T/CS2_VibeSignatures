@@ -35,7 +35,7 @@ disasm_code: |-
   .text:00000000019A01AD                 setnz   al
   .text:00000000019A01B0                 movzx   eax, al
   .text:00000000019A01B3                 sub     esi, eax
-  .text:00000000019A01B5                 call    r13; CEngineServer_GetPlayerNetInfo
+  .text:00000000019A01B5                 call    r13; IVEngineServer2_GetPlayerNetInfo
   .text:00000000019A01B8                 test    rax, rax
   .text:00000000019A01BB                 jz      short loc_19A0229
   .text:00000000019A01BD                 mov     r12, rax
@@ -93,7 +93,7 @@ procedure: |-
     v4 = g_engine;
     v5 = *(__int64 (__fastcall **)(__int64, _QWORD))(*(_QWORD *)g_engine + 328LL);
     v6 = sub_210C030(*(_QWORD *)(a1 + 8));
-    v7 = (_QWORD *)v5(v4, v6 - (unsigned int)(v6 != -1)); // CEngineServer_GetPlayerNetInfo
+    v7 = (_QWORD *)v5(v4, v6 - (unsigned int)(v6 != -1)); // IVEngineServer2_GetPlayerNetInfo
     if ( v7 )
     {
       v8 = v7;

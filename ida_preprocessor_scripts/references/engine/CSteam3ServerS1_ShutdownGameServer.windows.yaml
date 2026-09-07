@@ -1,0 +1,152 @@
+func_name: CSteam3ServerS1_ShutdownGameServer
+func_va: '0x1800f86a0'
+disasm_code: |-
+  .text:00000001800F86A0                 push    rbx
+  .text:00000001800F86A2                 sub     rsp, 20h
+  .text:00000001800F86A6                 mov     rbx, rcx
+  .text:00000001800F86A9                 lea     rcx, off_18060E650
+  .text:00000001800F86B0                 call    cs:SteamInternal_ContextInit
+  .text:00000001800F86B6                 cmp     qword ptr [rax], 0
+  .text:00000001800F86BA                 jz      loc_1800F882C
+  .text:00000001800F86C0                 cmp     dword ptr [rbx+0A0h], 1
+  .text:00000001800F86C7                 jl      loc_1800F882C
+  .text:00000001800F86CD                 mov     ecx, cs:dword_1808CC6B8
+  .text:00000001800F86D3                 mov     edx, 2
+  .text:00000001800F86D8                 mov     [rsp+28h+arg_0], rdi
+  .text:00000001800F86DD                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:00000001800F86E3                 test    al, al
+  .text:00000001800F86E5                 jz      short loc_1800F86FF
+  .text:00000001800F86E7                 mov     ecx, cs:dword_1808CC6B8
+  .text:00000001800F86ED                 lea     r8, aCsteam3servers_0; "CSteam3ServerS1::ShutdownGameServer\n"
+  .text:00000001800F86F4                 mov     edx, 2
+  .text:00000001800F86F9                 call    cs:LoggingSystem_Log
+  .text:00000001800F86FF                 call    sub_180415CB0
+  .text:00000001800F8704                 test    al, al
+  .text:00000001800F8706                 jnz     short loc_1800F8757
+  .text:00000001800F8708                 lea     rcx, off_18060E650
+  .text:00000001800F870F                 call    cs:SteamInternal_ContextInit
+  .text:00000001800F8715                 cmp     qword ptr [rax], 0
+  .text:00000001800F8719                 jz      short loc_1800F8757
+  .text:00000001800F871B                 mov     rax, cs:qword_180918DC0
+  .text:00000001800F8722                 lea     rcx, unk_180528B3F
+  .text:00000001800F8729                 test    rax, rax
+  .text:00000001800F872C                 lea     rdx, aCsgo; "csgo"
+  .text:00000001800F8733                 cmovnz  rcx, rax
+  .text:00000001800F8737                 call    cs:V_stricmp_fast
+  .text:00000001800F873D                 test    eax, eax
+  .text:00000001800F873F                 jnz     short loc_1800F8757
+  .text:00000001800F8741                 lea     rcx, off_18060E650
+  .text:00000001800F8748                 call    cs:SteamInternal_ContextInit
+  .text:00000001800F874E                 mov     rcx, [rax]
+  .text:00000001800F8751                 mov     rax, [rcx]
+  .text:00000001800F8754                 call    qword ptr [rax+38h]
+  .text:00000001800F8757                 mov     rcx, cs:g_pNetworkSystem
+  .text:00000001800F875E                 test    rcx, rcx
+  .text:00000001800F8761                 jz      short loc_1800F8769
+  .text:00000001800F8763                 mov     rax, [rcx]
+  .text:00000001800F8766                 call    qword ptr [rax+60h]; 0x60 = 96LL = INetworkSystem_ShutdownGameServer
+  .text:00000001800F8769                 xor     edi, edi
+  .text:00000001800F876B                 test    dword ptr [rbx+0D4h], 0C0000000h
+  .text:00000001800F8775                 mov     [rbx+0C0h], edi
+  .text:00000001800F877B                 jnz     short loc_1800F87A6
+  .text:00000001800F877D                 mov     rdx, [rbx+0C8h]
+  .text:00000001800F8784                 test    rdx, rdx
+  .text:00000001800F8787                 jz      short loc_1800F87A0
+  .text:00000001800F8789                 mov     rax, cs:g_pMemAlloc
+  .text:00000001800F8790                 mov     rcx, [rax]
+  .text:00000001800F8793                 mov     rax, [rcx]
+  .text:00000001800F8796                 call    qword ptr [rax+18h]
+  .text:00000001800F8799                 mov     [rbx+0C8h], rdi
+  .text:00000001800F87A0                 mov     [rbx+0D0h], edi
+  .text:00000001800F87A6                 test    dword ptr [rbx+0ECh], 0C0000000h
+  .text:00000001800F87B0                 mov     [rbx+0D8h], edi
+  .text:00000001800F87B6                 jnz     short loc_1800F87E1
+  .text:00000001800F87B8                 mov     rdx, [rbx+0E0h]
+  .text:00000001800F87BF                 test    rdx, rdx
+  .text:00000001800F87C2                 jz      short loc_1800F87DB
+  .text:00000001800F87C4                 mov     rax, cs:g_pMemAlloc
+  .text:00000001800F87CB                 mov     rcx, [rax]
+  .text:00000001800F87CE                 mov     rax, [rcx]
+  .text:00000001800F87D1                 call    qword ptr [rax+18h]
+  .text:00000001800F87D4                 mov     [rbx+0E0h], rdi
+  .text:00000001800F87DB                 mov     [rbx+0E8h], edi
+  .text:00000001800F87E1                 lea     rcx, [rbx+0F0h]
+  .text:00000001800F87E8                 call    sub_1800FA610
+  .text:00000001800F87ED                 call    cs:SteamGameServer_Shutdown
+  .text:00000001800F87F3                 mov     byte ptr [rsp+28h+arg_8+7], dil
+  .text:00000001800F87F8                 and     dword ptr [rsp+3Ch], 0FF000000h
+  .text:00000001800F8800                 mov     dword ptr [rsp+28h+arg_8], 1
+  .text:00000001800F8808                 mov     rax, [rsp+28h+arg_8]
+  .text:00000001800F880D                 mov     [rbx+0ACh], dil
+  .text:00000001800F8814                 mov     [rbx+0A8h], edi
+  .text:00000001800F881A                 mov     [rbx+0A0h], edi
+  .text:00000001800F8820                 mov     rdi, [rsp+28h+arg_0]
+  .text:00000001800F8825                 mov     [rbx+0ADh], rax
+  .text:00000001800F882C                 add     rsp, 20h
+  .text:00000001800F8830                 pop     rbx
+  .text:00000001800F8831                 retn
+procedure: |-
+  _QWORD *__fastcall CSteam3ServerS1_ShutdownGameServer(__int64 a1)
+  {
+    _QWORD *result; // rax
+    __int64 v3; // rdx
+    __int64 v4; // rcx
+    void *v5; // rcx
+    _QWORD *v6; // rax
+    bool v7; // zf
+    __int64 v8; // [rsp+38h] [rbp+10h]
+    int v9; // [rsp+3Ch] [rbp+14h]
+
+    result = (_QWORD *)SteamInternal_ContextInit(&off_18060E650);
+    if ( *result && *(int *)(a1 + 160) >= 1 )
+    {
+      if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_1808CC6B8, 2) )
+        LoggingSystem_Log((unsigned int)dword_1808CC6B8, 2, "CSteam3ServerS1::ShutdownGameServer\n");
+      if ( !(unsigned __int8)sub_180415CB0(v4, v3) && *(_QWORD *)SteamInternal_ContextInit(&off_18060E650) )
+      {
+        v5 = &unk_180528B3F;
+        if ( qword_180918DC0 )
+          v5 = (void *)qword_180918DC0;
+        if ( !(unsigned int)V_stricmp_fast(v5, "csgo") )
+        {
+          v6 = (_QWORD *)SteamInternal_ContextInit(&off_18060E650);
+          (*(void (__fastcall **)(_QWORD))(*(_QWORD *)*v6 + 56LL))(*v6);
+        }
+      }
+      if ( g_pNetworkSystem )
+        (*(void (__fastcall **)(__int64))(*(_QWORD *)g_pNetworkSystem + 96LL))(g_pNetworkSystem)  // 96LL = 0x60 = INetworkSystem_ShutdownGameServer;
+      v7 = (*(_DWORD *)(a1 + 212) & 0xC0000000) == 0;
+      *(_DWORD *)(a1 + 192) = 0;
+      if ( v7 )
+      {
+        if ( *(_QWORD *)(a1 + 200) )
+        {
+          (*(void (__fastcall **)(_QWORD))(*g_pMemAlloc + 24LL))(g_pMemAlloc);
+          *(_QWORD *)(a1 + 200) = 0;
+        }
+        *(_DWORD *)(a1 + 208) = 0;
+      }
+      v7 = (*(_DWORD *)(a1 + 236) & 0xC0000000) == 0;
+      *(_DWORD *)(a1 + 216) = 0;
+      if ( v7 )
+      {
+        if ( *(_QWORD *)(a1 + 224) )
+        {
+          (*(void (__fastcall **)(_QWORD))(*g_pMemAlloc + 24LL))(g_pMemAlloc);
+          *(_QWORD *)(a1 + 224) = 0;
+        }
+        *(_DWORD *)(a1 + 232) = 0;
+      }
+      sub_1800FA610(a1 + 240);
+      SteamGameServer_Shutdown();
+      HIBYTE(v9) = 0;
+      HIDWORD(v8) = v9 & 0xFF000000;
+      LODWORD(v8) = 1;
+      *(_BYTE *)(a1 + 172) = 0;
+      *(_DWORD *)(a1 + 168) = 0;
+      *(_DWORD *)(a1 + 160) = 0;
+      *(_QWORD *)(a1 + 173) = v8;
+      return (_QWORD *)v8;
+    }
+    return result;
+  }

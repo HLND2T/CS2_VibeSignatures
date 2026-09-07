@@ -1,0 +1,295 @@
+func_name: ConnectSocketToAddressList
+func_va: '0x180057910'
+disasm_code: |-
+  .text:0000000180057910                 push    rsi
+  .text:0000000180057912                 push    r15
+  .text:0000000180057914                 sub     rsp, 58h
+  .text:0000000180057918                 mov     [rsp+68h+arg_0], rbx
+  .text:000000018005791D                 xor     r15d, r15d
+  .text:0000000180057920                 mov     [rsp+68h+arg_10], rdi
+  .text:0000000180057928                 mov     rdi, rcx
+  .text:000000018005792B                 mov     [rcx+7Ch], r15d
+  .text:000000018005792F                 add     rcx, 60h ; '`'
+  .text:0000000180057933                 mov     [rsp+68h+var_18], r14
+  .text:0000000180057938                 call    cs:?Clear@netadr_t@@QEAAXXZ; netadr_t::Clear(void)
+  .text:000000018005793E                 and     dword ptr [rdi+70h], 0FF0FFFFFh
+  .text:0000000180057945                 lea     rcx, [rdi+80h]
+  .text:000000018005794C                 mov     [rdi+73h], r15b
+  .text:0000000180057950                 and     dword ptr [rdi+70h], 0FFF00000h
+  .text:0000000180057957                 mov     [rdi+74h], r15
+  .text:000000018005795B                 mov     [rdi+6Ch], r15d
+  .text:000000018005795F                 call    cs:?Purge@CUtlString@@QEAAXXZ; CUtlString::Purge(void)
+  .text:0000000180057965                 movzx   r8d, byte ptr [rdi+0C6h]
+  .text:000000018005796D                 lea     rdx, unk_180528B3F
+  .text:0000000180057974                 mov     [rdi+88h], r15
+  .text:000000018005797B                 lea     rcx, [rsp+68h+var_48]
+  .text:0000000180057980                 mov     [rdi+90h], r15
+  .text:0000000180057987                 mov     [rdi+98h], r15d
+  .text:000000018005798E                 mov     [rdi+9Ch], r15w
+  .text:0000000180057996                 mov     [rdi+9Eh], r15b
+  .text:000000018005799D                 mov     rax, [rdi+28h]
+  .text:00000001800579A1                 test    rax, rax
+  .text:00000001800579A4                 mov     [rsp+68h+var_40], r15
+  .text:00000001800579A9                 mov     [rsp+68h+var_38], r15
+  .text:00000001800579AE                 cmovnz  rdx, rax
+  .text:00000001800579B2                 mov     [rsp+68h+var_48], r15d
+  .text:00000001800579B7                 call    ParseNetadrList
+  .text:00000001800579BC                 mov     rsi, [rsp+68h+var_40]
+  .text:00000001800579C1                 lea     rax, [rsp+68h+var_48]
+  .text:00000001800579C6                 movsxd  r14, [rsp+68h+var_48]
+  .text:00000001800579CB                 lea     rbx, [rdi+48h]
+  .text:00000001800579CF                 cmp     rax, rbx
+  .text:00000001800579D2                 jz      short loc_180057A1C
+  .text:00000001800579D4                 mov     edx, r14d
+  .text:00000001800579D7                 mov     rcx, rbx
+  .text:00000001800579DA                 call    sub_180058F50
+  .text:00000001800579DF                 mov     rcx, [rbx+8]
+  .text:00000001800579E3                 mov     rdx, r14
+  .text:00000001800579E6                 shl     rdx, 5
+  .text:00000001800579EA                 mov     rax, rsi
+  .text:00000001800579ED                 add     rdx, rsi
+  .text:00000001800579F0                 cmp     rdx, rsi
+  .text:00000001800579F3                 jbe     short loc_180057A1C
+  .text:00000001800579F5                 nop     word ptr [rax+rax+00000000h]
+  .text:0000000180057A00                 movups  xmm0, xmmword ptr [rax]
+  .text:0000000180057A03                 lea     rcx, [rcx+20h]
+  .text:0000000180057A07                 movups  xmmword ptr [rcx-20h], xmm0
+  .text:0000000180057A0B                 movups  xmm1, xmmword ptr [rax+10h]
+  .text:0000000180057A0F                 add     rax, 20h ; ' '
+  .text:0000000180057A13                 movups  xmmword ptr [rcx-10h], xmm1
+  .text:0000000180057A17                 cmp     rax, rdx
+  .text:0000000180057A1A                 jb      short loc_180057A00
+  .text:0000000180057A1C                 mov     rcx, [rdi]
+  .text:0000000180057A1F                 xor     r9d, r9d
+  .text:0000000180057A22                 mov     dword ptr [rdi+0A4h], 1
+  .text:0000000180057A2C                 mov     edx, 1
+  .text:0000000180057A31                 mov     r8d, 0FFFFFFFFh
+  .text:0000000180057A37                 mov     [rsp+68h+arg_8], rbp
+  .text:0000000180057A3C                 mov     rax, [rcx]
+  .text:0000000180057A3F                 call    qword ptr [rax+420h]
+  .text:0000000180057A45                 mov     rax, 0C7EFFFFFE0000000h
+  .text:0000000180057A4F                 mov     [rdi+0A8h], r15
+  .text:0000000180057A56                 mov     edx, 1
+  .text:0000000180057A5B                 mov     [rdi+0B8h], rax
+  .text:0000000180057A62                 mov     rcx, rbx
+  .text:0000000180057A65                 call    sub_180058F50
+  .text:0000000180057A6A                 mov     r8, [rdi+50h]
+  .text:0000000180057A6E                 mov     rcx, cs:g_pNetworkSystem
+  .text:0000000180057A75                 cmp     dword ptr [r8+1Ch], 4
+  .text:0000000180057A7A                 jnz     short loc_180057AB9
+  .text:0000000180057A7C                 mov     dword ptr [r8+14h], 1
+  .text:0000000180057A84                 mov     rax, [rcx]
+  .text:0000000180057A87                 mov     r8d, cs:dword_18060EFC0
+  .text:0000000180057A8E                 mov     edx, [rdi+0A0h]
+  .text:0000000180057A94                 call    qword ptr [rax+90h]; 0x90 = 144LL = INetworkSystem_EnableLoopbackBetweenSockets
+  .text:0000000180057A9A                 test    al, al
+  .text:0000000180057A9C                 jz      short loc_180057AC9
+  .text:0000000180057A9E                 mov     rcx, cs:g_pNetworkSystem
+  .text:0000000180057AA5                 mov     edx, [rdi+0A0h]
+  .text:0000000180057AAB                 mov     rax, [rcx]
+  .text:0000000180057AAE                 call    qword ptr [rax+170h]
+  .text:0000000180057AB4                 mov     [rdi+40h], eax
+  .text:0000000180057AB7                 jmp     short loc_180057B28
+  .text:0000000180057AB9                 mov     rax, [rcx]
+  .text:0000000180057ABC                 mov     edx, [rdi+0A0h]
+  .text:0000000180057AC2                 call    qword ptr [rax+78h]; 0x78 = 120LL = INetworkSystem_ConnectSocket
+  .text:0000000180057AC5                 test    al, al
+  .text:0000000180057AC7                 jnz     short loc_180057ACE
+  .text:0000000180057AC9                 xor     bpl, bpl
+  .text:0000000180057ACC                 jmp     short loc_180057B2B
+  .text:0000000180057ACE                 mov     rcx, cs:g_pNetworkSystem
+  .text:0000000180057AD5                 mov     edx, [rdi+0A0h]
+  .text:0000000180057ADB                 mov     rax, [rcx]
+  .text:0000000180057ADE                 call    qword ptr [rax+170h]
+  .text:0000000180057AE4                 mov     [rdi+40h], eax
+  .text:0000000180057AE7                 test    eax, eax
+  .text:0000000180057AE9                 jnz     short loc_180057B28
+  .text:0000000180057AEB                 mov     edx, 0FFFFFFFFh
+  .text:0000000180057AF0                 movaps  [rsp+68h+var_28], xmm6
+  .text:0000000180057AF5                 lea     rcx, unk_18068DE30
+  .text:0000000180057AFC                 call    sub_18003C670
+  .text:0000000180057B01                 mov     edx, 0FFFFFFFFh
+  .text:0000000180057B06                 lea     rcx, unk_18068DE20
+  .text:0000000180057B0D                 movaps  xmm6, xmm0
+  .text:0000000180057B10                 call    sub_18003C670
+  .text:0000000180057B15                 divss   xmm6, xmm0
+  .text:0000000180057B19                 cvttss2si eax, xmm6
+  .text:0000000180057B1D                 movaps  xmm6, [rsp+68h+var_28]
+  .text:0000000180057B22                 mov     [rdi+0ACh], eax
+  .text:0000000180057B28                 mov     bpl, 1
+  .text:0000000180057B2B                 lea     eax, [r14-1]
+  .text:0000000180057B2F                 mov     r14, [rsp+68h+var_18]
+  .text:0000000180057B34                 movsxd  rdi, eax
+  .text:0000000180057B37                 test    eax, eax
+  .text:0000000180057B39                 js      short loc_180057B80
+  .text:0000000180057B3B                 mov     rbx, rdi
+  .text:0000000180057B3E                 shl     rbx, 5
+  .text:0000000180057B42                 add     rbx, 10h
+  .text:0000000180057B46                 add     rbx, rsi
+  .text:0000000180057B49                 nop     dword ptr [rax+00000000h]
+  .text:0000000180057B50                 lea     rcx, [rbx-10h]
+  .text:0000000180057B54                 mov     [rbx+0Ch], r15d
+  .text:0000000180057B58                 call    cs:?Clear@netadr_t@@QEAAXXZ; netadr_t::Clear(void)
+  .text:0000000180057B5E                 and     dword ptr [rbx], 0FF0FFFFFh
+  .text:0000000180057B64                 mov     [rbx+3], r15b
+  .text:0000000180057B68                 and     dword ptr [rbx], 0FFF00000h
+  .text:0000000180057B6E                 mov     [rbx+4], r15
+  .text:0000000180057B72                 sub     rdi, 1
+  .text:0000000180057B76                 mov     [rbx-4], r15d
+  .text:0000000180057B7A                 lea     rbx, [rbx-20h]
+  .text:0000000180057B7E                 jns     short loc_180057B50
+  .text:0000000180057B80                 test    dword ptr [rsp+68h+var_38+4], 0C0000000h
+  .text:0000000180057B88                 mov     rdi, [rsp+68h+arg_10]
+  .text:0000000180057B90                 mov     rbx, [rsp+68h+arg_0]
+  .text:0000000180057B95                 jnz     short loc_180057BCC
+  .text:0000000180057B97                 test    rsi, rsi
+  .text:0000000180057B9A                 jz      short loc_180057BCC
+  .text:0000000180057B9C                 mov     rax, cs:g_pMemAlloc
+  .text:0000000180057BA3                 mov     rdx, rsi
+  .text:0000000180057BA6                 mov     rcx, [rax]
+  .text:0000000180057BA9                 mov     r8, [rcx]
+  .text:0000000180057BAC                 call    qword ptr [r8+18h]
+  .text:0000000180057BB0                 mov     rsi, r15
+  .text:0000000180057BB3                 test    r15, r15
+  .text:0000000180057BB6                 jz      short loc_180057BCC
+  .text:0000000180057BB8                 mov     rcx, cs:g_pMemAlloc
+  .text:0000000180057BBF                 mov     rdx, r15
+  .text:0000000180057BC2                 mov     rcx, [rcx]
+  .text:0000000180057BC5                 mov     r8, [rcx]
+  .text:0000000180057BC8                 call    qword ptr [r8+18h]
+  .text:0000000180057BCC                 movzx   eax, bpl
+  .text:0000000180057BD0                 mov     rbp, [rsp+68h+arg_8]
+  .text:0000000180057BD5                 add     rsp, 58h
+  .text:0000000180057BD9                 pop     r15
+  .text:0000000180057BDB                 pop     rsi
+  .text:0000000180057BDC                 retn
+procedure: |-
+  __int64 __fastcall ConnectSocketToAddressList(__int64 *a1)
+  {
+    unsigned __int8 v2; // r8
+    const char *v3; // rdx
+    const char *v4; // rax
+    _OWORD *v5; // rsi
+    __int64 v6; // r14
+    __int64 v7; // rcx
+    _OWORD *v8; // rax
+    unsigned __int64 v9; // rdx
+    __int128 v10; // xmm1
+    __int64 v11; // rcx
+    __int64 v12; // r8
+    __int64 v13; // rcx
+    unsigned __int8 v14; // bp
+    int v15; // eax
+    float v16; // xmm6_4
+    __int64 v17; // rdi
+    _OWORD *v18; // rbx
+    unsigned int v20; // [rsp+20h] [rbp-48h] BYREF
+    _OWORD *v21; // [rsp+28h] [rbp-40h]
+    __int64 v22; // [rsp+30h] [rbp-38h]
+
+    *((_DWORD *)a1 + 31) = 0;
+    netadr_t::Clear((netadr_t *)(a1 + 12));
+    *((_DWORD *)a1 + 28) &= 0xFF0FFFFF;
+    *((_BYTE *)a1 + 115) = 0;
+    *((_DWORD *)a1 + 28) &= 0xFFF00000;
+    *(__int64 *)((char *)a1 + 116) = 0;
+    *((_DWORD *)a1 + 27) = 0;
+    CUtlString::Purge((CUtlString *)(a1 + 16));
+    v2 = *((_BYTE *)a1 + 198);
+    v3 = (const char *)&unk_180528B3F;
+    a1[17] = 0;
+    a1[18] = 0;
+    *((_DWORD *)a1 + 38) = 0;
+    *((_WORD *)a1 + 78) = 0;
+    *((_BYTE *)a1 + 158) = 0;
+    v4 = (const char *)a1[5];
+    v21 = nullptr;
+    v22 = 0;
+    if ( v4 )
+      v3 = v4;
+    v20 = 0;
+    ParseNetadrList((int *)&v20, v3, v2);
+    v5 = v21;
+    v6 = (int)v20;
+    if ( &v20 != (unsigned int *)(a1 + 9) )
+    {
+      sub_180058F50(a1 + 9, v20);
+      v7 = a1[10];
+      v8 = v5;
+      v9 = (unsigned __int64)&v5[2 * v6];
+      if ( v9 > (unsigned __int64)v5 )
+      {
+        do
+        {
+          v7 += 32;
+          *(_OWORD *)(v7 - 32) = *v8;
+          v10 = v8[1];
+          v8 += 2;
+          *(_OWORD *)(v7 - 16) = v10;
+        }
+        while ( (unsigned __int64)v8 < v9 );
+      }
+    }
+    v11 = *a1;
+    *((_DWORD *)a1 + 41) = 1;
+    (*(void (__fastcall **)(__int64, __int64, __int64, _QWORD))(*(_QWORD *)v11 + 1056LL))(v11, 1, 0xFFFFFFFFLL, 0);
+    a1[21] = 0;
+    a1[23] = 0xC7EFFFFFE0000000uLL;
+    sub_180058F50(a1 + 9, 1);
+    v12 = a1[10];
+    v13 = g_pNetworkSystem;
+    if ( *(_DWORD *)(v12 + 28) != 4 )
+    {
+      if ( (*(unsigned __int8 (__fastcall **)(__int64, _QWORD))(*(_QWORD *)g_pNetworkSystem + 120LL))(  // 120LL = 0x78 = INetworkSystem_ConnectSocket
+             g_pNetworkSystem,
+             *((unsigned int *)a1 + 40)) )
+      {
+        v15 = (*(__int64 (__fastcall **)(__int64, _QWORD))(*(_QWORD *)g_pNetworkSystem + 368LL))(
+                g_pNetworkSystem,
+                *((unsigned int *)a1 + 40));
+        *((_DWORD *)a1 + 16) = v15;
+        if ( !v15 )
+        {
+          v16 = sub_18003C670(&unk_18068DE30, 0xFFFFFFFFLL);
+          *((_DWORD *)a1 + 43) = (int)(float)(v16 / sub_18003C670(&unk_18068DE20, 0xFFFFFFFFLL));
+        }
+        goto LABEL_13;
+      }
+  LABEL_10:
+      v14 = 0;
+      goto LABEL_14;
+    }
+    *(_DWORD *)(v12 + 20) = 1;
+    if ( !(*(unsigned __int8 (__fastcall **)(__int64, _QWORD, _QWORD))(*(_QWORD *)v13 + 144LL))(  // 144LL = 0x90 = INetworkSystem_EnableLoopbackBetweenSockets
+            v13,
+            *((unsigned int *)a1 + 40),
+            (unsigned int)dword_18060EFC0) )
+      goto LABEL_10;
+    *((_DWORD *)a1 + 16) = (*(__int64 (__fastcall **)(__int64, _QWORD))(*(_QWORD *)g_pNetworkSystem + 368LL))(
+                             g_pNetworkSystem,
+                             *((unsigned int *)a1 + 40));
+  LABEL_13:
+    v14 = 1;
+  LABEL_14:
+    v17 = (int)v6 - 1;
+    if ( (int)v6 - 1 >= 0 )
+    {
+      v18 = &v5[2 * (int)v6 - 1];
+      do
+      {
+        *((_DWORD *)v18 + 3) = 0;
+        netadr_t::Clear((netadr_t *)(v18 - 1));
+        *(_DWORD *)v18 &= 0xFF0FFFFF;
+        *((_BYTE *)v18 + 3) = 0;
+        *(_DWORD *)v18 &= 0xFFF00000;
+        *(_QWORD *)((char *)v18 + 4) = 0;
+        --v17;
+        *((_DWORD *)v18 - 1) = 0;
+        v18 -= 2;
+      }
+      while ( v17 >= 0 );
+    }
+    if ( (v22 & 0xC000000000000000uLL) == 0 && v5 )
+      (*(void (__fastcall **)(_QWORD, _OWORD *))(*g_pMemAlloc + 24LL))(g_pMemAlloc, v5);
+    return v14;
+  }

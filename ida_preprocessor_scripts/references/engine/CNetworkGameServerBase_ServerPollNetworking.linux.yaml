@@ -27,7 +27,7 @@ disasm_code: |-
   .text:00000000004F3673                 mov     rbx, [rbp+var_8]
   .text:00000000004F3677                 mov     rdi, [rax]
   .text:00000000004F367A                 mov     rax, [rdi]
-  .text:00000000004F367D                 mov     rax, [rax+0A0h]
+  .text:00000000004F367D                 mov     rax, [rax+0A0h]; 0xA0 = 160LL = INetworkSystem_PollSocket (tail call via jmp rax)
   .text:00000000004F3684                 leave
   .text:00000000004F3685                 jmp     rax
   .text:00000000004F3690                 lea     rax, g_pNetworkServerService
@@ -205,7 +205,7 @@ procedure: |-
     else
       v3 = ((__int64 (__fastcall *)(__int64))v2)(a1);
     if ( !v3 )
-      (*(void (__fastcall **)(_QWORD *, _QWORD, __int64))(*g_pNetworkSystem + 160LL))(
+      (*(void (__fastcall **)(_QWORD *, _QWORD, __int64))(*g_pNetworkSystem + 160LL))(  // 160LL = 0xA0 = INetworkSystem_PollSocket
         g_pNetworkSystem,
         *(unsigned int *)(a1 + 64),
         a1 + 8);

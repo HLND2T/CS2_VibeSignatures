@@ -1,0 +1,259 @@
+func_name: CSteam3ServerS1_ShutdownGameServer
+func_va: '0x577870'
+disasm_code: |-
+  .text:0000000000577870                 push    rbp
+  .text:0000000000577871                 mov     rbp, rsp
+  .text:0000000000577874                 push    r13
+  .text:0000000000577876                 push    r12
+  .text:0000000000577878                 lea     r12, off_9DA010
+  .text:000000000057787F                 push    rbx
+  .text:0000000000577880                 mov     rbx, rdi
+  .text:0000000000577883                 ; _QWORD
+  .text:0000000000577883                 mov     rdi, r12; _QWORD
+  .text:0000000000577886                 sub     rsp, 8
+  .text:000000000057788A                 call    _SteamInternal_ContextInit
+  .text:000000000057788F                 cmp     qword ptr [rax], 0
+  .text:0000000000577893                 jz      loc_577A97
+  .text:0000000000577899                 mov     edx, [rbx+0C8h]
+  .text:000000000057789F                 test    edx, edx
+  .text:00000000005778A1                 jle     loc_577A97
+  .text:00000000005778A7                 lea     r13, dword_A32394
+  .text:00000000005778AE                 ; _QWORD
+  .text:00000000005778AE                 mov     esi, 2; _QWORD
+  .text:00000000005778B3                 ; _QWORD
+  .text:00000000005778B3                 mov     edi, [r13+0]; _QWORD
+  .text:00000000005778B7                 call    _LoggingSystem_IsChannelEnabled
+  .text:00000000005778BC                 test    al, al
+  .text:00000000005778BE                 jnz     loc_577AF0
+  .text:00000000005778C4                 call    sub_86EA70
+  .text:00000000005778C9                 test    al, al
+  .text:00000000005778CB                 jz      loc_577AA8
+  .text:00000000005778D1                 lea     rax, g_pNetworkSystem
+  .text:00000000005778D8                 mov     rdi, [rax]
+  .text:00000000005778DB                 test    rdi, rdi
+  .text:00000000005778DE                 jz      short loc_5778E6
+  .text:00000000005778E0                 mov     rax, [rdi]
+  .text:00000000005778E3                 call    qword ptr [rax+60h]; 0x60 = 96LL = INetworkSystem_ShutdownGameServer
+  .text:00000000005778E6                 cmp     dword ptr [rbx+0FCh], 3FFFFFFFh
+  .text:00000000005778F0                 mov     dword ptr [rbx+0E8h], 0
+  .text:00000000005778FA                 ja      short loc_57792D
+  .text:00000000005778FC                 mov     rsi, [rbx+0F0h]
+  .text:0000000000577903                 test    rsi, rsi
+  .text:0000000000577906                 jz      short loc_577923
+  .text:0000000000577908                 mov     rax, cs:g_pMemAlloc_ptr
+  .text:000000000057790F                 mov     rdi, [rax]
+  .text:0000000000577912                 mov     rax, [rdi]
+  .text:0000000000577915                 call    qword ptr [rax+20h]
+  .text:0000000000577918                 mov     qword ptr [rbx+0F0h], 0
+  .text:0000000000577923                 mov     dword ptr [rbx+0F8h], 0
+  .text:000000000057792D                 cmp     dword ptr [rbx+114h], 3FFFFFFFh
+  .text:0000000000577937                 mov     dword ptr [rbx+100h], 0
+  .text:0000000000577941                 ja      short loc_577974
+  .text:0000000000577943                 mov     rsi, [rbx+108h]
+  .text:000000000057794A                 test    rsi, rsi
+  .text:000000000057794D                 jz      short loc_57796A
+  .text:000000000057794F                 mov     rax, cs:g_pMemAlloc_ptr
+  .text:0000000000577956                 mov     rdi, [rax]
+  .text:0000000000577959                 mov     rax, [rdi]
+  .text:000000000057795C                 call    qword ptr [rax+20h]
+  .text:000000000057795F                 mov     qword ptr [rbx+108h], 0
+  .text:000000000057796A                 mov     dword ptr [rbx+110h], 0
+  .text:0000000000577974                 mov     eax, [rbx+118h]
+  .text:000000000057797A                 test    eax, eax
+  .text:000000000057797C                 jz      loc_577A15
+  .text:0000000000577982                 mov     eax, [rbx+128h]
+  .text:0000000000577988                 cmp     eax, 0FFFFFFFFh
+  .text:000000000057798B                 jz      short loc_577A00
+  .text:000000000057798D                 movsxd  rdx, eax
+  .text:0000000000577990                 test    dword ptr [rbx+11Ch], 7FFFFFFFh
+  .text:000000000057799A                 jz      short loc_5779C7
+  .text:000000000057799C                 lea     rcx, [rdx+rdx*4]
+  .text:00000000005779A0                 mov     rdx, [rbx+120h]
+  .text:00000000005779A7                 lea     rdx, [rdx+rcx*8]
+  .text:00000000005779AB                 mov     ecx, [rdx+24h]
+  .text:00000000005779AE                 mov     [rdx+20h], eax
+  .text:00000000005779B1                 cmp     ecx, 0FFFFFFFFh
+  .text:00000000005779B4                 jz      short loc_5779E6
+  .text:00000000005779B6                 mov     eax, ecx
+  .text:00000000005779B8                 movsxd  rdx, eax
+  .text:00000000005779BB                 test    dword ptr [rbx+11Ch], 7FFFFFFFh
+  .text:00000000005779C5                 jnz     short loc_57799C
+  .text:00000000005779C7                 lea     rsi, [rdx+rdx*4]
+  .text:00000000005779CB                 mov     ecx, dword ptr ds:qword_20+4[rsi*8]
+  .text:00000000005779D2                 lea     rdx, ds:0[rsi*8]
+  .text:00000000005779DA                 mov     dword ptr ds:qword_20[rsi*8], eax
+  .text:00000000005779E1                 cmp     ecx, 0FFFFFFFFh
+  .text:00000000005779E4                 jnz     short loc_5779B6
+  .text:00000000005779E6                 mov     eax, [rbx+130h]
+  .text:00000000005779EC                 mov     [rdx+24h], eax
+  .text:00000000005779EF                 mov     eax, [rbx+128h]
+  .text:00000000005779F5                 cmp     eax, 0FFFFFFFFh
+  .text:00000000005779F8                 jz      short loc_577A00
+  .text:00000000005779FA                 mov     [rbx+130h], eax
+  .text:0000000000577A00                 mov     qword ptr [rbx+128h], 0FFFFFFFFFFFFFFFFh
+  .text:0000000000577A0B                 mov     dword ptr [rbx+134h], 0
+  .text:0000000000577A15                 mov     dword ptr [rbx+118h], 0
+  .text:0000000000577A1F                 mov     eax, [rbx+11Ch]
+  .text:0000000000577A25                 test    eax, 7FFFFFFFh
+  .text:0000000000577A2A                 jz      short loc_577A52
+  .text:0000000000577A2C                 test    eax, eax
+  .text:0000000000577A2E                 js      short loc_577A47
+  .text:0000000000577A30                 mov     rax, cs:g_pMemAlloc_ptr
+  .text:0000000000577A37                 mov     rsi, [rbx+120h]
+  .text:0000000000577A3E                 mov     rdi, [rax]
+  .text:0000000000577A41                 mov     rax, [rdi]
+  .text:0000000000577A44                 call    qword ptr [rax+20h]
+  .text:0000000000577A47                 mov     qword ptr [rbx+120h], 0
+  .text:0000000000577A52                 mov     dword ptr [rbx+11Ch], 0
+  .text:0000000000577A5C                 mov     dword ptr [rbx+130h], 0FFFFFFFFh
+  .text:0000000000577A66                 call    _SteamGameServer_Shutdown
+  .text:0000000000577A6B                 mov     byte ptr [rbx+0DCh], 0
+  .text:0000000000577A72                 mov     rax, 10000000000h
+  .text:0000000000577A7C                 mov     [rbx+0D0h], rax
+  .text:0000000000577A83                 mov     dword ptr [rbx+0D8h], 0
+  .text:0000000000577A8D                 mov     dword ptr [rbx+0C8h], 0
+  .text:0000000000577A97                 add     rsp, 8
+  .text:0000000000577A9B                 pop     rbx
+  .text:0000000000577A9C                 pop     r12
+  .text:0000000000577A9E                 pop     r13
+  .text:0000000000577AA0                 pop     rbp
+  .text:0000000000577AA1                 retn
+  .text:0000000000577AA8                 ; _QWORD
+  .text:0000000000577AA8                 mov     rdi, r12; _QWORD
+  .text:0000000000577AAB                 call    _SteamInternal_ContextInit
+  .text:0000000000577AB0                 cmp     qword ptr [rax], 0
+  .text:0000000000577AB4                 jz      loc_5778D1
+  .text:0000000000577ABA                 call    sub_3BC540
+  .text:0000000000577ABF                 lea     rsi, aCsgo; "csgo"
+  .text:0000000000577AC6                 ; _QWORD
+  .text:0000000000577AC6                 mov     rdi, rax; _QWORD
+  .text:0000000000577AC9                 call    _V_stricmp_fast
+  .text:0000000000577ACE                 test    eax, eax
+  .text:0000000000577AD0                 jnz     loc_5778D1
+  .text:0000000000577AD6                 ; _QWORD
+  .text:0000000000577AD6                 mov     rdi, r12; _QWORD
+  .text:0000000000577AD9                 call    _SteamInternal_ContextInit
+  .text:0000000000577ADE                 mov     rdi, [rax]
+  .text:0000000000577AE1                 mov     rax, [rdi]
+  .text:0000000000577AE4                 call    qword ptr [rax+38h]
+  .text:0000000000577AE7                 jmp     loc_5778D1
+  .text:0000000000577AF0                 ; _QWORD
+  .text:0000000000577AF0                 mov     edi, [r13+0]; _QWORD
+  .text:0000000000577AF4                 lea     rdx, aCsteam3servers_0; "CSteam3ServerS1::ShutdownGameServer\n"
+  .text:0000000000577AFB                 ; _QWORD
+  .text:0000000000577AFB                 mov     esi, 2; _QWORD
+  .text:0000000000577B00                 xor     eax, eax
+  .text:0000000000577B02                 call    _LoggingSystem_Log
+  .text:0000000000577B07                 jmp     loc_5778C4
+procedure: |-
+  __int64 __fastcall CSteam3ServerS1_ShutdownGameServer(__int64 a1)
+  {
+    __int64 result; // rax
+    bool v2; // cc
+    int v3; // eax
+    __int64 v4; // rdx
+    __int64 v5; // rdx
+    int v6; // ecx
+    int v7; // eax
+    int v8; // eax
+    __int64 v9; // rax
+    _QWORD *v10; // rax
+
+    result = SteamInternal_ContextInit(&off_9DA010);
+    if ( *(_QWORD *)result && *(int *)(a1 + 200) > 0 )
+    {
+      if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_A32394, 2) )
+        LoggingSystem_Log((unsigned int)dword_A32394, 2, "CSteam3ServerS1::ShutdownGameServer\n");
+      if ( !(unsigned __int8)sub_86EA70() )
+      {
+        if ( *(_QWORD *)SteamInternal_ContextInit(&off_9DA010) )
+        {
+          v9 = sub_3BC540();
+          if ( !(unsigned int)V_stricmp_fast(v9, "csgo") )
+          {
+            v10 = (_QWORD *)SteamInternal_ContextInit(&off_9DA010);
+            (*(void (__fastcall **)(_QWORD))(*(_QWORD *)*v10 + 56LL))(*v10);
+          }
+        }
+      }
+      if ( g_pNetworkSystem )
+        (*(void (__fastcall **)(_QWORD *))(*g_pNetworkSystem + 96LL))(g_pNetworkSystem)  // 96LL = 0x60 = INetworkSystem_ShutdownGameServer;
+      v2 = *(_DWORD *)(a1 + 252) <= 0x3FFFFFFFu;
+      *(_DWORD *)(a1 + 232) = 0;
+      if ( v2 )
+      {
+        if ( *(_QWORD *)(a1 + 240) )
+        {
+          (*(void (__fastcall **)(_QWORD *))(*g_pMemAlloc + 32LL))(g_pMemAlloc);
+          *(_QWORD *)(a1 + 240) = 0;
+        }
+        *(_DWORD *)(a1 + 248) = 0;
+      }
+      v2 = *(_DWORD *)(a1 + 276) <= 0x3FFFFFFFu;
+      *(_DWORD *)(a1 + 256) = 0;
+      if ( v2 )
+      {
+        if ( *(_QWORD *)(a1 + 264) )
+        {
+          (*(void (__fastcall **)(_QWORD *))(*g_pMemAlloc + 32LL))(g_pMemAlloc);
+          *(_QWORD *)(a1 + 264) = 0;
+        }
+        *(_DWORD *)(a1 + 272) = 0;
+      }
+      if ( *(_DWORD *)(a1 + 280) )
+      {
+        v3 = *(_DWORD *)(a1 + 296);
+        if ( v3 != -1 )
+        {
+          v4 = v3;
+          if ( (*(_DWORD *)(a1 + 284) & 0x7FFFFFFF) == 0 )
+            goto LABEL_21;
+          while ( 1 )
+          {
+            v5 = *(_QWORD *)(a1 + 288) + 40 * v4;
+            v6 = *(_DWORD *)(v5 + 36);
+            *(_DWORD *)(v5 + 32) = v3;
+            if ( v6 == -1 )
+              break;
+            while ( 1 )
+            {
+              v3 = v6;
+              v4 = v6;
+              if ( (*(_DWORD *)(a1 + 284) & 0x7FFFFFFF) != 0 )
+                break;
+  LABEL_21:
+              v6 = HIDWORD(qword_20[5 * v4]);
+              v5 = 40 * v4;
+              *(_DWORD *)((char *)qword_20 + v5) = v3;
+              if ( v6 == -1 )
+                goto LABEL_22;
+            }
+          }
+  LABEL_22:
+          *(_DWORD *)(v5 + 36) = *(_DWORD *)(a1 + 304);
+          v7 = *(_DWORD *)(a1 + 296);
+          if ( v7 != -1 )
+            *(_DWORD *)(a1 + 304) = v7;
+        }
+        *(_QWORD *)(a1 + 296) = -1;
+        *(_DWORD *)(a1 + 308) = 0;
+      }
+      *(_DWORD *)(a1 + 280) = 0;
+      v8 = *(_DWORD *)(a1 + 284);
+      if ( (v8 & 0x7FFFFFFF) != 0 )
+      {
+        if ( v8 >= 0 )
+          (*(void (__fastcall **)(_QWORD *, _QWORD))(*g_pMemAlloc + 32LL))(g_pMemAlloc, *(_QWORD *)(a1 + 288));
+        *(_QWORD *)(a1 + 288) = 0;
+      }
+      *(_DWORD *)(a1 + 284) = 0;
+      *(_DWORD *)(a1 + 304) = -1;
+      SteamGameServer_Shutdown();
+      *(_BYTE *)(a1 + 220) = 0;
+      result = 0x10000000000LL;
+      *(_QWORD *)(a1 + 208) = 0x10000000000LL;
+      *(_DWORD *)(a1 + 216) = 0;
+      *(_DWORD *)(a1 + 200) = 0;
+    }
+    return result;
+  }
