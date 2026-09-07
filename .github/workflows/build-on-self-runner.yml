@@ -152,7 +152,6 @@ jobs:
       DEPOTDOWNLOADER_STEAM_USERNAME: ${{ secrets.DEPOTDOWNLOADER_STEAM_USERNAME }}
       DEPOTDOWNLOADER_STEAM_PASSWORD: ${{ secrets.DEPOTDOWNLOADER_STEAM_PASSWORD }}
       PERSISTED_WORKSPACE: ${{ secrets.PERSISTED_WORKSPACE }}
-      SUBMODULE_CACHE_VERSION: v1
     steps:
       - name: Checkout exact generator source
         id: checkout-source
@@ -162,38 +161,13 @@ jobs:
           fetch-depth: 0
           submodules: false
           persist-credentials: false
-      - name: Compute submodule cache key
-        id: submodule-cache-key
-        working-directory: ${{ github.workspace }}
-        shell: pwsh
-        run: |
-          $content = @()
-          $content += Get-Content -Raw .gitmodules
-          $content += ""
-          # The submodule state prefix (- for uninitialized, ' ' for initialized)
-          # differs by working-tree state, so a key derived from that output drifts
-          # between the miss and save phases and the cache never hits. Read the
-          # committed gitlink SHAs from HEAD instead; they are deterministic.
-          $content += git ls-tree HEAD
-          $sha = [System.Security.Cryptography.SHA256]::Create()
-          $bytes = [System.Text.Encoding]::UTF8.GetBytes(($content -join "`n"))
-          $hash = [System.BitConverter]::ToString($sha.ComputeHash($bytes)).Replace("-", "").ToLowerInvariant()
-          "hash=$hash" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-      - name: Restore submodule cache
-        id: restore-submodule-cache
-        uses: actions/cache@v5
-        with:
-          path: |
-            .git/modules
-            hl2sdk_cs2
-          key: ${{ runner.os }}-submodules-${{ env.SUBMODULE_CACHE_VERSION }}-${{ steps.submodule-cache-key.outputs.hash }}
-          restore-keys: |
-            ${{ runner.os }}-submodules-${{ env.SUBMODULE_CACHE_VERSION }}-
-      - name: Sync and update submodules
+      - name: Sync and update submodules via runner Git cache proxy
         id: sync-submodules
         working-directory: ${{ github.workspace }}
         shell: pwsh
         run: |
+          # Runner Git config routes HTTPS GitHub reads through http://HZVM:8080/.
+          # Keep canonical URLs: pushInsteadOf routes writes directly to GitHub.
           git submodule sync --recursive
           if ($LASTEXITCODE -ne 0) { throw "git submodule sync failed." }
           git submodule update --init --recursive --depth 1 --jobs 8
