@@ -5577,9 +5577,13 @@ async def preprocess_index_based_vfunc_via_mcp(
     calculations that break when the engine inserts new virtual functions
     between existing ones.
 
-    If an old YAML exists for the target, its ``func_sig`` is reused.  Otherwise
-    (or when no old YAML is available), a new ``func_sig`` is generated via
-    ``preprocess_gen_func_sig_via_mcp`` when *generate_func_sig* is True.
+    When *generate_func_sig* is True, a new ``func_sig`` is generated from the
+    current IDB via ``preprocess_gen_func_sig_via_mcp``.  Old-artifact reuse is
+    intentionally not performed here: the caller's fast path
+    (``preprocess_func_sig_via_mcp``) already validated and rejected the old
+    signature before falling back, so it must not be resurrected.  When
+    *generate_func_sig* is False, an existing old ``func_sig`` is carried
+    forward unchanged.
 
     Args:
         session: Active MCP ClientSession.
@@ -5596,8 +5600,9 @@ async def preprocess_index_based_vfunc_via_mcp(
         inherit_vtable_class: Class name or vtable artifact stem whose vtable
             is looked up (e.g. ``"CTriggerPush"`` or
             ``"CTriggerPush_vtable2"``).
-        generate_func_sig: Whether to generate a new func_sig when none can be
-            reused from old YAML (default True).
+        generate_func_sig: Whether to generate a func_sig from the current IDB
+            (default True). When False, an old func_sig is carried forward
+            unchanged if one is present.
         slot_only: When True and ``generate_func_sig`` is False, return only
             slot metadata without resolving the inherit-class vtable entry or
             querying function info.
@@ -5804,15 +5809,20 @@ async def preprocess_index_based_vfunc_via_mcp(
         "vfunc_index": target_index,
     }
 
-    # 6. Try to reuse old func_sig
-    old_path = (old_yaml_map or {}).get(target_output)
+    # 6. Resolve func_sig.
+    # The caller's reuse fast path (preprocess_func_sig_via_mcp) already
+    # validated the old artifact against this IDB and rejected it before this
+    # fallback runs; copying its func_sig back unconditionally would resurrect
+    # a signature that no longer matches the current binary (issue #937).
     old_func_sig = None
-    if old_path and os.path.exists(old_path):
-        old_data = _read_yaml(old_path)
-        if isinstance(old_data, dict):
-            sig = old_data.get("func_sig")
-            if sig:
-                old_func_sig = str(sig)
+    if not generate_func_sig:
+        old_path = (old_yaml_map or {}).get(target_output)
+        if old_path and os.path.exists(old_path):
+            old_data = _read_yaml(old_path)
+            if isinstance(old_data, dict):
+                sig = old_data.get("func_sig")
+                if sig:
+                    old_func_sig = str(sig)
 
     if old_func_sig:
         payload["func_sig"] = old_func_sig
