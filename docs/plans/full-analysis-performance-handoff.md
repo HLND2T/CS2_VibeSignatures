@@ -2,7 +2,7 @@
 
 - 日期:2026-09-06
 - 仓库:`HLND2T/CS2_VibeSignatures`(本地 `D:\CS2_VibeSignatures`,本讨论时分支 `dev-CGameResourceService_AllocGameResourceManifest`,HEAD `d2cb49c5`)
-- 状态:**问题已定性与定量,方案已列出,尚未实施**。需要继续讨论方案取舍或直接实施。
+- 当前状态（2026-09-07）：selected 能力与跳过缺陷修复已实施；Phase-D 通过原运行和单节点跨运行续验完成，独立策略更新启用 selected。下文第 1–17 节保留历史分析与迁移过程，最新证据见第 18 节。
 
 ---
 
@@ -329,3 +329,14 @@ PR 改为 trusted prepare → base 白名单物料化 → selected execute → �
 - 用户要求跳过已成功的 2195 条 skill；临时 `phase_d_resume.py` 仅用于该固定 run 和准确 source SHA。它重新核验已上传的四个成功报告、旧失败报告的摘要/绑定、保留节点的证据及除缺失文件之外的完整字节；只允许准确的一行 executor 修复。恢复同一 warm generation，从准确 source Git blobs 继承其它输出，仅运行没有 prerequisite、额外输出或下游的这一个节点。
 - 续验使用 records-only 验证入口核对跨 run 的组/节点覆盖，原失败报告和原 comparison.json 均不修改，也不生成冒充原单次 run 的成功报告。新报告标为 `phase-d-cross-run-continuation-not-pr-attestation`，记录原报告、补跑报告、executor 修复摘要与完整 inventory 比较；它是一次性迁移续验证据，不引入生产 PR/release 的通用 resume 契约。
 - 全量下游证据仅在源码/config 和补齐后的完整 inventory 与已验证 full 基线完全一致后复用。#926 合并后的临时入口清理范围同时包含 `phase_d_resume.py`；永久保留执行器修复及其回归测试。
+
+### 续验结果与策略启用
+
+- 修复通过 PR #931 合入（`2ddc73a5`）。[续验 run 34067782997](https://github.com/HLND2T/CS2_VibeSignatures/actions/runs/34067782997) 成功；`continuation.json` 为 `valid=true`，明确标记 `phase-d-cross-run-continuation-not-pr-attestation`。
+- 保留 2195 个成功节点，只重跑 `7:241:server:linux:find-CFlashbangProjectile_Spawn_NetworkStateChangedNotify`；producer 耗时 **53.203 秒**。补跑报告 `valid=true`、issues 为空；联合记录覆盖全部 3529 组。
+- 补齐后的 3526 个文件与原 fresh-full 基线逐字节相同，并再次在本地下载结果进行完整 inventory 比较。比较摘要：`sha256:6f5c2fddb7bd8883b52a4de815bc5932ba468065baebf77df4056f32604c630c`。
+- 原失败报告摘要：`sha256:a59af7ef608aa1fda02ea8bf352f17a6826aac4c577df25b1211663418fc31f6`；补跑报告摘要：`sha256:efdaf5cc6cae4888ef2c70483ccaea696f355069d86a0fde4c750f480de762eb`。原报告不改写。
+- 保持 IDA 9.3、warm generation `19101f3cc9642dc952428d880331ce0f4cf92f8873a3f4479998b8c0ed54cac2-33321771474-1`、binary lock `sha256:f731bb7d9648092272eb749fbd8c1892bf8e7b94b3221a92633c0a7297836e89` 和字符串最小长度 4。
+- 独立策略更新将 `source_artifact_policy.yaml` 设为 `base-inherited-selected-v1`，并在正式 `pr-self-runner.yml` 显式设置 `CS2VIBE_STRING_MIN_LENGTH=4`，使 PR 分析条件与已验证条件一致。release fresh-full 及发布前精确字节门禁不变；回滚只需将 policy 恢复为 `fresh-full-v1`。
+- 限制：共享运行时样本使用保留旧成功证据 + 准确一行 executor 修复下的单节点续验，不宣称修复后又执行过一次完整 fresh-full。补跑输出、声明依赖及未触发该分支的旧成功记录分别验证；这不是生产通用断点续跑契约。merge queue 的 selected 真机复验仍由 #926 后续队列运行验证。
+- 临时 workflow/helper 清理仍等待 **#926 合并完成**，不得提前删除。
