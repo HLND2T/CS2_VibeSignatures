@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import difflib
 import hashlib
 import json
 import os
@@ -1351,7 +1352,9 @@ def _is_verified_attempt_status(
     return True
 
 
-def _load_selected_execution_report(path: Path, *, preparation: dict, version: dict, plan: dict) -> dict:
+def _load_selected_execution_report(
+    path: Path, *, preparation: dict, version: dict, plan: dict, drift_context=None
+) -> dict:
     try:
         raw = path.read_bytes()
         report = json.loads(raw.decode("utf-8"))
@@ -1388,13 +1391,65 @@ def _load_selected_execution_report(path: Path, *, preparation: dict, version: d
     ):
         raise TrustedArtifactPrError(f"selected execution report does not prove the required PR run for {gamever}")
 
-    validate_selected_execution_records(report, version)
+    validate_selected_execution_records(report, version, drift_context=drift_context)
     if report.get("inherited_initial_inventory_sha256") != preparation["initial_actual_inventory_sha256"].get(gamever):
         raise TrustedArtifactPrError(f"selected execution report lost the seeded-root binding for {gamever}")
     return report
 
 
-def validate_selected_execution_records(report: dict, version: dict) -> None:
+def _drift_content_diff(
+    gamever: str,
+    relative: str,
+    *,
+    repo_root: Path,
+    actual_root: Path,
+    max_diff_lines: int = 40,
+) -> str:
+    """Render an expected-vs-actual content diff for one drifted artifact.
+
+    The expected side is the source checkout's Git-tracked artifact (bound to the
+    merge tree by the caller's filesystem digest checks); the actual side is the
+    isolated rebuild output. Text artifacts (YAML) get a line diff so a drift
+    failure pinpoints the differing fields without runner access; anything else
+    falls back to size and digest facts.
+    """
+    expected_path = repo_root / "bin_artifacts" / gamever / relative
+    actual_path = actual_root / gamever / relative
+
+    def _describe(path: Path) -> str:
+        if not path.is_file():
+            return "missing"
+        raw = path.read_bytes()
+        return f"size={len(raw)} sha256={_sha256(raw)}"
+
+    facts = (
+        f"\n  artifact: bin_artifacts/{gamever}/{relative}"
+        f"\n  expected: {_describe(expected_path)}"
+        f"\n  actual:   {_describe(actual_path)}"
+    )
+    try:
+        expected_raw = expected_path.read_bytes()
+        actual_raw = actual_path.read_bytes()
+    except OSError:
+        return facts
+    try:
+        expected_lines = expected_raw.decode("utf-8").splitlines()
+        actual_lines = actual_raw.decode("utf-8").splitlines()
+    except UnicodeDecodeError:
+        return facts
+    diff_lines = list(
+        difflib.unified_diff(expected_lines, actual_lines, fromfile="expected", tofile="actual", lineterm="")
+    )
+    if not diff_lines:
+        return facts
+    shown = diff_lines[:max_diff_lines]
+    suffix = (
+        "" if len(diff_lines) <= max_diff_lines else f"\n  ... ({len(diff_lines) - max_diff_lines} more diff lines)"
+    )
+    return facts + "\n  content diff (expected -> actual):\n    " + "\n    ".join(shown) + suffix
+
+
+def validate_selected_execution_records(report: dict, version: dict, *, drift_context=None) -> None:
     """Validate group/node coverage and writes; callers must separately bind provenance and roots."""
     gamever = version["game_version"]
     expected_files = {
@@ -1429,7 +1484,15 @@ def validate_selected_execution_records(report: dict, version: dict) -> None:
             or record.get("alternative_node_ids") != planned["alternative_node_ids"]
             or record.get("output_sha256") != expected_sha256
         ):
-            raise TrustedArtifactPrError(f"selected execution drifted from the trusted plan: {group_id}")
+            detail = ""
+            if drift_context is not None:
+                detail = _drift_content_diff(
+                    gamever,
+                    planned["artifact_path"],
+                    repo_root=drift_context["repo_root"],
+                    actual_root=drift_context["actual_root"],
+                )
+            raise TrustedArtifactPrError(f"selected execution drifted from the trusted plan: {group_id}{detail}")
         winner = record.get("winner_node_id")
         if expected_sha256 is not None and winner not in planned["alternative_node_ids"]:
             raise TrustedArtifactPrError(f"selected producer group has no valid winning alternative: {group_id}")
@@ -1641,6 +1704,7 @@ def validate_isolated_rebuild(
                 preparation=preparation,
                 version=version,
                 plan=plan,
+                drift_context={"repo_root": repo_root, "actual_root": actual_root},
             )
         else:
             execution = _load_force_all_execution_report(

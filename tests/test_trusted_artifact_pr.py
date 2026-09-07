@@ -963,6 +963,37 @@ class SelectedExecutionTests(unittest.TestCase):
             ):
                 tap.validate_isolated_rebuild(repo_root=root, plan=plan, preparation=preparation)
 
+    def test_selected_verify_reports_drift_content_diff(self) -> None:
+        """A drifted selected output must surface the expected-vs-actual content diff."""
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            staging = Path(temporary) / "isolated"
+            root.mkdir()
+            plan, preparation = self._plan_and_preparation(root, staging)
+            self._simulate_selected_execution(root, plan, preparation)
+            self._write_selected_report(root, plan, preparation)
+
+            version = plan["game_versions"][0]
+            gamever = version["game_version"]
+            group = next(
+                record for record in version["execute_groups"] if record["artifact_path"] == "server/A.windows.yaml"
+            )
+            drifted = canonical_symbol_yaml_bytes({"func_name": "A", "func_rva": "0x99"}, category="func")
+            actual_path = Path(preparation["actual_artifact_root"]) / gamever / group["artifact_path"]
+            actual_path.write_bytes(drifted)
+
+            def claim_drifted_output(report):
+                for record in report["producer_groups"]:
+                    if record["artifact_path"] == "server/A.windows.yaml":
+                        record["output_sha256"] = "sha256:" + hashlib.sha256(drifted).hexdigest()
+
+            self._retamper_selected_report(preparation, gamever, claim_drifted_output)
+
+            with self.assertRaisesRegex(
+                tap.TrustedArtifactPrError, r"(?s)drifted from the trusted plan.*content diff.*0x99"
+            ):
+                tap.validate_isolated_rebuild(repo_root=root, plan=plan, preparation=preparation)
+
     def test_selected_verify_rejects_recorded_write_to_inherited_artifact(self) -> None:
         """Even a byte-identical rewrite of an inherited artifact must fail once recorded."""
         with tempfile.TemporaryDirectory() as temporary:
