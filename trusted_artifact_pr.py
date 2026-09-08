@@ -24,7 +24,7 @@ from artifact_diagnostics import (
     read_artifact_bytes,
     safe_component,
 )
-from binary_lock import BinaryLockError, load_binary_lock_from_revision
+from binary_lock import BinaryLockError, download_identity, load_binary_lock_from_revision
 from bin_artifact_contract import (
     ArtifactContractError,
     _category_for,
@@ -489,6 +489,14 @@ def _download_identities(repo: GitTreeRepository, revision: str) -> dict[str, di
     return identities
 
 
+def _revision_download_identity(download_payload: bytes, gamever: str) -> dict:
+    """Return the normalized DepotDownloader identity for one tag, failing closed."""
+    try:
+        return download_identity(download_payload, gamever)
+    except BinaryLockError as exc:
+        raise TrustedArtifactPrError(f"invalid download identity for GAMEVER {gamever}: {exc}") from exc
+
+
 def _revision_python_sources(repo: GitTreeRepository, revision: str) -> dict[str, str]:
     sources = {}
     for entry in repo.entries(revision, "ida_preprocessor_scripts"):
@@ -701,6 +709,8 @@ def build_trusted_artifact_plan(*, repo_root: str | Path, trusted_context: dict 
     _reject_non_maintained_version_edits(changes, maintained_versions)
     base_downloads = _download_identities(repo, context["base_sha"])
     merge_downloads = _download_identities(repo, context["merge_sha"])
+    base_download_raw = repo.read(context["base_sha"], "download.yaml")
+    merge_download_raw = repo.read(context["merge_sha"], "download.yaml")
     needs_base_sources, needs_merge_sources = required_source_index_sides(list(changes))
     base_sources = _revision_python_sources(repo, context["base_sha"]) if needs_base_sources else {}
     merge_sources = _revision_python_sources(repo, context["merge_sha"]) if needs_merge_sources else {}
@@ -779,22 +789,23 @@ def build_trusted_artifact_plan(*, repo_root: str | Path, trusted_context: dict 
                 invalidated_paths.update(base_contract.formal_paths)
                 reasons.append("configured GAMEVER removed")
 
-            binary_identity_changed = base_downloads.get(gamever) != merge_downloads.get(gamever) or (
-                base_binary_lock.sha256 if base_binary_lock else None
-            ) != (merge_binary_lock.sha256 if merge_binary_lock else None)
-            if gamever in base_versions and gamever in merge_versions and binary_identity_changed:
+            if gamever in base_versions and gamever in merge_versions:
                 changed_identity_paths = []
-                if base_downloads.get(gamever) != merge_downloads.get(gamever):
-                    changed_identity_paths.append(f"download.yaml (existing tag {gamever!r})")
-                if (base_binary_lock.sha256 if base_binary_lock else None) != (
-                    merge_binary_lock.sha256 if merge_binary_lock else None
+                # Compare the normalized DepotDownloader selection (app_id/branch/manifests/os)
+                # exactly like binary_lock does, so non-identity metadata such as
+                # major_update stays a legal prior-baseline policy adjustment.
+                if _revision_download_identity(base_download_raw, gamever) != _revision_download_identity(
+                    merge_download_raw, gamever
                 ):
+                    changed_identity_paths.append(f"download.yaml (existing tag {gamever!r})")
+                if base_binary_lock.sha256 != merge_binary_lock.sha256:
                     changed_identity_paths.append(f"binary_locks/{gamever}.json")
-                raise TrustedArtifactPrError(
-                    "manual binary identity change for an already-configured GAMEVER is rejected; "
-                    "use the download/binary-lock bump flow instead of editing identity by hand:\n"
-                    + "\n".join(f"  {path}" for path in changed_identity_paths)
-                )
+                if changed_identity_paths:
+                    raise TrustedArtifactPrError(
+                        "manual binary identity change for an already-configured GAMEVER is rejected; "
+                        "use the download/binary-lock bump flow instead of editing identity by hand:\n"
+                        + "\n".join(f"  {path}" for path in changed_identity_paths)
+                    )
 
             if merge_contract is not None and maintained:
                 identity_prefix = f"bin_artifacts/{gamever}/"
@@ -902,7 +913,6 @@ def build_trusted_artifact_plan(*, repo_root: str | Path, trusted_context: dict 
         if any(report["bootstrap_required"] for report in version_reports)
         else ("full" if affected_versions else "light")
     )
-    download_raw = repo.read(context["merge_sha"], "download.yaml")
     policy_strategy = context["artifact_policy"]["execution_strategy"]
     document = {
         "schema_version": PLAN_SCHEMA_VERSION,
@@ -916,7 +926,7 @@ def build_trusted_artifact_plan(*, repo_root: str | Path, trusted_context: dict 
         "trusted_context_sha256": context["context_sha256"],
         "configured_game_versions": list(merge_versions),
         "affected_game_versions": affected_versions,
-        "download_sha256": _sha256(download_raw),
+        "download_sha256": _sha256(merge_download_raw),
         "sdk_gitlink_sha": _gitlink_sha(repo, context["merge_sha"], "hl2sdk_cs2"),
         "base_analysis_sources": _source_inventory(repo, context["base_sha"]),
         "merge_analysis_sources": _source_inventory(repo, context["merge_sha"]),

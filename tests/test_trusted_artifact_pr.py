@@ -692,6 +692,18 @@ class PrValidationRoutingTests(unittest.TestCase):
             )
             (root / "download.yaml").write_text(document, encoding="utf-8")
             write_source_binary_lock(root, self.NEW_GAMEVER)
+        elif change == "maintained-major-update":
+            tag_entry = f"  - tag: '{self.NEW_GAMEVER}'\n    manifests: {{'{self.NEW_GAMEVER}': '1'}}\n"
+            document = self._download_document((self.OLD_GAMEVER, self.NEW_GAMEVER)).replace(
+                tag_entry,
+                tag_entry + "    major_update: true\n",
+            )
+            self.assertNotEqual(
+                self._download_document((self.OLD_GAMEVER, self.NEW_GAMEVER)),
+                document,
+                "major_update fixture edit must apply",
+            )
+            (root / "download.yaml").write_text(document, encoding="utf-8")
         elif change == "preprocessor-referenced":
             scripts = root / "ida_preprocessor_scripts"
             scripts.mkdir(exist_ok=True)
@@ -818,6 +830,21 @@ class PrValidationRoutingTests(unittest.TestCase):
             message = str(caught.exception)
             self.assertIn(f"download.yaml (existing tag {self.NEW_GAMEVER!r})", message)
             self.assertIn(f"binary_locks/{self.NEW_GAMEVER}.json", message)
+
+    def test_maintained_major_update_metadata_change_routes_light(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            root.mkdir()
+
+            # major_update only steers prior-baseline selection: it is not part of the
+            # normalized download identity, so it must not trip the identity rejection.
+            plan = self._plan(root, "maintained-major-update")
+
+            self._assert_light(plan)
+            version = self._version(plan, self.NEW_GAMEVER)
+            self.assertIsNone(version["prior_gamever"])
+            self.assertEqual(version["base_binary_lock_sha256"], version["merge_binary_lock_sha256"])
+            self.assertEqual(plan, tap.validate_trusted_artifact_plan(plan))
 
     def test_referenced_preprocessor_change_routes_full(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
