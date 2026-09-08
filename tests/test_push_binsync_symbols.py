@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import os
 import struct
 import subprocess
 import tempfile
@@ -246,7 +247,7 @@ class TestBootstrapLocalInit(unittest.TestCase):
             self.assertEqual(binary_md5, _git(repo, "show", "binsync/__root__:binary_hash").stdout)
             self.assertEqual(
                 "https://github.com/HLND2T/CS2_VibeSignatures_binsync_14180_SDL3.dll",
-                _git(repo, "remote", "get-url", "origin").stdout.strip(),
+                _git(repo, "config", "--get", "remote.origin.url").stdout.strip(),
             )
             # The dedicated user branch is checked out and the sidecar is written.
             self.assertEqual(f"binsync/{self.USER}", _git(repo, "branch", "--show-current").stdout.strip())
@@ -254,6 +255,36 @@ class TestBootstrapLocalInit(unittest.TestCase):
             self.assertEqual(self.USER, sidecar["user"])
             self.assertEqual(binary_md5, sidecar["expected_md5"])
 
+            repository_id = "HLND2T__CS2_VibeSignatures_binsync_14180_SDL3.dll"
+            self.assertEqual(
+                {repository_id: {"remote_url": "https://github.com/HLND2T/CS2_VibeSignatures_binsync_14180_SDL3.dll"}},
+                snapshots,
+            )
+
+    def test_bootstrap_local_init_prepare_survives_insteadof_proxy_rewrite(self) -> None:
+        # Issue #947: the runner rewrites every GitHub HTTPS read through a git
+        # cache proxy via a system-level insteadOf; the local-init prepare must
+        # validate origins against the raw stored canonical URL, not the
+        # rewritten transport URL that `git remote get-url` would return.
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config = self._make_workspace(root)
+            with (
+                patch.dict(
+                    os.environ,
+                    {
+                        "GIT_CONFIG_COUNT": "1",
+                        "GIT_CONFIG_KEY_0": "url.http://127.0.0.1:8080/.insteadOf",
+                        "GIT_CONFIG_VALUE_0": "https://github.com/",
+                    },
+                ),
+                patch.object(push_binsync_symbols, "_remote_heads") as remote_heads,
+            ):
+                snapshots = push_binsync_symbols.prepare_local_repositories(
+                    root, "14180", config, self.USER, bootstrap_local_init=True
+                )
+
+            remote_heads.assert_not_called()
             repository_id = "HLND2T__CS2_VibeSignatures_binsync_14180_SDL3.dll"
             self.assertEqual(
                 {repository_id: {"remote_url": "https://github.com/HLND2T/CS2_VibeSignatures_binsync_14180_SDL3.dll"}},

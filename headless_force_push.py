@@ -282,7 +282,10 @@ def local_only_remote(repo: pathlib.Path, remote: str, *, bootstrap_local_init: 
     """
     if not TRUSTED_REMOTE_RE.fullmatch(remote):
         raise SystemExit(f"local-only BinSync export requires a canonical public remote: {remote!r}")
-    original = _git(["remote", "get-url", "origin"], cwd=repo)
+    # Read the raw configured URL: `git remote get-url` expands url.*.insteadOf
+    # rewrites (e.g. the git cache proxy from issue #927), so a canonical origin
+    # would no longer compare equal under such a rewrite.
+    original = _git(["config", "--get", "remote.origin.url"], cwd=repo)
     if original != remote:
         raise SystemExit(f"local BinSync origin differs from the canonical remote: {repo}")
     sink_source = str(repo) if bootstrap_local_init else remote

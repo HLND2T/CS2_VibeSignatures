@@ -2,6 +2,7 @@ import base64
 import importlib.util
 import io
 import json
+import os
 import subprocess
 import tempfile
 import unittest
@@ -308,6 +309,35 @@ class TestInitGamebin(unittest.TestCase):
             git(repo, "remote", "add", "origin", "git@github.com:HLND2T/repo.git")
             (repo / ".git" / "binsync.lock").write_text("", encoding="utf-8")
             self.assertEqual((True, True), init_gamebin.validate_local_binsync_repo(repo, "a" * 32, "repo"))
+
+    def test_validate_local_repo_reads_raw_origin_despite_insteadof_rewrite(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo = Path(temp_dir)
+            init_gamebin.initialize_minimal_binsync_repo(repo, "a" * 32, "repo", "HZDEV")
+            git(repo, "remote", "add", "origin", "https://github.com/HLND2T/repo.git")
+            # A system-level insteadOf rewrite (the git cache proxy from issue
+            # #927) makes `git remote get-url` return the proxy URL; validation
+            # must read the raw stored canonical URL instead.
+            with patch.dict(
+                os.environ,
+                {
+                    "GIT_CONFIG_COUNT": "1",
+                    "GIT_CONFIG_KEY_0": "url.http://127.0.0.1:8080/.insteadOf",
+                    "GIT_CONFIG_VALUE_0": "https://github.com/",
+                },
+            ):
+                self.assertEqual(
+                    "http://127.0.0.1:8080/HLND2T/repo.git",
+                    git(repo, "remote", "get-url", "origin").stdout.strip(),
+                )
+                self.assertEqual((True, False), init_gamebin.validate_local_binsync_repo(repo, "a" * 32, "repo"))
+
+    def test_validate_local_repo_reports_missing_origin(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo = Path(temp_dir)
+            init_gamebin.initialize_minimal_binsync_repo(repo, "a" * 32, "repo", "HZDEV")
+            with self.assertRaisesRegex(init_gamebin.InitGamebinError, "no origin remote"):
+                init_gamebin.validate_local_binsync_repo(repo, "a" * 32, "repo")
 
     def test_validate_local_repo_rejects_hash_and_origin_conflicts(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

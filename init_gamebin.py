@@ -354,7 +354,19 @@ def validate_local_binsync_repo(repo_path: Path, binary_md5: str, repo_name: str
         raise InitGamebinError(
             f"local BinSync repo binary_hash mismatch for {repo_path}: expected {binary_md5}, got {stored_hash}"
         )
-    origin = git_output(["git", "remote", "get-url", "origin"], repo_path, f"reading origin from {repo_path}")
+    # Read the raw configured URL: `git remote get-url` expands url.*.insteadOf
+    # rewrites (e.g. the git cache proxy from issue #927), so a canonical origin
+    # would no longer compare equal under such a rewrite.
+    origin_result = run_command(
+        ["git", "config", "--get", "remote.origin.url"],
+        repo_path,
+        allowed=(0, 1),
+        capture=True,
+        label=f"reading origin from {repo_path}",
+    )
+    origin = origin_result.stdout.strip()
+    if not origin:
+        raise InitGamebinError(f"local BinSync repo has no origin remote: {repo_path}")
     normalized = normalize_github_remote(origin)
     expected = (GITHUB_OWNER.casefold(), repo_name.casefold())
     if normalized != expected:
