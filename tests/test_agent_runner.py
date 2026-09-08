@@ -450,6 +450,76 @@ class TestOpenCodeCommandConstruction(unittest.TestCase):
             self.assertEqual(expected_content, json.loads(process_env["OPENCODE_CONFIG_CONTENT"]))
 
 
+class TestOutputFinalizationRetry(unittest.TestCase):
+    def run_attempts(self, validator, *, agent_kind="claude", max_retries=3):
+        return agent_runner._run_skill_attempts(
+            skill_name="find-test",
+            agent=agent_kind,
+            agent_kind=agent_kind,
+            session_id="owned-session",
+            developer_instructions="instructions",
+            debug=False,
+            expected_yaml_paths=[],
+            max_retries=max_retries,
+            agent_model="",
+            mcp_url=None,
+            progress_callback=self.progress.append,
+            output_validator=validator,
+        )
+
+    def setUp(self):
+        self.events = []
+        self.progress = unittest.mock.Mock()
+        self.progress.append = lambda **event: self.events.append(event)
+
+    def test_invalid_artifact_is_repaired_with_feedback_on_all_agents(self):
+        error = "test.yaml: vfunc_index does not match vfunc_offset / 8"
+        for kind in ("claude", "codex", "opencode"):
+            with (
+                self.subTest(agent=kind),
+                patch.object(
+                    agent_runner,
+                    "_run_process_with_stream_capture",
+                    return_value=subprocess.CompletedProcess([], 0, "", ""),
+                ) as run,
+            ):
+                self.events.clear()
+                validator = unittest.mock.Mock(side_effect=[[error], []])
+                self.assertTrue(self.run_attempts(validator, agent_kind=kind))
+                self.assertEqual(2, run.call_count)
+                second = run.call_args_list[1]
+                prompt = second.kwargs["agent_input"] or " ".join(second.args[0])
+                self.assertIn(error, prompt)
+                self.assertIn("Do not skip", prompt)
+                self.assertEqual([2], [e["attempt"] for e in self.events if e["event"] == "succeeded"])
+
+    def test_invalid_outputs_exhaust_the_same_attempt_budget(self):
+        with patch.object(
+            agent_runner, "_run_process_with_stream_capture", return_value=subprocess.CompletedProcess([], 0, "", "")
+        ) as run:
+            self.assertFalse(self.run_attempts(lambda: ["test.yaml: invalid output"]))
+        self.assertEqual(3, run.call_count)
+        self.assertFalse(any(e["event"] == "succeeded" for e in self.events))
+
+    def test_protected_output_modification_is_fatal_even_if_agent_failed(self):
+        with patch.object(
+            agent_runner, "_run_process_with_stream_capture", return_value=subprocess.CompletedProcess([], 1, "", "")
+        ) as run:
+            validator = unittest.mock.Mock(side_effect=agent_runner.NonRetryableOutputError("protected.yaml"))
+            self.assertFalse(self.run_attempts(validator))
+        self.assertEqual(1, run.call_count)
+
+    def test_timeout_cannot_retry_after_protected_output_modification(self):
+        with patch.object(
+            agent_runner,
+            "_run_process_with_stream_capture",
+            side_effect=subprocess.TimeoutExpired("claude", 10),
+        ) as run:
+            validator = unittest.mock.Mock(side_effect=agent_runner.NonRetryableOutputError("protected.yaml"))
+            self.assertFalse(self.run_attempts(validator))
+        self.assertEqual(1, run.call_count)
+
+
 class TestRunSkillOutputDetection(unittest.TestCase):
     def setUp(self) -> None:
         agent_runner._MCP_PREFLIGHT_DONE.clear()

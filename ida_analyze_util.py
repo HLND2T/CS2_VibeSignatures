@@ -2975,6 +2975,7 @@ async def call_llm_decompile(
     retry_max_delay=None,
     debug=False,
     instruction_validations=None,
+    result_validator=None,
 ):
     return await _ida_llm_decompile.call_llm_decompile(
         client=client,
@@ -2982,6 +2983,7 @@ async def call_llm_decompile(
         symbol_name_list=symbol_name_list,
         expected_result_sections=expected_result_sections,
         instruction_validations=instruction_validations,
+        result_validator=result_validator,
         disasm_code=disasm_code,
         target_disasm_codes=target_disasm_codes,
         procedure=procedure,
@@ -8000,6 +8002,7 @@ async def preprocess_common_skill(
     mangled_class_names=None,
     debug=False,
     canonical_vtable_symbols=None,
+    llm_result_validator=None,
 ):
     """Reusable preprocess_skill implementation for func/vfunc, gv, patch, struct-member, vtable, inherit-vfunc, func-xref, and vtable-relation targets.
 
@@ -8016,6 +8019,8 @@ async def preprocess_common_skill(
       auto-derived vtable symbols and RTTI fallback.
     - ``canonical_vtable_symbols``: optional mapping from vtable class names to
       deterministic symbols emitted in generated YAML.
+    - ``llm_result_validator``: optional synchronous finder validator returning
+      error strings for a parsed LLM result. Errors share the LLM retry budget.
     - ``inherit_vfuncs``: inherited virtual function targets resolved by
       base-class vfunc_index + vtable lookup via
       ``preprocess_index_based_vfunc_via_mcp``.  Each element is a tuple of
@@ -8715,6 +8720,7 @@ async def preprocess_common_skill(
                     symbol_name_list=llm_symbol_name_list,
                     expected_result_sections=expected_result_sections,
                     instruction_validations=instruction_validations,
+                    result_validator=llm_result_validator,
                     disasm_code=primary_target_detail.get("disasm_code", ""),
                     target_disasm_codes=[target_detail.get("disasm_code", "") for target_detail in llm_target_details],
                     procedure=primary_target_detail.get("procedure", ""),

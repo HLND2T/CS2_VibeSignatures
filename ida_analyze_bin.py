@@ -51,7 +51,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from agent_runner import DEFAULT_AGENT_MODEL, run_skill
+from agent_runner import DEFAULT_AGENT_MODEL, NonRetryableOutputError, run_skill
 from analysis_config import AnalysisConfigError, resolve_analysis_config
 from gamever_baseline import GAMEVER_RE as BASELINE_GAMEVER_RE
 from gamever_baseline import select_prior_gamever
@@ -4236,6 +4236,37 @@ def process_binary(
             progress_callback = _build_agent_progress_callback(reporting, job_id, skill_name)
 
             mcp_url = f"http://{host}:{port}/mcp"
+            finalization_issues = []
+
+            def validate_agent_outputs():
+                nonlocal finalization_issues
+
+                # Run before and after finalization, which can also rewrite YAMLs.
+                def check_protected_outputs():
+                    changed = _changed_existing_outputs(existing_output_digests) if force_all else []
+                    if changed:
+                        raise NonRetryableOutputError(" | ".join(changed))
+
+                check_protected_outputs()
+                if not required_outputs and not any(os.path.isfile(path) for path in optional_outputs):
+                    finalization_issues = []
+                else:
+                    finalization_issues = _finalize_produced_symbol_outputs(
+                        required_outputs=required_outputs,
+                        optional_outputs=optional_outputs,
+                        platform=platform,
+                        binary_dir=artifact_dir,
+                        expected_binary=binary_path,
+                        host=host,
+                        port=port,
+                        debug=debug,
+                        config_path=config_path,
+                        category_map=category_map,
+                        regenerate_func_signatures=True,
+                    )
+                check_protected_outputs()
+                return finalization_issues
+
             agent_succeeded = run_skill(
                 skill_name,
                 agent,
@@ -4245,6 +4276,7 @@ def process_binary(
                 agent_model=agent_model,
                 progress_callback=progress_callback,
                 mcp_url=mcp_url,
+                output_validator=validate_agent_outputs,
             )
             changed_existing_outputs = _changed_existing_outputs(existing_output_digests) if force_all else []
             if changed_existing_outputs:
@@ -4282,63 +4314,28 @@ def process_binary(
                         reason=ProcessReason.OPTIONAL_OUTPUT_ABSENT,
                     )
                 else:
-                    finalization_issues = _finalize_produced_symbol_outputs(
-                        required_outputs=required_outputs,
-                        optional_outputs=optional_outputs,
-                        platform=platform,
-                        binary_dir=artifact_dir,
-                        expected_binary=binary_path,
-                        host=host,
-                        port=port,
-                        debug=debug,
-                        config_path=config_path,
-                        category_map=category_map,
-                        regenerate_func_signatures=True,
+                    produced_outputs = (
+                        _newly_materialized_outputs(output_paths, existing_output_digests)
+                        if force_all
+                        else [path for path in output_paths if os.path.isfile(path)]
                     )
                     if force_all:
-                        finalization_issues.extend(
-                            f"modified output already produced by an earlier alternative: {path}"
-                            for path in _changed_existing_outputs(existing_output_digests)
-                        )
-                    if finalization_issues:
-                        fail_count += 1
-                        print(f"    Failed output finalization: {' | '.join(finalization_issues)}")
-                        _report_skill_status(
+                        _record_skill_output_produced(
                             reporting,
                             job_id,
                             skill_name,
-                            TaskStatus.FAILED,
-                            ProcessPhase.FINISHED,
-                            reason=ProcessReason.INVALID_OUTPUT,
-                            payload={"invalid_outputs": finalization_issues},
+                            produced_outputs,
                         )
-                        if not skip_error:
-                            print("  Aborting remaining skills after Agent output validation failure")
-                            abort_binary_processing = True
-                            break
-                    else:
-                        produced_outputs = (
-                            _newly_materialized_outputs(output_paths, existing_output_digests)
-                            if force_all
-                            else [path for path in output_paths if os.path.isfile(path)]
-                        )
-                        if force_all:
-                            _record_skill_output_produced(
-                                reporting,
-                                job_id,
-                                skill_name,
-                                produced_outputs,
-                            )
-                        success_count += 1
-                        print("    Success")
-                        _report_skill_status(
-                            reporting,
-                            job_id,
-                            skill_name,
-                            TaskStatus.SUCCEEDED,
-                            ProcessPhase.FINISHED,
-                            payload={"produced_outputs": produced_outputs},
-                        )
+                    success_count += 1
+                    print("    Success")
+                    _report_skill_status(
+                        reporting,
+                        job_id,
+                        skill_name,
+                        TaskStatus.SUCCEEDED,
+                        ProcessPhase.FINISHED,
+                        payload={"produced_outputs": produced_outputs},
+                    )
             else:
                 fail_count += 1
                 print("    Failed")
@@ -4348,7 +4345,8 @@ def process_binary(
                     skill_name,
                     TaskStatus.FAILED,
                     ProcessPhase.FINISHED,
-                    reason=ProcessReason.AGENT_FAILED,
+                    reason=ProcessReason.INVALID_OUTPUT if finalization_issues else ProcessReason.AGENT_FAILED,
+                    payload={"invalid_outputs": finalization_issues} if finalization_issues else {},
                 )
                 if skip_error:
                     print("  Continuing after fallback skill failure (-skip_error)")
