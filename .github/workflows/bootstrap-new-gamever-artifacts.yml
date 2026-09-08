@@ -30,6 +30,8 @@ permissions:
 concurrency:
   group: source-artifact-bootstrap-${{ github.repository }}-${{ inputs.pull_request_number }}-${{ inputs.gamever }}
   cancel-in-progress: false
+env:
+  CS2VIBE_STRING_MIN_LENGTH: '4'
 jobs:
   warmup-idb:
     uses: ./.github/workflows/warmup-idb.yml
@@ -60,6 +62,7 @@ jobs:
       CS2VIBE_LLM_EFFORT: ${{ secrets.CS2VIBE_LLM_EFFORT }}
       CS2VIBE_LLM_FAKE_AS: ${{ secrets.CS2VIBE_LLM_FAKE_AS }}
       CS2VIBE_LLM_MODEL: ${{ secrets.CS2VIBE_LLM_MODEL }}
+      CS2VIBE_STRING_MIN_LENGTH: ${{ env.CS2VIBE_STRING_MIN_LENGTH }}
     steps:
       - name: Checkout exact prospective merge source without publisher credentials
         uses: actions/checkout@v5
