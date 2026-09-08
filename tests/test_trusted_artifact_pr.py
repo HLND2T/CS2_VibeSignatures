@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import hashlib
+import contextlib
+import io
 import json
 import shutil
 import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import trusted_artifact_pr as tap
 import trusted_pr_context as tpc
@@ -15,6 +18,160 @@ from tests.gamesymbol_snapshot_test_support import write_binary, write_config, w
 
 
 class TrustedArtifactPrTests(unittest.TestCase):
+    def test_verify_cli_preserves_original_error_when_collection_fails(self):
+        error = io.StringIO()
+        with (
+            patch.object(
+                tap, "validate_isolated_rebuild", side_effect=tap.TrustedArtifactPrError("original rejection")
+            ),
+            patch.object(tap, "collect_pr_failure_diagnostics", side_effect=OSError("disk full")),
+            contextlib.redirect_stderr(error),
+        ):
+            code = tap.main(["verify", "--plan", "missing", "--preparation", "missing", "--diagnostics-dir", "unused"])
+        self.assertEqual(1, code)
+        self.assertTrue(error.getvalue().startswith("Error: original rejection"))
+        self.assertIn("disk full", error.getvalue())
+
+    def test_unbound_plan_and_preparation_cannot_redirect_failure_collection(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            temp = Path(temporary)
+            root = temp / "repo"
+            root.mkdir()
+            _base, _head, _merge, context = self._repository(root)
+            plan = tap.build_trusted_artifact_plan(repo_root=root, trusted_context=context)
+            staging = temp / "staging"
+            preparation = tap.prepare_isolated_rebuild(repo_root=root, plan=plan, staging_root=staging)
+            outside = temp / "private"
+            outside.mkdir()
+            (outside / "secret.yaml").write_bytes(b"private")
+            preparation["actual_artifact_root"] = str(outside)
+            preparation["execution_reports"]["1"] = str(outside / "secret.yaml")
+            preparation.pop("preparation_sha256")
+            preparation["preparation_sha256"] = tap._digest("isolated-preparation", preparation)
+            (staging / "preparation.json").write_bytes(tap._canonical_json_bytes(preparation))
+            context = tap.pr_diagnostic_context(repo_root=root, plan=plan, staging_root=staging, game_version="1")
+            self.assertFalse(context.metadata["preparation_valid"])
+            self.assertEqual(staging / "actual-bin-artifacts", context.actual_root)
+            self.assertNotIn(outside / "secret.yaml", context.evidence.values())
+            context = tap.pr_diagnostic_context(
+                repo_root=root,
+                plan=plan,
+                staging_root=staging,
+                game_version="1",
+                plan_sha256="sha256:" + "0" * 64,
+            )
+            self.assertFalse(context.metadata["plan_valid"])
+            self.assertIsNone(context.expected)
+            self.assertIn("workflow plan binding", " ".join(context.errors))
+
+    def test_failure_diagnostics_use_merge_blobs_and_preserve_partial_execution(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            temp = Path(temporary)
+            root = temp / "repo"
+            root.mkdir()
+            _base, _head, merge, context = self._repository(root)
+            plan = tap.build_trusted_artifact_plan(repo_root=root, trusted_context=context)
+            staging = temp / "staging"
+            preparation = tap.prepare_isolated_rebuild(repo_root=root, plan=plan, staging_root=staging)
+            plan_path = temp / "plan.json"
+            plan_path.write_bytes(tap._canonical_json_bytes(plan))
+            relative = "1/server/A.windows.yaml"
+            expected = tap.GitTreeRepository(root).read(merge, f"bin_artifacts/{relative}")
+            actual = Path(preparation["actual_artifact_root"]) / relative
+            actual.parent.mkdir(parents=True, exist_ok=True)
+            actual.write_bytes(b"partial: [\n")
+            (root / "bin_artifacts" / relative).write_bytes(b"checkout tampered\n")
+            (Path(preparation["expected_artifact_root"]) / relative).write_bytes(b"expected tampered\n")
+            # Simulate a producer failure before a report is available, with a damaged preparation.
+            (staging / "preparation.json").write_bytes(b"broken json")
+            original_error = temp / "original-error.txt"
+            original_error.write_bytes(b"producer original error\n")
+            bundle = temp / "diagnostics"
+            with contextlib.redirect_stderr(io.StringIO()), contextlib.redirect_stdout(io.StringIO()):
+                code = tap.main(
+                    [
+                        "diagnose",
+                        "--repo-root",
+                        str(root),
+                        "--plan",
+                        str(plan_path),
+                        "--plan-sha256",
+                        plan["plan_sha256"],
+                        "--staging-root",
+                        str(staging),
+                        "--gamever",
+                        "1",
+                        "--phase",
+                        "execute",
+                        "--error",
+                        "producer failed",
+                        "--error-file",
+                        str(original_error),
+                        "--diagnostics-dir",
+                        str(bundle),
+                    ]
+                )
+            self.assertEqual(0, code)
+            self.assertEqual(expected, (bundle / "expected/bin_artifacts" / relative).read_bytes())
+            self.assertEqual(b"partial: [\n", (bundle / "actual/bin_artifacts" / relative).read_bytes())
+            self.assertEqual(b"broken json", (bundle / "preparation.json").read_bytes())
+            self.assertEqual(plan_path.read_bytes(), (bundle / "trusted-plan.json").read_bytes())
+            metadata = json.loads((bundle / "diagnostics.json").read_bytes())
+            self.assertEqual(merge, metadata["source_sha"])
+            self.assertEqual("execute", metadata["phase"])
+            self.assertEqual("merge Git blob", metadata["expected_source"])
+            self.assertFalse(metadata["preparation_valid"])
+            self.assertTrue(metadata["collection_errors"])
+            self.assertEqual(b"producer original error\n", (bundle / "verification-error.txt").read_bytes())
+
+    def test_force_all_group_and_byte_failures_share_content_diagnostics(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            temp = Path(temporary)
+            root = temp / "repo"
+            root.mkdir()
+            _base, _head, _merge, context = self._repository(root)
+            plan = tap.build_trusted_artifact_plan(repo_root=root, trusted_context=context)
+            preparation = tap.prepare_isolated_rebuild(repo_root=root, plan=plan, staging_root=temp / "staging")
+            actual = Path(preparation["actual_artifact_root"])
+            shutil.copytree(Path(preparation["expected_artifact_root"]), actual, dirs_exist_ok=True)
+            self._write_execution_report(root, plan, preparation)
+            drifted = canonical_symbol_yaml_bytes({"func_name": "A", "func_rva": "0x99"}, category="func")
+            (actual / "1/server/A.windows.yaml").write_bytes(drifted)
+            for failure in ("byte mismatch", "producer-group execution drifted"):
+                with self.subTest(failure=failure), self.assertRaises(tap.TrustedArtifactPrError) as caught:
+                    tap.validate_isolated_rebuild(repo_root=root, plan=plan, preparation=preparation)
+                for fact in (failure, "merge Git blob", "-func_rva: '0x30'", "+func_rva: '0x99'"):
+                    self.assertIn(fact, str(caught.exception))
+                path = Path(preparation["execution_reports"]["1"])
+                report = json.loads(path.read_bytes())
+                for group in report["producer_groups"]:
+                    if group["artifact_path"] == "server/A.windows.yaml":
+                        group["output_sha256"] = tap._sha256(drifted)
+                report.pop("execution_sha256")
+                report["execution_sha256"] = tap._sha256(
+                    b"source2-force-all-execution:v2\n" + tap._canonical_json_bytes(report)
+                )
+                path.write_bytes(tap._canonical_json_bytes(report))
+
+    def test_force_all_early_contract_failure_reports_mixed_raw_drift(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            temp = Path(temporary)
+            root = temp / "repo"
+            root.mkdir()
+            _base, _head, _merge, context = self._repository(root)
+            plan = tap.build_trusted_artifact_plan(repo_root=root, trusted_context=context)
+            preparation = tap.prepare_isolated_rebuild(repo_root=root, plan=plan, staging_root=temp / "staging")
+            actual = Path(preparation["actual_artifact_root"])
+            shutil.copytree(Path(preparation["expected_artifact_root"]), actual, dirs_exist_ok=True)
+            self._write_execution_report(root, plan, preparation)
+            (actual / "1/server/A.windows.yaml").write_bytes(b"broken: [\n")
+            (actual / "1/server/B.windows.yaml").unlink()
+            (actual / "1/server/extra.yaml").write_bytes(b"extra\n")
+            with self.assertRaises(tap.TrustedArtifactPrError) as caught:
+                tap.validate_isolated_rebuild(repo_root=root, plan=plan, preparation=preparation)
+            for fact in ("contract failed", "missing=", "extra=", "changed=", "merge Git blob", "+broken: ["):
+                self.assertIn(fact, str(caught.exception))
+
     def _git(self, root: Path, *arguments: str) -> str:
         result = subprocess.run(
             ["git", "-C", str(root), *arguments],
@@ -403,6 +560,110 @@ SELECTED_POLICY = (
 
 class SelectedExecutionTests(unittest.TestCase):
     """Behavior tests for the base-inherited selected execution strategy."""
+
+    def test_selected_failure_matrix_uses_git_bytes_and_keeps_evidence(self):
+        for failure in ("actual", "inherited", "checkout", "expected", "report"):
+            with self.subTest(failure=failure), tempfile.TemporaryDirectory() as temporary:
+                temp = Path(temporary)
+                root = temp / "repo"
+                staging = temp / "staging"
+                root.mkdir()
+                plan, preparation = self._plan_and_preparation(root, staging)
+                self._simulate_selected_execution(root, plan, preparation)
+                self._write_selected_report(root, plan, preparation)
+                name = "C" if failure == "inherited" else "A"
+                relative = f"1/server/{name}.windows.yaml"
+                expected = tap.GitTreeRepository(root).read(plan["merge_sha"], f"bin_artifacts/{relative}")
+                target = Path(preparation["actual_artifact_root"]) / relative
+                if failure in {"actual", "inherited", "checkout", "report"}:
+                    target.write_bytes(self._artifact(name, "0x99"))
+                if failure == "checkout":
+                    (root / "bin_artifacts" / relative).write_bytes(b"checkout tampered\n")
+                elif failure == "expected":
+                    (Path(preparation["expected_artifact_root"]) / relative).write_bytes(b"expected tampered\n")
+                elif failure == "report":
+                    Path(preparation["execution_reports"]["1"]).write_bytes(b"[]\n")
+                plan_path = temp / "plan.json"
+                plan_path.write_bytes(tap._canonical_json_bytes(plan))
+                bundle = temp / "diagnostics"
+                log = io.StringIO()
+                with contextlib.redirect_stderr(log):
+                    code = tap.main(
+                        [
+                            "verify",
+                            "--repo-root",
+                            str(root),
+                            "--plan",
+                            str(plan_path),
+                            "--preparation",
+                            str(staging / "preparation.json"),
+                            "--gamever",
+                            "1",
+                            "--plan-sha256",
+                            plan["plan_sha256"],
+                            "--diagnostics-dir",
+                            str(bundle),
+                            "--output",
+                            str(staging / "validation.json"),
+                        ]
+                    )
+                self.assertEqual(1, code)
+                self.assertFalse((staging / "validation.json").exists())
+                self.assertEqual(expected, (bundle / "expected/bin_artifacts" / relative).read_bytes())
+                self.assertEqual(target.read_bytes(), (bundle / "actual/bin_artifacts" / relative).read_bytes())
+                for source, relative_evidence in (
+                    (Path(preparation["execution_reports"]["1"]), "execution-reports/1.selected.json"),
+                    (Path(preparation["selected_execution_manifests"]["1"]), "selected-execution-1.json"),
+                ):
+                    self.assertEqual(source.read_bytes(), (bundle / relative_evidence).read_bytes())
+                if failure != "expected":
+                    self.assertIn("merge Git blob", log.getvalue())
+                    self.assertIn("+func_rva: '0x99'", log.getvalue())
+                    self.assertNotIn("+checkout tampered", log.getvalue())
+                else:
+                    self.assertIn("materialized expected Git blob drifted", log.getvalue())
+
+    def test_prepare_failure_without_preparation_preserves_seeded_yaml(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            temp = Path(temporary)
+            root = temp / "repo"
+            root.mkdir()
+            _base, _head, _merge, context = self._repository(root, selected_policy=True, change="artifact-a")
+            plan = tap.build_trusted_artifact_plan(repo_root=root, trusted_context=context)
+            plan_path = temp / "plan.json"
+            plan_path.write_bytes(tap._canonical_json_bytes(plan))
+            staging = temp / "staging"
+            original_write = tap._atomic_write
+
+            def fail_manifest(path, raw):
+                if path.name == "selected-execution-1.json":
+                    raise OSError("prepare interrupted after seeding")
+                return original_write(path, raw)
+
+            log = io.StringIO()
+            with patch.object(tap, "_atomic_write", fail_manifest), contextlib.redirect_stderr(log):
+                code = tap.main(
+                    [
+                        "prepare",
+                        "--repo-root",
+                        str(root),
+                        "--plan",
+                        str(plan_path),
+                        "--gamever",
+                        "1",
+                        "--staging-root",
+                        str(staging),
+                        "--diagnostics-dir",
+                        str(temp / "diagnostics"),
+                    ]
+                )
+            self.assertEqual(1, code)
+            self.assertFalse((staging / "preparation.json").exists())
+            self.assertTrue((temp / "diagnostics/actual/bin_artifacts/1/server/C.windows.yaml").exists())
+            self.assertTrue((temp / "diagnostics/expected/bin_artifacts/1/server/A.windows.yaml").exists())
+            self.assertIn(
+                "prepare interrupted after seeding", (temp / "diagnostics/verification-error.txt").read_text()
+            )
 
     def _git(self, root: Path, *arguments: str) -> str:
         result = subprocess.run(

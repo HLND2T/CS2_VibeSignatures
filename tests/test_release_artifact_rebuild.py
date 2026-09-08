@@ -11,6 +11,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import ida_analyze_bin
+import artifact_diagnostics
 import release_artifact_rebuild as rar
 from bin_artifact_contract import build_game_artifact_inventory
 from ida_analyze_util import canonical_symbol_yaml_bytes
@@ -111,12 +112,14 @@ class ReleaseArtifactRebuildTests(unittest.TestCase):
                 binary_root=root / "bin",
                 staging_root=temp / "rebuild",
             )
-            linked_tree = Path(preparation["actual_artifact_root"]) / "linked"
-            linked_tree.mkdir()
+            linked_tree = Path(preparation["actual_artifact_root"]) / "1/linked"
+            linked_tree.mkdir(parents=True)
             (linked_tree / "private.txt").write_text("must not copy")
-            original_check = rar.is_reparse_point
+            original_check = artifact_diagnostics.is_reparse_point
             with patch.object(
-                rar, "is_reparse_point", side_effect=lambda path: path == linked_tree or original_check(path)
+                artifact_diagnostics,
+                "is_reparse_point",
+                side_effect=lambda path: path == linked_tree or original_check(path),
             ):
                 rar.collect_failure_diagnostics(
                     repo_root=root,
@@ -124,7 +127,7 @@ class ReleaseArtifactRebuildTests(unittest.TestCase):
                     destination=temp / "diagnostics",
                     error="original",
                 )
-            self.assertFalse((temp / "diagnostics/actual/bin_artifacts/linked/private.txt").exists())
+            self.assertFalse((temp / "diagnostics/actual/bin_artifacts/1/linked/private.txt").exists())
             self.assertTrue((temp / "diagnostics/expected/bin_artifacts/1/server/A.windows.yaml").is_file())
             metadata = json.loads((temp / "diagnostics/diagnostics.json").read_bytes())
             self.assertTrue(any("skipped link" in error for error in metadata["collection_errors"]))
