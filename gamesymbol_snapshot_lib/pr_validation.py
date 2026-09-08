@@ -9,13 +9,7 @@ from gamesymbol_snapshot_lib.analysis_sources import (
     ReferenceConsumer,
     workspace_python_sources,
 )
-from gamesymbol_snapshot_lib.codec import snapshot_analysis_output_contract_version
 from gamesymbol_snapshot_lib.model import ChangedPath, InvalidationPlan
-
-BROAD_ANALYSIS_FILES = {
-    ".claude/agents/sig-finder.md",
-    ".opencode/agents/sig-finder.md",
-}
 
 REFERENCE_ACTIONS = {"A": "added", "C": "copied", "M": "modified", "R": "renamed", "D": "deleted"}
 
@@ -170,7 +164,6 @@ def _preprocessor_change_nodes(
     head_index: AnalysisSourceIndex,
     base_by_skill,
     head_by_skill,
-    head_contract,
 ) -> tuple[set[str], list[str]]:
     base_path = _base_path(change)
     head_path = _head_path(change)
@@ -182,10 +175,11 @@ def _preprocessor_change_nodes(
     head_skills = head_index.dependent_preprocessors(head_source) if head_source else set()
     nodes = _nodes_for_skills(base_by_skill, base_skills)
     nodes.update(_nodes_for_skills(head_by_skill, head_skills))
-    if not base_skills and not head_skills:
-        path_text = f"base={base_source or 'none'}; HEAD={head_source or 'none'}"
-        return set(head_contract.nodes), [f"unmapped analysis source (broad rebuild): {path_text}"]
     paths = [path for path in (base_source, head_source) if path]
+    if not base_skills and not head_skills:
+        # A source no producer consumes cannot influence any artifact, so it invalidates
+        # nothing: unreferenced analysis sources are normal, not a broad-rebuild fallback.
+        return set(), [f"warning: unreferenced analysis source had no producer consumer: {' -> '.join(paths)}"]
     reason = f"preprocessor change: {' -> '.join(dict.fromkeys(paths))}"
     return nodes, [reason]
 
@@ -219,15 +213,11 @@ def _source_changed_nodes(
     base_index = AnalysisSourceIndex.build(base_sources, "base") if needs_base_index else empty_index
     head_index = AnalysisSourceIndex.build(head_sources, "HEAD") if needs_head_index else empty_index
     for change in changes:
-        broad_paths = {path for path in (change.old_path, change.new_path) if path in BROAD_ANALYSIS_FILES}
-        if broad_paths:
-            nodes.update(head_contract.nodes)
-            reasons.extend(f"core analysis change: {path}" for path in sorted(broad_paths))
         reference_nodes, reference_reasons = _reference_change_nodes(
             change, base_index, head_index, base_contract, head_contract
         )
         preprocessor_nodes, preprocessor_reasons = _preprocessor_change_nodes(
-            change, base_index, head_index, base_by_skill, head_by_skill, head_contract
+            change, base_index, head_index, base_by_skill, head_by_skill
         )
         agent_nodes, agent_reasons = _agent_skill_change_nodes(change, base_by_skill, head_by_skill)
         nodes.update(reference_nodes | preprocessor_nodes | agent_nodes)
@@ -319,10 +309,6 @@ def build_invalidation_plan(
     config_keys = _config_changed_logical_keys(base_contract, head_contract)
     config_nodes = _config_changed_nodes(base_contract, head_contract)
     seed_nodes.update(config_nodes)
-    base_output_contract_version = snapshot_analysis_output_contract_version(base_snapshot)
-    contract_version_changed = base_output_contract_version != head_contract.analysis_output_contract_version
-    if contract_version_changed:
-        seed_nodes.update(head_contract.nodes)
     source_nodes, source_reasons = _source_changed_nodes(
         base_contract, head_contract, changes, base_sources, head_sources
     )
@@ -335,11 +321,6 @@ def build_invalidation_plan(
     reasons = [f"snapshot delta: {len(delta_paths)} path(s)"] if delta_paths else []
     if config_keys:
         reasons.append(f"config delta: {len(config_keys)} logical producer(s)")
-    if contract_version_changed:
-        reasons.append(
-            "analysis output contract version: "
-            f"{base_output_contract_version} -> {head_contract.analysis_output_contract_version}"
-        )
     reasons.extend(source_reasons)
     closure_count = len(closed_head_nodes - head_seeds)
     if closure_count:
