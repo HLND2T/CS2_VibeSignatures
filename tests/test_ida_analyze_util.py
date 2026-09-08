@@ -3023,11 +3023,14 @@ class TestFuncXrefsSignatureSupport(unittest.IsolatedAsyncioTestCase):
         session = AsyncMock()
         session.call_tool.return_value = _py_eval_payload(["0x180001123"])
 
-        with patch.object(
-            ida_analyze_util,
-            "_normalize_func_starts_for_code_addrs",
-            AsyncMock(return_value={0x180001000}),
-        ) as mock_normalize:
+        with (
+            patch.dict(os.environ, {"CS2VIBE_STRING_MIN_LENGTH": ""}, clear=True),
+            patch.object(
+                ida_analyze_util,
+                "_normalize_func_starts_for_code_addrs",
+                AsyncMock(return_value={0x180001000}),
+            ) as mock_normalize,
+        ):
             result = await ida_analyze_util._collect_xref_func_starts_for_string(
                 session=session,
                 xref_string="_projectile",

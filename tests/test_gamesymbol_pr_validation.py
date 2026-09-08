@@ -5,6 +5,7 @@ from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 from gamesymbol_snapshot_lib.config import load_contract
+from gamesymbol_snapshot_lib.errors import SnapshotConfigError
 from gamesymbol_snapshot_lib.model import ChangedPath
 from gamesymbol_snapshot_lib.pr_validation import build_invalidation_plan, required_source_index_sides
 from tests.gamesymbol_snapshot_test_support import module, skill, write_config
@@ -122,7 +123,7 @@ class TestInvalidationPlan(unittest.TestCase):
         self.assertEqual(frozenset(), plan.paths)
         self.assertEqual((), plan.reasons)
 
-    def test_output_contract_version_change_invalidates_all_nodes(self) -> None:
+    def test_output_contract_version_change_does_not_invalidate(self) -> None:
         modules = [
             module(
                 "server",
@@ -142,8 +143,8 @@ class TestInvalidationPlan(unittest.TestCase):
             )
             plan = build_invalidation_plan(base, head, unchanged, unchanged, [], root)
 
-        self.assertEqual(set(unchanged["files"]), plan.paths)
-        self.assertIn("analysis output contract version: 1 -> 2", plan.reasons)
+        self.assertEqual(frozenset(), plan.paths)
+        self.assertEqual((), plan.reasons)
 
     def test_config_change_and_deleted_output_remove_base_and_head_paths(self) -> None:
         base_modules = [module("server", [skill("find-target", ["Old.{platform}.yaml"])], linux=False)]
@@ -275,6 +276,53 @@ class TestInvalidationPlan(unittest.TestCase):
 
         self.assertEqual({"server/Target.windows.yaml"}, plan.paths)
 
+    def test_deleted_helper_uses_base_consumers(self) -> None:
+        modules = [module("server", [skill("find-target", ["Target.{platform}.yaml"])], linux=False)]
+        with TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            scripts = root / "ida_preprocessor_scripts"
+            scripts.mkdir()
+            (scripts / "_helper.py").write_text("VALUE = 1\n", encoding="utf-8")
+            (scripts / "find-target.py").write_text(
+                "from ida_preprocessor_scripts._helper import VALUE\n", encoding="utf-8"
+            )
+            base, head = self._contracts(root, modules)
+            (scripts / "_helper.py").unlink()
+            plan = build_invalidation_plan(
+                base,
+                head,
+                snapshot({"server/Target.windows.yaml": {"value": 1}}),
+                snapshot({"server/Target.windows.yaml": {"value": 1}}),
+                [ChangedPath("D", "ida_preprocessor_scripts/_helper.py", None)],
+                root,
+                base_sources={
+                    "ida_preprocessor_scripts/_helper.py": "VALUE = 1\n",
+                    "ida_preprocessor_scripts/find-target.py": ("from ida_preprocessor_scripts._helper import VALUE\n"),
+                },
+                head_sources={"ida_preprocessor_scripts/find-target.py": "VALUE = 1\n"},
+            )
+
+        self.assertEqual({"server/Target.windows.yaml"}, plan.paths)
+
+    def test_preprocessor_parse_error_fails_closed(self) -> None:
+        modules = [module("server", [skill("find-target", ["Target.{platform}.yaml"])], linux=False)]
+        with TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            scripts = root / "ida_preprocessor_scripts"
+            scripts.mkdir()
+            (scripts / "find-target.py").write_text("def broken(:\n", encoding="utf-8")
+            base, head = self._contracts(root, modules)
+            unchanged = snapshot({"server/Target.windows.yaml": {"value": 1}})
+            with self.assertRaisesRegex(SnapshotConfigError, "unable to parse"):
+                build_invalidation_plan(
+                    base,
+                    head,
+                    unchanged,
+                    unchanged,
+                    ["ida_preprocessor_scripts/find-target.py"],
+                    root,
+                )
+
     def test_reference_change_invalidates_source_consumer(self) -> None:
         modules = [module("server", [skill("find-target", ["Target.{platform}.yaml"])], linux=False)]
         with TemporaryDirectory() as temp_dir:
@@ -297,7 +345,7 @@ class TestInvalidationPlan(unittest.TestCase):
 
         self.assertEqual({"server/Target.windows.yaml"}, plan.paths)
 
-    def test_unknown_analysis_source_uses_broad_rebuild(self) -> None:
+    def test_unreferenced_analysis_source_does_not_invalidate(self) -> None:
         modules = [
             module(
                 "server",
@@ -322,9 +370,10 @@ class TestInvalidationPlan(unittest.TestCase):
                 root,
             )
 
-        self.assertEqual(set(unchanged), plan.paths)
+        self.assertEqual(frozenset(), plan.paths)
+        self.assertTrue(any("unreferenced analysis source" in reason for reason in plan.reasons))
 
-    def test_agent_prompt_change_uses_broad_rebuild(self) -> None:
+    def test_shared_agent_prompt_change_does_not_invalidate(self) -> None:
         modules = [
             module(
                 "server",
@@ -348,7 +397,8 @@ class TestInvalidationPlan(unittest.TestCase):
                 root,
             )
 
-        self.assertEqual(set(unchanged), plan.paths)
+        self.assertEqual(frozenset(), plan.paths)
+        self.assertEqual((), plan.reasons)
 
 
 if __name__ == "__main__":

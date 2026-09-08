@@ -30,6 +30,8 @@ permissions:
 concurrency:
   group: source-artifact-bootstrap-${{ github.repository }}-${{ inputs.pull_request_number }}-${{ inputs.gamever }}
   cancel-in-progress: false
+env:
+  CS2VIBE_STRING_MIN_LENGTH: '4'
 jobs:
   warmup-idb:
     uses: ./.github/workflows/warmup-idb.yml

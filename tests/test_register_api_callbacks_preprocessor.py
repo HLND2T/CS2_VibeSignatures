@@ -1,6 +1,7 @@
 import importlib
 import importlib.util
 import json
+import os
 import types
 import unittest
 from pathlib import Path
@@ -179,13 +180,14 @@ class TestRegisterApiCallbacksPyEval(unittest.TestCase):
         fake_idautils = types.SimpleNamespace(Strings=FakeStrings, XrefsTo=fake_xrefs_to)
         fake_ida_bytes = types.SimpleNamespace(get_full_flags=lambda ea: ea in instructions)
         fake_ida_nalt = types.SimpleNamespace(STRTYPE_C=0)
-        code = module._build_register_api_callbacks_py_eval(
-            platform="windows",
-            source_func_va=hex(source_func_va),
-            api_names=["IsLatched", "GetPlayerPremierRankStatsObject", "BIsLocalServerHost"],
-            search_window_after_xref=96,
-            search_window_before_call=96,
-        )
+        with patch.dict(os.environ, {"CS2VIBE_STRING_MIN_LENGTH": ""}, clear=True):
+            code = module._build_register_api_callbacks_py_eval(
+                platform="windows",
+                source_func_va=hex(source_func_va),
+                api_names=["IsLatched", "GetPlayerPremierRankStatsObject", "BIsLocalServerHost"],
+                search_window_after_xref=96,
+                search_window_before_call=96,
+            )
         namespace: dict[str, object] = {}
 
         with patch.dict(

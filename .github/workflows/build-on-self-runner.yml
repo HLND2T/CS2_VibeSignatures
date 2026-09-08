@@ -42,6 +42,8 @@ permissions:
 concurrency:
   group: release-build-${{ github.repository }}-${{ inputs.gamever || github.event.client_payload.gamever }}
   cancel-in-progress: false
+env:
+  CS2VIBE_STRING_MIN_LENGTH: '4'
 jobs:
   preflight:
     if: github.repository == 'HLND2T/CS2_VibeSignatures'

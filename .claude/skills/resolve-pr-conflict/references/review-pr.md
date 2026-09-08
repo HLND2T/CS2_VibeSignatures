@@ -78,9 +78,10 @@ Read [preprocessor-review-patterns.md](preprocessor-review-patterns.md) whenever
 analysis configs, reference YAML, or source-owned symbol artifacts. Apply every applicable gate in that reference.
 
 Apply gate 5 whenever the PR touches `configs/<GAMEVER>.yaml` or `bin_artifacts/<GAMEVER>/`. The latest gamever is the
-last `tag:` entry in `download.yaml`. A historical version change requires an explicitly justified backport and its
-matching source-owned closure. Any tracked `gamesymbols/`, `gamedata/`, or `release-manifests/` path is a separate
-source-truth contract violation regardless of GAMEVER.
+last `tag:` entry in `download.yaml`. A historical (non-latest) version change is hard-rejected by the trusted planner
+(non-maintained GAMEVER rejection; manual binary-identity edits are likewise rejected in favor of the bump flow), so
+such a PR cannot pass until the change moves to the latest gamever or a new-GAMEVER bump. Any tracked `gamesymbols/`,
+`gamedata/`, or `release-manifests/` path is a separate source-truth contract violation regardless of GAMEVER.
 
 Additionally check general correctness:
 

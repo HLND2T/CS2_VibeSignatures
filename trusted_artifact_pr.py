@@ -24,7 +24,7 @@ from artifact_diagnostics import (
     read_artifact_bytes,
     safe_component,
 )
-from binary_lock import BinaryLockError, load_binary_lock_from_revision
+from binary_lock import BinaryLockError, download_identity, load_binary_lock_from_revision
 from bin_artifact_contract import (
     ArtifactContractError,
     _category_for,
@@ -42,7 +42,6 @@ from trusted_pr_context import (
     BASE_INHERITED_SELECTED_STRATEGY,
     EXECUTION_STRATEGIES,
     FRESH_FULL_STRATEGY,
-    TRUSTED_FILE_PATHS,
     load_trusted_pr_context,
     validate_trusted_pr_context,
 )
@@ -81,8 +80,6 @@ SHARED_ANALYSIS_PATHS = frozenset(
     }
 )
 SHARED_ANALYSIS_PREFIXES = ("gamesymbol_snapshot_lib/",)
-TRUST_ROOT_PATHS = frozenset(TRUSTED_FILE_PATHS)
-TRUST_ROOT_PREFIXES = (".github/workflows/",)
 
 
 class TrustedArtifactPrError(RuntimeError):
@@ -96,11 +93,6 @@ def _is_shared_analysis_runtime_path(path: str) -> bool:
         or ("/" not in path and path.endswith(".py"))
         or (path.startswith(SHARED_ANALYSIS_PREFIXES) and path.endswith(".py"))
     )
-
-
-def _is_trust_root_path(path: str | None) -> bool:
-    """Return whether a path can alter privileged validation or publication behavior."""
-    return bool(path) and (path in TRUST_ROOT_PATHS or path.startswith(TRUST_ROOT_PREFIXES))
 
 
 @dataclass(frozen=True)
@@ -371,6 +363,30 @@ def _reject_casefold_collisions(paths: list[str], *, label: str) -> None:
             raise TrustedArtifactPrError(f"{label} casefold collision: {previous!r} and {path!r}")
 
 
+def _reject_non_maintained_version_edits(changes: tuple[ChangedPath, ...], maintained_versions: set[str]) -> None:
+    """Fail closed on config/artifact edits that target any non-maintained GAMEVER.
+
+    Only the maintained (latest) GAMEVER accepts gamesymbol definition or artifact edits;
+    historical versions are immutable and require a new GAMEVER bump instead (#847).
+    """
+    stale_edits: dict[str, set[str]] = {}
+    for change in changes:
+        for path in (change.old_path, change.new_path):
+            if not path:
+                continue
+            match = CONFIG_RE.fullmatch(path) or ARTIFACT_RE.fullmatch(path)
+            if match and match.group(1) not in maintained_versions:
+                stale_edits.setdefault(match.group(1), set()).add(path)
+    if stale_edits:
+        details = "\n".join(
+            f"  {gamever}: {path}" for gamever in sorted(stale_edits) for path in sorted(stale_edits[gamever])
+        )
+        raise TrustedArtifactPrError(
+            "changes target configs/bin_artifacts of non-maintained GAMEVER versions; "
+            "apply gamesymbol changes to the maintained (latest) GAMEVER or bump a new GAMEVER:\n" + details
+        )
+
+
 def _tree_artifact_inventory(
     repo: GitTreeRepository,
     revision: str,
@@ -471,6 +487,14 @@ def _download_identities(repo: GitTreeRepository, revision: str) -> dict[str, di
             raise TrustedArtifactPrError(f"download.yaml at {revision} has duplicate tag {tag!r}")
         identities[tag] = item
     return identities
+
+
+def _revision_download_identity(download_payload: bytes, gamever: str) -> dict:
+    """Return the normalized DepotDownloader identity for one tag, failing closed."""
+    try:
+        return download_identity(download_payload, gamever)
+    except BinaryLockError as exc:
+        raise TrustedArtifactPrError(f"invalid download identity for GAMEVER {gamever}: {exc}") from exc
 
 
 def _revision_python_sources(repo: GitTreeRepository, revision: str) -> dict[str, str]:
@@ -682,25 +706,14 @@ def build_trusted_artifact_plan(*, repo_root: str | Path, trusted_context: dict 
     _validate_repository_tree_namespaces(repo, context["base_sha"], base_versions)
     _validate_repository_tree_namespaces(repo, context["merge_sha"], merge_versions)
     changes = repo.changes(context["base_sha"], context["merge_sha"])
-    changed_trust_roots = sorted(
-        {path for change in changes for path in (change.old_path, change.new_path) if _is_trust_root_path(path)}
-    )
-    if changed_trust_roots:
-        raise TrustedArtifactPrError(
-            "trusted validation roots require an independently merged bridge update:\n"
-            + "\n".join(f"  {path}" for path in changed_trust_roots)
-        )
+    _reject_non_maintained_version_edits(changes, maintained_versions)
     base_downloads = _download_identities(repo, context["base_sha"])
     merge_downloads = _download_identities(repo, context["merge_sha"])
+    base_download_raw = repo.read(context["base_sha"], "download.yaml")
+    merge_download_raw = repo.read(context["merge_sha"], "download.yaml")
     needs_base_sources, needs_merge_sources = required_source_index_sides(list(changes))
     base_sources = _revision_python_sources(repo, context["base_sha"]) if needs_base_sources else {}
     merge_sources = _revision_python_sources(repo, context["merge_sha"]) if needs_merge_sources else {}
-    shared_analysis_changed = any(
-        _is_shared_analysis_runtime_path(path)
-        for change in changes
-        for path in (change.old_path, change.new_path)
-        if path
-    )
 
     version_reports = []
     with tempfile.TemporaryDirectory(prefix="trusted-artifact-plan-") as temporary:
@@ -776,18 +789,23 @@ def build_trusted_artifact_plan(*, repo_root: str | Path, trusted_context: dict 
                 invalidated_paths.update(base_contract.formal_paths)
                 reasons.append("configured GAMEVER removed")
 
-            if shared_analysis_changed and merge_contract is not None and maintained:
-                selected_group_ids, selected_node_ids = _select_all_groups(merge_contract)
-                invalidated_paths.update(merge_contract.formal_paths)
-                reasons.append("shared analyzer/serializer contract changed")
-
-            binary_identity_changed = base_downloads.get(gamever) != merge_downloads.get(gamever) or (
-                base_binary_lock.sha256 if base_binary_lock else None
-            ) != (merge_binary_lock.sha256 if merge_binary_lock else None)
-            if merge_contract is not None and binary_identity_changed and maintained:
-                selected_group_ids, selected_node_ids = _select_all_groups(merge_contract)
-                invalidated_paths.update(merge_contract.formal_paths)
-                reasons.append("download/binary identity changed")
+            if gamever in base_versions and gamever in merge_versions:
+                changed_identity_paths = []
+                # Compare the normalized DepotDownloader selection (app_id/branch/manifests/os)
+                # exactly like binary_lock does, so non-identity metadata such as
+                # major_update stays a legal prior-baseline policy adjustment.
+                if _revision_download_identity(base_download_raw, gamever) != _revision_download_identity(
+                    merge_download_raw, gamever
+                ):
+                    changed_identity_paths.append(f"download.yaml (existing tag {gamever!r})")
+                if base_binary_lock.sha256 != merge_binary_lock.sha256:
+                    changed_identity_paths.append(f"binary_locks/{gamever}.json")
+                if changed_identity_paths:
+                    raise TrustedArtifactPrError(
+                        "manual binary identity change for an already-configured GAMEVER is rejected; "
+                        "use the download/binary-lock bump flow instead of editing identity by hand:\n"
+                        + "\n".join(f"  {path}" for path in changed_identity_paths)
+                    )
 
             if merge_contract is not None and maintained:
                 identity_prefix = f"bin_artifacts/{gamever}/"
@@ -895,7 +913,6 @@ def build_trusted_artifact_plan(*, repo_root: str | Path, trusted_context: dict 
         if any(report["bootstrap_required"] for report in version_reports)
         else ("full" if affected_versions else "light")
     )
-    download_raw = repo.read(context["merge_sha"], "download.yaml")
     policy_strategy = context["artifact_policy"]["execution_strategy"]
     document = {
         "schema_version": PLAN_SCHEMA_VERSION,
@@ -909,7 +926,7 @@ def build_trusted_artifact_plan(*, repo_root: str | Path, trusted_context: dict 
         "trusted_context_sha256": context["context_sha256"],
         "configured_game_versions": list(merge_versions),
         "affected_game_versions": affected_versions,
-        "download_sha256": _sha256(download_raw),
+        "download_sha256": _sha256(merge_download_raw),
         "sdk_gitlink_sha": _gitlink_sha(repo, context["merge_sha"], "hl2sdk_cs2"),
         "base_analysis_sources": _source_inventory(repo, context["base_sha"]),
         "merge_analysis_sources": _source_inventory(repo, context["merge_sha"]),
