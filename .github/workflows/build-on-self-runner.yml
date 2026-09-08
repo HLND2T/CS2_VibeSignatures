@@ -287,6 +287,8 @@ jobs:
           "RELEASE_REBUILD_VERIFICATION=$verification" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
           "ACTUAL_ARTIFACT_ROOT=$($document.actual_artifact_root)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
           "FORCE_ALL_EXECUTION_REPORT=$($document.execution_report)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          $diagnostics = Join-Path $env:RUNNER_TEMP "release-rebuild-diagnostics\${{ github.run_id }}-${{ github.run_attempt }}-$env:GAMEVER"
+          "RELEASE_REBUILD_DIAGNOSTICS=$diagnostics" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Analyze every producer group with force-all and rename
         id: analyze
         shell: pwsh
@@ -309,8 +311,18 @@ jobs:
           uv run python release_artifact_rebuild.py verify `
             --repo-root "${{ github.workspace }}" `
             --preparation "$env:RELEASE_REBUILD_PREPARATION" `
-            --output "$env:RELEASE_REBUILD_VERIFICATION"
+            --output "$env:RELEASE_REBUILD_VERIFICATION" `
+            --diagnostics-dir "$env:RELEASE_REBUILD_DIAGNOSTICS"
           if ($LASTEXITCODE -ne 0) { throw "Fresh release artifacts differ from Git truth." }
+      - name: Upload release rebuild verification failure evidence
+        if: ${{ failure() && steps.verify-artifact-rebuild.outcome == 'failure' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-rebuild-diagnostics-${{ env.GAMEVER }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.RELEASE_REBUILD_DIAGNOSTICS }}
+          if-no-files-found: warn
+          include-hidden-files: true
+          retention-days: 30
       - name: Prepare local-only BinSync candidate without remote writes
         id: binsync-prepare
         shell: pwsh

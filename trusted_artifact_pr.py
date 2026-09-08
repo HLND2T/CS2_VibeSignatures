@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import difflib
 import hashlib
 import json
 import os
@@ -17,6 +16,7 @@ from pathlib import Path
 
 import yaml
 
+from artifact_diagnostics import content_diff, read_artifact_bytes
 from binary_lock import BinaryLockError, load_binary_lock_from_revision
 from bin_artifact_contract import (
     ArtifactContractError,
@@ -1405,48 +1405,20 @@ def _drift_content_diff(
     actual_root: Path,
     max_diff_lines: int = 40,
 ) -> str:
-    """Render an expected-vs-actual content diff for one drifted artifact.
-
-    The expected side is the source checkout's Git-tracked artifact (bound to the
-    merge tree by the caller's filesystem digest checks); the actual side is the
-    isolated rebuild output. Text artifacts (YAML) get a line diff so a drift
-    failure pinpoints the differing fields without runner access; anything else
-    falls back to size and digest facts.
-    """
+    """Render checkout bytes bound to the merge tree against isolated output."""
     expected_path = repo_root / "bin_artifacts" / gamever / relative
     actual_path = actual_root / gamever / relative
 
-    def _describe(path: Path) -> str:
-        if not path.is_file():
-            return "missing"
-        raw = path.read_bytes()
-        return f"size={len(raw)} sha256={_sha256(raw)}"
-
-    facts = (
-        f"\n  artifact: bin_artifacts/{gamever}/{relative}"
-        f"\n  expected: {_describe(expected_path)}"
-        f"\n  actual:   {_describe(actual_path)}"
+    expected_raw, expected_error = read_artifact_bytes(expected_path)
+    actual_raw, actual_error = read_artifact_bytes(actual_path)
+    return content_diff(
+        f"bin_artifacts/{gamever}/{relative}",
+        expected_raw,
+        actual_raw,
+        expected_error=expected_error,
+        actual_error=actual_error,
+        max_diff_lines=max_diff_lines,
     )
-    try:
-        expected_raw = expected_path.read_bytes()
-        actual_raw = actual_path.read_bytes()
-    except OSError:
-        return facts
-    try:
-        expected_lines = expected_raw.decode("utf-8").splitlines()
-        actual_lines = actual_raw.decode("utf-8").splitlines()
-    except UnicodeDecodeError:
-        return facts
-    diff_lines = list(
-        difflib.unified_diff(expected_lines, actual_lines, fromfile="expected", tofile="actual", lineterm="")
-    )
-    if not diff_lines:
-        return facts
-    shown = diff_lines[:max_diff_lines]
-    suffix = (
-        "" if len(diff_lines) <= max_diff_lines else f"\n  ... ({len(diff_lines) - max_diff_lines} more diff lines)"
-    )
-    return facts + "\n  content diff (expected -> actual):\n    " + "\n    ".join(shown) + suffix
 
 
 def validate_selected_execution_records(report: dict, version: dict, *, drift_context=None) -> None:

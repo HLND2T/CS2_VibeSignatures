@@ -14,7 +14,8 @@ import tempfile
 from pathlib import Path
 
 from binary_lock import BinaryLockError, load_binary_lock_from_revision
-from bin_artifact_contract import ArtifactContractError, build_game_artifact_inventory
+from artifact_diagnostics import MAX_LOG_CHARACTERS, content_diff, read_artifact_bytes
+from bin_artifact_contract import ArtifactContractError, _git_blob_entries, build_game_artifact_inventory
 from gamesymbol_snapshot_lib.config import load_contract
 from gamesymbol_snapshot_lib.errors import SnapshotConfigError, SnapshotMismatchError
 from gamesymbol_snapshot_lib.operations import collect_binary_metadata
@@ -314,9 +315,21 @@ def verify_release_rebuild(*, repo_root: str | Path, preparation: dict | str | P
             for path in set(actual_files) | set(expected_files)
             if actual_files.get(path) != expected_files.get(path)
         )
-        raise ReleaseArtifactRebuildError(
-            "fresh release artifacts differ from immutable Git truth:\n" + "\n".join(f"  {path}" for path in changed)
-        )
+        details = "fresh release artifacts differ from immutable Git truth:\n"
+        for index, path in enumerate(changed):
+            try:
+                expected_raw = _git_blob(repo_root, preparation["source_sha"], path) if path in expected_files else None
+                actual_raw, actual_error = read_artifact_bytes(
+                    Path(preparation["actual_artifact_root"]) / Path(path).relative_to("bin_artifacts")
+                )
+                detail = content_diff(path, expected_raw, actual_raw, actual_error=actual_error)
+            except (OSError, ValueError, ReleaseArtifactRebuildError) as exc:
+                detail = f"\n  {path}: content diagnostics unavailable: {exc}"
+            if len(details) + len(detail) > MAX_LOG_CHARACTERS:
+                details += f"\n  ... (diagnostics truncated; {len(changed) - index} files omitted)"
+                break
+            details += detail
+        raise ReleaseArtifactRebuildError(details)
     if actual.inventory_sha256 != preparation["expected_artifact_inventory_sha256"]:
         raise ReleaseArtifactRebuildError("fresh release aggregate artifact inventory digest mismatch")
     result = {
@@ -352,6 +365,94 @@ def load_release_rebuild_verification(path: str | Path) -> dict:
     return document
 
 
+def collect_failure_diagnostics(*, repo_root: Path, preparation_path: Path, destination: Path, error: str) -> None:
+    """Save original bytes without requiring the failed artifact contract to pass."""
+    repo_root = repo_root.resolve()
+    destination = Path(os.path.abspath(destination))
+    staging = Path(os.path.abspath(preparation_path)).parent
+    if destination == repo_root or repo_root in destination.parents:
+        raise ReleaseArtifactRebuildError("diagnostic destination must be outside the source checkout")
+    if destination == staging or staging in destination.parents:
+        raise ReleaseArtifactRebuildError("diagnostic destination must be outside the rebuild staging tree")
+    for component in (destination, *destination.parents):
+        if is_reparse_point(component):
+            raise ReleaseArtifactRebuildError(f"diagnostic destination contains a link: {component}")
+    destination.mkdir(parents=True, exist_ok=False)
+    _atomic_write(destination / "verification-error.txt", (error + "\n").encode("utf-8"))
+    errors = []
+    metadata = {
+        "source_sha": os.environ.get("SOURCE_SHA"),
+        "game_version": os.environ.get("GAMEVER"),
+        "repository": os.environ.get("GITHUB_REPOSITORY"),
+        "run_id": os.environ.get("GITHUB_RUN_ID"),
+        "run_attempt": os.environ.get("GITHUB_RUN_ATTEMPT"),
+        "collection_errors": errors,
+    }
+
+    def copy_evidence(source: Path, relative: Path) -> None:
+        raw, read_error = read_artifact_bytes(source)
+        if raw is None:
+            errors.append(f"{source}: {read_error or 'missing'}")
+            return
+        try:
+            _atomic_write(destination / relative, raw)
+        except OSError as exc:
+            errors.append(f"{source}: {exc}")
+
+    expected_source = None
+    copy_evidence(preparation_path, Path("release-rebuild-preparation.json"))
+    try:
+        # Load the safe copy; never follow a replaced preparation symlink.
+        preparation = load_release_rebuild_preparation(destination / "release-rebuild-preparation.json")
+        source_sha = preparation["source_sha"]
+        gamever = preparation["game_version"]
+        if not SHA_RE.fullmatch(source_sha) or not re.fullmatch(r"[A-Za-z0-9_.-]+", gamever) or gamever in (".", ".."):
+            raise ReleaseArtifactRebuildError("invalid diagnostic source SHA or GAMEVER")
+        metadata.update(source_sha=source_sha, game_version=gamever)
+        expected_source = (source_sha, gamever)
+        actual_root = staging / "actual-bin-artifacts"
+        if Path(os.path.abspath(preparation["actual_artifact_root"])) != actual_root:
+            raise ReleaseArtifactRebuildError("diagnostic actual root is not preparation-local")
+        copy_evidence(staging / "force-all-execution.json", Path("force-all-execution.json"))
+        # Reject root/ancestor links before walking, and child links before descending.
+        for component in (actual_root, *actual_root.parents):
+            if is_reparse_point(component):
+                raise ReleaseArtifactRebuildError(f"actual root contains a link: {component}")
+        if not actual_root.is_dir():
+            errors.append(f"{actual_root}: missing artifact root")
+        for current, directories, files in os.walk(
+            actual_root, followlinks=False, onerror=lambda exc: errors.append(str(exc))
+        ):
+            current_path = Path(current)
+            for directory in list(directories):
+                if is_reparse_point(current_path / directory):
+                    directories.remove(directory)
+                    errors.append(f"{current_path / directory}: skipped link/reparse point")
+            for filename in files:
+                source = current_path / filename
+                copy_evidence(source, Path("actual/bin_artifacts") / source.relative_to(actual_root))
+    except (OSError, ValueError, KeyError, TypeError, ArtifactContractError, ReleaseArtifactRebuildError) as exc:
+        errors.append(str(exc))
+    if expected_source is not None:
+        source_sha, gamever = expected_source
+        try:
+            prefix = f"bin_artifacts/{gamever}/"
+            for path, raw in _git_blob_entries(repo_root, prefix, source_sha).items():
+                relative = Path(path)
+                if (
+                    not path.startswith(prefix)
+                    or relative.is_absolute()
+                    or ".." in relative.parts
+                    or ":" in path
+                    or "\\" in path
+                ):
+                    raise ReleaseArtifactRebuildError(f"invalid diagnostic Git path: {path}")
+                _atomic_write(destination / "expected" / relative, raw)
+        except (OSError, ValueError, ArtifactContractError, ReleaseArtifactRebuildError) as exc:
+            errors.append(str(exc))
+    _atomic_write(destination / "diagnostics.json", _canonical_json_bytes(metadata))
+
+
 def parse_args(argv=None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -365,6 +466,7 @@ def parse_args(argv=None) -> argparse.Namespace:
     verify.add_argument("--repo-root", default=".")
     verify.add_argument("--preparation", required=True)
     verify.add_argument("--output")
+    verify.add_argument("--diagnostics-dir", help="Fresh checkout-external directory for failure evidence")
     return parser.parse_args(argv)
 
 
@@ -383,8 +485,20 @@ def main(argv=None) -> int:
             result = verify_release_rebuild(repo_root=args.repo_root, preparation=args.preparation)
             if args.output:
                 _atomic_write(Path(args.output), _canonical_json_bytes(result))
-    except (OSError, UnicodeError, ReleaseArtifactRebuildError) as exc:
+    except Exception as exc:
+        # The CLI failure boundary also captures malformed or incomplete evidence.
         print(f"Error: {exc}", file=sys.stderr)
+        if args.command == "verify" and args.diagnostics_dir:
+            try:
+                collect_failure_diagnostics(
+                    repo_root=Path(args.repo_root),
+                    preparation_path=Path(args.preparation),
+                    destination=Path(args.diagnostics_dir),
+                    error=f"Error: {exc}",
+                )
+            except Exception as diagnostic_error:
+                # Best-effort evidence must never replace the verification failure.
+                print(f"Failure diagnostics unavailable: {diagnostic_error}", file=sys.stderr)
         return 1
     print(json.dumps(result, ensure_ascii=False, sort_keys=True))
     return 0
