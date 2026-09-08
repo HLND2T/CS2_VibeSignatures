@@ -30,6 +30,8 @@ permissions:
 concurrency:
   group: source-artifact-bootstrap-${{ github.repository }}-${{ inputs.pull_request_number }}-${{ inputs.gamever }}
   cancel-in-progress: false
+env:
+  CS2VIBE_STRING_MIN_LENGTH: '4'
 jobs:
   warmup-idb:
     uses: ./.github/workflows/warmup-idb.yml
@@ -128,7 +130,7 @@ jobs:
             --cache-key "$env:IDB_CACHE_KEY" `
             --ida-version "$idaVersion"
           if ($LASTEXITCODE -ne 0) { throw "Warm IDB restore failed." }
-      - name: Full empty-root bootstrap with rename and local-only BinSync prepare
+      - name: Full empty-root bootstrap with rename and local-init BinSync prepare
         id: binsync-local
         shell: pwsh
         run: |
@@ -151,9 +153,13 @@ jobs:
             -rename `
             -debug
           if ($LASTEXITCODE -ne 0) { throw "New-GAMEVER full bootstrap analysis failed." }
+          # The canonical BinSync remotes for a new GAMEVER do not exist yet at
+          # bootstrap time; local-init mode initializes them locally and never
+          # reads, creates, or pushes any remote.
           uv run python push_binsync_symbols.py "$env:GAMEVER" `
             --prepare-only `
             --no-publication-candidate `
+            --bootstrap-local-init `
             --candidate-dir "$binsyncCandidate" `
             --artifactdir "$actualRoot" `
             --binsync-user bootstrap-validation `

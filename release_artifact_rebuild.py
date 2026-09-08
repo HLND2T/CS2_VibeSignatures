@@ -14,7 +14,16 @@ import tempfile
 from pathlib import Path
 
 from binary_lock import BinaryLockError, load_binary_lock_from_revision
-from bin_artifact_contract import ArtifactContractError, build_game_artifact_inventory
+from artifact_diagnostics import (
+    MAX_LOG_CHARACTERS,
+    DiagnosticContext,
+    append_failure_diagnostics,
+    collect_failure_bundle,
+    external_staging,
+    read_artifact_bytes,
+    safe_component,
+)
+from bin_artifact_contract import ArtifactContractError, _git_blob_entries, build_game_artifact_inventory
 from gamesymbol_snapshot_lib.config import load_contract
 from gamesymbol_snapshot_lib.errors import SnapshotConfigError, SnapshotMismatchError
 from gamesymbol_snapshot_lib.operations import collect_binary_metadata
@@ -248,7 +257,7 @@ def _load_execution_report(path: Path, preparation: dict) -> dict:
     return report
 
 
-def verify_release_rebuild(*, repo_root: str | Path, preparation: dict | str | Path) -> dict:
+def _verify_release_rebuild(*, repo_root: str | Path, preparation: dict | str | Path) -> dict:
     preparation = load_release_rebuild_preparation(preparation) if isinstance(preparation, (str, Path)) else preparation
     repo_root = Path(repo_root).resolve()
     if _git(repo_root, "rev-parse", "HEAD").lower() != preparation["source_sha"]:
@@ -309,14 +318,7 @@ def verify_release_rebuild(*, repo_root: str | Path, preparation: dict | str | P
     actual_files = {item.path: item.to_dict() for item in actual.files}
     expected_files = {item["path"]: item for item in preparation["expected_files"]}
     if actual_files != expected_files:
-        changed = sorted(
-            path
-            for path in set(actual_files) | set(expected_files)
-            if actual_files.get(path) != expected_files.get(path)
-        )
-        raise ReleaseArtifactRebuildError(
-            "fresh release artifacts differ from immutable Git truth:\n" + "\n".join(f"  {path}" for path in changed)
-        )
+        raise ReleaseArtifactRebuildError("fresh release artifacts differ from immutable Git truth:")
     if actual.inventory_sha256 != preparation["expected_artifact_inventory_sha256"]:
         raise ReleaseArtifactRebuildError("fresh release aggregate artifact inventory digest mismatch")
     result = {
@@ -331,6 +333,18 @@ def verify_release_rebuild(*, repo_root: str | Path, preparation: dict | str | P
     }
     result["verification_sha256"] = _digest("rebuild-verification", result)
     return result
+
+
+def verify_release_rebuild(*, repo_root: str | Path, preparation: dict | str | Path) -> dict:
+    try:
+        return _verify_release_rebuild(repo_root=repo_root, preparation=preparation)
+    except Exception as exc:
+        detail = append_failure_diagnostics(
+            str(exc),
+            lambda: release_diagnostic_context(Path(repo_root), preparation),
+            max_characters=MAX_LOG_CHARACTERS,
+        )
+        raise ReleaseArtifactRebuildError(detail) from exc
 
 
 def load_release_rebuild_verification(path: str | Path) -> dict:
@@ -352,6 +366,71 @@ def load_release_rebuild_verification(path: str | Path) -> dict:
     return document
 
 
+def collect_failure_diagnostics(*, repo_root: Path, preparation_path: Path, destination: Path, error: str) -> None:
+    collect_failure_bundle(
+        repo_root=repo_root,
+        staging=preparation_path.absolute().parent,
+        destination=destination,
+        error=error,
+        phase="verify",
+        load_context=lambda: release_diagnostic_context(repo_root, preparation_path),
+    )
+
+
+def release_diagnostic_context(repo_root: Path, preparation: dict | str | Path) -> DiagnosticContext:
+    staging = (
+        Path(preparation["actual_artifact_root"]).parent
+        if isinstance(preparation, dict)
+        else Path(preparation).absolute().parent
+    )
+    staging = external_staging(repo_root, staging)
+    context = DiagnosticContext(
+        actual_root=staging / "actual-bin-artifacts",
+        evidence={
+            "release-rebuild-preparation.json": _canonical_json_bytes(preparation)
+            if isinstance(preparation, dict)
+            else Path(preparation),
+            "force-all-execution.json": staging / "force-all-execution.json",
+        },
+        metadata={"expected_source": "release source Git blob", "preparation_valid": False},
+    )
+    try:
+        if isinstance(preparation, dict):
+            document = preparation
+        else:
+            raw, read_error = read_artifact_bytes(Path(preparation))
+            if raw is None:
+                raise ReleaseArtifactRebuildError(f"diagnostic preparation unavailable: {read_error or 'missing'}")
+            context.evidence["release-rebuild-preparation.json"] = raw
+            document = json.loads(raw.decode("utf-8"))
+            if raw != _canonical_json_bytes(document):
+                raise ReleaseArtifactRebuildError("diagnostic preparation is not canonical JSON")
+        unsigned = dict(document)
+        digest = unsigned.pop("preparation_sha256", None)
+        if document.get("schema_version") != PREPARATION_SCHEMA_VERSION or digest != _digest(
+            "rebuild-preparation", unsigned
+        ):
+            raise ReleaseArtifactRebuildError("diagnostic preparation schema or digest mismatch")
+        source_sha = document["source_sha"]
+        if not isinstance(source_sha, str) or not SHA_RE.fullmatch(source_sha):
+            raise ReleaseArtifactRebuildError("invalid diagnostic source SHA")
+        gamever = safe_component(document["game_version"])
+        context.game_versions = (gamever,)
+        context.metadata.update(
+            source_sha=source_sha,
+            game_version=gamever,
+            preparation_sha256=digest,
+            preparation_valid=True,
+            execution_strategy="fresh-full-v1",
+        )
+        context.expected = _git_blob_entries(repo_root, f"bin_artifacts/{gamever}/", source_sha)
+        if Path(os.path.abspath(document["actual_artifact_root"])) != context.actual_root:
+            raise ReleaseArtifactRebuildError("diagnostic actual root is not preparation-local")
+    except Exception as exc:
+        context.errors.append(str(exc))
+    return context
+
+
 def parse_args(argv=None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -365,6 +444,7 @@ def parse_args(argv=None) -> argparse.Namespace:
     verify.add_argument("--repo-root", default=".")
     verify.add_argument("--preparation", required=True)
     verify.add_argument("--output")
+    verify.add_argument("--diagnostics-dir", help="Fresh checkout-external directory for failure evidence")
     return parser.parse_args(argv)
 
 
@@ -383,8 +463,20 @@ def main(argv=None) -> int:
             result = verify_release_rebuild(repo_root=args.repo_root, preparation=args.preparation)
             if args.output:
                 _atomic_write(Path(args.output), _canonical_json_bytes(result))
-    except (OSError, UnicodeError, ReleaseArtifactRebuildError) as exc:
+    except Exception as exc:
+        # The CLI failure boundary also captures malformed or incomplete evidence.
         print(f"Error: {exc}", file=sys.stderr)
+        if args.command == "verify" and args.diagnostics_dir:
+            try:
+                collect_failure_diagnostics(
+                    repo_root=Path(args.repo_root),
+                    preparation_path=Path(args.preparation),
+                    destination=Path(args.diagnostics_dir),
+                    error=f"Error: {exc}",
+                )
+            except Exception as diagnostic_error:
+                # Best-effort evidence must never replace the verification failure.
+                print(f"Failure diagnostics unavailable: {diagnostic_error}", file=sys.stderr)
         return 1
     print(json.dumps(result, ensure_ascii=False, sort_keys=True))
     return 0

@@ -30,6 +30,7 @@ TRUSTED_FILE_PATHS = (
     ".gitmodules",
     "trusted_pr_context.py",
     "trusted_artifact_pr.py",
+    "artifact_diagnostics.py",
     "new_gamever_artifact.py",
     "gamever_baseline.py",
     "bin_artifact_contract.py",

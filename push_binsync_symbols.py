@@ -6,6 +6,10 @@ exported from the IDA artifacts already persisted in that binary's ``.i64``
 database. The headless exporter redirects BinSync's mandatory push to an isolated
 local sink. This command never publishes canonical remote refs; the protected
 hosted publisher consumes the resulting verified Git bundles.
+
+``--bootstrap-local-init`` prepares new-GAMEVER bootstrap validation without
+requiring the canonical BinSync remotes to exist yet: missing local ``.bsproj``
+repositories are initialized locally and no remote is read, created, or pushed.
 """
 
 import argparse
@@ -30,6 +34,7 @@ from init_gamebin import (  # noqa: E402
     InitGamebinError,
     expected_sidecar,
     file_md5,
+    initialize_minimal_binsync_repo,
     iter_configured_binaries,
     load_yaml_document,
     resolve_analysis_config,
@@ -45,6 +50,11 @@ from release_workflow_lib.hashing import write_canonical_json  # noqa: E402
 # guarantees the push script can actually start in the same interpreter.
 CAPABILITY_PROBE = "import idapro, binsync.controller, declib.decompilers.ida.interface"
 
+# Digest of the empty remote-ref set: bootstrap local initialization never
+# contacts the canonical remote, so its evidence records the empty set instead
+# of a snapshot taken from a (possibly not yet created) remote.
+BOOTSTRAP_LOCAL_INIT_REFS_DIGEST = _digest("binsync-local-only-remote-refs:v1", [])
+
 
 def parse_args(argv=None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -56,6 +66,14 @@ def parse_args(argv=None) -> argparse.Namespace:
         "--no-publication-candidate",
         action="store_true",
         help="Bootstrap-only: validate local BinSync export without producing reusable publication bundles",
+    )
+    parser.add_argument(
+        "--bootstrap-local-init",
+        action="store_true",
+        help=(
+            "Bootstrap-only: initialize missing local BinSync repositories locally instead of cloning the "
+            "canonical remote; never reads, creates, or pushes any remote"
+        ),
     )
     parser.add_argument("--candidate-dir", help="Fresh output directory for the internal publication candidate")
     parser.add_argument("--artifactdir", default="bin_artifacts", help="Validated per-symbol artifact root")
@@ -82,9 +100,18 @@ def probe_capability(python_exe: str) -> tuple[bool, str]:
     return False, (result.stderr or result.stdout).strip()
 
 
-def push_binary(python_exe: str, headless_script: str, binary_path: Path, manifest_path: Path) -> int:
+def push_binary(
+    python_exe: str,
+    headless_script: str,
+    binary_path: Path,
+    manifest_path: Path,
+    *,
+    bootstrap_local_init: bool = False,
+) -> int:
     """Export one binary through a local-only BinSync sink in its own idalib process."""
     cmd = [python_exe, headless_script, str(binary_path), "--push", "--local-only"]
+    if bootstrap_local_init:
+        cmd.append("--bootstrap-local-init")
     if manifest_path is not None:
         cmd += ["--artifacts-file", str(manifest_path)]
     return subprocess.run(cmd, check=False).returncode
@@ -176,7 +203,28 @@ def _git_result(arguments: list[str], cwd: Path, *, allowed=(0,)):
         raise RuntimeError(str(exc)) from exc
 
 
-def _prepare_local_repository(binary_path: Path, gamever: str, user: str) -> tuple[str, str]:
+def _initialize_local_bootstrap_repo(
+    repo_path: Path, binary_md5: str, repo_name: str, user: str, remote_url: str
+) -> None:
+    """Initialize one missing local BinSync repository without contacting any remote."""
+    try:
+        repo_path.mkdir(parents=True)
+    except OSError as exc:
+        raise RuntimeError(f"unable to create the local BinSync repository directory {repo_path}: {exc}") from exc
+    try:
+        initialize_minimal_binsync_repo(repo_path, binary_md5, repo_name, user)
+    except InitGamebinError as exc:
+        raise RuntimeError(str(exc)) from exc
+    _git_result(["git", "remote", "add", "origin", remote_url], repo_path)
+
+
+def _prepare_local_repository(
+    binary_path: Path,
+    gamever: str,
+    user: str,
+    *,
+    bootstrap_local_init: bool = False,
+) -> tuple[str, str]:
     binary_md5 = file_md5(binary_path)
     repo_name, remote_url, repo_path, _default_sidecar = expected_sidecar(binary_path, binary_md5, gamever, user)
     sidecar_path = Path(f"{binary_path}.binsync.json")
@@ -190,7 +238,10 @@ def _prepare_local_repository(binary_path: Path, gamever: str, user: str) -> tup
         "auto_sync_all": False,
     }
     if not repo_path.exists():
-        _git_result(["git", "clone", "--no-tags", remote_url, str(repo_path)], binary_path.parent)
+        if bootstrap_local_init:
+            _initialize_local_bootstrap_repo(repo_path, binary_md5, repo_name, user, remote_url)
+        else:
+            _git_result(["git", "clone", "--no-tags", remote_url, str(repo_path)], binary_path.parent)
     exists, locked = validate_local_binsync_repo(repo_path, binary_md5, repo_name)
     if not exists or locked:
         state = "missing" if not exists else "locked"
@@ -218,17 +269,43 @@ def _prepare_local_repository(binary_path: Path, gamever: str, user: str) -> tup
     return f"{GITHUB_OWNER}__{repo_name}", remote_url
 
 
-def prepare_local_repositories(root: Path, gamever: str, config_path: Path, user: str) -> dict[str, dict]:
-    """Clone allowlisted public remotes read-only and select one dedicated local user ref."""
+def prepare_local_repositories(
+    root: Path,
+    gamever: str,
+    config_path: Path,
+    user: str,
+    *,
+    bootstrap_local_init: bool = False,
+) -> dict[str, dict]:
+    """Prepare one local repository per configured binary.
+
+    The default mode clones the allowlisted public remotes read-only and selects
+    one dedicated local user ref. ``bootstrap_local_init`` instead initializes
+    missing repositories locally (new-GAMEVER canonical remotes may not exist
+    yet) and never queries any remote.
+    """
     snapshots = {}
     for _module, _platform, binary_path in iter_configured_binaries(root, gamever, config_path):
-        repository_id, remote_url = _prepare_local_repository(binary_path, gamever, user)
-        snapshots[repository_id] = {"remote_url": remote_url, "heads": _remote_heads(remote_url)}
+        try:
+            repository_id, remote_url = _prepare_local_repository(
+                binary_path, gamever, user, bootstrap_local_init=bootstrap_local_init
+            )
+        except (InitGamebinError, RuntimeError) as exc:
+            raise RuntimeError(f"BinSync local repository preparation failed for {binary_path}: {exc}") from exc
+        snapshot = {"remote_url": remote_url}
+        if not bootstrap_local_init:
+            snapshot["heads"] = _remote_heads(remote_url)
+        snapshots[repository_id] = snapshot
     return snapshots
 
 
 def assert_remote_refs_unchanged(snapshots: dict[str, dict]) -> str:
     for repository_id, snapshot in snapshots.items():
+        if "heads" not in snapshot:
+            raise RuntimeError(
+                f"remote heads snapshot is unavailable for {repository_id}; "
+                "bootstrap-local-init repositories never query the canonical remote"
+            )
         if _remote_heads(snapshot["remote_url"]) != snapshot["heads"]:
             raise RuntimeError(f"local BinSync preparation changed canonical remote refs: {repository_id}")
     evidence = [
@@ -243,22 +320,24 @@ def write_bootstrap_local_evidence(
     gamever: str,
     snapshots: dict[str, dict],
     remote_refs_digest: str,
+    *,
+    bootstrap_local_init: bool = False,
 ) -> None:
     root = Path(candidate_dir)
     if root.exists():
         raise RuntimeError(f"bootstrap local evidence root must be fresh: {root}")
-    repositories = [
-        {
-            "repository_id": repository_id,
-            "remote_url": value["remote_url"],
-            "remote_refs_sha256": _digest("binsync-remote-ref-set:v1", value["heads"]),
-        }
-        for repository_id, value in sorted(snapshots.items())
-    ]
+    repositories = []
+    for repository_id, value in sorted(snapshots.items()):
+        repository = {"repository_id": repository_id, "remote_url": value["remote_url"]}
+        if bootstrap_local_init:
+            repository["initialized_locally"] = True
+        else:
+            repository["remote_refs_sha256"] = _digest("binsync-remote-ref-set:v1", value["heads"])
+        repositories.append(repository)
     document = {
         "schema_version": 1,
         "game_version": str(gamever),
-        "binsync_mode": "bootstrap-local-only",
+        "binsync_mode": "bootstrap-local-init" if bootstrap_local_init else "bootstrap-local-only",
         "remote_refs_before_sha256": remote_refs_digest,
         "remote_refs_after_sha256": remote_refs_digest,
         "repositories": repositories,
@@ -290,6 +369,13 @@ def main(argv=None) -> int:
     if missing:
         print("BinSync prepare failed: missing " + ", ".join(missing), file=sys.stderr)
         return 2
+    if args.bootstrap_local_init and not args.no_publication_candidate:
+        print(
+            "BinSync prepare failed: --bootstrap-local-init requires --no-publication-candidate "
+            "(local initialization results are never publication candidates)",
+            file=sys.stderr,
+        )
+        return 2
 
     python_exe = shutil.which(args.python)
     if not python_exe:
@@ -315,6 +401,7 @@ def main(argv=None) -> int:
             args.gamever,
             config_path,
             args.binsync_user,
+            bootstrap_local_init=args.bootstrap_local_init,
         )
         manifests = collect_manifest_symbols(REPOSITORY_ROOT, args.gamever, config_path, artifact_root)
     except (BinSyncCandidateError, InitGamebinError, OSError, RuntimeError, ValueError) as exc:
@@ -330,7 +417,13 @@ def main(argv=None) -> int:
             continue
         manifest_path = build_manifest(entries)
         try:
-            code = push_binary(python_exe, args.headless_script, binary_path, manifest_path)
+            code = push_binary(
+                python_exe,
+                args.headless_script,
+                binary_path,
+                manifest_path,
+                bootstrap_local_init=args.bootstrap_local_init,
+            )
         finally:
             manifest_path.unlink(missing_ok=True)
         if code == 0:
@@ -340,7 +433,12 @@ def main(argv=None) -> int:
             print(f"BinSync local prepare FAILED for {binary_path.name} (exit {code})", file=sys.stderr)
 
     try:
-        remote_refs_digest = assert_remote_refs_unchanged(remote_snapshots)
+        if args.bootstrap_local_init:
+            # No remote was ever contacted, so there is nothing to re-verify;
+            # record the empty ref set instead of querying missing remotes.
+            remote_refs_digest = BOOTSTRAP_LOCAL_INIT_REFS_DIGEST
+        else:
+            remote_refs_digest = assert_remote_refs_unchanged(remote_snapshots)
         if failed:
             raise RuntimeError(f"{failed} local BinSync exports failed")
         if args.no_publication_candidate:
@@ -349,6 +447,7 @@ def main(argv=None) -> int:
                 args.gamever,
                 remote_snapshots,
                 remote_refs_digest,
+                bootstrap_local_init=args.bootstrap_local_init,
             )
         else:
             build_candidate(

@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import difflib
 import hashlib
 import json
 import os
@@ -17,7 +16,15 @@ from pathlib import Path
 
 import yaml
 
-from binary_lock import BinaryLockError, load_binary_lock_from_revision
+from artifact_diagnostics import (
+    DiagnosticContext,
+    append_failure_diagnostics,
+    collect_failure_bundle,
+    external_staging,
+    read_artifact_bytes,
+    safe_component,
+)
+from binary_lock import BinaryLockError, download_identity, load_binary_lock_from_revision
 from bin_artifact_contract import (
     ArtifactContractError,
     _category_for,
@@ -35,7 +42,6 @@ from trusted_pr_context import (
     BASE_INHERITED_SELECTED_STRATEGY,
     EXECUTION_STRATEGIES,
     FRESH_FULL_STRATEGY,
-    TRUSTED_FILE_PATHS,
     load_trusted_pr_context,
     validate_trusted_pr_context,
 )
@@ -74,8 +80,6 @@ SHARED_ANALYSIS_PATHS = frozenset(
     }
 )
 SHARED_ANALYSIS_PREFIXES = ("gamesymbol_snapshot_lib/",)
-TRUST_ROOT_PATHS = frozenset(TRUSTED_FILE_PATHS)
-TRUST_ROOT_PREFIXES = (".github/workflows/",)
 
 
 class TrustedArtifactPrError(RuntimeError):
@@ -89,11 +93,6 @@ def _is_shared_analysis_runtime_path(path: str) -> bool:
         or ("/" not in path and path.endswith(".py"))
         or (path.startswith(SHARED_ANALYSIS_PREFIXES) and path.endswith(".py"))
     )
-
-
-def _is_trust_root_path(path: str | None) -> bool:
-    """Return whether a path can alter privileged validation or publication behavior."""
-    return bool(path) and (path in TRUST_ROOT_PATHS or path.startswith(TRUST_ROOT_PREFIXES))
 
 
 @dataclass(frozen=True)
@@ -364,6 +363,30 @@ def _reject_casefold_collisions(paths: list[str], *, label: str) -> None:
             raise TrustedArtifactPrError(f"{label} casefold collision: {previous!r} and {path!r}")
 
 
+def _reject_non_maintained_version_edits(changes: tuple[ChangedPath, ...], maintained_versions: set[str]) -> None:
+    """Fail closed on config/artifact edits that target any non-maintained GAMEVER.
+
+    Only the maintained (latest) GAMEVER accepts gamesymbol definition or artifact edits;
+    historical versions are immutable and require a new GAMEVER bump instead (#847).
+    """
+    stale_edits: dict[str, set[str]] = {}
+    for change in changes:
+        for path in (change.old_path, change.new_path):
+            if not path:
+                continue
+            match = CONFIG_RE.fullmatch(path) or ARTIFACT_RE.fullmatch(path)
+            if match and match.group(1) not in maintained_versions:
+                stale_edits.setdefault(match.group(1), set()).add(path)
+    if stale_edits:
+        details = "\n".join(
+            f"  {gamever}: {path}" for gamever in sorted(stale_edits) for path in sorted(stale_edits[gamever])
+        )
+        raise TrustedArtifactPrError(
+            "changes target configs/bin_artifacts of non-maintained GAMEVER versions; "
+            "apply gamesymbol changes to the maintained (latest) GAMEVER or bump a new GAMEVER:\n" + details
+        )
+
+
 def _tree_artifact_inventory(
     repo: GitTreeRepository,
     revision: str,
@@ -464,6 +487,14 @@ def _download_identities(repo: GitTreeRepository, revision: str) -> dict[str, di
             raise TrustedArtifactPrError(f"download.yaml at {revision} has duplicate tag {tag!r}")
         identities[tag] = item
     return identities
+
+
+def _revision_download_identity(download_payload: bytes, gamever: str) -> dict:
+    """Return the normalized DepotDownloader identity for one tag, failing closed."""
+    try:
+        return download_identity(download_payload, gamever)
+    except BinaryLockError as exc:
+        raise TrustedArtifactPrError(f"invalid download identity for GAMEVER {gamever}: {exc}") from exc
 
 
 def _revision_python_sources(repo: GitTreeRepository, revision: str) -> dict[str, str]:
@@ -675,25 +706,14 @@ def build_trusted_artifact_plan(*, repo_root: str | Path, trusted_context: dict 
     _validate_repository_tree_namespaces(repo, context["base_sha"], base_versions)
     _validate_repository_tree_namespaces(repo, context["merge_sha"], merge_versions)
     changes = repo.changes(context["base_sha"], context["merge_sha"])
-    changed_trust_roots = sorted(
-        {path for change in changes for path in (change.old_path, change.new_path) if _is_trust_root_path(path)}
-    )
-    if changed_trust_roots:
-        raise TrustedArtifactPrError(
-            "trusted validation roots require an independently merged bridge update:\n"
-            + "\n".join(f"  {path}" for path in changed_trust_roots)
-        )
+    _reject_non_maintained_version_edits(changes, maintained_versions)
     base_downloads = _download_identities(repo, context["base_sha"])
     merge_downloads = _download_identities(repo, context["merge_sha"])
+    base_download_raw = repo.read(context["base_sha"], "download.yaml")
+    merge_download_raw = repo.read(context["merge_sha"], "download.yaml")
     needs_base_sources, needs_merge_sources = required_source_index_sides(list(changes))
     base_sources = _revision_python_sources(repo, context["base_sha"]) if needs_base_sources else {}
     merge_sources = _revision_python_sources(repo, context["merge_sha"]) if needs_merge_sources else {}
-    shared_analysis_changed = any(
-        _is_shared_analysis_runtime_path(path)
-        for change in changes
-        for path in (change.old_path, change.new_path)
-        if path
-    )
 
     version_reports = []
     with tempfile.TemporaryDirectory(prefix="trusted-artifact-plan-") as temporary:
@@ -769,18 +789,23 @@ def build_trusted_artifact_plan(*, repo_root: str | Path, trusted_context: dict 
                 invalidated_paths.update(base_contract.formal_paths)
                 reasons.append("configured GAMEVER removed")
 
-            if shared_analysis_changed and merge_contract is not None and maintained:
-                selected_group_ids, selected_node_ids = _select_all_groups(merge_contract)
-                invalidated_paths.update(merge_contract.formal_paths)
-                reasons.append("shared analyzer/serializer contract changed")
-
-            binary_identity_changed = base_downloads.get(gamever) != merge_downloads.get(gamever) or (
-                base_binary_lock.sha256 if base_binary_lock else None
-            ) != (merge_binary_lock.sha256 if merge_binary_lock else None)
-            if merge_contract is not None and binary_identity_changed and maintained:
-                selected_group_ids, selected_node_ids = _select_all_groups(merge_contract)
-                invalidated_paths.update(merge_contract.formal_paths)
-                reasons.append("download/binary identity changed")
+            if gamever in base_versions and gamever in merge_versions:
+                changed_identity_paths = []
+                # Compare the normalized DepotDownloader selection (app_id/branch/manifests/os)
+                # exactly like binary_lock does, so non-identity metadata such as
+                # major_update stays a legal prior-baseline policy adjustment.
+                if _revision_download_identity(base_download_raw, gamever) != _revision_download_identity(
+                    merge_download_raw, gamever
+                ):
+                    changed_identity_paths.append(f"download.yaml (existing tag {gamever!r})")
+                if base_binary_lock.sha256 != merge_binary_lock.sha256:
+                    changed_identity_paths.append(f"binary_locks/{gamever}.json")
+                if changed_identity_paths:
+                    raise TrustedArtifactPrError(
+                        "manual binary identity change for an already-configured GAMEVER is rejected; "
+                        "use the download/binary-lock bump flow instead of editing identity by hand:\n"
+                        + "\n".join(f"  {path}" for path in changed_identity_paths)
+                    )
 
             if merge_contract is not None and maintained:
                 identity_prefix = f"bin_artifacts/{gamever}/"
@@ -888,7 +913,6 @@ def build_trusted_artifact_plan(*, repo_root: str | Path, trusted_context: dict 
         if any(report["bootstrap_required"] for report in version_reports)
         else ("full" if affected_versions else "light")
     )
-    download_raw = repo.read(context["merge_sha"], "download.yaml")
     policy_strategy = context["artifact_policy"]["execution_strategy"]
     document = {
         "schema_version": PLAN_SCHEMA_VERSION,
@@ -902,7 +926,7 @@ def build_trusted_artifact_plan(*, repo_root: str | Path, trusted_context: dict 
         "trusted_context_sha256": context["context_sha256"],
         "configured_game_versions": list(merge_versions),
         "affected_game_versions": affected_versions,
-        "download_sha256": _sha256(download_raw),
+        "download_sha256": _sha256(merge_download_raw),
         "sdk_gitlink_sha": _gitlink_sha(repo, context["merge_sha"], "hl2sdk_cs2"),
         "base_analysis_sources": _source_inventory(repo, context["base_sha"]),
         "merge_analysis_sources": _source_inventory(repo, context["merge_sha"]),
@@ -1138,7 +1162,7 @@ def _build_selected_execution_manifest(plan: dict, version: dict, config_root: P
     return manifest
 
 
-def prepare_isolated_rebuild(
+def _prepare_isolated_rebuild(
     *,
     repo_root: str | Path,
     plan: dict | str | Path,
@@ -1352,9 +1376,7 @@ def _is_verified_attempt_status(
     return True
 
 
-def _load_selected_execution_report(
-    path: Path, *, preparation: dict, version: dict, plan: dict, drift_context=None
-) -> dict:
+def _load_selected_execution_report(path: Path, *, preparation: dict, version: dict, plan: dict) -> dict:
     try:
         raw = path.read_bytes()
         report = json.loads(raw.decode("utf-8"))
@@ -1391,65 +1413,13 @@ def _load_selected_execution_report(
     ):
         raise TrustedArtifactPrError(f"selected execution report does not prove the required PR run for {gamever}")
 
-    validate_selected_execution_records(report, version, drift_context=drift_context)
+    validate_selected_execution_records(report, version)
     if report.get("inherited_initial_inventory_sha256") != preparation["initial_actual_inventory_sha256"].get(gamever):
         raise TrustedArtifactPrError(f"selected execution report lost the seeded-root binding for {gamever}")
     return report
 
 
-def _drift_content_diff(
-    gamever: str,
-    relative: str,
-    *,
-    repo_root: Path,
-    actual_root: Path,
-    max_diff_lines: int = 40,
-) -> str:
-    """Render an expected-vs-actual content diff for one drifted artifact.
-
-    The expected side is the source checkout's Git-tracked artifact (bound to the
-    merge tree by the caller's filesystem digest checks); the actual side is the
-    isolated rebuild output. Text artifacts (YAML) get a line diff so a drift
-    failure pinpoints the differing fields without runner access; anything else
-    falls back to size and digest facts.
-    """
-    expected_path = repo_root / "bin_artifacts" / gamever / relative
-    actual_path = actual_root / gamever / relative
-
-    def _describe(path: Path) -> str:
-        if not path.is_file():
-            return "missing"
-        raw = path.read_bytes()
-        return f"size={len(raw)} sha256={_sha256(raw)}"
-
-    facts = (
-        f"\n  artifact: bin_artifacts/{gamever}/{relative}"
-        f"\n  expected: {_describe(expected_path)}"
-        f"\n  actual:   {_describe(actual_path)}"
-    )
-    try:
-        expected_raw = expected_path.read_bytes()
-        actual_raw = actual_path.read_bytes()
-    except OSError:
-        return facts
-    try:
-        expected_lines = expected_raw.decode("utf-8").splitlines()
-        actual_lines = actual_raw.decode("utf-8").splitlines()
-    except UnicodeDecodeError:
-        return facts
-    diff_lines = list(
-        difflib.unified_diff(expected_lines, actual_lines, fromfile="expected", tofile="actual", lineterm="")
-    )
-    if not diff_lines:
-        return facts
-    shown = diff_lines[:max_diff_lines]
-    suffix = (
-        "" if len(diff_lines) <= max_diff_lines else f"\n  ... ({len(diff_lines) - max_diff_lines} more diff lines)"
-    )
-    return facts + "\n  content diff (expected -> actual):\n    " + "\n    ".join(shown) + suffix
-
-
-def validate_selected_execution_records(report: dict, version: dict, *, drift_context=None) -> None:
+def validate_selected_execution_records(report: dict, version: dict) -> None:
     """Validate group/node coverage and writes; callers must separately bind provenance and roots."""
     gamever = version["game_version"]
     expected_files = {
@@ -1484,15 +1454,7 @@ def validate_selected_execution_records(report: dict, version: dict, *, drift_co
             or record.get("alternative_node_ids") != planned["alternative_node_ids"]
             or record.get("output_sha256") != expected_sha256
         ):
-            detail = ""
-            if drift_context is not None:
-                detail = _drift_content_diff(
-                    gamever,
-                    planned["artifact_path"],
-                    repo_root=drift_context["repo_root"],
-                    actual_root=drift_context["actual_root"],
-                )
-            raise TrustedArtifactPrError(f"selected execution drifted from the trusted plan: {group_id}{detail}")
+            raise TrustedArtifactPrError(f"selected execution drifted from the trusted plan: {group_id}")
         winner = record.get("winner_node_id")
         if expected_sha256 is not None and winner not in planned["alternative_node_ids"]:
             raise TrustedArtifactPrError(f"selected producer group has no valid winning alternative: {group_id}")
@@ -1664,7 +1626,7 @@ def _verify_inherited_paths_against_base(repo: GitTreeRepository, plan: dict, ve
             )
 
 
-def validate_isolated_rebuild(
+def _validate_isolated_rebuild(
     *, repo_root: str | Path, plan: dict | str | Path, preparation: dict | str | Path
 ) -> dict:
     plan = load_trusted_artifact_plan(plan) if isinstance(plan, (str, Path)) else validate_trusted_artifact_plan(plan)
@@ -1704,7 +1666,6 @@ def validate_isolated_rebuild(
                 preparation=preparation,
                 version=version,
                 plan=plan,
-                drift_context={"repo_root": repo_root, "actual_root": actual_root},
             )
         else:
             execution = _load_force_all_execution_report(
@@ -1725,7 +1686,7 @@ def validate_isolated_rebuild(
         if set(actual_items) != set(expected_items):
             raise TrustedArtifactPrError(
                 f"isolated artifact inventory mismatch for {gamever}: "
-                f"expected={sorted(expected_items)!r} actual={sorted(actual_items)!r}"
+                f"expected_count={len(expected_items)} actual_count={len(actual_items)}"
             )
         for path, expected in expected_items.items():
             actual_item = actual_items[path]
@@ -1768,6 +1729,206 @@ def validate_isolated_rebuild(
     return result
 
 
+def pr_diagnostic_context(
+    *,
+    repo_root: Path,
+    plan: dict | str | Path,
+    staging_root: Path,
+    game_version: str | None = None,
+    plan_sha256: str | None = None,
+) -> DiagnosticContext:
+    """Derive evidence paths from the caller's staging, never from a failed preparation."""
+    staging = external_staging(repo_root, staging_root)
+    context = DiagnosticContext(
+        actual_root=staging / "actual-bin-artifacts",
+        evidence={"preparation.json": staging / "preparation.json"},
+        metadata={"expected_source": "merge Git blob", "plan_valid": False, "preparation_valid": False},
+    )
+    if game_version is not None:
+        context.game_versions = (safe_component(str(game_version)),)
+    plan_path = Path(plan) if isinstance(plan, (str, Path)) else None
+    if plan_path is not None:
+        raw_plan, plan_error = read_artifact_bytes(plan_path)
+        context.evidence["trusted-plan.json"] = raw_plan if raw_plan is not None else plan_path
+    else:
+        raw_plan, plan_error = _canonical_json_bytes(plan), None
+        context.evidence["trusted-plan.json"] = raw_plan
+    try:
+        if raw_plan is None:
+            raise TrustedArtifactPrError(f"diagnostic plan unavailable: {plan_error or 'missing'}")
+        document = json.loads(raw_plan.decode("utf-8"))
+        document = validate_trusted_artifact_plan(document)
+        binding = plan_sha256 or os.environ.get("PLAN_SHA256")
+        if binding is not None and document["plan_sha256"] != binding:
+            raise TrustedArtifactPrError("diagnostic plan differs from the workflow plan binding")
+        repo = GitTreeRepository(repo_root)
+        if repo.tree_sha(document["merge_sha"]) != document["merge_tree_sha"]:
+            raise TrustedArtifactPrError("diagnostic merge tree differs from the plan")
+        versions = [
+            version
+            for version in document["game_versions"]
+            if version["invalidated_paths"]
+            and version["merge_artifacts"] is not None
+            and (game_version is None or version["game_version"] == str(game_version))
+        ]
+        if not versions:
+            raise TrustedArtifactPrError("diagnostic GAMEVER is not an affected plan target")
+        context.game_versions = tuple(safe_component(version["game_version"]) for version in versions)
+        context.metadata.update(
+            plan_valid=True,
+            plan_sha256=document["plan_sha256"],
+            plan_binding="workflow digest" if binding else "caller-supplied plan",
+            source_sha=document["merge_sha"],
+            merge_sha=document["merge_sha"],
+            merge_tree_sha=document["merge_tree_sha"],
+            execution_strategy=document["execution_strategy"],
+        )
+        expected = {}
+        for version in versions:
+            gamever = version["game_version"]
+            prefix = f"bin_artifacts/{gamever}/"
+            entries = repo.entries(document["merge_sha"], prefix)
+            for entry in entries:
+                parts = entry.path.split("/")
+                if entry.mode not in {"100644", "100755"} or len(parts) != 4 or not entry.path.endswith(".yaml"):
+                    raise TrustedArtifactPrError(f"unsafe diagnostic Git entry: {entry.path}")
+                for part in parts:
+                    safe_component(part)
+            raw_by_path = repo.read_blobs(entries)
+            planned = {item["path"]: item for item in version["merge_artifacts"]["files"]}
+            if set(planned) != set(raw_by_path):
+                raise TrustedArtifactPrError("diagnostic Git inventory differs from the bound plan")
+            for path, raw in raw_by_path.items():
+                if len(raw) != planned[path]["size"] or _sha256(raw) != planned[path]["sha256"]:
+                    raise TrustedArtifactPrError(f"diagnostic Git bytes differ from the bound plan: {path}")
+            expected.update(raw_by_path)
+        context.expected = expected
+    except Exception as exc:
+        context.errors.append(str(exc))
+    context.metadata["game_versions"] = list(context.game_versions)
+    context.metadata["game_version"] = context.game_versions[0] if len(context.game_versions) == 1 else None
+    strategy = context.metadata.get("execution_strategy")
+    for gamever in context.game_versions:
+        suffixes = ("selected",) if strategy == BASE_INHERITED_SELECTED_STRATEGY else ("force-all",)
+        if strategy is None:
+            suffixes = ("selected", "force-all")
+        for suffix in suffixes:
+            relative = f"execution-reports/{gamever}.{suffix}.json"
+            context.evidence[relative] = staging / relative
+        if strategy != FRESH_FULL_STRATEGY:
+            relative = f"selected-execution-{gamever}.json"
+            context.evidence[relative] = staging / relative
+    try:
+        raw_preparation, preparation_error = read_artifact_bytes(staging / "preparation.json")
+        if raw_preparation is None:
+            raise TrustedArtifactPrError(f"diagnostic preparation unavailable: {preparation_error or 'missing'}")
+        context.evidence["preparation.json"] = raw_preparation
+        preparation = json.loads(raw_preparation.decode("utf-8"))
+        unsigned = dict(preparation)
+        digest = unsigned.pop("preparation_sha256", None)
+        if (
+            preparation.get("schema_version") != PREPARATION_SCHEMA_VERSION
+            or digest != _digest("isolated-preparation", unsigned)
+            or not context.metadata["plan_valid"]
+            or preparation.get("plan_sha256") != context.metadata["plan_sha256"]
+            or preparation.get("merge_sha") != context.metadata["merge_sha"]
+            or Path(os.path.abspath(preparation["staging_root"])) != staging
+            or Path(os.path.abspath(preparation["actual_artifact_root"])) != context.actual_root
+        ):
+            raise TrustedArtifactPrError("diagnostic preparation digest, layout or plan binding mismatch")
+        context.metadata.update(preparation_valid=True, preparation_sha256=digest)
+    except Exception as exc:
+        context.errors.append(str(exc))
+    return context
+
+
+def prepare_isolated_rebuild(
+    *,
+    repo_root: str | Path,
+    plan: dict | str | Path,
+    staging_root: str | Path,
+    game_version: str | None = None,
+    diagnostic_plan_sha256: str | None = None,
+) -> dict:
+    try:
+        return _prepare_isolated_rebuild(
+            repo_root=repo_root, plan=plan, staging_root=staging_root, game_version=game_version
+        )
+    except Exception as exc:
+        detail = append_failure_diagnostics(
+            str(exc),
+            lambda: pr_diagnostic_context(
+                repo_root=Path(repo_root),
+                plan=plan,
+                staging_root=Path(staging_root),
+                game_version=game_version,
+                plan_sha256=diagnostic_plan_sha256,
+            ),
+        )
+        raise TrustedArtifactPrError(detail) from exc
+
+
+def _diagnostic_staging(preparation: dict | str | Path) -> Path:
+    # File callers authorize only the file's parent; JSON contents cannot redirect collection.
+    if isinstance(preparation, (str, Path)):
+        return Path(preparation).absolute().parent
+    return Path(preparation["staging_root"])
+
+
+def validate_isolated_rebuild(
+    *,
+    repo_root: str | Path,
+    plan: dict | str | Path,
+    preparation: dict | str | Path,
+    diagnostic_game_version: str | None = None,
+    diagnostic_plan_sha256: str | None = None,
+    diagnostic_staging_root: str | Path | None = None,
+) -> dict:
+    try:
+        return _validate_isolated_rebuild(repo_root=repo_root, plan=plan, preparation=preparation)
+    except Exception as exc:
+        detail = append_failure_diagnostics(
+            str(exc),
+            lambda: pr_diagnostic_context(
+                repo_root=Path(repo_root),
+                plan=plan,
+                staging_root=Path(diagnostic_staging_root)
+                if diagnostic_staging_root is not None
+                else _diagnostic_staging(preparation),
+                game_version=diagnostic_game_version,
+                plan_sha256=diagnostic_plan_sha256,
+            ),
+        )
+        raise TrustedArtifactPrError(detail) from exc
+
+
+def collect_pr_failure_diagnostics(
+    *,
+    repo_root: Path,
+    plan: dict | str | Path,
+    staging_root: Path,
+    destination: Path,
+    error: str,
+    phase: str,
+    game_version: str | None = None,
+    plan_sha256: str | None = None,
+) -> None:
+    collect_failure_bundle(
+        repo_root=repo_root,
+        staging=staging_root,
+        destination=destination,
+        error=error,
+        phase=phase,
+        load_context=lambda: pr_diagnostic_context(
+            repo_root=repo_root,
+            plan=plan,
+            staging_root=staging_root,
+            game_version=game_version,
+            plan_sha256=plan_sha256,
+        ),
+    )
+
+
 def parse_args(argv=None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -1785,6 +1946,19 @@ def parse_args(argv=None) -> argparse.Namespace:
     verify.add_argument("--plan", required=True)
     verify.add_argument("--preparation", required=True)
     verify.add_argument("--output")
+    verify.add_argument("--staging-root", help="Workflow-bound staging for failure evidence")
+    verify.add_argument("--gamever")
+    diagnose = subparsers.add_parser("diagnose", help="Collect partial evidence after a failed workflow step")
+    diagnose.add_argument("--repo-root", default=".")
+    diagnose.add_argument("--plan", required=True)
+    diagnose.add_argument("--staging-root", required=True)
+    diagnose.add_argument("--gamever", required=True)
+    diagnose.add_argument("--phase", choices=("prepare", "execute", "verify", "downstream"), required=True)
+    diagnose.add_argument("--error", required=True)
+    diagnose.add_argument("--error-file", help="Best-effort original prepare/verify error from an earlier safe bundle")
+    for command in (prepare, verify, diagnose):
+        command.add_argument("--diagnostics-dir", required=command is diagnose)
+        command.add_argument("--plan-sha256", help="Workflow plan digest for diagnostic provenance")
     return parser.parse_args(argv)
 
 
@@ -1800,17 +1974,55 @@ def main(argv=None) -> int:
                 plan=args.plan,
                 staging_root=args.staging_root,
                 game_version=args.gamever,
+                diagnostic_plan_sha256=args.plan_sha256,
             )
+        elif args.command == "diagnose":
+            error = args.error
+            if args.error_file:
+                raw_error, read_error = read_artifact_bytes(Path(args.error_file))
+                if raw_error is not None:
+                    error = raw_error.decode("utf-8", errors="replace").rstrip("\n")
+                elif read_error:
+                    error += f"\nOriginal error file unavailable: {read_error}"
+            collect_pr_failure_diagnostics(
+                repo_root=Path(args.repo_root),
+                plan=args.plan,
+                staging_root=Path(args.staging_root),
+                destination=Path(args.diagnostics_dir),
+                error=error,
+                phase=args.phase,
+                game_version=args.gamever,
+                plan_sha256=args.plan_sha256,
+            )
+            return 0
         else:
             result = validate_isolated_rebuild(
                 repo_root=args.repo_root,
                 plan=args.plan,
                 preparation=args.preparation,
+                diagnostic_game_version=args.gamever,
+                diagnostic_plan_sha256=args.plan_sha256,
+                diagnostic_staging_root=args.staging_root,
             )
             if args.output:
                 _atomic_write(Path(args.output), _canonical_json_bytes(result))
-    except (OSError, UnicodeError, yaml.YAMLError, TrustedArtifactPrError) as exc:
+    except Exception as exc:
         print(f"Error: {exc}", file=sys.stderr)
+        if args.command in {"prepare", "verify"} and args.diagnostics_dir:
+            try:
+                staging = Path(args.staging_root) if args.staging_root else _diagnostic_staging(args.preparation)
+                collect_pr_failure_diagnostics(
+                    repo_root=Path(args.repo_root),
+                    plan=args.plan,
+                    staging_root=staging,
+                    destination=Path(args.diagnostics_dir),
+                    error=f"Error: {exc}",
+                    phase=args.command,
+                    game_version=args.gamever,
+                    plan_sha256=args.plan_sha256,
+                )
+            except Exception as diagnostic_error:
+                print(f"Failure diagnostics unavailable: {diagnostic_error}", file=sys.stderr)
         return 1
     print(json.dumps(result, ensure_ascii=False, sort_keys=True))
     return 0

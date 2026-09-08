@@ -20,6 +20,8 @@ on:
 permissions:
   actions: read
   contents: read
+env:
+  CS2VIBE_STRING_MIN_LENGTH: '4'
 jobs:
   warmup-idb:
     uses: ./.github/workflows/warmup-idb.yml
@@ -44,7 +46,6 @@ jobs:
       CS2VIBE_LLM_EFFORT: ${{ secrets.CS2VIBE_LLM_EFFORT }}
       CS2VIBE_LLM_FAKE_AS: ${{ secrets.CS2VIBE_LLM_FAKE_AS }}
       CS2VIBE_LLM_MODEL: ${{ secrets.CS2VIBE_LLM_MODEL }}
-      CS2VIBE_STRING_MIN_LENGTH: '4'
       DEPOTDOWNLOADER_STEAM_USERNAME: ${{ secrets.DEPOTDOWNLOADER_STEAM_USERNAME }}
       DEPOTDOWNLOADER_STEAM_PASSWORD: ${{ secrets.DEPOTDOWNLOADER_STEAM_PASSWORD }}
     steps:
@@ -134,15 +135,24 @@ jobs:
             --persisted-root "$env:PERSISTED_WORKSPACE" --gamever "$env:GAMEVER" `
             --generation $values['generation'] --cache-key $values['cache-key'] --ida-version "$idaVersion"
           if ($LASTEXITCODE -ne 0) { throw "Warm IDB restore failed." }
+      - name: Bind rebuild and failure evidence paths
+        id: rebuild-paths
+        shell: pwsh
+        run: |
+          $key = "${{ github.run_id }}-${{ github.run_attempt }}-$env:GAMEVER"
+          "staging=$(Join-Path $env:RUNNER_TEMP "trusted-pr-rebuild\$key")" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "diagnostics=$(Join-Path $env:RUNNER_TEMP "trusted-pr-diagnostics\$key")" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "plan=$(Join-Path $env:RUNNER_TEMP 'trusted-pr-plan\trusted-source-artifact-plan.json')" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
       - name: Prepare checkout-external trusted rebuild
         id: prepare-rebuild
         shell: pwsh
         run: |
-          $plan = Join-Path "${{ runner.temp }}" "trusted-pr-plan\trusted-source-artifact-plan.json"
-          $staging = Join-Path "${{ runner.temp }}" "trusted-pr-rebuild\${{ github.run_id }}-${{ github.run_attempt }}-$env:GAMEVER"
+          $plan = "${{ steps.rebuild-paths.outputs.plan }}"
+          $staging = "${{ steps.rebuild-paths.outputs.staging }}"
           uv run --project .trusted-tools python .trusted-tools/trusted_artifact_pr.py prepare `
             --repo-root "${{ github.workspace }}" `
-            --plan "$plan" --gamever "$env:GAMEVER" --staging-root "$staging"
+            --plan "$plan" --gamever "$env:GAMEVER" --staging-root "$staging" `
+            --plan-sha256 "$env:PLAN_SHA256" --diagnostics-dir "${{ steps.rebuild-paths.outputs.diagnostics }}"
           if ($LASTEXITCODE -ne 0) { throw "Trusted isolated rebuild preparation failed." }
           $preparation = Join-Path $staging "preparation.json"
           $document = Get-Content -LiteralPath $preparation -Raw | ConvertFrom-Json
@@ -159,6 +169,7 @@ jobs:
           "selected-manifest=$(if ($null -ne $selectedManifest) { $selectedManifest } else { '' })" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "verification=$(Join-Path $staging 'validation.json')" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
       - name: Execute the trusted plan closure from the prepared artifact root
+        id: execute-rebuild
         shell: pwsh
         run: |
           if ("${{ steps.prepare-rebuild.outputs.strategy }}" -eq "base-inherited-selected-v1") {
@@ -181,13 +192,16 @@ jobs:
             if ($LASTEXITCODE -ne 0) { throw "Force-all PR artifact rebuild failed." }
           }
       - name: Verify execution evidence and exact Git bytes
+        id: verify-rebuild
         shell: pwsh
         run: |
           uv run --project .trusted-tools python .trusted-tools/trusted_artifact_pr.py verify `
             --repo-root "${{ github.workspace }}" `
             --plan "${{ steps.prepare-rebuild.outputs.plan }}" `
             --preparation "${{ steps.prepare-rebuild.outputs.preparation }}" `
-            --output "${{ steps.prepare-rebuild.outputs.verification }}"
+            --output "${{ steps.prepare-rebuild.outputs.verification }}" `
+            --staging-root "${{ steps.rebuild-paths.outputs.staging }}" --gamever "$env:GAMEVER" `
+            --plan-sha256 "$env:PLAN_SHA256" --diagnostics-dir "${{ steps.rebuild-paths.outputs.diagnostics }}"
           if ($LASTEXITCODE -ne 0) { throw "Isolated rebuild differs from trusted Git artifacts." }
       - name: Build and validate downstream candidates
         id: downstream
@@ -212,12 +226,50 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Gamedata candidate guard failed." }
           "snapshot=$snapshot" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
       - name: Run C++ ABI validation
+        id: cpp-validation
         shell: pwsh
         run: |
           uv run run_cpp_tests.py -gamever "$env:GAMEVER" `
             -snapshot "${{ steps.downstream.outputs.snapshot }}" `
             -configyaml "${{ steps.prepare-rebuild.outputs.config }}" -debug
           if ($LASTEXITCODE -ne 0) { throw "C++ ABI validation failed." }
+      - name: Collect partial rebuild evidence on failure
+        id: collect-failure
+        if: >-
+          failure() && (steps.prepare-rebuild.outcome == 'failure' || steps.execute-rebuild.outcome == 'failure' ||
+          steps.verify-rebuild.outcome == 'failure' || steps.downstream.outcome == 'failure' || steps.cpp-validation.outcome == 'failure')
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          $originalDiagnostics = "${{ steps.rebuild-paths.outputs.diagnostics }}"
+          # prepare/verify preserve their original Python error before returning nonzero.
+          # Always collect into a fresh directory, never upload a stale or pre-created tree.
+          $diagnostics = "$originalDiagnostics-$([guid]::NewGuid().ToString('N'))"
+          "diagnostics=$diagnostics" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          $phase = if ("${{ steps.prepare-rebuild.outcome }}" -eq 'failure') { 'prepare' }
+            elseif ("${{ steps.execute-rebuild.outcome }}" -eq 'failure') { 'execute' }
+            elseif ("${{ steps.verify-rebuild.outcome }}" -eq 'failure') { 'verify' }
+            else { 'downstream' }
+          uv run --project .trusted-tools python .trusted-tools/trusted_artifact_pr.py diagnose `
+            --repo-root "${{ github.workspace }}" --plan "${{ steps.rebuild-paths.outputs.plan }}" `
+            --plan-sha256 "$env:PLAN_SHA256" --gamever "$env:GAMEVER" `
+            --staging-root "${{ steps.rebuild-paths.outputs.staging }}" --diagnostics-dir "$diagnostics" `
+            --phase "$phase" --error "$phase workflow step failed; original error is retained in that step's job log." `
+            --error-file "$(Join-Path $originalDiagnostics 'verification-error.txt')"
+          if ($LASTEXITCODE -ne 0) { throw 'Best-effort failure evidence collection failed.' }
+      - name: Upload failed rebuild diagnostics
+        if: >-
+          failure() && steps.collect-failure.outputs.diagnostics != '' &&
+          (steps.prepare-rebuild.outcome == 'failure' || steps.execute-rebuild.outcome == 'failure' ||
+          steps.verify-rebuild.outcome == 'failure' || steps.downstream.outcome == 'failure' || steps.cpp-validation.outcome == 'failure')
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: trusted-pr-rebuild-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}-${{ inputs.gamever }}
+          path: ${{ steps.collect-failure.outputs.diagnostics }}/**
+          retention-days: 30
+          include-hidden-files: true
+          if-no-files-found: warn
       - name: Upload bound rebuild evidence
         uses: actions/upload-artifact@v4
         with:

@@ -53,6 +53,7 @@ RELEASE_INTEGRATION_MODULES = frozenset(
 )
 UNIT_MODULES = frozenset(
     {
+        "test_artifact_diagnostics",
         "test_agent_runner",
         "test_analysis_config",
         "test_atomic_json_write",
@@ -61,6 +62,7 @@ UNIT_MODULES = frozenset(
         "test_binsync_candidate",
         "test_binsync_publish",
         "test_bump_download",
+        "test_bump_publish_retry",
         "test_cnetworkmessages_dtor_preprocessor",
         "test_copy_depot_bin",
         "test_cs2fow_gamedata",

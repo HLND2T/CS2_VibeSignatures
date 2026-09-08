@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import json
+import os
 import struct
 import subprocess
 import tempfile
@@ -151,6 +152,38 @@ class BinSyncCandidateTests(unittest.TestCase):
                 ida_runtime_identity="IDA 9.2",
                 actions_artifact_name=f"binsync-candidate-123-1-{preparation['source_sha']}-1",
             )
+
+    def test_build_reads_raw_origin_despite_insteadof_rewrite(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            temporary_root = Path(temporary)
+            root = temporary_root / "repo"
+            root.mkdir()
+            _source_sha, preparation, binsync_repo = self._repository(root)
+            destination = temporary_root / "candidate"
+
+            # A system-level insteadOf rewrite (the git cache proxy from issue
+            # #927) makes `git remote get-url` return the proxy URL; the
+            # canonical origin check must read the raw stored URL instead.
+            rewritten = self._git(
+                binsync_repo,
+                "-c",
+                "url.http://127.0.0.1:8080/.insteadOf=https://github.com/",
+                "remote",
+                "get-url",
+                "origin",
+            )
+            self.assertEqual("http://127.0.0.1:8080/HLND2T/CS2_VibeSignatures_binsync_1_server.dll", rewritten)
+            with patch.dict(
+                os.environ,
+                {
+                    "GIT_CONFIG_COUNT": "1",
+                    "GIT_CONFIG_KEY_0": "url.http://127.0.0.1:8080/.insteadOf",
+                    "GIT_CONFIG_VALUE_0": "https://github.com/",
+                },
+            ):
+                manifest = self._build(root, preparation, destination)
+
+            self.assertEqual(1, len(manifest["repositories"]))
 
     def test_builds_canonical_self_contained_candidate_and_hosted_verifies(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
