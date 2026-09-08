@@ -789,7 +789,10 @@ def _repository_for_binary(
     if not exists or locked:
         state = "missing" if not exists else "locked"
         raise BinSyncCandidateError(f"local BinSync repository is {state}: {local_repo}")
-    origin = _git_text(local_repo, "remote", "get-url", "origin")
+    # Read the raw configured URL: `git remote get-url` expands url.*.insteadOf
+    # rewrites (e.g. the git cache proxy from issue #927), so a canonical origin
+    # would no longer compare equal under such a rewrite.
+    origin = _git_text(local_repo, "config", "--get", "remote.origin.url")
     if origin != remote_url or normalize_github_remote(origin) != (GITHUB_OWNER.casefold(), repository_name.casefold()):
         raise BinSyncCandidateError(f"local BinSync origin is not canonical: {local_repo}")
 
