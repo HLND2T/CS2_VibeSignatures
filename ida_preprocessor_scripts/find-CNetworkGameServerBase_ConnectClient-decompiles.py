@@ -2,6 +2,7 @@
 """Preprocess ConnectClient's GetFreeClient call and CheckPassword vcall."""
 
 from ida_analyze_util import preprocess_common_skill
+from ida_preprocessor_scripts._connect_client_anchor import load_anchor, validate_result
 
 
 TARGET_FUNCTION_NAMES = [
@@ -17,6 +18,12 @@ LLM_DECOMPILE = [
             "references/engine/CNetworkGameServerBase_ConnectClient.{platform}.yaml",
         ],
         "expected_result_sections": ["found_call"],
+        "instruction_rules": [
+            {
+                "regex": r"(?i)call\s+(?:near ptr\s+)?[A-Za-z_?@$][\w?@$:.]*",
+                "text": "A direct call to the FIRST client acquisition in the server-full fallback chain",
+            },
+        ],
         "dependency_policy": {
             "CNetworkGameServerBase_ConnectClient.{platform}.yaml": "required",
         },
@@ -77,6 +84,14 @@ async def preprocess_skill(
     debug=False,
 ):
     """Locate GetFreeClient and CheckPassword from ConnectClient via LLM decompile."""
+    try:
+        anchor = await load_anchor(session, new_binary_dir, platform)
+    except Exception as exc:
+        if debug:
+            print(f"    Preprocess: GetFreeClient semantic anchor unavailable: {exc}")
+        return False
+    if debug:
+        print(f"    Preprocess: GetFreeClient verified anchor {hex(anchor['insn_va'])} -> {hex(anchor['target_va'])}")
     return await preprocess_common_skill(
         session=session,
         expected_outputs=expected_outputs,
@@ -88,6 +103,7 @@ async def preprocess_skill(
         func_vtable_relations=FUNC_VTABLE_RELATIONS,
         llm_decompile_specs=LLM_DECOMPILE,
         llm_config=llm_config,
+        llm_result_validator=lambda result: validate_result(result, anchor),
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
     )

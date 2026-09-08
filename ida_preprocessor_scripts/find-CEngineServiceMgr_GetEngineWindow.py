@@ -1,35 +1,35 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CEngineServiceMgr_GetEngineWindow skill."""
+"""Preprocess script for find-CEngineServiceMgr_GetEngineWindow.
+
+The interface slot is recovered by find-IEngineServiceMgr_GetEngineWindow
+(LLM_DECOMPILE on the Panorama pre-output handler); this skill inherits
+that slot index and resolves the concrete override in the CEngineServiceMgr vtable.
+"""
 
 from ida_analyze_util import preprocess_common_skill
 
-TARGET_FUNCTION_NAMES = ["CEngineServiceMgr_GetEngineWindow"]
-
-LLM_DECOMPILE = [
-    {
-        "symbol_name": "CEngineServiceMgr_GetEngineWindow",
-        "prompt_path": "prompt/call_llm_decompile.md",
-        "reference_yaml_paths": [
-            "references/engine/CPanoramaEngineHandler_OnClientPreOutput.{platform}.yaml",
-        ],
-        "expected_result_sections": ["found_vcall"],
-        "dependency_policy": {
-            "CPanoramaEngineHandler_OnClientPreOutput.{platform}.yaml": "required",
-        },
-    },
+INHERIT_VFUNCS = [
+    # (target_func_name, inherit_vtable_class, base_vfunc_name, generate_func_sig)
+    (
+        "CEngineServiceMgr_GetEngineWindow",
+        "CEngineServiceMgr",
+        "IEngineServiceMgr_GetEngineWindow",
+        True,
+    ),
 ]
-
-FUNC_VTABLE_RELATIONS = [("CEngineServiceMgr_GetEngineWindow", "CEngineServiceMgr_vtable")]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     (
         "CEngineServiceMgr_GetEngineWindow",
         [
             "func_name",
-            "vfunc_sig",
+            "func_va",
+            "func_rva",
+            "func_size",
+            "func_sig",
+            "vtable_name",
             "vfunc_offset",
             "vfunc_index",
-            "vtable_name",
         ],
     ),
 ]
@@ -43,10 +43,10 @@ async def preprocess_skill(
     new_binary_dir,
     platform,
     image_base,
-    llm_config=None,
     debug=False,
 ):
-    """Locate the engine-window vfunc slot via the Panorama handler decompile."""
+    """Inherit the GetEngineWindow slot from IEngineServiceMgr."""
+    _ = skill_name
     return await preprocess_common_skill(
         session=session,
         expected_outputs=expected_outputs,
@@ -54,10 +54,7 @@ async def preprocess_skill(
         new_binary_dir=new_binary_dir,
         platform=platform,
         image_base=image_base,
-        func_names=TARGET_FUNCTION_NAMES,
-        func_vtable_relations=FUNC_VTABLE_RELATIONS,
-        llm_decompile_specs=LLM_DECOMPILE,
-        llm_config=llm_config,
+        inherit_vfuncs=INHERIT_VFUNCS,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
     )

@@ -45,7 +45,7 @@ disasm_code: |-
   .text:00000001800B4A6D                 mov     edx, [rbx+40h]
   .text:00000001800B4A70                 add     rsp, 20h
   .text:00000001800B4A74                 pop     rbx
-  .text:00000001800B4A75                 jmp     qword ptr [rax+0A0h]
+  .text:00000001800B4A75                 jmp     qword ptr [rax+0A0h]; 0xA0 = 160LL = INetworkSystem_PollSocket
   .text:00000001800B4A7C                 add     rsp, 20h
   .text:00000001800B4A80                 pop     rbx
   .text:00000001800B4A81                 retn
@@ -85,7 +85,7 @@ procedure: |-
       v3 = a1 + 2;
       if ( !a1 )
         v3 = nullptr;
-      (*(void (__fastcall **)(__int64, _QWORD, _DWORD *))(*(_QWORD *)g_pNetworkSystem + 160LL))(
+      (*(void (__fastcall **)(__int64, _QWORD, _DWORD *))(*(_QWORD *)g_pNetworkSystem + 160LL))(  ; 160LL = 0xA0 = INetworkSystem_PollSocket
         g_pNetworkSystem,
         (unsigned int)a1[16],
         v3);

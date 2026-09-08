@@ -1,0 +1,253 @@
+func_name: CNetworkServerService_StartupServer
+func_va: '0x40cc50'
+disasm_code: |-
+  .text:000000000040CC50                 push    rbp
+  .text:000000000040CC51                 mov     rbp, rsp
+  .text:000000000040CC54                 push    r15
+  .text:000000000040CC56                 push    r14
+  .text:000000000040CC58                 mov     r14, rdx
+  .text:000000000040CC5B                 push    r13
+  .text:000000000040CC5D                 mov     r13, rsi
+  .text:000000000040CC60                 push    r12
+  .text:000000000040CC62                 mov     r12, rcx
+  .text:000000000040CC65                 push    rbx
+  .text:000000000040CC66                 mov     rbx, rdi
+  .text:000000000040CC69                 sub     rsp, 48h
+  .text:000000000040CC6D                 lea     rax, g_pNetworkService
+  .text:000000000040CC74                 mov     rdi, [rax]
+  .text:000000000040CC77                 mov     rax, [rdi]
+  .text:000000000040CC7A                 call    qword ptr [rax+0C0h]
+  .text:000000000040CC80                 cmp     qword ptr [rbx+150h], 0
+  .text:000000000040CC88                 jz      short loc_40CD08
+  .text:000000000040CC8A                 lea     r12, dword_A32394
+  .text:000000000040CC91                 ; _QWORD
+  .text:000000000040CC91                 mov     esi, 3; _QWORD
+  .text:000000000040CC96                 ; _QWORD
+  .text:000000000040CC96                 mov     edi, [r12]; _QWORD
+  .text:000000000040CC9A                 call    _LoggingSystem_IsChannelEnabled
+  .text:000000000040CC9F                 test    al, al
+  .text:000000000040CCA1                 jnz     short loc_40CCE8
+  .text:000000000040CCA3                 cmp     byte ptr [r13+58h], 0
+  .text:000000000040CCA8                 jz      short loc_40CCD6
+  .text:000000000040CCAA                 cmp     byte ptr [r13+5Ah], 0
+  .text:000000000040CCAF                 jnz     short loc_40CCD6
+  .text:000000000040CCB1                 cmp     byte ptr [r13+6Ch], 0
+  .text:000000000040CCB6                 jnz     short loc_40CCD6
+  .text:000000000040CCB8                 lea     rax, g_pNetworkSystem
+  .text:000000000040CCBF                 mov     esi, [rbx+148h]
+  .text:000000000040CCC5                 mov     rdi, [rax]
+  .text:000000000040CCC8                 mov     rax, [rdi]
+  .text:000000000040CCCB                 call    qword ptr [rax+70h]; 0x70 = 112LL = INetworkSystem_OpenSocket
+  .text:000000000040CCCE                 test    al, al
+  .text:000000000040CCD0                 jz      loc_40CDD8
+  .text:000000000040CCD6                 add     rsp, 48h
+  .text:000000000040CCDA                 pop     rbx
+  .text:000000000040CCDB                 pop     r12
+  .text:000000000040CCDD                 pop     r13
+  .text:000000000040CCDF                 pop     r14
+  .text:000000000040CCE1                 pop     r15
+  .text:000000000040CCE3                 pop     rbp
+  .text:000000000040CCE4                 retn
+  .text:000000000040CCE8                 ; _QWORD
+  .text:000000000040CCE8                 mov     edi, [r12]; _QWORD
+  .text:000000000040CCEC                 lea     rdx, aCnetworkserver_4; "CNetworkServerService::StartupServer ca"...
+  .text:000000000040CCF3                 ; _QWORD
+  .text:000000000040CCF3                 mov     esi, 3; _QWORD
+  .text:000000000040CCF8                 xor     eax, eax
+  .text:000000000040CCFA                 call    _LoggingSystem_Log
+  .text:000000000040CCFF                 jmp     short loc_40CCA3
+  .text:000000000040CD08                 ; _QWORD
+  .text:000000000040CD08                 mov     edi, 2748h; _QWORD
+  .text:000000000040CD0D                 call    __Znwm; operator new(ulong)
+  .text:000000000040CD12                 mov     esi, [rbx+148h]
+  .text:000000000040CD18                 mov     rdx, r14
+  .text:000000000040CD1B                 mov     r15, rax
+  .text:000000000040CD1E                 mov     rdi, rax
+  .text:000000000040CD21                 call    sub_511B80
+  .text:000000000040CD26                 mov     rdi, r15
+  .text:000000000040CD29                 mov     rdx, r12
+  .text:000000000040CD2C                 mov     rsi, r13
+  .text:000000000040CD2F                 mov     [rbx+150h], r15
+  .text:000000000040CD36                 call    CNetworkGameServer_Init
+  .text:000000000040CD3B                 mov     rdi, [rbx+150h]
+  .text:000000000040CD42                 call    CNetworkGameServer_PrepareForAssetLoad
+  .text:000000000040CD47                 test    al, al
+  .text:000000000040CD49                 jz      short loc_40CDA0
+  .text:000000000040CD4B                 mov     rax, [rbx+160h]
+  .text:000000000040CD52                 test    rax, rax
+  .text:000000000040CD55                 jz      loc_40CCA3
+  .text:000000000040CD5B                 mov     edx, [rax+8]
+  .text:000000000040CD5E                 test    edx, edx
+  .text:000000000040CD60                 jle     loc_40CCA3
+  .text:000000000040CD66                 xor     r12d, r12d
+  .text:000000000040CD69                 nop     dword ptr [rax+00000000h]
+  .text:000000000040CD70                 mov     rax, [rax+10h]
+  .text:000000000040CD74                 mov     rsi, [rbx+150h]
+  .text:000000000040CD7B                 mov     rdi, [rax+r12*8]
+  .text:000000000040CD7F                 add     r12, 1
+  .text:000000000040CD83                 mov     rax, [rdi]
+  .text:000000000040CD86                 call    qword ptr [rax+30h]
+  .text:000000000040CD89                 mov     rax, [rbx+160h]
+  .text:000000000040CD90                 cmp     [rax+8], r12d
+  .text:000000000040CD94                 jg      short loc_40CD70
+  .text:000000000040CD96                 jmp     loc_40CCA3
+  .text:000000000040CDA0                 lea     r12, dword_A32394
+  .text:000000000040CDA7                 ; _QWORD
+  .text:000000000040CDA7                 mov     esi, 3; _QWORD
+  .text:000000000040CDAC                 ; _QWORD
+  .text:000000000040CDAC                 mov     edi, [r12]; _QWORD
+  .text:000000000040CDB0                 call    _LoggingSystem_IsChannelEnabled
+  .text:000000000040CDB5                 test    al, al
+  .text:000000000040CDB7                 jnz     loc_40CE68
+  .text:000000000040CDBD                 lea     rax, g_pHostStateMgr
+  .text:000000000040CDC4                 xor     esi, esi
+  .text:000000000040CDC6                 mov     rdi, [rax]
+  .text:000000000040CDC9                 mov     rax, [rdi]
+  .text:000000000040CDCC                 call    qword ptr [rax+60h]
+  .text:000000000040CDCF                 jmp     loc_40CD4B
+  .text:000000000040CDD8                 call    sub_86EA70
+  .text:000000000040CDDD                 lea     rbx, dword_A32394
+  .text:000000000040CDE4                 ; _QWORD
+  .text:000000000040CDE4                 mov     edi, [rbx]; _QWORD
+  .text:000000000040CDE6                 test    al, al
+  .text:000000000040CDE8                 jz      loc_40CE88
+  .text:000000000040CDEE                 ; _QWORD
+  .text:000000000040CDEE                 mov     esi, 5; _QWORD
+  .text:000000000040CDF3                 call    _LoggingSystem_IsChannelEnabled
+  .text:000000000040CDF8                 test    al, al
+  .text:000000000040CDFA                 jz      loc_40CCD6
+  .text:000000000040CE00                 ; _QWORD
+  .text:000000000040CE00                 mov     edi, [rbx]; _QWORD
+  .text:000000000040CE02                 ; _QWORD
+  .text:000000000040CE02                 lea     rdx, [rbp+var_70]; _QWORD
+  .text:000000000040CE06                 ; _QWORD
+  .text:000000000040CE06                 mov     esi, 5; _QWORD
+  .text:000000000040CE0B                 mov     [rbp+var_68], 1ABh
+  .text:000000000040CE12                 lea     rax, aNetworkservers_1; "networkserverservice.cpp"
+  .text:000000000040CE19                 mov     [rbp+var_58], 0
+  .text:000000000040CE21                 mov     [rbp+var_70], rax
+  .text:000000000040CE25                 lea     rax, aStartupserver; "StartupServer"
+  .text:000000000040CE2C                 mov     [rbp+var_60], rax
+  .text:000000000040CE30                 lea     rcx, aFailedToOpenBi; "Failed to open/bind server socket"
+  .text:000000000040CE37                 xor     eax, eax
+  .text:000000000040CE39                 mov     [rbp+var_50], 0
+  .text:000000000040CE41                 mov     [rbp+var_48], 0
+  .text:000000000040CE49                 mov     [rbp+var_40], 0
+  .text:000000000040CE51                 mov     [rbp+var_38], 0
+  .text:000000000040CE58                 call    __Z17LoggingSystem_Logi17LoggingSeverity_tRK20LoggingRareOptions_tPKcz; LoggingSystem_Log(int,LoggingSeverity_t,LoggingRareOptions_t const&,char const*,...)
+  .text:000000000040CE5D                 jmp     loc_40CCD6
+  .text:000000000040CE68                 ; _QWORD
+  .text:000000000040CE68                 mov     edi, [r12]; _QWORD
+  .text:000000000040CE6C                 lea     rdx, aSvPrepareforas; "SV:  PrepareForAssetLoad failed, aborti"...
+  .text:000000000040CE73                 ; _QWORD
+  .text:000000000040CE73                 mov     esi, 3; _QWORD
+  .text:000000000040CE78                 xor     eax, eax
+  .text:000000000040CE7A                 call    _LoggingSystem_Log
+  .text:000000000040CE7F                 jmp     loc_40CDBD
+  .text:000000000040CE88                 ; _QWORD
+  .text:000000000040CE88                 mov     esi, 3; _QWORD
+  .text:000000000040CE8D                 call    _LoggingSystem_IsChannelEnabled
+  .text:000000000040CE92                 test    al, al
+  .text:000000000040CE94                 jz      loc_40CCD6
+  .text:000000000040CE9A                 ; _QWORD
+  .text:000000000040CE9A                 mov     edi, [rbx]; _QWORD
+  .text:000000000040CE9C                 add     rsp, 48h
+  .text:000000000040CEA0                 ; _QWORD
+  .text:000000000040CEA0                 mov     esi, 3; _QWORD
+  .text:000000000040CEA5                 xor     eax, eax
+  .text:000000000040CEA7                 pop     rbx
+  .text:000000000040CEA8                 lea     rdx, aFailedToOpenBi_0; "Failed to open/bind server socket\n"
+  .text:000000000040CEAF                 pop     r12
+  .text:000000000040CEB1                 pop     r13
+  .text:000000000040CEB3                 pop     r14
+  .text:000000000040CEB5                 pop     r15
+  .text:000000000040CEB7                 pop     rbp
+  .text:000000000040CEB8                 jmp     _LoggingSystem_Log
+procedure: |-
+  __int64 __fastcall CNetworkServerService_StartupServer(__int64 a1, _BYTE *a2, __int64 a3, const char *a4)
+  {
+    __int64 result; // rax
+    __int64 v8; // r15
+    __int64 v9; // r12
+    __int64 v10; // rdi
+    __int64 v11; // r8
+    const char *v12; // [rsp+0h] [rbp-70h] BYREF
+    int v13; // [rsp+8h] [rbp-68h]
+    const char *v14; // [rsp+10h] [rbp-60h]
+    __int64 v15; // [rsp+18h] [rbp-58h]
+    __int64 v16; // [rsp+20h] [rbp-50h]
+    __int64 v17; // [rsp+28h] [rbp-48h]
+    __int64 v18; // [rsp+30h] [rbp-40h]
+    int v19; // [rsp+38h] [rbp-38h]
+
+    (*(void (__fastcall **)(_QWORD *))(*g_pNetworkService + 192LL))(g_pNetworkService);
+    if ( *(_QWORD *)(a1 + 336) )
+    {
+      result = LoggingSystem_IsChannelEnabled((unsigned int)dword_A32394, 3);
+      if ( (_BYTE)result )
+        result = LoggingSystem_Log(
+                   (unsigned int)dword_A32394,
+                   3,
+                   "CNetworkServerService::StartupServer called but we still have extant instance!\n");
+    }
+    else
+    {
+      v8 = operator new(10056);
+      sub_511B80(v8, *(unsigned int *)(a1 + 328), a3);
+      *(_QWORD *)(a1 + 336) = v8;
+      CNetworkGameServer_Init(v8, (__int64)a2, a4);
+      if ( !(unsigned __int8)CNetworkGameServer_PrepareForAssetLoad(*(_QWORD *)(a1 + 336)) )
+      {
+        if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_A32394, 3) )
+          LoggingSystem_Log((unsigned int)dword_A32394, 3, "SV:  PrepareForAssetLoad failed, aborting map load\n");
+        (*(void (__fastcall **)(_QWORD *, _QWORD))(*g_pHostStateMgr + 96LL))(g_pHostStateMgr, 0);
+      }
+      result = *(_QWORD *)(a1 + 352);
+      if ( result && *(int *)(result + 8) > 0 )
+      {
+        v9 = 0;
+        do
+        {
+          v10 = *(_QWORD *)(*(_QWORD *)(result + 16) + 8 * v9++);
+          (*(void (__fastcall **)(__int64, _QWORD))(*(_QWORD *)v10 + 48LL))(v10, *(_QWORD *)(a1 + 336));
+          result = *(_QWORD *)(a1 + 352);
+        }
+        while ( *(_DWORD *)(result + 8) > (int)v9 );
+      }
+    }
+    if ( a2[88] )
+    {
+      if ( !a2[90] && !a2[108] )
+      {
+        result = (*(__int64 (__fastcall **)(_QWORD *, _QWORD))(*g_pNetworkSystem + 112LL))(  // 112LL = 0x70 = INetworkSystem_OpenSocket
+                   g_pNetworkSystem,
+                   *(unsigned int *)(a1 + 328));
+        if ( !(_BYTE)result )
+        {
+          if ( (unsigned __int8)sub_86EA70() )
+          {
+            result = LoggingSystem_IsChannelEnabled((unsigned int)dword_A32394, 5);
+            if ( (_BYTE)result )
+            {
+              v13 = 427;
+              v15 = 0;
+              v12 = "networkserverservice.cpp";
+              v14 = "StartupServer";
+              v16 = 0;
+              v17 = 0;
+              v18 = 0;
+              v19 = 0;
+              return LoggingSystem_Log((unsigned int)dword_A32394, 5, &v12, "Failed to open/bind server socket", v11);
+            }
+          }
+          else
+          {
+            result = LoggingSystem_IsChannelEnabled((unsigned int)dword_A32394, 3);
+            if ( (_BYTE)result )
+              return LoggingSystem_Log((unsigned int)dword_A32394, 3, "Failed to open/bind server socket\n");
+          }
+        }
+      }
+    }
+    return result;
+  }

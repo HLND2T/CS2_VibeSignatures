@@ -427,6 +427,253 @@ class TestPreprocessIndexBasedVfuncViaMcp(unittest.IsolatedAsyncioTestCase):
         mock_gen_sig.assert_awaited_once()
         self.assertTrue(mock_gen_sig.await_args.kwargs["allow_across_function_boundary"])
 
+    async def test_regenerates_func_sig_instead_of_reusing_rejected_old_signature(self) -> None:
+        # The reuse fast path (preprocess_func_sig_via_mcp) validates the old
+        # artifact against the current IDB before this fallback runs; a
+        # signature it rejected must not be copied into the output.
+        with tempfile.TemporaryDirectory() as temp_dir:
+            module_dir = Path(temp_dir) / "bin" / "14141" / "server"
+            target_output = module_dir / "CDerived_Touch.windows.yaml"
+            old_path = Path(temp_dir) / "old" / "CDerived_Touch.windows.yaml"
+
+            _write_yaml(
+                old_path,
+                {
+                    "func_name": "CDerived_Touch",
+                    "func_sig": "AA BB CC",
+                },
+            )
+            _write_yaml(
+                module_dir / "CBaseEntity_Touch.windows.yaml",
+                {
+                    "vtable_name": "CBaseEntity",
+                    "vfunc_offset": "0x118",
+                },
+            )
+            _write_yaml(
+                module_dir / "CDerived_vtable.windows.yaml",
+                {
+                    "vtable_entries": {
+                        35: "0x180001180",
+                    }
+                },
+            )
+
+            session = AsyncMock()
+            session.call_tool.return_value = _py_eval_payload(
+                {
+                    "func_va": "0x180001180",
+                    "func_size": "0x40",
+                }
+            )
+
+            with patch.object(
+                ida_analyze_util,
+                "preprocess_gen_func_sig_via_mcp",
+                AsyncMock(
+                    return_value={
+                        "func_sig": "48 89 ??",
+                    }
+                ),
+            ) as mock_gen_sig:
+                result = await ida_analyze_util.preprocess_index_based_vfunc_via_mcp(
+                    session=session,
+                    target_func_name="CDerived_Touch",
+                    target_output=str(target_output),
+                    old_yaml_map={str(target_output): str(old_path)},
+                    new_binary_dir=str(module_dir),
+                    platform="windows",
+                    image_base=0x180000000,
+                    base_vfunc_name="CBaseEntity_Touch",
+                    inherit_vtable_class="CDerived",
+                    generate_func_sig=True,
+                    debug=False,
+                )
+
+            self.assertIsNotNone(result)
+            assert result is not None
+            self.assertEqual("48 89 ??", result["func_sig"])
+            mock_gen_sig.assert_awaited_once()
+            self.assertEqual(0x180001180, mock_gen_sig.await_args.kwargs["func_va"])
+            session.call_tool.assert_awaited_once()
+
+    async def test_carries_old_func_sig_forward_when_generation_not_requested(self) -> None:
+        # Callers that opt out of signature generation keep getting the old
+        # signature carried forward unchanged.
+        with tempfile.TemporaryDirectory() as temp_dir:
+            module_dir = Path(temp_dir) / "bin" / "14141" / "server"
+            target_output = module_dir / "CDerived_Touch.windows.yaml"
+            old_path = Path(temp_dir) / "old" / "CDerived_Touch.windows.yaml"
+
+            _write_yaml(
+                old_path,
+                {
+                    "func_name": "CDerived_Touch",
+                    "func_sig": "AA BB CC",
+                },
+            )
+            _write_yaml(
+                module_dir / "CBaseEntity_Touch.windows.yaml",
+                {
+                    "vtable_name": "CBaseEntity",
+                    "vfunc_offset": "0x118",
+                },
+            )
+            _write_yaml(
+                module_dir / "CDerived_vtable.windows.yaml",
+                {
+                    "vtable_entries": {
+                        35: "0x180001180",
+                    }
+                },
+            )
+
+            session = AsyncMock()
+            session.call_tool.return_value = _py_eval_payload(
+                {
+                    "func_va": "0x180001180",
+                    "func_size": "0x40",
+                }
+            )
+
+            with patch.object(
+                ida_analyze_util,
+                "preprocess_gen_func_sig_via_mcp",
+                AsyncMock(return_value={"func_sig": "48 89 ??"}),
+            ) as mock_gen_sig:
+                result = await ida_analyze_util.preprocess_index_based_vfunc_via_mcp(
+                    session=session,
+                    target_func_name="CDerived_Touch",
+                    target_output=str(target_output),
+                    old_yaml_map={str(target_output): str(old_path)},
+                    new_binary_dir=str(module_dir),
+                    platform="windows",
+                    image_base=0x180000000,
+                    base_vfunc_name="CBaseEntity_Touch",
+                    inherit_vtable_class="CDerived",
+                    generate_func_sig=False,
+                    debug=False,
+                )
+
+            self.assertIsNotNone(result)
+            assert result is not None
+            self.assertEqual("AA BB CC", result["func_sig"])
+            mock_gen_sig.assert_not_awaited()
+
+    async def test_common_skill_inherited_vfunc_regenerates_signature_rejected_by_fast_path(self) -> None:
+        # Full inherited-vfunc path: the old signature exists but matches zero
+        # times in the current IDB, so the fast path fails and the index-based
+        # fallback must emit a freshly generated signature (issue #937).
+        with tempfile.TemporaryDirectory() as temp_dir:
+            module_dir = Path(temp_dir) / "bin" / "14141" / "server"
+            target_output = module_dir / "CDerived_Touch.windows.yaml"
+            old_path = Path(temp_dir) / "old" / "CDerived_Touch.windows.yaml"
+
+            _write_yaml(
+                old_path,
+                {
+                    "func_name": "CDerived_Touch",
+                    "func_sig": "AA BB CC",
+                    "vtable_name": "CDerived",
+                    "vfunc_offset": "0x118",
+                    "vfunc_index": 35,
+                    "func_va": "0x180001180",
+                },
+            )
+            _write_yaml(
+                module_dir / "CBaseEntity_Touch.windows.yaml",
+                {
+                    "vtable_name": "CBaseEntity",
+                    "vfunc_offset": "0x118",
+                },
+            )
+            _write_yaml(
+                module_dir / "CDerived_vtable.windows.yaml",
+                {
+                    "vtable_entries": {
+                        35: "0x180001180",
+                    }
+                },
+            )
+
+            find_bytes_patterns = []
+
+            async def _session_call_tool(*, name: str, arguments: dict[str, object]):
+                if name == "find_bytes":
+                    find_bytes_patterns.extend(arguments["patterns"])
+                    return _FakeCallToolResult(
+                        [
+                            {
+                                "matches": [],
+                                "n": 0,
+                            }
+                        ]
+                    )
+                if name == "py_eval":
+                    return _py_eval_payload(
+                        {
+                            "func_va": "0x180001180",
+                            "func_size": "0x40",
+                        }
+                    )
+                raise AssertionError(f"unexpected MCP tool: {name}")
+
+            session = AsyncMock()
+            session.call_tool.side_effect = _session_call_tool
+
+            with (
+                patch.object(
+                    ida_analyze_util,
+                    "preprocess_gen_func_sig_via_mcp",
+                    AsyncMock(
+                        return_value={
+                            "func_sig": "48 89 ??",
+                        }
+                    ),
+                ) as mock_gen_sig,
+                patch.object(
+                    ida_analyze_util,
+                    "write_func_yaml",
+                ) as mock_write_func_yaml,
+                patch.object(
+                    ida_analyze_util,
+                    "_rename_func_in_ida",
+                    AsyncMock(return_value=None),
+                ),
+            ):
+                result = await ida_analyze_util.preprocess_common_skill(
+                    session=session,
+                    expected_outputs=[str(target_output)],
+                    old_yaml_map={str(target_output): str(old_path)},
+                    new_binary_dir=str(module_dir),
+                    platform="windows",
+                    image_base=0x180000000,
+                    inherit_vfuncs=[
+                        ("CDerived_Touch", "CDerived", "CBaseEntity_Touch", True),
+                    ],
+                    generate_yaml_desired_fields=[
+                        (
+                            "CDerived_Touch",
+                            [
+                                "func_name",
+                                "func_sig",
+                                "vtable_name",
+                                "vfunc_offset",
+                                "vfunc_index",
+                            ],
+                        )
+                    ],
+                    debug=False,
+                )
+
+            self.assertTrue(result)
+            self.assertEqual(["AA BB CC"], find_bytes_patterns)
+            mock_gen_sig.assert_awaited_once()
+            self.assertEqual(0x180001180, mock_gen_sig.await_args.kwargs["func_va"])
+            written_payload = mock_write_func_yaml.call_args.args[1]
+            self.assertEqual("48 89 ??", written_payload["func_sig"])
+            self.assertEqual("0x118", written_payload["vfunc_offset"])
+
 
 class TestVtableAliasSupport(unittest.IsolatedAsyncioTestCase):
     async def test_preprocess_common_skill_rejects_invalid_mangled_class_names(self) -> None:

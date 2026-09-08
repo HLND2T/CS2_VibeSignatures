@@ -389,7 +389,7 @@ disasm_code: |-
   .text:000000000068D80B                 mov     rsi, rbx
   .text:000000000068D80E                 mov     rdi, [rbp+var_3B8]
   .text:000000000068D815                 lea     r9, [rbp+var_3A1]
-  .text:000000000068D81C                 call    CNetworkGameServer_GetFreeClient
+  .text:000000000068D81C                 call    CNetworkGameServer_GetFreeClient ; First client acquisition: server/address/zero/steam_id. Follow its null-result fallback chain to Cannot get free client; do not select a later fallback allocator.
   .text:000000000068D821                 mov     r15, rax
   .text:000000000068D824                 test    rax, rax
   .text:000000000068D827                 jz      loc_68E58E
@@ -2377,6 +2377,7 @@ procedure: |-
         v51 = 2;
       }
     }
+    // First client acquisition. New builds may retry other allocators on null before the server-full rejection; select this first call, not the last retry.
     v34 = CNetworkGameServer_GetFreeClient(a1, a3, 0, v150, 0, &v149);
     if ( !v34 )
     {

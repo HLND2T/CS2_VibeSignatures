@@ -66,5 +66,5 @@ flowchart TD
 - This function itself does not write files; persistence is handled by the caller.
 
 ## Callers
-- `preprocess_index_based_vfunc_via_mcp` in `ida_analyze_util.py` calls it when the inherited-vfunc fallback resolves a slot but no reusable old `func_sig` exists.
+- `preprocess_index_based_vfunc_via_mcp` in `ida_analyze_util.py` calls it whenever the inherited-vfunc fallback resolves a slot and `generate_func_sig=True` (since fix `7bcc84b7`, issue #937: the old artifact `func_sig` is never reused in the fallback because the caller's fast path already validated and rejected it; `generate_func_sig=False` callers still get the old signature carried forward).
 - `preprocess_func_xrefs_via_mcp` in `ida_analyze_util.py` calls it after xref resolution finds a unique target function.

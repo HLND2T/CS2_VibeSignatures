@@ -95,8 +95,8 @@ disasm_code: |-
   .text:0000000180DCDA55                 lea     ebx, [rax-1]
   .text:0000000180DCDA58                 mov     rcx, cs:g_engine
   .text:0000000180DCDA5F                 mov     edx, ebx
-  .text:0000000180DCDA61                 ; CEngineServer_GetPlayerNetInfo
-  .text:0000000180DCDA61                 call    rsi; CEngineServer_GetPlayerNetInfo
+  .text:0000000180DCDA61                 ; IVEngineServer2_GetPlayerNetInfo
+  .text:0000000180DCDA61                 call    rsi; IVEngineServer2_GetPlayerNetInfo
   .text:0000000180DCDA63                 mov     rsi, rax
   .text:0000000180DCDA66                 test    rax, rax
   .text:0000000180DCDA69                 jz      short loc_180DCDADE
@@ -218,7 +218,7 @@ procedure: |-
       sub_181244A40(*(_QWORD *)(a1 + 8), &v16);
       if ( v16 != -1 )
         v3 = v16 - 1;
-      v10 = (_QWORD *)v9(g_engine, v3);           // CEngineServer_GetPlayerNetInfo
+      v10 = (_QWORD *)v9(g_engine, v3);           // IVEngineServer2_GetPlayerNetInfo
       v11 = v10;
       if ( v10 )
       {

@@ -1086,6 +1086,8 @@ def _format_llm_struct_offset_displacement_issue(issue):
 
 
 def _format_llm_validation_issue(issue):
+    if issue["issue_type"] == "finder_constraint":
+        return f"- {issue['message']}"
     if issue["issue_type"] in _LLM_SCHEMA_ISSUE_TYPES:
         return f"- {issue['message']}"
     if issue["issue_type"] == "result_section_mismatch":
@@ -1354,6 +1356,7 @@ async def _call_llm_decompile_with_validation(
     validation_settings,
     retry_settings,
     debug,
+    result_validator=None,
 ):
     (
         disasm_index,
@@ -1389,6 +1392,16 @@ async def _call_llm_decompile_with_validation(
             symbol_name_text=symbol_name_text,
             debug=debug,
         )
+        if not validation_issues and result_validator is not None:
+            try:
+                finder_issues = result_validator(parsed_result)
+            except Exception as exc:
+                if debug:
+                    print(f"    Preprocess: finder validation failed: {exc}")
+                return _empty_llm_decompile_result()
+            validation_issues.extend(
+                {"issue_type": "finder_constraint", "message": str(issue)} for issue in finder_issues
+            )
         if not validation_issues:
             return parsed_result
         _debug_print_json("llm_decompile validation issues", validation_issues, debug=debug)
@@ -1685,6 +1698,7 @@ async def call_llm_decompile(
     debug=False,
     *,
     instruction_validations=None,
+    result_validator=None,
     call_llm_text_func=_UNSET,
     normalize_temperature_func=_UNSET,
 ):
@@ -1832,4 +1846,5 @@ async def call_llm_decompile(
         ),
         retry_settings=(max_attempts, delay, backoff_factor, max_delay),
         debug=debug,
+        result_validator=result_validator,
     )

@@ -54,7 +54,7 @@ disasm_code: |-
   .text:000000018023E209                 mov     rcx, cs:g_pNetworkSystem
   .text:000000018023E210                 movaps  xmm1, xmm6
   .text:000000018023E213                 mov     rax, [rcx]
-  .text:000000018023E216                 call    qword ptr [rax+0C8h]
+  .text:000000018023E216                 call    qword ptr [rax+0C8h]; 0xC8 = 200LL = INetworkSystem_PrintNetworkStats
   .text:000000018023E21C                 mov     rcx, cs:g_pNetworkClientService
   .text:000000018023E223                 mov     rax, [rcx]
   .text:000000018023E226                 call    qword ptr [rax+1F8h]
@@ -450,7 +450,7 @@ procedure: |-
     (*(void (__fastcall **)(_QWORD *, __int64, _QWORD, _QWORD))(*v10 + 32LL))(v10, 1, *v10, 0);
     v12 = (_QWORD *)(*(__int64 (__fastcall **)(__int64))(*(_QWORD *)g_pEngineServiceMgr + 240LL))(g_pEngineServiceMgr);
     (*(void (__fastcall **)(_QWORD *, _QWORD, _QWORD, _QWORD))(*v12 + 32LL))(v12, 0, *v12, 0);
-    (*(void (__fastcall **)(__int64))(*(_QWORD *)g_pNetworkSystem + 200LL))(g_pNetworkSystem);
+    (*(void (__fastcall **)(__int64))(*(_QWORD *)g_pNetworkSystem + 200LL))(g_pNetworkSystem)  // 200LL = 0xC8 = INetworkSystem_PrintNetworkStats;
     (*(void (__fastcall **)(__int64))(*(_QWORD *)g_pNetworkClientService + 504LL))(g_pNetworkClientService);
     v13 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)g_pEngineServiceMgr + 232LL))(g_pEngineServiceMgr);
     sub_180228020((__int64)v52, a1, v14, v15);
