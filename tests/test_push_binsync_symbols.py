@@ -1,6 +1,7 @@
 import importlib.util
 import json
 import struct
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -13,6 +14,16 @@ SPEC = importlib.util.spec_from_file_location("push_binsync_symbols", SCRIPT)
 push_binsync_symbols = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None
 SPEC.loader.exec_module(push_binsync_symbols)
+
+
+def _git(repo: Path, *arguments: str) -> subprocess.CompletedProcess:
+    return subprocess.run(
+        ["git", *arguments],
+        cwd=repo,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
 
 
 def _build_min_pe(first_section_rva: int = 0x1000) -> bytes:
@@ -191,6 +202,216 @@ class TestCollectManifestSymbols(unittest.TestCase):
 
     def test_direct_remote_publication_mode_is_disabled(self) -> None:
         self.assertEqual(2, push_binsync_symbols.main(["14174"]))
+
+
+class TestBootstrapLocalInit(unittest.TestCase):
+    """--bootstrap-local-init must initialize locally and never touch any remote."""
+
+    USER = "bootstrap-validation"
+
+    def _make_workspace(self, root: Path, gamever: str = "14180") -> Path:
+        module = root / "bin" / gamever / "SDL3"
+        module.mkdir(parents=True)
+        (module / "SDL3.dll").write_bytes(_build_min_pe())
+        config = root / "config.yaml"
+        config.write_text(
+            "modules:\n"
+            "  - name: SDL3\n"
+            "    path_windows: game/bin/win64/SDL3.dll\n"
+            "    symbols:\n"
+            "      - name: SomeFunc\n"
+            "        category: func\n",
+            encoding="utf-8",
+        )
+        return config
+
+    def test_bootstrap_local_init_initializes_missing_repo_without_remote_reads(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config = self._make_workspace(root)
+            binary = root / "bin" / "14180" / "SDL3" / "SDL3.dll"
+            binary_md5 = push_binsync_symbols.file_md5(binary)
+
+            with patch.object(push_binsync_symbols, "_remote_heads") as remote_heads:
+                snapshots = push_binsync_symbols.prepare_local_repositories(
+                    root, "14180", config, self.USER, bootstrap_local_init=True
+                )
+
+            remote_heads.assert_not_called()
+            repo = binary.parent / "SDL3.dll.bsproj"
+            self.assertTrue(repo.is_dir())
+            branches = _git(repo, "for-each-ref", "--format=%(refname)", "refs/heads/binsync/").stdout.split()
+            self.assertIn("refs/heads/binsync/__root__", branches)
+            self.assertIn(f"refs/heads/binsync/{self.USER}", branches)
+            self.assertEqual(binary_md5, _git(repo, "show", "binsync/__root__:binary_hash").stdout)
+            self.assertEqual(
+                "https://github.com/HLND2T/CS2_VibeSignatures_binsync_14180_SDL3.dll",
+                _git(repo, "remote", "get-url", "origin").stdout.strip(),
+            )
+            # The dedicated user branch is checked out and the sidecar is written.
+            self.assertEqual(f"binsync/{self.USER}", _git(repo, "branch", "--show-current").stdout.strip())
+            sidecar = json.loads((binary.parent / "SDL3.dll.binsync.json").read_text(encoding="utf-8"))
+            self.assertEqual(self.USER, sidecar["user"])
+            self.assertEqual(binary_md5, sidecar["expected_md5"])
+
+            repository_id = "HLND2T__CS2_VibeSignatures_binsync_14180_SDL3.dll"
+            self.assertEqual(
+                {repository_id: {"remote_url": "https://github.com/HLND2T/CS2_VibeSignatures_binsync_14180_SDL3.dll"}},
+                snapshots,
+            )
+
+    def test_bootstrap_local_init_is_idempotent_for_existing_repo(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config = self._make_workspace(root)
+            binary = root / "bin" / "14180" / "SDL3" / "SDL3.dll"
+            repo = binary.parent / "SDL3.dll.bsproj"
+
+            push_binsync_symbols.prepare_local_repositories(root, "14180", config, self.USER, bootstrap_local_init=True)
+            root_commit = _git(repo, "rev-parse", "refs/heads/binsync/__root__").stdout.strip()
+            head_commit = _git(repo, "rev-parse", "HEAD").stdout.strip()
+
+            # Re-running over the existing local state must not re-initialize or move refs.
+            with patch.object(push_binsync_symbols, "_remote_heads"):
+                push_binsync_symbols.prepare_local_repositories(
+                    root, "14180", config, self.USER, bootstrap_local_init=True
+                )
+
+            self.assertEqual(root_commit, _git(repo, "rev-parse", "refs/heads/binsync/__root__").stdout.strip())
+            self.assertEqual(head_commit, _git(repo, "rev-parse", "HEAD").stdout.strip())
+
+    def test_bootstrap_local_init_failure_names_the_binary(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config = self._make_workspace(root)
+            with patch.object(
+                push_binsync_symbols,
+                "initialize_minimal_binsync_repo",
+                side_effect=push_binsync_symbols.InitGamebinError("git init exploded"),
+            ):
+                with self.assertRaisesRegex(RuntimeError, "SDL3.dll.*git init exploded"):
+                    push_binsync_symbols.prepare_local_repositories(
+                        root, "14180", config, self.USER, bootstrap_local_init=True
+                    )
+
+    def test_remote_mode_clone_failure_names_the_binary_and_keeps_remote_semantics(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config = self._make_workspace(root)
+            # Remote mode (default) must keep cloning: a clone failure propagates
+            # instead of silently falling back to local initialization.
+            with patch.object(
+                push_binsync_symbols,
+                "_git_result",
+                side_effect=RuntimeError(
+                    "git clone failed with exit code 128: fatal: repository "
+                    "'https://github.com/HLND2T/CS2_VibeSignatures_binsync_14180_SDL3.dll/' not found"
+                ),
+            ):
+                with self.assertRaisesRegex(RuntimeError, "SDL3.dll.*exit code 128.*not found"):
+                    push_binsync_symbols.prepare_local_repositories(root, "14180", config, self.USER)
+
+    def test_assert_remote_refs_unchanged_rejects_local_init_snapshots(self) -> None:
+        snapshots = {
+            "HLND2T__CS2_VibeSignatures_binsync_14180_SDL3.dll": {
+                "remote_url": "https://github.com/HLND2T/CS2_VibeSignatures_binsync_14180_SDL3.dll"
+            }
+        }
+        with self.assertRaisesRegex(RuntimeError, "never query the canonical remote"):
+            push_binsync_symbols.assert_remote_refs_unchanged(snapshots)
+
+    def test_write_bootstrap_local_evidence_records_local_init_mode(self) -> None:
+        snapshots = {
+            "HLND2T__repo": {"remote_url": "https://github.com/HLND2T/CS2_VibeSignatures_binsync_14180_SDL3.dll"}
+        }
+        with tempfile.TemporaryDirectory() as temp_dir:
+            candidate = Path(temp_dir) / "evidence"
+            push_binsync_symbols.write_bootstrap_local_evidence(
+                candidate,
+                "14180",
+                snapshots,
+                push_binsync_symbols.BOOTSTRAP_LOCAL_INIT_REFS_DIGEST,
+                bootstrap_local_init=True,
+            )
+            document = json.loads((candidate / "local-evidence.json").read_text(encoding="utf-8"))
+
+        self.assertEqual("bootstrap-local-init", document["binsync_mode"])
+        self.assertEqual(
+            push_binsync_symbols.BOOTSTRAP_LOCAL_INIT_REFS_DIGEST,
+            document["remote_refs_before_sha256"],
+        )
+        self.assertEqual(document["remote_refs_before_sha256"], document["remote_refs_after_sha256"])
+        self.assertEqual(
+            [
+                {
+                    "repository_id": "HLND2T__repo",
+                    "remote_url": snapshots["HLND2T__repo"]["remote_url"],
+                    "initialized_locally": True,
+                }
+            ],
+            document["repositories"],
+        )
+
+    def test_write_bootstrap_local_evidence_keeps_remote_mode_schema(self) -> None:
+        snapshots = {
+            "HLND2T__repo": {
+                "remote_url": "https://github.com/HLND2T/CS2_VibeSignatures_binsync_14174_SDL3.dll",
+                "heads": {"refs/heads/binsync/__root__": "a" * 40},
+            }
+        }
+        with patch.object(
+            push_binsync_symbols,
+            "_remote_heads",
+            return_value={"refs/heads/binsync/__root__": "a" * 40},
+        ) as remote_heads:
+            digest = push_binsync_symbols.assert_remote_refs_unchanged(snapshots)
+        remote_heads.assert_called_once_with(snapshots["HLND2T__repo"]["remote_url"])
+        with tempfile.TemporaryDirectory() as temp_dir:
+            candidate = Path(temp_dir) / "evidence"
+            push_binsync_symbols.write_bootstrap_local_evidence(candidate, "14174", snapshots, digest)
+            document = json.loads((candidate / "local-evidence.json").read_text(encoding="utf-8"))
+
+        self.assertEqual("bootstrap-local-only", document["binsync_mode"])
+        self.assertNotIn("initialized_locally", document["repositories"][0])
+        self.assertIn("remote_refs_sha256", document["repositories"][0])
+
+    def test_bootstrap_local_init_requires_no_publication_candidate(self) -> None:
+        self.assertEqual(
+            2,
+            push_binsync_symbols.main(
+                [
+                    "14180",
+                    "--prepare-only",
+                    "--bootstrap-local-init",
+                    "--candidate-dir",
+                    "unused",
+                    "--preparation",
+                    "p",
+                    "--release-version",
+                    "v",
+                    "--build-id",
+                    "b",
+                    "--ida-runtime-identity",
+                    "i",
+                    "--actions-artifact-name",
+                    "a",
+                ]
+            ),
+        )
+
+    def test_push_binary_passes_bootstrap_local_init_to_headless_export(self) -> None:
+        completed = type("Completed", (), {"returncode": 0})()
+        with patch.object(push_binsync_symbols.subprocess, "run", return_value=completed) as run:
+            push_binsync_symbols.push_binary(
+                "python",
+                "headless_force_push.py",
+                Path("SDL3.dll"),
+                Path("manifest.json"),
+                bootstrap_local_init=True,
+            )
+
+        command = run.call_args.args[0]
+        self.assertIn("--bootstrap-local-init", command)
 
 
 if __name__ == "__main__":
