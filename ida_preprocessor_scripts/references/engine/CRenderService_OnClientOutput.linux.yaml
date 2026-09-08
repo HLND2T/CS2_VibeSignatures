@@ -205,8 +205,8 @@ disasm_code: |-
   .text:0000000000433AD7                 mov     rsi, r13
   .text:0000000000433ADA                 mov     rdi, [rax]
   .text:0000000000433ADD                 mov     rax, [rdi]
-  .text:0000000000433AE0                 ; 0x120 = 288LL = CEngineServiceMgr_OnFrameRenderingFinished
-  .text:0000000000433AE0                 call    qword ptr [rax+120h]; 0x120 = 288LL = CEngineServiceMgr_OnFrameRenderingFinished
+  .text:0000000000433AE0                 ; 0x120 = 288LL = IEngineServiceMgr_OnFrameRenderingFinished
+  .text:0000000000433AE0                 call    qword ptr [rax+120h]; 0x120 = 288LL = IEngineServiceMgr_OnFrameRenderingFinished
   .text:0000000000433AE6                 jmp     loc_43382D
   .text:0000000000433AF0                 mov     r9d, [r13+18h]
   .text:0000000000433AF4                 test    r9d, r9d
@@ -304,7 +304,7 @@ procedure: |-
       }
   LABEL_36:
       (*(void (__fastcall **)(_QWORD *, float))(*g_pSceneSystem + 200LL))(g_pSceneSystem, 3.4028235e38);
-      (*(void (__fastcall **)(_QWORD *, __int64))(*g_pEngineServiceMgr + 288LL))(g_pEngineServiceMgr, a2);// 0x120 = 288LL = CEngineServiceMgr_OnFrameRenderingFinished
+      (*(void (__fastcall **)(_QWORD *, __int64))(*g_pEngineServiceMgr + 288LL))(g_pEngineServiceMgr, a2);// 0x120 = 288LL = IEngineServiceMgr_OnFrameRenderingFinished
       return v3();
     }
     if ( *(_QWORD *)(a1 + 448) )

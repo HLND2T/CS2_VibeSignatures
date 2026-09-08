@@ -372,79 +372,15 @@ modules:
           - CNetworkSystem_InitGameServer.{platform}.yaml
         expected_input:
           - CNetworkSystem_vtable.{platform}.yaml
-      - name: find-CNetworkSystem_InitNetworkSystem
-        expected_output:
-          - CNetworkSystem_InitNetworkSystem.{platform}.yaml
-        expected_input:
-          - CNetworkSystem_vtable.{platform}.yaml
-      - name: find-CNetworkSystem_PollSocket
-        expected_output:
-          - CNetworkSystem_PollSocket.{platform}.yaml
-        expected_input:
-          - CNetworkSystem_vtable.{platform}.yaml
-      - name: find-CNetworkSystem_EnableLoopbackBetweenSockets
-        expected_output:
-          - CNetworkSystem_EnableLoopbackBetweenSockets.{platform}.yaml
-        expected_input:
-          - CNetworkSystem_vtable.{platform}.yaml
-      - name: find-CNetworkSystem_OpenSocket
-        expected_output:
-          - CNetworkSystem_OpenSocket.{platform}.yaml
-        expected_input:
-          - CNetworkSystem_vtable.{platform}.yaml
-      - name: find-CNetworkSystem_ConnectSocket
-        expected_output:
-          - CNetworkSystem_ConnectSocket.{platform}.yaml
-        expected_input:
-          - CNetworkSystem_vtable.{platform}.yaml
-      # CNetworkSystem::CloseSocket: the string-owning teardown body (CloseSocketInternal,
-      # which holds "Closing '%s' UDP/P2P/SDR listen socket" + "Closing '%s' poll group") is
-      # fused into the vfunc on networksystem.dll, but de-inlined into a standalone function
-      # on libnetworksystem.so, leaving the vfunc as a thin bounds-check forwarder with no
-      # strings of its own. Inverted-topology inline/de-inline fallback chain:
-      - name: find-CNetworkSystem_CloseSocketInternal
-        platform: linux
-        optional_output:
-          - CNetworkSystem_CloseSocketInternal.{platform}.yaml
-        skip_if_exists:
-          - CNetworkSystem_CloseSocket.{platform}.yaml
-      - name: find-CNetworkSystem_CloseSocket-deinlined
-        optional_output:
-          - CNetworkSystem_CloseSocket.{platform}.yaml
-        expected_input:
-          - CNetworkSystem_vtable.{platform}.yaml
-        prerequisite:
-          - find-CNetworkSystem_CloseSocketInternal
-      - name: find-CNetworkSystem_CloseSocket-inlined
-        expected_output:
-          - CNetworkSystem_CloseSocket.{platform}.yaml
-        expected_input:
-          - CNetworkSystem_vtable.{platform}.yaml
-        skip_if_exists:
-          - CNetworkSystem_CloseSocket.{platform}.yaml
-        prerequisite:
-          - find-CNetworkSystem_CloseSocket-deinlined
-      - name: find-CNetworkSystem_ShutdownGameServer
-        expected_output:
-          - CNetworkSystem_ShutdownGameServer.{platform}.yaml
-        expected_input:
-          - CNetworkSystem_vtable.{platform}.yaml
-      - name: find-CNetworkSystem_RemoveNetChannel
-        expected_output:
-          - CNetworkSystem_RemoveNetChannel.{platform}.yaml
-        expected_input:
-          - CNetworkSystem_vtable.{platform}.yaml
-      - name: find-CNetworkSystem_RemoveNetChannelByAddress
-        expected_output:
-          - CNetworkSystem_RemoveNetChannelByAddress.{platform}.yaml
-        expected_input:
-          - CNetworkSystem_RemoveNetChannel.{platform}.yaml
-          - CNetworkSystem_vtable.{platform}.yaml
-      - name: find-CNetworkSystem_BufferToBufferDecompress
-        expected_output:
-          - CNetworkSystem_BufferToBufferDecompress.{platform}.yaml
-        expected_input:
-          - CNetworkSystem_vtable.{platform}.yaml
+      # The eleven INetworkSystem-derived vfuncs (InitNetworkSystem, PollSocket,
+      # EnableLoopbackBetweenSockets, OpenSocket, ConnectSocket, CloseSocket,
+      # ShutdownGameServer, RemoveNetChannel, RemoveNetChannelByAddress,
+      # BufferToBufferDecompress, PrintNetworkStats) now inherit their vtable
+      # slot from the INetworkSystem_* interface artifacts produced in the
+      # engine pass; they run in the late networksystem pass below.
+      # CNetworkSystem::CloseAllSockets has no INetworkSystem interface call
+      # site anywhere (only CNetworkSystem::Shutdown calls it directly), so it
+      # keeps its string-xref finder.
       - name: find-CNetworkSystem_CloseAllSockets
         expected_output:
           - CNetworkSystem_CloseAllSockets.{platform}.yaml
@@ -453,12 +389,6 @@ modules:
       - name: find-CNetworkSystem_SendNetworkStats
         expected_output:
           - CNetworkSystem_SendNetworkStats.{platform}.yaml
-      - name: find-CNetworkSystem_PrintNetworkStats
-        expected_output:
-          - CNetworkSystem_PrintNetworkStats.{platform}.yaml
-        expected_input:
-          - CNetworkSystem_SendNetworkStats.{platform}.yaml
-          - CNetworkSystem_vtable.{platform}.yaml
       - name: find-CNetworkSystem_SendNetworkStats-decompiles
         expected_output:
           - INetworkMessages_GetNetworkGroupCount.{platform}.yaml
@@ -1700,6 +1630,9 @@ modules:
       - name: find-InitSteam
         expected_output:
           - InitSteam.{platform}.yaml
+      - name: find-InitSteamLogin
+        expected_output:
+          - InitSteamLogin.{platform}.yaml
       - name: find-InitSteam-decompiles
         expected_output:
           - g_nSteamAppId.{platform}.yaml
@@ -2182,21 +2115,31 @@ modules:
       - name: find-CEngineServiceMgr_vtable
         expected_output:
           - CEngineServiceMgr_vtable.{platform}.yaml
+      - name: find-IEngineServiceMgr_GetAddonCount
+        expected_output:
+          - IEngineServiceMgr_GetAddonCount.{platform}.yaml
+        expected_input:
+          - CNetworkGameClient_DisconnectGame.{platform}.yaml
       - name: find-CEngineServiceMgr_GetAddonCount
         expected_output:
           - CEngineServiceMgr_GetAddonCount.{platform}.yaml
         expected_input:
-          - CNetworkGameClient_DisconnectGame.{platform}.yaml
           - CEngineServiceMgr_vtable.{platform}.yaml
+          - IEngineServiceMgr_GetAddonCount.{platform}.yaml
       - name: find-CRenderService_OnClientOutput
         expected_output:
+          - CRenderService_OnClientOutput.{platform}.yaml
+      - name: find-IEngineServiceMgr_OnFrameRenderingFinished
+        expected_output:
+          - IEngineServiceMgr_OnFrameRenderingFinished.{platform}.yaml
+        expected_input:
           - CRenderService_OnClientOutput.{platform}.yaml
       - name: find-CEngineServiceMgr_OnFrameRenderingFinished
         expected_output:
           - CEngineServiceMgr_OnFrameRenderingFinished.{platform}.yaml
         expected_input:
-          - CRenderService_OnClientOutput.{platform}.yaml
           - CEngineServiceMgr_vtable.{platform}.yaml
+          - IEngineServiceMgr_OnFrameRenderingFinished.{platform}.yaml
       - name: find-CEngineServiceMgr_RegisterEngineService
         expected_output:
           - CEngineServiceMgr_RegisterEngineService.{platform}.yaml
@@ -2270,6 +2213,81 @@ modules:
         expected_input:
           - CLoopTypeSimple_vtable.{platform}.yaml
           - CLoopTypeBase_FrameUpdate.{platform}.yaml
+      # INetworkSystem interface-slot evidence: the interface callers live in
+      # engine2.dll, so the interface-layer slots are recovered here and the
+      # concrete CNetworkSystem overrides in networksystem.dll inherit them
+      # in the late networksystem pass.
+      - name: find-ParseNetadrList
+        platform: windows
+        expected_output:
+          - ParseNetadrList.{platform}.yaml
+      - name: find-ConnectSocketToAddressList
+        platform: windows
+        expected_output:
+          - ConnectSocketToAddressList.{platform}.yaml
+        expected_input:
+          - ParseNetadrList.{platform}.yaml
+      - name: find-CNetworkStringTableClient_ParseUpdate
+        expected_output:
+          - CNetworkStringTableClient_ParseUpdate.{platform}.yaml
+      - name: find-CSteam3ServerS1_ShutdownGameServer
+        expected_output:
+          - CSteam3ServerS1_ShutdownGameServer.{platform}.yaml
+      - name: find-INetworkSystem_ShutdownGameServer
+        expected_output:
+          - INetworkSystem_ShutdownGameServer.{platform}.yaml
+        expected_input:
+          - CSteam3ServerS1_ShutdownGameServer.{platform}.yaml
+      - name: find-INetworkSystem_OpenSocket
+        expected_output:
+          - INetworkSystem_OpenSocket.{platform}.yaml
+        expected_input:
+          - CNetworkServerService_StartupServer.{platform}.yaml
+      - name: find-INetworkSystem_ConnectSocket
+        platform: windows
+        expected_output:
+          - INetworkSystem_ConnectSocket.{platform}.yaml
+        expected_input:
+          - ConnectSocketToAddressList.{platform}.yaml
+      - name: find-INetworkSystem_CloseSocket
+        platform: windows
+        expected_output:
+          - INetworkSystem_CloseSocket.{platform}.yaml
+        expected_input:
+          - CNetworkClientService_DisconnectGameNow.{platform}.yaml
+      - name: find-INetworkSystem_EnableLoopbackBetweenSockets
+        platform: windows
+        expected_output:
+          - INetworkSystem_EnableLoopbackBetweenSockets.{platform}.yaml
+        expected_input:
+          - ConnectSocketToAddressList.{platform}.yaml
+      - name: find-INetworkSystem_PollSocket
+        platform: windows
+        expected_output:
+          - INetworkSystem_PollSocket.{platform}.yaml
+        expected_input:
+          - CNetworkGameServerBase_ServerPollNetworking.{platform}.yaml
+      - name: find-INetworkSystem_RemoveNetChannel
+        platform: windows
+        expected_output:
+          - INetworkSystem_RemoveNetChannel.{platform}.yaml
+        expected_input:
+          - CNetworkGameClient_DisconnectGame.{platform}.yaml
+      - name: find-INetworkSystem_PrintNetworkStats
+        expected_output:
+          - INetworkSystem_PrintNetworkStats.{platform}.yaml
+        expected_input:
+          - CLoopTypeSimple_FrameUpdate.{platform}.yaml
+      - name: find-INetworkSystem_BufferToBufferDecompress
+        expected_output:
+          - INetworkSystem_BufferToBufferDecompress.{platform}.yaml
+        expected_input:
+          - CNetworkStringTableClient_ParseUpdate.{platform}.yaml
+      - name: find-INetworkSystem_InitNetworkSystem
+        expected_output:
+          - INetworkSystem_InitNetworkSystem.{platform}.yaml
+        expected_input:
+          - InitSteamLogin.{platform}.yaml
       - name: find-ISource2Server_UpdateWhenNotInGame
         expected_output:
           - ISource2Server_UpdateWhenNotInGame.{platform}.yaml
@@ -3810,6 +3828,10 @@ modules:
         category: vfunc
         alias:
           - CEngineServiceMgr::GetAddonCount
+      - name: IEngineServiceMgr_GetAddonCount
+        category: vfunc
+        alias:
+          - IEngineServiceMgr::GetAddonCount
       - name: CRenderService_OnClientOutput
         category: func
         alias:
@@ -3818,6 +3840,10 @@ modules:
         category: vfunc
         alias:
           - CEngineServiceMgr::OnFrameRenderingFinished
+      - name: IEngineServiceMgr_OnFrameRenderingFinished
+        category: vfunc
+        alias:
+          - IEngineServiceMgr::OnFrameRenderingFinished
       - name: CPanoramaEngineHandler_OnClientPreOutput
         category: func
         alias:
@@ -3826,6 +3852,68 @@ modules:
         category: vfunc
         alias:
           - CEngineServiceMgr::GetEngineWindow
+      - name: IEngineServiceMgr_GetEngineWindow
+        category: vfunc
+        alias:
+          - IEngineServiceMgr::GetEngineWindow
+      - name: CEngineServer_GetPlayerNetInfo
+        category: vfunc
+        alias:
+          - CEngineServer::GetPlayerNetInfo
+      - name: CSteam3ServerS1_ShutdownGameServer
+        category: func
+        alias:
+          - CSteam3ServerS1::ShutdownGameServer
+      - name: InitSteamLogin
+        category: func
+      - name: ParseNetadrList
+        category: func
+      - name: ConnectSocketToAddressList
+        category: func
+      - name: CNetworkStringTableClient_ParseUpdate
+        category: func
+        alias:
+          - CNetworkStringTableClient::ParseUpdate
+      - name: INetworkSystem_ShutdownGameServer
+        category: vfunc
+        alias:
+          - INetworkSystem::ShutdownGameServer
+      - name: INetworkSystem_OpenSocket
+        category: vfunc
+        alias:
+          - INetworkSystem::OpenSocket
+      - name: INetworkSystem_ConnectSocket
+        category: vfunc
+        alias:
+          - INetworkSystem::ConnectSocket
+      - name: INetworkSystem_CloseSocket
+        category: vfunc
+        alias:
+          - INetworkSystem::CloseSocket
+      - name: INetworkSystem_EnableLoopbackBetweenSockets
+        category: vfunc
+        alias:
+          - INetworkSystem::EnableLoopbackBetweenSockets
+      - name: INetworkSystem_PollSocket
+        category: vfunc
+        alias:
+          - INetworkSystem::PollSocket
+      - name: INetworkSystem_RemoveNetChannel
+        category: vfunc
+        alias:
+          - INetworkSystem::RemoveNetChannel
+      - name: INetworkSystem_PrintNetworkStats
+        category: vfunc
+        alias:
+          - INetworkSystem::PrintNetworkStats
+      - name: INetworkSystem_BufferToBufferDecompress
+        category: vfunc
+        alias:
+          - INetworkSystem::BufferToBufferDecompress
+      - name: INetworkSystem_InitNetworkSystem
+        category: vfunc
+        alias:
+          - INetworkSystem::InitNetworkSystem
       - name: CEngineServiceMgr_RegisterEngineService
         category: vfunc
         alias:
@@ -9266,9 +9354,12 @@ modules:
           - CPlayerCommandQueue_UpdateStats.{platform}.yaml
         expected_input:
           - CPlayerCommandQueue_OnSimulateUserCommands.{platform}.yaml
-      - name: find-CEngineServer_GetPlayerNetInfo
+      # IVEngineServer2::GetPlayerNetInfo interface slot, anchored on the
+      # CPlayerCommandQueue::UpdateStats call site in server.dll. The concrete
+      # CEngineServer override is resolved in the late engine pass.
+      - name: find-IVEngineServer2_GetPlayerNetInfo
         expected_output:
-          - CEngineServer_GetPlayerNetInfo.{platform}.yaml
+          - IVEngineServer2_GetPlayerNetInfo.{platform}.yaml
         expected_input:
           - CPlayerCommandQueue_UpdateStats.{platform}.yaml
       - name: find-CBasePlayerController_IsFakeClient
@@ -12670,10 +12761,10 @@ modules:
         category: func
         alias:
           - CPlayerCommandQueue::UpdateStats
-      - name: CEngineServer_GetPlayerNetInfo
+      - name: IVEngineServer2_GetPlayerNetInfo
         category: vfunc
         alias:
-          - CEngineServer::GetPlayerNetInfo
+          - IVEngineServer2::GetPlayerNetInfo
       - name: CBasePlayerController_IsFakeClient
         category: func
         alias:
@@ -13433,16 +13524,160 @@ modules:
         expected_input:
           - ../client/g_pEngineServiceMgr.{platform}.yaml
           - ../client/g_pPanoramaUIEngine.{platform}.yaml
+      - name: find-IEngineServiceMgr_GetEngineWindow
+        expected_output:
+          - IEngineServiceMgr_GetEngineWindow.{platform}.yaml
+        expected_input:
+          - CPanoramaEngineHandler_OnClientPreOutput.{platform}.yaml
       - name: find-CEngineServiceMgr_GetEngineWindow
         expected_output:
           - CEngineServiceMgr_GetEngineWindow.{platform}.yaml
         expected_input:
-          - CPanoramaEngineHandler_OnClientPreOutput.{platform}.yaml
           - CEngineServiceMgr_vtable.{platform}.yaml
+          - IEngineServiceMgr_GetEngineWindow.{platform}.yaml
+      # CEngineServer::GetPlayerNetInfo lives in engine2.dll but its interface
+      # slot is recovered from server.dll (CPlayerCommandQueue::UpdateStats),
+      # so the concrete-class skill runs in this late engine pass, after server.
+      - name: find-CEngineServer_GetPlayerNetInfo
+        expected_output:
+          - CEngineServer_GetPlayerNetInfo.{platform}.yaml
+        expected_input:
+          - ../server/IVEngineServer2_GetPlayerNetInfo.{platform}.yaml
+          - CEngineServer_vtable.{platform}.yaml
   - name: networksystem  # Execute skills for networksystem.dll again after server.dll
     path_windows: game/bin/win64/networksystem.dll
     path_linux: game/bin/linuxsteamrt64/libnetworksystem.so
     skills:
+      # Concrete CNetworkSystem overrides inheriting their slot from the
+      # INetworkSystem_* interface artifacts (produced in the engine pass
+      # above). CNetworkSystem_vtable comes from the first networksystem pass.
+      - name: find-CNetworkSystem_InitNetworkSystem
+        expected_output:
+          - CNetworkSystem_InitNetworkSystem.{platform}.yaml
+        expected_input:
+          - CNetworkSystem_vtable.{platform}.yaml
+          - ../engine/INetworkSystem_InitNetworkSystem.{platform}.yaml
+      - name: find-CNetworkSystem_PollSocket
+        platform: windows
+        expected_output:
+          - CNetworkSystem_PollSocket.{platform}.yaml
+        expected_input:
+          - CNetworkSystem_vtable.{platform}.yaml
+          - ../engine/INetworkSystem_PollSocket.{platform}.yaml
+      - name: find-CNetworkSystem_EnableLoopbackBetweenSockets
+        platform: windows
+        expected_output:
+          - CNetworkSystem_EnableLoopbackBetweenSockets.{platform}.yaml
+        expected_input:
+          - CNetworkSystem_vtable.{platform}.yaml
+          - ../engine/INetworkSystem_EnableLoopbackBetweenSockets.{platform}.yaml
+      - name: find-CNetworkSystem_OpenSocket
+        expected_output:
+          - CNetworkSystem_OpenSocket.{platform}.yaml
+        expected_input:
+          - CNetworkSystem_vtable.{platform}.yaml
+          - ../engine/INetworkSystem_OpenSocket.{platform}.yaml
+      - name: find-CNetworkSystem_ConnectSocket
+        platform: windows
+        expected_output:
+          - CNetworkSystem_ConnectSocket.{platform}.yaml
+        expected_input:
+          - CNetworkSystem_vtable.{platform}.yaml
+          - ../engine/INetworkSystem_ConnectSocket.{platform}.yaml
+      - name: find-CNetworkSystem_CloseSocket
+        platform: windows
+        expected_output:
+          - CNetworkSystem_CloseSocket.{platform}.yaml
+        expected_input:
+          - CNetworkSystem_vtable.{platform}.yaml
+          - ../engine/INetworkSystem_CloseSocket.{platform}.yaml
+      - name: find-CNetworkSystem_ShutdownGameServer
+        expected_output:
+          - CNetworkSystem_ShutdownGameServer.{platform}.yaml
+        expected_input:
+          - CNetworkSystem_vtable.{platform}.yaml
+          - ../engine/INetworkSystem_ShutdownGameServer.{platform}.yaml
+      - name: find-CNetworkSystem_RemoveNetChannel
+        platform: windows
+        expected_output:
+          - CNetworkSystem_RemoveNetChannel.{platform}.yaml
+        expected_input:
+          - CNetworkSystem_vtable.{platform}.yaml
+          - ../engine/INetworkSystem_RemoveNetChannel.{platform}.yaml
+      # RemoveNetChannelByAddress keeps its string-xref finder: no INetworkSystem
+      # interface call site exists for it on either platform (the only 0xC0
+      # vcall near the steam init flow targets g_pNetworkServerService).
+      - name: find-CNetworkSystem_RemoveNetChannelByAddress
+        expected_output:
+          - CNetworkSystem_RemoveNetChannelByAddress.{platform}.yaml
+        expected_input:
+          - CNetworkSystem_RemoveNetChannel.{platform}.yaml
+          - CNetworkSystem_vtable.{platform}.yaml
+      - name: find-CNetworkSystem_BufferToBufferDecompress
+        expected_output:
+          - CNetworkSystem_BufferToBufferDecompress.{platform}.yaml
+        expected_input:
+          - CNetworkSystem_vtable.{platform}.yaml
+          - ../engine/INetworkSystem_BufferToBufferDecompress.{platform}.yaml
+      - name: find-CNetworkSystem_PrintNetworkStats
+        expected_output:
+          - CNetworkSystem_PrintNetworkStats.{platform}.yaml
+        expected_input:
+          - CNetworkSystem_vtable.{platform}.yaml
+          - ../engine/INetworkSystem_PrintNetworkStats.{platform}.yaml
+      # Linux keeps the original string-xref finders for five members whose
+      # interface-slot evidence only exists on Windows (or whose Linux vcall
+      # is a tail-call register load that cannot produce a unique vfunc_sig):
+      # ConnectSocket, EnableLoopbackBetweenSockets, CloseSocket, RemoveNetChannel,
+      # PollSocket.
+      - name: find-CNetworkSystem_ConnectSocket-linux
+        platform: linux
+        expected_output:
+          - CNetworkSystem_ConnectSocket.{platform}.yaml
+        expected_input:
+          - CNetworkSystem_vtable.{platform}.yaml
+      - name: find-CNetworkSystem_EnableLoopbackBetweenSockets-linux
+        platform: linux
+        expected_output:
+          - CNetworkSystem_EnableLoopbackBetweenSockets.{platform}.yaml
+        expected_input:
+          - CNetworkSystem_vtable.{platform}.yaml
+      - name: find-CNetworkSystem_CloseSocketInternal-linux
+        platform: linux
+        optional_output:
+          - CNetworkSystem_CloseSocketInternal.{platform}.yaml
+        skip_if_exists:
+          - CNetworkSystem_CloseSocket.{platform}.yaml
+      - name: find-CNetworkSystem_CloseSocket-deinlined-linux
+        platform: linux
+        optional_output:
+          - CNetworkSystem_CloseSocket.{platform}.yaml
+        expected_input:
+          - CNetworkSystem_vtable.{platform}.yaml
+        prerequisite:
+          - find-CNetworkSystem_CloseSocketInternal-linux
+      - name: find-CNetworkSystem_CloseSocket-inlined-linux
+        platform: linux
+        expected_output:
+          - CNetworkSystem_CloseSocket.{platform}.yaml
+        expected_input:
+          - CNetworkSystem_vtable.{platform}.yaml
+        skip_if_exists:
+          - CNetworkSystem_CloseSocket.{platform}.yaml
+        prerequisite:
+          - find-CNetworkSystem_CloseSocket-deinlined-linux
+      - name: find-CNetworkSystem_RemoveNetChannel-linux
+        platform: linux
+        expected_output:
+          - CNetworkSystem_RemoveNetChannel.{platform}.yaml
+        expected_input:
+          - CNetworkSystem_vtable.{platform}.yaml
+      - name: find-CNetworkSystem_PollSocket-linux
+        platform: linux
+        expected_output:
+          - CNetworkSystem_PollSocket.{platform}.yaml
+        expected_input:
+          - CNetworkSystem_vtable.{platform}.yaml
       - name: find-CFlattenedSerializers_CreateFieldChangedEventQueue
         expected_output:
           - CFlattenedSerializers_CreateFieldChangedEventQueue.{platform}.yaml

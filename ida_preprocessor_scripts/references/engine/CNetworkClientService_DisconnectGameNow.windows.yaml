@@ -1,0 +1,67 @@
+func_name: CNetworkClientService_DisconnectGameNow
+func_va: '0x1801d48c0'
+disasm_code: |-
+  .text:00000001801D48C0                 mov     [rsp+arg_0], rbx
+  .text:00000001801D48C5                 push    rdi
+  .text:00000001801D48C6                 sub     rsp, 20h
+  .text:00000001801D48CA                 mov     rbx, rcx
+  .text:00000001801D48CD                 mov     edi, edx
+  .text:00000001801D48CF                 mov     rcx, [rcx+98h]
+  .text:00000001801D48D6                 test    rcx, rcx
+  .text:00000001801D48D9                 jz      short loc_1801D48EC
+  .text:00000001801D48DB                 mov     rax, [rcx]
+  .text:00000001801D48DE                 call    qword ptr [rax+10h]
+  .text:00000001801D48E1                 mov     qword ptr [rbx+98h], 0
+  .text:00000001801D48EC                 mov     rcx, [rbx+0A0h]
+  .text:00000001801D48F3                 test    rcx, rcx
+  .text:00000001801D48F6                 jz      short loc_1801D492C
+  .text:00000001801D48F8                 xor     r8d, r8d
+  .text:00000001801D48FB                 mov     edx, edi
+  .text:00000001801D48FD                 call    CNetworkGameClient_DisconnectGame
+  .text:00000001801D4902                 mov     rcx, [rbx+0A0h]
+  .text:00000001801D4909                 sub     dword ptr [rcx+238h], 1
+  .text:00000001801D4910                 jnz     short loc_1801D4921
+  .text:00000001801D4912                 mov     rax, [rcx+10h]
+  .text:00000001801D4916                 add     rcx, 10h
+  .text:00000001801D491A                 mov     edx, 1
+  .text:00000001801D491F                 call    qword ptr [rax]
+  .text:00000001801D4921                 mov     qword ptr [rbx+0A0h], 0
+  .text:00000001801D492C                 cmp     qword ptr [rbx+0F0h], 0
+  .text:00000001801D4934                 jnz     short loc_1801D494C
+  .text:00000001801D4936                 mov     rcx, cs:g_pNetworkSystem
+  .text:00000001801D493D                 mov     edx, [rbx+94h]
+  .text:00000001801D4943                 mov     rax, [rcx]
+  .text:00000001801D4946                 call    qword ptr [rax+88h]; 0x88 = 136LL = INetworkSystem_CloseSocket
+  .text:00000001801D494C                 mov     rbx, [rsp+28h+arg_0]
+  .text:00000001801D4951                 add     rsp, 20h
+  .text:00000001801D4955                 pop     rdi
+  .text:00000001801D4956                 retn
+procedure: |-
+  __int64 __fastcall CNetworkClientService_DisconnectGameNow(__int64 a1, unsigned int a2)
+  {
+    __int64 v4; // rcx
+    __int64 result; // rax
+    __int64 v6; // rcx
+    __int64 v7; // rcx
+
+    v4 = *(_QWORD *)(a1 + 152);
+    if ( v4 )
+    {
+      result = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)v4 + 16LL))(v4);
+      *(_QWORD *)(a1 + 152) = 0;
+    }
+    v6 = *(_QWORD *)(a1 + 160);
+    if ( v6 )
+    {
+      result = CNetworkGameClient_DisconnectGame(v6, a2, 0);
+      v7 = *(_QWORD *)(a1 + 160);
+      if ( (*(_DWORD *)(v7 + 568))-- == 1 )
+        result = (**(__int64 (__fastcall ***)(__int64, __int64))(v7 + 16))(v7 + 16, 1);
+      *(_QWORD *)(a1 + 160) = 0;
+    }
+    if ( !*(_QWORD *)(a1 + 240) )
+      return (*(__int64 (__fastcall **)(__int64, _QWORD))(*(_QWORD *)g_pNetworkSystem + 136LL))(  // 136LL = 0x88 = INetworkSystem_CloseSocket
+               g_pNetworkSystem,
+               *(unsigned int *)(a1 + 148));
+    return result;
+  }

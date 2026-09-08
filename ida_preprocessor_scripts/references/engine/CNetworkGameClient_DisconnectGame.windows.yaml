@@ -225,7 +225,7 @@ disasm_code: |-
   .text:00000001800693A6                 jz      short loc_1800693B3
   .text:00000001800693A8                 mov     rax, [rcx]
   .text:00000001800693AB                 mov     edx, ebp
-  .text:00000001800693AD                 call    qword ptr [rax+0B8h]
+  .text:00000001800693AD                 call    qword ptr [rax+0B8h]; 0xB8 = 184LL = INetworkSystem_RemoveNetChannel
   .text:00000001800693B3                 mov     rax, cs:off_180611758
   .text:00000001800693BA                 lea     rcx, off_180611758
   .text:00000001800693C1                 call    qword ptr [rax+10h]
@@ -390,6 +390,6 @@ procedure: |-
     LOBYTE(v19) = 1;
     CNetworkGameClient_Clear(a1, v19);
     if ( qword_180612C98 )
-      (*(void (__fastcall **)(__int64, _QWORD))(*(_QWORD *)qword_180612C98 + 184LL))(qword_180612C98, a2);
+      (*(void (__fastcall **)(__int64, _QWORD))(*(_QWORD *)qword_180612C98 + 184LL))(qword_180612C98, a2)  // 184LL = 0xB8 = INetworkSystem_RemoveNetChannel;
     return ((__int64 (__fastcall *)(__int64 (__fastcall ***)()))off_180611758[2])(&off_180611758);
   }

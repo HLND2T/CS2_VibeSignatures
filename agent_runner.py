@@ -34,6 +34,28 @@ class AgentCommand:
     retry_target_desc: str
 
 
+class NonRetryableOutputError(RuntimeError):
+    """A producer changed protected outputs; further attempts must not run."""
+
+
+def _with_output_feedback(command, agent_kind, issues):
+    if not issues:
+        return command
+    feedback = (
+        "\n\nThe previous attempt's outputs failed validation:\n"
+        + "\n".join(f"- {issue}" for issue in issues)
+        + "\nRepair these artifacts using the current binary and rerun the skill. "
+        "Do not skip an artifact merely because it already exists: the listed outputs are invalid. "
+        "Keep unrelated and previously produced artifacts unchanged."
+    )
+    args = command.args.copy()
+    if command.input_text is not None:
+        return AgentCommand(args, command.input_text + feedback, command.retry_target_desc)
+    prompt_index = args.index("-p") + 1 if agent_kind == "claude" else len(args) - 1
+    args[prompt_index] += feedback
+    return AgentCommand(args, None, command.retry_target_desc)
+
+
 def _detect_agent_kind(agent: str) -> str | None:
     agent_lower = agent.lower()
     if "claude" in agent_lower:
@@ -500,6 +522,8 @@ def _report_result_failure(reason, result, debug: bool) -> None:
         print(f"    Error: Skill reported: {reason[1]}")
     elif isinstance(reason, tuple) and reason[0] == "cybersecurity_block":
         print(f"    Error: Skill blocked by cybersecurity filter: {reason[1]}")
+    elif isinstance(reason, tuple) and reason[0] == "invalid_output":
+        print(f"    Error: Output finalization failed: {reason[1]}")
     elif reason:
         print(f"    Error: Expected yaml files not generated: {reason}")
 
@@ -517,8 +541,10 @@ def _run_skill_attempts(
     agent_model: str,
     mcp_url: str | None,
     progress_callback=None,
+    output_validator=None,
 ) -> bool:
     opencode_session_id = None
+    output_issues = []
     process_env = _agent_process_env(agent_kind, mcp_url)
     for attempt in range(max_retries):
         attempt_number = attempt + 1
@@ -539,18 +565,26 @@ def _run_skill_attempts(
             agent_model=agent_model,
             mcp_url=mcp_url,
         )
+        command = _with_output_feedback(command, agent_kind, output_issues)
         _print_command(command, attempt, max_retries)
         try:
-            result = _run_process_with_stream_capture(
-                command.args,
-                agent_input=command.input_text,
-                debug=debug,
-                timeout=SKILL_TIMEOUT,
-                env=process_env,
-            )
+            try:
+                result = _run_process_with_stream_capture(
+                    command.args,
+                    agent_input=command.input_text,
+                    debug=debug,
+                    timeout=SKILL_TIMEOUT,
+                    env=process_env,
+                )
+            finally:
+                # Check interrupted/failed attempts too: an Agent may already
+                # have changed protected files before failing or timing out.
+                output_issues = list(output_validator() or []) if output_validator is not None else []
             if agent_kind == "opencode" and opencode_session_id is None:
                 opencode_session_id = _extract_opencode_session_id(result.stdout)
             reason = _result_failure_reason(result, expected_yaml_paths)
+            if output_issues and reason is None:
+                reason = ("invalid_output", " | ".join(output_issues))
             if reason is None:
                 _notify_progress(
                     progress_callback,
@@ -579,6 +613,17 @@ def _run_skill_attempts(
                 **failure_payload,
             )
             _retry_if_available(attempt, max_retries, command.retry_target_desc)
+        except NonRetryableOutputError as error:
+            print(f"    Error: Protected output modification: {error}")
+            _notify_progress(
+                progress_callback,
+                "failed",
+                attempt=attempt_number,
+                max_attempts=max_retries,
+                reason="invalid_output",
+                error=str(error),
+            )
+            return False
         except subprocess.TimeoutExpired:
             print(f"    Error: Skill execution timeout ({SKILL_TIMEOUT} seconds)")
             _notify_progress(
@@ -634,8 +679,14 @@ def run_skill(
     agent_model=DEFAULT_AGENT_MODEL,
     progress_callback=None,
     mcp_url=None,
+    output_validator=None,
 ) -> bool:
-    """Execute a skill with its configured agent and retry support."""
+    """Execute and validate each attempt within one retry budget.
+
+    output_validator returns artifact error strings for correction, or raises
+    NonRetryableOutputError for protected-output changes. It also runs after
+    interrupted attempts, before another attempt can touch the artifacts.
+    """
     agent_kind = _detect_agent_kind(agent)
     if agent_kind is None:
         print(f"    Error: Unknown agent type '{agent}'. Agent name must contain 'claude', 'codex', or 'opencode'.")
@@ -674,4 +725,5 @@ def run_skill(
         agent_model=agent_model,
         mcp_url=mcp_url,
         progress_callback=progress_callback,
+        output_validator=output_validator,
     )

@@ -1,0 +1,419 @@
+func_name: InitSteamLogin
+func_va: '0x1802033f0'
+disasm_code: |-
+  .text:00000001802033F0                 mov     rax, rsp
+  .text:00000001802033F3                 sub     rsp, 438h
+  .text:00000001802033FA                 mov     [rax+8], rbx
+  .text:00000001802033FE                 mov     [rax-8], rdi
+  .text:0000000180203402                 movzx   edi, cl
+  .text:0000000180203405                 call    cs:CommandLine
+  .text:000000018020340B                 xor     r8d, r8d
+  .text:000000018020340E                 mov     rcx, rax
+  .text:0000000180203411                 mov     rdx, [rax]
+  .text:0000000180203414                 mov     r9, [rdx+98h]
+  .text:000000018020341B                 mov     edx, 0C64D5C6Eh
+  .text:0000000180203420                 call    r9
+  .text:0000000180203423                 test    eax, eax
+  .text:0000000180203425                 jnz     loc_1802034E0
+  .text:000000018020342B                 call    cs:CommandLine
+  .text:0000000180203431                 xor     r8d, r8d
+  .text:0000000180203434                 mov     edx, 0D8A5D350h
+  .text:0000000180203439                 mov     rcx, [rax]
+  .text:000000018020343C                 mov     r9, [rcx+98h]
+  .text:0000000180203443                 mov     rcx, rax
+  .text:0000000180203446                 call    r9
+  .text:0000000180203449                 test    eax, eax
+  .text:000000018020344B                 jnz     loc_1802034E0
+  .text:0000000180203451                 call    cs:CommandLine
+  .text:0000000180203457                 xor     r8d, r8d
+  .text:000000018020345A                 mov     edx, 796F34D3h
+  .text:000000018020345F                 mov     rcx, [rax]
+  .text:0000000180203462                 mov     r9, [rcx+98h]
+  .text:0000000180203469                 mov     rcx, rax
+  .text:000000018020346C                 call    r9
+  .text:000000018020346F                 test    eax, eax
+  .text:0000000180203471                 lea     rdx, aInitsteamlogin; "InitSteamLogin"
+  .text:0000000180203478                 lea     rcx, aSInitializingB; "%s: Initializing breakpad.\n"
+  .text:000000018020347F                 setnz   bl
+  .text:0000000180203482                 call    cs:Msg
+  .text:0000000180203488                 mov     rax, cs:qword_180918DB0
+  .text:000000018020348F                 lea     rcx, unk_180528B3F
+  .text:0000000180203496                 test    rax, rax
+  .text:0000000180203499                 mov     r8, rcx
+  .text:000000018020349C                 mov     rdx, rcx
+  .text:000000018020349F                 movzx   r9d, bl
+  .text:00000001802034A3                 cmovnz  r8, rax
+  .text:00000001802034A7                 mov     rax, cs:qword_180918DA8
+  .text:00000001802034AE                 test    rax, rax
+  .text:00000001802034B1                 cmovnz  rdx, rax
+  .text:00000001802034B5                 mov     rax, cs:qword_180918DA0
+  .text:00000001802034BC                 test    rax, rax
+  .text:00000001802034BF                 cmovnz  rcx, rax
+  .text:00000001802034C3                 lea     rax, _guard_check_icall_nop
+  .text:00000001802034CA                 mov     [rsp+438h+var_410], rax
+  .text:00000001802034CF                 mov     [rsp+438h+var_418], 0
+  .text:00000001802034D8                 call    cs:SteamAPI_UseBreakpadCrashHandler
+  .text:00000001802034DE                 jmp     short loc_1802034F4
+  .text:00000001802034E0                 lea     rdx, aInitsteamlogin; "InitSteamLogin"
+  .text:00000001802034E7                 lea     rcx, aSSkippingIniti; "%s: Skipping initializing breakpad.\n"
+  .text:00000001802034EE                 call    cs:Msg
+  .text:00000001802034F4                 mov     [rsp+438h+arg_10], rsi
+  .text:00000001802034FC                 test    dil, dil
+  .text:00000001802034FF                 jnz     loc_1802036BE
+  .text:0000000180203505                 call    cs:Plat_IsInTestMode
+  .text:000000018020350B                 test    al, al
+  .text:000000018020350D                 jz      short loc_180203588
+  .text:000000018020350F                 call    cs:SteamAPI_InitAnonymousUser
+  .text:0000000180203515                 mov     rcx, cs:LOG_GENERAL
+  .text:000000018020351C                 mov     ecx, [rcx]
+  .text:000000018020351E                 test    al, al
+  .text:0000000180203520                 jnz     short loc_180203555
+  .text:0000000180203522                 mov     edx, 3
+  .text:0000000180203527                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:000000018020352D                 test    al, al
+  .text:000000018020352F                 jz      loc_1802036BE
+  .text:0000000180203535                 mov     rcx, cs:LOG_GENERAL
+  .text:000000018020353C                 lea     r8, aFailedToInitSt; "Failed to init steam in anonymous mode?"...
+  .text:0000000180203543                 mov     edx, 3
+  .text:0000000180203548                 mov     ecx, [rcx]
+  .text:000000018020354A                 call    cs:LoggingSystem_Log
+  .text:0000000180203550                 jmp     loc_1802036BE
+  .text:0000000180203555                 mov     edx, 2
+  .text:000000018020355A                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:0000000180203560                 test    al, al
+  .text:0000000180203562                 jz      loc_1802036BE
+  .text:0000000180203568                 mov     rcx, cs:LOG_GENERAL
+  .text:000000018020356F                 lea     r8, aTestModeInitia; "test mode - initialized steam in anonym"...
+  .text:0000000180203576                 mov     edx, 2
+  .text:000000018020357B                 mov     ecx, [rcx]
+  .text:000000018020357D                 call    cs:LoggingSystem_Log
+  .text:0000000180203583                 jmp     loc_1802036BE
+  .text:0000000180203588                 lea     rdx, [rsp+438h+var_408]
+  .text:000000018020358D                 lea     rcx, aSteamutils010_1; "SteamUtils010"
+  .text:0000000180203594                 call    cs:SteamInternal_SteamAPI_Init
+  .text:000000018020359A                 test    eax, eax
+  .text:000000018020359C                 jnz     loc_180203686
+  .text:00000001802035A2                 and     dword ptr [rsp+438h+arg_8+4], 0FF0FFFFFh
+  .text:00000001802035AD                 lea     rcx, off_18060E308
+  .text:00000001802035B4                 mov     byte ptr [rsp+438h+arg_8+7], al
+  .text:00000001802035BB                 and     dword ptr [rsp+438h+arg_8+4], 0FFF00000h
+  .text:00000001802035C6                 mov     dword ptr [rsp+438h+arg_8], eax
+  .text:00000001802035CD                 call    cs:SteamInternal_ContextInit
+  .text:00000001802035D3                 cmp     qword ptr [rax], 0
+  .text:00000001802035D7                 jz      short loc_180203604
+  .text:00000001802035D9                 lea     rcx, off_18060E308
+  .text:00000001802035E0                 call    cs:SteamInternal_ContextInit
+  .text:00000001802035E6                 lea     rdx, [rsp+438h+arg_8]
+  .text:00000001802035EE                 mov     rcx, [rax]
+  .text:00000001802035F1                 mov     rax, [rcx]
+  .text:00000001802035F4                 call    qword ptr [rax+10h]
+  .text:00000001802035F7                 mov     rbx, [rax]
+  .text:00000001802035FA                 mov     [rsp+438h+arg_8], rbx
+  .text:0000000180203602                 jmp     short loc_18020360C
+  .text:0000000180203604                 mov     rbx, [rsp+438h+arg_8]
+  .text:000000018020360C                 lea     rcx, off_18060E2D8
+  .text:0000000180203613                 xor     esi, esi
+  .text:0000000180203615                 call    cs:SteamInternal_ContextInit
+  .text:000000018020361B                 cmp     [rax], rsi
+  .text:000000018020361E                 jz      short loc_180203638
+  .text:0000000180203620                 lea     rcx, off_18060E2D8
+  .text:0000000180203627                 call    cs:SteamInternal_ContextInit
+  .text:000000018020362D                 mov     rcx, [rax]
+  .text:0000000180203630                 mov     rax, [rcx]
+  .text:0000000180203633                 call    qword ptr [rax+48h]
+  .text:0000000180203636                 mov     esi, eax
+  .text:0000000180203638                 mov     rcx, cs:LOG_GENERAL
+  .text:000000018020363F                 mov     edx, 2
+  .text:0000000180203644                 mov     ecx, [rcx]
+  .text:0000000180203646                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:000000018020364C                 test    al, al
+  .text:000000018020364E                 jz      short loc_1802036BE
+  .text:0000000180203650                 lea     rcx, [rsp+438h+arg_8]
+  .text:0000000180203658                 call    sub_180110B20
+  .text:000000018020365D                 mov     rcx, cs:LOG_GENERAL
+  .text:0000000180203664                 lea     r8, aSteamapiInitSu; "SteamAPI_Init succeeded.  SteamID is %s"...
+  .text:000000018020366B                 mov     dword ptr [rsp+438h+var_410], esi
+  .text:000000018020366F                 mov     r9, rax
+  .text:0000000180203672                 mov     edx, 2
+  .text:0000000180203677                 mov     [rsp+438h+var_418], rbx
+  .text:000000018020367C                 mov     ecx, [rcx]
+  .text:000000018020367E                 call    cs:LoggingSystem_Log
+  .text:0000000180203684                 jmp     short loc_1802036BE
+  .text:0000000180203686                 mov     rcx, cs:LOG_GENERAL
+  .text:000000018020368D                 mov     edx, 3
+  .text:0000000180203692                 mov     ecx, [rcx]
+  .text:0000000180203694                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:000000018020369A                 test    al, al
+  .text:000000018020369C                 jz      short loc_1802036BE
+  .text:000000018020369E                 mov     rcx, cs:LOG_GENERAL
+  .text:00000001802036A5                 lea     r9, [rsp+438h+var_408]
+  .text:00000001802036AA                 lea     r8, aSteamapiInitFa; "SteamAPI_Init failed.  %s\n"
+  .text:00000001802036B1                 mov     edx, 3
+  .text:00000001802036B6                 mov     ecx, [rcx]
+  .text:00000001802036B8                 call    cs:LoggingSystem_Log
+  .text:00000001802036BE                 movzx   ecx, dil
+  .text:00000001802036C2                 call    sub_180203120
+  .text:00000001802036C7                 mov     r8d, cs:g_nSteamAppId
+  .text:00000001802036CE                 cmp     cs:g_nBreakpadAppId, r8d
+  .text:00000001802036D5                 mov     rsi, [rsp+438h+arg_10]
+  .text:00000001802036DD                 jnz     short loc_180203711
+  .text:00000001802036DF                 cmp     cs:dword_18068B41C, 0
+  .text:00000001802036E6                 jz      short loc_1802036F1
+  .text:00000001802036E8                 test    dil, dil
+  .text:00000001802036EB                 jnz     loc_1802038A1
+  .text:00000001802036F1                 lea     rdx, aInitsteamlogin; "InitSteamLogin"
+  .text:00000001802036F8                 lea     rcx, aSSteamapiSetbr; "%s: SteamAPI_SetBreakpadAppID: %d\n"
+  .text:00000001802036FF                 call    cs:Msg
+  .text:0000000180203705                 mov     ecx, cs:g_nSteamAppId
+  .text:000000018020370B                 call    cs:SteamAPI_SetBreakpadAppID
+  .text:0000000180203711                 test    dil, dil
+  .text:0000000180203714                 jnz     loc_1802038A1
+  .text:000000018020371A                 cmp     byte ptr cs:word_180611D84, dil
+  .text:0000000180203721                 jnz     loc_1802038A1
+  .text:0000000180203727                 and     cs:dword_180611D8A, 0FF0FFFFFh
+  .text:0000000180203731                 lea     rdx, [rsp+438h+var_408]
+  .text:0000000180203736                 mov     byte ptr cs:dword_180611D8A+3, dil
+  .text:000000018020373D                 lea     rcx, aSteamutils010_1; "SteamUtils010"
+  .text:0000000180203744                 and     cs:dword_180611D8A, 0FFF00000h
+  .text:000000018020374E                 mov     cs:word_180611D84, 1
+  .text:0000000180203757                 mov     cs:dword_180611D86, 0
+  .text:0000000180203761                 call    cs:SteamInternal_SteamAPI_Init
+  .text:0000000180203767                 lea     rcx, off_18060E2C0
+  .text:000000018020376E                 mov     ebx, eax
+  .text:0000000180203770                 call    cs:SteamInternal_ContextInit
+  .text:0000000180203776                 cmp     qword ptr [rax], 0
+  .text:000000018020377A                 jz      short loc_18020379D
+  .text:000000018020377C                 lea     rcx, off_18060E2C0
+  .text:0000000180203783                 call    cs:SteamInternal_ContextInit
+  .text:0000000180203789                 lea     rdx, sub_180053730
+  .text:0000000180203790                 mov     rcx, [rax]
+  .text:0000000180203793                 mov     r8, [rcx]
+  .text:0000000180203796                 call    qword ptr [r8+0A8h]
+  .text:000000018020379D                 test    ebx, ebx
+  .text:000000018020379F                 jnz     loc_18020386F
+  .text:00000001802037A5                 lea     rcx, off_18060E308
+  .text:00000001802037AC                 call    cs:SteamInternal_ContextInit
+  .text:00000001802037B2                 lea     rdx, [rsp+438h+arg_8]
+  .text:00000001802037BA                 mov     rcx, [rax]
+  .text:00000001802037BD                 mov     rax, [rcx]
+  .text:00000001802037C0                 call    qword ptr [rax+10h]
+  .text:00000001802037C3                 mov     ecx, cs:dword_18068DE08
+  .text:00000001802037C9                 mov     edx, 2
+  .text:00000001802037CE                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:00000001802037D4                 test    al, al
+  .text:00000001802037D6                 jz      short loc_180203829
+  .text:00000001802037D8                 lea     rcx, off_18060E2D8
+  .text:00000001802037DF                 call    cs:SteamInternal_ContextInit
+  .text:00000001802037E5                 mov     rcx, [rax]
+  .text:00000001802037E8                 mov     rax, [rcx]
+  .text:00000001802037EB                 call    qword ptr [rax+48h]
+  .text:00000001802037EE                 mov     rdi, [rsp+438h+arg_8]
+  .text:00000001802037F6                 lea     rcx, [rsp+438h+arg_8]
+  .text:00000001802037FE                 mov     ebx, eax
+  .text:0000000180203800                 call    sub_180110B20
+  .text:0000000180203805                 mov     ecx, cs:dword_18068DE08
+  .text:000000018020380B                 lea     r8, aCsteam3clientA; "CSteam3Client::Activate succeeded.  Ste"...
+  .text:0000000180203812                 mov     r9, rax
+  .text:0000000180203815                 mov     dword ptr [rsp+438h+var_410], ebx
+  .text:0000000180203819                 mov     edx, 2
+  .text:000000018020381E                 mov     [rsp+438h+var_418], rdi
+  .text:0000000180203823                 call    cs:LoggingSystem_Log
+  .text:0000000180203829                 mov     eax, dword ptr [rsp+438h+arg_8+4]
+  .text:0000000180203830                 shr     eax, 14h
+  .text:0000000180203833                 and     eax, 0Fh
+  .text:0000000180203836                 cmp     eax, 0Ah
+  .text:0000000180203839                 jz      short loc_180203840
+  .text:000000018020383B                 cmp     eax, 4
+  .text:000000018020383E                 jnz     short loc_1802038A1
+  .text:0000000180203840                 mov     ecx, cs:dword_18068DE08
+  .text:0000000180203846                 mov     edx, 3
+  .text:000000018020384B                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:0000000180203851                 test    al, al
+  .text:0000000180203853                 jz      short loc_1802038A1
+  .text:0000000180203855                 mov     ecx, cs:dword_18068DE08
+  .text:000000018020385B                 lea     r8, aClientIsRunnin; "Client is running in anonymous mode.  M"...
+  .text:0000000180203862                 mov     edx, 3
+  .text:0000000180203867                 call    cs:LoggingSystem_Log
+  .text:000000018020386D                 jmp     short loc_1802038A1
+  .text:000000018020386F                 mov     ecx, cs:dword_18068DE08
+  .text:0000000180203875                 mov     edx, 3
+  .text:000000018020387A                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:0000000180203880                 test    al, al
+  .text:0000000180203882                 jz      short loc_1802038A1
+  .text:0000000180203884                 mov     ecx, cs:dword_18068DE08
+  .text:000000018020388A                 lea     r9, [rsp+438h+var_408]
+  .text:000000018020388F                 lea     r8, aSteamInitFaile; "Steam init failed!  %s\n"
+  .text:0000000180203896                 mov     edx, 3
+  .text:000000018020389B                 call    cs:LoggingSystem_Log
+  .text:00000001802038A1                 mov     rcx, cs:g_pNetworkSystem
+  .text:00000001802038A8                 mov     rdi, [rsp+438h+var_8]
+  .text:00000001802038B0                 mov     rbx, [rsp+438h+arg_0]
+  .text:00000001802038B8                 test    rcx, rcx
+  .text:00000001802038BB                 jz      short loc_1802038C6
+  .text:00000001802038BD                 mov     rax, [rcx]
+  .text:00000001802038C0                 call    qword ptr [rax+198h]; 0x198 = 408LL = INetworkSystem_InitNetworkSystem
+  .text:00000001802038C6                 add     rsp, 438h
+  .text:00000001802038CD                 retn
+procedure: |-
+  void __fastcall InitSteamLogin(__int64 a1)
+  {
+    unsigned __int8 v1; // di
+    __int64 v2; // rax
+    __int64 v3; // rcx
+    __int64 v4; // rax
+    __int64 v5; // rcx
+    __int64 v6; // rax
+    bool v7; // bl
+    void *v8; // rcx
+    void *v9; // r8
+    void *v10; // rdx
+    _QWORD *v11; // rax
+    __int64 v12; // rbx
+    int v13; // esi
+    _QWORD *v14; // rax
+    const char *v15; // rax
+    int v16; // ebx
+    _QWORD *v17; // rax
+    _QWORD *v18; // rax
+    _QWORD *v19; // rax
+    int v20; // eax
+    __int64 v21; // rdi
+    int v22; // ebx
+    const char *v23; // rax
+    int v24; // eax
+    char v25[1024]; // [rsp+30h] [rbp-408h] BYREF
+    __int64 v26; // [rsp+448h] [rbp+10h] BYREF
+
+    v1 = a1;
+    v2 = CommandLine(a1);
+    if ( (*(unsigned int (__fastcall **)(__int64, __int64, _QWORD))(*(_QWORD *)v2 + 152LL))(v2, 3326958702LL, 0)
+      || (v4 = CommandLine(v3),
+          (*(unsigned int (__fastcall **)(__int64, __int64, _QWORD))(*(_QWORD *)v4 + 152LL))(v4, 3634746192LL, 0)) )
+    {
+      Msg("%s: Skipping initializing breakpad.\n", "InitSteamLogin");
+    }
+    else
+    {
+      v6 = CommandLine(v5);
+      v7 = (*(unsigned int (__fastcall **)(__int64, __int64, _QWORD))(*(_QWORD *)v6 + 152LL))(v6, 2037331155, 0) != 0;
+      Msg("%s: Initializing breakpad.\n", "InitSteamLogin");
+      v8 = &unk_180528B3F;
+      v9 = &unk_180528B3F;
+      v10 = &unk_180528B3F;
+      if ( qword_180918DB0 )
+        v9 = (void *)qword_180918DB0;
+      if ( qword_180918DA8 )
+        v10 = (void *)qword_180918DA8;
+      if ( qword_180918DA0 )
+        v8 = (void *)qword_180918DA0;
+      SteamAPI_UseBreakpadCrashHandler(v8, v10, v9, v7, 0, guard_check_icall_nop);
+    }
+    if ( !v1 )
+    {
+      if ( (unsigned __int8)Plat_IsInTestMode() )
+      {
+        if ( (unsigned __int8)SteamAPI_InitAnonymousUser() )
+        {
+          if ( (unsigned __int8)LoggingSystem_IsChannelEnabled(LOG_GENERAL, 2) )
+            LoggingSystem_Log(LOG_GENERAL, 2, "test mode - initialized steam in anonymous user mode\n");
+        }
+        else if ( (unsigned __int8)LoggingSystem_IsChannelEnabled(LOG_GENERAL, 3) )
+        {
+          LoggingSystem_Log(LOG_GENERAL, 3, "Failed to init steam in anonymous mode?\n");
+        }
+      }
+      else if ( (unsigned int)SteamInternal_SteamAPI_Init("SteamUtils010", v25) )
+      {
+        if ( (unsigned __int8)LoggingSystem_IsChannelEnabled(LOG_GENERAL, 3) )
+          LoggingSystem_Log(LOG_GENERAL, 3, "SteamAPI_Init failed.  %s\n", v25);
+      }
+      else
+      {
+        HIWORD(v26) = BYTE6(v26) & 0xF;
+        v26 &= 0xFFF0000000000000uLL;
+        if ( *(_QWORD *)SteamInternal_ContextInit(&off_18060E308) )
+        {
+          v11 = (_QWORD *)SteamInternal_ContextInit(&off_18060E308);
+          v12 = *(_QWORD *)(*(__int64 (__fastcall **)(_QWORD, __int64 *))(*(_QWORD *)*v11 + 16LL))(*v11, &v26);
+          v26 = v12;
+        }
+        else
+        {
+          v12 = v26;
+        }
+        v13 = 0;
+        if ( *(_QWORD *)SteamInternal_ContextInit(&off_18060E2D8) )
+        {
+          v14 = (_QWORD *)SteamInternal_ContextInit(&off_18060E2D8);
+          v13 = (*(__int64 (__fastcall **)(_QWORD))(*(_QWORD *)*v14 + 72LL))(*v14);
+        }
+        if ( (unsigned __int8)LoggingSystem_IsChannelEnabled(LOG_GENERAL, 2) )
+        {
+          v15 = (const char *)sub_180110B20(&v26);
+          LoggingSystem_Log(
+            LOG_GENERAL,
+            2,
+            "SteamAPI_Init succeeded.  SteamID is %s (%llu), AppID is %d\n",
+            v15,
+            v12,
+            v13);
+        }
+      }
+    }
+    sub_180203120(v1);
+    if ( g_nBreakpadAppId == g_nSteamAppId )
+    {
+      if ( dword_18068B41C && v1 )
+        goto LABEL_45;
+      Msg("%s: SteamAPI_SetBreakpadAppID: %d\n", "InitSteamLogin", g_nSteamAppId);
+      SteamAPI_SetBreakpadAppID((unsigned int)g_nSteamAppId);
+    }
+    if ( !v1 && !(_BYTE)word_180611D84 )
+    {
+      dword_180611D8A &= 0xFF0FFFFF;
+      HIBYTE(dword_180611D8A) = 0;
+      dword_180611D8A &= 0xFFF00000;
+      word_180611D84 = 1;
+      dword_180611D86 = 0;
+      v16 = SteamInternal_SteamAPI_Init("SteamUtils010", v25);
+      if ( *(_QWORD *)SteamInternal_ContextInit(&off_18060E2C0) )
+      {
+        v17 = (_QWORD *)SteamInternal_ContextInit(&off_18060E2C0);
+        (*(void (__fastcall **)(_QWORD, __int64 (__fastcall *)()))(*(_QWORD *)*v17 + 168LL))(*v17, sub_180053730);
+      }
+      if ( v16 )
+      {
+        if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_18068DE08, 3) )
+          LoggingSystem_Log((unsigned int)dword_18068DE08, 3, "Steam init failed!  %s\n", v25);
+      }
+      else
+      {
+        v18 = (_QWORD *)SteamInternal_ContextInit(&off_18060E308);
+        (*(void (__fastcall **)(_QWORD, __int64 *))(*(_QWORD *)*v18 + 16LL))(*v18, &v26);
+        if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_18068DE08, 2) )
+        {
+          v19 = (_QWORD *)SteamInternal_ContextInit(&off_18060E2D8);
+          v20 = (*(__int64 (__fastcall **)(_QWORD))(*(_QWORD *)*v19 + 72LL))(*v19);
+          v21 = v26;
+          v22 = v20;
+          v23 = (const char *)sub_180110B20(&v26);
+          LoggingSystem_Log(
+            (unsigned int)dword_18068DE08,
+            2,
+            "CSteam3Client::Activate succeeded.  SteamID is %s (%llu), AppID is %d\n",
+            v23,
+            v21,
+            v22);
+        }
+        v24 = (HIDWORD(v26) >> 20) & 0xF;
+        if ( (v24 == 10 || v24 == 4) && (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_18068DE08, 3) )
+          LoggingSystem_Log(
+            (unsigned int)dword_18068DE08,
+            3,
+            "Client is running in anonymous mode.  Many steam features will not work\n");
+      }
+    }
+  LABEL_45:
+    if ( g_pNetworkSystem )
+      (*(void (__fastcall **)(__int64))(*(_QWORD *)g_pNetworkSystem + 408LL))(g_pNetworkSystem)  // 408LL = 0x198 = INetworkSystem_InitNetworkSystem;
+  }

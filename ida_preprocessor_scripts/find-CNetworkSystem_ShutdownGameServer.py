@@ -1,28 +1,22 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CNetworkSystem_ShutdownGameServer skill."""
+"""Preprocess script for find-CNetworkSystem_ShutdownGameServer.
+
+The interface slot is recovered by find-IShutdownGameServer in the engine module
+(the INetworkSystem interface callers live in engine2.dll); this skill
+inherits that slot index and resolves the concrete override in the
+CNetworkSystem vtable inside networksystem.dll.
+"""
 
 from ida_analyze_util import preprocess_common_skill
 
-TARGET_FUNCTION_NAMES = [
-    "CNetworkSystem_ShutdownGameServer",
-]
-
-FUNC_XREFS = [
-    {
-        "func_name": "CNetworkSystem_ShutdownGameServer",
-        "xref_strings": ["CNetworkSystem::ShutdownGameServer"],
-        "xref_gvs": [],
-        "xref_signatures": [],
-        "xref_funcs": [],
-        "exclude_funcs": [],
-        "exclude_strings": [],
-        "exclude_gvs": [],
-        "exclude_signatures": [],
-    },
-]
-
-FUNC_VTABLE_RELATIONS = [
-    ("CNetworkSystem_ShutdownGameServer", "CNetworkSystem_vtable"),
+INHERIT_VFUNCS = [
+    # (target_func_name, inherit_vtable_class, base_vfunc_name, generate_func_sig)
+    (
+        "CNetworkSystem_ShutdownGameServer",
+        "CNetworkSystem",
+        "../engine/INetworkSystem_ShutdownGameServer",
+        True,
+    ),
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
@@ -52,7 +46,8 @@ async def preprocess_skill(
     image_base,
     debug=False,
 ):
-    """Find the CNetworkSystem::ShutdownGameServer virtual function."""
+    """Inherit the ShutdownGameServer slot from INetworkSystem (engine module)."""
+    _ = skill_name
     return await preprocess_common_skill(
         session=session,
         expected_outputs=expected_outputs,
@@ -60,9 +55,7 @@ async def preprocess_skill(
         new_binary_dir=new_binary_dir,
         platform=platform,
         image_base=image_base,
-        func_names=TARGET_FUNCTION_NAMES,
-        func_xrefs=FUNC_XREFS,
-        func_vtable_relations=FUNC_VTABLE_RELATIONS,
+        inherit_vfuncs=INHERIT_VFUNCS,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
     )

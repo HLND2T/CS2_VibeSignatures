@@ -1,0 +1,61 @@
+func_name: CNetworkServerService_OnClientPollNetworking
+func_va: '0x404870'
+disasm_code: |-
+  .text:0000000000404870                 cmp     cs:byte_A28E28, 0
+  .text:0000000000404877                 jz      short loc_404880
+  .text:0000000000404879                 retn
+  .text:0000000000404880                 push    rbp
+  .text:0000000000404881                 mov     rsi, rdi
+  .text:0000000000404884                 mov     rbp, rsp
+  .text:0000000000404887                 push    r12
+  .text:0000000000404889                 lea     r12, [rbp-30h]
+  .text:000000000040488D                 push    rbx
+  .text:000000000040488E                 mov     rbx, rdi
+  .text:0000000000404891                 sub     rsp, 20h
+  .text:0000000000404895                 mov     rdi, r12
+  .text:0000000000404898                 call    sub_4045B0
+  .text:000000000040489D                 ; _QWORD
+  .text:000000000040489D                 mov     esi, 1; _QWORD
+  .text:00000000004048A2                 ; _QWORD
+  .text:00000000004048A2                 mov     rdi, r12; _QWORD
+  .text:00000000004048A5                 call    _Wait
+  .text:00000000004048AA                 cmp     dword ptr [rbp-1Ch], 3FFFFFFFh
+  .text:00000000004048B1                 mov     dword ptr [rbp-30h], 0
+  .text:00000000004048B8                 ja      short loc_4048D3
+  .text:00000000004048BA                 mov     rsi, [rbp-28h]
+  .text:00000000004048BE                 test    rsi, rsi
+  .text:00000000004048C1                 jz      short loc_4048D3
+  .text:00000000004048C3                 mov     rax, cs:g_pMemAlloc_ptr
+  .text:00000000004048CA                 mov     rdi, [rax]
+  .text:00000000004048CD                 mov     rax, [rdi]
+  .text:00000000004048D0                 call    qword ptr [rax+20h]
+  .text:00000000004048D3                 mov     rax, [rbx]
+  .text:00000000004048D6                 mov     rdi, rbx
+  .text:00000000004048D9                 mov     rax, [rax+190h]
+  .text:00000000004048E0                 add     rsp, 20h
+  .text:00000000004048E4                 pop     rbx
+  .text:00000000004048E5                 pop     r12
+  .text:00000000004048E7                 pop     rbp
+  .text:00000000004048E8                 jmp     rax
+procedure: |-
+  __int64 __fastcall CNetworkServerService_OnClientPollNetworking(__int64 a1)
+  {
+    __int64 result; // rax
+    int v2; // [rsp-38h] [rbp-38h] BYREF
+    __int64 v3; // [rsp-30h] [rbp-30h]
+    unsigned int v4; // [rsp-24h] [rbp-24h]
+
+    if ( !byte_A28E28 )
+    {
+      sub_4045B0(&v2, a1);
+      Wait(&v2, 1);
+      v2 = 0;
+      if ( v4 <= 0x3FFFFFFF )
+      {
+        if ( v3 )
+          (*(void (__fastcall **)(_QWORD *))(*g_pMemAlloc + 32LL))(g_pMemAlloc);
+      }
+      return (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)a1 + 400LL))(a1);
+    }
+    return result;
+  }

@@ -10,6 +10,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, call, patch
 
 import ida_analyze_bin
+import agent_runner
 from ida_analyze_util import canonical_symbol_yaml_bytes
 from ida_mcp_session import (
     McpDatabaseBinding,
@@ -2456,6 +2457,8 @@ class TestProcessBinary(unittest.TestCase):
 
                 def write_output(*_args, **_kwargs):
                     output.write_text(noncanonical, encoding="utf-8")
+                    if producer == "agent":
+                        return not _kwargs["output_validator"]()
                     return True if producer == "agent" else "success"
 
                 with (
@@ -2496,6 +2499,68 @@ class TestProcessBinary(unittest.TestCase):
                 self.assertEqual(expected, output.read_bytes())
                 self.assertFalse((binary_dir / output.name).exists())
 
+    def test_agent_finalization_retries_invalid_metadata_before_recording_success(self):
+        for repair in (True, False):
+            with self.subTest(repair=repair), TemporaryDirectory() as temp_dir:
+                output = Path(temp_dir) / "Slot.windows.yaml"
+                attempts = []
+                progress = []
+
+                def execute(*args, **kwargs):
+                    attempts.append(kwargs.get("agent_input") or " ".join(args[0]))
+                    index = 40 if repair and len(attempts) > 1 else 41
+                    output.write_text(
+                        f"func_name: Slot\nvtable_name: Test\nvfunc_offset: '0x140'\nvfunc_index: {index}\n",
+                        encoding="utf-8",
+                    )
+                    return subprocess.CompletedProcess([], 0, "", "")
+
+                def run_agent(*args, **kwargs):
+                    return agent_runner._run_skill_attempts(
+                        skill_name=args[0],
+                        agent="claude",
+                        agent_kind="claude",
+                        session_id="test",
+                        developer_instructions=None,
+                        debug=False,
+                        expected_yaml_paths=kwargs["expected_yaml_paths"],
+                        max_retries=kwargs["max_retries"],
+                        agent_model="",
+                        mcp_url=None,
+                        output_validator=kwargs["output_validator"],
+                        progress_callback=lambda **event: progress.append(event),
+                    )
+
+                process = object()
+                with (
+                    patch.object(ida_analyze_bin, "start_idalib_mcp", return_value=process),
+                    patch.object(ida_analyze_bin, "ensure_mcp_available", return_value=(process, True)),
+                    patch.object(ida_analyze_bin, "_run_validate_expected_input_artifacts_via_mcp", return_value=[]),
+                    patch.object(ida_analyze_bin, "run_skill", side_effect=run_agent),
+                    patch.object(agent_runner, "_run_process_with_stream_capture", side_effect=execute),
+                    patch.object(ida_analyze_bin, "quit_ida_gracefully"),
+                    patch.object(ida_analyze_bin, "_record_skill_output_produced") as produced,
+                ):
+                    result = ida_analyze_bin.process_binary(
+                        binary_path=str(Path(temp_dir) / "engine2.dll"),
+                        skills=[{"name": "find-slot", "expected_output": ["Slot.{platform}.yaml"]}],
+                        agent="claude",
+                        host="127.0.0.1",
+                        port=13337,
+                        ida_args="",
+                        platform="windows",
+                        artifact_dir=temp_dir,
+                        category_map={"Slot": "vfunc"},
+                        skip_pp=True,
+                        force_all=True,
+                        max_retries=3,
+                    )
+                self.assertEqual((1, 0, 0) if repair else (0, 1, 0), result)
+                self.assertEqual(2 if repair else 3, len(attempts))
+                self.assertIn("vfunc_index does not match", attempts[1])
+                self.assertEqual(1 if repair else 0, produced.call_count)
+                self.assertEqual(1 if repair else 0, sum(e["event"] == "succeeded" for e in progress))
+
     def test_only_agent_outputs_request_deterministic_func_sig_regeneration(self) -> None:
         for producer in ("preprocessor", "agent"):
             with self.subTest(producer=producer), TemporaryDirectory() as temp_dir:
@@ -2509,6 +2574,8 @@ class TestProcessBinary(unittest.TestCase):
                 def write_output(*_args, **_kwargs):
                     output.parent.mkdir(parents=True, exist_ok=True)
                     output.write_text("func_name: CNetworkMessages_dtor\n", encoding="utf-8")
+                    if producer == "agent":
+                        return not _kwargs["output_validator"]()
                     return True if producer == "agent" else "success"
 
                 with (
