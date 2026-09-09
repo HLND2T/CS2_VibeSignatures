@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
 import hashlib
 import os
 import re
@@ -573,15 +574,17 @@ def _verify_gamedata_reproducibility(*, repo_root: Path, bundle_root: Path, mani
         candidate_root = temporary_root / "candidate"
         session_path = temporary_root / "session.json"
         try:
-            evidence = build_gamedata_candidate(
-                gamever=game_version,
-                build_id=manifest["build_id"],
-                snapshot=snapshot,
-                analysis_config=repo_root / "configs" / f"{game_version}.yaml",
-                modules_dir=repo_root / "gamedata-generators",
-                candidate_root=candidate_root,
-                session_path=session_path,
-            )
+            # The generators print diagnostics; keep stdout a pure JSON contract.
+            with contextlib.redirect_stdout(sys.stderr):
+                evidence = build_gamedata_candidate(
+                    gamever=game_version,
+                    build_id=manifest["build_id"],
+                    snapshot=snapshot,
+                    analysis_config=repo_root / "configs" / f"{game_version}.yaml",
+                    modules_dir=repo_root / "gamedata-generators",
+                    candidate_root=candidate_root,
+                    session_path=session_path,
+                )
             difference = compare_gamedata_inventory(
                 session=evidence,
                 expected_files=manifest["gamedata"]["files"],

@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import contextlib
 import copy
+import io
 import shutil
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import binsync_candidate
@@ -287,6 +290,37 @@ class ReleaseBundleTests(unittest.TestCase):
                 ["CS2FOW/a.txt", "CounterStrikeSharp/b.txt"],
                 [item["path"] for item in file_inventory(root)],
             )
+
+    def test_gamedata_reproducibility_keeps_stdout_a_json_contract(self) -> None:
+        # The hosted verifier parses this command's stdout as JSON, so generator
+        # chatter must never reach it.
+        manifest = {
+            "game_version": "1",
+            "build_id": "a" * 40,
+            "snapshot": {"path": "gamesymbols/1.yaml"},
+            "gamedata": {"files": [], "generator_contract_sha256": "b" * 64, "manifest_sha256": "c" * 64},
+        }
+        difference = SimpleNamespace(matches=True, added=[], missing=[], modified=[])
+
+        def noisy_build(**_kwargs):
+            print("generator chatter")
+            return {"generator_contract_sha256": "b" * 64, "gamedata_manifest_sha256": "c" * 64}
+
+        with tempfile.TemporaryDirectory() as temporary:
+            bundle_root = Path(temporary)
+            (bundle_root / "gamesymbols").mkdir()
+            (bundle_root / "gamesymbols" / "1.yaml").write_text("", encoding="utf-8")
+            output = io.StringIO()
+            with (
+                patch.object(release_bundle, "build_gamedata_candidate", side_effect=noisy_build),
+                patch.object(release_bundle, "compare_gamedata_inventory", return_value=difference),
+                contextlib.redirect_stdout(output),
+            ):
+                release_bundle._verify_gamedata_reproducibility(
+                    repo_root=bundle_root, bundle_root=bundle_root, manifest=manifest
+                )
+
+            self.assertEqual("", output.getvalue())
 
     def test_verify_rejects_public_asset_tamper(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
