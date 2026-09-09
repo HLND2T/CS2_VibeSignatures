@@ -14,14 +14,17 @@ command, accept a user-supplied SHA, move a tag, edit a Release, cancel work, or
 1. Extract the requested game version, or use `latest` only when the user explicitly asks for the latest version.
 2. Select `verify-only` for a non-publishing rebuild/verification. Select `publish` only when the user explicitly asks
    to publish or retry publication.
-3. Run from any directory with the mode stated explicitly:
+3. Use `--workflow rebuild-free` **only** when the user explicitly asks for the manual rebuild-free emergency path
+   (tracked `bin_artifacts` instead of a fresh `-force_all` rebuild). Default to the standard `release` workflow.
+4. Run from any directory with the mode stated explicitly:
 
    ```powershell
-   uv run python .claude/skills/trigger-release-build/scripts/trigger_release_build.py <GAMEVER-or-latest> --mode <verify-only-or-publish>
+   uv run python .claude/skills/trigger-release-build/scripts/trigger_release_build.py <GAMEVER-or-latest> --mode <verify-only-or-publish> [--workflow <release-or-rebuild-free>]
    ```
 
-4. Report the script's selected version, publication mode, full `SOURCE_SHA`, commit subject, and Actions run URL.
-5. If the script refuses the operation, surface its exact safety reason and stop. Do not bypass repository, auth,
+5. Report the script's selected version, publication mode, workflow, full `SOURCE_SHA`, commit subject, and Actions run
+   URL.
+6. If the script refuses the operation, surface its exact safety reason and stop. Do not bypass repository, auth,
    version, source-artifact, duplicate-work, or `origin/main` checks.
 
 Published content is immutable. A retry dispatches the same source identity and relies on the protected publishers'

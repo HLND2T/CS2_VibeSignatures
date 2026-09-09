@@ -15,7 +15,14 @@ import yaml
 ALLOWED_REPOSITORIES = {"HLND2T/CS2_VibeSignatures"}
 GAMEVER_RE = re.compile(r"^[0-9]{4,10}[a-z]?$")
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
-WORKFLOW = "build-on-self-runner.yml"
+WORKFLOWS = {
+    "release": "build-on-self-runner.yml",
+    "rebuild-free": "rebuild-free-release.yml",
+}
+RUN_TITLE_PREFIXES = {
+    "release": "Release",
+    "rebuild-free": "Rebuild-free release",
+}
 PUBLICATION_MODES = frozenset({"verify-only", "publish"})
 RUN_LIST_LIMIT = "100"
 RUN_DISCOVERY_ATTEMPTS = 10
@@ -64,12 +71,19 @@ def require_repository(root: Path) -> str:
     return repository
 
 
-def require_github_access(root: Path, repository: str) -> None:
+def require_workflow(workflow: str) -> str:
+    if workflow not in WORKFLOWS:
+        raise TriggerError(f"unsupported workflow: {workflow}")
+    return workflow
+
+
+def require_github_access(root: Path, repository: str, *, workflow: str = "release") -> None:
+    workflow = require_workflow(workflow)
     run_command(["gh", "auth", "status", "--hostname", "github.com"], root)
     permission = run_command(["gh", "api", f"repos/{repository}", "--jq", ".permissions.push"], root).stdout.strip()
     if permission != "true":
         raise TriggerError(f"authenticated GitHub account cannot dispatch Actions for {repository}")
-    run_command(["gh", "api", f"repos/{repository}/actions/workflows/{WORKFLOW}", "--jq", ".id"], root)
+    run_command(["gh", "api", f"repos/{repository}/actions/workflows/{WORKFLOWS[workflow]}", "--jq", ".id"], root)
 
 
 def resolve_source(root: Path) -> tuple[str, str]:
@@ -109,8 +123,9 @@ def require_publication_mode(publication_mode: str) -> str:
     return publication_mode
 
 
-def release_run_title(gamever: str, publication_mode: str) -> str:
-    return f"Release {require_publication_mode(publication_mode)} {gamever}"
+def release_run_title(gamever: str, publication_mode: str, *, workflow: str = "release") -> str:
+    prefix = RUN_TITLE_PREFIXES[require_workflow(workflow)]
+    return f"{prefix} {require_publication_mode(publication_mode)} {gamever}"
 
 
 def parse_json_list(raw: str, label: str) -> list[dict]:
@@ -123,14 +138,14 @@ def parse_json_list(raw: str, label: str) -> list[dict]:
     return value
 
 
-def list_runs(root: Path) -> list[dict]:
+def list_runs(root: Path, *, workflow: str = "release") -> list[dict]:
     result = run_command(
         [
             "gh",
             "run",
             "list",
             "--workflow",
-            WORKFLOW,
+            WORKFLOWS[require_workflow(workflow)],
             "--limit",
             RUN_LIST_LIMIT,
             "--json",
@@ -141,9 +156,9 @@ def list_runs(root: Path) -> list[dict]:
     return parse_json_list(result.stdout, "gh run list")
 
 
-def require_no_duplicate(root: Path, gamever: str, publication_mode: str) -> set[int]:
-    runs = list_runs(root)
-    title = release_run_title(gamever, publication_mode)
+def require_no_duplicate(root: Path, gamever: str, publication_mode: str, *, workflow: str = "release") -> set[int]:
+    runs = list_runs(root, workflow=workflow)
+    title = release_run_title(gamever, publication_mode, workflow=workflow)
     for run in runs:
         if run.get("status") in {"queued", "in_progress"} and run.get("displayTitle") == title:
             raise TriggerError(f"a {publication_mode} release is already active for {gamever}: {run.get('url')}")
@@ -191,14 +206,17 @@ def dispatch(
     gamever: str,
     source_sha: str,
     publication_mode: str,
+    *,
+    workflow: str = "release",
 ) -> None:
+    workflow = require_workflow(workflow)
     publication_mode = require_publication_mode(publication_mode)
     run_command(
         [
             "gh",
             "workflow",
             "run",
-            WORKFLOW,
+            WORKFLOWS[workflow],
             "--ref",
             "main",
             "-f",
@@ -219,10 +237,11 @@ def discover_run(
     gamever: str,
     source_sha: str,
     publication_mode: str,
+    workflow: str = "release",
 ) -> str:
-    title = release_run_title(gamever, publication_mode)
+    title = release_run_title(gamever, publication_mode, workflow=workflow)
     for _attempt in range(RUN_DISCOVERY_ATTEMPTS):
-        for run in list_runs(root):
+        for run in list_runs(root, workflow=workflow):
             run_id = int(run.get("databaseId", 0))
             if (
                 run_id not in known_ids
@@ -235,28 +254,31 @@ def discover_run(
     raise TriggerError("workflow was dispatched but its Actions run URL could not be discovered")
 
 
-def execute(requested: str, publication_mode: str) -> dict:
+def execute(requested: str, publication_mode: str, *, workflow: str = "release") -> dict:
+    workflow = require_workflow(workflow)
     root = repository_root()
     publication_mode = require_publication_mode(publication_mode)
     repository = require_repository(root)
-    require_github_access(root, repository)
+    require_github_access(root, repository, workflow=workflow)
     source_sha, subject = resolve_source(root)
     gamever = select_version(requested, available_versions(root, source_sha))
-    known_ids = require_no_duplicate(root, gamever, publication_mode)
+    known_ids = require_no_duplicate(root, gamever, publication_mode, workflow=workflow)
     require_main_unchanged(root, source_sha)
     require_source_artifacts(root, repository, gamever, source_sha)
     require_main_unchanged(root, source_sha)
-    dispatch(root, gamever, source_sha, publication_mode)
+    dispatch(root, gamever, source_sha, publication_mode, workflow=workflow)
     run_url = discover_run(
         root,
         known_ids,
         gamever=gamever,
         source_sha=source_sha,
         publication_mode=publication_mode,
+        workflow=workflow,
     )
     return {
         "gamever": gamever,
         "publication_mode": publication_mode,
+        "workflow": workflow,
         "source_sha": source_sha,
         "subject": subject,
         "run_url": run_url,
@@ -272,14 +294,21 @@ def main(argv=None) -> int:
         required=True,
         help="verify-only performs all verification without publication; publish enables protected publishers",
     )
+    parser.add_argument(
+        "--workflow",
+        choices=sorted(WORKFLOWS),
+        default="release",
+        help="release rebuilds and verifies fresh artifacts; rebuild-free binds the tracked artifacts (manual emergency path)",
+    )
     args = parser.parse_args(argv)
     try:
-        result = execute(args.gamever, args.mode)
+        result = execute(args.gamever, args.mode, workflow=args.workflow)
     except (TriggerError, OSError) as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 1
     print(f"Selected GAMEVER: {result['gamever']}")
     print(f"Publication mode: {result['publication_mode']}")
+    print(f"Workflow: {result['workflow']}")
     print(f"SOURCE_SHA: {result['source_sha']}")
     print(f"Commit: {result['subject']}")
     print(f"Actions run: {result['run_url']}")

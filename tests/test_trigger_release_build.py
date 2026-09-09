@@ -93,6 +93,38 @@ class TestTriggerReleaseBuild(unittest.TestCase):
             root,
         )
 
+    def test_dispatch_supports_rebuild_free_workflow(self) -> None:
+        root = Path("repo")
+        with patch.object(trigger, "run_command", return_value=completed([])) as run:
+            trigger.dispatch(root, "14170", "1" * 40, "publish", workflow="rebuild-free")
+
+        run.assert_called_once_with(
+            [
+                "gh",
+                "workflow",
+                "run",
+                "rebuild-free-release.yml",
+                "--ref",
+                "main",
+                "-f",
+                "gamever=14170",
+                "-f",
+                f"source_sha={'1' * 40}",
+                "-f",
+                "publication_mode=publish",
+            ],
+            root,
+        )
+
+    def test_run_titles_are_workflow_specific(self) -> None:
+        self.assertEqual("Release publish 14170", trigger.release_run_title("14170", "publish"))
+        self.assertEqual(
+            "Rebuild-free release publish 14170",
+            trigger.release_run_title("14170", "publish", workflow="rebuild-free"),
+        )
+        with self.assertRaisesRegex(trigger.TriggerError, "unsupported workflow"):
+            trigger.require_workflow("clobber")
+
     def test_source_artifact_preflight_runs_in_detached_temporary_worktree(self) -> None:
         manager = MagicMock()
         manager.__enter__.return_value = "temporary"
@@ -152,24 +184,27 @@ class TestTriggerReleaseBuild(unittest.TestCase):
 
         self.assertEqual("14170", result["gamever"])
         self.assertEqual("verify-only", result["publication_mode"])
+        self.assertEqual("release", result["workflow"])
         self.assertEqual("https://run/11", result["run_url"])
         access.assert_called_once()
         self.assertEqual(2, unchanged.call_count)
         source_artifacts.assert_called_once_with(root, "HLND2T/CS2_VibeSignatures", "14170", "1" * 40)
-        duplicate.assert_called_once_with(root, "14170", "verify-only")
-        dispatch.assert_called_once_with(root, "14170", "1" * 40, "verify-only")
+        duplicate.assert_called_once_with(root, "14170", "verify-only", workflow="release")
+        dispatch.assert_called_once_with(root, "14170", "1" * 40, "verify-only", workflow="release")
         discover.assert_called_once_with(
             root,
             {10},
             gamever="14170",
             source_sha="1" * 40,
             publication_mode="verify-only",
+            workflow="release",
         )
 
     def test_main_reports_immutable_source(self) -> None:
         result = {
             "gamever": "14170",
             "publication_mode": "verify-only",
+            "workflow": "release",
             "source_sha": "1" * 40,
             "subject": "subject",
             "run_url": "https://run/11",
@@ -177,8 +212,9 @@ class TestTriggerReleaseBuild(unittest.TestCase):
         with patch.object(trigger, "execute", return_value=result) as execute, patch("builtins.print") as output:
             self.assertEqual(0, trigger.main(["14170", "--mode", "verify-only"]))
 
-        execute.assert_called_once_with("14170", "verify-only")
+        execute.assert_called_once_with("14170", "verify-only", workflow="release")
         output.assert_any_call(f"SOURCE_SHA: {'1' * 40}")
+        output.assert_any_call("Workflow: release")
 
 
 if __name__ == "__main__":
