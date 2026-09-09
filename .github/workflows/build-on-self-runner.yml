@@ -353,10 +353,12 @@ jobs:
         shell: pwsh
         env:
           # The HZVM git cache proxy intermittently 502s on freshly created BinSync
-          # remotes, so read them directly: pointing the config paths at a missing
-          # file drops the runner's machine-level insteadOf for this step only.
+          # remotes, so read them directly. Dropping the config files removes a
+          # file-based insteadOf; GIT_CONFIG_COUNT=0 removes one injected through
+          # the environment. Scoped to this step, so the submodule cache still works.
           GIT_CONFIG_GLOBAL: ${{ runner.temp }}\no-gitconfig
           GIT_CONFIG_SYSTEM: ${{ runner.temp }}\no-gitconfig
+          GIT_CONFIG_COUNT: '0'
         run: |
           $candidate = Join-Path $env:RUNNER_TEMP "release-binsync-candidate\$env:BUILD_ID"
           $artifactName = "binsync-candidate-$env:SOURCE_SHA-$env:GAMEVER"
