@@ -487,6 +487,9 @@ jobs:
           name: ${{ steps.build-release-bundle.outputs.artifact_name }}
           path: ${{ env.RELEASE_BUNDLE_ROOT }}
           if-no-files-found: error
+          # Gamedata generators emit dot-directories (e.g. modsharp-public/.asset);
+          # upload-artifact drops hidden files unless this is set.
+          include-hidden-files: true
           compression-level: 0
           retention-days: 30
           overwrite: true
