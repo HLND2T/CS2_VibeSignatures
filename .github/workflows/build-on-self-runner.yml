@@ -550,6 +550,7 @@ jobs:
       ida_runtime_identity: ${{ needs.build.outputs.ida_runtime_identity }}
       artifact_name: ${{ needs.build.outputs.binsync_artifact_name }}
       artifact_digest: ${{ needs.build.outputs.binsync_artifact_digest }}
+    secrets: inherit
   publish-release:
     needs: [preflight, build, verify-binsync, verify-release, publish-binsync]
     if: needs.preflight.outputs.publication_mode == 'publish'
