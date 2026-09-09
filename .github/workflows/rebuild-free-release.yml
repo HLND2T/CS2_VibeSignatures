@@ -26,9 +26,8 @@ permissions:
   actions: read
   contents: read
   pull-requests: read
-concurrency:
-  group: release-build-${{ github.repository }}-${{ inputs.gamever }}
-  cancel-in-progress: false
+# No workflow-level concurrency here: build-on-self-runner.yml already owns the
+# per-GAMEVER release group, and declaring it in both deadlocks the caller.
 jobs:
   ensure-binsync-remotes:
     if: github.repository == 'HLND2T/CS2_VibeSignatures'
