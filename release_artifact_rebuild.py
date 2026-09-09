@@ -31,6 +31,8 @@ from gamesymbol_snapshot_lib.paths import is_reparse_point
 
 
 PREPARATION_SCHEMA_VERSION = 2
+TRACKED_BINDING_SCHEMA_VERSION = 1
+TRACKED_BINDING_MODE = "tracked"
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 
 
@@ -366,6 +368,96 @@ def load_release_rebuild_verification(path: str | Path) -> dict:
     return document
 
 
+def bind_tracked_artifacts(*, repo_root: str | Path, preparation: dict | str | Path) -> dict:
+    """Bind the tracked source-owned artifact tree as the release's source truth.
+
+    Manual, protected emergency path: it proves the published artifacts are exactly
+    the tracked ``bin_artifacts/<GAMEVER>`` at the immutable source SHA, but it does
+    not prove a fresh rebuild reproduces them.
+    """
+    preparation = load_release_rebuild_preparation(preparation) if isinstance(preparation, (str, Path)) else preparation
+    repo_root = Path(repo_root).resolve()
+    if _git(repo_root, "rev-parse", "HEAD").lower() != preparation["source_sha"]:
+        raise ReleaseArtifactRebuildError("release source checkout drifted before tracked artifact binding")
+    try:
+        game_version = preparation["game_version"]
+        config_path = repo_root / "configs" / f"{game_version}.yaml"
+        tracked = build_game_artifact_inventory(
+            repo_root=repo_root,
+            config_path=config_path,
+            game_version=game_version,
+            artifact_root=repo_root / "bin_artifacts",
+            require_tracked=True,
+            git_revision=preparation["source_sha"],
+        )
+        contract = load_contract(
+            config_path,
+            game_version,
+            repo_root / "bin",
+            artifactdir=repo_root / "bin_artifacts",
+        )
+        binary_lock = load_binary_lock_from_revision(
+            repo_root=repo_root,
+            revision=preparation["source_sha"],
+            game_version=game_version,
+            download_payload=_git_blob(repo_root, preparation["source_sha"], "download.yaml"),
+            binary_targets=contract.binary_targets,
+        )
+        binaries = collect_binary_metadata(contract)
+    except (ArtifactContractError, BinaryLockError, SnapshotConfigError, SnapshotMismatchError, OSError) as exc:
+        raise ReleaseArtifactRebuildError(f"tracked source artifact binding failed: {exc}") from exc
+    if (
+        binary_lock.sha256 != preparation.get("binary_lock_sha256")
+        or binary_lock.document["binaries"] != preparation.get("binary_inventory")
+        or binaries != binary_lock.document["binaries"]
+    ):
+        raise ReleaseArtifactRebuildError("release binary identity mismatch with source-owned lock")
+    tracked_files_now = [item.to_dict() for item in tracked.files]
+    if (
+        tracked.inventory_sha256 != preparation["expected_artifact_inventory_sha256"]
+        or tracked_files_now != preparation["expected_files"]
+    ):
+        raise ReleaseArtifactRebuildError("tracked artifact inventory differs from rebuild preparation")
+    checkout_game_root = repo_root / "bin_artifacts" / str(game_version)
+    if _checkout_artifact_digest(checkout_game_root) != preparation["source_checkout_artifact_sha256"]:
+        raise ReleaseArtifactRebuildError("tracked source artifacts changed before binding")
+    result = {
+        "schema_version": TRACKED_BINDING_SCHEMA_VERSION,
+        "binding_mode": TRACKED_BINDING_MODE,
+        "source_sha": preparation["source_sha"],
+        "game_version": game_version,
+        "preparation_sha256": preparation["preparation_sha256"],
+        "binary_lock_sha256": preparation["binary_lock_sha256"],
+        "artifact_inventory_sha256": tracked.inventory_sha256,
+        "file_count": tracked.file_count,
+    }
+    result["verification_sha256"] = _digest("tracked-artifact-binding", result)
+    return result
+
+
+def load_tracked_artifact_binding(path: str | Path) -> dict:
+    path = Path(path)
+    try:
+        raw = path.read_bytes()
+        document = json.loads(raw.decode("utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise ReleaseArtifactRebuildError(f"unable to load tracked artifact binding: {exc}") from exc
+    if raw != _canonical_json_bytes(document):
+        raise ReleaseArtifactRebuildError("tracked artifact binding is not canonical JSON")
+    if (
+        not isinstance(document, dict)
+        or document.get("schema_version") != TRACKED_BINDING_SCHEMA_VERSION
+        or document.get("binding_mode") != TRACKED_BINDING_MODE
+    ):
+        raise ReleaseArtifactRebuildError("tracked artifact binding schema is invalid")
+    digest = document.get("verification_sha256")
+    unsigned = dict(document)
+    unsigned.pop("verification_sha256", None)
+    if digest != _digest("tracked-artifact-binding", unsigned):
+        raise ReleaseArtifactRebuildError("tracked artifact binding digest mismatch")
+    return document
+
+
 def collect_failure_diagnostics(*, repo_root: Path, preparation_path: Path, destination: Path, error: str) -> None:
     collect_failure_bundle(
         repo_root=repo_root,
@@ -445,6 +537,10 @@ def parse_args(argv=None) -> argparse.Namespace:
     verify.add_argument("--preparation", required=True)
     verify.add_argument("--output")
     verify.add_argument("--diagnostics-dir", help="Fresh checkout-external directory for failure evidence")
+    bind = subparsers.add_parser("bind-tracked")
+    bind.add_argument("--repo-root", default=".")
+    bind.add_argument("--preparation", required=True)
+    bind.add_argument("--output")
     return parser.parse_args(argv)
 
 
@@ -459,6 +555,10 @@ def main(argv=None) -> int:
                 binary_root=args.binary_root,
                 staging_root=args.staging_root,
             )
+        elif args.command == "bind-tracked":
+            result = bind_tracked_artifacts(repo_root=args.repo_root, preparation=args.preparation)
+            if args.output:
+                _atomic_write(Path(args.output), _canonical_json_bytes(result))
         else:
             result = verify_release_rebuild(repo_root=args.repo_root, preparation=args.preparation)
             if args.output:
@@ -466,7 +566,7 @@ def main(argv=None) -> int:
     except Exception as exc:
         # The CLI failure boundary also captures malformed or incomplete evidence.
         print(f"Error: {exc}", file=sys.stderr)
-        if args.command == "verify" and args.diagnostics_dir:
+        if args.command == "verify" and getattr(args, "diagnostics_dir", None):
             try:
                 collect_failure_diagnostics(
                     repo_root=Path(args.repo_root),

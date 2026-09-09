@@ -263,6 +263,50 @@ class ReleaseArtifactRebuildTests(unittest.TestCase):
             self.assertEqual(0, code)
             self.assertFalse((temporary_root / "diagnostics").exists())
 
+    def test_bind_tracked_artifacts_binds_tracked_tree_and_rejects_drift(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            temporary_root = Path(temporary)
+            root = temporary_root / "repo"
+            root.mkdir()
+            source_sha = self._repository(root)
+            preparation = rar.prepare_release_rebuild(
+                repo_root=root,
+                source_sha=source_sha,
+                game_version="1",
+                binary_root=root / "bin",
+                staging_root=temporary_root / "release-rebuild",
+            )
+
+            binding = rar.bind_tracked_artifacts(repo_root=root, preparation=preparation)
+            binding_path = temporary_root / "tracked-artifact-binding.json"
+            binding_path.write_bytes(rar._canonical_json_bytes(binding))
+
+            self.assertEqual("tracked", binding["binding_mode"])
+            self.assertEqual(source_sha, binding["source_sha"])
+            self.assertEqual(preparation["preparation_sha256"], binding["preparation_sha256"])
+            self.assertEqual(1, binding["file_count"])
+            self.assertEqual(binding, rar.load_tracked_artifact_binding(binding_path))
+
+            with contextlib.redirect_stdout(io.StringIO()):
+                code = rar.main(
+                    [
+                        "bind-tracked",
+                        "--repo-root",
+                        str(root),
+                        "--preparation",
+                        str(temporary_root / "release-rebuild/release-rebuild-preparation.json"),
+                        "--output",
+                        str(binding_path),
+                    ]
+                )
+            self.assertEqual(0, code)
+            self.assertEqual(binding, rar.load_tracked_artifact_binding(binding_path))
+
+            tracked_file = root / "bin_artifacts" / "1" / "server" / "A.windows.yaml"
+            tracked_file.write_text(tracked_file.read_text(encoding="utf-8") + "\n", encoding="utf-8")
+            with self.assertRaises(rar.ReleaseArtifactRebuildError):
+                rar.bind_tracked_artifacts(repo_root=root, preparation=preparation)
+
     def test_verify_rejects_one_byte_drift_and_execution_tamper(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             temporary_root = Path(temporary)
