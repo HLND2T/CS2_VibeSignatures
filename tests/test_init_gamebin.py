@@ -318,14 +318,31 @@ class TestInitGamebin(unittest.TestCase):
             branches = git(repo, "for-each-ref", "--format=%(refname)", "refs/heads/binsync/").stdout.splitlines()
             self.assertEqual(["refs/heads/binsync/HZDEV", "refs/heads/binsync/__root__"], sorted(branches))
             self.assertEqual(
-                git(repo, "rev-parse", "refs/heads/binsync/__root__").stdout,
-                git(repo, "rev-parse", "refs/heads/binsync/HZDEV").stdout,
-            )
-            self.assertEqual("Root commit", git(repo, "log", "-1", "--format=%s").stdout.strip())
-            self.assertEqual(
                 ".gitignore\nbinary_hash", git(repo, "ls-tree", "--name-only", "binsync/__root__").stdout.strip()
             )
             self.assertEqual("a" * 32, git(repo, "show", "binsync/__root__:binary_hash").stdout)
+            self.assertEqual(
+                [
+                    ".gitignore",
+                    "binary_hash",
+                    "comments.toml",
+                    "enums.toml",
+                    "global_vars.toml",
+                    "metadata.toml",
+                    "patches.toml",
+                    "segments.toml",
+                    "typedefs.toml",
+                ],
+                sorted(git(repo, "ls-tree", "--name-only", "binsync/HZDEV").stdout.splitlines()),
+            )
+            self.assertEqual(
+                'user = "HZDEV"\nversion = "5.15.4"',
+                git(repo, "show", "binsync/HZDEV:metadata.toml").stdout.strip(),
+            )
+            self.assertEqual(
+                ["Generic BS Commit", "Root commit"],
+                git(repo, "log", "--format=%s", "binsync/HZDEV").stdout.splitlines(),
+            )
 
     def test_validate_local_repo_accepts_equivalent_origin_and_reports_lock(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

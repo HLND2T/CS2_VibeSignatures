@@ -40,6 +40,15 @@ DOWNLOAD_TIMEOUT = (30, 300)
 COPY_BUFFER_SIZE = 1024 * 1024
 GITHUB_OWNER = "HLND2T"
 BINSYNC_ROOT_BRANCH = "binsync/__root__"
+BINSYNC_USER_TREE_FILES = (
+    "comments.toml",
+    "enums.toml",
+    "global_vars.toml",
+    "patches.toml",
+    "segments.toml",
+    "typedefs.toml",
+)
+BINSYNC_METADATA_VERSION = "5.15.4"
 BINSYNC_SIDECAR_REQUIRED_FIELDS = frozenset({"user", "remote", "repo_path", "expected_md5", "force_user", "auto_clone"})
 BINSYNC_SIDECAR_OPTIONAL_FIELDS = frozenset({"auto_sync_all"})
 BINSYNC_SIDECAR_FIELDS = BINSYNC_SIDECAR_REQUIRED_FIELDS | BINSYNC_SIDECAR_OPTIONAL_FIELDS
@@ -672,7 +681,12 @@ def push_local_binsync_history(repo_path: Path) -> None:
 
 
 def initialize_minimal_binsync_repo(repo_path: Path, binary_md5: str, repo_name: str, user: str) -> None:
-    """Create the same local root and user branches as BinSync Client(init_repo=True)."""
+    """Create the local root and user branches a publishable BinSync repo needs.
+
+    The headless export connects with ``init_repo=False``, so the standard BinSync
+    files must already exist on the user branch; BinSync itself writes them empty
+    when it initializes a repository.
+    """
     run_command(["git", "init"], repo_path, capture=True, label=f"initializing {repo_name}")
     try:
         (repo_path / ".gitignore").write_text(".git/*\n", encoding="utf-8")
@@ -701,9 +715,37 @@ def initialize_minimal_binsync_repo(repo_path: Path, binary_md5: str, repo_name:
         label=f"creating {BINSYNC_ROOT_BRANCH} for {repo_name}",
     )
     run_command(
-        ["git", "branch", f"binsync/{user}"],
+        ["git", "switch", "--create", f"binsync/{user}"],
         repo_path,
         label=f"creating binsync/{user} for {repo_name}",
+    )
+    try:
+        for name in BINSYNC_USER_TREE_FILES:
+            (repo_path / name).write_text("", encoding="utf-8")
+        (repo_path / "metadata.toml").write_text(
+            f'user = "{user}"\nversion = "{BINSYNC_METADATA_VERSION}"\n', encoding="utf-8"
+        )
+    except OSError as exc:
+        raise InitGamebinError(f"unable to write the BinSync user files for {repo_name}: {exc}") from exc
+    run_command(
+        ["git", "add", *BINSYNC_USER_TREE_FILES, "metadata.toml"],
+        repo_path,
+        label=f"staging the BinSync user files for {repo_name}",
+    )
+    run_command(
+        [
+            "git",
+            "-c",
+            f"user.name={user}",
+            "-c",
+            f"user.email={user}@binsync.local",
+            "commit",
+            "-m",
+            "Generic BS Commit",
+        ],
+        repo_path,
+        capture=True,
+        label=f"creating the BinSync user commit for {repo_name}",
     )
 
 

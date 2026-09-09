@@ -105,6 +105,7 @@ class BinSyncCandidateTests(unittest.TestCase):
         binsync_repo.mkdir()
         binary_md5 = preparation["binary_inventory"]["server"]["windows"]["md5"]
         init_gamebin.initialize_minimal_binsync_repo(binsync_repo, binary_md5, repo_name, "TestUser")
+        self.seed_commit = self._git(binsync_repo, "rev-parse", "binsync/TestUser")
         self._git(binsync_repo, "remote", "add", "origin", f"https://github.com/HLND2T/{repo_name}")
         self._git(binsync_repo, "switch", "binsync/TestUser")
         (binsync_repo / "metadata.toml").write_text('user = "TestUser"\nversion = "5.15.3"\n', encoding="utf-8")
@@ -195,7 +196,12 @@ class BinSyncCandidateTests(unittest.TestCase):
             source_sha, preparation, _binsync_repo = self._repository(root)
             destination = temporary_root / "candidate"
 
-            manifest = self._build(root, preparation, destination)
+            manifest = self._build(
+                root,
+                preparation,
+                destination,
+                remote_heads={"refs/heads/binsync/TestUser": self.seed_commit},
+            )
             verified = candidate.verify_candidate(
                 candidate_root=destination,
                 repo_root=root,
@@ -226,7 +232,10 @@ class BinSyncCandidateTests(unittest.TestCase):
                 ["refs/heads/binsync/TestUser", "refs/heads/binsync/__root__"],
                 sorted(item["ref"] for item in manifest["repositories"][0]["refs"]),
             )
-            self.assertTrue(all(item["relationship"] == "create" for item in manifest["repositories"][0]["refs"]))
+            self.assertEqual(
+                {"refs/heads/binsync/__root__": "create", "refs/heads/binsync/TestUser": "fast-forward"},
+                {item["ref"]: item["relationship"] for item in manifest["repositories"][0]["refs"]},
+            )
             user_ref = next(item for item in manifest["repositories"][0]["refs"] if item["ref"] != candidate.ROOT_REF)
             self.assertEqual(1, len(user_ref["new_commits"]))
             projection = manifest["source_projection"]
