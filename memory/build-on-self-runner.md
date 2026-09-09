@@ -49,6 +49,8 @@ immutable main SHA preflight
 - C++ validation and the gamedata archive always use the source commit's SDK gitlink; mutable `cs2-<GAMEVER>` branches are
   never runtime Release inputs.
 - Same-version published assets are exact-idempotent only; different content must use a new version.
+- Preflight parses its JSON with `ConvertFrom-Json -DateKind String`. PowerShell 7 (Json.NET) otherwise coerces the
+  ISO-8601 `source_publish_time` into `[datetime]`, so both the format check and the `GITHUB_OUTPUT` value fail.
 ## Callers
 - Provenance-verified release dispatch for an immutable default-branch source SHA.
 - Explicit authorized recovery reruns using the same stable transaction identity.
