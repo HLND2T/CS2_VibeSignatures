@@ -129,6 +129,62 @@ jobs:
           "manifest_digest=$($document.manifest_sha256)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "bundle_digest=$($document.bundle_inventory_sha256)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "binsync_target_state_digest=$($document.binsync_target_state_digest)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+  cpp-validation:
+    # Every configured cpp_test targets x86_64-pc-windows-msvc, which needs the
+    # Windows SDK headers; validate them on a hosted Windows runner.
+    runs-on: windows-latest
+    steps:
+      - name: Checkout exact immutable source and SDK
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.source_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: recursive
+      - uses: astral-sh/setup-uv@v9.0.0
+      - name: Bind exact Release Actions Artifact
+        id: bind-artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $name = "${{ inputs.artifact_name }}"
+          $expectedDigest = "${{ inputs.artifact_digest }}".ToLowerInvariant()
+          if ($expectedDigest -match '^[0-9a-f]{64}$') { $expectedDigest = "sha256:$expectedDigest" }
+          if ($expectedDigest -notmatch '^sha256:[0-9a-f]{64}$') { throw "Invalid Release Artifact digest." }
+          $response = gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts?per_page=100" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or $response.total_count -gt 100) { throw "Unable to bind current-run Artifacts." }
+          $matches = @($response.artifacts | Where-Object { $_.name -ceq $name })
+          if ($matches.Count -ne 1) { throw "Expected exactly one Release Artifact named '$name'." }
+          $artifact = $matches[0]
+          if ($artifact.expired -or $artifact.workflow_run.id -ne ${{ github.run_id }}) {
+            throw "Release Artifact is expired or belongs to another run."
+          }
+          if (-not ($artifact.digest -is [string]) -or $artifact.digest.ToLowerInvariant() -ne $expectedDigest) {
+            throw "Release Artifact digest mismatch."
+          }
+          "artifact_id=$($artifact.id)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+      - name: Download exact Release bundle
+        uses: actions/download-artifact@v5
+        with:
+          artifact-ids: ${{ steps.bind-artifact.outputs.artifact_id }}
+          path: ${{ runner.temp }}/release-bundle
+      - name: Enter the Visual Studio MSVC toolchain
+        shell: pwsh
+        run: |
+          $vswhere = Join-Path "${env:ProgramFiles(x86)}" "Microsoft Visual Studio\Installer\vswhere.exe"
+          $installation = & $vswhere -latest -products * `
+            -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($installation)) {
+            throw "Visual Studio C++ toolchain is unavailable."
+          }
+          $vcvars = Join-Path $installation "VC\Auxiliary\Build\vcvars64.bat"
+          if (-not (Test-Path -LiteralPath $vcvars)) { throw "vcvars64.bat is missing: $vcvars" }
+          cmd /c "`"$vcvars`" >nul && set" | ForEach-Object {
+            if ($_ -match '^([^=]+)=(.*)$') {
+              "$($matches[1])=$($matches[2])" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+            }
+          }
       - name: Re-run C++ validation from verified Release snapshot
         shell: pwsh
         run: |-
