@@ -32,7 +32,11 @@ def _gh(arguments: list[str], *, allowed=(0,)) -> subprocess.CompletedProcess:
         raise ReleasePublishError(f"unable to run GitHub CLI: {exc}") from exc
     if result.returncode not in allowed:
         detail = (result.stderr or result.stdout).strip()
-        raise ReleasePublishError(detail or f"gh {' '.join(arguments)} failed with exit {result.returncode}")
+        raise ReleasePublishError(
+            f"gh {' '.join(arguments)} failed: {detail}"
+            if detail
+            else f"gh {' '.join(arguments)} failed with exit {result.returncode}"
+        )
     return result
 
 
@@ -42,7 +46,9 @@ def _gh_json(arguments: list[str], *, allow_404: bool = False) -> dict | None:
         detail = (result.stderr or result.stdout).strip()
         if allow_404 and re.search(r"\bHTTP\s+404\b", detail, re.IGNORECASE):
             return None
-        raise ReleasePublishError(detail or f"gh {' '.join(arguments)} failed")
+        raise ReleasePublishError(
+            f"gh {' '.join(arguments)} failed: {detail}" if detail else f"gh {' '.join(arguments)} failed"
+        )
     try:
         value = json.loads(result.stdout)
     except json.JSONDecodeError as exc:
