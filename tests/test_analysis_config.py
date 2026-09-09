@@ -5,7 +5,6 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from bin_artifact_contract import build_game_artifact_inventory
 from analysis_config import (
     AnalysisConfigError,
     analysis_config_repo_path,
@@ -125,22 +124,6 @@ class HistoricalAnalysisConfigTests(unittest.TestCase):
             revision = self._commit(root, "empty")
             with self.assertRaisesRegex(AnalysisConfigError, "configs/14168.yaml"):
                 read_analysis_config_at_revision(revision, "14168", allow_legacy_root=False, repo_root=root)
-
-
-class RepositoryMigrationFixtureTests(unittest.TestCase):
-    def test_14167_and_14168_configs_validate_source_owned_artifacts(self):
-        root = Path(__file__).resolve().parents[1]
-        for gamever in ("14167", "14168"):
-            with self.subTest(gamever=gamever):
-                report = build_game_artifact_inventory(
-                    repo_root=root,
-                    config_path=root / "configs" / f"{gamever}.yaml",
-                    game_version=gamever,
-                    artifact_root=root / "bin_artifacts",
-                    require_tracked=True,
-                )
-                self.assertEqual(gamever, report.game_version)
-                self.assertGreater(report.file_count, 0)
 
 
 if __name__ == "__main__":

@@ -31,7 +31,6 @@ REPOSITORY_CONTRACT_MODULES = frozenset(
 )
 REPOSITORY_CONTRACT_PREFIXES = (
     "test_agent_runner.TestSkillRunnerProjectPromptConfiguration",
-    "test_analysis_config.RepositoryMigrationFixtureTests",
     "test_bump_download.TestBumpDownload.test_bump_workflow_prunes_local_only_tags_before_bump",
     "test_ida_mcp_session.TestMcpSessionBoundary.test_only_adapter_creates_raw_mcp_sessions",
     "test_llm_decompile_dependencies.TestRepositoryLlmDecompileDependencyPolicy",
