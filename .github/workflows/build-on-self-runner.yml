@@ -270,10 +270,10 @@ jobs:
         run: |
           uv run python format_repo_files.py --check
           if ($LASTEXITCODE -ne 0) { throw "Repository formatting check failed." }
-          foreach ($suite in @('unit', 'repository-contract', 'redis-integration', 'release-integration', 'all')) {
-            uv run python tests/run_test_suite.py $suite -b --durations 30
-            if ($LASTEXITCODE -ne 0) { throw "Repository test suite failed: $suite" }
-          }
+          # `all` runs every discovered test, so the per-area suites would only
+          # re-run the same cases and roughly double this step's wall clock.
+          uv run python tests/run_test_suite.py all -b --durations 30
+          if ($LASTEXITCODE -ne 0) { throw "Repository test suite failed: all" }
       - name: Initialize binaries without remote BinSync access
         id: init-binaries
         shell: pwsh

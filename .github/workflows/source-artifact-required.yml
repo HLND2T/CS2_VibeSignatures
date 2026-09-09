@@ -235,9 +235,9 @@ jobs:
         run: |
           set -euo pipefail
           uv run python format_repo_files.py --check
-          for suite in unit repository-contract redis-integration release-integration all; do
-            uv run python tests/run_test_suite.py "$suite" -b --durations 30
-          done
+          # `all` runs every discovered test, so the per-area suites would only
+          # re-run the same cases and roughly double this step's wall clock.
+          uv run python tests/run_test_suite.py all -b --durations 30
   validate-full:
     needs: [bind-source-artifact-plan, test-prospective-tree]
     if: >-
