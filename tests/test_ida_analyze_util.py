@@ -674,6 +674,109 @@ class TestPreprocessIndexBasedVfuncViaMcp(unittest.IsolatedAsyncioTestCase):
             self.assertEqual("48 89 ??", written_payload["func_sig"])
             self.assertEqual("0x118", written_payload["vfunc_offset"])
 
+    async def test_common_skill_rejects_fast_path_reuse_landing_on_sibling_slot(self) -> None:
+        # A unique func_sig match is not proof of identity: a short thunk keeps
+        # identical bytes across a layout shift while its RIP-relative target
+        # moves, so the reuse can resolve to a sibling slot.  The inherited slot
+        # must win and the slot-based fallback must resolve the real entry
+        # (issue #953).
+        with tempfile.TemporaryDirectory() as temp_dir:
+            module_dir = Path(temp_dir) / "bin" / "14180" / "engine"
+            target_output = module_dir / "CDerived_GetEngineWindow.windows.yaml"
+            old_path = Path(temp_dir) / "old" / "CDerived_GetEngineWindow.windows.yaml"
+
+            _write_yaml(
+                old_path,
+                {
+                    "func_name": "CDerived_GetEngineWindow",
+                    "func_sig": "48 8B 05 31 1D 70 ??",
+                    "vtable_name": "CDerived",
+                    "vfunc_offset": "0x90",
+                    "vfunc_index": 18,
+                    "func_va": "0x180001180",
+                },
+            )
+            _write_yaml(
+                module_dir / "CBaseEntity_GetEngineWindow.windows.yaml",
+                {
+                    "vtable_name": "CBaseEntity",
+                    "vfunc_offset": "0x90",
+                },
+            )
+            _write_yaml(
+                module_dir / "CDerived_vtable.windows.yaml",
+                {
+                    "vtable_entries": {
+                        18: "0x180001180",
+                        20: "0x180001260",
+                    }
+                },
+            )
+
+            async def _session_call_tool(*, name: str, arguments: dict[str, object]):
+                if name == "find_bytes":
+                    # The stale signature still matches exactly once, but on the
+                    # sibling thunk that now occupies slot 20.
+                    return _FakeCallToolResult([{"matches": ["0x180001260"], "n": 1}])
+                if name == "py_eval":
+                    code = str(arguments["code"])
+                    if "0x180001260" in code:
+                        return _py_eval_payload({"func_va": "0x180001260", "func_size": "0x8"})
+                    return _py_eval_payload({"func_va": "0x180001180", "func_size": "0x8"})
+                raise AssertionError(f"unexpected MCP tool: {name}")
+
+            session = AsyncMock()
+            session.call_tool.side_effect = _session_call_tool
+
+            with (
+                patch.object(
+                    ida_analyze_util,
+                    "preprocess_gen_func_sig_via_mcp",
+                    AsyncMock(return_value={"func_sig": "48 8B 05 41 1D 70 ??"}),
+                ) as mock_gen_sig,
+                patch.object(
+                    ida_analyze_util,
+                    "write_func_yaml",
+                ) as mock_write_func_yaml,
+                patch.object(
+                    ida_analyze_util,
+                    "_rename_func_in_ida",
+                    AsyncMock(return_value=None),
+                ),
+            ):
+                result = await ida_analyze_util.preprocess_common_skill(
+                    session=session,
+                    expected_outputs=[str(target_output)],
+                    old_yaml_map={str(target_output): str(old_path)},
+                    new_binary_dir=str(module_dir),
+                    platform="windows",
+                    image_base=0x180000000,
+                    inherit_vfuncs=[
+                        ("CDerived_GetEngineWindow", "CDerived", "CBaseEntity_GetEngineWindow", True),
+                    ],
+                    generate_yaml_desired_fields=[
+                        (
+                            "CDerived_GetEngineWindow",
+                            [
+                                "func_name",
+                                "func_sig",
+                                "vtable_name",
+                                "vfunc_offset",
+                                "vfunc_index",
+                            ],
+                        )
+                    ],
+                    debug=False,
+                )
+
+            self.assertTrue(result)
+            mock_gen_sig.assert_awaited_once()
+            self.assertEqual(0x180001180, mock_gen_sig.await_args.kwargs["func_va"])
+            written_payload = mock_write_func_yaml.call_args.args[1]
+            self.assertEqual(18, written_payload["vfunc_index"])
+            self.assertEqual("0x90", written_payload["vfunc_offset"])
+            self.assertEqual("48 8B 05 41 1D 70 ??", written_payload["func_sig"])
+
 
 class TestVtableAliasSupport(unittest.IsolatedAsyncioTestCase):
     async def test_preprocess_common_skill_rejects_invalid_mangled_class_names(self) -> None:

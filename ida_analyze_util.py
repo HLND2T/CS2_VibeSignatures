@@ -5855,6 +5855,58 @@ def _read_yaml_file(path):
         return None
 
 
+def _read_inherited_vfunc_index(binary_dir, artifact_stem, platform):
+    """Return the slot index declared by an inherited vfunc artifact, or None.
+
+    A reused ``func_sig`` only proves that the bytes still match somewhere; a
+    short thunk keeps identical bytes across a layout shift while its
+    RIP-relative target moves, so the reuse can land on a sibling function
+    (issue #953).  Callers compare this inherited slot against the slot a reuse
+    resolved to and discard the reuse when the two disagree.
+    """
+    expanded = f"{artifact_stem}.{platform}.yaml"
+    module_dir = Path(binary_dir).resolve()
+    gamever_dir = module_dir.parent.resolve()
+    candidate = (module_dir / expanded).resolve()
+    try:
+        if os.path.commonpath([str(candidate), str(gamever_dir)]) != str(gamever_dir):
+            return None
+    except ValueError:
+        return None
+
+    data = _read_yaml_file(str(candidate))
+    if not isinstance(data, dict):
+        return None
+
+    def _parse_slot(value):
+        if isinstance(value, bool):
+            return None
+        if isinstance(value, int):
+            return value
+        if isinstance(value, str):
+            raw = value.strip()
+            if not raw:
+                return None
+            return int(raw, 0)
+        return None
+
+    try:
+        index = _parse_slot(data.get("vfunc_index"))
+        offset = _parse_slot(data.get("vfunc_offset"))
+    except ValueError:
+        return None
+
+    if offset is not None:
+        if offset % 8 != 0:
+            return None
+        offset_index = offset // 8
+        if index is None:
+            index = offset_index
+        elif index != offset_index:
+            return None
+    return index
+
+
 def _parse_int_value(value):
     """Parse int-like value (int/str/number-like) with base auto-detection."""
     if isinstance(value, int):
@@ -8392,6 +8444,31 @@ async def preprocess_common_skill(
                     debug=debug,
                     mangled_class_names=normalized_mangled_class_names,
                 )
+
+            # A unique func_sig match does not prove the bytes still belong to
+            # the inherited slot: short thunks keep identical bytes while their
+            # RIP-relative target moves, so a reuse can land on a sibling
+            # function (issue #953).  Discard the reuse and let the slot-based
+            # fallback resolve the real entry.
+            if func_data is not None:
+                inherited_index = _read_inherited_vfunc_index(
+                    new_binary_dir,
+                    base_vfunc_name,
+                    platform,
+                )
+                resolved_index = func_data.get("vfunc_index")
+                if (
+                    inherited_index is not None
+                    and isinstance(resolved_index, int)
+                    and resolved_index != inherited_index
+                ):
+                    if debug:
+                        print(
+                            "    Preprocess: rejected func_sig reuse for "
+                            f"{func_name}: resolved slot {resolved_index} != "
+                            f"inherited slot {inherited_index}"
+                        )
+                    func_data = None
 
             # Fallback: resolve via base-class vfunc_index + vtable lookup.
             if func_data is None:
