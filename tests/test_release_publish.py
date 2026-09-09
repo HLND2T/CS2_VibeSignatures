@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import copy
+import json
 import shutil
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -176,6 +178,36 @@ class ReleasePublishTests(unittest.TestCase):
         command = gh.call_args.args[0]
         self.assertNotIn("--clobber", command)
         self.assertEqual("upload", command[1])
+
+    def test_release_state_falls_back_to_the_list_for_drafts(self) -> None:
+        draft = {"id": 7, "tag_name": "14174", "draft": True}
+        listing = subprocess.CompletedProcess([], 0, stdout=json.dumps([draft]))
+        with (
+            patch.object(release_publish, "_gh_json", return_value=None),
+            patch.object(release_publish, "_gh", return_value=listing) as gh,
+        ):
+            self.assertEqual(draft, release_publish._release_state("HLND2T/CS2_VibeSignatures", "14174"))
+
+        self.assertEqual(["api", "repos/HLND2T/CS2_VibeSignatures/releases?per_page=100"], gh.call_args.args[0])
+
+    def test_release_state_prefers_the_by_tag_lookup(self) -> None:
+        published = {"id": 8, "tag_name": "14174", "draft": False}
+        with (
+            patch.object(release_publish, "_gh_json", return_value=published) as by_tag,
+            patch.object(release_publish, "_gh") as listing,
+        ):
+            self.assertEqual(published, release_publish._release_state("HLND2T/CS2_VibeSignatures", "14174"))
+
+        by_tag.assert_called_once()
+        listing.assert_not_called()
+
+    def test_release_state_returns_none_when_no_release_declares_the_tag(self) -> None:
+        listing = subprocess.CompletedProcess([], 0, stdout=json.dumps([{"tag_name": "14178", "draft": False}]))
+        with (
+            patch.object(release_publish, "_gh_json", return_value=None),
+            patch.object(release_publish, "_gh", return_value=listing),
+        ):
+            self.assertIsNone(release_publish._release_state("HLND2T/CS2_VibeSignatures", "14174"))
 
 
 if __name__ == "__main__":
