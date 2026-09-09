@@ -218,6 +218,30 @@ class TestInitGamebin(unittest.TestCase):
             with self.assertRaisesRegex(init_gamebin.InitGamebinError, "missing after preparation"):
                 init_gamebin.configured_binary_paths(root, "14175", config)
 
+    def test_iter_configured_binaries_can_enumerate_before_download(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config = root / "config.yaml"
+            config.write_text(
+                "modules:\n"
+                "  - name: engine\n"
+                "    path_windows: game/bin/win64/engine2.dll\n"
+                "    path_linux: game/bin/linuxsteamrt64/libengine2.so\n"
+                "  - name: engine\n"
+                "    path_windows: game/bin/win64/engine2.dll\n",
+                encoding="utf-8",
+            )
+
+            self.assertEqual(
+                [
+                    ("engine", "windows", (root / "bin" / "14175" / "engine" / "engine2.dll").resolve()),
+                    ("engine", "linux", (root / "bin" / "14175" / "engine" / "libengine2.so").resolve()),
+                ],
+                list(init_gamebin.iter_configured_binaries(root, "14175", config, require_existing=False)),
+            )
+            with self.assertRaisesRegex(init_gamebin.InitGamebinError, "missing after preparation"):
+                list(init_gamebin.iter_configured_binaries(root, "14175", config))
+
     def test_expected_sidecar_uses_full_binary_filename_for_repo_path(self) -> None:
         binary = Path("bin/14175/engine/engine2.dll")
         repo_name, remote, repo_path, sidecar = init_gamebin.expected_sidecar(binary, "a" * 32, "14175", "HZDEV")
@@ -753,7 +777,7 @@ class TestInitGamebin(unittest.TestCase):
             patch.object(init_gamebin, "check_binaries", side_effect=[True, True]),
             patch.object(init_gamebin, "download_release_asset") as download,
             patch.object(init_gamebin, "resolve_analysis_config", return_value=config),
-            patch.object(init_gamebin, "probe_binsync", return_value=(True, "")),
+            patch.object(init_gamebin, "probe_binsync", return_value=(True, "")) as probe,
             patch.object(init_gamebin, "prepare_binsync_projects", return_value=binsync_summary()) as binsync,
             patch.object(init_gamebin, "verify_source_binary_root") as verify,
         ):
@@ -766,6 +790,7 @@ class TestInitGamebin(unittest.TestCase):
             binary_root=root / "bin" / "14168",
             label="initialized binary tree",
         )
+        probe.assert_called_once_with(root, config, "14168", require_remotes=True)
         binsync.assert_called_once_with(root, "14168", config, allow_remote_creation=False)
 
     def test_prepare_threads_remote_creation_permission_to_binsync(self) -> None:
@@ -775,7 +800,7 @@ class TestInitGamebin(unittest.TestCase):
             patch.object(init_gamebin, "load_versions", return_value=["14168"]),
             patch.object(init_gamebin, "check_binaries", side_effect=[True, True]),
             patch.object(init_gamebin, "resolve_analysis_config", return_value=config),
-            patch.object(init_gamebin, "probe_binsync", return_value=(True, "")),
+            patch.object(init_gamebin, "probe_binsync", return_value=(True, "")) as probe,
             patch.object(init_gamebin, "prepare_binsync_projects", return_value=binsync_summary()) as binsync,
             patch.object(init_gamebin, "verify_source_binary_root"),
         ):
@@ -785,6 +810,7 @@ class TestInitGamebin(unittest.TestCase):
                 binsync_mode="enable",
                 allow_remote_creation=True,
             )
+        probe.assert_called_once_with(root, config, "14168", require_remotes=False)
         binsync.assert_called_once_with(root, "14168", config, allow_remote_creation=True)
 
     def test_prepare_rejects_remote_creation_when_binsync_is_skipped(self) -> None:
@@ -930,6 +956,164 @@ class TestInitGamebin(unittest.TestCase):
             ),
         ):
             self.assertEqual((True, ""), init_gamebin.probe_binsync(Path("repo")))
+
+    def _write_probe_config(self, root: Path) -> Path:
+        config = root / "config.yaml"
+        config.write_text(
+            "modules:\n"
+            "  - name: engine\n"
+            "    path_windows: game/bin/win64/engine2.dll\n"
+            "    path_linux: game/bin/linuxsteamrt64/libengine2.so\n",
+            encoding="utf-8",
+        )
+        return config
+
+    def test_probe_binsync_requires_every_configured_remote(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config = self._write_probe_config(root)
+            queried = []
+
+            def fake_gh_api(_root, endpoint, **_kwargs):
+                queried.append(endpoint)
+                return {"private": False}
+
+            with (
+                patch.object(init_gamebin.shutil, "which", return_value="gh"),
+                patch.object(
+                    init_gamebin,
+                    "run_command",
+                    return_value=completed([], returncode=0, stdout="HLND2T"),
+                ),
+                patch.object(init_gamebin, "gh_api", side_effect=fake_gh_api),
+            ):
+                self.assertEqual((True, ""), init_gamebin.probe_binsync(root, config, "14175"))
+
+        self.assertEqual(
+            [
+                "repos/HLND2T/CS2_VibeSignatures_binsync_14175_engine2.dll",
+                "repos/HLND2T/CS2_VibeSignatures_binsync_14175_libengine2.so",
+            ],
+            queried,
+        )
+
+    def test_probe_binsync_reports_missing_remotes(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config = self._write_probe_config(root)
+            with (
+                patch.object(init_gamebin.shutil, "which", return_value="gh"),
+                patch.object(
+                    init_gamebin,
+                    "run_command",
+                    return_value=completed([], returncode=0, stdout="HLND2T"),
+                ),
+                patch.object(init_gamebin, "gh_api", side_effect=[None, {"private": False}]),
+            ):
+                available, reason = init_gamebin.probe_binsync(root, config, "14175")
+
+        self.assertFalse(available)
+        self.assertIn("BinSync remote repositories are missing", reason)
+        self.assertIn("HLND2T/CS2_VibeSignatures_binsync_14175_engine2.dll", reason)
+        self.assertNotIn("libengine2.so", reason)
+
+    def test_probe_binsync_reports_non_public_remotes(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config = self._write_probe_config(root)
+            with (
+                patch.object(init_gamebin.shutil, "which", return_value="gh"),
+                patch.object(
+                    init_gamebin,
+                    "run_command",
+                    return_value=completed([], returncode=0, stdout="HLND2T"),
+                ),
+                patch.object(
+                    init_gamebin,
+                    "gh_api",
+                    side_effect=[{"private": False}, {"private": True}],
+                ),
+            ):
+                available, reason = init_gamebin.probe_binsync(root, config, "14175")
+
+        self.assertFalse(available)
+        self.assertIn("BinSync remote repositories are not public", reason)
+        self.assertIn("HLND2T/CS2_VibeSignatures_binsync_14175_libengine2.so", reason)
+
+    def test_probe_binsync_can_skip_remote_checks_for_creation_flows(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config = self._write_probe_config(root)
+            with (
+                patch.object(init_gamebin.shutil, "which", return_value="gh"),
+                patch.object(
+                    init_gamebin,
+                    "run_command",
+                    return_value=completed([], returncode=0, stdout="HLND2T"),
+                ),
+                patch.object(init_gamebin, "gh_api") as gh_api,
+            ):
+                self.assertEqual(
+                    (True, ""),
+                    init_gamebin.probe_binsync(root, config, "14175", require_remotes=False),
+                )
+        gh_api.assert_not_called()
+
+    def test_probe_binsync_reports_unqueryable_remote_without_raising(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config = self._write_probe_config(root)
+            with (
+                patch.object(init_gamebin.shutil, "which", return_value="gh"),
+                patch.object(
+                    init_gamebin,
+                    "run_command",
+                    return_value=completed([], returncode=0, stdout="HLND2T"),
+                ),
+                patch.object(
+                    init_gamebin,
+                    "gh_api",
+                    side_effect=init_gamebin.InitGamebinError("gh api failed for repos/x: HTTP 500"),
+                ),
+            ):
+                available, reason = init_gamebin.probe_binsync(root, config, "14175")
+
+        self.assertFalse(available)
+        self.assertIn("cannot query BinSync remote HLND2T/CS2_VibeSignatures_binsync_14175_engine2.dll", reason)
+
+    def test_probe_binsync_reports_unresolvable_config_without_raising(self) -> None:
+        with (
+            patch.object(init_gamebin.shutil, "which", return_value="gh"),
+            patch.object(
+                init_gamebin,
+                "run_command",
+                return_value=completed([], returncode=0, stdout="HLND2T"),
+            ),
+            patch.object(
+                init_gamebin,
+                "resolve_analysis_config",
+                side_effect=init_gamebin.AnalysisConfigError("analysis config is missing"),
+            ),
+        ):
+            available, reason = init_gamebin.probe_binsync(Path("repo"), None, "14175")
+
+        self.assertFalse(available)
+        self.assertIn("analysis config is missing", reason)
+
+    def test_main_check_binsync_resolves_the_requested_gamever(self) -> None:
+        config = Path("repo") / "configs" / "14175.yaml"
+        output = io.StringIO()
+        with (
+            patch.object(init_gamebin, "repository_root", return_value=Path("repo")),
+            patch.object(init_gamebin, "load_versions", return_value=["14175"]),
+            patch.object(init_gamebin, "resolve_analysis_config", return_value=config) as resolve,
+            patch.object(init_gamebin, "probe_binsync", return_value=(True, "")) as probe,
+            patch("sys.stdout", output),
+        ):
+            self.assertEqual(0, init_gamebin.main(["check-binsync", "14175"]))
+        resolve.assert_called_once_with("14175", repo_root=Path("repo"))
+        probe.assert_called_once_with(Path("repo"), config, "14175")
+        self.assertIn("BinSync available", output.getvalue())
 
     def test_main_check_binsync_reports_availability(self) -> None:
         output = io.StringIO()

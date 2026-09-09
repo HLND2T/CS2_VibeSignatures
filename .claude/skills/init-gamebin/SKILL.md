@@ -28,14 +28,17 @@ symbol truth is already versioned under `bin_artifacts/<GAMEVER>/`.
 
 BinSync recovery is opt-in. Decide whether to enable it before preparing binaries:
 
-1. Probe availability from the owning repository root:
+1. Probe availability from the owning repository root with the selected GAMEVER:
 
    ```powershell
-   uv run init_gamebin.py check-binsync
+   uv run init_gamebin.py check-binsync <GAMEVER>
    ```
 
 2. If the probe exits 1 (unavailable), tell the user BinSync initialization is skipped and why
    (`BinSync unavailable: <reason>`), then proceed to preparation **without** enabling BinSync.
+   The reason covers either the environment (no `gh`, not authenticated, API/org unreachable) or this
+   GAMEVER's remotes: every configured `HLND2T/CS2_VibeSignatures_binsync_<GAMEVER>_<MODULE_FILENAME>`
+   must already exist and be public. Both cases mean skip; do not retry or create remotes.
 3. If the probe exits 0 (available), **ask** the user whether to enable BinSync and wait for an
    explicit yes/no. Never enable BinSync without explicit consent, and never skip the probe.
    - Yes → prepare with `--binsync enable`.
@@ -63,8 +66,9 @@ the Steam depot fallback only for a missing Release asset. After every configure
 3. Uses `gh` to read public repositories without requiring `HLND2T` organization permissions. Only an explicit HTTP 404
    is treated as missing; every other API failure stops the command.
 4. Requires the `HLND2T/CS2_VibeSignatures_binsync_<GAMEVER>_<MODULE_FILENAME>` repository to already exist during this
-   manual skill flow; a missing remote stops the command with a clear reason. Only the trusted build workflow passes
-   the explicit repository-creation option.
+   manual skill flow; the `check-binsync <GAMEVER>` probe above already rejects a GAMEVER with any missing or non-public
+   remote, so a remote that disappears in between still stops the command with a clear reason. Only the trusted build
+   workflow passes the explicit repository-creation option.
 5. Restores a previously empty remote from every local `binsync/*` branch when a valid unlocked
    `<MODULE_FILENAME>.bsproj` exists. Otherwise it creates the standard BinSync `Root commit`, `binsync/__root__`, and
    `binsync/<OS_USER>` branches. It sets the default branch only for a previously empty repository.
