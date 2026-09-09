@@ -164,9 +164,14 @@ def file_inventory(root: Path) -> list[dict]:
     root = Path(root)
     reject_reparse_points(root)
     inventory = []
-    for path in sorted(item for item in root.rglob("*") if item.is_file()):
+    for path in root.rglob("*"):
+        if not path.is_file():
+            continue
         relative = normalized_relative_path(path.relative_to(root).as_posix())
         inventory.append({"path": relative, "size": path.stat().st_size, "sha256": sha256_file(path)})
+    # Sort by the normalized POSIX path so Windows (case-insensitive Path ordering)
+    # and Linux produce the same inventory order as every consumer assumes.
+    inventory.sort(key=lambda item: item["path"])
     return inventory
 
 

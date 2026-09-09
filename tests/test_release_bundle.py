@@ -14,7 +14,7 @@ from gamesymbol_metadata import generate_metadata
 from gamesymbol_snapshot_lib.codec import canonical_snapshot_bytes
 from gamesymbol_snapshot_lib.config import load_contract
 from gamesymbol_snapshot_lib.operations import build_actual_document
-from release_workflow_lib.hashing import sha256_file
+from release_workflow_lib.hashing import file_inventory, sha256_file
 from tests import test_binsync_candidate as candidate_tests
 from tests.test_gamedata_candidate import GamedataCandidateFixture
 from tests import test_release_artifact_rebuild as rebuild_tests
@@ -272,6 +272,21 @@ class ReleaseBundleTests(unittest.TestCase):
                     cpp_sdk_sha="5" * 40,
                     tracked_binding="binding.json",
                 )
+
+    def test_file_inventory_orders_by_normalized_path_string(self) -> None:
+        # Windows Path ordering is case-insensitive, so it would put
+        # CounterStrikeSharp before CS2FOW and break every string-sorted consumer.
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "CS2FOW").mkdir()
+            (root / "CS2FOW" / "a.txt").write_text("a", encoding="utf-8")
+            (root / "CounterStrikeSharp").mkdir()
+            (root / "CounterStrikeSharp" / "b.txt").write_text("b", encoding="utf-8")
+
+            self.assertEqual(
+                ["CS2FOW/a.txt", "CounterStrikeSharp/b.txt"],
+                [item["path"] for item in file_inventory(root)],
+            )
 
     def test_verify_rejects_public_asset_tamper(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
