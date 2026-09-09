@@ -78,12 +78,11 @@ class HeadlessForcePushTests(unittest.TestCase):
 
             # A system-level insteadOf rewrite (the git cache proxy from issue
             # #927) makes `git remote get-url` return the proxy URL; the sink
-            # transport must compare against the raw stored canonical URL.
+            # transport must compare against the raw stored canonical URL. A
+            # runner may already define its own proxy host, so assert a rewrite
+            # is active without pinning the host that wins the insteadOf match.
             with patch.dict(os.environ, PROXY_INSTEADOF_ENV):
-                self.assertEqual(
-                    "http://127.0.0.1:8080/HLND2T/CS2_VibeSignatures_binsync_1_server.dll",
-                    _run_git(repo, "remote", "get-url", "origin"),
-                )
+                self.assertNotEqual(remote, _run_git(repo, "remote", "get-url", "origin"))
                 with headless_force_push.local_only_remote(repo, remote, bootstrap_local_init=True):
                     pass
 

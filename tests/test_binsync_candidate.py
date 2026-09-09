@@ -163,7 +163,9 @@ class BinSyncCandidateTests(unittest.TestCase):
 
             # A system-level insteadOf rewrite (the git cache proxy from issue
             # #927) makes `git remote get-url` return the proxy URL; the
-            # canonical origin check must read the raw stored URL instead.
+            # canonical origin check must read the raw stored URL instead. A
+            # runner may already define its own proxy host, so assert a rewrite
+            # is active without pinning the host that wins the insteadOf match.
             rewritten = self._git(
                 binsync_repo,
                 "-c",
@@ -172,7 +174,7 @@ class BinSyncCandidateTests(unittest.TestCase):
                 "get-url",
                 "origin",
             )
-            self.assertEqual("http://127.0.0.1:8080/HLND2T/CS2_VibeSignatures_binsync_1_server.dll", rewritten)
+            self.assertNotEqual("https://github.com/HLND2T/CS2_VibeSignatures_binsync_1_server.dll", rewritten)
             with patch.dict(
                 os.environ,
                 {

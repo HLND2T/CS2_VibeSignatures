@@ -341,7 +341,9 @@ class TestInitGamebin(unittest.TestCase):
             git(repo, "remote", "add", "origin", "https://github.com/HLND2T/repo.git")
             # A system-level insteadOf rewrite (the git cache proxy from issue
             # #927) makes `git remote get-url` return the proxy URL; validation
-            # must read the raw stored canonical URL instead.
+            # must read the raw stored canonical URL instead. A runner may
+            # already define its own proxy host, so assert a rewrite is active
+            # without pinning the host that wins the insteadOf match.
             with patch.dict(
                 os.environ,
                 {
@@ -350,8 +352,8 @@ class TestInitGamebin(unittest.TestCase):
                     "GIT_CONFIG_VALUE_0": "https://github.com/",
                 },
             ):
-                self.assertEqual(
-                    "http://127.0.0.1:8080/HLND2T/repo.git",
+                self.assertNotEqual(
+                    "https://github.com/HLND2T/repo.git",
                     git(repo, "remote", "get-url", "origin").stdout.strip(),
                 )
                 self.assertEqual((True, False), init_gamebin.validate_local_binsync_repo(repo, "a" * 32, "repo"))
