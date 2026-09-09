@@ -123,7 +123,7 @@ def collect_manifest_symbols(
     config_path: Path,
     artifact_root: Path | None = None,
 ) -> dict[str, dict[str, list[int]]]:
-    """Map ``(module, platform) -> {"functions": [rva, ...], "globals": [rva, ...]}``.
+    """Map ``(module, platform) -> {"functions": [rva], "globals": [rva], "names": {rva: symbol}}``.
 
     Only ``func``/``vfunc`` and ``gv`` symbols explicitly declared under each
     module's ``symbols:`` are selected. The target address is read from the
@@ -174,14 +174,18 @@ def collect_manifest_symbols(
         targets=targets,
         read_artifact=read_artifact,
     )
-    manifest = {f"{target['module']}/{target['platform']}": {"functions": [], "globals": []} for target in targets}
+    manifest = {
+        f"{target['module']}/{target['platform']}": {"functions": [], "globals": [], "names": {}} for target in targets
+    }
     for entry in projection["entries"]:
         key = (entry["module"], entry["platform"])
         address = entry["source_rva"] - lift_biases[key]
         if address < 0:
             raise ValueError(f"projected source RVA is below the first segment: {entry['artifact_path']}")
         bucket = "globals" if entry["category"] == "gv" else "functions"
-        manifest[f"{entry['module']}/{entry['platform']}"][bucket].append(address)
+        entries = manifest[f"{entry['module']}/{entry['platform']}"]
+        entries[bucket].append(address)
+        entries["names"].setdefault(str(address), entry["symbol"])
     for entries in manifest.values():
         entries["functions"] = sorted(set(entries["functions"]))
         entries["globals"] = sorted(set(entries["globals"]))

@@ -125,6 +125,14 @@ class TestCollectManifestSymbols(unittest.TestCase):
             self.assertEqual(manifest["engine/windows"]["globals"], [0x688B08 - 0x1000])
             self.assertEqual(manifest["engine/linux"]["functions"], [0x533B70])
             self.assertEqual(manifest["engine/linux"]["globals"], [0xC72230])
+            self.assertEqual(
+                {str(0xBAB40 - 0x1000): "Ctor", str(0x688B08 - 0x1000): "g_pCvar"},
+                manifest["engine/windows"]["names"],
+            )
+            self.assertEqual(
+                {str(0x533B70): "Ctor", str(0xC72230): "g_pCvar"},
+                manifest["engine/linux"]["names"],
+            )
 
     def test_collect_excludes_struct_and_missing_and_null_rva(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

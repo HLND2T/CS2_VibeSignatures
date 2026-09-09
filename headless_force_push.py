@@ -230,12 +230,60 @@ def force_push_selected(
     )
 
 
+AUTO_NAME_PREFIXES = ("sub_", "loc_", "unk_", "nullsub_", "unknown_", "j_sub_", "j_loc_")
+
+
+def _is_auto_name(name: str) -> bool:
+    return not name or name.startswith(AUTO_NAME_PREFIXES)
+
+
+def apply_manifest_names(manifest: dict) -> int:
+    """Promote bare code and rename IDA-auto symbols to their canonical names.
+
+    The export publishes whatever names the IDB holds, and IDA auto-analysis can
+    leave a valid ``.text`` thunk undefined and name symbols ``sub_``/``loc_``/
+    ``unk_``. Promote the manifest addresses, then rename only auto-named symbols:
+    a name the analysis already set is left untouched.
+    """
+    import ida_funcs
+    import idaapi
+    import idc
+
+    names = manifest.get("names") or {}
+    renamed = 0
+    for kind, is_function in (("functions", True), ("globals", False)):
+        for address in manifest.get(kind, []):
+            if is_function and ida_funcs.get_func(address) is None:
+                try:
+                    idaapi.add_func(address)
+                except Exception:
+                    pass
+            name = names.get(str(address))
+            if not isinstance(name, str) or not name:
+                continue
+            try:
+                current = idc.get_name(address) or ""
+            except Exception:
+                continue
+            if not _is_auto_name(current):
+                continue
+            try:
+                if idc.set_name(address, name, idc.SN_NOWARN):
+                    renamed += 1
+            except Exception:
+                continue
+    if renamed:
+        _log.info("Applied %d canonical symbol name(s) before the BinSync export.", renamed)
+    return renamed
+
+
 def load_manifest(artifacts_file: str) -> dict[str, list]:
-    """Load a push manifest ``{"functions": [...], "globals": [...]}`` (addrs in lifted/RVA form)."""
+    """Load a push manifest (addresses in lifted/RVA form, plus canonical names)."""
     data = json.loads(pathlib.Path(artifacts_file).read_text(encoding="utf-8"))
     return {
         "functions": list(data.get("functions", [])),
         "globals": list(data.get("globals", [])),
+        "names": dict(data.get("names", {})),
     }
 
 
@@ -410,6 +458,7 @@ def main(argv: list[str] | None = None) -> int:
                 if not args.push:
                     _log.info("Dry run: nothing committed/pushed. Re-run with --push to apply.")
                 else:
+                    apply_manifest_names(manifest)
                     force_push_selected(controller, func_addrs, global_addrs, use_decompilation=args.use_decompilation)
                     _log.info("Local BinSync commit complete." if args.local_only else "Force push complete.")
             else:

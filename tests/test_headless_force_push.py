@@ -1,6 +1,8 @@
 import os
 import subprocess
+import sys
 import tempfile
+import types
 import unittest
 from pathlib import Path
 from unittest.mock import call, patch
@@ -127,6 +129,54 @@ class HeadlessForcePushTests(unittest.TestCase):
             ):
                 headless_force_push.main([str(binary), "--bootstrap-local-init"])
             load.assert_not_called()
+
+    def _ida_stub(self, *, defined, promoted, names):
+        ida_funcs = types.ModuleType("ida_funcs")
+        ida_funcs.get_func = lambda address: object() if address in defined else None
+        idaapi = types.ModuleType("idaapi")
+
+        def add_func(address):
+            promoted.append(address)
+            defined.add(address)
+            return True
+
+        idaapi.add_func = add_func
+        idc = types.ModuleType("idc")
+        idc.SN_NOWARN = 0x100
+        idc.get_name = lambda address: names.get(address, "")
+        idc.set_name = lambda address, name, flags=0: names.__setitem__(address, name) or True
+        return patch.dict(sys.modules, {"ida_funcs": ida_funcs, "idaapi": idaapi, "idc": idc})
+
+    def test_promotes_bare_code_and_renames_auto_named_symbols(self) -> None:
+        defined = {0x1000}
+        promoted = []
+        names = {0x1000: "sub_1000", 0x2000: "sub_2000"}
+        manifest = {
+            "functions": [0x1000, 0x2000],
+            "globals": [],
+            "names": {str(0x1000): "Canonical", str(0x2000): "Other"},
+        }
+        with self._ida_stub(defined=defined, promoted=promoted, names=names):
+            self.assertEqual(2, headless_force_push.apply_manifest_names(manifest))
+
+        self.assertEqual([0x2000], promoted)
+        self.assertEqual({0x1000: "Canonical", 0x2000: "Other"}, names)
+
+    def test_leaves_already_canonical_names_untouched(self) -> None:
+        names = {0x1000: "CAM_Command_CommandHandler"}
+        manifest = {"functions": [0x1000], "globals": [], "names": {str(0x1000): "ShouldNotApply"}}
+        with self._ida_stub(defined={0x1000}, promoted=[], names=names):
+            self.assertEqual(0, headless_force_push.apply_manifest_names(manifest))
+
+        self.assertEqual({0x1000: "CAM_Command_CommandHandler"}, names)
+
+    def test_skips_addresses_without_a_manifest_name(self) -> None:
+        names = {0x1000: "sub_1000"}
+        manifest = {"functions": [0x1000], "globals": [], "names": {}}
+        with self._ida_stub(defined={0x1000}, promoted=[], names=names):
+            self.assertEqual(0, headless_force_push.apply_manifest_names(manifest))
+
+        self.assertEqual({0x1000: "sub_1000"}, names)
 
 
 if __name__ == "__main__":
