@@ -5,11 +5,13 @@ from ida_analyze_util import preprocess_common_skill
 
 INHERIT_VFUNCS = [
     # (target_func_name, inherit_vtable_class, base_vfunc_name, generate_func_sig)
+    # GetScriptDesc is a single-instruction tail-call thunk, so a func_sig
+    # carries no discriminating bytes.
     (
         "CEntityInstance_GetScriptDesc",
         "CEntityInstance",
         "CSceneEntity_GetScriptDesc",
-        True,
+        False,
     ),
 ]
 

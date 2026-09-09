@@ -157,6 +157,7 @@ vfunc_index: 5
 
 - **Standard** (`generate_func_sig=True`, full field set): target is a concrete derived class that has a real function body -- you want `func_va`, `func_sig`, etc.
 - **Slot-only** (`generate_func_sig=False`, four-field set): target is an abstract/interface method -- you only need the vtable slot position, no implementation address
+- **Thunk / tiny accessor** (`generate_func_sig=False`, full field set minus `func_sig`): the concrete override body is a tail-call trampoline or slot-indexed getter (Windows MSVC: <=4 instructions). A generated `func_sig` carries no discriminating bytes and can uniquely match a sibling slot after a layout shift (issues #953/#954), so neither generate nor retain it
 
 ## Checklist
 

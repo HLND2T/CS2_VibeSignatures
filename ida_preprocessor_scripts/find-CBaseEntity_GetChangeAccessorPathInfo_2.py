@@ -5,7 +5,9 @@ from ida_analyze_util import preprocess_common_skill
 
 INHERIT_VFUNCS = [
     # (target_func_name, inherit_vtable_class, base_vfunc_name, generate_func_sig)
-    ("CBaseEntity_GetChangeAccessorPathInfo_2", "CBaseEntity", "CEntityInstance_GetChangeAccessorPathInfo_2", True),
+    # GetChangeAccessorPathInfo_2 is a two-instruction this-adjusting thunk, so a
+    # func_sig carries no discriminating bytes.
+    ("CBaseEntity_GetChangeAccessorPathInfo_2", "CBaseEntity", "CEntityInstance_GetChangeAccessorPathInfo_2", False),
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [

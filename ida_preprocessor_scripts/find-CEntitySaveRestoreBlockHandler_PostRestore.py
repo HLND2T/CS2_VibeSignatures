@@ -5,11 +5,13 @@ from ida_analyze_util import preprocess_common_skill
 
 INHERIT_VFUNCS = [
     # (target_func_name, inherit_vtable_class, base_vfunc_name, generate_func_sig)
+    # PostRestore is a three-instruction tail-call thunk, so a func_sig is not
+    # stable enough to retain.
     (
         "CEntitySaveRestoreBlockHandler_PostRestore",
         "CEntitySaveRestoreBlockHandler",
         "CSaveRestoreBlockSet_PostRestore",
-        True,
+        False,
     ),
 ]
 
@@ -22,7 +24,6 @@ GENERATE_YAML_DESIRED_FIELDS = [
             "func_va",
             "func_rva",
             "func_size",
-            "func_sig",
             "vtable_name",
             "vfunc_offset",
             "vfunc_index",

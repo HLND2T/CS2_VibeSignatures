@@ -4,11 +4,14 @@
 from ida_analyze_util import preprocess_common_skill
 
 INHERIT_VFUNCS = [
+    # (target_func_name, inherit_vtable_class, base_vfunc_name, generate_func_sig)
+    # SetIsForServer is a two-instruction slot-indexed setter, so a func_sig
+    # carries no discriminating bytes.
     (
         "CNetworkMessages_SetIsForServer",
         "CNetworkMessages",
         "../engine/INetworkMessages_SetIsForServer",
-        True,
+        False,
     ),
 ]
 

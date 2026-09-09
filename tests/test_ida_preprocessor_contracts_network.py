@@ -55,6 +55,7 @@ class TestInheritVfuncWrapperContracts(unittest.IsolatedAsyncioTestCase):
                 "CFlattenedSerializers",
                 "../server/IFlattenedSerializers_CreateFieldChangedEventQueue",
                 True,
+                True,
             ),
             (
                 "set_is_for_server",
@@ -64,6 +65,7 @@ class TestInheritVfuncWrapperContracts(unittest.IsolatedAsyncioTestCase):
                 "CNetworkMessages_SetIsForServer",
                 "CNetworkMessages",
                 "../engine/INetworkMessages_SetIsForServer",
+                False,
                 False,
             ),
             (
@@ -75,11 +77,22 @@ class TestInheritVfuncWrapperContracts(unittest.IsolatedAsyncioTestCase):
                 "CNetworkMessages",
                 "../server/INetworkMessages_SetNetworkSerializationContextData",
                 True,
+                True,
             ),
         ]
 
         for case in cases:
-            case_name, script_path, module_name, platform, target_name, vtable_name, source_path, include_sig = case
+            (
+                case_name,
+                script_path,
+                module_name,
+                platform,
+                target_name,
+                vtable_name,
+                source_path,
+                include_sig,
+                generate_func_sig,
+            ) = case
             with self.subTest(case=case_name):
                 module = _load_module(script_path, module_name)
                 mock_helper = AsyncMock(return_value=True)
@@ -108,7 +121,7 @@ class TestInheritVfuncWrapperContracts(unittest.IsolatedAsyncioTestCase):
                     new_binary_dir="bin_dir",
                     platform=platform,
                     image_base=0x180000000,
-                    inherit_vfuncs=[(target_name, vtable_name, source_path, True)],
+                    inherit_vfuncs=[(target_name, vtable_name, source_path, generate_func_sig)],
                     generate_yaml_desired_fields=[(target_name, fields)],
                     debug=True,
                 )
