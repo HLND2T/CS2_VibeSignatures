@@ -217,7 +217,8 @@ def enroll_bump_binary_lock(
     base_sha = base_sha.lower()
     _validate_identity(repository, base_sha, gamever, source_gamever)
     repo_root = Path(repo_root).resolve()
-    binary_root = Path(os.path.abspath(binary_root))
+    # Resolve so an 8.3 short-name temp root still compares equal to repo_root.
+    binary_root = Path(binary_root).resolve()
     if binary_root == repo_root or repo_root in binary_root.parents:
         raise BumpDownloadCandidateError("download-bump binary enrollment root must remain outside the repository")
     if not binary_root.is_dir():
@@ -349,7 +350,8 @@ def build_bump_candidate(
     base_sha = base_sha.lower()
     _validate_identity(repository, base_sha, gamever, source_gamever)
     repo_root = Path(repo_root).resolve()
-    output_root = Path(os.path.abspath(output_root))
+    # Resolve so an 8.3 short-name temp root still compares equal to repo_root.
+    output_root = Path(output_root).resolve()
     if output_root.exists() or output_root == repo_root or repo_root in output_root.parents:
         raise BumpDownloadCandidateError("download-bump candidate output must be a fresh root outside the repository")
     head_sha = _git(repo_root, "rev-parse", "HEAD").lower()
@@ -466,7 +468,8 @@ def prepare_bump_commit(
         raise BumpDownloadCandidateError("download-bump Actions Artifact digest is invalid")
 
     repo_root = Path(repo_root).resolve()
-    candidate_root = Path(os.path.abspath(candidate_root))
+    # Resolve so an 8.3 short-name temp root still compares equal to repo_root.
+    candidate_root = Path(candidate_root).resolve()
     if candidate_root == repo_root or repo_root in candidate_root.parents:
         raise BumpDownloadCandidateError("download-bump candidate input must remain outside the publication checkout")
     if _git(repo_root, "rev-parse", "HEAD").lower() != base_sha:

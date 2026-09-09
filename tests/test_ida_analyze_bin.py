@@ -2836,7 +2836,9 @@ class TestProcessBinary(unittest.TestCase):
                 )
 
         self.assertEqual((1, 0, 0), result)
-        self.assertEqual([str(artifact_dir.resolve())], observed)
+        # The env value and the temp root can be spelled as Windows 8.3 short
+        # names, so compare resolved locations instead of raw strings.
+        self.assertEqual([str(artifact_dir.resolve())], [str(Path(path).resolve()) for path in observed])
         self.assertNotIn(ida_analyze_bin.ARTIFACT_OUTPUT_ENV, os.environ)
 
     def test_process_binary_treats_absent_ok_as_skip_and_continues(self) -> None:

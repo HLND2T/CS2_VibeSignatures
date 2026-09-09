@@ -51,6 +51,9 @@ immutable main SHA preflight
 - Same-version published assets are exact-idempotent only; different content must use a new version.
 - Preflight parses its JSON with `ConvertFrom-Json -DateKind String`. PowerShell 7 (Json.NET) otherwise coerces the
   ISO-8601 `source_publish_time` into `[datetime]`, so both the format check and the `GITHUB_OUTPUT` value fail.
+- The self-hosted Windows runner defines a machine-level `url.http://HZVM:8080/.insteadOf=https://github.com/` git
+  proxy and hands out 8.3 short-name temp roots, so tests and path guards must not pin a proxy host or compare a raw
+  spelling against a resolved path.
 ## Callers
 - Provenance-verified release dispatch for an immutable default-branch source SHA.
 - Explicit authorized recovery reruns using the same stable transaction identity.

@@ -454,7 +454,8 @@ def restore_snapshot(
     snapshot_path = _explicit_snapshot_path(snapshot_path)
     config_path = resolve_analysis_config(game_version, config_path)
     artifactdir = Path(bindir).parent / "bin_artifacts" if artifactdir is None else Path(artifactdir)
-    artifactdir = Path(os.path.abspath(artifactdir))
+    # Resolve so an 8.3 short-name artifact root still compares inside checkout_root.
+    artifactdir = Path(artifactdir).resolve()
     worktree = subprocess.run(
         ["git", "rev-parse", "--show-toplevel"],
         capture_output=True,
