@@ -6,6 +6,7 @@ import os
 import subprocess
 import tempfile
 import unittest
+from contextlib import contextmanager
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -717,6 +718,87 @@ class TestInitGamebin(unittest.TestCase):
         )
         self.assertEqual(1, summary["remote_created"])
         self.assertEqual(1, summary["remote_initialized"])
+
+    @contextmanager
+    def _ensure_binsync_env(self, *, binaries, remote_states, events, lock_md5="a" * 32):
+        lock = MagicMock()
+        lock.document = {"binaries": {"engine": {"windows": {"md5": lock_md5}, "linux": {"md5": "b" * 32}}}}
+        states = iter(remote_states)
+        with (
+            patch.object(init_gamebin, "load_versions", return_value=["14180"]),
+            patch.object(init_gamebin, "select_version", return_value="14180"),
+            patch.object(init_gamebin, "resolve_analysis_config", return_value=Path("configs/14180.yaml")),
+            patch.object(init_gamebin, "load_source_binary_lock", return_value=lock),
+            patch.object(init_gamebin, "iter_configured_binaries", return_value=iter(binaries)),
+            patch.object(
+                init_gamebin,
+                "inspect_remote",
+                side_effect=lambda *_: events.append("inspect") or next(states),
+            ),
+            patch.object(init_gamebin, "create_public_remote", side_effect=lambda *_: events.append("create")),
+            patch.object(
+                init_gamebin,
+                "initialize_minimal_binsync_remote",
+                side_effect=lambda *_: events.append("initialize"),
+            ),
+            patch.object(init_gamebin, "set_remote_default_branch", side_effect=lambda *_: events.append("default")),
+        ):
+            yield
+
+    def test_ensure_binsync_remotes_creates_missing_and_skips_valid(self) -> None:
+        binaries = [
+            ("engine", "windows", Path("bin/14180/engine/engine2.dll")),
+            ("engine", "linux", Path("bin/14180/engine/libengine2.so")),
+        ]
+        events = []
+        states = [
+            init_gamebin.RemoteState("missing"),
+            init_gamebin.RemoteState("valid"),
+            init_gamebin.RemoteState("valid"),
+        ]
+        with self._ensure_binsync_env(binaries=binaries, remote_states=states, events=events):
+            result = init_gamebin.ensure_binsync_remotes(Path("repo"), "14180", user="release-automation")
+        self.assertEqual(
+            ["inspect", "create", "initialize", "default", "inspect", "inspect"],
+            events,
+        )
+        self.assertEqual(
+            {"targets": 2, "verified": 1, "created": 1, "initialized": 1, "planned": 0},
+            result["summary"],
+        )
+        self.assertEqual("release-automation", result["user"])
+        self.assertEqual([], result["planned"])
+
+    def test_ensure_binsync_remotes_dry_run_reports_without_writing(self) -> None:
+        binaries = [
+            ("engine", "windows", Path("bin/14180/engine/engine2.dll")),
+            ("engine", "linux", Path("bin/14180/engine/libengine2.so")),
+        ]
+        events = []
+        states = [init_gamebin.RemoteState("missing"), init_gamebin.RemoteState("empty")]
+        with self._ensure_binsync_env(binaries=binaries, remote_states=states, events=events):
+            result = init_gamebin.ensure_binsync_remotes(Path("repo"), "14180", user="release-automation", dry_run=True)
+        self.assertEqual(["inspect", "inspect"], events)
+        self.assertEqual(
+            {"targets": 2, "verified": 0, "created": 0, "initialized": 0, "planned": 2},
+            result["summary"],
+        )
+        self.assertEqual(
+            [
+                "HLND2T/CS2_VibeSignatures_binsync_14180_engine2.dll (missing)",
+                "HLND2T/CS2_VibeSignatures_binsync_14180_libengine2.so (empty)",
+            ],
+            result["planned"],
+        )
+
+    def test_ensure_binsync_remotes_rejects_lock_without_md5(self) -> None:
+        binaries = [("engine", "windows", Path("bin/14180/engine/engine2.dll"))]
+        events = []
+        with (
+            self._ensure_binsync_env(binaries=binaries, remote_states=[], events=events, lock_md5=""),
+            self.assertRaisesRegex(init_gamebin.InitGamebinError, "no windows md5"),
+        ):
+            init_gamebin.ensure_binsync_remotes(Path("repo"), "14180", user="release-automation")
 
     def test_preflight_fails_when_remote_repository_is_missing(self) -> None:
         root = Path("repo")
