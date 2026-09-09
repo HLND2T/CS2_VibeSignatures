@@ -351,6 +351,12 @@ jobs:
       - name: Prepare local-only BinSync candidate without remote writes
         id: binsync-prepare
         shell: pwsh
+        env:
+          # The HZVM git cache proxy intermittently 502s on freshly created BinSync
+          # remotes, so read them directly: pointing the config paths at a missing
+          # file drops the runner's machine-level insteadOf for this step only.
+          GIT_CONFIG_GLOBAL: ${{ runner.temp }}\no-gitconfig
+          GIT_CONFIG_SYSTEM: ${{ runner.temp }}\no-gitconfig
         run: |
           $candidate = Join-Path $env:RUNNER_TEMP "release-binsync-candidate\$env:BUILD_ID"
           $artifactName = "binsync-candidate-$env:SOURCE_SHA-$env:GAMEVER"
