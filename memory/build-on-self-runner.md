@@ -54,6 +54,14 @@ immutable main SHA preflight
 - The self-hosted Windows runner defines a machine-level `url.http://HZVM:8080/.insteadOf=https://github.com/` git
   proxy and hands out 8.3 short-name temp roots, so tests and path guards must not pin a proxy host or compare a raw
   spelling against a resolved path.
+- `source_artifact_mode=tracked` (only from the manual, protected `rebuild-free-release.yml`) skips the fresh
+  `-force_all -rename` rebuild and binds the tracked `bin_artifacts/<GAMEVER>` instead: it proves the published
+  artifacts equal that source SHA's tracked truth, but never proves they can be rebuilt. The automatic
+  `tag-bump-after-merge` path never sets the input, so it always rebuilds.
+- Missing per-module BinSync remotes for an unpublished GAMEVER are provisioned by
+  `init_gamebin.py ensure-binsync-remotes <gamever> --user release-automation`, which reads the authoritative md5 from
+  tracked `binary_locks/<GAMEVER>.json` and needs no binary download; it runs on `ubuntu-latest` in the protected
+  `binsync-remotes` environment to bypass the HZVM proxy.
 ## Callers
 - Provenance-verified release dispatch for an immutable default-branch source SHA.
 - Explicit authorized recovery reruns using the same stable transaction identity.

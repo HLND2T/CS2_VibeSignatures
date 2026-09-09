@@ -15,6 +15,11 @@ on:
       publication_mode:
         required: true
         type: string
+      source_artifact_mode:
+        description: Rebuild and verify fresh artifacts, or bind the tracked source-owned artifacts
+        required: false
+        type: string
+        default: rebuild
   workflow_dispatch:
     inputs:
       gamever:
@@ -93,7 +98,8 @@ jobs:
               $preflight.source_publish_time -notmatch '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$') {
             throw "Immutable release source preflight output is invalid."
           }
-          if ("${{ github.event_name }}" -in @('repository_dispatch', 'workflow_call')) {
+          if ("${{ github.event_name }}" -in @('repository_dispatch', 'workflow_call') -and `
+              "${{ inputs.source_artifact_mode }}" -ne 'tracked') {
             if ($sourcePullRequest -notmatch '^[1-9][0-9]*$') {
               throw "repository_dispatch requires a numeric source_pull_request."
             }
@@ -294,6 +300,7 @@ jobs:
           "RELEASE_REBUILD_DIAGNOSTICS=$diagnostics" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Analyze every producer group with force-all and rename
         id: analyze
+        if: inputs.source_artifact_mode != 'tracked'
         shell: pwsh
         run: |
           $args = @(
@@ -309,6 +316,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "ida_analyze_bin.py failed with exit code $LASTEXITCODE" }
       - name: Verify fresh artifacts exactly reproduce immutable Git truth
         id: verify-artifact-rebuild
+        if: inputs.source_artifact_mode != 'tracked'
         shell: pwsh
         run: |
           uv run python release_artifact_rebuild.py verify `
@@ -318,7 +326,7 @@ jobs:
             --diagnostics-dir "$env:RELEASE_REBUILD_DIAGNOSTICS"
           if ($LASTEXITCODE -ne 0) { throw "Fresh release artifacts differ from Git truth." }
       - name: Upload release rebuild verification failure evidence
-        if: ${{ failure() && steps.verify-artifact-rebuild.outcome == 'failure' }}
+        if: ${{ inputs.source_artifact_mode != 'tracked' && failure() && steps.verify-artifact-rebuild.outcome == 'failure' }}
         uses: actions/upload-artifact@v4
         with:
           name: release-rebuild-diagnostics-${{ env.GAMEVER }}-${{ github.run_id }}-${{ github.run_attempt }}
@@ -326,6 +334,20 @@ jobs:
           if-no-files-found: warn
           include-hidden-files: true
           retention-days: 30
+      - name: Bind tracked source-owned artifacts
+        id: bind-tracked
+        if: inputs.source_artifact_mode == 'tracked'
+        shell: pwsh
+        run: |
+          $binding = Join-Path (Split-Path -Parent $env:RELEASE_REBUILD_PREPARATION) "tracked-artifact-binding.json"
+          uv run python release_artifact_rebuild.py bind-tracked `
+            --repo-root "${{ github.workspace }}" `
+            --preparation "$env:RELEASE_REBUILD_PREPARATION" `
+            --output "$binding"
+          if ($LASTEXITCODE -ne 0) { throw "Tracked source-owned artifact binding failed." }
+          $trackedRoot = Join-Path "${{ github.workspace }}" "bin_artifacts"
+          "RELEASE_TRACKED_BINDING=$binding" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "ACTUAL_ARTIFACT_ROOT=$trackedRoot" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Prepare local-only BinSync candidate without remote writes
         id: binsync-prepare
         shell: pwsh
@@ -420,6 +442,11 @@ jobs:
         run: |
           $bundle = Join-Path $env:RUNNER_TEMP "release-bundle\$env:BUILD_ID"
           $artifactName = "release-bundle-$env:SOURCE_SHA-$env:GAMEVER"
+          $sourceBinding = if ("${{ inputs.source_artifact_mode }}" -eq "tracked") {
+            @("--tracked-binding", $env:RELEASE_TRACKED_BINDING)
+          } else {
+            @("--rebuild-verification", $env:RELEASE_REBUILD_VERIFICATION)
+          }
           uv run python release_bundle.py build `
             --repo-root "${{ github.workspace }}" `
             --bundle-root "$bundle" `
@@ -427,7 +454,7 @@ jobs:
             --release-version "$env:GAMEVER" `
             --build-id "$env:BUILD_ID" `
             --preparation "$env:RELEASE_REBUILD_PREPARATION" `
-            --rebuild-verification "$env:RELEASE_REBUILD_VERIFICATION" `
+            @sourceBinding `
             --snapshot "$env:ACTUAL_CANDIDATE_SNAPSHOT" `
             --metadata "$env:CANDIDATE_METADATA" `
             --gamedata-candidate-root "$env:GAMEDATA_CANDIDATE_ROOT" `

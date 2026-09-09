@@ -1,0 +1,77 @@
+name: Rebuild-Free Release
+run-name: Rebuild-free release ${{ inputs.publication_mode }} ${{ inputs.gamever }}
+# Manual, protected emergency path: it publishes from the tracked source-owned
+# bin_artifacts/<GAMEVER> tree instead of a fresh -force_all rebuild, so it does
+# not prove the artifacts can be rebuilt. Never wire this into an automatic flow.
+on:
+  workflow_dispatch:
+    inputs:
+      gamever:
+        description: Game version from download.yaml
+        required: true
+        type: string
+      source_sha:
+        description: Full immutable commit SHA reachable from the default branch
+        required: true
+        type: string
+      publication_mode:
+        description: Verify candidates without publishing, or run the protected publishers
+        required: true
+        type: choice
+        options:
+          - verify-only
+          - publish
+        default: publish
+permissions:
+  actions: read
+  contents: read
+  pull-requests: read
+concurrency:
+  group: release-build-${{ github.repository }}-${{ inputs.gamever }}
+  cancel-in-progress: false
+jobs:
+  ensure-binsync-remotes:
+    if: github.repository == 'HLND2T/CS2_VibeSignatures'
+    runs-on: ubuntu-latest
+    environment: binsync-remotes
+    steps:
+      - name: Checkout default branch for trusted provisioning
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v9.0.0
+      - name: Create and initialize missing BinSync remotes
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.HLND2T_GH_TOKEN }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:GH_TOKEN)) {
+            throw "HLND2T_GH_TOKEN is not configured for the binsync-remotes environment."
+          }
+          $orgLogin = gh api /orgs/HLND2T --jq .login
+          if ($LASTEXITCODE -ne 0) {
+            throw "HLND2T_GH_TOKEN could not authenticate to the HLND2T organization."
+          }
+          if ($orgLogin.Trim() -ne "HLND2T") {
+            throw "HLND2T_GH_TOKEN authenticated to an unexpected organization: '$($orgLogin.Trim())' (expected HLND2T)."
+          }
+          gh auth setup-git
+          if ($LASTEXITCODE -ne 0) { throw "gh auth setup-git failed." }
+          uv run init_gamebin.py ensure-binsync-remotes "${{ inputs.gamever }}" --user release-automation
+          if ($LASTEXITCODE -ne 0) { throw "BinSync remote provisioning failed." }
+  release:
+    needs: ensure-binsync-remotes
+    permissions:
+      actions: read
+      contents: write
+      pull-requests: read
+    uses: ./.github/workflows/build-on-self-runner.yml
+    with:
+      gamever: ${{ inputs.gamever }}
+      source_sha: ${{ inputs.source_sha }}
+      source_pull_request: 0
+      publication_mode: ${{ inputs.publication_mode }}
+      source_artifact_mode: tracked
+    secrets: inherit
