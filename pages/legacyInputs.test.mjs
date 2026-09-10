@@ -46,4 +46,23 @@ describe('legacy inputs manifest validation', () => {
     value.gamedata.versions[0].files[0].path = 'gamedata/14178b/../escape.jsonc'
     expect(() => validateLegacyInputs(value, 'inline')).toThrow(/unsafe path segment/)
   })
+
+  it('rejects raw bytes that carry a duplicate JSON key', async () => {
+    const value = JSON.parse((await readFile(join(fixtureDirectory, 'valid.json'))).toString('utf8'))
+    const canonical = canonicalJsonBytes(value).toString('utf8')
+    const duplicated = canonical.replace('"schemaVersion":1', '"schemaVersion":1,"schemaVersion":1')
+    expect(duplicated).not.toBe(canonical)
+    expect(() => parseLegacyInputs(Buffer.from(duplicated, 'utf8'), 'inline')).toThrow(/not canonical JSON/)
+  })
+
+  it('rejects a manifest that is not the exact canonical byte encoding', async () => {
+    const value = JSON.parse((await readFile(join(fixtureDirectory, 'valid.json'))).toString('utf8'))
+    const canonical = canonicalJsonBytes(value)
+    expect(() => parseLegacyInputs(Buffer.concat([canonical, Buffer.from('\n')]), 'inline')).toThrow(
+      /not canonical JSON/,
+    )
+    expect(() => parseLegacyInputs(canonical.subarray(0, canonical.length - 1), 'inline')).toThrow(
+      /not canonical JSON/,
+    )
+  })
 })

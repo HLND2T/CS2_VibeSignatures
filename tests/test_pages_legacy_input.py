@@ -107,6 +107,26 @@ class LegacyInputsManifestTests(unittest.TestCase):
         with self.assertRaises(pli.LegacyInputError):
             pli._validate_legacy_inputs(value, "inline")
 
+    def test_rejects_duplicate_keys_in_raw_bytes(self) -> None:
+        import json
+
+        value = json.loads((FIXTURE_DIRECTORY / "valid.json").read_text(encoding="utf-8"))
+        canonical = canonical_json_bytes(value).decode("utf-8")
+        duplicated = canonical.replace('"schemaVersion":1', '"schemaVersion":1,"schemaVersion":1')
+        self.assertNotEqual(canonical, duplicated)
+        with self.assertRaises(pli.LegacyInputError):
+            pli.parse_legacy_inputs(duplicated.encode("utf-8"), "inline")
+
+    def test_rejects_non_canonical_line_endings(self) -> None:
+        import json
+
+        value = json.loads((FIXTURE_DIRECTORY / "valid.json").read_text(encoding="utf-8"))
+        canonical = canonical_json_bytes(value)
+        for mutated in (canonical + b"\n", canonical[:-1], canonical.replace(b"\n", b"\r\n")):
+            with self.subTest(mutated=mutated[:16]):
+                with self.assertRaises(pli.LegacyInputError):
+                    pli.parse_legacy_inputs(mutated, "inline")
+
 
 class LegacyGamedataStagingTests(unittest.TestCase):
     def test_adds_missing_version_and_is_idempotent(self) -> None:
