@@ -72,7 +72,7 @@ class ReleasePublishTests(unittest.TestCase):
             def create_tag(_repository: str, _tag: str, source_sha: str) -> None:
                 tag["value"] = source_sha
 
-            def create_release(_repository: str, release_tag: str, source_sha: str, title: str, notes: str) -> None:
+            def create_release(_repository: str, release_tag: str, source_sha: str, title: str, notes: str) -> dict:
                 release["value"] = {
                     "id": 7,
                     "tag_name": release_tag,
@@ -83,6 +83,7 @@ class ReleasePublishTests(unittest.TestCase):
                     "prerelease": False,
                     "assets": [],
                 }
+                return copy.deepcopy(release["value"])
 
             def upload(_repository: str, _tag: str, path: Path) -> None:
                 data = path.read_bytes()
@@ -116,8 +117,13 @@ class ReleasePublishTests(unittest.TestCase):
                 patch.object(release_publish, "_download_asset", side_effect=download),
                 patch.object(release_publish, "_publish_release", side_effect=publish) as publish_mock,
             ):
-                first = release_publish.publish_release(bundle_root=bundle, repo_root=root)
-                second = release_publish.publish_release(bundle_root=bundle, repo_root=root)
+                binding = {
+                    "expected_manifest_digest": verified["manifest_sha256"],
+                    "expected_bundle_digest": verified["bundle_inventory_sha256"],
+                    "expected_verified_binsync_target_state_digest": verified["binsync_target_state_digest"],
+                }
+                first = release_publish.publish_release(bundle_root=bundle, repo_root=root, **binding)
+                second = release_publish.publish_release(bundle_root=bundle, repo_root=root, **binding)
 
             self.assertEqual("published", first["status"])
             self.assertEqual("already-published", second["status"])
@@ -178,6 +184,43 @@ class ReleasePublishTests(unittest.TestCase):
         command = gh.call_args.args[0]
         self.assertNotIn("--clobber", command)
         self.assertEqual("upload", command[1])
+
+    def test_hosted_digest_mismatch_fails_before_any_write(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle, _manifest, verified = self._bundle(root)
+            with (
+                patch.dict("os.environ", {"GH_TOKEN": "token"}),
+                patch.object(release_publish, "verify_release_bundle", return_value=verified),
+                patch.object(release_publish, "_create_tag") as create_tag,
+                self.assertRaisesRegex(release_publish.ReleasePublishError, "manifest digest differs"),
+            ):
+                release_publish.publish_release(
+                    bundle_root=bundle,
+                    repo_root=root,
+                    expected_manifest_digest="sha256:" + "0" * 64,
+                )
+
+            create_tag.assert_not_called()
+
+    def test_create_draft_release_returns_the_created_release(self) -> None:
+        created = {"id": 7, "tag_name": "14174", "draft": True}
+        result = subprocess.CompletedProcess([], 0, stdout=json.dumps(created))
+        with patch.object(release_publish, "_gh", return_value=result) as gh:
+            self.assertEqual(
+                created,
+                release_publish._create_draft_release("HLND2T/CS2_VibeSignatures", "14174", "a" * 40, "t", "b"),
+            )
+
+        self.assertEqual("POST", gh.call_args.args[0][2])
+
+    def test_create_draft_release_rejects_an_invalid_response(self) -> None:
+        result = subprocess.CompletedProcess([], 0, stdout=json.dumps({"tag_name": "14174"}))
+        with (
+            patch.object(release_publish, "_gh", return_value=result),
+            self.assertRaisesRegex(release_publish.ReleasePublishError, "invalid response"),
+        ):
+            release_publish._create_draft_release("HLND2T/CS2_VibeSignatures", "14174", "a" * 40, "t", "b")
 
     def test_release_state_falls_back_to_the_list_for_drafts(self) -> None:
         draft = {"id": 7, "tag_name": "14174", "draft": True}

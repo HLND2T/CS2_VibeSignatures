@@ -102,8 +102,9 @@ def _release_state(repository: str, tag: str) -> dict | None:
     return matches[0] if matches else None
 
 
-def _create_draft_release(repository: str, tag: str, source_sha: str, title: str, notes: str) -> None:
-    _gh(
+def _create_draft_release(repository: str, tag: str, source_sha: str, title: str, notes: str) -> dict:
+    """Create the draft and return it; the by-tag lookup cannot see drafts."""
+    result = _gh(
         [
             "api",
             "--method",
@@ -123,6 +124,13 @@ def _create_draft_release(repository: str, tag: str, source_sha: str, title: str
             "prerelease=false",
         ]
     )
+    try:
+        created = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        raise ReleasePublishError("GitHub CLI returned invalid JSON") from exc
+    if not isinstance(created, dict) or not isinstance(created.get("id"), int) or isinstance(created.get("id"), bool):
+        raise ReleasePublishError("GitHub Release creation returned an invalid response")
+    return created
 
 
 def _upload_asset(repository: str, tag: str, path: Path) -> None:
@@ -253,6 +261,9 @@ def publish_release(
     expected_actions_artifact_name: str | None = None,
     expected_binsync_candidate_digest: str | None = None,
     expected_binsync_target_state_digest: str | None = None,
+    expected_manifest_digest: str | None = None,
+    expected_bundle_digest: str | None = None,
+    expected_verified_binsync_target_state_digest: str | None = None,
 ) -> dict:
     """Create/recover one draft and publish only exact immutable Release bytes."""
     token = os.environ.get(TOKEN_ENVIRONMENT_VARIABLE, "")
@@ -275,6 +286,18 @@ def publish_release(
         manifest = load_json_object(manifest_path)
     except (ReleaseBundleError, ReleaseWorkflowError, StopIteration) as exc:
         raise ReleasePublishError(str(exc)) from exc
+    # Bind this publication to the hosted verifier's digests before any write.
+    for label, expected, actual in (
+        ("manifest digest", expected_manifest_digest, verified["manifest_sha256"]),
+        ("bundle digest", expected_bundle_digest, verified["bundle_inventory_sha256"]),
+        (
+            "verified BinSync target-state digest",
+            expected_verified_binsync_target_state_digest,
+            verified["binsync_target_state_digest"],
+        ),
+    ):
+        if expected is not None and expected != actual:
+            raise ReleasePublishError(f"Release {label} differs from the hosted verifier output")
     repository = manifest["repository"]
     tag = manifest["release_version"]
     source_sha = manifest["source_sha"]
@@ -294,10 +317,7 @@ def publish_release(
 
     release = _release_state(repository, tag)
     if release is None:
-        _create_draft_release(repository, tag, source_sha, title, notes)
-        release = _release_state(repository, tag)
-    if release is None:
-        raise ReleasePublishError("draft GitHub Release was not created")
+        release = _create_draft_release(repository, tag, source_sha, title, notes)
     _validate_release_identity(release, tag=tag, source_sha=source_sha, title=title, notes=notes)
     assets = _verify_remote_assets(repository, tag, release, expected_assets)
     if release.get("draft") is False:
@@ -338,6 +358,9 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--actions-artifact-name")
     parser.add_argument("--binsync-candidate-digest")
     parser.add_argument("--binsync-target-state-digest")
+    parser.add_argument("--verified-manifest-digest")
+    parser.add_argument("--verified-bundle-digest")
+    parser.add_argument("--verified-binsync-target-state-digest")
     return parser
 
 
@@ -354,6 +377,9 @@ def main(argv=None) -> int:
             expected_actions_artifact_name=args.actions_artifact_name,
             expected_binsync_candidate_digest=args.binsync_candidate_digest,
             expected_binsync_target_state_digest=args.binsync_target_state_digest,
+            expected_manifest_digest=args.verified_manifest_digest,
+            expected_bundle_digest=args.verified_bundle_digest,
+            expected_verified_binsync_target_state_digest=args.verified_binsync_target_state_digest,
         )
     except (ReleasePublishError, OSError) as exc:
         print(f"Release publish error: {exc}", file=sys.stderr)

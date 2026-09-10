@@ -136,7 +136,7 @@ jobs:
         run: |
           $actualRoot = Join-Path $env:RUNNER_TEMP "new-gamever-bin-artifacts\${{ github.run_id }}-${{ github.run_attempt }}"
           $binsyncCandidate = Join-Path $env:RUNNER_TEMP "bootstrap-binsync-local-only\${{ github.run_id }}-${{ github.run_attempt }}"
-          $executionReport = Join-Path $env:RUNNER_TEMP "new-gamever-force-all-execution.json"
+          $executionReport = Join-Path $env:RUNNER_TEMP "new-gamever-force-all-execution-${{ github.run_id }}-${{ github.run_attempt }}.json"
           New-Item -ItemType Directory -Path $actualRoot -Force | Out-Null
           "ACTUAL_ARTIFACT_ROOT=$actualRoot" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
           "EXECUTION_REPORT=$executionReport" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
@@ -172,7 +172,7 @@ jobs:
         id: gates
         shell: pwsh
         run: |
-          $gateRoot = Join-Path $env:RUNNER_TEMP "new-gamever-gates"
+          $gateRoot = Join-Path $env:RUNNER_TEMP "new-gamever-gates\${{ github.run_id }}-${{ github.run_attempt }}"
           New-Item -ItemType Directory -Path $gateRoot -Force | Out-Null
           $snapshot = Join-Path $gateRoot "$env:GAMEVER.yaml"
           $session = Join-Path $gateRoot "$env:GAMEVER.session.json"
@@ -239,6 +239,22 @@ jobs:
           path: ${{ env.CANDIDATE_PACKAGE }}
           if-no-files-found: error
           retention-days: 7
+      - name: Upload failed bootstrap diagnostics
+        if: >-
+          failure() && (steps.binsync-local.outcome == 'failure' || steps.gates.outcome == 'failure' ||
+          steps.package.outcome == 'failure' || steps.upload.outcome == 'failure')
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: bootstrap-diagnostics-${{ inputs.pull_request_number }}-${{ inputs.gamever }}-${{ github.run_id }}-${{ github.run_attempt }}
+          # Upload partial outputs directly; canonical candidate packaging requires all gates to pass.
+          path: |
+            ${{ runner.temp }}/new-gamever-bin-artifacts/${{ github.run_id }}-${{ github.run_attempt }}/**/*.yaml
+            ${{ runner.temp }}/new-gamever-force-all-execution-${{ github.run_id }}-${{ github.run_attempt }}.json
+            ${{ runner.temp }}/new-gamever-gates/${{ github.run_id }}-${{ github.run_attempt }}/**
+          retention-days: 30
+          include-hidden-files: true
+          if-no-files-found: warn
   publish-new-gamever-artifacts:
     needs: build-bootstrap-candidate
     environment: artifact-bootstrap
