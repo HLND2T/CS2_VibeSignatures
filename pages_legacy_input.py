@@ -175,7 +175,9 @@ def _validate_selected(value: object, source: str, file_by_path: dict[str, dict]
 
 def _validate_gamesymbols(value: object, source: str) -> None:
     _require_exact_keys(value, ("files", "selected"), source)
-    files = _validate_file_inventory(value["files"], f"{source}.files", prefix=GAMESYMBOLS_PREFIX, pattern=GAMESYMBOL_FILE_RE)
+    files = _validate_file_inventory(
+        value["files"], f"{source}.files", prefix=GAMESYMBOLS_PREFIX, pattern=GAMESYMBOL_FILE_RE
+    )
     _validate_selected(value["selected"], f"{source}.selected", {item["path"]: item for item in files})
 
 
@@ -194,9 +196,11 @@ def _validate_gamedata(value: object, source: str) -> None:
         if game_version in seen_versions:
             _fail(source, f"duplicate gamedata gameVersion {game_version}")
         seen_versions.add(game_version)
-        files = _validate_file_inventory(version["files"], f"{version_source}.files", prefix=f"{GAMEDATA_PREFIX}{game_version}/")
+        files = _validate_file_inventory(
+            version["files"], f"{version_source}.files", prefix=f"{GAMEDATA_PREFIX}{game_version}/"
+        )
         for item in files:
-            relative = item["path"][len(GAMEDATA_PREFIX):]
+            relative = item["path"][len(GAMEDATA_PREFIX) :]
             directory, _, rest = relative.partition("/")
             if directory != game_version or not rest:
                 _fail(f"{version_source}.files", f"path directory must be {game_version}")
@@ -221,23 +225,74 @@ def _validate_excluded(value: object, source: str) -> None:
     _assert_sorted(keys, lambda key: key, source, "excluded entries")
 
 
+def _validate_differences(value: object, source: str) -> None:
+    if not isinstance(value, list):
+        _fail(source, "must be a list")
+    paths = []
+    seen = set()
+    for index, item in enumerate(value):
+        item_source = f"{source}[{index}]"
+        _require_exact_keys(item, ("path", "releaseSha256", "trackedSha256"), item_source)
+        path = _relative_path(item["path"], f"{item_source}.path")
+        if not path.startswith(GAMEDATA_PREFIX):
+            _fail(f"{item_source}.path", f"must be under {GAMEDATA_PREFIX}")
+        for key in ("releaseSha256", "trackedSha256"):
+            digest = item[key]
+            if digest is not None and (not isinstance(digest, str) or not SHA256_RE.fullmatch(digest)):
+                _fail(f"{item_source}.{key}", "must be null or a lowercase SHA-256")
+        if item["releaseSha256"] is None and item["trackedSha256"] is None:
+            _fail(item_source, "must record at least one side")
+        if path in seen:
+            _fail(source, f"duplicate difference {path}")
+        seen.add(path)
+        paths.append(path)
+    _assert_sorted(paths, lambda path: path, source, "differences")
+
+
+def _validate_gamedata_source(value: object, source: str) -> None:
+    _require_exact_keys(
+        value, ("kind", "commit", "subtree", "inventorySha256", "selectionReason", "differences"), source
+    )
+    if value["kind"] not in ("switch-pre-tracked", "release-assets"):
+        _fail(f"{source}.kind", "is unsupported")
+    if value["kind"] == "switch-pre-tracked":
+        _require_sha(value["commit"], f"{source}.commit")
+    elif value["commit"] is not None:
+        _fail(f"{source}.commit", "must be null for release-assets")
+    if value["subtree"] != "gamedata":
+        _fail(f"{source}.subtree", "must be gamedata")
+    if not isinstance(value["inventorySha256"], str) or not SHA256_RE.fullmatch(value["inventorySha256"]):
+        _fail(f"{source}.inventorySha256", "must be a lowercase SHA-256")
+    _require_string(value["selectionReason"], f"{source}.selectionReason")
+    _validate_differences(value["differences"], f"{source}.differences")
+    if value["kind"] == "release-assets" and value["differences"]:
+        _fail(f"{source}.differences", "must be empty for release-assets")
+
+
 def _validate_import_provenance(value: object, source: str, gamedata_versions: list[str]) -> None:
-    _require_exact_keys(value, ("sourceArchiveCommit", "importBaseCommit", "selectedBasis", "releases"), source)
+    _require_exact_keys(
+        value, ("sourceArchiveCommit", "importBaseCommit", "selectedBasis", "gamedataSource", "releases"), source
+    )
     _require_sha(value["sourceArchiveCommit"], f"{source}.sourceArchiveCommit")
     _require_sha(value["importBaseCommit"], f"{source}.importBaseCommit")
-    basis = _require_exact_keys(value["selectedBasis"], ("kind", "sourceCommit", "indexSha256", "indexSize"), f"{source}.selectedBasis")
+    basis = _require_exact_keys(
+        value["selectedBasis"], ("kind", "sourceCommit", "indexSha256", "indexSize"), f"{source}.selectedBasis"
+    )
     _require_string(basis["kind"], f"{source}.selectedBasis.kind")
     _require_sha(basis["sourceCommit"], f"{source}.selectedBasis.sourceCommit")
     if not isinstance(basis["indexSha256"], str) or not SHA256_RE.fullmatch(basis["indexSha256"]):
         _fail(f"{source}.selectedBasis.indexSha256", "must be a lowercase SHA-256")
     _require_integer(basis["indexSize"], f"{source}.selectedBasis.indexSize", minimum=1)
+    _validate_gamedata_source(value["gamedataSource"], f"{source}.gamedataSource")
     releases = value["releases"]
     if not isinstance(releases, list) or not releases:
         _fail(f"{source}.releases", "must be a non-empty list")
     tags = []
     for index, item in enumerate(releases):
         item_source = f"{source}.releases[{index}]"
-        _require_exact_keys(item, ("tag", "releaseId", "assetId", "assetName", "assetSize", "sha256", "apiDigest"), item_source)
+        _require_exact_keys(
+            item, ("tag", "releaseId", "assetId", "assetName", "assetSize", "sha256", "apiDigest"), item_source
+        )
         tag = _require_game_version(item["tag"], f"{item_source}.tag")
         _require_integer(item["releaseId"], f"{item_source}.releaseId", minimum=1)
         _require_integer(item["assetId"], f"{item_source}.assetId", minimum=1)
@@ -290,7 +345,7 @@ def _gamedata_inventory(manifest: dict) -> list[dict]:
     for version in manifest["gamedata"]["versions"]:
         for item in version["files"]:
             records.append(
-                {"path": item["path"][len(GAMEDATA_PREFIX):], "size": item["size"], "sha256": item["sha256"]}
+                {"path": item["path"][len(GAMEDATA_PREFIX) :], "size": item["size"], "sha256": item["sha256"]}
             )
     records.sort(key=lambda item: item["path"])
     return records
@@ -352,7 +407,11 @@ def stage_legacy_gamedata(
                 _copy_version(gamedata_source / game_version, temporary)
                 relative_expected = sorted(
                     (
-                        {"path": item["path"][len(f"{GAMEDATA_PREFIX}{game_version}/"):], "size": item["size"], "sha256": item["sha256"]}
+                        {
+                            "path": item["path"][len(f"{GAMEDATA_PREFIX}{game_version}/") :],
+                            "size": item["size"],
+                            "sha256": item["sha256"],
+                        }
                         for item in version["files"]
                     ),
                     key=lambda item: item["path"],

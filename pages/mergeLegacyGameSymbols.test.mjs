@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { canonicalJsonBytes } from './legacyInputs.mjs'
-import { mergeLegacyGameSymbols } from './mergeLegacyGameSymbols.mjs'
+import { mergeLegacyGameSymbols, validateLegacyArchive } from './mergeLegacyGameSymbols.mjs'
 
 const temporaryRoots = []
 
@@ -93,6 +93,14 @@ function buildManifest({ files, selected, gamedataVersions }) {
         indexSha256: 'e'.repeat(64),
         indexSize: 10,
       },
+      gamedataSource: {
+        kind: 'release-assets',
+        commit: null,
+        subtree: 'gamedata',
+        inventorySha256: 'c'.repeat(64),
+        selectionReason: 'release-assets',
+        differences: [],
+      },
       releases: gamedataVersions.map((tag) => ({
         tag,
         releaseId: 1,
@@ -112,6 +120,45 @@ async function readTree(directory) {
   for (const name of names) entries[name] = (await readFile(join(directory, name))).toString('base64')
   return entries
 }
+
+describe('legacy archive validation', () => {
+  it('accepts an archive whose bytes match the manifest', async () => {
+    const { mkdir } = await import('node:fs/promises')
+    const root = await temporaryRoot()
+    const archive = join(root, 'archive', 'gamesymbols')
+    await mkdir(archive, { recursive: true })
+    const asset = await writeSnapshot(archive, '14178b', 'historical')
+    const manifest = buildManifest({
+      files: [fileRecord(asset)],
+      selected: [selectedRecord(asset)],
+      gamedataVersions: ['14178b'],
+    })
+    const manifestPath = join(root, 'legacy-inputs.json')
+    await writeFile(manifestPath, canonicalJsonBytes(manifest))
+    await expect(validateLegacyArchive({ manifestPath, archiveDirectory: archive })).resolves.toEqual({
+      historicalFileCount: 1,
+      selectedCount: 1,
+    })
+  })
+
+  it('rejects a selected snapshot whose body is not indexable', async () => {
+    const { mkdir } = await import('node:fs/promises')
+    const root = await temporaryRoot()
+    const archive = join(root, 'archive', 'gamesymbols')
+    await mkdir(archive, { recursive: true })
+    const legacy = await writeSnapshot(archive, '14172', 'legacy', 2)
+    const manifest = buildManifest({
+      files: [fileRecord(legacy)],
+      selected: [selectedRecord(legacy)],
+      gamedataVersions: ['14178b'],
+    })
+    const manifestPath = join(root, 'legacy-inputs.json')
+    await writeFile(manifestPath, canonicalJsonBytes(manifest))
+    await expect(validateLegacyArchive({ manifestPath, archiveDirectory: archive })).rejects.toThrow(
+      /snapshot body game version or schema/,
+    )
+  })
+})
 
 describe('historical game-symbol merge', () => {
   it('copies every archived digest and adds missing index versions without overriding current ones', async () => {

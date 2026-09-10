@@ -62,6 +62,25 @@ async function copyOrVerify(sourceBytes, targetPath) {
   }
 }
 
+function verifyArchiveAgainstManifest(manifest, archive) {
+  verifyArchiveInventory(archive.records, manifest, archive.root)
+  for (const entry of manifest.gamesymbols.selected) {
+    const record = archive.records.find((item) => item.fileName === entry.url)
+    if (!record) throw new LegacyMergeError(`${archive.root}: selected snapshot ${entry.url} is absent from the archive`)
+    verifySnapshotBytes(entry.url, record.bytes, join(archive.root, entry.url), entry, CURRENT_DATASET_SCHEMA_VERSION)
+  }
+}
+
+export async function validateLegacyArchive({ manifestPath, archiveDirectory }) {
+  const manifest = await loadLegacyInputs(manifestPath)
+  const archive = await archivedSnapshots(archiveDirectory)
+  verifyArchiveAgainstManifest(manifest, archive)
+  return {
+    historicalFileCount: manifest.gamesymbols.files.length,
+    selectedCount: manifest.gamesymbols.selected.length,
+  }
+}
+
 function buildMergedIndex(currentIndex, selectedEntries) {
   const versions = currentIndex.versions.map((entry) => ({ ...entry }))
   const existingVersions = new Set(versions.map((entry) => entry.gameVersion))
@@ -91,18 +110,11 @@ export async function mergeLegacyGameSymbols({ directory, archiveDirectory, mani
   const directoryRoot = resolve(directory)
   const manifestRaw = await readFile(resolve(manifestPath))
   const manifest = await loadLegacyInputs(manifestPath)
-  const source = `gamesymbols archive @ ${manifest.archiveCommit}`
 
   const archive = await archivedSnapshots(archiveDirectory)
-  verifyArchiveInventory(archive.records, manifest, archive.root)
+  verifyArchiveAgainstManifest(manifest, archive)
 
   const current = await verifyGameSymbolAssetDirectory(directoryRoot)
-  for (const entry of manifest.gamesymbols.selected) {
-    const record = archive.records.find((item) => item.fileName === entry.url)
-    if (!record) throw new LegacyMergeError(`${source}: selected snapshot ${entry.url} is absent from the archive`)
-    verifySnapshotBytes(entry.url, record.bytes, join(archive.root, entry.url), entry, CURRENT_DATASET_SCHEMA_VERSION)
-  }
-
   const parent = dirname(directoryRoot)
   const staging = await mkdtemp(join(parent, '.legacy-merge-'))
   const backup = await mkdtemp(join(parent, '.legacy-backup-'))
@@ -160,9 +172,17 @@ async function main(args) {
   const archiveDirectory = argumentValue(args, '--archive')
   const manifestPath = argumentValue(args, '--manifest')
   const receiptPath = argumentValue(args, '--receipt')
-  if (!directory || !archiveDirectory || !manifestPath) {
-    throw new LegacyMergeError('Expected --directory, --archive and --manifest')
+  if (!archiveDirectory || !manifestPath) {
+    throw new LegacyMergeError('Expected --archive and --manifest')
   }
+  if (args.includes('--validate-archive')) {
+    const result = await validateLegacyArchive({ manifestPath, archiveDirectory })
+    console.log(
+      `Validated ${result.historicalFileCount} archived game-symbol files and ${result.selectedCount} selected snapshots.`,
+    )
+    return
+  }
+  if (!directory) throw new LegacyMergeError('Expected --directory for a merge')
   const receipt = await mergeLegacyGameSymbols({ directory, archiveDirectory, manifestPath, receiptPath })
   console.log(
     `Merged ${receipt.historical_file_count} historical game-symbol files; ${receipt.added_index_entries.length} index entries added.`,

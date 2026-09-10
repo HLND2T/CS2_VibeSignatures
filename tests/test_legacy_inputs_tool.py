@@ -10,13 +10,12 @@ import unittest
 from pathlib import Path
 
 from release_bundle import _create_archive
-from release_workflow_lib.hashing import canonical_json_bytes, sha256_bytes
+from release_workflow_lib.hashing import canonical_json_bytes, inventory_sha256, sha256_bytes
 
 import pages_legacy_input as pli
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-GAMESYMBOL_SHA = "a" * 64
-GAMESYMBOL_BYTES = b'{"schemaVersion":3}\n'
+GAME_VERSION = "14178b"
 
 
 def _load_tool():
@@ -54,23 +53,38 @@ def _sources_document(game_versions: list[str], excluded: list[dict] | None = No
     }
 
 
+def _dataset(game_version: str, file_count: int = 1) -> dict:
+    return {
+        "schemaVersion": 3,
+        "source": {
+            "gameVersion": game_version,
+            "snapshotSchemaVersion": 5,
+            "fileCount": file_count,
+            "lastPublishTime": "2026-08-31T10:18:36Z",
+        },
+        "binaries": {},
+        "modules": [],
+        "records": [{} for _ in range(file_count)],
+    }
+
+
 class ExtractorTests(unittest.TestCase):
     def test_extracts_only_the_declared_gamedata_subtree(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             source = root / "source"
-            payload = source / "gamedata" / "14178b" / "Plugin" / "data.jsonc"
+            payload = source / "gamedata" / GAME_VERSION / "Plugin" / "data.jsonc"
             payload.parent.mkdir(parents=True)
             payload.write_bytes(b'{"gamever":"14178b"}\n')
-            unrelated = source / "bin_artifacts" / "14178b" / "server"
+            unrelated = source / "bin_artifacts" / GAME_VERSION / "server"
             unrelated.mkdir(parents=True)
             (unrelated / "Symbol.yaml").write_text("func_name: Symbol\n", encoding="utf-8", newline="\n")
             archive = root / "gamedata-14178b.7z"
             _create_archive(source, archive)
 
             destination = root / "extracted"
-            legacy_tool._extract_version(archive, destination, "14178b")
-            extracted = destination / "gamedata" / "14178b"
+            legacy_tool._extract_version(archive, destination, GAME_VERSION)
+            extracted = destination / "gamedata" / GAME_VERSION
             self.assertEqual(b'{"gamever":"14178b"}\n', (extracted / "Plugin" / "data.jsonc").read_bytes())
             self.assertFalse((destination / "bin_artifacts").exists())
 
@@ -83,7 +97,7 @@ class ExtractorTests(unittest.TestCase):
             archive = root / "gamedata-14178b.7z"
             _create_archive(source, archive)
             with self.assertRaises(legacy_tool.LegacyInputToolError):
-                legacy_tool._extract_version(archive, root / "out", "14178b")
+                legacy_tool._extract_version(archive, root / "out", GAME_VERSION)
 
     def test_classifies_nanazip_directory_entries(self) -> None:
         output = (
@@ -98,19 +112,24 @@ class ExtractorTests(unittest.TestCase):
         with self.assertRaises(legacy_tool.LegacyInputToolError):
             legacy_tool._enforce_limits([{"path": "a", "size": legacy_tool.MAX_EXTRACTED_BYTES + 1}])
 
-    def test_cross_check_reports_differences(self) -> None:
+    def test_cross_check_reports_both_sides(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            extracted = root / "extracted"
-            reference = root / "reference"
-            extracted_file = extracted / "Plugin" / "data.jsonc"
-            reference_file = reference / "14178b" / "Plugin" / "data.jsonc"
-            for target in (extracted_file, reference_file):
+            release = root / "release"
+            tracked = root / "tracked"
+            release_file = release / "Plugin" / "data.jsonc"
+            tracked_file = tracked / GAME_VERSION / "Plugin" / "data.jsonc"
+            for target in (release_file, tracked_file):
                 target.parent.mkdir(parents=True)
                 target.write_bytes(b"same")
-            self.assertEqual([], legacy_tool._cross_check(extracted, reference, "14178b"))
-            reference_file.write_bytes(b"different")
-            self.assertEqual(1, len(legacy_tool._cross_check(extracted, reference, "14178b")))
+            self.assertEqual([], legacy_tool._cross_check(release, tracked, GAME_VERSION))
+            tracked_file.write_bytes(b"different")
+            differences = legacy_tool._cross_check(release, tracked, GAME_VERSION)
+            self.assertEqual(1, len(differences))
+            self.assertEqual(f"gamedata/{GAME_VERSION}/Plugin/data.jsonc", differences[0]["path"])
+            self.assertIsNotNone(differences[0]["releaseSha256"])
+            self.assertIsNotNone(differences[0]["trackedSha256"])
+            self.assertNotEqual(differences[0]["releaseSha256"], differences[0]["trackedSha256"])
 
 
 class SourcesTests(unittest.TestCase):
@@ -129,26 +148,94 @@ class SourcesTests(unittest.TestCase):
                 legacy_tool._load_sources(path)
 
 
+class ContentSourceTests(unittest.TestCase):
+    def _repository(self, root: Path) -> Path:
+        repository = root / "source"
+        repository.mkdir()
+        _git(root, "init", "-q", str(repository))
+        _git(repository, "config", "user.name", "test")
+        _git(repository, "config", "user.email", "test@example.invalid")
+        (repository / "gamedata" / GAME_VERSION / "Plugin").mkdir(parents=True)
+        (repository / "gamedata" / GAME_VERSION / "Plugin" / "data.jsonc").write_bytes(b"payload")
+        _git(repository, "add", "--all")
+        _git(repository, "commit", "-q", "-m", "source")
+        return repository
+
+    def test_accepts_a_clean_worktree_at_the_declared_commit(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repository = self._repository(Path(temporary))
+            legacy_tool._verify_content_source(repository, _git(repository, "rev-parse", "HEAD"))
+
+    def test_rejects_a_mismatched_commit_and_a_dirty_worktree(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repository = self._repository(Path(temporary))
+            with self.assertRaises(legacy_tool.LegacyInputToolError):
+                legacy_tool._verify_content_source(repository, "0" * 40)
+            (repository / "gamedata" / GAME_VERSION / "Plugin" / "data.jsonc").write_bytes(b"dirty")
+            with self.assertRaises(legacy_tool.LegacyInputToolError):
+                legacy_tool._verify_content_source(repository, _git(repository, "rev-parse", "HEAD"))
+
+
 class SelectTests(unittest.TestCase):
-    def _namespace(self, root: Path, index: dict) -> argparse.Namespace:
-        worktree = root / "archive"
-        gamesymbol_bytes = GAMESYMBOL_BYTES
-        digest = sha256_bytes(gamesymbol_bytes)
-        gamesymbol_dir = worktree / "gamesymbols"
-        gamesymbol_dir.mkdir(parents=True)
-        (gamesymbol_dir / f"14178b.{digest}.json").write_bytes(gamesymbol_bytes)
-        gamedata_file = worktree / "gamedata" / "14178b" / "Plugin" / "data.jsonc"
-        gamedata_file.parent.mkdir(parents=True)
-        gamedata_file.write_bytes(b"payload")
+    def _archive_repository(self, root: Path, body: bytes) -> tuple[Path, str, dict]:
+        repository = root / "archive"
+        repository.mkdir()
+        _git(root, "init", "-q", str(repository))
+        _git(repository, "config", "user.name", "test")
+        _git(repository, "config", "user.email", "test@example.invalid")
+        digest = sha256_bytes(body)
+        (repository / "gamesymbols").mkdir()
+        (repository / "gamesymbols" / f"{GAME_VERSION}.{digest}.json").write_bytes(body)
+        (repository / "gamedata" / GAME_VERSION / "Plugin").mkdir(parents=True)
+        (repository / "gamedata" / GAME_VERSION / "Plugin" / "data.jsonc").write_bytes(b"payload")
+        _git(repository, "add", "--all")
+        _git(repository, "commit", "-q", "-m", "archive")
+        commit = _git(repository, "rev-parse", "HEAD")
+        index = {
+            "schemaVersion": 4,
+            "versions": [
+                {
+                    "gameVersion": GAME_VERSION,
+                    "url": f"{GAME_VERSION}.{digest}.json",
+                    "sha256": digest,
+                    "size": len(body),
+                    "snapshotSchemaVersion": 5,
+                    "fileCount": 1,
+                    "lastPublishTime": "2026-08-31T10:18:36Z",
+                }
+            ],
+        }
+        return repository, commit, index
+
+    def _namespace(self, root: Path, repository: Path, commit: str, index: dict) -> argparse.Namespace:
+        from release_workflow_lib.hashing import file_inventory
+
         index_path = root / "index.json"
         index_path.write_bytes(canonical_json_bytes(index))
         sources_path = root / "sources.json"
-        sources_path.write_text(json.dumps(_sources_document(["14178b"])), encoding="utf-8")
+        sources_path.write_text(json.dumps(_sources_document([GAME_VERSION])), encoding="utf-8")
+        archive_report = root / "archive-report.json"
+        archive_report.write_bytes(
+            canonical_json_bytes(
+                {
+                    "archiveCommit": commit,
+                    "contentSource": {
+                        "kind": "release-assets",
+                        "commit": None,
+                        "subtree": "gamedata",
+                        "inventorySha256": inventory_sha256(file_inventory(repository / "gamedata")),
+                        "selectionReason": "release assets",
+                        "differences": [],
+                    },
+                }
+            )
+        )
         return argparse.Namespace(
             sources=str(sources_path),
             reproduced_index=str(index_path),
-            archive_root=str(worktree),
-            archive_commit="f" * 40,
+            archive_root=str(repository),
+            archive_report=str(archive_report),
+            archive_commit=commit,
             source_archive_commit="e" * 40,
             import_base_commit="d" * 40,
             source_commit="c" * 40,
@@ -156,46 +243,50 @@ class SelectTests(unittest.TestCase):
             report=str(root / "report.json"),
         )
 
-    def _index(self, digest: str, *, url: str | None = None, size: int | None = None) -> dict:
-        return {
-            "schemaVersion": 4,
-            "versions": [
-                {
-                    "gameVersion": "14178b",
-                    "url": url or f"14178b.{digest}.json",
-                    "sha256": digest,
-                    "size": size if size is not None else len(GAMESYMBOL_BYTES),
-                    "snapshotSchemaVersion": 5,
-                    "fileCount": 1,
-                    "lastPublishTime": "2026-08-31T10:18:36Z",
-                }
-            ],
-        }
-
     def test_builds_a_valid_pinned_manifest(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            digest = sha256_bytes(b'{"schemaVersion":3}\n')
-            args = self._namespace(root, self._index(digest))
-            legacy_tool.select(args)
-            manifest = pli.parse_legacy_inputs(Path(args.manifest_out).read_bytes(), "manifest")
-            self.assertEqual("f" * 40, manifest["archiveCommit"])
+            repository, commit, index = self._archive_repository(root, canonical_json_bytes(_dataset(GAME_VERSION)))
+            legacy_tool.select(self._namespace(root, repository, commit, index))
+            manifest = pli.parse_legacy_inputs((root / "legacy-inputs.json").read_bytes(), "manifest")
+            self.assertEqual(commit, manifest["archiveCommit"])
             self.assertEqual(["14178b"], [item["gameVersion"] for item in manifest["gamesymbols"]["selected"]])
-            self.assertEqual(["14178b"], [item["gameVersion"] for item in manifest["gamedata"]["versions"]])
+            self.assertEqual("release-assets", manifest["importProvenance"]["gamedataSource"]["kind"])
 
-    def test_rejects_a_selected_url_absent_from_the_archive(self) -> None:
+    def test_rejects_an_archive_commit_that_does_not_match_the_worktree(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            args = self._namespace(root, self._index("b" * 64))
+            repository, commit, index = self._archive_repository(root, canonical_json_bytes(_dataset(GAME_VERSION)))
+            namespace = self._namespace(root, repository, commit, index)
+            namespace.archive_commit = "0" * 40
             with self.assertRaises(legacy_tool.LegacyInputToolError):
-                legacy_tool.select(args)
+                legacy_tool.select(namespace)
+
+    def test_rejects_a_snapshot_whose_body_is_not_indexable(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            legacy_body = b'{"schemaVersion":2,"source":{"gameVersion":"14178b"}}'
+            repository, commit, index = self._archive_repository(root, legacy_body)
+            with self.assertRaises(legacy_tool.LegacyInputToolError):
+                legacy_tool.select(self._namespace(root, repository, commit, index))
+            self.assertFalse((root / "legacy-inputs.json").exists())
+
+    def test_rejects_a_body_that_disagrees_with_the_index_metadata(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            repository, commit, index = self._archive_repository(
+                root, canonical_json_bytes(_dataset(GAME_VERSION, file_count=2))
+            )
+            index["versions"][0]["fileCount"] = 1
+            with self.assertRaises(legacy_tool.LegacyInputToolError):
+                legacy_tool.select(self._namespace(root, repository, commit, index))
 
 
 class AssembleCommitTests(unittest.TestCase):
     def _repository(self, root: Path) -> Path:
         repository = root / "worktree"
         repository.mkdir()
-        _git(repository.parent, "init", "-q", str(repository))
+        _git(root, "init", "-q", str(repository))
         _git(repository, "config", "user.name", "test")
         _git(repository, "config", "user.email", "test@example.invalid")
         (repository / "gamesymbols").mkdir()
@@ -209,23 +300,25 @@ class AssembleCommitTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             repository = self._repository(root)
-            imported_root = root / "imported" / "14178b"
+            imported_root = root / "imported" / GAME_VERSION
             payload = imported_root / "Plugin" / "data.jsonc"
             payload.parent.mkdir(parents=True)
             payload.write_bytes(b"payload")
 
             first = legacy_tool._assemble_archive_commit(
                 worktree=repository,
-                imported={"14178b": imported_root},
+                imported={GAME_VERSION: imported_root},
                 candidate_ref="refs/heads/candidate",
             )
-            self.assertEqual(b"payload", (repository / "gamedata" / "14178b" / "Plugin" / "data.jsonc").read_bytes())
+            self.assertEqual(
+                b"payload", (repository / "gamedata" / GAME_VERSION / "Plugin" / "data.jsonc").read_bytes()
+            )
             self.assertEqual(b"baseline", next((repository / "gamesymbols").iterdir()).read_bytes())
             self.assertEqual(first, _git(repository, "rev-parse", "refs/heads/candidate"))
 
             second = legacy_tool._assemble_archive_commit(
                 worktree=repository,
-                imported={"14178b": imported_root},
+                imported={GAME_VERSION: imported_root},
                 candidate_ref="refs/heads/candidate",
             )
             self.assertEqual(first, second)

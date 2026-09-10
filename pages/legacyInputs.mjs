@@ -254,8 +254,47 @@ function validateReleases(value, source) {
   return value
 }
 
+function validateDifferences(value, source) {
+  if (!Array.isArray(value)) fail(source, 'must be a list')
+  const seen = new Set()
+  const paths = []
+  value.forEach((item, index) => {
+    const itemSource = `${source}[${index}]`
+    requireExactKeys(item, ['path', 'releaseSha256', 'trackedSha256'], itemSource)
+    const path = normalizedRelativePath(item.path, `${itemSource}.path`)
+    if (!path.startsWith(GAMEDATA_FILE_PREFIX)) fail(`${itemSource}.path`, 'must be under gamedata/')
+    for (const key of ['releaseSha256', 'trackedSha256']) {
+      const digest = item[key]
+      if (digest !== null && (typeof digest !== 'string' || !SHA256_RE.test(digest))) {
+        fail(`${itemSource}.${key}`, 'must be null or a lowercase SHA-256')
+      }
+    }
+    if (item.releaseSha256 === null && item.trackedSha256 === null) fail(itemSource, 'must record at least one side')
+    if (seen.has(path)) fail(source, `duplicate difference ${path}`)
+    seen.add(path)
+    paths.push(path)
+  })
+  assertSorted(paths, (left, right) => (left < right ? -1 : left > right ? 1 : 0), source, 'differences')
+}
+
+function validateGamedataSource(value, source) {
+  requireExactKeys(value, ['kind', 'commit', 'subtree', 'inventorySha256', 'selectionReason', 'differences'], source)
+  if (value.kind !== 'switch-pre-tracked' && value.kind !== 'release-assets') fail(`${source}.kind`, 'is unsupported')
+  if (value.kind === 'switch-pre-tracked') requireSha(value.commit, `${source}.commit`)
+  else if (value.commit !== null) fail(`${source}.commit`, 'must be null for release-assets')
+  if (value.subtree !== 'gamedata') fail(`${source}.subtree`, 'must be gamedata')
+  if (typeof value.inventorySha256 !== 'string' || !SHA256_RE.test(value.inventorySha256)) {
+    fail(`${source}.inventorySha256`, 'must be a lowercase SHA-256')
+  }
+  requireString(value.selectionReason, `${source}.selectionReason`)
+  validateDifferences(value.differences, `${source}.differences`)
+  if (value.kind === 'release-assets' && value.differences.length !== 0) {
+    fail(`${source}.differences`, 'must be empty for release-assets')
+  }
+}
+
 function validateImportProvenance(value, source, expected) {
-  requireExactKeys(value, ['sourceArchiveCommit', 'importBaseCommit', 'selectedBasis', 'releases'], source)
+  requireExactKeys(value, ['sourceArchiveCommit', 'importBaseCommit', 'selectedBasis', 'gamedataSource', 'releases'], source)
   requireSha(value.sourceArchiveCommit, `${source}.sourceArchiveCommit`)
   requireSha(value.importBaseCommit, `${source}.importBaseCommit`)
   requireExactKeys(value.selectedBasis, ['kind', 'sourceCommit', 'indexSha256', 'indexSize'], `${source}.selectedBasis`)
@@ -265,6 +304,7 @@ function validateImportProvenance(value, source, expected) {
     fail(`${source}.selectedBasis.indexSha256`, 'must be a lowercase SHA-256')
   }
   requireInteger(value.selectedBasis.indexSize, `${source}.selectedBasis.indexSize`, { minimum: 1 })
+  validateGamedataSource(value.gamedataSource, `${source}.gamedataSource`)
   validateReleases(value.releases, `${source}.releases`)
   const releaseTags = value.releases.map((item) => item.tag)
   if (releaseTags.length !== expected.gamedataVersions.length || releaseTags.some((tag, index) => tag !== expected.gamedataVersions[index])) {

@@ -19,9 +19,7 @@ def _manifest(*, gamedata_versions: dict[str, list[dict]]) -> dict:
         "repository": pli.ALLOWED_REPOSITORY,
         "archiveCommit": "f" * 40,
         "gamesymbols": {
-            "files": [
-                {"path": f"gamesymbols/{primary}.{GAMESYMBOL_SHA}.json", "size": 10, "sha256": GAMESYMBOL_SHA}
-            ],
+            "files": [{"path": f"gamesymbols/{primary}.{GAMESYMBOL_SHA}.json", "size": 10, "sha256": GAMESYMBOL_SHA}],
             "selected": [
                 {
                     "gameVersion": primary,
@@ -45,6 +43,14 @@ def _manifest(*, gamedata_versions: dict[str, list[dict]]) -> dict:
                 "indexSha256": "e" * 64,
                 "indexSize": 10,
             },
+            "gamedataSource": {
+                "kind": "release-assets",
+                "commit": None,
+                "subtree": "gamedata",
+                "inventorySha256": "c" * 64,
+                "selectionReason": "release assets are the sole import source",
+                "differences": [],
+            },
             "releases": [
                 {
                     "tag": gv,
@@ -67,9 +73,7 @@ def _write_archive(archive_root: Path, version: str, files: dict[str, bytes]) ->
         target = archive_root / "gamedata" / version / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(data)
-        records.append(
-            {"path": f"gamedata/{version}/{relative}", "size": len(data), "sha256": sha256_bytes(data)}
-        )
+        records.append({"path": f"gamedata/{version}/{relative}", "size": len(data), "sha256": sha256_bytes(data)})
     return sorted(records, key=lambda item: item["path"])
 
 

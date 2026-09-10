@@ -23,7 +23,13 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from release_workflow_lib.errors import ReleaseWorkflowError
-from release_workflow_lib.hashing import file_inventory, inventory_sha256, sha256_bytes, sha256_file, write_canonical_json
+from release_workflow_lib.hashing import (
+    file_inventory,
+    inventory_sha256,
+    sha256_bytes,
+    sha256_file,
+    write_canonical_json,
+)
 from release_workflow_lib.sevenzip import listed_archive_files
 
 import pages_legacy_input as legacy_input
@@ -132,7 +138,9 @@ def _download_asset(release: dict, destination: Path) -> None:
         raise LegacyInputToolError(f"unable to download {release['assetName']}: {exc}") from exc
     if result.returncode:
         destination.unlink(missing_ok=True)
-        raise LegacyInputToolError(f"unable to download {release['assetName']}: {result.stderr.decode(errors='replace').strip()}")
+        raise LegacyInputToolError(
+            f"unable to download {release['assetName']}: {result.stderr.decode(errors='replace').strip()}"
+        )
 
 
 def _directory_paths(output: str) -> set[str]:
@@ -172,7 +180,11 @@ def _extract_version(archive: Path, destination: Path, game_version: str) -> Non
     listing = _list_archive(archive)
     if len(listing) > MAX_ARCHIVE_ENTRIES:
         raise LegacyInputToolError(f"{archive}: lists {len(listing)} entries, above the {MAX_ARCHIVE_ENTRIES} limit")
-    expected = [{"path": item["path"][len(prefix):], "size": item["size"]} for item in listing if item["path"].startswith(prefix)]
+    expected = [
+        {"path": item["path"][len(prefix) :], "size": item["size"]}
+        for item in listing
+        if item["path"].startswith(prefix)
+    ]
     if not expected:
         raise LegacyInputToolError(f"{archive}: no {prefix} entries found")
     _enforce_limits(expected)
@@ -186,25 +198,52 @@ def _extract_version(archive: Path, destination: Path, game_version: str) -> Non
         raise LegacyInputToolError(f"{archive}: extracted inventory differs from the 7z listing")
 
 
-def _cross_check(extracted_root: Path, reference_root: Path, game_version: str) -> list[str]:
+def _cross_check(release_root: Path, tracked_root: Path, game_version: str) -> list[dict]:
+    release = {item["path"]: item for item in file_inventory(release_root)}
+    tracked_dir = tracked_root / game_version
+    tracked = {item["path"]: item for item in file_inventory(tracked_dir)} if tracked_dir.is_dir() else {}
     differences = []
-    actual = {item["path"]: item for item in file_inventory(extracted_root)}
-    reference_dir = reference_root / game_version
-    reference = {item["path"]: item for item in file_inventory(reference_dir)} if reference_dir.is_dir() else {}
-    for path in sorted(set(actual) | set(reference)):
-        left = actual.get(path)
-        right = reference.get(path)
-        if left is None:
-            differences.append(f"{game_version}/{path}: only in switch-pre source")
-        elif right is None:
-            differences.append(f"{game_version}/{path}: only in imported Release")
-        elif left != right:
-            differences.append(f"{game_version}/{path}: size or SHA-256 differs")
+    for path in sorted(set(release) | set(tracked)):
+        left = release.get(path)
+        right = tracked.get(path)
+        if (
+            left is not None
+            and right is not None
+            and left["sha256"] == right["sha256"]
+            and left["size"] == right["size"]
+        ):
+            continue
+        differences.append(
+            {
+                "path": f"{GAMEDATA_PREFIX}{game_version}/{path}",
+                "releaseSha256": left["sha256"] if left else None,
+                "trackedSha256": right["sha256"] if right else None,
+            }
+        )
     return differences
 
 
+def _verify_content_source(worktree: Path, commit: str) -> None:
+    if _git(["rev-parse", "HEAD"], cwd=worktree) != commit:
+        raise LegacyInputToolError(f"{worktree}: HEAD does not match the declared content source commit {commit}")
+    dirty = _git(["status", "--porcelain", "--untracked-files=all", "--", "gamedata"], cwd=worktree)
+    if dirty:
+        raise LegacyInputToolError(f"{worktree}: content source has uncommitted gamedata changes:\n{dirty}")
+
+
+def _verify_archive_checkout(worktree: Path, commit: str) -> None:
+    if _git(["rev-parse", "HEAD"], cwd=worktree) != commit:
+        raise LegacyInputToolError(f"{worktree}: HEAD does not match the declared archive commit {commit}")
+    dirty = _git(["status", "--porcelain", "--untracked-files=all", "--", "gamesymbols", "gamedata"], cwd=worktree)
+    if dirty:
+        raise LegacyInputToolError(f"{worktree}: archive worktree has uncommitted changes:\n{dirty}")
+
+
 def _prepare_worktree(destination: Path, source_commit: str) -> str:
-    _git(["fetch", "--no-tags", "origin", "refs/heads/pages-snapshots:refs/remotes/origin/pages-snapshots"], cwd=REPO_ROOT)
+    _git(
+        ["fetch", "--no-tags", "origin", "refs/heads/pages-snapshots:refs/remotes/origin/pages-snapshots"],
+        cwd=REPO_ROOT,
+    )
     tip = _git(["rev-parse", "refs/remotes/origin/pages-snapshots"], cwd=REPO_ROOT)
     if _exit_code(["git", "merge-base", "--is-ancestor", source_commit, tip], cwd=REPO_ROOT):
         raise LegacyInputToolError(f"{source_commit} is not an ancestor of the pages-snapshots tip {tip}")
@@ -238,6 +277,7 @@ def _assemble_archive_commit(*, worktree: Path, imported: dict[str, Path], candi
     except LegacyInputToolError:
         candidate = None
     if candidate and _tree_of(candidate, worktree) == tree:
+        _git(["checkout", "--detach", candidate], cwd=worktree)
         return candidate
     if _git(["diff", "--cached", "--name-only"], cwd=worktree) == "":
         return _git(["rev-parse", "HEAD"], cwd=worktree)
@@ -305,20 +345,42 @@ def archive_gamedata(args: argparse.Namespace) -> int:
                 }
             )
 
-        differences: list[str] = []
-        if args.content_root:
-            content_root = Path(args.content_root).resolve()
-            content_source = "switch-pre-tracked"
+        differences: list[dict] = []
+        if args.content_source_worktree:
+            if not args.content_source_commit or not args.selection_reason:
+                raise LegacyInputToolError(
+                    "--content-source-worktree requires --content-source-commit and --selection-reason"
+                )
+            source_worktree = Path(args.content_source_worktree).resolve()
+            _verify_content_source(source_worktree, args.content_source_commit)
+            tracked_root = source_worktree / "gamedata"
+            if not tracked_root.is_dir():
+                raise LegacyInputToolError(f"content source gamedata subtree is missing: {tracked_root}")
             imported: dict[str, Path] = {}
             for game_version in sorted(release_extract, key=legacy_input._version_key):
-                differences.extend(_cross_check(release_extract[game_version], content_root, game_version))
-                source = content_root / game_version
+                differences.extend(_cross_check(release_extract[game_version], tracked_root, game_version))
+                source = tracked_root / game_version
                 if not source.is_dir():
                     raise LegacyInputToolError(f"content source is missing {game_version}: {source}")
                 imported[game_version] = source
+            content_source = {
+                "kind": "switch-pre-tracked",
+                "commit": args.content_source_commit,
+                "subtree": "gamedata",
+                "selectionReason": args.selection_reason,
+            }
         else:
-            content_source = "release-assets"
+            if args.content_source_commit or args.selection_reason:
+                raise LegacyInputToolError(
+                    "--content-source-commit/--selection-reason require --content-source-worktree"
+                )
             imported = release_extract
+            content_source = {
+                "kind": "release-assets",
+                "commit": None,
+                "subtree": "gamedata",
+                "selectionReason": "release assets are the sole import source",
+            }
 
         worktree = Path(args.worktree).resolve()
         import_base = _prepare_worktree(worktree, args.source_archive_commit)
@@ -329,6 +391,8 @@ def archive_gamedata(args: argparse.Namespace) -> int:
         )
         diff = _git(["show", "--stat", "--oneline", archive_commit], cwd=worktree)
         gamedata_inventory = file_inventory(worktree / "gamedata")
+        content_source["inventorySha256"] = inventory_sha256(gamedata_inventory)
+        content_source["differences"] = sorted(differences, key=lambda item: item["path"])
         report = {
             "schemaVersion": 1,
             "archiveCommit": archive_commit,
@@ -336,7 +400,6 @@ def archive_gamedata(args: argparse.Namespace) -> int:
             "sourceArchiveCommit": args.source_archive_commit,
             "contentSource": content_source,
             "releases": provenance,
-            "adjudicatedDifferences": sorted(differences),
             "gamedataFileCount": len(gamedata_inventory),
             "gamedataTotalBytes": sum(item["size"] for item in gamedata_inventory),
             "gamedataInventorySha256": inventory_sha256(gamedata_inventory),
@@ -345,7 +408,7 @@ def archive_gamedata(args: argparse.Namespace) -> int:
         write_canonical_json(Path(args.report), report)
         print(diff)
         print(
-            f"archiveCommit={archive_commit} importBase={import_base} contentSource={content_source} "
+            f"archiveCommit={archive_commit} importBase={import_base} contentSource={content_source['kind']} "
             f"gamedataFiles={len(gamedata_inventory)} bytes={report['gamedataTotalBytes']} "
             f"differences={len(differences)}"
         )
@@ -354,9 +417,32 @@ def archive_gamedata(args: argparse.Namespace) -> int:
     return 0
 
 
+def _node_validate_archive(manifest_path: Path, archive_directory: Path) -> None:
+    script = REPO_ROOT / "pages" / "mergeLegacyGameSymbols.mjs"
+    _run(
+        [
+            "node",
+            str(script),
+            "--validate-archive",
+            "--manifest",
+            str(manifest_path),
+            "--archive",
+            str(archive_directory),
+        ]
+    )
+
+
 def select(args: argparse.Namespace) -> int:
     sources = _load_sources(Path(args.sources))
     worktree = Path(args.archive_root).resolve()
+    _verify_archive_checkout(worktree, args.archive_commit)
+    archive_report = _load_json(Path(args.archive_report))
+    if archive_report.get("archiveCommit") != args.archive_commit:
+        raise LegacyInputToolError(f"{args.archive_report}: archiveCommit does not match {args.archive_commit}")
+    content_source = archive_report.get("contentSource")
+    if not isinstance(content_source, dict):
+        raise LegacyInputToolError(f"{args.archive_report}: contentSource is missing")
+
     index_raw = Path(args.reproduced_index).read_bytes()
     index = json.loads(index_raw.decode("utf-8"))
     if index.get("schemaVersion") != 4 or not isinstance(index.get("versions"), list):
@@ -423,6 +509,7 @@ def select(args: argparse.Namespace) -> int:
                 "indexSha256": sha256_bytes(index_raw),
                 "indexSize": len(index_raw),
             },
+            "gamedataSource": content_source,
             "releases": sorted(
                 (
                     {
@@ -444,6 +531,11 @@ def select(args: argparse.Namespace) -> int:
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
     write_canonical_json(manifest_path, manifest)
     legacy_input.parse_legacy_inputs(manifest_path.read_bytes(), str(manifest_path))
+    try:
+        _node_validate_archive(manifest_path, worktree / "gamesymbols")
+    except BaseException:
+        manifest_path.unlink(missing_ok=True)
+        raise
     report = {
         "schemaVersion": 1,
         "archiveCommit": args.archive_commit,
@@ -474,9 +566,11 @@ def _parser() -> argparse.ArgumentParser:
     archive.add_argument("--source-archive-commit", required=True)
     archive.add_argument("--candidate-ref", default=CANDIDATE_REF)
     archive.add_argument(
-        "--content-root",
-        help="switch-pre tracked gamedata tree used as the adjudicated content source (defaults to Release assets)",
+        "--content-source-worktree",
+        help="git worktree pinned at the switch-pre source commit whose gamedata is the adjudicated content source",
     )
+    archive.add_argument("--content-source-commit", help="full source SHA that --content-source-worktree must be at")
+    archive.add_argument("--selection-reason", help="reviewer-supplied reason for choosing the content source")
     archive.add_argument("--report", required=True)
     archive.set_defaults(func=archive_gamedata)
 
@@ -484,6 +578,7 @@ def _parser() -> argparse.ArgumentParser:
     select_cmd.add_argument("--sources", default=str(DEFAULT_SOURCES))
     select_cmd.add_argument("--reproduced-index", required=True)
     select_cmd.add_argument("--archive-root", required=True)
+    select_cmd.add_argument("--archive-report", required=True)
     select_cmd.add_argument("--archive-commit", required=True)
     select_cmd.add_argument("--source-archive-commit", required=True)
     select_cmd.add_argument("--import-base-commit", required=True)
