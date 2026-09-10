@@ -20,6 +20,10 @@ on:
         description: Verified Release manifest SHA-256
         required: true
         type: string
+      deployment_sha:
+        description: Deployment code commit that must be in main history; defaults to the Release source commit
+        required: false
+        type: string
 permissions: {}
 concurrency:
   group: deploy-pages
@@ -27,11 +31,15 @@ concurrency:
 jobs:
   resolve-release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       release_id: ${{ steps.identity.outputs.release_id }}
       release_tag: ${{ steps.identity.outputs.release_tag }}
       source_sha: ${{ steps.identity.outputs.source_sha }}
       manifest_sha256: ${{ steps.identity.outputs.manifest_sha256 }}
+      deployment_sha: ${{ steps.deployment.outputs.deployment_sha }}
+      deployment_override: ${{ steps.deployment.outputs.deployment_override }}
     steps:
       - name: Resolve immutable published Release identity
         id: identity
@@ -71,6 +79,49 @@ jobs:
           "release_tag=$releaseTag" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "source_sha=$sourceSha" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "manifest_sha256=$manifestDigest" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+      - name: Checkout deployment code helper
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.deployment_sha == '' }}
+        uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 1
+          sparse-checkout: |
+            /pages_deployment_sha.py
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+      - name: Checkout trusted main history for the deployment commit
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.deployment_sha != '' }}
+        uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+          sparse-checkout: |
+            /pages_deployment_sha.py
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+      - name: Resolve deployment code commit
+        id: deployment
+        shell: bash
+        env:
+          SOURCE_SHA: ${{ steps.identity.outputs.source_sha }}
+          REQUESTED_DEPLOYMENT_SHA: ${{ inputs.deployment_sha }}
+        run: |
+          set -euo pipefail
+          python3 pages_deployment_sha.py \
+            --source-sha "$SOURCE_SHA" \
+            --requested-sha "$REQUESTED_DEPLOYMENT_SHA" \
+            --repository-root "$GITHUB_WORKSPACE" \
+            --main-ref HEAD \
+            --github-output "$GITHUB_OUTPUT"
+      - name: Record deployment code and Release source SHAs
+        shell: bash
+        run: |
+          {
+            echo "### Deploy Pages resolution"
+            echo "- Release source SHA (data origin): \`${{ steps.identity.outputs.source_sha }}\`"
+            echo "- Deployment code SHA: \`${{ steps.deployment.outputs.deployment_sha }}\`"
+            echo "- Deployment commit override: \`${{ steps.deployment.outputs.deployment_override }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
   build:
     needs: resolve-release
     runs-on: ubuntu-latest
@@ -82,7 +133,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          ref: ${{ needs.resolve-release.outputs.source_sha }}
+          ref: ${{ needs.resolve-release.outputs.deployment_sha }}
           persist-credentials: false
       - uses: astral-sh/setup-uv@v9.0.0
       - uses: actions/setup-node@v5
@@ -183,7 +234,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          ref: ${{ needs.resolve-release.outputs.source_sha }}
+          ref: ${{ needs.resolve-release.outputs.deployment_sha }}
           persist-credentials: false
       - uses: actions/setup-node@v5
         with:
