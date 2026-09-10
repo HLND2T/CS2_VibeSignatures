@@ -41,7 +41,7 @@ The Vite build validates each staged schema-5 snapshot and emits index schema v4
 3. `select --reproduced-index index.json --archive-root <worktree> --archive-report report.json … --manifest-out pages/legacy-inputs.json` verifies that the archive worktree HEAD equals the declared commit and that its two data subtrees are byte-clean, validates every selected snapshot body through the Node verifier, and writes the pinned manifest with the content-source provenance embedded under `importProvenance.gamedataSource`.
 4. Publish the candidate with a fast-forward push, then pin its full SHA as `archiveCommit`. The workflow cannot be enabled until that commit is reachable from the archive branch.
 
-The recorded checksums prove byte identity of the imported historical assets; they are not build attestations for new-format Releases.
+The recorded checksums prove byte identity of the imported historical assets; they are not build attestations for new-format Releases. The archive commit carries a root `.gitattributes` marking both data subtrees `text eol=lf` so a checkout on any platform yields the exact bytes the manifest pins; without it Windows checkouts would rewrite line endings and fail verification.
 
 For an exact Pages origin:
 

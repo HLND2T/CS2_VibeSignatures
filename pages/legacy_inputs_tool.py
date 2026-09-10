@@ -9,6 +9,7 @@ assets, assembles a candidate archive commit, and writes the pinned manifest.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -42,6 +43,11 @@ MAX_EXTRACTED_BYTES = 512 * 1024 * 1024
 DEFAULT_SOURCES = REPO_ROOT / "pages" / "legacy-gamedata-sources.json"
 CANDIDATE_REF = "refs/heads/pages-snapshots-legacy-candidate"
 COMMIT_MESSAGE = "chore(pages): import historical gamedata into pinned snapshot archive"
+ARCHIVE_GITATTRIBUTES = (
+    "# Recovery archive: keep both data subtrees byte-stable across platforms.\n"
+    "/gamesymbols/** text eol=lf\n"
+    "/gamedata/** text eol=lf\n"
+)
 
 
 class LegacyInputToolError(Exception):
@@ -257,29 +263,66 @@ def _tree_of(ref: str, cwd: Path) -> str:
     return _git(["rev-parse", f"{ref}^{{tree}}"], cwd=cwd)
 
 
+def _git_blob_sha1(data: bytes) -> str:
+    return hashlib.sha1(b"blob %d\0" % len(data) + data).hexdigest()
+
+
+def _blob_tree(worktree: Path, treeish: str, prefix: str) -> dict[str, str]:
+    listing = _git(["ls-tree", "-r", "--format=%(objectname) %(path)", treeish, "--", prefix], cwd=worktree)
+    result = {}
+    for line in listing.splitlines():
+        if not line.strip():
+            continue
+        objectname, path = line.split(" ", 1)
+        result[path] = objectname
+    return result
+
+
+def _imported_tree(prefix: str, root: Path) -> dict[str, str]:
+    result = {}
+    for path in root.rglob("*"):
+        if path.is_file():
+            relative = path.relative_to(root).as_posix()
+            result[f"{prefix}{relative}"] = _git_blob_sha1(path.read_bytes())
+    return result
+
+
+def _materialize_worktree(worktree: Path) -> None:
+    head = _git(["rev-parse", "HEAD"], cwd=worktree)
+    _git(["checkout", "--force", "--detach", head], cwd=worktree)
+    for subtree in ("gamesymbols", "gamedata"):
+        shutil.rmtree(worktree / subtree, ignore_errors=True)
+    _git(["checkout", "--", "."], cwd=worktree)
+
+
 def _assemble_archive_commit(*, worktree: Path, imported: dict[str, Path], candidate_ref: str) -> str:
-    baseline_gamesymbols = file_inventory(worktree / "gamesymbols")
     gamedata_root = worktree / "gamedata"
     for game_version, extracted_root in sorted(imported.items(), key=lambda item: legacy_input._version_key(item[0])):
-        target = gamedata_root / game_version
-        if target.exists():
-            if file_inventory(target) != file_inventory(extracted_root):
-                raise LegacyInputToolError(f"{target}: existing gamedata version conflicts with the imported bytes")
+        prefix = f"{GAMEDATA_PREFIX}{game_version}/"
+        existing = _blob_tree(worktree, "HEAD", f"{GAMEDATA_PREFIX}{game_version}")
+        if existing:
+            if existing != _imported_tree(prefix, extracted_root):
+                raise LegacyInputToolError(
+                    f"{gamedata_root / game_version}: existing gamedata version conflicts with the imported bytes"
+                )
             continue
-        shutil.copytree(extracted_root, target)
-    if file_inventory(worktree / "gamesymbols") != baseline_gamesymbols:
+        shutil.copytree(extracted_root, gamedata_root / game_version)
+    if _git(["diff", "--cached", "--name-only", "--", "gamesymbols"], cwd=worktree):
         raise LegacyInputToolError("baseline gamesymbols subtree was modified during import")
 
-    _git(["add", "--all", "--", "gamedata"], cwd=worktree)
+    (worktree / ".gitattributes").write_text(ARCHIVE_GITATTRIBUTES, encoding="utf-8", newline="\n")
+    _git(["add", "--all", "--", "gamedata", ".gitattributes"], cwd=worktree)
     tree = _git(["write-tree"], cwd=worktree)
     try:
         candidate = _git(["rev-parse", candidate_ref], cwd=worktree)
     except LegacyInputToolError:
         candidate = None
     if candidate and _tree_of(candidate, worktree) == tree:
-        _git(["checkout", "--detach", candidate], cwd=worktree)
+        _git(["checkout", "--force", "--detach", candidate], cwd=worktree)
+        _materialize_worktree(worktree)
         return candidate
     if _git(["diff", "--cached", "--name-only"], cwd=worktree) == "":
+        _materialize_worktree(worktree)
         return _git(["rev-parse", "HEAD"], cwd=worktree)
     _git(
         [
@@ -296,6 +339,7 @@ def _assemble_archive_commit(*, worktree: Path, imported: dict[str, Path], candi
     )
     commit = _git(["rev-parse", "HEAD"], cwd=worktree)
     _git(["update-ref", candidate_ref, commit], cwd=worktree)
+    _materialize_worktree(worktree)
     return commit
 
 

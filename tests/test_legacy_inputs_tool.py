@@ -315,6 +315,9 @@ class AssembleCommitTests(unittest.TestCase):
             )
             self.assertEqual(b"baseline", next((repository / "gamesymbols").iterdir()).read_bytes())
             self.assertEqual(first, _git(repository, "rev-parse", "refs/heads/candidate"))
+            attributes = _git(repository, "show", f"{first}:.gitattributes")
+            self.assertIn("/gamedata/** text eol=lf", attributes)
+            self.assertIn("/gamesymbols/** text eol=lf", attributes)
 
             second = legacy_tool._assemble_archive_commit(
                 worktree=repository,
