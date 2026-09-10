@@ -22,7 +22,12 @@ async function writeCurrentAssets(directory, gameVersion, marker) {
   await mkdir(directory, { recursive: true })
   const dataset = {
     schemaVersion: 3,
-    source: { gameVersion },
+    source: {
+      gameVersion,
+      snapshotSchemaVersion: 5,
+      fileCount: 1,
+      lastPublishTime: '2026-07-28T00:00:00Z',
+    },
     binaries: {
       server: {
         windows: {

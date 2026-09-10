@@ -120,7 +120,7 @@ export function validateGameSymbolVerificationManifest(value, source = 'game-sym
   return value
 }
 
-function verifySnapshotBytes(fileName, bytes, source, expectedEntry, requiredSchemaVersion) {
+export function verifySnapshotBytes(fileName, bytes, source, expectedEntry, requiredSchemaVersion) {
   const match = SNAPSHOT_FILE_PATTERN.exec(fileName)
   if (!match) throw new Error(`${source}: snapshot filename must be <gameVersion>.<sha256>.json`)
   const actualSha256 = sha256(bytes)
@@ -133,6 +133,26 @@ function verifySnapshotBytes(fileName, bytes, source, expectedEntry, requiredSch
       throw new Error(`${source}: size ${bytes.byteLength} does not match index size ${expectedEntry.size}`)
     }
     if (actualSha256 !== expectedEntry.sha256) throw new Error(`${source}: content SHA-256 does not match index`)
+    if (requiredSchemaVersion !== undefined) {
+      if (value.schemaVersion !== CURRENT_DATASET_SCHEMA_VERSION) {
+        throw new Error(`${source}: indexed snapshots must use dataset schema v${CURRENT_DATASET_SCHEMA_VERSION}`)
+      }
+      if (value.source.gameVersion !== expectedEntry.gameVersion) {
+        throw new Error(`${source}: body game version does not match index entry`)
+      }
+      if (value.source.snapshotSchemaVersion !== expectedEntry.snapshotSchemaVersion) {
+        throw new Error(`${source}: body snapshot schema version does not match index entry`)
+      }
+      if (value.source.fileCount !== expectedEntry.fileCount) {
+        throw new Error(`${source}: body file count does not match index entry`)
+      }
+      if (value.source.lastPublishTime !== expectedEntry.lastPublishTime) {
+        throw new Error(`${source}: body publish time does not match index entry`)
+      }
+      if (!Array.isArray(value.records) || value.records.length !== value.source.fileCount) {
+        throw new Error(`${source}: body record count does not match file count`)
+      }
+    }
   }
   return { fileName, gameVersion: match[1], sha256: actualSha256, size: bytes.byteLength }
 }
@@ -149,7 +169,7 @@ async function snapshotFileNames(directory, allowIndex) {
   return files.sort()
 }
 
-async function verifySnapshotDirectory(directory, allowIndex) {
+export async function verifySnapshotDirectory(directory, allowIndex) {
   const verified = new Map()
   for (const fileName of await snapshotFileNames(directory, allowIndex)) {
     const filePath = join(directory, fileName)
