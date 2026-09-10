@@ -72,7 +72,7 @@ class ReleasePublishTests(unittest.TestCase):
             def create_tag(_repository: str, _tag: str, source_sha: str) -> None:
                 tag["value"] = source_sha
 
-            def create_release(_repository: str, release_tag: str, source_sha: str, title: str, notes: str) -> None:
+            def create_release(_repository: str, release_tag: str, source_sha: str, title: str, notes: str) -> dict:
                 release["value"] = {
                     "id": 7,
                     "tag_name": release_tag,
@@ -83,6 +83,7 @@ class ReleasePublishTests(unittest.TestCase):
                     "prerelease": False,
                     "assets": [],
                 }
+                return copy.deepcopy(release["value"])
 
             def upload(_repository: str, _tag: str, path: Path) -> None:
                 data = path.read_bytes()
@@ -178,6 +179,25 @@ class ReleasePublishTests(unittest.TestCase):
         command = gh.call_args.args[0]
         self.assertNotIn("--clobber", command)
         self.assertEqual("upload", command[1])
+
+    def test_create_draft_release_returns_the_created_release(self) -> None:
+        created = {"id": 7, "tag_name": "14174", "draft": True}
+        result = subprocess.CompletedProcess([], 0, stdout=json.dumps(created))
+        with patch.object(release_publish, "_gh", return_value=result) as gh:
+            self.assertEqual(
+                created,
+                release_publish._create_draft_release("HLND2T/CS2_VibeSignatures", "14174", "a" * 40, "t", "b"),
+            )
+
+        self.assertEqual("POST", gh.call_args.args[0][2])
+
+    def test_create_draft_release_rejects_an_invalid_response(self) -> None:
+        result = subprocess.CompletedProcess([], 0, stdout=json.dumps({"tag_name": "14174"}))
+        with (
+            patch.object(release_publish, "_gh", return_value=result),
+            self.assertRaisesRegex(release_publish.ReleasePublishError, "invalid response"),
+        ):
+            release_publish._create_draft_release("HLND2T/CS2_VibeSignatures", "14174", "a" * 40, "t", "b")
 
     def test_release_state_falls_back_to_the_list_for_drafts(self) -> None:
         draft = {"id": 7, "tag_name": "14174", "draft": True}

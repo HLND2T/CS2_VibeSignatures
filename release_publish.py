@@ -102,8 +102,9 @@ def _release_state(repository: str, tag: str) -> dict | None:
     return matches[0] if matches else None
 
 
-def _create_draft_release(repository: str, tag: str, source_sha: str, title: str, notes: str) -> None:
-    _gh(
+def _create_draft_release(repository: str, tag: str, source_sha: str, title: str, notes: str) -> dict:
+    """Create the draft and return it; the by-tag lookup cannot see drafts."""
+    result = _gh(
         [
             "api",
             "--method",
@@ -123,6 +124,13 @@ def _create_draft_release(repository: str, tag: str, source_sha: str, title: str
             "prerelease=false",
         ]
     )
+    try:
+        created = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        raise ReleasePublishError("GitHub CLI returned invalid JSON") from exc
+    if not isinstance(created, dict) or not isinstance(created.get("id"), int) or isinstance(created.get("id"), bool):
+        raise ReleasePublishError("GitHub Release creation returned an invalid response")
+    return created
 
 
 def _upload_asset(repository: str, tag: str, path: Path) -> None:
@@ -294,10 +302,7 @@ def publish_release(
 
     release = _release_state(repository, tag)
     if release is None:
-        _create_draft_release(repository, tag, source_sha, title, notes)
-        release = _release_state(repository, tag)
-    if release is None:
-        raise ReleasePublishError("draft GitHub Release was not created")
+        release = _create_draft_release(repository, tag, source_sha, title, notes)
     _validate_release_identity(release, tag=tag, source_sha=source_sha, title=title, notes=notes)
     assets = _verify_remote_assets(repository, tag, release, expected_assets)
     if release.get("draft") is False:
