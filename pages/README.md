@@ -32,6 +32,10 @@ Historical versions without compatible Releases are restored from a pinned `page
 
 The Vite build validates each staged schema-5 snapshot and emits index schema v4. Every symbol and gamedata response remains content-addressed, and after deployment the workflow fetches the public Pages responses and recomputes their bytes so CDN delivery is checked against the exact build.
 
+### Re-deploying an existing Release with updated deployment code (maintainers only)
+
+An automatic `pages-release-published` deployment checks out and builds the deployment code from the triggering Release's `source_sha`, so re-running an old Release keeps running the old Pages code. A manual `workflow_dispatch` may pass `deployment_sha`: a full commit SHA that must already be in trusted `main` history. Pages code, scripts and the pinned historical manifest then come from that commit, while the Release tag, manifest, SHA256SUMS and assets keep being verified against the unchanged `source_sha`. Both commits are recorded in the run summary. The override fails closed before building when the commit is unknown or is not an ancestor of `main`; leaving `deployment_sha` empty reproduces the automatic behavior.
+
 ### Updating the pinned historical archive (maintainers only)
 
 `pages/legacy_inputs_tool.py` is the maintainer-only offline importer. The deployment workflow never calls its download or extraction commands.

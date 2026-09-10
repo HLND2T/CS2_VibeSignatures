@@ -45,6 +45,7 @@ REDIS_INTEGRATION_PREFIXES = (
 RELEASE_INTEGRATION_MODULES = frozenset(
     {
         "test_legacy_inputs_tool",
+        "test_pages_deployment_sha",
         "test_pages_legacy_input",
         "test_pages_release_input",
         "test_release_bundle",
