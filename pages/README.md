@@ -47,6 +47,68 @@ An automatic `pages-release-published` deployment checks out and builds the depl
 
 The recorded checksums prove byte identity of the imported historical assets; they are not build attestations for new-format Releases. The archive commit carries a root `.gitattributes` marking both data subtrees `text eol=lf` so a checkout on any platform yields the exact bytes the manifest pins; without it Windows checkouts would rewrite line endings and fail verification.
 
+The pinned record is spread across two version-controlled files. `pages/legacy-inputs.json` fixes `archiveCommit`, the complete historical inventory, the per-version selected index entries, `excluded[]`, and `importProvenance` (`sourceArchiveCommit`, `importBaseCommit`, `selectedBasis`, the `gamedataSource` selection reason with both-side hashes for every byte difference, and the original Release/asset identities). `pages/legacy-gamedata-sources.json` lists the 14 pinned gamedata Release assets and the 18 excluded pre-canonical versions. Update both whenever the archive changes.
+
+### First enablement and refreshing the pinned archive (maintainers only)
+
+The pinned archive commit must be reachable from `pages-snapshots` before any deployment consumes a manifest that references it:
+
+1. Publish the reviewed archive commit with a fast-forward push; never rewrite published archive history.
+2. Merge the pinned manifest together with the scripts and workflow that consume it.
+3. Trigger `Deploy Pages` from `main`. Either publish a new Release whose `source_sha` contains the change, or dispatch manually with `deployment_sha` set to the `main` commit that contains it — the manual path needs no new Release.
+
+A refresh follows the same order: run the importer, review its diff/inventory/volume report, publish the new archive commit, then update `archiveCommit` together with the inventory, selected entries and provenance in a PR before deploying.
+
+### Local deployment build and failure modes (maintainers only)
+
+Reproduce the deployment chain locally:
+
+```powershell
+# 0. Check out the pinned archive read-only (archiveCommit from pages/legacy-inputs.json)
+git clone --filter=blob:none https://github.com/HLND2T/CS2_VibeSignatures.git pages-snapshots
+git -C pages-snapshots checkout <archiveCommit>
+
+# 1. Hydrate a fresh verified Release staging tree (the output root must not exist yet)
+$env:GH_TOKEN = "<token>"
+uv run python pages_release_input.py `
+  --repository HLND2T/CS2_VibeSignatures `
+  --release-id <id> --release-tag <tag> `
+  --source-sha <sha> --manifest-sha256 <sha256> `
+  --output-root "$env:TEMP\pages-release-input" `
+  --receipt "$env:TEMP\pages-release-input.json"
+
+# 2. Supplement historical gamedata into the staging tree
+uv run python pages_legacy_input.py `
+  --manifest pages\legacy-inputs.json `
+  --archive-root pages-snapshots `
+  --staging "$env:TEMP\pages-release-input" `
+  --receipt "$env:TEMP\pages-legacy-gamedata.json"
+
+# 3. Build, merge historical game symbols, verify
+$env:PAGES_RELEASE_INPUT_ROOT = "$env:TEMP\pages-release-input"
+cd pages
+npm ci
+npm run build
+node mergeLegacyGameSymbols.mjs `
+  --directory dist/gamesymbols `
+  --archive ..\pages-snapshots\gamesymbols `
+  --manifest legacy-inputs.json `
+  --receipt "$env:TEMP\pages-legacy-gamesymbols.json"
+npm run verify:gamesymbols
+npm run verify:gamedata
+```
+
+Repeated runs must produce byte-identical assets; a second `pages_legacy_input.py` run reports versions it already staged as `skipped_existing` without comparing or overwriting them. Every failure is fail-closed and names the input that disagreed:
+
+- `PAGES_RELEASE_INPUT_ROOT is required for Pages development and builds` (`pages/vite.config.ts`) — the staging root is unset or absent.
+- Release hydration rejects a repository outside the allowlist, a Release whose tag/source/manifest SHA disagrees with its manifest, an asset allowlist or `SHA256SUMS` mismatch, or extracted gamedata that differs from the manifest, then removes the staging root it was building.
+- The manifest parser rejects non-canonical bytes, duplicate JSON keys, unknown or missing fields, unsafe paths, and unsorted inventories.
+- Historical gamedata supplementation aborts on any archive inventory or byte mismatch and removes only the versions it added, leaving existing inputs intact.
+- The game-symbol merge aborts on archive inventory drift, same-path different bytes, a selected body that is not indexable schema 3, or an index entry that disagrees with its body, and leaves the previous valid `dist/gamesymbols` in place.
+- Deploy-time archive verification compares `rev-parse HEAD` with `archiveCommit` and requires the object to exist; it deliberately performs no ancestry check because the deploy checkout is shallow.
+- A Windows checkout that rewrites line endings fails verification. The archive commit marks both data subtrees `text eol=lf`; compare git blob hashes rather than worktree bytes when investigating.
+- Post-deploy CDN verification failing means the public response bytes differ from the built `dist`; the run fails after publishing, and the manifests in that run's verification artifact show which asset disagreed.
+
 For an exact Pages origin:
 
 ```powershell
