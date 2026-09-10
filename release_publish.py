@@ -261,6 +261,9 @@ def publish_release(
     expected_actions_artifact_name: str | None = None,
     expected_binsync_candidate_digest: str | None = None,
     expected_binsync_target_state_digest: str | None = None,
+    expected_manifest_digest: str | None = None,
+    expected_bundle_digest: str | None = None,
+    expected_verified_binsync_target_state_digest: str | None = None,
 ) -> dict:
     """Create/recover one draft and publish only exact immutable Release bytes."""
     token = os.environ.get(TOKEN_ENVIRONMENT_VARIABLE, "")
@@ -283,6 +286,18 @@ def publish_release(
         manifest = load_json_object(manifest_path)
     except (ReleaseBundleError, ReleaseWorkflowError, StopIteration) as exc:
         raise ReleasePublishError(str(exc)) from exc
+    # Bind this publication to the hosted verifier's digests before any write.
+    for label, expected, actual in (
+        ("manifest digest", expected_manifest_digest, verified["manifest_sha256"]),
+        ("bundle digest", expected_bundle_digest, verified["bundle_inventory_sha256"]),
+        (
+            "verified BinSync target-state digest",
+            expected_verified_binsync_target_state_digest,
+            verified["binsync_target_state_digest"],
+        ),
+    ):
+        if expected is not None and expected != actual:
+            raise ReleasePublishError(f"Release {label} differs from the hosted verifier output")
     repository = manifest["repository"]
     tag = manifest["release_version"]
     source_sha = manifest["source_sha"]
@@ -343,6 +358,9 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--actions-artifact-name")
     parser.add_argument("--binsync-candidate-digest")
     parser.add_argument("--binsync-target-state-digest")
+    parser.add_argument("--verified-manifest-digest")
+    parser.add_argument("--verified-bundle-digest")
+    parser.add_argument("--verified-binsync-target-state-digest")
     return parser
 
 
@@ -359,6 +377,9 @@ def main(argv=None) -> int:
             expected_actions_artifact_name=args.actions_artifact_name,
             expected_binsync_candidate_digest=args.binsync_candidate_digest,
             expected_binsync_target_state_digest=args.binsync_target_state_digest,
+            expected_manifest_digest=args.verified_manifest_digest,
+            expected_bundle_digest=args.verified_bundle_digest,
+            expected_verified_binsync_target_state_digest=args.verified_binsync_target_state_digest,
         )
     except (ReleasePublishError, OSError) as exc:
         print(f"Release publish error: {exc}", file=sys.stderr)

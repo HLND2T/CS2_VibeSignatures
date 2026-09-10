@@ -117,8 +117,13 @@ class ReleasePublishTests(unittest.TestCase):
                 patch.object(release_publish, "_download_asset", side_effect=download),
                 patch.object(release_publish, "_publish_release", side_effect=publish) as publish_mock,
             ):
-                first = release_publish.publish_release(bundle_root=bundle, repo_root=root)
-                second = release_publish.publish_release(bundle_root=bundle, repo_root=root)
+                binding = {
+                    "expected_manifest_digest": verified["manifest_sha256"],
+                    "expected_bundle_digest": verified["bundle_inventory_sha256"],
+                    "expected_verified_binsync_target_state_digest": verified["binsync_target_state_digest"],
+                }
+                first = release_publish.publish_release(bundle_root=bundle, repo_root=root, **binding)
+                second = release_publish.publish_release(bundle_root=bundle, repo_root=root, **binding)
 
             self.assertEqual("published", first["status"])
             self.assertEqual("already-published", second["status"])
@@ -179,6 +184,24 @@ class ReleasePublishTests(unittest.TestCase):
         command = gh.call_args.args[0]
         self.assertNotIn("--clobber", command)
         self.assertEqual("upload", command[1])
+
+    def test_hosted_digest_mismatch_fails_before_any_write(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle, _manifest, verified = self._bundle(root)
+            with (
+                patch.dict("os.environ", {"GH_TOKEN": "token"}),
+                patch.object(release_publish, "verify_release_bundle", return_value=verified),
+                patch.object(release_publish, "_create_tag") as create_tag,
+                self.assertRaisesRegex(release_publish.ReleasePublishError, "manifest digest differs"),
+            ):
+                release_publish.publish_release(
+                    bundle_root=bundle,
+                    repo_root=root,
+                    expected_manifest_digest="sha256:" + "0" * 64,
+                )
+
+            create_tag.assert_not_called()
 
     def test_create_draft_release_returns_the_created_release(self) -> None:
         created = {"id": 7, "tag_name": "14174", "draft": True}
