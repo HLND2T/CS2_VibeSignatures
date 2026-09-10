@@ -109,6 +109,36 @@ jobs:
             --receipt "$receipt"
           if ($LASTEXITCODE -ne 0) { throw "Published Release hydration failed." }
           "PAGES_RELEASE_INPUT_ROOT=$inputRoot" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Resolve pinned legacy archive commit
+        id: legacy-inputs
+        run: |
+          set -euo pipefail
+          commit="$(node legacyInputs.mjs --manifest legacy-inputs.json --print-archive-commit)"
+          echo "archive_commit=$commit" >> "$GITHUB_OUTPUT"
+      - name: Checkout pinned legacy archive
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ steps.legacy-inputs.outputs.archive_commit }}
+          path: .pages-legacy-archive
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Verify pinned legacy archive commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive_root="${{ github.workspace }}/.pages-legacy-archive"
+          test "$(git -C "$archive_root" rev-parse HEAD)" = "${{ steps.legacy-inputs.outputs.archive_commit }}"
+          git -C "$archive_root" cat-file -e "${{ steps.legacy-inputs.outputs.archive_commit }}^{commit}"
+      - name: Supplement historical gamedata
+        shell: pwsh
+        run: |-
+          $receipt = Join-Path $env:RUNNER_TEMP 'pages-legacy-gamedata-receipt.json'
+          uv run --project .. python ../pages_legacy_input.py `
+            --manifest legacy-inputs.json `
+            --archive-root "${{ github.workspace }}/.pages-legacy-archive" `
+            --staging "$env:PAGES_RELEASE_INPUT_ROOT" `
+            --receipt "$receipt"
+          if ($LASTEXITCODE -ne 0) { throw "Historical gamedata supplementation failed." }
       - name: Test Pages application
         run: npm test
       - name: Lint Pages application
@@ -130,6 +160,13 @@ jobs:
         with:
           name: pages-release-input-verification
           path: ${{ runner.temp }}/pages-release-input-receipt.json
+          if-no-files-found: error
+          retention-days: 1
+      - name: Upload historical gamedata receipt
+        uses: actions/upload-artifact@v5
+        with:
+          name: pages-legacy-gamedata-verification
+          path: ${{ runner.temp }}/pages-legacy-gamedata-receipt.json
           if-no-files-found: error
           retention-days: 1
   archive:
@@ -161,6 +198,42 @@ jobs:
         with:
           name: pages-release-input-verification
           path: ${{ runner.temp }}/pages-verification
+      - name: Resolve pinned legacy archive commit
+        id: legacy-inputs
+        run: |
+          set -euo pipefail
+          commit="$(node legacyInputs.mjs --manifest legacy-inputs.json --print-archive-commit)"
+          echo "archive_commit=$commit" >> "$GITHUB_OUTPUT"
+      - name: Checkout pinned legacy archive
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ steps.legacy-inputs.outputs.archive_commit }}
+          path: .pages-legacy-archive
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Verify pinned legacy archive commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive_root="${{ github.workspace }}/.pages-legacy-archive"
+          test "$(git -C "$archive_root" rev-parse HEAD)" = "${{ steps.legacy-inputs.outputs.archive_commit }}"
+          git -C "$archive_root" cat-file -e "${{ steps.legacy-inputs.outputs.archive_commit }}^{commit}"
+      - name: Merge historical game-symbol snapshots
+        shell: bash
+        run: |
+          set -euo pipefail
+          node mergeLegacyGameSymbols.mjs \
+            --directory dist/gamesymbols \
+            --archive "${{ github.workspace }}/.pages-legacy-archive/gamesymbols" \
+            --manifest legacy-inputs.json \
+            --receipt "$RUNNER_TEMP/pages-legacy-gamesymbols-receipt.json"
+      - name: Upload historical game-symbol receipt
+        uses: actions/upload-artifact@v5
+        with:
+          name: pages-legacy-gamesymbols-verification
+          path: ${{ runner.temp }}/pages-legacy-gamesymbols-receipt.json
+          if-no-files-found: error
+          retention-days: 1
       - name: Write final game-symbol verification manifest
         shell: bash
         run: |
