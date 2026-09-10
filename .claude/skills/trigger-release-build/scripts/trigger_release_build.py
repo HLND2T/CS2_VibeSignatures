@@ -4,7 +4,6 @@
 import argparse
 import json
 import re
-import tempfile
 import subprocess
 import sys
 import time
@@ -172,35 +171,6 @@ def require_main_unchanged(root: Path, source_sha: str) -> None:
         raise TriggerError("origin/main advanced while validating the rebuild request; run the skill again")
 
 
-def require_source_artifacts(root: Path, repository: str, gamever: str, source_sha: str) -> None:
-    """Run repository artifact preflight in a detached temporary source worktree."""
-    with tempfile.TemporaryDirectory(prefix="cs2-release-preflight-") as temporary:
-        source_root = Path(temporary) / "source"
-        run_command(["git", "worktree", "add", "--detach", str(source_root), source_sha], root)
-        try:
-            run_command(
-                [
-                    "uv",
-                    "run",
-                    "python",
-                    "release_source_preflight.py",
-                    "--repo-root",
-                    str(source_root),
-                    "--repository",
-                    repository,
-                    "--gamever",
-                    gamever,
-                    "--source-sha",
-                    source_sha,
-                    "--default-ref",
-                    source_sha,
-                ],
-                source_root,
-            )
-        finally:
-            run_command(["git", "worktree", "remove", "--force", str(source_root)], root)
-
-
 def dispatch(
     root: Path,
     gamever: str,
@@ -263,8 +233,7 @@ def execute(requested: str, publication_mode: str, *, workflow: str = "release")
     source_sha, subject = resolve_source(root)
     gamever = select_version(requested, available_versions(root, source_sha))
     known_ids = require_no_duplicate(root, gamever, publication_mode, workflow=workflow)
-    require_main_unchanged(root, source_sha)
-    require_source_artifacts(root, repository, gamever, source_sha)
+    # CI validates source artifacts at this SHA before building or publishing.
     require_main_unchanged(root, source_sha)
     dispatch(root, gamever, source_sha, publication_mode, workflow=workflow)
     run_url = discover_run(

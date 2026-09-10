@@ -3,7 +3,7 @@ import json
 import subprocess
 import unittest
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 
 SCRIPT = Path(".claude/skills/trigger-release-build/scripts/trigger_release_build.py")
@@ -125,20 +125,100 @@ class TestTriggerReleaseBuild(unittest.TestCase):
         with self.assertRaisesRegex(trigger.TriggerError, "unsupported workflow"):
             trigger.require_workflow("clobber")
 
-    def test_source_artifact_preflight_runs_in_detached_temporary_worktree(self) -> None:
-        manager = MagicMock()
-        manager.__enter__.return_value = "temporary"
-        with (
-            patch.object(trigger.tempfile, "TemporaryDirectory", return_value=manager),
-            patch.object(trigger, "run_command", return_value=completed([])) as run,
-        ):
-            trigger.require_source_artifacts(Path("repo"), "HLND2T/CS2_VibeSignatures", "14170", "1" * 40)
+    def test_execute_dispatches_both_workflows_without_local_artifact_preflight(self) -> None:
+        root = SCRIPT.resolve().parents[4]
+        source_sha = "1" * 40
+        for workflow, workflow_file in trigger.WORKFLOWS.items():
+            with self.subTest(workflow=workflow):
+                run_info = {
+                    "databaseId": 11,
+                    "displayTitle": trigger.release_run_title("14170", "verify-only", workflow=workflow),
+                    "event": "workflow_dispatch",
+                    "headSha": source_sha,
+                    "url": "https://run/11",
+                }
+                commands = iter(
+                    [
+                        (["git", "rev-parse", "--show-toplevel"], str(root)),
+                        (["git", "remote", "get-url", "origin"], "https://github.com/HLND2T/CS2_VibeSignatures.git"),
+                        (["gh", "auth", "status", "--hostname", "github.com"], ""),
+                        (["gh", "api", "repos/HLND2T/CS2_VibeSignatures", "--jq", ".permissions.push"], "true"),
+                        (
+                            [
+                                "gh",
+                                "api",
+                                f"repos/HLND2T/CS2_VibeSignatures/actions/workflows/{workflow_file}",
+                                "--jq",
+                                ".id",
+                            ],
+                            "1",
+                        ),
+                        (["git", "fetch", "--no-tags", "origin", "refs/heads/main"], ""),
+                        (["git", "rev-parse", "FETCH_HEAD"], source_sha),
+                        (["git", "show", "-s", "--format=%s", source_sha], "subject"),
+                        (["git", "show", f"{source_sha}:download.yaml"], "downloads: [{tag: '14170'}]"),
+                        (
+                            [
+                                "gh",
+                                "run",
+                                "list",
+                                "--workflow",
+                                workflow_file,
+                                "--limit",
+                                "100",
+                                "--json",
+                                "databaseId,displayTitle,status,url,headSha,event",
+                            ],
+                            "[]",
+                        ),
+                        (
+                            ["git", "ls-remote", "--heads", "origin", "refs/heads/main"],
+                            f"{source_sha}\trefs/heads/main",
+                        ),
+                        (
+                            [
+                                "gh",
+                                "workflow",
+                                "run",
+                                workflow_file,
+                                "--ref",
+                                "main",
+                                "-f",
+                                "gamever=14170",
+                                "-f",
+                                f"source_sha={source_sha}",
+                                "-f",
+                                "publication_mode=verify-only",
+                            ],
+                            "",
+                        ),
+                        (
+                            [
+                                "gh",
+                                "run",
+                                "list",
+                                "--workflow",
+                                workflow_file,
+                                "--limit",
+                                "100",
+                                "--json",
+                                "databaseId,displayTitle,status,url,headSha,event",
+                            ],
+                            json.dumps([run_info]),
+                        ),
+                    ]
+                )
 
-        commands = [call.args[0] for call in run.call_args_list]
-        source_root = str(Path("temporary") / "source")
-        self.assertEqual(["git", "worktree", "add", "--detach", source_root, "1" * 40], commands[0])
-        self.assertIn("release_source_preflight.py", commands[1])
-        self.assertEqual(["git", "worktree", "remove", "--force", source_root], commands[2])
+                def respond(command, cwd):
+                    expected, stdout = next(commands)
+                    self.assertEqual(expected, command)
+                    self.assertEqual(root, cwd)
+                    return completed(command, stdout=stdout)
+
+                with patch.object(trigger, "run_command", side_effect=respond):
+                    result = trigger.execute("latest", "verify-only", workflow=workflow)
+                self.assertEqual("https://run/11", result["run_url"])
+                self.assertIsNone(next(commands, None))
 
     def test_dispatch_stops_if_origin_main_advanced(self) -> None:
         with patch.object(trigger, "run_command", return_value=completed([], stdout=f"{'2' * 40}\trefs/heads/main\n")):
@@ -176,7 +256,6 @@ class TestTriggerReleaseBuild(unittest.TestCase):
             patch.object(trigger, "available_versions", return_value=["14169", "14170"]),
             patch.object(trigger, "require_no_duplicate", return_value={10}) as duplicate,
             patch.object(trigger, "require_main_unchanged") as unchanged,
-            patch.object(trigger, "require_source_artifacts") as source_artifacts,
             patch.object(trigger, "dispatch") as dispatch,
             patch.object(trigger, "discover_run", return_value="https://run/11") as discover,
         ):
@@ -187,8 +266,7 @@ class TestTriggerReleaseBuild(unittest.TestCase):
         self.assertEqual("release", result["workflow"])
         self.assertEqual("https://run/11", result["run_url"])
         access.assert_called_once()
-        self.assertEqual(2, unchanged.call_count)
-        source_artifacts.assert_called_once_with(root, "HLND2T/CS2_VibeSignatures", "14170", "1" * 40)
+        unchanged.assert_called_once_with(root, "1" * 40)
         duplicate.assert_called_once_with(root, "14170", "verify-only", workflow="release")
         dispatch.assert_called_once_with(root, "14170", "1" * 40, "verify-only", workflow="release")
         discover.assert_called_once_with(

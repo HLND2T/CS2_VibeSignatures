@@ -7,7 +7,11 @@ disable-model-invocation: true
 # Trigger Release Build
 
 Use the bundled script as the only remote-operation entry point. Do not construct an ad-hoc `gh workflow run`
-command, accept a user-supplied SHA, move a tag, edit a Release, cancel work, or bypass source-artifact preflight.
+command, accept a user-supplied SHA, move a tag, edit a Release, cancel work, or bypass CI source-artifact preflight.
+
+The local script checks repository/auth access, version selection, duplicate work, and the current `origin/main` SHA.
+It does not create a temporary worktree or run full source-artifact preflight locally. Both workflows retain their CI
+source-artifact gates before building or publishing; artifact validation failures are reported in the Actions run.
 
 ## Procedure
 
@@ -32,7 +36,7 @@ command, accept a user-supplied SHA, move a tag, edit a Release, cancel work, or
 5. Report the script's selected version, publication mode, workflow, full `SOURCE_SHA`, commit subject, and Actions run
    URL.
 6. If the script refuses the operation, surface its exact safety reason and stop. Do not bypass repository, auth,
-   version, source-artifact, duplicate-work, or `origin/main` checks.
+   version, duplicate-work, or `origin/main` checks. Do not bypass a failed CI source-artifact gate.
 
 Published content is immutable. A retry dispatches the same source identity and relies on the protected publishers'
 exact-byte idempotency; it never selects a republish/clobber mode. Any requested generator/config change must already be
