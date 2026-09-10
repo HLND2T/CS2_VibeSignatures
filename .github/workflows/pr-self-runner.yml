@@ -23,14 +23,66 @@ permissions:
 env:
   CS2VIBE_STRING_MIN_LENGTH: '4'
 jobs:
+  bootstrap-reuse:
+    runs-on: ubuntu-latest
+    outputs:
+      reused: ${{ steps.probe.outputs.reused }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.source_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.base_sha }}
+          path: .trusted-tools
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v9.0.0
+      - run: uv sync --project .trusted-tools --locked
+      - uses: actions/download-artifact@v5
+        with:
+          name: ${{ inputs.plan_artifact_name }}
+          path: ${{ runner.temp }}/trusted-pr-plan
+      - name: Authenticate and rebind prior bootstrap execution
+        id: probe
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GAMEVER: ${{ inputs.gamever }}
+          PLAN_SHA256: ${{ inputs.plan_sha256 }}
+        shell: bash
+        run: |
+          if [[ ! -f .trusted-tools/bootstrap_reuse.py ]]; then
+            echo 'reused=false' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          uv run --project .trusted-tools python .trusted-tools/bootstrap_reuse.py probe \
+            --repo-root "$GITHUB_WORKSPACE" --gamever "$GAMEVER" \
+            --plan "$RUNNER_TEMP/trusted-pr-plan/trusted-source-artifact-plan.json" \
+            --plan-sha256 "$PLAN_SHA256" --evidence "$RUNNER_TEMP/bootstrap-reuse.json" \
+            --github-output "$GITHUB_OUTPUT"
+      - name: Upload current-tree bootstrap reuse evidence
+        if: steps.probe.outputs.reused == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: bootstrap-reuse-${{ github.run_id }}-${{ github.run_attempt }}-${{ inputs.gamever }}
+          path: ${{ runner.temp }}/bootstrap-reuse.json
+          retention-days: 7
+          if-no-files-found: error
   warmup-idb:
+    needs: bootstrap-reuse
+    if: needs.bootstrap-reuse.outputs.reused != 'true'
     uses: ./.github/workflows/warmup-idb.yml
     with:
       gamever: ${{ inputs.gamever }}
       source_sha: ${{ inputs.source_sha }}
     secrets: inherit
   validate:
-    needs: warmup-idb
+    needs: [bootstrap-reuse, warmup-idb]
+    if: >-
+      always() && !cancelled() && needs.bootstrap-reuse.result == 'success' &&
+      (needs.warmup-idb.result == 'success' ||
+      (needs.bootstrap-reuse.outputs.reused == 'true' && needs.warmup-idb.result == 'skipped'))
     environment: win64
     runs-on: [self-hosted, windows, x64]
     env:
@@ -53,7 +105,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           ref: ${{ inputs.source_sha }}
-          fetch-depth: 1
+          fetch-depth: 0
           submodules: recursive
           persist-credentials: false
       - uses: astral-sh/setup-uv@v9.0.0
@@ -73,6 +125,12 @@ jobs:
         with:
           name: ${{ inputs.plan_artifact_name }}
           path: ${{ runner.temp }}/trusted-pr-plan
+      - name: Download hosted bootstrap reuse evidence
+        if: needs.bootstrap-reuse.outputs.reused == 'true'
+        uses: actions/download-artifact@v5
+        with:
+          name: bootstrap-reuse-${{ github.run_id }}-${{ github.run_attempt }}-${{ inputs.gamever }}
+          path: ${{ runner.temp }}/trusted-bootstrap-reuse
       - name: Validate source, plan, and binary-only workspace
         shell: pwsh
         run: |
@@ -81,12 +139,15 @@ jobs:
             throw "PR source or trusted plan identity drifted."
           }
           if ([string]::IsNullOrWhiteSpace($env:PERSISTED_WORKSPACE)) { throw "PERSISTED_WORKSPACE is not configured." }
-          if ($env:BINARY_LOCK_SHA256 -notmatch '^sha256:[0-9a-f]{64}$') {
-            throw "Warmup omitted the source binary lock identity."
-          }
           $planPath = Join-Path "${{ runner.temp }}" "trusted-pr-plan\trusted-source-artifact-plan.json"
           $plan = Get-Content -LiteralPath $planPath -Raw | ConvertFrom-Json
           $version = @($plan.game_versions | Where-Object { $_.game_version -eq $env:GAMEVER })
+          if ($version.Count -eq 1 -and "${{ needs.bootstrap-reuse.outputs.reused }}" -eq 'true') {
+            $env:BINARY_LOCK_SHA256 = $version[0].merge_binary_lock_sha256
+          }
+          if ($env:BINARY_LOCK_SHA256 -notmatch '^sha256:[0-9a-f]{64}$') {
+            throw "Missing source binary lock identity."
+          }
           if ($version.Count -ne 1 -or $version[0].merge_binary_lock_sha256 -ne $env:BINARY_LOCK_SHA256) {
             throw "Warmup binary lock identity differs from the trusted plan."
           }
@@ -95,9 +156,13 @@ jobs:
           if ((Get-Item -LiteralPath $workspaceBin -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) {
             throw "PR workspace bin must be a real directory."
           }
+          # A reuse hit does not need a warm-cache producer. Missing binary cache
+          # entries may be initialized below and must still match the source lock.
+          $restoreOptions = @()
+          if ("${{ needs.bootstrap-reuse.outputs.reused }}" -ne 'true') { $restoreOptions += '--required' }
           $restoreJson = uv run --project .trusted-tools python .trusted-tools/accepted_bin.py restore `
             --repo-root "${{ github.workspace }}" --persisted-root "$env:PERSISTED_WORKSPACE" `
-            --gamever "$env:GAMEVER" --required
+            --gamever "$env:GAMEVER" @restoreOptions
           if ($LASTEXITCODE -ne 0) { throw "Failed to restore the exact accepted binary allowlist." }
           $restore = $restoreJson | ConvertFrom-Json
           if ($restore.binary_lock_sha256 -ne $env:BINARY_LOCK_SHA256) {
@@ -113,6 +178,7 @@ jobs:
             throw "PR binary lock identity drifted after initialization."
           }
       - name: Resolve and restore exact warm IDB generation
+        if: needs.bootstrap-reuse.outputs.reused != 'true'
         shell: pwsh
         run: |
           $pythonExe = (Get-Command python -ErrorAction SilentlyContinue).Source
@@ -149,6 +215,15 @@ jobs:
         run: |
           $plan = "${{ steps.rebuild-paths.outputs.plan }}"
           $staging = "${{ steps.rebuild-paths.outputs.staging }}"
+          if ("${{ needs.bootstrap-reuse.outputs.reused }}" -eq 'true') {
+            uv run --project .trusted-tools python .trusted-tools/bootstrap_reuse.py prepare `
+              --repo-root "${{ github.workspace }}" --plan "$plan" --gamever "$env:GAMEVER" `
+              --plan-sha256 "$env:PLAN_SHA256" --output-root "$staging" `
+              --evidence "${{ runner.temp }}/trusted-bootstrap-reuse/bootstrap-reuse.json" `
+              --github-output "$env:GITHUB_OUTPUT"
+            if ($LASTEXITCODE -ne 0) { throw "Hosted bootstrap evidence no longer matches this tree." }
+            exit 0
+          }
           uv run --project .trusted-tools python .trusted-tools/trusted_artifact_pr.py prepare `
             --repo-root "${{ github.workspace }}" `
             --plan "$plan" --gamever "$env:GAMEVER" --staging-root "$staging" `
@@ -170,6 +245,7 @@ jobs:
           "verification=$(Join-Path $staging 'validation.json')" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
       - name: Execute the trusted plan closure from the prepared artifact root
         id: execute-rebuild
+        if: needs.bootstrap-reuse.outputs.reused != 'true'
         shell: pwsh
         run: |
           if ("${{ steps.prepare-rebuild.outputs.strategy }}" -eq "base-inherited-selected-v1") {
@@ -193,6 +269,7 @@ jobs:
           }
       - name: Verify execution evidence and exact Git bytes
         id: verify-rebuild
+        if: needs.bootstrap-reuse.outputs.reused != 'true'
         shell: pwsh
         run: |
           uv run --project .trusted-tools python .trusted-tools/trusted_artifact_pr.py verify `

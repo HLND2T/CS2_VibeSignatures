@@ -5,7 +5,10 @@ import json
 import subprocess
 import tempfile
 import unittest
+import copy
+import shutil
 from pathlib import Path
+from unittest.mock import patch
 
 import new_gamever_artifact as nga
 import trusted_artifact_pr as tap
@@ -250,6 +253,172 @@ class NewGameverArtifactTests(unittest.TestCase):
             self.assertEqual(self.gamever, verification["game_version"])
             self.assertIsNone(verification["prior_gamever"])
             self.assertEqual(head_sha, verification["head_sha"])
+
+    def _reuse_fixture(self, root: Path):
+        head, _, old_plan = self._repository(root, include_prior=True)
+        artifacts = self._candidate(root)
+        _, manifest, _ = self._build_and_verify(root, old_plan, head, artifacts)
+        execution = json.loads((root.parent / "force-all-execution.json").read_bytes())
+        self._git(root, "checkout", "--detach", head)
+        shutil.copytree(artifacts / self.gamever, root / "bin_artifacts" / self.gamever)
+        self._git(root, "add", "bin_artifacts")
+        self._git(root, "commit", "-m", "bootstrap outputs")
+        publication = self._git(root, "rev-parse", "HEAD")
+        evidence = {
+            "bootstrap_plan": old_plan,
+            "manifest": manifest,
+            "execution": execution,
+            "publication_sha": publication,
+        }
+        return evidence
+
+    def _reuse_plan(self, root: Path, evidence: dict) -> dict:
+        sha = self._git(root, "rev-parse", "HEAD")
+        base = evidence["bootstrap_plan"]["base_sha"]
+        merge = self._git(root, "commit-tree", "HEAD^{tree}", "-p", base, "-p", sha, "-m", "prospective")
+        self._git(root, "checkout", "--detach", merge)
+        context = tpc.build_trusted_pr_context(repo_root=root, base_ref=base, head_ref=sha, merge_ref=merge)
+        return tap.build_trusted_artifact_plan(repo_root=root, trusted_context=context)
+
+    def test_reuse_accepts_publication_and_unrelated_followup(self):
+        import bootstrap_reuse as reuse
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            root.mkdir()
+            evidence = self._reuse_fixture(root)
+            for followup in (False, True):
+                if followup:
+                    (root / "release_publish.py").write_text("# publication only\n")
+                    self._git(root, "add", "release_publish.py")
+                    self._git(root, "commit", "-m", "release fix")
+                plan = self._reuse_plan(root, evidence)
+                receipt = reuse.verify_reuse(repo_root=root, plan=plan, gamever=self.gamever, evidence=evidence)
+                self.assertEqual(plan["merge_tree_sha"], receipt["merge_tree_sha"])
+                self.assertEqual(plan["plan_sha256"], receipt["plan_sha256"])
+
+    def test_reuse_rejects_changed_artifact_generator_and_baseline(self):
+        import bootstrap_reuse as reuse
+
+        for path, payload in (
+            (f"bin_artifacts/{self.gamever}/server/A.windows.yaml", b"func_name: A\nfunc_rva: '0x20'\n"),
+            ("ida_analyze_bin.py", b"# changed executor\n"),
+            ("bin_artifacts/14178/server/A.windows.yaml", b"func_name: A\nfunc_rva: '0x20'\n"),
+        ):
+            with self.subTest(path=path), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary) / "repo"
+                root.mkdir()
+                evidence = self._reuse_fixture(root)
+                plan = self._reuse_plan(root, evidence)
+                (root / path).write_bytes(payload)
+                self._git(root, "add", path)
+                self._git(root, "commit", "-m", "input drift")
+                # A newly bound plan is needed, but historical-version policy rejects baseline edits earlier.
+                plan["head_sha"] = plan["merge_sha"] = self._git(root, "rev-parse", "HEAD")
+                plan["merge_tree_sha"] = self._git(root, "rev-parse", "HEAD^{tree}")
+                plan.pop("plan_sha256")
+                plan["plan_sha256"] = tap._digest("trusted-pr-plan", plan)
+                with self.assertRaises(reuse.BootstrapReuseError):
+                    reuse.verify_reuse(repo_root=root, plan=plan, gamever=self.gamever, evidence=evidence)
+
+    def test_reuse_rejects_forged_execution_and_plan_binding(self):
+        import bootstrap_reuse as reuse
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            root.mkdir()
+            evidence = self._reuse_fixture(root)
+            plan = self._reuse_plan(root, evidence)
+            for key in ("execution", "manifest"):
+                forged = copy.deepcopy(evidence)
+                forged[key]["game_version"] = "99999"
+                with self.subTest(key=key), self.assertRaises(reuse.BootstrapReuseError):
+                    reuse.verify_reuse(repo_root=root, plan=plan, gamever=self.gamever, evidence=forged)
+
+    def test_reuse_authenticates_successful_evidence_even_when_push_failed(self):
+        import bootstrap_reuse as reuse
+
+        run = {
+            "id": 123,
+            "run_attempt": 1,
+            "repository": {"full_name": nga.ALLOWED_REPOSITORY},
+            "head_repository": {"full_name": nga.ALLOWED_REPOSITORY},
+            "event": "pull_request_target",
+            "path": reuse.WORKFLOW_PATH,
+            "head_sha": "a" * 40,
+            "head_branch": f"bump-download/{self.gamever}",
+        }
+        jobs = [
+            {"name": "bind-source-artifact-plan", "conclusion": "success"},
+            {"name": "bootstrap-new-gamever / build-bootstrap-candidate", "conclusion": "success"},
+            {
+                "name": "bootstrap-new-gamever / publish-new-gamever-artifacts",
+                "conclusion": "failure",
+                "steps": [
+                    {"name": "Revalidate PR, remote head, candidate, and allowed branch", "conclusion": "success"},
+                    {"name": "Create direct-child artifact-only commit", "conclusion": "success"},
+                    {
+                        "name": "Fast-forward push only the bound bump branch with protected PAT",
+                        "conclusion": "failure",
+                    },
+                ],
+            },
+        ]
+        kwargs = {"head": "a" * 40, "gamever": self.gamever, "run_id": "123", "attempt": "1"}
+        reuse.authenticate_run(run, jobs, **kwargs)
+        for key, value in (
+            ("event", "workflow_dispatch"),
+            ("head_sha", "b" * 40),
+            ("run_attempt", 2),
+            ("repository", {"full_name": "someone/fork"}),
+            ("path", ".github/workflows/other.yml"),
+        ):
+            with self.subTest(key=key), self.assertRaises(reuse.BootstrapReuseError):
+                reuse.authenticate_run({**run, key: value}, jobs, **kwargs)
+        jobs[-1]["steps"][0]["conclusion"] = "failure"
+        with self.assertRaises(reuse.BootstrapReuseError):
+            reuse.authenticate_run(run, jobs, **kwargs)
+
+    def test_reuse_probe_falls_back_when_evidence_is_unavailable(self):
+        import bootstrap_reuse as reuse
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            output, evidence = root / "outputs", root / "evidence.json"
+            argv = [
+                "bootstrap_reuse.py",
+                "probe",
+                "--repo-root",
+                str(root),
+                "--plan",
+                "unused",
+                "--plan-sha256",
+                "digest",
+                "--gamever",
+                self.gamever,
+                "--evidence",
+                str(evidence),
+                "--github-output",
+                str(output),
+            ]
+            with (
+                patch("sys.argv", argv),
+                patch.object(reuse, "load_trusted_artifact_plan", return_value={"plan_sha256": "digest"}),
+                patch.object(reuse, "discover_reuse", side_effect=reuse.BootstrapReuseError("expired artifact")),
+            ):
+                self.assertEqual(0, reuse.main())
+            self.assertEqual("reused=false\n", output.read_text())
+            self.assertFalse(evidence.exists())
+
+    def test_reuse_rejects_archive_digest_tampering(self):
+        import bootstrap_reuse as reuse
+
+        metadata = {"id": 1, "name": "candidate", "expired": False, "size_in_bytes": 10, "digest": "sha256:" + "0" * 64}
+        with (
+            patch.object(reuse, "_api", return_value=b"tampered archive"),
+            self.assertRaisesRegex(reuse.BootstrapReuseError, "digest mismatch"),
+        ):
+            reuse._archive(metadata, "candidate")
 
     def test_hosted_verifier_rejects_remote_head_drift_and_manifest_tamper(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
