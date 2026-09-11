@@ -22,7 +22,7 @@ RUN_TITLE_PREFIXES = {
     "release": "Release",
     "rebuild-free": "Rebuild-free release",
 }
-PUBLICATION_MODES = frozenset({"verify-only", "publish"})
+PUBLICATION_MODES = frozenset({"verify-only", "publish", "republish"})
 RUN_LIST_LIMIT = "100"
 RUN_DISCOVERY_ATTEMPTS = 10
 RUN_DISCOVERY_DELAY_SECONDS = 2
@@ -261,7 +261,7 @@ def main(argv=None) -> int:
         "--mode",
         choices=sorted(PUBLICATION_MODES),
         required=True,
-        help="verify-only performs all verification without publication; publish enables protected publishers",
+        help="verify-only verifies; publish preserves existing content; republish replaces an existing mutable Release",
     )
     parser.add_argument(
         "--workflow",

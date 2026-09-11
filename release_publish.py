@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import json
 import os
 import re
@@ -19,10 +20,223 @@ from release_workflow_lib.hashing import canonical_json_bytes, load_json_object,
 
 TOKEN_ENVIRONMENT_VARIABLE = "GH_TOKEN"
 VERSION_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
+PUBLICATION_MODES = ("publish", "republish")
 
 
 class ReleasePublishError(Exception):
-    """Raised when immutable GitHub Release publication cannot proceed."""
+    """Raised when protected GitHub Release publication cannot proceed."""
+
+
+def check_publication_target(repository: str, tag: str, source_sha: str, publication_mode: str) -> tuple:
+    """Read-only check shared by preflight and the protected publisher."""
+    if publication_mode not in PUBLICATION_MODES:
+        raise ReleasePublishError("Unsupported release publication mode")
+    if not VERSION_RE.fullmatch(tag) or not re.fullmatch(r"[0-9a-f]{40}", source_sha):
+        raise ReleasePublishError("Invalid release tag or source SHA")
+    current = _tag_target(repository, tag)
+    release = _release_state(repository, tag)
+    if publication_mode == "republish":
+        if release is None:
+            raise ReleasePublishError(f"Release {tag} does not exist; use publish")
+        if release.get("immutable") is not False:
+            raise ReleasePublishError("Release is immutable or its mutability is unknown")
+        if current is None:
+            raise ReleasePublishError("Existing Release tag is missing")
+    elif current is not None and current != source_sha:
+        raise ReleasePublishError(f"Release tag {tag} does not point directly to immutable source {source_sha}")
+    return current, release
+
+
+def _release_by_id(repository: str, release_id: int) -> dict:
+    release = _gh_json(["api", f"repos/{repository}/releases/{release_id}"])
+    # The embedded assets list may be truncated. Fetch all pages explicitly.
+    result = _gh(["api", "--paginate", "--slurp", f"repos/{repository}/releases/{release_id}/assets?per_page=100"])
+    try:
+        pages = json.loads(result.stdout)
+        if not isinstance(pages, list) or any(not isinstance(page, list) for page in pages):
+            raise ValueError("invalid assets pages")
+        release["assets"] = [asset for page in pages for asset in page]
+    except (ValueError, TypeError) as exc:
+        raise ReleasePublishError("Invalid Release assets response") from exc
+    return release
+
+
+def _update_release(repository: str, release_id: int, **fields) -> None:
+    arguments = ["api", "--method", "PATCH", f"repos/{repository}/releases/{release_id}"]
+    for key, value in fields.items():
+        arguments.extend(
+            [
+                "-F" if isinstance(value, bool) else "-f",
+                f"{key}={str(value).lower() if isinstance(value, bool) else value}",
+            ]
+        )
+    _gh(arguments)
+
+
+def _delete_asset(repository: str, asset_id: int) -> None:
+    _gh(["api", "--method", "DELETE", f"repos/{repository}/releases/assets/{asset_id}"])
+
+
+def _move_tag(repository: str, tag: str, source_sha: str, old_sha: str, repo_root: Path) -> None:
+    if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repository):
+        raise ReleasePublishError("Invalid GitHub repository")
+    environment = dict(os.environ)
+    credentials = base64.b64encode(f"x-access-token:{environment[TOKEN_ENVIRONMENT_VARIABLE]}".encode()).decode()
+    environment.update(
+        GIT_CONFIG_COUNT="1",
+        GIT_CONFIG_KEY_0="http.https://github.com/.extraheader",
+        GIT_CONFIG_VALUE_0=f"AUTHORIZATION: basic {credentials}",
+        GIT_TERMINAL_PROMPT="0",
+    )
+    result = subprocess.run(
+        [
+            "git",
+            "-C",
+            str(repo_root),
+            "push",
+            "--no-verify",
+            f"--force-with-lease=refs/tags/{tag}:{old_sha}",
+            f"https://github.com/{repository}.git",
+            f"{source_sha}:refs/tags/{tag}",
+        ],
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode:
+        raise ReleasePublishError("Release tag lease update failed; check tag protection or concurrent changes")
+
+
+def _asset_diff(repository: str, tag: str, release: dict, expected: list[dict]) -> tuple[list, set]:
+    assets = release.get("assets")
+    if not isinstance(assets, list):
+        raise ReleasePublishError("Invalid Release assets response")
+    by_name = {item["name"]: item for item in expected}
+    remove, matching, seen = [], set(), set()
+    with tempfile.TemporaryDirectory(prefix="republish-assets-") as temporary:
+        for asset in assets:
+            if (
+                not isinstance(asset, dict)
+                or not isinstance(asset.get("name"), str)
+                or type(asset.get("id")) is not int
+                or asset["id"] <= 0
+                or asset["name"] in seen
+            ):
+                raise ReleasePublishError("Invalid or duplicate Release asset")
+            name = asset["name"]
+            seen.add(name)
+            item = by_name.get(name)
+            if item is not None and asset.get("size") == item["size"]:
+                downloaded = _download_asset(repository, tag, name, Path(temporary))
+                if sha256_file(downloaded) == item["sha256"]:
+                    matching.add(name)
+                    continue
+            remove.append(asset)
+    return remove, matching
+
+
+def _republish(repository, tag, source_sha, title, notes, expected_assets, bundle_root, repo_root, manifest, verified):
+    stage = "target-check"
+    receipt = {**verified, "tag": tag, "target_sha": source_sha}
+    try:
+        old_sha, release = check_publication_target(repository, tag, source_sha, "republish")
+        release_id = release.get("id")
+        if type(release_id) is not int or release_id <= 0:
+            raise ReleasePublishError("Invalid Release ID")
+        receipt.update(release_id=release_id, previous_source_sha=old_sha)
+        release = _release_by_id(repository, release_id)
+        if release.get("immutable") is not False or release.get("tag_name") != tag:
+            raise ReleasePublishError("Release target changed before republish")
+        remove, matching = _asset_diff(repository, tag, release, expected_assets)
+        identity_matches = all(
+            release.get(key) == value
+            for key, value in dict(target_commitish=source_sha, name=title, body=notes, prerelease=False).items()
+        )
+        if (
+            old_sha == source_sha
+            and identity_matches
+            and not remove
+            and len(matching) == len(expected_assets)
+            and release.get("draft") is False
+        ):
+            if _tag_target(repository, tag) != source_sha:
+                raise ReleasePublishError("Release tag changed during republish verification")
+            receipt.update(status="already-published", stage="complete")
+            _record_republish(receipt)
+            return receipt
+        stage = "draft"
+        _update_release(repository, release_id, draft=True)
+        release = _release_by_id(repository, release_id)
+        if release.get("draft") is not True or release.get("tag_name") != tag:
+            raise ReleasePublishError("Release did not become draft")
+        stage = "tag"
+        if old_sha != source_sha:
+            _move_tag(repository, tag, source_sha, old_sha, Path(repo_root))
+        stage = "metadata"
+        _update_release(repository, release_id, target_commitish=source_sha, name=title, body=notes, prerelease=False)
+        stage = "assets"
+        # Re-read after entering draft; do not act on the pre-draft asset inventory.
+        remove, matching = _asset_diff(repository, tag, _release_by_id(repository, release_id), expected_assets)
+        for asset in remove:
+            _delete_asset(repository, asset["id"])
+        for item in expected_assets:
+            if item["name"] not in matching:
+                _upload_asset(repository, tag, bundle_root / PurePosixPath(item["path"]))
+        stage = "verification"
+        release = _release_by_id(repository, release_id)
+        _validate_release_identity(release, tag=tag, source_sha=source_sha, title=title, notes=notes)
+        remove, matching = _asset_diff(repository, tag, release, expected_assets)
+        if remove or len(matching) != len(expected_assets) or release.get("draft") is not True:
+            raise ReleasePublishError("Republish draft assets remain incomplete")
+        if _tag_target(repository, tag) != source_sha:
+            raise ReleasePublishError("Release tag changed during republish")
+        _verify_binsync_targets(manifest)
+        stage = "publish"
+        _publish_release(repository, release_id)
+        stage = "published-verification"
+        release = _release_by_id(repository, release_id)
+        _validate_release_identity(release, tag=tag, source_sha=source_sha, title=title, notes=notes)
+        remove, matching = _asset_diff(repository, tag, release, expected_assets)
+        if (
+            release.get("draft") is not False
+            or remove
+            or len(matching) != len(expected_assets)
+            or _tag_target(repository, tag) != source_sha
+        ):
+            raise ReleasePublishError("Republished Release verification failed")
+        receipt.update(status="republished", stage="complete")
+        _record_republish(receipt)
+        return receipt
+    except (ReleasePublishError, OSError) as exc:
+        if stage in ("publish", "published-verification"):
+            # A publish request may have succeeded even if its response was lost.
+            try:
+                _update_release(repository, receipt["release_id"], draft=True)
+            except (ReleasePublishError, OSError) as recovery_error:
+                print(f"Unable to restore draft; inspect Release state: {recovery_error}", file=sys.stderr)
+        _record_republish({**receipt, "stage": stage, "status": "failed"})
+        raise ReleasePublishError(f"Republish failed at {stage}: {exc}") from exc
+
+
+def _record_republish(receipt: dict) -> None:
+    print(json.dumps(receipt), file=sys.stderr)
+    summary = os.environ.get("GITHUB_STEP_SUMMARY")
+    if summary:
+        try:
+            with open(summary, "a", encoding="utf-8") as stream:
+                stream.write("\n## Republish receipt\n\n")
+                for key in (
+                    "status",
+                    "stage",
+                    "release_id",
+                    "previous_source_sha",
+                    "target_sha",
+                    "bundle_inventory_sha256",
+                ):
+                    stream.write(f"- {key}: `{receipt.get(key, 'unknown')}`\n")
+        except OSError as exc:
+            print(f"Unable to write republish summary: {exc}", file=sys.stderr)
 
 
 def _gh(arguments: list[str], *, allowed=(0,)) -> subprocess.CompletedProcess:
@@ -96,6 +310,18 @@ def _release_state(repository: str, tag: str) -> dict | None:
         raise ReleasePublishError("GitHub CLI returned invalid JSON") from exc
     if not isinstance(releases, list) or any(not isinstance(item, dict) for item in releases):
         raise ReleasePublishError("GitHub CLI returned a non-list response")
+    batch = releases
+    page = 2
+    while len(batch) == 100:
+        result = _gh(["api", f"repos/{repository}/releases?per_page=100&page={page}"])
+        try:
+            batch = json.loads(result.stdout)
+        except json.JSONDecodeError as exc:
+            raise ReleasePublishError("GitHub CLI returned invalid JSON") from exc
+        if not isinstance(batch, list) or any(not isinstance(item, dict) for item in batch):
+            raise ReleasePublishError("GitHub CLI returned a non-list response")
+        releases.extend(batch)
+        page += 1
     matches = [item for item in releases if item.get("tag_name") == tag]
     if len(matches) > 1:
         raise ReleasePublishError(f"multiple GitHub Releases declare tag {tag}")
@@ -254,6 +480,7 @@ def publish_release(
     *,
     bundle_root: str | Path,
     repo_root: str | Path,
+    publication_mode: str = "publish",
     expected_source_sha: str | None = None,
     expected_game_version: str | None = None,
     expected_release_version: str | None = None,
@@ -266,6 +493,8 @@ def publish_release(
     expected_verified_binsync_target_state_digest: str | None = None,
 ) -> dict:
     """Create/recover one draft and publish only exact immutable Release bytes."""
+    if publication_mode not in PUBLICATION_MODES:
+        raise ReleasePublishError("Unsupported release publication mode")
     token = os.environ.get(TOKEN_ENVIRONMENT_VARIABLE, "")
     if not token or token != token.strip() or "\r" in token or "\n" in token:
         raise ReleasePublishError(f"{TOKEN_ENVIRONMENT_VARIABLE} is required")
@@ -308,7 +537,12 @@ def publish_release(
     expected_assets = _expected_assets(bundle_root, manifest_path, manifest)
     _verify_binsync_targets(manifest)
 
-    current_tag = _tag_target(repository, tag)
+    if publication_mode == "republish":
+        return _republish(
+            repository, tag, source_sha, title, notes, expected_assets, bundle_root, repo_root, manifest, verified
+        )
+
+    current_tag, release = check_publication_target(repository, tag, source_sha, publication_mode)
     if current_tag is None:
         _create_tag(repository, tag, source_sha)
         current_tag = _tag_target(repository, tag)
@@ -350,7 +584,10 @@ def publish_release(
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo-root", default=".")
-    parser.add_argument("--bundle-root", required=True)
+    parser.add_argument("--bundle-root")
+    parser.add_argument("--publication-mode", choices=PUBLICATION_MODES, default="publish")
+    parser.add_argument("--check-target-only", action="store_true")
+    parser.add_argument("--repository")
     parser.add_argument("--source-sha")
     parser.add_argument("--gamever")
     parser.add_argument("--release-version")
@@ -367,7 +604,16 @@ def _parser() -> argparse.ArgumentParser:
 def main(argv=None) -> int:
     args = _parser().parse_args(argv)
     try:
+        if args.check_target_only:
+            if not all((args.repository, args.release_version, args.source_sha)):
+                raise ReleasePublishError("Target check requires repository, release-version and source-sha")
+            check_publication_target(args.repository, args.release_version, args.source_sha, args.publication_mode)
+            print(json.dumps({"status": "target-checked"}))
+            return 0
+        if not args.bundle_root:
+            raise ReleasePublishError("--bundle-root is required for publication")
         result = publish_release(
+            publication_mode=args.publication_mode,
             bundle_root=args.bundle_root,
             repo_root=args.repo_root,
             expected_source_sha=args.source_sha,

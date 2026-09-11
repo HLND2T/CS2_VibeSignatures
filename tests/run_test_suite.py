@@ -50,6 +50,7 @@ RELEASE_INTEGRATION_MODULES = frozenset(
         "test_pages_release_input",
         "test_release_bundle",
         "test_release_publish",
+        "test_release_republish",
         "test_release_source_preflight",
     }
 )

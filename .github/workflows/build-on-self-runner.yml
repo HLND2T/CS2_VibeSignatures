@@ -37,6 +37,7 @@ on:
         options:
           - verify-only
           - publish
+          - republish
         default: verify-only
   repository_dispatch:
     types: [build-on-self-runner]
@@ -82,8 +83,11 @@ jobs:
           } else {
             "publish"
           }
-          if ($publicationMode -notin @('verify-only', 'publish')) {
+          if ($publicationMode -notin @('verify-only', 'publish', 'republish')) {
             throw "Unsupported release publication mode: $publicationMode"
+          }
+          if ($publicationMode -eq 'republish' -and "${{ github.event_name }}" -ne 'workflow_dispatch') {
+            throw "Republish requires a manual workflow_dispatch."
           }
           git fetch origin --tags --force "+refs/heads/*:refs/remotes/origin/*"
           git checkout --detach "$sourceSha"
@@ -530,9 +534,30 @@ jobs:
       artifact_digest: ${{ needs.build.outputs.release_artifact_digest }}
       binsync_candidate_digest: ${{ needs.verify-binsync.outputs.publication_digest }}
       binsync_target_state_digest: ${{ needs.verify-binsync.outputs.target_state_digest }}
+  check-publication-target:
+    needs: [preflight, verify-release]
+    if: needs.preflight.outputs.publication_mode != 'verify-only'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.preflight.outputs.source_sha }}
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v9.0.0
+      - name: Check Release target before publishing BinSync
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PUBLICATION_MODE: ${{ needs.preflight.outputs.publication_mode }}
+          RELEASE_VERSION: ${{ needs.preflight.outputs.gamever }}
+          SOURCE_SHA: ${{ needs.preflight.outputs.source_sha }}
+        shell: bash
+        run: >-
+          uv run python release_publish.py --check-target-only
+          --repository "$GITHUB_REPOSITORY" --release-version "$RELEASE_VERSION"
+          --source-sha "$SOURCE_SHA" --publication-mode "$PUBLICATION_MODE"
   publish-binsync:
-    needs: [preflight, build, verify-binsync, verify-release]
-    if: needs.preflight.outputs.publication_mode == 'publish'
+    needs: [preflight, build, verify-binsync, verify-release, check-publication-target]
+    if: needs.preflight.outputs.publication_mode != 'verify-only'
     uses: ./.github/workflows/publish-binsync-candidate.yml
     with:
       source_sha: ${{ needs.preflight.outputs.source_sha }}
@@ -545,12 +570,13 @@ jobs:
     secrets: inherit
   publish-release:
     needs: [preflight, build, verify-binsync, verify-release, publish-binsync]
-    if: needs.preflight.outputs.publication_mode == 'publish'
+    if: needs.preflight.outputs.publication_mode != 'verify-only'
     permissions:
       actions: read
       contents: write
     uses: ./.github/workflows/publish-release-bundle.yml
     with:
+      publication_mode: ${{ needs.preflight.outputs.publication_mode }}
       source_sha: ${{ needs.preflight.outputs.source_sha }}
       gamever: ${{ needs.preflight.outputs.gamever }}
       release_version: ${{ needs.preflight.outputs.gamever }}

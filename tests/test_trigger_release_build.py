@@ -34,6 +34,7 @@ class TestTriggerReleaseBuild(unittest.TestCase):
     def test_publication_mode_must_be_supported(self) -> None:
         self.assertEqual("verify-only", trigger.require_publication_mode("verify-only"))
         self.assertEqual("publish", trigger.require_publication_mode("publish"))
+        self.assertEqual("republish", trigger.require_publication_mode("republish"))
         with self.assertRaisesRegex(trigger.TriggerError, "unsupported publication mode"):
             trigger.require_publication_mode("clobber")
 

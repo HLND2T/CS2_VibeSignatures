@@ -25,6 +25,18 @@ version source commit 进入 default branch 后：
 5. protected Release publisher 创建/复用 source tag，上传 exact immutable assets，发布一次并 dispatch Pages；
 6. Pages 只 hydrate published Release assets，验证 manifest/SHA256SUMS/archive inventories，构建全部已发布版本并验证 CDN bytes。
 
-workflow transaction identity 在 GitHub rerun 之间保持稳定（`run_id`）；`run_attempt` 只属于 transport metadata。published tag/assets 禁止 clobber 或内容不同的 republish。
+workflow transaction identity 在 GitHub rerun 之间保持稳定（`run_id`）；`run_attempt` 只属于 transport metadata。
+`publish` 保持已发布内容不被覆盖。普通构建和 rebuild-free 的手动入口另提供 `republish`，触发 CLI 可使用
+`--mode republish`；自动流程继续使用 `publish`。
+
+`republish` 要求已有可修改的 Release 和直接指向 commit 的标签。它保留 Release ID 和标签 URL，先转为 draft，
+使用绑定旧 SHA 的 lease 移动标签，再更新说明和附件，验证全部字节及 BinSync 目标后重新发布并触发 Pages。
+附件 ID 可以变化。目标不存在时应使用 `publish`；GitHub `immutable: true` 的 Release 不允许更新。
+源提交及 bundle 的完整验证保持不变，目标在 BinSync 发布前和 Release 实际更新前分别检查。
+
+draft 期间下载暂时不可用。上传或校验失败后保留 draft，同 bundle 重跑补齐，不自动回滚旧内容。
+若发布请求已生效但最终校验失败，会尝试恢复 draft；恢复失败会明确记录，需检查远端状态。
+日志及 job summary 记录 Release ID、旧/新 SHA、bundle digest 和失败阶段。新的 CLI dispatch 会选择当时的
+`origin/main`，需要复用原 bundle 时应重跑已有发布 job。两种发布模式共用每版本并发锁。
 
 本地 candidate 命令与 artifact ownership 见 [Snapshot、gamedata 与 C++ 验证](snapshot-and-gamedata.md)。

@@ -2,6 +2,10 @@ name: Publish Immutable Release Bundle
 on:
   workflow_call:
     inputs:
+      publication_mode:
+        required: false
+        type: string
+        default: publish
       source_sha:
         required: true
         type: string
@@ -58,6 +62,11 @@ jobs:
         shell: pwsh
         run: |
           $sourceSha = "${{ inputs.source_sha }}".ToLowerInvariant()
+          $mode = "${{ inputs.publication_mode }}"
+          if ($mode -notin @('publish', 'republish') -or `
+              ($mode -eq 'republish' -and "${{ github.event_name }}" -ne 'workflow_dispatch')) {
+            throw "Invalid protected publication mode or trigger."
+          }
           if ($sourceSha -notmatch '^[0-9a-f]{40}$' -or (git rev-parse HEAD).Trim().ToLowerInvariant() -ne $sourceSha) {
             throw "Protected Release checkout does not match the immutable source SHA."
           }
@@ -119,6 +128,7 @@ jobs:
           # the result to the hosted verifier digests before any write, so this
           # step does not re-verify the bundle separately.
           $json = & uv run python release_publish.py `
+            --publication-mode "${{ inputs.publication_mode }}" `
             --repo-root "${{ github.workspace }}" `
             --bundle-root "${{ runner.temp }}/release-bundle" `
             --source-sha "${{ inputs.source_sha }}" `
@@ -133,11 +143,20 @@ jobs:
             --verified-binsync-target-state-digest "${{ inputs.verified_binsync_target_state_digest }}"
           if ($LASTEXITCODE -ne 0) { throw "Immutable protected Release publication failed." }
           $document = ($json -join "`n") | ConvertFrom-Json
-          if ($document.status -notin @('published', 'already-published') -or $document.release_id -notmatch '^[1-9][0-9]*$') {
+          if ($document.status -notin @('published', 'republished', 'already-published') -or $document.release_id -notmatch '^[1-9][0-9]*$') {
             throw "Immutable protected Release publication returned an invalid receipt."
           }
           "release_id=$($document.release_id)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "status=$($document.status)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          @"
+          ## Release publication
+          - Mode: ${{ inputs.publication_mode }}
+          - Status: $($document.status)
+          - Release ID: $($document.release_id)
+          - Previous source SHA: $($document.previous_source_sha)
+          - Target source SHA: ${{ inputs.source_sha }}
+          - Bundle digest: ${{ inputs.verified_bundle_digest }}
+          "@ | Out-File $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
       - name: Dispatch Pages from the published immutable Release
         env:
           GH_TOKEN: ${{ github.token }}

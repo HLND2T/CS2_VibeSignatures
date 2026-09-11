@@ -25,6 +25,20 @@ After a version source commit reaches the default branch:
 5. The protected Release publisher creates/reuses the source tag, uploads exact immutable assets, publishes once, and dispatches Pages.
 6. Pages hydrates only published Release assets, verifies manifest/SHA256SUMS/archive inventories, builds all released versions, and verifies CDN bytes.
 
-The workflow transaction identity is stable across GitHub reruns (`run_id`); `run_attempt` is transport metadata only. Published tags/assets are never clobbered or republished with different content.
+The workflow transaction identity is stable across GitHub reruns (`run_id`); `run_attempt` is transport metadata only.
+`publish` never replaces published content. Manual standard and rebuild-free workflows also offer `republish`;
+automatic flows continue to use `publish`. The trigger CLI accepts `--mode republish` with either build path.
+
+`republish` requires an existing mutable Release and its direct commit tag. It preserves the Release ID and tag URL,
+converts the Release to a draft, moves the tag with an explicit old-SHA lease, updates metadata and reconciles assets,
+then verifies exact bytes and BinSync targets before publishing and dispatching Pages. Asset IDs may change. Missing
+targets must use `publish`; GitHub `immutable: true` Releases are rejected. Full source/bundle verification still applies.
+The target is checked before BinSync publication and checked again by the Release publisher.
+
+Downloads are temporarily unavailable while the Release is a draft. An upload or verification failure leaves that draft
+for a same-bundle rerun to resume; no automatic old-content rollback is performed. If publication succeeded but its final
+verification fails, the publisher attempts to restore draft status and reports any recovery failure. Inspect the receipt
+in logs/job summary (Release ID, old/new SHA, bundle digest and stage) before recovery. A fresh CLI dispatch selects the
+current `origin/main`; rerun the existing publication job to reuse its bundle. Both modes share the per-version lock.
 
 See [Snapshots, gamedata, and C++ validation](snapshot-and-gamedata.md) for local candidate commands and artifact ownership.
