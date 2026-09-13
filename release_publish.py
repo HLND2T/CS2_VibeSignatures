@@ -34,7 +34,7 @@ def check_publication_target(repository: str, tag: str, source_sha: str, publica
     if not VERSION_RE.fullmatch(tag) or not re.fullmatch(r"[0-9a-f]{40}", source_sha):
         raise ReleasePublishError("Invalid release tag or source SHA")
     current = _tag_target(repository, tag)
-    release = _release_state(repository, tag)
+    release = _release_state(repository, tag, allow_orphan=publication_mode == "republish")
     if publication_mode == "republish":
         if release is None:
             raise ReleasePublishError(f"Release {tag} does not exist; use publish")
@@ -146,9 +146,15 @@ def _republish(repository, tag, source_sha, title, notes, expected_assets, bundl
             raise ReleasePublishError("Invalid Release ID")
         receipt.update(release_id=release_id, previous_source_sha=old_sha)
         release = _release_by_id(repository, release_id)
-        if release.get("immutable") is not False or release.get("tag_name") != tag:
+        if release.get("immutable") is not False or not _tag_name_matches(release.get("tag_name"), tag):
             raise ReleasePublishError("Release target changed before republish")
-        remove, matching = _asset_diff(repository, tag, release, expected_assets)
+        # A draft can never satisfy the already-published fast path, and its
+        # assets cannot be addressed by tag while the tag move below has it
+        # orphaned, so defer the asset diff until after the tag is rebound.
+        if release.get("draft") is True:
+            remove, matching = [], set()
+        else:
+            remove, matching = _asset_diff(repository, tag, release, expected_assets)
         identity_matches = all(
             release.get(key) == value
             for key, value in dict(target_commitish=source_sha, name=title, body=notes, prerelease=False).items()
@@ -168,16 +174,28 @@ def _republish(repository, tag, source_sha, title, notes, expected_assets, bundl
         stage = "draft"
         _update_release(repository, release_id, draft=True)
         release = _release_by_id(repository, release_id)
-        if release.get("draft") is not True or release.get("tag_name") != tag:
+        if release.get("draft") is not True or not _tag_name_matches(release.get("tag_name"), tag):
             raise ReleasePublishError("Release did not become draft")
         stage = "tag"
         if old_sha != source_sha:
             _move_tag(repository, tag, source_sha, old_sha, Path(repo_root))
         stage = "metadata"
-        _update_release(repository, release_id, target_commitish=source_sha, name=title, body=notes, prerelease=False)
-        stage = "assets"
+        # Moving the tag orphans this draft, so rebind the real tag name in the
+        # same update; every later tag-addressed asset call depends on it.
+        _update_release(
+            repository,
+            release_id,
+            tag_name=tag,
+            target_commitish=source_sha,
+            name=title,
+            body=notes,
+            prerelease=False,
+        )
         # Re-read after entering draft; do not act on the pre-draft asset inventory.
-        remove, matching = _asset_diff(repository, tag, _release_by_id(repository, release_id), expected_assets)
+        release = _release_by_id(repository, release_id)
+        _validate_release_identity(release, tag=tag, source_sha=source_sha, title=title, notes=notes)
+        stage = "assets"
+        remove, matching = _asset_diff(repository, tag, release, expected_assets)
         for asset in remove:
             _delete_asset(repository, asset["id"])
         for item in expected_assets:
@@ -297,7 +315,28 @@ def _create_tag(repository: str, tag: str, source_sha: str) -> None:
     )
 
 
-def _release_state(repository: str, tag: str) -> dict | None:
+def _release_title(tag: str) -> str:
+    return f"gamedata-{tag}"
+
+
+def _tag_name_matches(tag_name, tag: str) -> bool:
+    # Force-updating a release tag orphans its draft: GitHub rewrites the
+    # draft's tag_name to an untagged-* placeholder until it is rebound to the
+    # tag, so a placeholder is accepted until that rebind happens.
+    return tag_name == tag or (isinstance(tag_name, str) and tag_name.startswith("untagged-"))
+
+
+def _is_orphaned_draft(release: dict, tag: str) -> bool:
+    tag_name = release.get("tag_name")
+    return (
+        release.get("draft") is True
+        and release.get("name") == _release_title(tag)
+        and isinstance(tag_name, str)
+        and tag_name.startswith("untagged-")
+    )
+
+
+def _release_state(repository: str, tag: str, *, allow_orphan: bool = False) -> dict | None:
     # The by-tag endpoint never returns draft releases, so fall back to the
     # release list (which does) before concluding a draft is missing.
     state = _gh_json(["api", f"repos/{repository}/releases/tags/{tag}"], allow_404=True)
@@ -323,6 +362,8 @@ def _release_state(repository: str, tag: str) -> dict | None:
         releases.extend(batch)
         page += 1
     matches = [item for item in releases if item.get("tag_name") == tag]
+    if not matches and allow_orphan:
+        matches = [item for item in releases if _is_orphaned_draft(item, tag)]
     if len(matches) > 1:
         raise ReleasePublishError(f"multiple GitHub Releases declare tag {tag}")
     return matches[0] if matches else None
@@ -532,7 +573,7 @@ def publish_release(
     source_sha = manifest["source_sha"]
     if not VERSION_RE.fullmatch(tag):
         raise ReleasePublishError("Release version is unsafe for a tag or asset name")
-    title = f"gamedata-{tag}"
+    title = _release_title(tag)
     notes = _notes(manifest)
     expected_assets = _expected_assets(bundle_root, manifest_path, manifest)
     _verify_binsync_targets(manifest)

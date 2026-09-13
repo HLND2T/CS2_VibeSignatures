@@ -32,7 +32,9 @@ workflow transaction identity 在 GitHub rerun 之间保持稳定（`run_id`）�
 `republish` 要求已有可修改的 Release 和直接指向 commit 的标签。它保留 Release ID 和标签 URL，先转为 draft，
 使用绑定旧 SHA 的 lease 移动标签，再更新说明和附件，验证全部字节及 BinSync 目标后重新发布并触发 Pages。
 附件 ID 可以变化。目标不存在时应使用 `publish`；GitHub `immutable: true` 的 Release 不允许更新。
-源提交及 bundle 的完整验证保持不变，目标在 BinSync 发布前和 Release 实际更新前分别检查。
+源提交及 bundle 的完整验证保持不变，目标在 BinSync 发布前和 Release 实际更新前分别检查。移动标签会使 draft
+脱离标签，因此 metadata 更新会先重新绑定真实标签名，之后才做按标签寻址的附件操作；republish 中断遗留的
+orphaned draft 也会在重跑时被识别并修复。
 
 draft 期间下载暂时不可用。上传或校验失败后保留 draft，同 bundle 重跑补齐，不自动回滚旧内容。
 若发布请求已生效但最终校验失败，会尝试恢复 draft；恢复失败会明确记录，需检查远端状态。

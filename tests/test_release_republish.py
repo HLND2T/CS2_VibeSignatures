@@ -70,7 +70,7 @@ class RepublishTests(unittest.TestCase):
                     fail[0] = False
                     raise publisher.ReleasePublishError(f"{stage} interrupted")
 
-            def read(*args):
+            def read(*args, **kwargs):
                 for name in remote:
                     asset_ids.setdefault(name, len(asset_ids) + 1)
                 return {
@@ -85,6 +85,9 @@ class RepublishTests(unittest.TestCase):
 
             def move(repository, release_tag, new_sha, old_sha, repo_root):
                 self.assertEqual(tag[0], old_sha)
+                # Force-updating a draft's tag makes GitHub rewrite tag_name to
+                # an untagged-* placeholder until the draft is rebound.
+                state["tag_name"] = "untagged-" + new_sha[:20]
                 interrupt("tag")
                 tag[0] = new_sha
 
@@ -134,6 +137,7 @@ class RepublishTests(unittest.TestCase):
                 self.assertEqual("republished", result["status"])
                 self.assertEqual(7, result["release_id"])
                 self.assertEqual(manifest["source_sha"], tag[0])
+                self.assertEqual("14174", state["tag_name"])
                 self.assertNotIn("obsolete.zip", remote)
                 self.assertEqual(b"payload", remote["payload.7z"])
                 self.assertNotIn("SHA256SUMS-14174.txt", uploads)
@@ -197,6 +201,94 @@ class RepublishTests(unittest.TestCase):
         self.assertEqual(pages[0] + pages[1], result["assets"])
         self.assertIn("repos/owner/repo/releases/7/assets?per_page=100", gh.call_args.args[0])
         self.assertIn("--paginate", gh.call_args.args[0])
+
+    def test_orphaned_draft_is_only_a_republish_target(self):
+        orphan = {
+            "id": 7,
+            "tag_name": "untagged-0123456789abcdef0123",
+            "name": "gamedata-14174",
+            "draft": True,
+            "immutable": False,
+        }
+        published = {"id": 8, "tag_name": "14174", "name": "gamedata-14174", "draft": False}
+        published_untagged = {**orphan, "id": 9, "draft": False}
+        with patch.object(publisher, "_gh_json", return_value=None):
+            with patch.object(
+                publisher,
+                "_gh",
+                return_value=subprocess.CompletedProcess([], 0, stdout=json.dumps([orphan, published_untagged])),
+            ):
+                self.assertIsNone(publisher._release_state("owner/repo", "14174"))
+                self.assertEqual(orphan, publisher._release_state("owner/repo", "14174", allow_orphan=True))
+            with patch.object(
+                publisher,
+                "_gh",
+                return_value=subprocess.CompletedProcess([], 0, stdout=json.dumps([orphan, published])),
+            ):
+                self.assertEqual(published, publisher._release_state("owner/repo", "14174", allow_orphan=True))
+
+    def test_republish_rebinds_orphaned_draft_before_touching_assets(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle, manifest, verified = test_release_publish.ReleasePublishTests()._bundle(root)
+            notes = publisher._notes(manifest)
+            state = {
+                "id": 7,
+                "tag_name": "untagged-0123456789abcdef0123",
+                "target_commitish": manifest["source_sha"],
+                "name": "gamedata-14174",
+                "body": notes,
+                "draft": True,
+                "prerelease": False,
+                "immutable": False,
+            }
+            remote = {
+                "payload.7z": (bundle / "archives" / "payload.7z").read_bytes(),
+                "release-manifest-14174.json": (bundle / "release-manifest-14174.json").read_bytes(),
+                "SHA256SUMS-14174.txt": (bundle / "SHA256SUMS-14174.txt").read_bytes(),
+            }
+            asset_ids = {name: index + 1 for index, name in enumerate(remote)}
+            updates = []
+
+            def read(*args, **kwargs):
+                return {
+                    **copy.deepcopy(state),
+                    "assets": [dict(id=asset_ids[name], name=name, size=len(data)) for name, data in remote.items()],
+                }
+
+            def update(repository, release_id, **fields):
+                updates.append(fields)
+                state.update(fields)
+
+            def download(repository, release_tag, name, destination):
+                self.assertEqual("14174", state["tag_name"])
+                path = destination / name
+                path.write_bytes(remote[name])
+                return path
+
+            with (
+                patch.dict("os.environ", {"GH_TOKEN": "token"}),
+                patch.object(publisher, "verify_release_bundle", return_value=verified),
+                patch.object(publisher, "_verify_binsync_targets"),
+                patch.object(publisher, "_tag_target", return_value=manifest["source_sha"]),
+                patch.object(publisher, "_release_state", side_effect=read),
+                patch.object(publisher, "_release_by_id", side_effect=read),
+                patch.object(publisher, "_update_release", side_effect=update),
+                patch.object(publisher, "_move_tag") as move,
+                patch.object(publisher, "_download_asset", side_effect=download),
+                patch.object(publisher, "_delete_asset") as delete,
+                patch.object(publisher, "_upload_asset") as upload,
+                patch.object(publisher, "_publish_release", side_effect=lambda *a: state.update(draft=False)),
+            ):
+                result = publisher.publish_release(bundle_root=bundle, repo_root=root, publication_mode="republish")
+
+            self.assertEqual("republished", result["status"])
+            self.assertEqual("14174", state["tag_name"])
+            self.assertIs(False, state["draft"])
+            self.assertIn("tag_name", updates[-1])
+            move.assert_not_called()
+            delete.assert_not_called()
+            upload.assert_not_called()
 
     def test_target_only_cli_never_calls_publisher(self):
         with (

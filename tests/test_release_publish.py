@@ -108,7 +108,7 @@ class ReleasePublishTests(unittest.TestCase):
                 patch.object(
                     release_publish,
                     "_release_state",
-                    side_effect=lambda _repository, _tag: copy.deepcopy(release["value"]),
+                    side_effect=lambda _repository, _tag, **_kwargs: copy.deepcopy(release["value"]),
                 ),
                 patch.object(
                     release_publish, "_create_draft_release", side_effect=create_release
