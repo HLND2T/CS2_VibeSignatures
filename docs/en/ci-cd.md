@@ -35,7 +35,8 @@ then verifies exact bytes and BinSync targets before publishing and dispatching 
 targets must use `publish`; GitHub `immutable: true` Releases are rejected. Full source/bundle verification still applies.
 The target is checked before BinSync publication and checked again by the Release publisher. Moving the tag orphans the
 draft, so the metadata update rebinds the real tag name before any tag-addressed asset work, and a rerun repairs an
-orphaned draft left behind by an interrupted republish.
+orphaned draft left behind by an interrupted republish. Both checks need push access, because GitHub only lists draft
+Releases to tokens that have it.
 
 Downloads are temporarily unavailable while the Release is a draft. An upload or verification failure leaves that draft
 for a same-bundle rerun to resume; no automatic old-content rollback is performed. If publication succeeded but its final

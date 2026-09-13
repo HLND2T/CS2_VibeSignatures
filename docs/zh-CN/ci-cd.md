@@ -34,7 +34,8 @@ workflow transaction identity 在 GitHub rerun 之间保持稳定（`run_id`）�
 附件 ID 可以变化。目标不存在时应使用 `publish`；GitHub `immutable: true` 的 Release 不允许更新。
 源提交及 bundle 的完整验证保持不变，目标在 BinSync 发布前和 Release 实际更新前分别检查。移动标签会使 draft
 脱离标签，因此 metadata 更新会先重新绑定真实标签名，之后才做按标签寻址的附件操作；republish 中断遗留的
-orphaned draft 也会在重跑时被识别并修复。
+orphaned draft 也会在重跑时被识别并修复。两处检查都需要 push 权限，因为 GitHub 只向具备该权限的 token
+列出 draft Release。
 
 draft 期间下载暂时不可用。上传或校验失败后保留 draft，同 bundle 重跑补齐，不自动回滚旧内容。
 若发布请求已生效但最终校验失败，会尝试恢复 draft；恢复失败会明确记录，需检查远端状态。

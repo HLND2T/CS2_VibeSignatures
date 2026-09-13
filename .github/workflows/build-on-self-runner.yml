@@ -538,6 +538,11 @@ jobs:
     needs: [preflight, verify-release]
     if: needs.preflight.outputs.publication_mode != 'verify-only'
     runs-on: ubuntu-latest
+    # Draft Releases are only listed for tokens with push access, so target
+    # checks that must see a draft (republish resume) need contents: write.
+    permissions:
+      actions: read
+      contents: write
     steps:
       - uses: actions/checkout@v5
         with:
