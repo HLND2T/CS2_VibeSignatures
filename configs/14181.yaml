@@ -693,14 +693,11 @@ modules:
       - name: find-CNetworkGameServer_SpawnServer-decompiles
         expected_output:
           - INetworkGameServer_GetMaxClients.{platform}.yaml
+          - CNetworkGameServerBase_GetMaxClients.{platform}.yaml
+          - IEngineServiceMgr_GetAddonsString.{platform}.yaml
         expected_input:
           - CNetworkGameServer_SpawnServer.{platform}.yaml
-      - name: find-CNetworkGameServerBase_GetMaxClients
-        expected_output:
-          - CNetworkGameServerBase_GetMaxClients.{platform}.yaml
-        expected_input:
           - CNetworkGameServerBase_vtable.{platform}.yaml
-          - INetworkGameServer_GetMaxClients.{platform}.yaml
       - name: find-CNetworkGameServerBase_GetClassBaseline
         expected_output:
           - CNetworkGameServerBase_GetClassBaseline.{platform}.yaml
@@ -2115,6 +2112,12 @@ modules:
       - name: find-CEngineServiceMgr_vtable
         expected_output:
           - CEngineServiceMgr_vtable.{platform}.yaml
+      - name: find-CEngineServiceMgr_GetAddonsString
+        expected_output:
+          - CEngineServiceMgr_GetAddonsString.{platform}.yaml
+        expected_input:
+          - CEngineServiceMgr_vtable.{platform}.yaml
+          - IEngineServiceMgr_GetAddonsString.{platform}.yaml
       - name: find-IEngineServiceMgr_GetAddonCount
         expected_output:
           - IEngineServiceMgr_GetAddonCount.{platform}.yaml
@@ -3848,6 +3851,14 @@ modules:
           - ILoopModeFactory::Shutdown
       - name: CEngineServiceMgr_vtable
         category: vtable
+      - name: IEngineServiceMgr_GetAddonsString
+        category: vfunc
+        alias:
+          - IEngineServiceMgr::GetAddonsString
+      - name: CEngineServiceMgr_GetAddonsString
+        category: vfunc
+        alias:
+          - CEngineServiceMgr::GetAddonsString
       - name: CEngineServiceMgr_GetAddonCount
         category: vfunc
         alias:

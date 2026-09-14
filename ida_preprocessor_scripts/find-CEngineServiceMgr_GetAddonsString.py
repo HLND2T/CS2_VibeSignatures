@@ -1,27 +1,26 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CNetworkGameServerBase_GetMaxClients skill."""
+"""Preprocess script for find-CEngineServiceMgr_GetAddonsString skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
 INHERIT_VFUNCS = [
-    # (target_func_name, inherit_vtable_class, base_vfunc_name, generate_func_sig)
     (
-        "CNetworkGameServerBase_GetMaxClients",
-        "CNetworkGameServerBase",
-        "INetworkGameServer_GetMaxClients",
-        False,
+        "CEngineServiceMgr_GetAddonsString",
+        "CEngineServiceMgr",
+        "IEngineServiceMgr_GetAddonsString",
+        True,
     ),
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
-    # (symbol_name, generate_yaml_fields)
     (
-        "CNetworkGameServerBase_GetMaxClients",
+        "CEngineServiceMgr_GetAddonsString",
         [
             "func_name",
             "func_va",
             "func_rva",
             "func_size",
+            "func_sig",
             "vtable_name",
             "vfunc_offset",
             "vfunc_index",
@@ -31,18 +30,11 @@ GENERATE_YAML_DESIRED_FIELDS = [
 
 
 async def preprocess_skill(
-    session,
-    skill_name,
-    expected_outputs,
-    old_yaml_map,
-    new_binary_dir,
-    platform,
-    image_base,
-    debug=False,
+    session, skill_name, expected_outputs, old_yaml_map,
+    new_binary_dir, platform, image_base, debug=False,
 ):
-    """Resolve GetMaxClients by inherited vfunc slot without emitting func_sig."""
+    """Resolve CEngineServiceMgr::GetAddonsString at the interface slot."""
     _ = skill_name
-
     return await preprocess_common_skill(
         session=session,
         expected_outputs=expected_outputs,
