@@ -937,6 +937,17 @@ modules:
       - name: find-CNetworkGameServerBase_SpawnGroupThink
         expected_output:
           - CNetworkGameServerBase_SpawnGroupThink.{platform}.yaml
+      - name: find-CNetworkGameServerBase_ServiceQueue
+        expected_output:
+          - CNetworkGameServerBase_ServiceQueue.{platform}.yaml
+        expected_input:
+          - CNetworkGameServerBase_SpawnGroupThink.{platform}.yaml
+      - name: find-CNetworkGameServerBase_SynchronizeAndBlockUntilLoaded
+        expected_output:
+          - CNetworkGameServerBase_SynchronizeAndBlockUntilLoaded.{platform}.yaml
+        expected_input:
+          - CNetworkGameServerBase_ServiceQueue.{platform}.yaml
+          - CNetworkGameServerBase_SpawnGroupThink.{platform}.yaml
       - name: find-CNetworkGameServerBase_PrintSpawnGroupStatus
         expected_output:
           - CNetworkGameServerBase_PrintSpawnGroupStatus.{platform}.yaml
@@ -2737,6 +2748,14 @@ modules:
         category: func
         alias:
           - CNetworkGameServerBase::SpawnGroupThink
+      - name: CNetworkGameServerBase_ServiceQueue
+        category: func
+        alias:
+          - CNetworkGameServerBase::ServiceQueue
+      - name: CNetworkGameServerBase_SynchronizeAndBlockUntilLoaded
+        category: func
+        alias:
+          - CNetworkGameServerBase::SynchronizeAndBlockUntilLoaded
       - name: CNetworkGameServerBase_PrintSpawnGroupStatus
         category: vfunc
         alias:
@@ -3884,6 +3903,10 @@ modules:
         category: vfunc
         alias:
           - CEngineServer::GetPlayerNetInfo
+      - name: CEngineServer_SynchronizeAndBlockUntilLoaded
+        category: vfunc
+        alias:
+          - CEngineServer::SynchronizeAndBlockUntilLoaded
       - name: CSteam3ServerS1_ShutdownGameServer
         category: func
         alias:
@@ -8771,6 +8794,11 @@ modules:
           - IVEngineServer2_MakeSpawnGroupActive.{platform}.yaml
         expected_input:
           - CSpawnGroupMgrGameSystem_SetActiveSpawnGroup.{platform}.yaml
+      - name: find-IVEngineServer2_SynchronizeAndBlockUntilLoaded
+        expected_output:
+          - IVEngineServer2_SynchronizeAndBlockUntilLoaded.{platform}.yaml
+        expected_input:
+          - IVEngineServer2_MakeSpawnGroupActive.{platform}.yaml
       - name: find-CSpawnGroupMgrGameSystem_UnloadSpawnGroup
         expected_output:
           - CSpawnGroupMgrGameSystem_UnloadSpawnGroup.{platform}.yaml
@@ -12232,6 +12260,10 @@ modules:
         category: vfunc
         alias:
           - IVEngineServer2::MakeSpawnGroupActive
+      - name: IVEngineServer2_SynchronizeAndBlockUntilLoaded
+        category: vfunc
+        alias:
+          - IVEngineServer2::SynchronizeAndBlockUntilLoaded
       - name: CSpawnGroupMgrGameSystem_UnloadSpawnGroup
         category: vfunc
         alias:
@@ -13610,6 +13642,12 @@ modules:
           - CEngineServer_GetPlayerNetInfo.{platform}.yaml
         expected_input:
           - ../server/IVEngineServer2_GetPlayerNetInfo.{platform}.yaml
+          - CEngineServer_vtable.{platform}.yaml
+      - name: find-CEngineServer_SynchronizeAndBlockUntilLoaded
+        expected_output:
+          - CEngineServer_SynchronizeAndBlockUntilLoaded.{platform}.yaml
+        expected_input:
+          - ../server/IVEngineServer2_SynchronizeAndBlockUntilLoaded.{platform}.yaml
           - CEngineServer_vtable.{platform}.yaml
   - name: networksystem  # Execute skills for networksystem.dll again after server.dll
     path_windows: game/bin/win64/networksystem.dll
