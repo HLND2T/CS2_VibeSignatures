@@ -537,6 +537,10 @@ modules:
         category: vfunc
         alias:
           - CNetworkSystem::InitGameServer
+      - name: CNetworkSystem_GetFakeLag
+        category: vfunc
+        alias:
+          - CNetworkSystem::GetFakeLag
       - name: CNetworkSystem_InitNetworkSystem
         category: vfunc
         alias:
@@ -1363,12 +1367,12 @@ modules:
       - name: find-CSteam3ServerS1_InitGameServer
         expected_output:
           - CSteam3ServerS1_InitGameServer.{platform}.yaml
-      - name: find-INetworkServerService_IsActiveInGame
+      - name: find-CSteam3ServerS1_InitGameServer-decompiles
         expected_output:
+          - INetworkSystem_GetFakeLag.{platform}.yaml
           - INetworkServerService_IsActiveInGame.{platform}.yaml
         expected_input:
           - CSteam3ServerS1_InitGameServer.{platform}.yaml
-          - CNetworkServerService_vtable.{platform}.yaml
       - name: find-CNetworkGameClientBase__ProcessNetworking
         expected_output:
           - CNetworkGameClientBase__ProcessNetworking.{platform}.yaml
@@ -3326,6 +3330,10 @@ modules:
         category: vfunc
         alias:
           - CNetworkServerService::GetServerSerializersCRC
+      - name: CNetworkServerService_IsActiveInGame
+        category: vfunc
+        alias:
+          - CNetworkServerService::IsActiveInGame
       - name: CSteam3ServerS1_InitGameServer
         category: func
         alias:
@@ -3334,6 +3342,10 @@ modules:
         category: vfunc
         alias:
           - INetworkServerService::IsActiveInGame
+      - name: INetworkSystem_GetFakeLag
+        category: vfunc
+        alias:
+          - INetworkSystem::GetFakeLag
       - name: INetworkServerService_IsServerRunning
         category: vfunc
         alias:
@@ -13134,6 +13146,12 @@ modules:
       - name: find-CNetworkServerService_GetServerSerializersCRC
         expected_output:
           - CNetworkServerService_GetServerSerializersCRC.{platform}.yaml
+      - name: find-CNetworkServerService_IsActiveInGame
+        expected_output:
+          - CNetworkServerService_IsActiveInGame.{platform}.yaml
+        expected_input:
+          - CNetworkServerService_vtable.{platform}.yaml
+          - INetworkServerService_IsActiveInGame.{platform}.yaml
         expected_input:
           - CNetworkServerService_vtable.{platform}.yaml
           - INetworkServerService_GetServerSerializersCRC.{platform}.yaml
@@ -13686,6 +13704,12 @@ modules:
         expected_input:
           - CNetworkSystem_vtable.{platform}.yaml
           - ../engine/INetworkSystem_BufferToBufferDecompress.{platform}.yaml
+      - name: find-CNetworkSystem_GetFakeLag
+        expected_output:
+          - CNetworkSystem_GetFakeLag.{platform}.yaml
+        expected_input:
+          - CNetworkSystem_vtable.{platform}.yaml
+          - ../engine/INetworkSystem_GetFakeLag.{platform}.yaml
       - name: find-CNetworkSystem_PrintNetworkStats
         expected_output:
           - CNetworkSystem_PrintNetworkStats.{platform}.yaml
