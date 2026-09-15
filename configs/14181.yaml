@@ -3898,6 +3898,10 @@ modules:
         category: vfunc
         alias:
           - CEngineServer::IsUserIDInUse
+      - name: CEngineServer_IsClientLowViolence
+        category: vfunc
+        alias:
+          - CEngineServer::IsClientLowViolence
       - name: CSteam3ServerS1_ShutdownGameServer
         category: func
         alias:
@@ -6778,6 +6782,11 @@ modules:
       - name: find-CBasePlayerController_vtable
         expected_output:
           - CBasePlayerController_vtable.{platform}.yaml
+      - name: find-CBasePlayerController_Spawn
+        expected_output:
+          - CBasePlayerController_Spawn.{platform}.yaml
+        expected_input:
+          - CBasePlayerController_vtable.{platform}.yaml
       - name: find-CLagCompensationManager_vtable
         expected_output:
           - CLagCompensationManager_vtable.{platform}.yaml
@@ -9411,6 +9420,11 @@ modules:
           - IVEngineServer2_GetPlayerNetInfo.{platform}.yaml
         expected_input:
           - CPlayerCommandQueue_UpdateStats.{platform}.yaml
+      - name: find-IVEngineServer2_IsClientLowViolence
+        expected_output:
+          - IVEngineServer2_IsClientLowViolence.{platform}.yaml
+        expected_input:
+          - CBasePlayerController_Spawn.{platform}.yaml
       - name: find-IVEngineServer2_IsUserIDInUse
         expected_output:
           - IVEngineServer2_IsUserIDInUse.{platform}.yaml
@@ -10173,6 +10187,10 @@ modules:
         category: vtable
       - name: CBasePlayerController_vtable
         category: vtable
+      - name: CBasePlayerController_Spawn
+        category: vfunc
+        alias:
+          - CBasePlayerController::Spawn
       - name: CLagCompensationManager_vtable
         category: vtable
       - name: CLagCompensationManager_StartLagCompensation
@@ -12834,6 +12852,10 @@ modules:
         category: vfunc
         alias:
           - IVEngineServer2::GetPlayerNetInfo
+      - name: IVEngineServer2_IsClientLowViolence
+        category: vfunc
+        alias:
+          - IVEngineServer2::IsClientLowViolence
       - name: CBasePlayerController_IsFakeClient
         category: func
         alias:
@@ -13645,6 +13667,12 @@ modules:
           - CEngineServer_GetPlayerNetInfo.{platform}.yaml
         expected_input:
           - ../server/IVEngineServer2_GetPlayerNetInfo.{platform}.yaml
+          - CEngineServer_vtable.{platform}.yaml
+      - name: find-CEngineServer_IsClientLowViolence
+        expected_output:
+          - CEngineServer_IsClientLowViolence.{platform}.yaml
+        expected_input:
+          - ../server/IVEngineServer2_IsClientLowViolence.{platform}.yaml
           - CEngineServer_vtable.{platform}.yaml
       - name: find-CEngineServer_IsUserIDInUse
         expected_output:
