@@ -1,0 +1,75 @@
+func_name: CLoopTypeSimpleService_OnLoopActivate
+func_va: '0x1802328e0'
+disasm_code: |-
+  .text:00000001802328E0                 mov     [rsp+arg_0], rbx
+  .text:00000001802328E5                 mov     [rsp+arg_8], rsi
+  .text:00000001802328EA                 push    rdi
+  .text:00000001802328EB                 sub     rsp, 20h
+  .text:00000001802328EF                 mov     rbx, r8
+  .text:00000001802328F2                 mov     rsi, rcx
+  .text:00000001802328F5                 mov     rcx, [rcx+48h]
+  .text:00000001802328F9                 mov     rdi, rdx
+  .text:00000001802328FC                 xor     r8d, r8d
+  .text:00000001802328FF                 mov     rdx, rbx
+  .text:0000000180232902                 mov     rax, [rcx]
+  .text:0000000180232905                 call    qword ptr [rax+20h]
+  .text:0000000180232908                 mov     rcx, [rsi+48h]
+  .text:000000018023290C                 mov     r8, rbx
+  .text:000000018023290F                 mov     rdx, rdi
+  .text:0000000180232912                 mov     rax, [rcx]
+  .text:0000000180232915                 ; 0x10 = 16LL = INetworkServerService_SetGameLoadStarted
+  .text:0000000180232915                 call    qword ptr [rax+10h]; 0x10 = 16LL = INetworkServerService_SetGameLoadStarted
+  .text:0000000180232918                 mov     rcx, cs:g_pInputService
+  .text:000000018023291F                 lea     r9, [rsi+38h]
+  .text:0000000180232923                 xor     ebx, ebx
+  .text:0000000180232925                 lea     rdx, aSimpleenginelo; "SimpleEngineLoop"
+  .text:000000018023292C                 test    rsi, rsi
+  .text:000000018023292F                 mov     rax, [rcx]
+  .text:0000000180232932                 cmovz   r9, rbx
+  .text:0000000180232936                 xor     r8d, r8d
+  .text:0000000180232939                 call    qword ptr [rax+0B8h]
+  .text:000000018023293F                 mov     rcx, cs:g_pRenderService
+  .text:0000000180232946                 test    rcx, rcx
+  .text:0000000180232949                 jz      short loc_18023296C
+  .text:000000018023294B                 mov     rax, [rcx]
+  .text:000000018023294E                 lea     r9, [rsi+40h]
+  .text:0000000180232952                 test    rsi, rsi
+  .text:0000000180232955                 lea     rdx, aSimpleenginelo; "SimpleEngineLoop"
+  .text:000000018023295C                 mov     r8d, 3E8h
+  .text:0000000180232962                 cmovz   r9, rbx
+  .text:0000000180232966                 call    qword ptr [rax+0B8h]
+  .text:000000018023296C                 mov     rbx, [rsp+28h+arg_0]
+  .text:0000000180232971                 mov     rsi, [rsp+28h+arg_8]
+  .text:0000000180232976                 add     rsp, 20h
+  .text:000000018023297A                 pop     rdi
+  .text:000000018023297B                 retn
+procedure: |-
+  __int64 __fastcall CLoopTypeSimpleService_OnLoopActivate(__int64 a1, __int64 a2, __int64 a3)
+  {
+    __int64 v6; // r9
+    __int64 result; // rax
+    __int64 v8; // r9
+
+    (*(void (__fastcall **)(_QWORD, __int64, _QWORD))(**(_QWORD **)(a1 + 72) + 32LL))(*(_QWORD *)(a1 + 72), a3, 0);
+    (*(void (__fastcall **)(_QWORD, __int64, __int64))(**(_QWORD **)(a1 + 72) + 16LL))(*(_QWORD *)(a1 + 72), a2, a3);// 0x10 = 16LL = INetworkServerService_SetGameLoadStarted
+    v6 = a1 + 56;
+    if ( !a1 )
+      v6 = 0;
+    result = (*(__int64 (__fastcall **)(__int64, const char *, _QWORD, __int64))(*(_QWORD *)g_pInputService + 184LL))(
+               g_pInputService,
+               "SimpleEngineLoop",
+               0,
+               v6);
+    if ( g_pRenderService )
+    {
+      v8 = a1 + 64;
+      if ( !a1 )
+        v8 = 0;
+      return (*(__int64 (__fastcall **)(__int64, const char *, __int64, __int64))(*(_QWORD *)g_pRenderService + 184LL))(
+               g_pRenderService,
+               "SimpleEngineLoop",
+               1000,
+               v8);
+    }
+    return result;
+  }
