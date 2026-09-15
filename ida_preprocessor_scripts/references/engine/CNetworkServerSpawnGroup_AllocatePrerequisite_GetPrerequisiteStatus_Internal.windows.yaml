@@ -1,0 +1,124 @@
+func_name: CNetworkServerSpawnGroup_AllocatePrerequisite_GetPrerequisiteStatus_Internal
+func_va: '0x1800fca70'
+disasm_code: |-
+  .text:00000001800FCA70                 mov     rax, rsp
+  .text:00000001800FCA73                 mov     [rax+8], rbx
+  .text:00000001800FCA77                 mov     [rax+10h], rbp
+  .text:00000001800FCA7B                 mov     [rax+18h], rsi
+  .text:00000001800FCA7F                 push    rdi
+  .text:00000001800FCA80                 sub     rsp, 0F0h
+  .text:00000001800FCA87                 mov     byte ptr [rax-10h], 0
+  .text:00000001800FCA8B                 mov     rbp, r9
+  .text:00000001800FCA8E                 mov     rax, [rcx]
+  .text:00000001800FCA91                 mov     rdi, r8
+  .text:00000001800FCA94                 mov     rsi, rdx
+  .text:00000001800FCA97                 mov     rbx, rcx
+  .text:00000001800FCA9A                 call    qword ptr [rax+20h]
+  .text:00000001800FCA9D                 cmp     [rsp+0F8h+var_10], 0
+  .text:00000001800FCAA5                 mov     rcx, rax
+  .text:00000001800FCAA8                 jz      short loc_1800FCAAE
+  .text:00000001800FCAAA                 xor     edi, edi
+  .text:00000001800FCAAC                 jmp     short loc_1800FCAF9
+  .text:00000001800FCAAE                 mov     eax, [rbx+18h]
+  .text:00000001800FCAB1                 lea     r8, [rsp+0F8h+var_C8]
+  .text:00000001800FCAB6                 mov     [rsp+0F8h+var_C0], rdi
+  .text:00000001800FCABB                 mov     dl, 1
+  .text:00000001800FCABD                 mov     [rsp+0F8h+var_B8], eax
+  .text:00000001800FCAC1                 xor     edi, edi
+  .text:00000001800FCAC3                 mov     [rsp+0F8h+var_C8], rsi
+  .text:00000001800FCAC8                 movaps  xmm0, xmmword ptr [rcx]
+  .text:00000001800FCACB                 movaps  [rsp+0F8h+var_A8], xmm0
+  .text:00000001800FCAD0                 movaps  xmm1, xmmword ptr [rcx+10h]
+  .text:00000001800FCAD4                 movaps  [rsp+0F8h+var_98], xmm1
+  .text:00000001800FCAD9                 movaps  xmm0, xmmword ptr [rcx+20h]
+  .text:00000001800FCADD                 mov     rcx, rsi
+  .text:00000001800FCAE0                 movaps  [rsp+0F8h+var_88], xmm0
+  .text:00000001800FCAE5                 mov     [rsp+0F8h+var_78], rdi
+  .text:00000001800FCAED                 mov     rax, [rsi]
+  .text:00000001800FCAF0                 ; 0x150 = 336LL = IGameResourceService_LockGameResourceManifest
+  .text:00000001800FCAF0                 call    qword ptr [rax+150h]; 0x150 = 336LL = IGameResourceService_LockGameResourceManifest
+  .text:00000001800FCAF6                 mov     rdi, rax
+  .text:00000001800FCAF9                 mov     rdx, [rbx]
+  .text:00000001800FCAFC                 mov     rcx, rbx
+  .text:00000001800FCAFF                 call    qword ptr [rdx+160h]
+  .text:00000001800FCB05                 mov     edx, [rbx+18h]
+  .text:00000001800FCB08                 xor     r9d, r9d
+  .text:00000001800FCB0B                 mov     r8, rdi
+  .text:00000001800FCB0E                 mov     [rsp+0F8h+var_D8], rbp
+  .text:00000001800FCB13                 mov     rcx, rax
+  .text:00000001800FCB16                 mov     r10, [rax]
+  .text:00000001800FCB19                 call    qword ptr [r10+10h]
+  .text:00000001800FCB1D                 mov     edx, 3
+  .text:00000001800FCB22                 mov     rcx, rbx
+  .text:00000001800FCB25                 call    sub_1800FD3B0
+  .text:00000001800FCB2A                 movzx   eax, [rsp+0F8h+var_10]
+  .text:00000001800FCB32                 test    al, al
+  .text:00000001800FCB34                 jz      short loc_1800FCB6F
+  .text:00000001800FCB36                 mov     rcx, [rsp+0F8h+var_C8]
+  .text:00000001800FCB3B                 lea     r8, [rsp+0F8h+var_C8]
+  .text:00000001800FCB40                 xor     edx, edx
+  .text:00000001800FCB42                 mov     rax, [rcx]
+  .text:00000001800FCB45                 call    qword ptr [rax+150h]
+  .text:00000001800FCB4B                 movzx   eax, [rsp+0F8h+var_10]
+  .text:00000001800FCB53                 test    al, al
+  .text:00000001800FCB55                 jz      short loc_1800FCB6F
+  .text:00000001800FCB57                 mov     rcx, [rsp+0F8h+var_68]
+  .text:00000001800FCB5F                 lea     r8, [rsp+0F8h+var_68]
+  .text:00000001800FCB67                 xor     edx, edx
+  .text:00000001800FCB69                 mov     rax, [rcx]
+  .text:00000001800FCB6C                 call    qword ptr [rax+48h]
+  .text:00000001800FCB6F                 lea     r11, [rsp+0F8h+var_8]
+  .text:00000001800FCB77                 mov     rbx, [r11+10h]
+  .text:00000001800FCB7B                 mov     rbp, [r11+18h]
+  .text:00000001800FCB7F                 mov     rsi, [r11+20h]
+  .text:00000001800FCB83                 mov     rsp, r11
+  .text:00000001800FCB86                 pop     rdi
+  .text:00000001800FCB87                 retn
+procedure: |-
+  __int64 __fastcall sub_1800FCA70(_DWORD *a1, __int64 a2, __int64 a3, __int64 a4)
+  {
+    __int128 *v8; // rcx
+    int v9; // eax
+    __int64 v10; // rdx
+    __int64 v11; // rdi
+    __int64 v12; // rax
+    __int64 result; // rax
+    _QWORD v14[2]; // [rsp+30h] [rbp-C8h] BYREF
+    int v15; // [rsp+40h] [rbp-B8h]
+    __int128 v16; // [rsp+50h] [rbp-A8h]
+    __int128 v17; // [rsp+60h] [rbp-98h]
+    __int128 v18; // [rsp+70h] [rbp-88h]
+    __int64 v19; // [rsp+80h] [rbp-78h]
+    _QWORD v20[11]; // [rsp+90h] [rbp-68h] BYREF
+    unsigned __int8 v21; // [rsp+E8h] [rbp-10h]
+
+    v21 = 0;
+    v8 = (__int128 *)(*(__int64 (__fastcall **)(_DWORD *))(*(_QWORD *)a1 + 32LL))(a1);
+    v9 = a1[6];
+    v14[1] = a3;
+    LOBYTE(v10) = 1;
+    v15 = v9;
+    v14[0] = a2;
+    v16 = *v8;
+    v17 = v8[1];
+    v18 = v8[2];
+    v19 = 0;
+    v11 = (*(__int64 (__fastcall **)(__int64, __int64, _QWORD *))(*(_QWORD *)a2 + 336LL))(a2, v10, v14);// 0x150 = 336LL = IGameResourceService_LockGameResourceManifest
+    v12 = (*(__int64 (__fastcall **)(_DWORD *))(*(_QWORD *)a1 + 352LL))(a1);
+    (*(void (__fastcall **)(__int64, _QWORD, __int64, _QWORD, __int64))(*(_QWORD *)v12 + 16LL))(
+      v12,
+      (unsigned int)a1[6],
+      v11,
+      0,
+      a4);
+    sub_1800FD3B0(a1, 3);
+    result = v21;
+    if ( v21 )
+    {
+      (*(void (__fastcall **)(_QWORD, _QWORD, _QWORD *))(*(_QWORD *)v14[0] + 336LL))(v14[0], 0, v14);
+      result = v21;
+      if ( v21 )
+        return (*(__int64 (__fastcall **)(_QWORD, _QWORD, _QWORD *))(*(_QWORD *)v20[0] + 72LL))(v20[0], 0, v20);
+    }
+    return result;
+  }
