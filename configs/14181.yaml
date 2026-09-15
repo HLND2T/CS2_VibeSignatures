@@ -577,6 +577,10 @@ modules:
         category: vfunc
         alias:
           - CNetworkSystem::BufferToBufferDecompress
+      - name: CNetworkSystem_GetSteamNetworkingSockets
+        category: vfunc
+        alias:
+          - CNetworkSystem::GetSteamNetworkingSockets
       - name: CNetworkSystem_CloseAllSockets
         category: vfunc
         alias:
@@ -641,9 +645,10 @@ modules:
       - name: find-CNetworkGameServerBase_ReplyChallenge
         expected_output:
           - CNetworkGameServerBase_ReplyChallenge.{platform}.yaml
-      - name: find-CNetworkGameServerBase_GetChallengeType
+      - name: find-CNetworkGameServerBase_ReplyChallenge-decompiles
         expected_output:
           - CNetworkGameServerBase_GetChallengeType.{platform}.yaml
+          - INetworkSystem_GetSteamNetworkingSockets.{platform}.yaml
         expected_input:
           - CNetworkGameServerBase_ReplyChallenge.{platform}.yaml
           - CNetworkGameServerBase_vtable.{platform}.yaml
@@ -2790,6 +2795,10 @@ modules:
         category: vfunc
         alias:
           - CNetworkGameServerBase::GetChallengeType
+      - name: INetworkSystem_GetSteamNetworkingSockets
+        category: vfunc
+        alias:
+          - INetworkSystem::GetSteamNetworkingSockets
       - name: CNetworkGameServer_Init
         category: vfunc
         alias:
@@ -13686,6 +13695,12 @@ modules:
         expected_input:
           - CNetworkSystem_vtable.{platform}.yaml
           - ../engine/INetworkSystem_BufferToBufferDecompress.{platform}.yaml
+      - name: find-CNetworkSystem_GetSteamNetworkingSockets
+        expected_output:
+          - CNetworkSystem_GetSteamNetworkingSockets.{platform}.yaml
+        expected_input:
+          - CNetworkSystem_vtable.{platform}.yaml
+          - ../engine/INetworkSystem_GetSteamNetworkingSockets.{platform}.yaml
       - name: find-CNetworkSystem_PrintNetworkStats
         expected_output:
           - CNetworkSystem_PrintNetworkStats.{platform}.yaml
