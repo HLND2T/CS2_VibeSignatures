@@ -1336,6 +1336,11 @@ modules:
       - name: find-CNetworkServerService_vtable
         expected_output:
           - CNetworkServerService_vtable.{platform}.yaml
+      - name: find-CNetworkServerService_OnLoopActivate
+        expected_output:
+          - CNetworkServerService_OnLoopActivate.{platform}.yaml
+        expected_input:
+          - CNetworkServerService_vtable.{platform}.yaml
       - name: find-CNetworkServerService_Init
         expected_output:
           - CNetworkServerService_Init.{platform}.yaml
@@ -2121,6 +2126,17 @@ modules:
       - name: find-CEngineServiceMgr_vtable
         expected_output:
           - CEngineServiceMgr_vtable.{platform}.yaml
+      - name: find-IEngineServiceMgr_IsInGameLoop
+        expected_output:
+          - IEngineServiceMgr_IsInGameLoop.{platform}.yaml
+        expected_input:
+          - CNetworkServerService_OnLoopActivate.{platform}.yaml
+      - name: find-CEngineServiceMgr_IsInGameLoop
+        expected_output:
+          - CEngineServiceMgr_IsInGameLoop.{platform}.yaml
+        expected_input:
+          - CEngineServiceMgr_vtable.{platform}.yaml
+          - IEngineServiceMgr_IsInGameLoop.{platform}.yaml
       - name: find-MainLoop
         expected_output:
           - MainLoop.{platform}.yaml
@@ -3338,6 +3354,10 @@ modules:
           - CNetworkClientService::AllocateRemoteConnectionClient
       - name: CNetworkServerService_vtable
         category: vtable
+      - name: CNetworkServerService_OnLoopActivate
+        category: vfunc
+        alias:
+          - CNetworkServerService::OnLoopActivate
       - name: CNetworkGameServer_WriteClassInfosAndSerializesToBuffer
         category: func
         alias:
@@ -3872,6 +3892,14 @@ modules:
           - ILoopModeFactory::Shutdown
       - name: CEngineServiceMgr_vtable
         category: vtable
+      - name: IEngineServiceMgr_IsInGameLoop
+        category: vfunc
+        alias:
+          - IEngineServiceMgr::IsInGameLoop
+      - name: CEngineServiceMgr_IsInGameLoop
+        category: vfunc
+        alias:
+          - CEngineServiceMgr::IsInGameLoop
       - name: MainLoop
         category: func
       - name: IEngineServiceMgr_GetActiveLoop
