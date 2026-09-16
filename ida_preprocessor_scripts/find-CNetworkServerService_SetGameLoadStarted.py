@@ -19,9 +19,7 @@ LLM_DECOMPILE = [
     },
 ]
 
-FUNC_VTABLE_RELATIONS = [
-    ("CNetworkServerService_SetGameLoadStarted", "CNetworkServerService")
-]
+FUNC_VTABLE_RELATIONS = [("CNetworkServerService_SetGameLoadStarted", "CNetworkServerService")]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     (
