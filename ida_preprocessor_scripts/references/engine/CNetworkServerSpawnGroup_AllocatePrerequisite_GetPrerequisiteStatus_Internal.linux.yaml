@@ -1,0 +1,151 @@
+func_name: CNetworkServerSpawnGroup_AllocatePrerequisite_GetPrerequisiteStatus_Internal
+func_va: '0x57eb60'
+disasm_code: |-
+  .text:000000000057EB60                 push    rbp
+  .text:000000000057EB61                 movq    xmm0, rsi
+  .text:000000000057EB66                 mov     rbp, rsp
+  .text:000000000057EB69                 push    r14
+  .text:000000000057EB6B                 pinsrq  xmm0, rdx, 1
+  .text:000000000057EB72                 push    r13
+  .text:000000000057EB74                 lea     rdx, sub_4EB9A0
+  .text:000000000057EB7B                 mov     r13, rcx
+  .text:000000000057EB7E                 push    r12
+  .text:000000000057EB80                 mov     r12, rsi
+  .text:000000000057EB83                 push    rbx
+  .text:000000000057EB84                 mov     rbx, rdi
+  .text:000000000057EB87                 sub     rsp, 0D0h
+  .text:000000000057EB8E                 mov     rax, [rdi]
+  .text:000000000057EB91                 mov     byte ptr [rbp-28h], 0
+  .text:000000000057EB95                 mov     rax, [rax+20h]
+  .text:000000000057EB99                 cmp     rax, rdx
+  .text:000000000057EB9C                 jnz     loc_57EC80
+  .text:000000000057EBA2                 mov     edx, [rdi+18h]
+  .text:000000000057EBA5                 lea     rax, [rdi+40h]
+  .text:000000000057EBA9                 mov     [rbp-0D0h], edx
+  .text:000000000057EBAF                 mov     esi, 1
+  .text:000000000057EBB4                 mov     rdi, r12
+  .text:000000000057EBB7                 movaps  xmmword ptr [rbp-0E0h], xmm0
+  .text:000000000057EBBE                 movdqa  xmm0, xmmword ptr [rax]
+  .text:000000000057EBC2                 lea     rdx, [rbp-0E0h]
+  .text:000000000057EBC9                 movaps  xmmword ptr [rbp-0C0h], xmm0
+  .text:000000000057EBD0                 movdqa  xmm0, xmmword ptr [rax+10h]
+  .text:000000000057EBD5                 movaps  xmmword ptr [rbp-0B0h], xmm0
+  .text:000000000057EBDC                 movdqa  xmm0, xmmword ptr [rax+20h]
+  .text:000000000057EBE1                 mov     qword ptr [rbp-90h], 0
+  .text:000000000057EBEC                 mov     rax, [r12]
+  .text:000000000057EBF0                 movaps  xmmword ptr [rbp-0A0h], xmm0
+  .text:000000000057EBF7                 ; 0x158 = 344LL = IGameResourceService_LockGameResourceManifest
+  .text:000000000057EBF7                 call    qword ptr [rax+158h]; 0x158 = 344LL = IGameResourceService_LockGameResourceManifest
+  .text:000000000057EBFD                 mov     r14, rax
+  .text:000000000057EC00                 mov     rax, [rbx]
+  .text:000000000057EC03                 mov     rdi, rbx
+  .text:000000000057EC06                 call    qword ptr [rax+178h]
+  .text:000000000057EC0C                 xor     ecx, ecx
+  .text:000000000057EC0E                 mov     esi, [rbx+18h]
+  .text:000000000057EC11                 mov     r8, r13
+  .text:000000000057EC14                 mov     rdi, rax
+  .text:000000000057EC17                 mov     rax, [rax]
+  .text:000000000057EC1A                 mov     rdx, r14
+  .text:000000000057EC1D                 call    qword ptr [rax+10h]
+  .text:000000000057EC20                 cmp     dword ptr [rbx+1Ch], 3
+  .text:000000000057EC24                 jz      short loc_57EC33
+  .text:000000000057EC26                 mov     esi, 3
+  .text:000000000057EC2B                 mov     rdi, rbx
+  .text:000000000057EC2E                 call    sub_57D4C0
+  .text:000000000057EC33                 cmp     byte ptr [rbp-28h], 0
+  .text:000000000057EC37                 jz      short loc_57EC68
+  .text:000000000057EC39                 mov     rdi, [rbp-0E0h]
+  .text:000000000057EC40                 lea     rdx, [rbp-0E0h]
+  .text:000000000057EC47                 xor     esi, esi
+  .text:000000000057EC49                 mov     rax, [rdi]
+  .text:000000000057EC4C                 call    qword ptr [rax+158h]
+  .text:000000000057EC52                 cmp     byte ptr [rbp-28h], 0
+  .text:000000000057EC56                 jz      short loc_57EC68
+  .text:000000000057EC58                 mov     rdi, [rbp-80h]
+  .text:000000000057EC5C                 lea     rdx, [rbp-80h]
+  .text:000000000057EC60                 xor     esi, esi
+  .text:000000000057EC62                 mov     rax, [rdi]
+  .text:000000000057EC65                 call    qword ptr [rax+48h]
+  .text:000000000057EC68                 add     rsp, 0D0h
+  .text:000000000057EC6F                 pop     rbx
+  .text:000000000057EC70                 pop     r12
+  .text:000000000057EC72                 pop     r13
+  .text:000000000057EC74                 pop     r14
+  .text:000000000057EC76                 pop     rbp
+  .text:000000000057EC77                 retn
+  .text:000000000057EC80                 movaps  xmmword ptr [rbp-0F0h], xmm0
+  .text:000000000057EC87                 xor     r14d, r14d
+  .text:000000000057EC8A                 call    rax
+  .text:000000000057EC8C                 cmp     byte ptr [rbp-28h], 0
+  .text:000000000057EC90                 movdqa  xmm0, xmmword ptr [rbp-0F0h]
+  .text:000000000057EC98                 jnz     loc_57EC00
+  .text:000000000057EC9E                 mov     edx, [rbx+18h]
+  .text:000000000057ECA1                 jmp     loc_57EBA9
+procedure: |-
+  __int64 __fastcall sub_57EB60(__m128i *a1, __int64 *a2, signed __int64 a3, __int64 a4)
+  {
+    __m128i inserted; // xmm0
+    __int64 v6; // rax
+    __int64 (__fastcall *v7)(); // rax
+    __int32 v8; // edx
+    const __m128i *v9; // rax
+    __m128i v10; // xmm0
+    __int64 v11; // rax
+    __int64 v12; // r14
+    __int64 v13; // rax
+    __int64 result; // rax
+    __m128i v15; // [rsp-F0h] [rbp-F8h] BYREF
+    __m128i v16; // [rsp-E0h] [rbp-E8h] BYREF
+    __int32 v17; // [rsp-D0h] [rbp-D8h]
+    __m128i si128; // [rsp-C0h] [rbp-C8h]
+    __m128i v19; // [rsp-B0h] [rbp-B8h]
+    __m128i v20; // [rsp-A0h] [rbp-A8h]
+    __int64 v21; // [rsp-90h] [rbp-98h]
+    __int64 v22; // [rsp-80h] [rbp-88h] BYREF
+    char v23; // [rsp-28h] [rbp-30h]
+
+    inserted = _mm_insert_epi64((__m128i)(unsigned __int64)a2, a3, 1);
+    v6 = a1->m128i_i64[0];
+    v23 = 0;
+    v7 = *(__int64 (__fastcall **)())(v6 + 32);
+    if ( v7 == sub_4EB9A0 )
+    {
+      v8 = a1[1].m128i_i32[2];
+      v9 = a1 + 4;
+    }
+    else
+    {
+      v15 = inserted;
+      v9 = (const __m128i *)((__int64 (__fastcall *)(__m128i *, __int64 *))v7)(a1, a2);
+      inserted = _mm_load_si128(&v15);
+      v8 = a1[1].m128i_i32[2];
+    }
+    v17 = v8;
+    v16 = inserted;
+    si128 = _mm_load_si128(v9);
+    v19 = _mm_load_si128(v9 + 1);
+    v10 = _mm_load_si128(v9 + 2);
+    v21 = 0;
+    v11 = *a2;
+    v20 = v10;
+    v12 = (*(__int64 (__fastcall **)(__int64 *, __int64, __m128i *))(v11 + 344))(a2, 1, &v16);// 0x158 = 344LL = IGameResourceService_LockGameResourceManifest
+    v13 = (*(__int64 (__fastcall **)(__m128i *))(a1->m128i_i64[0] + 376))(a1);
+    result = (*(__int64 (__fastcall **)(__int64, _QWORD, __int64, _QWORD, __int64))(*(_QWORD *)v13 + 16LL))(
+               v13,
+               a1[1].m128i_u32[2],
+               v12,
+               0,
+               a4);
+    if ( a1[1].m128i_i32[3] != 3 )
+      result = sub_57D4C0(a1, 3);
+    if ( v23 )
+    {
+      result = (*(__int64 (__fastcall **)(__int64, _QWORD, __m128i *))(*(_QWORD *)v16.m128i_i64[0] + 344LL))(
+                 v16.m128i_i64[0],
+                 0,
+                 &v16);
+      if ( v23 )
+        return (*(__int64 (__fastcall **)(__int64, _QWORD, __int64 *))(*(_QWORD *)v22 + 72LL))(v22, 0, &v22);
+    }
+    return result;
+  }
