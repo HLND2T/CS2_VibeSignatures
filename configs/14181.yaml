@@ -577,6 +577,10 @@ modules:
         category: vfunc
         alias:
           - CNetworkSystem::BufferToBufferDecompress
+      - name: CNetworkSystem_BufferToBufferCompress
+        category: vfunc
+        alias:
+          - CNetworkSystem::BufferToBufferCompress
       - name: CNetworkSystem_CloseAllSockets
         category: vfunc
         alias:
@@ -2236,6 +2240,14 @@ modules:
       - name: find-CNetworkStringTableClient_ParseUpdate
         expected_output:
           - CNetworkStringTableClient_ParseUpdate.{platform}.yaml
+      - name: find-CNetworkStringTableContainer_WriteBaselines
+        expected_output:
+          - CNetworkStringTableContainer_WriteBaselines.{platform}.yaml
+      - name: find-INetworkSystem_BufferToBufferCompress
+        expected_output:
+          - INetworkSystem_BufferToBufferCompress.{platform}.yaml
+        expected_input:
+          - CNetworkStringTableContainer_WriteBaselines.{platform}.yaml
       - name: find-CSteam3ServerS1_ShutdownGameServer
         expected_output:
           - CSteam3ServerS1_ShutdownGameServer.{platform}.yaml
@@ -3916,6 +3928,10 @@ modules:
         category: func
         alias:
           - CNetworkStringTableClient::ParseUpdate
+      - name: CNetworkStringTableContainer_WriteBaselines
+        category: func
+        alias:
+          - CNetworkStringTableContainer::WriteBaselines
       - name: INetworkSystem_ShutdownGameServer
         category: vfunc
         alias:
@@ -3952,6 +3968,10 @@ modules:
         category: vfunc
         alias:
           - INetworkSystem::BufferToBufferDecompress
+      - name: INetworkSystem_BufferToBufferCompress
+        category: vfunc
+        alias:
+          - INetworkSystem::BufferToBufferCompress
       - name: INetworkSystem_InitNetworkSystem
         category: vfunc
         alias:
@@ -13755,6 +13775,12 @@ modules:
         expected_input:
           - CNetworkSystem_vtable.{platform}.yaml
           - ../engine/INetworkSystem_BufferToBufferDecompress.{platform}.yaml
+      - name: find-CNetworkSystem_BufferToBufferCompress
+        expected_output:
+          - CNetworkSystem_BufferToBufferCompress.{platform}.yaml
+        expected_input:
+          - CNetworkSystem_vtable.{platform}.yaml
+          - ../engine/INetworkSystem_BufferToBufferCompress.{platform}.yaml
       - name: find-CNetworkSystem_PrintNetworkStats
         expected_output:
           - CNetworkSystem_PrintNetworkStats.{platform}.yaml
