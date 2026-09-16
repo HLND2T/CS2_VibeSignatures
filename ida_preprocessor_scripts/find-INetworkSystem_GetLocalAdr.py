@@ -38,8 +38,9 @@ result = json.dumps({"found": needle in offsets, "offsets": offsets})
 """
 
 
-async def preprocess_skill(session, skill_name, expected_outputs, old_yaml_map,
-                           new_binary_dir, platform, image_base, debug=False):
+async def preprocess_skill(
+    session, skill_name, expected_outputs, old_yaml_map, new_binary_dir, platform, image_base, debug=False
+):
     """Verify the server-init slot load and write the abstract vfunc artifact."""
     _ = skill_name, old_yaml_map, image_base
     vfunc_offset = VFUNC_OFFSETS.get(platform)
@@ -53,7 +54,9 @@ async def preprocess_skill(session, skill_name, expected_outputs, old_yaml_map,
     try:
         with open(source_path, encoding="utf-8") as handle:
             func_va = int(str(yaml.safe_load(handle)["func_va"]), 0)
-        code = _PY_EVAL_TEMPLATE.replace("FUNC_VA_PLACEHOLDER", str(func_va)).replace("OFFSET_PLACEHOLDER", str(vfunc_offset))
+        code = _PY_EVAL_TEMPLATE.replace("FUNC_VA_PLACEHOLDER", str(func_va)).replace(
+            "OFFSET_PLACEHOLDER", str(vfunc_offset)
+        )
         result = parse_mcp_result(await session.call_tool("py_eval", {"code": code}))
         if debug:
             print(f"    Preprocess: slot scan result: {result!r}")
@@ -66,10 +69,13 @@ async def preprocess_skill(session, skill_name, expected_outputs, old_yaml_map,
         if debug:
             print(f"    Preprocess: slot {hex(vfunc_offset)} absent from {PREDECESSOR_STEM}")
         return False
-    write_func_yaml(output_path, {
-        "func_name": TARGET_FUNC_NAME,
-        "vtable_name": VTABLE_CLASS,
-        "vfunc_offset": hex(vfunc_offset),
-        "vfunc_index": vfunc_offset // 8,
-    })
+    write_func_yaml(
+        output_path,
+        {
+            "func_name": TARGET_FUNC_NAME,
+            "vtable_name": VTABLE_CLASS,
+            "vfunc_offset": hex(vfunc_offset),
+            "vfunc_index": vfunc_offset // 8,
+        },
+    )
     return True
