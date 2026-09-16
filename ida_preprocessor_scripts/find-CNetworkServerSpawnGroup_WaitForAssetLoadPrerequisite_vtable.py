@@ -9,20 +9,29 @@ GENERATE_YAML_DESIRED_FIELDS = [
     (
         "CNetworkServerSpawnGroup_WaitForAssetLoadPrerequisite",
         [
-            "vtable_class", "vtable_symbol", "vtable_va", "vtable_rva",
-            "vtable_size", "vtable_numvfunc", "vtable_entries",
+            "vtable_class",
+            "vtable_symbol",
+            "vtable_va",
+            "vtable_rva",
+            "vtable_size",
+            "vtable_numvfunc",
+            "vtable_entries",
         ],
     ),
 ]
 
 
-async def preprocess_skill(session, skill_name, expected_outputs, old_yaml_map,
-                           new_binary_dir, platform, image_base, debug=False):
+async def preprocess_skill(
+    session, skill_name, expected_outputs, old_yaml_map, new_binary_dir, platform, image_base, debug=False
+):
     """Generate the prerequisite vtable YAML by class-name lookup via MCP."""
     _ = skill_name, old_yaml_map, new_binary_dir
     return await preprocess_common_skill(
-        session=session, expected_outputs=expected_outputs,
-        vtable_class_names=TARGET_CLASS_NAMES, platform=platform,
+        session=session,
+        expected_outputs=expected_outputs,
+        vtable_class_names=TARGET_CLASS_NAMES,
+        platform=platform,
         image_base=image_base,
-        generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS, debug=debug,
+        generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
+        debug=debug,
     )
