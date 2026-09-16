@@ -2121,6 +2121,9 @@ modules:
       - name: find-CEngineServiceMgr_vtable
         expected_output:
           - CEngineServiceMgr_vtable.{platform}.yaml
+      - name: find-CEngineServiceMgr_vtable2
+        expected_output:
+          - CEngineServiceMgr_vtable2.{platform}.yaml
       - name: find-CLoopModeLevelLoad_vtable
         expected_output:
           - CLoopModeLevelLoad_vtable.{platform}.yaml
@@ -2134,7 +2137,7 @@ modules:
           - CEngineServiceMgr_RegisterPrerequisite.{platform}.yaml
         expected_input:
           - CLoopModeLevelLoad_LoopInit.{platform}.yaml
-          - CEngineServiceMgr_vtable.{platform}.yaml
+          - CEngineServiceMgr_vtable2.{platform}.yaml
       - name: find-IEngineServiceMgr_GetAddonCount
         expected_output:
           - IEngineServiceMgr_GetAddonCount.{platform}.yaml
@@ -3871,6 +3874,8 @@ modules:
         alias:
           - ILoopModeFactory::Shutdown
       - name: CEngineServiceMgr_vtable
+        category: vtable
+      - name: CEngineServiceMgr_vtable2
         category: vtable
       - name: CLoopModeLevelLoad_vtable
         category: vtable
@@ -14240,6 +14245,13 @@ cpp_tests:
     symbol: IEngineServiceMgr
     alias_symbols:
       - CEngineServiceMgr
+    # MSVC duplicates RegisterPrerequisite in CEngineServiceMgr's primary
+    # vtable, while Clang models that override only in its secondary base.
+    # Continue checking all resolvable primary slots, but do not compare the
+    # aggregate table count for this known compiler-model difference.
+    allow_vtable_size_mismatch: true
+    exclude_reference_vtables:
+      - CEngineServiceMgr_vtable2
     cpp: cpp_tests/iengineservicemgr.cpp
     headers:
       - hl2sdk_cs2/public/engine/IEngineService.h  # Used by the fix-cppheaders SKILL

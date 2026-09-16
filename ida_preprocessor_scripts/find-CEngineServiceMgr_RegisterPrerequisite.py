@@ -19,7 +19,7 @@ LLM_DECOMPILE = [
     },
 ]
 
-FUNC_VTABLE_RELATIONS = [("CEngineServiceMgr_RegisterPrerequisite", "CEngineServiceMgr")]
+FUNC_VTABLE_RELATIONS = [("CEngineServiceMgr_RegisterPrerequisite", "CEngineServiceMgr_vtable2")]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     (
