@@ -25,14 +25,26 @@ GENERATE_YAML_DESIRED_FIELDS = [
 
 
 async def preprocess_skill(
-    session, skill_name, expected_outputs, old_yaml_map,
-    new_binary_dir, platform, image_base, debug=False,
+    session,
+    skill_name,
+    expected_outputs,
+    old_yaml_map,
+    new_binary_dir,
+    platform,
+    image_base,
+    debug=False,
 ):
     """Find SendSnapshot from its job profiler marker."""
     _ = skill_name
     return await preprocess_common_skill(
-        session=session, expected_outputs=expected_outputs,
-        old_yaml_map=old_yaml_map, new_binary_dir=new_binary_dir, platform=platform,
-        image_base=image_base, func_names=TARGET_FUNCTION_NAMES, func_xrefs=FUNC_XREFS,
-        generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS, debug=debug,
+        session=session,
+        expected_outputs=expected_outputs,
+        old_yaml_map=old_yaml_map,
+        new_binary_dir=new_binary_dir,
+        platform=platform,
+        image_base=image_base,
+        func_names=TARGET_FUNCTION_NAMES,
+        func_xrefs=FUNC_XREFS,
+        generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
+        debug=debug,
     )
