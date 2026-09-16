@@ -30,8 +30,14 @@ GENERATE_YAML_DESIRED_FIELDS = [
 
 
 async def preprocess_skill(
-    session, skill_name, expected_outputs, old_yaml_map,
-    new_binary_dir, platform, image_base, debug=False,
+    session,
+    skill_name,
+    expected_outputs,
+    old_yaml_map,
+    new_binary_dir,
+    platform,
+    image_base,
+    debug=False,
 ):
     """Resolve CEngineServiceMgr::GetAddonsString at the interface slot."""
     _ = skill_name
