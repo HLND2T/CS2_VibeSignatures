@@ -2,6 +2,7 @@
 """Extract network interface calls made during Steam game-server initialization."""
 
 from ida_analyze_util import preprocess_common_skill
+from ida_preprocessor_scripts._init_game_server_anchor import load_anchor, validate_result
 
 TARGET_FUNCTION_NAMES = ["INetworkSystem_GetFakeLag", "INetworkServerService_IsActiveInGame"]
 LLM_DECOMPILE = [
@@ -35,6 +36,14 @@ async def preprocess_skill(
     debug=False,
 ):
     _ = skill_name
+    try:
+        anchor = await load_anchor(session, new_binary_dir, platform)
+    except Exception as exc:
+        if debug:
+            print(f"    Preprocess: GetFakeLag anchor unavailable: {exc}")
+        return False
+    if debug:
+        print(f"    Preprocess: GetFakeLag verified anchor {hex(anchor['insn_va'])}")
     return await preprocess_common_skill(
         session=session,
         expected_outputs=expected_outputs,
@@ -46,6 +55,7 @@ async def preprocess_skill(
         func_vtable_relations=FUNC_VTABLE_RELATIONS,
         llm_decompile_specs=LLM_DECOMPILE,
         llm_config=llm_config,
+        llm_result_validator=lambda result: validate_result(result, anchor),
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
     )

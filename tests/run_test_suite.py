@@ -103,6 +103,7 @@ UNIT_MODULES = frozenset(
         "test_igamesystem_slot_dispatch_preprocessor",
         "test_igamesystem_slot_dispatch_py_eval_behavior",
         "test_indirect_vcall_target_common",
+        "test_init_game_server_anchor",
         "test_init_gamebin",
         "test_llm_decompile_dependencies",
         "test_new_gamever_artifact",
