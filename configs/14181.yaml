@@ -2121,6 +2121,20 @@ modules:
       - name: find-CEngineServiceMgr_vtable
         expected_output:
           - CEngineServiceMgr_vtable.{platform}.yaml
+      - name: find-MainLoop
+        expected_output:
+          - MainLoop.{platform}.yaml
+      - name: find-IEngineServiceMgr_GetActiveLoop
+        expected_output:
+          - IEngineServiceMgr_GetActiveLoop.{platform}.yaml
+        expected_input:
+          - MainLoop.{platform}.yaml
+      - name: find-CEngineServiceMgr_GetActiveLoop
+        expected_output:
+          - CEngineServiceMgr_GetActiveLoop.{platform}.yaml
+        expected_input:
+          - CEngineServiceMgr_vtable.{platform}.yaml
+          - IEngineServiceMgr_GetActiveLoop.{platform}.yaml
       - name: find-IEngineServiceMgr_GetAddonCount
         expected_output:
           - IEngineServiceMgr_GetAddonCount.{platform}.yaml
@@ -3858,6 +3872,16 @@ modules:
           - ILoopModeFactory::Shutdown
       - name: CEngineServiceMgr_vtable
         category: vtable
+      - name: MainLoop
+        category: func
+      - name: IEngineServiceMgr_GetActiveLoop
+        category: vfunc
+        alias:
+          - IEngineServiceMgr::GetActiveLoop
+      - name: CEngineServiceMgr_GetActiveLoop
+        category: vfunc
+        alias:
+          - CEngineServiceMgr::GetActiveLoop
       - name: CEngineServiceMgr_GetAddonCount
         category: vfunc
         alias:
