@@ -34,7 +34,7 @@ disasm_code: |-
   .text:00000000004AFAEC                 call    sub_2C9CB0
   .text:00000000004AFAF1                 mov     rax, [rbx]
   .text:00000000004AFAF4                 mov     rdi, rbx
-  .text:00000000004AFAF7                 call    qword ptr [rax+118h]
+  .text:00000000004AFAF7                 call    qword ptr [rax+118h]; 0x118 = 280LL = IGameResourceService_FreeGameResourceManifest
   .text:00000000004AFAFD                 mov     rdi, rbx
   .text:00000000004AFB00                 call    sub_4ED1B0
   .text:00000000004AFB05                 add     rsp, 18h
@@ -61,7 +61,7 @@ procedure: |-
       if ( v3[0] )
         sub_2C9CB0(v3);
     }
-    (*(void (__fastcall **)(__int64))(*(_QWORD *)a1 + 280LL))(a1);
+    (*(void (__fastcall **)(__int64))(*(_QWORD *)a1 + 280LL))(a1); // 280LL = 0x118 = IGameResourceService_FreeGameResourceManifest
     sub_4ED1B0(a1);
     return sub_2BCC50(a1, 656);
   }
