@@ -35,8 +35,8 @@ disasm_code: |-
   .text:000000018013FF0F                 mov     rax, [rsi]
   .text:000000018013FF12                 mov     rcx, rsi
   .text:000000018013FF15                 mov     rdx, [rdi+8]
-  .text:000000018013FF19                 ; IEngineServiceMgr_RegisterPrerequisite
-  .text:000000018013FF19                 call    qword ptr [rax]; IEngineServiceMgr_RegisterPrerequisite
+  .text:000000018013FF19                 ; ILoopModePrerequisiteRegistry_RegisterPrerequisite
+  .text:000000018013FF19                 call    qword ptr [rax]; ILoopModePrerequisiteRegistry_RegisterPrerequisite
   .text:000000018013FF1B                 lea     rdx, aLevelname; "levelname"
   .text:000000018013FF22                 mov     [rdi+30h], ebx
   .text:000000018013FF25                 mov     rcx, rbp
@@ -101,7 +101,7 @@ procedure: |-
     }
     *(_QWORD *)(a1 + 8) = v7;
     (*(void (__fastcall **)(__int64))(*(_QWORD *)v7 + 8LL))(v7);
-    (**a3)(a3, *(_QWORD *)(a1 + 8));              // IEngineServiceMgr_RegisterPrerequisite
+    (**a3)(a3, *(_QWORD *)(a1 + 8));              // ILoopModePrerequisiteRegistry_RegisterPrerequisite
     *(_DWORD *)(a1 + 48) = 0;
     Key = KeyValues::FindKey(a2, "levelname");
     if ( Key )

@@ -22,8 +22,8 @@ disasm_code: |-
   .text:0000000000457160                 mov     qword ptr [rsi+18h], 0
   .text:0000000000457168                 mov     qword ptr [rsi+20h], 0
   .text:0000000000457170                 mov     dword ptr [rsi+8], 1
-  .text:0000000000457177                 ; IEngineServiceMgr_RegisterPrerequisite
-  .text:0000000000457177                 call    qword ptr [rax]; IEngineServiceMgr_RegisterPrerequisite
+  .text:0000000000457177                 ; ILoopModePrerequisiteRegistry_RegisterPrerequisite
+  .text:0000000000457177                 call    qword ptr [rax]; ILoopModePrerequisiteRegistry_RegisterPrerequisite
   .text:0000000000457179                 lea     rsi, aLevelname; "levelname"
   .text:0000000000457180                 mov     dword ptr [rbx+30h], 0
   .text:0000000000457187                 mov     rdi, r12
@@ -97,7 +97,7 @@ procedure: |-
     *(_QWORD *)(v5 + 24) = 0;
     *(_QWORD *)(v5 + 32) = 0;
     *(_DWORD *)(v5 + 8) = 1;
-    (*v6)(a3);                                    // IEngineServiceMgr_RegisterPrerequisite
+    (*v6)(a3);                                    // ILoopModePrerequisiteRegistry_RegisterPrerequisite
     *(_DWORD *)(a1 + 48) = 0;
     v7 = sub_2C9D60(a2, "levelname");
     v8 = &unk_27D936;
