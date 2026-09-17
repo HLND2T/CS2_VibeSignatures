@@ -1,31 +1,26 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CEngineServiceMgr_RegisterPrerequisite skill."""
+"""Preprocess script for find-CEngineServiceMgr_GetAddonsString skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
 INHERIT_VFUNCS = [
-    # (target_func_name, inherit_vtable_class, base_vfunc_name, generate_func_sig)
-    # The interface slot recovered by ILoopModePrerequisiteRegistry_RegisterPrerequisite
-    # is inherited into CEngineServiceMgr's ILoopModePrerequisiteRegistry subobject
-    # vtable (secondary base; offset-to-top -0x28). On Windows that slot holds a
-    # nine-byte this-adjusting thunk, so a func_sig is not stable enough to retain;
-    # on Linux it is the real implementation body. Do not request func_sig.
     (
-        "CEngineServiceMgr_RegisterPrerequisite",
-        "CEngineServiceMgr_vtable2",
-        "ILoopModePrerequisiteRegistry_RegisterPrerequisite",
-        False,
+        "CEngineServiceMgr_GetAddonsString",
+        "CEngineServiceMgr",
+        "IEngineServiceMgr_GetAddonsString",
+        True,
     ),
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     (
-        "CEngineServiceMgr_RegisterPrerequisite",
+        "CEngineServiceMgr_GetAddonsString",
         [
             "func_name",
             "func_va",
             "func_rva",
             "func_size",
+            "func_sig",
             "vtable_name",
             "vfunc_offset",
             "vfunc_index",
@@ -44,7 +39,7 @@ async def preprocess_skill(
     image_base,
     debug=False,
 ):
-    """Resolve the concrete override from the interface slot and vtable2."""
+    """Resolve CEngineServiceMgr::GetAddonsString at the interface slot."""
     _ = skill_name
     return await preprocess_common_skill(
         session=session,
