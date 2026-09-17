@@ -1,667 +1,606 @@
 func_name: CNetworkGameServer_SpawnServer
-func_va: '0x6a4cc0'
+func_va: '0x5140f0'
 disasm_code: |-
-  .text:00000000006A4CC0                 push    rbp
-  .text:00000000006A4CC1                 mov     rbp, rsp
-  .text:00000000006A4CC4                 push    r15
-  .text:00000000006A4CC6                 push    r14
-  .text:00000000006A4CC8                 push    r13
-  .text:00000000006A4CCA                 push    r12
-  .text:00000000006A4CCC                 mov     r12, rsi
-  .text:00000000006A4CCF                 push    rbx
-  .text:00000000006A4CD0                 mov     rbx, rdi
-  .text:00000000006A4CD3                 sub     rsp, 88h
-  .text:00000000006A4CDA                 test    rsi, rsi
-  .text:00000000006A4CDD                 ; _QWORD
-  .text:00000000006A4CDD                 mov     edi, cs:dword_980968; _QWORD
-  .text:00000000006A4CE3                 ; _QWORD
-  .text:00000000006A4CE3                 mov     esi, 2; _QWORD
-  .text:00000000006A4CE8                 jz      loc_6A51F0
-  .text:00000000006A4CEE                 cmp     byte ptr [r12], 0
-  .text:00000000006A4CF3                 jnz     loc_6A5150
-  .text:00000000006A4CF9                 call    _LoggingSystem_IsChannelEnabled
-  .text:00000000006A4CFE                 test    al, al
-  .text:00000000006A4D00                 jnz     loc_6A5038
-  .text:00000000006A4D06                 mov     rdi, rbx
-  .text:00000000006A4D09                 call    sub_698780
-  .text:00000000006A4D0E                 ; this
-  .text:00000000006A4D0E                 lea     rdi, [rbx+6F8h]; this
-  .text:00000000006A4D15                 ; char *
-  .text:00000000006A4D15                 mov     rsi, r12; char *
-  .text:00000000006A4D18                 call    __ZN10CUtlString3SetEPKc; CUtlString::Set(char const*)
-  .text:00000000006A4D1D                 mov     rax, [rbx]
-  .text:00000000006A4D20                 lea     rdx, sub_696CD0
-  .text:00000000006A4D27                 mov     rax, [rax+60h]; 0x60 = 96 = INetworkGameServer_GetMaxClients
-  .text:00000000006A4D2B                 cmp     rax, rdx
-  .text:00000000006A4D2E                 jnz     loc_6A51A0
-  .text:00000000006A4D34                 mov     eax, [rbx+2A4h]
-  .text:00000000006A4D3A                 mov     [rbx+68h], eax
-  .text:00000000006A4D3D                 lea     rdx, [rbx+700h]
-  .text:00000000006A4D44                 mov     rdi, rbx
-  .text:00000000006A4D47                 mov     byte ptr [rbx+2748h], 1
-  .text:00000000006A4D4E                 lea     rsi, [rbx+728h]
-  .text:00000000006A4D55                 call    sub_6CE770
-  .text:00000000006A4D5A                 mov     r12d, eax
-  .text:00000000006A4D5D                 test    al, al
-  .text:00000000006A4D5F                 jz      loc_6A5100
-  .text:00000000006A4D65                 lea     rax, qword_977818
-  .text:00000000006A4D6C                 pxor    xmm0, xmm0
-  .text:00000000006A4D70                 movaps  [rbp+var_50], xmm0
-  .text:00000000006A4D74                 lea     rdx, sub_67C9D0
-  .text:00000000006A4D7B                 mov     [rbp+var_88], 0
-  .text:00000000006A4D86                 mov     [rbp+var_80], 0
-  .text:00000000006A4D8D                 mov     [rbp+var_7C], 0FFh
-  .text:00000000006A4D91                 mov     qword ptr [rbp+var_50+8], rax
-  .text:00000000006A4D95                 lea     rax, off_9582C0
-  .text:00000000006A4D9C                 mov     [rbp+var_90], rax
-  .text:00000000006A4DA3                 add     rax, 40h ; '@'
-  .text:00000000006A4DA7                 mov     [rbp+var_60], rax
-  .text:00000000006A4DAB                 mov     rax, [rbx]
-  .text:00000000006A4DAE                 mov     [rbp+var_78], 0FFFFFFFFFFFFFFFFh
-  .text:00000000006A4DB6                 mov     [rbp+var_70], 0BF800000h
-  .text:00000000006A4DBD                 mov     [rbp+var_68], 0FFFFFFFFFFFFFFFFh
-  .text:00000000006A4DC5                 mov     rax, [rax+178h]
-  .text:00000000006A4DCC                 mov     [rbp+var_58], 0
-  .text:00000000006A4DD4                 mov     [rbp+var_40], 0
-  .text:00000000006A4DDC                 cmp     rax, rdx
-  .text:00000000006A4DDF                 jnz     loc_6A5240
-  .text:00000000006A4DE5                 movzx   eax, byte ptr [rbx+45Dh]
-  .text:00000000006A4DEC                 lea     rsi, s1
-  .text:00000000006A4DF3                 test    al, al
-  .text:00000000006A4DF5                 jnz     loc_6A5080
-  .text:00000000006A4DFB                 mov     rax, [rbp+var_58]
-  .text:00000000006A4DFF                 or      dword ptr [rbp+var_50], 1
-  .text:00000000006A4E03                 mov     rdx, rax
-  .text:00000000006A4E06                 and     rdx, 0FFFFFFFFFFFFFFFCh
-  .text:00000000006A4E0A                 test    al, 1
-  .text:00000000006A4E0C                 jnz     loc_6A5270
-  .text:00000000006A4E12                 lea     rdi, [rbp+var_50+8]
-  .text:00000000006A4E16                 call    sub_4B8940
-  .text:00000000006A4E1B                 mov     rdi, cs:qword_980C50
-  .text:00000000006A4E22                 mov     dword ptr [rbp+var_40], 5
-  .text:00000000006A4E29                 lea     r12, [rbp+var_90]
-  .text:00000000006A4E30                 or      dword ptr [rbp+var_50], 2
-  .text:00000000006A4E34                 lea     r13, [rbx+210h]
-  .text:00000000006A4E3B                 mov     rdx, r12
-  .text:00000000006A4E3E                 mov     rsi, r13
-  .text:00000000006A4E41                 mov     rax, [rdi]
-  .text:00000000006A4E44                 call    qword ptr [rax+18h]
-  .text:00000000006A4E47                 mov     r12d, eax
-  .text:00000000006A4E4A                 test    al, al
-  .text:00000000006A4E4C                 jz      loc_6A50B0
-  .text:00000000006A4E52                 cmp     byte ptr [rbx+230h], 0
-  .text:00000000006A4E59                 jnz     loc_6A50B0
-  .text:00000000006A4E5F                 mov     rdi, cs:qword_97E658
-  .text:00000000006A4E66                 mov     rsi, r13
-  .text:00000000006A4E69                 mov     rax, [rdi]
-  .text:00000000006A4E6C                 call    qword ptr [rax+70h]
-  .text:00000000006A4E6F                 mov     rax, [rbx]
-  .text:00000000006A4E72                 mov     esi, 2
-  .text:00000000006A4E77                 mov     rdi, rbx
-  .text:00000000006A4E7A                 call    qword ptr [rax+118h]
-  .text:00000000006A4E80                 mov     rax, [rbx]
-  .text:00000000006A4E83                 lea     rdx, sub_68D810
-  .text:00000000006A4E8A                 mov     rax, [rax+0E0h]
-  .text:00000000006A4E91                 cmp     rax, rdx
-  .text:00000000006A4E94                 jnz     loc_6A5260
-  .text:00000000006A4E9A                 pxor    xmm0, xmm0
-  .text:00000000006A4E9E                 cvtsi2ss xmm0, dword ptr [rbx+44h]
-  .text:00000000006A4EA3                 mulss   xmm0, cs:dword_255D4C
-  .text:00000000006A4EAB                 movss   dword ptr [rbp+var_A8], xmm0
-  .text:00000000006A4EB3                 call    _ThreadGetCurrentId
-  .text:00000000006A4EB8                 movss   xmm0, dword ptr [rbp+var_A8]
-  .text:00000000006A4EC0                 mov     dword ptr [rbx+0A8h], 0
-  .text:00000000006A4ECA                 mov     [rbx+0B0h], rax
-  .text:00000000006A4ED1                 movss   dword ptr [rbx+88h], xmm0
-  .text:00000000006A4ED9                 mulss   xmm0, cs:dword_255DCC
-  .text:00000000006A4EE1                 addss   xmm0, cs:dword_255D7C
-  .text:00000000006A4EE9                 cvttss2si edx, xmm0
-  .text:00000000006A4EED                 mov     [rbx+9Ch], edx
-  .text:00000000006A4EF3                 call    _ThreadInMainThread
-  .text:00000000006A4EF8                 test    al, al
-  .text:00000000006A4EFA                 jz      short loc_6A4F0F
-  .text:00000000006A4EFC                 lea     rdi, qword_97FA80
-  .text:00000000006A4F03                 xor     edx, edx
-  .text:00000000006A4F05                 mov     esi, 8
-  .text:00000000006A4F0A                 call    sub_749860
-  .text:00000000006A4F0F                 lea     rdi, aInitializeenti; "InitializeEntityDLLFields"
-  .text:00000000006A4F16                 xor     eax, eax
-  .text:00000000006A4F18                 call    _COM_TimestampedLog
-  .text:00000000006A4F1D                 mov     rax, [rbx+150h]
-  .text:00000000006A4F24                 lea     rdx, s1
-  .text:00000000006A4F2B                 mov     rdi, cs:qword_97DDC8
-  .text:00000000006A4F32                 lea     rcx, sub_51F8D0
-  .text:00000000006A4F39                 test    rax, rax
-  .text:00000000006A4F3C                 cmovz   rax, rdx
-  .text:00000000006A4F40                 mov     [rbx+0B8h], rax
-  .text:00000000006A4F47                 mov     rax, [rbx+6F8h]
-  .text:00000000006A4F4E                 test    rax, rax
-  .text:00000000006A4F51                 cmovz   rax, rdx
-  .text:00000000006A4F55                 mov     [rbx+0C0h], rax
-  .text:00000000006A4F5C                 mov     rax, [rdi]
-  .text:00000000006A4F5F                 mov     rax, [rax+150h]
-  .text:00000000006A4F66                 cmp     rax, rcx
-  .text:00000000006A4F69                 jnz     loc_6A5250
-  .text:00000000006A4F6F                 mov     rsi, [rdi+0B0h]
-  .text:00000000006A4F76                 test    rsi, rsi
-  .text:00000000006A4F79                 ; char *
-  .text:00000000006A4F79                 cmovz   rsi, rdx; char *
-  .text:00000000006A4F7D                 ; this
-  .text:00000000006A4F7D                 lea     rdi, [rbx+158h]; this
-  .text:00000000006A4F84                 call    __ZN10CUtlString3SetEPKc; CUtlString::Set(char const*)
-  .text:00000000006A4F89                 mov     rdi, cs:qword_97FB08
-  .text:00000000006A4F90                 test    rdi, rdi
-  .text:00000000006A4F93                 jz      short loc_6A4FA2
-  .text:00000000006A4F95                 mov     rax, [rdi]
-  .text:00000000006A4F98                 lea     rsi, aMapLoad; "map_load"
-  .text:00000000006A4F9F                 call    qword ptr [rax+60h]
-  .text:00000000006A4FA2                 movzx   r15d, word ptr [rbx+310h]
-  .text:00000000006A4FAA                 mov     [rbp+var_98], 0
-  .text:00000000006A4FB5                 cmp     r15w, 0FFFFh
-  .text:00000000006A4FBA                 jnz     loc_6A5280
-  .text:00000000006A4FC0                 lea     rdx, s1
-  .text:00000000006A4FC7                 lea     rsi, aStartedS; "Started:  \"%s\"\n"
-  .text:00000000006A4FCE                 xor     eax, eax
-  .text:00000000006A4FD0                 lea     rdi, qword_97FC00
-  .text:00000000006A4FD7                 call    sub_8F7910
-  .text:00000000006A4FDC                 cmp     [rbp+var_98], 0
-  .text:00000000006A4FE4                 jz      short loc_6A4FF2
-  .text:00000000006A4FE6                 ; this
-  .text:00000000006A4FE6                 lea     rdi, [rbp+var_98]; this
-  .text:00000000006A4FED                 call    __ZN10CUtlString15FreeMemoryBlockEv; CUtlString::FreeMemoryBlock(void)
-  .text:00000000006A4FF2                 lea     rdi, aSvSpawnserverF; "SV_SpawnServer -- Finished"
-  .text:00000000006A4FF9                 xor     eax, eax
-  .text:00000000006A4FFB                 call    _COM_TimestampedLog
-  .text:00000000006A5000                 lea     rax, off_94B1C8
-  .text:00000000006A5007                 mov     [rbp+var_90], rax
-  .text:00000000006A500E                 lea     rdi, [rbp+var_60]
-  .text:00000000006A5012                 add     rax, 40h ; '@'
-  .text:00000000006A5016                 mov     [rbp+var_60], rax
-  .text:00000000006A501A                 call    sub_4C0520
-  .text:00000000006A501F                 add     rsp, 88h
-  .text:00000000006A5026                 mov     eax, r12d
-  .text:00000000006A5029                 pop     rbx
-  .text:00000000006A502A                 pop     r12
-  .text:00000000006A502C                 pop     r13
-  .text:00000000006A502E                 pop     r14
-  .text:00000000006A5030                 pop     r15
-  .text:00000000006A5032                 pop     rbp
-  .text:00000000006A5033                 retn
-  .text:00000000006A5038                 ; _QWORD
-  .text:00000000006A5038                 mov     rcx, [rbx+150h]; _QWORD
-  .text:00000000006A503F                 test    rcx, rcx
-  .text:00000000006A5042                 jz      loc_6A51B0
-  .text:00000000006A5048                 ; _QWORD
-  .text:00000000006A5048                 mov     edi, cs:dword_980968; _QWORD
-  .text:00000000006A504E                 lea     rdx, aSvSpawnServerS; "SV:  Spawn Server: %s\n"
-  .text:00000000006A5055                 ; _QWORD
-  .text:00000000006A5055                 mov     esi, 2; _QWORD
-  .text:00000000006A505A                 xor     eax, eax
-  .text:00000000006A505C                 call    _LoggingSystem_Log
-  .text:00000000006A5061                 mov     rdi, rbx
-  .text:00000000006A5064                 call    sub_698780
-  .text:00000000006A5069                 lea     rax, s1
-  .text:00000000006A5070                 test    r12, r12
-  .text:00000000006A5073                 cmovz   r12, rax
-  .text:00000000006A5077                 jmp     loc_6A4D0E
-  .text:00000000006A5080                 mov     rdi, cs:qword_9D1D18
-  .text:00000000006A5087                 mov     esi, 0FFFFFFFFh
-  .text:00000000006A508C                 call    sub_911FE0
-  .text:00000000006A5091                 test    rax, rax
-  .text:00000000006A5094                 jz      loc_6A51D8
-  .text:00000000006A509A                 mov     rsi, [rax]
-  .text:00000000006A509D                 lea     rax, s1
-  .text:00000000006A50A4                 test    rsi, rsi
-  .text:00000000006A50A7                 cmovz   rsi, rax
-  .text:00000000006A50AB                 jmp     loc_6A4DFB
-  .text:00000000006A50B0                 ; _QWORD
-  .text:00000000006A50B0                 mov     edi, cs:dword_980968; _QWORD
-  .text:00000000006A50B6                 ; _QWORD
-  .text:00000000006A50B6                 mov     esi, 3; _QWORD
-  .text:00000000006A50BB                 call    _LoggingSystem_IsChannelEnabled
-  .text:00000000006A50C0                 test    al, al
-  .text:00000000006A50C2                 jz      short loc_6A50F4
-  .text:00000000006A50C4                 cmp     byte ptr [rbx+230h], 0
-  .text:00000000006A50CB                 lea     rcx, aFailure; "failure"
-  .text:00000000006A50D2                 jz      short loc_6A50DB
-  .text:00000000006A50D4                 lea     rcx, aOverflow; "overflow"
-  .text:00000000006A50DB                 ; _QWORD
-  .text:00000000006A50DB                 mov     edi, cs:dword_980968; _QWORD
-  .text:00000000006A50E1                 lea     rdx, aSvSerializingC; "SV:  Serializing CSVCMsg_VoiceInit_t %s"...
-  .text:00000000006A50E8                 ; _QWORD
-  .text:00000000006A50E8                 mov     esi, 3; _QWORD
-  .text:00000000006A50ED                 xor     eax, eax
-  .text:00000000006A50EF                 call    _LoggingSystem_Log
-  .text:00000000006A50F4                 xor     r12d, r12d
-  .text:00000000006A50F7                 jmp     loc_6A5000
-  .text:00000000006A5100                 ; _QWORD
-  .text:00000000006A5100                 mov     edi, cs:dword_980968; _QWORD
-  .text:00000000006A5106                 ; _QWORD
-  .text:00000000006A5106                 mov     esi, 3; _QWORD
-  .text:00000000006A510B                 call    _LoggingSystem_IsChannelEnabled
-  .text:00000000006A5110                 test    al, al
-  .text:00000000006A5112                 jz      loc_6A501F
-  .text:00000000006A5118                 cmp     byte ptr [rbx+720h], 0
-  .text:00000000006A511F                 lea     rcx, aUnknownFailure; "UNKNOWN FAILURE"
-  .text:00000000006A5126                 jz      short loc_6A512F
-  .text:00000000006A5128                 lea     rcx, aOverflowFailur; "OVERFLOW FAILURE"
-  .text:00000000006A512F                 ; _QWORD
-  .text:00000000006A512F                 mov     edi, cs:dword_980968; _QWORD
-  .text:00000000006A5135                 lea     rdx, aSvSpawnserverW; "SV:  SpawnServer WriteClassInfosAndSeri"...
-  .text:00000000006A513C                 ; _QWORD
-  .text:00000000006A513C                 mov     esi, 3; _QWORD
-  .text:00000000006A5141                 xor     eax, eax
-  .text:00000000006A5143                 call    _LoggingSystem_Log
-  .text:00000000006A5148                 jmp     loc_6A501F
-  .text:00000000006A5150                 call    _LoggingSystem_IsChannelEnabled
-  .text:00000000006A5155                 test    al, al
-  .text:00000000006A5157                 jz      loc_6A4D06
-  .text:00000000006A515D                 mov     rcx, [rbx+150h]
-  .text:00000000006A5164                 lea     rax, s1
-  .text:00000000006A516B                 mov     r8, r12
-  .text:00000000006A516E                 ; _QWORD
-  .text:00000000006A516E                 mov     esi, 2; _QWORD
-  .text:00000000006A5173                 ; _QWORD
-  .text:00000000006A5173                 mov     edi, cs:dword_980968; _QWORD
-  .text:00000000006A5179                 lea     rdx, aSvSpawnServerS_0; "SV:  Spawn Server: %s: [%s]\n"
-  .text:00000000006A5180                 test    rcx, rcx
-  .text:00000000006A5183                 ; _QWORD
-  .text:00000000006A5183                 cmovz   rcx, rax; _QWORD
-  .text:00000000006A5187                 xor     eax, eax
-  .text:00000000006A5189                 call    _LoggingSystem_Log
-  .text:00000000006A518E                 mov     rdi, rbx
-  .text:00000000006A5191                 call    sub_698780
-  .text:00000000006A5196                 jmp     loc_6A4D0E
-  .text:00000000006A51A0                 mov     rdi, rbx
-  .text:00000000006A51A3                 call    rax; INetworkGameServer_GetMaxClients
-  .text:00000000006A51A5                 jmp     loc_6A4D3A
-  .text:00000000006A51B0                 ; _QWORD
-  .text:00000000006A51B0                 mov     edi, cs:dword_980968; _QWORD
-  .text:00000000006A51B6                 ; _QWORD
-  .text:00000000006A51B6                 lea     rcx, s1; _QWORD
-  .text:00000000006A51BD                 ; _QWORD
-  .text:00000000006A51BD                 mov     esi, 2; _QWORD
-  .text:00000000006A51C2                 xor     eax, eax
-  .text:00000000006A51C4                 lea     rdx, aSvSpawnServerS; "SV:  Spawn Server: %s\n"
-  .text:00000000006A51CB                 call    _LoggingSystem_Log
-  .text:00000000006A51D0                 jmp     loc_6A4D06
-  .text:00000000006A51D8                 mov     rax, cs:qword_9D1D18
-  .text:00000000006A51DF                 mov     rax, [rax+8]
-  .text:00000000006A51E3                 jmp     loc_6A509A
-  .text:00000000006A51F0                 call    _LoggingSystem_IsChannelEnabled
-  .text:00000000006A51F5                 test    al, al
-  .text:00000000006A51F7                 jz      short loc_6A5222
-  .text:00000000006A51F9                 ; _QWORD
-  .text:00000000006A51F9                 mov     rcx, [rbx+150h]; _QWORD
-  .text:00000000006A5200                 test    rcx, rcx
-  .text:00000000006A5203                 jz      loc_6A53BD
-  .text:00000000006A5209                 ; _QWORD
-  .text:00000000006A5209                 mov     edi, cs:dword_980968; _QWORD
-  .text:00000000006A520F                 lea     rdx, aSvSpawnServerS; "SV:  Spawn Server: %s\n"
-  .text:00000000006A5216                 ; _QWORD
-  .text:00000000006A5216                 mov     esi, 2; _QWORD
-  .text:00000000006A521B                 xor     eax, eax
-  .text:00000000006A521D                 call    _LoggingSystem_Log
-  .text:00000000006A5222                 lea     r12, s1
-  .text:00000000006A5229                 mov     rdi, rbx
-  .text:00000000006A522C                 call    sub_698780
-  .text:00000000006A5231                 jmp     loc_6A4D0E
-  .text:00000000006A5240                 mov     rdi, rbx
-  .text:00000000006A5243                 call    rax
-  .text:00000000006A5245                 jmp     loc_6A4DEC
-  .text:00000000006A5250                 call    rax
-  .text:00000000006A5252                 mov     rsi, rax
-  .text:00000000006A5255                 jmp     loc_6A4F7D
-  .text:00000000006A5260                 mov     rdi, rbx
-  .text:00000000006A5263                 call    rax
-  .text:00000000006A5265                 jmp     loc_6A4EAB
-  .text:00000000006A5270                 mov     rdx, [rdx]
-  .text:00000000006A5273                 jmp     loc_6A4E12
-  .text:00000000006A5280                 movzx   edi, word ptr [rbx+302h]
-  .text:00000000006A5287                 mov     esi, edi
-  .text:00000000006A5289                 and     si, 7FFFh
-  .text:00000000006A528E                 jmp     short loc_6A52D8
-  .text:00000000006A52C0                 mov     rdx, [rbx+308h]
-  .text:00000000006A52C7                 lea     rcx, [rdx+rcx*8]
-  .text:00000000006A52CB                 movzx   ecx, word ptr [rcx]
-  .text:00000000006A52CE                 cmp     cx, 0FFFFh
-  .text:00000000006A52D2                 jz      short loc_6A52F3
-  .text:00000000006A52D4                 movzx   r15d, cx
-  .text:00000000006A52D8                 movzx   eax, r15w
-  .text:00000000006A52DC                 lea     rcx, [rax+rax*2]
-  .text:00000000006A52E0                 test    si, si
-  .text:00000000006A52E3                 jnz     short loc_6A52C0
-  .text:00000000006A52E5                 movzx   ecx, word ptr ds:dword_0[rcx*8]
-  .text:00000000006A52ED                 cmp     cx, 0FFFFh
-  .text:00000000006A52F1                 jnz     short loc_6A52D4
-  .text:00000000006A52F3                 lea     rdx, [rbx+300h]
-  .text:00000000006A52FA                 lea     r14, sub_54F6B0
-  .text:00000000006A5301                 mov     [rbp+var_A8], rdx
-  .text:00000000006A5308                 lea     r13, [rbp+var_98]
-  .text:00000000006A530F                 jmp     short loc_6A5375
-  .text:00000000006A5318                 mov     rsi, [rdi+78h]
-  .text:00000000006A531C                 lea     rax, s1
-  .text:00000000006A5323                 test    rsi, rsi
-  .text:00000000006A5326                 ; _QWORD
-  .text:00000000006A5326                 cmovz   rsi, rax; _QWORD
-  .text:00000000006A532A                 ; _QWORD
-  .text:00000000006A532A                 mov     rdi, r13; _QWORD
-  .text:00000000006A532D                 call    __ZN10CUtlStringpLEPKc; CUtlString::operator+=(char const*)
-  .text:00000000006A5332                 movzx   eax, word ptr [rbx+312h]
-  .text:00000000006A5339                 sub     eax, 1
-  .text:00000000006A533C                 cmp     r15d, eax
-  .text:00000000006A533F                 jz      short loc_6A5350
-  .text:00000000006A5341                 lea     rsi, asc_26740E; "+"
-  .text:00000000006A5348                 ; _QWORD
-  .text:00000000006A5348                 mov     rdi, r13; _QWORD
-  .text:00000000006A534B                 call    __ZN10CUtlStringpLEPKc; CUtlString::operator+=(char const*)
-  .text:00000000006A5350                 mov     rdi, [rbp+var_A8]
-  .text:00000000006A5357                 mov     esi, r15d
-  .text:00000000006A535A                 call    sub_698DC0
-  .text:00000000006A535F                 movzx   r15d, ax
-  .text:00000000006A5363                 cmp     r15w, 0FFFFh
-  .text:00000000006A5368                 jz      short loc_6A53A8
-  .text:00000000006A536A                 movzx   edi, word ptr [rbx+302h]
-  .text:00000000006A5371                 movzx   eax, r15w
-  .text:00000000006A5375                 xor     ecx, ecx
-  .text:00000000006A5377                 test    di, 7FFFh
-  .text:00000000006A537C                 jz      short loc_6A5385
-  .text:00000000006A537E                 mov     rcx, [rbx+308h]
-  .text:00000000006A5385                 lea     rax, [rax+rax*2]
-  .text:00000000006A5389                 mov     rdi, [rcx+rax*8+10h]
-  .text:00000000006A538E                 mov     rax, [rdi]
-  .text:00000000006A5391                 mov     rax, [rax]
-  .text:00000000006A5394                 cmp     rax, r14
-  .text:00000000006A5397                 jz      loc_6A5318
-  .text:00000000006A539D                 call    rax
-  .text:00000000006A539F                 mov     rsi, rax
-  .text:00000000006A53A2                 jmp     short loc_6A532A
-  .text:00000000006A53A8                 mov     rdx, [rbp+var_98]
-  .text:00000000006A53AF                 test    rdx, rdx
-  .text:00000000006A53B2                 jnz     loc_6A4FC7
-  .text:00000000006A53B8                 jmp     loc_6A4FC0
-  .text:00000000006A53BD                 lea     rcx, s1
-  .text:00000000006A53C4                 jmp     loc_6A5048
+  .text:00000000005140DC                 lea     rdi, aBasicStringSCr; "basic_string::_S_create"
+  .text:00000000005140E3                 call    sub_2C4070
+  .text:00000000005140F0                 push    rbp
+  .text:00000000005140F1                 mov     rbp, rsp
+  .text:00000000005140F4                 push    r15
+  .text:00000000005140F6                 push    r14
+  .text:00000000005140F8                 push    r13
+  .text:00000000005140FA                 push    r12
+  .text:00000000005140FC                 mov     r12, rsi
+  .text:00000000005140FF                 push    rbx
+  .text:0000000000514100                 mov     rbx, rdi
+  .text:0000000000514103                 sub     rsp, 98h
+  .text:000000000051410A                 lea     r13, dword_A359F4
+  .text:0000000000514111                 test    rsi, rsi
+  .text:0000000000514114                 mov     esi, 2
+  .text:0000000000514119                 mov     edi, [r13+0]
+  .text:000000000051411D                 jz      loc_5146E0
+  .text:0000000000514123                 cmp     byte ptr [r12], 0
+  .text:0000000000514128                 jnz     loc_514640
+  .text:000000000051412E                 call    sub_2C8C80
+  .text:0000000000514133                 test    al, al
+  .text:0000000000514135                 jnz     loc_5142B0
+  .text:000000000051413B                 mov     rdi, rbx
+  .text:000000000051413E                 call    sub_4FBDA0
+  .text:0000000000514143                 lea     rdi, [rbx+6F0h]
+  .text:000000000051414A                 mov     rsi, r12
+  .text:000000000051414D                 call    sub_2C8BB0
+  .text:0000000000514152                 mov     rax, [rbx]
+  .text:0000000000514155                 mov     rdi, rbx
+  .text:0000000000514158                 ; 0x60 = 96LL = INetworkGameServer_GetMaxClients
+  .text:0000000000514158                 call    qword ptr [rax+60h]; 0x60 = 96LL = INetworkGameServer_GetMaxClients
+  .text:000000000051415B                 mov     byte ptr [rbx+2740h], 1
+  .text:0000000000514162                 lea     rdx, [rbx+6F8h]
+  .text:0000000000514169                 mov     rdi, rbx
+  .text:000000000051416C                 mov     [rbx+68h], eax
+  .text:000000000051416F                 lea     rsi, [rbx+720h]
+  .text:0000000000514176                 call    CNetworkGameServer_WriteClassInfosAndSerializesToBuffer
+  .text:000000000051417B                 mov     r12d, eax
+  .text:000000000051417E                 test    al, al
+  .text:0000000000514180                 jz      loc_5145B0
+  .text:0000000000514186                 lea     rax, unk_9A1CA0
+  .text:000000000051418D                 xor     edx, edx
+  .text:000000000051418F                 xor     esi, esi
+  .text:0000000000514191                 mov     [rbp+var_7C], 0FFh
+  .text:0000000000514195                 mov     [rbp+var_90], rax
+  .text:000000000051419C                 lea     rax, [rbp+var_60]
+  .text:00000000005141A0                 mov     rdi, rax
+  .text:00000000005141A3                 mov     [rbp+var_B0], rax
+  .text:00000000005141AA                 mov     [rbp+var_88], 0
+  .text:00000000005141B5                 mov     [rbp+var_80], 0
+  .text:00000000005141BC                 mov     [rbp+var_78], 0FFFFFFFFFFFFFFFFh
+  .text:00000000005141C4                 mov     [rbp+var_70], 0BF800000h
+  .text:00000000005141CB                 mov     [rbp+var_68], 0FFFFFFFFFFFFFFFFh
+  .text:00000000005141D3                 call    sub_30A460
+  .text:00000000005141D8                 lea     rax, off_9B5890
+  .text:00000000005141DF                 mov     [rbp+var_90], rax
+  .text:00000000005141E6                 add     rax, 40h ; '@'
+  .text:00000000005141EA                 mov     [rbp+var_60], rax
+  .text:00000000005141EE                 mov     rax, [rbx]
+  .text:00000000005141F1                 lea     rdx, sub_4F4650
+  .text:00000000005141F8                 mov     rax, [rax+178h]
+  .text:00000000005141FF                 cmp     rax, rdx
+  .text:0000000000514202                 jnz     loc_514728
+  .text:0000000000514208                 movzx   eax, byte ptr [rbx+455h]
+  .text:000000000051420F                 lea     r12, unk_27D936
+  .text:0000000000514216                 test    al, al
+  .text:0000000000514218                 jnz     loc_5142F8
+  .text:000000000051421E                 mov     rax, [rbp+var_58]
+  .text:0000000000514222                 or      [rbp+var_50], 1
+  .text:0000000000514226                 mov     rcx, rax
+  .text:0000000000514229                 and     rcx, 0FFFFFFFFFFFFFFFCh
+  .text:000000000051422D                 mov     [rbp+var_A8], rcx
+  .text:0000000000514234                 test    al, 1
+  .text:0000000000514236                 jnz     loc_514738
+  .text:000000000051423C                 mov     rdi, r12
+  .text:000000000051423F                 call    sub_2CB750
+  .text:0000000000514244                 mov     r14, rax
+  .text:0000000000514247                 test    rax, rax
+  .text:000000000051424A                 jz      loc_514690
+  .text:0000000000514250                 mov     rax, 3FFFFFFFFFFFFFF9h
+  .text:000000000051425A                 cmp     rax, r14
+  .text:000000000051425D                 jb      loc_5140DC
+  .text:0000000000514263                 lea     rax, [r14+39h]
+  .text:0000000000514267                 cmp     rax, 1000h
+  .text:000000000051426D                 ja      loc_514330
+  .text:0000000000514273                 lea     rdi, [r14+19h]
+  .text:0000000000514277                 call    sub_2BCC20
+  .text:000000000051427C                 mov     [rax+8], r14
+  .text:0000000000514280                 lea     rcx, [rax+18h]
+  .text:0000000000514284                 mov     r15, rax
+  .text:0000000000514287                 mov     dword ptr [rax+10h], 0
+  .text:000000000051428E                 cmp     r14, 1
+  .text:0000000000514292                 jnz     loc_514379
+  .text:0000000000514298                 movzx   eax, byte ptr [r12]
+  .text:000000000051429D                 mov     [r15+18h], al
+  .text:00000000005142A1                 jmp     loc_51438A
+  .text:00000000005142B0                 mov     rcx, [rbx+150h]
+  .text:00000000005142B7                 test    rcx, rcx
+  .text:00000000005142BA                 jz      loc_5146A8
+  .text:00000000005142C0                 mov     edi, [r13+0]
+  .text:00000000005142C4                 lea     rdx, aSvSpawnServerS; "SV:  Spawn Server: %s\n"
+  .text:00000000005142CB                 mov     esi, 2
+  .text:00000000005142D0                 xor     eax, eax
+  .text:00000000005142D2                 call    sub_2CA620
+  .text:00000000005142D7                 mov     rdi, rbx
+  .text:00000000005142DA                 call    sub_4FBDA0
+  .text:00000000005142DF                 lea     rax, unk_27D936
+  .text:00000000005142E6                 test    r12, r12
+  .text:00000000005142E9                 cmovz   r12, rax
+  .text:00000000005142ED                 jmp     loc_514143
+  .text:00000000005142F8                 lea     rdi, unk_A35A90
+  .text:00000000005142FF                 mov     esi, 0FFFFFFFFh
+  .text:0000000000514304                 call    sub_5EB3F0
+  .text:0000000000514309                 test    rax, rax
+  .text:000000000051430C                 jz      loc_5146D0
+  .text:0000000000514312                 mov     r12, [rax]
+  .text:0000000000514315                 lea     rax, unk_27D936
+  .text:000000000051431C                 test    r12, r12
+  .text:000000000051431F                 cmovz   r12, rax
+  .text:0000000000514323                 jmp     loc_51421E
+  .text:0000000000514330                 lea     rcx, [r14+1000h]
+  .text:0000000000514337                 and     eax, 0FFFh
+  .text:000000000051433C                 sub     rcx, rax
+  .text:000000000051433F                 mov     rax, 3FFFFFFFFFFFFFF9h
+  .text:0000000000514349                 cmp     rcx, rax
+  .text:000000000051434C                 cmova   rcx, rax
+  .text:0000000000514350                 lea     rdi, [rcx+19h]
+  .text:0000000000514354                 mov     [rbp+var_B8], rcx
+  .text:000000000051435B                 call    sub_2BCC20
+  .text:0000000000514360                 mov     rcx, [rbp+var_B8]
+  .text:0000000000514367                 mov     r15, rax
+  .text:000000000051436A                 mov     dword ptr [rax+10h], 0
+  .text:0000000000514371                 mov     [rax+8], rcx
+  .text:0000000000514375                 lea     rcx, [rax+18h]
+  .text:0000000000514379                 mov     rdi, rcx
+  .text:000000000051437C                 mov     rdx, r14
+  .text:000000000051437F                 mov     rsi, r12
+  .text:0000000000514382                 call    sub_2CB930
+  .text:0000000000514387                 mov     rcx, rax
+  .text:000000000051438A                 mov     r12, cs:_ZNSs4_Rep20_S_empty_rep_storageE_ptr
+  .text:0000000000514391                 cmp     r15, r12
+  .text:0000000000514394                 jnz     loc_514790
+  .text:000000000051439A                 mov     rdx, [rbp+var_A8]
+  .text:00000000005143A1                 lea     r15, [rbp+var_98]
+  .text:00000000005143A8                 mov     [rbp+var_98], rcx
+  .text:00000000005143AF                 lea     rdi, [rbp+var_48]
+  .text:00000000005143B3                 mov     rsi, r15
+  .text:00000000005143B6                 call    sub_60552E
+  .text:00000000005143BB                 mov     rdx, [rbp+var_98]
+  .text:00000000005143C2                 lea     rdi, [rdx-18h]
+  .text:00000000005143C6                 cmp     rdi, r12
+  .text:00000000005143C9                 jnz     loc_514750
+  .text:00000000005143CF                 lea     rax, g_pNetworkMessages
+  .text:00000000005143D6                 mov     [rbp+var_40], 5
+  .text:00000000005143DD                 lea     rsi, [rbx+208h]
+  .text:00000000005143E4                 or      [rbp+var_50], 2
+  .text:00000000005143E8                 lea     rdx, [rbp+var_90]
+  .text:00000000005143EF                 mov     [rbp+var_A8], rsi
+  .text:00000000005143F6                 mov     rdi, [rax]
+  .text:00000000005143F9                 mov     rax, [rdi]
+  .text:00000000005143FC                 call    qword ptr [rax+18h]
+  .text:00000000005143FF                 mov     r12d, eax
+  .text:0000000000514402                 test    al, al
+  .text:0000000000514404                 jz      loc_5145F8
+  .text:000000000051440A                 cmp     byte ptr [rbx+228h], 0
+  .text:0000000000514411                 mov     rsi, [rbp+var_A8]
+  .text:0000000000514418                 jnz     loc_5145F8
+  .text:000000000051441E                 lea     rax, g_pSource2Server
+  .text:0000000000514425                 mov     rdi, [rax]
+  .text:0000000000514428                 mov     rax, [rdi]
+  .text:000000000051442B                 call    qword ptr [rax+70h]
+  .text:000000000051442E                 mov     rax, [rbx]
+  .text:0000000000514431                 mov     esi, 2
+  .text:0000000000514436                 mov     rdi, rbx
+  .text:0000000000514439                 call    qword ptr [rax+118h]
+  .text:000000000051443F                 mov     rax, [rbx]
+  .text:0000000000514442                 mov     rdi, rbx
+  .text:0000000000514445                 call    qword ptr [rax+0E0h]
+  .text:000000000051444B                 movss   dword ptr [rbp+var_A8], xmm0
+  .text:0000000000514453                 call    sub_2C89F0
+  .text:0000000000514458                 movss   xmm0, dword ptr [rbp+var_A8]
+  .text:0000000000514460                 mov     dword ptr [rbx+0A8h], 0
+  .text:000000000051446A                 mov     [rbx+0B0h], rax
+  .text:0000000000514471                 movss   dword ptr [rbx+88h], xmm0
+  .text:0000000000514479                 mulss   xmm0, cs:dword_26AD98
+  .text:0000000000514481                 addss   xmm0, cs:dword_26AD44
+  .text:0000000000514489                 cvttss2si edx, xmm0
+  .text:000000000051448D                 mov     [rbx+9Ch], edx
+  .text:0000000000514493                 call    sub_5DA880
+  .text:0000000000514498                 xor     edx, edx
+  .text:000000000051449A                 mov     esi, 8
+  .text:000000000051449F                 mov     rdi, rax
+  .text:00000000005144A2                 call    sub_5DAD80
+  .text:00000000005144A7                 lea     rdi, aInitializeenti; "InitializeEntityDLLFields"
+  .text:00000000005144AE                 xor     eax, eax
+  .text:00000000005144B0                 call    sub_2CAB40
+  .text:00000000005144B5                 mov     rax, [rbx+150h]
+  .text:00000000005144BC                 lea     rdx, unk_27D936
+  .text:00000000005144C3                 test    rax, rax
+  .text:00000000005144C6                 cmovz   rax, rdx
+  .text:00000000005144CA                 mov     [rbx+0B8h], rax
+  .text:00000000005144D1                 mov     rax, [rbx+6F0h]
+  .text:00000000005144D8                 test    rax, rax
+  .text:00000000005144DB                 cmovz   rax, rdx
+  .text:00000000005144DF                 mov     [rbx+0C0h], rax
+  .text:00000000005144E6                 lea     rax, g_pEngineServiceMgr
+  .text:00000000005144ED                 mov     rdi, [rax]
+  .text:00000000005144F0                 mov     rax, [rdi]
+  .text:00000000005144F3                 ; 0x150 = 336LL = IEngineServiceMgr_GetAddonsString
+  .text:00000000005144F3                 call    qword ptr [rax+150h]; 0x150 = 336LL = IEngineServiceMgr_GetAddonsString
+  .text:00000000005144F9                 lea     rdi, [rbx+158h]
+  .text:0000000000514500                 mov     rsi, rax
+  .text:0000000000514503                 call    sub_2C8BB0
+  .text:0000000000514508                 lea     rax, g_pTestScriptMgr
+  .text:000000000051450F                 mov     rdi, [rax]
+  .text:0000000000514512                 test    rdi, rdi
+  .text:0000000000514515                 jz      short loc_514524
+  .text:0000000000514517                 mov     rax, [rdi]
+  .text:000000000051451A                 lea     rsi, aMapLoad; "map_load"
+  .text:0000000000514521                 call    qword ptr [rax+60h]
+  .text:0000000000514524                 mov     rsi, rbx
+  .text:0000000000514527                 mov     rdi, r15
+  .text:000000000051452A                 call    sub_502080
+  .text:000000000051452F                 mov     rsi, [rbp+var_98]
+  .text:0000000000514536                 lea     rax, unk_27D936
+  .text:000000000051453D                 lea     rdi, qword_C75160
+  .text:0000000000514544                 test    rsi, rsi
+  .text:0000000000514547                 cmovz   rsi, rax
+  .text:000000000051454B                 call    sub_55AFD0
+  .text:0000000000514550                 cmp     [rbp+var_98], 0
+  .text:0000000000514558                 jz      short loc_514562
+  .text:000000000051455A                 mov     rdi, r15
+  .text:000000000051455D                 call    sub_2C9CB0
+  .text:0000000000514562                 lea     rdi, aSvSpawnserverF; "SV_SpawnServer -- Finished"
+  .text:0000000000514569                 xor     eax, eax
+  .text:000000000051456B                 call    sub_2CAB40
+  .text:0000000000514570                 mov     rdi, [rbp+var_B0]
+  .text:0000000000514577                 lea     rax, off_9A7DE0
+  .text:000000000051457E                 mov     [rbp+var_90], rax
+  .text:0000000000514585                 add     rax, 40h ; '@'
+  .text:0000000000514589                 mov     [rbp+var_60], rax
+  .text:000000000051458D                 call    sub_31F8C0
+  .text:0000000000514592                 add     rsp, 98h
+  .text:0000000000514599                 mov     eax, r12d
+  .text:000000000051459C                 pop     rbx
+  .text:000000000051459D                 pop     r12
+  .text:000000000051459F                 pop     r13
+  .text:00000000005145A1                 pop     r14
+  .text:00000000005145A3                 pop     r15
+  .text:00000000005145A5                 pop     rbp
+  .text:00000000005145A6                 retn
+  .text:00000000005145B0                 mov     edi, [r13+0]
+  .text:00000000005145B4                 mov     esi, 3
+  .text:00000000005145B9                 call    sub_2C8C80
+  .text:00000000005145BE                 test    al, al
+  .text:00000000005145C0                 jz      short loc_514592
+  .text:00000000005145C2                 cmp     byte ptr [rbx+718h], 0
+  .text:00000000005145C9                 lea     rcx, aUnknownFailure; "UNKNOWN FAILURE"
+  .text:00000000005145D0                 jz      short loc_5145D9
+  .text:00000000005145D2                 lea     rcx, aOverflowFailur; "OVERFLOW FAILURE"
+  .text:00000000005145D9                 mov     edi, [r13+0]
+  .text:00000000005145DD                 lea     rdx, aSvSpawnserverW; "SV:  SpawnServer WriteClassInfosAndSeri"...
+  .text:00000000005145E4                 mov     esi, 3
+  .text:00000000005145E9                 xor     eax, eax
+  .text:00000000005145EB                 call    sub_2CA620
+  .text:00000000005145F0                 jmp     short loc_514592
+  .text:00000000005145F8                 mov     edi, [r13+0]
+  .text:00000000005145FC                 mov     esi, 3
+  .text:0000000000514601                 call    sub_2C8C80
+  .text:0000000000514606                 test    al, al
+  .text:0000000000514608                 jz      short loc_514638
+  .text:000000000051460A                 cmp     byte ptr [rbx+228h], 0
+  .text:0000000000514611                 lea     rcx, aFailure; "failure"
+  .text:0000000000514618                 jz      short loc_514621
+  .text:000000000051461A                 lea     rcx, aOverflow; "overflow"
+  .text:0000000000514621                 mov     edi, [r13+0]
+  .text:0000000000514625                 lea     rdx, aSvSerializingC; "SV:  Serializing CSVCMsg_VoiceInit_t %s"...
+  .text:000000000051462C                 mov     esi, 3
+  .text:0000000000514631                 xor     eax, eax
+  .text:0000000000514633                 call    sub_2CA620
+  .text:0000000000514638                 xor     r12d, r12d
+  .text:000000000051463B                 jmp     loc_514570
+  .text:0000000000514640                 call    sub_2C8C80
+  .text:0000000000514645                 test    al, al
+  .text:0000000000514647                 jz      loc_51413B
+  .text:000000000051464D                 mov     rcx, [rbx+150h]
+  .text:0000000000514654                 lea     rax, unk_27D936
+  .text:000000000051465B                 mov     r8, r12
+  .text:000000000051465E                 mov     esi, 2
+  .text:0000000000514663                 mov     edi, [r13+0]
+  .text:0000000000514667                 lea     rdx, aSvSpawnServerS_0; "SV:  Spawn Server: %s: [%s]\n"
+  .text:000000000051466E                 test    rcx, rcx
+  .text:0000000000514671                 cmovz   rcx, rax
+  .text:0000000000514675                 xor     eax, eax
+  .text:0000000000514677                 call    sub_2CA620
+  .text:000000000051467C                 mov     rdi, rbx
+  .text:000000000051467F                 call    sub_4FBDA0
+  .text:0000000000514684                 jmp     loc_514143
+  .text:0000000000514690                 mov     r12, cs:_ZNSs4_Rep20_S_empty_rep_storageE_ptr
+  .text:0000000000514697                 lea     rcx, [r12+18h]
+  .text:000000000051469C                 jmp     loc_51439A
+  .text:00000000005146A8                 mov     edi, [r13+0]
+  .text:00000000005146AC                 lea     rcx, unk_27D936
+  .text:00000000005146B3                 mov     esi, 2
+  .text:00000000005146B8                 xor     eax, eax
+  .text:00000000005146BA                 lea     rdx, aSvSpawnServerS; "SV:  Spawn Server: %s\n"
+  .text:00000000005146C1                 call    sub_2CA620
+  .text:00000000005146C6                 jmp     loc_51413B
+  .text:00000000005146D0                 mov     rax, cs:qword_A35A98
+  .text:00000000005146D7                 mov     rax, [rax+8]
+  .text:00000000005146DB                 jmp     loc_514312
+  .text:00000000005146E0                 call    sub_2C8C80
+  .text:00000000005146E5                 test    al, al
+  .text:00000000005146E7                 jz      short loc_514710
+  .text:00000000005146E9                 mov     rcx, [rbx+150h]
+  .text:00000000005146F0                 test    rcx, rcx
+  .text:00000000005146F3                 jz      loc_51479E
+  .text:00000000005146F9                 mov     edi, [r13+0]
+  .text:00000000005146FD                 lea     rdx, aSvSpawnServerS; "SV:  Spawn Server: %s\n"
+  .text:0000000000514704                 mov     esi, 2
+  .text:0000000000514709                 xor     eax, eax
+  .text:000000000051470B                 call    sub_2CA620
+  .text:0000000000514710                 lea     r12, unk_27D936
+  .text:0000000000514717                 mov     rdi, rbx
+  .text:000000000051471A                 call    sub_4FBDA0
+  .text:000000000051471F                 jmp     loc_514143
+  .text:0000000000514728                 mov     rdi, rbx
+  .text:000000000051472B                 call    rax
+  .text:000000000051472D                 jmp     loc_51420F
+  .text:0000000000514738                 mov     rax, [rcx]
+  .text:000000000051473B                 mov     [rbp+var_A8], rax
+  .text:0000000000514742                 jmp     loc_51423C
+  .text:0000000000514750                 cmp     cs:__pthread_key_create_ptr, 0
+  .text:0000000000514758                 jz      short loc_514780
+  .text:000000000051475A                 mov     eax, 0FFFFFFFFh
+  .text:000000000051475F                 lock xadd [rdx-8], eax
+  .text:0000000000514764                 test    eax, eax
+  .text:0000000000514766                 jg      loc_5143CF
+  .text:000000000051476C                 mov     rsi, [rdx-10h]
+  .text:0000000000514770                 add     rsi, 19h
+  .text:0000000000514774                 call    sub_2BCC50
+  .text:0000000000514779                 jmp     loc_5143CF
+  .text:0000000000514780                 mov     eax, [rdx-8]
+  .text:0000000000514783                 lea     ecx, [rax-1]
+  .text:0000000000514786                 mov     [rdx-8], ecx
+  .text:0000000000514789                 jmp     short loc_514764
+  .text:0000000000514790                 mov     [r15], r14
+  .text:0000000000514793                 mov     byte ptr [r15+r14+18h], 0
+  .text:0000000000514799                 jmp     loc_51439A
+  .text:000000000051479E                 lea     rcx, unk_27D936
+  .text:00000000005147A5                 jmp     loc_5142C0
 procedure: |-
-  __int64 __fastcall CNetworkGameServer_SpawnServer(__int64 *a1, const char *a2)
+  __int64 __fastcall CNetworkGameServer_SpawnServer(__int64 a1, _BYTE *a2)
   {
-    const char *v2; // r12
-    __int64 (__fastcall *v4)(); // rax
-    int v5; // eax
-    unsigned int v6; // r12d
-    float v7; // xmm0_4
-    __int64 v8; // rax
-    __int64 (__fastcall *v9)(); // rax
-    char v10; // al
-    const char *v11; // rsi
-    __int64 v12; // rsi
-    __int64 (__fastcall *v13)(); // rax
-    __int64 CurrentId; // rax
-    const char *v15; // rax
-    _QWORD *v16; // rdi
-    const char *v17; // rax
-    __int64 (__fastcall *v18)(); // rax
-    const char *v19; // rsi
-    int v20; // ecx
-    int v21; // r8d
-    int v22; // r9d
-    unsigned int v23; // r15d
-    const char *v24; // rdx
+    void *v2; // r12
+    int v4; // eax
+    unsigned int v5; // r12d
+    __int64 (__fastcall *v6)(); // rax
+    char v7; // al
+    _BYTE *v8; // r12
+    unsigned __int64 v9; // r14
+    __int64 v10; // rax
+    volatile signed __int32 *v11; // rcx
+    __int64 v12; // r15
+    const char *v13; // rcx
+    _BYTE **v14; // rax
+    unsigned __int64 v15; // rcx
+    volatile signed __int32 *v16; // rdx
+    volatile signed __int32 *v17; // rdi
+    __int64 v18; // rax
+    __int64 v19; // rax
+    void *v20; // rax
+    void *v21; // rax
+    __int64 v22; // rax
+    volatile signed __int32 *v23; // rsi
+    const char *v25; // rcx
     const char *v26; // rcx
-    const char **v27; // rax
+    void *v27; // rcx
     const char *v28; // rcx
-    const char *v29; // rcx
-    const char *v30; // rcx
-    __int64 v31; // rcx
-    __int16 v32; // di
-    unsigned __int16 v33; // cx
-    __int64 v34; // rax
-    const char *v35; // rsi
-    __int64 v36; // rcx
-    __int64 v37; // rdi
-    __int64 (*v38)(void); // rax
-    __int64 v39; // [rsp+18h] [rbp-98h] BYREF
-    _QWORD v40[2]; // [rsp+20h] [rbp-90h] BYREF
-    int v41; // [rsp+30h] [rbp-80h]
-    char v42; // [rsp+34h] [rbp-7Ch]
-    __int64 v43; // [rsp+38h] [rbp-78h]
-    int v44; // [rsp+40h] [rbp-70h]
-    __int64 v45; // [rsp+48h] [rbp-68h]
-    __int64 (__fastcall **v46)(); // [rsp+50h] [rbp-60h] BYREF
-    __int64 v47; // [rsp+58h] [rbp-58h]
-    __int64 v48; // [rsp+60h] [rbp-50h]
-    __int64 *v49; // [rsp+68h] [rbp-48h] BYREF
-    __int64 v50; // [rsp+70h] [rbp-40h]
+    int v29; // eax
+    unsigned __int64 v30; // [rsp+8h] [rbp-B8h]
+    unsigned __int64 v31; // [rsp+18h] [rbp-A8h]
+    float v32; // [rsp+18h] [rbp-A8h]
+    volatile signed __int32 *v33; // [rsp+28h] [rbp-98h] BYREF
+    _QWORD v34[2]; // [rsp+30h] [rbp-90h] BYREF
+    int v35; // [rsp+40h] [rbp-80h]
+    char v36; // [rsp+44h] [rbp-7Ch]
+    __int64 v37; // [rsp+48h] [rbp-78h]
+    int v38; // [rsp+50h] [rbp-70h]
+    __int64 v39; // [rsp+58h] [rbp-68h]
+    __int64 (__fastcall **v40)(); // [rsp+60h] [rbp-60h] BYREF
+    __int64 v41; // [rsp+68h] [rbp-58h]
+    int v42; // [rsp+70h] [rbp-50h]
+    char v43[8]; // [rsp+78h] [rbp-48h] BYREF
+    int v44; // [rsp+80h] [rbp-40h]
 
     v2 = a2;
     if ( !a2 )
     {
-      if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_980968, 2) )
+      if ( (unsigned __int8)sub_2C8C80((unsigned int)dword_A359F4, 2) )
       {
-        v31 = a1[42];
-        if ( !v31 )
+        v28 = *(const char **)(a1 + 336);
+        if ( !v28 )
         {
-          v26 = &s1;
-          goto LABEL_34;
+          v13 = (const char *)&unk_27D936;
+  LABEL_17:
+          sub_2CA620((unsigned int)dword_A359F4, 2, "SV:  Spawn Server: %s\n", v13);
+          sub_4FBDA0(a1);
+          if ( !a2 )
+            v2 = &unk_27D936;
+          goto LABEL_5;
         }
-        LoggingSystem_Log((unsigned int)dword_980968, 2, "SV:  Spawn Server: %s\n", v31);
+        sub_2CA620((unsigned int)dword_A359F4, 2, "SV:  Spawn Server: %s\n", v28);
       }
-      v2 = &s1;
-      sub_698780(a1);
+      v2 = &unk_27D936;
+      sub_4FBDA0(a1);
       goto LABEL_5;
     }
-    if ( *a2 )
+    if ( !*a2 )
     {
-      if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_980968, 2) )
+      if ( !(unsigned __int8)sub_2C8C80((unsigned int)dword_A359F4, 2) )
       {
-        v30 = (const char *)a1[42];
-        if ( !v30 )
-          v30 = &s1;
-        LoggingSystem_Log((unsigned int)dword_980968, 2, "SV:  Spawn Server: %s: [%s]\n", v30);
-        sub_698780(a1);
+  LABEL_4:
+        sub_4FBDA0(a1);
         goto LABEL_5;
       }
-      goto LABEL_4;
-    }
-    if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_980968, 2) )
-    {
-      v26 = (const char *)a1[42];
-      if ( !v26 )
+      v13 = *(const char **)(a1 + 336);
+      if ( !v13 )
       {
-        LoggingSystem_Log((unsigned int)dword_980968, 2, "SV:  Spawn Server: %s\n", &s1);
+        sub_2CA620((unsigned int)dword_A359F4, 2, "SV:  Spawn Server: %s\n", (const char *)&unk_27D936);
         goto LABEL_4;
       }
-  LABEL_34:
-      LoggingSystem_Log((unsigned int)dword_980968, 2, "SV:  Spawn Server: %s\n", v26);
-      sub_698780(a1);
-      if ( !a2 )
-        v2 = &s1;
-      goto LABEL_5;
+      goto LABEL_17;
     }
-  LABEL_4:
-    sub_698780(a1);
+    if ( !(unsigned __int8)sub_2C8C80((unsigned int)dword_A359F4, 2) )
+      goto LABEL_4;
+    v27 = *(void **)(a1 + 336);
+    if ( !v27 )
+      v27 = &unk_27D936;
+    sub_2CA620((unsigned int)dword_A359F4, 2, "SV:  Spawn Server: %s: [%s]\n", v27, a2);
+    sub_4FBDA0(a1);
   LABEL_5:
-    CUtlString::Set((CUtlString *)(a1 + 223), v2);
-    v4 = *(__int64 (__fastcall **)())(*a1 + 96);// 96LL = 0x60 = INetworkGameServer_GetMaxClients
-    if ( v4 == sub_696CD0 )
-      v5 = *((_DWORD *)a1 + 169);
-    else
-      v5 = ((__int64 (__fastcall *)(__int64 *))v4)(a1);// INetworkGameServer_GetMaxClients
-    *((_DWORD *)a1 + 26) = v5;
-    *((_BYTE *)a1 + 10056) = 1;
-    v6 = sub_6CE770(a1, a1 + 229, a1 + 224);
-    if ( !(_BYTE)v6 )
+    sub_2C8BB0(a1 + 1776, v2);
+    v4 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)a1 + 96LL))(a1);// 0x60 = 96LL = INetworkGameServer_GetMaxClients
+    *(_BYTE *)(a1 + 10048) = 1;
+    *(_DWORD *)(a1 + 104) = v4;
+    v5 = CNetworkGameServer_WriteClassInfosAndSerializesToBuffer(a1, a1 + 1824, a1 + 1784);
+    if ( (_BYTE)v5 )
     {
-      if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_980968, 3) )
+      v36 = -1;
+      v34[1] = 0;
+      v35 = 0;
+      v37 = -1;
+      v38 = -1082130432;
+      v39 = -1;
+      sub_30A460(&v40, 0, 0);
+      v34[0] = off_9B5890;
+      v40 = off_9B58D0;
+      v6 = *(__int64 (__fastcall **)())(*(_QWORD *)a1 + 376LL);
+      if ( v6 == sub_4F4650 )
+        v7 = *(_BYTE *)(a1 + 1109);
+      else
+        v7 = ((__int64 (__fastcall *)(__int64))v6)(a1);
+      v8 = &unk_27D936;
+      if ( v7 )
       {
-        v29 = "UNKNOWN FAILURE";
-        if ( *((_BYTE *)a1 + 1824) )
-          v29 = "OVERFLOW FAILURE";
-        LoggingSystem_Log(
-          (unsigned int)dword_980968,
-          3,
-          "SV:  SpawnServer WriteClassInfosAndSerializesToBuffer %s.\n",
-          v29);
+        v14 = (_BYTE **)sub_5EB3F0(&unk_A35A90, 0xFFFFFFFFLL);
+        if ( !v14 )
+          v14 = *(_BYTE ***)(qword_A35A98 + 8);
+        v8 = *v14;
+        if ( !*v14 )
+          v8 = &unk_27D936;
       }
-      return v6;
-    }
-    v7 = 0.0;
-    v48 = 0;
-    v40[1] = 0;
-    v41 = 0;
-    v42 = -1;
-    v49 = &qword_977818;
-    v40[0] = &off_9582C0;
-    v46 = off_958300;
-    v8 = *a1;
-    v43 = -1;
-    v44 = -1082130432;
-    v45 = -1;
-    v9 = *(__int64 (__fastcall **)())(v8 + 376);
-    v47 = 0;
-    v50 = 0;
-    if ( v9 == sub_67C9D0 )
-      v10 = *((_BYTE *)a1 + 1117);
-    else
-      v10 = ((__int64 (__fastcall *)(__int64 *))v9)(a1);
-    v11 = &s1;
-    if ( v10 )
-    {
-      v27 = (const char **)sub_911FE0(qword_9D1D18, 0xFFFFFFFFLL);
-      if ( !v27 )
-        v27 = *(const char ***)(qword_9D1D18 + 8);
-      v11 = *v27;
-      if ( !*v27 )
-        v11 = &s1;
-    }
-    LODWORD(v48) = v48 | 1;
-    sub_4B8940(&v49, v11, v47 & 0xFFFFFFFFFFFFFFFCLL);
-    LODWORD(v50) = 5;
-    LODWORD(v48) = v48 | 2;
-    v6 = (*(__int64 (__fastcall **)(__int64, __int64 *, _QWORD *))(*(_QWORD *)qword_980C50 + 24LL))(
-           qword_980C50,
-           a1 + 66,
-           v40);
-    if ( !(_BYTE)v6 || *((_BYTE *)a1 + 560) )
-    {
-      if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_980968, 3) )
+      v42 |= 1u;
+      v31 = v41 & 0xFFFFFFFFFFFFFFFCLL;
+      if ( (v41 & 1) != 0 )
+        v31 = *(_QWORD *)(v41 & 0xFFFFFFFFFFFFFFFCLL);
+      v9 = sub_2CB750(v8);
+      if ( !v9 )
       {
-        v28 = "failure";
-        if ( *((_BYTE *)a1 + 560) )
-          v28 = "overflow";
-        LoggingSystem_Log((unsigned int)dword_980968, 3, "SV:  Serializing CSVCMsg_VoiceInit_t %s.\n", v28);
+        v11 = (volatile signed __int32 *)&unk_CD6AF8;
+  LABEL_31:
+        v33 = v11;
+        sub_60552E(v43, &v33, v31);
+        v16 = v33;
+        v17 = v33 - 6;
+        if ( v33 - 6 != (volatile signed __int32 *)&std::string::_Rep::_S_empty_rep_storage )
+        {
+          if ( &_pthread_key_create )
+          {
+            v29 = _InterlockedExchangeAdd(v33 - 2, 0xFFFFFFFF);
+          }
+          else
+          {
+            v29 = *((_DWORD *)v33 - 2);
+            *((_DWORD *)v33 - 2) = v29 - 1;
+          }
+          if ( v29 <= 0 )
+            sub_2BCC50(v17, *((_QWORD *)v16 - 2) + 25LL);
+        }
+        v44 = 5;
+        v42 |= 2u;
+        v5 = (*(__int64 (__fastcall **)(_QWORD *, __int64, _QWORD *))(*g_pNetworkMessages + 24LL))(
+               g_pNetworkMessages,
+               a1 + 520,
+               v34);
+        if ( !(_BYTE)v5 || *(_BYTE *)(a1 + 552) )
+        {
+          if ( (unsigned __int8)sub_2C8C80((unsigned int)dword_A359F4, 3) )
+          {
+            v26 = "failure";
+            if ( *(_BYTE *)(a1 + 552) )
+              v26 = "overflow";
+            sub_2CA620((unsigned int)dword_A359F4, 3, "SV:  Serializing CSVCMsg_VoiceInit_t %s.\n", v26);
+          }
+          v5 = 0;
+        }
+        else
+        {
+          (*(void (__fastcall **)(_QWORD *, __int64))(*g_pSource2Server + 112LL))(g_pSource2Server, a1 + 520);
+          (*(void (__fastcall **)(__int64, __int64))(*(_QWORD *)a1 + 280LL))(a1, 2);
+          v32 = (*(float (__fastcall **)(__int64))(*(_QWORD *)a1 + 224LL))(a1);
+          v18 = sub_2C89F0();
+          *(_DWORD *)(a1 + 168) = 0;
+          *(_QWORD *)(a1 + 176) = v18;
+          *(float *)(a1 + 136) = v32;
+          *(_DWORD *)(a1 + 156) = (int)(float)((float)(v32 * 64.0) + 0.5);
+          v19 = sub_5DA880();
+          sub_5DAD80(v19, 8, 0);
+          sub_2CAB40("InitializeEntityDLLFields", 8);
+          v20 = *(void **)(a1 + 336);
+          if ( !v20 )
+            v20 = &unk_27D936;
+          *(_QWORD *)(a1 + 184) = v20;
+          v21 = *(void **)(a1 + 1776);
+          if ( !v21 )
+            v21 = &unk_27D936;
+          *(_QWORD *)(a1 + 192) = v21;
+          v22 = (*(__int64 (__fastcall **)(_QWORD *))(*g_pEngineServiceMgr + 336LL))(g_pEngineServiceMgr);// 0x150 = 336LL = IEngineServiceMgr_GetAddonsString
+          sub_2C8BB0(a1 + 344, v22);
+          if ( g_pTestScriptMgr )
+            (*(void (__fastcall **)(_QWORD *, const char *))(*g_pTestScriptMgr + 96LL))(g_pTestScriptMgr, "map_load");
+          sub_502080(&v33, a1);
+          v23 = v33;
+          if ( !v33 )
+            v23 = (volatile signed __int32 *)&unk_27D936;
+          sub_55AFD0(&qword_C75160, v23);
+          if ( v33 )
+            sub_2C9CB0(&v33);
+          sub_2CAB40("SV_SpawnServer -- Finished", v23);
+        }
+        v34[0] = off_9A7DE0;
+        v40 = off_9A7E20;
+        sub_31F8C0(&v40);
+        return v5;
       }
-      v6 = 0;
-      goto LABEL_31;
-    }
-    (*(void (__fastcall **)(__int64, __int64 *))(*(_QWORD *)qword_97E658 + 112LL))(qword_97E658, a1 + 66);
-    v12 = 2;
-    (*(void (__fastcall **)(__int64 *, __int64))(*a1 + 280))(a1, 2);
-    v13 = *(__int64 (__fastcall **)())(*a1 + 224);
-    if ( v13 == sub_68D810 )
-      v7 = (float)*((int *)a1 + 17) * 0.015625;
-    else
-      ((void (__fastcall *)(__int64 *))v13)(a1);
-    CurrentId = ThreadGetCurrentId();
-    *((_DWORD *)a1 + 42) = 0;
-    a1[22] = CurrentId;
-    *((float *)a1 + 34) = v7;
-    *((_DWORD *)a1 + 39) = (int)(float)((float)(v7 * 64.0) + 0.5);
-    if ( (unsigned __int8)ThreadInMainThread() )
-    {
-      v12 = 8;
-      sub_749860(&qword_97FA80, 8, 0);
-    }
-    COM_TimestampedLog("InitializeEntityDLLFields");
-    v15 = (const char *)a1[42];
-    v16 = (_QWORD *)qword_97DDC8;
-    if ( !v15 )
-      v15 = &s1;
-    a1[23] = (__int64)v15;
-    v17 = (const char *)a1[223];
-    if ( !v17 )
-      v17 = &s1;
-    a1[24] = (__int64)v17;
-    v18 = *(__int64 (__fastcall **)())(*v16 + 336LL);
-    if ( v18 == sub_51F8D0 )
-    {
-      v19 = (const char *)v16[22];
-      if ( !v19 )
-        v19 = &s1;
-    }
-    else
-    {
-      v19 = (const char *)((__int64 (__fastcall *)(_QWORD *, __int64, const char *, __int64 (__fastcall *)()))v18)(
-                            v16,
-                            v12,
-                            &s1,
-                            sub_51F8D0);
-    }
-    CUtlString::Set((CUtlString *)(a1 + 43), v19);
-    if ( qword_97FB08 )
-      (*(void (__fastcall **)(__int64, const char *))(*(_QWORD *)qword_97FB08 + 96LL))(qword_97FB08, "map_load");
-    v23 = *((unsigned __int16 *)a1 + 392);
-    v39 = 0;
-    if ( (_WORD)v23 == 0xFFFF )
-    {
-  LABEL_27:
-      v24 = &s1;
-      goto LABEL_28;
-    }
-    v32 = *((_WORD *)a1 + 385);
-    while ( 1 )
-    {
-      v34 = (unsigned __int16)v23;
-      if ( (*((_WORD *)a1 + 385) & 0x7FFF) == 0 )
-        break;
-      v33 = *(_WORD *)(a1[97] + 24LL * (unsigned __int16)v23);
-      if ( v33 == 0xFFFF )
-        goto LABEL_76;
-  LABEL_66:
-      v23 = v33;
-    }
-    v33 = *(_WORD *)(24LL * (unsigned __int16)v23);
-    if ( v33 != 0xFFFF )
-      goto LABEL_66;
-    while ( 1 )
-    {
-  LABEL_76:
-      v36 = 0;
-      if ( (v32 & 0x7FFF) != 0 )
-        v36 = a1[97];
-      v37 = *(_QWORD *)(v36 + 24 * v34 + 16);
-      v38 = **(__int64 (***)(void))v37;
-      if ( v38 == sub_54F6B0 )
+      if ( v9 > 0x3FFFFFFFFFFFFFF9LL )
       {
-        v35 = *(const char **)(v37 + 120);
-        if ( !v35 )
-          v35 = &s1;
+        sub_2C4070("basic_string::_S_create");
+        JUMPOUT(0x5140E8);
+      }
+      if ( v9 + 57 > 0x1000 )
+      {
+        v15 = v9 + 4096 - (((_WORD)v9 + 57) & 0xFFF);
+        if ( v15 > 0x3FFFFFFFFFFFFFF9LL )
+          v15 = 0x3FFFFFFFFFFFFFF9LL;
+        v30 = v15;
+        v12 = sub_2BCC20(v15 + 25);
+        *(_DWORD *)(v12 + 16) = 0;
+        *(_QWORD *)(v12 + 8) = v30;
+        v11 = (volatile signed __int32 *)(v12 + 24);
       }
       else
       {
-        v35 = (const char *)v38();
+        v10 = sub_2BCC20(v9 + 25);
+        *(_QWORD *)(v10 + 8) = v9;
+        v11 = (volatile signed __int32 *)(v10 + 24);
+        v12 = v10;
+        *(_DWORD *)(v10 + 16) = 0;
+        if ( v9 == 1 )
+        {
+          *(_BYTE *)(v10 + 24) = *v8;
+          goto LABEL_29;
+        }
       }
-      CUtlString::operator+=(&v39, v35);
-      if ( v23 != *((unsigned __int16 *)a1 + 393) - 1 )
-        CUtlString::operator+=(&v39, "+");
-      LOWORD(v34) = sub_698DC0(a1 + 96, v23);
-      v23 = (unsigned __int16)v34;
-      if ( (_WORD)v34 == 0xFFFF )
-        break;
-      v32 = *((_WORD *)a1 + 385);
-      v34 = (unsigned __int16)v34;
+      v11 = (volatile signed __int32 *)sub_2CB930(v11, v8, v9);
+  LABEL_29:
+      if ( (_UNKNOWN *)v12 != &std::string::_Rep::_S_empty_rep_storage )
+      {
+        *(_QWORD *)v12 = v9;
+        *(_BYTE *)(v12 + v9 + 24) = 0;
+      }
+      goto LABEL_31;
     }
-    LODWORD(v24) = v39;
-    if ( !v39 )
-      goto LABEL_27;
-  LABEL_28:
-    sub_8F7910((unsigned int)&qword_97FC00, (unsigned int)"Started:  \"%s\"\n", (_DWORD)v24, v20, v21, v22);
-    if ( v39 )
-      CUtlString::FreeMemoryBlock((CUtlString *)&v39);
-    COM_TimestampedLog("SV_SpawnServer -- Finished");
-  LABEL_31:
-    v40[0] = &off_94B1C8;
-    v46 = off_94B208;
-    sub_4C0520(&v46);
-    return v6;
+    if ( (unsigned __int8)sub_2C8C80((unsigned int)dword_A359F4, 3) )
+    {
+      v25 = "UNKNOWN FAILURE";
+      if ( *(_BYTE *)(a1 + 1816) )
+        v25 = "OVERFLOW FAILURE";
+      sub_2CA620((unsigned int)dword_A359F4, 3, "SV:  SpawnServer WriteClassInfosAndSerializesToBuffer %s.\n", v25);
+    }
+    return v5;
   }
