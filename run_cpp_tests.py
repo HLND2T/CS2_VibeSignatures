@@ -392,6 +392,7 @@ def compile_and_compare(
                 exclude_reference_vtables = _to_list(test_item.get("exclude_reference_vtables"))
                 try:
                     merge_reference_modules = _to_bool(test_item.get("merge_reference_modules"), default=True)
+                    allow_vtable_size_mismatch = _to_bool(test_item.get("allow_vtable_size_mismatch"), default=False)
                 except ValueError as exc:
                     return {
                         "status": "invalid",
@@ -413,6 +414,7 @@ def compile_and_compare(
                             alias_class_names=alias_symbols,
                             reference_vtable_owners=reference_vtable_owners,
                             exclude_reference_vtables=exclude_reference_vtables,
+                            allow_vtable_size_mismatch=allow_vtable_size_mismatch,
                         )
                     )
                 else:
@@ -429,6 +431,7 @@ def compile_and_compare(
                                 alias_class_names=alias_symbols,
                                 reference_vtable_owners=reference_vtable_owners,
                                 exclude_reference_vtables=exclude_reference_vtables,
+                                allow_vtable_size_mismatch=allow_vtable_size_mismatch,
                             )
                         )
             if should_parse_record:

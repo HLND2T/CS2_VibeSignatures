@@ -1,18 +1,21 @@
 #!/usr/bin/env python3
+"""Resolve CEngineServer::IsClientLowViolence from the IVEngineServer2 slot."""
+
 from ida_analyze_util import preprocess_common_skill
 
 INHERIT_VFUNCS = [
     (
-        "CNetworkSystem_GetSteamNetworkingSockets",
-        "CNetworkSystem",
-        "../engine/INetworkSystem_GetSteamNetworkingSockets",
-        False,
+        "CEngineServer_IsClientLowViolence",
+        "CEngineServer",
+        "../server/IVEngineServer2_IsClientLowViolence",
+        True,
     )
 ]
+
 GENERATE_YAML_DESIRED_FIELDS = [
     (
-        "CNetworkSystem_GetSteamNetworkingSockets",
-        ["func_name", "func_va", "func_rva", "func_size", "vtable_name", "vfunc_offset", "vfunc_index"],
+        "CEngineServer_IsClientLowViolence",
+        ["func_name", "func_va", "func_rva", "func_size", "func_sig", "vtable_name", "vfunc_offset", "vfunc_index"],
     )
 ]
 
@@ -20,6 +23,7 @@ GENERATE_YAML_DESIRED_FIELDS = [
 async def preprocess_skill(
     session, skill_name, expected_outputs, old_yaml_map, new_binary_dir, platform, image_base, debug=False
 ):
+    """Resolve the concrete CEngineServer vtable member."""
     _ = skill_name
     return await preprocess_common_skill(
         session=session,
