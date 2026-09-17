@@ -425,6 +425,10 @@ modules:
         category: func
         alias:
           - CNetworkMessages::SerializeInternal
+      - name: CNetworkMessages_Serialize
+        category: vfunc
+        alias:
+          - CNetworkMessages::Serialize
       - name: CNetworkMessages_UnserializeMessageInternal
         category: vfunc
         alias:
@@ -13933,6 +13937,12 @@ modules:
         expected_input:
           - CNetworkMessages_vtable.{platform}.yaml
           - ../engine/INetworkMessages_SetIsForServer.{platform}.yaml
+      - name: find-CNetworkMessages_Serialize
+        expected_output:
+          - CNetworkMessages_Serialize.{platform}.yaml
+        expected_input:
+          - CNetworkMessages_vtable.{platform}.yaml
+          - ../engine/INetworkMessages_Serialize.{platform}.yaml
       - name: find-CNetworkMessages_GetIsForServer
         expected_output:
           - CNetworkMessages_GetIsForServer.{platform}.yaml
