@@ -651,6 +651,12 @@ modules:
         expected_input:
           - CNetworkGameServerBase_ReplyChallenge.{platform}.yaml
           - CNetworkGameServerBase_vtable.{platform}.yaml
+      - name: find-CNetworkGameServerBase_GetGlobals
+        expected_output:
+          - CNetworkGameServerBase_GetGlobals.{platform}.yaml
+        expected_input:
+          - CLoopTypeClientServer_AdvanceTime.{platform}.yaml
+          - CNetworkGameServerBase_vtable.{platform}.yaml
       - name: find-CNetworkStringTableContainer_DirectUpdate
         optional_output:
           - CNetworkStringTableContainer_DirectUpdate.{platform}.yaml
@@ -697,14 +703,11 @@ modules:
       - name: find-CNetworkGameServer_SpawnServer-decompiles
         expected_output:
           - INetworkGameServer_GetMaxClients.{platform}.yaml
+          - CNetworkGameServerBase_GetMaxClients.{platform}.yaml
+          - IEngineServiceMgr_GetAddonsString.{platform}.yaml
         expected_input:
           - CNetworkGameServer_SpawnServer.{platform}.yaml
-      - name: find-CNetworkGameServerBase_GetMaxClients
-        expected_output:
-          - CNetworkGameServerBase_GetMaxClients.{platform}.yaml
-        expected_input:
           - CNetworkGameServerBase_vtable.{platform}.yaml
-          - INetworkGameServer_GetMaxClients.{platform}.yaml
       - name: find-CNetworkGameServerBase_GetClassBaseline
         expected_output:
           - CNetworkGameServerBase_GetClassBaseline.{platform}.yaml
@@ -1333,6 +1336,11 @@ modules:
           - CNetworkClientService_vtable.{platform}.yaml
       - name: find-CNetworkServerService_vtable
         expected_output:
+          - CNetworkServerService_vtable.{platform}.yaml
+      - name: find-CNetworkServerService_OnLoopActivate
+        expected_output:
+          - CNetworkServerService_OnLoopActivate.{platform}.yaml
+        expected_input:
           - CNetworkServerService_vtable.{platform}.yaml
       - name: find-CNetworkServerService_Init
         expected_output:
@@ -2119,6 +2127,59 @@ modules:
       - name: find-CEngineServiceMgr_vtable
         expected_output:
           - CEngineServiceMgr_vtable.{platform}.yaml
+      - name: find-CEngineServiceMgr_vtable2
+        expected_output:
+          - CEngineServiceMgr_vtable2.{platform}.yaml
+      - name: find-CLoopModeLevelLoad_vtable
+        expected_output:
+          - CLoopModeLevelLoad_vtable.{platform}.yaml
+      - name: find-CLoopModeLevelLoad_LoopInit
+        expected_output:
+          - CLoopModeLevelLoad_LoopInit.{platform}.yaml
+        expected_input:
+          - CLoopModeLevelLoad_vtable.{platform}.yaml
+      - name: find-ILoopModePrerequisiteRegistry_RegisterPrerequisite
+        expected_output:
+          - ILoopModePrerequisiteRegistry_RegisterPrerequisite.{platform}.yaml
+        expected_input:
+          - CLoopModeLevelLoad_LoopInit.{platform}.yaml
+      - name: find-CEngineServiceMgr_RegisterPrerequisite
+        expected_output:
+          - CEngineServiceMgr_RegisterPrerequisite.{platform}.yaml
+        expected_input:
+          - CEngineServiceMgr_vtable2.{platform}.yaml
+          - ILoopModePrerequisiteRegistry_RegisterPrerequisite.{platform}.yaml
+      - name: find-CEngineServiceMgr_GetAddonsString
+        expected_output:
+          - CEngineServiceMgr_GetAddonsString.{platform}.yaml
+        expected_input:
+          - CEngineServiceMgr_vtable.{platform}.yaml
+          - IEngineServiceMgr_GetAddonsString.{platform}.yaml
+      - name: find-IEngineServiceMgr_IsInGameLoop
+        expected_output:
+          - IEngineServiceMgr_IsInGameLoop.{platform}.yaml
+        expected_input:
+          - CNetworkServerService_OnLoopActivate.{platform}.yaml
+      - name: find-CEngineServiceMgr_IsInGameLoop
+        expected_output:
+          - CEngineServiceMgr_IsInGameLoop.{platform}.yaml
+        expected_input:
+          - CEngineServiceMgr_vtable.{platform}.yaml
+          - IEngineServiceMgr_IsInGameLoop.{platform}.yaml
+      - name: find-MainLoop
+        expected_output:
+          - MainLoop.{platform}.yaml
+      - name: find-IEngineServiceMgr_GetActiveLoop
+        expected_output:
+          - IEngineServiceMgr_GetActiveLoop.{platform}.yaml
+        expected_input:
+          - MainLoop.{platform}.yaml
+      - name: find-CEngineServiceMgr_GetActiveLoop
+        expected_output:
+          - CEngineServiceMgr_GetActiveLoop.{platform}.yaml
+        expected_input:
+          - CEngineServiceMgr_vtable.{platform}.yaml
+          - IEngineServiceMgr_GetActiveLoop.{platform}.yaml
       - name: find-IEngineServiceMgr_GetAddonCount
         expected_output:
           - IEngineServiceMgr_GetAddonCount.{platform}.yaml
@@ -2794,6 +2855,10 @@ modules:
         category: vfunc
         alias:
           - CNetworkGameServerBase::GetChallengeType
+      - name: CNetworkGameServerBase_GetGlobals
+        category: vfunc
+        alias:
+          - CNetworkGameServerBase::GetGlobals
       - name: CNetworkGameServer_Init
         category: vfunc
         alias:
@@ -3318,6 +3383,10 @@ modules:
           - CNetworkClientService::AllocateRemoteConnectionClient
       - name: CNetworkServerService_vtable
         category: vtable
+      - name: CNetworkServerService_OnLoopActivate
+        category: vfunc
+        alias:
+          - CNetworkServerService::OnLoopActivate
       - name: CNetworkGameServer_WriteClassInfosAndSerializesToBuffer
         category: func
         alias:
@@ -3852,6 +3921,48 @@ modules:
           - ILoopModeFactory::Shutdown
       - name: CEngineServiceMgr_vtable
         category: vtable
+      - name: CEngineServiceMgr_vtable2
+        category: vtable
+      - name: CLoopModeLevelLoad_vtable
+        category: vtable
+      - name: CLoopModeLevelLoad_LoopInit
+        category: vfunc
+        alias:
+          - CLoopModeLevelLoad::LoopInit
+      - name: ILoopModePrerequisiteRegistry_RegisterPrerequisite
+        category: vfunc
+        alias:
+          - ILoopModePrerequisiteRegistry::RegisterPrerequisite
+      - name: CEngineServiceMgr_RegisterPrerequisite
+        category: vfunc
+        alias:
+          - CEngineServiceMgr::RegisterPrerequisite
+      - name: IEngineServiceMgr_GetAddonsString
+        category: vfunc
+        alias:
+          - IEngineServiceMgr::GetAddonsString
+      - name: CEngineServiceMgr_GetAddonsString
+        category: vfunc
+        alias:
+          - CEngineServiceMgr::GetAddonsString
+      - name: IEngineServiceMgr_IsInGameLoop
+        category: vfunc
+        alias:
+          - IEngineServiceMgr::IsInGameLoop
+      - name: CEngineServiceMgr_IsInGameLoop
+        category: vfunc
+        alias:
+          - CEngineServiceMgr::IsInGameLoop
+      - name: MainLoop
+        category: func
+      - name: IEngineServiceMgr_GetActiveLoop
+        category: vfunc
+        alias:
+          - IEngineServiceMgr::GetActiveLoop
+      - name: CEngineServiceMgr_GetActiveLoop
+        category: vfunc
+        alias:
+          - CEngineServiceMgr::GetActiveLoop
       - name: CEngineServiceMgr_GetAddonCount
         category: vfunc
         alias:
@@ -3888,6 +3999,14 @@ modules:
         category: vfunc
         alias:
           - CEngineServer::GetPlayerNetInfo
+      - name: CEngineServer_IsUserIDInUse
+        category: vfunc
+        alias:
+          - CEngineServer::IsUserIDInUse
+      - name: CEngineServer_IsClientLowViolence
+        category: vfunc
+        alias:
+          - CEngineServer::IsClientLowViolence
       - name: CSteam3ServerS1_ShutdownGameServer
         category: func
         alias:
@@ -6768,6 +6887,17 @@ modules:
       - name: find-CBasePlayerController_vtable
         expected_output:
           - CBasePlayerController_vtable.{platform}.yaml
+      - name: find-CBasePlayerController_Spawn
+        expected_output:
+          - CBasePlayerController_Spawn.{platform}.yaml
+        expected_input:
+          - CBasePlayerController_vtable.{platform}.yaml
+      - name: find-CLagCompensationManager_vtable
+        expected_output:
+          - CLagCompensationManager_vtable.{platform}.yaml
+      - name: find-CLagCompensationManager_StartLagCompensation
+        expected_output:
+          - CLagCompensationManager_StartLagCompensation.{platform}.yaml
       - name: find-CCSPlayerController_vtable
         expected_output:
           - CCSPlayerController_vtable.{platform}.yaml
@@ -9395,6 +9525,16 @@ modules:
           - IVEngineServer2_GetPlayerNetInfo.{platform}.yaml
         expected_input:
           - CPlayerCommandQueue_UpdateStats.{platform}.yaml
+      - name: find-IVEngineServer2_IsClientLowViolence
+        expected_output:
+          - IVEngineServer2_IsClientLowViolence.{platform}.yaml
+        expected_input:
+          - CBasePlayerController_Spawn.{platform}.yaml
+      - name: find-IVEngineServer2_IsUserIDInUse
+        expected_output:
+          - IVEngineServer2_IsUserIDInUse.{platform}.yaml
+        expected_input:
+          - CLagCompensationManager_StartLagCompensation.{platform}.yaml
       - name: find-CBasePlayerController_IsFakeClient
         expected_output:
           - CBasePlayerController_IsFakeClient.{platform}.yaml
@@ -10152,6 +10292,16 @@ modules:
         category: vtable
       - name: CBasePlayerController_vtable
         category: vtable
+      - name: CBasePlayerController_Spawn
+        category: vfunc
+        alias:
+          - CBasePlayerController::Spawn
+      - name: CLagCompensationManager_vtable
+        category: vtable
+      - name: CLagCompensationManager_StartLagCompensation
+        category: func
+        alias:
+          - CLagCompensationManager::StartLagCompensation
       - name: CBasePlayerController_ClientSettingsChanged
         category: vfunc
         alias:
@@ -10877,6 +11027,10 @@ modules:
         category: vfunc
         alias:
           - IVEngineServer2::GetClientSteamID
+      - name: IVEngineServer2_IsUserIDInUse
+        category: vfunc
+        alias:
+          - IVEngineServer2::IsUserIDInUse
       - name: IVEngineServer2_IsLogEnabled
         category: vfunc
         alias:
@@ -12803,6 +12957,10 @@ modules:
         category: vfunc
         alias:
           - IVEngineServer2::GetPlayerNetInfo
+      - name: IVEngineServer2_IsClientLowViolence
+        category: vfunc
+        alias:
+          - IVEngineServer2::IsClientLowViolence
       - name: CBasePlayerController_IsFakeClient
         category: func
         alias:
@@ -13615,6 +13773,18 @@ modules:
         expected_input:
           - ../server/IVEngineServer2_GetPlayerNetInfo.{platform}.yaml
           - CEngineServer_vtable.{platform}.yaml
+      - name: find-CEngineServer_IsClientLowViolence
+        expected_output:
+          - CEngineServer_IsClientLowViolence.{platform}.yaml
+        expected_input:
+          - ../server/IVEngineServer2_IsClientLowViolence.{platform}.yaml
+          - CEngineServer_vtable.{platform}.yaml
+      - name: find-CEngineServer_IsUserIDInUse
+        expected_output:
+          - CEngineServer_IsUserIDInUse.{platform}.yaml
+        expected_input:
+          - ../server/IVEngineServer2_IsUserIDInUse.{platform}.yaml
+          - CEngineServer_vtable.{platform}.yaml
   - name: networksystem  # Execute skills for networksystem.dll again after server.dll
     path_windows: game/bin/win64/networksystem.dll
     path_linux: game/bin/linuxsteamrt64/libnetworksystem.so
@@ -14216,6 +14386,13 @@ cpp_tests:
     symbol: IEngineServiceMgr
     alias_symbols:
       - CEngineServiceMgr
+    # MSVC duplicates RegisterPrerequisite in CEngineServiceMgr's primary
+    # vtable, while Clang models that override only in its secondary base.
+    # Continue checking all resolvable primary slots, but do not compare the
+    # aggregate table count for this known compiler-model difference.
+    allow_vtable_size_mismatch: true
+    exclude_reference_vtables:
+      - CEngineServiceMgr_vtable2
     cpp: cpp_tests/iengineservicemgr.cpp
     headers:
       - hl2sdk_cs2/public/engine/IEngineService.h  # Used by the fix-cppheaders SKILL
