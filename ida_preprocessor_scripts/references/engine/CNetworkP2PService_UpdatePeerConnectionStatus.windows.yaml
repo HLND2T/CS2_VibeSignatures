@@ -1,0 +1,256 @@
+func_name: CNetworkP2PService_UpdatePeerConnectionStatus
+func_va: '0x1801dbfd0'
+disasm_code: |-
+  .text:00000001801DBFD0                 mov     rax, rsp
+  .text:00000001801DBFD3                 push    rsi
+  .text:00000001801DBFD4                 sub     rsp, 360h
+  .text:00000001801DBFDB                 mov     [rax-10h], rbp
+  .text:00000001801DBFDF                 lea     rsi, [rcx+0DCh]
+  .text:00000001801DBFE6                 mov     [rax-20h], r12
+  .text:00000001801DBFEA                 mov     [rax-28h], r13
+  .text:00000001801DBFEE                 mov     r13, rcx
+  .text:00000001801DBFF1                 mov     [rsp+368h+arg_8], rsi
+  .text:00000001801DBFF9                 call    cs:__imp_GetCurrentThreadId
+  .text:00000001801DBFFF                 mov     edx, eax
+  .text:00000001801DC001                 mov     ebp, 1
+  .text:00000001801DC006                 cmp     [rsi+8], eax
+  .text:00000001801DC009                 jnz     short loc_1801DC011
+  .text:00000001801DC00B                 inc     word ptr [rsi+4]
+  .text:00000001801DC00F                 jmp     short loc_1801DC035
+  .text:00000001801DC011                 mov     eax, [rsi]
+  .text:00000001801DC013                 nop
+  .text:00000001801DC014                 test    eax, eax
+  .text:00000001801DC016                 jnz     short loc_1801DC02C
+  .text:00000001801DC018                 mov     ecx, 3
+  .text:00000001801DC01D                 lock cmpxchg [rsi], ecx
+  .text:00000001801DC021                 jnz     short loc_1801DC02C
+  .text:00000001801DC023                 mov     [rsi+4], bp
+  .text:00000001801DC027                 mov     [rsi+8], edx
+  .text:00000001801DC02A                 jmp     short loc_1801DC035
+  .text:00000001801DC02C                 mov     rcx, rsi
+  .text:00000001801DC02F                 call    cs:?AcquireLock@CAtomicMutex@@AEAAXI@Z; CAtomicMutex::AcquireLock(uint)
+  .text:00000001801DC035                 mov     rcx, cs:g_pNetworkSystem
+  .text:00000001801DC03C                 mov     rax, [rcx]
+  .text:00000001801DC03F                 ; 0x168 = 360LL = INetworkSystem_GetSteamNetworkingMessages
+  .text:00000001801DC03F                 call    qword ptr [rax+168h]; 0x168 = 360LL = INetworkSystem_GetSteamNetworkingMessages
+  .text:00000001801DC045                 mov     r12, rax
+  .text:00000001801DC048                 test    rax, rax
+  .text:00000001801DC04B                 jz      loc_1801DC214
+  .text:00000001801DC051                 lea     rax, aCBuildworkerCs_44; "C:\\buildworker\\csgo_rel_win64\\build"...
+  .text:00000001801DC058                 mov     qword ptr [rsp+368h+var_338+8], 222h
+  .text:00000001801DC061                 mov     qword ptr [rsp+368h+var_338], rax
+  .text:00000001801DC066                 lea     r8, [rsp+368h+var_318]
+  .text:00000001801DC06B                 movups  xmm0, [rsp+368h+var_338]
+  .text:00000001801DC070                 lea     rax, aUpdatepeerconn; "UpdatePeerConnectionStatus"
+  .text:00000001801DC077                 mov     [rsp+368h+arg_10], rbx
+  .text:00000001801DC07F                 mov     [rsp+368h+var_328], rax
+  .text:00000001801DC084                 lea     rdx, off_18060FFB8; "Networking"
+  .text:00000001801DC08B                 movsd   xmm1, [rsp+368h+var_328]
+  .text:00000001801DC091                 lea     rcx, aCnetworkp2pser_2; "CNetworkP2PService::UpdatePeerConnectio"...
+  .text:00000001801DC098                 movsd   [rsp+368h+var_308], xmm1
+  .text:00000001801DC09E                 mov     [rsp+368h+var_30], r14
+  .text:00000001801DC0A6                 movaps  [rsp+368h+var_318], xmm0
+  .text:00000001801DC0AB                 call    cs:?EnterScopeInternalBudgetFlags@?$VProfScopeHelper@$0A@$0A@@@SAP6AXXZPEBDAEAUVProfBudgetGroupCallSite@@AEBVCUtlSourceLocation@@@Z; VProfScopeHelper<0,0>::EnterScopeInternalBudgetFlags(char const *,VProfBudgetGroupCallSite &,CUtlSourceLocation const &)
+  .text:00000001801DC0B1                 xor     r14d, r14d
+  .text:00000001801DC0B4                 mov     rbx, rax
+  .text:00000001801DC0B7                 cmp     [r13+80h], r14d
+  .text:00000001801DC0BE                 jle     loc_1801DC202
+  .text:00000001801DC0C4                 mov     [rsp+368h+var_18], rdi
+  .text:00000001801DC0CC                 lea     rsi, unk_180529B3F
+  .text:00000001801DC0D3                 mov     [rsp+368h+var_38], r15
+  .text:00000001801DC0DB                 xor     r15d, r15d
+  .text:00000001801DC0DE                 xchg    ax, ax
+  .text:00000001801DC0E0                 mov     rax, [r13+88h]
+  .text:00000001801DC0E7                 lea     r8, [rsp+368h+var_2F8]
+  .text:00000001801DC0EC                 xor     r9d, r9d
+  .text:00000001801DC0EF                 mov     rcx, r12
+  .text:00000001801DC0F2                 mov     rdi, [r15+rax]
+  .text:00000001801DC0F6                 mov     rax, [r12]
+  .text:00000001801DC0FA                 lea     rdx, [rdi+10h]
+  .text:00000001801DC0FE                 call    qword ptr [rax+28h]
+  .text:00000001801DC101                 test    eax, eax
+  .text:00000001801DC103                 jz      short loc_1801DC117
+  .text:00000001801DC105                 mov     eax, [rsp+368h+var_248]
+  .text:00000001801DC10C                 dec     eax
+  .text:00000001801DC10E                 cmp     eax, 2
+  .text:00000001801DC111                 ja      short loc_1801DC117
+  .text:00000001801DC113                 mov     al, 1
+  .text:00000001801DC115                 jmp     short loc_1801DC119
+  .text:00000001801DC117                 xor     al, al
+  .text:00000001801DC119                 cmp     al, [rdi+0AAh]
+  .text:00000001801DC11F                 jz      loc_1801DC1D6
+  .text:00000001801DC125                 mov     ecx, cs:dword_1808CEAD8
+  .text:00000001801DC12B                 mov     edx, ebp
+  .text:00000001801DC12D                 mov     [rdi+0AAh], al
+  .text:00000001801DC133                 test    al, al
+  .text:00000001801DC135                 jz      short loc_1801DC199
+  .text:00000001801DC137                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:00000001801DC13D                 test    al, al
+  .text:00000001801DC13F                 jz      short loc_1801DC190
+  .text:00000001801DC141                 cmp     byte ptr [rdi+0A9h], 0
+  .text:00000001801DC148                 lea     rbp, aForTheFirstTim; " for the first time"
+  .text:00000001801DC14F                 cmovnz  rbp, rsi
+  .text:00000001801DC153                 cmp     dword ptr [rdi+0Ch], 0
+  .text:00000001801DC157                 jz      short loc_1801DC15E
+  .text:00000001801DC159                 mov     rax, rsi
+  .text:00000001801DC15C                 jmp     short loc_1801DC166
+  .text:00000001801DC15E                 mov     rcx, rdi
+  .text:00000001801DC161                 call    sub_180111420
+  .text:00000001801DC166                 mov     ecx, cs:dword_1808CEAD8
+  .text:00000001801DC16C                 lea     r9, aSConnectedS; "\"%s\" connected%s.\n"
+  .text:00000001801DC173                 mov     [rsp+368h+var_340], rbp
+  .text:00000001801DC178                 mov     r8d, 0FFFFFF80h
+  .text:00000001801DC17E                 mov     ebp, 1
+  .text:00000001801DC183                 mov     [rsp+368h+var_348], rax
+  .text:00000001801DC188                 mov     edx, ebp
+  .text:00000001801DC18A                 call    cs:?LoggingSystem_Log@@YA?AW4LoggingResponse_t@@HW4LoggingSeverity_t@@VColor@@PEBDZZ; LoggingSystem_Log(int,LoggingSeverity_t,Color,char const *,...)
+  .text:00000001801DC190                 mov     byte ptr [rdi+0A9h], 1
+  .text:00000001801DC197                 jmp     short loc_1801DC1D6
+  .text:00000001801DC199                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:00000001801DC19F                 test    al, al
+  .text:00000001801DC1A1                 jz      short loc_1801DC1D6
+  .text:00000001801DC1A3                 cmp     dword ptr [rdi+0Ch], 0
+  .text:00000001801DC1A7                 jz      short loc_1801DC1AE
+  .text:00000001801DC1A9                 mov     rax, rsi
+  .text:00000001801DC1AC                 jmp     short loc_1801DC1B6
+  .text:00000001801DC1AE                 mov     rcx, rdi
+  .text:00000001801DC1B1                 call    sub_180111420
+  .text:00000001801DC1B6                 mov     ecx, cs:dword_1808CEAD8
+  .text:00000001801DC1BC                 lea     r9, aSDisconnected; "\"%s\" disconnected\n"
+  .text:00000001801DC1C3                 mov     r8d, 0FFFFFF80h
+  .text:00000001801DC1C9                 mov     [rsp+368h+var_348], rax
+  .text:00000001801DC1CE                 mov     edx, ebp
+  .text:00000001801DC1D0                 call    cs:?LoggingSystem_Log@@YA?AW4LoggingResponse_t@@HW4LoggingSeverity_t@@VColor@@PEBDZZ; LoggingSystem_Log(int,LoggingSeverity_t,Color,char const *,...)
+  .text:00000001801DC1D6                 inc     r14d
+  .text:00000001801DC1D9                 add     r15, 8
+  .text:00000001801DC1DD                 cmp     r14d, [r13+80h]
+  .text:00000001801DC1E4                 jl      loc_1801DC0E0
+  .text:00000001801DC1EA                 mov     r15, [rsp+368h+var_38]
+  .text:00000001801DC1F2                 mov     rdi, [rsp+368h+var_18]
+  .text:00000001801DC1FA                 mov     rsi, [rsp+368h+arg_8]
+  .text:00000001801DC202                 call    rbx
+  .text:00000001801DC204                 mov     r14, [rsp+368h+var_30]
+  .text:00000001801DC20C                 mov     rbx, [rsp+368h+arg_10]
+  .text:00000001801DC214                 mov     r13, [rsp+368h+var_28]
+  .text:00000001801DC21C                 mov     eax, 0FFFFh
+  .text:00000001801DC221                 add     [rsi+4], ax
+  .text:00000001801DC225                 mov     r12, [rsp+368h+var_20]
+  .text:00000001801DC22D                 mov     rbp, [rsp+368h+var_10]
+  .text:00000001801DC235                 jnz     short loc_1801DC255
+  .text:00000001801DC237                 mov     dword ptr [rsi+8], 0
+  .text:00000001801DC23E                 mov     eax, 0FFFFFFFDh
+  .text:00000001801DC243                 lock xadd [rsi], eax
+  .text:00000001801DC247                 add     eax, 0FFFFFFFDh
+  .text:00000001801DC24A                 jz      short loc_1801DC255
+  .text:00000001801DC24C                 mov     rcx, rsi
+  .text:00000001801DC24F                 call    cs:?ThreadAtomicNotifyOne@@YAXPEBI@Z; ThreadAtomicNotifyOne(uint const *)
+  .text:00000001801DC255                 add     rsp, 360h
+  .text:00000001801DC25C                 pop     rsi
+  .text:00000001801DC25D                 retn
+procedure: |-
+  void __fastcall sub_1801DBFD0(__int64 a1)
+  {
+    __int64 v1; // rsi
+    DWORD CurrentThreadId; // eax
+    __int64 v4; // rdx
+    __int64 v5; // r12
+    int v6; // r14d
+    void (*v7)(void); // rbx
+    __int64 v8; // r15
+    __int64 v9; // rdi
+    char v10; // al
+    __int64 v11; // rcx
+    const char *v12; // rbp
+    const char *v13; // rax
+    const char *v14; // rax
+    __int128 v16; // [rsp+30h] [rbp-338h]
+    __int128 v17; // [rsp+50h] [rbp-318h] BYREF
+    const char *v18; // [rsp+60h] [rbp-308h]
+    _BYTE v19[176]; // [rsp+70h] [rbp-2F8h] BYREF
+    int v20; // [rsp+120h] [rbp-248h]
+    __int64 v21; // [rsp+378h] [rbp+10h]
+
+    v1 = a1 + 220;
+    v21 = a1 + 220;
+    CurrentThreadId = GetCurrentThreadId();
+    v4 = CurrentThreadId;
+    if ( *(_DWORD *)(v1 + 8) == CurrentThreadId )
+    {
+      ++*(_WORD *)(v1 + 4);
+    }
+    else if ( *(_DWORD *)v1 || _InterlockedCompareExchange((volatile signed __int32 *)v1, 3, 0) )
+    {
+      CAtomicMutex::AcquireLock((CAtomicMutex *)v1, CurrentThreadId);
+    }
+    else
+    {
+      *(_WORD *)(v1 + 4) = 1;
+      *(_DWORD *)(v1 + 8) = CurrentThreadId;
+    }
+    v5 = (*(__int64 (__fastcall **)(__int64, __int64))(*(_QWORD *)g_pNetworkSystem + 360LL))(g_pNetworkSystem, v4);// 0x168 = 360LL = INetworkSystem_GetSteamNetworkingMessages
+    if ( v5 )
+    {
+      *((_QWORD *)&v16 + 1) = 546;
+      *(_QWORD *)&v16 = "C:\\buildworker\\csgo_rel_win64\\build\\src\\engine2\\networkp2pservice.cpp";
+      v18 = "UpdatePeerConnectionStatus";
+      v17 = v16;
+      v6 = 0;
+      v7 = (void (*)(void))VProfScopeHelper<0,0>::EnterScopeInternalBudgetFlags(
+                             "CNetworkP2PService::UpdatePeerConnectionStatus",
+                             &off_18060FFB8,
+                             &v17);
+      if ( *(int *)(a1 + 128) > 0 )
+      {
+        v8 = 0;
+        do
+        {
+          v9 = *(_QWORD *)(v8 + *(_QWORD *)(a1 + 136));
+          v10 = (*(unsigned int (__fastcall **)(__int64, __int64, _BYTE *, _QWORD))(*(_QWORD *)v5 + 40LL))(
+                  v5,
+                  v9 + 16,
+                  v19,
+                  0)
+             && (unsigned int)(v20 - 1) <= 2;
+          if ( v10 != *(_BYTE *)(v9 + 170) )
+          {
+            v11 = (unsigned int)dword_1808CEAD8;
+            *(_BYTE *)(v9 + 170) = v10;
+            if ( v10 )
+            {
+              if ( (unsigned __int8)LoggingSystem_IsChannelEnabled(v11, 1) )
+              {
+                v12 = " for the first time";
+                if ( *(_BYTE *)(v9 + 169) )
+                  v12 = (const char *)&unk_180529B3F;
+                if ( *(_DWORD *)(v9 + 12) )
+                  v13 = (const char *)&unk_180529B3F;
+                else
+                  v13 = (const char *)sub_180111420(v9);
+                LoggingSystem_Log((unsigned int)dword_1808CEAD8, 1, 4294967168LL, "\"%s\" connected%s.\n", v13, v12);
+              }
+              *(_BYTE *)(v9 + 169) = 1;
+            }
+            else if ( (unsigned __int8)LoggingSystem_IsChannelEnabled(v11, 1) )
+            {
+              if ( *(_DWORD *)(v9 + 12) )
+                v14 = (const char *)&unk_180529B3F;
+              else
+                v14 = (const char *)sub_180111420(v9);
+              LoggingSystem_Log((unsigned int)dword_1808CEAD8, 1, 4294967168LL, "\"%s\" disconnected\n", v14);
+            }
+          }
+          ++v6;
+          v8 += 8;
+        }
+        while ( v6 < *(_DWORD *)(a1 + 128) );
+        v1 = v21;
+      }
+      v7();
+    }
+    if ( (*(_WORD *)(v1 + 4))-- == 1 )
+    {
+      *(_DWORD *)(v1 + 8) = 0;
+      if ( _InterlockedExchangeAdd((volatile signed __int32 *)v1, 0xFFFFFFFD) != 3 )
+        ThreadAtomicNotifyOne((const unsigned int *)v1);
+    }
+  }
