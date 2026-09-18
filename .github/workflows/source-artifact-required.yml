@@ -33,6 +33,41 @@ jobs:
           fetch-depth: 0
           submodules: false
           persist-credentials: false
+      - name: Refresh stale pull-request merge ref
+        if: github.event_name == 'pull_request_target'
+        shell: bash
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          merge_ref="refs/pull/${PR_NUMBER}/merge"
+          local_ref="refs/remotes/origin/pr-${PR_NUMBER}-merge"
+
+          # GitHub can enqueue pull_request_target before the synthetic merge ref
+          # catches up with the event's head SHA. Refresh it briefly before the
+          # trusted planner enforces the exact base/head parent binding.
+          for attempt in 1 2 3 4 5 6; do
+            if git fetch --no-tags --force origin "+${merge_ref}:${local_ref}"; then
+              merge_sha="$(git rev-parse "${local_ref}")"
+              read -r _ actual_base_sha actual_head_sha _ < <(git rev-list --parents -n 1 "${merge_sha}")
+              if [[ "${actual_base_sha}" == "${EXPECTED_BASE_SHA}" && "${actual_head_sha}" == "${EXPECTED_HEAD_SHA}" ]]; then
+                git reset --hard "${merge_sha}"
+                echo "Using refreshed prospective merge ${merge_sha}."
+                exit 0
+              fi
+              echo "Prospective merge ${merge_sha} has parents ${actual_base_sha} ${actual_head_sha}; waiting for ${EXPECTED_BASE_SHA} ${EXPECTED_HEAD_SHA}." >&2
+            else
+              echo "Unable to fetch ${merge_ref}; retrying." >&2
+            fi
+            if (( attempt < 6 )); then
+              sleep 10
+            fi
+          done
+
+          echo "The pull-request merge ref did not converge to the event base/head pair." >&2
+          exit 1
       - name: Resolve immutable event identity
         id: identity
         shell: pwsh
