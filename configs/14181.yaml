@@ -6719,6 +6719,27 @@ modules:
       - name: find-CGameEventManager_vtable
         expected_output:
           - CGameEventManager_vtable.{platform}.yaml
+      - name: find-CGameEventManager_LoadEventsFromFileInternal
+        optional_output:
+          - CGameEventManager_LoadEventsFromFileInternal.{platform}.yaml
+        skip_if_exists:
+          - CGameEventManager_LoadEventsFromFile.{platform}.yaml
+      - name: find-CGameEventManager_LoadEventsFromFile-noinline
+        optional_output:
+          - CGameEventManager_LoadEventsFromFile.{platform}.yaml
+        expected_input:
+          - CGameEventManager_vtable.{platform}.yaml
+        prerequisite:
+          - find-CGameEventManager_LoadEventsFromFileInternal
+      - name: find-CGameEventManager_LoadEventsFromFile-inlined
+        expected_output:
+          - CGameEventManager_LoadEventsFromFile.{platform}.yaml
+        expected_input:
+          - CGameEventManager_vtable.{platform}.yaml
+        skip_if_exists:
+          - CGameEventManager_LoadEventsFromFile.{platform}.yaml
+        prerequisite:
+          - find-CGameEventManager_LoadEventsFromFile-noinline
       - name: find-CChicken_vtable
         expected_output:
           - CChicken_vtable.{platform}.yaml
@@ -11063,6 +11084,10 @@ modules:
         category: func
         alias:
           - CGameEventManager::Init
+      - name: CGameEventManager_LoadEventsFromFile
+        category: vfunc
+        alias:
+          - CGameEventManager::LoadEventsFromFile
       - name: gameeventmanager
         category: gv
       - name: s_GameEventManager
