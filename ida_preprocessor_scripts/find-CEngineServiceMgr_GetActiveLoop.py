@@ -1,22 +1,21 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CNetworkGameServerBase_GetMaxClients skill."""
+"""Preprocess script for find-CEngineServiceMgr_GetActiveLoop skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
 INHERIT_VFUNCS = [
     # (target_func_name, inherit_vtable_class, base_vfunc_name, generate_func_sig)
     (
-        "CNetworkGameServerBase_GetMaxClients",
-        "CNetworkGameServerBase",
-        "INetworkGameServer_GetMaxClients",
+        "CEngineServiceMgr_GetActiveLoop",
+        "CEngineServiceMgr",
+        "IEngineServiceMgr_GetActiveLoop",
         False,
     ),
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
-    # (symbol_name, generate_yaml_fields)
     (
-        "CNetworkGameServerBase_GetMaxClients",
+        "CEngineServiceMgr_GetActiveLoop",
         [
             "func_name",
             "func_va",
@@ -40,9 +39,8 @@ async def preprocess_skill(
     image_base,
     debug=False,
 ):
-    """Resolve GetMaxClients by inherited vfunc slot without emitting func_sig."""
+    """Resolve CEngineServiceMgr::GetActiveLoop at the interface slot."""
     _ = skill_name
-
     return await preprocess_common_skill(
         session=session,
         expected_outputs=expected_outputs,
