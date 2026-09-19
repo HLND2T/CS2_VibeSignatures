@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-IGameResourceService_FreeGameResourceManifest skill."""
+"""Preprocess script for find-IGameResourceService_FreeGameResourceManifest-windows skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
@@ -7,6 +7,11 @@ TARGET_FUNCTION_NAMES = ["IGameResourceService_FreeGameResourceManifest"]
 
 LLM_DECOMPILE = [
     {
+        # The Windows build inlines the resource-service release call directly
+        # into CNetworkClientSpawnGroup_dtor, so the destructor itself carries
+        # the g_pGameResourceServiceClient vtable-slot evidence.  Linux hoists
+        # the same call into a de-inlined helper and is handled by the
+        # -linux variant of this skill.
         "symbol_name": "IGameResourceService_FreeGameResourceManifest",
         "prompt_path": "prompt/call_llm_decompile.md",
         "reference_yaml_paths": [
