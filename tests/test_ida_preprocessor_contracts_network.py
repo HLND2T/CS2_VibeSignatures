@@ -1,12 +1,9 @@
 import re
-import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
-from ida_analyze_util import write_func_yaml, write_vtable_yaml
 from tests.ida_preprocessor_test_support import load_module as _load_module
-from trusted_yaml import load_yaml_file
 
 
 FLATTENED_SERIALIZERS_SCRIPT_PATH = Path(
@@ -26,51 +23,41 @@ CNETWORK_SERVER_SERVICE_INIT_SCRIPT_PATH = Path("ida_preprocessor_scripts/find-C
 CNETWORK_SERVER_SERVICE_SET_GAME_LOAD_STARTED_SCRIPT_PATH = Path(
     "ida_preprocessor_scripts/find-CNetworkServerService_SetGameLoadStarted.py"
 )
+CSERVER_CHANGELEVEL_STATE_DTOR_SCRIPT_PATH = Path("ida_preprocessor_scripts/find-CServerChangelevelState_dtor.py")
 CLIENT_PRINTF_DECOMPILES_SCRIPT_PATH = Path("ida_preprocessor_scripts/find-CEngineServer_ClientPrintf-decompiles.py")
 
 
-class TestSetGameLoadStartedConcreteSlot(unittest.IsolatedAsyncioTestCase):
-    async def test_interface_callsite_is_published_at_concrete_abi_slot(self) -> None:
+class TestSetGameLoadStartedAnchorContract(unittest.TestCase):
+    def test_uses_destructor_caller_anchor_and_concrete_vtable_relation(self) -> None:
         module = _load_module(
             CNETWORK_SERVER_SERVICE_SET_GAME_LOAD_STARTED_SCRIPT_PATH,
             "find_CNetworkServerService_SetGameLoadStarted",
         )
-        artifact_root = Path("bin_artifacts/14181/engine")
 
-        for platform in ("windows", "linux"):
-            with self.subTest(platform=platform), tempfile.TemporaryDirectory() as temp_dir:
-                module_root = Path(temp_dir)
-                artifact_name = f"CNetworkServerService_SetGameLoadStarted.{platform}.yaml"
-                output_path = module_root / artifact_name
-                expected_path = artifact_root / artifact_name
-                expected_payload = load_yaml_file(expected_path)
-                interface_payload = dict(expected_payload)
-                interface_payload["vfunc_offset"] = "0x10"
-                interface_payload["vfunc_index"] = 2
-                write_vtable_yaml(
-                    module_root / f"CNetworkServerService_vtable.{platform}.yaml",
-                    load_yaml_file(artifact_root / f"CNetworkServerService_vtable.{platform}.yaml"),
-                )
+        spec = module.FUNC_XREFS[0]
+        self.assertEqual(["CServerChangelevelState_dtor"], spec["xref_funcs"])
+        self.assertEqual([], spec["xref_strings"])
+        self.assertEqual(
+            [("CNetworkServerService_SetGameLoadStarted", "CNetworkServerService_vtable")],
+            module.FUNC_VTABLE_RELATIONS,
+        )
+        self.assertFalse(hasattr(module, "LLM_DECOMPILE"))
 
-                async def generate_interface_slot(**_kwargs):
-                    write_func_yaml(output_path, interface_payload)
-                    return True
+        fields = dict(module.GENERATE_YAML_DESIRED_FIELDS)["CNetworkServerService_SetGameLoadStarted"]
+        self.assertIn("func_sig", fields)
+        self.assertIn("vfunc_offset", fields)
+        self.assertIn("vfunc_index", fields)
 
-                with patch.object(module, "preprocess_common_skill", side_effect=generate_interface_slot):
-                    result = await module.preprocess_skill(
-                        session="session",
-                        skill_name="skill",
-                        expected_outputs=[str(output_path)],
-                        old_yaml_map={},
-                        new_binary_dir=str(module_root),
-                        platform=platform,
-                        image_base=0x180000000,
-                        llm_config={"model": "test"},
-                        debug=True,
-                    )
-
-                self.assertTrue(result)
-                self.assertEqual(expected_path.read_bytes(), output_path.read_bytes())
+    def test_destructor_helper_is_anchored_on_unique_debug_string(self) -> None:
+        module = _load_module(
+            CSERVER_CHANGELEVEL_STATE_DTOR_SCRIPT_PATH,
+            "find_CServerChangelevelState_dtor",
+        )
+        self.assertEqual(
+            ["~CServerChangelevelState with non empty m_Clients, failed change level to %s!!!\n"],
+            module.FUNC_XREFS[0]["xref_strings"],
+        )
+        self.assertEqual(["CServerChangelevelState_dtor"], module.TARGET_FUNCTION_NAMES)
 
 
 class TestClientListLlmContract(unittest.TestCase):
