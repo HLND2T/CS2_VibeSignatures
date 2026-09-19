@@ -2110,6 +2110,15 @@ modules:
           - CLoopTypeSimpleService_OnLoopActivate.{platform}.yaml
         expected_input:
           - CLoopTypeSimpleService_vtable.{platform}.yaml
+      - name: find-CServerChangelevelState_dtor
+        expected_output:
+          - CServerChangelevelState_dtor.{platform}.yaml
+      - name: find-CNetworkServerService_SetGameLoadStarted
+        expected_output:
+          - CNetworkServerService_SetGameLoadStarted.{platform}.yaml
+        expected_input:
+          - CServerChangelevelState_dtor.{platform}.yaml
+          - CNetworkServerService_vtable.{platform}.yaml
       - name: find-CLoopTypeClientServerService_HandleInputEvent
         expected_output:
           - CLoopTypeClientServerService_HandleInputEvent.{platform}.yaml
@@ -3829,6 +3838,14 @@ modules:
         category: vfunc
         alias:
           - CLoopTypeSimpleService::OnLoopActivate
+      - name: CServerChangelevelState_dtor
+        category: func
+        alias:
+          - CServerChangelevelState::~CServerChangelevelState
+      - name: CNetworkServerService_SetGameLoadStarted
+        category: vfunc
+        alias:
+          - CNetworkServerService::SetGameLoadStarted
       - name: CLoopTypeClientServerService_HandleInputEvent
         category: vfunc
         alias:
