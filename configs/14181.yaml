@@ -961,11 +961,24 @@ modules:
           - CNetworkClientSpawnGroup_dtor.{platform}.yaml
         expected_input:
           - CNetworkGameClientBase_AsyncUnloadSpawnGroup_Internal.{platform}.yaml
-      - name: find-IGameResourceService_FreeGameResourceManifest
+      - name: find-CNetworkClientSpawnGroup_ReleaseManifest-linux
+        platform: linux
+        expected_output:
+          - CNetworkClientSpawnGroup_ReleaseManifest.{platform}.yaml
+        expected_input:
+          - CNetworkClientSpawnGroup_dtor.{platform}.yaml
+      - name: find-IGameResourceService_FreeGameResourceManifest-windows
+        platform: windows
         expected_output:
           - IGameResourceService_FreeGameResourceManifest.{platform}.yaml
         expected_input:
           - CNetworkClientSpawnGroup_dtor.{platform}.yaml
+      - name: find-IGameResourceService_FreeGameResourceManifest-linux
+        platform: linux
+        expected_output:
+          - IGameResourceService_FreeGameResourceManifest.{platform}.yaml
+        expected_input:
+          - CNetworkClientSpawnGroup_ReleaseManifest.{platform}.yaml
       - name: find-CGameResourceService_FreeGameResourceManifest
         expected_output:
           - CGameResourceService_FreeGameResourceManifest.{platform}.yaml
@@ -2846,6 +2859,9 @@ modules:
         category: func
         alias:
           - CNetworkClientSpawnGroup::~CNetworkClientSpawnGroup
+      - name: CNetworkClientSpawnGroup_ReleaseManifest
+        category: func
+        platform: linux
       - name: IGameResourceService_FreeGameResourceManifest
         category: vfunc
         alias:
