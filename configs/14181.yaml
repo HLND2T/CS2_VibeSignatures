@@ -953,6 +953,25 @@ modules:
       - name: find-CNetworkGameServerBase_AsyncUnloadSpawnGroupInternal
         expected_output:
           - CNetworkGameServerBase_AsyncUnloadSpawnGroupInternal.{platform}.yaml
+      - name: find-CNetworkGameClientBase_AsyncUnloadSpawnGroup_Internal
+        expected_output:
+          - CNetworkGameClientBase_AsyncUnloadSpawnGroup_Internal.{platform}.yaml
+      - name: find-CNetworkClientSpawnGroup_dtor
+        expected_output:
+          - CNetworkClientSpawnGroup_dtor.{platform}.yaml
+        expected_input:
+          - CNetworkGameClientBase_AsyncUnloadSpawnGroup_Internal.{platform}.yaml
+      - name: find-IGameResourceService_FreeGameResourceManifest
+        expected_output:
+          - IGameResourceService_FreeGameResourceManifest.{platform}.yaml
+        expected_input:
+          - CNetworkClientSpawnGroup_dtor.{platform}.yaml
+      - name: find-CGameResourceService_FreeGameResourceManifest
+        expected_output:
+          - CGameResourceService_FreeGameResourceManifest.{platform}.yaml
+        expected_input:
+          - CGameResourceService_vtable.{platform}.yaml
+          - IGameResourceService_FreeGameResourceManifest.{platform}.yaml
       - name: find-CNetworkGameServer_PrepareForAssetLoad
         expected_output:
           - CNetworkGameServer_PrepareForAssetLoad.{platform}.yaml
@@ -2819,6 +2838,22 @@ modules:
         category: func
         alias:
           - CNetworkGameServerBase::AsyncUnloadSpawnGroupInternal
+      - name: CNetworkGameClientBase_AsyncUnloadSpawnGroup_Internal
+        category: func
+        alias:
+          - CNetworkGameClientBase::AsyncUnloadSpawnGroup
+      - name: CNetworkClientSpawnGroup_dtor
+        category: func
+        alias:
+          - CNetworkClientSpawnGroup::~CNetworkClientSpawnGroup
+      - name: IGameResourceService_FreeGameResourceManifest
+        category: vfunc
+        alias:
+          - IGameResourceService::FreeGameResourceManifest
+      - name: CGameResourceService_FreeGameResourceManifest
+        category: vfunc
+        alias:
+          - CGameResourceService::FreeGameResourceManifest
       - name: CNetworkGameServer_PrepareForAssetLoad
         category: vfunc
         alias:
