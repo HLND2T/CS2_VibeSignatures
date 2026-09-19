@@ -20,7 +20,44 @@ I_GET_LOGGING_CHANNEL_LINUX_SCRIPT_PATH = Path(
     "ida_preprocessor_scripts/find-INetworkMessages_GetLoggingChannel-linux.py"
 )
 CNETWORK_SERVER_SERVICE_INIT_SCRIPT_PATH = Path("ida_preprocessor_scripts/find-CNetworkServerService_Init.py")
+CNETWORK_SERVER_SERVICE_SET_GAME_LOAD_STARTED_SCRIPT_PATH = Path(
+    "ida_preprocessor_scripts/find-CNetworkServerService_SetGameLoadStarted.py"
+)
+CSERVER_CHANGELEVEL_STATE_DTOR_SCRIPT_PATH = Path("ida_preprocessor_scripts/find-CServerChangelevelState_dtor.py")
 CLIENT_PRINTF_DECOMPILES_SCRIPT_PATH = Path("ida_preprocessor_scripts/find-CEngineServer_ClientPrintf-decompiles.py")
+
+
+class TestSetGameLoadStartedAnchorContract(unittest.TestCase):
+    def test_uses_destructor_caller_anchor_and_concrete_vtable_relation(self) -> None:
+        module = _load_module(
+            CNETWORK_SERVER_SERVICE_SET_GAME_LOAD_STARTED_SCRIPT_PATH,
+            "find_CNetworkServerService_SetGameLoadStarted",
+        )
+
+        spec = module.FUNC_XREFS[0]
+        self.assertEqual(["CServerChangelevelState_dtor"], spec["xref_funcs"])
+        self.assertEqual([], spec["xref_strings"])
+        self.assertEqual(
+            [("CNetworkServerService_SetGameLoadStarted", "CNetworkServerService_vtable")],
+            module.FUNC_VTABLE_RELATIONS,
+        )
+        self.assertFalse(hasattr(module, "LLM_DECOMPILE"))
+
+        fields = dict(module.GENERATE_YAML_DESIRED_FIELDS)["CNetworkServerService_SetGameLoadStarted"]
+        self.assertIn("func_sig", fields)
+        self.assertIn("vfunc_offset", fields)
+        self.assertIn("vfunc_index", fields)
+
+    def test_destructor_helper_is_anchored_on_unique_debug_string(self) -> None:
+        module = _load_module(
+            CSERVER_CHANGELEVEL_STATE_DTOR_SCRIPT_PATH,
+            "find_CServerChangelevelState_dtor",
+        )
+        self.assertEqual(
+            ["~CServerChangelevelState with non empty m_Clients, failed change level to %s!!!\n"],
+            module.FUNC_XREFS[0]["xref_strings"],
+        )
+        self.assertEqual(["CServerChangelevelState_dtor"], module.TARGET_FUNCTION_NAMES)
 
 
 class TestClientListLlmContract(unittest.TestCase):
