@@ -6820,6 +6820,27 @@ modules:
       - name: find-CGameEventManager_vtable
         expected_output:
           - CGameEventManager_vtable.{platform}.yaml
+      - name: find-CGameEventManager_AddListenerInternal
+        optional_output:
+          - CGameEventManager_AddListenerInternal.{platform}.yaml
+        skip_if_exists:
+          - CGameEventManager_AddListener.{platform}.yaml
+      - name: find-CGameEventManager_AddListener-noinline
+        optional_output:
+          - CGameEventManager_AddListener.{platform}.yaml
+        expected_input:
+          - CGameEventManager_vtable.{platform}.yaml
+        prerequisite:
+          - find-CGameEventManager_AddListenerInternal
+      - name: find-CGameEventManager_AddListener-inlined
+        expected_output:
+          - CGameEventManager_AddListener.{platform}.yaml
+        expected_input:
+          - CGameEventManager_vtable.{platform}.yaml
+        skip_if_exists:
+          - CGameEventManager_AddListener.{platform}.yaml
+        prerequisite:
+          - find-CGameEventManager_AddListener-noinline
       - name: find-CChicken_vtable
         expected_output:
           - CChicken_vtable.{platform}.yaml
@@ -11164,6 +11185,10 @@ modules:
         category: func
         alias:
           - CGameEventManager::Init
+      - name: CGameEventManager_AddListener
+        category: vfunc
+        alias:
+          - CGameEventManager::AddListener
       - name: gameeventmanager
         category: gv
       - name: s_GameEventManager
