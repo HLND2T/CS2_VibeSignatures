@@ -66,9 +66,7 @@ class TestInitGameServerAnchor(unittest.IsolatedAsyncioTestCase):
 
 class TestInitGameServerFinder(unittest.IsolatedAsyncioTestCase):
     def test_agent_fallback_documents_all_required_vcall_outputs(self) -> None:
-        skill_path = Path(
-            ".claude/skills/find-CSteam3ServerS1_InitGameServer-decompiles/SKILL.md"
-        )
+        skill_path = Path(".claude/skills/find-CSteam3ServerS1_InitGameServer-decompiles/SKILL.md")
 
         skill = skill_path.read_text(encoding="utf-8")
 
