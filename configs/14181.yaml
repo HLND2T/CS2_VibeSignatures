@@ -633,6 +633,23 @@ modules:
       - name: find-CHostStateMgr_vtable
         expected_output:
           - CHostStateMgr_vtable.{platform}.yaml
+      - name: find-CHostStateRequest_LoadSpawnGroup
+        expected_output:
+          - CHostStateRequest_LoadSpawnGroup.{platform}.yaml
+      - name: find-CHostStateMgr_RequestHS_LoadSpawnGroup-windows
+        expected_output:
+          - CHostStateMgr_RequestHS_LoadSpawnGroup.{platform}.yaml
+        expected_input:
+          - CHostStateRequest_LoadSpawnGroup.{platform}.yaml
+          - CHostStateMgr_vtable.{platform}.yaml
+        platform: windows
+      - name: find-CHostStateMgr_RequestHS_LoadSpawnGroup-linux
+        expected_output:
+          - CHostStateMgr_RequestHS_LoadSpawnGroup.{platform}.yaml
+        expected_input:
+          - CHostStateRequest_LoadSpawnGroup.{platform}.yaml
+          - CHostStateMgr_vtable.{platform}.yaml
+        platform: linux
       - name: find-CHostStateMgr_RequestHS_QuitInternal
         optional_output:
           - CHostStateMgr_RequestHS_QuitInternal.{platform}.yaml
@@ -4586,6 +4603,14 @@ modules:
         category: vfunc
         alias:
           - CHostStateMgr::RequestHS_Quit
+      - name: CHostStateRequest_LoadSpawnGroup
+        category: func
+        alias:
+          - CHostStateRequest::LoadSpawnGroup
+      - name: CHostStateMgr_RequestHS_LoadSpawnGroup
+        category: vfunc
+        alias:
+          - CHostStateMgr::RequestHS_LoadSpawnGroup
       - name: g_pNetworkService
         category: gv
       - name: g_pNetworkClientService
