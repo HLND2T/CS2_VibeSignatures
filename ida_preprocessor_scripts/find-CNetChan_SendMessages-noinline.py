@@ -9,10 +9,28 @@ FUNC_XREFS = [
         "xref_gvs": [],
         "xref_signatures": [],
         "xref_funcs": ["CNetChan_SendMessages_Internal"],
-        "exclude_funcs": ["CNetChan_Transmit"],
+        "exclude_funcs": [],
         "exclude_strings": [],
         "exclude_gvs": [],
         "exclude_signatures": [],
+    }
+]
+
+FUNC_XREFS_WINDOWS = [
+    {
+        **FUNC_XREFS[0],
+        "exclude_signatures": [
+            "48 89 6C 24 ?? 56 57 41 56 48 83 EC ?? 80 B9 ?? 70 00 00 ??",
+        ],
+    }
+]
+
+FUNC_XREFS_LINUX = [
+    {
+        **FUNC_XREFS[0],
+        "exclude_signatures": [
+            "55 48 89 E5 41 56 49 89 F6 41 55 41 54 53 48 89 FB 48 83 EC ?? 80 BF ?? 70 00 00 ??",
+        ],
     }
 ]
 FUNC_VTABLE_RELATIONS = [("CNetChan_SendMessages", "CNetChan")]
@@ -35,7 +53,7 @@ async def preprocess_skill(
         platform=platform,
         image_base=image_base,
         func_names=TARGET_FUNCTION_NAMES,
-        func_xrefs=FUNC_XREFS,
+        func_xrefs=(FUNC_XREFS_WINDOWS if platform == "windows" else FUNC_XREFS_LINUX),
         func_vtable_relations=FUNC_VTABLE_RELATIONS,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
