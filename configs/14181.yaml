@@ -6820,6 +6820,27 @@ modules:
       - name: find-CGameEventManager_vtable
         expected_output:
           - CGameEventManager_vtable.{platform}.yaml
+      - name: find-CGameEventManager_UnserializeEventInternal
+        optional_output:
+          - CGameEventManager_UnserializeEventInternal.{platform}.yaml
+        skip_if_exists:
+          - CGameEventManager_UnserializeEvent.{platform}.yaml
+      - name: find-CGameEventManager_UnserializeEvent-noinline
+        optional_output:
+          - CGameEventManager_UnserializeEvent.{platform}.yaml
+        expected_input:
+          - CGameEventManager_vtable.{platform}.yaml
+        prerequisite:
+          - find-CGameEventManager_UnserializeEventInternal
+      - name: find-CGameEventManager_UnserializeEvent-inlined
+        expected_output:
+          - CGameEventManager_UnserializeEvent.{platform}.yaml
+        expected_input:
+          - CGameEventManager_vtable.{platform}.yaml
+        skip_if_exists:
+          - CGameEventManager_UnserializeEvent.{platform}.yaml
+        prerequisite:
+          - find-CGameEventManager_UnserializeEvent-noinline
       - name: find-CChicken_vtable
         expected_output:
           - CChicken_vtable.{platform}.yaml
@@ -12068,6 +12089,10 @@ modules:
         category: vtable
       - name: CGameEventManager_vtable
         category: vtable
+      - name: CGameEventManager_UnserializeEvent
+        category: vfunc
+        alias:
+          - CGameEventManager::UnserializeEvent
       - name: CChicken_vtable
         category: vtable
       - name: CChicken_Event_Killed
