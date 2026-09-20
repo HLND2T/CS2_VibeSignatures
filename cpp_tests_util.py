@@ -1181,6 +1181,7 @@ def compare_compiler_vtable_with_yaml(
     alias_class_names: Sequence[str] = (),
     reference_vtable_owners: Sequence[str] = (),
     exclude_reference_vtables: Sequence[str] = (),
+    allow_vtable_size_mismatch: bool = False,
     merge_reference_modules: bool = True,
 ) -> Dict[str, Any]:
     """
@@ -1295,7 +1296,7 @@ def compare_compiler_vtable_with_yaml(
     actual_size = compiler_entry_count * pointer_size
     report["compiler_vtable_size"] = actual_size
 
-    if expected_size is not None and expected_size != actual_size:
+    if expected_size is not None and expected_size != actual_size and not allow_vtable_size_mismatch:
         report["differences"].append(
             {
                 "type": "vtable_size_mismatch",
@@ -1307,7 +1308,7 @@ def compare_compiler_vtable_with_yaml(
             }
         )
 
-    if expected_numvfunc is not None and expected_numvfunc != compiler_entry_count:
+    if expected_numvfunc is not None and expected_numvfunc != compiler_entry_count and not allow_vtable_size_mismatch:
         report["differences"].append(
             {
                 "type": "vtable_numvfunc_mismatch",

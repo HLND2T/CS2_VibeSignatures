@@ -1,0 +1,524 @@
+func_name: MainLoop
+func_va: '0x18020a810'
+disasm_code: |-
+  .text:000000018020A810                 mov     [rsp-8+arg_10], r8
+  .text:000000018020A815                 mov     [rsp-8+arg_0], rcx
+  .text:000000018020A81A                 push    rbp
+  .text:000000018020A81B                 push    rbx
+  .text:000000018020A81C                 push    r15
+  .text:000000018020A81E                 lea     rbp, [rsp-47h]
+  .text:000000018020A823                 sub     rsp, 0E0h
+  .text:000000018020A82A                 lea     rax, [rbp+57h+var_D0]
+  .text:000000018020A82E                 mov     r15, r9
+  .text:000000018020A831                 lea     rcx, [rbp+57h+arg_10]
+  .text:000000018020A835                 mov     qword ptr [rbp+57h+var_D0], rax
+  .text:000000018020A839                 mov     rbx, rdx
+  .text:000000018020A83C                 call    cs:??0CStackTop_Base@@IEAA@XZ; CStackTop_Base::CStackTop_Base(void)
+  .text:000000018020A842                 test    rbx, rbx
+  .text:000000018020A845                 jnz     short loc_18020A88C
+  .text:000000018020A847                 call    sub_1804173B0
+  .text:000000018020A84C                 test    al, al
+  .text:000000018020A84E                 jnz     short loc_18020A88C
+  .text:000000018020A850                 mov     rcx, cs:g_pVApplication
+  .text:000000018020A857                 test    rcx, rcx
+  .text:000000018020A85A                 jz      short loc_18020A870
+  .text:000000018020A85C                 mov     rax, [rcx]
+  .text:000000018020A85F                 call    qword ptr [rax+0B8h]
+  .text:000000018020A865                 test    al, al
+  .text:000000018020A867                 jnz     short loc_18020A88C
+  .text:000000018020A869                 mov     rcx, cs:g_pVApplication
+  .text:000000018020A870                 mov     rax, [rcx]
+  .text:000000018020A873                 call    qword ptr [rax+0C0h]
+  .text:000000018020A879                 test    rax, rax
+  .text:000000018020A87C                 jnz     short loc_18020A88C
+  .text:000000018020A87E                 lea     rcx, aGetappwindowRe; "GetAppWindow() returned NULL"
+  .text:000000018020A885                 call    cs:Plat_FatalError
+  .text:000000018020A88B                 ; Trap to Debugger
+  .text:000000018020A88B                 int     3; Trap to Debugger
+  .text:000000018020A88C                 mov     [rsp+0F0h+arg_18], rsi
+  .text:000000018020A894                 xor     ecx, ecx
+  .text:000000018020A896                 mov     [rsp+0F0h+var_20], r12
+  .text:000000018020A89E                 mov     [rsp+0F0h+var_28], r13
+  .text:000000018020A8A6                 mov     [rsp+0F0h+var_30], r14
+  .text:000000018020A8AE                 movaps  [rsp+0F0h+var_50], xmm7
+  .text:000000018020A8B6                 movaps  [rsp+0F0h+var_60], xmm8
+  .text:000000018020A8BF                 movaps  [rsp+0F0h+var_70], xmm9
+  .text:000000018020A8C8                 movaps  [rsp+0F0h+var_80], xmm10
+  .text:000000018020A8CE                 call    cs:Plat_SetCurrentFrame
+  .text:000000018020A8D4                 call    cs:Plat_USTime
+  .text:000000018020A8DA                 lea     r14, [rax+0F4240h]
+  .text:000000018020A8E1                 call    cs:Plat_FloatTime
+  .text:000000018020A8E7                 xorps   xmm10, xmm10
+  .text:000000018020A8EB                 mov     [rsp+0F0h+var_18], rdi
+  .text:000000018020A8F3                 movsd   [rbp+57h+arg_8], xmm10
+  .text:000000018020A8F9                 lea     r13, aMainloop; "MainLoop"
+  .text:000000018020A900                 movaps  xmm9, xmm0
+  .text:000000018020A904                 movaps  [rsp+0F0h+var_40], xmm6
+  .text:000000018020A90C                 xor     r12d, r12d
+  .text:000000018020A90F                 lea     rbx, aCBuildworkerCs_49; "C:\\buildworker\\csgo_rel_win64\\build"...
+  .text:000000018020A916                 call    cs:AssertsMarkFrame
+  .text:000000018020A91C                 cmp     byte ptr cs:word_180616BD9, r12b
+  .text:000000018020A923                 jz      loc_18020A9D8
+  .text:000000018020A929                 cmp     byte ptr cs:word_180616BD9+1, r12b
+  .text:000000018020A930                 mov     rax, cs:g_VProfCurrentProfile
+  .text:000000018020A937                 jz      short loc_18020A988
+  .text:000000018020A939                 cmp     [rax+100Ch], r12d
+  .text:000000018020A940                 jnz     loc_18020A9D1
+  .text:000000018020A946                 mov     rcx, cs:LOG_VPROF
+  .text:000000018020A94D                 mov     edx, 2
+  .text:000000018020A952                 mov     ecx, [rcx]
+  .text:000000018020A954                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:000000018020A95A                 test    al, al
+  .text:000000018020A95C                 jz      short loc_18020A979
+  .text:000000018020A95E                 mov     rcx, cs:LOG_VPROF
+  .text:000000018020A965                 lea     r8, aVprofEnabled; "VProf Enabled.\n"
+  .text:000000018020A96C                 mov     edx, 2
+  .text:000000018020A971                 mov     ecx, [rcx]
+  .text:000000018020A973                 call    cs:LoggingSystem_Log
+  .text:000000018020A979                 mov     rcx, cs:g_VProfCurrentProfile
+  .text:000000018020A980                 call    cs:?Start@CVProfile@@QEAAXXZ; CVProfile::Start(void)
+  .text:000000018020A986                 jmp     short loc_18020A9D1
+  .text:000000018020A988                 cmp     [rax+100Ch], r12d
+  .text:000000018020A98F                 jz      short loc_18020A9D1
+  .text:000000018020A991                 mov     rcx, cs:LOG_VPROF
+  .text:000000018020A998                 mov     edx, 2
+  .text:000000018020A99D                 mov     ecx, [rcx]
+  .text:000000018020A99F                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:000000018020A9A5                 test    al, al
+  .text:000000018020A9A7                 jz      short loc_18020A9C4
+  .text:000000018020A9A9                 mov     rcx, cs:LOG_VPROF
+  .text:000000018020A9B0                 lea     r8, aVprofDisabled; "VProf Disabled.\n"
+  .text:000000018020A9B7                 mov     edx, 2
+  .text:000000018020A9BC                 mov     ecx, [rcx]
+  .text:000000018020A9BE                 call    cs:LoggingSystem_Log
+  .text:000000018020A9C4                 mov     rcx, cs:g_VProfCurrentProfile
+  .text:000000018020A9CB                 call    cs:?Stop@CVProfile@@QEAAXXZ; CVProfile::Stop(void)
+  .text:000000018020A9D1                 mov     byte ptr cs:word_180616BD9, r12b
+  .text:000000018020A9D8                 mov     rcx, cs:g_VProfCurrentProfile
+  .text:000000018020A9DF                 call    cs:?MarkFrame@CVProfile@@QEAAXXZ; CVProfile::MarkFrame(void)
+  .text:000000018020A9E5                 call    sub_1801FBF10
+  .text:000000018020A9EA                 call    sub_180107430
+  .text:000000018020A9EF                 mov     qword ptr [rbp+57h+var_D0+8], 0D4Fh
+  .text:000000018020A9F7                 lea     r8, [rbp+57h+var_A0]
+  .text:000000018020A9FB                 mov     qword ptr [rbp+57h+var_D0], rbx
+  .text:000000018020A9FF                 lea     rdx, off_180610280; "Unaccounted"
+  .text:000000018020AA06                 movups  xmm0, [rbp+57h+var_D0]
+  .text:000000018020AA0A                 mov     [rbp+57h+var_C0], r13
+  .text:000000018020AA0E                 mov     rcx, r13
+  .text:000000018020AA11                 movsd   xmm1, [rbp+57h+var_C0]
+  .text:000000018020AA16                 movaps  [rbp+57h+var_A0], xmm0
+  .text:000000018020AA1A                 movsd   [rbp+57h+var_90], xmm1
+  .text:000000018020AA1F                 call    cs:?EnterScopeInternalBudgetFlags@?$VProfScopeHelper@$0A@$0A@@@SAP6AXXZPEBDAEAUVProfBudgetGroupCallSite@@AEBVCUtlSourceLocation@@@Z; VProfScopeHelper<0,0>::EnterScopeInternalBudgetFlags(char const *,VProfBudgetGroupCallSite &,CUtlSourceLocation const &)
+  .text:000000018020AA25                 mov     rbx, rax
+  .text:000000018020AA28                 call    cs:Plat_FloatTime
+  .text:000000018020AA2E                 movaps  xmm8, xmm0
+  .text:000000018020AA32                 movaps  xmm7, xmm0
+  .text:000000018020AA35                 subsd   xmm8, xmm9
+  .text:000000018020AA3A                 cmp     [r15+0FCh], r12b
+  .text:000000018020AA41                 jnz     short loc_18020AA65
+  .text:000000018020AA43                 call    cs:Plat_HasEnteredFatalState
+  .text:000000018020AA49                 test    eax, eax
+  .text:000000018020AA4B                 jz      short loc_18020AA65
+  .text:000000018020AA4D                 nop     dword ptr [rax]
+  .text:000000018020AA50                 mov     ecx, 3E8h
+  .text:000000018020AA55                 call    cs:ThreadSleep
+  .text:000000018020AA5B                 call    cs:Plat_HasEnteredFatalState
+  .text:000000018020AA61                 test    eax, eax
+  .text:000000018020AA63                 jnz     short loc_18020AA50
+  .text:000000018020AA65                 call    cs:Plat_USTime
+  .text:000000018020AA6B                 cmp     rax, r14
+  .text:000000018020AA6E                 jb      short loc_18020AA87
+  .text:000000018020AA70                 xor     edx, edx
+  .text:000000018020AA72                 xor     ecx, ecx
+  .text:000000018020AA74                 call    cs:Plat_DebugString_Buffered
+  .text:000000018020AA7A                 call    cs:Plat_USTime
+  .text:000000018020AA80                 lea     r14, [rax+0F4240h]
+  .text:000000018020AA87                 movaps  xmm1, xmm7
+  .text:000000018020AA8A                 call    CEngineServiceMgr__MainLoop
+  .text:000000018020AA8F                 mov     esi, eax
+  .text:000000018020AA91                 call    sub_18021C0A0
+  .text:000000018020AA96                 cmp     cs:byte_18090FF90, r12b
+  .text:000000018020AA9D                 jz      loc_18020ABF9
+  .text:000000018020AAA3                 cmp     cs:qword_180616D10, r12
+  .text:000000018020AAAA                 mov     cs:byte_18090FF90, r12b
+  .text:000000018020AAB1                 jz      loc_18020ABF9
+  .text:000000018020AAB7                 mov     rcx, cs:g_pEngineServiceMgr
+  .text:000000018020AABE                 lea     rdx, [rbp+57h+var_D0]
+  .text:000000018020AAC2                 xorps   xmm0, xmm0
+  .text:000000018020AAC5                 mov     dword ptr [rbp+57h+var_C0], r12d
+  .text:000000018020AAC9                 movdqu  [rbp+57h+var_D0], xmm0
+  .text:000000018020AACE                 mov     [rbp+57h+var_B8], r12
+  .text:000000018020AAD2                 mov     rax, [rcx]
+  .text:000000018020AAD5                 mov     [rbp+57h+var_B0], r12b
+  .text:000000018020AAD9                 ; 0x108 = 264 = IEngineServiceMgr_GetActiveLoop
+  .text:000000018020AAD9                 call    qword ptr [rax+108h]; 0x108 = 264 = IEngineServiceMgr_GetActiveLoop
+  .text:000000018020AADF                 mov     rdi, cs:qword_180616D10
+  .text:000000018020AAE6                 cmp     [rdi+18h], r12b
+  .text:000000018020AAEA                 jz      loc_18020ABD9
+  .text:000000018020AAF0                 mov     ecx, [rdi]
+  .text:000000018020AAF2                 sub     ecx, 1
+  .text:000000018020AAF5                 jz      short loc_18020AB5F
+  .text:000000018020AAF7                 sub     ecx, 1
+  .text:000000018020AAFA                 jz      short loc_18020AB0B
+  .text:000000018020AAFC                 sub     ecx, 1
+  .text:000000018020AAFF                 jz      short loc_18020AB5F
+  .text:000000018020AB01                 cmp     ecx, 1
+  .text:000000018020AB04                 jz      short loc_18020AB6D
+  .text:000000018020AB06                 jmp     loc_18020ABD9
+  .text:000000018020AB0B                 cmp     [rbp+57h+var_B0], r12b
+  .text:000000018020AB0F                 jz      loc_18020ABD9
+  .text:000000018020AB15                 mov     rax, cs:qword_180616D30
+  .text:000000018020AB1C                 lea     rdx, unk_180529B3F
+  .text:000000018020AB23                 test    rax, rax
+  .text:000000018020AB26                 lea     rcx, unk_180529B3F
+  .text:000000018020AB2D                 cmovnz  rdx, rax
+  .text:000000018020AB31                 mov     rax, qword ptr [rbp+57h+var_D0]
+  .text:000000018020AB35                 test    rax, rax
+  .text:000000018020AB38                 cmovnz  rcx, rax
+  .text:000000018020AB3C                 call    cs:V_stricmp_fast
+  .text:000000018020AB42                 test    eax, eax
+  .text:000000018020AB44                 jnz     loc_18020ABD9
+  .text:000000018020AB4A                 mov     eax, [rdi+1Ch]
+  .text:000000018020AB4D                 cmp     dword ptr [rbp+57h+var_C0], eax
+  .text:000000018020AB50                 jnz     loc_18020ABD9
+  .text:000000018020AB56                 mov     rdi, cs:qword_180616D10
+  .text:000000018020AB5D                 jmp     short loc_18020AB6D
+  .text:000000018020AB5F                 cmp     [rbp+57h+var_B0], r12b
+  .text:000000018020AB63                 jz      short loc_18020ABD9
+  .text:000000018020AB65                 mov     eax, [rdi+1Ch]
+  .text:000000018020AB68                 cmp     dword ptr [rbp+57h+var_C0], eax
+  .text:000000018020AB6B                 jnz     short loc_18020ABD9
+  .text:000000018020AB6D                 mov     rcx, cs:qword_180616D18
+  .text:000000018020AB74                 test    rcx, rcx
+  .text:000000018020AB77                 jz      short loc_18020AB85
+  .text:000000018020AB79                 call    sub_18021A7C0
+  .text:000000018020AB7E                 mov     rdi, cs:qword_180616D10
+  .text:000000018020AB85                 mov     ecx, cs:dword_18090E93C
+  .text:000000018020AB8B                 mov     edx, 2
+  .text:000000018020AB90                 mov     cs:qword_180616D18, rdi
+  .text:000000018020AB97                 mov     cs:qword_180616D10, r12
+  .text:000000018020AB9E                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:000000018020ABA4                 test    al, al
+  .text:000000018020ABA6                 jz      short loc_18020ABD9
+  .text:000000018020ABA8                 mov     rax, cs:qword_180616D18
+  .text:000000018020ABAF                 lea     r9, unk_180529B3F
+  .text:000000018020ABB6                 lea     r8, aHostActivateS; "Host activate: %s\n"
+  .text:000000018020ABBD                 mov     edx, 2
+  .text:000000018020ABC2                 mov     rcx, [rax+10h]
+  .text:000000018020ABC6                 test    rcx, rcx
+  .text:000000018020ABC9                 cmovnz  r9, rcx
+  .text:000000018020ABCD                 mov     ecx, cs:dword_18090E93C
+  .text:000000018020ABD3                 call    cs:LoggingSystem_Log
+  .text:000000018020ABD9                 cmp     qword ptr [rbp+57h+var_D0+8], r12
+  .text:000000018020ABDD                 jz      short loc_18020ABE9
+  .text:000000018020ABDF                 lea     rcx, [rbp+57h+var_D0+8]
+  .text:000000018020ABE3                 call    cs:?FreeMemoryBlock@CUtlString@@AEAAXXZ; CUtlString::FreeMemoryBlock(void)
+  .text:000000018020ABE9                 cmp     qword ptr [rbp+57h+var_D0], r12
+  .text:000000018020ABED                 jz      short loc_18020ABF9
+  .text:000000018020ABEF                 lea     rcx, [rbp+57h+var_D0]
+  .text:000000018020ABF3                 call    cs:?FreeMemoryBlock@CUtlString@@AEAAXXZ; CUtlString::FreeMemoryBlock(void)
+  .text:000000018020ABF9                 test    esi, esi
+  .text:000000018020ABFB                 jz      short loc_18020AC78
+  .text:000000018020ABFD                 call    cs:Plat_FloatTime
+  .text:000000018020AC03                 movaps  xmm2, xmm0
+  .text:000000018020AC06                 movaps  xmm6, xmm0
+  .text:000000018020AC09                 subsd   xmm2, xmm7
+  .text:000000018020AC0D                 xorps   xmm7, xmm7
+  .text:000000018020AC10                 cvtsd2ss xmm2, xmm2
+  .text:000000018020AC14                 movss   cs:dword_180912A60, xmm2
+  .text:000000018020AC1C                 cmp     esi, 1
+  .text:000000018020AC1F                 jnz     short loc_18020AC49
+  .text:000000018020AC21                 movaps  xmm2, xmm0
+  .text:000000018020AC24                 lea     r9, [rbp+57h+arg_8]
+  .text:000000018020AC28                 subsd   xmm2, xmm9
+  .text:000000018020AC2D                 movaps  xmm1, xmm8
+  .text:000000018020AC31                 call    sub_180213710
+  .text:000000018020AC36                 call    cs:Plat_FloatTime
+  .text:000000018020AC3C                 subsd   xmm0, xmm6
+  .text:000000018020AC40                 xorps   xmm7, xmm7
+  .text:000000018020AC43                 cvtsd2ss xmm7, xmm0
+  .text:000000018020AC47                 jmp     short loc_18020AC5E
+  .text:000000018020AC49                 cmp     esi, 2
+  .text:000000018020AC4C                 jnz     short loc_18020AC5E
+  .text:000000018020AC4E                 call    cs:Plat_FloatTime
+  .text:000000018020AC54                 movaps  xmm9, xmm0
+  .text:000000018020AC58                 movsd   [rbp+57h+arg_8], xmm10
+  .text:000000018020AC5E                 mov     ecx, 1
+  .text:000000018020AC63                 movss   cs:dword_180912A64, xmm7
+  .text:000000018020AC6B                 call    cs:Plat_ChangeCurrentFrame
+  .text:000000018020AC71                 call    rbx
+  .text:000000018020AC73                 jmp     loc_18020A90F
+  .text:000000018020AC78                 call    rbx
+  .text:000000018020AC7A                 mov     rcx, cs:g_pResourceSystem
+  .text:000000018020AC81                 mov     rax, [rcx]
+  .text:000000018020AC84                 call    qword ptr [rax+70h]
+  .text:000000018020AC87                 mov     rcx, cs:LOG_GENERAL
+  .text:000000018020AC8E                 mov     edx, 2
+  .text:000000018020AC93                 mov     ecx, [rcx]
+  .text:000000018020AC95                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:000000018020AC9B                 movaps  xmm10, [rsp+0F0h+var_80]
+  .text:000000018020ACA1                 movaps  xmm9, [rsp+0F0h+var_70]
+  .text:000000018020ACAA                 movaps  xmm8, [rsp+0F0h+var_60]
+  .text:000000018020ACB3                 movaps  xmm7, [rsp+0F0h+var_50]
+  .text:000000018020ACBB                 movaps  xmm6, [rsp+0F0h+var_40]
+  .text:000000018020ACC3                 mov     r14, [rsp+0F0h+var_30]
+  .text:000000018020ACCB                 mov     r13, [rsp+0F0h+var_28]
+  .text:000000018020ACD3                 mov     r12, [rsp+0F0h+var_20]
+  .text:000000018020ACDB                 mov     rdi, [rsp+0F0h+var_18]
+  .text:000000018020ACE3                 mov     rsi, [rsp+0F0h+arg_18]
+  .text:000000018020ACEB                 test    al, al
+  .text:000000018020ACED                 jz      short loc_18020AD0A
+  .text:000000018020ACEF                 mov     rcx, cs:LOG_GENERAL
+  .text:000000018020ACF6                 lea     r8, aDispatchingEve; "Dispatching EventAppShutdown_t {\n"
+  .text:000000018020ACFD                 mov     edx, 2
+  .text:000000018020AD02                 mov     ecx, [rcx]
+  .text:000000018020AD04                 call    cs:LoggingSystem_Log
+  .text:000000018020AD0A                 mov     rcx, cs:g_pEngineServiceMgr
+  .text:000000018020AD11                 mov     rax, [rcx]
+  .text:000000018020AD14                 call    qword ptr [rax+0E8h]
+  .text:000000018020AD1A                 lea     rdx, unk_180611730
+  .text:000000018020AD21                 mov     rbx, rax
+  .text:000000018020AD24                 lea     rcx, [rbp+57h+arg_8]
+  .text:000000018020AD28                 call    unknown_libname_12; Microsoft VisualC v7/14 64bit runtime
+  .text:000000018020AD2D                 mov     r9, [rbp+57h+arg_8]
+  .text:000000018020AD31                 lea     rdx, [rbp+57h+arg_0]
+  .text:000000018020AD35                 mov     rcx, rbx
+  .text:000000018020AD38                 call    sub_180048B60
+  .text:000000018020AD3D                 mov     rcx, cs:LOG_GENERAL
+  .text:000000018020AD44                 mov     edx, 2
+  .text:000000018020AD49                 mov     ecx, [rcx]
+  .text:000000018020AD4B                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:000000018020AD51                 test    al, al
+  .text:000000018020AD53                 jz      short loc_18020AD70
+  .text:000000018020AD55                 mov     rcx, cs:LOG_GENERAL
+  .text:000000018020AD5C                 lea     r8, aDispatchedEven; "} Dispatched EventAppShutdown_t\n"
+  .text:000000018020AD63                 mov     edx, 2
+  .text:000000018020AD68                 mov     ecx, [rcx]
+  .text:000000018020AD6A                 call    cs:LoggingSystem_Log
+  .text:000000018020AD70                 mov     cl, 1
+  .text:000000018020AD72                 call    sub_1801FDAD0
+  .text:000000018020AD77                 mov     rcx, cs:g_pAsyncFileSystem
+  .text:000000018020AD7E                 mov     rax, [rcx]
+  .text:000000018020AD81                 call    qword ptr [rax+78h]
+  .text:000000018020AD84                 mov     rcx, cs:LOG_GENERAL
+  .text:000000018020AD8B                 mov     edx, 2
+  .text:000000018020AD90                 mov     ecx, [rcx]
+  .text:000000018020AD92                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:000000018020AD98                 test    al, al
+  .text:000000018020AD9A                 jz      short loc_18020ADB7
+  .text:000000018020AD9C                 mov     rcx, cs:LOG_GENERAL
+  .text:000000018020ADA3                 lea     r8, aMainloopReturn; "MainLoop returning\n"
+  .text:000000018020ADAA                 mov     edx, 2
+  .text:000000018020ADAF                 mov     ecx, [rcx]
+  .text:000000018020ADB1                 call    cs:LoggingSystem_Log
+  .text:000000018020ADB7                 lea     rcx, [rbp+57h+arg_10]
+  .text:000000018020ADBB                 call    cs:??1CStackTop_Base@@IEAA@XZ; CStackTop_Base::~CStackTop_Base(void)
+  .text:000000018020ADC1                 add     rsp, 0E0h
+  .text:000000018020ADC8                 pop     r15
+  .text:000000018020ADCA                 pop     rbx
+  .text:000000018020ADCB                 pop     rbp
+  .text:000000018020ADCC                 retn
+procedure: |-
+  void __fastcall sub_18020A810(__int64 a1, __int64 a2, __int64 a3, __int64 a4)
+  {
+    __int64 v6; // rcx
+    unsigned __int64 v7; // r14
+    void (*v8)(void); // rbx
+    double v9; // xmm7_8
+    int v10; // esi
+    __int64 v11; // rax
+    __int64 v12; // rdi
+    void *v13; // rdx
+    void *v14; // rcx
+    void *v15; // r9
+    __int64 v16; // rdx
+    __int64 v17; // rcx
+    __int64 v18; // r8
+    double v19; // xmm0_8
+    double v20; // xmm2_8
+    float v21; // xmm7_4
+    __int64 v22; // rbx
+    __int64 v23; // r8
+    __int64 v24; // rcx
+    __int128 v25; // [rsp+20h] [rbp-79h] BYREF
+    const char *v26; // [rsp+30h] [rbp-69h]
+    __int64 v27; // [rsp+38h] [rbp-61h]
+    char v28; // [rsp+40h] [rbp-59h]
+    __int128 v29; // [rsp+50h] [rbp-49h] BYREF
+    const char *v30; // [rsp+60h] [rbp-39h]
+    __int64 v31; // [rsp+100h] [rbp+67h] BYREF
+    __int64 v32; // [rsp+108h] [rbp+6Fh] BYREF
+    __int64 v33; // [rsp+110h] [rbp+77h] BYREF
+
+    v33 = a3;
+    v31 = a1;
+    *(_QWORD *)&v25 = &v25;
+    CStackTop_Base::CStackTop_Base((CStackTop_Base *)&v33);
+    if ( !a2 && !(unsigned __int8)sub_1804173B0() )
+    {
+      v6 = g_pVApplication;
+      if ( !g_pVApplication )
+        goto LABEL_6;
+      if ( !(*(unsigned __int8 (__fastcall **)(__int64))(*(_QWORD *)g_pVApplication + 184LL))(g_pVApplication) )
+      {
+        v6 = g_pVApplication;
+  LABEL_6:
+        if ( !(*(__int64 (__fastcall **)(__int64))(*(_QWORD *)v6 + 192LL))(v6) )
+        {
+          Plat_FatalError("GetAppWindow() returned NULL");
+          __debugbreak();
+        }
+      }
+    }
+    Plat_SetCurrentFrame(0);
+    v7 = Plat_USTime() + 1000000;
+    Plat_FloatTime();
+    v32 = 0;
+    while ( 1 )
+    {
+      AssertsMarkFrame();
+      if ( (_BYTE)word_180616BD9 )
+      {
+        if ( HIBYTE(word_180616BD9) )
+        {
+          if ( !*(_DWORD *)(g_VProfCurrentProfile + 4108LL) )
+          {
+            if ( (unsigned __int8)LoggingSystem_IsChannelEnabled(LOG_VPROF, 2) )
+              LoggingSystem_Log(LOG_VPROF, 2, "VProf Enabled.\n");
+            CVProfile::Start(g_VProfCurrentProfile);
+          }
+        }
+        else if ( *(_DWORD *)(g_VProfCurrentProfile + 4108LL) )
+        {
+          if ( (unsigned __int8)LoggingSystem_IsChannelEnabled(LOG_VPROF, 2) )
+            LoggingSystem_Log(LOG_VPROF, 2, "VProf Disabled.\n");
+          CVProfile::Stop(g_VProfCurrentProfile);
+        }
+        LOBYTE(word_180616BD9) = 0;
+      }
+      CVProfile::MarkFrame(g_VProfCurrentProfile);
+      sub_1801FBF10();
+      sub_180107430();
+      *((_QWORD *)&v25 + 1) = 3407;
+      *(_QWORD *)&v25 = "C:\\buildworker\\csgo_rel_win64\\build\\src\\engine2\\engine2.cpp";
+      v26 = "MainLoop";
+      v29 = v25;
+      v30 = "MainLoop";
+      v8 = (void (*)(void))VProfScopeHelper<0,0>::EnterScopeInternalBudgetFlags("MainLoop", &off_180610280, &v29);
+      v9 = Plat_FloatTime();
+      if ( !*(_BYTE *)(a4 + 252) && (unsigned int)Plat_HasEnteredFatalState() )
+      {
+        do
+          ThreadSleep(1000);
+        while ( (unsigned int)Plat_HasEnteredFatalState() );
+      }
+      if ( Plat_USTime() >= v7 )
+      {
+        Plat_DebugString_Buffered(0, 0);
+        v7 = Plat_USTime() + 1000000;
+      }
+      v10 = CEngineServiceMgr__MainLoop();
+      sub_18021C0A0();
+      if ( byte_18090FF90 )
+      {
+        byte_18090FF90 = 0;
+        if ( qword_180616D10 )
+        {
+          LODWORD(v26) = 0;
+          v25 = 0;
+          v27 = 0;
+          v11 = *(_QWORD *)g_pEngineServiceMgr;
+          v28 = 0;
+          (*(void (__fastcall **)(__int64, __int128 *))(v11 + 264))(g_pEngineServiceMgr, &v25);// 0x108 = 264 = IEngineServiceMgr_GetActiveLoop
+          v12 = qword_180616D10;
+          if ( !*(_BYTE *)(qword_180616D10 + 24) )
+          {
+  LABEL_49:
+            if ( *((_QWORD *)&v25 + 1) )
+              CUtlString::FreeMemoryBlock((CUtlString *)((char *)&v25 + 8));
+            if ( (_QWORD)v25 )
+              CUtlString::FreeMemoryBlock((CUtlString *)&v25);
+            goto LABEL_53;
+          }
+          switch ( *(_DWORD *)qword_180616D10 )
+          {
+            case 1:
+              goto LABEL_42;
+            case 2:
+              if ( !v28 )
+                goto LABEL_49;
+              v13 = &unk_180529B3F;
+              v14 = &unk_180529B3F;
+              if ( qword_180616D30 )
+                v13 = (void *)qword_180616D30;
+              if ( (_QWORD)v25 )
+                v14 = (void *)v25;
+              if ( (unsigned int)V_stricmp_fast(v14, v13) || (_DWORD)v26 != *(_DWORD *)(v12 + 28) )
+                goto LABEL_49;
+              v12 = qword_180616D10;
+              break;
+            case 3:
+  LABEL_42:
+              if ( !v28 || (_DWORD)v26 != *(_DWORD *)(qword_180616D10 + 28) )
+                goto LABEL_49;
+              break;
+            case 4:
+              break;
+            default:
+              goto LABEL_49;
+          }
+          if ( qword_180616D18 )
+          {
+            sub_18021A7C0();
+            v12 = qword_180616D10;
+          }
+          qword_180616D18 = v12;
+          qword_180616D10 = 0;
+          if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_18090E93C, 2) )
+          {
+            v15 = &unk_180529B3F;
+            if ( *(_QWORD *)(qword_180616D18 + 16) )
+              v15 = *(void **)(qword_180616D18 + 16);
+            LoggingSystem_Log((unsigned int)dword_18090E93C, 2, "Host activate: %s\n", v15);
+          }
+          goto LABEL_49;
+        }
+      }
+  LABEL_53:
+      if ( !v10 )
+        break;
+      v19 = Plat_FloatTime();
+      v20 = v19 - v9;
+      v21 = 0.0;
+      *(float *)&v20 = v20;
+      dword_180912A60 = LODWORD(v20);
+      if ( v10 == 1 )
+      {
+        sub_180213710(v17, v16, v18, &v32);
+        v21 = Plat_FloatTime() - v19;
+      }
+      else if ( v10 == 2 )
+      {
+        Plat_FloatTime();
+        v32 = 0;
+      }
+      dword_180912A64 = LODWORD(v21);
+      Plat_ChangeCurrentFrame(1);
+      v8();
+    }
+    v8();
+    (*(void (__fastcall **)(__int64))(*(_QWORD *)g_pResourceSystem + 112LL))(g_pResourceSystem);
+    if ( (unsigned __int8)LoggingSystem_IsChannelEnabled(LOG_GENERAL, 2) )
+      LoggingSystem_Log(LOG_GENERAL, 2, "Dispatching EventAppShutdown_t {\n");
+    v22 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)g_pEngineServiceMgr + 232LL))(g_pEngineServiceMgr);
+    unknown_libname_12(&v32, &unk_180611730);
+    sub_180048B60(v22, &v31, v23, v32);
+    if ( (unsigned __int8)LoggingSystem_IsChannelEnabled(LOG_GENERAL, 2) )
+      LoggingSystem_Log(LOG_GENERAL, 2, "} Dispatched EventAppShutdown_t\n");
+    LOBYTE(v24) = 1;
+    sub_1801FDAD0(v24);
+    (*(void (__fastcall **)(__int64))(*(_QWORD *)g_pAsyncFileSystem + 120LL))(g_pAsyncFileSystem);
+    if ( (unsigned __int8)LoggingSystem_IsChannelEnabled(LOG_GENERAL, 2) )
+      LoggingSystem_Log(LOG_GENERAL, 2, "MainLoop returning\n");
+    CStackTop_Base::~CStackTop_Base((CStackTop_Base *)&v33);
+  }
