@@ -338,6 +338,27 @@ modules:
           - CNetChan_ParseMessagesDemo.{platform}.yaml
         expected_input:
           - CNetChan_vtable.{platform}.yaml
+      - name: find-CNetChan_UpdateMessageStatsInternal
+        optional_output:
+          - CNetChan_UpdateMessageStatsInternal.{platform}.yaml
+        skip_if_exists:
+          - CNetChan_UpdateMessageStats.{platform}.yaml
+      - name: find-CNetChan_UpdateMessageStats-noinline
+        optional_output:
+          - CNetChan_UpdateMessageStats.{platform}.yaml
+        expected_input:
+          - CNetChan_vtable.{platform}.yaml
+        prerequisite:
+          - find-CNetChan_UpdateMessageStatsInternal
+      - name: find-CNetChan_UpdateMessageStats-inlined
+        expected_output:
+          - CNetChan_UpdateMessageStats.{platform}.yaml
+        expected_input:
+          - CNetChan_vtable.{platform}.yaml
+        skip_if_exists:
+          - CNetChan_UpdateMessageStats.{platform}.yaml
+        prerequisite:
+          - find-CNetChan_UpdateMessageStats-noinline
       - name: find-CNetChan_ParseMessagesDemoInternal
         expected_output:
           - CNetChan_ParseMessagesDemoInternal.{platform}.yaml
@@ -3124,6 +3145,10 @@ modules:
         category: vfunc
         alias:
           - CNetChan::ParseMessagesDemo
+      - name: CNetChan_UpdateMessageStats
+        category: vfunc
+        alias:
+          - CNetChan::UpdateMessageStats
       - name: CNetworkGameClient_ProcessPacketEntitiesInternal
         category: func
         platform: windows
