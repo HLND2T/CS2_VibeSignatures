@@ -633,6 +633,27 @@ modules:
       - name: find-CHostStateMgr_vtable
         expected_output:
           - CHostStateMgr_vtable.{platform}.yaml
+      - name: find-CHostStateMgr_RequestHS_PlayBroadcastInternal
+        optional_output:
+          - CHostStateMgr_RequestHS_PlayBroadcastInternal.{platform}.yaml
+        skip_if_exists:
+          - CHostStateMgr_RequestHS_PlayBroadcast.{platform}.yaml
+      - name: find-CHostStateMgr_RequestHS_PlayBroadcast-noinline
+        optional_output:
+          - CHostStateMgr_RequestHS_PlayBroadcast.{platform}.yaml
+        expected_input:
+          - CHostStateMgr_vtable.{platform}.yaml
+        prerequisite:
+          - find-CHostStateMgr_RequestHS_PlayBroadcastInternal
+      - name: find-CHostStateMgr_RequestHS_PlayBroadcast-inlined
+        expected_output:
+          - CHostStateMgr_RequestHS_PlayBroadcast.{platform}.yaml
+        expected_input:
+          - CHostStateMgr_vtable.{platform}.yaml
+        skip_if_exists:
+          - CHostStateMgr_RequestHS_PlayBroadcast.{platform}.yaml
+        prerequisite:
+          - find-CHostStateMgr_RequestHS_PlayBroadcast-noinline
       - name: find-CHostStateMgr_RequestHS_QuitInternal
         optional_output:
           - CHostStateMgr_RequestHS_QuitInternal.{platform}.yaml
@@ -4586,6 +4607,10 @@ modules:
         category: vfunc
         alias:
           - CHostStateMgr::RequestHS_Quit
+      - name: CHostStateMgr_RequestHS_PlayBroadcast
+        category: vfunc
+        alias:
+          - CHostStateMgr::RequestHS_PlayBroadcast
       - name: g_pNetworkService
         category: gv
       - name: g_pNetworkClientService
