@@ -1,0 +1,78 @@
+func_name: CNetworkClientSpawnGroup_dtor
+func_va: '0x18005bc20'
+disasm_code: |-
+  .text:000000018005BC20                 mov     [rsp+arg_0], rbx
+  .text:000000018005BC25                 mov     [rsp+arg_8], rsi
+  .text:000000018005BC2A                 push    rdi
+  .text:000000018005BC2B                 sub     rsp, 20h
+  .text:000000018005BC2F                 mov     ebx, [rcx+28h]
+  .text:000000018005BC32                 lea     rax, ??_7CNetworkClientSpawnGroup@@6B@; const CNetworkClientSpawnGroup::`vftable'
+  .text:000000018005BC39                 mov     rsi, [rcx+270h]
+  .text:000000018005BC40                 mov     rdi, rcx
+  .text:000000018005BC43                 mov     [rcx], rax
+  .text:000000018005BC46                 lea     rax, ??_7CNetworkClientSpawnGroup@@6B@_0; const CNetworkClientSpawnGroup::`vftable'
+  .text:000000018005BC4D                 mov     [rcx+8], rax
+  .text:000000018005BC51                 lea     rax, ??_7CNetworkClientSpawnGroup@@6B@_1; const CNetworkClientSpawnGroup::`vftable'
+  .text:000000018005BC58                 mov     [rcx+10h], rax
+  .text:000000018005BC5C                 mov     edx, ebx
+  .text:000000018005BC5E                 lea     rcx, [rsi+70h]
+  .text:000000018005BC62                 test    ebx, ebx
+  .text:000000018005BC64                 js      short loc_18005BC6A
+  .text:000000018005BC66                 lea     rcx, [rsi+50h]
+  .text:000000018005BC6A                 call    sub_1801118B0
+  .text:000000018005BC6F                 test    al, al
+  .text:000000018005BC71                 jz      short loc_18005BC8A
+  .text:000000018005BC73                 mov     rcx, [rsi+388h]
+  .text:000000018005BC7A                 test    rcx, rcx
+  .text:000000018005BC7D                 jz      short loc_18005BC8A
+  .text:000000018005BC7F                 mov     rax, [rcx]
+  .text:000000018005BC82                 mov     edx, ebx
+  .text:000000018005BC84                 call    qword ptr [rax+0A0h]
+  .text:000000018005BC8A                 mov     rcx, cs:g_pGameResourceServiceClient
+  .text:000000018005BC91                 mov     rdx, [rdi+278h]
+  .text:000000018005BC98                 mov     rax, [rcx]
+  .text:000000018005BC9B                 ; 0x0F8 = 248LL = IGameResourceService_FreeGameResourceManifest
+  .text:000000018005BC9B                 call    qword ptr [rax+0F8h]; 0x0F8 = 248LL = IGameResourceService_FreeGameResourceManifest
+  .text:000000018005BCA1                 mov     rcx, rdi
+  .text:000000018005BCA4                 call    sub_1800FC230
+  .text:000000018005BCA9                 mov     rax, cs:g_pMemAlloc
+  .text:000000018005BCB0                 mov     rdx, rdi
+  .text:000000018005BCB3                 mov     rcx, [rax]
+  .text:000000018005BCB6                 mov     rax, [rcx]
+  .text:000000018005BCB9                 call    qword ptr [rax+18h]
+  .text:000000018005BCBC                 mov     rbx, [rsp+28h+arg_0]
+  .text:000000018005BCC1                 mov     rax, rdi
+  .text:000000018005BCC4                 mov     rsi, [rsp+28h+arg_8]
+  .text:000000018005BCC9                 add     rsp, 20h
+  .text:000000018005BCCD                 pop     rdi
+  .text:000000018005BCCE                 retn
+procedure: |-
+  __int64 __fastcall sub_18005BC20(__int64 a1)
+  {
+    int v1; // ebx
+    __int64 v2; // rsi
+    __int64 v4; // rcx
+    __int64 v5; // rcx
+
+    v1 = *(_DWORD *)(a1 + 40);
+    v2 = *(_QWORD *)(a1 + 624);
+    *(_QWORD *)a1 = &CNetworkClientSpawnGroup::`vftable';
+    *(_QWORD *)(a1 + 8) = &CNetworkClientSpawnGroup::`vftable';
+    *(_QWORD *)(a1 + 16) = &CNetworkClientSpawnGroup::`vftable';
+    v4 = v2 + 112;
+    if ( v1 >= 0 )
+      v4 = v2 + 80;
+    if ( (unsigned __int8)sub_1801118B0(v4, (unsigned int)v1) )
+    {
+      v5 = *(_QWORD *)(v2 + 904);
+      if ( v5 )
+        (*(void (__fastcall **)(__int64, _QWORD))(*(_QWORD *)v5 + 160LL))(v5, (unsigned int)v1);
+    }
+    (*(void (__fastcall **)(__int64, _QWORD))(*(_QWORD *)g_pGameResourceServiceClient
+                                            + 248LL))(// 0x0F8 = 248LL = IGameResourceService_FreeGameResourceManifest
+      g_pGameResourceServiceClient,
+      *(_QWORD *)(a1 + 632));
+    sub_1800FC230(a1);
+    (*(void (__fastcall **)(_QWORD, __int64))(*g_pMemAlloc + 24LL))(g_pMemAlloc, a1);
+    return a1;
+  }

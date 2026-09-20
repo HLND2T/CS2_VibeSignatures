@@ -809,6 +809,25 @@ modules:
       - name: find-CGameResourceService_vtable
         expected_output:
           - CGameResourceService_vtable.{platform}.yaml
+      - name: find-CBaseSpawnGroup_vtable
+        expected_output:
+          - CBaseSpawnGroup_vtable.{platform}.yaml
+      - name: find-CBaseSpawnGroup_GetEntityPrerequisites
+        expected_output:
+          - CBaseSpawnGroup_GetEntityPrerequisites.{platform}.yaml
+        expected_input:
+          - CBaseSpawnGroup_vtable.{platform}.yaml
+      - name: find-IGameResourceService_BuildCompressedManifest
+        expected_output:
+          - IGameResourceService_BuildCompressedManifest.{platform}.yaml
+        expected_input:
+          - CBaseSpawnGroup_GetEntityPrerequisites.{platform}.yaml
+      - name: find-CGameResourceService_BuildCompressedManifest
+        expected_output:
+          - CGameResourceService_BuildCompressedManifest.{platform}.yaml
+        expected_input:
+          - CGameResourceService_vtable.{platform}.yaml
+          - IGameResourceService_BuildCompressedManifest.{platform}.yaml
       - name: find-CGameResourceService_LoadGameResourceManifestNamed
         expected_output:
           - CGameResourceService_LoadGameResourceManifestNamed.{platform}.yaml
@@ -953,6 +972,38 @@ modules:
       - name: find-CNetworkGameServerBase_AsyncUnloadSpawnGroupInternal
         expected_output:
           - CNetworkGameServerBase_AsyncUnloadSpawnGroupInternal.{platform}.yaml
+      - name: find-CNetworkGameClientBase_AsyncUnloadSpawnGroup_Internal
+        expected_output:
+          - CNetworkGameClientBase_AsyncUnloadSpawnGroup_Internal.{platform}.yaml
+      - name: find-CNetworkClientSpawnGroup_dtor
+        expected_output:
+          - CNetworkClientSpawnGroup_dtor.{platform}.yaml
+        expected_input:
+          - CNetworkGameClientBase_AsyncUnloadSpawnGroup_Internal.{platform}.yaml
+      - name: find-CNetworkClientSpawnGroup_ReleaseManifest-linux
+        platform: linux
+        expected_output:
+          - CNetworkClientSpawnGroup_ReleaseManifest.{platform}.yaml
+        expected_input:
+          - CNetworkClientSpawnGroup_dtor.{platform}.yaml
+      - name: find-IGameResourceService_FreeGameResourceManifest-windows
+        platform: windows
+        expected_output:
+          - IGameResourceService_FreeGameResourceManifest.{platform}.yaml
+        expected_input:
+          - CNetworkClientSpawnGroup_dtor.{platform}.yaml
+      - name: find-IGameResourceService_FreeGameResourceManifest-linux
+        platform: linux
+        expected_output:
+          - IGameResourceService_FreeGameResourceManifest.{platform}.yaml
+        expected_input:
+          - CNetworkClientSpawnGroup_ReleaseManifest.{platform}.yaml
+      - name: find-CGameResourceService_FreeGameResourceManifest
+        expected_output:
+          - CGameResourceService_FreeGameResourceManifest.{platform}.yaml
+        expected_input:
+          - CGameResourceService_vtable.{platform}.yaml
+          - IGameResourceService_FreeGameResourceManifest.{platform}.yaml
       - name: find-CNetworkGameServer_PrepareForAssetLoad
         expected_output:
           - CNetworkGameServer_PrepareForAssetLoad.{platform}.yaml
@@ -2110,6 +2161,15 @@ modules:
           - CLoopTypeSimpleService_OnLoopActivate.{platform}.yaml
         expected_input:
           - CLoopTypeSimpleService_vtable.{platform}.yaml
+      - name: find-CServerChangelevelState_dtor
+        expected_output:
+          - CServerChangelevelState_dtor.{platform}.yaml
+      - name: find-CNetworkServerService_SetGameLoadStarted
+        expected_output:
+          - CNetworkServerService_SetGameLoadStarted.{platform}.yaml
+        expected_input:
+          - CServerChangelevelState_dtor.{platform}.yaml
+          - CNetworkServerService_vtable.{platform}.yaml
       - name: find-CLoopTypeClientServerService_HandleInputEvent
         expected_output:
           - CLoopTypeClientServerService_HandleInputEvent.{platform}.yaml
@@ -2625,6 +2685,20 @@ modules:
           - GameEntitySystem
       - name: CGameResourceService_vtable
         category: vtable
+      - name: CBaseSpawnGroup_vtable
+        category: vtable
+      - name: CBaseSpawnGroup_GetEntityPrerequisites
+        category: vfunc
+        alias:
+          - CBaseSpawnGroup::GetEntityPrerequisites
+      - name: IGameResourceService_BuildCompressedManifest
+        category: vfunc
+        alias:
+          - IGameResourceService::BuildCompressedManifest
+      - name: CGameResourceService_BuildCompressedManifest
+        category: vfunc
+        alias:
+          - CGameResourceService::BuildCompressedManifest
       - name: CGameResourceService_LoadGameResourceManifestNamed
         category: vfunc
         alias:
@@ -2810,6 +2884,25 @@ modules:
         category: func
         alias:
           - CNetworkGameServerBase::AsyncUnloadSpawnGroupInternal
+      - name: CNetworkGameClientBase_AsyncUnloadSpawnGroup_Internal
+        category: func
+        alias:
+          - CNetworkGameClientBase::AsyncUnloadSpawnGroup
+      - name: CNetworkClientSpawnGroup_dtor
+        category: func
+        alias:
+          - CNetworkClientSpawnGroup::~CNetworkClientSpawnGroup
+      - name: CNetworkClientSpawnGroup_ReleaseManifest
+        category: func
+        platform: linux
+      - name: IGameResourceService_FreeGameResourceManifest
+        category: vfunc
+        alias:
+          - IGameResourceService::FreeGameResourceManifest
+      - name: CGameResourceService_FreeGameResourceManifest
+        category: vfunc
+        alias:
+          - CGameResourceService::FreeGameResourceManifest
       - name: CNetworkGameServer_PrepareForAssetLoad
         category: vfunc
         alias:
@@ -3829,6 +3922,14 @@ modules:
         category: vfunc
         alias:
           - CLoopTypeSimpleService::OnLoopActivate
+      - name: CServerChangelevelState_dtor
+        category: func
+        alias:
+          - CServerChangelevelState::~CServerChangelevelState
+      - name: CNetworkServerService_SetGameLoadStarted
+        category: vfunc
+        alias:
+          - CNetworkServerService::SetGameLoadStarted
       - name: CLoopTypeClientServerService_HandleInputEvent
         category: vfunc
         alias:
