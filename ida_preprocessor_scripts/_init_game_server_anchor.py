@@ -72,10 +72,7 @@ async def load_anchor(session, artifact_dir, platform):
 
     func_va = load_address(SOURCE_SYMBOL)
     global_va = load_address(GLOBAL_SYMBOL)
-    code = (
-        inspect.getsource(_probe_anchor)
-        + f"\nimport json\nprint(json.dumps(_probe_anchor({func_va}, {global_va})))"
-    )
+    code = inspect.getsource(_probe_anchor) + f"\nimport json\nprint(json.dumps(_probe_anchor({func_va}, {global_va})))"
     result = parse_mcp_result(await session.call_tool(name="py_eval", arguments={"code": code}))
     if not isinstance(result, dict):
         raise ValueError("missing InitGameServer anchor probe result")

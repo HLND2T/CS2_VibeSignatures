@@ -49,9 +49,7 @@ class TestInitGameServerAnchor(unittest.IsolatedAsyncioTestCase):
             (artifact_dir / "CSteam3ServerS1_InitGameServer.windows.yaml").write_text(
                 "func_va: '0x1800f8000'\n", encoding="utf-8"
             )
-            (artifact_dir / "g_pNetworkSystem.windows.yaml").write_text(
-                "gv_va: '0x180123450'\n", encoding="utf-8"
-            )
+            (artifact_dir / "g_pNetworkSystem.windows.yaml").write_text("gv_va: '0x180123450'\n", encoding="utf-8")
             session = AsyncMock()
             session.call_tool.return_value = py_eval_payload(
                 [{"insn_va": 0x1800F81F2, "insn_disasm": "call qword ptr [rax+118h]"}]
@@ -74,8 +72,9 @@ class TestInitGameServerFinder(unittest.IsolatedAsyncioTestCase):
         )
         anchor = {"insn_va": 0x1800F81F2, "insn_disasm": "call qword ptr [rax+118h]"}
         helper = AsyncMock(return_value=True)
-        with patch.object(module, "load_anchor", AsyncMock(return_value=anchor)), patch.object(
-            module, "preprocess_common_skill", helper
+        with (
+            patch.object(module, "load_anchor", AsyncMock(return_value=anchor)),
+            patch.object(module, "preprocess_common_skill", helper),
         ):
             result = await module.preprocess_skill(
                 session="session",
