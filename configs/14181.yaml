@@ -630,6 +630,30 @@ modules:
     path_windows: game/bin/win64/engine2.dll
     path_linux: game/bin/linuxsteamrt64/libengine2.so
     skills:
+      - name: find-CHostStateMgr_vtable
+        expected_output:
+          - CHostStateMgr_vtable.{platform}.yaml
+      - name: find-CHostStateMgr_RequestHS_QuitInternal
+        optional_output:
+          - CHostStateMgr_RequestHS_QuitInternal.{platform}.yaml
+        skip_if_exists:
+          - CHostStateMgr_RequestHS_Quit.{platform}.yaml
+      - name: find-CHostStateMgr_RequestHS_Quit-noinline
+        optional_output:
+          - CHostStateMgr_RequestHS_Quit.{platform}.yaml
+        expected_input:
+          - CHostStateMgr_vtable.{platform}.yaml
+        prerequisite:
+          - find-CHostStateMgr_RequestHS_QuitInternal
+      - name: find-CHostStateMgr_RequestHS_Quit-inlined
+        expected_output:
+          - CHostStateMgr_RequestHS_Quit.{platform}.yaml
+        expected_input:
+          - CHostStateMgr_vtable.{platform}.yaml
+        skip_if_exists:
+          - CHostStateMgr_RequestHS_Quit.{platform}.yaml
+        prerequisite:
+          - find-CHostStateMgr_RequestHS_Quit-noinline
       - name: find-CNetworkGameServer_vtable
         expected_output:
           - CNetworkGameServer_vtable.{platform}.yaml
@@ -4556,6 +4580,12 @@ modules:
         category: gv
       - name: g_pHostStateMgr
         category: gv
+      - name: CHostStateMgr_vtable
+        category: vtable
+      - name: CHostStateMgr_RequestHS_Quit
+        category: vfunc
+        alias:
+          - CHostStateMgr::RequestHS_Quit
       - name: g_pNetworkService
         category: gv
       - name: g_pNetworkClientService
