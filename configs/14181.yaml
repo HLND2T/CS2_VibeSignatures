@@ -771,6 +771,11 @@ modules:
       - name: find-CServerSideClient_vtable
         expected_output:
           - CServerSideClient_vtable.{platform}.yaml
+      - name: find-CServerSideClient_SendInitialSpawnGroups
+        expected_output:
+          - CServerSideClient_SendInitialSpawnGroups.{platform}.yaml
+        expected_input:
+          - CServerSideClient_vtable.{platform}.yaml
       - name: find-CServerSideClient_ctor
         expected_output:
           - CServerSideClient_ctor.{platform}.yaml
@@ -2644,6 +2649,10 @@ modules:
         category: vtable
       - name: CServerSideClient_vtable
         category: vtable
+      - name: CServerSideClient_SendInitialSpawnGroups
+        category: vfunc
+        alias:
+          - CServerSideClient::SendInitialSpawnGroups
       - name: CSVCMsg_PeerList_t_vtable
         category: vtable
       - name: CServerSideClient_ctor
