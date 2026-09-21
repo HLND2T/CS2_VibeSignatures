@@ -14,11 +14,11 @@ LLM_DECOMPILE = [
         "symbol_name": "IGameResourceService_LockGameResourceManifest",
         "prompt_path": "prompt/call_llm_decompile.md",
         "reference_yaml_paths": [
-            "references/engine/CNetworkServerSpawnGroup_AllocatePrerequisite_GetPrerequisiteStatus_Internal.{platform}.yaml",
+            "references/engine/CBaseSpawnGroup_PrecacheGameSystems.{platform}.yaml",
         ],
         "expected_result_sections": ["found_vcall"],
         "dependency_policy": {
-            "CNetworkServerSpawnGroup_AllocatePrerequisite_GetPrerequisiteStatus_Internal.{platform}.yaml": "required",
+            "CBaseSpawnGroup_PrecacheGameSystems.{platform}.yaml": "required",
         },
     }
 ]

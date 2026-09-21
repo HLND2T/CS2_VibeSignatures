@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Find the allocate-prerequisite helper from the asset-load status method."""
+"""Find CBaseSpawnGroup::PrecacheGameSystems from the asset-load status method."""
 
 from ida_analyze_util import preprocess_common_skill
 
-TARGET_FUNCTION_NAMES = ["CNetworkServerSpawnGroup_AllocatePrerequisite_GetPrerequisiteStatus_Internal"]
+TARGET_FUNCTION_NAMES = ["CBaseSpawnGroup_PrecacheGameSystems"]
 
 LLM_DECOMPILE = [
     {
-        "symbol_name": "CNetworkServerSpawnGroup_AllocatePrerequisite_GetPrerequisiteStatus_Internal",
+        "symbol_name": "CBaseSpawnGroup_PrecacheGameSystems",
         "prompt_path": "prompt/call_llm_decompile.md",
         "reference_yaml_paths": [
             "references/engine/CNetworkServerSpawnGroup_WaitForAssetLoadPrerequisite_GetPrerequisiteStatus.{platform}.yaml",
@@ -21,7 +21,7 @@ LLM_DECOMPILE = [
 
 GENERATE_YAML_DESIRED_FIELDS = [
     (
-        "CNetworkServerSpawnGroup_AllocatePrerequisite_GetPrerequisiteStatus_Internal",
+        "CBaseSpawnGroup_PrecacheGameSystems",
         ["func_name", "func_sig", "func_va", "func_rva", "func_size"],
     ),
 ]
