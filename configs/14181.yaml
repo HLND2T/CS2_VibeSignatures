@@ -2453,6 +2453,28 @@ modules:
       - name: find-CServerSideClientBase_vtable
         expected_output:
           - CServerSideClientBase_vtable.{platform}.yaml
+      - name: find-CServerSideClientBase_Disconnect_Internal
+        expected_output:
+          - CServerSideClientBase_Disconnect_Internal.{platform}.yaml
+      - name: find-CTSQueue_Push-windows
+        platform: windows
+        expected_output:
+          - CTSQueue_Push.{platform}.yaml
+      - name: find-CServerSideClientBase_Disconnect-windows
+        platform: windows
+        expected_output:
+          - CServerSideClientBase_Disconnect.{platform}.yaml
+        expected_input:
+          - CServerSideClientBase_Disconnect_Internal.{platform}.yaml
+          - CTSQueue_Push.{platform}.yaml
+          - CServerSideClientBase_vtable.{platform}.yaml
+      - name: find-CServerSideClientBase_Disconnect-linux
+        platform: linux
+        expected_output:
+          - CServerSideClientBase_Disconnect.{platform}.yaml
+        expected_input:
+          - CServerSideClientBase_Disconnect_Internal.{platform}.yaml
+          - CServerSideClientBase_vtable.{platform}.yaml
       - name: find-CServerSideClientBase_SendServerInfo
         expected_output:
           - CServerSideClientBase_SendServerInfo.{platform}.yaml
@@ -4234,6 +4256,19 @@ modules:
           - CHLTVBroadcast::RecordSnapshot
       - name: CServerSideClientBase_vtable
         category: vtable
+      - name: CServerSideClientBase_Disconnect_Internal
+        category: func
+        alias:
+          - CServerSideClientBase::Disconnect_Internal
+      - name: CTSQueue_Push
+        category: func
+        platform: windows
+        alias:
+          - CTSQueue<CDelayedCallBase<CServerSideClientBase> *,0>::Push
+      - name: CServerSideClientBase_Disconnect
+        category: vfunc
+        alias:
+          - CServerSideClientBase::Disconnect
       - name: CServerSideClientBase_SendServerInfo
         category: vfunc
         alias:
