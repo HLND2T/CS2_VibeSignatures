@@ -771,6 +771,12 @@ modules:
       - name: find-CServerSideClient_vtable
         expected_output:
           - CServerSideClient_vtable.{platform}.yaml
+      - name: find-CServerSideClient_UpdateAcknowledgedFramecount
+        expected_output:
+          - CServerSideClient_UpdateAcknowledgedFramecount.{platform}.yaml
+        expected_input:
+          - CServerSideClientBase_UpdateAcknowledgedFramecount.{platform}.yaml
+          - CServerSideClient_vtable.{platform}.yaml
       - name: find-CServerSideClient_ctor
         expected_output:
           - CServerSideClient_ctor.{platform}.yaml
@@ -2453,6 +2459,11 @@ modules:
       - name: find-CServerSideClientBase_vtable
         expected_output:
           - CServerSideClientBase_vtable.{platform}.yaml
+      - name: find-CServerSideClientBase_UpdateAcknowledgedFramecount
+        expected_output:
+          - CServerSideClientBase_UpdateAcknowledgedFramecount.{platform}.yaml
+        expected_input:
+          - CServerSideClientBase_vtable.{platform}.yaml
       - name: find-CServerSideClientBase_SendServerInfo
         expected_output:
           - CServerSideClientBase_SendServerInfo.{platform}.yaml
@@ -2644,6 +2655,10 @@ modules:
         category: vtable
       - name: CServerSideClient_vtable
         category: vtable
+      - name: CServerSideClient_UpdateAcknowledgedFramecount
+        category: vfunc
+        alias:
+          - CServerSideClient::UpdateAcknowledgedFramecount
       - name: CSVCMsg_PeerList_t_vtable
         category: vtable
       - name: CServerSideClient_ctor
@@ -4234,6 +4249,10 @@ modules:
           - CHLTVBroadcast::RecordSnapshot
       - name: CServerSideClientBase_vtable
         category: vtable
+      - name: CServerSideClientBase_UpdateAcknowledgedFramecount
+        category: vfunc
+        alias:
+          - CServerSideClientBase::UpdateAcknowledgedFramecount
       - name: CServerSideClientBase_SendServerInfo
         category: vfunc
         alias:
