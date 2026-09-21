@@ -9965,6 +9965,14 @@ modules:
           - CEntitySystem_m_entityComponentHelpers.{platform}.yaml
         expected_input:
           - CEntitySystem_FindComponentTypeByName.{platform}.yaml
+      - name: find-CGameConfiguration_vtable
+        expected_output:
+          - CGameConfiguration_vtable.{platform}.yaml
+      - name: find-CGameConfiguration_InitGameSession
+        expected_output:
+          - CGameConfiguration_InitGameSession.{platform}.yaml
+        expected_input:
+          - CGameConfiguration_vtable.{platform}.yaml
     symbols:
       - name: CSource2Server_vtable
         category: vtable
@@ -13317,6 +13325,12 @@ modules:
         category: func
         alias:
           - CEntitySystem::FindComponentTypeByName
+      - name: CGameConfiguration_vtable
+        category: vtable
+      - name: CGameConfiguration_InitGameSession
+        category: vfunc
+        alias:
+          - CGameConfiguration::InitGameSession
   - name: engine  # Execute skills for engine2.dll again after client.dll
     path_windows: game/bin/win64/engine2.dll
     path_linux: game/bin/linuxsteamrt64/libengine2.so
