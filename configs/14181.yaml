@@ -9965,6 +9965,44 @@ modules:
           - CEntitySystem_m_entityComponentHelpers.{platform}.yaml
         expected_input:
           - CEntitySystem_FindComponentTypeByName.{platform}.yaml
+      - name: find-CGameConfiguration_vtable
+        expected_output:
+          - CGameConfiguration_vtable.{platform}.yaml
+      # ComputeMaxClients: the "GetPlayerLimits:  min maxplayers must be >= 1"
+      # body is inlined into the vfunc on server.dll but de-inlined into a
+      # standalone CGameConfiguration::GetPlayerLimits on libserver.so, so the
+      # Windows side uses the direct string xref while Linux follows the
+      # deinline-fix chain (body -> vtable-filtered caller).
+      - name: find-CGameConfiguration_ComputeMaxClients
+        platform: windows
+        expected_output:
+          - CGameConfiguration_ComputeMaxClients.{platform}.yaml
+        expected_input:
+          - CGameConfiguration_vtable.{platform}.yaml
+      - name: find-CGameConfiguration_GetPlayerLimits-linux
+        platform: linux
+        optional_output:
+          - CGameConfiguration_GetPlayerLimits.{platform}.yaml
+        skip_if_exists:
+          - CGameConfiguration_ComputeMaxClients.{platform}.yaml
+      - name: find-CGameConfiguration_ComputeMaxClients-deinlined-linux
+        platform: linux
+        optional_output:
+          - CGameConfiguration_ComputeMaxClients.{platform}.yaml
+        expected_input:
+          - CGameConfiguration_vtable.{platform}.yaml
+        prerequisite:
+          - find-CGameConfiguration_GetPlayerLimits-linux
+      - name: find-CGameConfiguration_ComputeMaxClients-inlined-linux
+        platform: linux
+        expected_output:
+          - CGameConfiguration_ComputeMaxClients.{platform}.yaml
+        expected_input:
+          - CGameConfiguration_vtable.{platform}.yaml
+        skip_if_exists:
+          - CGameConfiguration_ComputeMaxClients.{platform}.yaml
+        prerequisite:
+          - find-CGameConfiguration_ComputeMaxClients-deinlined-linux
     symbols:
       - name: CSource2Server_vtable
         category: vtable
@@ -13317,6 +13355,12 @@ modules:
         category: func
         alias:
           - CEntitySystem::FindComponentTypeByName
+      - name: CGameConfiguration_vtable
+        category: vtable
+      - name: CGameConfiguration_ComputeMaxClients
+        category: vfunc
+        alias:
+          - CGameConfiguration::ComputeMaxClients
   - name: engine  # Execute skills for engine2.dll again after client.dll
     path_windows: game/bin/win64/engine2.dll
     path_linux: game/bin/linuxsteamrt64/libengine2.so
