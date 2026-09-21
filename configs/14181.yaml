@@ -2453,6 +2453,15 @@ modules:
       - name: find-CServerSideClientBase_vtable
         expected_output:
           - CServerSideClientBase_vtable.{platform}.yaml
+      - name: find-CServerSideClientBase_ProcessSetConVar_Internal
+        expected_output:
+          - CServerSideClientBase_ProcessSetConVar_Internal.{platform}.yaml
+      - name: find-CServerSideClientBase_ProcessSetConVar
+        expected_output:
+          - CServerSideClientBase_ProcessSetConVar.{platform}.yaml
+        expected_input:
+          - CServerSideClientBase_ProcessSetConVar_Internal.{platform}.yaml
+          - CServerSideClientBase_vtable.{platform}.yaml
       - name: find-CServerSideClientBase_SendServerInfo
         expected_output:
           - CServerSideClientBase_SendServerInfo.{platform}.yaml
@@ -4234,6 +4243,14 @@ modules:
           - CHLTVBroadcast::RecordSnapshot
       - name: CServerSideClientBase_vtable
         category: vtable
+      - name: CServerSideClientBase_ProcessSetConVar_Internal
+        category: func
+        alias:
+          - CServerSideClientBase::ProcessSetConVarInternal
+      - name: CServerSideClientBase_ProcessSetConVar
+        category: vfunc
+        alias:
+          - CServerSideClientBase::ProcessSetConVar
       - name: CServerSideClientBase_SendServerInfo
         category: vfunc
         alias:
