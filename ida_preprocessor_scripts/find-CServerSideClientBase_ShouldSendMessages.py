@@ -12,7 +12,7 @@ FUNC_XREFS = [
     {
         "func_name": "CServerSideClientBase_ShouldSendMessages",
         "xref_strings": [
-            "CServerSideClientBase::ShouldSendMessages: Send delayed due to !CanPacket, tick=%d\\n",
+            "CServerSideClientBase::ShouldSendMessages: Send delayed due to !CanPacket, tick=%d",
         ],
         "xref_gvs": [],
         "xref_signatures": [],
