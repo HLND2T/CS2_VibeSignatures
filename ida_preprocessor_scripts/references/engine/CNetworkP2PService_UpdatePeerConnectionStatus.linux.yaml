@@ -1,0 +1,189 @@
+func_name: CNetworkP2PService_UpdatePeerConnectionStatus
+func_va: '0x42e650'
+disasm_code: |-
+  .text:000000000042E650                 push    rbp
+  .text:000000000042E651                 lea     rax, [rdi+0E0h]
+  .text:000000000042E658                 mov     rbp, rsp
+  .text:000000000042E65B                 push    r15
+  .text:000000000042E65D                 push    r14
+  .text:000000000042E65F                 push    r13
+  .text:000000000042E661                 push    r12
+  .text:000000000042E663                 push    rbx
+  .text:000000000042E664                 mov     rbx, rdi
+  .text:000000000042E667                 sub     rsp, 2D8h
+  .text:000000000042E66E                 mov     [rbp+var_2F8], rax
+  .text:000000000042E675                 call    sub_2C89F0
+  .text:000000000042E67A                 cmp     rax, [rbx+0E8h]
+  .text:000000000042E681                 jz      loc_42E7E8
+  .text:000000000042E687                 mov     rsi, rax
+  .text:000000000042E68A                 mov     eax, [rbx+0E0h]
+  .text:000000000042E690                 test    eax, eax
+  .text:000000000042E692                 jz      loc_42E7A0
+  .text:000000000042E698                 mov     rdi, [rbp+var_2F8]
+  .text:000000000042E69F                 call    sub_2C8F10
+  .text:000000000042E6A4                 lea     rax, g_pNetworkSystem
+  .text:000000000042E6AB                 mov     rdi, [rax]
+  .text:000000000042E6AE                 mov     rax, [rdi]
+  .text:000000000042E6B1                 ; 0x168 = 360LL = INetworkSystem_GetSteamNetworkingMessages
+  .text:000000000042E6B1                 call    qword ptr [rax+168h]; 0x168 = 360LL = INetworkSystem_GetSteamNetworkingMessages
+  .text:000000000042E6B7                 mov     r12, rax
+  .text:000000000042E6BA                 test    rax, rax
+  .text:000000000042E6BD                 jz      loc_42E780
+  .text:000000000042E6C3                 lea     rax, aNetworkp2pserv_0; "networkp2pservice.cpp"
+  .text:000000000042E6CA                 mov     [rbp+var_2E8], 222h
+  .text:000000000042E6D4                 lea     r13, [rbp+var_2F0]
+  .text:000000000042E6DB                 mov     [rbp+var_2F0], rax
+  .text:000000000042E6E2                 lea     rsi, off_9DD420; "Networking"
+  .text:000000000042E6E9                 mov     rdx, r13
+  .text:000000000042E6EC                 lea     rax, aUpdatepeerconn; "UpdatePeerConnectionStatus"
+  .text:000000000042E6F3                 lea     rdi, aCnetworkp2pser_1; "CNetworkP2PService::UpdatePeerConnectio"...
+  .text:000000000042E6FA                 mov     [rbp+var_2E0], rax
+  .text:000000000042E701                 call    sub_2CA4A0
+  .text:000000000042E706                 mov     [rbp+var_300], rax
+  .text:000000000042E70D                 mov     eax, [rbx+80h]
+  .text:000000000042E713                 test    eax, eax
+  .text:000000000042E715                 jle     short loc_42E777
+  .text:000000000042E717                 xor     r15d, r15d
+  .text:000000000042E71A                 nop     word ptr [rax+rax+00h]
+  .text:000000000042E720                 mov     rax, [rbx+88h]
+  .text:000000000042E727                 mov     rdx, r13
+  .text:000000000042E72A                 xor     ecx, ecx
+  .text:000000000042E72C                 mov     rdi, r12
+  .text:000000000042E72F                 mov     r14, [rax+r15*8]
+  .text:000000000042E733                 mov     rax, [r12]
+  .text:000000000042E737                 lea     rsi, [r14+10h]
+  .text:000000000042E73B                 call    qword ptr [rax+28h]
+  .text:000000000042E73E                 xor     edx, edx
+  .text:000000000042E740                 test    eax, eax
+  .text:000000000042E742                 jz      short loc_42E753
+  .text:000000000042E744                 mov     eax, [rbp+var_240]
+  .text:000000000042E74A                 sub     eax, 1
+  .text:000000000042E74D                 cmp     eax, 2
+  .text:000000000042E750                 setbe   dl
+  .text:000000000042E753                 cmp     [r14+0AAh], dl
+  .text:000000000042E75A                 jz      short loc_42E7D0
+  .text:000000000042E75C                 movzx   edx, dl
+  .text:000000000042E75F                 mov     rsi, r14
+  .text:000000000042E762                 mov     rdi, rbx
+  .text:000000000042E765                 add     r15, 1
+  .text:000000000042E769                 call    sub_42E550
+  .text:000000000042E76E                 cmp     [rbx+80h], r15d
+  .text:000000000042E775                 jg      short loc_42E720
+  .text:000000000042E777                 mov     rax, [rbp+var_300]
+  .text:000000000042E77E                 call    rax
+  .text:000000000042E780                 sub     word ptr [rbx+0E4h], 1
+  .text:000000000042E788                 jz      short loc_42E7F8
+  .text:000000000042E78A                 add     rsp, 2D8h
+  .text:000000000042E791                 pop     rbx
+  .text:000000000042E792                 pop     r12
+  .text:000000000042E794                 pop     r13
+  .text:000000000042E796                 pop     r14
+  .text:000000000042E798                 pop     r15
+  .text:000000000042E79A                 pop     rbp
+  .text:000000000042E79B                 retn
+  .text:000000000042E7A0                 mov     rcx, [rbp+var_2F8]
+  .text:000000000042E7A7                 mov     edx, 3
+  .text:000000000042E7AC                 lock cmpxchg [rcx], edx
+  .text:000000000042E7B0                 jnz     loc_42E698
+  .text:000000000042E7B6                 mov     edx, 1
+  .text:000000000042E7BB                 mov     [rbx+0E8h], rsi
+  .text:000000000042E7C2                 mov     [rbx+0E4h], dx
+  .text:000000000042E7C9                 jmp     loc_42E6A4
+  .text:000000000042E7D0                 add     r15, 1
+  .text:000000000042E7D4                 cmp     [rbx+80h], r15d
+  .text:000000000042E7DB                 jg      loc_42E720
+  .text:000000000042E7E1                 jmp     short loc_42E777
+  .text:000000000042E7E8                 add     word ptr [rbx+0E4h], 1
+  .text:000000000042E7F0                 jmp     loc_42E6A4
+  .text:000000000042E7F8                 mov     rax, [rbp+var_2F8]
+  .text:000000000042E7FF                 mov     qword ptr [rbx+0E8h], 0
+  .text:000000000042E80A                 lock sub dword ptr [rax], 3
+  .text:000000000042E80E                 jz      loc_42E78A
+  .text:000000000042E814                 mov     rdi, [rbp+var_2F8]
+  .text:000000000042E81B                 add     rsp, 2D8h
+  .text:000000000042E822                 pop     rbx
+  .text:000000000042E823                 pop     r12
+  .text:000000000042E825                 pop     r13
+  .text:000000000042E827                 pop     r14
+  .text:000000000042E829                 pop     r15
+  .text:000000000042E82B                 pop     rbp
+  .text:000000000042E82C                 jmp     sub_2CB220
+procedure: |-
+  __int64 __fastcall sub_42E650(__int64 a1)
+  {
+    __int64 v1; // rax
+    __int64 result; // rax
+    __int64 v3; // r12
+    __int64 v4; // r15
+    __int64 v5; // r14
+    int v6; // eax
+    unsigned __int8 v7; // dl
+    __int64 (*v9)(void); // [rsp+0h] [rbp-300h]
+    volatile signed __int32 *v10; // [rsp+8h] [rbp-2F8h]
+    const char *v11; // [rsp+10h] [rbp-2F0h] BYREF
+    int v12; // [rsp+18h] [rbp-2E8h]
+    const char *v13; // [rsp+20h] [rbp-2E0h]
+    int v14; // [rsp+C0h] [rbp-240h]
+
+    v10 = (volatile signed __int32 *)(a1 + 224);
+    v1 = sub_2C89F0();
+    if ( v1 == *(_QWORD *)(a1 + 232) )
+    {
+      ++*(_WORD *)(a1 + 228);
+    }
+    else if ( *(_DWORD *)(a1 + 224) || _InterlockedCompareExchange(v10, 3, 0) )
+    {
+      sub_2C8F10(v10, v1);
+    }
+    else
+    {
+      *(_QWORD *)(a1 + 232) = v1;
+      *(_WORD *)(a1 + 228) = 1;
+    }
+    result = (*(__int64 (__fastcall **)(_QWORD *))(*g_pNetworkSystem + 360LL))(g_pNetworkSystem);// 0x168 = 360LL = INetworkSystem_GetSteamNetworkingMessages
+    v3 = result;
+    if ( result )
+    {
+      v12 = 546;
+      v11 = "networkp2pservice.cpp";
+      v13 = "UpdatePeerConnectionStatus";
+      v9 = (__int64 (*)(void))sub_2CA4A0("CNetworkP2PService::UpdatePeerConnectionStatus", &off_9DD420, &v11);
+      if ( *(int *)(a1 + 128) > 0 )
+      {
+        v4 = 0;
+        do
+        {
+          while ( 1 )
+          {
+            v5 = *(_QWORD *)(*(_QWORD *)(a1 + 136) + 8 * v4);
+            v6 = (*(__int64 (__fastcall **)(__int64, __int64, const char **, _QWORD))(*(_QWORD *)v3 + 40LL))(
+                   v3,
+                   v5 + 16,
+                   &v11,
+                   0);
+            v7 = 0;
+            if ( v6 )
+              v7 = (unsigned int)(v14 - 1) <= 2;
+            if ( *(_BYTE *)(v5 + 170) == v7 )
+              break;
+            ++v4;
+            sub_42E550(a1, v5, v7);
+            if ( *(_DWORD *)(a1 + 128) <= (int)v4 )
+              goto LABEL_11;
+          }
+          ++v4;
+        }
+        while ( *(_DWORD *)(a1 + 128) > (int)v4 );
+      }
+  LABEL_11:
+      result = v9();
+    }
+    if ( (*(_WORD *)(a1 + 228))-- == 1 )
+    {
+      result = a1 + 224;
+      *(_QWORD *)(a1 + 232) = 0;
+      if ( _InterlockedSub(v10, 3u) )
+        return sub_2CB220(v10);
+    }
+    return result;
+  }
