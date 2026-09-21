@@ -771,6 +771,12 @@ modules:
       - name: find-CServerSideClient_vtable
         expected_output:
           - CServerSideClient_vtable.{platform}.yaml
+      - name: find-CServerSideClient_ProcessVoiceData
+        expected_output:
+          - CServerSideClient_ProcessVoiceData.{platform}.yaml
+        expected_input:
+          - CNetworkGameServerBase_SV_BroadcastVoiceData.{platform}.yaml
+          - CServerSideClient_vtable.{platform}.yaml
       - name: find-CServerSideClient_ctor
         expected_output:
           - CServerSideClient_ctor.{platform}.yaml
@@ -903,6 +909,9 @@ modules:
       - name: find-CNetworkGameServerBase_vtable
         expected_output:
           - CNetworkGameServerBase_vtable.{platform}.yaml
+      - name: find-CNetworkGameServerBase_SV_BroadcastVoiceData
+        expected_output:
+          - CNetworkGameServerBase_SV_BroadcastVoiceData.{platform}.yaml
       - name: find-CNetworkGameServerBase_ServerSimulate-windows
         platform: windows
         expected_output:
@@ -2644,6 +2653,10 @@ modules:
         category: vtable
       - name: CServerSideClient_vtable
         category: vtable
+      - name: CServerSideClient_ProcessVoiceData
+        category: vfunc
+        alias:
+          - CServerSideClient::ProcessVoiceData
       - name: CSVCMsg_PeerList_t_vtable
         category: vtable
       - name: CServerSideClient_ctor
@@ -2770,6 +2783,10 @@ modules:
           - CNetworkGameServerBase::CheckPassword
       - name: CNetworkGameServerBase_vtable
         category: vtable
+      - name: CNetworkGameServerBase_SV_BroadcastVoiceData
+        category: func
+        alias:
+          - CNetworkGameServerBase::SV_BroadcastVoiceData
       - name: INetworkGameServer_SetGameSpawnGroupMgr
         category: vfunc
         alias:
