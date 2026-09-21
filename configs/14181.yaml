@@ -577,6 +577,10 @@ modules:
         category: vfunc
         alias:
           - CNetworkSystem::BufferToBufferDecompress
+      - name: CNetworkSystem_GetUDPPort
+        category: vfunc
+        alias:
+          - CNetworkSystem::GetUDPPort
       - name: CNetworkSystem_CloseAllSockets
         category: vfunc
         alias:
@@ -1422,6 +1426,14 @@ modules:
       - name: find-CSteam3ServerS1_InitGameServer
         expected_output:
           - CSteam3ServerS1_InitGameServer.{platform}.yaml
+      - name: find-CRConServer_RunFrame
+        expected_output:
+          - CRConServer_RunFrame.{platform}.yaml
+      - name: find-INetworkSystem_GetUDPPort
+        expected_output:
+          - INetworkSystem_GetUDPPort.{platform}.yaml
+        expected_input:
+          - CRConServer_RunFrame.{platform}.yaml
       - name: find-INetworkServerService_IsActiveInGame
         expected_output:
           - INetworkServerService_IsActiveInGame.{platform}.yaml
@@ -3492,6 +3504,14 @@ modules:
         category: func
         alias:
           - CSteam3ServerS1::InitGameServer
+      - name: CRConServer_RunFrame
+        category: func
+        alias:
+          - CRConServer::RunFrame
+      - name: INetworkSystem_GetUDPPort
+        category: vfunc
+        alias:
+          - INetworkSystem::GetUDPPort
       - name: INetworkServerService_IsActiveInGame
         category: vfunc
         alias:
@@ -13957,6 +13977,12 @@ modules:
         expected_input:
           - CNetworkSystem_vtable.{platform}.yaml
           - ../engine/INetworkSystem_BufferToBufferDecompress.{platform}.yaml
+      - name: find-CNetworkSystem_GetUDPPort
+        expected_output:
+          - CNetworkSystem_GetUDPPort.{platform}.yaml
+        expected_input:
+          - CNetworkSystem_vtable.{platform}.yaml
+          - ../engine/INetworkSystem_GetUDPPort.{platform}.yaml
       - name: find-CNetworkSystem_PrintNetworkStats
         expected_output:
           - CNetworkSystem_PrintNetworkStats.{platform}.yaml
