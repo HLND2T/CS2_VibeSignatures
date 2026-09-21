@@ -12,7 +12,7 @@ FUNC_XREFS = [
     {
         "func_name": "CServerSideClientBase_ProcessChangeSplitscreenUser",
         "xref_strings": [
-            "Unable to set SetActiveChannel to user in slot %d\\n",
+            "Unable to set SetActiveChannel to user in slot %d",
         ],
         "xref_gvs": [],
         "xref_signatures": [],
