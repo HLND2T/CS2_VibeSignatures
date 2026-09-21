@@ -577,6 +577,10 @@ modules:
         category: vfunc
         alias:
           - CNetworkSystem::BufferToBufferDecompress
+      - name: CNetworkSystem_PutScratchBuffer
+        category: vfunc
+        alias:
+          - CNetworkSystem::PutScratchBuffer
       - name: CNetworkSystem_CloseAllSockets
         category: vfunc
         alias:
@@ -2351,6 +2355,9 @@ modules:
       - name: find-CNetworkStringTableClient_ParseUpdate
         expected_output:
           - CNetworkStringTableClient_ParseUpdate.{platform}.yaml
+      - name: find-CNetworkGameServerBase_WriteDeltaEntities_WriteNonTransmitted
+        expected_output:
+          - CNetworkGameServerBase_WriteDeltaEntities_WriteNonTransmitted.{platform}.yaml
       - name: find-CSteam3ServerS1_ShutdownGameServer
         expected_output:
           - CSteam3ServerS1_ShutdownGameServer.{platform}.yaml
@@ -2404,6 +2411,11 @@ modules:
           - INetworkSystem_BufferToBufferDecompress.{platform}.yaml
         expected_input:
           - CNetworkStringTableClient_ParseUpdate.{platform}.yaml
+      - name: find-INetworkSystem_PutScratchBuffer
+        expected_output:
+          - INetworkSystem_PutScratchBuffer.{platform}.yaml
+        expected_input:
+          - CNetworkGameServerBase_WriteDeltaEntities_WriteNonTransmitted.{platform}.yaml
       - name: find-INetworkSystem_InitNetworkSystem
         expected_output:
           - INetworkSystem_InitNetworkSystem.{platform}.yaml
@@ -4118,6 +4130,10 @@ modules:
         category: func
         alias:
           - CNetworkStringTableClient::ParseUpdate
+      - name: CNetworkGameServerBase_WriteDeltaEntities_WriteNonTransmitted
+        category: func
+        alias:
+          - CNetworkGameServerBase::WriteDeltaEntities_WriteNonTransmitted
       - name: INetworkSystem_ShutdownGameServer
         category: vfunc
         alias:
@@ -4154,6 +4170,10 @@ modules:
         category: vfunc
         alias:
           - INetworkSystem::BufferToBufferDecompress
+      - name: INetworkSystem_PutScratchBuffer
+        category: vfunc
+        alias:
+          - INetworkSystem::PutScratchBuffer
       - name: INetworkSystem_InitNetworkSystem
         category: vfunc
         alias:
@@ -13957,6 +13977,12 @@ modules:
         expected_input:
           - CNetworkSystem_vtable.{platform}.yaml
           - ../engine/INetworkSystem_BufferToBufferDecompress.{platform}.yaml
+      - name: find-CNetworkSystem_PutScratchBuffer
+        expected_output:
+          - CNetworkSystem_PutScratchBuffer.{platform}.yaml
+        expected_input:
+          - CNetworkSystem_vtable.{platform}.yaml
+          - ../engine/INetworkSystem_PutScratchBuffer.{platform}.yaml
       - name: find-CNetworkSystem_PrintNetworkStats
         expected_output:
           - CNetworkSystem_PrintNetworkStats.{platform}.yaml
