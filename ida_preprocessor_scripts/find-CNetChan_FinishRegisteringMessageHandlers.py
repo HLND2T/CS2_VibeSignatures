@@ -17,7 +17,10 @@ FUNC_XREFS = [
         "exclude_signatures": [],
     }
 ]
-FUNC_VTABLE_RELATIONS = [("CNetChan_FinishRegisteringMessageHandlers", "CNetChan_vtable")]
+FUNC_VTABLE_RELATIONS = [
+    # (func_name, vtable_class)
+    ("CNetChan_FinishRegisteringMessageHandlers", "CNetChan"),
+]
 GENERATE_YAML_DESIRED_FIELDS = [
     (
         "CNetChan_FinishRegisteringMessageHandlers",
