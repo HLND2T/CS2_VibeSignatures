@@ -630,6 +630,30 @@ modules:
     path_windows: game/bin/win64/engine2.dll
     path_linux: game/bin/linuxsteamrt64/libengine2.so
     skills:
+      - name: find-CNetworkStringTableContainer_vtable
+        expected_output:
+          - CNetworkStringTableContainer_vtable.{platform}.yaml
+      - name: find-CNetworkStringTableContainer_CreateStringTable-helper
+        optional_output:
+          - CNetworkStringTableContainer_CreateStringTable_helper.{platform}.yaml
+        skip_if_exists:
+          - CNetworkStringTableContainer_CreateStringTable.{platform}.yaml
+      - name: find-CNetworkStringTableContainer_CreateStringTable-noinline
+        optional_output:
+          - CNetworkStringTableContainer_CreateStringTable.{platform}.yaml
+        expected_input:
+          - CNetworkStringTableContainer_vtable.{platform}.yaml
+        prerequisite:
+          - find-CNetworkStringTableContainer_CreateStringTable-helper
+      - name: find-CNetworkStringTableContainer_CreateStringTable
+        expected_output:
+          - CNetworkStringTableContainer_CreateStringTable.{platform}.yaml
+        expected_input:
+          - CNetworkStringTableContainer_vtable.{platform}.yaml
+        skip_if_exists:
+          - CNetworkStringTableContainer_CreateStringTable.{platform}.yaml
+        prerequisite:
+          - find-CNetworkStringTableContainer_CreateStringTable-noinline
       - name: find-CNetworkGameServer_vtable
         expected_output:
           - CNetworkGameServer_vtable.{platform}.yaml
@@ -2640,6 +2664,12 @@ modules:
         expected_input:
           - CNetworkGameClientBase_vtable.{platform}.yaml
     symbols:
+      - name: CNetworkStringTableContainer_vtable
+        category: vtable
+      - name: CNetworkStringTableContainer_CreateStringTable
+        category: vfunc
+        alias:
+          - CNetworkStringTableContainer::CreateStringTable
       - name: CNetworkGameServer_vtable
         category: vtable
       - name: CServerSideClient_vtable
