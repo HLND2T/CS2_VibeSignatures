@@ -809,6 +809,30 @@ modules:
       - name: find-CGameResourceService_vtable
         expected_output:
           - CGameResourceService_vtable.{platform}.yaml
+      - name: find-CNetworkServerSpawnGroup_WaitForAssetLoadPrerequisite_vtable
+        expected_output:
+          - CNetworkServerSpawnGroup_WaitForAssetLoadPrerequisite_vtable.{platform}.yaml
+      - name: find-CNetworkServerSpawnGroup_WaitForAssetLoadPrerequisite_GetPrerequisiteStatus
+        expected_output:
+          - CNetworkServerSpawnGroup_WaitForAssetLoadPrerequisite_GetPrerequisiteStatus.{platform}.yaml
+        expected_input:
+          - CNetworkServerSpawnGroup_WaitForAssetLoadPrerequisite_vtable.{platform}.yaml
+      - name: find-CBaseSpawnGroup_PrecacheGameSystems
+        expected_output:
+          - CBaseSpawnGroup_PrecacheGameSystems.{platform}.yaml
+        expected_input:
+          - CNetworkServerSpawnGroup_WaitForAssetLoadPrerequisite_GetPrerequisiteStatus.{platform}.yaml
+      - name: find-IGameResourceService_LockGameResourceManifest
+        expected_output:
+          - IGameResourceService_LockGameResourceManifest.{platform}.yaml
+        expected_input:
+          - CBaseSpawnGroup_PrecacheGameSystems.{platform}.yaml
+      - name: find-CGameResourceService_LockGameResourceManifest
+        expected_output:
+          - CGameResourceService_LockGameResourceManifest.{platform}.yaml
+        expected_input:
+          - CGameResourceService_vtable.{platform}.yaml
+          - IGameResourceService_LockGameResourceManifest.{platform}.yaml
       - name: find-CBaseSpawnGroup_vtable
         expected_output:
           - CBaseSpawnGroup_vtable.{platform}.yaml
@@ -2690,6 +2714,24 @@ modules:
           - GameEntitySystem
       - name: CGameResourceService_vtable
         category: vtable
+      - name: CNetworkServerSpawnGroup_WaitForAssetLoadPrerequisite_vtable
+        category: vtable
+      - name: CNetworkServerSpawnGroup_WaitForAssetLoadPrerequisite_GetPrerequisiteStatus
+        category: vfunc
+        alias:
+          - CNetworkServerSpawnGroup_WaitForAssetLoadPrerequisite::GetPrerequisiteStatus
+      - name: CBaseSpawnGroup_PrecacheGameSystems
+        category: func
+        alias:
+          - CBaseSpawnGroup::PrecacheGameSystems
+      - name: IGameResourceService_LockGameResourceManifest
+        category: vfunc
+        alias:
+          - IGameResourceService::LockGameResourceManifest
+      - name: CGameResourceService_LockGameResourceManifest
+        category: vfunc
+        alias:
+          - CGameResourceService::LockGameResourceManifest
       - name: CBaseSpawnGroup_vtable
         category: vtable
       - name: CBaseSpawnGroup_GetEntityPrerequisites
