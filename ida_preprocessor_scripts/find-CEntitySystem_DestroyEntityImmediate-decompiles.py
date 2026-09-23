@@ -151,6 +151,10 @@ GENERATE_YAML_DESIRED_FIELDS = [
             "member_name",
             "offset",
             "offset_sig",
+            # Linux has a byte-identical sibling access site (0x22d7c5f) whose
+            # whole instruction sequence matches this one, so the offset_sig
+            # matches 2 locations; allow up to 2.
+            "offset_sig_max_match:2",
             "offset_sig_disp",
         ],
     ),

@@ -1791,6 +1791,192 @@ class TestVtableArtifactStemSupport(unittest.IsolatedAsyncioTestCase):
         mock_load_symbol.assert_called_once()
 
 
+class TestDegenerateFuncBodySignatureSkip(unittest.IsolatedAsyncioTestCase):
+    """A one-instruction body (jmp thunk / ret nullsub) carries no identifying
+    bytes, so func_sig generation must be skipped instead of fabricating a
+    signature that bridges the following padding."""
+
+    async def test_gen_func_sig_skips_jmp_thunk_body(self) -> None:
+        session = AsyncMock()
+        session.call_tool.return_value = _py_eval_payload(
+            {
+                "func_va": "0x180001000",
+                "func_size": "0x5",
+                "insts": [
+                    {"ea": "0x180001000", "size": 5, "bytes": "e9f0ffffff", "wild": [1, 2, 3, 4]},
+                    {"ea": "0x180001005", "size": 1, "bytes": "cc", "wild": []},
+                    {"ea": "0x180001010", "size": 4, "bytes": "4883ec20", "wild": [3]},
+                ],
+            }
+        )
+
+        result = await ida_analyze_util.preprocess_gen_func_sig_via_mcp(
+            session=session,
+            func_va="0x180001000",
+            image_base=0x180000000,
+            debug=False,
+        )
+
+        self.assertIsNotNone(result)
+        assert result is not None
+        self.assertIsNone(result["func_sig"])
+        self.assertEqual("jmp_thunk", result["func_sig_skipped"])
+        session.call_tool.assert_awaited_once()
+
+    async def test_gen_func_sig_skips_ret_nullsub_body(self) -> None:
+        session = AsyncMock()
+        session.call_tool.return_value = _py_eval_payload(
+            {
+                "func_va": "0x180002000",
+                "func_size": "0x3",
+                "insts": [
+                    {"ea": "0x180002000", "size": 3, "bytes": "c20000", "wild": []},
+                    {"ea": "0x180002010", "size": 4, "bytes": "4883ec20", "wild": [3]},
+                ],
+            }
+        )
+
+        result = await ida_analyze_util.preprocess_gen_func_sig_via_mcp(
+            session=session,
+            func_va="0x180002000",
+            image_base=0x180000000,
+            debug=False,
+        )
+
+        self.assertIsNotNone(result)
+        assert result is not None
+        self.assertIsNone(result["func_sig"])
+        self.assertEqual("ret_nullsub", result["func_sig_skipped"])
+        session.call_tool.assert_awaited_once()
+
+    async def test_direct_func_sig_rejects_required_signature_on_degenerate_body(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with (
+                patch.object(
+                    ida_analyze_util,
+                    "_get_func_basic_info_via_mcp",
+                    AsyncMock(
+                        return_value={
+                            "func_va": "0x180002000",
+                            "func_rva": "0x2000",
+                            "func_size": "0x3",
+                        }
+                    ),
+                ),
+                patch.object(
+                    ida_analyze_util,
+                    "preprocess_gen_func_sig_via_mcp",
+                    AsyncMock(
+                        return_value={
+                            "func_va": "0x180002000",
+                            "func_size": "0x3",
+                            "func_sig": None,
+                            "func_sig_skipped": "ret_nullsub",
+                        }
+                    ),
+                ),
+            ):
+                with self.assertRaises(ida_analyze_util.DegenerateFuncSigTargetError) as ctx:
+                    await ida_analyze_util._preprocess_direct_func_sig_via_mcp(
+                        session=AsyncMock(),
+                        new_path=str(Path(temp_dir) / "Foo.windows.yaml"),
+                        image_base=0x180000000,
+                        platform="windows",
+                        func_name="Foo",
+                        direct_func_va="0x180002000",
+                        require_func_sig=True,
+                        debug=False,
+                    )
+
+        self.assertIn("0x180002000", str(ctx.exception))
+        self.assertIn("ret_nullsub", str(ctx.exception))
+
+    async def test_direct_func_sig_skips_signature_when_not_required(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with (
+                patch.object(
+                    ida_analyze_util,
+                    "_get_func_basic_info_via_mcp",
+                    AsyncMock(
+                        return_value={
+                            "func_va": "0x180001000",
+                            "func_rva": "0x1000",
+                            "func_size": "0x5",
+                        }
+                    ),
+                ),
+                patch.object(
+                    ida_analyze_util,
+                    "preprocess_gen_func_sig_via_mcp",
+                    AsyncMock(),
+                ) as mock_gen_sig,
+            ):
+                result = await ida_analyze_util._preprocess_direct_func_sig_via_mcp(
+                    session=AsyncMock(),
+                    new_path=str(Path(temp_dir) / "Foo.windows.yaml"),
+                    image_base=0x180000000,
+                    platform="windows",
+                    func_name="Foo",
+                    direct_func_va="0x180001000",
+                    require_func_sig=False,
+                    debug=False,
+                )
+
+        self.assertIsNotNone(result)
+        assert result is not None
+        self.assertNotIn("func_sig", result)
+        self.assertEqual("0x180001000", result["func_va"])
+        mock_gen_sig.assert_not_awaited()
+
+    async def test_direct_func_sig_still_fails_on_real_generation_failure(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with (
+                patch.object(
+                    ida_analyze_util,
+                    "_get_func_basic_info_via_mcp",
+                    AsyncMock(
+                        return_value={
+                            "func_va": "0x180002000",
+                            "func_rva": "0x2000",
+                            "func_size": "0x3",
+                        }
+                    ),
+                ),
+                patch.object(
+                    ida_analyze_util,
+                    "preprocess_gen_func_sig_via_mcp",
+                    AsyncMock(return_value={"func_va": "0x180002000", "func_sig": None}),
+                ),
+            ):
+                result = await ida_analyze_util._preprocess_direct_func_sig_via_mcp(
+                    session=AsyncMock(),
+                    new_path=str(Path(temp_dir) / "Foo.windows.yaml"),
+                    image_base=0x180000000,
+                    platform="windows",
+                    func_name="Foo",
+                    direct_func_va="0x180002000",
+                    require_func_sig=True,
+                    debug=False,
+                )
+
+        self.assertIsNone(result)
+
+
+    def test_func_artifact_accepts_func_sig_skip_degenerate(self) -> None:
+        payload = {
+            "func_name": "Foo",
+            "func_va": "0x180100000",
+            "func_rva": "0x100000",
+            "func_size": "0x5",
+            "func_sig_skip_degenerate": True,
+        }
+
+        normalized = ida_analyze_util.normalize_symbol_artifact(payload, category="func")
+
+        self.assertTrue(normalized["func_sig_skip_degenerate"])
+        self.assertNotIn("func_sig", normalized)
+
+
 class TestGenerateYamlDesiredFieldsContract(unittest.IsolatedAsyncioTestCase):
     async def test_preprocess_common_skill_rejects_missing_generate_yaml_desired_fields(
         self,
@@ -14120,6 +14306,248 @@ class TestAlreadyGeneratedTargetSkip(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(result)
         struct_mock.assert_awaited_once()
         mock_write.assert_called_once()
+
+
+class TestAmbiguousFuncSigVtableSlotRecovery(unittest.IsolatedAsyncioTestCase):
+    """A non-unique old func_sig must fall back to the old vtable slot, and the
+    slot entry has to be one of the signature matches."""
+
+    FUNC_SIG = (
+        "55 48 89 E5 41 55 49 89 D5 41 54 49 89 F4 53 48 89 FB "
+        "48 83 EC ?? 48 8D 05 ?? ?? ?? ?? 48 8B 38 48 8B 07 FF 90 ?? ?? ?? ??"
+    )
+    SLOT_ADDR = "0x172a1c0"
+    SIBLING_ADDR = "0x172b000"
+
+    def _write_old_yaml(self, temp_dir: str, *, with_vtable_metadata: bool) -> Path:
+        payload: dict[str, object] = {
+            "func_name": "CLoopModeGame_OnLoopActivate",
+            "func_va": self.SLOT_ADDR,
+            "func_rva": self.SLOT_ADDR,
+            "func_size": "0x1a6",
+            "func_sig": self.FUNC_SIG,
+        }
+        if with_vtable_metadata:
+            payload.update(
+                {
+                    "vtable_name": "CLoopModeGame",
+                    "vfunc_offset": "0x10",
+                    "vfunc_index": 2,
+                }
+            )
+        old_path = Path(temp_dir) / "old" / "CLoopModeGame_OnLoopActivate.linux.yaml"
+        old_path.parent.mkdir(parents=True, exist_ok=True)
+        _write_yaml(old_path, payload)
+        return old_path
+
+    def _make_session(self, *, sig_matches: list[str]):
+        counts = {"py_eval": 0}
+
+        async def _session_call_tool(*, name: str, arguments: dict[str, object]):
+            if name == "find_bytes":
+                if arguments["limit"] == 2:
+                    return _FakeCallToolResult(
+                        [{"matches": [self.SLOT_ADDR, self.SIBLING_ADDR], "n": 2}]
+                    )
+                return _FakeCallToolResult(
+                    [{"matches": list(sig_matches), "n": len(sig_matches)}]
+                )
+            if name == "py_eval":
+                counts["py_eval"] += 1
+                return _py_eval_payload(
+                    {"func_va": self.SLOT_ADDR, "func_size": "0x1a6"}
+                )
+            raise AssertionError(f"unexpected MCP tool: {name}")
+
+        session = AsyncMock()
+        session.call_tool.side_effect = _session_call_tool
+        return session, counts
+
+    async def _run_reuse(self, *, sig_matches, with_vtable_metadata: bool = True):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            old_path = self._write_old_yaml(
+                temp_dir,
+                with_vtable_metadata=with_vtable_metadata,
+            )
+            new_dir = Path(temp_dir) / "new"
+            new_dir.mkdir(parents=True, exist_ok=True)
+            _write_yaml(
+                new_dir / "CLoopModeGame_vtable.linux.yaml",
+                {
+                    "vtable_name": "CLoopModeGame",
+                    "vtable_entries": {2: self.SLOT_ADDR},
+                },
+            )
+            new_path = new_dir / "CLoopModeGame_OnLoopActivate.linux.yaml"
+            session, counts = self._make_session(sig_matches=sig_matches)
+            with patch.object(
+                ida_analyze_util,
+                "preprocess_gen_func_sig_via_mcp",
+                AsyncMock(return_value={"func_sig": "AA BB CC"}),
+            ) as mock_gen:
+                result = await ida_analyze_util.preprocess_func_sig_via_mcp(
+                    session=session,
+                    new_path=str(new_path),
+                    old_path=str(old_path),
+                    image_base=0,
+                    new_binary_dir=str(new_dir),
+                    platform="linux",
+                    debug=True,
+                )
+        return result, counts, mock_gen
+
+    async def test_resolves_via_vtable_slot_and_regenerates_sig(self) -> None:
+        result, counts, mock_gen = await self._run_reuse(
+            sig_matches=[self.SLOT_ADDR, self.SIBLING_ADDR],
+        )
+
+        self.assertIsNotNone(result)
+        assert result is not None
+        self.assertEqual(self.SLOT_ADDR, result["func_va"])
+        self.assertEqual(self.SLOT_ADDR, result["func_rva"])
+        self.assertEqual("0x1a6", result["func_size"])
+        self.assertEqual("AA BB CC", result["func_sig"])
+        self.assertEqual("CLoopModeGame", result["vtable_name"])
+        self.assertEqual("0x10", result["vfunc_offset"])
+        self.assertEqual(2, result["vfunc_index"])
+        mock_gen.assert_awaited_once()
+
+    async def test_rejects_slot_that_is_not_a_signature_match(self) -> None:
+        result, counts, mock_gen = await self._run_reuse(
+            sig_matches=["0x111", "0x222"],
+        )
+
+        self.assertIsNone(result)
+        self.assertEqual(0, counts["py_eval"])
+        mock_gen.assert_not_awaited()
+
+    async def test_skips_slot_fallback_without_vtable_metadata(self) -> None:
+        result, counts, mock_gen = await self._run_reuse(
+            sig_matches=[self.SLOT_ADDR, self.SIBLING_ADDR],
+            with_vtable_metadata=False,
+        )
+
+        self.assertIsNone(result)
+        self.assertEqual(0, counts["py_eval"])
+        mock_gen.assert_not_awaited()
+
+
+class TestUndefinedFuncRecovery(unittest.IsolatedAsyncioTestCase):
+    """Autoanalysis can leave a moved function undefined; a unique old func_sig
+    match must define it before function info can be resolved."""
+
+    FUNC_SIG = "83 BA ?? ?? ?? ?? ?? 0F 8E ?? ?? ?? ?? 55 66 0F EF C0"
+    MATCH_ADDR = "0x5096a0"
+
+    def _write_old_yaml(self, temp_dir: str) -> Path:
+        old_path = Path(temp_dir) / "CNetworkGameServerBase_OnKickByName.linux.yaml"
+        _write_yaml(
+            old_path,
+            {
+                "func_name": "CNetworkGameServerBase_OnKickByName",
+                "func_va": "0x4fc940",
+                "func_rva": "0x4fc940",
+                "func_size": "0x13e",
+                "func_sig": self.FUNC_SIG,
+            },
+        )
+        return old_path
+
+    def _make_session(self, *, probe_status: str, resolve_after_define: bool):
+        calls: list[str] = []
+        define_args: list[object] = []
+        get_func_info_calls: list[int] = []
+
+        async def _session_call_tool(*, name: str, arguments: dict[str, object]):
+            calls.append(name)
+            if name == "find_bytes":
+                self.assertEqual([self.FUNC_SIG], arguments["patterns"])
+                return _FakeCallToolResult([{"matches": [self.MATCH_ADDR], "n": 1}])
+            if name == "define_func":
+                define_args.append(arguments)
+                return _FakeCallToolResult({})
+            if name == "py_eval":
+                code = str(arguments["code"])
+                if "get_full_flags" in code:
+                    return _py_eval_payload({"status": probe_status})
+                if "f.start_ea == addr" in code:
+                    get_func_info_calls.append(1)
+                    if len(get_func_info_calls) > 1 and resolve_after_define:
+                        return _py_eval_payload(
+                            {"func_va": self.MATCH_ADDR, "func_size": "0x140"}
+                        )
+                    return _py_eval_payload(None)
+                if "get_func(code_addr)" in code:
+                    return _py_eval_payload(
+                        {"status": "resolved", "func_start": self.MATCH_ADDR}
+                    )
+                raise AssertionError(f"unexpected py_eval code: {code}")
+            raise AssertionError(f"unexpected MCP tool: {name}")
+
+        session = AsyncMock()
+        session.call_tool.side_effect = _session_call_tool
+        return session, calls, define_args
+
+    async def _run_reuse(self, *, probe_status: str, resolve_after_define: bool):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            old_path = self._write_old_yaml(temp_dir)
+            new_path = Path(temp_dir) / "CNetworkGameServerBase_OnKickByName.new.linux.yaml"
+            session, calls, define_args = self._make_session(
+                probe_status=probe_status,
+                resolve_after_define=resolve_after_define,
+            )
+            result = await ida_analyze_util.preprocess_func_sig_via_mcp(
+                session=session,
+                new_path=str(new_path),
+                old_path=str(old_path),
+                image_base=0,
+                new_binary_dir=temp_dir,
+                platform="linux",
+                debug=True,
+            )
+        return result, calls, define_args
+
+    async def test_defines_undefined_matched_function_then_resolves_info(self) -> None:
+        result, calls, define_args = await self._run_reuse(
+            probe_status="undefined_code",
+            resolve_after_define=True,
+        )
+
+        self.assertIsNotNone(result)
+        assert result is not None
+        self.assertEqual(self.MATCH_ADDR, result["func_va"])
+        self.assertEqual(self.MATCH_ADDR, result["func_rva"])
+        self.assertEqual("0x140", result["func_size"])
+        self.assertEqual(self.FUNC_SIG, result["func_sig"])
+        self.assertEqual({"items": {"addr": self.MATCH_ADDR}}, define_args[0])
+
+    async def test_keeps_existing_function_untouched(self) -> None:
+        result, calls, define_args = await self._run_reuse(
+            probe_status="in_function",
+            resolve_after_define=True,
+        )
+
+        self.assertIsNone(result)
+        self.assertNotIn("define_func", calls)
+        self.assertEqual([], define_args)
+
+    async def test_does_not_define_non_code_address(self) -> None:
+        result, calls, define_args = await self._run_reuse(
+            probe_status="not_code",
+            resolve_after_define=True,
+        )
+
+        self.assertIsNone(result)
+        self.assertNotIn("define_func", calls)
+
+    async def test_fails_closed_when_defined_function_still_has_no_info(self) -> None:
+        result, calls, define_args = await self._run_reuse(
+            probe_status="undefined_code",
+            resolve_after_define=False,
+        )
+
+        self.assertIsNone(result)
+        self.assertIn("define_func", calls)
 
 
 if __name__ == "__main__":

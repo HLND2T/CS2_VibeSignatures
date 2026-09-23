@@ -21,6 +21,7 @@ _SUPPORTED_FIELDS = {
     "func_name",
     "func_sig",
     "func_sig_allow_across_function_boundary",
+    "func_sig_skip_degenerate",
     "func_va",
     "func_rva",
     "func_size",
@@ -550,11 +551,12 @@ async def _build_requested_payload(session, spec, entry, config, image_base, deb
     func_info = await _query_func_info(session, entry["func_va"], debug=debug)
     if not isinstance(func_info, dict):
         _debug(debug, f"failed to query function info for {spec['target_name']}")
-        return None
+        return None, set()
     func_va = str(func_info["func_va"])
     func_va_int = _parse_int(func_va)
     requested_fields = config["desired_output_fields"]
     options = config["generation_options"]
+    skipped_fields = set()
     available = {
         "func_name": spec["target_name"],
         "func_va": func_va,
@@ -570,13 +572,29 @@ async def _build_requested_payload(session, spec, entry, config, image_base, deb
             allow_across_function_boundary=bool(options.get("func_sig_allow_across_function_boundary")),
             debug=debug,
         )
-        if not isinstance(sig_info, dict) or not sig_info.get("func_sig"):
+        if not isinstance(sig_info, dict):
             _debug(debug, f"failed to generate func_sig for {spec['target_name']}")
-            return None
-        available.update({key: sig_info[key] for key in ("func_sig", "func_rva", "func_size") if key in sig_info})
+            return None, skipped_fields
+        if not sig_info.get("func_sig"):
+            # A degenerate body (single jmp/ret) cannot yield a meaningful
+            # func_sig. Members carrying func_sig_skip_degenerate emit metadata
+            # only rather than failing the whole table.
+            if sig_info.get("func_sig_skipped") and options.get("func_sig_skip_degenerate"):
+                _debug(
+                    debug,
+                    f"{spec['target_name']} body is {sig_info['func_sig_skipped']}; omitting func_sig",
+                )
+                skipped_fields.add("func_sig")
+            else:
+                _debug(debug, f"failed to generate func_sig for {spec['target_name']}")
+                return None, skipped_fields
+        else:
+            available.update({key: sig_info[key] for key in ("func_sig", "func_rva", "func_size") if key in sig_info})
     if options.get("func_sig_allow_across_function_boundary"):
         available["func_sig_allow_across_function_boundary"] = True
-    return {field: available[field] for field in requested_fields if field in available}
+    if options.get("func_sig_skip_degenerate"):
+        available["func_sig_skip_degenerate"] = True
+    return {field: available[field] for field in requested_fields if field in available}, skipped_fields
 
 
 async def preprocess_script_desc_internal_skill(
@@ -619,8 +637,10 @@ async def preprocess_script_desc_internal_skill(
         if entry is None or config is None:
             _debug(debug, f"missing script entry or desired fields for {spec}")
             return False
-        payload = await _build_requested_payload(session, spec, entry, config, image_base, debug=debug)
-        if payload is None or set(payload) != set(config["desired_output_fields"]):
+        payload, skipped_fields = await _build_requested_payload(
+            session, spec, entry, config, image_base, debug=debug
+        )
+        if payload is None or set(payload) != set(config["desired_output_fields"]) - skipped_fields:
             _debug(debug, f"incomplete payload for {spec['target_name']}")
             return False
         write_func_yaml(output_paths[spec["target_name"]], payload)
