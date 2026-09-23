@@ -577,6 +577,10 @@ modules:
         category: vfunc
         alias:
           - CNetworkSystem::BufferToBufferDecompress
+      - name: CNetworkSystem_GetLocalAdr
+        category: vfunc
+        alias:
+          - CNetworkSystem::GetLocalAdr
       - name: CNetworkSystem_CloseAllSockets
         category: vfunc
         alias:
@@ -1563,6 +1567,11 @@ modules:
       - name: find-INetworkGameServer_GetServerNetworkAddress
         expected_output:
           - INetworkGameServer_GetServerNetworkAddress.{platform}.yaml
+        expected_input:
+          - CNetworkGameServerBase_Init.{platform}.yaml
+      - name: find-INetworkSystem_GetLocalAdr
+        expected_output:
+          - INetworkSystem_GetLocalAdr.{platform}.yaml
         expected_input:
           - CNetworkGameServerBase_Init.{platform}.yaml
       - name: find-ISource2Server_PreWorldUpdate
@@ -4200,6 +4209,10 @@ modules:
         category: vfunc
         alias:
           - INetworkSystem::InitNetworkSystem
+      - name: INetworkSystem_GetLocalAdr
+        category: vfunc
+        alias:
+          - INetworkSystem::GetLocalAdr
       - name: CEngineServiceMgr_RegisterEngineService
         category: vfunc
         alias:
@@ -13999,6 +14012,19 @@ modules:
         expected_input:
           - CNetworkSystem_vtable.{platform}.yaml
           - ../engine/INetworkSystem_BufferToBufferDecompress.{platform}.yaml
+      - name: find-CNetworkSystem_GetLocalAdr
+        platform: windows
+        expected_output:
+          - CNetworkSystem_GetLocalAdr.{platform}.yaml
+        expected_input:
+          - CNetworkSystem_vtable.{platform}.yaml
+          - ../engine/INetworkSystem_GetLocalAdr.{platform}.yaml
+      - name: find-CNetworkSystem_GetLocalAdr-linux
+        platform: linux
+        expected_output:
+          - CNetworkSystem_GetLocalAdr.{platform}.yaml
+        expected_input:
+          - ../engine/INetworkSystem_GetLocalAdr.{platform}.yaml
       - name: find-CNetworkSystem_PrintNetworkStats
         expected_output:
           - CNetworkSystem_PrintNetworkStats.{platform}.yaml
