@@ -52,3 +52,4 @@ permalink: cs2-vibesignatures/vfunc-sig
 - Slot `0x0` may be implicit in machine code such as `call qword ptr [rax]`; `preprocess_gen_vfunc_sig_via_mcp` accepts this only for `call`/`jmp` memory operands without encoded displacement and reports `vfunc_disp_size: 0`.
 - `vfunc_sig_allow_across_function_boundary` expands generation breadth only; it does not change the slot-specific first-instruction requirement or the vtable-based relocation flow, except for the explicit implicit-zero-slot case.
 - Reject non-unique or over-broad signatures.
+- `vfunc_sig`/`vfunc_sig_disp` may legitimately differ between two runs that picked different vcall sites for the same slot; PR and Release validation tolerate exactly that while pinning `vfunc_offset`/`vfunc_index` and `func_va`. Read [[anchor_drift]] before relying on these fields being reproducible.

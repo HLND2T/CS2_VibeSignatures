@@ -11,8 +11,10 @@ import re
 import subprocess
 import sys
 import tempfile
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
+from types import MappingProxyType
 
 import yaml
 
@@ -31,10 +33,11 @@ from bin_artifact_contract import (
     _category_map,
     build_game_artifact_inventory,
 )
+from gamesymbol_snapshot_lib.anchor_drift import accepted_anchor_drift, format_anchor_drift
 from gamesymbol_snapshot_lib.config import load_contract
-from gamesymbol_snapshot_lib.errors import SnapshotConfigError
+from gamesymbol_snapshot_lib.errors import SnapshotConfigError, SnapshotSchemaError
 from gamesymbol_snapshot_lib.model import ChangedPath
-from gamesymbol_snapshot_lib.paths import is_reparse_point, validate_snapshot_key
+from gamesymbol_snapshot_lib.paths import is_reparse_point, path_from_key, validate_snapshot_key
 from gamesymbol_snapshot_lib.pr_validation import build_invalidation_plan, required_source_index_sides
 from gamever_baseline import gamever_order_key, select_prior_gamever
 from ida_analyze_util import SymbolArtifactError, canonical_symbol_yaml_bytes
@@ -1272,7 +1275,23 @@ def _prepare_isolated_rebuild(
     return report
 
 
-def _load_force_all_execution_report(path: Path, *, preparation: dict, version: dict) -> dict:
+def _expected_output_sha256(
+    expected: dict | None, artifact_path: str, accepted_drift_sha256: Mapping[str, str]
+) -> str | None:
+    """Return the sha256 one producer group must report for its artifact.
+
+    An accepted anchor drift substitutes the rebuilt payload's own sha256, so the
+    report still has to name the bytes that were actually written; a legally absent
+    optional output keeps ``None``.
+    """
+    if expected is None:
+        return None
+    return accepted_drift_sha256.get(artifact_path, expected["sha256"])
+
+
+def _load_force_all_execution_report(
+    path: Path, *, preparation: dict, version: dict, accepted_drift_sha256: Mapping[str, str] = MappingProxyType({})
+) -> dict:
     try:
         raw = path.read_bytes()
         report = json.loads(raw.decode("utf-8"))
@@ -1323,7 +1342,7 @@ def _load_force_all_execution_report(path: Path, *, preparation: dict, version: 
         if record is None:
             raise TrustedArtifactPrError(f"selected producer group was not executed: {planned['group_id']}")
         expected = expected_files.get(planned["artifact_path"])
-        expected_sha256 = expected["sha256"] if expected is not None else None
+        expected_sha256 = _expected_output_sha256(expected, planned["artifact_path"], accepted_drift_sha256)
         if (
             record.get("artifact_path") != planned["artifact_path"]
             or record.get("required") != planned["required"]
@@ -1376,7 +1395,14 @@ def _is_verified_attempt_status(
     return True
 
 
-def _load_selected_execution_report(path: Path, *, preparation: dict, version: dict, plan: dict) -> dict:
+def _load_selected_execution_report(
+    path: Path,
+    *,
+    preparation: dict,
+    version: dict,
+    plan: dict,
+    accepted_drift_sha256: Mapping[str, str] = MappingProxyType({}),
+) -> dict:
     try:
         raw = path.read_bytes()
         report = json.loads(raw.decode("utf-8"))
@@ -1413,13 +1439,15 @@ def _load_selected_execution_report(path: Path, *, preparation: dict, version: d
     ):
         raise TrustedArtifactPrError(f"selected execution report does not prove the required PR run for {gamever}")
 
-    validate_selected_execution_records(report, version)
+    validate_selected_execution_records(report, version, accepted_drift_sha256=accepted_drift_sha256)
     if report.get("inherited_initial_inventory_sha256") != preparation["initial_actual_inventory_sha256"].get(gamever):
         raise TrustedArtifactPrError(f"selected execution report lost the seeded-root binding for {gamever}")
     return report
 
 
-def validate_selected_execution_records(report: dict, version: dict) -> None:
+def validate_selected_execution_records(
+    report: dict, version: dict, *, accepted_drift_sha256: Mapping[str, str] = MappingProxyType({})
+) -> None:
     """Validate group/node coverage and writes; callers must separately bind provenance and roots."""
     gamever = version["game_version"]
     expected_files = {
@@ -1446,7 +1474,7 @@ def validate_selected_execution_records(report: dict, version: dict) -> None:
     for group_id, planned in planned_groups.items():
         record = groups_by_id[group_id]
         expected = expected_files.get(planned["artifact_path"])
-        expected_sha256 = expected["sha256"] if expected is not None else None
+        expected_sha256 = _expected_output_sha256(expected, planned["artifact_path"], accepted_drift_sha256)
         if (
             record.get("artifact_path") != planned["artifact_path"]
             or record.get("required") != planned["required"]
@@ -1626,6 +1654,48 @@ def _verify_inherited_paths_against_base(repo: GitTreeRepository, plan: dict, ve
             )
 
 
+def _accepted_isolated_drift(
+    version: dict, expected_root: Path, actual_root: Path
+) -> tuple[dict[str, dict], dict[str, str]]:
+    """Return the accepted anchor drift plus the rebuilt sha256 of every drifted artifact.
+
+    A rebuilt payload may differ from the prospective merge tree only inside its
+    anchor group, and only while the symbol identity and its resolved address or
+    offset match. This never raises and never reports a partial verdict: an
+    unreadable tree or a non-anchor difference simply yields no accepted drift, and
+    the inventory, byte and contract gates below report the real failure.
+    """
+    gamever = version["game_version"]
+    prefix = f"bin_artifacts/{gamever}/"
+
+    def read(game_root: Path, key: str) -> bytes | None:
+        if not key.startswith(prefix):
+            return None
+        try:
+            return path_from_key(game_root, key.removeprefix(prefix)).read_bytes()
+        except (OSError, SnapshotSchemaError):
+            return None
+
+    expected_game_root = expected_root / gamever
+    actual_game_root = actual_root / gamever
+    expected = {item["path"]: (item["size"], item["sha256"]) for item in version["merge_artifacts"]["files"]}
+    actual: dict[str, tuple[int, str]] = {}
+    for key in expected:
+        raw = read(actual_game_root, key)
+        if raw is None:
+            return {}, {}
+        actual[key] = (len(raw), _sha256(raw))
+    drift = accepted_anchor_drift(
+        expected,
+        actual,
+        read_expected=lambda key: read(expected_game_root, key),
+        read_actual=lambda key: read(actual_game_root, key),
+    )
+    if drift is None:
+        return {}, {}
+    return drift, {key.removeprefix(prefix): actual[key][1] for key in drift}
+
+
 def _validate_isolated_rebuild(
     *, repo_root: str | Path, plan: dict | str | Path, preparation: dict | str | Path
 ) -> dict:
@@ -1660,16 +1730,21 @@ def _validate_isolated_rebuild(
         gamever = version["game_version"]
         if gamever not in preparation["prepared_game_versions"]:
             continue
+        drift, drift_sha256 = _accepted_isolated_drift(version, expected_root, actual_root)
         if strategy == BASE_INHERITED_SELECTED_STRATEGY:
             execution = _load_selected_execution_report(
                 Path(preparation["execution_reports"][gamever]),
                 preparation=preparation,
                 version=version,
                 plan=plan,
+                accepted_drift_sha256=drift_sha256,
             )
         else:
             execution = _load_force_all_execution_report(
-                Path(preparation["execution_reports"][gamever]), preparation=preparation, version=version
+                Path(preparation["execution_reports"][gamever]),
+                preparation=preparation,
+                version=version,
+                accepted_drift_sha256=drift_sha256,
             )
         try:
             actual = build_game_artifact_inventory(
@@ -1690,7 +1765,7 @@ def _validate_isolated_rebuild(
             )
         for path, expected in expected_items.items():
             actual_item = actual_items[path]
-            if actual_item.size != expected["size"] or actual_item.sha256 != expected["sha256"]:
+            if (actual_item.size != expected["size"] or actual_item.sha256 != expected["sha256"]) and path not in drift:
                 raise TrustedArtifactPrError(f"isolated artifact byte mismatch: {path}")
             relative = path.removeprefix(f"bin_artifacts/{gamever}/")
             raw = (expected_root / gamever / relative).read_bytes()
@@ -1707,6 +1782,8 @@ def _validate_isolated_rebuild(
             _verify_inherited_paths_against_base(repo, plan, version, actual_root)
             inherited_count = len(version["inherit_paths"])
             removed_count = len(version["removed_paths"])
+        for path in sorted(drift):
+            print(f"Anchor drift accepted for {path}: {format_anchor_drift(drift[path])}")
         reports.append(
             {
                 "game_version": gamever,

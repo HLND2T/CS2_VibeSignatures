@@ -7,19 +7,20 @@ permalink: cs2-vibesignatures/build-on-self-runner
 # Build On Self Runner
 
 ## Overview
-`.github/workflows/build-on-self-runner.yml` is the credential-minimized Release producer for an immutable default-branch source SHA. It performs a fresh full `-force_all -rename` rebuild against tracked `bin_artifacts`, derives release-local assets and a credential-free BinSync candidate, then hands exact bytes to hosted verification and protected publishers.
+`.github/workflows/build-on-self-runner.yml` is the credential-minimized Release producer for an immutable default-branch source SHA. It performs a fresh full `-force_all -rename` rebuild against tracked `bin_artifacts`, derives release-local assets and a credential-free BinSync candidate from the committed tree, then hands exact bytes to hosted verification and protected publishers.
 ## Responsibilities
 - Preflight an allowlisted repository/source SHA, complete GAMEVER artifact inventory, binary/download identity, and the
   exact `hl2sdk_cs2` gitlink stored in that source commit.
 - Restore binary-only accepted state and the exact warm IDB generation.
-- Rebuild the complete GAMEVER in an empty checkout-external artifact root and compare every byte with Git truth.
+- Rebuild the complete GAMEVER in an empty checkout-external artifact root and compare it with Git truth under the anchor drift contract; derive every published asset from the committed `bin_artifacts` tree.
 - Apply rename/comment side effects only to release-local IDB/BinSync state; prove no remote ref changed during build.
 - Generate snapshot, metadata, gamedata, C++ evidence, archives, checksums, Release manifest, and canonical BinSync bundles.
 - Upload stable run-id candidate artifacts for hosted verification; hold no source/BinSync/Release write credential.
 ## Involved Files & Symbols
 - `.github/workflows/build-on-self-runner.yml` - preflight, warmup, build, verify, and publisher DAG.
 - `release_source_preflight.py`, `release_artifact_rebuild.py` - immutable source and fresh rebuild contracts.
-- `release_bundle.py` - exact archive/manifest construction and hosted verification.
+- `release_bundle.py` - exact archive/manifest construction and hosted verification; the published artifact root is always tracked `bin_artifacts`.
+- `gamesymbol_snapshot_lib/anchor_drift.py` - which rebuilt fields may differ from Git truth; read [[anchor_drift]] before changing what the release byte gate tolerates or where published assets are derived from.
 - `binsync_candidate.py`, `binsync_verify.py`, `binsync_publish.py` - credential-free candidate, hosted proof, protected fast-forward publication.
 - `release_publish.py`, `.github/workflows/publish-release-bundle.yml` - immutable tag/assets publisher.
 - `pages_release_input.py` - published Release to Pages handoff.
@@ -28,8 +29,8 @@ permalink: cs2-vibesignatures/build-on-self-runner
 immutable main SHA preflight
   -> exact warm IDB restore
   -> empty-root full -force_all -rename rebuild
-  -> actual artifacts == Git blobs
-  -> release-local snapshot/gamedata/C++/archives + BinSync bundles
+  -> actual artifacts == Git blobs modulo accepted anchor drift
+  -> release-local snapshot/gamedata/C++/archives + BinSync bundles from committed bin_artifacts
   -> hosted verification
   -> protected fast-forward BinSync publish
   -> protected immutable Release publish

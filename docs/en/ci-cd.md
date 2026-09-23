@@ -4,11 +4,34 @@
 
 ## Pull requests and Merge Queue
 
-`source-artifact-required.yml` runs the default-branch planner against the exact prospective merge tree. Light changes run hosted tests. Full changes compute affected producer groups and downstream closure, then `pr-self-runner.yml` performs an empty-root rebuild for every affected GAMEVER and compares the result byte-for-byte with `bin_artifacts` Git blobs.
+`source-artifact-required.yml` runs the default-branch planner against the exact prospective merge tree. Light changes run hosted tests. Full changes compute affected producer groups and downstream closure, then `pr-self-runner.yml` performs an empty-root rebuild for every affected GAMEVER and compares the result with `bin_artifacts` Git blobs under the [anchor drift contract](#anchor-drift-contract).
 
 Source/config/reference PRs therefore include their computed `bin_artifacts` changes. PR CI never writes `gamesymbols/`, `gamedata/`, or release manifests back to the branch. New GAMEVER bootstrap is the only source-branch writer: a hosted, environment-protected publisher may fast-forward only `bump-download/<GAMEVER>`, and the artifact-bearing head must pass validation again.
 
 The stable required checks are `source-artifact-required` and `pr-validate`. Merge Queue validation must additionally be installed as a GitHub ruleset Required Workflow (or another external trust root) so a prospective workflow change cannot self-report the required check.
+
+## Anchor drift contract
+
+An `LLM_DECOMPILE` producer asks the model to pick one reference instruction and then expands a deterministic
+signature from it, so two equally rule-conformant runs may sample different instructions for the same symbol. PR and
+Release validation therefore compare a rebuilt artifact against Git truth under one rule: the symbol identity and the
+resolved address or offset must match byte-for-byte, and only the fields describing *how* the symbol was located may
+differ.
+
+| category | may drift | pinned |
+| --- | --- | --- |
+| `gv` | `gv_sig`, `gv_sig_va`, `gv_inst_offset`, `gv_inst_length`, `gv_inst_disp` | `gv_name`, `gv_va`, `gv_rva` |
+| `vfunc` | `vfunc_sig`, `vfunc_sig_disp` | `func_name`, `func_va/rva/size`, `func_sig`, `vtable_name`, `vfunc_offset`, `vfunc_index` |
+| `structmember` | `offset_sig`, `offset_sig_disp` | `struct_name`, `member_name`, `offset`, `size` |
+| `func`, `vtable`, `patch` | nothing | every field |
+
+Search-policy switches (`*_max_match`, `*_allow_across_function_boundary`) stay pinned: tolerating them would accept a
+different search rather than an equivalent sampling of the same one. An artifact that omits its resolved fact keeps the
+byte-exact gate, because there the signature is the only truth. Every accepted drift is printed per artifact, and any
+other difference still fails closed.
+
+Because a rebuild may legitimately differ from the checkout, it is reproducibility evidence only: the snapshot, gamedata,
+BinSync projection, and archives a Release publishes are all derived from the committed `bin_artifacts` tree.
 
 ## Warm IDB and accepted binaries
 
@@ -19,7 +42,7 @@ PR and Release analysis call `warmup-idb.yml`. It binds configured binary hashes
 After a version source commit reaches the default branch:
 
 1. Source preflight proves the configured GAMEVER has a complete tracked artifact tree.
-2. A self-hosted builder performs fresh `-force_all -rename`, verifies exact artifact bytes, and creates credential-free BinSync and Release candidates.
+2. A self-hosted builder performs fresh `-force_all -rename`, verifies the rebuilt artifacts against the tracked tree under the [anchor drift contract](#anchor-drift-contract), and creates credential-free BinSync and Release candidates from the committed `bin_artifacts`.
 3. Hosted jobs independently verify candidate bundles, archive allowlists, manifests, checksums, C++ evidence, and BinSync target-state identity.
 4. The protected BinSync publisher performs fast-forward-only ref updates.
 5. The protected Release publisher creates/reuses the source tag, uploads exact immutable assets, publishes once, and dispatches Pages.

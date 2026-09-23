@@ -4,11 +4,26 @@
 
 ## Pull Request 与 Merge Queue
 
-`source-artifact-required.yml` 使用 default-branch planner 绑定 exact prospective merge tree。light change 运行 hosted tests；full change 计算 affected producer groups 与 downstream closure，再由 `pr-self-runner.yml` 对每个 affected GAMEVER 执行 empty-root rebuild，并与 `bin_artifacts` Git blobs 逐字节比较。
+`source-artifact-required.yml` 使用 default-branch planner 绑定 exact prospective merge tree。light change 运行 hosted tests；full change 计算 affected producer groups 与 downstream closure，再由 `pr-self-runner.yml` 对每个 affected GAMEVER 执行 empty-root rebuild，并按 [anchor drift 契约](#anchor-drift-契约)与 `bin_artifacts` Git blobs 比较。
 
 因此 source/config/reference PR 必须同时包含计算出的 `bin_artifacts` change。PR CI 绝不把 `gamesymbols/`、`gamedata/` 或 release manifest 写回分支。新 GAMEVER bootstrap 是唯一 source-branch writer：受 environment 保护的 hosted publisher 只能 fast-forward `bump-download/<GAMEVER>`，artifact-bearing head 必须再次通过 validation。
 
 稳定 required checks 为 `source-artifact-required` 与 `pr-validate`。Merge Queue 还必须通过 GitHub ruleset Required Workflow（或独立 trust root）安装验证，防止 prospective workflow change 自行伪造同名 check。
+
+## anchor drift 契约
+
+`LLM_DECOMPILE` producer 由模型自行挑选一条参考指令，再由确定性签名生成器从该指令展开签名，因此两次同样合规的运行可能对同一符号采样到不同指令。PR 与 Release validation 因此按同一条规则比较重建产物与 Git truth：符号身份与已解析的地址/偏移必须逐字节一致，只有描述“如何定位该符号”的字段允许不同。
+
+| category | 允许漂移 | 必须钉死 |
+| --- | --- | --- |
+| `gv` | `gv_sig`、`gv_sig_va`、`gv_inst_offset`、`gv_inst_length`、`gv_inst_disp` | `gv_name`、`gv_va`、`gv_rva` |
+| `vfunc` | `vfunc_sig`、`vfunc_sig_disp` | `func_name`、`func_va/rva/size`、`func_sig`、`vtable_name`、`vfunc_offset`、`vfunc_index` |
+| `structmember` | `offset_sig`、`offset_sig_disp` | `struct_name`、`member_name`、`offset`、`size` |
+| `func`、`vtable`、`patch` | 无 | 全部字段 |
+
+搜索策略开关（`*_max_match`、`*_allow_across_function_boundary`）保持钉死：放松它们等于接受一次不同的搜索，而不是同一次搜索的等价采样。缺少已解析事实的 artifact 仍走逐字节门禁，因为此时签名本身就是唯一真相。每一条被接受的漂移都会按 artifact 打印，其余差异一律 fail closed。
+
+由于重建产物可能与 checkout 合法地不一致，它只作为可复现性证据：Release 发布的 snapshot、gamedata、BinSync projection 与 archive 全部来自已提交的 `bin_artifacts` 树。
 
 ## Warm IDB 与 accepted binaries
 
@@ -19,7 +34,7 @@ PR 与 Release analysis 都调用 `warmup-idb.yml`，将 configured binary hashe
 version source commit 进入 default branch 后：
 
 1. source preflight 证明目标 GAMEVER 有完整 tracked artifact tree；
-2. self-hosted builder 执行 fresh `-force_all -rename`，验证 exact artifact bytes，并生成无凭证的 BinSync/Release candidates；
+2. self-hosted builder 执行 fresh `-force_all -rename`，按 [anchor drift 契约](#anchor-drift-契约)校验重建产物与 tracked tree，并从已提交的 `bin_artifacts` 生成无凭证的 BinSync/Release candidates；
 3. hosted jobs 独立验证 candidate bundles、archive allowlists、manifest、checksums、C++ evidence 与 BinSync target-state identity；
 4. protected BinSync publisher 只执行 fast-forward ref updates；
 5. protected Release publisher 创建/复用 source tag，上传 exact immutable assets，发布一次并 dispatch Pages；

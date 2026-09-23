@@ -319,6 +319,10 @@ jobs:
           "RELEASE_REBUILD_PREPARATION=$preparation" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
           "RELEASE_REBUILD_VERIFICATION=$verification" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
           "ACTUAL_ARTIFACT_ROOT=$($document.actual_artifact_root)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          # The rebuild only proves reproducibility, and its artifacts may carry an accepted anchor drift, so
+          # everything a Release publishes is derived from the committed tree instead.
+          $releaseRoot = Join-Path "${{ github.workspace }}" "bin_artifacts"
+          "RELEASE_ARTIFACT_ROOT=$releaseRoot" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
           "FORCE_ALL_EXECUTION_REPORT=$($document.execution_report)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
           $diagnostics = Join-Path $env:RUNNER_TEMP "release-rebuild-diagnostics\${{ github.run_id }}-${{ github.run_attempt }}-$env:GAMEVER"
           "RELEASE_REBUILD_DIAGNOSTICS=$diagnostics" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
@@ -338,7 +342,7 @@ jobs:
           )
           uv run ida_analyze_bin.py @args
           if ($LASTEXITCODE -ne 0) { throw "ida_analyze_bin.py failed with exit code $LASTEXITCODE" }
-      - name: Verify fresh artifacts exactly reproduce immutable Git truth
+      - name: Verify fresh artifacts reproduce immutable Git truth
         id: verify-artifact-rebuild
         if: inputs.source_artifact_mode != 'tracked'
         shell: pwsh
@@ -348,7 +352,7 @@ jobs:
             --preparation "$env:RELEASE_REBUILD_PREPARATION" `
             --output "$env:RELEASE_REBUILD_VERIFICATION" `
             --diagnostics-dir "$env:RELEASE_REBUILD_DIAGNOSTICS"
-          if ($LASTEXITCODE -ne 0) { throw "Fresh release artifacts differ from Git truth." }
+          if ($LASTEXITCODE -ne 0) { throw "Fresh release artifacts differ from Git truth beyond accepted anchor drift." }
       - name: Upload release rebuild verification failure evidence
         if: ${{ inputs.source_artifact_mode != 'tracked' && failure() && steps.verify-artifact-rebuild.outcome == 'failure' }}
         uses: actions/upload-artifact@v4
@@ -372,6 +376,7 @@ jobs:
           $trackedRoot = Join-Path "${{ github.workspace }}" "bin_artifacts"
           "RELEASE_TRACKED_BINDING=$binding" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
           "ACTUAL_ARTIFACT_ROOT=$trackedRoot" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "RELEASE_ARTIFACT_ROOT=$trackedRoot" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Prepare local-only BinSync candidate without remote writes
         id: binsync-prepare
         if: inputs.source_artifact_mode != 'tracked'
@@ -382,7 +387,7 @@ jobs:
           uv run python push_binsync_symbols.py "$env:GAMEVER" `
             --prepare-only `
             --candidate-dir "$candidate" `
-            --artifactdir "$env:ACTUAL_ARTIFACT_ROOT" `
+            --artifactdir "$env:RELEASE_ARTIFACT_ROOT" `
             --preparation "$env:RELEASE_REBUILD_PREPARATION" `
             --release-version "$env:GAMEVER" `
             --build-id "$env:BUILD_ID" `
@@ -413,7 +418,7 @@ jobs:
           "CANDIDATE_METADATA=$metadata" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
           "CPP_VALIDATION_LOG=$cppLog" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
           uv run gamesymbol_candidate.py build -gamever "$env:GAMEVER" -bindir bin `
-            -artifactdir "$env:ACTUAL_ARTIFACT_ROOT" -configyaml "$env:ANALYSIS_CONFIG" `
+            -artifactdir "$env:RELEASE_ARTIFACT_ROOT" -configyaml "$env:ANALYSIS_CONFIG" `
             -output "$candidate" -session "$session" -last-publish-time "$env:RELEASE_PUBLISH_TIME"
           if ($LASTEXITCODE -ne 0) { throw "candidate build failed with exit code $LASTEXITCODE" }
           uv run gamesymbol_candidate.py guard -candidate "$candidate" -session "$session"

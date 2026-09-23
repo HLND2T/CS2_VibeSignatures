@@ -24,10 +24,11 @@ from artifact_diagnostics import (
     safe_component,
 )
 from bin_artifact_contract import ArtifactContractError, _git_blob_entries, build_game_artifact_inventory
+from gamesymbol_snapshot_lib.anchor_drift import accepted_anchor_drift, format_anchor_drift
 from gamesymbol_snapshot_lib.config import load_contract
-from gamesymbol_snapshot_lib.errors import SnapshotConfigError, SnapshotMismatchError
+from gamesymbol_snapshot_lib.errors import SnapshotConfigError, SnapshotMismatchError, SnapshotSchemaError
 from gamesymbol_snapshot_lib.operations import collect_binary_metadata
-from gamesymbol_snapshot_lib.paths import is_reparse_point
+from gamesymbol_snapshot_lib.paths import is_reparse_point, path_from_key
 
 
 PREPARATION_SCHEMA_VERSION = 2
@@ -230,6 +231,35 @@ def load_release_rebuild_preparation(path: str | Path) -> dict:
     return document
 
 
+def _accepted_anchor_drift(preparation: dict, actual, repo_root: Path) -> dict[str, dict] | None:
+    """Map every drifting rebuilt artifact to its changed anchor fields, or fail closed.
+
+    A rebuilt payload may differ from the immutable Git truth only inside its anchor
+    group, and only while the symbol identity and its resolved address or offset
+    match. The checkout is already proven equal to the source SHA blobs, so it can
+    serve the expected bytes.
+    """
+    game_version = str(preparation["game_version"])
+    prefix = f"bin_artifacts/{game_version}/"
+    expected_game_root = repo_root / "bin_artifacts" / game_version
+    actual_game_root = Path(preparation["actual_artifact_root"]) / game_version
+
+    def read(game_root: Path, key: str) -> bytes | None:
+        if not key.startswith(prefix):
+            return None
+        try:
+            return path_from_key(game_root, key.removeprefix(prefix)).read_bytes()
+        except (OSError, SnapshotSchemaError):
+            return None
+
+    return accepted_anchor_drift(
+        {item["path"]: (item["size"], item["sha256"]) for item in preparation["expected_files"]},
+        {item.path: (item.size, item.sha256) for item in actual.files},
+        read_expected=lambda key: read(expected_game_root, key),
+        read_actual=lambda key: read(actual_game_root, key),
+    )
+
+
 def _load_execution_report(path: Path, preparation: dict) -> dict:
     try:
         raw = path.read_bytes()
@@ -319,10 +349,16 @@ def _verify_release_rebuild(*, repo_root: str | Path, preparation: dict | str | 
         raise ReleaseArtifactRebuildError(f"fresh release artifact contract failed: {exc}") from exc
     actual_files = {item.path: item.to_dict() for item in actual.files}
     expected_files = {item["path"]: item for item in preparation["expected_files"]}
+    drift: dict[str, dict] = {}
     if actual_files != expected_files:
-        raise ReleaseArtifactRebuildError("fresh release artifacts differ from immutable Git truth:")
-    if actual.inventory_sha256 != preparation["expected_artifact_inventory_sha256"]:
+        accepted = _accepted_anchor_drift(preparation, actual, repo_root)
+        if accepted is None:
+            raise ReleaseArtifactRebuildError("fresh release artifacts differ from immutable Git truth:")
+        drift = accepted
+    elif actual.inventory_sha256 != preparation["expected_artifact_inventory_sha256"]:
         raise ReleaseArtifactRebuildError("fresh release aggregate artifact inventory digest mismatch")
+    for path in sorted(drift):
+        print(f"Anchor drift accepted for {path}: {format_anchor_drift(drift[path])}")
     result = {
         "schema_version": 1,
         "source_sha": preparation["source_sha"],
@@ -330,7 +366,10 @@ def _verify_release_rebuild(*, repo_root: str | Path, preparation: dict | str | 
         "preparation_sha256": preparation["preparation_sha256"],
         "binary_lock_sha256": preparation["binary_lock_sha256"],
         "execution_sha256": execution["execution_sha256"],
-        "artifact_inventory_sha256": actual.inventory_sha256,
+        # The rebuild only proves reproducibility. The committed artifacts stay the
+        # release's source truth, so an accepted anchor drift never changes the
+        # inventory a Release binds and publishes.
+        "artifact_inventory_sha256": preparation["expected_artifact_inventory_sha256"],
         "file_count": actual.file_count,
     }
     result["verification_sha256"] = _digest("rebuild-verification", result)

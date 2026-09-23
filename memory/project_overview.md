@@ -39,7 +39,7 @@ source/config/reference + computed bin_artifacts closure
 ## Notes
 - `bin/`, accepted-bin, and warm IDB are disposable binary/cache layers and must contain no artifact truth.
 - PRs never track `gamesymbols/`, `gamedata/`, or `release-manifests/`.
-- New GAMEVER config/download identity and full artifact inventory enter one PR atomically; an artifact-bearing bootstrap head must pass normal exact-byte validation.
+- New GAMEVER config/download identity and full artifact inventory enter one PR atomically; an artifact-bearing bootstrap head must pass normal validation, which is byte-exact apart from the accepted anchor drift contract.
 - Release never repairs or writes Git source truth and same-version published content is immutable.
 ## Callers
 - Repository workflows, project skills, local analysis commands, Release tooling, and Pages deployment.

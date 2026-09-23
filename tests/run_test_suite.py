@@ -56,6 +56,7 @@ RELEASE_INTEGRATION_MODULES = frozenset(
 )
 UNIT_MODULES = frozenset(
     {
+        "test_anchor_drift",
         "test_artifact_diagnostics",
         "test_agent_runner",
         "test_analysis_config",

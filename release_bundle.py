@@ -348,12 +348,11 @@ def build_release_bundle(
         raise ReleaseBundleError("Rebuilt releases require the BinSync candidate and warm IDB identity")
     try:
         preparation_document = load_release_rebuild_preparation(preparation)
-        if tracked_binding is not None:
-            binding = load_tracked_artifact_binding(tracked_binding)
-            binding_mode = TRACKED_BINDING_MODE
-        else:
-            binding = load_release_rebuild_verification(rebuild_verification)
-            binding_mode = "rebuild"
+        binding = (
+            load_tracked_artifact_binding(tracked_binding)
+            if tracked_binding is not None
+            else load_release_rebuild_verification(rebuild_verification)
+        )
     except ReleaseArtifactRebuildError as exc:
         raise ReleaseBundleError(str(exc)) from exc
     source_sha = preparation_document["source_sha"]
@@ -370,12 +369,11 @@ def build_release_bundle(
     ):
         raise ReleaseBundleError("Release source binding does not bind the preparation")
 
-    if binding_mode == TRACKED_BINDING_MODE:
-        actual_artifact_root = repo_root / "bin_artifacts"
-        require_tracked = True
-    else:
-        actual_artifact_root = Path(preparation_document["actual_artifact_root"])
-        require_tracked = False
+    # A rebuild only proves reproducibility, and its artifacts may carry an accepted
+    # anchor drift, so the committed tree stays the published truth in both binding
+    # modes: the bundle can never ship a payload the checkout does not own.
+    actual_artifact_root = repo_root / "bin_artifacts"
+    require_tracked = True
     config_path = repo_root / "configs" / f"{game_version}.yaml"
     try:
         artifact_inventory = build_game_artifact_inventory(

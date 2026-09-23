@@ -43,3 +43,4 @@ permalink: cs2-vibesignatures/offset-sig
 - Non-zero `offset_sig_disp` means the signature starts before the target instruction, but current auto-generation prefers `0`.
 - `offset_sig_allow_across_function_boundary` expands generation breadth only; the relocation path and offset re-derivation logic are unchanged.
 - Weak signatures (too short / too wildcarded) reduce long-term reliability.
+- `offset_sig`/`offset_sig_disp` may legitimately differ between two runs that picked different member-referencing instructions; PR and Release validation tolerate exactly that while pinning `offset`/`size`. Read [[anchor_drift]] before relying on these fields being reproducible.
