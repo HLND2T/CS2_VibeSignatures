@@ -225,15 +225,25 @@ class ReleaseBundleTests(unittest.TestCase):
                     gamedata_candidate_root=inputs["gamedata_candidate"],
                     gamedata_session=temporary_root / "gamedata.session.json",
                     cpp_validation_log=inputs["cpp_log"],
-                    binsync_candidate_root=inputs["binsync_root"],
-                    ida_runtime_identity="IDA 9.2",
-                    warm_idb_generation="generation-1",
-                    warm_idb_cache_key="cache-key-1",
+                    # The rebuild-free path runs no IDA analysis, so it exports no
+                    # BinSync candidate and names no warm IDB generation.
+                    binsync_candidate_root=None,
+                    ida_runtime_identity=None,
+                    warm_idb_generation=None,
+                    warm_idb_cache_key=None,
                     actions_artifact_name=f"release-bundle-{preparation['source_sha']}-1",
                     cpp_sdk_ref=release_bundle.CPP_SDK_REF,
                     cpp_sdk_sha=preparation["sdk_gitlink_sha"],
                 )
                 self.assertEqual("tracked", manifest["full_rebuild"]["binding_mode"])
+                self.assertIsNone(manifest["binsync"])
+                self.assertEqual(
+                    [None, None, None],
+                    [
+                        manifest[field]
+                        for field in ("ida_runtime_identity", "warm_idb_generation", "warm_idb_cache_key")
+                    ],
+                )
                 verified = release_bundle.verify_release_bundle(
                     bundle_root=bundle_root,
                     repo_root=root,
@@ -242,13 +252,83 @@ class ReleaseBundleTests(unittest.TestCase):
                     expected_release_version="1",
                     expected_build_id=preparation["source_sha"],
                     expected_actions_artifact_name=f"release-bundle-{preparation['source_sha']}-1",
-                    expected_binsync_candidate_digest=inputs["binsync_manifest"]["publication_digest"],
-                    expected_binsync_target_state_digest=binsync_candidate.publication_target_state(
-                        inputs["binsync_manifest"]
-                    )["target_state_digest"],
                 )
+                with self.assertRaisesRegex(release_bundle.ReleaseBundleError, "publishes no BinSync candidate"):
+                    release_bundle.verify_release_bundle(
+                        bundle_root=bundle_root,
+                        repo_root=root,
+                        expected_binsync_candidate_digest=inputs["binsync_manifest"]["publication_digest"],
+                    )
             self.assertEqual(preparation["source_sha"], verified["source_sha"])
+            self.assertIsNone(verified["binsync_target_state_digest"])
             release_bundle.validate_release_manifest(manifest)
+
+            claimed_binsync = copy.deepcopy(manifest)
+            claimed_binsync["binsync"] = binsync_candidate.publication_target_state(inputs["binsync_manifest"])
+            with self.assertRaisesRegex(release_bundle.ReleaseBundleError, "must not claim BinSync"):
+                release_bundle.validate_release_manifest(claimed_binsync)
+
+            claimed_warm_idb = copy.deepcopy(manifest)
+            claimed_warm_idb["warm_idb_generation"] = "generation-1"
+            with self.assertRaisesRegex(release_bundle.ReleaseBundleError, "must not claim BinSync"):
+                release_bundle.validate_release_manifest(claimed_warm_idb)
+
+    def test_source_binding_mode_decides_binsync_and_warm_idb_evidence(self) -> None:
+        # Exactly one of the two bindings carries IDA-derived evidence, so neither
+        # a tracked release can claim it nor a rebuilt release drop it.
+        arguments = {
+            "repository": "HLND2T/CS2_VibeSignatures",
+            "release_version": "1",
+            "build_id": "a" * 40,
+            "preparation": "prep.json",
+            "snapshot": "snap.yaml",
+            "metadata": "meta.yaml",
+            "gamedata_candidate_root": "gd",
+            "gamedata_session": "gd.json",
+            "cpp_validation_log": "cpp.log",
+            "actions_artifact_name": f"release-bundle-{'a' * 40}-1",
+            "cpp_sdk_ref": release_bundle.CPP_SDK_REF,
+            "cpp_sdk_sha": "5" * 40,
+        }
+        ida_evidence = {
+            "binsync_candidate_root": "bs",
+            "ida_runtime_identity": "IDA 9.2",
+            "warm_idb_generation": "g",
+            "warm_idb_cache_key": "c",
+        }
+        omitted_evidence = dict.fromkeys(ida_evidence)
+        with tempfile.TemporaryDirectory() as temporary:
+            bundle_root = Path(temporary) / "bundle"
+            with self.assertRaisesRegex(release_bundle.ReleaseBundleError, "must omit the BinSync candidate"):
+                release_bundle.build_release_bundle(
+                    repo_root=temporary,
+                    bundle_root=bundle_root,
+                    rebuild_verification=None,
+                    tracked_binding="binding.json",
+                    **arguments,
+                    **ida_evidence,
+                )
+            for dropped in ida_evidence:
+                with self.assertRaisesRegex(release_bundle.ReleaseBundleError, "require the BinSync candidate"):
+                    release_bundle.build_release_bundle(
+                        repo_root=temporary,
+                        bundle_root=bundle_root,
+                        rebuild_verification="verify.json",
+                        tracked_binding=None,
+                        **arguments,
+                        **{**ida_evidence, dropped: None},
+                    )
+            # A tracked binding that omits everything gets past this gate and only
+            # then fails on the missing preparation document.
+            with self.assertRaisesRegex(release_bundle.ReleaseBundleError, "prep.json"):
+                release_bundle.build_release_bundle(
+                    repo_root=temporary,
+                    bundle_root=bundle_root,
+                    rebuild_verification=None,
+                    tracked_binding="binding.json",
+                    **arguments,
+                    **omitted_evidence,
+                )
 
     def test_build_requires_exactly_one_source_binding(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

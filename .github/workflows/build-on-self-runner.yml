@@ -130,7 +130,11 @@ jobs:
           "publication_mode=$publicationMode" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "binary_lock_sha256=$($preflight.binary_lock_sha256)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
   warmup-idb:
+    # The tracked (rebuild-free) path runs no IDA analysis and exports no BinSync
+    # candidate, so nothing downstream ever opens an IDB. Binaries are provisioned
+    # and lock-verified by the build job's own init_gamebin.py prepare instead.
     needs: preflight
+    if: inputs.source_artifact_mode != 'tracked'
     uses: ./.github/workflows/warmup-idb.yml
     with:
       gamever: ${{ needs.preflight.outputs.gamever }}
@@ -138,6 +142,9 @@ jobs:
     secrets: inherit
   build:
     needs: [preflight, warmup-idb]
+    if: >-
+      ${{ !cancelled() && needs.preflight.result == 'success'
+      && (needs.warmup-idb.result == 'success' || needs.warmup-idb.result == 'skipped') }}
     environment: win64
     runs-on: [self-hosted, windows, x64]
     outputs:
@@ -190,8 +197,11 @@ jobs:
         shell: pwsh
         run: |
           if ([string]::IsNullOrWhiteSpace($env:PERSISTED_WORKSPACE)) { throw "PERSISTED_WORKSPACE is not configured." }
-          if ($env:SOURCE_BINARY_LOCK_SHA256 -notmatch '^sha256:[0-9a-f]{64}$' -or `
-              $env:WARMUP_BINARY_LOCK_SHA256 -ne $env:SOURCE_BINARY_LOCK_SHA256) {
+          $trackedArtifacts = "${{ inputs.source_artifact_mode }}" -eq 'tracked'
+          if ($env:SOURCE_BINARY_LOCK_SHA256 -notmatch '^sha256:[0-9a-f]{64}$') {
+            throw "Immutable source preflight did not publish a binary lock identity."
+          }
+          if (-not $trackedArtifacts -and $env:WARMUP_BINARY_LOCK_SHA256 -ne $env:SOURCE_BINARY_LOCK_SHA256) {
             throw "Release warmup binary lock identity differs from immutable source preflight."
           }
           $workspace = [IO.Path]::GetFullPath("${{ github.workspace }}")
@@ -211,8 +221,16 @@ jobs:
           if ((Get-Item $workspaceBin -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) {
             throw "Workspace bin must be a real directory"
           }
-          $restoreJson = uv run python accepted_bin.py restore --repo-root "$workspace" `
-            --persisted-root "$env:PERSISTED_WORKSPACE" --gamever "$env:GAMEVER" --required
+          # Without a warmup job the accepted-bin cache may legitimately be cold;
+          # init_gamebin.py prepare then provisions the binaries and verifies them
+          # against the same source-owned binary lock.
+          $restoreArgs = @(
+            '--repo-root', "$workspace",
+            '--persisted-root', "$env:PERSISTED_WORKSPACE",
+            '--gamever', "$env:GAMEVER"
+          )
+          if (-not $trackedArtifacts) { $restoreArgs += '--required' }
+          $restoreJson = uv run python accepted_bin.py restore @restoreArgs
           if ($LASTEXITCODE -ne 0) { throw "Failed to restore the exact accepted binary allowlist." }
           $restore = $restoreJson | ConvertFrom-Json
           if ($restore.binary_lock_sha256 -ne $env:SOURCE_BINARY_LOCK_SHA256) {
@@ -220,6 +238,7 @@ jobs:
           }
       - name: Resolve consumer IDA identity
         id: resolve-consumer-ida
+        if: inputs.source_artifact_mode != 'tracked'
         shell: pwsh
         run: |
           $pythonExe = (Get-Command python -ErrorAction SilentlyContinue).Source
@@ -245,6 +264,7 @@ jobs:
           "ida_runtime_identity=$idaVersion" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
       - name: Restore required published warm IDB cache
         id: restore-idb-cache
+        if: inputs.source_artifact_mode != 'tracked'
         shell: pwsh
         run: |
           uv run python idb_cache.py restore `
@@ -354,6 +374,7 @@ jobs:
           "ACTUAL_ARTIFACT_ROOT=$trackedRoot" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Prepare local-only BinSync candidate without remote writes
         id: binsync-prepare
+        if: inputs.source_artifact_mode != 'tracked'
         shell: pwsh
         run: |
           $candidate = Join-Path $env:RUNNER_TEMP "release-binsync-candidate\$env:BUILD_ID"
@@ -446,10 +467,23 @@ jobs:
         run: |
           $bundle = Join-Path $env:RUNNER_TEMP "release-bundle\$env:BUILD_ID"
           $artifactName = "release-bundle-$env:SOURCE_SHA-$env:GAMEVER"
-          $sourceBinding = if ("${{ inputs.source_artifact_mode }}" -eq "tracked") {
+          $trackedArtifacts = "${{ inputs.source_artifact_mode }}" -eq "tracked"
+          $sourceBinding = if ($trackedArtifacts) {
             @("--tracked-binding", $env:RELEASE_TRACKED_BINDING)
           } else {
             @("--rebuild-verification", $env:RELEASE_REBUILD_VERIFICATION)
+          }
+          # A tracked binding analyzes nothing, so it must claim neither a BinSync
+          # candidate nor a warm IDB identity; release_bundle.py enforces both ways.
+          $analysisEvidence = if ($trackedArtifacts) {
+            @()
+          } else {
+            @(
+              "--binsync-candidate-root", $env:BINSYNC_CANDIDATE_ROOT,
+              "--ida-runtime-identity", $env:IDA_VERSION,
+              "--warm-idb-generation", $env:IDB_CACHE_GENERATION,
+              "--warm-idb-cache-key", $env:IDB_CACHE_KEY
+            )
           }
           uv run python release_bundle.py build `
             --repo-root "${{ github.workspace }}" `
@@ -464,10 +498,7 @@ jobs:
             --gamedata-candidate-root "$env:GAMEDATA_CANDIDATE_ROOT" `
             --gamedata-session "$env:GAMEDATA_SESSION" `
             --cpp-validation-log "$env:CPP_VALIDATION_LOG" `
-            --binsync-candidate-root "$env:BINSYNC_CANDIDATE_ROOT" `
-            --ida-runtime-identity "$env:IDA_VERSION" `
-            --warm-idb-generation "$env:IDB_CACHE_GENERATION" `
-            --warm-idb-cache-key "$env:IDB_CACHE_KEY" `
+            @analysisEvidence `
             --actions-artifact-name "$artifactName" `
             --cpp-sdk-ref "$env:SDK_ABI_REF" `
             --cpp-sdk-sha "$env:SDK_ABI_SHA"
@@ -476,6 +507,7 @@ jobs:
           "artifact_name=$artifactName" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
       - name: Upload credential-free internal BinSync candidate
         id: upload-binsync-candidate
+        if: inputs.source_artifact_mode != 'tracked'
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.binsync-prepare.outputs.artifact_name }}
@@ -513,6 +545,7 @@ jobs:
           }
   verify-binsync:
     needs: [preflight, build]
+    if: inputs.source_artifact_mode != 'tracked'
     uses: ./.github/workflows/verify-binsync-candidate.yml
     with:
       source_sha: ${{ needs.preflight.outputs.source_sha }}
@@ -524,6 +557,9 @@ jobs:
       artifact_digest: ${{ needs.build.outputs.binsync_artifact_digest }}
   verify-release:
     needs: [preflight, build, verify-binsync]
+    if: >-
+      ${{ !cancelled() && needs.build.result == 'success'
+      && (needs.verify-binsync.result == 'success' || needs.verify-binsync.result == 'skipped') }}
     uses: ./.github/workflows/verify-release-bundle.yml
     with:
       source_sha: ${{ needs.preflight.outputs.source_sha }}
@@ -575,7 +611,13 @@ jobs:
     secrets: inherit
   publish-release:
     needs: [preflight, build, verify-binsync, verify-release, publish-binsync]
-    if: needs.preflight.outputs.publication_mode != 'verify-only'
+    # verify-binsync/publish-binsync are skipped whole for a tracked binding, so
+    # this gate accepts "skipped" but never "failure" for either of them.
+    if: >-
+      ${{ !cancelled() && needs.preflight.outputs.publication_mode != 'verify-only'
+      && needs.verify-release.result == 'success'
+      && (needs.verify-binsync.result == 'success' || needs.verify-binsync.result == 'skipped')
+      && (needs.publish-binsync.result == 'success' || needs.publish-binsync.result == 'skipped') }}
     permissions:
       actions: read
       contents: write
@@ -595,7 +637,10 @@ jobs:
       verified_binsync_target_state_digest: ${{ needs.verify-release.outputs.binsync_target_state_digest }}
   verify-only-complete:
     needs: [preflight, build, verify-binsync, verify-release]
-    if: needs.preflight.outputs.publication_mode == 'verify-only'
+    if: >-
+      ${{ !cancelled() && needs.preflight.outputs.publication_mode == 'verify-only'
+      && needs.verify-release.result == 'success'
+      && (needs.verify-binsync.result == 'success' || needs.verify-binsync.result == 'skipped') }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -610,6 +655,7 @@ jobs:
             echo '- GAMEVER: `${{ needs.preflight.outputs.gamever }}`'
             echo '- Release bundle digest: `${{ needs.verify-release.outputs.bundle_digest }}`'
             echo '- Release manifest digest: `${{ needs.verify-release.outputs.manifest_digest }}`'
-            echo '- BinSync candidate digest: `${{ needs.verify-binsync.outputs.publication_digest }}`'
+            echo '- Source artifact mode: `${{ inputs.source_artifact_mode || 'rebuild' }}`'
+            echo '- BinSync candidate digest: `${{ needs.verify-binsync.outputs.publication_digest || 'not exported (rebuild-free)' }}`'
             echo '- No BinSync refs, tags, Releases, or Release assets were published.'
           } >> "$GITHUB_STEP_SUMMARY"

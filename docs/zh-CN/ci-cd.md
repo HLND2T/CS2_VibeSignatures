@@ -29,6 +29,13 @@ workflow transaction identity 在 GitHub rerun 之间保持稳定（`run_id`）�
 `publish` 保持已发布内容不被覆盖。普通构建和 rebuild-free 的手动入口另提供 `republish`，触发 CLI 可使用
 `--mode republish`；自动流程继续使用 `publish`。
 
+手动 rebuild-free 路径（`rebuild-free-release.yml`，`source_artifact_mode: tracked`）直接发布 tracked
+`bin_artifacts/<GAMEVER>`，不做 rebuild。它不分析任何内容，因此完全不运行 IDA：`warmup-idb.yml`、BinSync candidate
+导出以及 BinSync 的验证与发布都被整体跳过，不读写任何 BinSync remote；二进制由 build job 自身的
+`init_gamebin.py prepare` 置备并对 source binary lock 校验。其 Release manifest 中 `binsync`、`ida_runtime_identity`、
+`warm_idb_generation`、`warm_idb_cache_key` 均记为 `null`，且 `release_bundle.py` 将其与 source binding mode 双向绑定：
+tracked binding 不得声明这些证据，rebuild binding 也不得省略。因此 rebuild-free 发布不会发布 BinSync 符号。
+
 `republish` 要求已有可修改的 Release 和直接指向 commit 的标签。它保留 Release ID 和标签 URL，先转为 draft，
 使用绑定旧 SHA 的 lease 移动标签，再更新说明和附件，验证全部字节及 BinSync 目标后重新发布并触发 Pages。
 附件 ID 可以变化。目标不存在时应使用 `publish`；GitHub `immutable: true` 的 Release 不允许更新。

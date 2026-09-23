@@ -29,40 +29,11 @@ permissions:
   pull-requests: read
 # No workflow-level concurrency here: build-on-self-runner.yml already owns the
 # per-GAMEVER release group, and declaring it in both deadlocks the caller.
+# No BinSync remote provisioning either: source_artifact_mode=tracked never
+# exports, verifies, or publishes a BinSync candidate, so it neither reads nor
+# writes any BinSync remote.
 jobs:
-  ensure-binsync-remotes:
-    if: github.repository == 'HLND2T/CS2_VibeSignatures'
-    runs-on: ubuntu-latest
-    environment: binsync-remotes
-    steps:
-      - name: Checkout default branch for trusted provisioning
-        uses: actions/checkout@v5
-        with:
-          ref: ${{ github.event.repository.default_branch }}
-          fetch-depth: 1
-          persist-credentials: false
-      - uses: astral-sh/setup-uv@v9.0.0
-      - name: Create and initialize missing BinSync remotes
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ secrets.HLND2T_GH_TOKEN }}
-        run: |
-          if ([string]::IsNullOrWhiteSpace($env:GH_TOKEN)) {
-            throw "HLND2T_GH_TOKEN is not configured for the binsync-remotes environment."
-          }
-          $orgLogin = gh api /orgs/HLND2T --jq .login
-          if ($LASTEXITCODE -ne 0) {
-            throw "HLND2T_GH_TOKEN could not authenticate to the HLND2T organization."
-          }
-          if ($orgLogin.Trim() -ne "HLND2T") {
-            throw "HLND2T_GH_TOKEN authenticated to an unexpected organization: '$($orgLogin.Trim())' (expected HLND2T)."
-          }
-          gh auth setup-git
-          if ($LASTEXITCODE -ne 0) { throw "gh auth setup-git failed." }
-          uv run init_gamebin.py ensure-binsync-remotes "${{ inputs.gamever }}" --user release-automation
-          if ($LASTEXITCODE -ne 0) { throw "BinSync remote provisioning failed." }
   release:
-    needs: ensure-binsync-remotes
     permissions:
       actions: read
       contents: write

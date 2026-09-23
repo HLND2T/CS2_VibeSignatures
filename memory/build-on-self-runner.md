@@ -58,6 +58,22 @@ immutable main SHA preflight
   `-force_all -rename` rebuild and binds the tracked `bin_artifacts/<GAMEVER>` instead: it proves the published
   artifacts equal that source SHA's tracked truth, but never proves they can be rebuilt. The automatic
   `tag-bump-after-merge` path never sets the input, so it always rebuilds.
+- `source_artifact_mode=tracked` also runs no IDA at all. The only remaining IDB consumer in that mode was the BinSync
+  candidate export (`push_binsync_symbols.py` -> `headless_force_push.py` opens the `.i64` via idalib), so dropping
+  BinSync and dropping the warm IDB are one decision, not two. The tracked path therefore skips the whole `warmup-idb`
+  job, `resolve-consumer-ida`, `restore-idb-cache`, `binsync-prepare`/`upload-binsync-candidate`, `verify-binsync`,
+  `publish-binsync`, and `rebuild-free-release.yml`'s BinSync remote provisioning. BinSync symbols are never published
+  for such a release.
+- Because `warmup-idb.yml` also provisions binaries and syncs accepted-bin, the tracked build job drops `--required`
+  from `accepted_bin.py restore` and skips the warmup/preflight binary-lock cross-check; `init_gamebin.py prepare`
+  then provisions the binaries and verifies them against the same source-owned `binary_locks/<GAMEVER>.json`, so the
+  binary identity guarantee is unchanged.
+- The Release manifest keeps `binsync` / `ida_runtime_identity` / `warm_idb_generation` / `warm_idb_cache_key` in its
+  exact field set but stores `null` for a tracked binding. `release_bundle.py` enforces the biconditional in both
+  `build_release_bundle` and `validate_release_manifest`: a tracked binding must omit that evidence and a rebuilt
+  binding must supply it, so a normal release cannot be silently downgraded by omitting CLI arguments.
+- Downstream jobs that follow a whole-job skip need `!cancelled()` plus explicit `needs.<job>.result` checks that
+  accept `skipped`; a plain `if:` expression is implicitly `success()` and would skip the dependent job instead.
 - Missing per-module BinSync remotes for an unpublished GAMEVER are provisioned by
   `init_gamebin.py ensure-binsync-remotes <gamever> --user release-automation`, which reads the authoritative md5 from
   tracked `binary_locks/<GAMEVER>.json` and needs no binary download; it runs on `ubuntu-latest` in the protected

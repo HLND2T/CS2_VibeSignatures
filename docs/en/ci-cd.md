@@ -29,6 +29,14 @@ The workflow transaction identity is stable across GitHub reruns (`run_id`); `ru
 `publish` never replaces published content. Manual standard and rebuild-free workflows also offer `republish`;
 automatic flows continue to use `publish`. The trigger CLI accepts `--mode republish` with either build path.
 
+The manual rebuild-free path (`rebuild-free-release.yml`, `source_artifact_mode: tracked`) publishes the tracked
+`bin_artifacts/<GAMEVER>` tree instead of rebuilding it. It analyzes nothing, so it runs no IDA at all: `warmup-idb.yml`,
+the BinSync candidate export, and both BinSync verification and publication are skipped whole, and no BinSync remote is
+read or written. Binaries are provisioned and lock-verified by the build job's own `init_gamebin.py prepare`. Its Release
+manifest records `binsync`, `ida_runtime_identity`, `warm_idb_generation`, and `warm_idb_cache_key` as `null`, and
+`release_bundle.py` binds that to the source binding mode both ways: a tracked binding may not claim that evidence, and a
+rebuilt binding may not omit it. BinSync symbols are therefore never published for a rebuild-free release.
+
 `republish` requires an existing mutable Release and its direct commit tag. It preserves the Release ID and tag URL,
 converts the Release to a draft, moves the tag with an explicit old-SHA lease, updates metadata and reconciles assets,
 then verifies exact bytes and BinSync targets before publishing and dispatching Pages. Asset IDs may change. Missing
