@@ -1,0 +1,684 @@
+func_name: CNetworkStringTableContainer_WriteBaselines
+func_va: '0x18010ca90'
+disasm_code: |-
+  .text:000000018010CA90                 mov     [rsp-8+arg_18], r9
+  .text:000000018010CA95                 mov     [rsp-8+arg_10], r8d
+  .text:000000018010CA9A                 mov     [rsp-8+arg_8], rdx
+  .text:000000018010CA9F                 mov     [rsp-8+arg_0], rcx
+  .text:000000018010CAA4                 push    rbp
+  .text:000000018010CAA5                 push    rbx
+  .text:000000018010CAA6                 push    rsi
+  .text:000000018010CAA7                 push    rdi
+  .text:000000018010CAA8                 push    r12
+  .text:000000018010CAAA                 push    r13
+  .text:000000018010CAAC                 push    r14
+  .text:000000018010CAAE                 push    r15
+  .text:000000018010CAB0                 lea     rbp, [rsp-88h]
+  .text:000000018010CAB8                 sub     rsp, 188h
+  .text:000000018010CABF                 mov     ebx, [rdx+10h]
+  .text:000000018010CAC2                 xor     r15d, r15d
+  .text:000000018010CAC5                 xor     eax, eax
+  .text:000000018010CAC7                 mov     [rbp+0C0h+var_130], r15d
+  .text:000000018010CACB                 mov     [rbp+0C0h+var_100], rax
+  .text:000000018010CACF                 add     ebx, 7
+  .text:000000018010CAD2                 mov     [rbp+0C0h+var_D8], ax
+  .text:000000018010CAD6                 xorps   xmm0, xmm0
+  .text:000000018010CAD9                 mov     [rbp+0C0h+var_D6], al
+  .text:000000018010CADC                 mov     rsi, rdx
+  .text:000000018010CADF                 lea     rax, qword_18062ED10
+  .text:000000018010CAE6                 sar     ebx, 3
+  .text:000000018010CAE9                 mov     r14, rcx
+  .text:000000018010CAEC                 mov     [rbp+0C0h+var_F8], rax
+  .text:000000018010CAF0                 mov     [rbp+0C0h+var_F0], rax
+  .text:000000018010CAF4                 lea     rax, ??_7CSVCMsg_CreateStringTable_t@@6B@; const CSVCMsg_CreateStringTable_t::`vftable'
+  .text:000000018010CAFB                 mov     [rbp+0C0h+var_140], rax
+  .text:000000018010CAFF                 lea     rax, ??_7CSVCMsg_CreateStringTable_t@@6B@_0; const CSVCMsg_CreateStringTable_t::`vftable'
+  .text:000000018010CB06                 mov     [rbp+0C0h+var_110], rax
+  .text:000000018010CB0A                 movsd   [rbp+0C0h+var_138], xmm0
+  .text:000000018010CB0F                 mov     [rbp+0C0h+var_12C], 0FFh
+  .text:000000018010CB13                 mov     [rbp+0C0h+var_128], 0FFFFFFFFFFFFFFFFh
+  .text:000000018010CB1B                 mov     [rbp+0C0h+var_120], 0BF800000h
+  .text:000000018010CB22                 mov     [rbp+0C0h+var_118], 0FFFFFFFFFFFFFFFFh
+  .text:000000018010CB2A                 mov     [rbp+0C0h+var_108], r15
+  .text:000000018010CB2E                 mov     dword ptr [rbp+0C0h+var_100+4], r15d
+  .text:000000018010CB32                 mov     [rbp+0C0h+var_E8], r15
+  .text:000000018010CB36                 mov     [rbp+0C0h+var_E0], r15
+  .text:000000018010CB3A                 mov     [rbp+0C0h+var_D4], r15d
+  .text:000000018010CB3E                 mov     [rsp+1C0h+var_154], ebx
+  .text:000000018010CB42                 mov     [rsp+1C0h+var_158], r15d
+  .text:000000018010CB47                 cmp     [rcx+38h], r15d
+  .text:000000018010CB4B                 jle     loc_18010CFE2
+  .text:000000018010CB51                 movzx   ebx, byte ptr [rbp+0C0h+arg_0]
+  .text:000000018010CB58                 mov     ecx, r15d
+  .text:000000018010CB5B                 movzx   edi, byte ptr [rbp+0C0h+arg_0]
+  .text:000000018010CB62                 mov     [rbp+0C0h+var_D0], rcx
+  .text:000000018010CB66                 mov     rax, [r14+40h]
+  .text:000000018010CB6A                 lea     rdx, [rbp+0C0h+var_140]
+  .text:000000018010CB6E                 lea     r13, aCBuildworkerCs_19; "C:\\buildworker\\csgo_rel_win64\\build"...
+  .text:000000018010CB75                 mov     r12, [rcx+rax]
+  .text:000000018010CB79                 mov     eax, [rsi+10h]
+  .text:000000018010CB7C                 mov     rcx, r12
+  .text:000000018010CB7F                 add     eax, 7
+  .text:000000018010CB82                 sar     eax, 3
+  .text:000000018010CB85                 mov     [rsp+1C0h+var_148], eax
+  .text:000000018010CB89                 call    sub_18010C0C0
+  .text:000000018010CB8E                 test    al, al
+  .text:000000018010CB90                 jnz     short loc_18010CBFE
+  .text:000000018010CB92                 mov     ecx, cs:dword_1808CD888
+  .text:000000018010CB98                 mov     edx, 5
+  .text:000000018010CB9D                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:000000018010CBA3                 test    al, al
+  .text:000000018010CBA5                 jz      short loc_18010CBFE
+  .text:000000018010CBA7                 mov     rax, [r12]
+  .text:000000018010CBAB                 mov     rcx, r12
+  .text:000000018010CBAE                 call    qword ptr [rax+8]
+  .text:000000018010CBB1                 mov     ecx, cs:dword_1808CD888
+  .text:000000018010CBB7                 lea     r14, aCnetworkstring_4; "CNetworkStringTableContainer::WriteBase"...
+  .text:000000018010CBBE                 xorps   xmm0, xmm0
+  .text:000000018010CBC1                 mov     [rbp+0C0h+var_88], r13
+  .text:000000018010CBC5                 xorps   xmm1, xmm1
+  .text:000000018010CBC8                 mov     [rbp+0C0h+var_80], 70Fh
+  .text:000000018010CBCF                 lea     r9, aSvCnetworkstri; "SV:  CNetworkStringTableContainer::Writ"...
+  .text:000000018010CBD6                 mov     [rbp+0C0h+var_78], r14
+  .text:000000018010CBDA                 lea     r8, [rbp+0C0h+var_88]
+  .text:000000018010CBDE                 mov     [rbp+0C0h+var_50], r15d
+  .text:000000018010CBE2                 mov     edx, 5
+  .text:000000018010CBE7                 mov     [rsp+1C0h+var_1A0], rax
+  .text:000000018010CBEC                 movdqu  [rbp+0C0h+var_70], xmm0
+  .text:000000018010CBF1                 movdqu  [rbp+0C0h+var_60], xmm1
+  .text:000000018010CBF6                 call    cs:?LoggingSystem_Log@@YA?AW4LoggingResponse_t@@HW4LoggingSeverity_t@@AEBULoggingRareOptions_t@@PEBDZZ; LoggingSystem_Log(int,LoggingSeverity_t,LoggingRareOptions_t const &,char const *,...)
+  .text:000000018010CBFC                 jmp     short loc_18010CC05
+  .text:000000018010CBFE                 lea     r14, aCnetworkstring_4; "CNetworkStringTableContainer::WriteBase"...
+  .text:000000018010CC05                 cmp     byte ptr [rsi+20h], 0
+  .text:000000018010CC09                 jz      short loc_18010CC6E
+  .text:000000018010CC0B                 mov     ecx, cs:dword_1808CD888
+  .text:000000018010CC11                 mov     edx, 5
+  .text:000000018010CC16                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:000000018010CC1C                 test    al, al
+  .text:000000018010CC1E                 jz      short loc_18010CC6E
+  .text:000000018010CC20                 mov     rax, [r12]
+  .text:000000018010CC24                 mov     rcx, r12
+  .text:000000018010CC27                 call    qword ptr [rax+8]
+  .text:000000018010CC2A                 mov     ecx, cs:dword_1808CD888
+  .text:000000018010CC30                 lea     r9, aSvCnetworkstri_0; "SV:  CNetworkStringTableContainer::Writ"...
+  .text:000000018010CC37                 xorps   xmm0, xmm0
+  .text:000000018010CC3A                 mov     [rbp+0C0h+var_C8], r13
+  .text:000000018010CC3E                 xorps   xmm1, xmm1
+  .text:000000018010CC41                 mov     [rbp+0C0h+var_C0], 714h
+  .text:000000018010CC48                 lea     r8, [rbp+0C0h+var_C8]
+  .text:000000018010CC4C                 mov     [rbp+0C0h+var_B8], r14
+  .text:000000018010CC50                 mov     edx, 5
+  .text:000000018010CC55                 mov     [rbp+0C0h+var_90], r15d
+  .text:000000018010CC59                 movdqu  [rbp+0C0h+var_B0], xmm0
+  .text:000000018010CC5E                 mov     [rsp+1C0h+var_1A0], rax
+  .text:000000018010CC63                 movdqu  [rbp+0C0h+var_A0], xmm1
+  .text:000000018010CC68                 call    cs:?LoggingSystem_Log@@YA?AW4LoggingResponse_t@@HW4LoggingSeverity_t@@AEBULoggingRareOptions_t@@PEBDZZ; LoggingSystem_Log(int,LoggingSeverity_t,LoggingRareOptions_t const &,char const *,...)
+  .text:000000018010CC6E                 mov     rax, [rbp+0C0h+var_F0]
+  .text:000000018010CC72                 xorps   xmm0, xmm0
+  .text:000000018010CC75                 and     rax, 0FFFFFFFFFFFFFFFCh
+  .text:000000018010CC79                 mov     r13d, [rax+10h]
+  .text:000000018010CC7D                 movups  [rsp+1C0h+var_178], xmm0
+  .text:000000018010CC82                 mov     byte ptr [rsp+1C0h+var_178], 0
+  .text:000000018010CC87                 mov     [rsp+1C0h+var_180], r13d
+  .text:000000018010CC8C                 mov     qword ptr [rsp+1C0h+var_168], r15
+  .text:000000018010CC91                 mov     qword ptr [rsp+1C0h+var_168+8], 0Fh
+  .text:000000018010CC9A                 mov     rsi, [rax+10h]
+  .text:000000018010CC9E                 test    rsi, rsi
+  .text:000000018010CCA1                 jnz     short loc_18010CCAF
+  .text:000000018010CCA3                 mov     qword ptr [rsp+1C0h+var_168], rsi
+  .text:000000018010CCA8                 mov     byte ptr [rsp+rsi+1C0h+var_178], sil
+  .text:000000018010CCAD                 jmp     short loc_18010CCE4
+  .text:000000018010CCAF                 lea     rcx, [rsp+1C0h+var_178]
+  .text:000000018010CCB4                 cmp     rsi, 0Fh
+  .text:000000018010CCB8                 ja      short loc_18010CCD0
+  .text:000000018010CCBA                 mov     r8, rsi
+  .text:000000018010CCBD                 mov     qword ptr [rsp+1C0h+var_168], rsi
+  .text:000000018010CCC2                 xor     edx, edx
+  .text:000000018010CCC4                 call    sub_180473C60
+  .text:000000018010CCC9                 mov     byte ptr [rsp+rsi+1C0h+var_178], 0
+  .text:000000018010CCCE                 jmp     short loc_18010CCE4
+  .text:000000018010CCD0                 mov     r9, rsi
+  .text:000000018010CCD3                 mov     byte ptr [rsp+1C0h+var_1A0], 0
+  .text:000000018010CCD8                 movzx   r8d, bl
+  .text:000000018010CCDC                 mov     rdx, rsi
+  .text:000000018010CCDF                 call    sub_180044940
+  .text:000000018010CCE4                 mov     r9, [rbp+0C0h+var_F0]
+  .text:000000018010CCE8                 mov     rcx, cs:g_pNetworkSystem
+  .text:000000018010CCEF                 and     r9, 0FFFFFFFFFFFFFFFCh
+  .text:000000018010CCF3                 cmp     qword ptr [r9+18h], 0Fh
+  .text:000000018010CCF8                 mov     rax, [rcx]
+  .text:000000018010CCFB                 mov     r8d, [r9+10h]
+  .text:000000018010CCFF                 jbe     short loc_18010CD04
+  .text:000000018010CD01                 mov     r9, [r9]
+  .text:000000018010CD04                 cmp     qword ptr [rsp+1C0h+var_168+8], 0Fh
+  .text:000000018010CD0A                 lea     rdx, [rsp+1C0h+var_178]
+  .text:000000018010CD0F                 mov     dword ptr [rsp+1C0h+var_1A0], r8d
+  .text:000000018010CD14                 lea     r8, [rsp+1C0h+var_180]
+  .text:000000018010CD19                 cmova   rdx, qword ptr [rsp+1C0h+var_178]
+  .text:000000018010CD1F                 ; 0x0F0 = 240LL = INetworkSystem_BufferToBufferCompress
+  .text:000000018010CD1F                 call    qword ptr [rax+0F0h]; 0x0F0 = 240LL = INetworkSystem_BufferToBufferCompress
+  .text:000000018010CD25                 test    al, al
+  .text:000000018010CD27                 jz      loc_18010CE10
+  .text:000000018010CD2D                 mov     ecx, [rsp+1C0h+var_180]
+  .text:000000018010CD31                 mov     rdx, qword ptr [rsp+1C0h+var_168]
+  .text:000000018010CD36                 cmp     rcx, rdx
+  .text:000000018010CD39                 ja      short loc_18010CD57
+  .text:000000018010CD3B                 cmp     qword ptr [rsp+1C0h+var_168+8], 0Fh
+  .text:000000018010CD41                 lea     rax, [rsp+1C0h+var_178]
+  .text:000000018010CD46                 mov     qword ptr [rsp+1C0h+var_168], rcx
+  .text:000000018010CD4B                 cmova   rax, qword ptr [rsp+1C0h+var_178]
+  .text:000000018010CD51                 mov     byte ptr [rax+rcx], 0
+  .text:000000018010CD55                 jmp     short loc_18010CDB1
+  .text:000000018010CD57                 mov     r8, qword ptr [rsp+1C0h+var_168+8]
+  .text:000000018010CD5C                 mov     r14, rcx
+  .text:000000018010CD5F                 mov     rax, r8
+  .text:000000018010CD62                 sub     r14, rdx
+  .text:000000018010CD65                 sub     rax, rdx
+  .text:000000018010CD68                 cmp     r14, rax
+  .text:000000018010CD6B                 ja      short loc_18010CD98
+  .text:000000018010CD6D                 cmp     r8, 0Fh
+  .text:000000018010CD71                 mov     qword ptr [rsp+1C0h+var_168], rcx
+  .text:000000018010CD76                 lea     rsi, [rsp+1C0h+var_178]
+  .text:000000018010CD7B                 mov     r8, r14
+  .text:000000018010CD7E                 cmova   rsi, qword ptr [rsp+1C0h+var_178]
+  .text:000000018010CD84                 add     rsi, rdx
+  .text:000000018010CD87                 xor     edx, edx
+  .text:000000018010CD89                 mov     rcx, rsi
+  .text:000000018010CD8C                 call    sub_180473C60
+  .text:000000018010CD91                 mov     byte ptr [r14+rsi], 0
+  .text:000000018010CD96                 jmp     short loc_18010CDB1
+  .text:000000018010CD98                 mov     r9, r14
+  .text:000000018010CD9B                 mov     byte ptr [rsp+1C0h+var_1A0], 0
+  .text:000000018010CDA0                 movzx   r8d, dil
+  .text:000000018010CDA4                 lea     rcx, [rsp+1C0h+var_178]
+  .text:000000018010CDA9                 mov     rdx, r14
+  .text:000000018010CDAC                 call    sub_180044940
+  .text:000000018010CDB1                 or      dword ptr [rbp+0C0h+var_100], 282h
+  .text:000000018010CDB8                 test    byte ptr [rbp+0C0h+var_108], 1
+  .text:000000018010CDBC                 mov     byte ptr [rbp+0C0h+var_D8+1], 1
+  .text:000000018010CDC0                 mov     [rbp+0C0h+var_D4], r13d
+  .text:000000018010CDC4                 jz      short loc_18010CDD3
+  .text:000000018010CDC6                 mov     rax, [rbp+0C0h+var_108]
+  .text:000000018010CDCA                 and     rax, 0FFFFFFFFFFFFFFFCh
+  .text:000000018010CDCE                 mov     rdx, [rax]
+  .text:000000018010CDD1                 jmp     short loc_18010CDDB
+  .text:000000018010CDD3                 mov     rdx, [rbp+0C0h+var_108]
+  .text:000000018010CDD7                 and     rdx, 0FFFFFFFFFFFFFFFCh
+  .text:000000018010CDDB                 lea     rcx, [rbp+0C0h+var_F0]
+  .text:000000018010CDDF                 call    sub_180251640
+  .text:000000018010CDE4                 lea     rcx, [rsp+1C0h+var_178]
+  .text:000000018010CDE9                 cmp     rax, rcx
+  .text:000000018010CDEC                 jz      short loc_18010CE10
+  .text:000000018010CDEE                 movups  xmm2, xmmword ptr [rax]
+  .text:000000018010CDF1                 movups  xmm3, xmmword ptr [rax+10h]
+  .text:000000018010CDF5                 movups  xmm0, [rsp+1C0h+var_178]
+  .text:000000018010CDFA                 movups  xmmword ptr [rax], xmm0
+  .text:000000018010CDFD                 movups  xmm1, [rsp+1C0h+var_168]
+  .text:000000018010CE02                 movups  xmmword ptr [rax+10h], xmm1
+  .text:000000018010CE06                 movups  [rsp+1C0h+var_178], xmm2
+  .text:000000018010CE0B                 movups  [rsp+1C0h+var_168], xmm3
+  .text:000000018010CE10                 mov     rcx, cs:g_pNetworkMessages
+  .text:000000018010CE17                 lea     r8, [rbp+0C0h+var_140]
+  .text:000000018010CE1B                 mov     rsi, [rbp+0C0h+arg_8]
+  .text:000000018010CE22                 mov     rdx, rsi
+  .text:000000018010CE25                 mov     rax, [rcx]
+  .text:000000018010CE28                 call    qword ptr [rax+18h]
+  .text:000000018010CE2B                 test    al, al
+  .text:000000018010CE2D                 jnz     short loc_18010CEA0
+  .text:000000018010CE2F                 mov     ecx, cs:dword_1808CD888
+  .text:000000018010CE35                 mov     edx, 5
+  .text:000000018010CE3A                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:000000018010CE40                 test    al, al
+  .text:000000018010CE42                 jz      short loc_18010CEA0
+  .text:000000018010CE44                 mov     rax, [r12]
+  .text:000000018010CE48                 mov     rcx, r12
+  .text:000000018010CE4B                 call    qword ptr [rax+8]
+  .text:000000018010CE4E                 lea     rcx, aCBuildworkerCs_19; "C:\\buildworker\\csgo_rel_win64\\build"...
+  .text:000000018010CE55                 mov     [rbp+0C0h+var_C0], 72Bh
+  .text:000000018010CE5C                 lea     rdx, aCnetworkstring_4; "CNetworkStringTableContainer::WriteBase"...
+  .text:000000018010CE63                 mov     [rbp+0C0h+var_C8], rcx
+  .text:000000018010CE67                 mov     ecx, cs:dword_1808CD888
+  .text:000000018010CE6D                 lea     r9, aSvCnetworkstri_1; "SV:  CNetworkStringTableContainer::Writ"...
+  .text:000000018010CE74                 mov     [rbp+0C0h+var_B8], rdx
+  .text:000000018010CE78                 lea     r8, [rbp+0C0h+var_C8]
+  .text:000000018010CE7C                 xorps   xmm0, xmm0
+  .text:000000018010CE7F                 mov     [rbp+0C0h+var_90], r15d
+  .text:000000018010CE83                 xorps   xmm1, xmm1
+  .text:000000018010CE86                 mov     [rsp+1C0h+var_1A0], rax
+  .text:000000018010CE8B                 mov     edx, 5
+  .text:000000018010CE90                 movdqu  [rbp+0C0h+var_B0], xmm0
+  .text:000000018010CE95                 movdqu  [rbp+0C0h+var_A0], xmm1
+  .text:000000018010CE9A                 call    cs:?LoggingSystem_Log@@YA?AW4LoggingResponse_t@@HW4LoggingSeverity_t@@AEBULoggingRareOptions_t@@PEBDZZ; LoggingSystem_Log(int,LoggingSeverity_t,LoggingRareOptions_t const &,char const *,...)
+  .text:000000018010CEA0                 mov     r15d, [rsi+10h]
+  .text:000000018010CEA4                 add     r15d, 7
+  .text:000000018010CEA8                 mov     [rsp+1C0h+var_150], 0
+  .text:000000018010CEB1                 sar     r15d, 3
+  .text:000000018010CEB5                 cmp     byte ptr [rbp+0C0h+var_D8+1], 0
+  .text:000000018010CEB9                 jz      short loc_18010CED5
+  .text:000000018010CEBB                 mov     r9d, [rsp+1C0h+var_180]
+  .text:000000018010CEC0                 lea     rdx, aCompressedDDBy; "compressed %d -> %d bytes"
+  .text:000000018010CEC7                 mov     r8d, r13d
+  .text:000000018010CECA                 lea     rcx, [rsp+1C0h+var_150]
+  .text:000000018010CECF                 call    cs:?Format@CUtlString@@QEAAHPEBDZZ; CUtlString::Format(char const *,...)
+  .text:000000018010CED5                 mov     ecx, cs:dword_1808CD888
+  .text:000000018010CEDB                 mov     edx, 1
+  .text:000000018010CEE0                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:000000018010CEE6                 test    al, al
+  .text:000000018010CEE8                 jz      short loc_18010CF49
+  .text:000000018010CEEA                 mov     r14d, [rsi+0Ch]
+  .text:000000018010CEEE                 mov     rcx, r12
+  .text:000000018010CEF1                 sub     r14d, [rsi+10h]
+  .text:000000018010CEF5                 lea     rsi, unk_180529B3F
+  .text:000000018010CEFC                 mov     rax, [rsp+1C0h+var_150]
+  .text:000000018010CF01                 sar     r14d, 3
+  .text:000000018010CF05                 test    rax, rax
+  .text:000000018010CF08                 cmovnz  rsi, rax
+  .text:000000018010CF0C                 mov     rax, [r12]
+  .text:000000018010CF10                 call    qword ptr [rax+8]
+  .text:000000018010CF13                 sub     r15d, [rsp+1C0h+var_148]
+  .text:000000018010CF18                 lea     r8, aSvWritebaselin; "SV:  WriteBaselines:  %20.20s wrote %6d"...
+  .text:000000018010CF1F                 mov     ecx, cs:dword_1808CD888
+  .text:000000018010CF25                 mov     r9, rax
+  .text:000000018010CF28                 mov     [rsp+1C0h+var_190], r14d
+  .text:000000018010CF2D                 mov     edx, 1
+  .text:000000018010CF32                 mov     [rsp+1C0h+var_198], rsi
+  .text:000000018010CF37                 mov     dword ptr [rsp+1C0h+var_1A0], r15d
+  .text:000000018010CF3C                 call    cs:LoggingSystem_Log
+  .text:000000018010CF42                 mov     rsi, [rbp+0C0h+arg_8]
+  .text:000000018010CF49                 cmp     [rsp+1C0h+var_150], 0
+  .text:000000018010CF4F                 jz      short loc_18010CF5C
+  .text:000000018010CF51                 lea     rcx, [rsp+1C0h+var_150]
+  .text:000000018010CF56                 call    cs:?FreeMemoryBlock@CUtlString@@AEAAXXZ; CUtlString::FreeMemoryBlock(void)
+  .text:000000018010CF5C                 mov     rax, qword ptr [rsp+1C0h+var_168+8]
+  .text:000000018010CF61                 cmp     rax, 0Fh
+  .text:000000018010CF65                 jbe     short loc_18010CF9F
+  .text:000000018010CF67                 mov     rdx, qword ptr [rsp+1C0h+var_178]
+  .text:000000018010CF6C                 inc     rax
+  .text:000000018010CF6F                 mov     rcx, rdx
+  .text:000000018010CF72                 cmp     rax, 1000h
+  .text:000000018010CF78                 jb      short loc_18010CF8F
+  .text:000000018010CF7A                 mov     rdx, [rdx-8]
+  .text:000000018010CF7E                 sub     rcx, rdx
+  .text:000000018010CF81                 lea     rax, [rcx-8]
+  .text:000000018010CF85                 cmp     rax, 1Fh
+  .text:000000018010CF89                 ja      loc_18010D0AB
+  .text:000000018010CF8F                 mov     rax, cs:g_pMemAlloc
+  .text:000000018010CF96                 mov     rcx, [rax]
+  .text:000000018010CF99                 mov     rax, [rcx]
+  .text:000000018010CF9C                 call    qword ptr [rax+18h]
+  .text:000000018010CF9F                 mov     r14d, [rsp+1C0h+var_158]
+  .text:000000018010CFA4                 mov     rax, [rbp+0C0h+arg_0]
+  .text:000000018010CFAB                 inc     r14d
+  .text:000000018010CFAE                 mov     rcx, [rbp+0C0h+var_D0]
+  .text:000000018010CFB2                 add     rcx, 8
+  .text:000000018010CFB6                 mov     [rsp+1C0h+var_158], r14d
+  .text:000000018010CFBB                 mov     [rbp+0C0h+var_D0], rcx
+  .text:000000018010CFBF                 cmp     r14d, [rax+38h]
+  .text:000000018010CFC3                 mov     r14, rax
+  .text:000000018010CFC6                 jge     short loc_18010CFDE
+  .text:000000018010CFC8                 mov     r9, [rbp+0C0h+arg_18]
+  .text:000000018010CFCF                 xor     r15d, r15d
+  .text:000000018010CFD2                 mov     r8d, [rbp+0C0h+arg_10]
+  .text:000000018010CFD9                 jmp     loc_18010CB66
+  .text:000000018010CFDE                 mov     ebx, [rsp+1C0h+var_154]
+  .text:000000018010CFE2                 mov     ecx, cs:dword_1808CD888
+  .text:000000018010CFE8                 mov     edx, 1
+  .text:000000018010CFED                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:000000018010CFF3                 test    al, al
+  .text:000000018010CFF5                 jz      short loc_18010D022
+  .text:000000018010CFF7                 mov     eax, [rsi+10h]
+  .text:000000018010CFFA                 lea     r8, aSvWritebaselin_0; "SV:  WriteBaselines:  %d tables require"...
+  .text:000000018010D001                 mov     r9d, [r14+38h]
+  .text:000000018010D005                 add     eax, 7
+  .text:000000018010D008                 mov     ecx, cs:dword_1808CD888
+  .text:000000018010D00E                 mov     edx, 1
+  .text:000000018010D013                 sar     eax, 3
+  .text:000000018010D016                 sub     eax, ebx
+  .text:000000018010D018                 mov     dword ptr [rsp+1C0h+var_1A0], eax
+  .text:000000018010D01C                 call    cs:LoggingSystem_Log
+  .text:000000018010D022                 test    byte ptr [rbp+0C0h+var_108], 1
+  .text:000000018010D026                 lea     rax, ??_7?$CNetMessagePB@$0CM@VCSVCMsg_CreateStringTable@@$09$00$0A@@@6B@; const CNetMessagePB<44,CSVCMsg_CreateStringTable,10,1,0>::`vftable'
+  .text:000000018010D02D                 mov     [rbp+0C0h+var_140], rax
+  .text:000000018010D031                 lea     rax, ??_7CSVCMsg_CreateStringTable@@6B@; const CSVCMsg_CreateStringTable::`vftable'
+  .text:000000018010D038                 mov     [rbp+0C0h+var_110], rax
+  .text:000000018010D03C                 jz      short loc_18010D049
+  .text:000000018010D03E                 lea     rcx, [rbp+0C0h+var_108]
+  .text:000000018010D042                 call    sub_180146190
+  .text:000000018010D047                 jmp     short loc_18010D051
+  .text:000000018010D049                 mov     rax, [rbp+0C0h+var_108]
+  .text:000000018010D04D                 and     rax, 0FFFFFFFFFFFFFFFCh
+  .text:000000018010D051                 test    rax, rax
+  .text:000000018010D054                 jnz     short loc_18010D068
+  .text:000000018010D056                 lea     rcx, [rbp+0C0h+var_F8]
+  .text:000000018010D05A                 call    sub_1802515C0
+  .text:000000018010D05F                 lea     rcx, [rbp+0C0h+var_F0]
+  .text:000000018010D063                 call    sub_1802515C0
+  .text:000000018010D068                 movzx   eax, byte ptr [rbp+0C0h+var_108]
+  .text:000000018010D06C                 shr     al, 1
+  .text:000000018010D06E                 test    al, 1
+  .text:000000018010D070                 jz      short loc_18010D097
+  .text:000000018010D072                 mov     rbx, [rbp+0C0h+var_108]
+  .text:000000018010D076                 add     rbx, 0FFFFFFFFFFFFFFFEh
+  .text:000000018010D07A                 jz      short loc_18010D097
+  .text:000000018010D07C                 mov     rcx, rbx
+  .text:000000018010D07F                 call    sub_1802C0D90
+  .text:000000018010D084                 mov     rax, cs:g_pMemAlloc
+  .text:000000018010D08B                 mov     rdx, rbx
+  .text:000000018010D08E                 mov     rcx, [rax]
+  .text:000000018010D091                 mov     rax, [rcx]
+  .text:000000018010D094                 call    qword ptr [rax+18h]
+  .text:000000018010D097                 add     rsp, 188h
+  .text:000000018010D09E                 pop     r15
+  .text:000000018010D0A0                 pop     r14
+  .text:000000018010D0A2                 pop     r13
+  .text:000000018010D0A4                 pop     r12
+  .text:000000018010D0A6                 pop     rdi
+  .text:000000018010D0A7                 pop     rsi
+  .text:000000018010D0A8                 pop     rbx
+  .text:000000018010D0A9                 pop     rbp
+  .text:000000018010D0AA                 retn
+  .text:000000018010D0AB                 call    _invalid_parameter_noinfo_noreturn
+procedure: |-
+  char __fastcall sub_18010CA90(__int64 a1, __int64 a2)
+  {
+    int v2; // ebx
+    __int64 v3; // rsi
+    int v4; // ebx
+    __int64 v5; // r14
+    unsigned __int8 v6; // bl
+    __int64 v7; // rcx
+    __int64 v8; // r12
+    const char *v9; // rax
+    const char *v10; // rax
+    int v11; // r13d
+    unsigned __int64 v12; // rsi
+    __int128 *v13; // rdx
+    __int64 v14; // rdx
+    __int128 *v15; // rax
+    unsigned __int64 v16; // r14
+    __int128 *v17; // rsi
+    char *v18; // rsi
+    unsigned __int64 v19; // rdx
+    __int128 *v20; // rax
+    __int128 v21; // xmm2
+    __int128 v22; // xmm3
+    const char *v23; // rax
+    int v24; // r15d
+    int v25; // r15d
+    const char *v26; // rsi
+    int v27; // r14d
+    const char *v28; // rax
+    unsigned __int64 v29; // rax
+    char result; // al
+    __int64 v31; // rbx
+    unsigned int v32; // [rsp+40h] [rbp-C0h] BYREF
+    __int128 v33; // [rsp+48h] [rbp-B8h] BYREF
+    __int128 v34; // [rsp+58h] [rbp-A8h]
+    int v35; // [rsp+68h] [rbp-98h]
+    int v36; // [rsp+6Ch] [rbp-94h]
+    const char *v37; // [rsp+70h] [rbp-90h] BYREF
+    int v38; // [rsp+78h] [rbp-88h]
+    _QWORD v39[2]; // [rsp+80h] [rbp-80h] BYREF
+    int v40; // [rsp+90h] [rbp-70h]
+    char v41; // [rsp+94h] [rbp-6Ch]
+    __int64 v42; // [rsp+98h] [rbp-68h]
+    int v43; // [rsp+A0h] [rbp-60h]
+    __int64 v44; // [rsp+A8h] [rbp-58h]
+    void **v45; // [rsp+B0h] [rbp-50h]
+    __int64 v46; // [rsp+B8h] [rbp-48h] BYREF
+    __int64 v47; // [rsp+C0h] [rbp-40h]
+    __int64 *v48; // [rsp+C8h] [rbp-38h] BYREF
+    _QWORD v49[3]; // [rsp+D0h] [rbp-30h] BYREF
+    __int16 v50; // [rsp+E8h] [rbp-18h]
+    char v51; // [rsp+EAh] [rbp-16h]
+    int v52; // [rsp+ECh] [rbp-14h]
+    __int64 v53; // [rsp+F0h] [rbp-10h]
+    const char *v54; // [rsp+F8h] [rbp-8h] BYREF
+    int v55; // [rsp+100h] [rbp+0h]
+    const char *v56; // [rsp+108h] [rbp+8h]
+    __int128 v57; // [rsp+110h] [rbp+10h]
+    __int128 v58; // [rsp+120h] [rbp+20h]
+    int v59; // [rsp+130h] [rbp+30h]
+    const char *v60; // [rsp+138h] [rbp+38h] BYREF
+    int v61; // [rsp+140h] [rbp+40h]
+    const char *v62; // [rsp+148h] [rbp+48h]
+    __int128 v63; // [rsp+150h] [rbp+50h]
+    __int128 v64; // [rsp+160h] [rbp+60h]
+    int v65; // [rsp+170h] [rbp+70h]
+
+    v2 = *(_DWORD *)(a2 + 16);
+    v40 = 0;
+    v47 = 0;
+    v50 = 0;
+    v51 = 0;
+    v3 = a2;
+    v4 = (v2 + 7) >> 3;
+    v5 = a1;
+    v48 = &qword_18062ED10;
+    v49[0] = &qword_18062ED10;
+    v39[0] = &CSVCMsg_CreateStringTable_t::`vftable';
+    v45 = &CSVCMsg_CreateStringTable_t::`vftable';
+    v39[1] = 0;
+    v41 = -1;
+    v42 = -1;
+    v43 = -1082130432;
+    v44 = -1;
+    v46 = 0;
+    v49[1] = 0;
+    v49[2] = 0;
+    v52 = 0;
+    v36 = v4;
+    v35 = 0;
+    if ( *(int *)(a1 + 56) > 0 )
+    {
+      v6 = a1;
+      v7 = 0;
+      v53 = 0;
+      do
+      {
+        v8 = *(_QWORD *)(v7 + *(_QWORD *)(v5 + 64));
+        v38 = (*(_DWORD *)(v3 + 16) + 7) >> 3;
+        if ( !(unsigned __int8)sub_18010C0C0(v8, v39)
+          && (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_1808CD888, 5) )
+        {
+          v9 = (const char *)(*(__int64 (__fastcall **)(__int64))(*(_QWORD *)v8 + 8LL))(v8);
+          v60 = "C:\\buildworker\\csgo_rel_win64\\build\\src\\engine2\\networkstringtable.cpp";
+          v61 = 1807;
+          v62 = "CNetworkStringTableContainer::WriteBaselines";
+          v65 = 0;
+          v63 = 0;
+          v64 = 0;
+          LoggingSystem_Log(
+            (unsigned int)dword_1808CD888,
+            5,
+            &v60,
+            "SV:  CNetworkStringTableContainer::WriteBaselines, error writing string table baseline %s\n",
+            v9);
+        }
+        if ( *(_BYTE *)(v3 + 32) && (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_1808CD888, 5) )
+        {
+          v10 = (const char *)(*(__int64 (__fastcall **)(__int64))(*(_QWORD *)v8 + 8LL))(v8);
+          v54 = "C:\\buildworker\\csgo_rel_win64\\build\\src\\engine2\\networkstringtable.cpp";
+          v55 = 1812;
+          v56 = "CNetworkStringTableContainer::WriteBaselines";
+          v59 = 0;
+          v57 = 0;
+          v58 = 0;
+          LoggingSystem_Log(
+            (unsigned int)dword_1808CD888,
+            5,
+            &v54,
+            "SV:  CNetworkStringTableContainer::WriteBaselines, overflowed writing uncompressed string table data for %s\n",
+            v10);
+        }
+        v11 = *(_DWORD *)((v49[0] & 0xFFFFFFFFFFFFFFFCuLL) + 16);
+        v33 = 0;
+        LOBYTE(v33) = 0;
+        v32 = v11;
+        *(_QWORD *)&v34 = 0;
+        *((_QWORD *)&v34 + 1) = 15;
+        v12 = *(_QWORD *)((v49[0] & 0xFFFFFFFFFFFFFFFCuLL) + 16);
+        if ( v12 )
+        {
+          if ( v12 > 0xF )
+          {
+            sub_180044940((unsigned int)&v33, v12, v6, *(_QWORD *)((v49[0] & 0xFFFFFFFFFFFFFFFCuLL) + 16), 0);
+          }
+          else
+          {
+            *(_QWORD *)&v34 = *(_QWORD *)((v49[0] & 0xFFFFFFFFFFFFFFFCuLL) + 16);
+            sub_180473C60(&v33, 0, v34);
+            *((_BYTE *)&v33 + v12) = 0;
+          }
+        }
+        else
+        {
+          *(_QWORD *)&v34 = 0;
+          LOBYTE(v33) = 0;
+        }
+        v13 = &v33;
+        if ( *((_QWORD *)&v34 + 1) > 0xFu )
+          v13 = (__int128 *)v33;
+        if ( (*(unsigned __int8 (__fastcall **)(__int64, __int128 *, unsigned int *))(*(_QWORD *)g_pNetworkSystem
+                                                                                    + 240LL))(// 0x0F0 = 240LL = INetworkSystem_BufferToBufferCompress
+               g_pNetworkSystem,
+               v13,
+               &v32) )
+        {
+          v14 = v34;
+          if ( v32 > (unsigned __int64)v34 )
+          {
+            v16 = v32 - (_QWORD)v34;
+            if ( v16 > *((_QWORD *)&v34 + 1) - (_QWORD)v34 )
+            {
+              sub_180044940((unsigned int)&v33, v16, (unsigned __int8)a1, v32 - v34, 0);
+            }
+            else
+            {
+              *(_QWORD *)&v34 = v32;
+              v17 = &v33;
+              if ( *((_QWORD *)&v34 + 1) > 0xFu )
+                v17 = (__int128 *)v33;
+              v18 = (char *)v17 + v14;
+              sub_180473C60(v18, 0, v32 - v14);
+              v18[v16] = 0;
+            }
+          }
+          else
+          {
+            v15 = &v33;
+            *(_QWORD *)&v34 = v32;
+            if ( *((_QWORD *)&v34 + 1) > 0xFu )
+              v15 = (__int128 *)v33;
+            *((_BYTE *)v15 + v32) = 0;
+          }
+          LODWORD(v47) = v47 | 0x282;
+          HIBYTE(v50) = 1;
+          v52 = v11;
+          if ( (v46 & 1) != 0 )
+            v19 = *(_QWORD *)(v46 & 0xFFFFFFFFFFFFFFFCuLL);
+          else
+            v19 = v46 & 0xFFFFFFFFFFFFFFFCuLL;
+          v20 = (__int128 *)sub_180251640(v49, v19);
+          if ( v20 != &v33 )
+          {
+            v21 = *v20;
+            v22 = v20[1];
+            *v20 = v33;
+            v20[1] = v34;
+            v33 = v21;
+            v34 = v22;
+          }
+        }
+        v3 = a2;
+        if ( !(*(unsigned __int8 (__fastcall **)(__int64, __int64, _QWORD *))(*(_QWORD *)g_pNetworkMessages + 24LL))(
+                g_pNetworkMessages,
+                a2,
+                v39)
+          && (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_1808CD888, 5) )
+        {
+          v23 = (const char *)(*(__int64 (__fastcall **)(__int64))(*(_QWORD *)v8 + 8LL))(v8);
+          v55 = 1835;
+          v54 = "C:\\buildworker\\csgo_rel_win64\\build\\src\\engine2\\networkstringtable.cpp";
+          v56 = "CNetworkStringTableContainer::WriteBaselines";
+          v59 = 0;
+          v57 = 0;
+          v58 = 0;
+          LoggingSystem_Log(
+            (unsigned int)dword_1808CD888,
+            5,
+            &v54,
+            "SV:  CNetworkStringTableContainer::WriteBaselines, overflow error writing string table baseline %s\n",
+            v23);
+        }
+        v24 = *(_DWORD *)(a2 + 16) + 7;
+        v37 = nullptr;
+        v25 = v24 >> 3;
+        if ( HIBYTE(v50) )
+          CUtlString::Format((CUtlString *)&v37, "compressed %d -> %d bytes", v11, v32);
+        if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_1808CD888, 1) )
+        {
+          v26 = (const char *)&unk_180529B3F;
+          v27 = (*(_DWORD *)(a2 + 12) - *(_DWORD *)(a2 + 16)) >> 3;
+          if ( v37 )
+            v26 = v37;
+          v28 = (const char *)(*(__int64 (__fastcall **)(__int64))(*(_QWORD *)v8 + 8LL))(v8);
+          LoggingSystem_Log(
+            (unsigned int)dword_1808CD888,
+            1,
+            "SV:  WriteBaselines:  %20.20s wrote %6d bytes [%36.36s], headroom %6d bytes\n",
+            v28,
+            v25 - v38,
+            v26,
+            v27);
+          v3 = a2;
+        }
+        if ( v37 )
+          CUtlString::FreeMemoryBlock((CUtlString *)&v37);
+        if ( *((_QWORD *)&v34 + 1) > 0xFu )
+        {
+          if ( (unsigned __int64)(*((_QWORD *)&v34 + 1) + 1LL) >= 0x1000
+            && (unsigned __int64)(v33 - *(_QWORD *)(v33 - 8) - 8) > 0x1F )
+          {
+            invalid_parameter_noinfo_noreturn();
+          }
+          (*(void (__fastcall **)(_QWORD))(*g_pMemAlloc + 24LL))(g_pMemAlloc);
+        }
+        v7 = v53 + 8;
+        ++v35;
+        v53 += 8;
+        v5 = a1;
+      }
+      while ( v35 < *(_DWORD *)(a1 + 56) );
+      v4 = v36;
+    }
+    if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_1808CD888, 1) )
+      LoggingSystem_Log(
+        (unsigned int)dword_1808CD888,
+        1,
+        "SV:  WriteBaselines:  %d tables required %d bytes\n",
+        *(_DWORD *)(v5 + 56),
+        ((*(_DWORD *)(v3 + 16) + 7) >> 3) - v4);
+    v39[0] = &CNetMessagePB<44,CSVCMsg_CreateStringTable,10,1,0>::`vftable';
+    v45 = &CSVCMsg_CreateStringTable::`vftable';
+    if ( (v46 & 1) != 0 )
+      v29 = sub_180146190(&v46);
+    else
+      v29 = v46 & 0xFFFFFFFFFFFFFFFCuLL;
+    if ( !v29 )
+    {
+      sub_1802515C0(&v48);
+      sub_1802515C0(v49);
+    }
+    result = (unsigned __int8)v46 >> 1;
+    if ( (v46 & 2) != 0 )
+    {
+      v31 = v46 - 2;
+      if ( v46 != 2 )
+      {
+        sub_1802C0D90(v46 - 2);
+        return (*(__int64 (__fastcall **)(_QWORD, __int64))(*g_pMemAlloc + 24LL))(g_pMemAlloc, v31);
+      }
+    }
+    return result;
+  }
