@@ -876,9 +876,7 @@ SYMBOL_ARTIFACT_FIELD_ORDER = {
     # `func` artifacts carry only the func-level fields; the vtable/vfunc ones
     # belong to the `vfunc` category.
     "func": tuple(
-        field
-        for field in FUNC_YAML_ORDER
-        if not field.startswith("vtable_") and not field.startswith("vfunc_")
+        field for field in FUNC_YAML_ORDER if not field.startswith("vtable_") and not field.startswith("vfunc_")
     ),
     "vfunc": tuple(FUNC_YAML_ORDER),
     "gv": tuple(GV_YAML_ORDER),
@@ -3453,10 +3451,7 @@ async def preprocess_func_sig_via_mcp(
             return None
 
         if debug:
-            print(
-                f"    Preprocess: disambiguated func_sig via {vtable_name}"
-                f"[{slot_index}] -> {hex(slot_addr)}"
-            )
+            print(f"    Preprocess: disambiguated func_sig via {vtable_name}[{slot_index}] -> {hex(slot_addr)}")
         return hex(slot_addr)
 
     func_sig = old_data.get("func_sig")
@@ -4051,8 +4046,7 @@ async def preprocess_gen_func_sig_via_mcp(
             if kind:
                 if debug:
                     print(
-                        f"    Preprocess: {hex(func_va_int)} body is a single instruction "
-                        f"({kind}); skipping func_sig"
+                        f"    Preprocess: {hex(func_va_int)} body is a single instruction ({kind}); skipping func_sig"
                     )
                 return {
                     "func_va": hex(func_va_int),

@@ -637,9 +637,7 @@ async def preprocess_script_desc_internal_skill(
         if entry is None or config is None:
             _debug(debug, f"missing script entry or desired fields for {spec}")
             return False
-        payload, skipped_fields = await _build_requested_payload(
-            session, spec, entry, config, image_base, debug=debug
-        )
+        payload, skipped_fields = await _build_requested_payload(session, spec, entry, config, image_base, debug=debug)
         if payload is None or set(payload) != set(config["desired_output_fields"]) - skipped_fields:
             _debug(debug, f"incomplete payload for {spec['target_name']}")
             return False

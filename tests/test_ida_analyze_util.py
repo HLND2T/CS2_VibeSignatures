@@ -1961,7 +1961,6 @@ class TestDegenerateFuncBodySignatureSkip(unittest.IsolatedAsyncioTestCase):
 
         self.assertIsNone(result)
 
-
     def test_func_artifact_accepts_func_sig_skip_degenerate(self) -> None:
         payload = {
             "func_name": "Foo",
@@ -14346,17 +14345,11 @@ class TestAmbiguousFuncSigVtableSlotRecovery(unittest.IsolatedAsyncioTestCase):
         async def _session_call_tool(*, name: str, arguments: dict[str, object]):
             if name == "find_bytes":
                 if arguments["limit"] == 2:
-                    return _FakeCallToolResult(
-                        [{"matches": [self.SLOT_ADDR, self.SIBLING_ADDR], "n": 2}]
-                    )
-                return _FakeCallToolResult(
-                    [{"matches": list(sig_matches), "n": len(sig_matches)}]
-                )
+                    return _FakeCallToolResult([{"matches": [self.SLOT_ADDR, self.SIBLING_ADDR], "n": 2}])
+                return _FakeCallToolResult([{"matches": list(sig_matches), "n": len(sig_matches)}])
             if name == "py_eval":
                 counts["py_eval"] += 1
-                return _py_eval_payload(
-                    {"func_va": self.SLOT_ADDR, "func_size": "0x1a6"}
-                )
+                return _py_eval_payload({"func_va": self.SLOT_ADDR, "func_size": "0x1a6"})
             raise AssertionError(f"unexpected MCP tool: {name}")
 
         session = AsyncMock()
@@ -14473,14 +14466,10 @@ class TestUndefinedFuncRecovery(unittest.IsolatedAsyncioTestCase):
                 if "f.start_ea == addr" in code:
                     get_func_info_calls.append(1)
                     if len(get_func_info_calls) > 1 and resolve_after_define:
-                        return _py_eval_payload(
-                            {"func_va": self.MATCH_ADDR, "func_size": "0x140"}
-                        )
+                        return _py_eval_payload({"func_va": self.MATCH_ADDR, "func_size": "0x140"})
                     return _py_eval_payload(None)
                 if "get_func(code_addr)" in code:
-                    return _py_eval_payload(
-                        {"status": "resolved", "func_start": self.MATCH_ADDR}
-                    )
+                    return _py_eval_payload({"status": "resolved", "func_start": self.MATCH_ADDR})
                 raise AssertionError(f"unexpected py_eval code: {code}")
             raise AssertionError(f"unexpected MCP tool: {name}")
 
