@@ -140,11 +140,52 @@ jobs:
       gamever: ${{ needs.preflight.outputs.gamever }}
       source_sha: ${{ needs.preflight.outputs.source_sha }}
     secrets: inherit
+  ensure-binsync-remotes:
+    # A GAMEVER's canonical BinSync remotes are created out of band and the build
+    # job only ever clones them; nothing else provisions a brand-new GAMEVER, so a
+    # missing remote surfaces as a 502 from the self-hosted HZVM:8080 read proxy
+    # when the build clones it. The tracked path exports no BinSync candidate at
+    # all, so it needs no remotes. Provisioning is pinned to the immutable source
+    # SHA because a remote's binary_hash must match the lock the build validates.
+    needs: preflight
+    if: >-
+      ${{ github.repository == 'HLND2T/CS2_VibeSignatures'
+      && inputs.source_artifact_mode != 'tracked' }}
+    runs-on: ubuntu-latest
+    environment: binsync-remotes
+    steps:
+      - name: Checkout immutable source for trusted provisioning
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.preflight.outputs.source_sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v9.0.0
+      - name: Create and initialize missing BinSync remotes
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.HLND2T_GH_TOKEN }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:GH_TOKEN)) {
+            throw "HLND2T_GH_TOKEN is not configured for the binsync-remotes environment."
+          }
+          $orgLogin = gh api orgs/HLND2T --jq .login
+          if ($LASTEXITCODE -ne 0) {
+            throw "HLND2T_GH_TOKEN could not authenticate to the HLND2T organization."
+          }
+          if ($orgLogin.Trim() -ne "HLND2T") {
+            throw "HLND2T_GH_TOKEN authenticated to an unexpected organization: '$($orgLogin.Trim())' (expected HLND2T)."
+          }
+          gh auth setup-git
+          if ($LASTEXITCODE -ne 0) { throw "gh auth setup-git failed." }
+          uv run init_gamebin.py ensure-binsync-remotes "${{ needs.preflight.outputs.gamever }}" --user release-automation
+          if ($LASTEXITCODE -ne 0) { throw "BinSync remote provisioning failed." }
   build:
-    needs: [preflight, warmup-idb]
+    needs: [preflight, warmup-idb, ensure-binsync-remotes]
     if: >-
       ${{ !cancelled() && needs.preflight.result == 'success'
-      && (needs.warmup-idb.result == 'success' || needs.warmup-idb.result == 'skipped') }}
+      && (needs.warmup-idb.result == 'success' || needs.warmup-idb.result == 'skipped')
+      && (needs.ensure-binsync-remotes.result == 'success' || needs.ensure-binsync-remotes.result == 'skipped') }}
     environment: win64
     runs-on: [self-hosted, windows, x64]
     outputs:

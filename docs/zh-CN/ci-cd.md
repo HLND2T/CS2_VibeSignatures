@@ -34,11 +34,12 @@ PR 与 Release analysis 都调用 `warmup-idb.yml`，将 configured binary hashe
 version source commit 进入 default branch 后：
 
 1. source preflight 证明目标 GAMEVER 有完整 tracked artifact tree；
-2. self-hosted builder 执行 fresh `-force_all -rename`，按 [anchor drift 契约](#anchor-drift-契约)校验重建产物与 tracked tree，并从已提交的 `bin_artifacts` 生成无凭证的 BinSync/Release candidates；
-3. hosted jobs 独立验证 candidate bundles、archive allowlists、manifest、checksums、C++ evidence 与 BinSync target-state identity；
-4. protected BinSync publisher 只执行 fast-forward ref updates；
-5. protected Release publisher 创建/复用 source tag，上传 exact immutable assets，发布一次并 dispatch Pages；
-6. Pages 只 hydrate published Release assets，验证 manifest/SHA256SUMS/archive inventories，构建全部已发布版本并验证 CDN bytes。
+2. hosted job 依据 tracked binary lock 为该 GAMEVER 创建并初始化缺失的 per-module BinSync remote，绑定同一 immutable source SHA，且在 self-hosted 只读代理之外运行：新 GAMEVER 尚无任何 remote，而 builder 只会 clone 它们；
+3. self-hosted builder 执行 fresh `-force_all -rename`，按 [anchor drift 契约](#anchor-drift-契约)校验重建产物与 tracked tree，并从已提交的 `bin_artifacts` 生成无凭证的 BinSync/Release candidates；
+4. hosted jobs 独立验证 candidate bundles、archive allowlists、manifest、checksums、C++ evidence 与 BinSync target-state identity；
+5. protected BinSync publisher 只执行 fast-forward ref updates；
+6. protected Release publisher 创建/复用 source tag，上传 exact immutable assets，发布一次并 dispatch Pages；
+7. Pages 只 hydrate published Release assets，验证 manifest/SHA256SUMS/archive inventories，构建全部已发布版本并验证 CDN bytes。
 
 workflow transaction identity 在 GitHub rerun 之间保持稳定（`run_id`）；`run_attempt` 只属于 transport metadata。
 `publish` 保持已发布内容不被覆盖。普通构建和 rebuild-free 的手动入口另提供 `republish`，触发 CLI 可使用

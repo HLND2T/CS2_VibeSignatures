@@ -42,11 +42,12 @@ PR and Release analysis call `warmup-idb.yml`. It binds configured binary hashes
 After a version source commit reaches the default branch:
 
 1. Source preflight proves the configured GAMEVER has a complete tracked artifact tree.
-2. A self-hosted builder performs fresh `-force_all -rename`, verifies the rebuilt artifacts against the tracked tree under the [anchor drift contract](#anchor-drift-contract), and creates credential-free BinSync and Release candidates from the committed `bin_artifacts`.
-3. Hosted jobs independently verify candidate bundles, archive allowlists, manifests, checksums, C++ evidence, and BinSync target-state identity.
-4. The protected BinSync publisher performs fast-forward-only ref updates.
-5. The protected Release publisher creates/reuses the source tag, uploads exact immutable assets, publishes once, and dispatches Pages.
-6. Pages hydrates only published Release assets, verifies manifest/SHA256SUMS/archive inventories, builds all released versions, and verifies CDN bytes.
+2. A hosted job creates and initializes any missing per-module BinSync remotes for the GAMEVER from the tracked binary lock, pinned to the same immutable source SHA and run outside the self-hosted read proxy: a new GAMEVER has no remotes yet, and the builder only clones them.
+3. A self-hosted builder performs fresh `-force_all -rename`, verifies the rebuilt artifacts against the tracked tree under the [anchor drift contract](#anchor-drift-contract), and creates credential-free BinSync and Release candidates from the committed `bin_artifacts`.
+4. Hosted jobs independently verify candidate bundles, archive allowlists, manifests, checksums, C++ evidence, and BinSync target-state identity.
+5. The protected BinSync publisher performs fast-forward-only ref updates.
+6. The protected Release publisher creates/reuses the source tag, uploads exact immutable assets, publishes once, and dispatches Pages.
+7. Pages hydrates only published Release assets, verifies manifest/SHA256SUMS/archive inventories, builds all released versions, and verifies CDN bytes.
 
 The workflow transaction identity is stable across GitHub reruns (`run_id`); `run_attempt` is transport metadata only.
 `publish` never replaces published content. Manual standard and rebuild-free workflows also offer `republish`;
