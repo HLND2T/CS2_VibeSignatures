@@ -77,8 +77,19 @@ immutable main SHA preflight
   accept `skipped`; a plain `if:` expression is implicitly `success()` and would skip the dependent job instead.
 - Missing per-module BinSync remotes for an unpublished GAMEVER are provisioned by
   `init_gamebin.py ensure-binsync-remotes <gamever> --user release-automation`, which reads the authoritative md5 from
-  tracked `binary_locks/<GAMEVER>.json` and needs no binary download; it runs on `ubuntu-latest` in the protected
-  `binsync-remotes` environment to bypass the HZVM proxy.
+  tracked `binary_locks/<GAMEVER>.json` and needs no binary download. `build-on-self-runner.yml` runs it in its own
+  `ensure-binsync-remotes` job (`ubuntu-latest`, protected `binsync-remotes` environment, `HLND2T_GH_TOKEN`, pinned to
+  the immutable source SHA) gated on `source_artifact_mode != 'tracked'`, and the build job depends on it (`success` or
+  `skipped`, like `warmup-idb`). Pinning matters because the remote's `binary_hash` must equal the lock the build
+  validates; provisioning off a drifted default branch would create a remote the build then rejects.
+- The provisioning job must stay on a hosted runner: the HZVM:8080 read proxy on the self-hosted runner turns a missing
+  upstream repository into `502 upstream fetch failed`, so a build-side `git clone` of an unprovisioned remote reports a
+  misleading proxy error instead of a missing repo.
+- Regression this fixes: `9169638f4` deleted `rebuild-free-release.yml`'s `ensure-binsync-remotes` job (correct for the
+  tracked path, which exports no BinSync candidate) but that job was the only CI place that ever created a new GAMEVER's
+  remotes, so the next automatic release (`14182b`) failed at `binsync-prepare` on `git clone` with proxy 502. A new
+  GAMEVER stays broken until something provisions its 16 remotes; `bootstrap-new-gamever-artifacts.yml` deliberately does
+  not (it uses `--bootstrap-local-init` and never writes any remote).
 ## Callers
 - Provenance-verified release dispatch for an immutable default-branch source SHA.
 - Explicit authorized recovery reruns using the same stable transaction identity.
