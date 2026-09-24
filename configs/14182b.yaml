@@ -1473,7 +1473,7 @@ modules:
           - CNetworkServerService_OnServerPostSimulate.{platform}.yaml
           - CNetworkServerService_OnServerPostAdvanceTick.{platform}.yaml
           - CNetworkServerService_OnFrameBoundary.{platform}.yaml
-          - CNetworkServerService_OnClientPollNetworking.{platform}.yaml
+          - CNetworkServerService_OnClientPollNetworking.{platform}.yaml  # func, func_sig_allow_across_function_boundary: true
           - CNetworkServerService_OnSimpleLoopFrameUpdate.{platform}.yaml
         expected_input:
           - CNetworkServerService_RegisterEventMapInternal.{platform}.yaml
@@ -6824,11 +6824,12 @@ modules:
           - CSource2Server_vtable2.{platform}.yaml
         expected_input:
           - CSource2Server_vtable.{platform}.yaml
-      - name: find-CSource2Server_OnStreamEntitiesFromFileCompleted
-        expected_output:
-          - CSource2Server_OnStreamEntitiesFromFileCompleted.{platform}.yaml
-        expected_input:
-          - CSource2Server_vtable2.{platform}.yaml
+      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14182.md"
+      #- name: find-CSource2Server_OnStreamEntitiesFromFileCompleted
+      #  expected_output:
+      #    - CSource2Server_OnStreamEntitiesFromFileCompleted.{platform}.yaml
+      #  expected_input:
+      #    - CSource2Server_vtable2.{platform}.yaml
       - name: find-CSource2Server_UpdateWhenNotInGame
         expected_output:
           - CSource2Server_UpdateWhenNotInGame.{platform}.yaml
@@ -6850,12 +6851,13 @@ modules:
       - name: find-IGameSystem_vtable
         expected_output:
           - IGameSystem_vtable.{platform}.yaml
-      - name: find-IGameSystem_OnRestoreGame
-        expected_output:
-          - IGameSystem_OnRestoreGame.{platform}.yaml
-        expected_input:
-          - CSource2Server_OnStreamEntitiesFromFileCompleted.{platform}.yaml
-          - IGameSystem_vtable.{platform}.yaml
+      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14182.md"
+      #- name: find-IGameSystem_OnRestoreGame
+      #  expected_output:
+      #    - IGameSystem_OnRestoreGame.{platform}.yaml
+      #  expected_input:
+      #    - CSource2Server_OnStreamEntitiesFromFileCompleted.{platform}.yaml
+      #    - IGameSystem_vtable.{platform}.yaml
       - name: find-CGameEntitySystem_vtable
         expected_output:
           - CGameEntitySystem_vtable.{platform}.yaml
@@ -7137,11 +7139,12 @@ modules:
           - CBasePlayerPawn_OnTakeDamage_Alive.{platform}.yaml
           - CBasePlayerPawn_OnTakeDamage_Dying.{platform}.yaml
           - CBasePlayerPawn_OnTakeDamage_Dead.{platform}.yaml
-      - name: find-CCSPlayerPawn_CreatePlayerPawnServices
-        expected_output:
-          - CCSPlayerPawn_CreatePlayerPawnServices.{platform}.yaml
-        expected_input:
-          - CCSPlayerPawn_vtable.{platform}.yaml
+      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14182.md"
+      #- name: find-CCSPlayerPawn_CreatePlayerPawnServices
+      #  expected_output:
+      #    - CCSPlayerPawn_CreatePlayerPawnServices.{platform}.yaml
+      #  expected_input:
+      #    - CCSPlayerPawn_vtable.{platform}.yaml
       - name: find-CFlashbangProjectile_vtable
         expected_output:
           - CFlashbangProjectile_vtable.{platform}.yaml
@@ -7170,6 +7173,11 @@ modules:
       - name: find-SmokeVolume_GetSmokeDensityInLine_Lambda1_operator_call
         expected_output:
           - SmokeVolume_GetSmokeDensityInLine_Lambda1_operator_call.{platform}.yaml
+        # The script's exclude_gvs references this global, but the dependency was
+        # not declared here, so the scheduler ran this skill before its producer
+        # (find-g_GameTraceManager) on linux.
+        expected_input:
+          - g_GameTraceManager.{platform}.yaml
       - name: find-CSmokeGrenadeProjectile_Detonate-decompiles
         expected_output:
           - SmokeVolume_BuildSmokeSimulation.{platform}.yaml
@@ -9082,24 +9090,28 @@ modules:
       - name: find-TraceShape
         expected_output:
           - TraceShape.{platform}.yaml
-      - name: find-CBaseFilter_InputTestActivator
-        expected_output:
-          - CBaseFilter_InputTestActivator.{platform}.yaml
+      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14182.md"
+      #- name: find-CBaseFilter_InputTestActivator
+      #  expected_output:
+      #    - CBaseFilter_InputTestActivator.{platform}.yaml
       - name: find-GameSystem_Think_CheckSteamBan
         expected_output:
           - GameSystem_Think_CheckSteamBan.{platform}.yaml
-      - name: find-CGamePlayerEquip_InputTriggerForAllPlayers
-        expected_output:
-          - CGamePlayerEquip_InputTriggerForAllPlayers.{platform}.yaml
-      - name: find-CGamePlayerEquip_InputTriggerForActivatedPlayer
-        expected_output:
-          - CGamePlayerEquip_InputTriggerForActivatedPlayer.{platform}.yaml
-      - name: find-ParticleTestStart_CommandHandler-decompiles
-        expected_output:
-          - DispatchParticleEffect.{platform}.yaml
-          - UTIL_PlayerSlotToPlayerPawn.{platform}.yaml
-        expected_input:
-          - ParticleTestStart_CommandHandler.{platform}.yaml
+      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14182.md"
+      #- name: find-CGamePlayerEquip_InputTriggerForAllPlayers
+      #  expected_output:
+      #    - CGamePlayerEquip_InputTriggerForAllPlayers.{platform}.yaml
+      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14182.md"
+      #- name: find-CGamePlayerEquip_InputTriggerForActivatedPlayer
+      #  expected_output:
+      #    - CGamePlayerEquip_InputTriggerForActivatedPlayer.{platform}.yaml
+      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14182.md"
+      #- name: find-ParticleTestStart_CommandHandler-decompiles
+      #  expected_output:
+      #    - DispatchParticleEffect.{platform}.yaml
+      #    - UTIL_PlayerSlotToPlayerPawn.{platform}.yaml
+      #  expected_input:
+      #    - ParticleTestStart_CommandHandler.{platform}.yaml
       - name: find-CNavMesh_GetNearestNavArea
         expected_output:
           - CNavMesh_GetNearestNavArea.{platform}.yaml
@@ -9420,13 +9432,14 @@ modules:
       - name: find-PhysEnableEntityCollisions
         expected_output:
           - PhysEnableEntityCollisions.{platform}.yaml
-      - name: find-CPhysicsEntitySolver_PhysEnableEntityCollisions
-        platform: windows
-        expected_output:
-          - CPhysicsEntitySolver_PhysEnableEntityCollisions.{platform}.yaml
-        expected_input:
-          - CPhysicsEntitySolver_vtable.{platform}.yaml
-          - PhysEnableEntityCollisions.{platform}.yaml
+      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14182.md"
+      #- name: find-CPhysicsEntitySolver_PhysEnableEntityCollisions
+      #  platform: windows
+      #  expected_output:
+      #    - CPhysicsEntitySolver_PhysEnableEntityCollisions.{platform}.yaml
+      #  expected_input:
+      #    - CPhysicsEntitySolver_vtable.{platform}.yaml
+      #    - PhysEnableEntityCollisions.{platform}.yaml
       - name: find-CLoopModeGame_vtable
         expected_output:
           - CLoopModeGame_vtable.{platform}.yaml
@@ -9523,13 +9536,14 @@ modules:
         expected_input:
           - CLoopModeGame_OnServerPostAdvanceTick.{platform}.yaml
           - IGameSystem_vtable.{platform}.yaml
-      - name: find-IGameSystem_OnServerBeginAsyncPostTickWork
-        expected_output:
-          - IGameSystem_OnServerPreBeginAsyncPostTickWork.{platform}.yaml
-          - IGameSystem_OnServerBeginAsyncPostTickWork.{platform}.yaml
-        expected_input:
-          - CLoopModeGame_OnServerBeginAsyncPostTickWork.{platform}.yaml
-          - IGameSystem_vtable.{platform}.yaml
+      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14182.md"
+      #- name: find-IGameSystem_OnServerBeginAsyncPostTickWork
+      #  expected_output:
+      #    - IGameSystem_OnServerPreBeginAsyncPostTickWork.{platform}.yaml
+      #    - IGameSystem_OnServerBeginAsyncPostTickWork.{platform}.yaml
+      #  expected_input:
+      #    - CLoopModeGame_OnServerBeginAsyncPostTickWork.{platform}.yaml
+      #    - IGameSystem_vtable.{platform}.yaml
       - name: find-CLoopModeGame_OnServerEndAsyncPostTickWork-decompiles
         expected_output:
           - IGameSystem_OnServerPreEndAsyncPostTickWork.{platform}.yaml
@@ -9692,12 +9706,13 @@ modules:
           - CEntitySaveRestoreBlockHandler_PreSave.{platform}.yaml
         expected_input:
           - CEntitySaveRestoreBlockHandler_vtable.{platform}.yaml
-      - name: find-IGameSystem_OnSaveGame
-        expected_output:
-          - IGameSystem_OnSaveGame.{platform}.yaml
-        expected_input:
-          - CEntitySaveRestoreBlockHandler_PreSave.{platform}.yaml
-          - IGameSystem_vtable.{platform}.yaml
+      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14182.md"
+      #- name: find-IGameSystem_OnSaveGame
+      #  expected_output:
+      #    - IGameSystem_OnSaveGame.{platform}.yaml
+      #  expected_input:
+      #    - CEntitySaveRestoreBlockHandler_PreSave.{platform}.yaml
+      #    - IGameSystem_vtable.{platform}.yaml
       - name: find-CEntitySaveRestoreBlockHandler_SaveInternal
         expected_output:
           - CEntitySaveRestoreBlockHandler_SaveInternal.{platform}.yaml
