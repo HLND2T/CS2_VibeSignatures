@@ -324,7 +324,8 @@ def remote_tag_exists(tag: str) -> bool:
 
 
 def ensure_clean_worktree() -> None:
-    status = git_output(["git", "status", "--porcelain"])
+    # Submodules are checked out separately, so hl2sdk_cs2 may legitimately lag the gitlink.
+    status = git_output(["git", "status", "--porcelain", "--ignore-submodules=all"])
     if status:
         raise BumpError("Working tree has uncommitted changes")
 

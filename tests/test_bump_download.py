@@ -1,4 +1,5 @@
 import argparse
+import os
 from pathlib import Path
 import subprocess
 import tempfile
@@ -8,6 +9,18 @@ from unittest.mock import ANY, call, patch
 import bump_download
 import bump_download_candidate as bdc
 from tests.gamesymbol_snapshot_test_support import write_binary, write_config
+
+
+def _run_git(repository: Path, *arguments: str) -> str:
+    completed = subprocess.run(
+        ["git", "-C", str(repository), *arguments],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if completed.returncode:
+        raise AssertionError(completed.stderr or f"git {' '.join(arguments)} failed")
+    return completed.stdout.strip()
 
 
 class TestBumpDownload(unittest.TestCase):
@@ -514,6 +527,76 @@ class TestBumpDownload(unittest.TestCase):
         )
 
     @patch("bump_download.subprocess.run")
+    def test_ensure_clean_worktree_ignores_submodule_drift(self, mock_run) -> None:
+        mock_run.return_value = bump_download.subprocess.CompletedProcess(
+            ["git", "status"],
+            0,
+            stdout="",
+            stderr="",
+        )
+
+        bump_download.ensure_clean_worktree()
+
+        mock_run.assert_called_once_with(
+            ["git", "status", "--porcelain", "--ignore-submodules=all"],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+
+    @patch("bump_download.subprocess.run")
+    def test_ensure_clean_worktree_rejects_modified_tracked_files(self, mock_run) -> None:
+        mock_run.return_value = bump_download.subprocess.CompletedProcess(
+            ["git", "status"],
+            0,
+            stdout=" M download.yaml\n",
+            stderr="",
+        )
+
+        with self.assertRaisesRegex(bump_download.BumpError, "Working tree has uncommitted changes"):
+            bump_download.ensure_clean_worktree()
+
+    def test_ensure_clean_worktree_tolerates_drifted_submodule(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "sdk"
+            repository = root / "repo"
+            source.mkdir()
+            repository.mkdir()
+            for target in (source, repository):
+                _run_git(target, "init", "-b", "main")
+                _run_git(target, "config", "user.email", "test@example.com")
+                _run_git(target, "config", "user.name", "Test")
+            (source / "remote.cpp").write_text("first\n", encoding="utf-8")
+            _run_git(source, "add", ".")
+            _run_git(source, "commit", "-m", "first")
+            _run_git(source, "tag", "first")
+            (source / "remote.cpp").write_text("second\n", encoding="utf-8")
+            _run_git(source, "commit", "-am", "second")
+            _run_git(
+                repository,
+                "-c",
+                "protocol.file.allow=always",
+                "submodule",
+                "add",
+                str(source),
+                "hl2sdk_cs2",
+            )
+            _run_git(repository, "commit", "-m", "record submodule")
+            # The runner never refreshes the submodule, so the worktree keeps an older commit.
+            _run_git(repository / "hl2sdk_cs2", "checkout", "first")
+
+            self.assertNotEqual("", _run_git(repository, "status", "--porcelain"))
+            self.assertEqual("", _run_git(repository, "status", "--porcelain", "--ignore-submodules=all"))
+
+            working_directory = Path.cwd()
+            os.chdir(repository)
+            try:
+                bump_download.ensure_clean_worktree()
+            finally:
+                os.chdir(working_directory)
+
+    @patch("bump_download.subprocess.run")
     def test_local_tag_exists_returns_false_for_missing_ref(self, mock_run) -> None:
         mock_run.return_value = bump_download.subprocess.CompletedProcess(
             ["git", "show-ref"],
@@ -989,6 +1072,27 @@ class TestBumpDownloadCandidate(unittest.TestCase):
                 binary_root=binary_root,
             )
         return base_sha
+
+    @patch.object(bdc, "_git")
+    def test_require_clean_worktree_ignores_submodule_drift(self, mock_git) -> None:
+        mock_git.return_value = ""
+
+        bdc._require_clean_worktree(Path("repo"), "download-bump checkout must be clean")
+
+        mock_git.assert_called_once_with(
+            Path("repo"),
+            "status",
+            "--porcelain=v1",
+            "--untracked-files=all",
+            "--ignore-submodules=all",
+        )
+
+    @patch.object(bdc, "_git")
+    def test_require_clean_worktree_rejects_dirty_checkout(self, mock_git) -> None:
+        mock_git.return_value = "M\tdownload.yaml"
+
+        with self.assertRaisesRegex(bdc.BumpDownloadCandidateError, "download-bump checkout must be clean"):
+            bdc._require_clean_worktree(Path("repo"), "download-bump checkout must be clean")
 
     def test_candidate_is_verified_and_recommitted_by_hosted_publisher(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
