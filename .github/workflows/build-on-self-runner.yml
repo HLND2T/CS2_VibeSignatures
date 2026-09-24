@@ -326,7 +326,7 @@ jobs:
           "FORCE_ALL_EXECUTION_REPORT=$($document.execution_report)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
           $diagnostics = Join-Path $env:RUNNER_TEMP "release-rebuild-diagnostics\${{ github.run_id }}-${{ github.run_attempt }}-$env:GAMEVER"
           "RELEASE_REBUILD_DIAGNOSTICS=$diagnostics" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-      - name: Analyze every producer group with force-all and rename
+      - name: Analyze platforms concurrently with force-all and rename
         id: analyze
         if: inputs.source_artifact_mode != 'tracked'
         shell: pwsh
@@ -338,10 +338,22 @@ jobs:
             '-artifactdir', $env:ACTUAL_ARTIFACT_ROOT,
             '-oldartifactdir', 'bin_artifacts',
             '-execution_report', $env:FORCE_ALL_EXECUTION_REPORT,
+            '-parallel_platforms', (Join-Path $env:RUNNER_TEMP "release-platform-analysis-${{ github.run_id }}-${{ github.run_attempt }}-$env:GAMEVER"),
             '-require_warm_idb', '-force_all', '-rename', '-debug'
           )
           uv run ida_analyze_bin.py @args
           if ($LASTEXITCODE -ne 0) { throw "ida_analyze_bin.py failed with exit code $LASTEXITCODE" }
+      - name: Upload platform analysis logs and execution records
+        if: always() && steps.analyze.outcome != 'skipped'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-platform-analysis-${{ github.run_id }}-${{ github.run_attempt }}-${{ env.GAMEVER }}
+          path: |
+            ${{ runner.temp }}/release-platform-analysis-${{ github.run_id }}-${{ github.run_attempt }}-${{ env.GAMEVER }}/*.log
+            ${{ runner.temp }}/release-platform-analysis-${{ github.run_id }}-${{ github.run_attempt }}-${{ env.GAMEVER }}/summary.json
+            ${{ runner.temp }}/release-platform-analysis-${{ github.run_id }}-${{ github.run_attempt }}-${{ env.GAMEVER }}/**/worker.json
+          if-no-files-found: warn
+          retention-days: 30
       - name: Verify fresh artifacts reproduce immutable Git truth
         id: verify-artifact-rebuild
         if: inputs.source_artifact_mode != 'tracked'

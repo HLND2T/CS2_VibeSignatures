@@ -248,6 +248,7 @@ jobs:
         if: needs.bootstrap-reuse.outputs.reused != 'true'
         shell: pwsh
         run: |
+          $analysisLogs = Join-Path $env:RUNNER_TEMP "pr-platform-analysis-${{ github.run_id }}-${{ github.run_attempt }}-$env:GAMEVER"
           if ("${{ steps.prepare-rebuild.outputs.strategy }}" -eq "base-inherited-selected-v1") {
             if ([string]::IsNullOrWhiteSpace("${{ steps.prepare-rebuild.outputs.selected-manifest }}")) {
               throw "Selected strategy preparation did not publish an execution manifest."
@@ -257,16 +258,27 @@ jobs:
               -artifactdir "${{ steps.prepare-rebuild.outputs.actual-root }}" -oldartifactdir bin_artifacts `
               -execution_report "${{ steps.prepare-rebuild.outputs.execution-report }}" `
               -selected_execution "${{ steps.prepare-rebuild.outputs.selected-manifest }}" `
-              -require_warm_idb
+              -require_warm_idb -debug -parallel_platforms "$analysisLogs"
             if ($LASTEXITCODE -ne 0) { throw "Selected PR artifact rebuild failed." }
           } else {
             uv run ida_analyze_bin.py -gamever "$env:GAMEVER" `
               -configyaml "${{ steps.prepare-rebuild.outputs.config }}" -bindir bin `
               -artifactdir "${{ steps.prepare-rebuild.outputs.actual-root }}" -oldartifactdir bin_artifacts `
               -execution_report "${{ steps.prepare-rebuild.outputs.execution-report }}" `
-              -require_warm_idb -force_all
+              -require_warm_idb -force_all -debug -parallel_platforms "$analysisLogs"
             if ($LASTEXITCODE -ne 0) { throw "Force-all PR artifact rebuild failed." }
           }
+      - name: Upload platform analysis logs and execution records
+        if: always() && steps.execute-rebuild.outcome != 'skipped'
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-platform-analysis-${{ github.run_id }}-${{ github.run_attempt }}-${{ env.GAMEVER }}
+          path: |
+            ${{ runner.temp }}/pr-platform-analysis-${{ github.run_id }}-${{ github.run_attempt }}-${{ env.GAMEVER }}/*.log
+            ${{ runner.temp }}/pr-platform-analysis-${{ github.run_id }}-${{ github.run_attempt }}-${{ env.GAMEVER }}/summary.json
+            ${{ runner.temp }}/pr-platform-analysis-${{ github.run_id }}-${{ github.run_attempt }}-${{ env.GAMEVER }}/**/worker.json
+          if-no-files-found: warn
+          retention-days: 30
       - name: Verify execution evidence and exact Git bytes
         id: verify-rebuild
         if: needs.bootstrap-reuse.outputs.reused != 'true'

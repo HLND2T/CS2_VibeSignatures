@@ -8,6 +8,7 @@ import os
 import subprocess
 import sys
 import threading
+from pathlib import Path
 
 from windows_job import INFINITE, Kernel32JobApi
 
@@ -20,7 +21,7 @@ def _watch_parent(api: Kernel32JobApi, parent_handle) -> None:
         os._exit(1)
 
 
-def run(parent_pid: int, command: list[str], *, api: Kernel32JobApi | None = None) -> int:
+def run(parent_pid: int, command: list[str], *, api: Kernel32JobApi | None = None, exit_code_file=None) -> int:
     """Join the Job before spawning so detached server workers inherit it."""
     if not command:
         raise ValueError("idalib-mcp command is missing")
@@ -32,7 +33,12 @@ def run(parent_pid: int, command: list[str], *, api: Kernel32JobApi | None = Non
         job_api.assign_current_process(job)
         threading.Thread(target=_watch_parent, args=(job_api, parent_handle), daemon=True).start()
         child = subprocess.Popen(command, stdin=subprocess.DEVNULL, close_fds=True)
-        return child.wait()
+        code = child.wait()
+        if exit_code_file is not None:
+            # Closing our own Job can terminate this launcher before sys.exit(code).
+            # Persist the actual command status before closing its process tree.
+            Path(exit_code_file).write_text(str(code), encoding="utf-8")
+        return code
     finally:
         job_api.close_handle(job)
         # The parent handle is released when this short-lived launcher exits.
@@ -41,11 +47,12 @@ def run(parent_pid: int, command: list[str], *, api: Kernel32JobApi | None = Non
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--parent-pid", type=int, required=True)
+    parser.add_argument("--exit-code-file")
     parser.add_argument("command", nargs=argparse.REMAINDER)
     args = parser.parse_args()
     command = args.command[1:] if args.command[:1] == ["--"] else args.command
     try:
-        return run(args.parent_pid, command)
+        return run(args.parent_pid, command, exit_code_file=args.exit_code_file)
     except (OSError, ValueError) as exc:
         print(f"idalib-mcp Job launcher failed: {exc}", file=sys.stderr)
         return 1
