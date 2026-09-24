@@ -34,6 +34,11 @@ from gamesymbol_snapshot_lib.paths import is_reparse_point, path_from_key
 PREPARATION_SCHEMA_VERSION = 2
 TRACKED_BINDING_SCHEMA_VERSION = 1
 TRACKED_BINDING_MODE = "tracked"
+# Version of the contract that binds the BinSync and warm IDB evidence to the
+# source binding mode. Both producer paths record it in the binding document so
+# a consumer without a source checkout can tell which rule the manifest obeys;
+# manifests published before the rule exist carry no such key.
+BINDING_RULE_VERSION = 1
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 
 
@@ -361,6 +366,7 @@ def _verify_release_rebuild(*, repo_root: str | Path, preparation: dict | str | 
         print(f"Anchor drift accepted for {path}: {format_anchor_drift(drift[path])}")
     result = {
         "schema_version": 1,
+        "binding_rule_version": BINDING_RULE_VERSION,
         "source_sha": preparation["source_sha"],
         "game_version": preparation["game_version"],
         "preparation_sha256": preparation["preparation_sha256"],
@@ -463,6 +469,7 @@ def bind_tracked_artifacts(*, repo_root: str | Path, preparation: dict | str | P
     result = {
         "schema_version": TRACKED_BINDING_SCHEMA_VERSION,
         "binding_mode": TRACKED_BINDING_MODE,
+        "binding_rule_version": BINDING_RULE_VERSION,
         "source_sha": preparation["source_sha"],
         "game_version": game_version,
         "preparation_sha256": preparation["preparation_sha256"],

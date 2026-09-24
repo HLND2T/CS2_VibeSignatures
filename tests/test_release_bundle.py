@@ -23,6 +23,12 @@ from tests.test_gamedata_candidate import GamedataCandidateFixture
 from tests import test_release_artifact_rebuild as rebuild_tests
 
 
+def _refresh_binding_digest(manifest: dict, label: str) -> None:
+    unsigned = dict(manifest["full_rebuild"])
+    unsigned.pop("verification_sha256", None)
+    manifest["full_rebuild"]["verification_sha256"] = release_bundle._release_rebuild_digest(label, unsigned)
+
+
 class ReleaseBundleTests(unittest.TestCase):
     @staticmethod
     def _copy_sdk_fixture(_sdk_root: Path, _sdk_sha: str, destination: Path, inventory: list[dict]) -> None:
@@ -185,6 +191,20 @@ class ReleaseBundleTests(unittest.TestCase):
             with self.assertRaisesRegex(release_bundle.ReleaseBundleError, "immutable source gitlink"):
                 release_bundle.validate_release_manifest(mutable_sdk)
 
+            self.assertEqual(rebuild.BINDING_RULE_VERSION, manifest["full_rebuild"]["binding_rule_version"])
+            pre_rule = copy.deepcopy(manifest)
+            pre_rule["full_rebuild"].pop("binding_rule_version")
+            pre_rule["binsync"] = None
+            for field in ("ida_runtime_identity", "warm_idb_generation", "warm_idb_cache_key"):
+                pre_rule[field] = None
+            _refresh_binding_digest(pre_rule, "rebuild-verification")
+            release_bundle.validate_release_manifest(pre_rule)
+            pre_rule_forged = copy.deepcopy(pre_rule)
+            pre_rule_forged["full_rebuild"]["binding_rule_version"] = "1"
+            _refresh_binding_digest(pre_rule_forged, "rebuild-verification")
+            with self.assertRaisesRegex(release_bundle.ReleaseBundleError, "binding rule version is invalid"):
+                release_bundle.validate_release_manifest(pre_rule_forged)
+
     def test_builds_and_hosted_verifies_tracked_artifact_bundle(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             temporary_root = Path(temporary)
@@ -236,6 +256,7 @@ class ReleaseBundleTests(unittest.TestCase):
                     cpp_sdk_sha=preparation["sdk_gitlink_sha"],
                 )
                 self.assertEqual("tracked", manifest["full_rebuild"]["binding_mode"])
+                self.assertEqual(rebuild.BINDING_RULE_VERSION, manifest["full_rebuild"]["binding_rule_version"])
                 self.assertIsNone(manifest["binsync"])
                 self.assertEqual(
                     [None, None, None],
@@ -272,6 +293,16 @@ class ReleaseBundleTests(unittest.TestCase):
             claimed_warm_idb["warm_idb_generation"] = "generation-1"
             with self.assertRaisesRegex(release_bundle.ReleaseBundleError, "must not claim BinSync"):
                 release_bundle.validate_release_manifest(claimed_warm_idb)
+
+            # 14180-14182 were published before the binding rule existed, by a
+            # tracked path that still exported BinSync and named a warm IDB. Such
+            # a manifest must keep hydrating: only the evidence rule is waived.
+            pre_rule_claims = copy.deepcopy(manifest)
+            pre_rule_claims["full_rebuild"].pop("binding_rule_version")
+            pre_rule_claims["binsync"] = binsync_candidate.publication_target_state(inputs["binsync_manifest"])
+            _refresh_binding_digest(pre_rule_claims, "tracked-artifact-binding")
+            self.assertEqual(0, release_bundle.manifest_binding_rule_version(pre_rule_claims))
+            release_bundle.validate_release_manifest(pre_rule_claims)
 
     def test_source_binding_mode_decides_binsync_and_warm_idb_evidence(self) -> None:
         # Exactly one of the two bindings carries IDA-derived evidence, so neither
