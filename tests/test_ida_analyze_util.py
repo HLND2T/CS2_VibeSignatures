@@ -7933,6 +7933,237 @@ found_struct_offset: []
             result,
         )
 
+    async def test_preprocess_struct_offset_sig_via_mcp_emits_declared_max_match(
+        self,
+    ) -> None:
+        # A sibling platform may declare `offset_sig_max_match:N` while this platform's
+        # old artifact legitimately stores no field (unique signature). The declared
+        # value must still reach the artifact so the desired-field contract holds.
+        with tempfile.TemporaryDirectory() as temp_dir:
+            old_path = Path(temp_dir) / "CEntitySystem_m_bEnableAutoDeletionExecution.old.yaml"
+            new_path = Path(temp_dir) / "CEntitySystem_m_bEnableAutoDeletionExecution.windows.yaml"
+            _write_yaml(
+                old_path,
+                {
+                    "struct_name": "CEntitySystem",
+                    "member_name": "m_bEnableAutoDeletionExecution",
+                    "offset": "0xc63",
+                    "offset_sig": "80 BF ?? 0C 00 00",
+                    "offset_sig_disp": 0,
+                },
+            )
+
+            session = AsyncMock()
+
+            def _fake_call_tool(*, name: str, arguments: dict[str, object]):
+                if name == "find_bytes":
+                    self.assertEqual(
+                        {"patterns": ["80 BF ?? 0C 00 00"], "limit": 3},
+                        arguments,
+                    )
+                    return _FakeCallToolResult(
+                        [
+                            {
+                                "matches": ["0x18137EA85"],
+                                "n": 1,
+                            }
+                        ]
+                    )
+                if name == "py_eval":
+                    code = arguments["code"]
+                    self.assertIn("offset_sig_disp = 0", code)
+                    return _py_eval_payload(
+                        {
+                            "offset": 0xC63,
+                            "sig_va": "0x18137EA85",
+                            "inst_va": "0x18137EA85",
+                            "offset_size": 1,
+                        }
+                    )
+                raise AssertionError(f"unexpected MCP tool: {name}")
+
+            session.call_tool.side_effect = _fake_call_tool
+
+            result = await ida_analyze_util.preprocess_struct_offset_sig_via_mcp(
+                session=session,
+                new_path=str(new_path),
+                old_path=str(old_path),
+                image_base=0x180000000,
+                new_binary_dir=temp_dir,
+                platform="windows",
+                offset_sig_max_match=2,
+                debug=True,
+            )
+
+        self.assertEqual(
+            {
+                "struct_name": "CEntitySystem",
+                "member_name": "m_bEnableAutoDeletionExecution",
+                "offset": "0xc63",
+                "offset_sig": "80 BF ?? 0C 00 00",
+                "offset_sig_disp": 0,
+                "offset_sig_max_match": 2,
+            },
+            result,
+        )
+
+    async def test_preprocess_struct_offset_sig_via_mcp_accepts_declared_wider_cap(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            old_path = Path(temp_dir) / "CEntitySystem_m_bEnableAutoDeletionExecution.old.yaml"
+            new_path = Path(temp_dir) / "CEntitySystem_m_bEnableAutoDeletionExecution.linux.yaml"
+            _write_yaml(
+                old_path,
+                {
+                    "struct_name": "CEntitySystem",
+                    "member_name": "m_bEnableAutoDeletionExecution",
+                    "offset": "0xc63",
+                    "offset_sig": "41 80 BC 24 ?? 0C 00 00",
+                    "offset_sig_disp": 0,
+                },
+            )
+
+            session = AsyncMock()
+
+            def _fake_call_tool(*, name: str, arguments: dict[str, object]):
+                if name == "find_bytes":
+                    self.assertEqual(
+                        {"patterns": ["41 80 BC 24 ?? 0C 00 00"], "limit": 3},
+                        arguments,
+                    )
+                    return _FakeCallToolResult(
+                        [
+                            {
+                                "matches": ["0x22D7C5F", "0x22D7D31"],
+                                "n": 2,
+                            }
+                        ]
+                    )
+                if name == "py_eval":
+                    code = arguments["code"]
+                    match_addrs = f"{int('0x22D7C5F', 16)}, {int('0x22D7D31', 16)}"
+                    self.assertIn(f"sig_addrs = [{match_addrs}]", code)
+                    return _py_eval_payload(
+                        {
+                            "offset": 0xC63,
+                            "sig_va": "0x22D7D31",
+                            "inst_va": "0x22D7D31",
+                            "offset_size": 1,
+                        }
+                    )
+                raise AssertionError(f"unexpected MCP tool: {name}")
+
+            session.call_tool.side_effect = _fake_call_tool
+
+            result = await ida_analyze_util.preprocess_struct_offset_sig_via_mcp(
+                session=session,
+                new_path=str(new_path),
+                old_path=str(old_path),
+                image_base=0x180000000,
+                new_binary_dir=temp_dir,
+                platform="linux",
+                offset_sig_max_match=2,
+                debug=True,
+            )
+
+        self.assertEqual(
+            {
+                "struct_name": "CEntitySystem",
+                "member_name": "m_bEnableAutoDeletionExecution",
+                "offset": "0xc63",
+                "offset_sig": "41 80 BC 24 ?? 0C 00 00",
+                "offset_sig_disp": 0,
+                "offset_sig_max_match": 2,
+            },
+            result,
+        )
+
+    async def test_preprocess_common_skill_reuse_satisfies_declared_offset_sig_max_match(
+        self,
+    ) -> None:
+        struct_member_name = "CGameResourceService_m_pEntitySystem"
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            old_path = Path(temp_dir) / "m_pEntitySystem.old.yaml"
+            new_path = Path(temp_dir) / f"{struct_member_name}.windows.yaml"
+            _write_yaml(
+                old_path,
+                {
+                    "struct_name": "CGameResourceService",
+                    "member_name": "m_pEntitySystem",
+                    "offset": "0x50",
+                    "offset_sig": "49 8B 4E ??",
+                    "offset_sig_disp": 0,
+                },
+            )
+
+            session = AsyncMock()
+
+            def _fake_call_tool(*, name: str, arguments: dict[str, object]):
+                if name == "find_bytes":
+                    return _FakeCallToolResult(
+                        [
+                            {
+                                "matches": ["0x1801BA12A"],
+                                "n": 1,
+                            }
+                        ]
+                    )
+                if name == "py_eval":
+                    return _py_eval_payload(
+                        {
+                            "offset": 0x58,
+                            "sig_va": "0x1801BA12A",
+                            "inst_va": "0x1801BA12A",
+                            "offset_size": 1,
+                        }
+                    )
+                raise AssertionError(f"unexpected MCP tool: {name}")
+
+            session.call_tool.side_effect = _fake_call_tool
+
+            with (
+                patch.object(
+                    ida_analyze_util,
+                    "write_struct_offset_yaml",
+                ) as mock_write_struct_offset_yaml,
+                patch.object(
+                    ida_analyze_util,
+                    "_rename_func_in_ida",
+                    AsyncMock(return_value=None),
+                ),
+            ):
+                result = await ida_analyze_util.preprocess_common_skill(
+                    session=session,
+                    expected_outputs=[str(new_path)],
+                    old_yaml_map={str(new_path): str(old_path)},
+                    new_binary_dir=temp_dir,
+                    platform="windows",
+                    image_base=0x180000000,
+                    struct_member_names=[struct_member_name],
+                    generate_yaml_desired_fields=[
+                        (
+                            struct_member_name,
+                            [
+                                "struct_name",
+                                "member_name",
+                                "offset",
+                                "offset_sig",
+                                "offset_sig_disp",
+                                "offset_sig_max_match:2",
+                            ],
+                        )
+                    ],
+                    debug=True,
+                )
+
+        self.assertTrue(result)
+        mock_write_struct_offset_yaml.assert_called_once()
+        written_payload = mock_write_struct_offset_yaml.call_args.args[1]
+        self.assertEqual(2, written_payload["offset_sig_max_match"])
+        self.assertEqual("0x58", written_payload["offset"])
+
     async def test_preprocess_gen_struct_offset_sig_via_mcp_generates_current_version_sig(
         self,
     ) -> None:

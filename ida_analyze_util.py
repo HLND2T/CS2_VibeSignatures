@@ -5459,8 +5459,21 @@ async def preprocess_patch_via_mcp(session, new_path, old_path, image_base, new_
     return result
 
 
+def _declared_offset_sig_max_match(desired_fields_map, symbol_name):
+    """Return the `offset_sig_max_match:N` directive value declared for *symbol_name*, or None."""
+    spec = desired_fields_map.get(symbol_name) or {}
+    return (spec.get("generation_options") or {}).get("offset_sig_max_match")
+
+
 async def preprocess_struct_offset_sig_via_mcp(
-    session, new_path, old_path, image_base, new_binary_dir, platform, debug=False
+    session,
+    new_path,
+    old_path,
+    image_base,
+    new_binary_dir,
+    platform,
+    offset_sig_max_match=None,
+    debug=False,
 ):
     """
     Preprocess a struct-member offset output by reusing old-version offset_sig signature.
@@ -5476,6 +5489,11 @@ async def preprocess_struct_offset_sig_via_mcp(
         image_base: Binary image base address (reserved)
         new_binary_dir: Directory for new version outputs (reserved)
         platform: "windows" or "linux" (reserved)
+        offset_sig_max_match: `offset_sig_max_match:N` directive value declared by the
+            skill (None when the skill declares no such directive). The declared value
+            is authoritative over the old YAML: a platform whose signature happens to be
+            unique stores no `offset_sig_max_match` in its artifact, while a sibling
+            platform of the same symbol may legitimately need the wider cap.
         debug: Enable debug output
 
     Returns:
@@ -5539,20 +5557,39 @@ async def preprocess_struct_offset_sig_via_mcp(
             print(f"    Preprocess: offset_sig_disp must be >= 0 in {os.path.basename(old_path)}")
         return None
 
-    offset_sig_max_match = 1
+    old_offset_sig_max_match = 1
     try:
         raw_max_match = old_data.get("offset_sig_max_match")
         if raw_max_match is not None:
-            offset_sig_max_match = _parse_int_field(raw_max_match, "offset_sig_max_match")
+            old_offset_sig_max_match = _parse_int_field(raw_max_match, "offset_sig_max_match")
     except Exception:
         if debug:
             print(f"    Preprocess: invalid offset_sig_max_match in {os.path.basename(old_path)}")
         return None
 
-    if offset_sig_max_match <= 0:
+    if old_offset_sig_max_match <= 0:
         if debug:
             print(f"    Preprocess: offset_sig_max_match must be > 0 in {os.path.basename(old_path)}")
         return None
+
+    declared_offset_sig_max_match = None
+    if offset_sig_max_match is not None:
+        try:
+            declared_offset_sig_max_match = int(offset_sig_max_match)
+        except (TypeError, ValueError):
+            if debug:
+                print(f"    Preprocess: invalid declared offset_sig_max_match for {os.path.basename(new_path)}")
+            return None
+        if declared_offset_sig_max_match <= 0:
+            if debug:
+                print(f"    Preprocess: declared offset_sig_max_match must be > 0 for {os.path.basename(new_path)}")
+            return None
+
+    offset_sig_max_match_cap = (
+        max(old_offset_sig_max_match, declared_offset_sig_max_match)
+        if declared_offset_sig_max_match is not None
+        else old_offset_sig_max_match
+    )
 
     old_offset = None
     try:
@@ -5568,7 +5605,7 @@ async def preprocess_struct_offset_sig_via_mcp(
             name="find_bytes",
             arguments={
                 "patterns": [offset_sig],
-                "limit": offset_sig_max_match + 1,
+                "limit": offset_sig_max_match_cap + 1,
             },
         )
         fb_data = parse_mcp_result(fb_result)
@@ -5588,11 +5625,11 @@ async def preprocess_struct_offset_sig_via_mcp(
         if debug:
             print(f"    Preprocess: {os.path.basename(old_path)} offset sig matched {match_count} (need >= 1)")
         return None
-    if match_count > offset_sig_max_match:
+    if match_count > offset_sig_max_match_cap:
         if debug:
             print(
                 f"    Preprocess: {os.path.basename(old_path)} offset sig "
-                f"matched {match_count} (max {offset_sig_max_match})"
+                f"matched {match_count} (max {offset_sig_max_match_cap})"
             )
         return None
 
@@ -5724,8 +5761,8 @@ async def preprocess_struct_offset_sig_via_mcp(
         "offset_sig": offset_sig,
         "offset_sig_disp": offset_sig_disp,
     }
-    if offset_sig_max_match > 1:
-        new_data["offset_sig_max_match"] = offset_sig_max_match
+    if declared_offset_sig_max_match is not None or offset_sig_max_match_cap > 1:
+        new_data["offset_sig_max_match"] = offset_sig_max_match_cap
 
     raw_size = old_data.get("size")
     if raw_size is not None:
@@ -9001,6 +9038,10 @@ async def preprocess_common_skill(
                     image_base=image_base,
                     new_binary_dir=new_binary_dir,
                     platform=platform,
+                    offset_sig_max_match=_declared_offset_sig_max_match(
+                        desired_fields_map,
+                        candidate_struct_name,
+                    ),
                     debug=debug,
                 )
                 struct_fast_path_attempted[candidate_struct_name] = True
@@ -9571,6 +9612,10 @@ async def preprocess_common_skill(
                 image_base=image_base,
                 new_binary_dir=new_binary_dir,
                 platform=platform,
+                offset_sig_max_match=_declared_offset_sig_max_match(
+                    desired_fields_map,
+                    struct_member_name,
+                ),
                 debug=debug,
             )
             struct_fast_path_attempted[struct_member_name] = True
