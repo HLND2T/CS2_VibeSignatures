@@ -304,6 +304,7 @@ class ReleaseArtifactRebuildTests(unittest.TestCase):
 
             self.assertEqual(source_sha, result["source_sha"])
             self.assertEqual(1, result["file_count"])
+            self.assertEqual(rar.BINDING_RULE_VERSION, result["binding_rule_version"])
             self.assertEqual(result, rar.load_release_rebuild_verification(verification_path))
             with contextlib.redirect_stdout(io.StringIO()):
                 code = rar.main(
@@ -339,6 +340,7 @@ class ReleaseArtifactRebuildTests(unittest.TestCase):
             binding_path.write_bytes(rar._canonical_json_bytes(binding))
 
             self.assertEqual("tracked", binding["binding_mode"])
+            self.assertEqual(rar.BINDING_RULE_VERSION, binding["binding_rule_version"])
             self.assertEqual(source_sha, binding["source_sha"])
             self.assertEqual(preparation["preparation_sha256"], binding["preparation_sha256"])
             self.assertEqual(1, binding["file_count"])

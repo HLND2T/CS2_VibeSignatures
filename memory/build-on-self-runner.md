@@ -73,6 +73,16 @@ immutable main SHA preflight
   exact field set but stores `null` for a tracked binding. `release_bundle.py` enforces the biconditional in both
   `build_release_bundle` and `validate_release_manifest`: a tracked binding must omit that evidence and a rebuilt
   binding must supply it, so a normal release cannot be silently downgraded by omitting CLI arguments.
+- `validate_release_manifest` applies that biconditional only to manifests that declare
+  `full_rebuild.binding_rule_version` (`release_artifact_rebuild.BINDING_RULE_VERSION`); both producer paths write it
+  before digesting, so the whole binding document stays covered by `verification_sha256`. A manifest published before
+  the rule existed declares none and is waived from that one rule, because the producer that built it never had the
+  choice the rule constrains; every other check still applies to it. The key lives inside `full_rebuild` because the
+  top-level field set is compared for strict equality, which any new top-level field would break for all legacy
+  manifests. `pages_release_input.py` records the declared version per staged Release in its hydration receipt and warns
+  on stderr when a Release is below the enforced version. Regression this fixes: `14180` / `14181` / `14182` are tracked
+  bindings that still carry BinSync and warm IDB evidence, so the Pages hydration - which validates every published
+  Release - failed wholesale from `9169638f4` until the gate was added.
 - Downstream jobs that follow a whole-job skip need `!cancelled()` plus explicit `needs.<job>.result` checks that
   accept `skipped`; a plain `if:` expression is implicitly `success()` and would skip the dependent job instead.
 - Missing per-module BinSync remotes for an unpublished GAMEVER are provisioned by

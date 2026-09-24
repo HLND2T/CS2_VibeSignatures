@@ -35,6 +35,7 @@ from gamesymbol_snapshot_lib.config import SnapshotConfigError, load_contract
 from gamesymbol_snapshot_lib.errors import SnapshotMismatchError
 from gamesymbol_snapshot_lib.operations import collect_actual_files, load_snapshot_for_contract
 from release_artifact_rebuild import (
+    BINDING_RULE_VERSION,
     TRACKED_BINDING_MODE,
     ReleaseArtifactRebuildError,
     load_release_rebuild_preparation,
@@ -614,6 +615,22 @@ def _verify_gamedata_reproducibility(*, repo_root: Path, bundle_root: Path, mani
         raise ReleaseBundleError(f"Release gamedata is not reproducible from source-owned inputs: {detail}")
 
 
+def _declared_binding_rule_version(full_rebuild: dict) -> int | None:
+    """Return the declared binding rule version, or None when it is not a version."""
+    version = full_rebuild.get("binding_rule_version", 0)
+    if isinstance(version, bool) or not isinstance(version, int) or version < 0:
+        return None
+    return version
+
+
+def manifest_binding_rule_version(manifest: dict) -> int:
+    """Return the binding rule version a manifest declares; 0 for pre-rule manifests."""
+    full_rebuild = manifest.get("full_rebuild")
+    if not isinstance(full_rebuild, dict):
+        return 0
+    return _declared_binding_rule_version(full_rebuild) or 0
+
+
 def validate_release_manifest(manifest: dict) -> None:
     """Validate the canonical public Release manifest schema and identities."""
     required = {
@@ -704,22 +721,29 @@ def validate_release_manifest(manifest: dict) -> None:
         or full_rebuild.get("binary_lock_sha256") != manifest.get("binary_lock_sha256")
     ):
         raise ReleaseBundleError("Release source binding evidence identity mismatch")
+    binding_rule_version = _declared_binding_rule_version(full_rebuild)
+    if binding_rule_version is None:
+        raise ReleaseBundleError("Release source binding rule version is invalid")
     binsync = manifest.get("binsync")
     ida_identity = tuple(
         manifest.get(field) for field in ("ida_runtime_identity", "warm_idb_generation", "warm_idb_cache_key")
     )
-    if binding_mode == TRACKED_BINDING_MODE:
-        # Nothing was analyzed, so claiming a BinSync candidate or a warm IDB
-        # generation here would assert evidence this release never produced.
-        if binsync is not None or any(value is not None for value in ida_identity):
-            raise ReleaseBundleError("Tracked source-owned releases must not claim BinSync or warm IDB identity")
-    else:
-        if not isinstance(binsync, dict) or not DIGEST_RE.fullmatch(
-            str(binsync.get("candidate_publication_digest", ""))
-        ):
-            raise ReleaseBundleError("Release BinSync candidate identity is invalid")
-        if any(not isinstance(value, str) or not value for value in ida_identity):
-            raise ReleaseBundleError("Release IDA runtime or warm IDB identity is invalid")
+    # A manifest published before the binding rule existed carries no rule version.
+    # It is exempt from this evidence binding only, because the producer that built
+    # it never had the choice this rule constrains; every other check still applies.
+    if binding_rule_version >= BINDING_RULE_VERSION:
+        if binding_mode == TRACKED_BINDING_MODE:
+            # Nothing was analyzed, so claiming a BinSync candidate or a warm IDB
+            # generation here would assert evidence this release never produced.
+            if binsync is not None or any(value is not None for value in ida_identity):
+                raise ReleaseBundleError("Tracked source-owned releases must not claim BinSync or warm IDB identity")
+        else:
+            if not isinstance(binsync, dict) or not DIGEST_RE.fullmatch(
+                str(binsync.get("candidate_publication_digest", ""))
+            ):
+                raise ReleaseBundleError("Release BinSync candidate identity is invalid")
+            if any(not isinstance(value, str) or not value for value in ida_identity):
+                raise ReleaseBundleError("Release IDA runtime or warm IDB identity is invalid")
     game_version = manifest.get("game_version")
     expected_public_paths = {
         f"gamesymbols/{game_version}.yaml",

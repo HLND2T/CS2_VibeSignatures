@@ -50,7 +50,10 @@ workflow transaction identity 在 GitHub rerun 之间保持稳定（`run_id`）�
 导出以及 BinSync 的验证与发布都被整体跳过，不读写任何 BinSync remote；二进制由 build job 自身的
 `init_gamebin.py prepare` 置备并对 source binary lock 校验。其 Release manifest 中 `binsync`、`ida_runtime_identity`、
 `warm_idb_generation`、`warm_idb_cache_key` 均记为 `null`，且 `release_bundle.py` 将其与 source binding mode 双向绑定：
-tracked binding 不得声明这些证据，rebuild binding 也不得省略。因此 rebuild-free 发布不会发布 BinSync 符号。
+tracked binding 不得声明这些证据，rebuild binding 也不得省略。该绑定只对声明了 `full_rebuild.binding_rule_version`
+的 manifest 生效；规则生效前发布的 manifest 不声明该版本，仅豁免这一条规则，因此仍在声明 BinSync 与 warm IDB 的早期
+tracked 发布可以继续参与 hydration，其余全部 manifest 校验对它们照旧生效。Pages hydration receipt 会记录它 stage 的
+每个 Release 的 binding 规则版本。因此 rebuild-free 发布不会发布 BinSync 符号。
 
 `republish` 要求已有可修改的 Release 和直接指向 commit 的标签。它保留 Release ID 和标签 URL，先转为 draft，
 使用绑定旧 SHA 的 lease 移动标签，再更新说明和附件，验证全部字节及 BinSync 目标后重新发布并触发 Pages。

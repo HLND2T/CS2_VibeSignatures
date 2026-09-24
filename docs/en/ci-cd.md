@@ -59,7 +59,11 @@ the BinSync candidate export, and both BinSync verification and publication are 
 read or written. Binaries are provisioned and lock-verified by the build job's own `init_gamebin.py prepare`. Its Release
 manifest records `binsync`, `ida_runtime_identity`, `warm_idb_generation`, and `warm_idb_cache_key` as `null`, and
 `release_bundle.py` binds that to the source binding mode both ways: a tracked binding may not claim that evidence, and a
-rebuilt binding may not omit it. BinSync symbols are therefore never published for a rebuild-free release.
+rebuilt binding may not omit it. The binding applies only to manifests that declare `full_rebuild.binding_rule_version`;
+a manifest published before the rule existed declares none and is waived from that single rule, so the older tracked
+releases that still name BinSync and a warm IDB keep hydrating while every other manifest check still applies to them.
+The Pages hydration receipt records the binding rule version of every Release it stages. BinSync symbols are therefore
+never published for a rebuild-free release.
 
 `republish` requires an existing mutable Release and its direct commit tag. It preserves the Release ID and tag URL,
 converts the Release to a draft, moves the tag with an explicit old-SHA lease, updates metadata and reconciles assets,
