@@ -713,17 +713,25 @@ def run_skill(
     if agent_kind == "codex" and developer_instructions is None:
         _notify_progress(progress_callback, "failed", reason="developer_instructions_unavailable")
         return False
-    return _run_skill_attempts(
-        skill_name=skill_name,
-        agent=agent,
-        agent_kind=agent_kind,
-        session_id=str(uuid.uuid4()) if agent_kind == "claude" else "",
-        developer_instructions=developer_instructions,
-        debug=debug,
-        expected_yaml_paths=expected_yaml_paths,
-        max_retries=max_retries,
-        agent_model=agent_model,
-        mcp_url=mcp_url,
-        progress_callback=progress_callback,
-        output_validator=output_validator,
-    )
+    from contextlib import nullcontext
+
+    from analysis_parallel import shared_lock
+
+    # These CLIs can resume the latest cwd session. Keep each complete retry
+    # sequence exclusive between sibling workers; Claude has an explicit UUID.
+    guard = shared_lock(f"agent-{agent_kind}") if agent_kind in ("codex", "opencode") else nullcontext()
+    with guard:
+        return _run_skill_attempts(
+            skill_name=skill_name,
+            agent=agent,
+            agent_kind=agent_kind,
+            session_id=str(uuid.uuid4()) if agent_kind == "claude" else "",
+            developer_instructions=developer_instructions,
+            debug=debug,
+            expected_yaml_paths=expected_yaml_paths,
+            max_retries=max_retries,
+            agent_model=agent_model,
+            mcp_url=mcp_url,
+            progress_callback=progress_callback,
+            output_validator=output_validator,
+        )

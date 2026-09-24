@@ -320,6 +320,26 @@ class AnalysisReporting:
             "produced_outputs": sorted(self._output_produced.get(task_id, set())),
         }
 
+    def import_task_record(self, record: dict) -> None:
+        """Restore a validated platform worker's terminal evidence and observability."""
+        task_id = record["task_id"]
+        if task_id not in self._states:
+            raise ValueError(f"Unknown worker task: {task_id}")
+        status = TaskStatus(record["status"])
+        self.emit_task_status(task_id, TaskStatus.RUNNING, ProcessPhase.WAITING_FOR_MCP)
+        if not record["attempted"]:
+            self._attempted.discard(task_id)
+        self.record_output_attempts(task_id, record["attempted_outputs"])
+        self.record_output_produced(task_id, record["produced_outputs"])
+        self.emit_task_status(
+            task_id,
+            status,
+            ProcessPhase.FINISHED,
+            reason=record["reason"],
+            error=record["error"],
+            payload=record["payload"],
+        )
+
 
 def _absolute_path_preserve_spelling(path):
     """Make a local path absolute without resolving 8.3 names or junction targets."""
@@ -1905,6 +1925,12 @@ def parse_args():
         help="Canonical force-all execution evidence JSON path (required with -force_all)",
     )
     parser.add_argument(
+        "-parallel_platforms",
+        metavar="LOG_DIRECTORY",
+        help="Run isolated Windows/Linux workers concurrently and save their logs in a fresh directory",
+    )
+    parser.add_argument("-platform_worker", action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument(
         "-process_reporter",
         choices=("none", "redis"),
         default=os.environ.get("CS2VIBE_PROCESS_REPORTER", "none"),
@@ -1974,7 +2000,7 @@ def parse_args():
             parser.error("-force_all cannot be combined with -skip_error")
         if args.skill is not None or args.module_filter is not None or args.vcall_finder_filter is not None:
             parser.error("-force_all requires the complete config without skill/module/vcall filters")
-        if set(args.platforms) != {"windows", "linux"}:
+        if not args.platform_worker and set(args.platforms) != {"windows", "linux"}:
             parser.error("-force_all requires both windows and linux platforms")
 
     if getattr(args, "selected_execution", None):
@@ -1994,8 +2020,16 @@ def parse_args():
         ]
         if conflicting:
             parser.error(f"-selected_execution cannot be combined with {', '.join(conflicting)}")
-        if set(args.platforms) != {"windows", "linux"}:
+        if not args.platform_worker and set(args.platforms) != {"windows", "linux"}:
             parser.error("-selected_execution requires both windows and linux platforms")
+
+    if args.parallel_platforms or args.platform_worker:
+        if not (args.force_all or args.selected_execution):
+            parser.error("parallel analysis requires -force_all or -selected_execution")
+        if args.parallel_platforms and args.platform_worker:
+            parser.error("a platform worker cannot start parallel workers")
+        if args.platform_worker and len(args.platforms) != 1:
+            parser.error("a platform worker requires exactly one platform")
 
     # Resolve oldgamever from the trusted artifact root, never from private binaries.
     if args.oldgamever is None:
@@ -3762,13 +3796,17 @@ def process_binary(
         )
 
     # Start idalib-mcp
-    if port is None:
-        port = _allocate_local_port(host)
-        if debug:
-            print(f"  Allocated dynamic MCP port {host}:{port}")
     previous_artifact_output_dir = os.environ.get(ARTIFACT_OUTPUT_ENV)
     os.environ[ARTIFACT_OUTPUT_ENV] = os.path.abspath(artifact_dir)
-    process = start_idalib_mcp(binary_path, host, port, ida_args, debug)
+    from analysis_parallel import shared_lock
+
+    # Hold the allocation-to-listen window across sibling platform processes.
+    with shared_lock("mcp-startup"):
+        if port is None:
+            port = _allocate_local_port(host)
+            if debug:
+                print(f"  Allocated dynamic MCP port {host}:{port}")
+        process = start_idalib_mcp(binary_path, host, port, ida_args, debug)
     if process is None:
         if previous_artifact_output_dir is None:
             os.environ.pop(ARTIFACT_OUTPUT_ENV, None)
@@ -5040,7 +5078,7 @@ def build_force_all_execution_report(args, reporting: AnalysisReporting) -> dict
         job = jobs[node.job_id]
         tasks_by_key[(job.stage_index, job.module_name, job.platform, node.name)] = node.id
 
-    issues = []
+    issues = list(getattr(args, "parallel_errors", []))
     node_records = {}
 
     def relative_output_paths(raw_paths, *, label):
@@ -5213,7 +5251,7 @@ def build_selected_execution_report(args, manifest, reporting: AnalysisReporting
         job = jobs[node.job_id]
         tasks_by_key[(job.stage_index, job.module_name, job.platform, node.name)] = node.id
 
-    issues = []
+    issues = list(getattr(args, "parallel_errors", []))
     node_records = {}
 
     def relative_output_paths(raw_paths, *, label):
@@ -5611,6 +5649,7 @@ def _print_summary(totals):
 def main():
     """Main entry point."""
     args = parse_args()
+    platform_worker = getattr(args, "platform_worker", False)
     selected_manifest = None
     if getattr(args, "selected_execution", None):
         try:
@@ -5661,7 +5700,10 @@ def main():
             print("Error: selected execution manifest does not bind this analysis config")
             sys.exit(1)
         try:
-            args.selected_node_ids = validate_selected_execution_manifest(modules, args.platforms, selected_manifest)
+            manifest_platforms = ["windows", "linux"] if platform_worker else args.platforms
+            args.selected_node_ids = validate_selected_execution_manifest(
+                modules, manifest_platforms, selected_manifest
+            )
         except ValueError as exc:
             print(f"Error: {exc}")
             sys.exit(1)
@@ -5691,10 +5733,21 @@ def main():
     try:
         reporting.emit_run_status(RunStatus.RUNNING)
         reporter.heartbeat(run_id)
-        totals, aborted = _execute_analysis(args, modules, reporting)
+        if getattr(args, "parallel_platforms", None):
+            from analysis_parallel import run_parallel
+
+            totals, aborted = run_parallel(args, modules, reporting, sys.modules[__name__])
+        else:
+            totals, aborted = _execute_analysis(args, modules, reporting)
         abort_message = "Run aborted after an upstream failure" if aborted else "Task was not executed before run end"
         reporting.abort_pending(ProcessReason.UPSTREAM_ABORTED, abort_message)
-        if getattr(args, "force_all", False):
+        if platform_worker:
+            from analysis_parallel import worker_document
+
+            _atomic_write_bytes(
+                Path(args.execution_report), _canonical_json_bytes(worker_document(args, reporting, totals, aborted))
+            )
+        if getattr(args, "force_all", False) and not platform_worker:
             execution_report = build_force_all_execution_report(args, reporting)
             _atomic_write_bytes(Path(args.execution_report), _canonical_json_bytes(execution_report))
             if not execution_report["valid"]:
@@ -5702,7 +5755,7 @@ def main():
                 print("  Force-all execution contract failed:")
                 for issue in execution_report["issues"]:
                     print(f"    {issue}")
-        if selected_manifest is not None:
+        if selected_manifest is not None and not platform_worker:
             execution_report = build_selected_execution_report(args, selected_manifest, reporting)
             _atomic_write_bytes(Path(args.execution_report), _canonical_json_bytes(execution_report))
             if not execution_report["valid"]:
@@ -5710,6 +5763,16 @@ def main():
                 print("  Selected execution contract failed:")
                 for issue in execution_report["issues"]:
                     print(f"    {issue}")
+        if getattr(args, "parallel_platforms", None):
+            summary_path = Path(args.parallel_platforms) / "summary.json"
+            summary = json.loads(summary_path.read_text(encoding="utf-8"))
+            summary.update(
+                status="failed" if totals[1] else "succeeded",
+                totals=totals,
+                execution_report=str(Path(args.execution_report).resolve()),
+                execution_issues=execution_report["issues"],
+            )
+            _atomic_write_bytes(summary_path, _canonical_json_bytes(summary))
         final_status = RunStatus.FAILED if totals[1] else RunStatus.SUCCEEDED
         reporting.emit_run_status(final_status)
         reporter.finalize_run(run_id, final_status, reporting.summary())

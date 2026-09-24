@@ -60,6 +60,7 @@ UNIT_MODULES = frozenset(
         "test_artifact_diagnostics",
         "test_agent_runner",
         "test_analysis_config",
+        "test_analysis_parallel",
         "test_atomic_json_write",
         "test_binary_lock",
         "test_binary_hashing",
