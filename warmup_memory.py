@@ -2,85 +2,18 @@
 
 from __future__ import annotations
 
-import ctypes
-import os
 import threading
 import time
-from ctypes import wintypes
 from dataclasses import dataclass
 from typing import Callable, Protocol
+
+from windows_job import Kernel32JobApi as _Kernel32JobApi
 
 MIB = 1024 * 1024
 DEFAULT_SOFT_LIMIT_RATIO = 0.85
 DEFAULT_INITIAL_WORKER_RESERVATION_BYTES = 4 * 1024 * MIB
 DEFAULT_POLL_INTERVAL_SECONDS = 2.0
 DEFAULT_LAUNCH_INTERVAL_SECONDS = 5.0
-
-_JOB_OBJECT_EXTENDED_LIMIT_INFORMATION_CLASS = 9
-_JOB_OBJECT_LIMIT_VIOLATION_INFORMATION_CLASS = 13
-_JOB_OBJECT_LIMIT_JOB_MEMORY = 0x00000200
-_JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x00002000
-
-
-class _SecurityAttributes(ctypes.Structure):
-    _fields_ = [
-        ("nLength", wintypes.DWORD),
-        ("lpSecurityDescriptor", wintypes.LPVOID),
-        ("bInheritHandle", wintypes.BOOL),
-    ]
-
-
-class _IoCounters(ctypes.Structure):
-    _fields_ = [
-        ("ReadOperationCount", ctypes.c_ulonglong),
-        ("WriteOperationCount", ctypes.c_ulonglong),
-        ("OtherOperationCount", ctypes.c_ulonglong),
-        ("ReadTransferCount", ctypes.c_ulonglong),
-        ("WriteTransferCount", ctypes.c_ulonglong),
-        ("OtherTransferCount", ctypes.c_ulonglong),
-    ]
-
-
-class _JobObjectBasicLimitInformation(ctypes.Structure):
-    _fields_ = [
-        ("PerProcessUserTimeLimit", ctypes.c_longlong),
-        ("PerJobUserTimeLimit", ctypes.c_longlong),
-        ("LimitFlags", wintypes.DWORD),
-        ("MinimumWorkingSetSize", ctypes.c_size_t),
-        ("MaximumWorkingSetSize", ctypes.c_size_t),
-        ("ActiveProcessLimit", wintypes.DWORD),
-        ("Affinity", ctypes.c_size_t),
-        ("PriorityClass", wintypes.DWORD),
-        ("SchedulingClass", wintypes.DWORD),
-    ]
-
-
-class _JobObjectExtendedLimitInformation(ctypes.Structure):
-    _fields_ = [
-        ("BasicLimitInformation", _JobObjectBasicLimitInformation),
-        ("IoInfo", _IoCounters),
-        ("ProcessMemoryLimit", ctypes.c_size_t),
-        ("JobMemoryLimit", ctypes.c_size_t),
-        ("PeakProcessMemoryUsed", ctypes.c_size_t),
-        ("PeakJobMemoryUsed", ctypes.c_size_t),
-    ]
-
-
-class _JobObjectLimitViolationInformation(ctypes.Structure):
-    _fields_ = [
-        ("LimitFlags", wintypes.DWORD),
-        ("ViolationLimitFlags", wintypes.DWORD),
-        ("IoReadBytes", ctypes.c_ulonglong),
-        ("IoReadBytesLimit", ctypes.c_ulonglong),
-        ("IoWriteBytes", ctypes.c_ulonglong),
-        ("IoWriteBytesLimit", ctypes.c_ulonglong),
-        ("PerJobUserTime", ctypes.c_longlong),
-        ("PerJobUserTimeLimit", ctypes.c_longlong),
-        ("JobMemory", ctypes.c_ulonglong),
-        ("JobMemoryLimit", ctypes.c_ulonglong),
-        ("RateControlTolerance", ctypes.c_int),
-        ("RateControlToleranceLimit", ctypes.c_int),
-    ]
 
 
 class _WindowsJobApi(Protocol):
@@ -93,85 +26,6 @@ class _WindowsJobApi(Protocol):
     def query_job_memory(self, handle) -> int: ...
 
     def close_handle(self, handle) -> None: ...
-
-
-class _Kernel32JobApi:
-    def __init__(self) -> None:
-        if os.name != "nt" or not hasattr(ctypes, "WinDLL"):
-            raise OSError("Windows Job Objects require Windows")
-        self._kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
-        self._configure_signatures()
-
-    def _configure_signatures(self) -> None:
-        self._kernel32.CreateJobObjectW.argtypes = [
-            ctypes.POINTER(_SecurityAttributes),
-            wintypes.LPCWSTR,
-        ]
-        self._kernel32.CreateJobObjectW.restype = wintypes.HANDLE
-        self._kernel32.SetInformationJobObject.argtypes = [
-            wintypes.HANDLE,
-            ctypes.c_int,
-            wintypes.LPVOID,
-            wintypes.DWORD,
-        ]
-        self._kernel32.SetInformationJobObject.restype = wintypes.BOOL
-        self._kernel32.AssignProcessToJobObject.argtypes = [wintypes.HANDLE, wintypes.HANDLE]
-        self._kernel32.AssignProcessToJobObject.restype = wintypes.BOOL
-        self._kernel32.QueryInformationJobObject.argtypes = [
-            wintypes.HANDLE,
-            ctypes.c_int,
-            wintypes.LPVOID,
-            wintypes.DWORD,
-            wintypes.LPDWORD,
-        ]
-        self._kernel32.QueryInformationJobObject.restype = wintypes.BOOL
-        self._kernel32.GetCurrentProcess.argtypes = []
-        self._kernel32.GetCurrentProcess.restype = wintypes.HANDLE
-        self._kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
-        self._kernel32.CloseHandle.restype = wintypes.BOOL
-
-    @staticmethod
-    def _raise_last_error() -> None:
-        raise ctypes.WinError(ctypes.get_last_error())
-
-    def create_job(self):
-        handle = self._kernel32.CreateJobObjectW(None, None)
-        if not handle:
-            self._raise_last_error()
-        return handle
-
-    def set_job_memory_limit(self, handle, budget_bytes: int) -> None:
-        limits = _JobObjectExtendedLimitInformation()
-        limits.BasicLimitInformation.LimitFlags = _JOB_OBJECT_LIMIT_JOB_MEMORY | _JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
-        limits.JobMemoryLimit = budget_bytes
-        if not self._kernel32.SetInformationJobObject(
-            handle,
-            _JOB_OBJECT_EXTENDED_LIMIT_INFORMATION_CLASS,
-            ctypes.byref(limits),
-            ctypes.sizeof(limits),
-        ):
-            self._raise_last_error()
-
-    def assign_current_process(self, handle) -> None:
-        if not self._kernel32.AssignProcessToJobObject(handle, self._kernel32.GetCurrentProcess()):
-            self._raise_last_error()
-
-    def query_job_memory(self, handle) -> int:
-        usage = _JobObjectLimitViolationInformation()
-        returned_length = wintypes.DWORD()
-        if not self._kernel32.QueryInformationJobObject(
-            handle,
-            _JOB_OBJECT_LIMIT_VIOLATION_INFORMATION_CLASS,
-            ctypes.byref(usage),
-            ctypes.sizeof(usage),
-            ctypes.byref(returned_length),
-        ):
-            self._raise_last_error()
-        return int(usage.JobMemory)
-
-    def close_handle(self, handle) -> None:
-        if not self._kernel32.CloseHandle(handle):
-            self._raise_last_error()
 
 
 @dataclass(frozen=True)

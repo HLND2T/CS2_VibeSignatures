@@ -1,3 +1,4 @@
+import asyncio
 import io
 import json
 import os
@@ -73,6 +74,40 @@ class TestQuitIdaGracefully(unittest.IsolatedAsyncioTestCase):
             13337,
             ida_analyze_bin.MCP_SHUTDOWN_TIMEOUT,
         )
+
+    async def test_owned_job_waits_for_idb_close_before_stopping(self) -> None:
+        child = MagicMock()
+        child.poll.return_value = None
+        process = ida_analyze_bin.ManagedMcpProcess(child, Path("server.dll"), "127.0.0.1", 13337, frozenset(), True)
+        events = []
+        with (
+            patch.object(ida_analyze_bin, "quit_ida_via_mcp", AsyncMock(return_value=True)) as quit_ida,
+            patch.object(
+                ida_analyze_bin, "wait_for_ida_lock_release", side_effect=lambda *_: events.append("closed") or True
+            ),
+            patch.object(
+                ida_analyze_bin, "stop_idalib_mcp_process", side_effect=lambda *_a, **_k: events.append("stopped")
+            ) as stop,
+        ):
+            await ida_analyze_bin.quit_ida_gracefully_async(process, "127.0.0.1", 13337, expected_binary="server.dll")
+
+        quit_ida.assert_awaited_once()
+        self.assertEqual(["closed", "stopped"], events)
+        stop.assert_called_once_with(process, debug=False, quarantine=False)
+
+    async def test_failed_graceful_quit_forces_owned_job(self) -> None:
+        child = MagicMock()
+        child.poll.return_value = None
+        process = ida_analyze_bin.ManagedMcpProcess(child, Path("server.dll"), "127.0.0.1", 13337, frozenset(), True)
+        with (
+            patch.object(ida_analyze_bin, "quit_ida_via_mcp", AsyncMock(side_effect=asyncio.TimeoutError)),
+            patch.object(ida_analyze_bin, "wait_for_ida_lock_release") as wait_for_lock,
+            patch.object(ida_analyze_bin, "stop_idalib_mcp_process") as stop,
+        ):
+            await ida_analyze_bin.quit_ida_gracefully_async(process, "127.0.0.1", 13337, expected_binary="server.dll")
+
+        wait_for_lock.assert_not_called()
+        stop.assert_called_once_with(process, debug=False, quarantine=True)
 
     async def test_quit_owned_auto_started_worker(self) -> None:
         session = MagicMock()
@@ -204,7 +239,7 @@ class TestQuitIdaGracefullySyncWrapper(unittest.TestCase):
 class TestStopIdalibMcpProcess(unittest.TestCase):
     def test_terminates_owned_process_without_contacting_mcp(self) -> None:
         process = MagicMock()
-        process.poll.return_value = None
+        process.poll.side_effect = [None, None, 0]
 
         ida_analyze_bin.stop_idalib_mcp_process(process, debug=False)
 
@@ -214,7 +249,7 @@ class TestStopIdalibMcpProcess(unittest.TestCase):
 
     def test_kills_owned_process_when_terminate_times_out(self) -> None:
         process = MagicMock()
-        process.poll.return_value = None
+        process.poll.side_effect = [None, None, None, 0]
         process.wait.side_effect = [subprocess.TimeoutExpired("idalib-mcp", 10), 0]
 
         ida_analyze_bin.stop_idalib_mcp_process(process, debug=False)
@@ -222,6 +257,69 @@ class TestStopIdalibMcpProcess(unittest.TestCase):
         process.terminate.assert_called_once_with()
         process.kill.assert_called_once_with()
         self.assertEqual([call(timeout=10), call(timeout=5)], process.wait.call_args_list)
+
+    def test_forced_job_cleanup_quarantines_new_parts_and_keeps_packed_idb(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            binary = Path(temp_dir) / "server.dll"
+            binary.write_bytes(b"binary")
+            packed = Path(f"{binary}.i64")
+            packed.write_bytes(b"warm-idb")
+            id0 = Path(f"{binary}.id0")
+            nam = Path(f"{binary}.nam")
+            id0.write_bytes(b"unpacked-idb")
+            nam.write_bytes(b"names")
+            child = MagicMock()
+            child.poll.return_value = 0
+            process = ida_analyze_bin.ManagedMcpProcess(child, binary, "127.0.0.1", 13337, frozenset(), True)
+            with (
+                patch.object(ida_analyze_bin, "wait_for_port_release", return_value=True),
+                patch.object(ida_analyze_bin, "wait_for_ida_lock_release", return_value=True),
+            ):
+                ida_analyze_bin.stop_idalib_mcp_process(process)
+
+            quarantine_dirs = list((binary.parent / ".ida-aborted" / binary.name).iterdir())
+            self.assertEqual(1, len(quarantine_dirs))
+            self.assertEqual(b"unpacked-idb", (quarantine_dirs[0] / id0.name).read_bytes())
+            self.assertEqual(b"names", (quarantine_dirs[0] / nam.name).read_bytes())
+            self.assertEqual(b"warm-idb", packed.read_bytes())
+            self.assertFalse(id0.exists())
+            self.assertFalse(nam.exists())
+
+    def test_preexisting_unpacked_file_is_preserved(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            binary = Path(temp_dir) / "server.dll"
+            binary.write_bytes(b"binary")
+            id0 = Path(f"{binary}.id0")
+            id0.write_bytes(b"preexisting")
+            child = MagicMock()
+            child.poll.return_value = 0
+            process = ida_analyze_bin.ManagedMcpProcess(child, binary, "127.0.0.1", 13337, frozenset({id0}), True)
+            with (
+                patch.object(ida_analyze_bin, "wait_for_port_release", return_value=True),
+                patch.object(ida_analyze_bin, "wait_for_ida_lock_release", return_value=True),
+            ):
+                with self.assertRaisesRegex(ida_analyze_bin.McpCleanupError, "predated this launch"):
+                    ida_analyze_bin.stop_idalib_mcp_process(process)
+
+            self.assertEqual(b"preexisting", id0.read_bytes())
+
+    def test_job_cleanup_failure_is_fatal_before_quarantine(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            binary = Path(temp_dir) / "server.dll"
+            binary.write_bytes(b"binary")
+            id0 = Path(f"{binary}.id0")
+            id0.write_bytes(b"held")
+            child = MagicMock()
+            child.poll.return_value = 0
+            process = ida_analyze_bin.ManagedMcpProcess(child, binary, "127.0.0.1", 13337, frozenset(), True)
+            with (
+                patch.object(ida_analyze_bin, "wait_for_port_release", return_value=True),
+                patch.object(ida_analyze_bin, "wait_for_ida_lock_release", return_value=False),
+            ):
+                with self.assertRaisesRegex(ida_analyze_bin.McpCleanupError, "still holds an IDB"):
+                    ida_analyze_bin.stop_idalib_mcp_process(process)
+
+            self.assertEqual(b"held", id0.read_bytes())
 
 
 class TestIsPortInUse(unittest.TestCase):
@@ -241,6 +339,66 @@ class TestIsPortInUse(unittest.TestCase):
 
         self.assertFalse(result)
         create_connection.assert_called_once_with(("127.0.0.1", 13337), timeout=1)
+
+
+class TestMcpCleanupFailure(unittest.TestCase):
+    def test_exited_launcher_aborts_startup_wait_immediately(self) -> None:
+        process = MagicMock()
+        process.poll.return_value = 1
+        with patch.object(ida_analyze_bin.socket, "socket") as socket_type:
+            result = ida_analyze_bin.wait_for_port("127.0.0.1", 13337, timeout=1200, process=process)
+
+        self.assertFalse(result)
+        socket_type.assert_not_called()
+
+    def test_skip_error_does_not_continue_after_cleanup_failure(self) -> None:
+        args = SimpleNamespace(platforms=["windows"], vcall_finder_filter=None, skip_error=True)
+        modules = [{"name": "engine", "skills": []}, {"name": "server", "skills": []}]
+        with (
+            patch.object(ida_analyze_bin, "resolve_module_vcall_targets", return_value=[]),
+            patch.object(
+                ida_analyze_bin, "_process_platform", side_effect=ida_analyze_bin.McpCleanupError("worker alive")
+            ) as process,
+        ):
+            with self.assertRaisesRegex(ida_analyze_bin.McpCleanupError, "worker alive"):
+                ida_analyze_bin._execute_analysis(args, modules, reporting=None)
+
+        process.assert_called_once()
+
+    def test_invalid_database_is_not_removed_after_cleanup_failure(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            binary = Path(temp_dir) / "server.dll"
+            binary.write_bytes(b"binary")
+            packed = Path(f"{binary}.i64")
+            packed.write_bytes(b"warm-idb")
+            process = MagicMock()
+            process.poll.return_value = None
+            with (
+                patch.object(ida_analyze_bin, "start_idalib_mcp", return_value=process),
+                patch.object(ida_analyze_bin, "verify_owned_mcp_with_single_recovery", return_value=(process, False)),
+                patch.object(
+                    ida_analyze_bin,
+                    "stop_idalib_mcp_process",
+                    side_effect=ida_analyze_bin.McpCleanupError("worker alive"),
+                ),
+                patch.object(ida_analyze_bin, "quit_ida_gracefully"),
+                patch.object(ida_analyze_bin, "_invalidate_ida_database") as invalidate,
+            ):
+                with self.assertRaisesRegex(ida_analyze_bin.McpCleanupError, "worker alive"):
+                    ida_analyze_bin.process_binary(
+                        binary_path=str(binary),
+                        skills=[
+                            {"name": "find-target", "expected_output": ["Target.{platform}.yaml"], "expected_input": []}
+                        ],
+                        agent="codex",
+                        host="127.0.0.1",
+                        port=13337,
+                        ida_args="",
+                        platform="windows",
+                    )
+
+            invalidate.assert_not_called()
+            self.assertEqual(b"warm-idb", packed.read_bytes())
 
 
 class TestAllocateLocalPort(unittest.TestCase):
@@ -2287,22 +2445,26 @@ class TestStartIdalibMcp(unittest.TestCase):
                 debug=False,
             )
 
-        self.assertIs(fake_process, process)
+        self.assertIs(fake_process, process.process)
         port_in_use.assert_called_once_with("127.0.0.1", 13337)
         mock_popen.assert_called_once()
         args, kwargs = mock_popen.call_args
-        self.assertEqual(
-            [
-                "idalib-mcp",
-                "--unsafe",
-                "--host",
-                "127.0.0.1",
-                "--port",
-                "13337",
-                "bin/14160/client/client.dll",
-            ],
-            args[0],
-        )
+        server_command = [
+            "idalib-mcp",
+            "--unsafe",
+            "--host",
+            "127.0.0.1",
+            "--port",
+            "13337",
+            "bin/14160/client/client.dll",
+        ]
+        if os.name == "nt":
+            self.assertEqual(ida_analyze_bin.sys.executable, args[0][0])
+            self.assertEqual("ida_mcp_job_launcher.py", Path(args[0][1]).name)
+            self.assertEqual(["--parent-pid", str(os.getpid()), "--"], args[0][2:5])
+            self.assertEqual(server_command, args[0][5:])
+        else:
+            self.assertEqual(server_command, args[0])
         self.assertEqual(ida_analyze_bin.subprocess.DEVNULL, kwargs["stdout"])
         self.assertEqual(ida_analyze_bin.subprocess.DEVNULL, kwargs["stderr"])
 
@@ -4701,7 +4863,6 @@ class TestProcessBinaryOpenedBinaryVerification(unittest.TestCase):
         mock_run_skill.assert_not_called()
         mock_quit_ida.assert_not_called()
         self.mock_stop_ida.assert_called_once_with(fake_process, debug=False)
-        self.mock_wait_for_release.assert_called_once_with("127.0.0.1", 13337)
 
     def test_process_binary_rebuilds_a_stale_ida_database_once(self) -> None:
         first_process = MagicMock()
@@ -5011,7 +5172,6 @@ class TestProcessBinaryOpenedBinaryVerification(unittest.TestCase):
         mock_run_skill.assert_not_called()
         mock_quit_ida.assert_not_called()
         self.mock_stop_ida.assert_called_once_with(fake_process, debug=False)
-        self.mock_wait_for_release.assert_called_once_with("127.0.0.1", 13337)
 
     def test_process_binary_aborts_before_agent_fallback_when_recheck_mismatches(self) -> None:
         fake_process = object()
@@ -5065,7 +5225,6 @@ class TestProcessBinaryOpenedBinaryVerification(unittest.TestCase):
         mock_run_skill.assert_not_called()
         mock_quit_ida.assert_not_called()
         self.mock_stop_ida.assert_called_once_with(fake_process, debug=False)
-        self.mock_wait_for_release.assert_called_once_with("127.0.0.1", 13337)
 
     def test_process_binary_aborts_before_vcall_export_when_recheck_mismatches(self) -> None:
         fake_process = object()
@@ -5105,7 +5264,6 @@ class TestProcessBinaryOpenedBinaryVerification(unittest.TestCase):
         mock_vcall.assert_not_called()
         mock_quit_ida.assert_not_called()
         self.mock_stop_ida.assert_called_once_with(fake_process, debug=False)
-        self.mock_wait_for_release.assert_called_once_with("127.0.0.1", 13337)
 
     def test_process_binary_aborts_before_post_process_when_recheck_mismatches(self) -> None:
         fake_process = object()
@@ -5153,7 +5311,6 @@ class TestProcessBinaryOpenedBinaryVerification(unittest.TestCase):
         mock_post_process.assert_not_called()
         mock_quit_ida.assert_not_called()
         self.mock_stop_ida.assert_called_once_with(fake_process, debug=False)
-        self.mock_wait_for_release.assert_called_once_with("127.0.0.1", 13337)
 
 
 class TestExpectedInputArtifactValidation(unittest.IsolatedAsyncioTestCase):
