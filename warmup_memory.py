@@ -1,7 +1,8 @@
-"""Windows Job Object memory controls for concurrent IDB warmup workers."""
+"""Platform-aware memory controls for concurrent IDB warmup workers."""
 
 from __future__ import annotations
 
+import os
 import threading
 import time
 from dataclasses import dataclass
@@ -14,6 +15,7 @@ DEFAULT_SOFT_LIMIT_RATIO = 0.85
 DEFAULT_INITIAL_WORKER_RESERVATION_BYTES = 4 * 1024 * MIB
 DEFAULT_POLL_INTERVAL_SECONDS = 2.0
 DEFAULT_LAUNCH_INTERVAL_SECONDS = 5.0
+WARMUP_RESERVATION_ENV = "IDB_WARMUP_INITIAL_WORKER_RESERVATION_MIB"
 
 
 class _WindowsJobApi(Protocol):
@@ -33,6 +35,38 @@ class MemorySnapshot:
     job_bytes: int
 
 
+@dataclass(frozen=True)
+class MemoryControllerCapabilities:
+    tier: str
+    aggregate_hard_cap: bool
+    detail: str
+
+
+class MemoryController(Protocol):
+    capabilities: MemoryControllerCapabilities
+
+    def snapshot(self) -> MemorySnapshot: ...
+
+    def close(self) -> None: ...
+
+
+def default_memory_controller(budget_bytes: int) -> MemoryController:
+    if os.name == "nt":
+        return WindowsJobMemoryController(budget_bytes)
+    from posix_memory import build_posix_memory_controller
+
+    return build_posix_memory_controller(budget_bytes)
+
+
+def parse_worker_reservation_bytes() -> int:
+    raw = os.environ.get(WARMUP_RESERVATION_ENV, "").strip()
+    if not raw:
+        return DEFAULT_INITIAL_WORKER_RESERVATION_BYTES
+    if not raw.isascii() or not raw.isdecimal() or int(raw) < 1:
+        raise ValueError(f"{WARMUP_RESERVATION_ENV} must be a positive integer MiB value")
+    return int(raw) * MIB
+
+
 class WindowsJobMemoryController:
     """Apply one aggregate Job memory limit and sample current pressure."""
 
@@ -49,13 +83,21 @@ class WindowsJobMemoryController:
             raise
         self._handle = handle
         self.budget_bytes = budget_bytes
+        self.capabilities = MemoryControllerCapabilities(
+            tier="windows-job", aggregate_hard_cap=True, detail="Windows Job aggregate hard cap"
+        )
 
     def snapshot(self) -> MemorySnapshot:
         return MemorySnapshot(job_bytes=self._api.query_job_memory(self._handle))
 
+    def close(self) -> None:
+        # Windows cannot detach a process from its Job. Retain the handle until
+        # process exit: closing a kill-on-close Job here would kill the producer.
+        pass
+
 
 class MemoryLaunchGate:
-    """Delay worker admission until aggregate Job headroom is safe."""
+    """Delay worker admission until the aggregate memory budget has headroom."""
 
     def __init__(
         self,
@@ -68,11 +110,15 @@ class MemoryLaunchGate:
         poll_interval_seconds: float = DEFAULT_POLL_INTERVAL_SECONDS,
         launch_interval_seconds: float = DEFAULT_LAUNCH_INTERVAL_SECONDS,
         monotonic: Callable[[], float] = time.monotonic,
+        worker_memory_limit_bytes: int | None = None,
     ) -> None:
         if budget_bytes < 1:
             raise ValueError("budget_bytes must be positive")
         if not 0 < soft_limit_ratio < 1:
             raise ValueError("soft_limit_ratio must be between zero and one")
+        if initial_worker_reservation_bytes < 1:
+            raise ValueError("initial_worker_reservation_bytes must be positive")
+        self.worker_memory_limit_bytes = worker_memory_limit_bytes
         self._snapshot = snapshot
         self._budget_bytes = budget_bytes
         self._baseline_job_bytes = baseline_job_bytes
