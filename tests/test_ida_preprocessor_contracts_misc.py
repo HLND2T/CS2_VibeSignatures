@@ -66,7 +66,7 @@ class TestLinuxLayoutRecovery(unittest.IsolatedAsyncioTestCase):
         for start in (59, 69):
             entries = dict(zip(range(start, start + 6), [100, 200, 300, 400, 0, 0]))
             self.assertEqual(
-                {"IGameSystem_SetGameSystemGlobalPtrs": start + 1, "IGameSystem_vdtor": start + 5},
+                {"IGameSystem_SetGameSystemGlobalPtrs": start + 1, "IGameSystem_vdtor": start + 4},
                 module.recover_linux_interface_slots(entries, bodies),
             )
             entries[start + 4] = 200

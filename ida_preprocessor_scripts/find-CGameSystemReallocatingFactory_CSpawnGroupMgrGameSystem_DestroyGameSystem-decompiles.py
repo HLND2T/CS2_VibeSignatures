@@ -23,7 +23,10 @@ def recover_linux_interface_slots(entries, function_bytes):
             and bodies[2].startswith(bytes.fromhex("48 89 77 08 C3"))
             and bodies[3].startswith(bytes.fromhex("31 C0 C3"))
         ):
-            matches.append({"IGameSystem_SetGameSystemGlobalPtrs": index + 1, "IGameSystem_vdtor": index + 5})
+            # DestroyGameSystem invokes the complete destructor and then frees
+            # the allocation through IMemAlloc; selecting the deleting entry
+            # would introduce a second deallocation.
+            matches.append({"IGameSystem_SetGameSystemGlobalPtrs": index + 1, "IGameSystem_vdtor": index + 4})
     return matches[0] if len(matches) == 1 else None
 
 

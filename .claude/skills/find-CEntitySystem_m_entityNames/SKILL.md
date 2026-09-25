@@ -123,13 +123,13 @@ lookup/insertion block.
    - `struct_name=CEntitySystem`
    - `member_name=m_entityNames`
    - `offset=<resolved off>`
-   - `size=8`
+   - `size=32`
    - `offset_sig=<generated struct_sig>`
    - `offset_sig_disp=0`
 
 If the current compiler never materializes `this + off` directly and only accesses `off + 2`, `off + 8`, or
-`off + 0x10`, still write the verified base `offset` with `size=8`; set `offset_sig=None` and
-`offset_sig_disp=None` rather than generating a signature for the wrong subfield displacement.
+`off + 0x10`, still write the verified base `offset` with `size=32`; omit `offset_sig` and
+`offset_sig_disp` rather than generating a signature for the wrong subfield displacement. The canonical writer rejects null signatures.
 
 ## Failure handling
 
