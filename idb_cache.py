@@ -11,8 +11,10 @@ import shutil
 import sys
 import time
 import uuid
+from functools import wraps
 from pathlib import Path
 
+import idb_cache_leases as leases
 from analysis_config import resolve_analysis_config
 from init_gamebin import iter_configured_binaries
 from release_workflow_lib.errors import ReleaseWorkflowError
@@ -36,7 +38,7 @@ from release_workflow_lib.binary_cache import require_gamever
 
 SCHEMA_VERSION = 1
 GENERATION_SUFFIX_PATTERN = re.compile(r"^[0-9]+-[0-9]+$")
-GENERATION_PATTERN = re.compile(r"^[0-9a-f]{64}-[0-9]+-[0-9]+$")
+GENERATION_PATTERN = leases.GENERATION_PATTERN
 SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 INCOMING_PREFIX = ".incoming-"
 DEFAULT_KEEP_GENERATIONS = 3
@@ -46,6 +48,18 @@ DEFAULT_INCOMING_MAX_AGE_HOURS = 24
 
 class IdbCacheError(RuntimeError):
     pass
+
+
+def _locked(operation):
+    @wraps(operation)
+    def run(*, persisted_root: Path, gamever: str, **kwargs):
+        try:
+            with leases.cache_lock(Path(persisted_root), gamever):
+                return operation(persisted_root=Path(persisted_root), gamever=gamever, **kwargs)
+        except (OSError, ReleaseWorkflowError, ValueError) as exc:
+            raise IdbCacheError(str(exc)) from exc
+
+    return run
 
 
 def _require_text(value: str, label: str) -> str:
@@ -74,7 +88,7 @@ def _require_cache_key(value: str) -> str:
 
 
 def _cache_root(persisted_root: Path, gamever: str) -> Path:
-    return contained_path(Path(persisted_root), "idb-cache", gamever)
+    return leases.cache_root(Path(persisted_root), gamever)
 
 
 def _generation_root(persisted_root: Path, gamever: str, generation: str) -> Path:
@@ -291,8 +305,17 @@ def _find_generation(persisted_root: Path, gamever: str, cache_key: str) -> tupl
     return None
 
 
-def probe_cache(*, repo_root: Path, persisted_root: Path, gamever: str, ida_version: str) -> dict:
+@_locked
+def probe_cache(
+    *,
+    repo_root: Path,
+    persisted_root: Path,
+    gamever: str,
+    ida_version: str,
+    owner: leases.LeaseOwner,
+) -> dict:
     try:
+        owner.document()
         gamever = require_gamever(gamever)
         binaries = _binary_records(repo_root, gamever)
         cache_key = _cache_key(gamever, ida_version, binaries)
@@ -310,13 +333,22 @@ def probe_cache(*, repo_root: Path, persisted_root: Path, gamever: str, ida_vers
                 manifest_sha256=manifest_sha256,
             ),
         )
-        return {"cache_hit": True, "cache_key": cache_key, "generation": manifest["generation"]}
+        selection = leases.create_lease(
+            persisted_root=persisted_root,
+            gamever=gamever,
+            generation=manifest["generation"],
+            cache_key=cache_key,
+            manifest_sha256=manifest_sha256,
+            owner=owner,
+        )
+        return {"cache_hit": True, "cache_key": cache_key, "generation": manifest["generation"], **selection}
     except IdbCacheError:
         raise
     except (OSError, ReleaseWorkflowError, ValueError) as exc:
         raise IdbCacheError(str(exc)) from exc
 
 
+@_locked
 def publish_cache(
     *,
     repo_root: Path,
@@ -324,9 +356,11 @@ def publish_cache(
     gamever: str,
     ida_version: str,
     generation_suffix: str,
+    owner: leases.LeaseOwner,
 ) -> dict:
     incoming = None
     try:
+        owner.document()
         gamever = require_gamever(gamever)
         if not GENERATION_SUFFIX_PATTERN.fullmatch(str(generation_suffix)):
             raise IdbCacheError(f"invalid generation suffix: {generation_suffix}")
@@ -399,7 +433,15 @@ def publish_cache(
                 manifest_sha256=manifest_sha256,
             ),
         )
-        return {"cache_key": cache_key, "generation": generation, "manifest_sha256": manifest_sha256}
+        selection = leases.create_lease(
+            persisted_root=persisted_root,
+            gamever=gamever,
+            generation=generation,
+            cache_key=cache_key,
+            manifest_sha256=manifest_sha256,
+            owner=owner,
+        )
+        return {"cache_key": cache_key, "generation": generation, "manifest_sha256": manifest_sha256, **selection}
     except IdbCacheError:
         raise
     except (OSError, ReleaseWorkflowError, ValueError) as exc:
@@ -426,6 +468,7 @@ def _atomic_copy(source: Path, target: Path) -> None:
         temporary.unlink(missing_ok=True)
 
 
+@_locked
 def restore_cache(
     *,
     repo_root: Path,
@@ -434,16 +477,29 @@ def restore_cache(
     generation: str,
     expected_cache_key: str,
     ida_version: str,
+    lease_id: str,
+    lease_sha256: str,
+    owner: leases.LeaseOwner,
 ) -> dict:
     try:
         gamever = require_gamever(gamever)
         expected_cache_key = _require_cache_key(expected_cache_key)
+        lease = leases.require_lease(
+            persisted_root=persisted_root,
+            gamever=gamever,
+            generation=generation,
+            cache_key=expected_cache_key,
+            lease_id=lease_id,
+            lease_sha256=lease_sha256,
+            owner=owner,
+        )
         manifest, payload_root, _manifest_sha256 = _load_generation(
             persisted_root=Path(persisted_root),
             gamever=gamever,
             generation=generation,
             expected_cache_key=expected_cache_key,
             expected_ida_version=ida_version,
+            expected_manifest_sha256=lease["manifest_sha256"],
         )
         destination_bin_root = Path(repo_root).resolve() / "bin" / gamever
         resolved_repo_root = Path(repo_root).resolve()
@@ -461,10 +517,13 @@ def restore_cache(
         restored_cache_key = _cache_key(gamever, manifest["ida_version"], restored_binaries)
         if restored_cache_key != expected_cache_key:
             raise IdbCacheError("restored IDB cache does not match the caller's configured binary identity")
+        leases.release_lease(persisted_root=persisted_root, gamever=gamever, payload=lease)
         return {
             "cache_key": expected_cache_key,
             "generation": manifest["generation"],
             "ida_version": manifest["ida_version"],
+            "lease_id": lease_id,
+            "lease_state": "released",
         }
     except IdbCacheError:
         raise
@@ -472,6 +531,7 @@ def restore_cache(
         raise IdbCacheError(str(exc)) from exc
 
 
+@_locked
 def prune_cache(
     *,
     persisted_root: Path,
@@ -493,6 +553,7 @@ def prune_cache(
         if not generations_root.is_dir():
             return {"removed_generations": [], "removed_incoming": []}
         current_time = time.time() if now is None else float(now)
+        pinned = leases.protected_generations(persisted_root=persisted_root, gamever=gamever, now=current_time)
         pointer = _pointer_candidate(persisted_root, gamever)
         ready_generation = pointer[0] if pointer is not None else None
         generations = []
@@ -506,6 +567,7 @@ def prune_cache(
                 incoming.append(path)
         generations.sort(key=lambda path: (path.stat().st_mtime, path.name), reverse=True)
         protected = {path.name for path in generations[:keep_generations]}
+        protected.update(pinned)
         if ready_generation is not None:
             protected.add(ready_generation)
 
@@ -559,9 +621,14 @@ def parse_args(argv=None) -> argparse.Namespace:
     for name in ("probe", "publish", "restore"):
         commands.choices[name].add_argument("--repo-root", default=".")
         commands.choices[name].add_argument("--ida-version", required=True)
+        commands.choices[name].add_argument("--repository", required=True)
+        commands.choices[name].add_argument("--run-id", required=True)
+        commands.choices[name].add_argument("--run-attempt", required=True)
     commands.choices["publish"].add_argument("--generation-suffix", required=True)
     commands.choices["restore"].add_argument("--generation", required=True)
     commands.choices["restore"].add_argument("--cache-key", required=True)
+    commands.choices["restore"].add_argument("--lease-id", required=True)
+    commands.choices["restore"].add_argument("--lease-sha256", required=True)
     commands.choices["prune"].add_argument("--keep-generations", type=int, default=DEFAULT_KEEP_GENERATIONS)
     commands.choices["prune"].add_argument(
         "--generation-min-age-hours", type=int, default=DEFAULT_GENERATION_MIN_AGE_HOURS
@@ -577,6 +644,8 @@ def main(argv=None) -> int:
             "persisted_root": Path(args.persisted_root),
             "gamever": args.gamever,
         }
+        if args.command != "prune":
+            common["owner"] = leases.LeaseOwner(args.repository, args.run_id, args.run_attempt)
         if args.command == "probe":
             result = probe_cache(**common, repo_root=Path(args.repo_root), ida_version=args.ida_version)
         elif args.command == "publish":
@@ -593,6 +662,8 @@ def main(argv=None) -> int:
                 generation=args.generation,
                 expected_cache_key=args.cache_key,
                 ida_version=args.ida_version,
+                lease_id=args.lease_id,
+                lease_sha256=args.lease_sha256,
             )
         else:
             result = prune_cache(
