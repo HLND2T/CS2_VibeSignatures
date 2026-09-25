@@ -40,6 +40,55 @@ def _write_is_playing_demo_source_yaml(path: Path, **overrides) -> None:
     path.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
 
 
+class TestLinuxLayoutRecovery(unittest.IsolatedAsyncioTestCase):
+    def test_active_loop_recovery_rejects_dispatcher_getter_and_ambiguous_writers(self):
+        module = _load_module(
+            "ida_preprocessor_scripts/find-IEngineServiceMgr_GetActiveLoop.py", "active_loop_recovery"
+        )
+        getter = bytes.fromhex("48 8D 87 78 01 00 00 C3")
+        writer = bytes.fromhex("C6 46 20 01 48 8B 57 38 C6 46 20 00 C3")
+        self.assertEqual(32, module.recover_linux_active_loop_slot({28: getter, 32: writer}))
+        self.assertEqual(33, module.recover_linux_active_loop_slot({29: getter, 33: writer}))
+        self.assertIsNone(module.recover_linux_active_loop_slot({28: getter}))
+        self.assertIsNone(module.recover_linux_active_loop_slot({32: writer, 33: writer}))
+
+    def test_gamesystem_tail_recovery_uses_interface_not_factory_primary_indices(self):
+        module = _load_module(
+            "ida_preprocessor_scripts/find-CGameSystemReallocatingFactory_CSpawnGroupMgrGameSystem_DestroyGameSystem-decompiles.py",
+            "gamesystem_tail_recovery",
+        )
+        bodies = {
+            100: bytes.fromhex("48 8B 47 08 C3"),
+            200: b"\xc3",
+            300: bytes.fromhex("48 89 77 08 C3"),
+            400: bytes.fromhex("31 C0 C3"),
+        }
+        for start in (59, 69):
+            entries = dict(zip(range(start, start + 6), [100, 200, 300, 400, 0, 0]))
+            self.assertEqual(
+                {"IGameSystem_SetGameSystemGlobalPtrs": start + 1, "IGameSystem_vdtor": start + 4},
+                module.recover_linux_interface_slots(entries, bodies),
+            )
+            entries[start + 4] = 200
+            self.assertIsNone(module.recover_linux_interface_slots(entries, bodies))
+        self.assertIsNone(module.recover_linux_interface_slots({24: 200, 28: 100}, bodies))
+
+    def test_entity_name_map_recovery_excludes_storage_subobject_and_rejects_ambiguity(self):
+        module = _load_module("ida_preprocessor_scripts/find-CEntitySystem_m_entityNames.py", "entity_name_map")
+
+        def fields(base):
+            return [
+                {"kind": "flags", "offset": base + 0xA},
+                {"kind": "storage", "offset": base + 0x10},
+                {"kind": "word", "offset": base + 0x18},
+            ]
+
+        self.assertEqual(0xAF0, module.recover_map_base(fields(0xAF0)))
+        self.assertEqual(0xBF0, module.recover_map_base(fields(0xBF0)))
+        self.assertIsNone(module.recover_map_base(fields(0xAF0)[:-1]))
+        self.assertIsNone(module.recover_map_base(fields(0xAF0) + fields(0xBF0)))
+
+
 class TestFindCBaseEntityCollisionRulesChanged(unittest.IsolatedAsyncioTestCase):
     async def test_preprocess_skill_forwards_generate_yaml_desired_fields(self) -> None:
         module = _load_module(

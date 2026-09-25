@@ -58,7 +58,8 @@ Key function interactions:
   - `x86_64-*-linux-gnu` -> `linux`
   Unmatched triples return `None`.
 - `pointer_size_from_target_triple` currently always returns `8` (even fallback path), so non-64-bit targets are not differentiated.
-- `parse_vftable_layouts` guards against over-consuming unrelated clang blocks by stopping when parsed index reaches declared entry bounds.
+- `parse_vftable_layouts` bounds sections by raw entry count, validates complete-layout raw indices, and normalizes only the primary table. Itanium `Vtable for` includes inherited slots and secondary subobject tables; RTTI identifies the address point and subsequent ABI metadata ends the primary table. MSVC emits separate `VFTable for` sections; when multiple tables exist, vfptr-zero method locations must identify one uniquely.
+- Indices-only, truncated, malformed, or ambiguous dumps produce `compiler_layout_incomplete`. They cannot establish total size or prove that an unobserved inherited slot is absent. Known method names and reference conflicts remain checked.
 - `load_reference_vtable_data` respects module priority order and returns the first module that yields vtable metadata; within a module, later files can overwrite the same `vfunc_index` entry.
 - Name mismatch checks require both expected and actual member names to be non-empty; missing name tokens do not produce `vfunc_name_mismatch`.
 - Comparison currently checks reference-defined indices only; extra compiler indices beyond reference are not flagged as dedicated differences.
@@ -69,3 +70,10 @@ Key function interactions:
   - `pointer_size_from_target_triple`
   - `compare_compiler_vtable_with_yaml`
   - `format_vtable_compare_report`
+
+## Experience: inherited slots and primary-table boundaries (#1083)
+- Trigger: inherited classes report too few slots or missing low indices; enabling Linux complete layouts then overcounts multiple inheritance.
+- Root cause: `VTable indices for` is partial method-location evidence, while `Vtable for` is an Itanium table group. Neither the number of introduced methods nor the largest subobject table identifies the complete primary vtable.
+- Correct approach: validate raw dump structure, strip ABI metadata relative to the primary address point, isolate secondary tables, and fail explicitly when complete primary-layout evidence is unavailable. Preserve separate complete/deleting destructor slots on Itanium.
+- Verification: `uv run python -m unittest tests.test_run_cpp_tests` includes real Clang Linux/MSVC dumps and synthetic malformed/ambiguous cases; run the snapshot-backed `run_cpp_tests.py` separately to expose real SDK/reference differences.
+- Scope: Clang vtable parsing and comparison only. Header order, conflicting reference YAML, and record-member offsets require separate root-cause analysis.
