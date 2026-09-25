@@ -388,7 +388,31 @@ jobs:
             Remove-Item Env:GIT_ASKPASS -ErrorAction SilentlyContinue
             Remove-Item Env:GIT_PASSWORD -ErrorAction SilentlyContinue
           }
-          $after = gh api "repos/${{ github.repository }}/pulls/${{ inputs.pull_request_number }}" | ConvertFrom-Json
-          if ($LASTEXITCODE -ne 0 -or $after.head.sha -ne "${{ steps.commit.outputs.commit-sha }}") {
-            throw "Remote PR head does not match the published artifact commit."
+      - name: Verify published bootstrap PR head
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ inputs.pull_request_number }}
+          EXPECTED_HEAD_REF: bump-download/${{ inputs.gamever }}
+          EXPECTED_HEAD_SHA: ${{ steps.commit.outputs.commit-sha }}
+        run: |-
+          $pollIntervalMs = 2000
+          $deadline = (Get-Date).AddMilliseconds(60000)
+          # A successful push can precede the PR API's head update, so wait for the
+          # published head to converge instead of reading it once.
+          while ($true) {
+            $pull = gh api "repos/$env:REPOSITORY/pulls/$env:PR_NUMBER" | ConvertFrom-Json
+            if ($LASTEXITCODE -ne 0) { throw "Published artifact pull request could not be read back." }
+            if ($pull.state -ne "open" -or `
+                $pull.head.ref -ne $env:EXPECTED_HEAD_REF -or `
+                $pull.head.repo.full_name -ne $env:REPOSITORY) {
+              throw "Published artifact pull request identity or state changed."
+            }
+            if ($pull.head.sha -eq $env:EXPECTED_HEAD_SHA) { break }
+            $remainingMs = [int](($deadline - (Get-Date)).TotalMilliseconds)
+            if ($remainingMs -le 0) {
+              throw "Timed out waiting for PR #$env:PR_NUMBER head: expected $env:EXPECTED_HEAD_SHA, observed $($pull.head.sha)."
+            }
+            Start-Sleep -Milliseconds ([Math]::Min($pollIntervalMs, $remainingMs))
           }

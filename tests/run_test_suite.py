@@ -66,6 +66,7 @@ UNIT_MODULES = frozenset(
         "test_binary_hashing",
         "test_binsync_candidate",
         "test_binsync_publish",
+        "test_bootstrap_publish_retry",
         "test_bump_download",
         "test_bump_publish_retry",
         "test_cnetworkmessages_dtor_preprocessor",
