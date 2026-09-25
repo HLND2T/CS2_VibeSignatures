@@ -53,6 +53,8 @@ jobs:
       PR_NUMBER: ${{ inputs.pull_request_number }}
       IDB_CACHE_GENERATION: ${{ needs.warmup-idb.outputs.generation }}
       IDB_CACHE_KEY: ${{ needs.warmup-idb.outputs.cache_key }}
+      IDB_CACHE_LEASE_ID: ${{ needs.warmup-idb.outputs.lease_id }}
+      IDB_CACHE_LEASE_SHA256: ${{ needs.warmup-idb.outputs.lease_sha256 }}
       BINARY_LOCK_SHA256: ${{ needs.warmup-idb.outputs.binary_lock_sha256 }}
       PERSISTED_WORKSPACE: ${{ secrets.PERSISTED_WORKSPACE }}
       CS2VIBE_AGENT: ${{ secrets.CS2VIBE_AGENT }}
@@ -123,6 +125,8 @@ jobs:
           "IDA_PYTHON=$pythonExe" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
           "IDA_VERSION=$idaVersion" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
           uv run python idb_cache.py restore `
+            --repository "$env:GITHUB_REPOSITORY" --run-id "$env:GITHUB_RUN_ID" --run-attempt "$env:GITHUB_RUN_ATTEMPT" `
+            --lease-id "$env:IDB_CACHE_LEASE_ID" --lease-sha256 "$env:IDB_CACHE_LEASE_SHA256" `
             --repo-root "${{ github.workspace }}" `
             --persisted-root "$env:PERSISTED_WORKSPACE" `
             --gamever "$env:GAMEVER" `

@@ -37,6 +37,26 @@ BinSync projection, and archives a Release publishes are all derived from the co
 
 PR and Release analysis call `warmup-idb.yml`. It binds configured binary hashes and the IDA runtime to an immutable cache generation. Accepted-bin materialization is an exact configured-binary cache: YAML, IDA databases, BinSync state, and undeclared side files are rejected. These caches are performance layers, never symbol truth.
 
+Warm IDB probe/publish creates a persistent lease under the shared GAMEVER file lock and returns the generation,
+cache key, lease ID, and lease SHA-256. The lease binds the repository, producer run/attempt, GAMEVER, generation,
+and manifest digest. PR, Release, bootstrap, and bridge consumers use the producer's exact outputs instead of
+probing for another selection. Prune honors all live leases while downstream jobs wait. Restore holds the same
+lock through verification, copying every binary/IDB, and checking the restored identity; only full success
+atomically releases that consumer's lease.
+
+Leases last 36 days, with an additional one-hour clock grace for pruning. Partial restore failures retain protection;
+abandoned producers, failed output delivery, and cancelled jobs are eventually reclaimed by expiration.
+Missing, released, expired, corrupt, or mismatched leases fail explicitly. Unreadable or corrupt leases also stop
+pruning until the storage problem is resolved. After successful restore followed by analysis failure, or when a
+GitHub rerun changes the attempt, rerun the full workflow including its producer. Attempt binding applies only to
+temporary cache leases; it does not change the Release publication transaction identity below.
+
+Payloads, READY, leases, and file locks now live under `PERSISTED_WORKSPACE/idb-cache-v2/`, isolated from old pruners.
+The first use requires fresh warmup. The old `idb-cache/` is neither migrated nor deleted automatically; confirm all
+old workflows have finished before cleaning it up. Existing GAMEVER warmup concurrency remains, while file locks
+also serialize interleaved producer/consumer access. Rollout validation should interleave producers, pruning, and
+restore on two Windows/SMB runners sharing a cache, and observe initial warmup disk usage and duration.
+
 ## Immutable Release pipeline
 
 After a version source commit reaches the default branch:

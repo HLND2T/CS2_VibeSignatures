@@ -29,6 +29,21 @@
 
 PR 与 Release analysis 都调用 `warmup-idb.yml`，将 configured binary hashes 和 IDA runtime 绑定到 immutable cache generation。accepted-bin 是 exact configured-binary cache：YAML、IDA databases、BinSync state 与未声明 side files 均被拒绝。这些 cache 只用于性能，不是 symbol truth。
 
+Warm IDB 的 probe/publish 在共享 GAMEVER 文件锁内创建持久租约，返回 generation、cache key、lease ID 和 lease SHA-256。
+租约绑定 repository、producer run/attempt、GAMEVER、generation 与 manifest digest；PR、Release、bootstrap 和 bridge
+consumer 必须使用 producer 的原始输出，不能重新 probe 替换选择。prune 合并所有有效租约，保护跨 job 排队期间的缓存；
+restore 在同一锁内完成校验、全部 binary/IDB 复制及身份复核，全部成功后才原子释放自己的租约。
+
+租约有效期为 36 天，prune 另加 1 小时时钟容差。部分恢复失败保留保护；producer 中断、输出失败或取消留下的租约最终过期回收。
+缺失、已释放、过期、损坏或绑定不一致的租约会明确失败；无法读取或损坏的租约也会阻止 prune，需排查存储问题后恢复清理。
+恢复成功后的分析失败，或 GitHub rerun 导致 attempt 改变时，应重跑包含 producer 的完整 workflow。
+这里的 attempt 绑定只约束临时缓存租约，不改变下文 Release publication transaction identity。
+
+新 payload、READY、租约和文件锁位于 `PERSISTED_WORKSPACE/idb-cache-v2/`，与仍运行旧代码的 pruner 隔离。
+首次使用需要重新预热，旧 `idb-cache/` 不自动迁移或删除；清理旧目录前应确认旧 workflow 已全部结束。
+普通 warmup 的 GAMEVER concurrency 继续保留，文件锁另外覆盖 producer 与 consumer 的交错访问。
+上线验证应在两个共享同一缓存的 Windows/SMB runner 上交错运行 producer、prune 与 restore，并观察首次预热的磁盘与耗时。
+
 ## Immutable Release pipeline
 
 version source commit 进入 default branch 后：
