@@ -57,6 +57,20 @@ old workflows have finished before cleaning it up. Existing GAMEVER warmup concu
 also serialize interleaved producer/consumer access. Rollout validation should interleave producers, pruning, and
 restore on two Windows/SMB runners sharing a cache, and observe initial warmup disk usage and duration.
 
+`warmup_idb.py --max-memory-mib <MiB>` (or `IDB_WARMUP_MAX_MEMORY_MIB`) enables memory-aware admission.
+Windows uses an aggregate Job Object cap. Linux selects a cgroup v2 child cap when the existing delegation permits
+it; otherwise `cap=reservation-only` reports the reason and applies per-worker `RLIMIT_AS` plus a producer-side RSS
+watchdog. The fallback has no kernel-enforced aggregate cap; RSS is sampled every two seconds and may overshoot
+between samples. No system cgroup delegation settings are changed by the producer. A cgroup sibling must remain
+inside the runner's delegated unit; the producer never moves out to its containing systemd slice or bypasses a
+memory limit on its source leaf. It restores the source cgroup after warmup.
+
+`IDB_WARMUP_INITIAL_WORKER_RESERVATION_MIB` defaults to 4096 MiB. It controls admission reservation and, in the
+fallback, each worker's RSS cap and address-space limit (the latter has a 256 MiB minimum). Tune it for IDA's measured
+address-space and resident-memory peaks. Baseline usage plus one reservation must fit within 85% of the total budget
+or warmup fails immediately. Unset memory budget disables these controls; already-warm databases skip setup.
+Worker limit failures invalidate partial IDBs. This selects by the host OS, not the binary's target platform.
+
 ## Immutable Release pipeline
 
 After a version source commit reaches the default branch:

@@ -44,6 +44,18 @@ restore 在同一锁内完成校验、全部 binary/IDB 复制及身份复核，
 普通 warmup 的 GAMEVER concurrency 继续保留，文件锁另外覆盖 producer 与 consumer 的交错访问。
 上线验证应在两个共享同一缓存的 Windows/SMB runner 上交错运行 producer、prune 与 restore，并观察首次预热的磁盘与耗时。
 
+`warmup_idb.py --max-memory-mib <MiB>`（或 `IDB_WARMUP_MAX_MEMORY_MIB`）启用内存准入控制。
+Windows 使用聚合 Job Object 上限；Linux 在已有委派权限允许时使用 cgroup v2 子组上限，否则输出
+`cap=reservation-only` 和降级原因，改用每 worker 的 `RLIMIT_AS` 与调度进程中的 RSS watchdog。
+降级模式没有内核强制的聚合上限，RSS 每两秒采样一次，采样间可能超限；producer 不修改系统 cgroup 委派设置。
+兄弟 cgroup 必须仍位于 runner 的委派 unit 内，不能移出到 systemd slice，也不能绕过原叶子组的内存限制；
+warmup 收尾时恢复原 cgroup。
+
+`IDB_WARMUP_INITIAL_WORKER_RESERVATION_MIB` 默认 4096 MiB，控制准入预留量；降级时还作为每 worker
+的 RSS 上限与地址空间上限（后者最小为 256 MiB）。应根据 IDA 的实际地址空间和常驻内存峰值调整。
+基线内存加一个 worker 预留量必须能放入总预算的 85%，否则立即失败。未设置总预算时不启用内存控制；
+数据库全部已 warm 时跳过初始化。worker 超限失败会清理半成品 IDB。平台选择依据宿主 OS，而非目标二进制平台。
+
 ## Immutable Release pipeline
 
 version source commit 进入 default branch 后：

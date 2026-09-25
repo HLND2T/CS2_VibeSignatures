@@ -110,6 +110,7 @@ UNIT_MODULES = frozenset(
         "test_llm_decompile_dependencies",
         "test_new_gamever_artifact",
         "test_process_api",
+        "test_posix_memory",
         "test_process_reporter",
         "test_process_reporter_factory",
         "test_process_reporter_redis",
