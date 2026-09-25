@@ -7862,6 +7862,52 @@ found_struct_offset: []
         self.assertEqual("0x68", result["vfunc_offset"])
         self.assertEqual(13, result["vfunc_index"])
 
+    async def test_struct_offset_relocation_uses_decoded_operand_not_adjacent_immediate(self) -> None:
+        # mov dword ptr [rdi+0xc4c], 1: disp32 and imm32 must not become one uint64.
+        raw = bytes.fromhex("C7 87 4C 0C 00 00 01 00 00 00")
+        memory = types.SimpleNamespace(type=4, offb=2, offo=0, dtype=4, addr=0xC4C)
+        immediate = types.SimpleNamespace(type=5, offb=6, offo=0, dtype=4, value=1)
+        insn = types.SimpleNamespace(size=len(raw), ops=[memory, immediate])
+        modules = {
+            "idaapi": types.SimpleNamespace(o_void=0, o_displ=4, o_mem=2, o_imm=5, inf_is_64bit=lambda: True),
+            "ida_bytes": types.SimpleNamespace(get_bytes=lambda *_: raw),
+            "idautils": types.SimpleNamespace(DecodeInstruction=lambda _: insn),
+            "ida_ua": types.SimpleNamespace(get_dtype_size=lambda _: 4),
+        }
+        with tempfile.TemporaryDirectory() as temp_dir, patch.dict(sys.modules, modules):
+            old_path = Path(temp_dir) / "old.yaml"
+            for old_offset in (0xBC4, 0x100000C4C, 0x4C, 1):
+                with self.subTest(old_offset=old_offset):
+                    _write_yaml(
+                        old_path,
+                        {
+                            "struct_name": "CEntitySystem",
+                            "member_name": "depth",
+                            "offset": hex(old_offset),
+                            "size": 4,
+                            "offset_sig": "C7 87 ?? ?? ?? ?? ?? ?? ?? ??",
+                        },
+                    )
+                    session = AsyncMock()
+
+                    def evaluate(*, name, arguments):
+                        if name == "find_bytes":
+                            return _FakeCallToolResult([{"matches": ["0x1000"], "n": 1}])
+                        namespace = {}
+                        exec(arguments["code"], namespace)
+                        return _FakeCallToolResult({"result": namespace["result"], "stderr": ""})
+
+                    session.call_tool.side_effect = evaluate
+                    result = await ida_analyze_util.preprocess_struct_offset_sig_via_mcp(
+                        session=session,
+                        new_path=str(Path(temp_dir) / "new.yaml"),
+                        old_path=str(old_path),
+                        image_base=0,
+                        new_binary_dir=temp_dir,
+                        platform="linux",
+                    )
+                    self.assertEqual("0xc4c", result["offset"])
+
     async def test_preprocess_struct_offset_sig_via_mcp_emits_default_zero_disp(
         self,
     ) -> None:

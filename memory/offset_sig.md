@@ -33,8 +33,8 @@ permalink: cs2-vibesignatures/offset-sig
   1. Load `struct_name`, `member_name`, `offset_sig`, optional `offset_sig_disp`, optional `size`.
   2. Unique-match `offset_sig` -> `sig_addr`.
   3. Compute instruction address: `inst_addr = sig_addr + offset_sig_disp` (default `0`).
-  4. Decode instruction and inspect operand positions (`offb/offo`) and candidate sizes.
-  5. Extract displacement/immediate candidates; prefer candidates matching the old offset when available.
+  4. Decode the instruction and read IDA's displacement/address operand values. Only use immediate operands when no memory operand exists.
+  5. Prefer an exact old-offset match among decoded operands; otherwise accept only one unambiguous value. Operand dtype describes the referenced data, not displacement encoding width.
   6. Emit new YAML with updated `offset`, carrying `offset_sig` and optional metadata.
 - In `preprocess_common_skill`, the struct-member direct generation path passes `_struct_gen_opts.get("offset_sig_allow_across_function_boundary", False)` into `preprocess_gen_struct_offset_sig_via_mcp` and writes `offset_sig_allow_across_function_boundary: true` only when the directive is explicitly enabled.
 
@@ -44,3 +44,10 @@ permalink: cs2-vibesignatures/offset-sig
 - `offset_sig_allow_across_function_boundary` expands generation breadth only; the relocation path and offset re-derivation logic are unchanged.
 - Weak signatures (too short / too wildcarded) reduce long-term reliability.
 - `offset_sig`/`offset_sig_disp` may legitimately differ between two runs that picked different member-referencing instructions; PR and Release validation tolerate exactly that while pinning `offset`/`size`. Read [[anchor_drift]] before relying on these fields being reproducible.
+
+## Experience: a displacement is not an arbitrary byte window
+- Trigger: after an offset moves, `mov dword ptr [rdi+disp32], 1` yields `0x100000c4c` instead of `0xc4c`.
+- Root cause: an eight-byte candidate starting at disp32 also consumed the following imm32; old-offset matching could additionally select a truncated low byte or the store value.
+- Correct approach: use decoded memory operand values, exclude unrelated immediates when memory operands exist, and reject ambiguous candidates.
+- Verification: execute the generated py_eval against an instruction fixture containing both disp32 and imm32, then regenerate the affected artifact against the real IDB.
+- Scope: struct-offset relocation. A signature anchored at a container's interior field is a separate semantic error; recover the container base from independent field accesses instead.

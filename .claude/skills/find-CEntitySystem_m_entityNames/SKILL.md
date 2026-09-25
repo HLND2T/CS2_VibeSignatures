@@ -28,8 +28,8 @@ value only and verify it against the current binary.
 - `ida_preprocessor_scripts/references/server/CEntitySystem_AddEntityToNameMap.linux.yaml`
 
 The Linux reference includes both the historical lookup helper pseudocode and the predecessor pseudocode. Its
-`a1 + 2800` annotation is an older-layout example; build 14168 moved the Linux member to `0xAF8`. Never copy a
-reference displacement without checking the current function.
+`a1 + 2800` annotation identifies the map base (`0xAF0`); `0xAF8` identifies its `m_Elements` storage subobject.
+Never copy a reference displacement without checking the current function.
 
 ## Background and semantic fingerprint
 
@@ -58,15 +58,15 @@ Do not search for the literal name `sub_1E59BD0`; anonymous names and function b
    materialize `this + off`, then pass `this + off + 8` plus a small context object containing the base and key.
 2. If that call is absent, assume the helper was inlined. Locate the direct RB-tree traversal using the
    semantic fingerprint above. The usual container field cluster is:
-   - node count at `this + off`;
-   - allocation/capacity flags at `this + off + 2`;
-   - node-storage pointer at `this + off + 8`;
-   - root index at `this + off + 0x10`;
-   - nearby free-list/tree bookkeeping at `this + off + 0x12` and `this + off + 0x14`.
+   - node count at `this + off + 8`;
+   - allocation/capacity flags at `this + off + 0xA`;
+   - node-storage pointer at `this + off + 0x10`;
+   - root index at `this + off + 0x18`;
+   - nearby free-list/tree bookkeeping at `this + off + 0x1A` and `this + off + 0x1C`.
 3. Infer one common `off` from at least three of those accesses and verify it against the insertion path. Prefer
    a direct `lea reg, [this + off]` that feeds tree insertion/bookkeeping. On Linux 14168, for example, the
    inlined traversal accesses `this + 0xB08`, `this + 0xAFA`, and `this + 0xB00`, then materializes
-   `this + 0xAF8`; all four imply `off = 0xAF8`.
+   `this + 0xAF8`; the field cluster implies map base `off = 0xAF0`, while the materialized pointer is the storage subobject.
 4. If the predecessor calls a plausible lookup helper instead, decompile it and follow the arguments. Recover
    `off` from the caller's `this`-relative expressions; helper-local offsets are offsets within the map, not
    within `CEntitySystem`.
@@ -80,10 +80,10 @@ Offsets are ground-truth reference values from build 14168 and must be re-derive
 
 | Output symbol | Kind | Windows | Linux | Writer skill |
 |---------------|------|---------|-------|--------------|
-| `CEntitySystem_m_entityNames` | struct member | `0xAF0` | `0xAF8` | `/write-structoffset-as-yaml` |
+| `CEntitySystem_m_entityNames` | struct member | `0xAF0` | `0xAF0` | `/write-structoffset-as-yaml` |
 
 Platform gating: emit this output on both Windows and Linux. `struct_name` is `CEntitySystem`, `member_name`
-is `m_entityNames`, and the recorded size is `8`.
+is `m_entityNames`, and the map size is `32`.
 
 ## Step 0. Skip an existing output
 
