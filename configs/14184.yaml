@@ -14562,3 +14562,407 @@ cpp_tests:
       - fdump-vtable-layouts
     reference_modules:
       - engine  # bin_artifacts/{gamever}/engine/CEngineServiceMgr_*.{platform}.yaml
+
+  # Linux (Itanium ABI) variants. Entries are selected by clang capability in
+  # run_cpp_tests.py: a target whose C++ standard library is unavailable on the host is
+  # probed as unsupported and skipped, so these run on Linux hosts while the *_MSVC
+  # entries run on MSVC-capable hosts. They validate linuxsteamrt64 layouts against the
+  # *.linux.yaml reference artifacts and do not replace the *_MSVC validation.
+  # COMPILER_GCC/POSIX/LINUX select hl2sdk's non-Windows path (COMPILER_MSVC pulls in
+  # <Windows.h>); stricmp is the MSVC spelling that platform.h only aliases as _stricmp.
+  - name: CEntityInstance_GCC
+    symbol: CEntityInstance
+    cpp: cpp_tests/centityinstance.cpp
+    headers:
+      - hl2sdk_cs2/public/entity2/entityinstance.h  # Used by the fix-cppheaders SKILL
+    target: x86_64-pc-linux-gnu
+    include_directories:
+      - cpp_tests/stubs
+      - hl2sdk_cs2/game/shared
+      - hl2sdk_cs2/public
+      - hl2sdk_cs2/public/tier0
+      - hl2sdk_cs2/public/tier1
+      - hl2sdk_cs2/public/mathlib
+    defines:
+      - COMPILER_GCC=1
+      - POSIX=1
+      - LINUX=1
+      - stricmp=strcasecmp
+    additional_compiler_options:
+      - Xclang
+      - fdump-vtable-layouts
+    reference_modules:
+      - server  # bin_artifacts/{gamever}/server/CEntityInstance_*.{platform}.yaml
+      - client  # bin_artifacts/{gamever}/client/CEntityInstance_*.{platform}.yaml
+  - name: IGameSystem_GCC
+    symbol: IGameSystem
+    cpp: cpp_tests/igamesystem.cpp
+    headers:
+      - hl2sdk_cs2/game/shared/igamesystem.h  # Used by the fix-cppheaders SKILL
+    target: x86_64-pc-linux-gnu
+    include_directories:
+      - cpp_tests/stubs
+      - hl2sdk_cs2/game/shared
+      - hl2sdk_cs2/public
+      - hl2sdk_cs2/public/tier0
+      - hl2sdk_cs2/public/tier1
+      - hl2sdk_cs2/public/mathlib
+    defines:
+      - COMPILER_GCC=1
+      - POSIX=1
+      - LINUX=1
+      - stricmp=strcasecmp
+    additional_compiler_options:
+      - Xclang
+      - fdump-vtable-layouts
+    reference_modules:
+      - server  # bin_artifacts/{gamever}/server/IGameSystem_*.{platform}.yaml
+      - client  # bin_artifacts/{gamever}/client/IGameSystem_*.{platform}.yaml
+  - name: INetworkMessages_GCC
+    symbol: INetworkMessages
+    alias_symbols:
+      - CNetworkMessages
+    cpp: cpp_tests/inetworkmessages.cpp
+    headers:
+      - hl2sdk_cs2/public/networksystem/inetworkmessages.h  # Used by the fix-cppheaders SKILL
+    target: x86_64-pc-linux-gnu
+    include_directories:
+      - hl2sdk_cs2/game/shared
+      - hl2sdk_cs2/public
+      - hl2sdk_cs2/public/tier0
+      - hl2sdk_cs2/public/tier1
+      - hl2sdk_cs2/public/mathlib
+    defines:
+      - COMPILER_GCC=1
+      - POSIX=1
+      - LINUX=1
+      - stricmp=strcasecmp
+    additional_compiler_options:
+      - Xclang
+      - fdump-vtable-layouts
+    reference_modules:
+      - networksystem  # bin_artifacts/{gamever}/networksystem/CNetworkMessages_*.{platform}.yaml
+      - engine  # bin_artifacts/{gamever}/engine/CNetworkMessages_*.{platform}.yaml
+      - server  # bin_artifacts/{gamever}/server/CNetworkMessages_*.{platform}.yaml
+      - client  # bin_artifacts/{gamever}/client/CNetworkMessages_*.{platform}.yaml
+  - name: ILoopMode_GCC
+    symbol: ILoopMode
+    cpp: cpp_tests/iloopmode.cpp
+    headers:
+      - hl2sdk_cs2/public/iloopmode.h  # Used by the fix-cppheaders SKILL
+    target: x86_64-pc-linux-gnu
+    include_directories:
+      - hl2sdk_cs2/game/shared
+      - hl2sdk_cs2/public
+      - hl2sdk_cs2/public/tier0
+      - hl2sdk_cs2/public/tier1
+      - hl2sdk_cs2/public/mathlib
+    defines:
+      - COMPILER_GCC=1
+      - POSIX=1
+      - LINUX=1
+      - stricmp=strcasecmp
+    additional_compiler_options:
+      - Xclang
+      - fdump-vtable-layouts
+    reference_modules:
+      - client  # bin_artifacts/{gamever}/client/ILoopModeGame_*.{platform}.yaml
+      - server  # bin_artifacts/{gamever}/server/ILoopModeGame_*.{platform}.yaml
+      - engine  # bin_artifacts/{gamever}/engine/ILoopModeGame_*.{platform}.yaml
+  - name: ILoopType_GCC
+    symbol: ILoopType
+    cpp: cpp_tests/ilooptype.cpp
+    headers:
+      - hl2sdk_cs2/public/iloopmode.h  # Used by the fix-cppheaders SKILL
+    target: x86_64-pc-linux-gnu
+    include_directories:
+      - hl2sdk_cs2/game/shared
+      - hl2sdk_cs2/public
+      - hl2sdk_cs2/public/tier0
+      - hl2sdk_cs2/public/tier1
+      - hl2sdk_cs2/public/mathlib
+    defines:
+      - COMPILER_GCC=1
+      - POSIX=1
+      - LINUX=1
+      - stricmp=strcasecmp
+    additional_compiler_options:
+      - Xclang
+      - fdump-vtable-layouts
+    reference_modules:
+      - engine  # bin_artifacts/{gamever}/engine/CLoopTypeClientServer_*.{platform}.yaml
+  - name: IVEngineServer2_GCC
+    symbol: IVEngineServer2
+    alias_symbols:
+      - CEngineServer
+    cpp: cpp_tests/ivengineserver2.cpp
+    headers:
+      - hl2sdk_cs2/public/eiface.h  # Used by the fix-cppheaders SKILL
+    target: x86_64-pc-linux-gnu
+    include_directories:
+      - cpp_tests/stubs
+      - hl2sdk_cs2/game/shared
+      - hl2sdk_cs2/public
+      - hl2sdk_cs2/public/tier0
+      - hl2sdk_cs2/public/tier1
+      - hl2sdk_cs2/public/mathlib
+    defines:
+      - COMPILER_GCC=1
+      - POSIX=1
+      - LINUX=1
+      - stricmp=strcasecmp
+    additional_compiler_options:
+      - Xclang
+      - fdump-vtable-layouts
+    reference_modules:
+      - engine  # bin_artifacts/{gamever}/engine/CEngineServer_*.{platform}.yaml
+      - client  # bin_artifacts/{gamever}/client/IVEngineServer2_*.{platform}.yaml
+      - server  # bin_artifacts/{gamever}/server/IVEngineServer2_*.{platform}.yaml
+  - name: IGameSystemFactory_GCC
+    symbol: IGameSystemFactory
+    cpp: cpp_tests/igamesystemfactory.cpp
+    headers:
+      - hl2sdk_cs2/game/shared/igamesystemfactory.h  # Used by the fix-cppheaders SKILL
+    target: x86_64-pc-linux-gnu
+    include_directories:
+      - cpp_tests/stubs
+      - hl2sdk_cs2/game/shared
+      - hl2sdk_cs2/public
+      - hl2sdk_cs2/public/tier0
+      - hl2sdk_cs2/public/tier1
+      - hl2sdk_cs2/public/mathlib
+    defines:
+      - COMPILER_GCC=1
+      - POSIX=1
+      - LINUX=1
+      - stricmp=strcasecmp
+    additional_compiler_options:
+      - Xclang
+      - fdump-vtable-layouts
+    reference_modules:
+      - server  # bin_artifacts/{gamever}/server/IGameSystemFactory_*.{platform}.yaml
+      - client  # bin_artifacts/{gamever}/client/IGameSystemFactory_*.{platform}.yaml
+  - name: CEntitySystem_GCC
+    symbol: CEntitySystem
+    alias_symbols:
+      - CGameEntitySystem
+    cpp: cpp_tests/centitysystem.cpp
+    headers:
+      - hl2sdk_cs2/public/entity2/entitysystem.h  # Used by the fix-cppheaders SKILL
+    target: x86_64-pc-linux-gnu
+    include_directories:
+      - cpp_tests/stubs
+      - hl2sdk_cs2/game/shared
+      - hl2sdk_cs2/public
+      - hl2sdk_cs2/public/tier0
+      - hl2sdk_cs2/public/tier1
+      - hl2sdk_cs2/public/mathlib
+    defines:
+      - COMPILER_GCC=1
+      - POSIX=1
+      - LINUX=1
+      - stricmp=strcasecmp
+    additional_compiler_options:
+      - Xclang
+      - fdump-vtable-layouts
+      - Xclang
+      - fdump-record-layouts
+    reference_modules:
+      - server  # bin_artifacts/{gamever}/server/{CEntitySystem,CGameEntitySystem}_*.{platform}.yaml
+      - client  # bin_artifacts/{gamever}/client/{CEntitySystem,CGameEntitySystem}_*.{platform}.yaml
+  - name: SDL_Mouse_GCC
+    symbol: SDL_Mouse
+    cpp: cpp_tests/SDL_Mouse.cpp
+    headers:
+      - cpp_tests/stubs/SDL3.stub.h
+    target: x86_64-pc-linux-gnu
+    include_directories:
+      - cpp_tests/stubs
+    defines:
+      - COMPILER_GCC=1
+      - POSIX=1
+      - LINUX=1
+      - stricmp=strcasecmp
+    additional_compiler_options:
+      - Xclang
+      - fdump-record-layouts
+    reference_modules:
+      - SDL3  # bin_artifacts/{gamever}/SDL3/SDL_Mouse_*.{platform}.yaml
+  - name: INetworkGameServer_GCC
+    symbol: INetworkGameServer
+    cpp: cpp_tests/inetworkgameserver.cpp
+    headers:
+      - hl2sdk_cs2/public/iserver.h  # Used by the fix-cppheaders SKILL
+    target: x86_64-pc-linux-gnu
+    include_directories:
+      - hl2sdk_cs2/game/shared
+      - hl2sdk_cs2/public
+      - hl2sdk_cs2/public/tier0
+      - hl2sdk_cs2/public/tier1
+      - hl2sdk_cs2/public/mathlib
+    defines:
+      - COMPILER_GCC=1
+      - POSIX=1
+      - LINUX=1
+      - stricmp=strcasecmp
+    additional_compiler_options:
+      - Xclang
+      - fdump-vtable-layouts
+    reference_modules:
+      - engine  # bin_artifacts/{gamever}/engine/INetworkGameServer_*.{platform}.yaml
+    merge_reference_modules: false  # Avoid stale duplicate INetworkGameServer_ClientUpdate at index 58
+  - name: CNetworkGameServerBase_GCC
+    symbol: CNetworkGameServerBase
+    reference_vtable_owners:
+      - CNetworkGameServer
+    cpp: cpp_tests/inetworkgameserver.cpp
+    headers:
+      - hl2sdk_cs2/public/iserver.h  # Used by the fix-cppheaders SKILL
+    target: x86_64-pc-linux-gnu
+    include_directories:
+      - hl2sdk_cs2/game/shared
+      - hl2sdk_cs2/public
+      - hl2sdk_cs2/public/tier0
+      - hl2sdk_cs2/public/tier1
+      - hl2sdk_cs2/public/mathlib
+    defines:
+      - COMPILER_GCC=1
+      - POSIX=1
+      - LINUX=1
+      - stricmp=strcasecmp
+    additional_compiler_options:
+      - Xclang
+      - fdump-vtable-layouts
+    reference_modules:
+      - engine  # bin_artifacts/{gamever}/engine/CNetworkGameServerBase_*.{platform}.yaml
+  - name: IGameEventManager2_GCC
+    symbol: IGameEventManager2
+    alias_symbols:
+      - CGameEventManager
+    cpp: cpp_tests/igameeventmanager2.cpp
+    headers:
+      - hl2sdk_cs2/public/igameevents.h  # Used by the fix-cppheaders SKILL
+    target: x86_64-pc-linux-gnu
+    include_directories:
+      - cpp_tests/stubs
+      - hl2sdk_cs2/game/shared
+      - hl2sdk_cs2/public
+      - hl2sdk_cs2/public/tier0
+      - hl2sdk_cs2/public/tier1
+      - hl2sdk_cs2/public/mathlib
+    defines:
+      - COMPILER_GCC=1
+      - POSIX=1
+      - LINUX=1
+      - stricmp=strcasecmp
+    additional_compiler_options:
+      - Xclang
+      - fdump-vtable-layouts
+    reference_modules:
+      - client  # bin_artifacts/{gamever}/client/CGameEventManager_*.{platform}.yaml
+  - name: ISource2Server_GCC
+    symbol: ISource2Server
+    alias_symbols:
+      - CSource2Server
+    exclude_reference_vtables:
+      - CSource2Server_vtable2
+    cpp: cpp_tests/isource2server.cpp
+    headers:
+      - hl2sdk_cs2/public/eiface.h  # Used by the fix-cppheaders SKILL
+    target: x86_64-pc-linux-gnu
+    include_directories:
+      - cpp_tests/stubs
+      - hl2sdk_cs2/game/shared
+      - hl2sdk_cs2/public
+      - hl2sdk_cs2/public/tier0
+      - hl2sdk_cs2/public/tier1
+      - hl2sdk_cs2/public/mathlib
+    defines:
+      - COMPILER_GCC=1
+      - POSIX=1
+      - LINUX=1
+      - stricmp=strcasecmp
+    additional_compiler_options:
+      - Xclang
+      - fdump-vtable-layouts
+    reference_modules:
+      - engine  # bin_artifacts/{gamever}/engine/ISource2Server_*.{platform}.yaml
+      - server  # bin_artifacts/{gamever}/server/CSource2Server_*.{platform}.yaml
+  - name: INetworkServerService_GCC
+    symbol: INetworkServerService
+    alias_symbols:
+      - CNetworkServerService
+    cpp: cpp_tests/inetworkserverservice.cpp
+    headers:
+      - hl2sdk_cs2/public/iserver.h  # Used by the fix-cppheaders SKILL
+    target: x86_64-pc-linux-gnu
+    include_directories:
+      - hl2sdk_cs2/game/shared
+      - hl2sdk_cs2/public
+      - hl2sdk_cs2/public/tier0
+      - hl2sdk_cs2/public/tier1
+      - hl2sdk_cs2/public/mathlib
+    defines:
+      - COMPILER_GCC=1
+      - POSIX=1
+      - LINUX=1
+      - stricmp=strcasecmp
+    additional_compiler_options:
+      - Xclang
+      - fdump-vtable-layouts
+    reference_modules:
+      - engine  # bin_artifacts/{gamever}/engine/CNetworkServerService_*.{platform}.yaml
+      - server  # bin_artifacts/{gamever}/server/CNetworkServerService_*.{platform}.yaml
+  - name: ICommandLine_GCC
+    symbol: ICommandLine
+    cpp: cpp_tests/icommandline.cpp
+    headers:
+      - hl2sdk_cs2/public/tier0/icommandline.h  # Used by the fix-cppheaders SKILL
+    target: x86_64-pc-linux-gnu
+    include_directories:
+      - hl2sdk_cs2/game/shared
+      - hl2sdk_cs2/public
+      - hl2sdk_cs2/public/tier0
+      - hl2sdk_cs2/public/tier1
+      - hl2sdk_cs2/public/mathlib
+    defines:
+      - COMPILER_GCC=1
+      - POSIX=1
+      - LINUX=1
+      - stricmp=strcasecmp
+    additional_compiler_options:
+      - Xclang
+      - fdump-vtable-layouts
+    # No reference_modules yet: ICommandLine has no binary reference YAMLs
+    # (tier0/vstdlib is not an analyzed module). Compile-only validation.
+  - name: IEngineServiceMgr_GCC
+    symbol: IEngineServiceMgr
+    alias_symbols:
+      - CEngineServiceMgr
+    # MSVC duplicates RegisterPrerequisite in CEngineServiceMgr's primary
+    # vtable, while Clang models that override only in its secondary base.
+    # Continue checking all resolvable primary slots, but do not compare the
+    # aggregate table count for this known compiler-model difference.
+    allow_vtable_size_mismatch: true
+    exclude_reference_vtables:
+      - CEngineServiceMgr_vtable2
+    cpp: cpp_tests/iengineservicemgr.cpp
+    headers:
+      - hl2sdk_cs2/public/engine/IEngineService.h  # Used by the fix-cppheaders SKILL
+    target: x86_64-pc-linux-gnu
+    include_directories:
+      - hl2sdk_cs2/game/shared
+      - hl2sdk_cs2/public
+      - hl2sdk_cs2/public/tier0
+      - hl2sdk_cs2/public/tier1
+      - hl2sdk_cs2/public/mathlib
+    defines:
+      - COMPILER_GCC=1
+      - POSIX=1
+      - LINUX=1
+      - stricmp=strcasecmp
+    additional_compiler_options:
+      - Xclang
+      - fdump-vtable-layouts
+    reference_modules:
+      - engine  # bin_artifacts/{gamever}/engine/CEngineServiceMgr_*.{platform}.yaml
