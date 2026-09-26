@@ -60,6 +60,18 @@ class TestBuildDefineInputFuncPyEval(unittest.TestCase):
         self.assertIn(".data.rel.ro", code)
         compile(code, "<define_inputfunc_py_eval_custom>", "exec")
 
+    def test_build_define_inputfunc_py_eval_embeds_api_qualified_name_and_offset(self) -> None:
+        code = define_inputfunc._build_define_inputfunc_py_eval(
+            input_name="CBaseFilter_API::TestActivator",
+            handler_ptr_offset=define_inputfunc.API_INPUT_HANDLER_PTR_OFFSET,
+            allowed_segment_names=(".data",),
+        )
+
+        self.assertEqual(0x48, define_inputfunc.API_INPUT_HANDLER_PTR_OFFSET)
+        self.assertIn('"input_name": "CBaseFilter_API::TestActivator"', code)
+        self.assertIn('"handler_ptr_offset": 72', code)
+        compile(code, "<define_inputfunc_py_eval_api>", "exec")
+
     def test_build_define_inputfunc_py_eval_skips_strings_setup_by_default(
         self,
     ) -> None:
@@ -201,6 +213,139 @@ class TestCollectDefineInputFuncCandidates(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertIsNone(result)
+
+
+class TestDefineInputFuncDiagnostics(unittest.IsolatedAsyncioTestCase):
+    """Every failure path must explain itself under debug (issue #1061)."""
+
+    async def _collect_with_payload(self, payload: object) -> tuple[object, str]:
+        session = AsyncMock()
+        session.call_tool.return_value = _py_eval_payload(payload)
+        with patch("builtins.print") as mock_print:
+            result = await define_inputfunc._collect_define_inputfunc_candidates(
+                session=session,
+                input_name="TestActivator",
+                handler_ptr_offset=0x10,
+                allowed_segment_names=(".data",),
+                debug=True,
+            )
+        output = "\n".join(" ".join(str(arg) for arg in call.args) for call in mock_print.call_args_list)
+        return result, output
+
+    async def test_reports_missing_exact_string(self) -> None:
+        result, output = await self._collect_with_payload({"ok": True, "string_eas": [], "items": []})
+
+        self.assertIsNone(result)
+        self.assertIn("expected exactly one exact string 'TestActivator', got 0", output)
+
+    async def test_reports_missing_descriptor_with_search_parameters(self) -> None:
+        result, output = await self._collect_with_payload({"ok": True, "string_eas": ["0x913ae7"], "items": []})
+
+        self.assertIsNone(result)
+        self.assertIn("no DEFINE_INPUTFUNC descriptor for 'TestActivator'", output)
+        self.assertIn("0x913ae7", output)
+        self.assertIn("'.data'", output)
+        self.assertIn("+0x10", output)
+
+    async def test_reports_py_eval_failure_and_traceback(self) -> None:
+        result, output = await self._collect_with_payload({"ok": False, "traceback": "Traceback: boom"})
+
+        self.assertIsNone(result)
+        self.assertIn("candidate collection failed for TestActivator", output)
+        self.assertIn("Traceback: boom", output)
+
+    async def test_reports_non_text_handler_segment(self) -> None:
+        result, output = await self._collect_with_payload(
+            {
+                "ok": True,
+                "string_eas": ["0x180800000"],
+                "items": [
+                    {
+                        "string_ea": "0x180800000",
+                        "xref_from": "0x180900000",
+                        "xref_seg_name": ".data",
+                        "handler_ptr_ea": "0x180900010",
+                        "handler_va": "0x180A00000",
+                        "handler_seg_name": ".rdata",
+                    }
+                ],
+            }
+        )
+
+        self.assertIsNone(result)
+        self.assertIn("is in '.rdata', expected '.text'", output)
+
+    async def test_preprocess_reports_locate_failure_for_target(self) -> None:
+        with (
+            patch.object(
+                define_inputfunc,
+                "_collect_define_inputfunc_candidates",
+                AsyncMock(return_value=None),
+            ),
+            patch.object(define_inputfunc, "write_func_yaml") as mock_write,
+            patch("builtins.print") as mock_print,
+        ):
+            result = await define_inputfunc.preprocess_define_inputfunc_skill(
+                session=AsyncMock(),
+                expected_outputs=["/tmp/CBaseFilter_API_TestActivator.windows.yaml"],
+                platform="windows",
+                image_base=0x180000000,
+                target_name="CBaseFilter_API_TestActivator",
+                input_name="CBaseFilter_API::TestActivator",
+                generate_yaml_desired_fields=[
+                    ("CBaseFilter_API_TestActivator", ["func_name", "func_va"]),
+                ],
+                debug=True,
+            )
+
+        self.assertFalse(result)
+        mock_write.assert_not_called()
+        output = "\n".join(" ".join(str(arg) for arg in call.args) for call in mock_print.call_args_list)
+        self.assertIn(
+            "failed to locate DEFINE_INPUTFUNC handler for CBaseFilter_API_TestActivator "
+            "via 'CBaseFilter_API::TestActivator'",
+            output,
+        )
+
+    async def test_preprocess_reports_invalid_arguments(self) -> None:
+        with patch("builtins.print") as mock_print:
+            result = await define_inputfunc.preprocess_define_inputfunc_skill(
+                session=AsyncMock(),
+                expected_outputs=["/tmp/X.windows.yaml"],
+                platform="windows",
+                image_base=0x180000000,
+                target_name="X",
+                input_name="X",
+                generate_yaml_desired_fields=[("X", ["func_name"])],
+                handler_ptr_offset=-1,
+                debug=True,
+            )
+
+        self.assertFalse(result)
+        mock_print.assert_called_once_with("    Preprocess: negative handler_ptr_offset for X: -1")
+
+    async def test_preprocess_stays_silent_without_debug(self) -> None:
+        with (
+            patch.object(
+                define_inputfunc,
+                "_collect_define_inputfunc_candidates",
+                AsyncMock(return_value=None),
+            ),
+            patch("builtins.print") as mock_print,
+        ):
+            result = await define_inputfunc.preprocess_define_inputfunc_skill(
+                session=AsyncMock(),
+                expected_outputs=["/tmp/X.windows.yaml"],
+                platform="windows",
+                image_base=0x180000000,
+                target_name="X",
+                input_name="X",
+                generate_yaml_desired_fields=[("X", ["func_name"])],
+                debug=False,
+            )
+
+        self.assertFalse(result)
+        mock_print.assert_not_called()
 
 
 class TestPreprocessDefineInputFuncSkill(unittest.IsolatedAsyncioTestCase):

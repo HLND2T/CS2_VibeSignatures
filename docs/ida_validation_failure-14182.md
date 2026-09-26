@@ -49,6 +49,46 @@ they are reached:
 Decision: user chose to temporarily disable this skill for 14182 and track the helper rework
 in a GitHub issue rather than block the validation loop.
 
+Resolution (issue #1061, fixed in `configs/14184.yaml`): entity inputs moved from
+`DEFINE_INPUTFUNC` to `_API` input registration. The `.data` descriptor that references the
+qualified name is the new registration record:
+
+```text
++0x00  "CBaseFilter_API::TestActivator"   qualified schema name (only .data-referenced name)
++0x08  "Test Activator"                    display name
++0x10  ""                                  empty string (the old +0x10 handler slot)
++0x18  / +0x20                             parameter-type callbacks
++0x38  0x200010100                         flags
++0x48  handler (.text)                     new-ABI input wrapper (?, ?, ?, ctx, args)
+```
+
+The legacy symbols are not re-targeted to the `_API` wrapper: the `+0x48` wrapper has a different
+ABI (activator from `ctx+0x10`, entity from `args+8`), so hooking it with the old
+`(CBaseEntity*, InputData_t&)` prototype would be wrong. Following the `ShowHudHint` →
+`CEnvHudHint_API_ShowHudHint` precedent, the fix adds new symbols located by the unchanged helper
+with the qualified name and `API_INPUT_HANDLER_PTR_OFFSET` (`0x48`):
+`find-CBaseFilter_API_TestActivator`, `find-CGamePlayerEquip_API_TriggerForAllPlayers`,
+`find-CGamePlayerEquip_API_TriggerForActivatedPlayer`.
+
+The legacy symbols are re-enabled from separate anchors instead, because CS2Fixes (`dev` still
+declares these keys) hooks the legacy body, not the wrapper. Each `_API` wrapper forwards to a
+legacy body that survives in 14184:
+
+| symbol | windows | linux |
+|---|---|---|
+| `CGamePlayerEquip_InputTriggerForAllPlayers` | `0x180e30580` (callee of the wrapper) | `0x1a00dc0` |
+| `CGamePlayerEquip_InputTriggerForActivatedPlayer` | `0x180e3fa70` (= CGamePlayerEquip vtable slot 147) | `0x1a00d20` (slot 146) |
+| `CBaseFilter_InputTestActivator` | inlined by MSVC — no symbol | `0x16b5830` |
+
+These are located by the signature CS2Fixes maintains for the same names (`xref_signatures`), so
+the anchor stays aligned with the consumer; on Windows the `TestActivator` body is inlined into the
+wrapper and the upstream project omits it too, hence `platform: linux` on that skill and symbol.
+The helper's silent `return False` paths now print `Preprocess:` diagnostics under `-debug`.
+
+Correction to the impact list above: `find-CGameMoney_m_DataMap` only borrows utility functions
+from the helper and still produces artifacts in 14182–14184; `find-ShowHudHint` has been disabled
+since 14168 in favor of `find-CEnvHudHint_API_ShowHudHint`.
+
 ## find-CCSPlayerPawn_CreatePlayerPawnServices  (module: server, platform: windows/linux)
 
 Failure (from `ida_analyze_bin.py -debug`):
@@ -120,6 +160,11 @@ invalidated for `TestActivator`.
 
 Decision: user approved quarantining both skills together (identical class, already tracked by
 issue #1061) instead of spending another round on the same root cause.
+
+Resolution: see the `find-CBaseFilter_InputTestActivator` resolution above. The `_API` symbols
+`find-CGamePlayerEquip_API_TriggerForAllPlayers` / `...ForActivatedPlayer` were added alongside the
+re-enabled legacy symbols, which are now anchored on the CS2Fixes signatures for the bodies the
+wrappers forward to.
 
 ## find-CSource2Server_OnStreamEntitiesFromFileCompleted + find-IGameSystem_OnRestoreGame  (module: server, platform: windows)
 
