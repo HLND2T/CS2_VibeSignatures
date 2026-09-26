@@ -27,6 +27,42 @@ FLASHBANG_PROJECTILE_SPAWN_DECOMPILES_SCRIPT_PATH = Path(
     "ida_preprocessor_scripts/find-CFlashbangProjectile_Spawn-decompiles.py"
 )
 
+LEGACY_INPUT_XREFS_CASES = (
+    {
+        "module_name": "find_CBaseFilter_InputTestActivator",
+        "script_path": Path("ida_preprocessor_scripts/find-CBaseFilter_InputTestActivator.py"),
+        "target_name": "CBaseFilter_InputTestActivator",
+        "windows": None,
+        "linux": [
+            "55 48 89 E5 41 55 41 54 49 89 F4 53 48 89 FB 48 81 EC ? ? ? ? 48 8B 07 48 8B 16",
+        ],
+    },
+    {
+        "module_name": "find_CGamePlayerEquip_InputTriggerForAllPlayers",
+        "script_path": Path("ida_preprocessor_scripts/find-CGamePlayerEquip_InputTriggerForAllPlayers.py"),
+        "target_name": "CGamePlayerEquip_InputTriggerForAllPlayers",
+        "windows": [
+            "48 89 5C 24 ? 48 89 74 24 ? 55 57 41 54 41 56 41 57 48 8B EC 48 83 EC ? 4C 8B F1",
+        ],
+        "linux": [
+            "55 48 89 E5 41 57 41 56 41 55 41 54 49 89 FC 53 48 83 EC ? E8 ? ? ? ? "
+            "C7 45 ? ? ? ? ? 89 C7 66 89 45 ? 66 83 F8 ? 75 ? 48 C7 45 ? ? ? ? ? 66 83 FF ? "
+            "0F 84 ? ? ? ? 0F B7 7D ? E8 ? ? ? ? 66 89 45 ? 66 83 F8 ? 0F 84 ? ? ? ? 89 C7 "
+            "E8 ? ? ? ? 0F B7 7D ? 48 89 C3 48 85 C0 74 ? 48 89 C7 E8 ? ? ? ? 48 8D 7D ? "
+            "48 89 C6 E8 ? ? ? ? 0F B7 7D ? 84 C0 0F 85 ? ? ? ? EB ? 66 0F 1F 44 00 ? "
+            "E8 ? ? ? ? 48 89 C3 48 85 C0 0F 84 ? ? ? ? 48 89 C7 E8 ? ? ? ? 48 8D 7D ? "
+            "48 89 C6 E8 ? ? ? ? 84 C0 0F 84 ? ? ? ? 0F B7 7D ? 48 89 5D ? 66 83 FF",
+        ],
+    },
+    {
+        "module_name": "find_CGamePlayerEquip_InputTriggerForActivatedPlayer",
+        "script_path": Path("ida_preprocessor_scripts/find-CGamePlayerEquip_InputTriggerForActivatedPlayer.py"),
+        "target_name": "CGamePlayerEquip_InputTriggerForActivatedPlayer",
+        "windows": ["48 89 5C 24 ? 56 48 83 EC ? 48 8B 1A"],
+        "linux": ["55 48 89 E5 41 56 41 55 41 54 53 48 8B 1E 48 85 DB 74"],
+    },
+)
+
 
 def _write_is_playing_demo_source_yaml(path: Path, **overrides) -> None:
     payload = {
@@ -379,6 +415,77 @@ class TestFindCcsPlayerMovementServicesProcessMovement(unittest.IsolatedAsyncioT
             generate_yaml_desired_fields=expected_generate_yaml_desired_fields,
             debug=True,
         )
+
+
+class TestLegacyInputBodyXrefContracts(unittest.IsolatedAsyncioTestCase):
+    """The 14182 `_API` migration moved inputs off DEFINE_INPUTFUNC (issue 1061).
+
+    These three legacy symbols are now relocated by the signature CS2Fixes maintains for
+    the body each `_API` wrapper forwards to, so the forwarded spec is the contract.
+    """
+
+    @staticmethod
+    def _expected_spec(target_name, signatures):
+        return [
+            {
+                "func_name": target_name,
+                "xref_strings": [],
+                "xref_gvs": [],
+                "xref_signatures": signatures,
+                "xref_funcs": [],
+                "exclude_funcs": [],
+                "exclude_strings": [],
+                "exclude_gvs": [],
+                "exclude_signatures": [],
+            }
+        ]
+
+    async def test_scripts_forward_platform_signature_specs(self) -> None:
+        for case in LEGACY_INPUT_XREFS_CASES:
+            for platform in ("windows", "linux"):
+                signatures = case[platform]
+                if signatures is None:
+                    continue
+                with self.subTest(case=case["module_name"], platform=platform):
+                    module = _load_module(case["script_path"], f"{case['module_name']}_{platform}")
+                    mock_helper = AsyncMock(return_value=True)
+
+                    with patch.object(module, "preprocess_common_skill", mock_helper):
+                        result = await module.preprocess_skill(
+                            session="session",
+                            skill_name="skill",
+                            expected_outputs=["out.yaml"],
+                            old_yaml_map={"k": "v"},
+                            new_binary_dir="bin_dir",
+                            platform=platform,
+                            image_base=0x180000000,
+                            debug=True,
+                        )
+
+                    self.assertTrue(result)
+                    mock_helper.assert_awaited_once_with(
+                        session="session",
+                        expected_outputs=["out.yaml"],
+                        old_yaml_map={"k": "v"},
+                        new_binary_dir="bin_dir",
+                        platform=platform,
+                        image_base=0x180000000,
+                        func_names=[case["target_name"]],
+                        func_xrefs=self._expected_spec(case["target_name"], signatures),
+                        generate_yaml_desired_fields=[
+                            (
+                                case["target_name"],
+                                ["func_name", "func_va", "func_rva", "func_size", "func_sig"],
+                            )
+                        ],
+                        debug=True,
+                    )
+
+    def test_windows_inlined_test_activator_body_is_not_declared(self) -> None:
+        case = LEGACY_INPUT_XREFS_CASES[0]
+
+        self.assertIsNone(case["windows"])
+        self.assertEqual("CBaseFilter_InputTestActivator", case["target_name"])
 
 
 class TestFindGInterfaceGlobalsPpGlobal(unittest.IsolatedAsyncioTestCase):

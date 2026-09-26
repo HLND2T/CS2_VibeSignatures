@@ -179,17 +179,35 @@ class TestDefineInputFuncContracts(unittest.IsolatedAsyncioTestCase):
                 "find_ShowHudHint",
                 "ShowHudHint",
                 "ShowHudHint",
+                0x10,
             ),
             (
-                "input_test_activator",
-                Path("ida_preprocessor_scripts/find-CBaseFilter_InputTestActivator.py"),
-                "find_CBaseFilter_InputTestActivator",
-                "CBaseFilter_InputTestActivator",
-                "TestActivator",
+                "api_test_activator",
+                Path("ida_preprocessor_scripts/find-CBaseFilter_API_TestActivator.py"),
+                "find_CBaseFilter_API_TestActivator",
+                "CBaseFilter_API_TestActivator",
+                "CBaseFilter_API::TestActivator",
+                0x48,
+            ),
+            (
+                "api_trigger_for_all_players",
+                Path("ida_preprocessor_scripts/find-CGamePlayerEquip_API_TriggerForAllPlayers.py"),
+                "find_CGamePlayerEquip_API_TriggerForAllPlayers",
+                "CGamePlayerEquip_API_TriggerForAllPlayers",
+                "CGamePlayerEquip_API::TriggerForAllPlayers",
+                0x48,
+            ),
+            (
+                "api_trigger_for_activated_player",
+                Path("ida_preprocessor_scripts/find-CGamePlayerEquip_API_TriggerForActivatedPlayer.py"),
+                "find_CGamePlayerEquip_API_TriggerForActivatedPlayer",
+                "CGamePlayerEquip_API_TriggerForActivatedPlayer",
+                "CGamePlayerEquip_API::TriggerForActivatedPlayer",
+                0x48,
             ),
         ]
 
-        for case_name, script_path, module_name, target_name, input_name in cases:
+        for case_name, script_path, module_name, target_name, input_name, handler_ptr_offset in cases:
             with self.subTest(case=case_name):
                 module = load_module(script_path, module_name)
                 mock_helper = AsyncMock(return_value=True)
@@ -220,7 +238,7 @@ class TestDefineInputFuncContracts(unittest.IsolatedAsyncioTestCase):
                             ["func_name", "func_va", "func_rva", "func_size", "func_sig"],
                         )
                     ],
-                    handler_ptr_offset=0x10,
+                    handler_ptr_offset=handler_ptr_offset,
                     allowed_segment_names=(".data",),
                     rename_to=target_name,
                     debug=True,
