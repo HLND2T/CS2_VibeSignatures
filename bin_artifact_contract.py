@@ -391,9 +391,7 @@ def validate_repository_artifact_contract(
         game_versions = tuple(sorted(configured_versions))
     unconfigured_requested = sorted(set(game_versions) - configured_versions)
     if unconfigured_requested:
-        raise ArtifactContractError(
-            "requested unconfigured GAMEVER: " + ", ".join(unconfigured_requested)
-        )
+        raise ArtifactContractError("requested unconfigured GAMEVER: " + ", ".join(unconfigured_requested))
     tracked_artifacts = _git_tracked_paths(repo_root, "bin_artifacts/")
     unconfigured = sorted(
         path
