@@ -9090,21 +9090,33 @@ modules:
       - name: find-TraceShape
         expected_output:
           - TraceShape.{platform}.yaml
-      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14182.md"
-      #- name: find-CBaseFilter_InputTestActivator
-      #  expected_output:
-      #    - CBaseFilter_InputTestActivator.{platform}.yaml
+      #  Legacy DEFINE_INPUTFUNC symbols: relocated to the bodies the _API wrappers forward to
+      #  (issue 1061). MSVC inlines the TestActivator body on Windows, so that one is Linux-only.
+      - name: find-CBaseFilter_InputTestActivator
+        expected_output:
+          - CBaseFilter_InputTestActivator.{platform}.yaml
+        platform: linux
+        description: find the legacy CBaseFilter::InputTestActivator body via CS2Fixes' signature, Linux only
+      - name: find-CBaseFilter_API_TestActivator
+        expected_output:
+          - CBaseFilter_API_TestActivator.{platform}.yaml
       - name: find-GameSystem_Think_CheckSteamBan
         expected_output:
           - GameSystem_Think_CheckSteamBan.{platform}.yaml
-      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14182.md"
-      #- name: find-CGamePlayerEquip_InputTriggerForAllPlayers
-      #  expected_output:
-      #    - CGamePlayerEquip_InputTriggerForAllPlayers.{platform}.yaml
-      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14182.md"
-      #- name: find-CGamePlayerEquip_InputTriggerForActivatedPlayer
-      #  expected_output:
-      #    - CGamePlayerEquip_InputTriggerForActivatedPlayer.{platform}.yaml
+      - name: find-CGamePlayerEquip_InputTriggerForAllPlayers
+        expected_output:
+          - CGamePlayerEquip_InputTriggerForAllPlayers.{platform}.yaml
+        description: find the legacy CGamePlayerEquip::InputTriggerForAllPlayers body via CS2Fixes' signature
+      - name: find-CGamePlayerEquip_InputTriggerForActivatedPlayer
+        expected_output:
+          - CGamePlayerEquip_InputTriggerForActivatedPlayer.{platform}.yaml
+        description: find the legacy CGamePlayerEquip::InputTriggerForActivatedPlayer vtable body via CS2Fixes' signature
+      - name: find-CGamePlayerEquip_API_TriggerForAllPlayers
+        expected_output:
+          - CGamePlayerEquip_API_TriggerForAllPlayers.{platform}.yaml
+      - name: find-CGamePlayerEquip_API_TriggerForActivatedPlayer
+        expected_output:
+          - CGamePlayerEquip_API_TriggerForActivatedPlayer.{platform}.yaml
       #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14182.md"
       #- name: find-ParticleTestStart_CommandHandler-decompiles
       #  expected_output:
@@ -12572,6 +12584,11 @@ modules:
         category: func
         alias:
           - CBaseFilter::InputTestActivator
+        platform: linux
+      - name: CBaseFilter_API_TestActivator
+        category: func
+        alias:
+          - CBaseFilter_API::TestActivator
       - name: GameSystem_Think_CheckSteamBan
         category: func
       - name: CGamePlayerEquip_InputTriggerForAllPlayers
@@ -12582,6 +12599,14 @@ modules:
         category: func
         alias:
           - CGamePlayerEquip::InputTriggerForActivatedPlayer
+      - name: CGamePlayerEquip_API_TriggerForAllPlayers
+        category: func
+        alias:
+          - CGamePlayerEquip_API::TriggerForAllPlayers
+      - name: CGamePlayerEquip_API_TriggerForActivatedPlayer
+        category: func
+        alias:
+          - CGamePlayerEquip_API::TriggerForActivatedPlayer
       - name: DispatchParticleEffect
         category: func
       - name: UTIL_PlayerSlotToPlayerPawn
