@@ -385,10 +385,15 @@ def validate_repository_artifact_contract(
     artifact_root_path = Path(artifact_root)
     if artifact_root_path.is_absolute() or artifact_root_path.as_posix().strip("/") != "bin_artifacts":
         raise ArtifactContractError("repository artifact root must be bin_artifacts")
+    config_root = repo_root / "configs"
+    configured_versions = {path.stem for path in config_root.glob("*.yaml")}
     if game_versions is None:
-        config_root = repo_root / "configs"
-        game_versions = tuple(sorted(path.stem for path in config_root.glob("*.yaml")))
-    configured_versions = set(game_versions)
+        game_versions = tuple(sorted(configured_versions))
+    unconfigured_requested = sorted(set(game_versions) - configured_versions)
+    if unconfigured_requested:
+        raise ArtifactContractError(
+            "requested unconfigured GAMEVER: " + ", ".join(unconfigured_requested)
+        )
     tracked_artifacts = _git_tracked_paths(repo_root, "bin_artifacts/")
     unconfigured = sorted(
         path
