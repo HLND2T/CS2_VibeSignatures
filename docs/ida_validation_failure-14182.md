@@ -265,6 +265,33 @@ produces two outputs (`IGameSystem_OnServerPreBeginAsyncPostTickWork` and
 Decision: user approved quarantining both skills and tracking the gap in a new GitHub issue —
 tracked by issue #1064 (cross-referenced with #1063).
 
+Resolution (issue #1064, fixed in `configs/14185.yaml`): the diagnosis above was only half
+right. Re-probing `bin/14182` and `bin/14185` with read-only IDA scripts showed two different
+situations.
+
+- `find-IGameSystem_OnServerBeginAsyncPostTickWork` was never broken. The dispatch is
+  de-inlined into two callees of the host (14185 `0x180c44ff0` / `0x180c44f20`, 14182
+  `0x180c43300` / `0x180c43230`), and both callees carry `mov rax, gs:58h`. The existing
+  de-inline fallback returns exactly slots `0x148` / `0x150` on both versions. The marker
+  appears about 6,600 times in `.text`, so the "0 hits in all of `server.dll`" count was wrong.
+  The skill is re-enabled without any code change.
+- `find-IGameSystem_OnSaveGame` did lose its anchor. 14181 `PreSave` dispatched the event
+  through `lea rdx, sub_180512804` + `sub_18051ACD0`. In 14182 and later, `PreSave` only
+  walks the entities and tail-jumps to `SaveInitEntities`. The `OnSaveGame` broadcast (the
+  `lea rdx, <mov rax,[rcx]; jmp [rax+190h]>` thunk plus the `gs:58h` index guard) moved into
+  `CEntity2SaveRestore::StreamEntitiesToFile` (14185 windows `0x180c28550`,
+  linux `0x1745310`). That function is not a vtable slot: it is called only by
+  `CEntity2SaveRestore` vtable slot 22. The unchanged `_igamesystem_dispatch_common` helper
+  finds exactly one entry there (`0x190`, index 50) on both platforms.
+
+Fix: a new `find-CEntity2SaveRestore_StreamEntitiesToFile` skill locates the host by its unique
+string `"%s:  StreamEntitiesToFile:  '%s' [%d entities]"` (one referencing function on each
+platform). `find-IGameSystem_OnSaveGame` now uses that host as its `SOURCE_YAML_STEM` and
+`expected_input`. The new host is registered as symbol `category: func`. A config test now
+checks that every dispatch script's `SOURCE_YAML_STEM` is listed as an `expected_input` in the
+maintained config. The shared `_igamesystem_dispatch_common.py` is unchanged, so the other
+`find-IGameSystem_On*` skills keep the same behavior.
+
 ## find-CPhysicsEntitySolver_PhysEnableEntityCollisions  (module: server, platform: windows)
 
 Failure (from `ida_analyze_bin.py -debug`):
