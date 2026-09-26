@@ -4,15 +4,22 @@
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = ["CCSPlayerPawn_CreatePlayerPawnServices"]
+# CreatePlayerPawnServices is the only pawn vfunc that constructs a
+# CCSPlayer_BulletServices (it allocates a 0x70-byte object and calls the
+# service ctor). Anchor on that ctor's caller instead of on any byte pattern
+# inside this vfunc body: the ctor call is a semantic relation that survives
+# register reallocation, class-size changes, and body rewrites, whereas the
+# former "field-name xref" and "BulletServices allocation body signature"
+# anchors coupled to schema/serialization and codegen details respectively.
 FUNC_XREFS = [
     {
         "func_name": "CCSPlayerPawn_CreatePlayerPawnServices",
-        "xref_strings": ["FULLMATCH:m_pBulletServices"],
+        "xref_strings": [],
         "xref_gvs": [],
         "xref_signatures": [],
-        "xref_funcs": [],
+        "xref_funcs": ["CCSPlayer_BulletServices_ctor"],
         "exclude_funcs": [],
-        "exclude_strings": ["CCSPlayer_BulletServices *"],
+        "exclude_strings": [],
         "exclude_gvs": [],
         "exclude_signatures": [],
     }
@@ -29,8 +36,9 @@ GENERATE_YAML_DESIRED_FIELDS = [
 async def preprocess_skill(
     session, skill_name, expected_outputs, old_yaml_map, new_binary_dir, platform, image_base, debug=False
 ):
-    """Resolve the pawn-services vfunc while excluding BulletServices candidates."""
+    """Resolve the pawn-services vfunc as the caller of the BulletServices ctor."""
     _ = skill_name
+    _ = platform
     return await preprocess_common_skill(
         session=session,
         expected_outputs=expected_outputs,

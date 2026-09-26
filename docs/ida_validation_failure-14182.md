@@ -135,6 +135,40 @@ strategy failure can recur for other pawn vtable skills.
 Decision: user chose to temporarily disable this skill for 14182 and track the gap in a GitHub
 issue rather than block the validation loop.
 
+Resolution (issue #1062, fixed for 14185): the anchor was replaced by a **semantic
+call-graph chain** instead of any byte pattern inside the vfunc. The vfunc is the only
+`CCSPlayerPawn_vtable` entry that constructs a `CCSPlayer_BulletServices`, so it is located as
+the caller of that class's constructor (windows `0x1801c37a0`, vtable index 338, offset `0xa90`;
+linux `0xadf940`, index 339, offset `0xa98`):
+
+1. `find-CCSPlayer_BulletServices_vtable` resolves `??_7CCSPlayer_BulletServices@@6B@` by class
+   name (`xref_gvs` seed for the next step);
+2. `find-CCSPlayer_BulletServices_ctor` picks the ctor out of the functions that write that
+   vtable (`0x180a676e0` windows, `0x15384e0` linux). The class destructor(s) write the same
+   vtable and reset the object vptr to the `CPlayerPawnComponent` base vtable, so the base
+   vtable address point **and** its `_ZTV` base are passed as `exclude_gvs`
+   (`find-CPlayerPawnComponent_vtable`): MSVC stores the address point directly, while the
+   Itanium destructor materializes the `_ZTV` base and adds the address-point offset, which is
+   what IDA records the xref against. This drops windows `0x180a68260` and linux
+   `0x1533370`/`0x15334a0` plus the linux clone helper `0x15386f0`;
+3. `find-CCSPlayerPawn_CreatePlayerPawnServices` takes the caller of that ctor intersected with
+   `CCSPlayerPawn_vtable` (`xref_funcs` + `func_vtable_relations`). The ctor has exactly one
+   caller in each binary — the target vfunc itself.
+
+Why this replaces the interim anchors: the 14182 field-name xref premise died when the schema
+field-name strings moved to datamap registration, and the interim 14185 BulletServices body
+signature (`BA 70 00 00 00 ...`) still coupled to register allocation, the `0x70` class size,
+the zeroing idiom, and the allocator vtable slot — the same codegen-artifact class whose single
+register reallocation (`48 8B D9` → `48 8B F9`) broke the 14181 `func_sig`. The call-graph
+anchor survives register reallocation, class-size changes, and body rewrites; it only needs the
+vfunc to still construct a `CCSPlayer_BulletServices`, and fails closed otherwise.
+
+Verification: `ida_analyze_bin.py -gamever 14185 -modules=server -oldgamever none -debug` on both
+skills reports `Failed: 0`; the target resolves to the same `func_va`/`vfunc_index` as before and
+the regenerated `CCSPlayerPawn_CreatePlayerPawnServices.{platform}.yaml` are byte-identical to the
+interim ones. 14182/14183/14184 remain disabled; re-enable them by replaying this chain once
+those versions need it.
+
 ## find-CGamePlayerEquip_InputTriggerForActivatedPlayer / ...ForAllPlayers  (module: server, platform: windows/linux)
 
 Same failure class as `find-CBaseFilter_InputTestActivator` above — tracked by issue #1061.
