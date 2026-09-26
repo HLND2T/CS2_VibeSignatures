@@ -114,6 +114,30 @@ original (non-`-AND-`) name but declares both outputs. Validated end-to-end
 on 14168 windows+linux (Pre==IGameSystem_vtable[41], Begin==[42]). Tests:
 `tests/test_igamesystem_dispatch_common.py`.
 
+## Host relocation: OnSaveGame (issue #1064, 14182+)
+
+- Trigger signal: `invalid entry count from <host>, expected N, got 0` for a `find-IGameSystem_On*` skill.
+- Root cause / constraint: a 0-entry result has two possible causes. (a) The host stopped
+  dispatching and the broadcast moved to another function. (b) The probe was wrong. For 14182,
+  `CEntitySaveRestoreBlockHandler_PreSave` no longer broadcasts `OnSaveGame`. The broadcast now
+  lives in `CEntity2SaveRestore::StreamEntitiesToFile` (not a vtable slot; its only caller is
+  `CEntity2SaveRestore` vtable slot 22). By contrast, `OnServerBeginAsyncPostTickWork` never
+  broke: the de-inline fallback still resolves it, and `gs:58h` has about 6,600 hits in `.text`.
+  The issue's "0 hits" claim came from a faulty probe.
+- Correct approach: before redesigning the helper, (1) run the exact `_build_dispatch_py_eval`
+  output against the current IDB for the host; (2) find every tiny thunk
+  `mov rax,[rcx]; jmp [rax+<slot>]` for the target slot and follow its `lea rdx` xrefs up to
+  the owning dispatcher; (3) anchor the new host with a unique string xref through a
+  `preprocess_common_skill` script, then point `SOURCE_YAML_STEM` and `expected_input` at it.
+  Keep the shared helper unchanged when the old signals still work.
+- Verification: `uv run ida_analyze_bin.py -gamever <v> -oldgamever none -modules=server -skill=<skill> -debug`
+  reports `collected N dispatch entries`, and the slot matches `IGameSystem_vtable[idx]` on both
+  platforms. The test
+  `test_source_yaml_stem_is_declared_as_expected_input_in_maintained_config` guards the
+  script/config coupling.
+- Scope: every `find-IGameSystem_On*` dispatch script. Scripts are shared across GAMEVERs, but
+  only the maintained config can be edited or revalidated.
+
 ## Files Involved
 - `ida_preprocessor_scripts/_igamesystem_dispatch_common.py`
 - `ida_preprocessor_scripts/find-IGameSystem_OnPreSpawnGroupLoad.py`
