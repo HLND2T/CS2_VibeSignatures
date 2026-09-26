@@ -135,6 +135,27 @@ strategy failure can recur for other pawn vtable skills.
 Decision: user chose to temporarily disable this skill for 14182 and track the gap in a GitHub
 issue rather than block the validation loop.
 
+Resolution (issue #1062, fixed for 14185): the field-name anchor was replaced by a
+body-signature anchor on the BulletServices allocation. The vfunc is the only
+`CCSPlayerPawn_vtable` entry that allocates a `0x70`-byte `CCSPlayer_BulletServices`
+and zeroes it before calling the ctor (windows `0x1801c37a0`, vtable index 338,
+offset `0xa90`; linux `0xadf940`, index 339, offset `0xa98`):
+
+- windows `xref_signatures`: `BA 70 00 00 00 48 8B 08 48 8B 01 FF 50 08 0F 57 C0 33 DB`
+  (`mov edx,70h; mov rcx,[rax]; mov rax,[rcx]; call [rax+8]; xorps xmm0,xmm0; xor ebx,ebx`),
+  unique across `server.dll` `.text`;
+- linux `xref_signatures`: `BE 70 00 00 00 49 8B 3E 48 8B 07 FF 50 10`
+  (`mov esi,70h; mov rdi,[r14]; mov rax,[rdi]; call [rax+10h]`), unique across `libserver.so`
+  `.text`.
+
+Identity cross-checks used before switching the anchor: the resolved function allocates and
+constructs exactly the 7 CS-specific services the 14181 body did (BulletServices 0x70 → pawn
+`+0xE28`, HostageServices 0x50 → `+0xE30`, BuyServices 0x158 → `+0xE38`, RadioServices 0x68,
+DamageReactServices 0x68, ActionTrackingServices 0x380, AimPunchServices 0xE8), and each
+callee's ctor sets the matching `??_7CCSPlayer_*Services@@6B@` vftable. The regenerated
+head signatures are unique per platform (windows 30 bytes, linux 22 bytes). 14182/14183/14184
+remain disabled; re-enable them by replaying the same anchor once those versions need it.
+
 ## find-CGamePlayerEquip_InputTriggerForActivatedPlayer / ...ForAllPlayers  (module: server, platform: windows/linux)
 
 Same failure class as `find-CBaseFilter_InputTestActivator` above — tracked by issue #1061.
