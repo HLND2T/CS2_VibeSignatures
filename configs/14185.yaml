@@ -7139,12 +7139,24 @@ modules:
           - CBasePlayerPawn_OnTakeDamage_Alive.{platform}.yaml
           - CBasePlayerPawn_OnTakeDamage_Dying.{platform}.yaml
           - CBasePlayerPawn_OnTakeDamage_Dead.{platform}.yaml
-      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14182.md"
-      #- name: find-CCSPlayerPawn_CreatePlayerPawnServices
-      #  expected_output:
-      #    - CCSPlayerPawn_CreatePlayerPawnServices.{platform}.yaml
-      #  expected_input:
-      #    - CCSPlayerPawn_vtable.{platform}.yaml
+      - name: find-CPlayerPawnComponent_vtable
+        expected_output:
+          - CPlayerPawnComponent_vtable.{platform}.yaml
+      - name: find-CCSPlayer_BulletServices_vtable
+        expected_output:
+          - CCSPlayer_BulletServices_vtable.{platform}.yaml
+      - name: find-CCSPlayer_BulletServices_ctor
+        expected_output:
+          - CCSPlayer_BulletServices_ctor.{platform}.yaml
+        expected_input:
+          - CCSPlayer_BulletServices_vtable.{platform}.yaml
+          - CPlayerPawnComponent_vtable.{platform}.yaml
+      - name: find-CCSPlayerPawn_CreatePlayerPawnServices
+        expected_output:
+          - CCSPlayerPawn_CreatePlayerPawnServices.{platform}.yaml
+        expected_input:
+          - CCSPlayerPawn_vtable.{platform}.yaml
+          - CCSPlayer_BulletServices_ctor.{platform}.yaml
       - name: find-CFlashbangProjectile_vtable
         expected_output:
           - CFlashbangProjectile_vtable.{platform}.yaml
@@ -10146,6 +10158,14 @@ modules:
           - CGameMoney::GetDataDescMap
       - name: CCSPlayer_ItemServices_vtable
         category: vtable
+      - name: CPlayerPawnComponent_vtable
+        category: vtable
+      - name: CCSPlayer_BulletServices_vtable
+        category: vtable
+      - name: CCSPlayer_BulletServices_ctor
+        category: func
+        alias:
+          - CCSPlayer_BulletServices::CCSPlayer_BulletServices
       - name: CCSPlayer_WeaponServices_vtable
         category: vtable
       - name: CCSPlayer_MovementServices_vtable
