@@ -126,6 +126,7 @@ UNIT_MODULES = frozenset(
         "test_registerconcommand_preprocessor",
         "test_run_cpp_tests",
         "test_script_desc_internal_preprocessor",
+        "test_set_owner_anchor",
         "test_source_artifact_accepted_bin",
         "test_source_artifact_bootstrap",
         "test_source_binary_lock_bootstrap",
