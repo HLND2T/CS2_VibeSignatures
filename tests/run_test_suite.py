@@ -71,6 +71,8 @@ UNIT_MODULES = frozenset(
         "test_bump_publish_retry",
         "test_cnetworkmessages_dtor_preprocessor",
         "test_copy_depot_bin",
+        "test_cs2ac_gamedata",
+        "test_cs2ac_preprocessors",
         "test_cs2fow_gamedata",
         "test_define_inputfunc_preprocessor",
         "test_download_depot",
