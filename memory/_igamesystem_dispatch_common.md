@@ -157,8 +157,13 @@ on 14168 windows+linux (Pre==IGameSystem_vtable[41], Begin==[42]). Tests:
   `EndRestoreEntities` there yields 0 entries. Like #1064, this relies on "only the maintained
   config is re-run".
 - Verification: `-skill=find-CEntity2SaveRestore_EndRestoreEntities`, then
-  `-skill=find-IGameSystem_OnRestoreGame` with `-gamever 14185 -oldgamever none -modules=server -debug`
+  `-skill=find-IGameSystem_OnRestoreGame` with `-gamever 14186 -oldgamever none -modules=server -debug`
   reports `collected 1 dispatch entries` on both platforms, and `func_va` equals `IGameSystem_vtable[51]`.
+- Delivery note: the fix was first written against 14185. The 14186 bootstrap (#1097) landed
+  while the PR was open, which made 14185 non-maintained, so the trusted planner rejected the
+  PR's `configs/14185.yaml` and `bin_artifacts/14185/**` edits. The change moved to
+  `configs/14186.yaml` and `bin_artifacts/14186/**` during the base sync. The 14186 server
+  binaries are byte-identical to 14185, so the addresses above still hold.
 
 ## Files Involved
 - `ida_preprocessor_scripts/_igamesystem_dispatch_common.py`
