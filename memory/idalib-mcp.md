@@ -8,57 +8,58 @@ permalink: cs2-vibesignatures/idalib-mcp
 
 ## Overview
 
-`idalib-mcp` is the repository-owned IDA runtime for one binary at a time. `IdaMcpLifecycle` starts, validates, saves, and closes the worker so an analysis task never binds an arbitrary or stale IDB.
+`ida_analyze_bin.py` owns one `idalib-mcp` supervisor per binary. In ida-pro-mcp 2.0.0 the supervisor intentionally starts a detached `idalib_server` worker, so stopping the supervisor alone cannot release an open IDB. On Windows a repository launcher joins a kill-on-close Job before spawning the supervisor; its descendants share that Job.
 
 ## Responsibilities
 
-- Start one owned `idalib-mcp` supervisor for the exact requested binary and wait for the MCP contract.
-- Bind the unique active database, validate its path, platform metadata, architecture, and original-input hash.
-- On successful lifecycle exit, save the verified owned IDB with `idb_save`, then request targeted `qexit`, stop the supervisor, and wait for port release.
-- Fail closed for an existing IDB lock, occupied MCP port, ambiguous database, stale/mismatched IDB, or a failed explicit save.
+- Start the owned MCP supervisor, bind and verify the exact target database, then run analysis.
+- Request targeted `qexit` only for a verified owned worker. Wait up to 60 seconds for IDB handle release before stopping the launcher.
+- On Windows, force-stop the per-binary Job when graceful quit fails. Verify the supervisor port and IDB handles are released; cleanup failure aborts the run even with `-skip_error`.
+- Quarantine only unpacked IDB side files created by the current launch after forced cleanup. Preserve packed `.i64`/`.idb` and all pre-existing side files.
 
 ## Involved Files & Symbols
 
-- `ida_analyze_bin.py` - `IdaMcpLifecycle`, `save_ida_database_via_mcp`, `quit_ida_gracefully`
-- `ida_mcp_session.py` - `open_ida_mcp_session`, `McpDatabaseBinding.should_auto_quit`
-- `generate_reference_yaml.py` - `autostart_mcp_session` for the reference-YAML CLI
-- `tests/test_ida_analyze_bin.py` - owned-save and graceful-shutdown contract tests
-- `tests/test_ida_mcp_session.py` - `McpDatabaseBinding.should_auto_quit` and owned-selection behavior tests
+- `ida_analyze_bin.py` — `ManagedMcpProcess`, `start_idalib_mcp`, `quit_ida_gracefully`, `stop_idalib_mcp_process`, IDB side-file checks/quarantine.
+- `ida_mcp_job_launcher.py` — per-launch Windows Job owner and analyzer-parent watcher.
+- `windows_job.py` — shared ctypes Job API; `warmup_memory.py` uses it for warmup memory controls.
+- `ida_mcp_session.py` — owned database selection and MCP session binding.
+- `generate_reference_yaml.py` — reuses the same owned startup and cleanup path.
+- `tests/test_ida_mcp_job_launcher.py` and `tests/test_ida_analyze_bin.py` — process-tree and cleanup regression tests.
 
 ## Architecture
 
 ```mermaid
 flowchart TD
-    A["Analyzer or auto-start caller"] --> B["IdaMcpLifecycle enter"]
-    B --> C["Start idalib-mcp"]
-    C --> D["Bind and verify exact IDB"]
-    D --> E["Run MCP analysis or mutations"]
-    E --> F["Normal lifecycle exit"]
-    F --> G["idb_save for verified owned worker"]
-    G --> H["idb_close to quit gracefully"]
-    H --> I["Stop supervisor and release port"]
+    A[Analyzer or reference generator] --> B[ManagedMcpProcess]
+    B --> C[Windows Job launcher]
+    C --> D[idalib-mcp supervisor]
+    D --> E[Detached idalib_server worker]
+    E --> F[Verified target IDB]
+    F --> G[Targeted qexit and IDB release wait]
+    G --> H[Stop launcher and verify port/IDB release]
+    H --> I[Quarantine new unpacked parts after forced stop]
 ```
 
 ## Dependencies
 
-- Local `idalib-mcp` executable on `127.0.0.1:13337`.
-- IDA MCP tools including `idb_list`, `survey_binary`, `idb_save`, and `py_eval`.
-- The target binary and its IDB side files; `.id0` denotes an active IDB lock.
+- Installed `idalib-mcp` executable and IDA/idalib; `ida-pro-mcp 2.0.0` uses a supervisor plus detached worker.
+- Windows Job Object API via the standard-library `ctypes`; no new Python dependency.
+- `.id0` is an unpacked IDA database component, not a disposable lock marker. A pre-existing `.id0` blocks startup until its ownership and recovery are resolved.
 
 ## Notes
 
-- Auto-save and automatic close apply only when `auto_started && owned && backend == "worker"`; an attached external database must never be saved or closed by this lifecycle.
-- Call `idb_close` to release a worker eagerly.
-- `idb_save` runs only on normal `IdaMcpLifecycle.__exit__`. If it fails, cleanup still performs graceful shutdown, then the lifecycle reports failure.
-- Keep Windows and Linux work sequential because they share one host and port. Do not start a second lifecycle when the port is occupied.
-- Perform all IDB mutations inside the owned lifecycle. After validation, call `server_health`, then let normal lifecycle exit save and close the IDB. Verify the final IDB path and modification time after that exit; use manual `idb_save` only for an intermediate checkpoint.
-- Do not create a pre-mutation backup IDB unless the user explicitly requests one.
+- Job ownership is scoped to one launcher/binary. Do not assign the analyzer process itself to this Job or kill an attached external IDA process.
+- The launcher watches its analyzer parent. Parent exit closes the launcher's only Job handle, killing the owned tree.
+- An exited launcher is not by itself cleanup proof: verify the supervisor port and exclusive access to `.id0` candidates before restart or IDB invalidation.
+- Only a current-run forced exit may move new `.id0/.id1/.id2/.nam/.til` files into `.ida-aborted/<binary-name>/<run-id>/`. Pre-existing or ambiguous files remain untouched and cause an explicit error.
+- The packed `.i64` survives forced cleanup; `-require_warm_idb` still rejects a genuinely missing warm database.
+- Other platforms retain their existing subprocess launch behavior.
 
 ## Callers
 
-- `ida_analyze_bin.analyze` creates one lifecycle for each pending module/platform binary.
-- `generate_reference_yaml.autostart_mcp_session` creates the same lifecycle for `-auto_start_mcp`.
+- `ida_analyze_bin.process_binary` starts one owned MCP process for each pending module/platform binary.
+- `generate_reference_yaml.autostart_mcp_session` uses the same startup and cleanup helpers for `-auto_start_mcp`.
 
 ## Source
 
-Synced from `D:\GoldSrc_VibeSignatures\memory\idalib-mcp.md` ([[goldsrc-vibesignatures/idalib-mcp]]).
+This CS2-specific lifecycle note supersedes the earlier GoldSrc-derived description.

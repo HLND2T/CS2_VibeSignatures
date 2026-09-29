@@ -7,12 +7,12 @@ permalink: cs2-vibesignatures/pr-self-runner
 # pr-self-runner
 
 ## Overview
-`.github/workflows/pr-self-runner.yml` is the reusable self-hosted full-validation worker selected by the trusted default-branch bridge. It rebuilds affected source-owned artifacts in a checkout-external root and proves exact equality with prospective Git blobs; it never stages outputs for later promotion or writes the PR branch.
+`.github/workflows/pr-self-runner.yml` is the reusable self-hosted full-validation worker selected by the trusted default-branch bridge. It rebuilds affected source-owned artifacts in a checkout-external root and proves equality with prospective Git blobs under the anchor drift contract; it never stages outputs for later promotion or writes the PR branch.
 ## Responsibilities
 - Consume the trusted bound plan and exact source/tree identity rather than PR-supplied routing.
 - Restore binary-only accepted state and the exact immutable warm IDB generation with credentials disabled.
 - Route on the base-owned execution strategy. With `base-inherited-selected-v1`, seed only the exact base Git-blob inheritance whitelist, execute the plan closure with `-selected_execution <manifest> -require_warm_idb`, and independently verify inherited bytes and exact execution coverage. With `fresh-full-v1`, require an empty checkout-external root and run every producer with `-force_all`. `-oldartifactdir bin_artifacts` remains signature reuse only; it is not a seed source.
-- Verify attempted/winning alternatives, full formal inventory, canonical bytes, exact Git blob identity, and unchanged checkout artifacts.
+- Verify attempted/winning alternatives, full formal inventory, canonical bytes, Git blob identity under the anchor drift contract, and unchanged checkout artifacts. A producer group whose artifact drifted must report the rebuilt payload's own digest, so an accepted drift can never launder a payload the run did not write.
 - Build release-local snapshot/gamedata candidates and run C++ evidence gates without tracking or publishing them.
 - Fail closed for forks, plan drift, unknown paths, missing cache identity, incomplete closure, or artifact byte drift.
 ## Involved Files & Symbols
@@ -21,6 +21,7 @@ permalink: cs2-vibesignatures/pr-self-runner
 - `trusted_pr_context.py`, `trusted_artifact_pr.py` - bound plan/preparation/verification.
 - `.github/workflows/warmup-idb.yml`, `idb_cache.py` - immutable neutral IDB generation.
 - `ida_analyze_bin.py`, `bin_artifact_contract.py` - forced rebuild and artifact contract.
+- `gamesymbol_snapshot_lib/anchor_drift.py` - which rebuilt fields may differ from Git truth; read [[anchor_drift]] before changing what the byte gate tolerates.
 - `gamesymbol_candidate.py`, `gamedata_candidate.py`, `run_cpp_tests.py` - downstream evidence.
 ## Architecture
 ```text
@@ -29,7 +30,7 @@ trusted prospective-tree plan
   -> checkout-external actual artifact root
   -> force selected producer groups
   -> execution evidence + full canonical inventory
-  -> exact comparison with prospective Git blobs
+  -> comparison with prospective Git blobs modulo accepted anchor drift
   -> release-local snapshot/gamedata/C++ evidence
   -> stable required check
 ```

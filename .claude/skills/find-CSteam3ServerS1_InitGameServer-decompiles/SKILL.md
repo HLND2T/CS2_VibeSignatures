@@ -2,10 +2,10 @@
 name: find-CSteam3ServerS1_InitGameServer-decompiles
 description: |
   Final-guarantee fallback for the find-CSteam3ServerS1_InitGameServer-decompiles preprocessor. Recovers the
-  INetworkSystem::GetFakeLag and INetworkServerService::IsActiveInGame indirect virtual-call slots in CS2
+  INetworkSystem::GetUDPPort and INetworkServerService::IsActiveInGame indirect virtual-call slots in CS2
   engine2.dll / libengine2.so by decompiling CSteam3ServerS1_InitGameServer and following any de-inlined helper.
   Use when the deterministic/LLM preprocessor could not resolve every call because the containing code moved
-  across an inline boundary. Trigger: INetworkSystem_GetFakeLag, INetworkServerService_IsActiveInGame
+  across an inline boundary. Trigger: INetworkSystem_GetUDPPort, INetworkServerService_IsActiveInGame
 disable-model-invocation: true
 ---
 
@@ -25,10 +25,10 @@ reference-build values only; verify every result against the current binary.
 
 ## Background and robustness principle
 
-`CSteam3ServerS1_InitGameServer` initializes the game-server networking state. It queries two network-system
-values, then uses `INetworkServerService::IsActiveInGame` to select which value to retain. Both targets are
-**indirect virtual calls**: their YAML identifies the call instruction and vtable slot, not a concrete function
-body.
+`CSteam3ServerS1_InitGameServer` initializes the game-server networking state. It queries two 16-bit UDP ports
+from the network system, then uses `INetworkServerService::IsActiveInGame` to select which port to retain. Both
+targets are **indirect virtual calls**: their YAML identifies the call instruction and vtable slot, not a concrete
+function body.
 
 First inspect the predecessor itself. If either call is absent, enumerate its direct callees, decompile plausible
 helpers, and search one or two levels down: an update may de-inline the networking setup into a helper (or inline
@@ -37,13 +37,13 @@ fixed function address or call-site address.
 
 ## Output inventory
 
-Both outputs are required on both platforms. The slot values below are from build `14181`; derive and verify the
-current value from the instruction before writing YAML.
+Both outputs are required on both platforms. The slot values below were observed in builds `14181` and `14186`;
+derive and verify the current value from the instruction before writing YAML.
 
 | Output symbol | Kind | Windows reference | Linux reference | Writer skill |
 |---|---|---|---|---|
-| `INetworkSystem_GetFakeLag` | indirect vcall | `INetworkSystem`, `0x118`, index `35` | `INetworkSystem`, `0x118`, index `35` | `/write-vfunc-as-yaml` |
-| `INetworkServerService_IsActiveInGame` | indirect vcall | `INetworkServerService`, `0xC0`, index `24` | `INetworkServerService`, `0xC8`, index `25` | `/write-vfunc-as-yaml` |
+| `INetworkSystem_GetUDPPort` | indirect vcall | `INetworkSystem`, `0x118`, index `35` | `INetworkSystem`, `0x118`, index `35` | `/write-vfunc-as-yaml` |
+| `INetworkServerService_IsActiveInGame` | indirect vcall | `CNetworkServerService_vtable`, `0xC0`, index `24` | `CNetworkServerService_vtable`, `0xC8`, index `25` | `/write-vfunc-as-yaml` |
 
 ## Step 0. Skip outputs already produced
 
@@ -62,13 +62,13 @@ mcp__ida-pro-mcp__decompile addr="<CSteam3ServerS1_InitGameServer.func_va>"
 
 Record calls made by the predecessor so that a missing direct pattern can be followed into de-inlined helpers.
 
-## Step 2. Resolve INetworkSystem_GetFakeLag
+## Step 2. Resolve INetworkSystem_GetUDPPort
 
 Locate the indirect `call qword ptr [vtable + offset]` whose receiver is loaded from `g_pNetworkSystem`.
-Its distinguishing semantic pattern is the first of two adjacent `g_pNetworkSystem` calls: it receives the first
-network configuration value and its result becomes one candidate for the server's selected 16-bit value. The next
-network-system call is normally slot `0x110`; do not confuse this target with it or with unrelated `+0x118` calls
-on `g_pVApplication`.
+Its distinguishing semantic pattern is the pair of adjacent `g_pNetworkSystem` port queries that precede the
+`IsActiveInGame` call: the target is the one whose 16-bit result is retained when `IsActiveInGame` returns true.
+The other port query (`GetBoundUDPPort`, normally slot `0x110`) is retained when it returns false; do not confuse
+this target with it or with unrelated `+0x118` calls on other receivers.
 
 The current call displacement is the `vfunc_offset`; calculate `vfunc_index = vfunc_offset / 8`. The reference
 value is `0x118` on both platforms, but the receiver must be verified as `g_pNetworkSystem` in the current binary.
@@ -82,7 +82,7 @@ This receiver-global/data-flow pairing distinguishes it from other virtual calls
 
 Derive the current displacement and `vfunc_index = vfunc_offset / 8`. Reference values are Windows `0xC0` / index
 `24` and Linux `0xC8` / index `25`; do not assume them if the current instruction differs. Use
-`vtable_name=INetworkServerService`.
+`vtable_name=CNetworkServerService_vtable`, matching the other `INetworkServerService_*` slot outputs.
 
 ## Step 4. Generate signatures and write YAML
 
@@ -96,7 +96,7 @@ Then use `/write-vfunc-as-yaml` with:
 - `func_addr=None` and `func_sig=None` (these are call-slot outputs, not function bodies)
 - `vfunc_sig`: the generated call-instruction signature
 - `vfunc_sig_disp=0` (or omit it)
-- `vtable_name`: `INetworkSystem` or `INetworkServerService` as identified above
+- `vtable_name`: `INetworkSystem` or `CNetworkServerService_vtable` as identified above
 - `vfunc_offset`: the verified instruction displacement
 - `vfunc_index`: `vfunc_offset / 8`
 
@@ -114,5 +114,5 @@ Do not rename or resolve a concrete implementation address. The expected YAML co
 
 Write under the active artifact module directory:
 
-- `INetworkSystem_GetFakeLag.windows.yaml` / `INetworkSystem_GetFakeLag.linux.yaml`
+- `INetworkSystem_GetUDPPort.windows.yaml` / `INetworkSystem_GetUDPPort.linux.yaml`
 - `INetworkServerService_IsActiveInGame.windows.yaml` / `INetworkServerService_IsActiveInGame.linux.yaml`

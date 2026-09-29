@@ -1,26 +1,68 @@
 #!/usr/bin/env python3
-"""Extract network interface calls made during Steam game-server initialization."""
+"""Preprocess script for find-CSteam3ServerS1_InitGameServer-decompiles skill."""
 
 from ida_analyze_util import preprocess_common_skill
-from ida_preprocessor_scripts._init_game_server_anchor import load_anchor, validate_result
 
-TARGET_FUNCTION_NAMES = ["INetworkSystem_GetFakeLag", "INetworkServerService_IsActiveInGame"]
+TARGET_FUNCTION_NAMES = [
+    "INetworkSystem_GetUDPPort",
+    "INetworkServerService_IsActiveInGame",
+]
+
 LLM_DECOMPILE = [
     {
-        "symbol_name": name,
+        "symbol_name": "INetworkSystem_GetUDPPort",
         "prompt_path": "prompt/call_llm_decompile.md",
-        "reference_yaml_paths": ["references/engine/CSteam3ServerS1_InitGameServer.{platform}.yaml"],
+        "reference_yaml_paths": [
+            "references/engine/CSteam3ServerS1_InitGameServer.{platform}.yaml",
+        ],
         "expected_result_sections": ["found_vcall"],
-        "dependency_policy": {"CSteam3ServerS1_InitGameServer.{platform}.yaml": "required"},
-    }
-    for name in TARGET_FUNCTION_NAMES
+        "dependency_policy": {
+            "CSteam3ServerS1_InitGameServer.{platform}.yaml": "required",
+        },
+    },
+    {
+        "symbol_name": "INetworkServerService_IsActiveInGame",
+        "prompt_path": "prompt/call_llm_decompile.md",
+        "reference_yaml_paths": [
+            "references/engine/CSteam3ServerS1_InitGameServer.{platform}.yaml",
+        ],
+        "expected_result_sections": ["found_vcall"],
+        "dependency_policy": {
+            "CSteam3ServerS1_InitGameServer.{platform}.yaml": "required",
+        },
+    },
 ]
+
 FUNC_VTABLE_RELATIONS = [
-    ("INetworkSystem_GetFakeLag", "INetworkSystem"),
-    ("INetworkServerService_IsActiveInGame", "INetworkServerService"),
+    # (func_name, vtable_class)
+    # INetworkSystem is an abstract interface; vtable_name is metadata only.
+    ("INetworkSystem_GetUDPPort", "INetworkSystem"),
+    ("INetworkServerService_IsActiveInGame", "CNetworkServerService_vtable"),
 ]
+
 GENERATE_YAML_DESIRED_FIELDS = [
-    (name, ["func_name", "vfunc_sig", "vfunc_offset", "vfunc_index", "vtable_name"]) for name in TARGET_FUNCTION_NAMES
+    # (symbol_name, generate_yaml_fields)
+    # slim Pattern C: neither slot is a function body -- vfunc_sig is MANDATORY
+    (
+        "INetworkSystem_GetUDPPort",
+        [
+            "func_name",
+            "vfunc_sig",
+            "vfunc_offset",
+            "vfunc_index",
+            "vtable_name",
+        ],
+    ),
+    (
+        "INetworkServerService_IsActiveInGame",
+        [
+            "func_name",
+            "vfunc_sig",
+            "vfunc_offset",
+            "vfunc_index",
+            "vtable_name",
+        ],
+    ),
 ]
 
 
@@ -35,15 +77,8 @@ async def preprocess_skill(
     llm_config=None,
     debug=False,
 ):
+    """Find the network interface slots called from CSteam3ServerS1_InitGameServer."""
     _ = skill_name
-    try:
-        anchor = await load_anchor(session, new_binary_dir, platform)
-    except Exception as exc:
-        if debug:
-            print(f"    Preprocess: GetFakeLag anchor unavailable: {exc}")
-        return False
-    if debug:
-        print(f"    Preprocess: GetFakeLag verified anchor {hex(anchor['insn_va'])}")
     return await preprocess_common_skill(
         session=session,
         expected_outputs=expected_outputs,
@@ -55,7 +90,6 @@ async def preprocess_skill(
         func_vtable_relations=FUNC_VTABLE_RELATIONS,
         llm_decompile_specs=LLM_DECOMPILE,
         llm_config=llm_config,
-        llm_result_validator=lambda result: validate_result(result, anchor),
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
     )
