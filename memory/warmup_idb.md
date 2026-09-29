@@ -42,6 +42,7 @@ Source-owned artifact content is deliberately absent from cache identity and pay
 - Cache identity binds configured binary path/size/hash plus IDA runtime, not artifact bytes. The producer verifies those bytes
   against the source lock before probe/publish and exports the lock digest to PR/Release consumers.
 - Accepted-bin restore/sync uses a positive configured-binary allowlist and excludes `*.yaml`/`*.yml`, IDA databases, BinSync repositories/sidecars, and undeclared files.
+- The accepted-bin **read path is best-effort**: `restore_accepted_bin` reports a cache whose file set no longer matches the configured allowlist (a module was added or removed) as a miss (`cache-invalid`) instead of failing, because the only repair path (depot re-provision, then `sync`) runs after the read. Consumers that truly cannot continue without the cache keep failing closed via `--required`.
 - The removed release-staging/promote-bin path is historical only; warmup no longer feeds any YAML promotion gate.
 - READY is only an atomic convenience pointer; callers consume the returned immutable generation ID/cache key.
 - Warm IDB is neutral performance state. Release-local `-rename` modifies a copy and never writes back to the warm generation.
