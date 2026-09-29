@@ -6846,7 +6846,8 @@ modules:
           - CSource2Server_vtable2.{platform}.yaml
         expected_input:
           - CSource2Server_vtable.{platform}.yaml
-      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14182.md"
+      #  Disabled since 14182: the CSource2Server_vtable2 slot is a nullsub (retn 0); the
+      #  IGameSystem_OnRestoreGame broadcast is anchored on CEntity2SaveRestore_EndRestoreEntities (#1063)
       #- name: find-CSource2Server_OnStreamEntitiesFromFileCompleted
       #  expected_output:
       #    - CSource2Server_OnStreamEntitiesFromFileCompleted.{platform}.yaml
@@ -6873,13 +6874,12 @@ modules:
       - name: find-IGameSystem_vtable
         expected_output:
           - IGameSystem_vtable.{platform}.yaml
-      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14182.md"
-      #- name: find-IGameSystem_OnRestoreGame
-      #  expected_output:
-      #    - IGameSystem_OnRestoreGame.{platform}.yaml
-      #  expected_input:
-      #    - CSource2Server_OnStreamEntitiesFromFileCompleted.{platform}.yaml
-      #    - IGameSystem_vtable.{platform}.yaml
+      - name: find-IGameSystem_OnRestoreGame
+        expected_output:
+          - IGameSystem_OnRestoreGame.{platform}.yaml
+        expected_input:
+          - CEntity2SaveRestore_EndRestoreEntities.{platform}.yaml
+          - IGameSystem_vtable.{platform}.yaml
       - name: find-CGameEntitySystem_vtable
         expected_output:
           - CGameEntitySystem_vtable.{platform}.yaml
@@ -9873,6 +9873,9 @@ modules:
           - CEntity2SaveRestore_StreamEntitiesFromFile.{platform}.yaml
         expected_input:
           - CEntity2SaveRestore_vtable.{platform}.yaml
+      - name: find-CEntity2SaveRestore_EndRestoreEntities
+        expected_output:
+          - CEntity2SaveRestore_EndRestoreEntities.{platform}.yaml
       - name: find-CSaveRestoreBlockSet_vtable
         expected_output:
           - CSaveRestoreBlockSet_vtable.{platform}.yaml
@@ -10457,6 +10460,10 @@ modules:
         category: func
         alias:
           - CEntity2SaveRestore::StreamEntitiesToFile
+      - name: CEntity2SaveRestore_EndRestoreEntities
+        category: func
+        alias:
+          - CEntity2SaveRestore::EndRestoreEntities
       - name: CSaveRestoreBlockSet_vtable
         category: vtable
       - name: CSaveRestoreBlockSet_PreRestore

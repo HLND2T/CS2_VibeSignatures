@@ -138,6 +138,33 @@ on 14168 windows+linux (Pre==IGameSystem_vtable[41], Begin==[42]). Tests:
 - Scope: every `find-IGameSystem_On*` dispatch script. Scripts are shared across GAMEVERs, but
   only the maintained config can be edited or revalidated.
 
+## Host relocation: OnRestoreGame (issue #1063, 14182+)
+
+- Trigger signal: `invalid entry count from CSource2Server_OnStreamEntitiesFromFileCompleted, expected 1, got 0`.
+- Root cause / constraint: from 14182 on, the single `CSource2Server_vtable2` slot is a nullsub
+  (`retn 0` on Windows, `retn` on Linux), so the old host has nothing to scan. The broadcast did
+  not disappear: the only `mov rax,[rcx]; jmp [rax+198h]` thunk (14185 `0x18052c4c8`) is
+  `lea rdx`-referenced by `CEntity2SaveRestore::EndRestoreEntities` (14185 windows
+  `0x180befd90`, linux `0x1700110`). Its callers are `StreamEntitiesFromFile` and `LoadAdjacentEnts`.
+  The issue's claim that `gs:58h` had "0 hits" was the same faulty probe as #1064.
+- Correct approach: new `find-CEntity2SaveRestore_EndRestoreEntities` anchors the host by its
+  unique string `"%s:  EndRestoreEntities( %s%s )"` (one owner on each platform).
+  `find-IGameSystem_OnRestoreGame` uses it as `SOURCE_YAML_STEM` and `expected_input`. The
+  unchanged helper collects exactly one entry (`0x198`, index 51) on both platforms, and the
+  scan itself is primary, not de-inline. Only when scanning the callers
+  (`StreamEntitiesFromFile`) does it go through the de-inline fallback.
+- Not backward compatible: in 14181 the dispatch still lived in the vtable2 host, and
+  `EndRestoreEntities` there yields 0 entries. Like #1064, this relies on "only the maintained
+  config is re-run".
+- Verification: `-skill=find-CEntity2SaveRestore_EndRestoreEntities`, then
+  `-skill=find-IGameSystem_OnRestoreGame` with `-gamever 14186 -oldgamever none -modules=server -debug`
+  reports `collected 1 dispatch entries` on both platforms, and `func_va` equals `IGameSystem_vtable[51]`.
+- Delivery note: the fix was first written against 14185. The 14186 bootstrap (#1097) landed
+  while the PR was open, which made 14185 non-maintained, so the trusted planner rejected the
+  PR's `configs/14185.yaml` and `bin_artifacts/14185/**` edits. The change moved to
+  `configs/14186.yaml` and `bin_artifacts/14186/**` during the base sync. The 14186 server
+  binaries are byte-identical to 14185, so the addresses above still hold.
+
 ## Files Involved
 - `ida_preprocessor_scripts/_igamesystem_dispatch_common.py`
 - `ida_preprocessor_scripts/find-IGameSystem_OnPreSpawnGroupLoad.py`
