@@ -9510,14 +9510,13 @@ modules:
       - name: find-PhysEnableEntityCollisions
         expected_output:
           - PhysEnableEntityCollisions.{platform}.yaml
-      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14182.md"
-      #- name: find-CPhysicsEntitySolver_PhysEnableEntityCollisions
-      #  platform: windows
-      #  expected_output:
-      #    - CPhysicsEntitySolver_PhysEnableEntityCollisions.{platform}.yaml
-      #  expected_input:
-      #    - CPhysicsEntitySolver_vtable.{platform}.yaml
-      #    - PhysEnableEntityCollisions.{platform}.yaml
+      - name: find-CPhysicsEntitySolver_PhysEnableEntityCollisions
+        platform: windows
+        expected_output:
+          - CPhysicsEntitySolver_PhysEnableEntityCollisions.{platform}.yaml
+        expected_input:
+          - CPhysicsEntitySolver_vtable.{platform}.yaml
+          - CBaseEntity_UpdateOnRemove.{platform}.yaml
       - name: find-CLoopModeGame_vtable
         expected_output:
           - CLoopModeGame_vtable.{platform}.yaml
