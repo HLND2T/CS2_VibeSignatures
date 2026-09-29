@@ -1,13 +1,25 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-INetworkServerService_IsActiveInGame skill."""
+"""Preprocess script for find-CSteam3ServerS1_InitGameServer-decompiles skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = [
+    "INetworkSystem_GetUDPPort",
     "INetworkServerService_IsActiveInGame",
 ]
 
 LLM_DECOMPILE = [
+    {
+        "symbol_name": "INetworkSystem_GetUDPPort",
+        "prompt_path": "prompt/call_llm_decompile.md",
+        "reference_yaml_paths": [
+            "references/engine/CSteam3ServerS1_InitGameServer.{platform}.yaml",
+        ],
+        "expected_result_sections": ["found_vcall"],
+        "dependency_policy": {
+            "CSteam3ServerS1_InitGameServer.{platform}.yaml": "required",
+        },
+    },
     {
         "symbol_name": "INetworkServerService_IsActiveInGame",
         "prompt_path": "prompt/call_llm_decompile.md",
@@ -23,12 +35,24 @@ LLM_DECOMPILE = [
 
 FUNC_VTABLE_RELATIONS = [
     # (func_name, vtable_class)
+    # INetworkSystem is an abstract interface; vtable_name is metadata only.
+    ("INetworkSystem_GetUDPPort", "INetworkSystem"),
     ("INetworkServerService_IsActiveInGame", "CNetworkServerService_vtable"),
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
-    # slim Pattern C: not a downstream predecessor -- vfunc_sig is MANDATORY
+    # slim Pattern C: neither slot is a function body -- vfunc_sig is MANDATORY
+    (
+        "INetworkSystem_GetUDPPort",
+        [
+            "func_name",
+            "vfunc_sig",
+            "vfunc_offset",
+            "vfunc_index",
+            "vtable_name",
+        ],
+    ),
     (
         "INetworkServerService_IsActiveInGame",
         [
@@ -53,7 +77,8 @@ async def preprocess_skill(
     llm_config=None,
     debug=False,
 ):
-    """Reuse previous gamever func_sig to locate target function(s) and write YAML."""
+    """Find the network interface slots called from CSteam3ServerS1_InitGameServer."""
+    _ = skill_name
     return await preprocess_common_skill(
         session=session,
         expected_outputs=expected_outputs,
