@@ -52,8 +52,8 @@ disasm_code: |-
   .text:0000000000576BB0                 mov     rdi, [r14]
   .text:0000000000576BB3                 mov     esi, [rax]
   .text:0000000000576BB5                 mov     rax, [rdi]
-  .text:0000000000576BB8                 ; 0x118 = 280LL = INetworkSystem_GetUDPPort
-  .text:0000000000576BB8                 call    qword ptr [rax+118h]; 0x118 = 280LL = INetworkSystem_GetUDPPort
+  .text:0000000000576BB8                 ; 0x118 = 280LL = INetworkSystem_GetBoundUDPPort
+  .text:0000000000576BB8                 call    qword ptr [rax+118h]; 0x118 = 280LL = INetworkSystem_GetBoundUDPPort
   .text:0000000000576BBE                 mov     rdi, [r14]
   .text:0000000000576BC1                 mov     r15d, eax
   .text:0000000000576BC4                 mov     [rbp+var_2436], ax
@@ -318,7 +318,7 @@ procedure: |-
       v4 = sub_2C7D50(0);
       sub_2C9290(v4, v3, v33, 4096);
       sub_2C9D10(v33, v32, 4096);
-      v5 = (*(__int64 (__fastcall **)(_QWORD *, _QWORD))(*g_pNetworkSystem + 280LL))(// 0x118 = 280LL = INetworkSystem_GetUDPPort
+      v5 = (*(__int64 (__fastcall **)(_QWORD *, _QWORD))(*g_pNetworkSystem + 280LL))(// 0x118 = 280LL = INetworkSystem_GetBoundUDPPort
              g_pNetworkSystem,
              (unsigned int)dword_9D7958);
       v29 = v5;

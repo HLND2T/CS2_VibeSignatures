@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
-"""Resolve CNetworkSystem::GetUDPPort from the interface slot."""
+"""Resolve CNetworkSystem::GetBoundUDPPort from the interface slot."""
 
 from ida_analyze_util import preprocess_common_skill
 
-INHERIT_VFUNCS = [("CNetworkSystem_GetUDPPort", "CNetworkSystem", "../engine/INetworkSystem_GetUDPPort", True)]
+INHERIT_VFUNCS = [
+    ("CNetworkSystem_GetBoundUDPPort", "CNetworkSystem", "../engine/INetworkSystem_GetBoundUDPPort", True)
+]
 GENERATE_YAML_DESIRED_FIELDS = [
     (
-        "CNetworkSystem_GetUDPPort",
+        "CNetworkSystem_GetBoundUDPPort",
         ["func_name", "func_va", "func_rva", "func_size", "func_sig", "vtable_name", "vfunc_offset", "vfunc_index"],
     )
 ]

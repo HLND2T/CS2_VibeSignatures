@@ -4,13 +4,13 @@
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = [
-    "INetworkSystem_GetUDPPort",
+    "INetworkSystem_GetBoundUDPPort",
     "INetworkServerService_IsActiveInGame",
 ]
 
 LLM_DECOMPILE = [
     {
-        "symbol_name": "INetworkSystem_GetUDPPort",
+        "symbol_name": "INetworkSystem_GetBoundUDPPort",
         "prompt_path": "prompt/call_llm_decompile.md",
         "reference_yaml_paths": [
             "references/engine/CSteam3ServerS1_InitGameServer.{platform}.yaml",
@@ -36,7 +36,7 @@ LLM_DECOMPILE = [
 FUNC_VTABLE_RELATIONS = [
     # (func_name, vtable_class)
     # INetworkSystem is an abstract interface; vtable_name is metadata only.
-    ("INetworkSystem_GetUDPPort", "INetworkSystem"),
+    ("INetworkSystem_GetBoundUDPPort", "INetworkSystem"),
     ("INetworkServerService_IsActiveInGame", "CNetworkServerService_vtable"),
 ]
 
@@ -44,7 +44,7 @@ GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
     # slim Pattern C: neither slot is a function body -- vfunc_sig is MANDATORY
     (
-        "INetworkSystem_GetUDPPort",
+        "INetworkSystem_GetBoundUDPPort",
         [
             "func_name",
             "vfunc_sig",

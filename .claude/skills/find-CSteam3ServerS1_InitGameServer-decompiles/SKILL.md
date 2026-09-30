@@ -2,10 +2,10 @@
 name: find-CSteam3ServerS1_InitGameServer-decompiles
 description: |
   Final-guarantee fallback for the find-CSteam3ServerS1_InitGameServer-decompiles preprocessor. Recovers the
-  INetworkSystem::GetUDPPort and INetworkServerService::IsActiveInGame indirect virtual-call slots in CS2
+  INetworkSystem::GetBoundUDPPort and INetworkServerService::IsActiveInGame indirect virtual-call slots in CS2
   engine2.dll / libengine2.so by decompiling CSteam3ServerS1_InitGameServer and following any de-inlined helper.
   Use when the deterministic/LLM preprocessor could not resolve every call because the containing code moved
-  across an inline boundary. Trigger: INetworkSystem_GetUDPPort, INetworkServerService_IsActiveInGame
+  across an inline boundary. Trigger: INetworkSystem_GetBoundUDPPort, INetworkServerService_IsActiveInGame
 disable-model-invocation: true
 ---
 
@@ -42,7 +42,7 @@ derive and verify the current value from the instruction before writing YAML.
 
 | Output symbol | Kind | Windows reference | Linux reference | Writer skill |
 |---|---|---|---|---|
-| `INetworkSystem_GetUDPPort` | indirect vcall | `INetworkSystem`, `0x118`, index `35` | `INetworkSystem`, `0x118`, index `35` | `/write-vfunc-as-yaml` |
+| `INetworkSystem_GetBoundUDPPort` | indirect vcall | `INetworkSystem`, `0x118`, index `35` | `INetworkSystem`, `0x118`, index `35` | `/write-vfunc-as-yaml` |
 | `INetworkServerService_IsActiveInGame` | indirect vcall | `CNetworkServerService_vtable`, `0xC0`, index `24` | `CNetworkServerService_vtable`, `0xC8`, index `25` | `/write-vfunc-as-yaml` |
 
 ## Step 0. Skip outputs already produced
@@ -62,12 +62,12 @@ mcp__ida-pro-mcp__decompile addr="<CSteam3ServerS1_InitGameServer.func_va>"
 
 Record calls made by the predecessor so that a missing direct pattern can be followed into de-inlined helpers.
 
-## Step 2. Resolve INetworkSystem_GetUDPPort
+## Step 2. Resolve INetworkSystem_GetBoundUDPPort
 
 Locate the indirect `call qword ptr [vtable + offset]` whose receiver is loaded from `g_pNetworkSystem`.
 Its distinguishing semantic pattern is the pair of adjacent `g_pNetworkSystem` port queries that precede the
 `IsActiveInGame` call: the target is the one whose 16-bit result is retained when `IsActiveInGame` returns true.
-The other port query (`GetBoundUDPPort`, normally slot `0x110`) is retained when it returns false; do not confuse
+The adjacent port query (normally slot `0x110`) is retained when it returns false; do not confuse
 this target with it or with unrelated `+0x118` calls on other receivers.
 
 The current call displacement is the `vfunc_offset`; calculate `vfunc_index = vfunc_offset / 8`. The reference
@@ -114,5 +114,5 @@ Do not rename or resolve a concrete implementation address. The expected YAML co
 
 Write under the active artifact module directory:
 
-- `INetworkSystem_GetUDPPort.windows.yaml` / `INetworkSystem_GetUDPPort.linux.yaml`
+- `INetworkSystem_GetBoundUDPPort.windows.yaml` / `INetworkSystem_GetBoundUDPPort.linux.yaml`
 - `INetworkServerService_IsActiveInGame.windows.yaml` / `INetworkServerService_IsActiveInGame.linux.yaml`
