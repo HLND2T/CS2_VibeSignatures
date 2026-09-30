@@ -569,6 +569,10 @@ modules:
         category: vfunc
         alias:
           - CNetworkSystem::ShutdownGameServer
+      - name: CNetworkSystem_GetLocalAdr
+        category: vfunc
+        alias:
+          - CNetworkSystem::GetLocalAdr
       - name: CNetworkSystem_RemoveNetChannel
         category: vfunc
         alias:
@@ -1570,6 +1574,17 @@ modules:
           - INetworkGameServer_GetServerNetworkAddress.{platform}.yaml
         expected_input:
           - CNetworkGameServerBase_Init.{platform}.yaml
+      - name: find-CNetworkGameServerBase_GetServerNetworkAddress
+        expected_output:
+          - CNetworkGameServerBase_GetServerNetworkAddress.{platform}.yaml
+        expected_input:
+          - CNetworkGameServerBase_vtable.{platform}.yaml
+          - INetworkGameServer_GetServerNetworkAddress.{platform}.yaml
+      - name: find-INetworkSystem_GetLocalAdr
+        expected_output:
+          - INetworkSystem_GetLocalAdr.{platform}.yaml
+        expected_input:
+          - CNetworkGameServerBase_GetServerNetworkAddress.{platform}.yaml
       - name: find-ISource2Server_PreWorldUpdate
         expected_output:
           - ISource2Server_PreWorldUpdate.{platform}.yaml
@@ -2839,6 +2854,10 @@ modules:
         category: vfunc
         alias:
           - CNetworkGameServerBase::GetClientConnectionType
+      - name: CNetworkGameServerBase_GetServerNetworkAddress
+        category: vfunc
+        alias:
+          - CNetworkGameServerBase::GetServerNetworkAddress
       - name: CNetworkGameServerBase_ServerSimulateInternal
         category: func
         platform: linux
@@ -4223,6 +4242,10 @@ modules:
         category: vfunc
         alias:
           - INetworkSystem::InitNetworkSystem
+      - name: INetworkSystem_GetLocalAdr
+        category: vfunc
+        alias:
+          - INetworkSystem::GetLocalAdr
       - name: CEngineServiceMgr_RegisterEngineService
         category: vfunc
         alias:
@@ -14161,6 +14184,12 @@ modules:
         expected_input:
           - CNetworkSystem_vtable.{platform}.yaml
           - ../engine/INetworkSystem_ShutdownGameServer.{platform}.yaml
+      - name: find-CNetworkSystem_GetLocalAdr
+        expected_output:
+          - CNetworkSystem_GetLocalAdr.{platform}.yaml
+        expected_input:
+          - CNetworkSystem_vtable.{platform}.yaml
+          - ../engine/INetworkSystem_GetLocalAdr.{platform}.yaml
       - name: find-CNetworkSystem_RemoveNetChannel
         platform: windows
         expected_output:
