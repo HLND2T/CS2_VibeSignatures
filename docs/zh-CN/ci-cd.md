@@ -69,8 +69,15 @@ version source commit 进入 default branch 后：
 7. Pages 只 hydrate published Release assets，验证 manifest/SHA256SUMS/archive inventories，构建全部已发布版本并验证 CDN bytes。
 
 workflow transaction identity 在 GitHub rerun 之间保持稳定（`run_id`）；`run_attempt` 只属于 transport metadata。
-`publish` 保持已发布内容不被覆盖。普通构建和 rebuild-free 的手动入口另提供 `republish`，触发 CLI 可使用
+`publish` 保持已发布内容不被覆盖。三种构建路径的手动入口均提供 `republish`，触发 CLI 可使用
 `--mode republish`；自动流程继续使用 `publish`。
+
+触发 CLI 的 `--workflow full-rebuild` 会向 `build-on-self-runner.yml` 传入 `source_artifact_mode: full-rebuild`。
+该模式使用 `-force_all -rename -oldgamever none`，在空的外部输出目录中重建所有配置的 artifacts，old-artifact root
+也指向该隔离目录。任何旧版本 artifacts 都不会作为参考或 old-signatures 来源；验证阶段拒绝含 prior GAMEVER 或
+非隔离 old-artifact root 的执行证据。普通 `release` 继续自动复用可用的旧版本签名。两者均可使用源码中的静态
+preprocessor references，并按相同 anchor drift 契约与目标 GAMEVER 已提交的 artifacts 比对，发布物仍从该 committed
+tree 派生。warm IDB 与 BinSync 流程保持一致。
 
 手动 rebuild-free 路径（`rebuild-free-release.yml`，`source_artifact_mode: tracked`）直接发布 tracked
 `bin_artifacts/<GAMEVER>`，不做 rebuild。它不分析任何内容，因此完全不运行 IDA：`warmup-idb.yml`、BinSync candidate
