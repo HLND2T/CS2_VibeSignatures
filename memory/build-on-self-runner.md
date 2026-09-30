@@ -100,6 +100,14 @@ immutable main SHA preflight
   remotes, so the next automatic release (`14182b`) failed at `binsync-prepare` on `git clone` with proxy 502. A new
   GAMEVER stays broken until something provisions its 16 remotes; `bootstrap-new-gamever-artifacts.yml` deliberately does
   not (it uses `--bootstrap-local-init` and never writes any remote).
+
+## Full rebuild without prior-version artifacts
+- Trigger: a manual release request must rebuild every configured artifact without using any oldgamever artifacts as references or old-signatures sources.
+- Root cause: `-force_all` forces producers to execute, but an omitted `-oldgamever` still auto-selects the latest prior version under `-oldartifactdir`.
+- Implementation: `.claude/skills/trigger-release-build` accepts `--workflow full-rebuild` and dispatches `build-on-self-runner.yml` with `source_artifact_mode=full-rebuild`. Preparation records `full_rebuild: true`; both the recorded and actual analysis commands use `-oldgamever none` and set `-oldartifactdir` to the fresh checkout-external actual root. The preparation flag is optional for compatibility with existing rebuild preparations.
+- Verification: `release_artifact_rebuild._load_execution_report` rejects a full-rebuild report unless `prior_gamever` is null and `old_artifact_root` resolves to the isolated actual root. Focused tests cover CLI dispatch, no baseline lookup, execution-evidence rejection, and unchanged tracked artifacts.
+- Scope: `release` retains automatic prior-version reuse and `rebuild-free` remains tracked-only. Static source-controlled preprocessor references, target-version Git comparison/publication truth, warm IDB, BinSync, and protected publication gates still apply to full-rebuild.
+
 ## Callers
 - Provenance-verified release dispatch for an immutable default-branch source SHA.
 - Explicit authorized recovery reruns using the same stable transaction identity.

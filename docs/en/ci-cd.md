@@ -84,8 +84,16 @@ After a version source commit reaches the default branch:
 7. Pages hydrates only published Release assets, verifies manifest/SHA256SUMS/archive inventories, builds all released versions, and verifies CDN bytes.
 
 The workflow transaction identity is stable across GitHub reruns (`run_id`); `run_attempt` is transport metadata only.
-`publish` never replaces published content. Manual standard and rebuild-free workflows also offer `republish`;
-automatic flows continue to use `publish`. The trigger CLI accepts `--mode republish` with either build path.
+`publish` never replaces published content. All three manual build paths also offer `republish`;
+automatic flows continue to use `publish`. The trigger CLI accepts `--mode republish` with any build path.
+
+The trigger CLI's `--workflow full-rebuild` dispatches `build-on-self-runner.yml` with
+`source_artifact_mode: full-rebuild`. It rebuilds every configured artifact into an empty external root using
+`-force_all -rename -oldgamever none`, with the old-artifact root also isolated from tracked artifacts. No prior-version
+artifacts serve as references or old-signatures sources; verification rejects execution evidence with a prior GAMEVER
+or a non-isolated old-artifact root. The standard `release` path retains automatic prior-version reuse. Both paths
+use source-controlled preprocessor references, verify against the target GAMEVER's committed artifacts, and publish
+from that committed tree under the same anchor drift contract. Warm IDB and BinSync handling is the same for both.
 
 The manual rebuild-free path (`rebuild-free-release.yml`, `source_artifact_mode: tracked`) publishes the tracked
 `bin_artifacts/<GAMEVER>` tree instead of rebuilding it. It analyzes nothing, so it runs no IDA at all: `warmup-idb.yml`,

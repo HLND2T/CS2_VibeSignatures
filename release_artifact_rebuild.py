@@ -133,6 +133,7 @@ def prepare_release_rebuild(
     game_version: str,
     binary_root: str | Path,
     staging_root: str | Path,
+    full_rebuild: bool = False,
 ) -> dict:
     repo_root = Path(repo_root).resolve()
     source_sha = source_sha.lower()
@@ -186,7 +187,7 @@ def prepare_release_rebuild(
         "-artifactdir",
         str(actual_root),
         "-oldartifactdir",
-        str(artifact_root),
+        str(actual_root if full_rebuild else artifact_root),
         "-require_warm_idb",
         "-force_all",
         "-execution_report",
@@ -194,6 +195,8 @@ def prepare_release_rebuild(
         "-rename",
         "-debug",
     ]
+    if full_rebuild:
+        command.extend(["-oldgamever", "none"])
     document = {
         "schema_version": PREPARATION_SCHEMA_VERSION,
         "source_sha": source_sha,
@@ -212,6 +215,8 @@ def prepare_release_rebuild(
         "execution_report": str(execution_report),
         "analysis_command": command,
     }
+    if full_rebuild:
+        document["full_rebuild"] = True
     document["preparation_sha256"] = _digest("rebuild-preparation", document)
     _atomic_write(staging_root / "release-rebuild-preparation.json", _canonical_json_bytes(document))
     return document
@@ -228,6 +233,8 @@ def load_release_rebuild_preparation(path: str | Path) -> dict:
         raise ReleaseArtifactRebuildError("release rebuild preparation is not canonical JSON")
     if not isinstance(document, dict) or document.get("schema_version") != PREPARATION_SCHEMA_VERSION:
         raise ReleaseArtifactRebuildError("release rebuild preparation schema is invalid")
+    if not isinstance(document.get("full_rebuild", False), bool):
+        raise ReleaseArtifactRebuildError("release rebuild preparation full_rebuild flag is invalid")
     digest = document.get("preparation_sha256")
     unsigned = dict(document)
     unsigned.pop("preparation_sha256", None)
@@ -291,6 +298,11 @@ def _load_execution_report(path: Path, preparation: dict) -> dict:
         or Path(report.get("artifact_root", "")).resolve() != Path(preparation["actual_artifact_root"]).resolve()
     ):
         raise ReleaseArtifactRebuildError("force-all execution report does not prove the required release run")
+    if preparation.get("full_rebuild") and (
+        report["prior_gamever"] is not None
+        or Path(report.get("old_artifact_root") or "").resolve() != Path(preparation["actual_artifact_root"]).resolve()
+    ):
+        raise ReleaseArtifactRebuildError("full-rebuild execution report must not use old-version artifact inputs")
     return report
 
 
@@ -578,6 +590,7 @@ def parse_args(argv=None) -> argparse.Namespace:
     prepare.add_argument("--gamever", required=True)
     prepare.add_argument("--binary-root", default="bin")
     prepare.add_argument("--staging-root", required=True)
+    prepare.add_argument("--full-rebuild", action="store_true", help="Disable old-version artifact and signature reuse")
     verify = subparsers.add_parser("verify")
     verify.add_argument("--repo-root", default=".")
     verify.add_argument("--preparation", required=True)
@@ -600,6 +613,7 @@ def main(argv=None) -> int:
                 game_version=args.gamever,
                 binary_root=args.binary_root,
                 staging_root=args.staging_root,
+                full_rebuild=args.full_rebuild,
             )
         elif args.command == "bind-tracked":
             result = bind_tracked_artifacts(repo_root=args.repo_root, preparation=args.preparation)

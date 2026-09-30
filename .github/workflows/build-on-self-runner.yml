@@ -1,5 +1,5 @@
 name: Build On Self Runner
-run-name: Release ${{ inputs.publication_mode || 'publish' }} ${{ inputs.gamever || github.event.client_payload.gamever }}
+run-name: ${{ inputs.source_artifact_mode == 'full-rebuild' && 'Full-rebuild release' || 'Release' }} ${{ inputs.publication_mode || 'publish' }} ${{ inputs.gamever || github.event.client_payload.gamever }}
 on:
   workflow_call:
     inputs:
@@ -16,12 +16,20 @@ on:
         required: true
         type: string
       source_artifact_mode:
-        description: Rebuild and verify fresh artifacts, or bind the tracked source-owned artifacts
+        description: Rebuild with optional prior-version reuse, or bind the tracked source-owned artifacts
         required: false
         type: string
         default: rebuild
   workflow_dispatch:
     inputs:
+      source_artifact_mode:
+        description: Rebuild with prior-version reuse, or rebuild without old-version artifacts
+        required: true
+        type: choice
+        options:
+          - rebuild
+          - full-rebuild
+        default: rebuild
       gamever:
         description: Game version from download.yaml
         required: true
@@ -78,6 +86,10 @@ jobs:
           $gamever = "${{ inputs.gamever || github.event.client_payload.gamever }}"
           $sourceSha = "${{ inputs.source_sha || github.event.client_payload.source_sha }}"
           $sourcePullRequest = "${{ inputs.source_pull_request || github.event.client_payload.source_pull_request }}"
+          $sourceArtifactMode = "${{ inputs.source_artifact_mode || 'rebuild' }}"
+          if ($sourceArtifactMode -notin @('rebuild', 'full-rebuild', 'tracked')) {
+            throw "Unsupported source artifact mode: $sourceArtifactMode"
+          }
           $publicationMode = if ("${{ github.event_name }}" -in @('workflow_dispatch', 'workflow_call')) {
             "${{ inputs.publication_mode }}"
           } else {
@@ -355,9 +367,13 @@ jobs:
         shell: pwsh
         run: |
           $staging = Join-Path $env:RUNNER_TEMP "release-artifact-rebuild\$env:BUILD_ID"
+          $rebuildArgs = @()
+          if ("${{ inputs.source_artifact_mode }}" -eq 'full-rebuild') {
+            $rebuildArgs += '--full-rebuild'
+          }
           uv run python release_artifact_rebuild.py prepare `
             --repo-root "${{ github.workspace }}" --source-sha "$env:SOURCE_SHA" `
-            --gamever "$env:GAMEVER" --binary-root bin --staging-root "$staging"
+            --gamever "$env:GAMEVER" --binary-root bin --staging-root "$staging" @rebuildArgs
           if ($LASTEXITCODE -ne 0) { throw "Release artifact rebuild preflight failed." }
           $preparation = Join-Path $staging "release-rebuild-preparation.json"
           $verification = Join-Path $staging "release-rebuild-verification.json"
@@ -377,16 +393,19 @@ jobs:
         if: inputs.source_artifact_mode != 'tracked'
         shell: pwsh
         run: |
+          $fullRebuild = "${{ inputs.source_artifact_mode }}" -eq 'full-rebuild'
+          $oldArtifactRoot = if ($fullRebuild) { $env:ACTUAL_ARTIFACT_ROOT } else { 'bin_artifacts' }
           $args = @(
             '-gamever', $env:GAMEVER,
             '-configyaml', $env:ANALYSIS_CONFIG,
             '-bindir', 'bin',
             '-artifactdir', $env:ACTUAL_ARTIFACT_ROOT,
-            '-oldartifactdir', 'bin_artifacts',
+            '-oldartifactdir', $oldArtifactRoot,
             '-execution_report', $env:FORCE_ALL_EXECUTION_REPORT,
             '-parallel_platforms', (Join-Path $env:RUNNER_TEMP "release-platform-analysis-${{ github.run_id }}-${{ github.run_attempt }}-$env:GAMEVER"),
             '-require_warm_idb', '-force_all', '-rename', '-debug'
           )
+          if ($fullRebuild) { $args += @('-oldgamever', 'none') }
           uv run ida_analyze_bin.py @args
           if ($LASTEXITCODE -ne 0) { throw "ida_analyze_bin.py failed with exit code $LASTEXITCODE" }
       - name: Upload platform analysis logs and execution records
