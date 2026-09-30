@@ -14389,29 +14389,31 @@ cpp_tests:
     reference_modules:
       - server  # bin_artifacts/{gamever}/server/IGameSystem_*.{platform}.yaml
       - client  # bin_artifacts/{gamever}/client/IGameSystem_*.{platform}.yaml
-
-  # - name: INetworkSystem_MSVC
-  #   symbol: INetworkSystem
-  #   cpp: cpp_tests/inetworksystem.cpp
-  #   headers:
-  #   - hl2sdk_cs2/public/networksystem/inetworksystem.h  # Used by the fix-cppheaders SKILL
-  #   target: x86_64-pc-windows-msvc
-  #   include_directories:
-  #     - hl2sdk_cs2/game/shared
-  #     - hl2sdk_cs2/public
-  #     - hl2sdk_cs2/public/tier0
-  #     - hl2sdk_cs2/public/tier1
-  #   defines:
-  #     - COMPILER_MSVC=1
-  #     - COMPILER_MSVC64=1
-  #     - _MSVC_STL_USE_ABORT_AS_DOOM_FUNCTION
-  #   additional_compiler_options:
-  #     - fms-extensions
-  #     - fms-compatibility
-  #     - Xclang
-  #     - fdump-vtable-layouts
-  #   reference_modules:
-  #     - networksystem  # bin_artifacts/{gamever}/networksystem/CNetworkSystem_*.{platform}.yaml
+  - name: INetworkSystem_MSVC
+    symbol: INetworkSystem
+    alias_symbols:
+      - CNetworkSystem
+    cpp: cpp_tests/inetworksystem.cpp
+    headers:
+      - hl2sdk_cs2/public/networksystem/inetworksystem.h  # Used by the fix-cppheaders SKILL
+    target: x86_64-pc-windows-msvc
+    include_directories:
+      - hl2sdk_cs2/game/shared
+      - hl2sdk_cs2/public
+      - hl2sdk_cs2/public/tier0
+      - hl2sdk_cs2/public/tier1
+    defines:
+      - COMPILER_MSVC=1
+      - COMPILER_MSVC64=1
+      - _MSVC_STL_USE_ABORT_AS_DOOM_FUNCTION
+    additional_compiler_options:
+      - fms-extensions
+      - fms-compatibility
+      - Xclang
+      - fdump-vtable-layouts
+    reference_modules:
+      - networksystem  # bin_artifacts/{gamever}/networksystem/CNetworkSystem_*.{platform}.yaml
+      - engine  # bin_artifacts/{gamever}/engine/INetworkSystem_*.{platform}.yaml
   - name: INetworkMessages_MSVC
     symbol: INetworkMessages
     alias_symbols:
@@ -14830,6 +14832,34 @@ cpp_tests:
     reference_modules:
       - server  # bin_artifacts/{gamever}/server/IGameSystem_*.{platform}.yaml
       - client  # bin_artifacts/{gamever}/client/IGameSystem_*.{platform}.yaml
+  - name: INetworkSystem_GCC
+    symbol: INetworkSystem
+    alias_symbols:
+      - CNetworkSystem
+    # The Linux CNetworkSystem_vtable reference has 57 entries (0x1c8) while the
+    # MSVC-derived 55-slot model resolves to 0x1b8; the two extra slots sit past
+    # the modelled tail, so every per-index comparison still applies.
+    allow_vtable_size_mismatch: true
+    cpp: cpp_tests/inetworksystem.cpp
+    headers:
+      - hl2sdk_cs2/public/networksystem/inetworksystem.h  # Used by the fix-cppheaders SKILL
+    target: x86_64-pc-linux-gnu
+    include_directories:
+      - hl2sdk_cs2/game/shared
+      - hl2sdk_cs2/public
+      - hl2sdk_cs2/public/tier0
+      - hl2sdk_cs2/public/tier1
+    defines:
+      - COMPILER_GCC=1
+      - POSIX=1
+      - LINUX=1
+      - stricmp=strcasecmp
+    additional_compiler_options:
+      - Xclang
+      - fdump-vtable-layouts
+    reference_modules:
+      - networksystem  # bin_artifacts/{gamever}/networksystem/CNetworkSystem_*.{platform}.yaml
+      - engine  # bin_artifacts/{gamever}/engine/INetworkSystem_*.{platform}.yaml
   - name: INetworkMessages_GCC
     symbol: INetworkMessages
     alias_symbols:
