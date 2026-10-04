@@ -2,52 +2,24 @@
 """Preprocess script for find-CSchemaSystem_CompleteModuleRegistration skill.
 
 ``CSchemaSystem::CompleteModuleRegistration(const char *pszModuleName)`` is a
-thin vfunc (ISchemaSystem slot) that resolves the module's type scope from
-``m_TypeScopes`` and tail-calls into the scope. It owns no debug string, so it
-is anchored by its prologue byte signature. The calling convention differs per
-platform, so the prologue (and the ``m_TypeScopes`` offset) is platform-specific:
-Windows ``mov rbx, rcx; mov r8, rdx; add rcx, 1A8h`` (offset 0x1A8), Linux
-``push rbp; mov rdx, rsi; mov rbx, rdi; lea rsi, [rbx+208h]`` (offset 0x208).
+thin vfunc that owns no string, and its prologue embeds a ``m_TypeScopes``
+struct offset, so a byte signature would only hold for one build. Every
+module's exported ``InstallSchemaBindings`` hands its ``ISchemaSystem *`` to the
+schema registration routine (the unique user of ``"unable to register all
+schema data: %s\\n"``), which ends by calling
+``pSchemaSystem->CompleteModuleRegistration(moduleName)``. The slot is read from
+that decompiled vcall -- the only one whose vtable and ``this`` both come from
+the routine's first argument -- and the function is taken from the current
+CSchemaSystem vtable.
 """
 
-from ida_analyze_util import preprocess_common_skill
+from ida_preprocessor_scripts._vtable_slot_anchor_common import (
+    preprocess_receiver_vcall_vfunc_skill,
+)
 
-TARGET_FUNCTION_NAMES = [
-    "CSchemaSystem_CompleteModuleRegistration",
-]
-
-FUNC_XREFS_WINDOWS = [
-    {
-        "func_name": "CSchemaSystem_CompleteModuleRegistration",
-        "xref_strings": [],
-        "xref_gvs": [],
-        "xref_signatures": ["48 8B D9 4C 8B C2 48 81 C1 A8 01 00 00"],
-        "xref_funcs": [],
-        "exclude_funcs": [],
-        "exclude_strings": [],
-        "exclude_gvs": [],
-        "exclude_signatures": [],
-    },
-]
-
-FUNC_XREFS_LINUX = [
-    {
-        "func_name": "CSchemaSystem_CompleteModuleRegistration",
-        "xref_strings": [],
-        "xref_gvs": [],
-        "xref_signatures": ["55 48 89 F2 48 89 E5 53 48 89 FB 48 8D B3 08 02 00 00"],
-        "xref_funcs": [],
-        "exclude_funcs": [],
-        "exclude_strings": [],
-        "exclude_gvs": [],
-        "exclude_signatures": [],
-    },
-]
-
-FUNC_VTABLE_RELATIONS = [
-    # (func_name, vtable_class)
-    ("CSchemaSystem_CompleteModuleRegistration", "CSchemaSystem"),
-]
+TARGET_FUNCTION_NAME = "CSchemaSystem_CompleteModuleRegistration"
+VTABLE_CLASS = "CSchemaSystem"
+CALLER_STRING = "unable to register all schema data: %s\n"
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
@@ -77,17 +49,18 @@ async def preprocess_skill(
     image_base,
     debug=False,
 ):
-    """Reuse previous gamever func_sig to locate target function(s) and write YAML."""
-    return await preprocess_common_skill(
+    """Resolve the slot the schema registration routine calls on its ISchemaSystem argument."""
+    _ = skill_name, old_yaml_map
+
+    return await preprocess_receiver_vcall_vfunc_skill(
         session=session,
         expected_outputs=expected_outputs,
-        old_yaml_map=old_yaml_map,
         new_binary_dir=new_binary_dir,
         platform=platform,
         image_base=image_base,
-        func_names=TARGET_FUNCTION_NAMES,
-        func_xrefs=FUNC_XREFS_WINDOWS if platform == "windows" else FUNC_XREFS_LINUX,
-        func_vtable_relations=FUNC_VTABLE_RELATIONS,
+        target_name=TARGET_FUNCTION_NAME,
+        vtable_class=VTABLE_CLASS,
+        caller_string=CALLER_STRING,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
     )

@@ -1,54 +1,24 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CSchemaSystem_GetClassModuleName skill."""
+"""Preprocess script for find-CSchemaSystem_GetClassModuleName skill.
 
-from ida_analyze_util import preprocess_common_skill
+``GetClassModuleName`` and ``GetEnumModuleName`` are ISchemaSystem twins with
+byte-identical lookup bodies: Windows folds both slots into one function, Linux
+emits two copies that differ only in RIP-relative displacements, so no byte
+signature can tell them apart across builds. ``"<No schema binary for
+binding>"`` is referenced by exactly that pair of CSchemaSystem slots, and the
+interface declares the Class accessor before the Enum accessor, so the target
+is the lower of the two slots.
+"""
 
-TARGET_FUNCTION_NAMES = [
-    "CSchemaSystem_GetClassModuleName",
-]
+from ida_preprocessor_scripts._vtable_slot_anchor_common import (
+    preprocess_string_twin_vfunc_skill,
+)
 
-FUNC_XREFS_WINDOWS = [
-    {
-        "func_name": "CSchemaSystem_GetClassModuleName",
-        "xref_strings": [
-            "<No schema binary for binding>",
-        ],
-        "xref_gvs": [],
-        "xref_signatures": [],
-        "xref_funcs": [],
-        "exclude_funcs": [],
-        "exclude_strings": [],
-        "exclude_gvs": [],
-        "exclude_signatures": [],
-    },
-]
-
-FUNC_XREFS_LINUX = [
-    {
-        "func_name": "CSchemaSystem_GetClassModuleName",
-        "xref_strings": [
-            "<No schema binary for binding>",
-        ],
-        "xref_gvs": [],
-        "xref_signatures": [],
-        "xref_funcs": [],
-        "exclude_funcs": [],
-        "exclude_strings": [],
-        "exclude_gvs": [],
-        # "GetClassModuleName" (idx 22) and "GetEnumModuleName" (idx 24) share
-        # this string and have byte-identical lookup bodies. On Windows the two
-        # slots are folded to one address, so the string yields a single
-        # candidate; on Linux they are separate functions (0x3ae70 / 0x3af10).
-        # Exclude the idx-24 copy by its RIP-relative "lea rax, aNoSchemaBinary"
-        # displacement, which is the only byte that differs between the two.
-        "exclude_signatures": ["48 8D 05 13 AB FF FF"],
-    },
-]
-
-FUNC_VTABLE_RELATIONS = [
-    # (func_name, vtable_class)
-    ("CSchemaSystem_GetClassModuleName", "CSchemaSystem"),
-]
+TARGET_FUNCTION_NAME = "CSchemaSystem_GetClassModuleName"
+VTABLE_CLASS = "CSchemaSystem"
+TWIN_STRING = "<No schema binary for binding>"
+# GetClassModuleName + GetEnumModuleName
+TWIN_SLOT_COUNT = 2
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
@@ -78,17 +48,19 @@ async def preprocess_skill(
     image_base,
     debug=False,
 ):
-    """Reuse previous gamever func_sig to locate target function(s) and write YAML."""
-    return await preprocess_common_skill(
+    """Resolve the first-declared twin slot referencing the module-name fallback string."""
+    _ = skill_name, old_yaml_map
+
+    return await preprocess_string_twin_vfunc_skill(
         session=session,
         expected_outputs=expected_outputs,
-        old_yaml_map=old_yaml_map,
         new_binary_dir=new_binary_dir,
         platform=platform,
         image_base=image_base,
-        func_names=TARGET_FUNCTION_NAMES,
-        func_xrefs=FUNC_XREFS_WINDOWS if platform == "windows" else FUNC_XREFS_LINUX,
-        func_vtable_relations=FUNC_VTABLE_RELATIONS,
+        target_name=TARGET_FUNCTION_NAME,
+        vtable_class=VTABLE_CLASS,
+        twin_string=TWIN_STRING,
+        expected_slot_count=TWIN_SLOT_COUNT,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
     )
