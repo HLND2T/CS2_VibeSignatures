@@ -68,6 +68,24 @@ dispatches, and is the only one taking the `gameeventmanager` global:
 .text:0000000180CE82AD   call    CGameEventManager_Shutdown
 ```
 
+## Output inventory
+
+All three outputs are **regular functions**; none is a struct member, vtable vfunc, indirect vcall, or global
+variable. The preprocessor's `GENERATE_YAML_DESIRED_FIELDS` confirms this: each target lists only
+`func_name`/`func_sig`/`func_va`/`func_rva`/`func_size` and no `vtable_name`/`vfunc_*`.
+
+The preview VAs below are from the 14188 build (verified on both platforms) — treat them as reference-build
+values and re-verify against the current binary; do not copy them.
+
+| # | Output symbol | Kind | Windows | Linux | Writer skill |
+|---|---------------|------|---------|-------|--------------|
+| 1 | `CGameEventManager_Shutdown` | regular function | `0x180C23D00` | `0x171B380` | `/write-func-as-yaml` |
+| 2 | `CLoopModeRegistry_UnregisterLoopModes` | regular function | `0x181370150` | `0x21C1A40` | `/write-func-as-yaml` |
+| 3 | `CEngineServiceRegistry_UnregisterEngineServices` | regular function | `0x181370080` | `0x21C1B30` | `/write-func-as-yaml` |
+
+Platform gating: all three are produced on **both** platforms (`expected_output` uses `{platform}` with no
+`_windows`/`_linux` split in `configs/<GAMEVER>.yaml`).
+
 ## Step 0. Skip targets already produced
 
 Some outputs may already exist beside the binary (written by the preprocessor before it failed). For each
