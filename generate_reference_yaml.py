@@ -654,7 +654,10 @@ def start_idalib_mcp(
     debug: bool,
 ) -> Any:
     ida_analyze_bin = _load_ida_analyze_bin()
-    return ida_analyze_bin.start_idalib_mcp(binary_path, host, port, ida_args, debug)
+    try:
+        return ida_analyze_bin.start_idalib_mcp(binary_path, host, port, ida_args, debug)
+    except ida_analyze_bin.McpCleanupError as exc:
+        raise ReferenceGenerationError(f"IDA MCP cleanup failed: {exc}") from exc
 
 
 def quit_ida_gracefully(
@@ -666,13 +669,16 @@ def quit_ida_gracefully(
     debug: bool,
 ) -> None:
     ida_analyze_bin = _load_ida_analyze_bin()
-    ida_analyze_bin.quit_ida_gracefully(
-        process,
-        host,
-        port,
-        expected_binary=expected_binary,
-        debug=debug,
-    )
+    try:
+        ida_analyze_bin.quit_ida_gracefully(
+            process,
+            host,
+            port,
+            expected_binary=expected_binary,
+            debug=debug,
+        )
+    except ida_analyze_bin.McpCleanupError as exc:
+        raise ReferenceGenerationError(f"IDA MCP cleanup failed: {exc}") from exc
 
 
 async def quit_ida_gracefully_async(
@@ -684,13 +690,16 @@ async def quit_ida_gracefully_async(
     debug: bool,
 ) -> None:
     ida_analyze_bin = _load_ida_analyze_bin()
-    await ida_analyze_bin.quit_ida_gracefully_async(
-        process,
-        host,
-        port,
-        expected_binary=expected_binary,
-        debug=debug,
-    )
+    try:
+        await ida_analyze_bin.quit_ida_gracefully_async(
+            process,
+            host,
+            port,
+            expected_binary=expected_binary,
+            debug=debug,
+        )
+    except ida_analyze_bin.McpCleanupError as exc:
+        raise ReferenceGenerationError(f"IDA MCP cleanup failed: {exc}") from exc
 
 
 @asynccontextmanager

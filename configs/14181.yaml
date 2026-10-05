@@ -577,10 +577,10 @@ modules:
         category: vfunc
         alias:
           - CNetworkSystem::BufferToBufferDecompress
-      - name: CNetworkSystem_GetSteamNetworkingSockets
+      - name: CNetworkSystem_BufferToBufferCompress
         category: vfunc
         alias:
-          - CNetworkSystem::GetSteamNetworkingSockets
+          - CNetworkSystem::BufferToBufferCompress
       - name: CNetworkSystem_CloseAllSockets
         category: vfunc
         alias:
@@ -648,7 +648,6 @@ modules:
       - name: find-CNetworkGameServerBase_ReplyChallenge-decompiles
         expected_output:
           - CNetworkGameServerBase_GetChallengeType.{platform}.yaml
-          - INetworkSystem_GetSteamNetworkingSockets.{platform}.yaml
         expected_input:
           - CNetworkGameServerBase_ReplyChallenge.{platform}.yaml
           - CNetworkGameServerBase_vtable.{platform}.yaml
@@ -814,6 +813,49 @@ modules:
       - name: find-CGameResourceService_vtable
         expected_output:
           - CGameResourceService_vtable.{platform}.yaml
+      - name: find-CNetworkServerSpawnGroup_WaitForAssetLoadPrerequisite_vtable
+        expected_output:
+          - CNetworkServerSpawnGroup_WaitForAssetLoadPrerequisite_vtable.{platform}.yaml
+      - name: find-CNetworkServerSpawnGroup_WaitForAssetLoadPrerequisite_GetPrerequisiteStatus
+        expected_output:
+          - CNetworkServerSpawnGroup_WaitForAssetLoadPrerequisite_GetPrerequisiteStatus.{platform}.yaml
+        expected_input:
+          - CNetworkServerSpawnGroup_WaitForAssetLoadPrerequisite_vtable.{platform}.yaml
+      - name: find-CBaseSpawnGroup_PrecacheGameSystems
+        expected_output:
+          - CBaseSpawnGroup_PrecacheGameSystems.{platform}.yaml
+        expected_input:
+          - CNetworkServerSpawnGroup_WaitForAssetLoadPrerequisite_GetPrerequisiteStatus.{platform}.yaml
+      - name: find-IGameResourceService_LockGameResourceManifest
+        expected_output:
+          - IGameResourceService_LockGameResourceManifest.{platform}.yaml
+        expected_input:
+          - CBaseSpawnGroup_PrecacheGameSystems.{platform}.yaml
+      - name: find-CGameResourceService_LockGameResourceManifest
+        expected_output:
+          - CGameResourceService_LockGameResourceManifest.{platform}.yaml
+        expected_input:
+          - CGameResourceService_vtable.{platform}.yaml
+          - IGameResourceService_LockGameResourceManifest.{platform}.yaml
+      - name: find-CBaseSpawnGroup_vtable
+        expected_output:
+          - CBaseSpawnGroup_vtable.{platform}.yaml
+      - name: find-CBaseSpawnGroup_GetEntityPrerequisites
+        expected_output:
+          - CBaseSpawnGroup_GetEntityPrerequisites.{platform}.yaml
+        expected_input:
+          - CBaseSpawnGroup_vtable.{platform}.yaml
+      - name: find-IGameResourceService_BuildCompressedManifest
+        expected_output:
+          - IGameResourceService_BuildCompressedManifest.{platform}.yaml
+        expected_input:
+          - CBaseSpawnGroup_GetEntityPrerequisites.{platform}.yaml
+      - name: find-CGameResourceService_BuildCompressedManifest
+        expected_output:
+          - CGameResourceService_BuildCompressedManifest.{platform}.yaml
+        expected_input:
+          - CGameResourceService_vtable.{platform}.yaml
+          - IGameResourceService_BuildCompressedManifest.{platform}.yaml
       - name: find-CGameResourceService_LoadGameResourceManifestNamed
         expected_output:
           - CGameResourceService_LoadGameResourceManifestNamed.{platform}.yaml
@@ -958,6 +1000,38 @@ modules:
       - name: find-CNetworkGameServerBase_AsyncUnloadSpawnGroupInternal
         expected_output:
           - CNetworkGameServerBase_AsyncUnloadSpawnGroupInternal.{platform}.yaml
+      - name: find-CNetworkGameClientBase_AsyncUnloadSpawnGroup_Internal
+        expected_output:
+          - CNetworkGameClientBase_AsyncUnloadSpawnGroup_Internal.{platform}.yaml
+      - name: find-CNetworkClientSpawnGroup_dtor
+        expected_output:
+          - CNetworkClientSpawnGroup_dtor.{platform}.yaml
+        expected_input:
+          - CNetworkGameClientBase_AsyncUnloadSpawnGroup_Internal.{platform}.yaml
+      - name: find-CNetworkClientSpawnGroup_ReleaseManifest-linux
+        platform: linux
+        expected_output:
+          - CNetworkClientSpawnGroup_ReleaseManifest.{platform}.yaml
+        expected_input:
+          - CNetworkClientSpawnGroup_dtor.{platform}.yaml
+      - name: find-IGameResourceService_FreeGameResourceManifest-windows
+        platform: windows
+        expected_output:
+          - IGameResourceService_FreeGameResourceManifest.{platform}.yaml
+        expected_input:
+          - CNetworkClientSpawnGroup_dtor.{platform}.yaml
+      - name: find-IGameResourceService_FreeGameResourceManifest-linux
+        platform: linux
+        expected_output:
+          - IGameResourceService_FreeGameResourceManifest.{platform}.yaml
+        expected_input:
+          - CNetworkClientSpawnGroup_ReleaseManifest.{platform}.yaml
+      - name: find-CGameResourceService_FreeGameResourceManifest
+        expected_output:
+          - CGameResourceService_FreeGameResourceManifest.{platform}.yaml
+        expected_input:
+          - CGameResourceService_vtable.{platform}.yaml
+          - IGameResourceService_FreeGameResourceManifest.{platform}.yaml
       - name: find-CNetworkGameServer_PrepareForAssetLoad
         expected_output:
           - CNetworkGameServer_PrepareForAssetLoad.{platform}.yaml
@@ -1900,6 +1974,16 @@ modules:
           - CServerSideClientBase_GetPlayerInfo.{platform}.yaml
         expected_input:
           - CServerSideClientBase_vtable.{platform}.yaml
+      - name: find-CServerSideClientBase_m_nClientSlot
+        expected_output:
+          - CServerSideClientBase_m_nClientSlot.{platform}.yaml
+        expected_input:
+          - CServerSideClientBase_GetPlayerInfo.{platform}.yaml
+      - name: find-CServerSideClient_ProcessRespondCvarValue
+        expected_output:
+          - CServerSideClient_ProcessRespondCvarValue.{platform}.yaml
+        expected_input:
+          - CServerSideClient_vtable.{platform}.yaml
       - name: find-GetPlayerInfo
         optional_output:
           - GetPlayerInfo.{platform}.yaml
@@ -2115,6 +2199,15 @@ modules:
           - CLoopTypeSimpleService_OnLoopActivate.{platform}.yaml
         expected_input:
           - CLoopTypeSimpleService_vtable.{platform}.yaml
+      - name: find-CServerChangelevelState_dtor
+        expected_output:
+          - CServerChangelevelState_dtor.{platform}.yaml
+      - name: find-CNetworkServerService_SetGameLoadStarted
+        expected_output:
+          - CNetworkServerService_SetGameLoadStarted.{platform}.yaml
+        expected_input:
+          - CServerChangelevelState_dtor.{platform}.yaml
+          - CNetworkServerService_vtable.{platform}.yaml
       - name: find-CLoopTypeClientServerService_HandleInputEvent
         expected_output:
           - CLoopTypeClientServerService_HandleInputEvent.{platform}.yaml
@@ -2296,6 +2389,14 @@ modules:
       - name: find-CNetworkStringTableClient_ParseUpdate
         expected_output:
           - CNetworkStringTableClient_ParseUpdate.{platform}.yaml
+      - name: find-CNetworkStringTableContainer_WriteBaselines
+        expected_output:
+          - CNetworkStringTableContainer_WriteBaselines.{platform}.yaml
+      - name: find-INetworkSystem_BufferToBufferCompress
+        expected_output:
+          - INetworkSystem_BufferToBufferCompress.{platform}.yaml
+        expected_input:
+          - CNetworkStringTableContainer_WriteBaselines.{platform}.yaml
       - name: find-CSteam3ServerS1_ShutdownGameServer
         expected_output:
           - CSteam3ServerS1_ShutdownGameServer.{platform}.yaml
@@ -2630,6 +2731,38 @@ modules:
           - GameEntitySystem
       - name: CGameResourceService_vtable
         category: vtable
+      - name: CNetworkServerSpawnGroup_WaitForAssetLoadPrerequisite_vtable
+        category: vtable
+      - name: CNetworkServerSpawnGroup_WaitForAssetLoadPrerequisite_GetPrerequisiteStatus
+        category: vfunc
+        alias:
+          - CNetworkServerSpawnGroup_WaitForAssetLoadPrerequisite::GetPrerequisiteStatus
+      - name: CBaseSpawnGroup_PrecacheGameSystems
+        category: func
+        alias:
+          - CBaseSpawnGroup::PrecacheGameSystems
+      - name: IGameResourceService_LockGameResourceManifest
+        category: vfunc
+        alias:
+          - IGameResourceService::LockGameResourceManifest
+      - name: CGameResourceService_LockGameResourceManifest
+        category: vfunc
+        alias:
+          - CGameResourceService::LockGameResourceManifest
+      - name: CBaseSpawnGroup_vtable
+        category: vtable
+      - name: CBaseSpawnGroup_GetEntityPrerequisites
+        category: vfunc
+        alias:
+          - CBaseSpawnGroup::GetEntityPrerequisites
+      - name: IGameResourceService_BuildCompressedManifest
+        category: vfunc
+        alias:
+          - IGameResourceService::BuildCompressedManifest
+      - name: CGameResourceService_BuildCompressedManifest
+        category: vfunc
+        alias:
+          - CGameResourceService::BuildCompressedManifest
       - name: CGameResourceService_LoadGameResourceManifestNamed
         category: vfunc
         alias:
@@ -2815,6 +2948,25 @@ modules:
         category: func
         alias:
           - CNetworkGameServerBase::AsyncUnloadSpawnGroupInternal
+      - name: CNetworkGameClientBase_AsyncUnloadSpawnGroup_Internal
+        category: func
+        alias:
+          - CNetworkGameClientBase::AsyncUnloadSpawnGroup
+      - name: CNetworkClientSpawnGroup_dtor
+        category: func
+        alias:
+          - CNetworkClientSpawnGroup::~CNetworkClientSpawnGroup
+      - name: CNetworkClientSpawnGroup_ReleaseManifest
+        category: func
+        platform: linux
+      - name: IGameResourceService_FreeGameResourceManifest
+        category: vfunc
+        alias:
+          - IGameResourceService::FreeGameResourceManifest
+      - name: CGameResourceService_FreeGameResourceManifest
+        category: vfunc
+        alias:
+          - CGameResourceService::FreeGameResourceManifest
       - name: CNetworkGameServer_PrepareForAssetLoad
         category: vfunc
         alias:
@@ -2856,10 +3008,6 @@ modules:
         category: vfunc
         alias:
           - CNetworkGameServerBase::GetChallengeType
-      - name: INetworkSystem_GetSteamNetworkingSockets
-        category: vfunc
-        alias:
-          - INetworkSystem::GetSteamNetworkingSockets
       - name: CNetworkGameServerBase_GetGlobals
         category: vfunc
         alias:
@@ -3838,6 +3986,14 @@ modules:
         category: vfunc
         alias:
           - CLoopTypeSimpleService::OnLoopActivate
+      - name: CServerChangelevelState_dtor
+        category: func
+        alias:
+          - CServerChangelevelState::~CServerChangelevelState
+      - name: CNetworkServerService_SetGameLoadStarted
+        category: vfunc
+        alias:
+          - CNetworkServerService::SetGameLoadStarted
       - name: CLoopTypeClientServerService_HandleInputEvent
         category: vfunc
         alias:
@@ -4026,6 +4182,10 @@ modules:
         category: func
         alias:
           - CNetworkStringTableClient::ParseUpdate
+      - name: CNetworkStringTableContainer_WriteBaselines
+        category: func
+        alias:
+          - CNetworkStringTableContainer::WriteBaselines
       - name: INetworkSystem_ShutdownGameServer
         category: vfunc
         alias:
@@ -4062,6 +4222,10 @@ modules:
         category: vfunc
         alias:
           - INetworkSystem::BufferToBufferDecompress
+      - name: INetworkSystem_BufferToBufferCompress
+        category: vfunc
+        alias:
+          - INetworkSystem::BufferToBufferCompress
       - name: INetworkSystem_InitNetworkSystem
         category: vfunc
         alias:
@@ -4205,6 +4369,18 @@ modules:
         category: vfunc
         alias:
           - CServerSideClientBase::Connect
+      - name: CServerSideClientBase
+        category: struct
+      - name: CServerSideClientBase_m_nClientSlot
+        category: structmember
+        struct: CServerSideClientBase
+        member: m_nClientSlot
+        alias:
+          - CServerSideClientBase::m_nClientSlot
+      - name: CServerSideClient_ProcessRespondCvarValue
+        category: vfunc
+        alias:
+          - CServerSideClient::ProcessRespondCvarValue
       - name: CServerSideClientBase_GetPlayerInfo
         category: vfunc
         alias:
@@ -6815,6 +6991,38 @@ modules:
       - name: find-CCSPlayer_MovementServices_CheckVelocity
         expected_output:
           - CCSPlayer_MovementServices_CheckVelocity.{platform}.yaml
+      - name: find-CCSPlayer_MovementServices_SetupMove
+        expected_output:
+          - CCSPlayer_MovementServices_SetupMove.{platform}.yaml
+        expected_input:
+          - CCSPlayer_MovementServices_vtable.{platform}.yaml
+      - name: find-CCSPlayer_MovementServices_Duck
+        expected_output:
+          - CCSPlayer_MovementServices_Duck.{platform}.yaml
+      - name: find-CCSPlayer_MovementServices_LadderMove
+        expected_output:
+          - CCSPlayer_MovementServices_LadderMove.{platform}.yaml
+      - name: find-CCSPlayer_MovementServices_OnJumpLegacy
+        expected_output:
+          - CCSPlayer_MovementServices_OnJumpLegacy.{platform}.yaml
+      - name: find-CCSPlayer_MovementServices_OnJumpModern
+        expected_output:
+          - CCSPlayer_MovementServices_OnJumpModern.{platform}.yaml
+      - name: find-CCSPlayer_MovementServices_AirMove
+        expected_output:
+          - CCSPlayer_MovementServices_AirMove.{platform}.yaml
+      - name: find-CCSPlayer_MovementServices_AirAccelerate
+        expected_output:
+          - CCSPlayer_MovementServices_AirAccelerate.{platform}.yaml
+      - name: find-CCSPlayer_MovementServices_TryPlayerMove
+        expected_output:
+          - CCSPlayer_MovementServices_TryPlayerMove.{platform}.yaml
+      - name: find-CCSPlayer_MovementServices_CategorizePosition
+        expected_output:
+          - CCSPlayer_MovementServices_CategorizePosition.{platform}.yaml
+      - name: find-CBasePlayerController_OnSimulateUserCommands
+        expected_output:
+          - CBasePlayerController_OnSimulateUserCommands.{platform}.yaml
       - name: find-CCSPlayer_MovementServices_WalkMove
         expected_output:
           - CCSPlayer_MovementServices_WalkMove.{platform}.yaml
@@ -10008,6 +10216,46 @@ modules:
         alias:
           - CCSPlayer_MovementServices::CheckMovingGround
           - CheckMovingGround
+      - name: CCSPlayer_MovementServices_SetupMove
+        category: vfunc
+        alias:
+          - CCSPlayer_MovementServices::SetupMove
+      - name: CCSPlayer_MovementServices_Duck
+        category: func
+        alias:
+          - CCSPlayer_MovementServices::Duck
+      - name: CCSPlayer_MovementServices_LadderMove
+        category: func
+        alias:
+          - CCSPlayer_MovementServices::LadderMove
+      - name: CCSPlayer_MovementServices_OnJumpLegacy
+        category: func
+        alias:
+          - CCSPlayer_MovementServices::OnJumpLegacy
+      - name: CCSPlayer_MovementServices_OnJumpModern
+        category: func
+        alias:
+          - CCSPlayer_MovementServices::OnJumpModern
+      - name: CCSPlayer_MovementServices_AirMove
+        category: func
+        alias:
+          - CCSPlayer_MovementServices::AirMove
+      - name: CCSPlayer_MovementServices_AirAccelerate
+        category: func
+        alias:
+          - CCSPlayer_MovementServices::AirAccelerate
+      - name: CCSPlayer_MovementServices_TryPlayerMove
+        category: func
+        alias:
+          - CCSPlayer_MovementServices::TryPlayerMove
+      - name: CCSPlayer_MovementServices_CategorizePosition
+        category: func
+        alias:
+          - CCSPlayer_MovementServices::CategorizePosition
+      - name: CBasePlayerController_OnSimulateUserCommands
+        category: func
+        alias:
+          - CBasePlayerController::OnSimulateUserCommands
       - name: CCSPlayer_MovementServices_WalkMove
         category: func
         alias:
@@ -13865,12 +14113,12 @@ modules:
         expected_input:
           - CNetworkSystem_vtable.{platform}.yaml
           - ../engine/INetworkSystem_BufferToBufferDecompress.{platform}.yaml
-      - name: find-CNetworkSystem_GetSteamNetworkingSockets
+      - name: find-CNetworkSystem_BufferToBufferCompress
         expected_output:
-          - CNetworkSystem_GetSteamNetworkingSockets.{platform}.yaml
+          - CNetworkSystem_BufferToBufferCompress.{platform}.yaml
         expected_input:
           - CNetworkSystem_vtable.{platform}.yaml
-          - ../engine/INetworkSystem_GetSteamNetworkingSockets.{platform}.yaml
+          - ../engine/INetworkSystem_BufferToBufferCompress.{platform}.yaml
       - name: find-CNetworkSystem_PrintNetworkStats
         expected_output:
           - CNetworkSystem_PrintNetworkStats.{platform}.yaml

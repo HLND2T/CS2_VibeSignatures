@@ -21,8 +21,8 @@ Copies CS2 binaries from a local Steam depot into the repository's versioned `bi
 - `copy_depot_bin.py`
 - `configs/<GAMEVER>.yaml`
 - `bin/<gamever>/<module>/<binary>`
-- `<depotdir>/<platform>/<configured module path>`
-- `<depotdir>/<configured module path>` when `-platform all-platform`
+- `<depotroot>/<GAMEVER>/<platform>/<configured module path>`
+- `<depotroot>/<GAMEVER>/<configured module path>` when `-platform all-platform`
 - `.github/workflows/build-on-self-runner.yml`
 - `tests/test_copy_depot_bin.py`
 - `ida_analyze_bin.py`
@@ -57,7 +57,7 @@ parse_args
 - Python standard library: `argparse`, `os`, `shutil`, `sys`, `pathlib`
 - Local filesystem access for reading depot files and writing into `bin/`
 - `configs/<GAMEVER>.yaml` module fields: `name`, `path_windows`, `path_linux`
-- Local depot layout rooted at `<depotdir>/<platform>/...`, or flat `<depotdir>/...` when `-platform all-platform`
+- Local depot layout rooted at `<depotroot>/<GAMEVER>/<platform>/...`, or flat `<depotroot>/<GAMEVER>/...` when `-platform all-platform`
 - CI workflow logic in `.github/workflows/build-on-self-runner.yml` that consumes the `-checkonly` exit-code contract
 
 ## Notes
@@ -65,10 +65,11 @@ parse_args
 - Existing target files are skipped and counted as successful work in copy mode.
 - Missing source binaries in the depot are counted as failures only in copy mode and will cause exit code `1` after the summary.
 - `-checkonly` does not require the depot directory to exist and does not create `bin/`; it only checks whether the expected target paths already exist.
+- `-depotdir` is a depot **root**: `main()` resolves the effective directory through `depot_util.versioned_depot_dir(root, gamever)`, so every GAMEVER reads from its own `<root>/<GAMEVER>` tree and never shares DepotDownloader's incremental state with another version.
 - In `-checkonly` mode, `0` means all expected targets are ready, `1` means at least one target is missing, and `2` means configuration loading or validation failed inside `main()`.
 - Modules without `name` are skipped with a warning during config parsing.
 - Because both modes share `iter_module_entries`, CI readiness checking and actual copy mode stay aligned on the same expected target set.
 
 ## Callers (optional)
-- Direct CLI invocation: `python copy_depot_bin.py -gamever=<version> [-bindir=bin] [-platform=windows|linux|all-platform] [-depotdir "path/to/cs2_depot"] [-checkonly]`
+- Direct CLI invocation: `python copy_depot_bin.py -gamever=<version> [-bindir=bin] [-platform=windows|linux|all-platform] [-depotdir "path/to/cs2_depot"] [-checkonly]`; `-depotdir` is the depot root, and binaries are read from `<root>/<version>`
 - `.github/workflows/build-on-self-runner.yml` runs `uv run copy_depot_bin.py -gamever "$env:GAMEVER" -platform all-platform -checkonly`; exit code `0` sets `bin_ready=true` and skips depot download, while exit code `1` sets `bin_ready=false` and continues to `download_depot.py`.
