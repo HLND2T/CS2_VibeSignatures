@@ -10,6 +10,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import analysis_parallel as parallel
+from tests import marker_wait_test_support
 
 
 class TestParallelEvidence(unittest.TestCase):
@@ -310,9 +311,10 @@ class TestPlatformProcesses(unittest.TestCase):
             command = [
                 sys.executable,
                 "-c",
-                "import subprocess,sys,time,pathlib; "
-                "p=subprocess.Popen([sys.executable,'-c','import time; time.sleep(60)'],creationflags=8); "
-                "pathlib.Path(sys.argv[1]).write_text(str(p.pid)); time.sleep(60)",
+                "import subprocess,sys,time,pathlib\n"
+                "p=subprocess.Popen([sys.executable,'-c','import time; time.sleep(60)'],creationflags=8)\n"
+                + marker_wait_test_support.atomic_publish_source("pathlib.Path(sys.argv[1])", "p.pid")
+                + "time.sleep(60)",
                 str(marker),
             ]
             process = subprocess.Popen(parallel.owned_command(command))
@@ -323,7 +325,7 @@ class TestPlatformProcesses(unittest.TestCase):
                 while not marker.exists() and time.monotonic() < deadline:
                     time.sleep(0.02)
                 self.assertTrue(marker.exists())
-                handle = api.open_live_process(int(marker.read_text()))
+                handle = api.open_live_process(marker_wait_test_support.read_until_parsed(marker, int))
                 parallel.stop_process(process)
                 self.assertTrue(api.wait_for_process(handle, 5000))
             finally:

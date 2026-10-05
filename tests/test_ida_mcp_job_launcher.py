@@ -15,6 +15,7 @@ from tempfile import TemporaryDirectory
 from unittest.mock import MagicMock, patch
 
 import ida_mcp_job_launcher
+from tests import marker_wait_test_support
 from windows_job import Kernel32JobApi
 
 
@@ -81,7 +82,8 @@ class TestIdaMcpJobLauncher(unittest.TestCase):
             marker = root / "worker.pid"
             worker_script.write_text(
                 "import os, sys, time\nfrom pathlib import Path\n"
-                "Path(sys.argv[1]).write_text(str(os.getpid()))\ntime.sleep(60)\n",
+                + marker_wait_test_support.atomic_publish_source("Path(sys.argv[1])", "os.getpid()")
+                + "time.sleep(60)\n",
                 encoding="utf-8",
             )
             parent_script.write_text(
@@ -108,7 +110,7 @@ class TestIdaMcpJobLauncher(unittest.TestCase):
                 check=False,
             )
             self.assertEqual(0, result.returncode, result.stderr)
-            worker_pid = int(marker.read_text(encoding="utf-8"))
+            worker_pid = marker_wait_test_support.read_until_parsed(marker, int)
             try:
                 deadline = time.monotonic() + 10
                 while _process_alive(worker_pid) and time.monotonic() < deadline:
@@ -120,7 +122,8 @@ class TestIdaMcpJobLauncher(unittest.TestCase):
 
     @unittest.skipUnless(os.name == "nt", "Windows Job integration test")
     def test_detached_worker_dies_when_supervisor_exits_or_launcher_is_stopped(self) -> None:
-        child_source = """
+        child_source = (
+            """
 import ctypes, json, os, socket, sys, time
 from pathlib import Path
 lock_path, marker_path = sys.argv[1:3]
@@ -133,10 +136,16 @@ if handle == ctypes.c_void_p(-1).value:
 listener = socket.socket()
 listener.bind(('127.0.0.1', 0))
 listener.listen()
-Path(marker_path).write_text(json.dumps({'pid': os.getpid(), 'port': listener.getsockname()[1]}))
+"""
+            + marker_wait_test_support.atomic_publish_source(
+                "Path(marker_path)",
+                "json.dumps({'pid': os.getpid(), 'port': listener.getsockname()[1]})",
+            )
+            + """
 while True:
     time.sleep(0.2)
 """
+        )
         supervisor_source = """
 import subprocess, sys, time
 from pathlib import Path
@@ -182,7 +191,7 @@ if mode == 'hold':
                     while not marker.exists() and time.monotonic() < deadline:
                         time.sleep(0.05)
                     self.assertTrue(marker.exists(), "detached worker never started")
-                    details = json.loads(marker.read_text(encoding="utf-8"))
+                    details = marker_wait_test_support.read_until_parsed(marker, json.loads)
                     worker_pid = int(details["pid"])
                     if mode == "hold":
                         self.assertFalse(_port_available(details["port"]))
