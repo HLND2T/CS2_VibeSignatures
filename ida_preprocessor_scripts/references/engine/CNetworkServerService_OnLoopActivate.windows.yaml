@@ -1,0 +1,53 @@
+func_name: CNetworkServerService_OnLoopActivate
+func_va: '0x1801e10f0'
+disasm_code: |-
+  .text:00000001801E10F0                 push    rbx
+  .text:00000001801E10F2                 sub     rsp, 20h
+  .text:00000001801E10F6                 cmp     byte ptr [rcx+158h], 0
+  .text:00000001801E10FD                 mov     rbx, rcx
+  .text:00000001801E1100                 jz      short loc_1801E1164
+  .text:00000001801E1102                 mov     rcx, cs:g_pEngineServiceMgr
+  .text:00000001801E1109                 mov     rax, [rcx]
+  .text:00000001801E110C                 call    qword ptr [rax+110h]
+  .text:00000001801E1112                 test    al, al
+  .text:00000001801E1114                 jnz     short loc_1801E1164
+  .text:00000001801E1116                 mov     rcx, cs:g_pEngineServiceMgr
+  .text:00000001801E111D                 mov     [rbx+158h], al
+  .text:00000001801E1123                 mov     rax, [rcx]
+  .text:00000001801E1126                 ; 0x118 = 280LL = IEngineServiceMgr_IsInGameLoop
+  .text:00000001801E1126                 call    qword ptr [rax+118h]; 0x118 = 280LL = IEngineServiceMgr_IsInGameLoop
+  .text:00000001801E112C                 test    al, al
+  .text:00000001801E112E                 jnz     short loc_1801E1164
+  .text:00000001801E1130                 mov     ecx, cs:dword_1808CD888
+  .text:00000001801E1136                 mov     edx, 2
+  .text:00000001801E113B                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:00000001801E1141                 test    al, al
+  .text:00000001801E1143                 jz      short loc_1801E115D
+  .text:00000001801E1145                 mov     ecx, cs:dword_1808CD888
+  .text:00000001801E114B                 lea     r8, aSvSettingGameL; "SV:  Setting game load failed flag.\n"
+  .text:00000001801E1152                 mov     edx, 2
+  .text:00000001801E1157                 call    cs:LoggingSystem_Log
+  .text:00000001801E115D                 mov     byte ptr [rbx+159h], 1
+  .text:00000001801E1164                 add     rsp, 20h
+  .text:00000001801E1168                 pop     rbx
+  .text:00000001801E1169                 retn
+procedure: |-
+  void __fastcall sub_1801E10F0(__int64 a1)
+  {
+    __int64 v2; // rcx
+
+    if ( *(_BYTE *)(a1 + 344) )
+    {
+      if ( !(*(unsigned __int8 (__fastcall **)(__int64))(*(_QWORD *)g_pEngineServiceMgr + 272LL))(g_pEngineServiceMgr) )
+      {
+        v2 = g_pEngineServiceMgr;
+        *(_BYTE *)(a1 + 344) = 0;
+        if ( !(*(unsigned __int8 (__fastcall **)(__int64))(*(_QWORD *)v2 + 280LL))(v2) )// 0x118 = 280LL = IEngineServiceMgr_IsInGameLoop
+        {
+          if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_1808CD888, 2) )
+            LoggingSystem_Log((unsigned int)dword_1808CD888, 2, "SV:  Setting game load failed flag.\n");
+          *(_BYTE *)(a1 + 345) = 1;
+        }
+      }
+    }
+  }

@@ -117,16 +117,45 @@ class TestTriggerReleaseBuild(unittest.TestCase):
             root,
         )
 
+    def test_dispatch_supports_full_rebuild_without_old_artifacts(self) -> None:
+        root = Path("repo")
+        with patch.object(trigger, "run_command", return_value=completed([])) as run:
+            trigger.dispatch(root, "14170", "1" * 40, "verify-only", workflow="full-rebuild")
+
+        run.assert_called_once_with(
+            [
+                "gh",
+                "workflow",
+                "run",
+                "build-on-self-runner.yml",
+                "--ref",
+                "main",
+                "-f",
+                "gamever=14170",
+                "-f",
+                f"source_sha={'1' * 40}",
+                "-f",
+                "publication_mode=verify-only",
+                "-f",
+                "source_artifact_mode=full-rebuild",
+            ],
+            root,
+        )
+
     def test_run_titles_are_workflow_specific(self) -> None:
         self.assertEqual("Release publish 14170", trigger.release_run_title("14170", "publish"))
         self.assertEqual(
             "Rebuild-free release publish 14170",
             trigger.release_run_title("14170", "publish", workflow="rebuild-free"),
         )
+        self.assertEqual(
+            "Full-rebuild release publish 14170",
+            trigger.release_run_title("14170", "publish", workflow="full-rebuild"),
+        )
         with self.assertRaisesRegex(trigger.TriggerError, "unsupported workflow"):
             trigger.require_workflow("clobber")
 
-    def test_execute_dispatches_both_workflows_without_local_artifact_preflight(self) -> None:
+    def test_execute_dispatches_all_build_paths_without_local_artifact_preflight(self) -> None:
         root = SCRIPT.resolve().parents[4]
         source_sha = "1" * 40
         for workflow, workflow_file in trigger.WORKFLOWS.items():
@@ -190,6 +219,7 @@ class TestTriggerReleaseBuild(unittest.TestCase):
                                 f"source_sha={source_sha}",
                                 "-f",
                                 "publication_mode=verify-only",
+                                *(["-f", "source_artifact_mode=full-rebuild"] if workflow == "full-rebuild" else []),
                             ],
                             "",
                         ),
@@ -220,6 +250,31 @@ class TestTriggerReleaseBuild(unittest.TestCase):
                     result = trigger.execute("latest", "verify-only", workflow=workflow)
                 self.assertEqual("https://run/11", result["run_url"])
                 self.assertIsNone(next(commands, None))
+
+    def test_full_rebuild_duplicate_checks_and_discovery_use_its_own_title(self) -> None:
+        source_sha = "1" * 40
+        run_info = {
+            "databaseId": 12,
+            "displayTitle": "Full-rebuild release verify-only 14170",
+            "status": "queued",
+            "url": "https://run/12",
+            "headSha": source_sha,
+            "event": "workflow_dispatch",
+        }
+        with patch.object(trigger, "list_runs", return_value=[run_info]):
+            with self.assertRaisesRegex(trigger.TriggerError, "already active"):
+                trigger.require_no_duplicate(Path("."), "14170", "verify-only", workflow="full-rebuild")
+            self.assertEqual(
+                "https://run/12",
+                trigger.discover_run(
+                    Path("."),
+                    {11},
+                    gamever="14170",
+                    source_sha=source_sha,
+                    publication_mode="verify-only",
+                    workflow="full-rebuild",
+                ),
+            )
 
     def test_dispatch_stops_if_origin_main_advanced(self) -> None:
         with patch.object(trigger, "run_command", return_value=completed([], stdout=f"{'2' * 40}\trefs/heads/main\n")):
@@ -280,20 +335,26 @@ class TestTriggerReleaseBuild(unittest.TestCase):
         )
 
     def test_main_reports_immutable_source(self) -> None:
-        result = {
-            "gamever": "14170",
-            "publication_mode": "verify-only",
-            "workflow": "release",
-            "source_sha": "1" * 40,
-            "subject": "subject",
-            "run_url": "https://run/11",
-        }
-        with patch.object(trigger, "execute", return_value=result) as execute, patch("builtins.print") as output:
-            self.assertEqual(0, trigger.main(["14170", "--mode", "verify-only"]))
+        for workflow in trigger.WORKFLOWS:
+            with self.subTest(workflow=workflow):
+                result = {
+                    "gamever": "14170",
+                    "publication_mode": "verify-only",
+                    "workflow": workflow,
+                    "source_sha": "1" * 40,
+                    "subject": "subject",
+                    "run_url": "https://run/11",
+                }
+                flags = [] if workflow == "release" else ["--workflow", workflow]
+                with (
+                    patch.object(trigger, "execute", return_value=result) as execute,
+                    patch("builtins.print") as output,
+                ):
+                    self.assertEqual(0, trigger.main(["14170", "--mode", "verify-only", *flags]))
 
-        execute.assert_called_once_with("14170", "verify-only", workflow="release")
-        output.assert_any_call(f"SOURCE_SHA: {'1' * 40}")
-        output.assert_any_call("Workflow: release")
+                execute.assert_called_once_with("14170", "verify-only", workflow=workflow)
+                output.assert_any_call(f"SOURCE_SHA: {'1' * 40}")
+                output.assert_any_call(f"Workflow: {workflow}")
 
 
 if __name__ == "__main__":

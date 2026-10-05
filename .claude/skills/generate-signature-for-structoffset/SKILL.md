@@ -27,7 +27,7 @@ Strategy:
 
 - Target instruction address (the instruction that contains the struct offset)
 - Expected `struct_offset` value (e.g. `0x1A8`)
-- IDA Pro MCP connection
+- IDA Pro MCP session, resolved per [mcp-ida-session.md](../generate-signature-for-function/references/mcp-ida-session.md): `idb_list` → `idb_open` (script fallback only if the endpoint is unreachable). Honor its IDB save discipline — an idle-TTL self-exit does not save.
 
 ## Method
 

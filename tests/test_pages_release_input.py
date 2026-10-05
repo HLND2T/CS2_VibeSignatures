@@ -67,7 +67,12 @@ def _asset_record(path: str, raw: bytes) -> dict:
 
 
 def _release_fixture(
-    release_id: int, game_version: str, source_sha: str, asset_id_start: int
+    release_id: int,
+    game_version: str,
+    source_sha: str,
+    asset_id_start: int,
+    *,
+    tracked_legacy: bool = False,
 ) -> tuple[dict, dict[int, bytes], bytes]:
     snapshot = f"snapshot-{game_version}\n".encode()
     metadata = f"metadata-{game_version}\n".encode()
@@ -101,7 +106,13 @@ def _release_fixture(
         "binary_lock_sha256": DIGEST,
         "artifact_inventory_sha256": DIGEST,
     }
-    full_rebuild["verification_sha256"] = _release_rebuild_digest("rebuild-verification", full_rebuild)
+    binding_label = "rebuild-verification"
+    if tracked_legacy:
+        # A manifest published before the binding rule existed: a tracked binding
+        # that still carries the BinSync and warm IDB evidence the rule forbade.
+        full_rebuild["binding_mode"] = "tracked"
+        binding_label = "tracked-artifact-binding"
+    full_rebuild["verification_sha256"] = _release_rebuild_digest(binding_label, full_rebuild)
     manifest = {
         "schema_version": 2,
         "repository": pri.ALLOWED_REPOSITORY,
@@ -265,6 +276,36 @@ class PagesReleaseInputTests(unittest.TestCase):
             )
             self.assertTrue((root / "input" / "gamesymbols" / "14177.yaml").is_file())
             self.assertEqual(receipt, load_json_object(root / "receipt.json"))
+
+    def test_stages_legacy_tracked_release_published_before_binding_rule(self) -> None:
+        # 14180-14182 are tracked bindings that still carry BinSync and warm IDB
+        # evidence, because they were published before the evidence rule existed.
+        # Hydration must record the rule version they obey instead of failing.
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            release, blobs, gamedata = _release_fixture(401, "14181", SOURCE_A, 5000, tracked_legacy=True)
+            manifest_asset = next(asset for asset in release["assets"] if asset["name"].startswith("release-manifest-"))
+
+            receipt = self._stage(
+                root,
+                [release],
+                blobs,
+                {"14181": gamedata},
+                trigger=release,
+                manifest_digest=sha256_bytes(blobs[manifest_asset["id"]]),
+            )
+
+            self.assertEqual(2, receipt["schema_version"])
+            self.assertEqual(
+                [{"game_version": "14181", "binding_rule_version": 0}],
+                [
+                    {
+                        "game_version": item["game_version"],
+                        "binding_rule_version": item["binding_rule_version"],
+                    }
+                    for item in receipt["releases"]
+                ],
+            )
 
     def test_rejects_trigger_identity_checksum_and_unexpected_assets(self) -> None:
         mutations = ("manifest", "checksum", "unexpected")

@@ -110,3 +110,33 @@ Treat an exact-byte artifact rebuild as necessary but insufficient: it validates
 Raise a finding when the PR changes a config or source-owned artifact for a non-latest GAMEVER without an explicit,
 coherent historical-backport intent. Producers, expected inputs, symbol definitions, aliases, and artifact closure must
 belong to the same version contract. Tracked Release-derived namespaces are always a hard-stop finding.
+
+## 6. Block Fixed Offsets
+
+Fixed offsets are not allowed. Every vtable slot, struct member offset, or displacement that a preprocessor emits or uses to pick its target must be derived from the binary being analyzed on every run. A value copied from a reference build must not stand in for that derivation.
+
+### Trigger signals
+
+- An added or modified script under `ida_preprocessor_scripts/` (including shared `_*.py` helpers) has a numeric literal for a game-build layout fact: a vtable slot offset or index, a struct member offset, an instruction displacement, or a per-platform table of these (e.g. `VFUNC_OFFSETS = {"windows": 0x110, "linux": 0x108}`, `VFUNC_INDEX = 34`, `MEMBER_OFFSET = 0x1A8`, `direct_vfunc_offset="0x..."`).
+- The literal ends up in output YAML (`vfunc_offset`, `vfunc_index`, `offset`, ...), is passed as a direct slot or offset argument, or is the needle used to select or "verify" the target.
+- The "verification" only checks that the constant appears somewhere in a predecessor (any `[reg+disp]` operand, any immediate, any 8-byte-aligned value in a range). It does not read the value from one semantically anchored instruction.
+- A comment or docstring calls the value "known", "stable", "from the reference build", or "the server-init slot".
+
+### Review method
+
+1. List every numeric literal, and every constant whose name contains `OFFSET`, `INDEX`, `SLOT`, or `DISP`, on the added or modified lines of preprocessor scripts and helpers. Trace each one to where it is used.
+2. Decide whether each value is a game-layout fact (it changes when Valve reorders a class, struct, or vtable) or an ABI/toolchain constant (see "Not in scope").
+3. For each game-layout value, confirm the emitted result comes from the current binary through a repository mechanism: Pattern L (`_indirect_vcall_target_common.py`) scanning a thunk or caller with exactly one indirect vcall; Pattern C `LLM_DECOMPILE` `found_vcall` with a mandatory `vfunc_sig`; Pattern F `INHERIT_VFUNCS` from a base YAML whose slot was itself derived; Pattern E/`offset_sig` for struct members; Pattern I/J/K slot scans; or old-gamever reuse that is re-validated by a signature match on the new binary.
+4. Compare the anchor with the PR request. When the PR body asks for a specific predecessor or pattern, a script that swaps in another predecessor plus a constant does not satisfy the request.
+
+### Not in scope
+
+- ABI/toolchain constants that do not depend on game layout: pointer size and vtable slot stride `8`, the Itanium vtable address point `0x10`, and RTTI/PE/ELF format parsing constants.
+- Pattern H's `LINUX_EXPECTED_OFFSET_TO_TOP`, used only as a match key to select a secondary vtable. It is documented in `create-preprocessor-scripts`, never emitted, and a mismatch fails loudly.
+- Pre-existing base-tree constants that the PR does not add or modify.
+
+### Finding rule
+
+Raise a blocking `P1` finding whenever a fixed game-layout offset decides an emitted value or the target's identity. A presence-check "verification" does not clear the finding. Neither does a green exact-byte artifact rebuild: the constant reproduces today's bytes by construction, and after a layout shift the presence check will likely still match some unrelated displacement and silently emit the wrong slot. The repair must replace the constant with one of the derivation mechanisms from the review method, anchored on the predecessor the PR requested.
+
+Canonical example: PR #989 ([review comment](https://github.com/HLND2T/CS2_VibeSignatures/pull/989#discussion_r4118387913), "**Fixed offset** is not allowed!!!"). `find-INetworkSystem_GetLocalAdr.py` declared `VFUNC_OFFSETS = {"windows": 0x110, "linux": 0x108}` and scanned `CNetworkGameServerBase_Init` only to check that the constant appeared among any 8-byte-aligned `[reg+disp]` operand `<= 0x200`. It then wrote the constant as `vfunc_offset`/`vfunc_index`. It also replaced the requested `LLM_DECOMPILE` anchor, `INetworkGameServer_GetServerNetworkAddress`, with a different predecessor.

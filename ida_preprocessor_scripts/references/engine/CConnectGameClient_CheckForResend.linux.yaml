@@ -1,292 +1,284 @@
 func_name: CConnectGameClient_CheckForResend
-func_va: '0x4a97a0'
+func_va: '0x4b5a60'
 disasm_code: |-
-  .text:00000000004A97A0                 mov     r10d, [rdi+40h]
-  .text:00000000004A97A4                 test    r10d, r10d
-  .text:00000000004A97A7                 jz      locret_4A98E8
-  .text:00000000004A97AD                 push    rbp
-  .text:00000000004A97AE                 mov     rbp, rsp
-  .text:00000000004A97B1                 push    r15
-  .text:00000000004A97B3                 push    r14
-  .text:00000000004A97B5                 push    r13
-  .text:00000000004A97B7                 lea     r13, [rbp-2F0h]
-  .text:00000000004A97BE                 push    r12
-  .text:00000000004A97C0                 push    rbx
-  .text:00000000004A97C1                 mov     rbx, rdi
-  .text:00000000004A97C4                 sub     rsp, 398h
-  .text:00000000004A97CB                 lea     r12, qword_C77880
-  .text:00000000004A97D2                 mov     rdi, [r12]
-  .text:00000000004A97D6                 mov     rax, [rdi]
-  .text:00000000004A97D9                 call    qword ptr [rax+150h]; 0x150 = 336LL = INetworkSystem_GetSteamUserNetworkingSockets
-  .text:00000000004A97DF                 mov     esi, [rbx+40h]
-  .text:00000000004A97E2                 mov     rdx, r13
-  .text:00000000004A97E5                 mov     r14, rax
-  .text:00000000004A97E8                 mov     rax, [rax]
-  .text:00000000004A97EB                 mov     rdi, r14
-  .text:00000000004A97EE                 call    qword ptr [rax+78h]
-  .text:00000000004A97F1                 test    al, al
-  .text:00000000004A97F3                 jz      loc_4A98F0
-  .text:00000000004A97F9                 mov     eax, [rbp-240h]
-  .text:00000000004A97FF                 lea     edx, [rax-1]
-  .text:00000000004A9802                 cmp     edx, 1
-  .text:00000000004A9805                 jbe     loc_4A98D5
-  .text:00000000004A980B                 cmp     eax, 3
-  .text:00000000004A980E                 jz      loc_4A9918
-  .text:00000000004A9814                 mov     rdi, [r12]
-  .text:00000000004A9818                 mov     rsi, r13
-  .text:00000000004A981B                 mov     edx, 1
-  .text:00000000004A9820                 mov     rax, [rdi]
-  .text:00000000004A9823                 call    qword ptr [rax+178h]
-  .text:00000000004A9829                 mov     rdi, [rbx+50h]
-  .text:00000000004A982D                 mov     r13d, eax
-  .text:00000000004A9830                 test    eax, eax
-  .text:00000000004A9832                 mov     eax, 54h ; 'T'
-  .text:00000000004A9837                 mov     r14d, [rbp-23Ch]
-  .text:00000000004A983E                 cmovz   r13d, eax
-  .text:00000000004A9842                 mov     eax, [rdi+1Ch]
-  .text:00000000004A9845                 cmp     eax, 3
-  .text:00000000004A9848                 ja      short loc_4A9890
-  .text:00000000004A984A                 cmp     eax, 1
-  .text:00000000004A984D                 ja      loc_4A9AB0
-  .text:00000000004A9853                 test    eax, eax
-  .text:00000000004A9855                 jz      loc_4A9A90
-  .text:00000000004A985B                 mov     r9d, [rdi+18h]
-  .text:00000000004A985F                 lea     rdx, unk_27D936
-  .text:00000000004A9866                 mov     r15d, [rdi+14h]
-  .text:00000000004A986A                 test    r9d, r9d
-  .text:00000000004A986D                 jz      loc_4A9AF0
-  .text:00000000004A9873                 lea     r12, [rbp-370h]
-  .text:00000000004A987A                 mov     ecx, r15d
-  .text:00000000004A987D                 xor     eax, eax
-  .text:00000000004A987F                 lea     rsi, aSD_5; "%s:%d"
-  .text:00000000004A9886                 mov     rdi, r12
-  .text:00000000004A9889                 call    sub_2D0250
-  .text:00000000004A988E                 jmp     short loc_4A98B4
-  .text:00000000004A9890                 cmp     eax, 4
-  .text:00000000004A9893                 jnz     loc_4A9A78
-  .text:00000000004A9899                 mov     edx, [rdi+14h]
-  .text:00000000004A989C                 lea     r12, [rbp-370h]
-  .text:00000000004A98A3                 xor     eax, eax
-  .text:00000000004A98A5                 lea     rsi, aLoopbackD; "loopback:%d"
-  .text:00000000004A98AC                 mov     rdi, r12
-  .text:00000000004A98AF                 call    sub_2D0250
-  .text:00000000004A98B4                 lea     r9, [rbp-238h]
-  .text:00000000004A98BB                 mov     r8d, r14d
-  .text:00000000004A98BE                 mov     rcx, r12
-  .text:00000000004A98C1                 lea     rdx, aFailedToConnec; "Failed to connect to %s. (%d) %s"
-  .text:00000000004A98C8                 mov     esi, r13d
-  .text:00000000004A98CB                 mov     rdi, rbx
-  .text:00000000004A98CE                 xor     eax, eax
-  .text:00000000004A98D0                 call    sub_4A9520
-  .text:00000000004A98D5                 lea     rsp, [rbp-28h]
-  .text:00000000004A98D9                 pop     rbx
-  .text:00000000004A98DA                 pop     r12
-  .text:00000000004A98DC                 pop     r13
-  .text:00000000004A98DE                 pop     r14
-  .text:00000000004A98E0                 pop     r15
-  .text:00000000004A98E2                 pop     rbp
-  .text:00000000004A98E3                 retn
-  .text:00000000004A98E8                 retn
-  .text:00000000004A98F0                 lea     rdx, aGetconnectioni; "GetConnectionInfo failed.  Did somebody"...
-  .text:00000000004A98F7                 mov     rdi, rbx
-  .text:00000000004A98FA                 mov     esi, 1Eh
-  .text:00000000004A98FF                 call    sub_4A9520
-  .text:00000000004A9904                 lea     rsp, [rbp-28h]
-  .text:00000000004A9908                 pop     rbx
-  .text:00000000004A9909                 pop     r12
-  .text:00000000004A990B                 pop     r13
-  .text:00000000004A990D                 pop     r14
-  .text:00000000004A990F                 pop     r15
-  .text:00000000004A9911                 pop     rbp
-  .text:00000000004A9912                 retn
-  .text:00000000004A9918                 mov     rdi, [rbx]
-  .text:00000000004A991B                 call    sub_4BA840
-  .text:00000000004A9920                 mov     r13d, eax
-  .text:00000000004A9923                 cmp     eax, 1
-  .text:00000000004A9926                 jnz     short loc_4A98D5
-  .text:00000000004A9928                 mov     rdi, [r12]
-  .text:00000000004A992C                 mov     rax, [rdi]
-  .text:00000000004A992F                 call    qword ptr [rax+0D8h]
-  .text:00000000004A9935                 subsd   xmm0, qword ptr [rbx+0B8h]
-  .text:00000000004A993D                 mov     esi, 0FFFFFFFFh
-  .text:00000000004A9942                 lea     rdi, unk_A347C0
-  .text:00000000004A9949                 movsd   qword ptr [rbp-3B8h], xmm0
-  .text:00000000004A9951                 call    sub_5EB3F0
-  .text:00000000004A9956                 test    rax, rax
-  .text:00000000004A9959                 jz      loc_4A9AE0
-  .text:00000000004A995F                 movss   xmm0, dword ptr [rax]
-  .text:00000000004A9963                 cvtss2sd xmm0, xmm0
-  .text:00000000004A9967                 comisd  xmm0, qword ptr [rbp-3B8h]
-  .text:00000000004A996F                 ja      loc_4A98D5
-  .text:00000000004A9975                 mov     edi, [rbx+48h]
-  .text:00000000004A9978                 test    edi, edi
-  .text:00000000004A997A                 jle     loc_4A98D5
-  .text:00000000004A9980                 mov     eax, [rbx+0ACh]
-  .text:00000000004A9986                 test    eax, eax
-  .text:00000000004A9988                 jle     short loc_4A9998
-  .text:00000000004A998A                 mov     ecx, [rbx+0A8h]
-  .text:00000000004A9990                 cmp     eax, ecx
-  .text:00000000004A9992                 jle     loc_4A9BA0
-  .text:00000000004A9998                 mov     rdi, [r12]
-  .text:00000000004A999C                 lea     r12, [rbp-370h]
-  .text:00000000004A99A3                 mov     rax, [rdi]
-  .text:00000000004A99A6                 call    qword ptr [rax+0D8h]
-  .text:00000000004A99AC                 lea     rdi, [rbx+38h]
-  .text:00000000004A99B0                 xor     eax, eax
-  .text:00000000004A99B2                 mov     r15, [rbx+50h]
-  .text:00000000004A99B6                 mov     edx, [rbx+98h]
-  .text:00000000004A99BC                 movsd   qword ptr [rbx+0B8h], xmm0
-  .text:00000000004A99C4                 lea     rsi, aConnect0x08x; "connect0x%08X"
-  .text:00000000004A99CB                 call    sub_2C9FE0
-  .text:00000000004A99D0                 mov     rax, [rbx+38h]
-  .text:00000000004A99D4                 mov     esi, 80h
-  .text:00000000004A99D9                 mov     r9d, 0FFh
-  .text:00000000004A99DF                 lea     rdx, unk_27D936
-  .text:00000000004A99E6                 mov     r8d, 0FFh
-  .text:00000000004A99EC                 mov     ecx, 0FFh
-  .text:00000000004A99F1                 mov     rdi, r12
-  .text:00000000004A99F4                 test    rax, rax
-  .text:00000000004A99F7                 cmovz   rax, rdx
-  .text:00000000004A99FB                 sub     rsp, 8
-  .text:00000000004A99FF                 push    rax
-  .text:00000000004A9A00                 lea     rdx, aCCCCCS; "%c%c%c%c%c%s"
-  .text:00000000004A9A07                 xor     eax, eax
-  .text:00000000004A9A09                 push    71h ; 'q'
-  .text:00000000004A9A0B                 push    0FFh
-  .text:00000000004A9A10                 call    sub_2CA850
-  .text:00000000004A9A15                 add     rsp, 20h
-  .text:00000000004A9A19                 mov     esi, 2
-  .text:00000000004A9A1E                 add     eax, 1
-  .text:00000000004A9A21                 cmp     dword ptr [r15+1Ch], 4
-  .text:00000000004A9A26                 mov     [rbp-3B8h], eax
-  .text:00000000004A9A2C                 jnz     short loc_4A9A33
-  .text:00000000004A9A2E                 mov     esi, 1
-  .text:00000000004A9A33                 lea     rax, dword_9E7A5C
-  .text:00000000004A9A3A                 mov     edi, [rax]
-  .text:00000000004A9A3C                 call    sub_2C8C80
-  .text:00000000004A9A41                 test    al, al
-  .text:00000000004A9A43                 jnz     loc_4A9B16
-  .text:00000000004A9A49                 mov     rax, [r14]
-  .text:00000000004A9A4C                 xor     r9d, r9d
-  .text:00000000004A9A4F                 mov     r8d, 5
-  .text:00000000004A9A55                 mov     rdx, r12
-  .text:00000000004A9A58                 mov     esi, [rbx+40h]
-  .text:00000000004A9A5B                 mov     rdi, r14
-  .text:00000000004A9A5E                 mov     ecx, [rbp-3B8h]
-  .text:00000000004A9A64                 call    qword ptr [rax+58h]
-  .text:00000000004A9A67                 add     dword ptr [rbx+0A8h], 1
-  .text:00000000004A9A6E                 jmp     loc_4A98D5
-  .text:00000000004A9A78                 mov     byte ptr [rbp-370h], 0
-  .text:00000000004A9A7F                 lea     r12, [rbp-370h]
-  .text:00000000004A9A86                 jmp     loc_4A98B4
-  .text:00000000004A9A90                 lea     r12, [rbp-370h]
-  .text:00000000004A9A97                 xor     ecx, ecx
-  .text:00000000004A9A99                 mov     edx, 40h ; '@'
-  .text:00000000004A9A9E                 mov     rsi, r12
-  .text:00000000004A9AA1                 call    sub_2C9770
-  .text:00000000004A9AA6                 jmp     loc_4A98B4
-  .text:00000000004A9AB0                 mov     r8d, [rdi+18h]
-  .text:00000000004A9AB4                 lea     rdx, unk_27D936
-  .text:00000000004A9ABB                 test    r8d, r8d
-  .text:00000000004A9ABE                 jz      short loc_4A9B08
-  .text:00000000004A9AC0                 lea     r12, [rbp-370h]
-  .text:00000000004A9AC7                 xor     eax, eax
-  .text:00000000004A9AC9                 lea     rsi, aS_23; "=%s"
-  .text:00000000004A9AD0                 mov     rdi, r12
-  .text:00000000004A9AD3                 call    sub_2D0250
-  .text:00000000004A9AD8                 jmp     loc_4A98B4
-  .text:00000000004A9AE0                 mov     rax, cs:qword_A347C8
-  .text:00000000004A9AE7                 mov     rax, [rax+8]
-  .text:00000000004A9AEB                 jmp     loc_4A995F
-  .text:00000000004A9AF0                 add     rdi, 0Ch
-  .text:00000000004A9AF4                 call    sub_59E520
-  .text:00000000004A9AF9                 mov     rdx, rax
-  .text:00000000004A9AFC                 jmp     loc_4A9873
-  .text:00000000004A9B08                 add     rdi, 0Ch
-  .text:00000000004A9B0C                 call    sub_59E520
-  .text:00000000004A9B11                 mov     rdx, rax
-  .text:00000000004A9B14                 jmp     short loc_4A9AC0
-  .text:00000000004A9B16                 mov     eax, [r15+1Ch]
-  .text:00000000004A9B1A                 cmp     eax, 3
-  .text:00000000004A9B1D                 ja      loc_4A9BBB
-  .text:00000000004A9B23                 cmp     eax, 1
-  .text:00000000004A9B26                 ja      loc_4A9C1C
-  .text:00000000004A9B2C                 test    eax, eax
-  .text:00000000004A9B2E                 jz      loc_4A9BF0
-  .text:00000000004A9B34                 mov     esi, [r15+18h]
-  .text:00000000004A9B38                 lea     rdx, unk_27D936
-  .text:00000000004A9B3F                 mov     ecx, [r15+14h]
-  .text:00000000004A9B43                 test    esi, esi
-  .text:00000000004A9B45                 jz      loc_4A9C69
-  .text:00000000004A9B4B                 lea     r8, [rbp-3B0h]
-  .text:00000000004A9B52                 xor     eax, eax
-  .text:00000000004A9B54                 mov     rdi, r8
-  .text:00000000004A9B57                 mov     [rbp-3C0h], r8
-  .text:00000000004A9B5E                 lea     rsi, aSD_5; "%s:%d"
-  .text:00000000004A9B65                 call    sub_2D0250
-  .text:00000000004A9B6A                 mov     r8, [rbp-3C0h]
-  .text:00000000004A9B71                 cmp     dword ptr [r15+1Ch], 4
-  .text:00000000004A9B76                 jz      short loc_4A9B7E
-  .text:00000000004A9B78                 mov     r13d, 2
-  .text:00000000004A9B7E                 lea     rax, dword_9E7A5C
-  .text:00000000004A9B85                 lea     rdx, aSendingConnect; "Sending connect to %s\n"
-  .text:00000000004A9B8C                 mov     rcx, r8
-  .text:00000000004A9B8F                 mov     esi, r13d
-  .text:00000000004A9B92                 mov     edi, [rax]
-  .text:00000000004A9B94                 xor     eax, eax
-  .text:00000000004A9B96                 call    sub_2CA620
-  .text:00000000004A9B9B                 jmp     loc_4A9A49
-  .text:00000000004A9BA0                 lea     rdx, aConnectionTime; "Connection timeout detected at source e"...
-  .text:00000000004A9BA7                 mov     esi, 48h ; 'H'
-  .text:00000000004A9BAC                 mov     rdi, rbx
-  .text:00000000004A9BAF                 xor     eax, eax
-  .text:00000000004A9BB1                 call    sub_4A9520
-  .text:00000000004A9BB6                 jmp     loc_4A98D5
-  .text:00000000004A9BBB                 cmp     eax, 4
-  .text:00000000004A9BBE                 jnz     loc_4A9C56
-  .text:00000000004A9BC4                 mov     edx, [r15+14h]
-  .text:00000000004A9BC8                 lea     r8, [rbp-3B0h]
-  .text:00000000004A9BCF                 xor     eax, eax
-  .text:00000000004A9BD1                 mov     rdi, r8
-  .text:00000000004A9BD4                 mov     [rbp-3C0h], r8
-  .text:00000000004A9BDB                 lea     rsi, aLoopbackD; "loopback:%d"
-  .text:00000000004A9BE2                 call    sub_2D0250
-  .text:00000000004A9BE7                 mov     r8, [rbp-3C0h]
-  .text:00000000004A9BEE                 jmp     short loc_4A9B71
-  .text:00000000004A9BF0                 lea     r8, [rbp-3B0h]
-  .text:00000000004A9BF7                 xor     ecx, ecx
-  .text:00000000004A9BF9                 mov     edx, 40h ; '@'
-  .text:00000000004A9BFE                 mov     rsi, r8
-  .text:00000000004A9C01                 mov     rdi, r15
-  .text:00000000004A9C04                 mov     [rbp-3C0h], r8
-  .text:00000000004A9C0B                 call    sub_2C9770
-  .text:00000000004A9C10                 mov     r8, [rbp-3C0h]
-  .text:00000000004A9C17                 jmp     loc_4A9B71
-  .text:00000000004A9C1C                 mov     eax, [r15+18h]
-  .text:00000000004A9C20                 lea     rdx, unk_27D936
-  .text:00000000004A9C27                 test    eax, eax
-  .text:00000000004A9C29                 jz      short loc_4A9C86
-  .text:00000000004A9C2B                 lea     r8, [rbp-3B0h]
-  .text:00000000004A9C32                 xor     eax, eax
-  .text:00000000004A9C34                 mov     rdi, r8
-  .text:00000000004A9C37                 mov     [rbp-3C0h], r8
-  .text:00000000004A9C3E                 lea     rsi, aS_23; "=%s"
-  .text:00000000004A9C45                 call    sub_2D0250
-  .text:00000000004A9C4A                 mov     r8, [rbp-3C0h]
-  .text:00000000004A9C51                 jmp     loc_4A9B71
-  .text:00000000004A9C56                 mov     byte ptr [rbp-3B0h], 0
-  .text:00000000004A9C5D                 lea     r8, [rbp-3B0h]
-  .text:00000000004A9C64                 jmp     loc_4A9B78
-  .text:00000000004A9C69                 lea     rdi, [r15+0Ch]
-  .text:00000000004A9C6D                 mov     [rbp-3C0h], ecx
-  .text:00000000004A9C73                 call    sub_59E520
-  .text:00000000004A9C78                 mov     ecx, [rbp-3C0h]
-  .text:00000000004A9C7E                 mov     rdx, rax
-  .text:00000000004A9C81                 jmp     loc_4A9B4B
-  .text:00000000004A9C86                 lea     rdi, [r15+0Ch]
-  .text:00000000004A9C8A                 call    sub_59E520
-  .text:00000000004A9C8F                 mov     rdx, rax
-  .text:00000000004A9C92                 jmp     short loc_4A9C2B
+  .text:00000000004B5A60                 mov     r10d, [rdi+40h]
+  .text:00000000004B5A64                 test    r10d, r10d
+  .text:00000000004B5A67                 jz      locret_4B5BA8
+  .text:00000000004B5A6D                 push    rbp
+  .text:00000000004B5A6E                 mov     rbp, rsp
+  .text:00000000004B5A71                 push    r15
+  .text:00000000004B5A73                 push    r14
+  .text:00000000004B5A75                 push    r13
+  .text:00000000004B5A77                 lea     r13, [rbp-2F0h]
+  .text:00000000004B5A7E                 push    r12
+  .text:00000000004B5A80                 push    rbx
+  .text:00000000004B5A81                 mov     rbx, rdi
+  .text:00000000004B5A84                 sub     rsp, 398h
+  .text:00000000004B5A8B                 lea     r12, qword_C90CF0
+  .text:00000000004B5A92                 mov     rdi, [r12]
+  .text:00000000004B5A96                 mov     rax, [rdi]
+  .text:00000000004B5A99                 call    qword ptr [rax+150h]
+  .text:00000000004B5A9F                 mov     esi, [rbx+40h]
+  .text:00000000004B5AA2                 mov     rdx, r13
+  .text:00000000004B5AA5                 mov     r14, rax
+  .text:00000000004B5AA8                 mov     rax, [rax]
+  .text:00000000004B5AAB                 mov     rdi, r14
+  .text:00000000004B5AAE                 call    qword ptr [rax+78h]
+  .text:00000000004B5AB1                 test    al, al
+  .text:00000000004B5AB3                 jz      loc_4B5BB0
+  .text:00000000004B5AB9                 mov     eax, [rbp-240h]
+  .text:00000000004B5ABF                 lea     edx, [rax-1]
+  .text:00000000004B5AC2                 cmp     edx, 1
+  .text:00000000004B5AC5                 jbe     loc_4B5B95
+  .text:00000000004B5ACB                 cmp     eax, 3
+  .text:00000000004B5ACE                 jz      loc_4B5BD8
+  .text:00000000004B5AD4                 mov     rdi, [r12]
+  .text:00000000004B5AD8                 mov     rsi, r13
+  .text:00000000004B5ADB                 mov     edx, 1
+  .text:00000000004B5AE0                 mov     rax, [rdi]
+  .text:00000000004B5AE3                 call    qword ptr [rax+178h]
+  .text:00000000004B5AE9                 mov     rdi, [rbx+50h]
+  .text:00000000004B5AED                 mov     r13d, eax
+  .text:00000000004B5AF0                 test    eax, eax
+  .text:00000000004B5AF2                 mov     eax, 54h ; 'T'
+  .text:00000000004B5AF7                 mov     r14d, [rbp-23Ch]
+  .text:00000000004B5AFE                 cmovz   r13d, eax
+  .text:00000000004B5B02                 mov     eax, [rdi+1Ch]
+  .text:00000000004B5B05                 cmp     eax, 3
+  .text:00000000004B5B08                 ja      short loc_4B5B50
+  .text:00000000004B5B0A                 cmp     eax, 1
+  .text:00000000004B5B0D                 ja      loc_4B5D50
+  .text:00000000004B5B13                 test    eax, eax
+  .text:00000000004B5B15                 jz      loc_4B5D30
+  .text:00000000004B5B1B                 mov     r9d, [rdi+18h]
+  .text:00000000004B5B1F                 lea     rdx, unk_282079
+  .text:00000000004B5B26                 mov     r15d, [rdi+14h]
+  .text:00000000004B5B2A                 test    r9d, r9d
+  .text:00000000004B5B2D                 jz      loc_4B5D80
+  .text:00000000004B5B33                 lea     r12, [rbp-370h]
+  .text:00000000004B5B3A                 mov     ecx, r15d
+  .text:00000000004B5B3D                 xor     eax, eax
+  .text:00000000004B5B3F                 lea     rsi, aSD_5; "%s:%d"
+  .text:00000000004B5B46                 mov     rdi, r12
+  .text:00000000004B5B49                 call    sub_2D5EB0
+  .text:00000000004B5B4E                 jmp     short loc_4B5B74
+  .text:00000000004B5B50                 cmp     eax, 4
+  .text:00000000004B5B53                 jnz     loc_4B5D18
+  .text:00000000004B5B59                 mov     edx, [rdi+14h]
+  .text:00000000004B5B5C                 lea     r12, [rbp-370h]
+  .text:00000000004B5B63                 xor     eax, eax
+  .text:00000000004B5B65                 lea     rsi, aLoopbackD; "loopback:%d"
+  .text:00000000004B5B6C                 mov     rdi, r12
+  .text:00000000004B5B6F                 call    sub_2D5EB0
+  .text:00000000004B5B74                 lea     r9, [rbp-238h]
+  .text:00000000004B5B7B                 mov     r8d, r14d
+  .text:00000000004B5B7E                 mov     rcx, r12
+  .text:00000000004B5B81                 lea     rdx, aFailedToConnec; "Failed to connect to %s. (%d) %s"
+  .text:00000000004B5B88                 mov     esi, r13d
+  .text:00000000004B5B8B                 mov     rdi, rbx
+  .text:00000000004B5B8E                 xor     eax, eax
+  .text:00000000004B5B90                 call    sub_4B57E0
+  .text:00000000004B5B95                 lea     rsp, [rbp-28h]
+  .text:00000000004B5B99                 pop     rbx
+  .text:00000000004B5B9A                 pop     r12
+  .text:00000000004B5B9C                 pop     r13
+  .text:00000000004B5B9E                 pop     r14
+  .text:00000000004B5BA0                 pop     r15
+  .text:00000000004B5BA2                 pop     rbp
+  .text:00000000004B5BA3                 retn
+  .text:00000000004B5BA8                 retn
+  .text:00000000004B5BB0                 lea     rdx, aGetconnectioni; "GetConnectionInfo failed.  Did somebody"...
+  .text:00000000004B5BB7                 mov     rdi, rbx
+  .text:00000000004B5BBA                 mov     esi, 1Eh
+  .text:00000000004B5BBF                 call    sub_4B57E0
+  .text:00000000004B5BC4                 lea     rsp, [rbp-28h]
+  .text:00000000004B5BC8                 pop     rbx
+  .text:00000000004B5BC9                 pop     r12
+  .text:00000000004B5BCB                 pop     r13
+  .text:00000000004B5BCD                 pop     r14
+  .text:00000000004B5BCF                 pop     r15
+  .text:00000000004B5BD1                 pop     rbp
+  .text:00000000004B5BD2                 retn
+  .text:00000000004B5BD8                 mov     rdi, [rbx]
+  .text:00000000004B5BDB                 call    sub_4C7010
+  .text:00000000004B5BE0                 mov     r13d, eax
+  .text:00000000004B5BE3                 cmp     eax, 1
+  .text:00000000004B5BE6                 jnz     short loc_4B5B95
+  .text:00000000004B5BE8                 mov     rdi, [r12]
+  .text:00000000004B5BEC                 mov     rax, [rdi]
+  .text:00000000004B5BEF                 call    qword ptr [rax+0D8h]
+  .text:00000000004B5BF5                 mov     rax, cs:qword_A4DBC8
+  .text:00000000004B5BFC                 pxor    xmm1, xmm1
+  .text:00000000004B5C00                 subsd   xmm0, qword ptr [rbx+0B8h]
+  .text:00000000004B5C08                 cvtss2sd xmm1, dword ptr [rax+58h]
+  .text:00000000004B5C0D                 comisd  xmm1, xmm0
+  .text:00000000004B5C11                 ja      short loc_4B5B95
+  .text:00000000004B5C13                 mov     edi, [rbx+48h]
+  .text:00000000004B5C16                 test    edi, edi
+  .text:00000000004B5C18                 jle     loc_4B5B95
+  .text:00000000004B5C1E                 mov     eax, [rbx+0ACh]
+  .text:00000000004B5C24                 test    eax, eax
+  .text:00000000004B5C26                 jle     short loc_4B5C36
+  .text:00000000004B5C28                 mov     ecx, [rbx+0A8h]
+  .text:00000000004B5C2E                 cmp     eax, ecx
+  .text:00000000004B5C30                 jle     loc_4B5E30
+  .text:00000000004B5C36                 mov     rdi, [r12]
+  .text:00000000004B5C3A                 lea     r12, [rbp-370h]
+  .text:00000000004B5C41                 mov     rax, [rdi]
+  .text:00000000004B5C44                 call    qword ptr [rax+0D8h]
+  .text:00000000004B5C4A                 lea     rdi, [rbx+38h]
+  .text:00000000004B5C4E                 xor     eax, eax
+  .text:00000000004B5C50                 mov     r15, [rbx+50h]
+  .text:00000000004B5C54                 mov     edx, [rbx+98h]
+  .text:00000000004B5C5A                 movsd   qword ptr [rbx+0B8h], xmm0
+  .text:00000000004B5C62                 lea     rsi, aConnect0x08x; "connect0x%08X"
+  .text:00000000004B5C69                 call    sub_2CF8C0
+  .text:00000000004B5C6E                 mov     rax, [rbx+38h]
+  .text:00000000004B5C72                 mov     esi, 80h
+  .text:00000000004B5C77                 mov     r9d, 0FFh
+  .text:00000000004B5C7D                 lea     rdx, unk_282079
+  .text:00000000004B5C84                 mov     r8d, 0FFh
+  .text:00000000004B5C8A                 mov     ecx, 0FFh
+  .text:00000000004B5C8F                 mov     rdi, r12
+  .text:00000000004B5C92                 test    rax, rax
+  .text:00000000004B5C95                 cmovz   rax, rdx
+  .text:00000000004B5C99                 sub     rsp, 8
+  .text:00000000004B5C9D                 push    rax
+  .text:00000000004B5C9E                 lea     rdx, aCCCCCS; "%c%c%c%c%c%s"
+  .text:00000000004B5CA5                 xor     eax, eax
+  .text:00000000004B5CA7                 push    71h ; 'q'
+  .text:00000000004B5CA9                 push    0FFh
+  .text:00000000004B5CAE                 call    sub_2D0950
+  .text:00000000004B5CB3                 add     rsp, 20h
+  .text:00000000004B5CB7                 mov     esi, 2
+  .text:00000000004B5CBC                 add     eax, 1
+  .text:00000000004B5CBF                 cmp     dword ptr [r15+1Ch], 4
+  .text:00000000004B5CC4                 mov     [rbp-3B4h], eax
+  .text:00000000004B5CCA                 jnz     short loc_4B5CD1
+  .text:00000000004B5CCC                 mov     esi, 1
+  .text:00000000004B5CD1                 lea     rax, dword_A00EFC
+  .text:00000000004B5CD8                 mov     edi, [rax]
+  .text:00000000004B5CDA                 call    sub_2D0E20
+  .text:00000000004B5CDF                 test    al, al
+  .text:00000000004B5CE1                 jnz     loc_4B5DA6
+  .text:00000000004B5CE7                 mov     rax, [r14]
+  .text:00000000004B5CEA                 xor     r9d, r9d
+  .text:00000000004B5CED                 mov     r8d, 5
+  .text:00000000004B5CF3                 mov     rdx, r12
+  .text:00000000004B5CF6                 mov     esi, [rbx+40h]
+  .text:00000000004B5CF9                 mov     rdi, r14
+  .text:00000000004B5CFC                 mov     ecx, [rbp-3B4h]
+  .text:00000000004B5D02                 call    qword ptr [rax+58h]
+  .text:00000000004B5D05                 add     dword ptr [rbx+0A8h], 1
+  .text:00000000004B5D0C                 jmp     loc_4B5B95
+  .text:00000000004B5D18                 mov     byte ptr [rbp-370h], 0
+  .text:00000000004B5D1F                 lea     r12, [rbp-370h]
+  .text:00000000004B5D26                 jmp     loc_4B5B74
+  .text:00000000004B5D30                 lea     r12, [rbp-370h]
+  .text:00000000004B5D37                 xor     ecx, ecx
+  .text:00000000004B5D39                 mov     edx, 40h ; '@'
+  .text:00000000004B5D3E                 mov     rsi, r12
+  .text:00000000004B5D41                 call    sub_2D0CF0
+  .text:00000000004B5D46                 jmp     loc_4B5B74
+  .text:00000000004B5D50                 mov     r8d, [rdi+18h]
+  .text:00000000004B5D54                 lea     rdx, unk_282079
+  .text:00000000004B5D5B                 test    r8d, r8d
+  .text:00000000004B5D5E                 jz      short loc_4B5D98
+  .text:00000000004B5D60                 lea     r12, [rbp-370h]
+  .text:00000000004B5D67                 xor     eax, eax
+  .text:00000000004B5D69                 lea     rsi, aS_50; "=%s"
+  .text:00000000004B5D70                 mov     rdi, r12
+  .text:00000000004B5D73                 call    sub_2D5EB0
+  .text:00000000004B5D78                 jmp     loc_4B5B74
+  .text:00000000004B5D80                 add     rdi, 0Ch
+  .text:00000000004B5D84                 call    sub_5AB230
+  .text:00000000004B5D89                 mov     rdx, rax
+  .text:00000000004B5D8C                 jmp     loc_4B5B33
+  .text:00000000004B5D98                 add     rdi, 0Ch
+  .text:00000000004B5D9C                 call    sub_5AB230
+  .text:00000000004B5DA1                 mov     rdx, rax
+  .text:00000000004B5DA4                 jmp     short loc_4B5D60
+  .text:00000000004B5DA6                 mov     eax, [r15+1Ch]
+  .text:00000000004B5DAA                 cmp     eax, 3
+  .text:00000000004B5DAD                 ja      loc_4B5E4B
+  .text:00000000004B5DB3                 cmp     eax, 1
+  .text:00000000004B5DB6                 ja      loc_4B5EAC
+  .text:00000000004B5DBC                 test    eax, eax
+  .text:00000000004B5DBE                 jz      loc_4B5E80
+  .text:00000000004B5DC4                 mov     esi, [r15+18h]
+  .text:00000000004B5DC8                 lea     rdx, unk_282079
+  .text:00000000004B5DCF                 mov     ecx, [r15+14h]
+  .text:00000000004B5DD3                 test    esi, esi
+  .text:00000000004B5DD5                 jz      loc_4B5EF9
+  .text:00000000004B5DDB                 lea     r8, [rbp-3B0h]
+  .text:00000000004B5DE2                 xor     eax, eax
+  .text:00000000004B5DE4                 mov     rdi, r8
+  .text:00000000004B5DE7                 mov     [rbp-3C0h], r8
+  .text:00000000004B5DEE                 lea     rsi, aSD_5; "%s:%d"
+  .text:00000000004B5DF5                 call    sub_2D5EB0
+  .text:00000000004B5DFA                 mov     r8, [rbp-3C0h]
+  .text:00000000004B5E01                 cmp     dword ptr [r15+1Ch], 4
+  .text:00000000004B5E06                 jz      short loc_4B5E0E
+  .text:00000000004B5E08                 mov     r13d, 2
+  .text:00000000004B5E0E                 lea     rax, dword_A00EFC
+  .text:00000000004B5E15                 lea     rdx, aSendingConnect; "Sending connect to %s\n"
+  .text:00000000004B5E1C                 mov     rcx, r8
+  .text:00000000004B5E1F                 mov     esi, r13d
+  .text:00000000004B5E22                 mov     edi, [rax]
+  .text:00000000004B5E24                 xor     eax, eax
+  .text:00000000004B5E26                 call    sub_2CF8B0
+  .text:00000000004B5E2B                 jmp     loc_4B5CE7
+  .text:00000000004B5E30                 lea     rdx, aConnectionTime; "Connection timeout detected at source e"...
+  .text:00000000004B5E37                 mov     esi, 48h ; 'H'
+  .text:00000000004B5E3C                 mov     rdi, rbx
+  .text:00000000004B5E3F                 xor     eax, eax
+  .text:00000000004B5E41                 call    sub_4B57E0
+  .text:00000000004B5E46                 jmp     loc_4B5B95
+  .text:00000000004B5E4B                 cmp     eax, 4
+  .text:00000000004B5E4E                 jnz     loc_4B5EE6
+  .text:00000000004B5E54                 mov     edx, [r15+14h]
+  .text:00000000004B5E58                 lea     r8, [rbp-3B0h]
+  .text:00000000004B5E5F                 xor     eax, eax
+  .text:00000000004B5E61                 mov     rdi, r8
+  .text:00000000004B5E64                 mov     [rbp-3C0h], r8
+  .text:00000000004B5E6B                 lea     rsi, aLoopbackD; "loopback:%d"
+  .text:00000000004B5E72                 call    sub_2D5EB0
+  .text:00000000004B5E77                 mov     r8, [rbp-3C0h]
+  .text:00000000004B5E7E                 jmp     short loc_4B5E01
+  .text:00000000004B5E80                 lea     r8, [rbp-3B0h]
+  .text:00000000004B5E87                 xor     ecx, ecx
+  .text:00000000004B5E89                 mov     edx, 40h ; '@'
+  .text:00000000004B5E8E                 mov     rsi, r8
+  .text:00000000004B5E91                 mov     rdi, r15
+  .text:00000000004B5E94                 mov     [rbp-3C0h], r8
+  .text:00000000004B5E9B                 call    sub_2D0CF0
+  .text:00000000004B5EA0                 mov     r8, [rbp-3C0h]
+  .text:00000000004B5EA7                 jmp     loc_4B5E01
+  .text:00000000004B5EAC                 mov     eax, [r15+18h]
+  .text:00000000004B5EB0                 lea     rdx, unk_282079
+  .text:00000000004B5EB7                 test    eax, eax
+  .text:00000000004B5EB9                 jz      short loc_4B5F16
+  .text:00000000004B5EBB                 lea     r8, [rbp-3B0h]
+  .text:00000000004B5EC2                 xor     eax, eax
+  .text:00000000004B5EC4                 mov     rdi, r8
+  .text:00000000004B5EC7                 mov     [rbp-3C0h], r8
+  .text:00000000004B5ECE                 lea     rsi, aS_50; "=%s"
+  .text:00000000004B5ED5                 call    sub_2D5EB0
+  .text:00000000004B5EDA                 mov     r8, [rbp-3C0h]
+  .text:00000000004B5EE1                 jmp     loc_4B5E01
+  .text:00000000004B5EE6                 mov     byte ptr [rbp-3B0h], 0
+  .text:00000000004B5EED                 lea     r8, [rbp-3B0h]
+  .text:00000000004B5EF4                 jmp     loc_4B5E08
+  .text:00000000004B5EF9                 lea     rdi, [r15+0Ch]
+  .text:00000000004B5EFD                 mov     [rbp-3C0h], ecx
+  .text:00000000004B5F03                 call    sub_5AB230
+  .text:00000000004B5F08                 mov     ecx, [rbp-3C0h]
+  .text:00000000004B5F0E                 mov     rdx, rax
+  .text:00000000004B5F11                 jmp     loc_4B5DDB
+  .text:00000000004B5F16                 lea     rdi, [r15+0Ch]
+  .text:00000000004B5F1A                 call    sub_5AB230
+  .text:00000000004B5F1F                 mov     rdx, rax
+  .text:00000000004B5F22                 jmp     short loc_4B5EBB
 procedure: |-
   void __fastcall CConnectGameClient_CheckForResend(__int64 a1)
   {
@@ -307,192 +299,187 @@ procedure: |-
     void *v15; // rdx
     int v16; // r15d
     unsigned int v17; // r13d
-    float *v18; // rax
-    int v19; // r8d
-    int v20; // r9d
-    int v21; // eax
-    int v22; // ecx
-    double v23; // xmm0_8
-    _DWORD *v24; // r15
-    int v25; // edx
-    const char *v26; // rax
-    __int64 v27; // rsi
-    int v28; // ecx
-    int v29; // r9d
-    int v30; // r8d
-    void *v31; // rdx
-    unsigned int v32; // eax
-    __int64 v33; // rsi
-    void *v34; // rdx
-    int v35; // ecx
-    void *v36; // rdx
-    int v37; // eax
-    int v38; // [rsp-3C8h] [rbp-3C8h]
-    double v39; // [rsp-3C0h] [rbp-3C0h]
-    unsigned int v40; // [rsp-3C0h] [rbp-3C0h]
-    char v41[64]; // [rsp-3B8h] [rbp-3B8h] BYREF
-    _BYTE v42[128]; // [rsp-378h] [rbp-378h] BYREF
-    _BYTE v43[176]; // [rsp-2F8h] [rbp-2F8h] BYREF
-    int v44; // [rsp-248h] [rbp-248h]
-    int v45; // [rsp-244h] [rbp-244h]
-    __int64 v46; // [rsp-240h] [rbp-240h] BYREF
+    int v18; // r8d
+    int v19; // r9d
+    int v20; // eax
+    int v21; // ecx
+    double v22; // xmm0_8
+    _DWORD *v23; // r15
+    int v24; // edx
+    const char *v25; // rax
+    __int64 v26; // rsi
+    int v27; // ecx
+    int v28; // r9d
+    int v29; // r8d
+    void *v30; // rdx
+    unsigned int v31; // eax
+    __int64 v32; // rsi
+    void *v33; // rdx
+    int v34; // ecx
+    void *v35; // rdx
+    int v36; // eax
+    int v37; // [rsp-3C8h] [rbp-3C8h]
+    unsigned int v38; // [rsp-3BCh] [rbp-3BCh]
+    char v39[64]; // [rsp-3B8h] [rbp-3B8h] BYREF
+    _BYTE v40[128]; // [rsp-378h] [rbp-378h] BYREF
+    _BYTE v41[176]; // [rsp-2F8h] [rbp-2F8h] BYREF
+    int v42; // [rsp-248h] [rbp-248h]
+    int v43; // [rsp-244h] [rbp-244h]
+    __int64 v44; // [rsp-240h] [rbp-240h] BYREF
 
     if ( *(_DWORD *)(a1 + 64) )
     {
       v1 = a1;
-      v2 = (*(__int64 (__fastcall **)(_QWORD *))(*qword_C77880 + 336LL))(qword_C77880); // 336LL = 0x150 = INetworkSystem_GetSteamUserNetworkingSockets
+      v2 = (*(__int64 (__fastcall **)(_QWORD *))(*qword_C90CF0 + 336LL))(qword_C90CF0);
       if ( !(*(unsigned __int8 (__fastcall **)(__int64, _QWORD, _BYTE *))(*(_QWORD *)v2 + 120LL))(
               v2,
               *(unsigned int *)(a1 + 64),
-              v43) )
+              v41) )
       {
-        sub_4A9520(a1, 30, (unsigned int)"GetConnectionInfo failed.  Did somebody else close the connection?", v3, v4, v5);
+        sub_4B57E0(a1, 30, (unsigned int)"GetConnectionInfo failed.  Did somebody else close the connection?", v3, v4, v5);
         return;
       }
-      if ( (unsigned int)(v44 - 1) > 1 )
+      if ( (unsigned int)(v42 - 1) > 1 )
       {
-        if ( v44 != 3 )
+        if ( v42 != 3 )
         {
-          v6 = (*(__int64 (__fastcall **)(_QWORD *, _BYTE *, __int64))(*qword_C77880 + 376LL))(qword_C77880, v43, 1);
+          v6 = (*(__int64 (__fastcall **)(_QWORD *, _BYTE *, __int64))(*qword_C90CF0 + 376LL))(qword_C90CF0, v41, 1);
           v10 = *(_DWORD **)(a1 + 80);
           v11 = v6;
-          v12 = v45;
+          v12 = v43;
           if ( !v6 )
             v11 = 84;
           v13 = v10[7];
           if ( v13 > 3 )
           {
             if ( v13 == 4 )
-              sub_2D0250((unsigned int)v42, (unsigned int)"loopback:%d", v10[5], v7, v8, v9);
+              sub_2D5EB0((unsigned int)v40, (unsigned int)"loopback:%d", v10[5], v7, v8, v9);
             else
-              v42[0] = 0;
+              v40[0] = 0;
           }
           else if ( v13 > 1 )
           {
-            v30 = v10[6];
-            v31 = &unk_27D936;
-            if ( !v30 )
-              LODWORD(v31) = sub_59E520(v10 + 3, v43, &unk_27D936);
-            sub_2D0250((unsigned int)v42, (unsigned int)"=%s", (_DWORD)v31, v7, v30, v9);
+            v29 = v10[6];
+            v30 = &unk_282079;
+            if ( !v29 )
+              LODWORD(v30) = sub_5AB230(v10 + 3, v41, &unk_282079);
+            sub_2D5EB0((unsigned int)v40, (unsigned int)"=%s", (_DWORD)v30, v7, v29, v9);
           }
           else if ( v13 )
           {
             v14 = v10[6];
-            v15 = &unk_27D936;
+            v15 = &unk_282079;
             v16 = v10[5];
             if ( !v14 )
-              LODWORD(v15) = sub_59E520(v10 + 3, v43, &unk_27D936);
-            sub_2D0250((unsigned int)v42, (unsigned int)"%s:%d", (_DWORD)v15, v16, v8, v14);
+              LODWORD(v15) = sub_5AB230(v10 + 3, v41, &unk_282079);
+            sub_2D5EB0((unsigned int)v40, (unsigned int)"%s:%d", (_DWORD)v15, v16, v8, v14);
           }
           else
           {
-            sub_2C9770(v10, v42, 64, 0);
+            sub_2D0CF0(v10, v40, 64, 0);
           }
-          sub_4A9520(
+          sub_4B57E0(
             v1,
             v11,
             (unsigned int)"Failed to connect to %s. (%d) %s",
-            (unsigned int)v42,
+            (unsigned int)v40,
             v12,
-            (unsigned int)&v46);
+            (unsigned int)&v44);
           return;
         }
-        v17 = sub_4BA840(*(_QWORD *)a1);
-        if ( v17 == 1 )
+        v17 = sub_4C7010(*(_QWORD *)a1);
+        if ( v17 != 1
+          || *(float *)(qword_A4DBC8 + 88) > (*(double (__fastcall **)(_QWORD *))(*qword_C90CF0 + 216LL))(qword_C90CF0)
+                                           - *(double *)(a1 + 184)
+          || *(int *)(a1 + 72) <= 0 )
         {
-          v39 = (*(double (__fastcall **)(_QWORD *))(*qword_C77880 + 216LL))(qword_C77880) - *(double *)(a1 + 184);
-          v18 = (float *)sub_5EB3F0(&unk_A347C0, 0xFFFFFFFFLL);
-          if ( !v18 )
-            v18 = *(float **)(qword_A347C8 + 8);
-          if ( *v18 <= v39 && *(int *)(a1 + 72) > 0 )
+          return;
+        }
+        v20 = *(_DWORD *)(a1 + 172);
+        if ( v20 > 0 )
+        {
+          v21 = *(_DWORD *)(a1 + 168);
+          if ( v20 <= v21 )
           {
-            v21 = *(_DWORD *)(a1 + 172);
-            if ( v21 > 0 )
-            {
-              v22 = *(_DWORD *)(a1 + 168);
-              if ( v21 <= v22 )
-              {
-                sub_4A9520(
-                  a1,
-                  72,
-                  (unsigned int)"Connection timeout detected at source engine layer after %i retries.",
-                  v22,
-                  v19,
-                  v20);
-                return;
-              }
-            }
-            v23 = (*(double (__fastcall **)(_QWORD *))(*qword_C77880 + 216LL))(qword_C77880);
-            v24 = *(_DWORD **)(a1 + 80);
-            v25 = *(_DWORD *)(a1 + 152);
-            *(double *)(a1 + 184) = v23;
-            sub_2C9FE0(a1 + 56, "connect0x%08X", v25);
-            v26 = *(const char **)(a1 + 56);
-            if ( !v26 )
-              v26 = (const char *)&unk_27D936;
-            v27 = 2;
-            v40 = sub_2CA850(v42, 128, "%c%c%c%c%c%s", 255, 255, 255, 255, 113, v26) + 1;
-            if ( v24[7] == 4 )
-              v27 = 1;
-            if ( !(unsigned __int8)sub_2C8C80((unsigned int)dword_9E7A5C, v27) )
-            {
-  LABEL_31:
-              (*(void (__fastcall **)(__int64, _QWORD, _BYTE *, _QWORD, __int64, _QWORD))(*(_QWORD *)v2 + 88LL))(
-                v2,
-                *(unsigned int *)(a1 + 64),
-                v42,
-                v40,
-                5,
-                0);
-              ++*(_DWORD *)(a1 + 168);
-              return;
-            }
-            v32 = v24[7];
-            if ( v32 > 3 )
-            {
-              if ( v32 != 4 )
-              {
-                v41[0] = 0;
-                goto LABEL_44;
-              }
-              sub_2D0250((unsigned int)v41, (unsigned int)"loopback:%d", v24[5], v28, (unsigned int)v41, v29);
-            }
-            else if ( v32 > 1 )
-            {
-              v36 = &unk_27D936;
-              if ( !v24[6] )
-                LODWORD(v36) = sub_59E520(v24 + 3, v27, &unk_27D936);
-              sub_2D0250((unsigned int)v41, (unsigned int)"=%s", (_DWORD)v36, v28, (unsigned int)v41, v29);
-            }
-            else if ( v32 )
-            {
-              v33 = (unsigned int)v24[6];
-              v34 = &unk_27D936;
-              v35 = v24[5];
-              if ( !(_DWORD)v33 )
-              {
-                v38 = v24[5];
-                v37 = sub_59E520(v24 + 3, v33, &unk_27D936);
-                v35 = v38;
-                LODWORD(v34) = v37;
-              }
-              sub_2D0250((unsigned int)v41, (unsigned int)"%s:%d", (_DWORD)v34, v35, (unsigned int)v41, v29);
-            }
-            else
-            {
-              sub_2C9770(v24, v41, 64, 0);
-            }
-            if ( v24[7] == 4 )
-            {
-  LABEL_45:
-              sub_2CA620((unsigned int)dword_9E7A5C, v17, "Sending connect to %s\n", v41);
-              goto LABEL_31;
-            }
-  LABEL_44:
-            v17 = 2;
-            goto LABEL_45;
+            sub_4B57E0(
+              a1,
+              72,
+              (unsigned int)"Connection timeout detected at source engine layer after %i retries.",
+              v21,
+              v18,
+              v19);
+            return;
           }
         }
+        v22 = (*(double (__fastcall **)(_QWORD *))(*qword_C90CF0 + 216LL))(qword_C90CF0);
+        v23 = *(_DWORD **)(a1 + 80);
+        v24 = *(_DWORD *)(a1 + 152);
+        *(double *)(a1 + 184) = v22;
+        sub_2CF8C0(a1 + 56, "connect0x%08X", v24);
+        v25 = *(const char **)(a1 + 56);
+        if ( !v25 )
+          v25 = (const char *)&unk_282079;
+        v26 = 2;
+        v38 = sub_2D0950(v40, 128, "%c%c%c%c%c%s", 255, 255, 255, 255, 113, v25) + 1;
+        if ( v23[7] == 4 )
+          v26 = 1;
+        if ( !(unsigned __int8)sub_2D0E20((unsigned int)dword_A00EFC, v26) )
+        {
+  LABEL_29:
+          (*(void (__fastcall **)(__int64, _QWORD, _BYTE *, _QWORD, __int64, _QWORD))(*(_QWORD *)v2 + 88LL))(
+            v2,
+            *(unsigned int *)(a1 + 64),
+            v40,
+            v38,
+            5,
+            0);
+          ++*(_DWORD *)(a1 + 168);
+          return;
+        }
+        v31 = v23[7];
+        if ( v31 > 3 )
+        {
+          if ( v31 != 4 )
+          {
+            v39[0] = 0;
+            goto LABEL_42;
+          }
+          sub_2D5EB0((unsigned int)v39, (unsigned int)"loopback:%d", v23[5], v27, (unsigned int)v39, v28);
+        }
+        else if ( v31 > 1 )
+        {
+          v35 = &unk_282079;
+          if ( !v23[6] )
+            LODWORD(v35) = sub_5AB230(v23 + 3, v26, &unk_282079);
+          sub_2D5EB0((unsigned int)v39, (unsigned int)"=%s", (_DWORD)v35, v27, (unsigned int)v39, v28);
+        }
+        else if ( v31 )
+        {
+          v32 = (unsigned int)v23[6];
+          v33 = &unk_282079;
+          v34 = v23[5];
+          if ( !(_DWORD)v32 )
+          {
+            v37 = v23[5];
+            v36 = sub_5AB230(v23 + 3, v32, &unk_282079);
+            v34 = v37;
+            LODWORD(v33) = v36;
+          }
+          sub_2D5EB0((unsigned int)v39, (unsigned int)"%s:%d", (_DWORD)v33, v34, (unsigned int)v39, v28);
+        }
+        else
+        {
+          sub_2D0CF0(v23, v39, 64, 0);
+        }
+        if ( v23[7] == 4 )
+        {
+  LABEL_43:
+          sub_2CF8B0((unsigned int)dword_A00EFC, v17, "Sending connect to %s\n", v39);
+          goto LABEL_29;
+        }
+  LABEL_42:
+        v17 = 2;
+        goto LABEL_43;
       }
     }
   }

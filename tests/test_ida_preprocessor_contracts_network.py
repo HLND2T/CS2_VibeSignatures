@@ -20,7 +20,96 @@ I_GET_LOGGING_CHANNEL_LINUX_SCRIPT_PATH = Path(
     "ida_preprocessor_scripts/find-INetworkMessages_GetLoggingChannel-linux.py"
 )
 CNETWORK_SERVER_SERVICE_INIT_SCRIPT_PATH = Path("ida_preprocessor_scripts/find-CNetworkServerService_Init.py")
+CNETWORK_SERVER_SERVICE_SET_GAME_LOAD_STARTED_SCRIPT_PATH = Path(
+    "ida_preprocessor_scripts/find-CNetworkServerService_SetGameLoadStarted.py"
+)
+CSERVER_CHANGELEVEL_STATE_DTOR_SCRIPT_PATH = Path("ida_preprocessor_scripts/find-CServerChangelevelState_dtor.py")
 CLIENT_PRINTF_DECOMPILES_SCRIPT_PATH = Path("ida_preprocessor_scripts/find-CEngineServer_ClientPrintf-decompiles.py")
+FREE_GAME_RESOURCE_MANIFEST_WINDOWS_SCRIPT_PATH = Path(
+    "ida_preprocessor_scripts/find-IGameResourceService_FreeGameResourceManifest-windows.py"
+)
+FREE_GAME_RESOURCE_MANIFEST_LINUX_SCRIPT_PATH = Path(
+    "ida_preprocessor_scripts/find-IGameResourceService_FreeGameResourceManifest-linux.py"
+)
+
+
+class TestFreeGameResourceManifestAnchorContract(unittest.TestCase):
+    """The Linux destructor dispatches through the spawn group's own vtable, so
+    only the Windows build can anchor the interface slot on the destructor
+    itself; Linux must go through the de-inlined release helper."""
+
+    def test_windows_anchors_on_the_destructor(self) -> None:
+        module = _load_module(
+            FREE_GAME_RESOURCE_MANIFEST_WINDOWS_SCRIPT_PATH,
+            "find_IGameResourceService_FreeGameResourceManifest_windows",
+        )
+        spec = module.LLM_DECOMPILE[0]
+        self.assertEqual(
+            ["references/engine/CNetworkClientSpawnGroup_dtor.{platform}.yaml"],
+            spec["reference_yaml_paths"],
+        )
+        self.assertEqual(["found_vcall"], spec["expected_result_sections"])
+
+    def test_linux_anchors_on_the_deinlined_release_helper(self) -> None:
+        module = _load_module(
+            FREE_GAME_RESOURCE_MANIFEST_LINUX_SCRIPT_PATH,
+            "find_IGameResourceService_FreeGameResourceManifest_linux",
+        )
+        spec = module.LLM_DECOMPILE[0]
+        self.assertEqual(
+            ["references/engine/CNetworkClientSpawnGroup_ReleaseManifest.{platform}.yaml"],
+            spec["reference_yaml_paths"],
+        )
+        self.assertEqual(["found_vcall"], spec["expected_result_sections"])
+        self.assertNotIn(
+            "references/engine/CNetworkClientSpawnGroup_dtor.{platform}.yaml",
+            spec["reference_yaml_paths"],
+        )
+
+    def test_both_variants_declare_the_same_interface_target(self) -> None:
+        windows = _load_module(
+            FREE_GAME_RESOURCE_MANIFEST_WINDOWS_SCRIPT_PATH,
+            "find_IGameResourceService_FreeGameResourceManifest_windows_target",
+        )
+        linux = _load_module(
+            FREE_GAME_RESOURCE_MANIFEST_LINUX_SCRIPT_PATH,
+            "find_IGameResourceService_FreeGameResourceManifest_linux_target",
+        )
+        self.assertEqual(windows.TARGET_FUNCTION_NAMES, linux.TARGET_FUNCTION_NAMES)
+        self.assertEqual(windows.FUNC_VTABLE_RELATIONS, linux.FUNC_VTABLE_RELATIONS)
+
+
+class TestSetGameLoadStartedAnchorContract(unittest.TestCase):
+    def test_uses_destructor_caller_anchor_and_concrete_vtable_relation(self) -> None:
+        module = _load_module(
+            CNETWORK_SERVER_SERVICE_SET_GAME_LOAD_STARTED_SCRIPT_PATH,
+            "find_CNetworkServerService_SetGameLoadStarted",
+        )
+
+        spec = module.FUNC_XREFS[0]
+        self.assertEqual(["CServerChangelevelState_dtor"], spec["xref_funcs"])
+        self.assertEqual([], spec["xref_strings"])
+        self.assertEqual(
+            [("CNetworkServerService_SetGameLoadStarted", "CNetworkServerService_vtable")],
+            module.FUNC_VTABLE_RELATIONS,
+        )
+        self.assertFalse(hasattr(module, "LLM_DECOMPILE"))
+
+        fields = dict(module.GENERATE_YAML_DESIRED_FIELDS)["CNetworkServerService_SetGameLoadStarted"]
+        self.assertIn("func_sig", fields)
+        self.assertIn("vfunc_offset", fields)
+        self.assertIn("vfunc_index", fields)
+
+    def test_destructor_helper_is_anchored_on_unique_debug_string(self) -> None:
+        module = _load_module(
+            CSERVER_CHANGELEVEL_STATE_DTOR_SCRIPT_PATH,
+            "find_CServerChangelevelState_dtor",
+        )
+        self.assertEqual(
+            ["~CServerChangelevelState with non empty m_Clients, failed change level to %s!!!\n"],
+            module.FUNC_XREFS[0]["xref_strings"],
+        )
+        self.assertEqual(["CServerChangelevelState_dtor"], module.TARGET_FUNCTION_NAMES)
 
 
 class TestClientListLlmContract(unittest.TestCase):

@@ -11,6 +11,8 @@ Load vtable information from a pre-generated `{class_name}_vtable.{platform}.yam
 
 - `class_name`: The class name to look up (e.g., `CCSPlayerController`, `CCSPlayer_WeaponServices`, `CServerSideClient`)
 
+An IDA Pro MCP session is required, resolved per [mcp-ida-session.md](../generate-signature-for-function/references/mcp-ida-session.md): `idb_list` → `idb_open` (script fallback only if the endpoint is unreachable). Honor its IDB save discipline — an idle-TTL self-exit does not save.
+
 ## Method
 
 ### 1. Check and Load VTable YAML

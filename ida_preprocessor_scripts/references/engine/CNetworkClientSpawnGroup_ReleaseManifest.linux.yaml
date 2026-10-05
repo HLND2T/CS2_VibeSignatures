@@ -1,0 +1,38 @@
+func_name: CNetworkClientSpawnGroup_ReleaseManifest
+func_va: '0x4ed1b0'
+disasm_code: |-
+  .text:00000000004ED1B0                 push    rbp
+  .text:00000000004ED1B1                 lea     rax, off_9B46E0
+  .text:00000000004ED1B8                 mov     rbp, rsp
+  .text:00000000004ED1BB                 push    rbx
+  .text:00000000004ED1BC                 mov     rbx, rdi
+  .text:00000000004ED1BF                 sub     rsp, 8
+  .text:00000000004ED1C3                 mov     esi, [rdi+28h]
+  .text:00000000004ED1C6                 movq    xmm0, cs:off_9B4A80
+  .text:00000000004ED1CE                 pinsrq  xmm0, rax, 1
+  .text:00000000004ED1D5                 add     rax, 18h
+  .text:00000000004ED1D9                 movaps  xmmword ptr [rdi], xmm0
+  .text:00000000004ED1DC                 mov     [rdi+10h], rax
+  .text:00000000004ED1E0                 mov     rdi, [rdi+270h]
+  .text:00000000004ED1E7                 call    sub_4BA920
+  .text:00000000004ED1EC                 lea     rax, qword_C77680
+  .text:00000000004ED1F3                 mov     rsi, [rbx+278h]
+  .text:00000000004ED1FA                 mov     rdi, [rax]
+  .text:00000000004ED1FD                 mov     rax, [rdi]
+  .text:00000000004ED200                 call    qword ptr [rax+0F8h]
+  .text:00000000004ED206                 mov     rdi, rbx
+  .text:00000000004ED209                 mov     rbx, [rbp+var_8]
+  .text:00000000004ED20D                 leave
+  .text:00000000004ED20E                 jmp     sub_57E450
+procedure: |-
+  __int64 __fastcall CNetworkClientSpawnGroup_ReleaseManifest(__m128i *a1)
+  {
+    __int64 v1; // rsi
+
+    v1 = a1[2].m128i_u32[2];
+    *a1 = _mm_insert_epi64(_mm_loadl_epi64((const __m128i *)&off_9B4A80), (signed __int64)&off_9B46E0, 1);
+    a1[1].m128i_i64[0] = (__int64)off_9B46F8;
+    sub_4BA920(a1[39].m128i_i64[0], v1);
+    (*(void (__fastcall **)(_QWORD *, __int64))(*qword_C77680 + 248LL))(qword_C77680, a1[39].m128i_i64[1]);
+    return sub_57E450(a1);
+  }
