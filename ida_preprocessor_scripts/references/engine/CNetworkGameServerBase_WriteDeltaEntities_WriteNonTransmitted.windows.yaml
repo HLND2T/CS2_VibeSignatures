@@ -1,593 +1,593 @@
 func_name: CNetworkGameServerBase_WriteDeltaEntities_WriteNonTransmitted
-func_va: '0x1800d2380'
+func_va: '0x1800d2cf0'
 disasm_code: |-
-  .text:00000001800D2380                 mov     rax, rsp
-  .text:00000001800D2383                 mov     [rax+10h], rdx
-  .text:00000001800D2387                 mov     [rax+8], rcx
-  .text:00000001800D238B                 push    rbp
-  .text:00000001800D238C                 push    rbx
-  .text:00000001800D238D                 push    rdi
-  .text:00000001800D238E                 lea     rbp, [rax-5Fh]
-  .text:00000001800D2392                 sub     rsp, 90h
-  .text:00000001800D2399                 mov     [rax+20h], rsi
-  .text:00000001800D239D                 mov     rsi, cs:qword_180689E80
-  .text:00000001800D23A4                 mov     [rax-20h], r12
-  .text:00000001800D23A8                 mov     rcx, rsi
-  .text:00000001800D23AB                 mov     [rax-28h], r13
-  .text:00000001800D23AF                 mov     [rax-30h], r14
-  .text:00000001800D23B3                 mov     r14, rdx
-  .text:00000001800D23B6                 mov     rax, [rsi]
-  .text:00000001800D23B9                 mov     [rbp+57h+arg_0], rsi
-  .text:00000001800D23BD                 call    qword ptr [rax+138h]
-  .text:00000001800D23C3                 mov     r9d, 138800h
-  .text:00000001800D23C9                 mov     dword ptr [rsp+20h], 0FFFFFFFFh
-  .text:00000001800D23D1                 mov     r8, rax
-  .text:00000001800D23D4                 mov     [rbp+57h+arg_10], rax
-  .text:00000001800D23D8                 lea     rdx, aWritenontransm; "WriteNonTransmitted"
-  .text:00000001800D23DF                 lea     rcx, [rbp+57h+var_58]
-  .text:00000001800D23E3                 call    sub_1803FE100
-  .text:00000001800D23E8                 mov     rcx, [r14+10h]
-  .text:00000001800D23EC                 xor     esi, esi
-  .text:00000001800D23EE                 test    rcx, rcx
-  .text:00000001800D23F1                 lea     r12, [rcx+820h]
-  .text:00000001800D23F8                 cmovz   r12, rsi
-  .text:00000001800D23FC                 test    r12, r12
-  .text:00000001800D23FF                 jz      short loc_1800D2435
-  .text:00000001800D2401                 mov     r9, r12
-  .text:00000001800D2404                 mov     dword ptr [rsp+20h], 0FFFFFFFFh
-  .text:00000001800D240C                 mov     edx, 4000h
-  .text:00000001800D2411                 xor     ecx, ecx
-  .text:00000001800D2413                 mov     r8d, 200h
-  .text:00000001800D2419                 call    sub_1800490B0
-  .text:00000001800D241E                 mov     edi, eax
-  .text:00000001800D2420                 test    eax, eax
-  .text:00000001800D2422                 js      short loc_1800D242A
-  .text:00000001800D2424                 jz      short loc_1800D243A
-  .text:00000001800D2426                 mov     al, 1
-  .text:00000001800D2428                 jmp     short loc_1800D2431
-  .text:00000001800D242A                 mov     edi, 0FFFFFFFFh
-  .text:00000001800D242F                 mov     al, 0FFh
-  .text:00000001800D2431                 test    al, al
-  .text:00000001800D2433                 jns     short loc_1800D243A
-  .text:00000001800D2435                 mov     edi, 7FFFFFFFh
-  .text:00000001800D243A                 mov     r13, [r14+18h]
-  .text:00000001800D243E                 add     r13, 820h
-  .text:00000001800D2445                 jz      short loc_1800D247B
-  .text:00000001800D2447                 mov     r9, r13
-  .text:00000001800D244A                 mov     dword ptr [rsp+20h], 0FFFFFFFFh
-  .text:00000001800D2452                 mov     edx, 4000h
-  .text:00000001800D2457                 xor     ecx, ecx
-  .text:00000001800D2459                 mov     r8d, 200h
-  .text:00000001800D245F                 call    sub_1800490B0
-  .text:00000001800D2464                 mov     ebx, eax
-  .text:00000001800D2466                 test    eax, eax
-  .text:00000001800D2468                 js      short loc_1800D2470
-  .text:00000001800D246A                 jz      short loc_1800D2480
-  .text:00000001800D246C                 mov     al, 1
-  .text:00000001800D246E                 jmp     short loc_1800D2477
-  .text:00000001800D2470                 mov     ebx, 0FFFFFFFFh
-  .text:00000001800D2475                 mov     al, 0FFh
-  .text:00000001800D2477                 test    al, al
-  .text:00000001800D2479                 jns     short loc_1800D2480
-  .text:00000001800D247B                 mov     ebx, 7FFFFFFFh
-  .text:00000001800D2480                 lea     rax, [rbp+57h+var_58]
-  .text:00000001800D2484                 mov     [rbp+57h+var_60], esi
-  .text:00000001800D2487                 mov     [rbp+57h+var_68], rax
-  .text:00000001800D248B                 lea     rax, ??_7CDeltaEntityNonTransmitHeaderWriter@@6B@; const CDeltaEntityNonTransmitHeaderWriter::`vftable'
-  .text:00000001800D2492                 mov     [rbp+57h+var_70], rax
-  .text:00000001800D2496                 mov     [rbp+57h+var_5C], 0FFFFFFFFh
-  .text:00000001800D249D                 mov     [rsp+0A0h+var_30], r15
-  .text:00000001800D24A2                 cmp     edi, 7FFFFFFFh
-  .text:00000001800D24A8                 jnz     short loc_1800D24B6
-  .text:00000001800D24AA                 cmp     ebx, 7FFFFFFFh
-  .text:00000001800D24B0                 jz      loc_1800D2AC6
-  .text:00000001800D24B6                 cmp     ebx, edi
-  .text:00000001800D24B8                 jnz     loc_1800D2559
-  .text:00000001800D24BE                 cmp     edi, 7FFFFFFFh
-  .text:00000001800D24C4                 jz      short loc_1800D2505
-  .text:00000001800D24C6                 test    r12, r12
-  .text:00000001800D24C9                 jz      short loc_1800D2500
-  .text:00000001800D24CB                 lea     ecx, [rdi+1]
-  .text:00000001800D24CE                 mov     dword ptr [rsp+20h], 0FFFFFFFFh
-  .text:00000001800D24D6                 mov     r9, r12
-  .text:00000001800D24D9                 mov     edx, 4000h
-  .text:00000001800D24DE                 mov     r8d, 200h
-  .text:00000001800D24E4                 call    sub_1800490B0
-  .text:00000001800D24E9                 mov     edi, eax
-  .text:00000001800D24EB                 test    eax, eax
-  .text:00000001800D24ED                 js      short loc_1800D24F5
-  .text:00000001800D24EF                 jz      short loc_1800D2505
-  .text:00000001800D24F1                 mov     al, 1
-  .text:00000001800D24F3                 jmp     short loc_1800D24FC
-  .text:00000001800D24F5                 mov     edi, 0FFFFFFFFh
-  .text:00000001800D24FA                 mov     al, 0FFh
-  .text:00000001800D24FC                 test    al, al
-  .text:00000001800D24FE                 jns     short loc_1800D2505
-  .text:00000001800D2500                 mov     edi, 7FFFFFFFh
-  .text:00000001800D2505                 cmp     ebx, 7FFFFFFFh
-  .text:00000001800D250B                 jz      short loc_1800D24A2
-  .text:00000001800D250D                 test    r13, r13
-  .text:00000001800D2510                 jz      short loc_1800D254F
-  .text:00000001800D2512                 lea     ecx, [rbx+1]
-  .text:00000001800D2515                 mov     dword ptr [rsp+20h], 0FFFFFFFFh
-  .text:00000001800D251D                 mov     r9, r13
-  .text:00000001800D2520                 mov     edx, 4000h
-  .text:00000001800D2525                 mov     r8d, 200h
-  .text:00000001800D252B                 call    sub_1800490B0
-  .text:00000001800D2530                 mov     ebx, eax
-  .text:00000001800D2532                 test    eax, eax
-  .text:00000001800D2534                 js      short loc_1800D2540
-  .text:00000001800D2536                 jz      loc_1800D24A2
-  .text:00000001800D253C                 mov     al, 1
-  .text:00000001800D253E                 jmp     short loc_1800D2547
-  .text:00000001800D2540                 mov     ebx, 0FFFFFFFFh
-  .text:00000001800D2545                 mov     al, 0FFh
-  .text:00000001800D2547                 test    al, al
-  .text:00000001800D2549                 jns     loc_1800D24A2
-  .text:00000001800D254F                 mov     ebx, 7FFFFFFFh
-  .text:00000001800D2554                 jmp     loc_1800D24A2
-  .text:00000001800D2559                 mov     rsi, [rbp+57h+var_68]
-  .text:00000001800D255D                 jge     loc_1800D280C
-  .text:00000001800D2563                 inc     [rbp+57h+var_60]
-  .text:00000001800D2566                 mov     r14d, ebx
-  .text:00000001800D2569                 sub     r14d, [rbp+57h+var_5C]
-  .text:00000001800D256D                 mov     [rbp+57h+var_5C], ebx
-  .text:00000001800D2570                 dec     r14d
-  .text:00000001800D2573                 mov     ecx, [rsi+0Ch]
-  .text:00000001800D2576                 mov     eax, ecx
-  .text:00000001800D2578                 movsxd  rdx, dword ptr [rsi+10h]
-  .text:00000001800D257C                 sub     eax, edx
-  .text:00000001800D257E                 cmp     r14d, 10h
-  .text:00000001800D2582                 jnb     short loc_1800D25EB
-  .text:00000001800D2584                 cmp     eax, 6
-  .text:00000001800D2587                 jge     short loc_1800D25A4
-  .text:00000001800D2589                 mov     [rsi+10h], ecx
-  .text:00000001800D258C                 mov     edx, 1
-  .text:00000001800D2591                 mov     byte ptr [rsi+20h], 1
-  .text:00000001800D2595                 lea     rcx, [rbp+57h+var_70]
-  .text:00000001800D2599                 mov     rax, [rbp+57h+var_70]
-  .text:00000001800D259D                 call    qword ptr [rax]
-  .text:00000001800D259F                 jmp     loc_1800D2505
-  .text:00000001800D25A4                 lea     eax, [rdx+6]
-  .text:00000001800D25A7                 mov     rcx, rdx
-  .text:00000001800D25AA                 sar     rcx, 5
-  .text:00000001800D25AE                 mov     r11d, edx
-  .text:00000001800D25B1                 mov     [rsi+10h], eax
-  .text:00000001800D25B4                 and     r11d, 1Fh
-  .text:00000001800D25B8                 mov     rax, [rsi]
-  .text:00000001800D25BB                 mov     r8d, 1Fh
-  .text:00000001800D25C1                 lea     r10, [rax+rcx*4]
-  .text:00000001800D25C5                 movzx   ecx, r11b
-  .text:00000001800D25C9                 rol     r14d, cl
-  .text:00000001800D25CC                 mov     ecx, 1Fh
-  .text:00000001800D25D1                 sub     ecx, r11d
-  .text:00000001800D25D4                 shr     r8d, cl
-  .text:00000001800D25D7                 mov     eax, r8d
-  .text:00000001800D25DA                 and     eax, 1
-  .text:00000001800D25DD                 lea     rdx, [r10+rax*4]
-  .text:00000001800D25E1                 mov     eax, 3Fh ; '?'
-  .text:00000001800D25E6                 jmp     loc_1800D27D8
-  .text:00000001800D25EB                 mov     r15d, r14d
-  .text:00000001800D25EE                 and     r15d, 0Fh
-  .text:00000001800D25F2                 cmp     r14d, 100h
-  .text:00000001800D25F9                 jnb     short loc_1800D2671
-  .text:00000001800D25FB                 cmp     eax, 0Ah
-  .text:00000001800D25FE                 jge     short loc_1800D261B
-  .text:00000001800D2600                 mov     [rsi+10h], ecx
-  .text:00000001800D2603                 mov     edx, 1
-  .text:00000001800D2608                 mov     byte ptr [rsi+20h], 1
-  .text:00000001800D260C                 lea     rcx, [rbp+57h+var_70]
-  .text:00000001800D2610                 mov     rax, [rbp+57h+var_70]
-  .text:00000001800D2614                 call    qword ptr [rax]
-  .text:00000001800D2616                 jmp     loc_1800D2505
-  .text:00000001800D261B                 and     r14d, 0FFFFFFF4h
-  .text:00000001800D261F                 lea     eax, [rdx+0Ah]
-  .text:00000001800D2622                 mov     [rsi+10h], eax
-  .text:00000001800D2625                 or      r14d, 4
-  .text:00000001800D2629                 mov     rax, [rsi]
-  .text:00000001800D262C                 mov     rcx, rdx
-  .text:00000001800D262F                 sar     rcx, 5
-  .text:00000001800D2633                 mov     r11d, edx
-  .text:00000001800D2636                 and     r11d, 1Fh
-  .text:00000001800D263A                 shl     r14d, 2
-  .text:00000001800D263E                 or      r14d, r15d
-  .text:00000001800D2641                 mov     r8d, 1FFh
-  .text:00000001800D2647                 lea     r10, [rax+rcx*4]
-  .text:00000001800D264B                 movzx   ecx, r11b
-  .text:00000001800D264F                 rol     r14d, cl
-  .text:00000001800D2652                 mov     ecx, 1Fh
-  .text:00000001800D2657                 sub     ecx, r11d
-  .text:00000001800D265A                 shr     r8d, cl
-  .text:00000001800D265D                 mov     eax, r8d
-  .text:00000001800D2660                 and     eax, 1
-  .text:00000001800D2663                 lea     rdx, [r10+rax*4]
-  .text:00000001800D2667                 mov     eax, 3FFh
-  .text:00000001800D266C                 jmp     loc_1800D27D8
-  .text:00000001800D2671                 cmp     r14d, 1000h
-  .text:00000001800D2678                 jnb     short loc_1800D26F0
-  .text:00000001800D267A                 cmp     eax, 0Eh
-  .text:00000001800D267D                 jge     short loc_1800D269A
-  .text:00000001800D267F                 mov     [rsi+10h], ecx
-  .text:00000001800D2682                 mov     edx, 1
-  .text:00000001800D2687                 mov     byte ptr [rsi+20h], 1
-  .text:00000001800D268B                 lea     rcx, [rbp+57h+var_70]
-  .text:00000001800D268F                 mov     rax, [rbp+57h+var_70]
-  .text:00000001800D2693                 call    qword ptr [rax]
-  .text:00000001800D2695                 jmp     loc_1800D2505
-  .text:00000001800D269A                 and     r14d, 0FFFFFFF8h
-  .text:00000001800D269E                 lea     eax, [rdx+0Eh]
-  .text:00000001800D26A1                 mov     [rsi+10h], eax
-  .text:00000001800D26A4                 or      r14d, 8
-  .text:00000001800D26A8                 mov     rax, [rsi]
-  .text:00000001800D26AB                 mov     rcx, rdx
-  .text:00000001800D26AE                 sar     rcx, 5
-  .text:00000001800D26B2                 mov     r11d, edx
-  .text:00000001800D26B5                 and     r11d, 1Fh
-  .text:00000001800D26B9                 shl     r14d, 2
-  .text:00000001800D26BD                 or      r14d, r15d
-  .text:00000001800D26C0                 mov     r8d, 1FFFh
-  .text:00000001800D26C6                 lea     r10, [rax+rcx*4]
-  .text:00000001800D26CA                 movzx   ecx, r11b
-  .text:00000001800D26CE                 rol     r14d, cl
-  .text:00000001800D26D1                 mov     ecx, 1Fh
-  .text:00000001800D26D6                 sub     ecx, r11d
-  .text:00000001800D26D9                 shr     r8d, cl
-  .text:00000001800D26DC                 mov     eax, r8d
-  .text:00000001800D26DF                 and     eax, 1
-  .text:00000001800D26E2                 lea     rdx, [r10+rax*4]
-  .text:00000001800D26E6                 mov     eax, 3FFFh
-  .text:00000001800D26EB                 jmp     loc_1800D27D8
-  .text:00000001800D26F0                 cmp     eax, 6
-  .text:00000001800D26F3                 jge     short loc_1800D26FE
-  .text:00000001800D26F5                 mov     [rsi+10h], ecx
-  .text:00000001800D26F8                 mov     byte ptr [rsi+20h], 1
-  .text:00000001800D26FC                 jmp     short loc_1800D2767
-  .text:00000001800D26FE                 lea     eax, [rdx+6]
-  .text:00000001800D2701                 mov     rcx, rdx
-  .text:00000001800D2704                 mov     [rsi+10h], eax
-  .text:00000001800D2707                 mov     r11d, edx
-  .text:00000001800D270A                 mov     rax, [rsi]
-  .text:00000001800D270D                 and     r11d, 1Fh
-  .text:00000001800D2711                 sar     rcx, 5
-  .text:00000001800D2715                 or      r15d, 30h
-  .text:00000001800D2719                 mov     r9d, [rax+rcx*4]
-  .text:00000001800D271D                 lea     r10, [rax+rcx*4]
-  .text:00000001800D2721                 movzx   ecx, r11b
-  .text:00000001800D2725                 mov     r8d, 1Fh
-  .text:00000001800D272B                 rol     r15d, cl
-  .text:00000001800D272E                 mov     ecx, 1Fh
-  .text:00000001800D2733                 sub     ecx, r11d
-  .text:00000001800D2736                 shr     r8d, cl
-  .text:00000001800D2739                 mov     eax, r8d
-  .text:00000001800D273C                 and     eax, 1
-  .text:00000001800D273F                 mov     ecx, [r10+rax*4]
-  .text:00000001800D2743                 lea     rdx, [r10+rax*4]
-  .text:00000001800D2747                 xor     ecx, r15d
-  .text:00000001800D274A                 mov     eax, 3Fh ; '?'
-  .text:00000001800D274F                 and     ecx, r8d
-  .text:00000001800D2752                 xor     [rdx], ecx
-  .text:00000001800D2754                 mov     edx, r9d
-  .text:00000001800D2757                 xor     edx, r15d
-  .text:00000001800D275A                 mov     ecx, r11d
-  .text:00000001800D275D                 shl     eax, cl
-  .text:00000001800D275F                 and     edx, eax
-  .text:00000001800D2761                 xor     edx, r9d
-  .text:00000001800D2764                 mov     [r10], edx
-  .text:00000001800D2767                 mov     ecx, [rsi+0Ch]
-  .text:00000001800D276A                 mov     eax, ecx
-  .text:00000001800D276C                 movsxd  rdx, dword ptr [rsi+10h]
-  .text:00000001800D2770                 sub     eax, edx
-  .text:00000001800D2772                 cmp     eax, 1Ch
-  .text:00000001800D2775                 jge     short loc_1800D2792
-  .text:00000001800D2777                 mov     [rsi+10h], ecx
-  .text:00000001800D277A                 mov     edx, 1
-  .text:00000001800D277F                 mov     byte ptr [rsi+20h], 1
-  .text:00000001800D2783                 lea     rcx, [rbp+57h+var_70]
-  .text:00000001800D2787                 mov     rax, [rbp+57h+var_70]
-  .text:00000001800D278B                 call    qword ptr [rax]
-  .text:00000001800D278D                 jmp     loc_1800D2505
-  .text:00000001800D2792                 lea     eax, [rdx+1Ch]
-  .text:00000001800D2795                 shr     r14d, 4
-  .text:00000001800D2799                 mov     [rsi+10h], eax
-  .text:00000001800D279C                 mov     rcx, rdx
-  .text:00000001800D279F                 mov     rax, [rsi]
-  .text:00000001800D27A2                 mov     r11d, edx
-  .text:00000001800D27A5                 sar     rcx, 5
-  .text:00000001800D27A9                 and     r11d, 1Fh
-  .text:00000001800D27AD                 mov     r8d, 7FFFFFFh
-  .text:00000001800D27B3                 lea     r10, [rax+rcx*4]
-  .text:00000001800D27B7                 movzx   ecx, r11b
-  .text:00000001800D27BB                 rol     r14d, cl
-  .text:00000001800D27BE                 mov     ecx, 1Fh
-  .text:00000001800D27C3                 sub     ecx, r11d
-  .text:00000001800D27C6                 shr     r8d, cl
-  .text:00000001800D27C9                 mov     eax, r8d
-  .text:00000001800D27CC                 and     eax, 1
-  .text:00000001800D27CF                 lea     rdx, [r10+rax*4]
-  .text:00000001800D27D3                 mov     eax, 0FFFFFFFh
-  .text:00000001800D27D8                 mov     ecx, [rdx]
-  .text:00000001800D27DA                 mov     r9d, [r10]
-  .text:00000001800D27DD                 xor     ecx, r14d
-  .text:00000001800D27E0                 and     ecx, r8d
-  .text:00000001800D27E3                 xor     [rdx], ecx
-  .text:00000001800D27E5                 mov     ecx, r11d
-  .text:00000001800D27E8                 shl     eax, cl
-  .text:00000001800D27EA                 mov     edx, r9d
-  .text:00000001800D27ED                 xor     edx, r14d
-  .text:00000001800D27F0                 lea     rcx, [rbp+57h+var_70]
-  .text:00000001800D27F4                 and     edx, eax
-  .text:00000001800D27F6                 xor     edx, r9d
-  .text:00000001800D27F9                 mov     [r10], edx
-  .text:00000001800D27FC                 mov     edx, 1
-  .text:00000001800D2801                 mov     rax, [rbp+57h+var_70]
-  .text:00000001800D2805                 call    qword ptr [rax]
-  .text:00000001800D2807                 jmp     loc_1800D2505
-  .text:00000001800D280C                 inc     [rbp+57h+var_60]
-  .text:00000001800D280F                 mov     r14d, edi
-  .text:00000001800D2812                 sub     r14d, [rbp+57h+var_5C]
-  .text:00000001800D2816                 mov     [rbp+57h+var_5C], edi
-  .text:00000001800D2819                 dec     r14d
-  .text:00000001800D281C                 mov     ecx, [rsi+0Ch]
-  .text:00000001800D281F                 mov     eax, ecx
-  .text:00000001800D2821                 movsxd  rdx, dword ptr [rsi+10h]
-  .text:00000001800D2825                 sub     eax, edx
-  .text:00000001800D2827                 cmp     r14d, 10h
-  .text:00000001800D282B                 jnb     short loc_1800D2885
-  .text:00000001800D282D                 cmp     eax, 6
-  .text:00000001800D2830                 jge     short loc_1800D283E
-  .text:00000001800D2832                 mov     [rsi+10h], ecx
-  .text:00000001800D2835                 mov     byte ptr [rsi+20h], 1
-  .text:00000001800D2839                 jmp     loc_1800D2A62
-  .text:00000001800D283E                 lea     eax, [rdx+6]
-  .text:00000001800D2841                 mov     rcx, rdx
-  .text:00000001800D2844                 sar     rcx, 5
-  .text:00000001800D2848                 mov     r11d, edx
-  .text:00000001800D284B                 mov     [rsi+10h], eax
-  .text:00000001800D284E                 and     r11d, 1Fh
-  .text:00000001800D2852                 mov     rax, [rsi]
-  .text:00000001800D2855                 mov     r8d, 1Fh
-  .text:00000001800D285B                 lea     r10, [rax+rcx*4]
-  .text:00000001800D285F                 movzx   ecx, r11b
-  .text:00000001800D2863                 rol     r14d, cl
-  .text:00000001800D2866                 mov     ecx, 1Fh
-  .text:00000001800D286B                 sub     ecx, r11d
-  .text:00000001800D286E                 shr     r8d, cl
-  .text:00000001800D2871                 mov     eax, r8d
-  .text:00000001800D2874                 and     eax, 1
-  .text:00000001800D2877                 lea     rdx, [r10+rax*4]
-  .text:00000001800D287B                 mov     eax, 3Fh ; '?'
-  .text:00000001800D2880                 jmp     loc_1800D2A42
-  .text:00000001800D2885                 mov     r15d, r14d
-  .text:00000001800D2888                 and     r15d, 0Fh
-  .text:00000001800D288C                 cmp     r14d, 100h
-  .text:00000001800D2893                 jnb     short loc_1800D28FC
-  .text:00000001800D2895                 cmp     eax, 0Ah
-  .text:00000001800D2898                 jge     short loc_1800D28A6
-  .text:00000001800D289A                 mov     [rsi+10h], ecx
-  .text:00000001800D289D                 mov     byte ptr [rsi+20h], 1
-  .text:00000001800D28A1                 jmp     loc_1800D2A62
-  .text:00000001800D28A6                 and     r14d, 0FFFFFFF4h
-  .text:00000001800D28AA                 lea     eax, [rdx+0Ah]
-  .text:00000001800D28AD                 mov     [rsi+10h], eax
-  .text:00000001800D28B0                 or      r14d, 4
-  .text:00000001800D28B4                 mov     rax, [rsi]
-  .text:00000001800D28B7                 mov     rcx, rdx
-  .text:00000001800D28BA                 sar     rcx, 5
-  .text:00000001800D28BE                 mov     r11d, edx
-  .text:00000001800D28C1                 and     r11d, 1Fh
-  .text:00000001800D28C5                 shl     r14d, 2
-  .text:00000001800D28C9                 or      r14d, r15d
-  .text:00000001800D28CC                 mov     r8d, 1FFh
-  .text:00000001800D28D2                 lea     r10, [rax+rcx*4]
-  .text:00000001800D28D6                 movzx   ecx, r11b
-  .text:00000001800D28DA                 rol     r14d, cl
-  .text:00000001800D28DD                 mov     ecx, 1Fh
-  .text:00000001800D28E2                 sub     ecx, r11d
-  .text:00000001800D28E5                 shr     r8d, cl
-  .text:00000001800D28E8                 mov     eax, r8d
-  .text:00000001800D28EB                 and     eax, 1
-  .text:00000001800D28EE                 lea     rdx, [r10+rax*4]
-  .text:00000001800D28F2                 mov     eax, 3FFh
-  .text:00000001800D28F7                 jmp     loc_1800D2A42
-  .text:00000001800D28FC                 cmp     r14d, 1000h
-  .text:00000001800D2903                 jnb     short loc_1800D296C
-  .text:00000001800D2905                 cmp     eax, 0Eh
-  .text:00000001800D2908                 jge     short loc_1800D2916
-  .text:00000001800D290A                 mov     [rsi+10h], ecx
-  .text:00000001800D290D                 mov     byte ptr [rsi+20h], 1
-  .text:00000001800D2911                 jmp     loc_1800D2A62
-  .text:00000001800D2916                 and     r14d, 0FFFFFFF8h
-  .text:00000001800D291A                 lea     eax, [rdx+0Eh]
-  .text:00000001800D291D                 mov     [rsi+10h], eax
-  .text:00000001800D2920                 or      r14d, 8
-  .text:00000001800D2924                 mov     rax, [rsi]
-  .text:00000001800D2927                 mov     rcx, rdx
-  .text:00000001800D292A                 sar     rcx, 5
-  .text:00000001800D292E                 mov     r11d, edx
-  .text:00000001800D2931                 and     r11d, 1Fh
-  .text:00000001800D2935                 shl     r14d, 2
-  .text:00000001800D2939                 or      r14d, r15d
-  .text:00000001800D293C                 mov     r8d, 1FFFh
-  .text:00000001800D2942                 lea     r10, [rax+rcx*4]
-  .text:00000001800D2946                 movzx   ecx, r11b
-  .text:00000001800D294A                 rol     r14d, cl
-  .text:00000001800D294D                 mov     ecx, 1Fh
-  .text:00000001800D2952                 sub     ecx, r11d
-  .text:00000001800D2955                 shr     r8d, cl
-  .text:00000001800D2958                 mov     eax, r8d
-  .text:00000001800D295B                 and     eax, 1
-  .text:00000001800D295E                 lea     rdx, [r10+rax*4]
-  .text:00000001800D2962                 mov     eax, 3FFFh
-  .text:00000001800D2967                 jmp     loc_1800D2A42
-  .text:00000001800D296C                 cmp     eax, 6
-  .text:00000001800D296F                 jge     short loc_1800D297A
-  .text:00000001800D2971                 mov     [rsi+10h], ecx
-  .text:00000001800D2974                 mov     byte ptr [rsi+20h], 1
-  .text:00000001800D2978                 jmp     short loc_1800D29E3
-  .text:00000001800D297A                 lea     eax, [rdx+6]
-  .text:00000001800D297D                 mov     rcx, rdx
-  .text:00000001800D2980                 mov     [rsi+10h], eax
-  .text:00000001800D2983                 mov     r11d, edx
-  .text:00000001800D2986                 mov     rax, [rsi]
-  .text:00000001800D2989                 and     r11d, 1Fh
-  .text:00000001800D298D                 sar     rcx, 5
-  .text:00000001800D2991                 or      r15d, 30h
-  .text:00000001800D2995                 mov     r9d, [rax+rcx*4]
-  .text:00000001800D2999                 lea     r10, [rax+rcx*4]
-  .text:00000001800D299D                 movzx   ecx, r11b
-  .text:00000001800D29A1                 mov     r8d, 1Fh
-  .text:00000001800D29A7                 rol     r15d, cl
-  .text:00000001800D29AA                 mov     ecx, 1Fh
-  .text:00000001800D29AF                 sub     ecx, r11d
-  .text:00000001800D29B2                 shr     r8d, cl
-  .text:00000001800D29B5                 mov     eax, r8d
-  .text:00000001800D29B8                 and     eax, 1
-  .text:00000001800D29BB                 mov     ecx, [r10+rax*4]
-  .text:00000001800D29BF                 lea     rdx, [r10+rax*4]
-  .text:00000001800D29C3                 xor     ecx, r15d
-  .text:00000001800D29C6                 mov     eax, 3Fh ; '?'
-  .text:00000001800D29CB                 and     ecx, r8d
-  .text:00000001800D29CE                 xor     [rdx], ecx
-  .text:00000001800D29D0                 mov     edx, r9d
-  .text:00000001800D29D3                 xor     edx, r15d
-  .text:00000001800D29D6                 mov     ecx, r11d
-  .text:00000001800D29D9                 shl     eax, cl
-  .text:00000001800D29DB                 and     edx, eax
-  .text:00000001800D29DD                 xor     edx, r9d
-  .text:00000001800D29E0                 mov     [r10], edx
-  .text:00000001800D29E3                 mov     ecx, [rsi+0Ch]
-  .text:00000001800D29E6                 mov     eax, ecx
-  .text:00000001800D29E8                 movsxd  rdx, dword ptr [rsi+10h]
-  .text:00000001800D29EC                 sub     eax, edx
-  .text:00000001800D29EE                 cmp     eax, 1Ch
-  .text:00000001800D29F1                 jge     short loc_1800D29FC
-  .text:00000001800D29F3                 mov     [rsi+10h], ecx
-  .text:00000001800D29F6                 mov     byte ptr [rsi+20h], 1
-  .text:00000001800D29FA                 jmp     short loc_1800D2A62
-  .text:00000001800D29FC                 lea     eax, [rdx+1Ch]
-  .text:00000001800D29FF                 shr     r14d, 4
-  .text:00000001800D2A03                 mov     [rsi+10h], eax
-  .text:00000001800D2A06                 mov     rcx, rdx
-  .text:00000001800D2A09                 mov     rax, [rsi]
-  .text:00000001800D2A0C                 mov     r11d, edx
-  .text:00000001800D2A0F                 sar     rcx, 5
-  .text:00000001800D2A13                 and     r11d, 1Fh
-  .text:00000001800D2A17                 mov     r8d, 7FFFFFFh
-  .text:00000001800D2A1D                 lea     r10, [rax+rcx*4]
-  .text:00000001800D2A21                 movzx   ecx, r11b
-  .text:00000001800D2A25                 rol     r14d, cl
-  .text:00000001800D2A28                 mov     ecx, 1Fh
-  .text:00000001800D2A2D                 sub     ecx, r11d
-  .text:00000001800D2A30                 shr     r8d, cl
-  .text:00000001800D2A33                 mov     eax, r8d
-  .text:00000001800D2A36                 and     eax, 1
-  .text:00000001800D2A39                 lea     rdx, [r10+rax*4]
-  .text:00000001800D2A3D                 mov     eax, 0FFFFFFFh
-  .text:00000001800D2A42                 mov     ecx, [rdx]
-  .text:00000001800D2A44                 mov     r9d, [r10]
-  .text:00000001800D2A47                 xor     ecx, r14d
-  .text:00000001800D2A4A                 and     ecx, r8d
-  .text:00000001800D2A4D                 xor     [rdx], ecx
-  .text:00000001800D2A4F                 mov     ecx, r11d
-  .text:00000001800D2A52                 shl     eax, cl
-  .text:00000001800D2A54                 mov     edx, r9d
-  .text:00000001800D2A57                 xor     edx, r14d
-  .text:00000001800D2A5A                 and     edx, eax
-  .text:00000001800D2A5C                 xor     edx, r9d
-  .text:00000001800D2A5F                 mov     [r10], edx
-  .text:00000001800D2A62                 mov     rax, [rbp+57h+var_70]
-  .text:00000001800D2A66                 lea     rcx, [rbp+57h+var_70]
-  .text:00000001800D2A6A                 xor     edx, edx
-  .text:00000001800D2A6C                 call    qword ptr [rax]
-  .text:00000001800D2A6E                 cmp     edi, 7FFFFFFFh
-  .text:00000001800D2A74                 jz      loc_1800D24AA
-  .text:00000001800D2A7A                 test    r12, r12
-  .text:00000001800D2A7D                 jz      short loc_1800D2ABC
-  .text:00000001800D2A7F                 lea     ecx, [rdi+1]
-  .text:00000001800D2A82                 mov     dword ptr [rsp+20h], 0FFFFFFFFh
-  .text:00000001800D2A8A                 mov     r9, r12
-  .text:00000001800D2A8D                 mov     edx, 4000h
-  .text:00000001800D2A92                 mov     r8d, 200h
-  .text:00000001800D2A98                 call    sub_1800490B0
-  .text:00000001800D2A9D                 mov     edi, eax
-  .text:00000001800D2A9F                 test    eax, eax
-  .text:00000001800D2AA1                 js      short loc_1800D2AAD
-  .text:00000001800D2AA3                 jz      loc_1800D24A2
-  .text:00000001800D2AA9                 mov     al, 1
-  .text:00000001800D2AAB                 jmp     short loc_1800D2AB4
-  .text:00000001800D2AAD                 mov     edi, 0FFFFFFFFh
-  .text:00000001800D2AB2                 mov     al, 0FFh
-  .text:00000001800D2AB4                 test    al, al
-  .text:00000001800D2AB6                 jns     loc_1800D24A2
-  .text:00000001800D2ABC                 mov     edi, 7FFFFFFFh
-  .text:00000001800D2AC1                 jmp     loc_1800D24A2
-  .text:00000001800D2AC6                 cmp     byte ptr [rbp+57h+var_38], 0
-  .text:00000001800D2ACA                 mov     r15, [rsp+0A0h+var_30]
-  .text:00000001800D2ACF                 mov     r14, [rsp+0A0h+var_28]
-  .text:00000001800D2AD4                 mov     r13, [rsp+0A0h+var_20]
-  .text:00000001800D2ADC                 mov     r12, [rsp+88h]
-  .text:00000001800D2AE4                 mov     rsi, [rsp+0A0h+arg_18]
-  .text:00000001800D2AEC                 jz      short loc_1800D2AF5
-  .text:00000001800D2AEE                 xor     bl, bl
-  .text:00000001800D2AF0                 jmp     loc_1800D2BA0
-  .text:00000001800D2AF5                 mov     rbx, [rbp+57h+arg_8]
-  .text:00000001800D2AF9                 mov     rbx, [rbx+80h]
-  .text:00000001800D2B00                 or      dword ptr [rbx+40h], 8
-  .text:00000001800D2B04                 mov     rax, [rbx+90h]
-  .text:00000001800D2B0B                 test    rax, rax
-  .text:00000001800D2B0E                 jnz     short loc_1800D2B32
-  .text:00000001800D2B10                 mov     rcx, [rbx+38h]
-  .text:00000001800D2B14                 and     rcx, 0FFFFFFFFFFFFFFFCh
-  .text:00000001800D2B18                 test    byte ptr [rbx+38h], 1
-  .text:00000001800D2B1C                 jz      short loc_1800D2B21
-  .text:00000001800D2B1E                 mov     rcx, [rcx]
-  .text:00000001800D2B21                 call    sub_1801702A0
-  .text:00000001800D2B26                 mov     [rbx+90h], rax
-  .text:00000001800D2B2D                 test    rax, rax
-  .text:00000001800D2B30                 jz      short loc_1800D2B9E
-  .text:00000001800D2B32                 mov     ecx, [rbp+57h+var_60]
-  .text:00000001800D2B35                 or      dword ptr [rax+10h], 3
-  .text:00000001800D2B39                 mov     [rax+20h], ecx
-  .text:00000001800D2B3C                 lea     rcx, [rax+18h]
-  .text:00000001800D2B40                 mov     rdx, [rax+8]
-  .text:00000001800D2B44                 and     rdx, 0FFFFFFFFFFFFFFFCh
-  .text:00000001800D2B48                 test    byte ptr [rax+8], 1
-  .text:00000001800D2B4C                 jz      short loc_1800D2B51
-  .text:00000001800D2B4E                 mov     rdx, [rdx]
-  .text:00000001800D2B51                 call    sub_180251640
-  .text:00000001800D2B56                 mov     ecx, [rbp+57h+var_48]
-  .text:00000001800D2B59                 mov     r9, [rbp+57h+var_58]
-  .text:00000001800D2B5D                 add     ecx, 7
-  .text:00000001800D2B60                 sar     ecx, 3
-  .text:00000001800D2B63                 movsxd  rbx, ecx
-  .text:00000001800D2B66                 mov     rcx, [rax+18h]
-  .text:00000001800D2B6A                 cmp     rbx, rcx
-  .text:00000001800D2B6D                 ja      short loc_1800D2B93
-  .text:00000001800D2B6F                 mov     rdi, rax
-  .text:00000001800D2B72                 cmp     rcx, 0Fh
-  .text:00000001800D2B76                 jbe     short loc_1800D2B7B
-  .text:00000001800D2B78                 mov     rdi, [rax]
-  .text:00000001800D2B7B                 mov     r8, rbx
-  .text:00000001800D2B7E                 mov     [rax+10h], rbx
-  .text:00000001800D2B82                 mov     rdx, r9
-  .text:00000001800D2B85                 mov     rcx, rdi
-  .text:00000001800D2B88                 call    sub_1804735C0
-  .text:00000001800D2B8D                 mov     byte ptr [rdi+rbx], 0
-  .text:00000001800D2B91                 jmp     short loc_1800D2B9E
-  .text:00000001800D2B93                 mov     rdx, rbx
-  .text:00000001800D2B96                 mov     rcx, rax
-  .text:00000001800D2B99                 call    sub_180044F00
-  .text:00000001800D2B9E                 mov     bl, 1
-  .text:00000001800D2BA0                 mov     rcx, [rbp+57h+arg_0]
-  .text:00000001800D2BA4                 mov     rdx, [rbp+57h+arg_10]
-  .text:00000001800D2BA8                 mov     r8, [rcx]
-  .text:00000001800D2BAB                 call    qword ptr [r8+140h]; 0x140 = 320LL = INetworkSystem_PutScratchBuffer
-  .text:00000001800D2BB2                 movzx   eax, bl
-  .text:00000001800D2BB5                 add     rsp, 90h
-  .text:00000001800D2BBC                 pop     rdi
-  .text:00000001800D2BBD                 pop     rbx
-  .text:00000001800D2BBE                 pop     rbp
-  .text:00000001800D2BBF                 retn
+  .text:00000001800D2CF0                 mov     rax, rsp
+  .text:00000001800D2CF3                 mov     [rax+10h], rdx
+  .text:00000001800D2CF7                 mov     [rax+8], rcx
+  .text:00000001800D2CFB                 push    rbp
+  .text:00000001800D2CFC                 push    rbx
+  .text:00000001800D2CFD                 push    rdi
+  .text:00000001800D2CFE                 lea     rbp, [rax-5Fh]
+  .text:00000001800D2D02                 sub     rsp, 90h
+  .text:00000001800D2D09                 mov     [rax+20h], rsi
+  .text:00000001800D2D0D                 mov     rsi, cs:qword_180696958
+  .text:00000001800D2D14                 mov     [rax-20h], r12
+  .text:00000001800D2D18                 mov     rcx, rsi
+  .text:00000001800D2D1B                 mov     [rax-28h], r13
+  .text:00000001800D2D1F                 mov     [rax-30h], r14
+  .text:00000001800D2D23                 mov     r14, rdx
+  .text:00000001800D2D26                 mov     rax, [rsi]
+  .text:00000001800D2D29                 mov     [rbp+57h+arg_0], rsi
+  .text:00000001800D2D2D                 call    qword ptr [rax+138h]
+  .text:00000001800D2D33                 mov     r9d, 138800h
+  .text:00000001800D2D39                 mov     dword ptr [rsp+20h], 0FFFFFFFFh
+  .text:00000001800D2D41                 mov     r8, rax
+  .text:00000001800D2D44                 mov     [rbp+57h+arg_10], rax
+  .text:00000001800D2D48                 lea     rdx, aWritenontransm; "WriteNonTransmitted"
+  .text:00000001800D2D4F                 lea     rcx, [rbp+57h+var_58]
+  .text:00000001800D2D53                 call    sub_180402610
+  .text:00000001800D2D58                 mov     rcx, [r14+10h]
+  .text:00000001800D2D5C                 xor     esi, esi
+  .text:00000001800D2D5E                 test    rcx, rcx
+  .text:00000001800D2D61                 lea     r12, [rcx+820h]
+  .text:00000001800D2D68                 cmovz   r12, rsi
+  .text:00000001800D2D6C                 test    r12, r12
+  .text:00000001800D2D6F                 jz      short loc_1800D2DA5
+  .text:00000001800D2D71                 mov     r9, r12
+  .text:00000001800D2D74                 mov     dword ptr [rsp+20h], 0FFFFFFFFh
+  .text:00000001800D2D7C                 mov     edx, 4000h
+  .text:00000001800D2D81                 xor     ecx, ecx
+  .text:00000001800D2D83                 mov     r8d, 200h
+  .text:00000001800D2D89                 call    sub_180048C90
+  .text:00000001800D2D8E                 mov     edi, eax
+  .text:00000001800D2D90                 test    eax, eax
+  .text:00000001800D2D92                 js      short loc_1800D2D9A
+  .text:00000001800D2D94                 jz      short loc_1800D2DAA
+  .text:00000001800D2D96                 mov     al, 1
+  .text:00000001800D2D98                 jmp     short loc_1800D2DA1
+  .text:00000001800D2D9A                 mov     edi, 0FFFFFFFFh
+  .text:00000001800D2D9F                 mov     al, 0FFh
+  .text:00000001800D2DA1                 test    al, al
+  .text:00000001800D2DA3                 jns     short loc_1800D2DAA
+  .text:00000001800D2DA5                 mov     edi, 7FFFFFFFh
+  .text:00000001800D2DAA                 mov     r13, [r14+18h]
+  .text:00000001800D2DAE                 add     r13, 820h
+  .text:00000001800D2DB5                 jz      short loc_1800D2DEB
+  .text:00000001800D2DB7                 mov     r9, r13
+  .text:00000001800D2DBA                 mov     dword ptr [rsp+20h], 0FFFFFFFFh
+  .text:00000001800D2DC2                 mov     edx, 4000h
+  .text:00000001800D2DC7                 xor     ecx, ecx
+  .text:00000001800D2DC9                 mov     r8d, 200h
+  .text:00000001800D2DCF                 call    sub_180048C90
+  .text:00000001800D2DD4                 mov     ebx, eax
+  .text:00000001800D2DD6                 test    eax, eax
+  .text:00000001800D2DD8                 js      short loc_1800D2DE0
+  .text:00000001800D2DDA                 jz      short loc_1800D2DF0
+  .text:00000001800D2DDC                 mov     al, 1
+  .text:00000001800D2DDE                 jmp     short loc_1800D2DE7
+  .text:00000001800D2DE0                 mov     ebx, 0FFFFFFFFh
+  .text:00000001800D2DE5                 mov     al, 0FFh
+  .text:00000001800D2DE7                 test    al, al
+  .text:00000001800D2DE9                 jns     short loc_1800D2DF0
+  .text:00000001800D2DEB                 mov     ebx, 7FFFFFFFh
+  .text:00000001800D2DF0                 lea     rax, [rbp+57h+var_58]
+  .text:00000001800D2DF4                 mov     [rbp+57h+var_60], esi
+  .text:00000001800D2DF7                 mov     [rbp+57h+var_68], rax
+  .text:00000001800D2DFB                 lea     rax, ??_7CDeltaEntityNonTransmitHeaderWriter@@6B@; const CDeltaEntityNonTransmitHeaderWriter::`vftable'
+  .text:00000001800D2E02                 mov     [rbp+57h+var_70], rax
+  .text:00000001800D2E06                 mov     [rbp+57h+var_5C], 0FFFFFFFFh
+  .text:00000001800D2E0D                 mov     [rsp+0A0h+var_30], r15
+  .text:00000001800D2E12                 cmp     edi, 7FFFFFFFh
+  .text:00000001800D2E18                 jnz     short loc_1800D2E26
+  .text:00000001800D2E1A                 cmp     ebx, 7FFFFFFFh
+  .text:00000001800D2E20                 jz      loc_1800D3436
+  .text:00000001800D2E26                 cmp     ebx, edi
+  .text:00000001800D2E28                 jnz     loc_1800D2EC9
+  .text:00000001800D2E2E                 cmp     edi, 7FFFFFFFh
+  .text:00000001800D2E34                 jz      short loc_1800D2E75
+  .text:00000001800D2E36                 test    r12, r12
+  .text:00000001800D2E39                 jz      short loc_1800D2E70
+  .text:00000001800D2E3B                 lea     ecx, [rdi+1]
+  .text:00000001800D2E3E                 mov     dword ptr [rsp+20h], 0FFFFFFFFh
+  .text:00000001800D2E46                 mov     r9, r12
+  .text:00000001800D2E49                 mov     edx, 4000h
+  .text:00000001800D2E4E                 mov     r8d, 200h
+  .text:00000001800D2E54                 call    sub_180048C90
+  .text:00000001800D2E59                 mov     edi, eax
+  .text:00000001800D2E5B                 test    eax, eax
+  .text:00000001800D2E5D                 js      short loc_1800D2E65
+  .text:00000001800D2E5F                 jz      short loc_1800D2E75
+  .text:00000001800D2E61                 mov     al, 1
+  .text:00000001800D2E63                 jmp     short loc_1800D2E6C
+  .text:00000001800D2E65                 mov     edi, 0FFFFFFFFh
+  .text:00000001800D2E6A                 mov     al, 0FFh
+  .text:00000001800D2E6C                 test    al, al
+  .text:00000001800D2E6E                 jns     short loc_1800D2E75
+  .text:00000001800D2E70                 mov     edi, 7FFFFFFFh
+  .text:00000001800D2E75                 cmp     ebx, 7FFFFFFFh
+  .text:00000001800D2E7B                 jz      short loc_1800D2E12
+  .text:00000001800D2E7D                 test    r13, r13
+  .text:00000001800D2E80                 jz      short loc_1800D2EBF
+  .text:00000001800D2E82                 lea     ecx, [rbx+1]
+  .text:00000001800D2E85                 mov     dword ptr [rsp+20h], 0FFFFFFFFh
+  .text:00000001800D2E8D                 mov     r9, r13
+  .text:00000001800D2E90                 mov     edx, 4000h
+  .text:00000001800D2E95                 mov     r8d, 200h
+  .text:00000001800D2E9B                 call    sub_180048C90
+  .text:00000001800D2EA0                 mov     ebx, eax
+  .text:00000001800D2EA2                 test    eax, eax
+  .text:00000001800D2EA4                 js      short loc_1800D2EB0
+  .text:00000001800D2EA6                 jz      loc_1800D2E12
+  .text:00000001800D2EAC                 mov     al, 1
+  .text:00000001800D2EAE                 jmp     short loc_1800D2EB7
+  .text:00000001800D2EB0                 mov     ebx, 0FFFFFFFFh
+  .text:00000001800D2EB5                 mov     al, 0FFh
+  .text:00000001800D2EB7                 test    al, al
+  .text:00000001800D2EB9                 jns     loc_1800D2E12
+  .text:00000001800D2EBF                 mov     ebx, 7FFFFFFFh
+  .text:00000001800D2EC4                 jmp     loc_1800D2E12
+  .text:00000001800D2EC9                 mov     rsi, [rbp+57h+var_68]
+  .text:00000001800D2ECD                 jge     loc_1800D317C
+  .text:00000001800D2ED3                 inc     [rbp+57h+var_60]
+  .text:00000001800D2ED6                 mov     r14d, ebx
+  .text:00000001800D2ED9                 sub     r14d, [rbp+57h+var_5C]
+  .text:00000001800D2EDD                 mov     [rbp+57h+var_5C], ebx
+  .text:00000001800D2EE0                 dec     r14d
+  .text:00000001800D2EE3                 mov     ecx, [rsi+0Ch]
+  .text:00000001800D2EE6                 mov     eax, ecx
+  .text:00000001800D2EE8                 movsxd  rdx, dword ptr [rsi+10h]
+  .text:00000001800D2EEC                 sub     eax, edx
+  .text:00000001800D2EEE                 cmp     r14d, 10h
+  .text:00000001800D2EF2                 jnb     short loc_1800D2F5B
+  .text:00000001800D2EF4                 cmp     eax, 6
+  .text:00000001800D2EF7                 jge     short loc_1800D2F14
+  .text:00000001800D2EF9                 mov     [rsi+10h], ecx
+  .text:00000001800D2EFC                 mov     edx, 1
+  .text:00000001800D2F01                 mov     byte ptr [rsi+20h], 1
+  .text:00000001800D2F05                 lea     rcx, [rbp+57h+var_70]
+  .text:00000001800D2F09                 mov     rax, [rbp+57h+var_70]
+  .text:00000001800D2F0D                 call    qword ptr [rax]
+  .text:00000001800D2F0F                 jmp     loc_1800D2E75
+  .text:00000001800D2F14                 lea     eax, [rdx+6]
+  .text:00000001800D2F17                 mov     rcx, rdx
+  .text:00000001800D2F1A                 sar     rcx, 5
+  .text:00000001800D2F1E                 mov     r11d, edx
+  .text:00000001800D2F21                 mov     [rsi+10h], eax
+  .text:00000001800D2F24                 and     r11d, 1Fh
+  .text:00000001800D2F28                 mov     rax, [rsi]
+  .text:00000001800D2F2B                 mov     r8d, 1Fh
+  .text:00000001800D2F31                 lea     r10, [rax+rcx*4]
+  .text:00000001800D2F35                 movzx   ecx, r11b
+  .text:00000001800D2F39                 rol     r14d, cl
+  .text:00000001800D2F3C                 mov     ecx, 1Fh
+  .text:00000001800D2F41                 sub     ecx, r11d
+  .text:00000001800D2F44                 shr     r8d, cl
+  .text:00000001800D2F47                 mov     eax, r8d
+  .text:00000001800D2F4A                 and     eax, 1
+  .text:00000001800D2F4D                 lea     rdx, [r10+rax*4]
+  .text:00000001800D2F51                 mov     eax, 3Fh ; '?'
+  .text:00000001800D2F56                 jmp     loc_1800D3148
+  .text:00000001800D2F5B                 mov     r15d, r14d
+  .text:00000001800D2F5E                 and     r15d, 0Fh
+  .text:00000001800D2F62                 cmp     r14d, 100h
+  .text:00000001800D2F69                 jnb     short loc_1800D2FE1
+  .text:00000001800D2F6B                 cmp     eax, 0Ah
+  .text:00000001800D2F6E                 jge     short loc_1800D2F8B
+  .text:00000001800D2F70                 mov     [rsi+10h], ecx
+  .text:00000001800D2F73                 mov     edx, 1
+  .text:00000001800D2F78                 mov     byte ptr [rsi+20h], 1
+  .text:00000001800D2F7C                 lea     rcx, [rbp+57h+var_70]
+  .text:00000001800D2F80                 mov     rax, [rbp+57h+var_70]
+  .text:00000001800D2F84                 call    qword ptr [rax]
+  .text:00000001800D2F86                 jmp     loc_1800D2E75
+  .text:00000001800D2F8B                 and     r14d, 0FFFFFFF4h
+  .text:00000001800D2F8F                 lea     eax, [rdx+0Ah]
+  .text:00000001800D2F92                 mov     [rsi+10h], eax
+  .text:00000001800D2F95                 or      r14d, 4
+  .text:00000001800D2F99                 mov     rax, [rsi]
+  .text:00000001800D2F9C                 mov     rcx, rdx
+  .text:00000001800D2F9F                 sar     rcx, 5
+  .text:00000001800D2FA3                 mov     r11d, edx
+  .text:00000001800D2FA6                 and     r11d, 1Fh
+  .text:00000001800D2FAA                 shl     r14d, 2
+  .text:00000001800D2FAE                 or      r14d, r15d
+  .text:00000001800D2FB1                 mov     r8d, 1FFh
+  .text:00000001800D2FB7                 lea     r10, [rax+rcx*4]
+  .text:00000001800D2FBB                 movzx   ecx, r11b
+  .text:00000001800D2FBF                 rol     r14d, cl
+  .text:00000001800D2FC2                 mov     ecx, 1Fh
+  .text:00000001800D2FC7                 sub     ecx, r11d
+  .text:00000001800D2FCA                 shr     r8d, cl
+  .text:00000001800D2FCD                 mov     eax, r8d
+  .text:00000001800D2FD0                 and     eax, 1
+  .text:00000001800D2FD3                 lea     rdx, [r10+rax*4]
+  .text:00000001800D2FD7                 mov     eax, 3FFh
+  .text:00000001800D2FDC                 jmp     loc_1800D3148
+  .text:00000001800D2FE1                 cmp     r14d, 1000h
+  .text:00000001800D2FE8                 jnb     short loc_1800D3060
+  .text:00000001800D2FEA                 cmp     eax, 0Eh
+  .text:00000001800D2FED                 jge     short loc_1800D300A
+  .text:00000001800D2FEF                 mov     [rsi+10h], ecx
+  .text:00000001800D2FF2                 mov     edx, 1
+  .text:00000001800D2FF7                 mov     byte ptr [rsi+20h], 1
+  .text:00000001800D2FFB                 lea     rcx, [rbp+57h+var_70]
+  .text:00000001800D2FFF                 mov     rax, [rbp+57h+var_70]
+  .text:00000001800D3003                 call    qword ptr [rax]
+  .text:00000001800D3005                 jmp     loc_1800D2E75
+  .text:00000001800D300A                 and     r14d, 0FFFFFFF8h
+  .text:00000001800D300E                 lea     eax, [rdx+0Eh]
+  .text:00000001800D3011                 mov     [rsi+10h], eax
+  .text:00000001800D3014                 or      r14d, 8
+  .text:00000001800D3018                 mov     rax, [rsi]
+  .text:00000001800D301B                 mov     rcx, rdx
+  .text:00000001800D301E                 sar     rcx, 5
+  .text:00000001800D3022                 mov     r11d, edx
+  .text:00000001800D3025                 and     r11d, 1Fh
+  .text:00000001800D3029                 shl     r14d, 2
+  .text:00000001800D302D                 or      r14d, r15d
+  .text:00000001800D3030                 mov     r8d, 1FFFh
+  .text:00000001800D3036                 lea     r10, [rax+rcx*4]
+  .text:00000001800D303A                 movzx   ecx, r11b
+  .text:00000001800D303E                 rol     r14d, cl
+  .text:00000001800D3041                 mov     ecx, 1Fh
+  .text:00000001800D3046                 sub     ecx, r11d
+  .text:00000001800D3049                 shr     r8d, cl
+  .text:00000001800D304C                 mov     eax, r8d
+  .text:00000001800D304F                 and     eax, 1
+  .text:00000001800D3052                 lea     rdx, [r10+rax*4]
+  .text:00000001800D3056                 mov     eax, 3FFFh
+  .text:00000001800D305B                 jmp     loc_1800D3148
+  .text:00000001800D3060                 cmp     eax, 6
+  .text:00000001800D3063                 jge     short loc_1800D306E
+  .text:00000001800D3065                 mov     [rsi+10h], ecx
+  .text:00000001800D3068                 mov     byte ptr [rsi+20h], 1
+  .text:00000001800D306C                 jmp     short loc_1800D30D7
+  .text:00000001800D306E                 lea     eax, [rdx+6]
+  .text:00000001800D3071                 mov     rcx, rdx
+  .text:00000001800D3074                 mov     [rsi+10h], eax
+  .text:00000001800D3077                 mov     r11d, edx
+  .text:00000001800D307A                 mov     rax, [rsi]
+  .text:00000001800D307D                 and     r11d, 1Fh
+  .text:00000001800D3081                 sar     rcx, 5
+  .text:00000001800D3085                 or      r15d, 30h
+  .text:00000001800D3089                 mov     r9d, [rax+rcx*4]
+  .text:00000001800D308D                 lea     r10, [rax+rcx*4]
+  .text:00000001800D3091                 movzx   ecx, r11b
+  .text:00000001800D3095                 mov     r8d, 1Fh
+  .text:00000001800D309B                 rol     r15d, cl
+  .text:00000001800D309E                 mov     ecx, 1Fh
+  .text:00000001800D30A3                 sub     ecx, r11d
+  .text:00000001800D30A6                 shr     r8d, cl
+  .text:00000001800D30A9                 mov     eax, r8d
+  .text:00000001800D30AC                 and     eax, 1
+  .text:00000001800D30AF                 mov     ecx, [r10+rax*4]
+  .text:00000001800D30B3                 lea     rdx, [r10+rax*4]
+  .text:00000001800D30B7                 xor     ecx, r15d
+  .text:00000001800D30BA                 mov     eax, 3Fh ; '?'
+  .text:00000001800D30BF                 and     ecx, r8d
+  .text:00000001800D30C2                 xor     [rdx], ecx
+  .text:00000001800D30C4                 mov     edx, r9d
+  .text:00000001800D30C7                 xor     edx, r15d
+  .text:00000001800D30CA                 mov     ecx, r11d
+  .text:00000001800D30CD                 shl     eax, cl
+  .text:00000001800D30CF                 and     edx, eax
+  .text:00000001800D30D1                 xor     edx, r9d
+  .text:00000001800D30D4                 mov     [r10], edx
+  .text:00000001800D30D7                 mov     ecx, [rsi+0Ch]
+  .text:00000001800D30DA                 mov     eax, ecx
+  .text:00000001800D30DC                 movsxd  rdx, dword ptr [rsi+10h]
+  .text:00000001800D30E0                 sub     eax, edx
+  .text:00000001800D30E2                 cmp     eax, 1Ch
+  .text:00000001800D30E5                 jge     short loc_1800D3102
+  .text:00000001800D30E7                 mov     [rsi+10h], ecx
+  .text:00000001800D30EA                 mov     edx, 1
+  .text:00000001800D30EF                 mov     byte ptr [rsi+20h], 1
+  .text:00000001800D30F3                 lea     rcx, [rbp+57h+var_70]
+  .text:00000001800D30F7                 mov     rax, [rbp+57h+var_70]
+  .text:00000001800D30FB                 call    qword ptr [rax]
+  .text:00000001800D30FD                 jmp     loc_1800D2E75
+  .text:00000001800D3102                 lea     eax, [rdx+1Ch]
+  .text:00000001800D3105                 shr     r14d, 4
+  .text:00000001800D3109                 mov     [rsi+10h], eax
+  .text:00000001800D310C                 mov     rcx, rdx
+  .text:00000001800D310F                 mov     rax, [rsi]
+  .text:00000001800D3112                 mov     r11d, edx
+  .text:00000001800D3115                 sar     rcx, 5
+  .text:00000001800D3119                 and     r11d, 1Fh
+  .text:00000001800D311D                 mov     r8d, 7FFFFFFh
+  .text:00000001800D3123                 lea     r10, [rax+rcx*4]
+  .text:00000001800D3127                 movzx   ecx, r11b
+  .text:00000001800D312B                 rol     r14d, cl
+  .text:00000001800D312E                 mov     ecx, 1Fh
+  .text:00000001800D3133                 sub     ecx, r11d
+  .text:00000001800D3136                 shr     r8d, cl
+  .text:00000001800D3139                 mov     eax, r8d
+  .text:00000001800D313C                 and     eax, 1
+  .text:00000001800D313F                 lea     rdx, [r10+rax*4]
+  .text:00000001800D3143                 mov     eax, 0FFFFFFFh
+  .text:00000001800D3148                 mov     ecx, [rdx]
+  .text:00000001800D314A                 mov     r9d, [r10]
+  .text:00000001800D314D                 xor     ecx, r14d
+  .text:00000001800D3150                 and     ecx, r8d
+  .text:00000001800D3153                 xor     [rdx], ecx
+  .text:00000001800D3155                 mov     ecx, r11d
+  .text:00000001800D3158                 shl     eax, cl
+  .text:00000001800D315A                 mov     edx, r9d
+  .text:00000001800D315D                 xor     edx, r14d
+  .text:00000001800D3160                 lea     rcx, [rbp+57h+var_70]
+  .text:00000001800D3164                 and     edx, eax
+  .text:00000001800D3166                 xor     edx, r9d
+  .text:00000001800D3169                 mov     [r10], edx
+  .text:00000001800D316C                 mov     edx, 1
+  .text:00000001800D3171                 mov     rax, [rbp+57h+var_70]
+  .text:00000001800D3175                 call    qword ptr [rax]
+  .text:00000001800D3177                 jmp     loc_1800D2E75
+  .text:00000001800D317C                 inc     [rbp+57h+var_60]
+  .text:00000001800D317F                 mov     r14d, edi
+  .text:00000001800D3182                 sub     r14d, [rbp+57h+var_5C]
+  .text:00000001800D3186                 mov     [rbp+57h+var_5C], edi
+  .text:00000001800D3189                 dec     r14d
+  .text:00000001800D318C                 mov     ecx, [rsi+0Ch]
+  .text:00000001800D318F                 mov     eax, ecx
+  .text:00000001800D3191                 movsxd  rdx, dword ptr [rsi+10h]
+  .text:00000001800D3195                 sub     eax, edx
+  .text:00000001800D3197                 cmp     r14d, 10h
+  .text:00000001800D319B                 jnb     short loc_1800D31F5
+  .text:00000001800D319D                 cmp     eax, 6
+  .text:00000001800D31A0                 jge     short loc_1800D31AE
+  .text:00000001800D31A2                 mov     [rsi+10h], ecx
+  .text:00000001800D31A5                 mov     byte ptr [rsi+20h], 1
+  .text:00000001800D31A9                 jmp     loc_1800D33D2
+  .text:00000001800D31AE                 lea     eax, [rdx+6]
+  .text:00000001800D31B1                 mov     rcx, rdx
+  .text:00000001800D31B4                 sar     rcx, 5
+  .text:00000001800D31B8                 mov     r11d, edx
+  .text:00000001800D31BB                 mov     [rsi+10h], eax
+  .text:00000001800D31BE                 and     r11d, 1Fh
+  .text:00000001800D31C2                 mov     rax, [rsi]
+  .text:00000001800D31C5                 mov     r8d, 1Fh
+  .text:00000001800D31CB                 lea     r10, [rax+rcx*4]
+  .text:00000001800D31CF                 movzx   ecx, r11b
+  .text:00000001800D31D3                 rol     r14d, cl
+  .text:00000001800D31D6                 mov     ecx, 1Fh
+  .text:00000001800D31DB                 sub     ecx, r11d
+  .text:00000001800D31DE                 shr     r8d, cl
+  .text:00000001800D31E1                 mov     eax, r8d
+  .text:00000001800D31E4                 and     eax, 1
+  .text:00000001800D31E7                 lea     rdx, [r10+rax*4]
+  .text:00000001800D31EB                 mov     eax, 3Fh ; '?'
+  .text:00000001800D31F0                 jmp     loc_1800D33B2
+  .text:00000001800D31F5                 mov     r15d, r14d
+  .text:00000001800D31F8                 and     r15d, 0Fh
+  .text:00000001800D31FC                 cmp     r14d, 100h
+  .text:00000001800D3203                 jnb     short loc_1800D326C
+  .text:00000001800D3205                 cmp     eax, 0Ah
+  .text:00000001800D3208                 jge     short loc_1800D3216
+  .text:00000001800D320A                 mov     [rsi+10h], ecx
+  .text:00000001800D320D                 mov     byte ptr [rsi+20h], 1
+  .text:00000001800D3211                 jmp     loc_1800D33D2
+  .text:00000001800D3216                 and     r14d, 0FFFFFFF4h
+  .text:00000001800D321A                 lea     eax, [rdx+0Ah]
+  .text:00000001800D321D                 mov     [rsi+10h], eax
+  .text:00000001800D3220                 or      r14d, 4
+  .text:00000001800D3224                 mov     rax, [rsi]
+  .text:00000001800D3227                 mov     rcx, rdx
+  .text:00000001800D322A                 sar     rcx, 5
+  .text:00000001800D322E                 mov     r11d, edx
+  .text:00000001800D3231                 and     r11d, 1Fh
+  .text:00000001800D3235                 shl     r14d, 2
+  .text:00000001800D3239                 or      r14d, r15d
+  .text:00000001800D323C                 mov     r8d, 1FFh
+  .text:00000001800D3242                 lea     r10, [rax+rcx*4]
+  .text:00000001800D3246                 movzx   ecx, r11b
+  .text:00000001800D324A                 rol     r14d, cl
+  .text:00000001800D324D                 mov     ecx, 1Fh
+  .text:00000001800D3252                 sub     ecx, r11d
+  .text:00000001800D3255                 shr     r8d, cl
+  .text:00000001800D3258                 mov     eax, r8d
+  .text:00000001800D325B                 and     eax, 1
+  .text:00000001800D325E                 lea     rdx, [r10+rax*4]
+  .text:00000001800D3262                 mov     eax, 3FFh
+  .text:00000001800D3267                 jmp     loc_1800D33B2
+  .text:00000001800D326C                 cmp     r14d, 1000h
+  .text:00000001800D3273                 jnb     short loc_1800D32DC
+  .text:00000001800D3275                 cmp     eax, 0Eh
+  .text:00000001800D3278                 jge     short loc_1800D3286
+  .text:00000001800D327A                 mov     [rsi+10h], ecx
+  .text:00000001800D327D                 mov     byte ptr [rsi+20h], 1
+  .text:00000001800D3281                 jmp     loc_1800D33D2
+  .text:00000001800D3286                 and     r14d, 0FFFFFFF8h
+  .text:00000001800D328A                 lea     eax, [rdx+0Eh]
+  .text:00000001800D328D                 mov     [rsi+10h], eax
+  .text:00000001800D3290                 or      r14d, 8
+  .text:00000001800D3294                 mov     rax, [rsi]
+  .text:00000001800D3297                 mov     rcx, rdx
+  .text:00000001800D329A                 sar     rcx, 5
+  .text:00000001800D329E                 mov     r11d, edx
+  .text:00000001800D32A1                 and     r11d, 1Fh
+  .text:00000001800D32A5                 shl     r14d, 2
+  .text:00000001800D32A9                 or      r14d, r15d
+  .text:00000001800D32AC                 mov     r8d, 1FFFh
+  .text:00000001800D32B2                 lea     r10, [rax+rcx*4]
+  .text:00000001800D32B6                 movzx   ecx, r11b
+  .text:00000001800D32BA                 rol     r14d, cl
+  .text:00000001800D32BD                 mov     ecx, 1Fh
+  .text:00000001800D32C2                 sub     ecx, r11d
+  .text:00000001800D32C5                 shr     r8d, cl
+  .text:00000001800D32C8                 mov     eax, r8d
+  .text:00000001800D32CB                 and     eax, 1
+  .text:00000001800D32CE                 lea     rdx, [r10+rax*4]
+  .text:00000001800D32D2                 mov     eax, 3FFFh
+  .text:00000001800D32D7                 jmp     loc_1800D33B2
+  .text:00000001800D32DC                 cmp     eax, 6
+  .text:00000001800D32DF                 jge     short loc_1800D32EA
+  .text:00000001800D32E1                 mov     [rsi+10h], ecx
+  .text:00000001800D32E4                 mov     byte ptr [rsi+20h], 1
+  .text:00000001800D32E8                 jmp     short loc_1800D3353
+  .text:00000001800D32EA                 lea     eax, [rdx+6]
+  .text:00000001800D32ED                 mov     rcx, rdx
+  .text:00000001800D32F0                 mov     [rsi+10h], eax
+  .text:00000001800D32F3                 mov     r11d, edx
+  .text:00000001800D32F6                 mov     rax, [rsi]
+  .text:00000001800D32F9                 and     r11d, 1Fh
+  .text:00000001800D32FD                 sar     rcx, 5
+  .text:00000001800D3301                 or      r15d, 30h
+  .text:00000001800D3305                 mov     r9d, [rax+rcx*4]
+  .text:00000001800D3309                 lea     r10, [rax+rcx*4]
+  .text:00000001800D330D                 movzx   ecx, r11b
+  .text:00000001800D3311                 mov     r8d, 1Fh
+  .text:00000001800D3317                 rol     r15d, cl
+  .text:00000001800D331A                 mov     ecx, 1Fh
+  .text:00000001800D331F                 sub     ecx, r11d
+  .text:00000001800D3322                 shr     r8d, cl
+  .text:00000001800D3325                 mov     eax, r8d
+  .text:00000001800D3328                 and     eax, 1
+  .text:00000001800D332B                 mov     ecx, [r10+rax*4]
+  .text:00000001800D332F                 lea     rdx, [r10+rax*4]
+  .text:00000001800D3333                 xor     ecx, r15d
+  .text:00000001800D3336                 mov     eax, 3Fh ; '?'
+  .text:00000001800D333B                 and     ecx, r8d
+  .text:00000001800D333E                 xor     [rdx], ecx
+  .text:00000001800D3340                 mov     edx, r9d
+  .text:00000001800D3343                 xor     edx, r15d
+  .text:00000001800D3346                 mov     ecx, r11d
+  .text:00000001800D3349                 shl     eax, cl
+  .text:00000001800D334B                 and     edx, eax
+  .text:00000001800D334D                 xor     edx, r9d
+  .text:00000001800D3350                 mov     [r10], edx
+  .text:00000001800D3353                 mov     ecx, [rsi+0Ch]
+  .text:00000001800D3356                 mov     eax, ecx
+  .text:00000001800D3358                 movsxd  rdx, dword ptr [rsi+10h]
+  .text:00000001800D335C                 sub     eax, edx
+  .text:00000001800D335E                 cmp     eax, 1Ch
+  .text:00000001800D3361                 jge     short loc_1800D336C
+  .text:00000001800D3363                 mov     [rsi+10h], ecx
+  .text:00000001800D3366                 mov     byte ptr [rsi+20h], 1
+  .text:00000001800D336A                 jmp     short loc_1800D33D2
+  .text:00000001800D336C                 lea     eax, [rdx+1Ch]
+  .text:00000001800D336F                 shr     r14d, 4
+  .text:00000001800D3373                 mov     [rsi+10h], eax
+  .text:00000001800D3376                 mov     rcx, rdx
+  .text:00000001800D3379                 mov     rax, [rsi]
+  .text:00000001800D337C                 mov     r11d, edx
+  .text:00000001800D337F                 sar     rcx, 5
+  .text:00000001800D3383                 and     r11d, 1Fh
+  .text:00000001800D3387                 mov     r8d, 7FFFFFFh
+  .text:00000001800D338D                 lea     r10, [rax+rcx*4]
+  .text:00000001800D3391                 movzx   ecx, r11b
+  .text:00000001800D3395                 rol     r14d, cl
+  .text:00000001800D3398                 mov     ecx, 1Fh
+  .text:00000001800D339D                 sub     ecx, r11d
+  .text:00000001800D33A0                 shr     r8d, cl
+  .text:00000001800D33A3                 mov     eax, r8d
+  .text:00000001800D33A6                 and     eax, 1
+  .text:00000001800D33A9                 lea     rdx, [r10+rax*4]
+  .text:00000001800D33AD                 mov     eax, 0FFFFFFFh
+  .text:00000001800D33B2                 mov     ecx, [rdx]
+  .text:00000001800D33B4                 mov     r9d, [r10]
+  .text:00000001800D33B7                 xor     ecx, r14d
+  .text:00000001800D33BA                 and     ecx, r8d
+  .text:00000001800D33BD                 xor     [rdx], ecx
+  .text:00000001800D33BF                 mov     ecx, r11d
+  .text:00000001800D33C2                 shl     eax, cl
+  .text:00000001800D33C4                 mov     edx, r9d
+  .text:00000001800D33C7                 xor     edx, r14d
+  .text:00000001800D33CA                 and     edx, eax
+  .text:00000001800D33CC                 xor     edx, r9d
+  .text:00000001800D33CF                 mov     [r10], edx
+  .text:00000001800D33D2                 mov     rax, [rbp+57h+var_70]
+  .text:00000001800D33D6                 lea     rcx, [rbp+57h+var_70]
+  .text:00000001800D33DA                 xor     edx, edx
+  .text:00000001800D33DC                 call    qword ptr [rax]
+  .text:00000001800D33DE                 cmp     edi, 7FFFFFFFh
+  .text:00000001800D33E4                 jz      loc_1800D2E1A
+  .text:00000001800D33EA                 test    r12, r12
+  .text:00000001800D33ED                 jz      short loc_1800D342C
+  .text:00000001800D33EF                 lea     ecx, [rdi+1]
+  .text:00000001800D33F2                 mov     dword ptr [rsp+20h], 0FFFFFFFFh
+  .text:00000001800D33FA                 mov     r9, r12
+  .text:00000001800D33FD                 mov     edx, 4000h
+  .text:00000001800D3402                 mov     r8d, 200h
+  .text:00000001800D3408                 call    sub_180048C90
+  .text:00000001800D340D                 mov     edi, eax
+  .text:00000001800D340F                 test    eax, eax
+  .text:00000001800D3411                 js      short loc_1800D341D
+  .text:00000001800D3413                 jz      loc_1800D2E12
+  .text:00000001800D3419                 mov     al, 1
+  .text:00000001800D341B                 jmp     short loc_1800D3424
+  .text:00000001800D341D                 mov     edi, 0FFFFFFFFh
+  .text:00000001800D3422                 mov     al, 0FFh
+  .text:00000001800D3424                 test    al, al
+  .text:00000001800D3426                 jns     loc_1800D2E12
+  .text:00000001800D342C                 mov     edi, 7FFFFFFFh
+  .text:00000001800D3431                 jmp     loc_1800D2E12
+  .text:00000001800D3436                 cmp     byte ptr [rbp+57h+var_38], 0
+  .text:00000001800D343A                 mov     r15, [rsp+0A0h+var_30]
+  .text:00000001800D343F                 mov     r14, [rsp+0A0h+var_28]
+  .text:00000001800D3444                 mov     r13, [rsp+0A0h+var_20]
+  .text:00000001800D344C                 mov     r12, [rsp+88h]
+  .text:00000001800D3454                 mov     rsi, [rsp+0A0h+arg_18]
+  .text:00000001800D345C                 jz      short loc_1800D3465
+  .text:00000001800D345E                 xor     bl, bl
+  .text:00000001800D3460                 jmp     loc_1800D3510
+  .text:00000001800D3465                 mov     rbx, [rbp+57h+arg_8]
+  .text:00000001800D3469                 mov     rbx, [rbx+80h]
+  .text:00000001800D3470                 or      dword ptr [rbx+40h], 8
+  .text:00000001800D3474                 mov     rax, [rbx+90h]
+  .text:00000001800D347B                 test    rax, rax
+  .text:00000001800D347E                 jnz     short loc_1800D34A2
+  .text:00000001800D3480                 mov     rcx, [rbx+38h]
+  .text:00000001800D3484                 and     rcx, 0FFFFFFFFFFFFFFFCh
+  .text:00000001800D3488                 test    byte ptr [rbx+38h], 1
+  .text:00000001800D348C                 jz      short loc_1800D3491
+  .text:00000001800D348E                 mov     rcx, [rcx]
+  .text:00000001800D3491                 call    sub_180171070
+  .text:00000001800D3496                 mov     [rbx+90h], rax
+  .text:00000001800D349D                 test    rax, rax
+  .text:00000001800D34A0                 jz      short loc_1800D350E
+  .text:00000001800D34A2                 mov     ecx, [rbp+57h+var_60]
+  .text:00000001800D34A5                 or      dword ptr [rax+10h], 3
+  .text:00000001800D34A9                 mov     [rax+20h], ecx
+  .text:00000001800D34AC                 lea     rcx, [rax+18h]
+  .text:00000001800D34B0                 mov     rdx, [rax+8]
+  .text:00000001800D34B4                 and     rdx, 0FFFFFFFFFFFFFFFCh
+  .text:00000001800D34B8                 test    byte ptr [rax+8], 1
+  .text:00000001800D34BC                 jz      short loc_1800D34C1
+  .text:00000001800D34BE                 mov     rdx, [rdx]
+  .text:00000001800D34C1                 call    sub_180251920
+  .text:00000001800D34C6                 mov     ecx, [rbp+57h+var_48]
+  .text:00000001800D34C9                 mov     r9, [rbp+57h+var_58]
+  .text:00000001800D34CD                 add     ecx, 7
+  .text:00000001800D34D0                 sar     ecx, 3
+  .text:00000001800D34D3                 movsxd  rbx, ecx
+  .text:00000001800D34D6                 mov     rcx, [rax+18h]
+  .text:00000001800D34DA                 cmp     rbx, rcx
+  .text:00000001800D34DD                 ja      short loc_1800D3503
+  .text:00000001800D34DF                 mov     rdi, rax
+  .text:00000001800D34E2                 cmp     rcx, 0Fh
+  .text:00000001800D34E6                 jbe     short loc_1800D34EB
+  .text:00000001800D34E8                 mov     rdi, [rax]
+  .text:00000001800D34EB                 mov     r8, rbx
+  .text:00000001800D34EE                 mov     [rax+10h], rbx
+  .text:00000001800D34F2                 mov     rdx, r9
+  .text:00000001800D34F5                 mov     rcx, rdi
+  .text:00000001800D34F8                 call    sub_18047AFE0
+  .text:00000001800D34FD                 mov     byte ptr [rdi+rbx], 0
+  .text:00000001800D3501                 jmp     short loc_1800D350E
+  .text:00000001800D3503                 mov     rdx, rbx
+  .text:00000001800D3506                 mov     rcx, rax
+  .text:00000001800D3509                 call    sub_180044890
+  .text:00000001800D350E                 mov     bl, 1
+  .text:00000001800D3510                 mov     rcx, [rbp+57h+arg_0]
+  .text:00000001800D3514                 mov     rdx, [rbp+57h+arg_10]
+  .text:00000001800D3518                 mov     r8, [rcx]
+  .text:00000001800D351B                 call    qword ptr [r8+140h]
+  .text:00000001800D3522                 movzx   eax, bl
+  .text:00000001800D3525                 add     rsp, 90h
+  .text:00000001800D352C                 pop     rdi
+  .text:00000001800D352D                 pop     rbx
+  .text:00000001800D352E                 pop     rbp
+  .text:00000001800D352F                 retn
 procedure: |-
   __int64 __fastcall CNetworkGameServerBase_WriteDeltaEntities_WriteNonTransmitted(__int64 a1, _QWORD *a2)
   {
@@ -668,16 +668,16 @@ procedure: |-
     __int64 v78; // [rsp+B8h] [rbp+67h]
     __int64 v80; // [rsp+C8h] [rbp+77h]
 
-    v78 = qword_180689E80;
-    v80 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)qword_180689E80 + 312LL))(qword_180689E80);
-    sub_1803FE100((unsigned int)v75, (unsigned int)"WriteNonTransmitted", v80, 1280000, -1);
+    v78 = qword_180696958;
+    v80 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)qword_180696958 + 312LL))(qword_180696958);
+    sub_180402610((unsigned int)v75, (unsigned int)"WriteNonTransmitted", v80, 1280000, -1);
     v3 = a2[2];
     v4 = v3 + 2080;
     if ( !v3 )
       v4 = 0;
     if ( !v4 )
       goto LABEL_9;
-    v5 = sub_1800490B0(0, 0x4000, 512, v4, -1);
+    v5 = sub_180048C90(0, 0x4000, 512, v4, -1);
     v6 = v5;
     if ( v5 < 0 )
     {
@@ -701,7 +701,7 @@ procedure: |-
       v10 = 0x7FFFFFFF;
       goto LABEL_17;
     }
-    v9 = sub_1800490B0(0, 0x4000, 512, v8, -1);
+    v9 = sub_180048C90(0, 0x4000, 512, v8, -1);
     v10 = v9;
     if ( v9 < 0 )
     {
@@ -733,7 +733,7 @@ procedure: |-
         {
           if ( !v4 )
             goto LABEL_28;
-          v12 = sub_1800490B0(v6 + 1, 0x4000, 512, v4, -1);
+          v12 = sub_180048C90(v6 + 1, 0x4000, 512, v4, -1);
           v6 = v12;
           if ( v12 < 0 )
           {
@@ -755,7 +755,7 @@ procedure: |-
         {
           if ( !v8 )
             goto LABEL_36;
-          v14 = sub_1800490B0(v10 + 1, 0x4000, 512, v8, -1);
+          v14 = sub_180048C90(v10 + 1, 0x4000, 512, v8, -1);
           v10 = v14;
           if ( v14 < 0 )
           {
@@ -976,7 +976,7 @@ procedure: |-
       {
         if ( !v4 )
           goto LABEL_82;
-        v55 = sub_1800490B0(v6 + 1, 0x4000, 512, v4, -1);
+        v55 = sub_180048C90(v6 + 1, 0x4000, 512, v4, -1);
         v6 = v55;
         if ( v55 < 0 )
         {
@@ -1009,7 +1009,7 @@ procedure: |-
       v60 = (_QWORD *)(*(_QWORD *)(v58 + 56) & 0xFFFFFFFFFFFFFFFCuLL);
       if ( (*(_BYTE *)(v58 + 56) & 1) != 0 )
         v60 = (_QWORD *)*v60;
-      v59 = sub_1801702A0(v60);
+      v59 = sub_180171070(v60);
       *(_QWORD *)(v58 + 144) = v59;
       if ( v59 )
       {
@@ -1020,13 +1020,13 @@ procedure: |-
         v62 = (_QWORD *)(*(_QWORD *)(v59 + 8) & 0xFFFFFFFFFFFFFFFCuLL);
         if ( (*(_BYTE *)(v59 + 8) & 1) != 0 )
           v62 = (_QWORD *)*v62;
-        v63 = (_QWORD *)sub_180251640(v59 + 24, v62);
+        v63 = (_QWORD *)sub_180251920(v59 + 24, v62);
         v65 = v75[0];
         v66 = (v76 + 7) >> 3;
         v67 = v63[3];
         if ( v66 > v67 )
         {
-          sub_180044F00(v63, (v76 + 7) >> 3, v64, v75[0]);
+          sub_180044890(v63, (v76 + 7) >> 3, v64, v75[0]);
         }
         else
         {
@@ -1035,12 +1035,12 @@ procedure: |-
             v68 = (_QWORD *)*v63;
           v69 = (v76 + 7) >> 3;
           v63[2] = v66;
-          sub_1804735C0(v68, v65, v69);
+          sub_18047AFE0(v68, v65, v69);
           *((_BYTE *)v68 + v66) = 0;
         }
       }
       v57 = 1;
     }
-    (*(void (__fastcall **)(__int64, __int64))(*(_QWORD *)v78 + 320LL))(v78, v80); // 320LL = 0x140 = INetworkSystem_PutScratchBuffer
+    (*(void (__fastcall **)(__int64, __int64))(*(_QWORD *)v78 + 320LL))(v78, v80);
     return v57;
   }

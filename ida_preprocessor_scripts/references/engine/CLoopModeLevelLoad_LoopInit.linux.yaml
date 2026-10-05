@@ -1,0 +1,129 @@
+func_name: CLoopModeLevelLoad_LoopInit
+func_va: '0x457120'
+disasm_code: |-
+  .text:0000000000457120                 push    rbp
+  .text:0000000000457121                 mov     rbp, rsp
+  .text:0000000000457124                 push    r13
+  .text:0000000000457126                 mov     r13, rdx
+  .text:0000000000457129                 push    r12
+  .text:000000000045712B                 mov     r12, rsi
+  .text:000000000045712E                 push    rbx
+  .text:000000000045712F                 mov     rbx, rdi
+  .text:0000000000457132                 mov     edi, 28h ; '('
+  .text:0000000000457137                 sub     rsp, 8
+  .text:000000000045713B                 call    sub_2BCC20
+  .text:0000000000457140                 mov     rdi, r13
+  .text:0000000000457143                 mov     rsi, rax
+  .text:0000000000457146                 lea     rax, off_9A2BD0
+  .text:000000000045714D                 mov     [rbx+8], rsi
+  .text:0000000000457151                 mov     [rsi], rax
+  .text:0000000000457154                 mov     rax, [r13+0]
+  .text:0000000000457158                 mov     qword ptr [rsi+10h], 0
+  .text:0000000000457160                 mov     qword ptr [rsi+18h], 0
+  .text:0000000000457168                 mov     qword ptr [rsi+20h], 0
+  .text:0000000000457170                 mov     dword ptr [rsi+8], 1
+  .text:0000000000457177                 ; ILoopModePrerequisiteRegistry_RegisterPrerequisite
+  .text:0000000000457177                 call    qword ptr [rax]; ILoopModePrerequisiteRegistry_RegisterPrerequisite
+  .text:0000000000457179                 lea     rsi, aLevelname; "levelname"
+  .text:0000000000457180                 mov     dword ptr [rbx+30h], 0
+  .text:0000000000457187                 mov     rdi, r12
+  .text:000000000045718A                 call    sub_2C9D60
+  .text:000000000045718F                 lea     rsi, unk_27D936
+  .text:0000000000457196                 test    rax, rax
+  .text:0000000000457199                 jz      short loc_4571AA
+  .text:000000000045719B                 xor     ecx, ecx
+  .text:000000000045719D                 xor     edx, edx
+  .text:000000000045719F                 mov     rdi, rax
+  .text:00000000004571A2                 call    sub_2C8C20
+  .text:00000000004571A7                 mov     rsi, rax
+  .text:00000000004571AA                 lea     rdi, [rbx+28h]
+  .text:00000000004571AE                 call    sub_2C8BB0
+  .text:00000000004571B3                 xor     edx, edx
+  .text:00000000004571B5                 mov     rdi, r12
+  .text:00000000004571B8                 lea     rsi, aUsepreconnectl; "usepreconnectlogic"
+  .text:00000000004571BF                 call    sub_2C9B80
+  .text:00000000004571C4                 mov     r12, [rbx+8]
+  .text:00000000004571C8                 mov     r8d, 0FFFFFFFFh
+  .text:00000000004571CE                 mov     edx, 1
+  .text:00000000004571D3                 lea     rcx, aCloopmodelevel; "CLoopModeLevelLoad::LoopInit"
+  .text:00000000004571DA                 test    eax, eax
+  .text:00000000004571DC                 lea     rax, g_pResourceSystem
+  .text:00000000004571E3                 setnz   byte ptr [rbx+7Ch]
+  .text:00000000004571E7                 lea     rsi, aLoopmodelevell; "LoopModeLevelLoad"
+  .text:00000000004571EE                 mov     rdi, [rax]
+  .text:00000000004571F1                 mov     rax, [rdi]
+  .text:00000000004571F4                 call    qword ptr [rax+0A8h]
+  .text:00000000004571FA                 mov     rbx, rax
+  .text:00000000004571FD                 test    rax, rax
+  .text:0000000000457200                 jz      short loc_457222
+  .text:0000000000457202                 movsxd  r13, dword ptr [r12+10h]
+  .text:0000000000457207                 mov     eax, r13d
+  .text:000000000045720A                 cmp     r13d, [r12+20h]
+  .text:000000000045720F                 jz      short loc_457238
+  .text:0000000000457211                 add     eax, 1
+  .text:0000000000457214                 mov     [r12+10h], eax
+  .text:0000000000457219                 mov     rax, [r12+18h]
+  .text:000000000045721E                 mov     [rax+r13*8], rbx
+  .text:0000000000457222                 add     rsp, 8
+  .text:0000000000457226                 mov     eax, 1
+  .text:000000000045722B                 pop     rbx
+  .text:000000000045722C                 pop     r12
+  .text:000000000045722E                 pop     r13
+  .text:0000000000457230                 pop     rbp
+  .text:0000000000457231                 retn
+  .text:0000000000457238                 lea     rdi, [r12+18h]
+  .text:000000000045723D                 mov     esi, 1
+  .text:0000000000457242                 call    sub_457000
+  .text:0000000000457247                 mov     eax, [r12+10h]
+  .text:000000000045724C                 jmp     short loc_457211
+procedure: |-
+  __int64 __fastcall sub_457120(__int64 a1, __int64 a2, void (__fastcall ***a3)(_QWORD))
+  {
+    __int64 v5; // rsi
+    void (__fastcall **v6)(_QWORD); // rax
+    __int64 v7; // rax
+    void *v8; // rsi
+    int v9; // eax
+    __int64 v10; // r12
+    __int64 v11; // rbx
+    __int64 v12; // r13
+    int v13; // eax
+
+    v5 = sub_2BCC20(40);
+    *(_QWORD *)(a1 + 8) = v5;
+    *(_QWORD *)v5 = off_9A2BD0;
+    v6 = *a3;
+    *(_QWORD *)(v5 + 16) = 0;
+    *(_QWORD *)(v5 + 24) = 0;
+    *(_QWORD *)(v5 + 32) = 0;
+    *(_DWORD *)(v5 + 8) = 1;
+    (*v6)(a3);                                    // ILoopModePrerequisiteRegistry_RegisterPrerequisite
+    *(_DWORD *)(a1 + 48) = 0;
+    v7 = sub_2C9D60(a2, "levelname");
+    v8 = &unk_27D936;
+    if ( v7 )
+      v8 = (void *)sub_2C8C20(v7, &unk_27D936, 0, 0);
+    sub_2C8BB0(a1 + 40, v8);
+    v9 = sub_2C9B80(a2, "usepreconnectlogic", 0);
+    v10 = *(_QWORD *)(a1 + 8);
+    *(_BYTE *)(a1 + 124) = v9 != 0;
+    v11 = (*(__int64 (__fastcall **)(_QWORD *, const char *, __int64, const char *, __int64))(*g_pResourceSystem + 168LL))(
+            g_pResourceSystem,
+            "LoopModeLevelLoad",
+            1,
+            "CLoopModeLevelLoad::LoopInit",
+            0xFFFFFFFFLL);
+    if ( v11 )
+    {
+      v12 = *(int *)(v10 + 16);
+      v13 = v12;
+      if ( (_DWORD)v12 == *(_DWORD *)(v10 + 32) )
+      {
+        sub_457000(v10 + 24, 1);
+        v13 = *(_DWORD *)(v10 + 16);
+      }
+      *(_DWORD *)(v10 + 16) = v13 + 1;
+      *(_QWORD *)(*(_QWORD *)(v10 + 24) + 8 * v12) = v11;
+    }
+    return 1;
+  }

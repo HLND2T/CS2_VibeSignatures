@@ -1,0 +1,117 @@
+func_name: CLoopModeLevelLoad_LoopInit
+func_va: '0x18013fea0'
+disasm_code: |-
+  .text:000000018013FEA0                 mov     [rsp+arg_0], rbx
+  .text:000000018013FEA5                 mov     [rsp+arg_8], rbp
+  .text:000000018013FEAA                 mov     [rsp+arg_10], rsi
+  .text:000000018013FEAF                 push    rdi
+  .text:000000018013FEB0                 sub     rsp, 20h
+  .text:000000018013FEB4                 mov     rax, cs:g_pMemAlloc
+  .text:000000018013FEBB                 mov     rdi, rcx
+  .text:000000018013FEBE                 mov     rbp, rdx
+  .text:000000018013FEC1                 mov     rsi, r8
+  .text:000000018013FEC4                 mov     edx, 28h ; '('
+  .text:000000018013FEC9                 mov     rcx, [rax]
+  .text:000000018013FECC                 mov     rax, [rcx]
+  .text:000000018013FECF                 call    qword ptr [rax+8]
+  .text:000000018013FED2                 xor     ebx, ebx
+  .text:000000018013FED4                 mov     rcx, rax
+  .text:000000018013FED7                 test    rax, rax
+  .text:000000018013FEDA                 jz      short loc_18013FF02
+  .text:000000018013FEDC                 mov     [rax+8], rbx
+  .text:000000018013FEE0                 mov     [rax+14h], rbx
+  .text:000000018013FEE4                 mov     [rax+1Ch], rbx
+  .text:000000018013FEE8                 mov     [rax+24h], ebx
+  .text:000000018013FEEB                 lea     rax, ??_7CResourceManifestPrerequisite@@6B@; const CResourceManifestPrerequisite::`vftable'
+  .text:000000018013FEF2                 mov     [rcx], rax
+  .text:000000018013FEF5                 mov     [rcx+18h], rbx
+  .text:000000018013FEF9                 mov     [rcx+20h], rbx
+  .text:000000018013FEFD                 mov     [rcx+10h], ebx
+  .text:000000018013FF00                 jmp     short loc_18013FF05
+  .text:000000018013FF02                 mov     rcx, rbx
+  .text:000000018013FF05                 mov     [rdi+8], rcx
+  .text:000000018013FF09                 mov     rax, [rcx]
+  .text:000000018013FF0C                 call    qword ptr [rax+8]
+  .text:000000018013FF0F                 mov     rax, [rsi]
+  .text:000000018013FF12                 mov     rcx, rsi
+  .text:000000018013FF15                 mov     rdx, [rdi+8]
+  .text:000000018013FF19                 ; ILoopModePrerequisiteRegistry_RegisterPrerequisite
+  .text:000000018013FF19                 call    qword ptr [rax]; ILoopModePrerequisiteRegistry_RegisterPrerequisite
+  .text:000000018013FF1B                 lea     rdx, aLevelname; "levelname"
+  .text:000000018013FF22                 mov     [rdi+30h], ebx
+  .text:000000018013FF25                 mov     rcx, rbp
+  .text:000000018013FF28                 call    cs:?FindKey@KeyValues@@QEBAPEBV1@PEBD@Z; KeyValues::FindKey(char const *)
+  .text:000000018013FF2E                 mov     rcx, rax
+  .text:000000018013FF31                 test    rax, rax
+  .text:000000018013FF34                 jz      short loc_18013FF4B
+  .text:000000018013FF36                 xor     r9d, r9d
+  .text:000000018013FF39                 lea     rdx, unk_180529B3F
+  .text:000000018013FF40                 xor     r8d, r8d
+  .text:000000018013FF43                 call    cs:?Internal_GetString@CKeyValues_Data@@IEAAPEBDPEBDPEAD_K@Z; CKeyValues_Data::Internal_GetString(char const *,char *,unsigned __int64)
+  .text:000000018013FF49                 jmp     short loc_18013FF52
+  .text:000000018013FF4B                 lea     rax, unk_180529B3F
+  .text:000000018013FF52                 lea     rcx, [rdi+28h]
+  .text:000000018013FF56                 mov     rdx, rax
+  .text:000000018013FF59                 call    cs:?Set@CUtlString@@QEAAXPEBD@Z; CUtlString::Set(char const *)
+  .text:000000018013FF5F                 xor     r8d, r8d
+  .text:000000018013FF62                 lea     rdx, aUsepreconnectl; "usepreconnectlogic"
+  .text:000000018013FF69                 mov     rcx, rbp
+  .text:000000018013FF6C                 call    cs:?GetInt@KeyValues@@QEBAHPEBDH@Z; KeyValues::GetInt(char const *,int)
+  .text:000000018013FF72                 mov     rcx, [rdi+8]
+  .text:000000018013FF76                 lea     r9, aCloopmodelevel_0; "CLoopModeLevelLoad::LoopInit"
+  .text:000000018013FF7D                 test    eax, eax
+  .text:000000018013FF7F                 lea     rdx, aLoopmodelevell; "LoopModeLevelLoad"
+  .text:000000018013FF86                 setnz   al
+  .text:000000018013FF89                 mov     [rdi+7Ch], al
+  .text:000000018013FF8C                 call    sub_18013F8F0
+  .text:000000018013FF91                 mov     rbx, [rsp+28h+arg_0]
+  .text:000000018013FF96                 mov     al, 1
+  .text:000000018013FF98                 mov     rbp, [rsp+28h+arg_8]
+  .text:000000018013FF9D                 mov     rsi, [rsp+28h+arg_10]
+  .text:000000018013FFA2                 add     rsp, 20h
+  .text:000000018013FFA6                 pop     rdi
+  .text:000000018013FFA7                 retn
+procedure: |-
+  char __fastcall sub_18013FEA0(__int64 a1, KeyValues *a2, void (__fastcall ***a3)(_QWORD, _QWORD))
+  {
+    __int64 v6; // rax
+    __int64 v7; // rcx
+    CKeyValues_Data *Key; // rcx
+    const char *String; // rax
+    int Int; // eax
+    __int64 v11; // rcx
+    __int64 v12; // r8
+
+    v6 = (*(__int64 (__fastcall **)(_QWORD, __int64))(*g_pMemAlloc + 8LL))(g_pMemAlloc, 40);
+    v7 = v6;
+    if ( v6 )
+    {
+      *(_QWORD *)(v6 + 8) = 0;
+      *(_QWORD *)(v6 + 20) = 0;
+      *(_QWORD *)(v6 + 28) = 0;
+      *(_DWORD *)(v6 + 36) = 0;
+      *(_QWORD *)v6 = &CResourceManifestPrerequisite::`vftable';
+      *(_QWORD *)(v6 + 24) = 0;
+      *(_QWORD *)(v6 + 32) = 0;
+      *(_DWORD *)(v6 + 16) = 0;
+    }
+    else
+    {
+      v7 = 0;
+    }
+    *(_QWORD *)(a1 + 8) = v7;
+    (*(void (__fastcall **)(__int64))(*(_QWORD *)v7 + 8LL))(v7);
+    (**a3)(a3, *(_QWORD *)(a1 + 8));              // ILoopModePrerequisiteRegistry_RegisterPrerequisite
+    *(_DWORD *)(a1 + 48) = 0;
+    Key = KeyValues::FindKey(a2, "levelname");
+    if ( Key )
+      String = CKeyValues_Data::Internal_GetString(Key, (const char *)&unk_180529B3F, nullptr, 0);
+    else
+      String = (const char *)&unk_180529B3F;
+    CUtlString::Set((CUtlString *)(a1 + 40), String);
+    Int = KeyValues::GetInt(a2, "usepreconnectlogic", 0);
+    v11 = *(_QWORD *)(a1 + 8);
+    *(_BYTE *)(a1 + 124) = Int != 0;
+    sub_18013F8F0(v11, "LoopModeLevelLoad", v12, "CLoopModeLevelLoad::LoopInit");
+    return 1;
+  }

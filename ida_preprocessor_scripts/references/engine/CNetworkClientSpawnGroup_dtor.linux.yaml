@@ -1,0 +1,67 @@
+func_name: CNetworkClientSpawnGroup_dtor
+func_va: '0x4afa80'
+disasm_code: |-
+  .text:00000000004AFA80                 push    rbp
+  .text:00000000004AFA81                 mov     esi, 1
+  .text:00000000004AFA86                 mov     rbp, rsp
+  .text:00000000004AFA89                 push    r13
+  .text:00000000004AFA8B                 push    r12
+  .text:00000000004AFA8D                 push    rbx
+  .text:00000000004AFA8E                 mov     rbx, rdi
+  .text:00000000004AFA91                 sub     rsp, 18h
+  .text:00000000004AFA95                 lea     r12, dword_C75974
+  .text:00000000004AFA9C                 mov     edi, [r12]
+  .text:00000000004AFAA0                 call    sub_2C8C80
+  .text:00000000004AFAA5                 test    al, al
+  .text:00000000004AFAA7                 jz      short loc_4AFAF1
+  .text:00000000004AFAA9                 mov     rax, [rbx]
+  .text:00000000004AFAAC                 lea     r13, [rbp+var_28]
+  .text:00000000004AFAB0                 mov     rsi, rbx
+  .text:00000000004AFAB3                 mov     rdi, r13
+  .text:00000000004AFAB6                 call    qword ptr [rax+60h]
+  .text:00000000004AFAB9                 mov     rcx, [rbp+var_28]
+  .text:00000000004AFABD                 mov     esi, 1
+  .text:00000000004AFAC2                 mov     edi, [r12]
+  .text:00000000004AFAC6                 lea     rax, unk_27D936
+  .text:00000000004AFACD                 lea     rdx, aSSyncunloadspa; "%s:  SyncUnloadSpawnGroup shutdown/dest"...
+  .text:00000000004AFAD4                 test    rcx, rcx
+  .text:00000000004AFAD7                 cmovz   rcx, rax
+  .text:00000000004AFADB                 xor     eax, eax
+  .text:00000000004AFADD                 call    sub_2CA620
+  .text:00000000004AFAE2                 cmp     [rbp+var_28], 0
+  .text:00000000004AFAE7                 jz      short loc_4AFAF1
+  .text:00000000004AFAE9                 mov     rdi, r13
+  .text:00000000004AFAEC                 call    sub_2C9CB0
+  .text:00000000004AFAF1                 mov     rax, [rbx]
+  .text:00000000004AFAF4                 mov     rdi, rbx
+  .text:00000000004AFAF7                 call    qword ptr [rax+118h]; 0x118 = 280LL = IGameResourceService_FreeGameResourceManifest
+  .text:00000000004AFAFD                 mov     rdi, rbx
+  .text:00000000004AFB00                 call    sub_4ED1B0
+  .text:00000000004AFB05                 add     rsp, 18h
+  .text:00000000004AFB09                 mov     rdi, rbx
+  .text:00000000004AFB0C                 mov     esi, 290h
+  .text:00000000004AFB11                 pop     rbx
+  .text:00000000004AFB12                 pop     r12
+  .text:00000000004AFB14                 pop     r13
+  .text:00000000004AFB16                 pop     rbp
+  .text:00000000004AFB17                 jmp     sub_2BCC50
+procedure: |-
+  __int64 __fastcall sub_4AFA80(__int64 a1)
+  {
+    void *v1; // rcx
+    _QWORD v3[5]; // [rsp+8h] [rbp-28h] BYREF
+
+    if ( (unsigned __int8)sub_2C8C80((unsigned int)dword_C75974, 1) )
+    {
+      (*(void (__fastcall **)(_QWORD *, __int64))(*(_QWORD *)a1 + 96LL))(v3, a1);
+      v1 = (void *)v3[0];
+      if ( !v3[0] )
+        v1 = &unk_27D936;
+      sub_2CA620((unsigned int)dword_C75974, 1, "%s:  SyncUnloadSpawnGroup shutdown/destroy...\n", v1);
+      if ( v3[0] )
+        sub_2C9CB0(v3);
+    }
+    (*(void (__fastcall **)(__int64))(*(_QWORD *)a1 + 280LL))(a1); // 280LL = 0x118 = IGameResourceService_FreeGameResourceManifest
+    sub_4ED1B0(a1);
+    return sub_2BCC50(a1, 656);
+  }
