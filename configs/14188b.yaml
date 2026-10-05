@@ -14330,14 +14330,191 @@ modules:
         alias:
           - INetworkMessages::GetFieldChangeCallbackPriorities
         shared: true
-  # tier0/schemasystem are download-only stubs; no skills/symbols authored yet.
   # (tier1 ships no standalone binary in CS2 — it is statically linked.)
   - name: tier0
     path_windows: game/bin/win64/tier0.dll
     path_linux: game/bin/linuxsteamrt64/libtier0.so
+    skills:
+      - name: find-CCommandLine_vtable
+        expected_output:
+          - CCommandLine_vtable.{platform}.yaml
+      - name: find-CCommandLine_CreateCmdLinePrependAppName
+        expected_output:
+          - CCommandLine_CreateCmdLinePrependAppName.{platform}.yaml
+        expected_input:
+          - CCommandLine_vtable.{platform}.yaml
+      - name: find-CCommandLine_BuildCmdLineFromArgList
+        expected_output:
+          - CCommandLine_BuildCmdLineFromArgList.{platform}.yaml
+      - name: find-CCommandLine_AppendParm
+        expected_output:
+          - CCommandLine_AppendParm.{platform}.yaml
+        expected_input:
+          - CCommandLine_BuildCmdLineFromArgList.{platform}.yaml
+          - CCommandLine_vtable.{platform}.yaml
+      - name: find-CCvar_vtable
+        expected_output:
+          - CCvar_vtable.{platform}.yaml
+      - name: find-CCvar_RegisterConCommand
+        expected_output:
+          - CCvar_RegisterConCommand.{platform}.yaml
+        expected_input:
+          - CCvar_vtable.{platform}.yaml
+      - name: find-CKeyValuesSystem_vtable
+        expected_output:
+          - CKeyValuesSystem_vtable.{platform}.yaml
+      - name: find-CKeyValuesSystem_dtor
+        expected_output:
+          - CKeyValuesSystem_dtor.{platform}.yaml
+      - name: find-CKeyValuesSystem_GetKeyValuesExpressionSymbol
+        expected_output:
+          - CKeyValuesSystem_GetKeyValuesExpressionSymbol.{platform}.yaml
+        expected_input:
+          - CKeyValuesSystem_vtable.{platform}.yaml
+    symbols:
+      - name: CCommandLine_vtable
+        category: vtable
+      - name: CCommandLine_CreateCmdLinePrependAppName
+        category: vfunc
+        alias:
+          - CCommandLine::CreateCmdLinePrependAppName
+      - name: CCommandLine_BuildCmdLineFromArgList
+        category: func
+        alias:
+          - CCommandLine::BuildCmdLineFromArgList
+      - name: CCommandLine_AppendParm
+        category: vfunc
+        alias:
+          - CCommandLine::AppendParm
+      - name: CCvar_vtable
+        category: vtable
+      - name: CCvar_RegisterConCommand
+        category: vfunc
+        alias:
+          - CCvar::RegisterConCommand
+      - name: CKeyValuesSystem_vtable
+        category: vtable
+      - name: CKeyValuesSystem_dtor
+        category: func
+        alias:
+          - CKeyValuesSystem::~CKeyValuesSystem
+      - name: CKeyValuesSystem_GetKeyValuesExpressionSymbol
+        category: vfunc
+        alias:
+          - CKeyValuesSystem::GetKeyValuesExpressionSymbol
   - name: schemasystem
     path_windows: game/bin/win64/schemasystem.dll
     path_linux: game/bin/linuxsteamrt64/libschemasystem.so
+    skills:
+      - name: find-CSchemaSystem_vtable
+        expected_output:
+          - CSchemaSystem_vtable.{platform}.yaml
+      - name: find-CSchemaSystem_LoadSchemaDataForModules
+        expected_output:
+          - CSchemaSystem_LoadSchemaDataForModules.{platform}.yaml
+        expected_input:
+          - CSchemaSystem_vtable.{platform}.yaml
+      - name: find-CSchemaSystem_GetClassModuleName
+        expected_output:
+          - CSchemaSystem_GetClassModuleName.{platform}.yaml
+        expected_input:
+          - CSchemaSystem_vtable.{platform}.yaml
+      - name: find-CSchemaSystem_SchemaSystemIsReady
+        expected_output:
+          - CSchemaSystem_SchemaSystemIsReady.{platform}.yaml
+        expected_input:
+          - CSchemaSystem_vtable.{platform}.yaml
+      - name: find-CSchemaSystem_CompleteModuleRegistration
+        expected_output:
+          - CSchemaSystem_CompleteModuleRegistration.{platform}.yaml
+        expected_input:
+          - CSchemaSystem_vtable.{platform}.yaml
+      - name: find-CSchemaSystem_PrintSchemaStats
+        expected_output:
+          - CSchemaSystem_PrintSchemaStats.{platform}.yaml
+        expected_input:
+          - CSchemaSystem_vtable.{platform}.yaml
+      - name: find-CSchemaSystem_PrintSchemaMetaStats
+        expected_output:
+          - CSchemaSystem_PrintSchemaMetaStats.{platform}.yaml
+        expected_input:
+          - CSchemaSystem_vtable.{platform}.yaml
+      - name: find-CSchemaSystem_RegisterClasses_Internal
+        expected_output:
+          - CSchemaSystem_RegisterClasses_Internal.{platform}.yaml
+      - name: find-CSchemaSystem_RegisterClasses
+        expected_output:
+          - CSchemaSystem_RegisterClasses.{platform}.yaml
+        expected_input:
+          - CSchemaSystem_vtable.{platform}.yaml
+          - CSchemaSystem_RegisterClasses_Internal.{platform}.yaml
+      - name: find-CSchemaSystem_ValidateClasses
+        expected_output:
+          - CSchemaSystem_ValidateClasses.{platform}.yaml
+        expected_input:
+          - CSchemaSystem_vtable.{platform}.yaml
+      - name: find-CSchemaType_vtable
+        expected_output:
+          - CSchemaType_vtable.{platform}.yaml
+      - name: find-CSchemaType_ToString
+        expected_output:
+          - CSchemaType_ToString.{platform}.yaml
+        expected_input:
+          - CSchemaType_vtable.{platform}.yaml
+      - name: find-CSchemaType_SpewDescription
+        expected_output:
+          - CSchemaType_SpewDescription.{platform}.yaml
+        expected_input:
+          - CSchemaType_vtable.{platform}.yaml
+    symbols:
+      - name: CSchemaSystem_vtable
+        category: vtable
+      - name: CSchemaSystem_LoadSchemaDataForModules
+        category: vfunc
+        alias:
+          - CSchemaSystem::LoadSchemaDataForModules
+      - name: CSchemaSystem_GetClassModuleName
+        category: vfunc
+        alias:
+          - CSchemaSystem::GetClassModuleName
+      - name: CSchemaSystem_SchemaSystemIsReady
+        category: vfunc
+        alias:
+          - CSchemaSystem::SchemaSystemIsReady
+      - name: CSchemaSystem_CompleteModuleRegistration
+        category: vfunc
+        alias:
+          - CSchemaSystem::CompleteModuleRegistration
+      - name: CSchemaSystem_PrintSchemaStats
+        category: vfunc
+        alias:
+          - CSchemaSystem::PrintSchemaStats
+      - name: CSchemaSystem_PrintSchemaMetaStats
+        category: vfunc
+        alias:
+          - CSchemaSystem::PrintSchemaMetaStats
+      - name: CSchemaSystem_RegisterClasses_Internal
+        category: func
+        alias:
+          - CSchemaSystem::RegisterClasses_Internal
+      - name: CSchemaSystem_RegisterClasses
+        category: vfunc
+        alias:
+          - CSchemaSystem::RegisterClasses
+      - name: CSchemaSystem_ValidateClasses
+        category: vfunc
+        alias:
+          - CSchemaSystem::ValidateClasses
+      - name: CSchemaType_vtable
+        category: vtable
+      - name: CSchemaType_ToString
+        category: vfunc
+        alias:
+          - CSchemaType::ToString
+      - name: CSchemaType_SpewDescription
+        category: vfunc
+        alias:
+          - CSchemaType::SpewDescription
 cpp_tests:
   - name: CEntityInstance_MSVC
     symbol: CEntityInstance

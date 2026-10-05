@@ -137,6 +137,7 @@ UNIT_MODULES = frozenset(
         "test_test_suite_runner",
         "test_trusted_yaml",
         "test_update_gamedata",
+        "test_vtable_slot_anchor_common",
         "test_warmup_idb",
     }
 )
