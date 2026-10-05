@@ -1,0 +1,360 @@
+func_name: CBasePlayerController_Spawn
+func_va: '0x180b3d800'
+disasm_code: |-
+  .text:0000000180B3D800                 mov     [rsp+arg_8], rbx
+  .text:0000000180B3D805                 mov     [rsp+arg_10], rbp
+  .text:0000000180B3D80A                 push    rsi
+  .text:0000000180B3D80B                 push    rdi
+  .text:0000000180B3D80C                 push    r14
+  .text:0000000180B3D80E                 sub     rsp, 30h
+  .text:0000000180B3D812                 mov     rsi, rdx
+  .text:0000000180B3D815                 mov     rdi, rcx
+  .text:0000000180B3D818                 call    CBaseEntity_Spawn
+  .text:0000000180B3D81D                 mov     rax, cs:off_181CA85C0
+  .text:0000000180B3D824                 mov     ebp, [rax+44h]
+  .text:0000000180B3D827                 cmp     [rdi+4B8h], ebp
+  .text:0000000180B3D82D                 jz      short loc_180B3D84C
+  .text:0000000180B3D82F                 mov     edx, 0FFFFFFFFh
+  .text:0000000180B3D834                 lea     rcx, [rdi+4B8h]
+  .text:0000000180B3D83B                 mov     r8d, 0FFFFFFFFh
+  .text:0000000180B3D841                 call    sub_180B299A0
+  .text:0000000180B3D846                 mov     [rdi+4B8h], ebp
+  .text:0000000180B3D84C                 test    rsi, rsi
+  .text:0000000180B3D84F                 jz      short loc_180B3D8A6
+  .text:0000000180B3D851                 lea     rax, aPlayername; "playername"
+  .text:0000000180B3D858                 mov     [rsp+48h+var_28], 0FFFFFFFFCDF0E464h
+  .text:0000000180B3D861                 xor     r8d, r8d
+  .text:0000000180B3D864                 mov     [rsp+48h+var_20], rax
+  .text:0000000180B3D869                 lea     rdx, [rsp+48h+var_28]
+  .text:0000000180B3D86E                 mov     rcx, rsi
+  .text:0000000180B3D871                 call    sub_1812606C0
+  .text:0000000180B3D876                 mov     rcx, rax
+  .text:0000000180B3D879                 test    rax, rax
+  .text:0000000180B3D87C                 jz      short loc_180B3D898
+  .text:0000000180B3D87E                 movzx   eax, byte ptr [rax]
+  .text:0000000180B3D881                 shr     al, 2
+  .text:0000000180B3D884                 and     al, 0Fh
+  .text:0000000180B3D886                 cmp     al, 6
+  .text:0000000180B3D888                 jnz     short loc_180B3D898
+  .text:0000000180B3D88A                 lea     rdx, byte_18160A998
+  .text:0000000180B3D891                 call    sub_18153CF20
+  .text:0000000180B3D896                 jmp     short loc_180B3D89F
+  .text:0000000180B3D898                 lea     rax, byte_18160A998
+  .text:0000000180B3D89F                 test    rax, rax
+  .text:0000000180B3D8A2                 jz      short loc_180B3D8D4
+  .text:0000000180B3D8A4                 jmp     short loc_180B3D8AD
+  .text:0000000180B3D8A6                 lea     rax, byte_18160A998
+  .text:0000000180B3D8AD                 mov     r8d, 80h
+  .text:0000000180B3D8B3                 lea     rcx, [rdi+514h]
+  .text:0000000180B3D8BA                 mov     rdx, rax
+  .text:0000000180B3D8BD                 call    cs:_V_strncpy
+  .text:0000000180B3D8C3                 lea     rcx, [rdi+514h]
+  .text:0000000180B3D8CA                 call    sub_180B29220
+  .text:0000000180B3D8CF                 test    rsi, rsi
+  .text:0000000180B3D8D2                 jz      short loc_180B3D919
+  .text:0000000180B3D8D4                 lea     rax, aFakeclient; "fakeclient"
+  .text:0000000180B3D8DB                 mov     [rsp+48h+var_28], 0FFFFFFFF8645C08Eh
+  .text:0000000180B3D8E4                 xor     r8d, r8d
+  .text:0000000180B3D8E7                 mov     [rsp+48h+var_20], rax
+  .text:0000000180B3D8EC                 lea     rdx, [rsp+48h+var_28]
+  .text:0000000180B3D8F1                 mov     rcx, rsi
+  .text:0000000180B3D8F4                 call    sub_1812606C0
+  .text:0000000180B3D8F9                 test    rax, rax
+  .text:0000000180B3D8FC                 jz      short loc_180B3D906
+  .text:0000000180B3D8FE                 mov     rcx, rax
+  .text:0000000180B3D901                 call    sub_18153BDA0
+  .text:0000000180B3D906                 test    al, al
+  .text:0000000180B3D908                 jz      short loc_180B3D919
+  .text:0000000180B3D90A                 mov     edx, 100h
+  .text:0000000180B3D90F                 mov     rcx, rdi
+  .text:0000000180B3D912                 call    sub_1803B9A10
+  .text:0000000180B3D917                 jmp     short loc_180B3D92B
+  .text:0000000180B3D919                 mov     edx, 100h
+  .text:0000000180B3D91E                 mov     rcx, rdi
+  .text:0000000180B3D921                 call    sub_1803DE120
+  .text:0000000180B3D926                 test    rsi, rsi
+  .text:0000000180B3D929                 jz      short loc_180B3D997
+  .text:0000000180B3D92B                 lea     rax, aIsHltv; "is_hltv"
+  .text:0000000180B3D932                 mov     [rsp+48h+var_28], 0FFFFFFFFDD3C9284h
+  .text:0000000180B3D93B                 xor     r8d, r8d
+  .text:0000000180B3D93E                 mov     [rsp+48h+var_20], rax
+  .text:0000000180B3D943                 lea     rdx, [rsp+48h+var_28]
+  .text:0000000180B3D948                 mov     rcx, rsi
+  .text:0000000180B3D94B                 call    sub_1812606C0
+  .text:0000000180B3D950                 test    rax, rax
+  .text:0000000180B3D953                 jz      short loc_180B3D95D
+  .text:0000000180B3D955                 mov     rcx, rax
+  .text:0000000180B3D958                 call    sub_18153BDA0
+  .text:0000000180B3D95D                 mov     [rdi+508h], al
+  .text:0000000180B3D963                 lea     rdx, [rsp+48h+var_28]
+  .text:0000000180B3D968                 lea     rax, aReserving; "reserving"
+  .text:0000000180B3D96F                 mov     [rsp+48h+var_28], 0FFFFFFFF87B30006h
+  .text:0000000180B3D978                 xor     r8d, r8d
+  .text:0000000180B3D97B                 mov     [rsp+48h+var_20], rax
+  .text:0000000180B3D980                 mov     rcx, rsi
+  .text:0000000180B3D983                 call    sub_1812606C0
+  .text:0000000180B3D988                 test    rax, rax
+  .text:0000000180B3D98B                 jz      short loc_180B3D99E
+  .text:0000000180B3D98D                 mov     rcx, rax
+  .text:0000000180B3D990                 call    sub_18153BDA0
+  .text:0000000180B3D995                 jmp     short loc_180B3D9A0
+  .text:0000000180B3D997                 mov     byte ptr [rdi+508h], 0
+  .text:0000000180B3D99E                 xor     al, al
+  .text:0000000180B3D9A0                 mov     ebx, [rdi+50Ch]
+  .text:0000000180B3D9A6                 movzx   eax, al
+  .text:0000000180B3D9A9                 lea     esi, ds:1[rax*4]
+  .text:0000000180B3D9B0                 cmp     ebx, esi
+  .text:0000000180B3D9B2                 jz      short loc_180B3D9D3
+  .text:0000000180B3D9B4                 mov     edx, 0FFFFFFFFh
+  .text:0000000180B3D9B9                 lea     rcx, [rdi+50Ch]
+  .text:0000000180B3D9C0                 mov     r8d, 0FFFFFFFFh
+  .text:0000000180B3D9C6                 call    sub_180B28E60
+  .text:0000000180B3D9CB                 mov     [rdi+50Ch], esi
+  .text:0000000180B3D9D1                 mov     ebx, esi
+  .text:0000000180B3D9D3                 cmp     [rdi+510h], ebx
+  .text:0000000180B3D9D9                 jz      short loc_180B3D9F8
+  .text:0000000180B3D9DB                 mov     edx, 0FFFFFFFFh
+  .text:0000000180B3D9E0                 lea     rcx, [rdi+510h]
+  .text:0000000180B3D9E7                 mov     r8d, 0FFFFFFFFh
+  .text:0000000180B3D9ED                 call    sub_180B290E0
+  .text:0000000180B3D9F2                 mov     [rdi+510h], ebx
+  .text:0000000180B3D9F8                 mov     rax, cs:g_engine
+  .text:0000000180B3D9FF                 lea     rdx, [rsp+48h+arg_0]
+  .text:0000000180B3DA04                 mov     rcx, [rax]
+  .text:0000000180B3DA07                 mov     rbx, [rcx+2B0h]
+  .text:0000000180B3DA0E                 mov     rcx, rdi
+  .text:0000000180B3DA11                 call    sub_18126CDA0
+  .text:0000000180B3DA16                 mov     eax, [rsp+48h+arg_0]
+  .text:0000000180B3DA1A                 lea     edx, [rax-1]
+  .text:0000000180B3DA1D                 cmp     eax, 0FFFFFFFFh
+  .text:0000000180B3DA20                 jnz     short loc_180B3DA27
+  .text:0000000180B3DA22                 mov     edx, 0FFFFFFFFh
+  .text:0000000180B3DA27                 mov     rcx, cs:g_engine
+  .text:0000000180B3DA2E                 ; IVEngineServer2_IsClientLowViolence
+  .text:0000000180B3DA2E                 call    rbx; IVEngineServer2_IsClientLowViolence
+  .text:0000000180B3DA30                 mov     [rdi+5ACh], al
+  .text:0000000180B3DA36                 lea     rdx, [rsp+48h+arg_0]
+  .text:0000000180B3DA3B                 mov     rax, cs:g_engine
+  .text:0000000180B3DA42                 mov     rcx, [rax]
+  .text:0000000180B3DA45                 mov     rbx, [rcx+1A8h]
+  .text:0000000180B3DA4C                 mov     rcx, rdi
+  .text:0000000180B3DA4F                 call    sub_18126CDA0
+  .text:0000000180B3DA54                 mov     eax, [rsp+48h+arg_0]
+  .text:0000000180B3DA58                 lea     edx, [rax-1]
+  .text:0000000180B3DA5B                 cmp     eax, 0FFFFFFFFh
+  .text:0000000180B3DA5E                 jnz     short loc_180B3DA65
+  .text:0000000180B3DA60                 mov     edx, 0FFFFFFFFh
+  .text:0000000180B3DA65                 mov     rcx, cs:g_engine
+  .text:0000000180B3DA6C                 lea     r8, aRate; "rate"
+  .text:0000000180B3DA73                 call    rbx
+  .text:0000000180B3DA75                 test    rax, rax
+  .text:0000000180B3DA78                 jz      loc_180B3DB01
+  .text:0000000180B3DA7E                 mov     rcx, rax
+  .text:0000000180B3DA81                 call    cs:V_atoi
+  .text:0000000180B3DA87                 mov     ebx, eax
+  .text:0000000180B3DA89                 cmp     eax, 1388h
+  .text:0000000180B3DA8E                 jl      short loc_180B3DB01
+  .text:0000000180B3DA90                 mov     edx, 0FFFFFFFFh
+  .text:0000000180B3DA95                 lea     rcx, unk_181FEC318
+  .text:0000000180B3DA9C                 call    sub_181546490
+  .text:0000000180B3DAA1                 test    rax, rax
+  .text:0000000180B3DAA4                 jnz     short loc_180B3DAB1
+  .text:0000000180B3DAA6                 mov     rax, cs:qword_181FEC320
+  .text:0000000180B3DAAD                 mov     rax, [rax+8]
+  .text:0000000180B3DAB1                 mov     eax, [rax]
+  .text:0000000180B3DAB3                 test    eax, eax
+  .text:0000000180B3DAB5                 jns     short loc_180B3DABB
+  .text:0000000180B3DAB7                 xor     eax, eax
+  .text:0000000180B3DAB9                 jmp     short loc_180B3DAC5
+  .text:0000000180B3DABB                 mov     ecx, 64h ; 'd'
+  .text:0000000180B3DAC0                 cmp     eax, ecx
+  .text:0000000180B3DAC2                 cmovg   eax, ecx
+  .text:0000000180B3DAC5                 cmp     ebx, 4E20h
+  .text:0000000180B3DACB                 jge     short loc_180B3DB06
+  .text:0000000180B3DACD                 dec     eax
+  .text:0000000180B3DACF                 movd    xmm1, ebx
+  .text:0000000180B3DAD3                 cvtdq2ps xmm1, xmm1
+  .text:0000000180B3DAD6                 movd    xmm0, eax
+  .text:0000000180B3DADA                 subss   xmm1, cs:dword_1816485EC
+  .text:0000000180B3DAE2                 cvtdq2ps xmm0, xmm0
+  .text:0000000180B3DAE5                 divss   xmm1, cs:dword_1817B9328
+  .text:0000000180B3DAED                 mulss   xmm1, xmm0
+  .text:0000000180B3DAF1                 addss   xmm1, cs:dword_18160F66C
+  .text:0000000180B3DAF9                 cvttss2si eax, xmm1
+  .text:0000000180B3DAFD                 inc     eax
+  .text:0000000180B3DAFF                 jmp     short loc_180B3DB06
+  .text:0000000180B3DB01                 mov     eax, 1
+  .text:0000000180B3DB06                 mov     [rdi+6F4h], eax
+  .text:0000000180B3DB0C                 xor     r8d, r8d
+  .text:0000000180B3DB0F                 mov     rax, cs:off_181CA85C0
+  .text:0000000180B3DB16                 xor     edx, edx
+  .text:0000000180B3DB18                 mov     ecx, [rax+30h]
+  .text:0000000180B3DB1B                 mov     [rdi+6F0h], ecx
+  .text:0000000180B3DB21                 mov     rcx, rdi
+  .text:0000000180B3DB24                 call    sub_1803E3E30
+  .text:0000000180B3DB29                 mov     edx, 20h ; ' '
+  .text:0000000180B3DB2E                 mov     rcx, rdi
+  .text:0000000180B3DB31                 call    sub_1803B99D0
+  .text:0000000180B3DB36                 xor     r8d, r8d
+  .text:0000000180B3DB39                 xor     edx, edx
+  .text:0000000180B3DB3B                 mov     rcx, rdi
+  .text:0000000180B3DB3E                 call    CBaseEntity_SetMoveType
+  .text:0000000180B3DB43                 mov     dword ptr [rdi+4E8h], 0
+  .text:0000000180B3DB4D                 mov     dword ptr [rdi+4ECh], 0FFFFFFFFh
+  .text:0000000180B3DB57                 cmp     qword ptr [rdi+708h], 0
+  .text:0000000180B3DB5F                 jz      short loc_180B3DB6D
+  .text:0000000180B3DB61                 mov     rax, [rdi]
+  .text:0000000180B3DB64                 mov     rcx, rdi
+  .text:0000000180B3DB67                 call    qword ptr [rax+850h]
+  .text:0000000180B3DB6D                 mov     rbx, [rsp+48h+arg_8]
+  .text:0000000180B3DB72                 mov     rbp, [rsp+48h+arg_10]
+  .text:0000000180B3DB77                 add     rsp, 30h
+  .text:0000000180B3DB7B                 pop     r14
+  .text:0000000180B3DB7D                 pop     rdi
+  .text:0000000180B3DB7E                 pop     rsi
+  .text:0000000180B3DB7F                 retn
+procedure: |-
+  __int64 __fastcall sub_180B3D800(__int64 a1, __int64 a2)
+  {
+    int v4; // ebp
+    _BYTE *v5; // rax
+    char *v6; // rax
+    __int64 v7; // rax
+    __int64 v8; // rax
+    __int64 v9; // rax
+    unsigned __int8 v10; // al
+    int v11; // ebx
+    int v12; // esi
+    __int64 (__fastcall *v13)(__int64, __int64); // rbx
+    __int64 v14; // rdx
+    __int64 (__fastcall *v15)(__int64, __int64, const char *); // rbx
+    __int64 v16; // rdx
+    __int64 v17; // rax
+    int v18; // ebx
+    int *v19; // rax
+    int v20; // eax
+    __int64 result; // rax
+    __int64 v22; // [rsp+20h] [rbp-28h] BYREF
+    const char *v23; // [rsp+28h] [rbp-20h]
+    int v24; // [rsp+50h] [rbp+8h] BYREF
+
+    CBaseEntity_Spawn(a1, a2);
+    v4 = *((_DWORD *)off_181CA85C0 + 17);
+    if ( *(_DWORD *)(a1 + 1208) != v4 )
+    {
+      sub_180B299A0(a1 + 1208, 0xFFFFFFFFLL, 0xFFFFFFFFLL);
+      *(_DWORD *)(a1 + 1208) = v4;
+    }
+    if ( !a2 )
+    {
+      v6 = byte_18160A998;
+      goto LABEL_11;
+    }
+    v22 = -839850908;
+    v23 = "playername";
+    v5 = (_BYTE *)sub_1812606C0(a2, &v22, 0);
+    if ( v5 && ((*v5 >> 2) & 0xF) == 6 )
+      v6 = (char *)sub_18153CF20(v5, byte_18160A998);
+    else
+      v6 = byte_18160A998;
+    if ( v6 )
+    {
+  LABEL_11:
+      V_strncpy(a1 + 1300, v6, 128);
+      sub_180B29220(a1 + 1300);
+      if ( !a2 )
+        goto LABEL_16;
+    }
+    v22 = -2042249074;
+    v23 = "fakeclient";
+    v7 = sub_1812606C0(a2, &v22, 0);
+    if ( v7 )
+      LOBYTE(v7) = sub_18153BDA0(v7);
+    if ( (_BYTE)v7 )
+    {
+      sub_1803B9A10(a1, 256);
+      goto LABEL_17;
+    }
+  LABEL_16:
+    sub_1803DE120(a1, 256);
+    if ( !a2 )
+    {
+      *(_BYTE *)(a1 + 1288) = 0;
+      goto LABEL_22;
+    }
+  LABEL_17:
+    v22 = -583232892;
+    v23 = "is_hltv";
+    v8 = sub_1812606C0(a2, &v22, 0);
+    if ( v8 )
+      LOBYTE(v8) = sub_18153BDA0(v8);
+    *(_BYTE *)(a1 + 1288) = v8;
+    v22 = -2018312186;
+    v23 = "reserving";
+    v9 = sub_1812606C0(a2, &v22, 0);
+    if ( v9 )
+    {
+      v10 = sub_18153BDA0(v9);
+      goto LABEL_23;
+    }
+  LABEL_22:
+    v10 = 0;
+  LABEL_23:
+    v11 = *(_DWORD *)(a1 + 1292);
+    v12 = 4 * v10 + 1;
+    if ( v11 != v12 )
+    {
+      sub_180B28E60(a1 + 1292, 0xFFFFFFFFLL, 0xFFFFFFFFLL);
+      *(_DWORD *)(a1 + 1292) = v12;
+      v11 = v12;
+    }
+    if ( *(_DWORD *)(a1 + 1296) != v11 )
+    {
+      sub_180B290E0(a1 + 1296, 0xFFFFFFFFLL, 0xFFFFFFFFLL);
+      *(_DWORD *)(a1 + 1296) = v11;
+    }
+    v13 = *(__int64 (__fastcall **)(__int64, __int64))(*(_QWORD *)g_engine + 688LL);
+    sub_18126CDA0(a1, &v24);
+    v14 = (unsigned int)(v24 - 1);
+    if ( v24 == -1 )
+      v14 = 0xFFFFFFFFLL;
+    *(_BYTE *)(a1 + 1452) = v13(g_engine, v14);   // IVEngineServer2_IsClientLowViolence
+    v15 = *(__int64 (__fastcall **)(__int64, __int64, const char *))(*(_QWORD *)g_engine + 424LL);
+    sub_18126CDA0(a1, &v24);
+    v16 = (unsigned int)(v24 - 1);
+    if ( v24 == -1 )
+      v16 = 0xFFFFFFFFLL;
+    v17 = v15(g_engine, v16, "rate");
+    if ( v17 && (v18 = V_atoi(v17), v18 >= 5000) )
+    {
+      v19 = (int *)sub_181546490(&unk_181FEC318, 0xFFFFFFFFLL);
+      if ( !v19 )
+        v19 = *(int **)(qword_181FEC320 + 8);
+      v20 = *v19;
+      if ( v20 >= 0 )
+      {
+        if ( v20 > 100 )
+          v20 = 100;
+      }
+      else
+      {
+        v20 = 0;
+      }
+      if ( v18 < 20000 )
+        v20 = (int)(float)((float)((float)((float)((float)v18 - 5000.0) / 15000.0) * (float)(v20 - 1)) + 0.5) + 1;
+    }
+    else
+    {
+      v20 = 1;
+    }
+    *(_DWORD *)(a1 + 1780) = v20;
+    *(_DWORD *)(a1 + 1776) = *((_DWORD *)off_181CA85C0 + 12);
+    sub_1803E3E30(a1, 0, 0);
+    sub_1803B99D0(a1, 32);
+    result = CBaseEntity_SetMoveType(a1, 0, 0);
+    *(_DWORD *)(a1 + 1256) = 0;
+    *(_DWORD *)(a1 + 1260) = -1;
+    if ( *(_QWORD *)(a1 + 1800) )
+      return (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)a1 + 2128LL))(a1);
+    return result;
+  }

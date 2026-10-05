@@ -14,7 +14,14 @@ from unittest.mock import patch
 import trusted_artifact_pr as tap
 import trusted_pr_context as tpc
 from ida_analyze_util import canonical_symbol_yaml_bytes
-from tests.gamesymbol_snapshot_test_support import write_binary, write_config, write_source_binary_lock
+from tests.gamesymbol_snapshot_test_support import (
+    GLOBAL_ARTIFACT_PAYLOAD,
+    write_binary,
+    write_config,
+    write_source_binary_lock,
+)
+
+GLOBAL_ARTIFACT_PATH = "server/G.windows.yaml"
 
 
 class TrustedArtifactPrTests(unittest.TestCase):
@@ -188,7 +195,9 @@ class TrustedArtifactPrTests(unittest.TestCase):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(canonical_symbol_yaml_bytes({"func_name": name, "func_rva": rva}, category="func"))
 
-    def _write_execution_report(self, root: Path, plan: dict, preparation: dict) -> None:
+    def _write_execution_report(
+        self, root: Path, plan: dict, preparation: dict, *, output_sha256: dict[str, str] | None = None
+    ) -> None:
         version = plan["game_versions"][0]
         gamever = version["game_version"]
         inventory = tap.build_game_artifact_inventory(
@@ -224,7 +233,9 @@ class TrustedArtifactPrTests(unittest.TestCase):
                     **group,
                     "attempted_node_ids": [group["alternative_node_ids"][0]],
                     "winner_node_id": group["alternative_node_ids"][0],
-                    "output_sha256": files[group["artifact_path"]]["sha256"],
+                    "output_sha256": (output_sha256 or {}).get(
+                        group["artifact_path"], files[group["artifact_path"]]["sha256"]
+                    ),
                 }
                 for group in version["execute_groups"]
             ],
@@ -243,6 +254,7 @@ class TrustedArtifactPrTests(unittest.TestCase):
         add_extra: bool = False,
         add_unconfigured: bool = False,
         changed_path: str | None = None,
+        with_global: bool = False,
     ):
         self._git(root, "init", "-b", "main")
         self._git(root, "config", "user.email", "test@example.com")
@@ -263,24 +275,37 @@ class TrustedArtifactPrTests(unittest.TestCase):
             path = root / relative
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(payload)
+        skills = [
+            {"name": "find-a", "expected_output": ["A.{platform}.yaml"]},
+            {
+                "name": "find-b",
+                "expected_input": ["A.{platform}.yaml"],
+                "expected_output": ["B.{platform}.yaml"],
+            },
+        ]
+        symbols = [
+            {"name": "A", "category": "func", "platform": "windows"},
+            {"name": "B", "category": "func", "platform": "windows"},
+        ]
+        if with_global:
+            # Consuming A puts the global's producer group in the invalidation closure,
+            # so the rebuild has to execute it and report its output digest.
+            skills.append(
+                {
+                    "name": "find-g",
+                    "expected_input": ["A.{platform}.yaml"],
+                    "expected_output": ["G.{platform}.yaml"],
+                }
+            )
+            symbols.append({"name": "G", "category": "gv", "platform": "windows"})
         write_config(
             root / "configs" / "1.yaml",
             [
                 {
                     "name": "server",
                     "path_windows": "game/bin/win64/server.dll",
-                    "skills": [
-                        {"name": "find-a", "expected_output": ["A.{platform}.yaml"]},
-                        {
-                            "name": "find-b",
-                            "expected_input": ["A.{platform}.yaml"],
-                            "expected_output": ["B.{platform}.yaml"],
-                        },
-                    ],
-                    "symbols": [
-                        {"name": "A", "category": "func", "platform": "windows"},
-                        {"name": "B", "category": "func", "platform": "windows"},
-                    ],
+                    "skills": skills,
+                    "symbols": symbols,
                 }
             ],
         )
@@ -288,6 +313,9 @@ class TrustedArtifactPrTests(unittest.TestCase):
         write_source_binary_lock(root, "1")
         self._write_artifact(root, "A", "0x10")
         self._write_artifact(root, "B", "0x20")
+        if with_global:
+            path = root / "bin_artifacts" / "1" / "server" / "G.windows.yaml"
+            path.write_bytes(canonical_symbol_yaml_bytes(GLOBAL_ARTIFACT_PAYLOAD, category="gv"))
         self._git(root, "add", ".")
         self._git(root, "commit", "-m", "base")
         base_sha = self._git(root, "rev-parse", "HEAD")
@@ -391,6 +419,62 @@ class TrustedArtifactPrTests(unittest.TestCase):
 
             with self.assertRaisesRegex(tap.TrustedArtifactPrError, "contract failed|byte mismatch"):
                 tap.validate_isolated_rebuild(repo_root=root, plan=plan, preparation=preparation)
+
+    def _prepared_global_drift(self, temporary: str, overrides: dict, *, report_sha256: str | None = None):
+        """Rebuild a PR tree whose only difference is one rewritten global artifact.
+
+        ``report_sha256`` defaults to the rebuilt payload's own digest, which is what
+        a real force-all run records.
+        """
+        root = Path(temporary) / "repo"
+        root.mkdir()
+        _base, _head, _merge, context = self._repository(root, with_global=True)
+        plan = tap.build_trusted_artifact_plan(repo_root=root, trusted_context=context)
+        preparation = tap.prepare_isolated_rebuild(repo_root=root, plan=plan, staging_root=Path(temporary) / "isolated")
+        actual = Path(preparation["actual_artifact_root"])
+        shutil.copytree(Path(preparation["expected_artifact_root"]), actual, dirs_exist_ok=True)
+        drifted = canonical_symbol_yaml_bytes({**GLOBAL_ARTIFACT_PAYLOAD, **overrides}, category="gv")
+        (actual / "1" / GLOBAL_ARTIFACT_PATH).write_bytes(drifted)
+        self._write_execution_report(
+            root,
+            plan,
+            preparation,
+            output_sha256={GLOBAL_ARTIFACT_PATH: report_sha256 or tap._sha256(drifted)},
+        )
+        return root, plan, preparation
+
+    def test_isolated_verify_accepts_anchor_only_drift(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root, plan, preparation = self._prepared_global_drift(
+                temporary, {"gv_sig": "48 8D 0D ?? ?? ?? ?? E8 ?? ?? ?? ??", "gv_sig_va": "0x180d0b0bb"}
+            )
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                result = tap.validate_isolated_rebuild(repo_root=root, plan=plan, preparation=preparation)
+            self.assertIn(f"Anchor drift accepted for bin_artifacts/1/{GLOBAL_ARTIFACT_PATH}", output.getvalue())
+            self.assertIn("gv_sig_va 0x180b7f32c -> 0x180d0b0bb", output.getvalue())
+            # The PR still binds the prospective merge tree, never the rebuilt bytes.
+            self.assertEqual(
+                plan["game_versions"][0]["merge_artifacts"]["inventory_sha256"],
+                result["game_versions"][0]["inventory_sha256"],
+            )
+
+    def test_isolated_verify_rejects_unbacked_or_misreported_drift(self) -> None:
+        anchor = {"gv_sig": "48 8D 0D ?? ?? ?? ?? E8 ?? ?? ?? ??", "gv_sig_va": "0x180d0b0bb"}
+        tracked_sha256 = tap._sha256(canonical_symbol_yaml_bytes(GLOBAL_ARTIFACT_PAYLOAD, category="gv"))
+        for overrides, report_sha256, message in (
+            # The resolved address is pinned, and the displacement operand must stay
+            # inside the anchored instruction.
+            ({"gv_va": "0x182226f10", "gv_rva": "0x2226f10"}, tracked_sha256, "isolated artifact byte mismatch"),
+            ({"gv_inst_disp": 4}, tracked_sha256, "isolated artifact byte mismatch"),
+            # An accepted drift still has to be the payload the run says it wrote.
+            (anchor, tracked_sha256, "producer-group execution drifted"),
+            (anchor, f"sha256:{'0' * 64}", "producer-group execution drifted"),
+        ):
+            with self.subTest(overrides=overrides, report_sha256=report_sha256), tempfile.TemporaryDirectory() as temp:
+                root, plan, preparation = self._prepared_global_drift(temp, overrides, report_sha256=report_sha256)
+                with self.assertRaisesRegex(tap.TrustedArtifactPrError, message):
+                    tap.validate_isolated_rebuild(repo_root=root, plan=plan, preparation=preparation)
 
     def test_isolated_verify_rejects_missing_execution_evidence(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -1094,7 +1178,7 @@ class SelectedExecutionTests(unittest.TestCase):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(self._artifact(name, rva))
 
-    def _skills(self, *, with_find_c: bool = True, alternatives: bool = False) -> list[dict]:
+    def _skills(self, *, with_find_c: bool = True, alternatives: bool = False, with_global: bool = False) -> list[dict]:
         skills = [
             {"name": "find-a", "expected_output": ["A.{platform}.yaml"]},
             {
@@ -1103,6 +1187,16 @@ class SelectedExecutionTests(unittest.TestCase):
                 "expected_output": ["B.{platform}.yaml"],
             },
         ]
+        if with_global:
+            # Consuming A puts the global's producer group in the invalidation closure,
+            # so the selected run has to execute it and report its output digest.
+            skills.append(
+                {
+                    "name": "find-g",
+                    "expected_input": ["A.{platform}.yaml"],
+                    "expected_output": ["G.{platform}.yaml"],
+                }
+            )
         if with_find_c:
             skills.append({"name": "find-c", "expected_output": ["C.{platform}.yaml"]})
         if alternatives:
@@ -1131,8 +1225,10 @@ class SelectedExecutionTests(unittest.TestCase):
         )
         return skills
 
-    def _symbols(self, *, with_c: bool = True, alternatives: bool = False) -> list[dict]:
+    def _symbols(self, *, with_c: bool = True, alternatives: bool = False, with_global: bool = False) -> list[dict]:
         symbols = [{"name": name, "category": "func", "platform": "windows"} for name in ("A", "B")]
+        if with_global:
+            symbols.append({"name": "G", "category": "gv", "platform": "windows"})
         if with_c:
             symbols.append({"name": "C", "category": "func", "platform": "windows"})
         if alternatives:
@@ -1146,6 +1242,7 @@ class SelectedExecutionTests(unittest.TestCase):
         *,
         selected_policy: bool,
         change: str = "artifact-a",
+        with_global: bool = False,
     ):
         self._git(root, "init", "-b", "main")
         self._git(root, "config", "user.email", "test@example.com")
@@ -1175,8 +1272,8 @@ class SelectedExecutionTests(unittest.TestCase):
                 {
                     "name": "server",
                     "path_windows": "game/bin/win64/server.dll",
-                    "skills": self._skills(alternatives=alternatives),
-                    "symbols": self._symbols(alternatives=alternatives),
+                    "skills": self._skills(alternatives=alternatives, with_global=with_global),
+                    "symbols": self._symbols(alternatives=alternatives, with_global=with_global),
                 }
             ],
         )
@@ -1184,6 +1281,9 @@ class SelectedExecutionTests(unittest.TestCase):
         write_source_binary_lock(root, "1")
         for name, rva in (("A", "0x10"), ("B", "0x20"), ("C", "0x30"), ("Pre", "0x40"), ("Dep", "0x50")):
             self._write_artifact(root, name, rva)
+        if with_global:
+            path = root / "bin_artifacts" / "1" / "server" / "G.windows.yaml"
+            path.write_bytes(canonical_symbol_yaml_bytes(GLOBAL_ARTIFACT_PAYLOAD, category="gv"))
         if change == "drop-opt":
             self._write_artifact(root, "Opt", "0x70")
         self._git(root, "add", ".")
@@ -1236,8 +1336,12 @@ class SelectedExecutionTests(unittest.TestCase):
         )
         return base_sha, head_sha, merge_sha, context
 
-    def _plan_and_preparation(self, root: Path, staging: Path, *, change: str = "artifact-a"):
-        _base, _head, _merge, context = self._repository(root, selected_policy=True, change=change)
+    def _plan_and_preparation(
+        self, root: Path, staging: Path, *, change: str = "artifact-a", with_global: bool = False
+    ):
+        _base, _head, _merge, context = self._repository(
+            root, selected_policy=True, change=change, with_global=with_global
+        )
         plan = tap.build_trusted_artifact_plan(repo_root=root, trusted_context=context)
         preparation = tap.prepare_isolated_rebuild(repo_root=root, plan=plan, staging_root=staging)
         return plan, preparation
@@ -1667,6 +1771,34 @@ class SelectedExecutionTests(unittest.TestCase):
                 tap.TrustedArtifactPrError, r"(?s)drifted from the trusted plan.*content diff.*0x99"
             ):
                 tap.validate_isolated_rebuild(repo_root=root, plan=plan, preparation=preparation)
+
+    def test_selected_verify_accepts_anchor_only_drift(self) -> None:
+        """A selected run may sample another rule-conformant reference instruction."""
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            staging = Path(temporary) / "isolated"
+            root.mkdir()
+            plan, preparation = self._plan_and_preparation(root, staging, with_global=True)
+            self._simulate_selected_execution(root, plan, preparation)
+            gamever = plan["game_versions"][0]["game_version"]
+            drifted = canonical_symbol_yaml_bytes(
+                {**GLOBAL_ARTIFACT_PAYLOAD, "gv_sig_va": "0x180d0b0bb"}, category="gv"
+            )
+            (Path(preparation["actual_artifact_root"]) / gamever / GLOBAL_ARTIFACT_PATH).write_bytes(drifted)
+            self._write_selected_report(root, plan, preparation)
+
+            def claim_drifted_output(report):
+                for record in report["producer_groups"]:
+                    if record["artifact_path"] == GLOBAL_ARTIFACT_PATH:
+                        record["output_sha256"] = tap._sha256(drifted)
+
+            self._retamper_selected_report(preparation, gamever, claim_drifted_output)
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                tap.validate_isolated_rebuild(repo_root=root, plan=plan, preparation=preparation)
+            self.assertIn(
+                f"Anchor drift accepted for bin_artifacts/{gamever}/{GLOBAL_ARTIFACT_PATH}", output.getvalue()
+            )
 
     def test_selected_verify_rejects_recorded_write_to_inherited_artifact(self) -> None:
         """Even a byte-identical rewrite of an inherited artifact must fail once recorded."""

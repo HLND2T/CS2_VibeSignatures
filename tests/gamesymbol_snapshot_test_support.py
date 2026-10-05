@@ -6,6 +6,20 @@ import binary_lock
 from gamesymbol_snapshot_lib.config import load_contract
 
 
+# One canonical `gv` artifact for gates that need a category with an anchor group:
+# its locator fields may drift while gv_va/gv_rva stay pinned.
+GLOBAL_ARTIFACT_PAYLOAD = {
+    "gv_name": "G",
+    "gv_va": "0x182226f08",
+    "gv_rva": "0x2226f08",
+    "gv_sig": "48 89 15 ?? ?? ?? ?? 48 89 42 ??",
+    "gv_sig_va": "0x180b7f32c",
+    "gv_inst_offset": 0,
+    "gv_inst_length": 7,
+    "gv_inst_disp": 3,
+}
+
+
 def write_yaml(path: Path, data) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")

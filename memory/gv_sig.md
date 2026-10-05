@@ -54,3 +54,4 @@ permalink: cs2-vibesignatures/gv-sig
 - Over-wildcarding hurts uniqueness; under-wildcarding hurts portability.
 - `gv_inst_*` must stay consistent with RIP-relative disp32 model.
 - `gv_sig_allow_across_function_boundary` changes generation breadth only; relocation still depends on the resolved access instruction and its displacement metadata.
+- `gv_sig`/`gv_sig_va`/`gv_inst_*` may legitimately differ between two runs that picked different GV-access instructions; PR and Release validation tolerate exactly that while pinning `gv_va`/`gv_rva`. Read [[anchor_drift]] before relying on these fields being reproducible.

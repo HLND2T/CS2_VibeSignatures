@@ -1,0 +1,62 @@
+func_name: CNetworkServerService_OnLoopActivate
+func_va: '0x4008e0'
+disasm_code: |-
+  .text:00000000004008E0                 cmp     byte ptr [rdi+158h], 0
+  .text:00000000004008E7                 jz      short locret_400930
+  .text:00000000004008E9                 push    rbp
+  .text:00000000004008EA                 mov     rbp, rsp
+  .text:00000000004008ED                 push    r12
+  .text:00000000004008EF                 lea     r12, g_pEngineServiceMgr
+  .text:00000000004008F6                 push    rbx
+  .text:00000000004008F7                 mov     rbx, rdi
+  .text:00000000004008FA                 mov     rdi, [r12]
+  .text:00000000004008FE                 mov     rax, [rdi]
+  .text:0000000000400901                 call    qword ptr [rax+110h]
+  .text:0000000000400907                 test    al, al
+  .text:0000000000400909                 jnz     short loc_400923
+  .text:000000000040090B                 mov     rdi, [r12]
+  .text:000000000040090F                 mov     byte ptr [rbx+158h], 0
+  .text:0000000000400916                 mov     rax, [rdi]
+  .text:0000000000400919                 ; 0x118 = 280LL = IEngineServiceMgr_IsInGameLoop
+  .text:0000000000400919                 call    qword ptr [rax+118h]; 0x118 = 280LL = IEngineServiceMgr_IsInGameLoop
+  .text:000000000040091F                 test    al, al
+  .text:0000000000400921                 jz      short loc_400938
+  .text:0000000000400923                 pop     rbx
+  .text:0000000000400924                 pop     r12
+  .text:0000000000400926                 pop     rbp
+  .text:0000000000400927                 retn
+  .text:0000000000400930                 retn
+  .text:0000000000400938                 lea     r12, dword_A359F4
+  .text:000000000040093F                 mov     esi, 2
+  .text:0000000000400944                 mov     edi, [r12]
+  .text:0000000000400948                 call    sub_2C8C80
+  .text:000000000040094D                 test    al, al
+  .text:000000000040094F                 jnz     short loc_400960
+  .text:0000000000400951                 mov     byte ptr [rbx+159h], 1
+  .text:0000000000400958                 jmp     short loc_400923
+  .text:0000000000400960                 mov     edi, [r12]
+  .text:0000000000400964                 lea     rdx, aSvSettingGameL; "SV:  Setting game load failed flag.\n"
+  .text:000000000040096B                 mov     esi, 2
+  .text:0000000000400970                 xor     eax, eax
+  .text:0000000000400972                 call    sub_2CA620
+  .text:0000000000400977                 jmp     short loc_400951
+procedure: |-
+  void __fastcall sub_4008E0(__int64 a1)
+  {
+    _QWORD *v2; // rdi
+
+    if ( *(_BYTE *)(a1 + 344) )
+    {
+      if ( !(*(unsigned __int8 (__fastcall **)(_QWORD *))(*g_pEngineServiceMgr + 272LL))(g_pEngineServiceMgr) )
+      {
+        v2 = g_pEngineServiceMgr;
+        *(_BYTE *)(a1 + 344) = 0;
+        if ( !(*(unsigned __int8 (__fastcall **)(_QWORD *))(*v2 + 280LL))(v2) )// 0x118 = 280LL = IEngineServiceMgr_IsInGameLoop
+        {
+          if ( (unsigned __int8)sub_2C8C80((unsigned int)dword_A359F4, 2) )
+            sub_2CA620((unsigned int)dword_A359F4, 2, "SV:  Setting game load failed flag.\n");
+          *(_BYTE *)(a1 + 345) = 1;
+        }
+      }
+    }
+  }
