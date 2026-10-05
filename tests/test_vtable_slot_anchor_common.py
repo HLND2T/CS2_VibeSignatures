@@ -137,8 +137,14 @@ class SkillTests(unittest.IsolatedAsyncioTestCase):
             output = self._write_vtable(directory, {22: 0x3AE70, 23: 0x3A100, 24: 0x3AF10})
             session = AsyncMock()
             with (
-                patch.object(anchor, "_collect_xref_func_starts_for_string", AsyncMock(return_value={0x3AE70, 0x3AF10})),
-                patch.object(anchor, "preprocess_gen_func_sig_via_mcp", AsyncMock(side_effect=lambda **kw: self._sig(kw["func_va"]))),
+                patch.object(
+                    anchor, "_collect_xref_func_starts_for_string", AsyncMock(return_value={0x3AE70, 0x3AF10})
+                ),
+                patch.object(
+                    anchor,
+                    "preprocess_gen_func_sig_via_mcp",
+                    AsyncMock(side_effect=lambda **kw: self._sig(kw["func_va"])),
+                ),
             ):
                 ok = await anchor.preprocess_string_twin_vfunc_skill(
                     session, [output], directory, "linux", 0, TARGET, "CSchemaSystem", "twin", 2, _desired()
@@ -181,17 +187,34 @@ class SkillTests(unittest.IsolatedAsyncioTestCase):
                 )
             self.assertTrue(ok)
             data = yaml.safe_load(Path(output).read_text(encoding="utf-8"))
-            self.assertEqual((hex(0x5F000 + 28), "0xe0", 28), (data["func_va"], data["vfunc_offset"], data["vfunc_index"]))
+            self.assertEqual(
+                (hex(0x5F000 + 28), "0xe0", 28), (data["func_va"], data["vfunc_offset"], data["vfunc_index"])
+            )
 
     async def test_unsupported_desired_field_is_rejected(self):
         with TemporaryDirectory() as directory:
             output = self._write_vtable(directory, {22: 0x3AE70, 24: 0x3AF10})
             with (
-                patch.object(anchor, "_collect_xref_func_starts_for_string", AsyncMock(return_value={0x3AE70, 0x3AF10})),
-                patch.object(anchor, "preprocess_gen_func_sig_via_mcp", AsyncMock(side_effect=lambda **kw: self._sig(kw["func_va"]))),
+                patch.object(
+                    anchor, "_collect_xref_func_starts_for_string", AsyncMock(return_value={0x3AE70, 0x3AF10})
+                ),
+                patch.object(
+                    anchor,
+                    "preprocess_gen_func_sig_via_mcp",
+                    AsyncMock(side_effect=lambda **kw: self._sig(kw["func_va"])),
+                ),
             ):
                 ok = await anchor.preprocess_string_twin_vfunc_skill(
-                    AsyncMock(), [output], directory, "linux", 0, TARGET, "CSchemaSystem", "twin", 2, _desired(FIELDS + ["vfunc_sig"])
+                    AsyncMock(),
+                    [output],
+                    directory,
+                    "linux",
+                    0,
+                    TARGET,
+                    "CSchemaSystem",
+                    "twin",
+                    2,
+                    _desired(FIELDS + ["vfunc_sig"]),
                 )
             self.assertFalse(ok)
 
