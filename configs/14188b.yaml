@@ -593,6 +593,10 @@ modules:
         category: vfunc
         alias:
           - CNetworkSystem::GetScratchBuffer
+      - name: CNetworkSystem_PutScratchBuffer
+        category: vfunc
+        alias:
+          - CNetworkSystem::PutScratchBuffer
       - name: CNetworkSystem_CloseAllSockets
         category: vfunc
         alias:
@@ -2542,6 +2546,14 @@ modules:
           - INetworkSystem_GetScratchBuffer.{platform}.yaml
         expected_input:
           - CServerSideClientBase_SendSnapshot.{platform}.yaml
+      - name: find-CNetworkGameServerBase_WriteDeltaEntities_WriteNonTransmitted
+        expected_output:
+          - CNetworkGameServerBase_WriteDeltaEntities_WriteNonTransmitted.{platform}.yaml
+      - name: find-INetworkSystem_PutScratchBuffer
+        expected_output:
+          - INetworkSystem_PutScratchBuffer.{platform}.yaml
+        expected_input:
+          - CNetworkGameServerBase_WriteDeltaEntities_WriteNonTransmitted.{platform}.yaml
       - name: find-CDelayedCall2_CServerSideClientBase_UpdateAcknowledgedFramecountCall_vtable
         expected_output:
           - CDelayedCall2_CServerSideClientBase_UpdateAcknowledgedFramecountCall_vtable.{platform}.yaml
@@ -4274,6 +4286,10 @@ modules:
         category: vfunc
         alias:
           - INetworkSystem::GetScratchBuffer
+      - name: INetworkSystem_PutScratchBuffer
+        category: vfunc
+        alias:
+          - INetworkSystem::PutScratchBuffer
       - name: INetworkSystem_InitNetworkSystem
         category: vfunc
         alias:
@@ -4370,6 +4386,10 @@ modules:
         category: func
         alias:
           - CServerSideClientBase::SendSnapshot
+      - name: CNetworkGameServerBase_WriteDeltaEntities_WriteNonTransmitted
+        category: func
+        alias:
+          - CNetworkGameServerBase::WriteDeltaEntities_WriteNonTransmitted
       - name: CDelayedCall2_CServerSideClientBase_UpdateAcknowledgedFramecountCall_vtable
         category: vtable
       - name: CServerSideClientBase_ProcessTick
@@ -14264,6 +14284,12 @@ modules:
         expected_input:
           - CNetworkSystem_vtable.{platform}.yaml
           - ../engine/INetworkSystem_GetScratchBuffer.{platform}.yaml
+      - name: find-CNetworkSystem_PutScratchBuffer
+        expected_output:
+          - CNetworkSystem_PutScratchBuffer.{platform}.yaml
+        expected_input:
+          - CNetworkSystem_vtable.{platform}.yaml
+          - ../engine/INetworkSystem_PutScratchBuffer.{platform}.yaml
       - name: find-CNetworkSystem_GetUDPPort
         expected_output:
           - CNetworkSystem_GetUDPPort.{platform}.yaml
