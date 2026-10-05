@@ -1,5 +1,16 @@
 #!/usr/bin/env python3
-"""Shared preprocess helpers for DEFINE_INPUTFUNC-like skills."""
+"""Shared preprocess helpers for DEFINE_INPUTFUNC-like skills.
+
+Both supported entity-input descriptor layouts live in `.data`, start with a pointer
+to the input name string, and hold the handler function pointer at a fixed offset:
+
+- Legacy `DEFINE_INPUTFUNC` (up to 14181): name is the bare input name
+  (e.g. ``TestActivator``), handler at ``+0x10``.
+- `_API` input registration (14182+): name is the qualified schema name
+  (e.g. ``CBaseFilter_API::TestActivator``), followed by the display name, an empty
+  string, two parameter-type callbacks and flags; handler at ``+0x48``. The handler
+  is the new-ABI input wrapper, not the legacy ``(CBaseEntity*, InputData_t&)`` body.
+"""
 
 import json
 import os
@@ -10,6 +21,9 @@ from ida_analyze_util import (
     preprocess_gen_func_sig_via_mcp,
     write_func_yaml,
 )
+
+DEFINE_INPUTFUNC_HANDLER_PTR_OFFSET = 0x10
+API_INPUT_HANDLER_PTR_OFFSET = 0x48
 
 
 def _normalize_requested_fields(generate_yaml_desired_fields, target_name, debug=False):
@@ -83,7 +97,7 @@ def _build_func_payload(target_name, requested_fields, func_info, extra_fields):
 
 def _build_define_inputfunc_py_eval(
     input_name,
-    handler_ptr_offset=0x10,
+    handler_ptr_offset=DEFINE_INPUTFUNC_HANDLER_PTR_OFFSET,
     allowed_segment_names=(".data",),
 ):
     normalized_segments = _normalize_segment_names(allowed_segment_names)
@@ -172,9 +186,9 @@ async def _call_py_eval_json(session, code, debug=False, error_label="py_eval"):
     try:
         result = await session.call_tool(name="py_eval", arguments={"code": code})
         result_data = parse_mcp_result(result)
-    except Exception:
+    except Exception as exc:
         if debug:
-            print(f"    Preprocess: {error_label} error")
+            print(f"    Preprocess: {error_label} error: {type(exc).__name__}: {exc}")
         return None
     if isinstance(result_data, dict):
         raw = result_data.get("result", "")
@@ -183,6 +197,8 @@ async def _call_py_eval_json(session, code, debug=False, error_label="py_eval"):
     else:
         raw = ""
     if not raw:
+        if debug:
+            print(f"    Preprocess: empty result from {error_label}")
         return None
     try:
         return json.loads(raw)
@@ -195,7 +211,7 @@ async def _call_py_eval_json(session, code, debug=False, error_label="py_eval"):
 async def _collect_define_inputfunc_candidates(
     session,
     input_name,
-    handler_ptr_offset=0x10,
+    handler_ptr_offset=DEFINE_INPUTFUNC_HANDLER_PTR_OFFSET,
     allowed_segment_names=(".data",),
     debug=False,
 ):
@@ -211,17 +227,28 @@ async def _collect_define_inputfunc_candidates(
         error_label="py_eval collecting DEFINE_INPUTFUNC candidates",
     )
     if not isinstance(parsed, dict) or parsed.get("ok") is not True:
-        if debug and isinstance(parsed, dict):
-            traceback_text = parsed.get("traceback")
-            if isinstance(traceback_text, str) and traceback_text.strip():
-                print(traceback_text.rstrip())
+        if debug:
+            print(f"    Preprocess: DEFINE_INPUTFUNC candidate collection failed for {input_name}")
+            if isinstance(parsed, dict):
+                traceback_text = parsed.get("traceback")
+                if isinstance(traceback_text, str) and traceback_text.strip():
+                    print(traceback_text.rstrip())
         return None
 
     string_eas = parsed.get("string_eas")
     items = parsed.get("items")
     if not isinstance(string_eas, list) or len(string_eas) != 1:
+        if debug:
+            count = len(string_eas) if isinstance(string_eas, list) else "invalid"
+            print(f"    Preprocess: expected exactly one exact string {input_name!r}, got {count}")
         return None
     if not isinstance(items, list) or not items:
+        if debug:
+            print(
+                f"    Preprocess: no DEFINE_INPUTFUNC descriptor for {input_name!r} "
+                f"(string {string_eas[0]}, xref segments {list(_normalize_segment_names(allowed_segment_names) or ())}, "
+                f"handler at +{hex(int(handler_ptr_offset))} in .text)"
+            )
         return None
 
     normalized_items = []
@@ -235,21 +262,34 @@ async def _collect_define_inputfunc_candidates(
     }
     for item in items:
         if not isinstance(item, dict) or not required_keys.issubset(item):
+            if debug:
+                print(f"    Preprocess: malformed DEFINE_INPUTFUNC candidate for {input_name!r}: {item!r}")
             return None
         if item.get("handler_seg_name") != ".text":
+            if debug:
+                print(
+                    f"    Preprocess: DEFINE_INPUTFUNC handler for {input_name!r} is in "
+                    f"{item.get('handler_seg_name')!r}, expected '.text'"
+                )
             return None
         normalized = dict(item)
         for key in ("string_ea", "xref_from", "handler_ptr_ea", "handler_va"):
             addr = _normalize_addr(normalized.get(key))
             if addr is None:
+                if debug:
+                    print(f"    Preprocess: invalid {key} in DEFINE_INPUTFUNC candidate for {input_name!r}: {item!r}")
                 return None
             normalized[key] = addr
         if not isinstance(normalized.get("xref_seg_name"), str):
+            if debug:
+                print(f"    Preprocess: invalid xref_seg_name in DEFINE_INPUTFUNC candidate for {input_name!r}")
             return None
         normalized_items.append(normalized)
 
     normalized_string_ea = _normalize_addr(string_eas[0])
     if normalized_string_ea is None:
+        if debug:
+            print(f"    Preprocess: invalid string address for {input_name!r}: {string_eas[0]!r}")
         return None
 
     return {"string_eas": [normalized_string_ea], "items": normalized_items}
@@ -272,9 +312,9 @@ async def _query_func_info(session, handler_va, debug=False):
         debug=debug,
         error_label=f"py_eval querying func info for {handler_va}",
     )
-    if not isinstance(parsed, dict):
-        return None
-    if "func_va" not in parsed or "func_size" not in parsed:
+    if not isinstance(parsed, dict) or "func_va" not in parsed or "func_size" not in parsed:
+        if debug:
+            print(f"    Preprocess: handler {handler_va} is not a function start")
         return None
     return {"func_va": parsed["func_va"], "func_size": parsed["func_size"]}
 
@@ -300,28 +340,34 @@ async def preprocess_define_inputfunc_skill(
     target_name,
     input_name,
     generate_yaml_desired_fields,
-    handler_ptr_offset=0x10,
+    handler_ptr_offset=DEFINE_INPUTFUNC_HANDLER_PTR_OFFSET,
     allowed_segment_names=(".data",),
     rename_to=None,
     debug=False,
 ):
+    def _fail(reason):
+        if debug:
+            print(f"    Preprocess: {reason}")
+        return False
+
     if not isinstance(target_name, str) or not target_name:
-        return False
+        return _fail(f"invalid DEFINE_INPUTFUNC target_name: {target_name!r}")
     if not isinstance(input_name, str) or not input_name:
-        return False
+        return _fail(f"invalid DEFINE_INPUTFUNC input_name for {target_name}: {input_name!r}")
     try:
         handler_ptr_offset = int(handler_ptr_offset)
     except (TypeError, ValueError):
-        return False
+        return _fail(f"invalid handler_ptr_offset for {target_name}: {handler_ptr_offset!r}")
     if handler_ptr_offset < 0:
-        return False
-    allowed_segment_names = _normalize_segment_names(allowed_segment_names)
-    if allowed_segment_names is None:
-        return False
+        return _fail(f"negative handler_ptr_offset for {target_name}: {handler_ptr_offset}")
+    normalized_segment_names = _normalize_segment_names(allowed_segment_names)
+    if normalized_segment_names is None:
+        return _fail(f"invalid allowed_segment_names for {target_name}: {allowed_segment_names!r}")
+    allowed_segment_names = normalized_segment_names
     try:
         image_base_int = int(str(image_base), 0)
     except (TypeError, ValueError):
-        return False
+        return _fail(f"invalid image_base for {target_name}: {image_base!r}")
 
     requested_fields = _normalize_requested_fields(
         generate_yaml_desired_fields,
@@ -347,11 +393,11 @@ async def preprocess_define_inputfunc_skill(
         debug=debug,
     )
     if not isinstance(candidates, dict):
-        return False
+        return _fail(f"failed to locate DEFINE_INPUTFUNC handler for {target_name} via {input_name!r}")
 
     items = candidates.get("items")
     if not isinstance(items, list):
-        return False
+        return _fail(f"invalid DEFINE_INPUTFUNC candidate list for {input_name!r}")
     filtered_items = [
         item
         for item in items
@@ -359,21 +405,21 @@ async def preprocess_define_inputfunc_skill(
     ]
     handler_values = sorted({item.get("handler_va") for item in filtered_items})
     if len(handler_values) != 1:
-        if debug:
-            print(f"    Preprocess: expected exactly one .text handler for {input_name}, got {len(handler_values)}")
-        return False
+        return _fail(
+            f"expected exactly one .text handler for {input_name!r}, got {len(handler_values)}: {handler_values}"
+        )
 
     handler_va = handler_values[0]
     func_info = await _query_func_info(session, handler_va, debug=debug)
     if not isinstance(func_info, dict):
-        return False
+        return _fail(f"failed to query function info for {target_name} handler {handler_va}")
 
     extra_fields = {}
     if "func_rva" in requested_fields:
         try:
             extra_fields["func_rva"] = hex(int(str(func_info["func_va"]), 0) - image_base_int)
         except (KeyError, TypeError, ValueError):
-            return False
+            return _fail(f"failed to compute func_rva for {target_name} from {func_info!r}")
     if "func_sig" in requested_fields:
         sig_info = await preprocess_gen_func_sig_via_mcp(
             session=session,
@@ -382,18 +428,18 @@ async def preprocess_define_inputfunc_skill(
             debug=debug,
         )
         if not sig_info:
-            return False
+            return _fail(f"failed to generate func_sig for {target_name} at {handler_va}")
         try:
             extra_fields["func_sig"] = sig_info["func_sig"]
             extra_fields["func_rva"] = sig_info["func_rva"]
             extra_fields["func_size"] = sig_info["func_size"]
-        except KeyError:
-            return False
+        except KeyError as exc:
+            return _fail(f"func_sig result for {target_name} is missing {exc.args[0]}")
 
     try:
         payload = _build_func_payload(target_name, requested_fields, func_info, extra_fields)
-    except KeyError:
-        return False
+    except KeyError as exc:
+        return _fail(f"requested field {exc.args[0]} is unavailable for {target_name}")
 
     write_func_yaml(output_path, payload)
     await _rename_func_best_effort(

@@ -4,6 +4,7 @@ from pathlib import Path
 
 import ida_analyze_bin
 import ida_analyze_util
+from gamever_baseline import gamever_order_key
 
 
 CONFIG_ROOT = Path("configs")
@@ -60,6 +61,20 @@ def _declared_expected_input_names(skill, platform):
     }
 
 
+def _source_yaml_stems_by_skill():
+    stems = {}
+    for script_path in sorted(PREPROCESSOR_ROOT.glob("find-*.py")):
+        stem = _literal_assignment(script_path, "SOURCE_YAML_STEM")
+        if isinstance(stem, str) and stem:
+            stems[script_path.stem] = stem
+    return stems
+
+
+def _maintained_config_path():
+    configs = [path for path in CONFIG_ROOT.glob("*.yaml") if gamever_order_key(path.stem) is not None]
+    return max(configs, key=lambda path: gamever_order_key(path.stem))
+
+
 class TestConfigSchedulingDependencies(unittest.TestCase):
     def test_all_configs_have_satisfied_dependency_graphs(self) -> None:
         for config_path in sorted(CONFIG_ROOT.glob("*.yaml")):
@@ -90,6 +105,31 @@ class TestConfigSchedulingDependencies(unittest.TestCase):
                                     f"{config_path}:{module['name']}/{skill['name']} "
                                     f"[{platform}] missing expected_input: {artifact_name}"
                                 )
+
+        self.assertEqual([], missing_declarations)
+
+    def test_source_yaml_stem_is_declared_as_expected_input_in_maintained_config(self) -> None:
+        # Scripts are shared across GAMEVERs but only the maintained config may be edited, so a
+        # re-anchored SOURCE_YAML_STEM (e.g. #1064 moving OnSaveGame to StreamEntitiesToFile)
+        # must be mirrored there or the scheduler may run the skill before its host exists.
+        source_stems = _source_yaml_stems_by_skill()
+        config_path = _maintained_config_path()
+        missing_declarations = []
+
+        for module in ida_analyze_bin.parse_config(config_path):
+            for skill in module["skills"]:
+                source_stem = source_stems.get(skill["name"])
+                if source_stem is None:
+                    continue
+                for platform in ("windows", "linux"):
+                    if skill.get("platform") not in (None, platform):
+                        continue
+                    artifact_name = f"{source_stem}.{platform}.yaml"
+                    if artifact_name not in _declared_expected_input_names(skill, platform):
+                        missing_declarations.append(
+                            f"{config_path}:{module['name']}/{skill['name']} "
+                            f"[{platform}] missing expected_input: {artifact_name}"
+                        )
 
         self.assertEqual([], missing_declarations)
 

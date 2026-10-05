@@ -5,7 +5,10 @@ from ida_preprocessor_scripts._igamesystem_dispatch_common import (
     preprocess_igamesystem_dispatch_skill,
 )
 
-SOURCE_YAML_STEM = "CEntitySaveRestoreBlockHandler_PreSave"
+# 14182 moved the IGameSystem::OnSaveGame broadcast out of
+# CEntitySaveRestoreBlockHandler::PreSave into CEntity2SaveRestore::StreamEntitiesToFile,
+# which dispatches exactly one event (vtable idx 50) on both platforms.
+SOURCE_YAML_STEM = "CEntity2SaveRestore_StreamEntitiesToFile"
 TARGET_SPECS = [
     {"target_name": "IGameSystem_OnSaveGame", "rename_to": "GameSystem_OnSaveGame"},
 ]

@@ -90,6 +90,10 @@ jobs:
       SOURCE_SHA: ${{ inputs.source_sha }}
       PLAN_SHA256: ${{ inputs.plan_sha256 }}
       BINARY_LOCK_SHA256: ${{ needs.warmup-idb.outputs.binary_lock_sha256 }}
+      IDB_CACHE_GENERATION: ${{ needs.warmup-idb.outputs.generation }}
+      IDB_CACHE_KEY: ${{ needs.warmup-idb.outputs.cache_key }}
+      IDB_CACHE_LEASE_ID: ${{ needs.warmup-idb.outputs.lease_id }}
+      IDB_CACHE_LEASE_SHA256: ${{ needs.warmup-idb.outputs.lease_sha256 }}
       PERSISTED_WORKSPACE: ${{ secrets.PERSISTED_WORKSPACE }}
       CS2VIBE_AGENT: ${{ secrets.CS2VIBE_AGENT }}
       CS2VIBE_AGENT_MODEL: ${{ secrets.CS2VIBE_AGENT_MODEL }}
@@ -186,20 +190,11 @@ jobs:
           if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($idaVersion)) {
             throw "Unable to resolve the IDA runtime identity."
           }
-          $probe = Join-Path $env:RUNNER_TEMP "idb-probe-$env:GAMEVER.txt"
-          uv run python idb_cache.py probe --repo-root "${{ github.workspace }}" `
-            --persisted-root "$env:PERSISTED_WORKSPACE" --gamever "$env:GAMEVER" `
-            --ida-version "$idaVersion" --github-output "$probe"
-          if ($LASTEXITCODE -ne 0) { throw "Warm IDB probe failed." }
-          $values = @{}
-          Get-Content -LiteralPath $probe | ForEach-Object {
-            $key, $value = $_ -split '=', 2
-            $values[$key] = $value
-          }
-          if ($values['cache-hit'] -ne 'true') { throw "Warmup did not publish the required IDB generation." }
           uv run python idb_cache.py restore --repo-root "${{ github.workspace }}" `
+            --repository "$env:GITHUB_REPOSITORY" --run-id "$env:GITHUB_RUN_ID" --run-attempt "$env:GITHUB_RUN_ATTEMPT" `
+            --lease-id "$env:IDB_CACHE_LEASE_ID" --lease-sha256 "$env:IDB_CACHE_LEASE_SHA256" `
             --persisted-root "$env:PERSISTED_WORKSPACE" --gamever "$env:GAMEVER" `
-            --generation $values['generation'] --cache-key $values['cache-key'] --ida-version "$idaVersion"
+            --generation "$env:IDB_CACHE_GENERATION" --cache-key "$env:IDB_CACHE_KEY" --ida-version "$idaVersion"
           if ($LASTEXITCODE -ne 0) { throw "Warm IDB restore failed." }
       - name: Bind rebuild and failure evidence paths
         id: rebuild-paths
@@ -248,6 +243,7 @@ jobs:
         if: needs.bootstrap-reuse.outputs.reused != 'true'
         shell: pwsh
         run: |
+          $analysisLogs = Join-Path $env:RUNNER_TEMP "pr-platform-analysis-${{ github.run_id }}-${{ github.run_attempt }}-$env:GAMEVER"
           if ("${{ steps.prepare-rebuild.outputs.strategy }}" -eq "base-inherited-selected-v1") {
             if ([string]::IsNullOrWhiteSpace("${{ steps.prepare-rebuild.outputs.selected-manifest }}")) {
               throw "Selected strategy preparation did not publish an execution manifest."
@@ -257,16 +253,27 @@ jobs:
               -artifactdir "${{ steps.prepare-rebuild.outputs.actual-root }}" -oldartifactdir bin_artifacts `
               -execution_report "${{ steps.prepare-rebuild.outputs.execution-report }}" `
               -selected_execution "${{ steps.prepare-rebuild.outputs.selected-manifest }}" `
-              -require_warm_idb
+              -require_warm_idb -debug -parallel_platforms "$analysisLogs"
             if ($LASTEXITCODE -ne 0) { throw "Selected PR artifact rebuild failed." }
           } else {
             uv run ida_analyze_bin.py -gamever "$env:GAMEVER" `
               -configyaml "${{ steps.prepare-rebuild.outputs.config }}" -bindir bin `
               -artifactdir "${{ steps.prepare-rebuild.outputs.actual-root }}" -oldartifactdir bin_artifacts `
               -execution_report "${{ steps.prepare-rebuild.outputs.execution-report }}" `
-              -require_warm_idb -force_all
+              -require_warm_idb -force_all -debug -parallel_platforms "$analysisLogs"
             if ($LASTEXITCODE -ne 0) { throw "Force-all PR artifact rebuild failed." }
           }
+      - name: Upload platform analysis logs and execution records
+        if: always() && steps.execute-rebuild.outcome != 'skipped'
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-platform-analysis-${{ github.run_id }}-${{ github.run_attempt }}-${{ env.GAMEVER }}
+          path: |
+            ${{ runner.temp }}/pr-platform-analysis-${{ github.run_id }}-${{ github.run_attempt }}-${{ env.GAMEVER }}/*.log
+            ${{ runner.temp }}/pr-platform-analysis-${{ github.run_id }}-${{ github.run_attempt }}-${{ env.GAMEVER }}/summary.json
+            ${{ runner.temp }}/pr-platform-analysis-${{ github.run_id }}-${{ github.run_attempt }}-${{ env.GAMEVER }}/**/worker.json
+          if-no-files-found: warn
+          retention-days: 30
       - name: Verify execution evidence and exact Git bytes
         id: verify-rebuild
         if: needs.bootstrap-reuse.outputs.reused != 'true'

@@ -13,7 +13,12 @@ FUNC_XREFS = [
         "xref_strings": [],
         "xref_gvs": [],
         "xref_signatures": [],
-        "xref_funcs": ["PhysEnableEntityCollisions"],
+        # The target is the CPhysicsEntitySolver UpdateOnRemove override: it re-enables the
+        # entity pair collisions and then chains to BaseClass::UpdateOnRemove. Since 14182 the
+        # PhysEnableEntityCollisions helper is inlined into it (#1065), so it no longer calls
+        # that helper; anchor on the base chain call instead, which is the only caller of
+        # CBaseEntity_UpdateOnRemove among the CPhysicsEntitySolver vtable entries.
+        "xref_funcs": ["CBaseEntity_UpdateOnRemove"],
         "exclude_funcs": [],
         "exclude_strings": [],
         "exclude_gvs": [],

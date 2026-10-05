@@ -18,6 +18,8 @@ Do not call IDA API directly in this skill. Always run `generate_reference_yaml.
 
 ## Command examples
 
+Before choosing a mode, bind the session with the shared bootstrap order: `idb_list` → `idb_open` → script fallback only when the MCP endpoint (default `127.0.0.1:13337`) is unreachable. Do not call `open_file`. After any IDB mutation, `idb_close(save=True)`. See [mcp-ida-session.md](../generate-signature-for-function/references/mcp-ida-session.md).
+
 ### 1) Attach to existing MCP (should be used when there is an existing ida-pro-mcp connection)
 
 ```bash
