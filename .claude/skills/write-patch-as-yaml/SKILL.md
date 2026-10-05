@@ -13,6 +13,7 @@ Persist a single patch analysis result to a YAML file beside the binary using ID
 Before using this skill, you should have:
 1. Identified the patch name and determined `patch_bytes`
 2. Generated a unique signature using `/generate-signature-for-patch`
+3. An IDA Pro MCP session, resolved per [mcp-ida-session.md](../generate-signature-for-function/references/mcp-ida-session.md): `idb_list` → `idb_open` (script fallback only if the endpoint is unreachable). Honor its IDB save discipline — an idle-TTL self-exit does not save.
 
 ## Required Parameters
 

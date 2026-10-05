@@ -6,6 +6,22 @@ permalink: cs2-vibesignatures/idalib-mcp
 
 # idalib-mcp
 
+## Agent session bootstrap (prefer MCP management tools)
+
+An agent that needs an IDB must bind the session in this order before any IDE tool call:
+
+1. `idb_list` — list attached sessions. If the target `.i64` (or its binary) is already open, reuse it and pass that `database` id to later calls.
+2. `idb_open` — only when step 1 shows the target is not open. Pass the `.i64` path or the binary; default `idle_ttl_sec` is 600 s.
+3. Repository `idalib-mcp` script fallback (`uv run ida_analyze_bin.py`, `uv run generate_reference_yaml.py ... -auto_start_mcp`) — only when the MCP endpoint (default `127.0.0.1:13337`) is unreachable.
+
+Never call `open_file`: it switches the IDA GUI document and can move the session onto an unintended binary. The shared agent-facing copy of this rule is `.claude/skills/generate-signature-for-function/references/mcp-ida-session.md`; the agents are `.claude/agents/sig-finder.md` and `.opencode/agents/sig-finder.md`.
+
+Session ownership matters: an agent fallback (`agent_runner.py`) is handed an *owned* endpoint whose worker the runner opened and saves. When `idb_list` already shows the assigned database attached, the agent reuses it and must **not** close it; only a session the agent opened itself via `idb_open` is closed by the agent.
+
+## Hard save rule (idle TTL does NOT save)
+
+A worker that exits on idle TTL (default 600 s, refreshed by each JSON-RPC call) does **not** save. Every IDB change the session made — renames, comments, `define_func`, type edits — is lost on that self-exit. Before finishing, call `idb_close` with `save=True`; if the session must stay open, call `idb_save`, then still `idb_close(save=True)` when the work is done. Never leave a mutated IDB to idle out. This is the same contract the repository honors in code: `warmup_idb_worker.py` runs `save_database(None, 0)` before `close_database()`, mirroring idalib-mcp's `idb_save`.
+
 ## Overview
 
 `ida_analyze_bin.py` owns one `idalib-mcp` supervisor per binary. In ida-pro-mcp 2.0.0 the supervisor intentionally starts a detached `idalib_server` worker, so stopping the supervisor alone cannot release an open IDB. On Windows a repository launcher joins a kill-on-close Job before spawning the supervisor; its descendants share that Job.
