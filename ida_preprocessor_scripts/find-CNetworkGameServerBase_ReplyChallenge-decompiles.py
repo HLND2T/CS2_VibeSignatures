@@ -1,43 +1,37 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CNetworkGameServerBase_GetChallengeType skill."""
+"""Recover ReplyChallenge's server and network-system virtual calls."""
 
 from ida_analyze_util import preprocess_common_skill
 
-TARGET_FUNCTION_NAMES = [
-    "CNetworkGameServerBase_GetChallengeType",
-]
-
+TARGET_FUNCTION_NAMES = ["CNetworkGameServerBase_GetChallengeType", "INetworkSystem_GetSteamNetworkingSockets"]
 LLM_DECOMPILE = [
     {
         "symbol_name": "CNetworkGameServerBase_GetChallengeType",
         "prompt_path": "prompt/call_llm_decompile.md",
-        "reference_yaml_paths": [
-            "references/engine/CNetworkGameServerBase_ReplyChallenge.{platform}.yaml",
-        ],
+        "reference_yaml_paths": ["references/engine/CNetworkGameServerBase_ReplyChallenge.{platform}.yaml"],
         "expected_result_sections": ["found_vcall"],
-        "dependency_policy": {
-            "CNetworkGameServerBase_ReplyChallenge.{platform}.yaml": "required",
-        },
+        "dependency_policy": {"CNetworkGameServerBase_ReplyChallenge.{platform}.yaml": "required"},
+    },
+    {
+        "symbol_name": "INetworkSystem_GetSteamNetworkingSockets",
+        "prompt_path": "prompt/call_llm_decompile.md",
+        "reference_yaml_paths": ["references/engine/CNetworkGameServerBase_ReplyChallenge.{platform}.yaml"],
+        "expected_result_sections": ["found_vcall"],
+        "dependency_policy": {"CNetworkGameServerBase_ReplyChallenge.{platform}.yaml": "required"},
     },
 ]
-
 FUNC_VTABLE_RELATIONS = [
-    # (func_name, vtable_class)
     ("CNetworkGameServerBase_GetChallengeType", "CNetworkGameServerBase"),
+    ("INetworkSystem_GetSteamNetworkingSockets", "INetworkSystem"),
 ]
-
 GENERATE_YAML_DESIRED_FIELDS = [
-    # (symbol_name, generate_yaml_fields)
-    # ALWAYS include "vfunc_sig" for Pattern C (vfunc via LLM_DECOMPILE).
     (
         "CNetworkGameServerBase_GetChallengeType",
-        [
-            "func_name",
-            "vfunc_sig",
-            "vfunc_offset",
-            "vfunc_index",
-            "vtable_name",
-        ],
+        ["func_name", "vfunc_sig", "vfunc_offset", "vfunc_index", "vtable_name"],
+    ),
+    (
+        "INetworkSystem_GetSteamNetworkingSockets",
+        ["func_name", "vfunc_sig", "vfunc_offset", "vfunc_index", "vtable_name"],
     ),
 ]
 
@@ -53,7 +47,7 @@ async def preprocess_skill(
     llm_config=None,
     debug=False,
 ):
-    """Reuse previous gamever vfunc_sig to locate target function(s) and write YAML."""
+    _ = skill_name
     return await preprocess_common_skill(
         session=session,
         expected_outputs=expected_outputs,
