@@ -589,6 +589,10 @@ modules:
         category: vfunc
         alias:
           - CNetworkSystem::GetSteamUserNetworkingSockets
+      - name: CNetworkSystem_GetSteamNetworkingMessages
+        category: vfunc
+        alias:
+          - CNetworkSystem::GetSteamNetworkingMessages
       - name: CNetworkSystem_GetScratchBuffer
         category: vfunc
         alias:
@@ -2417,6 +2421,9 @@ modules:
       - name: find-CNetworkStringTableClient_ParseUpdate
         expected_output:
           - CNetworkStringTableClient_ParseUpdate.{platform}.yaml
+      - name: find-CNetworkP2PService_UpdatePeerConnectionStatus
+        expected_output:
+          - CNetworkP2PService_UpdatePeerConnectionStatus.{platform}.yaml
       - name: find-CConnectGameClient_CheckForResend
         expected_output:
           - CConnectGameClient_CheckForResend.{platform}.yaml
@@ -2478,6 +2485,11 @@ modules:
           - INetworkSystem_GetSteamUserNetworkingSockets.{platform}.yaml
         expected_input:
           - CConnectGameClient_CheckForResend.{platform}.yaml
+      - name: find-INetworkSystem_GetSteamNetworkingMessages
+        expected_output:
+          - INetworkSystem_GetSteamNetworkingMessages.{platform}.yaml
+        expected_input:
+          - CNetworkP2PService_UpdatePeerConnectionStatus.{platform}.yaml
       - name: find-INetworkSystem_InitNetworkSystem
         expected_output:
           - INetworkSystem_InitNetworkSystem.{platform}.yaml
@@ -4238,6 +4250,10 @@ modules:
         category: func
         alias:
           - CNetworkStringTableClient::ParseUpdate
+      - name: CNetworkP2PService_UpdatePeerConnectionStatus
+        category: func
+        alias:
+          - CNetworkP2PService::UpdatePeerConnectionStatus
       - name: CConnectGameClient_CheckForResend
         category: func
         alias:
@@ -4282,6 +4298,10 @@ modules:
         category: vfunc
         alias:
           - INetworkSystem::GetSteamUserNetworkingSockets
+      - name: INetworkSystem_GetSteamNetworkingMessages
+        category: vfunc
+        alias:
+          - INetworkSystem::GetSteamNetworkingMessages
       - name: INetworkSystem_GetScratchBuffer
         category: vfunc
         alias:
@@ -14278,6 +14298,12 @@ modules:
         expected_input:
           - CNetworkSystem_vtable.{platform}.yaml
           - ../engine/INetworkSystem_GetSteamUserNetworkingSockets.{platform}.yaml
+      - name: find-CNetworkSystem_GetSteamNetworkingMessages
+        expected_output:
+          - CNetworkSystem_GetSteamNetworkingMessages.{platform}.yaml
+        expected_input:
+          - CNetworkSystem_vtable.{platform}.yaml
+          - ../engine/INetworkSystem_GetSteamNetworkingMessages.{platform}.yaml
       - name: find-CNetworkSystem_GetScratchBuffer
         expected_output:
           - CNetworkSystem_GetScratchBuffer.{platform}.yaml
