@@ -236,6 +236,10 @@ jobs:
           fetch-depth: 0
           submodules: false
           persist-credentials: false
+      - name: Set up uv
+        # pyproject.toml pins required-version; this installs that exact version
+        # instead of trusting the uv preinstalled on the self-hosted runner.
+        uses: astral-sh/setup-uv@v9.0.0
       - name: Sync and update submodules via runner Git cache proxy
         id: sync-submodules
         working-directory: ${{ github.workspace }}
