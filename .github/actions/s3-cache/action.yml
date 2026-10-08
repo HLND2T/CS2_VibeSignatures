@@ -1,0 +1,117 @@
+name: Verified S3 cache transport
+description: Restore or explicitly save a cache through the private S3 endpoint
+inputs:
+  endpoint-url:
+    description: HTTP(S) origin of the S3 service
+    required: true
+  access-key:
+    description: S3 access key ID
+    required: true
+  secret-key:
+    description: S3 secret access key
+    required: true
+  operation:
+    description: restore or save
+    required: true
+  key:
+    description: Exact cache key
+    required: true
+  path:
+    description: Workspace-relative cache paths
+    required: true
+  restore-keys:
+    description: Optional identity-scoped prefixes for producer discovery
+    default: ''
+  required:
+    description: Fail when an exact restore is unavailable
+    default: 'false'
+outputs:
+  cache-hit:
+    description: Whether the exact restore key was found
+    value: ${{ steps.restore.outputs.cache-hit }}
+  cache-matched-key:
+    description: Exact key or discovery prefix found by the restore
+    value: ${{ steps.restore.outputs.cache-matched-key }}
+runs:
+  using: composite
+  steps:
+    - name: Validate S3 settings
+      id: endpoint
+      shell: pwsh
+      env:
+        S3_ENDPOINT_URL: ${{ inputs.endpoint-url }}
+        S3_ACCESS_KEY_ID: ${{ inputs.access-key }}
+        S3_SECRET_ACCESS_KEY: ${{ inputs.secret-key }}
+        CACHE_OPERATION: ${{ inputs.operation }}
+        CACHE_ACTION_PATH: ${{ github.action_path }}
+      run: |
+        if ($env:CACHE_OPERATION -notin @('restore', 'save')) { throw 'Invalid cache operation.' }
+        $toolsRoot = [IO.Path]::GetFullPath((Join-Path $env:CACHE_ACTION_PATH '../../..'))
+        uv run --project "$toolsRoot" python (Join-Path $toolsRoot 'ci_s3_cache.py') endpoint
+        if ($LASTEXITCODE -ne 0) { throw 'Invalid S3 cache configuration.' }
+    - name: Restore S3 cache
+      id: restore
+      if: inputs.operation == 'restore'
+      uses: hzqst/actions-cache/restore@7128b4f7d510a48d0a4c66363349adf017741df0 # Portable S3 object keys, zstd autodetect
+      env:
+        AWS_ACCESS_KEY_ID: ${{ inputs.access-key }}
+        AWS_SECRET_ACCESS_KEY: ${{ inputs.secret-key }}
+        AWS_SESSION_TOKEN: ''
+      with:
+        endpoint: ${{ steps.endpoint.outputs.endpoint }}
+        port: ${{ steps.endpoint.outputs.port }}
+        insecure: ${{ steps.endpoint.outputs.insecure }}
+        accessKey: ${{ inputs.access-key }}
+        secretKey: ${{ inputs.secret-key }}
+        bucket: actions-cache-cs2-vibesignatures
+        use-fallback: 'false'
+        retry: 'true'
+        key: ${{ inputs.key }}
+        path: ${{ inputs.path }}
+        restore-keys: ${{ inputs.restore-keys }}
+    - name: Require exact cache restore
+      if: inputs.operation == 'restore' && inputs.required == 'true' && steps.restore.outputs.cache-hit != 'true'
+      shell: pwsh
+      run: throw 'Required S3 cache could not be restored.'
+    - name: Save S3 cache
+      if: inputs.operation == 'save'
+      uses: hzqst/actions-cache/save@7128b4f7d510a48d0a4c66363349adf017741df0 # Portable S3 object keys, zstd autodetect
+      env:
+        AWS_ACCESS_KEY_ID: ${{ inputs.access-key }}
+        AWS_SECRET_ACCESS_KEY: ${{ inputs.secret-key }}
+        AWS_SESSION_TOKEN: ''
+      with:
+        endpoint: ${{ steps.endpoint.outputs.endpoint }}
+        port: ${{ steps.endpoint.outputs.port }}
+        insecure: ${{ steps.endpoint.outputs.insecure }}
+        accessKey: ${{ inputs.access-key }}
+        secretKey: ${{ inputs.secret-key }}
+        bucket: actions-cache-cs2-vibesignatures
+        use-fallback: 'false'
+        retry: 'true'
+        key: ${{ inputs.key }}
+        path: ${{ inputs.path }}
+    - name: Check saved object exists
+      id: saved
+      if: inputs.operation == 'save'
+      uses: hzqst/actions-cache/restore@7128b4f7d510a48d0a4c66363349adf017741df0 # Portable S3 object keys, zstd autodetect
+      env:
+        AWS_ACCESS_KEY_ID: ${{ inputs.access-key }}
+        AWS_SECRET_ACCESS_KEY: ${{ inputs.secret-key }}
+        AWS_SESSION_TOKEN: ''
+      with:
+        endpoint: ${{ steps.endpoint.outputs.endpoint }}
+        port: ${{ steps.endpoint.outputs.port }}
+        insecure: ${{ steps.endpoint.outputs.insecure }}
+        accessKey: ${{ inputs.access-key }}
+        secretKey: ${{ inputs.secret-key }}
+        bucket: actions-cache-cs2-vibesignatures
+        use-fallback: 'false'
+        retry: 'true'
+        key: ${{ inputs.key }}
+        path: ${{ inputs.path }}
+        lookup-only: 'true'
+    - name: Require successful publication
+      if: inputs.operation == 'save' && steps.saved.outputs.cache-hit != 'true'
+      shell: pwsh
+      run: throw 'S3 cache publication could not be verified.'

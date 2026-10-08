@@ -9,7 +9,7 @@ from io import StringIO
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from warmup_memory import MemoryLaunchGate, MemorySnapshot, WindowsJobMemoryController
+from warmup_memory import MemoryControllerCapabilities, MemoryLaunchGate, MemorySnapshot, WindowsJobMemoryController
 
 SCRIPT = Path("warmup_idb.py")
 SPEC = importlib.util.spec_from_file_location("warmup_idb", SCRIPT)
@@ -99,6 +99,7 @@ class TestWarmupIdbHelpers(unittest.TestCase):
             binary.write_bytes(b"MZ")
             controller = MagicMock()
             controller.snapshot.return_value = MemorySnapshot(job_bytes=256 * warmup_idb.MIB)
+            controller.capabilities = MemoryControllerCapabilities("windows-job", True, "test job")
             gate = MagicMock()
             gate.soft_limit_bytes = int(32768 * warmup_idb.MIB * 0.85)
 
@@ -111,7 +112,7 @@ class TestWarmupIdbHelpers(unittest.TestCase):
                     return_value=[("engine", "windows", binary)],
                 ),
                 patch.object(warmup_idb, "_is_warm", return_value=False),
-                patch.object(warmup_idb, "WindowsJobMemoryController", return_value=controller) as controller_type,
+                patch.object(warmup_idb, "default_memory_controller", return_value=controller) as controller_type,
                 patch.object(warmup_idb, "MemoryLaunchGate", return_value=gate) as gate_type,
                 patch.object(warmup_idb, "_warm_one", return_value=True) as warm_one,
             ):
@@ -133,6 +134,8 @@ class TestWarmupIdbHelpers(unittest.TestCase):
             self.assertIs(controller.snapshot, gate_type.call_args.kwargs["snapshot"])
             self.assertEqual(1, warm_one.call_count)
             self.assertIs(gate, warm_one.call_args.args[4])
+            self.assertIsNone(gate_type.call_args.kwargs["worker_memory_limit_bytes"])
+            controller.close.assert_called_once()
 
     def test_main_does_not_launch_workers_when_job_setup_fails(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -150,7 +153,7 @@ class TestWarmupIdbHelpers(unittest.TestCase):
                 patch.object(warmup_idb, "_is_warm", return_value=False),
                 patch.object(
                     warmup_idb,
-                    "WindowsJobMemoryController",
+                    "default_memory_controller",
                     side_effect=OSError("nested job rejected"),
                 ),
                 patch.object(warmup_idb, "_warm_one") as warm_one,
@@ -203,6 +206,77 @@ class TestWarmupIdbHelpers(unittest.TestCase):
 
         self.assertIn("memory pressure; delaying engine2.dll", output.getvalue())
         self.assertIn("memory recovered; launching engine2.dll", output.getvalue())
+
+    @unittest.skipUnless(sys.platform == "linux", "Linux warmup memory regression")
+    def test_linux_memory_budget_warms_pending_binary(self) -> None:
+        worker = _warm_worker_script(
+            "import sys\nfrom pathlib import Path\nPath(sys.argv[1] + '.i64').write_bytes(b'warm')\n"
+        )
+        self.addCleanup(worker.unlink, missing_ok=True)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            binary = Path(temp_dir) / "server.so"
+            binary.write_bytes(b"ELF")
+            with (
+                patch.object(warmup_idb, "iter_configured_binaries", return_value=[("server", "linux", binary)]),
+                patch.dict(os.environ, {"IDB_WARMUP_INITIAL_WORKER_RESERVATION_MIB": "512"}),
+            ):
+                args = warmup_idb.parse_args(["test", "--python", sys.executable, "--max-memory-mib", "8192"])
+                result = warmup_idb._run_warmup(args, sys.executable, worker, Path("unused.yaml"))
+            self.assertEqual(0, result)
+            self.assertEqual(b"warm", Path(f"{binary}.i64").read_bytes())
+
+    def test_degraded_controller_passes_reservation_as_worker_cap(self) -> None:
+        controller = MagicMock()
+        controller.snapshot.return_value = MemorySnapshot(16 * warmup_idb.MIB)
+        controller.capabilities = MemoryControllerCapabilities("reservation-only", False, "no delegation")
+        args = warmup_idb.parse_args(["test", "--python", sys.executable, "--max-memory-mib", "1024"])
+        with (
+            patch.dict(os.environ, {"IDB_WARMUP_INITIAL_WORKER_RESERVATION_MIB": "256"}),
+            patch.object(warmup_idb, "iter_configured_binaries", return_value=[("server", "linux", Path("test.so"))]),
+            patch.object(warmup_idb, "_is_warm", return_value=False),
+            patch.object(warmup_idb, "default_memory_controller", return_value=controller),
+            patch.object(warmup_idb, "_warm_one", return_value=True) as worker,
+        ):
+            self.assertEqual(0, warmup_idb._run_warmup(args, sys.executable, Path("worker.py"), Path("config.yaml")))
+        self.assertEqual(256 * warmup_idb.MIB, worker.call_args.args[4].worker_memory_limit_bytes)
+        controller.close.assert_called_once()
+
+    def test_impossible_budget_fails_without_waiting_or_launching(self) -> None:
+        controller = MagicMock()
+        controller.snapshot.return_value = MemorySnapshot(16 * warmup_idb.MIB)
+        args = warmup_idb.parse_args(["test", "--python", sys.executable, "--max-memory-mib", "512"])
+        with (
+            patch.dict(os.environ, {"IDB_WARMUP_INITIAL_WORKER_RESERVATION_MIB": "512"}),
+            patch.object(warmup_idb, "iter_configured_binaries", return_value=[("server", "linux", Path("test.so"))]),
+            patch.object(warmup_idb, "_is_warm", return_value=False),
+            patch.object(warmup_idb, "default_memory_controller", return_value=controller),
+            patch.object(warmup_idb, "_warm_one") as worker,
+        ):
+            self.assertEqual(1, warmup_idb._run_warmup(args, sys.executable, Path("worker.py"), Path("config.yaml")))
+        worker.assert_not_called()
+        controller.close.assert_called_once()
+
+    @unittest.skipUnless(sys.platform == "linux", "Linux worker resource limits")
+    def test_memory_failure_invalidates_partial_database_and_releases_admission(self) -> None:
+        worker = _warm_worker_script(
+            "import sys, time\nfrom pathlib import Path\n"
+            "Path(sys.argv[1] + '.i64').write_bytes(b'partial')\n"
+            "data = bytearray(96 * 1024 * 1024)\ntime.sleep(30)\n"
+        )
+        self.addCleanup(worker.unlink, missing_ok=True)
+        gate = MemoryLaunchGate(
+            snapshot=lambda: MemorySnapshot(0),
+            budget_bytes=512 * warmup_idb.MIB,
+            baseline_job_bytes=0,
+            initial_worker_reservation_bytes=64 * warmup_idb.MIB,
+            worker_memory_limit_bytes=64 * warmup_idb.MIB,
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            binary = Path(tmp) / "server.so"
+            self.assertFalse(warmup_idb._warm_one(sys.executable, worker, binary, 10, gate))
+            self.assertFalse(Path(f"{binary}.i64").exists())
+            with self.assertRaisesRegex(RuntimeError, "no active worker"):
+                gate.worker_finished()
 
     def test_windows_job_controller_sets_limit_before_assigning(self) -> None:
         api = FakeWindowsJobApi()

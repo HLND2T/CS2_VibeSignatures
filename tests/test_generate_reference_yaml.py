@@ -1441,6 +1441,15 @@ class TestIdaAnalyzeBinWrappers(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual("failed to import ida_analyze_bin helpers", str(ctx.exception))
 
+    async def test_start_idalib_mcp_reports_cleanup_failure(self) -> None:
+        with patch.object(
+            ida_analyze_bin,
+            "start_idalib_mcp",
+            side_effect=ida_analyze_bin.McpCleanupError("worker still holds IDB"),
+        ):
+            with self.assertRaisesRegex(generate_reference_yaml.ReferenceGenerationError, "worker still holds IDB"):
+                generate_reference_yaml.start_idalib_mcp("server.dll", "127.0.0.1", 13337, "", False)
+
     async def test_quit_ida_gracefully_wraps_system_exit_as_reference_generation_error(self) -> None:
         with patch.object(
             generate_reference_yaml.importlib,
@@ -1476,6 +1485,17 @@ class TestIdaAnalyzeBinWrappers(unittest.IsolatedAsyncioTestCase):
                 )
 
         self.assertEqual("failed to import ida_analyze_bin helpers", str(ctx.exception))
+
+    async def test_quit_ida_gracefully_async_reports_cleanup_failure(self) -> None:
+        with patch.object(
+            ida_analyze_bin,
+            "quit_ida_gracefully_async",
+            AsyncMock(side_effect=ida_analyze_bin.McpCleanupError("port still occupied")),
+        ):
+            with self.assertRaisesRegex(generate_reference_yaml.ReferenceGenerationError, "port still occupied"):
+                await generate_reference_yaml.quit_ida_gracefully_async(
+                    MagicMock(), "127.0.0.1", 13337, expected_binary="server.dll", debug=False
+                )
 
 
 class TestRunReferenceGeneration(unittest.IsolatedAsyncioTestCase):

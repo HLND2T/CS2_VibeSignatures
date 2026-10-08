@@ -35,6 +35,7 @@ Output:
 """
 
 import argparse
+import ctypes
 import hashlib
 import inspect
 import json
@@ -45,8 +46,10 @@ import subprocess
 import sys
 import tempfile
 import time
+import uuid
 
 from binary_hashing import hash_file
+from dataclasses import dataclass
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -137,11 +140,36 @@ DEFAULT_PORT = 13337
 POST_PROCESS_FUNC_RENAME_BATCH_SIZE = 50
 MCP_STARTUP_TIMEOUT = 1200  # seconds to wait for MCP server
 MCP_SHUTDOWN_TIMEOUT = 10.0
+MCP_GRACEFUL_QUIT_TIMEOUT = 5.0
+MCP_GRACEFUL_IDB_CLOSE_TIMEOUT = 60.0
+MCP_FORCE_KILL_TIMEOUT = 5.0
+MCP_RELEASE_POLL_INTERVAL = 0.1
+_WINDOWS_GENERIC_READ = 0x80000000
+_WINDOWS_OPEN_EXISTING = 3
 QEXIT_CONNECTION_RESET_MARKER = "[WinError 10054]"
 OPENED_BINARY_VERIFY_TIMEOUT = 60.0
 OPENED_BINARY_VERIFY_RETRY_INTERVAL = 2.0
 _BINARY_HASH_CACHE = {}
 _PE_STYLE_BASE_ADDRESS = 0x180000000
+
+
+class McpCleanupError(RuntimeError):
+    """An owned MCP worker or its IDB could not be safely released."""
+
+
+@dataclass
+class ManagedMcpProcess:
+    """Keep the launcher and its pre-start IDB state together through restarts."""
+
+    process: subprocess.Popen
+    binary_path: Path
+    host: str
+    port: int
+    preexisting_parts: frozenset[Path]
+    windows_job: bool
+
+    def __getattr__(self, name):
+        return getattr(self.process, name)
 
 
 class McpRecoveryBudget:
@@ -291,6 +319,26 @@ class AnalysisReporting:
             "attempted_outputs": sorted(self._output_attempts.get(task_id, set())),
             "produced_outputs": sorted(self._output_produced.get(task_id, set())),
         }
+
+    def import_task_record(self, record: dict) -> None:
+        """Restore a validated platform worker's terminal evidence and observability."""
+        task_id = record["task_id"]
+        if task_id not in self._states:
+            raise ValueError(f"Unknown worker task: {task_id}")
+        status = TaskStatus(record["status"])
+        self.emit_task_status(task_id, TaskStatus.RUNNING, ProcessPhase.WAITING_FOR_MCP)
+        if not record["attempted"]:
+            self._attempted.discard(task_id)
+        self.record_output_attempts(task_id, record["attempted_outputs"])
+        self.record_output_produced(task_id, record["produced_outputs"])
+        self.emit_task_status(
+            task_id,
+            status,
+            ProcessPhase.FINISHED,
+            reason=record["reason"],
+            error=record["error"],
+            payload=record["payload"],
+        )
 
 
 def _absolute_path_preserve_spelling(path):
@@ -1281,6 +1329,7 @@ def ensure_mcp_available(
     if process is not None and process.poll() is not None:
         if debug:
             print(f"  idalib-mcp process exited with code {process.returncode}")
+        stop_idalib_mcp_process(process, debug=debug)
         process = None
 
     # Step 2: if process appears alive, do a real MCP health check
@@ -1387,42 +1436,46 @@ async def quit_ida_gracefully_async(process, host, port, *, expected_binary, deb
     """Close an owned worker when safe, then stop the supplied supervisor."""
     if process is None:
         return
-    if process.poll() is not None:
-        return
+    graceful = False
+    if process.poll() is None:
+        if debug:
+            print("  Quitting IDA gracefully via MCP...")
+        try:
+            graceful = await asyncio.wait_for(
+                quit_ida_via_mcp(
+                    host,
+                    port,
+                    expected_binary=expected_binary,
+                    auto_started=True,
+                ),
+                timeout=MCP_GRACEFUL_QUIT_TIMEOUT,
+            )
+        except Exception as exc:
+            print(f"  MCP graceful quit failed: {type(exc).__name__}: {exc}")
 
-    if debug:
-        print("  Quitting IDA gracefully via MCP...")
-
-    try:
-        await asyncio.wait_for(
-            quit_ida_via_mcp(
-                host,
-                port,
-                expected_binary=expected_binary,
-                auto_started=True,
-            ),
-            timeout=5,
+    if graceful and isinstance(process, ManagedMcpProcess) and process.windows_job:
+        graceful = await asyncio.to_thread(
+            wait_for_ida_lock_release,
+            process.binary_path,
+            MCP_GRACEFUL_IDB_CLOSE_TIMEOUT,
         )
-    except Exception:
-        pass
+        if not graceful:
+            print(f"  IDB remained open after graceful quit; force-stopping owned IDA for {process.binary_path}")
+    elif not graceful:
+        print("  MCP graceful quit did not finish; force-stopping the owned process")
 
-    await asyncio.to_thread(stop_idalib_mcp_process, process, debug=debug)
-    released = await asyncio.to_thread(
-        wait_for_port_release,
-        host,
-        port,
-        MCP_SHUTDOWN_TIMEOUT,
-    )
-    if debug and not released:
-        print(f"  MCP port {host}:{port} remained in use after shutdown")
+    if isinstance(process, ManagedMcpProcess):
+        await asyncio.to_thread(stop_idalib_mcp_process, process, debug=debug, quarantine=not graceful)
+    else:
+        await asyncio.to_thread(stop_idalib_mcp_process, process, debug=debug)
+        released = await asyncio.to_thread(wait_for_port_release, host, port, MCP_SHUTDOWN_TIMEOUT)
+        if not released:
+            raise McpCleanupError(f"MCP port {host}:{port} remained in use after shutdown")
 
 
 def quit_ida_gracefully(process, host, port, *, expected_binary, debug=False):
     """Run targeted worker cleanup and stop the supplied supervisor."""
     if process is None:
-        return
-
-    if process.poll() is not None:
         return
 
     try:
@@ -1444,24 +1497,36 @@ def quit_ida_gracefully(process, host, port, *, expected_binary, debug=False):
     )
 
 
-def stop_idalib_mcp_process(process, debug=False):
-    """Stop only the subprocess started by this runner, without using the MCP port."""
-    if process is None or process.poll() is not None:
+def stop_idalib_mcp_process(process, debug=False, *, quarantine=True):
+    """Stop our launcher, then verify that its Job released the IDB."""
+    if process is None:
         return
-    if debug:
-        print("  Stopping the current idalib-mcp process...")
-    try:
-        process.terminate()
-        process.wait(timeout=10)
+    managed = isinstance(process, ManagedMcpProcess)
+    if process.poll() is not None and not managed:
         return
-    except (OSError, subprocess.TimeoutExpired):
-        pass
     if process.poll() is None:
+        if debug:
+            print("  Stopping the current idalib-mcp process...")
         try:
-            process.kill()
-            process.wait(timeout=5)
+            process.terminate()
+            process.wait(timeout=MCP_SHUTDOWN_TIMEOUT)
         except (OSError, subprocess.TimeoutExpired):
-            pass
+            if process.poll() is None:
+                try:
+                    process.kill()
+                    process.wait(timeout=MCP_FORCE_KILL_TIMEOUT)
+                except (OSError, subprocess.TimeoutExpired) as exc:
+                    raise McpCleanupError(f"Unable to stop owned idalib-mcp launcher: {exc}") from exc
+    if process.poll() is None:
+        raise McpCleanupError("Owned idalib-mcp launcher is still running after shutdown")
+
+    if managed:
+        if not wait_for_port_release(process.host, process.port):
+            raise McpCleanupError(f"MCP port {process.host}:{process.port} remained in use after shutdown")
+    if managed and process.windows_job:
+        if not wait_for_ida_lock_release(process.binary_path, MCP_SHUTDOWN_TIMEOUT):
+            raise McpCleanupError(f"IDA still holds an IDB for {process.binary_path} after Job shutdown")
+        _settle_unpacked_ida_database(process, quarantine=quarantine)
 
 
 def _ida_database_paths(binary_path):
@@ -1481,16 +1546,94 @@ def _ida_database_paths(binary_path):
     return database_paths
 
 
+def _ida_unpacked_paths(binary_path):
+    base = os.fspath(binary_path)
+    return tuple(
+        Path(f"{database_base}{suffix}")
+        for database_base in (base, f"{base}.i64", f"{base}.idb")
+        for suffix in (".id0", ".id1", ".id2", ".nam", ".til")
+    )
+
+
+def _ida_lock_paths(binary_path):
+    return tuple(path for path in _ida_unpacked_paths(binary_path) if path.suffix == ".id0")
+
+
+def _ida_file_exclusively_available(path):
+    if not os.path.lexists(path):
+        return True
+    if os.name != "nt":
+        return False
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel32.CreateFileW.argtypes = [
+        ctypes.c_wchar_p,
+        ctypes.c_uint32,
+        ctypes.c_uint32,
+        ctypes.c_void_p,
+        ctypes.c_uint32,
+        ctypes.c_uint32,
+        ctypes.c_void_p,
+    ]
+    kernel32.CreateFileW.restype = ctypes.c_void_p
+    kernel32.CloseHandle.argtypes = [ctypes.c_void_p]
+    kernel32.CloseHandle.restype = ctypes.c_int
+    handle = kernel32.CreateFileW(os.fspath(path), _WINDOWS_GENERIC_READ, 0, None, _WINDOWS_OPEN_EXISTING, 0, None)
+    if handle == ctypes.c_void_p(-1).value:
+        return not os.path.lexists(path)
+    kernel32.CloseHandle(handle)
+    return True
+
+
+def wait_for_ida_lock_release(binary_path, timeout=MCP_SHUTDOWN_TIMEOUT):
+    """Wait for every IDA lock candidate to disappear or open exclusively."""
+    deadline = time.monotonic() + max(0.0, timeout)
+    while True:
+        if all(_ida_file_exclusively_available(path) for path in _ida_lock_paths(binary_path)):
+            return True
+        if time.monotonic() >= deadline:
+            return False
+        time.sleep(MCP_RELEASE_POLL_INTERVAL)
+
+
+def _settle_unpacked_ida_database(process: ManagedMcpProcess, *, quarantine: bool) -> None:
+    remaining = [path for path in _ida_unpacked_paths(process.binary_path) if os.path.lexists(path)]
+    if not remaining:
+        return
+    if not quarantine:
+        raise McpCleanupError(f"Unpacked IDA database remained after graceful exit: {remaining[0]}")
+    if process.preexisting_parts:
+        raise McpCleanupError(
+            f"Cannot quarantine unpacked IDB for {process.binary_path}: side files predated this launch"
+        )
+    if any(not path.is_file() or path.is_symlink() for path in remaining):
+        raise McpCleanupError(f"Cannot quarantine non-regular IDA side files for {process.binary_path}")
+    destination = process.binary_path.parent / ".ida-aborted" / process.binary_path.name / uuid.uuid4().hex
+    moved = []
+    try:
+        destination.mkdir(parents=True, exist_ok=False)
+        for path in remaining:
+            target = destination / path.name
+            os.replace(path, target)
+            moved.append(target)
+    except OSError as exc:
+        raise McpCleanupError(
+            f"Unable to quarantine unpacked IDB for {process.binary_path}: {exc}; already moved: {moved}"
+        ) from exc
+    print(f"  Quarantined aborted unpacked IDA database: {destination}")
+
+
 def _invalidate_ida_database(binary_path, debug=False):
     removed = []
+    failures = []
     for database_path in _ida_database_paths(binary_path):
         try:
             if os.path.isfile(database_path):
                 os.remove(database_path)
                 removed.append(database_path)
         except OSError as exc:
-            if debug:
-                print(f"  Warning: unable to remove stale IDA database file {database_path}: {exc}")
+            failures.append(f"{database_path}: {exc}")
+    if failures:
+        raise McpCleanupError(f"Unable to invalidate mismatched IDA database: {'; '.join(failures)}")
     return removed
 
 
@@ -1782,6 +1925,12 @@ def parse_args():
         help="Canonical force-all execution evidence JSON path (required with -force_all)",
     )
     parser.add_argument(
+        "-parallel_platforms",
+        metavar="LOG_DIRECTORY",
+        help="Run isolated Windows/Linux workers concurrently and save their logs in a fresh directory",
+    )
+    parser.add_argument("-platform_worker", action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument(
         "-process_reporter",
         choices=("none", "redis"),
         default=os.environ.get("CS2VIBE_PROCESS_REPORTER", "none"),
@@ -1851,7 +2000,7 @@ def parse_args():
             parser.error("-force_all cannot be combined with -skip_error")
         if args.skill is not None or args.module_filter is not None or args.vcall_finder_filter is not None:
             parser.error("-force_all requires the complete config without skill/module/vcall filters")
-        if set(args.platforms) != {"windows", "linux"}:
+        if not args.platform_worker and set(args.platforms) != {"windows", "linux"}:
             parser.error("-force_all requires both windows and linux platforms")
 
     if getattr(args, "selected_execution", None):
@@ -1871,8 +2020,16 @@ def parse_args():
         ]
         if conflicting:
             parser.error(f"-selected_execution cannot be combined with {', '.join(conflicting)}")
-        if set(args.platforms) != {"windows", "linux"}:
+        if not args.platform_worker and set(args.platforms) != {"windows", "linux"}:
             parser.error("-selected_execution requires both windows and linux platforms")
+
+    if args.parallel_platforms or args.platform_worker:
+        if not (args.force_all or args.selected_execution):
+            parser.error("parallel analysis requires -force_all or -selected_execution")
+        if args.parallel_platforms and args.platform_worker:
+            parser.error("a platform worker cannot start parallel workers")
+        if args.platform_worker and len(args.platforms) != 1:
+            parser.error("a platform worker requires exactly one platform")
 
     # Resolve oldgamever from the trusted artifact root, never from private binaries.
     if args.oldgamever is None:
@@ -3180,7 +3337,7 @@ def get_binary_path(bin_dir, gamever, module_name, module_path):
     return os.path.join(bin_dir, gamever, module_name, filename)
 
 
-def wait_for_port(host, port, timeout=60):
+def wait_for_port(host, port, timeout=60, process=None):
     """
     Wait for a port to become available.
 
@@ -3194,12 +3351,14 @@ def wait_for_port(host, port, timeout=60):
     """
     start = time.time()
     while time.time() - start < timeout:
+        if process is not None and process.poll() is not None:
+            return False
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.settimeout(1)
             result = sock.connect_ex((host, port))
             sock.close()
-            if result == 0:
+            if result == 0 and (process is None or process.poll() is None):
                 return True
         except socket.error:
             pass
@@ -3252,7 +3411,7 @@ def start_idalib_mcp(
         debug: Enable debug output
 
     Returns:
-        subprocess.Popen object if successful, None if failed
+        ManagedMcpProcess if successful, None if failed
     """
     if is_port_in_use(host, port):
         print(f"  Error: MCP port {host}:{port} is already in use")
@@ -3263,27 +3422,46 @@ def start_idalib_mcp(
     if ida_args:
         cmd.extend(ida_args.split())
 
-    cmd.append(binary_path)
+    cmd.append(os.fspath(binary_path))
 
     print(f"  Starting idalib-mcp: {' '.join(cmd)}")
 
+    process = None
     try:
+        binary = Path(binary_path).resolve()
+        preexisting_parts = frozenset(path for path in _ida_unpacked_paths(binary) if os.path.lexists(path))
+        windows_job = os.name == "nt"
+        launch_cmd = cmd
+        if windows_job:
+            launch_cmd = [
+                sys.executable,
+                str(Path(__file__).with_name("ida_mcp_job_launcher.py")),
+                "--parent-pid",
+                str(os.getpid()),
+                "--",
+                *cmd,
+            ]
         if debug or stdout is not None or stderr is not None:
-            process = subprocess.Popen(cmd, stdout=stdout, stderr=stderr)
+            child = subprocess.Popen(launch_cmd, stdout=stdout, stderr=stderr)
         else:
-            process = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            child = subprocess.Popen(launch_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        process = ManagedMcpProcess(child, binary, host, port, preexisting_parts, windows_job)
 
         # Wait for MCP server to be ready
         print(f"  Waiting for MCP server on {host}:{port}...")
-        if not wait_for_port(host, port, timeout=MCP_STARTUP_TIMEOUT):
-            print(f"  Error: MCP server failed to start within {MCP_STARTUP_TIMEOUT} seconds")
-            process.kill()
+        if not wait_for_port(host, port, timeout=MCP_STARTUP_TIMEOUT, process=process):
+            print(f"  Error: MCP server did not start (launcher exit code: {process.poll()})")
+            stop_idalib_mcp_process(process, debug=debug)
             return None
 
         print("  MCP server port is ready")
         return process
 
-    except Exception as e:
+    except BaseException as e:
+        if process is not None and not isinstance(e, McpCleanupError):
+            stop_idalib_mcp_process(process, debug=debug)
+        if isinstance(e, McpCleanupError) or not isinstance(e, Exception):
+            raise
         print(f"  Error starting idalib-mcp: {e}")
         return None
 
@@ -3596,14 +3774,13 @@ def process_binary(
         )
         return success_count, fail_count, skip_count
 
-    # Refuse to start IDA if an `.id0` lock file exists next to the binary —
-    # that means another IDA instance currently has this IDB open, and starting
-    # idalib-mcp on top of it would corrupt the database.
-    lock_file = f"{binary_path}.id0"
-    if os.path.exists(lock_file):
+    # An unpacked .id0 may be open or contain unsaved IDB state. Only side files
+    # created by this run can be quarantined after an owned worker has exited.
+    lock_file = next((path for path in _ida_lock_paths(binary_path) if os.path.lexists(path)), None)
+    if lock_file is not None:
         print(
-            f"  Failed: IDB lock file detected ({lock_file}); another IDA instance "
-            f"has this database open. Close it and retry."
+            f"  Failed: unpacked IDA database exists ({lock_file}); it may be in use or need recovery. "
+            "Close any IDA owner and inspect it before retrying."
         )
         post_process_failure = 1 if startup_post_process_yaml_items else 0
         _abort_binary_reporting(
@@ -3619,13 +3796,17 @@ def process_binary(
         )
 
     # Start idalib-mcp
-    if port is None:
-        port = _allocate_local_port(host)
-        if debug:
-            print(f"  Allocated dynamic MCP port {host}:{port}")
     previous_artifact_output_dir = os.environ.get(ARTIFACT_OUTPUT_ENV)
     os.environ[ARTIFACT_OUTPUT_ENV] = os.path.abspath(artifact_dir)
-    process = start_idalib_mcp(binary_path, host, port, ida_args, debug)
+    from analysis_parallel import shared_lock
+
+    # Hold the allocation-to-listen window across sibling platform processes.
+    with shared_lock("mcp-startup"):
+        if port is None:
+            port = _allocate_local_port(host)
+            if debug:
+                print(f"  Allocated dynamic MCP port {host}:{port}")
+        process = start_idalib_mcp(binary_path, host, port, ida_args, debug)
     if process is None:
         if previous_artifact_output_dir is None:
             os.environ.pop(ARTIFACT_OUTPUT_ENV, None)
@@ -3665,9 +3846,6 @@ def process_binary(
                     "  Existing IDA database failed binary identity verification; rebuilding from the original binary"
                 )
                 stop_idalib_mcp_process(process, debug=debug)
-                released = wait_for_port_release(host, port)
-                if debug and not released:
-                    print(f"  MCP port {host}:{port} remained in use before IDB rebuild")
                 removed = _invalidate_ida_database(binary_path, debug=debug)
                 if removed:
                     print(f"  Removed stale IDA database files: {', '.join(removed)}")
@@ -4631,19 +4809,18 @@ def process_binary(
             )
 
     finally:
-        # Avoid sending qexit to an unverified MCP endpoint; stop only our process.
-        if force_local_process_stop:
-            print("  Stopping current idalib-mcp after opened binary verification failure")
-            stop_idalib_mcp_process(process, debug=debug)
-            released = wait_for_port_release(host, port)
-            if debug and not released:
-                print(f"  MCP port {host}:{port} remained in use after shutdown")
-        else:
-            quit_ida_gracefully(process, host, port, expected_binary=binary_path, debug=debug)
-        if previous_artifact_output_dir is None:
-            os.environ.pop(ARTIFACT_OUTPUT_ENV, None)
-        else:
-            os.environ[ARTIFACT_OUTPUT_ENV] = previous_artifact_output_dir
+        try:
+            # Avoid sending qexit to an unverified MCP endpoint; stop only our process.
+            if force_local_process_stop:
+                print("  Stopping current idalib-mcp after opened binary verification failure")
+                stop_idalib_mcp_process(process, debug=debug)
+            else:
+                quit_ida_gracefully(process, host, port, expected_binary=binary_path, debug=debug)
+        finally:
+            if previous_artifact_output_dir is None:
+                os.environ.pop(ARTIFACT_OUTPUT_ENV, None)
+            else:
+                os.environ[ARTIFACT_OUTPUT_ENV] = previous_artifact_output_dir
 
     return success_count, fail_count, skip_count
 
@@ -4718,7 +4895,7 @@ SELECTED_EXECUTION_STRATEGY = "base-inherited-selected-v1"
 
 
 def _selected_manifest_digest(value) -> str:
-    raw = f"source-artifact-selected-execution-manifest:v1\n".encode() + _canonical_json_bytes(value)
+    raw = "source-artifact-selected-execution-manifest:v1\n".encode() + _canonical_json_bytes(value)
     return f"sha256:{hashlib.sha256(raw).hexdigest()}"
 
 
@@ -4901,7 +5078,7 @@ def build_force_all_execution_report(args, reporting: AnalysisReporting) -> dict
         job = jobs[node.job_id]
         tasks_by_key[(job.stage_index, job.module_name, job.platform, node.name)] = node.id
 
-    issues = []
+    issues = list(getattr(args, "parallel_errors", []))
     node_records = {}
 
     def relative_output_paths(raw_paths, *, label):
@@ -5074,7 +5251,7 @@ def build_selected_execution_report(args, manifest, reporting: AnalysisReporting
         job = jobs[node.job_id]
         tasks_by_key[(job.stage_index, job.module_name, job.platform, node.name)] = node.id
 
-    issues = []
+    issues = list(getattr(args, "parallel_errors", []))
     node_records = {}
 
     def relative_output_paths(raw_paths, *, label):
@@ -5472,6 +5649,7 @@ def _print_summary(totals):
 def main():
     """Main entry point."""
     args = parse_args()
+    platform_worker = getattr(args, "platform_worker", False)
     selected_manifest = None
     if getattr(args, "selected_execution", None):
         try:
@@ -5522,7 +5700,10 @@ def main():
             print("Error: selected execution manifest does not bind this analysis config")
             sys.exit(1)
         try:
-            args.selected_node_ids = validate_selected_execution_manifest(modules, args.platforms, selected_manifest)
+            manifest_platforms = ["windows", "linux"] if platform_worker else args.platforms
+            args.selected_node_ids = validate_selected_execution_manifest(
+                modules, manifest_platforms, selected_manifest
+            )
         except ValueError as exc:
             print(f"Error: {exc}")
             sys.exit(1)
@@ -5552,10 +5733,21 @@ def main():
     try:
         reporting.emit_run_status(RunStatus.RUNNING)
         reporter.heartbeat(run_id)
-        totals, aborted = _execute_analysis(args, modules, reporting)
+        if getattr(args, "parallel_platforms", None):
+            from analysis_parallel import run_parallel
+
+            totals, aborted = run_parallel(args, modules, reporting, sys.modules[__name__])
+        else:
+            totals, aborted = _execute_analysis(args, modules, reporting)
         abort_message = "Run aborted after an upstream failure" if aborted else "Task was not executed before run end"
         reporting.abort_pending(ProcessReason.UPSTREAM_ABORTED, abort_message)
-        if getattr(args, "force_all", False):
+        if platform_worker:
+            from analysis_parallel import worker_document
+
+            _atomic_write_bytes(
+                Path(args.execution_report), _canonical_json_bytes(worker_document(args, reporting, totals, aborted))
+            )
+        if getattr(args, "force_all", False) and not platform_worker:
             execution_report = build_force_all_execution_report(args, reporting)
             _atomic_write_bytes(Path(args.execution_report), _canonical_json_bytes(execution_report))
             if not execution_report["valid"]:
@@ -5563,7 +5755,7 @@ def main():
                 print("  Force-all execution contract failed:")
                 for issue in execution_report["issues"]:
                     print(f"    {issue}")
-        if selected_manifest is not None:
+        if selected_manifest is not None and not platform_worker:
             execution_report = build_selected_execution_report(args, selected_manifest, reporting)
             _atomic_write_bytes(Path(args.execution_report), _canonical_json_bytes(execution_report))
             if not execution_report["valid"]:
@@ -5571,9 +5763,25 @@ def main():
                 print("  Selected execution contract failed:")
                 for issue in execution_report["issues"]:
                     print(f"    {issue}")
+        if getattr(args, "parallel_platforms", None):
+            summary_path = Path(args.parallel_platforms) / "summary.json"
+            summary = json.loads(summary_path.read_text(encoding="utf-8"))
+            summary.update(
+                status="failed" if totals[1] else "succeeded",
+                totals=totals,
+                execution_report=str(Path(args.execution_report).resolve()),
+                execution_issues=execution_report["issues"],
+            )
+            _atomic_write_bytes(summary_path, _canonical_json_bytes(summary))
         final_status = RunStatus.FAILED if totals[1] else RunStatus.SUCCEEDED
         reporting.emit_run_status(final_status)
         reporter.finalize_run(run_id, final_status, reporting.summary())
+    except McpCleanupError as exc:
+        print(f"Fatal MCP cleanup failure: {exc}")
+        reporting.abort_pending(ProcessReason.MCP_UNAVAILABLE, str(exc))
+        reporting.emit_run_status(RunStatus.FAILED)
+        reporter.finalize_run(run_id, RunStatus.FAILED, reporting.summary())
+        raise SystemExit(1) from exc
     except BaseException:
         reporting.abort_pending(ProcessReason.UNKNOWN_ERROR, "Run terminated by an unexpected exception")
         reporting.emit_run_status(RunStatus.FAILED)

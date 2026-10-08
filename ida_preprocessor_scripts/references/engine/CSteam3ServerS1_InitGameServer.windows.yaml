@@ -42,7 +42,8 @@ disasm_code: |-
   .text:00000001800F81E2                 mov     rcx, cs:g_pNetworkSystem
   .text:00000001800F81E9                 mov     edx, cs:dword_18060EFC0
   .text:00000001800F81EF                 mov     rax, [rcx]
-  .text:00000001800F81F2                 call    qword ptr [rax+118h]
+  .text:00000001800F81F2                 ; 0x118 = 280LL = INetworkSystem_GetUDPPort
+  .text:00000001800F81F2                 call    qword ptr [rax+118h]; 0x118 = 280LL = INetworkSystem_GetUDPPort
   .text:00000001800F81F8                 mov     rcx, cs:g_pNetworkSystem
   .text:00000001800F81FF                 movzx   ebx, ax
   .text:00000001800F8202                 mov     rdx, [rcx]
@@ -292,7 +293,7 @@ procedure: |-
       GameDirectory = Plat_GetGameDirectory(0);
       V_ComposeFileName(GameDirectory, v7, v36, 260);
       V_FileBase(v36, v37, 260);
-      v9 = (*(__int64 (__fastcall **)(__int64, _QWORD))(*(_QWORD *)g_pNetworkSystem + 280LL))(
+      v9 = (*(__int64 (__fastcall **)(__int64, _QWORD))(*(_QWORD *)g_pNetworkSystem + 280LL))(// 0x118 = 280LL = INetworkSystem_GetUDPPort
              g_pNetworkSystem,
              (unsigned int)dword_18060EFC0);
       v10 = (*(__int64 (__fastcall **)(__int64, _QWORD))(*(_QWORD *)g_pNetworkSystem + 272LL))(

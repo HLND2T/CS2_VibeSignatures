@@ -212,10 +212,11 @@ GENERATE_YAML_DESIRED_FIELDS = [
         ],
     ),
     (
+        # The vtable slot resolves to a single-instruction jmp thunk, so no
+        # func_sig is emitted (see _classify_func_body_lead_bytes).
         "CNetworkServerService_OnClientPollNetworking",
         [
             "func_name",
-            "func_sig",
             "func_va",
             "func_rva",
             "func_size",
