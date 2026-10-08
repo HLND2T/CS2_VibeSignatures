@@ -1,18 +1,42 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CEngineServer_SynchronizeAndBlockUntilLoaded skill."""
+"""Preprocess script for find-CEngineServer_SynchronizeAndBlockUntilLoaded skill.
+
+Resolves ``CEngineServer_SynchronizeAndBlockUntilLoaded`` (a vfunc of
+``CEngineServer_vtable``) deterministically from the ``CNetworkGameServerBase``
+callee it drives. ``CNetworkGameServerBase_SynchronizeAndBlockUntilLoaded`` is
+called by exactly two functions -- ``CNetworkGameServerBase_SpawnGroupThink``
+(the spawn-group think pass) and the ``CEngineServer`` override -- so excluding
+the former leaves a single caller. ``func_vtable_relations`` then overlays the
+slot from ``CEngineServer_vtable``; no vtable index or offset is hardcoded.
+"""
 
 from ida_analyze_util import preprocess_common_skill
 
-INHERIT_VFUNCS = [
-    (
-        "CEngineServer_SynchronizeAndBlockUntilLoaded",
-        "CEngineServer",
-        "../server/IVEngineServer2_SynchronizeAndBlockUntilLoaded",
-        True,
-    ),
+TARGET_FUNCTION_NAMES = [
+    "CEngineServer_SynchronizeAndBlockUntilLoaded",
+]
+
+FUNC_XREFS = [
+    {
+        "func_name": "CEngineServer_SynchronizeAndBlockUntilLoaded",
+        "xref_strings": [],
+        "xref_gvs": [],
+        "xref_signatures": [],
+        "xref_funcs": ["CNetworkGameServerBase_SynchronizeAndBlockUntilLoaded"],
+        "exclude_funcs": ["CNetworkGameServerBase_SpawnGroupThink"],
+        "exclude_strings": [],
+        "exclude_gvs": [],
+        "exclude_signatures": [],
+    },
+]
+
+FUNC_VTABLE_RELATIONS = [
+    # (func_name, vtable_class)
+    ("CEngineServer_SynchronizeAndBlockUntilLoaded", "CEngineServer_vtable"),
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
+    # (symbol_name, generate_yaml_fields)
     (
         "CEngineServer_SynchronizeAndBlockUntilLoaded",
         [
@@ -39,8 +63,7 @@ async def preprocess_skill(
     image_base,
     debug=False,
 ):
-    """Resolve CEngineServer's override at the inherited interface slot."""
-    _ = skill_name
+    """Resolve the CEngineServer override as the non-think caller of the base callee."""
     return await preprocess_common_skill(
         session=session,
         expected_outputs=expected_outputs,
@@ -48,7 +71,9 @@ async def preprocess_skill(
         new_binary_dir=new_binary_dir,
         platform=platform,
         image_base=image_base,
-        inherit_vfuncs=INHERIT_VFUNCS,
+        func_names=TARGET_FUNCTION_NAMES,
+        func_xrefs=FUNC_XREFS,
+        func_vtable_relations=FUNC_VTABLE_RELATIONS,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
     )

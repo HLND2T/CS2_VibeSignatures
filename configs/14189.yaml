@@ -9274,11 +9274,6 @@ modules:
           - IVEngineServer2_MakeSpawnGroupActive.{platform}.yaml
         expected_input:
           - CSpawnGroupMgrGameSystem_SetActiveSpawnGroup.{platform}.yaml
-      - name: find-IVEngineServer2_SynchronizeAndBlockUntilLoaded
-        expected_output:
-          - IVEngineServer2_SynchronizeAndBlockUntilLoaded.{platform}.yaml
-        expected_input:
-          - IVEngineServer2_MakeSpawnGroupActive.{platform}.yaml
       - name: find-CSpawnGroupMgrGameSystem_UnloadSpawnGroup
         expected_output:
           - CSpawnGroupMgrGameSystem_UnloadSpawnGroup.{platform}.yaml
@@ -12842,10 +12837,6 @@ modules:
         category: vfunc
         alias:
           - IVEngineServer2::MakeSpawnGroupActive
-      - name: IVEngineServer2_SynchronizeAndBlockUntilLoaded
-        category: vfunc
-        alias:
-          - IVEngineServer2::SynchronizeAndBlockUntilLoaded
       - name: CSpawnGroupMgrGameSystem_UnloadSpawnGroup
         category: vfunc
         alias:
@@ -14264,7 +14255,7 @@ modules:
         expected_output:
           - CEngineServer_SynchronizeAndBlockUntilLoaded.{platform}.yaml
         expected_input:
-          - ../server/IVEngineServer2_SynchronizeAndBlockUntilLoaded.{platform}.yaml
+          - CNetworkGameServerBase_SynchronizeAndBlockUntilLoaded.{platform}.yaml
           - CEngineServer_vtable.{platform}.yaml
   - name: networksystem  # Execute skills for networksystem.dll again after server.dll
     path_windows: game/bin/win64/networksystem.dll
