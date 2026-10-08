@@ -15,7 +15,14 @@ import tempfile
 from pathlib import Path
 from urllib.parse import quote
 
-from release_bundle import ALLOWED_REPOSITORY, BUNDLE_SCHEMA_VERSION, ReleaseBundleError, validate_release_manifest
+from release_artifact_rebuild import BINDING_RULE_VERSION
+from release_bundle import (
+    ALLOWED_REPOSITORY,
+    BUNDLE_SCHEMA_VERSION,
+    ReleaseBundleError,
+    manifest_binding_rule_version,
+    validate_release_manifest,
+)
 from release_workflow_lib.errors import ReleaseWorkflowError
 from release_workflow_lib.hashing import (
     canonical_json_bytes,
@@ -28,7 +35,7 @@ from release_workflow_lib.hashing import (
 )
 from release_workflow_lib.sevenzip import listed_archive_files
 
-RELEASE_INPUT_SCHEMA_VERSION = 1
+RELEASE_INPUT_SCHEMA_VERSION = 2
 GAME_VERSION_RE = re.compile(r"^[0-9]{4,10}[a-z]?$")
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
@@ -304,6 +311,15 @@ def _stage_release(
     except ReleaseBundleError as exc:
         raise PagesReleaseInputError(str(exc)) from exc
 
+    binding_rule_version = manifest_binding_rule_version(manifest)
+    if binding_rule_version < BINDING_RULE_VERSION:
+        print(
+            f"Release {release_id}: binding manifest declares rule version {binding_rule_version}, "
+            f"below the enforced version {BINDING_RULE_VERSION}; "
+            "the BinSync and warm IDB evidence binding is not applied to it",
+            file=sys.stderr,
+        )
+
     tag = release["tag_name"]
     source_sha = manifest["source_sha"]
     game_version = manifest["game_version"]
@@ -390,6 +406,7 @@ def _stage_release(
         "tag": tag,
         "source_sha": source_sha,
         "game_version": game_version,
+        "binding_rule_version": binding_rule_version,
         "manifest_sha256": sha256_bytes(manifest_bytes),
     }
 
