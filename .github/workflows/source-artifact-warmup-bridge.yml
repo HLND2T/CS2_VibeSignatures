@@ -50,7 +50,7 @@ jobs:
       GAMEVER: ${{ inputs.gamever }}
       SOURCE_SHA: ${{ inputs.source_sha }}
       BASE_SHA: ${{ inputs.base_sha }}
-      PERSISTED_WORKSPACE: ${{ secrets.PERSISTED_WORKSPACE }}
+      CI_CACHE_ROOT: ${{ github.workspace }}/.ci-cache/store
       DEPOTDOWNLOADER_STEAM_USERNAME: ${{ secrets.DEPOTDOWNLOADER_STEAM_USERNAME }}
       DEPOTDOWNLOADER_STEAM_PASSWORD: ${{ secrets.DEPOTDOWNLOADER_STEAM_PASSWORD }}
       IDB_WARMUP_MAX_CONCURRENCY: ${{ vars.IDB_WARMUP_MAX_CONCURRENCY }}
@@ -97,28 +97,53 @@ jobs:
       - name: Sync trusted binary cache environment
         shell: pwsh
         run: uv sync --project .trusted-tools --locked
-      - name: Prepare persisted depot link and restore accepted bin
+      - name: Checkout cache transport tools from workflow source
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: .cache-tools
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Prepare clean job-local cache layout
+        id: s3-layout
+        shell: pwsh
+        run: |
+          uv run --project .cache-tools python .cache-tools/ci_s3_cache.py prepare
+          if ($LASTEXITCODE -ne 0) { throw 'Unable to prepare S3 cache layout.' }
+      - name: Restore accepted binaries from S3
+        id: s3-accepted
+        uses: ./.cache-tools/.github/actions/s3-cache
+        with:
+          endpoint-url: ${{ secrets.S3_ENDPOINT_URL }}
+          access-key: ${{ secrets.S3_ACCESS_KEY_ID }}
+          secret-key: ${{ secrets.S3_SECRET_ACCESS_KEY }}
+          operation: restore
+          key: ${{ steps.s3-layout.outputs.accepted-key }}
+          path: ${{ steps.s3-layout.outputs.accepted-path }}
+      - name: Restore depot binaries from S3
+        id: s3-depot
+        if: steps.s3-accepted.outputs.cache-hit != 'true'
+        uses: ./.cache-tools/.github/actions/s3-cache
+        with:
+          endpoint-url: ${{ secrets.S3_ENDPOINT_URL }}
+          access-key: ${{ secrets.S3_ACCESS_KEY_ID }}
+          secret-key: ${{ secrets.S3_SECRET_ACCESS_KEY }}
+          operation: restore
+          key: ${{ steps.s3-layout.outputs.depot-key }}
+          path: ${{ steps.s3-layout.outputs.depot-path }}
+      - name: Verify restored binary caches against source lock
+        shell: pwsh
+        env:
+          CACHE_ACCEPTED_HIT: ${{ steps.s3-accepted.outputs.cache-hit }}
+          CACHE_DEPOT_HIT: ${{ steps.s3-depot.outputs.cache-hit }}
+        run: |
+          uv run --project .cache-tools python .cache-tools/ci_s3_cache.py verify-restored
+          if ($LASTEXITCODE -ne 0) { throw 'Restored S3 binary cache failed verification.' }
+      - name: Restore local accepted binaries
         id: prepare-workspace
         shell: pwsh
         run: |
-          if ([string]::IsNullOrWhiteSpace($env:PERSISTED_WORKSPACE)) {
-            throw "PERSISTED_WORKSPACE is not configured."
-          }
           $workspace = [IO.Path]::GetFullPath("${{ github.workspace }}")
-          # Point the depot root at the persisted workspace; the depot tooling
-          # stores each GAMEVER in its own <root>/<GAMEVER> subdirectory.
-          $depotTarget = [IO.Path]::GetFullPath((Join-Path $env:PERSISTED_WORKSPACE "cs2_depot"))
-          $depotLink = Join-Path $workspace "cs2_depot"
-          [System.IO.Directory]::CreateDirectory($depotTarget) | Out-Null
-          if (Test-Path -LiteralPath $depotLink) {
-            $item = Get-Item -LiteralPath $depotLink -Force
-            if (-not ($item.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
-              throw "cs2_depot must be a link."
-            }
-          } else {
-            cmd /c mklink /d "$depotLink" "$depotTarget"
-            if ($LASTEXITCODE -ne 0) { throw "Failed to create cs2_depot link." }
-          }
           $workspaceBin = Join-Path $workspace "bin"
           New-Item -ItemType Directory -Path $workspaceBin -Force | Out-Null
           if ((Get-Item $workspaceBin -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) {
@@ -126,21 +151,13 @@ jobs:
           }
           $restoreJson = uv run --project .trusted-tools python .trusted-tools/source_artifact_accepted_bin.py restore `
             --repo-root "$workspace" `
-            --persisted-root "$env:PERSISTED_WORKSPACE" --gamever "$env:GAMEVER"
+            --persisted-root "$env:CI_CACHE_ROOT" --gamever "$env:GAMEVER"
           if ($LASTEXITCODE -ne 0) { throw "Failed to restore the exact accepted binary allowlist." }
           $restore = $restoreJson | ConvertFrom-Json
           if ($restore.binary_lock_sha256 -notmatch '^sha256:[0-9a-f]{64}$') {
             throw "Accepted-bin restore omitted the source binary lock identity."
           }
           "BINARY_LOCK_SHA256=$($restore.binary_lock_sha256)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-      - name: Prune stale warm-cache state
-        id: prune-cache
-        shell: pwsh
-        run: |
-          uv run python idb_cache.py prune `
-            --persisted-root "$env:PERSISTED_WORKSPACE" `
-            --gamever "$env:GAMEVER"
-          if ($LASTEXITCODE -ne 0) { throw "IDB cache pruning failed." }
       - name: Initialize configured binaries without mutable analysis state
         id: init-binaries
         shell: pwsh
@@ -174,18 +191,40 @@ jobs:
           if ($verification.binary_lock_sha256 -ne $env:BINARY_LOCK_SHA256) {
             throw "Binary lock identity drifted during initialization."
           }
+      - name: Compute warm IDB transport identity
+        id: s3-idb-identity
+        shell: pwsh
+        run: |
+          uv run --project .cache-tools python .cache-tools/ci_s3_cache.py identity `
+            --ida-version "${{ steps.resolve-ida.outputs.ida-version }}"
+          if ($LASTEXITCODE -ne 0) { throw 'Unable to compute IDB cache identity.' }
+      - name: Discover matching warm IDB generation in S3
+        id: s3-idb
+        uses: ./.cache-tools/.github/actions/s3-cache
+        with:
+          endpoint-url: ${{ secrets.S3_ENDPOINT_URL }}
+          access-key: ${{ secrets.S3_ACCESS_KEY_ID }}
+          secret-key: ${{ secrets.S3_SECRET_ACCESS_KEY }}
+          operation: restore
+          key: ${{ steps.s3-idb-identity.outputs.restore-prefix }}${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ steps.s3-idb-identity.outputs.generation-path }}
+          restore-keys: ${{ steps.s3-idb-identity.outputs.restore-prefix }}
       - name: Probe immutable published cache
         id: probe-cache
         shell: pwsh
         run: |
-          uv run python idb_cache.py probe `
+          uv run --project .cache-tools python .cache-tools/idb_cache.py probe `
             --repository "$env:GITHUB_REPOSITORY" --run-id "$env:GITHUB_RUN_ID" --run-attempt "$env:GITHUB_RUN_ATTEMPT" `
             --repo-root "${{ github.workspace }}" `
-            --persisted-root "$env:PERSISTED_WORKSPACE" `
+            --persisted-root "$env:CI_CACHE_ROOT" `
             --gamever "$env:GAMEVER" `
             --ida-version "${{ steps.resolve-ida.outputs.ida-version }}" `
             --github-output "$env:GITHUB_OUTPUT"
           if ($LASTEXITCODE -ne 0) { throw "IDB cache probe failed." }
+      - name: Reject invalid restored IDB generation
+        if: steps.s3-idb.outputs.cache-matched-key != '' && steps.probe-cache.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: throw 'Restored S3 IDB generation failed identity or integrity validation.'
       - name: Warm every configured IDA database
         id: warmup-idb
         if: steps.probe-cache.outputs.cache-hit != 'true'
@@ -203,10 +242,10 @@ jobs:
         if: steps.probe-cache.outputs.cache-hit != 'true'
         shell: pwsh
         run: |
-          uv run python idb_cache.py publish `
+          uv run --project .cache-tools python .cache-tools/idb_cache.py publish `
             --repository "$env:GITHUB_REPOSITORY" --run-id "$env:GITHUB_RUN_ID" --run-attempt "$env:GITHUB_RUN_ATTEMPT" `
             --repo-root "${{ github.workspace }}" `
-            --persisted-root "$env:PERSISTED_WORKSPACE" `
+            --persisted-root "$env:CI_CACHE_ROOT" `
             --gamever "$env:GAMEVER" `
             --ida-version "${{ steps.resolve-ida.outputs.ida-version }}" `
             --generation-suffix "${{ github.run_id }}-${{ github.run_attempt }}" `
@@ -241,7 +280,63 @@ jobs:
         id: sync-accepted-bin
         shell: pwsh
         run: |-
+          uv run --project .cache-tools python .cache-tools/accepted_bin.py sync `
+            --repo-root "${{ github.workspace }}" --persisted-root "$env:CI_CACHE_ROOT" --gamever "$env:GAMEVER"
+          if ($LASTEXITCODE -ne 0) { throw 'Accepted binary cache validation failed.' }
           if ($env:BINARY_LOCK_SHA256 -notmatch '^sha256:[0-9a-f]{64}$') {
             throw "Verified source binary lock identity is missing."
           }
           "binary-lock-sha256=$env:BINARY_LOCK_SHA256" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+      - name: Save verified accepted binaries to S3
+        if: steps.s3-accepted.outputs.cache-hit != 'true'
+        uses: ./.cache-tools/.github/actions/s3-cache
+        with:
+          endpoint-url: ${{ secrets.S3_ENDPOINT_URL }}
+          access-key: ${{ secrets.S3_ACCESS_KEY_ID }}
+          secret-key: ${{ secrets.S3_SECRET_ACCESS_KEY }}
+          operation: save
+          key: ${{ steps.s3-layout.outputs.accepted-key }}
+          path: ${{ steps.s3-layout.outputs.accepted-path }}
+      - name: Check configured depot files for publication
+        id: s3-depot-ready
+        shell: pwsh
+        run: |
+          uv run --project .cache-tools python .cache-tools/ci_s3_cache.py depot-ready
+          if ($LASTEXITCODE -ne 0) { throw 'Depot cache validation failed.' }
+      - name: Save verified depot binaries to S3
+        if: steps.s3-depot.outputs.cache-hit != 'true' && steps.s3-depot-ready.outputs.ready == 'true'
+        uses: ./.cache-tools/.github/actions/s3-cache
+        with:
+          endpoint-url: ${{ secrets.S3_ENDPOINT_URL }}
+          access-key: ${{ secrets.S3_ACCESS_KEY_ID }}
+          secret-key: ${{ secrets.S3_SECRET_ACCESS_KEY }}
+          operation: save
+          key: ${{ steps.s3-layout.outputs.depot-key }}
+          path: ${{ steps.s3-layout.outputs.depot-path }}
+      - name: Resolve published S3 generation and lease paths
+        id: s3-selection
+        shell: pwsh
+        run: |
+          uv run --project .cache-tools python .cache-tools/ci_s3_cache.py selection `
+            --generation "${{ steps.resolve-output.outputs.generation }}" `
+            --lease-id "${{ steps.resolve-output.outputs.lease-id }}"
+          if ($LASTEXITCODE -ne 0) { throw 'Invalid published warm IDB selection.' }
+      - name: Save immutable warm IDB generation to S3
+        if: steps.probe-cache.outputs.cache-hit != 'true'
+        uses: ./.cache-tools/.github/actions/s3-cache
+        with:
+          endpoint-url: ${{ secrets.S3_ENDPOINT_URL }}
+          access-key: ${{ secrets.S3_ACCESS_KEY_ID }}
+          secret-key: ${{ secrets.S3_SECRET_ACCESS_KEY }}
+          operation: save
+          key: ${{ steps.s3-selection.outputs.generation-key }}
+          path: ${{ steps.s3-selection.outputs.generation-path }}
+      - name: Save current-run warm IDB lease to S3
+        uses: ./.cache-tools/.github/actions/s3-cache
+        with:
+          endpoint-url: ${{ secrets.S3_ENDPOINT_URL }}
+          access-key: ${{ secrets.S3_ACCESS_KEY_ID }}
+          secret-key: ${{ secrets.S3_SECRET_ACCESS_KEY }}
+          operation: save
+          key: ${{ steps.s3-selection.outputs.lease-key }}
+          path: ${{ steps.s3-selection.outputs.lease-path }}

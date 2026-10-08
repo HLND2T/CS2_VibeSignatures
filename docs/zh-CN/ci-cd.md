@@ -29,20 +29,32 @@
 
 PR 与 Release analysis 都调用 `warmup-idb.yml`，将 configured binary hashes 和 IDA runtime 绑定到 immutable cache generation。accepted-bin 是 exact configured-binary cache：YAML、IDA databases、BinSync state 与未声明 side files 均被拒绝。这些 cache 只用于性能，不是 symbol truth。
 
-Warm IDB 的 probe/publish 在共享 GAMEVER 文件锁内创建持久租约，返回 generation、cache key、lease ID 和 lease SHA-256。
-租约绑定 repository、producer run/attempt、GAMEVER、generation 与 manifest digest；PR、Release、bootstrap 和 bridge
-consumer 必须使用 producer 的原始输出，不能重新 probe 替换选择。prune 合并所有有效租约，保护跨 job 排队期间的缓存；
-restore 在同一锁内完成校验、全部 binary/IDB 复制及身份复核，全部成功后才原子释放自己的租约。
+持久化由 `tespkg/actions-cache/restore@v1` 和 `/save@v1` 负责，bucket 为
+`actions-cache-cs2-vibesignatures`。`win64` environment 需要 `S3_ENDPOINT_URL`、
+`S3_ACCESS_KEY_ID` 和 `S3_SECRET_ACCESS_KEY` secrets。URL 只允许 HTTP(S) origin；
+`http://HZVM:8333` 解析为 `endpoint: HZVM`、`port: 8333`、`insecure: true`，HTTPS 则为 false。
+Runner 必须支持这些 actions 使用的 Node 24 runtime（现有 `actions/checkout@v5` 同样需要）。
+关闭 GitHub cache fallback，S3 上传后以独立 lookup 验证对象存在；必需缓存恢复失败会终止 job。
 
-租约有效期为 36 天，prune 另加 1 小时时钟容差。部分恢复失败保留保护；producer 中断、输出失败或取消留下的租约最终过期回收。
-缺失、已释放、过期、损坏或绑定不一致的租约会明确失败；无法读取或损坏的租约也会阻止 prune，需排查存储问题后恢复清理。
-恢复成功后的分析失败，或 GitHub rerun 导致 attempt 改变时，应重跑包含 producer 的完整 workflow。
-这里的 attempt 绑定只约束临时缓存租约，不改变下文 Release publication transaction identity。
+缓存 key 按仓库、runner OS 和版本化 transport namespace 隔离。Depot 只归档 source lock 声明的下载文件，
+按下载身份与目标文件集合区分，不包含下载器登录状态；accepted binaries 按 source lock 与配置目标集合精确匹配。
+恢复命中后先验证文件集合与哈希；仅 depot 命中时先物化 accepted binaries，避免重复下载。
+Key 不包含路径分隔符，避免 action 的 Windows `path.join` 改写 key 导致无法恢复。
+IDB generation 按现有 binary/IDA identity 复用，每次 producer 都创建新的 lease。
+Generation 的 payload/manifest 与当前 run/attempt 的 lease 分开保存，下游使用 producer 的原始 generation、
+cache key、lease ID 和 lease SHA-256 精确恢复，不回退选择，也不回写分析后的 IDB。
 
-新 payload、READY、租约和文件锁位于 `PERSISTED_WORKSPACE/idb-cache-v2/`，与仍运行旧代码的 pruner 隔离。
-首次使用需要重新预热，旧 `idb-cache/` 不自动迁移或删除；清理旧目录前应确认旧 workflow 已全部结束。
-普通 warmup 的 GAMEVER concurrency 继续保留，文件锁另外覆盖 producer 与 consumer 的交错访问。
-上线验证应在两个共享同一缓存的 Windows/SMB runner 上交错运行 producer、prune 与 restore，并观察首次预热的磁盘与耗时。
+每个 job 在干净的 `.ci-cache/store/` 暂存恢复结果，`--persisted-root` 只指向该本地暂存目录。
+归档使用工作区相对路径，不依赖 runner 盘符、checkout 绝对路径或宿主共享目录。
+缓存工具从 workflow SHA 单独检出到 `.cache-tools/`，因此 source SHA 可以早于本次缓存迁移。
+本地 restore 仍在文件锁内校验 lease owner、manifest 与全部 binary/IDB，成功后释放本地 lease。
+租约有效期仍为 36 天；缺失、过期、损坏或绑定不一致会失败。GitHub rerun 改变 attempt 时，
+必须重跑包含 producer 的完整 workflow。远程 lease 是不可变传输副本，本地 release 不回写远程对象。
+
+CI 不再调用共享目录 prune，也不自动删除远程对象或配置 bucket 生命周期；本地文件锁不承担分布式锁职责。
+保留 GAMEVER warmup concurrency。首次 S3 未命中会重新置备、预热，旧 `PERSISTED_WORKSPACE` 不自动导入或删除。
+上线验证应从空缓存运行两次，再清空本地 workspace 验证恢复，并检查 binary/IDA 变化、损坏缓存和 S3 失败场景。
+GitHub artifacts 继续传递发布候选包与日志；Git 跟踪的 `bin_artifacts` 仍是 symbol truth。
 
 `warmup_idb.py --max-memory-mib <MiB>`（或 `IDB_WARMUP_MAX_MEMORY_MIB`）启用内存准入控制。
 Windows 使用聚合 Job Object 上限；Linux 在已有委派权限允许时使用 cgroup v2 子组上限，否则输出
