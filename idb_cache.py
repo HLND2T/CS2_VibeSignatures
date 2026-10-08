@@ -135,6 +135,12 @@ def _cache_key(gamever: str, ida_version: str, binaries: list[dict]) -> str:
     return sha256_bytes(canonical_json_bytes(_identity(gamever, ida_version, binaries)))
 
 
+def cache_identity(*, repo_root: Path, gamever: str, ida_version: str) -> dict:
+    """Compute transport identity without probing, creating leases, or opening IDA."""
+    gamever = require_gamever(gamever)
+    return {"cache_key": _cache_key(gamever, ida_version, _binary_records(repo_root, gamever))}
+
+
 def _cache_identity_binaries(binaries: list[dict]) -> list[dict]:
     identity = []
     for binary in binaries:

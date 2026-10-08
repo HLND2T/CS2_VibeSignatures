@@ -37,25 +37,34 @@ BinSync projection, and archives a Release publishes are all derived from the co
 
 PR and Release analysis call `warmup-idb.yml`. It binds configured binary hashes and the IDA runtime to an immutable cache generation. Accepted-bin materialization is an exact configured-binary cache: YAML, IDA databases, BinSync state, and undeclared side files are rejected. These caches are performance layers, never symbol truth.
 
-Warm IDB probe/publish creates a persistent lease under the shared GAMEVER file lock and returns the generation,
-cache key, lease ID, and lease SHA-256. The lease binds the repository, producer run/attempt, GAMEVER, generation,
-and manifest digest. PR, Release, bootstrap, and bridge consumers use the producer's exact outputs instead of
-probing for another selection. Prune honors all live leases while downstream jobs wait. Restore holds the same
-lock through verification, copying every binary/IDB, and checking the restored identity; only full success
-atomically releases that consumer's lease.
+Persistence uses `tespkg/actions-cache/restore@v1` and `/save@v1` with the bucket
+`actions-cache-cs2-vibesignatures`. The `win64` environment supplies `S3_ENDPOINT_URL`,
+`S3_ACCESS_KEY_ID`, and `S3_SECRET_ACCESS_KEY`. The URL must be an HTTP(S) origin:
+`http://HZVM:8333` becomes `endpoint: HZVM`, `port: 8333`, and `insecure: true`; HTTPS sets it to false.
+Runners must support Node 24 actions (also required by the existing `actions/checkout@v5`).
+GitHub cache fallback is disabled. An independent lookup checks each upload; required restore failures stop the job.
 
-Leases last 36 days, with an additional one-hour clock grace for pruning. Partial restore failures retain protection;
-abandoned producers, failed output delivery, and cancelled jobs are eventually reclaimed by expiration.
-Missing, released, expired, corrupt, or mismatched leases fail explicitly. Unreadable or corrupt leases also stop
-pruning until the storage problem is resolved. After successful restore followed by analysis failure, or when a
-GitHub rerun changes the attempt, rerun the full workflow including its producer. Attempt binding applies only to
-temporary cache leases; it does not change the Release publication transaction identity below.
+Keys isolate repositories, runner operating systems, and the versioned transport namespace. Depot archives contain
+only source-lock-declared download files, keyed by download identity and target selection, never downloader login state.
+Accepted binaries use exact source-lock/target keys; restored hits undergo inventory and hash verification.
+A depot-only hit materializes accepted binaries before initialization to avoid another download. Keys contain no path
+separators, avoiding Windows `path.join` normalization in the action's object naming.
+IDB generations retain the existing binary/IDA identity. Each producer creates a fresh lease even on a generation hit.
+Immutable generation payloads/manifests and current-run leases are separate objects. Consumers restore the producer's
+exact generation, cache key, lease ID, and lease digest, with no fallback selection or upload of analyzed IDBs.
 
-Payloads, READY, leases, and file locks now live under `PERSISTED_WORKSPACE/idb-cache-v2/`, isolated from old pruners.
-The first use requires fresh warmup. The old `idb-cache/` is neither migrated nor deleted automatically; confirm all
-old workflows have finished before cleaning it up. Existing GAMEVER warmup concurrency remains, while file locks
-also serialize interleaved producer/consumer access. Rollout validation should interleave producers, pruning, and
-restore on two Windows/SMB runners sharing a cache, and observe initial warmup disk usage and duration.
+Every job restores into a clean `.ci-cache/store/`; existing `--persisted-root` arguments refer only to this local staging
+area. Archive members use workspace-relative paths, independent of runner drives or checkout locations. Transport tools
+are checked out separately at the workflow SHA into `.cache-tools/`, including when the source SHA predates this migration.
+Local restore still holds a file lock through lease-owner, manifest, and binary/IDB verification, then releases the local
+lease. Leases remain valid for 36 days; missing, expired, corrupt, or mismatched selections fail. A GitHub rerun that changes
+the attempt must include the producer. Remote leases are immutable transport copies; local release does not update them.
+
+CI no longer prunes shared directories and does not delete remote objects or configure bucket lifecycle rules. Local file
+locks are not distributed locks; existing GAMEVER warmup concurrency remains. Cold S3 caches provision and warm again;
+old `PERSISTED_WORKSPACE` data is neither imported nor deleted. Validate a cold run, a repeat hit, and recovery on a clean
+workspace, plus binary/IDA changes, corrupted caches, and S3 failures. GitHub artifacts still carry release candidates and
+logs; tracked `bin_artifacts` remain the symbol truth.
 
 `warmup_idb.py --max-memory-mib <MiB>` (or `IDB_WARMUP_MAX_MEMORY_MIB`) enables memory-aware admission.
 Windows uses an aggregate Job Object cap. Linux selects a cgroup v2 child cap when the existing delegation permits

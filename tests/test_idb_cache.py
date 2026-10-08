@@ -1,6 +1,7 @@
 import io
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -11,6 +12,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import idb_cache
+import ci_s3_cache
 import idb_cache_leases as leases
 from idb_cache_leases import LeaseOwner
 
@@ -40,6 +42,70 @@ class TestIdbCache(unittest.TestCase):
             resolve_analysis_config=lambda gamever, repo_root: Path(repo_root) / "configs" / f"{gamever}.yaml",
             iter_configured_binaries=self._configured_binaries,
         )
+
+    def test_transport_identity_is_read_only_and_tracks_binary_and_ida_changes(self):
+        with tempfile.TemporaryDirectory() as temporary, self._patch_config():
+            root = Path(temporary)
+            self._write_source(root, "14180")
+            original = idb_cache.cache_identity(repo_root=root, gamever="14180", ida_version="9.2")
+            changed_ida = idb_cache.cache_identity(repo_root=root, gamever="14180", ida_version="9.3")
+            self.assertNotEqual(original, changed_ida)
+            self._write_source(root, "14180", marker=b"v2")
+            changed_binary = idb_cache.cache_identity(repo_root=root, gamever="14180", ida_version="9.2")
+            self.assertNotEqual(original, changed_binary)
+            self.assertFalse((root / "idb-cache-v2").exists())
+
+    def test_s3_payload_and_fresh_lease_restore_across_independent_workspaces(self):
+        with tempfile.TemporaryDirectory() as temporary, self._patch_config():
+            root = Path(temporary)
+            producer, next_run, consumer = (root / name for name in ("producer", "next-run", "consumer"))
+            gamever = "14180"
+            self._write_source(producer, gamever)
+            self._write_source(next_run, gamever)
+            published = idb_cache.publish_cache(
+                repo_root=producer,
+                persisted_root=producer / ci_s3_cache.STORE,
+                gamever=gamever,
+                ida_version="9.2",
+                generation_suffix="100-1",
+                owner=self.owner,
+            )
+            initial = ci_s3_cache.selection_layout(
+                gamever, self.owner.repository, "Windows", published["generation"], published["lease_id"], "100", "1"
+            )
+            # A generation cache transports only immutable payload/manifest, never the old lease or READY.
+            shutil.copytree(producer / initial["generation-path"], next_run / initial["generation-path"])
+            owner = LeaseOwner(self.owner.repository, "101", "1")
+            hit = idb_cache.probe_cache(
+                repo_root=next_run,
+                persisted_root=next_run / ci_s3_cache.STORE,
+                gamever=gamever,
+                ida_version="9.2",
+                owner=owner,
+            )
+            self.assertTrue(hit["cache_hit"])
+            self.assertEqual(published["generation"], hit["generation"])
+            self.assertNotEqual(published["lease_id"], hit["lease_id"])
+            selected = ci_s3_cache.selection_layout(
+                gamever, owner.repository, "Windows", hit["generation"], hit["lease_id"], "101", "1"
+            )
+            shutil.copytree(next_run / selected["generation-path"], consumer / selected["generation-path"])
+            lease_target = consumer / selected["lease-path"]
+            lease_target.parent.mkdir(parents=True)
+            shutil.copy2(next_run / selected["lease-path"], lease_target)
+            restored = idb_cache.restore_cache(
+                repo_root=consumer,
+                persisted_root=consumer / ci_s3_cache.STORE,
+                gamever=gamever,
+                generation=hit["generation"],
+                expected_cache_key=hit["cache_key"],
+                ida_version="9.2",
+                owner=owner,
+                lease_id=hit["lease_id"],
+                lease_sha256=hit["lease_sha256"],
+            )
+            self.assertEqual("released", restored["lease_state"])
+            self.assertEqual(b"idb-server-v1", (consumer / "bin/14180/server/server.dll.i64").read_bytes())
 
     def test_write_ready_skips_unchanged_pointer(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
