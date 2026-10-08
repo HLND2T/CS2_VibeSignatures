@@ -52,7 +52,7 @@ runs:
     - name: Restore S3 cache
       id: restore
       if: inputs.operation == 'restore'
-      uses: tespkg/actions-cache/restore@v1
+      uses: hzqst/actions-cache/restore@dceeeab53d941698fc84a157bed4ca595bdc3225 # Portable S3 object keys
       env:
         AWS_ACCESS_KEY_ID: ${{ inputs.access-key }}
         AWS_SECRET_ACCESS_KEY: ${{ inputs.secret-key }}
@@ -75,7 +75,7 @@ runs:
       run: throw 'Required S3 cache could not be restored.'
     - name: Save S3 cache
       if: inputs.operation == 'save'
-      uses: tespkg/actions-cache/save@v1
+      uses: hzqst/actions-cache/save@dceeeab53d941698fc84a157bed4ca595bdc3225 # Portable S3 object keys
       env:
         AWS_ACCESS_KEY_ID: ${{ inputs.access-key }}
         AWS_SECRET_ACCESS_KEY: ${{ inputs.secret-key }}
@@ -94,7 +94,7 @@ runs:
     - name: Check saved object exists
       id: saved
       if: inputs.operation == 'save'
-      uses: tespkg/actions-cache/restore@v1
+      uses: hzqst/actions-cache/restore@dceeeab53d941698fc84a157bed4ca595bdc3225 # Portable S3 object keys
       env:
         AWS_ACCESS_KEY_ID: ${{ inputs.access-key }}
         AWS_SECRET_ACCESS_KEY: ${{ inputs.secret-key }}
