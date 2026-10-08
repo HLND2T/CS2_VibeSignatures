@@ -7042,6 +7042,27 @@ modules:
       - name: find-CGameEventManager_vtable
         expected_output:
           - CGameEventManager_vtable.{platform}.yaml
+      - name: find-CGameEventManager_CreateEventInternal
+        optional_output:
+          - CGameEventManager_CreateEventInternal.{platform}.yaml
+        skip_if_exists:
+          - CGameEventManager_CreateEvent.{platform}.yaml
+      - name: find-CGameEventManager_CreateEvent-noinline
+        optional_output:
+          - CGameEventManager_CreateEvent.{platform}.yaml
+        expected_input:
+          - CGameEventManager_vtable.{platform}.yaml
+        prerequisite:
+          - find-CGameEventManager_CreateEventInternal
+      - name: find-CGameEventManager_CreateEvent-inlined
+        expected_output:
+          - CGameEventManager_CreateEvent.{platform}.yaml
+        expected_input:
+          - CGameEventManager_vtable.{platform}.yaml
+        skip_if_exists:
+          - CGameEventManager_CreateEvent.{platform}.yaml
+        prerequisite:
+          - find-CGameEventManager_CreateEvent-noinline
       - name: find-CGameEventManager_LoadEventsFromFileInternal
         optional_output:
           - CGameEventManager_LoadEventsFromFileInternal.{platform}.yaml
@@ -12470,6 +12491,10 @@ modules:
         category: vtable
       - name: CGameEventManager_vtable
         category: vtable
+      - name: CGameEventManager_CreateEvent
+        category: vfunc
+        alias:
+          - CGameEventManager::CreateEvent
       - name: IGameEventManager2_RemoveListener
         category: vfunc
         alias:
