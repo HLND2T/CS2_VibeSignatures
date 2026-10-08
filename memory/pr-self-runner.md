@@ -37,7 +37,7 @@ trusted prospective-tree plan
 ## Dependencies
 - Base-owned planner/policy and exact base/head/merge/tree SHAs.
 - Same-repository payload for full validation; forks remain hosted-only and fail closed when analysis is required.
-- Binary-only `PERSISTED_WORKSPACE/bin/<GAMEVER>`, immutable warm IDB generation, IDA/LLM secrets scoped to the analysis worker.
+- Binary-only `.ci-cache/store/bin/<GAMEVER>`, immutable warm IDB generation, IDA/LLM secrets scoped to the analysis worker.
 ## Notes
 - `bin_artifacts` is expected Git truth; `bin/` and persisted workspaces must not supply YAML correctness input.
 - Checkout uses `persist-credentials: false`; the worker has no source-branch, BinSync, tag, or Release publication credential.

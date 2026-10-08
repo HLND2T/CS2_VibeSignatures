@@ -11,7 +11,7 @@ tags:
 # Release Staging
 
 ## Status
-Historical / superseded after the source-owned artifacts cutover. This note records the removed generated-output/release-staging design for archaeology and rollback only; do not use it as an operating procedure.
+Historical / superseded after the source-owned artifacts cutover. This note records the removed generated-output/release-staging design for archaeology and rollback only; do not use it as an operating procedure. The shared-directory cache mechanism described here (the `PERSISTED_WORKSPACE` secret, the `win64-cleanup` environment, and their staging trees) has since been retired in favor of the private-S3 cache transport.
 
 ## Overview
 Before the source-owned cutover, the release build staged analyzed private-bin state and waited for a generated-output PR merge before promotion. The active pipeline no longer creates this staging transaction, output branch, READY/PROMOTION markers, or accepted-bin YAML correctness source.

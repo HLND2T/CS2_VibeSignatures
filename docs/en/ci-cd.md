@@ -62,7 +62,7 @@ the attempt must include the producer. Remote leases are immutable transport cop
 
 CI no longer prunes shared directories and does not delete remote objects or configure bucket lifecycle rules. Local file
 locks are not distributed locks; existing GAMEVER warmup concurrency remains. Cold S3 caches provision and warm again;
-old `PERSISTED_WORKSPACE` data is neither imported nor deleted. Validate a cold run, a repeat hit, and recovery on a clean
+pre-S3 shared-directory cache data is neither imported nor deleted. Validate a cold run, a repeat hit, and recovery on a clean
 workspace, plus binary/IDA changes, corrupted caches, and S3 failures. GitHub artifacts still carry release candidates and
 logs; tracked `bin_artifacts` remain the symbol truth.
 

@@ -52,7 +52,7 @@ cache key、lease ID 和 lease SHA-256 精确恢复，不回退选择，也不�
 必须重跑包含 producer 的完整 workflow。远程 lease 是不可变传输副本，本地 release 不回写远程对象。
 
 CI 不再调用共享目录 prune，也不自动删除远程对象或配置 bucket 生命周期；本地文件锁不承担分布式锁职责。
-保留 GAMEVER warmup concurrency。首次 S3 未命中会重新置备、预热，旧 `PERSISTED_WORKSPACE` 不自动导入或删除。
+保留 GAMEVER warmup concurrency。首次 S3 未命中会重新置备、预热，S3 迁移前的共享目录缓存不自动导入或删除。
 上线验证应从空缓存运行两次，再清空本地 workspace 验证恢复，并检查 binary/IDA 变化、损坏缓存和 S3 失败场景。
 GitHub artifacts 继续传递发布候选包与日志；Git 跟踪的 `bin_artifacts` 仍是 symbol truth。
 

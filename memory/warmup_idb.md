@@ -7,7 +7,7 @@ permalink: cs2-vibesignatures/warmup-idb
 # Warmup IDB
 
 ## Overview
-`.github/workflows/warmup-idb.yml` is the reusable producer for neutral warm IDA databases. It prepares configured binaries, reuses or publishes one immutable verified generation under `PERSISTED_WORKSPACE/idb-cache-v2/<GAMEVER>`, and returns its exact identity to PR/Release consumers. It never carries source-owned YAML.
+`.github/workflows/warmup-idb.yml` is the reusable producer for neutral warm IDA databases. It prepares configured binaries, reuses or publishes one immutable verified generation under `.ci-cache/store/idb-cache-v2/<GAMEVER>`, and returns its exact identity to PR/Release consumers. It never carries source-owned YAML.
 ## Responsibilities
 - Resolve the canonical source-owned binary lock and IDA kernel/runtime for an exact GAMEVER/source.
 - Reuse a matching immutable generation or force a complete warmup on cache miss.
@@ -36,7 +36,7 @@ GAMEVER + configured binary hashes + IDA runtime
 Source-owned artifact content is deliberately absent from cache identity and payload; consumers load expected artifacts from Git separately. `prune_cache` takes the same lock and retains every generation with an active lease in addition to READY/latest-three/minimum-age retention.
 ## Dependencies
 - Protected self-hosted Windows runner with IDA/idalib and configured binaries/depot access.
-- `PERSISTED_WORKSPACE/idb-cache-v2/<GAMEVER>` and binary-only `PERSISTED_WORKSPACE/bin/<GAMEVER>`.
+- `.ci-cache/store/idb-cache-v2/<GAMEVER>` and binary-only `.ci-cache/store/bin/<GAMEVER>`.
 - `IDB_WARMUP_MAX_CONCURRENCY` and optional memory bound.
 ## Notes
 - Cache identity binds configured binary path/size/hash plus IDA runtime, not artifact bytes. The producer verifies those bytes

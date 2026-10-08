@@ -15,7 +15,7 @@ tags:
 Updated for the source-owned artifacts cutover. Historical release-staging/promote-bin conclusions are superseded; the retained decision is only that a binary-only accepted cache remains useful.
 
 ## Decision
-Keep `PERSISTED_WORKSPACE/bin/<GAMEVER>` as a disposable, exact configured-binary cache distinct from warm IDB generations. It may contain only configured binaries and explicitly allowlisted side files; per-symbol YAML, snapshots, gamedata, manifests, IDA databases, and BinSync working state are forbidden. The cache is never source or Release truth.
+Keep `.ci-cache/store/bin/<GAMEVER>` as a disposable, exact configured-binary cache distinct from warm IDB generations. It may contain only configured binaries and explicitly allowlisted side files; per-symbol YAML, snapshots, gamedata, manifests, IDA databases, and BinSync working state are forbidden. The cache is never source or Release truth.
 ## Context / trigger
 PR and Release workers need exact binaries while warm IDB generations remain prunable performance state. Source-owned per-symbol history now lives in Git under `bin_artifacts`, so accepted-bin no longer serves an oldgamever YAML baseline or promotion target.
 ## Analysis (useful conclusions)
