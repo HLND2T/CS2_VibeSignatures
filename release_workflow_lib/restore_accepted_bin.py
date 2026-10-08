@@ -84,7 +84,25 @@ def restore_accepted_bin(
                 "file_count": 0,
                 "binary_lock_sha256": binary_lock.sha256,
             }
-        validate_binary_cache_tree(source_root, allowed_paths, allow_excluded=False)
+        try:
+            validate_binary_cache_tree(source_root, allowed_paths, allow_excluded=False)
+        except ReleaseWorkflowError as exc:
+            if required:
+                raise
+            # A disposable cache whose file set no longer matches the configured
+            # allowlist -- a module was added or removed -- must not block the
+            # consumer. Only configured paths are copied, so nothing here can
+            # reach the workspace; the caller re-provisions from the depot and
+            # syncs the cache back afterwards.
+            return {
+                "restored": False,
+                "reason": "cache-invalid",
+                "detail": str(exc),
+                "gamever": gamever,
+                "hash": None,
+                "file_count": 0,
+                "binary_lock_sha256": binary_lock.sha256,
+            }
         try:
             verify_binary_root(binary_lock.document, source_root)
         except BinaryLockError as exc:

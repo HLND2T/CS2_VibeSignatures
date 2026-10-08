@@ -1,0 +1,488 @@
+func_name: CNetworkGameServerBase_SpawnGroupThink
+func_va: '0x1800a9190'
+disasm_code: |-
+  .text:00000001800A9190                 push    rbp
+  .text:00000001800A9192                 push    rsi
+  .text:00000001800A9193                 lea     rbp, [rsp-188h]
+  .text:00000001800A919B                 sub     rsp, 288h
+  .text:00000001800A91A2                 mov     rsi, rcx
+  .text:00000001800A91A5                 mov     rcx, cs:g_pResourceSystem
+  .text:00000001800A91AC                 mov     rax, [rcx]
+  .text:00000001800A91AF                 call    qword ptr [rax+158h]
+  .text:00000001800A91B5                 cmp     eax, [rsi+3DCh]
+  .text:00000001800A91BB                 jz      loc_1800A95E2
+  .text:00000001800A91C1                 mov     rcx, cs:g_pResourceSystem
+  .text:00000001800A91C8                 mov     [rsp+290h+arg_0], rbx
+  .text:00000001800A91D0                 mov     rax, [rcx]
+  .text:00000001800A91D3                 call    qword ptr [rax+158h]
+  .text:00000001800A91D9                 mov     [rsi+3DCh], eax
+  .text:00000001800A91DF                 test    eax, eax
+  .text:00000001800A91E1                 jle     loc_1800A95B6
+  .text:00000001800A91E7                 movaps  xmm1, cs:xmmword_180542100
+  .text:00000001800A91EE                 lea     rax, aJustintimeReso; "JustInTime Resource Spawn Group"
+  .text:00000001800A91F5                 xor     ebx, ebx
+  .text:00000001800A91F7                 mov     [rsp+290h+var_230], rax
+  .text:00000001800A91FC                 mov     rax, cs:g_pMemAlloc
+  .text:00000001800A9203                 xorps   xmm0, xmm0
+  .text:00000001800A9206                 movdqa  [rsp+290h+var_220], xmm0
+  .text:00000001800A920C                 mov     edx, 78h ; 'x'
+  .text:00000001800A9211                 movaps  xmm0, cs:xmmword_180542110
+  .text:00000001800A9218                 movaps  [rbp+190h+var_210], xmm1
+  .text:00000001800A921C                 mov     rcx, [rax]
+  .text:00000001800A921F                 movaps  xmm1, cs:xmmword_180542120
+  .text:00000001800A9226                 movaps  [rbp+190h+var_200], xmm0
+  .text:00000001800A922A                 xorps   xmm0, xmm0
+  .text:00000001800A922D                 mov     [rsp+290h+arg_8], rdi
+  .text:00000001800A9235                 mov     [rsp+290h+var_248], rbx
+  .text:00000001800A923A                 mov     [rsp+290h+var_228], rbx
+  .text:00000001800A923F                 movaps  [rbp+190h+var_1F0], xmm1
+  .text:00000001800A9243                 movdqa  [rbp+190h+var_1E0], xmm0
+  .text:00000001800A9248                 mov     [rbp+190h+var_1BD], 1
+  .text:00000001800A924F                 mov     [rbp+190h+var_1B9], 1
+  .text:00000001800A9256                 mov     [rsp+290h+var_250], rbx
+  .text:00000001800A925B                 movdqa  [rsp+290h+var_240], xmm0
+  .text:00000001800A9261                 mov     [rbp+190h+var_1C4], ebx
+  .text:00000001800A9264                 mov     [rbp+190h+var_1D0], ebx
+  .text:00000001800A9267                 mov     [rbp+190h+var_1CC], 0FFFFFFFEh
+  .text:00000001800A926E                 mov     [rbp+190h+var_1C0], 100h
+  .text:00000001800A9274                 mov     [rbp+190h+var_1BE], 1
+  .text:00000001800A9278                 mov     [rbp+190h+var_1C8], 2
+  .text:00000001800A927C                 mov     rax, [rcx]
+  .text:00000001800A927F                 mov     [rsp+290h+var_10], r13
+  .text:00000001800A9287                 mov     [rsp+290h+var_18], r14
+  .text:00000001800A928F                 mov     [rsp+290h+var_20], r15
+  .text:00000001800A9297                 call    qword ptr [rax+8]
+  .text:00000001800A929A                 test    rax, rax
+  .text:00000001800A929D                 jz      short loc_1800A92AC
+  .text:00000001800A929F                 mov     rcx, rax
+  .text:00000001800A92A2                 call    sub_1800B9750
+  .text:00000001800A92A7                 mov     r15, rax
+  .text:00000001800A92AA                 jmp     short loc_1800A92AF
+  .text:00000001800A92AC                 mov     r15, rbx
+  .text:00000001800A92AF                 lea     r8, [rsp+290h+var_250]
+  .text:00000001800A92B4                 mov     rdx, rsi
+  .text:00000001800A92B7                 mov     rcx, r15
+  .text:00000001800A92BA                 call    CNetworkServerSpawnGroupCreatePrerequisites_Init
+  .text:00000001800A92BF                 mov     rax, [r15+68h]
+  .text:00000001800A92C3                 test    rax, rax
+  .text:00000001800A92C6                 jz      short loc_1800A92CE
+  .text:00000001800A92C8                 mov     rdi, [rax+38h]
+  .text:00000001800A92CC                 jmp     short loc_1800A92D1
+  .text:00000001800A92CE                 mov     rdi, rbx
+  .text:00000001800A92D1                 mov     [rbp+190h+var_F8], bl
+  .text:00000001800A92D7                 mov     rcx, [r15+60h]
+  .text:00000001800A92DB                 mov     rax, [rcx]
+  .text:00000001800A92DE                 call    qword ptr [rax+18h]
+  .text:00000001800A92E1                 mov     r13d, eax
+  .text:00000001800A92E4                 cmp     [rbp+190h+var_F8], bl
+  .text:00000001800A92EA                 jz      short loc_1800A92F1
+  .text:00000001800A92EC                 mov     r14, rbx
+  .text:00000001800A92EF                 jmp     short loc_1800A933B
+  .text:00000001800A92F1                 movaps  xmm0, cs:xmmword_180542100
+  .text:00000001800A92F8                 lea     r8, [rbp+190h+var_1B0]
+  .text:00000001800A92FC                 mov     rcx, cs:g_pGameResourceServiceServer
+  .text:00000001800A9303                 mov     dl, 1
+  .text:00000001800A9305                 movaps  xmm1, cs:xmmword_180542110
+  .text:00000001800A930C                 movaps  [rbp+190h+var_190], xmm0
+  .text:00000001800A9310                 movaps  xmm0, cs:xmmword_180542120
+  .text:00000001800A9317                 movaps  [rbp+190h+var_170], xmm0
+  .text:00000001800A931B                 mov     [rbp+190h+var_1B0], rcx
+  .text:00000001800A931F                 mov     [rbp+190h+var_1A8], rdi
+  .text:00000001800A9323                 mov     [rbp+190h+var_1A0], r13d
+  .text:00000001800A9327                 movaps  [rbp+190h+var_180], xmm1
+  .text:00000001800A932B                 mov     [rbp+190h+var_160], rbx
+  .text:00000001800A932F                 mov     rax, [rcx]
+  .text:00000001800A9332                 call    qword ptr [rax+150h]
+  .text:00000001800A9338                 mov     r14, rax
+  .text:00000001800A933B                 test    r14, r14
+  .text:00000001800A933E                 jz      loc_1800A9477
+  .text:00000001800A9344                 mov     rcx, cs:g_pResourceSystem
+  .text:00000001800A934B                 lea     rdx, [rsp+290h+var_270]
+  .text:00000001800A9350                 mov     [rbp+190h+var_F0], ebx
+  .text:00000001800A9356                 mov     [rbp+190h+var_E8], rbx
+  .text:00000001800A935D                 mov     [rbp+190h+var_EC], 0C00000C8h
+  .text:00000001800A9367                 mov     [rsp+290h+var_268], rbx
+  .text:00000001800A936C                 mov     [rsp+290h+var_260], rbx
+  .text:00000001800A9371                 mov     [rsp+290h+var_270], ebx
+  .text:00000001800A9375                 mov     rax, [rcx]
+  .text:00000001800A9378                 mov     [rsp+290h+arg_10], r12
+  .text:00000001800A9380                 call    qword ptr [rax+160h]
+  .text:00000001800A9386                 mov     rdi, [rsp+290h+var_268]
+  .text:00000001800A938B                 movsxd  rax, [rsp+290h+var_270]
+  .text:00000001800A9390                 lea     r12, [rdi+rax*8]
+  .text:00000001800A9394                 cmp     rdi, r12
+  .text:00000001800A9397                 jz      short loc_1800A9401
+  .text:00000001800A9399                 nop     dword ptr [rax+00000000h]
+  .text:00000001800A93A0                 mov     rcx, cs:g_pResourceSystem
+  .text:00000001800A93A7                 lea     r8, [rbp+190h+var_F0]
+  .text:00000001800A93AE                 mov     rdx, [rdi]
+  .text:00000001800A93B1                 xor     r9d, r9d
+  .text:00000001800A93B4                 mov     rax, [rcx]
+  .text:00000001800A93B7                 call    qword ptr [rax+118h]
+  .text:00000001800A93BD                 mov     rax, [r14]
+  .text:00000001800A93C0                 mov     r8, [rax+10h]
+  .text:00000001800A93C4                 mov     eax, [rbp+190h+var_EC]
+  .text:00000001800A93CA                 bt      eax, 1Eh
+  .text:00000001800A93CE                 jnb     short loc_1800A93D9
+  .text:00000001800A93D0                 lea     rdx, [rbp+190h+var_E8]
+  .text:00000001800A93D7                 jmp     short loc_1800A93ED
+  .text:00000001800A93D9                 test    eax, 3FFFFFFFh
+  .text:00000001800A93DE                 lea     rdx, unk_180531D7F
+  .text:00000001800A93E5                 cmova   rdx, [rbp+190h+var_E8]
+  .text:00000001800A93ED                 mov     rcx, r14
+  .text:00000001800A93F0                 call    r8
+  .text:00000001800A93F3                 add     rdi, 8
+  .text:00000001800A93F7                 cmp     rdi, r12
+  .text:00000001800A93FA                 jnz     short loc_1800A93A0
+  .text:00000001800A93FC                 mov     rdi, [rsp+290h+var_268]
+  .text:00000001800A9401                 mov     eax, dword ptr [rsp+290h+var_260+4]
+  .text:00000001800A9405                 mov     r12, [rsp+290h+arg_10]
+  .text:00000001800A940D                 mov     [rsp+290h+var_270], ebx
+  .text:00000001800A9411                 test    eax, 0C0000000h
+  .text:00000001800A9416                 jnz     short loc_1800A9468
+  .text:00000001800A9418                 test    rdi, rdi
+  .text:00000001800A941B                 jz      short loc_1800A943C
+  .text:00000001800A941D                 mov     rax, cs:g_pMemAlloc
+  .text:00000001800A9424                 mov     rdx, rdi
+  .text:00000001800A9427                 mov     rcx, [rax]
+  .text:00000001800A942A                 mov     rax, [rcx]
+  .text:00000001800A942D                 call    qword ptr [rax+18h]
+  .text:00000001800A9430                 mov     eax, dword ptr [rsp+290h+var_260+4]
+  .text:00000001800A9434                 mov     rdi, rbx
+  .text:00000001800A9437                 mov     [rsp+290h+var_268], rbx
+  .text:00000001800A943C                 mov     dword ptr [rsp+290h+var_260], ebx
+  .text:00000001800A9440                 test    eax, 0C0000000h
+  .text:00000001800A9445                 jnz     short loc_1800A9468
+  .text:00000001800A9447                 test    rdi, rdi
+  .text:00000001800A944A                 jz      short loc_1800A9464
+  .text:00000001800A944C                 mov     rax, cs:g_pMemAlloc
+  .text:00000001800A9453                 mov     rdx, rdi
+  .text:00000001800A9456                 mov     rcx, [rax]
+  .text:00000001800A9459                 mov     rax, [rcx]
+  .text:00000001800A945C                 call    qword ptr [rax+18h]
+  .text:00000001800A945F                 mov     [rsp+290h+var_268], rbx
+  .text:00000001800A9464                 mov     dword ptr [rsp+290h+var_260], ebx
+  .text:00000001800A9468                 xor     edx, edx
+  .text:00000001800A946A                 lea     rcx, [rbp+190h+var_F0]
+  .text:00000001800A9471                 call    cs:?Purge@CBufferString@@QEAAXH@Z; CBufferString::Purge(int)
+  .text:00000001800A9477                 lea     rdi, [rsi+2F8h]
+  .text:00000001800A947E                 mov     rcx, rdi
+  .text:00000001800A9481                 call    sub_1800B8550
+  .text:00000001800A9486                 movzx   edx, ax
+  .text:00000001800A9489                 mov     r14d, 0FFFFh
+  .text:00000001800A948F                 cmp     dx, r14w
+  .text:00000001800A9493                 jz      short loc_1800A9504
+  .text:00000001800A9495                 mov     rcx, rdi
+  .text:00000001800A9498                 call    sub_1800553B0
+  .text:00000001800A949D                 mov     r10d, 7FFFh
+  .text:00000001800A94A3                 mov     rax, rbx
+  .text:00000001800A94A6                 test    [rdi+2], r10w
+  .text:00000001800A94AB                 jz      short loc_1800A94B1
+  .text:00000001800A94AD                 mov     rax, [rdi+8]
+  .text:00000001800A94B1                 mov     r8, rdx
+  .text:00000001800A94B4                 add     r8, r8
+  .text:00000001800A94B7                 mov     [rax+r8*8+0Ah], r14w
+  .text:00000001800A94BD                 movzx   r9d, word ptr [rdi+12h]
+  .text:00000001800A94C2                 mov     [rax+r8*8+8], r9w
+  .text:00000001800A94C8                 mov     [rdi+12h], dx
+  .text:00000001800A94CC                 cmp     r9w, r14w
+  .text:00000001800A94D0                 jnz     short loc_1800A94D8
+  .text:00000001800A94D2                 mov     [rdi+10h], dx
+  .text:00000001800A94D6                 jmp     short loc_1800A94F1
+  .text:00000001800A94D8                 mov     rcx, rbx
+  .text:00000001800A94DB                 test    [rdi+2], r10w
+  .text:00000001800A94E0                 jz      short loc_1800A94E6
+  .text:00000001800A94E2                 mov     rcx, [rdi+8]
+  .text:00000001800A94E6                 mov     rax, r9
+  .text:00000001800A94E9                 add     rax, rax
+  .text:00000001800A94EC                 mov     [rcx+rax*8+0Ah], dx
+  .text:00000001800A94F1                 inc     word ptr [rdi+16h]
+  .text:00000001800A94F5                 test    [rdi+2], r10w
+  .text:00000001800A94FA                 jz      short loc_1800A9500
+  .text:00000001800A94FC                 mov     rbx, [rdi+8]
+  .text:00000001800A9500                 mov     [rbx+r8*8], r15
+  .text:00000001800A9504                 mov     edx, r13d
+  .text:00000001800A9507                 mov     rcx, rsi
+  .text:00000001800A950A                 call    sub_1800A9600
+  .text:00000001800A950F                 mov     edx, [rsi+34Ch]
+  .text:00000001800A9515                 mov     r15, [rsp+290h+var_20]
+  .text:00000001800A951D                 mov     r14, [rsp+290h+var_18]
+  .text:00000001800A9525                 mov     rdi, [rsp+290h+arg_8]
+  .text:00000001800A952D                 test    edx, edx
+  .text:00000001800A952F                 jz      short loc_1800A9543
+  .text:00000001800A9531                 mov     rax, [rsi]
+  .text:00000001800A9534                 mov     r8d, 1
+  .text:00000001800A953A                 mov     rcx, rsi
+  .text:00000001800A953D                 call    qword ptr [rax+0A0h]
+  .text:00000001800A9543                 movzx   eax, [rbp+190h+var_F8]
+  .text:00000001800A954A                 mov     [rsi+34Ch], r13d
+  .text:00000001800A9551                 mov     r13, [rsp+290h+var_10]
+  .text:00000001800A9559                 test    al, al
+  .text:00000001800A955B                 jz      short loc_1800A9592
+  .text:00000001800A955D                 mov     rcx, [rbp+190h+var_1B0]
+  .text:00000001800A9561                 lea     r8, [rbp+190h+var_1B0]
+  .text:00000001800A9565                 xor     edx, edx
+  .text:00000001800A9567                 mov     rax, [rcx]
+  .text:00000001800A956A                 call    qword ptr [rax+150h]
+  .text:00000001800A9570                 movzx   eax, [rbp+190h+var_F8]
+  .text:00000001800A9577                 test    al, al
+  .text:00000001800A9579                 jz      short loc_1800A9592
+  .text:00000001800A957B                 mov     rcx, [rbp+190h+var_150]
+  .text:00000001800A957F                 lea     r8, [rbp+190h+var_150]
+  .text:00000001800A9583                 xor     edx, edx
+  .text:00000001800A9585                 mov     rax, [rcx]
+  .text:00000001800A9588                 call    qword ptr [rax+48h]
+  .text:00000001800A958B                 mov     [rbp+190h+var_F8], 0
+  .text:00000001800A9592                 cmp     qword ptr [rbp+190h+var_1E0+8], 0
+  .text:00000001800A9597                 jz      short loc_1800A95A3
+  .text:00000001800A9599                 lea     rcx, [rbp+190h+var_1E0+8]
+  .text:00000001800A959D                 call    cs:?FreeMemoryBlock@CUtlString@@AEAAXXZ; CUtlString::FreeMemoryBlock(void)
+  .text:00000001800A95A3                 cmp     qword ptr [rbp+190h+var_1E0], 0
+  .text:00000001800A95A8                 jz      short loc_1800A95DA
+  .text:00000001800A95AA                 lea     rcx, [rbp+190h+var_1E0]
+  .text:00000001800A95AE                 call    cs:?FreeMemoryBlock@CUtlString@@AEAAXXZ; CUtlString::FreeMemoryBlock(void)
+  .text:00000001800A95B4                 jmp     short loc_1800A95DA
+  .text:00000001800A95B6                 mov     edx, [rsi+34Ch]
+  .text:00000001800A95BC                 test    edx, edx
+  .text:00000001800A95BE                 jz      short loc_1800A95DA
+  .text:00000001800A95C0                 mov     rax, [rsi]
+  .text:00000001800A95C3                 mov     r8d, 1
+  .text:00000001800A95C9                 mov     rcx, rsi
+  .text:00000001800A95CC                 call    qword ptr [rax+0A0h]
+  .text:00000001800A95D2                 xor     ebx, ebx
+  .text:00000001800A95D4                 mov     [rsi+34Ch], ebx
+  .text:00000001800A95DA                 mov     rbx, [rsp+290h+arg_0]
+  .text:00000001800A95E2                 lea     rdx, [rsi+2F8h]
+  .text:00000001800A95E9                 mov     rcx, rsi
+  .text:00000001800A95EC                 add     rsp, 288h
+  .text:00000001800A95F3                 pop     rsi
+  .text:00000001800A95F4                 pop     rbp
+  .text:00000001800A95F5                 jmp     sub_1800B7990
+procedure: |-
+  __int64 __fastcall CNetworkGameServerBase_SpawnGroupThink(__int64 a1)
+  {
+    int v2; // eax
+    __int64 v3; // rbx
+    __int64 v4; // rax
+    __int64 v5; // r15
+    __int64 v6; // rax
+    __int64 v7; // rdi
+    unsigned int v8; // eax
+    __int64 v9; // rdx
+    unsigned int v10; // r13d
+    __int64 v11; // r14
+    _QWORD *v12; // rdi
+    _QWORD *v13; // r12
+    _QWORD *v14; // rdx
+    int v15; // eax
+    unsigned __int16 v16; // ax
+    __int64 v17; // rdx
+    __int64 v18; // rax
+    __int64 v19; // r8
+    __int64 v20; // r9
+    __int64 v21; // rcx
+    __int64 v22; // rdx
+    char v23; // al
+    __int64 v24; // rdx
+    int v26; // [rsp+20h] [rbp-E0h] BYREF
+    _QWORD *v27; // [rsp+28h] [rbp-D8h]
+    __int64 v28; // [rsp+30h] [rbp-D0h]
+    _QWORD v29[2]; // [rsp+40h] [rbp-C0h] BYREF
+    __int128 v30; // [rsp+50h] [rbp-B0h]
+    const char *v31; // [rsp+60h] [rbp-A0h]
+    __int64 v32; // [rsp+68h] [rbp-98h]
+    __int128 v33; // [rsp+70h] [rbp-90h]
+    __int128 v34; // [rsp+80h] [rbp-80h]
+    __int128 v35; // [rsp+90h] [rbp-70h]
+    __int128 v36; // [rsp+A0h] [rbp-60h]
+    __int128 v37; // [rsp+B0h] [rbp-50h] BYREF
+    int v38; // [rsp+C0h] [rbp-40h]
+    int v39; // [rsp+C4h] [rbp-3Ch]
+    char v40; // [rsp+C8h] [rbp-38h]
+    int v41; // [rsp+CCh] [rbp-34h]
+    __int16 v42; // [rsp+D0h] [rbp-30h]
+    char v43; // [rsp+D2h] [rbp-2Eh]
+    int v44; // [rsp+D3h] [rbp-2Dh]
+    int v45; // [rsp+D7h] [rbp-29h]
+    _QWORD v46[2]; // [rsp+E0h] [rbp-20h] BYREF
+    unsigned int v47; // [rsp+F0h] [rbp-10h]
+    __int128 v48; // [rsp+100h] [rbp+0h]
+    __int128 v49; // [rsp+110h] [rbp+10h]
+    __int128 v50; // [rsp+120h] [rbp+20h]
+    __int64 v51; // [rsp+130h] [rbp+30h]
+    _QWORD v52[11]; // [rsp+140h] [rbp+40h] BYREF
+    char v53; // [rsp+198h] [rbp+98h]
+    int v54; // [rsp+1A0h] [rbp+A0h] BYREF
+    int v55; // [rsp+1A4h] [rbp+A4h]
+    _QWORD *v56; // [rsp+1A8h] [rbp+A8h] BYREF
+
+    if ( (*(unsigned int (__fastcall **)(__int64))(*(_QWORD *)g_pResourceSystem + 344LL))(g_pResourceSystem) != *(_DWORD *)(a1 + 988) )
+    {
+      v2 = (*(__int64 (**)(void))(*(_QWORD *)g_pResourceSystem + 344LL))();
+      *(_DWORD *)(a1 + 988) = v2;
+      if ( v2 <= 0 )
+      {
+        v24 = *(unsigned int *)(a1 + 844);
+        if ( (_DWORD)v24 )
+        {
+          (*(void (__fastcall **)(__int64, __int64, __int64))(*(_QWORD *)a1 + 160LL))(a1, v24, 1);
+          *(_DWORD *)(a1 + 844) = 0;
+        }
+      }
+      else
+      {
+        v3 = 0;
+        v31 = "JustInTime Resource Spawn Group";
+        v33 = 0;
+        v34 = xmmword_180542100;
+        v35 = xmmword_180542110;
+        v29[1] = 0;
+        v32 = 0;
+        v36 = xmmword_180542120;
+        v37 = 0;
+        v44 = 1;
+        v45 = 1;
+        v29[0] = 0;
+        v30 = 0;
+        v41 = 0;
+        v38 = 0;
+        v39 = -2;
+        v42 = 256;
+        v43 = 1;
+        v40 = 2;
+        v4 = (*(__int64 (__fastcall **)(_QWORD, __int64))(*g_pMemAlloc + 8LL))(g_pMemAlloc, 120);
+        if ( v4 )
+          v5 = sub_1800B9750(v4);
+        else
+          v5 = 0;
+        CNetworkServerSpawnGroupCreatePrerequisites_Init(v5, a1, (__int64)v29);
+        v6 = *(_QWORD *)(v5 + 104);
+        if ( v6 )
+          v7 = *(_QWORD *)(v6 + 56);
+        else
+          v7 = 0;
+        v53 = 0;
+        v8 = (*(__int64 (__fastcall **)(_QWORD))(**(_QWORD **)(v5 + 96) + 24LL))(*(_QWORD *)(v5 + 96));
+        v10 = v8;
+        if ( v53 )
+        {
+          v11 = 0;
+        }
+        else
+        {
+          LOBYTE(v9) = 1;
+          v48 = xmmword_180542100;
+          v50 = xmmword_180542120;
+          v46[0] = g_pGameResourceServiceServer;
+          v46[1] = v7;
+          v47 = v8;
+          v49 = xmmword_180542110;
+          v51 = 0;
+          v11 = (*(__int64 (__fastcall **)(__int64, __int64, _QWORD *))(*(_QWORD *)g_pGameResourceServiceServer + 336LL))(
+                  g_pGameResourceServiceServer,
+                  v9,
+                  v46);
+        }
+        if ( v11 )
+        {
+          v54 = 0;
+          v56 = nullptr;
+          v55 = -1073741624;
+          v27 = nullptr;
+          v28 = 0;
+          v26 = 0;
+          (*(void (__fastcall **)(__int64, int *))(*(_QWORD *)g_pResourceSystem + 352LL))(g_pResourceSystem, &v26);
+          v12 = v27;
+          v13 = &v27[v26];
+          if ( v27 != v13 )
+          {
+            do
+            {
+              (*(void (__fastcall **)(__int64, _QWORD, int *, _QWORD))(*(_QWORD *)g_pResourceSystem + 280LL))(
+                g_pResourceSystem,
+                *v12,
+                &v54,
+                0);
+              if ( (v55 & 0x40000000) != 0 )
+              {
+                v14 = &v56;
+              }
+              else
+              {
+                v14 = &unk_180531D7F;
+                if ( (v55 & 0x3FFFFFFF) != 0 )
+                  v14 = v56;
+              }
+              (*(void (__fastcall **)(__int64, _QWORD *))(*(_QWORD *)v11 + 16LL))(v11, v14);
+              ++v12;
+            }
+            while ( v12 != v13 );
+            v12 = v27;
+          }
+          v15 = HIDWORD(v28);
+          v26 = 0;
+          if ( (v28 & 0xC000000000000000uLL) == 0 )
+          {
+            if ( v12 )
+            {
+              (*(void (__fastcall **)(_QWORD, _QWORD *))(*g_pMemAlloc + 24LL))(g_pMemAlloc, v12);
+              v15 = HIDWORD(v28);
+              v27 = nullptr;
+            }
+            LODWORD(v28) = 0;
+            if ( (v15 & 0xC0000000) == 0 )
+              LODWORD(v28) = 0;
+          }
+          CBufferString::Purge((CBufferString *)&v54, 0);
+        }
+        v16 = sub_1800B8550(a1 + 760);
+        if ( v16 != 0xFFFF )
+        {
+          sub_1800553B0(a1 + 760, v16);
+          v18 = 0;
+          if ( (*(_WORD *)(a1 + 762) & 0x7FFF) != 0 )
+            v18 = *(_QWORD *)(a1 + 768);
+          v19 = 2 * v17;
+          *(_WORD *)(v18 + 8 * v19 + 10) = -1;
+          v20 = *(unsigned __int16 *)(a1 + 778);
+          *(_WORD *)(v18 + 8 * v19 + 8) = v20;
+          *(_WORD *)(a1 + 778) = v17;
+          if ( (_WORD)v20 == 0xFFFF )
+          {
+            *(_WORD *)(a1 + 776) = v17;
+          }
+          else
+          {
+            v21 = 0;
+            if ( (*(_WORD *)(a1 + 762) & 0x7FFF) != 0 )
+              v21 = *(_QWORD *)(a1 + 768);
+            *(_WORD *)(v21 + 16 * v20 + 10) = v17;
+          }
+          ++*(_WORD *)(a1 + 782);
+          if ( (*(_WORD *)(a1 + 762) & 0x7FFF) != 0 )
+            v3 = *(_QWORD *)(a1 + 768);
+          *(_QWORD *)(v3 + 16 * v17) = v5;
+        }
+        sub_1800A9600(a1, v10);
+        v22 = *(unsigned int *)(a1 + 844);
+        if ( (_DWORD)v22 )
+          (*(void (__fastcall **)(__int64, __int64, __int64))(*(_QWORD *)a1 + 160LL))(a1, v22, 1);
+        v23 = v53;
+        *(_DWORD *)(a1 + 844) = v10;
+        if ( v23 )
+        {
+          (*(void (__fastcall **)(_QWORD, _QWORD, _QWORD *))(*(_QWORD *)v46[0] + 336LL))(v46[0], 0, v46);
+          if ( v53 )
+          {
+            (*(void (__fastcall **)(_QWORD, _QWORD, _QWORD *))(*(_QWORD *)v52[0] + 72LL))(v52[0], 0, v52);
+            v53 = 0;
+          }
+        }
+        if ( *((_QWORD *)&v37 + 1) )
+          CUtlString::FreeMemoryBlock((CUtlString *)((char *)&v37 + 8));
+        if ( (_QWORD)v37 )
+          CUtlString::FreeMemoryBlock((CUtlString *)&v37);
+      }
+    }
+    return sub_1800B7990(a1, a1 + 760);
+  }

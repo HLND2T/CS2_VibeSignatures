@@ -31,7 +31,7 @@ Where:
 ## Prerequisites
 
 - Global variable address. `qword_XXXXXX` for example.
-- IDA Pro MCP connection
+- IDA Pro MCP session, resolved per [mcp-ida-session.md](../generate-signature-for-function/references/mcp-ida-session.md): `idb_list` → `idb_open` (script fallback only if the endpoint is unreachable). Honor its IDB save discipline — an idle-TTL self-exit does not save.
 
 ## Method
 

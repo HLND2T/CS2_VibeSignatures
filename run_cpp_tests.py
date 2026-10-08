@@ -226,7 +226,12 @@ def probe_target_support(clang: str, target: str, cpp_std: str) -> Dict[str, Any
         temp_dir_path = Path(temp_dir)
         source_file = temp_dir_path / "probe.cpp"
         object_file = temp_dir_path / "probe.o"
-        source_file.write_text("int main() { return 0; }\n", encoding="utf-8")
+        # Include standard headers so "supported" reflects whether the target's C++ standard
+        # library is actually available, not merely that clang can parse an empty translation unit.
+        source_file.write_text(
+            "#include <cstdint>\n#include <type_traits>\nint main() { return 0; }\n",
+            encoding="utf-8",
+        )
 
         command = [
             clang,

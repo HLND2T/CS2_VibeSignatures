@@ -119,6 +119,30 @@ class TestCopyDepotBin(unittest.TestCase):
             with patch("copy_depot_bin.parse_args", return_value=args):
                 self.assertEqual(2, copy_depot_bin.main())
 
+    def test_main_copy_mode_reads_from_gamever_subdirectory(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            config_path = self._write_config(temp_dir)
+            bindir = os.path.join(temp_dir, "bin")
+            depot_root = os.path.join(temp_dir, "cs2_depot")
+            source = os.path.join(depot_root, "14141", "game", "bin", "win64", "server.dll")
+            os.makedirs(os.path.dirname(source), exist_ok=True)
+            with open(source, "wb") as handle:
+                handle.write(b"ok")
+
+            args = self._make_args(
+                bindir=bindir,
+                gamever="14141",
+                platform="all-platform",
+                depotdir=depot_root,
+                config=config_path,
+                checkonly=False,
+            )
+
+            with patch("copy_depot_bin.parse_args", return_value=args):
+                self.assertEqual(0, copy_depot_bin.main())
+
+            self.assertTrue(os.path.isfile(os.path.join(bindir, "14141", "server", "server.dll")))
+
     def test_main_copy_mode_still_requires_existing_depot_directory(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             config_path = self._write_config(temp_dir)
