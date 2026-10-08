@@ -31,7 +31,7 @@ searching in IDA; its addresses are reference-build values and must be verified 
 final `jmp sub_XXXX` in the function body:
 
 ```
-.text:000000000050CD71    jmp sub_50C800   ; CNetworkGameServerBase_ServiceQueue
+.text:000000000051AA71    jmp sub_51A500   ; CNetworkGameServerBase_ServiceQueue
 ```
 
 `ServiceQueue` is the routine that actually services the spawn-group queue: it loops with a ~5 ms time step
@@ -43,8 +43,8 @@ The reference artifacts are only orientation values (verify every field against 
 
 | Platform | Reference `func_va` | Reference `func_rva` | Reference size |
 |---|---:|---:|---:|
-| Windows | `0x1800b6d60` | `0xb6d60` | `0x1fe` |
-| Linux | `0x50c800` | `0x50c800` | `0x3d8` |
+| Windows | `0x1800b7990` | `0xb7990` | `0x1fe` |
+| Linux | `0x51a500` | `0x51a500` | `0x3d8` |
 
 ## Step 0. Skip an existing output
 
