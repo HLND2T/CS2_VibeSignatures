@@ -239,7 +239,16 @@ jobs:
       - name: Set up uv
         # pyproject.toml pins required-version; this installs that exact version
         # instead of trusting the uv preinstalled on the self-hosted runner.
-        uses: astral-sh/setup-uv@v9.0.0
+        uses: hzqst/setup-uv@ed37cb7af6cd89cb8e2ea2f20674ba1d05dc7b35 # S3 cache backend
+        with:
+          # enable-cache: auto resolves to false on self-hosted runners, so the uv
+          # cache is shared through the existing repository S3 bucket instead.
+          enable-cache: true
+          cache-s3-bucket: actions-cache-cs2-vibesignatures
+        env:
+          S3_ENDPOINT_URL: ${{ secrets.S3_ENDPOINT_URL }}
+          S3_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY_ID }}
+          S3_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
       - name: Sync and update submodules via runner Git cache proxy
         id: sync-submodules
         working-directory: ${{ github.workspace }}
