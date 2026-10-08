@@ -14,6 +14,7 @@ Find a function's position (offset and index) within a vtable by iterating throu
 - Function address (from decompilation or xrefs)
 - ClassName (to get vtable via `get-vtable-address` skill)
 - platform (either `windows` or `linux`, depending on the binary we are analyzing)
+- An IDA Pro MCP session, resolved per [mcp-ida-session.md](../generate-signature-for-function/references/mcp-ida-session.md): `idb_list` → `idb_open` (script fallback only if the endpoint is unreachable). Honor its IDB save discipline — an idle-TTL self-exit does not save.
 
 ## Method
 

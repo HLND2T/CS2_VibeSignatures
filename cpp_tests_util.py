@@ -12,7 +12,7 @@ from gamesymbol_store import SymbolStore
 
 VFTABLE_HEADER_RE = re.compile(r"^\s*(?:VFTable|VTable) indices for '([^']+)' \((\d+) (?:entry|entries)\)\.\s*$")
 VFTABLE_LAYOUT_HEADER_RE = re.compile(
-    r"^\s*(?:VFTable|VTable) for '([^']+)'((?: in '[^']+')*) "
+    r"^\s*(?:VFTable|VTable|Vtable) for '([^']+)'((?: in '[^']+')*) "
     r"\((\d+) (?:entry|entries)\)\.\s*$"
 )
 VFTABLE_LAYOUT_IN_CLASS_RE = re.compile(r" in '([^']+)'")
@@ -53,170 +53,148 @@ def pointer_size_from_target_triple(target_triple: str) -> int:
     return 8
 
 
+def _parse_vftable_section(section: Dict[str, Any]) -> Dict[str, Any]:
+    """Normalize one dump section without merging distinct subobject tables."""
+    entries = section["entries"]
+    raw_count = section["raw_declared_entries"]
+    complete = section["source_kind"] == "complete"
+    issues = []
+    if len(entries) != raw_count:
+        issues.append(f"Dump declares {raw_count} entries but contains {len(entries)}.")
+    if complete and [index for index, _, _ in entries] != list(range(raw_count)):
+        issues.append("Complete layout raw indices are not contiguous from zero.")
+
+    start = 0
+    end = raw_count
+    if complete:
+        # RTTI immediately precedes the address point, even when virtual-base
+        # offsets precede offset_to_top. Namespaced RTTI names are metadata too.
+        rtti = next((index for index, signature, _ in entries if signature.endswith(" RTTI")), None)
+        if rtti is not None:
+            start = rtti + 1
+        elif section["itanium"]:
+            issues.append("Itanium layout has no primary RTTI/address point.")
+        if section["itanium"]:
+            offsets = [
+                signature for index, signature, _ in entries if index < start and signature.startswith("offset_to_top")
+            ]
+            if offsets != ["offset_to_top (0)"]:
+                issues.append("Itanium layout has no unambiguous complete-object primary table.")
+        # A secondary table can start with vcall/vbase offsets, before its
+        # offset_to_top. Stop at the first metadata entry after the address point.
+        end = next(
+            (index for index, signature, _ in entries if index >= start and _is_vftable_metadata_entry(signature)),
+            raw_count,
+        )
+
+    methods = {
+        index - start: {"signature": signature, "member_name": _extract_member_name(signature, section["class_name"])}
+        for index, signature, primary in entries
+        if primary and (not complete or start <= index < end)
+    }
+    return {
+        "source_kind": section["source_kind"],
+        "declared_entries": end - start if complete else raw_count,
+        "entry_count": len(methods),
+        "methods_by_index": methods,
+        "layout_complete": complete and not issues,
+        "parse_issues": issues,
+    }
+
+
+def _select_primary_vftable(layouts: List[Dict[str, Any]], indices: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    """Use vfptr-zero method locations to disambiguate MSVC subobject tables."""
+    if len(layouts) == 1:
+        return layouts[0]
+    primary_methods = indices["methods_by_index"] if indices else {}
+
+    def signature_key(entry: Dict[str, str]) -> str:
+        return entry["signature"].removesuffix(" [pure]")
+
+    matches = [
+        layout
+        for layout in layouts
+        if primary_methods
+        and all(
+            index in layout["methods_by_index"]
+            and signature_key(method) == signature_key(layout["methods_by_index"][index])
+            for index, method in primary_methods.items()
+        )
+    ]
+    if len(matches) == 1:
+        return matches[0]
+    # Never guess from table size or emission order (virtual bases can precede
+    # the primary base). Retain only known vfptr-zero methods for diagnostics.
+    result = dict(indices or layouts[0])
+    result["layout_complete"] = False
+    result["methods_by_index"] = primary_methods
+    result["entry_count"] = len(primary_methods)
+    result["parse_issues"] = ["Cannot uniquely identify the primary VFTable from vfptr-zero method locations."]
+    return result
+
+
 def parse_vftable_layouts(compiler_output: str) -> Dict[str, Dict[str, Any]]:
-    """
-    Parse clang `-fdump-vtable-layouts` output.
+    """Parse complete primary tables, retaining indices-only dumps as partial evidence.
 
-    Returns:
-        {
-          "<ClassName>": {
-            "declared_entries": int,
-            "methods_by_index": {
-              <idx>: {
-                "signature": "<full signature line>",
-                "member_name": "<member token if parsed>"
-              }
-            },
-            "entry_count": int
-          },
-          ...
-        }
+    Itanium dumps contain a whole table group; MSVC emits separate subobject
+    tables. Neither secondary tables nor indices sections extend a primary table.
+    Raw section counts are validated before removing ABI metadata.
     """
-    parsed: Dict[str, Dict[str, Any]] = {}
-    current_class: Optional[str] = None
-    current_declared_entries = 0
-    current_raw_declared_entries = 0
-    current_raw_entries = 0
-    current_metadata_entries = 0
-    current_section_kind = ""
-
+    sections: Dict[str, List[Dict[str, Any]]] = {}
+    current: Optional[Dict[str, Any]] = None
+    primary = True
     for raw_line in compiler_output.splitlines():
-        header = VFTABLE_HEADER_RE.match(raw_line)
-        if header:
-            class_name = header.group(1)
-            declared_entries = int(header.group(2))
-            if parsed.get(class_name, {}).get("source_kind") == "complete":
-                current_class = None
-                current_declared_entries = 0
-                current_raw_declared_entries = 0
-                current_raw_entries = 0
-                current_metadata_entries = 0
-                current_section_kind = ""
-                continue
-
-            current_class = class_name
-            current_declared_entries = declared_entries
-            current_raw_declared_entries = declared_entries
-            current_raw_entries = 0
-            current_metadata_entries = 0
-            current_section_kind = "indices"
-            parsed[current_class] = {
-                "declared_entries": declared_entries,
-                "methods_by_index": {},
-                "entry_count": 0,
-                "source_kind": "indices",
-            }
-            continue
-
+        indices_header = VFTABLE_HEADER_RE.match(raw_line)
         layout_header = VFTABLE_LAYOUT_HEADER_RE.match(raw_line)
-        if layout_header:
-            in_classes = VFTABLE_LAYOUT_IN_CLASS_RE.findall(layout_header.group(2) or "")
-            current_class = in_classes[-1] if in_classes else layout_header.group(1)
-            raw_declared_entries = int(layout_header.group(3))
-            existing = parsed.get(current_class)
-            if existing and existing.get("source_kind") == "complete":
-                existing_count = max(
-                    int(existing.get("declared_entries") or 0),
-                    len(existing.get("methods_by_index", {})),
-                )
-                # Clang emits secondary vfptr tables as `... in 'Derived'` too.
-                # Keep the largest complete table for the owning class; smaller
-                # secondary tables are not the primary vtable compare target.
-                if existing_count >= max(raw_declared_entries - 1, 0):
-                    current_class = None
-                    current_declared_entries = 0
-                    current_raw_declared_entries = 0
-                    current_raw_entries = 0
-                    current_metadata_entries = 0
-                    current_section_kind = ""
-                    continue
-            current_declared_entries = 0
-            current_raw_declared_entries = raw_declared_entries
-            current_raw_entries = 0
-            current_metadata_entries = 0
-            current_section_kind = "complete"
-            parsed[current_class] = {
-                "declared_entries": 0,
-                "methods_by_index": {},
-                "entry_count": 0,
-                "source_kind": "complete",
+        if indices_header or layout_header:
+            if layout_header:
+                in_classes = VFTABLE_LAYOUT_IN_CLASS_RE.findall(layout_header.group(2) or "")
+                class_name = in_classes[-1] if in_classes else layout_header.group(1)
+                count = int(layout_header.group(3))
+            else:
+                class_name = indices_header.group(1)
+                count = int(indices_header.group(2))
+            current = {
+                "class_name": class_name,
+                "source_kind": "complete" if layout_header else "indices",
+                "itanium": not raw_line.lstrip().startswith("VFTable"),
+                "raw_declared_entries": count,
+                "entries": [],
             }
+            sections.setdefault(class_name, []).append(current)
+            if count == 0:
+                current = None
+            primary = True
             continue
-
-        if current_class is None:
+        if current is None:
             continue
-
+        # MSVC indices can restart at zero for another vfptr or virtual base.
+        if "-- accessible via " in raw_line:
+            primary = raw_line.strip() == "-- accessible via vfptr at offset 0 --"
+            continue
         entry = VFTABLE_ENTRY_RE.match(raw_line)
-        if not entry:
-            if current_class is not None and current_raw_entries and not raw_line.strip():
-                current_class = None
-                current_declared_entries = 0
-                current_raw_declared_entries = 0
-                current_raw_entries = 0
-                current_metadata_entries = 0
-                current_section_kind = ""
-            continue
+        if entry:
+            current["entries"].append((int(entry.group(1)), entry.group(2).strip(), primary))
+            if len(current["entries"]) >= current["raw_declared_entries"]:
+                current = None
+        elif not raw_line.strip():
+            current = None
 
-        index = int(entry.group(1))
-        current_raw_entries += 1
-        # Sections are already bounded by the next ``VFTable …`` header, a blank
-        # line, or by reaching the declared entry count post-insertion (below).
-        # Don't reject indices that exceed ``declared``: clang reports the count
-        # of NEW virtuals a class introduces but emits absolute slot numbers in
-        # the merged vtable, so a class that inherits from a 10-vfunc primary
-        # base lists its own 14 entries at indices 10..23 — well past 14.
-
-        signature = entry.group(2).strip()
-        if current_section_kind == "complete" and _is_vftable_metadata_entry(signature):
-            if not parsed[current_class]["methods_by_index"]:
-                current_metadata_entries += 1
-            if current_raw_entries >= current_raw_declared_entries:
-                current_class = None
-                current_declared_entries = 0
-                current_raw_declared_entries = 0
-                current_raw_entries = 0
-                current_metadata_entries = 0
-                current_section_kind = ""
-            continue
-
-        if current_section_kind == "complete":
-            index -= current_metadata_entries
-            if index < 0:
-                continue
-
-        member_name = _extract_member_name(signature, current_class)
-        parsed[current_class]["methods_by_index"][index] = {
-            "signature": signature,
-            "member_name": member_name,
-        }
-
-        if current_section_kind == "complete":
-            section_done = current_raw_entries >= current_raw_declared_entries
-        else:
-            section_done = len(parsed[current_class]["methods_by_index"]) >= current_declared_entries
-        if section_done:
-            current_class = None
-            current_declared_entries = 0
-            current_raw_declared_entries = 0
-            current_raw_entries = 0
-            current_metadata_entries = 0
-            current_section_kind = ""
-
-    for class_name, section in parsed.items():
-        section["entry_count"] = len(section["methods_by_index"])
-        if section.get("source_kind") == "complete":
-            section["declared_entries"] = section["entry_count"]
-
+    parsed = {}
+    for class_name, class_sections in sections.items():
+        layouts = [
+            _parse_vftable_section(section) for section in class_sections if section["source_kind"] == "complete"
+        ]
+        indices = next(
+            (_parse_vftable_section(section) for section in class_sections if section["source_kind"] == "indices"), None
+        )
+        parsed[class_name] = _select_primary_vftable(layouts, indices) if layouts else indices
     return parsed
 
 
 def _is_vftable_metadata_entry(signature: str) -> bool:
     text = signature.strip()
-    if not text:
-        return True
-    if "::" not in text and text.endswith(" RTTI"):
-        return True
-    return text.startswith("offset_to_top")
+    return text.endswith(" RTTI") or text.startswith(("offset_to_top", "vcall_offset", "vbase_offset"))
 
 
 def _extract_member_name(signature: str, class_name: str) -> str:
@@ -653,6 +631,8 @@ def audit_reference_vfunc_ownership(
 
             compiled = methods_by_index.get(parsed_index)
             if compiled is None:
+                if not compiler_section.get("layout_complete", False):
+                    continue
                 differences.append(
                     {
                         "type": "reference_vfunc_index_missing",
@@ -1266,8 +1246,20 @@ def compare_compiler_vtable_with_yaml(
         report["compiler_entry_count"] = compiler_entry_count
         report["compiler_declared_entries"] = declared_entries
         report["compiler_methods_by_index"] = methods_by_index
+        report["compiler_layout_complete"] = compiler_section["layout_complete"]
 
-        if declared_entries != compiler_entry_count:
+        if not compiler_section["layout_complete"]:
+            details = compiler_section["parse_issues"] or [
+                "Only method indices are available; inherited slots may be omitted."
+            ]
+            report["differences"].append(
+                {
+                    "type": "compiler_layout_incomplete",
+                    "message": "Cannot validate complete primary vtable: " + " ".join(details),
+                }
+            )
+
+        if compiler_section["layout_complete"] and declared_entries != compiler_entry_count:
             report["differences"].append(
                 {
                     "type": "compiler_declared_count_mismatch",
@@ -1293,10 +1285,15 @@ def compare_compiler_vtable_with_yaml(
     if compiler_missing:
         return report
 
-    actual_size = compiler_entry_count * pointer_size
+    actual_size = compiler_entry_count * pointer_size if compiler_section["layout_complete"] else None
     report["compiler_vtable_size"] = actual_size
 
-    if expected_size is not None and expected_size != actual_size and not allow_vtable_size_mismatch:
+    if (
+        actual_size is not None
+        and expected_size is not None
+        and expected_size != actual_size
+        and not allow_vtable_size_mismatch
+    ):
         report["differences"].append(
             {
                 "type": "vtable_size_mismatch",
@@ -1308,7 +1305,12 @@ def compare_compiler_vtable_with_yaml(
             }
         )
 
-    if expected_numvfunc is not None and expected_numvfunc != compiler_entry_count and not allow_vtable_size_mismatch:
+    if (
+        compiler_section["layout_complete"]
+        and expected_numvfunc is not None
+        and expected_numvfunc != compiler_entry_count
+        and not allow_vtable_size_mismatch
+    ):
         report["differences"].append(
             {
                 "type": "vtable_numvfunc_mismatch",
@@ -1320,6 +1322,8 @@ def compare_compiler_vtable_with_yaml(
         ref_item = reference_functions[index]
         compiled = methods_by_index.get(index)
         if compiled is None:
+            if not compiler_section["layout_complete"]:
+                continue
             report["differences"].append(
                 {
                     "type": "vfunc_index_missing",

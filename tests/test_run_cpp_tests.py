@@ -1,5 +1,6 @@
 import argparse
 import shutil
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -23,6 +24,48 @@ class TestParseArgsLegacyFixHeader(unittest.TestCase):
 
 
 class TestParseVftableLayouts(unittest.TestCase):
+    def test_linux_primary_table_includes_inherited_slots_only(self) -> None:
+        output = (
+            "Vtable for 'D' (9 entries).\n"
+            " 0 | offset_to_top (0)\n 1 | D RTTI\n"
+            "     -- (D, 0) vtable address --\n"
+            " 2 | void A::a()\n 3 | void D::d()\n"
+            " 4 | offset_to_top (-8)\n 5 | D RTTI\n"
+            "     -- (B, 8) vtable address --\n"
+            " 6 | void B::b()\n 7 | void B::b2()\n 8 | void B::b3()\n\n"
+            "VTable indices for 'D' (1 entries).\n 1 | void D::d()\n"
+        )
+        parsed = cpp_tests_util.parse_vftable_layouts(output)["D"]
+        self.assertEqual("complete", parsed["source_kind"])
+        self.assertEqual([0, 1], list(parsed["methods_by_index"]))
+        self.assertEqual(["a", "d"], [entry["member_name"] for entry in parsed["methods_by_index"].values()])
+        self.assertEqual(2, parsed["entry_count"])
+
+    def test_linux_virtual_base_metadata_does_not_become_function_slots(self) -> None:
+        output = (
+            "Vtable for 'ns::D' (12 entries).\n"
+            " 0 | vbase_offset (8)\n 1 | offset_to_top (0)\n 2 | ns::D RTTI\n"
+            "     -- (ns::D, 0) vtable address --\n"
+            " 3 | ns::D::~D() [complete]\n 4 | ns::D::~D() [deleting]\n"
+            " 5 | void ns::D::d()\n"
+            " 6 | vcall_offset (-8)\n 7 | offset_to_top (-8)\n 8 | ns::D RTTI\n"
+            " 9 | ns::D::~D() [complete]\n 10 | ns::D::~D() [deleting]\n 11 | void B::b()\n"
+        )
+        parsed = cpp_tests_util.parse_vftable_layouts(output)["ns::D"]
+        self.assertEqual([0, 1, 2], list(parsed["methods_by_index"]))
+        self.assertEqual(["~D", "~D", "d"], [entry["member_name"] for entry in parsed["methods_by_index"].values()])
+
+    def test_msvc_larger_secondary_table_does_not_replace_primary(self) -> None:
+        output = (
+            "VFTable for 'A' in 'D' (3 entries).\n"
+            " 0 | D RTTI\n 1 | void A::a()\n 2 | void D::d()\n\n"
+            "VFTable for 'B' in 'D' (4 entries).\n"
+            " 0 | D RTTI\n 1 | void B::b()\n 2 | void B::b2()\n 3 | void B::b3()\n\n"
+            "VFTable indices for 'D' (1 entry).\n 1 | void D::d()\n"
+        )
+        parsed = cpp_tests_util.parse_vftable_layouts(output)["D"]
+        self.assertEqual(["a", "d"], [entry["member_name"] for entry in parsed["methods_by_index"].values()])
+
     def test_parses_single_entry_vftable_indices_header(self) -> None:
         compiler_output = (
             "VFTable indices for 'ILoopType' (1 entry).\n   0 | void ILoopType::AddEngineService(const char *) [pure]\n"
@@ -37,6 +80,53 @@ class TestParseVftableLayouts(unittest.TestCase):
             "AddEngineService",
             parsed["ILoopType"]["methods_by_index"][0]["member_name"],
         )
+
+    def test_msvc_secondary_vfptr_indices_cannot_overwrite_primary_slots(self) -> None:
+        output = (
+            "VFTable for 'B' in 'D' (2 entries).\n 0 | D RTTI\n 1 | void D::b()\n\n"
+            "VFTable for 'A' in 'D' (2 entries).\n 0 | D RTTI\n 1 | void D::a()\n\n"
+            "VFTable indices for 'D' (2 entries).\n"
+            " -- accessible via vfptr at offset 0 --\n 0 | void D::a()\n"
+            " -- accessible via vfptr at offset 8 --\n 0 | void D::b()\n"
+        )
+        parsed = cpp_tests_util.parse_vftable_layouts(output)["D"]
+        self.assertTrue(parsed["layout_complete"])
+        self.assertEqual("a", parsed["methods_by_index"][0]["member_name"])
+
+    def test_msvc_ambiguous_tables_are_not_guessed_from_size(self) -> None:
+        output = (
+            "VFTable for 'A' in 'D' (2 entries).\n 0 | D RTTI\n 1 | void A::a()\n\n"
+            "VFTable for 'B' in 'D' (3 entries).\n 0 | D RTTI\n 1 | void B::b()\n 2 | void B::b2()\n"
+        )
+        parsed = cpp_tests_util.parse_vftable_layouts(output)["D"]
+        self.assertFalse(parsed["layout_complete"])
+        self.assertEqual({}, parsed["methods_by_index"])
+
+    def test_indices_before_complete_layout_and_no_new_methods(self) -> None:
+        output = (
+            "VTable indices for 'D' (1 entries).\n 0 | void D::a()\n\n"
+            "Vtable for 'D' (4 entries).\n 0 | offset_to_top (0)\n 1 | D RTTI\n"
+            " 2 | void D::a()\n 3 | void A::tail()\n\n"
+            "Vtable for 'E' (4 entries).\n 0 | offset_to_top (0)\n 1 | E RTTI\n"
+            " 2 | void A::a()\n 3 | void A::tail()\n"
+        )
+        parsed = cpp_tests_util.parse_vftable_layouts(output)
+        for name in ("D", "E"):
+            self.assertTrue(parsed[name]["layout_complete"])
+            self.assertEqual(
+                ["a", "tail"], [entry["member_name"] for entry in parsed[name]["methods_by_index"].values()]
+            )
+
+    def test_empty_table_and_unrelated_numbered_blocks_do_not_add_slots(self) -> None:
+        output = (
+            "Vtable for 'D' (2 entries).\n 0 | offset_to_top (0)\n 1 | D RTTI\n\n"
+            "VTable indices for 'E' (0 entries).\n"
+            " 0 | unrelated dump content\n"
+        )
+        parsed = cpp_tests_util.parse_vftable_layouts(output)
+        self.assertTrue(parsed["D"]["layout_complete"])
+        self.assertEqual(0, parsed["D"]["entry_count"])
+        self.assertEqual({}, parsed["E"]["methods_by_index"])
 
     def test_prefers_complete_vftable_for_derived_class(self) -> None:
         compiler_output = (
@@ -111,7 +201,110 @@ class TestParseVftableLayouts(unittest.TestCase):
         )
 
 
+@unittest.skipUnless(shutil.which("clang++"), "clang++ is required for real ABI dump regression tests")
+class TestClangPrimaryVtable(unittest.TestCase):
+    def test_actual_linux_and_msvc_dumps(self) -> None:
+        source = """
+            struct A { virtual void a() {} virtual void tail() {} };
+            struct B { virtual void b() {} virtual void b2() {} virtual void b3() {} virtual void b4() {} };
+            struct D : A, B { virtual void d() {} void b() override {} }; D d;
+            struct E : A {}; E e;
+            struct R : A { void a() override {} }; R r;
+            struct V : virtual B, A { virtual void v() {} }; V v;
+            namespace ns { struct X { virtual ~X() {} virtual void x() {} }; X x; }
+        """
+        for target, destructor_slots in (("x86_64-pc-linux-gnu", 2), ("x86_64-pc-windows-msvc", 1)):
+            with self.subTest(target=target), tempfile.TemporaryDirectory() as temp_dir:
+                result = subprocess.run(
+                    [
+                        "clang++",
+                        f"--target={target}",
+                        "-std=c++20",
+                        "-Xclang",
+                        "-fdump-vtable-layouts",
+                        "-x",
+                        "c++",
+                        "-c",
+                        "-",
+                        "-o",
+                        str(Path(temp_dir) / "sample.o"),
+                    ],
+                    input=source,
+                    text=True,
+                    capture_output=True,
+                    timeout=30,
+                )
+                self.assertEqual(0, result.returncode, result.stderr)
+                parsed = cpp_tests_util.parse_vftable_layouts(result.stdout + result.stderr)
+                expected = {
+                    "D": ["a", "tail", "d", "b"] if destructor_slots == 2 else ["a", "tail", "d"],
+                    "E": ["a", "tail"],
+                    "R": ["a", "tail"],
+                    "V": ["a", "tail", "v"],
+                    "ns::X": ["~X"] * destructor_slots + ["x"],
+                }
+                for name, methods in expected.items():
+                    with self.subTest(name=name):
+                        self.assertTrue(parsed[name]["layout_complete"], parsed[name])
+                        self.assertEqual(list(range(len(methods))), list(parsed[name]["methods_by_index"]))
+                        self.assertEqual(
+                            methods, [item["member_name"] for item in parsed[name]["methods_by_index"].values()]
+                        )
+
+
 class TestCompareVtableWithYaml(unittest.TestCase):
+    def _compare_linux_derived(self, output: str, *, expected_member: str = "a") -> dict:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            module_dir = Path(temp_dir) / "14184" / "engine"
+            module_dir.mkdir(parents=True)
+            (module_dir / "D_vtable.linux.yaml").write_text(
+                "vtable_class: D\nvtable_size: '0x10'\nvtable_numvfunc: 2\n", encoding="utf-8"
+            )
+            (module_dir / "D_a.linux.yaml").write_text(
+                f"func_name: D_{expected_member}\nvtable_name: D\nvfunc_index: 0\n", encoding="utf-8"
+            )
+            return cpp_tests_util.compare_compiler_vtable_with_yaml(
+                class_name="D",
+                compiler_output=output,
+                symbol_store=DirectorySymbolStore(temp_dir, "14184"),
+                platform="linux",
+                reference_modules=["engine"],
+                pointer_size=8,
+            )
+
+    def test_linux_inherited_slot_matches_and_real_mismatch_remains_visible(self) -> None:
+        output = (
+            "Vtable for 'D' (4 entries).\n 0 | offset_to_top (0)\n 1 | D RTTI\n"
+            " 2 | void A::a()\n 3 | void D::d()\n\n"
+            "VTable indices for 'D' (1 entries).\n 1 | void D::d()\n"
+        )
+        self.assertEqual([], self._compare_linux_derived(output)["differences"])
+        report = self._compare_linux_derived(output, expected_member="wrong")
+        self.assertIn("vfunc_name_mismatch", [item["type"] for item in report["differences"]])
+
+    def test_indices_only_do_not_claim_missing_inherited_slots_or_complete_size(self) -> None:
+        for index in (0, 1):
+            with self.subTest(index=index):
+                output = f"VTable indices for 'D' (1 entries).\n {index} | void D::d()\n"
+                report = self._compare_linux_derived(output)
+                types = [item["type"] for item in report["differences"]]
+                self.assertIn("compiler_layout_incomplete", types)
+                self.assertNotIn("vtable_size_mismatch", types)
+                self.assertNotIn("vtable_numvfunc_mismatch", types)
+                self.assertNotIn("vfunc_index_missing", types)
+                self.assertNotIn("reference_vfunc_index_missing", types)
+
+    def test_truncated_or_noncontiguous_complete_layout_cannot_pass(self) -> None:
+        for entries in (
+            " 2 | void A::a()\n",
+            " 2 | void A::a()\n 4 | void D::d()\n",
+            " 2 | void A::a()\n 2 | void D::d()\n",
+        ):
+            with self.subTest(entries=entries):
+                output = "Vtable for 'D' (4 entries).\n 0 | offset_to_top (0)\n 1 | D RTTI\n" + entries
+                report = self._compare_linux_derived(output)
+                self.assertIn("compiler_layout_incomplete", [item["type"] for item in report["differences"]])
+
     def test_complete_derived_vftable_matches_inherited_overload_reference(self) -> None:
         compiler_output = (
             "VFTable for 'IParent' in 'CDerived' (4 entries).\n"
@@ -148,7 +341,7 @@ class TestCompareVtableWithYaml(unittest.TestCase):
         self.assertEqual([], report["differences"])
 
     def test_snapshot_compare_is_independent_from_directory_yaml(self) -> None:
-        compiler_output = "VFTable indices for 'ITest' (1 entry).\n   0 | void ITest::First() [pure]\n"
+        compiler_output = "VFTable for 'ITest' (2 entries).\n   0 | ITest RTTI\n   1 | void ITest::First() [pure]\n"
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             config = root / "config.yaml"
@@ -193,7 +386,7 @@ class TestCompareVtableWithYaml(unittest.TestCase):
         self.assertEqual([], report["differences"])
 
     def test_audits_vfunc_references_from_unconfigured_snapshot_modules(self) -> None:
-        compiler_output = "VFTable indices for 'ITest' (1 entry).\n   0 | void ITest::First() [pure]\n"
+        compiler_output = "VFTable for 'ITest' (2 entries).\n   0 | ITest RTTI\n   1 | void ITest::First() [pure]\n"
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             config = root / "config.yaml"
@@ -251,7 +444,7 @@ class TestCompareVtableWithYaml(unittest.TestCase):
         )
 
     def test_reports_reference_vtable_owner_mismatch(self) -> None:
-        compiler_output = "VFTable indices for 'ITest' (1 entry).\n   0 | void ITest::First() [pure]\n"
+        compiler_output = "VFTable for 'ITest' (2 entries).\n   0 | ITest RTTI\n   1 | void ITest::First() [pure]\n"
         with tempfile.TemporaryDirectory() as temp_dir:
             module_dir = Path(temp_dir) / "14167" / "server"
             module_dir.mkdir(parents=True)
@@ -275,7 +468,7 @@ class TestCompareVtableWithYaml(unittest.TestCase):
         )
 
     def test_reports_filename_and_func_name_owner_mismatch(self) -> None:
-        compiler_output = "VFTable indices for 'ITest' (1 entry).\n   0 | void ITest::First() [pure]\n"
+        compiler_output = "VFTable for 'ITest' (2 entries).\n   0 | ITest RTTI\n   1 | void ITest::First() [pure]\n"
         with tempfile.TemporaryDirectory() as temp_dir:
             module_dir = Path(temp_dir) / "14167" / "server"
             module_dir.mkdir(parents=True)
@@ -299,7 +492,7 @@ class TestCompareVtableWithYaml(unittest.TestCase):
         )
 
     def test_accepts_explicit_reference_vtable_owner(self) -> None:
-        compiler_output = "VFTable indices for 'ITest' (1 entry).\n   0 | void ITest::First() [pure]\n"
+        compiler_output = "VFTable for 'ITest' (2 entries).\n   0 | ITest RTTI\n   1 | void ITest::First() [pure]\n"
         with tempfile.TemporaryDirectory() as temp_dir:
             module_dir = Path(temp_dir) / "14167" / "server"
             module_dir.mkdir(parents=True)
@@ -321,7 +514,7 @@ class TestCompareVtableWithYaml(unittest.TestCase):
         self.assertEqual([], report["differences"])
 
     def test_excludes_configured_reference_vtable_from_merge_and_ownership_audit(self) -> None:
-        compiler_output = "VFTable indices for 'ITest' (1 entry).\n   0 | void ITest::First() [pure]\n"
+        compiler_output = "VFTable for 'ITest' (2 entries).\n   0 | ITest RTTI\n   1 | void ITest::First() [pure]\n"
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir) / "14167"
             engine_dir = root / "engine"
