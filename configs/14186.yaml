@@ -6922,6 +6922,25 @@ modules:
       - name: find-CGameEventManager_vtable
         expected_output:
           - CGameEventManager_vtable.{platform}.yaml
+      - name: find-CCSPlayerController_SchemaClassManipulator
+        expected_output:
+          - CCSPlayerController_SchemaClassManipulator.{platform}.yaml
+      - name: find-CCSPlayerController_dtor
+        expected_output:
+          - CCSPlayerController_dtor.{platform}.yaml
+        expected_input:
+          - CCSPlayerController_SchemaClassManipulator.{platform}.yaml
+      - name: find-IGameEventManager2_RemoveListener
+        expected_output:
+          - IGameEventManager2_RemoveListener.{platform}.yaml
+        expected_input:
+          - CCSPlayerController_dtor.{platform}.yaml
+      - name: find-CGameEventManager_RemoveListener
+        expected_output:
+          - CGameEventManager_RemoveListener.{platform}.yaml
+        expected_input:
+          - CGameEventManager_vtable.{platform}.yaml
+          - IGameEventManager2_RemoveListener.{platform}.yaml
       - name: find-CChicken_vtable
         expected_output:
           - CChicken_vtable.{platform}.yaml
@@ -10643,6 +10662,14 @@ modules:
         category: vfunc
         alias:
           - CCSPlayerController::InitialSpawn
+      - name: CCSPlayerController_SchemaClassManipulator
+        category: func
+        alias:
+          - CCSPlayerController::SchemaClassManipulator
+      - name: CCSPlayerController_dtor
+        category: func
+        alias:
+          - CCSPlayerController::~CCSPlayerController
       - name: CBasePlayerPawn_vtable
         category: vtable
       - name: CBasePlayerPawn_PrePhysicsSimulate
@@ -12298,6 +12325,14 @@ modules:
         category: vtable
       - name: CGameEventManager_vtable
         category: vtable
+      - name: IGameEventManager2_RemoveListener
+        category: vfunc
+        alias:
+          - IGameEventManager2::RemoveListener
+      - name: CGameEventManager_RemoveListener
+        category: vfunc
+        alias:
+          - CGameEventManager::RemoveListener
       - name: CChicken_vtable
         category: vtable
       - name: CChicken_Event_Killed
