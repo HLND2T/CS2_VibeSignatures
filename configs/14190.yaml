@@ -7063,6 +7063,13 @@ modules:
           - CGameEventManager_LoadEventsFromFile.{platform}.yaml
         prerequisite:
           - find-CGameEventManager_LoadEventsFromFile-noinline
+      - name: find-CGameEventManager_AddListener
+        expected_output:
+          - CGameEventManager_AddListener.{platform}.yaml
+        expected_input:
+          - CGameEventManager_vtable.{platform}.yaml
+        skip_if_exists:
+          - CGameEventManager_AddListener.{platform}.yaml
       - name: find-CCSPlayerController_SchemaClassManipulator
         expected_output:
           - CCSPlayerController_SchemaClassManipulator.{platform}.yaml
@@ -11566,6 +11573,10 @@ modules:
         category: vfunc
         alias:
           - CGameEventManager::LoadEventsFromFile
+      - name: CGameEventManager_AddListener
+        category: vfunc
+        alias:
+          - CGameEventManager::AddListener
       - name: gameeventmanager
         category: gv
       - name: s_GameEventManager
