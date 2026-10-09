@@ -193,6 +193,12 @@ def _build_context_document(repo, *, event_kind: str, base_sha: str, head_sha: s
 
 
 def build_trusted_pr_context(*, repo_root: str | Path, base_ref: str, head_ref: str, merge_ref: str) -> dict:
+    """Bind exact merge parents; callers must resolve base_ref from the platform merge.
+
+    The event's base SHA may predate that merge's first parent. Resolve the actual
+    base before checking out the trusted planner so code, policy and downstream
+    consumers all use the same immutable base. Keep head_ref bound to the event.
+    """
     repo = GitRepository(repo_root)
     base_sha = repo.resolve_commit(base_ref)
     head_sha = repo.resolve_commit(head_ref)
