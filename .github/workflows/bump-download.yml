@@ -13,9 +13,6 @@ concurrency:
   group: bump-download-${{ github.repository }}
   cancel-in-progress: false
 
-env:
-  # Keep in sync with [tool.uv] required-version in pyproject.toml.
-  UV_VERSION: "0.12.15"
 jobs:
   bump:
     if: github.repository == 'HLND2T/CS2_VibeSignatures'
@@ -43,8 +40,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up uv
-        # pyproject.toml pins required-version; this installs that exact version
-        # instead of trusting the uv preinstalled on the self-hosted runner.
+        # Install uv instead of trusting the uv preinstalled on the self-hosted runner.
         uses: hzqst/setup-uv@ed37cb7af6cd89cb8e2ea2f20674ba1d05dc7b35 # S3 cache backend
         with:
           # enable-cache: auto resolves to false on self-hosted runners, so the uv
@@ -275,12 +271,7 @@ jobs:
           persist-credentials: false
           path: publication
       - name: Set up trusted publisher environment
-        # The publication checkout is rooted at ./publication, so the workspace has
-        # no pyproject.toml for the action to read; pin the version explicitly
-        # instead of resolving it from config files.
         uses: astral-sh/setup-uv@v9.0.0
-        with:
-          version: ${{ env.UV_VERSION }}
       - name: Sync trusted publisher dependencies
         run: uv sync --project publication --locked
       - name: Download exact credential-free bump candidate

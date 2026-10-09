@@ -58,8 +58,6 @@ concurrency:
   cancel-in-progress: false
 env:
   CS2VIBE_STRING_MIN_LENGTH: '4'
-  # Keep in sync with [tool.uv] required-version in pyproject.toml.
-  UV_VERSION: "0.12.15"
 jobs:
   preflight:
     if: github.repository == 'HLND2T/CS2_VibeSignatures'
@@ -79,10 +77,6 @@ jobs:
           fetch-depth: 0
       - uses: astral-sh/setup-uv@v9.0.0
         id: setup-uv
-        # pyproject.toml pins required-version; install that exact version
-        # instead of relying on the version-file lookup.
-        with:
-          version: ${{ env.UV_VERSION }}
       - name: Resolve and validate dispatch contract
         id: resolve
         shell: pwsh
@@ -179,8 +173,6 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
       - uses: astral-sh/setup-uv@v9.0.0
-        with:
-          version: ${{ env.UV_VERSION }}
       - name: Create and initialize missing BinSync remotes
         shell: pwsh
         env:
@@ -245,8 +237,7 @@ jobs:
           submodules: false
           persist-credentials: false
       - name: Set up uv
-        # pyproject.toml pins required-version; this installs that exact version
-        # instead of trusting the uv preinstalled on the self-hosted runner.
+        # Install uv instead of trusting the uv preinstalled on the self-hosted runner.
         uses: hzqst/setup-uv@ed37cb7af6cd89cb8e2ea2f20674ba1d05dc7b35 # S3 cache backend
         with:
           # enable-cache: auto resolves to false on self-hosted runners, so the uv
@@ -780,8 +771,6 @@ jobs:
           ref: ${{ needs.preflight.outputs.source_sha }}
           persist-credentials: false
       - uses: astral-sh/setup-uv@v9.0.0
-        with:
-          version: ${{ env.UV_VERSION }}
       - name: Check Release target before publishing BinSync
         env:
           GH_TOKEN: ${{ github.token }}
