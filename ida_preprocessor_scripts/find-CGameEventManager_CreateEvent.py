@@ -1,16 +1,9 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CGameEventManager_CreateEvent-noinline skill.
+"""Preprocess script for find-CGameEventManager_CreateEvent skill.
 
 Resolves ``CGameEventManager_CreateEvent`` (a vfunc of ``CGameEventManager_vtable``)
-as the caller of the standalone ``CGameEventManager_CreateEventInternal`` helper.  This
-path only applies when the helper is NOT inlined into the vfunc (the de-inlined case,
-where ``CGameEventManager_CreateEvent`` merely calls the outlined error-reporting helper
-that owns the ``"CreateEvent: event '%s' not registered.\\n"`` string).  When it is
-inlined the helper YAML resolves to the vfunc's own address and the ``func_xrefs``
-vtable-self fallback re-selects it; either way the ``CGameEventManager`` relation
-collapses the caller set to the single vtable member.  Its output is optional, so when
-the caller cannot be resolved (e.g. the helper YAML is absent) the
-``find-CGameEventManager_CreateEvent-inlined`` fallback runs instead.
+directly from the ``"CreateEvent: event '%s' not registered.\\n"`` debug string reference.
+Skipped whenever ``CGameEventManager_CreateEvent.{platform}.yaml`` already exists.
 """
 
 from ida_analyze_util import preprocess_common_skill
@@ -22,12 +15,12 @@ TARGET_FUNCTION_NAMES = [
 FUNC_XREFS = [
     {
         "func_name": "CGameEventManager_CreateEvent",
-        "xref_strings": [],
+        "xref_strings": [
+            "FULLMATCH:CreateEvent: event '%s' not registered.\n",
+        ],
         "xref_gvs": [],
         "xref_signatures": [],
-        "xref_funcs": [
-            "CGameEventManager_CreateEventInternal",
-        ],
+        "xref_funcs": [],
         "exclude_funcs": [],
         "exclude_strings": [],
         "exclude_gvs": [],
