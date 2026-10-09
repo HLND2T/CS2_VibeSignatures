@@ -1,30 +1,20 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CGameEventManager_AddListenerInternal skill.
+"""Preprocess script for find-CGameEventManager_AddListener skill.
 
-Resolves the standalone ``CGameEventManager_AddListenerInternal`` helper from the
-``"CGameEventManager::AddListener: event '%s' unknown."`` debug string it owns.
-
-This is the first link of the inline/noinline fallback chain.  On builds where the
-single-listener add path is de-inlined out of the ``CGameEventManager_AddListener``
-vfunc the string lives inside the standalone helper body, so this skill resolves it
-directly.  On builds where the helper is inlined into the vfunc the string lives inside
-that vfunc instead, so this skill resolves to the vfunc's own address; that is harmless
-because the helper symbol is deliberately NOT registered in the active version config and
-the YAML is used only as an intermediate for the
-``find-CGameEventManager_AddListener-noinline`` xref_funcs lookup (whose vtable-self
-fallback then re-selects the same vfunc).  The skill's output is optional and is skipped
+Resolves ``CGameEventManager_AddListener`` (a vfunc of ``CGameEventManager_vtable``) directly
+from the ``"CGameEventManager::AddListener: event '%s' unknown."`` string reference.  Skipped
 whenever ``CGameEventManager_AddListener.{platform}.yaml`` already exists.
 """
 
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = [
-    "CGameEventManager_AddListenerInternal",
+    "CGameEventManager_AddListener",
 ]
 
 FUNC_XREFS = [
     {
-        "func_name": "CGameEventManager_AddListenerInternal",
+        "func_name": "CGameEventManager_AddListener",
         "xref_strings": [
             "CGameEventManager::AddListener: event '%s' unknown.",
         ],
@@ -38,16 +28,24 @@ FUNC_XREFS = [
     },
 ]
 
+FUNC_VTABLE_RELATIONS = [
+    # (func_name, vtable_class)
+    ("CGameEventManager_AddListener", "CGameEventManager"),
+]
+
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
     (
-        "CGameEventManager_AddListenerInternal",
+        "CGameEventManager_AddListener",
         [
             "func_name",
-            "func_sig",
             "func_va",
             "func_rva",
             "func_size",
+            "func_sig",
+            "vtable_name",
+            "vfunc_offset",
+            "vfunc_index",
         ],
     ),
 ]
@@ -73,6 +71,7 @@ async def preprocess_skill(
         image_base=image_base,
         func_names=TARGET_FUNCTION_NAMES,
         func_xrefs=FUNC_XREFS,
+        func_vtable_relations=FUNC_VTABLE_RELATIONS,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
     )
