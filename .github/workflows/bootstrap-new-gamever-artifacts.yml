@@ -390,6 +390,9 @@ jobs:
         run: |
           $pull = gh api "repos/${{ github.repository }}/pulls/${{ inputs.pull_request_number }}" | ConvertFrom-Json
           if ($LASTEXITCODE -ne 0 -or $pull.state -ne "open") { throw "Bootstrap PR is no longer open." }
+          # PR metadata can retain an older base SHA; publication needs the live default-branch ref.
+          $baseSha = gh api "repos/${{ github.repository }}/git/ref/heads/${{ github.event.repository.default_branch }}" --jq '.object.sha'
+          if ($LASTEXITCODE -ne 0) { throw "Unable to resolve the current default-branch SHA." }
           $remoteHead = [string]$pull.head.sha
           $artifactDigest = $env:CANDIDATE_ARTIFACT_DIGEST.ToLowerInvariant()
           if ($artifactDigest -match '^[0-9a-f]{64}$') { $artifactDigest = "sha256:$artifactDigest" }
@@ -403,7 +406,7 @@ jobs:
             --repository "${{ github.repository }}" `
             --default-branch "${{ github.event.repository.default_branch }}" `
             --base-repository "$($pull.base.repo.full_name)" --base-ref "$($pull.base.ref)" `
-            --base-sha "$($pull.base.sha)" `
+            --base-sha "$baseSha" `
             --head-repository "$($pull.head.repo.full_name)" --head-ref "$($pull.head.ref)" `
             --head-sha "${{ inputs.head_sha }}" --current-remote-head "$remoteHead" `
             --pr-number "${{ inputs.pull_request_number }}" `
@@ -442,8 +445,11 @@ jobs:
           $pull = gh api "repos/${{ github.repository }}/pulls/${{ inputs.pull_request_number }}" | ConvertFrom-Json
           if ($LASTEXITCODE -ne 0 -or $pull.head.sha -ne "${{ inputs.head_sha }}" -or `
               $pull.base.repo.full_name -ne "${{ github.repository }}" -or `
-              $pull.base.ref -ne "${{ github.event.repository.default_branch }}" -or `
-              $pull.base.sha -ne "${{ inputs.base_sha }}") {
+              $pull.base.ref -ne "${{ github.event.repository.default_branch }}") {
+            throw "PR base or head drifted immediately before protected push."
+          }
+          $baseSha = gh api "repos/${{ github.repository }}/git/ref/heads/${{ github.event.repository.default_branch }}" --jq '.object.sha'
+          if ($LASTEXITCODE -ne 0 -or $baseSha -ne "${{ inputs.base_sha }}") {
             throw "PR base or head drifted immediately before protected push."
           }
           $askpass = Join-Path $env:RUNNER_TEMP "source-artifact-askpass.sh"

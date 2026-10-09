@@ -92,12 +92,28 @@ jobs:
             }
             $sameRepository = "true"
           } else {
-            $baseSha = $env:PR_BASE_SHA
             $headSha = $env:PR_HEAD_SHA
             $mergeSha = (git rev-parse HEAD).Trim().ToLowerInvariant()
+            if ($LASTEXITCODE -ne 0) { throw "Unable to resolve the prospective merge commit." }
             $contextKind = "pull_request"
             if ($env:PR_BASE_REPOSITORY -ne $env:REPOSITORY -or $env:PR_BASE_REF -ne $env:DEFAULT_BRANCH) {
               throw "Pull request base is not the repository default branch."
+            }
+            # The event base can lag behind the base used to regenerate refs/pull/<n>/merge.
+            # Bind every consumer, including the planner checkout, to this merge's actual base.
+            $parentLine = git show -s --format=%P $mergeSha
+            if ($LASTEXITCODE -ne 0) { throw "Unable to resolve prospective merge parents." }
+            $parents = @(([string]$parentLine).Trim().ToLowerInvariant() -split '\s+')
+            if ($parents.Count -ne 2 -or $parents[1] -ne $headSha) {
+              throw "Prospective merge must have exactly two parents and match the event PR head."
+            }
+            $baseSha = $parents[0]
+            if ($env:PR_BASE_SHA -notmatch '^[0-9a-f]{40}$' -or $baseSha -notmatch '^[0-9a-f]{40}$') {
+              throw "Invalid pull request base SHA."
+            }
+            git merge-base --is-ancestor $env:PR_BASE_SHA $baseSha
+            if ($LASTEXITCODE -ne 0) {
+              throw "Prospective merge base must descend from the event PR base."
             }
             $sameRepository = ($env:PR_HEAD_REPOSITORY -eq $env:REPOSITORY).ToString().ToLowerInvariant()
           }
