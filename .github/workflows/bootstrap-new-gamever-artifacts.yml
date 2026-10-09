@@ -32,8 +32,6 @@ concurrency:
   cancel-in-progress: false
 env:
   CS2VIBE_STRING_MIN_LENGTH: '4'
-  # Keep in sync with [tool.uv] required-version in pyproject.toml.
-  UV_VERSION: "0.12.15"
 jobs:
   warmup-idb:
     uses: ./.github/workflows/warmup-idb.yml
@@ -370,11 +368,7 @@ jobs:
           persist-credentials: false
           path: publication
       - name: Set up trusted publisher environment
-        # Every checkout in this job is path-scoped, so the workspace has no
-        # pyproject.toml for the action to read; pin the version explicitly.
         uses: astral-sh/setup-uv@v9.0.0
-        with:
-          version: ${{ env.UV_VERSION }}
       - name: Sync trusted publisher dependencies
         run: uv sync --project trusted-publisher --locked
       - name: Download bound plan and exact bootstrap candidate
