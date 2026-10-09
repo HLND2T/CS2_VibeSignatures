@@ -27,6 +27,7 @@ REPOSITORY_CONTRACT_MODULES = frozenset(
         "test_trusted_artifact_pr",
         "test_trusted_pr_context",
         "test_trigger_release_build",
+        "test_uv_version_pin",
     }
 )
 REPOSITORY_CONTRACT_PREFIXES = (
