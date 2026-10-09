@@ -40,8 +40,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up uv
-        # pyproject.toml pins required-version; this installs that exact version
-        # instead of trusting the uv preinstalled on the self-hosted runner.
+        # Install uv instead of trusting the uv preinstalled on the self-hosted runner.
         uses: hzqst/setup-uv@ed37cb7af6cd89cb8e2ea2f20674ba1d05dc7b35 # S3 cache backend
         with:
           # enable-cache: auto resolves to false on self-hosted runners, so the uv
