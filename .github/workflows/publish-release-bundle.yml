@@ -47,6 +47,9 @@ on:
 permissions:
   actions: read
   contents: write
+env:
+  # Keep in sync with [tool.uv] required-version in pyproject.toml.
+  UV_VERSION: "0.12.15"
 jobs:
   publish:
     environment: release
@@ -63,6 +66,8 @@ jobs:
           persist-credentials: false
           submodules: recursive
       - uses: astral-sh/setup-uv@v9.0.0
+        with:
+          version: ${{ env.UV_VERSION }}
       - name: Confirm immutable source remains reachable from the default branch
         shell: pwsh
         run: |

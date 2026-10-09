@@ -9,6 +9,9 @@ permissions:
   actions: read
   contents: read
   pull-requests: read
+env:
+  # Keep in sync with [tool.uv] required-version in pyproject.toml.
+  UV_VERSION: "0.12.15"
 jobs:
   bind-source-artifact-plan:
     if: github.repository == 'HLND2T/CS2_VibeSignatures'
@@ -131,6 +134,8 @@ jobs:
       - name: Set up uv for trusted planning
         if: steps.bridge.outputs.available == 'true'
         uses: astral-sh/setup-uv@v9.0.0
+        with:
+          version: ${{ env.UV_VERSION }}
       - name: Sync trusted planner environment
         if: steps.bridge.outputs.available == 'true'
         shell: pwsh
@@ -230,6 +235,8 @@ jobs:
           submodules: recursive
           persist-credentials: false
       - uses: astral-sh/setup-uv@v9.0.0
+        with:
+          version: ${{ env.UV_VERSION }}
       - name: Check formatting and run repository tests
         shell: bash
         run: |

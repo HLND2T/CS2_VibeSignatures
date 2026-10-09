@@ -22,6 +22,8 @@ permissions:
   contents: read
 env:
   CS2VIBE_STRING_MIN_LENGTH: '4'
+  # Keep in sync with [tool.uv] required-version in pyproject.toml.
+  UV_VERSION: "0.12.15"
 jobs:
   warmup-idb:
     uses: ./.github/workflows/source-artifact-warmup-bridge.yml
@@ -301,6 +303,8 @@ jobs:
           submodules: false
           persist-credentials: false
       - uses: astral-sh/setup-uv@v9.0.0
+        with:
+          version: ${{ env.UV_VERSION }}
       - name: Checkout trusted base verification tools
         uses: actions/checkout@v5
         with:
