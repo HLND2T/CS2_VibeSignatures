@@ -7063,27 +7063,6 @@ modules:
           - CGameEventManager_LoadEventsFromFile.{platform}.yaml
         prerequisite:
           - find-CGameEventManager_LoadEventsFromFile-noinline
-      - name: find-CGameEventManager_SerializeEventInternal
-        optional_output:
-          - CGameEventManager_SerializeEventInternal.{platform}.yaml
-        skip_if_exists:
-          - CGameEventManager_SerializeEvent.{platform}.yaml
-      - name: find-CGameEventManager_SerializeEvent-noinline
-        optional_output:
-          - CGameEventManager_SerializeEvent.{platform}.yaml
-        expected_input:
-          - CGameEventManager_vtable.{platform}.yaml
-        prerequisite:
-          - find-CGameEventManager_SerializeEventInternal
-      - name: find-CGameEventManager_SerializeEvent-inlined
-        expected_output:
-          - CGameEventManager_SerializeEvent.{platform}.yaml
-        expected_input:
-          - CGameEventManager_vtable.{platform}.yaml
-        skip_if_exists:
-          - CGameEventManager_SerializeEvent.{platform}.yaml
-        prerequisite:
-          - find-CGameEventManager_SerializeEvent-noinline
       - name: find-CCSPlayerController_SchemaClassManipulator
         expected_output:
           - CCSPlayerController_SchemaClassManipulator.{platform}.yaml
@@ -12499,10 +12478,6 @@ modules:
         category: vfunc
         alias:
           - CGameEventManager::RemoveListener
-      - name: CGameEventManager_SerializeEvent
-        category: vfunc
-        alias:
-          - CGameEventManager::SerializeEvent
       - name: CChicken_vtable
         category: vtable
       - name: CChicken_Event_Killed
