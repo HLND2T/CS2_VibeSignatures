@@ -846,6 +846,11 @@ modules:
       - name: find-CGameResourceService_vtable
         expected_output:
           - CGameResourceService_vtable.{platform}.yaml
+      - name: find-CGameEventSystem_ProcessQueuedEvents
+        expected_output:
+          - CGameEventSystem_ProcessQueuedEvents.{platform}.yaml
+        expected_input:
+          - CGameEventSystem_vtable.{platform}.yaml
       - name: find-CNetworkServerSpawnGroup_WaitForAssetLoadPrerequisite_vtable
         expected_output:
           - CNetworkServerSpawnGroup_WaitForAssetLoadPrerequisite_vtable.{platform}.yaml
@@ -2811,6 +2816,10 @@ modules:
           - GameEntitySystem
       - name: CGameResourceService_vtable
         category: vtable
+      - name: CGameEventSystem_ProcessQueuedEvents
+        category: vfunc
+        alias:
+          - CGameEventSystem::ProcessQueuedEvents
       - name: CNetworkServerSpawnGroup_WaitForAssetLoadPrerequisite_vtable
         category: vtable
       - name: CNetworkServerSpawnGroup_WaitForAssetLoadPrerequisite_GetPrerequisiteStatus
