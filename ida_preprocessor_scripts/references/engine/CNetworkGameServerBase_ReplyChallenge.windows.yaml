@@ -266,7 +266,7 @@ disasm_code: |-
   .text:00000001800AAD5C                 call    cs:LoggingSystem_Log
   .text:00000001800AAD62                 mov     rcx, cs:g_pNetworkSystem
   .text:00000001800AAD69                 mov     rax, [rcx]
-  .text:00000001800AAD6C                 call    qword ptr [rax+160h]
+  .text:00000001800AAD6C                 call    qword ptr [rax+160h]; 0x160 = 352LL = INetworkSystem_GetSteamNetworkingSockets
   .text:00000001800AAD72                 mov     r9d, [rsp+2C0h+var_280]
   .text:00000001800AAD77                 mov     rcx, rax
   .text:00000001800AAD7A                 mov     r8, [rsp+2C0h+var_290]
@@ -473,7 +473,7 @@ procedure: |-
         v6,
         v38);
     }
-    v32 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)g_pNetworkSystem + 352LL))(g_pNetworkSystem);
+    v32 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)g_pNetworkSystem + 352LL))(g_pNetworkSystem); // 352LL = 0x160 = INetworkSystem_GetSteamNetworkingSockets
     return (*(__int64 (__fastcall **)(__int64, _QWORD, __int64, _QWORD, int, _QWORD))(*(_QWORD *)v32 + 88LL))(
              v32,
              *((unsigned int *)a2 + 28),

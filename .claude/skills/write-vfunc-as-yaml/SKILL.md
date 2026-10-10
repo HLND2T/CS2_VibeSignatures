@@ -13,6 +13,7 @@ Before using this skill, you should have:
 1. Identified and renamed the target virtual function
 2. Generated a unique signature using `/generate-signature-for-function`
 3. Obtained vtable information using `/get-vtable-index`
+4. An IDA Pro MCP session, resolved per [mcp-ida-session.md](../generate-signature-for-function/references/mcp-ida-session.md): `idb_list` → `idb_open` (script fallback only if the endpoint is unreachable). Honor its IDB save discipline — an idle-TTL self-exit does not save.
 
 ## Required Parameters
 

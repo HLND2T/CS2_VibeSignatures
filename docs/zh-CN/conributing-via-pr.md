@@ -38,7 +38,7 @@ staged set 是一个原子的 source-owned change：
 4. 推送 `dev*` 分支，并针对 `main` 创建一个 PR。
 5. 等待最新 head 上稳定的 `source-artifact-required` 与 `pr-validate` checks。
 
-full validation 会绑定 exact prospective merge tree，在 checkout-external root 中重建 affected producer groups，并将完整 actual inventory 与 Git blobs 逐字节比较。Merge Queue 会对最终 queued tree 重新执行该证明。
+full validation 会绑定 exact prospective merge tree，在 checkout-external root 中重建 affected producer groups，并将完整 actual inventory 与 Git blobs 比较。除 `LLM_DECOMPILE` producer 可能合法重新采样的定位字段（`gv_sig`/`gv_sig_va`/`gv_inst_*`、`vfunc_sig`/`vfunc_sig_disp`、`offset_sig`/`offset_sig_disp`）外，比较仍然逐字节；符号身份与已解析的地址/偏移必须完全一致。详见 [anchor drift 契约](ci-cd.md#anchor-drift-契约)。Merge Queue 会对最终 queued tree 重新执行该证明。
 
 对于新 GAMEVER，初始 PR 可能进入 `bootstrap_required`。受保护的 bootstrap publisher 只能向匹配的 `bump-download/<GAMEVER>` branch 追加 fast-forward artifact commit；artifact-bearing head 随后必须通过普通 exact-byte validation，bootstrap run 本身不能满足 required check。
 

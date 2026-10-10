@@ -16,10 +16,12 @@ GAMEVER_RE = re.compile(r"^[0-9]{4,10}[a-z]?$")
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 WORKFLOWS = {
     "release": "build-on-self-runner.yml",
+    "full-rebuild": "build-on-self-runner.yml",
     "rebuild-free": "rebuild-free-release.yml",
 }
 RUN_TITLE_PREFIXES = {
     "release": "Release",
+    "full-rebuild": "Full-rebuild release",
     "rebuild-free": "Rebuild-free release",
 }
 PUBLICATION_MODES = frozenset({"verify-only", "publish", "republish"})
@@ -181,23 +183,23 @@ def dispatch(
 ) -> None:
     workflow = require_workflow(workflow)
     publication_mode = require_publication_mode(publication_mode)
-    run_command(
-        [
-            "gh",
-            "workflow",
-            "run",
-            WORKFLOWS[workflow],
-            "--ref",
-            "main",
-            "-f",
-            f"gamever={gamever}",
-            "-f",
-            f"source_sha={source_sha}",
-            "-f",
-            f"publication_mode={publication_mode}",
-        ],
-        root,
-    )
+    command = [
+        "gh",
+        "workflow",
+        "run",
+        WORKFLOWS[workflow],
+        "--ref",
+        "main",
+        "-f",
+        f"gamever={gamever}",
+        "-f",
+        f"source_sha={source_sha}",
+        "-f",
+        f"publication_mode={publication_mode}",
+    ]
+    if workflow == "full-rebuild":
+        command.extend(["-f", "source_artifact_mode=full-rebuild"])
+    run_command(command, root)
 
 
 def discover_run(
@@ -267,7 +269,8 @@ def main(argv=None) -> int:
         "--workflow",
         choices=sorted(WORKFLOWS),
         default="release",
-        help="release rebuilds and verifies fresh artifacts; rebuild-free binds the tracked artifacts (manual emergency path)",
+        help="release rebuilds with prior-version signature reuse; full-rebuild rebuilds without old-version artifacts; "
+        "rebuild-free binds the tracked artifacts (manual emergency path)",
     )
     args = parser.parse_args(argv)
     try:

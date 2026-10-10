@@ -15,14 +15,16 @@ tags:
 Updated for the source-owned artifacts cutover. Historical release-staging/promote-bin conclusions are superseded; the retained decision is only that a binary-only accepted cache remains useful.
 
 ## Decision
-Keep `PERSISTED_WORKSPACE/bin/<GAMEVER>` as a disposable, exact configured-binary cache distinct from warm IDB generations. It may contain only configured binaries and explicitly allowlisted side files; per-symbol YAML, snapshots, gamedata, manifests, IDA databases, and BinSync working state are forbidden. The cache is never source or Release truth.
+Keep `.ci-cache/store/bin/<GAMEVER>` as a disposable, exact configured-binary cache distinct from warm IDB generations. It may contain only configured binaries and explicitly allowlisted side files; per-symbol YAML, snapshots, gamedata, manifests, IDA databases, and BinSync working state are forbidden. The cache is never source or Release truth.
 ## Context / trigger
 PR and Release workers need exact binaries while warm IDB generations remain prunable performance state. Source-owned per-symbol history now lives in Git under `bin_artifacts`, so accepted-bin no longer serves an oldgamever YAML baseline or promotion target.
 ## Analysis (useful conclusions)
 - Warm generations atomically bind configured binary bytes, IDA runtime, and neutral `.i64` payload; they are immutable and prunable.
 - Accepted-bin keeps reusable binary bytes across runs/versions and reduces depot/Release downloads, but it is fully recoverable.
-- `sync_accepted_bin` and `restore_accepted_bin` both validate the configured positive allowlist and the canonical source-owned
-  binary lock; a complete but hash-drifted accepted cache is a cache miss (or a hard failure for required consumers).
+- `sync_accepted_bin` validates the configured positive allowlist and the canonical source-owned binary lock in full. `restore_accepted_bin`
+  enforces the same allowlist and lock but treats every mismatch as a cache miss (`cache-missing`, `cache-invalid`, `binary-lock-mismatch`)
+  unless the consumer passes `--required`. A disposable cache whose file set no longer matches the config must never deadlock the reader,
+  because the only repair path (re-provision from depot, then `sync`) runs after the read; see [[disposable-cache-shape-checks-must-not-be-fatal-on-the-read-path]].
 - Release full rebuild reads expected per-symbol artifacts from Git, not accepted-bin. Release-local rename state is never written back to warm generations.
 - The removed `release-staging`, generated-output PR, and `promote_bin` mechanisms are historical only.
 ### Where the current-version binaries live (4 copies)
