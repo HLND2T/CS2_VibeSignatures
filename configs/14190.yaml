@@ -7049,6 +7049,13 @@ modules:
           - CGameEventManager_vtable.{platform}.yaml
         skip_if_exists:
           - CGameEventManager_CreateEvent.{platform}.yaml
+      - name: find-CGameEventManager_SerializeEvent
+        expected_output:
+          - CGameEventManager_SerializeEvent.{platform}.yaml
+        expected_input:
+          - CGameEventManager_vtable.{platform}.yaml
+        skip_if_exists:
+          - CGameEventManager_SerializeEvent.{platform}.yaml
       - name: find-CGameEventManager_LoadEventsFromFileInternal
         optional_output:
           - CGameEventManager_LoadEventsFromFileInternal.{platform}.yaml
@@ -12511,6 +12518,10 @@ modules:
         category: vfunc
         alias:
           - CGameEventManager::RemoveListener
+      - name: CGameEventManager_SerializeEvent
+        category: vfunc
+        alias:
+          - CGameEventManager::SerializeEvent
       - name: CChicken_vtable
         category: vtable
       - name: CChicken_Event_Killed
