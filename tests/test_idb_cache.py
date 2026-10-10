@@ -58,6 +58,9 @@ class TestIdbCache(unittest.TestCase):
     def test_s3_payload_and_fresh_lease_restore_across_independent_workspaces(self):
         with tempfile.TemporaryDirectory() as temporary, self._patch_config():
             root = Path(temporary)
+            if os.name == "nt":
+                # Incoming generation paths exceed MAX_PATH; use the extended-length prefix.
+                root = Path("\\\\?\\" + str(root.resolve()))
             producer, next_run, consumer = (root / name for name in ("producer", "next-run", "consumer"))
             gamever = "14180"
             self._write_source(producer, gamever)

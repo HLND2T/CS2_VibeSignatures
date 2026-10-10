@@ -21,7 +21,8 @@ HARNESS = r"""
 $global:pollCalls = 0
 $global:sleptMs = @()
 $global:nowMs = 0
-$responses = @($env:STUB_RESPONSES | ConvertFrom-Json)
+# Windows PowerShell 5.1 emits a JSON array as one object; ForEach-Object unrolls it.
+$responses = @($env:STUB_RESPONSES | ConvertFrom-Json | ForEach-Object { $_ })
 function Get-Date {
     [datetime]::new(2026, 1, 1, 0, 0, 0, [System.DateTimeKind]::Utc).AddMilliseconds($global:nowMs)
 }
