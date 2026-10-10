@@ -1,0 +1,154 @@
+name: Hosted C++ ABI Validation
+on:
+  workflow_call:
+    inputs:
+      source_sha:
+        type: string
+        required: true
+      gamever:
+        type: string
+        required: true
+      artifact_id:
+        type: string
+        required: true
+      artifact_digest:
+        type: string
+        required: true
+      input_path:
+        type: string
+        default: '.'
+      scope:
+        type: string
+        required: true
+    outputs:
+      artifact_id:
+        value: ${{ jobs.aggregate.outputs.artifact_id }}
+      artifact_digest:
+        value: ${{ jobs.aggregate.outputs.artifact_digest }}
+permissions:
+  actions: read
+  contents: read
+jobs:
+  validate:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: windows
+          - os: ubuntu-latest
+            platform: linux
+    runs-on: ${{ matrix.os }}
+    env:
+      INPUT_ARTIFACT_ID: ${{ inputs.artifact_id }}
+      INPUT_ARTIFACT_DIGEST: ${{ inputs.artifact_digest }}
+      SOURCE_SHA: ${{ inputs.source_sha }}
+      GAMEVER: ${{ inputs.gamever }}
+      INPUT_PATH: ${{ inputs.input_path }}
+      ABI_PLATFORM: ${{ matrix.platform }}
+      GH_TOKEN: ${{ github.token }}
+      PYTHONUTF8: '1'
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.source_sha }}
+          fetch-depth: 0
+          submodules: recursive
+          persist-credentials: false
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: .ci-tools
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v9.0.0
+      - name: Bind exact current-run input artifact
+        uses: ./.ci-tools/.github/actions/ci-command
+        with:
+          command: bind-artifact
+      - uses: actions/download-artifact@v5
+        with:
+          artifact-ids: ${{ inputs.artifact_id }}
+          path: ${{ runner.temp }}/cpp-input-artifact
+      - name: Initialize MSVC and Windows SDK
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
+          $vsRoot = (& $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath).Trim()
+          if (-not $vsRoot) { throw 'MSVC tools are unavailable.' }
+          $vcvars = Join-Path $vsRoot 'VC/Auxiliary/Build/vcvars64.bat'
+          $lines = & cmd /d /s /c "`"$vcvars`" >nul && set"
+          if ($LASTEXITCODE -ne 0) { throw 'MSVC environment initialization failed.' }
+          foreach ($line in $lines) {
+            if ($line -match '^(PATH|INCLUDE|LIB|LIBPATH)=(.*)$') {
+              "$($Matches[1])=$($Matches[2])" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+            }
+          }
+      - name: Prepare Linux compiler
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install --yes clang build-essential
+      - name: Validate requested ABI
+        uses: ./.ci-tools/.github/actions/ci-command
+        with:
+          command: cpp-run
+      - name: Upload ABI result and diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cpp-result-${{ inputs.scope }}-${{ inputs.gamever }}-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.platform }}
+          path: ${{ runner.temp }}/cpp-result
+          if-no-files-found: warn
+          retention-days: 14
+  aggregate:
+    needs: validate
+    runs-on: ubuntu-latest
+    outputs:
+      artifact_id: ${{ steps.upload.outputs.artifact-id }}
+      artifact_digest: ${{ steps.upload.outputs.artifact-digest }}
+    env:
+      INPUT_ARTIFACT_ID: ${{ inputs.artifact_id }}
+      INPUT_ARTIFACT_DIGEST: ${{ inputs.artifact_digest }}
+      INPUT_PATH: ${{ inputs.input_path }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v9.0.0
+      - name: Bind exact input artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          uv run python ci_cpp_validation.py bind --artifact-id "$INPUT_ARTIFACT_ID" --digest "$INPUT_ARTIFACT_DIGEST"
+      - uses: actions/download-artifact@v5
+        with:
+          artifact-ids: ${{ inputs.artifact_id }}
+          path: ${{ runner.temp }}/cpp-input-artifact
+      - uses: actions/download-artifact@v5
+        with:
+          name: cpp-result-${{ inputs.scope }}-${{ inputs.gamever }}-${{ github.run_id }}-${{ github.run_attempt }}-windows
+          path: ${{ runner.temp }}/cpp-results/windows
+      - uses: actions/download-artifact@v5
+        with:
+          name: cpp-result-${{ inputs.scope }}-${{ inputs.gamever }}-${{ github.run_id }}-${{ github.run_attempt }}-linux
+          path: ${{ runner.temp }}/cpp-results/linux
+      - name: Require both ABI results and combine evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          uv run python ci_cpp_validation.py aggregate \
+            --root "$RUNNER_TEMP/cpp-input-artifact/$INPUT_PATH" \
+            --results "$RUNNER_TEMP/cpp-results" --output "$RUNNER_TEMP/cpp-evidence"
+          cat "$RUNNER_TEMP/cpp-evidence/evidence.json" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        id: upload
+        with:
+          name: cpp-evidence-${{ inputs.scope }}-${{ inputs.gamever }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/cpp-evidence
+          if-no-files-found: error
+          retention-days: 14

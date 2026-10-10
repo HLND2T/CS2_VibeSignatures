@@ -83,6 +83,11 @@ last `tag:` entry in `download.yaml`. A historical (non-latest) version change i
 such a PR cannot pass until the change moves to the latest gamever or a new-GAMEVER bump. Any tracked `gamesymbols/`,
 `gamedata/`, or `release-manifests/` path is a separate source-truth contract violation regardless of GAMEVER.
 
+Apply gate 6 to every added or modified preprocessor script and shared helper. Fixed offsets are not allowed: a fixed
+game-layout offset (vtable slot offset/index, struct member offset, displacement) that decides an emitted value or the
+target's identity is always a blocking `P1` finding. Neither a presence-check "verification" nor a passing exact-byte
+artifact rebuild clears it.
+
 Additionally check general correctness:
 
 - behavior matches the PR title/body and all requested symbols are actually produced;

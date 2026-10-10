@@ -29,7 +29,7 @@ permalink: cs2-vibesignatures/download-depot
 ## Architecture
 The entry flow is orchestrated by `main()`: it first calls `parse_args()` to obtain CLI parameters, then uses `load_downloads()` to read and validate `download.yaml`, and finally uses `find_download_entry()` to perform an exact match on `downloads[].tag` and obtain a unique target entry. `main()` then validates the optional `branch`, prints the match result and manifest count, and passes `manifests/app/os/depotdir/branch` to `download_manifests()`.
 
-`download_manifests()` does not wrap the network layer. Instead, it directly iterates the `manifests` mapping, builds one `DepotDownloader` command per depot, and calls `subprocess.run(check=True)`; downloads therefore run serially, and any single depot failure immediately stops the remaining downloads and returns to the exception-handling branch in `main()`. The module top level also handles the missing-`yaml` dependency case: if the import fails, it prints a hint and exits with `sys.exit(1)` without entering `main()`.
+`main()` resolves the effective depot directory through `depot_util.versioned_depot_dir(args.depotdir, args.tag)`, so `-depotdir` is a depot **root** and each tag downloads into its own `<root>/<TAG>` tree. `download_manifests()` keeps taking that final directory and does not wrap the network layer: it directly iterates the `manifests` mapping, builds one `DepotDownloader` command per depot, and calls `subprocess.run(check=True)`; downloads therefore run serially, and any single depot failure immediately stops the remaining downloads and returns to the exception-handling branch in `main()`. The module top level also handles the missing-`yaml` dependency case: if the import fails, it prints a hint and exits with `sys.exit(1)` without entering `main()`.
 
 ```mermaid
 flowchart TD
@@ -63,6 +63,7 @@ G -->|FileNotFoundError / CalledProcessError| I
 - `.github/workflows/build-on-self-runner.yml`: currently confirmed caller, passing `TAG`, output directory, and configuration path to this script.
 
 ## Notes
+- `-depotdir` is a depot root, not a leaf directory: `main()` joins the matched tag onto it, so a stale tree from another GAMEVER can never be reused (this also keeps DepotDownloader's incremental `InstalledManifestIDs` state version-scoped).
 - `tag` matching is strict equality only. Prefix matching, fuzzy matching, or "latest version" logic is not supported; both no-match and duplicate-match cases fail immediately.
 - `manifests` is only validated as a mapping; depot keys and manifest values are both passed through `str()` when building commands, without deeper numeric/format validation.
 - `branch` is optional, but if present it must be a string; otherwise `main()` raises `ConfigError`.
@@ -70,5 +71,6 @@ G -->|FileNotFoundError / CalledProcessError| I
 - `ConfigError` and missing-`DepotDownloader` cases both return `1`; subprocess failures try to propagate `DepotDownloader`'s exit code.
 
 ## Callers (optional)
-- The depot download step in `.github/workflows/build-on-self-runner.yml` runs `uv run download_depot.py -tag "$env:TAG" -depotdir "$depotDir" -config download.yaml`.
+- Locally it is reached through `init_gamebin.py`'s depot fallback (`run_depot_fallback` → `depot_download_command`), which runs `uv run download_depot.py -tag <GAMEVER> -depotdir cs2_depot -config download.yaml -configyaml <config>`; the CI workflows then call `init_gamebin.py prepare`, so downloads land in `<root>/<GAMEVER>` under the persisted depot root.
+- `.github/workflows/bump-download.yml` uses it directly for fresh checkout-external lock enrollment, passing an explicit `-depotdir`.
 - `TestDownloadDepot` in `tests/test_download_depot.py` covers exact matching, missing/duplicate tags, branch passthrough, and the failure path when `DepotDownloader` is missing.

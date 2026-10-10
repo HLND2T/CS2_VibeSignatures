@@ -81,7 +81,8 @@ Exit code 1 is expected only for reported conflicts. Classify every unmerged pat
   symbols, aliases, cpp tests, and platform gates semantically. Do not duplicate an owner or silently drop either
   parent's intent.
 - `ida_preprocessor_scripts/**`, references, Agent skills, source, tests, or docs: read both parents and resolve behavior
-  semantically. Stop when intent is ambiguous.
+  semantically. Stop when intent is ambiguous. Never settle a preprocessor conflict by hardcoding a vtable slot, struct
+  offset, or displacement taken from either parent's artifacts; fixed offsets are blocked (see Step 5).
 - `bin_artifacts/<GAMEVER>/<module>/*.yaml`: record A/M/D/R paths and base/merge ownership. Do not accept either side as
   final; resolution is deferred to the isolated rebuild in Step 4.
 - forbidden legacy/Release-derived namespaces: remove them from the prospective PR result and investigate why they were
@@ -132,8 +133,12 @@ git status --short
 ```
 
 Read `references/review-pr.md` and run its read-only Steps 1–4 against the resolved prospective PR. Its review must treat
-`bin_artifacts` as source-owned proof and reject forbidden tracked Release outputs. If actionable findings exist, report
-them and stop; repairing findings beyond conflict resolution requires the user's explicit follow-up direction.
+`bin_artifacts` as source-owned proof and reject forbidden tracked Release outputs. It must also block fixed offsets
+(gate 6 in `references/preprocessor-review-patterns.md`): any added or modified preprocessor script or helper that
+hardcodes a game-layout vtable slot, struct member offset, or displacement, instead of deriving it from the current
+binary, is a blocking finding. This holds even when the constant is "verified" by a presence scan or reproduces the
+artifacts byte-for-byte. If actionable findings exist, report them and stop; repairing findings beyond conflict
+resolution requires the user's explicit follow-up direction.
 
 ## Step 6 — Format and validate
 
