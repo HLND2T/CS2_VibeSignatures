@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Resolve RequestHS_Quit through its standalone helper."""
+"""Resolve RequestHS_Quit directly from its Quitting message."""
 
 from ida_analyze_util import preprocess_common_skill
 
@@ -8,10 +8,10 @@ TARGET_FUNCTION_NAMES = ["CHostStateMgr_RequestHS_Quit"]
 FUNC_XREFS = [
     {
         "func_name": "CHostStateMgr_RequestHS_Quit",
-        "xref_strings": [],
+        "xref_strings": ["FULLMATCH:Quitting"],
         "xref_gvs": [],
         "xref_signatures": [],
-        "xref_funcs": ["CHostStateMgr_RequestHS_QuitInternal"],
+        "xref_funcs": [],
         "exclude_funcs": [],
         "exclude_strings": [],
         "exclude_gvs": [],
@@ -41,7 +41,7 @@ async def preprocess_skill(
     image_base,
     debug=False,
 ):
-    """Resolve the de-inlined implementation and its vtable slot."""
+    """Resolve the vfunc implementation and its vtable slot."""
     return await preprocess_common_skill(
         session=session,
         expected_outputs=expected_outputs,
