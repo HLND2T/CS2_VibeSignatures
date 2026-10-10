@@ -15657,3 +15657,50 @@ cpp_tests:
       - fdump-vtable-layouts
     reference_modules:
       - engine  # bin_artifacts/{gamever}/engine/CEngineServiceMgr_*.{platform}.yaml
+  - name: IGameEventSystem_MSVC
+    symbol: IGameEventSystem
+    cpp: cpp_tests/igameeventsystem.cpp
+    headers:
+      - hl2sdk_cs2/public/engine/igameeventsystem.h  # Used by the fix-cppheaders SKILL
+    target: x86_64-pc-windows-msvc
+    include_directories:
+      - cpp_tests/stubs
+      - hl2sdk_cs2/game/shared
+      - hl2sdk_cs2/public
+      - hl2sdk_cs2/public/tier0
+      - hl2sdk_cs2/public/tier1
+      - hl2sdk_cs2/public/mathlib
+    defines:
+      - COMPILER_MSVC=1
+      - COMPILER_MSVC64=1
+      - _MSVC_STL_USE_ABORT_AS_DOOM_FUNCTION
+    additional_compiler_options:
+      - fms-extensions
+      - fms-compatibility
+      - Xclang
+      - fdump-vtable-layouts
+    # No reference_modules yet: 14190 has no IGameEventSystem / CGameEventSystem
+    # binary reference YAMLs. Compile-only validation.
+  - name: IGameEventSystem_GCC
+    symbol: IGameEventSystem
+    cpp: cpp_tests/igameeventsystem.cpp
+    headers:
+      - hl2sdk_cs2/public/engine/igameeventsystem.h  # Used by the fix-cppheaders SKILL
+    target: x86_64-pc-linux-gnu
+    include_directories:
+      - cpp_tests/stubs
+      - hl2sdk_cs2/game/shared
+      - hl2sdk_cs2/public
+      - hl2sdk_cs2/public/tier0
+      - hl2sdk_cs2/public/tier1
+      - hl2sdk_cs2/public/mathlib
+    defines:
+      - COMPILER_GCC=1
+      - POSIX=1
+      - LINUX=1
+      - stricmp=strcasecmp
+    additional_compiler_options:
+      - Xclang
+      - fdump-vtable-layouts
+    # No reference_modules yet: 14190 has no IGameEventSystem / CGameEventSystem
+    # binary reference YAMLs. Compile-only validation.
