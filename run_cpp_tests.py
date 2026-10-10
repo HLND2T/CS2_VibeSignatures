@@ -4,6 +4,7 @@ Run C++ tests declared in the selected analysis config and compare clang layouts
 """
 
 import argparse
+import json
 import os
 import subprocess
 import sys
@@ -77,6 +78,10 @@ def parse_args():
         action="store_true",
         help="Enable debug output",
     )
+    parser.add_argument("--platform", choices=("windows", "linux"), help="Require all tests for this ABI")
+    parser.add_argument("--allow-empty", action="store_true", help="Allow an ABI with no configured tests")
+    parser.add_argument("--result-json", type=Path, help="Write a machine-readable validation result")
+    parser.add_argument("--source-root", type=Path, help="Source checkout used by workflow-owned validation tooling")
     return parser.parse_args()
 
 
@@ -479,6 +484,15 @@ def run_one_test(
     return result
 
 
+def select_platform_tests(tests, platform):
+    if platform is None:
+        return tests
+    for item in tests:
+        if not isinstance(item, dict) or not map_target_triple_to_platform(str(item.get("target", ""))):
+            raise ValueError("cpp_tests contains an invalid or unmapped target")
+    return [item for item in tests if map_target_triple_to_platform(str(item["target"])) == platform]
+
+
 def main():
     args = parse_args()
     try:
@@ -491,7 +505,7 @@ def main():
     except AnalysisConfigError as exc:
         print(f"Error: {exc}")
         return 2
-    source_root = Path(__file__).resolve().parent
+    source_root = (getattr(args, "source_root", None) or Path(__file__).resolve().parent).resolve()
     try:
         symbol_store = open_snapshot_store(
             snapshot_path=args.snapshot,
@@ -509,9 +523,35 @@ def main():
     print(f"Config digest: {symbol_store.config_sha256}")
 
     cpp_tests = parse_config(config_path)
+    validation_result = {
+        "gamever": args.gamever,
+        "platform": args.platform,
+        "snapshot_sha256": symbol_store.candidate_sha256,
+        "config_sha256": symbol_store.config_sha256,
+        "configured": 0,
+        "executed": 0,
+        "status": "failed",
+    }
+
+    def finish(code, status="failed"):
+        validation_result["status"] = status
+        if args.result_json:
+            args.result_json.parent.mkdir(parents=True, exist_ok=True)
+            args.result_json.write_text(json.dumps(validation_result, sort_keys=True) + "\n", encoding="utf-8")
+        return code
+
+    try:
+        cpp_tests = select_platform_tests(cpp_tests, args.platform)
+    except ValueError as exc:
+        print(f"Error: {exc}")
+        return finish(1)
+    validation_result["configured"] = len(cpp_tests)
     if not cpp_tests:
         print(f"No cpp_tests defined in {config_path}")
-        return 0
+        if args.platform and not args.allow_empty:
+            return finish(1)
+        print("ABI validation status: no-tests")
+        return finish(0, "no-tests")
 
     print("=== clang++ target triple detection ===")
     default_target_triple = get_default_target_triple(args.clang)
@@ -523,7 +563,7 @@ def main():
 
     if not configured_targets:
         print("No target triples found in cpp_tests config")
-        return 1
+        return finish(1)
 
     print("=== target support probe (from configured targets) ===")
     target_support: Dict[str, bool] = {}
@@ -555,9 +595,13 @@ def main():
     for skipped in skipped_tests:
         print(f"- skip: {skipped.get('name', 'unnamed_test')} (target={skipped.get('target', '')})")
 
+    if args.platform and skipped_tests:
+        print("Error: A configured target for the requested ABI is unsupported.")
+        return finish(1)
+
     if not runnable_tests:
         print("Error: No runnable tests for current clang++ environment.")
-        return 1
+        return finish(1)
 
     print("=== running cpp_tests ===")
     print(f"Parallel jobs: {worker_count}")
@@ -582,6 +626,7 @@ def main():
             for test_item in runnable_tests
         ]
         ordered_results = [future.result() for future in futures]
+    validation_result["executed"] = len(ordered_results)
 
     for test_item, result in zip(runnable_tests, ordered_results):
         test_name = str(test_item.get("name", "unnamed_test"))
@@ -663,8 +708,8 @@ def main():
         print("[FAIL] Layout compare differences are treated as test failures.")
 
     if compile_failed_count > 0 or invalid_count > 0 or compare_diff_count > 0:
-        return 1
-    return 0
+        return finish(1)
+    return finish(0, "passed")
 
 
 if __name__ == "__main__":

@@ -720,6 +720,9 @@ class TestMainExitStatus(unittest.TestCase):
             std="c++20",
             debug=False,
             jobs=None,
+            platform=None,
+            allow_empty=False,
+            result_json=None,
         )
         mock_parse_config.return_value = [
             {
@@ -762,6 +765,9 @@ class TestMainExitStatus(unittest.TestCase):
             std="c++20",
             debug=False,
             jobs=None,
+            platform=None,
+            allow_empty=False,
+            result_json=None,
         )
         mock_parse_config.return_value = [
             {

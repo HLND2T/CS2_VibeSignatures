@@ -24,6 +24,10 @@ uv run gamesymbol_candidate.py mark -candidate "$CANDIDATE_SNAPSHOT" -session "$
 
 These commands do not publish tracked snapshot/gamedata directories. Release builds reconstruct the same candidate from an immutable source SHA, verify a fresh `-force_all -rename` rebuild against Git blobs, and package snapshot, metadata, gamedata, archives, and checksums as immutable Release assets.
 
+Hosted CI uses `run_cpp_tests.py --platform windows|linux --allow-empty --result-json <path>` on separate OS jobs.
+An ABI with no configured tests reports `no-tests`; every configured target for the requested ABI must compile and
+validate. Without `--platform`, local calls retain the existing target-probe and unsupported-target skip behavior.
+
 Use the project-level `fix-cppheaders` skill to repair reported `hl2sdk_cs2` header differences.
 
 ## Historical snapshot compatibility

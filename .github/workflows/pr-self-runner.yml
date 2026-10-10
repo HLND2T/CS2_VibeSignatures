@@ -84,7 +84,7 @@ jobs:
       (needs.warmup-idb.result == 'success' ||
       (needs.bootstrap-reuse.outputs.reused == 'true' && needs.warmup-idb.result == 'skipped'))
     environment: win64
-    runs-on: [self-hosted, windows, x64]
+    runs-on: [self-hosted, cross-platform]
     env:
       GAMEVER: ${{ inputs.gamever }}
       SOURCE_SHA: ${{ inputs.source_sha }}
@@ -104,6 +104,9 @@ jobs:
       CS2VIBE_LLM_MODEL: ${{ secrets.CS2VIBE_LLM_MODEL }}
       DEPOTDOWNLOADER_STEAM_USERNAME: ${{ secrets.DEPOTDOWNLOADER_STEAM_USERNAME }}
       DEPOTDOWNLOADER_STEAM_PASSWORD: ${{ secrets.DEPOTDOWNLOADER_STEAM_PASSWORD }}
+      CI_KIND: pr
+      PYTHONUTF8: '1'
+      BOOTSTRAP_REUSED: ${{ needs.bootstrap-reuse.outputs.reused }}
     steps:
       - name: Checkout exact prospective merge tree as data
         uses: actions/checkout@v5
@@ -122,6 +125,13 @@ jobs:
           S3_ENDPOINT_URL: ${{ secrets.S3_ENDPOINT_URL }}
           S3_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY_ID }}
           S3_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
+      - name: Checkout cache transport tools from workflow source
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: .cache-tools
+          fetch-depth: 1
+          persist-credentials: false
       - name: Checkout trusted base verification tools
         uses: actions/checkout@v5
         with:
@@ -131,8 +141,9 @@ jobs:
           persist-credentials: false
           path: .trusted-tools
       - name: Sync trusted verification environment
-        shell: pwsh
-        run: uv sync --project .trusted-tools --locked
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: sync-trusted
       - name: Download bound trusted plan
         uses: actions/download-artifact@v5
         with:
@@ -144,19 +155,11 @@ jobs:
         with:
           name: bootstrap-reuse-${{ github.run_id }}-${{ github.run_attempt }}-${{ inputs.gamever }}
           path: ${{ runner.temp }}/trusted-bootstrap-reuse
-      - name: Checkout cache transport tools from workflow source
-        uses: actions/checkout@v5
-        with:
-          ref: ${{ github.workflow_sha }}
-          path: .cache-tools
-          fetch-depth: 1
-          persist-credentials: false
       - name: Prepare clean job-local cache layout
         id: s3-layout
-        shell: pwsh
-        run: |
-          uv run --project .cache-tools python .cache-tools/ci_s3_cache.py prepare
-          if ($LASTEXITCODE -ne 0) { throw 'Unable to prepare S3 cache layout.' }
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: cache-prepare
       - name: Restore accepted binaries from S3
         id: s3-accepted
         uses: ./.cache-tools/.github/actions/s3-cache
@@ -167,9 +170,10 @@ jobs:
           operation: restore
           key: ${{ steps.s3-layout.outputs.accepted-key }}
           path: ${{ steps.s3-layout.outputs.accepted-path }}
+          restore-keys: ${{ steps.s3-layout.outputs.accepted-restore-keys }}
       - name: Restore depot binaries from S3
         id: s3-depot
-        if: steps.s3-accepted.outputs.cache-hit != 'true'
+        if: steps.s3-accepted.outputs.cache-restored != 'true'
         uses: ./.cache-tools/.github/actions/s3-cache
         with:
           endpoint-url: ${{ secrets.S3_ENDPOINT_URL }}
@@ -178,66 +182,22 @@ jobs:
           operation: restore
           key: ${{ steps.s3-layout.outputs.depot-key }}
           path: ${{ steps.s3-layout.outputs.depot-path }}
+          restore-keys: ${{ steps.s3-layout.outputs.depot-restore-keys }}
       - name: Verify restored binary caches against source lock
-        shell: pwsh
         env:
-          CACHE_ACCEPTED_HIT: ${{ steps.s3-accepted.outputs.cache-hit }}
-          CACHE_DEPOT_HIT: ${{ steps.s3-depot.outputs.cache-hit }}
-        run: |
-          uv run --project .cache-tools python .cache-tools/ci_s3_cache.py verify-restored
-          if ($LASTEXITCODE -ne 0) { throw 'Restored S3 binary cache failed verification.' }
+          CACHE_ACCEPTED_HIT: ${{ steps.s3-accepted.outputs.cache-restored }}
+          CACHE_DEPOT_HIT: ${{ steps.s3-depot.outputs.cache-restored }}
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: cache-verify-restored
       - name: Validate source, plan, and binary-only workspace
-        shell: pwsh
-        run: |
-          $actualSource = (git rev-parse HEAD).Trim().ToLowerInvariant()
-          if ($actualSource -ne $env:SOURCE_SHA -or $env:PLAN_SHA256 -notmatch '^sha256:[0-9a-f]{64}$') {
-            throw "PR source or trusted plan identity drifted."
-          }
-          if ([string]::IsNullOrWhiteSpace($env:CI_CACHE_ROOT)) { throw "CI_CACHE_ROOT is not configured." }
-          $planPath = Join-Path "${{ runner.temp }}" "trusted-pr-plan\trusted-source-artifact-plan.json"
-          $plan = Get-Content -LiteralPath $planPath -Raw | ConvertFrom-Json
-          $version = @($plan.game_versions | Where-Object { $_.game_version -eq $env:GAMEVER })
-          if ($version.Count -eq 1 -and "${{ needs.bootstrap-reuse.outputs.reused }}" -eq 'true') {
-            $env:BINARY_LOCK_SHA256 = $version[0].merge_binary_lock_sha256
-          }
-          if ($env:BINARY_LOCK_SHA256 -notmatch '^sha256:[0-9a-f]{64}$') {
-            throw "Missing source binary lock identity."
-          }
-          if ($version.Count -ne 1 -or $version[0].merge_binary_lock_sha256 -ne $env:BINARY_LOCK_SHA256) {
-            throw "Warmup binary lock identity differs from the trusted plan."
-          }
-          $workspaceBin = Join-Path "${{ github.workspace }}" "bin"
-          New-Item -ItemType Directory -Path $workspaceBin -Force | Out-Null
-          if ((Get-Item -LiteralPath $workspaceBin -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) {
-            throw "PR workspace bin must be a real directory."
-          }
-          # A reuse hit does not need a warm-cache producer. Missing binary cache
-          # entries may be initialized below and must still match the source lock.
-          $restoreOptions = @()
-          if ("${{ needs.bootstrap-reuse.outputs.reused }}" -ne 'true') { $restoreOptions += '--required' }
-          $restoreJson = uv run --project .trusted-tools python .trusted-tools/accepted_bin.py restore `
-            --repo-root "${{ github.workspace }}" --persisted-root "$env:CI_CACHE_ROOT" `
-            --gamever "$env:GAMEVER" @restoreOptions
-          if ($LASTEXITCODE -ne 0) { throw "Failed to restore the exact accepted binary allowlist." }
-          $restore = $restoreJson | ConvertFrom-Json
-          if ($restore.binary_lock_sha256 -ne $env:BINARY_LOCK_SHA256) {
-            throw "Restored accepted binaries differ from the trusted plan lock."
-          }
-          uv run init_gamebin.py prepare "$env:GAMEVER" --binsync skip
-          if ($LASTEXITCODE -ne 0) { throw "Binary initialization failed for $env:GAMEVER." }
-          $verifyJson = uv run --project .trusted-tools python .trusted-tools/accepted_bin.py verify `
-            --repo-root "${{ github.workspace }}" --gamever "$env:GAMEVER"
-          if ($LASTEXITCODE -ne 0) { throw "PR binaries do not match the source lock." }
-          $verification = $verifyJson | ConvertFrom-Json
-          if ($verification.binary_lock_sha256 -ne $env:BINARY_LOCK_SHA256) {
-            throw "PR binary lock identity drifted after initialization."
-          }
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: accepted-restore
       - name: Stage verified accepted binaries for S3
-        shell: pwsh
-        run: |
-          uv run --project .cache-tools python .cache-tools/accepted_bin.py sync `
-            --repo-root "${{ github.workspace }}" --persisted-root "$env:CI_CACHE_ROOT" --gamever "$env:GAMEVER"
-          if ($LASTEXITCODE -ne 0) { throw 'Accepted binary cache validation failed.' }
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: accepted-stage
       - name: Save verified accepted binaries to S3
         if: steps.s3-accepted.outputs.cache-hit != 'true'
         uses: ./.cache-tools/.github/actions/s3-cache
@@ -250,10 +210,9 @@ jobs:
           path: ${{ steps.s3-layout.outputs.accepted-path }}
       - name: Check configured depot files for publication
         id: s3-depot-ready
-        shell: pwsh
-        run: |
-          uv run --project .cache-tools python .cache-tools/ci_s3_cache.py depot-ready
-          if ($LASTEXITCODE -ne 0) { throw 'Depot cache validation failed.' }
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: cache-depot-ready
       - name: Save verified depot binaries to S3
         if: steps.s3-depot.outputs.cache-hit != 'true' && steps.s3-depot-ready.outputs.ready == 'true'
         uses: ./.cache-tools/.github/actions/s3-cache
@@ -267,10 +226,9 @@ jobs:
       - name: Resolve exact S3 generation and lease paths
         id: s3-selection
         if: needs.bootstrap-reuse.outputs.reused != 'true'
-        shell: pwsh
-        run: |
-          uv run --project .cache-tools python .cache-tools/ci_s3_cache.py selection
-          if ($LASTEXITCODE -ne 0) { throw 'Invalid warm IDB transport selection.' }
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: cache-selection
       - name: Restore exact warm IDB payload from S3
         id: s3-generation
         if: needs.bootstrap-reuse.outputs.reused != 'true'
@@ -297,86 +255,34 @@ jobs:
           required: 'true'
       - name: Resolve and restore exact warm IDB generation
         if: needs.bootstrap-reuse.outputs.reused != 'true'
-        shell: pwsh
-        run: |
-          $pythonExe = (Get-Command python -ErrorAction SilentlyContinue).Source
-          $idaVersion = (& $pythonExe warmup_idb_worker.py --print-ida-version).Trim()
-          if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($idaVersion)) {
-            throw "Unable to resolve the IDA runtime identity."
-          }
-          uv run --project .cache-tools python .cache-tools/idb_cache.py restore --repo-root "${{ github.workspace }}" `
-            --repository "$env:GITHUB_REPOSITORY" --run-id "$env:GITHUB_RUN_ID" --run-attempt "$env:GITHUB_RUN_ATTEMPT" `
-            --lease-id "$env:IDB_CACHE_LEASE_ID" --lease-sha256 "$env:IDB_CACHE_LEASE_SHA256" `
-            --persisted-root "$env:CI_CACHE_ROOT" --gamever "$env:GAMEVER" `
-            --generation "$env:IDB_CACHE_GENERATION" --cache-key "$env:IDB_CACHE_KEY" --ida-version "$idaVersion"
-          if ($LASTEXITCODE -ne 0) { throw "Warm IDB restore failed." }
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: idb-restore
       - name: Bind rebuild and failure evidence paths
         id: rebuild-paths
-        shell: pwsh
-        run: |
-          $key = "${{ github.run_id }}-${{ github.run_attempt }}-$env:GAMEVER"
-          "staging=$(Join-Path $env:RUNNER_TEMP "trusted-pr-rebuild\$key")" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "diagnostics=$(Join-Path $env:RUNNER_TEMP "trusted-pr-diagnostics\$key")" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "plan=$(Join-Path $env:RUNNER_TEMP 'trusted-pr-plan\trusted-source-artifact-plan.json')" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: pr-paths
       - name: Prepare checkout-external trusted rebuild
         id: prepare-rebuild
-        shell: pwsh
-        run: |
-          $plan = "${{ steps.rebuild-paths.outputs.plan }}"
-          $staging = "${{ steps.rebuild-paths.outputs.staging }}"
-          if ("${{ needs.bootstrap-reuse.outputs.reused }}" -eq 'true') {
-            uv run --project .trusted-tools python .trusted-tools/bootstrap_reuse.py prepare `
-              --repo-root "${{ github.workspace }}" --plan "$plan" --gamever "$env:GAMEVER" `
-              --plan-sha256 "$env:PLAN_SHA256" --output-root "$staging" `
-              --evidence "${{ runner.temp }}/trusted-bootstrap-reuse/bootstrap-reuse.json" `
-              --github-output "$env:GITHUB_OUTPUT"
-            if ($LASTEXITCODE -ne 0) { throw "Hosted bootstrap evidence no longer matches this tree." }
-            exit 0
-          }
-          uv run --project .trusted-tools python .trusted-tools/trusted_artifact_pr.py prepare `
-            --repo-root "${{ github.workspace }}" `
-            --plan "$plan" --gamever "$env:GAMEVER" --staging-root "$staging" `
-            --plan-sha256 "$env:PLAN_SHA256" --diagnostics-dir "${{ steps.rebuild-paths.outputs.diagnostics }}"
-          if ($LASTEXITCODE -ne 0) { throw "Trusted isolated rebuild preparation failed." }
-          $preparation = Join-Path $staging "preparation.json"
-          $document = Get-Content -LiteralPath $preparation -Raw | ConvertFrom-Json
-          if ($document.plan_sha256 -ne $env:PLAN_SHA256) { throw "Preparation is not bound to the trusted plan." }
-          $executionReport = $document.execution_reports.PSObject.Properties[$env:GAMEVER].Value
-          if ([string]::IsNullOrWhiteSpace($executionReport)) { throw "Preparation omitted GAMEVER execution evidence." }
-          $selectedManifest = $document.selected_execution_manifests.PSObject.Properties[$env:GAMEVER].Value
-          "plan=$plan" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "preparation=$preparation" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "strategy=$($document.execution_strategy)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "actual-root=$($document.actual_artifact_root)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "config=$($document.config_root)\$env:GAMEVER.yaml" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "execution-report=$executionReport" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "selected-manifest=$(if ($null -ne $selectedManifest) { $selectedManifest } else { '' })" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "verification=$(Join-Path $staging 'validation.json')" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+        env:
+          CI_STAGING: ${{ steps.rebuild-paths.outputs.staging }}
+          CI_DIAGNOSTICS: ${{ steps.rebuild-paths.outputs.diagnostics }}
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: pr-prepare
       - name: Execute the trusted plan closure from the prepared artifact root
         id: execute-rebuild
         if: needs.bootstrap-reuse.outputs.reused != 'true'
-        shell: pwsh
-        run: |
-          $analysisLogs = Join-Path $env:RUNNER_TEMP "pr-platform-analysis-${{ github.run_id }}-${{ github.run_attempt }}-$env:GAMEVER"
-          if ("${{ steps.prepare-rebuild.outputs.strategy }}" -eq "base-inherited-selected-v1") {
-            if ([string]::IsNullOrWhiteSpace("${{ steps.prepare-rebuild.outputs.selected-manifest }}")) {
-              throw "Selected strategy preparation did not publish an execution manifest."
-            }
-            uv run ida_analyze_bin.py -gamever "$env:GAMEVER" `
-              -configyaml "${{ steps.prepare-rebuild.outputs.config }}" -bindir bin `
-              -artifactdir "${{ steps.prepare-rebuild.outputs.actual-root }}" -oldartifactdir bin_artifacts `
-              -execution_report "${{ steps.prepare-rebuild.outputs.execution-report }}" `
-              -selected_execution "${{ steps.prepare-rebuild.outputs.selected-manifest }}" `
-              -require_warm_idb -debug -parallel_platforms "$analysisLogs"
-            if ($LASTEXITCODE -ne 0) { throw "Selected PR artifact rebuild failed." }
-          } else {
-            uv run ida_analyze_bin.py -gamever "$env:GAMEVER" `
-              -configyaml "${{ steps.prepare-rebuild.outputs.config }}" -bindir bin `
-              -artifactdir "${{ steps.prepare-rebuild.outputs.actual-root }}" -oldartifactdir bin_artifacts `
-              -execution_report "${{ steps.prepare-rebuild.outputs.execution-report }}" `
-              -require_warm_idb -force_all -debug -parallel_platforms "$analysisLogs"
-            if ($LASTEXITCODE -ne 0) { throw "Force-all PR artifact rebuild failed." }
-          }
+        env:
+          CI_CONFIG: ${{ steps.prepare-rebuild.outputs.config }}
+          CI_ACTUAL_ROOT: ${{ steps.prepare-rebuild.outputs.actual-root }}
+          CI_EXECUTION_REPORT: ${{ steps.prepare-rebuild.outputs.execution-report }}
+          CI_STRATEGY: ${{ steps.prepare-rebuild.outputs.strategy }}
+          CI_SELECTED_MANIFEST: ${{ steps.prepare-rebuild.outputs.selected-manifest }}
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: pr-execute
       - name: Upload platform analysis logs and execution records
         if: always() && steps.execute-rebuild.outcome != 'skipped'
         uses: actions/upload-artifact@v4
@@ -391,75 +297,54 @@ jobs:
       - name: Verify execution evidence and exact Git bytes
         id: verify-rebuild
         if: needs.bootstrap-reuse.outputs.reused != 'true'
-        shell: pwsh
-        run: |
-          uv run --project .trusted-tools python .trusted-tools/trusted_artifact_pr.py verify `
-            --repo-root "${{ github.workspace }}" `
-            --plan "${{ steps.prepare-rebuild.outputs.plan }}" `
-            --preparation "${{ steps.prepare-rebuild.outputs.preparation }}" `
-            --output "${{ steps.prepare-rebuild.outputs.verification }}" `
-            --staging-root "${{ steps.rebuild-paths.outputs.staging }}" --gamever "$env:GAMEVER" `
-            --plan-sha256 "$env:PLAN_SHA256" --diagnostics-dir "${{ steps.rebuild-paths.outputs.diagnostics }}"
-          if ($LASTEXITCODE -ne 0) { throw "Isolated rebuild differs from trusted Git artifacts." }
+        env:
+          CI_PLAN: ${{ steps.prepare-rebuild.outputs.plan }}
+          CI_PREPARATION: ${{ steps.prepare-rebuild.outputs.preparation }}
+          CI_VERIFICATION: ${{ steps.prepare-rebuild.outputs.verification }}
+          CI_STAGING: ${{ steps.rebuild-paths.outputs.staging }}
+          CI_DIAGNOSTICS: ${{ steps.rebuild-paths.outputs.diagnostics }}
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: pr-verify
       - name: Build and validate downstream candidates
         id: downstream
-        shell: pwsh
-        run: |
-          $root = Join-Path "${{ runner.temp }}" "trusted-pr-downstream\${{ github.run_id }}-${{ github.run_attempt }}-$env:GAMEVER"
-          New-Item -ItemType Directory -Path $root -Force | Out-Null
-          $snapshot = Join-Path $root "$env:GAMEVER.yaml"
-          $session = Join-Path $root "$env:GAMEVER.session.json"
-          $gamedataRoot = Join-Path $root "gamedata"
-          $gamedataSession = Join-Path $root "$env:GAMEVER.gamedata.session.json"
-          uv run gamesymbol_candidate.py build -gamever "$env:GAMEVER" -bindir bin `
-            -artifactdir "${{ steps.prepare-rebuild.outputs.actual-root }}" `
-            -configyaml "${{ steps.prepare-rebuild.outputs.config }}" -output "$snapshot" -session "$session"
-          if ($LASTEXITCODE -ne 0) { throw "Snapshot candidate build failed." }
-          uv run gamedata_candidate.py build -gamever "$env:GAMEVER" `
-            -build-id "${{ github.run_id }}-${{ github.run_attempt }}" -snapshot "$snapshot" `
-            -configyaml "${{ steps.prepare-rebuild.outputs.config }}" `
-            -candidate-root "$gamedataRoot" -session "$gamedataSession" -debug
-          if ($LASTEXITCODE -ne 0) { throw "Gamedata candidate validation failed." }
-          uv run gamedata_candidate.py guard -session "$gamedataSession"
-          if ($LASTEXITCODE -ne 0) { throw "Gamedata candidate guard failed." }
-          "snapshot=$snapshot" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-      - name: Run C++ ABI validation
+        env:
+          CI_CONFIG: ${{ steps.prepare-rebuild.outputs.config }}
+          CI_ACTUAL_ROOT: ${{ steps.prepare-rebuild.outputs.actual-root }}
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: downstream
+      - name: Upload immutable hosted C++ inputs
         id: cpp-validation
-        shell: pwsh
-        run: |
-          uv run run_cpp_tests.py -gamever "$env:GAMEVER" `
-            -snapshot "${{ steps.downstream.outputs.snapshot }}" `
-            -configyaml "${{ steps.prepare-rebuild.outputs.config }}" -debug
-          if ($LASTEXITCODE -ne 0) { throw "C++ ABI validation failed." }
+        uses: actions/upload-artifact@v4
+        with:
+          name: cpp-input-pr-${{ inputs.gamever }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ steps.downstream.outputs.cpp-input-root }}
+          if-no-files-found: error
+          retention-days: 14
       - name: Collect partial rebuild evidence on failure
         id: collect-failure
         if: >-
           failure() && (steps.prepare-rebuild.outcome == 'failure' || steps.execute-rebuild.outcome == 'failure' ||
-          steps.verify-rebuild.outcome == 'failure' || steps.downstream.outcome == 'failure' || steps.cpp-validation.outcome == 'failure')
+          steps.verify-rebuild.outcome == 'failure' || steps.downstream.outcome == 'failure' || steps.cpp-validation.outcome
+          == 'failure')
         continue-on-error: true
-        shell: pwsh
-        run: |
-          $originalDiagnostics = "${{ steps.rebuild-paths.outputs.diagnostics }}"
-          # prepare/verify preserve their original Python error before returning nonzero.
-          # Always collect into a fresh directory, never upload a stale or pre-created tree.
-          $diagnostics = "$originalDiagnostics-$([guid]::NewGuid().ToString('N'))"
-          "diagnostics=$diagnostics" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          $phase = if ("${{ steps.prepare-rebuild.outcome }}" -eq 'failure') { 'prepare' }
-            elseif ("${{ steps.execute-rebuild.outcome }}" -eq 'failure') { 'execute' }
-            elseif ("${{ steps.verify-rebuild.outcome }}" -eq 'failure') { 'verify' }
-            else { 'downstream' }
-          uv run --project .trusted-tools python .trusted-tools/trusted_artifact_pr.py diagnose `
-            --repo-root "${{ github.workspace }}" --plan "${{ steps.rebuild-paths.outputs.plan }}" `
-            --plan-sha256 "$env:PLAN_SHA256" --gamever "$env:GAMEVER" `
-            --staging-root "${{ steps.rebuild-paths.outputs.staging }}" --diagnostics-dir "$diagnostics" `
-            --phase "$phase" --error "$phase workflow step failed; original error is retained in that step's job log." `
-            --error-file "$(Join-Path $originalDiagnostics 'verification-error.txt')"
-          if ($LASTEXITCODE -ne 0) { throw 'Best-effort failure evidence collection failed.' }
+        env:
+          CI_PLAN: ${{ steps.rebuild-paths.outputs.plan }}
+          CI_STAGING: ${{ steps.rebuild-paths.outputs.staging }}
+          CI_DIAGNOSTICS: ${{ steps.rebuild-paths.outputs.diagnostics }}
+          CI_PREPARE_OUTCOME: ${{ steps.prepare-rebuild.outcome }}
+          CI_EXECUTE_OUTCOME: ${{ steps.execute-rebuild.outcome }}
+          CI_VERIFY_OUTCOME: ${{ steps.verify-rebuild.outcome }}
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: pr-diagnose
       - name: Upload failed rebuild diagnostics
         if: >-
           failure() && steps.collect-failure.outputs.diagnostics != '' &&
           (steps.prepare-rebuild.outcome == 'failure' || steps.execute-rebuild.outcome == 'failure' ||
-          steps.verify-rebuild.outcome == 'failure' || steps.downstream.outcome == 'failure' || steps.cpp-validation.outcome == 'failure')
+          steps.verify-rebuild.outcome == 'failure' || steps.downstream.outcome == 'failure' || steps.cpp-validation.outcome
+          == 'failure')
         continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
@@ -478,3 +363,17 @@ jobs:
             ${{ steps.prepare-rebuild.outputs.verification }}
           if-no-files-found: error
           retention-days: 7
+    outputs:
+      cpp_artifact_id: ${{ steps.cpp-validation.outputs.artifact-id }}
+      cpp_artifact_digest: ${{ steps.cpp-validation.outputs.artifact-digest }}
+  cpp-validation:
+    if: ${{ !cancelled() && needs.validate.result == 'success' }}
+    needs: validate
+    uses: ./.github/workflows/cpp-validation.yml
+    with:
+      source_sha: ${{ inputs.source_sha }}
+      gamever: ${{ inputs.gamever }}
+      artifact_id: ${{ needs.validate.outputs.cpp_artifact_id }}
+      artifact_digest: ${{ needs.validate.outputs.cpp_artifact_digest }}
+      scope: pr
+      input_path: .

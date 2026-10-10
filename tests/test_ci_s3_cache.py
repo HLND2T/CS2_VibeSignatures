@@ -12,6 +12,18 @@ import ci_s3_cache as cache
 
 
 class TestS3Cache(unittest.TestCase):
+    def test_shared_namespace_and_identity_scoped_legacy_keys(self):
+        self.assertEqual(cache.namespace("owner/repo", "Windows"), cache.namespace("OWNER/REPO", "Linux"))
+        key = cache.namespace("owner/repo", "Linux") + "-accepted-14190-" + "a" * 64
+        candidates = cache.legacy_keys(key, "owner/repo", "Linux").splitlines()
+        self.assertEqual(3, len(candidates))
+        for platform, candidate in zip(("windows", "linux", "macos"), candidates):
+            self.assertEqual(key.replace("-shared-", f"-{platform}-"), candidate)
+        with self.assertRaises(ValueError):
+            cache.legacy_keys(key, "another/repo", "Linux")
+        with self.assertRaises(ValueError):
+            cache.namespace("owner/repo", "FreeBSD")
+
     def test_endpoint_protocol_and_port(self):
         self.assertEqual(
             {"endpoint": "HZVM", "port": "8333", "insecure": "true"},
@@ -137,6 +149,18 @@ class TestS3Cache(unittest.TestCase):
             self.assertEqual(1, cache.main(["endpoint"]))
         self.assertIn("S3_SECRET_ACCESS_KEY is not configured", error.getvalue())
         self.assertNotIn("do-not-log-this-value", error.getvalue())
+
+    def test_verified_accepted_hit_does_not_read_depot(self):
+        with (
+            tempfile.TemporaryDirectory() as temporary,
+            patch.object(cache, "configured_binary_paths", return_value=frozenset({"server/server.dll"})),
+            patch.object(cache, "validate_binary_cache_tree") as inventory,
+            patch.object(cache, "verify_source_binary_root") as hashes,
+            patch.object(cache, "depot_ready", side_effect=AssertionError("depot must stay lazy")),
+        ):
+            cache.verify_restored(Path(temporary), "14190", accepted_hit=True, depot_hit=False)
+            inventory.assert_called_once()
+            hashes.assert_called_once()
 
     def test_selection_paths_bind_generation_and_lease(self):
         identity = "a" * 64

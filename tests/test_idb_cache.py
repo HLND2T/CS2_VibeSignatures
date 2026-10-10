@@ -55,7 +55,7 @@ class TestIdbCache(unittest.TestCase):
             self.assertNotEqual(original, changed_binary)
             self.assertFalse((root / "idb-cache-v2").exists())
 
-    def test_s3_payload_and_fresh_lease_restore_across_independent_workspaces(self):
+    def test_legacy_windows_payload_is_republished_for_linux_consumer(self):
         with tempfile.TemporaryDirectory() as temporary, self._patch_config():
             root = Path(temporary)
             producer, next_run, consumer = (root / name for name in ("producer", "next-run", "consumer"))
@@ -73,8 +73,20 @@ class TestIdbCache(unittest.TestCase):
             initial = ci_s3_cache.selection_layout(
                 gamever, self.owner.repository, "Windows", published["generation"], published["lease_id"], "100", "1"
             )
-            # A generation cache transports only immutable payload/manifest, never the old lease or READY.
-            shutil.copytree(producer / initial["generation-path"], next_run / initial["generation-path"])
+            # Model immutable remote objects: restore a Windows generation,
+            # validate it, then publish the same payload into the shared key.
+            remote = root / "remote"
+            legacy_key = ci_s3_cache.legacy_keys(
+                initial["generation-key"], self.owner.repository, "Linux"
+            ).splitlines()[0]
+            legacy_object = remote / legacy_key
+            shutil.copytree(producer / initial["generation-path"], legacy_object)
+            original = {
+                path.relative_to(legacy_object): path.read_bytes()
+                for path in legacy_object.rglob("*")
+                if path.is_file()
+            }
+            shutil.copytree(legacy_object, next_run / initial["generation-path"])
             owner = LeaseOwner(self.owner.repository, "101", "1")
             hit = idb_cache.probe_cache(
                 repo_root=next_run,
@@ -87,9 +99,25 @@ class TestIdbCache(unittest.TestCase):
             self.assertEqual(published["generation"], hit["generation"])
             self.assertNotEqual(published["lease_id"], hit["lease_id"])
             selected = ci_s3_cache.selection_layout(
-                gamever, owner.repository, "Windows", hit["generation"], hit["lease_id"], "101", "1"
+                gamever, owner.repository, "Linux", hit["generation"], hit["lease_id"], "101", "1"
             )
-            shutil.copytree(next_run / selected["generation-path"], consumer / selected["generation-path"])
+            self.assertEqual(
+                selected,
+                ci_s3_cache.selection_layout(
+                    gamever, owner.repository, "Windows", hit["generation"], hit["lease_id"], "101", "1"
+                ),
+            )
+            shared_object = remote / selected["generation-key"]
+            shutil.copytree(next_run / selected["generation-path"], shared_object)
+            shutil.copytree(shared_object, consumer / selected["generation-path"])
+            self.assertEqual(
+                original,
+                {
+                    path.relative_to(legacy_object): path.read_bytes()
+                    for path in legacy_object.rglob("*")
+                    if path.is_file()
+                },
+            )
             lease_target = consumer / selected["lease-path"]
             lease_target.parent.mkdir(parents=True)
             shutil.copy2(next_run / selected["lease-path"], lease_target)
