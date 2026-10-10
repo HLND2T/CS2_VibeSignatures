@@ -11,7 +11,7 @@ permalink: cs2-vibesignatures/post-change-candidate-lifecycle
 ## Responsibilities
 - `/create-pr`: preserve the explicitly staged source-owned change set and reject tracked legacy/Release output namespaces.
  Binding-job internals are recorded in [[source-artifact-required]].
-- `pr-self-runner.yml`: restore exact warm IDB state, force selected producer groups in an isolated artifact root, verify execution evidence/exact bytes, and derive candidate/gamedata/C++ evidence.
+- `pr-self-runner.yml`: restore exact warm IDB state, force selected producer groups in an isolated artifact root, verify execution evidence and bytes under the anchor drift contract, and derive candidate/gamedata/C++ evidence.
 - `bootstrap-new-gamever-artifacts.yml`: produce an empty-root full artifact candidate and let the protected hosted publisher fast-forward only the matching bump branch.
 - `build-on-self-runner.yml`: after merge, independently rebuild the complete GAMEVER and produce credential-free Release/BinSync candidates.
 ## Involved Files & Symbols
@@ -26,7 +26,7 @@ permalink: cs2-vibesignatures/post-change-candidate-lifecycle
 source + computed artifact closure -> PR head
   -> base-owned plan for prospective tree
     -> light hosted checks, or
-    -> isolated affected-group rebuild -> exact bytes -> candidate/gamedata/C++ evidence
+    -> isolated affected-group rebuild -> bytes modulo accepted anchor drift -> candidate/gamedata/C++ evidence
   -> source-artifact-required + pr-validate
   -> Merge Queue exact-tree revalidation
   -> Release fresh full rebuild and protected publication

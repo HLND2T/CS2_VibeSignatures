@@ -15,7 +15,12 @@ import artifact_diagnostics
 import release_artifact_rebuild as rar
 from bin_artifact_contract import build_game_artifact_inventory
 from ida_analyze_util import canonical_symbol_yaml_bytes
-from tests.gamesymbol_snapshot_test_support import write_binary, write_config, write_source_binary_lock
+from tests.gamesymbol_snapshot_test_support import (
+    GLOBAL_ARTIFACT_PAYLOAD,
+    write_binary,
+    write_config,
+    write_source_binary_lock,
+)
 
 
 class ReleaseArtifactRebuildTests(unittest.TestCase):
@@ -157,6 +162,49 @@ class ReleaseArtifactRebuildTests(unittest.TestCase):
         self.assertIn("Error: original", error.getvalue())
         self.assertIn("disk full", error.getvalue())
 
+    def _drifted_release(self, temp: Path, overrides: dict) -> tuple[Path, dict]:
+        root = temp / "repo"
+        root.mkdir()
+        source_sha = self._repository(root, with_global=True)
+        preparation = rar.prepare_release_rebuild(
+            repo_root=root,
+            source_sha=source_sha,
+            game_version="1",
+            binary_root=root / "bin",
+            staging_root=temp / "rebuild",
+        )
+        shutil.copytree(root / "bin_artifacts", preparation["actual_artifact_root"], dirs_exist_ok=True)
+        drifted = Path(preparation["actual_artifact_root"]) / "1/server/G.windows.yaml"
+        drifted.write_bytes(canonical_symbol_yaml_bytes({**GLOBAL_ARTIFACT_PAYLOAD, **overrides}, category="gv"))
+        self._write_execution_report(preparation)
+        return root, preparation
+
+    def test_verify_accepts_anchor_only_drift_and_binds_committed_artifacts(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root, preparation = self._drifted_release(
+                Path(temporary),
+                {"gv_sig": "48 8D 0D ?? ?? ?? ?? E8 ?? ?? ?? ??", "gv_sig_va": "0x180d0b0bb"},
+            )
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                result = rar.verify_release_rebuild(repo_root=root, preparation=preparation)
+            self.assertIn("Anchor drift accepted for bin_artifacts/1/server/G.windows.yaml", output.getvalue())
+            self.assertIn("gv_sig_va 0x180b7f32c -> 0x180d0b0bb", output.getvalue())
+            # The rebuild is only evidence: the release stays bound to the committed inventory.
+            self.assertEqual(preparation["expected_artifact_inventory_sha256"], result["artifact_inventory_sha256"])
+
+    def test_verify_rejects_resolved_address_drift(self):
+        for overrides in (
+            # The resolved address is pinned, and the displacement operand must stay
+            # inside the anchored instruction.
+            {"gv_va": "0x182226f10", "gv_rva": "0x2226f10"},
+            {"gv_inst_disp": 4},
+        ):
+            with self.subTest(overrides=overrides), tempfile.TemporaryDirectory() as temporary:
+                root, preparation = self._drifted_release(Path(temporary), overrides)
+                with self.assertRaisesRegex(rar.ReleaseArtifactRebuildError, "differ from immutable Git truth"):
+                    rar.verify_release_rebuild(repo_root=root, preparation=preparation)
+
     def _git(self, root: Path, *arguments: str, input_text: str | None = None) -> str:
         result = subprocess.run(
             ["git", "-C", str(root), *arguments],
@@ -169,18 +217,23 @@ class ReleaseArtifactRebuildTests(unittest.TestCase):
             self.fail(result.stderr or f"git {' '.join(arguments)} failed")
         return result.stdout.strip()
 
-    def _repository(self, root: Path) -> str:
+    def _repository(self, root: Path, *, with_global: bool = False) -> str:
         self._git(root, "init", "-b", "main")
         self._git(root, "config", "user.email", "test@example.com")
         self._git(root, "config", "user.name", "Test")
+        skills = [{"name": "find-a", "expected_output": ["A.{platform}.yaml"]}]
+        symbols = [{"name": "A", "category": "func", "platform": "windows"}]
+        if with_global:
+            skills.append({"name": "find-g", "expected_output": ["G.{platform}.yaml"]})
+            symbols.append({"name": "G", "category": "gv", "platform": "windows"})
         write_config(
             root / "configs" / "1.yaml",
             [
                 {
                     "name": "server",
                     "path_windows": "game/bin/win64/server.dll",
-                    "skills": [{"name": "find-a", "expected_output": ["A.{platform}.yaml"]}],
-                    "symbols": [{"name": "A", "category": "func", "platform": "windows"}],
+                    "skills": skills,
+                    "symbols": symbols,
                 }
             ],
         )
@@ -191,6 +244,10 @@ class ReleaseArtifactRebuildTests(unittest.TestCase):
         artifact = root / "bin_artifacts" / "1" / "server" / "A.windows.yaml"
         artifact.parent.mkdir(parents=True)
         artifact.write_bytes(canonical_symbol_yaml_bytes({"func_name": "A", "func_rva": "0x10"}, category="func"))
+        if with_global:
+            artifact.with_name("G.windows.yaml").write_bytes(
+                canonical_symbol_yaml_bytes(GLOBAL_ARTIFACT_PAYLOAD, category="gv")
+            )
         write_binary(root / "bin" / "1" / "server" / "server.dll")
         write_source_binary_lock(root, "1")
         empty_tree = self._git(root, "mktree", input_text="")
@@ -200,7 +257,7 @@ class ReleaseArtifactRebuildTests(unittest.TestCase):
         self._git(root, "commit", "-m", "source")
         return self._git(root, "rev-parse", "HEAD")
 
-    def _write_execution_report(self, preparation: dict) -> None:
+    def _write_execution_report(self, preparation: dict, **overrides) -> None:
         actual = build_game_artifact_inventory(
             repo_root=Path(preparation["actual_artifact_root"]).parent,
             config_path=Path(preparation["analysis_command"][6]),
@@ -213,12 +270,16 @@ class ReleaseArtifactRebuildTests(unittest.TestCase):
             "game_version": preparation["game_version"],
             "prior_gamever": None,
             "artifact_root": preparation["actual_artifact_root"],
+            "old_artifact_root": preparation["analysis_command"][
+                preparation["analysis_command"].index("-oldartifactdir") + 1
+            ],
             "force_all": True,
             "rename": True,
             "required_warm_idb": True,
             "valid": True,
             "inventory": {"file_count": actual.file_count, "inventory_sha256": actual.inventory_sha256},
         }
+        document.update(overrides)
         document["execution_sha256"] = ida_analyze_bin._force_all_digest(document)
         Path(preparation["execution_report"]).write_bytes(rar._canonical_json_bytes(document))
 
@@ -247,6 +308,7 @@ class ReleaseArtifactRebuildTests(unittest.TestCase):
 
             self.assertEqual(source_sha, result["source_sha"])
             self.assertEqual(1, result["file_count"])
+            self.assertEqual(rar.BINDING_RULE_VERSION, result["binding_rule_version"])
             self.assertEqual(result, rar.load_release_rebuild_verification(verification_path))
             with contextlib.redirect_stdout(io.StringIO()):
                 code = rar.main(
@@ -262,6 +324,81 @@ class ReleaseArtifactRebuildTests(unittest.TestCase):
                 )
             self.assertEqual(0, code)
             self.assertFalse((temporary_root / "diagnostics").exists())
+            self._write_execution_report(preparation, prior_gamever="14169")
+            with_prior = rar.verify_release_rebuild(repo_root=root, preparation=preparation)
+            self.assertEqual(result["artifact_inventory_sha256"], with_prior["artifact_inventory_sha256"])
+
+    def test_full_rebuild_cli_disables_baseline_and_verifies_fresh_artifacts(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            temp = Path(temporary)
+            root = temp / "repo"
+            root.mkdir()
+            source_sha = self._repository(root)
+            staging = temp / "rebuild"
+            with contextlib.redirect_stdout(io.StringIO()):
+                code = rar.main(
+                    [
+                        "prepare",
+                        "--repo-root",
+                        str(root),
+                        "--source-sha",
+                        source_sha,
+                        "--gamever",
+                        "1",
+                        "--binary-root",
+                        str(root / "bin"),
+                        "--staging-root",
+                        str(staging),
+                        "--full-rebuild",
+                    ]
+                )
+            self.assertEqual(0, code)
+            preparation_path = staging / "release-rebuild-preparation.json"
+            preparation = rar.load_release_rebuild_preparation(preparation_path)
+            self.assertTrue(preparation["full_rebuild"])
+            self.assertEqual([], list(Path(preparation["actual_artifact_root"]).iterdir()))
+            with (
+                patch("sys.argv", preparation["analysis_command"][2:]),
+                patch.object(ida_analyze_bin, "resolve_oldgamever", side_effect=AssertionError("baseline lookup")),
+                patch.object(
+                    ida_analyze_bin, "_is_major_update_gamever", side_effect=AssertionError("baseline lookup")
+                ),
+            ):
+                args = ida_analyze_bin.parse_args()
+            self.assertIsNone(args.oldgamever)
+            self.assertEqual(preparation["actual_artifact_root"], args.oldartifactdir)
+            self.assertIsNone(ida_analyze_bin._resolve_old_artifact_dir(args, "server"))
+            expected = (root / "bin_artifacts/1/server/A.windows.yaml").read_bytes()
+            shutil.copytree(root / "bin_artifacts", preparation["actual_artifact_root"], dirs_exist_ok=True)
+            self._write_execution_report(preparation)
+            result = rar.verify_release_rebuild(repo_root=root, preparation=preparation_path)
+            self.assertEqual(preparation["expected_artifact_inventory_sha256"], result["artifact_inventory_sha256"])
+            self.assertEqual(expected, (root / "bin_artifacts/1/server/A.windows.yaml").read_bytes())
+
+    def test_full_rebuild_rejects_execution_with_old_version_inputs(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            temp = Path(temporary)
+            root = temp / "repo"
+            root.mkdir()
+            source_sha = self._repository(root)
+            preparation = rar.prepare_release_rebuild(
+                repo_root=root,
+                source_sha=source_sha,
+                game_version="1",
+                binary_root=root / "bin",
+                staging_root=temp / "rebuild",
+                full_rebuild=True,
+            )
+            shutil.copytree(root / "bin_artifacts", preparation["actual_artifact_root"], dirs_exist_ok=True)
+            for overrides in (
+                {"prior_gamever": "14169"},
+                {"old_artifact_root": str(root / "bin_artifacts")},
+                {"old_artifact_root": None},
+            ):
+                with self.subTest(overrides=overrides):
+                    self._write_execution_report(preparation, **overrides)
+                    with self.assertRaisesRegex(rar.ReleaseArtifactRebuildError, "full-rebuild.*old-version"):
+                        rar.verify_release_rebuild(repo_root=root, preparation=preparation)
 
     def test_bind_tracked_artifacts_binds_tracked_tree_and_rejects_drift(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -282,6 +419,7 @@ class ReleaseArtifactRebuildTests(unittest.TestCase):
             binding_path.write_bytes(rar._canonical_json_bytes(binding))
 
             self.assertEqual("tracked", binding["binding_mode"])
+            self.assertEqual(rar.BINDING_RULE_VERSION, binding["binding_rule_version"])
             self.assertEqual(source_sha, binding["source_sha"])
             self.assertEqual(preparation["preparation_sha256"], binding["preparation_sha256"])
             self.assertEqual(1, binding["file_count"])

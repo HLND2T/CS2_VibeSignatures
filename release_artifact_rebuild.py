@@ -24,15 +24,21 @@ from artifact_diagnostics import (
     safe_component,
 )
 from bin_artifact_contract import ArtifactContractError, _git_blob_entries, build_game_artifact_inventory
+from gamesymbol_snapshot_lib.anchor_drift import accepted_anchor_drift, format_anchor_drift
 from gamesymbol_snapshot_lib.config import load_contract
-from gamesymbol_snapshot_lib.errors import SnapshotConfigError, SnapshotMismatchError
+from gamesymbol_snapshot_lib.errors import SnapshotConfigError, SnapshotMismatchError, SnapshotSchemaError
 from gamesymbol_snapshot_lib.operations import collect_binary_metadata
-from gamesymbol_snapshot_lib.paths import is_reparse_point
+from gamesymbol_snapshot_lib.paths import is_reparse_point, path_from_key
 
 
 PREPARATION_SCHEMA_VERSION = 2
 TRACKED_BINDING_SCHEMA_VERSION = 1
 TRACKED_BINDING_MODE = "tracked"
+# Version of the contract that binds the BinSync and warm IDB evidence to the
+# source binding mode. Both producer paths record it in the binding document so
+# a consumer without a source checkout can tell which rule the manifest obeys;
+# manifests published before the rule exist carry no such key.
+BINDING_RULE_VERSION = 1
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 
 
@@ -127,6 +133,7 @@ def prepare_release_rebuild(
     game_version: str,
     binary_root: str | Path,
     staging_root: str | Path,
+    full_rebuild: bool = False,
 ) -> dict:
     repo_root = Path(repo_root).resolve()
     source_sha = source_sha.lower()
@@ -180,7 +187,7 @@ def prepare_release_rebuild(
         "-artifactdir",
         str(actual_root),
         "-oldartifactdir",
-        str(artifact_root),
+        str(actual_root if full_rebuild else artifact_root),
         "-require_warm_idb",
         "-force_all",
         "-execution_report",
@@ -188,6 +195,8 @@ def prepare_release_rebuild(
         "-rename",
         "-debug",
     ]
+    if full_rebuild:
+        command.extend(["-oldgamever", "none"])
     document = {
         "schema_version": PREPARATION_SCHEMA_VERSION,
         "source_sha": source_sha,
@@ -206,6 +215,8 @@ def prepare_release_rebuild(
         "execution_report": str(execution_report),
         "analysis_command": command,
     }
+    if full_rebuild:
+        document["full_rebuild"] = True
     document["preparation_sha256"] = _digest("rebuild-preparation", document)
     _atomic_write(staging_root / "release-rebuild-preparation.json", _canonical_json_bytes(document))
     return document
@@ -222,12 +233,43 @@ def load_release_rebuild_preparation(path: str | Path) -> dict:
         raise ReleaseArtifactRebuildError("release rebuild preparation is not canonical JSON")
     if not isinstance(document, dict) or document.get("schema_version") != PREPARATION_SCHEMA_VERSION:
         raise ReleaseArtifactRebuildError("release rebuild preparation schema is invalid")
+    if not isinstance(document.get("full_rebuild", False), bool):
+        raise ReleaseArtifactRebuildError("release rebuild preparation full_rebuild flag is invalid")
     digest = document.get("preparation_sha256")
     unsigned = dict(document)
     unsigned.pop("preparation_sha256", None)
     if digest != _digest("rebuild-preparation", unsigned):
         raise ReleaseArtifactRebuildError("release rebuild preparation digest mismatch")
     return document
+
+
+def _accepted_anchor_drift(preparation: dict, actual, repo_root: Path) -> dict[str, dict] | None:
+    """Map every drifting rebuilt artifact to its changed anchor fields, or fail closed.
+
+    A rebuilt payload may differ from the immutable Git truth only inside its anchor
+    group, and only while the symbol identity and its resolved address or offset
+    match. The checkout is already proven equal to the source SHA blobs, so it can
+    serve the expected bytes.
+    """
+    game_version = str(preparation["game_version"])
+    prefix = f"bin_artifacts/{game_version}/"
+    expected_game_root = repo_root / "bin_artifacts" / game_version
+    actual_game_root = Path(preparation["actual_artifact_root"]) / game_version
+
+    def read(game_root: Path, key: str) -> bytes | None:
+        if not key.startswith(prefix):
+            return None
+        try:
+            return path_from_key(game_root, key.removeprefix(prefix)).read_bytes()
+        except (OSError, SnapshotSchemaError):
+            return None
+
+    return accepted_anchor_drift(
+        {item["path"]: (item["size"], item["sha256"]) for item in preparation["expected_files"]},
+        {item.path: (item.size, item.sha256) for item in actual.files},
+        read_expected=lambda key: read(expected_game_root, key),
+        read_actual=lambda key: read(actual_game_root, key),
+    )
 
 
 def _load_execution_report(path: Path, preparation: dict) -> dict:
@@ -256,6 +298,11 @@ def _load_execution_report(path: Path, preparation: dict) -> dict:
         or Path(report.get("artifact_root", "")).resolve() != Path(preparation["actual_artifact_root"]).resolve()
     ):
         raise ReleaseArtifactRebuildError("force-all execution report does not prove the required release run")
+    if preparation.get("full_rebuild") and (
+        report["prior_gamever"] is not None
+        or Path(report.get("old_artifact_root") or "").resolve() != Path(preparation["actual_artifact_root"]).resolve()
+    ):
+        raise ReleaseArtifactRebuildError("full-rebuild execution report must not use old-version artifact inputs")
     return report
 
 
@@ -319,18 +366,28 @@ def _verify_release_rebuild(*, repo_root: str | Path, preparation: dict | str | 
         raise ReleaseArtifactRebuildError(f"fresh release artifact contract failed: {exc}") from exc
     actual_files = {item.path: item.to_dict() for item in actual.files}
     expected_files = {item["path"]: item for item in preparation["expected_files"]}
+    drift: dict[str, dict] = {}
     if actual_files != expected_files:
-        raise ReleaseArtifactRebuildError("fresh release artifacts differ from immutable Git truth:")
-    if actual.inventory_sha256 != preparation["expected_artifact_inventory_sha256"]:
+        accepted = _accepted_anchor_drift(preparation, actual, repo_root)
+        if accepted is None:
+            raise ReleaseArtifactRebuildError("fresh release artifacts differ from immutable Git truth:")
+        drift = accepted
+    elif actual.inventory_sha256 != preparation["expected_artifact_inventory_sha256"]:
         raise ReleaseArtifactRebuildError("fresh release aggregate artifact inventory digest mismatch")
+    for path in sorted(drift):
+        print(f"Anchor drift accepted for {path}: {format_anchor_drift(drift[path])}")
     result = {
         "schema_version": 1,
+        "binding_rule_version": BINDING_RULE_VERSION,
         "source_sha": preparation["source_sha"],
         "game_version": preparation["game_version"],
         "preparation_sha256": preparation["preparation_sha256"],
         "binary_lock_sha256": preparation["binary_lock_sha256"],
         "execution_sha256": execution["execution_sha256"],
-        "artifact_inventory_sha256": actual.inventory_sha256,
+        # The rebuild only proves reproducibility. The committed artifacts stay the
+        # release's source truth, so an accepted anchor drift never changes the
+        # inventory a Release binds and publishes.
+        "artifact_inventory_sha256": preparation["expected_artifact_inventory_sha256"],
         "file_count": actual.file_count,
     }
     result["verification_sha256"] = _digest("rebuild-verification", result)
@@ -424,6 +481,7 @@ def bind_tracked_artifacts(*, repo_root: str | Path, preparation: dict | str | P
     result = {
         "schema_version": TRACKED_BINDING_SCHEMA_VERSION,
         "binding_mode": TRACKED_BINDING_MODE,
+        "binding_rule_version": BINDING_RULE_VERSION,
         "source_sha": preparation["source_sha"],
         "game_version": game_version,
         "preparation_sha256": preparation["preparation_sha256"],
@@ -532,6 +590,7 @@ def parse_args(argv=None) -> argparse.Namespace:
     prepare.add_argument("--gamever", required=True)
     prepare.add_argument("--binary-root", default="bin")
     prepare.add_argument("--staging-root", required=True)
+    prepare.add_argument("--full-rebuild", action="store_true", help="Disable old-version artifact and signature reuse")
     verify = subparsers.add_parser("verify")
     verify.add_argument("--repo-root", default=".")
     verify.add_argument("--preparation", required=True)
@@ -554,6 +613,7 @@ def main(argv=None) -> int:
                 game_version=args.gamever,
                 binary_root=args.binary_root,
                 staging_root=args.staging_root,
+                full_rebuild=args.full_rebuild,
             )
         elif args.command == "bind-tracked":
             result = bind_tracked_artifacts(repo_root=args.repo_root, preparation=args.preparation)
