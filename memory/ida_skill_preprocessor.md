@@ -51,6 +51,7 @@ Entry point `preprocess_single_skill_via_mcp(...)`:
   - vtable scripts: declare `TARGET_CLASS_NAME`, pass `vtable_class_names=[TARGET_CLASS_NAME]`
   - mixed scripts: can pass multiple parameter groups at once
 - Special scripts (e.g., CTriggerPush_Touch, CBaseTrigger_StartTouch, CPointTeleport_Teleport) implement custom logic and directly use lower-level methods.
+- Entity-input handler skills (`DEFINE_INPUTFUNC` legacy and 14182+ `_API` input registration descriptors, handler offsets and ABI caveats): see [[_define_inputfunc]].
 
 ## Common Capabilities in ida_analyze_util.py
 

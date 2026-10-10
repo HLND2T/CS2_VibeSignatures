@@ -53,8 +53,10 @@ jobs:
       PR_NUMBER: ${{ inputs.pull_request_number }}
       IDB_CACHE_GENERATION: ${{ needs.warmup-idb.outputs.generation }}
       IDB_CACHE_KEY: ${{ needs.warmup-idb.outputs.cache_key }}
+      IDB_CACHE_LEASE_ID: ${{ needs.warmup-idb.outputs.lease_id }}
+      IDB_CACHE_LEASE_SHA256: ${{ needs.warmup-idb.outputs.lease_sha256 }}
       BINARY_LOCK_SHA256: ${{ needs.warmup-idb.outputs.binary_lock_sha256 }}
-      PERSISTED_WORKSPACE: ${{ secrets.PERSISTED_WORKSPACE }}
+      CI_CACHE_ROOT: ${{ github.workspace }}/.ci-cache/store
       CS2VIBE_AGENT: ${{ secrets.CS2VIBE_AGENT }}
       CS2VIBE_AGENT_MODEL: ${{ secrets.CS2VIBE_AGENT_MODEL }}
       CS2VIBE_LLM_APIKEY: ${{ secrets.CS2VIBE_LLM_APIKEY }}
@@ -88,16 +90,67 @@ jobs:
           git submodule update --init --recursive --depth 1 --jobs 8
           if ($LASTEXITCODE -ne 0) { throw "Trusted SDK submodule initialization failed." }
       - name: Set up uv
-        uses: astral-sh/setup-uv@v9.0.0
+        uses: hzqst/setup-uv@ed37cb7af6cd89cb8e2ea2f20674ba1d05dc7b35 # S3 cache backend
+        with:
+          # enable-cache: auto resolves to false on self-hosted runners, so the uv
+          # cache is shared through the existing repository S3 bucket instead.
+          enable-cache: true
+          cache-s3-bucket: actions-cache-cs2-vibesignatures
+        env:
+          S3_ENDPOINT_URL: ${{ secrets.S3_ENDPOINT_URL }}
+          S3_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY_ID }}
+          S3_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
       - name: Download bound trusted plan
         uses: actions/download-artifact@v5
         with:
           name: ${{ inputs.plan_artifact_name }}
           path: ${{ runner.temp }}/source-artifact-plan
+      - name: Checkout cache transport tools from workflow source
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: .cache-tools
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Prepare clean job-local cache layout
+        id: s3-layout
+        shell: pwsh
+        run: |
+          uv run --project .cache-tools python .cache-tools/ci_s3_cache.py prepare
+          if ($LASTEXITCODE -ne 0) { throw 'Unable to prepare S3 cache layout.' }
+      - name: Restore accepted binaries from S3
+        id: s3-accepted
+        uses: ./.cache-tools/.github/actions/s3-cache
+        with:
+          endpoint-url: ${{ secrets.S3_ENDPOINT_URL }}
+          access-key: ${{ secrets.S3_ACCESS_KEY_ID }}
+          secret-key: ${{ secrets.S3_SECRET_ACCESS_KEY }}
+          operation: restore
+          key: ${{ steps.s3-layout.outputs.accepted-key }}
+          path: ${{ steps.s3-layout.outputs.accepted-path }}
+      - name: Restore depot binaries from S3
+        id: s3-depot
+        if: steps.s3-accepted.outputs.cache-hit != 'true'
+        uses: ./.cache-tools/.github/actions/s3-cache
+        with:
+          endpoint-url: ${{ secrets.S3_ENDPOINT_URL }}
+          access-key: ${{ secrets.S3_ACCESS_KEY_ID }}
+          secret-key: ${{ secrets.S3_SECRET_ACCESS_KEY }}
+          operation: restore
+          key: ${{ steps.s3-layout.outputs.depot-key }}
+          path: ${{ steps.s3-layout.outputs.depot-path }}
+      - name: Verify restored binary caches against source lock
+        shell: pwsh
+        env:
+          CACHE_ACCEPTED_HIT: ${{ steps.s3-accepted.outputs.cache-hit }}
+          CACHE_DEPOT_HIT: ${{ steps.s3-depot.outputs.cache-hit }}
+        run: |
+          uv run --project .cache-tools python .cache-tools/ci_s3_cache.py verify-restored
+          if ($LASTEXITCODE -ne 0) { throw 'Restored S3 binary cache failed verification.' }
       - name: Restore binary-only accepted state
         shell: pwsh
         run: |
-          if ([string]::IsNullOrWhiteSpace($env:PERSISTED_WORKSPACE)) { throw "PERSISTED_WORKSPACE is not configured." }
+          if ([string]::IsNullOrWhiteSpace($env:CI_CACHE_ROOT)) { throw "CI_CACHE_ROOT is not configured." }
           if ($env:BINARY_LOCK_SHA256 -notmatch '^sha256:[0-9a-f]{64}$') {
             throw "Warmup omitted the source binary lock identity."
           }
@@ -108,12 +161,40 @@ jobs:
             throw "Bootstrap warmup binary lock identity differs from the trusted plan."
           }
           $restoreJson = uv run python accepted_bin.py restore --repo-root "${{ github.workspace }}" `
-            --persisted-root "$env:PERSISTED_WORKSPACE" --gamever "$env:GAMEVER" --required
+            --persisted-root "$env:CI_CACHE_ROOT" --gamever "$env:GAMEVER" --required
           if ($LASTEXITCODE -ne 0) { throw "Failed to restore the exact accepted binary allowlist." }
           $restore = $restoreJson | ConvertFrom-Json
           if ($restore.binary_lock_sha256 -ne $env:BINARY_LOCK_SHA256) {
             throw "Bootstrap accepted-bin restore differs from the trusted plan lock."
           }
+      - name: Resolve exact S3 generation and lease paths
+        id: s3-selection
+        shell: pwsh
+        run: |
+          uv run --project .cache-tools python .cache-tools/ci_s3_cache.py selection
+          if ($LASTEXITCODE -ne 0) { throw 'Invalid warm IDB transport selection.' }
+      - name: Restore exact warm IDB payload from S3
+        id: s3-generation
+        uses: ./.cache-tools/.github/actions/s3-cache
+        with:
+          endpoint-url: ${{ secrets.S3_ENDPOINT_URL }}
+          access-key: ${{ secrets.S3_ACCESS_KEY_ID }}
+          secret-key: ${{ secrets.S3_SECRET_ACCESS_KEY }}
+          operation: restore
+          key: ${{ steps.s3-selection.outputs.generation-key }}
+          path: ${{ steps.s3-selection.outputs.generation-path }}
+          required: 'true'
+      - name: Restore current-run IDB lease from S3
+        id: s3-lease
+        uses: ./.cache-tools/.github/actions/s3-cache
+        with:
+          endpoint-url: ${{ secrets.S3_ENDPOINT_URL }}
+          access-key: ${{ secrets.S3_ACCESS_KEY_ID }}
+          secret-key: ${{ secrets.S3_SECRET_ACCESS_KEY }}
+          operation: restore
+          key: ${{ steps.s3-selection.outputs.lease-key }}
+          path: ${{ steps.s3-selection.outputs.lease-path }}
+          required: 'true'
       - name: Restore exact warm IDB generation
         shell: pwsh
         run: |
@@ -122,9 +203,11 @@ jobs:
           if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($idaVersion)) { throw "Unable to resolve IDA version." }
           "IDA_PYTHON=$pythonExe" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
           "IDA_VERSION=$idaVersion" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-          uv run python idb_cache.py restore `
+          uv run --project .cache-tools python .cache-tools/idb_cache.py restore `
+            --repository "$env:GITHUB_REPOSITORY" --run-id "$env:GITHUB_RUN_ID" --run-attempt "$env:GITHUB_RUN_ATTEMPT" `
+            --lease-id "$env:IDB_CACHE_LEASE_ID" --lease-sha256 "$env:IDB_CACHE_LEASE_SHA256" `
             --repo-root "${{ github.workspace }}" `
-            --persisted-root "$env:PERSISTED_WORKSPACE" `
+            --persisted-root "$env:CI_CACHE_ROOT" `
             --gamever "$env:GAMEVER" `
             --generation "$env:IDB_CACHE_GENERATION" `
             --cache-key "$env:IDB_CACHE_KEY" `
@@ -307,6 +390,9 @@ jobs:
         run: |
           $pull = gh api "repos/${{ github.repository }}/pulls/${{ inputs.pull_request_number }}" | ConvertFrom-Json
           if ($LASTEXITCODE -ne 0 -or $pull.state -ne "open") { throw "Bootstrap PR is no longer open." }
+          # PR metadata can retain an older base SHA; publication needs the live default-branch ref.
+          $baseSha = gh api "repos/${{ github.repository }}/git/ref/heads/${{ github.event.repository.default_branch }}" --jq '.object.sha'
+          if ($LASTEXITCODE -ne 0) { throw "Unable to resolve the current default-branch SHA." }
           $remoteHead = [string]$pull.head.sha
           $artifactDigest = $env:CANDIDATE_ARTIFACT_DIGEST.ToLowerInvariant()
           if ($artifactDigest -match '^[0-9a-f]{64}$') { $artifactDigest = "sha256:$artifactDigest" }
@@ -320,7 +406,7 @@ jobs:
             --repository "${{ github.repository }}" `
             --default-branch "${{ github.event.repository.default_branch }}" `
             --base-repository "$($pull.base.repo.full_name)" --base-ref "$($pull.base.ref)" `
-            --base-sha "$($pull.base.sha)" `
+            --base-sha "$baseSha" `
             --head-repository "$($pull.head.repo.full_name)" --head-ref "$($pull.head.ref)" `
             --head-sha "${{ inputs.head_sha }}" --current-remote-head "$remoteHead" `
             --pr-number "${{ inputs.pull_request_number }}" `
@@ -359,8 +445,11 @@ jobs:
           $pull = gh api "repos/${{ github.repository }}/pulls/${{ inputs.pull_request_number }}" | ConvertFrom-Json
           if ($LASTEXITCODE -ne 0 -or $pull.head.sha -ne "${{ inputs.head_sha }}" -or `
               $pull.base.repo.full_name -ne "${{ github.repository }}" -or `
-              $pull.base.ref -ne "${{ github.event.repository.default_branch }}" -or `
-              $pull.base.sha -ne "${{ inputs.base_sha }}") {
+              $pull.base.ref -ne "${{ github.event.repository.default_branch }}") {
+            throw "PR base or head drifted immediately before protected push."
+          }
+          $baseSha = gh api "repos/${{ github.repository }}/git/ref/heads/${{ github.event.repository.default_branch }}" --jq '.object.sha'
+          if ($LASTEXITCODE -ne 0 -or $baseSha -ne "${{ inputs.base_sha }}") {
             throw "PR base or head drifted immediately before protected push."
           }
           $askpass = Join-Path $env:RUNNER_TEMP "source-artifact-askpass.sh"
@@ -384,7 +473,31 @@ jobs:
             Remove-Item Env:GIT_ASKPASS -ErrorAction SilentlyContinue
             Remove-Item Env:GIT_PASSWORD -ErrorAction SilentlyContinue
           }
-          $after = gh api "repos/${{ github.repository }}/pulls/${{ inputs.pull_request_number }}" | ConvertFrom-Json
-          if ($LASTEXITCODE -ne 0 -or $after.head.sha -ne "${{ steps.commit.outputs.commit-sha }}") {
-            throw "Remote PR head does not match the published artifact commit."
+      - name: Verify published bootstrap PR head
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ inputs.pull_request_number }}
+          EXPECTED_HEAD_REF: bump-download/${{ inputs.gamever }}
+          EXPECTED_HEAD_SHA: ${{ steps.commit.outputs.commit-sha }}
+        run: |-
+          $pollIntervalMs = 2000
+          $deadline = (Get-Date).AddMilliseconds(60000)
+          # A successful push can precede the PR API's head update, so wait for the
+          # published head to converge instead of reading it once.
+          while ($true) {
+            $pull = gh api "repos/$env:REPOSITORY/pulls/$env:PR_NUMBER" | ConvertFrom-Json
+            if ($LASTEXITCODE -ne 0) { throw "Published artifact pull request could not be read back." }
+            if ($pull.state -ne "open" -or `
+                $pull.head.ref -ne $env:EXPECTED_HEAD_REF -or `
+                $pull.head.repo.full_name -ne $env:REPOSITORY) {
+              throw "Published artifact pull request identity or state changed."
+            }
+            if ($pull.head.sha -eq $env:EXPECTED_HEAD_SHA) { break }
+            $remainingMs = [int](($deadline - (Get-Date)).TotalMilliseconds)
+            if ($remainingMs -le 0) {
+              throw "Timed out waiting for PR #$env:PR_NUMBER head: expected $env:EXPECTED_HEAD_SHA, observed $($pull.head.sha)."
+            }
+            Start-Sleep -Milliseconds ([Math]::Min($pollIntervalMs, $remainingMs))
           }

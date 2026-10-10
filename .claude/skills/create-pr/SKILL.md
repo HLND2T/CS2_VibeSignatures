@@ -4,7 +4,6 @@ description: |
   Create a GitHub pull request from staged task changes or an already-committed current branch. Deliver source/config/
   reference changes together with their computed source-owned `bin_artifacts` closure. PR validation routing is owned
   by the default-branch trusted workflow; snapshots, gamedata, and manifests are Release-derived only.
-disable-model-invocation: true
 ---
 
 # Create Pull Request

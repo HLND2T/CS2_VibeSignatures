@@ -38,7 +38,7 @@ Use the local planner and repository artifact contract to compute and verify the
 4. Pushes the `dev*` branch and opens one PR against `main`.
 5. Waits for the stable `source-artifact-required` and `pr-validate` checks on the latest head.
 
-Full validation binds the exact prospective merge tree, rebuilds affected producer groups into a checkout-external root, and compares the complete actual inventory with Git blobs byte-for-byte. Merge Queue repeats that proof for the final queued tree.
+Full validation binds the exact prospective merge tree, rebuilds affected producer groups into a checkout-external root, and compares the complete actual inventory with Git blobs. The comparison is byte-for-byte except for the locator fields an `LLM_DECOMPILE` producer may legitimately resample (`gv_sig`/`gv_sig_va`/`gv_inst_*`, `vfunc_sig`/`vfunc_sig_disp`, `offset_sig`/`offset_sig_disp`): the symbol identity and its resolved address or offset must still match exactly. See the [anchor drift contract](ci-cd.md#anchor-drift-contract). Merge Queue repeats that proof for the final queued tree.
 
 For a new GAMEVER, the initial PR may enter `bootstrap_required`. The protected bootstrap publisher may append only a fast-forward artifact commit to the matching `bump-download/<GAMEVER>` branch. That artifact-bearing head must then pass normal exact-byte validation; the bootstrap run cannot satisfy the required check by itself.
 

@@ -133,6 +133,76 @@ class ReleasePublishTests(unittest.TestCase):
             publish_mock.assert_called_once()
             self.assertEqual(manifest["source_sha"], tag["value"])
 
+    def test_rebuild_free_release_publishes_without_touching_any_binsync_remote(self) -> None:
+        # A tracked (rebuild-free) bundle exports no BinSync candidate, so the
+        # publisher has no intended remote state to hold itself against and must
+        # never reach for one.
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle, manifest, verified = self._bundle(root)
+            manifest["binsync"] = None
+            manifest_path = bundle / "release-manifest-14174.json"
+            write_canonical_json(manifest_path, manifest)
+            verified["manifest_sha256"] = release_publish.sha256_file(manifest_path)
+            verified["binsync_target_state_digest"] = None
+            release = {"value": None}
+
+            def create_release(_repository: str, release_tag: str, source_sha: str, title: str, notes: str) -> dict:
+                release["value"] = {
+                    "id": 11,
+                    "tag_name": release_tag,
+                    "target_commitish": source_sha,
+                    "name": title,
+                    "body": notes,
+                    "draft": True,
+                    "prerelease": False,
+                    "assets": [],
+                }
+                return copy.deepcopy(release["value"])
+
+            remote_bytes: dict[str, bytes] = {}
+
+            def upload(_repository: str, _tag: str, path: Path) -> None:
+                remote_bytes[path.name] = path.read_bytes()
+                release["value"]["assets"].append({"name": path.name, "size": path.stat().st_size})
+
+            def download(_repository: str, _tag: str, name: str, destination: Path) -> Path:
+                path = destination / name
+                path.write_bytes(remote_bytes[name])
+                return path
+
+            with (
+                patch.dict("os.environ", {"GH_TOKEN": "token"}),
+                patch.object(release_publish, "verify_release_bundle", return_value=verified),
+                patch.object(release_publish, "_remote_heads", side_effect=AssertionError("BinSync remote contacted")),
+                patch.object(release_publish, "_tag_target", return_value=manifest["source_sha"]),
+                patch.object(release_publish, "_create_tag"),
+                patch.object(
+                    release_publish,
+                    "_release_state",
+                    side_effect=lambda _repository, _tag, **_kwargs: copy.deepcopy(release["value"]),
+                ),
+                patch.object(release_publish, "_create_draft_release", side_effect=create_release),
+                patch.object(release_publish, "_upload_asset", side_effect=upload),
+                patch.object(release_publish, "_download_asset", side_effect=download),
+                patch.object(
+                    release_publish,
+                    "_publish_release",
+                    side_effect=lambda _repository, _id: release["value"].update(draft=False),
+                ),
+            ):
+                result = release_publish.publish_release(
+                    bundle_root=bundle,
+                    repo_root=root,
+                    expected_manifest_digest=verified["manifest_sha256"],
+                    expected_bundle_digest=verified["bundle_inventory_sha256"],
+                )
+
+            self.assertEqual("published", result["status"])
+            self.assertIn(
+                "- BinSync target state: not published (rebuild-free source-owned release)\n", release["value"]["body"]
+            )
+
     def test_published_release_asset_drift_fails_without_clobber(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
