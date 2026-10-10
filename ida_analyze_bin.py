@@ -41,6 +41,7 @@ import inspect
 import json
 import os
 import posixpath
+import signal
 import socket
 import subprocess
 import sys
@@ -167,6 +168,8 @@ class ManagedMcpProcess:
     port: int
     preexisting_parts: frozenset[Path]
     windows_job: bool
+    pgid: int | None = None
+    posix_group_stopped: bool = False
 
     def __getattr__(self, name):
         return getattr(self.process, name)
@@ -1497,11 +1500,42 @@ def quit_ida_gracefully(process, host, port, *, expected_binary, debug=False):
     )
 
 
+def _stop_posix_mcp_group(process):
+    """Stop the group we created, including workers whose supervisor already exited."""
+    pgid = process.pgid
+    if pgid is None:
+        return
+    for sig, timeout in ((signal.SIGTERM, MCP_SHUTDOWN_TIMEOUT), (signal.SIGKILL, MCP_FORCE_KILL_TIMEOUT)):
+        try:
+            os.killpg(pgid, sig)
+        except ProcessLookupError:
+            pass
+        deadline = time.monotonic() + timeout
+        while True:
+            process.poll()
+            try:
+                os.killpg(pgid, 0)
+            except ProcessLookupError:
+                process.wait(timeout=MCP_FORCE_KILL_TIMEOUT)
+                process.pgid = None
+                process.posix_group_stopped = True
+                return
+            if time.monotonic() >= deadline:
+                break
+            time.sleep(MCP_RELEASE_POLL_INTERVAL)
+    raise McpCleanupError(f"Owned MCP process group {pgid} remained after SIGKILL")
+
+
 def stop_idalib_mcp_process(process, debug=False, *, quarantine=True):
-    """Stop our launcher, then verify that its Job released the IDB."""
+    """Stop only our process tree, then verify port and database cleanup."""
     if process is None:
         return
     managed = isinstance(process, ManagedMcpProcess)
+    if managed and process.pgid is not None:
+        try:
+            _stop_posix_mcp_group(process)
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            raise McpCleanupError(f"Unable to stop owned MCP process group: {exc}") from exc
     if process.poll() is not None and not managed:
         return
     if process.poll() is None:
@@ -1526,6 +1560,8 @@ def stop_idalib_mcp_process(process, debug=False, *, quarantine=True):
     if managed and process.windows_job:
         if not wait_for_ida_lock_release(process.binary_path, MCP_SHUTDOWN_TIMEOUT):
             raise McpCleanupError(f"IDA still holds an IDB for {process.binary_path} after Job shutdown")
+        _settle_unpacked_ida_database(process, quarantine=quarantine)
+    elif managed and process.posix_group_stopped:
         _settle_unpacked_ida_database(process, quarantine=quarantine)
 
 
@@ -3442,10 +3478,14 @@ def start_idalib_mcp(
                 *cmd,
             ]
         if debug or stdout is not None or stderr is not None:
-            child = subprocess.Popen(launch_cmd, stdout=stdout, stderr=stderr)
+            child = subprocess.Popen(launch_cmd, stdout=stdout, stderr=stderr, start_new_session=not windows_job)
         else:
-            child = subprocess.Popen(launch_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        process = ManagedMcpProcess(child, binary, host, port, preexisting_parts, windows_job)
+            child = subprocess.Popen(
+                launch_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=not windows_job
+            )
+        process = ManagedMcpProcess(
+            child, binary, host, port, preexisting_parts, windows_job, None if windows_job else child.pid
+        )
 
         # Wait for MCP server to be ready
         print(f"  Waiting for MCP server on {host}:{port}...")

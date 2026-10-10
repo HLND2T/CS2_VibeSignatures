@@ -17,7 +17,7 @@ jobs:
   bump:
     if: github.repository == 'HLND2T/CS2_VibeSignatures'
     environment: win64
-    runs-on: [self-hosted, windows, x64]
+    runs-on: [self-hosted, cross-platform]
     outputs:
       updated: ${{ steps.bump.outputs.updated }}
       skip_pr: ${{ steps.duplicate.outputs.skip_pr }}
@@ -30,6 +30,8 @@ jobs:
     env:
       DEPOTDOWNLOADER_STEAM_USERNAME: ${{ secrets.DEPOTDOWNLOADER_STEAM_USERNAME }}
       DEPOTDOWNLOADER_STEAM_PASSWORD: ${{ secrets.DEPOTDOWNLOADER_STEAM_PASSWORD }}
+      CI_KIND: bump
+      PYTHONUTF8: '1'
     steps:
       - name: Checkout main
         id: checkout
@@ -52,30 +54,27 @@ jobs:
           S3_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY_ID }}
           S3_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
 
+      - name: Checkout workflow-owned runner tools
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: .cache-tools
+          persist-credentials: false
       - name: Synchronize git refs
         id: sync-refs
-        shell: pwsh
-        run: |
-          $workspace = (Resolve-Path -LiteralPath $env:GITHUB_WORKSPACE).Path -replace '\\', '/'
-          git config --global --add safe.directory "$workspace"
-          git fetch origin --prune --prune-tags --tags "+refs/heads/*:refs/remotes/origin/*"
-          $baseSha = (git rev-parse HEAD).Trim().ToLowerInvariant()
-          if ($LASTEXITCODE -ne 0 -or $baseSha -ne $env:GITHUB_SHA.ToLowerInvariant()) {
-            throw "Bump checkout drifted from the immutable workflow SHA."
-          }
-
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: bump-sync
       - name: Configure git
         id: configure-git
-        shell: pwsh
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: configure-git
       - name: Preview download bump
         id: preview
-        shell: pwsh
-        run: uv run bump_download.py -config download.yaml -configs-dir configs -depotdir cs2_depot -username "$env:DEPOTDOWNLOADER_STEAM_USERNAME" -password "$env:DEPOTDOWNLOADER_STEAM_PASSWORD" -remember-password -dry-run -github-output "$env:GITHUB_OUTPUT"
-
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: bump-preview
       - name: Check duplicate bump target
         id: duplicate
         if: steps.preview.outputs.updated == 'true'
@@ -130,72 +129,27 @@ jobs:
       - name: Bump download config
         id: bump
         if: steps.preview.outputs.updated != 'true' || steps.duplicate.outputs.skip_pr != 'true'
-        shell: pwsh
-        run: uv run bump_download.py -config download.yaml -configs-dir configs -depotdir cs2_depot -username "$env:DEPOTDOWNLOADER_STEAM_USERNAME" -password "$env:DEPOTDOWNLOADER_STEAM_PASSWORD" -remember-password -github-output "$env:GITHUB_OUTPUT"
-
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: bump-apply
       - name: Enroll source lock from a fresh checkout-external depot
         id: enroll-lock
         if: steps.bump.outputs.updated == 'true' && steps.duplicate.outputs.skip_pr != 'true'
-        shell: pwsh
         env:
           CANDIDATE_GAMEVER: ${{ steps.bump.outputs.tag }}
           CANDIDATE_SOURCE_GAMEVER: ${{ steps.bump.outputs.analysis_config_source_gamever }}
-        run: |
-          $tag = $env:CANDIDATE_GAMEVER
-          $freshRoot = Join-Path $env:RUNNER_TEMP "bump-binary-enrollment\$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT-$tag"
-          if (Test-Path -LiteralPath $freshRoot) {
-            throw "Fresh binary enrollment root already exists: $freshRoot"
-          }
-          $depotRoot = Join-Path $freshRoot "depot"
-          $binRoot = Join-Path $freshRoot "bin"
-          New-Item -ItemType Directory -Path $depotRoot -Force | Out-Null
-          New-Item -ItemType Directory -Path $binRoot -Force | Out-Null
-          uv run python download_depot.py -tag "$tag" -config download.yaml `
-            -configyaml "configs/$tag.yaml" -depotdir "$depotRoot" `
-            -username "$env:DEPOTDOWNLOADER_STEAM_USERNAME" `
-            -password "$env:DEPOTDOWNLOADER_STEAM_PASSWORD" -remember-password
-          if ($LASTEXITCODE -ne 0) { throw "Fresh depot download failed for $tag." }
-          uv run python copy_depot_bin.py -gamever "$tag" -platform all-platform `
-            -config "configs/$tag.yaml" -depotdir "$depotRoot" -bindir "$binRoot"
-          if ($LASTEXITCODE -ne 0) { throw "Fresh configured binary copy failed for $tag." }
-          $enrollmentJson = uv run python bump_download_candidate.py enroll-lock `
-            --repo-root "$env:GITHUB_WORKSPACE" --base-sha "$env:GITHUB_SHA" `
-            --gamever "$tag" --source-gamever "$env:CANDIDATE_SOURCE_GAMEVER" `
-            --repository "$env:GITHUB_REPOSITORY" --binary-root (Join-Path $binRoot $tag)
-          if ($LASTEXITCODE -ne 0) { throw "Source-owned binary lock enrollment failed for $tag." }
-          $enrollment = $enrollmentJson | ConvertFrom-Json
-          if ($enrollment.binary_lock_sha256 -notmatch '^sha256:[0-9a-f]{64}$') {
-            throw "Binary lock enrollment omitted its canonical digest."
-          }
-          "binary_lock_sha256=$($enrollment.binary_lock_sha256)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: bump-enroll
       - name: Package credential-free download bump candidate
         if: steps.bump.outputs.updated == 'true' && steps.duplicate.outputs.skip_pr != 'true'
         id: package
-        shell: pwsh
         env:
           CANDIDATE_GAMEVER: ${{ steps.bump.outputs.tag }}
           CANDIDATE_SOURCE_GAMEVER: ${{ steps.bump.outputs.analysis_config_source_gamever }}
-        run: |
-          $tag = $env:CANDIDATE_GAMEVER
-          if ([string]::IsNullOrWhiteSpace($tag)) {
-            throw "steps.bump.outputs.tag is empty."
-          }
-          $candidate = Join-Path $env:RUNNER_TEMP "bump-download-candidate\$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
-          uv run python bump_download_candidate.py build `
-            --repo-root "$env:GITHUB_WORKSPACE" `
-            --base-sha "$env:GITHUB_SHA" `
-            --gamever "$tag" `
-            --source-gamever "$env:CANDIDATE_SOURCE_GAMEVER" `
-            --repository "$env:GITHUB_REPOSITORY" `
-            --workflow-run-id "$env:GITHUB_RUN_ID" `
-            --workflow-run-attempt "$env:GITHUB_RUN_ATTEMPT" `
-            --output-root "$candidate"
-          if ($LASTEXITCODE -ne 0) { throw "Download bump candidate validation failed." }
-          $artifactName = "bump-download-candidate-$tag-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
-          "artifact_name=$artifactName" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "run_attempt=$env:GITHUB_RUN_ATTEMPT" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "CANDIDATE_ROOT=$candidate" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: bump-package
       - name: Upload exact download bump candidate
         id: upload
         if: steps.bump.outputs.updated == 'true' && steps.duplicate.outputs.skip_pr != 'true'
