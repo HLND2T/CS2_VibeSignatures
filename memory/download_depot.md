@@ -74,3 +74,9 @@ G -->|FileNotFoundError / CalledProcessError| I
 - Locally it is reached through `init_gamebin.py`'s depot fallback (`run_depot_fallback` → `depot_download_command`), which runs `uv run download_depot.py -tag <GAMEVER> -depotdir cs2_depot -config download.yaml -configyaml <config>`; the CI workflows then call `init_gamebin.py prepare`, so downloads land in `<root>/<GAMEVER>` under the persisted depot root.
 - `.github/workflows/bump-download.yml` uses it directly for fresh checkout-external lock enrollment, passing an explicit `-depotdir`.
 - `TestDownloadDepot` in `tests/test_download_depot.py` covers exact matching, missing/duplicate tags, branch passthrough, and the failure path when `DepotDownloader` is missing.
+
+## Credential boundary (issue #1130 / PR #1131)
+
+- `bump_download.py` (bump discovery/enrollment) only ever requests the **current** default-branch manifest, which Steam serves to anonymous (dedicated-server) accounts. It no longer accepts or passes `-username`/`-password`/`-remember-password`, and `.github/workflows/bump-download.yml` no longer defines `DEPOTDOWNLOADER_STEAM_USERNAME`/`DEPOTDOWNLOADER_STEAM_PASSWORD`. The old credentials were actively failing CI (`SteamKit2.AsyncJobFailedException` → `InitializeSteam failed`).
+- `download_depot.py` (and the `init_gamebin.py` depot fallback, release/warmup paths) **keeps** credentials: it can download historical GAMEVER manifest ids from `download.yaml`, and anonymous accounts cannot fetch old manifests (they return `Encountered 401 for depot manifest ...`).
+- See [[cs2-vibesignatures/lessons/steam-anonymous-depot-access-only-serves-the-current-manifest]] for the evidence and boundary rule.

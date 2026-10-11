@@ -1,5 +1,6 @@
 name: Build On Self Runner
-run-name: ${{ inputs.source_artifact_mode == 'full-rebuild' && 'Full-rebuild release' || 'Release' }} ${{ inputs.publication_mode || 'publish' }} ${{ inputs.gamever || github.event.client_payload.gamever }}
+run-name: ${{ inputs.source_artifact_mode == 'full-rebuild' && 'Full-rebuild release' || 'Release' }} ${{
+  inputs.publication_mode || 'publish' }} ${{ inputs.gamever || github.event.client_payload.gamever }}
 on:
   workflow_call:
     inputs:
@@ -199,13 +200,13 @@ jobs:
       && (needs.warmup-idb.result == 'success' || needs.warmup-idb.result == 'skipped')
       && (needs.ensure-binsync-remotes.result == 'success' || needs.ensure-binsync-remotes.result == 'skipped') }}
     environment: win64
-    runs-on: [self-hosted, windows, x64]
+    runs-on: [self-hosted, cross-platform]
     outputs:
       binsync_artifact_name: ${{ steps.binsync-prepare.outputs.artifact_name }}
       binsync_artifact_digest: ${{ steps.upload-binsync-candidate.outputs.artifact-digest }}
       ida_runtime_identity: ${{ steps.resolve-consumer-ida.outputs.ida_runtime_identity }}
-      release_artifact_name: ${{ steps.build-release-bundle.outputs.artifact_name }}
-      release_artifact_digest: ${{ steps.upload-release-bundle.outputs.artifact-digest }}
+      prepared_artifact_id: ${{ steps.upload-release-bundle.outputs.artifact-id }}
+      prepared_artifact_digest: ${{ steps.upload-release-bundle.outputs.artifact-digest }}
     env:
       GAMEVER: ${{ needs.preflight.outputs.gamever }}
       SOURCE_SHA: ${{ needs.preflight.outputs.source_sha }}
@@ -227,6 +228,9 @@ jobs:
       DEPOTDOWNLOADER_STEAM_USERNAME: ${{ secrets.DEPOTDOWNLOADER_STEAM_USERNAME }}
       DEPOTDOWNLOADER_STEAM_PASSWORD: ${{ secrets.DEPOTDOWNLOADER_STEAM_PASSWORD }}
       CI_CACHE_ROOT: ${{ github.workspace }}/.ci-cache/store
+      CI_KIND: release
+      PYTHONUTF8: '1'
+      SOURCE_ARTIFACT_MODE: ${{ inputs.source_artifact_mode }}
     steps:
       - name: Checkout exact generator source
         id: checkout-source
@@ -248,17 +252,6 @@ jobs:
           S3_ENDPOINT_URL: ${{ secrets.S3_ENDPOINT_URL }}
           S3_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY_ID }}
           S3_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
-      - name: Sync and update submodules via runner Git cache proxy
-        id: sync-submodules
-        working-directory: ${{ github.workspace }}
-        shell: pwsh
-        run: |
-          # Runner Git config routes HTTPS GitHub reads through http://HZVM:8080/.
-          # Keep canonical URLs: pushInsteadOf routes writes directly to GitHub.
-          git submodule sync --recursive
-          if ($LASTEXITCODE -ne 0) { throw "git submodule sync failed." }
-          git submodule update --init --recursive --depth 1 --jobs 8
-          if ($LASTEXITCODE -ne 0) { throw "git submodule update failed." }
       - name: Checkout cache transport tools from workflow source
         uses: actions/checkout@v5
         with:
@@ -266,12 +259,16 @@ jobs:
           path: .cache-tools
           fetch-depth: 1
           persist-credentials: false
+      - name: Sync and update submodules via runner Git cache proxy
+        id: sync-submodules
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: sync-submodules
       - name: Prepare clean job-local cache layout
         id: s3-layout
-        shell: pwsh
-        run: |
-          uv run --project .cache-tools python .cache-tools/ci_s3_cache.py prepare
-          if ($LASTEXITCODE -ne 0) { throw 'Unable to prepare S3 cache layout.' }
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: cache-prepare
       - name: Restore accepted binaries from S3
         id: s3-accepted
         uses: ./.cache-tools/.github/actions/s3-cache
@@ -282,9 +279,10 @@ jobs:
           operation: restore
           key: ${{ steps.s3-layout.outputs.accepted-key }}
           path: ${{ steps.s3-layout.outputs.accepted-path }}
+          restore-keys: ${{ steps.s3-layout.outputs.accepted-restore-keys }}
       - name: Restore depot binaries from S3
         id: s3-depot
-        if: steps.s3-accepted.outputs.cache-hit != 'true'
+        if: steps.s3-accepted.outputs.cache-restored != 'true'
         uses: ./.cache-tools/.github/actions/s3-cache
         with:
           endpoint-url: ${{ secrets.S3_ENDPOINT_URL }}
@@ -293,79 +291,31 @@ jobs:
           operation: restore
           key: ${{ steps.s3-layout.outputs.depot-key }}
           path: ${{ steps.s3-layout.outputs.depot-path }}
+          restore-keys: ${{ steps.s3-layout.outputs.depot-restore-keys }}
       - name: Verify restored binary caches against source lock
-        shell: pwsh
         env:
-          CACHE_ACCEPTED_HIT: ${{ steps.s3-accepted.outputs.cache-hit }}
-          CACHE_DEPOT_HIT: ${{ steps.s3-depot.outputs.cache-hit }}
-        run: |
-          uv run --project .cache-tools python .cache-tools/ci_s3_cache.py verify-restored
-          if ($LASTEXITCODE -ne 0) { throw 'Restored S3 binary cache failed verification.' }
+          CACHE_ACCEPTED_HIT: ${{ steps.s3-accepted.outputs.cache-restored }}
+          CACHE_DEPOT_HIT: ${{ steps.s3-depot.outputs.cache-restored }}
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: cache-verify-restored
       - name: Prepare local accepted binaries
         id: prepare-workspace
-        shell: pwsh
-        run: |
-          $trackedArtifacts = "${{ inputs.source_artifact_mode }}" -eq 'tracked'
-          if ($env:SOURCE_BINARY_LOCK_SHA256 -notmatch '^sha256:[0-9a-f]{64}$') {
-            throw "Immutable source preflight did not publish a binary lock identity."
-          }
-          if (-not $trackedArtifacts -and $env:WARMUP_BINARY_LOCK_SHA256 -ne $env:SOURCE_BINARY_LOCK_SHA256) {
-            throw "Release warmup binary lock identity differs from immutable source preflight."
-          }
-          $workspace = [IO.Path]::GetFullPath("${{ github.workspace }}")
-          $workspaceBin = Join-Path $workspace "bin"
-          New-Item -ItemType Directory -Path $workspaceBin -Force | Out-Null
-          if ((Get-Item $workspaceBin -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) {
-            throw "Workspace bin must be a real directory"
-          }
-          # Without a warmup job the accepted-bin cache may legitimately be cold;
-          # init_gamebin.py prepare then provisions the binaries and verifies them
-          # against the same source-owned binary lock.
-          $restoreArgs = @(
-            '--repo-root', "$workspace",
-            '--persisted-root', "$env:CI_CACHE_ROOT",
-            '--gamever', "$env:GAMEVER"
-          )
-          if (-not $trackedArtifacts) { $restoreArgs += '--required' }
-          $restoreJson = uv run python accepted_bin.py restore @restoreArgs
-          if ($LASTEXITCODE -ne 0) { throw "Failed to restore the exact accepted binary allowlist." }
-          $restore = $restoreJson | ConvertFrom-Json
-          if ($restore.binary_lock_sha256 -ne $env:SOURCE_BINARY_LOCK_SHA256) {
-            throw "Release accepted-bin restore differs from immutable source preflight."
-          }
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: accepted-restore
       - name: Resolve consumer IDA identity
         id: resolve-consumer-ida
         if: inputs.source_artifact_mode != 'tracked'
-        shell: pwsh
-        run: |
-          $pythonExe = (Get-Command python -ErrorAction SilentlyContinue).Source
-          $idalibMcpExe = (Get-Command idalib-mcp -ErrorAction SilentlyContinue).Source
-          if ([string]::IsNullOrWhiteSpace($pythonExe) -or [string]::IsNullOrWhiteSpace($idalibMcpExe)) {
-            throw "python with idalib and idalib-mcp must both be available on PATH."
-          }
-          $pythonExe = [IO.Path]::GetFullPath($pythonExe)
-          $idalibMcpExe = [IO.Path]::GetFullPath($idalibMcpExe)
-          $pythonDir = Split-Path -Parent $pythonExe
-          $mcpDir = Split-Path -Parent $idalibMcpExe
-          $pythonScriptsDir = Join-Path $pythonDir "Scripts"
-          if (-not [StringComparer]::OrdinalIgnoreCase.Equals($mcpDir, $pythonDir) -and `
-              -not [StringComparer]::OrdinalIgnoreCase.Equals($mcpDir, $pythonScriptsDir)) {
-            throw "python and idalib-mcp resolve to different installations: python=$pythonExe idalib-mcp=$idalibMcpExe"
-          }
-          $idaVersion = (& $pythonExe warmup_idb_worker.py --print-ida-version).Trim()
-          if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($idaVersion)) {
-            throw "Failed to resolve the consumer IDA kernel version."
-          }
-          "IDA_VERSION=$idaVersion" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-          "IDA_PYTHON=$pythonExe" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-          "ida_runtime_identity=$idaVersion" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: resolve-consumer-ida
       - name: Resolve exact S3 generation and lease paths
         id: s3-selection
         if: inputs.source_artifact_mode != 'tracked'
-        shell: pwsh
-        run: |
-          uv run --project .cache-tools python .cache-tools/ci_s3_cache.py selection
-          if ($LASTEXITCODE -ne 0) { throw 'Invalid warm IDB transport selection.' }
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: cache-selection
       - name: Restore exact warm IDB payload from S3
         id: s3-generation
         if: inputs.source_artifact_mode != 'tracked'
@@ -393,53 +343,28 @@ jobs:
       - name: Restore required published warm IDB cache
         id: restore-idb-cache
         if: inputs.source_artifact_mode != 'tracked'
-        shell: pwsh
-        run: |
-          uv run --project .cache-tools python .cache-tools/idb_cache.py restore `
-            --repository "$env:GITHUB_REPOSITORY" --run-id "$env:GITHUB_RUN_ID" --run-attempt "$env:GITHUB_RUN_ATTEMPT" `
-            --lease-id "$env:IDB_CACHE_LEASE_ID" --lease-sha256 "$env:IDB_CACHE_LEASE_SHA256" `
-            --repo-root "${{ github.workspace }}" `
-            --persisted-root "$env:CI_CACHE_ROOT" `
-            --gamever "$env:GAMEVER" `
-            --generation "$env:IDB_CACHE_GENERATION" `
-            --cache-key "$env:IDB_CACHE_KEY" `
-            --ida-version "$env:IDA_VERSION"
-          if ($LASTEXITCODE -ne 0) { throw "Required published IDB cache restore failed." }
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: idb-restore
       - name: Resolve immutable analysis config
         id: resolve-config
-        shell: pwsh
-        run: |
-          $config = [IO.Path]::GetFullPath((Join-Path $env:GITHUB_WORKSPACE "configs\$env:GAMEVER.yaml"))
-          if (-not (Test-Path -LiteralPath $config -PathType Leaf)) {
-            throw "Missing analysis config for GAMEVER $env:GAMEVER`: $config"
-          }
-          $hash = (Get-FileHash -LiteralPath $config -Algorithm SHA256).Hash.ToLowerInvariant()
-          "ANALYSIS_CONFIG=$config" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-          "ANALYSIS_CONFIG_SHA256=$hash" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-          Write-Host "Analysis config: $config"
-          Write-Host "Analysis config SHA-256: $hash"
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: resolve-config
       - name: Check formatting and run repository test suites
         id: test-suites
-        shell: pwsh
-        run: |
-          uv run python format_repo_files.py --check
-          if ($LASTEXITCODE -ne 0) { throw "Repository formatting check failed." }
-          # `all` runs every discovered test, so the per-area suites would only
-          # re-run the same cases and roughly double this step's wall clock.
-          uv run python tests/run_test_suite.py all -b --durations 30
-          if ($LASTEXITCODE -ne 0) { throw "Repository test suite failed: all" }
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: repo-tests
       - name: Initialize binaries without remote BinSync access
         id: init-binaries
-        shell: pwsh
-        run: |
-          uv run init_gamebin.py prepare "$env:GAMEVER" --binsync skip
-          if ($LASTEXITCODE -ne 0) { throw "init_gamebin.py prepare failed with exit code $LASTEXITCODE" }
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: init-binaries
       - name: Stage verified accepted binaries for S3
-        shell: pwsh
-        run: |
-          uv run --project .cache-tools python .cache-tools/accepted_bin.py sync `
-            --repo-root "${{ github.workspace }}" --persisted-root "$env:CI_CACHE_ROOT" --gamever "$env:GAMEVER"
-          if ($LASTEXITCODE -ne 0) { throw 'Accepted binary cache validation failed.' }
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: accepted-stage
       - name: Save verified accepted binaries to S3
         if: steps.s3-accepted.outputs.cache-hit != 'true'
         uses: ./.cache-tools/.github/actions/s3-cache
@@ -452,10 +377,9 @@ jobs:
           path: ${{ steps.s3-layout.outputs.accepted-path }}
       - name: Check configured depot files for publication
         id: s3-depot-ready
-        shell: pwsh
-        run: |
-          uv run --project .cache-tools python .cache-tools/ci_s3_cache.py depot-ready
-          if ($LASTEXITCODE -ne 0) { throw 'Depot cache validation failed.' }
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: cache-depot-ready
       - name: Save verified depot binaries to S3
         if: steps.s3-depot.outputs.cache-hit != 'true' && steps.s3-depot-ready.outputs.ready == 'true'
         uses: ./.cache-tools/.github/actions/s3-cache
@@ -468,50 +392,15 @@ jobs:
           path: ${{ steps.s3-layout.outputs.depot-path }}
       - name: Prepare fresh checkout-external release artifact rebuild
         id: prepare-artifact-rebuild
-        shell: pwsh
-        run: |
-          $staging = Join-Path $env:RUNNER_TEMP "release-artifact-rebuild\$env:BUILD_ID"
-          $rebuildArgs = @()
-          if ("${{ inputs.source_artifact_mode }}" -eq 'full-rebuild') {
-            $rebuildArgs += '--full-rebuild'
-          }
-          uv run python release_artifact_rebuild.py prepare `
-            --repo-root "${{ github.workspace }}" --source-sha "$env:SOURCE_SHA" `
-            --gamever "$env:GAMEVER" --binary-root bin --staging-root "$staging" @rebuildArgs
-          if ($LASTEXITCODE -ne 0) { throw "Release artifact rebuild preflight failed." }
-          $preparation = Join-Path $staging "release-rebuild-preparation.json"
-          $verification = Join-Path $staging "release-rebuild-verification.json"
-          $document = Get-Content -LiteralPath $preparation -Raw | ConvertFrom-Json
-          "RELEASE_REBUILD_PREPARATION=$preparation" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-          "RELEASE_REBUILD_VERIFICATION=$verification" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-          "ACTUAL_ARTIFACT_ROOT=$($document.actual_artifact_root)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-          # The rebuild only proves reproducibility, and its artifacts may carry an accepted anchor drift, so
-          # everything a Release publishes is derived from the committed tree instead.
-          $releaseRoot = Join-Path "${{ github.workspace }}" "bin_artifacts"
-          "RELEASE_ARTIFACT_ROOT=$releaseRoot" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-          "FORCE_ALL_EXECUTION_REPORT=$($document.execution_report)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-          $diagnostics = Join-Path $env:RUNNER_TEMP "release-rebuild-diagnostics\${{ github.run_id }}-${{ github.run_attempt }}-$env:GAMEVER"
-          "RELEASE_REBUILD_DIAGNOSTICS=$diagnostics" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: release-prepare
       - name: Analyze platforms concurrently with force-all and rename
         id: analyze
         if: inputs.source_artifact_mode != 'tracked'
-        shell: pwsh
-        run: |
-          $fullRebuild = "${{ inputs.source_artifact_mode }}" -eq 'full-rebuild'
-          $oldArtifactRoot = if ($fullRebuild) { $env:ACTUAL_ARTIFACT_ROOT } else { 'bin_artifacts' }
-          $args = @(
-            '-gamever', $env:GAMEVER,
-            '-configyaml', $env:ANALYSIS_CONFIG,
-            '-bindir', 'bin',
-            '-artifactdir', $env:ACTUAL_ARTIFACT_ROOT,
-            '-oldartifactdir', $oldArtifactRoot,
-            '-execution_report', $env:FORCE_ALL_EXECUTION_REPORT,
-            '-parallel_platforms', (Join-Path $env:RUNNER_TEMP "release-platform-analysis-${{ github.run_id }}-${{ github.run_attempt }}-$env:GAMEVER"),
-            '-require_warm_idb', '-force_all', '-rename', '-debug'
-          )
-          if ($fullRebuild) { $args += @('-oldgamever', 'none') }
-          uv run ida_analyze_bin.py @args
-          if ($LASTEXITCODE -ne 0) { throw "ida_analyze_bin.py failed with exit code $LASTEXITCODE" }
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: release-analyze
       - name: Upload platform analysis logs and execution records
         if: always() && steps.analyze.outcome != 'skipped'
         uses: actions/upload-artifact@v4
@@ -526,16 +415,12 @@ jobs:
       - name: Verify fresh artifacts reproduce immutable Git truth
         id: verify-artifact-rebuild
         if: inputs.source_artifact_mode != 'tracked'
-        shell: pwsh
-        run: |
-          uv run python release_artifact_rebuild.py verify `
-            --repo-root "${{ github.workspace }}" `
-            --preparation "$env:RELEASE_REBUILD_PREPARATION" `
-            --output "$env:RELEASE_REBUILD_VERIFICATION" `
-            --diagnostics-dir "$env:RELEASE_REBUILD_DIAGNOSTICS"
-          if ($LASTEXITCODE -ne 0) { throw "Fresh release artifacts differ from Git truth beyond accepted anchor drift." }
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: release-verify
       - name: Upload release rebuild verification failure evidence
-        if: ${{ inputs.source_artifact_mode != 'tracked' && failure() && steps.verify-artifact-rebuild.outcome == 'failure' }}
+        if: ${{ inputs.source_artifact_mode != 'tracked' && failure() && steps.verify-artifact-rebuild.outcome ==
+          'failure' }}
         uses: actions/upload-artifact@v4
         with:
           name: release-rebuild-diagnostics-${{ env.GAMEVER }}-${{ github.run_id }}-${{ github.run_attempt }}
@@ -546,151 +431,30 @@ jobs:
       - name: Bind tracked source-owned artifacts
         id: bind-tracked
         if: inputs.source_artifact_mode == 'tracked'
-        shell: pwsh
-        run: |
-          $binding = Join-Path (Split-Path -Parent $env:RELEASE_REBUILD_PREPARATION) "tracked-artifact-binding.json"
-          uv run python release_artifact_rebuild.py bind-tracked `
-            --repo-root "${{ github.workspace }}" `
-            --preparation "$env:RELEASE_REBUILD_PREPARATION" `
-            --output "$binding"
-          if ($LASTEXITCODE -ne 0) { throw "Tracked source-owned artifact binding failed." }
-          $trackedRoot = Join-Path "${{ github.workspace }}" "bin_artifacts"
-          "RELEASE_TRACKED_BINDING=$binding" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-          "ACTUAL_ARTIFACT_ROOT=$trackedRoot" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-          "RELEASE_ARTIFACT_ROOT=$trackedRoot" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: release-bind
       - name: Prepare local-only BinSync candidate without remote writes
         id: binsync-prepare
         if: inputs.source_artifact_mode != 'tracked'
-        shell: pwsh
-        run: |
-          $candidate = Join-Path $env:RUNNER_TEMP "release-binsync-candidate\$env:BUILD_ID"
-          $artifactName = "binsync-candidate-$env:SOURCE_SHA-$env:GAMEVER"
-          uv run python push_binsync_symbols.py "$env:GAMEVER" `
-            --prepare-only `
-            --candidate-dir "$candidate" `
-            --artifactdir "$env:RELEASE_ARTIFACT_ROOT" `
-            --preparation "$env:RELEASE_REBUILD_PREPARATION" `
-            --release-version "$env:GAMEVER" `
-            --build-id "$env:BUILD_ID" `
-            --ida-runtime-identity "$env:IDA_VERSION" `
-            --actions-artifact-name "$artifactName" `
-            --binsync-user release-automation `
-            --python "$env:IDA_PYTHON"
-          if ($LASTEXITCODE -ne 0) { throw "Local-only BinSync candidate preparation failed." }
-          "BINSYNC_CANDIDATE_ROOT=$candidate" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-          "artifact_name=$artifactName" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: release-binsync
       - name: Build immutable symbol and gamedata candidates
         id: build-candidates
-        shell: pwsh
-        run: |
-          $root = Join-Path $env:RUNNER_TEMP "release-candidates\$env:BUILD_ID"
-          New-Item -ItemType Directory -Path $root -Force | Out-Null
-          $candidate = Join-Path $root "$env:GAMEVER.yaml"
-          $session = Join-Path $root "$env:GAMEVER.session.json"
-          $gamedataRoot = Join-Path $root "gamedata-candidate"
-          $gamedataSession = Join-Path $root "$env:GAMEVER.gamedata.session.json"
-          $metadata = Join-Path $root "$env:GAMEVER.metadata.yaml"
-          $cppLog = Join-Path $root "$env:GAMEVER.cpp-validation.log"
-          "CANDIDATE_ROOT=$root" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-          "ACTUAL_CANDIDATE_SNAPSHOT=$candidate" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-          "CANDIDATE_SESSION=$session" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-          "GAMEDATA_CANDIDATE_ROOT=$gamedataRoot" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-          "GAMEDATA_SESSION=$gamedataSession" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-          "CANDIDATE_METADATA=$metadata" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-          "CPP_VALIDATION_LOG=$cppLog" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-          uv run gamesymbol_candidate.py build -gamever "$env:GAMEVER" -bindir bin `
-            -artifactdir "$env:RELEASE_ARTIFACT_ROOT" -configyaml "$env:ANALYSIS_CONFIG" `
-            -output "$candidate" -session "$session" -last-publish-time "$env:RELEASE_PUBLISH_TIME"
-          if ($LASTEXITCODE -ne 0) { throw "candidate build failed with exit code $LASTEXITCODE" }
-          uv run gamesymbol_candidate.py guard -candidate "$candidate" -session "$session"
-          if ($LASTEXITCODE -ne 0) { throw "candidate guard failed before gamedata" }
-          uv run gamedata_candidate.py build -gamever "$env:GAMEVER" -build-id "$env:BUILD_ID" `
-            -snapshot "$candidate" -configyaml "$env:ANALYSIS_CONFIG" `
-            -candidate-root "$gamedataRoot" -session "$gamedataSession" -debug
-          if ($LASTEXITCODE -ne 0) { throw "gamedata candidate build failed with exit code $LASTEXITCODE" }
-          uv run gamedata_candidate.py guard -session "$gamedataSession"
-          if ($LASTEXITCODE -ne 0) { throw "gamedata candidate guard failed" }
-          uv run gamesymbol_metadata.py generate -gamever "$env:GAMEVER" `
-            -configyaml "$env:ANALYSIS_CONFIG" -output "$metadata"
-          if ($LASTEXITCODE -ne 0) { throw "metadata candidate generation failed" }
-          uv run gamesymbol_candidate.py guard -candidate "$candidate" -session "$session"
-          if ($LASTEXITCODE -ne 0) { throw "candidate guard failed after gamedata" }
-          uv run gamesymbol_candidate.py mark -candidate "$candidate" -session "$session" -step gamedata
-          if ($LASTEXITCODE -ne 0) { throw "failed to mark gamedata validation" }
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: release-candidates
       - name: Bind source-owned SDK for C++ ABI validation
         id: select-sdk
-        shell: pwsh
-        run: |
-          $sdkPath = Join-Path $env:GITHUB_WORKSPACE "hl2sdk_cs2"
-          $safeSdkPath = ([IO.Path]::GetFullPath($sdkPath) -replace '\\', '/')
-          git config --global --add safe.directory "$safeSdkPath"
-          if ($LASTEXITCODE -ne 0) { throw "Failed to trust hl2sdk_cs2 Git directory." }
-          $sourceGitlink = (git rev-parse "$($env:SOURCE_SHA):hl2sdk_cs2").Trim().ToLowerInvariant()
-          $checkedOutSha = (git -C $sdkPath rev-parse HEAD).Trim().ToLowerInvariant()
-          if ($LASTEXITCODE -ne 0 -or $sourceGitlink -notmatch '^[0-9a-f]{40}$' -or $checkedOutSha -ne $sourceGitlink) {
-            throw "Checked-out hl2sdk_cs2 does not match the immutable source gitlink."
-          }
-          "SDK_ABI_REF=source-gitlink" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-          "SDK_ABI_SHA=$sourceGitlink" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-          Write-Host "C++ ABI SDK identity: source gitlink SHA=$sourceGitlink"
-      - name: Run C++ tests
-        id: cpp-tests
-        shell: pwsh
-        run: |
-          uv run gamesymbol_candidate.py guard -candidate "$env:ACTUAL_CANDIDATE_SNAPSHOT" -session "$env:CANDIDATE_SESSION"
-          if ($LASTEXITCODE -ne 0) { throw "candidate guard failed before C++ tests" }
-          & uv run run_cpp_tests.py -gamever "$env:GAMEVER" `
-            -snapshot "$env:ACTUAL_CANDIDATE_SNAPSHOT" `
-            -configyaml "$env:ANALYSIS_CONFIG" -debug 2>&1 | Tee-Object -LiteralPath "$env:CPP_VALIDATION_LOG"
-          if ($LASTEXITCODE -ne 0) { throw "run_cpp_tests.py failed with exit code $LASTEXITCODE" }
-          uv run gamesymbol_candidate.py guard -candidate "$env:ACTUAL_CANDIDATE_SNAPSHOT" -session "$env:CANDIDATE_SESSION"
-          if ($LASTEXITCODE -ne 0) { throw "candidate guard failed after C++ tests" }
-          uv run gamesymbol_candidate.py mark -candidate "$env:ACTUAL_CANDIDATE_SNAPSHOT" -session "$env:CANDIDATE_SESSION" -step cpp_tests
-          if ($LASTEXITCODE -ne 0) { throw "failed to mark C++ validation" }
-      - name: Build immutable Release bundle and source-bound manifest
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: select-sdk
+      - name: Prepare source-bound Release assets for hosted ABI validation
         id: build-release-bundle
-        shell: pwsh
-        run: |
-          $bundle = Join-Path $env:RUNNER_TEMP "release-bundle\$env:BUILD_ID"
-          $artifactName = "release-bundle-$env:SOURCE_SHA-$env:GAMEVER"
-          $trackedArtifacts = "${{ inputs.source_artifact_mode }}" -eq "tracked"
-          $sourceBinding = if ($trackedArtifacts) {
-            @("--tracked-binding", $env:RELEASE_TRACKED_BINDING)
-          } else {
-            @("--rebuild-verification", $env:RELEASE_REBUILD_VERIFICATION)
-          }
-          # A tracked binding analyzes nothing, so it must claim neither a BinSync
-          # candidate nor a warm IDB identity; release_bundle.py enforces both ways.
-          $analysisEvidence = if ($trackedArtifacts) {
-            @()
-          } else {
-            @(
-              "--binsync-candidate-root", $env:BINSYNC_CANDIDATE_ROOT,
-              "--ida-runtime-identity", $env:IDA_VERSION,
-              "--warm-idb-generation", $env:IDB_CACHE_GENERATION,
-              "--warm-idb-cache-key", $env:IDB_CACHE_KEY
-            )
-          }
-          uv run python release_bundle.py build `
-            --repo-root "${{ github.workspace }}" `
-            --bundle-root "$bundle" `
-            --repository "${{ github.repository }}" `
-            --release-version "$env:GAMEVER" `
-            --build-id "$env:BUILD_ID" `
-            --preparation "$env:RELEASE_REBUILD_PREPARATION" `
-            @sourceBinding `
-            --snapshot "$env:ACTUAL_CANDIDATE_SNAPSHOT" `
-            --metadata "$env:CANDIDATE_METADATA" `
-            --gamedata-candidate-root "$env:GAMEDATA_CANDIDATE_ROOT" `
-            --gamedata-session "$env:GAMEDATA_SESSION" `
-            --cpp-validation-log "$env:CPP_VALIDATION_LOG" `
-            @analysisEvidence `
-            --actions-artifact-name "$artifactName" `
-            --cpp-sdk-ref "$env:SDK_ABI_REF" `
-            --cpp-sdk-sha "$env:SDK_ABI_SHA"
-          if ($LASTEXITCODE -ne 0) { throw "Immutable Release bundle construction failed." }
-          "RELEASE_BUNDLE_ROOT=$bundle" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-          "artifact_name=$artifactName" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: release-bundle-prepare
       - name: Upload credential-free internal BinSync candidate
         id: upload-binsync-candidate
         if: inputs.source_artifact_mode != 'tracked'
@@ -702,7 +466,7 @@ jobs:
           compression-level: 0
           retention-days: 30
           overwrite: true
-      - name: Upload immutable Release bundle candidate
+      - name: Upload prepared Release assets
         id: upload-release-bundle
         uses: actions/upload-artifact@v4
         with:
@@ -718,17 +482,9 @@ jobs:
       - name: Clean ephemeral candidate state
         id: cleanup
         if: always()
-        shell: pwsh
-        run: |-
-          if ($env:CANDIDATE_ROOT -and (Test-Path -LiteralPath $env:CANDIDATE_ROOT)) {
-            Remove-Item -LiteralPath $env:CANDIDATE_ROOT -Recurse -Force
-          }
-          if ($env:BINSYNC_CANDIDATE_ROOT -and (Test-Path -LiteralPath $env:BINSYNC_CANDIDATE_ROOT)) {
-            Remove-Item -LiteralPath $env:BINSYNC_CANDIDATE_ROOT -Recurse -Force
-          }
-          if ($env:RELEASE_BUNDLE_ROOT -and (Test-Path -LiteralPath $env:RELEASE_BUNDLE_ROOT)) {
-            Remove-Item -LiteralPath $env:RELEASE_BUNDLE_ROOT -Recurse -Force
-          }
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: cleanup
   verify-binsync:
     needs: [preflight, build]
     if: inputs.source_artifact_mode != 'tracked'
@@ -742,9 +498,9 @@ jobs:
       artifact_name: ${{ needs.build.outputs.binsync_artifact_name }}
       artifact_digest: ${{ needs.build.outputs.binsync_artifact_digest }}
   verify-release:
-    needs: [preflight, build, verify-binsync]
+    needs: [preflight, build, verify-binsync, finalize-release]
     if: >-
-      ${{ !cancelled() && needs.build.result == 'success'
+      ${{ !cancelled() && needs.build.result == 'success' && needs.finalize-release.result == 'success'
       && (needs.verify-binsync.result == 'success' || needs.verify-binsync.result == 'skipped') }}
     uses: ./.github/workflows/verify-release-bundle.yml
     with:
@@ -752,8 +508,8 @@ jobs:
       gamever: ${{ needs.preflight.outputs.gamever }}
       release_version: ${{ needs.preflight.outputs.gamever }}
       build_id: ${{ needs.preflight.outputs.source_sha }}
-      artifact_name: ${{ needs.build.outputs.release_artifact_name }}
-      artifact_digest: ${{ needs.build.outputs.release_artifact_digest }}
+      artifact_name: ${{ needs.finalize-release.outputs.release_artifact_name }}
+      artifact_digest: ${{ needs.finalize-release.outputs.release_artifact_digest }}
       binsync_candidate_digest: ${{ needs.verify-binsync.outputs.publication_digest }}
       binsync_target_state_digest: ${{ needs.verify-binsync.outputs.target_state_digest }}
   check-publication-target:
@@ -796,7 +552,7 @@ jobs:
       artifact_digest: ${{ needs.build.outputs.binsync_artifact_digest }}
     secrets: inherit
   publish-release:
-    needs: [preflight, build, verify-binsync, verify-release, publish-binsync]
+    needs: [preflight, build, verify-binsync, verify-release, publish-binsync, finalize-release]
     # verify-binsync/publish-binsync are skipped whole for a tracked binding, so
     # this gate accepts "skipped" but never "failure" for either of them.
     if: >-
@@ -814,8 +570,8 @@ jobs:
       gamever: ${{ needs.preflight.outputs.gamever }}
       release_version: ${{ needs.preflight.outputs.gamever }}
       build_id: ${{ needs.preflight.outputs.source_sha }}
-      artifact_name: ${{ needs.build.outputs.release_artifact_name }}
-      artifact_digest: ${{ needs.build.outputs.release_artifact_digest }}
+      artifact_name: ${{ needs.finalize-release.outputs.release_artifact_name }}
+      artifact_digest: ${{ needs.finalize-release.outputs.release_artifact_digest }}
       binsync_candidate_digest: ${{ needs.verify-binsync.outputs.publication_digest }}
       binsync_target_state_digest: ${{ needs.verify-binsync.outputs.target_state_digest }}
       verified_manifest_digest: ${{ needs.verify-release.outputs.manifest_digest }}
@@ -845,3 +601,78 @@ jobs:
             echo '- BinSync candidate digest: `${{ needs.verify-binsync.outputs.publication_digest || 'not exported (rebuild-free)' }}`'
             echo '- No BinSync refs, tags, Releases, or Release assets were published.'
           } >> "$GITHUB_STEP_SUMMARY"
+  cpp-validation:
+    if: ${{ !cancelled() && needs.preflight.result == 'success' && needs.build.result == 'success' }}
+    needs:
+      - preflight
+      - build
+    uses: ./.github/workflows/cpp-validation.yml
+    with:
+      source_sha: ${{ needs.preflight.outputs.source_sha }}
+      gamever: ${{ needs.preflight.outputs.gamever }}
+      artifact_id: ${{ needs.build.outputs.prepared_artifact_id }}
+      artifact_digest: ${{ needs.build.outputs.prepared_artifact_digest }}
+      scope: release-build
+      input_path: cpp-inputs
+  finalize-release:
+    if: ${{ !cancelled() && needs.build.result == 'success' && needs.cpp-validation.result == 'success' }}
+    runs-on: ubuntu-latest
+    env:
+      SOURCE_SHA: ${{ needs.preflight.outputs.source_sha }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.preflight.outputs.source_sha }}
+          fetch-depth: 0
+          submodules: recursive
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v9.0.0
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: .cache-tools
+          persist-credentials: false
+      - name: Bind exact current-run prepared-release
+        shell: bash --noprofile --norc -euo pipefail {0}
+        env:
+          CI_ARTIFACT_ID: ${{ needs.build.outputs.prepared_artifact_id }}
+          CI_ARTIFACT_DIGEST: ${{ needs.build.outputs.prepared_artifact_digest }}
+        run: uv run --project .cache-tools python .cache-tools/ci_runner.py bind-artifact
+      - uses: actions/download-artifact@v5
+        with:
+          artifact-ids: ${{ needs.build.outputs.prepared_artifact_id }}
+          path: ${{ runner.temp }}/prepared-release
+      - name: Bind exact current-run cpp-evidence
+        shell: bash --noprofile --norc -euo pipefail {0}
+        env:
+          CI_ARTIFACT_ID: ${{ needs.cpp-validation.outputs.artifact_id }}
+          CI_ARTIFACT_DIGEST: ${{ needs.cpp-validation.outputs.artifact_digest }}
+        run: uv run --project .cache-tools python .cache-tools/ci_runner.py bind-artifact
+      - uses: actions/download-artifact@v5
+        with:
+          artifact-ids: ${{ needs.cpp-validation.outputs.artifact_id }}
+          path: ${{ runner.temp }}/cpp-evidence
+      - name: Finalize Release with both ABI gates
+        id: finalize
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: release-finalize
+      - uses: actions/upload-artifact@v4
+        id: upload
+        with:
+          name: ${{ steps.finalize.outputs.artifact_name }}
+          path: ${{ env.RELEASE_BUNDLE_ROOT }}
+          if-no-files-found: error
+          include-hidden-files: true
+          compression-level: 0
+          retention-days: 30
+          overwrite: true
+    needs:
+      - preflight
+      - build
+      - cpp-validation
+    outputs:
+      release_artifact_name: ${{ steps.finalize.outputs.artifact_name }}
+      release_artifact_id: ${{ steps.upload.outputs.artifact-id }}
+      release_artifact_digest: ${{ steps.upload.outputs.artifact-digest }}

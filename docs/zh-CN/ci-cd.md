@@ -36,7 +36,10 @@ PR 与 Release analysis 都调用 `warmup-idb.yml`，将 configured binary hashe
 Runner 必须支持这些 actions 使用的 Node 24 runtime（现有 `actions/checkout@v5` 同样需要）。
 关闭 GitHub cache fallback，S3 上传后以独立 lookup 验证对象存在；必需缓存恢复失败会终止 job。
 
-缓存 key 按仓库、runner OS 和版本化 transport namespace 隔离。Depot 只归档 source lock 声明的下载文件，
+缓存 key 按仓库和版本化 transport namespace 隔离，两种 runner OS 共用 `shared` key。Producer 优先恢复 shared，
+再按完整身份读取旧 Windows、Linux、macOS key；验证后将旧 binary cache 和 IDB generation 发布到 shared key，
+不删除或覆盖旧对象。`cache-restored` 包含兼容恢复，`cache-hit` 表示命中 shared primary key。
+Depot 只归档 source lock 声明的下载文件，
 按下载身份与目标文件集合区分，不包含下载器登录状态；accepted binaries 按 source lock 与配置目标集合精确匹配。
 恢复命中后先验证文件集合与哈希；仅 depot 命中时先物化 accepted binaries，避免重复下载。
 Key 不包含路径分隔符，避免 action 的 Windows `path.join` 改写 key 导致无法恢复。
@@ -80,6 +83,17 @@ version source commit 进入 default branch 后：
 6. protected Release publisher 创建/复用 source tag，上传 exact immutable assets，发布一次并 dispatch Pages；
 7. Pages 只 hydrate published Release assets，验证 manifest/SHA256SUMS/archive inventories，构建全部已发布版本并验证 CDN bytes。
 
+Self-hosted builder 使用 `release_bundle.py prepare` 校验本地 candidate session，生成可移植的待验证资产包，
+此时不生成发布 manifest，也不声明 C++ 成功。`cpp-validation.yml` 在 hosted Windows 和 Ubuntu 上使用同一
+snapshot/configuration 和 source SDK gitlink 测试；aggregate 要求两端结果被接受，按 Windows/Linux 顺序合并日志。
+Hosted `release_bundle.py finalize` 核对待验证包 inventory 和内容身份，将日志摘要写入现有
+`cpp_validation_sha256`，生成最终 manifest/checksums 并验证 bundle。现有 `build` CLI 与最终 Release schema 保持兼容，
+独立 Release verifier 同样重跑两个 hosted ABI。
+
+PR/full bridge 与新 GAMEVER bootstrap 共用这一门禁；bootstrap 等双端结果被接受后才生成 canonical candidate
+和 gate evidence，再进入 protected publisher。本地路径/inode 绑定的 session 留在原 job，跨 job 证据绑定
+snapshot/configuration/source/SDK 内容。旧版本没有 Linux 用例时报告 `no-tests`，已有 ABI target 不支持时必须失败。
+
 workflow transaction identity 在 GitHub rerun 之间保持稳定（`run_id`）；`run_attempt` 只属于 transport metadata。
 `publish` 保持已发布内容不被覆盖。三种构建路径的手动入口均提供 `republish`，触发 CLI 可使用
 `--mode republish`；自动流程继续使用 `publish`。
@@ -91,6 +105,11 @@ workflow transaction identity 在 GitHub rerun 之间保持稳定（`run_id`）�
 preprocessor references，并按相同 anchor drift 契约与目标 GAMEVER 已提交的 artifacts 比对，发布物仍从该 committed
 tree 派生。warm IDB 与 BinSync 流程保持一致。
 
+rebuild 发布除 `gamebin-<GAMEVER>.7z` 外还会发布 `gamebin-with-idb-<GAMEVER>.7z`：即每个 configured binary 的
+warm IDA database（`<binary>.i64`），取自 build 实际分析所用的那一份 generation。本地 `init-gamebin` skill 通过
+`init_gamebin.py check-idb <GAMEVER>` 探测该归档，并用 `init_gamebin.py prepare --with-idb` 合并它，从而跳过缓慢的
+本机 warmup。该归档与 gamebin 归档同源于同一 binary inventory，因此不依赖磁盘上恰好存在什么 database。
+
 手动 rebuild-free 路径（`rebuild-free-release.yml`，`source_artifact_mode: tracked`）直接发布 tracked
 `bin_artifacts/<GAMEVER>`，不做 rebuild。它不分析任何内容，因此完全不运行 IDA：`warmup-idb.yml`、BinSync candidate
 导出以及 BinSync 的验证与发布都被整体跳过，不读写任何 BinSync remote；二进制由 build job 自身的
@@ -98,8 +117,11 @@ tree 派生。warm IDB 与 BinSync 流程保持一致。
 `warm_idb_generation`、`warm_idb_cache_key` 均记为 `null`，且 `release_bundle.py` 将其与 source binding mode 双向绑定：
 tracked binding 不得声明这些证据，rebuild binding 也不得省略。该绑定只对声明了 `full_rebuild.binding_rule_version`
 的 manifest 生效；规则生效前发布的 manifest 不声明该版本，仅豁免这一条规则，因此仍在声明 BinSync 与 warm IDB 的早期
-tracked 发布可以继续参与 hydration，其余全部 manifest 校验对它们照旧生效。Pages hydration receipt 会记录它 stage 的
-每个 Release 的 binding 规则版本。因此 rebuild-free 发布不会发布 BinSync 符号。
+tracked 发布可以继续参与 hydration，其余全部 manifest 校验对它们照旧生效。同一套按版本门控把 warm IDB 归档加入
+allowlist：版本 2 的 rebuild manifest 必须携带它、tracked manifest 必须不携带，而版本 1 的 manifest 维持原有四个
+public assets。IDB 归档是更晚、独立的一条规则，因此版本 1 的 manifest 仍受 BinSync 证据规则约束。Pages hydration
+receipt 会记录它 stage 的每个 Release 的 binding 规则版本。因此 rebuild-free 发布既不发布 BinSync 符号，也不发布
+warm IDB 归档。
 
 `republish` 要求已有可修改的 Release 和直接指向 commit 的标签。它保留 Release ID 和标签 URL，先转为 draft，
 使用绑定旧 SHA 的 lease 移动标签，再更新说明和附件，验证全部字节及 BinSync 目标后重新发布并触发 Pages。

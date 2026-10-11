@@ -42,10 +42,10 @@ jobs:
   build-bootstrap-candidate:
     needs: warmup-idb
     environment: win64
-    runs-on: [self-hosted, windows, x64]
+    runs-on: [self-hosted, cross-platform]
     outputs:
-      candidate-artifact-name: ${{ steps.package.outputs.candidate-artifact-name }}
-      candidate-artifact-digest: ${{ steps.upload.outputs.artifact-digest }}
+      prepared_artifact_id: ${{ steps.upload.outputs.artifact-id }}
+      prepared_artifact_digest: ${{ steps.upload.outputs.artifact-digest }}
     env:
       GAMEVER: ${{ inputs.gamever }}
       PRIOR_GAMEVER: ${{ inputs.prior_gamever }}
@@ -64,6 +64,10 @@ jobs:
       CS2VIBE_LLM_EFFORT: ${{ secrets.CS2VIBE_LLM_EFFORT }}
       CS2VIBE_LLM_FAKE_AS: ${{ secrets.CS2VIBE_LLM_FAKE_AS }}
       CS2VIBE_LLM_MODEL: ${{ secrets.CS2VIBE_LLM_MODEL }}
+      CI_KIND: bootstrap
+      PYTHONUTF8: '1'
+      SOURCE_SHA: ${{ inputs.merge_sha }}
+      BASE_SHA: ${{ inputs.base_sha }}
     steps:
       - name: Checkout exact prospective merge source without publisher credentials
         uses: actions/checkout@v5
@@ -89,6 +93,18 @@ jobs:
           git submodule sync --recursive
           git submodule update --init --recursive --depth 1 --jobs 8
           if ($LASTEXITCODE -ne 0) { throw "Trusted SDK submodule initialization failed." }
+        if: runner.os == 'Windows'
+      - name: Verify immutable bootstrap source and no publication PAT (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$MERGE_SHA" =~ ^[0-9a-f]{40}$ && "$(git rev-parse HEAD)" == "$MERGE_SHA" ]]
+          [[ "$PRIOR_GAMEVER" == none || "$PRIOR_GAMEVER" =~ ^[0-9]{4,10}[a-z]?$ ]]
+          [[ -z "${SOURCE_ARTIFACT_BOOTSTRAP_PAT:-}" ]]
+          git diff --exit-code "$BASE_SHA" "$MERGE_SHA" -- .gitmodules
+          git submodule sync --recursive
+          git submodule update --init --recursive --depth 1 --jobs 8
       - name: Set up uv
         uses: hzqst/setup-uv@ed37cb7af6cd89cb8e2ea2f20674ba1d05dc7b35 # S3 cache backend
         with:
@@ -100,11 +116,6 @@ jobs:
           S3_ENDPOINT_URL: ${{ secrets.S3_ENDPOINT_URL }}
           S3_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY_ID }}
           S3_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
-      - name: Download bound trusted plan
-        uses: actions/download-artifact@v5
-        with:
-          name: ${{ inputs.plan_artifact_name }}
-          path: ${{ runner.temp }}/source-artifact-plan
       - name: Checkout cache transport tools from workflow source
         uses: actions/checkout@v5
         with:
@@ -112,12 +123,16 @@ jobs:
           path: .cache-tools
           fetch-depth: 1
           persist-credentials: false
+      - name: Download bound trusted plan
+        uses: actions/download-artifact@v5
+        with:
+          name: ${{ inputs.plan_artifact_name }}
+          path: ${{ runner.temp }}/source-artifact-plan
       - name: Prepare clean job-local cache layout
         id: s3-layout
-        shell: pwsh
-        run: |
-          uv run --project .cache-tools python .cache-tools/ci_s3_cache.py prepare
-          if ($LASTEXITCODE -ne 0) { throw 'Unable to prepare S3 cache layout.' }
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: cache-prepare
       - name: Restore accepted binaries from S3
         id: s3-accepted
         uses: ./.cache-tools/.github/actions/s3-cache
@@ -128,9 +143,10 @@ jobs:
           operation: restore
           key: ${{ steps.s3-layout.outputs.accepted-key }}
           path: ${{ steps.s3-layout.outputs.accepted-path }}
+          restore-keys: ${{ steps.s3-layout.outputs.accepted-restore-keys }}
       - name: Restore depot binaries from S3
         id: s3-depot
-        if: steps.s3-accepted.outputs.cache-hit != 'true'
+        if: steps.s3-accepted.outputs.cache-restored != 'true'
         uses: ./.cache-tools/.github/actions/s3-cache
         with:
           endpoint-url: ${{ secrets.S3_ENDPOINT_URL }}
@@ -139,40 +155,23 @@ jobs:
           operation: restore
           key: ${{ steps.s3-layout.outputs.depot-key }}
           path: ${{ steps.s3-layout.outputs.depot-path }}
+          restore-keys: ${{ steps.s3-layout.outputs.depot-restore-keys }}
       - name: Verify restored binary caches against source lock
-        shell: pwsh
         env:
-          CACHE_ACCEPTED_HIT: ${{ steps.s3-accepted.outputs.cache-hit }}
-          CACHE_DEPOT_HIT: ${{ steps.s3-depot.outputs.cache-hit }}
-        run: |
-          uv run --project .cache-tools python .cache-tools/ci_s3_cache.py verify-restored
-          if ($LASTEXITCODE -ne 0) { throw 'Restored S3 binary cache failed verification.' }
+          CACHE_ACCEPTED_HIT: ${{ steps.s3-accepted.outputs.cache-restored }}
+          CACHE_DEPOT_HIT: ${{ steps.s3-depot.outputs.cache-restored }}
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: cache-verify-restored
       - name: Restore binary-only accepted state
-        shell: pwsh
-        run: |
-          if ([string]::IsNullOrWhiteSpace($env:CI_CACHE_ROOT)) { throw "CI_CACHE_ROOT is not configured." }
-          if ($env:BINARY_LOCK_SHA256 -notmatch '^sha256:[0-9a-f]{64}$') {
-            throw "Warmup omitted the source binary lock identity."
-          }
-          $planPath = Join-Path "${{ runner.temp }}" "source-artifact-plan\trusted-source-artifact-plan.json"
-          $plan = Get-Content -LiteralPath $planPath -Raw | ConvertFrom-Json
-          $version = @($plan.game_versions | Where-Object { $_.game_version -eq $env:GAMEVER })
-          if ($version.Count -ne 1 -or $version[0].merge_binary_lock_sha256 -ne $env:BINARY_LOCK_SHA256) {
-            throw "Bootstrap warmup binary lock identity differs from the trusted plan."
-          }
-          $restoreJson = uv run python accepted_bin.py restore --repo-root "${{ github.workspace }}" `
-            --persisted-root "$env:CI_CACHE_ROOT" --gamever "$env:GAMEVER" --required
-          if ($LASTEXITCODE -ne 0) { throw "Failed to restore the exact accepted binary allowlist." }
-          $restore = $restoreJson | ConvertFrom-Json
-          if ($restore.binary_lock_sha256 -ne $env:BINARY_LOCK_SHA256) {
-            throw "Bootstrap accepted-bin restore differs from the trusted plan lock."
-          }
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: accepted-restore
       - name: Resolve exact S3 generation and lease paths
         id: s3-selection
-        shell: pwsh
-        run: |
-          uv run --project .cache-tools python .cache-tools/ci_s3_cache.py selection
-          if ($LASTEXITCODE -ne 0) { throw 'Invalid warm IDB transport selection.' }
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: cache-selection
       - name: Restore exact warm IDB payload from S3
         id: s3-generation
         uses: ./.cache-tools/.github/actions/s3-cache
@@ -196,131 +195,37 @@ jobs:
           path: ${{ steps.s3-selection.outputs.lease-path }}
           required: 'true'
       - name: Restore exact warm IDB generation
-        shell: pwsh
-        run: |
-          $pythonExe = (Get-Command python -ErrorAction Stop).Source
-          $idaVersion = (& $pythonExe warmup_idb_worker.py --print-ida-version).Trim()
-          if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($idaVersion)) { throw "Unable to resolve IDA version." }
-          "IDA_PYTHON=$pythonExe" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-          "IDA_VERSION=$idaVersion" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-          uv run --project .cache-tools python .cache-tools/idb_cache.py restore `
-            --repository "$env:GITHUB_REPOSITORY" --run-id "$env:GITHUB_RUN_ID" --run-attempt "$env:GITHUB_RUN_ATTEMPT" `
-            --lease-id "$env:IDB_CACHE_LEASE_ID" --lease-sha256 "$env:IDB_CACHE_LEASE_SHA256" `
-            --repo-root "${{ github.workspace }}" `
-            --persisted-root "$env:CI_CACHE_ROOT" `
-            --gamever "$env:GAMEVER" `
-            --generation "$env:IDB_CACHE_GENERATION" `
-            --cache-key "$env:IDB_CACHE_KEY" `
-            --ida-version "$idaVersion"
-          if ($LASTEXITCODE -ne 0) { throw "Warm IDB restore failed." }
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: idb-restore
       - name: Full empty-root bootstrap with rename and local-init BinSync prepare
         id: binsync-local
-        shell: pwsh
-        run: |
-          $actualRoot = Join-Path $env:RUNNER_TEMP "new-gamever-bin-artifacts\${{ github.run_id }}-${{ github.run_attempt }}"
-          $binsyncCandidate = Join-Path $env:RUNNER_TEMP "bootstrap-binsync-local-only\${{ github.run_id }}-${{ github.run_attempt }}"
-          $executionReport = Join-Path $env:RUNNER_TEMP "new-gamever-force-all-execution-${{ github.run_id }}-${{ github.run_attempt }}.json"
-          New-Item -ItemType Directory -Path $actualRoot -Force | Out-Null
-          "ACTUAL_ARTIFACT_ROOT=$actualRoot" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-          "EXECUTION_REPORT=$executionReport" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-          uv run ida_analyze_bin.py `
-            -gamever "$env:GAMEVER" `
-            -configyaml "configs/$env:GAMEVER.yaml" `
-            -bindir bin `
-            -artifactdir "$actualRoot" `
-            -oldartifactdir bin_artifacts `
-            -oldgamever "$env:PRIOR_GAMEVER" `
-            -require_warm_idb `
-            -force_all `
-            -execution_report "$executionReport" `
-            -rename `
-            -debug
-          if ($LASTEXITCODE -ne 0) { throw "New-GAMEVER full bootstrap analysis failed." }
-          # The canonical BinSync remotes for a new GAMEVER do not exist yet at
-          # bootstrap time; local-init mode initializes them locally and never
-          # reads, creates, or pushes any remote.
-          uv run python push_binsync_symbols.py "$env:GAMEVER" `
-            --prepare-only `
-            --no-publication-candidate `
-            --bootstrap-local-init `
-            --candidate-dir "$binsyncCandidate" `
-            --artifactdir "$actualRoot" `
-            --binsync-user bootstrap-validation `
-            --python "$env:IDA_PYTHON"
-          if ($LASTEXITCODE -ne 0) { throw "Local-only BinSync prepare failed." }
-          $evidence = Get-Content -LiteralPath (Join-Path $binsyncCandidate "local-evidence.json") -Raw | ConvertFrom-Json
-          "remote_refs_before=$($evidence.remote_refs_before_sha256)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "remote_refs_after=$($evidence.remote_refs_after_sha256)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-      - name: Build snapshot, gamedata, and C++ gate evidence
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: bootstrap-analyze
+      - name: Build snapshot and gamedata gates for hosted ABI validation
         id: gates
-        shell: pwsh
-        run: |
-          $gateRoot = Join-Path $env:RUNNER_TEMP "new-gamever-gates\${{ github.run_id }}-${{ github.run_attempt }}"
-          New-Item -ItemType Directory -Path $gateRoot -Force | Out-Null
-          $snapshot = Join-Path $gateRoot "$env:GAMEVER.yaml"
-          $session = Join-Path $gateRoot "$env:GAMEVER.session.json"
-          uv run gamesymbol_candidate.py build `
-            -gamever "$env:GAMEVER" -bindir bin -artifactdir "$env:ACTUAL_ARTIFACT_ROOT" `
-            -configyaml "configs/$env:GAMEVER.yaml" -output "$snapshot" -session "$session"
-          if ($LASTEXITCODE -ne 0) { throw "Bootstrap snapshot gate failed." }
-          $gamedataRoot = Join-Path $gateRoot "gamedata"
-          $gamedataSession = Join-Path $gateRoot "gamedata.session.json"
-          uv run gamedata_candidate.py build -gamever "$env:GAMEVER" `
-            -build-id "${{ github.run_id }}-${{ github.run_attempt }}" `
-            -snapshot "$snapshot" -configyaml "configs/$env:GAMEVER.yaml" `
-            -modulesdir gamedata-generators -candidate-root "$gamedataRoot" -session "$gamedataSession"
-          if ($LASTEXITCODE -ne 0) { throw "Bootstrap gamedata gate failed." }
-          $cppLog = Join-Path $gateRoot "cpp-validation.log"
-          & uv run run_cpp_tests.py -gamever "$env:GAMEVER" -snapshot "$snapshot" `
-            -configyaml "configs/$env:GAMEVER.yaml" -debug 2>&1 | Tee-Object -LiteralPath $cppLog
-          if ($LASTEXITCODE -ne 0) { throw "Bootstrap C++ gate failed." }
-          $snapshotDigest = (Get-FileHash $snapshot -Algorithm SHA256).Hash.ToLowerInvariant()
-          $gamedataDigest = (Get-FileHash $gamedataSession -Algorithm SHA256).Hash.ToLowerInvariant()
-          $cppDigest = (Get-FileHash $cppLog -Algorithm SHA256).Hash.ToLowerInvariant()
-          "snapshot=sha256:$snapshotDigest" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "gamedata=sha256:$gamedataDigest" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "cpp=sha256:$cppDigest" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-      - name: Package canonical bootstrap candidate
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: bootstrap-gates
+      - name: Package prepared bootstrap materials
         id: package
-        shell: pwsh
-        run: |
-          $package = Join-Path $env:RUNNER_TEMP "new-gamever-package"
-          $packageArtifacts = Join-Path $package "bin_artifacts"
-          New-Item -ItemType Directory -Path $packageArtifacts -Force | Out-Null
-          Copy-Item -LiteralPath (Join-Path $env:ACTUAL_ARTIFACT_ROOT $env:GAMEVER) `
-            -Destination (Join-Path $packageArtifacts $env:GAMEVER) -Recurse
-          $packagedExecutionReport = Join-Path $package "force-all-execution.json"
-          Copy-Item -LiteralPath $env:EXECUTION_REPORT -Destination $packagedExecutionReport
-          $gates = [ordered]@{
-            schema_version = 2
-            binsync_mode = "local-only"
-            remote_refs_before_sha256 = "${{ steps.binsync-local.outputs.remote_refs_before }}"
-            remote_refs_after_sha256 = "${{ steps.binsync-local.outputs.remote_refs_after }}"
-            snapshot_sha256 = "${{ steps.gates.outputs.snapshot }}"
-            gamedata_sha256 = "${{ steps.gates.outputs.gamedata }}"
-            cpp_validation_sha256 = "${{ steps.gates.outputs.cpp }}"
-          }
-          $gatePath = Join-Path $package "gate-evidence.json"
-          [IO.File]::WriteAllText($gatePath, ($gates | ConvertTo-Json -Compress) + "`n", [Text.UTF8Encoding]::new($false))
-          $planPath = Join-Path $env:RUNNER_TEMP "source-artifact-plan\trusted-source-artifact-plan.json"
-          $manifest = Join-Path $package "candidate-manifest.json"
-          uv run python new_gamever_artifact.py build `
-            --repo-root "${{ github.workspace }}" --plan "$planPath" `
-            --artifact-root "$packageArtifacts" --output-manifest "$manifest" `
-            --repository "${{ github.repository }}" --pr-number "$env:PR_NUMBER" `
-            --workflow-run-id "${{ github.run_id }}" --workflow-run-attempt "${{ github.run_attempt }}" `
-            --gate-evidence "$gatePath" --execution-report "$packagedExecutionReport"
-          if ($LASTEXITCODE -ne 0) { throw "Bootstrap candidate packaging failed." }
-          $artifactName = "new-gamever-artifacts-$env:PR_NUMBER-$env:GAMEVER-${{ github.run_id }}-${{ github.run_attempt }}"
-          "candidate-artifact-name=$artifactName" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "CANDIDATE_PACKAGE=$package" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-      - name: Upload exact bootstrap candidate
+        env:
+          CI_REFS_BEFORE: ${{ steps.binsync-local.outputs.remote_refs_before }}
+          CI_REFS_AFTER: ${{ steps.binsync-local.outputs.remote_refs_after }}
+          CI_SNAPSHOT_DIGEST: ${{ steps.gates.outputs.snapshot }}
+          CI_GAMEDATA_DIGEST: ${{ steps.gates.outputs.gamedata }}
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: bootstrap-package
+      - name: Upload prepared bootstrap materials
         id: upload
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.package.outputs.candidate-artifact-name }}
           path: ${{ env.CANDIDATE_PACKAGE }}
           if-no-files-found: error
+          include-hidden-files: true
           retention-days: 7
       - name: Upload failed bootstrap diagnostics
         if: >-
@@ -329,7 +234,8 @@ jobs:
         continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
-          name: bootstrap-diagnostics-${{ inputs.pull_request_number }}-${{ inputs.gamever }}-${{ github.run_id }}-${{ github.run_attempt }}
+          name: bootstrap-diagnostics-${{ inputs.pull_request_number }}-${{ inputs.gamever }}-${{ github.run_id }}-${{
+            github.run_attempt }}
           # Upload partial outputs directly; canonical candidate packaging requires all gates to pass.
           path: |
             ${{ runner.temp }}/new-gamever-bin-artifacts/${{ github.run_id }}-${{ github.run_attempt }}/**/*.yaml
@@ -339,7 +245,7 @@ jobs:
           include-hidden-files: true
           if-no-files-found: warn
   publish-new-gamever-artifacts:
-    needs: build-bootstrap-candidate
+    needs: finalize-bootstrap
     environment: artifact-bootstrap
     runs-on: ubuntu-latest
     steps:
@@ -370,7 +276,8 @@ jobs:
       - name: Set up trusted publisher environment
         uses: astral-sh/setup-uv@v9.0.0
       - name: Sync trusted publisher dependencies
-        run: uv sync --project trusted-publisher --locked
+        run: |-
+          uv sync --project trusted-publisher --locked
       - name: Download bound plan and exact bootstrap candidate
         uses: actions/download-artifact@v5
         with:
@@ -379,14 +286,14 @@ jobs:
       - name: Download exact bootstrap candidate package
         uses: actions/download-artifact@v5
         with:
-          name: ${{ needs.build-bootstrap-candidate.outputs.candidate-artifact-name }}
+          name: ${{ needs.finalize-bootstrap.outputs.candidate-artifact-name }}
           path: evidence/candidate
       - name: Revalidate PR, remote head, candidate, and allowed branch
         id: verify
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-          CANDIDATE_ARTIFACT_DIGEST: ${{ needs.build-bootstrap-candidate.outputs.candidate-artifact-digest }}
+          CANDIDATE_ARTIFACT_DIGEST: ${{ needs.finalize-bootstrap.outputs.candidate-artifact-digest }}
         run: |
           $pull = gh api "repos/${{ github.repository }}/pulls/${{ inputs.pull_request_number }}" | ConvertFrom-Json
           if ($LASTEXITCODE -ne 0 -or $pull.state -ne "open") { throw "Bootstrap PR is no longer open." }
@@ -410,7 +317,7 @@ jobs:
             --head-repository "$($pull.head.repo.full_name)" --head-ref "$($pull.head.ref)" `
             --head-sha "${{ inputs.head_sha }}" --current-remote-head "$remoteHead" `
             --pr-number "${{ inputs.pull_request_number }}" `
-            --actions-artifact-name "${{ needs.build-bootstrap-candidate.outputs.candidate-artifact-name }}" `
+            --actions-artifact-name "${{ needs.finalize-bootstrap.outputs.candidate-artifact-name }}" `
             --actions-artifact-digest "$artifactDigest" `
             --workflow-run-id "${{ github.run_id }}" --workflow-run-attempt "${{ github.run_attempt }}" `
             --execution-report "${{ github.workspace }}/evidence/candidate/force-all-execution.json" `
@@ -501,3 +408,75 @@ jobs:
             }
             Start-Sleep -Milliseconds ([Math]::Min($pollIntervalMs, $remainingMs))
           }
+  cpp-validation:
+    needs: build-bootstrap-candidate
+    uses: ./.github/workflows/cpp-validation.yml
+    with:
+      source_sha: ${{ inputs.merge_sha }}
+      gamever: ${{ inputs.gamever }}
+      artifact_id: ${{ needs.build-bootstrap-candidate.outputs.prepared_artifact_id }}
+      artifact_digest: ${{ needs.build-bootstrap-candidate.outputs.prepared_artifact_digest }}
+      scope: bootstrap
+      input_path: cpp-inputs
+  finalize-bootstrap:
+    runs-on: ubuntu-latest
+    env:
+      SOURCE_SHA: ${{ inputs.merge_sha }}
+      GAMEVER: ${{ inputs.gamever }}
+      PR_NUMBER: ${{ inputs.pull_request_number }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.merge_sha }}
+          fetch-depth: 0
+          submodules: recursive
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v9.0.0
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: .cache-tools
+          persist-credentials: false
+      - name: Bind exact current-run prepared-bootstrap
+        shell: bash --noprofile --norc -euo pipefail {0}
+        env:
+          CI_ARTIFACT_ID: ${{ needs.build-bootstrap-candidate.outputs.prepared_artifact_id }}
+          CI_ARTIFACT_DIGEST: ${{ needs.build-bootstrap-candidate.outputs.prepared_artifact_digest }}
+        run: uv run --project .cache-tools python .cache-tools/ci_runner.py bind-artifact
+      - uses: actions/download-artifact@v5
+        with:
+          artifact-ids: ${{ needs.build-bootstrap-candidate.outputs.prepared_artifact_id }}
+          path: ${{ runner.temp }}/prepared-bootstrap
+      - name: Bind exact current-run cpp-evidence
+        shell: bash --noprofile --norc -euo pipefail {0}
+        env:
+          CI_ARTIFACT_ID: ${{ needs.cpp-validation.outputs.artifact_id }}
+          CI_ARTIFACT_DIGEST: ${{ needs.cpp-validation.outputs.artifact_digest }}
+        run: uv run --project .cache-tools python .cache-tools/ci_runner.py bind-artifact
+      - uses: actions/download-artifact@v5
+        with:
+          artifact-ids: ${{ needs.cpp-validation.outputs.artifact_id }}
+          path: ${{ runner.temp }}/cpp-evidence
+      - uses: actions/download-artifact@v5
+        with:
+          name: ${{ inputs.plan_artifact_name }}
+          path: ${{ runner.temp }}/source-artifact-plan
+      - name: Package canonical candidate with hosted ABI evidence
+        id: package
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: bootstrap-finalize
+      - uses: actions/upload-artifact@v4
+        id: upload
+        with:
+          name: ${{ steps.package.outputs.candidate-artifact-name }}
+          path: ${{ env.CANDIDATE_PACKAGE }}
+          if-no-files-found: error
+          retention-days: 7
+    needs:
+      - build-bootstrap-candidate
+      - cpp-validation
+    outputs:
+      candidate-artifact-name: ${{ steps.package.outputs.candidate-artifact-name }}
+      candidate-artifact-digest: ${{ steps.upload.outputs.artifact-digest }}

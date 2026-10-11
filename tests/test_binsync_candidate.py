@@ -75,6 +75,9 @@ class BinSyncCandidateTests(unittest.TestCase):
         )
         binary = root / "bin" / "1" / "server" / "server.dll"
         write_binary(binary, _build_min_pe())
+        # A rebuilt release ships the warm IDA database of every configured binary;
+        # the release-bundle producer stages and archives exactly these files.
+        Path(f"{binary}.i64").write_bytes(b"deterministic warm ida database\n")
         write_source_binary_lock(root, "1")
         empty_tree = self._git(root, "mktree", input_text="")
         sdk_commit = self._git(

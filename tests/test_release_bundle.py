@@ -185,16 +185,52 @@ class ReleaseBundleTests(unittest.TestCase):
             self.assertEqual(manifest["source_sha"], verified["source_sha"])
             self.assertEqual(manifest["source_sha"], manifest["build_id"])
             self.assertEqual(manifest["binsync"]["target_state_digest"], verified["binsync_target_state_digest"])
-            self.assertEqual(4, len(manifest["public_assets"]))
+            self.assertEqual(5, len(manifest["public_assets"]))
+            self.assertIn("archives/gamebin-with-idb-1.7z", manifest["archives"])
+            # The warm IDB archive must bind the exact database of every configured
+            # binary, and nothing else.
+            idb_files = manifest["archives"]["archives/gamebin-with-idb-1.7z"]["files"]
+            self.assertEqual(["bin/1/server/server.dll.i64"], [item["path"] for item in idb_files])
+            with self.assertRaisesRegex(release_bundle.ReleaseBundleError, "exact warm IDB database inventory"):
+                release_bundle._verify_idb_archive_inventory(
+                    "1",
+                    release_bundle._binary_records(manifest["binary_inventory"]),
+                    [{"path": "bin/1/server/server.dll", "size": 1, "sha256": "0" * 64}],
+                )
             mutable_sdk = copy.deepcopy(manifest)
             mutable_sdk["cpp_sdk"] = {"ref": "cs2-1", "sha": manifest["cpp_sdk"]["sha"]}
             with self.assertRaisesRegex(release_bundle.ReleaseBundleError, "immutable source gitlink"):
                 release_bundle.validate_release_manifest(mutable_sdk)
 
             self.assertEqual(rebuild.BINDING_RULE_VERSION, manifest["full_rebuild"]["binding_rule_version"])
+            # A rebuilt release must ship the warm IDB archive; dropping it from the
+            # allowlist while still declaring the current rule fails closed.
+            missing_idb = copy.deepcopy(manifest)
+            missing_idb["archives"].pop("archives/gamebin-with-idb-1.7z")
+            missing_idb["public_assets"] = [
+                item for item in missing_idb["public_assets"] if item["path"] != "archives/gamebin-with-idb-1.7z"
+            ]
+            with self.assertRaisesRegex(release_bundle.ReleaseBundleError, "public asset allowlist is invalid"):
+                release_bundle.validate_release_manifest(missing_idb)
+
+            # A manifest published before the IDB archive rule existed keeps four
+            # assets and is judged by the BinSync evidence rule alone.
+            rule_one = copy.deepcopy(manifest)
+            rule_one["full_rebuild"]["binding_rule_version"] = rebuild.BINSYNC_EVIDENCE_RULE_VERSION
+            rule_one["archives"].pop("archives/gamebin-with-idb-1.7z")
+            rule_one["public_assets"] = [
+                item for item in rule_one["public_assets"] if item["path"] != "archives/gamebin-with-idb-1.7z"
+            ]
+            _refresh_binding_digest(rule_one, "rebuild-verification")
+            release_bundle.validate_release_manifest(rule_one)
+
             pre_rule = copy.deepcopy(manifest)
             pre_rule["full_rebuild"].pop("binding_rule_version")
             pre_rule["binsync"] = None
+            pre_rule["archives"].pop("archives/gamebin-with-idb-1.7z")
+            pre_rule["public_assets"] = [
+                item for item in pre_rule["public_assets"] if item["path"] != "archives/gamebin-with-idb-1.7z"
+            ]
             for field in ("ida_runtime_identity", "warm_idb_generation", "warm_idb_cache_key"):
                 pre_rule[field] = None
             _refresh_binding_digest(pre_rule, "rebuild-verification")
@@ -258,6 +294,9 @@ class ReleaseBundleTests(unittest.TestCase):
                 self.assertEqual("tracked", manifest["full_rebuild"]["binding_mode"])
                 self.assertEqual(rebuild.BINDING_RULE_VERSION, manifest["full_rebuild"]["binding_rule_version"])
                 self.assertIsNone(manifest["binsync"])
+                # Nothing is analyzed, so no warm IDB archive is published.
+                self.assertEqual(4, len(manifest["public_assets"]))
+                self.assertNotIn("archives/gamebin-with-idb-1.7z", manifest["archives"])
                 self.assertEqual(
                     [None, None, None],
                     [
@@ -293,6 +332,18 @@ class ReleaseBundleTests(unittest.TestCase):
             claimed_warm_idb["warm_idb_generation"] = "generation-1"
             with self.assertRaisesRegex(release_bundle.ReleaseBundleError, "must not claim BinSync"):
                 release_bundle.validate_release_manifest(claimed_warm_idb)
+
+            claimed_idb_archive = copy.deepcopy(manifest)
+            claimed_idb_archive["public_assets"].append(
+                {
+                    "path": "archives/gamebin-with-idb-1.7z",
+                    "name": "gamebin-with-idb-1.7z",
+                    "size": 1,
+                    "sha256": "0" * 64,
+                }
+            )
+            with self.assertRaisesRegex(release_bundle.ReleaseBundleError, "must not ship a warm IDB archive"):
+                release_bundle.validate_release_manifest(claimed_idb_archive)
 
             # 14180-14182 were published before the binding rule existed, by a
             # tracked path that still exported BinSync and named a warm IDB. Such

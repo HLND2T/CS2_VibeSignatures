@@ -37,14 +37,18 @@ BinSync projection, and archives a Release publishes are all derived from the co
 
 PR and Release analysis call `warmup-idb.yml`. It binds configured binary hashes and the IDA runtime to an immutable cache generation. Accepted-bin materialization is an exact configured-binary cache: YAML, IDA databases, BinSync state, and undeclared side files are rejected. These caches are performance layers, never symbol truth.
 
-Persistence uses `tespkg/actions-cache/restore@v1` and `/save@v1` with the bucket
+Persistence uses the pinned portable `hzqst/actions-cache` restore/save fork with the bucket
 `actions-cache-cs2-vibesignatures`. The `win64` environment supplies `S3_ENDPOINT_URL`,
 `S3_ACCESS_KEY_ID`, and `S3_SECRET_ACCESS_KEY`. The URL must be an HTTP(S) origin:
 `http://HZVM:8333` becomes `endpoint: HZVM`, `port: 8333`, and `insecure: true`; HTTPS sets it to false.
 Runners must support Node 24 actions (also required by the existing `actions/checkout@v5`).
 GitHub cache fallback is disabled. An independent lookup checks each upload; required restore failures stop the job.
 
-Keys isolate repositories, runner operating systems, and the versioned transport namespace. Depot archives contain
+Keys isolate repositories and the versioned transport namespace. Both runner operating systems use `shared` keys.
+Producers restore shared data first, then identity-scoped legacy Windows, Linux and macOS keys; verified legacy
+binary caches and IDB generations are published into shared keys without deleting or overwriting old objects.
+`cache-restored` includes compatible legacy restores; `cache-hit` means the primary shared key was found.
+Depot archives contain
 only source-lock-declared download files, keyed by download identity and target selection, never downloader login state.
 Accepted binaries use exact source-lock/target keys; restored hits undergo inventory and hash verification.
 A depot-only hit materializes accepted binaries before initialization to avoid another download. Keys contain no path
@@ -92,6 +96,19 @@ After a version source commit reaches the default branch:
 6. The protected Release publisher creates/reuses the source tag, uploads exact immutable assets, publishes once, and dispatches Pages.
 7. Pages hydrates only published Release assets, verifies manifest/SHA256SUMS/archive inventories, builds all released versions, and verifies CDN bytes.
 
+The self-hosted builder uses `release_bundle.py prepare` to verify local candidate sessions and construct portable
+assets without a publication manifest or C++ success claim. `cpp-validation.yml` tests the same snapshot/configuration
+and exact source SDK gitlink on hosted Windows and Ubuntu. Its aggregate requires both results and combines logs in
+Windows/Linux order. Hosted `release_bundle.py finalize` validates the prepared inventory and evidence identities,
+records the combined log hash in the existing `cpp_validation_sha256`, writes final manifest/checksums and verifies
+the bundle. The existing `build` CLI and final Release schema remain compatible. Independent Release verification
+also repeats both hosted ABI tests.
+
+PR/full-bridge validation and new-GAMEVER bootstrap use the same hosted gate. Bootstrap creates its canonical candidate
+and gate evidence only after both results are accepted, before the protected publisher. Sessions bound to local
+paths/inodes stay local; cross-job evidence binds snapshot/configuration/source/SDK content. Old versions without
+Linux tests report `no-tests`; an unsupported configured ABI fails.
+
 The workflow transaction identity is stable across GitHub reruns (`run_id`); `run_attempt` is transport metadata only.
 `publish` never replaces published content. All three manual build paths also offer `republish`;
 automatic flows continue to use `publish`. The trigger CLI accepts `--mode republish` with any build path.
@@ -104,6 +121,12 @@ or a non-isolated old-artifact root. The standard `release` path retains automat
 use source-controlled preprocessor references, verify against the target GAMEVER's committed artifacts, and publish
 from that committed tree under the same anchor drift contract. Warm IDB and BinSync handling is the same for both.
 
+A rebuilt Release publishes `gamebin-with-idb-<GAMEVER>.7z` alongside `gamebin-<GAMEVER>.7z`: the warm IDA database
+(`<binary>.i64`) of every configured binary, taken from the exact generation the build analyzed against. `init_gamebin.py
+check-idb <GAMEVER>` probes that archive for the local `init-gamebin` skill, and `init_gamebin.py prepare --with-idb`
+merges it so the slow local warmup can be skipped. The archive is derived from the same binary inventory as the gamebin
+archive, so it never depends on whatever database happens to exist on disk.
+
 The manual rebuild-free path (`rebuild-free-release.yml`, `source_artifact_mode: tracked`) publishes the tracked
 `bin_artifacts/<GAMEVER>` tree instead of rebuilding it. It analyzes nothing, so it runs no IDA at all: `warmup-idb.yml`,
 the BinSync candidate export, and both BinSync verification and publication are skipped whole, and no BinSync remote is
@@ -113,8 +136,11 @@ manifest records `binsync`, `ida_runtime_identity`, `warm_idb_generation`, and `
 rebuilt binding may not omit it. The binding applies only to manifests that declare `full_rebuild.binding_rule_version`;
 a manifest published before the rule existed declares none and is waived from that single rule, so the older tracked
 releases that still name BinSync and a warm IDB keep hydrating while every other manifest check still applies to them.
-The Pages hydration receipt records the binding rule version of every Release it stages. BinSync symbols are therefore
-never published for a rebuild-free release.
+The same versioned gating adds the warm IDB archive to the allowlist: a rebuilt manifest at rule version 2 must ship it
+and a tracked one must not, while a version-1 manifest keeps the original four public assets. The IDB archive rule is a
+later, independent rule, so a version-1 manifest is still held to the BinSync evidence rule. The Pages hydration
+receipt records the binding rule version of every Release it stages. BinSync symbols are therefore
+never published for a rebuild-free release, and neither is a warm IDB archive.
 
 `republish` requires an existing mutable Release and its direct commit tag. It preserves the Release ID and tag URL,
 converts the Release to a draft, moves the tag with an explicit old-SHA lease, updates metadata and reconciles assets,
