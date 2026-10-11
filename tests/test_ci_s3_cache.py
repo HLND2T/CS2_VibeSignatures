@@ -164,13 +164,30 @@ class TestS3Cache(unittest.TestCase):
 
     def test_selection_paths_bind_generation_and_lease(self):
         identity = "a" * 64
-        result = cache.selection_layout("14180", "owner/repo", "Windows", identity + "-100-1", "b" * 32, "100", "1")
+        result = cache.selection_layout("14180", "owner/repo", "Windows", identity + "-100-1", "b" * 32, "100")
         self.assertTrue(result["generation-key"].endswith(identity + "-100-1"))
-        self.assertTrue(result["lease-key"].endswith("100-1-" + "b" * 32))
+        self.assertTrue(result["lease-key"].endswith("100-" + "b" * 32))
         self.assertNotIn("leases", result["generation-path"])
         for generation in ("../outside", identity + "-bad"):
             with self.assertRaises(ValueError):
-                cache.selection_layout("14180", "owner/repo", "Windows", generation, "b" * 32, "100", "1")
+                cache.selection_layout("14180", "owner/repo", "Windows", generation, "b" * 32, "100")
+
+    def test_lease_identity_ignores_re_run_attempts(self):
+        # A "Re-run failed jobs" keeps the producer jobs that already wrote the lease,
+        # so a selection key must be a pure function of run id and lease id: no
+        # attempt/transport value can appear anywhere in it.
+        identity = "a" * 64
+        lease_id = "b" * 32
+        result = cache.selection_layout("14180", "owner/repo", "Windows", identity + "-100-1", lease_id, "100")
+        self.assertEqual(f"-lease-14180-100-{lease_id}", result["lease-key"][-len(f"-lease-14180-100-{lease_id}") :])
+        self.assertEqual(1, result["lease-key"].count(lease_id))
+        self.assertNotIn("attempt", result["lease-key"])
+        # The same run and lease on the shared namespace must resolve identically
+        # regardless of which platform produced it.
+        self.assertEqual(
+            result["lease-key"],
+            cache.selection_layout("14180", "owner/repo", "Linux", identity + "-100-1", lease_id, "100")["lease-key"],
+        )
 
 
 if __name__ == "__main__":
