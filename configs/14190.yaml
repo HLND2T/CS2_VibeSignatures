@@ -846,6 +846,29 @@ modules:
       - name: find-CGameResourceService_vtable
         expected_output:
           - CGameResourceService_vtable.{platform}.yaml
+      - name: find-CGameEventSystem_vtable
+        expected_output:
+          - CGameEventSystem_vtable.{platform}.yaml
+      - name: find-CGameEventSystem_RegisterGameEventHandlerAbstract
+        expected_output:
+          - CGameEventSystem_RegisterGameEventHandlerAbstract.{platform}.yaml
+        expected_input:
+          - CGameEventSystem_vtable.{platform}.yaml
+      - name: find-CGameEventSystem_UnregisterGameEventHandlerAbstract
+        expected_output:
+          - CGameEventSystem_UnregisterGameEventHandlerAbstract.{platform}.yaml
+        expected_input:
+          - CGameEventSystem_vtable.{platform}.yaml
+      - name: find-CGameEventSystem_PostEventAbstract
+        expected_output:
+          - CGameEventSystem_PostEventAbstract.{platform}.yaml
+        expected_input:
+          - CGameEventSystem_vtable.{platform}.yaml
+      - name: find-CGameEventSystem_PostEventAbstract2
+        expected_output:
+          - CGameEventSystem_PostEventAbstract2.{platform}.yaml
+        expected_input:
+          - CGameEventSystem_vtable.{platform}.yaml
       - name: find-CNetworkServerSpawnGroup_WaitForAssetLoadPrerequisite_vtable
         expected_output:
           - CNetworkServerSpawnGroup_WaitForAssetLoadPrerequisite_vtable.{platform}.yaml
@@ -2811,6 +2834,24 @@ modules:
           - GameEntitySystem
       - name: CGameResourceService_vtable
         category: vtable
+      - name: CGameEventSystem_vtable
+        category: vtable
+      - name: CGameEventSystem_RegisterGameEventHandlerAbstract
+        category: vfunc
+        alias:
+          - CGameEventSystem::RegisterGameEventHandlerAbstract
+      - name: CGameEventSystem_UnregisterGameEventHandlerAbstract
+        category: vfunc
+        alias:
+          - CGameEventSystem::UnregisterGameEventHandlerAbstract
+      - name: CGameEventSystem_PostEventAbstract
+        category: vfunc
+        alias:
+          - CGameEventSystem::PostEventAbstract
+      - name: CGameEventSystem_PostEventAbstract2
+        category: vfunc
+        alias:
+          - CGameEventSystem::PostEventAbstract2
       - name: CNetworkServerSpawnGroup_WaitForAssetLoadPrerequisite_vtable
         category: vtable
       - name: CNetworkServerSpawnGroup_WaitForAssetLoadPrerequisite_GetPrerequisiteStatus
@@ -15679,8 +15720,9 @@ cpp_tests:
       - fms-compatibility
       - Xclang
       - fdump-vtable-layouts
-    # No reference_modules yet: 14190 has no IGameEventSystem / CGameEventSystem
-    # binary reference YAMLs. Compile-only validation.
+    # No reference_modules yet: IGameEventSystem has no binary reference YAMLs
+    # (CGameEventSystem_vtable exists but covers the impl class, not this
+    # interface). Compile-only validation.
   - name: IGameEventSystem_GCC
     symbol: IGameEventSystem
     cpp: cpp_tests/igameeventsystem.cpp
@@ -15702,5 +15744,6 @@ cpp_tests:
     additional_compiler_options:
       - Xclang
       - fdump-vtable-layouts
-    # No reference_modules yet: 14190 has no IGameEventSystem / CGameEventSystem
-    # binary reference YAMLs. Compile-only validation.
+    # No reference_modules yet: IGameEventSystem has no binary reference YAMLs
+    # (CGameEventSystem_vtable exists but covers the impl class, not this
+    # interface). Compile-only validation.
