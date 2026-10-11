@@ -62,6 +62,15 @@ gh pr checks <PR>
 Read every changed source/config/test file relevant to behavior. Treat `bin_artifacts/` as tracked source-owned output
 that must match the producer/config closure exactly; reject tracked `gamesymbols/`, `gamedata/`, and release manifests.
 
+The `hl2sdk_cs2` gitlink (mode `160000`) is a pin to the reviewed SDK, not release-derived output. A plain `git diff`
+does not render it as an ordinary hunk, so inspect it explicitly:
+
+```powershell
+git diff --raw <BASE_OID>...<HEAD_OID> -- hl2sdk_cs2
+git diff --name-only <BASE_OID>...<HEAD_OID> -- ':(exclude)hl2sdk_cs2'
+git rev-parse <BASE_OID>:hl2sdk_cs2 <HEAD_OID>:hl2sdk_cs2
+```
+
 For changes under `ida_preprocessor_scripts/` or `configs/`, also search the base tree and history for:
 
 - all scripts consuming the same `reference_yaml_paths` predecessor;
@@ -87,6 +96,14 @@ Apply gate 6 to every added or modified preprocessor script and shared helper. F
 game-layout offset (vtable slot offset/index, struct member offset, displacement) that decides an emitted value or the
 target's identity is always a blocking `P1` finding. Neither a presence-check "verification" nor a passing exact-byte
 artifact rebuild clears it.
+
+Apply the SDK-gitlink check whenever the PR changes the `hl2sdk_cs2` gitlink, and always when it changes code in the
+same PR. A code PR that also moves the gitlink — especially backwards to an ancestor of `BASE_OID:hl2sdk_cs2` — is
+usually an accidental merge artifact that silently drops header/ABI fixes, not a deliberate SDK bump. Treat it as a
+finding and ask the user whether the change is intentional; propose restoring `BASE_OID:hl2sdk_cs2` when it is not.
+Only an explicit, coherent SDK-bump intent (and, for a released pin, matching code that depends on the new headers)
+justifies keeping it. Do not roll it back as part of this read-only step: the referenced
+`.claude/skills/resolve-pr-conflict/SKILL.md` Step 5 owns the approve-or-rollback question and the rollback itself.
 
 Additionally check general correctness:
 
