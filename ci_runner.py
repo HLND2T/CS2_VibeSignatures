@@ -972,11 +972,6 @@ def bump_enroll():
         f"configs/{gamever}.yaml",
         "-depotdir",
         root / "depot",
-        "-username",
-        env("DEPOTDOWNLOADER_STEAM_USERNAME"),
-        "-password",
-        env("DEPOTDOWNLOADER_STEAM_PASSWORD"),
-        "-remember-password",
     )
     tool(
         "copy_depot_bin.py",
@@ -1054,11 +1049,6 @@ def bump_apply(*, preview=False):
         "configs",
         "-depotdir",
         "cs2_depot",
-        "-username",
-        env("DEPOTDOWNLOADER_STEAM_USERNAME"),
-        "-password",
-        env("DEPOTDOWNLOADER_STEAM_PASSWORD"),
-        "-remember-password",
         *(["-dry-run"] if preview else []),
         "-github-output",
         env("GITHUB_OUTPUT"),
