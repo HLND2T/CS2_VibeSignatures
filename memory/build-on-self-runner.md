@@ -111,3 +111,26 @@ immutable main SHA preflight
 ## Callers
 - Provenance-verified release dispatch for an immutable default-branch source SHA.
 - Explicit authorized recovery reruns using the same stable transaction identity.
+
+## Warm IDB archive (issue #1126)
+- A rebuilt Release publishes `gamebin-with-idb-<GAMEVER>.7z` beside `gamebin-<GAMEVER>.7z`: the `.i64` of every
+  configured binary, staged by `release_bundle._stage_ida_databases` from `bin/<GAMEVER>` (the warm generation
+  `idb-restore` placed and `release-analyze` opened; nothing strips it before bundle time). The archive is derived from
+  the same `binary_inventory` as the gamebin archive, so its file set is each configured binary's canonical
+  `<binary>.i64` and nothing else; a missing database, an unexpected IDA side file, or a symlink fails closed. It uses
+  `IDB_ARCHIVE_COMPRESSION_LEVEL = 5` (the ~3.4 GB of databases compresses ~8-14x, far under the 2 GiB asset cap).
+- Body is ~400-450 MB per GAMEVER, so it stays under GitHub's 2 GiB per-asset limit.
+- `source_artifact_mode=tracked` publishes no IDB archive and its manifest declares none, exactly like the BinSync/warm
+  IDB evidence biconditional: it runs no IDA at all, so it has no warm bytes.
+- Versioned gating: `release_artifact_rebuild` now exposes `BINSYNC_EVIDENCE_RULE_VERSION = 1`,
+  `IDB_ARCHIVE_RULE_VERSION = 2`, and `BINDING_RULE_VERSION = IDB_ARCHIVE_RULE_VERSION = 2`. `validate_release_manifest`
+  gates the BinSync evidence rule on `>= 1` and the IDB-archive allowlist on `>= 2`, so a version-1 published manifest
+  is still held to the BinSync rule and keeps its four public assets, while a version-2 manifest must add the archive
+  (rebuild) or must not (tracked). `pages_release_input.py`'s low-version warning uses `BINSYNC_EVIDENCE_RULE_VERSION`.
+  `public_assets` (list) and `archives` (dict) are not strict-equal, so the added file does not break legacy manifests.
+- `init_gamebin.py check-idb <gamever>` downloads only the manifest+SHA256SUMS and reports whether the archive is
+  declared; `prepare --with-idb` downloads, verifies and non-overwritingly merges it. `.claude/skills/init-gamebin`
+  probes with `check-idb`, asks the user, then either uses `--with-idb` (and skips the local Warm Up IDB step) or falls
+  back to local warmup. `--with-idb` is orthogonal to `--binsync`.
+- `verify_release_bundle` keeps the generic `for path, expected in manifest["archives"].items(): _verify_archive(...)`
+  round-trip and adds `_verify_idb_archive_inventory`, which binds the archive to `_binary_records(binary_inventory)`.

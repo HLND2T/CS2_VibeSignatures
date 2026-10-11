@@ -15,7 +15,7 @@ import tempfile
 from pathlib import Path
 from urllib.parse import quote
 
-from release_artifact_rebuild import BINDING_RULE_VERSION
+from release_artifact_rebuild import BINSYNC_EVIDENCE_RULE_VERSION
 from release_bundle import (
     ALLOWED_REPOSITORY,
     BUNDLE_SCHEMA_VERSION,
@@ -312,10 +312,10 @@ def _stage_release(
         raise PagesReleaseInputError(str(exc)) from exc
 
     binding_rule_version = manifest_binding_rule_version(manifest)
-    if binding_rule_version < BINDING_RULE_VERSION:
+    if binding_rule_version < BINSYNC_EVIDENCE_RULE_VERSION:
         print(
             f"Release {release_id}: binding manifest declares rule version {binding_rule_version}, "
-            f"below the enforced version {BINDING_RULE_VERSION}; "
+            f"below the enforced version {BINSYNC_EVIDENCE_RULE_VERSION}; "
             "the BinSync and warm IDB evidence binding is not applied to it",
             file=sys.stderr,
         )
