@@ -121,6 +121,12 @@ or a non-isolated old-artifact root. The standard `release` path retains automat
 use source-controlled preprocessor references, verify against the target GAMEVER's committed artifacts, and publish
 from that committed tree under the same anchor drift contract. Warm IDB and BinSync handling is the same for both.
 
+A rebuilt Release publishes `gamebin-with-idb-<GAMEVER>.7z` alongside `gamebin-<GAMEVER>.7z`: the warm IDA database
+(`<binary>.i64`) of every configured binary, taken from the exact generation the build analyzed against. `init_gamebin.py
+check-idb <GAMEVER>` probes that archive for the local `init-gamebin` skill, and `init_gamebin.py prepare --with-idb`
+merges it so the slow local warmup can be skipped. The archive is derived from the same binary inventory as the gamebin
+archive, so it never depends on whatever database happens to exist on disk.
+
 The manual rebuild-free path (`rebuild-free-release.yml`, `source_artifact_mode: tracked`) publishes the tracked
 `bin_artifacts/<GAMEVER>` tree instead of rebuilding it. It analyzes nothing, so it runs no IDA at all: `warmup-idb.yml`,
 the BinSync candidate export, and both BinSync verification and publication are skipped whole, and no BinSync remote is
@@ -130,8 +136,11 @@ manifest records `binsync`, `ida_runtime_identity`, `warm_idb_generation`, and `
 rebuilt binding may not omit it. The binding applies only to manifests that declare `full_rebuild.binding_rule_version`;
 a manifest published before the rule existed declares none and is waived from that single rule, so the older tracked
 releases that still name BinSync and a warm IDB keep hydrating while every other manifest check still applies to them.
-The Pages hydration receipt records the binding rule version of every Release it stages. BinSync symbols are therefore
-never published for a rebuild-free release.
+The same versioned gating adds the warm IDB archive to the allowlist: a rebuilt manifest at rule version 2 must ship it
+and a tracked one must not, while a version-1 manifest keeps the original four public assets. The IDB archive rule is a
+later, independent rule, so a version-1 manifest is still held to the BinSync evidence rule. The Pages hydration
+receipt records the binding rule version of every Release it stages. BinSync symbols are therefore
+never published for a rebuild-free release, and neither is a warm IDB archive.
 
 `republish` requires an existing mutable Release and its direct commit tag. It preserves the Release ID and tag URL,
 converts the Release to a draft, moves the tag with an explicit old-SHA lease, updates metadata and reconciles assets,
