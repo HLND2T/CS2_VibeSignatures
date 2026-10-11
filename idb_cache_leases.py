@@ -40,17 +40,18 @@ LOCK_POLL_SECONDS = 0.1
 
 @dataclass(frozen=True)
 class LeaseOwner:
+    # Attempts are transport metadata: a re-run that keeps this run's successful
+    # producer jobs still consumes the lease those jobs wrote, so binding the owner
+    # to GITHUB_RUN_ATTEMPT would strand every consumer on a "Re-run failed jobs".
     repository: str
     run_id: str
-    run_attempt: str
 
     def document(self) -> dict:
         if not isinstance(self.repository, str) or not REPOSITORY_PATTERN.fullmatch(self.repository):
             raise ReleaseWorkflowError("invalid IDB lease repository")
-        for value in (self.run_id, self.run_attempt):
-            if not isinstance(value, str) or not RUN_PATTERN.fullmatch(value):
-                raise ReleaseWorkflowError("invalid IDB lease run ID/attempt")
-        return {"repository": self.repository, "run_id": self.run_id, "run_attempt": self.run_attempt}
+        if not isinstance(self.run_id, str) or not RUN_PATTERN.fullmatch(self.run_id):
+            raise ReleaseWorkflowError("invalid IDB lease run ID")
+        return {"repository": self.repository, "run_id": self.run_id}
 
 
 def cache_root(persisted_root: Path, gamever: str) -> Path:
@@ -93,7 +94,7 @@ def _validate(payload: dict, *, gamever: str, lease_id: str) -> None:
     ):
         raise ReleaseWorkflowError("invalid IDB lease metadata")
     owner = payload.get("owner")
-    if not isinstance(owner, dict) or set(owner) != {"repository", "run_id", "run_attempt"}:
+    if not isinstance(owner, dict) or set(owner) != {"repository", "run_id"}:
         raise ReleaseWorkflowError("invalid IDB lease owner")
     LeaseOwner(**owner).document()
     for key, pattern in (
@@ -162,7 +163,7 @@ def require_lease(
     if now >= payload["expires_at"] or payload["created_at"] > now + CLOCK_SKEW_SECONDS:
         raise ReleaseWorkflowError("IDB lease expired or clock differs; rerun the producer workflow")
     if payload["owner"] != owner.document():
-        raise ReleaseWorkflowError("IDB lease repository/run/attempt mismatch; rerun the producer workflow")
+        raise ReleaseWorkflowError("IDB lease repository/run mismatch; rerun the producer workflow")
     if payload["generation"] != generation or payload["cache_key"] != cache_key:
         raise ReleaseWorkflowError("IDB lease selection mismatch")
     if not isinstance(lease_sha256, str) or not SHA256_PATTERN.fullmatch(lease_sha256):

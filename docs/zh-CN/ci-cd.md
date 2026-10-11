@@ -36,7 +36,10 @@ PR 与 Release analysis 都调用 `warmup-idb.yml`，将 configured binary hashe
 Runner 必须支持这些 actions 使用的 Node 24 runtime（现有 `actions/checkout@v5` 同样需要）。
 关闭 GitHub cache fallback，S3 上传后以独立 lookup 验证对象存在；必需缓存恢复失败会终止 job。
 
-缓存 key 按仓库、runner OS 和版本化 transport namespace 隔离。Depot 只归档 source lock 声明的下载文件，
+缓存 key 按仓库和版本化 transport namespace 隔离，两种 runner OS 共用 `shared` key。Producer 优先恢复 shared，
+再按完整身份读取旧 Windows、Linux、macOS key；验证后将旧 binary cache 和 IDB generation 发布到 shared key，
+不删除或覆盖旧对象。`cache-restored` 包含兼容恢复，`cache-hit` 表示命中 shared primary key。
+Depot 只归档 source lock 声明的下载文件，
 按下载身份与目标文件集合区分，不包含下载器登录状态；accepted binaries 按 source lock 与配置目标集合精确匹配。
 恢复命中后先验证文件集合与哈希；仅 depot 命中时先物化 accepted binaries，避免重复下载。
 Key 不包含路径分隔符，避免 action 的 Windows `path.join` 改写 key 导致无法恢复。
@@ -79,6 +82,17 @@ version source commit 进入 default branch 后：
 5. protected BinSync publisher 只执行 fast-forward ref updates；
 6. protected Release publisher 创建/复用 source tag，上传 exact immutable assets，发布一次并 dispatch Pages；
 7. Pages 只 hydrate published Release assets，验证 manifest/SHA256SUMS/archive inventories，构建全部已发布版本并验证 CDN bytes。
+
+Self-hosted builder 使用 `release_bundle.py prepare` 校验本地 candidate session，生成可移植的待验证资产包，
+此时不生成发布 manifest，也不声明 C++ 成功。`cpp-validation.yml` 在 hosted Windows 和 Ubuntu 上使用同一
+snapshot/configuration 和 source SDK gitlink 测试；aggregate 要求两端结果被接受，按 Windows/Linux 顺序合并日志。
+Hosted `release_bundle.py finalize` 核对待验证包 inventory 和内容身份，将日志摘要写入现有
+`cpp_validation_sha256`，生成最终 manifest/checksums 并验证 bundle。现有 `build` CLI 与最终 Release schema 保持兼容，
+独立 Release verifier 同样重跑两个 hosted ABI。
+
+PR/full bridge 与新 GAMEVER bootstrap 共用这一门禁；bootstrap 等双端结果被接受后才生成 canonical candidate
+和 gate evidence，再进入 protected publisher。本地路径/inode 绑定的 session 留在原 job，跨 job 证据绑定
+snapshot/configuration/source/SDK 内容。旧版本没有 Linux 用例时报告 `no-tests`，已有 ABI target 不支持时必须失败。
 
 workflow transaction identity 在 GitHub rerun 之间保持稳定（`run_id`）；`run_attempt` 只属于 transport metadata。
 `publish` 保持已发布内容不被覆盖。三种构建路径的手动入口均提供 `republish`，触发 CLI 可使用

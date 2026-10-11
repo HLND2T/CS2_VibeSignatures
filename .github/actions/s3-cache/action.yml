@@ -32,11 +32,14 @@ outputs:
   cache-matched-key:
     description: Exact key or discovery prefix found by the restore
     value: ${{ steps.restore.outputs.cache-matched-key }}
+  cache-restored:
+    description: A primary or identity-scoped legacy cache was restored
+    value: ${{ steps.restore.outputs.cache-matched-key != '' }}
 runs:
   using: composite
   steps:
     - name: Validate S3 settings
-      id: endpoint
+      id: endpoint-windows
       shell: pwsh
       env:
         S3_ENDPOINT_URL: ${{ inputs.endpoint-url }}
@@ -45,10 +48,22 @@ runs:
         CACHE_OPERATION: ${{ inputs.operation }}
         CACHE_ACTION_PATH: ${{ github.action_path }}
       run: |
-        if ($env:CACHE_OPERATION -notin @('restore', 'save')) { throw 'Invalid cache operation.' }
-        $toolsRoot = [IO.Path]::GetFullPath((Join-Path $env:CACHE_ACTION_PATH '../../..'))
-        uv run --project "$toolsRoot" python (Join-Path $toolsRoot 'ci_s3_cache.py') endpoint
-        if ($LASTEXITCODE -ne 0) { throw 'Invalid S3 cache configuration.' }
+        uv run --project "${{ github.action_path }}/../../.." python "${{ github.action_path }}/../../../ci_s3_cache.py" endpoint
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      if: runner.os == 'Windows'
+    - name: Validate S3 settings
+      id: endpoint-linux
+      shell: bash
+      env:
+        S3_ENDPOINT_URL: ${{ inputs.endpoint-url }}
+        S3_ACCESS_KEY_ID: ${{ inputs.access-key }}
+        S3_SECRET_ACCESS_KEY: ${{ inputs.secret-key }}
+        CACHE_OPERATION: ${{ inputs.operation }}
+        CACHE_ACTION_PATH: ${{ github.action_path }}
+      run: |
+        set -euo pipefail
+        uv run --project "${{ github.action_path }}/../../.." python "${{ github.action_path }}/../../../ci_s3_cache.py" endpoint
+      if: runner.os == 'Linux'
     - name: Restore S3 cache
       id: restore
       if: inputs.operation == 'restore'
@@ -58,9 +73,9 @@ runs:
         AWS_SECRET_ACCESS_KEY: ${{ inputs.secret-key }}
         AWS_SESSION_TOKEN: ''
       with:
-        endpoint: ${{ steps.endpoint.outputs.endpoint }}
-        port: ${{ steps.endpoint.outputs.port }}
-        insecure: ${{ steps.endpoint.outputs.insecure }}
+        endpoint: ${{ steps.endpoint-windows.outputs.endpoint || steps.endpoint-linux.outputs.endpoint }}
+        port: ${{ steps.endpoint-windows.outputs.port || steps.endpoint-linux.outputs.port }}
+        insecure: ${{ steps.endpoint-windows.outputs.insecure || steps.endpoint-linux.outputs.insecure }}
         accessKey: ${{ inputs.access-key }}
         secretKey: ${{ inputs.secret-key }}
         bucket: actions-cache-cs2-vibesignatures
@@ -70,9 +85,15 @@ runs:
         path: ${{ inputs.path }}
         restore-keys: ${{ inputs.restore-keys }}
     - name: Require exact cache restore
-      if: inputs.operation == 'restore' && inputs.required == 'true' && steps.restore.outputs.cache-hit != 'true'
+      if: inputs.operation == 'restore' && inputs.required == 'true' && steps.restore.outputs.cache-hit != 'true' &&
+        runner.os == 'Windows'
       shell: pwsh
-      run: throw 'Required S3 cache could not be restored.'
+      run: python -c "raise SystemExit('Required S3 cache could not be restored.')"
+    - name: Require exact cache restore
+      if: inputs.operation == 'restore' && inputs.required == 'true' && steps.restore.outputs.cache-hit != 'true' &&
+        runner.os == 'Linux'
+      shell: bash
+      run: python -c "raise SystemExit('Required S3 cache could not be restored.')"
     - name: Save S3 cache
       if: inputs.operation == 'save'
       uses: hzqst/actions-cache/save@7128b4f7d510a48d0a4c66363349adf017741df0 # Portable S3 object keys, zstd autodetect
@@ -81,9 +102,9 @@ runs:
         AWS_SECRET_ACCESS_KEY: ${{ inputs.secret-key }}
         AWS_SESSION_TOKEN: ''
       with:
-        endpoint: ${{ steps.endpoint.outputs.endpoint }}
-        port: ${{ steps.endpoint.outputs.port }}
-        insecure: ${{ steps.endpoint.outputs.insecure }}
+        endpoint: ${{ steps.endpoint-windows.outputs.endpoint || steps.endpoint-linux.outputs.endpoint }}
+        port: ${{ steps.endpoint-windows.outputs.port || steps.endpoint-linux.outputs.port }}
+        insecure: ${{ steps.endpoint-windows.outputs.insecure || steps.endpoint-linux.outputs.insecure }}
         accessKey: ${{ inputs.access-key }}
         secretKey: ${{ inputs.secret-key }}
         bucket: actions-cache-cs2-vibesignatures
@@ -100,9 +121,9 @@ runs:
         AWS_SECRET_ACCESS_KEY: ${{ inputs.secret-key }}
         AWS_SESSION_TOKEN: ''
       with:
-        endpoint: ${{ steps.endpoint.outputs.endpoint }}
-        port: ${{ steps.endpoint.outputs.port }}
-        insecure: ${{ steps.endpoint.outputs.insecure }}
+        endpoint: ${{ steps.endpoint-windows.outputs.endpoint || steps.endpoint-linux.outputs.endpoint }}
+        port: ${{ steps.endpoint-windows.outputs.port || steps.endpoint-linux.outputs.port }}
+        insecure: ${{ steps.endpoint-windows.outputs.insecure || steps.endpoint-linux.outputs.insecure }}
         accessKey: ${{ inputs.access-key }}
         secretKey: ${{ inputs.secret-key }}
         bucket: actions-cache-cs2-vibesignatures
@@ -112,6 +133,10 @@ runs:
         path: ${{ inputs.path }}
         lookup-only: 'true'
     - name: Require successful publication
-      if: inputs.operation == 'save' && steps.saved.outputs.cache-hit != 'true'
+      if: inputs.operation == 'save' && steps.saved.outputs.cache-hit != 'true' && runner.os == 'Windows'
       shell: pwsh
-      run: throw 'S3 cache publication could not be verified.'
+      run: python -c "raise SystemExit('S3 cache publication could not be verified.')"
+    - name: Require successful publication
+      if: inputs.operation == 'save' && steps.saved.outputs.cache-hit != 'true' && runner.os == 'Linux'
+      shell: bash
+      run: python -c "raise SystemExit('S3 cache publication could not be verified.')"

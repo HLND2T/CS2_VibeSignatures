@@ -17,6 +17,7 @@ from pathlib import Path, PurePosixPath
 from binary_lock import BinaryLockError, load_binary_lock_from_revision
 from bin_artifact_contract import ArtifactContractError, build_game_artifact_inventory
 from binsync_candidate import BinSyncCandidateError, verify_candidate as verify_binsync_candidate
+from ci_cpp_validation import export_inputs, validate_evidence, validate_inputs
 from gamedata_candidate import (
     GamedataCandidateError,
     build_candidate as build_gamedata_candidate,
@@ -311,7 +312,7 @@ def build_release_bundle(
     metadata: str | Path,
     gamedata_candidate_root: str | Path,
     gamedata_session: str | Path,
-    cpp_validation_log: str | Path,
+    cpp_validation_log: str | Path | None,
     binsync_candidate_root: str | Path | None,
     ida_runtime_identity: str | None,
     warm_idb_generation: str | None,
@@ -320,6 +321,7 @@ def build_release_bundle(
     cpp_sdk_ref: str,
     cpp_sdk_sha: str,
     tracked_binding: str | Path | None = None,
+    _prepare_only: bool = False,
 ) -> dict:
     """Assemble deterministic public payloads and a canonical Release manifest."""
     repo_root = Path(repo_root).resolve()
@@ -413,9 +415,10 @@ def build_release_bundle(
     ]
     if gamedata_files != expected_relative_gamedata:
         raise ReleaseBundleError("gamedata session inventory does not match the candidate root")
-    cpp_validation_log = Path(cpp_validation_log).resolve()
-    if not cpp_validation_log.is_file() or cpp_validation_log.stat().st_size == 0:
-        raise ReleaseBundleError("C++ validation evidence is missing")
+    if not _prepare_only:
+        cpp_validation_log = Path(cpp_validation_log).resolve()
+        if not cpp_validation_log.is_file() or cpp_validation_log.stat().st_size == 0:
+            raise ReleaseBundleError("C++ validation evidence is missing")
 
     binsync_manifest = None
     if binsync_candidate_root is not None:
@@ -492,8 +495,6 @@ def build_release_bundle(
         for path in public_paths
     ]
     producer_contract = _producer_contract(repo_root, source_sha)
-    manifest_name = f"release-manifest-{release_version}.json"
-    checksums_name = f"SHA256SUMS-{release_version}.txt"
     manifest = {
         "schema_version": BUNDLE_SCHEMA_VERSION,
         "repository": repository,
@@ -530,7 +531,6 @@ def build_release_bundle(
             "manifest_sha256": gamedata_evidence["gamedata_manifest_sha256"],
             "generator_contract_sha256": gamedata_evidence["generator_contract_sha256"],
         },
-        "cpp_validation_sha256": sha256_file(cpp_validation_log),
         "binsync": None if binsync_manifest is None else _binsync_target_state(binsync_manifest),
         "archives": {
             f"archives/gamedata-{game_version}.7z": {
@@ -544,10 +544,68 @@ def build_release_bundle(
         },
         "public_assets": public_assets,
     }
+    if _prepare_only:
+        export_inputs(
+            repo_root=repo_root,
+            source_sha=source_sha,
+            gamever=game_version,
+            snapshot=snapshot,
+            config=config_path,
+            output=bundle_root / "cpp-inputs",
+        )
+        prepared = {"schema_version": 1, "manifest": manifest, "files": file_inventory(bundle_root)}
+        write_canonical_json(bundle_root / "prepared-release.json", prepared)
+        return prepared
+    manifest["cpp_validation_sha256"] = sha256_file(cpp_validation_log)
+    return _seal_release_bundle(repo_root, bundle_root, manifest)
+
+
+def prepare_release_bundle(**kwargs) -> dict:
+    """Build source-bound assets without manufacturing C++ publication evidence."""
+    return build_release_bundle(**kwargs, cpp_validation_log=None, _prepare_only=True)
+
+
+def finalize_release_bundle(*, repo_root, prepared_root, bundle_root, cpp_evidence_root) -> dict:
+    """Seal a portable prepared bundle only after both hosted ABI gates passed."""
+    repo_root, prepared_root, bundle_root = Path(repo_root).resolve(), Path(prepared_root), Path(bundle_root)
+    prepared = load_json_object(prepared_root / "prepared-release.json")
+    if set(prepared) != {"schema_version", "manifest", "files"} or prepared["schema_version"] != 1:
+        raise ReleaseBundleError("Prepared Release descriptor is invalid")
+    actual = [item for item in file_inventory(prepared_root) if item["path"] != "prepared-release.json"]
+    if actual != prepared["files"]:
+        raise ReleaseBundleError("Prepared Release inventory changed")
+    manifest = dict(prepared["manifest"])
+    if "cpp_validation_sha256" in manifest:
+        raise ReleaseBundleError("Prepared Release must not claim C++ validation")
+    inputs = validate_inputs(
+        prepared_root / "cpp-inputs",
+        repo_root=repo_root,
+        source_sha=manifest["source_sha"],
+        gamever=manifest["game_version"],
+    )
+    if (
+        inputs["snapshot_sha256"] != "sha256:" + manifest["snapshot"]["sha256"]
+        or inputs["sdk_sha"] != manifest["sdk_gitlink_sha"]
+    ):
+        raise ReleaseBundleError("Prepared Release C++ identity mismatch")
+    evidence = validate_evidence(Path(cpp_evidence_root), inputs, prepared_root / "cpp-inputs" / "analysis-config.yaml")
+    manifest["cpp_validation_sha256"] = evidence["log_sha256"]
+    validate_release_manifest(manifest)
+    if bundle_root.exists():
+        raise ReleaseBundleError("Final Release bundle root must be fresh")
+    bundle_root.mkdir(parents=True)
+    for name in ("gamesymbols", "gamedata", "archives"):
+        _copy_tree(prepared_root / name, bundle_root / name)
+    return _seal_release_bundle(repo_root, bundle_root, manifest)
+
+
+def _seal_release_bundle(repo_root: Path, bundle_root: Path, manifest: dict) -> dict:
+    release_version = manifest["release_version"]
+    manifest_name = f"release-manifest-{release_version}.json"
     manifest_path = bundle_root / manifest_name
     write_canonical_json(manifest_path, manifest)
     checksum_records = [
-        *public_assets,
+        *manifest["public_assets"],
         {
             "path": manifest_name,
             "name": manifest_name,
@@ -558,15 +616,15 @@ def build_release_bundle(
     checksum_payload = "".join(
         f"{item['sha256']}  {item['path']}\n" for item in sorted(checksum_records, key=lambda x: x["path"])
     )
-    (bundle_root / checksums_name).write_text(checksum_payload, encoding="utf-8", newline="\n")
+    (bundle_root / f"SHA256SUMS-{release_version}.txt").write_text(checksum_payload, encoding="utf-8", newline="\n")
     verify_release_bundle(
         bundle_root=bundle_root,
         repo_root=repo_root,
-        expected_source_sha=source_sha,
-        expected_game_version=game_version,
+        expected_source_sha=manifest["source_sha"],
+        expected_game_version=manifest["game_version"],
         expected_release_version=release_version,
-        expected_build_id=build_id,
-        expected_actions_artifact_name=actions_artifact_name,
+        expected_build_id=manifest["build_id"],
+        expected_actions_artifact_name=manifest["actions_artifact_name"],
     )
     return manifest
 
@@ -1016,10 +1074,7 @@ def verify_release_bundle(
     }
 
 
-def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description=__doc__)
-    commands = parser.add_subparsers(dest="command", required=True)
-    build = commands.add_parser("build")
+def _add_producer_arguments(build: argparse.ArgumentParser, *, require_cpp: bool) -> None:
     build.add_argument("--repo-root", default=".")
     build.add_argument("--bundle-root", required=True)
     build.add_argument("--repository", required=True)
@@ -1035,7 +1090,8 @@ def _parser() -> argparse.ArgumentParser:
     build.add_argument("--metadata", required=True)
     build.add_argument("--gamedata-candidate-root", required=True)
     build.add_argument("--gamedata-session", required=True)
-    build.add_argument("--cpp-validation-log", required=True)
+    if require_cpp:
+        build.add_argument("--cpp-validation-log", required=True)
     # Omitted together by the tracked (rebuild-free) path, which runs no IDA
     # analysis and therefore exports no BinSync candidate; required otherwise.
     build.add_argument("--binsync-candidate-root")
@@ -1045,6 +1101,18 @@ def _parser() -> argparse.ArgumentParser:
     build.add_argument("--actions-artifact-name", required=True)
     build.add_argument("--cpp-sdk-ref", required=True)
     build.add_argument("--cpp-sdk-sha", required=True)
+
+
+def _parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=__doc__)
+    commands = parser.add_subparsers(dest="command", required=True)
+    _add_producer_arguments(commands.add_parser("build"), require_cpp=True)
+    _add_producer_arguments(commands.add_parser("prepare"), require_cpp=False)
+    finalize = commands.add_parser("finalize")
+    finalize.add_argument("--repo-root", default=".")
+    finalize.add_argument("--prepared-root", required=True)
+    finalize.add_argument("--bundle-root", required=True)
+    finalize.add_argument("--cpp-evidence-root", required=True)
     verify = commands.add_parser("verify")
     verify.add_argument("--repo-root", default=".")
     verify.add_argument("--bundle-root", required=True)
@@ -1061,8 +1129,10 @@ def _parser() -> argparse.ArgumentParser:
 def main(argv=None) -> int:
     args = _parser().parse_args(argv)
     try:
-        if args.command == "build":
-            result = build_release_bundle(
+        if args.command in ("build", "prepare"):
+            producer = build_release_bundle if args.command == "build" else prepare_release_bundle
+            cpp_args = {"cpp_validation_log": args.cpp_validation_log} if args.command == "build" else {}
+            result = producer(
                 repo_root=args.repo_root,
                 bundle_root=args.bundle_root,
                 repository=args.repository,
@@ -1075,7 +1145,7 @@ def main(argv=None) -> int:
                 metadata=args.metadata,
                 gamedata_candidate_root=args.gamedata_candidate_root,
                 gamedata_session=args.gamedata_session,
-                cpp_validation_log=args.cpp_validation_log,
+                **cpp_args,
                 binsync_candidate_root=args.binsync_candidate_root,
                 ida_runtime_identity=args.ida_runtime_identity,
                 warm_idb_generation=args.warm_idb_generation,
@@ -1083,6 +1153,13 @@ def main(argv=None) -> int:
                 actions_artifact_name=args.actions_artifact_name,
                 cpp_sdk_ref=args.cpp_sdk_ref,
                 cpp_sdk_sha=args.cpp_sdk_sha,
+            )
+        elif args.command == "finalize":
+            result = finalize_release_bundle(
+                repo_root=args.repo_root,
+                prepared_root=args.prepared_root,
+                bundle_root=args.bundle_root,
+                cpp_evidence_root=args.cpp_evidence_root,
             )
         else:
             result = verify_release_bundle(
