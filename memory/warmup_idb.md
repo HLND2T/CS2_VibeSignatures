@@ -27,7 +27,7 @@ permalink: cs2-vibesignatures/warmup-idb
 ```text
 GAMEVER + configured binary hashes + IDA runtime
   -> GAMEVER file lock: verify/reuse or publish immutable generation
-  -> persist lease bound to repository/run/attempt + generation/key/manifest digest
+  -> persist lease bound to repository/run + generation/key/manifest digest
   -> return exact generation/key + lease ID/SHA-256 to downstream job
   -> same lock: require lease, verify generation, copy all binaries/IDBs, verify identity
   -> atomically release this lease only after full success
@@ -54,7 +54,7 @@ Source-owned artifact content is deliberately absent from cache identity and pay
 ## Cross-job generation lifetime (2026-09-25)
 - Trigger: warmup selects an old generation, other workflows move READY and prune before the consumer restores; restore reports `published IDB cache generation is incomplete`.
 - Root cause: READY and latest-three/seven-day retention do not express pending consumers. Producer-only workflow concurrency does not cover downstream wait/copy. CS2 prunes before probe, so a later warmup can delete a prior selection after an intervening producer moves READY.
-- Correct approach: persistent unique leases are created under the same per-GAMEVER filesystem lock used by pruning and restore. Consumers use producer outputs directly; no downstream re-probe. Lease digest binds repository/run/attempt and exact generation/cache key/manifest. Every configured binary and IDB must restore successfully before releasing that lease.
-- Failure/operations: 36-day TTL, one-hour extra prune clock grace; failed/abandoned producers expire. Unreadable/corrupt leases fail closed. Released/expired/missing/mismatched leases reject restore. Rerun the full workflow including producer after successful restore followed by analysis failure, or a changed GitHub attempt. New `idb-cache-v2/` isolates payload/READY/leases/locks from old pruners; old namespace is not migrated or deleted automatically.
+- Correct approach: persistent unique leases are created under the same per-GAMEVER filesystem lock used by pruning and restore. Consumers use producer outputs directly; no downstream re-probe. Lease digest binds repository/run and exact generation/cache key/manifest. Every configured binary and IDB must restore successfully before releasing that lease.
+- Failure/operations: 36-day TTL, one-hour extra prune clock grace; failed/abandoned producers expire. Unreadable/corrupt leases fail closed. Released/expired/missing/mismatched leases reject restore. The GitHub run attempt is deliberately **not** part of lease identity: a partial "Re-run failed jobs" keeps the producer that already wrote the lease, so encoding the attempt would strand the consumer (see [[Warm IDB lease identity must not encode the run attempt]]). Rerun the full workflow including producer only after a successful restore followed by analysis failure, or after the lease is released. New `idb-cache-v2/` isolates payload/READY/leases/locks from old pruners; old namespace is not migrated or deleted automatically.
 - Verification: the deterministic regression failed before the fix on the missing generation; 31 focused tests passed on Windows, including cross-process/workspace CLI restore and lock contention, partial copy failure, multiple independent leases, expiry and reparse defenses. Real dual-runner SMB interleaving remains an operational validation step.
 - Scope: ordinary PR/Release, bootstrap, and source-artifact bridge warmup/consumer paths. Release evidence is archival and does not depend on live lease state.
