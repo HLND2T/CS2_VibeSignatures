@@ -147,18 +147,16 @@ def prepare_staging(repo_root: Path) -> None:
         target.mkdir(exist_ok=True)
 
 
-def selection_layout(
-    gamever: str, repository: str, platform: str, generation: str, lease_id: str, run_id: str, run_attempt: str
-) -> dict:
+def selection_layout(gamever: str, repository: str, platform: str, generation: str, lease_id: str, run_id: str) -> dict:
     gamever = require_gamever(gamever)
     prefix = namespace(repository, platform)
-    leases.LeaseOwner(repository, run_id, run_attempt).document()
+    leases.LeaseOwner(repository, run_id).document()
     if not leases.GENERATION_PATTERN.fullmatch(generation) or not leases.LEASE_ID_PATTERN.fullmatch(lease_id):
         raise ValueError("Invalid IDB generation or lease selection")
     return {
         "generation-key": f"{prefix}-idb-{gamever}-{generation}",
         "generation-path": f"{STORE}/{leases.CACHE_NAMESPACE}/{gamever}/generations/{generation}",
-        "lease-key": f"{prefix}-lease-{gamever}-{run_id}-{run_attempt}-{lease_id}",
+        "lease-key": f"{prefix}-lease-{gamever}-{run_id}-{lease_id}",
         "lease-path": f"{STORE}/{leases.CACHE_NAMESPACE}/{gamever}/leases/{lease_id}.json",
     }
 
@@ -259,7 +257,6 @@ def main(argv=None) -> int:
                 args.generation,
                 args.lease_id,
                 os.environ.get("GITHUB_RUN_ID", ""),
-                os.environ.get("GITHUB_RUN_ATTEMPT", ""),
             )
         elif args.command == "verify-restored":
             verify_restored(

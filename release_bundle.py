@@ -36,13 +36,15 @@ from gamesymbol_snapshot_lib.config import SnapshotConfigError, load_contract
 from gamesymbol_snapshot_lib.errors import SnapshotMismatchError
 from gamesymbol_snapshot_lib.operations import collect_actual_files, load_snapshot_for_contract
 from release_artifact_rebuild import (
-    BINDING_RULE_VERSION,
+    BINSYNC_EVIDENCE_RULE_VERSION,
+    IDB_ARCHIVE_RULE_VERSION,
     TRACKED_BINDING_MODE,
     ReleaseArtifactRebuildError,
     load_release_rebuild_preparation,
     load_release_rebuild_verification,
     load_tracked_artifact_binding,
 )
+from release_workflow_lib.binary_cache import IDA_DATABASE_SUFFIXES
 from release_workflow_lib.errors import ReleaseWorkflowError
 from release_workflow_lib.hashing import (
     canonical_json_bytes,
@@ -65,6 +67,10 @@ ARTIFACT_NAME_RE = re.compile(r"^[A-Za-z0-9_.-]{1,240}$")
 VERSION_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
 BUILD_ID_RE = re.compile(r"^[0-9a-f]{40}$")
 ALLOWED_REPOSITORY = "HLND2T/CS2_VibeSignatures"
+# The warm IDB archive is several gigabytes of highly redundant databases, so it
+# gets a bounded compression level: level 9 roughly doubles the archive time for
+# a size that is already a small fraction of the 2 GiB GitHub asset limit.
+IDB_ARCHIVE_COMPRESSION_LEVEL = 5
 PRODUCER_CONTRACT_PATHS = (
     "analysis_output_contract.py",
     "bin_artifact_contract.py",
@@ -171,6 +177,60 @@ def _binary_records(binary_inventory: dict) -> list[dict]:
     return records
 
 
+def gamebin_with_idb_archive_name(game_version: str) -> str:
+    """Return the public asset name of the warm IDB archive for one GAMEVER."""
+    return f"gamebin-with-idb-{game_version}.7z"
+
+
+def _expected_ida_database_paths(game_version: str, binary_records: list[dict]) -> list[str]:
+    """Return the canonical ``bin/<gv>/<module>/<binary>.i64`` path per configured binary."""
+    return sorted(
+        f"bin/{game_version}/{record['module']}/{PurePosixPath(record['path']).name}.i64" for record in binary_records
+    )
+
+
+def _is_ida_database_file(path: Path) -> bool:
+    return path.suffix.lower() in IDA_DATABASE_SUFFIXES
+
+
+def _verify_idb_archive_inventory(game_version: str, binary_records: list[dict], files: list[dict]) -> None:
+    """Require the warm IDB archive to be exactly the configured binaries' databases."""
+    expected = _expected_ida_database_paths(game_version, binary_records)
+    actual = sorted(item["path"] for item in files)
+    if actual != expected:
+        raise ReleaseBundleError("gamebin-with-idb archive is not the exact warm IDB database inventory")
+
+
+def _stage_ida_databases(
+    source_bin_root: Path, game_version: str, binary_records: list[dict], staging_root: Path
+) -> list[str]:
+    """Stage the warm IDA databases of one GAMEVER into a mirrored ``bin`` tree.
+
+    Only the exact canonical database of every configured binary is accepted; a
+    missing database, an unexpected IDA side file, or a symbolic link fails
+    closed, so the archive identity is always the producer's warm generation.
+    Returns the sorted staged relative paths (``bin/<gv>/<module>/<name>.i64``).
+    """
+    expected = set(_expected_ida_database_paths(game_version, binary_records))
+    staged = set()
+    for path in sorted(source_bin_root.rglob("*")):
+        if path.is_symlink():
+            raise ReleaseBundleError(f"warm IDB tree contains an unsupported symbolic link: {path}")
+        if not path.is_file() or not _is_ida_database_file(path):
+            continue
+        relative = (PurePosixPath("bin") / game_version / path.relative_to(source_bin_root).as_posix()).as_posix()
+        if relative not in expected:
+            raise ReleaseBundleError(f"unexpected warm IDA database file: {relative}")
+        target = staging_root / PurePosixPath(relative)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(path, target)
+        staged.add(relative)
+    missing = sorted(expected - staged)
+    if missing:
+        raise ReleaseBundleError("warm IDA database is missing for configured binaries: " + ", ".join(missing))
+    return sorted(staged)
+
+
 def _binary_archive_inventory(game_version: str, binary_inventory: dict) -> list[dict]:
     return sorted(
         (
@@ -194,7 +254,7 @@ def _copy_binaries(repo_root: Path, game_version: str, records: list[dict], dest
         _copy_file(source, destination / "bin" / game_version / record["module"] / binary_name)
 
 
-def _create_archive(source_root: Path, archive_path: Path) -> None:
+def _create_archive(source_root: Path, archive_path: Path, compression_level: int = 9) -> None:
     inventory = file_inventory(source_root)
     if not inventory:
         raise ReleaseBundleError(f"archive source is empty: {source_root}")
@@ -205,7 +265,7 @@ def _create_archive(source_root: Path, archive_path: Path) -> None:
         "7z",
         "a",
         "-t7z",
-        "-mx=9",
+        f"-mx={compression_level}",
         "-mmt=off",
         "-mtc=off",
         "-mtm=off",
@@ -478,6 +538,17 @@ def build_release_bundle(
         gamebin_archive = bundle_root / "archives" / f"gamebin-{game_version}.7z"
         _create_archive(gamedata_archive_root, gamedata_archive)
         _create_archive(gamebin_archive_root, gamebin_archive)
+        # A tracked (rebuild-free) binding runs no IDA at all, so no warm IDB
+        # exists and the archive is neither created nor declared; a rebuilt
+        # binding must ship it, because the warm IDB is exactly what the caller
+        # would otherwise have to regenerate locally.
+        idb_archive_inventory = None
+        if tracked_binding is None:
+            idb_archive_root = temporary_root / "gamebin-with-idb"
+            _stage_ida_databases(repo_root / "bin" / game_version, game_version, binary_records, idb_archive_root)
+            idb_archive_inventory = file_inventory(idb_archive_root)
+            idb_archive = bundle_root / "archives" / gamebin_with_idb_archive_name(game_version)
+            _create_archive(idb_archive_root, idb_archive, IDB_ARCHIVE_COMPRESSION_LEVEL)
 
     public_paths = [
         f"gamesymbols/{game_version}.yaml",
@@ -485,6 +556,8 @@ def build_release_bundle(
         f"archives/gamedata-{game_version}.7z",
         f"archives/gamebin-{game_version}.7z",
     ]
+    if idb_archive_inventory is not None:
+        public_paths.append(f"archives/{gamebin_with_idb_archive_name(game_version)}")
     public_assets = [
         {
             "path": path,
@@ -541,6 +614,16 @@ def build_release_bundle(
                 "files": gamebin_archive_inventory,
                 "inventory_sha256": inventory_sha256(gamebin_archive_inventory),
             },
+            **(
+                {
+                    f"archives/{gamebin_with_idb_archive_name(game_version)}": {
+                        "files": idb_archive_inventory,
+                        "inventory_sha256": inventory_sha256(idb_archive_inventory),
+                    }
+                }
+                if idb_archive_inventory is not None
+                else {}
+            ),
         },
         "public_assets": public_assets,
     }
@@ -789,7 +872,7 @@ def validate_release_manifest(manifest: dict) -> None:
     # A manifest published before the binding rule existed carries no rule version.
     # It is exempt from this evidence binding only, because the producer that built
     # it never had the choice this rule constrains; every other check still applies.
-    if binding_rule_version >= BINDING_RULE_VERSION:
+    if binding_rule_version >= BINSYNC_EVIDENCE_RULE_VERSION:
         if binding_mode == TRACKED_BINDING_MODE:
             # Nothing was analyzed, so claiming a BinSync candidate or a warm IDB
             # generation here would assert evidence this release never produced.
@@ -809,6 +892,21 @@ def validate_release_manifest(manifest: dict) -> None:
         f"archives/gamedata-{game_version}.7z",
         f"archives/gamebin-{game_version}.7z",
     }
+    expected_archive_paths = {
+        f"archives/gamedata-{game_version}.7z",
+        f"archives/gamebin-{game_version}.7z",
+    }
+    if binding_rule_version >= IDB_ARCHIVE_RULE_VERSION:
+        # The warm IDB archive is an added allowlist entry, so only manifests that
+        # declare the current rule are held to it. A rebuilt binding must ship it,
+        # a tracked binding must not (it runs no IDA and has no warm IDB).
+        idb_archive_path = f"archives/{gamebin_with_idb_archive_name(game_version)}"
+        if binding_mode == TRACKED_BINDING_MODE:
+            if idb_archive_path in {item.get("path") for item in manifest.get("public_assets", [])}:
+                raise ReleaseBundleError("Tracked source-owned releases must not ship a warm IDB archive")
+        else:
+            expected_public_paths.add(idb_archive_path)
+            expected_archive_paths.add(idb_archive_path)
     public_assets = manifest.get("public_assets")
     if not isinstance(public_assets, list) or {
         item.get("path") for item in public_assets if isinstance(item, dict)
@@ -831,10 +929,7 @@ def validate_release_manifest(manifest: dict) -> None:
         raise ReleaseBundleError("Release snapshot or metadata path is invalid")
     if manifest.get("gamedata", {}).get("path") != f"gamedata/{game_version}":
         raise ReleaseBundleError("Release gamedata path is invalid")
-    if set(manifest.get("archives", {})) != {
-        f"archives/gamedata-{game_version}.7z",
-        f"archives/gamebin-{game_version}.7z",
-    }:
+    if set(manifest.get("archives", {})) != expected_archive_paths:
         raise ReleaseBundleError("Release archive allowlist is invalid")
 
 
@@ -1041,6 +1136,10 @@ def verify_release_bundle(
     ]
     if gamedata_binary_files != expected_binaries:
         raise ReleaseBundleError("gamedata archive binary inventory mismatch")
+    idb_key = f"archives/{gamebin_with_idb_archive_name(game_version)}"
+    idb_files = manifest["archives"].get(idb_key, {}).get("files", [])
+    if idb_files:
+        _verify_idb_archive_inventory(game_version, _binary_records(manifest["binary_inventory"]), idb_files)
     if binsync is not None and (
         _digest("binsync-intended-remote-state:v1", binsync["repositories"]) != binsync["target_state_digest"]
     ):

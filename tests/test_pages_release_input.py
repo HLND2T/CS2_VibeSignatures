@@ -5,6 +5,7 @@ import unittest
 from pathlib import Path
 
 import pages_release_input as pri
+from release_artifact_rebuild import BINDING_RULE_VERSION
 from release_bundle import _create_archive, _release_rebuild_digest
 from release_workflow_lib.hashing import (
     canonical_json_bytes,
@@ -79,6 +80,7 @@ def _release_fixture(
     gamedata = f'{{"gamever":"{game_version}"}}\n'.encode()
     gamedata_archive = f"archive-{game_version}".encode()
     gamebin_archive = f"gamebin-{game_version}".encode()
+    idb_archive = f"gamebin-with-idb-{game_version}".encode()
     gamedata_files = [
         {
             "path": f"gamedata/{game_version}/Plugin/data.jsonc",
@@ -93,14 +95,23 @@ def _release_fixture(
             "sha256": "4" * 64,
         }
     ]
+    idb_files = [
+        {
+            "path": f"bin/{game_version}/server/server.dll.i64",
+            "size": 1,
+            "sha256": "5" * 64,
+        }
+    ]
     public_assets = [
         _asset_record(f"gamesymbols/{game_version}.yaml", snapshot),
         _asset_record(f"gamesymbols/{game_version}.metadata.yaml", metadata),
         _asset_record(f"archives/gamedata-{game_version}.7z", gamedata_archive),
         _asset_record(f"archives/gamebin-{game_version}.7z", gamebin_archive),
+        _asset_record(f"archives/gamebin-with-idb-{game_version}.7z", idb_archive),
     ]
     full_rebuild = {
         "schema_version": 1,
+        "binding_rule_version": BINDING_RULE_VERSION,
         "source_sha": source_sha,
         "game_version": game_version,
         "binary_lock_sha256": DIGEST,
@@ -110,8 +121,14 @@ def _release_fixture(
     if tracked_legacy:
         # A manifest published before the binding rule existed: a tracked binding
         # that still carries the BinSync and warm IDB evidence the rule forbade.
+        # It also predates the IDB archive rule, so it carries only the four
+        # original public assets and no binding rule version.
+        del full_rebuild["binding_rule_version"]
         full_rebuild["binding_mode"] = "tracked"
         binding_label = "tracked-artifact-binding"
+        public_assets = [
+            item for item in public_assets if item["path"] != f"archives/gamebin-with-idb-{game_version}.7z"
+        ]
     full_rebuild["verification_sha256"] = _release_rebuild_digest(binding_label, full_rebuild)
     manifest = {
         "schema_version": 2,
@@ -167,6 +184,16 @@ def _release_fixture(
                 "files": gamebin_files,
                 "inventory_sha256": inventory_sha256(gamebin_files),
             },
+            **(
+                {
+                    f"archives/gamebin-with-idb-{game_version}.7z": {
+                        "files": idb_files,
+                        "inventory_sha256": inventory_sha256(idb_files),
+                    }
+                }
+                if not tracked_legacy
+                else {}
+            ),
         },
         "public_assets": public_assets,
     }
@@ -193,6 +220,7 @@ def _release_fixture(
         f"{game_version}.metadata.yaml": metadata,
         f"gamedata-{game_version}.7z": gamedata_archive,
         f"gamebin-{game_version}.7z": gamebin_archive,
+        **({} if tracked_legacy else {f"gamebin-with-idb-{game_version}.7z": idb_archive}),
         manifest_name: manifest_bytes,
         checksum_name: checksum_bytes,
     }

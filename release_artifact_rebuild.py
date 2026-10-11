@@ -38,7 +38,15 @@ TRACKED_BINDING_MODE = "tracked"
 # source binding mode. Both producer paths record it in the binding document so
 # a consumer without a source checkout can tell which rule the manifest obeys;
 # manifests published before the rule exist carry no such key.
-BINDING_RULE_VERSION = 1
+BINSYNC_EVIDENCE_RULE_VERSION = 1
+# Version of the contract that adds the optional warm IDB archive to the public
+# asset allowlist for rebuilt releases. It sits above the BinSync evidence rule
+# so a manifest that declares it is gated on both rules, while a manifest still
+# carrying version 1 is gated on the BinSync evidence rule alone.
+IDB_ARCHIVE_RULE_VERSION = 2
+# Current producer rule version: what both producer paths write into the binding
+# document. Must stay the maximum of the rule versions above.
+BINDING_RULE_VERSION = IDB_ARCHIVE_RULE_VERSION
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 
 
