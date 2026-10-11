@@ -15729,8 +15729,9 @@ cpp_tests:
       - fms-compatibility
       - Xclang
       - fdump-vtable-layouts
-    # No reference_modules yet: 14190 has no IGameEventSystem / CGameEventSystem
-    # binary reference YAMLs. Compile-only validation.
+    # No reference_modules yet: IGameEventSystem has no binary reference YAMLs
+    # (CGameEventSystem_vtable exists but covers the impl class, not this
+    # interface). Compile-only validation.
   - name: IGameEventSystem_GCC
     symbol: IGameEventSystem
     cpp: cpp_tests/igameeventsystem.cpp
@@ -15752,5 +15753,6 @@ cpp_tests:
     additional_compiler_options:
       - Xclang
       - fdump-vtable-layouts
-    # No reference_modules yet: 14190 has no IGameEventSystem / CGameEventSystem
-    # binary reference YAMLs. Compile-only validation.
+    # No reference_modules yet: IGameEventSystem has no binary reference YAMLs
+    # (CGameEventSystem_vtable exists but covers the impl class, not this
+    # interface). Compile-only validation.

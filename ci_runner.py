@@ -233,8 +233,6 @@ def idb(operation):
         env("GITHUB_REPOSITORY"),
         "--run-id",
         env("GITHUB_RUN_ID"),
-        "--run-attempt",
-        env("GITHUB_RUN_ATTEMPT"),
     ]
     if operation == "restore":
         args += [

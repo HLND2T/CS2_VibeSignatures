@@ -629,7 +629,6 @@ def parse_args(argv=None) -> argparse.Namespace:
         commands.choices[name].add_argument("--ida-version", required=True)
         commands.choices[name].add_argument("--repository", required=True)
         commands.choices[name].add_argument("--run-id", required=True)
-        commands.choices[name].add_argument("--run-attempt", required=True)
     commands.choices["publish"].add_argument("--generation-suffix", required=True)
     commands.choices["restore"].add_argument("--generation", required=True)
     commands.choices["restore"].add_argument("--cache-key", required=True)
@@ -651,7 +650,7 @@ def main(argv=None) -> int:
             "gamever": args.gamever,
         }
         if args.command != "prune":
-            common["owner"] = leases.LeaseOwner(args.repository, args.run_id, args.run_attempt)
+            common["owner"] = leases.LeaseOwner(args.repository, args.run_id)
         if args.command == "probe":
             result = probe_cache(**common, repo_root=Path(args.repo_root), ida_version=args.ida_version)
         elif args.command == "publish":

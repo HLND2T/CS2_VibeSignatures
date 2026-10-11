@@ -18,7 +18,7 @@ from idb_cache_leases import LeaseOwner
 
 
 class TestIdbCache(unittest.TestCase):
-    owner = LeaseOwner("HLND2T/CS2_VibeSignatures", "100", "1")
+    owner = LeaseOwner("HLND2T/CS2_VibeSignatures", "100")
 
     def _configured_binaries(self, root: Path, gamever: str, _config_path: Path):
         return [
@@ -71,7 +71,7 @@ class TestIdbCache(unittest.TestCase):
                 owner=self.owner,
             )
             initial = ci_s3_cache.selection_layout(
-                gamever, self.owner.repository, "Windows", published["generation"], published["lease_id"], "100", "1"
+                gamever, self.owner.repository, "Windows", published["generation"], published["lease_id"], "100"
             )
             # Model immutable remote objects: restore a Windows generation,
             # validate it, then publish the same payload into the shared key.
@@ -87,7 +87,7 @@ class TestIdbCache(unittest.TestCase):
                 if path.is_file()
             }
             shutil.copytree(legacy_object, next_run / initial["generation-path"])
-            owner = LeaseOwner(self.owner.repository, "101", "1")
+            owner = LeaseOwner(self.owner.repository, "101")
             hit = idb_cache.probe_cache(
                 repo_root=next_run,
                 persisted_root=next_run / ci_s3_cache.STORE,
@@ -99,12 +99,12 @@ class TestIdbCache(unittest.TestCase):
             self.assertEqual(published["generation"], hit["generation"])
             self.assertNotEqual(published["lease_id"], hit["lease_id"])
             selected = ci_s3_cache.selection_layout(
-                gamever, owner.repository, "Linux", hit["generation"], hit["lease_id"], "101", "1"
+                gamever, owner.repository, "Linux", hit["generation"], hit["lease_id"], "101"
             )
             self.assertEqual(
                 selected,
                 ci_s3_cache.selection_layout(
-                    gamever, owner.repository, "Windows", hit["generation"], hit["lease_id"], "101", "1"
+                    gamever, owner.repository, "Windows", hit["generation"], hit["lease_id"], "101"
                 ),
             )
             shared_object = remote / selected["generation-key"]
@@ -626,7 +626,7 @@ class TestIdbCacheLeases(unittest.TestCase):
         self.source = self.root / "producer"
         self.persisted = self.root / "persisted"
         self.gamever = "14180"
-        self.owner = LeaseOwner("HLND2T/CS2_VibeSignatures", "100", "1")
+        self.owner = LeaseOwner("HLND2T/CS2_VibeSignatures", "100")
         self.fixture = TestIdbCache()
         config = self.fixture._patch_config()
         config.start()
@@ -682,9 +682,22 @@ class TestIdbCacheLeases(unittest.TestCase):
         for index in range(3):
             self.publish(marker=f"new-{index}".encode())
 
-    def test_multiple_runs_and_attempts_protect_independently(self):
+    def test_same_run_consumer_outlives_a_failed_attempt_rerun(self):
+        # Regression: "Re-run failed jobs" reuses the producer jobs of run N, so the
+        # lease they wrote must stay consumable by that same run. Before the fix the
+        # lease key and owner both embedded GITHUB_RUN_ATTEMPT, so attempt 2 selected
+        # "...-N-2-..." while the producer had published "...-N-1-...".
+        selection = self.publish()
+        payload = leases.load_json_object(self.lease_path(selection))
+        self.assertEqual({"repository", "run_id"}, set(payload["owner"]))
+        self.assertNotIn("run_attempt", payload["owner"])
+        # Same run ID, independent of any attempt value, resolves to the same lease.
+        self.restore(selection)
+        self.assertEqual("released", leases.load_json_object(self.lease_path(selection))["state"])
+
+    def test_multiple_runs_protect_independently(self):
         first = self.publish()
-        other_owner = LeaseOwner(self.owner.repository, "200", "2")
+        other_owner = LeaseOwner(self.owner.repository, "200")
         second = self.probe(owner=other_owner)
         self.assertNotEqual(first["lease_id"], second["lease_id"])
         self.make_prunable(first)
@@ -735,9 +748,8 @@ class TestIdbCacheLeases(unittest.TestCase):
     def test_wrong_owner_selection_and_digest_fail_before_copy(self):
         selection = self.publish()
         cases = (
-            {"owner": LeaseOwner("another/repository", "100", "1")},
-            {"owner": LeaseOwner(self.owner.repository, "200", "1")},
-            {"owner": LeaseOwner(self.owner.repository, "100", "2")},
+            {"owner": LeaseOwner("another/repository", "100")},
+            {"owner": LeaseOwner(self.owner.repository, "200")},
             {"generation": "0" * 64 + "-1-1"},
             {"expected_cache_key": "0" * 64},
             {"lease_sha256": "0" * 64},
@@ -790,7 +802,7 @@ class TestIdbCacheLeases(unittest.TestCase):
             {"gamever": "99999"},
             {"state": "unknown"},
             {"owner": []},
-            {"owner": {**original["owner"], "run_attempt": "0"}},
+            {"owner": {**original["owner"], "run_id": "0"}},
             {"generation": "../../escape"},
             {"manifest_sha256": "bad"},
             {"cache_key": "0" * 64},
@@ -889,8 +901,6 @@ class TestIdbCacheLeases(unittest.TestCase):
                     self.owner.repository,
                     "--run-id",
                     self.owner.run_id,
-                    "--run-attempt",
-                    self.owner.run_attempt,
                     "--github-output",
                     str(output),
                 ]
@@ -1005,8 +1015,6 @@ class TestIdbCacheLeases(unittest.TestCase):
                     self.owner.repository,
                     "--run-id",
                     self.owner.run_id,
-                    "--run-attempt",
-                    self.owner.run_attempt,
                     "--ida-version",
                     "9.2",
                     *extra,
