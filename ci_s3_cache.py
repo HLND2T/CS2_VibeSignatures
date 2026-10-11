@@ -79,7 +79,20 @@ def namespace(repository: str, platform: str) -> str:
     # tespkg uses Node path.join for object names. Separators inside a key would be
     # normalized on Windows while listObjects uses the unmodified input key.
     repository_id = sha256_bytes(repository.lower().encode("utf-8"))
-    return f"{TRANSPORT_VERSION}-{repository_id}-{platform.lower()}"
+    return f"{TRANSPORT_VERSION}-{repository_id}-shared"
+
+
+def legacy_prefixes(repository: str, platform: str) -> tuple[str, ...]:
+    prefix = namespace(repository, platform).removesuffix("-shared")
+    return tuple(f"{prefix}-{name}" for name in ("windows", "linux", "macos"))
+
+
+def legacy_keys(key: str, repository: str, platform: str) -> str:
+    prefix = namespace(repository, platform)
+    if not key.startswith(prefix + "-"):
+        raise ValueError("Cache key does not belong to the shared repository namespace")
+    suffix = key[len(prefix) :]
+    return "\n".join(source + suffix for source in legacy_prefixes(repository, platform))
 
 
 def depot_files(gamever: str, document: dict) -> list[tuple[str, dict]]:
@@ -112,8 +125,10 @@ def cache_layout(repo_root: Path, gamever: str, repository: str, platform: str) 
         "persisted-root": STORE,
         "binary-lock-sha256": lock.sha256,
         "accepted-key": f"{prefix}-accepted-{gamever}-{accepted_identity}",
+        "accepted-restore-keys": legacy_keys(f"{prefix}-accepted-{gamever}-{accepted_identity}", repository, platform),
         "accepted-path": f"{STORE}/bin/{gamever}",
         "depot-key": f"{prefix}-depot-{gamever}-{depot_identity}",
+        "depot-restore-keys": legacy_keys(f"{prefix}-depot-{gamever}-{depot_identity}", repository, platform),
         "depot-path": "\n".join(path for path, _ in files),
     }
 
@@ -132,18 +147,16 @@ def prepare_staging(repo_root: Path) -> None:
         target.mkdir(exist_ok=True)
 
 
-def selection_layout(
-    gamever: str, repository: str, platform: str, generation: str, lease_id: str, run_id: str, run_attempt: str
-) -> dict:
+def selection_layout(gamever: str, repository: str, platform: str, generation: str, lease_id: str, run_id: str) -> dict:
     gamever = require_gamever(gamever)
     prefix = namespace(repository, platform)
-    leases.LeaseOwner(repository, run_id, run_attempt).document()
+    leases.LeaseOwner(repository, run_id).document()
     if not leases.GENERATION_PATTERN.fullmatch(generation) or not leases.LEASE_ID_PATTERN.fullmatch(lease_id):
         raise ValueError("Invalid IDB generation or lease selection")
     return {
         "generation-key": f"{prefix}-idb-{gamever}-{generation}",
         "generation-path": f"{STORE}/{leases.CACHE_NAMESPACE}/{gamever}/generations/{generation}",
-        "lease-key": f"{prefix}-lease-{gamever}-{run_id}-{run_attempt}-{lease_id}",
+        "lease-key": f"{prefix}-lease-{gamever}-{run_id}-{lease_id}",
         "lease-path": f"{STORE}/{leases.CACHE_NAMESPACE}/{gamever}/leases/{lease_id}.json",
     }
 
@@ -206,13 +219,15 @@ def main(argv=None) -> int:
     parser.add_argument("--gamever", default=os.environ.get("GAMEVER", ""))
     parser.add_argument("--repository", default=os.environ.get("GITHUB_REPOSITORY", ""))
     parser.add_argument("--platform", default=os.environ.get("RUNNER_OS", ""))
-    parser.add_argument("--ida-version")
+    parser.add_argument("--ida-version", default=os.environ.get("IDA_VERSION"))
     parser.add_argument("--generation", default=os.environ.get("IDB_CACHE_GENERATION", ""))
     parser.add_argument("--lease-id", default=os.environ.get("IDB_CACHE_LEASE_ID", ""))
     parser.add_argument("--github-output", default=os.environ.get("GITHUB_OUTPUT"))
     args = parser.parse_args(argv)
     try:
         if args.command == "endpoint":
+            if os.environ.get("CACHE_OPERATION", "restore") not in ("restore", "save"):
+                raise ValueError("Invalid cache operation")
             for name in ("S3_ACCESS_KEY_ID", "S3_SECRET_ACCESS_KEY"):
                 if not os.environ.get(name, "").strip():
                     raise ValueError(f"{name} is not configured")
@@ -228,6 +243,10 @@ def main(argv=None) -> int:
             result = {
                 "cache-key": result["cache_key"],
                 "restore-prefix": f"{prefix}-idb-{args.gamever}-{result['cache_key']}-",
+                "restore-prefixes": "\n".join(
+                    f"{source}-idb-{args.gamever}-{result['cache_key']}-"
+                    for source in (prefix, *legacy_prefixes(args.repository, args.platform))
+                ),
                 "generation-path": f"{STORE}/{leases.CACHE_NAMESPACE}/{args.gamever}/generations",
             }
         elif args.command == "selection":
@@ -238,7 +257,6 @@ def main(argv=None) -> int:
                 args.generation,
                 args.lease_id,
                 os.environ.get("GITHUB_RUN_ID", ""),
-                os.environ.get("GITHUB_RUN_ATTEMPT", ""),
             )
         elif args.command == "verify-restored":
             verify_restored(

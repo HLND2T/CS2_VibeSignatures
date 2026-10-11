@@ -146,9 +146,6 @@ class TestBumpDownload(unittest.TestCase):
                 app="730",
                 os_name="all-platform",
                 output_dir=isolated,
-                username="user",
-                password="pass",
-                remember_password=True,
             )
 
         self.assertEqual("12345", manifest_id)
@@ -162,14 +159,12 @@ class TestBumpDownload(unittest.TestCase):
             "all-platform",
             "-dir",
             str(isolated),
-            "-username",
-            "user",
-            "-password",
-            "pass",
-            "-remember-password",
             "-manifest-only",
         ]
         mock_run.assert_called_once_with(expected_command, check=True)
+        self.assertNotIn("-username", expected_command)
+        self.assertNotIn("-password", expected_command)
+        self.assertNotIn("-remember-password", expected_command)
 
     @patch("depot_util.subprocess.run")
     def test_download_steam_inf_uses_manifest_and_filelist(self, mock_run) -> None:
@@ -184,9 +179,6 @@ class TestBumpDownload(unittest.TestCase):
                 app="730",
                 os_name="all-platform",
                 depot_dir=depot_dir,
-                username=None,
-                password=None,
-                remember_password=False,
             )
 
         self.assertEqual("1.41.6.1", patch_version)
@@ -208,6 +200,9 @@ class TestBumpDownload(unittest.TestCase):
             str(filelist_path),
         ]
         mock_run.assert_called_once_with(expected_command, check=True)
+        self.assertNotIn("-username", command)
+        self.assertNotIn("-password", command)
+        self.assertNotIn("-remember-password", command)
         self.assertFalse(filelist_path.exists())
 
     @patch("depot_util.subprocess.run")
@@ -223,9 +218,6 @@ class TestBumpDownload(unittest.TestCase):
                 app="730",
                 os_name="all-platform",
                 depot_dir=depot_dir,
-                username=None,
-                password=None,
-                remember_password=False,
             )
 
             command = mock_run.call_args.args[0]
@@ -246,9 +238,6 @@ class TestBumpDownload(unittest.TestCase):
                 app="730",
                 os_name="all-platform",
                 depot_dir=depot_dir,
-                username="user",
-                password="pass",
-                remember_password=True,
             )
 
         self.assertEqual("1.41.6.1", patch_version)
@@ -264,27 +253,18 @@ class TestBumpDownload(unittest.TestCase):
                     app="730",
                     os_name="all-platform",
                     output_dir=ANY,
-                    username="user",
-                    password="pass",
-                    remember_password=True,
                 ),
                 call(
                     depot="2347771",
                     app="730",
                     os_name="all-platform",
                     output_dir=ANY,
-                    username="user",
-                    password="pass",
-                    remember_password=True,
                 ),
                 call(
                     depot="2347773",
                     app="730",
                     os_name="all-platform",
                     output_dir=ANY,
-                    username="user",
-                    password="pass",
-                    remember_password=True,
                 ),
             ]
         )
@@ -293,9 +273,6 @@ class TestBumpDownload(unittest.TestCase):
             app="730",
             os_name="all-platform",
             depot_dir=depot_dir,
-            username="user",
-            password="pass",
-            remember_password=True,
         )
 
     def test_plan_new_entry_for_new_patch_version(self) -> None:
@@ -678,9 +655,6 @@ class TestBumpDownload(unittest.TestCase):
                 depotdir=str(Path(tmp) / "depot"),
                 app="730",
                 os="all-platform",
-                username=None,
-                password=None,
-                remember_password=False,
                 github_output=None,
                 dry_run=True,
             )
@@ -720,9 +694,6 @@ class TestBumpDownload(unittest.TestCase):
                 depotdir=str(Path(tmp) / "depot"),
                 app="730",
                 os="all-platform",
-                username=None,
-                password=None,
-                remember_password=False,
                 github_output=str(output),
                 dry_run=True,
             )
@@ -768,9 +739,6 @@ class TestBumpDownload(unittest.TestCase):
                 depotdir=str(Path(tmp) / "depot"),
                 app="730",
                 os="all-platform",
-                username=None,
-                password=None,
-                remember_password=False,
                 github_output=str(output),
                 dry_run=False,
             )
@@ -822,9 +790,6 @@ class TestBumpDownload(unittest.TestCase):
                 depotdir=str(Path(tmp) / "depot"),
                 app="730",
                 os="all-platform",
-                username=None,
-                password=None,
-                remember_password=False,
                 github_output=str(output),
                 dry_run=False,
             )
@@ -957,9 +922,6 @@ class TestBumpDownload(unittest.TestCase):
                 depotdir=str(root / "depot"),
                 app="730",
                 os="all-platform",
-                username=None,
-                password=None,
-                remember_password=False,
                 github_output=str(output),
                 dry_run=False,
             )
@@ -988,9 +950,6 @@ class TestBumpDownload(unittest.TestCase):
                 depotdir=str(root / "depot"),
                 app="730",
                 os="all-platform",
-                username=None,
-                password=None,
-                remember_password=False,
                 github_output=None,
                 dry_run=True,
             )
