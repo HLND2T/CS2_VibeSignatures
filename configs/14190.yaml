@@ -713,6 +713,16 @@ modules:
           - CHostStateMgr_RequestHS_ChangelevelReconnect.{platform}.yaml
         prerequisite:
           - find-CHostStateMgr_RequestHS_ChangelevelReconnect-noinline
+      - name: find-CHostStateRequest_LoadSpawnGroup
+        expected_output:
+          - CHostStateRequest_LoadSpawnGroup.{platform}.yaml
+      - name: find-CHostStateMgr_RequestHS_LoadSpawnGroup-noinline
+        expected_output:
+          - CHostStateMgr_RequestHS_LoadSpawnGroup.{platform}.yaml
+        expected_input:
+          - CHostStateMgr_vtable.{platform}.yaml
+        prerequisite:
+          - find-CHostStateRequest_LoadSpawnGroup
       - name: find-CHostStateMgr_RequestHS_Quit
         expected_output:
           - CHostStateMgr_RequestHS_Quit.{platform}.yaml
@@ -4903,6 +4913,10 @@ modules:
         category: vfunc
         alias:
           - CHostStateMgr::RequestHS_ChangelevelReconnect
+      - name: CHostStateMgr_RequestHS_LoadSpawnGroup
+        category: vfunc
+        alias:
+          - CHostStateMgr::RequestHS_LoadSpawnGroup
       - name: g_pNetworkService
         category: gv
       - name: g_pNetworkClientService
