@@ -16,3 +16,6 @@ permalink: cs2-vibesignatures/core
 
 - 不可变 snapshot、gamedata generator 合约与 candidate 发布：见 [[update_gamedata]]、[[post_change_candidate_lifecycle]]。
 - 下游 gamedata 名字对照（`alias` vs `source_alias`，不在 snapshot 里）：见 [[gamedata_aliases]]。
+
+- CI 排障经验：Windows checkout 需要 `core.longpaths`（MAX_PATH 260 与 `.ci-tools` 嵌套），见 [[Windows checkouts need core.longpaths before checkout]]。
+- CI 排障经验：warm IDB lease 身份不得包含 run attempt（部分重跑会把 lease 卡死），见 [[Warm IDB lease identity must not encode the run attempt]]。
