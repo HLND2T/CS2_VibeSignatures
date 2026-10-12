@@ -1,0 +1,124 @@
+func_name: CCSPlayerController_dtor
+func_va: '0x1555ec0'
+disasm_code: |-
+  .text:0000000001555EC0                 push    rbp
+  .text:0000000001555EC1                 lea     rax, CCSPlayerController_vtable
+  .text:0000000001555EC8                 mov     rbp, rsp
+  .text:0000000001555ECB                 push    r12
+  .text:0000000001555ECD                 push    rbx
+  .text:0000000001555ECE                 mov     r12, [rdi+0C38h]
+  .text:0000000001555ED5                 mov     rbx, rdi
+  .text:0000000001555ED8                 mov     [rdi], rax
+  .text:0000000001555EDB                 add     rax, 8C8h
+  .text:0000000001555EE1                 mov     [rdi+0AB0h], rax
+  .text:0000000001555EE8                 test    r12, r12
+  .text:0000000001555EEB                 jz      short loc_1555F12
+  .text:0000000001555EED                 cmp     dword ptr [r12+1Ch], 3FFFFFFFh
+  .text:0000000001555EF6                 mov     dword ptr [r12+8], 0
+  .text:0000000001555EFF                 jbe     loc_1556018
+  .text:0000000001555F05                 mov     esi, 28h ; '('
+  .text:0000000001555F0A                 mov     rdi, r12
+  .text:0000000001555F0D                 call    sub_9F4DB0
+  .text:0000000001555F12                 mov     qword ptr [rbx+0C38h], 0
+  .text:0000000001555F1D                 ; this
+  .text:0000000001555F1D                 lea     rdi, [rbx+0D30h]; this
+  .text:0000000001555F24                 call    _ZN15CUtlSymbolTableD1Ev; CUtlSymbolTable::~CUtlSymbolTable()
+  .text:0000000001555F29                 cmp     dword ptr [rbx+0D2Ch], 3FFFFFFFh
+  .text:0000000001555F33                 mov     dword ptr [rbx+0D18h], 0
+  .text:0000000001555F3D                 ja      short loc_1555F5B
+  .text:0000000001555F3F                 mov     rsi, [rbx+0D20h]
+  .text:0000000001555F46                 test    rsi, rsi
+  .text:0000000001555F49                 jz      short loc_1555F5B
+  .text:0000000001555F4B                 mov     rax, cs:g_pMemAlloc_ptr
+  .text:0000000001555F52                 mov     rdi, [rax]
+  .text:0000000001555F55                 mov     rax, [rdi]
+  .text:0000000001555F58                 call    qword ptr [rax+20h]
+  .text:0000000001555F5B                 cmp     dword ptr [rbx+0C84h], 3FFFFFFFh
+  .text:0000000001555F65                 mov     dword ptr [rbx+0C70h], 0
+  .text:0000000001555F6F                 ja      short loc_1555F8D
+  .text:0000000001555F71                 mov     rsi, [rbx+0C78h]
+  .text:0000000001555F78                 test    rsi, rsi
+  .text:0000000001555F7B                 jz      short loc_1555F8D
+  .text:0000000001555F7D                 mov     rax, cs:g_pMemAlloc_ptr
+  .text:0000000001555F84                 mov     rdi, [rax]
+  .text:0000000001555F87                 mov     rax, [rdi]
+  .text:0000000001555F8A                 call    qword ptr [rax+20h]
+  .text:0000000001555F8D                 lea     rdi, [rbx+0B70h]
+  .text:0000000001555F94                 call    sub_1555DE0
+  .text:0000000001555F99                 mov     eax, [rbx+0B74h]
+  .text:0000000001555F9F                 mov     dword ptr [rbx+0B70h], 0
+  .text:0000000001555FA9                 test    eax, 7FFFFFFFh
+  .text:0000000001555FAE                 jz      short loc_1555FB4
+  .text:0000000001555FB0                 test    eax, eax
+  .text:0000000001555FB2                 jns     short loc_1555FF8
+  .text:0000000001555FB4                 cmp     byte ptr [rbx+0AB8h], 0
+  .text:0000000001555FBB                 lea     rax, unk_2514770
+  .text:0000000001555FC2                 mov     [rbx+0AB0h], rax
+  .text:0000000001555FC9                 jz      short loc_1555FE7
+  .text:0000000001555FCB                 lea     rax, qword_29C6A00
+  .text:0000000001555FD2                 mov     rdi, [rax]
+  .text:0000000001555FD5                 test    rdi, rdi
+  .text:0000000001555FD8                 jz      short loc_1555FE7
+  .text:0000000001555FDA                 mov     rax, [rdi]
+  .text:0000000001555FDD                 lea     rsi, [rbx+0AB0h]
+  .text:0000000001555FE4                 ; 0x30 = 48LL = IGameEventManager2_RemoveListener
+  .text:0000000001555FE4                 call    qword ptr [rax+30h]; 0x30 = 48LL = IGameEventManager2_RemoveListener
+  .text:0000000001555FE7                 mov     rdi, rbx
+  .text:0000000001555FEA                 pop     rbx
+  .text:0000000001555FEB                 pop     r12
+  .text:0000000001555FED                 pop     rbp
+  .text:0000000001555FEE                 jmp     sub_1629800
+  .text:0000000001555FF8                 mov     rax, cs:g_pMemAlloc_ptr
+  .text:0000000001555FFF                 mov     rsi, [rbx+0B78h]
+  .text:0000000001556006                 mov     rdi, [rax]
+  .text:0000000001556009                 mov     rax, [rdi]
+  .text:000000000155600C                 call    qword ptr [rax+20h]
+  .text:000000000155600F                 jmp     short loc_1555FB4
+  .text:0000000001556018                 mov     rsi, [r12+10h]
+  .text:000000000155601D                 test    rsi, rsi
+  .text:0000000001556020                 jz      loc_1555F05
+  .text:0000000001556026                 mov     rax, cs:g_pMemAlloc_ptr
+  .text:000000000155602D                 mov     rdi, [rax]
+  .text:0000000001556030                 mov     rax, [rdi]
+  .text:0000000001556033                 call    qword ptr [rax+20h]
+  .text:0000000001556036                 jmp     loc_1555F05
+procedure: |-
+  __int64 __fastcall sub_1555EC0(__int64 a1)
+  {
+    __int64 v1; // r12
+    bool v2; // cc
+    int v3; // eax
+    bool v4; // zf
+
+    v1 = *(_QWORD *)(a1 + 3128);
+    *(_QWORD *)a1 = CCSPlayerController_vtable;
+    *(_QWORD *)(a1 + 2736) = off_2630FA8;
+    if ( v1 )
+    {
+      v2 = *(_DWORD *)(v1 + 28) <= 0x3FFFFFFFu;
+      *(_DWORD *)(v1 + 8) = 0;
+      if ( v2 && *(_QWORD *)(v1 + 16) )
+        (*(void (__fastcall **)(_QWORD *))(*g_pMemAlloc + 32LL))(g_pMemAlloc);
+      sub_9F4DB0(v1, 40);
+    }
+    *(_QWORD *)(a1 + 3128) = 0;
+    CUtlSymbolTable::~CUtlSymbolTable((CUtlSymbolTable *)(a1 + 3376));
+    v2 = *(_DWORD *)(a1 + 3372) <= 0x3FFFFFFFu;
+    *(_DWORD *)(a1 + 3352) = 0;
+    if ( v2 && *(_QWORD *)(a1 + 3360) )
+      (*(void (__fastcall **)(_QWORD *))(*g_pMemAlloc + 32LL))(g_pMemAlloc);
+    v2 = *(_DWORD *)(a1 + 3204) <= 0x3FFFFFFFu;
+    *(_DWORD *)(a1 + 3184) = 0;
+    if ( v2 && *(_QWORD *)(a1 + 3192) )
+      (*(void (__fastcall **)(_QWORD *))(*g_pMemAlloc + 32LL))(g_pMemAlloc);
+    sub_1555DE0(a1 + 2928);
+    v3 = *(_DWORD *)(a1 + 2932);
+    *(_DWORD *)(a1 + 2928) = 0;
+    if ( (v3 & 0x7FFFFFFF) != 0 && v3 >= 0 )
+      (*(void (__fastcall **)(_QWORD *, _QWORD))(*g_pMemAlloc + 32LL))(g_pMemAlloc, *(_QWORD *)(a1 + 2936));
+    v4 = *(_BYTE *)(a1 + 2744) == 0;
+    *(_QWORD *)(a1 + 2736) = &unk_2514770;
+    if ( !v4 && qword_29C6A00 )
+      (*(void (__fastcall **)(__int64, __int64))(*(_QWORD *)qword_29C6A00 + 48LL))(qword_29C6A00, a1 + 2736);// 0x30 = 48LL = IGameEventManager2_RemoveListener
+    return sub_1629800(a1);
+  }
