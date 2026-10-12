@@ -1,12 +1,23 @@
 #!/usr/bin/env python3
 """Shared helpers for invoking DepotDownloader with retries and password redaction."""
 
+import os
 import subprocess
 import time
 
 
 DEFAULT_DEPOTDOWNLOADER_ATTEMPTS = 3
 DEFAULT_DEPOTDOWNLOADER_RETRY_DELAY_SECONDS = 30.0
+
+
+def versioned_depot_dir(depot_root: str, gamever: str) -> str:
+    """Return the per-GAMEVER depot directory under one depot root.
+
+    Keeping each GAMEVER in its own tree keeps DepotDownloader's incremental
+    state (its `.DepotDownloader` manifest/config store) version-scoped, so a
+    stale file from an older build can never be reused for a newer one.
+    """
+    return os.path.join(depot_root, gamever)
 
 
 def append_auth_args(
