@@ -691,6 +691,28 @@ modules:
           - CHostStateMgr_RequestHS_Idle.{platform}.yaml
         prerequisite:
           - find-CHostStateMgr_RequestHS_Idle-noinline
+      - name: find-CHostStateRequest_ChangelevelReconnect
+        optional_output:
+          - CHostStateRequest_ChangelevelReconnect.{platform}.yaml
+        skip_if_exists:
+          - CHostStateMgr_RequestHS_ChangelevelReconnect.{platform}.yaml
+        platform: linux
+      - name: find-CHostStateMgr_RequestHS_ChangelevelReconnect-noinline
+        optional_output:
+          - CHostStateMgr_RequestHS_ChangelevelReconnect.{platform}.yaml
+        expected_input:
+          - CHostStateMgr_vtable.{platform}.yaml
+        prerequisite:
+          - find-CHostStateRequest_ChangelevelReconnect
+      - name: find-CHostStateMgr_RequestHS_ChangelevelReconnect-inlined
+        expected_output:
+          - CHostStateMgr_RequestHS_ChangelevelReconnect.{platform}.yaml
+        expected_input:
+          - CHostStateMgr_vtable.{platform}.yaml
+        skip_if_exists:
+          - CHostStateMgr_RequestHS_ChangelevelReconnect.{platform}.yaml
+        prerequisite:
+          - find-CHostStateMgr_RequestHS_ChangelevelReconnect-noinline
       - name: find-CHostStateMgr_RequestHS_Quit
         expected_output:
           - CHostStateMgr_RequestHS_Quit.{platform}.yaml
@@ -4877,6 +4899,10 @@ modules:
         category: vfunc
         alias:
           - CHostStateMgr::RequestHS_Idle
+      - name: CHostStateMgr_RequestHS_ChangelevelReconnect
+        category: vfunc
+        alias:
+          - CHostStateMgr::RequestHS_ChangelevelReconnect
       - name: g_pNetworkService
         category: gv
       - name: g_pNetworkClientService
