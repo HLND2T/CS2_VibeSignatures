@@ -10,6 +10,10 @@ These are the target functions you need to reverse-engineering:
 
 What you need to do is to collect all references to "{symbol_name_list}" in the target functions you need to reverse-engineering and output those references as YAML.
 
+Collect references whether the target operand already displays the requested symbol name or still uses an unresolved name such as `sub_XXXXXXXX`. An already named symbol is still a required result; do not skip it as already resolved. In particular, a direct `call` or direct tail `jmp` to a requested function belongs in `found_call`, even when its operand is exactly the requested function name.
+
+For every result, copy `insn_va` and `insn_disasm` from the actual instruction in the target functions. For `found_call`, report the call or tail-jump instruction address, not the callee's entry address, and use the requested function name as `func_name`. Reference functions help identify symbols, but their addresses and the illustrative addresses below must not be copied into results. A name mentioned only in a reference function, comment, or string literal is not evidence of a target reference.
+
 Return exactly one YAML mapping. The only permitted top-level keys are `found_vcall`, `found_call`, `found_funcptr`, `found_gv`, and `found_struct_offset`. Never use a requested symbol name as a top-level key. For batched requests, place every result under its result-category list. If no references are found, return all five top-level keys with empty lists. Do not return blank YAML, null, or an empty mapping.
 
 Example:
@@ -40,6 +44,14 @@ found_call: # This is for a direct call or direct tail jump to a non-virtual reg
   - insn_va: '0x180888888'
     insn_disasm: call    j_UTIL_GetPlayerControllerForEntity
     func_name: UTIL_GetPlayerControllerForEntity  # When the call target is a jump thunk named j_XXXX (IDA's `j_` prefix marks a one-line `jmp` thunk), report the REAL function name XXXX (strip the leading `j_`), NOT j_XXXX. The thunk and its jump destination are the same logical function.
+
+  - insn_va: '0x180888890'
+    insn_disasm: call    DispatchParticleEffect
+    func_name: DispatchParticleEffect  # Already named in the target disassembly: still report this call when this symbol is requested.
+
+  - insn_va: '0x1808888A0'
+    insn_disasm: call    UTIL_PlayerSlotToPlayerPawn
+    func_name: UTIL_PlayerSlotToPlayerPawn  # Report each requested symbol's references, including other already named callees in the same batch.
 
 found_funcptr: # This is for non-virtual regular function pointer.
 
@@ -74,7 +86,9 @@ found_struct_offset: # This is for reference to struct member offset.
     member_name: SetRelativeMouseMode
 ```
 
-If nothing is found, output this complete canonical response:
+Before returning an all-empty response, check every requested symbol against all target functions, including instructions whose operands already display that symbol name. If any requested symbol has a supported target reference, report it under the appropriate result category; missing references for other symbols do not make the entire response empty. Do not invent references for absent symbols.
+
+Only if no references to any requested symbol are found in the target functions, output this complete canonical response:
 
 ```yaml
 found_vcall: []
