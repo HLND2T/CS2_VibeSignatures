@@ -109,6 +109,9 @@ GENERATE_YAML_DESIRED_FIELDS = [
             "func_name",
             "func_sig",
             "func_sig_allow_across_function_boundary:true",
+            # Some registered script funcs are compiler-emitted jmp thunks; those
+            # emit metadata only instead of failing the whole table.
+            "func_sig_skip_degenerate:true",
             "func_va",
             "func_rva",
             "func_size",
