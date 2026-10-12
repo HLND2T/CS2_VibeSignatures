@@ -1,0 +1,161 @@
+name: Portable CI command
+description: Run workflow-owned orchestration with a checked native shell
+inputs:
+  command:
+    description: Allowlisted ci_runner.py command
+    required: true
+outputs:
+  python:
+    description: 'Verified command output: python'
+    value: ${{ steps.windows.outputs.python || steps.linux.outputs.python }}
+  ida-version:
+    description: 'Verified command output: ida-version'
+    value: ${{ steps.windows.outputs.ida-version || steps.linux.outputs.ida-version }}
+  ida_runtime_identity:
+    description: 'Verified command output: ida_runtime_identity'
+    value: ${{ steps.windows.outputs.ida_runtime_identity || steps.linux.outputs.ida_runtime_identity }}
+  binary-lock-sha256:
+    description: 'Verified command output: binary-lock-sha256'
+    value: ${{ steps.windows.outputs.binary-lock-sha256 || steps.linux.outputs.binary-lock-sha256 }}
+  cache-hit:
+    description: 'Verified command output: cache-hit'
+    value: ${{ steps.windows.outputs.cache-hit || steps.linux.outputs.cache-hit }}
+  cache-key:
+    description: 'Verified command output: cache-key'
+    value: ${{ steps.windows.outputs.cache-key || steps.linux.outputs.cache-key }}
+  generation:
+    description: 'Verified command output: generation'
+    value: ${{ steps.windows.outputs.generation || steps.linux.outputs.generation }}
+  lease-id:
+    description: 'Verified command output: lease-id'
+    value: ${{ steps.windows.outputs.lease-id || steps.linux.outputs.lease-id }}
+  lease-sha256:
+    description: 'Verified command output: lease-sha256'
+    value: ${{ steps.windows.outputs.lease-sha256 || steps.linux.outputs.lease-sha256 }}
+  prefix:
+    description: 'Verified command output: prefix'
+    value: ${{ steps.windows.outputs.prefix || steps.linux.outputs.prefix }}
+  persisted-root:
+    description: 'Verified command output: persisted-root'
+    value: ${{ steps.windows.outputs.persisted-root || steps.linux.outputs.persisted-root }}
+  accepted-key:
+    description: 'Verified command output: accepted-key'
+    value: ${{ steps.windows.outputs.accepted-key || steps.linux.outputs.accepted-key }}
+  accepted-path:
+    description: 'Verified command output: accepted-path'
+    value: ${{ steps.windows.outputs.accepted-path || steps.linux.outputs.accepted-path }}
+  accepted-restore-keys:
+    description: 'Verified command output: accepted-restore-keys'
+    value: ${{ steps.windows.outputs.accepted-restore-keys || steps.linux.outputs.accepted-restore-keys }}
+  depot-key:
+    description: 'Verified command output: depot-key'
+    value: ${{ steps.windows.outputs.depot-key || steps.linux.outputs.depot-key }}
+  depot-path:
+    description: 'Verified command output: depot-path'
+    value: ${{ steps.windows.outputs.depot-path || steps.linux.outputs.depot-path }}
+  depot-restore-keys:
+    description: 'Verified command output: depot-restore-keys'
+    value: ${{ steps.windows.outputs.depot-restore-keys || steps.linux.outputs.depot-restore-keys }}
+  restore-prefix:
+    description: 'Verified command output: restore-prefix'
+    value: ${{ steps.windows.outputs.restore-prefix || steps.linux.outputs.restore-prefix }}
+  restore-prefixes:
+    description: 'Verified command output: restore-prefixes'
+    value: ${{ steps.windows.outputs.restore-prefixes || steps.linux.outputs.restore-prefixes }}
+  generation-key:
+    description: 'Verified command output: generation-key'
+    value: ${{ steps.windows.outputs.generation-key || steps.linux.outputs.generation-key }}
+  generation-path:
+    description: 'Verified command output: generation-path'
+    value: ${{ steps.windows.outputs.generation-path || steps.linux.outputs.generation-path }}
+  lease-key:
+    description: 'Verified command output: lease-key'
+    value: ${{ steps.windows.outputs.lease-key || steps.linux.outputs.lease-key }}
+  lease-path:
+    description: 'Verified command output: lease-path'
+    value: ${{ steps.windows.outputs.lease-path || steps.linux.outputs.lease-path }}
+  ready:
+    description: 'Verified command output: ready'
+    value: ${{ steps.windows.outputs.ready || steps.linux.outputs.ready }}
+  verified:
+    description: 'Verified command output: verified'
+    value: ${{ steps.windows.outputs.verified || steps.linux.outputs.verified }}
+  staging:
+    description: 'Verified command output: staging'
+    value: ${{ steps.windows.outputs.staging || steps.linux.outputs.staging }}
+  diagnostics:
+    description: 'Verified command output: diagnostics'
+    value: ${{ steps.windows.outputs.diagnostics || steps.linux.outputs.diagnostics }}
+  plan:
+    description: 'Verified command output: plan'
+    value: ${{ steps.windows.outputs.plan || steps.linux.outputs.plan }}
+  preparation:
+    description: 'Verified command output: preparation'
+    value: ${{ steps.windows.outputs.preparation || steps.linux.outputs.preparation }}
+  strategy:
+    description: 'Verified command output: strategy'
+    value: ${{ steps.windows.outputs.strategy || steps.linux.outputs.strategy }}
+  actual-root:
+    description: 'Verified command output: actual-root'
+    value: ${{ steps.windows.outputs.actual-root || steps.linux.outputs.actual-root }}
+  config:
+    description: 'Verified command output: config'
+    value: ${{ steps.windows.outputs.config || steps.linux.outputs.config }}
+  execution-report:
+    description: 'Verified command output: execution-report'
+    value: ${{ steps.windows.outputs.execution-report || steps.linux.outputs.execution-report }}
+  selected-manifest:
+    description: 'Verified command output: selected-manifest'
+    value: ${{ steps.windows.outputs.selected-manifest || steps.linux.outputs.selected-manifest }}
+  verification:
+    description: 'Verified command output: verification'
+    value: ${{ steps.windows.outputs.verification || steps.linux.outputs.verification }}
+  snapshot:
+    description: 'Verified command output: snapshot'
+    value: ${{ steps.windows.outputs.snapshot || steps.linux.outputs.snapshot }}
+  cpp-input-root:
+    description: 'Verified command output: cpp-input-root'
+    value: ${{ steps.windows.outputs.cpp-input-root || steps.linux.outputs.cpp-input-root }}
+  artifact_name:
+    description: 'Verified command output: artifact_name'
+    value: ${{ steps.windows.outputs.artifact_name || steps.linux.outputs.artifact_name }}
+  run_attempt:
+    description: 'Verified command output: run_attempt'
+    value: ${{ steps.windows.outputs.run_attempt || steps.linux.outputs.run_attempt }}
+  remote_refs_before:
+    description: 'Verified command output: remote_refs_before'
+    value: ${{ steps.windows.outputs.remote_refs_before || steps.linux.outputs.remote_refs_before }}
+  remote_refs_after:
+    description: 'Verified command output: remote_refs_after'
+    value: ${{ steps.windows.outputs.remote_refs_after || steps.linux.outputs.remote_refs_after }}
+  gamedata:
+    description: 'Verified command output: gamedata'
+    value: ${{ steps.windows.outputs.gamedata || steps.linux.outputs.gamedata }}
+  candidate-artifact-name:
+    description: 'Verified command output: candidate-artifact-name'
+    value: ${{ steps.windows.outputs.candidate-artifact-name || steps.linux.outputs.candidate-artifact-name }}
+  binary_lock_sha256:
+    description: 'Verified command output: binary_lock_sha256'
+    value: ${{ steps.windows.outputs.binary_lock_sha256 || steps.linux.outputs.binary_lock_sha256 }}
+runs:
+  using: composite
+  steps:
+    - id: windows
+      if: runner.os == 'Windows'
+      shell: pwsh
+      env:
+        CI_RUNNER_COMMAND: ${{ inputs.command }}
+      run: |
+        uv run --project "${{ github.action_path }}/../../.." python "${{ github.action_path }}/../../../ci_runner.py"
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    - id: linux
+      if: runner.os == 'Linux'
+      shell: bash
+      env:
+        CI_RUNNER_COMMAND: ${{ inputs.command }}
+      run: |
+        set -euo pipefail
+        uv run --project "${{ github.action_path }}/../../.." python "${{ github.action_path }}/../../../ci_runner.py"
+    - if: runner.os != 'Windows' && runner.os != 'Linux'
+      shell: bash
+      run: exit 1
