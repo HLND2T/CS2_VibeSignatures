@@ -5,6 +5,7 @@ import unittest
 from pathlib import Path
 
 import pages_release_input as pri
+from release_artifact_rebuild import BINDING_RULE_VERSION
 from release_bundle import _create_archive, _release_rebuild_digest
 from release_workflow_lib.hashing import (
     canonical_json_bytes,
@@ -67,13 +68,19 @@ def _asset_record(path: str, raw: bytes) -> dict:
 
 
 def _release_fixture(
-    release_id: int, game_version: str, source_sha: str, asset_id_start: int
+    release_id: int,
+    game_version: str,
+    source_sha: str,
+    asset_id_start: int,
+    *,
+    tracked_legacy: bool = False,
 ) -> tuple[dict, dict[int, bytes], bytes]:
     snapshot = f"snapshot-{game_version}\n".encode()
     metadata = f"metadata-{game_version}\n".encode()
     gamedata = f'{{"gamever":"{game_version}"}}\n'.encode()
     gamedata_archive = f"archive-{game_version}".encode()
     gamebin_archive = f"gamebin-{game_version}".encode()
+    idb_archive = f"gamebin-with-idb-{game_version}".encode()
     gamedata_files = [
         {
             "path": f"gamedata/{game_version}/Plugin/data.jsonc",
@@ -88,20 +95,41 @@ def _release_fixture(
             "sha256": "4" * 64,
         }
     ]
+    idb_files = [
+        {
+            "path": f"bin/{game_version}/server/server.dll.i64",
+            "size": 1,
+            "sha256": "5" * 64,
+        }
+    ]
     public_assets = [
         _asset_record(f"gamesymbols/{game_version}.yaml", snapshot),
         _asset_record(f"gamesymbols/{game_version}.metadata.yaml", metadata),
         _asset_record(f"archives/gamedata-{game_version}.7z", gamedata_archive),
         _asset_record(f"archives/gamebin-{game_version}.7z", gamebin_archive),
+        _asset_record(f"archives/gamebin-with-idb-{game_version}.7z", idb_archive),
     ]
     full_rebuild = {
         "schema_version": 1,
+        "binding_rule_version": BINDING_RULE_VERSION,
         "source_sha": source_sha,
         "game_version": game_version,
         "binary_lock_sha256": DIGEST,
         "artifact_inventory_sha256": DIGEST,
     }
-    full_rebuild["verification_sha256"] = _release_rebuild_digest("rebuild-verification", full_rebuild)
+    binding_label = "rebuild-verification"
+    if tracked_legacy:
+        # A manifest published before the binding rule existed: a tracked binding
+        # that still carries the BinSync and warm IDB evidence the rule forbade.
+        # It also predates the IDB archive rule, so it carries only the four
+        # original public assets and no binding rule version.
+        del full_rebuild["binding_rule_version"]
+        full_rebuild["binding_mode"] = "tracked"
+        binding_label = "tracked-artifact-binding"
+        public_assets = [
+            item for item in public_assets if item["path"] != f"archives/gamebin-with-idb-{game_version}.7z"
+        ]
+    full_rebuild["verification_sha256"] = _release_rebuild_digest(binding_label, full_rebuild)
     manifest = {
         "schema_version": 2,
         "repository": pri.ALLOWED_REPOSITORY,
@@ -156,6 +184,16 @@ def _release_fixture(
                 "files": gamebin_files,
                 "inventory_sha256": inventory_sha256(gamebin_files),
             },
+            **(
+                {
+                    f"archives/gamebin-with-idb-{game_version}.7z": {
+                        "files": idb_files,
+                        "inventory_sha256": inventory_sha256(idb_files),
+                    }
+                }
+                if not tracked_legacy
+                else {}
+            ),
         },
         "public_assets": public_assets,
     }
@@ -182,6 +220,7 @@ def _release_fixture(
         f"{game_version}.metadata.yaml": metadata,
         f"gamedata-{game_version}.7z": gamedata_archive,
         f"gamebin-{game_version}.7z": gamebin_archive,
+        **({} if tracked_legacy else {f"gamebin-with-idb-{game_version}.7z": idb_archive}),
         manifest_name: manifest_bytes,
         checksum_name: checksum_bytes,
     }
@@ -265,6 +304,36 @@ class PagesReleaseInputTests(unittest.TestCase):
             )
             self.assertTrue((root / "input" / "gamesymbols" / "14177.yaml").is_file())
             self.assertEqual(receipt, load_json_object(root / "receipt.json"))
+
+    def test_stages_legacy_tracked_release_published_before_binding_rule(self) -> None:
+        # 14180-14182 are tracked bindings that still carry BinSync and warm IDB
+        # evidence, because they were published before the evidence rule existed.
+        # Hydration must record the rule version they obey instead of failing.
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            release, blobs, gamedata = _release_fixture(401, "14181", SOURCE_A, 5000, tracked_legacy=True)
+            manifest_asset = next(asset for asset in release["assets"] if asset["name"].startswith("release-manifest-"))
+
+            receipt = self._stage(
+                root,
+                [release],
+                blobs,
+                {"14181": gamedata},
+                trigger=release,
+                manifest_digest=sha256_bytes(blobs[manifest_asset["id"]]),
+            )
+
+            self.assertEqual(2, receipt["schema_version"])
+            self.assertEqual(
+                [{"game_version": "14181", "binding_rule_version": 0}],
+                [
+                    {
+                        "game_version": item["game_version"],
+                        "binding_rule_version": item["binding_rule_version"],
+                    }
+                    for item in receipt["releases"]
+                ],
+            )
 
     def test_rejects_trigger_identity_checksum_and_unexpected_assets(self) -> None:
         mutations = ("manifest", "checksum", "unexpected")
