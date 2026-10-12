@@ -10,9 +10,9 @@ def requires_7z(test):
 
 
 def requires_binsync(test):
-    return unittest.skipUnless(
-        importlib.util.find_spec("binsync") is not None, "binsync Python package is required"
-    )(test)
+    return unittest.skipUnless(importlib.util.find_spec("binsync") is not None, "binsync Python package is required")(
+        test
+    )
 
 
 def require_binsync() -> None:
