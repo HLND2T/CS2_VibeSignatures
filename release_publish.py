@@ -426,13 +426,19 @@ def _publish_release(repository: str, release_id: int) -> None:
 
 
 def _notes(manifest: dict) -> str:
+    binsync = manifest["binsync"]
+    binsync_state = (
+        "not published (rebuild-free source-owned release)"
+        if binsync is None
+        else f"`{binsync['target_state_digest']}`"
+    )
     return (
         f"Source-owned CS2 release `{manifest['release_version']}`.\n\n"
         f"- Source SHA: `{manifest['source_sha']}`\n"
         f"- GAMEVER: `{manifest['game_version']}`\n"
         f"- Build ID: `{manifest['build_id']}`\n"
         f"- Artifact inventory: `{manifest['artifact_inventory_sha256']}`\n"
-        f"- BinSync target state: `{manifest['binsync']['target_state_digest']}`\n"
+        f"- BinSync target state: {binsync_state}\n"
     )
 
 
@@ -466,6 +472,10 @@ def _expected_assets(bundle_root: Path, manifest_path: Path, manifest: dict) -> 
 
 
 def _verify_binsync_targets(manifest: dict) -> None:
+    # A rebuild-free release exports no BinSync candidate, so there is no
+    # intended remote state to hold the publication against.
+    if manifest["binsync"] is None:
+        return
     for repository in manifest["binsync"]["repositories"]:
         remote = f"https://github.com/{repository['owner']}/{repository['name']}"
         heads = _remote_heads(remote)

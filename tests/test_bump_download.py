@@ -1,4 +1,5 @@
 import argparse
+import os
 from pathlib import Path
 import subprocess
 import tempfile
@@ -8,6 +9,18 @@ from unittest.mock import ANY, call, patch
 import bump_download
 import bump_download_candidate as bdc
 from tests.gamesymbol_snapshot_test_support import write_binary, write_config
+
+
+def _run_git(repository: Path, *arguments: str) -> str:
+    completed = subprocess.run(
+        ["git", "-C", str(repository), *arguments],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if completed.returncode:
+        raise AssertionError(completed.stderr or f"git {' '.join(arguments)} failed")
+    return completed.stdout.strip()
 
 
 class TestBumpDownload(unittest.TestCase):
@@ -133,9 +146,6 @@ class TestBumpDownload(unittest.TestCase):
                 app="730",
                 os_name="all-platform",
                 output_dir=isolated,
-                username="user",
-                password="pass",
-                remember_password=True,
             )
 
         self.assertEqual("12345", manifest_id)
@@ -149,14 +159,12 @@ class TestBumpDownload(unittest.TestCase):
             "all-platform",
             "-dir",
             str(isolated),
-            "-username",
-            "user",
-            "-password",
-            "pass",
-            "-remember-password",
             "-manifest-only",
         ]
         mock_run.assert_called_once_with(expected_command, check=True)
+        self.assertNotIn("-username", expected_command)
+        self.assertNotIn("-password", expected_command)
+        self.assertNotIn("-remember-password", expected_command)
 
     @patch("depot_util.subprocess.run")
     def test_download_steam_inf_uses_manifest_and_filelist(self, mock_run) -> None:
@@ -171,9 +179,6 @@ class TestBumpDownload(unittest.TestCase):
                 app="730",
                 os_name="all-platform",
                 depot_dir=depot_dir,
-                username=None,
-                password=None,
-                remember_password=False,
             )
 
         self.assertEqual("1.41.6.1", patch_version)
@@ -195,6 +200,9 @@ class TestBumpDownload(unittest.TestCase):
             str(filelist_path),
         ]
         mock_run.assert_called_once_with(expected_command, check=True)
+        self.assertNotIn("-username", command)
+        self.assertNotIn("-password", command)
+        self.assertNotIn("-remember-password", command)
         self.assertFalse(filelist_path.exists())
 
     @patch("depot_util.subprocess.run")
@@ -210,9 +218,6 @@ class TestBumpDownload(unittest.TestCase):
                 app="730",
                 os_name="all-platform",
                 depot_dir=depot_dir,
-                username=None,
-                password=None,
-                remember_password=False,
             )
 
             command = mock_run.call_args.args[0]
@@ -233,9 +238,6 @@ class TestBumpDownload(unittest.TestCase):
                 app="730",
                 os_name="all-platform",
                 depot_dir=depot_dir,
-                username="user",
-                password="pass",
-                remember_password=True,
             )
 
         self.assertEqual("1.41.6.1", patch_version)
@@ -251,27 +253,18 @@ class TestBumpDownload(unittest.TestCase):
                     app="730",
                     os_name="all-platform",
                     output_dir=ANY,
-                    username="user",
-                    password="pass",
-                    remember_password=True,
                 ),
                 call(
                     depot="2347771",
                     app="730",
                     os_name="all-platform",
                     output_dir=ANY,
-                    username="user",
-                    password="pass",
-                    remember_password=True,
                 ),
                 call(
                     depot="2347773",
                     app="730",
                     os_name="all-platform",
                     output_dir=ANY,
-                    username="user",
-                    password="pass",
-                    remember_password=True,
                 ),
             ]
         )
@@ -280,9 +273,6 @@ class TestBumpDownload(unittest.TestCase):
             app="730",
             os_name="all-platform",
             depot_dir=depot_dir,
-            username="user",
-            password="pass",
-            remember_password=True,
         )
 
     def test_plan_new_entry_for_new_patch_version(self) -> None:
@@ -514,6 +504,76 @@ class TestBumpDownload(unittest.TestCase):
         )
 
     @patch("bump_download.subprocess.run")
+    def test_ensure_clean_worktree_ignores_submodule_drift(self, mock_run) -> None:
+        mock_run.return_value = bump_download.subprocess.CompletedProcess(
+            ["git", "status"],
+            0,
+            stdout="",
+            stderr="",
+        )
+
+        bump_download.ensure_clean_worktree()
+
+        mock_run.assert_called_once_with(
+            ["git", "status", "--porcelain", "--ignore-submodules=all"],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+
+    @patch("bump_download.subprocess.run")
+    def test_ensure_clean_worktree_rejects_modified_tracked_files(self, mock_run) -> None:
+        mock_run.return_value = bump_download.subprocess.CompletedProcess(
+            ["git", "status"],
+            0,
+            stdout=" M download.yaml\n",
+            stderr="",
+        )
+
+        with self.assertRaisesRegex(bump_download.BumpError, "Working tree has uncommitted changes"):
+            bump_download.ensure_clean_worktree()
+
+    def test_ensure_clean_worktree_tolerates_drifted_submodule(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "sdk"
+            repository = root / "repo"
+            source.mkdir()
+            repository.mkdir()
+            for target in (source, repository):
+                _run_git(target, "init", "-b", "main")
+                _run_git(target, "config", "user.email", "test@example.com")
+                _run_git(target, "config", "user.name", "Test")
+            (source / "remote.cpp").write_text("first\n", encoding="utf-8")
+            _run_git(source, "add", ".")
+            _run_git(source, "commit", "-m", "first")
+            _run_git(source, "tag", "first")
+            (source / "remote.cpp").write_text("second\n", encoding="utf-8")
+            _run_git(source, "commit", "-am", "second")
+            _run_git(
+                repository,
+                "-c",
+                "protocol.file.allow=always",
+                "submodule",
+                "add",
+                str(source),
+                "hl2sdk_cs2",
+            )
+            _run_git(repository, "commit", "-m", "record submodule")
+            # The runner never refreshes the submodule, so the worktree keeps an older commit.
+            _run_git(repository / "hl2sdk_cs2", "checkout", "first")
+
+            self.assertNotEqual("", _run_git(repository, "status", "--porcelain"))
+            self.assertEqual("", _run_git(repository, "status", "--porcelain", "--ignore-submodules=all"))
+
+            working_directory = Path.cwd()
+            os.chdir(repository)
+            try:
+                bump_download.ensure_clean_worktree()
+            finally:
+                os.chdir(working_directory)
+
+    @patch("bump_download.subprocess.run")
     def test_local_tag_exists_returns_false_for_missing_ref(self, mock_run) -> None:
         mock_run.return_value = bump_download.subprocess.CompletedProcess(
             ["git", "show-ref"],
@@ -595,9 +655,6 @@ class TestBumpDownload(unittest.TestCase):
                 depotdir=str(Path(tmp) / "depot"),
                 app="730",
                 os="all-platform",
-                username=None,
-                password=None,
-                remember_password=False,
                 github_output=None,
                 dry_run=True,
             )
@@ -637,9 +694,6 @@ class TestBumpDownload(unittest.TestCase):
                 depotdir=str(Path(tmp) / "depot"),
                 app="730",
                 os="all-platform",
-                username=None,
-                password=None,
-                remember_password=False,
                 github_output=str(output),
                 dry_run=True,
             )
@@ -685,9 +739,6 @@ class TestBumpDownload(unittest.TestCase):
                 depotdir=str(Path(tmp) / "depot"),
                 app="730",
                 os="all-platform",
-                username=None,
-                password=None,
-                remember_password=False,
                 github_output=str(output),
                 dry_run=False,
             )
@@ -739,9 +790,6 @@ class TestBumpDownload(unittest.TestCase):
                 depotdir=str(Path(tmp) / "depot"),
                 app="730",
                 os="all-platform",
-                username=None,
-                password=None,
-                remember_password=False,
                 github_output=str(output),
                 dry_run=False,
             )
@@ -874,9 +922,6 @@ class TestBumpDownload(unittest.TestCase):
                 depotdir=str(root / "depot"),
                 app="730",
                 os="all-platform",
-                username=None,
-                password=None,
-                remember_password=False,
                 github_output=str(output),
                 dry_run=False,
             )
@@ -905,9 +950,6 @@ class TestBumpDownload(unittest.TestCase):
                 depotdir=str(root / "depot"),
                 app="730",
                 os="all-platform",
-                username=None,
-                password=None,
-                remember_password=False,
                 github_output=None,
                 dry_run=True,
             )
@@ -989,6 +1031,27 @@ class TestBumpDownloadCandidate(unittest.TestCase):
                 binary_root=binary_root,
             )
         return base_sha
+
+    @patch.object(bdc, "_git")
+    def test_require_clean_worktree_ignores_submodule_drift(self, mock_git) -> None:
+        mock_git.return_value = ""
+
+        bdc._require_clean_worktree(Path("repo"), "download-bump checkout must be clean")
+
+        mock_git.assert_called_once_with(
+            Path("repo"),
+            "status",
+            "--porcelain=v1",
+            "--untracked-files=all",
+            "--ignore-submodules=all",
+        )
+
+    @patch.object(bdc, "_git")
+    def test_require_clean_worktree_rejects_dirty_checkout(self, mock_git) -> None:
+        mock_git.return_value = "M\tdownload.yaml"
+
+        with self.assertRaisesRegex(bdc.BumpDownloadCandidateError, "download-bump checkout must be clean"):
+            bdc._require_clean_worktree(Path("repo"), "download-bump checkout must be clean")
 
     def test_candidate_is_verified_and_recommitted_by_hosted_publisher(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
