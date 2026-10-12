@@ -18,7 +18,7 @@ FUNC_XREFS = [
         ],
         "exclude_funcs": [],
         "exclude_strings": [],
-        "exclude_gvs": [],
+        "exclude_gvs": ["g_pSource2GameClients"],
         "exclude_signatures": [],
     },
 ]
