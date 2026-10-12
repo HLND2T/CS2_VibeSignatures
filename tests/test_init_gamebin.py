@@ -9,6 +9,7 @@ import unittest
 from contextlib import contextmanager
 from pathlib import Path
 from unittest.mock import MagicMock, patch
+from unittest import mock as unittest_mock
 
 
 SCRIPT = Path("init_gamebin.py")
@@ -992,6 +993,63 @@ class TestInitGamebin(unittest.TestCase):
                 init_gamebin.probe_binsync(Path("repo")),
             )
 
+    def test_prepare_with_idb_merges_declared_warm_idb_archive(self) -> None:
+        root = Path("repo")
+        config = root / "configs" / "14168.yaml"
+        manifest = {
+            "archives": {"archives/gamebin-with-idb-14168.7z": {"files": [{"path": "bin/14168/x.i64"}]}},
+            "public_assets": [{"path": "archives/gamebin-with-idb-14168.7z"}],
+        }
+        with (
+            patch.object(init_gamebin, "load_versions", return_value=["14168"]),
+            patch.object(init_gamebin, "check_binaries", side_effect=[True, True]),
+            patch.object(init_gamebin, "resolve_analysis_config", return_value=config),
+            patch.object(init_gamebin, "fetch_release_manifest", return_value=manifest),
+            patch.object(init_gamebin, "download_verified_release_archive", return_value=(Path("idb.7z"), [])) as fetch,
+            patch.object(init_gamebin, "extract_archive") as extract,
+            patch.object(init_gamebin, "merge_archive_bin", return_value=(4, 0)) as merge,
+            patch.object(init_gamebin, "verify_source_binary_root"),
+        ):
+            result = init_gamebin.prepare(root, "14168", with_idb=True)
+        self.assertEqual((4, 0), result["idb"])
+        self.assertEqual("existing local binaries", result["source"])
+        fetch.assert_called_once_with(manifest, "14168", "gamebin-with-idb-14168.7z", unittest_mock.ANY)
+        merge.assert_called_once_with(unittest_mock.ANY, root / "bin", "14168")
+        extract.assert_called_once()
+
+    def test_prepare_with_idb_fails_when_archive_is_not_declared(self) -> None:
+        root = Path("repo")
+        config = root / "configs" / "14168.yaml"
+        manifest = {"archives": {}, "public_assets": []}
+        with (
+            patch.object(init_gamebin, "load_versions", return_value=["14168"]),
+            patch.object(init_gamebin, "check_binaries", side_effect=[True, True]),
+            patch.object(init_gamebin, "resolve_analysis_config", return_value=config),
+            patch.object(init_gamebin, "fetch_release_manifest", return_value=manifest),
+            patch.object(init_gamebin, "download_verified_release_archive") as fetch,
+            patch.object(init_gamebin, "verify_source_binary_root"),
+        ):
+            with self.assertRaisesRegex(init_gamebin.InitGamebinError, "publishes no"):
+                init_gamebin.prepare(root, "14168", with_idb=True)
+        fetch.assert_not_called()
+
+    def test_check_idb_reports_availability(self) -> None:
+        available = {
+            "archives": {"archives/gamebin-with-idb-14168.7z": {"files": []}},
+            "public_assets": [{"path": "archives/gamebin-with-idb-14168.7z"}],
+        }
+        unavailable = {"archives": {}, "public_assets": []}
+        with patch.object(init_gamebin, "fetch_release_manifest", return_value=available):
+            self.assertEqual((True, ""), init_gamebin.check_idb("14168", Path("tmp")))
+        with patch.object(init_gamebin, "fetch_release_manifest", return_value=unavailable):
+            ok, reason = init_gamebin.check_idb("14168", Path("tmp"))
+        self.assertFalse(ok)
+        self.assertIn("does not declare", reason)
+        with patch.object(init_gamebin, "fetch_release_manifest", return_value=None):
+            ok, reason = init_gamebin.check_idb("14168", Path("tmp"))
+        self.assertFalse(ok)
+        self.assertIn("no published Release", reason)
+
     def test_probe_binsync_reports_unauthenticated_gh(self) -> None:
         with patch.object(
             init_gamebin,
@@ -1241,6 +1299,7 @@ class TestInitGamebin(unittest.TestCase):
             "source": "existing local binaries",
             "copied": 0,
             "skipped": 0,
+            "idb": None,
             "binsync": None,
         }
         output = io.StringIO()
@@ -1251,6 +1310,7 @@ class TestInitGamebin(unittest.TestCase):
         ):
             self.assertEqual(0, init_gamebin.main(["prepare", "14169"]))
         self.assertIn("BinSync recovery: skipped", output.getvalue())
+        self.assertIn("Warm IDB merge: skipped", output.getvalue())
 
     def test_main_reports_binary_preparation_only(self) -> None:
         result = {
@@ -1258,6 +1318,7 @@ class TestInitGamebin(unittest.TestCase):
             "source": "release archive",
             "copied": 3,
             "skipped": 0,
+            "idb": (4, 0),
             "binsync": binsync_summary(),
         }
         output = io.StringIO()
@@ -1269,6 +1330,7 @@ class TestInitGamebin(unittest.TestCase):
             self.assertEqual(0, init_gamebin.main(["prepare", "14169"]))
         self.assertIn("Selected GAMEVER: 14169", output.getvalue())
         self.assertIn("BinSync recovery: 2 targets", output.getvalue())
+        self.assertIn("Warm IDB merge: 4 copied, 0 skipped", output.getvalue())
         self.assertNotIn("Symbol snapshot:", output.getvalue())
 
     def test_main_passes_explicit_remote_creation_permission(self) -> None:
@@ -1277,6 +1339,7 @@ class TestInitGamebin(unittest.TestCase):
             "source": "existing local binaries",
             "copied": 0,
             "skipped": 0,
+            "idb": None,
             "binsync": binsync_summary(remote_created=2),
         }
         with (
@@ -1300,6 +1363,7 @@ class TestInitGamebin(unittest.TestCase):
             "14169",
             binsync_mode="enable",
             allow_remote_creation=True,
+            with_idb=False,
         )
 
 

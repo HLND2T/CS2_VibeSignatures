@@ -597,3 +597,166 @@ class TestCBaseEntityRegisteredScriptFuncs(unittest.IsolatedAsyncioTestCase):
             target_specs,
         )
         self.assertEqual(65, mock_helper.await_args.kwargs["expected_script_func_count"])
+
+
+class TestScriptDescInternalDegenerateMemberSkip(unittest.IsolatedAsyncioTestCase):
+    """A member whose body is a single jmp/ret cannot carry a meaningful
+    func_sig. Members declaring func_sig_skip_degenerate emit metadata only;
+    members that keep requiring func_sig still fail the whole table."""
+
+    def _entries(self):
+        return [
+            {
+                "script_name": "ScriptGetLocalAngles",
+                "func_va": "0x180100000",
+                "func_expr": "CBaseModelEntity_ScriptGetLocalAngles",
+                "order": 0,
+            },
+            {
+                "script_name": "ScriptGetAbsOrigin",
+                "func_va": "0x180200000",
+                "func_expr": "CBaseModelEntity_ScriptGetAbsOrigin",
+                "order": 1,
+            },
+        ]
+
+    def _specs(self):
+        return [
+            {
+                "script_name": "ScriptGetLocalAngles",
+                "target_name": "CBaseModelEntity_ScriptGetLocalAngles",
+            },
+            {
+                "script_name": "ScriptGetAbsOrigin",
+                "target_name": "CBaseModelEntity_ScriptGetAbsOrigin",
+            },
+        ]
+
+    async def test_degenerate_member_emits_metadata_only_when_opted_in(self) -> None:
+        module = _import_common_module()
+        session = AsyncMock()
+        desired_fields = [
+            (
+                "CBaseModelEntity_ScriptGetLocalAngles",
+                [
+                    "func_name",
+                    "func_sig",
+                    "func_sig_skip_degenerate:true",
+                    "func_va",
+                    "func_rva",
+                    "func_size",
+                ],
+            ),
+            (
+                "CBaseModelEntity_ScriptGetAbsOrigin",
+                ["func_name", "func_sig", "func_va", "func_rva", "func_size"],
+            ),
+        ]
+
+        async def fake_query_func_info(_session, func_va, debug=False):
+            return {"func_va": str(func_va), "func_size": "0x90"}
+
+        async def fake_gen_func_sig_via_mcp(
+            session, func_va, image_base, allow_across_function_boundary=False, debug=False, **_kwargs
+        ):
+            if func_va == "0x180100000":
+                return {
+                    "func_va": "0x180100000",
+                    "func_size": "0x5",
+                    "func_sig": None,
+                    "func_sig_skipped": "jmp_thunk",
+                }
+            return {
+                "func_va": "0x180200000",
+                "func_rva": "0x200000",
+                "func_size": "0x90",
+                "func_sig": "48 89 5C 24 ??",
+            }
+
+        with TemporaryDirectory() as tmpdir:
+            new_binary_dir = _write_source_yaml(tmpdir, "windows")
+            with (
+                patch.object(module, "_collect_script_func_entries", AsyncMock(return_value=self._entries())),
+                patch.object(module, "_query_func_info", fake_query_func_info),
+                patch.object(module, "preprocess_gen_func_sig_via_mcp", fake_gen_func_sig_via_mcp),
+                patch.object(module, "write_func_yaml") as mock_write,
+            ):
+                result = await module.preprocess_script_desc_internal_skill(
+                    session=session,
+                    expected_outputs=[
+                        "/tmp/CBaseModelEntity_ScriptGetLocalAngles.windows.yaml",
+                        "/tmp/CBaseModelEntity_ScriptGetAbsOrigin.windows.yaml",
+                    ],
+                    new_binary_dir=str(new_binary_dir),
+                    platform="windows",
+                    image_base=0x180000000,
+                    source_yaml_stem="CBaseModelEntity_GetScriptDescInternal",
+                    target_specs=self._specs(),
+                    generate_yaml_desired_fields=desired_fields,
+                    expected_script_func_count=2,
+                    debug=True,
+                )
+
+        self.assertTrue(result)
+        written = {c.args[0]: c.args[1] for c in mock_write.call_args_list}
+        self.assertNotIn("func_sig", written["/tmp/CBaseModelEntity_ScriptGetLocalAngles.windows.yaml"])
+        self.assertTrue(written["/tmp/CBaseModelEntity_ScriptGetLocalAngles.windows.yaml"]["func_sig_skip_degenerate"])
+        self.assertEqual(
+            "48 89 5C 24 ??",
+            written["/tmp/CBaseModelEntity_ScriptGetAbsOrigin.windows.yaml"]["func_sig"],
+        )
+
+    async def test_degenerate_member_without_opt_in_fails_the_table(self) -> None:
+        module = _import_common_module()
+        session = AsyncMock()
+        desired_fields = [
+            (
+                "CBaseModelEntity_ScriptGetLocalAngles",
+                ["func_name", "func_sig", "func_va", "func_rva", "func_size"],
+            )
+        ]
+
+        async def fake_query_func_info(_session, func_va, debug=False):
+            return {"func_va": str(func_va), "func_size": "0x5"}
+
+        async def fake_gen_func_sig_via_mcp(
+            session, func_va, image_base, allow_across_function_boundary=False, debug=False, **_kwargs
+        ):
+            return {
+                "func_va": "0x180100000",
+                "func_size": "0x5",
+                "func_sig": None,
+                "func_sig_skipped": "jmp_thunk",
+            }
+
+        with TemporaryDirectory() as tmpdir:
+            new_binary_dir = _write_source_yaml(tmpdir, "windows")
+            with (
+                patch.object(module, "_collect_script_func_entries", AsyncMock(return_value=self._entries())),
+                patch.object(module, "_query_func_info", fake_query_func_info),
+                patch.object(module, "preprocess_gen_func_sig_via_mcp", fake_gen_func_sig_via_mcp),
+                patch.object(module, "write_func_yaml") as mock_write,
+            ):
+                result = await module.preprocess_script_desc_internal_skill(
+                    session=session,
+                    expected_outputs=[
+                        "/tmp/CBaseModelEntity_ScriptGetLocalAngles.windows.yaml",
+                        "/tmp/CBaseModelEntity_ScriptGetAbsOrigin.windows.yaml",
+                    ],
+                    new_binary_dir=str(new_binary_dir),
+                    platform="windows",
+                    image_base=0x180000000,
+                    source_yaml_stem="CBaseModelEntity_GetScriptDescInternal",
+                    target_specs=[
+                        {
+                            "script_name": "ScriptGetLocalAngles",
+                            "target_name": "CBaseModelEntity_ScriptGetLocalAngles",
+                        }
+                    ],
+                    generate_yaml_desired_fields=desired_fields,
+                    expected_script_func_count=2,
+                    debug=True,
+                )
+
+        self.assertFalse(result)
+        mock_write.assert_not_called()
