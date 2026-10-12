@@ -669,6 +669,28 @@ modules:
       - name: find-CHostStateMgr_vtable
         expected_output:
           - CHostStateMgr_vtable.{platform}.yaml
+      - name: find-CHostStateRequest_Idle
+        optional_output:
+          - CHostStateRequest_Idle.{platform}.yaml
+        skip_if_exists:
+          - CHostStateMgr_RequestHS_Idle.{platform}.yaml
+        platform: linux
+      - name: find-CHostStateMgr_RequestHS_Idle-noinline
+        optional_output:
+          - CHostStateMgr_RequestHS_Idle.{platform}.yaml
+        expected_input:
+          - CHostStateMgr_vtable.{platform}.yaml
+        prerequisite:
+          - find-CHostStateRequest_Idle
+      - name: find-CHostStateMgr_RequestHS_Idle-inlined
+        expected_output:
+          - CHostStateMgr_RequestHS_Idle.{platform}.yaml
+        expected_input:
+          - CHostStateMgr_vtable.{platform}.yaml
+        skip_if_exists:
+          - CHostStateMgr_RequestHS_Idle.{platform}.yaml
+        prerequisite:
+          - find-CHostStateMgr_RequestHS_Idle-noinline
       - name: find-CHostStateMgr_RequestHS_Quit
         expected_output:
           - CHostStateMgr_RequestHS_Quit.{platform}.yaml
@@ -4851,6 +4873,10 @@ modules:
         category: vfunc
         alias:
           - CHostStateMgr::RequestHS_Quit
+      - name: CHostStateMgr_RequestHS_Idle
+        category: vfunc
+        alias:
+          - CHostStateMgr::RequestHS_Idle
       - name: g_pNetworkService
         category: gv
       - name: g_pNetworkClientService
