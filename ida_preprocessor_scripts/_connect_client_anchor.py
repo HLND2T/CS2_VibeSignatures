@@ -41,13 +41,19 @@ def _probe_anchor(func_va):
             right = uncast(condition.y)
             if is_var(condition.x, index) and right.op == hx.cot_num and right.numval() == 0:
                 return "then" if condition.op == hx.cot_eq else "else"
-        # A fallback allocator can be folded into the non-null condition.
-        if condition.op == hx.cot_lor and is_var(condition.x, index):
-            right = uncast(condition.y)
-            if right.op == hx.cot_ne and uncast(right.y).op == hx.cot_num and uncast(right.y).numval() == 0:
-                right = uncast(right.x)
-            if right.op == hx.cot_asg and is_var(right.x, index) and uncast(right.y).op == hx.cot_call:
-                return "else"
+        # A fallback allocator can be folded into the non-null condition. The
+        # left guard is usually written "(v != 0) || (v = retry(...)) != 0", so
+        # peel the comparison down to the variable before matching.
+        if condition.op == hx.cot_lor:
+            left = uncast(condition.x)
+            if left.op == hx.cot_ne and uncast(left.y).op == hx.cot_num and uncast(left.y).numval() == 0:
+                left = uncast(left.x)
+            if is_var(left, index):
+                right = uncast(condition.y)
+                if right.op == hx.cot_ne and uncast(right.y).op == hx.cot_num and uncast(right.y).numval() == 0:
+                    right = uncast(right.x)
+                if right.op == hx.cot_asg and is_var(right.x, index) and uncast(right.y).op == hx.cot_call:
+                    return "else"
         return None
 
     class FailurePath(hx.ctree_visitor_t):
