@@ -8,7 +8,7 @@ import unittest
 import copy
 import shutil
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 import new_gamever_artifact as nga
 import trusted_artifact_pr as tap
@@ -632,6 +632,33 @@ class NewGameverArtifactTests(unittest.TestCase):
             version = next(version for version in plan["game_versions"] if version.get("bootstrap_required"))
 
             self.assertIsNone(version["prior_gamever"])
+
+    @patch.object(nga, "_git")
+    def test_ensure_clean_checkout_ignores_submodule_drift(self, mock_git) -> None:
+        mock_git.side_effect = ["a" * 40, ""]
+
+        nga._ensure_clean_checkout(Path("repo"), "a" * 40)
+
+        self.assertEqual(
+            [
+                call(Path("repo"), "rev-parse", "HEAD"),
+                call(
+                    Path("repo"),
+                    "status",
+                    "--porcelain=v1",
+                    "--untracked-files=all",
+                    "--ignore-submodules=all",
+                ),
+            ],
+            mock_git.call_args_list,
+        )
+
+    @patch.object(nga, "_git")
+    def test_ensure_clean_checkout_rejects_dirty_checkout(self, mock_git) -> None:
+        mock_git.side_effect = ["a" * 40, "M\tdownload.yaml"]
+
+        with self.assertRaisesRegex(nga.NewGameverArtifactError, "publication checkout must be clean"):
+            nga._ensure_clean_checkout(Path("repo"), "a" * 40)
 
     def test_prepare_commit_only_stages_new_gamever_artifacts_with_bound_parent(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

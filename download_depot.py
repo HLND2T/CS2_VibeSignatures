@@ -19,7 +19,7 @@ except ImportError as exc:
     print("Please install required dependencies with: uv sync")
     sys.exit(1)
 
-from depot_util import append_auth_args, run_command
+from depot_util import append_auth_args, run_command, versioned_depot_dir
 from analysis_config import AnalysisConfigError, resolve_analysis_config
 
 
@@ -53,7 +53,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "-depotdir",
         default=DEFAULT_DEPOT_DIR,
-        help=f"Output depot directory (default: {DEFAULT_DEPOT_DIR})",
+        help=f"Output depot root directory; each tag is stored under <root>/<TAG> (default: {DEFAULT_DEPOT_DIR})",
     )
     parser.add_argument(
         "-app",
@@ -235,7 +235,7 @@ def main() -> int:
             manifests=manifests,
             app=args.app,
             os_name=args.os,
-            depot_dir=args.depotdir,
+            depot_dir=versioned_depot_dir(args.depotdir, args.tag),
             filelist=filelist,
             branch=branch,
             username=args.username,

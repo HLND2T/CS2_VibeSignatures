@@ -36,6 +36,10 @@ GENERATE_YAML_DESIRED_FIELDS = [
             "func_rva",
             "func_size",
             "vfunc_sig",
+            # Linux has a byte-identical sibling vcall site (0x1c006d0) whose
+            # 19-byte instruction stream matches this one, so the caller-anchored
+            # vfunc_sig matches 2 locations; allow up to 2.
+            "vfunc_sig_max_match:2",
             "vfunc_offset",
             "vfunc_index",
             "vtable_name",

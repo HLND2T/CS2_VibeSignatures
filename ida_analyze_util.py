@@ -498,6 +498,7 @@ def _normalize_generate_yaml_desired_fields(generate_yaml_desired_fields, debug=
         "vfunc_sig_allow_across_function_boundary",
         "offset_sig_allow_across_function_boundary",
         "func_sig_resolve_jmp_thunk",
+        "func_sig_skip_degenerate",
     )
 
     normalized = {}
@@ -635,6 +636,10 @@ def _normalize_generate_yaml_desired_fields(generate_yaml_desired_fields, debug=
         if "offset_sig_max_match" in generation_options and "offset_sig" not in desired_output_fields:
             if debug:
                 print(f"    Preprocess: offset_sig_max_match requires offset_sig for {symbol_name}")
+            return None
+        if "func_sig_skip_degenerate" in generation_options and "func_sig" not in desired_output_fields:
+            if debug:
+                print(f"    Preprocess: func_sig_skip_degenerate requires func_sig for {symbol_name}")
             return None
         normalized[symbol_name] = {
             "desired_output_fields": desired_output_fields,
@@ -799,6 +804,7 @@ FUNC_YAML_ORDER = [
     "func_sig",
     "func_sig_allow_across_function_boundary",
     "func_sig_resolve_jmp_thunk",
+    "func_sig_skip_degenerate",
     "vtable_name",
     "vfunc_offset",
     "vfunc_index",
@@ -867,7 +873,11 @@ SYMBOL_ARTIFACT_IDENTITY_FIELDS = {
     "structmember": ("struct_name", "member_name"),
 }
 SYMBOL_ARTIFACT_FIELD_ORDER = {
-    "func": tuple(FUNC_YAML_ORDER[:7]),
+    # `func` artifacts carry only the func-level fields; the vtable/vfunc ones
+    # belong to the `vfunc` category.
+    "func": tuple(
+        field for field in FUNC_YAML_ORDER if not field.startswith("vtable_") and not field.startswith("vfunc_")
+    ),
     "vfunc": tuple(FUNC_YAML_ORDER),
     "gv": tuple(GV_YAML_ORDER),
     "vtable": tuple(VTABLE_YAML_ORDER),
@@ -912,6 +922,7 @@ SYMBOL_ARTIFACT_BOOLEAN_FIELDS = frozenset(
     {
         "func_sig_allow_across_function_boundary",
         "func_sig_resolve_jmp_thunk",
+        "func_sig_skip_degenerate",
         "vfunc_sig_allow_across_function_boundary",
         "gv_sig_allow_across_function_boundary",
         "offset_sig_allow_across_function_boundary",
@@ -3208,30 +3219,31 @@ async def preprocess_func_sig_via_mcp(
             return int(raw, 0)
         raise ValueError(f"invalid {field_name}")
 
-    async def _find_unique_match(signature, label):
+    async def _find_match_state(signature, label):
+        """Return (match address when unique, match count) for signature."""
         try:
             fb_result = await session.call_tool(name="find_bytes", arguments={"patterns": [signature], "limit": 2})
             fb_data = parse_mcp_result(fb_result)
         except Exception as e:
             if debug:
                 print(f"    Preprocess: find_bytes error: {e}")
-            return None
+            return None, 0
 
         if not isinstance(fb_data, list) or len(fb_data) == 0:
-            return None
+            return None, 0
 
         entry = fb_data[0]
         if not isinstance(entry, dict):
-            return None
+            return None, 0
 
         matches = entry.get("matches", [])
         match_count = entry.get("n", len(matches))
         if match_count != 1:
             if debug:
                 print(f"    Preprocess: {label} matched {match_count} (need 1)")
-            return None
+            return None, match_count
 
-        return matches[0]
+        return matches[0], match_count
 
     async def _find_match_with_limit(signature, label, max_match_count):
         try:
@@ -3274,6 +3286,34 @@ async def preprocess_func_sig_via_mcp(
             return None
 
         return matches[0]
+
+    async def _find_matches(signature, limit):
+        """Return every address matching signature, up to limit."""
+        try:
+            fb_result = await session.call_tool(
+                name="find_bytes",
+                arguments={"patterns": [signature], "limit": limit},
+            )
+            fb_data = parse_mcp_result(fb_result)
+        except Exception as e:
+            if debug:
+                print(f"    Preprocess: find_bytes error: {e}")
+            return None
+
+        if not isinstance(fb_data, list) or len(fb_data) == 0:
+            return None
+
+        entry = fb_data[0]
+        if not isinstance(entry, dict):
+            return None
+
+        addrs = []
+        for match in entry.get("matches", []):
+            try:
+                addrs.append(_parse_int_value(match))
+            except Exception:
+                continue
+        return addrs
 
     async def _get_func_info(addr_expr):
         py_code = (
@@ -3359,6 +3399,61 @@ async def preprocess_func_sig_via_mcp(
             return None
         return vtable_data
 
+    async def _resolve_func_sig_via_vtable_slot(signature):
+        """Disambiguate a non-unique old func_sig using the old vtable slot.
+
+        Only used when the old YAML carries vtable metadata.  The slot entry must
+        also be one of the signature matches, so a stale signature can never point
+        the skill at an unrelated function.
+        """
+        if not vtable_name:
+            return None
+
+        slot_index = None
+        try:
+            if old_data.get("vfunc_index") is not None:
+                slot_index = _parse_int_field(old_data.get("vfunc_index"), "vfunc_index")
+            elif old_data.get("vfunc_offset") is not None:
+                slot_offset = _parse_int_field(old_data.get("vfunc_offset"), "vfunc_offset")
+                if slot_offset % 8 == 0:
+                    slot_index = slot_offset // 8
+        except Exception:
+            return None
+        if slot_index is None or slot_index < 0:
+            return None
+
+        matches = await _find_matches(signature, 32)
+        if not matches:
+            return None
+
+        vtable_data = await _load_vtable_data(vtable_name)
+        if not isinstance(vtable_data, dict):
+            return None
+
+        slot_addr = None
+        for key, value in vtable_data.get("vtable_entries", {}).items():
+            try:
+                if int(key) != slot_index:
+                    continue
+                slot_addr = _parse_int_value(value)
+            except Exception:
+                continue
+            break
+        if slot_addr is None:
+            return None
+
+        if slot_addr not in matches:
+            if debug:
+                print(
+                    f"    Preprocess: vtable slot {vtable_name}[{slot_index}] = "
+                    f"{hex(slot_addr)} is not among the func_sig matches"
+                )
+            return None
+
+        if debug:
+            print(f"    Preprocess: disambiguated func_sig via {vtable_name}[{slot_index}] -> {hex(slot_addr)}")
+        return hex(slot_addr)
+
     func_sig = old_data.get("func_sig")
     vfunc_sig = old_data.get("vfunc_sig")
     vtable_name = old_data.get("vtable_name")
@@ -3369,12 +3464,34 @@ async def preprocess_func_sig_via_mcp(
     vfunc_match_addr = None
     vfunc_sig_max_match = 1
 
+    resolved_via_vtable_slot = False
     if func_sig:
-        match_addr = await _find_unique_match(func_sig, f"{os.path.basename(old_path)} func_sig")
+        match_addr, match_count = await _find_match_state(
+            func_sig,
+            f"{os.path.basename(old_path)} func_sig",
+        )
+        if match_addr is None and match_count > 1:
+            # A moved function can make the old signature non-unique; the old
+            # vtable slot still identifies it, verified against the matches.
+            match_addr = await _resolve_func_sig_via_vtable_slot(func_sig)
+            resolved_via_vtable_slot = match_addr is not None
         if match_addr is None:
             return None
 
         func_info = await _get_func_info(match_addr)
+        if not func_info:
+            # A unique func_sig match already proves the bytes belong to the
+            # target, but autoanalysis can leave a moved function undefined.
+            # Define it there and retry before giving up.
+            if (
+                await _define_undefined_func_start_if_code_via_mcp(
+                    session,
+                    match_addr,
+                    debug=debug,
+                )
+                is not None
+            ):
+                func_info = await _get_func_info(match_addr)
         if not func_info:
             if debug:
                 print(f"    Preprocess: could not get func info at {match_addr}")
@@ -3518,7 +3635,26 @@ async def preprocess_func_sig_via_mcp(
         "func_rva": hex(func_va_int - image_base),
         "func_size": func_size_hex,
     }
-    if func_sig:
+    if func_sig and resolved_via_vtable_slot:
+        # The old signature no longer resolves uniquely; regenerate one for the
+        # slot-resolved entry instead of carrying the ambiguous bytes forward.
+        gen_data = await preprocess_gen_func_sig_via_mcp(
+            session=session,
+            func_va=func_va_int,
+            image_base=image_base,
+            allow_across_function_boundary=allow_func_sig_across_function_boundary,
+            debug=debug,
+        )
+        if isinstance(gen_data, dict) and gen_data.get("func_sig"):
+            new_data["func_sig"] = gen_data["func_sig"]
+        else:
+            new_data["func_sig"] = func_sig
+            if debug:
+                print(
+                    "    Preprocess: could not regenerate a unique func_sig for "
+                    f"{func_va_hex}; keeping the old ambiguous func_sig"
+                )
+    elif func_sig:
         new_data["func_sig"] = func_sig
 
     # vfunc fallback path: reuse old index/offset and regenerate func_sig from vtable-resolved function.
@@ -3643,6 +3779,36 @@ def _build_signature_boundary_py_eval_helpers() -> str:
         "\n"
         "globals().update(locals())\n"
     )
+
+
+class DegenerateFuncSigTargetError(RuntimeError):
+    """Raised when a required func_sig cannot be produced for a thunk/nullsub.
+
+    A function whose whole body is a single ``jmp`` or ``ret`` carries no bytes
+    that can identify it: any signature would only match by bridging the
+    following padding and the next function's prologue.
+    """
+
+
+def _classify_func_body_lead_bytes(raw_bytes):
+    """Classify a one-instruction function body by its leading opcode byte.
+
+    A body that is a single ``jmp`` (compiler-emitted thunk) or a single ``ret``
+    (nullsub) carries no bytes that can identify the function. Any ``func_sig``
+    generated for it can only become unique by bridging the following padding
+    and the next function's prologue, which is meaningless.
+
+    Returns ``"jmp_thunk"``, ``"ret_nullsub"``, or ``None`` when the leading
+    opcode is neither.
+    """
+    if not raw_bytes:
+        return None
+    lead = raw_bytes[0]
+    if lead in (0xE9, 0xEB):
+        return "jmp_thunk"
+    if lead in (0xC2, 0xC3, 0xCB):
+        return "ret_nullsub"
+    return None
 
 
 async def preprocess_gen_func_sig_via_mcp(
@@ -3855,6 +4021,40 @@ async def preprocess_gen_func_sig_via_mcp(
         if debug:
             print(f"    Preprocess: no instruction bytes available at {hex(func_va_int)}")
         return None
+
+    func_size_text = str(func_info.get("func_size", "")).strip()
+    try:
+        func_size_int = int(func_size_text, 0)
+    except (TypeError, ValueError):
+        func_size_int = 0
+    if func_size_int > 0:
+        func_end_ea = func_va_int + func_size_int
+        body_insts = []
+        for inst in insts:
+            try:
+                inst_ea = int(str(inst.get("ea", "")).strip(), 0)
+            except (TypeError, ValueError):
+                continue
+            if inst_ea < func_end_ea:
+                body_insts.append(inst)
+        if len(body_insts) == 1:
+            try:
+                lead_bytes = bytes.fromhex(str(body_insts[0].get("bytes", "")))
+            except ValueError:
+                lead_bytes = b""
+            kind = _classify_func_body_lead_bytes(lead_bytes)
+            if kind:
+                if debug:
+                    print(
+                        f"    Preprocess: {hex(func_va_int)} body is a single instruction ({kind}); skipping func_sig"
+                    )
+                return {
+                    "func_va": hex(func_va_int),
+                    "func_rva": hex(func_va_int - image_base),
+                    "func_size": func_size_text,
+                    "func_sig": None,
+                    "func_sig_skipped": kind,
+                }
 
     sig_tokens = []
     raw_tokens = []  # Parallel to sig_tokens; always stores actual hex values (never wildcarded)
@@ -5259,8 +5459,21 @@ async def preprocess_patch_via_mcp(session, new_path, old_path, image_base, new_
     return result
 
 
+def _declared_offset_sig_max_match(desired_fields_map, symbol_name):
+    """Return the `offset_sig_max_match:N` directive value declared for *symbol_name*, or None."""
+    spec = desired_fields_map.get(symbol_name) or {}
+    return (spec.get("generation_options") or {}).get("offset_sig_max_match")
+
+
 async def preprocess_struct_offset_sig_via_mcp(
-    session, new_path, old_path, image_base, new_binary_dir, platform, debug=False
+    session,
+    new_path,
+    old_path,
+    image_base,
+    new_binary_dir,
+    platform,
+    offset_sig_max_match=None,
+    debug=False,
 ):
     """
     Preprocess a struct-member offset output by reusing old-version offset_sig signature.
@@ -5276,6 +5489,11 @@ async def preprocess_struct_offset_sig_via_mcp(
         image_base: Binary image base address (reserved)
         new_binary_dir: Directory for new version outputs (reserved)
         platform: "windows" or "linux" (reserved)
+        offset_sig_max_match: `offset_sig_max_match:N` directive value declared by the
+            skill (None when the skill declares no such directive). The declared value
+            is authoritative over the old YAML: a platform whose signature happens to be
+            unique stores no `offset_sig_max_match` in its artifact, while a sibling
+            platform of the same symbol may legitimately need the wider cap.
         debug: Enable debug output
 
     Returns:
@@ -5339,20 +5557,39 @@ async def preprocess_struct_offset_sig_via_mcp(
             print(f"    Preprocess: offset_sig_disp must be >= 0 in {os.path.basename(old_path)}")
         return None
 
-    offset_sig_max_match = 1
+    old_offset_sig_max_match = 1
     try:
         raw_max_match = old_data.get("offset_sig_max_match")
         if raw_max_match is not None:
-            offset_sig_max_match = _parse_int_field(raw_max_match, "offset_sig_max_match")
+            old_offset_sig_max_match = _parse_int_field(raw_max_match, "offset_sig_max_match")
     except Exception:
         if debug:
             print(f"    Preprocess: invalid offset_sig_max_match in {os.path.basename(old_path)}")
         return None
 
-    if offset_sig_max_match <= 0:
+    if old_offset_sig_max_match <= 0:
         if debug:
             print(f"    Preprocess: offset_sig_max_match must be > 0 in {os.path.basename(old_path)}")
         return None
+
+    declared_offset_sig_max_match = None
+    if offset_sig_max_match is not None:
+        try:
+            declared_offset_sig_max_match = int(offset_sig_max_match)
+        except (TypeError, ValueError):
+            if debug:
+                print(f"    Preprocess: invalid declared offset_sig_max_match for {os.path.basename(new_path)}")
+            return None
+        if declared_offset_sig_max_match <= 0:
+            if debug:
+                print(f"    Preprocess: declared offset_sig_max_match must be > 0 for {os.path.basename(new_path)}")
+            return None
+
+    offset_sig_max_match_cap = (
+        max(old_offset_sig_max_match, declared_offset_sig_max_match)
+        if declared_offset_sig_max_match is not None
+        else old_offset_sig_max_match
+    )
 
     old_offset = None
     try:
@@ -5368,7 +5605,7 @@ async def preprocess_struct_offset_sig_via_mcp(
             name="find_bytes",
             arguments={
                 "patterns": [offset_sig],
-                "limit": offset_sig_max_match + 1,
+                "limit": offset_sig_max_match_cap + 1,
             },
         )
         fb_data = parse_mcp_result(fb_result)
@@ -5388,11 +5625,11 @@ async def preprocess_struct_offset_sig_via_mcp(
         if debug:
             print(f"    Preprocess: {os.path.basename(old_path)} offset sig matched {match_count} (need >= 1)")
         return None
-    if match_count > offset_sig_max_match:
+    if match_count > offset_sig_max_match_cap:
         if debug:
             print(
                 f"    Preprocess: {os.path.basename(old_path)} offset sig "
-                f"matched {match_count} (max {offset_sig_max_match})"
+                f"matched {match_count} (max {offset_sig_max_match_cap})"
             )
         return None
 
@@ -5407,6 +5644,7 @@ async def preprocess_struct_offset_sig_via_mcp(
 
     py_code = (
         "import idaapi, ida_bytes, idautils, ida_ua, json\n"
+        "globals().update(locals())\n"
         f"sig_addrs = {sig_addrs_literal}\n"
         f"offset_sig_disp = {offset_sig_disp}\n"
         f"expected_offset = {expected_offset_expr}\n"
@@ -5418,61 +5656,29 @@ async def preprocess_struct_offset_sig_via_mcp(
         "    raw = ida_bytes.get_bytes(inst_addr, insn.size) if insn and insn.size > 0 else None\n"
         "    if not insn or insn.size <= 0 or not raw:\n"
         "        continue\n"
+        "    memory = [op for op in insn.ops if int(op.type) in (int(idaapi.o_displ), int(idaapi.o_mem))]\n"
+        "    operands = memory or [op for op in insn.ops if int(op.type) == int(idaapi.o_imm)]\n"
         "    candidates = []\n"
-        "    for op in insn.ops:\n"
-        "        ot = int(op.type)\n"
-        "        if ot == int(idaapi.o_void):\n"
-        "            continue\n"
-        "        if ot not in (int(idaapi.o_displ), int(idaapi.o_mem), int(idaapi.o_imm)):\n"
-        "            continue\n"
-        "        for attr in ('offb', 'offo'):\n"
-        "            off = int(getattr(op, attr, 0))\n"
-        "            if off <= 0 or off >= insn.size:\n"
-        "                continue\n"
-        "            sizes = []\n"
-        "            dsz = ida_ua.get_dtype_size(getattr(op, 'dtype', getattr(op, 'dtyp', 0)))\n"
-        "            if dsz > 0:\n"
-        "                sizes.append(dsz)\n"
-        "            for s in (1, 2, 4, 8):\n"
-        "                if s not in sizes:\n"
-        "                    sizes.append(s)\n"
-        "            for sz in sizes:\n"
-        "                if off + sz > insn.size:\n"
-        "                    continue\n"
-        "                chunk = raw[off:off + sz]\n"
-        "                unsigned_val = int.from_bytes(chunk, 'little', signed=False)\n"
-        "                signed_val = int.from_bytes(chunk, 'little', signed=True)\n"
-        "                expected_match = False\n"
-        "                if expected_offset is not None:\n"
-        "                    expected_mod = expected_offset & ((1 << (8 * sz)) - 1)\n"
-        "                    expected_match = unsigned_val == expected_mod or signed_val == expected_offset\n"
-        "                candidates.append({\n"
-        "                    'off': off,\n"
-        "                    'size': sz,\n"
-        "                    'unsigned': unsigned_val,\n"
-        "                    'signed': signed_val,\n"
-        "                    'expected': expected_match,\n"
-        "                })\n"
-        "    uniq = []\n"
-        "    seen = set()\n"
-        "    for c in candidates:\n"
-        "        key = (c['off'], c['size'])\n"
-        "        if key in seen:\n"
-        "            continue\n"
-        "        seen.add(key)\n"
-        "        uniq.append(c)\n"
-        "    if not uniq:\n"
+        "    for op in operands:\n"
+        "        # IDA has already decoded the displacement. Operand dtype is the size\n"
+        "        # of the referenced value, not the width of its encoded displacement.\n"
+        "        value = int(op.addr if memory else op.value)\n"
+        "        bits = 64 if idaapi.inf_is_64bit() else 32\n"
+        "        if value >= (1 << (bits - 1)):\n"
+        "            value -= 1 << bits\n"
+        "        if value not in candidates:\n"
+        "            candidates.append(value)\n"
+        "    preferred = expected_offset in candidates\n"
+        "    if preferred:\n"
+        "        final_offset = expected_offset\n"
+        "    elif len(candidates) == 1:\n"
+        "        final_offset = candidates[0]\n"
+        "    else:\n"
         "        continue\n"
-        "    preferred = [c for c in uniq if c['expected']]\n"
-        "    pool = preferred if preferred else uniq\n"
-        "    pool.sort(key=lambda c: (c['size'], -c['off']), reverse=True)\n"
-        "    best = pool[0]\n"
-        "    final_offset = best['signed'] if best['signed'] < 0 else best['unsigned']\n"
         "    candidate_result = {\n"
         "        'offset': final_offset,\n"
         "        'sig_va': hex(sig_addr),\n"
         "        'inst_va': hex(inst_addr),\n"
-        "        'offset_size': best['size'],\n"
         "        'matched_expected': bool(preferred),\n"
         "    }\n"
         "    if any_result is None:\n"
@@ -5524,8 +5730,8 @@ async def preprocess_struct_offset_sig_via_mcp(
         "offset_sig": offset_sig,
         "offset_sig_disp": offset_sig_disp,
     }
-    if offset_sig_max_match > 1:
-        new_data["offset_sig_max_match"] = offset_sig_max_match
+    if declared_offset_sig_max_match is not None or offset_sig_max_match_cap > 1:
+        new_data["offset_sig_max_match"] = offset_sig_max_match_cap
 
     raw_size = old_data.get("size")
     if raw_size is not None:
@@ -6219,6 +6425,61 @@ async def _define_func_start_for_code_addr(session, entry, code_addr, *, debug=F
     return func_start
 
 
+async def _define_undefined_func_start_if_code_via_mcp(session, addr_expr, *, debug=False):
+    """Define a function at an address that IDA left as undefined code.
+
+    A unique func_sig match already proves the bytes belong to the target, but
+    autoanalysis can leave a moved function undefined.  Only code owned by no
+    existing function is eligible; defining a function inside another one would
+    corrupt the database.
+    """
+    py_code = (
+        "import idaapi, ida_bytes, json\n"
+        f"addr = {addr_expr}\n"
+        "func = idaapi.get_func(addr)\n"
+        "if func is not None:\n"
+        "    result = json.dumps({'status': 'in_function'})\n"
+        "elif not ida_bytes.is_code(ida_bytes.get_full_flags(addr)):\n"
+        "    result = json.dumps({'status': 'not_code'})\n"
+        "else:\n"
+        "    result = json.dumps({'status': 'undefined_code'})\n"
+    )
+    try:
+        eval_result = await session.call_tool(
+            name="py_eval",
+            arguments={"code": py_code},
+        )
+        eval_data = parse_mcp_result(eval_result)
+    except Exception as e:
+        if debug:
+            print(f"    Preprocess: py_eval error while probing undefined func at {addr_expr}: {e}")
+        return None
+
+    parsed = _parse_py_eval_json_object(eval_data, debug=debug)
+    if not parsed or parsed.get("status") != "undefined_code":
+        return None
+
+    try:
+        entry = _parse_int_value(addr_expr)
+    except Exception:
+        return None
+
+    func_start = await _define_func_start_for_code_addr(
+        session=session,
+        entry=entry,
+        code_addr=entry,
+        debug=debug,
+    )
+    if func_start is None:
+        if debug:
+            print(f"    Preprocess: undefined func recovery did not cover {addr_expr}")
+        return None
+
+    if debug:
+        print(f"    Preprocess: defined undefined func at {hex(func_start)}")
+    return func_start
+
+
 async def _resolve_func_start_probe(session, probe, code_addr, *, debug=False):
     """Resolve terminal probe states, or report that source recovery is needed."""
     status = probe.get("status")
@@ -6856,11 +7117,22 @@ async def _preprocess_direct_func_sig_via_mcp(
                 allow_across_function_boundary=allow_func_sig_across_function_boundary,
                 debug=debug,
             )
-            if not isinstance(gen_data, dict) or not gen_data.get("func_sig"):
+            if not isinstance(gen_data, dict):
                 if debug:
                     print(f"    Preprocess: failed to generate direct func_sig for {func_name}")
                 return None
-            payload["func_sig"] = gen_data["func_sig"]
+            if gen_data.get("func_sig"):
+                payload["func_sig"] = gen_data["func_sig"]
+            elif gen_data.get("func_sig_skipped"):
+                raise DegenerateFuncSigTargetError(
+                    f"{func_name}: func_sig is required but {hex(resolved_func_va)} is a "
+                    f"{gen_data['func_sig_skipped']} (single-instruction body); "
+                    "refusing to emit a meaningless func_sig"
+                )
+            else:
+                if debug:
+                    print(f"    Preprocess: failed to generate direct func_sig for {func_name}")
+                return None
 
     if vtable_name is not None:
         payload["vtable_name"] = vtable_name
@@ -8735,6 +9007,10 @@ async def preprocess_common_skill(
                     image_base=image_base,
                     new_binary_dir=new_binary_dir,
                     platform=platform,
+                    offset_sig_max_match=_declared_offset_sig_max_match(
+                        desired_fields_map,
+                        candidate_struct_name,
+                    ),
                     debug=debug,
                 )
                 struct_fast_path_attempted[candidate_struct_name] = True
@@ -9305,6 +9581,10 @@ async def preprocess_common_skill(
                 image_base=image_base,
                 new_binary_dir=new_binary_dir,
                 platform=platform,
+                offset_sig_max_match=_declared_offset_sig_max_match(
+                    desired_fields_map,
+                    struct_member_name,
+                ),
                 debug=debug,
             )
             struct_fast_path_attempted[struct_member_name] = True
