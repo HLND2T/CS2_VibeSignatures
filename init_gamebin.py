@@ -1013,9 +1013,25 @@ def release_tag_target(gamever: str) -> str:
     return target["sha"]
 
 
-def verify_downloaded_release_assets(
-    *, gamever: str, manifest_path: Path, checksums_path: Path, archive_path: Path
-) -> list[dict]:
+def gamebin_archive_name(gamever: str) -> str:
+    """Return the public asset name of the binary-only gamebin archive."""
+    return f"gamebin-{gamever}.7z"
+
+
+def idb_archive_name(gamever: str) -> str:
+    """Return the public asset name of the warm IDB archive.
+
+    The Release manifest owns the single authoritative definition; this only
+    reaches for it lazily to avoid the release_bundle -> binsync_candidate ->
+    init_gamebin import cycle.
+    """
+    from release_bundle import gamebin_with_idb_archive_name
+
+    return gamebin_with_idb_archive_name(gamever)
+
+
+def load_verified_release_manifest(gamever: str, manifest_path: Path, checksums_path: Path) -> dict:
+    """Validate a downloaded Release manifest and its SHA256SUMS against the tag."""
     from release_bundle import ReleaseBundleError, validate_release_manifest
 
     try:
@@ -1034,16 +1050,8 @@ def verify_downloaded_release_assets(
         raise InitGamebinError("Release manifest, tag, and GAMEVER identity differ")
 
     manifest_name = f"release-manifest-{gamever}.json"
-    archive_name = f"gamebin-{gamever}.7z"
-    archive_key = f"archives/{archive_name}"
-    public_assets = manifest["public_assets"]
-    archive_record = next((item for item in public_assets if item.get("path") == archive_key), None)
-    if archive_record is None or archive_record.get("name") != archive_name:
-        raise InitGamebinError("Release manifest does not declare the gamebin asset")
-    if archive_path.stat().st_size != archive_record["size"] or sha256_file(archive_path) != archive_record["sha256"]:
-        raise InitGamebinError("downloaded gamebin asset differs from the Release manifest")
     checksum_records = [
-        *public_assets,
+        *manifest["public_assets"],
         {
             "path": manifest_name,
             "name": manifest_name,
@@ -1056,29 +1064,65 @@ def verify_downloaded_release_assets(
     ).encode("utf-8")
     if checksums_path.read_bytes() != expected_checksums:
         raise InitGamebinError("downloaded SHA256SUMS differs from the Release manifest")
-    return manifest["archives"][archive_key]["files"]
+    return manifest
+
+
+def verify_declared_archive(manifest: dict, archive_name: str, archive_path: Path) -> list[dict]:
+    """Require one downloaded archive to be a declared Release asset and match it."""
+    archive_key = f"archives/{archive_name}"
+    archive_record = next((item for item in manifest["public_assets"] if item.get("path") == archive_key), None)
+    if archive_record is None or archive_record.get("name") != archive_name:
+        raise InitGamebinError(f"Release manifest does not declare the {archive_name} asset")
+    if archive_path.stat().st_size != archive_record["size"] or sha256_file(archive_path) != archive_record["sha256"]:
+        raise InitGamebinError(f"downloaded {archive_name} differs from the Release manifest")
+    archive_contract = manifest.get("archives", {}).get(archive_key)
+    if not isinstance(archive_contract, dict) or not isinstance(archive_contract.get("files"), list):
+        raise InitGamebinError(f"Release manifest does not declare the {archive_name} archive contract")
+    return archive_contract["files"]
+
+
+def verify_downloaded_release_assets(
+    *, gamever: str, manifest_path: Path, checksums_path: Path, archive_path: Path
+) -> list[dict]:
+    manifest = load_verified_release_manifest(gamever, manifest_path, checksums_path)
+    return verify_declared_archive(manifest, gamebin_archive_name(gamever), archive_path)
+
+
+def fetch_release_manifest(gamever: str, temporary: Path) -> dict | None:
+    """Download and validate the Release manifest and SHA256SUMS; None on HTTP 404."""
+    manifest_path = temporary / f"release-manifest-{gamever}.json"
+    checksums_path = temporary / f"SHA256SUMS-{gamever}.txt"
+    if not download_release_asset(RELEASE_ASSET_URL.format(gamever, manifest_path.name), manifest_path):
+        return None
+    if not download_release_asset(RELEASE_ASSET_URL.format(gamever, checksums_path.name), checksums_path):
+        raise InitGamebinError("published Release is missing SHA256SUMS")
+    return load_verified_release_manifest(gamever, manifest_path, checksums_path)
+
+
+def release_declares_idb_archive(manifest: dict, gamever: str) -> bool:
+    """Return whether the manifest declares the warm IDB archive and a public asset for it."""
+    archive_key = f"archives/{idb_archive_name(gamever)}"
+    if archive_key not in manifest.get("archives", {}):
+        return False
+    return any(item.get("path") == archive_key for item in manifest["public_assets"])
+
+
+def download_verified_release_archive(
+    manifest: dict, gamever: str, archive_name: str, temporary: Path
+) -> tuple[Path, list[dict]]:
+    """Download one declared Release archive and verify it against the manifest."""
+    archive = temporary / archive_name
+    if not download_release_asset(RELEASE_ASSET_URL.format(gamever, archive_name), archive):
+        raise InitGamebinError(f"published Release is missing its declared {archive_name} asset")
+    expected = verify_declared_archive(manifest, archive_name, archive)
+    return archive, expected
 
 
 def download_verified_release_gamebin(gamever: str, temporary: Path) -> tuple[Path, list[dict]] | None:
-    manifest_name = f"release-manifest-{gamever}.json"
-    checksums_name = f"SHA256SUMS-{gamever}.txt"
-    archive_name = f"gamebin-{gamever}.7z"
-    manifest = temporary / manifest_name
-    checksums = temporary / checksums_name
-    archive = temporary / archive_name
-    if not download_release_asset(RELEASE_ASSET_URL.format(gamever, manifest_name), manifest):
+    manifest = fetch_release_manifest(gamever, temporary)
+    if manifest is None:
         return None
-    if not download_release_asset(RELEASE_ASSET_URL.format(gamever, checksums_name), checksums):
-        raise InitGamebinError("published Release is missing SHA256SUMS")
-    if not download_release_asset(RELEASE_ASSET_URL.format(gamever, archive_name), archive):
-        raise InitGamebinError("published Release is missing its declared gamebin asset")
-    expected = verify_downloaded_release_assets(
-        gamever=gamever,
-        manifest_path=manifest,
-        checksums_path=checksums,
-        archive_path=archive,
-    )
-    return archive, expected
+    return download_verified_release_archive(manifest, gamever, gamebin_archive_name(gamever), temporary)
 
 
 def extract_archive(root: Path, archive: Path, destination: Path, expected: list[dict]) -> None:
@@ -1203,6 +1247,7 @@ def prepare(
     *,
     binsync_mode: str = "skip",
     allow_remote_creation: bool = False,
+    with_idb: bool = False,
 ) -> dict:
     """Prepare configured binaries and return a summary.
 
@@ -1210,6 +1255,11 @@ def prepare(
     provisions; "enable" probes availability first and fails loudly when the
     environment cannot run BinSync. Missing remote creation requires a separate,
     explicit permission intended for trusted CI.
+
+    ``with_idb`` additionally merges the warm IDA databases published as
+    ``gamebin-with-idb-<GAMEVER>.7z`` so IDB warmup can be skipped. It is
+    orthogonal to BinSync and fails loudly when the selected Release declares no
+    such archive.
     """
     if allow_remote_creation and binsync_mode != "enable":
         raise InitGamebinError("--create-missing-binsync-remotes requires --binsync enable")
@@ -1221,19 +1271,36 @@ def prepare(
         raise InitGamebinError(str(exc)) from exc
     source = "existing local binaries"
     copied = skipped = 0
-    if not check_binaries(root, gamever, config_path):
+    idb_merge = None
+    need_binaries = not check_binaries(root, gamever, config_path)
+    if need_binaries or with_idb:
         with tempfile.TemporaryDirectory(prefix=f"init-gamebin-{gamever}-") as temp_dir:
             temporary = Path(temp_dir)
-            release_gamebin = download_verified_release_gamebin(gamever, temporary)
-            if release_gamebin is not None:
-                archive, expected_files = release_gamebin
-                extracted = temporary / "extracted"
-                extract_archive(root, archive, extracted, expected_files)
-                copied, skipped = merge_archive_bin(extracted, root / "bin", gamever)
-                source = "release archive"
-            else:
-                run_depot_fallback(root, gamever, config_path)
-                source = "Steam depot fallback"
+            manifest = fetch_release_manifest(gamever, temporary)
+            if need_binaries:
+                if manifest is not None:
+                    archive, expected_files = download_verified_release_archive(
+                        manifest, gamever, gamebin_archive_name(gamever), temporary
+                    )
+                    extracted = temporary / "extracted"
+                    extract_archive(root, archive, extracted, expected_files)
+                    copied, skipped = merge_archive_bin(extracted, root / "bin", gamever)
+                    source = "release archive"
+                else:
+                    run_depot_fallback(root, gamever, config_path)
+                    source = "Steam depot fallback"
+            if with_idb:
+                if manifest is None or not release_declares_idb_archive(manifest, gamever):
+                    raise InitGamebinError(
+                        f"the selected Release for GAMEVER {gamever} publishes no {idb_archive_name(gamever)}; "
+                        "run the skill's check-idb probe before requesting a warm IDB download"
+                    )
+                idb_archive, idb_expected = download_verified_release_archive(
+                    manifest, gamever, idb_archive_name(gamever), temporary
+                )
+                extracted = temporary / "extracted-idb"
+                extract_archive(root, idb_archive, extracted, idb_expected)
+                idb_merge = merge_archive_bin(extracted, root / "bin", gamever)
     if not check_binaries(root, gamever, config_path):
         raise InitGamebinError(f"configured binaries are still incomplete for GAMEVER {gamever}")
     try:
@@ -1266,9 +1333,35 @@ def prepare(
         "source": source,
         "copied": copied,
         "skipped": skipped,
+        "idb": idb_merge,
         "binary_lock_sha256": binary_lock.sha256,
         "binsync": binsync,
     }
+
+
+def check_idb(gamever: str, temporary: Path | None = None) -> tuple[bool, str]:
+    """Probe whether the published Release declares a warm IDB archive.
+
+    Returns (True, "") when the archive is published, or (False, reason). Only
+    the manifest and checksums are downloaded; never raises for a normal
+    unavailability reason and never modifies the workspace.
+    """
+    try:
+        if temporary is not None:
+            return _check_idb(gamever, temporary)
+        with tempfile.TemporaryDirectory(prefix=f"check-idb-{gamever}-") as temp_dir:
+            return _check_idb(gamever, Path(temp_dir))
+    except InitGamebinError as exc:
+        return False, str(exc)
+
+
+def _check_idb(gamever: str, temporary: Path) -> tuple[bool, str]:
+    manifest = fetch_release_manifest(gamever, temporary)
+    if manifest is None:
+        return False, f"no published Release exists for GAMEVER {gamever}"
+    if not release_declares_idb_archive(manifest, gamever):
+        return False, f"the published Release for GAMEVER {gamever} does not declare a warm IDB archive"
+    return True, ""
 
 
 def print_versions(versions: list[str]) -> None:
@@ -1290,6 +1383,11 @@ def main(argv=None) -> int:
         nargs="?",
         help="Exact GAMEVER from download.yaml, or latest; also requires every per-module remote to exist",
     )
+    check_idb_parser = commands.add_parser(
+        "check-idb",
+        help="Probe whether the published Release declares a warm IDB archive",
+    )
+    check_idb_parser.add_argument("gamever", help="Exact GAMEVER from download.yaml, or latest")
     prepare_parser = commands.add_parser("prepare", help="Prepare configured binaries")
     prepare_parser.add_argument("gamever", help="Exact GAMEVER from download.yaml, or latest")
     prepare_parser.add_argument(
@@ -1297,6 +1395,11 @@ def main(argv=None) -> int:
         choices=["enable", "skip"],
         default="skip",
         help="Enable or skip BinSync recovery (default: skip)",
+    )
+    prepare_parser.add_argument(
+        "--with-idb",
+        action="store_true",
+        help="Also download and merge the published warm IDA databases (skips local warmup)",
     )
     prepare_parser.add_argument(
         "--create-missing-binsync-remotes",
@@ -1333,6 +1436,14 @@ def main(argv=None) -> int:
                 return 0
             print(f"BinSync unavailable: {reason}")
             return 1
+        elif args.command == "check-idb":
+            gamever = select_version(args.gamever, load_versions(root / "download.yaml"))
+            available, reason = check_idb(gamever)
+            if available:
+                print(f"Warm IDB archive available: {idb_archive_name(gamever)}")
+                return 0
+            print(f"Warm IDB archive unavailable: {reason}")
+            return 1
         elif args.command == "ensure-binsync-remotes":
             result = ensure_binsync_remotes(root, args.gamever, user=args.user, dry_run=args.dry_run)
             summary = result["summary"]
@@ -1352,10 +1463,16 @@ def main(argv=None) -> int:
                 args.gamever,
                 binsync_mode=args.binsync,
                 allow_remote_creation=args.create_missing_binsync_remotes,
+                with_idb=args.with_idb,
             )
             print(f"Selected GAMEVER: {result['gamever']}")
             print(f"Binary source: {result['source']}")
             print(f"Archive merge: {result['copied']} copied, {result['skipped']} skipped")
+            if result["idb"] is None:
+                print("Warm IDB merge: skipped")
+            else:
+                idb_copied, idb_skipped = result["idb"]
+                print(f"Warm IDB merge: {idb_copied} copied, {idb_skipped} skipped")
             if result["binsync"] is None:
                 print("BinSync recovery: skipped")
             else:
