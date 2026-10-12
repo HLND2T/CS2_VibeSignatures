@@ -44,19 +44,44 @@ BinSync recovery is opt-in. Decide whether to enable it before preparing binarie
    - Yes → prepare with `--binsync enable`.
    - No → prepare with `--binsync skip` (or omit the flag).
 
+## Decide IDB Download
+
+A rebuilt Release also publishes `gamebin-with-idb-<GAMEVER>.7z`, its warm IDA databases. Downloading
+it skips the slow, resource-heavy local warmup. Decide before preparing binaries, and independently of
+BinSync:
+
+1. Probe whether the selected GAMEVER publishes the archive:
+
+   ```powershell
+   uv run init_gamebin.py check-idb <GAMEVER>
+   ```
+
+2. If the probe exits 0 (available), **ask** the user whether to download the IDB-bundled gamebin and
+   wait for an explicit yes/no.
+   - Yes → prepare with `--with-idb`. The warm databases are merged into `bin/<GAMEVER>` and the
+     "Warm Up IDB" step below is **skipped** (the binaries are already warm).
+   - No → prepare without the flag and keep the "Warm Up IDB" step below.
+3. If the probe exits 1 (unavailable), tell the user which GAMEVER publishes no warm IDB archive and
+   why, then prepare without the flag and keep the "Warm Up IDB" step below. Do not retry.
+
+A tracked (rebuild-free) release is published without any IDA analysis and therefore never carries this
+archive; `--with-idb` also fails loudly for a GAMEVER whose Release declares none.
+
 ## Prepare Binaries
 
-Run from the owning repository root with the BinSync decision applied:
+Run from the owning repository root with the BinSync and IDB decisions applied:
 
 ```powershell
-uv run init_gamebin.py prepare <GAMEVER-or-latest> --binsync <enable|skip>
+uv run init_gamebin.py prepare <GAMEVER-or-latest> --binsync <enable|skip> [--with-idb]
 ```
 
 Never pass `--create-missing-binsync-remotes` from this manual skill flow. That mutating option is reserved for the
 trusted `build-on-self-runner` workflow.
 
 Without `--binsync`, BinSync is skipped and never probed. `--binsync enable` probes first and **fails**
-(instead of skipping) when the environment cannot run BinSync. The script checks existing binaries,
+(instead of skipping) when the environment cannot run BinSync. `--with-idb` downloads and
+non-overwritingly merges the warm IDA databases; it is orthogonal to BinSync and fails loudly when the
+selected Release publishes no such archive. The script checks existing binaries,
 downloads and non-overwritingly merges `gamebin-<GAMEVER>.7z` when needed, and uses
 the Steam depot fallback only for a missing Release asset. After every configured Windows and Linux binary exists, it:
 
@@ -96,7 +121,10 @@ Do not attempt an alternate download, edit `.env`, or proceed to analysis.
 
 ## Warm Up IDB (optional)
 
-After binary preparation succeeds, ask whether to warm the IDA databases for the selected GAMEVER.
+Skip this whole section when the user chose to download the IDB-bundled gamebin (`--with-idb`): every
+configured database was already merged from the Release, so warmup is unnecessary.
+
+Otherwise, after binary preparation succeeds, ask whether to warm the IDA databases for the selected GAMEVER.
 Warmup runs full IDA auto-analysis on every configured binary (via `warmup_idb.py`) and leaves
 `<binary>.i64` beside each binary so later analysis is fast. It is slow and resource-heavy, so it is
 opt-in.
@@ -125,5 +153,6 @@ opt-in.
      Do not silently continue after a failed warmup.
    - No → skip warmup and finish.
 
-Report the selected GAMEVER, binary preparation result, BinSync summary, and optional warmup result. State that symbol
-truth remains under tracked `bin_artifacts/`; do not offer snapshot restoration or IDB renaming.
+Report the selected GAMEVER, binary preparation result, BinSync summary, warm IDB merge (if any), and optional warmup
+result. State that symbol truth remains under tracked `bin_artifacts/`; the merged `.i64` databases are disposable
+workspace state, not source truth. Do not offer snapshot restoration or IDB renaming.

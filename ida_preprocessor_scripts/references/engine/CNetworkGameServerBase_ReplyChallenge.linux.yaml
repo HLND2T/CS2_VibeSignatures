@@ -125,7 +125,7 @@ disasm_code: |-
   .text:00000000004FA8C6                 lea     rax, g_pNetworkSystem
   .text:00000000004FA8CD                 mov     rdi, [rax]
   .text:00000000004FA8D0                 mov     rax, [rdi]
-  .text:00000000004FA8D3                 call    qword ptr [rax+160h]
+  .text:00000000004FA8D3                 call    qword ptr [rax+160h]; 0x160 = 352LL = INetworkSystem_GetSteamNetworkingSockets
   .text:00000000004FA8D9                 mov     esi, [r12+70h]
   .text:00000000004FA8DE                 xor     r9d, r9d
   .text:00000000004FA8E1                 mov     r8d, 5
@@ -442,7 +442,7 @@ procedure: |-
       goto LABEL_27;
     }
   LABEL_9:
-    v21 = (*(__int64 (__fastcall **)(_QWORD *))(*g_pNetworkSystem + 352LL))(g_pNetworkSystem);
+    v21 = (*(__int64 (__fastcall **)(_QWORD *))(*g_pNetworkSystem + 352LL))(g_pNetworkSystem); // 352LL = 0x160 = INetworkSystem_GetSteamNetworkingSockets
     return (*(__int64 (__fastcall **)(__int64, _QWORD, __int64, _QWORD, __int64, _QWORD))(*(_QWORD *)v21 + 88LL))(
              v21,
              (unsigned int)a2[28],
