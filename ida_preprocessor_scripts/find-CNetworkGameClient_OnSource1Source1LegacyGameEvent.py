@@ -30,12 +30,15 @@ FUNC_XREFS_LINUX = [
             "CNetworkGameClient::OnSource1Source1LegacyGameEvent: UnserializeKeyValue failed.",
         ],
         "xref_gvs": [],
-        "xref_signatures": [],
+        # Discriminates the target from the sibling that logs the same message.
+        "xref_signatures": [
+            "55 48 89 E5 41 57 41 56 41 55 41 54 53 48 89 F3 48 83 EC 38 48 8B 05",
+        ],
         "xref_funcs": [],
         "exclude_funcs": [],
         "exclude_strings": [],
         "exclude_gvs": [],
-        "exclude_signatures": ["55 48 89 E5 41 57 41 56 41 55 41 54 53"],
+        "exclude_signatures": [],
     },
 ]
 
