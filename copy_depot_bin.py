@@ -11,7 +11,7 @@ Usage:
     -bindir: Directory to save copied binaries (default: bin)
     -platform: Filter by platform (windows, linux, or all-platform). If not specified, copies both.
               all-platform: depot has mixed binaries without platform subdirectories.
-    -depotdir: Local depot root directory (default: cs2_depot)
+    -depotdir: Local depot root directory; binaries are read from <root>/<GAMEVER> (default: cs2_depot)
 
 Requirements:
     uv sync
@@ -31,6 +31,7 @@ except ImportError as e:
     sys.exit(1)
 
 from analysis_config import AnalysisConfigError, resolve_analysis_config
+from depot_util import versioned_depot_dir
 
 DEFAULT_DEPOT_DIR = "cs2_depot"
 DEFAULT_BIN_DIR = "bin"
@@ -54,7 +55,9 @@ def parse_args():
         "If not specified, copies both with platform subdirectories.",
     )
     parser.add_argument(
-        "-depotdir", default=DEFAULT_DEPOT_DIR, help=f"Local depot root directory (default: {DEFAULT_DEPOT_DIR})"
+        "-depotdir",
+        default=DEFAULT_DEPOT_DIR,
+        help=f"Local depot root directory; binaries are read from <root>/<GAMEVER> (default: {DEFAULT_DEPOT_DIR})",
     )
     parser.add_argument(
         "-config",
@@ -267,7 +270,7 @@ def main():
     bin_dir = args.bindir
     gamever = args.gamever
     platform_filter = args.platform
-    depot_dir = args.depotdir
+    depot_dir = versioned_depot_dir(args.depotdir, gamever)
     error_exit = CHECKONLY_ERROR_EXIT if args.checkonly else 1
     try:
         config_path = str(resolve_analysis_config(gamever, args.config))
