@@ -745,6 +745,28 @@ modules:
           - CHostStateMgr_RequestHS_LoadSaveGame.{platform}.yaml
         prerequisite:
           - find-CHostStateMgr_RequestHS_LoadSaveGame-noinline
+      - name: find-CHostStateRequest_PlayDemo
+        optional_output:
+          - CHostStateRequest_PlayDemo.{platform}.yaml
+        skip_if_exists:
+          - CHostStateMgr_RequestHS_PlayDemo.{platform}.yaml
+        platform: linux
+      - name: find-CHostStateMgr_RequestHS_PlayDemo-noinline
+        optional_output:
+          - CHostStateMgr_RequestHS_PlayDemo.{platform}.yaml
+        expected_input:
+          - CHostStateMgr_vtable.{platform}.yaml
+        prerequisite:
+          - find-CHostStateRequest_PlayDemo
+      - name: find-CHostStateMgr_RequestHS_PlayDemo-inlined
+        expected_output:
+          - CHostStateMgr_RequestHS_PlayDemo.{platform}.yaml
+        expected_input:
+          - CHostStateMgr_vtable.{platform}.yaml
+        skip_if_exists:
+          - CHostStateMgr_RequestHS_PlayDemo.{platform}.yaml
+        prerequisite:
+          - find-CHostStateMgr_RequestHS_PlayDemo-noinline
       - name: find-CHostStateMgr_RequestHS_Quit
         expected_output:
           - CHostStateMgr_RequestHS_Quit.{platform}.yaml
@@ -4943,6 +4965,10 @@ modules:
         category: vfunc
         alias:
           - CHostStateMgr::RequestHS_LoadSaveGame
+      - name: CHostStateMgr_RequestHS_PlayDemo
+        category: vfunc
+        alias:
+          - CHostStateMgr::RequestHS_PlayDemo
       - name: g_pNetworkService
         category: gv
       - name: g_pNetworkClientService
