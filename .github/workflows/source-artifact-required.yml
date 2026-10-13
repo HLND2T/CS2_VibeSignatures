@@ -29,7 +29,7 @@ jobs:
       - name: Checkout exact prospective tree as data
         uses: actions/checkout@v5
         with:
-          ref: ${{ github.event_name == 'merge_group' && github.event.merge_group.head_sha || format('refs/pull/{0}/merge', github.event.pull_request.number) }}
+          ref: ${{ github.event_name == 'merge_group' && github.event.merge_group.head_sha || github.event.pull_request.base.sha }}
           fetch-depth: 0
           submodules: false
           persist-credentials: false
