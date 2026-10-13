@@ -811,6 +811,28 @@ modules:
           - CHostStateMgr_RequestHS_DownloadAddons.{platform}.yaml
         prerequisite:
           - find-CHostStateMgr_RequestHS_DownloadAddons-noinline
+      - name: find-CHostStateRequest_SourceTVRelay
+        optional_output:
+          - CHostStateRequest_SourceTVRelay.{platform}.yaml
+        skip_if_exists:
+          - CHostStateMgr_RequestHS_SourceTVRelay.{platform}.yaml
+        platform: linux
+      - name: find-CHostStateMgr_RequestHS_SourceTVRelay-noinline
+        optional_output:
+          - CHostStateMgr_RequestHS_SourceTVRelay.{platform}.yaml
+        expected_input:
+          - CHostStateMgr_vtable.{platform}.yaml
+        prerequisite:
+          - find-CHostStateRequest_SourceTVRelay
+      - name: find-CHostStateMgr_RequestHS_SourceTVRelay-inlined
+        expected_output:
+          - CHostStateMgr_RequestHS_SourceTVRelay.{platform}.yaml
+        expected_input:
+          - CHostStateMgr_vtable.{platform}.yaml
+        skip_if_exists:
+          - CHostStateMgr_RequestHS_SourceTVRelay.{platform}.yaml
+        prerequisite:
+          - find-CHostStateMgr_RequestHS_SourceTVRelay-noinline
       - name: find-CHostStateMgr_RequestHS_Quit
         expected_output:
           - CHostStateMgr_RequestHS_Quit.{platform}.yaml
@@ -5021,6 +5043,10 @@ modules:
         category: vfunc
         alias:
           - CHostStateMgr::RequestHS_DownloadAddons
+      - name: CHostStateMgr_RequestHS_SourceTVRelay
+        category: vfunc
+        alias:
+          - CHostStateMgr::RequestHS_SourceTVRelay
       - name: g_pNetworkService
         category: gv
       - name: g_pNetworkClientService
