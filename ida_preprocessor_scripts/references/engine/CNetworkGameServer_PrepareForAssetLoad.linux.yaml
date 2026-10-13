@@ -1,0 +1,145 @@
+func_name: CNetworkGameServer_PrepareForAssetLoad
+func_va: '0x524e10'
+disasm_code: |-
+  .text:0000000000524E10                 push    rbp
+  .text:0000000000524E11                 mov     rbp, rsp
+  .text:0000000000524E14                 push    r14
+  .text:0000000000524E16                 push    r13
+  .text:0000000000524E18                 lea     r13, unk_282079
+  .text:0000000000524E1F                 push    r12
+  .text:0000000000524E21                 push    rbx
+  .text:0000000000524E22                 mov     r12, [rdi+170h]
+  .text:0000000000524E29                 mov     rbx, rdi
+  .text:0000000000524E2C                 test    r12, r12
+  .text:0000000000524E2F                 cmovz   r12, r13
+  .text:0000000000524E33                 xor     eax, eax
+  .text:0000000000524E35                 mov     rsi, r12
+  .text:0000000000524E38                 mov     [rdi+0B8h], r12
+  .text:0000000000524E3F                 lea     rdi, aPrepareforasse; "PrepareForAssetLoad(%s)"
+  .text:0000000000524E46                 call    sub_2CF980
+  .text:0000000000524E4B                 call    sub_5E6E10
+  .text:0000000000524E50                 xor     edx, edx
+  .text:0000000000524E52                 mov     esi, 2
+  .text:0000000000524E57                 mov     rdi, rax
+  .text:0000000000524E5A                 call    sub_5E72E0
+  .text:0000000000524E5F                 lea     r14, qword_C8E580
+  .text:0000000000524E66                 mov     rsi, r12
+  .text:0000000000524E69                 mov     rdi, r14
+  .text:0000000000524E6C                 call    sub_566A20
+  .text:0000000000524E71                 mov     rdi, r14
+  .text:0000000000524E74                 call    sub_567650
+  .text:0000000000524E79                 mov     rdx, r12
+  .text:0000000000524E7C                 xor     eax, eax
+  .text:0000000000524E7E                 mov     rdi, r14
+  .text:0000000000524E81                 lea     rsi, aLoadingMapS; "Loading map \"%s\"\n"
+  .text:0000000000524E88                 call    sub_567310
+  .text:0000000000524E8D                 mov     rdi, r14
+  .text:0000000000524E90                 call    sub_567450
+  .text:0000000000524E95                 lea     rax, unk_C8F120
+  .text:0000000000524E9C                 lea     rdi, aMPframesnapsho; "m_pFrameSnapshotManager->Reset()"
+  .text:0000000000524EA3                 mov     edx, [rbx+2C0h]
+  .text:0000000000524EA9                 mov     [rax], edx
+  .text:0000000000524EAB                 xor     eax, eax
+  .text:0000000000524EAD                 call    sub_2CF980
+  .text:0000000000524EB2                 mov     rdi, [rbx+1C0h]
+  .text:0000000000524EB9                 test    rdi, rdi
+  .text:0000000000524EBC                 jz      short loc_524EC3
+  .text:0000000000524EBE                 call    sub_558DA0
+  .text:0000000000524EC3                 movss   xmm0, cs:dword_26DFBC
+  .text:0000000000524ECB                 mov     rdi, rbx
+  .text:0000000000524ECE                 call    sub_5093A0
+  .text:0000000000524ED3                 add     eax, 1
+  .text:0000000000524ED6                 mov     [rbx+44h], eax
+  .text:0000000000524ED9                 call    sub_2D0290
+  .text:0000000000524EDE                 movss   xmm0, cs:dword_26E750
+  .text:0000000000524EE6                 mov     esi, 0FAF5C2A0h
+  .text:0000000000524EEB                 mov     rdi, rax
+  .text:0000000000524EEE                 mov     rax, [rax]
+  .text:0000000000524EF1                 ; 0x50 = 80LL = ICommandLine_ParmValue2
+  .text:0000000000524EF1                 call    qword ptr [rax+50h]; 0x50 = 80LL = ICommandLine_ParmValue2
+  .text:0000000000524EF4                 ucomiss xmm0, cs:dword_26E750
+  .text:0000000000524EFB                 jp      short loc_524F70
+  .text:0000000000524EFD                 jnz     short loc_524F70
+  .text:0000000000524EFF                 lea     rax, off_9F6B78
+  .text:0000000000524F06                 lea     rdi, aSvCreatenetwor; "SV_CreateNetworkStringTables"
+  .text:0000000000524F0D                 movq    xmm0, qword ptr [rax]
+  .text:0000000000524F11                 lea     rax, off_9F69C8
+  .text:0000000000524F18                 pinsrq  xmm0, qword ptr [rax], 1
+  .text:0000000000524F1F                 xor     eax, eax
+  .text:0000000000524F21                 movups  xmmword ptr [rbx+198h], xmm0
+  .text:0000000000524F28                 call    sub_2CF980
+  .text:0000000000524F2D                 call    sub_5E6E10
+  .text:0000000000524F32                 xor     edx, edx
+  .text:0000000000524F34                 mov     esi, 6
+  .text:0000000000524F39                 mov     rdi, rax
+  .text:0000000000524F3C                 call    sub_5E72E0
+  .text:0000000000524F41                 mov     rsi, r12
+  .text:0000000000524F44                 mov     rdi, rbx
+  .text:0000000000524F47                 call    sub_502230
+  .text:0000000000524F4C                 mov     rsi, r13
+  .text:0000000000524F4F                 mov     rdi, rbx
+  .text:0000000000524F52                 xor     edx, edx
+  .text:0000000000524F54                 call    sub_524D20
+  .text:0000000000524F59                 pop     rbx
+  .text:0000000000524F5A                 mov     eax, 1
+  .text:0000000000524F5F                 pop     r12
+  .text:0000000000524F61                 pop     r13
+  .text:0000000000524F63                 pop     r14
+  .text:0000000000524F65                 pop     rbp
+  .text:0000000000524F66                 retn
+  .text:0000000000524F70                 mov     rdi, rbx
+  .text:0000000000524F73                 call    sub_5093A0
+  .text:0000000000524F78                 mov     edx, 1
+  .text:0000000000524F7D                 add     eax, 1
+  .text:0000000000524F80                 test    eax, eax
+  .text:0000000000524F82                 cmovle  eax, edx
+  .text:0000000000524F85                 mov     [rbx+44h], eax
+  .text:0000000000524F88                 jmp     loc_524EFF
+procedure: |-
+  __int64 __fastcall CNetworkGameServer_PrepareForAssetLoad(__int64 a1)
+  {
+    const char *v1; // r12
+    __int64 v2; // rax
+    int v3; // ecx
+    int v4; // r8d
+    int v5; // r9d
+    __int64 v6; // rax
+    float v7; // xmm0_4
+    __int64 v8; // rax
+    int v10; // eax
+    v1 = *(const char **)(a1 + 368);
+    if ( !v1 )
+      v1 = (const char *)&unk_282079;
+    *(_QWORD *)(a1 + 184) = v1;
+    sub_2CF980("PrepareForAssetLoad(%s)", v1);
+    v2 = sub_5E6E10();
+    sub_5E72E0(v2, 2, 0);
+    sub_566A20(&qword_C8E580, v1);
+    sub_567650(&qword_C8E580);
+    sub_567310((unsigned int)&qword_C8E580, (unsigned int)"Loading map \"%s\"\n", (_DWORD)v1, v3, v4, v5);
+    sub_567450(&qword_C8E580);
+    unk_C8F120 = *(_DWORD *)(a1 + 704);
+    sub_2CF980("m_pFrameSnapshotManager->Reset()");
+    if ( *(_QWORD *)(a1 + 448) )
+      sub_558DA0();
+    *(_DWORD *)(a1 + 68) = sub_5093A0(a1, 1.0) + 1;
+    v6 = sub_2D0290();
+    v7 = (*(float (__fastcall **)(__int64, __int64, float))(*(_QWORD *)v6 + 80LL))(v6, 4210410144LL, -1.0);// 0x50 = 80LL = ICommandLine_ParmValue2
+    if ( v7 != -1.0 )
+    {
+      v10 = sub_5093A0(a1, v7) + 1;
+      if ( v10 <= 0 )
+        v10 = 1;
+      *(_DWORD *)(a1 + 68) = v10;
+    }
+    *(__m128i *)(a1 + 408) = _mm_insert_epi64(
+                               _mm_loadl_epi64((const __m128i *)&off_9F6B78),
+                               (signed __int64)off_9F69C8,
+                               1);
+    sub_2CF980("SV_CreateNetworkStringTables");
+    v8 = sub_5E6E10();
+    sub_5E72E0(v8, 6, 0);
+    sub_502230(a1, v1);
+    sub_524D20(a1, &unk_282079, 0);
+    return 1;
+  }
