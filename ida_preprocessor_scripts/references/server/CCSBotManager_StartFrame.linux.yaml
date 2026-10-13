@@ -1,0 +1,288 @@
+func_name: CCSBotManager_StartFrame
+func_va: '0xc1aba0'
+disasm_code: |-
+  .text:0000000000C1ABA0                 push    rbp
+  .text:0000000000C1ABA1                 mov     rbp, rsp
+  .text:0000000000C1ABA4                 push    r13
+  .text:0000000000C1ABA6                 push    r12
+  .text:0000000000C1ABA8                 push    rbx
+  .text:0000000000C1ABA9                 mov     rbx, rdi
+  .text:0000000000C1ABAC                 sub     rsp, 28h
+  .text:0000000000C1ABB0                 lea     rax, g_engine
+  .text:0000000000C1ABB7                 mov     dword ptr [rdi+22E4h], 0
+  .text:0000000000C1ABC1                 mov     rdi, [rax]
+  .text:0000000000C1ABC4                 mov     rax, [rdi]
+  .text:0000000000C1ABC7                 call    qword ptr [rax+58h]
+  .text:0000000000C1ABCA                 test    al, al
+  .text:0000000000C1ABCC                 jz      short loc_C1ABE0
+  .text:0000000000C1ABCE                 add     rsp, 28h
+  .text:0000000000C1ABD2                 pop     rbx
+  .text:0000000000C1ABD3                 pop     r12
+  .text:0000000000C1ABD5                 pop     r13
+  .text:0000000000C1ABD7                 pop     rbp
+  .text:0000000000C1ABD8                 retn
+  .text:0000000000C1ABE0                 call    CCSBotManager_StartFrame_ShouldUpdate
+  .text:0000000000C1ABE5                 test    al, al
+  .text:0000000000C1ABE7                 jnz     short loc_C1AC10
+  .text:0000000000C1ABE9                 cmp     byte ptr [rbx+2528h], 0
+  .text:0000000000C1ABF0                 jz      short loc_C1ABCE
+  .text:0000000000C1ABF2                 mov     byte ptr [rbx+2528h], 0
+  .text:0000000000C1ABF9                 add     rsp, 28h
+  .text:0000000000C1ABFD                 mov     rdi, rbx
+  .text:0000000000C1AC00                 xor     esi, esi
+  .text:0000000000C1AC02                 pop     rbx
+  .text:0000000000C1AC03                 pop     r12
+  .text:0000000000C1AC05                 pop     r13
+  .text:0000000000C1AC07                 pop     rbp
+  .text:0000000000C1AC08                 jmp     sub_BE2050
+  .text:0000000000C1AC10                 mov     rdi, rbx
+  .text:0000000000C1AC13                 call    CBotManager_StartFrame
+  .text:0000000000C1AC18                 lea     rax, g_pGameRules
+  .text:0000000000C1AC1F                 mov     rax, [rax]
+  .text:0000000000C1AC22                 cmp     byte ptr [rax+107Dh], 0
+  .text:0000000000C1AC29                 jz      loc_C1AE68
+  .text:0000000000C1AC2F                 call    sub_BEDF40
+  .text:0000000000C1AC34                 test    eax, eax
+  .text:0000000000C1AC36                 setnz   sil
+  .text:0000000000C1AC3A                 cmp     sil, [rbx+2528h]
+  .text:0000000000C1AC41                 jz      short loc_C1AC56
+  .text:0000000000C1AC43                 mov     [rbx+2528h], sil
+  .text:0000000000C1AC4A                 mov     rdi, rbx
+  .text:0000000000C1AC4D                 movzx   esi, sil
+  .text:0000000000C1AC51                 call    sub_BE2050
+  .text:0000000000C1AC56                 mov     rax, cs:qword_28345F8
+  .text:0000000000C1AC5D                 cmp     dword ptr [rax+58h], 5
+  .text:0000000000C1AC61                 jz      loc_C1AD40
+  .text:0000000000C1AC67                 mov     rax, cs:qword_2834428
+  .text:0000000000C1AC6E                 cmp     byte ptr [rax+58h], 0
+  .text:0000000000C1AC72                 jnz     loc_C1ADA8
+  .text:0000000000C1AC78                 mov     rax, cs:qword_2834418
+  .text:0000000000C1AC7F                 cmp     byte ptr [rax+58h], 0
+  .text:0000000000C1AC83                 jnz     loc_C1AE08
+  .text:0000000000C1AC89                 lea     r12, [rbx+21C8h]
+  .text:0000000000C1AC90                 mov     rdi, r12
+  .text:0000000000C1AC93                 call    sub_17FD340
+  .text:0000000000C1AC98                 comiss  xmm0, dword ptr [rbx+21D4h]
+  .text:0000000000C1AC9F                 jp      loc_C1ABCE
+  .text:0000000000C1ACA5                 jz      short loc_C1ACAD
+  .text:0000000000C1ACA7                 jbe     loc_C1ABCE
+  .text:0000000000C1ACAD                 lea     rax, unk_2A66A50
+  .text:0000000000C1ACB4                 mov     rax, [rax+8]
+  .text:0000000000C1ACB8                 mov     eax, [rax+58h]
+  .text:0000000000C1ACBB                 test    eax, eax
+  .text:0000000000C1ACBD                 jnz     loc_C1ABCE
+  .text:0000000000C1ACC3                 lea     rax, g_pNavMesh
+  .text:0000000000C1ACCA                 mov     rdi, [rax]
+  .text:0000000000C1ACCD                 test    rdi, rdi
+  .text:0000000000C1ACD0                 jz      loc_C1ABCE
+  .text:0000000000C1ACD6                 lea     rdx, _ZTI9CSNavMesh; `typeinfo for'CSNavMesh
+  .text:0000000000C1ACDD                 xor     ecx, ecx
+  .text:0000000000C1ACDF                 lea     rsi, _ZTI8CNavMesh; `typeinfo for'CNavMesh
+  .text:0000000000C1ACE6                 call    sub_9F2CD0
+  .text:0000000000C1ACEB                 mov     r13, rax
+  .text:0000000000C1ACEE                 test    rax, rax
+  .text:0000000000C1ACF1                 jz      loc_C1ABCE
+  .text:0000000000C1ACF7                 mov     edx, [rax+460h]
+  .text:0000000000C1ACFD                 xor     ebx, ebx
+  .text:0000000000C1ACFF                 test    edx, edx
+  .text:0000000000C1AD01                 jle     short loc_C1AD20
+  .text:0000000000C1AD03                 mov     rax, [r13+468h]
+  .text:0000000000C1AD0A                 mov     rdi, [rax+rbx*8]
+  .text:0000000000C1AD0E                 test    byte ptr [rdi+41h], 1
+  .text:0000000000C1AD12                 jnz     loc_C1AE98
+  .text:0000000000C1AD18                 add     rbx, 1
+  .text:0000000000C1AD1C                 cmp     edx, ebx
+  .text:0000000000C1AD1E                 jg      short loc_C1AD0A
+  .text:0000000000C1AD20                 movss   xmm0, cs:dword_8CDB5C
+  .text:0000000000C1AD28                 add     rsp, 28h
+  .text:0000000000C1AD2C                 mov     rdi, r12
+  .text:0000000000C1AD2F                 pop     rbx
+  .text:0000000000C1AD30                 pop     r12
+  .text:0000000000C1AD32                 pop     r13
+  .text:0000000000C1AD34                 pop     rbp
+  .text:0000000000C1AD35                 jmp     sub_B5ADF0
+  .text:0000000000C1AD40                 mov     edx, [rbx+21A0h]
+  .text:0000000000C1AD46                 test    edx, edx
+  .text:0000000000C1AD48                 jle     loc_C1AC67
+  .text:0000000000C1AD4E                 lea     r12, [rbx+1AC4h]
+  .text:0000000000C1AD55                 xor     r13d, r13d
+  .text:0000000000C1AD58                 cmp     byte ptr [r12-4], 0
+  .text:0000000000C1AD5E                 jz      short loc_C1AD9A
+  .text:0000000000C1AD60                 mov     r8d, 0C8h
+  .text:0000000000C1AD66                 xor     ecx, ecx
+  .text:0000000000C1AD68                 mov     rdi, r12
+  .text:0000000000C1AD6B                 mov     edx, 0FFh
+  .text:0000000000C1AD70                 mov     esi, 1
+  .text:0000000000C1AD75                 call    sub_BED5B0
+  .text:0000000000C1AD7A                 add     r13d, 1
+  .text:0000000000C1AD7E                 add     r12, 240h
+  .text:0000000000C1AD85                 cmp     r13d, [rbx+21A0h]
+  .text:0000000000C1AD8C                 jge     loc_C1AC67
+  .text:0000000000C1AD92                 cmp     byte ptr [r12-4], 0
+  .text:0000000000C1AD98                 jnz     short loc_C1AD60
+  .text:0000000000C1AD9A                 xor     r8d, r8d
+  .text:0000000000C1AD9D                 mov     ecx, 64h ; 'd'
+  .text:0000000000C1ADA2                 jmp     short loc_C1AD68
+  .text:0000000000C1ADA8                 pxor    xmm0, xmm0
+  .text:0000000000C1ADAC                 movaps  [rbp+var_40], xmm0
+  .text:0000000000C1ADB0                 lea     rax, sub_BE26D0
+  .text:0000000000C1ADB7                 xor     edx, edx
+  .text:0000000000C1ADB9                 movq    xmm0, cs:off_251CE00
+  .text:0000000000C1ADC1                 lea     r12, [rbp+var_40]
+  .text:0000000000C1ADC5                 mov     rsi, r12
+  .text:0000000000C1ADC8                 pinsrq  xmm0, rax, 1
+  .text:0000000000C1ADCF                 lea     rax, g_pNavMesh
+  .text:0000000000C1ADD6                 movaps  [rbp+var_30], xmm0
+  .text:0000000000C1ADDA                 mov     rdi, [rax]
+  .text:0000000000C1ADDD                 call    sub_23809D0
+  .text:0000000000C1ADE2                 mov     rax, qword ptr [rbp+var_30]
+  .text:0000000000C1ADE6                 test    rax, rax
+  .text:0000000000C1ADE9                 jz      loc_C1AC78
+  .text:0000000000C1ADEF                 mov     edx, 3
+  .text:0000000000C1ADF4                 mov     rsi, r12
+  .text:0000000000C1ADF7                 mov     rdi, r12
+  .text:0000000000C1ADFA                 call    rax
+  .text:0000000000C1ADFC                 jmp     loc_C1AC78
+  .text:0000000000C1AE08                 pxor    xmm0, xmm0
+  .text:0000000000C1AE0C                 movaps  [rbp+var_40], xmm0
+  .text:0000000000C1AE10                 lea     rax, sub_BE2640
+  .text:0000000000C1AE17                 xor     edx, edx
+  .text:0000000000C1AE19                 movq    xmm0, cs:off_251CE08
+  .text:0000000000C1AE21                 lea     r12, [rbp+var_40]
+  .text:0000000000C1AE25                 mov     rsi, r12
+  .text:0000000000C1AE28                 pinsrq  xmm0, rax, 1
+  .text:0000000000C1AE2F                 lea     rax, g_pNavMesh
+  .text:0000000000C1AE36                 movaps  [rbp+var_30], xmm0
+  .text:0000000000C1AE3A                 mov     rdi, [rax]
+  .text:0000000000C1AE3D                 call    sub_23809D0
+  .text:0000000000C1AE42                 mov     rax, qword ptr [rbp+var_30]
+  .text:0000000000C1AE46                 test    rax, rax
+  .text:0000000000C1AE49                 jz      loc_C1AC89
+  .text:0000000000C1AE4F                 mov     edx, 3
+  .text:0000000000C1AE54                 mov     rsi, r12
+  .text:0000000000C1AE57                 mov     rdi, r12
+  .text:0000000000C1AE5A                 call    rax
+  .text:0000000000C1AE5C                 jmp     loc_C1AC89
+  .text:0000000000C1AE68                 call    CCSBotManager_StartFrame_ShouldUpdate
+  .text:0000000000C1AE6D                 test    al, al
+  .text:0000000000C1AE6F                 jz      loc_C1AC2F
+  .text:0000000000C1AE75                 lea     rax, g_pNavMesh
+  .text:0000000000C1AE7C                 cmp     qword ptr [rax], 0
+  .text:0000000000C1AE80                 jz      loc_C1AC2F
+  .text:0000000000C1AE86                 mov     rdi, rbx
+  .text:0000000000C1AE89                 call    sub_BEEF70
+  .text:0000000000C1AE8E                 jmp     loc_C1AC2F
+  .text:0000000000C1AE98                 mov     edx, 0FFFFFFFFh
+  .text:0000000000C1AE9D                 xor     esi, esi
+  .text:0000000000C1AE9F                 add     rbx, 1
+  .text:0000000000C1AEA3                 call    sub_D1DB40
+  .text:0000000000C1AEA8                 mov     edx, [r13+460h]
+  .text:0000000000C1AEAF                 cmp     edx, ebx
+  .text:0000000000C1AEB1                 jg      loc_C1AD03
+  .text:0000000000C1AEB7                 jmp     loc_C1AD20
+procedure: |-
+  void __fastcall sub_C1ABA0(__int64 a1)
+  {
+    unsigned __int8 v1; // si
+    __int64 v2; // r12
+    float v3; // xmm0_4
+    __int64 v4; // rax
+    __int64 v5; // r13
+    int v6; // edx
+    __int64 j; // rbx
+    __int64 v8; // rdi
+    __int64 v9; // r12
+    int v10; // r13d
+    __int64 v11; // r8
+    __int64 i; // rcx
+    __int128 v13; // [rsp+0h] [rbp-40h] BYREF
+    __m128i inserted; // [rsp+10h] [rbp-30h]
+
+    *(_DWORD *)(a1 + 8932) = 0;
+    if ( !(*(unsigned __int8 (__fastcall **)(__int64))(*(_QWORD *)g_engine + 88LL))(g_engine) )
+    {
+      if ( (unsigned __int8)CCSBotManager_StartFrame_ShouldUpdate() )
+      {
+        CBotManager_StartFrame(a1);
+        if ( !*(_BYTE *)(g_pGameRules + 4221) && (unsigned __int8)CCSBotManager_StartFrame_ShouldUpdate() && g_pNavMesh )
+          sub_BEEF70(a1);
+        v1 = (unsigned int)sub_BEDF40() != 0;
+        if ( v1 != *(_BYTE *)(a1 + 9512) )
+        {
+          *(_BYTE *)(a1 + 9512) = v1;
+          sub_BE2050(a1, v1);
+        }
+        if ( *(_DWORD *)(qword_28345F8 + 88) == 5 && *(int *)(a1 + 8608) > 0 )
+        {
+          v9 = a1 + 6852;
+          v10 = 0;
+          if ( !*(_BYTE *)(a1 + 6848) )
+            goto LABEL_26;
+  LABEL_23:
+          v11 = 200;
+          for ( i = 0; ; i = 100 )
+          {
+            sub_BED5B0(v9, 1, 255, i, v11);
+            ++v10;
+            v9 += 576;
+            if ( v10 >= *(_DWORD *)(a1 + 8608) )
+              break;
+            if ( *(_BYTE *)(v9 - 4) )
+              goto LABEL_23;
+  LABEL_26:
+            v11 = 0;
+          }
+        }
+        if ( *(_BYTE *)(qword_2834428 + 88) )
+        {
+          v13 = 0;
+          inserted = _mm_insert_epi64(_mm_loadl_epi64((const __m128i *)&off_251CE00), (signed __int64)sub_BE26D0, 1);
+          sub_23809D0(g_pNavMesh, &v13, 0);
+          if ( inserted.m128i_i64[0] )
+            ((void (__fastcall *)(__int128 *, __int128 *, __int64))inserted.m128i_i64[0])(&v13, &v13, 3);
+        }
+        if ( *(_BYTE *)(qword_2834418 + 88) )
+        {
+          v13 = 0;
+          inserted = _mm_insert_epi64(_mm_loadl_epi64((const __m128i *)&off_251CE08), (signed __int64)sub_BE2640, 1);
+          sub_23809D0(g_pNavMesh, &v13, 0);
+          if ( inserted.m128i_i64[0] )
+            ((void (__fastcall *)(__int128 *, __int128 *, __int64))inserted.m128i_i64[0])(&v13, &v13, 3);
+        }
+        v2 = a1 + 8648;
+        v3 = sub_17FD340(a1 + 8648);
+        if ( (v3 == *(float *)(a1 + 8660) || v3 > *(float *)(a1 + 8660)) && !*(_DWORD *)(qword_2A66A58 + 88) )
+        {
+          if ( g_pNavMesh )
+          {
+            v4 = sub_9F2CD0(g_pNavMesh, &`typeinfo for'CNavMesh, &`typeinfo for'CSNavMesh, 0);
+            v5 = v4;
+            if ( v4 )
+            {
+              v6 = *(_DWORD *)(v4 + 1120);
+              for ( j = 0; v6 > (int)j; v6 = *(_DWORD *)(v5 + 1120) )
+              {
+                while ( 1 )
+                {
+                  v8 = *(_QWORD *)(*(_QWORD *)(v5 + 1128) + 8 * j);
+                  if ( (*(_BYTE *)(v8 + 65) & 1) != 0 )
+                    break;
+                  if ( v6 <= (int)++j )
+                    goto LABEL_20;
+                }
+                ++j;
+                sub_D1DB40(v8, 0, 0xFFFFFFFFLL);
+              }
+  LABEL_20:
+              sub_B5ADF0(v2, 2.0);
+            }
+          }
+        }
+      }
+      else if ( *(_BYTE *)(a1 + 9512) )
+      {
+        *(_BYTE *)(a1 + 9512) = 0;
+        sub_BE2050(a1, 0);
+      }
+    }
+  }
