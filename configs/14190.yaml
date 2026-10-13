@@ -789,6 +789,28 @@ modules:
           - CHostStateMgr_RequestHS_PlayBroadcast.{platform}.yaml
         prerequisite:
           - find-CHostStateMgr_RequestHS_PlayBroadcast-noinline
+      - name: find-CHostStateRequest_DownloadAddons
+        optional_output:
+          - CHostStateRequest_DownloadAddons.{platform}.yaml
+        skip_if_exists:
+          - CHostStateMgr_RequestHS_DownloadAddons.{platform}.yaml
+        platform: linux
+      - name: find-CHostStateMgr_RequestHS_DownloadAddons-noinline
+        optional_output:
+          - CHostStateMgr_RequestHS_DownloadAddons.{platform}.yaml
+        expected_input:
+          - CHostStateMgr_vtable.{platform}.yaml
+        prerequisite:
+          - find-CHostStateRequest_DownloadAddons
+      - name: find-CHostStateMgr_RequestHS_DownloadAddons-inlined
+        expected_output:
+          - CHostStateMgr_RequestHS_DownloadAddons.{platform}.yaml
+        expected_input:
+          - CHostStateMgr_vtable.{platform}.yaml
+        skip_if_exists:
+          - CHostStateMgr_RequestHS_DownloadAddons.{platform}.yaml
+        prerequisite:
+          - find-CHostStateMgr_RequestHS_DownloadAddons-noinline
       - name: find-CHostStateMgr_RequestHS_Quit
         expected_output:
           - CHostStateMgr_RequestHS_Quit.{platform}.yaml
@@ -4995,6 +5017,10 @@ modules:
         category: vfunc
         alias:
           - CHostStateMgr::RequestHS_PlayBroadcast
+      - name: CHostStateMgr_RequestHS_DownloadAddons
+        category: vfunc
+        alias:
+          - CHostStateMgr::RequestHS_DownloadAddons
       - name: g_pNetworkService
         category: gv
       - name: g_pNetworkClientService
