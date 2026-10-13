@@ -9,6 +9,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from binsync_projection import build_source_projection
+from tests.optional_dependencies import requires_binsync
 
 SCRIPT = Path("push_binsync_symbols.py")
 SPEC = importlib.util.spec_from_file_location("push_binsync_symbols", SCRIPT)
@@ -60,6 +61,7 @@ def _build_min_elf() -> bytes:
     return bytes(ehdr) + bytes(phdr)
 
 
+@requires_binsync
 class TestCollectManifestSymbols(unittest.TestCase):
     def _make_config(self, root: Path, gamever: str = "14174") -> Path:
         module = root / "bin" / gamever / "engine"
@@ -213,6 +215,7 @@ class TestCollectManifestSymbols(unittest.TestCase):
         self.assertEqual(2, push_binsync_symbols.main(["14174"]))
 
 
+@requires_binsync
 class TestBootstrapLocalInit(unittest.TestCase):
     """--bootstrap-local-init must initialize locally and never touch any remote."""
 
