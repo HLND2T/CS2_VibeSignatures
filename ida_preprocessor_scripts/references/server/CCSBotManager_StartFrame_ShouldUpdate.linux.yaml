@@ -19,7 +19,7 @@ disasm_code: |-
   .text:0000000000BED33D                 mov     esi, 2237A36Dh
   .text:0000000000BED342                 mov     rdi, rax
   .text:0000000000BED345                 mov     rax, [rax]
-  .text:0000000000BED348                 call    qword ptr [rax+20h]
+  .text:0000000000BED348                 call    qword ptr [rax+20h] ; 0x20 = 32LL = ICommandLine_HasParm
   .text:0000000000BED34B                 test    al, al
   .text:0000000000BED34D                 jnz     short loc_BED333
   .text:0000000000BED34F                 lea     rax, g_pGameRules
@@ -45,7 +45,7 @@ procedure: |-
     if ( !v1 )
     {
       v3 = sub_9FD2F0();
-      result = (*(__int64 (__fastcall **)(__int64, __int64))(*(_QWORD *)v3 + 32LL))(v3, 574071661);
+      result = (*(__int64 (__fastcall **)(__int64, __int64))(*(_QWORD *)v3 + 32LL))(v3, 574071661); // 0x20 = 32LL = ICommandLine_HasParm
       if ( !(_BYTE)result )
       {
         result = 1;

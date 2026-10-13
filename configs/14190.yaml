@@ -9020,9 +9020,11 @@ modules:
           - CCSBotManager_StartFrame.{platform}.yaml
         skip_if_exists:
           - ICommandLine_CheckParm.{platform}.yaml
-      - name: find-ICommandLine_CheckParm
+          - ICommandLine_HasParm.{platform}.yaml
+      - name: find-CCSBotManager_StartFrame-decompiles
         expected_output:
           - ICommandLine_CheckParm.{platform}.yaml
+          - ICommandLine_HasParm.{platform}.yaml
         expected_input:
           - CCSBotManager_StartFrame.{platform}.yaml
         optional_input:
@@ -12565,6 +12567,10 @@ modules:
         category: vfunc
         alias:
           - ICommandLine::CheckParm
+      - name: ICommandLine_HasParm
+        category: vfunc
+        alias:
+          - ICommandLine::HasParm
       - name: CCSBotManager_BotPlaceCommand
         category: func
         alias:
@@ -14857,6 +14863,12 @@ modules:
         expected_input:
           - CCommandLine_vtable.{platform}.yaml
           - ../server/ICommandLine_CheckParm.{platform}.yaml
+      - name: find-CCommandLine_HasParm
+        expected_output:
+          - CCommandLine_HasParm.{platform}.yaml
+        expected_input:
+          - CCommandLine_vtable.{platform}.yaml
+          - ../server/ICommandLine_HasParm.{platform}.yaml
       - name: find-CCommandLine_CreateCmdLinePrependAppName
         expected_output:
           - CCommandLine_CreateCmdLinePrependAppName.{platform}.yaml
@@ -14897,6 +14909,10 @@ modules:
         category: vfunc
         alias:
           - CCommandLine::CheckParm
+      - name: CCommandLine_HasParm
+        category: vfunc
+        alias:
+          - CCommandLine::HasParm
       - name: CCommandLine_CreateCmdLinePrependAppName
         category: vfunc
         alias:

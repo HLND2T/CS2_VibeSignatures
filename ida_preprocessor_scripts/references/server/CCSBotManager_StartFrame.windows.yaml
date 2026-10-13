@@ -25,7 +25,7 @@ disasm_code: |-
   .text:00000001802DFAB6                 call    cs:CommandLine
   .text:00000001802DFABC                 mov     edx, 2237A36Dh
   .text:00000001802DFAC1                 mov     rcx, [rax]
-  .text:00000001802DFAC4                 mov     r8, [rcx+20h]
+  .text:00000001802DFAC4                 mov     r8, [rcx+20h] ; 0x20 = ICommandLine_HasParm virtual slot
   .text:00000001802DFAC8                 mov     rcx, rax
   .text:00000001802DFACB                 call    r8
   .text:00000001802DFACE                 test    al, al
@@ -297,7 +297,7 @@ procedure: |-
       result = (float *)(*(__int64 (__fastcall **)(__int64, __int64, _QWORD))(*(_QWORD *)v4 + 24LL))(v4, 3308470460LL, 0);// 0x18 = 24LL = ICommandLine_CheckParm
       if ( result
         || (v5 = CommandLine(),
-            !(*(unsigned __int8 (__fastcall **)(__int64, __int64))(*(_QWORD *)v5 + 32LL))(v5, 574071661))
+            !(*(unsigned __int8 (__fastcall **)(__int64, __int64))(*(_QWORD *)v5 + 32LL))(v5, 574071661)) // 0x20 = 32LL = ICommandLine_HasParm
         && (result = (float *)g_pGameRules) != nullptr
         && *(_BYTE *)(g_pGameRules + 4056) )
       {

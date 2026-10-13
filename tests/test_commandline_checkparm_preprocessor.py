@@ -9,7 +9,9 @@ from tests.ida_preprocessor_test_support import load_module
 
 class TestCheckParmPredecessorSelection(unittest.IsolatedAsyncioTestCase):
     async def test_selects_current_helper_only_for_matching_platform(self):
-        module = load_module("ida_preprocessor_scripts/find-ICommandLine_CheckParm.py", "find_checkparm_selection")
+        module = load_module(
+            "ida_preprocessor_scripts/find-CCSBotManager_StartFrame-decompiles.py", "find_checkparm_selection"
+        )
         with tempfile.TemporaryDirectory() as directory:
             artifact_dir = Path(directory) / "server"
             artifact_dir.mkdir()
@@ -25,7 +27,7 @@ class TestCheckParmPredecessorSelection(unittest.IsolatedAsyncioTestCase):
                         self.assertTrue(
                             await module.preprocess_skill(
                                 session=object(),
-                                skill_name="find-ICommandLine_CheckParm",
+                                skill_name="find-CCSBotManager_StartFrame-decompiles",
                                 expected_outputs=[f"ICommandLine_CheckParm.{platform}.yaml"],
                                 old_yaml_map={},
                                 new_binary_dir=str(artifact_dir),
@@ -36,8 +38,13 @@ class TestCheckParmPredecessorSelection(unittest.IsolatedAsyncioTestCase):
                     specs = common.await_args.kwargs["llm_decompile_specs"]
                     normalized = _build_llm_decompile_specs_map(specs)
                     self.assertIsNotNone(normalized)
-                    reference = Path("ida_preprocessor_scripts") / specs[0]["reference_yaml_paths"][0]
-                    self.assertIn(f"func_name: {predecessor}\n", reference.read_text(encoding="utf-8"))
+                    self.assertEqual(
+                        {"ICommandLine_CheckParm", "ICommandLine_HasParm"},
+                        {spec["symbol_name"] for spec in specs},
+                    )
+                    for spec in specs:
+                        reference = Path("ida_preprocessor_scripts") / spec["reference_yaml_paths"][0]
+                        self.assertIn(f"func_name: {predecessor}\n", reference.read_text(encoding="utf-8"))
                     self.assertTrue(
                         _validate_llm_decompile_dependency_policy(
                             normalized,

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Identify the ICommandLine::CheckParm virtual dispatch in CCSBotManager::StartFrame."""
+"""Identify command-line virtual calls in the inline/de-inlined StartFrame gate."""
 
 from pathlib import Path
 
 from ida_analyze_util import preprocess_common_skill
 
-TARGET_FUNCTION_NAMES = ["ICommandLine_CheckParm"]
+TARGET_FUNCTION_NAMES = ["ICommandLine_CheckParm", "ICommandLine_HasParm"]
 LLM_DECOMPILE = [
     {
         "symbol_name": "ICommandLine_CheckParm",
@@ -14,10 +14,18 @@ LLM_DECOMPILE = [
         "expected_result_sections": ["found_vcall"],
         "dependency_policy": {"CCSBotManager_StartFrame.{platform}.yaml": "required"},
     },
+    {
+        "symbol_name": "ICommandLine_HasParm",
+        "prompt_path": "prompt/call_llm_decompile.md",
+        "reference_yaml_paths": ["references/server/CCSBotManager_StartFrame.windows.yaml"],
+        "expected_result_sections": ["found_vcall"],
+        "dependency_policy": {"CCSBotManager_StartFrame.{platform}.yaml": "required"},
+    },
 ]
-FUNC_VTABLE_RELATIONS = [("ICommandLine_CheckParm", "ICommandLine")]
+FUNC_VTABLE_RELATIONS = [("ICommandLine_CheckParm", "ICommandLine"), ("ICommandLine_HasParm", "ICommandLine")]
 GENERATE_YAML_DESIRED_FIELDS = [
     ("ICommandLine_CheckParm", ["func_name", "vtable_name", "vfunc_offset", "vfunc_index", "vfunc_sig"]),
+    ("ICommandLine_HasParm", ["func_name", "vtable_name", "vfunc_offset", "vfunc_index", "vfunc_sig"]),
 ]
 
 
@@ -39,12 +47,13 @@ async def preprocess_skill(
     if helper.is_file():
         llm_specs = [
             {
-                "symbol_name": "ICommandLine_CheckParm",
+                "symbol_name": name,
                 "prompt_path": "prompt/call_llm_decompile.md",
                 "reference_yaml_paths": ["references/server/CCSBotManager_StartFrame_ShouldUpdate.linux.yaml"],
                 "expected_result_sections": ["found_vcall"],
                 "dependency_policy": {"CCSBotManager_StartFrame_ShouldUpdate.{platform}.yaml": "optional"},
-            },
+            }
+            for name in TARGET_FUNCTION_NAMES
         ]
     return await preprocess_common_skill(
         session=session,
