@@ -1163,6 +1163,14 @@ modules:
       - name: find-CNetworkGameServerBase_AsyncUnloadSpawnGroupInternal
         expected_output:
           - CNetworkGameServerBase_AsyncUnloadSpawnGroupInternal.{platform}.yaml
+      - name: find-CNetworkGameClientBase_LinkClasses
+        expected_output:
+          - CNetworkGameClientBase_LinkClasses.{platform}.yaml
+      - name: find-ICommandLine_ParmValue4
+        expected_output:
+          - ICommandLine_ParmValue4.{platform}.yaml
+        expected_input:
+          - CNetworkGameClientBase_LinkClasses.{platform}.yaml
       - name: find-CNetworkGameClientBase_AsyncUnloadSpawnGroup_Internal
         expected_output:
           - CNetworkGameClientBase_AsyncUnloadSpawnGroup_Internal.{platform}.yaml
@@ -3185,6 +3193,14 @@ modules:
         category: func
         alias:
           - CNetworkGameServerBase::AsyncUnloadSpawnGroupInternal
+      - name: CNetworkGameClientBase_LinkClasses
+        category: func
+        alias:
+          - CNetworkGameClientBase::LinkClasses
+      - name: ICommandLine_ParmValue4
+        category: vfunc
+        alias:
+          - ICommandLine::ParmValue4
       - name: CNetworkGameClientBase_AsyncUnloadSpawnGroup_Internal
         category: func
         alias:
@@ -14777,6 +14793,12 @@ modules:
       - name: find-CCommandLine_vtable
         expected_output:
           - CCommandLine_vtable.{platform}.yaml
+      - name: find-CCommandLine_ParmValue4
+        expected_output:
+          - CCommandLine_ParmValue4.{platform}.yaml
+        expected_input:
+          - ../engine/ICommandLine_ParmValue4.{platform}.yaml
+          - CCommandLine_vtable.{platform}.yaml
       - name: find-CCommandLine_CreateCmdLinePrependAppName
         expected_output:
           - CCommandLine_CreateCmdLinePrependAppName.{platform}.yaml
@@ -14813,6 +14835,10 @@ modules:
     symbols:
       - name: CCommandLine_vtable
         category: vtable
+      - name: CCommandLine_ParmValue4
+        category: vfunc
+        alias:
+          - CCommandLine::ParmValue4
       - name: CCommandLine_CreateCmdLinePrependAppName
         category: vfunc
         alias:
