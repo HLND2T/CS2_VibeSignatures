@@ -24,16 +24,14 @@ FUNC_XREFS_LINUX = [
         "func_name": "CServerSideClientBase_SendNetMessage",
         "xref_strings": ["NetMessage %s"],
         "xref_gvs": [],
-        "xref_signatures": [],
+        "xref_signatures": [
+            "55 48 89 E5 41 57 41 56 41 55 41 54 53 48 83 EC ?? 48 83 7F ?? ?? 0F 84 ?? ?? ?? ??",
+        ],
         "xref_funcs": [],
         "exclude_funcs": [],
         "exclude_strings": [],
         "exclude_gvs": [],
-        "exclude_signatures": [
-            "55 48 8D 05 1F C5 D3 FF",
-            "55 48 89 E5 41 57 49 89 F7 BE FF FF FF FF",
-            "55 48 89 E5 41 57 41 56 41 55 41 54 49 89 F4",
-        ],
+        "exclude_signatures": [],
     }
 ]
 
