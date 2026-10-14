@@ -6,8 +6,8 @@ from unittest.mock import AsyncMock, patch
 
 
 spec = importlib.util.spec_from_file_location(
-    "parmvalue4_finder",
-    Path(__file__).resolve().parents[1] / "ida_preprocessor_scripts/find-ICommandLine_ParmValue4.py",
+    "parmvalue_char_finder",
+    Path(__file__).resolve().parents[1] / "ida_preprocessor_scripts/find-ICommandLine_ParmValue_char.py",
 )
 finder = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(finder)
@@ -17,7 +17,7 @@ def detail(address, procedure):
     return {"func_va": address, "procedure": procedure, "disasm_code": "call [rax+40h]"}
 
 
-class TestParmValue4Chain(unittest.IsolatedAsyncioTestCase):
+class TestParmValue_charChain(unittest.IsolatedAsyncioTestCase):
     async def test_inline_owner_does_not_walk_unrelated_callees(self):
         root = detail("0x1000", "const char *value = call(commandline, 3223879006, empty_string)")
         session = AsyncMock()

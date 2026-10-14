@@ -3,10 +3,10 @@
 
 from ida_analyze_util import preprocess_common_skill
 
-INHERIT_VFUNCS = [("CCommandLine_ParmValue4", "CCommandLine", "../engine/ICommandLine_ParmValue4", True)]
+INHERIT_VFUNCS = [("CCommandLine_ParmValue_char", "CCommandLine", "../engine/ICommandLine_ParmValue_char", True)]
 GENERATE_YAML_DESIRED_FIELDS = [
     (
-        "CCommandLine_ParmValue4",
+        "CCommandLine_ParmValue_char",
         ["func_name", "func_va", "func_rva", "func_size", "func_sig", "vtable_name", "vfunc_offset", "vfunc_index"],
     ),
 ]

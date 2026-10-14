@@ -35,10 +35,10 @@ disasm_code: |-
   .text:0000000180086956                 lea     r8, unk_180531D7F
   .text:000000018008695D                 mov     edx, 0C0287D5Eh
   .text:0000000180086962                 mov     rcx, [rax]
-  .text:0000000180086965                 mov     r9, [rcx+58h]  ; 0x58 = ICommandLine_ParmValue4
+  .text:0000000180086965                 mov     r9, [rcx+58h]  ; 0x58 = ICommandLine_ParmValue_char
   .text:0000000180086969                 mov     rcx, rax
-  .text:000000018008696C                 ; 0x58 = 88LL = ICommandLine_ParmValue4
-  .text:000000018008696C                 call    r9; 0x58 = 88LL = ICommandLine_ParmValue4
+  .text:000000018008696C                 ; 0x58 = 88LL = ICommandLine_ParmValue_char
+  .text:000000018008696C                 call    r9; 0x58 = 88LL = ICommandLine_ParmValue_char
   .text:000000018008696F                 mov     rdx, rax
   .text:0000000180086972                 mov     [rbp+90h+arg_18], r12
   .text:0000000180086979                 lea     rcx, [rbp+90h+arg_18]
@@ -528,7 +528,7 @@ procedure: |-
     v5 = off_18061F1A0 && (*(unsigned __int8 (__fastcall **)(__int64 *))(*off_18061F1A0 + 88))(v3);
     v70 = v5;
     v6 = CommandLine(v3);
-    v7 = (const char *)(*(__int64 (__fastcall **)(__int64, __int64, void *))(*(_QWORD *)v6 + 88LL))(// 0x58 = 88LL = ICommandLine_ParmValue4
+    v7 = (const char *)(*(__int64 (__fastcall **)(__int64, __int64, void *))(*(_QWORD *)v6 + 88LL))(// 0x58 = 88LL = ICommandLine_ParmValue_char
                          v6,
                          3223879006LL,
                          &unk_180531D7F);
