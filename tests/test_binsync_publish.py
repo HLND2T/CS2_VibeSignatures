@@ -9,8 +9,10 @@ from unittest.mock import patch
 import binsync_candidate
 import binsync_publish
 from tests import test_binsync_candidate as candidate_tests
+from tests.optional_dependencies import requires_binsync
 
 
+@requires_binsync
 class BinSyncPublishTests(unittest.TestCase):
     def _candidate(self, temporary_root: Path) -> tuple[Path, Path, dict]:
         fixture = candidate_tests.BinSyncCandidateTests()

@@ -669,6 +669,186 @@ modules:
       - name: find-CHostStateMgr_vtable
         expected_output:
           - CHostStateMgr_vtable.{platform}.yaml
+      - name: find-CHostStateRequest_Idle
+        optional_output:
+          - CHostStateRequest_Idle.{platform}.yaml
+        skip_if_exists:
+          - CHostStateMgr_RequestHS_Idle.{platform}.yaml
+        platform: linux
+      - name: find-CHostStateMgr_RequestHS_Idle-noinline
+        optional_output:
+          - CHostStateMgr_RequestHS_Idle.{platform}.yaml
+        expected_input:
+          - CHostStateMgr_vtable.{platform}.yaml
+        prerequisite:
+          - find-CHostStateRequest_Idle
+      - name: find-CHostStateMgr_RequestHS_Idle-inlined
+        expected_output:
+          - CHostStateMgr_RequestHS_Idle.{platform}.yaml
+        expected_input:
+          - CHostStateMgr_vtable.{platform}.yaml
+        skip_if_exists:
+          - CHostStateMgr_RequestHS_Idle.{platform}.yaml
+        prerequisite:
+          - find-CHostStateMgr_RequestHS_Idle-noinline
+      - name: find-CHostStateRequest_ChangelevelReconnect
+        optional_output:
+          - CHostStateRequest_ChangelevelReconnect.{platform}.yaml
+        skip_if_exists:
+          - CHostStateMgr_RequestHS_ChangelevelReconnect.{platform}.yaml
+        platform: linux
+      - name: find-CHostStateMgr_RequestHS_ChangelevelReconnect-noinline
+        optional_output:
+          - CHostStateMgr_RequestHS_ChangelevelReconnect.{platform}.yaml
+        expected_input:
+          - CHostStateMgr_vtable.{platform}.yaml
+        prerequisite:
+          - find-CHostStateRequest_ChangelevelReconnect
+      - name: find-CHostStateMgr_RequestHS_ChangelevelReconnect-inlined
+        expected_output:
+          - CHostStateMgr_RequestHS_ChangelevelReconnect.{platform}.yaml
+        expected_input:
+          - CHostStateMgr_vtable.{platform}.yaml
+        skip_if_exists:
+          - CHostStateMgr_RequestHS_ChangelevelReconnect.{platform}.yaml
+        prerequisite:
+          - find-CHostStateMgr_RequestHS_ChangelevelReconnect-noinline
+      - name: find-CHostStateRequest_LoadSpawnGroup
+        expected_output:
+          - CHostStateRequest_LoadSpawnGroup.{platform}.yaml
+      - name: find-CHostStateMgr_RequestHS_LoadSpawnGroup-noinline
+        expected_output:
+          - CHostStateMgr_RequestHS_LoadSpawnGroup.{platform}.yaml
+        expected_input:
+          - CHostStateMgr_vtable.{platform}.yaml
+        prerequisite:
+          - find-CHostStateRequest_LoadSpawnGroup
+      - name: find-CHostStateRequest_LoadSaveGame
+        optional_output:
+          - CHostStateRequest_LoadSaveGame.{platform}.yaml
+        skip_if_exists:
+          - CHostStateMgr_RequestHS_LoadSaveGame.{platform}.yaml
+        platform: linux
+      - name: find-CHostStateMgr_RequestHS_LoadSaveGame-noinline
+        optional_output:
+          - CHostStateMgr_RequestHS_LoadSaveGame.{platform}.yaml
+        expected_input:
+          - CHostStateMgr_vtable.{platform}.yaml
+        prerequisite:
+          - find-CHostStateRequest_LoadSaveGame
+      - name: find-CHostStateMgr_RequestHS_LoadSaveGame-inlined
+        expected_output:
+          - CHostStateMgr_RequestHS_LoadSaveGame.{platform}.yaml
+        expected_input:
+          - CHostStateMgr_vtable.{platform}.yaml
+        skip_if_exists:
+          - CHostStateMgr_RequestHS_LoadSaveGame.{platform}.yaml
+        prerequisite:
+          - find-CHostStateMgr_RequestHS_LoadSaveGame-noinline
+      - name: find-CHostStateRequest_PlayDemo
+        optional_output:
+          - CHostStateRequest_PlayDemo.{platform}.yaml
+        skip_if_exists:
+          - CHostStateMgr_RequestHS_PlayDemo.{platform}.yaml
+        platform: linux
+      - name: find-CHostStateMgr_RequestHS_PlayDemo-noinline
+        optional_output:
+          - CHostStateMgr_RequestHS_PlayDemo.{platform}.yaml
+        expected_input:
+          - CHostStateMgr_vtable.{platform}.yaml
+        prerequisite:
+          - find-CHostStateRequest_PlayDemo
+      - name: find-CHostStateMgr_RequestHS_PlayDemo-inlined
+        expected_output:
+          - CHostStateMgr_RequestHS_PlayDemo.{platform}.yaml
+        expected_input:
+          - CHostStateMgr_vtable.{platform}.yaml
+        skip_if_exists:
+          - CHostStateMgr_RequestHS_PlayDemo.{platform}.yaml
+        prerequisite:
+          - find-CHostStateMgr_RequestHS_PlayDemo-noinline
+      - name: find-CHostStateRequest_PlayBroadcast
+        optional_output:
+          - CHostStateRequest_PlayBroadcast.{platform}.yaml
+        skip_if_exists:
+          - CHostStateMgr_RequestHS_PlayBroadcast.{platform}.yaml
+        platform: linux
+      - name: find-CHostStateMgr_RequestHS_PlayBroadcast-noinline
+        optional_output:
+          - CHostStateMgr_RequestHS_PlayBroadcast.{platform}.yaml
+        expected_input:
+          - CHostStateMgr_vtable.{platform}.yaml
+        prerequisite:
+          - find-CHostStateRequest_PlayBroadcast
+      - name: find-CHostStateMgr_RequestHS_PlayBroadcast-inlined
+        expected_output:
+          - CHostStateMgr_RequestHS_PlayBroadcast.{platform}.yaml
+        expected_input:
+          - CHostStateMgr_vtable.{platform}.yaml
+        skip_if_exists:
+          - CHostStateMgr_RequestHS_PlayBroadcast.{platform}.yaml
+        prerequisite:
+          - find-CHostStateMgr_RequestHS_PlayBroadcast-noinline
+      - name: find-CHostStateRequest_DownloadAddons
+        optional_output:
+          - CHostStateRequest_DownloadAddons.{platform}.yaml
+        skip_if_exists:
+          - CHostStateMgr_RequestHS_DownloadAddons.{platform}.yaml
+        platform: linux
+      - name: find-CHostStateMgr_RequestHS_DownloadAddons-noinline
+        optional_output:
+          - CHostStateMgr_RequestHS_DownloadAddons.{platform}.yaml
+        expected_input:
+          - CHostStateMgr_vtable.{platform}.yaml
+        prerequisite:
+          - find-CHostStateRequest_DownloadAddons
+      - name: find-CHostStateMgr_RequestHS_DownloadAddons-inlined
+        expected_output:
+          - CHostStateMgr_RequestHS_DownloadAddons.{platform}.yaml
+        expected_input:
+          - CHostStateMgr_vtable.{platform}.yaml
+        skip_if_exists:
+          - CHostStateMgr_RequestHS_DownloadAddons.{platform}.yaml
+        prerequisite:
+          - find-CHostStateMgr_RequestHS_DownloadAddons-noinline
+      - name: find-CHostStateRequest_SourceTVRelay
+        optional_output:
+          - CHostStateRequest_SourceTVRelay.{platform}.yaml
+        skip_if_exists:
+          - CHostStateMgr_RequestHS_SourceTVRelay.{platform}.yaml
+        platform: linux
+      - name: find-CHostStateMgr_RequestHS_SourceTVRelay-noinline
+        optional_output:
+          - CHostStateMgr_RequestHS_SourceTVRelay.{platform}.yaml
+        expected_input:
+          - CHostStateMgr_vtable.{platform}.yaml
+        prerequisite:
+          - find-CHostStateRequest_SourceTVRelay
+      - name: find-CHostStateMgr_RequestHS_SourceTVRelay-inlined
+        expected_output:
+          - CHostStateMgr_RequestHS_SourceTVRelay.{platform}.yaml
+        expected_input:
+          - CHostStateMgr_vtable.{platform}.yaml
+        skip_if_exists:
+          - CHostStateMgr_RequestHS_SourceTVRelay.{platform}.yaml
+        prerequisite:
+          - find-CHostStateMgr_RequestHS_SourceTVRelay-noinline
+      - name: find-CHostStateMgr_RequestHS_ReloadLastSaveGame-noinline
+        optional_output:
+          - CHostStateMgr_RequestHS_ReloadLastSaveGame.{platform}.yaml
+        expected_input:
+          - CHostStateMgr_vtable.{platform}.yaml
+        prerequisite:
+          - find-CHostStateRequest_LoadSaveGame
+      - name: find-CHostStateMgr_RequestHS_ReloadLastSaveGame-inlined
+        expected_output:
+          - CHostStateMgr_RequestHS_ReloadLastSaveGame.{platform}.yaml
+        expected_input:
+          - CHostStateMgr_vtable.{platform}.yaml
+        skip_if_exists:
+          - CHostStateMgr_RequestHS_ReloadLastSaveGame.{platform}.yaml
+        prerequisite:
+          - find-CHostStateMgr_RequestHS_ReloadLastSaveGame-noinline
       - name: find-CHostStateMgr_RequestHS_Quit
         expected_output:
           - CHostStateMgr_RequestHS_Quit.{platform}.yaml
@@ -2611,6 +2791,35 @@ modules:
           - CServerSideClientBase_SpawnPlayer.{platform}.yaml
         expected_input:
           - CServerSideClientBase_vtable.{platform}.yaml
+      - name: find-CServerSideClientBase_SendSignonData
+        expected_output:
+          - CServerSideClientBase_SendSignonData.{platform}.yaml
+        expected_input:
+          - CServerSideClientBase_vtable.{platform}.yaml
+      - name: find-CServerSideClientBase_ProcessSetConVar_Internal
+        expected_output:
+          - CServerSideClientBase_ProcessSetConVar_Internal.{platform}.yaml
+      - name: find-CServerSideClientBase_ProcessSetConVar
+        expected_output:
+          - CServerSideClientBase_ProcessSetConVar.{platform}.yaml
+        expected_input:
+          - CServerSideClientBase_ProcessSetConVar_Internal.{platform}.yaml
+          - CServerSideClientBase_vtable.{platform}.yaml
+      - name: find-CServerSideClientBase_ShouldSendMessages
+        expected_output:
+          - CServerSideClientBase_ShouldSendMessages.{platform}.yaml
+        expected_input:
+          - CServerSideClientBase_vtable.{platform}.yaml
+      - name: find-CServerSideClientBase_ProcessChangeSplitscreenUser
+        expected_output:
+          - CServerSideClientBase_ProcessChangeSplitscreenUser.{platform}.yaml
+        expected_input:
+          - CServerSideClientBase_vtable.{platform}.yaml
+      - name: find-CServerSideClientBase_UpdateUserSettings
+        expected_output:
+          - CServerSideClientBase_UpdateUserSettings.{platform}.yaml
+        expected_input:
+          - CServerSideClientBase_vtable.{platform}.yaml
       - name: find-CServerSideClientBase_SendServerInfo
         expected_output:
           - CServerSideClientBase_SendServerInfo.{platform}.yaml
@@ -4512,6 +4721,30 @@ modules:
         category: vfunc
         alias:
           - CServerSideClientBase::SpawnPlayer
+      - name: CServerSideClientBase_SendSignonData
+        category: vfunc
+        alias:
+          - CServerSideClientBase::SendSignonData
+      - name: CServerSideClientBase_ProcessSetConVar_Internal
+        category: func
+        alias:
+          - CServerSideClientBase::ProcessSetConVarInternal
+      - name: CServerSideClientBase_ProcessSetConVar
+        category: vfunc
+        alias:
+          - CServerSideClientBase::ProcessSetConVar
+      - name: CServerSideClientBase_ShouldSendMessages
+        category: vfunc
+        alias:
+          - CServerSideClientBase::ShouldSendMessages
+      - name: CServerSideClientBase_ProcessChangeSplitscreenUser
+        category: vfunc
+        alias:
+          - CServerSideClientBase::ProcessChangeSplitscreenUser
+      - name: CServerSideClientBase_UpdateUserSettings
+        category: vfunc
+        alias:
+          - CServerSideClientBase::UpdateUserSettings
       - name: CServerSideClientBase_SendServerInfo
         category: vfunc
         alias:
@@ -4860,6 +5093,42 @@ modules:
         category: vfunc
         alias:
           - CHostStateMgr::RequestHS_Quit
+      - name: CHostStateMgr_RequestHS_Idle
+        category: vfunc
+        alias:
+          - CHostStateMgr::RequestHS_Idle
+      - name: CHostStateMgr_RequestHS_ChangelevelReconnect
+        category: vfunc
+        alias:
+          - CHostStateMgr::RequestHS_ChangelevelReconnect
+      - name: CHostStateMgr_RequestHS_LoadSpawnGroup
+        category: vfunc
+        alias:
+          - CHostStateMgr::RequestHS_LoadSpawnGroup
+      - name: CHostStateMgr_RequestHS_LoadSaveGame
+        category: vfunc
+        alias:
+          - CHostStateMgr::RequestHS_LoadSaveGame
+      - name: CHostStateMgr_RequestHS_PlayDemo
+        category: vfunc
+        alias:
+          - CHostStateMgr::RequestHS_PlayDemo
+      - name: CHostStateMgr_RequestHS_PlayBroadcast
+        category: vfunc
+        alias:
+          - CHostStateMgr::RequestHS_PlayBroadcast
+      - name: CHostStateMgr_RequestHS_DownloadAddons
+        category: vfunc
+        alias:
+          - CHostStateMgr::RequestHS_DownloadAddons
+      - name: CHostStateMgr_RequestHS_SourceTVRelay
+        category: vfunc
+        alias:
+          - CHostStateMgr::RequestHS_SourceTVRelay
+      - name: CHostStateMgr_RequestHS_ReloadLastSaveGame
+        category: vfunc
+        alias:
+          - CHostStateMgr::RequestHS_ReloadLastSaveGame
       - name: g_pNetworkService
         category: gv
       - name: g_pNetworkClientService
