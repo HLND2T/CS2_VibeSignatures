@@ -2786,6 +2786,11 @@ modules:
       - name: find-CServerSideClientBase_vtable
         expected_output:
           - CServerSideClientBase_vtable.{platform}.yaml
+      - name: find-CServerSideClientBase_PerformDisconnection
+        expected_output:
+          - CServerSideClientBase_PerformDisconnection.{platform}.yaml
+        expected_input:
+          - CServerSideClientBase_vtable.{platform}.yaml
       - name: find-CServerSideClientBase_ProcessSignonStateMsg
         expected_output:
           - CServerSideClientBase_ProcessSignonStateMsg.{platform}.yaml
@@ -4727,6 +4732,10 @@ modules:
           - CHLTVBroadcast::RecordSnapshot
       - name: CServerSideClientBase_vtable
         category: vtable
+      - name: CServerSideClientBase_PerformDisconnection
+        category: vfunc
+        alias:
+          - CServerSideClientBase::PerformDisconnection
       - name: CServerSideClientBase_ProcessSignonStateMsg
         category: vfunc
         alias:
