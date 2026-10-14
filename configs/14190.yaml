@@ -14949,6 +14949,27 @@ modules:
           - CCvar_RegisterConCommand.{platform}.yaml
         expected_input:
           - CCvar_vtable.{platform}.yaml
+      - name: find-CCvar_InitialiseConVarValue
+        optional_output:
+          - CCvar_InitialiseConVarValue.{platform}.yaml
+        skip_if_exists:
+          - CCvar_LockConVarValueInitialisation.{platform}.yaml
+      - name: find-CCvar_LockConVarValueInitialisation-noinline
+        optional_output:
+          - CCvar_LockConVarValueInitialisation.{platform}.yaml
+        expected_input:
+          - CCvar_vtable.{platform}.yaml
+        prerequisite:
+          - find-CCvar_InitialiseConVarValue
+      - name: find-CCvar_LockConVarValueInitialisation
+        expected_output:
+          - CCvar_LockConVarValueInitialisation.{platform}.yaml
+        expected_input:
+          - CCvar_vtable.{platform}.yaml
+        skip_if_exists:
+          - CCvar_LockConVarValueInitialisation.{platform}.yaml
+        prerequisite:
+          - find-CCvar_LockConVarValueInitialisation-noinline
       - name: find-CKeyValuesSystem_vtable
         expected_output:
           - CKeyValuesSystem_vtable.{platform}.yaml
@@ -14981,6 +15002,10 @@ modules:
         category: vfunc
         alias:
           - CCvar::RegisterConCommand
+      - name: CCvar_LockConVarValueInitialisation
+        category: vfunc
+        alias:
+          - CCvar::LockConVarValueInitialisation
       - name: CKeyValuesSystem_vtable
         category: vtable
       - name: CKeyValuesSystem_dtor
