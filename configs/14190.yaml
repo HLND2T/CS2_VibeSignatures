@@ -16050,3 +16050,56 @@ cpp_tests:
     # No reference_modules yet: IGameEventSystem has no binary reference YAMLs
     # (CGameEventSystem_vtable exists but covers the impl class, not this
     # interface). Compile-only validation.
+  - name: INetChannel_MSVC
+    symbol: INetChannel
+    alias_symbols:
+      - CNetChan
+    cpp: cpp_tests/inetchannel.cpp
+    headers:
+      - hl2sdk_cs2/public/inetchannel.h  # Used by the fix-cppheaders SKILL
+      - hl2sdk_cs2/public/inetchannelinfo.h  # Inherited virtual declarations
+    target: x86_64-pc-windows-msvc
+    include_directories:
+      - cpp_tests/stubs
+      - hl2sdk_cs2/game/shared
+      - hl2sdk_cs2/public
+      - hl2sdk_cs2/public/tier0
+      - hl2sdk_cs2/public/tier1
+      - hl2sdk_cs2/public/mathlib
+    defines:
+      - COMPILER_MSVC=1
+      - COMPILER_MSVC64=1
+      - _MSVC_STL_USE_ABORT_AS_DOOM_FUNCTION
+    additional_compiler_options:
+      - fms-extensions
+      - fms-compatibility
+      - Xclang
+      - fdump-vtable-layouts
+    reference_modules:
+      - networksystem  # bin_artifacts/{gamever}/networksystem/CNetChan_*.{platform}.yaml
+  - name: INetChannel_GCC
+    symbol: INetChannel
+    alias_symbols:
+      - CNetChan
+    cpp: cpp_tests/inetchannel.cpp
+    headers:
+      - hl2sdk_cs2/public/inetchannel.h  # Used by the fix-cppheaders SKILL
+      - hl2sdk_cs2/public/inetchannelinfo.h  # Inherited virtual declarations
+    target: x86_64-pc-linux-gnu
+    include_directories:
+      - cpp_tests/stubs
+      - hl2sdk_cs2/game/shared
+      - hl2sdk_cs2/public
+      - hl2sdk_cs2/public/tier0
+      - hl2sdk_cs2/public/tier1
+      - hl2sdk_cs2/public/mathlib
+    defines:
+      - COMPILER_GCC=1
+      - POSIX=1
+      - LINUX=1
+      - stricmp=strcasecmp
+    additional_compiler_options:
+      - Xclang
+      - fdump-vtable-layouts
+    reference_modules:
+      - networksystem  # bin_artifacts/{gamever}/networksystem/CNetChan_*.{platform}.yaml
