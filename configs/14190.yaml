@@ -2786,6 +2786,11 @@ modules:
       - name: find-CServerSideClientBase_vtable
         expected_output:
           - CServerSideClientBase_vtable.{platform}.yaml
+      - name: find-CServerSideClientBase_SendSignonData
+        expected_output:
+          - CServerSideClientBase_SendSignonData.{platform}.yaml
+        expected_input:
+          - CServerSideClientBase_vtable.{platform}.yaml
       - name: find-CServerSideClientBase_ProcessSetConVar_Internal
         expected_output:
           - CServerSideClientBase_ProcessSetConVar_Internal.{platform}.yaml
@@ -4707,6 +4712,10 @@ modules:
           - CHLTVBroadcast::RecordSnapshot
       - name: CServerSideClientBase_vtable
         category: vtable
+      - name: CServerSideClientBase_SendSignonData
+        category: vfunc
+        alias:
+          - CServerSideClientBase::SendSignonData
       - name: CServerSideClientBase_ProcessSetConVar_Internal
         category: func
         alias:
