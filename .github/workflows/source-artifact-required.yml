@@ -49,12 +49,14 @@ jobs:
             if git fetch --no-tags --force origin "+${merge_ref}:${local_ref}"; then
               merge_sha="$(git rev-parse "${local_ref}")"
               read -r _ actual_base_sha actual_head_sha _ < <(git rev-list --parents -n 1 "${merge_sha}")
-              if [[ "${actual_base_sha}" == "${EXPECTED_BASE_SHA}" && "${actual_head_sha}" == "${EXPECTED_HEAD_SHA}" ]]; then
+              # Match the identity step: the merge base may advance beyond the event base.
+              if [[ "${actual_head_sha}" == "${EXPECTED_HEAD_SHA}" ]] &&
+                git merge-base --is-ancestor "${EXPECTED_BASE_SHA}" "${actual_base_sha}"; then
                 git reset --hard "${merge_sha}"
                 echo "Using refreshed prospective merge ${merge_sha}."
                 exit 0
               fi
-              echo "Prospective merge ${merge_sha} has parents ${actual_base_sha} ${actual_head_sha}; waiting for ${EXPECTED_BASE_SHA} ${EXPECTED_HEAD_SHA}." >&2
+              echo "Prospective merge ${merge_sha} has parents ${actual_base_sha} ${actual_head_sha}; waiting for head ${EXPECTED_HEAD_SHA} and a base equal to or descended from ${EXPECTED_BASE_SHA}." >&2
             else
               echo "Unable to fetch ${merge_ref}; retrying." >&2
             fi
@@ -63,7 +65,7 @@ jobs:
             fi
           done
 
-          echo "The pull-request merge ref did not converge to the event base/head pair." >&2
+          echo "The pull-request merge ref did not converge to the event head and a base equal to or descended from the event base." >&2
           exit 1
       - name: Resolve immutable event identity
         id: identity
