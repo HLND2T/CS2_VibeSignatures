@@ -8327,6 +8327,7 @@ async def preprocess_common_skill(
     debug=False,
     canonical_vtable_symbols=None,
     llm_result_validator=None,
+    llm_target_details_loader=None,
 ):
     """Reusable preprocess_skill implementation for func/vfunc, gv, patch, struct-member, vtable, inherit-vfunc, func-xref, and vtable-relation targets.
 
@@ -9047,7 +9048,8 @@ async def preprocess_common_skill(
             alias_lookup = (llm_config or {}).get("symbol_aliases")
             if alias_lookup:
                 target_kwargs["alias_lookup"] = alias_lookup
-            llm_target_details = await _load_llm_decompile_target_details_via_mcp(
+            target_details_loader = llm_target_details_loader or _load_llm_decompile_target_details_via_mcp
+            llm_target_details = await target_details_loader(
                 session,
                 target_func_names,
                 **target_kwargs,

@@ -3003,6 +3003,10 @@ modules:
         expected_input:
           - CNetworkGameClientBase_vtable.{platform}.yaml
     symbols:
+      - name: ICvar_CopyUserInfoCvarDefaults
+        category: vfunc
+        alias:
+          - ICvar::CopyUserInfoCvarDefaults
       - name: CNetworkGameServer_vtable
         category: vtable
       - name: CServerSideClient_vtable
@@ -14486,6 +14490,7 @@ modules:
       - name: find-CServerSideClientBase_dtor-decompiles
         expected_output:
           - ISource2GameClients_ClientSetConVarUserInfoSet.{platform}.yaml
+          - ICvar_CopyUserInfoCvarDefaults.{platform}.yaml
         expected_input_windows:
           - CServerSideClientBase_dtor.{platform}.yaml
         expected_input_linux:
@@ -14949,6 +14954,34 @@ modules:
           - CCvar_RegisterConCommand.{platform}.yaml
         expected_input:
           - CCvar_vtable.{platform}.yaml
+      - name: find-CCvar_CopyUserInfoCvarDefaults
+        expected_output:
+          - CCvar_CopyUserInfoCvarDefaults.{platform}.yaml
+        expected_input:
+          - ../engine/ICvar_CopyUserInfoCvarDefaults.{platform}.yaml
+          - CCvar_vtable.{platform}.yaml
+      - name: find-ICvar_FindFirstConVar
+        expected_output:
+          - ICvar_FindFirstConVar.{platform}.yaml
+        expected_input:
+          - CCvar_CopyUserInfoCvarDefaults.{platform}.yaml
+      - name: find-CCvar_FindFirstConVar
+        expected_output:
+          - CCvar_FindFirstConVar.{platform}.yaml
+        expected_input:
+          - ICvar_FindFirstConVar.{platform}.yaml
+          - CCvar_vtable.{platform}.yaml
+      - name: find-ICvar_FindNextConVar
+        expected_output:
+          - ICvar_FindNextConVar.{platform}.yaml
+        expected_input:
+          - CCvar_FindFirstConVar.{platform}.yaml
+      - name: find-CCvar_FindNextConVar
+        expected_output:
+          - CCvar_FindNextConVar.{platform}.yaml
+        expected_input:
+          - ICvar_FindNextConVar.{platform}.yaml
+          - CCvar_vtable.{platform}.yaml
       - name: find-CKeyValuesSystem_vtable
         expected_output:
           - CKeyValuesSystem_vtable.{platform}.yaml
@@ -14977,6 +15010,26 @@ modules:
           - CCommandLine::AppendParm
       - name: CCvar_vtable
         category: vtable
+      - name: CCvar_CopyUserInfoCvarDefaults
+        category: vfunc
+        alias:
+          - CCvar::CopyUserInfoCvarDefaults
+      - name: ICvar_FindFirstConVar
+        category: vfunc
+        alias:
+          - ICvar::FindFirstConVar
+      - name: CCvar_FindFirstConVar
+        category: vfunc
+        alias:
+          - CCvar::FindFirstConVar
+      - name: ICvar_FindNextConVar
+        category: vfunc
+        alias:
+          - ICvar::FindNextConVar
+      - name: CCvar_FindNextConVar
+        category: vfunc
+        alias:
+          - CCvar::FindNextConVar
       - name: CCvar_RegisterConCommand
         category: vfunc
         alias:
