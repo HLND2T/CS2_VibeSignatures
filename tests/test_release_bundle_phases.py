@@ -9,9 +9,11 @@ import gamesymbol_store
 import release_bundle as bundle
 from release_workflow_lib.hashing import sha256_file, write_canonical_json
 from tests import test_release_bundle as bundle_tests
+from tests.optional_dependencies import requires_7z
 
 
 class TestReleaseBundlePhases(unittest.TestCase):
+    @requires_7z
     def test_prepared_bundle_is_not_publishable_and_requires_both_abi_results(self):
         fixture = bundle_tests.ReleaseBundleTests()
         with tempfile.TemporaryDirectory() as temporary:

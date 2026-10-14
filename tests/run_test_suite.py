@@ -117,6 +117,7 @@ UNIT_MODULES = frozenset(
         "test_init_gamebin",
         "test_llm_decompile_dependencies",
         "test_new_gamever_artifact",
+        "test_optional_dependencies",
         "test_process_api",
         "test_posix_memory",
         "test_posix_mcp_cleanup",
