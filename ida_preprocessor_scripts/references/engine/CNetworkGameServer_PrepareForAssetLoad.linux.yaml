@@ -55,8 +55,8 @@ disasm_code: |-
   .text:0000000000524EE6                 mov     esi, 0FAF5C2A0h
   .text:0000000000524EEB                 mov     rdi, rax
   .text:0000000000524EEE                 mov     rax, [rax]
-  .text:0000000000524EF1                 ; 0x50 = 80LL = ICommandLine_ParmValue2
-  .text:0000000000524EF1                 call    qword ptr [rax+50h]; 0x50 = 80LL = ICommandLine_ParmValue2
+  .text:0000000000524EF1                 ; 0x50 = 80LL = ICommandLine_ParmValue_Int
+  .text:0000000000524EF1                 call    qword ptr [rax+50h]; 0x50 = 80LL = ICommandLine_ParmValue_Int
   .text:0000000000524EF4                 ucomiss xmm0, cs:dword_26E750
   .text:0000000000524EFB                 jp      short loc_524F70
   .text:0000000000524EFD                 jnz     short loc_524F70
@@ -124,7 +124,7 @@ procedure: |-
       sub_558DA0();
     *(_DWORD *)(a1 + 68) = sub_5093A0(a1, 1.0) + 1;
     v6 = sub_2D0290();
-    v7 = (*(float (__fastcall **)(__int64, __int64, float))(*(_QWORD *)v6 + 80LL))(v6, 4210410144LL, -1.0);// 0x50 = 80LL = ICommandLine_ParmValue2
+    v7 = (*(float (__fastcall **)(__int64, __int64, float))(*(_QWORD *)v6 + 80LL))(v6, 4210410144LL, -1.0);// 0x50 = 80LL = ICommandLine_ParmValue_Int
     if ( v7 != -1.0 )
     {
       v10 = sub_5093A0(a1, v7) + 1;

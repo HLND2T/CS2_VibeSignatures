@@ -10,19 +10,19 @@ from ida_analyze_util import (
     preprocess_common_skill,
 )
 
-TARGET_FUNCTION_NAMES = ["ICommandLine_ParmValue2"]
+TARGET_FUNCTION_NAMES = ["ICommandLine_ParmValue_Int"]
 LLM_DECOMPILE = [
     {
-        "symbol_name": "ICommandLine_ParmValue2",
+        "symbol_name": "ICommandLine_ParmValue_Int",
         "prompt_path": "prompt/call_llm_decompile.md",
         "reference_yaml_paths": ["references/engine/CNetworkGameServer_PrepareForAssetLoad.{platform}.yaml"],
         "expected_result_sections": ["found_vcall"],
         "dependency_policy": {"CNetworkGameServer_PrepareForAssetLoad.{platform}.yaml": "required"},
     },
 ]
-FUNC_VTABLE_RELATIONS = [("ICommandLine_ParmValue2", "ICommandLine")]
+FUNC_VTABLE_RELATIONS = [("ICommandLine_ParmValue_Int", "ICommandLine")]
 GENERATE_YAML_DESIRED_FIELDS = [
-    ("ICommandLine_ParmValue2", ["func_name", "vtable_name", "vfunc_offset", "vfunc_index", "vfunc_sig"]),
+    ("ICommandLine_ParmValue_Int", ["func_name", "vtable_name", "vfunc_offset", "vfunc_index", "vfunc_sig"]),
 ]
 
 
