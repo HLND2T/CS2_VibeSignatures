@@ -14818,7 +14818,14 @@ class TestUndefinedFuncRecovery(unittest.IsolatedAsyncioTestCase):
 
 class TestArrayInitializedFunctionRecovery(unittest.IsolatedAsyncioTestCase):
     async def _recover(
-        self, *, segment_name=".init_array", pointer_size=8, segment_size=0x20, references=None, values=None
+        self,
+        *,
+        segment_name=".init_array",
+        pointer_size=8,
+        segment_size=0x20,
+        references=None,
+        values=None,
+        previous_xref=None,
     ):
         entry, source_entry, array_start = 0x1000, 0x3000, 0x8000
         references = references if references is not None else {source_entry: [array_start]}
@@ -14855,6 +14862,8 @@ class TestArrayInitializedFunctionRecovery(unittest.IsolatedAsyncioTestCase):
             ),
         }
 
+        persisted_locals = {} if previous_xref is None else {"xref": types.SimpleNamespace(frm=previous_xref)}
+
         async def call_tool(name, arguments):
             if name == "define_func":
                 start = int(arguments["items"]["addr"], 0)
@@ -14862,10 +14871,13 @@ class TestArrayInitializedFunctionRecovery(unittest.IsolatedAsyncioTestCase):
                 functions[start] = types.SimpleNamespace(start_ea=start, end_ea=start + 0x20)
                 return _FakeCallToolResult({"ok": True})
             self.assertEqual("py_eval", name)
-            namespace = {}
+            # MCP snapshots persisted locals into separate globals on every call.
+            # Python 3.11 comprehensions must not read a stale global loop variable.
+            exec_globals = dict(modules)
+            exec_globals.update(persisted_locals)
             with patch.dict(sys.modules, modules):
-                exec(arguments["code"], namespace)
-            return _FakeCallToolResult({"result": namespace["result"], "stdout": "", "stderr": ""})
+                exec(arguments["code"], exec_globals, persisted_locals)
+            return _FakeCallToolResult({"result": persisted_locals["result"], "stdout": "", "stderr": ""})
 
         session = types.SimpleNamespace(call_tool=call_tool)
         result = await ida_analyze_util._normalize_func_start_for_code_addr(session, entry + 0x10)
@@ -14883,6 +14895,11 @@ class TestArrayInitializedFunctionRecovery(unittest.IsolatedAsyncioTestCase):
         result, defined = await self._recover(segment_name=".data")
         self.assertIsNone(result)
         self.assertEqual([], defined)
+
+    async def test_uses_current_reference_instead_of_persisted_unrelated_reference(self):
+        result, defined = await self._recover(previous_xref=0xDEAD)
+        self.assertEqual(0x1000, result)
+        self.assertEqual([0x3000, 0x1000], defined)
 
     async def test_rejects_misaligned_mismatched_and_truncated_array_entries(self):
         for source, value, segment_size in ((0x8001, 0x3000, 0x20), (0x8000, 0x3001, 0x20), (0x8018, 0x3000, 0x1C)):

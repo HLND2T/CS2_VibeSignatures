@@ -6337,9 +6337,11 @@ async def _probe_func_start_or_entry_candidate(session, code_addr, debug=False):
         "            mnem = idc.print_insn_mnem(xref.frm).lower()\n"
         "            if mnem not in ('call', 'jmp', 'lea'):\n"
         "                continue\n"
-        "            operand_targets = [\n"
-        "                idc.get_operand_value(xref.frm, idx) for idx in range(3)\n"
-        "            ]\n"
+        # py_eval separates globals from persisted locals. On Python 3.11 a
+        # comprehension would read a stale global xref instead of this loop's xref.
+        "            operand_targets = []\n"
+        "            for operand_index in range(3):\n"
+        "                operand_targets.append(idc.get_operand_value(xref.frm, operand_index))\n"
         "            if probe_ea not in operand_targets:\n"
         "                continue\n"
         "            ref_func = idaapi.get_func(xref.frm)\n"

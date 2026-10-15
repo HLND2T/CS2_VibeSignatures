@@ -89,3 +89,32 @@ YAML writers consistently use `yaml.safe_dump`:
 
 ## Callers (optional)
 - `process_binary` in `ida_analyze_bin.py` (called before `run_skill`)
+
+## Lesson: undefined function recovery and MCP Python namespaces
+
+- **Trigger:** old `func_sig` misses, string xrefs exist outside functions, but
+  recovery reports `blocked_existing_function` or defines a function that does
+  not cover the requested xref. A Python 3.12 local run can pass while CI on
+  Python 3.11 fails on the same IDB.
+- **Root cause:** MCP `py_eval` snapshots persistent locals into a separate
+  globals dictionary. In Python 3.11, comprehensions resolve captured variables
+  through that globals dictionary. The operand-target comprehension in
+  `_probe_func_start_or_entry_candidate` could therefore use an earlier `xref`
+  instead of the current loop reference, missing the real entry or selecting
+  the adjacent thunk. A single-namespace fake session hides this bug.
+- **Correct approach:** use an ordinary operand loop in the generated snippet.
+  Preserve the conservative entry evidence and coverage verification; do not
+  broaden recovery by guessing entries or deleting existing functions.
+- **Verification:** run `TestArrayInitializedFunctionRecovery` on Python 3.11
+  with separate globals and persistent locals, including a stale unrelated
+  `xref`. Replay the actual CI warm IDB rather than only a freshly analyzed or
+  artificially modified database. PR #1145 run `38721615799` reproduced the
+  failure with the cached 14191 Linux server IDB, SHA-256
+  `2225143ff0b823ca0c9aa01da9b21a843686df0e52bda95240788bd9c36891a8`;
+  corrected recovery identifies the registration thunk at `0x22ba960`.
+- **Scope:** generated IDA `py_eval` snippets with comprehensions or nested
+  helpers that reference recently assigned locals. Avoid assuming host Python
+  and IDA worker Python use the same minor version or execution semantics.
+- **Fallback:** `.claude/skills/find-RegisterSchemaTypeOverride_CEntityHandle/SKILL.md`
+  identifies the exact `CEntityHandle`/`ehandle` thunk from raw xrefs and validates
+  a unique signature when preprocessing cannot finish safely.
