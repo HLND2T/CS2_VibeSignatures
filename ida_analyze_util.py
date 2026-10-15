@@ -6295,9 +6295,10 @@ async def _probe_func_start_or_entry_candidate(session, code_addr, debug=False):
         return None
 
     py_code = (
-        "import ida_bytes, idaapi, idautils, idc, json\n"
+        "import ida_bytes, ida_ida, idaapi, idautils, idc, json\n"
         f"code_addr = {code_addr_int}\n"
         f"backtrack_limit = {UNDEFINED_FUNC_RECOVERY_BACKTRACK_LIMIT:#x}\n"
+        "pointer_size = 8 if ida_ida.inf_is_64bit() else 4\n"
         "result_obj = {'status': 'no_entry'}\n"
         "unresolved_ref_sources = set()\n"
         "func = idaapi.get_func(code_addr)\n"
@@ -6320,6 +6321,19 @@ async def _probe_func_start_or_entry_candidate(session, code_addr, debug=False):
         "        if not ida_bytes.is_code(flags):\n"
         "            continue\n"
         "        for xref in idautils.XrefsTo(probe_ea, 0):\n"
+        # ELF startup/teardown arrays prove an entry even when no caller has a function yet.
+        "            source_segment = idaapi.getseg(xref.frm)\n"
+        "            if source_segment and idaapi.get_segm_name(source_segment) in (\n"
+        "                '.preinit_array', '.init_array', '.fini_array'\n"
+        "            ):\n"
+        "                if (xref.frm - source_segment.start_ea) % pointer_size == 0 and (\n"
+        "                    xref.frm + pointer_size <= source_segment.end_ea\n"
+        "                ):\n"
+        "                    pointer = (ida_bytes.get_qword(xref.frm) if pointer_size == 8\n"
+        "                               else ida_bytes.get_dword(xref.frm))\n"
+        "                    if pointer == probe_ea:\n"
+        "                        candidates.add(probe_ea)\n"
+        "                continue\n"
         "            mnem = idc.print_insn_mnem(xref.frm).lower()\n"
         "            if mnem not in ('call', 'jmp', 'lea'):\n"
         "                continue\n"
