@@ -950,5 +950,61 @@ class TestFindOnServerVoiceDataIsPlayingDemoCallee(unittest.IsolatedAsyncioTestC
         self.assertFalse(result)
 
 
+class TestConvarFilterCallChain(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        from ida_preprocessor_scripts import _convar_filter_chain_common
+
+        self.chain = _convar_filter_chain_common
+
+    async def test_inline_body_does_not_walk_helpers(self):
+        with patch.object(self.chain, "preprocess_common_skill", AsyncMock(return_value=True)) as preprocess:
+            self.assertTrue(await self.chain.preprocess_call_chain(session="session"))
+        self.assertEqual(preprocess.await_count, 1)
+        self.assertNotIn("llm_target_details_loader", preprocess.await_args.kwargs)
+
+    async def test_deinlined_body_uses_instruction_loader(self):
+        with patch.object(self.chain, "preprocess_common_skill", AsyncMock(side_effect=[False, True])) as preprocess:
+            self.assertTrue(await self.chain.preprocess_call_chain(session="session"))
+        self.assertIs(preprocess.await_args.kwargs["llm_target_details_loader"], self.chain.load_helper_details)
+
+    async def test_helper_instructions_remain_available_for_validation(self):
+        root = {"func_va": "0x1000", "disasm_code": "0x1000 call sub_2000"}
+        helper = {"func_va": "0x2000", "disasm_code": "0x2000 jmp qword ptr [rax+80h]"}
+        session = type("Session", (), {"call_tool": AsyncMock(return_value={})})()
+        with (
+            patch.object(self.chain, "_load_llm_decompile_target_details_via_mcp", AsyncMock(return_value=[root])),
+            patch.object(
+                self.chain, "parse_mcp_result", return_value={"result": '{"addresses":["0x2000"],"overflow":false}'}
+            ),
+            patch.object(self.chain, "_export_function_detail_via_mcp", AsyncMock(return_value=helper)),
+        ):
+            self.assertEqual(await self.chain.load_helper_details(session, ["Set"]), [root, helper])
+
+    async def test_partial_or_overflowing_chains_fail_closed(self):
+        session = type("Session", (), {"call_tool": AsyncMock(return_value={})})()
+        for overflow in (True, False):
+            with (
+                self.subTest(overflow=overflow),
+                patch.object(
+                    self.chain,
+                    "_load_llm_decompile_target_details_via_mcp",
+                    AsyncMock(return_value=[{"func_va": "0x1000"}]),
+                ),
+                patch.object(
+                    self.chain,
+                    "parse_mcp_result",
+                    return_value={"result": '{"addresses":["0x2000"],"overflow":' + str(overflow).lower() + "}"},
+                ),
+                patch.object(self.chain, "_export_function_detail_via_mcp", AsyncMock(return_value=None)),
+            ):
+                self.assertEqual(await self.chain.load_helper_details(session, ["Set"]), [])
+
+    def test_ambiguous_filter_slots_fail_closed(self):
+        finder = _load_module(Path("ida_preprocessor_scripts/find-ICvar_CallFilterCallback.py"), "find_ICvar_filter")
+        entry = {"func_name": "ICvar_CallFilterCallback", "vfunc_offset": "0x80"}
+        self.assertEqual(finder.validate_dispatch({"found_vcall": [entry]}), [])
+        self.assertTrue(finder.validate_dispatch({"found_vcall": [entry, {**entry, "vfunc_offset": "0x88"}]}))
+
+
 if __name__ == "__main__":
     unittest.main()
