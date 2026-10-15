@@ -118,3 +118,31 @@ YAML writers consistently use `yaml.safe_dump`:
 - **Fallback:** `.claude/skills/find-RegisterSchemaTypeOverride_CEntityHandle/SKILL.md`
   identifies the exact `CEntityHandle`/`ehandle` thunk from raw xrefs and validates
   a unique signature when preprocessing cannot finish safely.
+
+## Lesson: unique wrapper signatures can silently select a sibling
+
+- **Trigger:** IDA analysis reports success, but the Linux C++ ABI gate for
+  `IVEngineServer2` finds `GetPlayerNetworkIDString` at slot 39 instead of 40 and
+  `SynchronizeAndBlockUntilLoaded` at slot 63 instead of 66 (PR #1145, run
+  `38764646029`). Other vtable references and the Windows gate pass.
+- **Root cause:** the old signatures include a shared wrapper prologue and a
+  partly fixed RIP-relative displacement. After code moves, each signature can
+  still match exactly once, at a different wrapper loading the same global.
+  The signature fast path then bypasses the finder's semantic xref constraints.
+  Uniqueness and membership in the same vtable do not establish function identity.
+- **Correct approach:** these `CEngineServer` finders ignore the old signature
+  map and resolve from the current-version helper call plus the current vtable.
+  Keep the noinline/inlined fallback pair: Linux calls the standalone network-ID
+  helper, while Windows calls the client helper directly. Preserve the spawn-think
+  exclusion for the synchronization finder. Generate a fresh unique signature.
+- **Verification:** regress both a unique wrong old match and an unavailable
+  current anchor; the latter must fail without writing an output. Replay the
+  unmodified warm IDB through the real MCP pipeline on Python 3.11. In 14191 Linux,
+  the correct callers are `0x52a530` (slot 40, calls `0x521580`) and `0x527f80`
+  (slot 66, calls `0x51aaa0`); the erroneous neighbors are `0x52a570` and `0x527fc0`.
+  Rebuild the candidate and run the C++ ABI gate against the corrected outputs.
+  This replay passes all 19 configured tests on Linux (Ubuntu WSL) and Windows,
+  with zero differences across 20 vtable and two record-layout comparisons each.
+- **Scope:** short forwarding wrappers with independent current-version semantic
+  anchors. Diagnose an ABI mismatch against actual call targets before editing
+  headers or treating a unique signature match as proof of identity.
