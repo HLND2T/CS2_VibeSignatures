@@ -5,6 +5,18 @@ inputs:
     description: Allowlisted ci_runner.py command
     required: true
 outputs:
+  updated:
+    description: 'Verified command output: updated'
+    value: ${{ steps.windows.outputs.updated || steps.linux.outputs.updated }}
+  tag:
+    description: 'Verified command output: tag'
+    value: ${{ steps.windows.outputs.tag || steps.linux.outputs.tag }}
+  analysis_config_source_gamever:
+    description: 'Verified command output: analysis_config_source_gamever'
+    value: ${{ steps.windows.outputs.analysis_config_source_gamever || steps.linux.outputs.analysis_config_source_gamever }}
+  analysis_config_path:
+    description: 'Verified command output: analysis_config_path'
+    value: ${{ steps.windows.outputs.analysis_config_path || steps.linux.outputs.analysis_config_path }}
   python:
     description: 'Verified command output: python'
     value: ${{ steps.windows.outputs.python || steps.linux.outputs.python }}
