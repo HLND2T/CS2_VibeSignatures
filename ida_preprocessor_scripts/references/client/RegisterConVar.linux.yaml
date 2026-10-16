@@ -1,0 +1,151 @@
+func_name: RegisterConVar
+func_va: '0x217a010'
+disasm_code: |-
+  .text:000000000217A010                 push    rbp
+  .text:000000000217A011                 lea     rax, off_4697FA0; "<undefined>"
+  .text:000000000217A018                 movq    xmm0, rsi
+  .text:000000000217A01D                 mov     rbp, rsp
+  .text:000000000217A020                 push    r14
+  .text:000000000217A022                 pinsrq  xmm0, rcx, 1
+  .text:000000000217A029                 push    r13
+  .text:000000000217A02B                 mov     r13, rdx
+  .text:000000000217A02E                 push    r12
+  .text:000000000217A030                 mov     r12, rdi
+  .text:000000000217A033                 push    rbx
+  .text:000000000217A034                 mov     rbx, r8
+  .text:000000000217A037                 sub     rsp, 0B0h
+  .text:000000000217A03E                 movsx   edi, word ptr [r8+60h]
+  .text:000000000217A043                 cmp     di, 0FFFFh
+  .text:000000000217A047                 jz      short loc_217A061
+  .text:000000000217A049                 movaps  xmmword ptr [rbp-0D0h], xmm0
+  .text:000000000217A050                 call    sub_2179610
+  .text:000000000217A055                 movdqa  xmm0, xmmword ptr [rbp-0D0h]
+  .text:000000000217A05D                 mov     rax, [rax+50h]
+  .text:000000000217A061                 mov     [r12+8], rax
+  .text:000000000217A066                 mov     eax, 0FFFFFFFFh
+  .text:000000000217A06B                 mov     [r12], rax
+  .text:000000000217A06F                 movzx   eax, cs:byte_49F16D0
+  .text:000000000217A076                 test    al, al
+  .text:000000000217A078                 jz      loc_217A130
+  .text:000000000217A07E                 cmp     cs:byte_49F16D8, 0
+  .text:000000000217A085                 jnz     short loc_217A09D
+  .text:000000000217A087                 test    r13d, 13084282h
+  .text:000000000217A08E                 jnz     short loc_217A09D
+  .text:000000000217A090                 mov     rax, 100000002h
+  .text:000000000217A09A                 or      r13, rax
+  .text:000000000217A09D                 movaps  xmmword ptr [rbp-0C0h], xmm0
+  .text:000000000217A0A4                 movdqu  xmm0, xmmword ptr [rbx]
+  .text:000000000217A0A8                 lea     rdi, [rbp-0C0h]
+  .text:000000000217A0AF                 mov     rax, [rbx+70h]
+  .text:000000000217A0B3                 mov     [rbp-0B0h], r13
+  .text:000000000217A0BA                 movups  xmmword ptr [rbp-0A8h], xmm0
+  .text:000000000217A0C1                 movdqu  xmm0, xmmword ptr [rbx+10h]
+  .text:000000000217A0C6                 movups  xmmword ptr [rbp-98h], xmm0
+  .text:000000000217A0CD                 movdqu  xmm0, xmmword ptr [rbx+20h]
+  .text:000000000217A0D2                 mov     [rbp-38h], rax
+  .text:000000000217A0D6                 lea     rax, [r12+8]
+  .text:000000000217A0DB                 movups  xmmword ptr [rbp-88h], xmm0
+  .text:000000000217A0E2                 movdqu  xmm0, xmmword ptr [rbx+30h]
+  .text:000000000217A0E7                 movups  xmmword ptr [rbp-78h], xmm0
+  .text:000000000217A0EB                 movdqu  xmm0, xmmword ptr [rbx+40h]
+  .text:000000000217A0F0                 movups  xmmword ptr [rbp-68h], xmm0
+  .text:000000000217A0F4                 movdqu  xmm0, xmmword ptr [rbx+50h]
+  .text:000000000217A0F9                 movups  xmmword ptr [rbp-58h], xmm0
+  .text:000000000217A0FD                 movdqu  xmm0, xmmword ptr [rbx+60h]
+  .text:000000000217A102                 movups  xmmword ptr [rbp-48h], xmm0
+  .text:000000000217A106                 movq    xmm0, r12
+  .text:000000000217A10B                 pinsrq  xmm0, rax, 1
+  .text:000000000217A112                 movaps  xmmword ptr [rbp-30h], xmm0
+  .text:000000000217A116                 call    ICvar_RegisterConVar_Impl
+  .text:000000000217A11B                 add     rsp, 0B0h
+  .text:000000000217A122                 pop     rbx
+  .text:000000000217A123                 pop     r12
+  .text:000000000217A125                 pop     r13
+  .text:000000000217A127                 pop     r14
+  .text:000000000217A129                 pop     rbp
+  .text:000000000217A12A                 retn
+  .text:000000000217A130                 lea     r14, byte_49F16D0
+  .text:000000000217A137                 movaps  xmmword ptr [rbp-0D0h], xmm0
+  .text:000000000217A13E                 mov     rdi, r14
+  .text:000000000217A141                 call    sub_C72670
+  .text:000000000217A146                 movdqa  xmm0, xmmword ptr [rbp-0D0h]
+  .text:000000000217A14E                 test    eax, eax
+  .text:000000000217A150                 jz      loc_217A07E
+  .text:000000000217A156                 call    sub_C7DAE0
+  .text:000000000217A15B                 mov     esi, 0BC4F1A2h
+  .text:000000000217A160                 mov     rdi, rax
+  .text:000000000217A163                 mov     rax, [rax]
+  .text:000000000217A166                 call    qword ptr [rax+90h]
+  .text:000000000217A16C                 mov     rdi, r14
+  .text:000000000217A16F                 mov     cs:byte_49F16D8, al
+  .text:000000000217A175                 call    sub_C72690
+  .text:000000000217A17A                 movdqa  xmm0, xmmword ptr [rbp-0D0h]
+  .text:000000000217A182                 jmp     loc_217A07E
+procedure: |-
+  __int64 __fastcall sub_217A010(_QWORD *a1, unsigned __int64 a2, __int64 a3, signed __int64 a4, const __m128i *a5)
+  {
+    char **v5; // rax
+    __m128i inserted; // xmm0
+    __int64 v10; // rdi
+    __int64 v11; // rax
+    __m128i v12; // xmm0
+    __int64 v13; // rax
+    __m128i v14; // xmm0
+    int v16; // eax
+    __int64 v17; // rax
+    __m128i v18; // [rsp-D0h] [rbp-D8h] BYREF
+    __m128i v19; // [rsp-C0h] [rbp-C8h] BYREF
+    __int64 v20; // [rsp-B0h] [rbp-B8h]
+    __m128i v21; // [rsp-A8h] [rbp-B0h]
+    __m128i v22; // [rsp-98h] [rbp-A0h]
+    __m128i v23; // [rsp-88h] [rbp-90h]
+    __m128i v24; // [rsp-78h] [rbp-80h]
+    __m128i v25; // [rsp-68h] [rbp-70h]
+    __m128i v26; // [rsp-58h] [rbp-60h]
+    __m128i v27; // [rsp-48h] [rbp-50h]
+    __int64 v28; // [rsp-38h] [rbp-40h]
+    __m128i v29; // [rsp-30h] [rbp-38h]
+
+    v5 = &off_4697FA0;
+    inserted = _mm_insert_epi64((__m128i)a2, a4, 1);
+    v10 = (unsigned int)a5[6].m128i_i16[0];
+    if ( a5[6].m128i_i16[0] != -1 )
+    {
+      v18 = inserted;
+      v11 = sub_2179610(v10, a2);
+      inserted = _mm_load_si128(&v18);
+      v5 = *(char ***)(v11 + 80);
+    }
+    a1[1] = v5;
+    *a1 = 0xFFFFFFFFLL;
+    if ( !byte_49F16D0 )
+    {
+      v18 = inserted;
+      v16 = sub_C72670(&byte_49F16D0);
+      inserted = _mm_load_si128(&v18);
+      if ( v16 )
+      {
+        v17 = sub_C7DAE0(*(double *)inserted.m128i_i64);
+        byte_49F16D8 = (*(__int64 (__fastcall **)(__int64, __int64))(*(_QWORD *)v17 + 144LL))(v17, 197456290);
+        sub_C72690(&byte_49F16D0);
+        inserted = _mm_load_si128(&v18);
+      }
+    }
+    if ( !byte_49F16D8 && (a3 & 0x13084282) == 0 )
+      a3 |= 0x100000002uLL;
+    v19 = inserted;
+    v12 = _mm_loadu_si128(a5);
+    v13 = a5[7].m128i_i64[0];
+    v20 = a3;
+    v21 = v12;
+    v22 = _mm_loadu_si128(a5 + 1);
+    v14 = _mm_loadu_si128(a5 + 2);
+    v28 = v13;
+    v23 = v14;
+    v24 = _mm_loadu_si128(a5 + 3);
+    v25 = _mm_loadu_si128(a5 + 4);
+    v26 = _mm_loadu_si128(a5 + 5);
+    v27 = _mm_loadu_si128(a5 + 6);
+    v29 = _mm_insert_epi64((__m128i)(unsigned __int64)a1, (signed __int64)(a1 + 1), 1);
+    return ICvar_RegisterConVar_Impl(&v19);
+  }
