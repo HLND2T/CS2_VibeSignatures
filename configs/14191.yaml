@@ -10707,6 +10707,11 @@ modules:
           - CEntitySystem_m_entityComponentHelpers.{platform}.yaml
         expected_input:
           - CEntitySystem_FindComponentTypeByName.{platform}.yaml
+      - name: find-ICvar_ResetConVarsToDefaultValuesByFlag
+        expected_output:
+          - ICvar_ResetConVarsToDefaultValuesByFlag.{platform}.yaml
+        expected_input:
+          - CMultiplayRules_ctor.{platform}.yaml
     symbols:
       - name: CSource2Server_vtable
         category: vtable
@@ -14164,6 +14169,8 @@ modules:
         category: func
         alias:
           - CEntitySystem::FindComponentTypeByName
+      - name: ICvar_ResetConVarsToDefaultValuesByFlag
+        category: vfunc
   - name: engine  # Execute skills for engine2.dll again after client.dll
     path_windows: game/bin/win64/engine2.dll
     path_linux: game/bin/linuxsteamrt64/libengine2.so
@@ -15023,6 +15030,12 @@ modules:
           - CKeyValuesSystem_GetKeyValuesExpressionSymbol.{platform}.yaml
         expected_input:
           - CKeyValuesSystem_vtable.{platform}.yaml
+      - name: find-CCvar_ResetConVarsToDefaultValuesByFlag
+        expected_output:
+          - CCvar_ResetConVarsToDefaultValuesByFlag.{platform}.yaml
+        expected_input:
+          - ../server/ICvar_ResetConVarsToDefaultValuesByFlag.{platform}.yaml
+          - CCvar_vtable.{platform}.yaml
     symbols:
       - name: CCommandLine_vtable
         category: vtable
@@ -15054,6 +15067,8 @@ modules:
         category: vfunc
         alias:
           - CKeyValuesSystem::GetKeyValuesExpressionSymbol
+      - name: CCvar_ResetConVarsToDefaultValuesByFlag
+        category: vfunc
   - name: schemasystem
     path_windows: game/bin/win64/schemasystem.dll
     path_linux: game/bin/linuxsteamrt64/libschemasystem.so
