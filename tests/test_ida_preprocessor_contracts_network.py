@@ -1,8 +1,12 @@
 import re
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
+import yaml
+
+import ida_analyze_util
 from tests.ida_preprocessor_test_support import load_module as _load_module
 
 
@@ -702,6 +706,96 @@ class TestFindCNetworkServerServiceInit(unittest.IsolatedAsyncioTestCase):
             generate_yaml_desired_fields=expected_generate_yaml_desired_fields,
             debug=True,
         )
+
+
+class TestEngineServerWrapperSemanticResolution(unittest.IsolatedAsyncioTestCase):
+    CASES = (
+        (
+            "CEngineServer_GetPlayerNetworkIDString-noinline",
+            "CEngineServer_GetPlayerNetworkIDString",
+            "CNetworkGameServer_GetPlayerNetworkIDString",
+            40,
+            39,
+        ),
+        (
+            "CEngineServer_GetPlayerNetworkIDString-inlined",
+            "CEngineServer_GetPlayerNetworkIDString",
+            "CServerSideClientBase_GetNetworkIDString",
+            40,
+            39,
+        ),
+        (
+            "CEngineServer_SynchronizeAndBlockUntilLoaded",
+            "CEngineServer_SynchronizeAndBlockUntilLoaded",
+            "CNetworkGameServerBase_SynchronizeAndBlockUntilLoaded",
+            66,
+            63,
+        ),
+    )
+
+    async def _resolve(self, *, anchor_available):
+        for script, symbol, callee, correct_slot, sibling_slot in self.CASES:
+            for platform in ("linux", "windows"):
+                with self.subTest(script=script, platform=platform), tempfile.TemporaryDirectory() as directory:
+                    finder = _load_module(
+                        Path("ida_preprocessor_scripts") / f"find-{script}.py",
+                        f"wrapper_{script}_{platform}",
+                    )
+                    root = Path(directory)
+                    output = root / f"{symbol}.{platform}.yaml"
+                    old = root / "old.yaml"
+                    old.write_text(yaml.safe_dump({"func_name": symbol, "func_sig": "55 48 89 E5"}))
+                    (root / f"CEngineServer_vtable.{platform}.yaml").write_text(
+                        yaml.safe_dump({"vtable_entries": {correct_slot: "0x2000", sibling_slot: "0x3000"}})
+                    )
+
+                    def function(address):
+                        return {
+                            "func_name": symbol,
+                            "func_va": hex(address),
+                            "func_rva": hex(address),
+                            "func_size": "0x30",
+                            "func_sig": "55 48 89 E5 90",
+                        }
+
+                    async def signature_match(**kwargs):
+                        # The prior version's unique signature now identifies a sibling wrapper.
+                        return function(0x3000) if kwargs["old_path"] else None
+
+                    async def caller_match(**kwargs):
+                        if not anchor_available or kwargs["xref_funcs"] != [callee]:
+                            return None
+                        return function(0x2000)
+
+                    with (
+                        patch.object(ida_analyze_util, "preprocess_func_sig_via_mcp", side_effect=signature_match),
+                        patch.object(ida_analyze_util, "preprocess_func_xrefs_via_mcp", side_effect=caller_match),
+                        patch.object(ida_analyze_util, "_rename_func_in_ida", new_callable=AsyncMock),
+                    ):
+                        result = await finder.preprocess_skill(
+                            session=object(),
+                            skill_name=f"find-{script}",
+                            expected_outputs=[str(output)],
+                            old_yaml_map={str(output): str(old)},
+                            new_binary_dir=directory,
+                            platform=platform,
+                            image_base=0,
+                        )
+
+                    self.assertEqual(anchor_available, result)
+                    if anchor_available:
+                        payload = yaml.safe_load(output.read_text())
+                        self.assertEqual("0x2000", payload["func_va"])
+                        self.assertEqual(correct_slot, payload["vfunc_index"])
+                        self.assertEqual(hex(correct_slot * 8), payload["vfunc_offset"])
+                    else:
+                        self.assertFalse(output.exists())
+
+    async def test_unique_old_signature_on_sibling_does_not_override_current_callee(self):
+        await self._resolve(anchor_available=True)
+
+    async def test_missing_current_callee_does_not_accept_old_signature_or_write_output(self):
+        await self._resolve(anchor_available=False)
 
 
 if __name__ == "__main__":

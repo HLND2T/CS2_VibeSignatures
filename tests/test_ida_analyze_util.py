@@ -14820,5 +14820,108 @@ class TestUndefinedFuncRecovery(unittest.IsolatedAsyncioTestCase):
         self.assertIn("define_func", calls)
 
 
+class TestArrayInitializedFunctionRecovery(unittest.IsolatedAsyncioTestCase):
+    async def _recover(
+        self,
+        *,
+        segment_name=".init_array",
+        pointer_size=8,
+        segment_size=0x20,
+        references=None,
+        values=None,
+        previous_xref=None,
+    ):
+        entry, source_entry, array_start = 0x1000, 0x3000, 0x8000
+        references = references if references is not None else {source_entry: [array_start]}
+        values = values if values is not None else {array_start: source_entry}
+        functions = {}
+        defined = []
+        segment = types.SimpleNamespace(start_ea=array_start, end_ea=array_start + segment_size)
+
+        def get_func(ea):
+            return next((func for func in functions.values() if func.start_ea <= ea < func.end_ea), None)
+
+        modules = {
+            "idaapi": types.SimpleNamespace(
+                get_func=get_func,
+                getseg=lambda ea: segment if array_start <= ea < segment.end_ea else None,
+                get_segm_name=lambda seg: segment_name,
+            ),
+            "ida_ida": types.SimpleNamespace(inf_is_64bit=lambda: pointer_size == 8),
+            "ida_bytes": types.SimpleNamespace(
+                get_full_flags=lambda ea: ea in {entry, entry + 0x10, source_entry, source_entry + 0x10},
+                is_code=bool,
+                get_qword=lambda ea: values.get(ea, 0),
+                get_dword=lambda ea: values.get(ea, 0),
+            ),
+            "idautils": types.SimpleNamespace(
+                XrefsTo=lambda ea, flags: [
+                    types.SimpleNamespace(frm=address)
+                    for address in ([source_entry + 0x10] if ea == entry else references.get(ea, []))
+                ],
+            ),
+            "idc": types.SimpleNamespace(
+                print_insn_mnem=lambda ea: "lea" if ea == source_entry + 0x10 else "",
+                get_operand_value=lambda ea, index: entry if ea == source_entry + 0x10 and index == 1 else 0,
+            ),
+        }
+
+        persisted_locals = {} if previous_xref is None else {"xref": types.SimpleNamespace(frm=previous_xref)}
+
+        async def call_tool(name, arguments):
+            if name == "define_func":
+                start = int(arguments["items"]["addr"], 0)
+                defined.append(start)
+                functions[start] = types.SimpleNamespace(start_ea=start, end_ea=start + 0x20)
+                return _FakeCallToolResult({"ok": True})
+            self.assertEqual("py_eval", name)
+            # MCP snapshots persisted locals into separate globals on every call.
+            # Python 3.11 comprehensions must not read a stale global loop variable.
+            exec_globals = dict(modules)
+            exec_globals.update(persisted_locals)
+            with patch.dict(sys.modules, modules):
+                exec(arguments["code"], exec_globals, persisted_locals)
+            return _FakeCallToolResult({"result": persisted_locals["result"], "stdout": "", "stderr": ""})
+
+        session = types.SimpleNamespace(call_tool=call_tool)
+        result = await ida_analyze_util._normalize_func_start_for_code_addr(session, entry + 0x10)
+        return result, defined
+
+    async def test_recovers_thunk_after_its_array_initialized_reference_source(self):
+        for segment_name in (".preinit_array", ".init_array", ".fini_array"):
+            for pointer_size in (4, 8):
+                with self.subTest(segment=segment_name, pointer_size=pointer_size):
+                    result, defined = await self._recover(segment_name=segment_name, pointer_size=pointer_size)
+                    self.assertEqual(0x1000, result)
+                    self.assertEqual([0x3000, 0x1000], defined)
+
+    async def test_rejects_arbitrary_data_pointer(self):
+        result, defined = await self._recover(segment_name=".data")
+        self.assertIsNone(result)
+        self.assertEqual([], defined)
+
+    async def test_uses_current_reference_instead_of_persisted_unrelated_reference(self):
+        result, defined = await self._recover(previous_xref=0xDEAD)
+        self.assertEqual(0x1000, result)
+        self.assertEqual([0x3000, 0x1000], defined)
+
+    async def test_rejects_misaligned_mismatched_and_truncated_array_entries(self):
+        for source, value, segment_size in ((0x8001, 0x3000, 0x20), (0x8000, 0x3001, 0x20), (0x8018, 0x3000, 0x1C)):
+            with self.subTest(source=source, value=value):
+                result, defined = await self._recover(
+                    segment_size=segment_size, references={0x3000: [source]}, values={source: value}
+                )
+                self.assertIsNone(result)
+                self.assertEqual([], defined)
+
+    async def test_rejects_multiple_array_initialized_entry_candidates(self):
+        result, defined = await self._recover(
+            references={0x3000: [0x8000], 0x3010: [0x8008]},
+            values={0x8000: 0x3000, 0x8008: 0x3010},
+        )
+        self.assertIsNone(result)
+        self.assertEqual([], defined)
+
+
 if __name__ == "__main__":
     unittest.main()
