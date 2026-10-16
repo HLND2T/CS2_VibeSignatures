@@ -3,9 +3,11 @@
 
 Resolves ``CNetChan_SendMessages`` as the caller of the standalone
 ``CNetChan_SendMessages_Internal`` helper. This path only applies when the helper is
-NOT inlined into the vfunc. The ``CNetChan`` vtable relation then collapses the caller
-set to the single vtable member, so no fixed game-layout offset is needed to
-disambiguate. Its output is optional: when the caller cannot be resolved, the
+NOT inlined into the vfunc. ``CNetChan_Transmit`` calls the same helper, so it is
+excluded by name — a symbol reference resolved from the current binary — rather than
+by a fixed game-layout offset, which shifts between builds. The ``CNetChan`` vtable
+relation then collapses the caller set to the single vtable member. Its output is
+optional: when the caller cannot be resolved, the
 ``find-CNetChan_SendMessages-inlined`` fallback runs instead.
 """
 
@@ -19,7 +21,7 @@ FUNC_XREFS = [
         "xref_gvs": [],
         "xref_signatures": [],
         "xref_funcs": ["CNetChan_SendMessages_Internal"],
-        "exclude_funcs": [],
+        "exclude_funcs": ["CNetChan_Transmit"],
         "exclude_strings": [],
         "exclude_gvs": [],
         "exclude_signatures": [],

@@ -263,6 +263,27 @@ modules:
           - CNetChan_SendMessages.{platform}.yaml
         prerequisite:
           - find-CNetChan_SendMessages-noinline
+      - name: find-CNetChan_TransmitInternal
+        optional_output:
+          - CNetChan_TransmitInternal.{platform}.yaml
+        skip_if_exists:
+          - CNetChan_Transmit.{platform}.yaml
+      - name: find-CNetChan_Transmit-noinline
+        optional_output:
+          - CNetChan_Transmit.{platform}.yaml
+        expected_input:
+          - CNetChan_vtable.{platform}.yaml
+        prerequisite:
+          - find-CNetChan_TransmitInternal
+      - name: find-CNetChan_Transmit-inlined
+        expected_output:
+          - CNetChan_Transmit.{platform}.yaml
+        expected_input:
+          - CNetChan_vtable.{platform}.yaml
+        skip_if_exists:
+          - CNetChan_Transmit.{platform}.yaml
+        prerequisite:
+          - find-CNetChan_Transmit-noinline
       - name: find-CNetworkMessages_vtable
         expected_output:
           - CNetworkMessages_vtable.{platform}.yaml
@@ -542,6 +563,11 @@ modules:
         category: vfunc
         alias:
           - CNetChan::SendMessages
+        shared: true
+      - name: CNetChan_Transmit
+        category: vfunc
+        alias:
+          - CNetChan::Transmit
         shared: true
       - name: CNetworkMessages_GetIsForServer
         category: vfunc
