@@ -21,19 +21,13 @@ FUNC_XREFS = [
     },
 ]
 
-FUNC_XREFS_LINUX = [
-    {
-        "func_name": "CNetChan_UpdateMessageStats",
-        "xref_strings": [],
-        "xref_gvs": [],
-        "xref_signatures": ["55 48 89 E5 41 54 53 48 89 FB 48 83 EC 10 80 BF ?? ?? ?? ?? ??"],
-        "xref_funcs": [],
-        "exclude_funcs": [],
-        "exclude_strings": [],
-        "exclude_gvs": [],
-        "exclude_signatures": [],
-    },
-]
+# Linux shares the Windows string anchor for the inlined path.
+# The former per-platform prologue signature
+# ("55 48 89 E5 41 54 53 48 89 FB 48 83 EC 10 80 BF ?? ?? ?? ?? ??") is a
+# generic frame template that, on the 14191 libnetworksystem.so, matches only
+# CNetChan_CanPacket rather than the UpdateMessageStats body. The vtable slot is
+# still derived from the resolved address by FUNC_VTABLE_RELATIONS.
+FUNC_XREFS_LINUX = FUNC_XREFS
 
 FUNC_VTABLE_RELATIONS = [("CNetChan_UpdateMessageStats", "CNetChan_vtable")]
 

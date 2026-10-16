@@ -21,19 +21,14 @@ FUNC_XREFS = [
     },
 ]
 
-FUNC_XREFS_LINUX = [
-    {
-        "func_name": "CNetChan_UpdateMessageStatsInternal",
-        "xref_strings": [],
-        "xref_gvs": [],
-        "xref_signatures": ["55 48 89 E5 41 54 53 48 89 FB 48 83 EC 10 80 BF ?? ?? ?? ?? ??"],
-        "xref_funcs": [],
-        "exclude_funcs": [],
-        "exclude_strings": [],
-        "exclude_gvs": [],
-        "exclude_signatures": [],
-    },
-]
+# Linux resolves the internal helper by the same diagnostic string as Windows.
+# The former per-platform prologue signature
+# ("55 48 89 E5 41 54 53 48 89 FB 48 83 EC 10 80 BF ?? ?? ?? ?? ??") is a
+# generic frame template: on the 14191 libnetworksystem.so it matches only
+# CNetChan_CanPacket (0x286b20), while the real helper (sub_287380) shares the
+# "41 57 41 56 49 89 FE" prologue of its sibling. Anchoring on the string keeps
+# the search semantic instead of depending on a prologue the compiler moves.
+FUNC_XREFS_LINUX = FUNC_XREFS
 
 GENERATE_YAML_DESIRED_FIELDS = [
     ("CNetChan_UpdateMessageStatsInternal", ["func_name", "func_sig", "func_va", "func_rva", "func_size"]),
