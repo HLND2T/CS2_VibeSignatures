@@ -1,0 +1,31 @@
+func_name: CNetworkGameServerBase_GetServerNetworkAddress
+func_va: '0x1800b5600'
+disasm_code: |-
+  .text:00000001800B5600                 push    rbx
+  .text:00000001800B5602                 sub     rsp, 20h
+  .text:00000001800B5606                 mov     rcx, cs:g_pNetworkSystem
+  .text:00000001800B560D                 mov     rbx, rdx
+  .text:00000001800B5610                 mov     rax, [rcx]
+  .text:00000001800B5613                 ; 0x108 = 264LL = INetworkSystem_GetLocalAdr
+  .text:00000001800B5613                 call    qword ptr [rax+108h]; 0x108 = 264LL = INetworkSystem_GetLocalAdr
+  .text:00000001800B5619                 movsd   xmm0, qword ptr [rax]
+  .text:00000001800B561D                 mov     eax, [rax+8]
+  .text:00000001800B5620                 movsd   qword ptr [rbx], xmm0
+  .text:00000001800B5624                 mov     [rbx+8], eax
+  .text:00000001800B5627                 mov     rax, rbx
+  .text:00000001800B562A                 add     rsp, 20h
+  .text:00000001800B562E                 pop     rbx
+  .text:00000001800B562F                 retn
+procedure: |-
+  __int64 __fastcall sub_1800B5600(__int64 a1, __int64 a2)
+  {
+    __int64 v3; // rax
+    __int64 v4; // xmm0_8
+
+    v3 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)g_pNetworkSystem + 264LL))(g_pNetworkSystem);// 0x108 = 264LL = INetworkSystem_GetLocalAdr
+    v4 = *(_QWORD *)v3;
+    LODWORD(v3) = *(_DWORD *)(v3 + 8);
+    *(_QWORD *)a2 = v4;
+    *(_DWORD *)(a2 + 8) = v3;
+    return a2;
+  }
