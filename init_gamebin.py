@@ -680,6 +680,28 @@ def push_local_binsync_history(repo_path: Path) -> None:
         )
 
 
+def configure_binsync_git_identity(repo_path: Path) -> None:
+    """Persist the export identity in this repository, independent of runner config."""
+    identity = {}
+    for key, variable, default in (
+        ("user.name", "BINSYNC_GIT_USER_NAME", "github-actions[bot]"),
+        ("user.email", "BINSYNC_GIT_USER_EMAIL", "github-actions[bot]@users.noreply.github.com"),
+    ):
+        value = os.environ.get(variable) or default
+        if not value.strip() or any(character in value for character in "\r\n\0<>"):
+            raise InitGamebinError(
+                f"invalid {variable} for BinSync repository {repo_path}: expected a nonempty Git identity"
+            )
+        identity[key] = value.strip()
+    for key, value in identity.items():
+        run_command(
+            ["git", "config", "--local", "--replace-all", key, value],
+            repo_path,
+            capture=True,
+            label=f"configuring BinSync {key} in {repo_path}",
+        )
+
+
 def initialize_minimal_binsync_repo(repo_path: Path, binary_md5: str, repo_name: str, user: str) -> None:
     """Create the local root and user branches a publishable BinSync repo needs.
 
@@ -688,6 +710,7 @@ def initialize_minimal_binsync_repo(repo_path: Path, binary_md5: str, repo_name:
     when it initializes a repository.
     """
     run_command(["git", "init"], repo_path, capture=True, label=f"initializing {repo_name}")
+    configure_binsync_git_identity(repo_path)
     try:
         (repo_path / ".gitignore").write_text(".git/*\n", encoding="utf-8")
         (repo_path / "binary_hash").write_text(binary_md5, encoding="utf-8")
@@ -695,16 +718,7 @@ def initialize_minimal_binsync_repo(repo_path: Path, binary_md5: str, repo_name:
         raise InitGamebinError(f"unable to write the BinSync root files for {repo_name}: {exc}") from exc
     run_command(["git", "add", ".gitignore", "binary_hash"], repo_path, label=f"staging {repo_name}")
     run_command(
-        [
-            "git",
-            "-c",
-            f"user.name={user}",
-            "-c",
-            f"user.email={user}@binsync.local",
-            "commit",
-            "-m",
-            "Root commit",
-        ],
+        ["git", "commit", "-m", "Root commit"],
         repo_path,
         capture=True,
         label=f"creating the BinSync root commit for {repo_name}",
@@ -733,16 +747,7 @@ def initialize_minimal_binsync_repo(repo_path: Path, binary_md5: str, repo_name:
         label=f"staging the BinSync user files for {repo_name}",
     )
     run_command(
-        [
-            "git",
-            "-c",
-            f"user.name={user}",
-            "-c",
-            f"user.email={user}@binsync.local",
-            "commit",
-            "-m",
-            "Generic BS Commit",
-        ],
+        ["git", "commit", "-m", "Generic BS Commit"],
         repo_path,
         capture=True,
         label=f"creating the BinSync user commit for {repo_name}",
