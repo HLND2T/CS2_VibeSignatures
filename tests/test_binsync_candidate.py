@@ -15,6 +15,7 @@ import init_gamebin
 import release_artifact_rebuild as rebuild
 from ida_analyze_util import canonical_symbol_yaml_bytes
 from tests.gamesymbol_snapshot_test_support import write_binary, write_config, write_source_binary_lock
+from tests.optional_dependencies import require_binsync, requires_binsync
 
 
 def _build_min_pe(first_section_rva: int = 0x1000) -> bytes:
@@ -32,6 +33,7 @@ def _build_min_pe(first_section_rva: int = 0x1000) -> bytes:
     return bytes(dos) + bytes(pe) + bytes(section)
 
 
+@requires_binsync
 class BinSyncCandidateTests(unittest.TestCase):
     def _git(self, root: Path, *arguments: str, input_text: str | None = None) -> str:
         result = subprocess.run(
@@ -46,6 +48,7 @@ class BinSyncCandidateTests(unittest.TestCase):
         return result.stdout.strip()
 
     def _repository(self, root: Path) -> tuple[str, dict, Path]:
+        require_binsync()
         self._git(root, "init", "-b", "main")
         self._git(root, "config", "user.email", "test@example.com")
         self._git(root, "config", "user.name", "Test")
@@ -75,6 +78,9 @@ class BinSyncCandidateTests(unittest.TestCase):
         )
         binary = root / "bin" / "1" / "server" / "server.dll"
         write_binary(binary, _build_min_pe())
+        # A rebuilt release ships the warm IDA database of every configured binary;
+        # the release-bundle producer stages and archives exactly these files.
+        Path(f"{binary}.i64").write_bytes(b"deterministic warm ida database\n")
         write_source_binary_lock(root, "1")
         empty_tree = self._git(root, "mktree", input_text="")
         sdk_commit = self._git(
