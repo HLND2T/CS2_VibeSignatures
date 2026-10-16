@@ -8,6 +8,7 @@ from pathlib import Path
 from unittest.mock import call, patch
 
 import headless_force_push
+from tests.optional_dependencies import requires_binsync
 
 
 PROXY_INSTEADOF_ENV = {
@@ -39,6 +40,7 @@ def _make_local_repo(repo: Path) -> None:
     )
 
 
+@requires_binsync
 class HeadlessForcePushTests(unittest.TestCase):
     def test_local_only_transport_restores_origin_and_observes_remote_without_writes(self) -> None:
         remote = "https://github.com/HLND2T/CS2_VibeSignatures_binsync_1_server.dll"
