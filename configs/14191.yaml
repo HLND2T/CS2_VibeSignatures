@@ -7353,6 +7353,26 @@ modules:
     path_windows: game/csgo/bin/win64/server.dll
     path_linux: game/csgo/bin/linuxsteamrt64/libserver.so
     skills:
+      - name: find-CGameConfiguration_ComputeMaxClients
+        platform: windows
+        expected_output:
+          - CGameConfiguration_ComputeMaxClients.{platform}.yaml
+      - name: find-CGameConfiguration_GetPlayerLimits
+        platform: linux
+        expected_output:
+          - CGameConfiguration_GetPlayerLimits.{platform}.yaml
+      - name: find-ICommandLine_float-windows
+        platform: windows
+        expected_output:
+          - ICommandLine_float.{platform}.yaml
+        expected_input:
+          - CGameConfiguration_ComputeMaxClients.{platform}.yaml
+      - name: find-ICommandLine_float-linux
+        platform: linux
+        expected_output:
+          - ICommandLine_float.{platform}.yaml
+        expected_input:
+          - CGameConfiguration_GetPlayerLimits.{platform}.yaml
       - name: find-CSource2Server_vtable
         expected_output:
           - CSource2Server_vtable.{platform}.yaml
@@ -10708,6 +10728,17 @@ modules:
         expected_input:
           - CEntitySystem_FindComponentTypeByName.{platform}.yaml
     symbols:
+      - name: CGameConfiguration_ComputeMaxClients
+        category: func
+        platform: windows
+        alias: [CGameConfiguration::ComputeMaxClients]
+      - name: CGameConfiguration_GetPlayerLimits
+        category: func
+        platform: linux
+        alias: [CGameConfiguration::GetPlayerLimits]
+      - name: ICommandLine_float
+        category: vfunc
+        alias: [ICommandLine::float]
       - name: CSource2Server_vtable
         category: vtable
       - name: CSource2Server_GetAllServerClasses
@@ -14990,6 +15021,20 @@ modules:
       - name: find-CCommandLine_vtable
         expected_output:
           - CCommandLine_vtable.{platform}.yaml
+      - name: find-CCommandLine_float-windows
+        platform: windows
+        expected_output:
+          - CCommandLine_float.{platform}.yaml
+        expected_input:
+          - CCommandLine_vtable.{platform}.yaml
+          - ../server/ICommandLine_float.{platform}.yaml
+      - name: find-CCommandLine_float-linux
+        platform: linux
+        expected_output:
+          - CCommandLine_float.{platform}.yaml
+        expected_input:
+          - CCommandLine_vtable.{platform}.yaml
+          - ../server/ICommandLine_float.{platform}.yaml
       - name: find-CCommandLine_CreateCmdLinePrependAppName
         expected_output:
           - CCommandLine_CreateCmdLinePrependAppName.{platform}.yaml
@@ -15026,6 +15071,9 @@ modules:
     symbols:
       - name: CCommandLine_vtable
         category: vtable
+      - name: CCommandLine_float
+        category: vfunc
+        alias: [CCommandLine::float]
       - name: CCommandLine_CreateCmdLinePrependAppName
         category: vfunc
         alias:

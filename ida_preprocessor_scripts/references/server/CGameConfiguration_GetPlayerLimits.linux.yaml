@@ -1,0 +1,199 @@
+func_name: CGameConfiguration_GetPlayerLimits
+func_va: '0x17134d0'
+disasm_code: |-
+  .text:00000000017134D0                 push    rbp
+  .text:00000000017134D1                 mov     rbp, rsp
+  .text:00000000017134D4                 push    rbx
+  .text:00000000017134D5                 mov     rbx, rsi
+  .text:00000000017134D8                 sub     rsp, 18h
+  .text:00000000017134DC                 cmp     byte ptr [rsi+72h], 0
+  .text:00000000017134E0                 jnz     loc_1713580
+  .text:00000000017134E6                 mov     rax, [rdi]
+  .text:00000000017134E9                 lea     rdx, sub_16EA9E0
+  .text:00000000017134F0                 mov     rax, [rax+118h]
+  .text:00000000017134F7                 cmp     rax, rdx
+  .text:00000000017134FA                 jnz     loc_17135C8
+  .text:0000000001713500                 mov     [rbp+var_1C], 1
+  .text:0000000001713507                 mov     [rbp+var_18], 20h ; ' '
+  .text:000000000171350E                 mov     [rbp+var_14], 20h ; ' '
+  .text:0000000001713515                 mov     [rbp+var_1D], 1
+  .text:0000000001713519                 call    sub_9FD2F0
+  .text:000000000171351E                 mov     edx, 0FFFFFFFFh
+  .text:0000000001713523                 mov     esi, 0B3CF3195h
+  .text:0000000001713528                 mov     rdi, rax
+  .text:000000000171352B                 mov     rax, [rax]
+  .text:000000000171352E                 call    qword ptr [rax+48h] ; 0x48 = 72LL = ICommandLine_float (integer ParmValue, requested name)
+  .text:0000000001713531                 movd    xmm1, [rbp+var_1C]
+  .text:0000000001713536                 movd    xmm2, [rbp+var_18]
+  .text:000000000171353B                 movd    xmm0, eax
+  .text:000000000171353F                 movd    eax, xmm0
+  .text:0000000001713543                 test    eax, eax
+  .text:0000000001713545                 jle     short loc_17135B8
+  .text:0000000001713547                 pminsd  xmm0, xmm2
+  .text:000000000171354C                 movdqa  xmm3, xmm0
+  .text:0000000001713550                 movd    ecx, xmm0
+  .text:0000000001713554                 pmaxsd  xmm3, xmm1
+  .text:0000000001713559                 movdqa  xmm2, xmm3
+  .text:000000000171355D                 movd    edx, xmm1
+  .text:0000000001713561                 pminsd  xmm0, xmm2
+  .text:0000000001713566                 movzx   eax, [rbp+var_1D]
+  .text:000000000171356A                 cmp     ecx, edx
+  .text:000000000171356C                 movd    ecx, xmm0
+  .text:0000000001713570                 cmovl   ecx, edx
+  .text:0000000001713573                 movd    xmm0, ecx
+  .text:0000000001713577                 jmp     short loc_1713592
+  .text:0000000001713580                 movdqa  xmm0, cs:xmmword_8CB140
+  .text:0000000001713588                 xor     eax, eax
+  .text:000000000171358A                 movdqa  xmm2, xmm0
+  .text:000000000171358E                 movdqa  xmm1, xmm0
+  .text:0000000001713592                 or      dword ptr [rbx+10h], 7100h
+  .text:0000000001713599                 movd    dword ptr [rbx+74h], xmm1
+  .text:000000000171359E                 movd    dword ptr [rbx+78h], xmm2
+  .text:00000000017135A3                 movd    dword ptr [rbx+7Ch], xmm0
+  .text:00000000017135A8                 mov     [rbx+70h], al
+  .text:00000000017135AB                 mov     rbx, [rbp+var_8]
+  .text:00000000017135AF                 leave
+  .text:00000000017135B0                 retn
+  .text:00000000017135B8                 movd    xmm0, [rbp+var_14]
+  .text:00000000017135BD                 movd    ecx, xmm0
+  .text:00000000017135C1                 jmp     short loc_171355D
+  .text:00000000017135C8                 lea     rsi, [rbp+var_1C]
+  .text:00000000017135CC                 lea     rcx, [rbp+var_14]
+  .text:00000000017135D0                 lea     rdx, [rbp+var_18]
+  .text:00000000017135D4                 lea     r8, [rbp+var_1D]
+  .text:00000000017135D8                 call    rax
+  .text:00000000017135DA                 mov     esi, [rbp+var_1C]
+  .text:00000000017135DD                 test    esi, esi
+  .text:00000000017135DF                 jle     short loc_171362C
+  .text:00000000017135E1                 mov     eax, [rbp+var_14]
+  .text:00000000017135E4                 test    eax, eax
+  .text:00000000017135E6                 jle     short loc_171361E
+  .text:00000000017135E8                 mov     edx, [rbp+var_18]
+  .text:00000000017135EB                 cmp     esi, eax
+  .text:00000000017135ED                 cmovge  eax, esi
+  .text:00000000017135F0                 cmp     edx, eax
+  .text:00000000017135F2                 jl      short loc_1713610
+  .text:00000000017135F4                 cmp     edx, 40h ; '@'
+  .text:00000000017135F7                 jle     loc_1713519
+  .text:00000000017135FD                 lea     rdi, aGetplayerlimit; "GetPlayerLimits:  max players limited t"...
+  .text:0000000001713604                 mov     esi, 40h ; '@'
+  .text:0000000001713609                 xor     eax, eax
+  .text:000000000171360B                 call    sub_9FC9A0
+  .text:0000000001713610                 lea     rdi, aGetplayerlimit_0; "GetPlayerLimits:  min maxplayers %i > m"...
+  .text:0000000001713617                 xor     eax, eax
+  .text:0000000001713619                 call    sub_9FC9A0
+  .text:000000000171361E                 lea     rdi, aGetplayerlimit_1; "GetPlayerLimits:  default maxplayers mu"...
+  .text:0000000001713625                 xor     eax, eax
+  .text:0000000001713627                 call    sub_9FC9A0
+  .text:000000000171362C                 lea     rdi, aGetplayerlimit_2; "GetPlayerLimits:  min maxplayers must b"...
+  .text:0000000001713633                 xor     eax, eax
+  .text:0000000001713635                 call    sub_9FC9A0
+  .text:000000000171363A                 lea     rdi, aBasicStringAss; "basic_string::assign"
+  .text:0000000001713641                 call    sub_9F7D40
+  .text:0000000001713646                 lea     rdi, aBasicStringSCo; "basic_string::_S_construct null not val"...
+  .text:000000000171364D                 call    sub_9F7D30
+  .text:0000000001713652                 lea     rdi, aBasicStringSCr; "basic_string::_S_create"
+  .text:0000000001713659                 call    sub_9F7D40
+procedure: |-
+  __int64 __fastcall CGameConfiguration_GetPlayerLimits(__int64 a1, __int64 a2)
+  {
+    __int64 (__fastcall *v3)(); // rax
+    __int64 v4; // rax
+    unsigned int v5; // eax
+    __m128i v6; // xmm1
+    __m128i v7; // xmm2
+    __m128i v8; // xmm0
+    __m128i v9; // xmm0
+    int v10; // ecx
+    int v11; // edx
+    __int64 result; // rax
+    bool v13; // cc
+    unsigned int v14; // ecx
+    __m128i si128; // xmm0
+    __int64 v16; // rsi
+    signed int v17; // eax
+    signed int v18; // edx
+    unsigned __int8 v19; // [rsp+3h] [rbp-1Dh] BYREF
+    signed int v20; // [rsp+4h] [rbp-1Ch] BYREF
+    signed int v21; // [rsp+8h] [rbp-18h] BYREF
+    unsigned int v22[3]; // [rsp+Ch] [rbp-14h] BYREF
+
+    if ( *(_BYTE *)(a2 + 114) )
+    {
+      si128 = _mm_load_si128((const __m128i *)&xmmword_8CB140);
+      result = 0;
+      v7 = si128;
+      v6 = si128;
+      goto LABEL_10;
+    }
+    v3 = *(__int64 (__fastcall **)())(*(_QWORD *)a1 + 280LL);
+    if ( v3 != sub_16EA9E0 )
+    {
+      ((void (__fastcall *)(__int64, signed int *, signed int *, unsigned int *, unsigned __int8 *))v3)(
+        a1,
+        &v20,
+        &v21,
+        v22,
+        &v19);
+      v16 = (unsigned int)v20;
+      if ( v20 > 0 )
+      {
+        v17 = v22[0];
+        if ( (int)v22[0] > 0 )
+        {
+          v18 = v21;
+          if ( v20 >= (int)v22[0] )
+            v17 = v20;
+          if ( v21 >= v17 )
+          {
+            if ( v21 <= 64 )
+              goto LABEL_4;
+            v16 = 64;
+            sub_9FC9A0("GetPlayerLimits:  max players limited to %i", 64);
+          }
+          sub_9FC9A0("GetPlayerLimits:  min maxplayers %i > max %i", v16, v18);
+        }
+        sub_9FC9A0("GetPlayerLimits:  default maxplayers must be >= 1 (%i)", v16);
+      }
+      sub_9FC9A0("GetPlayerLimits:  min maxplayers must be >= 1 (%i)", v16);
+      sub_9F7D40("basic_string::assign", v16);
+      sub_9F7D30("basic_string::_S_construct null not valid");
+      sub_9F7D40("basic_string::_S_create", v16);
+      JUMPOUT(0x171365E);
+    }
+    v20 = 1;
+    v21 = 32;
+    v22[0] = 32;
+    v19 = 1;
+  LABEL_4:
+    v4 = sub_9FD2F0();
+    v5 = (*(__int64 (__fastcall **)(__int64, __int64, __int64))(*(_QWORD *)v4 + 72LL))(v4, 3016700309LL, 0xFFFFFFFFLL); // 0x48 = 72LL = ICommandLine_float (integer ParmValue, requested name)
+    v6 = _mm_cvtsi32_si128(v20);
+    v7 = _mm_cvtsi32_si128(v21);
+    v8 = _mm_cvtsi32_si128(v5);
+    if ( _mm_cvtsi128_si32(v8) <= 0 )
+    {
+      v9 = _mm_cvtsi32_si128(v22[0]);
+      v10 = _mm_cvtsi128_si32(v9);
+    }
+    else
+    {
+      v9 = _mm_min_epi32(v8, v7);
+      v10 = _mm_cvtsi128_si32(v9);
+      v7 = _mm_max_epi32(v9, v6);
+    }
+    v11 = _mm_cvtsi128_si32(v6);
+    result = v19;
+    v13 = v10 < v11;
+    v14 = _mm_cvtsi128_si32(_mm_min_epi32(v9, v7));
+    if ( v13 )
+      v14 = v11;
+    si128 = _mm_cvtsi32_si128(v14);
+  LABEL_10:
+    *(_DWORD *)(a2 + 16) |= 0x7100u;
+    *(_DWORD *)(a2 + 116) = _mm_cvtsi128_si32(v6);
+    *(_DWORD *)(a2 + 120) = _mm_cvtsi128_si32(v7);
+    *(_DWORD *)(a2 + 124) = _mm_cvtsi128_si32(si128);
+    *(_BYTE *)(a2 + 112) = result;
+    return result;
+  }
