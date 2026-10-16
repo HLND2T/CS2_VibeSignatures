@@ -33,13 +33,17 @@ jobs:
   validate:
     needs: warmup-idb
     environment: win64
-    runs-on: [self-hosted, windows, x64]
+    runs-on: [self-hosted, cross-platform]
     env:
       GAMEVER: ${{ inputs.gamever }}
       SOURCE_SHA: ${{ inputs.source_sha }}
       PLAN_SHA256: ${{ inputs.plan_sha256 }}
       BINARY_LOCK_SHA256: ${{ needs.warmup-idb.outputs.binary_lock_sha256 }}
-      PERSISTED_WORKSPACE: ${{ secrets.PERSISTED_WORKSPACE }}
+      IDB_CACHE_GENERATION: ${{ needs.warmup-idb.outputs.generation }}
+      IDB_CACHE_KEY: ${{ needs.warmup-idb.outputs.cache_key }}
+      IDB_CACHE_LEASE_ID: ${{ needs.warmup-idb.outputs.lease_id }}
+      IDB_CACHE_LEASE_SHA256: ${{ needs.warmup-idb.outputs.lease_sha256 }}
+      CI_CACHE_ROOT: ${{ github.workspace }}/.ci-cache/store
       CS2VIBE_AGENT: ${{ secrets.CS2VIBE_AGENT }}
       CS2VIBE_AGENT_MODEL: ${{ secrets.CS2VIBE_AGENT_MODEL }}
       CS2VIBE_LLM_APIKEY: ${{ secrets.CS2VIBE_LLM_APIKEY }}
@@ -49,6 +53,8 @@ jobs:
       CS2VIBE_LLM_MODEL: ${{ secrets.CS2VIBE_LLM_MODEL }}
       DEPOTDOWNLOADER_STEAM_USERNAME: ${{ secrets.DEPOTDOWNLOADER_STEAM_USERNAME }}
       DEPOTDOWNLOADER_STEAM_PASSWORD: ${{ secrets.DEPOTDOWNLOADER_STEAM_PASSWORD }}
+      CI_KIND: bridge-pr
+      PYTHONUTF8: '1'
     steps:
       - name: Checkout exact prospective merge tree as data
         uses: actions/checkout@v5
@@ -57,7 +63,23 @@ jobs:
           fetch-depth: 1
           submodules: recursive
           persist-credentials: false
-      - uses: astral-sh/setup-uv@v9.0.0
+      - uses: hzqst/setup-uv@ed37cb7af6cd89cb8e2ea2f20674ba1d05dc7b35 # S3 cache backend
+        with:
+          # enable-cache: auto resolves to false on self-hosted runners, so the uv
+          # cache is shared through the existing repository S3 bucket instead.
+          enable-cache: true
+          cache-s3-bucket: actions-cache-cs2-vibesignatures
+        env:
+          S3_ENDPOINT_URL: ${{ secrets.S3_ENDPOINT_URL }}
+          S3_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY_ID }}
+          S3_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
+      - name: Checkout cache transport tools from workflow source
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: .cache-tools
+          fetch-depth: 1
+          persist-credentials: false
       - name: Checkout trusted base verification tools
         uses: actions/checkout@v5
         with:
@@ -67,143 +89,121 @@ jobs:
           persist-credentials: false
           path: .trusted-tools
       - name: Sync trusted verification environment
-        shell: pwsh
-        run: uv sync --project .trusted-tools --locked
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: sync-trusted
       - name: Download bound trusted plan
         uses: actions/download-artifact@v5
         with:
           name: ${{ inputs.plan_artifact_name }}
           path: ${{ runner.temp }}/trusted-pr-plan
+      - name: Prepare clean job-local cache layout
+        id: s3-layout
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: cache-prepare
+      - name: Restore accepted binaries from S3
+        id: s3-accepted
+        uses: ./.cache-tools/.github/actions/s3-cache
+        with:
+          endpoint-url: ${{ secrets.S3_ENDPOINT_URL }}
+          access-key: ${{ secrets.S3_ACCESS_KEY_ID }}
+          secret-key: ${{ secrets.S3_SECRET_ACCESS_KEY }}
+          operation: restore
+          key: ${{ steps.s3-layout.outputs.accepted-key }}
+          path: ${{ steps.s3-layout.outputs.accepted-path }}
+          restore-keys: ${{ steps.s3-layout.outputs.accepted-restore-keys }}
+      - name: Restore depot binaries from S3
+        id: s3-depot
+        if: steps.s3-accepted.outputs.cache-restored != 'true'
+        uses: ./.cache-tools/.github/actions/s3-cache
+        with:
+          endpoint-url: ${{ secrets.S3_ENDPOINT_URL }}
+          access-key: ${{ secrets.S3_ACCESS_KEY_ID }}
+          secret-key: ${{ secrets.S3_SECRET_ACCESS_KEY }}
+          operation: restore
+          key: ${{ steps.s3-layout.outputs.depot-key }}
+          path: ${{ steps.s3-layout.outputs.depot-path }}
+          restore-keys: ${{ steps.s3-layout.outputs.depot-restore-keys }}
+      - name: Verify restored binary caches against source lock
+        env:
+          CACHE_ACCEPTED_HIT: ${{ steps.s3-accepted.outputs.cache-restored }}
+          CACHE_DEPOT_HIT: ${{ steps.s3-depot.outputs.cache-restored }}
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: cache-verify-restored
       - name: Validate source, plan, and binary-only workspace
-        shell: pwsh
-        run: |
-          $actualSource = (git rev-parse HEAD).Trim().ToLowerInvariant()
-          if ($actualSource -ne $env:SOURCE_SHA -or $env:PLAN_SHA256 -notmatch '^sha256:[0-9a-f]{64}$') {
-            throw "PR source or trusted plan identity drifted."
-          }
-          if ([string]::IsNullOrWhiteSpace($env:PERSISTED_WORKSPACE)) { throw "PERSISTED_WORKSPACE is not configured." }
-          if ($env:BINARY_LOCK_SHA256 -notmatch '^sha256:[0-9a-f]{64}$') {
-            throw "Warmup omitted the source binary lock identity."
-          }
-          $planPath = Join-Path "${{ runner.temp }}" "trusted-pr-plan\trusted-source-artifact-plan.json"
-          $plan = Get-Content -LiteralPath $planPath -Raw | ConvertFrom-Json
-          $version = @($plan.game_versions | Where-Object { $_.game_version -eq $env:GAMEVER })
-          if ($version.Count -ne 1 -or $version[0].merge_binary_lock_sha256 -ne $env:BINARY_LOCK_SHA256) {
-            throw "Warmup binary lock identity differs from the trusted plan."
-          }
-          $workspaceBin = Join-Path "${{ github.workspace }}" "bin"
-          New-Item -ItemType Directory -Path $workspaceBin -Force | Out-Null
-          if ((Get-Item -LiteralPath $workspaceBin -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) {
-            throw "PR workspace bin must be a real directory."
-          }
-          $restoreJson = uv run --project .trusted-tools python .trusted-tools/source_artifact_accepted_bin.py restore `
-            --repo-root "${{ github.workspace }}" --persisted-root "$env:PERSISTED_WORKSPACE" `
-            --gamever "$env:GAMEVER"
-          if ($LASTEXITCODE -ne 0) { throw "Failed to restore the exact accepted binary allowlist." }
-          $restore = $restoreJson | ConvertFrom-Json
-          if ($restore.binary_lock_sha256 -ne $env:BINARY_LOCK_SHA256) {
-            throw "Restored accepted binaries differ from the trusted plan lock."
-          }
-          uv run init_gamebin.py prepare "$env:GAMEVER" --binsync skip
-          if ($LASTEXITCODE -ne 0) { throw "Binary initialization failed for $env:GAMEVER." }
-          $verifyJson = uv run --project .trusted-tools python .trusted-tools/source_artifact_accepted_bin.py verify `
-            --repo-root "${{ github.workspace }}" --gamever "$env:GAMEVER"
-          if ($LASTEXITCODE -ne 0) { throw "PR binaries do not match the source lock." }
-          $verification = $verifyJson | ConvertFrom-Json
-          if ($verification.binary_lock_sha256 -ne $env:BINARY_LOCK_SHA256) {
-            throw "PR binary lock identity drifted after initialization."
-          }
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: accepted-restore
+      - name: Resolve exact S3 generation and lease paths
+        id: s3-selection
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: cache-selection
+      - name: Restore exact warm IDB payload from S3
+        id: s3-generation
+        uses: ./.cache-tools/.github/actions/s3-cache
+        with:
+          endpoint-url: ${{ secrets.S3_ENDPOINT_URL }}
+          access-key: ${{ secrets.S3_ACCESS_KEY_ID }}
+          secret-key: ${{ secrets.S3_SECRET_ACCESS_KEY }}
+          operation: restore
+          key: ${{ steps.s3-selection.outputs.generation-key }}
+          path: ${{ steps.s3-selection.outputs.generation-path }}
+          required: 'true'
+      - name: Restore current-run IDB lease from S3
+        id: s3-lease
+        uses: ./.cache-tools/.github/actions/s3-cache
+        with:
+          endpoint-url: ${{ secrets.S3_ENDPOINT_URL }}
+          access-key: ${{ secrets.S3_ACCESS_KEY_ID }}
+          secret-key: ${{ secrets.S3_SECRET_ACCESS_KEY }}
+          operation: restore
+          key: ${{ steps.s3-selection.outputs.lease-key }}
+          path: ${{ steps.s3-selection.outputs.lease-path }}
+          required: 'true'
       - name: Resolve and restore exact warm IDB generation
-        shell: pwsh
-        run: |
-          $pythonExe = (Get-Command python -ErrorAction SilentlyContinue).Source
-          $idaVersion = (& $pythonExe warmup_idb_worker.py --print-ida-version).Trim()
-          if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($idaVersion)) {
-            throw "Unable to resolve the IDA runtime identity."
-          }
-          $probe = Join-Path $env:RUNNER_TEMP "idb-probe-$env:GAMEVER.txt"
-          uv run python idb_cache.py probe --repo-root "${{ github.workspace }}" `
-            --persisted-root "$env:PERSISTED_WORKSPACE" --gamever "$env:GAMEVER" `
-            --ida-version "$idaVersion" --github-output "$probe"
-          if ($LASTEXITCODE -ne 0) { throw "Warm IDB probe failed." }
-          $values = @{}
-          Get-Content -LiteralPath $probe | ForEach-Object {
-            $key, $value = $_ -split '=', 2
-            $values[$key] = $value
-          }
-          if ($values['cache-hit'] -ne 'true') { throw "Warmup did not publish the required IDB generation." }
-          uv run python idb_cache.py restore --repo-root "${{ github.workspace }}" `
-            --persisted-root "$env:PERSISTED_WORKSPACE" --gamever "$env:GAMEVER" `
-            --generation $values['generation'] --cache-key $values['cache-key'] --ida-version "$idaVersion"
-          if ($LASTEXITCODE -ne 0) { throw "Warm IDB restore failed." }
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: idb-restore
       - name: Prepare checkout-external full rebuild
         id: prepare-rebuild
-        shell: pwsh
-        run: |
-          $plan = Join-Path "${{ runner.temp }}" "trusted-pr-plan\trusted-source-artifact-plan.json"
-          $staging = Join-Path "${{ runner.temp }}" "trusted-pr-rebuild\${{ github.run_id }}-${{ github.run_attempt }}-$env:GAMEVER"
-          uv run --project .trusted-tools python .trusted-tools/trusted_artifact_pr.py prepare `
-            --repo-root "${{ github.workspace }}" `
-            --plan "$plan" --gamever "$env:GAMEVER" --staging-root "$staging"
-          if ($LASTEXITCODE -ne 0) { throw "Trusted isolated rebuild preparation failed." }
-          $preparation = Join-Path $staging "preparation.json"
-          $document = Get-Content -LiteralPath $preparation -Raw | ConvertFrom-Json
-          if ($document.plan_sha256 -ne $env:PLAN_SHA256) { throw "Preparation is not bound to the trusted plan." }
-          $executionReport = $document.execution_reports.PSObject.Properties[$env:GAMEVER].Value
-          if ([string]::IsNullOrWhiteSpace($executionReport)) { throw "Preparation omitted GAMEVER execution evidence." }
-          "plan=$plan" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "preparation=$preparation" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "actual-root=$($document.actual_artifact_root)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "config=$($document.config_root)\$env:GAMEVER.yaml" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "execution-report=$executionReport" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "verification=$(Join-Path $staging 'validation.json')" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: pr-prepare
       - name: Execute every producer group from an empty artifact root
-        shell: pwsh
-        run: |
-          uv run ida_analyze_bin.py -gamever "$env:GAMEVER" `
-            -configyaml "${{ steps.prepare-rebuild.outputs.config }}" -bindir bin `
-            -artifactdir "${{ steps.prepare-rebuild.outputs.actual-root }}" -oldartifactdir bin_artifacts `
-            -execution_report "${{ steps.prepare-rebuild.outputs.execution-report }}" `
-            -require_warm_idb -force_all -debug
-          if ($LASTEXITCODE -ne 0) { throw "Force-all PR artifact rebuild failed." }
+        env:
+          CI_CONFIG: ${{ steps.prepare-rebuild.outputs.config }}
+          CI_ACTUAL_ROOT: ${{ steps.prepare-rebuild.outputs.actual-root }}
+          CI_EXECUTION_REPORT: ${{ steps.prepare-rebuild.outputs.execution-report }}
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: pr-execute
       - name: Verify execution evidence and exact Git bytes
-        shell: pwsh
-        run: |
-          uv run --project .trusted-tools python .trusted-tools/trusted_artifact_pr.py verify `
-            --repo-root "${{ github.workspace }}" `
-            --plan "${{ steps.prepare-rebuild.outputs.plan }}" `
-            --preparation "${{ steps.prepare-rebuild.outputs.preparation }}" `
-            --output "${{ steps.prepare-rebuild.outputs.verification }}"
-          if ($LASTEXITCODE -ne 0) { throw "Isolated rebuild differs from trusted Git artifacts." }
+        env:
+          CI_PLAN: ${{ steps.prepare-rebuild.outputs.plan }}
+          CI_PREPARATION: ${{ steps.prepare-rebuild.outputs.preparation }}
+          CI_VERIFICATION: ${{ steps.prepare-rebuild.outputs.verification }}
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: pr-verify
       - name: Build and validate downstream candidates
         id: downstream
-        shell: pwsh
-        run: |
-          $root = Join-Path "${{ runner.temp }}" "trusted-pr-downstream\${{ github.run_id }}-${{ github.run_attempt }}-$env:GAMEVER"
-          New-Item -ItemType Directory -Path $root -Force | Out-Null
-          $snapshot = Join-Path $root "$env:GAMEVER.yaml"
-          $session = Join-Path $root "$env:GAMEVER.session.json"
-          $gamedataRoot = Join-Path $root "gamedata"
-          $gamedataSession = Join-Path $root "$env:GAMEVER.gamedata.session.json"
-          uv run gamesymbol_candidate.py build -gamever "$env:GAMEVER" -bindir bin `
-            -artifactdir "${{ steps.prepare-rebuild.outputs.actual-root }}" `
-            -configyaml "${{ steps.prepare-rebuild.outputs.config }}" -output "$snapshot" -session "$session"
-          if ($LASTEXITCODE -ne 0) { throw "Snapshot candidate build failed." }
-          uv run gamedata_candidate.py build -gamever "$env:GAMEVER" `
-            -build-id "${{ github.run_id }}-${{ github.run_attempt }}" -snapshot "$snapshot" `
-            -configyaml "${{ steps.prepare-rebuild.outputs.config }}" `
-            -candidate-root "$gamedataRoot" -session "$gamedataSession" -debug
-          if ($LASTEXITCODE -ne 0) { throw "Gamedata candidate validation failed." }
-          uv run gamedata_candidate.py guard -session "$gamedataSession"
-          if ($LASTEXITCODE -ne 0) { throw "Gamedata candidate guard failed." }
-          "snapshot=$snapshot" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-      - name: Run C++ ABI validation
-        shell: pwsh
-        run: |
-          uv run run_cpp_tests.py -gamever "$env:GAMEVER" `
-            -snapshot "${{ steps.downstream.outputs.snapshot }}" `
-            -configyaml "${{ steps.prepare-rebuild.outputs.config }}" -debug
-          if ($LASTEXITCODE -ne 0) { throw "C++ ABI validation failed." }
+        env:
+          CI_CONFIG: ${{ steps.prepare-rebuild.outputs.config }}
+          CI_ACTUAL_ROOT: ${{ steps.prepare-rebuild.outputs.actual-root }}
+        uses: ./.cache-tools/.github/actions/ci-command
+        with:
+          command: downstream
+      - name: Upload immutable hosted C++ inputs
+        id: cpp-validation
+        uses: actions/upload-artifact@v4
+        with:
+          name: cpp-input-bridge-pr-${{ inputs.gamever }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ steps.downstream.outputs.cpp-input-root }}
+          if-no-files-found: error
+          retention-days: 14
       - name: Upload bound rebuild evidence
         uses: actions/upload-artifact@v4
         with:
@@ -215,8 +215,13 @@ jobs:
             ${{ steps.prepare-rebuild.outputs.actual-root }}
           if-no-files-found: error
           retention-days: 7
+    outputs:
+      cpp_artifact_id: ${{ steps.cpp-validation.outputs.artifact-id }}
+      cpp_artifact_digest: ${{ steps.cpp-validation.outputs.artifact-digest }}
   verify-exported:
-    needs: validate
+    needs:
+      - validate
+      - cpp-validation
     runs-on: ubuntu-latest
     steps:
       - name: Checkout exact prospective merge tree as data
@@ -267,3 +272,13 @@ jobs:
           path: ${{ runner.temp }}/trusted-hosted-validation.json
           if-no-files-found: error
           retention-days: 7
+  cpp-validation:
+    needs: validate
+    uses: ./.github/workflows/cpp-validation.yml
+    with:
+      source_sha: ${{ inputs.source_sha }}
+      gamever: ${{ inputs.gamever }}
+      artifact_id: ${{ needs.validate.outputs.cpp_artifact_id }}
+      artifact_digest: ${{ needs.validate.outputs.cpp_artifact_digest }}
+      scope: bridge-pr
+      input_path: .
