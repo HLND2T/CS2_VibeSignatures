@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+"""Preprocess script for find-CNetChan_SendMessages_Internal skill.
+
+Resolves the standalone ``CNetChan_SendMessages_Internal`` helper by its unique XREF
+string. Its output is the prerequisite the ``-noinline`` caller-resolution path consumes.
+"""
+
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = ["CNetChan_SendMessages_Internal"]

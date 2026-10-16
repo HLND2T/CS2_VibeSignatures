@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+"""Preprocess script for find-CNetChan_SendMessages-inlined skill.
+
+Fallback path for when ``CNetChan_SendMessages_Internal`` is inlined into the vfunc:
+locates ``CNetChan_SendMessages`` by its unique XREF string and anchors it with the
+``CNetChan`` vtable relation.
+"""
+
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = ["CNetChan_SendMessages"]

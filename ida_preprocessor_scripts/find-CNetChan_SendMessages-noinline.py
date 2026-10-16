@@ -1,4 +1,14 @@
 #!/usr/bin/env python3
+"""Preprocess script for find-CNetChan_SendMessages-noinline skill.
+
+Resolves ``CNetChan_SendMessages`` as the caller of the standalone
+``CNetChan_SendMessages_Internal`` helper. This path only applies when the helper is
+NOT inlined into the vfunc. The ``CNetChan`` vtable relation then collapses the caller
+set to the single vtable member, so no fixed game-layout offset is needed to
+disambiguate. Its output is optional: when the caller cannot be resolved, the
+``find-CNetChan_SendMessages-inlined`` fallback runs instead.
+"""
+
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = ["CNetChan_SendMessages"]
@@ -13,24 +23,6 @@ FUNC_XREFS = [
         "exclude_strings": [],
         "exclude_gvs": [],
         "exclude_signatures": [],
-    }
-]
-
-FUNC_XREFS_WINDOWS = [
-    {
-        **FUNC_XREFS[0],
-        "exclude_signatures": [
-            "48 89 6C 24 ?? 56 57 41 56 48 83 EC ?? 80 B9 ?? 70 00 00 ??",
-        ],
-    }
-]
-
-FUNC_XREFS_LINUX = [
-    {
-        **FUNC_XREFS[0],
-        "exclude_signatures": [
-            "55 48 89 E5 41 56 49 89 F6 41 55 41 54 53 48 89 FB 48 83 EC ?? 80 BF ?? 70 00 00 ??",
-        ],
     }
 ]
 FUNC_VTABLE_RELATIONS = [("CNetChan_SendMessages", "CNetChan")]
@@ -53,7 +45,7 @@ async def preprocess_skill(
         platform=platform,
         image_base=image_base,
         func_names=TARGET_FUNCTION_NAMES,
-        func_xrefs=(FUNC_XREFS_WINDOWS if platform == "windows" else FUNC_XREFS_LINUX),
+        func_xrefs=FUNC_XREFS,
         func_vtable_relations=FUNC_VTABLE_RELATIONS,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
