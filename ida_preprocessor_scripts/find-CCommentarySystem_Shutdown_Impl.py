@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Find CScriptConvarAccessor::RegisterConvar from its diagnostic string."""
+"""Find CCommentarySystem_Shutdown_Impl from its diagnostic string."""
 
 from ida_analyze_util import preprocess_common_skill
 
