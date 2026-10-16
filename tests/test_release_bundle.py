@@ -21,6 +21,13 @@ from release_workflow_lib.hashing import file_inventory, sha256_file
 from tests import test_binsync_candidate as candidate_tests
 from tests.test_gamedata_candidate import GamedataCandidateFixture
 from tests import test_release_artifact_rebuild as rebuild_tests
+from tests.optional_dependencies import require_binsync, requires_7z
+
+
+def _refresh_binding_digest(manifest: dict, label: str) -> None:
+    unsigned = dict(manifest["full_rebuild"])
+    unsigned.pop("verification_sha256", None)
+    manifest["full_rebuild"]["verification_sha256"] = release_bundle._release_rebuild_digest(label, unsigned)
 
 
 class ReleaseBundleTests(unittest.TestCase):
@@ -32,6 +39,7 @@ class ReleaseBundleTests(unittest.TestCase):
             target.write_text("sdk\n", encoding="utf-8")
 
     def _fixture(self, temporary_root: Path) -> tuple[Path, dict, Path, dict]:
+        require_binsync()
         candidate_fixture = candidate_tests.BinSyncCandidateTests()
         root = temporary_root / "repo"
         root.mkdir()
@@ -104,6 +112,7 @@ class ReleaseBundleTests(unittest.TestCase):
         }
         return root, preparation, binsync_root, {"binsync_manifest": binsync_manifest, **inputs}
 
+    @requires_7z
     def test_builds_and_hosted_verifies_exact_release_bundle(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             temporary_root = Path(temporary)
@@ -179,12 +188,63 @@ class ReleaseBundleTests(unittest.TestCase):
             self.assertEqual(manifest["source_sha"], verified["source_sha"])
             self.assertEqual(manifest["source_sha"], manifest["build_id"])
             self.assertEqual(manifest["binsync"]["target_state_digest"], verified["binsync_target_state_digest"])
-            self.assertEqual(4, len(manifest["public_assets"]))
+            self.assertEqual(5, len(manifest["public_assets"]))
+            self.assertIn("archives/gamebin-with-idb-1.7z", manifest["archives"])
+            # The warm IDB archive must bind the exact database of every configured
+            # binary, and nothing else.
+            idb_files = manifest["archives"]["archives/gamebin-with-idb-1.7z"]["files"]
+            self.assertEqual(["bin/1/server/server.dll.i64"], [item["path"] for item in idb_files])
+            with self.assertRaisesRegex(release_bundle.ReleaseBundleError, "exact warm IDB database inventory"):
+                release_bundle._verify_idb_archive_inventory(
+                    "1",
+                    release_bundle._binary_records(manifest["binary_inventory"]),
+                    [{"path": "bin/1/server/server.dll", "size": 1, "sha256": "0" * 64}],
+                )
             mutable_sdk = copy.deepcopy(manifest)
             mutable_sdk["cpp_sdk"] = {"ref": "cs2-1", "sha": manifest["cpp_sdk"]["sha"]}
             with self.assertRaisesRegex(release_bundle.ReleaseBundleError, "immutable source gitlink"):
                 release_bundle.validate_release_manifest(mutable_sdk)
 
+            self.assertEqual(rebuild.BINDING_RULE_VERSION, manifest["full_rebuild"]["binding_rule_version"])
+            # A rebuilt release must ship the warm IDB archive; dropping it from the
+            # allowlist while still declaring the current rule fails closed.
+            missing_idb = copy.deepcopy(manifest)
+            missing_idb["archives"].pop("archives/gamebin-with-idb-1.7z")
+            missing_idb["public_assets"] = [
+                item for item in missing_idb["public_assets"] if item["path"] != "archives/gamebin-with-idb-1.7z"
+            ]
+            with self.assertRaisesRegex(release_bundle.ReleaseBundleError, "public asset allowlist is invalid"):
+                release_bundle.validate_release_manifest(missing_idb)
+
+            # A manifest published before the IDB archive rule existed keeps four
+            # assets and is judged by the BinSync evidence rule alone.
+            rule_one = copy.deepcopy(manifest)
+            rule_one["full_rebuild"]["binding_rule_version"] = rebuild.BINSYNC_EVIDENCE_RULE_VERSION
+            rule_one["archives"].pop("archives/gamebin-with-idb-1.7z")
+            rule_one["public_assets"] = [
+                item for item in rule_one["public_assets"] if item["path"] != "archives/gamebin-with-idb-1.7z"
+            ]
+            _refresh_binding_digest(rule_one, "rebuild-verification")
+            release_bundle.validate_release_manifest(rule_one)
+
+            pre_rule = copy.deepcopy(manifest)
+            pre_rule["full_rebuild"].pop("binding_rule_version")
+            pre_rule["binsync"] = None
+            pre_rule["archives"].pop("archives/gamebin-with-idb-1.7z")
+            pre_rule["public_assets"] = [
+                item for item in pre_rule["public_assets"] if item["path"] != "archives/gamebin-with-idb-1.7z"
+            ]
+            for field in ("ida_runtime_identity", "warm_idb_generation", "warm_idb_cache_key"):
+                pre_rule[field] = None
+            _refresh_binding_digest(pre_rule, "rebuild-verification")
+            release_bundle.validate_release_manifest(pre_rule)
+            pre_rule_forged = copy.deepcopy(pre_rule)
+            pre_rule_forged["full_rebuild"]["binding_rule_version"] = "1"
+            _refresh_binding_digest(pre_rule_forged, "rebuild-verification")
+            with self.assertRaisesRegex(release_bundle.ReleaseBundleError, "binding rule version is invalid"):
+                release_bundle.validate_release_manifest(pre_rule_forged)
+
+    @requires_7z
     def test_builds_and_hosted_verifies_tracked_artifact_bundle(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             temporary_root = Path(temporary)
@@ -225,15 +285,29 @@ class ReleaseBundleTests(unittest.TestCase):
                     gamedata_candidate_root=inputs["gamedata_candidate"],
                     gamedata_session=temporary_root / "gamedata.session.json",
                     cpp_validation_log=inputs["cpp_log"],
-                    binsync_candidate_root=inputs["binsync_root"],
-                    ida_runtime_identity="IDA 9.2",
-                    warm_idb_generation="generation-1",
-                    warm_idb_cache_key="cache-key-1",
+                    # The rebuild-free path runs no IDA analysis, so it exports no
+                    # BinSync candidate and names no warm IDB generation.
+                    binsync_candidate_root=None,
+                    ida_runtime_identity=None,
+                    warm_idb_generation=None,
+                    warm_idb_cache_key=None,
                     actions_artifact_name=f"release-bundle-{preparation['source_sha']}-1",
                     cpp_sdk_ref=release_bundle.CPP_SDK_REF,
                     cpp_sdk_sha=preparation["sdk_gitlink_sha"],
                 )
                 self.assertEqual("tracked", manifest["full_rebuild"]["binding_mode"])
+                self.assertEqual(rebuild.BINDING_RULE_VERSION, manifest["full_rebuild"]["binding_rule_version"])
+                self.assertIsNone(manifest["binsync"])
+                # Nothing is analyzed, so no warm IDB archive is published.
+                self.assertEqual(4, len(manifest["public_assets"]))
+                self.assertNotIn("archives/gamebin-with-idb-1.7z", manifest["archives"])
+                self.assertEqual(
+                    [None, None, None],
+                    [
+                        manifest[field]
+                        for field in ("ida_runtime_identity", "warm_idb_generation", "warm_idb_cache_key")
+                    ],
+                )
                 verified = release_bundle.verify_release_bundle(
                     bundle_root=bundle_root,
                     repo_root=root,
@@ -242,13 +316,105 @@ class ReleaseBundleTests(unittest.TestCase):
                     expected_release_version="1",
                     expected_build_id=preparation["source_sha"],
                     expected_actions_artifact_name=f"release-bundle-{preparation['source_sha']}-1",
-                    expected_binsync_candidate_digest=inputs["binsync_manifest"]["publication_digest"],
-                    expected_binsync_target_state_digest=binsync_candidate.publication_target_state(
-                        inputs["binsync_manifest"]
-                    )["target_state_digest"],
                 )
+                with self.assertRaisesRegex(release_bundle.ReleaseBundleError, "publishes no BinSync candidate"):
+                    release_bundle.verify_release_bundle(
+                        bundle_root=bundle_root,
+                        repo_root=root,
+                        expected_binsync_candidate_digest=inputs["binsync_manifest"]["publication_digest"],
+                    )
             self.assertEqual(preparation["source_sha"], verified["source_sha"])
+            self.assertIsNone(verified["binsync_target_state_digest"])
             release_bundle.validate_release_manifest(manifest)
+
+            claimed_binsync = copy.deepcopy(manifest)
+            claimed_binsync["binsync"] = binsync_candidate.publication_target_state(inputs["binsync_manifest"])
+            with self.assertRaisesRegex(release_bundle.ReleaseBundleError, "must not claim BinSync"):
+                release_bundle.validate_release_manifest(claimed_binsync)
+
+            claimed_warm_idb = copy.deepcopy(manifest)
+            claimed_warm_idb["warm_idb_generation"] = "generation-1"
+            with self.assertRaisesRegex(release_bundle.ReleaseBundleError, "must not claim BinSync"):
+                release_bundle.validate_release_manifest(claimed_warm_idb)
+
+            claimed_idb_archive = copy.deepcopy(manifest)
+            claimed_idb_archive["public_assets"].append(
+                {
+                    "path": "archives/gamebin-with-idb-1.7z",
+                    "name": "gamebin-with-idb-1.7z",
+                    "size": 1,
+                    "sha256": "0" * 64,
+                }
+            )
+            with self.assertRaisesRegex(release_bundle.ReleaseBundleError, "must not ship a warm IDB archive"):
+                release_bundle.validate_release_manifest(claimed_idb_archive)
+
+            # 14180-14182 were published before the binding rule existed, by a
+            # tracked path that still exported BinSync and named a warm IDB. Such
+            # a manifest must keep hydrating: only the evidence rule is waived.
+            pre_rule_claims = copy.deepcopy(manifest)
+            pre_rule_claims["full_rebuild"].pop("binding_rule_version")
+            pre_rule_claims["binsync"] = binsync_candidate.publication_target_state(inputs["binsync_manifest"])
+            _refresh_binding_digest(pre_rule_claims, "tracked-artifact-binding")
+            self.assertEqual(0, release_bundle.manifest_binding_rule_version(pre_rule_claims))
+            release_bundle.validate_release_manifest(pre_rule_claims)
+
+    def test_source_binding_mode_decides_binsync_and_warm_idb_evidence(self) -> None:
+        # Exactly one of the two bindings carries IDA-derived evidence, so neither
+        # a tracked release can claim it nor a rebuilt release drop it.
+        arguments = {
+            "repository": "HLND2T/CS2_VibeSignatures",
+            "release_version": "1",
+            "build_id": "a" * 40,
+            "preparation": "prep.json",
+            "snapshot": "snap.yaml",
+            "metadata": "meta.yaml",
+            "gamedata_candidate_root": "gd",
+            "gamedata_session": "gd.json",
+            "cpp_validation_log": "cpp.log",
+            "actions_artifact_name": f"release-bundle-{'a' * 40}-1",
+            "cpp_sdk_ref": release_bundle.CPP_SDK_REF,
+            "cpp_sdk_sha": "5" * 40,
+        }
+        ida_evidence = {
+            "binsync_candidate_root": "bs",
+            "ida_runtime_identity": "IDA 9.2",
+            "warm_idb_generation": "g",
+            "warm_idb_cache_key": "c",
+        }
+        omitted_evidence = dict.fromkeys(ida_evidence)
+        with tempfile.TemporaryDirectory() as temporary:
+            bundle_root = Path(temporary) / "bundle"
+            with self.assertRaisesRegex(release_bundle.ReleaseBundleError, "must omit the BinSync candidate"):
+                release_bundle.build_release_bundle(
+                    repo_root=temporary,
+                    bundle_root=bundle_root,
+                    rebuild_verification=None,
+                    tracked_binding="binding.json",
+                    **arguments,
+                    **ida_evidence,
+                )
+            for dropped in ida_evidence:
+                with self.assertRaisesRegex(release_bundle.ReleaseBundleError, "require the BinSync candidate"):
+                    release_bundle.build_release_bundle(
+                        repo_root=temporary,
+                        bundle_root=bundle_root,
+                        rebuild_verification="verify.json",
+                        tracked_binding=None,
+                        **arguments,
+                        **{**ida_evidence, dropped: None},
+                    )
+            # A tracked binding that omits everything gets past this gate and only
+            # then fails on the missing preparation document.
+            with self.assertRaisesRegex(release_bundle.ReleaseBundleError, "prep.json"):
+                release_bundle.build_release_bundle(
+                    repo_root=temporary,
+                    bundle_root=bundle_root,
+                    rebuild_verification=None,
+                    tracked_binding="binding.json",
+                    **arguments,
+                    **omitted_evidence,
+                )
 
     def test_build_requires_exactly_one_source_binding(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -322,6 +488,7 @@ class ReleaseBundleTests(unittest.TestCase):
 
             self.assertEqual("", output.getvalue())
 
+    @requires_7z
     def test_verify_rejects_public_asset_tamper(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             temporary_root = Path(temporary)

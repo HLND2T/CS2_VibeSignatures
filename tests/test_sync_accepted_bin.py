@@ -4,7 +4,12 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from release_workflow_lib.binary_cache import IDA_DATABASE_SUFFIXES, version_lock
+from release_workflow_lib.binary_cache import (
+    IDA_DATABASE_SUFFIXES,
+    configured_binary_paths,
+    validate_binary_cache_tree,
+    version_lock,
+)
 from release_workflow_lib.errors import ReleaseWorkflowError
 from release_workflow_lib.legacy_yaml_cleanup import cleanup_legacy_accepted_yaml
 from release_workflow_lib.restore_accepted_bin import restore_accepted_bin
@@ -255,7 +260,7 @@ class TestSyncAcceptedBin(unittest.TestCase):
                     required=True,
                 )
 
-    def test_restore_rejects_extra_files_and_empty_directories(self) -> None:
+    def test_restore_treats_unexpected_cache_entries_as_a_soft_miss(self) -> None:
         for relative, message in (("unexpected.txt", "allowlist mismatch"), ("empty", "unexpected directories")):
             with self.subTest(relative=relative), tempfile.TemporaryDirectory() as temp_dir:
                 root = Path(temp_dir)
@@ -270,8 +275,70 @@ class TestSyncAcceptedBin(unittest.TestCase):
                 else:
                     unexpected.mkdir()
 
+                result = restore_accepted_bin(repo_root=repo, persisted_root=persisted, gamever=self.gamever)
+
+                self.assertFalse(result["restored"])
+                self.assertEqual("cache-invalid", result["reason"])
+                self.assertIn(message, result["detail"])
+                self.assertFalse((repo / "bin" / self.gamever).exists())
                 with self.assertRaisesRegex(ReleaseWorkflowError, message):
-                    restore_accepted_bin(repo_root=repo, persisted_root=persisted, gamever=self.gamever)
+                    restore_accepted_bin(
+                        repo_root=repo,
+                        persisted_root=persisted,
+                        gamever=self.gamever,
+                        required=True,
+                    )
+
+    def test_restore_treats_a_cache_predating_a_new_module_as_a_soft_miss(self) -> None:
+        # Adding a module to the config leaves the accepted cache holding the
+        # previous file set. That must not deadlock the consumer: the depot
+        # re-provisions the workspace and the later accepted-bin sync repairs the
+        # cache, so hard-failing here could never be recovered from.
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            repo = root / "repo"
+            persisted = root / "persisted"
+            self._write_source(repo)
+            sync_accepted_bin(repo_root=repo, persisted_root=persisted, gamever=self.gamever)
+            source_root = repo / "bin" / self.gamever
+            re_provisioned = root / "re-provisioned"
+
+            write_config(
+                repo / "configs" / f"{self.gamever}.yaml",
+                [
+                    {"name": "server", "path_windows": "game/bin/win64/server.dll", "skills": []},
+                    {"name": "engine", "path_linux": "game/bin/linuxsteamrt64/libengine2.so", "skills": []},
+                    {"name": "tier0", "path_windows": "game/bin/win64/tier0.dll", "skills": []},
+                ],
+            )
+            added = source_root / "tier0" / "tier0.dll"
+            added.parent.mkdir(parents=True, exist_ok=True)
+            added.write_bytes(b"tier0-added")
+            write_source_binary_lock(repo, self.gamever)
+            shutil.copytree(source_root, re_provisioned)
+            shutil.rmtree(source_root)
+
+            result = restore_accepted_bin(repo_root=repo, persisted_root=persisted, gamever=self.gamever)
+
+            self.assertFalse(result["restored"])
+            self.assertEqual("cache-invalid", result["reason"])
+            self.assertIn("tier0/tier0.dll", result["detail"])
+            self.assertRegex(result["binary_lock_sha256"], r"^sha256:[0-9a-f]{64}$")
+            self.assertFalse(source_root.exists())
+
+            # After the depot re-provisions the workspace, sync repairs the cache
+            # instead of failing on the stale file set.
+            shutil.copytree(re_provisioned, source_root)
+            repaired = sync_accepted_bin(repo_root=repo, persisted_root=persisted, gamever=self.gamever)
+
+            self.assertTrue(repaired["synced"])
+            accepted = persisted / "bin" / self.gamever
+            self.assertTrue((accepted / "tier0" / "tier0.dll").is_file())
+            validate_binary_cache_tree(
+                accepted,
+                configured_binary_paths(repo, self.gamever),
+                allow_excluded=False,
+            )
 
     def test_restore_can_report_an_optional_cache_miss(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
