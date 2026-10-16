@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Discover new CS2 depot manifests and append download.yaml entries."""
+"""Discover new CS2 depot manifests and append download.yaml entries.
+
+Discovery and enrollment only ever request the current default-branch manifest,
+which Steam serves to anonymous (dedicated-server) accounts, so this module
+never passes Steam credentials to DepotDownloader.
+"""
 
 import argparse
 import re
@@ -16,7 +21,6 @@ from ruamel.yaml.error import YAMLError
 from ruamel.yaml.scalarstring import DoubleQuotedScalarString
 
 from depot_util import (
-    append_auth_args,
     run_command,
 )
 
@@ -75,11 +79,13 @@ def fetch_manifest_id(
     app: str,
     os_name: str,
     output_dir: Path,
-    username: str | None,
-    password: str | None,
-    remember_password: bool,
 ) -> str:
-    """Run DepotDownloader -manifest-only in an isolated directory."""
+    """Run DepotDownloader -manifest-only anonymously in an isolated directory.
+
+    Bump discovery only ever targets the current default-branch manifest, which
+    Steam serves to anonymous (dedicated-server) accounts; no Steam credentials
+    are required or accepted here.
+    """
     output_dir.mkdir(parents=True, exist_ok=True)
     command = [
         "DepotDownloader",
@@ -91,9 +97,8 @@ def fetch_manifest_id(
         str(os_name),
         "-dir",
         str(output_dir),
+        "-manifest-only",
     ]
-    append_auth_args(command, username, password, remember_password)
-    command.append("-manifest-only")
     run_command(command)
     return find_manifest_id(output_dir, depot)
 
@@ -103,11 +108,12 @@ def download_and_parse_steam_inf(
     app: str,
     os_name: str,
     depot_dir: Path,
-    username: str | None,
-    password: str | None,
-    remember_password: bool,
 ) -> str:
-    """Download only game\\csgo\\steam.inf from depot 2347770 and parse PatchVersion."""
+    """Download only game\\csgo\\steam.inf from depot 2347770 and parse PatchVersion.
+
+    The manifest is the freshly discovered current one, which anonymous
+    (dedicated-server) accounts can fetch.
+    """
     depot_dir.mkdir(parents=True, exist_ok=True)
     with tempfile.NamedTemporaryFile("w", encoding="utf-8", delete=False, suffix=".txt") as handle:
         handle.write(f"{STEAM_INF_PATH}\n")
@@ -128,7 +134,6 @@ def download_and_parse_steam_inf(
             "-filelist",
             str(filelist_path),
         ]
-        append_auth_args(command, username, password, remember_password)
         run_command(command)
     finally:
         filelist_path.unlink(missing_ok=True)
@@ -143,11 +148,8 @@ def discover_latest(
     app: str,
     os_name: str,
     depot_dir: Path,
-    username: str | None,
-    password: str | None,
-    remember_password: bool,
 ) -> tuple[str, dict[str, str]]:
-    """Discover PatchVersion and default-branch binary depot manifests."""
+    """Discover PatchVersion and default-branch binary depot manifests anonymously."""
     with tempfile.TemporaryDirectory(prefix="cs2-manifests-") as tmp:
         manifest_dir = Path(tmp)
         base_manifest = fetch_manifest_id(
@@ -155,18 +157,12 @@ def discover_latest(
             app=app,
             os_name=os_name,
             output_dir=manifest_dir / "2347770",
-            username=username,
-            password=password,
-            remember_password=remember_password,
         )
         patch_version = download_and_parse_steam_inf(
             manifest_id=base_manifest,
             app=app,
             os_name=os_name,
             depot_dir=depot_dir,
-            username=username,
-            password=password,
-            remember_password=remember_password,
         )
         manifests = {
             depot: fetch_manifest_id(
@@ -174,9 +170,6 @@ def discover_latest(
                 app=app,
                 os_name=os_name,
                 output_dir=manifest_dir / depot,
-                username=username,
-                password=password,
-                remember_password=remember_password,
             )
             for depot in DEFAULT_BRANCH_DEPOTS
         }
@@ -324,7 +317,8 @@ def remote_tag_exists(tag: str) -> bool:
 
 
 def ensure_clean_worktree() -> None:
-    status = git_output(["git", "status", "--porcelain"])
+    # Submodules are checked out separately, so hl2sdk_cs2 may legitimately lag the gitlink.
+    status = git_output(["git", "status", "--porcelain", "--ignore-submodules=all"])
     if status:
         raise BumpError("Working tree has uncommitted changes")
 
@@ -463,9 +457,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("-depotdir", default=DEFAULT_DEPOT_DIR)
     parser.add_argument("-app", default=DEFAULT_APP_ID)
     parser.add_argument("-os", default=DEFAULT_OS)
-    parser.add_argument("-username", default=None)
-    parser.add_argument("-password", default=None)
-    parser.add_argument("-remember-password", action="store_true")
     parser.add_argument("-github-output", default=None)
     parser.add_argument("-dry-run", action="store_true")
     return parser.parse_args()
@@ -480,9 +471,6 @@ def run(args: argparse.Namespace) -> int:
         app=args.app,
         os_name=args.os,
         depot_dir=depot_dir,
-        username=args.username,
-        password=args.password,
-        remember_password=args.remember_password,
     )
     data, downloads = load_config(config_path)
     plan = plan_download_entry(downloads, patch_version, manifests, configs_dir=configs_dir)
