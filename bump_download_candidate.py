@@ -87,6 +87,12 @@ def _git(repo_root: Path, *arguments: str) -> str:
     return _git_bytes(repo_root, *arguments).decode("utf-8").strip()
 
 
+def _require_clean_worktree(repo_root: Path, message: str) -> None:
+    # Submodules are checked out separately, so hl2sdk_cs2 may legitimately lag the gitlink.
+    if _git(repo_root, "status", "--porcelain=v1", "--untracked-files=all", "--ignore-submodules=all"):
+        raise BumpDownloadCandidateError(message)
+
+
 def _validate_identity(repository: str, base_sha: str, gamever: str, source_gamever: str) -> None:
     if repository != ALLOWED_REPOSITORY:
         raise BumpDownloadCandidateError(f"download-bump repository is not allowlisted: {repository}")
@@ -227,8 +233,7 @@ def enroll_bump_binary_lock(
     parent_sha = _git(repo_root, "rev-parse", "HEAD^1").lower()
     if not SHA_RE.fullmatch(head_sha) or parent_sha != base_sha:
         raise BumpDownloadCandidateError("download-bump enrollment commit must be a direct child of the bound base SHA")
-    if _git(repo_root, "status", "--porcelain=v1", "--untracked-files=all"):
-        raise BumpDownloadCandidateError("download-bump enrollment checkout must be clean before adding the lock")
+    _require_clean_worktree(repo_root, "download-bump enrollment checkout must be clean before adding the lock")
     expected_status = {"M\tdownload.yaml", f"A\tconfigs/{gamever}.yaml"}
     actual_status = set(filter(None, _git(repo_root, "diff", "--name-status", base_sha, head_sha, "--").splitlines()))
     if actual_status != expected_status:
@@ -358,8 +363,7 @@ def build_bump_candidate(
     parent_sha = _git(repo_root, "rev-parse", "HEAD^1").lower()
     if not SHA_RE.fullmatch(head_sha) or parent_sha != base_sha:
         raise BumpDownloadCandidateError("download-bump producer commit must be a direct child of the bound base SHA")
-    if _git(repo_root, "status", "--porcelain=v1", "--untracked-files=all"):
-        raise BumpDownloadCandidateError("download-bump producer checkout must be clean after candidate commit")
+    _require_clean_worktree(repo_root, "download-bump producer checkout must be clean after candidate commit")
     expected_status = {
         "M\tdownload.yaml",
         f"A\tconfigs/{gamever}.yaml",
@@ -474,8 +478,7 @@ def prepare_bump_commit(
         raise BumpDownloadCandidateError("download-bump candidate input must remain outside the publication checkout")
     if _git(repo_root, "rev-parse", "HEAD").lower() != base_sha:
         raise BumpDownloadCandidateError("download-bump publication checkout does not match the bound base SHA")
-    if _git(repo_root, "status", "--porcelain=v1", "--untracked-files=all"):
-        raise BumpDownloadCandidateError("download-bump publication checkout must be clean")
+    _require_clean_worktree(repo_root, "download-bump publication checkout must be clean")
 
     files = _candidate_files(candidate_root, gamever)
     inventory = _inventory(files)
