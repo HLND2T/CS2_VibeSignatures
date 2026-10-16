@@ -41,6 +41,14 @@ immutable main SHA preflight
 - Binary-only accepted cache and immutable warm IDB generation.
 - Separate hosted verifier, `binsync-release` environment, `release` environment, and external repository rulesets.
 ## Notes
+- Consumer dependency preflight: if bootstrap/rebuild completes analysis and then fails with
+  `ModuleNotFoundError` in BinSync preparation (#1146), check the selected host `IDA_PYTHON`, not the workflow's
+  project venv. `ci_runner.resolve_ida(consumer=True)` reuses `push_binsync_symbols.probe_capability` to import
+  `idapro`, `binsync.controller`, and `declib.decompilers.ida.interface` in that exact interpreter before version
+  discovery or exporting its environment. Import failures include the interpreter path and original diagnostic;
+  launch failures and empty diagnostics also fail closed. Verify with `TestConsumerIdaPreflight`, including a
+  transitive missing dependency and unchanged environment on failure. Warmup-only `resolve-ida` keeps its existing
+  dependency requirements; provisioning the runner's packages remains a separate task.
 - No generated-output branch/PR, release-staging correctness source, or accepted-bin YAML promotion remains.
 - Stable transaction identity is `run_id`; rerun attempt is transport metadata and must not change candidate identity.
 - Self-hosted build has read-only source access and no publication credentials. BinSync and Release publishers are isolated.
