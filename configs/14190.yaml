@@ -1400,21 +1400,6 @@ modules:
       - name: find-CNetworkGameClient_SendMovePacket
         expected_output:
           - CNetworkGameClient_SendMovePacket.{platform}.yaml
-      - name: find-CConVarRef_Int_Set
-        expected_output:
-          - CConVarRef_Int_Set.{platform}.yaml
-        expected_input:
-          - CNetworkGameClient_SendMovePacket.{platform}.yaml
-      - name: find-ConVarRefAbstract_CallFilterCallback
-        expected_output:
-          - ConVarRefAbstract_CallFilterCallback.{platform}.yaml
-        expected_input:
-          - CConVarRef_Int_Set.{platform}.yaml
-      - name: find-ICvar_CallFilterCallback
-        expected_output:
-          - ICvar_CallFilterCallback.{platform}.yaml
-        expected_input:
-          - ConVarRefAbstract_CallFilterCallback.{platform}.yaml
       - name: find-CNetworkGameClient_SendMove
         expected_output:
           - CNetworkGameClient_SendMove.{platform}.yaml
@@ -3494,18 +3479,6 @@ modules:
         alias:
           - CNetworkGameClient::SendMovePacket
           - SendMovePacket
-      - name: CConVarRef_Int_Set
-        category: func
-        alias:
-          - CConVarRef<int>::Set
-      - name: ConVarRefAbstract_CallFilterCallback
-        category: func
-        alias:
-          - ConVarRefAbstract::CallFilterCallback
-      - name: ICvar_CallFilterCallback
-        category: vfunc
-        alias:
-          - ICvar::CallFilterCallback
       - name: CNetworkGameClient_SendMove
         category: func
         alias:
@@ -15042,12 +15015,6 @@ modules:
       - name: find-CKeyValuesSystem_vtable
         expected_output:
           - CKeyValuesSystem_vtable.{platform}.yaml
-      - name: find-CCvar_CallFilterCallback
-        expected_output:
-          - CCvar_CallFilterCallback.{platform}.yaml
-        expected_input:
-          - ../engine/ICvar_CallFilterCallback.{platform}.yaml
-          - CCvar_vtable.{platform}.yaml
       - name: find-CKeyValuesSystem_dtor
         expected_output:
           - CKeyValuesSystem_dtor.{platform}.yaml
@@ -15077,10 +15044,6 @@ modules:
         category: vfunc
         alias:
           - CCvar::RegisterConCommand
-      - name: CCvar_CallFilterCallback
-        category: vfunc
-        alias:
-          - CCvar::CallFilterCallback
       - name: CKeyValuesSystem_vtable
         category: vtable
       - name: CKeyValuesSystem_dtor
