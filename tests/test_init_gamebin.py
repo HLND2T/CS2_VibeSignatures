@@ -147,9 +147,7 @@ class TestInitGamebin(unittest.TestCase):
             )
         init_gamebin.github_token.cache_clear()
         with patch.dict(os.environ, {"GH_TOKEN": "env-token"}, clear=False):
-            with patch.object(
-                init_gamebin.requests, "get", return_value=response(chunks=[])
-            ) as get:
+            with patch.object(init_gamebin.requests, "get", return_value=response(chunks=[])) as get:
                 get.return_value.json.return_value = document
                 self.assertEqual("b" * 40, init_gamebin.release_tag_target("14180"))
             self.assertEqual(
@@ -167,13 +165,9 @@ class TestInitGamebin(unittest.TestCase):
                     with patch.object(
                         init_gamebin.requests,
                         "get",
-                        return_value=response(
-                            status=403, reason="Forbidden", headers={"x-ratelimit-remaining": "0"}
-                        ),
+                        return_value=response(status=403, reason="Forbidden", headers={"x-ratelimit-remaining": "0"}),
                     ):
-                        with self.assertRaisesRegex(
-                            init_gamebin.InitGamebinError, r"GH_TOKEN|authenticate gh"
-                        ):
+                        with self.assertRaisesRegex(init_gamebin.InitGamebinError, r"GH_TOKEN|authenticate gh"):
                             init_gamebin.download_release_asset("https://example/archive", archive)
                     with patch.object(
                         init_gamebin.requests,
