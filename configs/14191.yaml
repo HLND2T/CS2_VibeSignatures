@@ -15404,6 +15404,29 @@ modules:
           - CKeyValuesSystem_GetKeyValuesExpressionSymbol.{platform}.yaml
         expected_input:
           - CKeyValuesSystem_vtable.{platform}.yaml
+      - name: find-ConVarRefAbstract_SetValueInternal
+        expected_output:
+          - ConVarRefAbstract_SetValueInternal.{platform}.yaml
+      - name: find-ConVarRefAbstract_CallChangeCallbacks
+        optional_output:
+          - ConVarRefAbstract_CallChangeCallbacks.{platform}.yaml
+        expected_input:
+          - ConVarRefAbstract_SetValueInternal.{platform}.yaml
+      - name: find-ICvar_CallGlobalChangeCallbacks
+        expected_output:
+          - ICvar_CallGlobalChangeCallbacks.{platform}.yaml
+        expected_input:
+          - ConVarRefAbstract_SetValueInternal.{platform}.yaml
+        optional_input:
+          - ConVarRefAbstract_CallChangeCallbacks.{platform}.yaml
+        prerequisite:
+          - find-ConVarRefAbstract_CallChangeCallbacks
+      - name: find-CCvar_CallGlobalChangeCallbacks
+        expected_output:
+          - CCvar_CallGlobalChangeCallbacks.{platform}.yaml
+        expected_input:
+          - ICvar_CallGlobalChangeCallbacks.{platform}.yaml
+          - CCvar_vtable.{platform}.yaml
     symbols:
       - name: CCommandLine_vtable
         category: vtable
@@ -15447,6 +15470,12 @@ modules:
         category: vfunc
         alias:
           - CKeyValuesSystem::GetKeyValuesExpressionSymbol
+      - name: ConVarRefAbstract_SetValueInternal
+        category: func
+      - name: ICvar_CallGlobalChangeCallbacks
+        category: vfunc
+      - name: CCvar_CallGlobalChangeCallbacks
+        category: vfunc
   - name: schemasystem
     path_windows: game/bin/win64/schemasystem.dll
     path_linux: game/bin/linuxsteamrt64/libschemasystem.so
