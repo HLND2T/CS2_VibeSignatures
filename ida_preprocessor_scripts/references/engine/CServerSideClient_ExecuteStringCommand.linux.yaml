@@ -1,0 +1,524 @@
+func_name: CServerSideClient_ExecuteStringCommand
+func_va: '0x54a100'
+disasm_code: |-
+  .text:000000000054A100                 push    rbp
+  .text:000000000054A101                 mov     rbp, rsp
+  .text:000000000054A104                 push    r15
+  .text:000000000054A106                 push    r14
+  .text:000000000054A108                 push    r13
+  .text:000000000054A10A                 mov     r13, rdi
+  .text:000000000054A10D                 push    r12
+  .text:000000000054A10F                 mov     r12, rsi
+  .text:000000000054A112                 push    rbx
+  .text:000000000054A113                 sub     rsp, 6B8h
+  .text:000000000054A11A                 call    sub_5313F0
+  .text:000000000054A11F                 mov     ebx, eax
+  .text:000000000054A121                 test    al, al
+  .text:000000000054A123                 jz      short loc_54A140
+  .text:000000000054A125                 add     rsp, 6B8h
+  .text:000000000054A12C                 mov     eax, ebx
+  .text:000000000054A12E                 pop     rbx
+  .text:000000000054A12F                 pop     r12
+  .text:000000000054A131                 pop     r13
+  .text:000000000054A133                 pop     r14
+  .text:000000000054A135                 pop     r15
+  .text:000000000054A137                 pop     rbp
+  .text:000000000054A138                 retn
+  .text:000000000054A140                 mov     rax, 8000000000000200h
+  .text:000000000054A14A                 mov     [rbp+var_50], 0
+  .text:000000000054A14E                 xor     edx, edx
+  .text:000000000054A150                 mov     [rbp+var_688], rax
+  .text:000000000054A157                 lea     rcx, [rbp+var_680]
+  .text:000000000054A15E                 mov     [rbp+var_470], rax
+  .text:000000000054A165                 sub     rax, 1C0h
+  .text:000000000054A16B                 mov     [rbp+var_258], rax
+  .text:000000000054A172                 mov     rax, cs:qword_26EC78
+  .text:000000000054A179                 lea     r14, [rbp+var_468]
+  .text:000000000054A180                 lea     r15, [rbp+var_250]
+  .text:000000000054A187                 mov     [rbp+var_690], rcx
+  .text:000000000054A18E                 mov     [rbp+var_478], r14
+  .text:000000000054A195                 lea     rdi, [rbp+var_6A0]
+  .text:000000000054A19C                 mov     [rbp+var_6A0], 0
+  .text:000000000054A1A7                 mov     [rbp+var_48], rax
+  .text:000000000054A1AB                 mov     rax, [r12+48h]
+  .text:000000000054A1B0                 mov     [rbp+var_260], r15
+  .text:000000000054A1B7                 mov     [rbp+var_268], 0
+  .text:000000000054A1C1                 mov     [rbp+var_40], 0
+  .text:000000000054A1C9                 and     rax, 0FFFFFFFFFFFFFFFCh
+  .text:000000000054A1CD                 mov     [rbp+var_680], 0
+  .text:000000000054A1D4                 mov     [rbp+var_698], 200h
+  .text:000000000054A1DE                 mov     [rbp+var_480], 200h
+  .text:000000000054A1E8                 mov     rsi, [rax]
+  .text:000000000054A1EB                 mov     [rbp+var_6D0], rdi
+  .text:000000000054A1F2                 mov     [rbp+var_6C8], rcx
+  .text:000000000054A1F9                 call    sub_5F5740
+  .text:000000000054A1FE                 mov     byte ptr [rbp+var_6D8], al
+  .text:000000000054A204                 test    al, al
+  .text:000000000054A206                 jz      loc_54A308
+  .text:000000000054A20C                 lea     rax, g_pVEngineCvar
+  .text:000000000054A213                 lea     rsi, unk_28208E
+  .text:000000000054A21A                 mov     r8d, [rbp+var_268]
+  .text:000000000054A221                 mov     rdi, [rax]
+  .text:000000000054A224                 mov     rax, [rdi]
+  .text:000000000054A227                 mov     rax, [rax+88h]
+  .text:000000000054A22E                 test    r8d, r8d
+  .text:000000000054A231                 jle     short loc_54A23D
+  .text:000000000054A233                 mov     rdx, [rbp+var_260]
+  .text:000000000054A23A                 mov     rsi, [rdx]
+  .text:000000000054A23D                 xor     edx, edx
+  .text:000000000054A23F                 call    rax
+  .text:000000000054A241                 mov     rsi, rax
+  .text:000000000054A244                 mov     [rbp+var_6B8], rax
+  .text:000000000054A24B                 cmp     rax, 0FFFFh
+  .text:000000000054A251                 jz      loc_54A400
+  .text:000000000054A257                 lea     rax, g_pVEngineCvar
+  .text:000000000054A25E                 mov     rdi, [rax]
+  .text:000000000054A261                 mov     rax, [rdi]
+  .text:000000000054A264                 call    qword ptr [rax+160h]
+  .text:000000000054A26A                 test    byte ptr [rax+10h], 4
+  .text:000000000054A26E                 jz      loc_54A400
+  .text:000000000054A274                 lea     rax, g_pVEngineCvar
+  .text:000000000054A27B                 mov     rsi, [rbp+var_6B8]
+  .text:000000000054A282                 mov     rdi, [rax]
+  .text:000000000054A285                 mov     rax, [rdi]
+  .text:000000000054A288                 call    qword ptr [rax+160h]
+  .text:000000000054A28E                 test    byte ptr [rax+11h], 40h
+  .text:000000000054A292                 jz      loc_54A468
+  .text:000000000054A298                 mov     rdi, [r13+50h]
+  .text:000000000054A29C                 mov     rax, [rdi]
+  .text:000000000054A29F                 call    qword ptr [rax+180h]
+  .text:000000000054A2A5                 test    al, al
+  .text:000000000054A2A7                 jz      loc_54A468
+  .text:000000000054A2AD                 call    sub_598280
+  .text:000000000054A2B2                 test    al, al
+  .text:000000000054A2B4                 jnz     loc_54A468
+  .text:000000000054A2BA                 lea     r12, dword_A4F004
+  .text:000000000054A2C1                 mov     esi, 3
+  .text:000000000054A2C6                 mov     edi, [r12]
+  .text:000000000054A2CA                 call    sub_2D0E60
+  .text:000000000054A2CF                 test    al, al
+  .text:000000000054A2D1                 jz      short loc_54A308
+  .text:000000000054A2D3                 mov     edi, [rbp+var_268]
+  .text:000000000054A2D9                 lea     rcx, unk_28208E
+  .text:000000000054A2E0                 test    edi, edi
+  .text:000000000054A2E2                 jz      short loc_54A2EB
+  .text:000000000054A2E4                 mov     rcx, [rbp+var_690]
+  .text:000000000054A2EB                 mov     edi, [r12]
+  .text:000000000054A2EF                 lea     rdx, aSvCheatCommand_0; "SV: Cheat command '%s' ignored. Set sv_"...
+  .text:000000000054A2F6                 mov     esi, 3
+  .text:000000000054A2FB                 xor     eax, eax
+  .text:000000000054A2FD                 call    sub_2CF8F0
+  .text:000000000054A302                 nop     word ptr [rax+rax+00h]
+  .text:000000000054A308                 mov     [rbp+var_268], 0
+  .text:000000000054A312                 mov     esi, dword ptr [rbp+var_258]
+  .text:000000000054A318                 mov     eax, dword ptr [rbp+var_258+4]
+  .text:000000000054A31E                 test    esi, esi
+  .text:000000000054A320                 js      loc_54A570
+  .text:000000000054A326                 mov     rsi, [rbp+var_260]
+  .text:000000000054A32D                 cmp     rsi, r15
+  .text:000000000054A330                 jz      loc_54A5B0
+  .text:000000000054A336                 cmp     eax, 3FFFFFFFh
+  .text:000000000054A33B                 ja      short loc_54A352
+  .text:000000000054A33D                 test    rsi, rsi
+  .text:000000000054A340                 jz      short loc_54A352
+  .text:000000000054A342                 mov     rax, cs:g_pMemAlloc_ptr
+  .text:000000000054A349                 mov     rdi, [rax]
+  .text:000000000054A34C                 mov     rax, [rdi]
+  .text:000000000054A34F                 call    qword ptr [rax+20h]
+  .text:000000000054A352                 mov     [rbp+var_480], 0
+  .text:000000000054A35C                 mov     ecx, dword ptr [rbp+var_470]
+  .text:000000000054A362                 mov     eax, dword ptr [rbp+var_470+4]
+  .text:000000000054A368                 test    ecx, ecx
+  .text:000000000054A36A                 js      loc_54A590
+  .text:000000000054A370                 mov     rsi, [rbp+var_478]
+  .text:000000000054A377                 cmp     rsi, r14
+  .text:000000000054A37A                 jz      loc_54A5C8
+  .text:000000000054A380                 cmp     eax, 3FFFFFFFh
+  .text:000000000054A385                 ja      short loc_54A39C
+  .text:000000000054A387                 test    rsi, rsi
+  .text:000000000054A38A                 jz      short loc_54A39C
+  .text:000000000054A38C                 mov     rax, cs:g_pMemAlloc_ptr
+  .text:000000000054A393                 mov     rdi, [rax]
+  .text:000000000054A396                 mov     rax, [rdi]
+  .text:000000000054A399                 call    qword ptr [rax+20h]
+  .text:000000000054A39C                 mov     [rbp+var_698], 0
+  .text:000000000054A3A6                 mov     edx, dword ptr [rbp+var_688]
+  .text:000000000054A3AC                 mov     eax, dword ptr [rbp+var_688+4]
+  .text:000000000054A3B2                 test    edx, edx
+  .text:000000000054A3B4                 js      loc_54A550
+  .text:000000000054A3BA                 mov     rsi, [rbp+var_690]
+  .text:000000000054A3C1                 mov     rdx, [rbp+var_6C8]
+  .text:000000000054A3C8                 cmp     rsi, rdx
+  .text:000000000054A3CB                 jz      loc_54A5E0
+  .text:000000000054A3D1                 cmp     eax, 3FFFFFFFh
+  .text:000000000054A3D6                 ja      loc_54A125
+  .text:000000000054A3DC                 test    rsi, rsi
+  .text:000000000054A3DF                 jz      loc_54A125
+  .text:000000000054A3E5                 mov     rax, cs:g_pMemAlloc_ptr
+  .text:000000000054A3EC                 mov     rdi, [rax]
+  .text:000000000054A3EF                 mov     rax, [rdi]
+  .text:000000000054A3F2                 call    qword ptr [rax+20h]
+  .text:000000000054A3F5                 jmp     loc_54A125
+  .text:000000000054A400                 test    byte ptr [r12+40h], 2
+  .text:000000000054A406                 jnz     short loc_54A438
+  .text:000000000054A408                 lea     rax, g_pSource2GameClients
+  .text:000000000054A40F                 mov     esi, [r13+48h]
+  .text:000000000054A413                 mov     rdx, [rbp+var_6D0]
+  .text:000000000054A41A                 mov     rdi, [rax]
+  .text:000000000054A41D                 mov     rax, [rdi]
+  .text:000000000054A420                 call    qword ptr [rax+88h]
+  .text:000000000054A426                 movzx   ebx, byte ptr [rbp+var_6D8]
+  .text:000000000054A42D                 jmp     loc_54A308
+  .text:000000000054A438                 lea     rax, g_pSource2Server
+  .text:000000000054A43F                 mov     ecx, [r12+50h]
+  .text:000000000054A444                 mov     esi, [r13+48h]
+  .text:000000000054A448                 mov     rdx, [rbp+var_6D0]
+  .text:000000000054A44F                 mov     rdi, [rax]
+  .text:000000000054A452                 mov     rax, [rdi]
+  .text:000000000054A455                 call    qword ptr [rax+2B0h]
+  .text:000000000054A45B                 test    al, al
+  .text:000000000054A45D                 jz      short loc_54A408
+  .text:000000000054A45F                 jmp     short loc_54A426
+  .text:000000000054A468                 lea     rax, g_pVEngineCvar
+  .text:000000000054A46F                 mov     rsi, [rbp+var_6B8]
+  .text:000000000054A476                 mov     rdi, [rax]
+  .text:000000000054A479                 mov     rax, [rdi]
+  .text:000000000054A47C                 call    qword ptr [rax+160h]
+  .text:000000000054A482                 test    byte ptr [rax+10h], 40h
+  .text:000000000054A486                 jz      short loc_54A49D
+  .text:000000000054A488                 mov     rdi, [r13+50h]
+  .text:000000000054A48C                 mov     rax, [rdi]
+  .text:000000000054A48F                 call    qword ptr [rax+180h]
+  .text:000000000054A495                 test    al, al
+  .text:000000000054A497                 jnz     loc_54A308
+  .text:000000000054A49D                 lea     rax, g_pVEngineCvar
+  .text:000000000054A4A4                 mov     rsi, [rbp+var_6B8]
+  .text:000000000054A4AB                 mov     rdi, [rax]
+  .text:000000000054A4AE                 mov     rax, [rdi]
+  .text:000000000054A4B1                 call    qword ptr [rax+160h]
+  .text:000000000054A4B7                 test    byte ptr [rax+13h], 2
+  .text:000000000054A4BB                 jz      loc_54A5F8
+  .text:000000000054A4C1                 mov     rdi, r13
+  .text:000000000054A4C4                 call    sub_535E90
+  .text:000000000054A4C9                 test    al, al
+  .text:000000000054A4CB                 jz      loc_54A681
+  .text:000000000054A4D1                 mov     eax, 0FFFFFFFFh
+  .text:000000000054A4D6                 mov     rdi, [r13+50h]
+  .text:000000000054A4DA                 mov     [rbp+var_6A8], 0
+  .text:000000000054A4E5                 mov     [rbp+var_6B0], rax
+  .text:000000000054A4EC                 mov     eax, [r13+48h]
+  .text:000000000054A4F0                 mov     dword ptr [rbp+var_6B0+4], eax
+  .text:000000000054A4F6                 mov     rax, [rdi]
+  .text:000000000054A4F9                 call    qword ptr [rax+180h]
+  .text:000000000054A4FF                 mov     edx, eax
+  .text:000000000054A501                 mov     eax, 0FFFFFFFFh
+  .text:000000000054A506                 test    dl, dl
+  .text:000000000054A508                 jnz     short loc_54A50E
+  .text:000000000054A50A                 mov     eax, [r13+6Ch]
+  .text:000000000054A50E                 mov     rdx, [rbp+var_6D0]
+  .text:000000000054A515                 lea     rsi, [rbp+var_6B0]
+  .text:000000000054A51C                 mov     dword ptr [rbp+var_6B0], eax
+  .text:000000000054A522                 lea     rdi, [rbp+var_6B8]
+  .text:000000000054A529                 ; ConCommandRef_Dispatch
+  .text:000000000054A529                 call    ConCommandRef_Dispatch; ConCommandRef_Dispatch
+  .text:000000000054A52E                 cmp     [rbp+var_6A8], 0
+  .text:000000000054A536                 jz      loc_54A426
+  .text:000000000054A53C                 lea     rdi, [rbp+var_6A8]
+  .text:000000000054A543                 call    sub_2D0DE0
+  .text:000000000054A548                 jmp     loc_54A426
+  .text:000000000054A550                 cmp     eax, 3FFFFFFFh
+  .text:000000000054A555                 ja      loc_54A125
+  .text:000000000054A55B                 mov     rsi, [rbp+var_690]
+  .text:000000000054A562                 test    rsi, rsi
+  .text:000000000054A565                 jnz     loc_54A3E5
+  .text:000000000054A56B                 jmp     loc_54A125
+  .text:000000000054A570                 cmp     eax, 3FFFFFFFh
+  .text:000000000054A575                 ja      loc_54A352
+  .text:000000000054A57B                 mov     rsi, [rbp+var_260]
+  .text:000000000054A582                 test    rsi, rsi
+  .text:000000000054A585                 jnz     loc_54A342
+  .text:000000000054A58B                 jmp     loc_54A352
+  .text:000000000054A590                 cmp     eax, 3FFFFFFFh
+  .text:000000000054A595                 ja      loc_54A39C
+  .text:000000000054A59B                 mov     rsi, [rbp+var_478]
+  .text:000000000054A5A2                 test    rsi, rsi
+  .text:000000000054A5A5                 jnz     loc_54A38C
+  .text:000000000054A5AB                 jmp     loc_54A39C
+  .text:000000000054A5B0                 cmp     eax, 3FFFFFFFh
+  .text:000000000054A5B5                 ja      loc_54A352
+  .text:000000000054A5BB                 mov     rsi, r15
+  .text:000000000054A5BE                 jmp     loc_54A342
+  .text:000000000054A5C8                 cmp     eax, 3FFFFFFFh
+  .text:000000000054A5CD                 ja      loc_54A39C
+  .text:000000000054A5D3                 mov     rsi, r14
+  .text:000000000054A5D6                 jmp     loc_54A38C
+  .text:000000000054A5E0                 cmp     eax, 3FFFFFFFh
+  .text:000000000054A5E5                 ja      loc_54A125
+  .text:000000000054A5EB                 mov     rsi, rdx
+  .text:000000000054A5EE                 jmp     loc_54A3E5
+  .text:000000000054A5F8                 lea     r12, dword_A4F004
+  .text:000000000054A5FF                 mov     esi, 2
+  .text:000000000054A604                 mov     edi, [r12]
+  .text:000000000054A608                 call    sub_2D0E60
+  .text:000000000054A60D                 test    al, al
+  .text:000000000054A60F                 jz      loc_54A308
+  .text:000000000054A615                 lea     rax, g_pVEngineCvar
+  .text:000000000054A61C                 mov     rsi, [rbp+var_6B8]
+  .text:000000000054A623                 mov     rdi, [rax]
+  .text:000000000054A626                 mov     rax, [rdi]
+  .text:000000000054A629                 call    qword ptr [rax+160h]
+  .text:000000000054A62F                 mov     rdi, r13
+  .text:000000000054A632                 mov     r9, [rax]
+  .text:000000000054A635                 mov     [rbp+var_6D8], r9
+  .text:000000000054A63C                 call    sub_536FF0
+  .text:000000000054A641                 mov     rdi, r13
+  .text:000000000054A644                 movzx   r8d, ax
+  .text:000000000054A648                 mov     dword ptr [rbp+var_6D0], r8d
+  .text:000000000054A64F                 call    sub_536AE0
+  .text:000000000054A654                 mov     edi, [r12]
+  .text:000000000054A658                 lea     rdx, aClientSDTriedT; "Client %s(%d) tried to execute command "...
+  .text:000000000054A65F                 mov     esi, 2
+  .text:000000000054A664                 mov     r9, [rbp+var_6D8]
+  .text:000000000054A66B                 mov     rcx, rax
+  .text:000000000054A66E                 xor     eax, eax
+  .text:000000000054A670                 mov     r8d, dword ptr [rbp+var_6D0]
+  .text:000000000054A677                 call    sub_2CF8F0
+  .text:000000000054A67C                 jmp     loc_54A308
+  .text:000000000054A681                 lea     r12, dword_A4F004
+  .text:000000000054A688                 mov     esi, 2
+  .text:000000000054A68D                 mov     edi, [r12]
+  .text:000000000054A691                 call    sub_2D0E60
+  .text:000000000054A696                 test    al, al
+  .text:000000000054A698                 jz      loc_54A308
+  .text:000000000054A69E                 lea     rax, g_pVEngineCvar
+  .text:000000000054A6A5                 mov     rsi, [rbp+var_6B8]
+  .text:000000000054A6AC                 mov     rdi, [rax]
+  .text:000000000054A6AF                 mov     rax, [rdi]
+  .text:000000000054A6B2                 call    qword ptr [rax+160h]
+  .text:000000000054A6B8                 mov     rdi, r13
+  .text:000000000054A6BB                 mov     r9, [rax]
+  .text:000000000054A6BE                 mov     [rbp+var_6D8], r9
+  .text:000000000054A6C5                 call    sub_536FF0
+  .text:000000000054A6CA                 mov     rdi, r13
+  .text:000000000054A6CD                 movzx   r8d, ax
+  .text:000000000054A6D1                 mov     dword ptr [rbp+var_6D0], r8d
+  .text:000000000054A6D8                 call    sub_536AE0
+  .text:000000000054A6DD                 mov     edi, [r12]
+  .text:000000000054A6E1                 lea     rdx, aClientSDTriedT_0; "Client %s(%d) tried to execute command "...
+  .text:000000000054A6E8                 mov     esi, 2
+  .text:000000000054A6ED                 mov     r9, [rbp+var_6D8]
+  .text:000000000054A6F4                 mov     rcx, rax
+  .text:000000000054A6F7                 xor     eax, eax
+  .text:000000000054A6F9                 mov     r8d, dword ptr [rbp+var_6D0]
+  .text:000000000054A700                 call    sub_2CF8F0
+  .text:000000000054A705                 jmp     loc_54A308
+procedure: |-
+  __int64 __fastcall CServerSideClient_ExecuteStringCommand(__int64 a1, __int64 a2, double a3)
+  {
+    unsigned int v5; // ebx
+    __int64 v7; // rax
+    void *v8; // rsi
+    __int64 v9; // rsi
+    const char *v10; // rcx
+    __int64 v11; // rdi
+    char v12; // dl
+    int v13; // eax
+    const char *v14; // rax
+    const char *v15; // rax
+    unsigned __int8 v16; // [rsp+8h] [rbp-6D8h]
+    const char *v17; // [rsp+8h] [rbp-6D8h]
+    const char *v18; // [rsp+8h] [rbp-6D8h]
+    int v19; // [rsp+10h] [rbp-6D0h]
+    int v20; // [rsp+10h] [rbp-6D0h]
+    __int64 v21; // [rsp+28h] [rbp-6B8h] BYREF
+    __int64 v22; // [rsp+30h] [rbp-6B0h] BYREF
+    __int64 v23; // [rsp+38h] [rbp-6A8h] BYREF
+    __int64 v24; // [rsp+40h] [rbp-6A0h] BYREF
+    int v25; // [rsp+48h] [rbp-698h]
+    const char *v26; // [rsp+50h] [rbp-690h]
+    unsigned __int64 v27; // [rsp+58h] [rbp-688h]
+    _BYTE v28[512]; // [rsp+60h] [rbp-680h] BYREF
+    int v29; // [rsp+260h] [rbp-480h]
+    _BYTE *v30; // [rsp+268h] [rbp-478h]
+    unsigned __int64 v31; // [rsp+270h] [rbp-470h]
+    _BYTE v32[512]; // [rsp+278h] [rbp-468h] BYREF
+    int v33; // [rsp+478h] [rbp-268h]
+    _BYTE *v34; // [rsp+480h] [rbp-260h]
+    unsigned __int64 v35; // [rsp+488h] [rbp-258h]
+    _BYTE v36[520]; // [rsp+490h] [rbp-250h] BYREF
+    __int64 v37; // [rsp+698h] [rbp-48h]
+    __int64 v38; // [rsp+6A0h] [rbp-40h]
+
+    v5 = sub_5313F0();
+    if ( !(_BYTE)v5 )
+    {
+      v36[512] = 0;
+      v27 = 0x8000000000000200LL;
+      v31 = 0x8000000000000200LL;
+      v35 = 0x8000000000000040LL;
+      v26 = v28;
+      v30 = v32;
+      v24 = 0;
+      v37 = 0x7FF8000000000000LL;
+      v7 = *(_QWORD *)(a2 + 72);
+      v34 = v36;
+      v33 = 0;
+      v38 = 0;
+      v28[0] = 0;
+      v25 = 512;
+      v29 = 512;
+      v16 = sub_5F5740(&v24, *(_QWORD *)(v7 & 0xFFFFFFFFFFFFFFFCLL), 0);
+      if ( !v16 )
+        goto LABEL_15;
+      v8 = &unk_28208E;
+      if ( v33 > 0 )
+        v8 = *(void **)v34;
+      v9 = (*(__int64 (__fastcall **)(_QWORD *, void *, _QWORD))(*g_pVEngineCvar + 136LL))(g_pVEngineCvar, v8, 0);
+      v21 = v9;
+      if ( v9 != 0xFFFF
+        && (*(_BYTE *)((*(__int64 (__fastcall **)(_QWORD *, __int64))(*g_pVEngineCvar + 352LL))(g_pVEngineCvar, v9) + 16)
+          & 4) != 0 )
+      {
+        if ( (*(_BYTE *)((*(__int64 (__fastcall **)(_QWORD *, __int64))(*g_pVEngineCvar + 352LL))(g_pVEngineCvar, v21) + 17)
+            & 0x40) != 0
+          && (*(unsigned __int8 (__fastcall **)(_QWORD))(**(_QWORD **)(a1 + 80) + 384LL))(*(_QWORD *)(a1 + 80))
+          && !(unsigned __int8)sub_598280(a3) )
+        {
+          if ( (unsigned __int8)sub_2D0E60((unsigned int)dword_A4F004, 3) )
+          {
+            v10 = (const char *)&unk_28208E;
+            if ( v33 )
+              v10 = v26;
+            sub_2CF8F0(
+              (unsigned int)dword_A4F004,
+              3,
+              "SV: Cheat command '%s' ignored. Set sv_cheats to 1 enable cheats.\n",
+              v10);
+          }
+          goto LABEL_15;
+        }
+        if ( (*(_BYTE *)((*(__int64 (__fastcall **)(_QWORD *, __int64))(*g_pVEngineCvar + 352LL))(g_pVEngineCvar, v21) + 16)
+            & 0x40) != 0
+          && (*(unsigned __int8 (__fastcall **)(_QWORD))(**(_QWORD **)(a1 + 80) + 384LL))(*(_QWORD *)(a1 + 80)) )
+        {
+          goto LABEL_15;
+        }
+        if ( (*(_BYTE *)((*(__int64 (__fastcall **)(_QWORD *, __int64))(*g_pVEngineCvar + 352LL))(g_pVEngineCvar, v21) + 19)
+            & 2) != 0 )
+        {
+          if ( (unsigned __int8)sub_535E90(a1) )
+          {
+            v11 = *(_QWORD *)(a1 + 80);
+            v23 = 0;
+            v22 = 0xFFFFFFFFLL;
+            HIDWORD(v22) = *(_DWORD *)(a1 + 72);
+            v12 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)v11 + 384LL))(v11);
+            v13 = -1;
+            if ( !v12 )
+              v13 = *(_DWORD *)(a1 + 108);
+            LODWORD(v22) = v13;
+            ConCommandRef_Dispatch(&v21, &v22, &v24);         // ConCommandRef_Dispatch
+            if ( v23 )
+              sub_2D0DE0(&v23);
+  LABEL_32:
+            v5 = v16;
+            goto LABEL_15;
+          }
+          if ( (unsigned __int8)sub_2D0E60((unsigned int)dword_A4F004, 2) )
+          {
+            v18 = *(const char **)(*(__int64 (__fastcall **)(_QWORD *, __int64))(*g_pVEngineCvar + 352LL))(
+                                    g_pVEngineCvar,
+                                    v21);
+            v20 = (unsigned __int16)sub_536FF0(a1);
+            v15 = (const char *)sub_536AE0(a1);
+            sub_2CF8F0(
+              (unsigned int)dword_A4F004,
+              2,
+              "Client %s(%d) tried to execute command \"%s\" before being fully connected.\n",
+              v15,
+              v20,
+              v18);
+          }
+        }
+        else if ( (unsigned __int8)sub_2D0E60((unsigned int)dword_A4F004, 2) )
+        {
+          v17 = *(const char **)(*(__int64 (__fastcall **)(_QWORD *, __int64))(*g_pVEngineCvar + 352LL))(
+                                  g_pVEngineCvar,
+                                  v21);
+          v19 = (unsigned __int16)sub_536FF0(a1);
+          v14 = (const char *)sub_536AE0(a1);
+          sub_2CF8F0(
+            (unsigned int)dword_A4F004,
+            2,
+            "Client %s(%d) tried to execute command \"%s\" but it is not marked FCVAR_CLIENT_CAN_EXECUTE.\n",
+            v14,
+            v19,
+            v17);
+        }
+  LABEL_15:
+        v33 = 0;
+        if ( (v35 & 0x80000000) != 0LL )
+        {
+          if ( HIDWORD(v35) <= 0x3FFFFFFF && v34 )
+            goto LABEL_19;
+        }
+        else if ( v34 == v36 )
+        {
+          if ( HIDWORD(v35) <= 0x3FFFFFFF )
+  LABEL_19:
+            (*(void (__fastcall **)(_QWORD *))(*g_pMemAlloc + 32LL))(g_pMemAlloc);
+        }
+        else if ( HIDWORD(v35) <= 0x3FFFFFFF && v34 )
+        {
+          goto LABEL_19;
+        }
+        v29 = 0;
+        if ( (v31 & 0x80000000) != 0LL )
+        {
+          if ( HIDWORD(v31) <= 0x3FFFFFFF && v30 )
+            goto LABEL_24;
+        }
+        else if ( v30 == v32 )
+        {
+          if ( HIDWORD(v31) <= 0x3FFFFFFF )
+  LABEL_24:
+            (*(void (__fastcall **)(_QWORD *))(*g_pMemAlloc + 32LL))(g_pMemAlloc);
+        }
+        else if ( HIDWORD(v31) <= 0x3FFFFFFF && v30 )
+        {
+          goto LABEL_24;
+        }
+        v25 = 0;
+        if ( (v27 & 0x80000000) != 0LL )
+        {
+          if ( HIDWORD(v27) > 0x3FFFFFFF || !v26 )
+            return v5;
+        }
+        else if ( v26 == v28 )
+        {
+          if ( HIDWORD(v27) > 0x3FFFFFFF )
+            return v5;
+        }
+        else if ( HIDWORD(v27) > 0x3FFFFFFF || !v26 )
+        {
+          return v5;
+        }
+        (*(void (__fastcall **)(_QWORD *))(*g_pMemAlloc + 32LL))(g_pMemAlloc);
+        return v5;
+      }
+      if ( (*(_BYTE *)(a2 + 64) & 2) == 0
+        || !(*(unsigned __int8 (__fastcall **)(_QWORD *, _QWORD, __int64 *, _QWORD))(*g_pSource2Server + 688LL))(
+              g_pSource2Server,
+              *(unsigned int *)(a1 + 72),
+              &v24,
+              *(unsigned int *)(a2 + 80)) )
+      {
+        (*(void (__fastcall **)(_QWORD *, _QWORD, __int64 *))(*g_pSource2GameClients + 136LL))(
+          g_pSource2GameClients,
+          *(unsigned int *)(a1 + 72),
+          &v24);
+      }
+      goto LABEL_32;
+    }
+    return v5;
+  }
