@@ -5,7 +5,7 @@ from them; PR and release consumers then restore that cache and analyze the exac
 same binaries. This module makes the accepted-bin lifecycle follow the warmup
 lifecycle: after a successful warmup run (whether the cache hit or was freshly
 warmed), the actual binaries the run consumed are transactionally, idempotently
-mirrored into ``PERSISTED_WORKSPACE/bin/<GAMEVER>`` so the accepted tree always
+mirrored into ``<persisted-root>/bin/<GAMEVER>`` so the accepted tree always
 reflects the warmup input.
 
 The accepted tree is binary-only: YAML, IDA databases, and BinSync state are

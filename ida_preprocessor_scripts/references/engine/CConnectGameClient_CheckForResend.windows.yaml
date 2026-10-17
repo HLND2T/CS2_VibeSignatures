@@ -1,0 +1,242 @@
+func_name: CConnectGameClient_CheckForResend
+func_va: '0x180057370'
+disasm_code: |-
+  .text:0000000180057370                 push    rdi
+  .text:0000000180057372                 sub     rsp, 3D0h
+  .text:0000000180057379                 cmp     dword ptr [rcx+40h], 0
+  .text:000000018005737D                 mov     rdi, rcx
+  .text:0000000180057380                 jz      loc_180057611
+  .text:0000000180057386                 mov     rcx, cs:qword_180696958
+  .text:000000018005738D                 mov     [rsp+3D8h+arg_10], rsi
+  .text:0000000180057395                 mov     rax, [rcx]
+  .text:0000000180057398                 call    qword ptr [rax+150h]
+  .text:000000018005739E                 lea     r8, [rsp+3D8h+var_2C8]
+  .text:00000001800573A6                 mov     rcx, rax
+  .text:00000001800573A9                 mov     rsi, rax
+  .text:00000001800573AC                 mov     rdx, [rax]
+  .text:00000001800573AF                 mov     r9, [rdx+78h]
+  .text:00000001800573B3                 mov     edx, [rdi+40h]
+  .text:00000001800573B6                 call    r9
+  .text:00000001800573B9                 test    al, al
+  .text:00000001800573BB                 jnz     short loc_1800573E2
+  .text:00000001800573BD                 lea     r8, aGetconnectioni; "GetConnectionInfo failed.  Did somebody"...
+  .text:00000001800573C4                 mov     edx, 1Eh
+  .text:00000001800573C9                 mov     rcx, rdi
+  .text:00000001800573CC                 call    sub_180056D90
+  .text:00000001800573D1                 mov     rsi, [rsp+3D8h+arg_10]
+  .text:00000001800573D9                 add     rsp, 3D0h
+  .text:00000001800573E0                 pop     rdi
+  .text:00000001800573E1                 retn
+  .text:00000001800573E2                 mov     ecx, [rsp+3D8h+var_218]
+  .text:00000001800573E9                 lea     eax, [rcx-1]
+  .text:00000001800573EC                 cmp     eax, 1
+  .text:00000001800573EF                 jbe     loc_180057609
+  .text:00000001800573F5                 mov     [rsp+3D8h+arg_0], rbx
+  .text:00000001800573FD                 cmp     ecx, 3
+  .text:0000000180057400                 jz      short loc_18005746B
+  .text:0000000180057402                 mov     rcx, cs:qword_180696958
+  .text:0000000180057409                 lea     rdx, [rsp+3D8h+var_2C8]
+  .text:0000000180057411                 mov     r8d, 1
+  .text:0000000180057417                 mov     rax, [rcx]
+  .text:000000018005741A                 call    qword ptr [rax+178h]
+  .text:0000000180057420                 mov     rdx, [rdi+50h]
+  .text:0000000180057424                 lea     rcx, [rsp+3D8h+var_388]
+  .text:0000000180057429                 mov     ebx, eax
+  .text:000000018005742B                 mov     eax, 54h ; 'T'
+  .text:0000000180057430                 test    ebx, ebx
+  .text:0000000180057432                 cmovz   ebx, eax
+  .text:0000000180057435                 call    sub_1800557D0
+  .text:000000018005743A                 lea     rcx, [rsp+3D8h+var_210]
+  .text:0000000180057442                 mov     r9, rax
+  .text:0000000180057445                 mov     [rsp+3D8h+var_3B0], rcx
+  .text:000000018005744A                 lea     r8, aFailedToConnec; "Failed to connect to %s. (%d) %s"
+  .text:0000000180057451                 mov     ecx, [rsp+3D8h+var_214]
+  .text:0000000180057458                 mov     edx, ebx
+  .text:000000018005745A                 mov     [rsp+3D8h+var_3B8], ecx
+  .text:000000018005745E                 mov     rcx, rdi
+  .text:0000000180057461                 call    sub_180056D90
+  .text:0000000180057466                 jmp     loc_180057601
+  .text:000000018005746B                 mov     rax, [rdi]
+  .text:000000018005746E                 cmp     dword ptr [rax+230h], 1
+  .text:0000000180057475                 jnz     loc_180057601
+  .text:000000018005747B                 mov     rcx, cs:qword_180696958
+  .text:0000000180057482                 mov     rax, [rcx]
+  .text:0000000180057485                 call    qword ptr [rax+0D8h]
+  .text:000000018005748B                 movaps  xmm2, xmm0
+  .text:000000018005748E                 lea     rcx, unk_18069BB20
+  .text:0000000180057495                 subsd   xmm2, qword ptr [rdi+0B8h]
+  .text:000000018005749D                 call    sub_18003C4D0
+  .text:00000001800574A2                 xorps   xmm1, xmm1
+  .text:00000001800574A5                 cvtss2sd xmm1, xmm0
+  .text:00000001800574A9                 comisd  xmm1, xmm2
+  .text:00000001800574AD                 ja      loc_180057601
+  .text:00000001800574B3                 cmp     dword ptr [rdi+48h], 0
+  .text:00000001800574B7                 jle     loc_180057601
+  .text:00000001800574BD                 mov     eax, [rdi+0ACh]
+  .text:00000001800574C3                 test    eax, eax
+  .text:00000001800574C5                 jle     short loc_1800574EC
+  .text:00000001800574C7                 mov     r9d, [rdi+0A8h]
+  .text:00000001800574CE                 cmp     r9d, eax
+  .text:00000001800574D1                 jl      short loc_1800574EC
+  .text:00000001800574D3                 lea     r8, aConnectionTime; "Connection timeout detected at source e"...
+  .text:00000001800574DA                 mov     edx, 48h ; 'H'
+  .text:00000001800574DF                 mov     rcx, rdi
+  .text:00000001800574E2                 call    sub_180056D90
+  .text:00000001800574E7                 jmp     loc_180057601
+  .text:00000001800574EC                 mov     rcx, cs:qword_180696958
+  .text:00000001800574F3                 mov     [rsp+3D8h+arg_8], rbp
+  .text:00000001800574FB                 mov     rax, [rcx]
+  .text:00000001800574FE                 call    qword ptr [rax+0D8h]
+  .text:0000000180057504                 mov     r8d, [rdi+98h]
+  .text:000000018005750B                 lea     rdx, aConnect0x08x; "connect0x%08X"
+  .text:0000000180057512                 movsd   qword ptr [rdi+0B8h], xmm0
+  .text:000000018005751A                 lea     rcx, [rdi+38h]
+  .text:000000018005751E                 mov     rbp, [rdi+50h]
+  .text:0000000180057522                 call    cs:?Format@CUtlString@@QEAAHPEBDZZ; CUtlString::Format(char const *,...)
+  .text:0000000180057528                 mov     rax, [rdi+38h]
+  .text:000000018005752C                 lea     rcx, unk_180531D7F
+  .text:0000000180057533                 test    rax, rax
+  .text:0000000180057536                 lea     r8, aCCCCCS; "%c%c%c%c%c%s"
+  .text:000000018005753D                 mov     r9d, 0FFh
+  .text:0000000180057543                 mov     edx, 80h
+  .text:0000000180057548                 cmovnz  rcx, rax
+  .text:000000018005754C                 mov     [rsp+3D8h+var_398], rcx
+  .text:0000000180057551                 lea     rcx, [rsp+3D8h+var_348]
+  .text:0000000180057559                 mov     [rsp+3D8h+var_3A0], 71h ; 'q'
+  .text:0000000180057561                 mov     [rsp+3D8h+var_3A8], 0FFh
+  .text:0000000180057569                 mov     dword ptr [rsp+3D8h+var_3B0], 0FFh
+  .text:0000000180057571                 mov     [rsp+3D8h+var_3B8], 0FFh
+  .text:0000000180057579                 call    cs:V_snprintf
+  .text:000000018005757F                 mov     ecx, cs:dword_18091C43C
+  .text:0000000180057585                 xor     edx, edx
+  .text:0000000180057587                 cmp     dword ptr [rbp+1Ch], 4
+  .text:000000018005758B                 mov     ebx, eax
+  .text:000000018005758D                 setnz   dl
+  .text:0000000180057590                 inc     edx
+  .text:0000000180057592                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:0000000180057598                 test    al, al
+  .text:000000018005759A                 jz      short loc_1800575CA
+  .text:000000018005759C                 mov     rdx, rbp
+  .text:000000018005759F                 lea     rcx, [rsp+3D8h+var_388]
+  .text:00000001800575A4                 call    sub_1800557D0
+  .text:00000001800575A9                 mov     ecx, cs:dword_18091C43C
+  .text:00000001800575AF                 lea     r8, aSendingConnect; "Sending connect to %s\n"
+  .text:00000001800575B6                 xor     edx, edx
+  .text:00000001800575B8                 mov     r9, rax
+  .text:00000001800575BB                 cmp     dword ptr [rbp+1Ch], 4
+  .text:00000001800575BF                 setnz   dl
+  .text:00000001800575C2                 inc     edx
+  .text:00000001800575C4                 call    cs:LoggingSystem_Log
+  .text:00000001800575CA                 mov     rax, [rsi]
+  .text:00000001800575CD                 lea     r9d, [rbx+1]
+  .text:00000001800575D1                 mov     edx, [rdi+40h]
+  .text:00000001800575D4                 lea     r8, [rsp+3D8h+var_348]
+  .text:00000001800575DC                 mov     [rsp+3D8h+var_3B0], 0
+  .text:00000001800575E5                 mov     rcx, rsi
+  .text:00000001800575E8                 mov     [rsp+3D8h+var_3B8], 5
+  .text:00000001800575F0                 call    qword ptr [rax+58h]
+  .text:00000001800575F3                 inc     dword ptr [rdi+0A8h]
+  .text:00000001800575F9                 mov     rbp, [rsp+3D8h+arg_8]
+  .text:0000000180057601                 mov     rbx, [rsp+3D8h+arg_0]
+  .text:0000000180057609                 mov     rsi, [rsp+3D8h+arg_10]
+  .text:0000000180057611                 add     rsp, 3D0h
+  .text:0000000180057618                 pop     rdi
+  .text:0000000180057619                 retn
+procedure: |-
+  void __fastcall CConnectGameClient_CheckForResend(__int64 a1)
+  {
+    __int64 v2; // rsi
+    unsigned int v3; // ebx
+    const char *v4; // rax
+    double v5; // xmm2_8
+    int v6; // eax
+    int v7; // r9d
+    double v8; // xmm0_8
+    int v9; // r8d
+    __int64 v10; // rbp
+    void *v11; // rcx
+    int v12; // ebx
+    const char *v13; // rax
+    _BYTE v14[64]; // [rsp+50h] [rbp-388h] BYREF
+    _BYTE v15[128]; // [rsp+90h] [rbp-348h] BYREF
+    _BYTE v16[176]; // [rsp+110h] [rbp-2C8h] BYREF
+    int v17; // [rsp+1C0h] [rbp-218h]
+    int v18; // [rsp+1C4h] [rbp-214h]
+    char v19[528]; // [rsp+1C8h] [rbp-210h] BYREF
+
+    if ( *(_DWORD *)(a1 + 64) )
+    {
+      v2 = (*(__int64 (**)(void))(*(_QWORD *)qword_180696958 + 336LL))();
+      if ( (*(unsigned __int8 (__fastcall **)(__int64, _QWORD, _BYTE *))(*(_QWORD *)v2 + 120LL))(
+             v2,
+             *(unsigned int *)(a1 + 64),
+             v16) )
+      {
+        if ( (unsigned int)(v17 - 1) > 1 )
+        {
+          if ( v17 == 3 )
+          {
+            if ( *(_DWORD *)(*(_QWORD *)a1 + 560LL) == 1 )
+            {
+              v5 = (*(double (__fastcall **)(__int64))(*(_QWORD *)qword_180696958 + 216LL))(qword_180696958)
+                 - *(double *)(a1 + 184);
+              if ( sub_18003C4D0(&unk_18069BB20) <= v5 && *(int *)(a1 + 72) > 0 )
+              {
+                v6 = *(_DWORD *)(a1 + 172);
+                if ( v6 <= 0 || (v7 = *(_DWORD *)(a1 + 168), v7 < v6) )
+                {
+                  v8 = (*(double (**)(void))(*(_QWORD *)qword_180696958 + 216LL))();
+                  v9 = *(_DWORD *)(a1 + 152);
+                  *(double *)(a1 + 184) = v8;
+                  v10 = *(_QWORD *)(a1 + 80);
+                  CUtlString::Format((CUtlString *)(a1 + 56), "connect0x%08X", v9);
+                  v11 = &unk_180531D7F;
+                  if ( *(_QWORD *)(a1 + 56) )
+                    v11 = *(void **)(a1 + 56);
+                  v12 = V_snprintf(v15, 128, "%c%c%c%c%c%s", 255, 255, 255, 255, 113, v11);
+                  if ( (unsigned __int8)LoggingSystem_IsChannelEnabled(
+                                          (unsigned int)dword_18091C43C,
+                                          (unsigned int)(*(_DWORD *)(v10 + 28) != 4) + 1) )
+                  {
+                    v13 = (const char *)sub_1800557D0(v14, v10);
+                    LoggingSystem_Log(
+                      (unsigned int)dword_18091C43C,
+                      (unsigned int)(*(_DWORD *)(v10 + 28) != 4) + 1,
+                      "Sending connect to %s\n",
+                      v13);
+                  }
+                  (*(void (__fastcall **)(__int64, _QWORD, _BYTE *, _QWORD, int, _QWORD))(*(_QWORD *)v2 + 88LL))(
+                    v2,
+                    *(unsigned int *)(a1 + 64),
+                    v15,
+                    (unsigned int)(v12 + 1),
+                    5,
+                    0);
+                  ++*(_DWORD *)(a1 + 168);
+                }
+                else
+                {
+                  sub_180056D90(a1, 72, "Connection timeout detected at source engine layer after %i retries.", v7);
+                }
+              }
+            }
+          }
+          else
+          {
+            v3 = (*(__int64 (__fastcall **)(__int64, _BYTE *, __int64))(*(_QWORD *)qword_180696958 + 376LL))(
+                   qword_180696958,
+                   v16,
+                   1);
+            if ( !v3 )
+              v3 = 84;
+            v4 = (const char *)sub_1800557D0(v14, *(_QWORD *)(a1 + 80));
+            sub_180056D90(a1, v3, "Failed to connect to %s. (%d) %s", v4, v18, v19);
+          }
+        }
+      }
+      else
+      {
+        sub_180056D90(a1, 30, "GetConnectionInfo failed.  Did somebody else close the connection?");
+      }
+    }
+  }
