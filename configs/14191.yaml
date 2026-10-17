@@ -15826,6 +15826,8 @@ cpp_tests:
       - server  # bin_artifacts/{gamever}/server/CNetworkServerService_*.{platform}.yaml
   - name: ICommandLine_MSVC
     symbol: ICommandLine
+    alias_symbols:
+      - CCommandLine
     cpp: cpp_tests/icommandline.cpp
     headers:
       - hl2sdk_cs2/public/tier0/icommandline.h  # Used by the fix-cppheaders SKILL
@@ -15845,8 +15847,8 @@ cpp_tests:
       - fms-compatibility
       - Xclang
       - fdump-vtable-layouts
-    # No reference_modules yet: ICommandLine has no binary reference YAMLs
-    # (tier0/vstdlib is not an analyzed module). Compile-only validation.
+    reference_modules:
+      - tier0  # bin_artifacts/{gamever}/tier0/CCommandLine_*.{platform}.yaml
   - name: IEngineServiceMgr_MSVC
     symbol: IEngineServiceMgr
     alias_symbols:
@@ -16260,6 +16262,8 @@ cpp_tests:
       - server  # bin_artifacts/{gamever}/server/CNetworkServerService_*.{platform}.yaml
   - name: ICommandLine_GCC
     symbol: ICommandLine
+    alias_symbols:
+      - CCommandLine
     cpp: cpp_tests/icommandline.cpp
     headers:
       - hl2sdk_cs2/public/tier0/icommandline.h  # Used by the fix-cppheaders SKILL
@@ -16278,8 +16282,8 @@ cpp_tests:
     additional_compiler_options:
       - Xclang
       - fdump-vtable-layouts
-    # No reference_modules yet: ICommandLine has no binary reference YAMLs
-    # (tier0/vstdlib is not an analyzed module). Compile-only validation.
+    reference_modules:
+      - tier0  # bin_artifacts/{gamever}/tier0/CCommandLine_*.{platform}.yaml
   - name: IEngineServiceMgr_GCC
     symbol: IEngineServiceMgr
     alias_symbols:
