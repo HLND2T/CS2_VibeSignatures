@@ -171,7 +171,7 @@ Pick the candidate that **is a `CNetChan` vtable entry**. On Linux that is the t
 
 ## Step 3. Assign the vtable fields
 
-From the matching entry: `vtable_name = CNetChan`, `vfunc_index = <entry index>`,
+From the matching entry: `vtable_name = CNetChan_vtable`, `vfunc_index = <entry index>`,
 `vfunc_offset = vfunc_index * 8`. On 14191 that is Windows index 45 / offset `0x168` and Linux index 46 /
 offset `0x170`.
 
@@ -190,7 +190,7 @@ mcp__ida-pro-mcp__rename batch={"func":[{"addr":"<target>","name":"CNetChan_Upda
    validated `func_sig`. On Linux this signature covers the **wrapper**, so keep it short — do not stretch it to
    reach the body.
 2. **ALWAYS** Use SKILL `/write-vfunc-as-yaml` with `func_name=CNetChan_UpdateMessageStats`,
-   `func_addr=<resolved target>`, the `func_sig` from step 1, `vtable_name=CNetChan`, and the
+   `func_addr=<resolved target>`, the `func_sig` from step 1, `vtable_name=CNetChan_vtable`, and the
    `vfunc_offset`/`vfunc_index` from Step 3.
 
 Do not write a partial YAML: all eight fields (`func_name`, `func_va`, `func_rva`, `func_size`, `func_sig`,
