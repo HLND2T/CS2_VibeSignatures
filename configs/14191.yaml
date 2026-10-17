@@ -1031,6 +1031,9 @@ modules:
         expected_input:
           - CLoopTypeClientServer_AdvanceTime.{platform}.yaml
           - CNetworkGameServerBase_vtable.{platform}.yaml
+      - name: find-CNetworkStringTableContainer_vtable
+        expected_output:
+          - CNetworkStringTableContainer_vtable.{platform}.yaml
       - name: find-CNetworkStringTableContainer_DirectUpdate
         optional_output:
           - CNetworkStringTableContainer_DirectUpdate.{platform}.yaml
@@ -4773,6 +4776,8 @@ modules:
         category: func
       - name: ConnectSocketToAddressList
         category: func
+      - name: CNetworkStringTableContainer_vtable
+        category: vtable
       - name: CNetworkStringTableClient_ParseUpdate
         category: func
         alias:
@@ -16353,9 +16358,13 @@ cpp_tests:
       - fms-compatibility
       - Xclang
       - fdump-vtable-layouts
-    # Compile-only for now: neither symbol owns a vtable artifact yet. The only
-    # matching engine YAML (CNetworkStringTableContainer_DirectUpdate) has no
-    # vfunc_index, so it cannot anchor a slot layout.
+    # The binary has one more slot than the SDK header models. MSVC layout is
+    # 0-10 IAppSystem, 11 deleting dtor, 12-16 the five declared methods, then
+    # 17: an accessor the header does not declare that returns this+0x28
+    # (0x18010d060). Only the total size differs, so per-slot checks stay valid.
+    allow_vtable_size_mismatch: true
+    reference_modules:
+      - engine  # bin_artifacts/{gamever}/engine/{INetworkStringTableContainer,CNetworkStringTableContainer}_*.{platform}.yaml
   - name: INetworkStringTableContainer_GCC
     symbol: INetworkStringTableContainer
     alias_symbols:
@@ -16380,6 +16389,9 @@ cpp_tests:
     additional_compiler_options:
       - Xclang
       - fdump-vtable-layouts
-    # Compile-only for now: neither symbol owns a vtable artifact yet. The only
-    # matching engine YAML (CNetworkStringTableContainer_DirectUpdate) has no
-    # vfunc_index, so it cannot anchor a slot layout.
+    # Same unmodelled trailing accessor as MSVC (0x59b450 returns this+0x28),
+    # offset by Itanium's second destructor slot: 0-10 IAppSystem, 11-12 both
+    # dtors, 13-17 the five declared methods, 18 the extra accessor.
+    allow_vtable_size_mismatch: true
+    reference_modules:
+      - engine  # bin_artifacts/{gamever}/engine/{INetworkStringTableContainer,CNetworkStringTableContainer}_*.{platform}.yaml
