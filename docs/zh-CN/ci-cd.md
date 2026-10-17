@@ -83,6 +83,15 @@ version source commit 进入 default branch 后：
 6. protected Release publisher 创建/复用 source tag，上传 exact immutable assets，发布一次并 dispatch Pages；
 7. Pages 只 hydrate published Release assets，验证 manifest/SHA256SUMS/archive inventories，构建全部已发布版本并验证 CDN bytes。
 
+BinSync 提交身份通过 GitHub Environment 的 **variables**（非 secrets）配置：`BINSYNC_GIT_USER_NAME` 和
+`BINSYNC_GIT_USER_EMAIL`。在 `win64` 中设置 Release candidate 导出及新 GAMEVER bootstrap 的身份；在
+`binsync-remotes` 中设置 hosted remote provisioning 初始提交的身份。也可使用 repository-level variables
+提供公共值，再由 environment-level variables 覆盖。未设置或值为空时分别使用 `github-actions[bot]` 和
+`github-actions[bot]@users.noreply.github.com`；本地命令也支持同名环境变量。初始化及 candidate 准备会在每个
+`.bsproj` 中通过 `git config --local` 写入 `user.name`、`user.email`，覆盖已有仓库及新 clone 的仓库，后续
+BinSync 提交不再依赖 runner 的全局 Git 配置。身份非法或配置写入失败会在导出前终止准备，错误包含仓库路径。
+BinSync 分支用户（`release-automation` / `bootstrap-validation`）单独配置，不决定 Git 作者身份。
+
 Self-hosted builder 使用 `release_bundle.py prepare` 校验本地 candidate session，生成可移植的待验证资产包，
 此时不生成发布 manifest，也不声明 C++ 成功。`cpp-validation.yml` 在 hosted Windows 和 Ubuntu 上使用同一
 snapshot/configuration 和 source SDK gitlink 测试；aggregate 要求两端结果被接受，按 Windows/Linux 顺序合并日志。

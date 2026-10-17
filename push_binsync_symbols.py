@@ -32,6 +32,7 @@ from init_gamebin import (  # noqa: E402
     BINSYNC_ROOT_BRANCH,
     GITHUB_OWNER,
     InitGamebinError,
+    configure_binsync_git_identity,
     expected_sidecar,
     file_md5,
     initialize_minimal_binsync_repo,
@@ -251,6 +252,7 @@ def _prepare_local_repository(
         state = "missing" if not exists else "locked"
         raise RuntimeError(f"local BinSync repository is {state}: {repo_path}")
 
+    configure_binsync_git_identity(repo_path)
     user_ref = f"refs/heads/binsync/{user}"
     remote_user_ref = f"refs/remotes/origin/binsync/{user}"
     ref_check = _git_result(["git", "check-ref-format", user_ref], repo_path, allowed=(0, 1))
