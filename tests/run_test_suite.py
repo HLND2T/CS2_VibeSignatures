@@ -71,6 +71,7 @@ UNIT_MODULES = frozenset(
         "test_bump_download",
         "test_bump_publish_retry",
         "test_cnetworkmessages_dtor_preprocessor",
+        "test_commandline_checkparm_preprocessor",
         "test_commandline_parmvalue_int",
         "test_copy_depot_bin",
         "test_ci_s3_cache",
