@@ -2990,6 +2990,11 @@ modules:
       - name: find-CServerSideClientBase_vtable
         expected_output:
           - CServerSideClientBase_vtable.{platform}.yaml
+      - name: find-CServerSideClientBase_UpdateAcknowledgedFramecount
+        expected_output:
+          - CServerSideClientBase_UpdateAcknowledgedFramecount.{platform}.yaml
+        expected_input:
+          - CServerSideClientBase_vtable.{platform}.yaml
       - name: find-CServerSideClientBase_PerformDisconnection
         expected_output:
           - CServerSideClientBase_PerformDisconnection.{platform}.yaml
@@ -3246,6 +3251,10 @@ modules:
         category: vtable
       - name: CServerSideClient_vtable
         category: vtable
+      - name: CServerSideClient_UpdateAcknowledgedFramecount
+        category: vfunc
+        alias:
+          - CServerSideClient::UpdateAcknowledgedFramecount
       - name: CServerSideClient_SendInitialSpawnGroups
         category: vfunc
         alias:
@@ -4986,6 +4995,10 @@ modules:
           - CHLTVBroadcast::RecordSnapshot
       - name: CServerSideClientBase_vtable
         category: vtable
+      - name: CServerSideClientBase_UpdateAcknowledgedFramecount
+        category: vfunc
+        alias:
+          - CServerSideClientBase::UpdateAcknowledgedFramecount
       - name: CServerSideClientBase_PerformDisconnection
         category: vfunc
         alias:
@@ -14799,6 +14812,13 @@ modules:
         expected_output:
           - CServerSideClientBase_SetConVarUserInfo.{platform}.yaml
         expected_input:
+          - g_pSource2GameClients.{platform}.yaml
+      - name: find-CServerSideClient_UpdateAcknowledgedFramecount
+        expected_output:
+          - CServerSideClient_UpdateAcknowledgedFramecount.{platform}.yaml
+        expected_input:
+          - CServerSideClientBase_UpdateAcknowledgedFramecount.{platform}.yaml
+          - CServerSideClient_vtable.{platform}.yaml
           - g_pSource2GameClients.{platform}.yaml
       - name: find-CServerSideClientBase_dtor-decompiles
         expected_output:
