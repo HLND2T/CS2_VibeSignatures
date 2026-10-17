@@ -1034,27 +1034,11 @@ modules:
       - name: find-CNetworkStringTableContainer_vtable
         expected_output:
           - CNetworkStringTableContainer_vtable.{platform}.yaml
-      - name: find-CNetworkStringTableContainer_RemoveAllTables-helper
-        optional_output:
-          - CNetworkStringTableContainer_RemoveAllTables_helper.{platform}.yaml
-        skip_if_exists:
-          - CNetworkStringTableContainer_RemoveAllTables.{platform}.yaml
-      - name: find-CNetworkStringTableContainer_RemoveAllTables-noinline
-        optional_output:
-          - CNetworkStringTableContainer_RemoveAllTables.{platform}.yaml
-        expected_input:
-          - CNetworkStringTableContainer_vtable.{platform}.yaml
-        prerequisite:
-          - find-CNetworkStringTableContainer_RemoveAllTables-helper
-      - name: find-CNetworkStringTableContainer_RemoveAllTables-inlined
+      - name: find-CNetworkStringTableContainer_RemoveAllTables
         expected_output:
           - CNetworkStringTableContainer_RemoveAllTables.{platform}.yaml
         expected_input:
           - CNetworkStringTableContainer_vtable.{platform}.yaml
-        skip_if_exists:
-          - CNetworkStringTableContainer_RemoveAllTables.{platform}.yaml
-        prerequisite:
-          - find-CNetworkStringTableContainer_RemoveAllTables-noinline
       - name: find-CNetworkStringTableContainer_DirectUpdate
         optional_output:
           - CNetworkStringTableContainer_DirectUpdate.{platform}.yaml
