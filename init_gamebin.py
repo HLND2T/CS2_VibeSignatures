@@ -4,6 +4,7 @@
 import argparse
 import base64
 import binascii
+import functools
 import getpass
 import hashlib
 import json
@@ -39,6 +40,7 @@ GAMEVER_RE = re.compile(r"^[0-9]{4,10}[a-z]?$")
 DOWNLOAD_TIMEOUT = (30, 300)
 COPY_BUFFER_SIZE = 1024 * 1024
 GITHUB_OWNER = "HLND2T"
+GITHUB_TOKEN_ENVIRONMENT_VARIABLES = ("GH_TOKEN", "GITHUB_TOKEN")
 BINSYNC_ROOT_BRANCH = "binsync/__root__"
 BINSYNC_USER_TREE_FILES = (
     "comments.toml",
@@ -501,6 +503,55 @@ def probe_binsync(
     return True, ""
 
 
+@functools.lru_cache(maxsize=1)
+def github_token() -> str | None:
+    """Resolve a GitHub token, preferring the environment over the gh CLI.
+
+    Returns None when neither source provides a usable token, so every caller
+    degrades to the same unauthenticated request the project already made.
+    """
+    for variable in GITHUB_TOKEN_ENVIRONMENT_VARIABLES:
+        value = os.environ.get(variable, "")
+        if value.strip():
+            return value.strip()
+    if shutil.which("gh") is None:
+        return None
+    try:
+        result = subprocess.run(
+            ["gh", "auth", "token", "--hostname", "github.com"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError:
+        return None
+    if result.returncode != 0:
+        return None
+    token = result.stdout.strip()
+    return token or None
+
+
+def github_request_headers() -> dict:
+    """Return authenticated GitHub request headers, or an empty mapping when anonymous.
+
+    Unauthenticated api.github.com access is limited to 60 requests per hour, so
+    reusing the gh CLI credential keeps Release lookups and downloads out of that
+    quota and reports its own reason instead of a misleading HTTP 403.
+    """
+    token = github_token()
+    if token is None:
+        return {}
+    return {"Authorization": f"Bearer {token}", "X-GitHub-Api-Version": "2022-11-28"}
+
+
+def rate_limit_hint() -> str:
+    """Return an actionable suffix for an authentication-quota failure."""
+    return (
+        " (unauthenticated GitHub API quota; set GH_TOKEN or authenticate gh"
+        " so Release lookups and downloads use an authenticated token)"
+    )
+
+
 def gh_api(root: Path, endpoint: str, *, method="GET", fields=None, allow_404=False):
     """Call gh api and distinguish explicit HTTP 404 from every other failure."""
     command = ["gh", "api", "--method", method, endpoint]
@@ -680,6 +731,28 @@ def push_local_binsync_history(repo_path: Path) -> None:
         )
 
 
+def configure_binsync_git_identity(repo_path: Path) -> None:
+    """Persist the export identity in this repository, independent of runner config."""
+    identity = {}
+    for key, variable, default in (
+        ("user.name", "BINSYNC_GIT_USER_NAME", "github-actions[bot]"),
+        ("user.email", "BINSYNC_GIT_USER_EMAIL", "github-actions[bot]@users.noreply.github.com"),
+    ):
+        value = os.environ.get(variable) or default
+        if not value.strip() or any(character in value for character in "\r\n\0<>"):
+            raise InitGamebinError(
+                f"invalid {variable} for BinSync repository {repo_path}: expected a nonempty Git identity"
+            )
+        identity[key] = value.strip()
+    for key, value in identity.items():
+        run_command(
+            ["git", "config", "--local", "--replace-all", key, value],
+            repo_path,
+            capture=True,
+            label=f"configuring BinSync {key} in {repo_path}",
+        )
+
+
 def initialize_minimal_binsync_repo(repo_path: Path, binary_md5: str, repo_name: str, user: str) -> None:
     """Create the local root and user branches a publishable BinSync repo needs.
 
@@ -688,6 +761,7 @@ def initialize_minimal_binsync_repo(repo_path: Path, binary_md5: str, repo_name:
     when it initializes a repository.
     """
     run_command(["git", "init"], repo_path, capture=True, label=f"initializing {repo_name}")
+    configure_binsync_git_identity(repo_path)
     try:
         (repo_path / ".gitignore").write_text(".git/*\n", encoding="utf-8")
         (repo_path / "binary_hash").write_text(binary_md5, encoding="utf-8")
@@ -695,16 +769,7 @@ def initialize_minimal_binsync_repo(repo_path: Path, binary_md5: str, repo_name:
         raise InitGamebinError(f"unable to write the BinSync root files for {repo_name}: {exc}") from exc
     run_command(["git", "add", ".gitignore", "binary_hash"], repo_path, label=f"staging {repo_name}")
     run_command(
-        [
-            "git",
-            "-c",
-            f"user.name={user}",
-            "-c",
-            f"user.email={user}@binsync.local",
-            "commit",
-            "-m",
-            "Root commit",
-        ],
+        ["git", "commit", "-m", "Root commit"],
         repo_path,
         capture=True,
         label=f"creating the BinSync root commit for {repo_name}",
@@ -733,16 +798,7 @@ def initialize_minimal_binsync_repo(repo_path: Path, binary_md5: str, repo_name:
         label=f"staging the BinSync user files for {repo_name}",
     )
     run_command(
-        [
-            "git",
-            "-c",
-            f"user.name={user}",
-            "-c",
-            f"user.email={user}@binsync.local",
-            "commit",
-            "-m",
-            "Generic BS Commit",
-        ],
+        ["git", "commit", "-m", "Generic BS Commit"],
         repo_path,
         capture=True,
         label=f"creating the BinSync user commit for {repo_name}",
@@ -975,12 +1031,29 @@ def ensure_binsync_remotes(
     return {"gamever": gamever, "user": user, "summary": summary, "planned": planned}
 
 
+def is_rate_limit_status(response) -> bool:
+    """Return whether a response reports an authentication quota failure."""
+    if response.status_code != 403:
+        return False
+    return response.headers.get("x-ratelimit-remaining") == "0"
+
+
 def download_release_asset(url: str, destination: Path) -> bool:
     """Download one release asset; return False only for HTTP 404."""
     try:
-        with requests.get(url, stream=True, allow_redirects=True, timeout=DOWNLOAD_TIMEOUT) as response:
+        with requests.get(
+            url,
+            headers=github_request_headers(),
+            stream=True,
+            allow_redirects=True,
+            timeout=DOWNLOAD_TIMEOUT,
+        ) as response:
             if response.status_code == 404:
                 return False
+            if response.status_code == 429 or is_rate_limit_status(response):
+                raise InitGamebinError(
+                    f"gamebin download failed with HTTP {response.status_code} {response.reason}{rate_limit_hint()}"
+                )
             if not 200 <= response.status_code < 300:
                 raise InitGamebinError(f"gamebin download failed with HTTP {response.status_code} {response.reason}")
             with destination.open("wb") as handle:
@@ -996,7 +1069,15 @@ def download_release_asset(url: str, destination: Path) -> bool:
 
 def release_tag_target(gamever: str) -> str:
     try:
-        response = requests.get(RELEASE_TAG_API_URL.format(gamever), timeout=DOWNLOAD_TIMEOUT)
+        response = requests.get(
+            RELEASE_TAG_API_URL.format(gamever),
+            headers=github_request_headers(),
+            timeout=DOWNLOAD_TIMEOUT,
+        )
+        if response.status_code == 429 or is_rate_limit_status(response):
+            raise InitGamebinError(
+                f"Release tag lookup failed with HTTP {response.status_code} {response.reason}{rate_limit_hint()}"
+            )
         if not 200 <= response.status_code < 300:
             raise InitGamebinError(f"Release tag lookup failed with HTTP {response.status_code} {response.reason}")
         document = response.json()
