@@ -21,6 +21,7 @@ from release_workflow_lib.hashing import file_inventory, sha256_file
 from tests import test_binsync_candidate as candidate_tests
 from tests.test_gamedata_candidate import GamedataCandidateFixture
 from tests import test_release_artifact_rebuild as rebuild_tests
+from tests.optional_dependencies import require_binsync, requires_7z
 
 
 def _refresh_binding_digest(manifest: dict, label: str) -> None:
@@ -38,6 +39,7 @@ class ReleaseBundleTests(unittest.TestCase):
             target.write_text("sdk\n", encoding="utf-8")
 
     def _fixture(self, temporary_root: Path) -> tuple[Path, dict, Path, dict]:
+        require_binsync()
         candidate_fixture = candidate_tests.BinSyncCandidateTests()
         root = temporary_root / "repo"
         root.mkdir()
@@ -110,6 +112,7 @@ class ReleaseBundleTests(unittest.TestCase):
         }
         return root, preparation, binsync_root, {"binsync_manifest": binsync_manifest, **inputs}
 
+    @requires_7z
     def test_builds_and_hosted_verifies_exact_release_bundle(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             temporary_root = Path(temporary)
@@ -241,6 +244,7 @@ class ReleaseBundleTests(unittest.TestCase):
             with self.assertRaisesRegex(release_bundle.ReleaseBundleError, "binding rule version is invalid"):
                 release_bundle.validate_release_manifest(pre_rule_forged)
 
+    @requires_7z
     def test_builds_and_hosted_verifies_tracked_artifact_bundle(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             temporary_root = Path(temporary)
@@ -484,6 +488,7 @@ class ReleaseBundleTests(unittest.TestCase):
 
             self.assertEqual("", output.getvalue())
 
+    @requires_7z
     def test_verify_rejects_public_asset_tamper(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             temporary_root = Path(temporary)
