@@ -1,36 +1,36 @@
 func_name: CCSBotManager_StartFrame_ShouldUpdate
-func_va: '0xbed310'
+func_va: '0xbed510'
 disasm_code: |-
-  .text:0000000000BED310                 push    rbp
-  .text:0000000000BED311                 mov     rbp, rsp
-  .text:0000000000BED314                 call    sub_9FD2F0
-  .text:0000000000BED319                 xor     edx, edx
-  .text:0000000000BED31B                 mov     esi, 0C53340BCh
-  .text:0000000000BED320                 mov     rdi, rax
-  .text:0000000000BED323                 mov     rax, [rax]
-  .text:0000000000BED326                 call    qword ptr [rax+18h] ; 0x18 = 24LL = ICommandLine_CheckParm
-  .text:0000000000BED329                 mov     rdx, rax
-  .text:0000000000BED32C                 xor     eax, eax
-  .text:0000000000BED32E                 test    rdx, rdx
-  .text:0000000000BED331                 jz      short loc_BED338
-  .text:0000000000BED333                 pop     rbp
-  .text:0000000000BED334                 retn
-  .text:0000000000BED338                 call    sub_9FD2F0
-  .text:0000000000BED33D                 mov     esi, 2237A36Dh
-  .text:0000000000BED342                 mov     rdi, rax
-  .text:0000000000BED345                 mov     rax, [rax]
-  .text:0000000000BED348                 call    qword ptr [rax+20h] ; 0x20 = 32LL = ICommandLine_HasParm
-  .text:0000000000BED34B                 test    al, al
-  .text:0000000000BED34D                 jnz     short loc_BED333
-  .text:0000000000BED34F                 lea     rax, g_pGameRules
-  .text:0000000000BED356                 mov     rdx, [rax]
-  .text:0000000000BED359                 mov     eax, 1
-  .text:0000000000BED35E                 test    rdx, rdx
-  .text:0000000000BED361                 jz      short loc_BED333
-  .text:0000000000BED363                 movzx   eax, byte ptr [rdx+0FD8h]
-  .text:0000000000BED36A                 pop     rbp
-  .text:0000000000BED36B                 xor     eax, 1
-  .text:0000000000BED36E                 retn
+  .text:0000000000BED510                 push    rbp
+  .text:0000000000BED511                 mov     rbp, rsp
+  .text:0000000000BED514                 call    _CommandLine
+  .text:0000000000BED519                 xor     edx, edx
+  .text:0000000000BED51B                 mov     esi, 0C53340BCh
+  .text:0000000000BED520                 mov     rdi, rax
+  .text:0000000000BED523                 mov     rax, [rax]
+  .text:0000000000BED526                 call    qword ptr [rax+18h] ; 0x18 = 24LL = ICommandLine_CheckParm
+  .text:0000000000BED529                 mov     rdx, rax
+  .text:0000000000BED52C                 xor     eax, eax
+  .text:0000000000BED52E                 test    rdx, rdx
+  .text:0000000000BED531                 jz      short loc_BED538
+  .text:0000000000BED533                 pop     rbp
+  .text:0000000000BED534                 retn
+  .text:0000000000BED538                 call    _CommandLine
+  .text:0000000000BED53D                 mov     esi, 2237A36Dh
+  .text:0000000000BED542                 mov     rdi, rax
+  .text:0000000000BED545                 mov     rax, [rax]
+  .text:0000000000BED548                 call    qword ptr [rax+20h] ; 0x20 = 32LL = ICommandLine_HasParm
+  .text:0000000000BED54B                 test    al, al
+  .text:0000000000BED54D                 jnz     short loc_BED533
+  .text:0000000000BED54F                 lea     rax, qword_29F2868
+  .text:0000000000BED556                 mov     rdx, [rax]
+  .text:0000000000BED559                 mov     eax, 1
+  .text:0000000000BED55E                 test    rdx, rdx
+  .text:0000000000BED561                 jz      short loc_BED533
+  .text:0000000000BED563                 movzx   eax, byte ptr [rdx+0FD8h]
+  .text:0000000000BED56A                 pop     rbp
+  .text:0000000000BED56B                 xor     eax, 1
+  .text:0000000000BED56E                 retn
 procedure: |-
   __int64 CCSBotManager_StartFrame_ShouldUpdate()
   {
@@ -39,18 +39,18 @@ procedure: |-
     __int64 result; // rax
     __int64 v3; // rax
 
-    v0 = sub_9FD2F0();
+    v0 = CommandLine();
     v1 = (*(__int64 (__fastcall **)(__int64, __int64, _QWORD))(*(_QWORD *)v0 + 24LL))(v0, 3308470460LL, 0); // 0x18 = 24LL = ICommandLine_CheckParm
     result = 0;
     if ( !v1 )
     {
-      v3 = sub_9FD2F0();
+      v3 = CommandLine();
       result = (*(__int64 (__fastcall **)(__int64, __int64))(*(_QWORD *)v3 + 32LL))(v3, 574071661); // 0x20 = 32LL = ICommandLine_HasParm
       if ( !(_BYTE)result )
       {
         result = 1;
-        if ( g_pGameRules )
-          return *(unsigned __int8 *)(g_pGameRules + 4056) ^ 1u;
+        if ( qword_29F2868 )
+          return *(unsigned __int8 *)(qword_29F2868 + 4056) ^ 1u;
       }
     }
     return result;

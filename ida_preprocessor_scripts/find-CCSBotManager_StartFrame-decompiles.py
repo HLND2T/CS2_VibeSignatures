@@ -40,7 +40,7 @@ async def preprocess_skill(
     llm_config=None,
     debug=False,
 ):
-    # The command-line gate is inlined on Windows 14190 and separate on Linux.
+    # The command-line gate is inlined on Windows and separate on Linux.
     # Select by the current artifact closure, rather than fixing a platform/slot.
     helper = Path(new_binary_dir) / f"CCSBotManager_StartFrame_ShouldUpdate.{platform}.yaml"
     llm_specs = LLM_DECOMPILE

@@ -9184,66 +9184,6 @@ modules:
         expected_input:
           - CBaseEntity_GetEyePosition.{platform}.yaml
           - CBasePlayerPawn_vtable.{platform}.yaml
-      - name: find-CBotManager_vtable
-        expected_output:
-          - CBotManager_vtable.{platform}.yaml
-      - name: find-CCSBotManager_vtable
-        expected_output:
-          - CCSBotManager_vtable.{platform}.yaml
-      - name: find-CBotManager_StartFrameInternal
-        optional_output:
-          - CBotManager_StartFrameInternal.{platform}.yaml
-        skip_if_exists:
-          - CBotManager_StartFrame.{platform}.yaml
-      - name: find-CBotManager_StartFrame-noinline
-        optional_output:
-          - CBotManager_StartFrame.{platform}.yaml
-        expected_input:
-          - CBotManager_vtable.{platform}.yaml
-        prerequisite:
-          - find-CBotManager_StartFrameInternal
-      - name: find-CBotManager_StartFrame
-        expected_output:
-          - CBotManager_StartFrame.{platform}.yaml
-        expected_input:
-          - CBotManager_vtable.{platform}.yaml
-        skip_if_exists:
-          - CBotManager_StartFrame.{platform}.yaml
-        prerequisite:
-          - find-CBotManager_StartFrame-noinline
-      - name: find-CCSBotManager_StartFrame-noinline
-        optional_output:
-          - CCSBotManager_StartFrame.{platform}.yaml
-        expected_input:
-          - CBotManager_StartFrame.{platform}.yaml
-          - CCSBotManager_vtable.{platform}.yaml
-      - name: find-CCSBotManager_StartFrame
-        expected_output:
-          - CCSBotManager_StartFrame.{platform}.yaml
-        expected_input:
-          - CCSBotManager_vtable.{platform}.yaml
-        skip_if_exists:
-          - CCSBotManager_StartFrame.{platform}.yaml
-        prerequisite:
-          - find-CCSBotManager_StartFrame-noinline
-      - name: find-CCSBotManager_StartFrame_ShouldUpdate
-        optional_output:
-          - CCSBotManager_StartFrame_ShouldUpdate.{platform}.yaml
-        expected_input:
-          - CCSBotManager_StartFrame.{platform}.yaml
-        skip_if_exists:
-          - ICommandLine_CheckParm.{platform}.yaml
-          - ICommandLine_HasParm.{platform}.yaml
-      - name: find-CCSBotManager_StartFrame-decompiles
-        expected_output:
-          - ICommandLine_CheckParm.{platform}.yaml
-          - ICommandLine_HasParm.{platform}.yaml
-        expected_input:
-          - CCSBotManager_StartFrame.{platform}.yaml
-        optional_input:
-          - CCSBotManager_StartFrame_ShouldUpdate.{platform}.yaml
-        prerequisite:
-          - find-CCSBotManager_StartFrame_ShouldUpdate
       - name: find-CCSBotManager_BotPlaceCommand
         expected_output:
           - CCSBotManager_BotPlaceCommand.{platform}.yaml
@@ -12764,26 +12704,6 @@ modules:
         category: vfunc
         alias:
           - CBaseEntity::GetEyePosition
-      - name: CBotManager_vtable
-        category: vtable
-      - name: CCSBotManager_vtable
-        category: vtable
-      - name: CBotManager_StartFrame
-        category: vfunc
-        alias:
-          - CBotManager::StartFrame
-      - name: CCSBotManager_StartFrame
-        category: vfunc
-        alias:
-          - CCSBotManager::StartFrame
-      - name: ICommandLine_CheckParm
-        category: vfunc
-        alias:
-          - ICommandLine::CheckParm
-      - name: ICommandLine_HasParm
-        category: vfunc
-        alias:
-          - ICommandLine::HasParm
       - name: CCSBotManager_BotPlaceCommand
         category: func
         alias:
@@ -15070,18 +14990,6 @@ modules:
       - name: find-CCommandLine_vtable
         expected_output:
           - CCommandLine_vtable.{platform}.yaml
-      - name: find-CCommandLine_CheckParm
-        expected_output:
-          - CCommandLine_CheckParm.{platform}.yaml
-        expected_input:
-          - CCommandLine_vtable.{platform}.yaml
-          - ../server/ICommandLine_CheckParm.{platform}.yaml
-      - name: find-CCommandLine_HasParm
-        expected_output:
-          - CCommandLine_HasParm.{platform}.yaml
-        expected_input:
-          - CCommandLine_vtable.{platform}.yaml
-          - ../server/ICommandLine_HasParm.{platform}.yaml
       - name: find-CCommandLine_CreateCmdLinePrependAppName
         expected_output:
           - CCommandLine_CreateCmdLinePrependAppName.{platform}.yaml
@@ -15118,14 +15026,6 @@ modules:
     symbols:
       - name: CCommandLine_vtable
         category: vtable
-      - name: CCommandLine_CheckParm
-        category: vfunc
-        alias:
-          - CCommandLine::CheckParm
-      - name: CCommandLine_HasParm
-        category: vfunc
-        alias:
-          - CCommandLine::HasParm
       - name: CCommandLine_CreateCmdLinePrependAppName
         category: vfunc
         alias:
