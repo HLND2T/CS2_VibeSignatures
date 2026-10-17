@@ -11,6 +11,7 @@ from pathlib import Path
 
 from release_bundle import _create_archive
 from release_workflow_lib.hashing import canonical_json_bytes, inventory_sha256, sha256_bytes
+from tests.optional_dependencies import requires_7z
 
 import pages_legacy_input as pli
 
@@ -69,6 +70,7 @@ def _dataset(game_version: str, file_count: int = 1) -> dict:
 
 
 class ExtractorTests(unittest.TestCase):
+    @requires_7z
     def test_extracts_only_the_declared_gamedata_subtree(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -88,6 +90,7 @@ class ExtractorTests(unittest.TestCase):
             self.assertEqual(b'{"gamever":"14178b"}\n', (extracted / "Plugin" / "data.jsonc").read_bytes())
             self.assertFalse((destination / "bin_artifacts").exists())
 
+    @requires_7z
     def test_rejects_an_archive_without_the_declared_subtree(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

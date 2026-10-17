@@ -5,6 +5,7 @@ import unittest
 from pathlib import Path
 
 import pages_release_input as pri
+from tests.optional_dependencies import requires_7z
 from release_artifact_rebuild import BINDING_RULE_VERSION
 from release_bundle import _create_archive, _release_rebuild_digest
 from release_workflow_lib.hashing import (
@@ -400,6 +401,7 @@ class PagesReleaseInputTests(unittest.TestCase):
                 "Path = gamedata/14180/link\nSize = 1\nFolder = -\nSymbolic Link = target\n\n"
             )
 
+    @requires_7z
     def test_seven_zip_extractor_preflights_and_extracts_only_gamedata(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
