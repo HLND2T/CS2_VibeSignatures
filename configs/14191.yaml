@@ -8513,6 +8513,11 @@ modules:
         expected_input:
           - CPlayerCommandQueue_ctor.{platform}.yaml
           - CCSPlayerController_vtable.{platform}.yaml
+      - name: find-ICvar_IterateConVarCallbacks
+        expected_output:
+          - ICvar_IterateConVarCallbacks.{platform}.yaml
+        expected_input:
+          - CCSPlayerController_Connect.{platform}.yaml
       - name: find-CCSPlayerController_Disconnect
         expected_output:
           - CCSPlayerController_Disconnect.{platform}.yaml
@@ -11948,6 +11953,10 @@ modules:
         category: vfunc
         alias:
           - CCSPlayerController::Connect
+      - name: ICvar_IterateConVarCallbacks
+        category: vfunc
+        alias:
+          - ICvar::IterateConVarCallbacks
       - name: CCSPlayerController_Disconnect
         category: vfunc
         alias:
@@ -15192,6 +15201,12 @@ modules:
           - CCvar_RegisterConCommand.{platform}.yaml
         expected_input:
           - CCvar_vtable.{platform}.yaml
+      - name: find-CCvar_IterateConVarCallbacks
+        expected_output:
+          - CCvar_IterateConVarCallbacks.{platform}.yaml
+        expected_input:
+          - ../server/ICvar_IterateConVarCallbacks.{platform}.yaml
+          - CCvar_vtable.{platform}.yaml
       - name: find-CKeyValuesSystem_vtable
         expected_output:
           - CKeyValuesSystem_vtable.{platform}.yaml
@@ -15224,6 +15239,10 @@ modules:
         category: vfunc
         alias:
           - CCvar::RegisterConCommand
+      - name: CCvar_IterateConVarCallbacks
+        category: vfunc
+        alias:
+          - CCvar::IterateConVarCallbacks
       - name: CKeyValuesSystem_vtable
         category: vtable
       - name: CKeyValuesSystem_dtor
