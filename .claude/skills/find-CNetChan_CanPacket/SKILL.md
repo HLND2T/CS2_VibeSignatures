@@ -178,7 +178,7 @@ print('match index', [k for k,a in ents.items() if a == tgt])
 
 Set:
 
-- `vtable_name = CNetChan`
+- `vtable_name = CNetChan_vtable`
 - `vfunc_index = <the matching entry index>`
 - `vfunc_offset = vfunc_index * 8`
 
@@ -199,7 +199,7 @@ mcp__ida-pro-mcp__rename batch={"func":[{"addr":"<start>","name":"CNetChan_CanPa
    - `func_name`: `CNetChan_CanPacket`
    - `func_addr`: the resolved function start
    - `func_sig`: the signature from step 1
-   - `vtable_name`: `CNetChan`
+   - `vtable_name`: `CNetChan_vtable`
    - `vfunc_offset`: `vfunc_index * 8` (from Step 3)
    - `vfunc_index`: from Step 3
 
