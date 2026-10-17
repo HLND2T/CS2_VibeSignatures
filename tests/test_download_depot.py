@@ -283,6 +283,38 @@ downloads:
         self.assertEqual(2, mock_run.call_count)
         mock_sleep.assert_called_once_with(depot_util.DEFAULT_DEPOTDOWNLOADER_RETRY_DELAY_SECONDS)
 
+    def test_main_stores_depot_under_gamever_subdirectory(self) -> None:
+        fake_args = argparse.Namespace(
+            tag="14168",
+            config="download.yaml",
+            configyaml=str(Path(__file__).resolve()),
+            depotdir="cs2_depot",
+            app="730",
+            os="all-platform",
+            username=None,
+            password=None,
+            remember_password=False,
+        )
+        fake_entry = {
+            "tag": "14168",
+            "manifests": {"2347771": "111"},
+        }
+
+        with (
+            patch("download_depot.parse_args", return_value=fake_args),
+            patch("download_depot.load_downloads", return_value=[fake_entry]),
+            patch("download_depot.find_download_entry", return_value=fake_entry),
+            patch(
+                "download_depot.load_module_filelist",
+                return_value=["game/bin/win64/SDL3.dll"],
+            ),
+            patch("depot_util.subprocess.run") as mock_run,
+        ):
+            self.assertEqual(0, download_depot.main())
+
+        command = mock_run.call_args.args[0]
+        self.assertEqual(os.path.join("cs2_depot", "14168"), command[command.index("-dir") + 1])
+
     def test_main_returns_nonzero_when_depotdownloader_missing(self) -> None:
         fake_args = argparse.Namespace(
             tag="14168",

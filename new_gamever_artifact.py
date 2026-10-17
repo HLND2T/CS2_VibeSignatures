@@ -471,7 +471,8 @@ def verify_bootstrap_candidate(
 def _ensure_clean_checkout(repo_root: Path, expected_head: str) -> None:
     if _git(repo_root, "rev-parse", "HEAD").lower() != expected_head:
         raise NewGameverArtifactError("publication checkout does not match the bound PR head")
-    if _git(repo_root, "status", "--porcelain=v1", "--untracked-files=all"):
+    # Submodules are checked out separately, so hl2sdk_cs2 may legitimately lag the gitlink.
+    if _git(repo_root, "status", "--porcelain=v1", "--untracked-files=all", "--ignore-submodules=all"):
         raise NewGameverArtifactError("publication checkout must be clean before applying candidate artifacts")
 
 

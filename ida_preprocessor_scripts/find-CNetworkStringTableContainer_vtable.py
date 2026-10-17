@@ -5,7 +5,9 @@ from ida_analyze_util import preprocess_common_skill
 
 TARGET_CLASS_NAMES = ["CNetworkStringTableContainer"]
 
+
 GENERATE_YAML_DESIRED_FIELDS = [
+    # (symbol_name, generate_yaml_fields)
     (
         "CNetworkStringTableContainer",
         [
