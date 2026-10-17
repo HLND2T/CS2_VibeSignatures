@@ -7353,6 +7353,14 @@ modules:
     path_windows: game/csgo/bin/win64/server.dll
     path_linux: game/csgo/bin/linuxsteamrt64/libserver.so
     skills:
+      - name: find-FilterWorkshopCommands
+        expected_output:
+          - FilterWorkshopCommands.{platform}.yaml
+      - name: find-ICommandLine_HasParmUnrestricted
+        expected_output:
+          - ICommandLine_HasParmUnrestricted.{platform}.yaml
+        expected_input:
+          - FilterWorkshopCommands.{platform}.yaml
       - name: find-CSource2Server_vtable
         expected_output:
           - CSource2Server_vtable.{platform}.yaml
@@ -10708,6 +10716,12 @@ modules:
         expected_input:
           - CEntitySystem_FindComponentTypeByName.{platform}.yaml
     symbols:
+      - name: FilterWorkshopCommands
+        category: func
+      - name: ICommandLine_HasParmUnrestricted
+        category: vfunc
+        alias:
+          - ICommandLine::HasParmUnrestricted
       - name: CSource2Server_vtable
         category: vtable
       - name: CSource2Server_GetAllServerClasses
@@ -14990,6 +15004,12 @@ modules:
       - name: find-CCommandLine_vtable
         expected_output:
           - CCommandLine_vtable.{platform}.yaml
+      - name: find-CCommandLine_HasParmUnrestricted
+        expected_output:
+          - CCommandLine_HasParmUnrestricted.{platform}.yaml
+        expected_input:
+          - ../server/ICommandLine_HasParmUnrestricted.{platform}.yaml
+          - CCommandLine_vtable.{platform}.yaml
       - name: find-CCommandLine_CreateCmdLinePrependAppName
         expected_output:
           - CCommandLine_CreateCmdLinePrependAppName.{platform}.yaml
@@ -15026,6 +15046,10 @@ modules:
     symbols:
       - name: CCommandLine_vtable
         category: vtable
+      - name: CCommandLine_HasParmUnrestricted
+        category: vfunc
+        alias:
+          - CCommandLine::HasParmUnrestricted
       - name: CCommandLine_CreateCmdLinePrependAppName
         category: vfunc
         alias:
