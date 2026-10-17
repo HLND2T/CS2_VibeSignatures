@@ -1034,6 +1034,11 @@ modules:
       - name: find-CNetworkStringTableContainer_vtable
         expected_output:
           - CNetworkStringTableContainer_vtable.{platform}.yaml
+      - name: find-CNetworkStringTableContainer_RemoveAllTables
+        expected_output:
+          - CNetworkStringTableContainer_RemoveAllTables.{platform}.yaml
+        expected_input:
+          - CNetworkStringTableContainer_vtable.{platform}.yaml
       - name: find-CNetworkStringTableContainer_CreateStringTable-helper
         optional_output:
           - CNetworkStringTableContainer_CreateStringTable_helper.{platform}.yaml
@@ -4825,6 +4830,10 @@ modules:
         category: func
       - name: CNetworkStringTableContainer_vtable
         category: vtable
+      - name: CNetworkStringTableContainer_RemoveAllTables
+        category: vfunc
+        alias:
+          - CNetworkStringTableContainer::RemoveAllTables
       - name: CNetworkStringTableContainer_CreateStringTable
         category: vfunc
         alias:
