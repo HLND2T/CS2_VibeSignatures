@@ -1039,6 +1039,27 @@ modules:
           - CNetworkStringTableContainer_RemoveAllTables.{platform}.yaml
         expected_input:
           - CNetworkStringTableContainer_vtable.{platform}.yaml
+      - name: find-CNetworkStringTableContainer_CreateStringTable-helper
+        optional_output:
+          - CNetworkStringTableContainer_CreateStringTable_helper.{platform}.yaml
+        skip_if_exists:
+          - CNetworkStringTableContainer_CreateStringTable.{platform}.yaml
+      - name: find-CNetworkStringTableContainer_CreateStringTable-noinline
+        optional_output:
+          - CNetworkStringTableContainer_CreateStringTable.{platform}.yaml
+        expected_input:
+          - CNetworkStringTableContainer_vtable.{platform}.yaml
+        prerequisite:
+          - find-CNetworkStringTableContainer_CreateStringTable-helper
+      - name: find-CNetworkStringTableContainer_CreateStringTable
+        expected_output:
+          - CNetworkStringTableContainer_CreateStringTable.{platform}.yaml
+        expected_input:
+          - CNetworkStringTableContainer_vtable.{platform}.yaml
+        skip_if_exists:
+          - CNetworkStringTableContainer_CreateStringTable.{platform}.yaml
+        prerequisite:
+          - find-CNetworkStringTableContainer_CreateStringTable-noinline
       - name: find-CNetworkStringTableContainer_DirectUpdate
         optional_output:
           - CNetworkStringTableContainer_DirectUpdate.{platform}.yaml
@@ -4813,6 +4834,10 @@ modules:
         category: vfunc
         alias:
           - CNetworkStringTableContainer::RemoveAllTables
+      - name: CNetworkStringTableContainer_CreateStringTable
+        category: vfunc
+        alias:
+          - CNetworkStringTableContainer::CreateStringTable
       - name: CNetworkStringTableClient_ParseUpdate
         category: func
         alias:
