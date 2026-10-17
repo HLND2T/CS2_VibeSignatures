@@ -9,6 +9,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from binsync_projection import build_source_projection
+from tests.optional_dependencies import requires_binsync
 
 SCRIPT = Path("push_binsync_symbols.py")
 SPEC = importlib.util.spec_from_file_location("push_binsync_symbols", SCRIPT)
@@ -60,6 +61,122 @@ def _build_min_elf() -> bytes:
     return bytes(ehdr) + bytes(phdr)
 
 
+class TestBinSyncCommitIdentity(unittest.TestCase):
+    """Exercise real Git commits without any runner-level identity."""
+
+    def setUp(self) -> None:
+        temporary = self.enterContext(tempfile.TemporaryDirectory())
+        self.root = Path(temporary)
+        global_config = self.root / "global.gitconfig"
+        global_config.write_text("[user]\n\tuseConfigOnly = true\n", encoding="utf-8")
+        environment = {
+            key: value
+            for key, value in os.environ.items()
+            if not key.startswith(("GIT_", "BINSYNC_GIT_")) and key != "EMAIL"
+        }
+        environment.update(GIT_CONFIG_GLOBAL=str(global_config), GIT_CONFIG_NOSYSTEM="1")
+        self.enterContext(patch.dict(os.environ, environment, clear=True))
+        self.global_config = global_config
+
+    def binary(self, name="server.dll") -> Path:
+        binary = self.root / name
+        binary.write_bytes(b"binary")
+        return binary
+
+    def prepare(self, binary, *, bootstrap=True):
+        push_binsync_symbols._prepare_local_repository(
+            binary, "14191", "release-automation", bootstrap_local_init=bootstrap
+        )
+        return Path(f"{binary}.bsproj")
+
+    def assert_commit_identity(self, repo, name, email):
+        (repo / "comments.toml").write_text("# exported comment\n", encoding="utf-8")
+        _git(repo, "add", "comments.toml")
+        _git(repo, "commit", "-m", "Export symbols")
+        self.assertEqual(
+            f"{name}|{email}|{name}|{email}",
+            _git(repo, "log", "-1", "--format=%an|%ae|%cn|%ce").stdout.strip(),
+        )
+        _git(repo, "checkout", "binsync/__root__")
+
+    def test_bootstrap_repositories_use_explicit_identity_for_real_commits(self):
+        with patch.dict(
+            os.environ,
+            BINSYNC_GIT_USER_NAME="Release Bot",
+            BINSYNC_GIT_USER_EMAIL="release@example.com",
+        ):
+            for name in ("server.dll", "libserver.so"):
+                with self.subTest(binary=name):
+                    repo = self.prepare(self.binary(name))
+                    self.assertEqual("Release Bot", _git(repo, "config", "--local", "user.name").stdout.strip())
+                    self.assertEqual(
+                        "release@example.com", _git(repo, "config", "--local", "user.email").stdout.strip()
+                    )
+                    self.assert_commit_identity(repo, "Release Bot", "release@example.com")
+        self.assertEqual("[user]\n\tuseConfigOnly = true\n", self.global_config.read_text(encoding="utf-8"))
+
+    def test_existing_repository_identity_is_refreshed_without_moving_refs(self):
+        binary = self.binary()
+        repo = self.prepare(binary)
+        before = _git(repo, "rev-parse", "HEAD").stdout
+        _git(repo, "config", "user.name", "Old Bot")
+        _git(repo, "config", "user.email", "old@example.com")
+        with patch.dict(os.environ, BINSYNC_GIT_USER_NAME="New Bot", BINSYNC_GIT_USER_EMAIL="new@example.com"):
+            self.prepare(binary, bootstrap=False)
+        self.assertEqual(before, _git(repo, "rev-parse", "HEAD").stdout)
+        self.assert_commit_identity(repo, "New Bot", "new@example.com")
+
+    def test_cloned_repository_gets_local_identity(self):
+        binary = self.binary()
+        seed = self.root / "seed"
+        seed.mkdir()
+        repo_name, remote, repo, _ = push_binsync_symbols.expected_sidecar(
+            binary, push_binsync_symbols.file_md5(binary), "14191", "release-automation"
+        )
+        push_binsync_symbols.initialize_minimal_binsync_repo(
+            seed, push_binsync_symbols.file_md5(binary), repo_name, "release-automation"
+        )
+        _git(seed, "checkout", "binsync/__root__")
+        real_git_result = push_binsync_symbols._git_result
+
+        def clone_locally(arguments, cwd, **kwargs):
+            if arguments[:2] == ["git", "clone"]:
+                _git(cwd, "clone", "--no-tags", str(seed), str(repo))
+                return _git(repo, "remote", "set-url", "origin", remote)
+            return real_git_result(arguments, cwd, **kwargs)
+
+        with (
+            patch.object(push_binsync_symbols, "_git_result", side_effect=clone_locally),
+            patch.dict(os.environ, BINSYNC_GIT_USER_NAME="Clone Bot", BINSYNC_GIT_USER_EMAIL="clone@example.com"),
+        ):
+            self.prepare(binary, bootstrap=False)
+        self.assert_commit_identity(repo, "Clone Bot", "clone@example.com")
+
+    def test_unset_or_empty_variables_use_deterministic_bot_identity(self):
+        for index, variables in enumerate(({}, {"BINSYNC_GIT_USER_NAME": "", "BINSYNC_GIT_USER_EMAIL": ""})):
+            with self.subTest(variables=variables), patch.dict(os.environ, variables):
+                repo = self.prepare(self.binary(f"server-{index}.dll"))
+                self.assert_commit_identity(repo, "github-actions[bot]", "github-actions[bot]@users.noreply.github.com")
+
+    def test_invalid_identity_fails_before_export(self):
+        for variable in ("BINSYNC_GIT_USER_NAME", "BINSYNC_GIT_USER_EMAIL"):
+            for index, value in enumerate(("   ", "bad\nidentity", "bad<identity>")):
+                with self.subTest(variable=variable, value=value):
+                    with patch.dict(os.environ, {variable: value}):
+                        with self.assertRaisesRegex(RuntimeError, variable):
+                            self.prepare(self.binary(f"{variable}-{index}.dll"))
+
+    def test_configuration_write_failure_names_repository_before_export(self):
+        binary = self.binary()
+        repo = self.prepare(binary)
+        with patch(
+            "init_gamebin.subprocess.run", return_value=subprocess.CompletedProcess([], 128, "", "config is locked")
+        ):
+            with self.assertRaisesRegex(push_binsync_symbols.InitGamebinError, "server.dll.bsproj.*config is locked"):
+                push_binsync_symbols.configure_binsync_git_identity(repo)
+
+
+@requires_binsync
 class TestCollectManifestSymbols(unittest.TestCase):
     def _make_config(self, root: Path, gamever: str = "14174") -> Path:
         module = root / "bin" / gamever / "engine"
@@ -213,6 +330,7 @@ class TestCollectManifestSymbols(unittest.TestCase):
         self.assertEqual(2, push_binsync_symbols.main(["14174"]))
 
 
+@requires_binsync
 class TestBootstrapLocalInit(unittest.TestCase):
     """--bootstrap-local-init must initialize locally and never touch any remote."""
 
