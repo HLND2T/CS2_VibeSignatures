@@ -178,6 +178,8 @@ jobs:
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.HLND2T_GH_TOKEN }}
+          BINSYNC_GIT_USER_NAME: ${{ vars.BINSYNC_GIT_USER_NAME }}
+          BINSYNC_GIT_USER_EMAIL: ${{ vars.BINSYNC_GIT_USER_EMAIL }}
         run: |
           if ([string]::IsNullOrWhiteSpace($env:GH_TOKEN)) {
             throw "HLND2T_GH_TOKEN is not configured for the binsync-remotes environment."
@@ -210,6 +212,8 @@ jobs:
     env:
       GAMEVER: ${{ needs.preflight.outputs.gamever }}
       SOURCE_SHA: ${{ needs.preflight.outputs.source_sha }}
+      BINSYNC_GIT_USER_NAME: ${{ vars.BINSYNC_GIT_USER_NAME }}
+      BINSYNC_GIT_USER_EMAIL: ${{ vars.BINSYNC_GIT_USER_EMAIL }}
       IDB_CACHE_GENERATION: ${{ needs.warmup-idb.outputs.generation }}
       IDB_CACHE_KEY: ${{ needs.warmup-idb.outputs.cache_key }}
       IDB_CACHE_LEASE_ID: ${{ needs.warmup-idb.outputs.lease_id }}
