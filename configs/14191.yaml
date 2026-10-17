@@ -16375,11 +16375,9 @@ cpp_tests:
       - fms-compatibility
       - Xclang
       - fdump-vtable-layouts
-    # The binary has one more slot than the SDK header models. MSVC layout is
-    # 0-10 IAppSystem, 11 deleting dtor, 12-16 the five declared methods, then
-    # 17: an accessor the header does not declare that returns this+0x28
-    # (0x18010d060). Only the total size differs, so per-slot checks stay valid.
-    allow_vtable_size_mismatch: true
+    # Layout is 0-10 IAppSystem, 11 deleting dtor, 12-16 the five declared
+    # methods, 17 INetworkStringTableContainer::GetName (returns this+0x28,
+    # 0x18010d060). The header models all 18 slots, so the size check applies.
     reference_modules:
       - engine  # bin_artifacts/{gamever}/engine/{INetworkStringTableContainer,CNetworkStringTableContainer}_*.{platform}.yaml
   - name: INetworkStringTableContainer_GCC
@@ -16406,9 +16404,8 @@ cpp_tests:
     additional_compiler_options:
       - Xclang
       - fdump-vtable-layouts
-    # Same unmodelled trailing accessor as MSVC (0x59b450 returns this+0x28),
-    # offset by Itanium's second destructor slot: 0-10 IAppSystem, 11-12 both
-    # dtors, 13-17 the five declared methods, 18 the extra accessor.
-    allow_vtable_size_mismatch: true
+    # Layout is 0-10 IAppSystem, 11-12 both Itanium dtor slots, 13-17 the five
+    # declared methods, 18 INetworkStringTableContainer::GetName (this+0x28,
+    # 0x59b450). The header models all 19 slots, so the size check applies.
     reference_modules:
       - engine  # bin_artifacts/{gamever}/engine/{INetworkStringTableContainer,CNetworkStringTableContainer}_*.{platform}.yaml
