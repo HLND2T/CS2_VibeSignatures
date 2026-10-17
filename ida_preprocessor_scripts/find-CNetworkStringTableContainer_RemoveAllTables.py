@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
-"""Resolve RemoveAllTables directly when its implementation is inlined into the vfunc."""
+"""Resolve RemoveAllTables by intersecting its debug-string xrefs with the container vtable.
+
+The string anchor alone is not unique: inline call sites accumulate in unrelated functions
+(the server-side mirror installer and static initializers, for instance). Intersecting the
+string-xref candidate set with ``CNetworkStringTableContainer_vtable`` leaves exactly one
+function, and the same query covers both build shapes -- body inlined into the vfunc, or
+de-inlined behind a helper that the vtable slot still points at.
+"""
 
 from ida_analyze_util import preprocess_common_skill
 
@@ -52,7 +59,7 @@ async def preprocess_skill(
     image_base,
     debug=False,
 ):
-    """Resolve the vfunc directly when the debug string remains in its body."""
+    """Resolve the vfunc by intersecting the debug-string xrefs with the container vtable."""
     return await preprocess_common_skill(
         session=session,
         expected_outputs=expected_outputs,
