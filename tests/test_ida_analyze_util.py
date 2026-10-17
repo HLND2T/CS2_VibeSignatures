@@ -13839,6 +13839,7 @@ found_struct_offset: []
             "disasm_code": "call    sub_180123450",
             "procedure": "return sub_180123450();",
         }
+        custom_loader = AsyncMock(return_value=[target_detail_payload])
         normalized_payload = {
             "found_call": [
                 {
@@ -13960,9 +13961,12 @@ found_struct_offset: []
                         "model": "gpt-4.1-mini",
                         "api_key": "test-api-key",
                     },
+                    llm_target_details_loader=custom_loader,
                     debug=True,
                 )
 
+        custom_loader.assert_awaited_once()
+        self.assertEqual(custom_loader.await_args.args[1], ["Bar"])
         self.assertTrue(result)
         mock_preprocess_direct_func_sig.assert_awaited_once()
         self.assertTrue(mock_preprocess_direct_func_sig.await_args.kwargs["allow_func_sig_across_function_boundary"])
