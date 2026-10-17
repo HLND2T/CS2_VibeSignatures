@@ -950,5 +950,63 @@ class TestFindOnServerVoiceDataIsPlayingDemoCallee(unittest.IsolatedAsyncioTestC
         self.assertFalse(result)
 
 
+class TestPostEventLocalHelperChain(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        from ida_preprocessor_scripts import _llm_helper_chain_common
+
+        self.chain = _llm_helper_chain_common
+
+    async def test_inline_success_does_not_walk_unrelated_helpers(self):
+        with patch.object(self.chain, "preprocess_common_skill", AsyncMock(return_value=True)) as preprocess:
+            self.assertTrue(await self.chain.preprocess_call_chain(session="session"))
+        self.assertEqual(preprocess.await_count, 1)
+        self.assertNotIn("llm_target_details_loader", preprocess.await_args.kwargs)
+
+    async def test_deinlined_fallback_uses_helper_loader(self):
+        with patch.object(self.chain, "preprocess_common_skill", AsyncMock(side_effect=[False, True])) as preprocess:
+            self.assertTrue(await self.chain.preprocess_call_chain(session="session"))
+        self.assertIs(preprocess.await_args.kwargs["llm_target_details_loader"], self.chain.load_helper_details)
+
+    async def test_helper_instructions_are_exported_for_validation(self):
+        root = {"func_va": "0x1000", "disasm_code": "0x1000 jmp sub_2000"}
+        helper = {"func_va": "0x2000", "disasm_code": "0x2000 call qword ptr [rax+58h]"}
+        session = type("Session", (), {"call_tool": AsyncMock(return_value={})})()
+        with (
+            patch.object(self.chain, "_load_llm_decompile_target_details_via_mcp", AsyncMock(return_value=[root])),
+            patch.object(
+                self.chain, "parse_mcp_result", return_value={"result": '{"addresses":["0x2000"],"overflow":false}'}
+            ),
+            patch.object(self.chain, "_export_function_detail_via_mcp", AsyncMock(return_value=helper)),
+        ):
+            self.assertEqual(await self.chain.load_helper_details(session, ["FireEvent"]), [root, helper])
+
+    async def test_overflow_or_missing_helper_export_fails_closed(self):
+        session = type("Session", (), {"call_tool": AsyncMock(return_value={})})()
+        for overflow in (True, False):
+            with (
+                self.subTest(overflow=overflow),
+                patch.object(
+                    self.chain,
+                    "_load_llm_decompile_target_details_via_mcp",
+                    AsyncMock(return_value=[{"func_va": "0x1000"}]),
+                ),
+                patch.object(
+                    self.chain,
+                    "parse_mcp_result",
+                    return_value={"result": '{"addresses":["0x2000"],"overflow":' + str(overflow).lower() + "}"},
+                ),
+                patch.object(self.chain, "_export_function_detail_via_mcp", AsyncMock(return_value=None)),
+            ):
+                self.assertEqual(await self.chain.load_helper_details(session, ["FireEvent"]), [])
+
+    def test_multiple_calls_to_same_slot_are_allowed_but_different_slots_are_rejected(self):
+        finder = _load_module(
+            Path("ida_preprocessor_scripts/find-IGameEventSystem_PostEventAbstract_Local.py"), "find_PostEventLocal"
+        )
+        entry = {"func_name": "IGameEventSystem_PostEventAbstract_Local", "vfunc_offset": "0x70"}
+        self.assertEqual(finder.validate_dispatch({"found_vcall": [entry, entry]}), [])
+        self.assertTrue(finder.validate_dispatch({"found_vcall": [entry, {**entry, "vfunc_offset": "0x78"}]}))
+
+
 if __name__ == "__main__":
     unittest.main()
