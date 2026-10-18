@@ -243,6 +243,89 @@ modules:
       - name: find-CNetChan_vtable
         expected_output:
           - CNetChan_vtable.{platform}.yaml
+      - name: find-CNetChan_SendDataInternal
+        optional_output:
+          - CNetChan_SendDataInternal.{platform}.yaml
+        skip_if_exists:
+          - CNetChan_SendData.{platform}.yaml
+      - name: find-CNetChan_SendData-noinline
+        optional_output:
+          - CNetChan_SendData.{platform}.yaml
+        expected_input:
+          - CNetChan_vtable.{platform}.yaml
+        prerequisite:
+          - find-CNetChan_SendDataInternal
+      - name: find-CNetChan_SendData-inlined
+        expected_output:
+          - CNetChan_SendData.{platform}.yaml
+        expected_input:
+          - CNetChan_vtable.{platform}.yaml
+        skip_if_exists:
+          - CNetChan_SendData.{platform}.yaml
+        prerequisite:
+          - find-CNetChan_SendData-noinline
+      - name: find-CNetChan_SendNetMessageInternal
+        optional_output:
+          - CNetChan_SendNetMessageInternal.{platform}.yaml
+        skip_if_exists:
+          - CNetChan_SendNetMessage.{platform}.yaml
+      - name: find-CNetChan_SendNetMessage-noinline
+        optional_output:
+          - CNetChan_SendNetMessage.{platform}.yaml
+        expected_input:
+          - CNetChan_vtable.{platform}.yaml
+        prerequisite:
+          - find-CNetChan_SendNetMessageInternal
+      - name: find-CNetChan_SendNetMessage-inlined
+        expected_output:
+          - CNetChan_SendNetMessage.{platform}.yaml
+        expected_input:
+          - CNetChan_vtable.{platform}.yaml
+        skip_if_exists:
+          - CNetChan_SendNetMessage.{platform}.yaml
+        prerequisite:
+          - find-CNetChan_SendNetMessage-noinline
+      - name: find-CNetChan_SendMessages_Internal
+        expected_output:
+          - CNetChan_SendMessages_Internal.{platform}.yaml
+      - name: find-CNetChan_SendMessages-noinline
+        optional_output:
+          - CNetChan_SendMessages.{platform}.yaml
+        expected_input:
+          - CNetChan_SendMessages_Internal.{platform}.yaml
+          - CNetChan_vtable.{platform}.yaml
+        prerequisite:
+          - find-CNetChan_SendMessages_Internal
+      - name: find-CNetChan_SendMessages-inlined
+        expected_output:
+          - CNetChan_SendMessages.{platform}.yaml
+        expected_input:
+          - CNetChan_vtable.{platform}.yaml
+        skip_if_exists:
+          - CNetChan_SendMessages.{platform}.yaml
+        prerequisite:
+          - find-CNetChan_SendMessages-noinline
+      - name: find-CNetChan_TransmitInternal
+        optional_output:
+          - CNetChan_TransmitInternal.{platform}.yaml
+        skip_if_exists:
+          - CNetChan_Transmit.{platform}.yaml
+      - name: find-CNetChan_Transmit-noinline
+        optional_output:
+          - CNetChan_Transmit.{platform}.yaml
+        expected_input:
+          - CNetChan_vtable.{platform}.yaml
+        prerequisite:
+          - find-CNetChan_TransmitInternal
+      - name: find-CNetChan_Transmit-inlined
+        expected_output:
+          - CNetChan_Transmit.{platform}.yaml
+        expected_input:
+          - CNetChan_vtable.{platform}.yaml
+        skip_if_exists:
+          - CNetChan_Transmit.{platform}.yaml
+        prerequisite:
+          - find-CNetChan_Transmit-noinline
       - name: find-CNetworkMessages_vtable
         expected_output:
           - CNetworkMessages_vtable.{platform}.yaml
@@ -338,6 +421,48 @@ modules:
           - CNetChan_ParseMessagesDemo.{platform}.yaml
         expected_input:
           - CNetChan_vtable.{platform}.yaml
+      - name: find-CNetChan_RegisterNetMessageHandlerAbstract
+        expected_output:
+          - CNetChan_RegisterNetMessageHandlerAbstract.{platform}.yaml
+        expected_input:
+          - CNetChan_vtable.{platform}.yaml
+      - name: find-CNetChan_FinishRegisteringMessageHandlers
+        expected_output:
+          - CNetChan_FinishRegisteringMessageHandlers.{platform}.yaml
+        expected_input:
+          - CNetChan_vtable.{platform}.yaml
+          - CNetworkMessages_ConfirmAllMessageHandlersInstalled.{platform}.yaml
+      - name: find-CNetChan_CanPacket
+        expected_output:
+          - CNetChan_CanPacket.{platform}.yaml
+        expected_input:
+          - CNetChan_vtable.{platform}.yaml
+      - name: find-CNetChan_SetTimeout
+        expected_output:
+          - CNetChan_SetTimeout.{platform}.yaml
+        expected_input:
+          - CNetChan_vtable.{platform}.yaml
+      - name: find-CNetChan_UpdateMessageStatsInternal
+        optional_output:
+          - CNetChan_UpdateMessageStatsInternal.{platform}.yaml
+        skip_if_exists:
+          - CNetChan_UpdateMessageStats.{platform}.yaml
+      - name: find-CNetChan_UpdateMessageStats-noinline
+        optional_output:
+          - CNetChan_UpdateMessageStats.{platform}.yaml
+        expected_input:
+          - CNetChan_vtable.{platform}.yaml
+        prerequisite:
+          - find-CNetChan_UpdateMessageStatsInternal
+      - name: find-CNetChan_UpdateMessageStats-inlined
+        expected_output:
+          - CNetChan_UpdateMessageStats.{platform}.yaml
+        expected_input:
+          - CNetChan_vtable.{platform}.yaml
+        skip_if_exists:
+          - CNetChan_UpdateMessageStats.{platform}.yaml
+        prerequisite:
+          - find-CNetChan_UpdateMessageStats-noinline
       - name: find-CNetChan_ParseMessagesDemoInternal
         expected_output:
           - CNetChan_ParseMessagesDemoInternal.{platform}.yaml
@@ -505,6 +630,32 @@ modules:
         shared: true
       - name: CNetChan_vtable
         category: vtable
+        shared: true
+      - name: CNetChan_SendDataInternal
+        category: func
+      - name: CNetChan_SendData
+        category: vfunc
+        alias:
+          - CNetChan::SendData
+        shared: true
+      - name: CNetChan_SendMessages_Internal
+        category: func
+      - name: CNetChan_SendMessages
+        category: vfunc
+        alias:
+          - CNetChan::SendMessages
+        shared: true
+      - name: CNetChan_SendNetMessageInternal
+        category: func
+      - name: CNetChan_SendNetMessage
+        category: vfunc
+        alias:
+          - CNetChan::SendNetMessage
+        shared: true
+      - name: CNetChan_Transmit
+        category: vfunc
+        alias:
+          - CNetChan::Transmit
         shared: true
       - name: CNetworkMessages_GetIsForServer
         category: vfunc
@@ -880,6 +1031,35 @@ modules:
         expected_input:
           - CLoopTypeClientServer_AdvanceTime.{platform}.yaml
           - CNetworkGameServerBase_vtable.{platform}.yaml
+      - name: find-CNetworkStringTableContainer_vtable
+        expected_output:
+          - CNetworkStringTableContainer_vtable.{platform}.yaml
+      - name: find-CNetworkStringTableContainer_RemoveAllTables
+        expected_output:
+          - CNetworkStringTableContainer_RemoveAllTables.{platform}.yaml
+        expected_input:
+          - CNetworkStringTableContainer_vtable.{platform}.yaml
+      - name: find-CNetworkStringTableContainer_CreateStringTable-helper
+        optional_output:
+          - CNetworkStringTableContainer_CreateStringTable_helper.{platform}.yaml
+        skip_if_exists:
+          - CNetworkStringTableContainer_CreateStringTable.{platform}.yaml
+      - name: find-CNetworkStringTableContainer_CreateStringTable-noinline
+        optional_output:
+          - CNetworkStringTableContainer_CreateStringTable.{platform}.yaml
+        expected_input:
+          - CNetworkStringTableContainer_vtable.{platform}.yaml
+        prerequisite:
+          - find-CNetworkStringTableContainer_CreateStringTable-helper
+      - name: find-CNetworkStringTableContainer_CreateStringTable
+        expected_output:
+          - CNetworkStringTableContainer_CreateStringTable.{platform}.yaml
+        expected_input:
+          - CNetworkStringTableContainer_vtable.{platform}.yaml
+        skip_if_exists:
+          - CNetworkStringTableContainer_CreateStringTable.{platform}.yaml
+        prerequisite:
+          - find-CNetworkStringTableContainer_CreateStringTable-noinline
       - name: find-CNetworkStringTableContainer_DirectUpdate
         optional_output:
           - CNetworkStringTableContainer_DirectUpdate.{platform}.yaml
@@ -997,6 +1177,27 @@ modules:
           - CNetworkGameServerBase_OnKickByName.{platform}.yaml
       - name: find-CServerSideClient_vtable
         expected_output:
+          - CServerSideClient_vtable.{platform}.yaml
+      - name: find-CServerSideClient_ProcessVoiceData
+        expected_output:
+          - CServerSideClient_ProcessVoiceData.{platform}.yaml
+        expected_input:
+          - CNetworkGameServerBase_SV_BroadcastVoiceData.{platform}.yaml
+          - CServerSideClient_vtable.{platform}.yaml
+      - name: find-CServerSideClient_ProcessMove
+        expected_output:
+          - CServerSideClient_ProcessMove.{platform}.yaml
+        expected_input:
+          - CServerSideClient_vtable.{platform}.yaml
+      - name: find-CServerSideClient_SendNetMessage
+        expected_output:
+          - CServerSideClient_SendNetMessage.{platform}.yaml
+        expected_input:
+          - CServerSideClient_vtable.{platform}.yaml
+      - name: find-CServerSideClient_SendInitialSpawnGroups
+        expected_output:
+          - CServerSideClient_SendInitialSpawnGroups.{platform}.yaml
+        expected_input:
           - CServerSideClient_vtable.{platform}.yaml
       - name: find-CServerSideClient_ctor
         expected_output:
@@ -1187,6 +1388,9 @@ modules:
       - name: find-CNetworkGameServerBase_vtable
         expected_output:
           - CNetworkGameServerBase_vtable.{platform}.yaml
+      - name: find-CNetworkGameServerBase_SV_BroadcastVoiceData
+        expected_output:
+          - CNetworkGameServerBase_SV_BroadcastVoiceData.{platform}.yaml
       - name: find-CNetworkGameServerBase_ServerSimulate-windows
         platform: windows
         expected_output:
@@ -2786,6 +2990,11 @@ modules:
       - name: find-CServerSideClientBase_vtable
         expected_output:
           - CServerSideClientBase_vtable.{platform}.yaml
+      - name: find-CServerSideClientBase_UpdateAcknowledgedFramecount
+        expected_output:
+          - CServerSideClientBase_UpdateAcknowledgedFramecount.{platform}.yaml
+        expected_input:
+          - CServerSideClientBase_vtable.{platform}.yaml
       - name: find-CServerSideClientBase_PerformDisconnection
         expected_output:
           - CServerSideClientBase_PerformDisconnection.{platform}.yaml
@@ -3042,6 +3251,26 @@ modules:
         category: vtable
       - name: CServerSideClient_vtable
         category: vtable
+      - name: CServerSideClient_UpdateAcknowledgedFramecount
+        category: vfunc
+        alias:
+          - CServerSideClient::UpdateAcknowledgedFramecount
+      - name: CServerSideClient_SendInitialSpawnGroups
+        category: vfunc
+        alias:
+          - CServerSideClient::SendInitialSpawnGroups
+      - name: CServerSideClient_ProcessVoiceData
+        category: vfunc
+        alias:
+          - CServerSideClient::ProcessVoiceData
+      - name: CServerSideClient_ProcessMove
+        category: vfunc
+        alias:
+          - CServerSideClient::ProcessMove
+      - name: CServerSideClient_SendNetMessage
+        category: vfunc
+        alias:
+          - CServerSideClient::SendNetMessage
       - name: CSVCMsg_PeerList_t_vtable
         category: vtable
       - name: CServerSideClient_ctor
@@ -3212,6 +3441,10 @@ modules:
           - CNetworkGameServerBase::CheckPassword
       - name: CNetworkGameServerBase_vtable
         category: vtable
+      - name: CNetworkGameServerBase_SV_BroadcastVoiceData
+        category: func
+        alias:
+          - CNetworkGameServerBase::SV_BroadcastVoiceData
       - name: INetworkGameServer_SetGameSpawnGroupMgr
         category: vfunc
         alias:
@@ -3582,6 +3815,26 @@ modules:
         category: vfunc
         alias:
           - CNetChan::ParseMessagesDemo
+      - name: CNetChan_RegisterNetMessageHandlerAbstract
+        category: vfunc
+        alias:
+          - CNetChan::RegisterNetMessageHandlerAbstract
+      - name: CNetChan_FinishRegisteringMessageHandlers
+        category: vfunc
+        alias:
+          - CNetChan::FinishRegisteringMessageHandlers
+      - name: CNetChan_CanPacket
+        category: vfunc
+        alias:
+          - CNetChan::CanPacket
+      - name: CNetChan_SetTimeout
+        category: vfunc
+        alias:
+          - CNetChan::SetTimeout
+      - name: CNetChan_UpdateMessageStats
+        category: vfunc
+        alias:
+          - CNetChan::UpdateMessageStats
       - name: CNetworkGameClient_ProcessPacketEntitiesInternal
         category: func
         platform: windows
@@ -4584,6 +4837,16 @@ modules:
         category: func
       - name: ConnectSocketToAddressList
         category: func
+      - name: CNetworkStringTableContainer_vtable
+        category: vtable
+      - name: CNetworkStringTableContainer_RemoveAllTables
+        category: vfunc
+        alias:
+          - CNetworkStringTableContainer::RemoveAllTables
+      - name: CNetworkStringTableContainer_CreateStringTable
+        category: vfunc
+        alias:
+          - CNetworkStringTableContainer::CreateStringTable
       - name: CNetworkStringTableClient_ParseUpdate
         category: func
         alias:
@@ -4732,6 +4995,10 @@ modules:
           - CHLTVBroadcast::RecordSnapshot
       - name: CServerSideClientBase_vtable
         category: vtable
+      - name: CServerSideClientBase_UpdateAcknowledgedFramecount
+        category: vfunc
+        alias:
+          - CServerSideClientBase::UpdateAcknowledgedFramecount
       - name: CServerSideClientBase_PerformDisconnection
         category: vfunc
         alias:
@@ -7361,6 +7628,16 @@ modules:
           - Script_CommandLineFloat.{platform}.yaml
         expected_input:
           - Script_RegisterCommandLineFunctions.{platform}.yaml
+      - name: find-Script_CommandLineInt
+        expected_output:
+          - Script_CommandLineInt.{platform}.yaml
+        expected_input:
+          - Script_RegisterCommandLineFunctions.{platform}.yaml
+      - name: find-ICommandLine_ParmValue_Int
+        expected_output:
+          - ICommandLine_ParmValue_Int.{platform}.yaml
+        expected_input:
+          - Script_CommandLineInt.{platform}.yaml
       - name: find-ICommandLine_ParmValue_Float-windows
         platform: windows
         expected_output:
@@ -9204,6 +9481,66 @@ modules:
         expected_input:
           - CBaseEntity_GetEyePosition.{platform}.yaml
           - CBasePlayerPawn_vtable.{platform}.yaml
+      - name: find-CBotManager_vtable
+        expected_output:
+          - CBotManager_vtable.{platform}.yaml
+      - name: find-CCSBotManager_vtable
+        expected_output:
+          - CCSBotManager_vtable.{platform}.yaml
+      - name: find-CBotManager_StartFrameInternal
+        optional_output:
+          - CBotManager_StartFrameInternal.{platform}.yaml
+        skip_if_exists:
+          - CBotManager_StartFrame.{platform}.yaml
+      - name: find-CBotManager_StartFrame-noinline
+        optional_output:
+          - CBotManager_StartFrame.{platform}.yaml
+        expected_input:
+          - CBotManager_vtable.{platform}.yaml
+        prerequisite:
+          - find-CBotManager_StartFrameInternal
+      - name: find-CBotManager_StartFrame
+        expected_output:
+          - CBotManager_StartFrame.{platform}.yaml
+        expected_input:
+          - CBotManager_vtable.{platform}.yaml
+        skip_if_exists:
+          - CBotManager_StartFrame.{platform}.yaml
+        prerequisite:
+          - find-CBotManager_StartFrame-noinline
+      - name: find-CCSBotManager_StartFrame-noinline
+        optional_output:
+          - CCSBotManager_StartFrame.{platform}.yaml
+        expected_input:
+          - CBotManager_StartFrame.{platform}.yaml
+          - CCSBotManager_vtable.{platform}.yaml
+      - name: find-CCSBotManager_StartFrame
+        expected_output:
+          - CCSBotManager_StartFrame.{platform}.yaml
+        expected_input:
+          - CCSBotManager_vtable.{platform}.yaml
+        skip_if_exists:
+          - CCSBotManager_StartFrame.{platform}.yaml
+        prerequisite:
+          - find-CCSBotManager_StartFrame-noinline
+      - name: find-CCSBotManager_StartFrame_ShouldUpdate
+        optional_output:
+          - CCSBotManager_StartFrame_ShouldUpdate.{platform}.yaml
+        expected_input:
+          - CCSBotManager_StartFrame.{platform}.yaml
+        skip_if_exists:
+          - ICommandLine_CheckParm.{platform}.yaml
+          - ICommandLine_HasParm.{platform}.yaml
+      - name: find-CCSBotManager_StartFrame-decompiles
+        expected_output:
+          - ICommandLine_CheckParm.{platform}.yaml
+          - ICommandLine_HasParm.{platform}.yaml
+        expected_input:
+          - CCSBotManager_StartFrame.{platform}.yaml
+        optional_input:
+          - CCSBotManager_StartFrame_ShouldUpdate.{platform}.yaml
+        prerequisite:
+          - find-CCSBotManager_StartFrame_ShouldUpdate
       - name: find-CCSBotManager_BotPlaceCommand
         expected_output:
           - CCSBotManager_BotPlaceCommand.{platform}.yaml
@@ -10727,11 +11064,24 @@ modules:
           - CEntitySystem_m_entityComponentHelpers.{platform}.yaml
         expected_input:
           - CEntitySystem_FindComponentTypeByName.{platform}.yaml
+      - name: find-CGameConfiguration_vtable
+        expected_output:
+          - CGameConfiguration_vtable.{platform}.yaml
+      - name: find-CGameConfiguration_InitGameSession
+        expected_output:
+          - CGameConfiguration_InitGameSession.{platform}.yaml
+        expected_input:
+          - CGameConfiguration_vtable.{platform}.yaml
     symbols:
       - name: Script_RegisterCommandLineFunctions
         category: func
       - name: Script_CommandLineFloat
         category: func
+      - name: Script_CommandLineInt
+        category: func
+      - name: ICommandLine_ParmValue_Int
+        category: vfunc
+        alias: [ICommandLine::ParmValue_Int]
       - name: ICommandLine_ParmValue_Float
         category: vfunc
         alias: [ICommandLine::ParmValue_Float]
@@ -12731,6 +13081,26 @@ modules:
         category: vfunc
         alias:
           - CBaseEntity::GetEyePosition
+      - name: CBotManager_vtable
+        category: vtable
+      - name: CCSBotManager_vtable
+        category: vtable
+      - name: CBotManager_StartFrame
+        category: vfunc
+        alias:
+          - CBotManager::StartFrame
+      - name: CCSBotManager_StartFrame
+        category: vfunc
+        alias:
+          - CCSBotManager::StartFrame
+      - name: ICommandLine_CheckParm
+        category: vfunc
+        alias:
+          - ICommandLine::CheckParm
+      - name: ICommandLine_HasParm
+        category: vfunc
+        alias:
+          - ICommandLine::HasParm
       - name: CCSBotManager_BotPlaceCommand
         category: func
         alias:
@@ -14191,6 +14561,12 @@ modules:
         category: func
         alias:
           - CEntitySystem::FindComponentTypeByName
+      - name: CGameConfiguration_vtable
+        category: vtable
+      - name: CGameConfiguration_InitGameSession
+        category: vfunc
+        alias:
+          - CGameConfiguration::InitGameSession
   - name: engine  # Execute skills for engine2.dll again after client.dll
     path_windows: game/bin/win64/engine2.dll
     path_linux: game/bin/linuxsteamrt64/libengine2.so
@@ -14572,6 +14948,13 @@ modules:
         expected_output:
           - CServerSideClientBase_SetConVarUserInfo.{platform}.yaml
         expected_input:
+          - g_pSource2GameClients.{platform}.yaml
+      - name: find-CServerSideClient_UpdateAcknowledgedFramecount
+        expected_output:
+          - CServerSideClient_UpdateAcknowledgedFramecount.{platform}.yaml
+        expected_input:
+          - CServerSideClientBase_UpdateAcknowledgedFramecount.{platform}.yaml
+          - CServerSideClient_vtable.{platform}.yaml
           - g_pSource2GameClients.{platform}.yaml
       - name: find-CServerSideClientBase_dtor-decompiles
         expected_output:
@@ -15031,6 +15414,24 @@ modules:
         expected_input:
           - CCommandLine_vtable.{platform}.yaml
           - ../server/ICommandLine_ParmValue_Float.{platform}.yaml
+      - name: find-CCommandLine_CheckParm
+        expected_output:
+          - CCommandLine_CheckParm.{platform}.yaml
+        expected_input:
+          - CCommandLine_vtable.{platform}.yaml
+          - ../server/ICommandLine_CheckParm.{platform}.yaml
+      - name: find-CCommandLine_HasParm
+        expected_output:
+          - CCommandLine_HasParm.{platform}.yaml
+        expected_input:
+          - CCommandLine_vtable.{platform}.yaml
+          - ../server/ICommandLine_HasParm.{platform}.yaml
+      - name: find-CCommandLine_ParmValue_Int
+        expected_output:
+          - CCommandLine_ParmValue_Int.{platform}.yaml
+        expected_input:
+          - ../server/ICommandLine_ParmValue_Int.{platform}.yaml
+          - CCommandLine_vtable.{platform}.yaml
       - name: find-CCommandLine_CreateCmdLinePrependAppName
         expected_output:
           - CCommandLine_CreateCmdLinePrependAppName.{platform}.yaml
@@ -15070,6 +15471,18 @@ modules:
       - name: CCommandLine_ParmValue_Float
         category: vfunc
         alias: [CCommandLine::ParmValue_Float]
+      - name: CCommandLine_CheckParm
+        category: vfunc
+        alias:
+          - CCommandLine::CheckParm
+      - name: CCommandLine_HasParm
+        category: vfunc
+        alias:
+          - CCommandLine::HasParm
+      - name: CCommandLine_ParmValue_Int
+        category: vfunc
+        alias:
+          - CCommandLine::ParmValue_Int
       - name: CCommandLine_CreateCmdLinePrependAppName
         category: vfunc
         alias:
@@ -15596,6 +16009,8 @@ cpp_tests:
       - server  # bin_artifacts/{gamever}/server/CNetworkServerService_*.{platform}.yaml
   - name: ICommandLine_MSVC
     symbol: ICommandLine
+    alias_symbols:
+      - CCommandLine
     cpp: cpp_tests/icommandline.cpp
     headers:
       - hl2sdk_cs2/public/tier0/icommandline.h  # Used by the fix-cppheaders SKILL
@@ -15617,6 +16032,7 @@ cpp_tests:
       - fdump-vtable-layouts
     reference_modules:
       - server  # ICommandLine_ParmValue_Float
+      - tier0  # bin_artifacts/{gamever}/tier0/CCommandLine_*.{platform}.yaml
   - name: IEngineServiceMgr_MSVC
     symbol: IEngineServiceMgr
     alias_symbols:
@@ -16030,6 +16446,8 @@ cpp_tests:
       - server  # bin_artifacts/{gamever}/server/CNetworkServerService_*.{platform}.yaml
   - name: ICommandLine_GCC
     symbol: ICommandLine
+    alias_symbols:
+      - CCommandLine
     cpp: cpp_tests/icommandline.cpp
     headers:
       - hl2sdk_cs2/public/tier0/icommandline.h  # Used by the fix-cppheaders SKILL
@@ -16050,6 +16468,7 @@ cpp_tests:
       - fdump-vtable-layouts
     reference_modules:
       - server  # ICommandLine_ParmValue_Float
+      - tier0  # bin_artifacts/{gamever}/tier0/CCommandLine_*.{platform}.yaml
   - name: IEngineServiceMgr_GCC
     symbol: IEngineServiceMgr
     alias_symbols:
@@ -16183,3 +16602,62 @@ cpp_tests:
       - fdump-vtable-layouts
     reference_modules:
       - networksystem  # bin_artifacts/{gamever}/networksystem/CNetChan_*.{platform}.yaml
+  - name: INetworkStringTableContainer_MSVC
+    symbol: INetworkStringTableContainer
+    alias_symbols:
+      - CNetworkStringTableContainer
+    cpp: cpp_tests/inetworkstringtablecontainer.cpp
+    headers:
+      - hl2sdk_cs2/public/networkstringtabledefs.h  # Used by the fix-cppheaders SKILL
+      - hl2sdk_cs2/public/appframework/IAppSystem.h  # Inherited virtual declarations
+    target: x86_64-pc-windows-msvc
+    include_directories:
+      - cpp_tests/stubs
+      - hl2sdk_cs2/game/shared
+      - hl2sdk_cs2/public
+      - hl2sdk_cs2/public/tier0
+      - hl2sdk_cs2/public/tier1
+      - hl2sdk_cs2/public/mathlib
+    defines:
+      - COMPILER_MSVC=1
+      - COMPILER_MSVC64=1
+      - _MSVC_STL_USE_ABORT_AS_DOOM_FUNCTION
+    additional_compiler_options:
+      - fms-extensions
+      - fms-compatibility
+      - Xclang
+      - fdump-vtable-layouts
+    # Layout is 0-10 IAppSystem, 11 deleting dtor, 12-16 the five declared
+    # methods, 17 INetworkStringTableContainer::GetName (returns this+0x28,
+    # 0x18010d060). The header models all 18 slots, so the size check applies.
+    reference_modules:
+      - engine  # bin_artifacts/{gamever}/engine/{INetworkStringTableContainer,CNetworkStringTableContainer}_*.{platform}.yaml
+  - name: INetworkStringTableContainer_GCC
+    symbol: INetworkStringTableContainer
+    alias_symbols:
+      - CNetworkStringTableContainer
+    cpp: cpp_tests/inetworkstringtablecontainer.cpp
+    headers:
+      - hl2sdk_cs2/public/networkstringtabledefs.h  # Used by the fix-cppheaders SKILL
+      - hl2sdk_cs2/public/appframework/IAppSystem.h  # Inherited virtual declarations
+    target: x86_64-pc-linux-gnu
+    include_directories:
+      - cpp_tests/stubs
+      - hl2sdk_cs2/game/shared
+      - hl2sdk_cs2/public
+      - hl2sdk_cs2/public/tier0
+      - hl2sdk_cs2/public/tier1
+      - hl2sdk_cs2/public/mathlib
+    defines:
+      - COMPILER_GCC=1
+      - POSIX=1
+      - LINUX=1
+      - stricmp=strcasecmp
+    additional_compiler_options:
+      - Xclang
+      - fdump-vtable-layouts
+    # Layout is 0-10 IAppSystem, 11-12 both Itanium dtor slots, 13-17 the five
+    # declared methods, 18 INetworkStringTableContainer::GetName (this+0x28,
+    # 0x59b450). The header models all 19 slots, so the size check applies.
+    reference_modules:
+      - engine  # bin_artifacts/{gamever}/engine/{INetworkStringTableContainer,CNetworkStringTableContainer}_*.{platform}.yaml
