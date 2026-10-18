@@ -1,0 +1,655 @@
+func_name: CNetworkStringTableContainer_WriteBaselines
+func_va: '0x595460'
+disasm_code: |-
+  .text:0000000000595460                 push    rbp
+  .text:0000000000595461                 lea     rax, unk_9A1CA0
+  .text:0000000000595468                 mov     rbp, rsp
+  .text:000000000059546B                 push    r15
+  .text:000000000059546D                 push    r14
+  .text:000000000059546F                 mov     r14, rdi
+  .text:0000000000595472                 push    r13
+  .text:0000000000595474                 push    r12
+  .text:0000000000595476                 mov     r12, rsi
+  .text:0000000000595479                 xor     esi, esi
+  .text:000000000059547B                 push    rbx
+  .text:000000000059547C                 lea     rbx, [rbp+var_70]
+  .text:0000000000595480                 sub     rsp, 138h
+  .text:0000000000595487                 mov     [rbp+var_100], rdi
+  .text:000000000059548E                 mov     rdi, rbx
+  .text:0000000000595491                 mov     [rbp+var_118], edx
+  .text:0000000000595497                 xor     edx, edx
+  .text:0000000000595499                 mov     [rbp+var_A0], rax
+  .text:00000000005954A0                 mov     [rbp+var_128], rcx
+  .text:00000000005954A7                 mov     [rbp+var_98], 0
+  .text:00000000005954B2                 mov     [rbp+var_90], 0
+  .text:00000000005954BC                 mov     [rbp+var_8C], 0FFh
+  .text:00000000005954C3                 mov     [rbp+var_88], 0FFFFFFFFFFFFFFFFh
+  .text:00000000005954CE                 mov     [rbp+var_80], 0BF800000h
+  .text:00000000005954D5                 mov     [rbp+var_78], 0FFFFFFFFFFFFFFFFh
+  .text:00000000005954DD                 call    sub_30A6A0
+  .text:00000000005954E2                 mov     esi, [r14+38h]
+  .text:00000000005954E6                 lea     rax, off_9B05C0
+  .text:00000000005954ED                 mov     [rbp+var_A0], rax
+  .text:00000000005954F4                 add     rax, 40h ; '@'
+  .text:00000000005954F8                 mov     r13d, [r12+10h]
+  .text:00000000005954FD                 mov     [rbp+var_70], rax
+  .text:0000000000595501                 test    esi, esi
+  .text:0000000000595503                 jle     loc_595C40
+  .text:0000000000595509                 lea     rax, [rbp+var_A0]
+  .text:0000000000595510                 xor     r15d, r15d
+  .text:0000000000595513                 lea     r14, dword_A359F4
+  .text:000000000059551A                 mov     [rbp+var_114], r13d
+  .text:0000000000595521                 mov     [rbp+var_108], rax
+  .text:0000000000595528                 lea     rax, [rbp+var_E8]
+  .text:000000000059552F                 mov     [rbp+var_110], rax
+  .text:0000000000595536                 lea     rax, [rbp+var_EC]
+  .text:000000000059553D                 mov     [rbp+var_130], rax
+  .text:0000000000595544                 mov     rax, [rbp+var_100]
+  .text:000000000059554B                 mov     [rbp+var_13C], r13d
+  .text:0000000000595552                 mov     [rbp+var_F8], r15
+  .text:0000000000595559                 mov     [rbp+var_148], rbx
+  .text:0000000000595560                 jmp     loc_59569C
+  .text:0000000000595568                 mov     rdx, [rbp+var_130]
+  .text:000000000059556F                 mov     rcx, rax
+  .text:0000000000595572                 mov     rsi, rbx
+  .text:0000000000595575                 mov     rdi, r9
+  .text:0000000000595578                 call    r10
+  .text:000000000059557B                 test    al, al
+  .text:000000000059557D                 jnz     loc_595840
+  .text:0000000000595583                 lea     rax, g_pNetworkMessages
+  .text:000000000059558A                 mov     rsi, r12
+  .text:000000000059558D                 mov     rdx, [rbp+var_108]
+  .text:0000000000595594                 mov     rdi, [rax]
+  .text:0000000000595597                 mov     rax, [rdi]
+  .text:000000000059559A                 call    qword ptr [rax+18h]
+  .text:000000000059559D                 test    al, al
+  .text:000000000059559F                 jz      loc_595780
+  .text:00000000005955A5                 mov     [rbp+var_E0], 0
+  .text:00000000005955B0                 cmp     [rbp+var_37], 0
+  .text:00000000005955B4                 mov     r13d, [r12+10h]
+  .text:00000000005955B9                 jnz     loc_595A50
+  .text:00000000005955BF                 mov     edi, [r14]
+  .text:00000000005955C2                 mov     esi, 1
+  .text:00000000005955C7                 call    sub_2C8C80
+  .text:00000000005955CC                 test    al, al
+  .text:00000000005955CE                 jz      short loc_595648
+  .text:00000000005955D0                 mov     r9, [rbp+var_E0]
+  .text:00000000005955D7                 lea     rsi, unk_27D936
+  .text:00000000005955DE                 mov     edx, [r12+0Ch]
+  .text:00000000005955E3                 lea     r8d, [r13+7]
+  .text:00000000005955E7                 sub     edx, [r12+10h]
+  .text:00000000005955EC                 lea     rcx, sub_58E870
+  .text:00000000005955F3                 mov     eax, [rbp+var_114]
+  .text:00000000005955F9                 sar     edx, 3
+  .text:00000000005955FC                 test    r9, r9
+  .text:00000000005955FF                 cmovz   r9, rsi
+  .text:0000000000595603                 add     eax, 7
+  .text:0000000000595606                 sar     r8d, 3
+  .text:000000000059560A                 sar     eax, 3
+  .text:000000000059560D                 sub     r8d, eax
+  .text:0000000000595610                 mov     rax, [r15]
+  .text:0000000000595613                 mov     rax, [rax+10h]
+  .text:0000000000595617                 cmp     rax, rcx
+  .text:000000000059561A                 jnz     loc_595B40
+  .text:0000000000595620                 mov     rcx, [r15+10h]
+  .text:0000000000595624                 test    rcx, rcx
+  .text:0000000000595627                 cmovz   rcx, rsi
+  .text:000000000059562B                 mov     edi, [r14]
+  .text:000000000059562E                 sub     rsp, 8
+  .text:0000000000595632                 mov     esi, 1
+  .text:0000000000595637                 push    rdx
+  .text:0000000000595638                 lea     rdx, aSvWritebaselin; "SV:  WriteBaselines:  %20.20s wrote %6d"...
+  .text:000000000059563F                 xor     eax, eax
+  .text:0000000000595641                 call    sub_2CA620
+  .text:0000000000595646                 pop     rax
+  .text:0000000000595647                 pop     rdx
+  .text:0000000000595648                 cmp     [rbp+var_E0], 0
+  .text:0000000000595650                 jz      short loc_59565E
+  .text:0000000000595652                 lea     rdi, [rbp+var_E0]
+  .text:0000000000595659                 call    sub_2C9CB0
+  .text:000000000059565E                 lea     rdi, [rbx-18h]
+  .text:0000000000595662                 cmp     rdi, cs:_ZNSs4_Rep20_S_empty_rep_storageE_ptr
+  .text:0000000000595669                 jnz     loc_595B78
+  .text:000000000059566F                 mov     rcx, [rbp+var_100]
+  .text:0000000000595676                 add     [rbp+var_F8], 1
+  .text:000000000059567E                 mov     rax, [rbp+var_F8]
+  .text:0000000000595685                 cmp     [rcx+38h], eax
+  .text:0000000000595688                 jle     loc_595AF0
+  .text:000000000059568E                 mov     eax, [r12+10h]
+  .text:0000000000595693                 mov     [rbp+var_114], eax
+  .text:0000000000595699                 mov     rax, rcx
+  .text:000000000059569C                 mov     rax, [rax+40h]
+  .text:00000000005956A0                 mov     rbx, [rbp+var_F8]
+  .text:00000000005956A7                 mov     rcx, [rbp+var_128]
+  .text:00000000005956AE                 mov     edx, [rbp+var_118]
+  .text:00000000005956B4                 mov     rsi, [rbp+var_108]
+  .text:00000000005956BB                 mov     r15, [rax+rbx*8]
+  .text:00000000005956BF                 mov     rdi, r15
+  .text:00000000005956C2                 call    sub_594180
+  .text:00000000005956C7                 test    al, al
+  .text:00000000005956C9                 jz      loc_5958C8
+  .text:00000000005956CF                 cmp     byte ptr [r12+20h], 0
+  .text:00000000005956D5                 jnz     loc_595990
+  .text:00000000005956DB                 mov     rax, [rbp+var_50]
+  .text:00000000005956DF                 xor     edx, edx
+  .text:00000000005956E1                 mov     rdi, [rbp+var_110]
+  .text:00000000005956E8                 and     rax, 0FFFFFFFFFFFFFFFCh
+  .text:00000000005956EC                 mov     rax, [rax]
+  .text:00000000005956EF                 mov     r13, [rax-18h]
+  .text:00000000005956F3                 mov     rax, cs:_ZNSs4_Rep20_S_empty_rep_storageE_ptr
+  .text:00000000005956FA                 mov     rsi, r13
+  .text:00000000005956FD                 mov     dword ptr [rbp+var_120], r13d
+  .text:0000000000595704                 add     rax, 18h
+  .text:0000000000595708                 mov     [rbp+var_EC], r13d
+  .text:000000000059570F                 mov     [rbp+var_E8], rax
+  .text:0000000000595716                 call    sub_2BCBE0
+  .text:000000000059571B                 lea     rax, g_pNetworkSystem
+  .text:0000000000595722                 mov     rbx, [rbp+var_E8]
+  .text:0000000000595729                 mov     r9, [rax]
+  .text:000000000059572C                 mov     rax, [r9]
+  .text:000000000059572F                 ; 0x0F0 = 240LL = INetworkSystem_BufferToBufferCompress
+  .text:000000000059572F                 mov     r10, [rax+0F0h]; 0x0F0 = 240LL = INetworkSystem_BufferToBufferCompress
+  .text:0000000000595736                 mov     rax, [rbp+var_50]
+  .text:000000000059573A                 and     rax, 0FFFFFFFFFFFFFFFCh
+  .text:000000000059573E                 mov     rax, [rax]
+  .text:0000000000595741                 mov     r8, [rax-18h]
+  .text:0000000000595745                 mov     edx, [rbx-8]
+  .text:0000000000595748                 test    edx, edx
+  .text:000000000059574A                 js      loc_595568
+  .text:0000000000595750                 cmp     qword ptr [rbx-18h], 0
+  .text:0000000000595755                 jz      loc_595568
+  .text:000000000059575B                 cmp     cs:__pthread_key_create_ptr, 0
+  .text:0000000000595763                 jz      loc_595A80
+  .text:0000000000595769                 mov     edx, [rbx-8]
+  .text:000000000059576C                 test    edx, edx
+  .text:000000000059576E                 jg      loc_595A8B
+  .text:0000000000595774                 mov     dword ptr [rbx-8], 0FFFFFFFFh
+  .text:000000000059577B                 jmp     loc_595568
+  .text:0000000000595780                 mov     edi, [r14]
+  .text:0000000000595783                 mov     esi, 5
+  .text:0000000000595788                 call    sub_2C8C80
+  .text:000000000059578D                 test    al, al
+  .text:000000000059578F                 jz      loc_5955A5
+  .text:0000000000595795                 mov     rax, [r15]
+  .text:0000000000595798                 lea     rcx, sub_58E870
+  .text:000000000059579F                 mov     rax, [rax+10h]
+  .text:00000000005957A3                 cmp     rax, rcx
+  .text:00000000005957A6                 jnz     loc_595C30
+  .text:00000000005957AC                 mov     r8, [r15+10h]
+  .text:00000000005957B0                 lea     rax, unk_27D936
+  .text:00000000005957B7                 test    r8, r8
+  .text:00000000005957BA                 cmovz   r8, rax
+  .text:00000000005957BE                 mov     edi, [r14]
+  .text:00000000005957C1                 mov     esi, 5
+  .text:00000000005957C6                 mov     [rbp+var_D8], 72Bh
+  .text:00000000005957D0                 lea     rax, aNetworkstringt; "networkstringtable.cpp"
+  .text:00000000005957D7                 mov     [rbp+var_C8], 0
+  .text:00000000005957E2                 mov     [rbp+var_E0], rax
+  .text:00000000005957E9                 lea     rax, aWritebaselines; "WriteBaselines"
+  .text:00000000005957F0                 mov     [rbp+var_D0], rax
+  .text:00000000005957F7                 xor     eax, eax
+  .text:00000000005957F9                 lea     rdx, [rbp+var_E0]
+  .text:0000000000595800                 mov     [rbp+var_C0], 0
+  .text:000000000059580B                 lea     rcx, aSvCnetworkstri; "SV:  CNetworkStringTableContainer::Writ"...
+  .text:0000000000595812                 mov     [rbp+var_B8], 0
+  .text:000000000059581D                 mov     [rbp+var_B0], 0
+  .text:0000000000595828                 mov     [rbp+var_A8], 0
+  .text:0000000000595832                 call    sub_2C94F0
+  .text:0000000000595837                 jmp     loc_5955A5
+  .text:0000000000595840                 mov     esi, [rbp+var_EC]
+  .text:0000000000595846                 xor     edx, edx
+  .text:0000000000595848                 mov     [rbp+var_E8], rbx
+  .text:000000000059584F                 mov     rdi, [rbp+var_110]
+  .text:0000000000595856                 call    sub_2BCBE0
+  .text:000000000059585B                 mov     rax, [rbp+var_68]
+  .text:000000000059585F                 mov     [rbp+var_37], 1
+  .text:0000000000595863                 mov     rdx, [rbp+var_E8]
+  .text:000000000059586A                 mov     [rbp+var_34], r13d
+  .text:000000000059586E                 or      [rbp+var_60], 282h
+  .text:0000000000595875                 mov     rsi, rax
+  .text:0000000000595878                 and     rsi, 0FFFFFFFFFFFFFFFCh
+  .text:000000000059587C                 test    al, 1
+  .text:000000000059587E                 jnz     loc_595C20
+  .text:0000000000595884                 lea     rdi, [rbp+var_50]
+  .text:0000000000595888                 mov     [rbp+var_138], rdx
+  .text:000000000059588F                 call    sub_6057F6
+  .text:0000000000595894                 mov     rcx, [rax]
+  .text:0000000000595897                 mov     esi, [rcx-8]
+  .text:000000000059589A                 mov     rdx, [rbp+var_138]
+  .text:00000000005958A1                 test    esi, esi
+  .text:00000000005958A3                 jns     short loc_5958AC
+  .text:00000000005958A5                 mov     dword ptr [rcx-8], 0
+  .text:00000000005958AC                 mov     ecx, [rdx-8]
+  .text:00000000005958AF                 test    ecx, ecx
+  .text:00000000005958B1                 jns     short loc_5958BA
+  .text:00000000005958B3                 mov     dword ptr [rdx-8], 0
+  .text:00000000005958BA                 mov     rbx, [rax]
+  .text:00000000005958BD                 mov     [rax], rdx
+  .text:00000000005958C0                 jmp     loc_595583
+  .text:00000000005958C8                 mov     edi, [r14]
+  .text:00000000005958CB                 mov     esi, 5
+  .text:00000000005958D0                 call    sub_2C8C80
+  .text:00000000005958D5                 test    al, al
+  .text:00000000005958D7                 jz      loc_5956CF
+  .text:00000000005958DD                 mov     rax, [r15]
+  .text:00000000005958E0                 lea     rbx, sub_58E870
+  .text:00000000005958E7                 mov     rax, [rax+10h]
+  .text:00000000005958EB                 cmp     rax, rbx
+  .text:00000000005958EE                 jnz     loc_595C10
+  .text:00000000005958F4                 mov     r8, [r15+10h]
+  .text:00000000005958F8                 lea     rax, unk_27D936
+  .text:00000000005958FF                 test    r8, r8
+  .text:0000000000595902                 cmovz   r8, rax
+  .text:0000000000595906                 mov     edi, [r14]
+  .text:0000000000595909                 mov     esi, 5
+  .text:000000000059590E                 mov     [rbp+var_D8], 70Fh
+  .text:0000000000595918                 lea     rax, aNetworkstringt; "networkstringtable.cpp"
+  .text:000000000059591F                 mov     [rbp+var_C8], 0
+  .text:000000000059592A                 mov     [rbp+var_E0], rax
+  .text:0000000000595931                 lea     rax, aWritebaselines; "WriteBaselines"
+  .text:0000000000595938                 mov     [rbp+var_D0], rax
+  .text:000000000059593F                 xor     eax, eax
+  .text:0000000000595941                 lea     rdx, [rbp+var_E0]
+  .text:0000000000595948                 mov     [rbp+var_C0], 0
+  .text:0000000000595953                 lea     rcx, aSvCnetworkstri_0; "SV:  CNetworkStringTableContainer::Writ"...
+  .text:000000000059595A                 mov     [rbp+var_B8], 0
+  .text:0000000000595965                 mov     [rbp+var_B0], 0
+  .text:0000000000595970                 mov     [rbp+var_A8], 0
+  .text:000000000059597A                 call    sub_2C94F0
+  .text:000000000059597F                 cmp     byte ptr [r12+20h], 0
+  .text:0000000000595985                 jz      loc_5956DB
+  .text:000000000059598B                 nop     dword ptr [rax+rax+00h]
+  .text:0000000000595990                 mov     edi, [r14]
+  .text:0000000000595993                 mov     esi, 5
+  .text:0000000000595998                 call    sub_2C8C80
+  .text:000000000059599D                 test    al, al
+  .text:000000000059599F                 jz      loc_5956DB
+  .text:00000000005959A5                 mov     rax, [r15]
+  .text:00000000005959A8                 lea     rbx, sub_58E870
+  .text:00000000005959AF                 mov     rax, [rax+10h]
+  .text:00000000005959B3                 cmp     rax, rbx
+  .text:00000000005959B6                 jnz     loc_595C00
+  .text:00000000005959BC                 mov     r8, [r15+10h]
+  .text:00000000005959C0                 lea     rax, unk_27D936
+  .text:00000000005959C7                 test    r8, r8
+  .text:00000000005959CA                 cmovz   r8, rax
+  .text:00000000005959CE                 mov     edi, [r14]
+  .text:00000000005959D1                 mov     esi, 5
+  .text:00000000005959D6                 mov     [rbp+var_D8], 714h
+  .text:00000000005959E0                 lea     rax, aNetworkstringt; "networkstringtable.cpp"
+  .text:00000000005959E7                 mov     [rbp+var_C8], 0
+  .text:00000000005959F2                 mov     [rbp+var_E0], rax
+  .text:00000000005959F9                 lea     rax, aWritebaselines; "WriteBaselines"
+  .text:0000000000595A00                 mov     [rbp+var_D0], rax
+  .text:0000000000595A07                 xor     eax, eax
+  .text:0000000000595A09                 lea     rdx, [rbp+var_E0]
+  .text:0000000000595A10                 mov     [rbp+var_C0], 0
+  .text:0000000000595A1B                 lea     rcx, aSvCnetworkstri_1; "SV:  CNetworkStringTableContainer::Writ"...
+  .text:0000000000595A22                 mov     [rbp+var_B8], 0
+  .text:0000000000595A2D                 mov     [rbp+var_B0], 0
+  .text:0000000000595A38                 mov     [rbp+var_A8], 0
+  .text:0000000000595A42                 call    sub_2C94F0
+  .text:0000000000595A47                 jmp     loc_5956DB
+  .text:0000000000595A50                 mov     ecx, [rbp+var_EC]
+  .text:0000000000595A56                 lea     rdi, [rbp+var_E0]
+  .text:0000000000595A5D                 xor     eax, eax
+  .text:0000000000595A5F                 mov     edx, dword ptr [rbp+var_120]
+  .text:0000000000595A65                 lea     rsi, aCompressedDDBy; "compressed %d -> %d bytes"
+  .text:0000000000595A6C                 call    sub_2C9FE0
+  .text:0000000000595A71                 jmp     loc_5955BF
+  .text:0000000000595A80                 mov     ecx, [rbx-8]
+  .text:0000000000595A83                 test    ecx, ecx
+  .text:0000000000595A85                 jle     loc_595774
+  .text:0000000000595A8B                 mov     rdi, [rbp+var_110]
+  .text:0000000000595A92                 xor     ecx, ecx
+  .text:0000000000595A94                 xor     edx, edx
+  .text:0000000000595A96                 xor     esi, esi
+  .text:0000000000595A98                 mov     [rbp+var_160], r8
+  .text:0000000000595A9F                 mov     [rbp+var_158], rax
+  .text:0000000000595AA6                 mov     [rbp+var_150], r10
+  .text:0000000000595AAD                 mov     [rbp+var_138], r9
+  .text:0000000000595AB4                 mov     [rbp+var_E8], rbx
+  .text:0000000000595ABB                 call    sub_2BCBD0
+  .text:0000000000595AC0                 mov     rbx, [rbp+var_E8]
+  .text:0000000000595AC7                 mov     r8, [rbp+var_160]
+  .text:0000000000595ACE                 mov     rax, [rbp+var_158]
+  .text:0000000000595AD5                 mov     r10, [rbp+var_150]
+  .text:0000000000595ADC                 mov     r9, [rbp+var_138]
+  .text:0000000000595AE3                 jmp     loc_595774
+  .text:0000000000595AF0                 mov     r13d, [rbp+var_13C]
+  .text:0000000000595AF7                 mov     rbx, [rbp+var_148]
+  .text:0000000000595AFE                 mov     edi, [r14]
+  .text:0000000000595B01                 mov     esi, 1
+  .text:0000000000595B06                 call    sub_2C8C80
+  .text:0000000000595B0B                 test    al, al
+  .text:0000000000595B0D                 jnz     loc_595BC0
+  .text:0000000000595B13                 lea     rax, off_9A7A38
+  .text:0000000000595B1A                 mov     rdi, rbx
+  .text:0000000000595B1D                 mov     [rbp+var_A0], rax
+  .text:0000000000595B24                 add     rax, 40h ; '@'
+  .text:0000000000595B28                 mov     [rbp+var_70], rax
+  .text:0000000000595B2C                 call    sub_320570
+  .text:0000000000595B31                 lea     rsp, [rbp-28h]
+  .text:0000000000595B35                 pop     rbx
+  .text:0000000000595B36                 pop     r12
+  .text:0000000000595B38                 pop     r13
+  .text:0000000000595B3A                 pop     r14
+  .text:0000000000595B3C                 pop     r15
+  .text:0000000000595B3E                 pop     rbp
+  .text:0000000000595B3F                 retn
+  .text:0000000000595B40                 mov     dword ptr [rbp+var_138], edx
+  .text:0000000000595B46                 mov     rdi, r15
+  .text:0000000000595B49                 mov     [rbp+var_120], r9
+  .text:0000000000595B50                 mov     [rbp+var_114], r8d
+  .text:0000000000595B57                 call    rax
+  .text:0000000000595B59                 mov     edx, dword ptr [rbp+var_138]
+  .text:0000000000595B5F                 mov     r9, [rbp+var_120]
+  .text:0000000000595B66                 mov     rcx, rax
+  .text:0000000000595B69                 mov     r8d, [rbp+var_114]
+  .text:0000000000595B70                 jmp     loc_59562B
+  .text:0000000000595B78                 cmp     cs:__pthread_key_create_ptr, 0
+  .text:0000000000595B80                 jz      short loc_595BB0
+  .text:0000000000595B82                 mov     eax, 0FFFFFFFFh
+  .text:0000000000595B87                 lock xadd [rbx-8], eax
+  .text:0000000000595B8C                 test    eax, eax
+  .text:0000000000595B8E                 jg      loc_59566F
+  .text:0000000000595B94                 mov     rsi, [rbx-10h]
+  .text:0000000000595B98                 add     rsi, 19h
+  .text:0000000000595B9C                 call    sub_2BCC50
+  .text:0000000000595BA1                 jmp     loc_59566F
+  .text:0000000000595BB0                 mov     eax, [rbx-8]
+  .text:0000000000595BB3                 lea     edx, [rax-1]
+  .text:0000000000595BB6                 mov     [rbx-8], edx
+  .text:0000000000595BB9                 jmp     short loc_595B8C
+  .text:0000000000595BC0                 mov     rcx, [rbp+var_100]
+  .text:0000000000595BC7                 lea     eax, [r13+7]
+  .text:0000000000595BCB                 mov     esi, 1
+  .text:0000000000595BD0                 mov     r8d, [r12+10h]
+  .text:0000000000595BD5                 sar     eax, 3
+  .text:0000000000595BD8                 mov     edi, [r14]
+  .text:0000000000595BDB                 lea     rdx, aSvWritebaselin_0; "SV:  WriteBaselines:  %d tables require"...
+  .text:0000000000595BE2                 mov     ecx, [rcx+38h]
+  .text:0000000000595BE5                 add     r8d, 7
+  .text:0000000000595BE9                 sar     r8d, 3
+  .text:0000000000595BED                 sub     r8d, eax
+  .text:0000000000595BF0                 xor     eax, eax
+  .text:0000000000595BF2                 call    sub_2CA620
+  .text:0000000000595BF7                 jmp     loc_595B13
+  .text:0000000000595C00                 mov     rdi, r15
+  .text:0000000000595C03                 call    rax
+  .text:0000000000595C05                 mov     r8, rax
+  .text:0000000000595C08                 jmp     loc_5959CE
+  .text:0000000000595C10                 mov     rdi, r15
+  .text:0000000000595C13                 call    rax
+  .text:0000000000595C15                 mov     r8, rax
+  .text:0000000000595C18                 jmp     loc_595906
+  .text:0000000000595C20                 mov     rsi, [rsi]
+  .text:0000000000595C23                 jmp     loc_595884
+  .text:0000000000595C30                 mov     rdi, r15
+  .text:0000000000595C33                 call    rax
+  .text:0000000000595C35                 mov     r8, rax
+  .text:0000000000595C38                 jmp     loc_5957BE
+  .text:0000000000595C40                 lea     r14, dword_A359F4
+  .text:0000000000595C47                 jmp     loc_595AFE
+procedure: |-
+  __int64 __fastcall sub_595460(__int64 a1, __int64 a2, unsigned int a3, __int64 a4)
+  {
+    int v5; // esi
+    __int64 v6; // rax
+    __int64 v7; // rdx
+    __int64 (__fastcall *v8)(); // rax
+    _QWORD *v9; // r15
+    __int64 v10; // r13
+    int *v11; // rbx
+    _QWORD *v12; // r9
+    unsigned __int8 (__fastcall *v13)(_QWORD *, int *, unsigned int *, __int64); // r10
+    __int64 v14; // rax
+    __int64 (__fastcall *v15)(); // rax
+    const char *v16; // r8
+    _QWORD *v17; // rsi
+    void **v18; // rax
+    __int64 (__fastcall *v19)(); // rax
+    const char *v20; // r8
+    __int64 (__fastcall *v21)(); // rax
+    const char *v22; // r8
+    int v24; // eax
+    __int64 v25; // [rsp-8h] [rbp-168h]
+    __int64 v26; // [rsp+8h] [rbp-158h]
+    unsigned __int8 (__fastcall *v27)(_QWORD *, int *, unsigned int *, __int64); // [rsp+10h] [rbp-150h]
+    int *v28; // [rsp+28h] [rbp-138h]
+    _QWORD *v29; // [rsp+28h] [rbp-138h]
+    __int64 v32; // [rsp+68h] [rbp-F8h]
+    unsigned int v33; // [rsp+74h] [rbp-ECh] BYREF
+    int *v34; // [rsp+78h] [rbp-E8h] BYREF
+    const char *v35; // [rsp+80h] [rbp-E0h] BYREF
+    int v36; // [rsp+88h] [rbp-D8h]
+    const char *v37; // [rsp+90h] [rbp-D0h]
+    __int64 v38; // [rsp+98h] [rbp-C8h]
+    __int64 v39; // [rsp+A0h] [rbp-C0h]
+    __int64 v40; // [rsp+A8h] [rbp-B8h]
+    __int64 v41; // [rsp+B0h] [rbp-B0h]
+    int v42; // [rsp+B8h] [rbp-A8h]
+    _QWORD v43[2]; // [rsp+C0h] [rbp-A0h] BYREF
+    int v44; // [rsp+D0h] [rbp-90h]
+    char v45; // [rsp+D4h] [rbp-8Ch]
+    __int64 v46; // [rsp+D8h] [rbp-88h]
+    int v47; // [rsp+E0h] [rbp-80h]
+    __int64 v48; // [rsp+E8h] [rbp-78h]
+    __int64 (__fastcall **v49)(); // [rsp+F0h] [rbp-70h] BYREF
+    __int64 v50; // [rsp+F8h] [rbp-68h]
+    int v51; // [rsp+100h] [rbp-60h]
+    __int64 v52[3]; // [rsp+110h] [rbp-50h] BYREF
+    char v53; // [rsp+129h] [rbp-37h]
+    int v54; // [rsp+12Ch] [rbp-34h]
+
+    v43[0] = &unk_9A1CA0;
+    v43[1] = 0;
+    v44 = 0;
+    v45 = -1;
+    v46 = -1;
+    v47 = -1082130432;
+    v48 = -1;
+    sub_30A6A0(&v49, 0, 0);
+    v5 = *(_DWORD *)(a1 + 56);
+    v43[0] = off_9B05C0;
+    v49 = off_9B0600;
+    if ( v5 > 0 )
+    {
+      v6 = a1;
+      v32 = 0;
+      while ( 1 )
+      {
+        v9 = *(_QWORD **)(*(_QWORD *)(v6 + 64) + 8 * v32);
+        if ( (unsigned __int8)sub_594180(v9, v43, a3, a4) || !(unsigned __int8)sub_2C8C80((unsigned int)dword_A359F4, 5) )
+          break;
+        v19 = *(__int64 (__fastcall **)())(*v9 + 16LL);
+        if ( v19 == sub_58E870 )
+        {
+          v20 = (const char *)v9[2];
+          if ( !v20 )
+            v20 = (const char *)&unk_27D936;
+        }
+        else
+        {
+          v20 = (const char *)((__int64 (__fastcall *)(_QWORD *))v19)(v9);
+        }
+        v36 = 1807;
+        v38 = 0;
+        v35 = "networkstringtable.cpp";
+        v37 = "WriteBaselines";
+        v39 = 0;
+        v40 = 0;
+        v41 = 0;
+        v42 = 0;
+        sub_2C94F0(
+          (unsigned int)dword_A359F4,
+          5,
+          &v35,
+          "SV:  CNetworkStringTableContainer::WriteBaselines, error writing string table baseline %s\n",
+          v20);
+        if ( *(_BYTE *)(a2 + 32) )
+          goto LABEL_40;
+  LABEL_18:
+        v10 = *(_QWORD *)(*(_QWORD *)(v52[0] & 0xFFFFFFFFFFFFFFFCLL) - 24LL);
+        v33 = v10;
+        v34 = (int *)&unk_CD6AF8;
+        sub_2BCBE0(&v34, v10, 0);
+        v11 = v34;
+        v12 = g_pNetworkSystem;
+        v13 = *(unsigned __int8 (__fastcall **)(_QWORD *, int *, unsigned int *, __int64))(*g_pNetworkSystem + 240LL);
+        v14 = *(_QWORD *)(v52[0] & 0xFFFFFFFFFFFFFFFCLL);
+        if ( *(v34 - 2) >= 0 && *((_QWORD *)v34 - 3) )
+        {
+          if ( &_pthread_key_create )
+          {
+            if ( *(v34 - 2) <= 0 )
+            {
+  LABEL_22:
+              *(v11 - 2) = -1;
+              goto LABEL_3;
+            }
+          }
+          else if ( *(v34 - 2) <= 0 )
+          {
+            goto LABEL_22;
+          }
+          v26 = *(_QWORD *)(v52[0] & 0xFFFFFFFFFFFFFFFCLL);
+          v27 = *(unsigned __int8 (__fastcall **)(_QWORD *, int *, unsigned int *, __int64))(*g_pNetworkSystem + 240LL);// 0x0F0 = 240LL = INetworkSystem_BufferToBufferCompress
+          v29 = g_pNetworkSystem;
+          sub_2BCBD0(&v34, 0, 0, 0);
+          v11 = v34;
+          v14 = v26;
+          v13 = v27;
+          v12 = v29;
+          goto LABEL_22;
+        }
+  LABEL_3:
+        if ( v13(v12, v11, &v33, v14) )
+        {
+          v34 = v11;
+          sub_2BCBE0(&v34, v33, 0);
+          v53 = 1;
+          v54 = v10;
+          v51 |= 0x282u;
+          v17 = (_QWORD *)(v50 & 0xFFFFFFFFFFFFFFFCLL);
+          if ( (v50 & 1) != 0 )
+            v17 = (_QWORD *)*v17;
+          v28 = v34;
+          v18 = (void **)sub_6057F6(v52, v17);
+          if ( *((int *)*v18 - 2) < 0 )
+            *((_DWORD *)*v18 - 2) = 0;
+          if ( *(v28 - 2) < 0 )
+            *(v28 - 2) = 0;
+          v11 = (int *)*v18;
+          *v18 = v28;
+        }
+        if ( !(*(unsigned __int8 (__fastcall **)(_QWORD *, __int64, _QWORD *))(*g_pNetworkMessages + 24LL))(
+                g_pNetworkMessages,
+                a2,
+                v43)
+          && (unsigned __int8)sub_2C8C80((unsigned int)dword_A359F4, 5) )
+        {
+          v15 = *(__int64 (__fastcall **)())(*v9 + 16LL);
+          if ( v15 == sub_58E870 )
+          {
+            v16 = (const char *)v9[2];
+            if ( !v16 )
+              v16 = (const char *)&unk_27D936;
+          }
+          else
+          {
+            v16 = (const char *)((__int64 (__fastcall *)(_QWORD *))v15)(v9);
+          }
+          v36 = 1835;
+          v38 = 0;
+          v35 = "networkstringtable.cpp";
+          v37 = "WriteBaselines";
+          v39 = 0;
+          v40 = 0;
+          v41 = 0;
+          v42 = 0;
+          sub_2C94F0(
+            (unsigned int)dword_A359F4,
+            5,
+            &v35,
+            "SV:  CNetworkStringTableContainer::WriteBaselines, overflow error writing string table baseline %s\n",
+            v16);
+        }
+        v35 = nullptr;
+        if ( v53 )
+          sub_2C9FE0(&v35, "compressed %d -> %d bytes", v10, v33);
+        if ( (unsigned __int8)sub_2C8C80((unsigned int)dword_A359F4, 1) )
+        {
+          v8 = *(__int64 (__fastcall **)())(*v9 + 16LL);
+          if ( v8 != sub_58E870 )
+            ((void (__fastcall *)(_QWORD *, void *, _QWORD, __int64 (__fastcall *)()))v8)(
+              v9,
+              &unk_27D936,
+              (unsigned int)((*(_DWORD *)(a2 + 12) - *(_DWORD *)(a2 + 16)) >> 3),
+              sub_58E870);
+          sub_2CA620(
+            (unsigned int)dword_A359F4,
+            1,
+            "SV:  WriteBaselines:  %20.20s wrote %6d bytes [%36.36s], headroom %6d bytes\n");
+          v7 = v25;
+        }
+        if ( v35 )
+          sub_2C9CB0((__int64)&v35, 1, v7);
+        if ( v11 - 6 != (int *)&std::string::_Rep::_S_empty_rep_storage )
+        {
+          if ( &_pthread_key_create )
+          {
+            v24 = _InterlockedExchangeAdd(v11 - 2, 0xFFFFFFFF);
+          }
+          else
+          {
+            v24 = *(v11 - 2);
+            *(v11 - 2) = v24 - 1;
+          }
+          if ( v24 <= 0 )
+            sub_2BCC50();
+        }
+        if ( *(_DWORD *)(a1 + 56) <= (int)++v32 )
+          goto LABEL_47;
+        v6 = a1;
+      }
+      if ( !*(_BYTE *)(a2 + 32) )
+        goto LABEL_18;
+  LABEL_40:
+      if ( (unsigned __int8)sub_2C8C80((unsigned int)dword_A359F4, 5) )
+      {
+        v21 = *(__int64 (__fastcall **)())(*v9 + 16LL);
+        if ( v21 == sub_58E870 )
+        {
+          v22 = (const char *)v9[2];
+          if ( !v22 )
+            v22 = (const char *)&unk_27D936;
+        }
+        else
+        {
+          v22 = (const char *)((__int64 (__fastcall *)(_QWORD *))v21)(v9);
+        }
+        v36 = 1812;
+        v38 = 0;
+        v35 = "networkstringtable.cpp";
+        v37 = "WriteBaselines";
+        v39 = 0;
+        v40 = 0;
+        v41 = 0;
+        v42 = 0;
+        sub_2C94F0(
+          (unsigned int)dword_A359F4,
+          5,
+          &v35,
+          "SV:  CNetworkStringTableContainer::WriteBaselines, overflowed writing uncompressed string table data for %s\n",
+          v22);
+      }
+      goto LABEL_18;
+    }
+  LABEL_47:
+    if ( (unsigned __int8)sub_2C8C80((unsigned int)dword_A359F4, 1) )
+      sub_2CA620((unsigned int)dword_A359F4, 1, "SV:  WriteBaselines:  %d tables required %d bytes\n");
+    v43[0] = off_9A7A38;
+    v49 = off_9A7A78;
+    return sub_320570(&v49);
+  }

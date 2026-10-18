@@ -51,6 +51,7 @@ Entry point `preprocess_single_skill_via_mcp(...)`:
   - vtable scripts: declare `TARGET_CLASS_NAME`, pass `vtable_class_names=[TARGET_CLASS_NAME]`
   - mixed scripts: can pass multiple parameter groups at once
 - Special scripts (e.g., CTriggerPush_Touch, CBaseTrigger_StartTouch, CPointTeleport_Teleport) implement custom logic and directly use lower-level methods.
+- Entity-input handler skills (`DEFINE_INPUTFUNC` legacy and 14182+ `_API` input registration descriptors, handler offsets and ABI caveats): see [[_define_inputfunc]].
 
 ## Common Capabilities in ida_analyze_util.py
 
@@ -88,3 +89,60 @@ YAML writers consistently use `yaml.safe_dump`:
 
 ## Callers (optional)
 - `process_binary` in `ida_analyze_bin.py` (called before `run_skill`)
+
+## Lesson: undefined function recovery and MCP Python namespaces
+
+- **Trigger:** old `func_sig` misses, string xrefs exist outside functions, but
+  recovery reports `blocked_existing_function` or defines a function that does
+  not cover the requested xref. A Python 3.12 local run can pass while CI on
+  Python 3.11 fails on the same IDB.
+- **Root cause:** MCP `py_eval` snapshots persistent locals into a separate
+  globals dictionary. In Python 3.11, comprehensions resolve captured variables
+  through that globals dictionary. The operand-target comprehension in
+  `_probe_func_start_or_entry_candidate` could therefore use an earlier `xref`
+  instead of the current loop reference, missing the real entry or selecting
+  the adjacent thunk. A single-namespace fake session hides this bug.
+- **Correct approach:** use an ordinary operand loop in the generated snippet.
+  Preserve the conservative entry evidence and coverage verification; do not
+  broaden recovery by guessing entries or deleting existing functions.
+- **Verification:** run `TestArrayInitializedFunctionRecovery` on Python 3.11
+  with separate globals and persistent locals, including a stale unrelated
+  `xref`. Replay the actual CI warm IDB rather than only a freshly analyzed or
+  artificially modified database. PR #1145 run `38721615799` reproduced the
+  failure with the cached 14191 Linux server IDB, SHA-256
+  `2225143ff0b823ca0c9aa01da9b21a843686df0e52bda95240788bd9c36891a8`;
+  corrected recovery identifies the registration thunk at `0x22ba960`.
+- **Scope:** generated IDA `py_eval` snippets with comprehensions or nested
+  helpers that reference recently assigned locals. Avoid assuming host Python
+  and IDA worker Python use the same minor version or execution semantics.
+- **Fallback:** `.claude/skills/find-RegisterSchemaTypeOverride_CEntityHandle/SKILL.md`
+  identifies the exact `CEntityHandle`/`ehandle` thunk from raw xrefs and validates
+  a unique signature when preprocessing cannot finish safely.
+
+## Lesson: unique wrapper signatures can silently select a sibling
+
+- **Trigger:** IDA analysis reports success, but the Linux C++ ABI gate for
+  `IVEngineServer2` finds `GetPlayerNetworkIDString` at slot 39 instead of 40 and
+  `SynchronizeAndBlockUntilLoaded` at slot 63 instead of 66 (PR #1145, run
+  `38764646029`). Other vtable references and the Windows gate pass.
+- **Root cause:** the old signatures include a shared wrapper prologue and a
+  partly fixed RIP-relative displacement. After code moves, each signature can
+  still match exactly once, at a different wrapper loading the same global.
+  The signature fast path then bypasses the finder's semantic xref constraints.
+  Uniqueness and membership in the same vtable do not establish function identity.
+- **Correct approach:** these `CEngineServer` finders ignore the old signature
+  map and resolve from the current-version helper call plus the current vtable.
+  Keep the noinline/inlined fallback pair: Linux calls the standalone network-ID
+  helper, while Windows calls the client helper directly. Preserve the spawn-think
+  exclusion for the synchronization finder. Generate a fresh unique signature.
+- **Verification:** regress both a unique wrong old match and an unavailable
+  current anchor; the latter must fail without writing an output. Replay the
+  unmodified warm IDB through the real MCP pipeline on Python 3.11. In 14191 Linux,
+  the correct callers are `0x52a530` (slot 40, calls `0x521580`) and `0x527f80`
+  (slot 66, calls `0x51aaa0`); the erroneous neighbors are `0x52a570` and `0x527fc0`.
+  Rebuild the candidate and run the C++ ABI gate against the corrected outputs.
+  This replay passes all 19 configured tests on Linux (Ubuntu WSL) and Windows,
+  with zero differences across 20 vtable and two record-layout comparisons each.
+- **Scope:** short forwarding wrappers with independent current-version semantic
+  anchors. Diagnose an ABI mismatch against actual call targets before editing
+  headers or treating a unique signature match as proof of identity.

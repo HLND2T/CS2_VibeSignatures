@@ -1,0 +1,147 @@
+func_name: CCvar_FindFirstConVar
+func_va: '0x18006c8c0'
+disasm_code: |-
+  .text:000000018006C8C0                 mov     [rsp+arg_10], rsi
+  .text:000000018006C8C5                 mov     [rsp+arg_18], rdi
+  .text:000000018006C8CA                 push    r14
+  .text:000000018006C8CC                 sub     rsp, 30h
+  .text:000000018006C8D0                 mov     rsi, rdx
+  .text:000000018006C8D3                 lea     rdi, [rcx+154h]
+  .text:000000018006C8DA                 mov     r14, rcx
+  .text:000000018006C8DD                 call    cs:GetCurrentThreadId
+  .text:000000018006C8E3                 ; unsigned int
+  .text:000000018006C8E3                 mov     edx, eax; unsigned int
+  .text:000000018006C8E5                 cmp     [rdi+8], eax
+  .text:000000018006C8E8                 jnz     short loc_18006C8F0
+  .text:000000018006C8EA                 inc     word ptr [rdi+4]
+  .text:000000018006C8EE                 jmp     short loc_18006C915
+  .text:000000018006C8F0                 mov     eax, [rdi]
+  .text:000000018006C8F2                 nop
+  .text:000000018006C8F3                 test    eax, eax
+  .text:000000018006C8F5                 jnz     short loc_18006C90D
+  .text:000000018006C8F7                 mov     ecx, 3
+  .text:000000018006C8FC                 lock cmpxchg [rdi], ecx
+  .text:000000018006C900                 jnz     short loc_18006C90D
+  .text:000000018006C902                 mov     word ptr [rdi+4], 1
+  .text:000000018006C908                 mov     [rdi+8], edx
+  .text:000000018006C90B                 jmp     short loc_18006C915
+  .text:000000018006C90D                 ; this
+  .text:000000018006C90D                 mov     rcx, rdi; this
+  .text:000000018006C910                 call    ?AcquireLock@CAtomicMutex@@AEAAXI@Z; CAtomicMutex::AcquireLock(uint)
+  .text:000000018006C915                 movzx   eax, word ptr [r14+58h]
+  .text:000000018006C91A                 mov     ecx, 0FFFFh
+  .text:000000018006C91F                 cmp     ax, cx
+  .text:000000018006C922                 jnz     short loc_18006C96D
+  .text:000000018006C924                 mov     eax, 0FFFFFFFFh
+  .text:000000018006C929                 mov     [rsi], rax
+  .text:000000018006C92C                 sub     word ptr [rdi+4], 1
+  .text:000000018006C931                 jnz     loc_18006C9DE
+  .text:000000018006C937                 mov     dword ptr [rdi+8], 0
+  .text:000000018006C93E                 mov     eax, 0FFFFFFFDh
+  .text:000000018006C943                 lock xadd [rdi], eax
+  .text:000000018006C947                 add     eax, 0FFFFFFFDh
+  .text:000000018006C94A                 jz      loc_18006C9DE
+  .text:000000018006C950                 ; Address
+  .text:000000018006C950                 mov     rcx, rdi; Address
+  .text:000000018006C953                 call    cs:WakeByAddressSingle
+  .text:000000018006C959                 mov     rax, rsi
+  .text:000000018006C95C                 mov     rsi, [rsp+38h+arg_10]
+  .text:000000018006C961                 mov     rdi, [rsp+38h+arg_18]
+  .text:000000018006C966                 add     rsp, 30h
+  .text:000000018006C96A                 pop     r14
+  .text:000000018006C96C                 retn
+  .text:000000018006C96D                 mov     [rsp+38h+arg_8], rbx
+  .text:000000018006C972                 lea     rcx, [rsp+38h+var_18]
+  .text:000000018006C977                 mov     r8d, 0FFFFFFFFh
+  .text:000000018006C97D                 mov     rdx, rax
+  .text:000000018006C980                 mov     rbx, rax
+  .text:000000018006C983                 call    sub_18020EB50
+  .text:000000018006C988                 lea     rcx, [rsp+38h+var_18]
+  .text:000000018006C98D                 call    sub_18020F8F0
+  .text:000000018006C992                 test    al, al
+  .text:000000018006C994                 jz      short loc_18006C9A7
+  .text:000000018006C996                 mov     rax, [r14]
+  .text:000000018006C999                 mov     r8, rbx
+  .text:000000018006C99C                 mov     rdx, rsi
+  .text:000000018006C99F                 mov     rcx, r14
+  .text:000000018006C9A2                 call    qword ptr [rax+68h]
+  .text:000000018006C9A5                 jmp     short loc_18006C9AA
+  .text:000000018006C9A7                 mov     [rsi], rbx
+  .text:000000018006C9AA                 lea     rcx, [rsp+38h+var_18]
+  .text:000000018006C9AF                 call    _Warning_AlwaysSpewCallStack_Length
+  .text:000000018006C9B4                 sub     word ptr [rdi+4], 1
+  .text:000000018006C9B9                 jnz     short loc_18006C9D9
+  .text:000000018006C9BB                 mov     eax, 0FFFFFFFDh
+  .text:000000018006C9C0                 mov     dword ptr [rdi+8], 0
+  .text:000000018006C9C7                 lock xadd [rdi], eax
+  .text:000000018006C9CB                 add     eax, 0FFFFFFFDh
+  .text:000000018006C9CE                 jz      short loc_18006C9D9
+  .text:000000018006C9D0                 ; Address
+  .text:000000018006C9D0                 mov     rcx, rdi; Address
+  .text:000000018006C9D3                 call    cs:WakeByAddressSingle
+  .text:000000018006C9D9                 mov     rbx, [rsp+38h+arg_8]
+  .text:000000018006C9DE                 mov     rdi, [rsp+38h+arg_18]
+  .text:000000018006C9E3                 mov     rax, rsi
+  .text:000000018006C9E6                 mov     rsi, [rsp+38h+arg_10]
+  .text:000000018006C9EB                 add     rsp, 30h
+  .text:000000018006C9EF                 pop     r14
+  .text:000000018006C9F1                 retn
+procedure: |-
+  _QWORD *__fastcall CCvar_FindFirstConVar(unsigned __int16 *a1, _QWORD *a2)
+  {
+    unsigned __int16 *v3; // rdi
+    DWORD CurrentThreadId; // edx
+    __int64 v6; // rax
+    bool v7; // zf
+    __int64 v9; // rbx
+    _BYTE v10[24]; // [rsp+20h] [rbp-18h] BYREF
+
+    v3 = a1 + 170;
+    CurrentThreadId = GetCurrentThreadId();
+    if ( *((_DWORD *)v3 + 2) == CurrentThreadId )
+    {
+      ++v3[2];
+    }
+    else if ( *(_DWORD *)v3 || _InterlockedCompareExchange((volatile signed __int32 *)v3, 3, 0) )
+    {
+      CAtomicMutex::AcquireLock((CAtomicMutex *)v3, CurrentThreadId);
+    }
+    else
+    {
+      v3[2] = 1;
+      *((_DWORD *)v3 + 2) = CurrentThreadId;
+    }
+    v6 = a1[44];
+    if ( (_WORD)v6 == 0xFFFF )
+    {
+      *a2 = 0xFFFFFFFFLL;
+      v7 = v3[2]-- == 1;
+      if ( v7 )
+      {
+        *((_DWORD *)v3 + 2) = 0;
+        if ( _InterlockedExchangeAdd((volatile signed __int32 *)v3, 0xFFFFFFFD) != 3 )
+        {
+          WakeByAddressSingle(v3);
+          return a2;
+        }
+      }
+    }
+    else
+    {
+      v9 = a1[44];
+      sub_18020EB50(v10, v6, 0xFFFFFFFFLL);
+      if ( (unsigned __int8)sub_18020F8F0(v10) )
+        (*(void (__fastcall **)(unsigned __int16 *, _QWORD *, __int64))(*(_QWORD *)a1 + 104LL))(a1, a2, v9);
+      else
+        *a2 = v9;
+      Warning_AlwaysSpewCallStack_Length(v10);
+      v7 = v3[2]-- == 1;
+      if ( v7 )
+      {
+        *((_DWORD *)v3 + 2) = 0;
+        if ( _InterlockedExchangeAdd((volatile signed __int32 *)v3, 0xFFFFFFFD) != 3 )
+          WakeByAddressSingle(v3);
+      }
+    }
+    return a2;
+  }

@@ -1,12 +1,16 @@
+import io
+import json
 import os
 import subprocess
 import tempfile
 import unittest
+from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 
 from bin_artifact_contract import (
     ArtifactContractError,
     build_game_artifact_inventory,
+    main,
     validate_repository_artifact_contract,
 )
 from ida_analyze_util import canonical_symbol_yaml_bytes
@@ -19,29 +23,38 @@ from tests.gamesymbol_snapshot_test_support import (
 
 
 class BinArtifactContractTests(unittest.TestCase):
-    def _workspace(self, root: Path) -> tuple[Path, Path, Path]:
-        config = root / "configs" / "1.yaml"
-        artifact = root / "bin_artifacts" / "1" / "server" / "Example.windows.yaml"
+    @staticmethod
+    def _workspace(root: Path, versions: tuple[str, ...] = ("1",)) -> tuple[Path, Path, Path]:
         (root / "download.yaml").write_text(
-            "downloads:\n  - tag: '1'\n    manifests: {'1': '1'}\n",
+            "downloads:\n" + "".join(f"  - tag: '{version}'\n    manifests: {{'1': '1'}}\n" for version in versions),
             encoding="utf-8",
         )
-        write_config(
-            config,
-            [
-                {
-                    "name": "server",
-                    "path_windows": "game/bin/win64/server.dll",
-                    "skills": [{"name": "find", "expected_output": ["Example.{platform}.yaml"]}],
-                    "symbols": [{"name": "Example", "category": "func", "platform": "windows"}],
-                }
-            ],
+        for version in versions:
+            config = root / "configs" / f"{version}.yaml"
+            artifact = root / "bin_artifacts" / version / "server" / "Example.windows.yaml"
+            write_config(
+                config,
+                [
+                    {
+                        "name": "server",
+                        "path_windows": "game/bin/win64/server.dll",
+                        "skills": [{"name": "find", "expected_output": ["Example.{platform}.yaml"]}],
+                        "symbols": [{"name": "Example", "category": "func", "platform": "windows"}],
+                    }
+                ],
+            )
+            artifact.parent.mkdir(parents=True, exist_ok=True)
+            artifact.write_bytes(
+                canonical_symbol_yaml_bytes({"func_name": "Example", "func_rva": "0x10"}, category="func")
+            )
+            write_binary(root / "bin" / version / "server" / "server.dll")
+            write_source_binary_lock(root, version)
+        first_version = versions[0]
+        return (
+            root / "configs" / f"{first_version}.yaml",
+            root / "bin_artifacts" / first_version / "server" / "Example.windows.yaml",
+            root / "bin_artifacts",
         )
-        artifact.parent.mkdir(parents=True, exist_ok=True)
-        artifact.write_bytes(canonical_symbol_yaml_bytes({"func_name": "Example", "func_rva": "0x10"}, category="func"))
-        write_binary(root / "bin" / "1" / "server" / "server.dll")
-        write_source_binary_lock(root, "1")
-        return config, artifact, root / "bin_artifacts"
 
     def test_accepts_canonical_required_artifact_and_reports_inventory(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -215,6 +228,36 @@ class BinArtifactContractTests(unittest.TestCase):
             with self.assertRaisesRegex(ArtifactContractError, "legacy generated outputs"):
                 validate_repository_artifact_contract(repo_root=root, game_versions=["1"])
 
+    def test_repository_contract_scopes_content_checks_to_selected_configured_version(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self._workspace(root, versions=("1", "2"))
+            self._git_init_and_commit(root)
+            full_report = validate_repository_artifact_contract(repo_root=root)
+            self.assertEqual(2, full_report["game_version_count"])
+            (root / "bin_artifacts" / "2" / "server" / "Example.windows.yaml").write_bytes(b"not canonical\n")
+            (root / "binary_locks" / "2.json").write_text("{}\n", encoding="utf-8")
+
+            for require_tracked in (False, True):
+                with self.subTest(require_tracked=require_tracked):
+                    report = validate_repository_artifact_contract(
+                        repo_root=root, game_versions=["1"], require_tracked=require_tracked
+                    )
+
+                    self.assertEqual(1, report["game_version_count"])
+                    self.assertEqual(1, report["file_count"])
+                    self.assertEqual(["1"], [item["game_version"] for item in report["game_versions"]])
+                    self.assertEqual(["1"], [item["game_version"] for item in report["binary_locks"]])
+
+    def test_repository_contract_rejects_unconfigured_requested_version(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self._workspace(root)
+            self._git_init_and_commit(root)
+
+            with self.assertRaisesRegex(ArtifactContractError, "unconfigured GAMEVER.*2"):
+                validate_repository_artifact_contract(repo_root=root, game_versions=["1", "2"])
+
     def test_repository_contract_requires_exact_source_binary_lock_set(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -230,6 +273,14 @@ class BinArtifactContractTests(unittest.TestCase):
             (root / "binary_locks" / "2.json").write_text("{}\n", encoding="utf-8")
             self._git_init_and_commit(root)
             with self.assertRaisesRegex(ArtifactContractError, "unconfigured GAMEVER"):
+                validate_repository_artifact_contract(repo_root=root, game_versions=["1"])
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self._workspace(root, versions=("1", "2"))
+            (root / "binary_locks" / "2.json").unlink()
+            self._git_init_and_commit(root)
+            with self.assertRaisesRegex(ArtifactContractError, "missing binary lock"):
                 validate_repository_artifact_contract(repo_root=root, game_versions=["1"])
 
     def test_repository_contract_rejects_binary_lock_source_drift(self) -> None:
@@ -252,6 +303,50 @@ class BinArtifactContractTests(unittest.TestCase):
         subprocess.run(["git", "config", "user.name", "Test"], cwd=root, check=True)
         subprocess.run(["git", "add", "."], cwd=root, check=True)
         subprocess.run(["git", "commit", "-qm", "fixture"], cwd=root, check=True)
+
+
+class BinArtifactContractCliTests(unittest.TestCase):
+    def test_default_scope_is_the_latest_configured_gamever(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            BinArtifactContractTests._workspace(root, versions=("1", "2"))
+            # The older GAMEVER is deliberately left non-canonical: a default
+            # run must not touch it, while an explicit scope must reject it.
+            (root / "bin_artifacts" / "1" / "server" / "Example.windows.yaml").write_bytes(b"not canonical\n")
+            BinArtifactContractTests._git_init_and_commit(root)
+
+            with redirect_stdout(io.StringIO()) as output:
+                exit_code = main(["-repo-root", str(root), "-allow-untracked"])
+
+            self.assertEqual(0, exit_code)
+            report = json.loads(output.getvalue())
+            self.assertEqual(["2"], [item["game_version"] for item in report["game_versions"]])
+
+            with redirect_stdout(io.StringIO()) as output:
+                exit_code = main(["-repo-root", str(root), "-allow-untracked", "-gamever", "1"])
+
+            self.assertEqual(1, exit_code)
+            self.assertIn("invalid canonical artifact", output.getvalue())
+
+    def test_explicit_gamever_selection_is_repeatable(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            BinArtifactContractTests._workspace(root, versions=("1", "2"))
+            BinArtifactContractTests._git_init_and_commit(root)
+
+            with redirect_stdout(io.StringIO()) as output:
+                exit_code = main(["-repo-root", str(root), "-allow-untracked", "-gamever", "1", "-gamever", "2"])
+
+            self.assertEqual(0, exit_code)
+            report = json.loads(output.getvalue())
+            self.assertEqual(["1", "2"], [item["game_version"] for item in report["game_versions"]])
+
+    def test_missing_configs_directory_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+                exit_code = main(["-repo-root", temporary, "-allow-untracked"])
+
+            self.assertEqual(1, exit_code)
 
 
 if __name__ == "__main__":

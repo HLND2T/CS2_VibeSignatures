@@ -9,6 +9,7 @@ import unittest
 from contextlib import contextmanager
 from pathlib import Path
 from unittest.mock import MagicMock, patch
+from unittest import mock as unittest_mock
 
 
 SCRIPT = Path("init_gamebin.py")
@@ -22,10 +23,11 @@ def completed(command, *, returncode=0, stdout="", stderr=""):
     return subprocess.CompletedProcess(command, returncode, stdout=stdout, stderr=stderr)
 
 
-def response(*, status=200, chunks=(), reason="OK"):
+def response(*, status=200, chunks=(), reason="OK", headers=None):
     result = MagicMock()
     result.status_code = status
     result.reason = reason
+    result.headers = dict(headers or {})
     result.iter_content.return_value = iter(chunks)
     result.__enter__.return_value = result
     result.__exit__.return_value = False
@@ -89,6 +91,91 @@ class TestInitGamebin(unittest.TestCase):
             with patch.object(init_gamebin.requests, "get", return_value=response(status=503, reason="Unavailable")):
                 with self.assertRaisesRegex(init_gamebin.InitGamebinError, "HTTP 503"):
                     init_gamebin.download_release_asset("https://example/archive", archive)
+
+    def test_github_token_prefers_environment_over_gh(self) -> None:
+        init_gamebin.github_token.cache_clear()
+        with patch.object(
+            init_gamebin,
+            "subprocess",
+            unittest_mock.MagicMock(**{"run.return_value": completed([], stdout="cli-token\n")}),
+        ) as fake:
+            with patch.dict(os.environ, {"GH_TOKEN": "  env-token  "}, clear=False):
+                self.assertEqual("env-token", init_gamebin.github_token())
+            fake.run.assert_not_called()
+
+    def test_github_token_falls_back_to_gh_when_environment_is_empty(self) -> None:
+        init_gamebin.github_token.cache_clear()
+        with patch.dict(os.environ, {"GH_TOKEN": "", "GITHUB_TOKEN": ""}, clear=False):
+            with patch.object(init_gamebin.shutil, "which", return_value="/usr/bin/gh"):
+                with patch.object(
+                    init_gamebin,
+                    "subprocess",
+                    unittest_mock.MagicMock(**{"run.return_value": completed([], stdout="cli-token\n")}),
+                ) as fake:
+                    self.assertEqual("cli-token", init_gamebin.github_token())
+        self.assertEqual(
+            ["gh", "auth", "token", "--hostname", "github.com"],
+            fake.run.call_args.args[0],
+        )
+
+    def test_github_token_is_none_without_environment_or_gh(self) -> None:
+        init_gamebin.github_token.cache_clear()
+        with patch.dict(os.environ, {"GH_TOKEN": "", "GITHUB_TOKEN": ""}, clear=False):
+            with patch.object(init_gamebin.shutil, "which", return_value=None):
+                self.assertIsNone(init_gamebin.github_token())
+        self.assertEqual({}, init_gamebin.github_request_headers())
+
+    def test_release_requests_use_the_resolved_token(self) -> None:
+        init_gamebin.github_token.cache_clear()
+        with patch.dict(os.environ, {"GH_TOKEN": "env-token"}, clear=False):
+            headers = init_gamebin.github_request_headers()
+            self.assertEqual({"Authorization": "Bearer env-token", "X-GitHub-Api-Version": "2022-11-28"}, headers)
+            init_gamebin.github_token.cache_clear()
+
+    def test_release_tag_lookup_sends_authentication_headers(self) -> None:
+        init_gamebin.github_token.cache_clear()
+        document = {"object": {"type": "commit", "sha": "b" * 40}}
+        with tempfile.TemporaryDirectory() as temp_dir:
+            archive = Path(temp_dir) / "gamebin.7z"
+            with patch.dict(os.environ, {"GH_TOKEN": "env-token"}, clear=False):
+                with patch.object(init_gamebin.requests, "get", return_value=response(chunks=[b"x"])) as get:
+                    init_gamebin.download_release_asset("https://example/archive", archive)
+                init_gamebin.github_token.cache_clear()
+            self.assertEqual(
+                {"Authorization": "Bearer env-token", "X-GitHub-Api-Version": "2022-11-28"},
+                get.call_args.kwargs["headers"],
+            )
+        init_gamebin.github_token.cache_clear()
+        with patch.dict(os.environ, {"GH_TOKEN": "env-token"}, clear=False):
+            with patch.object(init_gamebin.requests, "get", return_value=response(chunks=[])) as get:
+                get.return_value.json.return_value = document
+                self.assertEqual("b" * 40, init_gamebin.release_tag_target("14180"))
+            self.assertEqual(
+                {"Authorization": "Bearer env-token", "X-GitHub-Api-Version": "2022-11-28"},
+                get.call_args.kwargs["headers"],
+            )
+        init_gamebin.github_token.cache_clear()
+
+    def test_anonymous_quota_failure_reports_an_actionable_reason(self) -> None:
+        init_gamebin.github_token.cache_clear()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            archive = Path(temp_dir) / "gamebin.7z"
+            with patch.dict(os.environ, {"GH_TOKEN": "", "GITHUB_TOKEN": ""}, clear=False):
+                with patch.object(init_gamebin.shutil, "which", return_value=None):
+                    with patch.object(
+                        init_gamebin.requests,
+                        "get",
+                        return_value=response(status=403, reason="Forbidden", headers={"x-ratelimit-remaining": "0"}),
+                    ):
+                        with self.assertRaisesRegex(init_gamebin.InitGamebinError, r"GH_TOKEN|authenticate gh"):
+                            init_gamebin.download_release_asset("https://example/archive", archive)
+                    with patch.object(
+                        init_gamebin.requests,
+                        "get",
+                        return_value=response(status=403, reason="Forbidden"),
+                    ):
+                        with self.assertRaisesRegex(init_gamebin.InitGamebinError, "HTTP 403 Forbidden"):
+                            init_gamebin.release_tag_target("14180")
 
     def test_downloaded_gamebin_binds_manifest_checksums_and_tag(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -992,6 +1079,63 @@ class TestInitGamebin(unittest.TestCase):
                 init_gamebin.probe_binsync(Path("repo")),
             )
 
+    def test_prepare_with_idb_merges_declared_warm_idb_archive(self) -> None:
+        root = Path("repo")
+        config = root / "configs" / "14168.yaml"
+        manifest = {
+            "archives": {"archives/gamebin-with-idb-14168.7z": {"files": [{"path": "bin/14168/x.i64"}]}},
+            "public_assets": [{"path": "archives/gamebin-with-idb-14168.7z"}],
+        }
+        with (
+            patch.object(init_gamebin, "load_versions", return_value=["14168"]),
+            patch.object(init_gamebin, "check_binaries", side_effect=[True, True]),
+            patch.object(init_gamebin, "resolve_analysis_config", return_value=config),
+            patch.object(init_gamebin, "fetch_release_manifest", return_value=manifest),
+            patch.object(init_gamebin, "download_verified_release_archive", return_value=(Path("idb.7z"), [])) as fetch,
+            patch.object(init_gamebin, "extract_archive") as extract,
+            patch.object(init_gamebin, "merge_archive_bin", return_value=(4, 0)) as merge,
+            patch.object(init_gamebin, "verify_source_binary_root"),
+        ):
+            result = init_gamebin.prepare(root, "14168", with_idb=True)
+        self.assertEqual((4, 0), result["idb"])
+        self.assertEqual("existing local binaries", result["source"])
+        fetch.assert_called_once_with(manifest, "14168", "gamebin-with-idb-14168.7z", unittest_mock.ANY)
+        merge.assert_called_once_with(unittest_mock.ANY, root / "bin", "14168")
+        extract.assert_called_once()
+
+    def test_prepare_with_idb_fails_when_archive_is_not_declared(self) -> None:
+        root = Path("repo")
+        config = root / "configs" / "14168.yaml"
+        manifest = {"archives": {}, "public_assets": []}
+        with (
+            patch.object(init_gamebin, "load_versions", return_value=["14168"]),
+            patch.object(init_gamebin, "check_binaries", side_effect=[True, True]),
+            patch.object(init_gamebin, "resolve_analysis_config", return_value=config),
+            patch.object(init_gamebin, "fetch_release_manifest", return_value=manifest),
+            patch.object(init_gamebin, "download_verified_release_archive") as fetch,
+            patch.object(init_gamebin, "verify_source_binary_root"),
+        ):
+            with self.assertRaisesRegex(init_gamebin.InitGamebinError, "publishes no"):
+                init_gamebin.prepare(root, "14168", with_idb=True)
+        fetch.assert_not_called()
+
+    def test_check_idb_reports_availability(self) -> None:
+        available = {
+            "archives": {"archives/gamebin-with-idb-14168.7z": {"files": []}},
+            "public_assets": [{"path": "archives/gamebin-with-idb-14168.7z"}],
+        }
+        unavailable = {"archives": {}, "public_assets": []}
+        with patch.object(init_gamebin, "fetch_release_manifest", return_value=available):
+            self.assertEqual((True, ""), init_gamebin.check_idb("14168", Path("tmp")))
+        with patch.object(init_gamebin, "fetch_release_manifest", return_value=unavailable):
+            ok, reason = init_gamebin.check_idb("14168", Path("tmp"))
+        self.assertFalse(ok)
+        self.assertIn("does not declare", reason)
+        with patch.object(init_gamebin, "fetch_release_manifest", return_value=None):
+            ok, reason = init_gamebin.check_idb("14168", Path("tmp"))
+        self.assertFalse(ok)
+        self.assertIn("no published Release", reason)
+
     def test_probe_binsync_reports_unauthenticated_gh(self) -> None:
         with patch.object(
             init_gamebin,
@@ -1241,6 +1385,7 @@ class TestInitGamebin(unittest.TestCase):
             "source": "existing local binaries",
             "copied": 0,
             "skipped": 0,
+            "idb": None,
             "binsync": None,
         }
         output = io.StringIO()
@@ -1251,6 +1396,7 @@ class TestInitGamebin(unittest.TestCase):
         ):
             self.assertEqual(0, init_gamebin.main(["prepare", "14169"]))
         self.assertIn("BinSync recovery: skipped", output.getvalue())
+        self.assertIn("Warm IDB merge: skipped", output.getvalue())
 
     def test_main_reports_binary_preparation_only(self) -> None:
         result = {
@@ -1258,6 +1404,7 @@ class TestInitGamebin(unittest.TestCase):
             "source": "release archive",
             "copied": 3,
             "skipped": 0,
+            "idb": (4, 0),
             "binsync": binsync_summary(),
         }
         output = io.StringIO()
@@ -1269,6 +1416,7 @@ class TestInitGamebin(unittest.TestCase):
             self.assertEqual(0, init_gamebin.main(["prepare", "14169"]))
         self.assertIn("Selected GAMEVER: 14169", output.getvalue())
         self.assertIn("BinSync recovery: 2 targets", output.getvalue())
+        self.assertIn("Warm IDB merge: 4 copied, 0 skipped", output.getvalue())
         self.assertNotIn("Symbol snapshot:", output.getvalue())
 
     def test_main_passes_explicit_remote_creation_permission(self) -> None:
@@ -1277,6 +1425,7 @@ class TestInitGamebin(unittest.TestCase):
             "source": "existing local binaries",
             "copied": 0,
             "skipped": 0,
+            "idb": None,
             "binsync": binsync_summary(remote_created=2),
         }
         with (
@@ -1300,6 +1449,7 @@ class TestInitGamebin(unittest.TestCase):
             "14169",
             binsync_mode="enable",
             allow_remote_creation=True,
+            with_idb=False,
         )
 
 
