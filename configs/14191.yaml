@@ -864,6 +864,22 @@ modules:
           - CHostStateMgr_RequestHS_ChangelevelReconnect.{platform}.yaml
         prerequisite:
           - find-CHostStateMgr_RequestHS_ChangelevelReconnect-noinline
+      - name: find-CHostStateMgr_RequestHS_RestartSpawnGroups-noinline
+        optional_output:
+          - CHostStateMgr_RequestHS_RestartSpawnGroups.{platform}.yaml
+        expected_input:
+          - CHostStateMgr_vtable.{platform}.yaml
+        prerequisite:
+          - find-CHostStateRequest_LoadSpawnGroup
+      - name: find-CHostStateMgr_RequestHS_RestartSpawnGroups-inlined
+        expected_output:
+          - CHostStateMgr_RequestHS_RestartSpawnGroups.{platform}.yaml
+        expected_input:
+          - CHostStateMgr_vtable.{platform}.yaml
+        skip_if_exists:
+          - CHostStateMgr_RequestHS_RestartSpawnGroups.{platform}.yaml
+        prerequisite:
+          - find-CHostStateMgr_RequestHS_RestartSpawnGroups-noinline
       - name: find-CHostStateRequest_LoadSpawnGroup
         expected_output:
           - CHostStateRequest_LoadSpawnGroup.{platform}.yaml
@@ -5437,6 +5453,10 @@ modules:
         category: vfunc
         alias:
           - CHostStateMgr::RequestHS_ChangelevelReconnect
+      - name: CHostStateMgr_RequestHS_RestartSpawnGroups
+        category: vfunc
+        alias:
+          - CHostStateMgr::RequestHS_RestartSpawnGroups
       - name: CHostStateMgr_RequestHS_LoadSpawnGroup
         category: vfunc
         alias:
