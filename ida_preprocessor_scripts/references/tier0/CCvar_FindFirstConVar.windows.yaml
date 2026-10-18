@@ -55,17 +55,16 @@ disasm_code: |-
   .text:000000018006C977                 mov     r8d, 0FFFFFFFFh
   .text:000000018006C97D                 mov     rdx, rax
   .text:000000018006C980                 mov     rbx, rax
-  .text:000000018006C983                 call    sub_18020EA10
+  .text:000000018006C983                 call    sub_18020EB50
   .text:000000018006C988                 lea     rcx, [rsp+38h+var_18]
-  .text:000000018006C98D                 call    sub_18020F7B0
+  .text:000000018006C98D                 call    sub_18020F8F0
   .text:000000018006C992                 test    al, al
   .text:000000018006C994                 jz      short loc_18006C9A7
   .text:000000018006C996                 mov     rax, [r14]
   .text:000000018006C999                 mov     r8, rbx
   .text:000000018006C99C                 mov     rdx, rsi
   .text:000000018006C99F                 mov     rcx, r14
-  .text:000000018006C9A2                 ; 0x68 = 104LL = ICvar_FindNextConVar
-  .text:000000018006C9A2                 call    qword ptr [rax+68h]; 0x68 = 104LL = ICvar_FindNextConVar
+  .text:000000018006C9A2                 call    qword ptr [rax+68h]
   .text:000000018006C9A5                 jmp     short loc_18006C9AA
   .text:000000018006C9A7                 mov     [rsi], rbx
   .text:000000018006C9AA                 lea     rcx, [rsp+38h+var_18]
@@ -88,7 +87,7 @@ disasm_code: |-
   .text:000000018006C9EF                 pop     r14
   .text:000000018006C9F1                 retn
 procedure: |-
-  _QWORD *__fastcall sub_18006C8C0(unsigned __int16 *a1, _QWORD *a2)
+  _QWORD *__fastcall CCvar_FindFirstConVar(unsigned __int16 *a1, _QWORD *a2)
   {
     unsigned __int16 *v3; // rdi
     DWORD CurrentThreadId; // edx
@@ -130,9 +129,9 @@ procedure: |-
     else
     {
       v9 = a1[44];
-      sub_18020EA10(v10, v6, 0xFFFFFFFFLL);
-      if ( (unsigned __int8)sub_18020F7B0(v10) )
-        (*(void (__fastcall **)(unsigned __int16 *, _QWORD *, __int64))(*(_QWORD *)a1 + 104LL))(a1, a2, v9);// 0x68 = 104LL = ICvar_FindNextConVar
+      sub_18020EB50(v10, v6, 0xFFFFFFFFLL);
+      if ( (unsigned __int8)sub_18020F8F0(v10) )
+        (*(void (__fastcall **)(unsigned __int16 *, _QWORD *, __int64))(*(_QWORD *)a1 + 104LL))(a1, a2, v9);
       else
         *a2 = v9;
       Warning_AlwaysSpewCallStack_Length(v10);
