@@ -27,6 +27,42 @@ FLASHBANG_PROJECTILE_SPAWN_DECOMPILES_SCRIPT_PATH = Path(
     "ida_preprocessor_scripts/find-CFlashbangProjectile_Spawn-decompiles.py"
 )
 
+LEGACY_INPUT_XREFS_CASES = (
+    {
+        "module_name": "find_CBaseFilter_InputTestActivator",
+        "script_path": Path("ida_preprocessor_scripts/find-CBaseFilter_InputTestActivator.py"),
+        "target_name": "CBaseFilter_InputTestActivator",
+        "windows": None,
+        "linux": [
+            "55 48 89 E5 41 55 41 54 49 89 F4 53 48 89 FB 48 81 EC ? ? ? ? 48 8B 07 48 8B 16",
+        ],
+    },
+    {
+        "module_name": "find_CGamePlayerEquip_InputTriggerForAllPlayers",
+        "script_path": Path("ida_preprocessor_scripts/find-CGamePlayerEquip_InputTriggerForAllPlayers.py"),
+        "target_name": "CGamePlayerEquip_InputTriggerForAllPlayers",
+        "windows": [
+            "48 89 5C 24 ? 48 89 74 24 ? 55 57 41 54 41 56 41 57 48 8B EC 48 83 EC ? 4C 8B F1",
+        ],
+        "linux": [
+            "55 48 89 E5 41 57 41 56 41 55 41 54 49 89 FC 53 48 83 EC ? E8 ? ? ? ? "
+            "C7 45 ? ? ? ? ? 89 C7 66 89 45 ? 66 83 F8 ? 75 ? 48 C7 45 ? ? ? ? ? 66 83 FF ? "
+            "0F 84 ? ? ? ? 0F B7 7D ? E8 ? ? ? ? 66 89 45 ? 66 83 F8 ? 0F 84 ? ? ? ? 89 C7 "
+            "E8 ? ? ? ? 0F B7 7D ? 48 89 C3 48 85 C0 74 ? 48 89 C7 E8 ? ? ? ? 48 8D 7D ? "
+            "48 89 C6 E8 ? ? ? ? 0F B7 7D ? 84 C0 0F 85 ? ? ? ? EB ? 66 0F 1F 44 00 ? "
+            "E8 ? ? ? ? 48 89 C3 48 85 C0 0F 84 ? ? ? ? 48 89 C7 E8 ? ? ? ? 48 8D 7D ? "
+            "48 89 C6 E8 ? ? ? ? 84 C0 0F 84 ? ? ? ? 0F B7 7D ? 48 89 5D ? 66 83 FF",
+        ],
+    },
+    {
+        "module_name": "find_CGamePlayerEquip_InputTriggerForActivatedPlayer",
+        "script_path": Path("ida_preprocessor_scripts/find-CGamePlayerEquip_InputTriggerForActivatedPlayer.py"),
+        "target_name": "CGamePlayerEquip_InputTriggerForActivatedPlayer",
+        "windows": ["48 89 5C 24 ? 56 48 83 EC ? 48 8B 1A"],
+        "linux": ["55 48 89 E5 41 56 41 55 41 54 53 48 8B 1E 48 85 DB 74"],
+    },
+)
+
 
 def _write_is_playing_demo_source_yaml(path: Path, **overrides) -> None:
     payload = {
@@ -38,6 +74,55 @@ def _write_is_playing_demo_source_yaml(path: Path, **overrides) -> None:
     }
     payload.update(overrides)
     path.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
+
+
+class TestLinuxLayoutRecovery(unittest.IsolatedAsyncioTestCase):
+    def test_active_loop_recovery_rejects_dispatcher_getter_and_ambiguous_writers(self):
+        module = _load_module(
+            "ida_preprocessor_scripts/find-IEngineServiceMgr_GetActiveLoop.py", "active_loop_recovery"
+        )
+        getter = bytes.fromhex("48 8D 87 78 01 00 00 C3")
+        writer = bytes.fromhex("C6 46 20 01 48 8B 57 38 C6 46 20 00 C3")
+        self.assertEqual(32, module.recover_linux_active_loop_slot({28: getter, 32: writer}))
+        self.assertEqual(33, module.recover_linux_active_loop_slot({29: getter, 33: writer}))
+        self.assertIsNone(module.recover_linux_active_loop_slot({28: getter}))
+        self.assertIsNone(module.recover_linux_active_loop_slot({32: writer, 33: writer}))
+
+    def test_gamesystem_tail_recovery_uses_interface_not_factory_primary_indices(self):
+        module = _load_module(
+            "ida_preprocessor_scripts/find-CGameSystemReallocatingFactory_CSpawnGroupMgrGameSystem_DestroyGameSystem-decompiles.py",
+            "gamesystem_tail_recovery",
+        )
+        bodies = {
+            100: bytes.fromhex("48 8B 47 08 C3"),
+            200: b"\xc3",
+            300: bytes.fromhex("48 89 77 08 C3"),
+            400: bytes.fromhex("31 C0 C3"),
+        }
+        for start in (59, 69):
+            entries = dict(zip(range(start, start + 6), [100, 200, 300, 400, 0, 0]))
+            self.assertEqual(
+                {"IGameSystem_SetGameSystemGlobalPtrs": start + 1, "IGameSystem_vdtor": start + 4},
+                module.recover_linux_interface_slots(entries, bodies),
+            )
+            entries[start + 4] = 200
+            self.assertIsNone(module.recover_linux_interface_slots(entries, bodies))
+        self.assertIsNone(module.recover_linux_interface_slots({24: 200, 28: 100}, bodies))
+
+    def test_entity_name_map_recovery_excludes_storage_subobject_and_rejects_ambiguity(self):
+        module = _load_module("ida_preprocessor_scripts/find-CEntitySystem_m_entityNames.py", "entity_name_map")
+
+        def fields(base):
+            return [
+                {"kind": "flags", "offset": base + 0xA},
+                {"kind": "storage", "offset": base + 0x10},
+                {"kind": "word", "offset": base + 0x18},
+            ]
+
+        self.assertEqual(0xAF0, module.recover_map_base(fields(0xAF0)))
+        self.assertEqual(0xBF0, module.recover_map_base(fields(0xBF0)))
+        self.assertIsNone(module.recover_map_base(fields(0xAF0)[:-1]))
+        self.assertIsNone(module.recover_map_base(fields(0xAF0) + fields(0xBF0)))
 
 
 class TestFindCBaseEntityCollisionRulesChanged(unittest.IsolatedAsyncioTestCase):
@@ -330,6 +415,77 @@ class TestFindCcsPlayerMovementServicesProcessMovement(unittest.IsolatedAsyncioT
             generate_yaml_desired_fields=expected_generate_yaml_desired_fields,
             debug=True,
         )
+
+
+class TestLegacyInputBodyXrefContracts(unittest.IsolatedAsyncioTestCase):
+    """The 14182 `_API` migration moved inputs off DEFINE_INPUTFUNC (issue 1061).
+
+    These three legacy symbols are now relocated by the signature CS2Fixes maintains for
+    the body each `_API` wrapper forwards to, so the forwarded spec is the contract.
+    """
+
+    @staticmethod
+    def _expected_spec(target_name, signatures):
+        return [
+            {
+                "func_name": target_name,
+                "xref_strings": [],
+                "xref_gvs": [],
+                "xref_signatures": signatures,
+                "xref_funcs": [],
+                "exclude_funcs": [],
+                "exclude_strings": [],
+                "exclude_gvs": [],
+                "exclude_signatures": [],
+            }
+        ]
+
+    async def test_scripts_forward_platform_signature_specs(self) -> None:
+        for case in LEGACY_INPUT_XREFS_CASES:
+            for platform in ("windows", "linux"):
+                signatures = case[platform]
+                if signatures is None:
+                    continue
+                with self.subTest(case=case["module_name"], platform=platform):
+                    module = _load_module(case["script_path"], f"{case['module_name']}_{platform}")
+                    mock_helper = AsyncMock(return_value=True)
+
+                    with patch.object(module, "preprocess_common_skill", mock_helper):
+                        result = await module.preprocess_skill(
+                            session="session",
+                            skill_name="skill",
+                            expected_outputs=["out.yaml"],
+                            old_yaml_map={"k": "v"},
+                            new_binary_dir="bin_dir",
+                            platform=platform,
+                            image_base=0x180000000,
+                            debug=True,
+                        )
+
+                    self.assertTrue(result)
+                    mock_helper.assert_awaited_once_with(
+                        session="session",
+                        expected_outputs=["out.yaml"],
+                        old_yaml_map={"k": "v"},
+                        new_binary_dir="bin_dir",
+                        platform=platform,
+                        image_base=0x180000000,
+                        func_names=[case["target_name"]],
+                        func_xrefs=self._expected_spec(case["target_name"], signatures),
+                        generate_yaml_desired_fields=[
+                            (
+                                case["target_name"],
+                                ["func_name", "func_va", "func_rva", "func_size", "func_sig"],
+                            )
+                        ],
+                        debug=True,
+                    )
+
+    def test_windows_inlined_test_activator_body_is_not_declared(self) -> None:
+        case = LEGACY_INPUT_XREFS_CASES[0]
+
+        self.assertIsNone(case["windows"])
+        self.assertEqual("CBaseFilter_InputTestActivator", case["target_name"])
 
 
 class TestFindGInterfaceGlobalsPpGlobal(unittest.IsolatedAsyncioTestCase):
@@ -792,6 +948,61 @@ class TestFindOnServerVoiceDataIsPlayingDemoCallee(unittest.IsolatedAsyncioTestC
             self.assertFalse(output_path.exists())
 
         self.assertFalse(result)
+
+
+class TestCvarChangeCallbackChain(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        self.finder = _load_module(
+            Path("ida_preprocessor_scripts/find-ICvar_CallChangeCallback.py"), "find_ICvar_CallChangeCallback"
+        )
+
+    async def test_inline_dispatch_does_not_walk_helpers(self):
+        with patch.object(self.finder, "preprocess_common_skill", AsyncMock(return_value=True)) as preprocess:
+            self.assertTrue(await self.finder.preprocess_skill("session", "finder", [], {}, "/tmp", "linux", 0))
+        self.assertEqual(preprocess.await_count, 1)
+        self.assertNotIn("llm_target_details_loader", preprocess.await_args.kwargs)
+
+    async def test_missing_inline_dispatch_uses_helper_loader(self):
+        with patch.object(self.finder, "preprocess_common_skill", AsyncMock(side_effect=[False, True])) as preprocess:
+            self.assertTrue(await self.finder.preprocess_skill("session", "finder", [], {}, "/tmp", "linux", 0))
+        self.assertIs(preprocess.await_args.kwargs["llm_target_details_loader"], self.finder.load_helper_details)
+
+    async def test_helper_instructions_are_exported_for_llm_validation(self):
+        root = {"func_va": "0x1000", "disasm_code": "0x1000 call sub_2000"}
+        helper = {"func_va": "0x2000", "disasm_code": "0x2000 call qword ptr [rax+70h]"}
+        session = type("Session", (), {"call_tool": AsyncMock(return_value={})})()
+        with (
+            patch.object(self.finder, "_load_llm_decompile_target_details_via_mcp", AsyncMock(return_value=[root])),
+            patch.object(
+                self.finder, "parse_mcp_result", return_value={"result": '{"addresses":["0x2000"],"overflow":false}'}
+            ),
+            patch.object(self.finder, "_export_function_detail_via_mcp", AsyncMock(return_value=helper)),
+        ):
+            self.assertEqual(await self.finder.load_helper_details(session, ["Setter"]), [root, helper])
+
+    async def test_incomplete_helper_export_fails_closed(self):
+        session = type("Session", (), {"call_tool": AsyncMock(return_value={})})()
+        for overflow in (True, False):
+            with (
+                self.subTest(overflow=overflow),
+                patch.object(
+                    self.finder,
+                    "_load_llm_decompile_target_details_via_mcp",
+                    AsyncMock(return_value=[{"func_va": "0x1000"}]),
+                ),
+                patch.object(
+                    self.finder,
+                    "parse_mcp_result",
+                    return_value={"result": '{"addresses":["0x2000"],"overflow":' + str(overflow).lower() + "}"},
+                ),
+                patch.object(self.finder, "_export_function_detail_via_mcp", AsyncMock(return_value=None)),
+            ):
+                self.assertEqual(await self.finder.load_helper_details(session, ["Setter"]), [])
+
+    def test_multiple_dispatches_are_rejected(self):
+        entry = {"func_name": "ICvar_CallChangeCallback", "insn_va": "0x2000", "vfunc_offset": "0x70"}
+        self.assertEqual(self.finder.validate_dispatch({"found_vcall": [entry]}), [])
+        self.assertTrue(self.finder.validate_dispatch({"found_vcall": [entry, {**entry, "insn_va": "0x3000"}]}))
 
 
 if __name__ == "__main__":
