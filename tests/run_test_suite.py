@@ -73,6 +73,7 @@ UNIT_MODULES = frozenset(
         "test_cnetworkmessages_dtor_preprocessor",
         "test_commandline_checkparm_preprocessor",
         "test_commandline_hasparmunrestricted",
+        "test_commandline_parmvalue_char",
         "test_commandline_parmvalue_int",
         "test_copy_depot_bin",
         "test_ci_s3_cache",
