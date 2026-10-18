@@ -1887,6 +1887,16 @@ modules:
           - CServerSideClientBase_GetPlayerInfo.{platform}.yaml
         expected_input:
           - CServerSideClientBase_vtable.{platform}.yaml
+      - name: find-CServerSideClientBase_m_nClientSlot
+        expected_output:
+          - CServerSideClientBase_m_nClientSlot.{platform}.yaml
+        expected_input:
+          - CServerSideClientBase_GetPlayerInfo.{platform}.yaml
+      - name: find-CServerSideClient_ProcessRespondCvarValue
+        expected_output:
+          - CServerSideClient_ProcessRespondCvarValue.{platform}.yaml
+        expected_input:
+          - CServerSideClient_vtable.{platform}.yaml
       - name: find-GetPlayerInfo
         optional_output:
           - GetPlayerInfo.{platform}.yaml
@@ -4077,6 +4087,18 @@ modules:
         category: vfunc
         alias:
           - CServerSideClientBase::Connect
+      - name: CServerSideClientBase
+        category: struct
+      - name: CServerSideClientBase_m_nClientSlot
+        category: structmember
+        struct: CServerSideClientBase
+        member: m_nClientSlot
+        alias:
+          - CServerSideClientBase::m_nClientSlot
+      - name: CServerSideClient_ProcessRespondCvarValue
+        category: vfunc
+        alias:
+          - CServerSideClient::ProcessRespondCvarValue
       - name: CServerSideClientBase_GetPlayerInfo
         category: vfunc
         alias:
@@ -6687,6 +6709,38 @@ modules:
       - name: find-CCSPlayer_MovementServices_CheckVelocity
         expected_output:
           - CCSPlayer_MovementServices_CheckVelocity.{platform}.yaml
+      - name: find-CCSPlayer_MovementServices_SetupMove
+        expected_output:
+          - CCSPlayer_MovementServices_SetupMove.{platform}.yaml
+        expected_input:
+          - CCSPlayer_MovementServices_vtable.{platform}.yaml
+      - name: find-CCSPlayer_MovementServices_Duck
+        expected_output:
+          - CCSPlayer_MovementServices_Duck.{platform}.yaml
+      - name: find-CCSPlayer_MovementServices_LadderMove
+        expected_output:
+          - CCSPlayer_MovementServices_LadderMove.{platform}.yaml
+      - name: find-CCSPlayer_MovementServices_OnJumpLegacy
+        expected_output:
+          - CCSPlayer_MovementServices_OnJumpLegacy.{platform}.yaml
+      - name: find-CCSPlayer_MovementServices_OnJumpModern
+        expected_output:
+          - CCSPlayer_MovementServices_OnJumpModern.{platform}.yaml
+      - name: find-CCSPlayer_MovementServices_AirMove
+        expected_output:
+          - CCSPlayer_MovementServices_AirMove.{platform}.yaml
+      - name: find-CCSPlayer_MovementServices_AirAccelerate
+        expected_output:
+          - CCSPlayer_MovementServices_AirAccelerate.{platform}.yaml
+      - name: find-CCSPlayer_MovementServices_TryPlayerMove
+        expected_output:
+          - CCSPlayer_MovementServices_TryPlayerMove.{platform}.yaml
+      - name: find-CCSPlayer_MovementServices_CategorizePosition
+        expected_output:
+          - CCSPlayer_MovementServices_CategorizePosition.{platform}.yaml
+      - name: find-CBasePlayerController_OnSimulateUserCommands
+        expected_output:
+          - CBasePlayerController_OnSimulateUserCommands.{platform}.yaml
       - name: find-CCSPlayer_MovementServices_WalkMove
         expected_output:
           - CCSPlayer_MovementServices_WalkMove.{platform}.yaml
@@ -9859,6 +9913,46 @@ modules:
         alias:
           - CCSPlayer_MovementServices::CheckMovingGround
           - CheckMovingGround
+      - name: CCSPlayer_MovementServices_SetupMove
+        category: vfunc
+        alias:
+          - CCSPlayer_MovementServices::SetupMove
+      - name: CCSPlayer_MovementServices_Duck
+        category: func
+        alias:
+          - CCSPlayer_MovementServices::Duck
+      - name: CCSPlayer_MovementServices_LadderMove
+        category: func
+        alias:
+          - CCSPlayer_MovementServices::LadderMove
+      - name: CCSPlayer_MovementServices_OnJumpLegacy
+        category: func
+        alias:
+          - CCSPlayer_MovementServices::OnJumpLegacy
+      - name: CCSPlayer_MovementServices_OnJumpModern
+        category: func
+        alias:
+          - CCSPlayer_MovementServices::OnJumpModern
+      - name: CCSPlayer_MovementServices_AirMove
+        category: func
+        alias:
+          - CCSPlayer_MovementServices::AirMove
+      - name: CCSPlayer_MovementServices_AirAccelerate
+        category: func
+        alias:
+          - CCSPlayer_MovementServices::AirAccelerate
+      - name: CCSPlayer_MovementServices_TryPlayerMove
+        category: func
+        alias:
+          - CCSPlayer_MovementServices::TryPlayerMove
+      - name: CCSPlayer_MovementServices_CategorizePosition
+        category: func
+        alias:
+          - CCSPlayer_MovementServices::CategorizePosition
+      - name: CBasePlayerController_OnSimulateUserCommands
+        category: func
+        alias:
+          - CBasePlayerController::OnSimulateUserCommands
       - name: CCSPlayer_MovementServices_WalkMove
         category: func
         alias:

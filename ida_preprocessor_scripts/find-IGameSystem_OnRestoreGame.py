@@ -6,7 +6,10 @@ from ida_preprocessor_scripts._igamesystem_dispatch_common import (
 )
 
 
-SOURCE_YAML_STEM = "CSource2Server_OnStreamEntitiesFromFileCompleted"
+# 14182 turned CSource2Server::OnStreamEntitiesFromFileCompleted into a nullsub, so the
+# IGameSystem::OnRestoreGame broadcast is anchored on CEntity2SaveRestore::EndRestoreEntities,
+# which dispatches exactly one event (vtable idx 51) on both platforms.
+SOURCE_YAML_STEM = "CEntity2SaveRestore_EndRestoreEntities"
 TARGET_SPECS = [
     {"target_name": "IGameSystem_OnRestoreGame", "rename_to": "GameSystem_OnRestoreGame"},
 ]

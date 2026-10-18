@@ -81,6 +81,13 @@ flowchart TD
 - Validation: `uv run ida_analyze_bin.py -gamever <gamever> -oldgamever none -modules=networksystem -debug -skip_pp -skill=find-CNetworkSystem_CloseSocket-inlined` must report `Failed: 0` and write `CNetworkSystem_CloseSocket.{platform}.yaml` carrying `vtable_name` / `vfunc_offset` / `vfunc_index` and **no** `func_sig`.
 - Scope: vtable-member recovery across an inverted inline boundary; the follow-the-caller plus string-less-discriminator pattern generalizes to other thin guard wrappers whose de-inlined body owns the strings.
 
+## Lesson: re-anchor an override on its BaseClass chain call when the helper gets inlined (#1065)
+- Trigger signal: an `xref_funcs` + `func_vtable_relations` skill logs `common_funcs before excludes = []` (the intersection is empty before any exclude runs) while the named helper's own `func_sig` still matches. Real case: `find-CPhysicsEntitySolver_PhysEnableEntityCollisions` on `server.dll` 14182+.
+- Root cause / constraint: the helper named in `xref_funcs` was inlined into the target vfunc, so the target no longer *calls* it. Its remaining callers are all outside the vtable, so the "callers ∩ vtable entries" intersection is structurally empty; the vtable slot itself did not move (still index 14, offset `0x70`).
+- Correct practice: identify what the vfunc actually is, not what it used to call. `CPhysicsEntitySolver` vtable[14] is the `UpdateOnRemove` override (same slot as `CBaseEntity_UpdateOnRemove`): it re-enables the entity pair collisions inline, then tail-calls `BaseClass::UpdateOnRemove`. Anchor on that base-chain call (`xref_funcs: ["CBaseEntity_UpdateOnRemove"]`) and swap the helper for the base vfunc YAML in `expected_input`. This survives inlining, body growth (`0xd9` -> `0x1d6`) and signature churn, and fails closed if the override stops chaining to its base. Do not re-hang the symbol on the slot by heuristics alone; confirm it with the decompiled body first.
+- Validation: a read-only probe must show exactly one vtable entry calling the base vfunc, and none calling the old helper (checked on 14183/14184/14186 windows, all resolving index 14). Then `uv run ida_analyze_bin.py -gamever <gamever> -modules=server -platform windows -oldgamever none -skill find-CPhysicsEntitySolver_PhysEnableEntityCollisions -debug` must report `Failed: 0`.
+- Scope: any derived-class override located as "caller of a named free helper ∩ class vtable". Before relying on it, check that no other entry in that vtable also calls the base vfunc (sibling overrides chaining to other base methods do not collide, but a second override chaining to the same base would).
+
 ## Callers
 - `_try_preprocess_func_without_llm` in `ida_analyze_util.py`
 - `preprocess_common_skill` in `ida_analyze_util.py`
