@@ -15622,6 +15622,20 @@ modules:
           - CCvar_LockConVarValueInitialisation.{platform}.yaml
         prerequisite:
           - find-CCvar_LockConVarValueInitialisation-noinline
+      - name: find-ConVarRefAbstract_SetValueInternal
+        expected_output:
+          - ConVarRefAbstract_SetValueInternal.{platform}.yaml
+      - name: find-ICvar_CallChangeCallback
+        expected_output:
+          - ICvar_CallChangeCallback.{platform}.yaml
+        expected_input:
+          - ConVarRefAbstract_SetValueInternal.{platform}.yaml
+      - name: find-CCvar_CallChangeCallback
+        expected_output:
+          - CCvar_CallChangeCallback.{platform}.yaml
+        expected_input:
+          - ICvar_CallChangeCallback.{platform}.yaml
+          - CCvar_vtable.{platform}.yaml
       - name: find-CKeyValuesSystem_vtable
         expected_output:
           - CKeyValuesSystem_vtable.{platform}.yaml
@@ -15701,6 +15715,18 @@ modules:
         category: vfunc
         alias:
           - CCvar::LockConVarValueInitialisation
+      - name: ConVarRefAbstract_SetValueInternal
+        category: func
+        alias:
+          - ConVarRefAbstract::SetValueInternal
+      - name: ICvar_CallChangeCallback
+        category: vfunc
+        alias:
+          - ICvar::CallChangeCallback
+      - name: CCvar_CallChangeCallback
+        category: vfunc
+        alias:
+          - CCvar::CallChangeCallback
       - name: CKeyValuesSystem_vtable
         category: vtable
       - name: CKeyValuesSystem_dtor

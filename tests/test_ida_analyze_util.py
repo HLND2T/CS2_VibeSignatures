@@ -13853,6 +13853,8 @@ found_struct_offset: []
             "found_struct_offset": [],
         }
 
+        custom_loader = AsyncMock(return_value=[target_detail_payload])
+
         with tempfile.TemporaryDirectory() as temp_dir:
             preprocessor_dir = Path(temp_dir) / "ida_preprocessor_scripts"
             (preprocessor_dir / "prompt").mkdir(parents=True, exist_ok=True)
@@ -13960,9 +13962,12 @@ found_struct_offset: []
                         "model": "gpt-4.1-mini",
                         "api_key": "test-api-key",
                     },
+                    llm_target_details_loader=custom_loader,
                     debug=True,
                 )
 
+        custom_loader.assert_awaited_once()
+        self.assertEqual(custom_loader.await_args.args[1], ["Bar"])
         self.assertTrue(result)
         mock_preprocess_direct_func_sig.assert_awaited_once()
         self.assertTrue(mock_preprocess_direct_func_sig.await_args.kwargs["allow_func_sig_across_function_boundary"])
