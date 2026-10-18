@@ -1,29 +1,29 @@
 #!/usr/bin/env python3
-"""Find the integer ParmValue slot under the requested ICommandLine_float name."""
+"""Find the floating-point ParmValue slot used by VScript CommandLineFloat."""
 
 from ida_analyze_util import preprocess_common_skill
 
-TARGET_FUNCTION_NAMES = ["ICommandLine_float"]
+TARGET_FUNCTION_NAMES = ["ICommandLine_ParmValue_Float"]
 
 LLM_DECOMPILE = [
     {
-        "symbol_name": "ICommandLine_float",
+        "symbol_name": "ICommandLine_ParmValue_Float",
         "prompt_path": "prompt/call_llm_decompile.md",
         "reference_yaml_paths": [
-            "references/server/CGameConfiguration_ComputeMaxClients.windows.yaml",
+            "references/server/Script_CommandLineFloat.windows.yaml",
         ],
         "expected_result_sections": ["found_vcall"],
         "dependency_policy": {
-            "CGameConfiguration_ComputeMaxClients.windows.yaml": "required",
+            "Script_CommandLineFloat.windows.yaml": "required",
         },
     },
 ]
 
-FUNC_VTABLE_RELATIONS = [("ICommandLine_float", "ICommandLine")]
+FUNC_VTABLE_RELATIONS = [("ICommandLine_ParmValue_Float", "ICommandLine")]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     (
-        "ICommandLine_float",
+        "ICommandLine_ParmValue_Float",
         ["func_name", "vfunc_sig", "vfunc_offset", "vfunc_index", "vtable_name"],
     ),
 ]
@@ -40,7 +40,7 @@ async def preprocess_skill(
     llm_config=None,
     debug=False,
 ):
-    """Recover the slot used to read the integer max-player override."""
+    """Recover the float accessor from the named VScript callback."""
     return await preprocess_common_skill(
         session=session,
         expected_outputs=expected_outputs,

@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-"""Resolve the Windows CCommandLine implementation of the inherited integer slot."""
+"""Resolve the Linux CCommandLine implementation of the inherited float slot."""
 
 from ida_analyze_util import preprocess_common_skill
 
 INHERIT_VFUNCS = [
-    ("CCommandLine_float", "CCommandLine", "../server/ICommandLine_float", True),
+    ("CCommandLine_ParmValue_Float", "CCommandLine", "../server/ICommandLine_ParmValue_Float", True),
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     (
-        "CCommandLine_float",
+        "CCommandLine_ParmValue_Float",
         [
             "func_name",
             "func_va",
@@ -34,7 +34,7 @@ async def preprocess_skill(
     image_base,
     debug=False,
 ):
-    """Inherit the interface slot discovered in server.dll."""
+    """Inherit the interface slot discovered in libserver.so."""
     return await preprocess_common_skill(
         session=session,
         expected_outputs=expected_outputs,

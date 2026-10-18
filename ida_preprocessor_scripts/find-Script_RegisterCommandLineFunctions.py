@@ -1,23 +1,22 @@
 #!/usr/bin/env python3
-"""Locate the Windows max-client computation used by the command-line finder."""
+"""Locate the VScript registration of the command-line accessor functions."""
 
 from ida_analyze_util import preprocess_common_skill
 
-TARGET_FUNCTION_NAMES = ["CGameConfiguration_ComputeMaxClients"]
+TARGET_FUNCTION_NAMES = ["Script_RegisterCommandLineFunctions"]
 
 FUNC_XREFS = [
     {
-        "func_name": "CGameConfiguration_ComputeMaxClients",
+        "func_name": "Script_RegisterCommandLineFunctions",
         "xref_strings": [
-            "GetPlayerLimits:  min maxplayers must be >= 1 (%i)",
-            "GetPlayerLimits:  max players limited to %i",
+            "FULLMATCH:CommandLineFloat(name) : returns the command line param as a float.",
         ],
     },
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     (
-        "CGameConfiguration_ComputeMaxClients",
+        "Script_RegisterCommandLineFunctions",
         ["func_name", "func_sig", "func_va", "func_rva", "func_size"],
     ),
 ]
@@ -33,7 +32,7 @@ async def preprocess_skill(
     image_base,
     debug=False,
 ):
-    """Find the predecessor from its player-limit validation messages."""
+    """Find the registration function from the float accessor's help text."""
     return await preprocess_common_skill(
         session=session,
         expected_outputs=expected_outputs,
