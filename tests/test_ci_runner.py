@@ -1,15 +1,130 @@
+from contextlib import redirect_stderr
+import io
 import json
 import os
 from pathlib import Path
 import shutil
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
 
 import ci_runner as runner
 import ci_cpp_validation as cpp_evidence
+import push_binsync_symbols
 from release_workflow_lib.errors import ReleaseWorkflowError
 from tests import test_ci_cpp_validation as evidence_support
+
+
+class TestConsumerIdaPreflight(unittest.TestCase):
+    def host_tool(self, root, name):
+        return str(root / "ida" / "bin" / name)
+
+    def test_consumer_checks_export_dependencies_with_selected_python_before_exporting_environment(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            python = self.host_tool(root, "python")
+            with (
+                patch.dict(os.environ, {}, clear=True),
+                patch.object(runner, "host_tool", side_effect=lambda name: self.host_tool(root, name)),
+                patch.object(runner, "command", return_value="9.3"),
+                patch.object(runner, "emit") as emit,
+                patch.object(
+                    push_binsync_symbols.subprocess,
+                    "run",
+                    return_value=subprocess.CompletedProcess([], 0, stdout="", stderr=""),
+                ) as probe,
+            ):
+                self.assertEqual(0, runner.main(["resolve-consumer-ida"]))
+                probe.assert_called_once()
+                self.assertEqual(python, probe.call_args.args[0][0])
+                self.assertEqual("-c", probe.call_args.args[0][1])
+                emit.assert_any_call({"IDA_PYTHON": python, "IDA_VERSION": "9.3"}, environment=True)
+                self.assertEqual(python, os.environ["IDA_PYTHON"])
+                self.assertEqual("9.3", os.environ["IDA_VERSION"])
+
+    def test_missing_dependency_reports_interpreter_and_module_without_exporting_environment(self):
+        for module in ("idapro", "binsync", "declib", "git"):
+            with self.subTest(module=module), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                python = self.host_tool(root, "python")
+                error = f"ModuleNotFoundError: No module named '{module}'"
+                stderr = io.StringIO()
+                with (
+                    patch.dict(
+                        os.environ, {"IDA_PYTHON": "previous-python", "IDA_VERSION": "previous-version"}, clear=True
+                    ),
+                    patch.object(runner, "host_tool", side_effect=lambda name: self.host_tool(root, name)),
+                    patch.object(runner, "command", return_value="9.3") as command,
+                    patch.object(runner, "emit") as emit,
+                    patch.object(
+                        push_binsync_symbols.subprocess,
+                        "run",
+                        return_value=subprocess.CompletedProcess([], 1, stdout="", stderr=error),
+                    ),
+                    redirect_stderr(stderr),
+                ):
+                    self.assertEqual(1, runner.main(["resolve-consumer-ida"]))
+                    self.assertIn(python, stderr.getvalue())
+                    self.assertIn(error, stderr.getvalue())
+                    command.assert_not_called()
+                    emit.assert_not_called()
+                    self.assertEqual("previous-python", os.environ["IDA_PYTHON"])
+                    self.assertEqual("previous-version", os.environ["IDA_VERSION"])
+
+    def test_probe_failure_without_diagnostics_still_reports_interpreter(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            stderr = io.StringIO()
+            with (
+                patch.object(runner, "host_tool", side_effect=lambda name: self.host_tool(root, name)),
+                patch.object(runner, "command", return_value="9.3") as command,
+                patch.object(runner, "emit") as emit,
+                patch.object(
+                    push_binsync_symbols.subprocess,
+                    "run",
+                    return_value=subprocess.CompletedProcess([], 1, stdout="", stderr=""),
+                ),
+                redirect_stderr(stderr),
+            ):
+                self.assertEqual(1, runner.main(["resolve-consumer-ida"]))
+                self.assertIn(self.host_tool(root, "python"), stderr.getvalue())
+                self.assertIn("without diagnostics", stderr.getvalue())
+                command.assert_not_called()
+                emit.assert_not_called()
+
+    def test_unlaunchable_interpreter_reports_path_and_reason(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            stderr = io.StringIO()
+            with (
+                patch.object(runner, "host_tool", side_effect=lambda name: self.host_tool(root, name)),
+                patch.object(runner, "command", return_value="9.3") as command,
+                patch.object(runner, "emit") as emit,
+                patch.object(push_binsync_symbols.subprocess, "run", side_effect=OSError("cannot launch interpreter")),
+                redirect_stderr(stderr),
+            ):
+                self.assertEqual(1, runner.main(["resolve-consumer-ida"]))
+                self.assertIn(self.host_tool(root, "python"), stderr.getvalue())
+                self.assertIn("cannot launch interpreter", stderr.getvalue())
+                command.assert_not_called()
+                emit.assert_not_called()
+
+    def test_warmup_resolution_does_not_require_binsync_dependencies(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            python = self.host_tool(root, "python")
+            with (
+                patch.dict(os.environ, {}, clear=True),
+                patch.object(runner, "host_tool", side_effect=lambda name: self.host_tool(root, name)) as host_tool,
+                patch.object(runner, "command", return_value="9.3"),
+                patch.object(runner, "emit"),
+                patch.object(push_binsync_symbols.subprocess, "run") as probe,
+            ):
+                self.assertEqual(0, runner.main(["resolve-ida"]))
+                probe.assert_not_called()
+                host_tool.assert_called_once_with("python")
+                self.assertEqual(python, os.environ["IDA_PYTHON"])
 
 
 class TestCiRunner(unittest.TestCase):

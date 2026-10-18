@@ -6295,9 +6295,10 @@ async def _probe_func_start_or_entry_candidate(session, code_addr, debug=False):
         return None
 
     py_code = (
-        "import ida_bytes, idaapi, idautils, idc, json\n"
+        "import ida_bytes, ida_ida, idaapi, idautils, idc, json\n"
         f"code_addr = {code_addr_int}\n"
         f"backtrack_limit = {UNDEFINED_FUNC_RECOVERY_BACKTRACK_LIMIT:#x}\n"
+        "pointer_size = 8 if ida_ida.inf_is_64bit() else 4\n"
         "result_obj = {'status': 'no_entry'}\n"
         "unresolved_ref_sources = set()\n"
         "func = idaapi.get_func(code_addr)\n"
@@ -6320,12 +6321,27 @@ async def _probe_func_start_or_entry_candidate(session, code_addr, debug=False):
         "        if not ida_bytes.is_code(flags):\n"
         "            continue\n"
         "        for xref in idautils.XrefsTo(probe_ea, 0):\n"
+        # ELF startup/teardown arrays prove an entry even when no caller has a function yet.
+        "            source_segment = idaapi.getseg(xref.frm)\n"
+        "            if source_segment and idaapi.get_segm_name(source_segment) in (\n"
+        "                '.preinit_array', '.init_array', '.fini_array'\n"
+        "            ):\n"
+        "                if (xref.frm - source_segment.start_ea) % pointer_size == 0 and (\n"
+        "                    xref.frm + pointer_size <= source_segment.end_ea\n"
+        "                ):\n"
+        "                    pointer = (ida_bytes.get_qword(xref.frm) if pointer_size == 8\n"
+        "                               else ida_bytes.get_dword(xref.frm))\n"
+        "                    if pointer == probe_ea:\n"
+        "                        candidates.add(probe_ea)\n"
+        "                continue\n"
         "            mnem = idc.print_insn_mnem(xref.frm).lower()\n"
         "            if mnem not in ('call', 'jmp', 'lea'):\n"
         "                continue\n"
-        "            operand_targets = [\n"
-        "                idc.get_operand_value(xref.frm, idx) for idx in range(3)\n"
-        "            ]\n"
+        # py_eval separates globals from persisted locals. On Python 3.11 a
+        # comprehension would read a stale global xref instead of this loop's xref.
+        "            operand_targets = []\n"
+        "            for operand_index in range(3):\n"
+        "                operand_targets.append(idc.get_operand_value(xref.frm, operand_index))\n"
         "            if probe_ea not in operand_targets:\n"
         "                continue\n"
         "            ref_func = idaapi.get_func(xref.frm)\n"
@@ -8327,6 +8343,7 @@ async def preprocess_common_skill(
     debug=False,
     canonical_vtable_symbols=None,
     llm_result_validator=None,
+    llm_target_details_loader=None,
 ):
     """Reusable preprocess_skill implementation for func/vfunc, gv, patch, struct-member, vtable, inherit-vfunc, func-xref, and vtable-relation targets.
 
@@ -8345,6 +8362,9 @@ async def preprocess_common_skill(
       deterministic symbols emitted in generated YAML.
     - ``llm_result_validator``: optional synchronous finder validator returning
       error strings for a parsed LLM result. Errors share the LLM retry budget.
+    - ``llm_target_details_loader``: optional async finder loader with the same
+      arguments as the default target-detail loader, for inlined and de-inlined
+      call chains.
     - ``inherit_vfuncs``: inherited virtual function targets resolved by
       base-class vfunc_index + vtable lookup via
       ``preprocess_index_based_vfunc_via_mcp``.  Each element is a tuple of
@@ -9047,7 +9067,8 @@ async def preprocess_common_skill(
             alias_lookup = (llm_config or {}).get("symbol_aliases")
             if alias_lookup:
                 target_kwargs["alias_lookup"] = alias_lookup
-            llm_target_details = await _load_llm_decompile_target_details_via_mcp(
+            target_details_loader = llm_target_details_loader or _load_llm_decompile_target_details_via_mcp
+            llm_target_details = await target_details_loader(
                 session,
                 target_func_names,
                 **target_kwargs,
