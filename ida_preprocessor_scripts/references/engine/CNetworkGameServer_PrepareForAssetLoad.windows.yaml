@@ -142,10 +142,10 @@ disasm_code: |-
   .text:000000018009FE35                 movss   xmm2, cs:dword_180591260
   .text:000000018009FE3D                 mov     edx, 0FAF5C2A0h
   .text:000000018009FE42                 mov     rcx, [rax]
-  .text:000000018009FE45                 mov     r8, [rcx+48h] ; 0x48 = ICommandLine_ParmValue_Int (float ParmValue, token 4210410144, default -1.0)
+  .text:000000018009FE45                 mov     r8, [rcx+48h] ; 0x48 = ICommandLine_ParmValue_Float (float ParmValue, token 4210410144, default -1.0)
   .text:000000018009FE49                 mov     rcx, rax
-  .text:000000018009FE4C                 ; 0x48 = 72LL = ICommandLine_ParmValue_Int
-  .text:000000018009FE4C                 call    r8; 0x48 = 72LL = ICommandLine_ParmValue_Int
+  .text:000000018009FE4C                 ; 0x48 = 72LL = ICommandLine_ParmValue_Float
+  .text:000000018009FE4C                 call    r8; 0x48 = 72LL = ICommandLine_ParmValue_Float
   .text:000000018009FE4F                 ucomiss xmm0, cs:dword_180591260
   .text:000000018009FE56                 mov     r14d, 1
   .text:000000018009FE5C                 jp      short loc_18009FE60
@@ -327,7 +327,7 @@ procedure: |-
     }
     *(_DWORD *)(a1 + 68) = 65;
     v10 = CommandLine(v7);
-    v11 = (*(float (__fastcall **)(__int64, __int64))(*(_QWORD *)v10 + 72LL))(v10, 4210410144LL);// 0x48 = 72LL = ICommandLine_ParmValue_Int
+    v11 = (*(float (__fastcall **)(__int64, __int64))(*(_QWORD *)v10 + 72LL))(v10, 4210410144LL);// 0x48 = 72LL = ICommandLine_ParmValue_Float
     if ( v11 != -1.0 )
     {
       v12 = (int)(float)((float)(v11 * 64.0) + 0.5) + 1;

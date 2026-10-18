@@ -1530,11 +1530,6 @@ modules:
           - CNetworkGameServer_PrepareForAssetLoad.{platform}.yaml
         expected_input:
           - CNetworkGameServer_vtable.{platform}.yaml
-      - name: find-ICommandLine_ParmValue_Int
-        expected_output:
-          - ICommandLine_ParmValue_Int.{platform}.yaml
-        expected_input:
-          - CNetworkGameServer_PrepareForAssetLoad.{platform}.yaml
       - name: find-CNetworkGameServerBase_IsSaveRestoreAllowed
         expected_output:
           - CNetworkGameServerBase_IsSaveRestoreAllowed.{platform}.yaml
@@ -3621,10 +3616,6 @@ modules:
         category: vfunc
         alias:
           - CNetworkGameServer::PrepareForAssetLoad
-      - name: ICommandLine_ParmValue_Int
-        category: vfunc
-        alias:
-          - ICommandLine::ParmValue_Int
       - name: CNetworkGameServerBase_IsSaveRestoreAllowed
         category: vfunc
         alias:
@@ -7655,6 +7646,36 @@ modules:
     path_windows: game/csgo/bin/win64/server.dll
     path_linux: game/csgo/bin/linuxsteamrt64/libserver.so
     skills:
+      - name: find-Script_RegisterCommandLineFunctions
+        expected_output:
+          - Script_RegisterCommandLineFunctions.{platform}.yaml
+      - name: find-Script_CommandLineFloat
+        expected_output:
+          - Script_CommandLineFloat.{platform}.yaml
+        expected_input:
+          - Script_RegisterCommandLineFunctions.{platform}.yaml
+      - name: find-Script_CommandLineInt
+        expected_output:
+          - Script_CommandLineInt.{platform}.yaml
+        expected_input:
+          - Script_RegisterCommandLineFunctions.{platform}.yaml
+      - name: find-ICommandLine_ParmValue_Int
+        expected_output:
+          - ICommandLine_ParmValue_Int.{platform}.yaml
+        expected_input:
+          - Script_CommandLineInt.{platform}.yaml
+      - name: find-ICommandLine_ParmValue_Float-windows
+        platform: windows
+        expected_output:
+          - ICommandLine_ParmValue_Float.{platform}.yaml
+        expected_input:
+          - Script_CommandLineFloat.{platform}.yaml
+      - name: find-ICommandLine_ParmValue_Float-linux
+        platform: linux
+        expected_output:
+          - ICommandLine_ParmValue_Float.{platform}.yaml
+        expected_input:
+          - Script_CommandLineFloat.{platform}.yaml
       - name: find-FilterWorkshopCommands
         expected_output:
           - FilterWorkshopCommands.{platform}.yaml
@@ -11104,6 +11125,18 @@ modules:
         prerequisite:
           - find-CGameConfiguration_ComputeMaxClients-linux
     symbols:
+      - name: Script_RegisterCommandLineFunctions
+        category: func
+      - name: Script_CommandLineFloat
+        category: func
+      - name: Script_CommandLineInt
+        category: func
+      - name: ICommandLine_ParmValue_Int
+        category: vfunc
+        alias: [ICommandLine::ParmValue_Int]
+      - name: ICommandLine_ParmValue_Float
+        category: vfunc
+        alias: [ICommandLine::ParmValue_Float]
       - name: FilterWorkshopCommands
         category: func
       - name: ICommandLine_HasParmUnrestricted
@@ -15433,6 +15466,20 @@ modules:
       - name: find-CCommandLine_vtable
         expected_output:
           - CCommandLine_vtable.{platform}.yaml
+      - name: find-CCommandLine_ParmValue_Float-windows
+        platform: windows
+        expected_output:
+          - CCommandLine_ParmValue_Float.{platform}.yaml
+        expected_input:
+          - CCommandLine_vtable.{platform}.yaml
+          - ../server/ICommandLine_ParmValue_Float.{platform}.yaml
+      - name: find-CCommandLine_ParmValue_Float-linux
+        platform: linux
+        expected_output:
+          - CCommandLine_ParmValue_Float.{platform}.yaml
+        expected_input:
+          - CCommandLine_vtable.{platform}.yaml
+          - ../server/ICommandLine_ParmValue_Float.{platform}.yaml
       - name: find-CCommandLine_HasParmUnrestricted
         expected_output:
           - CCommandLine_HasParmUnrestricted.{platform}.yaml
@@ -15455,7 +15502,7 @@ modules:
         expected_output:
           - CCommandLine_ParmValue_Int.{platform}.yaml
         expected_input:
-          - ../engine/ICommandLine_ParmValue_Int.{platform}.yaml
+          - ../server/ICommandLine_ParmValue_Int.{platform}.yaml
           - CCommandLine_vtable.{platform}.yaml
       - name: find-CCommandLine_CreateCmdLinePrependAppName
         expected_output:
@@ -15493,6 +15540,9 @@ modules:
     symbols:
       - name: CCommandLine_vtable
         category: vtable
+      - name: CCommandLine_ParmValue_Float
+        category: vfunc
+        alias: [CCommandLine::ParmValue_Float]
       - name: CCommandLine_HasParmUnrestricted
         category: vfunc
         alias:
@@ -16057,6 +16107,7 @@ cpp_tests:
       - Xclang
       - fdump-vtable-layouts
     reference_modules:
+      - server  # ICommandLine_ParmValue_Float
       - tier0  # bin_artifacts/{gamever}/tier0/CCommandLine_*.{platform}.yaml
   - name: IEngineServiceMgr_MSVC
     symbol: IEngineServiceMgr
@@ -16492,6 +16543,7 @@ cpp_tests:
       - Xclang
       - fdump-vtable-layouts
     reference_modules:
+      - server  # ICommandLine_ParmValue_Float
       - tier0  # bin_artifacts/{gamever}/tier0/CCommandLine_*.{platform}.yaml
   - name: IEngineServiceMgr_GCC
     symbol: IEngineServiceMgr

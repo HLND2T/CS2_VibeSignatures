@@ -1,56 +1,37 @@
-import importlib.util
-import json
+import importlib
 import unittest
-from pathlib import Path
-from unittest.mock import AsyncMock, patch
+
+from tests.test_script_desc_internal_preprocessor import _run_script_desc_py_eval
 
 
-spec = importlib.util.spec_from_file_location(
-    "parmvalue_int_finder",
-    Path(__file__).resolve().parents[1] / "ida_preprocessor_scripts/find-ICommandLine_ParmValue_Int.py",
-)
-finder = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(finder)
+class TestCommandLineOverloadCallbacks(unittest.TestCase):
+    def collect(self, script_name):
+        return _run_script_desc_py_eval(
+            source_func_va=0x1000,
+            funcs={
+                0x1000: (0x1000, 0x1100),
+                0x5000: (0x5000, 0x5050),
+                0x6000: (0x6000, 0x6060),
+            },
+            strings={},
+            instructions={},
+            names={"IntegerCallback": 0x5000, "FloatCallback": 0x6000},
+            decompiled_lines=[
+                '*(_QWORD *)(v1 + 8) = "CommandLineInt";',
+                "*(_QWORD *)(v1 + 64) = IntegerCallback;",
+                '*(_QWORD *)(v2 + 8) = "CommandLineFloat";',
+                "*(_QWORD *)(v2 + 64) = FloatCallback;",
+            ],
+            script_names=[script_name],
+        )["entries"]
 
+    def test_registered_overloads_select_distinct_callbacks(self):
+        for suffix, expected_address in [("Int", "0x5000"), ("Float", "0x6000")]:
+            with self.subTest(overload=suffix):
+                finder = importlib.import_module(f"ida_preprocessor_scripts.find-Script_CommandLine{suffix}")
+                entries = self.collect(finder.TARGET_SCRIPT_FUNCTIONS[0]["script_name"])
+                self.assertEqual(1, len(entries))
+                self.assertEqual(expected_address, entries[0]["func_va"])
 
-def detail(address, procedure):
-    return {"func_va": address, "procedure": procedure, "disasm_code": "call [rax+50h]"}
-
-
-class TestParmValue_IntChain(unittest.IsolatedAsyncioTestCase):
-    async def test_inline_owner_does_not_walk_unrelated_callees(self):
-        root = detail("0x1000", "float value = call(commandline, 4210410144, -1.0)")
-        session = AsyncMock()
-        with patch.object(finder, "_load_llm_decompile_target_details_via_mcp", AsyncMock(return_value=[root])):
-            self.assertEqual(await finder.load_target_details(session, ["root"]), [root])
-        session.call_tool.assert_not_awaited()
-
-    async def test_deinlined_owner_is_exported_for_llm_instruction_validation(self):
-        root = detail("0x1000", "return helper(this)")
-        helper = detail("0x2000", "float value = call(commandline, 4210410144, -1.0)")
-        session = AsyncMock()
-        session.call_tool.return_value = {"result": json.dumps({"addresses": ["0x2000"], "overflow": False})}
-        with (
-            patch.object(finder, "_load_llm_decompile_target_details_via_mcp", AsyncMock(return_value=[root])),
-            patch.object(finder, "parse_mcp_result", side_effect=lambda result: result),
-            patch.object(finder, "_export_function_detail_via_mcp", AsyncMock(return_value=helper)),
-        ):
-            self.assertEqual(await finder.load_target_details(session, ["root"]), [helper])
-
-    async def test_ambiguous_helper_owners_fail_closed(self):
-        helpers = [detail("0x2000", "float 4210410144"), detail("0x3000", "float 4210410144")]
-        self.assertEqual(finder.select_anchor_details(helpers), [])
-        self.assertEqual(finder.select_anchor_details([detail("0x4000", "float other_token")]), [])
-
-    async def test_truncated_call_graph_fails_closed(self):
-        session = AsyncMock()
-        session.call_tool.return_value = {"result": json.dumps({"addresses": [], "overflow": True})}
-        with (
-            patch.object(
-                finder,
-                "_load_llm_decompile_target_details_via_mcp",
-                AsyncMock(return_value=[detail("0x1000", "helper(this)")]),
-            ),
-            patch.object(finder, "parse_mcp_result", side_effect=lambda result: result),
-        ):
-            self.assertEqual(await finder.load_target_details(session, ["root"]), [])
+    def test_missing_callback_does_not_select_another_overload(self):
+        self.assertEqual([], self.collect("CommandLineMissing"))
