@@ -43,7 +43,7 @@ disasm_code: |-
   .text:0000000180086972                 mov     [rbp+90h+arg_18], r12
   .text:0000000180086979                 lea     rcx, [rbp+90h+arg_18]
   .text:0000000180086980                 call    cs:?Set@CUtlString@@QEAAXPEBD@Z; CUtlString::Set(char const *)
-  .text:0000000180086986                 mov     rcx, cs:g_pNetworkServerService
+  .text:0000000180086986                 mov     rcx, cs:qword_180696A68
   .text:000000018008698D                 mov     rax, [rcx]
   .text:0000000180086990                 call    qword ptr [rax+148h]
   .text:0000000180086996                 mov     rcx, [r13+1C0h]
@@ -54,7 +54,7 @@ disasm_code: |-
   .text:00000001800869AB                 lea     rdx, [rax+30h]
   .text:00000001800869AF                 cmovz   rdx, r12
   .text:00000001800869B3                 call    sub_180077F90
-  .text:00000001800869B8                 mov     rcx, cs:g_pFlattenedSerializers
+  .text:00000001800869B8                 mov     rcx, cs:qword_180696968
   .text:00000001800869BF                 xor     edx, edx
   .text:00000001800869C1                 mov     rax, [rcx]
   .text:00000001800869C4                 call    qword ptr [rax+120h]
@@ -67,12 +67,12 @@ disasm_code: |-
   .text:00000001800869E4                 mov     [rbp+90h+var_EC], r12d
   .text:00000001800869E8                 mov     [rbp+90h+var_E8], 0FFFFFFFFh
   .text:00000001800869EF                 call    sub_180086690
-  .text:00000001800869F4                 mov     rcx, cs:g_pSource2Client
+  .text:00000001800869F4                 mov     rcx, cs:qword_1806969D8
   .text:00000001800869FB                 test    rcx, rcx
   .text:00000001800869FE                 jz      short loc_180086A28
   .text:0000000180086A00                 mov     rax, [rcx]
   .text:0000000180086A03                 call    qword ptr [rax+510h]
-  .text:0000000180086A09                 mov     rcx, cs:g_pSource2Client
+  .text:0000000180086A09                 mov     rcx, cs:qword_1806969D8
   .text:0000000180086A10                 mov     r15, rax
   .text:0000000180086A13                 test    rcx, rcx
   .text:0000000180086A16                 jz      short loc_180086A2B
@@ -113,7 +113,7 @@ disasm_code: |-
   .text:0000000180086AAA                 cmovnz  rax, rcx
   .text:0000000180086AAE                 lea     rcx, [rbp+90h+var_108]
   .text:0000000180086AB2                 mov     [rbp+90h+var_E0], rax
-  .text:0000000180086AB6                 call    sub_180099300
+  .text:0000000180086AB6                 call    sub_180099310
   .text:0000000180086ABB                 mov     edi, eax
   .text:0000000180086ABD                 cmp     eax, 0FFFFFFFFh
   .text:0000000180086AC0                 jnz     loc_180086B9D
@@ -143,7 +143,7 @@ disasm_code: |-
   .text:0000000180086B28                 mov     [rsp+190h+var_148], rdi
   .text:0000000180086B2D                 lea     rdx, [rsp+190h+var_148]
   .text:0000000180086B32                 lea     rcx, [rbp+90h+var_108]
-  .text:0000000180086B36                 call    sub_180099300
+  .text:0000000180086B36                 call    sub_180099310
   .text:0000000180086B3B                 mov     edi, eax
   .text:0000000180086B3D                 cmp     eax, 0FFFFFFFFh
   .text:0000000180086B40                 jz      loc_180086C76
@@ -178,7 +178,7 @@ disasm_code: |-
   .text:0000000180086BC5                 mov     r9, [rbx+8]
   .text:0000000180086BC9                 cmp     byte ptr [r9+30h], 0
   .text:0000000180086BCE                 jnz     loc_180086F35
-  .text:0000000180086BD4                 mov     rcx, cs:g_pFlattenedSerializers
+  .text:0000000180086BD4                 mov     rcx, cs:qword_180696968
   .text:0000000180086BDB                 lea     rdi, unk_180531D7F
   .text:0000000180086BE2                 add     r9, 18h
   .text:0000000180086BE6                 mov     [rsp+30h], sil
@@ -206,7 +206,7 @@ disasm_code: |-
   .text:0000000180086C41                 lea     rdx, [rsp+70h]
   .text:0000000180086C46                 mov     [rbp+90h+var_110], edi
   .text:0000000180086C49                 lea     rcx, [rbp+90h+var_68]
-  .text:0000000180086C4D                 call    sub_1800937C0
+  .text:0000000180086C4D                 call    sub_1800937D0
   .text:0000000180086C52                 cmp     eax, 0FFFFFFFFh
   .text:0000000180086C55                 jnz     loc_180086DDE
   .text:0000000180086C5B                 cmp     [rsp+70h], rdi
@@ -217,7 +217,7 @@ disasm_code: |-
   .text:0000000180086C76                 lea     rdi, unk_180531D7F
   .text:0000000180086C7D                 test    sil, sil
   .text:0000000180086C80                 jz      loc_180086D9B
-  .text:0000000180086C86                 mov     rcx, cs:g_pFlattenedSerializers
+  .text:0000000180086C86                 mov     rcx, cs:qword_180696968
   .text:0000000180086C8D                 lea     r9, [rsp+190h+var_140]
   .text:0000000180086C92                 xor     esi, esi
   .text:0000000180086C94                 lea     rdx, [rbp+90h+var_D0]
@@ -389,18 +389,18 @@ disasm_code: |-
   .text:0000000180086F65                 jmp     loc_180086A50
   .text:0000000180086F6A                 mov     edx, r14d
   .text:0000000180086F6D                 lea     rcx, aLinkclassesCla; "LinkClasses: class %d/%d not initialize"...
-  .text:0000000180086F74                 call    sub_180105700
+  .text:0000000180086F74                 call    sub_180105720
   .text:0000000180086F79                 xor     bl, bl
   .text:0000000180086F7B                 jmp     loc_180087002
   .text:0000000180086F80                 movzx   ebx, [rbp+90h+arg_8]
   .text:0000000180086F87                 mov     rdi, [rsp+190h+var_130]
-  .text:0000000180086F8C                 mov     rcx, cs:g_pFlattenedSerializers
+  .text:0000000180086F8C                 mov     rcx, cs:qword_180696968
   .text:0000000180086F93                 mov     rax, [rcx]
   .text:0000000180086F96                 call    qword ptr [rax+150h]
   .text:0000000180086F9C                 test    bl, bl
   .text:0000000180086F9E                 jz      short loc_180086FB0
   .text:0000000180086FA0                 lea     rcx, aLinkclassesUna_0; "LinkClasses: unable to match one or mor"...
-  .text:0000000180086FA7                 call    sub_180105700
+  .text:0000000180086FA7                 call    sub_180105720
   .text:0000000180086FAC                 xor     bl, bl
   .text:0000000180086FAE                 jmp     short loc_180087002
   .text:0000000180086FB0                 rdtsc
@@ -423,10 +423,10 @@ disasm_code: |-
   .text:0000000180086FFA                 call    cs:LoggingSystem_Log
   .text:0000000180087000                 mov     bl, 1
   .text:0000000180087002                 lea     rcx, [rbp+90h+var_108]
-  .text:0000000180087006                 call    sub_18008EC30
+  .text:0000000180087006                 call    sub_18008EC40
   .text:000000018008700B                 lea     rcx, [rbp+90h+var_100]
   .text:000000018008700F                 call    sub_180040C10
-  .text:0000000180087014                 mov     rcx, cs:g_pFlattenedSerializers
+  .text:0000000180087014                 mov     rcx, cs:qword_180696968
   .text:000000018008701B                 mov     rdx, [rcx]
   .text:000000018008701E                 call    qword ptr [rdx+128h]
   .text:0000000180087024                 lea     rcx, [rbp+90h+var_D0]
@@ -447,7 +447,7 @@ disasm_code: |-
   .text:000000018008707F                 pop     rbp
   .text:0000000180087080                 retn
 procedure: |-
-  __int64 __fastcall sub_1800868E0(__int64 a1)
+  __int64 __fastcall CNetworkGameClientBase_LinkClasses(__int64 a1)
   {
     __int64 v1; // r12
     __int64 *v3; // rcx
@@ -520,6 +520,7 @@ procedure: |-
     char v71; // [rsp+1B0h] [rbp+A8h]
     void *v72; // [rsp+1B8h] [rbp+B0h] BYREF
     const char *v73; // [rsp+1C0h] [rbp+B8h] BYREF
+
     v1 = 0;
     v55[1] = 0;
     v3 = off_18061F1A0;
@@ -534,14 +535,14 @@ procedure: |-
                          &unk_180531D7F);
     v73 = nullptr;
     CUtlString::Set((CUtlString *)&v73, v7);
-    v8 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)g_pNetworkServerService + 328LL))(g_pNetworkServerService);
+    v8 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)qword_180696A68 + 328LL))(qword_180696A68);
     if ( *(_QWORD *)(a1 + 448) )
       v8 = *(_QWORD *)(a1 + 448);
     v9 = v8 + 48;
     if ( !v8 )
       v9 = 0;
     sub_180077F90(v66, v9);
-    (*(void (__fastcall **)(__int64, _QWORD))(*(_QWORD *)g_pFlattenedSerializers + 288LL))(g_pFlattenedSerializers, 0);
+    (*(void (__fastcall **)(__int64, _QWORD))(*(_QWORD *)qword_180696968 + 288LL))(qword_180696968, 0);
     v59[0] = 0;
     v60 = 0;
     v61 = 0;
@@ -549,13 +550,13 @@ procedure: |-
     v63 = 0;
     v64 = -1;
     sub_180086690(a1, v59);
-    if ( g_pSource2Client )
+    if ( qword_1806969D8 )
     {
-      v10 = (__int64 (__fastcall ***)(_QWORD, void *))(*(__int64 (__fastcall **)(__int64))(*(_QWORD *)g_pSource2Client
-                                                                                         + 1296LL))(g_pSource2Client);
-      if ( g_pSource2Client )
+      v10 = (__int64 (__fastcall ***)(_QWORD, void *))(*(__int64 (__fastcall **)(__int64))(*(_QWORD *)qword_1806969D8
+                                                                                         + 1296LL))(qword_1806969D8);
+      if ( qword_1806969D8 )
       {
-        v51 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)g_pSource2Client + 1624LL))(g_pSource2Client);
+        v51 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)qword_1806969D8 + 1624LL))(qword_1806969D8);
         goto LABEL_14;
       }
     }
@@ -575,7 +576,7 @@ procedure: |-
       v13 = (const char **)(*(_QWORD *)(a1 + 376) + 16 * v1);
       if ( !*v13 || !**v13 )
       {
-        sub_180105700("LinkClasses: class %d/%d not initialized.\n", v12);
+        sub_180105720("LinkClasses: class %d/%d not initialized.\n", v12);
         v45 = 0;
         goto LABEL_105;
       }
@@ -588,7 +589,7 @@ procedure: |-
       if ( *v13 )
         v15 = *v13;
       v65 = v15;
-      v16 = sub_180099300(v59, &v65);
+      v16 = sub_180099310(v59, &v65);
       if ( v16 != -1 )
         goto LABEL_35;
       if ( v10 )
@@ -603,7 +604,7 @@ procedure: |-
           v52 = v72;
           if ( !v72 )
             v52 = &unk_180531D7F;
-          v16 = sub_180099300(v59, &v52);
+          v16 = sub_180099310(v59, &v52);
           if ( v16 != -1 )
           {
             if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_18091C43C, 1) )
@@ -636,8 +637,8 @@ procedure: |-
               v25 = (char *)&unk_180531D7F;
               if ( *v13 )
                 v25 = (char *)*v13;
-              v26 = (*(__int64 (__fastcall **)(__int64, _BYTE *, char *, const char *, __int64 (__fastcall ***)(_QWORD, void *), __int64, int))(*(_QWORD *)g_pFlattenedSerializers + 128LL))(
-                      g_pFlattenedSerializers,
+              v26 = (*(__int64 (__fastcall **)(__int64, _BYTE *, char *, const char *, __int64 (__fastcall ***)(_QWORD, void *), __int64, int))(*(_QWORD *)qword_180696968 + 128LL))(
+                      qword_180696968,
                       v66,
                       v25,
                       v24,
@@ -655,7 +656,7 @@ procedure: |-
               v56[0] = 0;
               CUtlString::Set((CUtlString *)v56, v28);
               v57 = 0;
-              v31 = sub_1800937C0(v67, v56);
+              v31 = sub_1800937D0(v67, v56);
               if ( v31 == -1 )
               {
                 if ( v56[0] )
@@ -728,8 +729,8 @@ procedure: |-
       v54 = 0;
       if ( *v13 )
         v32 = (char *)*v13;
-      if ( !(*(unsigned __int8 (__fastcall **)(__int64, _BYTE *, char *, __int64 *, __int64 (__fastcall ***)(_QWORD, void *), __int64))(*(_QWORD *)g_pFlattenedSerializers + 136LL))(
-              g_pFlattenedSerializers,
+      if ( !(*(unsigned __int8 (__fastcall **)(__int64, _BYTE *, char *, __int64 *, __int64 (__fastcall ***)(_QWORD, void *), __int64))(*(_QWORD *)qword_180696968 + 136LL))(
+              qword_180696968,
               v66,
               v32,
               &v53,
@@ -804,10 +805,10 @@ procedure: |-
     v11 = v71;
     v4 = v55[0];
   LABEL_100:
-    (*(void (__fastcall **)(__int64))(*(_QWORD *)g_pFlattenedSerializers + 336LL))(g_pFlattenedSerializers);
+    (*(void (__fastcall **)(__int64))(*(_QWORD *)qword_180696968 + 336LL))(qword_180696968);
     if ( v11 )
     {
-      sub_180105700("LinkClasses: unable to match one or more serializers\n", v46);
+      sub_180105720("LinkClasses: unable to match one or more serializers\n", v46);
       v45 = 0;
     }
     else
@@ -822,9 +823,9 @@ procedure: |-
       v45 = 1;
     }
   LABEL_105:
-    sub_18008EC30(v59);
+    sub_18008EC40(v59);
     sub_180040C10(&v60);
-    (*(void (__fastcall **)(__int64))(*(_QWORD *)g_pFlattenedSerializers + 296LL))(g_pFlattenedSerializers);
+    (*(void (__fastcall **)(__int64))(*(_QWORD *)qword_180696968 + 296LL))(qword_180696968);
     sub_180087090(v66);
     if ( v73 )
       CUtlString::FreeMemoryBlock((CUtlString *)&v73);
