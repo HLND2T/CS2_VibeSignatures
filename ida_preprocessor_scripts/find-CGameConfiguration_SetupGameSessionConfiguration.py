@@ -1,24 +1,28 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CGameConfiguration_ComputeMaxClients skill
-(deinline-fix chain, inlined path / Windows).
+"""Preprocess script for find-CGameConfiguration_SetupGameSessionConfiguration skill
+(inlined path / Windows).
 
-Resolves ``CGameConfiguration::ComputeMaxClients`` directly from the
-``"GetPlayerLimits:  min maxplayers must be >= 1 (%i)"`` string, which is *inlined*
-into the vfunc on ``server.dll``.  On ``libserver.so`` the body is de-inlined into
-``CGameConfiguration::GetPlayerLimits``, so this skill is scoped to ``platform:
-windows`` in ``configs/<GAMEVER>.yaml`` and the Linux side is handled by the
-``-deinlined-linux`` / ``-inlined-linux`` chain.
+Resolves the ``CGameConfiguration::SetupGameSessionConfiguration`` vfunc directly
+from the ``"GetPlayerLimits:  min maxplayers must be >= 1 (%i)"`` string.  On
+``server.dll`` the compiler inlines ``CGameConfiguration::ComputeMaxClients`` into
+this vfunc, so the string ends up inside ``SetupGameSessionConfiguration`` and the
+vtable intersection identifies it uniquely.
+
+On ``libserver.so`` the max-clients body stays de-inlined, so the same string
+selects the standalone non-virtual ``CGameConfiguration::ComputeMaxClients`` and
+``find-CGameConfiguration_SetupGameSessionConfiguration-linux`` recovers the vfunc
+as its caller.  This skill is therefore scoped to ``platform: windows``.
 """
 
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = [
-    "CGameConfiguration_ComputeMaxClients",
+    "CGameConfiguration_SetupGameSessionConfiguration",
 ]
 
 FUNC_XREFS = [
     {
-        "func_name": "CGameConfiguration_ComputeMaxClients",
+        "func_name": "CGameConfiguration_SetupGameSessionConfiguration",
         "xref_strings": [
             "GetPlayerLimits:  min maxplayers must be >= 1 (%i)",
         ],
@@ -34,13 +38,13 @@ FUNC_XREFS = [
 
 FUNC_VTABLE_RELATIONS = [
     # (func_name, vtable_class)
-    ("CGameConfiguration_ComputeMaxClients", "CGameConfiguration"),
+    ("CGameConfiguration_SetupGameSessionConfiguration", "CGameConfiguration"),
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
     (
-        "CGameConfiguration_ComputeMaxClients",
+        "CGameConfiguration_SetupGameSessionConfiguration",
         [
             "func_name",
             "func_va",
@@ -65,7 +69,7 @@ async def preprocess_skill(
     image_base,
     debug=False,
 ):
-    """Reuse previous gamever func_sig to locate target function(s) and write YAML."""
+    """Find CGameConfiguration::SetupGameSessionConfiguration with the max-clients body inlined."""
     return await preprocess_common_skill(
         session=session,
         expected_outputs=expected_outputs,

@@ -11051,36 +11051,24 @@ modules:
           - CGameConfiguration_InitGameSession.{platform}.yaml
         expected_input:
           - CGameConfiguration_vtable.{platform}.yaml
-      - name: find-CGameConfiguration_ComputeMaxClients
+      - name: find-CGameConfiguration_SetupGameSessionConfiguration
         platform: windows
         expected_output:
-          - CGameConfiguration_ComputeMaxClients.{platform}.yaml
+          - CGameConfiguration_SetupGameSessionConfiguration.{platform}.yaml
         expected_input:
           - CGameConfiguration_vtable.{platform}.yaml
-      - name: find-CGameConfiguration_GetPlayerLimits-linux
-        platform: linux
-        optional_output:
-          - CGameConfiguration_GetPlayerLimits.{platform}.yaml
-        skip_if_exists:
-          - CGameConfiguration_ComputeMaxClients.{platform}.yaml
-      - name: find-CGameConfiguration_ComputeMaxClients-deinlined-linux
-        platform: linux
-        optional_output:
-          - CGameConfiguration_ComputeMaxClients.{platform}.yaml
-        expected_input:
-          - CGameConfiguration_vtable.{platform}.yaml
-        prerequisite:
-          - find-CGameConfiguration_GetPlayerLimits-linux
-      - name: find-CGameConfiguration_ComputeMaxClients-inlined-linux
+      - name: find-CGameConfiguration_ComputeMaxClients-linux
         platform: linux
         expected_output:
           - CGameConfiguration_ComputeMaxClients.{platform}.yaml
+      - name: find-CGameConfiguration_SetupGameSessionConfiguration-linux
+        platform: linux
+        expected_output:
+          - CGameConfiguration_SetupGameSessionConfiguration.{platform}.yaml
         expected_input:
           - CGameConfiguration_vtable.{platform}.yaml
-        skip_if_exists:
-          - CGameConfiguration_ComputeMaxClients.{platform}.yaml
         prerequisite:
-          - find-CGameConfiguration_ComputeMaxClients-deinlined-linux
+          - find-CGameConfiguration_ComputeMaxClients-linux
     symbols:
       - name: CSource2Server_vtable
         category: vtable
@@ -14564,8 +14552,12 @@ modules:
         category: vfunc
         alias:
           - CGameConfiguration::InitGameSession
-      - name: CGameConfiguration_ComputeMaxClients
+      - name: CGameConfiguration_SetupGameSessionConfiguration
         category: vfunc
+        alias:
+          - CGameConfiguration::SetupGameSessionConfiguration
+      - name: CGameConfiguration_ComputeMaxClients
+        category: func
         alias:
           - CGameConfiguration::ComputeMaxClients
   - name: engine  # Execute skills for engine2.dll again after client.dll
