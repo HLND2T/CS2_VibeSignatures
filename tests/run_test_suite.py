@@ -75,6 +75,7 @@ UNIT_MODULES = frozenset(
         "test_commandline_hasparmunrestricted",
         "test_commandline_parmvalue_char",
         "test_commandline_parmvalue_int",
+        "test_cvar_enumeration_preprocessor",
         "test_copy_depot_bin",
         "test_ci_s3_cache",
         "test_ci_cpp_validation",

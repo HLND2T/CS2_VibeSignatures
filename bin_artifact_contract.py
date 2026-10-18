@@ -15,6 +15,7 @@ from pathlib import Path
 import yaml
 
 from binary_lock import BinaryLockError, load_binary_lock
+from gamever_baseline import gamever_order_key
 from gamesymbol_snapshot_lib.config import load_contract
 from gamesymbol_snapshot_lib.errors import SnapshotConfigError
 from gamesymbol_snapshot_lib.paths import ensure_real_tree, is_reparse_point, path_from_key
@@ -482,17 +483,45 @@ def validate_repository_artifact_contract(
     }
 
 
+def _latest_configured_gamever(repo_root: Path) -> str | None:
+    """Return the newest configured GAMEVER, or None when no config exists.
+
+    Non-standard spellings sort below every valid GAMEVER and fall back to a
+    plain string comparison so fixtures with tiny version names still resolve.
+    """
+    configured = [path.stem for path in (repo_root / "configs").glob("*.yaml")]
+    if not configured:
+        return None
+
+    def sort_key(gamever: str) -> tuple[bool, tuple[int, int], str]:
+        order = gamever_order_key(gamever)
+        return (order is not None, order or (0, 0), gamever)
+
+    return max(configured, key=sort_key)
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("-repo-root", default=".")
-    parser.add_argument("-gamever", action="append")
+    parser.add_argument(
+        "-gamever",
+        action="append",
+        help="GAMEVER to validate; repeatable. Defaults to the newest configured GAMEVER.",
+    )
     parser.add_argument("-artifactdir", default="bin_artifacts")
     parser.add_argument("-allow-untracked", action="store_true")
     args = parser.parse_args(argv)
+    game_versions = args.gamever
+    if game_versions is None:
+        latest = _latest_configured_gamever(Path(args.repo_root))
+        if latest is None:
+            print("Error: no configured GAMEVER found under configs/")
+            return 1
+        game_versions = [latest]
     try:
         result = validate_repository_artifact_contract(
             repo_root=args.repo_root,
-            game_versions=args.gamever,
+            game_versions=game_versions,
             artifact_root=args.artifactdir,
             require_tracked=not args.allow_untracked,
         )
