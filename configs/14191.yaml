@@ -11051,6 +11051,24 @@ modules:
           - CGameConfiguration_InitGameSession.{platform}.yaml
         expected_input:
           - CGameConfiguration_vtable.{platform}.yaml
+      - name: find-CGameConfiguration_SetupGameSessionConfiguration
+        platform: windows
+        expected_output:
+          - CGameConfiguration_SetupGameSessionConfiguration.{platform}.yaml
+        expected_input:
+          - CGameConfiguration_vtable.{platform}.yaml
+      - name: find-CGameConfiguration_ComputeMaxClients-linux
+        platform: linux
+        expected_output:
+          - CGameConfiguration_ComputeMaxClients.{platform}.yaml
+      - name: find-CGameConfiguration_SetupGameSessionConfiguration-linux
+        platform: linux
+        expected_output:
+          - CGameConfiguration_SetupGameSessionConfiguration.{platform}.yaml
+        expected_input:
+          - CGameConfiguration_vtable.{platform}.yaml
+        prerequisite:
+          - find-CGameConfiguration_ComputeMaxClients-linux
     symbols:
       - name: CSource2Server_vtable
         category: vtable
@@ -14534,6 +14552,14 @@ modules:
         category: vfunc
         alias:
           - CGameConfiguration::InitGameSession
+      - name: CGameConfiguration_SetupGameSessionConfiguration
+        category: vfunc
+        alias:
+          - CGameConfiguration::SetupGameSessionConfiguration
+      - name: CGameConfiguration_ComputeMaxClients
+        category: func
+        alias:
+          - CGameConfiguration::ComputeMaxClients
   - name: engine  # Execute skills for engine2.dll again after client.dll
     path_windows: game/bin/win64/engine2.dll
     path_linux: game/bin/linuxsteamrt64/libengine2.so
