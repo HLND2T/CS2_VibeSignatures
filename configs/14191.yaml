@@ -16763,3 +16763,62 @@ cpp_tests:
     # 0x59b450). The header models all 19 slots, so the size check applies.
     reference_modules:
       - engine  # bin_artifacts/{gamever}/engine/{INetworkStringTableContainer,CNetworkStringTableContainer}_*.{platform}.yaml
+  - name: ICvar_MSVC
+    symbol: ICvar
+    alias_symbols:
+      - CCvar
+    cpp: cpp_tests/icvar.cpp
+    headers:
+      - hl2sdk_cs2/public/icvar.h  # Used by the fix-cppheaders SKILL
+      - hl2sdk_cs2/public/appframework/IAppSystem.h  # Inherited virtual declarations
+    target: x86_64-pc-windows-msvc
+    include_directories:
+      - hl2sdk_cs2/game/shared
+      - hl2sdk_cs2/public
+      - hl2sdk_cs2/public/tier0
+      - hl2sdk_cs2/public/tier1
+      - hl2sdk_cs2/public/mathlib
+    defines:
+      - COMPILER_MSVC=1
+      - COMPILER_MSVC64=1
+      - _MSVC_STL_USE_ABORT_AS_DOOM_FUNCTION
+    additional_compiler_options:
+      - fms-extensions
+      - fms-compatibility
+      - Xclang
+      - fdump-vtable-layouts
+    # Layout is 0-10 IAppSystem, 11-45 the 35 methods ICvar declares. Neither
+    # interface declares a virtual destructor, so there is no dtor slot and
+    # the table is 46 entries (0x170), matching CCvar_vtable.windows.yaml.
+    reference_modules:
+      - tier0  # bin_artifacts/{gamever}/tier0/CCvar_*.{platform}.yaml
+  - name: ICvar_GCC
+    symbol: ICvar
+    alias_symbols:
+      - CCvar
+    # The Linux extractor records three trailing null slots after the real
+    # 46 entries (it continues past nulls on Linux), so CCvar_vtable.linux.yaml
+    # reports 49 entries (0x188) while the header models 46 (0x170). Every
+    # per-index reference still applies, so only the size check is relaxed.
+    allow_vtable_size_mismatch: true
+    cpp: cpp_tests/icvar.cpp
+    headers:
+      - hl2sdk_cs2/public/icvar.h  # Used by the fix-cppheaders SKILL
+      - hl2sdk_cs2/public/appframework/IAppSystem.h  # Inherited virtual declarations
+    target: x86_64-pc-linux-gnu
+    include_directories:
+      - hl2sdk_cs2/game/shared
+      - hl2sdk_cs2/public
+      - hl2sdk_cs2/public/tier0
+      - hl2sdk_cs2/public/tier1
+      - hl2sdk_cs2/public/mathlib
+    defines:
+      - COMPILER_GCC=1
+      - POSIX=1
+      - LINUX=1
+      - stricmp=strcasecmp
+    additional_compiler_options:
+      - Xclang
+      - fdump-vtable-layouts
+    reference_modules:
+      - tier0  # bin_artifacts/{gamever}/tier0/CCvar_*.{platform}.yaml
