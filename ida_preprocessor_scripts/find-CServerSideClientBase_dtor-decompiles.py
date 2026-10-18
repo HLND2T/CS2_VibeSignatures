@@ -5,6 +5,7 @@ from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = [
     "ISource2GameClients_ClientSetConVarUserInfoSet",
+    "ICvar_CopyUserInfoCvarDefaults",
 ]
 
 # Windows: the SetConVarUserInfo body (and with it the
@@ -43,6 +44,7 @@ LLM_DECOMPILE_LINUX = [
 ]
 
 FUNC_VTABLE_RELATIONS = [
+    ("ICvar_CopyUserInfoCvarDefaults", "ICvar"),
     # ISource2GameClients is abstract; this relation supplies vtable metadata only.
     ("ISource2GameClients_ClientSetConVarUserInfoSet", "ISource2GameClients"),
 ]
@@ -99,8 +101,19 @@ async def preprocess_skill(
     llm_config=None,
     debug=False,
 ):
-    """Resolve the ISource2GameClients ClientSetConVarUserInfoSet slot from the platform predecessor."""
+    """Resolve the client user-info and ICvar defaults dispatches from the platform predecessor."""
     llm_decompile = LLM_DECOMPILE_WINDOWS if platform == "windows" else LLM_DECOMPILE_LINUX
+    llm_decompile = list(llm_decompile)
+    predecessor = "CServerSideClientBase_dtor" if platform == "windows" else "CServerSideClientBase_SetConVarUserInfo"
+    llm_decompile.append(
+        {
+            "symbol_name": "ICvar_CopyUserInfoCvarDefaults",
+            "prompt_path": "prompt/call_llm_decompile.md",
+            "reference_yaml_paths": [f"references/engine/{predecessor}.{{platform}}.yaml"],
+            "expected_result_sections": ["found_vcall"],
+            "dependency_policy": {f"{predecessor}.{{platform}}.yaml": "required"},
+        }
+    )
     generate_yaml_desired_fields = (
         GENERATE_YAML_DESIRED_FIELDS_WINDOWS if platform == "windows" else GENERATE_YAML_DESIRED_FIELDS_LINUX
     )
@@ -115,6 +128,12 @@ async def preprocess_skill(
         func_vtable_relations=FUNC_VTABLE_RELATIONS,
         llm_decompile_specs=llm_decompile,
         llm_config=llm_config,
-        generate_yaml_desired_fields=generate_yaml_desired_fields,
+        generate_yaml_desired_fields=list(generate_yaml_desired_fields)
+        + [
+            (
+                "ICvar_CopyUserInfoCvarDefaults",
+                ["func_name", "vfunc_sig", "vfunc_offset", "vfunc_index", "vtable_name"],
+            ),
+        ],
         debug=debug,
     )

@@ -23,10 +23,11 @@ def completed(command, *, returncode=0, stdout="", stderr=""):
     return subprocess.CompletedProcess(command, returncode, stdout=stdout, stderr=stderr)
 
 
-def response(*, status=200, chunks=(), reason="OK"):
+def response(*, status=200, chunks=(), reason="OK", headers=None):
     result = MagicMock()
     result.status_code = status
     result.reason = reason
+    result.headers = dict(headers or {})
     result.iter_content.return_value = iter(chunks)
     result.__enter__.return_value = result
     result.__exit__.return_value = False
@@ -90,6 +91,91 @@ class TestInitGamebin(unittest.TestCase):
             with patch.object(init_gamebin.requests, "get", return_value=response(status=503, reason="Unavailable")):
                 with self.assertRaisesRegex(init_gamebin.InitGamebinError, "HTTP 503"):
                     init_gamebin.download_release_asset("https://example/archive", archive)
+
+    def test_github_token_prefers_environment_over_gh(self) -> None:
+        init_gamebin.github_token.cache_clear()
+        with patch.object(
+            init_gamebin,
+            "subprocess",
+            unittest_mock.MagicMock(**{"run.return_value": completed([], stdout="cli-token\n")}),
+        ) as fake:
+            with patch.dict(os.environ, {"GH_TOKEN": "  env-token  "}, clear=False):
+                self.assertEqual("env-token", init_gamebin.github_token())
+            fake.run.assert_not_called()
+
+    def test_github_token_falls_back_to_gh_when_environment_is_empty(self) -> None:
+        init_gamebin.github_token.cache_clear()
+        with patch.dict(os.environ, {"GH_TOKEN": "", "GITHUB_TOKEN": ""}, clear=False):
+            with patch.object(init_gamebin.shutil, "which", return_value="/usr/bin/gh"):
+                with patch.object(
+                    init_gamebin,
+                    "subprocess",
+                    unittest_mock.MagicMock(**{"run.return_value": completed([], stdout="cli-token\n")}),
+                ) as fake:
+                    self.assertEqual("cli-token", init_gamebin.github_token())
+        self.assertEqual(
+            ["gh", "auth", "token", "--hostname", "github.com"],
+            fake.run.call_args.args[0],
+        )
+
+    def test_github_token_is_none_without_environment_or_gh(self) -> None:
+        init_gamebin.github_token.cache_clear()
+        with patch.dict(os.environ, {"GH_TOKEN": "", "GITHUB_TOKEN": ""}, clear=False):
+            with patch.object(init_gamebin.shutil, "which", return_value=None):
+                self.assertIsNone(init_gamebin.github_token())
+        self.assertEqual({}, init_gamebin.github_request_headers())
+
+    def test_release_requests_use_the_resolved_token(self) -> None:
+        init_gamebin.github_token.cache_clear()
+        with patch.dict(os.environ, {"GH_TOKEN": "env-token"}, clear=False):
+            headers = init_gamebin.github_request_headers()
+            self.assertEqual({"Authorization": "Bearer env-token", "X-GitHub-Api-Version": "2022-11-28"}, headers)
+            init_gamebin.github_token.cache_clear()
+
+    def test_release_tag_lookup_sends_authentication_headers(self) -> None:
+        init_gamebin.github_token.cache_clear()
+        document = {"object": {"type": "commit", "sha": "b" * 40}}
+        with tempfile.TemporaryDirectory() as temp_dir:
+            archive = Path(temp_dir) / "gamebin.7z"
+            with patch.dict(os.environ, {"GH_TOKEN": "env-token"}, clear=False):
+                with patch.object(init_gamebin.requests, "get", return_value=response(chunks=[b"x"])) as get:
+                    init_gamebin.download_release_asset("https://example/archive", archive)
+                init_gamebin.github_token.cache_clear()
+            self.assertEqual(
+                {"Authorization": "Bearer env-token", "X-GitHub-Api-Version": "2022-11-28"},
+                get.call_args.kwargs["headers"],
+            )
+        init_gamebin.github_token.cache_clear()
+        with patch.dict(os.environ, {"GH_TOKEN": "env-token"}, clear=False):
+            with patch.object(init_gamebin.requests, "get", return_value=response(chunks=[])) as get:
+                get.return_value.json.return_value = document
+                self.assertEqual("b" * 40, init_gamebin.release_tag_target("14180"))
+            self.assertEqual(
+                {"Authorization": "Bearer env-token", "X-GitHub-Api-Version": "2022-11-28"},
+                get.call_args.kwargs["headers"],
+            )
+        init_gamebin.github_token.cache_clear()
+
+    def test_anonymous_quota_failure_reports_an_actionable_reason(self) -> None:
+        init_gamebin.github_token.cache_clear()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            archive = Path(temp_dir) / "gamebin.7z"
+            with patch.dict(os.environ, {"GH_TOKEN": "", "GITHUB_TOKEN": ""}, clear=False):
+                with patch.object(init_gamebin.shutil, "which", return_value=None):
+                    with patch.object(
+                        init_gamebin.requests,
+                        "get",
+                        return_value=response(status=403, reason="Forbidden", headers={"x-ratelimit-remaining": "0"}),
+                    ):
+                        with self.assertRaisesRegex(init_gamebin.InitGamebinError, r"GH_TOKEN|authenticate gh"):
+                            init_gamebin.download_release_asset("https://example/archive", archive)
+                    with patch.object(
+                        init_gamebin.requests,
+                        "get",
+                        return_value=response(status=403, reason="Forbidden"),
+                    ):
+                        with self.assertRaisesRegex(init_gamebin.InitGamebinError, "HTTP 403 Forbidden"):
+                            init_gamebin.release_tag_target("14180")
 
     def test_downloaded_gamebin_binds_manifest_checksums_and_tag(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
