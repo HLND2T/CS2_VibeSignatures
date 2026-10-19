@@ -3317,6 +3317,20 @@ modules:
           - CNetworkGameClientBase_DisconnectGame.{platform}.yaml
         expected_input:
           - CNetworkGameClientBase_vtable.{platform}.yaml
+      - name: find-ConCommandRef_Dispatch
+        optional_output:
+          - ConCommandRef_Dispatch.{platform}.yaml
+        expected_input:
+          - CServerSideClient_ExecuteStringCommand.{platform}.yaml
+      - name: find-ICvar_DispatchConCommand
+        expected_output:
+          - ICvar_DispatchConCommand.{platform}.yaml
+        expected_input:
+          - CServerSideClient_ExecuteStringCommand.{platform}.yaml
+        optional_input:
+          - ConCommandRef_Dispatch.{platform}.yaml
+        prerequisite:
+          - find-ConCommandRef_Dispatch
     symbols:
       - name: ICvar_CopyUserInfoCvarDefaults
         category: vfunc
@@ -5598,6 +5612,10 @@ modules:
         platform: windows
       - name: g_pInterfaceGlobals
         category: gv
+      - name: ConCommandRef_Dispatch
+        category: func
+      - name: ICvar_DispatchConCommand
+        category: vfunc
   - name: client
     path_windows: game/csgo/bin/win64/client.dll
     path_linux: game/csgo/bin/linuxsteamrt64/libclient.so
@@ -15712,6 +15730,12 @@ modules:
         expected_input:
           - ../server/ICvar_RemoveGlobalChangeCallback.{platform}.yaml
           - CCvar_vtable.{platform}.yaml
+      - name: find-CCvar_DispatchConCommand
+        expected_output:
+          - CCvar_DispatchConCommand.{platform}.yaml
+        expected_input:
+          - ../engine/ICvar_DispatchConCommand.{platform}.yaml
+          - CCvar_vtable.{platform}.yaml
     symbols:
       - name: CCommandLine_vtable
         category: vtable
@@ -15806,6 +15830,8 @@ modules:
         category: vfunc
         alias:
           - CCvar::RemoveGlobalChangeCallback
+      - name: CCvar_DispatchConCommand
+        category: vfunc
   - name: schemasystem
     path_windows: game/bin/win64/schemasystem.dll
     path_linux: game/bin/linuxsteamrt64/libschemasystem.so
