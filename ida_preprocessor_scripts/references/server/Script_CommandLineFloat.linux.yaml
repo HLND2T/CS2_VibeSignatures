@@ -1,0 +1,234 @@
+func_name: Script_CommandLineFloat
+func_va: '0xf2f150'
+disasm_code: |-
+  .text:0000000000F2F150                 push    rbp
+  .text:0000000000F2F151                 mov     rbp, rsp
+  .text:0000000000F2F154                 push    r15
+  .text:0000000000F2F156                 movd    r15d, xmm0
+  .text:0000000000F2F15B                 push    r14
+  .text:0000000000F2F15D                 mov     r14, rdx
+  .text:0000000000F2F160                 push    r13
+  .text:0000000000F2F162                 push    r12
+  .text:0000000000F2F164                 push    rbx
+  .text:0000000000F2F165                 mov     rbx, rdi
+  .text:0000000000F2F168                 sub     rsp, 8
+  .text:0000000000F2F16C                 call    _CommandLine
+  .text:0000000000F2F171                 xor     esi, esi
+  .text:0000000000F2F173                 mov     r12, rax
+  .text:0000000000F2F176                 mov     rax, [rax]
+  .text:0000000000F2F179                 mov     r13, [rax+50h] ; 0x50 = ICommandLine_ParmValue_Float
+  .text:0000000000F2F17D                 test    r14, r14
+  .text:0000000000F2F180                 jz      loc_F2F2DC
+  .text:0000000000F2F186                 cmp     byte ptr [r14], 0
+  .text:0000000000F2F18A                 jz      loc_F2F2DC
+  .text:0000000000F2F190                 ; s
+  .text:0000000000F2F190                 mov     rdi, r14; s
+  .text:0000000000F2F193                 call    _strlen
+  .text:0000000000F2F198                 movsxd  rsi, eax
+  .text:0000000000F2F19B                 xor     eax, 31415926h
+  .text:0000000000F2F1A0                 cmp     rsi, 3
+  .text:0000000000F2F1A4                 jbe     loc_F2F269
+  .text:0000000000F2F1AA                 sub     rsi, 4
+  .text:0000000000F2F1AE                 mov     rcx, r14
+  .text:0000000000F2F1B1                 mov     rdx, rsi
+  .text:0000000000F2F1B4                 shr     rdx, 2
+  .text:0000000000F2F1B8                 lea     rdi, [r14+rdx*4+4]
+  .text:0000000000F2F1BD                 nop     dword ptr [rax]
+  .text:0000000000F2F1C0                 movzx   edx, byte ptr [rcx]
+  .text:0000000000F2F1C3                 lea     r9d, [rdx-41h]
+  .text:0000000000F2F1C7                 lea     r8d, [rdx+20h]
+  .text:0000000000F2F1CB                 cmp     r9b, 1Ah
+  .text:0000000000F2F1CF                 cmovb   edx, r8d
+  .text:0000000000F2F1D3                 movzx   r8d, dl
+  .text:0000000000F2F1D7                 movzx   edx, byte ptr [rcx+1]
+  .text:0000000000F2F1DB                 lea     r10d, [rdx-41h]
+  .text:0000000000F2F1DF                 lea     r9d, [rdx+20h]
+  .text:0000000000F2F1E3                 cmp     r10b, 1Ah
+  .text:0000000000F2F1E7                 cmovb   edx, r9d
+  .text:0000000000F2F1EB                 movzx   r9d, dl
+  .text:0000000000F2F1EF                 movzx   edx, byte ptr [rcx+2]
+  .text:0000000000F2F1F3                 shl     r9d, 8
+  .text:0000000000F2F1F7                 or      r9d, r8d
+  .text:0000000000F2F1FA                 lea     r10d, [rdx-41h]
+  .text:0000000000F2F1FE                 lea     r8d, [rdx+20h]
+  .text:0000000000F2F202                 cmp     r10b, 1Ah
+  .text:0000000000F2F206                 cmovb   edx, r8d
+  .text:0000000000F2F20A                 movzx   r8d, dl
+  .text:0000000000F2F20E                 movzx   edx, byte ptr [rcx+3]
+  .text:0000000000F2F212                 shl     r8d, 10h
+  .text:0000000000F2F216                 or      r8d, r9d
+  .text:0000000000F2F219                 lea     r10d, [rdx-41h]
+  .text:0000000000F2F21D                 lea     r9d, [rdx+20h]
+  .text:0000000000F2F221                 cmp     r10b, 1Ah
+  .text:0000000000F2F225                 cmovb   edx, r9d
+  .text:0000000000F2F229                 imul    eax, 5BD1E995h
+  .text:0000000000F2F22F                 add     rcx, 4
+  .text:0000000000F2F233                 shl     edx, 18h
+  .text:0000000000F2F236                 or      edx, r8d
+  .text:0000000000F2F239                 imul    edx, 5BD1E995h
+  .text:0000000000F2F23F                 mov     r8d, edx
+  .text:0000000000F2F242                 shr     r8d, 18h
+  .text:0000000000F2F246                 xor     edx, r8d
+  .text:0000000000F2F249                 imul    edx, 5BD1E995h
+  .text:0000000000F2F24F                 xor     eax, edx
+  .text:0000000000F2F251                 cmp     rdi, rcx
+  .text:0000000000F2F254                 jnz     loc_F2F1C0
+  .text:0000000000F2F25A                 mov     rdx, rsi
+  .text:0000000000F2F25D                 and     rdx, 0FFFFFFFFFFFFFFFCh
+  .text:0000000000F2F261                 lea     r14, [r14+rdx+4]
+  .text:0000000000F2F266                 sub     rsi, rdx
+  .text:0000000000F2F269                 test    rsi, rsi
+  .text:0000000000F2F26C                 jz      short loc_F2F2C8
+  .text:0000000000F2F26E                 cmp     rsi, 3
+  .text:0000000000F2F272                 jnz     loc_F2F310
+  .text:0000000000F2F278                 movzx   edx, byte ptr [r14+2]
+  .text:0000000000F2F27D                 lea     esi, [rdx-41h]
+  .text:0000000000F2F280                 lea     ecx, [rdx+20h]
+  .text:0000000000F2F283                 cmp     sil, 1Ah
+  .text:0000000000F2F287                 cmovb   edx, ecx
+  .text:0000000000F2F28A                 movzx   edx, dl
+  .text:0000000000F2F28D                 shl     edx, 10h
+  .text:0000000000F2F290                 xor     eax, edx
+  .text:0000000000F2F292                 movzx   edx, byte ptr [r14+1]
+  .text:0000000000F2F297                 lea     esi, [rdx-41h]
+  .text:0000000000F2F29A                 lea     ecx, [rdx+20h]
+  .text:0000000000F2F29D                 cmp     sil, 1Ah
+  .text:0000000000F2F2A1                 cmovb   edx, ecx
+  .text:0000000000F2F2A4                 movzx   edx, dl
+  .text:0000000000F2F2A7                 shl     edx, 8
+  .text:0000000000F2F2AA                 xor     eax, edx
+  .text:0000000000F2F2AC                 movzx   edx, byte ptr [r14]
+  .text:0000000000F2F2B0                 lea     esi, [rdx-41h]
+  .text:0000000000F2F2B3                 lea     ecx, [rdx+20h]
+  .text:0000000000F2F2B6                 cmp     sil, 1Ah
+  .text:0000000000F2F2BA                 cmovb   edx, ecx
+  .text:0000000000F2F2BD                 movzx   edx, dl
+  .text:0000000000F2F2C0                 xor     edx, eax
+  .text:0000000000F2F2C2                 imul    eax, edx, 5BD1E995h
+  .text:0000000000F2F2C8                 mov     edx, eax
+  .text:0000000000F2F2CA                 shr     edx, 0Dh
+  .text:0000000000F2F2CD                 xor     eax, edx
+  .text:0000000000F2F2CF                 imul    eax, 5BD1E995h
+  .text:0000000000F2F2D5                 mov     esi, eax
+  .text:0000000000F2F2D7                 shr     esi, 0Fh
+  .text:0000000000F2F2DA                 xor     esi, eax
+  .text:0000000000F2F2DC                 movd    xmm0, r15d ; float default argument
+  .text:0000000000F2F2E1                 mov     rdi, r12
+  .text:0000000000F2F2E4                 call    r13 ; ICommandLine_ParmValue_Float loaded at 0xF2F179
+  .text:0000000000F2F2E7                 xor     eax, eax
+  .text:0000000000F2F2E9                 mov     byte ptr [rbx+8], 1
+  .text:0000000000F2F2ED                 mov     [rbx+0Ah], ax
+  .text:0000000000F2F2F1                 mov     rax, rbx
+  .text:0000000000F2F2F4                 movss   dword ptr [rbx], xmm0 ; float result
+  .text:0000000000F2F2F8                 add     rsp, 8
+  .text:0000000000F2F2FC                 pop     rbx
+  .text:0000000000F2F2FD                 pop     r12
+  .text:0000000000F2F2FF                 pop     r13
+  .text:0000000000F2F301                 pop     r14
+  .text:0000000000F2F303                 pop     r15
+  .text:0000000000F2F305                 pop     rbp
+  .text:0000000000F2F306                 retn
+  .text:0000000000F2F310                 cmp     rsi, 1
+  .text:0000000000F2F314                 jz      short loc_F2F2AC
+  .text:0000000000F2F316                 jmp     loc_F2F292
+procedure: |-
+  __int64 __fastcall sub_F2F150(__int64 a1, __m128i a2, __int64 a3, __int64 a4)
+  {
+    unsigned int v4; // r15d
+    __int64 v6; // rsi
+    __int64 v7; // r12
+    int v8; // eax
+    unsigned __int64 v9; // rsi
+    unsigned int v10; // eax
+    unsigned __int64 v11; // rsi
+    unsigned __int8 *v12; // rcx
+    unsigned __int8 v13; // dl
+    int v14; // r8d
+    unsigned __int8 v15; // dl
+    int v16; // r9d
+    unsigned __int8 v17; // dl
+    int v18; // r9d
+    int v19; // r8d
+    int v20; // edx
+    int v21; // r8d
+    unsigned __int8 v22; // dl
+    unsigned __int8 v23; // dl
+    unsigned __int8 v24; // dl
+    float v25; // xmm0_4
+
+    v4 = _mm_cvtsi128_si32(a2);
+    v6 = 0;
+    v7 = CommandLine();
+    if ( a4 && *(_BYTE *)a4 )
+    {
+      v8 = strlen((const char *)a4);
+      v9 = v8;
+      v10 = v8 ^ 0x31415926;
+      if ( v9 > 3 )
+      {
+        v11 = v9 - 4;
+        v12 = (unsigned __int8 *)a4;
+        do
+        {
+          v13 = *v12;
+          if ( (unsigned __int8)(*v12 - 65) < 0x1Au )
+            v13 = *v12 + 32;
+          v14 = v13;
+          v15 = v12[1];
+          if ( (unsigned __int8)(v15 - 65) < 0x1Au )
+            v15 += 32;
+          v16 = v15;
+          v17 = v12[2];
+          v18 = v14 | (v16 << 8);
+          if ( (unsigned __int8)(v17 - 65) < 0x1Au )
+            v17 += 32;
+          v19 = v17;
+          v20 = v12[3];
+          v21 = v18 | (v19 << 16);
+          if ( (unsigned __int8)(v20 - 65) < 0x1Au )
+            v20 += 32;
+          v12 += 4;
+          v10 = (1540483477
+               * (((1540483477 * (v21 | (unsigned int)(v20 << 24))) >> 24) ^ (1540483477 * (v21 | (v20 << 24)))))
+              ^ (1540483477 * v10);
+        }
+        while ( (unsigned __int8 *)(a4 + 4 * (v11 >> 2) + 4) != v12 );
+        a4 += (v11 & 0xFFFFFFFFFFFFFFFCLL) + 4;
+        v9 = v11 - (v11 & 0xFFFFFFFFFFFFFFFCLL);
+      }
+      switch ( v9 )
+      {
+        case 0uLL:
+          goto LABEL_26;
+        case 3uLL:
+          v22 = *(_BYTE *)(a4 + 2);
+          if ( (unsigned __int8)(v22 - 65) < 0x1Au )
+            v22 += 32;
+          v10 ^= v22 << 16;
+          break;
+        case 1uLL:
+  LABEL_23:
+          v24 = *(_BYTE *)a4;
+          if ( (unsigned __int8)(*(_BYTE *)a4 - 65) < 0x1Au )
+            v24 = *(_BYTE *)a4 + 32;
+          v10 = 1540483477 * (v10 ^ v24);
+  LABEL_26:
+          v6 = (1540483477 * ((v10 >> 13) ^ v10)) ^ ((1540483477 * ((v10 >> 13) ^ v10)) >> 15);
+          goto LABEL_27;
+      }
+      v23 = *(_BYTE *)(a4 + 1);
+      if ( (unsigned __int8)(v23 - 65) < 0x1Au )
+        v23 += 32;
+      v10 ^= v23 << 8;
+      goto LABEL_23;
+    }
+  LABEL_27:
+    v25 = (*(float (__fastcall **)(__int64, __int64, double))(*(_QWORD *)v7 + 80LL))( // 80LL = 0x50 = ICommandLine_ParmValue_Float
+            v7,
+            v6,
+            *(double *)_mm_cvtsi32_si128(v4).m128i_i64);
+    *(_BYTE *)(a1 + 8) = 1;
+    *(_WORD *)(a1 + 10) = 0;
+    *(float *)a1 = v25;
+    return a1;
+  }
