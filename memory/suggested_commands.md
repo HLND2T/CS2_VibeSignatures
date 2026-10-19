@@ -18,7 +18,7 @@ Analyze and write canonical source-owned artifacts:
 
 ```powershell
 uv run ida_analyze_bin.py -gamever <gamever> -artifactdir bin_artifacts -oldartifactdir bin_artifacts -oldgamever <previous_gamever> -debug
-uv run python bin_artifact_contract.py -gamever <gamever>
+uv run python bin_artifact_contract.py -gamever <gamever>  # omit -gamever to validate only the newest configured GAMEVER
 ```
 
 For tests that must force producers without touching expected Git bytes, seed a checkout-external artifact root and pass it with `-artifactdir`; keep tracked `bin_artifacts` as `-oldartifactdir`.

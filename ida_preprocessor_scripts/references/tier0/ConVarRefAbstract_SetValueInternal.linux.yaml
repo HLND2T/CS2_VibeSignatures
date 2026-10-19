@@ -84,14 +84,14 @@ disasm_code: |-
   .text:00000000003F90CE                 add     dword ptr [r14+2Ch], 1
   .text:00000000003F90D3                 test    byte ptr [rbp+var_50+7], 40h
   .text:00000000003F90D7                 jnz     short loc_3F90ED
-  .text:00000000003F90D9                 lea     rax, byte_10EB47
+  .text:00000000003F90D9                 lea     rax, file
   .text:00000000003F90E0                 test    dword ptr [rbp+var_50+4], 3FFFFFFFh
   .text:00000000003F90E7                 jz      short loc_3F90ED
   .text:00000000003F90E9                 mov     rax, [rbp+var_48]
   .text:00000000003F90ED                 lea     r14, [rbp+var_38]
   .text:00000000003F90F1                 test    byte ptr [rbp+var_40+7], 40h
   .text:00000000003F90F5                 jnz     short loc_3F910B
-  .text:00000000003F90F7                 lea     r14, byte_10EB47
+  .text:00000000003F90F7                 lea     r14, file
   .text:00000000003F90FE                 test    dword ptr [rbp+var_40+4], 3FFFFFFFh
   .text:00000000003F9105                 jnz     loc_3F91C0
   .text:00000000003F910B                 mov     [rbp-78h], rax
@@ -103,7 +103,8 @@ disasm_code: |-
   .text:00000000003F9124                 mov     r8, [rbp+var_58]
   .text:00000000003F9128                 mov     rdi, [rax]
   .text:00000000003F912B                 mov     r10, [rdi]
-  .text:00000000003F912E                 call    qword ptr [r10+70h]
+  .text:00000000003F912E                 ; 0x70 = 112LL = ICvar_CallChangeCallback
+  .text:00000000003F912E                 call    qword ptr [r10+70h]; 0x70 = 112LL = ICvar_CallChangeCallback
   .text:00000000003F9132                 mov     r9, [rbp+var_60]
   .text:00000000003F9136                 mov     rcx, r14
   .text:00000000003F9139                 mov     edx, r15d
@@ -113,14 +114,17 @@ disasm_code: |-
   .text:00000000003F914A                 mov     rdi, [rax]
   .text:00000000003F914D                 mov     r10, [rdi]
   .text:00000000003F9150                 ; 0x0B8 = 184LL = ICvar_CallGlobalChangeCallbacks
-  ; ConVarRefAbstract_CallChangeCallbacks (inlined)
   .text:00000000003F9150                 call    qword ptr [r10+0B8h]; 0x0B8 = 184LL = ICvar_CallGlobalChangeCallbacks
-  .text:00000000003F9157                 mov     rdi, [rbp+var_70]
-  .text:00000000003F915B                 xor     esi, esi
-  .text:00000000003F915D                 call    sub_128FA0
-  .text:00000000003F9162                 mov     rdi, [rbp+var_68]
-  .text:00000000003F9166                 xor     esi, esi
-  .text:00000000003F9168                 call    sub_128FA0
+  .text:00000000003F9157                 ; this
+  .text:00000000003F9157                 mov     rdi, [rbp+var_70]; this
+  .text:00000000003F915B                 ; int
+  .text:00000000003F915B                 xor     esi, esi; int
+  .text:00000000003F915D                 call    __ZN13CBufferString5PurgeEi; CBufferString::Purge(int)
+  .text:00000000003F9162                 ; this
+  .text:00000000003F9162                 mov     rdi, [rbp+var_68]; this
+  .text:00000000003F9166                 ; int
+  .text:00000000003F9166                 xor     esi, esi; int
+  .text:00000000003F9168                 call    __ZN13CBufferString5PurgeEi; CBufferString::Purge(int)
   .text:00000000003F916D                 mov     rdi, [rbp+var_58]
   .text:00000000003F9171                 call    qword ptr [rbx+20h]
   .text:00000000003F9174                 lea     rsp, [rbp-28h]
@@ -132,9 +136,11 @@ disasm_code: |-
   .text:00000000003F9181                 pop     rbp
   .text:00000000003F9182                 retn
   .text:00000000003F9188                 mov     r12, cs:LOG_CONSOLE_ptr
-  .text:00000000003F918F                 mov     esi, 3
-  .text:00000000003F9194                 mov     edi, [r12]
-  .text:00000000003F9198                 call    sub_12A190
+  .text:00000000003F918F                 ; _QWORD
+  .text:00000000003F918F                 mov     esi, 3; _QWORD
+  .text:00000000003F9194                 ; _QWORD
+  .text:00000000003F9194                 mov     edi, [r12]; _QWORD
+  .text:00000000003F9198                 call    _LoggingSystem_IsChannelEnabled
   .text:00000000003F919D                 test    al, al
   .text:00000000003F919F                 jnz     short loc_3F91D0
   .text:00000000003F91A1                 mov     rdi, [rbp+var_58]
@@ -151,13 +157,20 @@ disasm_code: |-
   .text:00000000003F91C4                 jmp     loc_3F910B
   .text:00000000003F91D0                 mov     rcx, [r14]
   .text:00000000003F91D3                 lea     rdx, aCanTChangeSRig; "Can't change '%s' right now.\n"
-  .text:00000000003F91DA                 mov     esi, 3
+  .text:00000000003F91DA                 ; _QWORD
+  .text:00000000003F91DA                 mov     esi, 3; _QWORD
   .text:00000000003F91DF                 xor     eax, eax
-  .text:00000000003F91E1                 mov     edi, [r12]
-  .text:00000000003F91E5                 call    sub_12A230
+  .text:00000000003F91E1                 ; _QWORD
+  .text:00000000003F91E1                 mov     edi, [r12]; _QWORD
+  .text:00000000003F91E5                 call    _LoggingSystem_Log
   .text:00000000003F91EA                 jmp     short loc_3F91A1
 procedure: |-
-  __int64 __fastcall sub_3F8FA0(_QWORD *a1, unsigned int a2, unsigned __int64 *a3, __int64 a4, __int64 a5)
+  __int64 __fastcall ConVarRefAbstract_SetValueInternal(
+          _QWORD *a1,
+          unsigned int a2,
+          CBufferString *a3,
+          __int64 a4,
+          __int64 a5)
   {
     unsigned int v5; // r15d
     __int64 v7; // r14
@@ -167,10 +180,10 @@ procedure: |-
     const char *v11; // rax
     const char *v12; // r14
     const char *v14; // [rsp+8h] [rbp-78h]
-    unsigned __int64 *v15; // [rsp+10h] [rbp-70h] BYREF
-    unsigned __int64 *v16; // [rsp+18h] [rbp-68h]
+    CBufferString *v15; // [rsp+10h] [rbp-70h] BYREF
+    CBufferString *v16; // [rsp+18h] [rbp-68h]
     __int64 v17; // [rsp+20h] [rbp-60h]
-    unsigned __int64 **v18; // [rsp+28h] [rbp-58h]
+    CBufferString **v18; // [rsp+28h] [rbp-58h]
     unsigned __int64 v19; // [rsp+30h] [rbp-50h] BYREF
     const char *v20; // [rsp+38h] [rbp-48h] BYREF
     unsigned __int64 v21; // [rsp+40h] [rbp-40h] BYREF
@@ -183,10 +196,10 @@ procedure: |-
     v8 = sub_3F7DD0((unsigned int)*(__int16 *)(v7 + 40));
     v9 = alloca((int)((*(_DWORD *)(v8 + 8) + 31) & 0xFFFFFFF0) + 16LL);
     v18 = &v15;
-    (*(void (__fastcall **)(unsigned __int64 **, __int64))(v8 + 24))(&v15, a4);
+    (*(void (__fastcall **)(CBufferString **, __int64))(v8 + 24))(&v15, a4);
     if ( a2 == -1 && !v17 )
       v5 = 0;
-    if ( !(*(unsigned __int8 (__fastcall **)(_QWORD *, _QWORD, _QWORD, unsigned __int64 *, unsigned __int64 **, __int64))(*qword_50D648 + 128LL))(
+    if ( !(*(unsigned __int8 (__fastcall **)(_QWORD *, _QWORD, _QWORD, CBufferString *, CBufferString **, __int64))(*qword_50D648 + 128LL))(
             qword_50D648,
             *a1,
             v5,
@@ -194,57 +207,55 @@ procedure: |-
             v18,
             v17) )
     {
-      if ( (unsigned __int8)sub_12A190(LOG_CONSOLE, 3) )
-        sub_12A230(LOG_CONSOLE, 3, "Can't change '%s' right now.\n", *(const char **)v7);
-      return (*(__int64 (__fastcall **)(unsigned __int64 **))(v8 + 32))(v18);
+      if ( (unsigned __int8)LoggingSystem_IsChannelEnabled(LOG_CONSOLE, 3) )
+        LoggingSystem_Log(LOG_CONSOLE, 3, "Can't change '%s' right now.\n", *(const char **)v7);
+      return (*(__int64 (__fastcall **)(CBufferString **))(v8 + 32))(v18);
     }
     (*(void (__fastcall **)(__int64))(v8 + 32))(a4);
-    (*(void (__fastcall **)(__int64, unsigned __int64 *))(v8 + 24))(a4, v16);
+    (*(void (__fastcall **)(__int64, CBufferString *))(v8 + 24))(a4, v16);
     (*(void (__fastcall **)(__int64, _QWORD, _QWORD))(v8 + 64))(a4, *(_QWORD *)(v7 + 16), *(_QWORD *)(v7 + 24));
     v10 = sub_3F7DD0((unsigned int)*(__int16 *)(a1[1] + 40LL));
-    if ( (*(unsigned __int8 (__fastcall **)(unsigned __int64 **, __int64))(v10 + 56))(v18, a4) )
-      return (*(__int64 (__fastcall **)(unsigned __int64 **))(v8 + 32))(v18);
+    if ( (*(unsigned __int8 (__fastcall **)(CBufferString **, __int64))(v10 + 56))(v18, a4) )
+      return (*(__int64 (__fastcall **)(CBufferString **))(v8 + 32))(v18);
     v20 = nullptr;
     v19 = 0xC000000800000000LL;
-    v16 = &v19;
-    (*(void (__fastcall **)(unsigned __int64 **, unsigned __int64 *))(v8 + 48))(v18, &v19);
+    v16 = (CBufferString *)&v19;
+    (*(void (__fastcall **)(CBufferString **, unsigned __int64 *))(v8 + 48))(v18, &v19);
     v22 = nullptr;
     v21 = 0xC000000800000000LL;
-    v15 = &v21;
+    v15 = (CBufferString *)&v21;
     (*(void (__fastcall **)(__int64, unsigned __int64 *))(v8 + 48))(a4, &v21);
     v11 = (const char *)&v20;
     ++*(_DWORD *)(v7 + 44);
     if ( (v19 & 0x4000000000000000LL) == 0 )
     {
-      v11 = &byte_10EB47;
+      v11 = &file;
       if ( (v19 & 0x3FFFFFFF00000000LL) != 0 )
         v11 = v20;
     }
     v12 = (const char *)&v22;
     if ( (v21 & 0x4000000000000000LL) == 0 )
     {
-      v12 = &byte_10EB47;
+      v12 = &file;
       if ( (v21 & 0x3FFFFFFF00000000LL) != 0 )
         v12 = v22;
     }
     v14 = v11;
-    (*(void (__fastcall **)(_QWORD *, _QWORD, _QWORD, __int64, unsigned __int64 **, __int64))(*qword_50D648 + 112LL))(
+    (*(void (__fastcall **)(_QWORD *, _QWORD, _QWORD, __int64, CBufferString **, __int64))(*qword_50D648 + 112LL))(
       qword_50D648,
       *a1,
       v5,
       a4,
       v18,
       v17);
-    (*(void (__fastcall **)(_QWORD *, _QWORD *, _QWORD, const char *, const char *, __int64))(*qword_50D648
-  // ConVarRefAbstract_CallChangeCallbacks (inlined)
-                                                                                            + 184LL))(// 0x0B8 = 184LL = ICvar_CallGlobalChangeCallbacks
+    (*(void (__fastcall **)(_QWORD *, _QWORD *, _QWORD, const char *, const char *, __int64))(*qword_50D648 + 184LL))(// 0x0B8 = 184LL = ICvar_CallGlobalChangeCallbacks
       qword_50D648,
       a1,
       v5,
       v12,
       v14,
       v17);
-    sub_128FA0(v15, 0);
-    sub_128FA0(v16, 0);
-    return (*(__int64 (__fastcall **)(unsigned __int64 **))(v8 + 32))(v18);
+    CBufferString::Purge(v15, 0);
+    CBufferString::Purge(v16, 0);
+    return (*(__int64 (__fastcall **)(CBufferString **))(v8 + 32))(v18);
   }

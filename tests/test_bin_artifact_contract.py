@@ -1,12 +1,16 @@
+import io
+import json
 import os
 import subprocess
 import tempfile
 import unittest
+from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 
 from bin_artifact_contract import (
     ArtifactContractError,
     build_game_artifact_inventory,
+    main,
     validate_repository_artifact_contract,
 )
 from ida_analyze_util import canonical_symbol_yaml_bytes
@@ -19,7 +23,8 @@ from tests.gamesymbol_snapshot_test_support import (
 
 
 class BinArtifactContractTests(unittest.TestCase):
-    def _workspace(self, root: Path, versions: tuple[str, ...] = ("1",)) -> tuple[Path, Path, Path]:
+    @staticmethod
+    def _workspace(root: Path, versions: tuple[str, ...] = ("1",)) -> tuple[Path, Path, Path]:
         (root / "download.yaml").write_text(
             "downloads:\n" + "".join(f"  - tag: '{version}'\n    manifests: {{'1': '1'}}\n" for version in versions),
             encoding="utf-8",
@@ -298,6 +303,50 @@ class BinArtifactContractTests(unittest.TestCase):
         subprocess.run(["git", "config", "user.name", "Test"], cwd=root, check=True)
         subprocess.run(["git", "add", "."], cwd=root, check=True)
         subprocess.run(["git", "commit", "-qm", "fixture"], cwd=root, check=True)
+
+
+class BinArtifactContractCliTests(unittest.TestCase):
+    def test_default_scope_is_the_latest_configured_gamever(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            BinArtifactContractTests._workspace(root, versions=("1", "2"))
+            # The older GAMEVER is deliberately left non-canonical: a default
+            # run must not touch it, while an explicit scope must reject it.
+            (root / "bin_artifacts" / "1" / "server" / "Example.windows.yaml").write_bytes(b"not canonical\n")
+            BinArtifactContractTests._git_init_and_commit(root)
+
+            with redirect_stdout(io.StringIO()) as output:
+                exit_code = main(["-repo-root", str(root), "-allow-untracked"])
+
+            self.assertEqual(0, exit_code)
+            report = json.loads(output.getvalue())
+            self.assertEqual(["2"], [item["game_version"] for item in report["game_versions"]])
+
+            with redirect_stdout(io.StringIO()) as output:
+                exit_code = main(["-repo-root", str(root), "-allow-untracked", "-gamever", "1"])
+
+            self.assertEqual(1, exit_code)
+            self.assertIn("invalid canonical artifact", output.getvalue())
+
+    def test_explicit_gamever_selection_is_repeatable(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            BinArtifactContractTests._workspace(root, versions=("1", "2"))
+            BinArtifactContractTests._git_init_and_commit(root)
+
+            with redirect_stdout(io.StringIO()) as output:
+                exit_code = main(["-repo-root", str(root), "-allow-untracked", "-gamever", "1", "-gamever", "2"])
+
+            self.assertEqual(0, exit_code)
+            report = json.loads(output.getvalue())
+            self.assertEqual(["1", "2"], [item["game_version"] for item in report["game_versions"]])
+
+    def test_missing_configs_directory_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+                exit_code = main(["-repo-root", temporary, "-allow-untracked"])
+
+            self.assertEqual(1, exit_code)
 
 
 if __name__ == "__main__":

@@ -1,5 +1,4 @@
-#!/usr/bin/env python3
-"""Find ConVarRefAbstract_SetValueInternal from its diagnostic string."""
+"""Locate the typed ConVar value setter through its rejected-change diagnostic."""
 
 from ida_analyze_util import preprocess_common_skill
 
@@ -7,10 +6,10 @@ TARGET_FUNCTION_NAMES = ["ConVarRefAbstract_SetValueInternal"]
 FUNC_XREFS = [
     {
         "func_name": "ConVarRefAbstract_SetValueInternal",
-        "xref_strings": ["Can't change '%s' right now.\n"],
+        "xref_strings": ["FULLMATCH:Can't change '%s' right now.\n"],
+        "xref_funcs": [],
         "xref_gvs": [],
         "xref_signatures": [],
-        "xref_funcs": [],
         "exclude_funcs": [],
         "exclude_strings": [],
         "exclude_gvs": [],
@@ -18,7 +17,7 @@ FUNC_XREFS = [
     }
 ]
 GENERATE_YAML_DESIRED_FIELDS = [
-    ("ConVarRefAbstract_SetValueInternal", ["func_name", "func_sig", "func_va", "func_rva", "func_size"])
+    ("ConVarRefAbstract_SetValueInternal", ["func_name", "func_va", "func_rva", "func_size", "func_sig"])
 ]
 
 

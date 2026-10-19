@@ -131,7 +131,8 @@ disasm_code: |-
   .text:00000001802100EE                 mov     [rsp+90h+var_70], rsi
   .text:00000001802100F3                 mov     rax, [rcx]
   .text:00000001802100F6                 mov     rdx, [rdx]
-  .text:00000001802100F9                 call    qword ptr [rax+70h]
+  .text:00000001802100F9                 ; 0x70 = 112LL = ICvar_CallChangeCallback
+  .text:00000001802100F9                 call    qword ptr [rax+70h]; 0x70 = 112LL = ICvar_CallChangeCallback
   .text:00000001802100FC                 mov     rcx, cs:qword_1803A9568
   .text:0000000180210103                 mov     r9, r14
   .text:0000000180210106                 mov     rdx, [rbp+60h+arg_0]
@@ -140,7 +141,6 @@ disasm_code: |-
   .text:0000000180210112                 mov     [rsp+90h+var_70], r15
   .text:0000000180210117                 mov     rax, [rcx]
   .text:000000018021011A                 ; 0x0B8 = 184LL = ICvar_CallGlobalChangeCallbacks
-  ; ConVarRefAbstract_CallChangeCallbacks (inlined)
   .text:000000018021011A                 call    qword ptr [rax+0B8h]; 0x0B8 = 184LL = ICvar_CallGlobalChangeCallbacks
   .text:0000000180210120                 ; int
   .text:0000000180210120                 xor     edx, edx; int
@@ -166,7 +166,7 @@ disasm_code: |-
   .text:0000000180210157                 pop     rbp
   .text:0000000180210158                 retn
 procedure: |-
-  __int64 __fastcall sub_18020FEE0(_QWORD *a1, unsigned int a2, __int64 a3, __int64 a4, __int64 a5)
+  __int64 __fastcall ConVarRefAbstract_SetValueInternal(_QWORD *a1, unsigned int a2, __int64 a3, __int64 a4, __int64 a5)
   {
     __int64 v5; // r14
     __int64 v9; // r12
@@ -251,7 +251,6 @@ procedure: |-
           &v19,
           a5);
         (*(void (__fastcall **)(__int64, _QWORD *, _QWORD, const BYTE *, const BYTE *, __int64))(*(_QWORD *)qword_1803A9568
-  // ConVarRefAbstract_CallChangeCallbacks (inlined)
                                                                                                + 184LL))(// 0x0B8 = 184LL = ICvar_CallGlobalChangeCallbacks
           qword_1803A9568,
           a1,
