@@ -1,74 +1,72 @@
 func_name: CServerSideClientBase_SetConVarUserInfo
-func_va: '0x5237c0'
+func_va: '0x5356b0'
 disasm_code: |-
-  .text:00000000005237C0                 push    rbp
-  .text:00000000005237C1                 mov     rbp, rsp
-  .text:00000000005237C4                 push    r13
-  .text:00000000005237C6                 mov     r13, rsi
-  .text:00000000005237C9                 push    r12
-  .text:00000000005237CB                 mov     r12, rdi
-  .text:00000000005237CE                 push    rbx
-  .text:00000000005237CF                 mov     rbx, rdx
-  .text:00000000005237D2                 sub     rsp, 8
-  .text:00000000005237D6                 cmp     rsi, rdx
-  .text:00000000005237D9                 jnb     short loc_523830
-  .text:00000000005237DB                 mov     rax, cs:g_pMemAlloc_ptr
-  .text:00000000005237E2                 mov     rdi, [rax]
-  .text:00000000005237E5                 mov     rax, [rdi]
-  .text:00000000005237E8                 test    rsi, rsi
-  .text:00000000005237EB                 jz      loc_5238B8
-  .text:00000000005237F1                 mov     rsi, [r12+0BC0h]
-  .text:00000000005237F9                 call    qword ptr [rax+18h]
-  .text:00000000005237FC                 mov     rsi, rax
-  .text:00000000005237FF                 lea     rax, g_pVEngineCvar
-  .text:0000000000523806                 mov     r8d, 1
-  .text:000000000052380C                 mov     rcx, rbx
-  .text:000000000052380F                 mov     rdx, r13
-  .text:0000000000523812                 mov     [r12+0BC0h], rsi
-  .text:000000000052381A                 mov     rdi, [rax]
-  .text:000000000052381D                 mov     rax, [rdi]
-  .text:0000000000523820                 call    qword ptr [rax+120h]
-  .text:0000000000523826                 jmp     short loc_52387C
-  .text:0000000000523828                 align 10h
-  .text:0000000000523830 loc_523830:     lea     rax, g_pVEngineCvar
-  .text:0000000000523837                 xor     r8d, r8d
-  .text:000000000052383A                 mov     rcx, r13
-  .text:000000000052383D                 mov     rsi, [r12+0BC0h]
-  .text:0000000000523845                 mov     rdi, [rax]
-  .text:0000000000523848                 mov     rax, [rdi]
-  .text:000000000052384B                 call    qword ptr [rax+120h]
-  .text:0000000000523851                 mov     rax, cs:g_pMemAlloc_ptr
-  .text:0000000000523858                 mov     rsi, [r12+0BC0h]
-  .text:0000000000523860                 mov     rdi, [rax]
-  .text:0000000000523863                 mov     rax, [rdi]
-  .text:0000000000523866                 test    rbx, rbx
-  .text:0000000000523869                 jz      short loc_5238B0
-  .text:000000000052386B                 mov     rdx, rbx
-  .text:000000000052386E                 call    qword ptr [rax+18h]
-  .text:0000000000523871                 mov     rbx, rax
-  .text:0000000000523874 loc_523874:     mov     [r12+0BC0h], rbx
-  .text:000000000052387C loc_52387C:     lea     rax, g_pSource2GameClients
-  .text:0000000000523883                 mov     rdx, [r12+0BC0h]
-  .text:000000000052388B                 mov     esi, [r12+48h]
-  .text:0000000000523890                 mov     rdi, [rax]              ; rdi = *g_pSource2GameClients
-  .text:0000000000523893                 mov     rax, [rdi]              ; rax = ISource2GameClients vtable
-  .text:0000000000523896                 mov     rax, [rax+90h]          ; 90h = 144 = vfunc index 18 = ISource2GameClients_ClientSetConVarUserInfoSet
-  .text:000000000052389D                 add     rsp, 8
-  .text:00000000005238A1                 pop     rbx
-  .text:00000000005238A2                 pop     r12
-  .text:00000000005238A4                 pop     r13
-  .text:00000000005238A6                 pop     rbp
-  .text:00000000005238A7                 jmp     rax                     ; tail call of ISource2GameClients_ClientSetConVarUserInfoSet (idx 18, off 0x90)
-  .text:00000000005238A9                 align 10h
-  .text:00000000005238B0 loc_5238B0:     call    qword ptr [rax+20h]
-  .text:00000000005238B3                 jmp     short loc_523874
-  .text:00000000005238B5                 align 8
-  .text:00000000005238B8 loc_5238B8:     mov     rsi, rdx
-  .text:00000000005238BB                 call    qword ptr [rax+10h]
-  .text:00000000005238BE                 mov     rsi, rax
-  .text:00000000005238C1                 jmp     loc_5237FF
+  .text:00000000005356B0                 push    rbp
+  .text:00000000005356B1                 mov     rbp, rsp
+  .text:00000000005356B4                 push    r13
+  .text:00000000005356B6                 mov     r13, rsi
+  .text:00000000005356B9                 push    r12
+  .text:00000000005356BB                 mov     r12, rdi
+  .text:00000000005356BE                 push    rbx
+  .text:00000000005356BF                 mov     rbx, rdx
+  .text:00000000005356C2                 sub     rsp, 8
+  .text:00000000005356C6                 cmp     rsi, rdx
+  .text:00000000005356C9                 jnb     short loc_535720
+  .text:00000000005356CB                 mov     rax, cs:g_pMemAlloc_ptr
+  .text:00000000005356D2                 mov     rdi, [rax]
+  .text:00000000005356D5                 mov     rax, [rdi]
+  .text:00000000005356D8                 test    rsi, rsi
+  .text:00000000005356DB                 jz      loc_5357A8
+  .text:00000000005356E1                 mov     rsi, [r12+0BC0h]
+  .text:00000000005356E9                 call    qword ptr [rax+18h]
+  .text:00000000005356EC                 mov     rsi, rax
+  .text:00000000005356EF                 lea     rax, unk_C91028
+  .text:00000000005356F6                 mov     r8d, 1
+  .text:00000000005356FC                 mov     rcx, rbx
+  .text:00000000005356FF                 mov     rdx, r13
+  .text:0000000000535702                 mov     [r12+0BC0h], rsi
+  .text:000000000053570A                 mov     rdi, [rax]
+  .text:000000000053570D                 mov     rax, [rdi]
+  .text:0000000000535710                 call    qword ptr [rax+120h] ; 0x120 = 288LL = ICvar_CopyUserInfoCvarDefaults
+  .text:0000000000535716                 jmp     short loc_53576C
+  .text:0000000000535720                 lea     rax, unk_C91028
+  .text:0000000000535727                 xor     r8d, r8d
+  .text:000000000053572A                 mov     rcx, r13
+  .text:000000000053572D                 mov     rsi, [r12+0BC0h]
+  .text:0000000000535735                 mov     rdi, [rax]
+  .text:0000000000535738                 mov     rax, [rdi]
+  .text:000000000053573B                 call    qword ptr [rax+120h] ; 0x120 = 288LL = ICvar_CopyUserInfoCvarDefaults
+  .text:0000000000535741                 mov     rax, cs:g_pMemAlloc_ptr
+  .text:0000000000535748                 mov     rsi, [r12+0BC0h]
+  .text:0000000000535750                 mov     rdi, [rax]
+  .text:0000000000535753                 mov     rax, [rdi]
+  .text:0000000000535756                 test    rbx, rbx
+  .text:0000000000535759                 jz      short loc_5357A0
+  .text:000000000053575B                 mov     rdx, rbx
+  .text:000000000053575E                 call    qword ptr [rax+18h]
+  .text:0000000000535761                 mov     rbx, rax
+  .text:0000000000535764                 mov     [r12+0BC0h], rbx
+  .text:000000000053576C                 lea     rax, unk_C90D90
+  .text:0000000000535773                 mov     rdx, [r12+0BC0h]
+  .text:000000000053577B                 mov     esi, [r12+48h]
+  .text:0000000000535780                 mov     rdi, [rax]
+  .text:0000000000535783                 mov     rax, [rdi]
+  .text:0000000000535786                 ; 0x90 = 144LL = ISource2GameClients_ClientSetConVarUserInfoSet
+  .text:0000000000535786                 mov     rax, [rax+90h]          ; 90h = 144 = vfunc index 18 = ISource2GameClients_ClientSetConVarUserInfoSet
+  .text:000000000053578D                 add     rsp, 8
+  .text:0000000000535791                 pop     rbx
+  .text:0000000000535792                 pop     r12
+  .text:0000000000535794                 pop     r13
+  .text:0000000000535796                 pop     rbp
+  .text:0000000000535797                 jmp     rax
+  .text:00000000005357A0                 call    qword ptr [rax+20h]
+  .text:00000000005357A3                 jmp     short loc_535764
+  .text:00000000005357A8                 mov     rsi, rdx
+  .text:00000000005357AB                 call    qword ptr [rax+10h]
+  .text:00000000005357AE                 mov     rsi, rax
+  .text:00000000005357B1                 jmp     loc_5356EF
 procedure: |-
-  __int64 __fastcall CServerSideClientBase_SetConVarUserInfo(__int64 a1, unsigned __int64 a2, unsigned __int64 a3)
+  __int64 __fastcall sub_5356B0(__int64 a1, unsigned __int64 a2, unsigned __int64 a3)
   {
     __int64 v4; // rbx
     __int64 v5; // rax
@@ -79,8 +77,8 @@ procedure: |-
     v4 = a3;
     if ( a2 >= a3 )
     {
-      (*(void (__fastcall **)(_QWORD *, _QWORD, unsigned __int64, unsigned __int64, _QWORD))(*g_pVEngineCvar + 288LL))(
-        g_pVEngineCvar,
+      (*(void (__fastcall **)(_QWORD *, _QWORD, unsigned __int64, unsigned __int64, _QWORD))(*qword_C91028 + 288LL))(
+        qword_C91028,
         *(_QWORD *)(a1 + 3008),
         a3,
         a2,
@@ -101,15 +99,15 @@ procedure: |-
       else
         v6 = (*(__int64 (__fastcall **)(_QWORD *, unsigned __int64))(v5 + 16))(g_pMemAlloc, a3);
       *(_QWORD *)(a1 + 3008) = v6;
-      (*(void (__fastcall **)(_QWORD *, __int64, unsigned __int64, __int64, __int64))(*g_pVEngineCvar + 288LL))(
-        g_pVEngineCvar,
+      (*(void (__fastcall **)(_QWORD *, __int64, unsigned __int64, __int64, __int64))(*qword_C91028 + 288LL))(
+        qword_C91028,
         v6,
         a2,
         v4,
         1);
     }
-    return (*(__int64 (__fastcall **)(_QWORD *, _QWORD, _QWORD))(*g_pSource2GameClients + 144LL))(// 144LL = 0x90 = vfunc index 18 = ISource2GameClients_ClientSetConVarUserInfoSet (tail call)
-             g_pSource2GameClients,
+    return (*(__int64 (__fastcall **)(_QWORD *, _QWORD, _QWORD))(*qword_C90D90 + 144LL))(  // 0x90 = 144LL = ISource2GameClients_ClientSetConVarUserInfoSet
+             qword_C90D90,
              *(unsigned int *)(a1 + 72),
              *(_QWORD *)(a1 + 3008));
   }

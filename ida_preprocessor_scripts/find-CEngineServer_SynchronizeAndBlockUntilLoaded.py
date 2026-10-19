@@ -67,7 +67,9 @@ async def preprocess_skill(
     return await preprocess_common_skill(
         session=session,
         expected_outputs=expected_outputs,
-        old_yaml_map=old_yaml_map,
+        # A unique old prologue can now belong to IsSpawnGroupLoading. Always
+        # resolve the current caller of the synchronization helper.
+        old_yaml_map=None,
         new_binary_dir=new_binary_dir,
         platform=platform,
         image_base=image_base,

@@ -196,6 +196,18 @@ def host_tool(name):
 
 def resolve_ida(*, consumer=False):
     python = host_tool("python")
+    if consumer:
+        from push_binsync_symbols import probe_capability
+
+        # Probe the exporter's actual imports in the selected host interpreter,
+        # before version discovery or publishing a usable consumer environment.
+        try:
+            supported, detail = probe_capability(python)
+        except OSError as exc:
+            raise ValueError(f"Cannot probe IDA consumer dependencies using {python}: {exc}") from exc
+        if not supported:
+            detail = detail or "import probe failed without diagnostics"
+            raise ValueError(f"IDA consumer dependency probe failed for {python}:\n{detail}")
     version = command([python, "warmup_idb_worker.py", "--print-ida-version"], capture=True)
     if not version:
         raise ValueError("IDA did not report its runtime version")

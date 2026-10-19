@@ -745,6 +745,110 @@ modules:
           - CHostStateMgr_RequestHS_LoadSaveGame.{platform}.yaml
         prerequisite:
           - find-CHostStateMgr_RequestHS_LoadSaveGame-noinline
+      - name: find-CHostStateRequest_PlayDemo
+        optional_output:
+          - CHostStateRequest_PlayDemo.{platform}.yaml
+        skip_if_exists:
+          - CHostStateMgr_RequestHS_PlayDemo.{platform}.yaml
+        platform: linux
+      - name: find-CHostStateMgr_RequestHS_PlayDemo-noinline
+        optional_output:
+          - CHostStateMgr_RequestHS_PlayDemo.{platform}.yaml
+        expected_input:
+          - CHostStateMgr_vtable.{platform}.yaml
+        prerequisite:
+          - find-CHostStateRequest_PlayDemo
+      - name: find-CHostStateMgr_RequestHS_PlayDemo-inlined
+        expected_output:
+          - CHostStateMgr_RequestHS_PlayDemo.{platform}.yaml
+        expected_input:
+          - CHostStateMgr_vtable.{platform}.yaml
+        skip_if_exists:
+          - CHostStateMgr_RequestHS_PlayDemo.{platform}.yaml
+        prerequisite:
+          - find-CHostStateMgr_RequestHS_PlayDemo-noinline
+      - name: find-CHostStateRequest_PlayBroadcast
+        optional_output:
+          - CHostStateRequest_PlayBroadcast.{platform}.yaml
+        skip_if_exists:
+          - CHostStateMgr_RequestHS_PlayBroadcast.{platform}.yaml
+        platform: linux
+      - name: find-CHostStateMgr_RequestHS_PlayBroadcast-noinline
+        optional_output:
+          - CHostStateMgr_RequestHS_PlayBroadcast.{platform}.yaml
+        expected_input:
+          - CHostStateMgr_vtable.{platform}.yaml
+        prerequisite:
+          - find-CHostStateRequest_PlayBroadcast
+      - name: find-CHostStateMgr_RequestHS_PlayBroadcast-inlined
+        expected_output:
+          - CHostStateMgr_RequestHS_PlayBroadcast.{platform}.yaml
+        expected_input:
+          - CHostStateMgr_vtable.{platform}.yaml
+        skip_if_exists:
+          - CHostStateMgr_RequestHS_PlayBroadcast.{platform}.yaml
+        prerequisite:
+          - find-CHostStateMgr_RequestHS_PlayBroadcast-noinline
+      - name: find-CHostStateRequest_DownloadAddons
+        optional_output:
+          - CHostStateRequest_DownloadAddons.{platform}.yaml
+        skip_if_exists:
+          - CHostStateMgr_RequestHS_DownloadAddons.{platform}.yaml
+        platform: linux
+      - name: find-CHostStateMgr_RequestHS_DownloadAddons-noinline
+        optional_output:
+          - CHostStateMgr_RequestHS_DownloadAddons.{platform}.yaml
+        expected_input:
+          - CHostStateMgr_vtable.{platform}.yaml
+        prerequisite:
+          - find-CHostStateRequest_DownloadAddons
+      - name: find-CHostStateMgr_RequestHS_DownloadAddons-inlined
+        expected_output:
+          - CHostStateMgr_RequestHS_DownloadAddons.{platform}.yaml
+        expected_input:
+          - CHostStateMgr_vtable.{platform}.yaml
+        skip_if_exists:
+          - CHostStateMgr_RequestHS_DownloadAddons.{platform}.yaml
+        prerequisite:
+          - find-CHostStateMgr_RequestHS_DownloadAddons-noinline
+      - name: find-CHostStateRequest_SourceTVRelay
+        optional_output:
+          - CHostStateRequest_SourceTVRelay.{platform}.yaml
+        skip_if_exists:
+          - CHostStateMgr_RequestHS_SourceTVRelay.{platform}.yaml
+        platform: linux
+      - name: find-CHostStateMgr_RequestHS_SourceTVRelay-noinline
+        optional_output:
+          - CHostStateMgr_RequestHS_SourceTVRelay.{platform}.yaml
+        expected_input:
+          - CHostStateMgr_vtable.{platform}.yaml
+        prerequisite:
+          - find-CHostStateRequest_SourceTVRelay
+      - name: find-CHostStateMgr_RequestHS_SourceTVRelay-inlined
+        expected_output:
+          - CHostStateMgr_RequestHS_SourceTVRelay.{platform}.yaml
+        expected_input:
+          - CHostStateMgr_vtable.{platform}.yaml
+        skip_if_exists:
+          - CHostStateMgr_RequestHS_SourceTVRelay.{platform}.yaml
+        prerequisite:
+          - find-CHostStateMgr_RequestHS_SourceTVRelay-noinline
+      - name: find-CHostStateMgr_RequestHS_ReloadLastSaveGame-noinline
+        optional_output:
+          - CHostStateMgr_RequestHS_ReloadLastSaveGame.{platform}.yaml
+        expected_input:
+          - CHostStateMgr_vtable.{platform}.yaml
+        prerequisite:
+          - find-CHostStateRequest_LoadSaveGame
+      - name: find-CHostStateMgr_RequestHS_ReloadLastSaveGame-inlined
+        expected_output:
+          - CHostStateMgr_RequestHS_ReloadLastSaveGame.{platform}.yaml
+        expected_input:
+          - CHostStateMgr_vtable.{platform}.yaml
+        skip_if_exists:
+          - CHostStateMgr_RequestHS_ReloadLastSaveGame.{platform}.yaml
+        prerequisite:
+          - find-CHostStateMgr_RequestHS_ReloadLastSaveGame-noinline
       - name: find-CHostStateMgr_RequestHS_Quit
         expected_output:
           - CHostStateMgr_RequestHS_Quit.{platform}.yaml
@@ -2682,9 +2786,53 @@ modules:
       - name: find-CServerSideClientBase_vtable
         expected_output:
           - CServerSideClientBase_vtable.{platform}.yaml
-      - name: find-CServerSideClientBase_SetRate
+      - name: find-CServerSideClientBase_PerformDisconnection
         expected_output:
-          - CServerSideClientBase_SetRate.{platform}.yaml
+          - CServerSideClientBase_PerformDisconnection.{platform}.yaml
+        expected_input:
+          - CServerSideClientBase_vtable.{platform}.yaml
+      - name: find-CServerSideClientBase_ProcessSignonStateMsg
+        expected_output:
+          - CServerSideClientBase_ProcessSignonStateMsg.{platform}.yaml
+        expected_input:
+          - CServerSideClientBase_vtable.{platform}.yaml
+      - name: find-CServerSideClientBase_ActivatePlayer
+        expected_output:
+          - CServerSideClientBase_ActivatePlayer.{platform}.yaml
+        expected_input:
+          - CServerSideClientBase_vtable.{platform}.yaml
+      - name: find-CServerSideClientBase_SpawnPlayer
+        expected_output:
+          - CServerSideClientBase_SpawnPlayer.{platform}.yaml
+        expected_input:
+          - CServerSideClientBase_vtable.{platform}.yaml
+      - name: find-CServerSideClientBase_SendSignonData
+        expected_output:
+          - CServerSideClientBase_SendSignonData.{platform}.yaml
+        expected_input:
+          - CServerSideClientBase_vtable.{platform}.yaml
+      - name: find-CServerSideClientBase_ProcessSetConVar_Internal
+        expected_output:
+          - CServerSideClientBase_ProcessSetConVar_Internal.{platform}.yaml
+      - name: find-CServerSideClientBase_ProcessSetConVar
+        expected_output:
+          - CServerSideClientBase_ProcessSetConVar.{platform}.yaml
+        expected_input:
+          - CServerSideClientBase_ProcessSetConVar_Internal.{platform}.yaml
+          - CServerSideClientBase_vtable.{platform}.yaml
+      - name: find-CServerSideClientBase_ShouldSendMessages
+        expected_output:
+          - CServerSideClientBase_ShouldSendMessages.{platform}.yaml
+        expected_input:
+          - CServerSideClientBase_vtable.{platform}.yaml
+      - name: find-CServerSideClientBase_ProcessChangeSplitscreenUser
+        expected_output:
+          - CServerSideClientBase_ProcessChangeSplitscreenUser.{platform}.yaml
+        expected_input:
+          - CServerSideClientBase_vtable.{platform}.yaml
+      - name: find-CServerSideClientBase_UpdateUserSettings
+        expected_output:
+          - CServerSideClientBase_UpdateUserSettings.{platform}.yaml
         expected_input:
           - CServerSideClientBase_vtable.{platform}.yaml
       - name: find-CServerSideClientBase_SendServerInfo
@@ -4584,10 +4732,46 @@ modules:
           - CHLTVBroadcast::RecordSnapshot
       - name: CServerSideClientBase_vtable
         category: vtable
-      - name: CServerSideClientBase_SetRate
+      - name: CServerSideClientBase_PerformDisconnection
         category: vfunc
         alias:
-          - CServerSideClientBase::SetRate
+          - CServerSideClientBase::PerformDisconnection
+      - name: CServerSideClientBase_ProcessSignonStateMsg
+        category: vfunc
+        alias:
+          - CServerSideClientBase::ProcessSignonStateMsg
+      - name: CServerSideClientBase_ActivatePlayer
+        category: vfunc
+        alias:
+          - CServerSideClientBase::ActivatePlayer
+      - name: CServerSideClientBase_SpawnPlayer
+        category: vfunc
+        alias:
+          - CServerSideClientBase::SpawnPlayer
+      - name: CServerSideClientBase_SendSignonData
+        category: vfunc
+        alias:
+          - CServerSideClientBase::SendSignonData
+      - name: CServerSideClientBase_ProcessSetConVar_Internal
+        category: func
+        alias:
+          - CServerSideClientBase::ProcessSetConVarInternal
+      - name: CServerSideClientBase_ProcessSetConVar
+        category: vfunc
+        alias:
+          - CServerSideClientBase::ProcessSetConVar
+      - name: CServerSideClientBase_ShouldSendMessages
+        category: vfunc
+        alias:
+          - CServerSideClientBase::ShouldSendMessages
+      - name: CServerSideClientBase_ProcessChangeSplitscreenUser
+        category: vfunc
+        alias:
+          - CServerSideClientBase::ProcessChangeSplitscreenUser
+      - name: CServerSideClientBase_UpdateUserSettings
+        category: vfunc
+        alias:
+          - CServerSideClientBase::UpdateUserSettings
       - name: CServerSideClientBase_SendServerInfo
         category: vfunc
         alias:
@@ -4952,6 +5136,26 @@ modules:
         category: vfunc
         alias:
           - CHostStateMgr::RequestHS_LoadSaveGame
+      - name: CHostStateMgr_RequestHS_PlayDemo
+        category: vfunc
+        alias:
+          - CHostStateMgr::RequestHS_PlayDemo
+      - name: CHostStateMgr_RequestHS_PlayBroadcast
+        category: vfunc
+        alias:
+          - CHostStateMgr::RequestHS_PlayBroadcast
+      - name: CHostStateMgr_RequestHS_DownloadAddons
+        category: vfunc
+        alias:
+          - CHostStateMgr::RequestHS_DownloadAddons
+      - name: CHostStateMgr_RequestHS_SourceTVRelay
+        category: vfunc
+        alias:
+          - CHostStateMgr::RequestHS_SourceTVRelay
+      - name: CHostStateMgr_RequestHS_ReloadLastSaveGame
+        category: vfunc
+        alias:
+          - CHostStateMgr::RequestHS_ReloadLastSaveGame
       - name: g_pNetworkService
         category: gv
       - name: g_pNetworkClientService
@@ -15882,3 +16086,56 @@ cpp_tests:
     # No reference_modules yet: IGameEventSystem has no binary reference YAMLs
     # (CGameEventSystem_vtable exists but covers the impl class, not this
     # interface). Compile-only validation.
+  - name: INetChannel_MSVC
+    symbol: INetChannel
+    alias_symbols:
+      - CNetChan
+    cpp: cpp_tests/inetchannel.cpp
+    headers:
+      - hl2sdk_cs2/public/inetchannel.h  # Used by the fix-cppheaders SKILL
+      - hl2sdk_cs2/public/inetchannelinfo.h  # Inherited virtual declarations
+    target: x86_64-pc-windows-msvc
+    include_directories:
+      - cpp_tests/stubs
+      - hl2sdk_cs2/game/shared
+      - hl2sdk_cs2/public
+      - hl2sdk_cs2/public/tier0
+      - hl2sdk_cs2/public/tier1
+      - hl2sdk_cs2/public/mathlib
+    defines:
+      - COMPILER_MSVC=1
+      - COMPILER_MSVC64=1
+      - _MSVC_STL_USE_ABORT_AS_DOOM_FUNCTION
+    additional_compiler_options:
+      - fms-extensions
+      - fms-compatibility
+      - Xclang
+      - fdump-vtable-layouts
+    reference_modules:
+      - networksystem  # bin_artifacts/{gamever}/networksystem/CNetChan_*.{platform}.yaml
+  - name: INetChannel_GCC
+    symbol: INetChannel
+    alias_symbols:
+      - CNetChan
+    cpp: cpp_tests/inetchannel.cpp
+    headers:
+      - hl2sdk_cs2/public/inetchannel.h  # Used by the fix-cppheaders SKILL
+      - hl2sdk_cs2/public/inetchannelinfo.h  # Inherited virtual declarations
+    target: x86_64-pc-linux-gnu
+    include_directories:
+      - cpp_tests/stubs
+      - hl2sdk_cs2/game/shared
+      - hl2sdk_cs2/public
+      - hl2sdk_cs2/public/tier0
+      - hl2sdk_cs2/public/tier1
+      - hl2sdk_cs2/public/mathlib
+    defines:
+      - COMPILER_GCC=1
+      - POSIX=1
+      - LINUX=1
+      - stricmp=strcasecmp
+    additional_compiler_options:
+      - Xclang
+      - fdump-vtable-layouts
+    reference_modules:
+      - networksystem  # bin_artifacts/{gamever}/networksystem/CNetChan_*.{platform}.yaml
