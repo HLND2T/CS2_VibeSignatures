@@ -6497,6 +6497,31 @@ modules:
           - GameStateAPI_BIsLocalServerHost.{platform}.yaml
         expected_input:
           - GameStateAPI_RegisterAPIs.{platform}.yaml
+      - name: find-CScriptConvarAccessor_RegisterConvar
+        expected_output:
+          - CScriptConvarAccessor_RegisterConvar.{platform}.yaml
+      - name: find-RegisterConVar
+        optional_output:
+          - RegisterConVar.{platform}.yaml
+        expected_input:
+          - CScriptConvarAccessor_RegisterConvar.{platform}.yaml
+      - name: find-ICvar_RegisterConVar_Impl
+        optional_output:
+          - ICvar_RegisterConVar_Impl.{platform}.yaml
+        optional_input:
+          - RegisterConVar.{platform}.yaml
+        prerequisite:
+          - find-RegisterConVar
+      - name: find-ICvar_RegisterConVar
+        optional_input:
+          - RegisterConVar.{platform}.yaml
+          - ICvar_RegisterConVar_Impl.{platform}.yaml
+        expected_output:
+          - ICvar_RegisterConVar.{platform}.yaml
+        expected_input:
+          - CScriptConvarAccessor_RegisterConvar.{platform}.yaml
+        prerequisite:
+          - find-ICvar_RegisterConVar_Impl
     symbols:
       - name: CLoopModeGame_RegisterEventMapInternal
         category: func
@@ -7745,6 +7770,12 @@ modules:
         category: func
         platform: windows
         alias: [GameStateAPI::BIsLocalServerHost]
+      - name: CScriptConvarAccessor_RegisterConvar
+        category: func
+      - name: RegisterConVar
+        category: func
+      - name: ICvar_RegisterConVar
+        category: vfunc
   - name: server
     path_windows: game/csgo/bin/win64/server.dll
     path_linux: game/csgo/bin/linuxsteamrt64/libserver.so
@@ -15724,6 +15755,23 @@ modules:
           - CKeyValuesSystem_GetKeyValuesExpressionSymbol.{platform}.yaml
         expected_input:
           - CKeyValuesSystem_vtable.{platform}.yaml
+      - name: find-CCvar_RegisterConVar
+        expected_output:
+          - CCvar_RegisterConVar.{platform}.yaml
+        expected_input:
+          - ../client/ICvar_RegisterConVar.{platform}.yaml
+          - CCvar_vtable.{platform}.yaml
+      - name: find-ICvar_FindConCommand
+        expected_output:
+          - ICvar_FindConCommand.{platform}.yaml
+        expected_input:
+          - CCvar_RegisterConVar.{platform}.yaml
+      - name: find-CCvar_FindConCommand
+        expected_output:
+          - CCvar_FindConCommand.{platform}.yaml
+        expected_input:
+          - ICvar_FindConCommand.{platform}.yaml
+          - CCvar_vtable.{platform}.yaml
       - name: find-ConVarRefAbstract_CallChangeCallbacks
         optional_output:
           - ConVarRefAbstract_CallChangeCallbacks.{platform}.yaml
@@ -15846,6 +15894,12 @@ modules:
         category: vfunc
         alias:
           - CKeyValuesSystem::GetKeyValuesExpressionSymbol
+      - name: CCvar_RegisterConVar
+        category: vfunc
+      - name: ICvar_FindConCommand
+        category: vfunc
+      - name: CCvar_FindConCommand
+        category: vfunc
       - name: ICvar_CallGlobalChangeCallbacks
         category: vfunc
       - name: CCvar_CallGlobalChangeCallbacks

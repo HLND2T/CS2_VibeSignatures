@@ -1,0 +1,211 @@
+func_name: CScriptConvarAccessor_RegisterConvar
+func_va: '0x1803d7f40'
+disasm_code: |-
+  .text:00000001803D7F40                 push    rbp
+  .text:00000001803D7F42                 push    rbx
+  .text:00000001803D7F43                 push    rsi
+  .text:00000001803D7F44                 push    rdi
+  .text:00000001803D7F45                 push    r12
+  .text:00000001803D7F47                 push    r15
+  .text:00000001803D7F49                 lea     rbp, [rsp-27h]
+  .text:00000001803D7F4E                 sub     rsp, 0B8h
+  .text:00000001803D7F55                 mov     [rbp+4Fh+arg_8], rdx
+  .text:00000001803D7F59                 mov     r15, r9
+  .text:00000001803D7F5C                 lea     rsi, [rcx+28h]
+  .text:00000001803D7F60                 mov     r12, r8
+  .text:00000001803D7F63                 mov     rbx, rdx
+  .text:00000001803D7F66                 mov     rdi, rcx
+  .text:00000001803D7F69                 test    rdx, rdx
+  .text:00000001803D7F6C                 jz      short loc_1803D7FCC
+  .text:00000001803D7F6E                 mov     r8, rsi
+  .text:00000001803D7F71                 lea     rdx, [rbp+4Fh+arg_8]
+  .text:00000001803D7F75                 mov     rcx, rsi
+  .text:00000001803D7F78                 call    sub_180395310
+  .text:00000001803D7F7D                 cmp     eax, 0FFFFFFFFh
+  .text:00000001803D7F80                 jz      short loc_1803D7FCC
+  .text:00000001803D7F82                 mov     rcx, cs:LOG_CONSOLE
+  .text:00000001803D7F89                 mov     edx, 3
+  .text:00000001803D7F8E                 mov     ecx, [rcx]
+  .text:00000001803D7F90                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:00000001803D7F96                 test    al, al
+  .text:00000001803D7F98                 jz      loc_1803D811F
+  .text:00000001803D7F9E                 mov     rcx, cs:LOG_CONSOLE
+  .text:00000001803D7FA5                 lea     r8, aCscriptconvara_4; "CScriptConvarAccessor::RegisterConvar c"...
+  .text:00000001803D7FAC                 mov     r9, rbx
+  .text:00000001803D7FAF                 mov     edx, 3
+  .text:00000001803D7FB4                 mov     ecx, [rcx]
+  .text:00000001803D7FB6                 add     rsp, 0B8h
+  .text:00000001803D7FBD                 pop     r15
+  .text:00000001803D7FBF                 pop     r12
+  .text:00000001803D7FC1                 pop     rdi
+  .text:00000001803D7FC2                 pop     rsi
+  .text:00000001803D7FC3                 pop     rbx
+  .text:00000001803D7FC4                 pop     rbp
+  .text:00000001803D7FC5                 jmp     cs:LoggingSystem_Log
+  .text:00000001803D7FCC                 mov     rcx, rbx
+  .text:00000001803D7FCF                 mov     [rsp+0E0h+var_30], r14
+  .text:00000001803D7FD7                 call    cs:MemAlloc_StrDupFunc
+  .text:00000001803D7FDD                 lea     rdx, [rbp+4Fh+arg_8]
+  .text:00000001803D7FE1                 mov     [rbp+4Fh+arg_8], rax
+  .text:00000001803D7FE5                 lea     rcx, [rdi+50h]
+  .text:00000001803D7FE9                 mov     r14, rax
+  .text:00000001803D7FEC                 call    sub_1803A3CC0
+  .text:00000001803D7FF1                 mov     rcx, r12
+  .text:00000001803D7FF4                 call    cs:MemAlloc_StrDupFunc
+  .text:00000001803D7FFA                 lea     rdx, [rbp+4Fh+arg_10]
+  .text:00000001803D7FFE                 mov     [rbp+4Fh+arg_10], rax
+  .text:00000001803D8002                 lea     rcx, [rdi+50h]
+  .text:00000001803D8006                 mov     r12, rax
+  .text:00000001803D8009                 call    sub_1803A3CC0
+  .text:00000001803D800E                 mov     rcx, r15
+  .text:00000001803D8011                 call    cs:MemAlloc_StrDupFunc
+  .text:00000001803D8017                 lea     rdx, [rbp+4Fh+arg_18]
+  .text:00000001803D801B                 mov     [rbp+4Fh+arg_18], rax
+  .text:00000001803D801F                 lea     rcx, [rdi+50h]
+  .text:00000001803D8023                 mov     r15, rax
+  .text:00000001803D8026                 call    sub_1803A3CC0
+  .text:00000001803D802B                 mov     ecx, 10h
+  .text:00000001803D8030                 call    sub_180C319D0
+  .text:00000001803D8035                 xor     ebx, ebx
+  .text:00000001803D8037                 mov     rdi, rax
+  .text:00000001803D803A                 test    rax, rax
+  .text:00000001803D803D                 jz      loc_1803D80C6
+  .text:00000001803D8043                 xorps   xmm0, xmm0
+  .text:00000001803D8046                 mov     [rbp+4Fh+var_B0], ebx
+  .text:00000001803D8049                 xorps   xmm1, xmm1
+  .text:00000001803D804C                 mov     [rbp+4Fh+var_AB], bx
+  .text:00000001803D8050                 mov     r8d, 9
+  .text:00000001803D8056                 mov     [rbp+4Fh+var_78], rbx
+  .text:00000001803D805A                 mov     edx, 0FFFFFFFFh
+  .text:00000001803D805F                 mov     [rbp+4Fh+var_50], r8w
+  .text:00000001803D8064                 mov     rcx, rax
+  .text:00000001803D8067                 mov     [rbp+4Fh+var_70], rbx
+  .text:00000001803D806B                 movups  [rbp+4Fh+var_A9], xmm0
+  .text:00000001803D806F                 mov     [rbp+4Fh+var_68], rbx
+  .text:00000001803D8073                 movups  [rbp+4Fh+var_99], xmm1
+  .text:00000001803D8077                 mov     [rbp+4Fh+var_60], rbx
+  .text:00000001803D807B                 movups  [rbp+4Fh+var_89], xmm0
+  .text:00000001803D807F                 mov     [rbp+4Fh+var_58], rbx
+  .text:00000001803D8083                 mov     [rbp+4Fh+var_40], bl
+  .text:00000001803D8086                 mov     [rbp+4Fh+var_48], rbx
+  .text:00000001803D808A                 call    sub_1819ACA80
+  .text:00000001803D808F                 mov     rdx, r12
+  .text:00000001803D8092                 mov     [rbp+4Fh+var_AC], 1
+  .text:00000001803D8096                 lea     rcx, [rbp+4Fh+var_A9]
+  .text:00000001803D809A                 mov     qword ptr [rbp+4Fh+var_A9], rbx
+  .text:00000001803D809E                 call    cs:?Set@CUtlString@@QEAAXPEBD@Z; CUtlString::Set(char const *)
+  .text:00000001803D80A4                 movsxd  r8, [rbp+4Fh+arg_20]
+  .text:00000001803D80A8                 lea     rax, [rbp+4Fh+var_B0]
+  .text:00000001803D80AC                 btr     r8, 0Ah
+  .text:00000001803D80B1                 mov     [rsp+0E0h+var_C0], rax
+  .text:00000001803D80B6                 mov     r9, r15
+  .text:00000001803D80B9                 mov     rdx, r14
+  .text:00000001803D80BC                 mov     rcx, rdi
+  .text:00000001803D80BF                 ; RegisterConVar
+  .text:00000001803D80BF                 call    RegisterConVar; RegisterConVar
+  .text:00000001803D80C4                 jmp     short loc_1803D80C9
+  .text:00000001803D80C6                 mov     rdi, rbx
+  .text:00000001803D80C9                 mov     rcx, cs:LOG_CONSOLE
+  .text:00000001803D80D0                 mov     edx, 2
+  .text:00000001803D80D5                 mov     [rbp+4Fh+arg_8], rdi
+  .text:00000001803D80D9                 mov     ecx, [rcx]
+  .text:00000001803D80DB                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:00000001803D80E1                 test    al, al
+  .text:00000001803D80E3                 jz      short loc_1803D8108
+  .text:00000001803D80E5                 mov     rcx, cs:LOG_CONSOLE
+  .text:00000001803D80EC                 lea     r8, aRegisterconvar_1; "RegisterConVar 0x%p = %s\n"
+  .text:00000001803D80F3                 mov     r9, rdi
+  .text:00000001803D80F6                 mov     [rsp+0E0h+var_C0], r14
+  .text:00000001803D80FB                 mov     edx, 2
+  .text:00000001803D8100                 mov     ecx, [rcx]
+  .text:00000001803D8102                 call    cs:LoggingSystem_Log
+  .text:00000001803D8108                 lea     r8, [rbp+4Fh+arg_8]
+  .text:00000001803D810C                 mov     rdx, r14
+  .text:00000001803D810F                 mov     rcx, rsi
+  .text:00000001803D8112                 call    sub_1803BD140
+  .text:00000001803D8117                 mov     r14, [rsp+0E0h+var_30]
+  .text:00000001803D811F                 add     rsp, 0B8h
+  .text:00000001803D8126                 pop     r15
+  .text:00000001803D8128                 pop     r12
+  .text:00000001803D812A                 pop     rdi
+  .text:00000001803D812B                 pop     rsi
+  .text:00000001803D812C                 pop     rbx
+  .text:00000001803D812D                 pop     rbp
+  .text:00000001803D812E                 retn
+procedure: |-
+  __int64 __fastcall sub_1803D7F40(__int64 a1, const char *a2, __int64 a3, __int64 a4, int a5)
+  {
+    __int64 v6; // rsi
+    __int64 result; // rax
+    const char *v11; // r14
+    const char *v12; // r12
+    __int64 v13; // r15
+    __int64 v14; // rax
+    _QWORD *v15; // rdi
+    _BYTE v16[55]; // [rsp+30h] [rbp-61h] BYREF
+    __int64 v17; // [rsp+68h] [rbp-29h]
+    __int64 v18; // [rsp+70h] [rbp-21h]
+    __int64 v19; // [rsp+78h] [rbp-19h]
+    __int64 v20; // [rsp+80h] [rbp-11h]
+    __int64 v21; // [rsp+88h] [rbp-9h]
+    __int16 v22; // [rsp+90h] [rbp-1h]
+    __int64 v23; // [rsp+98h] [rbp+7h]
+    char v24; // [rsp+A0h] [rbp+Fh]
+    __int64 v25; // [rsp+F8h] [rbp+67h] BYREF
+    __int64 v26; // [rsp+100h] [rbp+6Fh] BYREF
+    __int64 v27; // [rsp+108h] [rbp+77h] BYREF
+
+    v25 = (__int64)a2;
+    v6 = a1 + 40;
+    if ( !a2 || (unsigned int)sub_180395310(a1 + 40, &v25, a1 + 40) == -1 )
+    {
+      v25 = MemAlloc_StrDupFunc(a2);
+      v11 = (const char *)v25;
+      sub_1803A3CC0(a1 + 80, &v25);
+      v26 = MemAlloc_StrDupFunc(a3);
+      v12 = (const char *)v26;
+      sub_1803A3CC0(a1 + 80, &v26);
+      v27 = MemAlloc_StrDupFunc(a4);
+      v13 = v27;
+      sub_1803A3CC0(a1 + 80, &v27);
+      v14 = sub_180C319D0(16);
+      v15 = (_QWORD *)v14;
+      if ( v14 )
+      {
+        *(_DWORD *)v16 = 0;
+        memset(&v16[5], 0, 50);
+        v17 = 0;
+        v22 = 9;
+        v18 = 0;
+        v19 = 0;
+        v20 = 0;
+        v21 = 0;
+        v24 = 0;
+        v23 = 0;
+        sub_1819ACA80(v14, 0xFFFFFFFFLL, 9);
+        v16[4] = 1;
+        *(_QWORD *)&v16[7] = 0;
+        CUtlString::Set((CUtlString *)&v16[7], v12);
+        RegisterConVar(v15, (__int64)v11, a5 & 0xFFFFFFFFFFFFFBFFuLL, v13, (__int128 *)v16);// RegisterConVar
+      }
+      else
+      {
+        v15 = nullptr;
+      }
+      v25 = (__int64)v15;
+      if ( (unsigned __int8)LoggingSystem_IsChannelEnabled(LOG_CONSOLE, 2) )
+        LoggingSystem_Log(LOG_CONSOLE, 2, "RegisterConVar 0x%p = %s\n", v15, v11);
+      return sub_1803BD140(v6, v11, &v25);
+    }
+    else
+    {
+      result = LoggingSystem_IsChannelEnabled(LOG_CONSOLE, 3);
+      if ( (_BYTE)result )
+        return LoggingSystem_Log(
+                 LOG_CONSOLE,
+                 3,
+                 "CScriptConvarAccessor::RegisterConvar convar '%s' already registered\n",
+                 a2);
+    }
+    return result;
+  }
