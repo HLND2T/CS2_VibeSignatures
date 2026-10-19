@@ -1,0 +1,76 @@
+func_name: Script_CommandLineInt
+func_va: '0x1805785a0'
+disasm_code: |-
+  .text:00000001805785A0                 mov     [rsp+arg_0], rbx
+  .text:00000001805785A5                 mov     [rsp+arg_8], rbp
+  .text:00000001805785AA                 mov     [rsp+arg_10], rsi
+  .text:00000001805785AF                 push    rdi
+  .text:00000001805785B0                 push    r14
+  .text:00000001805785B2                 push    r15
+  .text:00000001805785B4                 sub     rsp, 20h
+  .text:00000001805785B8                 mov     ebp, r9d
+  .text:00000001805785BB                 mov     rbx, r8
+  .text:00000001805785BE                 mov     rdi, rdx
+  .text:00000001805785C1                 call    cs:CommandLine
+  .text:00000001805785C7                 xor     r15d, r15d
+  .text:00000001805785CA                 mov     rsi, rax
+  .text:00000001805785CD                 mov     rcx, [rax]
+  .text:00000001805785D0                 mov     r14, [rcx+50h] ; 0x50 = ICommandLine_ParmValue_Int
+  .text:00000001805785D4                 test    rbx, rbx
+  .text:00000001805785D7                 jz      short loc_180578605
+  .text:00000001805785D9                 cmp     [rbx], r15b
+  .text:00000001805785DC                 jz      short loc_180578605
+  .text:00000001805785DE                 mov     rcx, 0FFFFFFFFFFFFFFFFh
+  .text:00000001805785E5                 inc     rcx
+  .text:00000001805785E8                 cmp     [rbx+rcx], r15b
+  .text:00000001805785EC                 jnz     short loc_1805785E5
+  .text:00000001805785EE                 mov     r8d, ecx
+  .text:00000001805785F1                 movsxd  rdx, ecx
+  .text:00000001805785F4                 xor     r8d, 31415926h
+  .text:00000001805785FB                 mov     rcx, rbx
+  .text:00000001805785FE                 call    sub_180154E00
+  .text:0000000180578603                 jmp     short loc_180578608
+  .text:0000000180578605                 mov     eax, r15d
+  .text:0000000180578608                 mov     r8d, ebp ; int default argument
+  .text:000000018057860B                 mov     edx, eax
+  .text:000000018057860D                 mov     rcx, rsi
+  .text:0000000180578610                 call    r14 ; ICommandLine_ParmValue_Int loaded at 0x1805785D0, int result in eax
+  .text:0000000180578613                 mov     rbx, [rsp+38h+arg_0]
+  .text:0000000180578618                 mov     rbp, [rsp+38h+arg_8]
+  .text:000000018057861D                 mov     rsi, [rsp+38h+arg_10]
+  .text:0000000180578622                 mov     [rdi], eax
+  .text:0000000180578624                 mov     rax, rdi
+  .text:0000000180578627                 mov     byte ptr [rdi+8], 5
+  .text:000000018057862B                 mov     [rdi+0Ah], r15w
+  .text:0000000180578630                 add     rsp, 20h
+  .text:0000000180578634                 pop     r15
+  .text:0000000180578636                 pop     r14
+  .text:0000000180578638                 pop     rdi
+  .text:0000000180578639                 retn
+procedure: |-
+  __int64 __fastcall sub_1805785A0(__int64 a1, __int64 a2, _BYTE *a3, unsigned int a4)
+  {
+    __int64 v7; // rsi
+    __int64 (__fastcall *v8)(__int64, _QWORD, _QWORD); // r14
+    __int64 v9; // rcx
+    unsigned int v10; // eax
+
+    v7 = CommandLine();
+    v8 = *(__int64 (__fastcall **)(__int64, _QWORD, _QWORD))(*(_QWORD *)v7 + 80LL); // 80LL = 0x50 = ICommandLine_ParmValue_Int
+    if ( a3 && *a3 )
+    {
+      v9 = -1;
+      do
+        ++v9;
+      while ( a3[v9] );
+      v10 = sub_180154E00(a3, (int)v9, (unsigned int)v9 ^ 0x31415926);
+    }
+    else
+    {
+      v10 = 0;
+    }
+    *(_DWORD *)a2 = v8(v7, v10, a4);
+    *(_BYTE *)(a2 + 8) = 5;
+    *(_WORD *)(a2 + 10) = 0;
+    return a2;
+  }

@@ -96,6 +96,17 @@ After a version source commit reaches the default branch:
 6. The protected Release publisher creates/reuses the source tag, uploads exact immutable assets, publishes once, and dispatches Pages.
 7. Pages hydrates only published Release assets, verifies manifest/SHA256SUMS/archive inventories, builds all released versions, and verifies CDN bytes.
 
+BinSync commit identity is configured with the GitHub Environment **variables** `BINSYNC_GIT_USER_NAME` and
+`BINSYNC_GIT_USER_EMAIL` (not secrets). Set them in `win64` for Release candidate export and new-GAMEVER bootstrap,
+and in `binsync-remotes` for the initial commits made by the hosted remote provisioning job. Repository-level
+variables can supply shared values; environment-level values override them. Unset or empty values use
+`github-actions[bot]` and `github-actions[bot]@users.noreply.github.com`. Local commands accept the same environment
+variables. Initialization and candidate preparation write `user.name` and `user.email` with `git config --local` in
+each `.bsproj`, including existing and newly cloned repositories, so later BinSync commits do not depend on runner
+global Git configuration. Invalid identities and configuration write failures stop preparation before export with
+the affected repository in the diagnostic. The BinSync branch user (`release-automation` / `bootstrap-validation`)
+is configured separately and does not determine Git author identity.
+
 The self-hosted builder uses `release_bundle.py prepare` to verify local candidate sessions and construct portable
 assets without a publication manifest or C++ success claim. `cpp-validation.yml` tests the same snapshot/configuration
 and exact source SDK gitlink on hosted Windows and Ubuntu. Its aggregate requires both results and combines logs in
