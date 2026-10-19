@@ -113,7 +113,8 @@ disasm_code: |-
   .text:00000000003F9146                 mov     r8, [rbp-78h]
   .text:00000000003F914A                 mov     rdi, [rax]
   .text:00000000003F914D                 mov     r10, [rdi]
-  .text:00000000003F9150                 call    qword ptr [r10+0B8h]
+  .text:00000000003F9150                 ; 0x0B8 = 184LL = ICvar_CallGlobalChangeCallbacks
+  .text:00000000003F9150                 call    qword ptr [r10+0B8h]; 0x0B8 = 184LL = ICvar_CallGlobalChangeCallbacks
   .text:00000000003F9157                 ; this
   .text:00000000003F9157                 mov     rdi, [rbp+var_70]; this
   .text:00000000003F915B                 ; int
@@ -247,7 +248,7 @@ procedure: |-
       a4,
       v18,
       v17);
-    (*(void (__fastcall **)(_QWORD *, _QWORD *, _QWORD, const char *, const char *, __int64))(*qword_50D648 + 184LL))(
+    (*(void (__fastcall **)(_QWORD *, _QWORD *, _QWORD, const char *, const char *, __int64))(*qword_50D648 + 184LL))(// 0x0B8 = 184LL = ICvar_CallGlobalChangeCallbacks
       qword_50D648,
       a1,
       v5,
