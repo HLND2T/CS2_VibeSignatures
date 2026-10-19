@@ -1,0 +1,72 @@
+func_name: Script_CommandLineFloat
+func_va: '0x180578500'
+disasm_code: |-
+  .text:0000000180578500                 mov     [rsp+arg_0], rbx
+  .text:0000000180578505                 mov     [rsp+arg_8], rbp
+  .text:000000018057850A                 mov     [rsp+arg_10], rsi
+  .text:000000018057850F                 push    rdi
+  .text:0000000180578510                 sub     rsp, 30h
+  .text:0000000180578514                 movaps  [rsp+38h+var_18], xmm6
+  .text:0000000180578519                 mov     rbx, r8
+  .text:000000018057851C                 movaps  xmm6, xmm3
+  .text:000000018057851F                 mov     rsi, rdx
+  .text:0000000180578522                 call    cs:CommandLine
+  .text:0000000180578528                 mov     rdi, rax
+  .text:000000018057852B                 mov     rcx, [rax]
+  .text:000000018057852E                 mov     rbp, [rcx+48h] ; 0x48 = ICommandLine_ParmValue_Float
+  .text:0000000180578532                 test    rbx, rbx
+  .text:0000000180578535                 jz      short loc_180578563
+  .text:0000000180578537                 cmp     byte ptr [rbx], 0
+  .text:000000018057853A                 jz      short loc_180578563
+  .text:000000018057853C                 mov     rcx, 0FFFFFFFFFFFFFFFFh
+  .text:0000000180578543                 inc     rcx
+  .text:0000000180578546                 cmp     byte ptr [rbx+rcx], 0
+  .text:000000018057854A                 jnz     short loc_180578543
+  .text:000000018057854C                 mov     r8d, ecx
+  .text:000000018057854F                 movsxd  rdx, ecx
+  .text:0000000180578552                 xor     r8d, 31415926h
+  .text:0000000180578559                 mov     rcx, rbx
+  .text:000000018057855C                 call    sub_180154E00
+  .text:0000000180578561                 jmp     short loc_180578565
+  .text:0000000180578563                 xor     eax, eax
+  .text:0000000180578565                 movaps  xmm2, xmm6 ; float default argument
+  .text:0000000180578568                 mov     edx, eax
+  .text:000000018057856A                 mov     rcx, rdi
+  .text:000000018057856D                 call    rbp ; ICommandLine_ParmValue_Float loaded at 0x18057852E
+  .text:000000018057856F                 movaps  xmm1, xmm0 ; float result
+  .text:0000000180578572                 mov     rcx, rsi
+  .text:0000000180578575                 call    sub_1805692B0
+  .text:000000018057857A                 mov     rbx, [rsp+38h+arg_0]
+  .text:000000018057857F                 mov     rax, rsi
+  .text:0000000180578582                 mov     rsi, [rsp+38h+arg_10]
+  .text:0000000180578587                 mov     rbp, [rsp+38h+arg_8]
+  .text:000000018057858C                 movaps  xmm6, [rsp+38h+var_18]
+  .text:0000000180578591                 add     rsp, 30h
+  .text:0000000180578595                 pop     rdi
+  .text:0000000180578596                 retn
+procedure: |-
+  __int64 __fastcall sub_180578500(__int64 a1, __int64 a2, _BYTE *a3)
+  {
+    __int64 v5; // rdi
+    void (__fastcall *v6)(__int64, _QWORD); // rbp
+    __int64 v7; // rcx
+    unsigned int v8; // eax
+
+    v5 = CommandLine();
+    v6 = *(void (__fastcall **)(__int64, _QWORD))(*(_QWORD *)v5 + 72LL); // 72LL = 0x48 = ICommandLine_ParmValue_Float
+    if ( a3 && *a3 )
+    {
+      v7 = -1;
+      do
+        ++v7;
+      while ( a3[v7] );
+      v8 = sub_180154E00(a3, (int)v7, (unsigned int)v7 ^ 0x31415926);
+    }
+    else
+    {
+      v8 = 0;
+    }
+    v6(v5, v8); // ICommandLine_ParmValue_Float: Hex-Rays omits the float default in xmm2 and float result in xmm0.
+    sub_1805692B0(a2);
+    return a2;
+  }
