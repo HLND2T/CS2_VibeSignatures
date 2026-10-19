@@ -15724,6 +15724,26 @@ modules:
           - CKeyValuesSystem_GetKeyValuesExpressionSymbol.{platform}.yaml
         expected_input:
           - CKeyValuesSystem_vtable.{platform}.yaml
+      - name: find-ConVarRefAbstract_CallChangeCallbacks
+        optional_output:
+          - ConVarRefAbstract_CallChangeCallbacks.{platform}.yaml
+        expected_input:
+          - ConVarRefAbstract_SetValueInternal.{platform}.yaml
+      - name: find-ICvar_CallGlobalChangeCallbacks
+        expected_output:
+          - ICvar_CallGlobalChangeCallbacks.{platform}.yaml
+        expected_input:
+          - ConVarRefAbstract_SetValueInternal.{platform}.yaml
+        optional_input:
+          - ConVarRefAbstract_CallChangeCallbacks.{platform}.yaml
+        prerequisite:
+          - find-ConVarRefAbstract_CallChangeCallbacks
+      - name: find-CCvar_CallGlobalChangeCallbacks
+        expected_output:
+          - CCvar_CallGlobalChangeCallbacks.{platform}.yaml
+        expected_input:
+          - ICvar_CallGlobalChangeCallbacks.{platform}.yaml
+          - CCvar_vtable.{platform}.yaml
       - name: find-CCvar_RemoveGlobalChangeCallback
         expected_output:
           - CCvar_RemoveGlobalChangeCallback.{platform}.yaml
@@ -15826,6 +15846,10 @@ modules:
         category: vfunc
         alias:
           - CKeyValuesSystem::GetKeyValuesExpressionSymbol
+      - name: ICvar_CallGlobalChangeCallbacks
+        category: vfunc
+      - name: CCvar_CallGlobalChangeCallbacks
+        category: vfunc
       - name: CCvar_RemoveGlobalChangeCallback
         category: vfunc
         alias:
