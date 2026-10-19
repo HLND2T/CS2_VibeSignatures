@@ -7,7 +7,7 @@ TARGET_FUNCTION_NAMES = ["ICvar_RegisterConVar_Impl"]
 LLM_DECOMPILE = [
     {
         "symbol_name": "ICvar_RegisterConVar_Impl",
-        "prompt_path": "prompt/call_llm_decompile.md",
+        "prompt_path": "prompt/register_convar_impl_llm_decompile.md",
         "reference_yaml_paths": ["references/client/RegisterConVar.{platform}.yaml"],
         "expected_result_sections": ["found_call"],
         "dependency_policy": {"RegisterConVar.{platform}.yaml": "optional"},
