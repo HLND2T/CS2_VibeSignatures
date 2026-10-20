@@ -253,6 +253,70 @@ class TestClangPrimaryVtable(unittest.TestCase):
 
 
 class TestCompareVtableWithYaml(unittest.TestCase):
+    def test_game_event_system_overload_alias_preserves_index_validation(self) -> None:
+        for platform, reference_index in (("windows", 1), ("linux", 0)):
+            for wrong_index in (False, True):
+                with (
+                    self.subTest(platform=platform, wrong_index=wrong_index),
+                    tempfile.TemporaryDirectory() as temp_dir,
+                ):
+                    if platform == "windows":
+                        output = "VFTable for 'IGameEventSystem' (4 entries).\n 0 | IGameEventSystem RTTI\n"
+                        first_index = 1
+                    else:
+                        output = (
+                            "Vtable for 'IGameEventSystem' (5 entries).\n"
+                            " 0 | offset_to_top (0)\n 1 | IGameEventSystem RTTI\n"
+                        )
+                        first_index = 2
+                    output += (
+                        f" {first_index} | void IGameEventSystem::PostEventAbstract(int) [pure]\n"
+                        f" {first_index + 1} | void IGameEventSystem::PostEventAbstract(void *) [pure]\n"
+                        f" {first_index + 2} | void IGameEventSystem::ProcessQueuedEvents() [pure]\n"
+                    )
+                    module_dir = Path(temp_dir) / "14191" / "engine"
+                    module_dir.mkdir(parents=True)
+                    (module_dir / f"CGameEventSystem_vtable.{platform}.yaml").write_text(
+                        "vtable_class: CGameEventSystem\nvtable_size: '0x18'\nvtable_numvfunc: 3\n",
+                        encoding="utf-8",
+                    )
+                    index = 2 if wrong_index else reference_index
+                    (module_dir / f"CGameEventSystem_PostEventAbstract2.{platform}.yaml").write_text(
+                        "func_name: CGameEventSystem_PostEventAbstract2\n"
+                        f"vtable_name: CGameEventSystem\nvfunc_index: {index}\n",
+                        encoding="utf-8",
+                    )
+                    report = cpp_tests_util.compare_compiler_vtable_with_yaml(
+                        class_name="IGameEventSystem",
+                        compiler_output=output,
+                        symbol_store=DirectorySymbolStore(temp_dir, "14191"),
+                        platform=platform,
+                        reference_modules=["engine"],
+                        pointer_size=8,
+                        alias_class_names=["CGameEventSystem"],
+                    )
+                    self.assertTrue(report["reference_found"])
+                    if wrong_index:
+                        types = [item["type"] for item in report["differences"]]
+                        self.assertIn("reference_vfunc_name_mismatch", types)
+                        self.assertIn("vfunc_name_mismatch", types)
+                    else:
+                        self.assertEqual([], report["differences"])
+
+    def test_numbered_overload_alias_is_limited_to_game_event_system(self) -> None:
+        for owner in ("CGameEventSystem", "COtherSystem"):
+            for member in ("PostEventAbstract", "PostEventAbstract2", "PostEventAbstract3"):
+                with self.subTest(owner=owner, member=member):
+                    expected = (
+                        "PostEventAbstract"
+                        if owner == "CGameEventSystem" and member == "PostEventAbstract2"
+                        else member
+                    )
+                    self.assertEqual(
+                        expected,
+                        cpp_tests_util._normalize_reference_member_name(owner, f"{owner}_{member}", "unused"),
+                    )
+
     def _compare_linux_derived(self, output: str, *, expected_member: str = "a") -> dict:
         with tempfile.TemporaryDirectory() as temp_dir:
             module_dir = Path(temp_dir) / "14184" / "engine"

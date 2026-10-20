@@ -41,6 +41,14 @@ immutable main SHA preflight
 - Binary-only accepted cache and immutable warm IDB generation.
 - Separate hosted verifier, `binsync-release` environment, `release` environment, and external repository rulesets.
 ## Notes
+- Consumer dependency preflight: if bootstrap/rebuild completes analysis and then fails with
+  `ModuleNotFoundError` in BinSync preparation (#1146), check the selected host `IDA_PYTHON`, not the workflow's
+  project venv. `ci_runner.resolve_ida(consumer=True)` reuses `push_binsync_symbols.probe_capability` to import
+  `idapro`, `binsync.controller`, and `declib.decompilers.ida.interface` in that exact interpreter before version
+  discovery or exporting its environment. Import failures include the interpreter path and original diagnostic;
+  launch failures and empty diagnostics also fail closed. Verify with `TestConsumerIdaPreflight`, including a
+  transitive missing dependency and unchanged environment on failure. Warmup-only `resolve-ida` keeps its existing
+  dependency requirements; provisioning the runner's packages remains a separate task.
 - No generated-output branch/PR, release-staging correctness source, or accepted-bin YAML promotion remains.
 - Stable transaction identity is `run_id`; rerun attempt is transport metadata and must not change candidate identity.
 - Self-hosted build has read-only source access and no publication credentials. BinSync and Release publishers are isolated.
@@ -134,3 +142,10 @@ immutable main SHA preflight
   back to local warmup. `--with-idb` is orthogonal to `--binsync`.
 - `verify_release_bundle` keeps the generic `for path, expected in manifest["archives"].items(): _verify_archive(...)`
   round-trip and adds `_verify_idb_archive_inventory`, which binds the archive to `_binary_records(binary_inventory)`.
+
+## BinSync repository commit identity
+- Trigger: release run `38800931438` passed analysis and immutable artifact comparison, then local BinSync export reported `Author identity unknown` / `unable to auto-detect email address`, followed by dirty-file checkout failures.
+- Root cause: cloned/existing `.bsproj` repositories lacked local Git identity. Initial `git -c user.name=... -c user.email=... commit` settings were command-scoped and did not configure later BinSync commits; runner-global configuration differed between machines.
+- Correct approach: `init_gamebin.configure_binsync_git_identity` persists `user.name` / `user.email` with `git config --local --replace-all`, used by minimal initialization and every candidate repository preparation. `BINSYNC_GIT_USER_NAME` / `BINSYNC_GIT_USER_EMAIL` override deterministic github-actions[bot] defaults; unset/empty values use defaults. GitHub Environment variables are mapped for `win64` Release/bootstrap jobs and `binsync-remotes` provisioning. The branch user stays independent of author identity.
+- Validation: `TestBinSyncCommitIdentity` uses isolated Git global configuration with no identity and actual commits/branch switches for bootstrap, cloned, and existing repositories; covers defaults, invalid input and configuration write errors. No BinSync installation is required for these Git regressions.
+- Scope: local commit creation/configuration, not remote credentials or publisher permissions. A failed local prepare prevents the protected publish job from running.

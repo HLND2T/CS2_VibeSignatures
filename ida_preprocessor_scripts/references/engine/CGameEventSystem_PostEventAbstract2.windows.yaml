@@ -1,0 +1,388 @@
+func_name: CGameEventSystem_PostEventAbstract2
+func_va: '0x180217710'
+disasm_code: |-
+  .text:0000000180217710                 mov     [rsp-8+arg_8], rbx
+  .text:0000000180217715                 mov     [rsp-8+arg_10], rsi
+  .text:000000018021771A                 mov     [rsp-8+arg_18], rdi
+  .text:000000018021771F                 push    rbp
+  .text:0000000180217720                 push    r12
+  .text:0000000180217722                 push    r13
+  .text:0000000180217724                 push    r14
+  .text:0000000180217726                 push    r15
+  .text:0000000180217728                 lea     rbp, [rsp-0Fh]
+  .text:000000018021772D                 sub     rsp, 0A0h
+  .text:0000000180217734                 mov     r12, [rbp+2Fh+arg_28]
+  .text:0000000180217738                 mov     r14, rcx
+  .text:000000018021773B                 mov     rcx, cs:g_pNetworkMessages
+  .text:0000000180217742                 mov     ebx, edx
+  .text:0000000180217744                 mov     rdx, r12
+  .text:0000000180217747                 mov     edi, r9d
+  .text:000000018021774A                 movzx   r15d, r8b
+  .text:000000018021774E                 xor     esi, esi
+  .text:0000000180217750                 mov     rax, [rcx]
+  .text:0000000180217753                 call    qword ptr [rax+60h]
+  .text:0000000180217756                 mov     rdx, cs:qword_18091C9C8
+  .text:000000018021775D                 mov     r13, rax
+  .text:0000000180217760                 cmp     dword ptr [rdx+58h], 1
+  .text:0000000180217764                 jle     short loc_1802177D4
+  .text:0000000180217766                 mov     ecx, cs:dword_18091C6F8
+  .text:000000018021776C                 mov     edx, 2
+  .text:0000000180217771                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:0000000180217777                 test    al, al
+  .text:0000000180217779                 jz      short loc_1802177D4
+  .text:000000018021777B                 mov     rcx, [r13+10h]
+  .text:000000018021777F                 lea     rsi, unk_180531D7F
+  .text:0000000180217786                 mov     eax, [r13+18h]
+  .text:000000018021778A                 test    rcx, rcx
+  .text:000000018021778D                 mov     [rbp+2Fh+arg_0], eax
+  .text:0000000180217790                 cmovnz  rsi, rcx
+  .text:0000000180217794                 mov     rcx, [r13+8]
+  .text:0000000180217798                 test    rcx, rcx
+  .text:000000018021779B                 jz      short loc_1802177A4
+  .text:000000018021779D                 mov     rax, [rcx]
+  .text:00000001802177A0                 call    qword ptr [rax]
+  .text:00000001802177A2                 jmp     short loc_1802177AB
+  .text:00000001802177A4                 lea     rax, aUnknown; "unknown"
+  .text:00000001802177AB                 mov     ecx, [rbp+2Fh+arg_0]
+  .text:00000001802177AE                 lea     r8, aGameeventPosti_0; "GameEvent:  Posting %s (id:%d group:'%s"...
+  .text:00000001802177B5                 mov     [rsp+0C0h+var_98], rsi
+  .text:00000001802177BA                 mov     r9, rax
+  .text:00000001802177BD                 mov     dword ptr [rsp+0C0h+var_A0], ecx
+  .text:00000001802177C1                 mov     edx, 2
+  .text:00000001802177C6                 mov     ecx, cs:dword_18091C6F8
+  .text:00000001802177CC                 call    cs:LoggingSystem_Log
+  .text:00000001802177D2                 xor     esi, esi
+  .text:00000001802177D4                 cmp     byte ptr [r14+28h], 0
+  .text:00000001802177D9                 jz      loc_1802179C2
+  .text:00000001802177DF                 mov     rcx, cs:g_pNetworkClientService
+  .text:00000001802177E6                 lea     rdx, [rbp+2Fh+arg_0]
+  .text:00000001802177EA                 cmp     ebx, 0FFFFFFFFh
+  .text:00000001802177ED                 cmovz   ebx, esi
+  .text:00000001802177F0                 mov     rax, [rcx]
+  .text:00000001802177F3                 mov     r8d, ebx
+  .text:00000001802177F6                 call    qword ptr [rax+128h]
+  .text:00000001802177FC                 mov     rcx, cs:g_pNetworkClientService
+  .text:0000000180217803                 mov     edx, ebx
+  .text:0000000180217805                 mov     rax, [rcx]
+  .text:0000000180217808                 call    qword ptr [rax+150h]
+  .text:000000018021780E                 mov     r13, [rbp+2Fh+arg_30]
+  .text:0000000180217812                 mov     rsi, rax
+  .text:0000000180217815                 mov     r12, [rbp+2Fh+arg_20]
+  .text:0000000180217819                 test    rax, rax
+  .text:000000018021781C                 jz      short loc_18021784F
+  .text:000000018021781E                 test    r12, r12
+  .text:0000000180217821                 jz      short loc_18021784F
+  .text:0000000180217823                 mov     rax, [r12]
+  .text:0000000180217827                 mov     edx, 1
+  .text:000000018021782C                 mov     ecx, [rbp+2Fh+arg_0]
+  .text:000000018021782F                 shl     rdx, cl
+  .text:0000000180217832                 test    rdx, rax
+  .text:0000000180217835                 setnz   r8b
+  .text:0000000180217839                 test    rdx, rax
+  .text:000000018021783C                 jz      short loc_18021784A
+  .text:000000018021783E                 not     rdx
+  .text:0000000180217841                 and     rdx, rax
+  .text:0000000180217844                 mov     [r12], rdx
+  .text:0000000180217848                 dec     edi
+  .text:000000018021784A                 test    r8b, r8b
+  .text:000000018021784D                 jnz     short loc_180217858
+  .text:000000018021784F                 test    r15b, r15b
+  .text:0000000180217852                 jnz     short loc_180217874
+  .text:0000000180217854                 test    edi, edi
+  .text:0000000180217856                 jnz     short loc_180217874
+  .text:0000000180217858                 mov     rax, [rbp+2Fh+arg_38]
+  .text:000000018021785C                 mov     r9, r13
+  .text:000000018021785F                 mov     r10, [r14]
+  .text:0000000180217862                 mov     edx, ebx
+  .text:0000000180217864                 mov     r8, [rbp+2Fh+arg_28]
+  .text:0000000180217868                 mov     rcx, r14
+  .text:000000018021786B                 mov     [rsp+0C0h+var_A0], rax
+  .text:0000000180217870                 call    qword ptr [r10+70h] ; 70h = IGameEventSystem_PostEventAbstract_Local
+  .text:0000000180217874                 test    rsi, rsi
+  .text:0000000180217877                 jz      loc_180217A0A
+  .text:000000018021787D                 test    r15b, r15b
+  .text:0000000180217880                 jz      loc_180217A0A
+  .text:0000000180217886                 movsx   r14d, [rbp+2Fh+arg_40]
+  .text:000000018021788B                 test    edi, edi
+  .text:000000018021788D                 jz      loc_1802179AD
+  .text:0000000180217893                 xor     ecx, ecx
+  .text:0000000180217895                 mov     [rbp+2Fh+var_6C], 0FFh
+  .text:0000000180217899                 lea     rax, ??_7CBidirMsg_RebroadcastGameEvent_t@@6B@; const CBidirMsg_RebroadcastGameEvent_t::`vftable'
+  .text:00000001802178A0                 mov     [rbp+2Fh+var_70], ecx
+  .text:00000001802178A3                 xor     ebx, ebx
+  .text:00000001802178A5                 mov     [rbp+2Fh+var_80], rax
+  .text:00000001802178A9                 mov     [rbp+2Fh+var_40], rbx
+  .text:00000001802178AD                 lea     rax, ??_7CBidirMsg_RebroadcastGameEvent_t@@6B@_0; const CBidirMsg_RebroadcastGameEvent_t::`vftable'
+  .text:00000001802178B4                 mov     [rbp+2Fh+var_50], rax
+  .text:00000001802178B8                 xorps   xmm0, xmm0
+  .text:00000001802178BB                 movsd   [rbp+2Fh+var_78], xmm0
+  .text:00000001802178C0                 mov     [rbp+2Fh+var_68], 0FFFFFFFFFFFFFFFFh
+  .text:00000001802178C8                 mov     [rbp+2Fh+var_60], 0BF800000h
+  .text:00000001802178CF                 mov     [rbp+2Fh+var_58], 0FFFFFFFFFFFFFFFFh
+  .text:00000001802178D7                 mov     [rbp+2Fh+var_48], rcx
+  .text:00000001802178DB                 mov     dword ptr [rbp+2Fh+var_40+4], ecx
+  .text:00000001802178DE                 cmp     edi, 40h ; '@'
+  .text:00000001802178E1                 jle     short loc_1802178F6
+  .text:00000001802178E3                 mov     edx, 40h ; '@'
+  .text:00000001802178E8                 lea     rcx, aCgameeventsyst; "CGameEventSystem::SendRebroadcastMessag"...
+  .text:00000001802178EF                 call    cs:Plat_FatalError
+  .text:00000001802178F5                 ; Trap to Debugger
+  .text:00000001802178F5                 int     3; Trap to Debugger
+  .text:00000001802178F6                 or      ebx, 0Fh
+  .text:00000001802178F9                 mov     [rbp+2Fh+var_38], r15b
+  .text:00000001802178FD                 mov     [rbp+2Fh+var_34], r14d
+  .text:0000000180217901                 test    edi, edi
+  .text:0000000180217903                 jle     short loc_180217931
+  .text:0000000180217905                 lea     eax, [rdi+7]
+  .text:0000000180217908                 mov     [rbp+2Fh+arg_28], rcx
+  .text:000000018021790C                 cdq
+  .text:000000018021790D                 mov     [rbp+2Fh+var_28], edi
+  .text:0000000180217910                 and     edx, 7
+  .text:0000000180217913                 lea     rcx, [rbp+2Fh+arg_28]
+  .text:0000000180217917                 add     eax, edx
+  .text:0000000180217919                 mov     rdx, r12
+  .text:000000018021791C                 sar     eax, 3
+  .text:000000018021791F                 movsxd  r8, eax
+  .text:0000000180217922                 call    sub_18047AFE0
+  .text:0000000180217927                 mov     rax, [rbp+2Fh+arg_28]
+  .text:000000018021792B                 mov     [rbp+2Fh+var_30], rax
+  .text:000000018021792F                 jmp     short loc_180217940
+  .text:0000000180217931                 mov     [rbp+2Fh+var_28], 40h ; '@'
+  .text:0000000180217938                 mov     [rbp+2Fh+var_30], 0FFFFFFFFFFFFFFFFh
+  .text:0000000180217940                 mov     rax, [rsi]
+  .text:0000000180217943                 lea     rdx, [rbp+2Fh+var_80]
+  .text:0000000180217947                 movzx   r8d, r14b
+  .text:000000018021794B                 mov     dword ptr [rbp+2Fh+var_40], ebx
+  .text:000000018021794E                 mov     rcx, rsi
+  .text:0000000180217951                 call    qword ptr [rax+138h]
+  .text:0000000180217957                 lea     rax, ??_7?$CNetMessagePB@$0BA@VCBidirMsg_RebroadcastGameEvent@@$04$00$00@@6B@; const CNetMessagePB<16,CBidirMsg_RebroadcastGameEvent,5,1,1>::`vftable'
+  .text:000000018021795E                 mov     [rbp+2Fh+var_80], rax
+  .text:0000000180217962                 lea     rax, ??_7CBidirMsg_RebroadcastGameEvent@@6B@; const CBidirMsg_RebroadcastGameEvent::`vftable'
+  .text:0000000180217969                 mov     [rbp+2Fh+var_50], rax
+  .text:000000018021796D                 movzx   eax, byte ptr [rbp+2Fh+var_48]
+  .text:0000000180217971                 test    al, 1
+  .text:0000000180217973                 jz      short loc_180217982
+  .text:0000000180217975                 lea     rcx, [rbp+2Fh+var_48]
+  .text:0000000180217979                 call    sub_1801462C0
+  .text:000000018021797E                 movzx   eax, byte ptr [rbp+2Fh+var_48]
+  .text:0000000180217982                 shr     al, 1
+  .text:0000000180217984                 test    al, 1
+  .text:0000000180217986                 jz      short loc_1802179AD
+  .text:0000000180217988                 mov     rbx, [rbp+2Fh+var_48]
+  .text:000000018021798C                 add     rbx, 0FFFFFFFFFFFFFFFEh
+  .text:0000000180217990                 jz      short loc_1802179AD
+  .text:0000000180217992                 mov     rcx, rbx
+  .text:0000000180217995                 call    sub_1802C1070
+  .text:000000018021799A                 mov     rax, cs:g_pMemAlloc
+  .text:00000001802179A1                 mov     rdx, rbx
+  .text:00000001802179A4                 mov     rcx, [rax]
+  .text:00000001802179A7                 mov     rax, [rcx]
+  .text:00000001802179AA                 call    qword ptr [rax+18h]
+  .text:00000001802179AD                 mov     rax, [rsi]
+  .text:00000001802179B0                 movzx   r8d, r14b
+  .text:00000001802179B4                 mov     rdx, r13
+  .text:00000001802179B7                 mov     rcx, rsi
+  .text:00000001802179BA                 call    qword ptr [rax+138h]
+  .text:00000001802179C0                 jmp     short loc_180217A0A
+  .text:00000001802179C2                 mov     rsi, [rbp+2Fh+arg_30]
+  .text:00000001802179C6                 test    r15b, r15b
+  .text:00000001802179C9                 jz      short loc_1802179E6
+  .text:00000001802179CB                 mov     rax, [rbp+2Fh+arg_38]
+  .text:00000001802179CF                 mov     r9, rsi
+  .text:00000001802179D2                 mov     r10, [r14]
+  .text:00000001802179D5                 mov     r8, r12
+  .text:00000001802179D8                 mov     edx, ebx
+  .text:00000001802179DA                 mov     [rsp+0C0h+var_A0], rax
+  .text:00000001802179DF                 mov     rcx, r14
+  .text:00000001802179E2                 call    qword ptr [r10+70h] ; 70h = IGameEventSystem_PostEventAbstract_Local
+  .text:00000001802179E6                 movzx   eax, [rbp+2Fh+arg_40]
+  .text:00000001802179EA                 mov     r9d, edi
+  .text:00000001802179ED                 mov     [rsp+0C0h+var_90], 0FFFFFFFFh
+  .text:00000001802179F5                 mov     r8, rsi
+  .text:00000001802179F8                 mov     byte ptr [rsp+0C0h+var_98], al
+  .text:00000001802179FC                 mov     rax, [rbp+2Fh+arg_20]
+  .text:0000000180217A00                 mov     [rsp+0C0h+var_A0], rax
+  .text:0000000180217A05                 call    sub_1802173E0
+  .text:0000000180217A0A                 lea     r11, [rsp+0C0h+var_20]
+  .text:0000000180217A12                 mov     rbx, [r11+38h]
+  .text:0000000180217A16                 mov     rsi, [r11+40h]
+  .text:0000000180217A1A                 mov     rdi, [r11+48h]
+  .text:0000000180217A1E                 mov     rsp, r11
+  .text:0000000180217A21                 pop     r15
+  .text:0000000180217A23                 pop     r14
+  .text:0000000180217A25                 pop     r13
+  .text:0000000180217A27                 pop     r12
+  .text:0000000180217A29                 pop     rbp
+  .text:0000000180217A2A                 retn
+procedure: |-
+  __int64 __fastcall CGameEventSystem_PostEventAbstract2(
+          _BYTE *a1,
+          unsigned int a2,
+          char a3,
+          int a4,
+          __int64 *a5,
+          __int64 a6,
+          __int64 a7,
+          __int64 a8,
+          char a9)
+  {
+    __int64 v9; // r12
+    __int64 v14; // rax
+    int v15; // ecx
+    int v16; // edx
+    __int64 v17; // r13
+    const char *v18; // rcx
+    const char *v19; // rsi
+    __int64 (__fastcall ***v20)(_QWORD); // rcx
+    const char *v21; // rax
+    __int64 result; // rax
+    __int64 v23; // r13
+    __int64 v24; // rsi
+    __int64 *v25; // r12
+    bool v26; // r8
+    unsigned __int8 v27; // r14
+    __int64 v28; // rax
+    char v29; // al
+    __int64 v30; // rbx
+    int v31; // esi
+    _QWORD v32[2]; // [rsp+40h] [rbp-51h] BYREF
+    int v33; // [rsp+50h] [rbp-41h]
+    char v34; // [rsp+54h] [rbp-3Dh]
+    __int64 v35; // [rsp+58h] [rbp-39h]
+    int v36; // [rsp+60h] [rbp-31h]
+    __int64 v37; // [rsp+68h] [rbp-29h]
+    void **v38; // [rsp+70h] [rbp-21h]
+    __int64 v39; // [rsp+78h] [rbp-19h] BYREF
+    __int64 v40; // [rsp+80h] [rbp-11h]
+    char v41; // [rsp+88h] [rbp-9h]
+    int v42; // [rsp+8Ch] [rbp-5h]
+    __int64 v43; // [rsp+90h] [rbp-1h]
+    int v44; // [rsp+98h] [rbp+7h]
+    int v45; // [rsp+D0h] [rbp+3Fh] BYREF
+
+    v9 = a6;
+    v14 = (*(__int64 (__fastcall **)(__int64, __int64))(*(_QWORD *)g_pNetworkMessages + 96LL))(g_pNetworkMessages, a6);
+    v16 = qword_18091C9C8;
+    v17 = v14;
+    if ( *(int *)(qword_18091C9C8 + 88) > 1
+      && (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_18091C6F8, 2) )
+    {
+      v18 = *(const char **)(v17 + 16);
+      v19 = (const char *)&unk_180531D7F;
+      v45 = *(_DWORD *)(v17 + 24);
+      if ( v18 )
+        v19 = v18;
+      v20 = *(__int64 (__fastcall ****)(_QWORD))(v17 + 8);
+      if ( v20 )
+        v21 = (const char *)(**v20)(v20);
+      else
+        v21 = "unknown";
+      LoggingSystem_Log(
+        (unsigned int)dword_18091C6F8,
+        2,
+        "GameEvent:  Posting %s (id:%d group:'%s') from code\n",
+        v21,
+        v45,
+        v19);
+    }
+    if ( a1[40] )
+    {
+      if ( a2 == -1 )
+        a2 = 0;
+      (*(void (__fastcall **)(__int64, int *, _QWORD))(*(_QWORD *)g_pNetworkClientService + 296LL))(
+        g_pNetworkClientService,
+        &v45,
+        a2);
+      result = (*(__int64 (__fastcall **)(__int64, _QWORD))(*(_QWORD *)g_pNetworkClientService + 336LL))(
+                 g_pNetworkClientService,
+                 a2);
+      v23 = a7;
+      v24 = result;
+      v25 = a5;
+      if ( result && a5 )
+      {
+        result = *a5;
+        v26 = (*a5 & (1LL << v45)) != 0;
+        if ( (*a5 & (1LL << v45)) != 0 )
+        {
+          *a5 = result & ~(1LL << v45);
+          --a4;
+        }
+        if ( v26 )
+          goto LABEL_19;
+      }
+      if ( !a3 && !a4 )
+  LABEL_19:
+        result = (*(__int64 (__fastcall **)(_BYTE *, _QWORD, __int64, __int64, __int64))(*(_QWORD *)a1 + 112LL))( // 112LL = 0x70 = IGameEventSystem_PostEventAbstract_Local
+                   a1,
+                   a2,
+                   a6,
+                   v23,
+                   a8);
+      if ( v24 && a3 )
+      {
+        v27 = a9;
+        if ( a4 )
+        {
+          v34 = -1;
+          v33 = 0;
+          v32[0] = &CBidirMsg_RebroadcastGameEvent_t::`vftable';
+          v40 = 0;
+          v38 = &CBidirMsg_RebroadcastGameEvent_t::`vftable';
+          v32[1] = 0;
+          v35 = -1;
+          v36 = -1082130432;
+          v37 = -1;
+          v39 = 0;
+          if ( a4 > 64 )
+          {
+            Plat_FatalError("CGameEventSystem::SendRebroadcastMessage doesn't support more than %llu clients!\n", 64);
+            __debugbreak();
+          }
+          v41 = a3;
+          v42 = a9;
+          if ( a4 <= 0 )
+          {
+            v44 = 64;
+            v43 = -1;
+          }
+          else
+          {
+            a6 = 0;
+            v44 = a4;
+            sub_18047AFE0(&a6, v25, (a4 + 7) / 8);
+            v43 = a6;
+          }
+          v28 = *(_QWORD *)v24;
+          LODWORD(v40) = 15;
+          (*(void (__fastcall **)(__int64, _QWORD *, _QWORD))(v28 + 312))(v24, v32, v27);
+          v32[0] = &CNetMessagePB<16,CBidirMsg_RebroadcastGameEvent,5,1,1>::`vftable';
+          v38 = &CBidirMsg_RebroadcastGameEvent::`vftable';
+          v29 = v39;
+          if ( (v39 & 1) != 0 )
+          {
+            sub_1801462C0(&v39);
+            v29 = v39;
+          }
+          if ( (v29 & 2) != 0 )
+          {
+            v30 = v39 - 2;
+            if ( v39 != 2 )
+            {
+              sub_1802C1070(v39 - 2);
+              (*(void (__fastcall **)(_QWORD, __int64))(*g_pMemAlloc + 24LL))(g_pMemAlloc, v30);
+            }
+          }
+        }
+        return (*(__int64 (__fastcall **)(__int64, __int64, _QWORD))(*(_QWORD *)v24 + 312LL))(v24, v23, v27);
+      }
+    }
+    else
+    {
+      v31 = a7;
+      if ( a3 )
+        (*(void (__fastcall **)(_BYTE *, _QWORD, __int64, __int64, __int64))(*(_QWORD *)a1 + 112LL))(a1, a2, v9, a7, a8); // 112LL = 0x70 = IGameEventSystem_PostEventAbstract_Local
+      return sub_1802173E0(v15, v16, v31, a4, (__int64)a5, a9, -1);
+    }
+    return result;
+  }
