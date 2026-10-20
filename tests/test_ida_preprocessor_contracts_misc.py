@@ -950,5 +950,331 @@ class TestFindOnServerVoiceDataIsPlayingDemoCallee(unittest.IsolatedAsyncioTestC
         self.assertFalse(result)
 
 
+class TestConvarFilterCallChain(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        from ida_preprocessor_scripts import _convar_filter_chain_common
+
+        self.chain = _convar_filter_chain_common
+
+    async def test_inline_body_does_not_walk_helpers(self):
+        with patch.object(self.chain, "preprocess_common_skill", AsyncMock(return_value=True)) as preprocess:
+            self.assertTrue(await self.chain.preprocess_call_chain(session="session"))
+        self.assertEqual(preprocess.await_count, 1)
+        self.assertNotIn("llm_target_details_loader", preprocess.await_args.kwargs)
+
+    async def test_deinlined_body_uses_instruction_loader(self):
+        with patch.object(self.chain, "preprocess_common_skill", AsyncMock(side_effect=[False, True])) as preprocess:
+            self.assertTrue(await self.chain.preprocess_call_chain(session="session"))
+        self.assertIs(preprocess.await_args.kwargs["llm_target_details_loader"], self.chain.load_helper_details)
+
+    async def test_helper_instructions_remain_available_for_validation(self):
+        root = {"func_va": "0x1000", "disasm_code": "0x1000 call sub_2000"}
+        helper = {"func_va": "0x2000", "disasm_code": "0x2000 jmp qword ptr [rax+80h]"}
+        session = type("Session", (), {"call_tool": AsyncMock(return_value={})})()
+        with (
+            patch.object(self.chain, "_load_llm_decompile_target_details_via_mcp", AsyncMock(return_value=[root])),
+            patch.object(
+                self.chain, "parse_mcp_result", return_value={"result": '{"addresses":["0x2000"],"overflow":false}'}
+            ),
+            patch.object(self.chain, "_export_function_detail_via_mcp", AsyncMock(return_value=helper)),
+        ):
+            self.assertEqual(await self.chain.load_helper_details(session, ["Set"]), [root, helper])
+
+    async def test_partial_or_overflowing_chains_fail_closed(self):
+        session = type("Session", (), {"call_tool": AsyncMock(return_value={})})()
+        for overflow in (True, False):
+            with (
+                self.subTest(overflow=overflow),
+                patch.object(
+                    self.chain,
+                    "_load_llm_decompile_target_details_via_mcp",
+                    AsyncMock(return_value=[{"func_va": "0x1000"}]),
+                ),
+                patch.object(
+                    self.chain,
+                    "parse_mcp_result",
+                    return_value={"result": '{"addresses":["0x2000"],"overflow":' + str(overflow).lower() + "}"},
+                ),
+                patch.object(self.chain, "_export_function_detail_via_mcp", AsyncMock(return_value=None)),
+            ):
+                self.assertEqual(await self.chain.load_helper_details(session, ["Set"]), [])
+
+    def test_ambiguous_filter_slots_fail_closed(self):
+        finder = _load_module(Path("ida_preprocessor_scripts/find-ICvar_CallFilterCallback.py"), "find_ICvar_filter")
+        entry = {"func_name": "ICvar_CallFilterCallback", "vfunc_offset": "0x80"}
+        self.assertEqual(finder.validate_dispatch({"found_vcall": [entry]}), [])
+        self.assertTrue(finder.validate_dispatch({"found_vcall": [entry, {**entry, "vfunc_offset": "0x88"}]}))
+
+
+class TestCvarIterateCallbackChain(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        self.finder = _load_module(
+            Path("ida_preprocessor_scripts/find-ICvar_IterateConVarCallbacks.py"), "find_ICvar_IterateConVarCallbacks"
+        )
+
+    async def test_inline_dispatch_does_not_walk_helpers(self):
+        with patch.object(self.finder, "preprocess_common_skill", AsyncMock(return_value=True)) as preprocess:
+            self.assertTrue(await self.finder.preprocess_skill("session", "finder", [], {}, "/tmp", "linux", 0))
+        self.assertEqual(preprocess.await_count, 1)
+        self.assertNotIn("llm_target_details_loader", preprocess.await_args.kwargs)
+
+    async def test_missing_inline_dispatch_uses_helper_loader(self):
+        with patch.object(self.finder, "preprocess_common_skill", AsyncMock(side_effect=[False, True])) as preprocess:
+            self.assertTrue(await self.finder.preprocess_skill("session", "finder", [], {}, "/tmp", "linux", 0))
+        self.assertIs(preprocess.await_args.kwargs["llm_target_details_loader"], self.finder.load_helper_details)
+
+    async def test_helper_instructions_are_exported_for_llm_validation(self):
+        root = {"func_va": "0x1000", "disasm_code": "0x1000 call sub_2000"}
+        helper = {"func_va": "0x2000", "disasm_code": "0x2000 call qword ptr [rax+78h]"}
+        session = type("Session", (), {"call_tool": AsyncMock(return_value={})})()
+        with (
+            patch.object(self.finder, "_load_llm_decompile_target_details_via_mcp", AsyncMock(return_value=[root])),
+            patch.object(
+                self.finder, "parse_mcp_result", return_value={"result": '{"addresses":["0x2000"],"overflow":false}'}
+            ),
+            patch.object(self.finder, "_export_function_detail_via_mcp", AsyncMock(return_value=helper)),
+        ):
+            self.assertEqual(await self.finder.load_helper_details(session, ["Connect"]), [root, helper])
+
+    async def test_incomplete_helper_export_fails_closed(self):
+        session = type("Session", (), {"call_tool": AsyncMock(return_value={})})()
+        for overflow in (True, False):
+            with (
+                self.subTest(overflow=overflow),
+                patch.object(
+                    self.finder,
+                    "_load_llm_decompile_target_details_via_mcp",
+                    AsyncMock(return_value=[{"func_va": "0x1000"}]),
+                ),
+                patch.object(
+                    self.finder,
+                    "parse_mcp_result",
+                    return_value={"result": '{"addresses":["0x2000"],"overflow":' + str(overflow).lower() + "}"},
+                ),
+                patch.object(self.finder, "_export_function_detail_via_mcp", AsyncMock(return_value=None)),
+            ):
+                self.assertEqual(await self.finder.load_helper_details(session, ["Connect"]), [])
+
+    def test_multiple_dispatches_are_rejected(self):
+        entry = {"func_name": "ICvar_IterateConVarCallbacks", "insn_va": "0x2000", "vfunc_offset": "0x78"}
+        self.assertEqual(self.finder.validate_dispatch({"found_vcall": [entry]}), [])
+        self.assertTrue(self.finder.validate_dispatch({"found_vcall": [entry, {**entry, "insn_va": "0x3000"}]}))
+
+
+class TestCvarChangeCallbackChain(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        self.finder = _load_module(
+            Path("ida_preprocessor_scripts/find-ICvar_CallChangeCallback.py"), "find_ICvar_CallChangeCallback"
+        )
+
+    async def test_inline_dispatch_does_not_walk_helpers(self):
+        with patch.object(self.finder, "preprocess_common_skill", AsyncMock(return_value=True)) as preprocess:
+            self.assertTrue(await self.finder.preprocess_skill("session", "finder", [], {}, "/tmp", "linux", 0))
+        self.assertEqual(preprocess.await_count, 1)
+        self.assertNotIn("llm_target_details_loader", preprocess.await_args.kwargs)
+
+    async def test_missing_inline_dispatch_uses_helper_loader(self):
+        with patch.object(self.finder, "preprocess_common_skill", AsyncMock(side_effect=[False, True])) as preprocess:
+            self.assertTrue(await self.finder.preprocess_skill("session", "finder", [], {}, "/tmp", "linux", 0))
+        self.assertIs(preprocess.await_args.kwargs["llm_target_details_loader"], self.finder.load_helper_details)
+
+    async def test_helper_instructions_are_exported_for_llm_validation(self):
+        root = {"func_va": "0x1000", "disasm_code": "0x1000 call sub_2000"}
+        helper = {"func_va": "0x2000", "disasm_code": "0x2000 call qword ptr [rax+70h]"}
+        session = type("Session", (), {"call_tool": AsyncMock(return_value={})})()
+        with (
+            patch.object(self.finder, "_load_llm_decompile_target_details_via_mcp", AsyncMock(return_value=[root])),
+            patch.object(
+                self.finder, "parse_mcp_result", return_value={"result": '{"addresses":["0x2000"],"overflow":false}'}
+            ),
+            patch.object(self.finder, "_export_function_detail_via_mcp", AsyncMock(return_value=helper)),
+        ):
+            self.assertEqual(await self.finder.load_helper_details(session, ["Setter"]), [root, helper])
+
+    async def test_incomplete_helper_export_fails_closed(self):
+        session = type("Session", (), {"call_tool": AsyncMock(return_value={})})()
+        for overflow in (True, False):
+            with (
+                self.subTest(overflow=overflow),
+                patch.object(
+                    self.finder,
+                    "_load_llm_decompile_target_details_via_mcp",
+                    AsyncMock(return_value=[{"func_va": "0x1000"}]),
+                ),
+                patch.object(
+                    self.finder,
+                    "parse_mcp_result",
+                    return_value={"result": '{"addresses":["0x2000"],"overflow":' + str(overflow).lower() + "}"},
+                ),
+                patch.object(self.finder, "_export_function_detail_via_mcp", AsyncMock(return_value=None)),
+            ):
+                self.assertEqual(await self.finder.load_helper_details(session, ["Setter"]), [])
+
+    def test_multiple_dispatches_are_rejected(self):
+        entry = {"func_name": "ICvar_CallChangeCallback", "insn_va": "0x2000", "vfunc_offset": "0x70"}
+        self.assertEqual(self.finder.validate_dispatch({"found_vcall": [entry]}), [])
+        self.assertTrue(self.finder.validate_dispatch({"found_vcall": [entry, {**entry, "insn_va": "0x3000"}]}))
+
+
+class TestCvarRemoveGlobalChangeCallbackChain(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        self.finder = _load_module(
+            Path("ida_preprocessor_scripts/find-ICvar_RemoveGlobalChangeCallback.py"),
+            "find_ICvar_RemoveGlobalChangeCallback",
+        )
+
+    async def test_inline_dispatch_does_not_walk_helpers(self):
+        with patch.object(self.finder, "preprocess_common_skill", AsyncMock(return_value=True)) as preprocess:
+            self.assertTrue(await self.finder.preprocess_skill("session", "finder", [], {}, "/tmp", "linux", 0))
+        self.assertEqual(preprocess.await_count, 1)
+        self.assertNotIn("llm_target_details_loader", preprocess.await_args.kwargs)
+
+    async def test_missing_inline_dispatch_uses_helper_loader(self):
+        with patch.object(self.finder, "preprocess_common_skill", AsyncMock(side_effect=[False, True])) as preprocess:
+            self.assertTrue(await self.finder.preprocess_skill("session", "finder", [], {}, "/tmp", "linux", 0))
+        self.assertIs(preprocess.await_args.kwargs["llm_target_details_loader"], self.finder.load_helper_details)
+
+    async def test_helper_instructions_are_exported_for_llm_validation(self):
+        root = {"func_va": "0x1000", "disasm_code": "0x1000 call sub_2000"}
+        helper = {"func_va": "0x2000", "disasm_code": "0x2000 call qword ptr [rax+0B0h]"}
+        session = type("Session", (), {"call_tool": AsyncMock(return_value={})})()
+        with (
+            patch.object(self.finder, "_load_llm_decompile_target_details_via_mcp", AsyncMock(return_value=[root])),
+            patch.object(
+                self.finder, "parse_mcp_result", return_value={"result": '{"addresses":["0x2000"],"overflow":false}'}
+            ),
+            patch.object(self.finder, "_export_function_detail_via_mcp", AsyncMock(return_value=helper)),
+        ):
+            self.assertEqual(await self.finder.load_helper_details(session, ["Shutdown"]), [root, helper])
+
+    async def test_incomplete_helper_export_fails_closed(self):
+        session = type("Session", (), {"call_tool": AsyncMock(return_value={})})()
+        for overflow in (True, False):
+            with (
+                self.subTest(overflow=overflow),
+                patch.object(
+                    self.finder,
+                    "_load_llm_decompile_target_details_via_mcp",
+                    AsyncMock(return_value=[{"func_va": "0x1000"}]),
+                ),
+                patch.object(
+                    self.finder,
+                    "parse_mcp_result",
+                    return_value={"result": '{"addresses":["0x2000"],"overflow":' + str(overflow).lower() + "}"},
+                ),
+                patch.object(self.finder, "_export_function_detail_via_mcp", AsyncMock(return_value=None)),
+            ):
+                self.assertEqual(await self.finder.load_helper_details(session, ["Shutdown"]), [])
+
+
+class TestCMultiplayRulesCtorDecompiles(unittest.IsolatedAsyncioTestCase):
+    """CMultiplayRules_ctor is decompiled once for every interface vcall it issues."""
+
+    def setUp(self):
+        self.finder = _load_module(
+            Path("ida_preprocessor_scripts/find-CMultiplayRules_ctor-decompiles.py"),
+            "find_CMultiplayRules_ctor_decompiles",
+        )
+
+    def test_one_predecessor_owns_every_target(self):
+        references = {
+            reference_path for spec in self.finder.LLM_DECOMPILE for reference_path in spec["reference_yaml_paths"]
+        }
+        self.assertEqual(references, {"references/server/CMultiplayRules_ctor.{platform}.yaml"})
+
+    def test_targets_cover_engine_and_cvar_interfaces(self):
+        self.assertEqual(
+            [
+                "IVEngineServer2_ServerCommand",
+                "IVEngineServer2_IsDedicatedServer",
+                "ICvar_ResetConVarsToDefaultValuesByFlag",
+            ],
+            list(self.finder.TARGET_FUNCTION_NAMES),
+        )
+        self.assertEqual(
+            {
+                "IVEngineServer2_ServerCommand": "IVEngineServer2",
+                "IVEngineServer2_IsDedicatedServer": "IVEngineServer2",
+                "ICvar_ResetConVarsToDefaultValuesByFlag": "ICvar",
+            },
+            dict(self.finder.FUNC_VTABLE_RELATIONS),
+        )
+
+    def test_cvar_target_is_slim_pattern_c_without_vtable_artifact(self):
+        generation_contracts = dict(self.finder.GENERATE_YAML_DESIRED_FIELDS)
+        self.assertEqual(
+            ["func_name", "vfunc_sig", "vfunc_offset", "vfunc_index", "vtable_name"],
+            generation_contracts["ICvar_ResetConVarsToDefaultValuesByFlag"],
+        )
+
+    async def test_inline_body_does_not_walk_helpers(self):
+        with patch.object(self.finder, "preprocess_common_skill", AsyncMock(return_value=True)) as preprocess:
+            self.assertTrue(await self.finder.preprocess_skill("session", "finder", [], {}, "/tmp", "linux", 0))
+        self.assertEqual(preprocess.await_count, 1)
+        self.assertNotIn("llm_target_details_loader", preprocess.await_args.kwargs)
+
+    async def test_missing_inline_dispatch_uses_helper_loader(self):
+        with patch.object(self.finder, "preprocess_common_skill", AsyncMock(side_effect=[False, True])) as preprocess:
+            self.assertTrue(await self.finder.preprocess_skill("session", "finder", [], {}, "/tmp", "linux", 0))
+        self.assertEqual(preprocess.await_count, 2)
+        self.assertIs(preprocess.await_args.kwargs["llm_target_details_loader"], self.finder.load_helper_details)
+
+
+class TestFindCCvarResetConVarsToDefaultValuesByFlag(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        self.finder = _load_module(
+            Path("ida_preprocessor_scripts/find-CCvar_ResetConVarsToDefaultValuesByFlag.py"),
+            "find_CCvar_ResetConVarsToDefaultValuesByFlag",
+        )
+
+    async def test_inherits_slot_from_server_interface_yaml(self) -> None:
+        preprocess_common_skill = AsyncMock(return_value=True)
+        with patch.object(self.finder, "preprocess_common_skill", preprocess_common_skill):
+            result = await self.finder.preprocess_skill(
+                session="session",
+                skill_name="skill",
+                expected_outputs=["out.yaml"],
+                old_yaml_map={"k": "v"},
+                new_binary_dir="bin_dir",
+                platform="windows",
+                image_base=0x180000000,
+                debug=True,
+            )
+
+        self.assertTrue(result)
+        preprocess_common_skill.assert_awaited_once_with(
+            session="session",
+            expected_outputs=["out.yaml"],
+            old_yaml_map={"k": "v"},
+            new_binary_dir="bin_dir",
+            platform="windows",
+            image_base=0x180000000,
+            inherit_vfuncs=[
+                (
+                    "CCvar_ResetConVarsToDefaultValuesByFlag",
+                    "CCvar",
+                    "../server/ICvar_ResetConVarsToDefaultValuesByFlag",
+                    True,
+                )
+            ],
+            generate_yaml_desired_fields=[
+                (
+                    "CCvar_ResetConVarsToDefaultValuesByFlag",
+                    [
+                        "func_name",
+                        "func_va",
+                        "func_rva",
+                        "func_size",
+                        "func_sig",
+                        "vtable_name",
+                        "vfunc_offset",
+                        "vfunc_index",
+                    ],
+                )
+            ],
+            debug=True,
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

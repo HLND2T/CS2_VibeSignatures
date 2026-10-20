@@ -1,0 +1,270 @@
+func_name: ConVarRefAbstract_SetValueInternal
+func_va: '0x18020fee0'
+disasm_code: |-
+  .text:000000018020FEE0                 mov     [rsp-8+arg_10], r8
+  .text:000000018020FEE5                 mov     [rsp-8+arg_0], rcx
+  .text:000000018020FEEA                 push    rbp
+  .text:000000018020FEEB                 push    rsi
+  .text:000000018020FEEC                 push    rdi
+  .text:000000018020FEED                 push    r12
+  .text:000000018020FEEF                 push    r13
+  .text:000000018020FEF1                 push    r14
+  .text:000000018020FEF3                 push    r15
+  .text:000000018020FEF5                 sub     rsp, 60h
+  .text:000000018020FEF9                 lea     rbp, [rsp+30h]
+  .text:000000018020FEFE                 mov     r14, [rcx+8]
+  .text:000000018020FF02                 lea     r8, off_180398610; "bool"
+  .text:000000018020FF09                 mov     [rbp+60h+arg_8], rbx
+  .text:000000018020FF0D                 mov     r13, r9
+  .text:000000018020FF10                 mov     ebx, edx
+  .text:000000018020FF12                 mov     r15, rcx
+  .text:000000018020FF15                 movsx   rax, word ptr [r14+28h]
+  .text:000000018020FF1A                 imul    r12, rax, 58h ; 'X'
+  .text:000000018020FF1E                 mov     eax, [r12+r8+8]
+  .text:000000018020FF23                 add     eax, 1Fh
+  .text:000000018020FF26                 movsxd  rdx, eax
+  .text:000000018020FF29                 and     rdx, 0FFFFFFFFFFFFFFF0h
+  .text:000000018020FF2D                 lea     rax, [rdx+0Fh]
+  .text:000000018020FF31                 cmp     rax, rdx
+  .text:000000018020FF34                 ja      short loc_18020FF40
+  .text:000000018020FF36                 mov     rax, 0FFFFFFFFFFFFFF0h
+  .text:000000018020FF40                 and     rax, 0FFFFFFFFFFFFFFF0h
+  .text:000000018020FF44                 call    __alloca_probe
+  .text:000000018020FF49                 sub     rsp, rax
+  .text:000000018020FF4C                 mov     rdx, r13
+  .text:000000018020FF4F                 lea     rsi, [rsp+90h+var_60]
+  .text:000000018020FF54                 add     rsi, 10h
+  .text:000000018020FF58                 and     rsi, 0FFFFFFFFFFFFFFF0h
+  .text:000000018020FF5C                 mov     rcx, rsi
+  .text:000000018020FF5F                 call    qword ptr [r12+r8+18h]
+  .text:000000018020FF64                 mov     rdi, [rbp+60h+arg_20]
+  .text:000000018020FF6B                 xor     eax, eax
+  .text:000000018020FF6D                 mov     r8d, ebx
+  .text:000000018020FF70                 cmp     ebx, 0FFFFFFFFh
+  .text:000000018020FF73                 jnz     short loc_18020FF7C
+  .text:000000018020FF75                 test    rdi, rdi
+  .text:000000018020FF78                 cmovz   r8d, eax
+  .text:000000018020FF7C                 mov     rcx, cs:qword_1803A9568
+  .text:000000018020FF83                 mov     rdx, [r15]
+  .text:000000018020FF86                 mov     r9, [rbp+60h+arg_10]
+  .text:000000018020FF8D                 mov     [rsp+90h+var_68], rdi
+  .text:000000018020FF92                 mov     rax, [rcx]
+  .text:000000018020FF95                 mov     [rsp+90h+var_70], rsi
+  .text:000000018020FF9A                 call    qword ptr [rax+80h]
+  .text:000000018020FFA0                 test    al, al
+  .text:000000018020FFA2                 jnz     short loc_18020FFDB
+  .text:000000018020FFA4                 mov     ecx, cs:LOG_CONSOLE
+  .text:000000018020FFAA                 mov     edx, 3
+  .text:000000018020FFAF                 call    LoggingSystem_IsChannelEnabled
+  .text:000000018020FFB4                 test    al, al
+  .text:000000018020FFB6                 jz      loc_180210136
+  .text:000000018020FFBC                 mov     r9, [r14]
+  .text:000000018020FFBF                 lea     r8, aCanTChangeSRig; "Can't change '%s' right now.\n"
+  .text:000000018020FFC6                 mov     ecx, cs:LOG_CONSOLE
+  .text:000000018020FFCC                 mov     edx, 3
+  .text:000000018020FFD1                 call    LoggingSystem_Log
+  .text:000000018020FFD6                 jmp     loc_180210136
+  .text:000000018020FFDB                 mov     rcx, r13
+  .text:000000018020FFDE                 lea     r8, off_180398610; "bool"
+  .text:000000018020FFE5                 call    qword ptr [r12+r8+20h]
+  .text:000000018020FFEA                 mov     rdx, [rbp+60h+arg_10]
+  .text:000000018020FFF1                 lea     rax, off_180398610; "bool"
+  .text:000000018020FFF8                 mov     rcx, r13
+  .text:000000018020FFFB                 call    qword ptr [r12+rax+18h]
+  .text:0000000180210000                 mov     r8, [r14+18h]
+  .text:0000000180210004                 lea     rax, off_180398610; "bool"
+  .text:000000018021000B                 mov     rdx, [r14+10h]
+  .text:000000018021000F                 mov     rcx, r13
+  .text:0000000180210012                 call    qword ptr [r12+rax+40h]
+  .text:0000000180210017                 mov     rax, [r15+8]
+  .text:000000018021001B                 lea     r8, off_180398610; "bool"
+  .text:0000000180210022                 mov     rdx, r13
+  .text:0000000180210025                 movsx   rcx, word ptr [rax+28h]
+  .text:000000018021002A                 imul    rax, rcx, 58h ; 'X'
+  .text:000000018021002E                 mov     rcx, rsi
+  .text:0000000180210031                 mov     r8, [rax+r8+38h]
+  .text:0000000180210036                 call    r8
+  .text:0000000180210039                 test    al, al
+  .text:000000018021003B                 jnz     loc_180210136
+  .text:0000000180210041                 xor     r15d, r15d
+  .text:0000000180210044                 mov     [rbp+60h+var_44], 0C0000008h
+  .text:000000018021004B                 lea     rdx, [rbp+60h+var_48]
+  .text:000000018021004F                 mov     [rbp+60h+var_48], r15d
+  .text:0000000180210053                 mov     rcx, rsi
+  .text:0000000180210056                 mov     [rbp+60h+var_40], r15
+  .text:000000018021005A                 lea     rax, off_180398610; "bool"
+  .text:0000000180210061                 call    qword ptr [r12+rax+30h]
+  .text:0000000180210066                 lea     rdx, [rbp+60h+var_58]
+  .text:000000018021006A                 mov     [rbp+60h+var_54], 0C0000008h
+  .text:0000000180210071                 mov     rcx, r13
+  .text:0000000180210074                 mov     [rbp+60h+var_58], r15d
+  .text:0000000180210078                 lea     rax, off_180398610; "bool"
+  .text:000000018021007F                 mov     [rbp+60h+var_50], r15
+  .text:0000000180210083                 call    qword ptr [r12+rax+30h]
+  .text:0000000180210088                 inc     dword ptr [r14+2Ch]
+  .text:000000018021008C                 lea     r14, Data
+  .text:0000000180210093                 mov     eax, [rbp+60h+var_44]
+  .text:0000000180210096                 bt      eax, 1Eh
+  .text:000000018021009A                 jnb     short loc_1802100A2
+  .text:000000018021009C                 lea     r15, [rbp+60h+var_40]
+  .text:00000001802100A0                 jmp     short loc_1802100AF
+  .text:00000001802100A2                 test    eax, 3FFFFFFFh
+  .text:00000001802100A7                 mov     r15, r14
+  .text:00000001802100AA                 cmova   r15, [rbp+60h+var_40]
+  .text:00000001802100AF                 mov     eax, [rbp+60h+var_54]
+  .text:00000001802100B2                 bt      eax, 1Eh
+  .text:00000001802100B6                 jnb     short loc_1802100BE
+  .text:00000001802100B8                 lea     r14, [rbp+60h+var_50]
+  .text:00000001802100BC                 jmp     short loc_1802100C8
+  .text:00000001802100BE                 test    eax, 3FFFFFFFh
+  .text:00000001802100C3                 cmova   r14, [rbp+60h+var_50]
+  .text:00000001802100C8                 cmp     ebx, 0FFFFFFFFh
+  .text:00000001802100CB                 jnz     short loc_1802100D8
+  .text:00000001802100CD                 test    rdi, rdi
+  .text:00000001802100D0                 mov     eax, 0
+  .text:00000001802100D5                 cmovz   ebx, eax
+  .text:00000001802100D8                 mov     rcx, cs:qword_1803A9568
+  .text:00000001802100DF                 mov     r9, r13
+  .text:00000001802100E2                 mov     rdx, [rbp+60h+arg_0]
+  .text:00000001802100E6                 mov     r8d, ebx
+  .text:00000001802100E9                 mov     [rsp+90h+var_68], rdi
+  .text:00000001802100EE                 mov     [rsp+90h+var_70], rsi
+  .text:00000001802100F3                 mov     rax, [rcx]
+  .text:00000001802100F6                 mov     rdx, [rdx]
+  .text:00000001802100F9                 ; 0x70 = 112LL = ICvar_CallChangeCallback
+  .text:00000001802100F9                 call    qword ptr [rax+70h]; 0x70 = 112LL = ICvar_CallChangeCallback
+  .text:00000001802100FC                 mov     rcx, cs:qword_1803A9568
+  .text:0000000180210103                 mov     r9, r14
+  .text:0000000180210106                 mov     rdx, [rbp+60h+arg_0]
+  .text:000000018021010A                 mov     r8d, ebx
+  .text:000000018021010D                 mov     [rsp+90h+var_68], rdi
+  .text:0000000180210112                 mov     [rsp+90h+var_70], r15
+  .text:0000000180210117                 mov     rax, [rcx]
+  .text:000000018021011A                 ; 0x0B8 = 184LL = ICvar_CallGlobalChangeCallbacks
+  .text:000000018021011A                 call    qword ptr [rax+0B8h]; 0x0B8 = 184LL = ICvar_CallGlobalChangeCallbacks
+  .text:0000000180210120                 ; int
+  .text:0000000180210120                 xor     edx, edx; int
+  .text:0000000180210122                 ; this
+  .text:0000000180210122                 lea     rcx, [rbp+60h+var_58]; this
+  .text:0000000180210126                 call    ?Purge@CBufferString@@QEAAXH@Z; CBufferString::Purge(int)
+  .text:000000018021012B                 ; int
+  .text:000000018021012B                 xor     edx, edx; int
+  .text:000000018021012D                 ; this
+  .text:000000018021012D                 lea     rcx, [rbp+60h+var_48]; this
+  .text:0000000180210131                 call    ?Purge@CBufferString@@QEAAXH@Z; CBufferString::Purge(int)
+  .text:0000000180210136                 mov     rcx, rsi
+  .text:0000000180210139                 lea     rax, off_180398610; "bool"
+  .text:0000000180210140                 call    qword ptr [r12+rax+20h]
+  .text:0000000180210145                 mov     rbx, [rbp+60h+arg_8]
+  .text:0000000180210149                 lea     rsp, [rbp+30h]
+  .text:000000018021014D                 pop     r15
+  .text:000000018021014F                 pop     r14
+  .text:0000000180210151                 pop     r13
+  .text:0000000180210153                 pop     r12
+  .text:0000000180210155                 pop     rdi
+  .text:0000000180210156                 pop     rsi
+  .text:0000000180210157                 pop     rbp
+  .text:0000000180210158                 retn
+procedure: |-
+  __int64 __fastcall ConVarRefAbstract_SetValueInternal(_QWORD *a1, unsigned int a2, __int64 a3, __int64 a4, __int64 a5)
+  {
+    __int64 v5; // r14
+    __int64 v9; // r12
+    unsigned __int64 v10; // rdx
+    __int64 v11; // rax
+    void *v12; // rsp
+    __int64 v13; // r8
+    const BYTE *v14; // r14
+    const BYTE *v15; // r15
+    int v17; // [rsp+38h] [rbp+8h] BYREF
+    int v18; // [rsp+3Ch] [rbp+Ch]
+    const BYTE *v19; // [rsp+40h] [rbp+10h] BYREF
+    int v20; // [rsp+48h] [rbp+18h] BYREF
+    int v21; // [rsp+4Ch] [rbp+1Ch]
+    const BYTE *v22; // [rsp+50h] [rbp+20h] BYREF
+
+    v5 = a1[1];
+    v9 = 11LL * *(__int16 *)(v5 + 40);
+    v10 = (LODWORD((&off_180398610)[v9 + 1]) + 31) & 0xFFFFFFFFFFFFFFF0uLL;
+    v11 = v10 + 15;
+    if ( v10 + 15 < v10 )
+      v11 = 0xFFFFFFFFFFFFFF0LL;
+    v12 = alloca(v11 & 0xFFFFFFFFFFFFFFF0uLL);
+    ((void (__fastcall *)(const BYTE **, __int64))(&off_180398610)[v9 + 3])(&v19, a4);
+    v13 = a2;
+    if ( a2 == -1 && !a5 )
+      v13 = 0;
+    if ( (*(unsigned __int8 (__fastcall **)(__int64, _QWORD, __int64, __int64, const BYTE **, __int64))(*(_QWORD *)qword_1803A9568 + 128LL))(
+           qword_1803A9568,
+           *a1,
+           v13,
+           a3,
+           &v19,
+           a5) )
+    {
+      ((void (__fastcall *)(__int64))(&off_180398610)[v9 + 4])(a4);
+      ((void (__fastcall *)(__int64, __int64))(&off_180398610)[v9 + 3])(a4, a3);
+      ((void (__fastcall *)(__int64, _QWORD, _QWORD))(&off_180398610)[v9 + 8])(
+        a4,
+        *(_QWORD *)(v5 + 16),
+        *(_QWORD *)(v5 + 24));
+      if ( !((unsigned __int8 (__fastcall *)(const BYTE **, __int64))(&off_180398610)[11 * *(__int16 *)(a1[1] + 40LL) + 7])(
+              &v19,
+              a4) )
+      {
+        v21 = -1073741816;
+        v20 = 0;
+        v22 = nullptr;
+        ((void (__fastcall *)(const BYTE **, int *))(&off_180398610)[v9 + 6])(&v19, &v20);
+        v18 = -1073741816;
+        v17 = 0;
+        v19 = nullptr;
+        ((void (__fastcall *)(__int64, int *))(&off_180398610)[v9 + 6])(a4, &v17);
+        ++*(_DWORD *)(v5 + 44);
+        v14 = &Data;
+        if ( (v21 & 0x40000000) != 0 )
+        {
+          v15 = (const BYTE *)&v22;
+        }
+        else
+        {
+          v15 = &Data;
+          if ( (v21 & 0x3FFFFFFF) != 0 )
+            v15 = v22;
+        }
+        if ( (v18 & 0x40000000) != 0 )
+        {
+          v14 = (const BYTE *)&v19;
+        }
+        else if ( (v18 & 0x3FFFFFFF) != 0 )
+        {
+          v14 = v19;
+        }
+        if ( a2 == -1 && !a5 )
+          a2 = 0;
+        (*(void (__fastcall **)(__int64, _QWORD, _QWORD, __int64, const BYTE **, __int64))(*(_QWORD *)qword_1803A9568
+                                                                                         + 112LL))(
+          qword_1803A9568,
+          *a1,
+          a2,
+          a4,
+          &v19,
+          a5);
+        (*(void (__fastcall **)(__int64, _QWORD *, _QWORD, const BYTE *, const BYTE *, __int64))(*(_QWORD *)qword_1803A9568
+                                                                                               + 184LL))(// 0x0B8 = 184LL = ICvar_CallGlobalChangeCallbacks
+          qword_1803A9568,
+          a1,
+          a2,
+          v14,
+          v15,
+          a5);
+        CBufferString::Purge((CBufferString *)&v17, 0);
+        CBufferString::Purge((CBufferString *)&v20, 0);
+      }
+    }
+    else if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)LOG_CONSOLE, 3) )
+    {
+      LoggingSystem_Log((unsigned int)LOG_CONSOLE, 3, "Can't change '%s' right now.\n", *(const char **)v5);
+    }
+    return ((__int64 (__fastcall *)(const BYTE **))(&off_180398610)[v9 + 4])(&v19);
+  }

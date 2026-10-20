@@ -1,0 +1,166 @@
+func_name: CCSPlayerController_Connect
+func_va: '0x1680460'
+disasm_code: |-
+  .text:0000000001680460                 push    rbp
+  .text:0000000001680461                 mov     rbp, rsp
+  .text:0000000001680464                 push    rbx
+  .text:0000000001680465                 mov     rbx, rdi
+  .text:0000000001680468                 sub     rsp, 8
+  .text:000000000168046C                 call    sub_D87250
+  .text:0000000001680471                 mov     rax, [rbx]
+  .text:0000000001680474                 mov     rdi, rbx
+  .text:0000000001680477                 call    qword ptr [rax+778h]
+  .text:000000000168047D                 mov     rdi, rbx
+  .text:0000000001680480                 call    CPlayerCommandQueue_ctor
+  .text:0000000001680485                 mov     rdi, rbx
+  .text:0000000001680488                 mov     esi, 1
+  .text:000000000168048D                 mov     [rbx+9B8h], rax
+  .text:0000000001680494                 call    sub_F43910
+  .text:0000000001680499                 mov     rdi, rbx
+  .text:000000000168049C                 mov     rbx, [rbp+var_8]
+  .text:00000000016804A0                 leave
+  .text:00000000016804A1                 jmp     sub_163D6F0
+
+  .text:000000000163D6F0                 push    rbp
+  .text:000000000163D6F1                 mov     rbp, rsp
+  .text:000000000163D6F4                 push    r15
+  .text:000000000163D6F6                 push    r14
+  .text:000000000163D6F8                 push    r13
+  .text:000000000163D6FA                 mov     r13, rdi
+  .text:000000000163D6FD                 push    r12
+  .text:000000000163D6FF                 push    rbx
+  .text:000000000163D700                 sub     rsp, 68h
+  .text:000000000163D704                 call    sub_2283D70
+  .text:000000000163D709                 add     eax, 1
+  .text:000000000163D70C                 cmp     eax, 1
+  .text:000000000163D70F                 jbe     loc_163D812
+  .text:000000000163D715                 mov     rax, [r13+0AA0h]
+  .text:000000000163D71C                 mov     [rbp+var_78], rax
+  .text:000000000163D720                 test    rax, rax
+  .text:000000000163D723                 jz      loc_163D812
+  .text:000000000163D729                 mov     eax, dword ptr cs:qword_29A9D40
+  .text:000000000163D72F                 mov     [rbp+var_68], 0
+  .text:000000000163D737                 test    eax, eax
+  .text:000000000163D739                 jz      loc_163D812
+  .text:000000000163D73F                 movq    xmm1, cs:off_262EDC0
+  .text:000000000163D747                 lea     rax, sub_1620EC0
+  .text:000000000163D74E                 xor     r12d, r12d
+  .text:000000000163D751                 lea     rbx, [rbp+var_60]
+  .text:000000000163D755                 pinsrq  xmm1, rax, 1
+  .text:000000000163D75C                 lea     rax, [rbp+var_68]
+  .text:000000000163D760                 movaps  [rbp+var_90], xmm1
+  .text:000000000163D767                 mov     [rbp+var_80], rax
+  .text:000000000163D76B                 nop     dword ptr [rax+rax+00h]
+  .text:000000000163D770                 mov     rax, cs:qword_29A9D48
+  .text:000000000163D777                 mov     edx, 0FFFFFFFFh
+  .text:000000000163D77C                 mov     rdi, rbx
+  .text:000000000163D77F                 mov     r14, [rax+r12*8]
+  .text:000000000163D783                 mov     rsi, r14
+  .text:000000000163D786                 call    sub_1DA3880
+  .text:000000000163D78B                 mov     rsi, [r13+0AA0h]
+  .text:000000000163D792                 mov     rdi, rbx
+  .text:000000000163D795                 call    sub_1DA4DC0
+  .text:000000000163D79A                 mov     rdi, rbx
+  .text:000000000163D79D                 mov     rsi, rax
+  .text:000000000163D7A0                 call    sub_1DA49A0
+  .text:000000000163D7A5                 test    al, al
+  .text:000000000163D7A7                 jnz     short loc_163D7F9
+  .text:000000000163D7A9                 lea     rax, g_pVEngineCvar
+  .text:000000000163D7B0                 mov     [rbp+var_68], rbx
+  .text:000000000163D7B4                 lea     r15, [rbp+var_50]
+  .text:000000000163D7B8                 mov     rsi, r14
+  .text:000000000163D7BB                 movdqa  xmm0, [rbp+var_90]
+  .text:000000000163D7C3                 mov     rdx, r15
+  .text:000000000163D7C6                 mov     rdi, [rax]
+  .text:000000000163D7C9                 mov     rax, [rbp+var_78]
+  .text:000000000163D7CD                 mov     rcx, [rdi]
+  .text:000000000163D7D0                 movaps  [rbp+var_40], xmm0
+  .text:000000000163D7D4                 mov     [rbp+var_50], rax
+  .text:000000000163D7D8                 mov     rax, [rbp+var_80]
+  .text:000000000163D7DC                 mov     [rbp+var_48], rax
+  .text:000000000163D7E0                 ; 0x78 = 120 = ICvar_IterateConVarCallbacks
+  .text:000000000163D7E0                 call    qword ptr [rcx+78h]; 0x78 = 120 = ICvar_IterateConVarCallbacks
+  .text:000000000163D7E3                 mov     rcx, qword ptr [rbp+var_40]
+  .text:000000000163D7E7                 test    rcx, rcx
+  .text:000000000163D7EA                 jz      short loc_163D7F9
+  .text:000000000163D7EC                 mov     edx, 3
+  .text:000000000163D7F1                 mov     rsi, r15
+  .text:000000000163D7F4                 mov     rdi, r15
+  .text:000000000163D7F7                 call    rcx
+  .text:000000000163D7F9                 mov     rdi, rbx
+  .text:000000000163D7FC                 add     r12, 1
+  .text:000000000163D800                 call    nullsub_2071
+  .text:000000000163D805                 cmp     dword ptr cs:qword_29A9D40, r12d
+  .text:000000000163D80C                 jnz     loc_163D770
+  .text:000000000163D812                 add     rsp, 68h
+  .text:000000000163D816                 pop     rbx
+  .text:000000000163D817                 pop     r12
+  .text:000000000163D819                 pop     r13
+  .text:000000000163D81B                 pop     r14
+  .text:000000000163D81D                 pop     r15
+  .text:000000000163D81F                 pop     rbp
+  .text:000000000163D820                 retn
+procedure: |-
+  __int64 __fastcall CCSPlayerController_Connect(_QWORD *a1)
+  {
+    sub_D87250();
+    (*(void (__fastcall **)(_QWORD *))(*a1 + 1912LL))(a1);
+    a1[311] = CPlayerCommandQueue_ctor(a1);
+    sub_F43910(a1, 1);
+    return sub_163D6F0(a1);
+  }
+
+  __int64 __fastcall sub_163D6F0(__int64 a1)
+  {
+    __int64 result; // rax
+    __int64 v2; // r12
+    __int64 v3; // r14
+    __int64 v4; // rax
+    __int64 v5; // rcx
+    __m128i inserted; // [rsp+0h] [rbp-90h] BYREF
+    _BYTE **v7; // [rsp+10h] [rbp-80h]
+    __int64 v8; // [rsp+18h] [rbp-78h]
+    _BYTE *v9; // [rsp+28h] [rbp-68h] BYREF
+    _BYTE v10[16]; // [rsp+30h] [rbp-60h] BYREF
+    _QWORD v11[2]; // [rsp+40h] [rbp-50h] BYREF
+    __m128i v12; // [rsp+50h] [rbp-40h]
+
+    result = (unsigned int)sub_2283D70(a1) + 1;
+    if ( (unsigned int)result > 1 )
+    {
+      result = *(_QWORD *)(a1 + 2720);
+      v8 = result;
+      if ( result )
+      {
+        result = (unsigned int)qword_29A9D40;
+        v9 = nullptr;
+        if ( (_DWORD)qword_29A9D40 )
+        {
+          v2 = 0;
+          inserted = _mm_insert_epi64(_mm_loadl_epi64((const __m128i *)&off_262EDC0), (signed __int64)sub_1620EC0, 1);
+          v7 = &v9;
+          do
+          {
+            v3 = *(_QWORD *)(qword_29A9D48 + 8 * v2);
+            sub_1DA3880(v10, v3, 0xFFFFFFFFLL);
+            v4 = sub_1DA4DC0(v10, *(_QWORD *)(a1 + 2720));
+            if ( !(unsigned __int8)sub_1DA49A0(v10, v4) )
+            {
+              v9 = v10;
+              v5 = *g_pVEngineCvar;
+              v12 = _mm_load_si128(&inserted);
+              v11[0] = v8;
+              v11[1] = v7;
+              (*(void (__fastcall **)(_QWORD *, __int64, _QWORD *))(v5 + 120))(g_pVEngineCvar, v3, v11);// 0x78 = 120 = ICvar_IterateConVarCallbacks
+              if ( v12.m128i_i64[0] )
+                ((void (__fastcall *)(_QWORD *, _QWORD *, __int64))v12.m128i_i64[0])(v11, v11, 3);
+            }
+            ++v2;
+            result = nullsub_2071(v10);
+          }
+          while ( (_DWORD)qword_29A9D40 != (_DWORD)v2 );
+        }
+      }
+    }
+    return result;
+  }

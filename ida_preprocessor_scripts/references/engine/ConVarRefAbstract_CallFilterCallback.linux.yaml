@@ -1,0 +1,37 @@
+func_name: ConVarRefAbstract_CallFilterCallback
+func_va: '0x5f8d90'
+disasm_code: |-
+  .text:00000000005F8D90                 mov     rax, rdx
+  .text:00000000005F8D93                 mov     r9, r8
+  .text:00000000005F8D96                 mov     edx, esi
+  .text:00000000005F8D98                 cmp     esi, 0FFFFFFFFh
+  .text:00000000005F8D9B                 jnz     short loc_5F8DA5
+  .text:00000000005F8D9D                 mov     rdx, r8
+  .text:00000000005F8DA0                 neg     rdx
+  .text:00000000005F8DA3                 sbb     edx, edx
+  .text:00000000005F8DA5                 lea     rsi, g_pVEngineCvar
+  .text:00000000005F8DAC                 mov     r8, rcx
+  .text:00000000005F8DAF                 mov     rcx, rax
+  .text:00000000005F8DB2                 mov     r10, [rsi]
+  .text:00000000005F8DB5                 mov     rsi, [r10]
+  .text:00000000005F8DB8                 mov     r11, [rsi+80h]; 80h = ICvar_CallFilterCallback
+  .text:00000000005F8DBF                 mov     rsi, [rdi]
+  .text:00000000005F8DC2                 mov     rdi, r10
+  .text:00000000005F8DC5                 ; 0x80 = 128LL = ICvar_CallFilterCallback
+  .text:00000000005F8DC5                 jmp     r11; 0x80 = 128LL = ICvar_CallFilterCallback
+procedure: |-
+  __int64 __fastcall ConVarRefAbstract_CallFilterCallback(_QWORD *a1, unsigned int a2, __int64 a3, __int64 a4, __int64 a5)
+  {
+    __int64 v6; // rdx
+
+    v6 = a2;
+    if ( a2 == -1 )
+      v6 = (unsigned int)-(a5 != 0);
+    return (*(__int64 (__fastcall **)(_QWORD *, _QWORD, __int64, __int64, __int64, __int64))(*g_pVEngineCvar + 128LL))(// 0x80 = 128LL = ICvar_CallFilterCallback
+             g_pVEngineCvar,
+             *a1,
+             v6,
+             a3,
+             a4,
+             a5);
+  }

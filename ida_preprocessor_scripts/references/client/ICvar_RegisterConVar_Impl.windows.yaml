@@ -1,0 +1,320 @@
+func_name: ICvar_RegisterConVar_Impl
+func_va: '0x1819ad820'
+disasm_code: |-
+  .text:00000001819AD820                 mov     [rsp+arg_0], rbx
+  .text:00000001819AD825                 mov     [rsp+arg_8], rbp
+  .text:00000001819AD82A                 mov     [rsp+arg_10], rsi
+  .text:00000001819AD82F                 mov     [rsp+arg_18], rdi
+  .text:00000001819AD834                 push    r12
+  .text:00000001819AD836                 push    r14
+  .text:00000001819AD838                 push    r15
+  .text:00000001819AD83A                 sub     rsp, 0D0h
+  .text:00000001819AD841                 mov     rdi, [rsp+0E8h+arg_20]
+  .text:00000001819AD849                 mov     rbp, r9
+  .text:00000001819AD84C                 mov     rbx, r8
+  .text:00000001819AD84F                 mov     r15, rdx
+  .text:00000001819AD852                 mov     rsi, rcx
+  .text:00000001819AD855                 movsx   rax, word ptr [rdi+60h]
+  .text:00000001819AD85A                 cmp     ax, 0FFFFh
+  .text:00000001819AD85E                 jz      short loc_1819AD871
+  .text:00000001819AD860                 imul    r10, rax, 58h ; 'X'
+  .text:00000001819AD864                 lea     rax, off_1822ACD40
+  .text:00000001819AD86B                 mov     rax, [r10+rax]
+  .text:00000001819AD86F                 jmp     short loc_1819AD878
+  .text:00000001819AD871                 lea     rax, off_1822AD970; "<undefined>"
+  .text:00000001819AD878                 mov     [rcx+8], rax
+  .text:00000001819AD87C                 lea     r14, [rcx+8]
+  .text:00000001819AD880                 mov     rax, gs:58h
+  .text:00000001819AD889                 mov     r12d, 0FFFFFFFFh
+  .text:00000001819AD88F                 mov     [rcx], r12
+  .text:00000001819AD892                 mov     ecx, cs:TlsIndex
+  .text:00000001819AD898                 mov     edx, 68h ; 'h'
+  .text:00000001819AD89D                 mov     rax, [rax+rcx*8]
+  .text:00000001819AD8A1                 mov     eax, [rdx+rax]
+  .text:00000001819AD8A4                 cmp     cs:dword_18279D87C, eax
+  .text:00000001819AD8AA                 jg      loc_1819ADAE8
+  .text:00000001819AD8B0                 cmp     cs:byte_18279D879, 0
+  .text:00000001819AD8B7                 jnz     short loc_1819AD8CF
+  .text:00000001819AD8B9                 test    rbx, 13084282h
+  .text:00000001819AD8C0                 jnz     short loc_1819AD8CF
+  .text:00000001819AD8C2                 mov     rax, 100000002h
+  .text:00000001819AD8CC                 or      rbx, rax
+  .text:00000001819AD8CF                 cmp     cs:byte_18279D878, 0
+  .text:00000001819AD8D6                 xorps   xmm0, xmm0
+  .text:00000001819AD8D9                 movups  [rsp+0E8h+var_99], xmm0
+  .text:00000001819AD8DE                 mov     [rsp+0E8h+var_B8], r15
+  .text:00000001819AD8E3                 movups  [rsp+0E8h+var_79], xmm0
+  .text:00000001819AD8E8                 mov     [rsp+0E8h+var_B0], rbp
+  .text:00000001819AD8ED                 movups  xmm0, xmmword ptr [rdi]
+  .text:00000001819AD8F0                 mov     [rsp+0E8h+var_A8], rbx
+  .text:00000001819AD8F5                 xorps   xmm1, xmm1
+  .text:00000001819AD8F8                 mov     [rsp+0E8h+var_20], r14
+  .text:00000001819AD900                 movups  [rsp+0E8h+var_89], xmm1
+  .text:00000001819AD905                 mov     [rsp+0E8h+var_28], rsi
+  .text:00000001819AD90D                 movups  xmm1, xmmword ptr [rdi+10h]
+  .text:00000001819AD911                 movups  xmmword ptr [rsp+48h], xmm0
+  .text:00000001819AD916                 movups  xmm0, xmmword ptr [rdi+20h]
+  .text:00000001819AD91A                 movups  [rsp+0E8h+var_99+9], xmm1
+  .text:00000001819AD91F                 movups  xmm1, xmmword ptr [rdi+30h]
+  .text:00000001819AD923                 movups  [rsp+0E8h+var_89+9], xmm0
+  .text:00000001819AD928                 movups  xmm0, xmmword ptr [rdi+40h]
+  .text:00000001819AD92C                 movups  [rsp+0E8h+var_79+9], xmm1
+  .text:00000001819AD931                 movups  xmm1, xmmword ptr [rdi+50h]
+  .text:00000001819AD935                 movups  [rsp+0E8h+var_60], xmm0
+  .text:00000001819AD93D                 movups  xmm0, xmmword ptr [rdi+60h]
+  .text:00000001819AD941                 movups  [rsp+0E8h+var_50], xmm1
+  .text:00000001819AD949                 movsd   xmm1, qword ptr [rdi+70h]
+  .text:00000001819AD94E                 movups  [rsp+0E8h+var_40], xmm0
+  .text:00000001819AD956                 movsd   [rsp+0E8h+var_30], xmm1
+  .text:00000001819AD95F                 jz      short loc_1819AD9A9
+  .text:00000001819AD961                 mov     rcx, cs:g_pVEngineCvar
+  .text:00000001819AD968                 lea     rdx, [rsp+0E8h+var_B8]
+  .text:00000001819AD96D                 mov     r8, cs:qword_18279DA38
+  .text:00000001819AD974                 mov     r9, rsi
+  .text:00000001819AD977                 mov     [rsp+0E8h+var_C8], r14
+  .text:00000001819AD97C                 mov     rax, [rcx]
+  .text:00000001819AD97F                 ; 0x130 = 304LL = ICvar_RegisterConVar
+  .text:00000001819AD97F                 call    qword ptr [rax+130h]; 0x130 = 304LL = ICvar_RegisterConVar
+  .text:00000001819AD985                 mov     rax, [rsp+0E8h+var_28]
+  .text:00000001819AD98D                 cmp     [rax], r12
+  .text:00000001819AD990                 jnz     loc_1819ADAC6
+  .text:00000001819AD996                 mov     rdx, [rsp+0E8h+var_B8]
+  .text:00000001819AD99B                 lea     rcx, aRegisterconvar_2; "RegisterConVar: Unknown error registeri"...
+  .text:00000001819AD9A2                 call    cs:Plat_FatalError
+  .text:00000001819AD9A8                 ; Trap to Debugger
+  .text:00000001819AD9A8                 int     3; Trap to Debugger
+  .text:00000001819AD9A9                 mov     r9, cs:qword_18279D870
+  .text:00000001819AD9B0                 test    r9, r9
+  .text:00000001819AD9B3                 jz      short loc_1819AD9C2
+  .text:00000001819AD9B5                 mov     r8d, [r9]
+  .text:00000001819AD9B8                 cmp     r8d, 64h ; 'd'
+  .text:00000001819AD9BC                 jnz     loc_1819ADA51
+  .text:00000001819AD9C2                 mov     ecx, 3E90h
+  .text:00000001819AD9C7                 call    sub_180C319D0
+  .text:00000001819AD9CC                 xor     r8d, r8d
+  .text:00000001819AD9CF                 mov     r9, rax
+  .text:00000001819AD9D2                 test    rax, rax
+  .text:00000001819AD9D5                 jz      short loc_1819ADA2F
+  .text:00000001819AD9D7                 mov     edx, 64h ; 'd'
+  .text:00000001819AD9DC                 lea     rcx, [rax+24h]
+  .text:00000001819AD9E0                 mov     [rcx-4], r8d
+  .text:00000001819AD9E4                 xorps   xmm0, xmm0
+  .text:00000001819AD9E7                 mov     [rcx], r8w
+  .text:00000001819AD9EB                 xorps   xmm1, xmm1
+  .text:00000001819AD9EE                 mov     [rcx+2], r8b
+  .text:00000001819AD9F2                 movups  xmmword ptr [rcx+3], xmm0
+  .text:00000001819AD9F6                 movups  xmmword ptr [rcx+13h], xmm1
+  .text:00000001819AD9FA                 movups  xmmword ptr [rcx+23h], xmm0
+  .text:00000001819AD9FE                 mov     [rcx+34h], r8
+  .text:00000001819ADA02                 mov     [rcx+3Ch], r8
+  .text:00000001819ADA06                 mov     [rcx+44h], r8
+  .text:00000001819ADA0A                 mov     [rcx+4Ch], r8
+  .text:00000001819ADA0E                 mov     [rcx+54h], r8
+  .text:00000001819ADA12                 mov     word ptr [rcx+5Ch], 0FFFFh
+  .text:00000001819ADA18                 mov     [rcx+6Ch], r8b
+  .text:00000001819ADA1C                 mov     [rcx+64h], r8
+  .text:00000001819ADA20                 lea     rcx, [rcx+0A0h]
+  .text:00000001819ADA27                 sub     rdx, 1
+  .text:00000001819ADA2B                 jnz     short loc_1819AD9E0
+  .text:00000001819ADA2D                 jmp     short loc_1819ADA32
+  .text:00000001819ADA2F                 mov     r9, r8
+  .text:00000001819ADA32                 mov     rax, cs:qword_18279D870
+  .text:00000001819ADA39                 mov     [r9+3E88h], rax
+  .text:00000001819ADA40                 mov     cs:qword_18279D870, r9
+  .text:00000001819ADA47                 mov     [r9], r8d
+  .text:00000001819ADA4A                 mov     r9, cs:qword_18279D870
+  .text:00000001819ADA51                 movsxd  rax, r8d
+  .text:00000001819ADA54                 lea     rdx, [rax+rax*4]
+  .text:00000001819ADA58                 lea     eax, [r8+1]
+  .text:00000001819ADA5C                 shl     rdx, 5
+  .text:00000001819ADA60                 mov     [r9], eax
+  .text:00000001819ADA63                 add     rdx, r9
+  .text:00000001819ADA66                 lea     rax, [rsp+0E8h+var_B8]
+  .text:00000001819ADA6B                 movups  xmm0, xmmword ptr [rax]
+  .text:00000001819ADA6E                 movups  xmmword ptr [rdx+8], xmm0
+  .text:00000001819ADA72                 movups  xmm1, xmmword ptr [rax+10h]
+  .text:00000001819ADA76                 movups  xmmword ptr [rdx+18h], xmm1
+  .text:00000001819ADA7A                 movups  xmm0, xmmword ptr [rax+20h]
+  .text:00000001819ADA7E                 movups  xmmword ptr [rdx+28h], xmm0
+  .text:00000001819ADA82                 movups  xmm1, xmmword ptr [rax+30h]
+  .text:00000001819ADA86                 movups  xmmword ptr [rdx+38h], xmm1
+  .text:00000001819ADA8A                 movups  xmm0, xmmword ptr [rax+40h]
+  .text:00000001819ADA8E                 movups  xmmword ptr [rdx+48h], xmm0
+  .text:00000001819ADA92                 movups  xmm1, xmmword ptr [rax+50h]
+  .text:00000001819ADA96                 movups  xmmword ptr [rdx+58h], xmm1
+  .text:00000001819ADA9A                 movups  xmm0, xmmword ptr [rax+60h]
+  .text:00000001819ADA9E                 movups  xmmword ptr [rdx+68h], xmm0
+  .text:00000001819ADAA2                 movups  xmm0, xmmword ptr [rax+70h]
+  .text:00000001819ADAA6                 movups  xmmword ptr [rdx+78h], xmm0
+  .text:00000001819ADAAA                 movups  xmm1, xmmword ptr [rax+80h]
+  .text:00000001819ADAB1                 movups  xmmword ptr [rdx+88h], xmm1
+  .text:00000001819ADAB8                 movups  xmm0, xmmword ptr [rax+90h]
+  .text:00000001819ADABF                 movups  xmmword ptr [rdx+98h], xmm0
+  .text:00000001819ADAC6                 lea     r11, [rsp+0E8h+var_18]
+  .text:00000001819ADACE                 mov     rbx, [r11+20h]
+  .text:00000001819ADAD2                 mov     rbp, [r11+28h]
+  .text:00000001819ADAD6                 mov     rsi, [r11+30h]
+  .text:00000001819ADADA                 mov     rdi, [r11+38h]
+  .text:00000001819ADADE                 mov     rsp, r11
+  .text:00000001819ADAE1                 pop     r15
+  .text:00000001819ADAE3                 pop     r14
+  .text:00000001819ADAE5                 pop     r12
+  .text:00000001819ADAE7                 retn
+  .text:00000001819ADAE8                 lea     rcx, dword_18279D87C
+  .text:00000001819ADAEF                 call    sub_1819FA138
+  .text:00000001819ADAF4                 cmp     cs:dword_18279D87C, 0FFFFFFFFh
+  .text:00000001819ADAFB                 jnz     loc_1819AD8B0
+  .text:00000001819ADB01                 call    cs:CommandLine
+  .text:00000001819ADB07                 mov     edx, 0BC4F1A2h
+  .text:00000001819ADB0C                 mov     rcx, rax
+  .text:00000001819ADB0F                 mov     r8, [rax]
+  .text:00000001819ADB12                 call    qword ptr [r8+90h]
+  .text:00000001819ADB19                 test    al, al
+  .text:00000001819ADB1B                 lea     rcx, dword_18279D87C
+  .text:00000001819ADB22                 setnz   cs:byte_18279D879
+  .text:00000001819ADB29                 call    sub_1819FA0CC
+  .text:00000001819ADB2E                 jmp     loc_1819AD8B0
+procedure: |-
+  __int128 *__fastcall sub_1819AD820(_QWORD *a1, __int64 a2, __int64 a3, __int64 a4, __int128 *a5)
+  {
+    __int64 v9; // rax
+    char **v10; // rax
+    _QWORD *v11; // r14
+    _QWORD *ThreadLocalStoragePointer; // rax
+    __int128 v13; // xmm0
+    __int128 v14; // xmm1
+    __int128 v15; // xmm0
+    __int128 v16; // xmm1
+    __int128 v17; // xmm0
+    __int128 v18; // xmm1
+    __int128 v19; // xmm0
+    __int128 *result; // rax
+    _DWORD *v21; // r9
+    int v22; // r8d
+    __int64 v23; // rax
+    __int64 v24; // r9
+    __int64 v25; // rdx
+    __int64 v26; // rcx
+    _DWORD *v27; // rdx
+    __int64 v28; // rax
+    __int128 v29; // [rsp+30h] [rbp-B8h] BYREF
+    _BYTE v30[128]; // [rsp+40h] [rbp-A8h] BYREF
+    __int128 v31; // [rsp+C0h] [rbp-28h]
+
+    v9 = *((__int16 *)a5 + 48);
+    if ( (_WORD)v9 == 0xFFFF )
+      v10 = &off_1822AD970;
+    else
+      v10 = (char **)off_1822ACD40[11 * v9];
+    a1[1] = v10;
+    v11 = a1 + 1;
+    ThreadLocalStoragePointer = NtCurrentTeb()->ThreadLocalStoragePointer;
+    *a1 = 0xFFFFFFFFLL;
+    if ( dword_18279D87C > *(_DWORD *)(ThreadLocalStoragePointer[TlsIndex] + 104LL) )
+    {
+      sub_1819FA138(&dword_18279D87C);
+      if ( dword_18279D87C == -1 )
+      {
+        v28 = CommandLine();
+        byte_18279D879 = (*(unsigned __int8 (__fastcall **)(__int64, __int64))(*(_QWORD *)v28 + 144LL))(v28, 197456290) != 0;
+        sub_1819FA0CC(&dword_18279D87C);
+      }
+    }
+    if ( !byte_18279D879 && (a3 & 0x13084282) == 0 )
+      a3 |= 0x100000002uLL;
+    memset(&v30[15], 0, 48);
+    *(_QWORD *)&v29 = a2;
+    *((_QWORD *)&v29 + 1) = a4;
+    v13 = *a5;
+    *(_QWORD *)v30 = a3;
+    *((_QWORD *)&v31 + 1) = v11;
+    *(_QWORD *)&v31 = a1;
+    v14 = a5[1];
+    *(_OWORD *)&v30[8] = v13;
+    v15 = a5[2];
+    *(_OWORD *)&v30[24] = v14;
+    v16 = a5[3];
+    *(_OWORD *)&v30[40] = v15;
+    v17 = a5[4];
+    *(_OWORD *)&v30[56] = v16;
+    v18 = a5[5];
+    *(_OWORD *)&v30[72] = v17;
+    v19 = a5[6];
+    *(_OWORD *)&v30[88] = v18;
+    *(_QWORD *)&v18 = *((_QWORD *)a5 + 14);
+    *(_OWORD *)&v30[104] = v19;
+    *(_QWORD *)&v30[120] = v18;
+    if ( byte_18279D878 )
+    {
+      (*(void (__fastcall **)(__int64, __int128 *, __int64, _QWORD *, _QWORD *))(*(_QWORD *)g_pVEngineCvar
+                                                                               + 304LL))(// 0x130 = 304LL = ICvar_RegisterConVar
+        g_pVEngineCvar,
+        &v29,
+        qword_18279DA38,
+        a1,
+        v11);
+      result = (__int128 *)v31;
+      if ( *(_QWORD *)v31 == 0xFFFFFFFFLL )
+      {
+        Plat_FatalError("RegisterConVar: Unknown error registering convar \"%s\"!\n", (const char *)v29);
+        __debugbreak();
+      }
+    }
+    else
+    {
+      v21 = (_DWORD *)qword_18279D870;
+      if ( !qword_18279D870 || (v22 = *(_DWORD *)qword_18279D870, *(_DWORD *)qword_18279D870 == 100) )
+      {
+        v23 = sub_180C319D0(16016);
+        v22 = 0;
+        v24 = v23;
+        if ( v23 )
+        {
+          v25 = 100;
+          v26 = v23 + 36;
+          do
+          {
+            *(_DWORD *)(v26 - 4) = 0;
+            *(_WORD *)v26 = 0;
+            *(_BYTE *)(v26 + 2) = 0;
+            *(_OWORD *)(v26 + 3) = 0;
+            *(_OWORD *)(v26 + 19) = 0;
+            *(_OWORD *)(v26 + 35) = 0;
+            *(_QWORD *)(v26 + 52) = 0;
+            *(_QWORD *)(v26 + 60) = 0;
+            *(_QWORD *)(v26 + 68) = 0;
+            *(_QWORD *)(v26 + 76) = 0;
+            *(_QWORD *)(v26 + 84) = 0;
+            *(_WORD *)(v26 + 92) = -1;
+            *(_BYTE *)(v26 + 108) = 0;
+            *(_QWORD *)(v26 + 100) = 0;
+            v26 += 160;
+            --v25;
+          }
+          while ( v25 );
+        }
+        else
+        {
+          v24 = 0;
+        }
+        *(_QWORD *)(v24 + 16008) = qword_18279D870;
+        qword_18279D870 = v24;
+        *(_DWORD *)v24 = 0;
+        v21 = (_DWORD *)qword_18279D870;
+      }
+      *v21 = v22 + 1;
+      v27 = &v21[40 * v22];
+      result = &v29;
+      *(_OWORD *)(v27 + 2) = v29;
+      *(_OWORD *)(v27 + 6) = *(_OWORD *)v30;
+      *(_OWORD *)(v27 + 10) = *(_OWORD *)&v30[16];
+      *(_OWORD *)(v27 + 14) = *(_OWORD *)&v30[32];
+      *(_OWORD *)(v27 + 18) = *(_OWORD *)&v30[48];
+      *(_OWORD *)(v27 + 22) = *(_OWORD *)&v30[64];
+      *(_OWORD *)(v27 + 26) = *(_OWORD *)&v30[80];
+      *(_OWORD *)(v27 + 30) = *(_OWORD *)&v30[96];
+      *(_OWORD *)(v27 + 34) = *(_OWORD *)&v30[112];
+      *(_OWORD *)(v27 + 38) = v31;
+    }
+    return result;
+  }

@@ -1,25 +1,20 @@
 #!/usr/bin/env python3
-"""Find ICvar_ResetConVarsToDefaultValuesByFlag by decompiling its predecessor chain."""
+"""Find ConCommandRef_Dispatch by decompiling its predecessor."""
 
 from ida_analyze_util import preprocess_common_skill
 
-TARGET_FUNCTION_NAMES = ["ICvar_ResetConVarsToDefaultValuesByFlag"]
-# Follow the original caller and optional helpers across inline/de-inline builds.
+TARGET_FUNCTION_NAMES = ["ConCommandRef_Dispatch"]
 LLM_DECOMPILE = [
     {
-        "symbol_name": "ICvar_ResetConVarsToDefaultValuesByFlag",
+        "symbol_name": "ConCommandRef_Dispatch",
         "prompt_path": "prompt/call_llm_decompile.md",
-        "reference_yaml_paths": ["references/server/CMultiplayRules_ctor.{platform}.yaml"],
-        "expected_result_sections": ["found_vcall"],
-        "dependency_policy": {"CMultiplayRules_ctor.{platform}.yaml": "required"},
+        "reference_yaml_paths": ["references/engine/CServerSideClient_ExecuteStringCommand.{platform}.yaml"],
+        "expected_result_sections": ["found_call"],
+        "dependency_policy": {"CServerSideClient_ExecuteStringCommand.{platform}.yaml": "required"},
     }
 ]
-FUNC_VTABLE_RELATIONS = [("ICvar_ResetConVarsToDefaultValuesByFlag", "ICvar")]
 GENERATE_YAML_DESIRED_FIELDS = [
-    (
-        "ICvar_ResetConVarsToDefaultValuesByFlag",
-        ["func_name", "vfunc_sig", "vtable_name", "vfunc_offset", "vfunc_index"],
-    )
+    ("ConCommandRef_Dispatch", ["func_name", "func_sig", "func_va", "func_rva", "func_size"])
 ]
 
 
@@ -42,7 +37,6 @@ async def preprocess_skill(
         platform=platform,
         image_base=image_base,
         func_names=TARGET_FUNCTION_NAMES,
-        func_vtable_relations=FUNC_VTABLE_RELATIONS,
         llm_decompile_specs=LLM_DECOMPILE,
         llm_config=llm_config,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
