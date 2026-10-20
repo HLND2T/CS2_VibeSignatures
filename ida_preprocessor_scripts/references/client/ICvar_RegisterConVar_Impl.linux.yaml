@@ -1,0 +1,168 @@
+func_name: ICvar_RegisterConVar_Impl
+func_va: '0x2179a60'
+disasm_code: |-
+  .text:0000000002179A60                 push    rbp
+  .text:0000000002179A61                 mov     rbp, rsp
+  .text:0000000002179A64                 push    rbx
+  .text:0000000002179A65                 mov     rbx, rdi
+  .text:0000000002179A68                 sub     rsp, 8
+  .text:0000000002179A6C                 cmp     cs:byte_49F16D9, 0
+  .text:0000000002179A73                 jnz     loc_2179BBF
+  .text:0000000002179A79                 mov     rax, cs:qword_49F16E0
+  .text:0000000002179A80                 test    rax, rax
+  .text:0000000002179A83                 jz      loc_2179B10
+  .text:0000000002179A89                 movsxd  rdx, dword ptr [rax]
+  .text:0000000002179A8C                 lea     ecx, [rdx+1]
+  .text:0000000002179A8F                 cmp     edx, 64h ; 'd'
+  .text:0000000002179A92                 jz      short loc_2179B10
+  .text:0000000002179A94                 lea     rdx, [rdx+rdx*4]
+  .text:0000000002179A98                 mov     [rax], ecx
+  .text:0000000002179A9A                 movdqu  xmm0, xmmword ptr [rbx]
+  .text:0000000002179A9E                 shl     rdx, 5
+  .text:0000000002179AA2                 add     rax, rdx
+  .text:0000000002179AA5                 movups  xmmword ptr [rax+8], xmm0
+  .text:0000000002179AA9                 movdqu  xmm0, xmmword ptr [rbx+10h]
+  .text:0000000002179AAE                 movups  xmmword ptr [rax+18h], xmm0
+  .text:0000000002179AB2                 movdqu  xmm0, xmmword ptr [rbx+20h]
+  .text:0000000002179AB7                 movups  xmmword ptr [rax+28h], xmm0
+  .text:0000000002179ABB                 movdqu  xmm0, xmmword ptr [rbx+30h]
+  .text:0000000002179AC0                 movups  xmmword ptr [rax+38h], xmm0
+  .text:0000000002179AC4                 movdqu  xmm0, xmmword ptr [rbx+40h]
+  .text:0000000002179AC9                 movups  xmmword ptr [rax+48h], xmm0
+  .text:0000000002179ACD                 movdqu  xmm0, xmmword ptr [rbx+50h]
+  .text:0000000002179AD2                 movups  xmmword ptr [rax+58h], xmm0
+  .text:0000000002179AD6                 movdqu  xmm0, xmmword ptr [rbx+60h]
+  .text:0000000002179ADB                 movups  xmmword ptr [rax+68h], xmm0
+  .text:0000000002179ADF                 movdqu  xmm0, xmmword ptr [rbx+70h]
+  .text:0000000002179AE4                 movups  xmmword ptr [rax+78h], xmm0
+  .text:0000000002179AE8                 movdqu  xmm0, xmmword ptr [rbx+80h]
+  .text:0000000002179AF0                 movups  xmmword ptr [rax+88h], xmm0
+  .text:0000000002179AF7                 movdqu  xmm0, xmmword ptr [rbx+90h]
+  .text:0000000002179AFF                 movups  xmmword ptr [rax+98h], xmm0
+  .text:0000000002179B06                 mov     rbx, [rbp+var_8]
+  .text:0000000002179B0A                 leave
+  .text:0000000002179B0B                 retn
+  .text:0000000002179B10                 mov     edi, 3E90h
+  .text:0000000002179B15                 call    sub_C70AF0
+  .text:0000000002179B1A                 lea     rdx, [rax+8]
+  .text:0000000002179B1E                 lea     rcx, [rax+3E88h]
+  .text:0000000002179B25                 nop     dword ptr [rax]
+  .text:0000000002179B28                 xor     esi, esi
+  .text:0000000002179B2A                 mov     edi, 0FFFFFFFFh
+  .text:0000000002179B2F                 pxor    xmm0, xmm0
+  .text:0000000002179B33                 mov     dword ptr [rdx+18h], 0
+  .text:0000000002179B3A                 mov     [rdx+1Ch], si
+  .text:0000000002179B3E                 add     rdx, 0A0h
+  .text:0000000002179B45                 mov     byte ptr [rdx-82h], 0
+  .text:0000000002179B4C                 movups  xmmword ptr [rdx-81h], xmm0
+  .text:0000000002179B53                 movups  xmmword ptr [rdx-71h], xmm0
+  .text:0000000002179B57                 movups  xmmword ptr [rdx-61h], xmm0
+  .text:0000000002179B5B                 mov     qword ptr [rdx-50h], 0
+  .text:0000000002179B63                 mov     qword ptr [rdx-48h], 0
+  .text:0000000002179B6B                 mov     qword ptr [rdx-40h], 0
+  .text:0000000002179B73                 mov     qword ptr [rdx-38h], 0
+  .text:0000000002179B7B                 mov     qword ptr [rdx-30h], 0
+  .text:0000000002179B83                 mov     [rdx-28h], di
+  .text:0000000002179B87                 mov     byte ptr [rdx-18h], 0
+  .text:0000000002179B8B                 mov     qword ptr [rdx-20h], 0
+  .text:0000000002179B93                 cmp     rdx, rcx
+  .text:0000000002179B96                 jnz     short loc_2179B28
+  .text:0000000002179B98                 mov     rdx, cs:qword_49F16E0
+  .text:0000000002179B9F                 mov     dword ptr [rax], 0
+  .text:0000000002179BA5                 mov     ecx, 1
+  .text:0000000002179BAA                 mov     cs:qword_49F16E0, rax
+  .text:0000000002179BB1                 mov     [rax+3E88h], rdx
+  .text:0000000002179BB8                 xor     edx, edx
+  .text:0000000002179BBA                 jmp     loc_2179A94
+  .text:0000000002179BBF                 lea     rax, g_pVEngineCvar
+  .text:0000000002179BC6                 mov     rsi, rbx
+  .text:0000000002179BC9                 mov     rcx, [rbx+90h]
+  .text:0000000002179BD0                 mov     r8, [rbx+98h]
+  .text:0000000002179BD7                 mov     rdi, [rax]
+  .text:0000000002179BDA                 lea     rax, qword_49F16B0
+  .text:0000000002179BE1                 mov     rdx, [rax]
+  .text:0000000002179BE4                 mov     rax, [rdi]
+  .text:0000000002179BE7                 ; 0x130 = 304LL = ICvar_RegisterConVar
+  .text:0000000002179BE7                 call    qword ptr [rax+130h]; 0x130 = 304LL = ICvar_RegisterConVar
+  .text:0000000002179BED                 mov     rdx, [rbx+90h]
+  .text:0000000002179BF4                 mov     eax, 0FFFFFFFFh
+  .text:0000000002179BF9                 cmp     [rdx], rax
+  .text:0000000002179BFC                 jnz     loc_2179B06
+  .text:0000000002179C02                 mov     rsi, [rbx]
+  .text:0000000002179C05                 xor     eax, eax
+  .text:0000000002179C07                 lea     rdi, aRegisterconvar_1; "RegisterConVar: Unknown error registeri"...
+  .text:0000000002179C0E                 call    sub_C7CEE0
+procedure: |-
+  __int64 __fastcall sub_2179A60(const __m128i *a1)
+  {
+    __int64 v1; // rax
+    __int64 v2; // rdx
+    int v3; // ecx
+    __int64 result; // rax
+    __int64 v5; // rdx
+    __int64 v6; // rdx
+
+    if ( byte_49F16D9 )
+    {
+      (*(void (__fastcall **)(_QWORD *, const __m128i *, __int64, __int64, __int64))(*g_pVEngineCvar
+                                                                                   + 304LL))(// 0x130 = 304LL = ICvar_RegisterConVar
+        g_pVEngineCvar,
+        a1,
+        qword_49F16B0,
+        a1[9].m128i_i64[0],
+        a1[9].m128i_i64[1]);
+      result = 0xFFFFFFFFLL;
+      if ( *(_QWORD *)a1[9].m128i_i64[0] == 0xFFFFFFFFLL )
+      {
+        sub_C7CEE0("RegisterConVar: Unknown error registering convar \"%s\"!\n", (const char *)a1->m128i_i64[0]);
+        JUMPOUT(0x2179C13);
+      }
+    }
+    else
+    {
+      v1 = qword_49F16E0;
+      if ( !qword_49F16E0 || (v2 = *(int *)qword_49F16E0, v3 = v2 + 1, (_DWORD)v2 == 100) )
+      {
+        v1 = sub_C70AF0(16016);
+        v5 = v1 + 8;
+        do
+        {
+          *(_DWORD *)(v5 + 24) = 0;
+          *(_WORD *)(v5 + 28) = 0;
+          v5 += 160;
+          *(_BYTE *)(v5 - 130) = 0;
+          *(_OWORD *)(v5 - 129) = 0;
+          *(_OWORD *)(v5 - 113) = 0;
+          *(_OWORD *)(v5 - 97) = 0;
+          *(_QWORD *)(v5 - 80) = 0;
+          *(_QWORD *)(v5 - 72) = 0;
+          *(_QWORD *)(v5 - 64) = 0;
+          *(_QWORD *)(v5 - 56) = 0;
+          *(_QWORD *)(v5 - 48) = 0;
+          *(_WORD *)(v5 - 40) = -1;
+          *(_BYTE *)(v5 - 24) = 0;
+          *(_QWORD *)(v5 - 32) = 0;
+        }
+        while ( v5 != v1 + 16008 );
+        v6 = qword_49F16E0;
+        *(_DWORD *)v1 = 0;
+        v3 = 1;
+        qword_49F16E0 = v1;
+        *(_QWORD *)(v1 + 16008) = v6;
+        v2 = 0;
+      }
+      *(_DWORD *)v1 = v3;
+      result = 160 * v2 + v1;
+      *(__m128i *)(result + 8) = _mm_loadu_si128(a1);
+      *(__m128i *)(result + 24) = _mm_loadu_si128(a1 + 1);
+      *(__m128i *)(result + 40) = _mm_loadu_si128(a1 + 2);
+      *(__m128i *)(result + 56) = _mm_loadu_si128(a1 + 3);
+      *(__m128i *)(result + 72) = _mm_loadu_si128(a1 + 4);
+      *(__m128i *)(result + 88) = _mm_loadu_si128(a1 + 5);
+      *(__m128i *)(result + 104) = _mm_loadu_si128(a1 + 6);
+      *(__m128i *)(result + 120) = _mm_loadu_si128(a1 + 7);
+      *(__m128i *)(result + 136) = _mm_loadu_si128(a1 + 8);
+      *(__m128i *)(result + 152) = _mm_loadu_si128(a1 + 9);
+    }
+    return result;
+  }

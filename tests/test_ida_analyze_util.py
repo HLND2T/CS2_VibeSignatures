@@ -13854,6 +13854,8 @@ found_struct_offset: []
             "found_struct_offset": [],
         }
 
+        custom_loader = AsyncMock(return_value=[target_detail_payload])
+
         with tempfile.TemporaryDirectory() as temp_dir:
             preprocessor_dir = Path(temp_dir) / "ida_preprocessor_scripts"
             (preprocessor_dir / "prompt").mkdir(parents=True, exist_ok=True)

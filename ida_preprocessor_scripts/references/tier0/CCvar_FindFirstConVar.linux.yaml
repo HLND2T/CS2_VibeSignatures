@@ -1,0 +1,119 @@
+func_name: CCvar_FindFirstConVar
+func_va: '0x158250'
+disasm_code: |-
+  .text:0000000000158250                 push    rbp
+  .text:0000000000158251                 mov     rbp, rsp
+  .text:0000000000158254                 push    r14
+  .text:0000000000158256                 push    r13
+  .text:0000000000158258                 lea     r13, [rdi+158h]
+  .text:000000000015825F                 push    r12
+  .text:0000000000158261                 push    rbx
+  .text:0000000000158262                 mov     rbx, rdi
+  .text:0000000000158265                 sub     rsp, 10h
+  .text:0000000000158269                 call    _ThreadGetCurrentId
+  .text:000000000015826E                 cmp     rax, [rbx+160h]
+  .text:0000000000158275                 jz      loc_158320
+  .text:000000000015827B                 ; unsigned __int64
+  .text:000000000015827B                 mov     rsi, rax; unsigned __int64
+  .text:000000000015827E                 mov     eax, [rbx+158h]
+  .text:0000000000158284                 test    eax, eax
+  .text:0000000000158286                 jz      short loc_1582F8
+  .text:0000000000158288                 ; this
+  .text:0000000000158288                 mov     rdi, r13; this
+  .text:000000000015828B                 call    __ZN12CAtomicMutex11AcquireLockEy; CAtomicMutex::AcquireLock(ulong long)
+  .text:0000000000158290                 movzx   eax, word ptr [rbx+58h]
+  .text:0000000000158294                 mov     r12d, 0FFFFFFFFh
+  .text:000000000015829A                 cmp     ax, 0FFFFh
+  .text:000000000015829E                 jz      short loc_1582DB
+  .text:00000000001582A0                 lea     r14, [rbp+var_30]
+  .text:00000000001582A4                 movzx   r12d, ax
+  .text:00000000001582A8                 mov     edx, 0FFFFFFFFh
+  .text:00000000001582AD                 mov     rdi, r14
+  .text:00000000001582B0                 mov     rsi, r12
+  .text:00000000001582B3                 call    sub_3F8720
+  .text:00000000001582B8                 mov     rdi, r14
+  .text:00000000001582BB                 call    sub_3F8C50
+  .text:00000000001582C0                 test    al, al
+  .text:00000000001582C2                 jz      short loc_1582D3
+  .text:00000000001582C4                 mov     rax, [rbx]
+  .text:00000000001582C7                 mov     rsi, r12
+  .text:00000000001582CA                 mov     rdi, rbx
+  .text:00000000001582CD                 call    qword ptr [rax+68h]
+  .text:00000000001582D0                 mov     r12, rax
+  .text:00000000001582D3                 mov     rdi, r14
+  .text:00000000001582D6                 call    nullsub_60
+  .text:00000000001582DB                 sub     word ptr [rbx+15Ch], 1
+  .text:00000000001582E3                 jz      short loc_158330
+  .text:00000000001582E5                 add     rsp, 10h
+  .text:00000000001582E9                 mov     rax, r12
+  .text:00000000001582EC                 pop     rbx
+  .text:00000000001582ED                 pop     r12
+  .text:00000000001582EF                 pop     r13
+  .text:00000000001582F1                 pop     r14
+  .text:00000000001582F3                 pop     rbp
+  .text:00000000001582F4                 retn
+  .text:00000000001582F8                 mov     edx, 3
+  .text:00000000001582FD                 lock cmpxchg [r13+0], edx
+  .text:0000000000158303                 jnz     short loc_158288
+  .text:0000000000158305                 mov     eax, 1
+  .text:000000000015830A                 mov     [rbx+160h], rsi
+  .text:0000000000158311                 mov     [rbx+15Ch], ax
+  .text:0000000000158318                 jmp     loc_158290
+  .text:0000000000158320                 add     word ptr [rbx+15Ch], 1
+  .text:0000000000158328                 jmp     loc_158290
+  .text:0000000000158330                 mov     qword ptr [rbx+160h], 0
+  .text:000000000015833B                 lock sub dword ptr [r13+0], 3
+  .text:0000000000158341                 jz      short loc_1582E5
+  .text:0000000000158343                 ; unsigned int *
+  .text:0000000000158343                 mov     rdi, r13; unsigned int *
+  .text:0000000000158346                 call    __Z21ThreadAtomicNotifyOnePKj; ThreadAtomicNotifyOne(uint const*)
+  .text:000000000015834B                 add     rsp, 10h
+  .text:000000000015834F                 mov     rax, r12
+  .text:0000000000158352                 pop     rbx
+  .text:0000000000158353                 pop     r12
+  .text:0000000000158355                 pop     r13
+  .text:0000000000158357                 pop     r14
+  .text:0000000000158359                 pop     rbp
+  .text:000000000015835A                 retn
+procedure: |-
+  __int64 __fastcall CCvar_FindFirstConVar(__int64 a1)
+  {
+    volatile signed __int32 *v1; // r13
+    unsigned __int64 CurrentId; // rax
+    unsigned __int16 v3; // ax
+    __int64 v4; // r12
+    _BYTE v7[48]; // [rsp+0h] [rbp-30h] BYREF
+
+    v1 = (volatile signed __int32 *)(a1 + 344);
+    CurrentId = ThreadGetCurrentId();
+    if ( CurrentId == *(_QWORD *)(a1 + 352) )
+    {
+      ++*(_WORD *)(a1 + 348);
+    }
+    else if ( *(_DWORD *)(a1 + 344) || _InterlockedCompareExchange(v1, 3, 0) )
+    {
+      CAtomicMutex::AcquireLock((CAtomicMutex *)(a1 + 344), CurrentId);
+    }
+    else
+    {
+      *(_QWORD *)(a1 + 352) = CurrentId;
+      *(_WORD *)(a1 + 348) = 1;
+    }
+    v3 = *(_WORD *)(a1 + 88);
+    v4 = 0xFFFFFFFFLL;
+    if ( v3 != 0xFFFF )
+    {
+      v4 = v3;
+      sub_3F8720(v7, v3, 0xFFFFFFFFLL);
+      if ( (unsigned __int8)sub_3F8C50(v7) )
+        v4 = (*(__int64 (__fastcall **)(__int64, __int64))(*(_QWORD *)a1 + 104LL))(a1, v4);
+      nullsub_60(v7);
+    }
+    if ( (*(_WORD *)(a1 + 348))-- != 1 )
+      return v4;
+    *(_QWORD *)(a1 + 352) = 0;
+    if ( !_InterlockedSub(v1, 3u) )
+      return v4;
+    ThreadAtomicNotifyOne((const unsigned int *)v1);
+    return v4;
+  }
