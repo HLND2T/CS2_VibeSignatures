@@ -16968,6 +16968,8 @@ cpp_tests:
       - engine  # bin_artifacts/{gamever}/engine/CEngineServiceMgr_*.{platform}.yaml
   - name: IGameEventSystem_MSVC
     symbol: IGameEventSystem
+    alias_symbols:
+      - CGameEventSystem
     cpp: cpp_tests/igameeventsystem.cpp
     headers:
       - hl2sdk_cs2/public/engine/igameeventsystem.h  # Used by the fix-cppheaders SKILL
@@ -16988,11 +16990,12 @@ cpp_tests:
       - fms-compatibility
       - Xclang
       - fdump-vtable-layouts
-    # No reference_modules yet: IGameEventSystem has no binary reference YAMLs
-    # (CGameEventSystem_vtable exists but covers the impl class, not this
-    # interface). Compile-only validation.
+    reference_modules:
+      - engine  # bin_artifacts/{gamever}/engine/CGameEventSystem_*.{platform}.yaml
   - name: IGameEventSystem_GCC
     symbol: IGameEventSystem
+    alias_symbols:
+      - CGameEventSystem
     cpp: cpp_tests/igameeventsystem.cpp
     headers:
       - hl2sdk_cs2/public/engine/igameeventsystem.h  # Used by the fix-cppheaders SKILL
@@ -17012,9 +17015,8 @@ cpp_tests:
     additional_compiler_options:
       - Xclang
       - fdump-vtable-layouts
-    # No reference_modules yet: IGameEventSystem has no binary reference YAMLs
-    # (CGameEventSystem_vtable exists but covers the impl class, not this
-    # interface). Compile-only validation.
+    reference_modules:
+      - engine  # bin_artifacts/{gamever}/engine/CGameEventSystem_*.{platform}.yaml
   - name: INetChannel_MSVC
     symbol: INetChannel
     alias_symbols:
