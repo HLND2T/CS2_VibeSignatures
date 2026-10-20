@@ -13839,6 +13839,7 @@ found_struct_offset: []
             "disasm_code": "call    sub_180123450",
             "procedure": "return sub_180123450();",
         }
+        custom_loader = AsyncMock(return_value=[target_detail_payload])
         normalized_payload = {
             "found_call": [
                 {

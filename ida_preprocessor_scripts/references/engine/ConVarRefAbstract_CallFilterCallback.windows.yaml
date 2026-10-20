@@ -1,0 +1,43 @@
+func_name: ConVarRefAbstract_CallFilterCallback
+func_va: '0x180405340'
+disasm_code: |-
+  .text:0000000180405340                 push    rbx
+  .text:0000000180405342                 sub     rsp, 30h
+  .text:0000000180405346                 mov     rax, [rsp+38h+arg_20]
+  .text:000000018040534B                 mov     r11, r8
+  .text:000000018040534E                 mov     r8d, edx
+  .text:0000000180405351                 mov     rbx, rcx
+  .text:0000000180405354                 cmp     edx, 0FFFFFFFFh
+  .text:0000000180405357                 jnz     short loc_180405362
+  .text:0000000180405359                 xor     ecx, ecx
+  .text:000000018040535B                 test    rax, rax
+  .text:000000018040535E                 cmovz   r8d, ecx
+  .text:0000000180405362                 mov     rcx, cs:g_pVEngineCvar
+  .text:0000000180405369                 mov     [rsp+38h+var_10], rax
+  .text:000000018040536E                 mov     [rsp+38h+var_18], r9
+  .text:0000000180405373                 mov     r9, r11
+  .text:0000000180405376                 mov     rdx, [rcx]
+  .text:0000000180405379                 mov     r10, [rdx+80h]; 80h = ICvar_CallFilterCallback
+  .text:0000000180405380                 mov     rdx, [rbx]
+  .text:0000000180405383                 ; 0x80 = 128LL = ICvar_CallFilterCallback
+  .text:0000000180405383                 call    r10; 0x80 = 128LL = ICvar_CallFilterCallback
+  .text:0000000180405386                 add     rsp, 30h
+  .text:000000018040538A                 pop     rbx
+  .text:000000018040538B                 retn
+procedure: |-
+  __int64 __fastcall ConVarRefAbstract_CallFilterCallback(_QWORD *a1, unsigned int a2, __int64 a3, __int64 a4, __int64 a5)
+  {
+    __int64 v6; // r8
+
+    v6 = a2;
+    if ( a2 == -1 && !a5 )
+      v6 = 0;
+    return (*(__int64 (__fastcall **)(__int64, _QWORD, __int64, __int64, __int64, __int64))(*(_QWORD *)g_pVEngineCvar
+                                                                                          + 128LL))(// 0x80 = 128LL = ICvar_CallFilterCallback
+             g_pVEngineCvar,
+             *a1,
+             v6,
+             a3,
+             a4,
+             a5);
+  }
