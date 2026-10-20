@@ -1,0 +1,582 @@
+func_name: CGameEventManager_FireEvent
+func_va: '0x171a940'
+disasm_code: |-
+  .text:000000000171A940                 push    rbp
+  .text:000000000171A941                 mov     rbp, rsp
+  .text:000000000171A944                 push    r13
+  .text:000000000171A946                 mov     r13, rdi
+  .text:000000000171A949                 push    r12
+  .text:000000000171A94B                 mov     r12, rsi
+  .text:000000000171A94E                 push    rbx
+  .text:000000000171A94F                 mov     ebx, edx
+  .text:000000000171A951                 sub     rsp, 8
+  .text:000000000171A955                 mov     rax, cs:qword_29BBF58
+  .text:000000000171A95C                 cmp     byte ptr [rax+58h], 0
+  .text:000000000171A960                 jz      short loc_171A9A6
+  .text:000000000171A962                 mov     rax, [rsi]
+  .text:000000000171A965                 lea     rdx, sub_16EF7B0
+  .text:000000000171A96C                 mov     rax, [rax+10h]
+  .text:000000000171A970                 cmp     rax, rdx
+  .text:000000000171A973                 jnz     short loc_171A9C0
+  .text:000000000171A975                 lea     rsi, [rsi+18h]
+  .text:000000000171A979                 test    byte ptr [r12+17h], 40h
+  .text:000000000171A97F                 jnz     short loc_171A998
+  .text:000000000171A981                 lea     rsi, byte_940451
+  .text:000000000171A988                 test    dword ptr [r12+14h], 3FFFFFFFh
+  .text:000000000171A991                 jz      short loc_171A998
+  .text:000000000171A993                 mov     rsi, [r12+18h]
+  .text:000000000171A998                 lea     rdi, aGameEventFired; "Game Event Fired: %s\n"
+  .text:000000000171A99F                 xor     eax, eax
+  .text:000000000171A9A1                 call    sub_9FD310
+  .text:000000000171A9A6                 add     rsp, 8
+  .text:000000000171A9AA                 movzx   edx, bl
+  .text:000000000171A9AD                 mov     rsi, r12
+  .text:000000000171A9B0                 pop     rbx
+  .text:000000000171A9B1                 mov     rdi, r13
+  .text:000000000171A9B4                 xor     ecx, ecx
+  .text:000000000171A9B6                 pop     r12
+  .text:000000000171A9B8                 pop     r13
+  .text:000000000171A9BA                 pop     rbp
+  .text:000000000171A9BB                 jmp     sub_171A500
+  .text:000000000171A9C0                 mov     rdi, rsi
+  .text:000000000171A9C3                 call    rax
+  .text:000000000171A9C5                 mov     rsi, rax
+  .text:000000000171A9C8                 jmp     short loc_171A998
+
+  .text:000000000171A500                 push    rbp
+  .text:000000000171A501                 lea     rax, [rdi+0E0h]
+  .text:000000000171A508                 mov     rbp, rsp
+  .text:000000000171A50B                 push    r15
+  .text:000000000171A50D                 mov     r15d, edx
+  .text:000000000171A510                 push    r14
+  .text:000000000171A512                 push    r13
+  .text:000000000171A514                 mov     r13d, edx
+  .text:000000000171A517                 push    r12
+  .text:000000000171A519                 mov     r12, rsi
+  .text:000000000171A51C                 push    rbx
+  .text:000000000171A51D                 mov     rbx, rdi
+  .text:000000000171A520                 sub     rsp, 18h
+  .text:000000000171A524                 mov     dword ptr [rbp+var_40], ecx
+  .text:000000000171A527                 mov     [rbp+var_38], rax
+  .text:000000000171A52B                 call    sub_9FC1B0
+  .text:000000000171A530                 cmp     rax, [rbx+0E8h]
+  .text:000000000171A537                 jz      loc_171A740
+  .text:000000000171A53D                 mov     rsi, rax
+  .text:000000000171A540                 mov     eax, [rbx+0E0h]
+  .text:000000000171A546                 test    eax, eax
+  .text:000000000171A548                 jz      loc_171A6E0
+  .text:000000000171A54E                 mov     rdi, [rbp+var_38]
+  .text:000000000171A552                 call    sub_9FCD20
+  .text:000000000171A557                 test    r12, r12
+  .text:000000000171A55A                 jz      loc_171A886
+  .text:000000000171A560                 lea     rdx, _ZTI10CGameEvent; `typeinfo for'CGameEvent
+  .text:000000000171A567                 xor     ecx, ecx
+  .text:000000000171A569                 mov     rdi, r12
+  .text:000000000171A56C                 lea     rsi, _ZTI10IGameEvent; `typeinfo for'IGameEvent
+  .text:000000000171A573                 call    sub_9F2CD0
+  .text:000000000171A578                 test    rax, rax
+  .text:000000000171A57B                 jz      loc_171A830
+  .text:000000000171A581                 mov     r14, [rax+8]
+  .text:000000000171A585                 test    r14, r14
+  .text:000000000171A588                 jz      loc_171A830
+  .text:000000000171A58E                 mov     rax, cs:qword_29BBF78
+  .text:000000000171A595                 mov     eax, [rax+58h]
+  .text:000000000171A598                 test    eax, eax
+  .text:000000000171A59A                 jle     loc_171A750
+  .text:000000000171A5A0                 cmp     byte ptr [rbp+var_40], 0
+  .text:000000000171A5A4                 jz      loc_171A890
+  .text:000000000171A5AA                 movsxd  rax, dword ptr [r14+0Ch]
+  .text:000000000171A5AE                 xor     edx, edx
+  .text:000000000171A5B0                 test    dword ptr [rbx+0C4h], 7FFFFFFFh
+  .text:000000000171A5BA                 jz      short loc_171A5C3
+  .text:000000000171A5BC                 mov     rdx, [rbx+0C8h]
+  .text:000000000171A5C3                 shl     rax, 5
+  .text:000000000171A5C7                 mov     r13, [rdx+rax+10h]
+  .text:000000000171A5CC                 lea     rax, g_pNetworkClientService
+  .text:000000000171A5D3                 mov     rdi, [rax]
+  .text:000000000171A5D6                 mov     rax, [rdi]
+  .text:000000000171A5D9                 call    qword ptr [rax+0C0h]
+  .text:000000000171A5DF                 mov     rdi, rax
+  .text:000000000171A5E2                 test    rax, rax
+  .text:000000000171A5E5                 jz      short loc_171A600
+  .text:000000000171A5E7                 mov     rax, [rax]
+  .text:000000000171A5EA                 call    qword ptr [rax+28h]
+  .text:000000000171A5ED                 lea     rdi, aGameEventSTick; "Game event \"%s\", Tick %i:\n"
+  .text:000000000171A5F4                 mov     rsi, r13
+  .text:000000000171A5F7                 mov     edx, eax
+  .text:000000000171A5F9                 xor     eax, eax
+  .text:000000000171A5FB                 call    sub_9FCCB0
+  .text:000000000171A600                 mov     rsi, r12
+  .text:000000000171A603                 mov     rdi, rbx
+  .text:000000000171A606                 call    sub_1719D20
+  .text:000000000171A60B                 mov     eax, [r14+10h]
+  .text:000000000171A60F                 test    eax, eax
+  .text:000000000171A611                 jle     loc_171A6B0
+  .text:000000000171A617                 lea     r13, aCallbackForEve; "Callback for event \"%s\" is NULL!!!\n"
+  .text:000000000171A61E                 xor     r15d, r15d
+  .text:000000000171A621                 jmp     short loc_171A63E
+  .text:000000000171A628                 mov     rax, [rdi]
+  .text:000000000171A62B                 mov     rsi, r12
+  .text:000000000171A62E                 call    qword ptr [rax+10h]
+  .text:000000000171A631                 mov     eax, [r14+10h]
+  .text:000000000171A635                 add     r15, 1
+  .text:000000000171A639                 cmp     eax, r15d
+  .text:000000000171A63C                 jle     short loc_171A6B0
+  .text:000000000171A63E                 mov     rdx, [r14+18h]
+  .text:000000000171A642                 mov     rdx, [rdx+r15*8]
+  .text:000000000171A646                 mov     esi, [rdx+8]
+  .text:000000000171A649                 test    esi, esi
+  .text:000000000171A64B                 jz      short loc_171A635
+  .text:000000000171A64D                 cmp     esi, 2
+  .text:000000000171A650                 jz      short loc_171A635
+  .text:000000000171A652                 mov     rdi, [rdx]
+  .text:000000000171A655                 test    rdi, rdi
+  .text:000000000171A658                 jnz     short loc_171A628
+  .text:000000000171A65A                 mov     rax, [r12]
+  .text:000000000171A65E                 lea     rcx, sub_16EF7B0
+  .text:000000000171A665                 mov     rax, [rax+10h]
+  .text:000000000171A669                 cmp     rax, rcx
+  .text:000000000171A66C                 jnz     loc_171A920
+  .text:000000000171A672                 lea     rsi, [r12+18h]
+  .text:000000000171A677                 test    byte ptr [r12+17h], 40h
+  .text:000000000171A67D                 jnz     short loc_171A696
+  .text:000000000171A67F                 lea     rsi, byte_940451
+  .text:000000000171A686                 test    dword ptr [r12+14h], 3FFFFFFFh
+  .text:000000000171A68F                 jz      short loc_171A696
+  .text:000000000171A691                 mov     rsi, [r12+18h]
+  .text:000000000171A696                 xor     eax, eax
+  .text:000000000171A698                 mov     rdi, r13
+  .text:000000000171A69B                 add     r15, 1
+  .text:000000000171A69F                 call    sub_9FD8A0
+  .text:000000000171A6A4                 mov     eax, [r14+10h]
+  .text:000000000171A6A8                 cmp     eax, r15d
+  .text:000000000171A6AB                 jg      short loc_171A63E
+  .text:000000000171A6AD                 nop     dword ptr [rax]
+  .text:000000000171A6B0                 mov     rax, [rbx]
+  .text:000000000171A6B3                 mov     rsi, r12
+  .text:000000000171A6B6                 mov     rdi, rbx
+  .text:000000000171A6B9                 mov     r12d, 1
+  .text:000000000171A6BF                 call    qword ptr [rax+58h]  ; 58h = IGameEventManager2_FreeEvent
+  .text:000000000171A6C2                 sub     word ptr [rbx+0E4h], 1
+  .text:000000000171A6CA                 jz      short loc_171A720
+  .text:000000000171A6CC                 add     rsp, 18h
+  .text:000000000171A6D0                 mov     eax, r12d
+  .text:000000000171A6D3                 pop     rbx
+  .text:000000000171A6D4                 pop     r12
+  .text:000000000171A6D6                 pop     r13
+  .text:000000000171A6D8                 pop     r14
+  .text:000000000171A6DA                 pop     r15
+  .text:000000000171A6DC                 pop     rbp
+  .text:000000000171A6DD                 retn
+  .text:000000000171A6E0                 mov     rcx, [rbp+var_38]
+  .text:000000000171A6E4                 mov     edx, 3
+  .text:000000000171A6E9                 lock cmpxchg [rcx], edx
+  .text:000000000171A6ED                 jnz     loc_171A54E
+  .text:000000000171A6F3                 mov     edx, 1
+  .text:000000000171A6F8                 mov     [rbx+0E8h], rsi
+  .text:000000000171A6FF                 mov     [rbx+0E4h], dx
+  .text:000000000171A706                 test    r12, r12
+  .text:000000000171A709                 jnz     loc_171A560
+  .text:000000000171A70F                 xor     eax, eax
+  .text:000000000171A711                 xor     r12d, r12d
+  .text:000000000171A714                 mov     [rbx+0E4h], ax
+  .text:000000000171A71B                 nop     dword ptr [rax+rax+00h]
+  .text:000000000171A720                 mov     qword ptr [rbx+0E8h], 0
+  .text:000000000171A72B                 mov     rax, [rbp+var_38]
+  .text:000000000171A72F                 lock sub dword ptr [rax], 3
+  .text:000000000171A733                 jz      short loc_171A6CC
+  .text:000000000171A735                 mov     rdi, [rbp+var_38]
+  .text:000000000171A739                 call    sub_9FCDC0
+  .text:000000000171A73E                 jmp     short loc_171A6CC
+  .text:000000000171A740                 add     word ptr [rbx+0E4h], 1
+  .text:000000000171A748                 jmp     loc_171A557
+  .text:000000000171A750                 mov     eax, [r14+10h]
+  .text:000000000171A754                 test    eax, eax
+  .text:000000000171A756                 jle     loc_171A6B0
+  .text:000000000171A75C                 mov     ecx, dword ptr [rbp+var_40]
+  .text:000000000171A75F                 mov     r15d, r13d
+  .text:000000000171A762                 or      r15d, ecx
+  .text:000000000171A765                 test    cl, cl
+  .text:000000000171A767                 jnz     loc_171A617
+  .text:000000000171A76D                 lea     rcx, [r12+18h]
+  .text:000000000171A772                 xor     r13d, r13d
+  .text:000000000171A775                 mov     [rbp+var_40], rcx
+  .text:000000000171A779                 jmp     short loc_171A792
+  .text:000000000171A780                 cmp     esi, 1
+  .text:000000000171A783                 jnz     short loc_171A7C0
+  .text:000000000171A785                 add     r13, 1
+  .text:000000000171A789                 cmp     eax, r13d
+  .text:000000000171A78C                 jle     loc_171A6B0
+  .text:000000000171A792                 mov     rsi, [r14+18h]
+  .text:000000000171A796                 mov     rdi, [rsi+r13*8]
+  .text:000000000171A79A                 mov     esi, [rdi+8]
+  .text:000000000171A79D                 test    esi, esi
+  .text:000000000171A79F                 jnz     short loc_171A780
+  .text:000000000171A7A1                 mov     rdi, [rdi]
+  .text:000000000171A7A4                 test    rdi, rdi
+  .text:000000000171A7A7                 jz      short loc_171A7D9
+  .text:000000000171A7A9                 mov     rax, [rdi]
+  .text:000000000171A7AC                 mov     rsi, r12
+  .text:000000000171A7AF                 call    qword ptr [rax+10h]
+  .text:000000000171A7B2                 mov     eax, [r14+10h]
+  .text:000000000171A7B6                 jmp     short loc_171A785
+  .text:000000000171A7C0                 cmp     esi, 2
+  .text:000000000171A7C3                 jnz     short loc_171A7A1
+  .text:000000000171A7C5                 test    r15b, r15b
+  .text:000000000171A7C8                 jnz     short loc_171A785
+  .text:000000000171A7CA                 cmp     byte ptr [r14+28h], 0
+  .text:000000000171A7CF                 jnz     short loc_171A785
+  .text:000000000171A7D1                 mov     rdi, [rdi]
+  .text:000000000171A7D4                 test    rdi, rdi
+  .text:000000000171A7D7                 jnz     short loc_171A7A9
+  .text:000000000171A7D9                 mov     rax, [r12]
+  .text:000000000171A7DD                 lea     rcx, sub_16EF7B0
+  .text:000000000171A7E4                 mov     rax, [rax+10h]
+  .text:000000000171A7E8                 cmp     rax, rcx
+  .text:000000000171A7EB                 jnz     loc_171A910
+  .text:000000000171A7F1                 mov     rsi, [rbp+var_40]
+  .text:000000000171A7F5                 test    byte ptr [r12+17h], 40h
+  .text:000000000171A7FB                 jnz     short loc_171A814
+  .text:000000000171A7FD                 lea     rsi, byte_940451
+  .text:000000000171A804                 test    dword ptr [r12+14h], 3FFFFFFFh
+  .text:000000000171A80D                 jz      short loc_171A814
+  .text:000000000171A80F                 mov     rsi, [r12+18h]
+  .text:000000000171A814                 lea     rdi, aCallbackForEve; "Callback for event \"%s\" is NULL!!!\n"
+  .text:000000000171A81B                 xor     eax, eax
+  .text:000000000171A81D                 call    sub_9FD8A0
+  .text:000000000171A822                 mov     eax, [r14+10h]
+  .text:000000000171A826                 jmp     loc_171A785
+  .text:000000000171A830                 mov     rax, [r12]
+  .text:000000000171A834                 lea     rdx, sub_16EF7B0
+  .text:000000000171A83B                 mov     rax, [rax+10h]
+  .text:000000000171A83F                 cmp     rax, rdx
+  .text:000000000171A842                 jnz     loc_171A92D
+  .text:000000000171A848                 lea     rsi, [r12+18h]
+  .text:000000000171A84D                 test    byte ptr [r12+17h], 40h
+  .text:000000000171A853                 jnz     short loc_171A86C
+  .text:000000000171A855                 lea     rsi, byte_940451
+  .text:000000000171A85C                 test    dword ptr [r12+14h], 3FFFFFFFh
+  .text:000000000171A865                 jz      short loc_171A86C
+  .text:000000000171A867                 mov     rsi, [r12+18h]
+  .text:000000000171A86C                 lea     rdi, aFireeventEvent; "FireEvent: event '%s' not registered.\n"
+  .text:000000000171A873                 xor     eax, eax
+  .text:000000000171A875                 call    sub_9FC0C0
+  .text:000000000171A87A                 mov     rax, [rbx]
+  .text:000000000171A87D                 mov     rsi, r12
+  .text:000000000171A880                 mov     rdi, rbx
+  .text:000000000171A883                 call    qword ptr [rax+58h]  ; 58h = IGameEventManager2_FreeEvent
+  .text:000000000171A886                 xor     r12d, r12d
+  .text:000000000171A889                 jmp     loc_171A6C2
+  .text:000000000171A890                 cmp     eax, 1
+  .text:000000000171A893                 jz      short loc_171A8F8
+  .text:000000000171A895                 movsxd  rax, dword ptr [r14+0Ch]
+  .text:000000000171A899                 xor     edx, edx
+  .text:000000000171A89B                 test    dword ptr [rbx+0C4h], 7FFFFFFFh
+  .text:000000000171A8A5                 jz      short loc_171A8AE
+  .text:000000000171A8A7                 mov     rdx, [rbx+0C8h]
+  .text:000000000171A8AE                 shl     rax, 5
+  .text:000000000171A8B2                 mov     r13, [rdx+rax+10h]
+  .text:000000000171A8B7                 lea     rax, g_pNetworkServerService
+  .text:000000000171A8BE                 mov     rdi, [rax]
+  .text:000000000171A8C1                 mov     rax, [rdi]
+  .text:000000000171A8C4                 call    qword ptr [rax+0C0h]
+  .text:000000000171A8CA                 xor     edx, edx
+  .text:000000000171A8CC                 mov     rdi, rax
+  .text:000000000171A8CF                 test    rax, rax
+  .text:000000000171A8D2                 jz      short loc_171A8DC
+  .text:000000000171A8D4                 mov     rax, [rax]
+  .text:000000000171A8D7                 call    qword ptr [rax+58h]
+  .text:000000000171A8DA                 mov     edx, eax
+  .text:000000000171A8DC                 lea     rdi, aServerEventSTi; "Server event \"%s\", Tick %i:\n"
+  .text:000000000171A8E3                 mov     rsi, r13
+  .text:000000000171A8E6                 xor     eax, eax
+  .text:000000000171A8E8                 call    sub_9FCCB0
+  .text:000000000171A8ED                 mov     rsi, r12
+  .text:000000000171A8F0                 mov     rdi, rbx
+  .text:000000000171A8F3                 call    sub_1719D20
+  .text:000000000171A8F8                 mov     eax, [r14+10h]
+  .text:000000000171A8FC                 test    eax, eax
+  .text:000000000171A8FE                 jg      loc_171A76D
+  .text:000000000171A904                 jmp     loc_171A6B0
+  .text:000000000171A910                 mov     rdi, r12
+  .text:000000000171A913                 call    rax
+  .text:000000000171A915                 mov     rsi, rax
+  .text:000000000171A918                 jmp     loc_171A814
+  .text:000000000171A920                 mov     rdi, r12
+  .text:000000000171A923                 call    rax
+  .text:000000000171A925                 mov     rsi, rax
+  .text:000000000171A928                 jmp     loc_171A696
+  .text:000000000171A92D                 mov     rdi, r12
+  .text:000000000171A930                 call    rax
+  .text:000000000171A932                 mov     rsi, rax
+  .text:000000000171A935                 jmp     loc_171A86C
+procedure: |-
+  __int64 __fastcall sub_171A940(__int64 a1, __int64 a2, unsigned __int8 a3)
+  {
+    __int64 (__fastcall *v5)(); // rax
+    const char *v6; // rsi
+
+    if ( *(_BYTE *)(qword_29BBF58 + 88) )
+    {
+      v5 = *(__int64 (__fastcall **)())(*(_QWORD *)a2 + 16LL);
+      if ( v5 == sub_16EF7B0 )
+      {
+        v6 = (const char *)(a2 + 24);
+        if ( (*(_BYTE *)(a2 + 23) & 0x40) == 0 )
+        {
+          v6 = &byte_940451;
+          if ( (*(_DWORD *)(a2 + 20) & 0x3FFFFFFF) != 0 )
+            v6 = *(const char **)(a2 + 24);
+        }
+      }
+      else
+      {
+        v6 = (const char *)((__int64 (__fastcall *)(__int64))v5)(a2);
+      }
+      sub_9FD310("Game Event Fired: %s\n", v6);
+    }
+    return sub_171A500(a1, a2, a3, 0);
+  }
+
+  __int64 __fastcall sub_171A500(__int64 a1, __int64 a2, char a3, char a4)
+  {
+    char v4; // r15
+    __int64 v8; // rax
+    __int64 v9; // rax
+    __int64 v10; // r14
+    int v11; // eax
+    __int64 v12; // rdx
+    const char *v13; // r13
+    __int64 v14; // rax
+    int v15; // eax
+    int v16; // eax
+    __int64 v17; // r15
+    _DWORD *v18; // rdx
+    int v19; // esi
+    __int64 (__fastcall *v20)(); // rax
+    const char *v21; // rsi
+    __int64 v22; // rsi
+    unsigned int v23; // r12d
+    __int64 v26; // r13
+    __int64 *v27; // rdi
+    int v28; // esi
+    __int64 v29; // rdi
+    __int64 (__fastcall *v30)(); // rax
+    const char *v31; // rsi
+    __int64 (__fastcall *v32)(); // rax
+    const char *v33; // rsi
+    __int64 v34; // rdx
+    const char *v35; // r13
+    __int64 v36; // rax
+    int v37; // edx
+    volatile signed __int32 *v39; // [rsp+8h] [rbp-38h]
+
+    v4 = a3;
+    v39 = (volatile signed __int32 *)(a1 + 224);
+    v8 = sub_9FC1B0();
+    if ( v8 == *(_QWORD *)(a1 + 232) )
+    {
+      ++*(_WORD *)(a1 + 228);
+  LABEL_4:
+      if ( !a2 )
+        goto LABEL_56;
+      goto LABEL_5;
+    }
+    if ( *(_DWORD *)(a1 + 224) || _InterlockedCompareExchange(v39, 3, 0) )
+    {
+      sub_9FCD20(v39, v8);
+      goto LABEL_4;
+    }
+    *(_QWORD *)(a1 + 232) = v8;
+    *(_WORD *)(a1 + 228) = 1;
+    if ( a2 )
+    {
+  LABEL_5:
+      v9 = sub_9F2CD0(a2, &`typeinfo for'IGameEvent, &`typeinfo for'CGameEvent, 0);
+      if ( v9 )
+      {
+        v10 = *(_QWORD *)(v9 + 8);
+        if ( v10 )
+        {
+          v11 = *(_DWORD *)(qword_29BBF78 + 88);
+          if ( v11 <= 0 )
+          {
+            v16 = *(_DWORD *)(v10 + 16);
+            if ( v16 <= 0 )
+              goto LABEL_25;
+            v4 = a4 | a3;
+            if ( a4 )
+            {
+  LABEL_14:
+              v17 = 0;
+              while ( 1 )
+              {
+                v18 = *(_DWORD **)(*(_QWORD *)(v10 + 24) + 8 * v17);
+                v19 = v18[2];
+                if ( !v19 || v19 == 2 )
+                  goto LABEL_16;
+                if ( *(_QWORD *)v18 )
+                {
+                  (*(void (__fastcall **)(_QWORD, __int64))(**(_QWORD **)v18 + 16LL))(*(_QWORD *)v18, a2);
+                  v16 = *(_DWORD *)(v10 + 16);
+  LABEL_16:
+                  if ( v16 <= (int)++v17 )
+                    goto LABEL_25;
+                }
+                else
+                {
+                  v20 = *(__int64 (__fastcall **)())(*(_QWORD *)a2 + 16LL);
+                  if ( v20 == sub_16EF7B0 )
+                  {
+                    v21 = (const char *)(a2 + 24);
+                    if ( (*(_BYTE *)(a2 + 23) & 0x40) == 0 )
+                    {
+                      v21 = &byte_940451;
+                      if ( (*(_DWORD *)(a2 + 20) & 0x3FFFFFFF) != 0 )
+                        v21 = *(const char **)(a2 + 24);
+                    }
+                  }
+                  else
+                  {
+                    v21 = (const char *)((__int64 (__fastcall *)(__int64))v20)(a2);
+                  }
+                  ++v17;
+                  sub_9FD8A0("Callback for event \"%s\" is NULL!!!\n", v21);
+                  v16 = *(_DWORD *)(v10 + 16);
+                  if ( v16 <= (int)v17 )
+                    goto LABEL_25;
+                }
+              }
+            }
+          }
+          else
+          {
+            if ( a4 )
+            {
+              v12 = 0;
+              if ( (*(_DWORD *)(a1 + 196) & 0x7FFFFFFF) != 0 )
+                v12 = *(_QWORD *)(a1 + 200);
+              v13 = *(const char **)(v12 + 32LL * *(int *)(v10 + 12) + 16);
+              v14 = (*(__int64 (__fastcall **)(_QWORD *))(*g_pNetworkClientService + 192LL))(g_pNetworkClientService);
+              if ( v14 )
+              {
+                v15 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)v14 + 40LL))(v14);
+                sub_9FCCB0("Game event \"%s\", Tick %i:\n", v13, v15);
+              }
+              sub_1719D20(a1, a2);
+              v16 = *(_DWORD *)(v10 + 16);
+              if ( v16 > 0 )
+                goto LABEL_14;
+              goto LABEL_25;
+            }
+            if ( v11 != 1 )
+            {
+              v34 = 0;
+              if ( (*(_DWORD *)(a1 + 196) & 0x7FFFFFFF) != 0 )
+                v34 = *(_QWORD *)(a1 + 200);
+              v35 = *(const char **)(v34 + 32LL * *(int *)(v10 + 12) + 16);
+              v36 = (*(__int64 (__fastcall **)(_QWORD *))(*g_pNetworkServerService + 192LL))(g_pNetworkServerService);
+              v37 = 0;
+              if ( v36 )
+                v37 = (*(__int64 (__fastcall **)(__int64, __int64 **, _QWORD))(*(_QWORD *)v36 + 88LL))(
+                        v36,
+                        &`typeinfo for'IGameEvent,
+                        0);
+              sub_9FCCB0("Server event \"%s\", Tick %i:\n", v35, v37);
+              sub_1719D20(a1, a2);
+            }
+            v16 = *(_DWORD *)(v10 + 16);
+            if ( v16 <= 0 )
+            {
+  LABEL_25:
+              v22 = a2;
+              v23 = 1;
+              (*(void (__fastcall **)(__int64, __int64))(*(_QWORD *)a1 + 88LL))(a1, v22);  // 88LL = 0x58 = IGameEventManager2_FreeEvent
+              goto LABEL_26;
+            }
+          }
+          v26 = 0;
+          while ( 1 )
+          {
+            v27 = *(__int64 **)(*(_QWORD *)(v10 + 24) + 8 * v26);
+            v28 = *((_DWORD *)v27 + 2);
+            if ( !v28 )
+              goto LABEL_40;
+            if ( v28 != 1 )
+              break;
+  LABEL_38:
+            if ( v16 <= (int)++v26 )
+              goto LABEL_25;
+          }
+          if ( v28 == 2 )
+          {
+            if ( v4 || *(_BYTE *)(v10 + 40) )
+              goto LABEL_38;
+            v29 = *v27;
+            if ( !v29 )
+            {
+  LABEL_46:
+              v30 = *(__int64 (__fastcall **)())(*(_QWORD *)a2 + 16LL);
+              if ( v30 == sub_16EF7B0 )
+              {
+                v31 = (const char *)(a2 + 24);
+                if ( (*(_BYTE *)(a2 + 23) & 0x40) == 0 )
+                {
+                  v31 = &byte_940451;
+                  if ( (*(_DWORD *)(a2 + 20) & 0x3FFFFFFF) != 0 )
+                    v31 = *(const char **)(a2 + 24);
+                }
+              }
+              else
+              {
+                v31 = (const char *)((__int64 (__fastcall *)(__int64))v30)(a2);
+              }
+              sub_9FD8A0("Callback for event \"%s\" is NULL!!!\n", v31);
+              v16 = *(_DWORD *)(v10 + 16);
+              goto LABEL_38;
+            }
+          }
+          else
+          {
+  LABEL_40:
+            v29 = *v27;
+            if ( !v29 )
+              goto LABEL_46;
+          }
+          (*(void (__fastcall **)(__int64, __int64))(*(_QWORD *)v29 + 16LL))(v29, a2);
+          v16 = *(_DWORD *)(v10 + 16);
+          goto LABEL_38;
+        }
+      }
+      v32 = *(__int64 (__fastcall **)())(*(_QWORD *)a2 + 16LL);
+      if ( v32 == sub_16EF7B0 )
+      {
+        v33 = (const char *)(a2 + 24);
+        if ( (*(_BYTE *)(a2 + 23) & 0x40) == 0 )
+        {
+          v33 = &byte_940451;
+          if ( (*(_DWORD *)(a2 + 20) & 0x3FFFFFFF) != 0 )
+            v33 = *(const char **)(a2 + 24);
+        }
+      }
+      else
+      {
+        v33 = (const char *)((__int64 (__fastcall *)(__int64))v32)(a2);
+      }
+      sub_9FC0C0("FireEvent: event '%s' not registered.\n", v33);
+      (*(void (__fastcall **)(__int64, __int64))(*(_QWORD *)a1 + 88LL))(a1, a2);  // 88LL = 0x58 = IGameEventManager2_FreeEvent
+  LABEL_56:
+      v23 = 0;
+  LABEL_26:
+      if ( (*(_WORD *)(a1 + 228))-- != 1 )
+        return v23;
+      goto LABEL_31;
+    }
+    v23 = 0;
+    *(_WORD *)(a1 + 228) = 0;
+  LABEL_31:
+    *(_QWORD *)(a1 + 232) = 0;
+    if ( _InterlockedSub(v39, 3u) )
+      sub_9FCDC0(v39);
+    return v23;
+  }

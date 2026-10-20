@@ -1,0 +1,312 @@
+func_name: CGameEventManager_FireEvent
+func_va: '0x180bf8b60'
+disasm_code: |-
+  .text:0000000180BF8B60                 push    rbx
+  .text:0000000180BF8B62                 push    rdi
+  .text:0000000180BF8B63                 push    r12
+  .text:0000000180BF8B65                 push    r13
+  .text:0000000180BF8B67                 sub     rsp, 38h
+  .text:0000000180BF8B6B                 mov     rax, cs:qword_1821808B8
+  .text:0000000180BF8B72                 movzx   r13d, r8b
+  .text:0000000180BF8B76                 mov     rdi, rdx
+  .text:0000000180BF8B79                 mov     r12, rcx
+  .text:0000000180BF8B7C                 cmp     byte ptr [rax+58h], 0
+  .text:0000000180BF8B80                 jz      short loc_180BF8B9B
+  .text:0000000180BF8B82                 mov     rax, [rdx]
+  .text:0000000180BF8B85                 mov     rcx, rdx
+  .text:0000000180BF8B88                 call    qword ptr [rax+8]
+  .text:0000000180BF8B8B                 mov     rdx, rax
+  .text:0000000180BF8B8E                 lea     rcx, aGameEventFired; "Game Event Fired: %s\n"
+  .text:0000000180BF8B95                 call    cs:Msg
+  .text:0000000180BF8B9B                 lea     rbx, [r12+0E0h]
+  .text:0000000180BF8BA3                 call    cs:GetCurrentThreadId
+  .text:0000000180BF8BA9                 mov     edx, eax
+  .text:0000000180BF8BAB                 cmp     [rbx+8], eax
+  .text:0000000180BF8BAE                 jnz     short loc_180BF8BB6
+  .text:0000000180BF8BB0                 inc     word ptr [rbx+4]
+  .text:0000000180BF8BB4                 jmp     short loc_180BF8BDC
+  .text:0000000180BF8BB6                 mov     eax, [rbx]
+  .text:0000000180BF8BB8                 nop
+  .text:0000000180BF8BB9                 test    eax, eax
+  .text:0000000180BF8BBB                 jnz     short loc_180BF8BD3
+  .text:0000000180BF8BBD                 mov     ecx, 3
+  .text:0000000180BF8BC2                 lock cmpxchg [rbx], ecx
+  .text:0000000180BF8BC6                 jnz     short loc_180BF8BD3
+  .text:0000000180BF8BC8                 mov     word ptr [rbx+4], 1
+  .text:0000000180BF8BCE                 mov     [rbx+8], edx
+  .text:0000000180BF8BD1                 jmp     short loc_180BF8BDC
+  .text:0000000180BF8BD3                 mov     rcx, rbx
+  .text:0000000180BF8BD6                 call    cs:?AcquireLock@CAtomicMutex@@AEAAXI@Z; CAtomicMutex::AcquireLock(uint)
+  .text:0000000180BF8BDC                 test    rdi, rdi
+  .text:0000000180BF8BDF                 jnz     short loc_180BF8C13
+  .text:0000000180BF8BE1                 mov     eax, 0FFFFh
+  .text:0000000180BF8BE6                 add     [rbx+4], ax
+  .text:0000000180BF8BEA                 jnz     short loc_180BF8C06
+  .text:0000000180BF8BEC                 mov     [rbx+8], edi
+  .text:0000000180BF8BEF                 mov     eax, 0FFFFFFFDh
+  .text:0000000180BF8BF4                 lock xadd [rbx], eax
+  .text:0000000180BF8BF8                 add     eax, 0FFFFFFFDh
+  .text:0000000180BF8BFB                 jz      short loc_180BF8C06
+  .text:0000000180BF8BFD                 mov     rcx, rbx
+  .text:0000000180BF8C00                 call    cs:?ThreadAtomicNotifyOne@@YAXPEBI@Z; ThreadAtomicNotifyOne(uint const *)
+  .text:0000000180BF8C06                 xor     al, al
+  .text:0000000180BF8C08                 add     rsp, 38h
+  .text:0000000180BF8C0C                 pop     r13
+  .text:0000000180BF8C0E                 pop     r12
+  .text:0000000180BF8C10                 pop     rdi
+  .text:0000000180BF8C11                 pop     rbx
+  .text:0000000180BF8C12                 retn
+  .text:0000000180BF8C13                 lea     r9, ??_R0?AVCGameEvent@@@8; CGameEvent `RTTI Type Descriptor'
+  .text:0000000180BF8C1A                 mov     [rsp+58h+arg_10], rsi
+  .text:0000000180BF8C1F                 lea     r8, ??_R0?AVIGameEvent@@@8; IGameEvent `RTTI Type Descriptor'
+  .text:0000000180BF8C26                 mov     [rsp+58h+var_38], 0
+  .text:0000000180BF8C2E                 xor     edx, edx
+  .text:0000000180BF8C30                 mov     rcx, rdi
+  .text:0000000180BF8C33                 call    sub_1816AFAE0
+  .text:0000000180BF8C38                 test    rax, rax
+  .text:0000000180BF8C3B                 jz      loc_180BF8D8D
+  .text:0000000180BF8C41                 mov     rsi, [rax+8]
+  .text:0000000180BF8C45                 test    rsi, rsi
+  .text:0000000180BF8C48                 jz      loc_180BF8D8D
+  .text:0000000180BF8C4E                 mov     rax, cs:qword_182180898
+  .text:0000000180BF8C55                 mov     [rsp+58h+arg_8], rbp
+  .text:0000000180BF8C5A                 cmp     dword ptr [rax+58h], 2
+  .text:0000000180BF8C5E                 jl      short loc_180BF8CC3
+  .text:0000000180BF8C60                 test    dword ptr [r12+0C4h], 7FFFFFFFh
+  .text:0000000180BF8C6C                 jnz     short loc_180BF8C72
+  .text:0000000180BF8C6E                 xor     ecx, ecx
+  .text:0000000180BF8C70                 jmp     short loc_180BF8C7A
+  .text:0000000180BF8C72                 mov     rcx, [r12+0C8h]
+  .text:0000000180BF8C7A                 movsxd  rax, dword ptr [rsi+0Ch]
+  .text:0000000180BF8C7E                 shl     rax, 5
+  .text:0000000180BF8C82                 mov     rbp, [rax+rcx+10h]
+  .text:0000000180BF8C87                 mov     rcx, cs:g_pNetworkServerService
+  .text:0000000180BF8C8E                 mov     rax, [rcx]
+  .text:0000000180BF8C91                 call    qword ptr [rax+0B8h]
+  .text:0000000180BF8C97                 test    rax, rax
+  .text:0000000180BF8C9A                 jz      short loc_180BF8CA5
+  .text:0000000180BF8C9C                 mov     rdx, [rax]
+  .text:0000000180BF8C9F                 mov     rcx, rax
+  .text:0000000180BF8CA2                 call    qword ptr [rdx+58h]
+  .text:0000000180BF8CA5                 mov     r8d, eax
+  .text:0000000180BF8CA8                 lea     rcx, aServerEventSTi; "Server event \"%s\", Tick %i:\n"
+  .text:0000000180BF8CAF                 mov     rdx, rbp
+  .text:0000000180BF8CB2                 call    cs:?ConMsg@@YAXPEBDZZ; ConMsg(char const *,...)
+  .text:0000000180BF8CB8                 mov     rdx, rdi
+  .text:0000000180BF8CBB                 mov     rcx, r12
+  .text:0000000180BF8CBE                 call    sub_180BE67F0
+  .text:0000000180BF8CC3                 xor     ebp, ebp
+  .text:0000000180BF8CC5                 cmp     [rsi+10h], ebp
+  .text:0000000180BF8CC8                 jle     short loc_180BF8D40
+  .text:0000000180BF8CCA                 mov     [rsp+58h+var_28], r14
+  .text:0000000180BF8CCF                 xor     r14d, r14d
+  .text:0000000180BF8CD2                 nop     dword ptr [rax+00h]
+  .text:0000000180BF8CD6                 nop     word ptr [rax+rax+00000000h]
+  .text:0000000180BF8CE0                 mov     rax, [rsi+18h]
+  .text:0000000180BF8CE4                 mov     rcx, [r14+rax]
+  .text:0000000180BF8CE8                 mov     eax, [rcx+8]
+  .text:0000000180BF8CEB                 test    eax, eax
+  .text:0000000180BF8CED                 jz      short loc_180BF8D04
+  .text:0000000180BF8CEF                 cmp     eax, 1
+  .text:0000000180BF8CF2                 jz      short loc_180BF8D30
+  .text:0000000180BF8CF4                 cmp     eax, 2
+  .text:0000000180BF8CF7                 jnz     short loc_180BF8D04
+  .text:0000000180BF8CF9                 test    r13b, r13b
+  .text:0000000180BF8CFC                 jnz     short loc_180BF8D30
+  .text:0000000180BF8CFE                 cmp     [rsi+28h], r13b
+  .text:0000000180BF8D02                 jnz     short loc_180BF8D30
+  .text:0000000180BF8D04                 mov     rcx, [rcx]
+  .text:0000000180BF8D07                 test    rcx, rcx
+  .text:0000000180BF8D0A                 jz      short loc_180BF8D17
+  .text:0000000180BF8D0C                 mov     rax, [rcx]
+  .text:0000000180BF8D0F                 mov     rdx, rdi
+  .text:0000000180BF8D12                 call    qword ptr [rax+8]
+  .text:0000000180BF8D15                 jmp     short loc_180BF8D30
+  .text:0000000180BF8D17                 mov     rax, [rdi]
+  .text:0000000180BF8D1A                 mov     rcx, rdi
+  .text:0000000180BF8D1D                 call    qword ptr [rax+8]
+  .text:0000000180BF8D20                 mov     rdx, rax
+  .text:0000000180BF8D23                 lea     rcx, aCallbackForEve; "Callback for event \"%s\" is NULL!!!\n"
+  .text:0000000180BF8D2A                 call    cs:Warning
+  .text:0000000180BF8D30                 inc     ebp
+  .text:0000000180BF8D32                 add     r14, 8
+  .text:0000000180BF8D36                 cmp     ebp, [rsi+10h]
+  .text:0000000180BF8D39                 jl      short loc_180BF8CE0
+  .text:0000000180BF8D3B                 mov     r14, [rsp+58h+var_28]
+  .text:0000000180BF8D40                 mov     rax, [r12]
+  .text:0000000180BF8D44                 mov     rdx, rdi
+  .text:0000000180BF8D47                 mov     rcx, r12
+  .text:0000000180BF8D4A                 call    qword ptr [rax+50h]  ; 50h = IGameEventManager2_FreeEvent
+  .text:0000000180BF8D4D                 mov     rbp, [rsp+58h+arg_8]
+  .text:0000000180BF8D52                 mov     eax, 0FFFFh
+  .text:0000000180BF8D57                 add     [rbx+4], ax
+  .text:0000000180BF8D5B                 jnz     short loc_180BF8D7B
+  .text:0000000180BF8D5D                 mov     dword ptr [rbx+8], 0
+  .text:0000000180BF8D64                 mov     eax, 0FFFFFFFDh
+  .text:0000000180BF8D69                 lock xadd [rbx], eax
+  .text:0000000180BF8D6D                 add     eax, 0FFFFFFFDh
+  .text:0000000180BF8D70                 jz      short loc_180BF8D7B
+  .text:0000000180BF8D72                 mov     rcx, rbx
+  .text:0000000180BF8D75                 call    cs:?ThreadAtomicNotifyOne@@YAXPEBI@Z; ThreadAtomicNotifyOne(uint const *)
+  .text:0000000180BF8D7B                 mov     rsi, [rsp+58h+arg_10]
+  .text:0000000180BF8D80                 mov     al, 1
+  .text:0000000180BF8D82                 add     rsp, 38h
+  .text:0000000180BF8D86                 pop     r13
+  .text:0000000180BF8D88                 pop     r12
+  .text:0000000180BF8D8A                 pop     rdi
+  .text:0000000180BF8D8B                 pop     rbx
+  .text:0000000180BF8D8C                 retn
+  .text:0000000180BF8D8D                 mov     rax, [rdi]
+  .text:0000000180BF8D90                 mov     rcx, rdi
+  .text:0000000180BF8D93                 call    qword ptr [rax+8]
+  .text:0000000180BF8D96                 mov     rdx, rax
+  .text:0000000180BF8D99                 lea     rcx, aFireeventEvent; "FireEvent: event '%s' not registered.\n"
+  .text:0000000180BF8DA0                 call    cs:?DevMsg@@YAXPEBDZZ; DevMsg(char const *,...)
+  .text:0000000180BF8DA6                 mov     rax, [r12]
+  .text:0000000180BF8DAA                 mov     rdx, rdi
+  .text:0000000180BF8DAD                 mov     rcx, r12
+  .text:0000000180BF8DB0                 call    qword ptr [rax+50h]  ; 50h = IGameEventManager2_FreeEvent
+  .text:0000000180BF8DB3                 mov     eax, 0FFFFh
+  .text:0000000180BF8DB8                 add     [rbx+4], ax
+  .text:0000000180BF8DBC                 jnz     short loc_180BF8DDC
+  .text:0000000180BF8DBE                 mov     dword ptr [rbx+8], 0
+  .text:0000000180BF8DC5                 mov     eax, 0FFFFFFFDh
+  .text:0000000180BF8DCA                 lock xadd [rbx], eax
+  .text:0000000180BF8DCE                 add     eax, 0FFFFFFFDh
+  .text:0000000180BF8DD1                 jz      short loc_180BF8DDC
+  .text:0000000180BF8DD3                 mov     rcx, rbx
+  .text:0000000180BF8DD6                 call    cs:?ThreadAtomicNotifyOne@@YAXPEBI@Z; ThreadAtomicNotifyOne(uint const *)
+  .text:0000000180BF8DDC                 mov     rsi, [rsp+58h+arg_10]
+  .text:0000000180BF8DE1                 xor     al, al
+  .text:0000000180BF8DE3                 add     rsp, 38h
+  .text:0000000180BF8DE7                 pop     r13
+  .text:0000000180BF8DE9                 pop     r12
+  .text:0000000180BF8DEB                 pop     rdi
+  .text:0000000180BF8DEC                 pop     rbx
+  .text:0000000180BF8DED                 retn
+procedure: |-
+  char __fastcall sub_180BF8B60(__int64 a1, __int64 a2, char a3)
+  {
+    const char *v6; // rax
+    volatile signed __int32 *v7; // rbx
+    DWORD CurrentThreadId; // edx
+    bool v9; // zf
+    __int64 v11; // rax
+    __int64 v12; // rsi
+    __int64 v13; // rcx
+    const char *v14; // rbp
+    __int64 v15; // rax
+    int v16; // ebp
+    __int64 v17; // r14
+    __int64 *v18; // rcx
+    int v19; // eax
+    __int64 v20; // rcx
+    const char *v21; // rax
+    const char *v22; // rax
+
+    if ( *(_BYTE *)(qword_1821808B8 + 88) )
+    {
+      v6 = (const char *)(*(__int64 (__fastcall **)(__int64))(*(_QWORD *)a2 + 8LL))(a2);
+      Msg("Game Event Fired: %s\n", v6);
+    }
+    v7 = (volatile signed __int32 *)(a1 + 224);
+    CurrentThreadId = GetCurrentThreadId();
+    if ( *(_DWORD *)(a1 + 232) == CurrentThreadId )
+    {
+      ++*(_WORD *)(a1 + 228);
+    }
+    else if ( *v7 || _InterlockedCompareExchange(v7, 3, 0) )
+    {
+      CAtomicMutex::AcquireLock((CAtomicMutex *)(a1 + 224), CurrentThreadId);
+    }
+    else
+    {
+      *(_WORD *)(a1 + 228) = 1;
+      *(_DWORD *)(a1 + 232) = CurrentThreadId;
+    }
+    if ( a2 )
+    {
+      v11 = sub_1816AFAE0(
+              a2,
+              0,
+              (unsigned int)&IGameEvent `RTTI Type Descriptor',
+              (unsigned int)&CGameEvent `RTTI Type Descriptor',
+              0);
+      if ( v11 && (v12 = *(_QWORD *)(v11 + 8)) != 0 )
+      {
+        if ( *(int *)(qword_182180898 + 88) >= 2 )
+        {
+          if ( (*(_DWORD *)(a1 + 196) & 0x7FFFFFFF) != 0 )
+            v13 = *(_QWORD *)(a1 + 200);
+          else
+            v13 = 0;
+          v14 = *(const char **)(32LL * *(int *)(v12 + 12) + v13 + 16);
+          v15 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)g_pNetworkServerService + 184LL))(g_pNetworkServerService);
+          if ( v15 )
+            LODWORD(v15) = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)v15 + 88LL))(v15);
+          ConMsg("Server event \"%s\", Tick %i:\n", v14, v15);
+          sub_180BE67F0(a1, a2);
+        }
+        v16 = 0;
+        if ( *(int *)(v12 + 16) > 0 )
+        {
+          v17 = 0;
+          do
+          {
+            v18 = *(__int64 **)(v17 + *(_QWORD *)(v12 + 24));
+            v19 = *((_DWORD *)v18 + 2);
+            if ( !v19 || v19 != 1 && (v19 != 2 || !a3 && !*(_BYTE *)(v12 + 40)) )
+            {
+              v20 = *v18;
+              if ( v20 )
+              {
+                (*(void (__fastcall **)(__int64, __int64))(*(_QWORD *)v20 + 8LL))(v20, a2);
+              }
+              else
+              {
+                v21 = (const char *)(*(__int64 (__fastcall **)(__int64))(*(_QWORD *)a2 + 8LL))(a2);
+                Warning("Callback for event \"%s\" is NULL!!!\n", v21);
+              }
+            }
+            ++v16;
+            v17 += 8;
+          }
+          while ( v16 < *(_DWORD *)(v12 + 16) );
+        }
+        (*(void (__fastcall **)(__int64, __int64))(*(_QWORD *)a1 + 80LL))(a1, a2);  // 80LL = 0x50 = IGameEventManager2_FreeEvent
+        v9 = (*(_WORD *)(a1 + 228))-- == 1;
+        if ( v9 )
+        {
+          *(_DWORD *)(a1 + 232) = 0;
+          if ( _InterlockedExchangeAdd(v7, 0xFFFFFFFD) != 3 )
+            ThreadAtomicNotifyOne((const unsigned int *)(a1 + 224));
+        }
+        return 1;
+      }
+      else
+      {
+        v22 = (const char *)(*(__int64 (__fastcall **)(__int64))(*(_QWORD *)a2 + 8LL))(a2);
+        DevMsg("FireEvent: event '%s' not registered.\n", v22);
+        (*(void (__fastcall **)(__int64, __int64))(*(_QWORD *)a1 + 80LL))(a1, a2);  // 80LL = 0x50 = IGameEventManager2_FreeEvent
+        v9 = (*(_WORD *)(a1 + 228))-- == 1;
+        if ( v9 )
+        {
+          *(_DWORD *)(a1 + 232) = 0;
+          if ( _InterlockedExchangeAdd(v7, 0xFFFFFFFD) != 3 )
+            ThreadAtomicNotifyOne((const unsigned int *)(a1 + 224));
+        }
+        return 0;
+      }
+    }
+    else
+    {
+      v9 = (*(_WORD *)(a1 + 228))-- == 1;
+      if ( v9 )
+      {
+        *(_DWORD *)(a1 + 232) = 0;
+        if ( _InterlockedExchangeAdd(v7, 0xFFFFFFFD) != 3 )
+          ThreadAtomicNotifyOne((const unsigned int *)(a1 + 224));
+      }
+      return 0;
+    }
+  }

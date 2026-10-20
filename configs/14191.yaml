@@ -7982,6 +7982,17 @@ modules:
           - CGameEventManager_vtable.{platform}.yaml
         skip_if_exists:
           - CGameEventManager_FireEvent.{platform}.yaml
+      - name: find-IGameEventManager2_FreeEvent
+        expected_output:
+          - IGameEventManager2_FreeEvent.{platform}.yaml
+        expected_input:
+          - CGameEventManager_FireEvent.{platform}.yaml
+      - name: find-CGameEventManager_FreeEvent
+        expected_output:
+          - CGameEventManager_FreeEvent.{platform}.yaml
+        expected_input:
+          - CGameEventManager_vtable.{platform}.yaml
+          - IGameEventManager2_FreeEvent.{platform}.yaml
       - name: find-CCSPlayerController_SchemaClassManipulator
         expected_output:
           - CCSPlayerController_SchemaClassManipulator.{platform}.yaml
@@ -13543,6 +13554,14 @@ modules:
         category: vfunc
         alias:
           - CGameEventManager::FireEvent
+      - name: IGameEventManager2_FreeEvent
+        category: vfunc
+        alias:
+          - IGameEventManager2::FreeEvent
+      - name: CGameEventManager_FreeEvent
+        category: vfunc
+        alias:
+          - CGameEventManager::FreeEvent
       - name: IGameEventManager2_RemoveListener
         category: vfunc
         alias:
