@@ -1303,6 +1303,17 @@ modules:
           - CGameEventSystem_PostEntityEventAbstract.{platform}.yaml
         expected_input:
           - CGameEventSystem_vtable.{platform}.yaml
+      - name: find-IGameEventSystem_PostEventAbstract_Local
+        expected_output:
+          - IGameEventSystem_PostEventAbstract_Local.{platform}.yaml
+        expected_input:
+          - CGameEventSystem_PostEventAbstract2.{platform}.yaml
+      - name: find-CGameEventSystem_PostEventAbstract_Local
+        expected_output:
+          - CGameEventSystem_PostEventAbstract_Local.{platform}.yaml
+        expected_input:
+          - CGameEventSystem_vtable.{platform}.yaml
+          - IGameEventSystem_PostEventAbstract_Local.{platform}.yaml
       - name: find-CGameEventSystem_ProcessQueuedEvents
         expected_output:
           - CGameEventSystem_ProcessQueuedEvents.{platform}.yaml
@@ -3438,6 +3449,14 @@ modules:
         category: vfunc
         alias:
           - CGameEventSystem::PostEntityEventAbstract
+      - name: IGameEventSystem_PostEventAbstract_Local
+        category: vfunc
+        alias:
+          - IGameEventSystem::PostEventAbstract_Local
+      - name: CGameEventSystem_PostEventAbstract_Local
+        category: vfunc
+        alias:
+          - CGameEventSystem::PostEventAbstract_Local
       - name: CGameEventSystem_ProcessQueuedEvents
         category: vfunc
         alias:
