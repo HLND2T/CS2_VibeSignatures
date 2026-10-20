@@ -142,3 +142,10 @@ immutable main SHA preflight
   back to local warmup. `--with-idb` is orthogonal to `--binsync`.
 - `verify_release_bundle` keeps the generic `for path, expected in manifest["archives"].items(): _verify_archive(...)`
   round-trip and adds `_verify_idb_archive_inventory`, which binds the archive to `_binary_records(binary_inventory)`.
+
+## BinSync repository commit identity
+- Trigger: release run `38800931438` passed analysis and immutable artifact comparison, then local BinSync export reported `Author identity unknown` / `unable to auto-detect email address`, followed by dirty-file checkout failures.
+- Root cause: cloned/existing `.bsproj` repositories lacked local Git identity. Initial `git -c user.name=... -c user.email=... commit` settings were command-scoped and did not configure later BinSync commits; runner-global configuration differed between machines.
+- Correct approach: `init_gamebin.configure_binsync_git_identity` persists `user.name` / `user.email` with `git config --local --replace-all`, used by minimal initialization and every candidate repository preparation. `BINSYNC_GIT_USER_NAME` / `BINSYNC_GIT_USER_EMAIL` override deterministic github-actions[bot] defaults; unset/empty values use defaults. GitHub Environment variables are mapped for `win64` Release/bootstrap jobs and `binsync-remotes` provisioning. The branch user stays independent of author identity.
+- Validation: `TestBinSyncCommitIdentity` uses isolated Git global configuration with no identity and actual commits/branch switches for bootstrap, cloned, and existing repositories; covers defaults, invalid input and configuration write errors. No BinSync installation is required for these Git regressions.
+- Scope: local commit creation/configuration, not remote credentials or publisher permissions. A failed local prepare prevents the protected publish job from running.

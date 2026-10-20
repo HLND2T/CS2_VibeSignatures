@@ -1,147 +1,124 @@
 func_name: CMultiplayRules_ctor
-func_va: '0x180d33c60'
+func_va: '0x180e5eda0'
 disasm_code: |-
-  .text:0000000180D33C60                 push    rdi
-  .text:0000000180D33C62                 sub     rsp, 120h
-  .text:0000000180D33C69                 mov     rdi, rcx
-  .text:0000000180D33C6C                 call    sub_180CEDD40
-  .text:0000000180D33C71                 lea     rax, CMultiplayRules_vtable
-  .text:0000000180D33C78                 mov     edx, 200000h
-  .text:0000000180D33C7D                 mov     [rdi], rax
-  .text:0000000180D33C80                 mov     rcx, cs:g_pVEngineCvar
-  .text:0000000180D33C87                 mov     rax, [rcx]
-  .text:0000000180D33C8A                 call    qword ptr [rax+0C0h]
-  .text:0000000180D33C90                 mov     dl, 1
-  .text:0000000180D33C92                 mov     rcx, rdi
-  .text:0000000180D33C95                 call    nullsub_727
-  .text:0000000180D33C9A                 mov     ecx, cs:dword_181F80938
-  .text:0000000180D33CA0                 mov     edx, 2
-  .text:0000000180D33CA5                 call    cs:LoggingSystem_IsChannelEnabled
-  .text:0000000180D33CAB                 test    al, al
-  .text:0000000180D33CAD                 jz      short loc_180D33CC7
-  .text:0000000180D33CAF                 mov     ecx, cs:dword_181F80938
-  .text:0000000180D33CB5                 lea     r8, aSvExecutingSer; "SV:  Executing server defaults\n"
-  .text:0000000180D33CBC                 mov     edx, 2
-  .text:0000000180D33CC1                 call    cs:LoggingSystem_Log
-  .text:0000000180D33CC7                 mov     rcx, cs:g_pEngineServer
-  .text:0000000180D33CCE                 lea     rdx, aExecifexistsSe; "execifexists server_default.cfg"
-  .text:0000000180D33CD5                 mov     [rsp+128h+arg_0], rbx
-  .text:0000000180D33CDD                 mov     rax, [rcx]
-  .text:0000000180D33CE0                 call    qword ptr [rax+168h] ; 0x168 = IVEngineServer2_ServerCommand
-  .text:0000000180D33CE6                 mov     rcx, cs:g_pEngineServer
-  .text:0000000180D33CED                 mov     rax, [rcx]
-  .text:0000000180D33CF0                 call    qword ptr [rax+110h] ; 0x110 = IVEngineServer2_IsDedicatedServer
-  .text:0000000180D33CF6                 mov     edx, 0FFFFFFFFh
-  .text:0000000180D33CFB                 test    al, al
-  .text:0000000180D33CFD                 jz      short loc_180D33D53
-  .text:0000000180D33CFF                 lea     rcx, unk_181F808B0
-  .text:0000000180D33D06                 call    sub_1814E6C20
-  .text:0000000180D33D0B                 test    rax, rax
-  .text:0000000180D33D0E                 jnz     short loc_180D33D1B
-  .text:0000000180D33D10                 mov     rax, cs:qword_181F808B8
-  .text:0000000180D33D17                 mov     rax, [rax+8]
-  .text:0000000180D33D1B                 mov     rax, [rax]
-  .text:0000000180D33D1E                 lea     rbx, byte_1815A3980
-  .text:0000000180D33D25                 test    rax, rax
-  .text:0000000180D33D28                 cmovnz  rbx, rax
-  .text:0000000180D33D2C                 cmp     byte ptr [rbx], 0
-  .text:0000000180D33D2F                 jz      loc_180D33DE1
-  .text:0000000180D33D35                 mov     ecx, cs:dword_181F80938
-  .text:0000000180D33D3B                 mov     edx, 2
-  .text:0000000180D33D40                 call    cs:LoggingSystem_IsChannelEnabled
-  .text:0000000180D33D46                 test    al, al
-  .text:0000000180D33D48                 jz      short loc_180D33DB2
-  .text:0000000180D33D4A                 lea     r8, aSvExecutingDed; "SV:  Executing dedicated server config "...
-  .text:0000000180D33D51                 jmp     short loc_180D33DA1
-  .text:0000000180D33D53                 lea     rcx, unk_181F808C0
-  .text:0000000180D33D5A                 call    sub_1814E6C20
-  .text:0000000180D33D5F                 test    rax, rax
-  .text:0000000180D33D62                 jnz     short loc_180D33D6F
-  .text:0000000180D33D64                 mov     rax, cs:qword_181F808C8
-  .text:0000000180D33D6B                 mov     rax, [rax+8]
-  .text:0000000180D33D6F                 mov     rax, [rax]
-  .text:0000000180D33D72                 lea     rbx, byte_1815A3980
-  .text:0000000180D33D79                 test    rax, rax
-  .text:0000000180D33D7C                 cmovnz  rbx, rax
-  .text:0000000180D33D80                 cmp     byte ptr [rbx], 0
-  .text:0000000180D33D83                 jz      short loc_180D33DE1
-  .text:0000000180D33D85                 mov     ecx, cs:dword_181F80938
-  .text:0000000180D33D8B                 mov     edx, 2
-  .text:0000000180D33D90                 call    cs:LoggingSystem_IsChannelEnabled
-  .text:0000000180D33D96                 test    al, al
-  .text:0000000180D33D98                 jz      short loc_180D33DB2
-  .text:0000000180D33D9A                 lea     r8, aSvExecutingLis; "SV:  Executing listen server config fil"...
-  .text:0000000180D33DA1                 mov     ecx, cs:dword_181F80938
-  .text:0000000180D33DA7                 mov     edx, 2
-  .text:0000000180D33DAC                 call    cs:LoggingSystem_Log
-  .text:0000000180D33DB2                 mov     r9, rbx
-  .text:0000000180D33DB5                 lea     r8, aExecifexistsS; "execifexists %s\n"
-  .text:0000000180D33DBC                 mov     edx, 100h
-  .text:0000000180D33DC1                 lea     rcx, [rsp+128h+var_108]
-  .text:0000000180D33DC6                 call    cs:V_snprintf
-  .text:0000000180D33DCC                 mov     rcx, cs:g_pEngineServer
-  .text:0000000180D33DD3                 lea     rdx, [rsp+128h+var_108]
-  .text:0000000180D33DD8                 mov     rax, [rcx]
-  .text:0000000180D33DDB                 call    qword ptr [rax+168h] ; 0x168 = IVEngineServer2_ServerCommand
-  .text:0000000180D33DE1                 mov     rbx, [rsp+128h+arg_0]
-  .text:0000000180D33DE9                 mov     rax, rdi
-  .text:0000000180D33DEC                 add     rsp, 120h
-  .text:0000000180D33DF3                 pop     rdi
-  .text:0000000180D33DF4                 retn
+  .text:0000000180E5EDA0                 push    rdi
+  .text:0000000180E5EDA2                 sub     rsp, 120h
+  .text:0000000180E5EDA9                 mov     rdi, rcx
+  .text:0000000180E5EDAC                 call    sub_180DD7160
+  .text:0000000180E5EDB1                 lea     rax, CMultiplayRules_vtable
+  .text:0000000180E5EDB8                 mov     edx, 200000h
+  .text:0000000180E5EDBD                 mov     [rdi], rax
+  .text:0000000180E5EDC0                 mov     rcx, cs:g_pVEngineCvar
+  .text:0000000180E5EDC7                 mov     rax, [rcx]
+  .text:0000000180E5EDCA                 ; 0x0C0 = 192LL = ICvar_ResetConVarsToDefaultValuesByFlag
+  .text:0000000180E5EDCA                 call    qword ptr [rax+0C0h]; 0x0C0 = 192LL = ICvar_ResetConVarsToDefaultValuesByFlag
+  .text:0000000180E5EDD0                 mov     dl, 1
+  .text:0000000180E5EDD2                 mov     rcx, rdi
+  .text:0000000180E5EDD5                 call    nullsub_1017
+  .text:0000000180E5EDDA                 mov     ecx, cs:dword_1821B01F8
+  .text:0000000180E5EDE0                 mov     edx, 2
+  .text:0000000180E5EDE5                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:0000000180E5EDEB                 test    al, al
+  .text:0000000180E5EDED                 jz      short loc_180E5EE07
+  .text:0000000180E5EDEF                 mov     ecx, cs:dword_1821B01F8
+  .text:0000000180E5EDF5                 lea     r8, aSvExecutingSer; "SV:  Executing server defaults\n"
+  .text:0000000180E5EDFC                 mov     edx, 2
+  .text:0000000180E5EE01                 call    cs:LoggingSystem_Log
+  .text:0000000180E5EE07                 mov     rcx, cs:g_engine
+  .text:0000000180E5EE0E                 lea     rdx, aExecifexistsSe; "execifexists server_default.cfg"
+  .text:0000000180E5EE15                 mov     [rsp+128h+arg_0], rbx
+  .text:0000000180E5EE1D                 mov     rax, [rcx]
+  .text:0000000180E5EE20                 ; 0x168 = 360LL = IVEngineServer2_ServerCommand
+  .text:0000000180E5EE20                 call    qword ptr [rax+168h] ; 0x168 = IVEngineServer2_ServerCommand
+  .text:0000000180E5EE26                 mov     rcx, cs:g_engine
+  .text:0000000180E5EE2D                 mov     rax, [rcx]
+  .text:0000000180E5EE30                 ; 0x110 = 272LL = IVEngineServer2_IsDedicatedServer
+  .text:0000000180E5EE30                 call    qword ptr [rax+110h] ; 0x110 = IVEngineServer2_IsDedicatedServer
+  .text:0000000180E5EE36                 lea     rbx, byte_181774193
+  .text:0000000180E5EE3D                 test    al, al
+  .text:0000000180E5EE3F                 jz      short loc_180E5EE7A
+  .text:0000000180E5EE41                 mov     rax, cs:qword_1821B0178
+  .text:0000000180E5EE48                 mov     rcx, [rax+58h]
+  .text:0000000180E5EE4C                 test    rcx, rcx
+  .text:0000000180E5EE4F                 cmovnz  rbx, rcx
+  .text:0000000180E5EE53                 cmp     byte ptr [rbx], 0
+  .text:0000000180E5EE56                 jz      loc_180E5EEED
+  .text:0000000180E5EE5C                 mov     ecx, cs:dword_1821B01F8
+  .text:0000000180E5EE62                 mov     edx, 2
+  .text:0000000180E5EE67                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:0000000180E5EE6D                 test    al, al
+  .text:0000000180E5EE6F                 jz      short loc_180E5EEBE
+  .text:0000000180E5EE71                 lea     r8, aSvExecutingDed; "SV:  Executing dedicated server config "...
+  .text:0000000180E5EE78                 jmp     short loc_180E5EEAD
+  .text:0000000180E5EE7A                 mov     rax, cs:qword_1821B0188
+  .text:0000000180E5EE81                 mov     rcx, [rax+58h]
+  .text:0000000180E5EE85                 test    rcx, rcx
+  .text:0000000180E5EE88                 cmovnz  rbx, rcx
+  .text:0000000180E5EE8C                 cmp     byte ptr [rbx], 0
+  .text:0000000180E5EE8F                 jz      short loc_180E5EEED
+  .text:0000000180E5EE91                 mov     ecx, cs:dword_1821B01F8
+  .text:0000000180E5EE97                 mov     edx, 2
+  .text:0000000180E5EE9C                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:0000000180E5EEA2                 test    al, al
+  .text:0000000180E5EEA4                 jz      short loc_180E5EEBE
+  .text:0000000180E5EEA6                 lea     r8, aSvExecutingLis; "SV:  Executing listen server config fil"...
+  .text:0000000180E5EEAD                 mov     ecx, cs:dword_1821B01F8
+  .text:0000000180E5EEB3                 mov     edx, 2
+  .text:0000000180E5EEB8                 call    cs:LoggingSystem_Log
+  .text:0000000180E5EEBE                 mov     r9, rbx
+  .text:0000000180E5EEC1                 lea     r8, aExecifexistsS; "execifexists %s\n"
+  .text:0000000180E5EEC8                 mov     edx, 100h
+  .text:0000000180E5EECD                 lea     rcx, [rsp+128h+var_108]
+  .text:0000000180E5EED2                 call    cs:V_snprintf
+  .text:0000000180E5EED8                 mov     rcx, cs:g_engine
+  .text:0000000180E5EEDF                 lea     rdx, [rsp+128h+var_108]
+  .text:0000000180E5EEE4                 mov     rax, [rcx]
+  .text:0000000180E5EEE7                 call    qword ptr [rax+168h] ; 0x168 = IVEngineServer2_ServerCommand
+  .text:0000000180E5EEED                 mov     rbx, [rsp+128h+arg_0]
+  .text:0000000180E5EEF5                 mov     rax, rdi
+  .text:0000000180E5EEF8                 add     rsp, 120h
+  .text:0000000180E5EEFF                 pop     rdi
+  .text:0000000180E5EF00                 retn
 procedure: |-
-  _QWORD *__fastcall sub_180D33C60(_QWORD *a1)
+  _QWORD *__fastcall CMultiplayRules_ctor(_QWORD *a1)
   {
     __int64 v2; // rdx
-    const char **v3; // rax
-    const char *v4; // rax
-    const char *v5; // rbx
-    const char **v6; // rax
-    const char *v7; // rax
-    _BYTE v9[264]; // [rsp+20h] [rbp-108h] BYREF
+    const char *v3; // rbx
+    _BYTE v5[264]; // [rsp+20h] [rbp-108h] BYREF
 
-    sub_180CEDD40();
-    *a1 = CMultiplayRules_vtable;
-    (*(void (__fastcall **)(__int64, __int64))(*(_QWORD *)g_pVEngineCvar + 192LL))(g_pVEngineCvar, 0x200000);
+    sub_180DD7160();
+    *a1 = &CMultiplayRules_vtable;
+    (*(void (__fastcall **)(__int64, __int64))(*(_QWORD *)g_pVEngineCvar + 192LL))(g_pVEngineCvar, 0x200000);// 0x0C0 = 192LL = ICvar_ResetConVarsToDefaultValuesByFlag
     LOBYTE(v2) = 1;
-    nullsub_727(a1, v2);
-    if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_181F80938, 2) )
-      LoggingSystem_Log((unsigned int)dword_181F80938, 2, "SV:  Executing server defaults\n");
-    (*(void (__fastcall **)(__int64, const char *))(*(_QWORD *)g_pEngineServer
-                                                  + 360LL))(// 360LL = 0x168 = IVEngineServer2_ServerCommand
-      g_pEngineServer,
-      "execifexists server_default.cfg");
-    if ( (*(unsigned __int8 (__fastcall **)(__int64))(*(_QWORD *)g_pEngineServer + 272LL))(g_pEngineServer) )// 272LL = 0x110 = IVEngineServer2_IsDedicatedServer
+    nullsub_1017(a1, v2);
+    if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_1821B01F8, 2) )
+      LoggingSystem_Log((unsigned int)dword_1821B01F8, 2, "SV:  Executing server defaults\n");
+    (*(void (__fastcall **)(__int64, const char *))(*(_QWORD *)g_engine + 360LL))(// 360LL = 0x168 = IVEngineServer2_ServerCommand
+      g_engine,
+      "execifexists server_default.cfg");         // 0x168 = 360LL = IVEngineServer2_ServerCommand
+    v3 = byte_181774193;
+    if ( (*(unsigned __int8 (__fastcall **)(__int64))(*(_QWORD *)g_engine + 272LL))(g_engine) )// 272LL = 0x110 = IVEngineServer2_IsDedicatedServer
     {
-      v3 = (const char **)sub_1814E6C20(&unk_181F808B0, 0xFFFFFFFFLL);
-      if ( !v3 )
-        v3 = *(const char ***)(qword_181F808B8 + 8);
-      v4 = *v3;
-      v5 = byte_1815A3980;
-      if ( v4 )
-        v5 = v4;
-      if ( *v5 )
+      if ( *(_QWORD *)(qword_1821B0178 + 88) )
+        v3 = *(const char **)(qword_1821B0178 + 88);
+      if ( *v3 )
       {
-        if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_181F80938, 2) )
-          LoggingSystem_Log((unsigned int)dword_181F80938, 2, "SV:  Executing dedicated server config file\n");
-  LABEL_18:
-        V_snprintf(v9, 256, "execifexists %s\n", v5);
-        (*(void (__fastcall **)(__int64, _BYTE *))(*(_QWORD *)g_pEngineServer + 360LL))(g_pEngineServer, v9);// 360LL = 0x168 = IVEngineServer2_ServerCommand
+        if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_1821B01F8, 2) )
+          LoggingSystem_Log((unsigned int)dword_1821B01F8, 2, "SV:  Executing dedicated server config file\n");
+  LABEL_14:
+        V_snprintf(v5, 256, "execifexists %s\n", v3);
+        (*(void (__fastcall **)(__int64, _BYTE *))(*(_QWORD *)g_engine + 360LL))(g_engine, v5);// 360LL = 0x168 = IVEngineServer2_ServerCommand
       }
     }
     else
     {
-      v6 = (const char **)sub_1814E6C20(&unk_181F808C0, 0xFFFFFFFFLL);
-      if ( !v6 )
-        v6 = *(const char ***)(qword_181F808C8 + 8);
-      v7 = *v6;
-      v5 = byte_1815A3980;
-      if ( v7 )
-        v5 = v7;
-      if ( *v5 )
+      if ( *(_QWORD *)(qword_1821B0188 + 88) )
+        v3 = *(const char **)(qword_1821B0188 + 88);
+      if ( *v3 )
       {
-        if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_181F80938, 2) )
-          LoggingSystem_Log((unsigned int)dword_181F80938, 2, "SV:  Executing listen server config file\n");
-        goto LABEL_18;
+        if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_1821B01F8, 2) )
+          LoggingSystem_Log((unsigned int)dword_1821B01F8, 2, "SV:  Executing listen server config file\n");
+        goto LABEL_14;
       }
     }
     return a1;
