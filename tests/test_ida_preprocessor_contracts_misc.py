@@ -1167,5 +1167,114 @@ class TestCvarRemoveGlobalChangeCallbackChain(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(await self.finder.load_helper_details(session, ["Shutdown"]), [])
 
 
+class TestCMultiplayRulesCtorDecompiles(unittest.IsolatedAsyncioTestCase):
+    """CMultiplayRules_ctor is decompiled once for every interface vcall it issues."""
+
+    def setUp(self):
+        self.finder = _load_module(
+            Path("ida_preprocessor_scripts/find-CMultiplayRules_ctor-decompiles.py"),
+            "find_CMultiplayRules_ctor_decompiles",
+        )
+
+    def test_one_predecessor_owns_every_target(self):
+        references = {
+            reference_path for spec in self.finder.LLM_DECOMPILE for reference_path in spec["reference_yaml_paths"]
+        }
+        self.assertEqual(references, {"references/server/CMultiplayRules_ctor.{platform}.yaml"})
+
+    def test_targets_cover_engine_and_cvar_interfaces(self):
+        self.assertEqual(
+            [
+                "IVEngineServer2_ServerCommand",
+                "IVEngineServer2_IsDedicatedServer",
+                "ICvar_ResetConVarsToDefaultValuesByFlag",
+            ],
+            list(self.finder.TARGET_FUNCTION_NAMES),
+        )
+        self.assertEqual(
+            {
+                "IVEngineServer2_ServerCommand": "IVEngineServer2",
+                "IVEngineServer2_IsDedicatedServer": "IVEngineServer2",
+                "ICvar_ResetConVarsToDefaultValuesByFlag": "ICvar",
+            },
+            dict(self.finder.FUNC_VTABLE_RELATIONS),
+        )
+
+    def test_cvar_target_is_slim_pattern_c_without_vtable_artifact(self):
+        generation_contracts = dict(self.finder.GENERATE_YAML_DESIRED_FIELDS)
+        self.assertEqual(
+            ["func_name", "vfunc_sig", "vfunc_offset", "vfunc_index", "vtable_name"],
+            generation_contracts["ICvar_ResetConVarsToDefaultValuesByFlag"],
+        )
+
+    async def test_inline_body_does_not_walk_helpers(self):
+        with patch.object(self.finder, "preprocess_common_skill", AsyncMock(return_value=True)) as preprocess:
+            self.assertTrue(await self.finder.preprocess_skill("session", "finder", [], {}, "/tmp", "linux", 0))
+        self.assertEqual(preprocess.await_count, 1)
+        self.assertNotIn("llm_target_details_loader", preprocess.await_args.kwargs)
+
+    async def test_missing_inline_dispatch_uses_helper_loader(self):
+        with patch.object(self.finder, "preprocess_common_skill", AsyncMock(side_effect=[False, True])) as preprocess:
+            self.assertTrue(await self.finder.preprocess_skill("session", "finder", [], {}, "/tmp", "linux", 0))
+        self.assertEqual(preprocess.await_count, 2)
+        self.assertIs(preprocess.await_args.kwargs["llm_target_details_loader"], self.finder.load_helper_details)
+
+
+class TestFindCCvarResetConVarsToDefaultValuesByFlag(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        self.finder = _load_module(
+            Path("ida_preprocessor_scripts/find-CCvar_ResetConVarsToDefaultValuesByFlag.py"),
+            "find_CCvar_ResetConVarsToDefaultValuesByFlag",
+        )
+
+    async def test_inherits_slot_from_server_interface_yaml(self) -> None:
+        preprocess_common_skill = AsyncMock(return_value=True)
+        with patch.object(self.finder, "preprocess_common_skill", preprocess_common_skill):
+            result = await self.finder.preprocess_skill(
+                session="session",
+                skill_name="skill",
+                expected_outputs=["out.yaml"],
+                old_yaml_map={"k": "v"},
+                new_binary_dir="bin_dir",
+                platform="windows",
+                image_base=0x180000000,
+                debug=True,
+            )
+
+        self.assertTrue(result)
+        preprocess_common_skill.assert_awaited_once_with(
+            session="session",
+            expected_outputs=["out.yaml"],
+            old_yaml_map={"k": "v"},
+            new_binary_dir="bin_dir",
+            platform="windows",
+            image_base=0x180000000,
+            inherit_vfuncs=[
+                (
+                    "CCvar_ResetConVarsToDefaultValuesByFlag",
+                    "CCvar",
+                    "../server/ICvar_ResetConVarsToDefaultValuesByFlag",
+                    True,
+                )
+            ],
+            generate_yaml_desired_fields=[
+                (
+                    "CCvar_ResetConVarsToDefaultValuesByFlag",
+                    [
+                        "func_name",
+                        "func_va",
+                        "func_rva",
+                        "func_size",
+                        "func_sig",
+                        "vtable_name",
+                        "vfunc_offset",
+                        "vfunc_index",
+                    ],
+                )
+            ],
+            debug=True,
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
