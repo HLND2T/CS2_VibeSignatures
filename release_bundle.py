@@ -209,14 +209,19 @@ def _stage_ida_databases(
     Only the exact canonical database of every configured binary is accepted; a
     missing database, an unexpected IDA side file, or a symbolic link fails
     closed, so the archive identity is always the producer's warm generation.
+    Module-local ``.ida-aborted`` directories hold forced-stop diagnostics, not
+    live databases; retain those files without including them in the archive.
     Returns the sorted staged relative paths (``bin/<gv>/<module>/<name>.i64``).
     """
     expected = set(_expected_ida_database_paths(game_version, binary_records))
+    quarantine_roots = {source_bin_root / record["module"] / ".ida-aborted" for record in binary_records}
     staged = set()
     for path in sorted(source_bin_root.rglob("*")):
         if path.is_symlink():
             raise ReleaseBundleError(f"warm IDB tree contains an unsupported symbolic link: {path}")
         if not path.is_file() or not _is_ida_database_file(path):
+            continue
+        if any(path.is_relative_to(root) for root in quarantine_roots):
             continue
         relative = (PurePosixPath("bin") / game_version / path.relative_to(source_bin_root).as_posix()).as_posix()
         if relative not in expected:

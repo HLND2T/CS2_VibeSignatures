@@ -30,6 +30,87 @@ def _refresh_binding_digest(manifest: dict, label: str) -> None:
     manifest["full_rebuild"]["verification_sha256"] = release_bundle._release_rebuild_digest(label, unsigned)
 
 
+class IdaDatabaseStagingTests(unittest.TestCase):
+    def test_quarantined_databases_are_preserved_and_excluded_from_staging(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "bin" / "14191"
+            staging = root / "staging"
+            records = []
+            quarantined = []
+            expected = []
+            for module, binary in (("client", "client.dll"), ("server", "server.dll"), ("server", "libserver.so")):
+                records.append({"module": module, "path": f"game/{module}/{binary}"})
+                database = source / module / f"{binary}.i64"
+                database.parent.mkdir(parents=True, exist_ok=True)
+                database.write_bytes(b"warm-idb")
+                expected.append(f"bin/14191/{module}/{binary}.i64")
+                quarantine = database.parent / ".ida-aborted" / binary / "run-id"
+                quarantine.mkdir(parents=True)
+                for suffix in (".id0", ".id1", ".id2", ".nam", ".til", ".i64"):
+                    part = quarantine / f"{binary}{suffix}"
+                    part.write_bytes(b"quarantined-idb")
+                    quarantined.append(part)
+
+            staged = release_bundle._stage_ida_databases(source, "14191", records, staging)
+
+            self.assertEqual(sorted(expected), staged)
+            self.assertEqual(
+                sorted(expected),
+                sorted(path.relative_to(staging).as_posix() for path in staging.rglob("*") if path.is_file()),
+            )
+            for relative in staged:
+                self.assertEqual(b"warm-idb", (staging / relative).read_bytes())
+            for part in quarantined:
+                self.assertEqual(b"quarantined-idb", part.read_bytes())
+
+    def test_unexpected_databases_outside_module_quarantine_still_fail(self) -> None:
+        for relative in (
+            "server/server.dll.id0",
+            ".ida-aborted/server.dll.id0",
+            "server/other/.ida-aborted/server.dll.id0",
+        ):
+            with self.subTest(relative=relative), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                source = root / "bin" / "14191"
+                unexpected = source / relative
+                unexpected.parent.mkdir(parents=True)
+                unexpected.write_bytes(b"unpacked-idb")
+                with self.assertRaisesRegex(release_bundle.ReleaseBundleError, "unexpected warm IDA database file"):
+                    release_bundle._stage_ida_databases(
+                        source, "14191", [{"module": "server", "path": "server.dll"}], root / "staging"
+                    )
+
+    def test_quarantined_database_cannot_replace_missing_canonical_database(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "bin" / "14191"
+            quarantined = source / "server" / ".ida-aborted" / "server.dll" / "run-id" / "server.dll.i64"
+            quarantined.parent.mkdir(parents=True)
+            quarantined.write_bytes(b"quarantined-idb")
+            with self.assertRaisesRegex(release_bundle.ReleaseBundleError, "warm IDA database is missing"):
+                release_bundle._stage_ida_databases(
+                    source, "14191", [{"module": "server", "path": "server.dll"}], root / "staging"
+                )
+
+    def test_symlink_in_quarantine_still_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "bin" / "14191"
+            target = root / "external.id0"
+            target.write_bytes(b"external-idb")
+            link = source / "server" / ".ida-aborted" / "server.dll.id0"
+            link.parent.mkdir(parents=True)
+            try:
+                link.symlink_to(target)
+            except OSError as exc:
+                self.skipTest(f"Symlinks unavailable: {exc}")
+            with self.assertRaisesRegex(release_bundle.ReleaseBundleError, "unsupported symbolic link"):
+                release_bundle._stage_ida_databases(
+                    source, "14191", [{"module": "server", "path": "server.dll"}], root / "staging"
+                )
+
+
 class ReleaseBundleTests(unittest.TestCase):
     @staticmethod
     def _copy_sdk_fixture(_sdk_root: Path, _sdk_sha: str, destination: Path, inventory: list[dict]) -> None:
@@ -117,6 +198,10 @@ class ReleaseBundleTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             temporary_root = Path(temporary)
             root, preparation, _binsync_root, inputs = self._fixture(temporary_root)
+            quarantine = root / "bin" / "1" / "server" / ".ida-aborted" / "server.dll" / "run-id"
+            quarantine.mkdir(parents=True)
+            quarantined = quarantine / "server.dll.id0"
+            quarantined.write_bytes(b"aborted-idb")
             bundle_root = temporary_root / "release-bundle"
             producer_contract = {"files": [], "digest": "sha256:" + "c" * 64}
 
@@ -186,6 +271,7 @@ class ReleaseBundleTests(unittest.TestCase):
                     release_bundle._verify_source(root, forged_binary)
 
             self.assertEqual(manifest["source_sha"], verified["source_sha"])
+            self.assertEqual(b"aborted-idb", quarantined.read_bytes())
             self.assertEqual(manifest["source_sha"], manifest["build_id"])
             self.assertEqual(manifest["binsync"]["target_state_digest"], verified["binsync_target_state_digest"])
             self.assertEqual(5, len(manifest["public_assets"]))
