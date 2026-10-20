@@ -1,0 +1,28 @@
+func_name: ConCommandRef_Dispatch
+func_va: '0x180406650'
+disasm_code: |-
+  .text:0000000180406650                 mov     r10, rcx
+  .text:0000000180406653                 mov     rcx, cs:g_pVEngineCvar
+  .text:000000018040665A                 test    rcx, rcx
+  .text:000000018040665D                 jz      short locret_180406672
+  .text:000000018040665F                 mov     rax, [rcx]
+  .text:0000000180406662                 mov     r9, r8
+  .text:0000000180406665                 mov     r8, rdx
+  .text:0000000180406668                 mov     rdx, [r10]
+  .text:000000018040666B                 ; 0x0A0 = 160LL = ICvar_DispatchConCommand
+  .text:000000018040666B                 jmp     qword ptr [rax+0A0h]; 0x0A0 = 160LL = ICvar_DispatchConCommand
+  .text:0000000180406672                 retn
+procedure: |-
+  __int64 __fastcall sub_180406650(_QWORD *a1, __int64 a2, __int64 a3)
+  {
+    __int64 result; // rax
+
+    if ( g_pVEngineCvar )
+      return (*(__int64 (__fastcall **)(__int64, _QWORD, __int64, __int64))(*(_QWORD *)g_pVEngineCvar
+                                                                          + 160LL))(// 0x0A0 = 160LL = ICvar_DispatchConCommand
+               g_pVEngineCvar,
+               *a1,
+               a2,
+               a3);
+    return result;
+  }

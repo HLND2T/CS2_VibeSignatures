@@ -65,11 +65,14 @@ def _run_script_desc_py_eval(
     instructions: dict[int, dict[str, object]],
     names: dict[str, int] | None = None,
     decompiled_lines: list[str] | None = None,
+    script_names: list[str] | None = None,
 ) -> dict[str, object]:
     module = _import_common_module()
     code = module._build_script_desc_internal_py_eval(
         hex(source_func_va),
-        [
+        script_names
+        if script_names is not None
+        else [
             "GetModelScale",
             "ScriptLookupAttachment",
             "ScriptSetMaterialGroup",

@@ -482,7 +482,10 @@ def _normalize_reference_member_name(
     candidate = (func_name or file_stem).strip()
     prefix = f"{class_name}_"
     if candidate.startswith(prefix):
-        return candidate[len(prefix) :]
+        candidate = candidate[len(prefix) :]
+    # Binary analysis numbers this overload; the SDK declares both as PostEventAbstract.
+    if class_name == "CGameEventSystem" and candidate == "PostEventAbstract2":
+        return "PostEventAbstract"
     return candidate
 
 

@@ -1,202 +1,143 @@
 func_name: CMultiplayRules_ctor
-func_va: '0x17ef540'
+func_va: '0x1a4acb0'
 disasm_code: |-
-  .text:00000000017EF540                 push    rbp
-  .text:00000000017EF541                 mov     rbp, rsp
-  .text:00000000017EF544                 push    r13
-  .text:00000000017EF546                 push    r12
-  .text:00000000017EF548                 push    rbx
-  .text:00000000017EF549                 mov     rbx, rdi
-  .text:00000000017EF54C                 sub     rsp, 108h
-  .text:00000000017EF553                 call    sub_178BDC0
-  .text:00000000017EF558                 lea     rax, CMultiplayRules_vtable
-  .text:00000000017EF55F                 mov     esi, 200000h
-  .text:00000000017EF564                 mov     [rbx], rax
-  .text:00000000017EF567                 lea     rax, g_pVEngineCvar
-  .text:00000000017EF56E                 mov     rdi, [rax]
-  .text:00000000017EF571                 mov     rax, [rdi]
-  .text:00000000017EF574                 call    qword ptr [rax+0C0h]
-  .text:00000000017EF57A                 mov     esi, 1
-  .text:00000000017EF57F                 mov     rdi, rbx
-  .text:00000000017EF582                 call    nullsub_1229
-  .text:00000000017EF587                 lea     r12, dword_2701220
-  .text:00000000017EF58E                 ; _QWORD
-  .text:00000000017EF58E                 mov     esi, 2; _QWORD
-  .text:00000000017EF593                 ; _QWORD
-  .text:00000000017EF593                 mov     edi, [r12]; _QWORD
-  .text:00000000017EF597                 call    _LoggingSystem_IsChannelEnabled
-  .text:00000000017EF59C                 test    al, al
-  .text:00000000017EF59E                 jnz     loc_17EF660
-  .text:00000000017EF5A4                 lea     rbx, g_pEngineServer
-  .text:00000000017EF5AB                 lea     rsi, aExecifexistsSe; "execifexists server_default.cfg"
-  .text:00000000017EF5B2                 mov     rdi, [rbx]
-  .text:00000000017EF5B5                 mov     rax, [rdi]
-  .text:00000000017EF5B8                 call    qword ptr [rax+168h] ; 0x168 = IVEngineServer2_ServerCommand
-  .text:00000000017EF5BE                 mov     rdi, [rbx]
-  .text:00000000017EF5C1                 mov     rax, [rdi]
-  .text:00000000017EF5C4                 call    qword ptr [rax+110h] ; 0x110 = IVEngineServer2_IsDedicatedServer
-  .text:00000000017EF5CA                 mov     esi, 0FFFFFFFFh
-  .text:00000000017EF5CF                 test    al, al
-  .text:00000000017EF5D1                 jz      short loc_17EF610
-  .text:00000000017EF5D3                 lea     rdi, qword_2702560
-  .text:00000000017EF5DA                 call    sub_1B11470
-  .text:00000000017EF5DF                 test    rax, rax
-  .text:00000000017EF5E2                 jz      loc_17EF6D0
-  .text:00000000017EF5E8                 mov     r13, [rax]
-  .text:00000000017EF5EB                 test    r13, r13
-  .text:00000000017EF5EE                 jz      short loc_17EF5FB
-  .text:00000000017EF5F0                 cmp     byte ptr [r13+0], 0
-  .text:00000000017EF5F5                 jnz     loc_17EF680
-  .text:00000000017EF5FB                 add     rsp, 108h
-  .text:00000000017EF602                 pop     rbx
-  .text:00000000017EF603                 pop     r12
-  .text:00000000017EF605                 pop     r13
-  .text:00000000017EF607                 pop     rbp
-  .text:00000000017EF608                 retn
-  .text:00000000017EF610                 lea     rdi, qword_2702550
-  .text:00000000017EF617                 call    sub_1B11470
-  .text:00000000017EF61C                 test    rax, rax
-  .text:00000000017EF61F                 jz      loc_17EF6F0
-  .text:00000000017EF625                 mov     r13, [rax]
-  .text:00000000017EF628                 test    r13, r13
-  .text:00000000017EF62B                 jz      short loc_17EF5FB
-  .text:00000000017EF62D                 cmp     byte ptr [r13+0], 0
-  .text:00000000017EF632                 jz      short loc_17EF5FB
-  .text:00000000017EF634                 ; _QWORD
-  .text:00000000017EF634                 mov     edi, [r12]; _QWORD
-  .text:00000000017EF638                 ; _QWORD
-  .text:00000000017EF638                 mov     esi, 2; _QWORD
-  .text:00000000017EF63D                 call    _LoggingSystem_IsChannelEnabled
-  .text:00000000017EF642                 test    al, al
-  .text:00000000017EF644                 jz      short loc_17EF692
-  .text:00000000017EF646                 ; _QWORD
-  .text:00000000017EF646                 mov     edi, [r12]; _QWORD
-  .text:00000000017EF64A                 lea     rdx, aSvExecutingLis; "SV:  Executing listen server config fil"...
-  .text:00000000017EF651                 ; _QWORD
-  .text:00000000017EF651                 mov     esi, 2; _QWORD
-  .text:00000000017EF656                 xor     eax, eax
-  .text:00000000017EF658                 call    _LoggingSystem_Log
-  .text:00000000017EF65D                 jmp     short loc_17EF692
-  .text:00000000017EF660                 ; _QWORD
-  .text:00000000017EF660                 mov     edi, [r12]; _QWORD
-  .text:00000000017EF664                 lea     rdx, aSvExecutingSer; "SV:  Executing server defaults\n"
-  .text:00000000017EF66B                 ; _QWORD
-  .text:00000000017EF66B                 mov     esi, 2; _QWORD
-  .text:00000000017EF670                 xor     eax, eax
-  .text:00000000017EF672                 call    _LoggingSystem_Log
-  .text:00000000017EF677                 jmp     loc_17EF5A4
-  .text:00000000017EF680                 ; _QWORD
-  .text:00000000017EF680                 mov     edi, [r12]; _QWORD
-  .text:00000000017EF684                 ; _QWORD
-  .text:00000000017EF684                 mov     esi, 2; _QWORD
-  .text:00000000017EF689                 call    _LoggingSystem_IsChannelEnabled
-  .text:00000000017EF68E                 test    al, al
-  .text:00000000017EF690                 jnz     short loc_17EF710
-  .text:00000000017EF692                 lea     r12, [rbp+var_120]
-  .text:00000000017EF699                 mov     rcx, r13
-  .text:00000000017EF69C                 ; _QWORD
-  .text:00000000017EF69C                 mov     esi, 100h; _QWORD
-  .text:00000000017EF6A1                 lea     rdx, aExecifexistsS; "execifexists %s\n"
-  .text:00000000017EF6A8                 ; _QWORD
-  .text:00000000017EF6A8                 mov     rdi, r12; _QWORD
-  .text:00000000017EF6AB                 xor     eax, eax
-  .text:00000000017EF6AD                 call    _V_snprintf
-  .text:00000000017EF6B2                 mov     rdi, [rbx]
-  .text:00000000017EF6B5                 mov     rsi, r12
-  .text:00000000017EF6B8                 mov     rax, [rdi]
-  .text:00000000017EF6BB                 call    qword ptr [rax+168h] ; 0x168 = IVEngineServer2_ServerCommand
-  .text:00000000017EF6C1                 add     rsp, 108h
-  .text:00000000017EF6C8                 pop     rbx
-  .text:00000000017EF6C9                 pop     r12
-  .text:00000000017EF6CB                 pop     r13
-  .text:00000000017EF6CD                 pop     rbp
-  .text:00000000017EF6CE                 retn
-  .text:00000000017EF6D0                 lea     rax, qword_2702560
-  .text:00000000017EF6D7                 mov     rax, [rax+8]
-  .text:00000000017EF6DB                 mov     rax, [rax+8]
-  .text:00000000017EF6DF                 mov     r13, [rax]
-  .text:00000000017EF6E2                 test    r13, r13
-  .text:00000000017EF6E5                 jnz     loc_17EF5F0
-  .text:00000000017EF6EB                 jmp     loc_17EF5FB
-  .text:00000000017EF6F0                 lea     rax, qword_2702550
-  .text:00000000017EF6F7                 mov     rax, [rax+8]
-  .text:00000000017EF6FB                 mov     rax, [rax+8]
-  .text:00000000017EF6FF                 mov     r13, [rax]
-  .text:00000000017EF702                 test    r13, r13
-  .text:00000000017EF705                 jnz     loc_17EF62D
-  .text:00000000017EF70B                 jmp     loc_17EF5FB
-  .text:00000000017EF710                 ; _QWORD
-  .text:00000000017EF710                 mov     edi, [r12]; _QWORD
-  .text:00000000017EF714                 lea     rdx, aSvExecutingDed; "SV:  Executing dedicated server config "...
-  .text:00000000017EF71B                 ; _QWORD
-  .text:00000000017EF71B                 mov     esi, 2; _QWORD
-  .text:00000000017EF720                 xor     eax, eax
-  .text:00000000017EF722                 call    _LoggingSystem_Log
-  .text:00000000017EF727                 jmp     loc_17EF692
+  .text:0000000001A4ACB0                 push    rbp
+  .text:0000000001A4ACB1                 mov     rbp, rsp
+  .text:0000000001A4ACB4                 push    r13
+  .text:0000000001A4ACB6                 push    r12
+  .text:0000000001A4ACB8                 push    rbx
+  .text:0000000001A4ACB9                 mov     rbx, rdi
+  .text:0000000001A4ACBC                 sub     rsp, 108h
+  .text:0000000001A4ACC3                 call    sub_19A2D20
+  .text:0000000001A4ACC8                 lea     rax, CMultiplayRules_vtable
+  .text:0000000001A4ACCF                 mov     esi, 200000h
+  .text:0000000001A4ACD4                 mov     [rbx], rax
+  .text:0000000001A4ACD7                 lea     rax, g_pVEngineCvar
+  .text:0000000001A4ACDE                 mov     rdi, [rax]
+  .text:0000000001A4ACE1                 mov     rax, [rdi]
+  .text:0000000001A4ACE4                 ; 0x0C0 = 192LL = ICvar_ResetConVarsToDefaultValuesByFlag
+  .text:0000000001A4ACE4                 call    qword ptr [rax+0C0h]; 0x0C0 = 192LL = ICvar_ResetConVarsToDefaultValuesByFlag
+  .text:0000000001A4ACEA                 mov     esi, 1
+  .text:0000000001A4ACEF                 mov     rdi, rbx
+  .text:0000000001A4ACF2                 call    nullsub_1616
+  .text:0000000001A4ACF7                 lea     r12, dword_29F3C80
+  .text:0000000001A4ACFE                 mov     esi, 2
+  .text:0000000001A4AD03                 mov     edi, [r12]
+  .text:0000000001A4AD07                 call    sub_9FE360
+  .text:0000000001A4AD0C                 test    al, al
+  .text:0000000001A4AD0E                 jnz     loc_1A4ADC0
+  .text:0000000001A4AD14                 lea     rbx, g_engine
+  .text:0000000001A4AD1B                 lea     rsi, aExecifexistsSe; "execifexists server_default.cfg"
+  .text:0000000001A4AD22                 mov     rdi, [rbx]
+  .text:0000000001A4AD25                 mov     rax, [rdi]
+  .text:0000000001A4AD28                 ; 0x168 = 360LL = IVEngineServer2_ServerCommand
+  .text:0000000001A4AD28                 call    qword ptr [rax+168h] ; 0x168 = IVEngineServer2_ServerCommand
+  .text:0000000001A4AD2E                 mov     rdi, [rbx]
+  .text:0000000001A4AD31                 mov     rax, [rdi]
+  .text:0000000001A4AD34                 ; 0x110 = 272LL = IVEngineServer2_IsDedicatedServer
+  .text:0000000001A4AD34                 call    qword ptr [rax+110h] ; 0x110 = IVEngineServer2_IsDedicatedServer
+  .text:0000000001A4AD3A                 test    al, al
+  .text:0000000001A4AD3C                 jz      short loc_1A4AD70
+  .text:0000000001A4AD3E                 lea     rax, unk_29F6200
+  .text:0000000001A4AD45                 mov     rax, [rax+8]
+  .text:0000000001A4AD49                 mov     r13, [rax+58h]
+  .text:0000000001A4AD4D                 test    r13, r13
+  .text:0000000001A4AD50                 jz      short loc_1A4AD5D
+  .text:0000000001A4AD52                 cmp     byte ptr [r13+0], 0
+  .text:0000000001A4AD57                 jnz     loc_1A4ADE0
+  .text:0000000001A4AD5D                 add     rsp, 108h
+  .text:0000000001A4AD64                 pop     rbx
+  .text:0000000001A4AD65                 pop     r12
+  .text:0000000001A4AD67                 pop     r13
+  .text:0000000001A4AD69                 pop     rbp
+  .text:0000000001A4AD6A                 retn
+  .text:0000000001A4AD70                 lea     rax, unk_29F61F0
+  .text:0000000001A4AD77                 mov     rax, [rax+8]
+  .text:0000000001A4AD7B                 mov     r13, [rax+58h]
+  .text:0000000001A4AD7F                 test    r13, r13
+  .text:0000000001A4AD82                 jz      short loc_1A4AD5D
+  .text:0000000001A4AD84                 cmp     byte ptr [r13+0], 0
+  .text:0000000001A4AD89                 jz      short loc_1A4AD5D
+  .text:0000000001A4AD8B                 mov     edi, [r12]
+  .text:0000000001A4AD8F                 mov     esi, 2
+  .text:0000000001A4AD94                 call    sub_9FE360
+  .text:0000000001A4AD99                 test    al, al
+  .text:0000000001A4AD9B                 jz      short loc_1A4ADF2
+  .text:0000000001A4AD9D                 mov     edi, [r12]
+  .text:0000000001A4ADA1                 lea     rdx, aSvExecutingLis; "SV:  Executing listen server config fil"...
+  .text:0000000001A4ADA8                 mov     esi, 2
+  .text:0000000001A4ADAD                 xor     eax, eax
+  .text:0000000001A4ADAF                 call    sub_9FD300
+  .text:0000000001A4ADB4                 jmp     short loc_1A4ADF2
+  .text:0000000001A4ADC0                 mov     edi, [r12]
+  .text:0000000001A4ADC4                 lea     rdx, aSvExecutingSer; "SV:  Executing server defaults\n"
+  .text:0000000001A4ADCB                 mov     esi, 2
+  .text:0000000001A4ADD0                 xor     eax, eax
+  .text:0000000001A4ADD2                 call    sub_9FD300
+  .text:0000000001A4ADD7                 jmp     loc_1A4AD14
+  .text:0000000001A4ADE0                 mov     edi, [r12]
+  .text:0000000001A4ADE4                 mov     esi, 2
+  .text:0000000001A4ADE9                 call    sub_9FE360
+  .text:0000000001A4ADEE                 test    al, al
+  .text:0000000001A4ADF0                 jnz     short loc_1A4AE30
+  .text:0000000001A4ADF2                 lea     r12, [rbp+var_120]
+  .text:0000000001A4ADF9                 mov     rcx, r13
+  .text:0000000001A4ADFC                 mov     esi, 100h
+  .text:0000000001A4AE01                 lea     rdx, aExecifexistsS; "execifexists %s\n"
+  .text:0000000001A4AE08                 mov     rdi, r12
+  .text:0000000001A4AE0B                 xor     eax, eax
+  .text:0000000001A4AE0D                 call    sub_9FDF70
+  .text:0000000001A4AE12                 mov     rdi, [rbx]
+  .text:0000000001A4AE15                 mov     rsi, r12
+  .text:0000000001A4AE18                 mov     rax, [rdi]
+  .text:0000000001A4AE1B                 call    qword ptr [rax+168h] ; 0x168 = IVEngineServer2_ServerCommand
+  .text:0000000001A4AE21                 add     rsp, 108h
+  .text:0000000001A4AE28                 pop     rbx
+  .text:0000000001A4AE29                 pop     r12
+  .text:0000000001A4AE2B                 pop     r13
+  .text:0000000001A4AE2D                 pop     rbp
+  .text:0000000001A4AE2E                 retn
+  .text:0000000001A4AE30                 mov     edi, [r12]
+  .text:0000000001A4AE34                 lea     rdx, aSvExecutingDed; "SV:  Executing dedicated server config "...
+  .text:0000000001A4AE3B                 mov     esi, 2
+  .text:0000000001A4AE40                 xor     eax, eax
+  .text:0000000001A4AE42                 call    sub_9FD300
+  .text:0000000001A4AE47                 jmp     short loc_1A4ADF2
 procedure: |-
-  const char **__fastcall sub_17EF540(_QWORD *a1)
+  __int64 __fastcall CMultiplayRules_ctor(_QWORD *a1)
   {
-    const char **result; // rax
+    __int64 result; // rax
     const char *v2; // r13
-    _QWORD v3[36]; // [rsp+0h] [rbp-120h] BYREF
+    _BYTE v3[288]; // [rsp+0h] [rbp-120h] BYREF
 
-    sub_178BDC0();
+    sub_19A2D20();
     *a1 = CMultiplayRules_vtable;
-    (*(void (__fastcall **)(_QWORD *, __int64))(*g_pVEngineCvar + 192LL))(g_pVEngineCvar, 0x200000);
-    nullsub_1229(a1, 1);
-    if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_2701220, 2) )
-      LoggingSystem_Log((unsigned int)dword_2701220, 2, "SV:  Executing server defaults\n");
-    (*(void (__fastcall **)(__int64, const char *))(*(_QWORD *)g_pEngineServer + 360LL))(// 360LL = 0x168 = IVEngineServer2_ServerCommand
-      g_pEngineServer,
-      "execifexists server_default.cfg");
-    if ( (*(unsigned __int8 (__fastcall **)(__int64))(*(_QWORD *)g_pEngineServer + 272LL))(g_pEngineServer) )// 272LL = 0x110 = IVEngineServer2_IsDedicatedServer
+    (*(void (__fastcall **)(_QWORD *, __int64))(*g_pVEngineCvar + 192LL))(g_pVEngineCvar, 0x200000);// 0x0C0 = 192LL = ICvar_ResetConVarsToDefaultValuesByFlag
+    nullsub_1616(a1, 1);
+    if ( (unsigned __int8)sub_9FE360((unsigned int)dword_29F3C80, 2) )
+      sub_9FD300((unsigned int)dword_29F3C80, 2, "SV:  Executing server defaults\n");
+    (*(void (__fastcall **)(__int64, const char *))(*(_QWORD *)g_engine + 360LL))(// 360LL = 0x168 = IVEngineServer2_ServerCommand
+      g_engine,
+      "execifexists server_default.cfg");         // 0x168 = 360LL = IVEngineServer2_ServerCommand
+    if ( (*(unsigned __int8 (__fastcall **)(__int64))(*(_QWORD *)g_engine + 272LL))(g_engine) )// 272LL = 0x110 = IVEngineServer2_IsDedicatedServer
     {
-      result = (const char **)sub_1B11470(&qword_2702560, 0xFFFFFFFFLL);
-      if ( result )
-      {
-        v2 = *result;
-        if ( !*result )
-          return result;
-        goto LABEL_6;
-      }
-      result = *(const char ***)(unk_2702568 + 8LL);
-      v2 = *result;
-      if ( *result )
-      {
-  LABEL_6:
-        if ( !*v2 )
-          return result;
-        if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_2701220, 2) )
-          LoggingSystem_Log((unsigned int)dword_2701220, 2, "SV:  Executing dedicated server config file\n");
-  LABEL_15:
-        V_snprintf(v3, 256, "execifexists %s\n", v2);
-        return (const char **)(*(__int64 (__fastcall **)(__int64, _QWORD *))(*(_QWORD *)g_pEngineServer + 360LL))(// 360LL = 0x168 = IVEngineServer2_ServerCommand
-                                g_pEngineServer,
-                                v3);
-      }
+      result = unk_29F6208;
+      v2 = *(const char **)(unk_29F6208 + 88LL);
+      if ( !v2 || !*v2 )
+        return result;
+      if ( (unsigned __int8)sub_9FE360((unsigned int)dword_29F3C80, 2) )
+        sub_9FD300((unsigned int)dword_29F3C80, 2, "SV:  Executing dedicated server config file\n");
+  LABEL_13:
+      sub_9FDF70(v3, 256, "execifexists %s\n", v2);
+      return (*(__int64 (__fastcall **)(__int64, _BYTE *))(*(_QWORD *)g_engine + 360LL))(g_engine, v3);// 360LL = 0x168 = IVEngineServer2_ServerCommand
     }
-    else
+    result = unk_29F61F8;
+    v2 = *(const char **)(unk_29F61F8 + 88LL);
+    if ( v2 && *v2 )
     {
-      result = (const char **)sub_1B11470(&qword_2702550, 0xFFFFFFFFLL);
-      if ( result )
-      {
-        v2 = *result;
-        if ( !*result )
-          return result;
-      }
-      else
-      {
-        result = *(const char ***)(unk_2702558 + 8LL);
-        v2 = *result;
-        if ( !*result )
-          return result;
-      }
-      if ( *v2 )
-      {
-        if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_2701220, 2) )
-          LoggingSystem_Log((unsigned int)dword_2701220, 2, "SV:  Executing listen server config file\n");
-        goto LABEL_15;
-      }
+      if ( (unsigned __int8)sub_9FE360((unsigned int)dword_29F3C80, 2) )
+        sub_9FD300((unsigned int)dword_29F3C80, 2, "SV:  Executing listen server config file\n");
+      goto LABEL_13;
     }
     return result;
   }

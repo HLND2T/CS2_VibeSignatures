@@ -8362,8 +8362,9 @@ async def preprocess_common_skill(
       deterministic symbols emitted in generated YAML.
     - ``llm_result_validator``: optional synchronous finder validator returning
       error strings for a parsed LLM result. Errors share the LLM retry budget.
-    - ``llm_target_details_loader``: optional async loader with the default
-      target-detail loader arguments, for exporting de-inlined helper chains.
+    - ``llm_target_details_loader``: optional async finder loader with the same
+      arguments as the default target-detail loader, for inlined and de-inlined
+      call chains.
     - ``inherit_vfuncs``: inherited virtual function targets resolved by
       base-class vfunc_index + vtable lookup via
       ``preprocess_index_based_vfunc_via_mcp``.  Each element is a tuple of
