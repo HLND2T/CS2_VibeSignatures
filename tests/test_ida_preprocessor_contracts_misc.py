@@ -950,6 +950,61 @@ class TestFindOnServerVoiceDataIsPlayingDemoCallee(unittest.IsolatedAsyncioTestC
         self.assertFalse(result)
 
 
+class TestCvarIterateCallbackChain(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        self.finder = _load_module(
+            Path("ida_preprocessor_scripts/find-ICvar_IterateConVarCallbacks.py"), "find_ICvar_IterateConVarCallbacks"
+        )
+
+    async def test_inline_dispatch_does_not_walk_helpers(self):
+        with patch.object(self.finder, "preprocess_common_skill", AsyncMock(return_value=True)) as preprocess:
+            self.assertTrue(await self.finder.preprocess_skill("session", "finder", [], {}, "/tmp", "linux", 0))
+        self.assertEqual(preprocess.await_count, 1)
+        self.assertNotIn("llm_target_details_loader", preprocess.await_args.kwargs)
+
+    async def test_missing_inline_dispatch_uses_helper_loader(self):
+        with patch.object(self.finder, "preprocess_common_skill", AsyncMock(side_effect=[False, True])) as preprocess:
+            self.assertTrue(await self.finder.preprocess_skill("session", "finder", [], {}, "/tmp", "linux", 0))
+        self.assertIs(preprocess.await_args.kwargs["llm_target_details_loader"], self.finder.load_helper_details)
+
+    async def test_helper_instructions_are_exported_for_llm_validation(self):
+        root = {"func_va": "0x1000", "disasm_code": "0x1000 call sub_2000"}
+        helper = {"func_va": "0x2000", "disasm_code": "0x2000 call qword ptr [rax+78h]"}
+        session = type("Session", (), {"call_tool": AsyncMock(return_value={})})()
+        with (
+            patch.object(self.finder, "_load_llm_decompile_target_details_via_mcp", AsyncMock(return_value=[root])),
+            patch.object(
+                self.finder, "parse_mcp_result", return_value={"result": '{"addresses":["0x2000"],"overflow":false}'}
+            ),
+            patch.object(self.finder, "_export_function_detail_via_mcp", AsyncMock(return_value=helper)),
+        ):
+            self.assertEqual(await self.finder.load_helper_details(session, ["Connect"]), [root, helper])
+
+    async def test_incomplete_helper_export_fails_closed(self):
+        session = type("Session", (), {"call_tool": AsyncMock(return_value={})})()
+        for overflow in (True, False):
+            with (
+                self.subTest(overflow=overflow),
+                patch.object(
+                    self.finder,
+                    "_load_llm_decompile_target_details_via_mcp",
+                    AsyncMock(return_value=[{"func_va": "0x1000"}]),
+                ),
+                patch.object(
+                    self.finder,
+                    "parse_mcp_result",
+                    return_value={"result": '{"addresses":["0x2000"],"overflow":' + str(overflow).lower() + "}"},
+                ),
+                patch.object(self.finder, "_export_function_detail_via_mcp", AsyncMock(return_value=None)),
+            ):
+                self.assertEqual(await self.finder.load_helper_details(session, ["Connect"]), [])
+
+    def test_multiple_dispatches_are_rejected(self):
+        entry = {"func_name": "ICvar_IterateConVarCallbacks", "insn_va": "0x2000", "vfunc_offset": "0x78"}
+        self.assertEqual(self.finder.validate_dispatch({"found_vcall": [entry]}), [])
+        self.assertTrue(self.finder.validate_dispatch({"found_vcall": [entry, {**entry, "insn_va": "0x3000"}]}))
+
+
 class TestCvarChangeCallbackChain(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         self.finder = _load_module(
