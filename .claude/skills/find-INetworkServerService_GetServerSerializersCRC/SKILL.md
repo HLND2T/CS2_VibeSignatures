@@ -59,16 +59,17 @@ located call instruction on the current binary.
 
 ## Step 3. Resolve the vfunc body, generate the signature, and write the YAML
 
-1. From the resolved `vfunc_offset`, read the vtable slot of `CNetworkServerService_vtable` to obtain the
-   concrete function address, and rename it to `INetworkServerService_GetServerSerializersCRC` with
-   `mcp__ida-pro-mcp__rename`.
-2. **ALWAYS** Use SKILL `/generate-signature-for-vfuncoffset` for the vfunc at the resolved address/offset
-   to obtain a validated `vfunc_sig`.
-3. **ALWAYS** Use SKILL `/write-vfunc-as-yaml` with:
+1. **ALWAYS** Use SKILL `/generate-signature-for-vfuncoffset` for the vfunc at the resolved call
+   instruction to obtain a validated `vfunc_sig`. Pass `func_addr=None` to the writer: this symbol is a
+   slim Pattern C artifact and carries no `func_va`/`func_rva`/`func_size`. Do not read the vtable slot to
+   resolve a concrete implementation address — adding body fields makes the output diverge from the
+   canonical artifact.
+2. **ALWAYS** Use SKILL `/write-vfunc-as-yaml` with:
    - `func_name`: `INetworkServerService_GetServerSerializersCRC`
-   - `vtable_name`: `CNetworkServerService`
-   - `vfunc_sig`: the validated signature from step 2
+   - `vtable_name`: `CNetworkServerService_vtable`
+   - `vfunc_sig`: the validated signature from step 1
    - `vfunc_offset` / `vfunc_index`: the resolved values
+   - `func_addr`: `None`, `func_sig`: `None`
 
 ## Output YAML filenames
 

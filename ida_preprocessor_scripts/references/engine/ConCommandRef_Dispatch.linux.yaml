@@ -1,0 +1,31 @@
+func_name: ConCommandRef_Dispatch
+func_va: '0x5f55c0'
+disasm_code: |-
+  .text:00000000005F55C0                 lea     rax, g_pVEngineCvar
+  .text:00000000005F55C7                 mov     rcx, rdx
+  .text:00000000005F55CA                 mov     rax, [rax]
+  .text:00000000005F55CD                 test    rax, rax
+  .text:00000000005F55D0                 jz      short locret_5F55F0
+  .text:00000000005F55D2                 mov     rdi, [rdi]
+  .text:00000000005F55D5                 mov     rdx, [rax]
+  .text:00000000005F55D8                 mov     r8, [rdx+0A0h]
+  .text:00000000005F55DF                 mov     rdx, rsi
+  .text:00000000005F55E2                 mov     rsi, rdi
+  .text:00000000005F55E5                 mov     rdi, rax
+  .text:00000000005F55E8                 ; 0x0A0 = 160LL = ICvar_DispatchConCommand
+  .text:00000000005F55E8                 jmp     r8; 0x0A0 = 160LL = ICvar_DispatchConCommand
+  .text:00000000005F55F0                 retn
+procedure: |-
+  _QWORD *__fastcall sub_5F55C0(_QWORD *a1, __int64 a2, __int64 a3)
+  {
+    _QWORD *result; // rax
+
+    result = g_pVEngineCvar;
+    if ( g_pVEngineCvar )
+      return (_QWORD *)(*(__int64 (__fastcall **)(_QWORD *, _QWORD, __int64, __int64))(*g_pVEngineCvar + 160LL))(// 0x0A0 = 160LL = ICvar_DispatchConCommand
+                         g_pVEngineCvar,
+                         *a1,
+                         a2,
+                         a3);
+    return result;
+  }

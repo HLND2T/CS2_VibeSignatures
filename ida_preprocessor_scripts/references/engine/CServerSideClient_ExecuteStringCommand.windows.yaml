@@ -1,0 +1,344 @@
+func_name: CServerSideClient_ExecuteStringCommand
+func_va: '0x1800be8b0'
+disasm_code: |-
+  .text:00000001800BE8B0                 push    rbp
+  .text:00000001800BE8B2                 push    rbx
+  .text:00000001800BE8B3                 push    rsi
+  .text:00000001800BE8B4                 lea     rbp, [rsp-5B0h]
+  .text:00000001800BE8BC                 sub     rsp, 6B0h
+  .text:00000001800BE8C3                 mov     rbx, rcx
+  .text:00000001800BE8C6                 mov     rsi, rdx
+  .text:00000001800BE8C9                 mov     rcx, [rdx+48h]
+  .text:00000001800BE8CD                 and     rcx, 0FFFFFFFFFFFFFFFCh
+  .text:00000001800BE8D1                 cmp     qword ptr [rcx+18h], 0Fh
+  .text:00000001800BE8D6                 jbe     short loc_1800BE8DB
+  .text:00000001800BE8D8                 mov     rcx, [rcx]
+  .text:00000001800BE8DB                 lea     rdx, aDemorestart; "demorestart"
+  .text:00000001800BE8E2                 call    cs:V_stricmp_fast
+  .text:00000001800BE8E8                 lea     rcx, [rsp+6C0h+var_680]
+  .text:00000001800BE8ED                 call    sub_180043E40
+  .text:00000001800BE8F2                 mov     rdx, [rsi+48h]
+  .text:00000001800BE8F6                 and     rdx, 0FFFFFFFFFFFFFFFCh
+  .text:00000001800BE8FA                 cmp     qword ptr [rdx+18h], 0Fh
+  .text:00000001800BE8FF                 jbe     short loc_1800BE904
+  .text:00000001800BE901                 mov     rdx, [rdx]
+  .text:00000001800BE904                 xor     r8d, r8d
+  .text:00000001800BE907                 mov     [rsp+6C0h+arg_0], rdi
+  .text:00000001800BE90F                 lea     rcx, [rsp+6C0h+var_680]
+  .text:00000001800BE914                 call    sub_1804068A0
+  .text:00000001800BE919                 test    al, al
+  .text:00000001800BE91B                 jz      loc_1800BEA0F
+  .text:00000001800BE921                 cmp     [rbp+5C0h+var_248], 0
+  .text:00000001800BE928                 lea     rdi, unk_180531D7F
+  .text:00000001800BE92F                 mov     rcx, cs:g_pVEngineCvar
+  .text:00000001800BE936                 mov     rax, [rcx]
+  .text:00000001800BE939                 mov     r10, [rax+88h]
+  .text:00000001800BE940                 jle     short loc_1800BE94E
+  .text:00000001800BE942                 mov     rax, [rbp+5C0h+var_240]
+  .text:00000001800BE949                 mov     r8, [rax]
+  .text:00000001800BE94C                 jmp     short loc_1800BE951
+  .text:00000001800BE94E                 mov     r8, rdi
+  .text:00000001800BE951                 xor     r9d, r9d
+  .text:00000001800BE954                 lea     rdx, [rbp+5C0h+arg_10]
+  .text:00000001800BE95B                 call    r10
+  .text:00000001800BE95E                 mov     rdx, [rax]
+  .text:00000001800BE961                 mov     [rbp+5C0h+arg_8], rdx
+  .text:00000001800BE968                 cmp     rdx, 0FFFFh
+  .text:00000001800BE96F                 jz      loc_1800BEBA9
+  .text:00000001800BE975                 mov     rcx, cs:g_pVEngineCvar
+  .text:00000001800BE97C                 mov     rax, [rcx]
+  .text:00000001800BE97F                 call    qword ptr [rax+160h]
+  .text:00000001800BE985                 movzx   ecx, byte ptr [rax+10h]
+  .text:00000001800BE989                 shr     cl, 2
+  .text:00000001800BE98C                 test    cl, 1
+  .text:00000001800BE98F                 jz      loc_1800BEBA9
+  .text:00000001800BE995                 mov     rcx, cs:g_pVEngineCvar
+  .text:00000001800BE99C                 mov     rdx, [rbp+5C0h+arg_8]
+  .text:00000001800BE9A3                 mov     rax, [rcx]
+  .text:00000001800BE9A6                 call    qword ptr [rax+160h]
+  .text:00000001800BE9AC                 mov     ecx, [rax+10h]
+  .text:00000001800BE9AF                 shr     rcx, 0Eh
+  .text:00000001800BE9B3                 test    cl, 1
+  .text:00000001800BE9B6                 jz      short loc_1800BEA31
+  .text:00000001800BE9B8                 mov     rcx, [rbx+50h]
+  .text:00000001800BE9BC                 mov     rax, [rcx]
+  .text:00000001800BE9BF                 call    qword ptr [rax+180h]
+  .text:00000001800BE9C5                 test    al, al
+  .text:00000001800BE9C7                 jz      short loc_1800BEA31
+  .text:00000001800BE9C9                 call    sub_180105880
+  .text:00000001800BE9CE                 test    al, al
+  .text:00000001800BE9D0                 jnz     short loc_1800BEA31
+  .text:00000001800BE9D2                 mov     ecx, cs:dword_1808DA3E8
+  .text:00000001800BE9D8                 mov     edx, 3
+  .text:00000001800BE9DD                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:00000001800BE9E3                 test    al, al
+  .text:00000001800BE9E5                 jz      short loc_1800BEA0F
+  .text:00000001800BE9E7                 cmp     [rbp+5C0h+var_248], 0
+  .text:00000001800BE9EE                 lea     r8, aSvCheatCommand; "SV: Cheat command '%s' ignored. Set sv_"...
+  .text:00000001800BE9F5                 mov     ecx, cs:dword_1808DA3E8
+  .text:00000001800BE9FB                 mov     edx, 3
+  .text:00000001800BEA00                 cmovnz  rdi, [rsp+6C0h+var_670]
+  .text:00000001800BEA06                 mov     r9, rdi
+  .text:00000001800BEA09                 call    cs:LoggingSystem_Log
+  .text:00000001800BEA0F                 xor     bl, bl
+  .text:00000001800BEA11                 lea     rcx, [rsp+6C0h+var_680]
+  .text:00000001800BEA16                 call    sub_18002DBA0
+  .text:00000001800BEA1B                 mov     rdi, [rsp+6C0h+arg_0]
+  .text:00000001800BEA23                 movzx   eax, bl
+  .text:00000001800BEA26                 add     rsp, 6B0h
+  .text:00000001800BEA2D                 pop     rsi
+  .text:00000001800BEA2E                 pop     rbx
+  .text:00000001800BEA2F                 pop     rbp
+  .text:00000001800BEA30                 retn
+  .text:00000001800BEA31                 mov     rcx, cs:g_pVEngineCvar
+  .text:00000001800BEA38                 mov     rdx, [rbp+5C0h+arg_8]
+  .text:00000001800BEA3F                 mov     rax, [rcx]
+  .text:00000001800BEA42                 call    qword ptr [rax+160h]
+  .text:00000001800BEA48                 movzx   ecx, byte ptr [rax+10h]
+  .text:00000001800BEA4C                 shr     cl, 6
+  .text:00000001800BEA4F                 test    cl, 1
+  .text:00000001800BEA52                 jz      short loc_1800BEA65
+  .text:00000001800BEA54                 mov     rcx, [rbx+50h]
+  .text:00000001800BEA58                 mov     rax, [rcx]
+  .text:00000001800BEA5B                 call    qword ptr [rax+180h]
+  .text:00000001800BEA61                 test    al, al
+  .text:00000001800BEA63                 jnz     short loc_1800BEA0F
+  .text:00000001800BEA65                 mov     rcx, cs:g_pVEngineCvar
+  .text:00000001800BEA6C                 mov     rdx, [rbp+5C0h+arg_8]
+  .text:00000001800BEA73                 mov     rax, [rcx]
+  .text:00000001800BEA76                 call    qword ptr [rax+160h]
+  .text:00000001800BEA7C                 mov     ecx, [rax+10h]
+  .text:00000001800BEA7F                 shr     rcx, 19h
+  .text:00000001800BEA83                 test    cl, 1
+  .text:00000001800BEA86                 jnz     short loc_1800BEAF8
+  .text:00000001800BEA88                 mov     ecx, cs:dword_1808DA3E8
+  .text:00000001800BEA8E                 mov     edx, 2
+  .text:00000001800BEA93                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:00000001800BEA99                 test    al, al
+  .text:00000001800BEA9B                 jz      loc_1800BEA0F
+  .text:00000001800BEAA1                 mov     rcx, cs:g_pVEngineCvar
+  .text:00000001800BEAA8                 mov     rdx, [rbp+5C0h+arg_8]
+  .text:00000001800BEAAF                 mov     rax, [rcx]
+  .text:00000001800BEAB2                 call    qword ptr [rax+160h]
+  .text:00000001800BEAB8                 movzx   r8d, word ptr [rbx+0A8h]
+  .text:00000001800BEAC0                 mov     rcx, [rax]
+  .text:00000001800BEAC3                 mov     [rsp+6C0h+var_698], rcx
+  .text:00000001800BEAC8                 mov     [rsp+6C0h+var_6A0], r8d
+  .text:00000001800BEACD                 lea     r8, aClientSDTriedT; "Client %s(%d) tried to execute command "...
+  .text:00000001800BEAD4                 mov     rax, [rbx+40h]
+  .text:00000001800BEAD8                 mov     edx, 2
+  .text:00000001800BEADD                 mov     ecx, cs:dword_1808DA3E8
+  .text:00000001800BEAE3                 test    rax, rax
+  .text:00000001800BEAE6                 cmovnz  rdi, rax
+  .text:00000001800BEAEA                 mov     r9, rdi
+  .text:00000001800BEAED                 call    cs:LoggingSystem_Log
+  .text:00000001800BEAF3                 jmp     loc_1800BEA0F
+  .text:00000001800BEAF8                 cmp     dword ptr [rbx+64h], 2
+  .text:00000001800BEAFC                 jge     short loc_1800BEB4A
+  .text:00000001800BEAFE                 mov     ecx, cs:dword_1808DA3E8
+  .text:00000001800BEB04                 mov     edx, 2
+  .text:00000001800BEB09                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:00000001800BEB0F                 test    al, al
+  .text:00000001800BEB11                 jz      loc_1800BEA0F
+  .text:00000001800BEB17                 mov     rcx, cs:g_pVEngineCvar
+  .text:00000001800BEB1E                 mov     rdx, [rbp+5C0h+arg_8]
+  .text:00000001800BEB25                 mov     rax, [rcx]
+  .text:00000001800BEB28                 call    qword ptr [rax+160h]
+  .text:00000001800BEB2E                 movzx   edx, word ptr [rbx+0A8h]
+  .text:00000001800BEB35                 lea     r8, aClientSDTriedT_0; "Client %s(%d) tried to execute command "...
+  .text:00000001800BEB3C                 mov     rcx, [rax]
+  .text:00000001800BEB3F                 mov     [rsp+6C0h+var_698], rcx
+  .text:00000001800BEB44                 mov     [rsp+6C0h+var_6A0], edx
+  .text:00000001800BEB48                 jmp     short loc_1800BEAD4
+  .text:00000001800BEB4A                 mov     eax, [rbx+48h]
+  .text:00000001800BEB4D                 mov     rcx, [rbx+50h]
+  .text:00000001800BEB51                 mov     [rsp+6C0h+var_688], 0
+  .text:00000001800BEB5A                 mov     [rsp+6C0h+var_68C], eax
+  .text:00000001800BEB5E                 mov     rax, [rcx]
+  .text:00000001800BEB61                 call    qword ptr [rax+180h]
+  .text:00000001800BEB67                 test    al, al
+  .text:00000001800BEB69                 jnz     short loc_1800BEB70
+  .text:00000001800BEB6B                 mov     eax, [rbx+6Ch]
+  .text:00000001800BEB6E                 jmp     short loc_1800BEB75
+  .text:00000001800BEB70                 mov     eax, 0FFFFFFFFh
+  .text:00000001800BEB75                 lea     r8, [rsp+6C0h+var_680]
+  .text:00000001800BEB7A                 mov     [rsp+6C0h+var_690], eax
+  .text:00000001800BEB7E                 lea     rdx, [rsp+6C0h+var_690]
+  .text:00000001800BEB83                 lea     rcx, [rbp+5C0h+arg_8]
+  .text:00000001800BEB8A                 ; ConCommandRef_Dispatch
+  .text:00000001800BEB8A                 call    ConCommandRef_Dispatch; ConCommandRef_Dispatch
+  .text:00000001800BEB8F                 cmp     [rsp+6C0h+var_688], 0
+  .text:00000001800BEB95                 jz      short loc_1800BEBEA
+  .text:00000001800BEB97                 lea     rcx, [rsp+6C0h+var_688]
+  .text:00000001800BEB9C                 call    cs:?FreeMemoryBlock@CUtlString@@AEAAXXZ; CUtlString::FreeMemoryBlock(void)
+  .text:00000001800BEBA2                 mov     bl, 1
+  .text:00000001800BEBA4                 jmp     loc_1800BEA11
+  .text:00000001800BEBA9                 mov     eax, [rsi+40h]
+  .text:00000001800BEBAC                 shr     eax, 1
+  .text:00000001800BEBAE                 test    al, 1
+  .text:00000001800BEBB0                 jz      short loc_1800BEBD2
+  .text:00000001800BEBB2                 mov     rcx, cs:g_pSource2Server
+  .text:00000001800BEBB9                 lea     r8, [rsp+6C0h+var_680]
+  .text:00000001800BEBBE                 mov     r9d, [rsi+50h]
+  .text:00000001800BEBC2                 mov     edx, [rbx+48h]
+  .text:00000001800BEBC5                 mov     rax, [rcx]
+  .text:00000001800BEBC8                 call    qword ptr [rax+2B0h]
+  .text:00000001800BEBCE                 test    al, al
+  .text:00000001800BEBD0                 jnz     short loc_1800BEBEA
+  .text:00000001800BEBD2                 mov     rcx, cs:g_pSource2GameClients
+  .text:00000001800BEBD9                 lea     r8, [rsp+6C0h+var_680]
+  .text:00000001800BEBDE                 mov     edx, [rbx+48h]
+  .text:00000001800BEBE1                 mov     rax, [rcx]
+  .text:00000001800BEBE4                 call    qword ptr [rax+88h]
+  .text:00000001800BEBEA                 mov     bl, 1
+  .text:00000001800BEBEC                 jmp     loc_1800BEA11
+procedure: |-
+  __int64 __fastcall CServerSideClient_ExecuteStringCommand(__int64 a1, __int64 a2)
+  {
+    _QWORD *v4; // rcx
+    __int64 v5; // rdx
+    _QWORD *v6; // rdx
+    void *v7; // rdi
+    void *v8; // r8
+    unsigned __int8 v9; // bl
+    const char *v11; // r8
+    __int64 *v12; // rax
+    int v13; // eax
+    __int64 v14; // rcx
+    int v15; // eax
+    int v16; // [rsp+20h] [rbp-E0h]
+    __int64 v17; // [rsp+28h] [rbp-D8h]
+    _DWORD v18[2]; // [rsp+30h] [rbp-D0h] BYREF
+    __int64 v19; // [rsp+38h] [rbp-C8h] BYREF
+    _BYTE v20[16]; // [rsp+40h] [rbp-C0h] BYREF
+    void *v21; // [rsp+50h] [rbp-B0h]
+    int v22; // [rsp+478h] [rbp+378h]
+    void **v23; // [rsp+480h] [rbp+380h]
+    __int64 v24; // [rsp+6D8h] [rbp+5D8h] BYREF
+    char v25; // [rsp+6E0h] [rbp+5E0h] BYREF
+
+    v4 = (_QWORD *)(*(_QWORD *)(a2 + 72) & 0xFFFFFFFFFFFFFFFCuLL);
+    if ( v4[3] > 0xFu )
+      v4 = (_QWORD *)*v4;
+    V_stricmp_fast(v4, "demorestart");
+    sub_180043E40(v20, v5);
+    v6 = (_QWORD *)(*(_QWORD *)(a2 + 72) & 0xFFFFFFFFFFFFFFFCuLL);
+    if ( v6[3] > 0xFu )
+      v6 = (_QWORD *)*v6;
+    if ( !(unsigned __int8)sub_1804068A0(v20, v6, 0) )
+      goto LABEL_18;
+    v7 = &unk_180531D7F;
+    if ( v22 <= 0 )
+      v8 = &unk_180531D7F;
+    else
+      v8 = *v23;
+    v24 = *(_QWORD *)(*(__int64 (__fastcall **)(__int64, char *, void *, _QWORD))(*(_QWORD *)g_pVEngineCvar + 136LL))(
+                       g_pVEngineCvar,
+                       &v25,
+                       v8,
+                       0);
+    if ( v24 == 0xFFFF
+      || (*(_BYTE *)((*(__int64 (__fastcall **)(__int64))(*(_QWORD *)g_pVEngineCvar + 352LL))(g_pVEngineCvar) + 16) & 4) == 0 )
+    {
+      if ( (*(_DWORD *)(a2 + 64) & 2) == 0
+        || !(*(unsigned __int8 (__fastcall **)(__int64, _QWORD, _BYTE *, _QWORD))(*(_QWORD *)g_pSource2Server + 688LL))(
+              g_pSource2Server,
+              *(unsigned int *)(a1 + 72),
+              v20,
+              *(unsigned int *)(a2 + 80)) )
+      {
+        (*(void (__fastcall **)(__int64, _QWORD, _BYTE *))(*(_QWORD *)g_pSource2GameClients + 136LL))(
+          g_pSource2GameClients,
+          *(unsigned int *)(a1 + 72),
+          v20);
+      }
+      goto LABEL_39;
+    }
+    if ( (*(_DWORD *)((*(__int64 (__fastcall **)(__int64, __int64))(*(_QWORD *)g_pVEngineCvar + 352LL))(
+                        g_pVEngineCvar,
+                        v24)
+                    + 16)
+        & 0x4000LL) != 0
+      && (*(unsigned __int8 (__fastcall **)(_QWORD))(**(_QWORD **)(a1 + 80) + 384LL))(*(_QWORD *)(a1 + 80))
+      && !(unsigned __int8)sub_180105880() )
+    {
+      if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_1808DA3E8, 3) )
+      {
+        if ( v22 )
+          v7 = v21;
+        LoggingSystem_Log(
+          (unsigned int)dword_1808DA3E8,
+          3,
+          "SV: Cheat command '%s' ignored. Set sv_cheats to 1 enable cheats.\n",
+          v7);
+      }
+      goto LABEL_18;
+    }
+    if ( (*(_BYTE *)((*(__int64 (__fastcall **)(__int64, __int64))(*(_QWORD *)g_pVEngineCvar + 352LL))(
+                       g_pVEngineCvar,
+                       v24)
+                   + 16)
+        & 0x40) != 0
+      && (*(unsigned __int8 (__fastcall **)(_QWORD))(**(_QWORD **)(a1 + 80) + 384LL))(*(_QWORD *)(a1 + 80)) )
+    {
+      goto LABEL_18;
+    }
+    if ( (*(_DWORD *)((*(__int64 (__fastcall **)(__int64, __int64))(*(_QWORD *)g_pVEngineCvar + 352LL))(
+                        g_pVEngineCvar,
+                        v24)
+                    + 16)
+        & 0x2000000) == 0 )
+    {
+      if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_1808DA3E8, 2) )
+      {
+        v17 = *(_QWORD *)(*(__int64 (__fastcall **)(__int64, __int64))(*(_QWORD *)g_pVEngineCvar + 352LL))(
+                           g_pVEngineCvar,
+                           v24);
+        v16 = *(unsigned __int16 *)(a1 + 168);
+        v11 = "Client %s(%d) tried to execute command \"%s\" but it is not marked FCVAR_CLIENT_CAN_EXECUTE.\n";
+  LABEL_25:
+        if ( *(_QWORD *)(a1 + 64) )
+          v7 = *(void **)(a1 + 64);
+        LoggingSystem_Log((unsigned int)dword_1808DA3E8, 2, v11, v7, v16, v17);
+        goto LABEL_18;
+      }
+      goto LABEL_18;
+    }
+    if ( *(int *)(a1 + 100) >= 2 )
+    {
+      v13 = *(_DWORD *)(a1 + 72);
+      v14 = *(_QWORD *)(a1 + 80);
+      v19 = 0;
+      v18[1] = v13;
+      if ( (*(unsigned __int8 (__fastcall **)(__int64))(*(_QWORD *)v14 + 384LL))(v14) )
+        v15 = -1;
+      else
+        v15 = *(_DWORD *)(a1 + 108);
+      v18[0] = v15;
+      ConCommandRef_Dispatch(&v24, (__int64)v18, (__int64)v20);// ConCommandRef_Dispatch
+      if ( v19 )
+      {
+        CUtlString::FreeMemoryBlock((CUtlString *)&v19);
+        v9 = 1;
+        goto LABEL_19;
+      }
+  LABEL_39:
+      v9 = 1;
+      goto LABEL_19;
+    }
+    if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_1808DA3E8, 2) )
+    {
+      v12 = (__int64 *)(*(__int64 (__fastcall **)(__int64, __int64))(*(_QWORD *)g_pVEngineCvar + 352LL))(
+                         g_pVEngineCvar,
+                         v24);
+      v11 = "Client %s(%d) tried to execute command \"%s\" before being fully connected.\n";
+      v17 = *v12;
+      v16 = *(unsigned __int16 *)(a1 + 168);
+      goto LABEL_25;
+    }
+  LABEL_18:
+    v9 = 0;
+  LABEL_19:
+    sub_18002DBA0(v20);
+    return v9;
+  }
