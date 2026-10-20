@@ -952,18 +952,20 @@ class TestFindOnServerVoiceDataIsPlayingDemoCallee(unittest.IsolatedAsyncioTestC
 
 class TestConvarFilterCallChain(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
-        from ida_preprocessor_scripts import _convar_filter_chain_common
+        from ida_preprocessor_scripts import _convar_filter_chain_common, _llm_helper_chain_common
 
         self.chain = _convar_filter_chain_common
+        # The ConVar module only binds an export label; the walk lives in the shared module.
+        self.walk = _llm_helper_chain_common
 
     async def test_inline_body_does_not_walk_helpers(self):
-        with patch.object(self.chain, "preprocess_common_skill", AsyncMock(return_value=True)) as preprocess:
+        with patch.object(self.walk, "preprocess_common_skill", AsyncMock(return_value=True)) as preprocess:
             self.assertTrue(await self.chain.preprocess_call_chain(session="session"))
         self.assertEqual(preprocess.await_count, 1)
         self.assertNotIn("llm_target_details_loader", preprocess.await_args.kwargs)
 
     async def test_deinlined_body_uses_instruction_loader(self):
-        with patch.object(self.chain, "preprocess_common_skill", AsyncMock(side_effect=[False, True])) as preprocess:
+        with patch.object(self.walk, "preprocess_common_skill", AsyncMock(side_effect=[False, True])) as preprocess:
             self.assertTrue(await self.chain.preprocess_call_chain(session="session"))
         self.assertIs(preprocess.await_args.kwargs["llm_target_details_loader"], self.chain.load_helper_details)
 
@@ -972,11 +974,11 @@ class TestConvarFilterCallChain(unittest.IsolatedAsyncioTestCase):
         helper = {"func_va": "0x2000", "disasm_code": "0x2000 jmp qword ptr [rax+80h]"}
         session = type("Session", (), {"call_tool": AsyncMock(return_value={})})()
         with (
-            patch.object(self.chain, "_load_llm_decompile_target_details_via_mcp", AsyncMock(return_value=[root])),
+            patch.object(self.walk, "_load_llm_decompile_target_details_via_mcp", AsyncMock(return_value=[root])),
             patch.object(
-                self.chain, "parse_mcp_result", return_value={"result": '{"addresses":["0x2000"],"overflow":false}'}
+                self.walk, "parse_mcp_result", return_value={"result": '{"addresses":["0x2000"],"overflow":false}'}
             ),
-            patch.object(self.chain, "_export_function_detail_via_mcp", AsyncMock(return_value=helper)),
+            patch.object(self.walk, "_export_function_detail_via_mcp", AsyncMock(return_value=helper)),
         ):
             self.assertEqual(await self.chain.load_helper_details(session, ["Set"]), [root, helper])
 
@@ -986,16 +988,16 @@ class TestConvarFilterCallChain(unittest.IsolatedAsyncioTestCase):
             with (
                 self.subTest(overflow=overflow),
                 patch.object(
-                    self.chain,
+                    self.walk,
                     "_load_llm_decompile_target_details_via_mcp",
                     AsyncMock(return_value=[{"func_va": "0x1000"}]),
                 ),
                 patch.object(
-                    self.chain,
+                    self.walk,
                     "parse_mcp_result",
                     return_value={"result": '{"addresses":["0x2000"],"overflow":' + str(overflow).lower() + "}"},
                 ),
-                patch.object(self.chain, "_export_function_detail_via_mcp", AsyncMock(return_value=None)),
+                patch.object(self.walk, "_export_function_detail_via_mcp", AsyncMock(return_value=None)),
             ):
                 self.assertEqual(await self.chain.load_helper_details(session, ["Set"]), [])
 
@@ -1388,6 +1390,50 @@ class TestFreeEventHelperChain(unittest.IsolatedAsyncioTestCase):
         entry = {"func_name": "IGameEventManager2_FreeEvent", "vfunc_offset": "0x58"}
         self.assertEqual(finder.validate_dispatch({"found_vcall": [entry, entry]}), [])
         self.assertTrue(finder.validate_dispatch({"found_vcall": [entry, {**entry, "vfunc_offset": "0x60"}]}))
+
+    def test_vfunc_sig_may_bridge_function_boundary(self):
+        finder = _load_module(Path("ida_preprocessor_scripts/find-IGameEventManager2_FreeEvent.py"), "find_FreeEvent")
+        fields = dict(finder.GENERATE_YAML_DESIRED_FIELDS)["IGameEventManager2_FreeEvent"]
+        # The FreeEvent vcall ends FireEvent's inline body, so its unique signature
+        # has to be allowed to run into the following padding.
+        self.assertIn("vfunc_sig_allow_across_function_boundary:true", fields)
+
+
+class TestSharedDeinlinedChainWalk(unittest.IsolatedAsyncioTestCase):
+    """Both target families must reuse one bounded de-inlined chain implementation."""
+
+    def setUp(self):
+        from ida_preprocessor_scripts import _convar_filter_chain_common, _llm_helper_chain_common
+
+        self.convar = _convar_filter_chain_common
+        self.shared = _llm_helper_chain_common
+
+    def test_convar_binding_reuses_the_shared_walk(self):
+        self.assertIsNot(self.convar.load_helper_details, self.shared.load_helper_details)
+        self.assertEqual(self.convar.load_helper_details.__qualname__, self.shared.load_helper_details.__qualname__)
+
+    async def test_convar_binding_forwards_its_own_loader(self):
+        with patch.object(self.shared, "preprocess_common_skill", AsyncMock(side_effect=[False, True])) as preprocess:
+            self.assertTrue(await self.convar.preprocess_call_chain(session="session"))
+        self.assertIs(preprocess.await_args.kwargs["llm_target_details_loader"], self.convar.load_helper_details)
+
+    async def test_helper_export_labels_stay_family_specific(self):
+        for chain, label in ((self.convar, "ConVar_helper"), (self.shared, "GameEvent_helper")):
+            root = {"func_va": "0x1000", "disasm_code": "0x1000 call sub_2000"}
+            helper = {"func_va": "0x2000", "disasm_code": "0x2000 call qword ptr [rax+58h]"}
+            session = type("Session", (), {"call_tool": AsyncMock(return_value={})})()
+            with (
+                self.subTest(label=label),
+                patch.object(self.shared, "_load_llm_decompile_target_details_via_mcp", AsyncMock(return_value=[root])),
+                patch.object(
+                    self.shared,
+                    "parse_mcp_result",
+                    return_value={"result": '{"addresses":["0x2000"],"overflow":false}'},
+                ),
+                patch.object(self.shared, "_export_function_detail_via_mcp", AsyncMock(return_value=helper)) as export,
+            ):
+                self.assertEqual(await chain.load_helper_details(session, ["Root"]), [root, helper])
+            self.assertEqual(export.await_args.args[1], label)
 
 
 if __name__ == "__main__":

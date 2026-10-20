@@ -1,6 +1,8 @@
 """Find the FreeEvent virtual dispatch in FireEvent or its de-inlined helpers."""
 
-from ida_preprocessor_scripts._llm_helper_chain_common import preprocess_call_chain
+from ida_preprocessor_scripts._llm_helper_chain_common import make_helper_loader, preprocess_call_chain
+
+load_helper_details = make_helper_loader("GameEvent_helper")
 
 TARGET_FUNCTION_NAMES = ["IGameEventManager2_FreeEvent"]
 LLM_DECOMPILE = [
@@ -14,7 +16,19 @@ LLM_DECOMPILE = [
 ]
 FUNC_VTABLE_RELATIONS = [("IGameEventManager2_FreeEvent", "IGameEventManager2")]
 GENERATE_YAML_DESIRED_FIELDS = [
-    ("IGameEventManager2_FreeEvent", ["func_name", "vtable_name", "vfunc_sig", "vfunc_offset", "vfunc_index"])
+    (
+        "IGameEventManager2_FreeEvent",
+        [
+            "func_name",
+            "vtable_name",
+            "vfunc_sig",
+            "vfunc_offset",
+            "vfunc_index",
+            # The FreeEvent vcall sits at the end of FireEvent's inline body and
+            # only stays unique when the signature may bridge into padding.
+            "vfunc_sig_allow_across_function_boundary:true",
+        ],
+    )
 ]
 
 
@@ -36,6 +50,7 @@ async def preprocess_skill(
     debug=False,
 ):
     return await preprocess_call_chain(
+        helper_loader=load_helper_details,
         session=session,
         expected_outputs=expected_outputs,
         old_yaml_map=old_yaml_map,
