@@ -12,6 +12,109 @@ import download_depot
 
 
 class TestDownloadDepot(unittest.TestCase):
+    def test_anonymous_mode_ignores_inherited_and_explicit_credentials(self) -> None:
+        for anonymous_env, extra_args in (("1", []), ("0", ["-anonymous"])):
+            with (
+                self.subTest(anonymous_env=anonymous_env),
+                patch.dict(
+                    os.environ,
+                    {
+                        "DEPOTDOWNLOADER_ANONYMOUS": anonymous_env,
+                        "DEPOTDOWNLOADER_STEAM_USERNAME": "inherited-user",
+                        "DEPOTDOWNLOADER_STEAM_PASSWORD": "inherited-password",
+                    },
+                ),
+                patch(
+                    "sys.argv",
+                    [
+                        "download_depot.py",
+                        "-tag",
+                        "14168",
+                        "-username",
+                        "explicit-user",
+                        "-password",
+                        "explicit-password",
+                        "-remember-password",
+                        *extra_args,
+                    ],
+                ),
+            ):
+                args = download_depot.parse_args()
+                self.assertIsNone(args.username)
+                self.assertIsNone(args.password)
+                self.assertFalse(args.remember_password)
+
+    def test_default_mode_keeps_credentials_for_historical_downloads(self) -> None:
+        with (
+            patch.dict(
+                os.environ,
+                {
+                    "DEPOTDOWNLOADER_ANONYMOUS": "0",
+                    "DEPOTDOWNLOADER_STEAM_USERNAME": "historical-user",
+                    "DEPOTDOWNLOADER_STEAM_PASSWORD": "historical-password",
+                },
+            ),
+            patch("sys.argv", ["download_depot.py", "-tag", "14168"]),
+        ):
+            args = download_depot.parse_args()
+        self.assertEqual("historical-user", args.username)
+        self.assertEqual("historical-password", args.password)
+        self.assertTrue(args.remember_password)
+
+    def test_anonymous_download_keeps_locked_manifest_even_on_failure(self) -> None:
+        for fails in (False, True):
+            with self.subTest(fails=fails), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                config = root / "download.yaml"
+                config.write_text(
+                    "downloads:\n"
+                    "  - tag: '14168'\n    manifests: {'2347771': '111'}\n"
+                    "  - tag: '14169'\n    manifests: {'2347771': '222'}\n",
+                    encoding="utf-8",
+                )
+                modules = root / "modules.yaml"
+                modules.write_text("modules:\n  - path_windows: game/bin/win64/SDL3.dll\n", encoding="utf-8")
+                with (
+                    patch.dict(
+                        os.environ,
+                        {
+                            "DEPOTDOWNLOADER_ANONYMOUS": "1",
+                            "DEPOTDOWNLOADER_STEAM_USERNAME": "inherited-user",
+                            "DEPOTDOWNLOADER_STEAM_PASSWORD": "inherited-password",
+                        },
+                    ),
+                    patch(
+                        "sys.argv",
+                        [
+                            "download_depot.py",
+                            "-tag",
+                            "14168",
+                            "-config",
+                            str(config),
+                            "-configyaml",
+                            str(modules),
+                            "-depotdir",
+                            str(root / "depot"),
+                        ],
+                    ),
+                    patch(
+                        "depot_util.subprocess.run",
+                        side_effect=subprocess.CalledProcessError(1, ["DepotDownloader"]) if fails else None,
+                    ) as run,
+                    patch("depot_util.time.sleep"),
+                    patch("builtins.print") as output,
+                ):
+                    self.assertEqual(1 if fails else 0, download_depot.main())
+                self.assertEqual(depot_util.DEFAULT_DEPOTDOWNLOADER_ATTEMPTS if fails else 1, run.call_count)
+                for call in run.call_args_list:
+                    command = call.args[0]
+                    self.assertEqual("111", command[command.index("-manifest") + 1])
+                    self.assertEqual(str(root / "depot" / "14168"), command[command.index("-dir") + 1])
+                    for flag in ("-username", "-password", "-remember-password"):
+                        self.assertNotIn(flag, command)
+                if fails:
+                    self.assertTrue(any("locked manifest" in str(call) for call in output.call_args_list))
+
     def _write_yaml(self, content: str) -> str:
         with tempfile.NamedTemporaryFile("w", encoding="utf-8", suffix=".yaml", delete=False) as tmp:
             tmp.write(content)
@@ -291,6 +394,7 @@ downloads:
             depotdir="cs2_depot",
             app="730",
             os="all-platform",
+            anonymous=False,
             username=None,
             password=None,
             remember_password=False,
@@ -323,6 +427,7 @@ downloads:
             depotdir="cs2_depot",
             app="730",
             os="all-platform",
+            anonymous=False,
             username=None,
             password=None,
             remember_password=False,

@@ -11,6 +11,11 @@ on:
         description: Exact source commit containing the analysis config
         required: true
         type: string
+      depot_anonymous:
+        description: Use anonymous Steam access for current-public manifests; never substitute newer manifests
+        required: false
+        default: false
+        type: boolean
     outputs:
       generation:
         description: Immutable published IDB cache generation
@@ -47,8 +52,9 @@ jobs:
       GAMEVER: ${{ inputs.gamever }}
       SOURCE_SHA: ${{ inputs.source_sha }}
       CI_CACHE_ROOT: ${{ github.workspace }}/.ci-cache/store
-      DEPOTDOWNLOADER_STEAM_USERNAME: ${{ secrets.DEPOTDOWNLOADER_STEAM_USERNAME }}
-      DEPOTDOWNLOADER_STEAM_PASSWORD: ${{ secrets.DEPOTDOWNLOADER_STEAM_PASSWORD }}
+      DEPOTDOWNLOADER_ANONYMOUS: ${{ inputs.depot_anonymous && '1' || '0' }}
+      DEPOTDOWNLOADER_STEAM_USERNAME: ${{ !inputs.depot_anonymous && secrets.DEPOTDOWNLOADER_STEAM_USERNAME || '' }}
+      DEPOTDOWNLOADER_STEAM_PASSWORD: ${{ !inputs.depot_anonymous && secrets.DEPOTDOWNLOADER_STEAM_PASSWORD || '' }}
       IDB_WARMUP_MAX_CONCURRENCY: ${{ vars.IDB_WARMUP_MAX_CONCURRENCY }}
       IDB_WARMUP_MAX_MEMORY_MIB: ${{ vars.IDB_WARMUP_MAX_MEMORY_MIB }}
       CI_KIND: warmup

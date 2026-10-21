@@ -66,6 +66,12 @@ def parse_args() -> argparse.Namespace:
         help=f"DepotDownloader -os value (default: {DEFAULT_OS})",
     )
     parser.add_argument(
+        "-anonymous",
+        action="store_true",
+        default=os.getenv("DEPOTDOWNLOADER_ANONYMOUS") == "1",
+        help="Ignore Steam credentials (also enabled by DEPOTDOWNLOADER_ANONYMOUS=1); keep exact manifests",
+    )
+    parser.add_argument(
         "-username",
         default=os.getenv("DEPOTDOWNLOADER_STEAM_USERNAME"),
         help="Steam username for restricted content (default: DEPOTDOWNLOADER_STEAM_USERNAME)",
@@ -81,7 +87,11 @@ def parse_args() -> argparse.Namespace:
         help="Remember password for subsequent logins",
     )
     args = parser.parse_args()
-    if not args.remember_password and args.username and args.password:
+    if args.anonymous:
+        args.username = None
+        args.password = None
+        args.remember_password = False
+    elif not args.remember_password and args.username and args.password:
         args.remember_password = True
     return args
 
@@ -250,6 +260,11 @@ def main() -> int:
         return 1
     except subprocess.CalledProcessError as exc:
         print(f"Error: DepotDownloader failed with exit code {exc.returncode}")
+        if args.anonymous:
+            print(
+                "Anonymous download uses locked manifests only. If a locked manifest is no longer public, "
+                "use the authenticated historical-version path; no credentials or newer manifests were substituted."
+            )
         return exc.returncode or 1
 
     print("All manifest downloads completed successfully.")
