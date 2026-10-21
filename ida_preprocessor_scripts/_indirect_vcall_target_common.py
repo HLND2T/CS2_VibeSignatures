@@ -38,7 +38,7 @@ try:
 except ImportError:
     yaml = None
 
-from ida_analyze_util import parse_mcp_result, write_func_yaml
+from ida_analyze_util import normalize_output_name_map, parse_mcp_result, write_func_yaml
 
 
 _SUPPORTED_FIELDS = {
@@ -361,6 +361,7 @@ async def preprocess_indirect_vcall_target_skill(
     resolve_load_then_branch=False,
     expected_target_count=1,
     debug=False,
+    output_name_map=None,
 ):
     """Scan ``source_yaml_stem`` for its unique indirect vcall and write a slot-only vfunc YAML.
 
@@ -379,6 +380,10 @@ async def preprocess_indirect_vcall_target_skill(
     """
     if yaml is None:
         _debug(debug, "PyYAML is required")
+        return False
+
+    output_name_map = normalize_output_name_map(output_name_map, {target_name: "func"}, debug=debug)
+    if output_name_map is None:
         return False
 
     if expected_target_count != 1:
@@ -428,7 +433,7 @@ async def preprocess_indirect_vcall_target_skill(
 
     target = targets[0]
     available = {
-        "func_name": target_name,
+        "func_name": output_name_map.get(target_name, target_name),
         "vtable_name": vtable_name,
         "vfunc_offset": target["vfunc_offset"],
         "vfunc_index": target["vfunc_index"],

@@ -33,6 +33,7 @@ from cpp_tests_util import (
     format_vtable_compare_report,
     map_target_triple_to_platform,
     pointer_size_from_target_triple,
+    validate_interface_vtable_numvfunc,
 )
 from analysis_config import AnalysisConfigError, resolve_analysis_config
 from gamesymbol_store import SymbolStore, SymbolStoreError, open_snapshot_store
@@ -351,6 +352,15 @@ def compile_and_compare(
     should_parse_vtable = _contains_fdump_vtable_layouts(additional_options)
     should_parse_record = _contains_fdump_record_layouts(additional_options)
 
+    try:
+        interface_vtable_numvfunc = validate_interface_vtable_numvfunc(test_item.get("interface_vtable_numvfunc"))
+        if interface_vtable_numvfunc is not None and not should_parse_vtable:
+            raise ValueError("interface_vtable_numvfunc requires fdump-vtable-layouts")
+        if interface_vtable_numvfunc is not None and _to_bool(test_item.get("allow_vtable_size_mismatch")):
+            raise ValueError("interface_vtable_numvfunc cannot be combined with allow_vtable_size_mismatch")
+    except ValueError as exc:
+        return {"status": "invalid", "message": str(exc)}
+
     with tempfile.TemporaryDirectory(prefix=f"cpp_test_{test_name}_") as temp_dir:
         temp_dir_path = Path(temp_dir)
         object_file = temp_dir_path / f"{test_name}.o"
@@ -425,6 +435,7 @@ def compile_and_compare(
                             reference_vtable_owners=reference_vtable_owners,
                             exclude_reference_vtables=exclude_reference_vtables,
                             allow_vtable_size_mismatch=allow_vtable_size_mismatch,
+                            interface_vtable_numvfunc=interface_vtable_numvfunc,
                         )
                     )
                 else:
@@ -442,6 +453,7 @@ def compile_and_compare(
                                 reference_vtable_owners=reference_vtable_owners,
                                 exclude_reference_vtables=exclude_reference_vtables,
                                 allow_vtable_size_mismatch=allow_vtable_size_mismatch,
+                                interface_vtable_numvfunc=interface_vtable_numvfunc,
                             )
                         )
             if should_parse_record:

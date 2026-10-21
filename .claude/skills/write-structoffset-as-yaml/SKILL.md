@@ -28,6 +28,7 @@ Before using this skill, you should have:
 | Parameter | Description | Example |
 |-----------|-------------|---------|
 | `size` | Size of the member in bytes (use `None` to omit) | `8` |
+| `artifact_name` | Stable caller-provided filename stem; defaults to `<struct_name>_<member_name>`. Honor the finder's `OUTPUT_NAME_MAP` key even when the member name was corrected. | `CEntitySystem_m_bEnableAutoDeletionExecution` |
 | `offset_sig` | Unique byte signature locating an instruction that contains the offset (use `None` to omit) | `8B 93 E0 04 00 00` |
 | `offset_sig_disp` | Byte displacement from signature start to the target instruction. `0` or `None` means signature starts at the target instruction. Non-zero means backward expansion was used by `/generate-signature-for-structoffset`. (use `None` to omit) | `8` |
 
@@ -42,6 +43,7 @@ import yaml
 # === REQUIRED: Replace these values ===
 struct_name = "<struct_name>"           # e.g., "CBaseEntity"
 member_name = "<member_name>"           # e.g., "m_skeletonInstance"
+artifact_name = f"{struct_name}_{member_name}"  # Override with the expected legacy artifact stem if different.
 offset = <offset>                       # e.g., 0x278
 # ======================================
 
@@ -76,7 +78,7 @@ if offset_sig is not None:
 if offset_sig_disp is not None and offset_sig_disp > 0:
     data['offset_sig_disp'] = offset_sig_disp
 
-yaml_path = os.path.join(dir_path, f"{struct_name}_{member_name}.{platform}.yaml")
+yaml_path = os.path.join(dir_path, f"{artifact_name}.{platform}.yaml")
 with open(yaml_path, 'w', encoding='utf-8') as f:
     yaml.dump(data, f, default_flow_style=False, sort_keys=False, allow_unicode=True)
 print(f"Written to: {yaml_path}")
@@ -86,7 +88,7 @@ print(f"Written to: {yaml_path}")
 ## Output File Naming Convention
 
 The output YAML filename follows this pattern:
-- `<struct_name>_<member_name>.<platform>.yaml`
+- `<artifact_name>.<platform>.yaml` (defaults to `<struct_name>_<member_name>`)
 
 Examples:
 - `server.dll` → `CBaseEntity_m_skeletonInstance.windows.yaml`

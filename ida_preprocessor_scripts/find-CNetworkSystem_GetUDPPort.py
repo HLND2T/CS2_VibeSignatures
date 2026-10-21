@@ -4,6 +4,11 @@
 from ida_analyze_util import preprocess_common_skill
 
 INHERIT_VFUNCS = [("CNetworkSystem_GetUDPPort", "CNetworkSystem", "../engine/INetworkSystem_GetUDPPort", True)]
+# Artifact keys stay stable; emitted names reflect the verified SDK semantics.
+OUTPUT_NAME_MAP = {
+    "CNetworkSystem_GetUDPPort": "CNetworkSystem_GetUDPPortWithFallback",
+}
+
 GENERATE_YAML_DESIRED_FIELDS = [
     (
         "CNetworkSystem_GetUDPPort",
@@ -26,4 +31,5 @@ async def preprocess_skill(
         inherit_vfuncs=INHERIT_VFUNCS,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
+        output_name_map=OUTPUT_NAME_MAP,
     )

@@ -126,6 +126,7 @@ UNIT_MODULES = frozenset(
         "test_process_api",
         "test_posix_memory",
         "test_posix_mcp_cleanup",
+        "test_preprocessor_output_names",
         "test_process_reporter",
         "test_process_reporter_factory",
         "test_process_reporter_redis",

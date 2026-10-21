@@ -113,6 +113,11 @@ FUNC_VTABLE_RELATIONS = [
     ("INetworkServerService_SetFinalSimulationTickThisFrame", "CNetworkServerService_vtable"),
 ]
 
+# Artifact keys stay stable; emitted names reflect the verified SDK semantics.
+OUTPUT_NAME_MAP = {
+    "INetworkServerService_SetFinalSimulationTickThisFrame": "INetworkServerService_GetServerNetworkAddress",
+}
+
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
     # Slim Pattern C: not a downstream predecessor, so func_va/rva/size omitted.
@@ -179,4 +184,5 @@ async def preprocess_skill(
         llm_config=llm_config,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
+        output_name_map=OUTPUT_NAME_MAP,
     )

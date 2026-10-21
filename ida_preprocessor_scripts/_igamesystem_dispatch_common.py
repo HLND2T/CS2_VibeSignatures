@@ -9,7 +9,7 @@ try:
 except ImportError:
     yaml = None
 
-from ida_analyze_util import parse_mcp_result, write_func_yaml
+from ida_analyze_util import normalize_output_name_map, parse_mcp_result, write_func_yaml
 
 
 def _read_yaml(path):
@@ -281,6 +281,7 @@ async def preprocess_igamesystem_dispatch_skill(
     multi_order,
     expected_dispatch_count=None,
     debug=False,
+    output_name_map=None,
 ):
     """Common preprocess routine for dispatch-like IGameSystem skills.
 
@@ -349,6 +350,11 @@ async def preprocess_igamesystem_dispatch_skill(
         )
 
     target_count = len(normalized_specs)
+    output_name_map = normalize_output_name_map(
+        output_name_map, {spec["target_name"]: "func" for spec in normalized_specs}, debug=debug
+    )
+    if output_name_map is None:
+        return False
     if has_dispatch_rank and any(spec["dispatch_rank"] is None for spec in normalized_specs):
         if debug:
             print("    Preprocess: dispatch_rank must be provided for all target_specs")
@@ -575,7 +581,7 @@ async def preprocess_igamesystem_dispatch_skill(
             return False
 
         payload = {
-            "func_name": target_name,
+            "func_name": output_name_map.get(target_name, target_name),
             "func_va": str(func_va_hex),
             "func_rva": hex(func_va_int - image_base),
             "func_size": str(func_size_hex),

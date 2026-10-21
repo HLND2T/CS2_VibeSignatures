@@ -27,6 +27,11 @@ FUNC_VTABLE_RELATIONS = [
     ("INetworkGameServer_PreWorldUpdate", "INetworkGameServer"),
 ]
 
+# Artifact keys stay stable; emitted names reflect the verified SDK semantics.
+OUTPUT_NAME_MAP = {
+    "INetworkGameServer_PreWorldUpdate": "INetworkGameServer_PrepareSendClientUpdatesMainThread",
+}
+
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
     (
@@ -67,4 +72,5 @@ async def preprocess_skill(
         llm_config=llm_config,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
+        output_name_map=OUTPUT_NAME_MAP,
     )

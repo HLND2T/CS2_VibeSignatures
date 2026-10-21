@@ -6,19 +6,24 @@ from ida_preprocessor_scripts._igamesystem_dispatch_common import (
 )
 
 SOURCE_YAML_STEM = "CLoopModeGame_OnServerBeginAsyncPostTickWork"
-# 14168 inserted a new begin-side GameSystem event, OnServerPreBeginAsyncPostTickWork,
-# at vtable idx 41 -- pushing the original OnServerBeginAsyncPostTickWork to idx 42
-# (the same insertion shifted End Pre/Post 42/43 -> 43/44). The source now dispatches
-# both events; MULTI_ORDER="index" maps the lower-indexed slot (Pre) to the first
-# target, mirroring find-IGameSystem_OnServerPreEndAsyncPostTickWork-AND-...
+# The dispatcher invokes OnServerBeginAsyncPostTickWork followed by
+# OnServerGameBeginAsyncPostTickWork. Legacy artifact keys retain the earlier
+# Pre/Begin labels; MULTI_ORDER="index" and OUTPUT_NAME_MAP preserve both
+# identities without colliding when the lower slot's canonical name is Begin.
+# Artifact keys stay stable; emitted names reflect the verified SDK semantics.
+OUTPUT_NAME_MAP = {
+    "IGameSystem_OnServerPreBeginAsyncPostTickWork": "IGameSystem_OnServerBeginAsyncPostTickWork",
+    "IGameSystem_OnServerBeginAsyncPostTickWork": "IGameSystem_OnServerGameBeginAsyncPostTickWork",
+}
+
 TARGET_SPECS = [
     {
         "target_name": "IGameSystem_OnServerPreBeginAsyncPostTickWork",
-        "rename_to": "GameSystem_OnServerPreBeginAsyncPostTickWork",
+        "rename_to": "GameSystem_OnServerBeginAsyncPostTickWork",
     },
     {
         "target_name": "IGameSystem_OnServerBeginAsyncPostTickWork",
-        "rename_to": "GameSystem_OnServerBeginAsyncPostTickWork",
+        "rename_to": "GameSystem_OnServerGameBeginAsyncPostTickWork",
     },
 ]
 VIA_INTERNAL_WRAPPER = False
@@ -50,4 +55,5 @@ async def preprocess_skill(
         internal_rename_to=INTERNAL_RENAME_TO,
         multi_order=MULTI_ORDER,
         debug=debug,
+        output_name_map=OUTPUT_NAME_MAP,
     )

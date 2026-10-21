@@ -1172,7 +1172,27 @@ def _build_ordered_yaml_payload(data, ordered_keys):
     return payload
 
 
-def _assemble_symbol_payload(symbol_name, target_kind, candidate_data, desired_fields_map, debug=False):
+def normalize_output_name_map(output_name_map, target_kind_map, debug=False):
+    """Validate explicit semantic names without changing artifact/dependency keys."""
+    if output_name_map is None:
+        return {}
+    if not isinstance(output_name_map, dict):
+        return None
+    for key, name in output_name_map.items():
+        if (
+            target_kind_map.get(key) not in {"func", "struct_member"}
+            or not isinstance(name, str)
+            or not re.fullmatch(r"[A-Za-z_][A-Za-z_0-9]*", name)
+        ):
+            if debug:
+                print(f"    Preprocess: invalid output name mapping: {key!r} -> {name!r}")
+            return None
+    return dict(output_name_map)
+
+
+def _assemble_symbol_payload(
+    symbol_name, target_kind, candidate_data, desired_fields_map, debug=False, output_name=None
+):
     desired_field_spec = desired_fields_map.get(symbol_name)
     if desired_field_spec is None:
         if debug:
@@ -1180,6 +1200,18 @@ def _assemble_symbol_payload(symbol_name, target_kind, candidate_data, desired_f
         return None
     desired_fields = desired_field_spec["desired_output_fields"]
     optional_fields = desired_field_spec.get("optional_fields") or set()
+
+    if output_name is not None:
+        candidate_data = dict(candidate_data)
+        if target_kind == "func":
+            candidate_data["func_name"] = output_name
+        elif target_kind == "struct_member":
+            prefix = str(candidate_data.get("struct_name", "")) + "_"
+            if prefix == "_" or not output_name.startswith(prefix) or len(output_name) == len(prefix):
+                if debug:
+                    print(f"    Preprocess: output name {output_name} does not belong to {prefix}")
+                return None
+            candidate_data["member_name"] = output_name[len(prefix) :]
 
     payload = {}
     for field_name in desired_fields:
@@ -8344,6 +8376,7 @@ async def preprocess_common_skill(
     canonical_vtable_symbols=None,
     llm_result_validator=None,
     llm_target_details_loader=None,
+    output_name_map=None,
 ):
     """Reusable preprocess_skill implementation for func/vfunc, gv, patch, struct-member, vtable, inherit-vfunc, func-xref, and vtable-relation targets.
 
@@ -8401,6 +8434,10 @@ async def preprocess_common_skill(
     - ``generate_yaml_desired_fields``: required list of
       ``(symbol_name, desired_field_names)`` tuples that defines the exact YAML
       payload fields to emit per symbol.
+    - ``output_name_map``: optional artifact-key to semantic-name mapping for
+      functions and struct members. File paths, lookup keys, and LLM result
+      identifiers remain artifact keys. Only emitted names and IDA function
+      renames use the mapped names. Struct names must remain unchanged.
 
     Args:
         session: Active MCP ClientSession.
@@ -8586,6 +8623,10 @@ async def preprocess_common_skill(
         debug=debug,
     )
     if target_kind_map is None:
+        return False
+
+    output_name_map = normalize_output_name_map(output_name_map, target_kind_map, debug=debug)
+    if output_name_map is None:
         return False
 
     for symbol_name, desired_field_spec in desired_fields_map.items():
@@ -8796,11 +8837,12 @@ async def preprocess_common_skill(
                 func_data,
                 desired_fields_map,
                 debug=debug,
+                output_name=output_name_map.get(func_name),
             )
             if payload is None:
                 return False
             write_func_yaml(target_output, payload)
-            pending_func_renames.append((func_data.get("func_va"), func_name))
+            pending_func_renames.append((func_data.get("func_va"), payload.get("func_name", func_name)))
             if debug:
                 print(f"    Preprocess: generated {func_name}.{platform}.yaml")
 
@@ -8865,7 +8907,7 @@ async def preprocess_common_skill(
     # disk. Concretely this lets find-CEntitySystem_Init-decompiles keep
     # CEntitySystem_m_EntityMaterialAttributes as its inlined fallback target
     # while tolerating the de-inlined build where the fallback pair wrote it first.
-    def _target_output_already_satisfied(target_output):
+    def _target_output_already_satisfied(target_output, name):
         if not target_output or not os.path.exists(target_output):
             return False
         try:
@@ -8873,12 +8915,22 @@ async def preprocess_common_skill(
                 existing_payload = yaml.safe_load(handle)
         except Exception:
             return False
-        return isinstance(existing_payload, dict) and bool(existing_payload)
+        if not isinstance(existing_payload, dict) or not existing_payload:
+            return False
+        output_name = output_name_map.get(name)
+        if output_name is not None:
+            existing_name = existing_payload.get("func_name")
+            if target_kind_map.get(name) == "struct_member":
+                existing_name = _build_struct_member_symbol_name(
+                    existing_payload.get("struct_name"), existing_payload.get("member_name")
+                )
+            return existing_name == output_name
+        return True
 
     def _drop_satisfied_targets(names, matched_outputs, kind_label):
         remaining = []
         for name in names:
-            if _target_output_already_satisfied(matched_outputs.get(name)):
+            if _target_output_already_satisfied(matched_outputs.get(name), name):
                 if debug:
                     print(f"    Preprocess: skipping {kind_label} target {name} (valid output already exists)")
                 continue
@@ -9088,6 +9140,19 @@ async def preprocess_common_skill(
                 llm_symbol_name_list,
                 llm_decompile_specs_map,
             )
+            prompt_template = llm_request["prompt_template"]
+            semantic_names = [
+                f"- {name}: {output_name_map[name]}" for name in llm_symbol_name_list if name in output_name_map
+            ]
+            if semantic_names:
+                prompt_template += (
+                    "\n\nVerified semantic names for legacy artifact identifiers:\n"
+                    + "\n".join(semantic_names)
+                    + "\nUse these semantics to identify the operation. Keep the requested legacy "
+                    "identifiers in result fields (for struct members, the legacy struct/member pair) "
+                    "so dependency matching remains exact. Historical reference labels are aliases, "
+                    "not evidence of a different operation. The generator emits the verified names.\n"
+                )
             async with keepalive_worker_during(session, debug=debug, activity="llm_decompile"):
                 return await call_llm_decompile(
                     model=llm_request["model"],
@@ -9102,7 +9167,7 @@ async def preprocess_common_skill(
                     procedure_for_reference=llm_request["procedure_for_reference"],
                     reference_blocks=reference_blocks,
                     target_blocks=target_blocks,
-                    prompt_template=llm_request["prompt_template"],
+                    prompt_template=prompt_template,
                     platform=platform,
                     new_binary_dir=new_binary_dir,
                     temperature=llm_request.get("temperature"),
@@ -9459,11 +9524,12 @@ async def preprocess_common_skill(
             func_data,
             desired_fields_map,
             debug=debug,
+            output_name=output_name_map.get(func_name),
         )
         if payload is None:
             return False
         write_func_yaml(target_output, payload)
-        pending_func_renames.append((func_data.get("func_va"), func_name))
+        pending_func_renames.append((func_data.get("func_va"), payload.get("func_name", func_name)))
         if debug:
             print(f"    Preprocess: generated {func_name}.{platform}.yaml")
 
@@ -9648,7 +9714,16 @@ async def preprocess_common_skill(
                 entry_member_name = str(entry.get("member_name", "")).strip()
                 resolved_struct_name = entry_struct_name
                 resolved_member_name = entry_member_name
-                if expected_struct_name and expected_member_name:
+                if struct_member_name in output_name_map:
+                    # LLM identifiers/reference examples may still use the
+                    # legacy artifact name. Accept only that identity or its
+                    # explicit canonical name, never an unrelated member.
+                    entry_symbol_name = _build_struct_member_symbol_name(entry_struct_name, entry_member_name)
+                    if entry_symbol_name not in {struct_member_name, output_name_map[struct_member_name]} or (
+                        expected_struct_name and entry_struct_name != expected_struct_name
+                    ):
+                        continue
+                elif expected_struct_name and expected_member_name:
                     resolved_names = _resolve_struct_member_entry_names(
                         expected_struct_name,
                         expected_member_name,
@@ -9719,6 +9794,7 @@ async def preprocess_common_skill(
             struct_data,
             desired_fields_map,
             debug=debug,
+            output_name=output_name_map.get(struct_member_name),
         )
         if payload is None:
             return False

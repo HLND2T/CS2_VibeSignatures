@@ -1153,6 +1153,13 @@ def _sorted_struct_members(
     )
 
 
+def validate_interface_vtable_numvfunc(value: Any) -> Optional[int]:
+    """An interface boundary must be explicit, positive, and independent of compiler output."""
+    if value is not None and (type(value) is not int or value <= 0):
+        raise ValueError("interface_vtable_numvfunc must be a positive integer")
+    return value
+
+
 def compare_compiler_vtable_with_yaml(
     *,
     class_name: str,
@@ -1166,12 +1173,16 @@ def compare_compiler_vtable_with_yaml(
     exclude_reference_vtables: Sequence[str] = (),
     allow_vtable_size_mismatch: bool = False,
     merge_reference_modules: bool = True,
+    interface_vtable_numvfunc: Optional[int] = None,
 ) -> Dict[str, Any]:
     """
     Compare compiler vtable layout dump against YAML references.
 
     Returns a structured report containing differences.
     """
+    interface_vtable_numvfunc = validate_interface_vtable_numvfunc(interface_vtable_numvfunc)
+    if interface_vtable_numvfunc is not None and allow_vtable_size_mismatch:
+        raise ValueError("interface_vtable_numvfunc cannot be combined with allow_vtable_size_mismatch")
     parsed_layouts = parse_vftable_layouts(compiler_output)
     compiler_section = parsed_layouts.get(class_name)
     if merge_reference_modules:
@@ -1242,6 +1253,13 @@ def compare_compiler_vtable_with_yaml(
     compiler_missing = compiler_section is None
     if compiler_missing:
         report["notes"].append(f"No vtable section for class '{class_name}' found in compiler output.")
+        if interface_vtable_numvfunc is not None:
+            report["differences"].append(
+                {
+                    "type": "compiler_layout_missing",
+                    "message": "Interface comparison requires a compiler vtable layout.",
+                }
+            )
     else:
         compiler_entry_count = compiler_section["entry_count"]
         declared_entries = compiler_section["declared_entries"]
@@ -1275,6 +1293,13 @@ def compare_compiler_vtable_with_yaml(
 
     if reference is None:
         report["notes"].append(f"No matching reference YAML found for modules: {', '.join(reference_modules)}")
+        if interface_vtable_numvfunc is not None:
+            report["differences"].append(
+                {
+                    "type": "reference_interface_size_missing",
+                    "message": "Interface comparison requires a concrete reference.",
+                }
+            )
         return report
 
     expected_size = reference.get("vtable_size")
@@ -1285,11 +1310,50 @@ def compare_compiler_vtable_with_yaml(
     report["reference_functions_count"] = len(reference_functions)
     report["reference_functions_by_index"] = reference_functions
 
+    if interface_vtable_numvfunc is not None:
+        # A concrete implementation may append virtuals that are not part of its
+        # SDK interface. Keep its binary metadata intact and validate the interface
+        # against an independently verified boundary, never the compiler's count.
+        interface_size = interface_vtable_numvfunc * pointer_size
+        if expected_size is None or expected_numvfunc is None:
+            report["differences"].append(
+                {
+                    "type": "reference_interface_size_missing",
+                    "message": "Interface comparison requires the concrete reference size and entry count.",
+                }
+            )
+        elif expected_size != expected_numvfunc * pointer_size:
+            report["differences"].append(
+                {
+                    "type": "reference_vtable_metadata_inconsistent",
+                    "message": "Concrete reference size does not match its entry count and pointer size.",
+                }
+            )
+        elif expected_numvfunc < interface_vtable_numvfunc:
+            report["differences"].append(
+                {
+                    "type": "reference_interface_size_mismatch",
+                    "message": (
+                        f"Concrete reference has {expected_numvfunc} entries, fewer than the verified "
+                        f"interface boundary {interface_vtable_numvfunc}."
+                    ),
+                }
+            )
+        report["notes"].append(
+            f"Verified interface boundary: {interface_vtable_numvfunc} entries ({hex(interface_size)} bytes); "
+            f"concrete reference: {expected_numvfunc} entries. Known function indices remain exact."
+        )
+        expected_size = interface_size
+        expected_numvfunc = interface_vtable_numvfunc
+    report["expected_vtable_size"] = expected_size
+    report["expected_vtable_numvfunc"] = expected_numvfunc
+
     if compiler_missing:
         return report
 
     actual_size = compiler_entry_count * pointer_size if compiler_section["layout_complete"] else None
     report["compiler_vtable_size"] = actual_size
+    expected_label = "interface" if interface_vtable_numvfunc is not None else "YAML"
 
     if (
         actual_size is not None
@@ -1301,7 +1365,7 @@ def compare_compiler_vtable_with_yaml(
             {
                 "type": "vtable_size_mismatch",
                 "message": (
-                    f"vtable_size mismatch: YAML={hex(expected_size)} "
+                    f"vtable_size mismatch: {expected_label}={hex(expected_size)} "
                     f"vs compiler={hex(actual_size)} (entry_count={compiler_entry_count}, "
                     f"ptr_size={pointer_size})."
                 ),
@@ -1317,7 +1381,9 @@ def compare_compiler_vtable_with_yaml(
         report["differences"].append(
             {
                 "type": "vtable_numvfunc_mismatch",
-                "message": (f"vtable_numvfunc mismatch: YAML={expected_numvfunc} vs compiler={compiler_entry_count}."),
+                "message": (
+                    f"vtable_numvfunc mismatch: {expected_label}={expected_numvfunc} vs compiler={compiler_entry_count}."
+                ),
             }
         )
 

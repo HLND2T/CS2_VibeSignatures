@@ -24,6 +24,10 @@ Before using this skill, you should have:
 
 ## Method
 
+An optional `artifact_name` selects the stable filename stem independently of
+`func_name`. Honor the corresponding preprocessor's `OUTPUT_NAME_MAP` when
+present: use its key for `artifact_name` and value for the semantic `func_name`.
+
 ```python
 mcp__ida-pro-mcp__py_eval code="""
 import idaapi
@@ -32,6 +36,7 @@ import yaml
 
 # === REQUIRED: Replace these values ===
 func_name = "<func_name>"           # e.g., "CBaseModelEntity_SetModel"
+artifact_name = func_name           # Override with the caller's expected artifact stem if different.
 func_addr = <func_addr>             # e.g., 0x180A8CA10
 func_sig = "<func_sig>"             # e.g., "41 B8 80 00 00 00"
 # ======================================
@@ -61,7 +66,7 @@ data = {
     'func_sig': func_sig,
 }
 
-yaml_path = os.path.join(dir_path, f"{func_name}.{platform}.yaml")
+yaml_path = os.path.join(dir_path, f"{artifact_name}.{platform}.yaml")
 with open(yaml_path, 'w', encoding='utf-8') as f:
     yaml.dump(data, f, default_flow_style=False, sort_keys=False)
 print(f"Written to: {yaml_path}")
@@ -71,7 +76,7 @@ print(f"Written to: {yaml_path}")
 ## Output File Naming Convention
 
 The output YAML filename follows this pattern:
-- `<func_name>.<platform>.yaml`
+- `<artifact_name>.<platform>.yaml` (defaults to `func_name`)
 
 Examples:
 - `server.dll` → `CBaseModelEntity_SetModel.windows.yaml`

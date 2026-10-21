@@ -51,6 +51,12 @@ FUNC_VTABLE_RELATIONS = [
     ("CEntityInstance_GetChangeAccessorPathInfo_2", "CEntityInstance"),
 ]
 
+# Artifact keys stay stable; emitted names reflect the verified SDK semantics.
+OUTPUT_NAME_MAP = {
+    "CEntityInstance_AddChangeAccessorPathPolymorphic": "CEntityInstance_NetworkStateChangedBranch",
+    "CEntityInstance_AssignChangeAccessorPathIdsPolymorphic": "CEntityInstance_NetworkStateChangedRemove",
+}
+
 GENERATE_YAML_DESIRED_FIELDS = [
     (
         "CEntityInstance_AddChangeAccessorPathPolymorphic",
@@ -113,4 +119,5 @@ async def preprocess_skill(
         llm_config=llm_config,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
+        output_name_map=OUTPUT_NAME_MAP,
     )

@@ -99,6 +99,17 @@ Script location: `ida_preprocessor_scripts/find-{skill_name}.py`
 
 The filename MUST match the `name` field in `configs/<GAMEVER>.yaml` skill entry.
 
+When correcting a symbol's semantic name, preserve existing artifact keys and
+dependency filenames. Declare `OUTPUT_NAME_MAP = {"Legacy_ArtifactKey":
+"Class_VerifiedMethod"}` and pass `output_name_map=OUTPUT_NAME_MAP` to the
+shared preprocessor. For members, the mapped value is the full
+`Struct_VerifiedMember` name. Lookup targets, desired-fields keys, and LLM result
+identifiers stay legacy keys; the helper emits corrected names after signature
+reuse or fresh analysis. Mappings are direct, never chained. Agent fallback
+writers must use the legacy key as `artifact_name` and the verified semantic
+name as `func_name` / `member_name`. Update both inline/noinline finders when
+they produce the same artifact. See `docs/cpp-abi-reference-validation.md`.
+
 The legacy `new_binary_dir` parameter name in preprocessor ABIs now receives the active artifact module directory.
 Per-symbol YAML reads/writes must stay under the explicit artifact root; only binary/IDA operations use `bin/`.
 

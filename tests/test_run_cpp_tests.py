@@ -650,7 +650,142 @@ class TestCompareVtableWithYaml(unittest.TestCase):
         )
 
 
+class TestInterfaceVtableContract(unittest.TestCase):
+    def _compare(self, *, count=2, interface_count=None, member="First", reference_count=3, reference_size=None):
+        output = "Vtable for 'ITest' ({} entries).\n 0 | offset_to_top (0)\n 1 | ITest RTTI\n".format(count + 2)
+        output += "".join(
+            f" {i + 2} | void ITest::{member if i == 0 else 'Tail' + str(i)}() [pure]\n" for i in range(count)
+        )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            module_dir = Path(temp_dir) / "14191b" / "engine"
+            module_dir.mkdir(parents=True)
+            metadata = "vtable_class: CConcrete\n"
+            if reference_count is not None:
+                size = reference_count * 8 if reference_size is None else reference_size
+                metadata += f"vtable_size: '{hex(size)}'\nvtable_numvfunc: {reference_count}\n"
+            (module_dir / "CConcrete_vtable.linux.yaml").write_text(
+                metadata,
+                encoding="utf-8",
+            )
+            (module_dir / "CConcrete_First.linux.yaml").write_text(
+                "func_name: CConcrete_First\nvtable_name: CConcrete\nvfunc_index: 0\n", encoding="utf-8"
+            )
+            return cpp_tests_util.compare_compiler_vtable_with_yaml(
+                class_name="ITest",
+                compiler_output=output,
+                symbol_store=DirectorySymbolStore(temp_dir, "14191b"),
+                platform="linux",
+                reference_modules=["engine"],
+                alias_class_names=["CConcrete"],
+                pointer_size=8,
+                interface_vtable_numvfunc=interface_count,
+            )
+
+    def test_interface_uses_its_verified_size_and_preserves_concrete_metadata(self):
+        report = self._compare(interface_count=2)
+        self.assertEqual([], report["differences"])
+        self.assertEqual(3, report["reference_vtable_numvfunc"])
+        self.assertEqual(24, report["reference_vtable_size"])
+        self.assertEqual(2, report["expected_vtable_numvfunc"])
+        self.assertEqual(16, report["expected_vtable_size"])
+
+    def test_concrete_comparison_stays_exact_by_default(self):
+        types = {item["type"] for item in self._compare()["differences"]}
+        self.assertIn("vtable_size_mismatch", types)
+        self.assertIn("vtable_numvfunc_mismatch", types)
+
+    def test_interface_contract_rejects_wrong_count_and_known_slot_shift(self):
+        for count, member in ((1, "First"), (3, "First"), (2, "Wrong")):
+            with self.subTest(count=count, member=member):
+                report = self._compare(count=count, member=member, interface_count=2)
+                self.assertTrue(report["differences"])
+                if member == "Wrong":
+                    self.assertIn("reference_vfunc_name_mismatch", {d["type"] for d in report["differences"]})
+                    self.assertIn("vfunc_name_mismatch", {d["type"] for d in report["differences"]})
+
+    def test_reference_cannot_be_shorter_than_interface(self):
+        report = self._compare(interface_count=2, reference_count=1)
+        self.assertIn("reference_interface_size_mismatch", {d["type"] for d in report["differences"]})
+
+    def test_interface_requires_complete_consistent_binary_metadata(self):
+        for kwargs, expected in (
+            ({"reference_count": None}, "reference_interface_size_missing"),
+            ({"reference_size": 16}, "reference_vtable_metadata_inconsistent"),
+        ):
+            with self.subTest(kwargs=kwargs):
+                report = self._compare(interface_count=2, **kwargs)
+                self.assertIn(expected, {d["type"] for d in report["differences"]})
+
+    def test_interface_contract_cannot_disable_size_validation(self):
+        with self.assertRaises(ValueError):
+            cpp_tests_util.compare_compiler_vtable_with_yaml(
+                class_name="ITest",
+                compiler_output="",
+                symbol_store=object(),
+                platform="linux",
+                reference_modules=[],
+                pointer_size=8,
+                interface_vtable_numvfunc=2,
+                allow_vtable_size_mismatch=True,
+            )
+
+    def test_interface_contract_requires_compiler_and_reference_layouts(self):
+        for function, result, expected in (
+            ("parse_vftable_layouts", {}, "compiler_layout_missing"),
+            ("load_merged_reference_vtable_data", None, "reference_interface_size_missing"),
+        ):
+            with self.subTest(function=function), patch.object(cpp_tests_util, function, return_value=result):
+                report = self._compare(interface_count=2)
+                self.assertIn(expected, {d["type"] for d in report["differences"]})
+
+
 class TestCompileAndCompareConfig(unittest.TestCase):
+    @patch.object(run_cpp_tests.subprocess, "run")
+    def test_rejects_invalid_interface_counts_before_compiling(self, mock_run):
+        for value in (0, -1, True, "2", 1.5):
+            with self.subTest(value=value), tempfile.TemporaryDirectory() as temp_dir:
+                root = Path(temp_dir)
+                (root / "test.cpp").write_text("int main() {}\n", encoding="utf-8")
+                result = run_cpp_tests.compile_and_compare(
+                    test_item={
+                        "name": "test",
+                        "symbol": "ITest",
+                        "cpp": "test.cpp",
+                        "target": "x86_64-pc-linux-gnu",
+                        "interface_vtable_numvfunc": value,
+                    },
+                    args=argparse.Namespace(clang="clang++", std="c++20"),
+                    config_dir=root,
+                    symbol_store=object(),
+                )
+                self.assertEqual("invalid", result["status"])
+        mock_run.assert_not_called()
+
+    @patch.object(run_cpp_tests.subprocess, "run")
+    def test_interface_requires_dump_and_cannot_skip_size_checks(self, mock_run):
+        for options in (
+            {},
+            {"additional_compiler_options": ["fdump-vtable-layouts"], "allow_vtable_size_mismatch": True},
+        ):
+            with self.subTest(options=options), tempfile.TemporaryDirectory() as temp_dir:
+                root = Path(temp_dir)
+                (root / "test.cpp").write_text("int main() {}\n", encoding="utf-8")
+                result = run_cpp_tests.compile_and_compare(
+                    test_item={
+                        "name": "test",
+                        "symbol": "ITest",
+                        "cpp": "test.cpp",
+                        "target": "x86_64-pc-linux-gnu",
+                        "interface_vtable_numvfunc": 2,
+                        **options,
+                    },
+                    args=argparse.Namespace(clang="clang++", std="c++20"),
+                    config_dir=root,
+                    symbol_store=object(),
+                )
+                self.assertEqual("invalid", result["status"])
+        mock_run.assert_not_called()
+
     @patch.object(run_cpp_tests, "compare_compiler_vtable_with_yaml")
     @patch.object(run_cpp_tests.subprocess, "run")
     def test_passes_excluded_reference_vtables_to_vtable_compare(
@@ -674,6 +809,8 @@ class TestCompileAndCompareConfig(unittest.TestCase):
                     "symbol": "ITest",
                     "alias_symbols": ["CConcrete"],
                     "exclude_reference_vtables": ["CConcrete_vtable2"],
+                    "interface_vtable_numvfunc": 1,
+                    "merge_reference_modules": False,
                     "cpp": "test.cpp",
                     "target": "x86_64-pc-windows-msvc",
                     "additional_compiler_options": ["fdump-vtable-layouts"],
@@ -685,6 +822,8 @@ class TestCompileAndCompareConfig(unittest.TestCase):
             )
 
         self.assertEqual("ok", result["status"])
+        self.assertEqual(2, mock_compare.call_count)
+        self.assertEqual(1, mock_compare.call_args.kwargs["interface_vtable_numvfunc"])
         self.assertEqual(
             ["CConcrete_vtable2"],
             mock_compare.call_args.kwargs["exclude_reference_vtables"],
