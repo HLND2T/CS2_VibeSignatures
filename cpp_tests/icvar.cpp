@@ -2,7 +2,7 @@
 #undef RESTRICT
 #define RESTRICT
 
-#include <icvar.h>
+#include <tier0/icvar.h>
 
 ICvar * icvar();
 

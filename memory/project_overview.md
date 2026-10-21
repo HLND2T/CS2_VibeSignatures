@@ -34,7 +34,7 @@ source/config/reference + computed bin_artifacts closure
 ```
 ## Dependencies
 - uv, IDA/idalib, ida-pro-mcp, Clang/LLVM, DepotDownloader, GitHub Actions.
-- `configs/`, `download.yaml`, `bin_artifacts/`, `gamedata-generators/`, `hl2sdk_cs2`.
+- `configs/`, `download.yaml`, `bin_artifacts/`, `gamedata-generators/`, `s2sdk`.
 - Protected Merge Queue/required-workflow trust root and separate bootstrap/BinSync/Release environments.
 ## Notes
 - `bin/`, accepted-bin, and warm IDB are disposable binary/cache layers and must contain no artifact truth.
@@ -43,3 +43,8 @@ source/config/reference + computed bin_artifacts closure
 - Release never repairs or writes Git source truth and same-version published content is immutable.
 ## Callers
 - Repository workflows, project skills, local analysis commands, Release tooling, and Pages deployment.
+
+## SDK source
+- The `s2sdk/` submodule tracks `cs2` at `https://github.com/HLND2T/s2sdk.git`; the parent Git gitlink pins the exact revision.
+- `release_workflow_lib/sdk.py` resolves either the current `s2sdk` gitlink or the historical `hl2sdk_cs2` gitlink from the requested immutable source tree. Missing, ambiguous, or non-gitlink SDK paths fail closed.
+- Release manifests retain their existing fields and schema. SDK archive paths follow the corresponding source tree, preserving historical releases.

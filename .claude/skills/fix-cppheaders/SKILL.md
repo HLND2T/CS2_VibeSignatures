@@ -1,7 +1,7 @@
 ---
 name: fix-cppheaders
 description: |
-  Use when hl2sdk_cs2 C++ headers must be repaired to match the latest vtable or record-layout YAML references.
+  Use when s2sdk C++ headers must be repaired to match the latest vtable or record-layout YAML references.
   Runs run_cpp_tests.py to obtain layout diffs, maps failing cpp_tests entries to their configured headers, edits only
   those headers, and repeats validation until the differences are resolved. Triggers: fix cpp headers, fix-cppheaders,
   repair vtable layout, repair record layout, header layout differences.
@@ -11,7 +11,7 @@ description: |
 
 ## Overview
 
-Repair `hl2sdk_cs2` declarations from compiler-versus-YAML layout differences. Treat
+Repair `s2sdk` declarations from compiler-versus-YAML layout differences. Treat
 `run_cpp_tests.py` as the source of truth for both the initial diff and final verification.
 
 Resolve `GAMEVER` from the user's explicit request or `CS2VIBE_GAMEVER`; use only
@@ -20,7 +20,7 @@ Resolve `GAMEVER` from the user's explicit request or `CS2VIBE_GAMEVER`; use onl
 ## Constraints
 
 - Edit only header paths listed in the failing `configs/<GAMEVER>.yaml` `cpp_tests` entry.
-- Require every edited header to be under `hl2sdk_cs2/`.
+- Require every edited header to be under `s2sdk/`.
 - Preserve existing names and style when the reference exposes only a slot or offset.
 - Keep compiler declarations for gaps in incomplete reference YAMLs unless surrounding index shifts prove removal.
 - Name unknown virtual slots consistently with nearby declarations, such as `unk_001`; when only a known function name is
@@ -29,7 +29,7 @@ Resolve `GAMEVER` from the user's explicit request or `CS2VIBE_GAMEVER`; use onl
 - Do not edit reference YAMLs, tracked `bin_artifacts`, cpp test sources, or comparison code to hide a difference.
 - Do not invoke an external agent runner. This SKILL owns the repair loop directly.
 - Stop and report a blocker when the diff is ambiguous, the configured header is missing, or a required edit is outside
-  `hl2sdk_cs2/`.
+  `s2sdk/`.
 
 ## Workflow
 

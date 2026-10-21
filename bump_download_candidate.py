@@ -88,7 +88,7 @@ def _git(repo_root: Path, *arguments: str) -> str:
 
 
 def _require_clean_worktree(repo_root: Path, message: str) -> None:
-    # Submodules are checked out separately, so hl2sdk_cs2 may legitimately lag the gitlink.
+    # Submodules are checked out separately, so s2sdk may legitimately lag the gitlink.
     if _git(repo_root, "status", "--porcelain=v1", "--untracked-files=all", "--ignore-submodules=all"):
         raise BumpDownloadCandidateError(message)
 

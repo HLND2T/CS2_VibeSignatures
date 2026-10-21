@@ -930,7 +930,7 @@ def build_trusted_artifact_plan(*, repo_root: str | Path, trusted_context: dict 
         "configured_game_versions": list(merge_versions),
         "affected_game_versions": affected_versions,
         "download_sha256": _sha256(merge_download_raw),
-        "sdk_gitlink_sha": _gitlink_sha(repo, context["merge_sha"], "hl2sdk_cs2"),
+        "sdk_gitlink_sha": _gitlink_sha(repo, context["merge_sha"], "s2sdk"),
         "base_analysis_sources": _source_inventory(repo, context["base_sha"]),
         "merge_analysis_sources": _source_inventory(repo, context["merge_sha"]),
         "changed_paths": [_change_document(change) for change in changes],
@@ -949,7 +949,10 @@ def build_trusted_artifact_plan(*, repo_root: str | Path, trusted_context: dict 
                 for path in (change.old_path, change.new_path)
             ),
             "cpp": any(
-                path and path.startswith(("configs/", "binary_locks/", "bin_artifacts/", "cpp_tests/", "hl2sdk_cs2"))
+                path
+                and path.startswith(
+                    ("configs/", "binary_locks/", "bin_artifacts/", "cpp_tests/", "s2sdk", "hl2sdk_cs2")
+                )
                 for change in changes
                 for path in (change.old_path, change.new_path)
             ),

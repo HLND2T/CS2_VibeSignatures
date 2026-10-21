@@ -47,7 +47,7 @@ class BinSyncCandidateTests(unittest.TestCase):
             self.fail(result.stderr or f"git {' '.join(arguments)} failed")
         return result.stdout.strip()
 
-    def _repository(self, root: Path) -> tuple[str, dict, Path]:
+    def _repository(self, root: Path, *, sdk_path: str = "s2sdk") -> tuple[str, dict, Path]:
         require_binsync()
         self._git(root, "init", "-b", "main")
         self._git(root, "config", "user.email", "test@example.com")
@@ -95,7 +95,7 @@ class BinSyncCandidateTests(unittest.TestCase):
             "sdk",
         )
         self._git(root, "add", ".")
-        self._git(root, "update-index", "--add", "--cacheinfo", f"160000,{sdk_commit},hl2sdk_cs2")
+        self._git(root, "update-index", "--add", "--cacheinfo", f"160000,{sdk_commit},{sdk_path}")
         self._git(root, "commit", "-m", "source")
         source_sha = self._git(root, "rev-parse", "HEAD")
         preparation = rebuild.prepare_release_rebuild(

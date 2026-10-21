@@ -2,7 +2,7 @@
 name: resolve-pr-conflict
 description: |
   Resolve an open same-repository GitHub PR conflict by merging its base into the writable dev head, resolving source,
-  config, and `hl2sdk_cs2` gitlink intent semantically, rebuilding only the conflicted source-owned `bin_artifacts` via
+  config, and `s2sdk` gitlink intent semantically, rebuilding only the conflicted source-owned `bin_artifacts` via
   targeted isolated runs, running the repository review/format/test gates, creating one merge commit, and pushing
   without force. Stop after reporting PR checks; never merge or auto-merge the PR.
 disable-model-invocation: true
@@ -31,7 +31,7 @@ detached head, missing remote, moving head, or ambiguous affected GAMEVER/produc
   may seed an isolated rebuild, but final conflict bytes must come from the merged producer/config contract and central
   finalizer.
 - Reject tracked `gamesymbols/**`, `gamedata/**`, `release-manifests/**`, and `bin/**/*.yaml` in the final PR diff.
-- Treat `hl2sdk_cs2` as a pin to the reviewed SDK, not release-derived output. Code changes and an `hl2sdk_cs2` gitlink
+- Treat `s2sdk` as a pin to the reviewed SDK, not release-derived output. Code changes and an `s2sdk` gitlink
   change in the same PR are almost always unrelated: a code merge can silently carry the gitlink backwards to an
   ancestor SDK. Keep a gitlink change only when the user confirms it as intentional.
 - Stop on a conflict in trusted planner/policy/required-workflow/publisher code unless the intended trust-root change is
@@ -50,11 +50,11 @@ git fetch <REMOTE> <BASE_BRANCH> <HEAD_BRANCH> --prune
 git rev-parse <REMOTE>/<BASE_BRANCH>
 git rev-parse <REMOTE>/<HEAD_BRANCH>
 git diff --name-status <REMOTE>/<BASE_BRANCH>...<REMOTE>/<HEAD_BRANCH>
-git rev-parse <REMOTE>/<BASE_BRANCH>:hl2sdk_cs2 <REMOTE>/<HEAD_BRANCH>:hl2sdk_cs2
+git rev-parse <REMOTE>/<BASE_BRANCH>:s2sdk <REMOTE>/<HEAD_BRANCH>:s2sdk
 ```
 
 Save `PR_URL`, `BASE_BRANCH`, `HEAD_BRANCH`, `PR_HEAD_SHA`, `BASE_HEAD_SHA`, `ORIGINAL_PR_PATHS`, `BASE_SDK_PIN`, and
-`ORIGINAL_HEAD_SDK_PIN` (the two `hl2sdk_cs2` gitlink SHAs; a gitlink is tracked with mode `160000`). Require the PR API
+`ORIGINAL_HEAD_SDK_PIN` (the two `s2sdk` gitlink SHAs; a gitlink is tracked with mode `160000`). Require the PR API
 head SHA to equal `<REMOTE>/<HEAD_BRANCH>` after fetch. If the PR is already mergeable and the user did not request a
 base synchronization, report that no resolution is needed and stop.
 
@@ -90,7 +90,7 @@ Exit code 1 is expected only for reported conflicts. Classify every unmerged pat
   offset, or displacement taken from either parent's artifacts; fixed offsets are blocked (see Step 5).
 - `bin_artifacts/<GAMEVER>/<module>/*.yaml`: record A/M/D/R paths and base/merge ownership. Do not accept either side as
   final; resolution is deferred to the isolated rebuild in Step 4.
-- `hl2sdk_cs2` gitlink: never choose ours/theirs blindly. Keep an intentional SDK bump only when the merged intent needs
+- `s2sdk` gitlink: never choose ours/theirs blindly. Keep an intentional SDK bump only when the merged intent needs
   the new SDK (headers/layouts the code depends on) and the user confirms it; otherwise restore `BASE_SDK_PIN`. A code
   merge that drags the pin backwards to an ancestor SDK silently drops header/ABI fixes — review it in Step 5 and treat
   an unconfirmed pin change as unintentional.
@@ -143,34 +143,34 @@ git diff --check
 git status --short
 ```
 
-Mandatory before completing the review: check whether the prospective PR changes the `hl2sdk_cs2` gitlink at the same
+Mandatory before completing the review: check whether the prospective PR changes the `s2sdk` gitlink at the same
 time as source/config code. During the in-progress merge `HEAD` is still the pre-merge commit, so read the staged index
 against the base branch, not `HEAD`:
 
 ```powershell
-git diff --cached --raw <REMOTE>/<BASE_BRANCH> -- hl2sdk_cs2
-git diff --cached --name-only <REMOTE>/<BASE_BRANCH> -- ':(exclude)hl2sdk_cs2'
-git ls-files -s hl2sdk_cs2
+git diff --cached --raw <REMOTE>/<BASE_BRANCH> -- s2sdk
+git diff --cached --name-only <REMOTE>/<BASE_BRANCH> -- ':(exclude)s2sdk'
+git ls-files -s s2sdk
 git merge-base --is-ancestor <PROSPECTIVE_SDK_PIN> <BASE_SDK_PIN>
 ```
 
 If the gitlink changed and at least one non-gitlink path also changed, that is the "code + incidental gitlink" case.
-Ask the user explicitly whether the `hl2sdk_cs2` change is intentional (quote `BASE_SDK_PIN`, `ORIGINAL_HEAD_SDK_PIN`,
-and the prospective pin from `git ls-files -s hl2sdk_cs2`). Do not resolve or push until the answer arrives:
+Ask the user explicitly whether the `s2sdk` change is intentional (quote `BASE_SDK_PIN`, `ORIGINAL_HEAD_SDK_PIN`,
+and the prospective pin from `git ls-files -s s2sdk`). Do not resolve or push until the answer arrives:
 
 - intentional — record the confirmed SDK pin, keep it, and continue the review.
 - unintentional — roll the gitlink back to the base pin and continue the review:
 
 ```powershell
-git checkout <REMOTE>/<BASE_BRANCH> -- hl2sdk_cs2
-git diff --cached --raw <REMOTE>/<BASE_BRANCH> -- hl2sdk_cs2
+git checkout <REMOTE>/<BASE_BRANCH> -- s2sdk
+git diff --cached --raw <REMOTE>/<BASE_BRANCH> -- s2sdk
 git diff --cached --name-status <REMOTE>/<BASE_BRANCH>
-git diff --name-status HEAD -- hl2sdk_cs2
+git diff --name-status HEAD -- s2sdk
 ```
 
-After rollback, require `git ls-files -s hl2sdk_cs2` to show `160000 <BASE_SDK_PIN> 0 hl2sdk_cs2`, require
-`git diff --cached --raw <REMOTE>/<BASE_BRANCH> -- hl2sdk_cs2` to become empty, and require `git diff --name-status HEAD --
-hl2sdk_cs2` to be empty (the merge introduces no net gitlink change). The code changes stay; only the pointer moves.
+After rollback, require `git ls-files -s s2sdk` to show `160000 <BASE_SDK_PIN> 0 s2sdk`, require
+`git diff --cached --raw <REMOTE>/<BASE_BRANCH> -- s2sdk` to become empty, and require `git diff --name-status HEAD --
+s2sdk` to be empty (the merge introduces no net gitlink change). The code changes stay; only the pointer moves.
 When `git merge-base --is-ancestor <PROSPECTIVE_SDK_PIN> <BASE_SDK_PIN>` succeeds (the new pin is an ancestor, i.e. a
 backward move), or the PR body does not justify an SDK bump, default to treating it as unintentional and recommend the
 rollback in the question.
@@ -203,21 +203,21 @@ Recheck and explicitly stage the authorized set:
 ```powershell
 git add -- <EXPLICIT_RESOLVED_SOURCE_CONFIG_REFERENCE_TEST_PATHS>
 git add -- <EXPLICIT_BIN_ARTIFACT_CLOSURE_PATHS>
-git update-index --cacheinfo 160000,<CONFIRMED_SDK_PIN>,hl2sdk_cs2
+git update-index --cacheinfo 160000,<CONFIRMED_SDK_PIN>,s2sdk
 git diff --cached --check
 git diff --name-only --diff-filter=U
-git ls-files -s hl2sdk_cs2
+git ls-files -s s2sdk
 git diff --cached --name-status <REMOTE>/<BASE_BRANCH>
-git diff --cached --raw <REMOTE>/<BASE_BRANCH> -- hl2sdk_cs2
+git diff --cached --raw <REMOTE>/<BASE_BRANCH> -- s2sdk
 git diff --cached --stat <REMOTE>/<BASE_BRANCH>
 ```
 
 Require no unstaged tracked changes. Confirm the final diff preserves the PR intent, includes the complete artifact
-closure, and contains no forbidden tracked output namespace. Do not stage the gitlink with `git add -- hl2sdk_cs2`: that
+closure, and contains no forbidden tracked output namespace. Do not stage the gitlink with `git add -- s2sdk`: that
 stages the submodule working-tree HEAD, which the base-pin `git checkout` does not update. Write the decided pin into the
 index directly so a confirmed SDK bump is committed and an unconfirmed one stays rolled back, and require
-`git ls-files -s hl2sdk_cs2` to show `160000 <CONFIRMED_SDK_PIN> 0 hl2sdk_cs2` before committing. Require
-`git diff --cached --raw <REMOTE>/<BASE_BRANCH> -- hl2sdk_cs2` to be empty unless the user confirmed an intentional pin
+`git ls-files -s s2sdk` to show `160000 <CONFIRMED_SDK_PIN> 0 s2sdk` before committing. Require
+`git diff --cached --raw <REMOTE>/<BASE_BRANCH> -- s2sdk` to be empty unless the user confirmed an intentional pin
 change. Commit without amending:
 
 ```powershell
@@ -241,7 +241,7 @@ Never invoke `gh pr merge`, auto-merge, a merge API, branch deletion, or a switc
 
 ## Final report
 
-Report the PR/base/head identities, pushed merge SHA, resolved paths, `hl2sdk_cs2` gitlink decision (base pin, original
+Report the PR/base/head identities, pushed merge SHA, resolved paths, `s2sdk` gitlink decision (base pin, original
 head pin, final pin, and whether an intentional change was confirmed), affected GAMEVER/groups, staged artifact closure,
 format/test/contract evidence, review findings, and latest check state. State explicitly:
 

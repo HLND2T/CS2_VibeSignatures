@@ -51,6 +51,7 @@ from release_workflow_lib.hashing import (
     sha256_file,
     write_canonical_json,
 )
+from release_workflow_lib.sdk import SourceSdkError, source_sdk
 
 CANDIDATE_SCHEMA_VERSION = 5
 MANIFEST_NAME = "manifest.json"
@@ -673,10 +674,10 @@ def _verify_bundle(bundle: Path, repository: dict) -> None:
 
 
 def _sdk_gitlink(repo_root: Path, source_sha: str) -> str:
-    fields = _git_text(repo_root, "ls-tree", source_sha, "--", "hl2sdk_cs2").split()
-    if len(fields) < 3 or fields[0] != "160000" or fields[1] != "commit" or not SHA_RE.fullmatch(fields[2]):
-        raise BinSyncCandidateError("source commit does not bind the hl2sdk_cs2 gitlink")
-    return fields[2]
+    try:
+        return source_sdk(repo_root, source_sha).sha
+    except SourceSdkError as exc:
+        raise BinSyncCandidateError(str(exc)) from exc
 
 
 def _source_blob(repo_root: Path, source_sha: str, path: str) -> bytes:

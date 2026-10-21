@@ -16,6 +16,7 @@ from ci_s3_cache import write_outputs
 from gamesymbol_store import SymbolStoreError, open_snapshot_store
 from release_workflow_lib.errors import ReleaseWorkflowError
 from release_workflow_lib.hashing import file_inventory, load_json_object, sha256_file, write_canonical_json
+from release_workflow_lib.sdk import source_sdk
 from run_cpp_tests import parse_config, select_platform_tests
 
 PLATFORMS = ("windows", "linux")
@@ -32,8 +33,9 @@ def git(repo_root: Path, *args: str) -> str:
 def source_identity(repo_root: Path, source_sha: str) -> dict:
     if not SHA_RE.fullmatch(source_sha) or git(repo_root, "rev-parse", "HEAD") != source_sha:
         raise ValueError("C++ source checkout differs from the immutable source SHA")
-    sdk_sha = git(repo_root, "rev-parse", f"{source_sha}:hl2sdk_cs2")
-    sdk_root = repo_root / "hl2sdk_cs2"
+    sdk = source_sdk(repo_root, source_sha)
+    sdk_sha = sdk.sha
+    sdk_root = repo_root / sdk.path
     if git(sdk_root, "rev-parse", "HEAD") != sdk_sha:
         raise ValueError("C++ SDK differs from the source gitlink")
     if git(sdk_root, "status", "--porcelain", "--untracked-files=no"):

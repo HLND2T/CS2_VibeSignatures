@@ -28,7 +28,7 @@ Hosted CI 在两个 OS job 执行 `run_cpp_tests.py --platform windows|linux --a
 对应 ABI 没有配置用例时报告 `no-tests`；已配置的每个 target 必须能够编译并通过验证。不传 `--platform` 的本地
 调用保留原有 target probe 和 unsupported-target skip 行为。
 
-需要修复 `hl2sdk_cs2` header 差异时，使用项目级 `fix-cppheaders` skill。
+需要修复 `s2sdk` header 差异时，使用项目级 `fix-cppheaders` skill。
 
 ## Historical snapshot compatibility
 

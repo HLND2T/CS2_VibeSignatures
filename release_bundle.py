@@ -58,6 +58,7 @@ from release_workflow_lib.hashing import (
     write_canonical_json,
 )
 from release_workflow_lib.sevenzip import listed_archive_files
+from release_workflow_lib.sdk import SourceSdk, SourceSdkError, source_sdk
 
 BUNDLE_SCHEMA_VERSION = 2
 CPP_SDK_REF = "source-gitlink"
@@ -513,7 +514,10 @@ def build_release_bundle(
         or cpp_sdk_sha != preparation_document["sdk_gitlink_sha"]
     ):
         raise ReleaseBundleError("selected C++ SDK must equal the immutable source gitlink")
-    sdk_root = repo_root / "hl2sdk_cs2"
+    sdk = _source_sdk(repo_root, source_sha)
+    if sdk.sha != cpp_sdk_sha:
+        raise ReleaseBundleError("selected C++ SDK must equal the immutable source gitlink")
+    sdk_root = repo_root / sdk.path
     sdk_files = _sdk_inventory(sdk_root, cpp_sdk_sha)
     binary_records = _binary_records(preparation_document["binary_inventory"])
     bundle_root.mkdir(parents=True)
@@ -534,7 +538,7 @@ def build_release_bundle(
         _copy_file(snapshot, gamedata_archive_root / "gamesymbols" / f"{game_version}.yaml")
         _copy_file(metadata, gamedata_archive_root / "gamesymbols" / f"{game_version}.metadata.yaml")
         _copy_tree(gamedata_root, gamedata_archive_root / "gamedata" / game_version)
-        _copy_sdk(sdk_root, cpp_sdk_sha, gamedata_archive_root / "hl2sdk_cs2", sdk_files)
+        _copy_sdk(sdk_root, cpp_sdk_sha, gamedata_archive_root / sdk.path, sdk_files)
         _copy_binaries(repo_root, game_version, binary_records, gamedata_archive_root)
         _copy_binaries(repo_root, game_version, binary_records, gamebin_archive_root)
         gamedata_archive_inventory = file_inventory(gamedata_archive_root)
@@ -938,6 +942,13 @@ def validate_release_manifest(manifest: dict) -> None:
         raise ReleaseBundleError("Release archive allowlist is invalid")
 
 
+def _source_sdk(repo_root: Path, source_sha: str) -> SourceSdk:
+    try:
+        return source_sdk(repo_root, source_sha)
+    except SourceSdkError as exc:
+        raise ReleaseBundleError(str(exc)) from exc
+
+
 def _verify_source(repo_root: Path, manifest: dict) -> None:
     source_sha = manifest["source_sha"]
     if str(_git(repo_root, "rev-parse", "HEAD")).lower() != source_sha:
@@ -966,12 +977,13 @@ def _verify_source(repo_root: Path, manifest: dict) -> None:
         raise ReleaseBundleError("hosted Release verifier config identity mismatch")
     if artifacts.inventory_sha256 != manifest["artifact_inventory_sha256"]:
         raise ReleaseBundleError("hosted Release verifier artifact inventory mismatch")
-    source_gitlink = str(_git(repo_root, "rev-parse", f"{source_sha}:hl2sdk_cs2")).lower()
+    sdk = _source_sdk(repo_root, source_sha)
+    source_gitlink = sdk.sha
     if source_gitlink != manifest["sdk_gitlink_sha"]:
         raise ReleaseBundleError("hosted Release verifier SDK gitlink mismatch")
     if manifest["cpp_sdk"] != {"ref": CPP_SDK_REF, "sha": source_gitlink}:
         raise ReleaseBundleError("hosted Release verifier C++ SDK differs from the source gitlink")
-    sdk_files = _sdk_inventory(repo_root / "hl2sdk_cs2", manifest["cpp_sdk"]["sha"])
+    sdk_files = _sdk_inventory(repo_root / sdk.path, manifest["cpp_sdk"]["sha"])
     if sdk_files != manifest["sdk_files"] or inventory_sha256(sdk_files) != manifest["sdk_inventory_sha256"]:
         raise ReleaseBundleError("hosted Release verifier SDK content mismatch")
     if _release_rebuild_digest("binary-inventory", manifest["binary_inventory"]) != manifest["binary_inventory_sha256"]:
@@ -1000,7 +1012,7 @@ def _verify_source(repo_root: Path, manifest: dict) -> None:
         }
         for item in artifacts.files
     ]
-    expected_source_files.extend({**item, "path": f"hl2sdk_cs2/{item['path']}"} for item in manifest["sdk_files"])
+    expected_source_files.extend({**item, "path": f"{sdk.path}/{item['path']}"} for item in manifest["sdk_files"])
     expected_source_files.extend(manifest["gamedata"]["files"])
     expected_source_files.extend(_binary_archive_inventory(game_version, manifest["binary_inventory"]))
     config_raw = _source_blob(repo_root, source_sha, f"configs/{game_version}.yaml")

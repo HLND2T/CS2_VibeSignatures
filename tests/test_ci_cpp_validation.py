@@ -1,5 +1,6 @@
 import copy
 import json
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -9,7 +10,67 @@ import ci_cpp_validation as evidence
 from gamesymbol_snapshot_lib.operations import pack_snapshot
 from release_workflow_lib.hashing import sha256_file, write_canonical_json
 from release_workflow_lib.errors import ReleaseWorkflowError
+from release_workflow_lib.sdk import SourceSdk, SourceSdkError, source_sdk
 from tests.gamesymbol_snapshot_test_support import module, skill, write_binary, write_config, write_yaml
+
+
+class TestSourceSdk(unittest.TestCase):
+    @staticmethod
+    def git(root, *arguments):
+        return subprocess.check_output(["git", "-C", str(root), *arguments], text=True).strip()
+
+    def repository(self, root):
+        self.git(root, "init", "-q")
+        self.git(root, "config", "user.name", "SDK Test")
+        self.git(root, "config", "user.email", "sdk@example.invalid")
+        (root / "source.txt").write_text("source\n")
+        self.git(root, "add", "source.txt")
+        self.git(root, "commit", "-qm", "source")
+        return self.git(root, "rev-parse", "HEAD")
+
+    def test_resolves_each_path_from_the_requested_commit(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            sdk_sha = self.repository(root)
+            self.git(root, "update-index", "--add", "--cacheinfo", f"160000,{sdk_sha},hl2sdk_cs2")
+            self.git(root, "commit", "-qm", "legacy SDK")
+            legacy = self.git(root, "rev-parse", "HEAD")
+            self.git(root, "update-index", "--force-remove", "hl2sdk_cs2")
+            self.git(root, "update-index", "--add", "--cacheinfo", f"160000,{sdk_sha},s2sdk")
+            self.git(root, "commit", "-qm", "renamed SDK")
+            current = self.git(root, "rev-parse", "HEAD")
+            for revision, path in ((legacy, "hl2sdk_cs2"), (current, "s2sdk")):
+                with self.subTest(path=path):
+                    resolved = source_sdk(root, revision)
+                    self.assertEqual((path, sdk_sha), (resolved.path, resolved.sha))
+
+    def test_missing_ambiguous_and_non_gitlink_sdk_are_rejected(self):
+        for kind in ("missing", "ambiguous", "blob", "tree"):
+            with self.subTest(kind=kind), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                sdk_sha = self.repository(root)
+                if kind == "ambiguous":
+                    for path in ("hl2sdk_cs2", "s2sdk"):
+                        self.git(root, "update-index", "--add", "--cacheinfo", f"160000,{sdk_sha},{path}")
+                elif kind in ("blob", "tree"):
+                    path = root / "s2sdk"
+                    if kind == "tree":
+                        path.mkdir()
+                        path /= "header.h"
+                    path.write_text("SDK must be a gitlink\n")
+                    self.git(root, "add", "s2sdk")
+                self.git(root, "commit", "--allow-empty", "-qm", kind)
+                revision = self.git(root, "rev-parse", "HEAD")
+                with self.assertRaises(SourceSdkError):
+                    source_sdk(root, revision)
+
+    def test_invalid_or_unavailable_source_commit_is_rejected(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.repository(root)
+            for revision in ("HEAD", "--all", "f" * 40):
+                with self.subTest(revision=revision), self.assertRaises(SourceSdkError):
+                    source_sdk(root, revision)
 
 
 class TestCppEvidence(unittest.TestCase):
@@ -111,16 +172,21 @@ class TestCppEvidence(unittest.TestCase):
 
     def test_source_and_sdk_checkout_drift_is_rejected(self):
         source, sdk = "a" * 40, "b" * 40
-        with patch.object(evidence, "git", side_effect=[source, sdk, sdk, ""]):
-            self.assertEqual({"source_sha": source, "sdk_sha": sdk}, evidence.source_identity(Path("."), source))
-        for responses, error in (
-            (["c" * 40], "source checkout"),
-            ([source, sdk, "c" * 40], "gitlink"),
-            ([source, sdk, sdk, " M header.h"], "modified tracked"),
-        ):
-            with self.subTest(error=error), patch.object(evidence, "git", side_effect=responses):
-                with self.assertRaisesRegex(ValueError, error):
-                    evidence.source_identity(Path("."), source)
+        for path in ("s2sdk", "hl2sdk_cs2"):
+            with self.subTest(path=path), patch.object(evidence, "source_sdk", return_value=SourceSdk(path, sdk)):
+                with patch.object(evidence, "git", side_effect=[source, sdk, ""]) as git:
+                    self.assertEqual(
+                        {"source_sha": source, "sdk_sha": sdk}, evidence.source_identity(Path("."), source)
+                    )
+                    self.assertEqual(Path(path), git.call_args_list[1].args[0])
+                for responses, error in (
+                    (["c" * 40], "source checkout"),
+                    ([source, "c" * 40], "gitlink"),
+                    ([source, sdk, " M header.h"], "modified tracked"),
+                ):
+                    with self.subTest(error=error), patch.object(evidence, "git", side_effect=responses):
+                        with self.assertRaisesRegex(ValueError, error):
+                            evidence.source_identity(Path("."), source)
 
     def test_real_empty_abi_subprocess_emits_content_bound_receipt(self):
         with tempfile.TemporaryDirectory() as temporary:
