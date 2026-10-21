@@ -25,13 +25,15 @@ tags:
 - Steam 对 app 730（CS2）的 depot manifest 有两套可见性：
   - **当前 default-branch manifest**：匿名（dedicated-server）账号即可取 `-manifest-only` 与文件内容；实测 depot 2347770/2347771/2347773 全部成功。
   - **历史 manifest id**：匿名取会返回 `Encountered 401 for depot manifest <depot> <manifest>`（DepotDownloader 自带提示 `Try logging in with -username as old manifests may not be available for anonymous accounts.`）。实测 `3558451520161040527`、`366892905078765270` 均 401。
-- 因此匿名化只能用于**永远只取当前版本**的 bump 发现/登记路径；任何可能回放历史 GAMEVER 的路径必须保留账密。
+- 匿名适用于 bump 发现/登记以及新版本 bootstrap 的当前 public manifest 下载。通用下载器和可能回放历史 GAMEVER 的 warmup 仍须保留账号能力；不能根据 download.yaml 最后一项就保证目标仍是 Steam 当前版本。
 
 ## 正确做法
 
-- bump 路径（`bump_download.py`、`bump-enroll`/`bump-apply`）只请求当前 manifest，**不应**传 `-username/-password/-remember-password`；对应的 `DEPOTDOWNLOADER_STEAM_*` env 也应从 bump job 移除。
-- `download_depot.py`（被 `init_gamebin.py` 的 depot fallback 与 release/warmup 使用）会按 `download.yaml` 里的历史 manifest id 下载，**必须保留**账密与 `DEPOTDOWNLOADER_STEAM_*` env。
-- 需要"两者兼容"时不要写"匿名失败再带账密重试"——那会把失效凭据重新塞回关键路径；按路径职责静态区分即可。
+- bump 路径（`bump_download.py`、`bump-enroll`/`bump-apply`）只请求当前 manifest，不传 `-username/-password/-remember-password`。
+- `download_depot.py` 默认保留账密能力；`-anonymous` 或 `DEPOTDOWNLOADER_ANONYMOUS=1` 强制忽略环境变量、.env 和命令行中的认证参数。
+- `warmup-idb.yml` 的 `depot_anonymous` 默认 false；新 GAMEVER bootstrap 显式传 true，job 同时清空两个 Steam 账密变量。其他历史版本调用保留原有行为。
+- 匿名失败时只重试 download.yaml 锁定的 manifest，不退回账号，也不切换到 Steam 新版本。排队期间目标变成历史 manifest 时明确失败；历史重跑使用账号路径。
+- 本地验证覆盖匿名环境/CLI 覆盖、默认账号行为，以及下载成功和失败重试时 manifest 不变；尚未运行修改后的远端 CI。
 
 ## 验证方式
 
