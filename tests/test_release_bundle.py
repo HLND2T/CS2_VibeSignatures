@@ -119,12 +119,12 @@ class ReleaseBundleTests(unittest.TestCase):
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text("sdk\n", encoding="utf-8")
 
-    def _fixture(self, temporary_root: Path) -> tuple[Path, dict, Path, dict]:
+    def _fixture(self, temporary_root: Path, *, sdk_path: str = "s2sdk") -> tuple[Path, dict, Path, dict]:
         require_binsync()
         candidate_fixture = candidate_tests.BinSyncCandidateTests()
         root = temporary_root / "repo"
         root.mkdir()
-        source_sha, preparation, _binsync_repo = candidate_fixture._repository(root)
+        source_sha, preparation, _binsync_repo = candidate_fixture._repository(root, sdk_path=sdk_path)
         shutil.copytree(root / "bin_artifacts", preparation["actual_artifact_root"], dirs_exist_ok=True)
         rebuild_fixture = rebuild_tests.ReleaseArtifactRebuildTests()
         rebuild_fixture._write_execution_report(preparation)
@@ -164,7 +164,7 @@ class ReleaseBundleTests(unittest.TestCase):
         cpp_log = temporary_root / "cpp.log"
         cpp_log.write_text("C++ validation passed\n", encoding="utf-8")
 
-        sdk_root = root / "hl2sdk_cs2"
+        sdk_root = root / sdk_path
         sdk_root.mkdir()
         sdk_file = sdk_root / "sdk.txt"
         sdk_file.write_text("sdk\n", encoding="utf-8")
@@ -195,9 +195,16 @@ class ReleaseBundleTests(unittest.TestCase):
 
     @requires_7z
     def test_builds_and_hosted_verifies_exact_release_bundle(self) -> None:
+        self._assert_release_bundle_roundtrip("s2sdk")
+
+    @requires_7z
+    def test_builds_and_hosted_verifies_legacy_sdk_release_bundle(self) -> None:
+        self._assert_release_bundle_roundtrip("hl2sdk_cs2")
+
+    def _assert_release_bundle_roundtrip(self, sdk_path: str) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             temporary_root = Path(temporary)
-            root, preparation, _binsync_root, inputs = self._fixture(temporary_root)
+            root, preparation, _binsync_root, inputs = self._fixture(temporary_root, sdk_path=sdk_path)
             quarantine = root / "bin" / "1" / "server" / ".ida-aborted" / "server.dll" / "run-id"
             quarantine.mkdir(parents=True)
             quarantined = quarantine / "server.dll.id0"
@@ -271,6 +278,18 @@ class ReleaseBundleTests(unittest.TestCase):
                     release_bundle._verify_source(root, forged_binary)
 
             self.assertEqual(manifest["source_sha"], verified["source_sha"])
+            sdk_archive_files = manifest["archives"]["archives/gamedata-1.7z"]["files"]
+            self.assertIn(f"{sdk_path}/sdk.txt", [item["path"] for item in sdk_archive_files])
+            tampered_sdk_path = copy.deepcopy(manifest)
+            for item in tampered_sdk_path["archives"]["archives/gamedata-1.7z"]["files"]:
+                if item["path"] == f"{sdk_path}/sdk.txt":
+                    item["path"] = "wrong-sdk/sdk.txt"
+            with (
+                patch.object(release_bundle, "_sdk_inventory", return_value=inputs["sdk_inventory"]),
+                patch.object(release_bundle, "_producer_contract", return_value=producer_contract),
+            ):
+                with self.assertRaisesRegex(release_bundle.ReleaseBundleError, "exact source-derived inventory"):
+                    release_bundle._verify_source(root, tampered_sdk_path)
             self.assertEqual(b"aborted-idb", quarantined.read_bytes())
             self.assertEqual(manifest["source_sha"], manifest["build_id"])
             self.assertEqual(manifest["binsync"]["target_state_digest"], verified["binsync_target_state_digest"])

@@ -28,7 +28,7 @@ Hosted CI uses `run_cpp_tests.py --platform windows|linux --allow-empty --result
 An ABI with no configured tests reports `no-tests`; every configured target for the requested ABI must compile and
 validate. Without `--platform`, local calls retain the existing target-probe and unsupported-target skip behavior.
 
-Use the project-level `fix-cppheaders` skill to repair reported `hl2sdk_cs2` header differences.
+Use the project-level `fix-cppheaders` skill to repair reported `s2sdk` header differences.
 
 ## Historical snapshot compatibility
 

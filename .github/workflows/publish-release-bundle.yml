@@ -115,8 +115,14 @@ jobs:
           $sdkRef = [string]$manifest.cpp_sdk.ref
           $sdkSha = ([string]$manifest.cpp_sdk.sha).ToLowerInvariant()
           if ($sdkSha -notmatch '^[0-9a-f]{40}$') { throw "Release manifest C++ SDK SHA is invalid." }
-          $sdkPath = Join-Path "${{ github.workspace }}" "hl2sdk_cs2"
-          $sourceGitlink = (git rev-parse "${{ inputs.source_sha }}:hl2sdk_cs2").Trim().ToLowerInvariant()
+          # Historical source checkouts do not contain the new SDK helper module.
+          $sdkLinks = @(git ls-tree "${{ inputs.source_sha }}" -- s2sdk hl2sdk_cs2)
+          if ($LASTEXITCODE -ne 0 -or $sdkLinks.Count -ne 1 -or
+              $sdkLinks[0] -cnotmatch '^160000 commit ([0-9a-f]{40})\t(s2sdk|hl2sdk_cs2)$') {
+            throw "Source must bind exactly one SDK gitlink."
+          }
+          $sourceGitlink = $Matches[1]
+          $sdkPath = Join-Path "${{ github.workspace }}" $Matches[2]
           $checkedOutSha = (git -C $sdkPath rev-parse HEAD).Trim().ToLowerInvariant()
           if ($LASTEXITCODE -ne 0 -or $sdkRef -cne 'source-gitlink' -or `
               $sourceGitlink -notmatch '^[0-9a-f]{40}$' -or $sdkSha -ne $sourceGitlink -or `

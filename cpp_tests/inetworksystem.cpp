@@ -2,13 +2,8 @@
 #undef RESTRICT
 #define RESTRICT
 
-// Pre-define include guards to avoid heavy transitive includes (eiface.h -> protobuf)
-#define INETCHANNEL_H
-#define BITBUF_H
-class INetChannel;
-enum ENetworkDisconnectionReason {};
-struct netadr_t { int type; unsigned short port; unsigned int ip; };
-class CSteamID {};
+// The SDK serializer references this opaque game-side type.
+class CPlayerBitVec;
 
 #include <networksystem/inetworksystem.h>
 

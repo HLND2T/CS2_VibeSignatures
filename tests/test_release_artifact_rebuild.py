@@ -253,7 +253,7 @@ class ReleaseArtifactRebuildTests(unittest.TestCase):
         empty_tree = self._git(root, "mktree", input_text="")
         sdk_commit = self._git(root, "commit-tree", empty_tree, "-m", "sdk")
         self._git(root, "add", ".")
-        self._git(root, "update-index", "--add", "--cacheinfo", f"160000,{sdk_commit},hl2sdk_cs2")
+        self._git(root, "update-index", "--add", "--cacheinfo", f"160000,{sdk_commit},s2sdk")
         self._git(root, "commit", "-m", "source")
         return self._git(root, "rev-parse", "HEAD")
 

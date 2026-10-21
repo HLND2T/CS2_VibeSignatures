@@ -2,8 +2,7 @@
 #undef RESTRICT
 #define RESTRICT
 
-#include <tier1/convar.h>
-#include <iloopmode.h>
+#include <engine2/iengineservicemgr.h>
 
 ILoopType * looptype();
 

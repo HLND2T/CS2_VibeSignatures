@@ -2,7 +2,9 @@
 
 [English README](README.md) | [GUI](https://hlnd2t.github.io/CS2_VibeSignatures/)
 
-CS2 VibeSignatures 用于生成 CS2 signatures 和 offsets，通过 Agent skills 与 MCP calls 更新 HL2SDK_CS2 C++ headers，并生成按版本保存的 downstream gamedata。
+CS2 VibeSignatures 用于生成 CS2 signatures 和 offsets，通过 Agent skills 与 MCP calls 更新 s2sdk C++ headers，并生成按版本保存的 downstream gamedata。
+
+`s2sdk/` 子模块使用 [HLND2T/s2sdk](https://github.com/HLND2T/s2sdk/tree/cs2) 的 `cs2` 分支。每个源码提交通过 gitlink 固定 C++ 验证和发布包使用的 SDK 版本。
 
 本项目的设计目标是在无需人工干预的情况下更新 signatures、offsets 与 C++ headers。目前可自动处理 CounterStrikeSharp、CS2Fixes 及其他受支持项目所需的 signatures 和 offsets。
 

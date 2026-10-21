@@ -2,7 +2,7 @@
 #undef RESTRICT
 #define RESTRICT
 
-#include <inetchannel.h>
+#include <networksystem/inetchannel.h>
 
 INetChannel * netchannel();
 

@@ -32,7 +32,7 @@ Additional topic notes (search/read on demand):
 - Dependency information: `pyproject.toml`, `uv.lock`
 - Configuration: `.mcp.json`, `download.yaml`, `configs/<GAMEVER>.yaml`
 - Main script entry points: `download_depot.py`, `copy_depot_bin.py`, `ida_analyze_bin.py`, `generate_reference_yaml.py`, `gamesymbol_candidate.py`, `gamedata_candidate.py`, `run_cpp_tests.py`, `update_gamedata.py`, `bin_artifact_contract.py`
-- Large directories. Avoid reading them in full: `bin/`, `bin_artifacts/`, `hl2sdk_cs2/`, `gamedata-generators/`, `gamesymbol_snapshot_lib/`, `ida_preprocessor_scripts/`, `vcall_finder/`
+- Large directories. Avoid reading them in full: `bin/`, `bin_artifacts/`, `s2sdk/`, `gamedata-generators/`, `gamesymbol_snapshot_lib/`, `ida_preprocessor_scripts/`, `vcall_finder/`
 
 ## Progressive Disclosure Guidelines
 

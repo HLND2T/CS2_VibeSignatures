@@ -29,6 +29,7 @@ from gamesymbol_snapshot_lib.config import load_contract
 from gamesymbol_snapshot_lib.errors import SnapshotConfigError, SnapshotMismatchError, SnapshotSchemaError
 from gamesymbol_snapshot_lib.operations import collect_binary_metadata
 from gamesymbol_snapshot_lib.paths import is_reparse_point, path_from_key
+from release_workflow_lib.sdk import SourceSdkError, source_sdk
 
 
 PREPARATION_SCHEMA_VERSION = 2
@@ -128,10 +129,10 @@ def _checkout_artifact_digest(root: Path) -> str:
 
 
 def _sdk_gitlink(repo_root: Path, source_sha: str) -> str:
-    fields = _git(repo_root, "ls-tree", source_sha, "--", "hl2sdk_cs2").split()
-    if len(fields) < 3 or fields[0] != "160000" or fields[1] != "commit" or not SHA_RE.fullmatch(fields[2]):
-        raise ReleaseArtifactRebuildError("release source must bind the hl2sdk_cs2 gitlink")
-    return fields[2]
+    try:
+        return source_sdk(repo_root, source_sha).sha
+    except SourceSdkError as exc:
+        raise ReleaseArtifactRebuildError(str(exc)) from exc
 
 
 def prepare_release_rebuild(

@@ -3,7 +3,7 @@ name: create-cpp-tests
 description: |
   Create a new cpp_tests entry for validating a C++ interface vtable layout against binary reference YAMLs.
   Creates the .cpp test file in cpp_tests/ and appends a configs/<GAMEVER>.yaml entry under cpp_tests:.
-  Use when a user asks to add vtable layout validation for a new hl2sdk_cs2 interface class.
+  Use when a user asks to add vtable layout validation for a new s2sdk interface class.
 disable-model-invocation: true
 ---
 
@@ -19,7 +19,7 @@ Resolve `GAMEVER` from the user's explicit request or `CS2VIBE_GAMEVER`, set the
 ## When to Use
 
 - User asks to create cpp_tests for an interface (e.g., "create cpp_tests for ILoopMode")
-- User provides or references a header file from `hl2sdk_cs2/`
+- User provides or references a header file from `s2sdk/`
 
 ## Inputs
 
@@ -28,7 +28,7 @@ The user will provide some or all of:
 | Field | Required | Description | Example |
 |-------|----------|-------------|---------|
 | **Interface name** | Yes | The abstract class to validate | `ILoopMode` |
-| **Header path** | Yes | Path to the header in hl2sdk_cs2 | `hl2sdk_cs2/public/iloopmode.h` |
+| **Header path** | Yes | Path to the header in s2sdk | `s2sdk/public/iloopmode.h` |
 | **Alias symbols** | No | Concrete class name(s) used in binary YAML files | `CLoopModeGame` |
 | **Reference modules** | No | Modules where vtable YAMLs live | `client`, `server` |
 
@@ -44,10 +44,10 @@ Read the header file to understand:
 ### Step 2: Identify compilation dependencies
 
 Check if the header's transitive includes will compile cleanly with the standard include set:
-- `hl2sdk_cs2/game/shared`
-- `hl2sdk_cs2/public`
-- `hl2sdk_cs2/public/tier0`
-- `hl2sdk_cs2/public/tier1`
+- `s2sdk/game/shared`
+- `s2sdk/public`
+- `s2sdk/public/tier0`
+- `s2sdk/public/tier1`
 
 Common issues to watch for:
 - **Missing types** referenced in method signatures (e.g., `CSplitScreenSlot` needs `<tier1/convar.h>`)
@@ -118,10 +118,10 @@ Append a new entry at the end of the `cpp_tests:` section in `configs/<GAMEVER>.
     - {header_path} # Used by the fix-cppheaders SKILL
     target: x86_64-pc-windows-msvc
     include_directories:
-      - hl2sdk_cs2/game/shared
-      - hl2sdk_cs2/public
-      - hl2sdk_cs2/public/tier0
-      - hl2sdk_cs2/public/tier1
+      - s2sdk/game/shared
+      - s2sdk/public
+      - s2sdk/public/tier0
+      - s2sdk/public/tier1
     defines:
       - COMPILER_MSVC=1
       - COMPILER_MSVC64=1

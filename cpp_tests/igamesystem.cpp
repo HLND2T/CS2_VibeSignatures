@@ -2,18 +2,14 @@
 #undef RESTRICT
 #define RESTRICT
 
-#include <tier1/convar.h>
-#include <tier1/utlstring.h>
-#include <entity2/entityidentity.h>
-#include <entityhandle.h>
 #include <igamesystem.h>
 
 IGameSystem * gamesystem();
 
 /*
-clang++ -std=c++20 -c cpp_tests/igamesystem.cpp ` --target=x86_64-pc-windows-msvc
-  -Ihl2sdk_cs2/game/shared -Ihl2sdk_cs2/public `
-  -Ihl2sdk_cs2/public/tier0 -Ihl2sdk_cs2/public/tier1 `
+clang++ -std=c++20 -c cpp_tests/igamesystem.cpp --target=x86_64-pc-windows-msvc `
+  -Icpp_tests/stubs -Is2sdk/game/shared -Is2sdk/public `
+  -Is2sdk/public/tier0 -Is2sdk/public/tier1 -Is2sdk/public/mathlib `
   -DCOMPILER_MSVC=1 -DCOMPILER_MSVC64=1 `
   -Xclang -fdump-vtable-layouts -fms-extensions -fms-compatibility
 

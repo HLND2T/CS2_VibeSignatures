@@ -557,11 +557,11 @@ class TestBumpDownload(unittest.TestCase):
                 "submodule",
                 "add",
                 str(source),
-                "hl2sdk_cs2",
+                "s2sdk",
             )
             _run_git(repository, "commit", "-m", "record submodule")
             # The runner never refreshes the submodule, so the worktree keeps an older commit.
-            _run_git(repository / "hl2sdk_cs2", "checkout", "first")
+            _run_git(repository / "s2sdk", "checkout", "first")
 
             self.assertNotEqual("", _run_git(repository, "status", "--porcelain"))
             self.assertEqual("", _run_git(repository, "status", "--porcelain", "--ignore-submodules=all"))

@@ -2,14 +2,7 @@
 #undef RESTRICT
 #define RESTRICT
 
-// Pre-define include guards to avoid heavy transitive includes
-// eiface.h -> edict.h -> cmodel.h -> gametrace.h -> variant.h -> vector.h (missing)
-// inetchannel.h -> eiface.h (same chain) and needs protobuf-generated ENetworkDisconnectionReason
-#define EIFACE_H
-#define INETCHANNEL_H
-enum NetChannelBufType_t : int8 {};
-
-// Forward declaration used by inetworkserializer.h.
+// The SDK serializer references this opaque game-side type.
 class CPlayerBitVec;
 
 #include <networksystem/inetworkmessages.h>
