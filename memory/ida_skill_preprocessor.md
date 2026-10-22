@@ -146,3 +146,12 @@ YAML writers consistently use `yaml.safe_dump`:
 - **Scope:** short forwarding wrappers with independent current-version semantic
   anchors. Diagnose an ABI mismatch against actual call targets before editing
   headers or treating a unique signature match as proof of identity.
+
+
+## Lesson: repair artifact generators together with verified semantic names
+
+- **Trigger:** a manually corrected `func_name`/`member_name` passes ABI comparison, but the next analysis writes the old name again.
+- **Root cause:** finder targets historically serve as artifact filenames, dependency keys, LLM response identifiers, and semantic names. Correcting only the YAML does not change these producers; globally renaming targets breaks inherited dependencies and collides for chained event names.
+- **Correct approach:** each affected finder declares `OUTPUT_NAME_MAP`, mapping a stable artifact key to its verified full semantic symbol name. `preprocess_common_skill` applies it after signature reuse and fresh analysis, including inherited vfuncs and struct members; pending IDA function renames use emitted names. LLM requests explain the semantic mapping while keeping legacy result identifiers. The IGameSystem dispatch helper handles the same mapping directly without recursive name substitution. Agent writers take a separate `artifact_name` and must honor the same mapping. Stale existing semantic names must not trigger output-skipping.
+- **Verification:** exercise legacy-name signature payloads, inherited dependency keys, LLM member fallback with already-corrected old metadata, unrelated-member rejection, ownership checks, stale outputs, and the two-event collision. Replay the affected finders against actual Windows/Linux IDBs into a temporary artifact root, using original old metadata and empty signature maps for deterministic fresh paths; then build a candidate from regenerated outputs and rerun both native C++ ABI gates. Do not count an inlined-only finder as passing on a binary with the helper out of line.
+- **Scope:** semantic corrections where logical artifact identities must remain compatible. See `docs/cpp-abi-reference-validation.md`; do not rewrite historical reference files merely to change compatibility keys.

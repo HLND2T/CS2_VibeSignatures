@@ -19,6 +19,11 @@ INHERIT_VFUNCS = [
     ),
 ]
 
+# Artifact keys stay stable; emitted names reflect the verified SDK semantics.
+OUTPUT_NAME_MAP = {
+    "CNetworkSystem_InitNetworkSystem": "CNetworkSystem_InitSteamNetworking",
+}
+
 GENERATE_YAML_DESIRED_FIELDS = [
     (
         "CNetworkSystem_InitNetworkSystem",
@@ -58,4 +63,5 @@ async def preprocess_skill(
         inherit_vfuncs=INHERIT_VFUNCS,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
+        output_name_map=OUTPUT_NAME_MAP,
     )

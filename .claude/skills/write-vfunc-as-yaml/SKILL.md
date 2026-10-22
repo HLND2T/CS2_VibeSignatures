@@ -29,6 +29,7 @@ Before using this skill, you should have:
 | Parameter | Description | Example |
 |-----------|-------------|---------|
 | `func_addr` | Virtual address of the function (use `None` to omit) | `0x180999830` |
+| `artifact_name` | Stable filename stem from the caller's expected output; defaults to `func_name`. This may be a legacy key with a corrected semantic name. | `INetworkServerService_GetServerSerializersCRC` |
 | `func_sig` | Unique byte signature to locate function body (use `None` to omit) | `48 89 5C 24 08` |
 | `vfunc_sig` | Unique byte signature to determine vfunc offset (use `None` to omit) | `FF 90 80 04 00 00 4C 8B AC 24 ?? ?? ?? ??` |
 | `vfunc_sig_disp` | Byte displacement from signature start to the target instruction. `0` or `None` means signature starts at the target instruction. Non-zero means backward expansion was used by `/generate-signature-for-vfuncoffset`. (use `None` to omit) | `3` |
@@ -48,6 +49,7 @@ import yaml
 
 # === REQUIRED: Replace these values ===
 func_name = "<func_name>"           # e.g., "CCSPlayerController_ChangeTeam"
+artifact_name = func_name           # Override with the caller's legacy artifact key when different.
 # ======================================
 
 # === OPTIONAL: Set to None to omit from output ===
@@ -100,7 +102,7 @@ data['vtable_name'] = vtable_name
 data['vfunc_offset'] = hex(vfunc_offset)
 data['vfunc_index'] = vfunc_index
 
-yaml_path = os.path.join(dir_path, f"{func_name}.{platform}.yaml")
+yaml_path = os.path.join(dir_path, f"{artifact_name}.{platform}.yaml")
 with open(yaml_path, 'w', encoding='utf-8') as f:
     yaml.dump(data, f, default_flow_style=False, sort_keys=False, allow_unicode=True)
 print(f"Written to: {yaml_path}")
@@ -110,7 +112,11 @@ print(f"Written to: {yaml_path}")
 ## Output File Naming Convention
 
 The output YAML filename follows this pattern:
-- `<func_name>.<platform>.yaml`
+- `<artifact_name>.<platform>.yaml` (defaults to `func_name`)
+
+Honor the corresponding preprocessor's `OUTPUT_NAME_MAP`: its key is the stable
+artifact stem and its value is the emitted `func_name`. Never infer a semantic
+name solely from a legacy filename or rename dependency keys to match it.
 
 Examples:
 - `server.dll` → `CCSPlayerController_ChangeTeam.windows.yaml`

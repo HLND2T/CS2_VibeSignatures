@@ -54,6 +54,12 @@ FUNC_VTABLE_RELATIONS = [
     ("CEntityInstance_PostDataUpdateDelta", "CEntityInstance"),
 ]
 
+# Artifact keys stay stable; emitted names reflect the verified SDK semantics.
+OUTPUT_NAME_MAP = {
+    "CEntityInstance_PostDataUpdatePreserve": "CEntityInstance_OnDataUnchangedInPVS",
+    "CEntityInstance_PostDataUpdateDelta": "CEntityInstance_DispatchPostDataUpdate",
+}
+
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
     # IMPORTANT: must be exactly these four fields to trigger slot-only mode
@@ -120,4 +126,5 @@ async def preprocess_skill(
         llm_config=llm_config,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
+        output_name_map=OUTPUT_NAME_MAP,
     )

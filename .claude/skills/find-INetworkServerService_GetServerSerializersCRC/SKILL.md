@@ -2,7 +2,7 @@
 name: find-INetworkServerService_GetServerSerializersCRC
 description: |
   Final-guarantee fallback for the find-INetworkServerService_GetServerSerializersCRC preprocessor.
-  Recovers INetworkServerService::GetServerSerializersCRC (a virtual function of the CNetworkServerService
+  Recovers INetworkServerService::GetServerSerializersMsg (legacy artifact key GetServerSerializersCRC, a virtual function of the CNetworkServerService
   vtable) in CS2 engine2.dll / libengine2.so by decompiling its known predecessor
   CNetworkGameServer_WriteClassInfosAndSerializesToBuffer and identifying the virtual call on
   g_pNetworkServerService. Use this skill only when the deterministic/LLM preprocessor
@@ -13,7 +13,7 @@ disable-model-invocation: true
 
 # Find INetworkServerService_GetServerSerializersCRC (final-guarantee fallback)
 
-Recover the virtual function `INetworkServerService::GetServerSerializersCRC` in CS2 `engine2.dll` /
+Recover the virtual function `INetworkServerService::GetServerSerializersMsg` in CS2 `engine2.dll` /
 `libengine2.so` using IDA Pro MCP tools. This is the **Agent fallback** for the
 `find-INetworkServerService_GetServerSerializersCRC` skill: it runs only when the preprocessor script
 returned failure (almost always a transient LLM error, or the predecessor's call structure moved).
@@ -41,13 +41,15 @@ mcp__ida-pro-mcp__decompile addr="<CNetworkGameServer_WriteClassInfosAndSerializ
 
 ## Step 2. Locate the virtual call to the target
 
-`INetworkServerService::GetServerSerializersCRC(this)` is an indirect virtual call on the global
+`INetworkServerService::GetServerSerializersMsg(this)` is an indirect virtual call on the global
 `g_pNetworkServerService`. Anchor by its **semantic fingerprint**, not a fixed offset:
 
 - It is the **first** `call qword ptr [reg + <off>]` where `reg = *g_pNetworkServerService` (load the vtable
   from the global, then call through it), near the top of the function.
-- It takes no extra argument and returns an integer CRC value that is subsequently written into the
-  class-info/serializer buffer being built.
+- It takes no extra argument and returns a serializers-message pointer whose
+  contents are written into the class-info/serializer buffer. Do not confuse it
+  with the adjacent CRC-computation method. Legacy annotations call this pointer
+  accessor GetServerSerializersCRC; that label is an artifact key, not its semantics.
 
 Reference build vtable offsets (verify, do not hardcode):
 
@@ -65,7 +67,8 @@ located call instruction on the current binary.
    resolve a concrete implementation address — adding body fields makes the output diverge from the
    canonical artifact.
 2. **ALWAYS** Use SKILL `/write-vfunc-as-yaml` with:
-   - `func_name`: `INetworkServerService_GetServerSerializersCRC`
+   - `artifact_name`: `INetworkServerService_GetServerSerializersCRC`
+   - `func_name`: `INetworkServerService_GetServerSerializersMsg`
    - `vtable_name`: `CNetworkServerService_vtable`
    - `vfunc_sig`: the validated signature from step 1
    - `vfunc_offset` / `vfunc_index`: the resolved values

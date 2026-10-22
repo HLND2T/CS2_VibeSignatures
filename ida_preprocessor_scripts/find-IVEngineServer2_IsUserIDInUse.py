@@ -23,6 +23,11 @@ FUNC_VTABLE_RELATIONS = [
     ("IVEngineServer2_IsUserIDInUse", "IVEngineServer2"),
 ]
 
+# Artifact keys stay stable; emitted names reflect the verified SDK semantics.
+OUTPUT_NAME_MAP = {
+    "IVEngineServer2_IsUserIDInUse": "IVEngineServer2_GetEntityTransmitBitsForClient",
+}
+
 GENERATE_YAML_DESIRED_FIELDS = [
     (
         "IVEngineServer2_IsUserIDInUse",
@@ -63,4 +68,5 @@ async def preprocess_skill(
         llm_config=llm_config,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
+        output_name_map=OUTPUT_NAME_MAP,
     )

@@ -92,7 +92,10 @@ wildcards, and be unique in the current binary.
 
 Then use `/write-vfunc-as-yaml` with:
 
-- `func_name`: the output symbol
+- `artifact_name`: the output symbol's legacy file stem
+- `func_name`: `INetworkSystem_GetUDPPortWithFallback` for the
+  `INetworkSystem_GetUDPPort` artifact; otherwise the output symbol unchanged.
+  This call uses the fallback-port accessor, not the separate bound-port method.
 - `func_addr=None` and `func_sig=None` (these are call-slot outputs, not function bodies)
 - `vfunc_sig`: the generated call-instruction signature
 - `vfunc_sig_disp=0` (or omit it)

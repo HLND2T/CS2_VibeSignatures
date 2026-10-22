@@ -28,6 +28,11 @@ FUNC_VTABLE_RELATIONS = [
     ("CNetworkGameServerBase_ServerSimulate", "CNetworkGameServerBase"),
 ]
 
+# Artifact keys stay stable; emitted names reflect the verified SDK semantics.
+OUTPUT_NAME_MAP = {
+    "CNetworkGameServerBase_ServerSimulate": "CNetworkGameServerBase_ServerBeginSimulate",
+}
+
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
     (
@@ -69,4 +74,5 @@ async def preprocess_skill(
         func_vtable_relations=FUNC_VTABLE_RELATIONS,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
+        output_name_map=OUTPUT_NAME_MAP,
     )

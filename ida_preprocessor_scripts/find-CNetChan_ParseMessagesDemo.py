@@ -26,6 +26,11 @@ FUNC_VTABLE_RELATIONS = [
     ("CNetChan_ParseMessagesDemo", "CNetChan"),
 ]
 
+# Artifact keys stay stable; emitted names reflect the verified SDK semantics.
+OUTPUT_NAME_MAP = {
+    "CNetChan_ParseMessagesDemo": "CNetChan_ProcessDemoPacket",
+}
+
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
     (
@@ -67,4 +72,5 @@ async def preprocess_skill(
         func_vtable_relations=FUNC_VTABLE_RELATIONS,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
+        output_name_map=OUTPUT_NAME_MAP,
     )

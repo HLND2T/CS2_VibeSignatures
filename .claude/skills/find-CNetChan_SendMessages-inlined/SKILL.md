@@ -198,10 +198,11 @@ Set:
 If the resolved start matches **no** vtable entry, the function is not the vtable target — return to Step 2.
 Do **not** emit the previous build's slot.
 
-Rename the function to `CNetChan_SendMessages` if the database does not already name it that way:
+The legacy artifact key `CNetChan_SendMessages` identifies the checkpoint-bounded
+sender `CNetChan::TransmitUpToCheckpoint`. Rename the function accordingly:
 
 ```
-mcp__ida-pro-mcp__rename batch={"func":[{"addr":"<start>","name":"CNetChan_SendMessages"}]}
+mcp__ida-pro-mcp__rename batch={"func":[{"addr":"<start>","name":"CNetChan_TransmitUpToCheckpoint"}]}
 ```
 
 ## Step 4. Generate the signature and write the YAML
@@ -209,7 +210,8 @@ mcp__ida-pro-mcp__rename batch={"func":[{"addr":"<start>","name":"CNetChan_SendM
 1. **ALWAYS** Use SKILL `/generate-signature-for-function` with `addr=<resolved start>` to obtain a fresh,
    validated `func_sig`. (This is a real function with a body — unlike an interface indirect vcall.)
 2. **ALWAYS** Use SKILL `/write-vfunc-as-yaml` with:
-   - `func_name`: `CNetChan_SendMessages`
+   - `artifact_name`: `CNetChan_SendMessages`
+   - `func_name`: `CNetChan_TransmitUpToCheckpoint`
    - `func_addr`: the resolved function start
    - `func_sig`: the signature from step 1
    - `vtable_name`: `CNetChan`

@@ -40,6 +40,11 @@ FUNC_VTABLE_RELATIONS = [
     ("INetworkServerService_IsActiveInGame", "CNetworkServerService_vtable"),
 ]
 
+# Artifact keys stay stable; emitted names reflect the verified SDK semantics.
+OUTPUT_NAME_MAP = {
+    "INetworkSystem_GetUDPPort": "INetworkSystem_GetUDPPortWithFallback",
+}
+
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
     # slim Pattern C: neither slot is a function body -- vfunc_sig is MANDATORY
@@ -92,4 +97,5 @@ async def preprocess_skill(
         llm_config=llm_config,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
+        output_name_map=OUTPUT_NAME_MAP,
     )
