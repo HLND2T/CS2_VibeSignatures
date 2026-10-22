@@ -43,7 +43,7 @@ permalink: cs2-vibesignatures/run-cpp-tests
 - Header repair: invoke the `fix-cppheaders` SKILL.
 
 ## s2sdk compilation compatibility
-- Trigger: C++ tests fail after migrating from hl2sdk to s2sdk (`a54d726d1693ffffe59f101f480d6d76c79a7fc6`).
+- Trigger: C++ tests fail after migrating from hl2sdk to s2sdk (`a54d726d1693ffffe59f101f480d6d76c79a7fc6`, later synced to upstream `259e8fbe9cec68b56b1ff52e8e5d53cca78cb557`).
 - Root cause: engine interfaces moved into `public/engine2`, convars into `public/tier0`, and INetChannel into `public/networksystem`. Legacy test include-guard overrides and local CPlayerUserId/ChangeAccessorFieldPathIndex_t/NetChannelBufType_t definitions conflict with SDK declarations.
 - Correct approach: include the real SDK headers, remove obsolete fake definitions/guard overrides, and keep only an opaque CPlayerBitVec forward declaration where the SDK references the game-side type. INetworkGameServer uses GetMaxClients to request its layout because PreWorldUpdate is absent in this SDK.
 - Configuration: route each cpp_tests.headers entry to its actual defining header; engine service/loop tests need `s2sdk/common` for language.h, network-system tests need `s2sdk/public/mathlib`, and protobuf-dependent tests need the existing `cpp_tests/stubs` directory. Match SDK header casing exactly.
